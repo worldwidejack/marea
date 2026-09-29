@@ -5,7 +5,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, '..', '..', 'tools')]
 import bpy
 import lib, export_gltf
-import models_terreno, models_edifici, models_prop, models_chr
+import models_terreno, models_edifici, models_prop, models_chr, models_m1
 
 argv = sys.argv[sys.argv.index('--') + 1:]
 flags = {a for a in argv if a.startswith('--')}
@@ -13,7 +13,7 @@ args = [a for a in argv if not a.startswith('--')]
 lib.ATLAS_PNG, OUT, PREV = os.path.abspath(args[0]), os.path.abspath(args[1]), os.path.abspath(args[2])
 only = set(args[3:])
 REG = {}
-for m in (models_terreno, models_edifici, models_prop, models_chr):
+for m in (models_terreno, models_edifici, models_prop, models_chr, models_m1):
     REG.update(m.MODELS)
 
 
@@ -49,6 +49,11 @@ def setup_preview(objs, name, extra_frames=()):
     xs, ys, zs = [p.x for p in pts], [p.y for p in pts], [p.z for p in pts]
     c = ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, (min(zs) + max(zs)) / 2)
     size = max(max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs))
+    # famiglie di edifici a livelli (bld_<id>_l<n>, cantiere): inquadratura fissa, così L1/L2/L3 affiancati mostrano la crescita
+    import re
+    if re.match(r'bld_[a-z]+_l\d$', name) or name == 'bld_cantiere':
+        size = 6.8 if name.startswith('bld_faro') else 4.2
+        c = (0.0, 0.0, size * 0.34)
     cam = bpy.data.cameras.new('cam'); cam.type = 'ORTHO'; cam.ortho_scale = size * 1.45
     co = bpy.data.objects.new('cam', cam); sc.collection.objects.link(co); sc.camera = co
     # diorama: yaw 45°, pitch ~35° (visto da sud-est, davanti = −Z di gioco = +Y Blender → camera dal lato −Y? no: guardiamo il davanti)

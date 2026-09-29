@@ -38,7 +38,7 @@ function cheapest(lot: LotState): Option | null {
     const cost = def.levels[0]!.cost;
     const free = map.lots.find((c) => !lot.buildings.some((b) => b.cell[0] === c.cx && b.cell[1] === c.cz));
     if (!free) continue;
-    opts.push({ cost: -1000 + i, canPay: (l) => geq(l.resources, cost), act: (l, t) => build(l, id, [free.cx, free.cz], t) });
+    opts.push({ cost: -1000 + i, canPay: (l) => geq(l.resources, cost), act: (l, t) => build(l, id, [free.cx, free.cz], t, map) });
   }
   if (!opts.length)
     for (const b of lot.buildings) {

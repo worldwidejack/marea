@@ -1,6 +1,8 @@
 // Acqua a pixel (ART_BIBLE §8): piano piatto, 2 colori per fascia (acqua / acqua bassa) che scorrono lenti, quantizzati a 16 texel/m.
 // Vicino alle rive i vertici ondeggiano appena; schiuma a pixel chiari lungo le rive e attorno a moli e scogli. Niente riflessi, niente trasparenze.
-// Tutto in 1 shader non illuminato (colori esatti della palette): 2 draw call (griglia fitta sulla mappa + cornice larga fino all'orizzonte).
+// Tutto in 1 shader non illuminato (colori esatti della palette): 2 draw call (griglia fitta attorno alla camera + cornice larga fino
+// all'orizzonte, entrambe spostate a passi di 2 m con la camera: l'acqua è infinita e la mappa può essere grande quanto si vuole).
+// Fasce di profondità dalla distanza dalla terra più vicina (canale A della maschera), non dal bordo della mappa: vale per l'arcipelago.
 import * as THREE from 'three';
 import type { GridMap, Tile } from '@marea/sim';
 
@@ -30,7 +32,7 @@ const VERT = /* glsl */ `
 uniform float uTime; uniform sampler2D uMask; uniform float uHasMap; uniform vec2 uMaskOrigin; uniform vec2 uMaskSize;
 varying vec3 vWorld;
 void main() {
-  vec3 w = position; // le posizioni sono già nel mondo (la griglia è costruita sulle celle della mappa)
+  vec3 w = (modelMatrix * vec4(position, 1.0)).xyz; // la griglia si sposta con la camera (a passi interi di cella)
   if (uHasMap > 0.5) {
     vec4 m = textureLod(uMask, (w.xz - uMaskOrigin) / uMaskSize, 0.0);
     float shore = smoothstep(0.02, 0.45, max(m.r, m.b)) * (1.0 - smoothstep(0.55, 0.8, m.r));
@@ -45,18 +47,19 @@ uniform float uTime; uniform sampler2D uMask; uniform float uHasMap; uniform vec
 uniform vec2 uMapMin; uniform vec2 uMapMax; uniform sampler2D uPattern;
 uniform vec3 cAbisso; uniform vec3 cProfonda; uniform vec3 cAcqua; uniform vec3 cBassa; uniform vec3 cSchiuma;
 varying vec3 vWorld;
+const float DIST_MAX = 128.0; // metri codificati in 0..1 nel canale A della maschera
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void main() {
   vec2 px = floor(vWorld.xz * 16.0);            // 16 texel per metro
   vec2 p = (px + 0.5) / 16.0;
   float checker = mod(px.x + px.y, 2.0);        // per il dithering tra fasce (solo colori adiacenti)
-  // Fasce di profondità: acqua sulla mappa, profonda oltre 14 m, abisso oltre 70 m (bordi netti a scacchi).
+  // Fasce di profondità dalla terra più vicina: acqua fino a 14 m, profonda oltre, abisso oltre 70 m (bordi netti a scacchi).
+  vec4 m = uHasMap > 0.5 ? texture2D(uMask, (p - uMaskOrigin) / uMaskSize) : vec4(0.0);
   vec2 dd = max(max(uMapMin - p, p - uMapMax), vec2(0.0));
-  float dist = uHasMap > 0.5 ? length(dd) : 30.0;
+  float dist = uHasMap > 0.5 ? max(m.a * DIST_MAX, length(dd)) : 30.0;
   vec3 base = cAcqua, streak = cBassa;
   if (dist + checker * 1.5 > 14.0) { base = cProfonda; streak = cAcqua; }
   if (dist + checker * 3.0 > 70.0) { base = cAbisso; streak = cProfonda; }
-  vec4 m = uHasMap > 0.5 ? texture2D(uMask, (p - uMaskOrigin) / uMaskSize) : vec4(0.0);
   float shallow = max(m.g, m.r);
   if (shallow + checker * 0.06 > 0.5) { base = cBassa; streak = cAcqua; }
   // Due strati del motivo che scorrono in direzioni diverse: trattini chiari/scuri a pixel.
@@ -100,10 +103,6 @@ function getMaterial(): THREE.ShaderMaterial {
   return material;
 }
 
-/** Piano quadrato in coordinate mondo, lato `size`, centrato in (cx, cz). */
-function quad(cx: number, cz: number, size: number): THREE.BufferGeometry {
-  const g = new THREE.PlaneGeometry(size, size, 1, 1); g.rotateX(-Math.PI / 2); g.translate(cx, 0, cz); return g;
-}
 /** Griglia fitta (1 m) sul rettangolo [x0,x1]×[z0,z1] in coordinate mondo. */
 function grid(x0: number, z0: number, x1: number, z1: number, step: number): THREE.BufferGeometry {
   const w = x1 - x0, h = z1 - z0;
@@ -125,37 +124,47 @@ function frame(x0: number, z0: number, x1: number, z1: number, R: number): THREE
   return g;
 }
 
-type WaterInst = { near: THREE.Mesh; far: THREE.Mesh; size: number };
-const waters = new Set<WaterInst>();
-let lastMap: GridMap | null = null;
-const MARGIN = 8, HORIZON = 1500;
+/** Griglia fitta: lato NEAR m a passi di 1 m attorno al punto guardato (la vista diorama copre < 80 m); oltre, la cornice fino a HORIZON. */
+const NEAR = 96, HORIZON = 1500, SNAP = 2;
+const DIST_MAX_CELLS = 64; // = 128 m con celle da 2 m (DIST_MAX nello shader)
 
+/** Maschera per cella (bordo di 1 cella): R terra, G acqua bassa, B schiuma (molo, scogli), A distanza dalla terra più vicina. */
 function buildMask(map: GridMap): THREE.DataTexture {
   const W = map.w + 2, H = map.h + 2;
   const data = new Uint8Array(W * H * 4);
+  // Distanza (in celle, chamfer a 8 vicini con passi 1 e 1,41) dalla cella di terra più vicina.
+  const dist = new Float32Array(W * H).fill(Infinity);
   for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
     const t = map.at(x - 1, z - 1), i = (z * W + x) * 4;
     data[i] = LAND.has(t) && t !== 'd' ? 255 : 0; // il molo sta sull'acqua: non è riva
     data[i + 1] = SHALLOW.has(t) ? 255 : 0;
     data[i + 2] = FOAMY.has(t) ? 255 : 0;
-    data[i + 3] = 255;
+    if (LAND.has(t)) dist[z * W + x] = 0;
   }
+  // Due passate (avanti e indietro): veloce anche su 560×560 celle.
+  const D = Math.SQRT2;
+  for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
+    const i = z * W + x; let d = dist[i]!;
+    if (x > 0) d = Math.min(d, dist[i - 1]! + 1);
+    if (z > 0) { d = Math.min(d, dist[i - W]! + 1); if (x > 0) d = Math.min(d, dist[i - W - 1]! + D); if (x < W - 1) d = Math.min(d, dist[i - W + 1]! + D); }
+    dist[i] = d;
+  }
+  for (let z = H - 1; z >= 0; z--) for (let x = W - 1; x >= 0; x--) {
+    const i = z * W + x; let d = dist[i]!;
+    if (x < W - 1) d = Math.min(d, dist[i + 1]! + 1);
+    if (z < H - 1) { d = Math.min(d, dist[i + W]! + 1); if (x < W - 1) d = Math.min(d, dist[i + W + 1]! + D); if (x > 0) d = Math.min(d, dist[i + W - 1]! + D); }
+    dist[i] = d;
+  }
+  for (let i = 0; i < W * H; i++) data[i * 4 + 3] = Math.round(Math.min(1, dist[i]! / DIST_MAX_CELLS) * 255);
   const tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat);
   tex.magFilter = tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.colorSpace = THREE.NoColorSpace; tex.flipY = false; tex.needsUpdate = true;
   return tex;
 }
 
-function applyMap(w: WaterInst, map: GridMap): void {
-  const x1 = map.w * map.tile + MARGIN, z1 = map.h * map.tile + MARGIN;
-  w.near.geometry.dispose(); w.near.geometry = grid(-MARGIN, -MARGIN, x1, z1, 1);
-  w.far.geometry.dispose(); w.far.geometry = frame(-MARGIN, -MARGIN, x1, z1, HORIZON);
-  w.near.visible = true;
-}
-
 /** Collega l'acqua alla mappa: rive, acqua bassa, schiuma e ondeggiamento. Idempotente; vale anche per le acque create dopo. */
 export function setWaterMap(map: GridMap): void {
-  lastMap = map;
+
   U.uMask.value?.dispose();
   U.uMask.value = buildMask(map);
   U.uHasMap.value = 1;
@@ -163,23 +172,25 @@ export function setWaterMap(map: GridMap): void {
   U.uMaskOrigin.value.set(-map.tile, -map.tile);
   U.uMaskSize.value.set((map.w + 2) * map.tile, (map.h + 2) * map.tile);
   U.uMapMin.value.set(0, 0); U.uMapMax.value.set(map.w * map.tile, map.h * map.tile);
-  for (const w of waters) applyMap(w, map);
 }
 
-export function createWater(o: { size: number; map?: GridMap }): { mesh: THREE.Object3D; update(t: number): void; setMap?(map: GridMap): void } {
+export type Water = { mesh: THREE.Object3D; update(t: number): void; setMap?(map: GridMap): void; follow(x: number, z: number): void };
+
+export function createWater(o: { size: number; map?: GridMap }): Water {
   const mat = getMaterial();
   const group = new THREE.Group(); group.name = 'water';
-  // Senza mappa: un unico piano largo. Le posizioni sono in coordinate mondo (lo shader ignora la matrice del gruppo).
-  const far = new THREE.Mesh(quad(0, 0, HORIZON * 2), mat);
-  const near = new THREE.Mesh(new THREE.BufferGeometry(), mat); near.visible = false;
-  for (const m of [far, near]) { m.frustumCulled = false; m.matrixAutoUpdate = false; group.add(m); }
-  const inst: WaterInst = { near, far, size: o.size };
-  waters.add(inst);
-  const map = o.map ?? lastMap;
-  if (o.map) setWaterMap(o.map); else if (map) applyMap(inst, map);
+  // Griglia fitta centrata nell'origine del gruppo + cornice attorno; il gruppo segue il punto guardato a passi di SNAP m.
+  const h = NEAR / 2;
+  const far = new THREE.Mesh(frame(-h, -h, h, h, HORIZON), mat);
+  const near = new THREE.Mesh(grid(-h, -h, h, h, 1), mat);
+  for (const m of [far, near]) { m.frustumCulled = false; m.name = m === far ? 'acqua_lontana' : 'acqua_vicina'; group.add(m); }
+  if (o.map) setWaterMap(o.map);
+  const follow = (x: number, z: number) => { group.position.set(Math.round(x / SNAP) * SNAP, 0, Math.round(z / SNAP) * SNAP); };
+  follow(o.size / 2, o.size / 2);
   return {
     mesh: group,
     update: (t) => { U.uTime.value = t % 3600; },
     setMap: (m) => setWaterMap(m),
+    follow,
   };
 }

@@ -18,6 +18,11 @@
 
 - Negozio dei cappelli (M1): i cappelli con costo in Perle si comprano una volta (campo `posseduti` nel `LotState`, azione `buyHat`); finché non c'è, `/api/look` accetta solo i cappelli gratuiti.
 - Barche per giocatore: oggi ogni client ha la sua barca a `boatSpawn`, quindi al molo la barca di un peer si sovrappone alla tua (vuota). In M1: una barca per lotto/persona con posto al molo proprio, o la tua barca nascosta finché non ci sali.
+- Caricamento a due tempi dei modelli: all'avvio solo L1 e ciò che serve al proprio lotto; L2/L3, Porto e facciate dopo (oggi 1,53 MB iniziali su 2).
+- Bordo del mondo: la barca può uscire dalla mappa (mare infinito). Un muro morbido o una corrente che riporta indietro.
+- Test `m1_isola`: usare l'orologio di test di M1-server (`X-Test-Now-Offset` con `--var TEST_CLOCK:1`) invece di aspettare 3 minuti veri.
+- Runner dei test: quando una suite va in timeout non spegne il `wrangler dev` staccato (processi orfani).
+- Regata sulla laguna (oggi usa ancora la mappa `prova`): spostarla quando non ci sono sfide aperte.
 
 ## Mai
 - Soldi veri per risorse o acceleratori. (Cosmetici a pagamento: solo se un giorno si apre al pubblico, e solo cosmetici.)

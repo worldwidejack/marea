@@ -5,6 +5,7 @@ import { parseIsland } from '../src/world/grid.ts';
 import { build, collect, collectAll, newLot, placeDecor, upgrade } from '../src/economy/actions.ts';
 import { advance, bufferCap, storageCap } from '../src/economy/advance.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
+import { cellsOf } from '../src/economy/cells.ts';
 import { applyMinigameResult } from '../src/economy/rewards.ts';
 import { acceptWager, cancelWager, openWager, settle, tableInfo } from '../src/economy/wager.ts';
 import { EconomyError, ZERO, add, total } from '../src/economy/types.ts';
@@ -14,6 +15,7 @@ import { createRng } from '../src/rng.ts';
 const H = 3_600_000, DAY = 24 * H;
 const m = parseIsland(ISLANDS[0]!);
 const cell = (i: number): [number, number] => [m.lots[i]!.cx, m.lots[i]!.cz];
+const grass = (i: number): [number, number] => cellsOf(m, 'g')[i]!;
 const lvl = (id: string, l: number) => building(id).levels[l - 1]!;
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 /** Un lotto ricco con tutto costruito al livello dato (per i test di wager e rewards). */
@@ -29,7 +31,7 @@ function richLot(owner: string, t: number, tavolo = 1, faro = 0): LotState {
 test('segheria: costruisci, aspetta, raccogli; invariante ok', () => {
   const t0 = 1_000_000;
   let lot = newLot('jack', t0, m);
-  lot = build(lot, 'segheria', cell(0), t0);
+  lot = build(lot, 'segheria', cell(0), t0, m);
   assert.equal(lot.resources.legno, BALANCE.partenza.legno - lvl('segheria', 1).cost.legno);
   assert.ok(lot.construction);
   const end = t0 + lvl('segheria', 1).seconds * 1000;
@@ -45,7 +47,7 @@ test('segheria: costruisci, aspetta, raccogli; invariante ok', () => {
 
 test('deposito in due tempi: pieno per bufferOre, poi lento fino al tetto; il magazzino fa da tetto', () => {
   let lot = newLot('a', 0, m);
-  lot = build(lot, 'segheria', cell(1), 0);
+  lot = build(lot, 'segheria', cell(1), 0, m);
   const r = lvl('segheria', 1).rate!;
   const T0 = lvl('segheria', 1).seconds * 1000;
   const bOre = BALANCE.bufferOre;
@@ -67,8 +69,8 @@ test('deposito in due tempi: pieno per bufferOre, poi lento fino al tetto; il ma
 
 test('cantiere unico; miglioramento: produce al livello vecchio fino alla fine del cantiere', () => {
   let lot = richLot('a', 0, 0);
-  lot = build(lot, 'segheria', cell(2), 0);
-  assert.throws(() => build(lot, 'cava', cell(3), 1000), isErr('cantiere'));
+  lot = build(lot, 'segheria', cell(2), 0, m);
+  assert.throws(() => build(lot, 'cava', cell(3), 1000, m), isErr('cantiere'));
   const t1 = lvl('segheria', 1).seconds * 1000;
   lot = upgrade(lot, 'segheria-2', t1);
   assert.throws(() => upgrade(lot, 'segheria-2', t1 + 1), isErr('cantiere'));
@@ -83,12 +85,12 @@ test('cantiere unico; miglioramento: produce al livello vecchio fino alla fine d
 test('errori in italiano: risorse (con manca), unico, cella, requisito, livello massimo, sconosciuto', () => {
   const lot = newLot('a', 0, m);
   const faro = lvl('faro', 1).cost;
-  assert.throws(() => build({ ...lot, resources: { ...ZERO } }, 'faro', cell(0), 0), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.legno === faro.legno && (e as EconomyError).manca!.pietra === faro.pietra);
-  const l2 = build(richLot('b', 0, 0), 'segheria', cell(0), 0);
+  assert.throws(() => build({ ...lot, resources: { ...ZERO } }, 'faro', cell(0), 0, m), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.legno === faro.legno && (e as EconomyError).manca!.pietra === faro.pietra);
+  const l2 = build(richLot('b', 0, 0), 'segheria', cell(0), 0, m);
   const l3 = advance(l2, H);
-  assert.throws(() => build(l3, 'segheria', cell(1), H), isErr('unico'));
-  assert.throws(() => build(l3, 'cava', cell(0), H), isErr('cella'));
-  assert.throws(() => build({ ...l3, buildings: l3.buildings.filter((b) => b.building !== 'molo') }, 'cava', cell(1), H), isErr('requisito'));
+  assert.throws(() => build(l3, 'segheria', cell(1), H, m), isErr('unico'));
+  assert.throws(() => build(l3, 'cava', cell(0), H, m), isErr('cella'));
+  assert.throws(() => build({ ...l3, buildings: l3.buildings.filter((b) => b.building !== 'molo') }, 'cava', cell(1), H, m), isErr('requisito'));
   assert.throws(() => upgrade(l3, 'nessuno', H), isErr('sconosciuto'));
   const max = { ...l3, buildings: l3.buildings.map((b) => (b.building === 'segheria' ? { ...b, level: building('segheria').levels.length } : b)) };
   assert.throws(() => upgrade(max, 'segheria-2', H), isErr('livello'));
@@ -96,10 +98,10 @@ test('errori in italiano: risorse (con manca), unico, cella, requisito, livello 
 
 test('decorazioni: costano Perle, cella libera', () => {
   let lot = richLot('a', 0, 0);
-  lot = placeDecor(lot, 'lanterna', [3, 3], 0, 0, 5);
+  lot = placeDecor(lot, 'lanterna', grass(0), 0, 0, 5, m);
   assert.equal(lot.resources.perle, 95);
-  assert.throws(() => placeDecor(lot, 'lanterna', [3, 3], 0, 0, 5), isErr('cella'));
-  assert.throws(() => placeDecor({ ...lot, resources: { ...lot.resources, perle: 1 } }, 'torii', [4, 4], 0, 0, 5), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.perle === 4);
+  assert.throws(() => placeDecor(lot, 'lanterna', grass(0), 0, 0, 5, m), isErr('cella'));
+  assert.throws(() => placeDecor({ ...lot, resources: { ...lot.resources, perle: 1 } }, 'torii', grass(1), 0, 0, 5, m), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.perle === 4);
   assert.equal(checkInvariant([lot]), null);
 });
 

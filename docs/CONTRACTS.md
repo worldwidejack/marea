@@ -121,3 +121,23 @@ type Renderer = { scene: THREE.Scene; camera: THREE.PerspectiveCamera; render(al
 - e2e: build in `tests/out/dist-<pid>` + server statico su porta libera (o `wrangler dev` per `net`), Playwright su **Chrome di sistema** (`channel: 'chrome'`), viewport iPhone 390×844 con `deviceScaleFactor` 2 e uno 1280×720. ctx: `open(query)`, `waitReady(page)`, `waitState(page, fn, ms)`, `getState(page)`, `shot(page, name)`, `screenStats(page)`, `test(name, fn)`, `noErrors(page)`.
 - `boot`: pagina senza `pageerror`, `__game.ready` entro 8 s, canvas non vuoto (varianza > 50). `look`: screenshot delle viste (molo, mare, isola dall'alto, zoom min/max). `perf`: 20 s di navigazione con autopilot, `perf()` entro budget. `contact`: `tests/out/contact.png` con ffmpeg.
 - `tools/build.mjs` fa fallire la build oltre i budget di TECH §5; `tools/deploy.mjs` applica le migrazioni, deploya, e attende `/version.json` con lo stesso `build`.
+
+## 11. M1 · Fetta 1 «L'arcipelago e l'isola che produce» (Sessione 2, 30 set 2026)
+Obiettivo: entri col tuo link, **spawni sul molo della tua isola** in un arcipelago condiviso (Porto al centro, un'isola per amico attorno, laguna della Regata), vedi le tue risorse, **costruisci, raccogli, migliori**; l'isola produce mentre sei offline; vai in barca al Porto e alle isole degli altri (sola lettura). Sfide/Regata giocabile = Fetta 2.
+
+**Decisioni (WP0)**
+- **Un solo mondo continuo**: `packages/content/src/archipelago.json` = `{ id, w, h, tile: 2, islands: [{ island: <id di islands.json>, at: [cx, cz], role: 'porto'|'lotto'|'facciata'|'laguna', slot?: number }] }`. `composeArchipelago(ARCHIPELAGO, ISLANDS)` in `@marea/sim/world/archipelago.ts` → un `GridMap` unico (resto = `~`) + `lots: { slot, origin: [cx, cz], template: string }[]` + `porto: { origin }`. La sim (collisioni avatar/barca) usa quel `GridMap`: niente cambi di mappa.
+- **Presenza**: una sola zona WebSocket `porto` per tutto l'arcipelago in V1 (≤ 32 connessioni, basta per il gruppo). `lotto:<id>` resta nel protocollo per il futuro.
+- **Lotti**: tutte le isole personali usano lo stesso template `lotto` (islands.json) con celle `L` = slot edificio e `d` = molo. Ogni persona ha uno `slot` (0-7) nel D1 (`persone.slot`, assegnato all'invito, il primo libero). **Le celle di `LotState` sono locali al template** (`[cx, cz]` dall'angolo in alto a sinistra dell'isola `lotto`); il mondo = `origin + cell`. Il server valida che `build` usi una cella `L` del template libera.
+- **Spawn**: sul molo del proprio lotto (la `P` del template); senza token o senza slot, al Porto.
+- **API client**: un solo modulo HTTP `apps/client/src/net/api.ts` (token in `X-Token`, errori `{ error, manca? }` in italiano) usato dalla vista del lotto.
+
+**Proprietà dei file in questa fetta**
+| WP | Possiede |
+|---|---|
+| **WP0** | `docs/**`, `world.ts` solo nell'integrazione finale, `main.ts`, `flags.ts`, `index.html`, `packages/protocol/**`, `tests/run.mjs`, `tools/**` tranne `build_assets.mjs`/`export_gltf.py` |
+| **M1-mondo** (Opus) | `packages/content/src/{archipelago,islands}.json`, `packages/content/src/{index,types,schema}.ts` (solo aggiunte), `packages/sim/src/world/**`, `packages/sim/test/world*.test.ts`, `apps/client/src/render/**`, `apps/client/src/game/{avatar,boat,input}.ts`, `apps/client/src/game/world.ts` (fino all'integrazione), `tests/e2e/m1_mondo*.mjs` |
+| **M1-isola** (Opus) | `apps/client/src/game/lot.ts` (nuovo), `apps/client/src/net/api.ts` (nuovo), `apps/client/src/ui/**`, `tests/e2e/m1_isola*.mjs` |
+| **M1-server** (Opus) | `apps/server/**`, `apps/client/src/net/client.ts`, `packages/sim/src/{economy,minigames}/**`, `packages/sim/src/replay.ts`, `packages/sim/test/{economy,regata,challenge}*.test.ts`, `packages/content/src/{balance,decor,buildings}.json`, `tests/e2e/wp4_*.mjs`, `tests/e2e/m1_server*.mjs` |
+| **M1-asset** (Opus) | `assets/**`, `tools/{build_assets.mjs,export_gltf.py}`, `apps/client/public/assets/**` |
+Richieste tra WP in `tests/out/richieste/m1-<wp>.md`. Nessun agente fa deploy, commit o push.

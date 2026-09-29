@@ -19,6 +19,20 @@ export function packInputs(frames: readonly InputFrame[]): PackedInputs {
   return out;
 }
 
+/** Controllo di forma per un input log che arriva dalla rete: righe [ticks ≥ 1, mx, my ∈ [−32, 32], a, b ∈ {0, 1}], al massimo `maxTicks` tick in tutto. */
+export function isPackedInputs(v: unknown, maxTicks: number): v is PackedInputs {
+  if (!Array.isArray(v) || v.length > maxTicks) return false;
+  let ticks = 0;
+  for (const r of v) {
+    if (!Array.isArray(r) || r.length !== 5 || !r.every((n) => Number.isInteger(n))) return false;
+    const [n, mx, my, a, b] = r as number[];
+    if (n! < 1 || Math.abs(mx!) > 32 || Math.abs(my!) > 32 || (a !== 0 && a !== 1) || (b !== 0 && b !== 1)) return false;
+    ticks += n!;
+    if (ticks > maxTicks) return false;
+  }
+  return true;
+}
+
 export function unpackInputs(p: PackedInputs): InputFrame[] {
   const out: InputFrame[] = [];
   for (const [n, mx, my, a, b] of p) for (let i = 0; i < n; i++) out.push({ mx: mx / 32, my: my / 32, a: a === 1, b: b === 1 });

@@ -5,7 +5,7 @@ aggiornato: 2026-09-29
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-Sessione 2 (30/9) **online** (build `mun8j5iu`): gli amici si vedono a piedi e in barca, avatar vero `chr_base` con il look A scelto da Jack (paglia, capelli neri, vestito acqua), clip cammina/corre/siede/rema. Suite 51/51 verde.
+Online: M0 (build `mun8j5iu`). **M1 · Fetta 1 fatta e integrata** (arcipelago con Porto e 8 isole, spawn sulla propria isola, costruire/raccogliere/migliorare, bussola, sfide con posta lato server, 24 modelli approvati da Jack), in attesa di suite verde e deploy.
 
 ## Prossimo passo
-Jack: aprire il suo link dal telefono in 4G con `?fps=1` e dire cosa va e cosa no (controllare anche la pelle chiara). Con il suo ok M0 è chiusa e si parte con M1 (`docs/ROADMAP.md`).
+Chat nuova: `docs/HANDOFF.md` → suite, deploy, commit. Poi a Jack due screenshot A/B dello zoom e la prova dal telefono. Dopo: Fetta 2 (Regata giocabile e Tavolo delle Sfide).

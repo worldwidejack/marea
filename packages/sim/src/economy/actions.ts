@@ -1,18 +1,19 @@
 // Azioni economiche pure: ogni azione fa prima advance(nowMs), poi controlla e lancia EconomyError in italiano (con `manca` se mancano risorse).
-import { BALANCE, building } from '@marea/content';
-import type { GridMap } from '../world/grid.ts';
+import { AVATAR, BALANCE, building } from '@marea/content';
 import { advance, storageCap } from './advance.ts';
+import { buildCellError, decorCellError, defaultTemplate, dockCell } from './cells.ts';
+import type { LotTemplate } from './cells.ts';
 import { EconomyError, ZERO, add, geq, missing, sub } from './types.ts';
 import type { LotState, PlacedBuilding, Resources } from './types.ts';
 
-export function newLot(owner: string, nowMs: number, map?: GridMap): LotState {
-  const sp = map ? map.worldToCell(map.spawn.x, map.spawn.z) : { cx: 0, cz: 0 };
-  const cell: [number, number] = map ? [sp.cx, sp.cz + 1] : [0, 0];
+/** Lotto nuovo: Molo L1 sul molo `d` del template (default: `lotto` di islands.json; va bene anche un GridMap) + partenza da BALANCE. */
+export function newLot(owner: string, nowMs: number, tpl: LotTemplate | null = defaultTemplate()): LotState {
+  const cell = dockCell(tpl);
   const molo: PlacedBuilding = { id: 'molo', building: 'molo', level: 1, cell, buffer: 0, lastMs: nowMs };
   return {
     owner, version: 0, nowMs, resources: { ...BALANCE.partenza }, buildings: [molo], construction: null, decor: [],
     escrow: { ...ZERO }, ledger: { generated: { ...BALANCE.partenza }, spent: { ...ZERO } }, boostUntilMs: 0,
-    challenges: { day: 0, used: 0 },
+    challenges: { day: 0, used: 0 }, posseduti: [], holds: {}, settled: [],
   };
 }
 
@@ -48,17 +49,15 @@ export function pay(lot: LotState, cost: Resources): LotState {
   return { ...lot, resources: sub(lot.resources, cost), ledger: { ...lot.ledger, spent: add(lot.ledger.spent, cost) } };
 }
 
-function occupied(lot: LotState, cell: [number, number]): boolean {
-  return lot.buildings.some((b) => b.cell[0] === cell[0] && b.cell[1] === cell[1]) || lot.decor.some((d) => d.cell[0] === cell[0] && d.cell[1] === cell[1]);
-}
-
-export function build(lot0: LotState, buildingId: string, cell: [number, number], nowMs: number): LotState {
+/** Costruisce in una cella `L` libera del template (default `lotto`; null = nessun controllo sul tipo di cella). */
+export function build(lot0: LotState, buildingId: string, cell: [number, number], nowMs: number, tpl: LotTemplate | null = defaultTemplate()): LotState {
   let lot = advance(lot0, nowMs);
   if (lot.construction) throw new EconomyError('cantiere', 'C’è già un cantiere in corso');
   const def = building(buildingId);
   if (lot.buildings.some((b) => b.building === buildingId)) throw new EconomyError('unico', `Hai già: ${def.nome}`);
   if (def.requires && !lot.buildings.some((b) => b.building === def.requires && b.level >= 1)) throw new EconomyError('requisito', `Serve prima: ${building(def.requires).nome}`);
-  if (occupied(lot, cell)) throw new EconomyError('cella', 'Cella occupata');
+  const bad = buildCellError(lot, cell, tpl);
+  if (bad) throw new EconomyError(bad.code, bad.msg);
   const lvl = def.levels[0];
   if (!lvl) throw new EconomyError('livello', 'Edificio senza livelli');
   lot = pay(lot, lvl.cost);
@@ -80,13 +79,31 @@ export function upgrade(lot0: LotState, placedId: string, nowMs: number): LotSta
   return { ...lot, version: lot.version + 1, construction: { building: b.building, level: b.level + 1, endsMs: nowMs + lvl.seconds * 1000, placedId } };
 }
 
-/** Decorazione: costa Perle (il prezzo lo passa il chiamante dal catalogo), istantanea, una per cella libera. */
-export function placeDecor(lot0: LotState, decor: string, cell: [number, number], rot: number, nowMs: number, costPerle = 0): LotState {
+/** Decorazione: costa Perle (il prezzo lo passa il chiamante dal catalogo `DECOR`), istantanea, su sabbia/erba libera del template. */
+export function placeDecor(lot0: LotState, decor: string, cell: [number, number], rot: number, nowMs: number, costPerle = 0, tpl: LotTemplate | null = defaultTemplate()): LotState {
   let lot = advance(lot0, nowMs);
   if (!Number.isInteger(costPerle) || costPerle < 0) throw new EconomyError('sconosciuto', 'Prezzo della decorazione non valido');
-  if (occupied(lot, cell)) throw new EconomyError('cella', 'Cella occupata');
+  const bad = decorCellError(lot, cell, tpl);
+  if (bad) throw new EconomyError(bad.code, bad.msg);
   lot = pay(lot, { ...ZERO, perle: costPerle });
   return { ...lot, version: lot.version + 1, decor: [...lot.decor, { id: `${decor}-${lot.decor.length + 1}`, decor, cell, rot }] };
+}
+
+/** Cappelli posseduti: i gratuiti (perle 0) sono di tutti, gli altri solo se comprati. */
+export function ownsHat(lot: LotState, hatId: string): boolean {
+  const h = AVATAR.cappelli.find((x) => x.id === hatId);
+  return !!h && (h.perle <= 0 || (lot.posseduti ?? []).includes(hatId));
+}
+
+/** Compra un cappello a pagamento, una volta sola (GDD §4): le Perle sono spese, il cappello va in `posseduti`. */
+export function buyHat(lot0: LotState, hatId: string, nowMs: number): LotState {
+  let lot = advance(lot0, nowMs);
+  const h = AVATAR.cappelli.find((x) => x.id === hatId);
+  if (!h) throw new EconomyError('sconosciuto', 'Cappello sconosciuto');
+  if (h.perle <= 0) throw new EconomyError('cappello', `${h.nome}: è gratis, non serve comprarlo`);
+  if (ownsHat(lot, hatId)) throw new EconomyError('unico', `Hai già: ${h.nome}`);
+  lot = pay(lot, { ...ZERO, perle: h.perle });
+  return { ...lot, version: lot.version + 1, posseduti: [...(lot.posseduti ?? []), hatId] };
 }
 
 /** Prossimo livello di un edificio piazzato (costo e secondi), o null se è al massimo. Utile alla UI. */

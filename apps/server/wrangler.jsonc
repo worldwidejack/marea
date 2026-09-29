@@ -18,8 +18,10 @@
   "durable_objects": {
     "bindings": [
       { "name": "ZONE", "class_name": "Zone" },
-      { "name": "LOT", "class_name": "Lot" }
+      { "name": "LOT", "class_name": "Lot" },
+      { "name": "SFIDE", "class_name": "Sfide" }
     ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Zone", "Lot"] }]
+  // v2 (M1): Sfide = coordinatore unico delle sfide con posta (una sola istanza, idFromName('tavolo')).
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Zone", "Lot"] }, { "tag": "v2", "new_sqlite_classes": ["Sfide"] }]
 }

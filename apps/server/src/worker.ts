@@ -4,11 +4,15 @@ import { AVATAR } from '@marea/content';
 import type { Look } from '@marea/protocol';
 import type { Env } from './env.ts';
 import { autentica } from './auth.ts';
-import { esistePersona, salvaLook, segnaAccesso } from './db.ts';
+import { nowFor } from './clock.ts';
+import { elencoPersone, esistePersona, salvaLook, segnaAccesso } from './db.ts';
 export { Zone } from './do/Zone.ts';
 export { Lot } from './do/Lot.ts';
+export { Sfide } from './do/Sfide.ts';
 
 const MAX_BODY = 4096;
+/** Un input log di Regata da 120 s fatto a mano sta sotto i 100 KB (7.200 righe al massimo, di solito poche centinaia). */
+const MAX_PLAY_BODY = 131072;
 const NO_TOKEN = 'Link non valido: chiedi a Jack un invito nuovo';
 const json = (dati: unknown, status = 200): Response =>
   new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
@@ -21,11 +25,12 @@ async function buildId(env: Env, url: URL): Promise<string> {
   return 'sconosciuta';
 }
 
-/** Corpo JSON piccolo; null = rotto, 'grande' = oltre MAX_BODY. */
-async function leggiCorpo(req: Request): Promise<Record<string, unknown> | null | 'grande'> {
-  if (Number(req.headers.get('content-length') ?? 0) > MAX_BODY) return 'grande';
+/** Corpo JSON piccolo; null = rotto, 'grande' = oltre `max`. */
+async function leggiCorpo(req: Request, max = MAX_BODY): Promise<Record<string, unknown> | null | 'grande'> {
+  if (Number(req.headers.get('content-length') ?? 0) > max) return 'grande';
   const text = await req.text();
-  if (text.length > MAX_BODY) return 'grande';
+  if (text.length > max) return 'grande';
+  if (!text.trim()) return {}; // accept/decline senza corpo
   try { const v: unknown = JSON.parse(text); return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null; } catch { return null; }
 }
 
@@ -54,9 +59,19 @@ function wsRifiuta(code: 'token' | 'interno', msg: string): Response {
   return new Response(null, { status: 101, webSocket: client });
 }
 
-function lotStub(env: Env, id: string) { return env.LOT.get(env.LOT.idFromName(id)); }
-function lotReq(env: Env, owner: string, path: string, init?: { method: string; body: string }): Promise<Response> {
-  return lotStub(env, owner).fetch(new Request('https://lot/' + path, { method: init?.method ?? 'GET', body: init?.body, headers: { 'x-persona': owner, 'content-type': 'application/json' } }));
+/** Richiesta interna a un DO: proprietario in x-persona, ora del server (eventualmente di test) in x-now. */
+function doReq(ns: DurableObjectNamespace, name: string, persona: string, now: number, path: string, body?: unknown): Promise<Response> {
+  return ns.get(ns.idFromName(name)).fetch(new Request('https://do/' + path, {
+    method: body === undefined ? 'GET' : 'POST', body: body === undefined ? undefined : JSON.stringify(body),
+    headers: { 'x-persona': persona, 'x-now': String(now), 'content-type': 'application/json' },
+  }));
+}
+const lotReq = (env: Env, owner: string, now: number, path: string, body?: unknown) => doReq(env.LOT, owner, owner, now, path, body);
+const sfideReq = (env: Env, me: string, now: number, path: string, body?: unknown) => doReq(env.SFIDE, 'tavolo', me, now, path, body);
+/** Id del cappello da indice (come in Look) o da id. */
+function hatId(v: unknown): string | null {
+  if (typeof v === 'number' && Number.isInteger(v)) return AVATAR.cappelli[v]?.id ?? null;
+  return typeof v === 'string' && AVATAR.cappelli.some((h) => h.id === v) ? v : null;
 }
 
 export default {
@@ -64,7 +79,8 @@ export default {
     const url = new URL(req.url);
     const path = url.pathname;
     try {
-      if (path === '/api/ping') return json({ ok: true, build: await buildId(env, url), now: Date.now() });
+      const now = nowFor(req, env);
+      if (path === '/api/ping') return json({ ok: true, build: await buildId(env, url), now });
 
       const ws = path.match(/^\/ws\/zone\/([a-z0-9_:-]{1,40})$/);
       if (ws) {
@@ -86,34 +102,74 @@ export default {
 
       const p = await autentica(req, env);
       if (!p) return json({ error: NO_TOKEN }, 401);
+      const corpo = async (max = MAX_BODY): Promise<Record<string, unknown> | Response> => {
+        const body = await leggiCorpo(req, max);
+        if (body === 'grande') return json({ error: 'Richiesta troppo grande' }, 413);
+        return body ?? json({ error: 'Richiesta non valida' }, 400);
+      };
 
       if (path === '/api/me' && req.method === 'GET') {
-        const r = await lotReq(env, p.id, 'state');
+        const r = await lotReq(env, p.id, now, 'state');
         const lotto: unknown = r.ok ? await r.json() : null;
-        return json({ id: p.id, nome: p.nome, look: JSON.parse(p.look) as unknown, lotto });
+        return json({ id: p.id, nome: p.nome, look: JSON.parse(p.look) as unknown, slot: p.slot ?? null, now, lotto });
+      }
+      // chi abita l'arcipelago: /api/persone tutti (per scegliere chi sfidare), /api/lots solo chi ha un lotto (per le visite)
+      if ((path === '/api/persone' || path === '/api/lots') && req.method === 'GET') {
+        const tutte = (await elencoPersone(env)).filter((x) => path === '/api/persone' || x.slot !== null);
+        return json(tutte.map((x) => ({ id: x.id, nome: x.nome, slot: x.slot ?? null, look: JSON.parse(x.look) as unknown })));
       }
       if (path === '/api/look' && req.method === 'POST') {
-        const body = await leggiCorpo(req);
-        if (body === 'grande') return json({ error: 'Richiesta troppo grande' }, 413);
-        if (!body) return json({ error: 'Richiesta non valida' }, 400);
+        const body = await corpo();
+        if (body instanceof Response) return body;
         const look = validaLook(body);
         if (typeof look === 'string') return json({ error: look }, 400);
+        const hat = AVATAR.cappelli[look.cappello];
+        if (hat && hat.perle > 0) {
+          const r = await lotReq(env, p.id, now, 'state');
+          const lot = r.ok ? ((await r.json()) as { posseduti?: string[] }) : null;
+          if (!lot?.posseduti?.includes(hat.id)) return json({ error: `${hat.nome}: non è tuo, compralo prima (${hat.perle} Perle)` }, 400);
+        }
         await salvaLook(env, p.id, look);
         return json({ ok: true });
       }
-      if (path === '/api/lot' && req.method === 'GET') return lotReq(env, p.id, 'state');
-      const azione = path.match(/^\/api\/lot\/(collect|build|upgrade)$/);
+      if (path === '/api/look/hat' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const id = hatId(body['cappello']);
+        if (!id) return json({ error: 'Cappello sconosciuto' }, 400);
+        return lotReq(env, p.id, now, 'hat', { hat: id });
+      }
+      if (path === '/api/lot' && req.method === 'GET') return lotReq(env, p.id, now, 'state');
+      const azione = path.match(/^\/api\/lot\/(collect|build|upgrade|decor)$/);
       if (azione && req.method === 'POST') {
-        const body = await leggiCorpo(req);
-        if (body === 'grande') return json({ error: 'Richiesta troppo grande' }, 413);
-        if (!body) return json({ error: 'Richiesta non valida' }, 400);
-        return lotReq(env, p.id, azione[1] ?? '', { method: 'POST', body: JSON.stringify(body) });
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, azione[1] ?? '', body);
       }
       const altrui = path.match(/^\/api\/lot\/([a-z0-9_-]{1,40})$/);
       if (altrui && req.method === 'GET') {
         const id = altrui[1] ?? '';
         if (!(await esistePersona(env, id))) return json({ error: 'Isola non trovata' }, 404);
-        return lotReq(env, id, 'state');
+        return lotReq(env, id, now, 'state');
+      }
+
+      if (path === '/api/challenges') {
+        if (req.method === 'GET') return sfideReq(env, p.id, now, 'list');
+        if (req.method === 'POST') {
+          const body = await corpo();
+          if (body instanceof Response) return body;
+          const to = body['to'];
+          if (typeof to !== 'string' || to.length > 40) return json({ error: 'Chi vuoi sfidare?' }, 400);
+          if (to === p.id) return json({ error: 'Non puoi sfidare te stesso' }, 400);
+          if (!(await esistePersona(env, to))) return json({ error: 'Persona non trovata' }, 404);
+          return sfideReq(env, p.id, now, 'create', { minigame: body['minigame'], to, stake: body['stake'] });
+        }
+      }
+      const sfida = path.match(/^\/api\/challenges\/([a-z0-9-]{1,40})\/(play|accept|decline)$/);
+      if (sfida && req.method === 'POST') {
+        const body = await corpo(sfida[2] === 'play' ? MAX_PLAY_BODY : MAX_BODY);
+        if (body instanceof Response) return body;
+        return sfideReq(env, p.id, now, sfida[2] ?? '', { id: sfida[1], inputs: body['inputs'] });
       }
       return json({ error: 'Non trovato' }, 404);
     } catch (e) {

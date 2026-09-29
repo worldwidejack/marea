@@ -85,7 +85,7 @@ export default async function (ctx) {
     const ev = (id, type) => page.evaluate(([id, type]) => document.getElementById(id).dispatchEvent(new PointerEvent(type, { pointerId: 3, pointerType: 'touch', bubbles: true, cancelable: true })), [id, type]);
     await page.evaluate(() => window.__seen = 0);
     // A giù+su nello stesso frame: il mondo deve comunque registrare un fronte (sale in barca dal molo)
-    await page.evaluate(() => { const s = window.__game.state(); window.__game.test.teleport(33, 39.2); });
+    await page.evaluate(() => { const d = window.__game.state().island.dock; window.__game.test.teleport(d.x, d.z); }); // punto del molo accanto alla barca ormeggiata
     await waitTicks(page, 12);
     const before = (await S()).mode;
     await ev('btnA', 'pointerdown'); await ev('btnA', 'pointerup'); await waitTicks(page, 10);

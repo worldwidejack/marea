@@ -66,6 +66,9 @@ Il `perf` test legge `window.__game.perf()` (draw call, triangoli, fps) durante 
 | Static assets | illimitati | il client (`apps/client/dist`) servito dallo stesso Worker: un solo URL, zero CORS |
 URL: `https://marea.stanza-idee.workers.dev` (il sottodominio `stanza-idee.workers.dev` è dell'account). Stima: 10 amici × 30 min/giorno di posizioni a 10 Hz ≈ 9.000 richieste-equivalenti/giorno. Se un giorno si apre al pubblico: piano Paid 5 $/mese.
 
+### 6b. Sfide tra due isole (M1, 30 set 2026)
+Un **DO unico `Sfide`** (`idFromName('tavolo')`, binding `SFIDE`) tiene le sfide nel suo SQLite e coordina; le **poste restano nell'escrow dei due `Lot`**. Tra due DO non c'è transazione: ogni operazione su un lotto è **idempotente per id sfida** e tiene da sola l'invariante; il coordinatore **scrive prima l'intento** (`fase`/`pending`) e poi chiama i lotti, ritentando (a ogni richiesta e con un alarm), sotto un mutex. Replay di una Regata da 120 s: 3-14 ms in Node, ~27 ms a muro nel DO (limite 30 s); nel Worker non si fa replay.
+
 ## 7. Autenticazione
 Link personale con **token** (`?t=<token>` → salvato in `localStorage`, poi header `X-Token`), creato con `node apps/server/scripts/invita.mjs "Nome" --remote` (stampa il link; senza `--remote` scrive nel D1 locale) e mandato da Jack su WhatsApp. **Passkey** opzionale da M1 («Aggiungi Face ID») per legare un secondo dispositivo, con `@simplewebauthn/server` su WebCrypto. Zero email, zero OAuth, zero servizi terzi.
 

@@ -3,7 +3,7 @@
 // solo con i peer cambiati. Il flush usa un setTimeout interno (non un alarm): costa zero richieste e tiene sveglio il DO solo finché
 // arrivano posizioni; quando nessuno si muove non resta nessun timer e il DO può ibernare (lo stato dei peer vive negli attachment).
 import { DurableObject } from 'cloudflare:workers';
-import { ISLANDS } from '@marea/content';
+import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import { MAX_MSG_BYTES, MAX_ZONE_CONNECTIONS, POS_HZ, PROTOCOL_VERSION, parseClientMsg } from '@marea/protocol';
 import type { Look, Peer, ServerMsg } from '@marea/protocol';
 /** Messaggio in uscita: `now` lo aggiunge `send`/`broadcast`. */
@@ -19,8 +19,12 @@ const MAX_BAD = 10;                      // messaggi non validi prima della chiu
 export const CLOSE_REPLACED = 4000;      // stessa persona connessa altrove
 const DEFAULT_LOOK: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
 
-// Confini larghi della zona: la mappa più grande × 3 (il mare attorno all'isola è navigabile).
-const WORLD = (() => { let m = 64; for (const i of ISLANDS) m = Math.max(m, i.rows.length * (i.tile || 2), (i.rows[0]?.length ?? 0) * (i.tile || 2)); return m; })();
+// Confini larghi della zona: il lato più grande tra l'arcipelago intero (M1: un solo mondo continuo) e ogni isola, × 3 (il mare attorno è navigabile).
+const WORLD = (() => {
+  let m = Math.max(64, ARCHIPELAGO.w * ARCHIPELAGO.tile, ARCHIPELAGO.h * ARCHIPELAGO.tile);
+  for (const i of ISLANDS) m = Math.max(m, i.rows.length * (i.tile || 2), (i.rows[0]?.length ?? 0) * (i.tile || 2));
+  return m;
+})();
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 const r2 = (v: number) => Math.round(v * 100) / 100;
 

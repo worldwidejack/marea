@@ -65,6 +65,24 @@ export function isColpoDiCoda(a: LotState, b: LotState): boolean {
   return total(add(b.resources, b.escrow)) < cdc.sogliaRisorse * total(add(a.resources, a.escrow));
 }
 
+/** Piatto del vincitore: 2 × posta, × 1,5 col Colpo di coda (il bonus lo mette il banco). */
+export function potFor(stake: Resources, colpoDiCoda: boolean): Resources {
+  const base = add(stake, stake);
+  return colpoDiCoda ? scale(base, BALANCE.wager.colpoDiCoda.moltiplicatore) : base;
+}
+
+/**
+ * Regolamento di UN lato (serve al server: i due lotti vivono in due Durable Object diversi). Ogni lato da solo tiene l'invariante del proprio lotto.
+ * vince: prende `pot`; nel libro mastro la differenza pot − posta è «generata». perde: la posta esce dall'escrow come «spesa». pari: rimborso.
+ */
+export function settleSide(lot: LotState, stake: Resources, side: 'vince' | 'perde' | 'pari', pot: Resources = add(stake, stake)): LotState {
+  if (!geq(lot.escrow, stake)) throw new EconomyError('escrow', 'Posta non trovata in escrow', missing(lot.escrow, stake));
+  const escrow = sub(lot.escrow, stake);
+  if (side === 'pari') return { ...lot, resources: add(lot.resources, stake), escrow, version: lot.version + 1 };
+  if (side === 'perde') return { ...lot, escrow, ledger: { ...lot.ledger, spent: add(lot.ledger.spent, stake) }, version: lot.version + 1 };
+  return { ...lot, resources: add(lot.resources, pot), escrow, ledger: { ...lot.ledger, generated: add(lot.ledger.generated, sub(pot, stake)) }, version: lot.version + 1 };
+}
+
 /**
  * Entrambi hanno già `stake` in escrow. winner null = parità → rimborso.
  * Il vincitore prende il piatto (2 × posta; 1,5 × il piatto col Colpo di coda). Nel libro mastro la posta dell'avversario
@@ -72,15 +90,10 @@ export function isColpoDiCoda(a: LotState, b: LotState): boolean {
  */
 export function settle(a: LotState, b: LotState, stake: Resources, winner: 'a' | 'b' | null): { a: LotState; b: LotState; pot: Resources; colpoDiCoda: boolean } {
   if (!geq(a.escrow, stake) || !geq(b.escrow, stake)) throw new EconomyError('escrow', 'Posta non trovata in escrow');
-  const refund = (l: LotState): LotState => ({ ...l, resources: add(l.resources, stake), escrow: sub(l.escrow, stake), version: l.version + 1 });
-  if (!winner) return { a: refund(a), b: refund(b), pot: add(stake, stake), colpoDiCoda: false };
+  if (!winner) return { a: settleSide(a, stake, 'pari'), b: settleSide(b, stake, 'pari'), pot: add(stake, stake), colpoDiCoda: false };
   const cdc = winner === 'b' && isColpoDiCoda(a, b);
-  const w = winner === 'a' ? a : b;
-  const l = winner === 'a' ? b : a;
-  const base = add(stake, stake);
-  const pot = cdc ? scale(base, BALANCE.wager.colpoDiCoda.moltiplicatore) : base;
-  const gained = sub(pot, stake); // posta dell'avversario + eventuale bonus del banco
-  const wn: LotState = { ...w, resources: add(w.resources, pot), escrow: sub(w.escrow, stake), ledger: { ...w.ledger, generated: add(w.ledger.generated, gained) }, version: w.version + 1 };
-  const ln: LotState = { ...l, escrow: sub(l.escrow, stake), ledger: { ...l.ledger, spent: add(l.ledger.spent, stake) }, version: l.version + 1 };
-  return winner === 'a' ? { a: wn, b: ln, pot, colpoDiCoda: false } : { a: ln, b: wn, pot, colpoDiCoda: cdc };
+  const pot = potFor(stake, cdc);
+  const an = settleSide(a, stake, winner === 'a' ? 'vince' : 'perde', pot);
+  const bn = settleSide(b, stake, winner === 'b' ? 'vince' : 'perde', pot);
+  return { a: an, b: bn, pot, colpoDiCoda: cdc };
 }

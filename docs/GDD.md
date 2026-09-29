@@ -45,9 +45,9 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 | Decorazioni (10+) | Solo estetica, ovunque nel lotto | 5-40 Perle | istantanee |
 
 **Regole**
-- **Produzione pigra**: ogni edificio accumula nel suo deposito in base al tempo trascorso (`advance(lotto, oraServer)`), fino a un tetto pari a **10 ore** di produzione. Raccogliere sposta il deposito nel Magazzino, fino al suo tetto. Il server è l'unica autorità del tempo; il client non usa mai il suo orologio per l'economia.
+- **Produzione pigra**: ogni edificio accumula nel suo deposito in base al tempo trascorso (`advance(lotto, oraServer)`): piena velocità per **10 ore**, poi al **25 %** fino a 110 ore (così chi entra due volte a settimana non resta fermo). Raccogliere sposta il deposito nel Magazzino, fino al suo tetto. Il server è l'unica autorità del tempo; il client non usa mai il suo orologio per l'economia.
 - **Costruire** = spesa immediata + timer; un solo cantiere alla volta in V1. Niente acceleratori a pagamento: **mai soldi veri**.
-- **Partenza**: Molo L1, 100 Legno, 40 Pietra, 0 Perle. Nei primi 10 minuti si costruiscono Segheria e Cava e si scopre il Tavolo.
+- **Partenza**: Molo L1, 400 Legno, 160 Pietra, 0 Perle. Tetto base del deposito centrale senza Magazzino: 800 per risorsa. Nei primi 10 minuti si costruiscono Segheria e Cava e si scopre il Tavolo.
 - **Taratura**: tutti i numeri stanno in `packages/content/src/balance.json` e si verificano con `economy_30days.test.ts` su tre archetipi (chi entra 2 volte al giorno / 1 volta / 2 volte a settimana → dopo 30 giorni ~100 % / ~75 % / ~40 % degli edifici a L2, nessuno a L3 pieno).
 - **Dai minigiochi**: medaglia → Perle **5 / 10 / 20** (bronzo / argento / oro) e attiva il Faro. Chi perde una sfida prende comunque **2 Perle** (mai zero).
 

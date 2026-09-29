@@ -6,8 +6,9 @@ import avatar from './avatar.json' with { type: 'json' };
 import balance from './balance.json' with { type: 'json' };
 import regata from './minigames/regata.json' with { type: 'json' };
 import decor from './decor.json' with { type: 'json' };
-import type { AvatarDef, BalanceDef, BuildingDef, DecorDef, IslandDef, RegataCfg, ResourceDef } from './types.ts';
-import { validateAll } from './schema.ts';
+import archipelago from './archipelago.json' with { type: 'json' };
+import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, DecorDef, IslandDef, RegataCfg, ResourceDef } from './types.ts';
+import { validateAll, validateArchipelago } from './schema.ts';
 
 export type * from './types.ts';
 
@@ -18,6 +19,7 @@ export const AVATAR = avatar as unknown as AvatarDef;
 export const BALANCE = balance as unknown as BalanceDef;
 export const MINIGAMES_CFG: { regata: RegataCfg } = { regata: regata as unknown as RegataCfg };
 export const DECOR = decor as unknown as readonly DecorDef[];
+export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;
 
 export function decorDef(id: string): DecorDef {
   const d = DECOR.find((x) => x.id === id);
@@ -37,5 +39,8 @@ export function island(id: string): IslandDef {
 }
 /** [] se tutto è a posto, altrimenti gli errori in italiano. */
 export function validateContent(): string[] {
-  return validateAll({ buildings: [...BUILDINGS], resources: [...RESOURCES], islands: [...ISLANDS], avatar: AVATAR, balance: BALANCE, decor: [...DECOR] });
+  return [
+    ...validateAll({ buildings: [...BUILDINGS], resources: [...RESOURCES], islands: [...ISLANDS], avatar: AVATAR, balance: BALANCE, decor: [...DECOR] }),
+    ...validateArchipelago(ARCHIPELAGO, [...ISLANDS]),
+  ];
 }

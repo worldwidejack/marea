@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#163F73" />
+<title>MAREA · prova isola</title>
+<!-- Pagina di prova di M1-isola: solo isola + vista economica (game/lot.ts). La costruisce tests/e2e/m1_isola.mjs; non va in produzione. -->
+<style>
+  html, body { margin: 0; height: 100%; background: #163F73; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; font-family: ui-monospace, Menlo, monospace; }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+  #ui { position: fixed; inset: 0; pointer-events: none; color: #F4E3C1; }
+  #ui > * { pointer-events: auto; }
+  #perf { position: absolute; left: 8px; font-size: 12px; background: rgba(46,30,20,.85); padding: 4px 6px; border: 2px solid #5A3A1E; white-space: pre; display: none; }
+  #toast { position: absolute; left: 50%; transform: translateX(-50%); font-size: 14px; background: rgba(46,30,20,.9); padding: 6px 10px; border: 2px solid #C98A4B; opacity: 0; transition: opacity .25s; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="ui"><div id="perf"></div><div id="toast"></div></div>
+<script type="module" src="./lot_harness.ts"></script>
+</body>
+</html>

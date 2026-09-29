@@ -56,6 +56,28 @@ Ogni messaggio del server porta `now` (ms del server). Limiti: `pos` più fitte 
 
 `LotState`, `Resources`, `Challenge`, `PackedInputs` sono definiti in `packages/sim/src/economy/types.ts` e `packages/sim/src/minigames/types.ts` e ri-esportati da `@marea/protocol`.
 
+### Aggiunte M1 · Fetta 1 (30 set 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `GET /api/me` | → `{ id, nome, look, slot: number \| null, now, lotto: LotState }` (**nuovi** `slot`, `now`) |
+| `GET /api/persone` | → `{ id, nome, slot, look }[]` tutti (per scegliere chi sfidare) — **nuovo** |
+| `GET /api/lots` | → come sopra ma solo chi ha un lotto (`slot` ≠ null), in ordine di slot — **nuovo** (lo usa `net/api.ts` di M1-isola) |
+| `POST /api/look` | `Look` → `{ ok }`; **400** se `cappello` è a Perle e non è in `lotto.posseduti` |
+| `POST /api/look/hat` | `{ cappello: indice \| id }` → `LotState` (compra, una volta; 409 `{error, manca}` senza Perle o già tuo) — **nuovo** |
+| `POST /api/lot/build` | `{ building, cell }`: **400** se la cella non è una `L` del template `lotto`, 409 se occupata |
+| `POST /api/lot/decor` | `{ decor, cell, rot: 0-3 }` → `LotState`; prezzo da `DECOR` (Perle); **400** se la cella non è sabbia `.`/erba `g` del template (niente `L`, molo `d`, spawn `P`), 409 se occupata o senza Perle |
+| `GET /api/challenges` | → `Challenge[]` (in gioco, mandate e ricevute, + chiuse degli ultimi 7 giorni; max 50, recenti prima) |
+| `POST /api/challenges` | `{ minigame, to, stake }` → `Challenge` (stato `gioca_sfidante`, `seed` e `difficulty` dal server; posta dello sfidante in escrow) |
+| `POST /api/challenges/:id/play` | `{ inputs: PackedInputs }` → `{ score, medal, detail, challenge }` (replay lato server; tocca a `from` in `gioca_sfidante`, a `to` in `accettata`) |
+| `POST /api/challenges/:id/accept` · `/decline` | (corpo vuoto ok) → `Challenge`. Accettare si può solo dopo che lo sfidante ha giocato (`aperta`) |
+Errori: `{ error, manca?, code? }`; 400 richiesta rotta/cella non ammessa/posta sotto il minimo, 403 sfida non tua o azione non tua, 404 sfida/persona, 409 turno sbagliato, sfida chiusa/scaduta, niente Tavolo, oltre il tetto, risorse (con `manca`).
+
+**Macchina a stati** (GDD §7): `gioca_sfidante` → (from gioca) `aperta` → (to accetta, posta pari in escrow) `accettata` → (to gioca) `chiusa` {`winner`: `from`|`to`|`pari`, `pot`}. Da `gioca_sfidante`/`aperta`: `decline` → `rifiutata`. Dopo 24 h dalla creazione ogni sfida in gioco → `scaduta`. Rifiutata/scaduta/pari = rimborso. **Colpo di coda** deciso all'accettazione (risorse+escrow di `to` < 50 % di `from`), vale solo se vince `to` (piatto 1,5×, il bonus lo «genera» il banco nel libro mastro). Perle **solo a sfida chiusa**: `max(medaglia 5/10/20, 2)` a entrambi (anche in parità), Faro a chi vince. Niente Perle su rifiuto/scadenza (così non si «coltivano» sfide finte). Le Perle extra oltre le sfide gratis del giorno non si rimborsano.
+
+Nuovi campi facoltativi di `LotState`: `posseduti?: string[]` (cappelli a Perle comprati), `holds?: Record<idSfida, Resources>` (escrow = la loro somma), `settled?: string[]` (idempotenza).
+
+**Orologio di test**: con `wrangler dev --var TEST_CLOCK:1` e richieste da localhost, l'header `X-Test-Now-Offset: <ms>` sposta «adesso» per quella richiesta (usarlo monotono). In produzione è ignorato.
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32 e `a, b` 0/1. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 

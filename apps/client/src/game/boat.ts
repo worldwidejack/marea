@@ -18,6 +18,8 @@ export type Boat = {
   /** Con un AvatarState mostra il guidatore seduto a bordo (avatar interno); `look` opzionale. `null` lo nasconde. */
   setDriver(a: AvatarState | null, look?: Look): void;
   setYaw(yaw: number): void; driving: boolean;
+  /** Sposta la barca ferma in (x, z) con la prua a `yaw` (ormeggio, teletrasporto dei test). */
+  teleport(x: number, z: number, yaw?: number): void;
   // ---- aggiunte WP2 (vedi tests/out/richieste/wp2.md) ----
   /** Punto di seduta (bacino) in coordinate locali della barca: per `avatar.attachTo(boat.object, boat.seat)`. */
   readonly seat: THREE.Vector3;
@@ -188,6 +190,7 @@ export async function createBoat(o: { loader: Loader; x: number; z: number; look
     },
     setDriver(a, look) { api.driving = !!a; driver.visible = !!a; if (a && look) driver.setLook(look); },
     setYaw(yaw) { state = { ...state, yaw }; prev = state; object.rotation.y = -yaw; },
+    teleport(x, z, yaw) { state = { ...newBoat(x, z), yaw: yaw ?? state.yaw }; prev = state; object.position.set(x, object.position.y, z); object.rotation.y = -state.yaw; },
     wakeCount: () => wake.count(),
   };
   if (!registered) {

@@ -1,8 +1,9 @@
-// Orchestrazione del mondo locale: mappa, isola, avatar, barca, camera, rete. WP0.
+// Orchestrazione del mondo locale: arcipelago (un solo GridMap continuo), isole, avatar, barca, camera, rete. WP0 / M1-mondo.
+// Spawn sul molo del proprio lotto (`slot`), barca ormeggiata lì; senza slot al Porto.
 import * as THREE from 'three';
-import { canBoard, landingSpot, parseIsland, NO_INPUT } from '@marea/sim';
-import type { GridMap, InputFrame } from '@marea/sim';
-import { ISLANDS } from '@marea/content';
+import { canBoard, composeArchipelago, landingSpot, NO_INPUT } from '@marea/sim';
+import type { Archipelago, ArchPlace, GridMap, InputFrame } from '@marea/sim';
+import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import type { Look, Peer } from '@marea/protocol';
 import type { Flags } from '../flags.ts';
 import type { Renderer } from '../render/scene.ts';
@@ -20,25 +21,56 @@ import type { Hud } from '../ui/hud.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
 export type Mode = 'walk' | 'boat';
-export type GameWorld = { map: GridMap; avatar: Avatar; boat: Boat; net: NetClient; mode: Mode; step(input: InputFrame): void; update(alpha: number, dt: number, t: number): void; dispose(): void };
+export type GameWorld = {
+  map: GridMap; avatar: Avatar; boat: Boat; net: NetClient; mode: Mode;
+  /** Il mondo composto (lotti, Porto, laguna, facciate) e la scena three: li usa la vista del lotto (game/lot.ts). */
+  archipelago: Archipelago; scene: THREE.Scene;
+  /** Lo slot del lotto di chi gioca (null = nessun lotto, spawn al Porto). */
+  slot: number | null;
+  /** Quota del terreno in (x, z): piano delle isole, cima delle rocce, 0 in acqua. */
+  groundY(x: number, z: number): number;
+  step(input: InputFrame): void; update(alpha: number, dt: number, t: number): void; dispose(): void;
+};
+
+/** Adattatore finché main.ts non passa lo slot da /api/me: `?slot=N` nell'URL. */
+function slotFromUrl(): number | null {
+  try {
+    const v = new URLSearchParams(location.search).get('slot');
+    if (v === null || v === '') return null;
+    const n = Number(v);
+    return Number.isInteger(n) && n >= 0 ? n : null;
+  } catch { return null; }
+}
 
 /** Un altro giocatore: avatar a piedi e, solo quando serve, una barca col suo guidatore. La barca sta in `boatAt` (posizione) e ruota con setYaw. */
 type Remote = { avatar: Avatar; look: string; boat: Boat | null; boatAt: THREE.Group | null; loadingBoat: boolean };
 
-export async function createGameWorld(o: { renderer: Renderer; loader: Loader; flags: Flags; hud: Hud; build: string }): Promise<GameWorld> {
-  const def = ISLANDS[0]; if (!def) throw new Error('Nessuna isola nei contenuti');
-  const map = parseIsland(def);
+export async function createGameWorld(o: { renderer: Renderer; loader: Loader; flags: Flags; hud: Hud; build: string; slot?: number | null }): Promise<GameWorld> {
+  const arch = composeArchipelago(ARCHIPELAGO, ISLANDS);
+  const map = arch.map;
+  let slot = o.slot !== undefined ? o.slot : slotFromUrl();
+  if (slot !== null && !arch.lots.some((l) => l.slot === slot)) slot = null;
+  const home = arch.spawnOf(slot), homeBoat = arch.boatOf(slot);
   const { scene, diorama } = o.renderer;
   const lights = createLights(); scene.add(lights.group);
-  const size = Math.max(map.w, map.h) * map.tile;
-  const water = createWater({ size: size * 3 }); water.mesh.position.set(size / 2, 0, size / 2); scene.add(water.mesh);
-  const island = await createIsland({ map, loader: o.loader }); scene.add(island.group);
+  const water = createWater({ size: 0 }); water.follow(home.x, home.z); scene.add(water.mesh);
+  const island = await createIsland({
+    map, loader: o.loader,
+    areas: arch.places.map((p) => ({ id: p.island + (p.slot !== null ? '_' + p.slot : ''), x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, style: p.style, scenery: p.scenery })),
+    props: arch.props, buildings: arch.buildings, paved: arch.paved,
+  });
+  scene.add(island.group);
   const look: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
-  const avatar = await createAvatar({ loader: o.loader, look, x: map.spawn.x, z: map.spawn.z }); scene.add(avatar.object);
+  const avatar = await createAvatar({ loader: o.loader, look, x: home.x, z: home.z }); scene.add(avatar.object);
   avatar.setGround(island.groundY);
-  const boat = await createBoat({ loader: o.loader, x: map.boatSpawn.x, z: map.boatSpawn.z, look }); scene.add(boat.object);
-  const dock = landingSpot(boat.state, map);
-  if (dock) boat.setYaw(Math.atan2(boat.state.x - dock.x, -(boat.state.z - dock.z))); // muso verso il mare aperto, non contro il molo
+  const boat = await createBoat({ loader: o.loader, x: homeBoat.x, z: homeBoat.z, look }); scene.add(boat.object);
+  /** Ormeggia la barca in (x, z) col muso verso il mare aperto, non contro il molo. */
+  const moor = (x: number, z: number) => {
+    boat.teleport(x, z);
+    const dock = landingSpot(boat.state, map);
+    if (dock) boat.setYaw(Math.atan2(boat.state.x - dock.x, -(boat.state.z - dock.z)));
+  };
+  moor(homeBoat.x, homeBoat.z);
   const net = createNetClient({ url: '/ws/zone/' + o.flags.zone, token: o.flags.token, build: o.build, enabled: o.flags.net });
   net.connect();
 
@@ -91,7 +123,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
 
   let mode: Mode = 'walk', aWas = false, lastSent = 0;
   const state = {
-    map, avatar, boat, net,
+    map, avatar, boat, net, archipelago: arch, scene, slot, groundY: island.groundY,
     get mode() { return mode; },
     step(input: InputFrame) {
       const pressA = input.a && !aWas; aWas = input.a;
@@ -113,6 +145,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       const f = mode === 'walk' ? avatar.object.position : boat.object.position;
       diorama.follow(f.x, 0.5, f.z); diorama.update(dt);
       lights.sun.position.set(f.x - 30, 40, f.z + 20); lights.sun.target.position.set(f.x, 0, f.z);
+      water.follow(f.x, f.z);
     },
     dispose() { unsubLeave(); net.close(); for (const id of [...remotes.keys()]) dropRemote(id); pending.clear(); },
   } as GameWorld;
@@ -122,9 +155,25 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   registerStateProvider('camera', () => ({ zoom: diorama.zoom, x: diorama.camera.position.x, y: diorama.camera.position.y, z: diorama.camera.position.z }));
   registerStateProvider('net', () => ({ status: net.status, peers: net.peers().length, error: net.lastError }));
   registerStateProvider('peersDrawn', () => [...remotes.entries()].map(([id, r]) => ({ id, x: r.avatar.object.position.x, z: r.avatar.object.position.z, walk: r.avatar.visible, boat: !!r.boatAt?.visible })));
-  registerStateProvider('island', () => ({ id: map.id, w: map.w, h: map.h, spawn: map.spawn }));
+  // `island.spawn` = dove si nasce (il molo del proprio lotto o il Porto); `island.dock` = il punto del molo accanto alla barca ormeggiata.
+  let spawnAt = { ...home }, dockAt = landingSpot(boat.state, map) ?? home;
+  registerStateProvider('island', () => ({ id: map.id, w: map.w, h: map.h, tile: map.tile, spawn: spawnAt, dock: dockAt }));
+  registerStateProvider('arch', () => ({ slot, place: arch.placeAt(avatar.state.x, avatar.state.z)?.island ?? null, lots: arch.lots.length, chunks: island.chunks?.map((c) => ({ id: c.id, tris: c.tris, visible: c.group.visible })) }));
+  /** Porta a piedi sulla P di un'isola ('porto', 'laguna', 'neon', 'selvaggia', 'lotto:N') con la barca ormeggiata alla sua B. */
+  const goto = (name: unknown): ArchPlace | null => {
+    const n = String(name);
+    const m = /^lotto:(\d+)$/.exec(n);
+    const place = m ? arch.places.find((p) => p.role === 'lotto' && p.slot === Number(m[1])) : arch.places.find((p) => p.island === n || p.role === n);
+    if (!place) return null;
+    mode = 'walk'; boat.setDriver(null); avatar.visible = true;
+    avatar.teleport(place.spawn.x, place.spawn.z); moor(place.boat.x, place.boat.z);
+    spawnAt = { ...place.spawn }; dockAt = landingSpot(boat.state, map) ?? place.spawn;
+    diorama.follow(place.spawn.x, 0.5, place.spawn.z); diorama.snap?.();
+    return place;
+  };
   registerTestHook('teleport', (x, z) => avatar.teleport(Number(x), Number(z)));
   registerTestHook('setZoom', (z) => diorama.setZoom(Number(z)));
-  registerTestHook('setMode', (m) => { if (m === 'boat') { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; } else { mode = 'walk'; boat.setDriver(null); avatar.visible = true; avatar.teleport(map.spawn.x, map.spawn.z); } });
+  registerTestHook('setMode', (m) => { if (m === 'boat') { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; } else { mode = 'walk'; boat.setDriver(null); avatar.visible = true; avatar.teleport(spawnAt.x, spawnAt.z); } });
+  registerTestHook('goto', (name) => { const p = goto(name); return p ? { island: p.island, slot: p.slot, x: p.spawn.x, z: p.spawn.z } : null; });
   return state;
 }

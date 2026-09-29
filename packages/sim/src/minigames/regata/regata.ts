@@ -190,7 +190,8 @@ export const regata: MinigameModule<RegataState> = {
   create({ seed, difficulty }) {
     const root = createRng(seed).fork('regata');
     const rng = root.fork('boe');
-    const def = ISLANDS[0];
+    // percorso fissato per id (non per posizione in islands.json): le sfide in corso si rigiocano sempre sulla stessa mappa. Fetta 2: laguna.
+    const def = ISLANDS.find((i) => i.id === 'prova') ?? ISLANDS[0];
     if (!def) throw new Error('Nessuna isola');
     const map = parseIsland(def);
     const n = rng.int(CFG.buoys.min, CFG.buoys.max);

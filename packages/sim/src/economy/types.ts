@@ -20,6 +20,42 @@ export type LotState = {
   boostUntilMs: number;
   /** Assente negli stati vecchi: vale { day: 0, used: 0 }. */
   challenges?: ChallengeCount;
+  /** Cappelli a pagamento comprati (id di avatar.json `cappelli`). I gratuiti non ci stanno: sono di tutti. Assente = []. */
+  posseduti?: string[];
+  /** Poste in escrow per sfida (id sfida → posta): `escrow` è la loro somma. Assente = {}. */
+  holds?: Record<string, Resources>;
+  /** Ultime sfide già regolate su questo lotto (per rendere idempotente il regolamento). Assente = []. */
+  settled?: string[];
+};
+
+/**
+ * Sfida differita (GDD §7, PROTOCOL §4). `from` = sfidante, `to` = chi risponde.
+ * Stati: gioca_sfidante (posta di from in escrow, from deve giocare) → aperta (from ha giocato, to può accettare/rifiutare)
+ * → accettata (anche la posta di to in escrow) → chiusa. Oppure rifiutata / scaduta (rimborso). Dopo 24 h dalla creazione scade.
+ */
+export type ChallengeState = 'gioca_sfidante' | 'aperta' | 'accettata' | 'chiusa' | 'rifiutata' | 'scaduta';
+export type Challenge = {
+  id: string;
+  minigame: string;
+  difficulty: 1 | 2 | 3;
+  seed: number;
+  from: string;
+  to: string;
+  stake: Resources;
+  state: ChallengeState;
+  createdMs: number;
+  expiresMs: number;
+  scoreFrom: number | null;
+  medalFrom: 'oro' | 'argento' | 'bronzo' | null;
+  scoreTo: number | null;
+  medalTo: 'oro' | 'argento' | 'bronzo' | null;
+  /** Solo a sfida chiusa: chi ha vinto ('pari' = parità, rimborso). */
+  winner: 'from' | 'to' | 'pari' | null;
+  /** Deciso all'accettazione: se to vince prende 1,5× il piatto. */
+  colpoDiCoda: boolean;
+  /** Quanto ha preso il vincitore (a sfida chiusa). */
+  pot: Resources | null;
+  closedMs: number | null;
 };
 
 export const ZERO: Resources = { legno: 0, pietra: 0, perle: 0 };
@@ -34,7 +70,7 @@ export const missing = (have: Resources, cost: Resources): Resources => ({
   legno: Math.max(0, cost.legno - have.legno), pietra: Math.max(0, cost.pietra - have.pietra), perle: Math.max(0, cost.perle - have.perle),
 });
 
-export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow';
+export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow' | 'cappello' | 'posizione';
 export class EconomyError extends Error {
   code: EconomyErrorCode;
   manca: Resources | undefined;

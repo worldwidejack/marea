@@ -140,6 +140,7 @@ for (const file of fs.readdirSync(RAW).filter((f) => f.endsWith('.glb')).sort())
   if (clips.length) entry.clips = clips;
   const extra = report[name] || {};
   if (extra.anchors) entry.anchors = extra.anchors;
+  if (extra.footprint) entry.footprint = extra.footprint; // impronta a terra in metri [x, z] (edifici M1, Porto, facciate)
   if (name.startsWith('chr_')) {
     entry.tint = TINT; entry.materials = root.listMaterials().map((m) => m.getName());
     if (extra.durate) entry.durations = extra.durate;
@@ -184,7 +185,7 @@ if (!noPreview) {
     if (rs.status === 0) console.log(`[assets] ${path.relative(ROOT, path.join(PREV, outName))} (${names.length} riquadri)`);
     else console.warn(`[assets] ${outName} non riuscito:`, rs.stderr);
   }
-  const shots = fs.readdirSync(PREV).filter((f) => f.endsWith('.png') && !['contact.png', 'chr_varianti.png', 'chr_catalogo.png'].includes(f)).sort();
+  const shots = fs.readdirSync(PREV).filter((f) => f.endsWith('.png') && !['contact.png', 'chr_varianti.png', 'chr_catalogo.png', 'm1_contact.png'].includes(f)).sort();
   if (shots.length) {
     const cols = 6, rows = Math.ceil(shots.length / cols);
     const list = path.join(PREV, 'contact.txt');
@@ -199,6 +200,32 @@ if (!noPreview) {
     } else console.warn('[assets] contact sheet non riuscito:', r.stderr);
     fs.rmSync(list, { force: true });
   }
+}
+
+// ---- 5. foglio M1: livelli affiancati (L1 L2 L3) per ogni edificio + cantiere, molo, Porto, facciate
+if (!noPreview) {
+  const L = (id, n) => [1, 2, 3].map((l) => (l <= n ? `bld_${id}_l${l}` : null));
+  const GRID = [
+    [...L('segheria', 3), ...L('cava', 3)],
+    [...L('magazzino', 3), ...L('casa', 3)],
+    [...L('tavolo', 3), ...L('faro', 2)],
+    ['bld_cantiere', 'prop_deposito', 'mod_molo', 'prop_molo_l2', 'prop_molo_l3', 'prop_filo_lanterne'],
+    ['bld_porto_casa_a', 'bld_porto_casa_b', 'bld_porto_casa_c', 'bld_porto_tavolo', 'prop_boa', 'prop_boa_next'],
+    ['fac_neon', 'fac_selvaggia', 'prop_torii', 'prop_lanterna', null, null],
+  ];
+  const blankDir = path.join(PREV, '_m1'); fs.mkdirSync(blankDir, { recursive: true });
+  const blank = path.join(blankDir, 'vuoto.png');
+  spawnSync(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=0x2E1E14:s=384x384', '-frames:v', '1', '-pix_fmt', 'rgba', blank]);
+  const cells = GRID.flat().map((n) => (n && fs.existsSync(path.join(PREV, `${n}.png`)) ? n : null));
+  const list = path.join(blankDir, 'lista.txt');
+  fs.writeFileSync(list, cells.map((n) => `file '${n ? path.join(PREV, `${n}.png`) : blank}'\nduration 1`).join('\n') + '\n');
+  const cols = 6, step = 390;
+  const labels = cells.map((n, i) => (n ? `drawtext=text='${n}':x=${(i % cols) * step + 8}:y=${Math.floor(i / cols) * step + 8}:fontsize=16:fontcolor=0xF4E3C1:box=1:boxcolor=0x2E1E14@0.8` : null)).filter(Boolean);
+  const out = path.join(PREV, 'm1_contact.png');
+  const r = spawnSync(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', list, '-vf', `scale=384:384,tile=${cols}x${GRID.length}:padding=6:color=0x2E1E14,${labels.join(',')}`, '-frames:v', '1', out], { encoding: 'utf8' });
+  if (r.status === 0) console.log(`[assets] foglio M1: ${path.relative(ROOT, out)} (${cells.filter(Boolean).length} riquadri)`);
+  else console.warn('[assets] foglio M1 non riuscito:', r.stderr);
+  fs.rmSync(list, { force: true });
 }
 
 // ---- riepilogo

@@ -22,11 +22,17 @@ const token = opt('--token') ?? crypto.randomBytes(18).toString('base64url');
 if (!/^[a-z0-9_-]{1,40}$/.test(id)) { console.error('id non valido: solo a-z 0-9 - _'); process.exit(1); }
 const q = (s) => "'" + String(s).replace(/'/g, "''") + "'";
 const LOOK_A = '{"pelle":2,"capelli":0,"coloreCapelli":0,"vestito":0,"cappello":1}'; // look di partenza (variante A, migrazione 0002)
-const sql = `INSERT INTO persone (id, nome, token, admin, look) VALUES (${q(id)}, ${q(nome)}, ${q(token)}, ${flag('--admin') ? 1 : 0}, ${q(LOOK_A)});`;
+// slot del lotto (0-7): il primo libero, NULL se l'arcipelago è pieno (arriva al Porto). Una sola istruzione: niente corse tra due inviti.
+// (json_each e non una UNION di 8 SELECT: D1 limita i termini di una SELECT composta)
+const SLOT_LIBERO = "(SELECT value FROM json_each('[0,1,2,3,4,5,6,7]') WHERE value NOT IN (SELECT slot FROM persone WHERE slot IS NOT NULL) ORDER BY value LIMIT 1)";
+const sql = `INSERT INTO persone (id, nome, token, admin, look, slot) VALUES (${q(id)}, ${q(nome)}, ${q(token)}, ${flag('--admin') ? 1 : 0}, ${q(LOOK_A)}, ${SLOT_LIBERO});`;
 const where = flag('--remote') ? ['--remote'] : ['--local', ...(opt('--persist-to') ? ['--persist-to', opt('--persist-to')] : [])];
 
+const d1 = (command, json = false) => execFileSync('npx', ['--no-install', 'wrangler', 'd1', 'execute', 'DB', ...where, ...(json ? ['--json'] : []), '--command', command], { cwd: SERVER, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, CI: '1' } }).toString();
+let slot = null;
 try {
-  execFileSync('npx', ['--no-install', 'wrangler', 'd1', 'execute', 'DB', ...where, '--command', sql], { cwd: SERVER, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, CI: '1' } });
+  d1(sql);
+  try { slot = JSON.parse(d1(`SELECT slot FROM persone WHERE id = ${q(id)};`, true))[0]?.results?.[0]?.slot ?? null; } catch { /* solo per la stampa */ }
 } catch (e) {
   const out = String(e.stdout ?? '') + String(e.stderr ?? '');
   if (/UNIQUE/i.test(out)) console.error(`Esiste già una persona con id "${id}": usa --id altro-id`);
@@ -34,5 +40,5 @@ try {
   process.exit(1);
 }
 const base = flag('--remote') ? URL_ONLINE : 'http://localhost:8787';
-console.log(`${nome} (${id}) creato${flag('--remote') ? ' online' : ' in locale'}.`);
+console.log(`${nome} (${id}) creato${flag('--remote') ? ' online' : ' in locale'}, ${slot === null ? 'senza lotto (arcipelago pieno: arriva al Porto)' : `lotto ${slot}`}.`);
 console.log(`${base}/?t=${token}`);

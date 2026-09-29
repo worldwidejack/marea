@@ -1,8 +1,29 @@
 {
- "version": "2026-09-29-19",
+ "version": "2026-09-29-43",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
+  "bld_cantiere": {
+   "file": "bld_cantiere.glb",
+   "tris": 330,
+   "kb": 16.1,
+   "bounds": {
+    "min": [
+     -0.96,
+     0,
+     -1.22
+    ],
+    "max": [
+     0.96,
+     2.43,
+     0.96
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
   "bld_casa_l1": {
    "file": "bld_casa_l1.glb",
    "tris": 363,
@@ -19,6 +40,48 @@
      1.1
     ]
    }
+  },
+  "bld_casa_l2": {
+   "file": "bld_casa_l2.glb",
+   "tris": 359,
+   "kb": 18.2,
+   "bounds": {
+    "min": [
+     -1.18,
+     0,
+     -1.12
+    ],
+    "max": [
+     1.18,
+     3.45,
+     1
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_casa_l3": {
+   "file": "bld_casa_l3.glb",
+   "tris": 503,
+   "kb": 25,
+   "bounds": {
+    "min": [
+     -1.08,
+     0,
+     -1.15
+    ],
+    "max": [
+     1.08,
+     4.2,
+     1.04
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
   },
   "bld_cava_l1": {
    "file": "bld_cava_l1.glb",
@@ -37,6 +100,48 @@
     ]
    }
   },
+  "bld_cava_l2": {
+   "file": "bld_cava_l2.glb",
+   "tris": 364,
+   "kb": 18.6,
+   "bounds": {
+    "min": [
+     -1.1,
+     -0.03,
+     -1.06
+    ],
+    "max": [
+     1.1,
+     3.13,
+     0.97
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_cava_l3": {
+   "file": "bld_cava_l3.glb",
+   "tris": 461,
+   "kb": 23.1,
+   "bounds": {
+    "min": [
+     -1.12,
+     -0.08,
+     -1.14
+    ],
+    "max": [
+     1.05,
+     3.67,
+     1.05
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
   "bld_faro_l1": {
    "file": "bld_faro_l1.glb",
    "tris": 315,
@@ -53,6 +158,27 @@
      1.12
     ]
    }
+  },
+  "bld_faro_l2": {
+   "file": "bld_faro_l2.glb",
+   "tris": 465,
+   "kb": 23.5,
+   "bounds": {
+    "min": [
+     -1.26,
+     0,
+     -1.21
+    ],
+    "max": [
+     1.1,
+     7.35,
+     1.13
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
   },
   "bld_magazzino_l1": {
    "file": "bld_magazzino_l1.glb",
@@ -71,6 +197,132 @@
     ]
    }
   },
+  "bld_magazzino_l2": {
+   "file": "bld_magazzino_l2.glb",
+   "tris": 434,
+   "kb": 21.4,
+   "bounds": {
+    "min": [
+     -1.24,
+     0,
+     -1.11
+    ],
+    "max": [
+     1.24,
+     3.28,
+     1.04
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_magazzino_l3": {
+   "file": "bld_magazzino_l3.glb",
+   "tris": 400,
+   "kb": 19.7,
+   "bounds": {
+    "min": [
+     -1.31,
+     0,
+     -1.18
+    ],
+    "max": [
+     1.31,
+     3.63,
+     1.05
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_porto_casa_a": {
+   "file": "bld_porto_casa_a.glb",
+   "tris": 332,
+   "kb": 16.9,
+   "bounds": {
+    "min": [
+     -1.26,
+     0,
+     -1.12
+    ],
+    "max": [
+     1.26,
+     3.63,
+     1.08
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_porto_casa_b": {
+   "file": "bld_porto_casa_b.glb",
+   "tris": 432,
+   "kb": 21.4,
+   "bounds": {
+    "min": [
+     -2.24,
+     0,
+     -1.13
+    ],
+    "max": [
+     2.24,
+     3.65,
+     1.08
+    ]
+   },
+   "footprint": [
+    4,
+    2
+   ]
+  },
+  "bld_porto_casa_c": {
+   "file": "bld_porto_casa_c.glb",
+   "tris": 484,
+   "kb": 23.5,
+   "bounds": {
+    "min": [
+     -0.98,
+     0,
+     -1.05
+    ],
+    "max": [
+     0.98,
+     4.65,
+     0.95
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_porto_tavolo": {
+   "file": "bld_porto_tavolo.glb",
+   "tris": 670,
+   "kb": 31.5,
+   "bounds": {
+    "min": [
+     -1.89,
+     0,
+     -2.12
+    ],
+    "max": [
+     1.89,
+     4.85,
+     1.89
+    ]
+   },
+   "footprint": [
+    4,
+    4
+   ]
+  },
   "bld_segheria_l1": {
    "file": "bld_segheria_l1.glb",
    "tris": 347,
@@ -88,6 +340,48 @@
     ]
    }
   },
+  "bld_segheria_l2": {
+   "file": "bld_segheria_l2.glb",
+   "tris": 513,
+   "kb": 24.7,
+   "bounds": {
+    "min": [
+     -1.28,
+     0,
+     -0.98
+    ],
+    "max": [
+     1.02,
+     2.78,
+     1.1
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_segheria_l3": {
+   "file": "bld_segheria_l3.glb",
+   "tris": 604,
+   "kb": 29.2,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -1
+    ],
+    "max": [
+     1.34,
+     3.6,
+     1.09
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
   "bld_tavolo_l1": {
    "file": "bld_tavolo_l1.glb",
    "tris": 376,
@@ -104,6 +398,48 @@
      0.9
     ]
    }
+  },
+  "bld_tavolo_l2": {
+   "file": "bld_tavolo_l2.glb",
+   "tris": 390,
+   "kb": 19.4,
+   "bounds": {
+    "min": [
+     -1.26,
+     0,
+     -1.02
+    ],
+    "max": [
+     1.26,
+     2.78,
+     1.02
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_tavolo_l3": {
+   "file": "bld_tavolo_l3.glb",
+   "tris": 704,
+   "kb": 33.1,
+   "bounds": {
+    "min": [
+     -1.12,
+     0,
+     -1.12
+    ],
+    "max": [
+     1.12,
+     3.75,
+     1.12
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
   },
   "boat_barca": {
    "file": "boat_barca.glb",
@@ -193,6 +529,48 @@
     "cappello_neon",
     "cappello_paglia",
     "cappello_pescatore"
+   ]
+  },
+  "fac_neon": {
+   "file": "fac_neon.glb",
+   "tris": 278,
+   "kb": 14.7,
+   "bounds": {
+    "min": [
+     -8.4,
+     0,
+     -3.2
+    ],
+    "max": [
+     8.4,
+     16.3,
+     1.85
+    ]
+   },
+   "footprint": [
+    17,
+    7
+   ]
+  },
+  "fac_selvaggia": {
+   "file": "fac_selvaggia.glb",
+   "tris": 211,
+   "kb": 11.2,
+   "bounds": {
+    "min": [
+     -8,
+     0,
+     -4.89
+    ],
+    "max": [
+     8,
+     9.8,
+     3.49
+    ]
+   },
+   "footprint": [
+    16,
+    7
    ]
   },
   "mod_erba": {
@@ -297,6 +675,40 @@
     ]
    }
   },
+  "prop_boa": {
+   "file": "prop_boa.glb",
+   "tris": 90,
+   "kb": 6.2,
+   "bounds": {
+    "min": [
+     -0.46,
+     -0.45,
+     -0.46
+    ],
+    "max": [
+     0.75,
+     3.12,
+     0.46
+    ]
+   }
+  },
+  "prop_boa_next": {
+   "file": "prop_boa_next.glb",
+   "tris": 110,
+   "kb": 7.1,
+   "bounds": {
+    "min": [
+     -1.05,
+     -0.45,
+     -1
+    ],
+    "max": [
+     1.05,
+     3.12,
+     1
+    ]
+   }
+  },
   "prop_cassa": {
    "file": "prop_cassa.glb",
    "tris": 90,
@@ -313,6 +725,44 @@
      0.44
     ]
    }
+  },
+  "prop_deposito": {
+   "file": "prop_deposito.glb",
+   "tris": 104,
+   "kb": 6.1,
+   "bounds": {
+    "min": [
+     -0.34,
+     0,
+     -0.4
+    ],
+    "max": [
+     0.34,
+     0.61,
+     0.36
+    ]
+   }
+  },
+  "prop_filo_lanterne": {
+   "file": "prop_filo_lanterne.glb",
+   "tris": 170,
+   "kb": 9.7,
+   "bounds": {
+    "min": [
+     -2.09,
+     0,
+     -0.14
+    ],
+    "max": [
+     2.09,
+     2.8,
+     0.14
+    ]
+   },
+   "footprint": [
+    4,
+    0.3
+   ]
   },
   "prop_insegna_neon": {
    "file": "prop_insegna_neon.glb",
@@ -347,6 +797,48 @@
      0.16
     ]
    }
+  },
+  "prop_molo_l2": {
+   "file": "prop_molo_l2.glb",
+   "tris": 146,
+   "kb": 8.6,
+   "bounds": {
+    "min": [
+     -0.91,
+     0.5,
+     -0.94
+    ],
+    "max": [
+     0.95,
+     2.2,
+     0.84
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "prop_molo_l3": {
+   "file": "prop_molo_l3.glb",
+   "tris": 190,
+   "kb": 10.6,
+   "bounds": {
+    "min": [
+     -0.93,
+     0.5,
+     -0.97
+    ],
+    "max": [
+     0.93,
+     2.3,
+     0.94
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
   },
   "prop_palma": {
    "file": "prop_palma.glb",

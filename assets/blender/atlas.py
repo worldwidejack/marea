@@ -44,6 +44,12 @@ _grid(['corteccia', 'taglio', 'paglia', 'acqua_bassa', 'metallo', 'cemento', 'le
 _grid(['corda', 'carta_lanterna', 'cassa', 'barile', 'foglia_palma', 'tronco_palma', 'cocco', 'insegna_fondo',
        'ferro', 'tela', 'remo', 'scafo', 'scafo_chiglia', 'lacca_rossa_p', 'nero_p', 'pietra_p',
        'panca', 'bandiera', 'secchio', 'rete', 'vetro', 'oro_perla', 'tessuto_rosso', 'tessuto_blu'], 0, 512, 32, 32, 32)
+# M1 (30 set 2026) — solo aggiunte in zone libere, le regioni esistenti non si spostano.
+_grid(['tegole_rame', 'namako', 'intonaco_rosso', 'bambu'], 0, 128)                       # edifici L2/L3 e Porto
+_grid(['noren_blu', 'noren_rosso', 'oro', 'boa_strisce', 'telo_blu', 'legno_lacca', 'carta_tesa', 'fune_bandierine'], 0, 544, 32, 32, 32)
+REGIONS['insegna_sfide'] = (0, 576, 64, 32)   # «SFIDE» laccato, 32 texel/m (2 × 1 m)
+REGIONS['insegna_v'] = (64, 576, 16, 48)      # insegna verticale di bottega, 3 segni astratti
+REGIONS['insegna_h'] = (80, 576, 48, 16)      # insegna orizzontale di bottega
 # righe 768-895: avatar (maschere di tinta bianche + parti a colore fisso)
 REGIONS['testa'] = (0, 768, 14, 18)        # viso dipinto, proiezione frontale 0,22 × 0,28 m → 64 texel/m (a 32 gli occhi sarebbero puntini)
 REGIONS['pelle'] = (16, 768, 16, 16)       # pelle liscia (maschera)
@@ -465,9 +471,126 @@ def paint(cv):
         R(n, lambda x, y, w, h, f=f: f(x, y, w, h) or 'ombra_calda')
 
 
+def paint_m1(cv):
+    """Regioni della fetta M1: tetti di rame, kura, tende noren, insegne, boa, cantiere."""
+    import math
+    R = cv.region
+
+    def tegole_rame(x, y, w, h):  # coppi di rame ossidato (verde), file sfalsate come `tegole`
+        xx, yy = x % 32, y % 32
+        row = yy // 4
+        xx = (xx + (2 if row % 2 else 0)) % 32
+        if yy % 4 == 3:
+            return 'bosco_ombra'
+        if xx % 4 == 0:
+            return 'bosco_ombra' if yy % 4 != 0 else 'bosco'
+        if yy % 4 == 0:
+            return 'erba_scura' if xx % 4 in (1, 2) else 'bosco'
+        return 'bosco' if h01(xx, yy, 91) > 0.12 else 'erba_scura'
+    R('tegole_rame', tegole_rame)
+
+    def namako(x, y, w, h):  # muro kura: piastrelle scure con giunti bianchi a rombo
+        xx, yy = x % 8, y % 8
+        if xx == yy or xx == 7 - yy:
+            return 'pietra_chiara'
+        return 'roccia' if h01(x % 32, y % 32, 92) > 0.1 else 'pietra_scura'
+    R('namako', namako)
+    R('intonaco_rosso', speckle('rosso', [('arancio', 0.05)], 93))
+
+    def bambu(x, y, w, h):  # canne verticali con nodi
+        xx = x % 4
+        if xx == 0:
+            return 'legno'
+        if y % 12 == 0:
+            return 'legno_chiaro'
+        return 'sabbia' if xx == 1 else 'legno_chiaro'
+    R('bambu', bambu)
+
+    def noren(fondo, segno):
+        def f(x, y, w, h):  # tenda a 3 strisce con un segno bianco al centro, orlo scuro in alto
+            if y < 3:
+                return 'ombra_calda'
+            if x % 11 == 10 and y > 8:
+                return 'ombra_calda'  # tagli tra le strisce
+            cx, cy = x - 16, y - 16
+            if (abs(cx) <= 5 and cy in (-3, 3)) or (cx == 0 and -6 <= cy <= 6) or (abs(cx) == 4 and -1 <= cy <= 5):
+                return segno
+            return fondo
+        return f
+    R('noren_blu', noren('acqua_profonda', 'sabbia_chiara'))
+    R('noren_rosso', noren('rosso', 'sabbia_chiara'))
+    R('oro', speckle('giallo', [('arancio', 0.12), ('sabbia_chiara', 0.05)], 94))
+
+    def boa_strisce(x, y, w, h):  # bande orizzontali rosso / bianco ogni 8 texel (0,5 m)
+        return ('rosso' if h01(x, y, 95) > 0.06 else 'arancio') if (y // 8) % 2 == 0 else ('pietra_chiara' if h01(x, y, 96) > 0.08 else 'pietra')
+    R('boa_strisce', boa_strisce)
+
+    def telo_blu(x, y, w, h):  # telo di cantiere: tela blu con cuciture chiare
+        if y % 16 == 0 or x % 16 == 0:
+            return 'sabbia_chiara'
+        return 'acqua_profonda' if h01(x, y, 97) > 0.1 else 'abisso'
+    R('telo_blu', telo_blu)
+    R('legno_lacca', speckle('rosso', [('legno_scuro', 0.05)], 98))
+
+    def carta_tesa(x, y, w, h):  # carta dei pannelli illuminata dall'esterno (non emissiva)
+        if x % 8 == 0 or y % 10 == 0:
+            return 'legno_scuro'
+        return 'sabbia_chiara' if h01(x, y, 99) > 0.06 else 'sabbia'
+    R('carta_tesa', carta_tesa)
+
+    def fune_bandierine(x, y, w, h):
+        return ['rosso', 'giallo', 'acqua', 'sabbia_chiara'][(x // 8) % 4] if y > 4 else 'legno'
+    R('fune_bandierine', fune_bandierine)
+
+    font = {
+        'S': ['.1111', '1....', '1....', '.111.', '....1', '....1', '1111.'],
+        'F': ['11111', '1....', '1....', '1111.', '1....', '1....', '1....'],
+        'I': ['.111.', '..1..', '..1..', '..1..', '..1..', '..1..', '.111.'],
+        'D': ['1111.', '1...1', '1...1', '1...1', '1...1', '1...1', '1111.'],
+        'E': ['11111', '1....', '1....', '1111.', '1....', '1....', '11111'],
+    }
+
+    def sfide(x, y, w, h):  # tavola laccata nera, bordo rosso, lettere oro a scala 2
+        if x in (0, w - 1) or y in (0, h - 1):
+            return 'ombra_calda'
+        if x in (1, 2, w - 2, w - 3) or y in (1, 2, h - 2, h - 3):
+            return 'rosso'
+        tx, ty = (x - 3) // 2, (y - 9) // 2
+        if 0 <= ty < 7 and 0 <= tx < 30:
+            ch, cx = 'SFIDE'[tx // 6], tx % 6
+            if cx < 5 and font[ch][ty][cx] == '1':
+                return 'giallo' if (x + y) % 5 else 'arancio'
+        return 'nero_caldo'
+    R('insegna_sfide', sfide)
+
+    # segni astratti 7x7 (non sono caratteri veri: niente testo da tradurre, niente IP)
+    glyphs = [
+        ['1111111', '...1...', '.11111.', '...1...', '.1.1.1.', '1..1..1', '...1...'],
+        ['.1...1.', '1111111', '.1...1.', '.11111.', '.1...1.', '.11111.', '1.....1'],
+        ['...1...', '1111111', '..1.1..', '.1...1.', '1111111', '...1...', '..111..'],
+    ]
+
+    def bottega(vertical):
+        def f(x, y, w, h):
+            if x in (0, w - 1) or y in (0, h - 1):
+                return 'ombra_calda'
+            a, b = (y, x) if vertical else (x, y)  # a = lungo l'insegna
+            k, off = (a - 1) // 15, (a - 1) % 15
+            gx, gy = off - 4, b - 4
+            if k < 3 and 0 <= gx < 7 and 0 <= gy < 7:
+                g = glyphs[k]
+                if (g[gx][gy] if vertical else g[gy][gx]) == '1':
+                    return 'nero_caldo'
+            return 'sabbia_chiara' if h01(x, y, 100) > 0.08 else 'sabbia'
+        return f
+    R('insegna_v', bottega(True))
+    R('insegna_h', bottega(False))
+
+
 def build(path):
     cv = Canvas()
     paint(cv)
+    paint_m1(cv)
     cv.png(path)
     return path
 
