@@ -1,0 +1,29 @@
+[
+  { "id": "molo", "nome": "Molo", "size": [2, 1], "model": "mod_molo", "levels": [
+    { "cost": { "legno": 0, "pietra": 0, "perle": 0 }, "seconds": 0, "boatSpeed": 1.0 },
+    { "cost": { "legno": 100, "pietra": 80, "perle": 0 }, "seconds": 600, "boatSpeed": 1.1 },
+    { "cost": { "legno": 350, "pietra": 300, "perle": 0 }, "seconds": 7200, "boatSpeed": 1.2 } ] },
+  { "id": "segheria", "nome": "Segheria", "size": [1, 1], "model": "bld_segheria", "produces": "legno", "levels": [
+    { "cost": { "legno": 30, "pietra": 0, "perle": 0 }, "seconds": 30, "rate": 20 },
+    { "cost": { "legno": 120, "pietra": 60, "perle": 0 }, "seconds": 1200, "rate": 45 },
+    { "cost": { "legno": 400, "pietra": 250, "perle": 0 }, "seconds": 14400, "rate": 90 } ] },
+  { "id": "cava", "nome": "Cava", "size": [1, 1], "model": "bld_cava", "produces": "pietra", "requires": "molo", "levels": [
+    { "cost": { "legno": 50, "pietra": 0, "perle": 0 }, "seconds": 120, "rate": 12 },
+    { "cost": { "legno": 150, "pietra": 80, "perle": 0 }, "seconds": 2400, "rate": 28 },
+    { "cost": { "legno": 450, "pietra": 300, "perle": 0 }, "seconds": 21600, "rate": 60 } ] },
+  { "id": "magazzino", "nome": "Magazzino", "size": [1, 1], "model": "bld_magazzino", "levels": [
+    { "cost": { "legno": 40, "pietra": 20, "perle": 0 }, "seconds": 300, "cap": 200 },
+    { "cost": { "legno": 200, "pietra": 120, "perle": 0 }, "seconds": 3600, "cap": 600 },
+    { "cost": { "legno": 600, "pietra": 400, "perle": 0 }, "seconds": 28800, "cap": 1500 } ] },
+  { "id": "casa", "nome": "Casa", "size": [1, 1], "model": "bld_casa", "levels": [
+    { "cost": { "legno": 60, "pietra": 30, "perle": 0 }, "seconds": 600, "slots": 2 },
+    { "cost": { "legno": 250, "pietra": 150, "perle": 0 }, "seconds": 7200, "slots": 4 },
+    { "cost": { "legno": 700, "pietra": 500, "perle": 0 }, "seconds": 28800, "slots": 6 } ] },
+  { "id": "faro", "nome": "Faro", "size": [1, 1], "model": "bld_faro", "levels": [
+    { "cost": { "legno": 120, "pietra": 120, "perle": 0 }, "seconds": 1800, "boost": 1.5, "boostHours": 2 },
+    { "cost": { "legno": 400, "pietra": 400, "perle": 0 }, "seconds": 10800, "boost": 1.5, "boostHours": 3 } ] },
+  { "id": "tavolo", "nome": "Tavolo delle Sfide", "size": [1, 1], "model": "bld_tavolo", "levels": [
+    { "cost": { "legno": 40, "pietra": 10, "perle": 0 }, "seconds": 300, "wagerMax": 50, "freeChallenges": 3 },
+    { "cost": { "legno": 180, "pietra": 100, "perle": 0 }, "seconds": 3600, "wagerMax": 150, "freeChallenges": 5 },
+    { "cost": { "legno": 500, "pietra": 350, "perle": 0 }, "seconds": 21600, "wagerMax": 400, "freeChallenges": 8 } ] }
+]

@@ -1,0 +1,36 @@
+{
+  "name": "marea",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "MAREA: arcipelago 3D condiviso tra amici. La tua isola produce mentre non ci sei.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/client",
+    "dev:server": "npm run dev --workspace=apps/server",
+    "build": "node tools/build.mjs",
+    "check": "node tools/check_types.mjs",
+    "test": "node tests/run.mjs all",
+    "deploy": "node tools/deploy.mjs",
+    "assets": "node tools/build_assets.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260929.1",
+    "@gltf-transform/cli": "4.5.1",
+    "@types/node": "^26.6.3",
+    "@types/three": "0.186.0",
+    "playwright-core": "1.63.0",
+    "three": "0.186.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.1",
+    "wrangler": "4.143.1"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "workerd@1.20260926.1": true,
+    "fsevents@2.3.3": true
+  }
+}

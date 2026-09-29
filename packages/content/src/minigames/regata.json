@@ -1,0 +1,9 @@
+{
+  "id": "regata",
+  "nome": "Regata",
+  "maxSeconds": 120,
+  "buoys": { "min": 6, "max": 8, "radius": 3.0, "spread": 40 },
+  "wind": { "gustEverySeconds": [6, 12], "gustSeconds": 3, "force": 2.0 },
+  "medals": { "oro": 45, "argento": 60, "bronzo": 90 },
+  "scoreBase": 12000
+}

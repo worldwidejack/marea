@@ -1,0 +1,5 @@
+[
+  { "id": "legno", "nome": "Legno", "icona": "legno" },
+  { "id": "pietra", "nome": "Pietra", "icona": "pietra" },
+  { "id": "perle", "nome": "Perle", "icona": "perle" }
+]

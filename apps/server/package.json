@@ -1,0 +1,16 @@
+{
+  "name": "@marea/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:locale": "wrangler d1 migrations apply DB --local",
+    "db:online": "wrangler d1 migrations apply DB --remote"
+  }
+}

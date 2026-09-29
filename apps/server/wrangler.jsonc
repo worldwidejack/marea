@@ -1,0 +1,25 @@
+{
+  // MAREA: un solo Worker serve il client (assets = build di apps/client), l'API e i WebSocket dei Durable Object. Tutto sul piano gratuito.
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "marea",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "../client/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/ws/*"]
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "marea", "database_id": "2a3c4e32-4974-44d5-bb2a-aca1c39230a9", "migrations_dir": "migrations" }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "ZONE", "class_name": "Zone" },
+      { "name": "LOT", "class_name": "Lot" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Zone", "Lot"] }]
+}
