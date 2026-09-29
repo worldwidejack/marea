@@ -15,10 +15,10 @@
   - `main.ts`: `/api/me` + `/api/lots` prima del mondo → spawn sul proprio molo, isole altrui in sola lettura (`game/lot.ts`), barra risorse, build mode, raccolta, miglioramenti (`ui/**`, `net/api.ts`), **bussola** Casa/Porto/Laguna (`ui/compass.ts`);
   - server: `persone.slot` (migrazione D1 `0003`), celle validate sul template `lotto`, decorazioni e cappelli a Perle, **sfide con posta** (DO `Sfide`, binding `SFIDE`, migrazione DO `v2`; TECH §6b, PROTOCOL §4), orologio di test `X-Test-Now-Offset` con `--var TEST_CLOCK:1`;
   - 24 modelli nuovi (edifici L2/L3, cantiere, kit del Porto, boe, facciate): **approvati da Jack** (`assets/export/preview/m1_contact.png`, solo locale).
-- **Test**: prima suite completa 82/89 → corretto `main.ts` (passava `slot: null` e scavalcava `?slot=`); `m1_mondo` 15/15 e `m1_isola` 11/11 da sole. `m1_isola` è lenta e fragile sotto carico (aspetta 3 min veri): vedi BACKLOG.
+- **Test**: **seconda suite completa verde 88/88** (commit `21e52b9`). Prima era 82/89 → corretto `main.ts` (passava `slot: null` e scavalcava `?slot=`); `m1_mondo` 15/15 e `m1_isola` 11/11 da sole. `m1_isola` è lenta e fragile sotto carico (aspetta 3 min veri): vedi BACKLOG.
 
 ## Primo da fare nella chat nuova
-1. **Suite e deploy**: la Fetta 1 è committata e pushata ma **non deployata**. `npm test` → se verde `npm run deploy` (applica D1 `0003` e DO `v2`; se fallisce con 7403 sulla query D1 riprova, è un intoppo di Cloudflare) → `_STATO.md` → `python3 "$HOME/Desktop/JACK/0 JACKOS/_strumenti/tabellone.py"` → commit e push. Se `m1_isola` è rossa solo nella suite completa, prima passala all'orologio di test (BACKLOG).
+1. **Suite e deploy**: la Fetta 1 è committata e pushata ma **non deployata**. se non è cambiato niente dopo `21e52b9` la suite è già verde, altrimenti `npm test`; poi `npm run deploy` (serve l'ok esplicito di Jack) (applica D1 `0003` e DO `v2`; se fallisce con 7403 sulla query D1 riprova, è un intoppo di Cloudflare) → `_STATO.md` → `python3 "$HOME/Desktop/JACK/0 JACKOS/_strumenti/tabellone.py"` → commit e push. Se `m1_isola` è rossa solo nella suite completa, prima passala all'orologio di test (BACKLOG).
 2. **Zoom (scelta di Jack, aperta)**: oggi a zoom max (1,6) sul telefono in verticale si vede ~1/3 del proprio lotto. Fargli **due screenshot 390×844 del suo lotto**: A = com'è ora, B = zoom max ~3 (ZMAX in `render/camera.ts`, ART_BIBLE §7). Aprirli con `open`. Lui sceglie A o B.
 3. Jack prova dal telefono in 4G col suo link + `?fps=1` (costruisce la Segheria, raccoglie, va al Porto in barca).
 
