@@ -33,7 +33,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   const size = Math.max(map.w, map.h) * map.tile;
   const water = createWater({ size: size * 3 }); water.mesh.position.set(size / 2, 0, size / 2); scene.add(water.mesh);
   const island = await createIsland({ map, loader: o.loader }); scene.add(island.group);
-  const look: Look = { pelle: 2, capelli: 0, coloreCapelli: 1, vestito: 0, cappello: 0 };
+  const look: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
   const avatar = await createAvatar({ loader: o.loader, look, x: map.spawn.x, z: map.spawn.z }); scene.add(avatar.object);
   avatar.setGround(island.groundY);
   const boat = await createBoat({ loader: o.loader, x: map.boatSpawn.x, z: map.boatSpawn.z, look }); scene.add(boat.object);

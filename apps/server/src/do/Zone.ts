@@ -17,7 +17,7 @@ const MIN_POS_MS = 45;                   // > 20 Hz (con un po' di tolleranza su
 const MAX_MSG_PER_S = 60;                // oltre: ignorati (non chiude: un telefono lento può mandare a raffiche)
 const MAX_BAD = 10;                      // messaggi non validi prima della chiusura
 export const CLOSE_REPLACED = 4000;      // stessa persona connessa altrove
-const DEFAULT_LOOK: Look = { pelle: 2, capelli: 0, coloreCapelli: 1, vestito: 0, cappello: 0 };
+const DEFAULT_LOOK: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
 
 // Confini larghi della zona: la mappa più grande × 3 (il mare attorno all'isola è navigabile).
 const WORLD = (() => { let m = 64; for (const i of ISLANDS) m = Math.max(m, i.rows.length * (i.tile || 2), (i.rows[0]?.length ?? 0) * (i.tile || 2)); return m; })();

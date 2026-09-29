@@ -21,7 +21,8 @@ const id = opt('--id') ?? slug(nome);
 const token = opt('--token') ?? crypto.randomBytes(18).toString('base64url');
 if (!/^[a-z0-9_-]{1,40}$/.test(id)) { console.error('id non valido: solo a-z 0-9 - _'); process.exit(1); }
 const q = (s) => "'" + String(s).replace(/'/g, "''") + "'";
-const sql = `INSERT INTO persone (id, nome, token, admin) VALUES (${q(id)}, ${q(nome)}, ${q(token)}, ${flag('--admin') ? 1 : 0});`;
+const LOOK_A = '{"pelle":2,"capelli":0,"coloreCapelli":0,"vestito":0,"cappello":1}'; // look di partenza (variante A, migrazione 0002)
+const sql = `INSERT INTO persone (id, nome, token, admin, look) VALUES (${q(id)}, ${q(nome)}, ${q(token)}, ${flag('--admin') ? 1 : 0}, ${q(LOOK_A)});`;
 const where = flag('--remote') ? ['--remote'] : ['--local', ...(opt('--persist-to') ? ['--persist-to', opt('--persist-to')] : [])];
 
 try {

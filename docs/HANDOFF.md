@@ -15,10 +15,10 @@
 - **Test** (`node tests/run.mjs all`): static 0 errori · types 5/5 · sim 24/24 · build entro budget (js 679 KB, gzip 179, iniziale 0,87 MB) · boot 8/8 · look 6/6 (palette 98-99 %) · perf ok · wp1_look 8/8 · wp2_model 5/5 · wp2_move 12/12 · **wp4_net 5/6: rosso «A cammina, B vede la posizione cambiare»** (passava quando WP4 l'ha scritto; da rivedere dopo le modifiche di WP2 all'input e di WP0 al protocollo: probabile timing o `sendPos` che manda solo se cambiato).
 
 ## Cosa manca per chiudere M0 (aggiornato Sessione 2, 30 set)
-Punti 1-5 del vecchio elenco **fatti** (peer in `world.ts`, `chr_base.glb`, test di rete, niente taratura WP3, CSS). Suite 51/51 verde. Dettaglio in `_MEMORIA.md` §3 e `ROADMAP.md` §Deviazioni.
-1. **Deploy** (`npm run deploy`): nella Sessione 2 è stato bloccato dal controllo permessi, serve l'ok esplicito di Jack.
-2. **Jack**: sceglie l'avatar A/B/C (`assets/export/preview/chr_varianti.png`, solo locale) e prova dal telefono in 4G con `?fps=1` (istruzioni in `tests/README.md`). Verificare la pelle chiara nel gioco (nelle anteprime Blender esce grigia).
-3. Con il suo ok M0 è chiusa.
+Tutto il vecchio elenco è fatto e **online** (build `mun8j5iu`): peer visibili, `chr_base.glb`, test di rete, avatar A scelto da Jack come look di partenza. Suite 51/51. Dettaglio in `_MEMORIA.md` §3 e `ROADMAP.md` §Deviazioni.
+1. **Jack** prova dal telefono in 4G con `?fps=1` (istruzioni in `tests/README.md`); verificare anche la pelle chiara (nelle anteprime Blender esce grigia).
+2. Con il suo ok M0 è chiusa.
+- Nota: il primo `npm run deploy` può fallire con 7403 sulla query D1 (intoppo dell'API Cloudflare): riprovare, il Worker non viene toccato se le migrazioni falliscono.
 
 ## Poi M1 (13 ott → 6 dic), in breve
 Login da link (c'è già: token in D1, `apps/server/scripts/invita.mjs "Nome" --remote` stampa il link), presenza multiplayer visibile, isola con 6 edifici e produzione (il DO `Lot` espone già `GET /api/lot` e `POST /api/lot/collect|build|upgrade`), build mode nella stessa vista, **Regata** con sfida differita e wager (sim pronta: `packages/sim/src/minigames/regata`, `replay.ts`), avatar editor base, feed. Dettagli in `docs/ROADMAP.md`.

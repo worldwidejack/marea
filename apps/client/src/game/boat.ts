@@ -27,7 +27,7 @@ export type Boat = {
   wakeCount(): number;
 };
 
-const DEFAULT_LOOK: Look = { pelle: 2, capelli: 0, coloreCapelli: 1, vestito: 0, cappello: 0 };
+const DEFAULT_LOOK: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
 const SEAT = new THREE.Vector3(0, 0.36, 0.55); // sopra la panca di poppa
 const HALF_LEN = 2.25;
 const WAKE_POOL = 96, WAKE_LIFE = 1.5;
