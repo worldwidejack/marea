@@ -69,7 +69,7 @@ Pelle degli avatar (6 toni, dentro la palette estesa dell'atlas avatar): `#FBE2C
 | **Isole personali** | quelli del Porto, più semplici | il giocatore le colora con le decorazioni |
 
 ## 7. Camera e luce
-- Camera **diorama**: prospettica, FOV **30°**, pitch **45°** verso il basso, yaw **45°**, segue l'avatar con smorzamento; distanza base 28 m × zoom (**0,6-1,6**, pinch o rotella). Mai sotto l'orizzonte, mai dietro le spalle in V1.
+- Camera **diorama**: prospettica, FOV **30°**, pitch **45°** verso il basso, yaw **45°**, segue l'avatar con smorzamento; distanza base 28 m × zoom (**0,6-2,2**, pinch o rotella). Mai sotto l'orizzonte, mai dietro le spalle in V1.
 - Sole: direzionale, colore `#FFD9A3`, da sud-ovest, elevazione ~40°. Cielo: emisferico `#9FD3FF` sopra, `#7A5A3A` sotto. Le ombre tendono al blu-viola grazie all'ambiente, mai grigio neutro.
 - Sfondo cielo: gradiente a bande di 4 colori (nessun gradiente liscio), nuvole piatte a pixel opzionali.
 - Resa a **metà risoluzione** con ingrandimento nearest: è insieme il look pixel e il risparmio di prestazioni. Niente post-processing oltre a questo.

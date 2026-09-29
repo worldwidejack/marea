@@ -13,7 +13,7 @@ export type DioramaCamera = {
   /** Porta subito la camera sul bersaglio (teletrasporto, cambio scena). */
   snap?(): void;
 };
-export const CAM = { PITCH: Math.PI / 4, YAW: Math.PI / 4, FOV: 30, DIST: 28, ZMIN: 0.6, ZMAX: 1.6, SMOOTH: 0.22, ZOOM_SMOOTH: 0.12 } as const;
+export const CAM = { PITCH: Math.PI / 4, YAW: Math.PI / 4, FOV: 30, DIST: 28, ZMIN: 0.6, ZMAX: 2.2, SMOOTH: 0.22, ZOOM_SMOOTH: 0.12 } as const;
 const clamp = (z: number) => Math.min(CAM.ZMAX, Math.max(CAM.ZMIN, z));
 
 /** Molla critica (SmoothDamp): segue senza overshoot, continua in velocità. */
