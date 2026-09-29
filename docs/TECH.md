@@ -67,7 +67,7 @@ Il `perf` test legge `window.__game.perf()` (draw call, triangoli, fps) durante 
 URL: `https://marea.stanza-idee.workers.dev` (il sottodominio `stanza-idee.workers.dev` è dell'account). Stima: 10 amici × 30 min/giorno di posizioni a 10 Hz ≈ 9.000 richieste-equivalenti/giorno. Se un giorno si apre al pubblico: piano Paid 5 $/mese.
 
 ## 7. Autenticazione
-Link personale con **token** (`?t=<token>` → salvato in `localStorage`, poi header `X-Token`), creato da Jack con uno script (`tools/invita.mjs`, M1) e mandato su WhatsApp. **Passkey** opzionale da M1 («Aggiungi Face ID») per legare un secondo dispositivo, con `@simplewebauthn/server` su WebCrypto. Zero email, zero OAuth, zero servizi terzi.
+Link personale con **token** (`?t=<token>` → salvato in `localStorage`, poi header `X-Token`), creato con `node apps/server/scripts/invita.mjs "Nome" --remote` (stampa il link; senza `--remote` scrive nel D1 locale) e mandato da Jack su WhatsApp. **Passkey** opzionale da M1 («Aggiungi Face ID») per legare un secondo dispositivo, con `@simplewebauthn/server` su WebCrypto. Zero email, zero OAuth, zero servizi terzi.
 
 ## 8. Anti-cheat (basta per gli amici)
 Ogni partita di minigioco invia al DO `Lot` il **seed** e l'**input log** (uno `InputFrame` compresso per tick). Il DO rigioca la partita con la stessa `sim` e accetta solo il punteggio che ne esce. Orologio: solo del server (`serverNow()` dal client, corretto con ping/pong).

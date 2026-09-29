@@ -26,6 +26,7 @@ export type BuildingDef = {
 export type ResourceDef = { id: ResourceId; nome: string; icona: string };
 export type IslandDef = { id: string; nome: string; tile: number; rows: string[] };
 export type HatDef = { id: string; nome: string; perle: number };
+export type DecorDef = { id: string; nome: string; perle: number; model: string };
 export type AvatarDef = {
   pelle: string[];
   capelli: string[];

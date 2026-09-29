@@ -1,1 +1,326 @@
-{ "version": "0", "atlas": "", "models": {} }
+{
+ "version": "2026-09-29-18",
+ "atlas": "atlas.png",
+ "texelsPerMeter": 16,
+ "models": {
+  "bld_casa_l1": {
+   "file": "bld_casa_l1.glb",
+   "tris": 363,
+   "kb": 18.5,
+   "bounds": {
+    "min": [
+     -1.28,
+     0,
+     -1.09
+    ],
+    "max": [
+     1.28,
+     2.78,
+     1.1
+    ]
+   }
+  },
+  "bld_cava_l1": {
+   "file": "bld_cava_l1.glb",
+   "tris": 306,
+   "kb": 15.6,
+   "bounds": {
+    "min": [
+     -1.06,
+     -0.08,
+     -1.03
+    ],
+    "max": [
+     1.07,
+     2.55,
+     0.95
+    ]
+   }
+  },
+  "bld_faro_l1": {
+   "file": "bld_faro_l1.glb",
+   "tris": 315,
+   "kb": 16.9,
+   "bounds": {
+    "min": [
+     -1.2,
+     0,
+     -1.11
+    ],
+    "max": [
+     1.08,
+     5.3,
+     1.12
+    ]
+   }
+  },
+  "bld_magazzino_l1": {
+   "file": "bld_magazzino_l1.glb",
+   "tris": 338,
+   "kb": 17.2,
+   "bounds": {
+    "min": [
+     -1.24,
+     0,
+     -1.13
+    ],
+    "max": [
+     1.24,
+     2.53,
+     1.03
+    ]
+   }
+  },
+  "bld_segheria_l1": {
+   "file": "bld_segheria_l1.glb",
+   "tris": 347,
+   "kb": 16.4,
+   "bounds": {
+    "min": [
+     -1.02,
+     0,
+     -0.95
+    ],
+    "max": [
+     1.01,
+     2.24,
+     1
+    ]
+   }
+  },
+  "bld_tavolo_l1": {
+   "file": "bld_tavolo_l1.glb",
+   "tris": 376,
+   "kb": 18.7,
+   "bounds": {
+    "min": [
+     -0.9,
+     0,
+     -0.9
+    ],
+    "max": [
+     0.9,
+     2,
+     0.9
+    ]
+   }
+  },
+  "boat_barca": {
+   "file": "boat_barca.glb",
+   "tris": 346,
+   "kb": 17.5,
+   "bounds": {
+    "min": [
+     -0.78,
+     -0.25,
+     -2.3
+    ],
+    "max": [
+     0.78,
+     1.35,
+     2.52
+    ]
+   },
+   "anchors": {
+    "sedile": [
+     0,
+     0.46,
+     0.9
+    ],
+    "timone": [
+     0,
+     0.7,
+     1.75
+    ],
+    "lunghezza": 4.5
+   }
+  },
+  "mod_erba": {
+   "file": "mod_erba.glb",
+   "tris": 32,
+   "kb": 3,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -1
+    ],
+    "max": [
+     1,
+     0.82,
+     1
+    ]
+   }
+  },
+  "mod_molo": {
+   "file": "mod_molo.glb",
+   "tris": 58,
+   "kb": 3.9,
+   "bounds": {
+    "min": [
+     -1,
+     -1,
+     -1
+    ],
+    "max": [
+     1,
+     0.56,
+     1
+    ]
+   }
+  },
+  "mod_sabbia": {
+   "file": "mod_sabbia.glb",
+   "tris": 17,
+   "kb": 2.2,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -1
+    ],
+    "max": [
+     1,
+     0.47,
+     1
+    ]
+   }
+  },
+  "mod_sabbia_bordo": {
+   "file": "mod_sabbia_bordo.glb",
+   "tris": 30,
+   "kb": 2.6,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -1
+    ],
+    "max": [
+     1,
+     0.4,
+     1
+    ]
+   }
+  },
+  "mod_scogliera": {
+   "file": "mod_scogliera.glb",
+   "tris": 56,
+   "kb": 4,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -1
+    ],
+    "max": [
+     1,
+     1.82,
+     1
+    ]
+   }
+  },
+  "prop_barile": {
+   "file": "prop_barile.glb",
+   "tris": 77,
+   "kb": 4.8,
+   "bounds": {
+    "min": [
+     -0.29,
+     0,
+     -0.29
+    ],
+    "max": [
+     0.29,
+     0.83,
+     0.29
+    ]
+   }
+  },
+  "prop_cassa": {
+   "file": "prop_cassa.glb",
+   "tris": 90,
+   "kb": 5.4,
+   "bounds": {
+    "min": [
+     -0.44,
+     0,
+     -0.44
+    ],
+    "max": [
+     0.44,
+     0.8,
+     0.44
+    ]
+   }
+  },
+  "prop_insegna_neon": {
+   "file": "prop_insegna_neon.glb",
+   "tris": 72,
+   "kb": 5.5,
+   "bounds": {
+    "min": [
+     -0.62,
+     0,
+     -0.2
+    ],
+    "max": [
+     0.62,
+     2.3,
+     0.2
+    ]
+   }
+  },
+  "prop_lanterna": {
+   "file": "prop_lanterna.glb",
+   "tris": 122,
+   "kb": 7.5,
+   "bounds": {
+    "min": [
+     -0.15,
+     0,
+     -0.55
+    ],
+    "max": [
+     0.15,
+     2,
+     0.16
+    ]
+   }
+  },
+  "prop_palma": {
+   "file": "prop_palma.glb",
+   "tris": 126,
+   "kb": 8.6,
+   "bounds": {
+    "min": [
+     -0.61,
+     0,
+     -1.25
+    ],
+    "max": [
+     2.16,
+     3.64,
+     1.46
+    ]
+   }
+  },
+  "prop_torii": {
+   "file": "prop_torii.glb",
+   "tris": 160,
+   "kb": 8.4,
+   "bounds": {
+    "min": [
+     -1.7,
+     0,
+     -0.16
+    ],
+    "max": [
+     1.7,
+     3.03,
+     0.16
+    ]
+   }
+  }
+ }
+}

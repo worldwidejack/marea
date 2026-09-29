@@ -1,29 +1,72 @@
-// Caricatore glTF + manifest; texture nearest sRGB. Stub funzionante (WP0); WP1 aggiunge cache e atlas condiviso.
+// Caricatore glTF + manifest (public/assets/manifest.json). Cache per nome, texture nearest sRGB senza mipmap.
+// Senza manifest o con un modello mancante il gioco gira con i segnaposto: chi chiama controlla has(name) prima di load(name).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-export type Manifest = { version: string; atlas: string; models: Record<string, { file: string; tris?: number; clips?: string[] }> };
-export type Loader = { manifest: Manifest; has(name: string): boolean; load(name: string): Promise<{ scene: THREE.Group; clips: THREE.AnimationClip[] }>; texture(name: string): Promise<THREE.Texture> };
-export class MissingAsset extends Error {}
+export type Manifest = { version: string; atlas: string; models: Record<string, { file: string; tris?: number; clips?: string[]; bounds?: unknown }> };
+export type Loader = {
+  manifest: Manifest;
+  has(name: string): boolean;
+  load(name: string): Promise<{ scene: THREE.Group; clips: THREE.AnimationClip[] }>;
+  texture(name: string): Promise<THREE.Texture>;
+  /** Solo i modelli del manifest che esistono: nomi → presenti. */
+  missing?(names: readonly string[]): string[];
+};
+export class MissingAsset extends Error { override name = 'MissingAsset'; }
+
+/** Texture pixel art: nearest, niente mipmap, sRGB. */
+export function pixelTexture(t: THREE.Texture): THREE.Texture {
+  t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 1; t.needsUpdate = true;
+  return t;
+}
+
 export async function createLoader(o: { base: string }): Promise<Loader> {
   let manifest: Manifest = { version: '0', atlas: '', models: {} };
-  try { const r = await fetch(o.base + 'manifest.json', { cache: 'no-store' }); if (r.ok) manifest = (await r.json()) as Manifest; } catch { /* nessun asset: si usano i segnaposto */ }
+  try {
+    const r = await fetch(o.base + 'manifest.json', { cache: 'no-store' });
+    if (r.ok) {
+      const j = (await r.json()) as Partial<Manifest>;
+      manifest = { version: String(j.version ?? '0'), atlas: String(j.atlas ?? ''), models: j.models && typeof j.models === 'object' ? j.models : {} };
+    } else console.warn(`[marea] manifest.json assente (${r.status}): uso i segnaposto`);
+  } catch { console.warn('[marea] manifest.json non leggibile: uso i segnaposto'); }
   const gltf = new GLTFLoader();
-  const cache = new Map<string, Promise<{ scene: THREE.Group; clips: THREE.AnimationClip[] }>>();
-  const fixTex = (root: THREE.Object3D) => root.traverse((n) => {
-    const m = (n as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
-    if (m?.map) { m.map.magFilter = m.map.minFilter = THREE.NearestFilter; m.map.generateMipmaps = false; m.map.colorSpace = THREE.SRGBColorSpace; }
-    if ((n as THREE.Mesh).isMesh) { n.castShadow = true; n.receiveShadow = true; }
+  const models = new Map<string, Promise<{ scene: THREE.Group; clips: THREE.AnimationClip[] }>>();
+  const textures = new Map<string, Promise<THREE.Texture>>();
+  const fix = (root: THREE.Object3D) => root.traverse((n) => {
+    const mesh = n as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      const mm = m as THREE.MeshStandardMaterial;
+      if (mm.map) pixelTexture(mm.map);
+      if (mm.emissiveMap) pixelTexture(mm.emissiveMap);
+    }
   });
-  return {
+  const api: Loader = {
     manifest,
-    has: (name) => name in manifest.models,
+    has: (name) => Object.prototype.hasOwnProperty.call(manifest.models, name),
+    missing: (names) => names.filter((n) => !api.has(n)),
     load(name) {
       const entry = manifest.models[name];
-      if (!entry) return Promise.reject(new MissingAsset(`Modello mancante: ${name}`));
-      let p = cache.get(name);
-      if (!p) { p = gltf.loadAsync(o.base + entry.file).then((g) => { fixTex(g.scene); return { scene: g.scene, clips: g.animations }; }); cache.set(name, p); }
+      if (!entry) return Promise.reject(new MissingAsset(`[marea] modello mancante nel manifest: ${name}`));
+      let p = models.get(name);
+      if (!p) {
+        p = gltf.loadAsync(o.base + entry.file)
+          .then((g) => { fix(g.scene); return { scene: g.scene, clips: g.animations }; })
+          .catch((e: unknown) => { models.delete(name); throw new MissingAsset(`[marea] modello ${name} (${entry.file}) non caricato: ${String((e as Error)?.message ?? e)}`); });
+        models.set(name, p);
+      }
       return p.then((r) => ({ scene: r.scene.clone(true), clips: r.clips }));
     },
-    async texture(name) { const t = await new THREE.TextureLoader().loadAsync(o.base + name); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace; return t; },
+    texture(name) {
+      let p = textures.get(name);
+      if (!p) {
+        p = new THREE.TextureLoader().loadAsync(o.base + name).then(pixelTexture)
+          .catch((e: unknown) => { textures.delete(name); throw new MissingAsset(`[marea] texture ${name} non caricata: ${String((e as Error)?.message ?? e)}`); });
+        textures.set(name, p);
+      }
+      return p;
+    },
   };
+  return api;
 }

@@ -27,7 +27,7 @@ export async function openPage(browser, url, { viewport = IPHONE } = {}) {
   const errors = [], consoleErrors = [], failed = [], logs = [];
   page.on('pageerror', (e) => errors.push(String(e && (e.stack || e.message) || e)));
   page.on('console', (m) => { const tx = m.text(); logs.push(`[${m.type()}] ${tx}`); if (m.type() === 'error') consoleErrors.push(tx); });
-  page.on('requestfailed', (r) => { const u = r.url(); if (!u.startsWith('data:') && !u.includes('/ws/')) failed.push(u + ' ' + (r.failure()?.errorText || '')); });
+  page.on('requestfailed', (r) => { const u = r.url(); const why = r.failure()?.errorText || ''; if (why === 'net::ERR_ABORTED') return; /* richiesta annullata (pagina chiusa o fetch duplicata): non è un errore */ if (!u.startsWith('data:') && !u.includes('/ws/')) failed.push(u + ' ' + why); });
   await page.goto(url, { waitUntil: 'load' });
   return { page, errors, consoleErrors, failed, logs, close: () => ctx.close() };
 }
@@ -48,4 +48,22 @@ export async function screenStats(page) {
     for (let i = 0; i < d.length; i += 4) { const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; s += l; s2 += l * l; }
     const mean = s / n; return { mean, variance: s2 / n - mean * mean };
   }, b64);
+}
+/**
+ * Campiona `n` pixel (posizioni pseudo-casuali con seme fisso: riproducibile) dello screenshot corrente e restituisce [r,g,b,...] piatto.
+ * Con `hideUi` nasconde #ui (HUD, joystick, toast) solo per la cattura, così si misura il mondo e non l'interfaccia.
+ */
+export async function samplePixels(page, n = 2000, { hideUi = true, seed = 12345 } = {}) {
+  let prev = null;
+  if (hideUi) prev = await page.evaluate(() => { const u = document.getElementById('ui'); if (!u) return null; const v = u.style.visibility; u.style.visibility = 'hidden'; return v; });
+  const b64 = (await page.screenshot()).toString('base64');
+  if (hideUi && prev !== null) await page.evaluate((v) => { const u = document.getElementById('ui'); if (u) u.style.visibility = v; }, prev);
+  return page.evaluate(async ([src, count, sd]) => {
+    const img = new Image(); img.src = 'data:image/png;base64,' + src; await img.decode();
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
+    let s = sd >>> 0; const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+    const out = [];
+    for (let i = 0; i < count; i++) { const d = g.getImageData(Math.floor(rnd() * img.width), Math.floor(rnd() * img.height), 1, 1).data; out.push(d[0], d[1], d[2]); }
+    return out;
+  }, [b64, n, seed]);
 }

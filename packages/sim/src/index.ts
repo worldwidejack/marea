@@ -10,6 +10,7 @@ export * from './economy/advance.ts';
 export * from './economy/actions.ts';
 export * from './economy/ledger.ts';
 export * from './economy/wager.ts';
+export * from './economy/rewards.ts';
 export * from './minigames/types.ts';
 export * from './minigames/registry.ts';
 export * from './replay.ts';

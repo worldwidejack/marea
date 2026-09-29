@@ -1,0 +1,12 @@
+{
+  "_nota": "Proposta WP3 per packages/content/src/buildings.json: solo cost [legno, pietra], rate, cap (tempi e resto invariati). economy_30days.test.ts la applica sopra i dati attuali finché WP0 non la integra; dopo, è identica e non cambia niente.",
+  "levels": {
+    "molo":      [ { "cost": [0, 0] },                       { "cost": [1000, 800] },             { "cost": [3000, 2400] } ],
+    "segheria":  [ { "cost": [120, 0], "rate": 20 },          { "cost": [1200, 600], "rate": 30 }, { "cost": [3000, 2000], "rate": 60 } ],
+    "cava":      [ { "cost": [200, 0], "rate": 12 },          { "cost": [1500, 800], "rate": 18 }, { "cost": [3200, 2400], "rate": 36 } ],
+    "magazzino": [ { "cost": [160, 80], "cap": 800 },         { "cost": [800, 480], "cap": 2400 }, { "cost": [2400, 1600], "cap": 6000 } ],
+    "casa":      [ { "cost": [240, 120] },                    { "cost": [2400, 1600] },            { "cost": [4000, 3000] } ],
+    "faro":      [ { "cost": [480, 480] },                    { "cost": [2400, 2400] } ],
+    "tavolo":    [ { "cost": [160, 40] },                     { "cost": [1800, 1000] },            { "cost": [3600, 2600] } ]
+  }
+}

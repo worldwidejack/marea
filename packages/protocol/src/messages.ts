@@ -16,11 +16,14 @@ export type ErrorCode = 'versione' | 'token' | 'pieno' | 'interno';
 export type ServerMsg =
   | { t: 'welcome'; now: number; you: { id: string; nome: string }; zone: string; peers: Peer[] }
   | { t: 'snap'; now: number; peers: Peer[] }
-  | { t: 'join'; peer: Peer }
-  | { t: 'leave'; id: string }
+  | { t: 'join'; now: number; peer: Peer }
+  | { t: 'leave'; now: number; id: string }
   | { t: 'pong'; c: number; now: number }
-  | { t: 'emote'; id: EmoteId; from: string }
-  | { t: 'error'; code: ErrorCode; msg: string };
+  | { t: 'emote'; now: number; id: EmoteId; from: string }
+  | { t: 'error'; now: number; code: ErrorCode; msg: string };
+
+/** Codici di chiusura WebSocket usati dal server (PROTOCOL.md §3). */
+export const CLOSE = { ALTRO_DISPOSITIVO: 4000, TROPPO_GRANDE: 1009, ZONA_PIENA: 1013, TOKEN_O_VERSIONE: 1008, NON_VALIDO: 1003 } as const;
 
 export const MAX_MSG_BYTES = 2048;
 export const MAX_ZONE_CONNECTIONS = 32;
@@ -30,6 +33,8 @@ const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFin
 const isStr = (v: unknown, max = 64): v is string => typeof v === 'string' && v.length <= max;
 const isMode = (v: unknown): v is Mode => v === 'walk' || v === 'boat';
 const EMOTES: readonly string[] = ['saluto', 'esulta', 'ride', 'no'];
+/** `now` è in ogni messaggio del server; se manca (server vecchio) vale 0. */
+const nowOf = (m: Record<string, unknown>): number => (isNum(m['now']) ? m['now'] : 0);
 
 function parse(text: string): Record<string, unknown> | null {
   if (text.length > MAX_MSG_BYTES) return null;
@@ -81,15 +86,15 @@ export function parseServerMsg(text: string): ServerMsg | null {
     case 'snap':
       return isNum(m['now']) && Array.isArray(m['peers']) && m['peers'].every(isPeer) ? { t: 'snap', now: m['now'], peers: m['peers'] } : null;
     case 'join':
-      return isPeer(m['peer']) ? { t: 'join', peer: m['peer'] } : null;
+      return isPeer(m['peer']) ? { t: 'join', now: nowOf(m), peer: m['peer'] } : null;
     case 'leave':
-      return isStr(m['id']) ? { t: 'leave', id: m['id'] } : null;
+      return isStr(m['id']) ? { t: 'leave', now: nowOf(m), id: m['id'] } : null;
     case 'pong':
       return isNum(m['c']) && isNum(m['now']) ? { t: 'pong', c: m['c'], now: m['now'] } : null;
     case 'emote':
-      return isStr(m['id'], 16) && EMOTES.includes(m['id']) && isStr(m['from']) ? { t: 'emote', id: m['id'] as EmoteId, from: m['from'] } : null;
+      return isStr(m['id'], 16) && EMOTES.includes(m['id']) && isStr(m['from']) ? { t: 'emote', now: nowOf(m), id: m['id'] as EmoteId, from: m['from'] } : null;
     case 'error':
-      return isStr(m['code'], 16) && isStr(m['msg'], 200) ? { t: 'error', code: m['code'] as ErrorCode, msg: m['msg'] } : null;
+      return isStr(m['code'], 16) && isStr(m['msg'], 200) ? { t: 'error', now: nowOf(m), code: m['code'] as ErrorCode, msg: m['msg'] } : null;
     default:
       return null;
   }

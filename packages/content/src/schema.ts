@@ -1,10 +1,10 @@
 // Validatore dei contenuti: niente dipendenze, errori in italiano. Chiamato da tools/check_static.mjs e dai test.
-import type { AvatarDef, BalanceDef, BuildingDef, IslandDef, ResourceDef } from './types.ts';
+import type { AvatarDef, BalanceDef, BuildingDef, DecorDef, IslandDef, ResourceDef } from './types.ts';
 
 const HEX = /^#[0-9A-F]{6}$/;
 const TILES = new Set(['~', ',', '.', 'g', 'r', 'd', 'P', 'B', 'L']);
 
-export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDef[]; islands: IslandDef[]; avatar: AvatarDef; balance: BalanceDef }): string[] {
+export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDef[]; islands: IslandDef[]; avatar: AvatarDef; balance: BalanceDef; decor?: DecorDef[] }): string[] {
   const errs: string[] = [];
   const ids = new Set<string>();
   for (const b of c.buildings) {
@@ -36,6 +36,13 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
   }
   for (const [k, arr] of Object.entries({ pelle: c.avatar.pelle, coloriCapelli: c.avatar.coloriCapelli, vestiti: c.avatar.vestiti }))
     for (const h of arr) if (!HEX.test(h)) errs.push(`avatar.${k}: colore non valido ${h}`);
+  const decorIds = new Set<string>();
+  for (const d of c.decor ?? []) {
+    if (decorIds.has(d.id)) errs.push(`decorazione duplicata: ${d.id}`);
+    decorIds.add(d.id);
+    if (!(d.perle >= 0)) errs.push(`decorazione ${d.id}: costo in perle non valido`);
+    if (!/^prop_[a-z_]+$/.test(d.model)) errs.push(`decorazione ${d.id}: nome modello non valido ${d.model}`);
+  }
   if (c.balance.bufferOre <= 0) errs.push('balance.bufferOre deve essere > 0');
   if (c.balance.wager.min <= 0) errs.push('balance.wager.min deve essere > 0');
   return errs;

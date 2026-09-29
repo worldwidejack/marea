@@ -5,7 +5,7 @@ aggiornato: 2026-09-29
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-Sessione 1 (29/9), Fase A finita: **online** su https://marea.stanza-idee.workers.dev (isola segnaposto, acqua, avatar che cammina, barca, camera diorama). Documenti di progetto (GDD, art bible, tech, protocollo, roadmap, contratti), monorepo con sim pura + client Three.js + Worker con D1 e Durable Object, test verdi (sim 11/11, avvio 8/8). Fase B (6 agenti in parallelo) in corso.
+Sessione 1 (29/9) chiusa: **online** su https://marea.stanza-idee.workers.dev con isola di moduli glTF, 18 modelli + atlas, acqua a pixel, camera diorama, avatar segnaposto a 6 teste, barca con scia. Documenti, monorepo, sim pura (24 test), server con D1 + Durable Object (presenza 10 Hz, isola con azioni economiche), harness di test (boot/look/perf verdi, 1 test di rete rosso). Handoff completo in `docs/HANDOFF.md`.
 
 ## Prossimo passo
-Claude: finire la Fase A (documenti + scheletro online su `marea.stanza-idee.workers.dev`), poi la wave di 6 agenti (look, avatar+barca, sim, server, asset, test). Jack: niente per ora.
+Chi riprende (chat nuova): `docs/HANDOFF.md` → integrare in `world.ts` le richieste di WP2/WP4 (peer visibili, guidatore col look vero), generare `chr_base.glb`, sistemare il test di rete, deploy. Jack: aprire il suo link dal telefono in 4G con `?fps=1` e dire cosa gli piace e cosa no del look (contact sheet in `tests/out/contact.png`).

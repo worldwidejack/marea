@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Controlli statici (TECH.md §3): purezza della sim, import .ts espliciti ed esistenti, niente enum/namespace, JSON dei contenuti validi, moduli importabili in Node.
+// Controlli statici (TECH.md §3): purezza della sim (niente DOM/three/random/tempo/console.log, tsconfig senza lib DOM), import .ts espliciti ed esistenti,
+// niente enum/namespace, `three` solo in apps/client, file > 400 righe (avviso), JSON dei contenuti validi, moduli importabili in Node.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -8,6 +9,7 @@ const walk = (d) => fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }
 const rel = (f) => path.relative(ROOT, f).split(path.sep).join('/');
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
 const errs = [], warns = [];
+const MAX_LINES = 400;
 const files = [...walk(path.join(ROOT, 'packages')), ...walk(path.join(ROOT, 'apps'))];
 
 for (const f of files) {
@@ -24,6 +26,10 @@ for (const f of files) {
     if (/\b(document|window|localStorage|navigator)\s*\./.test(code)) errs.push(`${r}: DOM/window in pacchetto puro`);
     if (/from\s+['"]three/.test(code)) errs.push(`${r}: three in pacchetto puro`);
   }
+  if (isSim && /\bconsole\s*\.\s*(log|debug|info)\s*\(/.test(code)) errs.push(`${r}: console.log in packages/sim (la sim non stampa; i log stanno nel client/server)`);
+  if (!r.startsWith('apps/client/') && (/\b(?:from|import)\s*\(?\s*['"]three(?:\/[^'"]*)?['"]/.test(code) || /\bimport\s*\(\s*['"]three/.test(code))) errs.push(`${r}: import di three fuori da apps/client`);
+  const nLines = fs.readFileSync(f, 'utf8').split('\n').length;
+  if (nLines > MAX_LINES) warns.push(`${r}: ${nLines} righe (> ${MAX_LINES}: spezza il file)`);
   if (/^\s*(export\s+)?(const\s+)?enum\s+\w+/m.test(code)) errs.push(`${r}: enum (usa as const)`);
   if (/^\s*(export\s+)?namespace\s+\w+/m.test(code)) errs.push(`${r}: namespace`);
   for (const m of code.matchAll(/(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)|import\s*['"]([^'"]+)['"]/g)) {
@@ -34,6 +40,19 @@ for (const f of files) {
     } else if (spec.startsWith('@marea/') && spec.split('/').length > 2 && !spec.endsWith('.ts') && !spec.endsWith('.json')) errs.push(`${r}: import di sottopercorso senza .ts → ${spec}`);
   }
 }
+// packages/sim/tsconfig.json: niente lib DOM (la sim deve compilare senza browser)
+try {
+  const strip1 = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/,(\s*[}\]])/g, '$1');
+  const readTs = (f) => JSON.parse(strip1(fs.readFileSync(f, 'utf8')));
+  const simTs = path.join(ROOT, 'packages/sim/tsconfig.json');
+  const cfg = readTs(simTs);
+  let lib = cfg.compilerOptions?.lib;
+  if (!lib && cfg.extends) lib = readTs(path.resolve(path.dirname(simTs), cfg.extends)).compilerOptions?.lib; // eredita dalla base
+  if (Array.isArray(lib) && lib.some((l) => /^dom/i.test(String(l)))) errs.push(`packages/sim/tsconfig.json: lib DOM presente (${lib.join(', ')})`);
+  if (!lib) warns.push('packages/sim/tsconfig.json: nessun `lib` esplicito (senza lib il default include DOM: metti "lib": ["ES2022"])');
+  const types = cfg.compilerOptions?.types;
+  if (Array.isArray(types) && types.some((t) => /^(dom|web|three|@types\/three)/i.test(String(t)))) errs.push(`packages/sim/tsconfig.json: types con DOM/three (${types.join(', ')})`);
+} catch (e) { errs.push(`packages/sim/tsconfig.json: illeggibile (${e.message})`); }
 // JSON dei contenuti
 for (const f of fs.readdirSync(path.join(ROOT, 'packages/content/src'), { recursive: true })) {
   if (!String(f).endsWith('.json')) continue;

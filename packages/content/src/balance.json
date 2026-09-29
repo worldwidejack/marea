@@ -1,9 +1,11 @@
 {
-  "partenza": { "legno": 100, "pietra": 40, "perle": 0 },
-  "capBase": 200,
+  "partenza": { "legno": 400, "pietra": 160, "perle": 0 },
+  "capBase": 800,
   "bufferOre": 10,
+  "bufferLentoOre": 110,
+  "bufferLentoQuota": 0.25,
   "perleMedaglia": { "oro": 20, "argento": 10, "bronzo": 5, "sconfitta": 2 },
   "wager": { "min": 10, "colpoDiCoda": { "sogliaRisorse": 0.5, "moltiplicatore": 1.5 }, "scadenzaOre": 24, "costoExtraPerle": 1 },
   "avatar": { "camminata": 3.0, "corsa": 5.0, "sogliaCorsa": 0.8, "raggio": 0.35 },
-  "barca": { "accel": 6.0, "maxSpeed": 9.0, "virata": 1.6, "attrito": 0.6, "rimbalzo": -0.3, "raggioImbarco": 3.0 }
+  "barca": { "accel": 6.0, "maxSpeed": 9.0, "virata": 1.6, "attrito": 0.6, "rimbalzo": -0.3, "raggioImbarco": 3.0, "raggio": 0.8 }
 }

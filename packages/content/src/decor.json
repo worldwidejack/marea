@@ -1,0 +1,14 @@
+[
+  { "id": "lanterna", "nome": "Lanterna di carta", "perle": 5, "model": "prop_lanterna" },
+  { "id": "barile", "nome": "Barile", "perle": 5, "model": "prop_barile" },
+  { "id": "cassa", "nome": "Cassa", "perle": 5, "model": "prop_cassa" },
+  { "id": "palma", "nome": "Palma", "perle": 8, "model": "prop_palma" },
+  { "id": "torii", "nome": "Torii", "perle": 15, "model": "prop_torii" },
+  { "id": "insegna_neon", "nome": "Insegna neon", "perle": 20, "model": "prop_insegna_neon" },
+  { "id": "panchina", "nome": "Panchina", "perle": 8, "model": "prop_panchina" },
+  { "id": "fontana", "nome": "Fontana", "perle": 25, "model": "prop_fontana" },
+  { "id": "statua", "nome": "Statua del pescatore", "perle": 30, "model": "prop_statua" },
+  { "id": "faro_mini", "nome": "Faretto da molo", "perle": 12, "model": "prop_faro_mini" },
+  { "id": "bandiera", "nome": "Bandiera", "perle": 10, "model": "prop_bandiera" },
+  { "id": "cartello_neon", "nome": "Cartello neon \"Casa\"", "perle": 40, "model": "prop_cartello_neon" }
+]

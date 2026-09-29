@@ -32,6 +32,7 @@ export const ISLANDS: readonly IslandDef[]            // islands.json: mappe ASC
 export const AVATAR: AvatarDef                        // avatar.json: pelle[], capelli[], coloriCapelli[], vestiti[], cappelli[]
 export const BALANCE: BalanceDef                      // balance.json: partenza, bufferOre, medaglie→perle, wager, sfideGratis…
 export const MINIGAMES_CFG: Record<string, unknown>   // minigames/<id>.json (WP3 ne definisce il tipo per gioco)
+export const DECOR: readonly DecorDef[]               // decor.json: { id, nome, perle, model } (le decorazioni si pagano in Perle, `placeDecor` usa `decorDef(id).perle`)
 export function validateContent(): string[]           // [] se tutto ok, altrimenti errori in italiano
 type BuildingDef = { id: string; nome: string; levels: { cost: Resources; seconds: number; rate?: number; cap?: number; slots?: number; wagerMax?: number; freeChallenges?: number }[]; requires?: string; size: [number, number]; model: string }
 type Resources = { legno: number; pietra: number; perle: number }

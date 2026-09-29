@@ -34,7 +34,7 @@
 type Peer = { id: string, nome: string, x: number, z: number, yaw: number, mode: 'walk'|'boat', anim: string, look: Look }
 type Look = { pelle: number, capelli: number, coloreCapelli: number, vestito: number, cappello: number }   // indici in avatar.json
 ```
-Limiti: `pos` oltre 20 Hz viene ignorato; messaggi > 2 KB chiudono la connessione; una zona accetta al massimo 32 connessioni (`error pieno`).
+Ogni messaggio del server porta `now` (ms del server). Limiti: `pos` più fitte di 45 ms (oltre ~20 Hz) ignorate; oltre 60 messaggi/s ignorati; messaggio > 2 KB → chiusura **1009**; 10 messaggi non validi → chiusura **1003**; 33ª connessione → `error pieno` + chiusura **1013**; token o versione sbagliati → `error` + chiusura **1008**; stessa persona connessa altrove → la vecchia connessione chiude con **4000** (il client non riconnette e mostra «MAREA è aperta su un altro dispositivo»). Costanti in `packages/protocol` `CLOSE`. Presenza: il server accumula le `pos` e manda uno `snap` al massimo ogni 100 ms con i soli peer cambiati (nessuno snap se nessuno si muove).
 
 ## 4. HTTP (V1)
 | Metodo e percorso | Corpo → risposta | Tappa |
