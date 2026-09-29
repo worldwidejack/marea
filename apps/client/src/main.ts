@@ -30,6 +30,9 @@ async function boot(): Promise<void> {
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
+  // chiusura pulita della rete (il server vede subito il leave); tornando indietro dalla cache del browser si riparte da capo
+  addEventListener('pagehide', () => world.dispose());
+  addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
   setReady();
   hud.toast('MAREA · prova del look', 2500);
   console.log(`[marea] build ${__BUILD__} · isola ${world.map.id} ${world.map.w}×${world.map.h}`);

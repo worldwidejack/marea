@@ -45,7 +45,7 @@ _grid(['corda', 'carta_lanterna', 'cassa', 'barile', 'foglia_palma', 'tronco_pal
        'ferro', 'tela', 'remo', 'scafo', 'scafo_chiglia', 'lacca_rossa_p', 'nero_p', 'pietra_p',
        'panca', 'bandiera', 'secchio', 'rete', 'vetro', 'oro_perla', 'tessuto_rosso', 'tessuto_blu'], 0, 512, 32, 32, 32)
 # righe 768-895: avatar (maschere di tinta bianche + parti a colore fisso)
-REGIONS['testa'] = (0, 768, 16, 20)        # viso dipinto, proiezione frontale (~70 texel/m sul viso)
+REGIONS['testa'] = (0, 768, 14, 18)        # viso dipinto, proiezione frontale 0,22 × 0,28 m → 64 texel/m (a 32 gli occhi sarebbero puntini)
 REGIONS['pelle'] = (16, 768, 16, 16)       # pelle liscia (maschera)
 REGIONS['capelli'] = (32, 768, 32, 32)     # ciocche (maschera)
 REGIONS['vestito'] = (64, 768, 32, 32)     # camicia/kimono corto (maschera)
@@ -54,6 +54,7 @@ REGIONS['scarpe'] = (128, 768, 16, 16)
 REGIONS['cappello_paglia'] = (144, 768, 32, 32)
 REGIONS['cintura'] = (176, 768, 16, 16)
 REGIONS['mano'] = (192, 768, 16, 16)       # pelle (maschera) con nocche
+REGIONS['cappello'] = (208, 768, 16, 16)   # maschera bianca: tutti i cappelli, tinta = colore finale
 # righe 896-1023: emissivi e UI
 _grid(['em_lanterna', 'em_neon_rosa', 'em_neon_ciano', 'em_neon_viola', 'em_finestra', 'em_faro', 'em_neon_verde', 'em_neon_ambra'], 0, 896, 32, 32, 32)
 REGIONS['em_insegna'] = (256, 896, 64, 32)  # scritta «BAR» a pixel, 32 texel/m
@@ -62,7 +63,7 @@ REGIONS['ui_pietra'] = (336, 896, 16, 16)
 REGIONS['ui_perle'] = (352, 896, 16, 16)
 
 EMISSIVE = {n for n in REGIONS if n.startswith('em_')}
-TINT_MASK = {'testa', 'pelle', 'capelli', 'vestito', 'mano'}
+TINT_MASK = {'testa', 'pelle', 'capelli', 'vestito', 'mano', 'cappello'}
 
 
 # ---------------------------------------------------------------- pittura
@@ -368,19 +369,15 @@ def paint(cv):
     R('tessuto_blu', speckle('acqua_profonda', [('abisso', 0.08)], 76))
 
     # --- avatar (maschere di tinta bianche: il client moltiplica per il colore scelto)
-    def testa(x, y, w, h):  # 16x20, fronte del viso; righe 0-4 capelli (coperte), occhi a riga 10
-        eyes = {(4, 10): 'ombra_calda', (5, 10): 'nero_caldo', (10, 10): 'nero_caldo', (11, 10): 'ombra_calda',
-                (4, 11): SKIN[1], (5, 11): 'nero_caldo', (10, 11): 'nero_caldo', (11, 11): SKIN[1]}
-        brows = {(3, 8): 'legno_scuro', (4, 8): 'legno_scuro', (5, 8): 'legno_scuro',
-                 (10, 8): 'legno_scuro', (11, 8): 'legno_scuro', (12, 8): 'legno_scuro'}
-        nose = {(7, 13): SKIN[1], (8, 13): SKIN[1]}
-        mouth = {(6, 16): SKIN[3], (7, 16): SKIN[4], (8, 16): SKIN[4], (9, 16): SKIN[3]}
-        for d in (eyes, brows, nose, mouth):
-            if (x, y) in d:
-                return d[(x, y)]
-        if (x, y) in ((3, 13), (12, 13)):
-            return SKIN[0]  # guance
-        return MASK
+    def testa(x, y, w, h):  # 14x18 (64 texel/m), x=0 a sinistra di chi guarda; righe 0-6 fronte (capelli), occhi 8-9, bocca 13
+        e = x if x < 7 else 13 - x  # simmetrico
+        F = {(3, 6): 'legno', (4, 6): 'legno_scuro',                                      # sopracciglia
+             (4, 8): 'nero_caldo', (4, 9): 'nero_caldo',                                   # occhio: barretta 1×2
+             (6, 11): 'pietra',                                                            # ombra del naso
+             (6, 13): 'legno'}                                                             # bocca (2 texel)
+        if (x, y) == (7, 11):
+            return MASK  # naso asimmetrico: ombra solo a sinistra
+        return F.get((e, y), MASK)
     R('testa', testa)
     R('pelle', lambda x, y, w, h: MASK)
     R('mano', lambda x, y, w, h: SKIN[1] if (y == 4 and x % 3 == 0) else MASK)
@@ -402,6 +399,7 @@ def paint(cv):
             return 'legno_chiaro'
         return 'giallo' if h01(x, y, 83) < 0.15 else 'sabbia'
     R('cappello_paglia', cappello)
+    R('cappello', lambda x, y, w, h: MASK)
 
     # --- emissivi
     def lanterna(x, y, w, h):

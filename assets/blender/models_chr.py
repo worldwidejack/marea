@@ -1,13 +1,20 @@
-# Personaggio base: umano a 6 teste, 1,6 m, stile PS1 / FF IX. Davanti −Z. Un'unica mesh skinnata con 5 materiali:
-# mat_pelle, mat_capelli, mat_vestito (maschere bianche tinte dal client), mat_cappello (paglia), mat_atlas (pantaloni, scarpe, cintura).
+# Personaggio base: umano a 6 teste, 1,6 m, stile PS1 / FF IX. Davanti −Z, piedi a y = 0, origine ai piedi al centro.
+# Nodi (tutti SkinnedMesh sullo stesso scheletro, figli di `chr_base_rig`):
+#   chr_base            corpo: mat_pelle, mat_vestito (maschere bianche tinte dal client), mat_atlas (pantaloni, scarpe, cintura)
+#   capelli_0..7        corti, spettinati, coda, caschetto, rasati, ricci, lunghi, chignon (mat_capelli, maschera bianca)
+#   cappello_<id>       paglia, berretto, pescatore, lanterna, neon (mat_cappello, maschera bianca; accenti mat_emissivo)
+# Il client mostra un solo capelli_* e al più un cappello_* (avatar.json). Viso dipinto sull'atlas (regione `testa`).
 # Armatura semplice con pesi rigidi per segmento e pesi misti 50/50 sugli anelli di giuntura (gomiti, ginocchia, vita, collo).
-# Animazioni procedurali: idle (respiro, 2 s), walk (1 s), run (1 s = 2 falcate), sit (seduto in barca), row (remata, 1 s).
+# Clip procedurali (loop): idle 2 s · walk 0,53 s (1 falcata ≈ 1,6 m → 3 m/s) · run 0,53 s (1 falcata ≈ 2,7 m → 5 m/s)
+#                          sit 2 s (bacino a 0,42 m, piedi a terra) · row 1,4 s (remata da seduti).
 import math
 import bpy
-from mathutils import Matrix, Quaternion, Vector
+from mathutils import Quaternion, Vector
 from lib import Mesh, key, to_blender
 
 FPS = 30
+HAIR = ['corti', 'spettinati', 'coda', 'caschetto', 'rasati', 'ricci', 'lunghi', 'chignon']  # = avatar.json → capelli
+HATS = ['paglia', 'berretto', 'pescatore', 'lanterna', 'neon']  # = avatar.json → cappelli (senza «nessuno»)
 
 # ossa: nome -> (testa, coda, genitore) in coordinate di gioco
 BONES = {
@@ -36,7 +43,8 @@ def weigh(m, ring, ws):
         m.wmap[key(p)] = ws
 
 
-def build_mesh():
+# ---------------------------------------------------------------- corpo
+def build_body():
     m = Mesh('chr_base')
     J = lambda a, b: [(a, 0.5), (b, 0.5)]
 
@@ -80,12 +88,12 @@ def build_mesh():
         H = [ell(m, 6, 0.024, 0.6, 0.014, cx=0.232 * s), ell(m, 6, 0.036, 0.66, 0.02, cx=0.23 * s), ell(m, 6, 0.03, 0.72, 0.024, cx=0.226 * s)]
         m.loft(H, 'mano', bottom='mano')
         m.box(0.226 * s - 0.012, 0.64, -0.045, 0.226 * s + 0.012, 0.69, -0.018, 'mano', skip=('top',))  # pollice
-    # --- collo e testa (viso dipinto, proiezione frontale)
+    # --- collo e testa (viso dipinto: proiezione frontale su 0,22 × 0,28 m = regione `testa` 14×18 → 64 texel/m)
     m.mat, m.bone = 'mat_pelle', 'Head'
     N = [ell(m, 6, 0.045, 1.26, 0.042), ell(m, 6, 0.042, 1.3, 0.04), ell(m, 6, 0.04, 1.37, 0.04, cz=0.01)]
     m.loft(N, 'pelle')
     weigh(m, N[0], [('Spine', 1.0)]); weigh(m, N[1], J('Spine', 'Head'))
-    hb = dict(uv='head', bbox=(-0.1, 1.335, 0.1, 1.6), alt='pelle')
+    hb = dict(uv='head', bbox=(-0.11, 1.32, 0.11, 1.6), alt='pelle')
     Hd = [ell(m, 8, 0.05, 1.335, 0.05, cz=-0.03), ell(m, 8, 0.082, 1.37, 0.088, cz=-0.005), ell(m, 8, 0.097, 1.43, 0.105),
           ell(m, 8, 0.1, 1.475, 0.11), ell(m, 8, 0.097, 1.52, 0.11), ell(m, 8, 0.075, 1.575, 0.088)]
     m.loft(Hd, 'testa', bottom='pelle', **hb)
@@ -96,37 +104,151 @@ def build_mesh():
     # orecchie
     for s in (-1, 1):
         m.box(s * 0.1 - 0.012, 1.44, -0.0, s * 0.1 + 0.012, 1.5, 0.035, 'pelle', skip=())
-    # --- capelli corti: calotta che scende dietro, attaccatura alta sulla fronte
-    m.mat = 'mat_capelli'
-    def hair_ring(r, rz, y_front, y_back, n=8, cz=0.0):
-        pts = []
-        for i in range(n):
-            a = math.pi / n + 2 * math.pi * i / n
-            f = (-math.sin(a) + 1) / 2  # 1 davanti, 0 dietro
-            pts.append((math.cos(a) * r, y_back + (y_front - y_back) * f, cz + math.sin(a) * rz))
-        return pts
-    Hr = [hair_ring(0.103, 0.114, 1.505, 1.36), hair_ring(0.108, 0.118, 1.535, 1.46), hair_ring(0.09, 0.1, 1.585, 1.56), hair_ring(0.05, 0.058, 1.625, 1.615)]
-    m.loft(Hr, 'capelli', bottom='capelli')
-    htop = (0.0, 1.635, 0.005)
-    for i in range(8):
-        j = (i + 1) % 8
-        m.poly([Hr[-1][j], Hr[-1][i], htop], 'capelli')
-    # ciuffo sulla fronte
-    m.poly([(-0.07, 1.54, -0.1), (0.02, 1.54, -0.11), (-0.02, 1.49, -0.112)], 'capelli')
-    m.poly([(-0.02, 1.54, -0.11), (0.07, 1.545, -0.1), (0.04, 1.5, -0.11)], 'capelli')
-    # --- cappello di paglia a cono (kasa): sopra e sotto
-    m.mat = 'mat_cappello'
-    m.cone(10, 0.26, 1.57, 1.73, 'cappello_paglia', a0=0.0)
-    base = m.ring(10, 0.26, 1.57, a0=0.0)
-    inner = (0.0, 1.66, 0.0)
-    for i in range(10):
-        j = (i + 1) % 10
-        m.poly([base[i], base[j], inner], 'cappello_paglia')  # sottotesa
-    m.prism(10, 0.264, 0.264, 1.555, 1.572, 'cintura', a0=0.0)  # bordino
     return m
 
 
-def build_rig(mesh_ob):
+# ---------------------------------------------------------------- capelli
+F_KNOTS = (0.0381, 0.3087, 0.6913, 0.9619)  # «frontalità» dei punti di un anello a 8: dietro, lato-dietro, lato-davanti, davanti
+
+
+def hring(rx, rz, ys, cz=0.0, n=8, jag=0.0, rot=0.0, cx=0.0):
+    """Anello di capelli: ys = (davanti, dietro) lineare, oppure (davanti, lato-davanti, lato-dietro, dietro) a tratti."""
+    if len(ys) == 2:
+        yf, yb = ys
+        yat = lambda f: yb + (yf - yb) * f
+    else:
+        vals = (ys[3], ys[2], ys[1], ys[0])
+        def yat(f):
+            if f <= F_KNOTS[0]:
+                return vals[0]
+            for k in range(3):
+                if f <= F_KNOTS[k + 1]:
+                    t = (f - F_KNOTS[k]) / (F_KNOTS[k + 1] - F_KNOTS[k])
+                    return vals[k] + (vals[k + 1] - vals[k]) * t
+            return vals[3]
+    pts = []
+    for i in range(n):
+        a = math.pi / n + 2 * math.pi * i / n + rot
+        f = (-math.sin(a) + 1) / 2
+        pts.append((cx + math.cos(a) * rx, yat(f) + (jag if i % 2 else -jag), cz + math.sin(a) * rz))
+    return pts
+
+
+def shell(m, rings, top, region='capelli'):
+    m.loft(rings, region)
+    n = len(rings[-1])
+    for i in range(n):
+        j = (i + 1) % n
+        m.poly([rings[-1][j], rings[-1][i], top], region)
+
+
+def fin(m, a, b, tip, region):
+    """Ciocca/aletta piatta visibile dai due lati."""
+    m.poly([a, b, tip], region)
+    m.poly([b, a, tip], region)
+
+
+def hair_piece(i):
+    m = Mesh(f'capelli_{i}')
+    m.mat, m.bone = 'mat_capelli', 'Head'
+    style = HAIR[i]
+    if style == 'corti':  # attaccatura alta, scende dietro fino alla nuca, ciuffo sulla fronte
+        shell(m, [hring(0.106, 0.117, (1.505, 1.37)), hring(0.11, 0.12, (1.54, 1.47)), hring(0.092, 0.102, (1.59, 1.565)),
+                  hring(0.05, 0.058, (1.625, 1.618))], (0.0, 1.635, 0.005))
+        m.poly([(-0.07, 1.545, -0.103), (0.02, 1.545, -0.113), (-0.025, 1.49, -0.116)], 'capelli')
+        m.poly([(-0.02, 1.545, -0.113), (0.07, 1.55, -0.103), (0.04, 1.5, -0.113)], 'capelli')
+    elif style == 'spettinati':  # frangia a zig-zag e ciuffi dritti in cima
+        R = [hring(0.108, 0.119, (1.5, 1.37), jag=0.022), hring(0.113, 0.123, (1.55, 1.48)), hring(0.095, 0.105, (1.6, 1.575)),
+             hring(0.05, 0.058, (1.635, 1.628))]
+        shell(m, R, (0.0, 1.645, 0.005))
+        for k in (7, 0, 1, 2, 3):  # lati e dietro (davanti c'è la frangia a zig-zag)
+            a, b = R[2][k], R[2][(k + 1) % 8]
+            mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2)
+            fin(m, a, b, (mid[0] * 1.2, mid[1] + 0.05, mid[2] * 1.2 + 0.02), 'capelli')
+    elif style == 'coda':  # tirati indietro, coda alta che scende sulla schiena
+        shell(m, [hring(0.106, 0.117, (1.53, 1.4)), hring(0.11, 0.12, (1.56, 1.48)), hring(0.09, 0.1, (1.6, 1.57)),
+                  hring(0.05, 0.058, (1.628, 1.62))], (0.0, 1.638, 0.005))
+        T = [m.ring(5, 0.028, 1.24, a0=0.3, cz=0.17), m.ring(5, 0.042, 1.35, a0=0.3, cz=0.175), m.ring(5, 0.04, 1.45, a0=0.3, cz=0.15),
+             m.ring(5, 0.03, 1.5, a0=0.3, cz=0.115)]
+        m.loft(T, 'capelli')
+        tip = (0.0, 1.16, 0.15)
+        for k in range(5):
+            m.poly([T[0][k], T[0][(k + 1) % 5], tip], 'capelli')
+    elif style == 'caschetto':  # a scodella fino al mento, frangia dritta
+        shell(m, [hring(0.118, 0.128, (1.49, 1.37, 1.36, 1.36)), hring(0.122, 0.132, (1.55, 1.52, 1.5, 1.49)),
+                  hring(0.095, 0.105, (1.605, 1.6, 1.59, 1.585))], (0.0, 1.64, 0.005))
+    elif style == 'rasati':  # calotta aderente, attaccatura alta
+        shell(m, [hring(0.103, 0.114, (1.54, 1.43)), hring(0.1, 0.113, (1.565, 1.52)), hring(0.078, 0.09, (1.597, 1.588))],
+              (0.0, 1.617, 0.005))
+    elif style == 'ricci':  # volume grande e bitorzoluto
+        shell(m, [hring(0.122, 0.132, (1.5, 1.37), jag=0.02), hring(0.132, 0.142, (1.56, 1.5), rot=math.pi / 8),
+                  hring(0.112, 0.122, (1.625, 1.605), jag=0.012), hring(0.06, 0.066, (1.66, 1.655), rot=math.pi / 8)], (0.0, 1.672, 0.005))
+    elif style == 'lunghi':  # frangia, ai lati fino alle spalle, dietro a metà schiena
+        shell(m, [hring(0.115, 0.135, (1.5, 1.28, 1.2, 1.16), cz=0.01), hring(0.114, 0.126, (1.52, 1.44, 1.4, 1.38)),
+                  hring(0.11, 0.12, (1.55, 1.52, 1.49, 1.48)), hring(0.09, 0.1, (1.598, 1.59, 1.58, 1.575))], (0.0, 1.635, 0.005))
+    elif style == 'chignon':  # tirati indietro, crocchia alta dietro
+        shell(m, [hring(0.105, 0.116, (1.53, 1.39)), hring(0.108, 0.119, (1.56, 1.49)), hring(0.085, 0.096, (1.6, 1.58))],
+              (0.0, 1.625, 0.005))
+        c = (0.0, 1.585, 0.1)
+        Rb = m.ring(6, 0.055, c[1], cz=c[2], a0=0.0)
+        top, bot = (c[0], c[1] + 0.06, c[2] + 0.01), (c[0], c[1] - 0.05, c[2])
+        for k in range(6):
+            j = (k + 1) % 6
+            m.poly([Rb[j], Rb[k], top], 'capelli')
+            m.poly([Rb[k], Rb[j], bot], 'capelli')
+    return m
+
+
+# ---------------------------------------------------------------- cappelli
+def hat_piece(hid):
+    m = Mesh(f'cappello_{hid}')
+    m.mat, m.bone = 'mat_cappello', 'Head'
+    if hid == 'paglia':  # kasa conico, sopra e sotto
+        m.cone(10, 0.26, 1.575, 1.73, 'cappello', a0=0.0)
+        base = m.ring(10, 0.26, 1.575, a0=0.0)
+        inner = (0.0, 1.665, 0.0)
+        for i in range(10):
+            m.poly([base[i], base[(i + 1) % 10], inner], 'cappello')
+    elif hid == 'berretto':  # berretto con visiera
+        R = [hring(0.148, 0.158, (1.53, 1.5)), hring(0.13, 0.14, (1.63, 1.62))]
+        shell(m, R, (0.0, 1.69, 0.005), 'cappello')
+        v = [(-0.09, 1.535, -0.13), (0.09, 1.535, -0.13), (0.08, 1.51, -0.245), (0.0, 1.505, -0.265), (-0.08, 1.51, -0.245)]
+        m.poly(v, 'cappello')
+        m.poly(list(reversed(v)), 'cappello')
+    elif hid == 'pescatore':  # a secchiello: calotta tronca e tesa inclinata
+        L0 = hring(0.152, 0.162, (1.515, 1.515))
+        shell(m, [L0, hring(0.135, 0.145, (1.665, 1.665))], (0.0, 1.69, 0.005), 'cappello')
+        brim = hring(0.23, 0.24, (1.465, 1.465))
+        m.loft([brim, L0], 'cappello')
+        m.loft([L0, brim], 'cappello')  # sotto della tesa
+    elif hid == 'lanterna':  # lanterna di carta sulla testa: fasce tinte, corpo emissivo
+        yb = 1.6
+        C = [m.ring(6, 0.075, yb, a0=0.0), m.ring(6, 0.075, yb + 0.02, a0=0.0)]
+        m.loft(C, 'cappello')
+        m.mat = 'mat_emissivo'
+        L = [C[1], m.ring(6, 0.1, yb + 0.07, a0=0.0), m.ring(6, 0.1, yb + 0.14, a0=0.0), m.ring(6, 0.075, yb + 0.19, a0=0.0)]
+        m.loft(L, 'em_lanterna')
+        m.mat = 'mat_cappello'
+        T = [L[-1], m.ring(6, 0.075, yb + 0.21, a0=0.0)]
+        m.loft(T, 'cappello', top='cappello')
+    elif hid == 'neon':  # visiera: fascia sulla fronte, tesa con bordo al neon
+        band = [hring(0.125, 0.135, (1.5, 1.505)), hring(0.125, 0.135, (1.535, 1.54))]
+        m.loft(band, 'cappello')
+        m.loft(list(reversed(band)), 'cappello')  # interno, visibile dall'alto dietro la testa
+        v = [(-0.1, 1.53, -0.1), (0.1, 1.53, -0.1), (0.09, 1.51, -0.23), (0.0, 1.505, -0.255), (-0.09, 1.51, -0.23)]
+        m.poly(v, 'cappello')
+        m.poly(list(reversed(v)), 'cappello')
+        m.mat = 'mat_emissivo'
+        e = [(0.09, 1.51, -0.23), (0.0, 1.505, -0.255), (-0.09, 1.51, -0.23)]
+        for a, b in zip(e, e[1:]):
+            q = [a, b, (b[0], b[1] - 0.018, b[2]), (a[0], a[1] - 0.018, a[2])]
+            m.poly(q, 'em_neon_rosa')
+            m.poly(list(reversed(q)), 'em_neon_rosa')
+    return m
+
+
+# ---------------------------------------------------------------- scheletro
+def build_rig(mesh_obs):
     arm = bpy.data.armatures.new('rig')
     ob = bpy.data.objects.new('chr_base_rig', arm)
     bpy.context.scene.collection.objects.link(ob)
@@ -142,8 +264,9 @@ def build_rig(mesh_ob):
             b.parent = arm.edit_bones[parent]
             b.use_connect = False
     bpy.ops.object.mode_set(mode='OBJECT')
-    mesh_ob.parent = ob
-    mod = mesh_ob.modifiers.new('Armature', 'ARMATURE'); mod.object = ob
+    for mo in mesh_obs:
+        mo.parent = ob
+        mod = mo.modifiers.new('Armature', 'ARMATURE'); mod.object = ob
     return ob
 
 
@@ -196,25 +319,25 @@ def clip_idle(ob, t):
     return d
 
 
-def clip_walk(ob, t):
+def clip_walk(ob, t):  # 1 falcata (2 passi) per ciclo: coscia ±28° → passo ≈ 0,8 m
     ph = 2 * math.pi * t
     d = arms_rest()
     for s, off in (('L', 0.0), ('R', math.pi)):
         p = ph + off
-        d[f'UpperLeg.{s}'] = [(X, 26 * math.sin(p))]
-        d[f'LowerLeg.{s}'] = [(X, -(6 + 48 * max(0.0, math.cos(p)) ** 1.5))]
+        d[f'UpperLeg.{s}'] = [(X, 28 * math.sin(p))]
+        d[f'LowerLeg.{s}'] = [(X, -(6 + 50 * max(0.0, math.cos(p)) ** 1.5))]
         d[f'Foot.{s}'] = [(X, 10 * math.sin(p + 0.6))]
-        d[f'UpperArm.{s}'] += [(X, -24 * math.sin(p))]
-        d[f'LowerArm.{s}'] = [(X, 14 + 10 * max(0.0, -math.sin(p)))]
+        d[f'UpperArm.{s}'] += [(X, -26 * math.sin(p))]
+        d[f'LowerArm.{s}'] = [(X, 14 + 12 * max(0.0, -math.sin(p)))]
     d['Hips'] = [(Z, 6 * math.sin(ph))]
-    d['Spine'] = [(Z, -9 * math.sin(ph)), (X, -3)]
-    d['Head'] = [(Z, 4 * math.sin(ph))]
-    d['loc'] = hips_loc(ob, dz=-0.035 * abs(math.sin(ph)) + 0.01)
+    d['Spine'] = [(Z, -9 * math.sin(ph)), (X, -4)]
+    d['Head'] = [(Z, 4 * math.sin(ph)), (X, 2)]
+    d['loc'] = hips_loc(ob, dz=-0.035 * abs(math.sin(ph)) + 0.022)
     return d
 
 
-def clip_run(ob, t):
-    ph = 4 * math.pi * t  # 2 falcate al secondo: loop di 1 s
+def clip_run(ob, t):  # 1 falcata per ciclo, fase di volo
+    ph = 2 * math.pi * t
     d = arms_rest(4)
     for s, off in (('L', 0.0), ('R', math.pi)):
         p = ph + off
@@ -223,24 +346,24 @@ def clip_run(ob, t):
         d[f'Foot.{s}'] = [(X, 18 * math.sin(p + 0.8))]
         d[f'UpperArm.{s}'] += [(X, -42 * math.sin(p))]
         d[f'LowerArm.{s}'] = [(X, 75 + 12 * math.sin(p))]
-    d['Hips'] = [(Z, 8 * math.sin(ph)), (X, 0)]
+    d['Hips'] = [(Z, 8 * math.sin(ph))]
     d['Spine'] = [(X, -12), (Z, -12 * math.sin(ph))]
     d['Head'] = [(X, 8)]
-    d['loc'] = hips_loc(ob, dz=0.05 * abs(math.cos(ph)) - 0.06)
+    d['loc'] = hips_loc(ob, dz=0.08 * abs(math.cos(ph)) - 0.06)
     return d
 
 
-SEAT_DROP = -0.76  # bacino da 0,86 a ~0,10: il sedere sta all'origine → origine dell'avatar sul nodo `sedile` della barca
+SIT_HIP = 0.42  # altezza del bacino da seduti (= SIT_HIP del client)
+THIGH = 97.4    # coscia appena in salita: ginocchio a 0,46 → stinco verticale → piede a terra
 
 
 def seated(ob, lean=0.0):
     d = {}
     for s in 'LR':
-        d[f'UpperLeg.{s}'] = [(X, 86), (Y, 6 * S[s])]
-        d[f'LowerLeg.{s}'] = [(X, -84)]
-        d[f'Foot.{s}'] = [(X, 4)]
+        d[f'UpperLeg.{s}'] = [(X, THIGH), (Y, 5 * S[s])]
+        d[f'LowerLeg.{s}'] = [(X, -THIGH)]
     d['Spine'] = [(X, lean)]
-    d['loc'] = hips_loc(ob, dz=SEAT_DROP)
+    d['loc'] = hips_loc(ob, dz=SIT_HIP - BONES['Hips'][0][1])
     return d
 
 
@@ -257,27 +380,28 @@ def clip_sit(ob, t):
 def clip_row(ob, t):
     ph = 2 * math.pi * t
     c = math.cos(ph)  # 1 = braccia avanti (attacco), −1 = tirata finita
-    d = seated(ob, -10 * c)
+    d = seated(ob, 12 * c - 4)
     for s in 'LR':
-        d[f'UpperArm.{s}'] = [(Y, 14 * S[s]), (X, 38 + 30 * c)]
-        d[f'LowerArm.{s}'] = [(X, 30 + 45 * (1 - c) / 2)]
-    d['Head'] = [(X, 8 * c)]
+        d[f'UpperArm.{s}'] = [(Y, 14 * S[s]), (X, 40 + 32 * c)]
+        d[f'LowerArm.{s}'] = [(X, 25 + 55 * (1 - c) / 2)]
+    d['Head'] = [(X, -6 * c)]
     return d
 
 
-CLIPS = {'idle': (clip_idle, 2.0), 'walk': (clip_walk, 1.0), 'run': (clip_run, 1.0), 'sit': (clip_sit, 2.0), 'row': (clip_row, 1.0)}
+# nome: (funzione, fotogrammi a 30 fps; pari perché le chiavi sono ogni 2)
+CLIPS = {'idle': (clip_idle, 60), 'walk': (clip_walk, 16), 'run': (clip_run, 16), 'sit': (clip_sit, 60), 'row': (clip_row, 42)}
 
 
 def make_clips(ob):
+    sc = bpy.context.scene
+    sc.render.fps, sc.render.fps_base = FPS, 1.0  # il default di Blender è 24: le durate uscirebbero ×1,25
     ob.animation_data_create()
-    for name, (fn, secs) in CLIPS.items():
+    for name, (fn, n) in CLIPS.items():
         act = bpy.data.actions.new(name)
         act.use_fake_user = True
         ob.animation_data.action = act
-        n = int(round(secs * FPS))
         for f in range(0, n + 1, 2):
-            pose(ob, f, fn(ob, f / n))
-        # anelli perfetti: ultimo fotogramma = primo
+            pose(ob, f, fn(ob, f / n))  # anelli perfetti: ultimo fotogramma = primo
         for fc in _fcurves(act):
             for kp in fc.keyframe_points:
                 kp.interpolation = 'LINEAR'
@@ -298,13 +422,73 @@ def _fcurves(act):
         return out
 
 
+# ---------------------------------------------------------------- look per le anteprime (solo Blender: il glb esce già esportato)
+HAT_COLOR = {'paglia': '#E2B97F', 'berretto': '#2478A8', 'pescatore': '#B9AFA3', 'lanterna': '#E8433F', 'neon': '#FF3DA6'}  # come avatar.ts
+DEFAULT_LOOK = {'pelle': '#D9A070', 'capelli': 0, 'coloreCapelli': '#2E1E14', 'vestito': '#3FB9C9', 'cappello': 'paglia'}
+VARIANTS = [
+    {'nome': 'A', 'pelle': '#D9A070', 'capelli': 0, 'coloreCapelli': '#2E1E14', 'vestito': '#3FB9C9', 'cappello': 'paglia'},
+    {'nome': 'B', 'pelle': '#FBE2C8', 'capelli': 2, 'coloreCapelli': '#E8433F', 'vestito': '#F2A33A', 'cappello': 'nessuno'},
+    {'nome': 'C', 'pelle': '#8C5636', 'capelli': 5, 'coloreCapelli': '#2E1E14', 'vestito': '#A64DFF', 'cappello': 'pescatore'},
+]
+# catalogo dei pezzi (primi piani): 8 capelli senza cappello, poi 5 cappelli
+CATALOG = ([{'nome': f'{i} {h}', 'pelle': '#EFC29B', 'capelli': i, 'coloreCapelli': '#5A3A1E', 'vestito': '#8FC35B', 'cappello': 'nessuno'} for i, h in enumerate(HAIR)]
+           + [{'nome': h, 'pelle': '#B8784C', 'capelli': 0, 'coloreCapelli': '#2E1E14', 'vestito': '#E8433F', 'cappello': h} for h in HATS])
+
+
+def _lin(h):
+    c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    return tuple(x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c) + (1.0,)
+
+
+def _tint(mat, hexcol):
+    nt = mat.node_tree
+    mix = next((n for n in nt.nodes if n.name == 'tinta'), None)
+    if not mix:
+        tex = next(n for n in nt.nodes if n.type == 'TEX_IMAGE')
+        bsdf = next(n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED')
+        mix = nt.nodes.new('ShaderNodeMix'); mix.name = 'tinta'
+        mix.data_type = 'RGBA'; mix.blend_type = 'MULTIPLY'
+        mix.inputs[0].default_value = 1.0
+        a = [s for s in mix.inputs if s.type == 'RGBA'][0]
+        nt.links.new(tex.outputs['Color'], a)
+        nt.links.new([s for s in mix.outputs if s.type == 'RGBA'][0], bsdf.inputs['Base Color'])
+    [s for s in mix.inputs if s.type == 'RGBA'][1].default_value = _lin(hexcol)
+
+
+def apply_look(objs, look):
+    """Mostra i pezzi scelti e tinge i materiali come fa il client. Ritorna gli oggetti visibili."""
+    vis = []
+    for ob in objs:
+        if ob.type != 'MESH':
+            continue
+        show = True
+        if ob.name.startswith('capelli_'):
+            show = ob.name == f"capelli_{look['capelli']}"
+        elif ob.name.startswith('cappello_'):
+            show = ob.name == f"cappello_{look['cappello']}"
+        ob.hide_render = ob.hide_viewport = not show
+        if show:
+            vis.append(ob)
+    tints = {'mat_pelle': look['pelle'], 'mat_capelli': look['coloreCapelli'], 'mat_vestito': look['vestito'],
+             'mat_cappello': HAT_COLOR.get(look['cappello'], '#E2B97F')}
+    for name, col in tints.items():
+        if name in bpy.data.materials:
+            _tint(bpy.data.materials[name], col)
+    return vis
+
+
 def chr_base():
-    m = build_mesh()
-    mesh_ob = m.build()
-    rig = build_rig(mesh_ob)
+    body = build_body().build()
+    parts = [hair_piece(i).build() for i in range(len(HAIR))] + [hat_piece(h).build() for h in HATS]
+    rig = build_rig([body] + parts)
     make_clips(rig)
-    return [rig, mesh_ob], {'clips': list(CLIPS), 'preview': {'walk': 8, 'run': 4, 'sit': 0, 'row': 16},
-                            'sedile': 'origine = sedere in sit/row'}
+    tri = lambda ob: sum(len(p.vertices) - 2 for p in ob.data.polygons)
+    return [rig, body] + parts, {
+        'clips': list(CLIPS), 'durate': {k: round(n / FPS, 3) for k, (_f, n) in CLIPS.items()},
+        'preview': {'walk': 4, 'run': 4, 'sit': 0, 'row': 10},
+        'tri_pezzi': {ob.name: tri(ob) for ob in [body] + parts},
+        'look_fn': apply_look, 'look': DEFAULT_LOOK, 'variants': VARIANTS, 'catalog': CATALOG,
+    }
 
 
 MODELS = {'chr_base': chr_base}

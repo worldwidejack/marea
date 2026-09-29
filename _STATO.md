@@ -5,7 +5,7 @@ aggiornato: 2026-09-29
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-Sessione 1 (29/9) chiusa: **online** su https://marea.stanza-idee.workers.dev con isola di moduli glTF, 18 modelli + atlas, acqua a pixel, camera diorama, avatar segnaposto a 6 teste, barca con scia. Documenti, monorepo, sim pura (24 test), server con D1 + Durable Object (presenza 10 Hz, isola con azioni economiche), harness di test (boot/look/perf verdi, 1 test di rete rosso). Handoff completo in `docs/HANDOFF.md`.
+Sessione 2 (29/9): gli altri giocatori si vedono (a piedi e in barca), avatar vero `chr_base` (8 capelli, 5 cappelli, clip cammina/corre/siede/rema), guidatore col look, test di rete sistemato: **suite 51/51 verde**. **Non ancora online**: il deploy va lanciato (`npm run deploy`), online c'è ancora la build della Sessione 1.
 
 ## Prossimo passo
-Chi riprende (chat nuova): `docs/HANDOFF.md` → integrare in `world.ts` le richieste di WP2/WP4 (peer visibili, guidatore col look vero), generare `chr_base.glb`, sistemare il test di rete, deploy. Jack: aprire il suo link dal telefono in 4G con `?fps=1` e dire cosa gli piace e cosa no del look (contact sheet in `tests/out/contact.png`).
+Deploy. Poi Jack: sceglie l'avatar tra A/B/C (`assets/export/preview/chr_varianti.png`) e prova il suo link dal telefono in 4G con `?fps=1`; con il suo ok M0 è chiusa e si parte con M1 (`docs/ROADMAP.md`).

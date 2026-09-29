@@ -1,5 +1,5 @@
 {
- "version": "2026-09-29-18",
+ "version": "2026-09-29-19",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
@@ -134,6 +134,66 @@
     ],
     "lunghezza": 4.5
    }
+  },
+  "chr_base": {
+   "file": "chr_base.glb",
+   "tris": 1309,
+   "kb": 161.9,
+   "bounds": {
+    "min": [
+     -0.27,
+     0,
+     -0.26
+    ],
+    "max": [
+     0.26,
+     1.81,
+     0.25
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ],
+   "tint": {
+    "mat_pelle": "#D9A070",
+    "mat_capelli": "#2E1E14",
+    "mat_vestito": "#3FB9C9",
+    "mat_cappello": "#E2B97F"
+   },
+   "materials": [
+    "mat_capelli",
+    "mat_cappello",
+    "mat_emissivo",
+    "mat_vestito",
+    "mat_atlas",
+    "mat_pelle"
+   ],
+   "durations": {
+    "idle": 2,
+    "walk": 0.533,
+    "run": 0.533,
+    "sit": 2,
+    "row": 1.4
+   },
+   "parts": [
+    "capelli_0",
+    "capelli_1",
+    "capelli_2",
+    "capelli_3",
+    "capelli_4",
+    "capelli_5",
+    "capelli_6",
+    "capelli_7",
+    "cappello_berretto",
+    "cappello_lanterna",
+    "cappello_neon",
+    "cappello_paglia",
+    "cappello_pescatore"
+   ]
   },
   "mod_erba": {
    "file": "mod_erba.glb",

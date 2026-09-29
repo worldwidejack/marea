@@ -17,6 +17,7 @@
 - Passaggio a un motore (Godot) se il browser mostra un tetto: le fixture d'oro di `packages/sim` sono il criterio di parità.
 
 - Negozio dei cappelli (M1): i cappelli con costo in Perle si comprano una volta (campo `posseduti` nel `LotState`, azione `buyHat`); finché non c'è, `/api/look` accetta solo i cappelli gratuiti.
+- Barche per giocatore: oggi ogni client ha la sua barca a `boatSpawn`, quindi al molo la barca di un peer si sovrappone alla tua (vuota). In M1: una barca per lotto/persona con posto al molo proprio, o la tua barca nascosta finché non ci sali.
 
 ## Mai
 - Soldi veri per risorse o acceleratori. (Cosmetici a pagamento: solo se un giorno si apre al pubblico, e solo cosmetici.)

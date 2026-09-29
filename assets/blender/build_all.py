@@ -25,6 +25,10 @@ def setup_preview(objs, name, extra_frames=()):
         sc.render.engine = 'BLENDER_WORKBENCH'
     sc.render.resolution_x = sc.render.resolution_y = 384
     sc.render.film_transparent = False
+    try:
+        sc.view_settings.view_transform = 'Standard'  # colori della palette senza la desaturazione di AgX
+    except TypeError:
+        pass
     sc.render.image_settings.file_format = 'PNG'
     world = bpy.data.worlds.new('w'); sc.world = world
     world.use_nodes = True
@@ -70,6 +74,19 @@ def render(path):
 report = {}
 
 
+def look_camera(center_z, ortho, res_x, res_y, yaw_deg=-28, pitch_deg=12):
+    """Camera ortografica per i primi piani dell'avatar (3/4 davanti), centrata a quota center_z (Blender Z)."""
+    import mathutils
+    sc = bpy.context.scene
+    sc.render.resolution_x, sc.render.resolution_y = res_x, res_y
+    co = sc.camera
+    co.data.ortho_scale = ortho
+    yaw, pitch, d = math.radians(yaw_deg), math.radians(pitch_deg), 8.0
+    c = mathutils.Vector((0, 0, center_z))
+    co.location = c + mathutils.Vector((math.sin(yaw) * math.cos(pitch) * d, math.cos(yaw) * math.cos(pitch) * d, math.sin(pitch) * d))
+    co.rotation_euler = (c - co.location).to_track_quat('-Z', 'Y').to_euler()
+
+
 def main():
   for name, fn in REG.items():
       if only and name not in only:
@@ -78,12 +95,15 @@ def main():
       lib.reset()
       res = fn()
       objs, info = (res if isinstance(res, tuple) else (res, {}))
+      look_fn, look = info.pop('look_fn', None), info.pop('look', None)
+      variants, catalog = info.pop('variants', []), info.pop('catalog', [])
       clips = info.get('clips')
       glb = export_gltf.export(os.path.join(OUT, name + '.glb'), objs, animations=bool(clips))
       tris = sum(len(p.vertices) - 2 for ob in objs if ob.type == 'MESH' for p in ob.data.polygons)
       report[name] = {'tris_blender': tris, **info}
       if '--no-preview' not in flags:
-          setup_preview(objs, name)
+          vis = look_fn(objs, look) if look_fn else objs
+          setup_preview(vis, name)
           arm = next((o for o in objs if o.type == 'ARMATURE'), None)
           if arm and clips:
               for clip, fr in info.get('preview', {}).items():
@@ -100,6 +120,19 @@ def main():
                   pb.rotation_quaternion = (1, 0, 0, 0); pb.location = (0, 0, 0)
               bpy.context.scene.frame_set(0)
           render(os.path.join(PREV, name + '.png'))
+          # varianti di look (figura intera + primo piano) e catalogo dei pezzi: PNG singoli, li monta build_assets.mjs
+          for sub, looks, shots in (('_varianti', variants, (('corpo', 0.86, 1.95, 360, 560), ('viso', 1.47, 0.52, 360, 360))),
+                                    ('_catalogo', catalog, (('viso', 1.55, 0.72, 240, 240),))):
+              if not looks:
+                  continue
+              os.makedirs(os.path.join(PREV, sub), exist_ok=True)
+              for i, lk in enumerate(looks):
+                  look_fn(objs, lk)
+                  for tag, cz, ortho, rx, ry in shots:
+                      look_camera(cz, ortho, rx, ry)
+                      render(os.path.join(PREV, sub, f'{name}_{i:02d}_{tag}.png'))
+              with open(os.path.join(PREV, sub, f'{name}.json'), 'w') as f:
+                  json.dump([lk.get('nome', str(i)) for i, lk in enumerate(looks)], f)
       print(f'[build_all] {name}: {tris} tri, {time.time() - t0:.1f}s')
 
 

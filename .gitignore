@@ -6,3 +6,4 @@ tests/out/
 assets/export/
 *.log
 .DS_Store
+__pycache__/

@@ -93,16 +93,35 @@ export default async function (ctx) {
       await pa.page.evaluate(() => { const s = window.__game.state().island.spawn; window.__game.test.teleport(s.x, s.z); });
       await sleep(400);
       const before = (await ctx.getState(pb.page)).netPeers[0];
-      await pa.page.keyboard.down('ArrowUp'); await sleep(1000); await pa.page.keyboard.up('ArrowUp'); await sleep(500);
+      // tasto premuto finché A non ha fatto 1,5 m (non un tempo fisso: con due browser in SwiftShader si va a 1-2 fps), poi B deve raggiungerlo
+      await pa.page.bringToFront(); // la scheda in secondo piano ha requestAnimationFrame fermo: la sim di A non girerebbe
+      const start = (await ctx.getState(pa.page)).avatar;
+      await pa.page.keyboard.down('ArrowUp');
+      try { await ctx.waitState(pa.page, (s, o) => Math.hypot(s.avatar.x - o.x, s.avatar.z - o.z) > 1.5, 20000, { x: start.x, z: start.z }); } finally { await pa.page.keyboard.up('ArrowUp'); }
+      await ctx.waitState(pa.page, (s) => Math.hypot(s.avatar.vx, s.avatar.vz) < 0.01, 10000); // A ha finito di frenare
       const me = (await ctx.getState(pa.page)).avatar;
+      await ctx.waitState(pb.page, (s, o) => { const p = s.netPeers[0]; return !!p && Math.hypot(p.x - o.x, p.z - o.z) < 0.2; }, 10000, { x: me.x, z: me.z }).catch(() => {});
       const after = (await ctx.getState(pb.page)).netPeers[0];
       ctx.log(`B vede A: (${before.x},${before.z}) → (${after.x},${after.z}); A è a (${me.x.toFixed(2)},${me.z.toFixed(2)}); interpolata ${JSON.stringify(after.at)}`);
       ctx.assert(Math.hypot(after.x - before.x, after.z - before.z) > 0.5, 'B non vede A muoversi');
       ctx.assert(Math.hypot(after.x - me.x, after.z - me.z) < 0.2, 'posizione vista da B lontana da quella vera');
       ctx.assert(after.at && Math.hypot(after.at.x - me.x, after.at.z - me.z) < 0.5, 'peerAt non converge');
+      const drawn = (await ctx.getState(pb.page)).peersDrawn ?? [];
+      ctx.log('B disegna: ' + JSON.stringify(drawn));
+      ctx.assert(drawn.length === 1 && drawn[0].walk && Math.hypot(drawn[0].x - after.at.x, drawn[0].z - after.at.z) < 0.5, 'B non disegna l\'avatar di A dove dovrebbe');
       ctx.noErrors(pa, 'A'); ctx.noErrors(pb, 'B');
     });
     await ctx.shot(pb.page, 'b_vede_a');
+    await ctx.test('A sale in barca, B vede la barca col guidatore', async () => {
+      await pa.page.bringToFront();
+      await pa.page.evaluate(() => window.__game.test.setMode('boat'));
+      await pa.page.keyboard.down('ArrowUp'); await sleep(1500); await pa.page.keyboard.up('ArrowUp');
+      await ctx.waitState(pb.page, (s) => (s.peersDrawn ?? [])[0]?.boat === true && (s.peersDrawn ?? [])[0]?.walk === false, 10000);
+      const b = (await ctx.getState(pa.page)).boat;
+      await pb.page.evaluate((p) => window.__game.test.teleport(p.x + 3, p.z + 3), { x: b.x, z: b.z }); await sleep(800);
+      ctx.noErrors(pa, 'A'); ctx.noErrors(pb, 'B');
+    });
+    await ctx.shot(pb.page, 'b_vede_a_in_barca');
     await ctx.test('A chiude, B riceve leave', async () => {
       await pa.close(); pages.splice(pages.indexOf(pa), 1);
       await ctx.waitState(pb.page, (s) => s.net.peers === 0, 5000);
