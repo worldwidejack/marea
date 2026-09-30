@@ -8,4 +8,4 @@ dettaglio: docs/ROADMAP.md
 Online (build `mune25l7`): M1 · Fetta 1 + **Fetta 2**: Regata giocabile sulla laguna (5 boe, HUD, autopilot/replay coincidenti col server) e Tavolo delle Sfide al Porto (tasto E, amico, posta, esito), pensati per PC. Suite 100/100.
 
 ## Prossimo passo
-Jack guarda gli screenshot e dice «vai col deploy»: prima controllare che non ci siano sfide aperte di versione 2 (la regata è ora v3). Poi prova da PC sul link online. Dopo: Fetta 3 (avatar editor, emote, feed).
+Jack prova da PC sul link online: E al Tavolo del Porto, sfida un amico, regata sulla laguna. Poi Fetta 3 (avatar editor, emote, feed).
