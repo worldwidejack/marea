@@ -33,15 +33,15 @@ export default async function (ctx) {
     const st = await ctx.getState(p.page);
     ctx.log('isola', JSON.stringify(st.island), 'arch', JSON.stringify({ slot: st.arch.slot, place: st.arch.place, lots: st.arch.lots }));
     assert(st.arch.slot === null && st.arch.place === 'porto', `spawn fuori dal Porto: ${st.arch.place}`);
-    assert(st.island.w >= 300 && st.arch.lots === 8, 'la mappa non è l’arcipelago');
+    assert(st.island.w >= 200 && st.arch.lots === 8, 'la mappa non è l’arcipelago');
     assert(Math.hypot(st.boat.x - st.island.dock.x, st.boat.z - st.island.dock.z) <= 3, 'barca lontana dal molo');
     const chunks = st.arch.chunks; ctx.log('isole (tri istanziati)', chunks.map((c) => `${c.id}:${c.tris}`).join(' '));
   });
   await view(p, '1_porto', async () => { await hook(p, 'setZoom', 1.3); });
-  await view(p, '2_porto_piazza_alto', async () => { await hook(p, 'teleport', 561, 557); await hook(p, 'setZoom', 1.6); });
-  await view(p, '2b_porto_torii_vicino', async () => { await hook(p, 'teleport', 561, 581); await hook(p, 'setZoom', 0.6); });
+  await view(p, '2_porto_piazza_alto', async () => { await hook(p, 'teleport', 265, 275); await hook(p, 'setZoom', 1.6); });
+  await view(p, '2b_porto_torii_vicino', async () => { await hook(p, 'teleport', 265, 299); await hook(p, 'setZoom', 0.6); });
   await view(p, '3_lotto_0', async () => { const r = await hook(p, 'goto', 'lotto:0'); assert(r && r.slot === 0, 'goto lotto:0'); await hook(p, 'setZoom', 1.6); });
-  await view(p, '4_lotto_0_centro', async () => { await hook(p, 'teleport', (482 + 15) * 2, (357 + 12) * 2); await hook(p, 'setZoom', 1.6); });
+  await view(p, '4_lotto_0_centro', async () => { await hook(p, 'teleport', (148 + 15) * 2, (78 + 12) * 2); await hook(p, 'setZoom', 1.6); });
   await view(p, '5_laguna', async () => { const r = await hook(p, 'goto', 'laguna'); assert(r && r.island === 'laguna', 'goto laguna'); await hook(p, 'setZoom', 1.6); });
   await view(p, '6_neon', async () => { await hook(p, 'goto', 'neon'); await hook(p, 'setZoom', 1.6); });
   await view(p, '7_selvaggia', async () => { await hook(p, 'goto', 'selvaggia'); await hook(p, 'setZoom', 1.6); });
@@ -73,7 +73,7 @@ export default async function (ctx) {
   // --- desktop: Porto largo ---
   const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
   await ctx.waitReady(d.page, 30000);
-  await view(d, '10_desktop_porto', async () => { await hook(d, 'teleport', 561, 560); await hook(d, 'setZoom', 1.6); });
-  await view(d, '11_desktop_lotto', async () => { await hook(d, 'goto', 'lotto:5'); await hook(d, 'teleport', (175 + 15) * 2, (50 + 12) * 2); await hook(d, 'setZoom', 1.6); });
+  await view(d, '10_desktop_porto', async () => { await hook(d, 'teleport', 265, 278); await hook(d, 'setZoom', 1.6); });
+  await view(d, '11_desktop_lotto', async () => { await hook(d, 'goto', 'lotto:5'); await hook(d, 'teleport', (240 + 15) * 2, (122 + 12) * 2); await hook(d, 'setZoom', 1.6); });
   ctx.writeOut('m1_mondo.json', { when: new Date().toISOString(), budget: BUDGET, views: numbers });
 }

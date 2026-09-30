@@ -58,6 +58,8 @@ export type BalanceDef = {
   capBase: number;
   bufferOre: number;
   perleMedaglia: { oro: number; argento: number; bronzo: number; sconfitta: number };
+  /** Minigiochi da solo (senza posta): premio per medaglia ('nessuna' = arrivato senza medaglia) e quante partite al giorno sono premiate. */
+  solo: { premi: { oro: Resources; argento: Resources; bronzo: Resources; nessuna: Resources }; premiateAlGiorno: number };
   wager: { min: number; colpoDiCoda: { sogliaRisorse: number; moltiplicatore: number }; scadenzaOre: number; costoExtraPerle: number };
   avatar: { camminata: number; corsa: number; sogliaCorsa: number; raggio: number };
   barca: { accel: number; maxSpeed: number; virata: number; attrito: number; rimbalzo: number; raggioImbarco: number };

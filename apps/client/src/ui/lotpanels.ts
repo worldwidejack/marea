@@ -12,6 +12,8 @@ import { fmtDur, timerSpan } from './sheet.ts';
 export type PanelCtx = {
   lot: LotState;
   readonly: boolean;
+  /** Edifici da non offrire (es. il Tavolo finché le sfide con posta sono spente). */
+  hide?: readonly string[];
   ownerName: string;
   busy: boolean;
   onCollect(id: string): void;
@@ -135,7 +137,7 @@ export function buildPanel(ctx: PanelCtx, cell: [number, number], chosen: string
     return { body, sig: sigOf(body) };
   }
   body.appendChild(head('Costruisci', '', ctx.onClose));
-  const list = buildable(lot);
+  const list = buildable(lot).filter((d) => !ctx.hide?.includes(d.id));
   const info = el('div', 'mz-info', list.length ? 'Un cantiere alla volta.' : 'Hai già tutti gli edifici: miglioriamoli.');
   body.appendChild(info);
   if (lot.construction) {

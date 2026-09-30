@@ -1,4 +1,5 @@
 // Vista economica di un'isola (M1-isola): edifici del LotState sulle celle del template, depositi, cantiere, tap → pannelli, build mode.
+// Sugli slot liberi dell'isola propria un cartello «Costruisci» (tocco = pannello); lo slot suggerito dalla guida apre già la conferma.
 // Stato e ora dal server (api.serverNow() solo per animare i timer e i depositi che crescono); rilettura dopo ogni azione e ogni 30 s
 // mentre sei sull'isola. Celle di LotState locali al template: mondo = (origin + cell + 0,5) × tile.
 import * as THREE from 'three';
@@ -11,10 +12,10 @@ import type { Hud } from '../ui/hud.ts';
 import { ApiError, MSG_401, mancaText } from '../net/api.ts';
 import type { Api } from '../net/api.ts';
 import { PAL, el } from '../ui/style.ts';
-import { resIcon } from '../ui/icons.ts';
+import { pixIcon, resIcon } from '../ui/icons.ts';
 import { createLabelLayer, createSheet, flyResources, fmtClock, tickTimers, timerSpan } from '../ui/sheet.ts';
 import type { Label, LabelLayer, Sheet } from '../ui/sheet.ts';
-import { buildPanel, buildingPanel } from '../ui/lotpanels.ts';
+import { buildPanel, buildable, buildingPanel } from '../ui/lotpanels.ts';
 import type { PanelCtx } from '../ui/lotpanels.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
@@ -29,6 +30,10 @@ export type LotViewOptions = {
   groundY?: (x: number, z: number) => number;
   /** Stato già in mano (es. da /api/me): evita la prima lettura. */
   initial?: LotState | null;
+  /** Slot suggerito (guida «Primi passi»): il suo cartello è evidenziato e toccarlo apre già la conferma di `building`. */
+  hint?: () => { cell: [number, number]; building: string } | null;
+  /** Edifici da non offrire nel pannello Costruisci (es. il Tavolo finché le sfide con posta sono spente). */
+  hide?: readonly string[];
 };
 export type LotView = {
   readonly readonly: boolean; readonly group: THREE.Group; readonly ready: Promise<void>;
@@ -86,9 +91,10 @@ export function createLotView(o: LotViewOptions): LotView {
   const group = new THREE.Group(); group.name = ro ? `lot_${o.owner ?? '?'}` : 'lot_mio'; o.scene.add(group);
   const world = (c: readonly [number, number]) => { const x = (ox + c[0] + 0.5) * T, z = (oz + c[1] + 0.5) * T; return { x, z, y: gy(x, z) }; };
   const fg = frameGeo();
-  const slotsMesh = new THREE.InstancedMesh(fg, mat(PAL.sabbiaChiara), Math.max(1, tpl.lots.length)); slotsMesh.count = 0; slotsMesh.name = 'lot_slot'; group.add(slotsMesh);
+  const slotsMesh = new THREE.InstancedMesh(fg, mat(PAL.arancio), Math.max(1, tpl.lots.length)); slotsMesh.count = 0; slotsMesh.name = 'lot_slot'; group.add(slotsMesh);
   const pick = new THREE.Mesh(fg, mat(PAL.giallo)); pick.visible = false; pick.name = 'lot_scelta'; group.add(pick);
   const drawn = new Map<string, Drawn>();
+  const slotLabels = new Map<string, { cell: [number, number]; label: Label }>(); // cartelli «Costruisci» sugli slot liberi
   let lot: LotState | null = o.initial ?? null, view: LotState | null = lot;
   let busy = false, poll = 0, slow = 0, endsSeen = 0, inflight: Promise<void> | null = null, lastError: string | null = null, refreshes = 0, disposed = false;
   let panel: { kind: 'edificio'; id: string } | { kind: 'costruisci'; cell: [number, number]; chosen: string | null } | null = null;
@@ -135,6 +141,16 @@ export function createLotView(o: LotViewOptions): LotView {
     const free = ro ? [] : freeSlots(), m = new THREE.Matrix4();
     free.forEach((c, i) => { const p = world(c); slotsMesh.setMatrixAt(i, m.makeTranslation(p.x, p.y + 0.02, p.z)); });
     slotsMesh.count = free.length; slotsMesh.instanceMatrix.needsUpdate = true;
+    const canBuild = !!lot && buildable(lot).some((d) => !o.hide?.includes(d.id));
+    const keep = new Set(canBuild ? free.map((c) => c.join(',')) : []);
+    for (const [k, sl] of slotLabels) if (!keep.has(k)) { sl.label.remove(); slotLabels.delete(k); }
+    for (const c of canBuild ? free : []) {
+      const k = c.join(','); if (slotLabels.has(k)) continue;
+      const label = S.labels.add(() => { openBuild(c); });
+      label.set('bubble', [pixIcon('martello', 16), el('span', '', 'Costruisci')], 'slot');
+      label.el.classList.add('slot'); label.el.dataset['cell'] = k;
+      slotLabels.set(k, { cell: c, label });
+    }
   }
 
   // ---- stato dal server ----
@@ -194,12 +210,13 @@ export function createLotView(o: LotViewOptions): LotView {
   }
   function openBuild(cell: [number, number]): boolean {
     if (ro || !lot || !isFree(cell) || !tpl.lots.some((c) => c.cx === cell[0] && c.cz === cell[1])) return false;
-    panel = { kind: 'costruisci', cell, chosen: null }; S.owner = me;
+    const h = o.hint?.(), sug = h && h.cell[0] === cell[0] && h.cell[1] === cell[1] && buildable(lot).some((d) => d.id === h.building) ? h.building : null;
+    panel = { kind: 'costruisci', cell, chosen: sug }; S.owner = me;
     const p = world(cell); pick.position.set(p.x, p.y + 0.04, p.z); pick.visible = true;
     renderPanel(); return true;
   }
   const ctx = (): PanelCtx => ({
-    lot: view ?? lot!, readonly: ro, ownerName: o.ownerName ?? o.owner ?? 'un amico', busy,
+    lot: view ?? lot!, readonly: ro, hide: o.hide ?? [], ownerName: o.ownerName ?? o.owner ?? 'un amico', busy,
     onCollect: (id) => void collect(id), onUpgrade: (id) => void upgrade(id), onBuild: (b, c) => void build(b, c),
     onChoose: (b) => { if (panel?.kind === 'costruisci') { panel.chosen = b; renderPanel(); } }, onClose: closePanel,
   });
@@ -249,6 +266,13 @@ export function createLotView(o: LotViewOptions): LotView {
       const has = !!b && ((c && c.placedId === id && c.endsMs > t) || (b.level >= 1 && b.buffer >= 1 && !!buildingDef(b.building).produces));
       const p = has ? screenOf(d.holder.position.x, d.holder.position.y + d.height + 0.3, d.holder.position.z) : null;
       d.label.place(p?.x ?? 0, p?.y ?? 0, !!p?.on);
+    }
+    const h = o.hint?.(), busyNow = !!lot?.construction && lot.construction.endsMs > t;
+    for (const sl of slotLabels.values()) {
+      const p = world(sl.cell), sp = !busyNow || panel ? screenOf(p.x, p.y + 0.9, p.z) : null; // col cantiere occupato i cartelli tacciono
+      const isHint = !!h && h.cell[0] === sl.cell[0] && h.cell[1] === sl.cell[1];
+      sl.label.el.classList.toggle('hint', isHint);
+      sl.label.place(sp?.x ?? 0, sp?.y ?? 0, !!sp?.on);
     }
   }
 
@@ -310,6 +334,7 @@ export function createLotView(o: LotViewOptions): LotView {
       freeSlots: ro ? [] : freeSlots(),
       panel: S.owner === me && panel ? { ...panel } : null,
       labels: [...drawn.entries()].map(([id, d]) => ({ id, text: d.label.el.textContent ?? '', cls: d.label.el.className })),
+      slotSigns: [...slotLabels.values()].map((sl) => ({ cell: sl.cell, hint: sl.label.el.classList.contains('hint') })),
     };
   });
   registerTestHook('lotTap' + sfx, (t) => tap(t as string | [number, number]));
@@ -345,6 +370,8 @@ export function createLotView(o: LotViewOptions): LotView {
     dispose() {
       disposed = true; unState(); closePanel();
       for (const d of drawn.values()) d.label.remove();
+      for (const sl of slotLabels.values()) sl.label.remove();
+      slotLabels.clear();
       drawn.clear(); o.scene.remove(group);
       o.canvas?.removeEventListener('pointerdown', onDown); o.canvas?.removeEventListener('pointermove', onMove);
       removeEventListener('pointerup', onUp); removeEventListener('pointercancel', onCancel);

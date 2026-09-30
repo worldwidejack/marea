@@ -1,25 +1,42 @@
-// Bussola dell'HUD (WP0): in mare aperto la camera diorama non mostra nessuna isola per decine di secondi, quindi
-// una freccia per meta (Casa, Porto, Laguna) ruotata nello spazio dello schermo, con la distanza. Sparisce quando sei vicino.
-export type CompassTarget = { id: string; label: string; x: number; z: number };
-export type Compass = { update(me: { x: number; z: number }, cameraYaw: number): void; dispose(): void };
+// Bussola dell'HUD: una riga per luogo (Casa, Porto, Regata…) con icona, freccia e distanza. La freccia ha l'asta (un triangolo quasi
+// equilatero non dice da che parte punta) e gira nello spazio dello schermo. Sparisce quando il luogo è vicino (si vede già).
+// `focus(id)` evidenzia la meta della guida «Primi passi».
+import { pixIcon } from './icons.ts';
+import type { PixId } from './icons.ts';
+import { PAL } from './style.ts';
 
-const NEAR_M = 45; // entro questa distanza la meta si vede già: niente freccia
+export type CompassTarget = { id: string; label: string; x: number; z: number; icon?: PixId };
+export type Compass = { update(me: { x: number; z: number }, cameraYaw: number): void; focus(id: string | null): void; dispose(): void };
+
+const NEAR_M = 30; // entro questa distanza la meta si vede già: niente freccia
+/** Freccia a pixel con asta, punta in su a 0 rad (stesso disegno dell'HUD di gara). */
+export const ARROW_SVG = '<svg viewBox="0 0 14 18" width="16" height="20" shape-rendering="crispEdges" style="display:block"><path d="M7 0L14 8H9.5V18H4.5V8H0Z" fill="currentColor" stroke="#23201F" stroke-width="1"/></svg>';
+
+// sul telefono la bussola scende sotto chip del cantiere e toast, e perde il nome del luogo (resta l'icona)
+const CSS = `
+#compass { position: absolute; right: 8px; top: calc(max(6px, env(safe-area-inset-top)) + 56px); display: flex; flex-direction: column; align-items: flex-end; gap: 4px; pointer-events: none; z-index: 13; }
+@media (max-width: 699px) { #compass { top: calc(max(6px, env(safe-area-inset-top)) + 168px); } #compass .nome { display: none; } }
+`;
 
 export function createCompass(o: { root: HTMLElement; targets: CompassTarget[] }): Compass {
+  if (!document.getElementById('mz-compass-style')) { const st = document.createElement('style'); st.id = 'mz-compass-style'; st.textContent = CSS; document.head.appendChild(st); }
   const box = document.createElement('div');
   box.id = 'compass';
-  box.style.cssText = 'position:absolute;right:8px;top:calc(max(6px, env(safe-area-inset-top)) + 56px);display:flex;flex-direction:column;gap:4px;pointer-events:none;';
   const rows = o.targets.map((t) => {
     const row = document.createElement('div');
-    row.style.cssText = 'display:none;align-items:center;gap:6px;background:rgba(46,30,20,.85);border:2px solid #C98A4B;padding:3px 6px;color:#F4E3C1;font:bold 12px ui-monospace,monospace;';
+    row.dataset['id'] = t.id;
+    row.style.cssText = `display:none;align-items:center;gap:6px;min-height:32px;background:rgba(46,30,20,.88);border:2px solid ${PAL.legnoChiaro};box-shadow:0 3px 0 ${PAL.neroCaldo};padding:2px 8px 2px 6px;color:${PAL.sabbiaChiara};font:bold 13px ui-monospace,monospace;`;
     const arrow = document.createElement('span');
-    arrow.textContent = '▲';
-    arrow.style.cssText = 'display:inline-block;color:#F2A33A;font-size:14px;line-height:14px;';
+    arrow.innerHTML = ARROW_SVG; // SVG statico
+    arrow.style.cssText = `display:inline-block;color:${PAL.giallo};width:16px;height:20px;`;
+    const nome = document.createElement('span'); nome.className = 'nome'; nome.textContent = t.label;
     const text = document.createElement('span');
-    row.append(arrow, text); box.appendChild(row);
+    row.append(...(t.icon ? [pixIcon(t.icon, 16)] : []), nome, text, arrow);
+    box.appendChild(row);
     return { t, row, arrow, text, shown: false };
   });
   o.root.appendChild(box);
+  let focused: string | null = null;
   return {
     update(me, yaw) {
       // stessa convenzione di input.ts: su schermo «su» = (−sin yaw, −cos yaw), «destra» = (cos yaw, −sin yaw) in assi mondo
@@ -31,8 +48,13 @@ export function createCompass(o: { root: HTMLElement; targets: CompassTarget[] }
         if (!show) continue;
         const ang = Math.atan2(dx * rx + dz * rz, dx * fx + dz * fz);
         r.arrow.style.transform = `rotate(${ang.toFixed(3)}rad)`;
-        r.text.textContent = `${r.t.label} ${Math.round(d)} m`;
+        r.text.textContent = `${Math.round(d)} m`;
       }
+    },
+    focus(id) {
+      if (id === focused) return;
+      focused = id;
+      for (const r of rows) r.row.style.borderColor = r.t.id === id ? PAL.giallo : PAL.legnoChiaro;
     },
     dispose() { box.remove(); },
   };

@@ -1,21 +1,21 @@
 {
   "id": "marea",
   "nome": "Arcipelago di Marea",
-  "w": 560,
-  "h": 560,
+  "w": 290,
+  "h": 240,
   "tile": 2,
   "islands": [
-    { "island": "porto", "at": [258, 261], "role": "porto" },
-    { "island": "laguna", "at": [318, 254], "role": "laguna" },
-    { "island": "lotto", "at": [482, 357], "role": "lotto", "slot": 0 },
-    { "island": "lotto", "at": [355, 484], "role": "lotto", "slot": 1 },
-    { "island": "lotto", "at": [175, 484], "role": "lotto", "slot": 2 },
-    { "island": "lotto", "at": [48, 357], "role": "lotto", "slot": 3 },
-    { "island": "lotto", "at": [48, 177], "role": "lotto", "slot": 4 },
-    { "island": "lotto", "at": [175, 50], "role": "lotto", "slot": 5 },
-    { "island": "lotto", "at": [355, 50], "role": "lotto", "slot": 6 },
-    { "island": "lotto", "at": [482, 177], "role": "lotto", "slot": 7 },
-    { "island": "neon", "at": [512, 267], "role": "facciata" },
-    { "island": "selvaggia", "at": [9, 266], "role": "facciata" }
+    { "island": "porto", "at": [110, 120], "role": "porto" },
+    { "island": "laguna", "at": [170, 113], "role": "laguna" },
+    { "island": "lotto", "at": [148, 78], "role": "lotto", "slot": 0 },
+    { "island": "lotto", "at": [108, 80], "role": "lotto", "slot": 1 },
+    { "island": "lotto", "at": [190, 76], "role": "lotto", "slot": 2 },
+    { "island": "lotto", "at": [66, 120], "role": "lotto", "slot": 3 },
+    { "island": "lotto", "at": [68, 80], "role": "lotto", "slot": 4 },
+    { "island": "lotto", "at": [240, 122], "role": "lotto", "slot": 5 },
+    { "island": "lotto", "at": [68, 166], "role": "lotto", "slot": 6 },
+    { "island": "lotto", "at": [112, 172], "role": "lotto", "slot": 7 },
+    { "island": "neon", "at": [236, 180], "role": "facciata" },
+    { "island": "selvaggia", "at": [14, 30], "role": "facciata" }
   ]
 }

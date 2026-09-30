@@ -65,7 +65,7 @@ export default async function (ctx) {
 
     // ---- due browser, con l'orologio di test su ogni chiamata /api ----
     const open = async (token) => {
-      const pg = await ctx.B.openPage(ctx.browser, `${base}/?t=${token}&test=1`, { viewport: ctx.B.DESKTOP });
+      const pg = await ctx.B.openPage(ctx.browser, `${base}/?t=${token}&test=1&sfide=1`, { viewport: ctx.B.DESKTOP });
       pages.push(pg); ctx._pages.push(pg);
       await pg.page.route('**/api/**', (route) => route.continue({ headers: { ...route.request().headers(), 'x-test-now-offset': String(OFF) } }));
       return pg;

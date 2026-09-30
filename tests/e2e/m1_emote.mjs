@@ -45,8 +45,8 @@ export default async function (ctx) {
     for (let i = 0; i < 120 && !up; i++) { try { up = (await fetch(base + '/api/ping')).ok; } catch { /* non ancora */ } if (!up) await sleep(500); }
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
 
-    let anna = await openPage(ctx, `${base}/?t=tokA&test=1`, ctx.B.DESKTOP);
-    const bruno = await openPage(ctx, `${base}/?t=tokB&test=1`, ctx.B.DESKTOP);
+    let anna = await openPage(ctx, `${base}/?t=tokA&test=1&sfide=1`, ctx.B.DESKTOP);
+    const bruno = await openPage(ctx, `${base}/?t=tokB&test=1&sfide=1`, ctx.B.DESKTOP);
     const st = (p) => ctx.getState(p.page);
     /** Anna e Bruno al Porto, Bruno a ~3 m da Anna; Bruno disegna Anna ferma dov'è. */
     const place = async () => {
@@ -159,7 +159,7 @@ export default async function (ctx) {
     // ---- telefono: Anna rientra da un iPhone (la connessione desktop viene sostituita) ----
     await ctx.test('telefono 390×844: #mzEmoteBtn apre la riga di 4, tocco → fumetto e frame', async () => {
       await anna.close(); ctx._pages.splice(ctx._pages.indexOf(anna), 1);
-      anna = await openPage(ctx, `${base}/?t=tokA&test=1`, ctx.B.IPHONE);
+      anna = await openPage(ctx, `${base}/?t=tokA&test=1&sfide=1`, ctx.B.IPHONE);
       await ctx.waitReady(anna.page, 30000);
       await ctx.waitState(anna.page, (s) => s.net.status === 'on' && s.net.peers === 1, 15000);
       annaAt = await place();

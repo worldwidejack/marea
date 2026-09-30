@@ -17,12 +17,12 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 1. **Entri** dal tuo link → sei sul molo della tua isola, la camera diorama la mostra tutta.
 2. **Raccogli**: gli edifici hanno accumulato risorse nel loro deposito (tap sull'edificio → volano nel Magazzino). Feed: «Marco ti ha sfidato alla Regata», «hai vinto 40 Legno».
 3. **Costruisci**: nuovo edificio o miglioramento (spesa immediata + timer), o piazzi una decorazione.
-4. **Sfide** (1-3): rispondi a una sfida differita o ne lanci una; prendi la barca e vai al porto se ti va di guardare le isole degli altri.
+4. **Minigiochi** (1-3): prendi la barca e vai dove sta il minigioco (la Regata al molo della Laguna); con una medaglia vinci Legno, Pietra e Perle. Le sfide differite con posta tornano dopo la prova con gli amici (vedi §7).
 5. **Esci** con almeno un timer che finirà prima del prossimo rientro (il gioco lo dice: «la Cava finisce tra 6 h»).
 
 ## 3. Il mondo: l'arcipelago
 - **Zone comuni** (tutti le vedono, nessuno le possiede): in V1 una sola zona vera, il **Porto** (villaggio con edifici e mood asiatico: lanterne, torii, moli di legno, insegne). Il **Distretto Neon** (cyberpunk leggero) e l'**Isola Selvaggia** (natura, scogliere, palme) esistono come **facciate** visibili dalla barca; diventano zone vere dopo dicembre.
-- **Isole personali (lotti)**: una per amico, disposte attorno al Porto. Vi si arriva in barca o con «vai a casa». Un lotto è una griglia di celle da 2 m con slot per edifici e decorazioni; il Molo è sempre costruito e fa da spawn.
+- **Isole personali (lotti)**: una per amico, disposte attorno al Porto e alla Laguna, a **10-25 s di barca** (80-240 m) da entrambi. Vi si arriva in barca o con «vai a casa». Un lotto è una griglia di celle da 2 m con slot per edifici e decorazioni; il Molo è sempre costruito e fa da spawn.
 - **Barca**: il mezzo principale. Sali dal molo (tasto A vicino alla barca), guida arcade (accelerazione, virata, scia), scendi a qualsiasi molo. Anche a piedi sulle isole.
 - **Camera**: dall'alto in diagonale (diorama), segue l'avatar, zoom 0,6-1,6. Stessa vista per costruire.
 - **Ciclo giorno/notte**: no in V1 (luce fissa del tardo pomeriggio).
@@ -49,12 +49,23 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 - **Costruire** = spesa immediata + timer; un solo cantiere alla volta in V1. Niente acceleratori a pagamento: **mai soldi veri**.
 - **Partenza**: Molo L1, 400 Legno, 160 Pietra, 0 Perle. Tetto base del deposito centrale senza Magazzino: 800 per risorsa. Nei primi 10 minuti si costruiscono Segheria e Cava e si scopre il Tavolo.
 - **Taratura**: tutti i numeri stanno in `packages/content/src/balance.json` e si verificano con `economy_30days.test.ts` su tre archetipi (chi entra 2 volte al giorno / 1 volta / 2 volte a settimana → dopo 30 giorni ~100 % / ~75 % / ~40 % degli edifici a L2, nessuno a L3 pieno).
-- **Dai minigiochi**: medaglia → Perle **5 / 10 / 20** (bronzo / argento / oro) e attiva il Faro. Chi perde una sfida prende comunque **2 Perle** (mai zero).
+- **Dai minigiochi da solo** (`balance.json` → `solo`): il premio della medaglia arriva sempre, senza posta. Premiate le prime **10 partite al giorno** (giorno UTC), poi si gioca senza premio. Una medaglia attiva il Faro.
+
+| Medaglia | Legno | Pietra | Perle |
+|---|---|---|---|
+| Oro | 60 | 30 | 20 |
+| Argento | 30 | 15 | 10 |
+| Bronzo | 15 | 8 | 5 |
+| Nessuna | 0 | 0 | 2 |
+
+- **Dalle sfide con posta** (spente per ora, §7): medaglia → Perle **5 / 10 / 20** (bronzo / argento / oro) e attiva il Faro. Chi perde una sfida prende comunque **2 Perle** (mai zero).
 
 ## 6. Minigiochi
 **Formato comune** (in `packages/sim/src/minigames/`): modulo puro e deterministico, 60 Hz, `create({seed, difficulty})`, `step(state, input)`, `result(state)`, `autopilot`. Stesso seed = stessa partita, sempre. Il punteggio è **sempre «più alto vince»**; i dettagli (tempo, combo) stanno in `result().detail`.
 
-**Sfide differite** (dal giorno uno): A gioca oggi con un seed; B entra domani, gioca lo **stesso** seed e vede se batte il punteggio di A. Nessun bot. Il server rigioca l'input log nella sim e verifica il punteggio dichiarato.
+**Ogni minigioco ha il suo posto** su un'isola (ogni isola ha giochi diversi): la Regata parte dal molo della Laguna. Nel mondo una boa grande con il cartello «REGATA» che si vede da lontano, nella bussola una riga con la distanza; vicino compare **GIOCA** (A). Si gioca da soli quando si vuole: il seed lo dà il server, che rigioca gli input e paga il premio (§5).
+
+**Sfide differite** (spente per la prova con gli amici, si riaccendono con `?sfide=1`): A gioca oggi con un seed; B entra domani, gioca lo **stesso** seed e vede se batte il punteggio di A. Nessun bot. Il server rigioca l'input log nella sim e verifica il punteggio dichiarato.
 
 **Ordine**
 1. **Regata** (M1) — gara in barca a tempo tra 5 boe fisse nella laguna del Porto, con raffiche di vento da seed che spingono di lato. Riusa barca, mondo e camera. Tempo massimo 120 s; `score = max(0, 12000 − floor(ms/10))`. Medaglie relative al pilota di riferimento con le stesse raffiche: oro ≤ 1,1×, argento ≤ 1,4×, bronzo ≤ 2,3× (≈ 22 / 28 / 46 s; giro di ~167 m). Le boe si passano in ordine, la prossima è evidenziata. Controllo: joystick per virare, A per accelerare.
@@ -65,6 +76,8 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anche chi perde prende qualcosa.
 
 ## 7. Sfide e wager
+> **Sospese dal 30 set 2026** per la prova con gli amici: si prova il gioco da soli e si viene premiati dai minigiochi (§5, §6). Il codice resta (Tavolo, feed, escrow) e si riaccende con `?sfide=1`; il Tavolo non compare nel pannello Costruisci.
+
 - **Creare**: al Tavolo delle Sfide scegli minigioco, avversario, posta (Legno/Pietra/Perle, ≥ 10 e ≤ tetto del Tavolo); il seed lo genera il server; giochi subito il tuo turno. La posta va in **escrow** nel libro mastro.
 - **Rispondere**: l'altro ha **24 h** per accettare (posta pari, in escrow) e giocare lo stesso seed. Punteggio più alto prende il piatto. Nessuna risposta o parità → rimborso a entrambi.
 - **Colpo di coda**: se chi risponde ha meno del **50 %** delle risorse totali dello sfidante e vince, prende **1,5×**. Premia lo sfavorito, scoraggia il bullismo.
@@ -74,8 +87,8 @@ Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anc
 ## 8. Tra amici
 Mondo alla GTA: né coop né guerra. Nessuno attacca o modifica le isole altrui. Ci si vede muoversi nel Porto e in mare (presenza a 10 Hz), si visitano le isole degli altri (sola lettura), si comunica con 4 emote e con le sfide. Niente chat testuale in V1. Ingresso solo con link personale mandato da Jack.
 
-## 9. Onboarding (60 s, M2)
-Arrivi sul tuo molo → «tocca la Segheria per costruirla» → «tocca per raccogliere» → «sali in barca» → al Porto «il Tavolo delle Sfide: sfida un amico». Niente tutorial a testo lungo: frecce e un'azione alla volta.
+## 9. Onboarding «Primi passi» (anticipato in M1, 30 set 2026)
+Una scheda con un passo alla volta e una freccia gialla sulla meta (sopra la cosa se è in vista, sul bordo dello schermo se è fuori): **1** costruisci la Segheria (il cartello «Costruisci» evidenziato apre già la conferma) → **2** sali in barca → **3** vai alla Regata e gioca → **4** costruisci col premio. Sugli slot liberi dell'isola c'è sempre un cartello «Costruisci». Niente tutorial a testo lungo.
 
 ## 10. Tagli espliciti V1 (fino a dicembre 2026)
 Fuori: battaglia unità, bot, puzzle, chat testuale, interni degli edifici, ciclo giorno/notte, commercio tra giocatori, apertura al pubblico, app installabile (PWA solo se gratis in tempo), musica originale, storia. Entrano dopo, uno alla volta, e solo dal `BACKLOG.md`.

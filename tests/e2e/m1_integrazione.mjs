@@ -47,9 +47,9 @@ export default async function (ctx) {
       await ctx.waitState(pa.page, (s) => s.lot && s.lot.ready === true, 15000);
       const s = await ctx.getState(pa.page);
       ctx.assert(s.lot.resources.legno > 0, 'risorse assenti: ' + JSON.stringify(s.lot.resources));
-      const txt = await pa.page.evaluate(() => document.getElementById('compass')?.innerText ?? '');
+      const txt = await pa.page.evaluate(() => [...document.querySelectorAll('#compass > div')].filter((r) => r.style.display !== 'none').map((r) => r.textContent).join('\n'));
       ctx.log('bussola: ' + txt.replace(/\n/g, ' · '));
-      ctx.assert(/Porto \d+ m/.test(txt), 'bussola senza Porto');
+      ctx.assert(/Porto\s*\d+ m/.test(txt), 'bussola senza Porto');
     });
     await ctx.shot(pa.page, 'm1_int_spawn_lotto');
     await ctx.test('l\'isola di Bea (slot 3) si vede in sola lettura con la sua Segheria', async () => {
@@ -62,9 +62,9 @@ export default async function (ctx) {
     await ctx.shot(pa.page, 'm1_int_isola_di_bea');
     await ctx.test('in mare la bussola indica Casa e Porto', async () => {
       await pa.page.evaluate(() => window.__game.test.goto('laguna')); await sleep(800);
-      const txt = await pa.page.evaluate(() => document.getElementById('compass')?.innerText ?? '');
+      const txt = await pa.page.evaluate(() => [...document.querySelectorAll('#compass > div')].filter((r) => r.style.display !== 'none').map((r) => r.textContent).join('\n'));
       ctx.log('bussola in laguna: ' + txt.replace(/\n/g, ' · '));
-      ctx.assert(/Casa \d+ m/.test(txt) && /Porto \d+ m/.test(txt), 'bussola incompleta: ' + txt);
+      ctx.assert(/Casa\s*\d+ m/.test(txt) && /Porto\s*\d+ m/.test(txt), 'bussola incompleta: ' + txt);
       ctx.noErrors(pa, 'Ada');
     });
     await ctx.shot(pa.page, 'm1_int_bussola');

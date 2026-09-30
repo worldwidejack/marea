@@ -16,6 +16,11 @@ export type { Challenge, PackedInputs };
 /** Risposta di POST /api/challenges/:id/play: il punteggio lo decide il replay del server. */
 export type PlayResult = { score: number; medal: Medal; detail: Record<string, number>; challenge: Challenge };
 
+/** Partita da solo aperta dal server (POST /api/solo/start): il seed lo sceglie lui. */
+export type SoloStart = { minigame: string; seed: number; difficulty: number; lot: LotState };
+/** Esito di una partita da solo (POST /api/solo/play): medaglia ricalcolata dal server, premio (zero oltre il tetto del giorno), lotto aggiornato. */
+export type SoloResult = { score: number; medal: Medal; detail: Record<string, number>; premio: Resources; premiata: boolean; lot: LotState };
+
 export const MSG_401 = 'Link non valido, chiedi a Jack un link nuovo';
 export const MSG_RETE = 'Niente connessione, riprova tra poco';
 
@@ -51,6 +56,10 @@ export type Api = {
   decline(id: string): Promise<Challenge>;
   /** Manda gli input della mia partita; il server la rigioca e risponde con punteggio, medaglia e sfida aggiornata. */
   play(id: string, inputs: PackedInputs): Promise<PlayResult>;
+  /** Minigiochi da solo (senza posta): apre una partita col seed del server. */
+  soloStart(minigame: string): Promise<SoloStart>;
+  /** Consegna gli input della partita da solo: il server la rigioca e premia la medaglia. */
+  soloPlay(inputs: PackedInputs): Promise<SoloResult>;
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;
@@ -178,6 +187,17 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       if (!isObj(d) || typeof d['score'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');
       const medal = d['medal'] === 'oro' || d['medal'] === 'argento' || d['medal'] === 'bronzo' ? d['medal'] : null;
       return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, challenge: asChallenge(d['challenge']) };
+    },
+    async soloStart(minigame) {
+      const d = await call('POST', '/api/solo/start', { minigame });
+      if (!isObj(d) || typeof d['seed'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');
+      return { minigame: String(d['minigame'] ?? minigame), seed: d['seed'], difficulty: typeof d['difficulty'] === 'number' ? d['difficulty'] : 2, lot: asLot(d['lot']) };
+    },
+    async soloPlay(inputs) {
+      const d = await call('POST', '/api/solo/play', { inputs });
+      if (!isObj(d) || typeof d['score'] !== 'number' || !isObj(d['premio'])) throw new ApiError(500, 'Risposta del server non valida');
+      const medal = d['medal'] === 'oro' || d['medal'] === 'argento' || d['medal'] === 'bronzo' ? d['medal'] : null;
+      return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, premio: d['premio'] as Resources, premiata: !!d['premiata'], lot: asLot(d['lot']) };
     },
     async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
     buyHat: (id) => post('/api/look/hat', { cappello: id }),

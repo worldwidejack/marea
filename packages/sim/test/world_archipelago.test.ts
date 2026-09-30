@@ -94,7 +94,7 @@ test('arcipelago: spawn a terra, barche in acqua, dal molo si sale e si scende',
   assert.deepEqual(arch.spawnOf(42), arch.spawnOf(null), 'slot inesistente → Porto');
 });
 
-test('arcipelago: ogni lotto, la laguna e le facciate si raggiungono in barca dal Porto (1-2 minuti per i lotti)', () => {
+test('arcipelago: ogni lotto, la laguna e le facciate si raggiungono in barca dal Porto (al massimo ~40 s per i lotti: casa, Porto e Regata vicini)', () => {
   const from = cellOf(arch.boatOf(null));
   const d = bfs(M, from, (x, z) => NAV.has(M.at(x, z)));
   const vmax = BALANCE.barca.maxSpeed;
@@ -107,7 +107,7 @@ test('arcipelago: ogni lotto, la laguna e le facciate si raggiungono in barca da
     const s = (cells * M.tile * 0.8) / vmax;
     if (p.role === 'lotto') {
       times.push(`${p.slot}:${Math.round(s)}s`);
-      assert.ok(s >= 40 && s <= 130, `lotto ${p.slot}: ${Math.round(s)} s di barca dal Porto (attesi 1-2 min)`);
+      assert.ok(s <= 40, `lotto ${p.slot}: ${Math.round(s)} s di barca dal Porto (attesi al massimo 40 s)`);
     }
   }
   console.log('[marea] barca Porto → lotti (stima a 9 m/s):', times.join(' '));

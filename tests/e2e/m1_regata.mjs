@@ -32,7 +32,7 @@ export default async function (ctx) {
     for (let i = 0; i < 120 && !up; i++) { try { up = (await fetch(base + '/api/ping')).ok; } catch { /* non ancora */ } if (!up) await sleep(500); }
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
 
-    p = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`, { viewport: ctx.B.DESKTOP });
+    p = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1&sfide=1`, { viewport: ctx.B.DESKTOP });
     ctx._pages.push(p);
     const page = p.page;
     const hook = (fn, ...args) => page.evaluate(([f, a]) => window.__game.test[f](...a), [fn, args]);
@@ -68,7 +68,7 @@ export default async function (ctx) {
       const r0 = (await st()).regata;
       assert(r0.total >= 3 && r0.buoys.length === r0.total, `boe ${r0.buoys.length}/${r0.total}`);
       const lag = (await st()).arch.places?.find?.((x) => x.role === 'laguna');
-      assert(r0.off && r0.off.x > 300 && r0.off.z > 300, 'offset della laguna assente: ' + JSON.stringify(r0.off));
+      assert(r0.off && r0.off.x > 100 && r0.off.z > 100, 'offset della laguna assente: ' + JSON.stringify(r0.off));
       if (lag) ctx.log('laguna: ' + JSON.stringify(lag).slice(0, 120));
       // conto alla rovescia: la barca è ferma alla partenza, le boe sono già in acqua → prova visiva (pixel arancio/rosso della boa)
       await page.waitForTimeout(500);
@@ -83,7 +83,7 @@ export default async function (ctx) {
       await page.waitForTimeout(500);
       const s1 = (await st()).regata;
       assert(s1.buoysDrawn > 0, 'nessuna boa disegnata (buoysDrawn=0)');
-      // le boe stanno sull'isola della laguna: coordinate mondo vicino all'origine (636, 508) m, dentro una finestra generosa
+      // le boe stanno sull'isola della laguna: coordinate mondo vicino all'origine (340, 226) m, dentro una finestra generosa
       for (const b of s1.buoys) assert(Math.abs(b.x - r0.off.x) < 250 && Math.abs(b.z - r0.off.z) < 250, `boa fuori dalla laguna: ${JSON.stringify(b)}`);
       const bx = s1.boat;
       assert(Math.hypot(bx.x - r0.off.x, bx.z - r0.off.z) < 250, 'barca fuori dalla laguna: ' + JSON.stringify([bx.x, bx.z]));

@@ -69,7 +69,7 @@ export default async function (ctx) {
       });
       const feed = o.rows ? await fakeFeed(pg, o.rows) : null;
       await pg.page.route('**/api/**', (route) => route.fallback({ headers: { ...route.request().headers(), 'x-test-now-offset': String(OFF) } }));
-      await pg.page.goto(`${base}/?t=${token}&test=1`, { waitUntil: 'load' });
+      await pg.page.goto(`${base}/?t=${token}&test=1&sfide=1`, { waitUntil: 'load' });
       await ctx.waitReady(pg.page, 30000);
       return { pg, feed };
     };

@@ -56,7 +56,7 @@ export default async function (ctx) {
     // ---- browser: conta le POST /api/look e /api/look/hat; orologio di test su ogni /api ----
     const posts = { look: [], hat: [] };
     const open = async (token, viewport) => {
-      const pg = await ctx.B.openPage(ctx.browser, `${base}/?t=${token}&test=1`, { viewport });
+      const pg = await ctx.B.openPage(ctx.browser, `${base}/?t=${token}&test=1&sfide=1`, { viewport });
       pages.push(pg); ctx._pages.push(pg);
       await pg.page.route('**/api/**', (route) => {
         const rq = route.request(), u = new URL(rq.url());

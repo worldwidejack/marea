@@ -7,6 +7,9 @@ export type Construction = { building: string; level: number; endsMs: number; pl
 export type LedgerTotals = { generated: Resources; spent: Resources };
 /** Sfide lanciate oggi (giorno UTC = floor(nowMs / 86 400 000)): servono per le sfide gratis del Tavolo. */
 export type ChallengeCount = { day: number; used: number };
+/** Minigiochi da solo (senza posta): partita aperta dal server (seed) e conteggio del giorno UTC per il tetto dei premi. */
+export type SoloPending = { minigame: string; seed: number; difficulty: 1 | 2 | 3; startMs: number };
+export type SoloState = { day: number; premiate: number; giocate: number; pending: SoloPending | null };
 export type LotState = {
   owner: string;
   version: number;
@@ -26,6 +29,8 @@ export type LotState = {
   holds?: Record<string, Resources>;
   /** Ultime sfide già regolate su questo lotto (per rendere idempotente il regolamento). Assente = []. */
   settled?: string[];
+  /** Minigiochi da solo. Assente = { day: 0, premiate: 0, giocate: 0, pending: null }. */
+  solo?: SoloState;
 };
 
 /**
@@ -70,7 +75,7 @@ export const missing = (have: Resources, cost: Resources): Resources => ({
   legno: Math.max(0, cost.legno - have.legno), pietra: Math.max(0, cost.pietra - have.pietra), perle: Math.max(0, cost.perle - have.perle),
 });
 
-export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow' | 'cappello' | 'posizione';
+export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow' | 'cappello' | 'posizione' | 'partita';
 export class EconomyError extends Error {
   code: EconomyErrorCode;
   manca: Resources | undefined;

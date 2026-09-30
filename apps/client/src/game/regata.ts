@@ -250,7 +250,7 @@ export async function setupRegata(o: Ctx): Promise<RegataDriver> {
             const m = r.result.medal;
             const finished = v.finished ?? v.next >= v.buoys.length;
             const title = !finished ? 'TEMPO SCADUTO' : m ? MEDAL[m]! : 'ARRIVO';
-            hud.big(title, m ? MEDAL_C[m] : PAL.sabbiaChiara, `${fmt(v.ms)} · ${v.next}/${v.buoys.length} boe · il Tavolo conferma`);
+            hud.big(title, m ? MEDAL_C[m] : PAL.sabbiaChiara, `${fmt(v.ms)} · ${v.next}/${v.buoys.length} boe · il server conferma`);
           }
         }
         const v = view(r); o.world.race.set(worldBoat(r, v));

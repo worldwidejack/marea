@@ -46,6 +46,11 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
   }
   if (c.balance.bufferOre <= 0) errs.push('balance.bufferOre deve essere > 0');
   if (c.balance.wager.min <= 0) errs.push('balance.wager.min deve essere > 0');
+  if (!(c.balance.solo?.premiateAlGiorno >= 0)) errs.push('balance.solo.premiateAlGiorno mancante o negativo');
+  for (const k of ['oro', 'argento', 'bronzo', 'nessuna'] as const) {
+    const r = c.balance.solo?.premi?.[k];
+    if (!r || !(['legno', 'pietra', 'perle'] as const).every((x) => Number.isInteger(r[x]) && r[x] >= 0)) errs.push(`balance.solo.premi.${k} non valido`);
+  }
   return errs;
 }
 

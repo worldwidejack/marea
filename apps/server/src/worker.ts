@@ -158,6 +158,17 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, azione[1] ?? '', body);
       }
+      // minigiochi da solo (senza posta): il DO del lotto apre la partita e la premia
+      if (path === '/api/solo/start' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'solo_start', { minigame: body['minigame'] });
+      }
+      if (path === '/api/solo/play' && req.method === 'POST') {
+        const body = await corpo(MAX_PLAY_BODY);
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'solo_play', { inputs: body['inputs'] });
+      }
       const altrui = path.match(/^\/api\/lot\/([a-z0-9_-]{1,40})$/);
       if (altrui && req.method === 'GET') {
         const id = altrui[1] ?? '';

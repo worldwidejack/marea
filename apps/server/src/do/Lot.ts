@@ -2,6 +2,8 @@
 // server), azioni economiche pure di @marea/sim. Il Worker instrada qui con idFromName(persona.id) e passa il proprietario in `x-persona`
 // e l'ora in `x-now` (vedi clock.ts). Il DO serializza le richieste (input gate) e lo storage SQL è sincrono: niente corse tra due azioni.
 // Richieste dal Worker: GET /state · POST /collect {building} · /build {building, cell} · /upgrade {building} · /decor {decor, cell, rot} · /hat {hat}.
+// Minigiochi da solo: POST /solo_start {minigame} → {seed, difficulty, lot} · /solo_play {inputs} → il server rigioca gli input, premia la
+// medaglia (balance.solo) e risponde {score, medal, detail, premio, premiata, lot}.
 // Richieste dal DO Sfide (mai esposte dal Worker): POST /hold {cid, stake, kind} · /release {cid, release}: idempotenti per id sfida.
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
@@ -10,7 +12,10 @@ import { advance } from '@marea/sim/economy/advance.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
 import { holdStake, releaseStake } from '@marea/sim/economy/challenge.ts';
 import type { Release } from '@marea/sim/economy/challenge.ts';
+import { finishSolo, soloOf, startSolo } from '@marea/sim/economy/rewards.ts';
 import { EconomyError } from '@marea/sim/economy/types.ts';
+import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
+import { isPackedInputs, replay } from '@marea/sim/replay.ts';
 import type { EconomyErrorCode, LotState, Resources } from '@marea/sim/economy/types.ts';
 import { nowFromHeader } from '../clock.ts';
 import type { Env } from '../env.ts';
@@ -74,6 +79,7 @@ export class Lot extends DurableObject<Env> {
       let body: Record<string, unknown>;
       try { body = (await req.json()) as Record<string, unknown>; } catch { return json({ error: 'Richiesta non valida' }, 400); }
       if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
+      if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now);
       const next = this.act(lot, act, body, now);
       if (next instanceof Response) return next;
       this.save(next);
@@ -86,6 +92,27 @@ export class Lot extends DurableObject<Env> {
       console.error('[marea] lot error', e);
       return json({ error: 'Errore interno, riprova tra poco' }, 500);
     }
+  }
+
+  /** Partita da solo: il seed lo sceglie il server, il punteggio lo ricalcola il server rigiocando gli input. */
+  private solo(lot: LotState, act: 'solo_start' | 'solo_play', body: Record<string, unknown>, now: number): Response {
+    if (act === 'solo_start') {
+      const mg = body['minigame'];
+      if (typeof mg !== 'string' || !Object.hasOwn(MINIGAMES, mg)) return json({ error: 'Minigioco sconosciuto' }, 400);
+      const seed = crypto.getRandomValues(new Uint32Array(1))[0]! >>> 1;
+      const next = startSolo(lot, mg, seed, now);
+      this.save(next);
+      const p = soloOf(next, now).pending!;
+      return json({ minigame: p.minigame, seed: p.seed, difficulty: p.difficulty, lot: next });
+    }
+    const p = soloOf(lot, now).pending;
+    if (!p) return json({ error: 'Nessuna partita aperta: riparti dal via', code: 'partita' }, 409);
+    const inputs = body['inputs'];
+    if (!isPackedInputs(inputs, getMinigame(p.minigame).maxTicks)) return json({ error: 'Partita non valida' }, 400);
+    const r = replay(p.minigame, p.seed, p.difficulty, inputs);
+    const out = finishSolo(lot, r.medal, now);
+    this.save(out.lot);
+    return json({ score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: out.lot });
   }
 
   private act(lot: LotState, act: string, body: Record<string, unknown>, now: number): LotState | Response {
