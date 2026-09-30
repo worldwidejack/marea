@@ -14,6 +14,12 @@ import type { LotView } from './game/lot.ts';
 import { installTestApi, registerPerfProvider, registerStateProvider, registerTestHook, setReady } from './test/testapi.ts';
 import { runRegata, setupRegata } from './game/regata.ts';
 import { createTavolo } from './ui/tavolo.ts';
+import { AVATAR } from '@marea/content';
+import type { EmoteId } from '@marea/protocol';
+import { createEditor } from './ui/editor.ts';
+import { createFeed } from './ui/feed.ts';
+import { createEmotes } from './game/emote.ts';
+import { setTopbarHidden } from './ui/topbar.ts';
 
 const TAVOLO_R = 3.5; // m: quanto vicino al Tavolo per aprirlo con E / A
 
@@ -30,7 +36,7 @@ async function boot(): Promise<void> {
   const api = createApi({ token: FLAGS.token });
   const me = api.enabled && FLAGS.net ? await api.me().catch((e: Error) => { hud.banner?.(e.message); return null; }) : null;
   const owners = me ? await api.lots().catch(() => []) : [];
-  const world = await createGameWorld({ renderer, loader, flags: FLAGS, hud, build: __BUILD__, slot: me ? me.slot ?? null : undefined }); // senza login: ?slot=N dall'URL (test), altrimenti Porto
+  const world = await createGameWorld({ renderer, loader, flags: FLAGS, hud, build: __BUILD__, slot: me ? me.slot ?? null : undefined, ...(me ? { look: me.look } : {}) }); // senza login: ?slot=N dall'URL (test), altrimenti Porto
   // il proprio lotto (azioni) e quelli degli altri (sola lettura)
   const lots: LotView[] = [];
   for (const l of world.archipelago.lots) {
@@ -70,6 +76,25 @@ async function boot(): Promise<void> {
   };
   registerStateProvider('tavolo', () => ({ exists: !!tavolo, near: nearTavolo(), open: !!tavolo?.isOpen(), at: tavoloAt ? { x: tavoloAt.x, z: tavoloAt.z } : null }));
   registerTestHook('openTavolo', () => openTavolo());
+  // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-4). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
+  const editor = me && api.enabled ? createEditor({ api, me, root, avatar: { setLook: (l) => world.setLook(l) }, onSaved: () => hud.toast('Look salvato'), onLot: () => { void lots.find((lv) => !lv.readonly)?.refresh(); } }) : null;
+  const feed = me && api.enabled ? createFeed({ api, hud, root }) : null;
+  const emotes = createEmotes({ world, camera: renderer.camera, canvas, root });
+  const EMOTES = AVATAR.emote as EmoteId[];
+  const panelsBusy = () => !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active;
+  const openEditor = () => { if (!editor || panelsBusy()) return false; feed?.close(); editor.open(); return true; };
+  const openFeed = () => { if (!feed || panelsBusy()) return false; editor?.close(); feed.open(); return true; };
+  // Un solo listener in bubble: i pannelli aperti fermano il keydown in capture, quindi qui arrivano solo i tasti «liberi».
+  addEventListener('keydown', (e) => {
+    if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.code === 'KeyC') { if (editor?.isOpen()) editor.close(); else openEditor(); return; }
+    if (e.code === 'KeyF') { if (feed?.isOpen()) feed.close(); else openFeed(); return; }
+    const m = /^(?:Digit|Numpad)([1-4])$/.exec(e.code);
+    if (m && !panelsBusy() && !editor?.isOpen() && !feed?.isOpen()) { const id = EMOTES[Number(m[1]) - 1]; if (id) emotes.play(id); }
+  });
+  registerTestHook('openEditor', () => openEditor());
+  registerTestHook('openFeed', () => openFeed());
+  registerTestHook('emote', (id) => emotes.play(String(id) as EmoteId));
   let last = performance.now(), acc = 0, t = 0;
   const frame = (now: number) => {
     const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt; t += dt;
@@ -77,13 +102,14 @@ async function boot(): Promise<void> {
     while (acc >= DT && steps < 5) {
       const f = input.sample();
       if (regata.active) regata.step(f); else tickTavolo(f.a);
-      world.frozen = !!tavolo?.isOpen() && !regata.active;
+      world.frozen = (!!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen()) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
     world.update(acc / DT, dt, t);
     regata.update(acc / DT, dt, t);
-    if (tavolo?.isOpen() && document.querySelector('#mzSheet.on')) tavolo.close(); // aperto un edificio: il Tavolo lascia il posto
+    emotes.update(dt); setTopbarHidden(regata.active);
+    if (document.querySelector('#mzSheet.on')) { if (tavolo?.isOpen()) tavolo.close(); editor?.close(); feed?.close(); } // aperto un edificio: gli altri pannelli lasciano il posto
     const focus = world.mode === 'walk' ? world.avatar.state : world.boat.state;
     for (const lv of lots) lv.update(dt, focus); // rilettura ogni 30 s solo per l'isola dove sei; timer ed etichette ogni frame
     compass.update(focus, renderer.diorama.yaw);

@@ -3,9 +3,10 @@
 // Orologio: ogni risposta porta l'ora del server (`now` o `LotState.nowMs`); serverNow() la proietta con l'orologio locale
 // SOLO per animare i conti alla rovescia. L'economia la decide il server.
 import type { Challenge, LotState, Medal, PackedInputs, Resources } from '@marea/sim';
-import type { Look } from '@marea/protocol';
+import type { FeedItem, Look } from '@marea/protocol';
 
 export type Me = { id: string; nome: string; look: Look; lotto: LotState | null; slot?: number | null };
+export type { FeedItem };
 /** Chi abita quale slot dell'arcipelago (per le visite in sola lettura). Richiede GET /api/lots lato server. */
 export type LotOwner = { slot: number; id: string; nome: string };
 export type Cell = [number, number];
@@ -50,6 +51,15 @@ export type Api = {
   decline(id: string): Promise<Challenge>;
   /** Manda gli input della mia partita; il server la rigioca e risponde con punteggio, medaglia e sfida aggiornata. */
   play(id: string, inputs: PackedInputs): Promise<PlayResult>;
+  // ---- M1 · Fetta 3 (CONTRACTS §13) ----
+  /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
+  look(l: Look): Promise<void>;
+  /** Compra un cappello a Perle, una volta (POST /api/look/hat con l'id di avatar.json). 409 con `manca` senza Perle. */
+  buyHat(id: string): Promise<LotState>;
+  /** Novità (sfide ricevute, accettate, esiti…), le più recenti prima; `nonLetti` è il numero per il badge. */
+  feed(): Promise<{ items: FeedItem[]; nonLetti: number }>;
+  /** Segna letti gli id ≤ `fino` (tutti senza `fino`). Ritorna quanti restano non letti. */
+  feedRead(fino?: number): Promise<number>;
   /** Ora del server stimata (ms). Solo per la resa (timer, depositi che crescono): mai per decidere l'economia. */
   serverNow(): number;
   /** Ultimo errore (per i test e l'HUD). */
@@ -75,6 +85,14 @@ const asChallenge = (d: unknown): Challenge => {
   return v;
 };
 const cid = (id: string) => `/api/challenges/${encodeURIComponent(id)}`;
+const FEED_TIPI: readonly string[] = ['sfida_ricevuta', 'sfida_accettata', 'sfida_rifiutata', 'sfida_scaduta', 'sfida_chiusa'];
+const asFeedItem = (v: unknown): FeedItem | null => {
+  if (!isObj(v) || typeof v['id'] !== 'number' || typeof v['tipo'] !== 'string' || !FEED_TIPI.includes(v['tipo']) || typeof v['testo'] !== 'string') return null;
+  return {
+    id: v['id'], quando: typeof v['quando'] === 'number' ? v['quando'] : 0, tipo: v['tipo'] as FeedItem['tipo'], testo: v['testo'], letto: !!v['letto'],
+    ...(typeof v['sfida'] === 'string' ? { sfida: v['sfida'] } : {}), ...(typeof v['da'] === 'string' ? { da: v['da'] } : {}),
+  };
+};
 
 export function createApi(o: { token: string; base?: string; timeoutMs?: number; fetchFn?: typeof fetch }): Api {
   const base = o.base ?? '';
@@ -160,6 +178,19 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       if (!isObj(d) || typeof d['score'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');
       const medal = d['medal'] === 'oro' || d['medal'] === 'argento' || d['medal'] === 'bronzo' ? d['medal'] : null;
       return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, challenge: asChallenge(d['challenge']) };
+    },
+    async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
+    buyHat: (id) => post('/api/look/hat', { cappello: id }),
+    async feed() {
+      const d = await call('GET', '/api/feed');
+      const list = Array.isArray(d) ? d : isObj(d) && Array.isArray(d['items']) ? d['items'] : [];
+      const items = (list as unknown[]).map(asFeedItem).filter((x): x is FeedItem => !!x);
+      const nonLetti = isObj(d) && typeof d['nonLetti'] === 'number' ? d['nonLetti'] : items.filter((i) => !i.letto).length;
+      return { items, nonLetti };
+    },
+    async feedRead(fino) {
+      const d = await call('POST', '/api/feed/letto', fino === undefined ? {} : { fino });
+      return isObj(d) && typeof d['nonLetti'] === 'number' ? d['nonLetti'] : 0;
     },
     serverNow: () => Date.now() + offset,
   };

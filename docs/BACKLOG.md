@@ -22,7 +22,9 @@
 - Bordo del mondo: la barca può uscire dalla mappa (mare infinito). Un muro morbido o una corrente che riporta indietro.
 - Test `m1_isola`: usare l'orologio di test di M1-server (`X-Test-Now-Offset` con `--var TEST_CLOCK:1`) invece di aspettare 3 minuti veri.
 - Runner dei test: quando una suite va in timeout non spegne il `wrangler dev` staccato (processi orfani).
-- Regata sulla laguna (oggi usa ancora la mappa `prova`): spostarla quando non ci sono sfide aperte.
+- ~~Regata sulla laguna~~ fatto in Fetta 2 (v3).
+- Casa, «slot cosmetici 2 → 4 → 6» (GDD §5): nessun codice li usa. Da decidere con Jack (A/B): A = set salvati di look da richiamare con un tasto; B = la Casa sblocca colori/capelli extra. Finché non si decide, la Casa produce solo il numero mostrato nel pannello.
+- Clip di animazione per le 4 emote in `chr_base.glb` (oggi fumetto): 30 min di Blender, poi `avatar.setEmote(id)`.
 
 ## Mai
 - Soldi veri per risorse o acceleratori. (Cosmetici a pagamento: solo se un giorno si apre al pubblico, e solo cosmetici.)

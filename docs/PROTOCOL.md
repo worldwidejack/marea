@@ -51,7 +51,7 @@ Ogni messaggio del server porta `now` (ms del server). Limiti: `pos` più fitte 
 | `POST /api/challenges` | `{ minigame, to, stake: Resources }` → `Challenge` (seed dal server) | M1 |
 | `POST /api/challenges/:id/play` | `{ inputs: PackedInputs }` → `{ score, medal, challenge }` (replay lato server) | M1 |
 | `POST /api/challenges/:id/accept` · `/decline` | → `Challenge` | M1 |
-| `GET /api/feed` | → `FeedItem[]` | M2 |
+| `GET /api/feed` | → `{ items: FeedItem[], nonLetti, now }` | M1 · Fetta 3 (era M2) |
 | `POST /api/passkey/*` | WebAuthn | M1 (opzionale) |
 
 `LotState`, `Resources`, `Challenge`, `PackedInputs` sono definiti in `packages/sim/src/economy/types.ts` e `packages/sim/src/minigames/types.ts` e ri-esportati da `@marea/protocol`.
@@ -77,6 +77,15 @@ Errori: `{ error, manca?, code? }`; 400 richiesta rotta/cella non ammessa/posta 
 Nuovi campi facoltativi di `LotState`: `posseduti?: string[]` (cappelli a Perle comprati), `holds?: Record<idSfida, Resources>` (escrow = la loro somma), `settled?: string[]` (idempotenza).
 
 **Orologio di test**: con `wrangler dev --var TEST_CLOCK:1` e richieste da localhost, l'header `X-Test-Now-Offset: <ms>` sposta «adesso» per quella richiesta (usarlo monotono). In produzione è ignorato.
+
+### Aggiunte M1 · Fetta 3 (30 set 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/look` | come prima; **in più** il Worker avvisa il DO `Zone('porto')` (richiesta interna `POST https://zone/look`, `x-persona`, corpo `Look` validato) che aggiorna il look del peer e lo manda nel prossimo `snap`. Best-effort: se l'avviso fallisce la risposta è comunque `{ ok }`. Nessun messaggio WebSocket nuovo, `PROTOCOL_VERSION` resta 1 |
+| `GET /api/feed` | → `{ items: FeedItem[], nonLetti: number, now }`: ultime 30 novità, le più recenti prima — **nuovo** |
+| `POST /api/feed/letto` | `{ fino?: number }` → `{ ok, nonLetti }`: segna letti gli id ≤ `fino` (tutti senza `fino`) — **nuovo** |
+
+`FeedTipo = 'sfida_ricevuta' | 'sfida_accettata' | 'sfida_rifiutata' | 'sfida_scaduta' | 'sfida_chiusa'` · `FeedItem = { id: number; quando: number; tipo: FeedTipo; testo: string; sfida?: string; da?: string; letto: boolean }` (in `packages/protocol`). Le righe le scrive il DO `Sfide` a ogni passaggio di stato (niente riga alla creazione: lo sfidato viene avvisato quando lo sfidante ha giocato); il `testo` in italiano lo compone il Worker in lettura con i nomi delle persone. Emote: la Zone inoltra al massimo una emote ogni 800 ms per connessione, senza eco a chi la manda.
 
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32 e `a, b` 0/1. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.

@@ -70,6 +70,9 @@ const CSS = `
 .mz-note.bad { color: ${P.rosso}; }
 .mz-tot { color: ${P.giallo}; font-weight: bold; }
 @media (min-width: 700px) { .mz-sheet.mz-tv { left: 50%; right: auto; width: 520px; transform: translateX(-50%); max-height: 78%; } }
+/* WP0 F3: pannello laterale (editor avatar, feed). Sul telefono è un foglio basso che lascia libero il centro; da 700 px sta a destra. */
+.mz-sheet.mz-side { max-height: 46%; }
+@media (min-width: 700px) { .mz-sheet.mz-side { left: auto; right: 8px; top: 60px; bottom: 8px; width: 340px; max-height: none; } }
 `;
 
 let injected = false;

@@ -5,6 +5,9 @@ export type Mode = 'walk' | 'boat';
 export type Look = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
 export type Peer = { id: string; nome: string; x: number; z: number; yaw: number; mode: Mode; anim: string; look: Look };
 export type EmoteId = 'saluto' | 'esulta' | 'ride' | 'no';
+/** Feed (M1 · Fetta 3, PROTOCOL §4): righe scritte dal DO Sfide a ogni passaggio di stato, testo composto dal Worker con i nomi. */
+export type FeedTipo = 'sfida_ricevuta' | 'sfida_accettata' | 'sfida_rifiutata' | 'sfida_scaduta' | 'sfida_chiusa';
+export type FeedItem = { id: number; quando: number; tipo: FeedTipo; testo: string; sfida?: string; da?: string; letto: boolean };
 
 export type ClientMsg =
   | { t: 'hello'; v: number; build: string }

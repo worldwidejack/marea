@@ -30,8 +30,13 @@ export type GameWorld = {
   /** Quota del terreno in (x, z): piano delle isole, cima delle rocce, 0 in acqua. */
   groundY(x: number, z: number): number;
   step(input: InputFrame): void; update(alpha: number, dt: number, t: number): void; dispose(): void;
-  /** Fermo (Tavolo aperto): l'avatar e la barca ignorano l'input. */
+  /** Fermo (Tavolo, editor o feed aperti): l'avatar e la barca ignorano l'input. */
   frozen: boolean;
+  /** Look di chi gioca (da /api/me); setLook lo applica ad avatar e guidatore della barca (F3, editor dal vivo). */
+  readonly look: Look;
+  setLook(l: Look): void;
+  /** Punto sopra la testa (mondo): 'me' oppure l'id di un peer; in barca sopra la barca. null se non c'è. */
+  anchorOf(id: 'me' | string): { x: number; y: number; z: number } | null;
   /** Regata (F2): la barca la muove la sim del minigioco (game/regata.ts); il mondo la disegna, la segue con la camera e manda la posizione. */
   race: {
     readonly on: boolean;
@@ -57,7 +62,10 @@ function slotFromUrl(): number | null {
 /** Un altro giocatore: avatar a piedi e, solo quando serve, una barca col suo guidatore. La barca sta in `boatAt` (posizione) e ruota con setYaw. */
 type Remote = { avatar: Avatar; look: string; boat: Boat | null; boatAt: THREE.Group | null; loadingBoat: boolean };
 
-export async function createGameWorld(o: { renderer: Renderer; loader: Loader; flags: Flags; hud: Hud; build: string; slot?: number | null }): Promise<GameWorld> {
+const DEFAULT_LOOK: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 }; // avatar A (Sessione 2)
+const HEAD_Y = 1.9, BOAT_TOP_Y = 1.5; // metri sopra il piede dell'avatar / la barca, per fumetti ed etichette
+
+export async function createGameWorld(o: { renderer: Renderer; loader: Loader; flags: Flags; hud: Hud; build: string; slot?: number | null; look?: Look }): Promise<GameWorld> {
   const arch = composeArchipelago(ARCHIPELAGO, ISLANDS);
   const map = arch.map;
   let slot = o.slot !== undefined ? o.slot : slotFromUrl();
@@ -72,7 +80,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     props: arch.props, buildings: arch.buildings, paved: arch.paved,
   });
   scene.add(island.group);
-  const look: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
+  let look: Look = o.look ?? DEFAULT_LOOK;
   const avatar = await createAvatar({ loader: o.loader, look, x: home.x, z: home.z }); scene.add(avatar.object);
   avatar.setGround(island.groundY);
   const boat = await createBoat({ loader: o.loader, x: homeBoat.x, z: homeBoat.z, look }); scene.add(boat.object);
@@ -165,6 +173,14 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     get mode() { return mode; },
     get frozen() { return frozen; },
     set frozen(v: boolean) { frozen = v; },
+    get look() { return look; },
+    setLook(l) { look = l; avatar.setLook(l); boat.driver.setLook(l); },
+    anchorOf(id) {
+      if (id === 'me') { const p = mode === 'boat' ? boat.object.position : avatar.object.position; return { x: p.x, y: p.y + (mode === 'boat' ? BOAT_TOP_Y : HEAD_Y), z: p.z }; }
+      const r = remotes.get(id); if (!r) return null;
+      if (r.boatAt?.visible) return { x: r.boatAt.position.x, y: r.boatAt.position.y + BOAT_TOP_Y, z: r.boatAt.position.z };
+      const p = r.avatar.object.position; return { x: p.x, y: p.y + HEAD_Y, z: p.z };
+    },
     step(input: InputFrame) {
       if (frozen || racing) input = NO_INPUT; // la gara muove la barca da sé (race.set); col Tavolo aperto l'avatar sta fermo
       const pressA = input.a && !aWas; aWas = input.a;
