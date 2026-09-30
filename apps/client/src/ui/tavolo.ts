@@ -22,6 +22,8 @@ export type TavoloOpts = {
   /** Fa giocare la gara della sfida; null = annullata (Esc). */
   play: (challenge: Challenge) => Promise<PackedInputs | null>;
   onClose?: () => void;
+  /** Il lotto riletto dal server (posta tolta, esito con Perle): la barra delle risorse lo segue subito. */
+  onLot?: (lot: LotState) => void;
   /** Dove appendere il pannello (default #ui, poi body). */
   root?: HTMLElement;
   /** Minigioco delle sfide nuove. */
@@ -123,7 +125,7 @@ export function createTavolo(o: TavoloOpts): Tavolo {
     const g = gen;
     const [l, c, p] = await Promise.allSettled([api.lot(), api.challenges(), loaded ? Promise.resolve(persone) : api.persone()]);
     if (g !== gen) return;
-    if (l.status === 'fulfilled') lot = l.value;
+    if (l.status === 'fulfilled') { lot = l.value; o.onLot?.(lot); }
     if (c.status === 'fulfilled') list = c.value;
     if (p.status === 'fulfilled') { persone = p.value; loaded = true; }
     const bad = [l, c, p].find((x) => x.status === 'rejected') as PromiseRejectedResult | undefined;

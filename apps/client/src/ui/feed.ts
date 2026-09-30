@@ -11,7 +11,8 @@ import { topButton } from './topbar.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
 export type Feed = { refresh(): Promise<void>; open(): void; close(): void; toggle(): void; isOpen(): boolean; readonly unread: number };
-export type FeedOpts = { api: Api; hud: Hud; root?: HTMLElement; pollMs?: number; onOpen?(): void; onClose?(): void };
+/** `onNews`: righe mai viste (una sfida chiusa, rifiutata o scaduta muove le risorse: main rilegge il lotto). */
+export type FeedOpts = { api: Api; hud: Hud; root?: HTMLElement; pollMs?: number; onOpen?(): void; onClose?(): void; onNews?(items: FeedItem[]): void };
 
 export const FEED_POLL_MS = 30_000;
 const FIRST_MS = 3000;
@@ -111,6 +112,7 @@ export function createFeed(o: FeedOpts): Feed {
       lastId = items.reduce((m, i) => Math.max(m, i.id), lastId);
       const news = items.filter((i) => i.id > seenId && !i.letto);
       seenId = Math.max(seenId, lastId);
+      if (news.length) o.onNews?.(news);
       if (open) { for (const i of news) fresh.add(i.id); render(); if (news.length || unread) void markRead(); }
       else if (news.length === 1) o.hud.toast(short(news[0]!.testo), 3500);
       else if (news.length > 1) o.hud.toast(`${news.length} novità · apri la campanella`, 3500);

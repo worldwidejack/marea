@@ -58,7 +58,9 @@ async function boot(): Promise<void> {
   const regata = await setupRegata({ world, loader, hud, root, cameraYaw: () => renderer.diorama.yaw });
   const tavoloAt = arch.buildings.find((b) => b.kind === 'tavolo') ?? null;
   let closedAt = 0, nearWas = false, aWasT = false;
-  const tavolo = me && api.enabled ? createTavolo({ api, me, root, play: (challenge) => runRegata({ challenge }), onClose: () => { closedAt = performance.now(); } }) : null;
+  /** Risorse cambiate fuori dal lotto (posta, esito di una sfida): la barra si aggiorna subito, non al poll dei 30 s. */
+  const refreshMyLot = () => { void lots.find((lv) => !lv.readonly)?.refresh(); };
+  const tavolo = me && api.enabled ? createTavolo({ api, me, root, play: (challenge) => runRegata({ challenge }), onClose: () => { closedAt = performance.now(); }, onLot: refreshMyLot }) : null;
   const nearTavolo = () => !!tavoloAt && world.mode === 'walk' && !world.race.on && Math.hypot(world.avatar.state.x - tavoloAt.x, world.avatar.state.z - tavoloAt.z) < TAVOLO_R;
   const openTavolo = () => {
     // un pannello alla volta: il foglio del lotto (#mzSheet) si chiude col suo bottone, così la vista del lotto lo sa
@@ -77,8 +79,8 @@ async function boot(): Promise<void> {
   registerStateProvider('tavolo', () => ({ exists: !!tavolo, near: nearTavolo(), open: !!tavolo?.isOpen(), at: tavoloAt ? { x: tavoloAt.x, z: tavoloAt.z } : null }));
   registerTestHook('openTavolo', () => openTavolo());
   // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-4). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
-  const editor = me && api.enabled ? createEditor({ api, me, root, avatar: { setLook: (l) => world.setLook(l) }, onSaved: () => hud.toast('Look salvato'), onLot: () => { void lots.find((lv) => !lv.readonly)?.refresh(); } }) : null;
-  const feed = me && api.enabled ? createFeed({ api, hud, root }) : null;
+  const editor = me && api.enabled ? createEditor({ api, me, root, avatar: { setLook: (l) => world.setLook(l) }, onSaved: () => hud.toast('Look salvato'), onLot: refreshMyLot }) : null;
+  const feed = me && api.enabled ? createFeed({ api, hud, root, onNews: (news) => { if (news.some((n) => n.tipo !== 'sfida_ricevuta' && n.tipo !== 'sfida_accettata')) refreshMyLot(); } }) : null;
   const emotes = createEmotes({ world, camera: renderer.camera, canvas, root });
   const EMOTES = AVATAR.emote as EmoteId[];
   const panelsBusy = () => !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active;
