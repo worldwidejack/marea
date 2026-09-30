@@ -6,6 +6,8 @@ import type { Env } from './env.ts';
 import { autentica } from './auth.ts';
 import { nowFor } from './clock.ts';
 import { elencoPersone, esistePersona, salvaLook, segnaAccesso } from './db.ts';
+import { toFeedItem } from './feed.ts';
+import type { FeedRow } from './feed.ts';
 export { Zone } from './do/Zone.ts';
 export { Lot } from './do/Lot.ts';
 export { Sfide } from './do/Sfide.ts';
@@ -68,6 +70,15 @@ function doReq(ns: DurableObjectNamespace, name: string, persona: string, now: n
 }
 const lotReq = (env: Env, owner: string, now: number, path: string, body?: unknown) => doReq(env.LOT, owner, owner, now, path, body);
 const sfideReq = (env: Env, me: string, now: number, path: string, body?: unknown) => doReq(env.SFIDE, 'tavolo', me, now, path, body);
+/** Look nuovo alla zona `porto` (i socket vivi di quella persona lo mandano nel prossimo snap). Best-effort: se fallisce, pazienza. */
+async function avvisaZona(env: Env, persona: string, look: Look): Promise<void> {
+  try {
+    const r = await env.ZONE.get(env.ZONE.idFromName('porto')).fetch('https://zone/look', {
+      method: 'POST', headers: { 'x-persona': persona, 'content-type': 'application/json' }, body: JSON.stringify(look),
+    });
+    await r.body?.cancel();
+  } catch { /* la zona si aggiorna alla prossima connessione */ }
+}
 /** Id del cappello da indice (come in Look) o da id. */
 function hatId(v: unknown): string | null {
   if (typeof v === 'number' && Number.isInteger(v)) return AVATAR.cappelli[v]?.id ?? null;
@@ -130,6 +141,7 @@ export default {
           if (!lot?.posseduti?.includes(hat.id)) return json({ error: `${hat.nome}: non è tuo, compralo prima (${hat.perle} Perle)` }, 400);
         }
         await salvaLook(env, p.id, look);
+        await avvisaZona(env, p.id, look);
         return json({ ok: true });
       }
       if (path === '/api/look/hat' && req.method === 'POST') {
@@ -151,6 +163,23 @@ export default {
         const id = altrui[1] ?? '';
         if (!(await esistePersona(env, id))) return json({ error: 'Isola non trovata' }, 404);
         return lotReq(env, id, now, 'state');
+      }
+
+      // feed: righe strutturate dal DO Sfide, nomi da D1, testo composto qui (feed.ts)
+      if (path === '/api/feed' && req.method === 'GET') {
+        const r = await sfideReq(env, p.id, now, 'feed');
+        if (!r.ok) return r;
+        const d = (await r.json()) as { rows: FeedRow[]; nonLetti: number };
+        const nomi = new Map(d.rows.length ? (await elencoPersone(env)).map((x) => [x.id, x.nome] as const) : []);
+        const nomeDi = (id: string): string => nomi.get(id) ?? 'Qualcuno';
+        return json({ items: d.rows.map((x) => toFeedItem(x, nomeDi)), nonLetti: d.nonLetti, now });
+      }
+      if (path === '/api/feed/letto' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const fino = body['fino'];
+        if (fino !== undefined && fino !== null && (typeof fino !== 'number' || !Number.isFinite(fino))) return json({ error: 'Richiesta non valida' }, 400);
+        return sfideReq(env, p.id, now, 'feed_letto', typeof fino === 'number' ? { fino } : {});
       }
 
       if (path === '/api/challenges') {

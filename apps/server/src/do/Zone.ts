@@ -2,6 +2,8 @@
 // 10 Hz con delta: le `pos` aggiornano l'attachment del socket e segnano il peer come «sporco»; uno `snap` parte al massimo ogni 100 ms
 // solo con i peer cambiati. Il flush usa un setTimeout interno (non un alarm): costa zero richieste e tiene sveglio il DO solo finché
 // arrivano posizioni; quando nessuno si muove non resta nessun timer e il DO può ibernare (lo stato dei peer vive negli attachment).
+// Rotta interna `POST /look` (dal Worker dopo `POST /api/look`, CONTRACTS §13): aggiorna il look dei socket di quella persona e lo manda nel
+// prossimo `snap`. Emote: al massimo una ogni 800 ms per connessione, mai in eco a chi la manda.
 import { DurableObject } from 'cloudflare:workers';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import { MAX_MSG_BYTES, MAX_ZONE_CONNECTIONS, POS_HZ, PROTOCOL_VERSION, parseClientMsg } from '@marea/protocol';
@@ -16,6 +18,7 @@ const SNAP_MS = 1000 / POS_HZ;          // 100 ms
 const MIN_POS_MS = 45;                   // > 20 Hz (con un po' di tolleranza sul jitter) = ignorato
 const MAX_MSG_PER_S = 60;                // oltre: ignorati (non chiude: un telefono lento può mandare a raffiche)
 const MAX_BAD = 10;                      // messaggi non validi prima della chiusura
+const EMOTE_MS = 800;                    // pausa minima tra due emote della stessa connessione
 export const CLOSE_REPLACED = 4000;      // stessa persona connessa altrove
 const DEFAULT_LOOK: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
 
@@ -25,6 +28,14 @@ const WORLD = (() => {
   for (const i of ISLANDS) m = Math.max(m, i.rows.length * (i.tile || 2), (i.rows[0]?.length ?? 0) * (i.tile || 2));
   return m;
 })();
+const LOOK_KEYS = ['pelle', 'capelli', 'coloreCapelli', 'vestito', 'cappello'] as const;
+/** Forma di un Look: cinque interi ≥ 0 (i limiti veri li controlla il Worker con avatar.json). */
+function asLook(v: unknown): Look | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>, out = {} as Look;
+  for (const k of LOOK_KEYS) { const x = o[k]; if (typeof x !== 'number' || !Number.isInteger(x) || x < 0 || x > 255) return null; out[k] = x; }
+  return out;
+}
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 const r2 = (v: number) => Math.round(v * 100) / 100;
 
@@ -33,11 +44,13 @@ export class Zone extends DurableObject<Env> {
   private dirty = new Set<string>();
   private timer: ReturnType<typeof setTimeout> | null = null;
   private lastFlush = 0;
-  private rate = new Map<WebSocket, { s: number; n: number; bad: number }>();
+  // anche `emote` (ultima inoltrata) si perde con l'ibernazione: al peggio passa una emote in più
+  private rate = new Map<WebSocket, { s: number; n: number; bad: number; emote: number }>();
 
   async fetch(req: Request): Promise<Response> {
-    if (req.headers.get('upgrade') !== 'websocket') return new Response('WebSocket atteso', { status: 426 });
     const url = new URL(req.url);
+    if (req.method === 'POST' && url.pathname === '/look') return this.nuovoLook(req);
+    if (req.headers.get('upgrade') !== 'websocket') return new Response('WebSocket atteso', { status: 426 });
     const id = url.searchParams.get('id') ?? '', nome = url.searchParams.get('nome') ?? 'Ospite', look = url.searchParams.get('look') ?? '{}';
     if (!id) return new Response('Manca la persona', { status: 400 });
     const pair = new WebSocketPair();
@@ -62,6 +75,23 @@ export class Zone extends DurableObject<Env> {
     this.ctx.acceptWebSocket(server, [id]);
     server.serializeAttachment({ peer, hello: false, lastPos: 0 } satisfies Attach);
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  /** Look salvato dal Worker (già validato lì: qui solo la forma). Vale anche per i socket che non hanno ancora fatto `hello`. */
+  private async nuovoLook(req: Request): Promise<Response> {
+    const id = req.headers.get('x-persona') ?? '';
+    let look: Look | null = null;
+    try { look = asLook(await req.json()); } catch { /* corpo rotto */ }
+    if (!id || !look) return new Response(null, { status: 400 });
+    let any = false;
+    for (const ws of this.ctx.getWebSockets(id)) {
+      const a = this.att(ws);
+      if (!a || a.gone) continue;
+      a.peer = { ...a.peer, look };
+      try { ws.serializeAttachment(a); any = true; } catch { /* socket già finito */ }
+    }
+    if (any) { this.dirty.add(id); this.schedule(); }
+    return new Response(null, { status: 204 });
   }
 
   private zoneName(): string { return this.ctx.id.name ?? 'zona'; }
@@ -113,7 +143,7 @@ export class Zone extends DurableObject<Env> {
     if (typeof message !== 'string') return;
     const now = Date.now();
     let r = this.rate.get(ws);
-    if (!r) { r = { s: Math.floor(now / 1000), n: 0, bad: 0 }; this.rate.set(ws, r); }
+    if (!r) { r = { s: Math.floor(now / 1000), n: 0, bad: 0, emote: 0 }; this.rate.set(ws, r); }
     const sec = Math.floor(now / 1000); if (sec !== r.s) { r.s = sec; r.n = 0; }
     if (++r.n > MAX_MSG_PER_S) return;
     const a = this.att(ws);
@@ -140,7 +170,9 @@ export class Zone extends DurableObject<Env> {
         this.send(ws, { t: 'pong', c: m.c, now }, now);
         return;
       case 'emote':
-        if (a.hello) this.broadcast({ t: 'emote', id: m.id, from: a.peer.id }, ws);
+        if (!a.hello || now - r.emote < EMOTE_MS) return;
+        r.emote = now;
+        this.broadcast({ t: 'emote', id: m.id, from: a.peer.id }, ws);
         return;
     }
   }

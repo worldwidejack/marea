@@ -152,10 +152,11 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       diorama.follow(x, 0.5, z); diorama.snap?.();
     },
     set(s) {
-      // Adattatore finché Boat non ha setState (tests/out/richieste/f2-regata.md): step a vuoto (prev = stato del tick prima) e poi
-      // si sovrascrive lo stato nuovo con quello della sim, così interpolazione, scia e remi seguono la gara.
-      boat.step(NO_INPUT, map);
-      Object.assign(boat.state, s);
+      // boat.setState (F3-pulizia, CONTRACTS §13): prev = state, state = s. Finché non c'è, l'adattatore di prima: step a vuoto
+      // (prev = stato del tick prima) e poi si sovrascrive lo stato nuovo con quello della sim, così interpolazione, scia e remi seguono.
+      const b = boat as Boat & { setState?(st: BoatState): void };
+      if (typeof b.setState === 'function') b.setState({ ...s });
+      else { boat.step(NO_INPUT, map); Object.assign(boat.state, s); }
       avatar.teleport(s.x, s.z);
     },
     end() {

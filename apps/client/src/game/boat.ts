@@ -15,6 +15,8 @@ import { registerStateProvider } from '../test/testapi.ts';
 export type Boat = {
   object: THREE.Object3D; state: BoatState; prev: BoatState;
   step(input: InputFrame, map: GridMap): void; update(alpha: number, dt: number, t: number): void;
+  /** La Regata muove la barca con la sim del minigioco: `prev` = stato di prima, `state` = `s`, senza `newBoat` (velocità, timone e scia restano). */
+  setState(s: BoatState): void;
   /** Con un AvatarState mostra il guidatore seduto a bordo (avatar interno); `look` opzionale. `null` lo nasconde. */
   setDriver(a: AvatarState | null, look?: Look): void;
   setYaw(yaw: number): void; driving: boolean;
@@ -167,6 +169,7 @@ export async function createBoat(o: { loader: Loader; x: number; z: number; look
   const api: Boat = {
     object, get state() { return state; }, get prev() { return prev; }, driving: false, seat, driver,
     step(input, map) { ticks++; prev = state; state = stepBoat(state, input, map); },
+    setState(s) { ticks++; prev = state; state = s; },
     update(alpha, dt, t) {
       const x = prev.x + (state.x - prev.x) * alpha, z = prev.z + (state.z - prev.z) * alpha, yaw = prev.yaw + wrapPi(state.yaw - prev.yaw) * alpha;
       const s = Math.min(1, state.speed / BALANCE.barca.maxSpeed);

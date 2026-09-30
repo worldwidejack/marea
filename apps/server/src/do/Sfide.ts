@@ -4,15 +4,20 @@
 //  - qui si scrive PRIMA cosa va fatto (fase/pending nella riga della sfida), POI si chiamano i lotti, e si ripete finché non va a buon fine
 //    (a ogni richiesta e con un alarm): un crash a metà non perde né raddoppia niente;
 //  - tutte le operazioni passano da un mutex in memoria: una alla volta (sono poche, tra amici).
-// Richieste dal Worker (x-persona, x-now): GET /list · POST /create {minigame, to, stake} · /play {id, inputs} · /accept {id} · /decline {id}.
+// Richieste dal Worker (x-persona, x-now): GET /list · POST /create {minigame, to, stake} · /play {id, inputs} · /accept {id} · /decline {id}
+// · GET /feed · POST /feed_letto {fino?}. Feed: una riga per persona a ogni passaggio di stato, scritta nella stessa transazione del `put`.
 import { DurableObject } from 'cloudflare:workers';
 import { acceptChallenge, actionError, closeOutcome, isActive, isExpired, newChallenge, playTurn, refundsFor } from '@marea/sim/economy/challenge.ts';
 import type { HoldKind, Release } from '@marea/sim/economy/challenge.ts';
+import { perleFor } from '@marea/sim/economy/rewards.ts';
 import { EconomyError } from '@marea/sim/economy/types.ts';
 import type { Challenge, LotState, Resources } from '@marea/sim/economy/types.ts';
 import { getMinigame } from '@marea/sim/minigames/registry.ts';
 import { isPackedInputs, replay } from '@marea/sim/replay.ts';
+import type { FeedTipo } from '@marea/protocol';
 import { nowFromHeader } from '../clock.ts';
+import type { FeedDati } from '../feed.ts';
+import { creaTabellaFeed, leggiFeed, nonLetti, scriviFeed, segnaLetti } from './feedStore.ts';
 import type { Env } from '../env.ts';
 
 const json = (dati: unknown, status = 200): Response =>
@@ -36,6 +41,7 @@ export class Sfide extends DurableObject<Env> {
       fase TEXT, pending TEXT NOT NULL DEFAULT '[]', json TEXT NOT NULL)`);
     ctx.storage.sql.exec('CREATE INDEX IF NOT EXISTS sfide_da ON sfide (da, creata)');
     ctx.storage.sql.exec('CREATE INDEX IF NOT EXISTS sfide_a ON sfide (a, creata)');
+    creaTabellaFeed(ctx.storage.sql);
   }
 
   /** Una operazione alla volta, anche mentre si aspettano i DO Lot (l'input gate non basta: le fetch in uscita lo aprono). */
@@ -53,6 +59,24 @@ export class Sfide extends DurableObject<Env> {
   private put(r: Row): void {
     this.ctx.storage.sql.exec('INSERT OR REPLACE INTO sfide (id, da, a, stato, creata, scade, fase, pending, json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       r.id, r.c.from, r.c.to, r.c.state, r.c.createdMs, r.c.expiresMs, r.fase, JSON.stringify(r.pending), JSON.stringify(r.c));
+  }
+  /** Registra la sfida e le sue righe di feed in una sola transazione (nessun `await` in mezzo). */
+  private commit(r: Row, feed?: () => void): void {
+    this.ctx.storage.transactionSync(() => { this.put(r); feed?.(); });
+  }
+  /** Riga di feed per `persona` su questa sfida (`altro` = l'altra persona); `letto` = è lei che ha fatto l'azione. */
+  private note(persona: string, tipo: FeedTipo, r: Row, dati: FeedDati, letto: boolean, now: number): void {
+    scriviFeed(this.ctx.storage.sql, { persona, tipo, sfida: r.id, altro: persona === r.c.from ? r.c.to : r.c.from, dati, letto, quando: now });
+  }
+  private base(r: Row): FeedDati { return { stake: r.c.stake, minigame: r.c.minigame }; }
+  /** Sfida chiusa: una riga a testa con posta, piatto, medaglia, esito e Perle (netto = pot − stake a chi vince, −stake a chi perde). */
+  private noteChiusa(r: Row, me: string, now: number): void {
+    for (const side of ['from', 'to'] as const) {
+      const persona = r.c[side];
+      const esito = r.c.winner === 'pari' ? 'parita' : r.c.winner === side ? 'vittoria' : 'sconfitta';
+      const medal = side === 'from' ? r.c.medalFrom : r.c.medalTo;
+      this.note(persona, 'sfida_chiusa', r, { ...this.base(r), pot: r.c.pot, medal, esito, perle: perleFor({ medal, esito }) }, persona === me, now);
+    }
   }
   private del(id: string): void { this.ctx.storage.sql.exec('DELETE FROM sfide WHERE id = ?', id); }
   /** Righe con lavoro in sospeso o ancora in gioco. */
@@ -104,13 +128,20 @@ export class Sfide extends DurableObject<Env> {
           const h = await this.hold(r.c.to, r.id, r.c.stake, 'accetta', now);
           if (h.ok && h.lot.holds?.[r.id]) {
             const a = await this.lot(r.c.from, 'state', now);
-            if (a.ok) r.c = acceptChallenge(r.c, a.lot, h.lot);
+            r.c = acceptChallenge(r.c, a.ok ? a.lot : h.lot, h.lot);
           }
-          r.fase = null; this.put(r);
+          r.fase = null;
+          this.commit(r, () => { if (r.c.state === 'accettata') this.note(r.c.from, 'sfida_accettata', r, this.base(r), false, now); });
         }
         if (isExpired(r.c, now)) {
+          const prima = r.c.state;
           const out = refundsFor(r.c, 'scaduta', now);
-          r.c = out.challenge; r.pending.push(...out.releases); this.put(r);
+          r.c = out.challenge; r.pending.push(...out.releases);
+          // la scadenza non è l'azione di nessuno: righe non lette per tutti
+          this.commit(r, () => {
+            this.note(r.c.from, 'sfida_scaduta', r, this.base(r), false, now);
+            if (prima === 'aperta' || prima === 'accettata') this.note(r.c.to, 'sfida_scaduta', r, this.base(r), false, now);
+          });
         }
         await this.drive(r, now);
       } catch (e) { console.error('[marea] sweep', r.id, e); }
@@ -145,6 +176,14 @@ export class Sfide extends DurableObject<Env> {
       try {
         await this.sweep(now);
         if (req.method === 'GET' && act === 'list') return json(this.list(me, now));
+        const sql = this.ctx.storage.sql;
+        if (req.method === 'GET' && act === 'feed') return json({ rows: leggiFeed(sql, me), nonLetti: nonLetti(sql, me) });
+        if (req.method === 'POST' && act === 'feed_letto') {
+          const fino = body['fino'];
+          if (fino !== undefined && (typeof fino !== 'number' || !Number.isFinite(fino))) return json({ error: 'Richiesta non valida' }, 400);
+          segnaLetti(sql, me, fino);
+          return json({ ok: true, nonLetti: nonLetti(sql, me) });
+        }
         if (req.method !== 'POST') return json({ error: 'Metodo non consentito' }, 405);
         if (act === 'create') return await this.create(me, body, now);
         const row = typeof body['id'] === 'string' ? this.get(body['id']) : null;
@@ -196,7 +235,11 @@ export class Sfide extends DurableObject<Env> {
       row.c = out.challenge;
       row.pending = out.releases;
     }
-    this.put(row);
+    this.commit(row, () => {
+      // lo sfidato viene avvisato solo adesso che lo sfidante ha giocato (niente riga alla creazione)
+      if (row.c.state === 'aperta') this.note(row.c.to, 'sfida_ricevuta', row, this.base(row), false, now);
+      else if (row.c.state === 'chiusa') this.noteChiusa(row, me, now);
+    });
     await this.drive(row, now);
     await this.scheduleAlarm(now);
     return json({ score: result.score, medal: result.medal, detail: result.detail, challenge: row.c });
@@ -212,7 +255,7 @@ export class Sfide extends DurableObject<Env> {
     const a = await this.lot(row.c.from, 'state', now);
     row.c = acceptChallenge(row.c, a.ok ? a.lot : h.lot, h.lot);
     row.fase = null;
-    this.put(row);
+    this.commit(row, () => this.note(row.c.from, 'sfida_accettata', row, this.base(row), false, now));
     return json(row.c);
   }
 
@@ -222,7 +265,7 @@ export class Sfide extends DurableObject<Env> {
     const out = refundsFor(row.c, 'rifiutata', now);
     row.c = out.challenge;
     row.pending = out.releases;
-    this.put(row);
+    this.commit(row, () => this.note(row.c.from, 'sfida_rifiutata', row, this.base(row), false, now));
     await this.drive(row, now);
     await this.scheduleAlarm(now);
     return json(row.c);

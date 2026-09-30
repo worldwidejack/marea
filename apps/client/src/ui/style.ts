@@ -71,8 +71,33 @@ const CSS = `
 .mz-tot { color: ${P.giallo}; font-weight: bold; }
 @media (min-width: 700px) { .mz-sheet.mz-tv { left: 50%; right: auto; width: 520px; transform: translateX(-50%); max-height: 78%; } }
 /* WP0 F3: pannello laterale (editor avatar, feed). Sul telefono è un foglio basso che lascia libero il centro; da 700 px sta a destra. */
-.mz-sheet.mz-side { max-height: 46%; }
+.mz-sheet.mz-side { max-height: 46%; box-sizing: border-box; }
 @media (min-width: 700px) { .mz-sheet.mz-side { left: auto; right: 8px; top: 60px; bottom: 8px; width: 340px; max-height: none; } }
+/* F3-avatar: editor dell'avatar. Righe come .mz-step; campioni quadrati 44 px con bordo 2 px nei colori di avatar.json; Annulla/Salva sempre in vista in fondo. */
+/* 340 px e 46 % comprese cornice e padding: sul telefono il foglio resta sotto il centro dello schermo (dove sta l'avatar). */
+.mz-sheet.mz-ed { box-sizing: border-box; }
+.mz-ed .mz-head { gap: 10px; }
+.mz-ed-perle { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; min-height: 32px; padding: 0 8px; border: 2px solid ${P.legno}; font-weight: bold; white-space: nowrap; }
+.mz-ed-row { margin-top: 6px; padding: 4px 6px 6px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; cursor: default; }
+.mz-ed-row:focus-within { border-color: ${P.legnoChiaro}; }
+.mz-ed-lbl { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 20px; margin-bottom: 4px; color: ${P.sabbia}; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: .05em; }
+.mz-ed-lbl .v { color: ${P.giallo}; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.mz-ed-lbl .v.lock { color: ${P.arancio}; }
+.mz-ed-sw { display: flex; gap: 5px; }
+.mz-ed-c { width: 44px; height: 44px; flex: none; padding: 0; border: 2px solid ${P.neroCaldo}; box-shadow: 0 3px 0 ${P.neroCaldo}; cursor: pointer; }
+.mz-ed-c.on { border-color: ${P.giallo}; box-shadow: inset 0 0 0 2px ${P.neroCaldo}, 0 3px 0 ${P.giallo}; }
+.mz-ed-c:active { transform: translateY(2px); }
+.mz-ed-st { display: flex; align-items: center; gap: 6px; }
+.mz-ed-st .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-weight: bold; color: ${P.sabbiaChiara}; }
+.mz-ed-st button { width: 44px; height: 44px; flex: none; padding: 0; background: ${P.ombraCalda}; border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; color: ${P.sabbiaChiara}; font: bold 22px ui-monospace, Menlo, monospace; cursor: pointer; }
+.mz-ed-st button:active { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
+.mz-ed-lbl .v.lock { display: inline-flex; align-items: center; gap: 8px; }
+.mz-ed-buy { min-height: 44px; padding: 0 12px; background: ${P.arancio}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; box-shadow: 0 3px 0 ${P.neroCaldo}; font: bold 14px ui-monospace, Menlo, monospace; cursor: pointer; }
+.mz-ed-buy:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
+.mz-ed-buy:disabled { background: ${P.roccia}; color: ${P.pietra}; border-color: ${P.pietraScura}; cursor: default; }
+.mz-ed-act { position: sticky; bottom: -10px; margin: 8px -12px -10px; padding: 0 12px 10px; background: ${P.ombraCalda}; border-top: 2px solid ${P.legno}; }
+.mz-ed-act .mz-note { margin-top: 6px; }
+.mz-ed-act .mz-row .mz-btn { margin-top: 8px; }
 `;
 
 let injected = false;
