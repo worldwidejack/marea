@@ -1,5 +1,6 @@
-// Regata (GDD §6 n. 1): gara in barca tra 6-8 boe nella laguna, con raffiche di vento da seed che spingono di lato.
-// Le boe sono tutte raggiungibili in linea retta dalla precedente. Le medaglie scalano con la lunghezza del percorso.
+// Regata (GDD §6 n. 1): giro chiuso di boe fisse nella laguna (mappa `laguna`, coordinate locali all'isola), con raffiche di
+// vento da seed che spingono di lato. Il percorso sta in content (minigames/regata.json → course); le medaglie sono multipli del
+// tempo del pilota di riferimento con le raffiche di quel seed.
 import { ISLANDS, MINIGAMES_CFG } from '@marea/content';
 import { TICK_HZ } from '../../constants.ts';
 import { createRng } from '../../rng.ts';
@@ -45,13 +46,17 @@ export type RegataView = {
   finished: boolean;
   medals: { oro: number; argento: number; bronzo: number };
   radius: number;
+  /** Partenza (= boatSpawn della laguna) e isola del percorso: le coordinate sono locali a questa isola. */
+  start: Vec2;
+  island: string;
 };
 
 type RegataCfgFull = {
   maxSeconds: number;
-  buoys: { min: number; max: number; radius: number; spread: number; minLeg?: number; margin?: number };
+  buoys: { radius: number };
+  /** Percorso fisso: isola e boe [x, z] in metri locali all'isola, nell'ordine; l'ultima è l'arrivo (vicino alla partenza). */
+  course: { island: string; buoys: [number, number][] };
   wind: { gustEverySeconds: [number, number]; gustSeconds: number; force: number; difficulty?: [number, number, number] };
-  medals: { oro: number; argento: number; bronzo: number };
   /** Soglie delle medaglie come multipli del tempo del pilota di riferimento su questo percorso (con queste raffiche). */
   medalsPar?: { oro: number; argento: number; bronzo: number };
   lazyGas?: number;
@@ -60,6 +65,20 @@ type RegataCfgFull = {
 const CFG = MINIGAMES_CFG.regata as unknown as RegataCfgFull;
 const MAX_TICKS = CFG.maxSeconds * TICK_HZ;
 const RADIUS = CFG.buoys.radius;
+
+/** Mappa della regata (per id, non per posizione in islands.json: le sfide in corso si rigiocano sempre sulla stessa mappa). */
+let MAP: GridMap | null = null;
+export function regataMap(): GridMap {
+  if (MAP) return MAP;
+  const def = ISLANDS.find((i) => i.id === CFG.course.island);
+  if (!def) throw new Error(`Regata: manca l'isola ${CFG.course.island}`);
+  MAP = parseIsland(def);
+  return MAP;
+}
+/** Boe del percorso (copie nuove). */
+export function regataCourse(): Buoy[] {
+  return CFG.course.buoys.map(([x, z]) => ({ x, z, passed: false }));
+}
 
 /** Tratto dritto tutto in acqua (campionato ogni mezzo metro): 2 m di margine, 1 m nei primi 3 m (la partenza è sotto il molo). */
 export function segmentClear(map: GridMap, a: Vec2, b: Vec2): boolean {
@@ -71,34 +90,6 @@ export function segmentClear(map: GridMap, a: Vec2, b: Vec2): boolean {
     if (!map.navigable(x, z) || !map.navigable(x + m, z) || !map.navigable(x - m, z) || !map.navigable(x, z + m) || !map.navigable(x, z - m)) return false;
   }
   return true;
-}
-
-function pickWater(rng: Rng, map: GridMap, from: Vec2, prev: Vec2 | null): Vec2 {
-  const spread = CFG.buoys.spread, minLeg = CFG.buoys.minLeg ?? 8, mg = CFG.buoys.margin ?? 3;
-  const W = map.w * map.tile, Hh = map.h * map.tile;
-  let fallback: Vec2 | null = null;
-  for (let i = 0; i < 600; i++) {
-    const x = from.x + (rng.next() * 2 - 1) * spread;
-    const z = from.z + (rng.next() * 2 - 1) * spread;
-    if (x < mg || z < mg || x > W - mg || z > Hh - mg) continue; // dentro la laguna visibile
-    if (Math.hypot(x - from.x, z - from.z) < minLeg) continue;
-    if (prev && Math.hypot(x - prev.x, z - prev.z) < minLeg) continue; // niente avanti-indietro sulla stessa boa
-    if (prev) {
-      // niente tornanti: la virata alla boa è al massimo di ~120°
-      const ax = from.x - prev.x, az = from.z - prev.z, bx = x - from.x, bz = z - from.z;
-      if ((ax * bx + az * bz) / ((Math.hypot(ax, az) || 1) * (Math.hypot(bx, bz) || 1)) < -0.5) continue;
-    }
-    if (!segmentClear(map, from, { x, z })) continue;
-    if (!fallback) fallback = { x, z };
-    return { x, z };
-  }
-  // non dovrebbe capitare: un punto a minLeg in una direzione libera
-  for (let k = 0; k < 16; k++) {
-    const a = (k / 16) * Math.PI * 2;
-    const p = { x: from.x + Math.cos(a) * minLeg, z: from.z + Math.sin(a) * minLeg };
-    if (segmentClear(map, from, p)) return p;
-  }
-  return fallback ?? { x: from.x, z: from.z - minLeg };
 }
 
 function makeGusts(rng: Rng, difficulty: Difficulty): Gust[] {
@@ -185,27 +176,15 @@ export function lazyAutopilot(s: RegataState): InputFrame {
 
 export const regata: MinigameModule<RegataState> = {
   id: 'regata',
-  version: 2,
+  version: 3,
   maxTicks: MAX_TICKS,
   create({ seed, difficulty }) {
     const root = createRng(seed).fork('regata');
-    const rng = root.fork('boe');
-    // percorso fissato per id (non per posizione in islands.json): le sfide in corso si rigiocano sempre sulla stessa mappa. Fetta 2: laguna.
-    const def = ISLANDS.find((i) => i.id === 'prova') ?? ISLANDS[0];
-    if (!def) throw new Error('Nessuna isola');
-    const map = parseIsland(def);
-    const n = rng.int(CFG.buoys.min, CFG.buoys.max);
-    const buoys: Buoy[] = [];
-    let from: Vec2 = { x: map.boatSpawn.x, z: map.boatSpawn.z };
-    let prev: Vec2 | null = null;
+    const map = regataMap();
+    const buoys = regataCourse();
     let length = 0;
-    for (let i = 0; i < n; i++) {
-      const p = pickWater(rng, map, from, prev);
-      length += Math.hypot(p.x - from.x, p.z - from.z);
-      buoys.push({ ...p, passed: false });
-      prev = from;
-      from = p;
-    }
+    let from: Vec2 = map.boatSpawn;
+    for (const p of buoys) { length += Math.hypot(p.x - from.x, p.z - from.z); from = p; }
     const st: RegataState = {
       seed, difficulty, tick: 0, boat: newBoat(map.boatSpawn.x, map.boatSpawn.z), buoys, next: 0, done: false, finishTick: 0,
       wind: { x: 0, z: 0 }, gusts: makeGusts(root.fork('vento'), difficulty), length: Math.round(length * 10) / 10,
@@ -260,6 +239,7 @@ export const regata: MinigameModule<RegataState> = {
       boat: s.boat, buoys: s.buoys, next: s.next, ms: toMs(s.finishTick || s.tick), maxMs: CFG.maxSeconds * 1000, wind: s.wind,
       gust: windAt(s.gusts, s.tick).gust, done: s.done, finished: s.finishTick > 0,
       medals: { oro: toMs(s.medalTicks.oro), argento: toMs(s.medalTicks.argento), bronzo: toMs(s.medalTicks.bronzo) }, radius: RADIUS,
+      start: { x: s.map.boatSpawn.x, z: s.map.boatSpawn.z }, island: s.map.id,
     };
   },
 };

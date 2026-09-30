@@ -73,7 +73,7 @@ type MinigameResult = { done: boolean; score: number; medal: 'oro'|'argento'|'br
 type MinigameModule<S> = { id: string; version: number; maxTicks: number; create(o: { seed: number; difficulty: 1|2|3 }): S; step(s: S, input: InputFrame): void; result(s: S): MinigameResult; autopilot(s: S, rng: Rng): InputFrame; view(s: S): unknown }
 // minigames/registry.ts
 MINIGAMES: Record<string, MinigameModule<unknown>> · getMinigame(id)
-// minigames/regata/regata.ts   modulo `regata` (GDD §6); `view(s)` → { boat: BoatState; buoys: {x,z,passed}[]; next: number; ms: number; wind }
+// minigames/regata/regata.ts   modulo `regata` (GDD §6); `view(s)` → { boat, buoys: {x,z,passed}[], next, ms, maxMs, wind, gust, done, finished, medals:{oro,argento,bronzo} (ms), radius, start:{x,z}, island:'laguna' }; export `regataMap()` e `regataCourse()` per il client
 // replay.ts
 packInputs(frames: InputFrame[]): PackedInputs · unpackInputs(p): InputFrame[] · replay(id, seed, difficulty, p): MinigameResult
 ```
@@ -141,3 +141,24 @@ Obiettivo: entri col tuo link, **spawni sul molo della tua isola** in un arcipel
 | **M1-server** (Opus) | `apps/server/**`, `apps/client/src/net/client.ts`, `packages/sim/src/{economy,minigames}/**`, `packages/sim/src/replay.ts`, `packages/sim/test/{economy,regata,challenge}*.test.ts`, `packages/content/src/{balance,decor,buildings}.json`, `tests/e2e/wp4_*.mjs`, `tests/e2e/m1_server*.mjs` |
 | **M1-asset** (Opus) | `assets/**`, `tools/{build_assets.mjs,export_gltf.py}`, `apps/client/public/assets/**` |
 Richieste tra WP in `tests/out/richieste/m1-<wp>.md`. Nessun agente fa deploy, commit o push.
+
+## 12. M1 · Fetta 2 «Regata sulla laguna e Tavolo delle Sfide» (Sessione 3, 30 set 2026)
+Obiettivo (PC prima: tastiera + mouse; il touch resta com'è): dal Porto premi **E** vicino al Tavolo, scegli un amico e una posta, giochi la Regata sulla **laguna**, il server rigioca i tuoi input e dà l'esito.
+
+**Decisioni (WP0)**
+- La regata si gioca sulla mappa `laguna` (islands.json), non più `prova`; `regata.version` → 3. Le coordinate della sim sono **locali all'isola**: il client aggiunge `arch.laguna.origin × tile` (≈ (636, 508) m) per disegnare.
+- Il client registra **un `InputFrame` per tick** (60 Hz, assi mondo, `a`/`b`), poi `packInputs` (`packages/sim/src/replay.ts`, quantizzati a 1/32) e `POST /api/challenges/:id/play`. Nessun conto economico nel client: punteggio, medaglia ed escrow li decide il server.
+- Legame tra i due WP client (interfaccia fissa):
+  - `apps/client/src/game/regata.ts` esporta `runRegata(o: { challenge: { id: string; minigame: string; difficulty: string; seed: number; [k: string]: unknown }; signal?: AbortSignal }): Promise<PackedInputs | null>`: porta la barca alla partenza, fa correre la gara con HUD, restituisce gli input (null = annullata con Esc).
+  - `apps/client/src/ui/tavolo.ts` esporta `createTavolo(o: { api: Api; me: Me; play: (challenge) => Promise<PackedInputs | null>; onClose?: () => void }): { open(): void; close(): void; isOpen(): boolean }`. Il Tavolo chiama `play`, poi `api.play(id, inputs)` e mostra l'esito. Il campo esatto delle sfide lo dà PROTOCOL §4 / `apps/server/src/do/Sfide.ts`.
+- Da PC: **E** vicino al Tavolo apre il pannello, **Esc** chiude/annulla, frecce + Invio scelgono amico e posta; in gara WASD/frecce guidano la barca (non l'avatar), **Spazio/E** = `a`, **Shift** = `b`; input azzerati su `blur`/`visibilitychange`; camera non ruotabile in gara.
+
+**Proprietà dei file in questa fetta**
+| WP | Possiede |
+|---|---|
+| **WP0** | `docs/**`, `tests/run.mjs`, `tools/**` tranne `build_assets.mjs`/`export_gltf.py` |
+| **F2-sim** (Opus) | `packages/sim/src/minigames/regata/**`, `packages/content/src/minigames/regata.json`, `packages/content/src/{archipelago,islands}.json` (solo aggiunte per la laguna), `packages/sim/test/{regata,challenge}*.test.ts` e fixture d'oro |
+| **F2-regata** (Opus) | `apps/client/src/game/regata.ts` (nuovo), `apps/client/src/main.ts`, `apps/client/src/game/world.ts`, `game/input.ts`, `apps/client/src/render/**` (solo boe/percorso), `apps/client/src/ui/hud.ts` per l'HUD di gara |
+| **F2-tavolo** (Opus) | `apps/client/src/net/api.ts`, `apps/client/src/ui/tavolo.ts` (nuovo), `apps/client/src/ui/style.ts` (solo aggiunte) |
+| **F2-test** (Sonnet, dopo gli altri) | `tests/e2e/m1_regata*.mjs`, `tests/e2e/m1_tavolo*.mjs` |
+`main.ts` lo tocca solo F2-regata: cabla `createTavolo` (F2-tavolo) e il tasto E sul Tavolo. Richieste tra WP in `tests/out/richieste/f2-<wp>.md`. Nessun agente fa deploy, commit o push.

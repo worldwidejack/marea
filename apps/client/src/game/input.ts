@@ -30,7 +30,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') bLatch = true;
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
-  const releaseAll = () => { keys.clear(); aHeld.clear(); bHeld.clear(); endStick(); paintBtns(); };
+  const releaseAll = () => { keys.clear(); aHeld.clear(); bHeld.clear(); aLatch = bLatch = false; endStick(); paintBtns(); }; // blur / scheda nascosta: niente tasti incollati (anche in gara)
   addEventListener('keydown', kd); addEventListener('keyup', ku); addEventListener('blur', releaseAll);
   const onVis = () => { if (document.hidden) releaseAll(); };
   document.addEventListener('visibilitychange', onVis);

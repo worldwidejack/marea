@@ -5,7 +5,7 @@ aggiornato: 2026-09-30
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-Online (build `munc0cy9`): **M1 · Fetta 1** (arcipelago con Porto e 8 isole, spawn sulla propria isola, costruire/raccogliere/migliorare, bussola, sfide con posta lato server, 24 modelli approvati). Zoom max 2,2 (via di mezzo scelta da Jack). Suite 88/88.
+Online (build `munc0cy9`): M1 · Fetta 1. **M1 · Fetta 2 fatta e pushata, NON ancora online**: Regata giocabile sulla laguna (5 boe, HUD, autopilot/replay coincidenti col server) e Tavolo delle Sfide al Porto (tasto E, amico, posta, esito), pensati per PC. Suite 100/100.
 
 ## Prossimo passo
-Jack prova dal telefono in 4G col suo link + `?fps=1` (Segheria, raccolta, Porto in barca). Poi Fetta 2: Regata giocabile sulla laguna e Tavolo delle Sfide al Porto.
+Jack guarda gli screenshot e dice «vai col deploy»: prima controllare che non ci siano sfide aperte di versione 2 (la regata è ora v3). Poi prova da PC sul link online. Dopo: Fetta 3 (avatar editor, emote, feed).

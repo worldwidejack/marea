@@ -57,7 +57,7 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 **Sfide differite** (dal giorno uno): A gioca oggi con un seed; B entra domani, gioca lo **stesso** seed e vede se batte il punteggio di A. Nessun bot. Il server rigioca l'input log nella sim e verifica il punteggio dichiarato.
 
 **Ordine**
-1. **Regata** (M1) — gara in barca a tempo tra 6-8 boe nella laguna del Porto, con raffiche di vento da seed che spingono di lato. Riusa barca, mondo e camera. Tempo massimo 120 s; `score = max(0, 12000 − floor(ms/10))`. Medaglie (da tarare): oro ≤ 45 s, argento ≤ 60 s, bronzo ≤ 90 s. Le boe si passano in ordine, la prossima è evidenziata. Controllo: joystick per virare, A per accelerare.
+1. **Regata** (M1) — gara in barca a tempo tra 5 boe fisse nella laguna del Porto, con raffiche di vento da seed che spingono di lato. Riusa barca, mondo e camera. Tempo massimo 120 s; `score = max(0, 12000 − floor(ms/10))`. Medaglie relative al pilota di riferimento con le stesse raffiche: oro ≤ 1,1×, argento ≤ 1,4×, bronzo ≤ 2,3× (≈ 22 / 28 / 46 s; giro di ~167 m). Le boe si passano in ordine, la prossima è evidenziata. Controllo: joystick per virare, A per accelerare.
 2. **Lanterne** (M2 se c'è tempo) — al Porto, 6 lanterne; si accendono in sequenza a ritmo, le tocchi nello stesso ordine; la sequenza cresce; un errore chiude la partita; 60 s max; `score = lanterne giuste × combo`.
 3. **Puzzle leggero** (2027) — tubi o tessere da ruotare con i moduli dell'isola.
 4. **Battaglia carte/unità in tempo reale** (2027) — richiede avversario live o bot, netcode a bassa latenza, bilanciamento: si fa dopo il collaudo di dicembre.

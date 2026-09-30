@@ -48,6 +48,28 @@ const CSS = `
 .mz-note { margin-top: 8px; color: ${P.arancio}; font-weight: bold; }
 .mz-fly { position: absolute; left: 0; top: 0; z-index: 25; pointer-events: none !important; }
 .mz-ico { display: inline-block; flex: none; image-rendering: pixelated; }
+/* F2-tavolo: Tavolo delle Sfide. Focus da tastiera ben visibile (giallo pieno, niente alone sfocato). */
+.mz-sheet :focus { outline: none; }
+.mz-sheet :focus-visible { outline: 3px solid ${P.giallo}; outline-offset: 2px; }
+.mz-tv-sec { margin: 14px 0 2px; padding-bottom: 2px; border-bottom: 2px solid ${P.legno}; color: ${P.sabbia}; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: .06em; }
+.mz-tv-wait { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; margin-top: 6px; padding: 4px 8px; border: 2px dashed ${P.legno}; color: ${P.sabbia}; font-size: 14px; }
+.mz-tv-wait .st { color: ${P.acquaBassa}; font-weight: bold; white-space: nowrap; }
+.mz-btn .who { display: block; }
+.mz-btn .st { display: block; font-size: 13px; font-weight: bold; }
+.mz-step { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 4px 6px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; cursor: default; }
+.mz-step .n { flex: 1; display: flex; align-items: center; gap: 6px; font-weight: bold; }
+.mz-step .v { min-width: 4ch; text-align: center; font-size: 20px; font-weight: bold; color: ${P.giallo}; }
+.mz-step button { width: 44px; height: 44px; flex: none; padding: 0; background: ${P.ombraCalda}; border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; color: ${P.sabbiaChiara}; font: bold 22px ui-monospace, Menlo, monospace; cursor: pointer; }
+.mz-step button:disabled { color: ${P.pietraScura}; border-color: ${P.pietraScura}; cursor: default; }
+.mz-step button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
+.mz-big { margin: 4px 0 8px; font-size: 22px; font-weight: bold; text-transform: uppercase; }
+.mz-big.win { color: ${P.giallo}; } .mz-big.lose { color: ${P.rosso}; } .mz-big.even { color: ${P.acquaBassa}; }
+.mz-medal { font-weight: bold; text-transform: uppercase; }
+.mz-medal.oro { color: ${P.giallo}; } .mz-medal.argento { color: ${P.pietraChiara}; } .mz-medal.bronzo { color: ${P.arancio}; } .mz-medal.none { color: ${P.pietra}; }
+.mz-note.ok { color: ${P.erba}; }
+.mz-note.bad { color: ${P.rosso}; }
+.mz-tot { color: ${P.giallo}; font-weight: bold; }
+@media (min-width: 700px) { .mz-sheet.mz-tv { left: 50%; right: auto; width: 520px; transform: translateX(-50%); max-height: 78%; } }
 `;
 
 let injected = false;

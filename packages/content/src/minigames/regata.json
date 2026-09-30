@@ -2,19 +2,21 @@
   "id": "regata",
   "nome": "Regata",
   "maxSeconds": 120,
+  "course": {
+    "island": "laguna",
+    "buoys": [
+      [30, 30],
+      [76, 30],
+      [84, 58],
+      [58, 80],
+      [38, 74]
+    ]
+  },
   "buoys": {
-    "min": 6,
-    "max": 8,
-    "radius": 3.0,
-    "spread": 40,
-    "minLeg": 10,
-    "margin": 3
+    "radius": 3.0
   },
   "wind": {
-    "gustEverySeconds": [
-      6,
-      12
-    ],
+    "gustEverySeconds": [6, 12],
     "gustSeconds": 3,
     "force": 2.0,
     "difficulty": [
@@ -23,17 +25,12 @@
       1.4
     ]
   },
-  "medals": {
-    "oro": 45,
-    "argento": 60,
-    "bronzo": 90
-  },
   "scoreBase": 12000,
   "medalsPar": {
-    "oro": 1.15,
-    "argento": 1.5,
+    "oro": 1.1,
+    "argento": 1.4,
     "bronzo": 2.3
   },
   "lazyGas": 0.35,
-  "_nota": "medals (secondi) = ipotesi GDD, non più usata: le soglie vere sono medalsPar × il tempo del pilota di riferimento su quel percorso"
+  "_nota": "course.buoys = boe fisse [x, z] in metri locali all'isola laguna (partenza = B del molo); le soglie delle medaglie sono medalsPar × il tempo del pilota di riferimento con le raffiche del seed"
 }

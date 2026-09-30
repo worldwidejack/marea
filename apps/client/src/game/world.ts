@@ -2,7 +2,7 @@
 // Spawn sul molo del proprio lotto (`slot`), barca ormeggiata lì; senza slot al Porto.
 import * as THREE from 'three';
 import { canBoard, composeArchipelago, landingSpot, NO_INPUT } from '@marea/sim';
-import type { Archipelago, ArchPlace, GridMap, InputFrame } from '@marea/sim';
+import type { Archipelago, ArchPlace, BoatState, GridMap, InputFrame } from '@marea/sim';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import type { Look, Peer } from '@marea/protocol';
 import type { Flags } from '../flags.ts';
@@ -30,6 +30,18 @@ export type GameWorld = {
   /** Quota del terreno in (x, z): piano delle isole, cima delle rocce, 0 in acqua. */
   groundY(x: number, z: number): number;
   step(input: InputFrame): void; update(alpha: number, dt: number, t: number): void; dispose(): void;
+  /** Fermo (Tavolo aperto): l'avatar e la barca ignorano l'input. */
+  frozen: boolean;
+  /** Regata (F2): la barca la muove la sim del minigioco (game/regata.ts); il mondo la disegna, la segue con la camera e manda la posizione. */
+  race: {
+    readonly on: boolean;
+    /** Sale in barca e la porta in (x, z) con la prua a `yaw`, ricordando dov'eri. */
+    begin(x: number, z: number, yaw: number): void;
+    /** Un tick della sim, in coordinate mondo. */
+    set(s: BoatState): void;
+    /** Torna dov'eri prima della gara. */
+    end(): void;
+  };
 };
 
 /** Adattatore finché main.ts non passa lo slot da /api/me: `?slot=N` nell'URL. */
@@ -121,13 +133,44 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     for (const id of remotes.keys()) if (!seen.has(id)) dropRemote(id);
   };
 
-  let mode: Mode = 'walk', aWas = false, lastSent = 0;
+  let mode: Mode = 'walk', aWas = false, lastSent = 0, frozen = false;
+  let racing: { mode: Mode; avatar: { x: number; z: number }; boat: { x: number; z: number; yaw: number } } | null = null;
+  const race: GameWorld['race'] = {
+    get on() { return !!racing; },
+    begin(x, z, yaw) {
+      if (!racing) racing = { mode, avatar: { x: avatar.state.x, z: avatar.state.z }, boat: { x: boat.state.x, z: boat.state.z, yaw: boat.state.yaw } };
+      mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false;
+      boat.teleport(x, z, yaw); avatar.teleport(x, z);
+      diorama.follow(x, 0.5, z); diorama.snap?.();
+    },
+    set(s) {
+      // Adattatore finché Boat non ha setState (tests/out/richieste/f2-regata.md): step a vuoto (prev = stato del tick prima) e poi
+      // si sovrascrive lo stato nuovo con quello della sim, così interpolazione, scia e remi seguono la gara.
+      boat.step(NO_INPUT, map);
+      Object.assign(boat.state, s);
+      avatar.teleport(s.x, s.z);
+    },
+    end() {
+      const r = racing; if (!r) return;
+      racing = null;
+      boat.setDriver(null);
+      if (r.mode === 'walk') { mode = 'walk'; avatar.visible = true; avatar.teleport(r.avatar.x, r.avatar.z); moor(r.boat.x, r.boat.z); }
+      else { mode = 'boat'; boat.setDriver(avatar.state, look); boat.teleport(r.boat.x, r.boat.z, r.boat.yaw); avatar.teleport(r.boat.x, r.boat.z); }
+      const f = mode === 'walk' ? avatar.state : boat.state;
+      diorama.follow(f.x, 0.5, f.z); diorama.snap?.();
+    },
+  };
   const state = {
-    map, avatar, boat, net, archipelago: arch, scene, slot, groundY: island.groundY,
+    map, avatar, boat, net, archipelago: arch, scene, slot, groundY: island.groundY, race,
     get mode() { return mode; },
+    get frozen() { return frozen; },
+    set frozen(v: boolean) { frozen = v; },
     step(input: InputFrame) {
+      if (frozen || racing) input = NO_INPUT; // la gara muove la barca da sé (race.set); col Tavolo aperto l'avatar sta fermo
       const pressA = input.a && !aWas; aWas = input.a;
-      if (mode === 'walk') {
+      if (racing) {
+        // niente: la barca l'ha già posata race.set
+      } else if (mode === 'walk') {
         avatar.step(input, map);
         boat.step(NO_INPUT, map);
         if (pressA && canBoard(avatar.state, boat.state, map)) { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; o.hud.toast('Sei in barca: A per accelerare, joystick per virare'); }

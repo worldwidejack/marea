@@ -11,7 +11,11 @@ import type { CompassTarget } from './ui/compass.ts';
 import { createApi } from './net/api.ts';
 import { createLotView } from './game/lot.ts';
 import type { LotView } from './game/lot.ts';
-import { installTestApi, registerPerfProvider, setReady } from './test/testapi.ts';
+import { installTestApi, registerPerfProvider, registerStateProvider, registerTestHook, setReady } from './test/testapi.ts';
+import { runRegata, setupRegata } from './game/regata.ts';
+import { createTavolo } from './ui/tavolo.ts';
+
+const TAVOLO_R = 3.5; // m: quanto vicino al Tavolo per aprirlo con E / A
 
 async function boot(): Promise<void> {
   installTestApi(__BUILD__);
@@ -44,13 +48,42 @@ async function boot(): Promise<void> {
   const lag = arch.places.find((p) => p.role === 'laguna');
   if (lag) targets.push({ id: 'laguna', label: 'Laguna', x: (lag.origin[0] + lag.w / 2) * arch.tile, z: (lag.origin[1] + lag.h / 2) * arch.tile });
   const compass = createCompass({ root, targets });
+  // Regata e Tavolo: E (o A) vicino al Tavolo del Porto apre il pannello; in gara la barca la muove la sim, l'avatar sta fermo.
+  const regata = await setupRegata({ world, loader, hud, root, cameraYaw: () => renderer.diorama.yaw });
+  const tavoloAt = arch.buildings.find((b) => b.kind === 'tavolo') ?? null;
+  let closedAt = 0, nearWas = false, aWasT = false;
+  const tavolo = me && api.enabled ? createTavolo({ api, me, root, play: (challenge) => runRegata({ challenge }), onClose: () => { closedAt = performance.now(); } }) : null;
+  const nearTavolo = () => !!tavoloAt && world.mode === 'walk' && !world.race.on && Math.hypot(world.avatar.state.x - tavoloAt.x, world.avatar.state.z - tavoloAt.z) < TAVOLO_R;
+  const openTavolo = () => {
+    // un pannello alla volta: il foglio del lotto (#mzSheet) si chiude col suo bottone, così la vista del lotto lo sa
+    if (tavolo) { document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); if (!tavolo.isOpen()) tavolo.open(); return true; }
+    hud.toast(me ? 'Il Tavolo delle Sfide arriva presto' : 'Per sfidare serve il tuo link personale', 2500);
+    return false;
+  };
+  /** Un tick: vicino al Tavolo, A/E/Spazio (fronte di salita) lo apre; il suggerimento compare quando ci arrivi. */
+  const tickTavolo = (a: boolean) => {
+    const pressA = a && !aWasT; aWasT = a;
+    const near = nearTavolo(), open = !!tavolo?.isOpen();
+    if (near && !nearWas && !open) hud.toast('E · Tavolo delle Sfide', 2500);
+    nearWas = near;
+    if (near && pressA && !open && performance.now() - closedAt > 400) openTavolo();
+  };
+  registerStateProvider('tavolo', () => ({ exists: !!tavolo, near: nearTavolo(), open: !!tavolo?.isOpen(), at: tavoloAt ? { x: tavoloAt.x, z: tavoloAt.z } : null }));
+  registerTestHook('openTavolo', () => openTavolo());
   let last = performance.now(), acc = 0, t = 0;
   const frame = (now: number) => {
     const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt; t += dt;
     let steps = 0;
-    while (acc >= DT && steps < 5) { world.step(input.sample()); acc -= DT; steps++; }
+    while (acc >= DT && steps < 5) {
+      const f = input.sample();
+      if (regata.active) regata.step(f); else tickTavolo(f.a);
+      world.frozen = !!tavolo?.isOpen() && !regata.active;
+      world.step(f); acc -= DT; steps++;
+    }
     if (steps === 5) acc = 0;
     world.update(acc / DT, dt, t);
+    regata.update(acc / DT, dt, t);
+    if (tavolo?.isOpen() && document.querySelector('#mzSheet.on')) tavolo.close(); // aperto un edificio: il Tavolo lascia il posto
     const focus = world.mode === 'walk' ? world.avatar.state : world.boat.state;
     for (const lv of lots) lv.update(dt, focus); // rilettura ogni 30 s solo per l'isola dove sei; timer ed etichette ogni frame
     compass.update(focus, renderer.diorama.yaw);

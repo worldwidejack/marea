@@ -66,8 +66,12 @@ export type RegataCfg = {
   id: 'regata';
   nome: string;
   maxSeconds: number;
-  buoys: { min: number; max: number; radius: number; spread: number };
-  wind: { gustEverySeconds: [number, number]; gustSeconds: number; force: number };
-  medals: { oro: number; argento: number; bronzo: number };
+  /** Percorso fisso: boe [x, z] in metri locali all'isola, partenza = B del molo. */
+  course: { island: string; buoys: [number, number][] };
+  buoys: { radius: number };
+  wind: { gustEverySeconds: [number, number]; gustSeconds: number; force: number; difficulty: number[] };
+  /** Soglie delle medaglie = moltiplicatore × tempo del pilota di riferimento con le raffiche del seed. */
+  medalsPar: { oro: number; argento: number; bronzo: number };
+  lazyGas: number;
   scoreBase: number;
 };
