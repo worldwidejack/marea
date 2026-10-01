@@ -5,7 +5,7 @@ import type { Look } from '@marea/protocol';
 import type { Env } from './env.ts';
 import { autentica } from './auth.ts';
 import { nowFor } from './clock.ts';
-import { elencoPersone, esistePersona, salvaLook, segnaAccesso } from './db.ts';
+import { elencoPersone, entraConInvito, esistePersona, salvaLook, segnaAccesso } from './db.ts';
 import { toFeedItem } from './feed.ts';
 import type { FeedRow } from './feed.ts';
 export { Zone } from './do/Zone.ts';
@@ -109,6 +109,22 @@ export default {
       if (!path.startsWith('/api/')) {
         if (path.startsWith('/ws/')) return json({ error: 'Non trovato' }, 404);
         return env.ASSETS.fetch(req);
+      }
+
+      // link di gruppo: senza token, con il codice dell'invito e il nome scelto → persona nuova e il suo token
+      if (path === '/api/entra' && req.method === 'POST') {
+        const body = await leggiCorpo(req);
+        if (body === 'grande' || !body) return json({ error: 'Richiesta non valida' }, 400);
+        const codice = body['invito'], nome = typeof body['nome'] === 'string' ? body['nome'].replace(/[\p{C}<>]/gu, '').trim().replace(/\s+/g, ' ') : '';
+        if (typeof codice !== 'string' || !/^[A-Za-z0-9_-]{4,40}$/.test(codice)) return json({ error: 'Link di invito non valido: chiedi a Jack quello giusto' }, 400);
+        if (nome.length < 2 || nome.length > 16) return json({ error: 'Scrivi un nome da 2 a 16 lettere' }, 400);
+        const base = nome.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24) || 'amico';
+        const rnd = crypto.getRandomValues(new Uint8Array(18)), suf = crypto.getRandomValues(new Uint8Array(2)); // token e id da byte diversi
+        const id = `${base}-${Array.from(suf, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+        const token = btoa(String.fromCharCode(...rnd)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const r = await entraConInvito(env, codice, id, nome, token);
+        if (!r) return json({ error: 'Questo invito è finito o non esiste: chiedi a Jack un link nuovo' }, 403);
+        return json({ token, id, nome, slot: r.slot });
       }
 
       const p = await autentica(req, env);

@@ -25,7 +25,7 @@ export default async function (ctx) {
     fs.rmSync(persist, { recursive: true, force: true });
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
     wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command',
-      "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0), ('mia', 'Mia', 'tokM', 1);");
+      "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0), ('mia', 'Mia', 'tokM', 1); INSERT INTO inviti (codice, creato_da, max_usi) VALUES ('gruppo1', 'jack', 2);");
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
       '--assets', ctx.distDir, '--persist-to', persist, '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -112,6 +112,29 @@ export default async function (ctx) {
     await ctx.shot(page, '5_costruisci');
 
     await ctx.test('nessun pageerror per Luca', async () => { ctx.noErrors(P, 'Luca'); });
+
+    await ctx.test('link di gruppo: nome → isola sua (slot libero) e guida; nome corto 400; oltre max_usi 403', async () => {
+      const G = await ctx.B.openPage(ctx.browser, `${base}/?invito=gruppo1&test=1`, { viewport: ctx.B.IPHONE }); ctx._pages.push(G);
+      await G.page.waitForSelector('#mzEntra input', { timeout: 15000 });
+      await ctx.shot(G.page, '6_entra');
+      await G.page.fill('#mzEntra input', 'Giò Bianchi');
+      await G.page.click('#mzEntra button');
+      await G.page.waitForURL(/[?&]t=/, { timeout: 15000, waitUntil: 'commit' });
+      await ctx.waitReady(G.page, 30000);
+      await ctx.waitState(G.page, (s) => s.lot && s.lot.ready === true && s.guida && s.arch, 15000);
+      const s = await ctx.getState(G.page);
+      assert(s.arch.slot === 2 && s.guida.current === 'segheria', 'Giò: ' + JSON.stringify({ slot: s.arch.slot, guida: s.guida }));
+      const tok = await G.page.evaluate(() => localStorage.getItem('marea:token'));
+      const me = await (await fetch(base + '/api/me', { headers: { 'x-token': tok } })).json();
+      assert(me.nome === 'Giò Bianchi' && /^gio-bianchi-[0-9a-f]{4}$/.test(me.id), 'persona: ' + JSON.stringify({ id: me.id, nome: me.nome }));
+      const corto = await fetch(base + '/api/entra', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ invito: 'gruppo1', nome: 'x' }) });
+      assert(corto.status === 400, 'nome corto: ' + corto.status);
+      const second = await fetch(base + '/api/entra', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ invito: 'gruppo1', nome: 'Ugo' }) });
+      assert(second.status === 200, 'secondo ingresso: ' + second.status);
+      const third = await fetch(base + '/api/entra', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ invito: 'gruppo1', nome: 'Ada' }) });
+      assert(third.status === 403, 'oltre max_usi: ' + third.status);
+      ctx.noErrors(G, 'Giò');
+    });
   } finally {
     if (luca) await luca.close().catch(() => {});
     if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }

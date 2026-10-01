@@ -20,6 +20,7 @@ import { createEditor } from './ui/editor.ts';
 import { createFeed } from './ui/feed.ts';
 import { createEmotes } from './game/emote.ts';
 import { setTopbarHidden } from './ui/topbar.ts';
+import { entraConInvito } from './ui/entra.ts';
 import { createMinigiochi } from './game/minigiochi.ts';
 import { createGuida } from './ui/guida.ts';
 import type { GuidaStep } from './ui/guida.ts';
@@ -27,6 +28,7 @@ import type { GuidaStep } from './ui/guida.ts';
 const TAVOLO_R = 3.5; // m: quanto vicino al Tavolo per aprirlo con E / A
 
 async function boot(): Promise<void> {
+  if (FLAGS.invito && !FLAGS.token) await entraConInvito(FLAGS.invito); // link di gruppo: prima il nome, poi si riparte col token
   installTestApi(__BUILD__);
   const canvas = document.getElementById('gl') as HTMLCanvasElement;
   const root = document.getElementById('ui') as HTMLElement;

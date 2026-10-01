@@ -1,5 +1,5 @@
 // Flag dall'URL, congelati all'avvio. Contratto: docs/TECH.md §9.
-export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; sfide: boolean };
+export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; sfide: boolean; invito: string };
 function read(): Flags {
   const q = new URLSearchParams(location.search);
   const on = (k: string) => q.get(k) === '1' || q.get(k) === 'true';
@@ -12,6 +12,7 @@ function read(): Flags {
     fps: on('fps'), test: on('test'), seed: Number(q.get('seed') ?? 1) || 1, nosound: on('nosound'),
     quality: q.get('quality') === 'low' ? 'low' : 'high', net: q.get('net') !== '0', autopilot: on('autopilot'),
     zone: q.get('zone') ?? 'porto', token,
+    invito: q.get('invito') ?? '', // link di gruppo: senza token si sceglie il nome (ui/entra.ts)
     sfide: on('sfide'), // Tavolo delle Sfide con posta e feed: spenti finché si prova il gioco da soli (?sfide=1 li riaccende)
   };
 }
