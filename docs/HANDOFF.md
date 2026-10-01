@@ -8,6 +8,12 @@
 - **Comandi**: `npm run dev` (+ `npm run dev:server`) · `npm test` (~10 min, 128 test) · `node tests/run.mjs <suite>` · `npm run assets` · `npm run deploy`.
 - **Scadenza**: serata con gli amici 27-30 dic 2026. Jack: 2 h/settimana, budget zero. **Jack gioca da PC** (tastiera + mouse): il PC viene prima, il touch resta com'è.
 
+## Lavoro in gruppo (1 ott 2026, sera)
+- Si lavora con **issue → ramo → PR → `/consegna`**, anche il Claude di Jack. Deploy solo da GitHub Actions (`.github/workflows/deploy.yml`) dopo la suite completa su `main`. Guida: `docs/CONTRIBUIRE.md`. Bacheca: issue #1-#9.
+- Ramo `jack/lavoro-in-gruppo` (solo locale finché non si sblocca il push): contiene workflow, guida, CLAUDE.md per tutti.
+- **Bloccato su Jack**: (1) spunta `workflow` sul token GitHub del Mac (`~/.config/jackos/gh-token`, è un token classic con solo `repo`; anche il connettore claude.ai dà 403 sui workflow); (2) token API Cloudflare (Workers Scripts + D1 in scrittura, account `6b95075827b7c61d2695db9aa8bc2cd5`) da salvare nei segreti `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`; (3) username GitHub degli amici da invitare (ruolo Write).
+- Poi: push del ramo → PR → controlli verdi → merge → primo deploy da GitHub → verifica `version.json` → invito amici → messaggio nel gruppo.
+
 ## Dove siamo
 - **M1 · Fetta 1, 2 e 3 nel repo**, suite 128/128, `_STATO.md` aggiornato.
   - Fetta 1: arcipelago 560×560, spawn sul proprio molo, costruire/raccogliere/migliorare, bussola, sfide con posta lato server.
