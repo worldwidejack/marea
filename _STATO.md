@@ -5,7 +5,7 @@ aggiornato: 2026-10-01
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-**Online** (build `mupod22y`) con link di gruppo, Regata e Scacco in 3. Pronto il **lavoro in gruppo** (ramo `jack/lavoro-in-gruppo`): ogni amico col suo Claude prende una issue (#1-#9 già in bacheca), fa una PR, GitHub la controlla e la manda online da solo; guida `docs/CONTRIBUIRE.md`.
+**Online** (build `mupynbxd`, primo deploy fatto da GitHub, 140/140 test). MAREA ora si fa **in gruppo**: ogni amico col suo Claude prende una issue (#1-#9 in bacheca), fa una PR, GitHub controlla e pubblica da solo se i test passano. Guida `docs/CONTRIBUIRE.md`.
 
 ## Prossimo passo
-Jack: spunta `workflow` sul token GitHub, crea il token Cloudflare, dà gli username GitHub degli amici. Claude: push del ramo, PR, primo deploy da GitHub, inviti, messaggio per il gruppo (dettaglio in `docs/HANDOFF.md`).
+Jack manda il messaggio nel gruppo; gli amici scrivono lo username GitHub, Jack li incolla a Claude che li invita. Poi ognuno prende una issue e chiude con `/consegna`.

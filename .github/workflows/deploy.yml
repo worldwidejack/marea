@@ -3,6 +3,8 @@ name: Deploy
 on:
   push:
     branches: [main]
+    # solo documenti → niente test né deploy (il gioco non cambia)
+    paths-ignore: ['**.md', 'docs/**']
   workflow_dispatch:
 concurrency:
   group: deploy

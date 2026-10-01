@@ -8,11 +8,11 @@
 - **Comandi**: `npm run dev` (+ `npm run dev:server`) · `npm test` (~10 min, 128 test) · `node tests/run.mjs <suite>` · `npm run assets` · `npm run deploy`.
 - **Scadenza**: serata con gli amici 27-30 dic 2026. Jack: 2 h/settimana, budget zero. **Jack gioca da PC** (tastiera + mouse): il PC viene prima, il touch resta com'è.
 
-## Lavoro in gruppo (1 ott 2026, sera)
-- Si lavora con **issue → ramo → PR → `/consegna`**, anche il Claude di Jack. Deploy solo da GitHub Actions (`.github/workflows/deploy.yml`) dopo la suite completa su `main`. Guida: `docs/CONTRIBUIRE.md`. Bacheca: issue #1-#9.
-- Ramo `jack/lavoro-in-gruppo` (solo locale finché non si sblocca il push): contiene workflow, guida, CLAUDE.md per tutti.
-- **Bloccato su Jack**: (1) spunta `workflow` sul token GitHub del Mac (`~/.config/jackos/gh-token`, è un token classic con solo `repo`; anche il connettore claude.ai dà 403 sui workflow); (2) token API Cloudflare (Workers Scripts + D1 in scrittura, account `6b95075827b7c61d2695db9aa8bc2cd5`) da salvare nei segreti `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`; (3) username GitHub degli amici da invitare (ruolo Write).
-- Poi: push del ramo → PR → controlli verdi → merge → primo deploy da GitHub → verifica `version.json` → invito amici → messaggio nel gruppo.
+## Lavoro in gruppo (1 ott 2026, sera) — attivo
+- Si lavora con **issue → ramo → PR → `/consegna`**, anche il Claude di Jack. Deploy solo da GitHub Actions (`deploy.yml`): suite completa (~16 min, una riprova per le e2e cadute) → `tools/deploy.mjs --no-tail`. Primo deploy da GitHub riuscito: build `mupynbxd-cf01cc2`, 140/140. Guida `docs/CONTRIBUIRE.md`, bacheca issue #1-#9.
+- Sul Mac: `gh` installato e loggato come `worldwidejack` con scope `workflow` (push con `git -c credential.helper= -c credential.helper='!gh auth git-credential' push`). Segreti `CLOUDFLARE_API_TOKEN` (token `marea-github`) e `CLOUDFLARE_ACCOUNT_ID` nel repo.
+- GitHub Actions gira a 2-4 fps: test e2e con tempi fissi brevi cadono lì. Aspettare lo stato, non il tempo.
+- **Da fare**: amici → scrivono lo username GitHub nel gruppo → `gh api -X PUT repos/worldwidejack/marea/collaborators/<user> -f permission=push`.
 
 ## Dove siamo
 - **M1 · Fetta 1, 2 e 3 nel repo**, suite 128/128, `_STATO.md` aggiornato.
