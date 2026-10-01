@@ -1,11 +1,12 @@
-# MAREA — CONTRACTS (congelato in Fase A; cambia solo tramite l'orchestratore)
+# MAREA — CONTRACTS (interfacce tra pacchetti; si cambiano con una PR che aggiorna anche questo file)
 
 > Leggere con `TECH.md` §3 (regole di codice) e `ROADMAP.md`. Ogni file della tabella di proprietà esiste già come **stub che esporta l'interfaccia finale**: sostituisci il corpo, tieni nomi e firme. Gli stub segnati «funzionante» fanno girare il walking skeleton: tienili in piedi mentre li sostituisci.
 
 Comandi: `npm run dev` · `npm run build` · `npm run check` (tsc) · `npm test` (= `node tests/run.mjs all`) · `node tests/run.mjs static sim boot` · `npm run deploy`.
-Gli agenti **non** fanno deploy né push: lo fa l'orchestratore in Fase C.
+Deploy solo da GitHub dopo il merge su `main` (`docs/CONTRIBUIRE.md`). I subagent di una sessione non fanno commit, push né merge.
 
-## 1. Proprietà dei file (Fase B: si toccano solo i propri; il resto si legge)
+## 1. Mappa del codice
+Dal 1 ott 2026 il codice è di tutti (ognuno lavora su tutto, coordinandosi con le issue: `docs/CONTRIBUIRE.md`). La tabella sotto resta come **mappa di dove sta cosa** e come divisione per i **subagent dentro una sessione** (file disgiunti tra agenti paralleli).
 | WP | Possiede |
 |---|---|
 | **WP0 orchestratore** | `package.json`, `tsconfig*`, `docs/**`, `CLAUDE.md`, `apps/client/index.html`, `apps/client/vite.config.ts`, `apps/client/src/{main,flags}.ts`, `apps/client/src/game/world.ts`, `apps/client/src/ui/**`, `apps/client/src/test/**`, `packages/protocol/**`, `packages/content/**` tranne `balance.json` e `minigames/*.json`, `tools/check_types.mjs` |
@@ -15,7 +16,7 @@ Gli agenti **non** fanno deploy né push: lo fa l'orchestratore in Fase C.
 | **WP4 server+net** | `apps/server/**`, `apps/client/src/net/**`, `tests/e2e/wp4_*.mjs` |
 | **WP5 asset** | `assets/**`, `tools/build_assets.mjs`, `tools/export_gltf.py`, `apps/client/public/assets/**` |
 | **WP6 test+deploy** | `tests/run.mjs`, `tests/lib/**`, `tests/e2e/{boot,look,perf}.mjs`, `tools/{build,deploy,check_static,contact}.mjs` |
-Serve un cambiamento in un file altrui → scrivilo in `tests/out/richieste/<wp>.md` (cosa, perché, firma proposta) e vai avanti con un adattatore nei tuoi file. L'orchestratore integra.
+Subagent: serve un cambiamento in un file di un altro agente → scrivilo in `tests/out/richieste/<wp>.md` (cosa, perché, firma proposta) e vai avanti con un adattatore nei tuoi file; chi coordina la sessione integra.
 
 ## 2. Convenzioni
 - 1 unità = 1 m, Y su, −Z avanti; posizioni nel mondo `{x, z}` (piano) + `y` solo per la resa. Angoli in radianti, `yaw` attorno a Y, 0 = −Z.

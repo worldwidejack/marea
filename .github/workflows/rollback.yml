@@ -1,0 +1,36 @@
+# Salvagente: riporta online la versione precedente del Worker. Non annulla le migrazioni del database.
+# GitHub → Actions → «Torna indietro» → Run workflow.
+name: Torna indietro
+on:
+  workflow_dispatch:
+    inputs:
+      perche:
+        description: Cosa non va nella versione online
+        required: true
+        default: problema dopo l'ultimo deploy
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: '1'
+      WRANGLER_SEND_METRICS: 'false'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - name: Versione precedente
+        working-directory: apps/server
+        env:
+          PERCHE: ${{ inputs.perche }}
+        run: node ../../node_modules/wrangler/bin/wrangler.js rollback --yes --message "$PERCHE"
+      - name: Cosa c'è online ora
+        run: curl -s https://marea.stanza-idee.workers.dev/version.json >> "$GITHUB_STEP_SUMMARY"
