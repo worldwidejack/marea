@@ -7,7 +7,8 @@ import balance from './balance.json' with { type: 'json' };
 import regata from './minigames/regata.json' with { type: 'json' };
 import decor from './decor.json' with { type: 'json' };
 import archipelago from './archipelago.json' with { type: 'json' };
-import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, DecorDef, IslandDef, RegataCfg, ResourceDef } from './types.ts';
+import scacchi from './scacchi.json' with { type: 'json' };
+import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, DecorDef, IslandDef, RegataCfg, ResourceDef, ScacchiCfg } from './types.ts';
 import { validateAll, validateArchipelago } from './schema.ts';
 
 export type * from './types.ts';
@@ -20,6 +21,7 @@ export const BALANCE = balance as unknown as BalanceDef;
 export const MINIGAMES_CFG: { regata: RegataCfg } = { regata: regata as unknown as RegataCfg };
 export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;
+export const SCACCHI = scacchi as unknown as ScacchiCfg;
 
 export function decorDef(id: string): DecorDef {
   const d = DECOR.find((x) => x.id === id);

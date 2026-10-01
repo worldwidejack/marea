@@ -64,6 +64,9 @@ export type BalanceDef = {
   avatar: { camminata: number; corsa: number; sogliaCorsa: number; raggio: number };
   barca: { accel: number; maxSpeed: number; virata: number; attrito: number; rimbalzo: number; raggioImbarco: number };
 };
+/** Scacco in 3 (Tavolo del Porto): posizioni FEN (solo pezzi), il Bianco fa `mosse` mosse di fila e il Nero sta fermo. */
+export type ScacchiCfg = { nome: string; mosse: number; problemi: { fen: string; soluzione: string }[] };
+
 export type RegataCfg = {
   id: 'regata';
   nome: string;

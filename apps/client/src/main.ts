@@ -78,10 +78,11 @@ async function boot(): Promise<void> {
   // Regata e Tavolo: E (o A) vicino al Tavolo del Porto apre il pannello; in gara la barca la muove la sim, l'avatar sta fermo.
   const regata = await setupRegata({ world, loader, hud, root, cameraYaw: () => renderer.diorama.yaw });
   // minigiochi da solo: ognuno al suo posto (la Regata al molo della Laguna), premio in risorse deciso dal server
-  const giochi = createMinigiochi({ world, loader, api: me && api.enabled ? api : null, hud, root, camera: renderer.camera, canvas, onLot: () => refreshMyLot() });
-  for (const sp of giochi.spots) targets.push({ id: sp.id, label: sp.nome, icon: 'regata', x: sp.x, z: sp.z });
-  const compass = createCompass({ root, targets });
+  // senza sfide con posta il Tavolo del Porto diventa il posto di Scacco in 3
   const tavoloAt = arch.buildings.find((b) => b.kind === 'tavolo') ?? null;
+  const giochi = createMinigiochi({ world, loader, api: me && api.enabled ? api : null, hud, root, camera: renderer.camera, canvas, onLot: () => refreshMyLot(), tavolo: FLAGS.sfide ? null : tavoloAt });
+  for (const sp of giochi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z });
+  const compass = createCompass({ root, targets });
   let closedAt = 0, nearWas = false, aWasT = false;
   /** Risorse cambiate fuori dal lotto (posta, esito di una sfida): la barra si aggiorna subito, non al poll dei 30 s. */
   const refreshMyLot = () => { void lots.find((lv) => !lv.readonly)?.refresh(); };

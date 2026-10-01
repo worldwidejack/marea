@@ -23,6 +23,7 @@ Onestà sui tagli: dei 4 tipi di minigioco entro dicembre ne entra **1 sicuro (R
 ## Deviazioni dal piano
 Se una scelta si rivela sbagliata sul campo, cambiarla è legittimo: **annotare qui data, cosa e perché**, così questo file resta la mappa del territorio reale.
 
+- *(1 ott 2026, Sessione 6)* Minigioco non previsto dal GDD: **Scacco in 3** al Tavolo del Porto (il Nero sta fermo, 3 mosse di fila per il matto), voluto da Jack come concetto da far vedere agli amici. Con le sfide con posta spente il Tavolo è il suo posto; niente premio in risorse (servirebbe il replay sul server). Motore in `packages/sim/src/minigames/scacchi.ts`, 6 problemi in `packages/content/src/scacchi.json` verificati dal test.
 - *(29 set 2026, Sessione 1)* Connettore GitHub senza permesso di creare repo (403): repo creato via API con il token locale del Mac, come previsto da `_GITHUB/TOKEN_SPOSTATO.md`.
 - *(29 set 2026, Sessione 1)* Blender MCP non collegato: gli asset di Sessione 1 passano da Blender **headless** (`tools/export_gltf.py`), che è comunque la via riproducibile. Il bridge serve solo per mostrare a Jack il viewport in diretta.
 - *(29 set 2026, Sessione 1)* Aggiunta devDependency `@types/node`: i test della sim usano `node:test` e `node:assert`, e tsc deve conoscerli.

@@ -1,9 +1,10 @@
-// Minigiochi da solo (senza posta): ogni minigioco ha il suo posto su un'isola (la Regata al molo della Laguna, il via della gara).
+// Minigiochi da solo (senza posta): ogni minigioco ha il suo posto su un'isola (la Regata al molo della Laguna, il via della gara;
+// Scacco in 3 al Tavolo del Porto, quando le sfide con posta sono spente: ti siedi e si apre la scacchiera, niente premio).
 // Nel mondo: boa grande e cartello «REGATA» che si vede da lontano; vicino compare il bottone GIOCA (A / E / Spazio sulla tastiera).
 // Il seed lo sceglie il server, che poi rigioca gli input, decide la medaglia e paga il premio (balance.solo: Legno, Pietra, Perle).
 // Alla fine una scheda con l'esito, il premio che vola nella barra e RIGIOCA.
 import * as THREE from 'three';
-import { MINIGAMES_CFG } from '@marea/content';
+import { MINIGAMES_CFG, SCACCHI } from '@marea/content';
 import type { Medal, Resources } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Loader } from '../render/loader.ts';
@@ -13,10 +14,12 @@ import { ApiError } from '../net/api.ts';
 import { runRegata } from './regata.ts';
 import { PAL, el, injectUiStyle } from '../ui/style.ts';
 import { RES_IDS, pixIcon, resIcon } from '../ui/icons.ts';
+import type { PixId } from '../ui/icons.ts';
+import { createScacchi } from '../ui/scacchi.ts';
 import { createLabelLayer, flyResources } from '../ui/sheet.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
-export type Spot = { id: string; nome: string; minigame: string; x: number; z: number };
+export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean };
 export type Minigiochi = {
   readonly spots: readonly Spot[];
   /** Un tick (60 Hz): vicino a un posto, il fronte di salita di A fa partire la partita. */
@@ -46,23 +49,26 @@ const CSS = `
 .mz-esito .premio span { display: inline-flex; align-items: center; gap: 6px; }
 `;
 
-export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement; onLot(): void }): Minigiochi {
+export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement; onLot(): void; tavolo?: { x: number; z: number } | null }): Minigiochi {
   injectUiStyle();
   if (!document.getElementById('mz-minigiochi-style')) { const st = document.createElement('style'); st.id = 'mz-minigiochi-style'; st.textContent = CSS; document.head.appendChild(st); }
   const arch = o.world.archipelago;
   // la Regata parte dal molo (B) dell'isola del percorso
   const cfg = MINIGAMES_CFG.regata, lag = arch.places.find((p) => p.island === cfg.course.island) ?? arch.places.find((p) => p.role === 'laguna');
-  const spots: Spot[] = lag ? [{ id: 'regata', nome: cfg.nome, minigame: 'regata', x: lag.boat.x, z: lag.boat.z }] : [];
+  const spots: Spot[] = lag ? [{ id: 'regata', nome: cfg.nome, minigame: 'regata', x: lag.boat.x, z: lag.boat.z, icon: 'regata', near: NEAR_M, boa: true }] : [];
+  if (o.tavolo) spots.push({ id: 'scacchi', nome: SCACCHI.nome, minigame: 'scacchi', x: o.tavolo.x, z: o.tavolo.z, icon: 'scacchi', near: 5, boa: false });
+  let chClosedAt = 0;
+  const scacchi = createScacchi({ root: o.root, onClose: () => { chClosedAt = performance.now(); } });
 
   // ---- nel mondo: boa grande al via + cartello DOM che si vede anche da lontano ----
   const group = new THREE.Group(); group.name = 'minigiochi'; o.world.scene.add(group);
   const layer = createLabelLayer(o.root);
   const marks = spots.map((s) => {
     const holder = new THREE.Group(); holder.name = 'spot_' + s.id; holder.position.set(s.x, 0, s.z); holder.scale.setScalar(1.8); group.add(holder);
-    const name = o.loader.has('prop_boa_next') ? 'prop_boa_next' : null;
+    const name = s.boa && o.loader.has('prop_boa_next') ? 'prop_boa_next' : null;
     if (name) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => {});
     const label = layer.add(() => { void play(s); });
-    label.set('bubble', [pixIcon('regata', 16), el('span', '', s.nome.toUpperCase())], 'spot');
+    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome.toUpperCase())], 'spot');
     label.el.classList.add('spot');
     return { s, holder, label };
   });
@@ -115,7 +121,8 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   }
 
   async function play(s: Spot): Promise<void> {
-    if (busy || open || o.world.race.on) return;
+    if (busy || open || o.world.race.on || scacchi.isOpen()) return;
+    if (s.minigame === 'scacchi') { btn.classList.remove('on'); if (performance.now() - chClosedAt > 400) { playedN++; scacchi.open(); } return; }
     busy = true; btn.classList.remove('on');
     try {
       let seed = 0, difficulty = 2;
@@ -148,24 +155,24 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
 
   return {
     spots,
-    isBusy: () => busy || open,
+    isBusy: () => busy || open || scacchi.isOpen(),
     played: () => playedN,
     tick(a) {
       const pressA = a && !aWas; aWas = a;
-      if (o.world.race.on || busy || open) { near = null; return; }
+      if (o.world.race.on || busy || open || scacchi.isOpen()) { near = null; return; }
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
-      near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < NEAR_M) ?? null;
+      near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near) ?? null;
       if (near && near !== nearWas) o.hud.toast(`${near.nome}: premi A o tocca GIOCA`, 2500);
       nearWas = near;
       if (near && pressA) void play(near);
     },
     update(t) {
-      const show = !!near && !busy && !open && !o.world.race.on;
-      if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon('regata', 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', 'A')); }
+      const show = !!near && !busy && !open && !o.world.race.on && !scacchi.isOpen();
+      if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', 'A')); }
       btn.classList.toggle('on', show);
       for (const m of marks) {
         m.holder.position.y = 0.1 * Math.sin(t * 2); m.holder.rotation.y = t * 0.5;
-        const p = screenOf(m.s.x, 4.2, m.s.z);
+        const p = screenOf(m.s.x, m.s.boa ? 4.2 : 3.4, m.s.z);
         m.label.place(p.x, p.y, p.on && !o.world.race.on);
       }
     },

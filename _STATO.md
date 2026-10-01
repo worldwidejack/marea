@@ -5,7 +5,7 @@ aggiornato: 2026-10-01
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-**Online** (build `mupnb8jl`): Fetta 3 + prova con gli amici (isole vicine, bussola chiara, guida «Primi passi», cartelli Costruisci, Regata da soli con premio, sfide con posta spente). Link di gruppo creato: https://marea.stanza-idee.workers.dev/?invito=cjEKGFp4xvgh (7 ingressi = le 7 isole libere; chi lo apre scrive il nome e ha la sua isola).
+**Online** (build `mupod22y`) con link di gruppo (https://marea.stanza-idee.workers.dev/?invito=cjEKGFp4xvgh, 7 ingressi): isola Casa, Porto, Regata e ora **Scacco in 3** al Tavolo del Porto (il Nero sta fermo, 3 mosse di fila per il matto, 6 problemi).
 
 ## Prossimo passo
 Jack manda il link nel gruppo e raccoglie cosa non capiscono/cosa piace; Claude corregge. Link nuovo: `node apps/server/scripts/invito_gruppo.mjs --usi N --remote`.

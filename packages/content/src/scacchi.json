@@ -1,0 +1,12 @@
+{
+  "nome": "Scacco in 3",
+  "mosse": 3,
+  "problemi": [
+    { "fen": "2k5/ppp5/7p/1R6/1N6/2N5/5PPP/6K1", "soluzione": "Td5, Cc6, Td8#" },
+    { "fen": "6k1/5p1p/6p1/2R5/5b2/8/5PPP/6KN", "soluzione": "Cg3, Cf5 (o Ch5), Tc8#" },
+    { "fen": "1Bk5/ppp5/8/3R4/8/8/5PPP/6K1", "soluzione": "Ac7, Ab6 (o Aa5), Td8#" },
+    { "fen": "5nk1/5pp1/2N4p/8/8/2R5/5PPP/6K1", "soluzione": "Ce7+, Th3, Txh6#" },
+    { "fen": "6k1/5ppp/2rq4/8/8/8/R3BPPP/6K1", "soluzione": "Td2, Txd6, Td8#" },
+    { "fen": "4q1k1/5pp1/4B1Rp/8/8/8/5PPP/5RK1", "soluzione": "Af5, Te6, Txe8#" }
+  ]
+}
