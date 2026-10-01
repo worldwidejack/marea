@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm ci)",
+      "Bash(npm run dev)",
+      "Bash(npm run dev:server)",
+      "Bash(npm run build)",
+      "Bash(npm run check)",
+      "Bash(npm run assets)",
+      "Bash(npm test)",
+      "Bash(node tests/run.mjs:*)",
+      "Bash(node --test:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git switch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git rebase:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run watch:*)"
+    ],
+    "deny": [
+      "Bash(npm run deploy:*)",
+      "Bash(node tools/deploy.mjs:*)",
+      "Bash(git push origin main:*)",
+      "Bash(git push -f origin main:*)",
+      "Bash(git push --force origin main:*)"
+    ]
+  }
+}

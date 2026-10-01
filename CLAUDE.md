@@ -1,27 +1,41 @@
 # MAREA — regole per gli agenti (leggi prima di toccare qualsiasi cosa)
 
-**Cos'è**: arcipelago 3D low-poly pixel-art condiviso tra gli amici di Jack. La tua isola produce anche quando non ci sei; minigiochi nelle zone comuni con scommesse di risorse. Browser, da link, anche dal telefono. Prima serata con gli amici: **27-30 dic 2026**.
+**Cos'è**: arcipelago 3D low-poly pixel-art condiviso tra un gruppo di amici. La tua isola produce anche quando non ci sei; minigiochi nelle zone comuni. Browser, da link, anche dal telefono. Prima serata tutti insieme: **27-30 dic 2026**.
 
-**Dove sta cosa**: design `docs/GDD.md` (vince su tutto) · look `docs/ART_BIBLE.md` · architettura e regole di codice `docs/TECH.md` · messaggi `docs/PROTOCOL.md` · tappe e deviazioni `docs/ROADMAP.md` · contratti tra pacchetti e **proprietà dei file** `docs/CONTRACTS.md` · idee parcheggiate `docs/BACKLOG.md` · stato per il tabellone `_STATO.md` · storia `_MEMORIA.md`.
+**Chi ci lavora**: Jack (il progetto è suo, decide il gusto) e i suoi amici, **ognuno col proprio Claude/Codex, tutti in parallelo e su tutto il codice**. Nessuno di loro è per forza un programmatore: decidi tu il come, chiedi alla persona solo il cosa (gusto, priorità), con scelte A/B e screenshot, mai domande aperte.
 
-**Online**: https://marea.stanza-idee.workers.dev · repo privato `worldwidejack/marea` · sorgente `~/Desktop/JACK/_GITHUB/marea/`.
+**Dove sta cosa**: come si lavora in gruppo `docs/CONTRIBUIRE.md` · design `docs/GDD.md` (vince su tutto) · look `docs/ART_BIBLE.md` · architettura e regole di codice `docs/TECH.md` · messaggi `docs/PROTOCOL.md` · tappe e deviazioni `docs/ROADMAP.md` · interfacce tra pacchetti e mappa del codice `docs/CONTRACTS.md` · idee parcheggiate `docs/BACKLOG.md` · lavori da fare: **GitHub Issues** del repo.
 
-**Comandi**: `npm run dev` (client, proxy verso `npm run dev:server`) · `npm run build` · `npm run check` · `npm test` · `node tests/run.mjs boot` · `npm run assets` · `npm run deploy` (solo l'orchestratore).
+**Online**: https://marea.stanza-idee.workers.dev · repo privato `worldwidejack/marea`.
 
-## Regole
-1. **Ogni sessione finisce deployata e con `_STATO.md` aggiornato.** Mai lasciare `main` rotto: il tempo di Jack arriva a raffiche e un progetto rotto non si riapre.
-2. **Tocca solo i file che possiedi** (`CONTRACTS.md` §1). Serve altro → `tests/out/richieste/<wp>.md` e un adattatore nei tuoi file.
-3. **`packages/sim` è puro**: niente DOM, `three`, `Math.random`, `Date.now`, `performance.now`, timer. Casualità solo da `createRng(seed)`. Lo controlla `tools/check_static.mjs`.
-4. **TypeScript erasable**: niente `enum`, `namespace`, parameter properties; `import type` per i tipi; import relativi con `.ts`. Node 26 esegue i `.ts` senza build.
-5. **Numeri di gioco solo in `packages/content`** (JSON). Cambiarli = aggiornare la tabella del GDD e una riga in `ROADMAP.md` §Deviazioni.
-6. **Nessuna dipendenza nuova** senza riga in `ROADMAP.md` §Deviazioni.
-7. **Verifica prima di dire fatto**: `npm test` verde, screenshot in `tests/out/`, numeri (draw call, KB, fps). Un tool che risponde ok non prova niente.
-8. **Look**: solo colori della palette (`ART_BIBLE.md` §2), texture nearest, un atlas, flat shading, avatar a 6 teste stile PS1. Mai Roblox/Fall Guys, mai gradienti lisci, mai PBR.
-9. **Telefono prima**: tutto si prova a 390×844; un pollice basta per giocare.
-10. **Budget** (`TECH.md` §5) fa fallire la build: rispettalo, non alzarlo.
+**Comandi**: `npm run dev` (client, proxy verso `npm run dev:server`) · `npm run build` · `npm run check` · `node tests/run.mjs static types sim boot` (veloce) · `npm test` (tutto, ~10 min) · `npm run assets` · `/consegna` (chiude il lavoro e lo manda online).
 
-## Come si parla a Jack
-Italiano, corto, operativo. Decidi tu il come, chiedi a lui solo il cosa (gusto, priorità). **Scelte A/B con screenshot, mai domande aperte.** File da fargli vedere: aprili tu con `open "<percorso>"`. Niente «ottima domanda», niente entusiasmo finto, niente muri di testo.
+## Flusso di lavoro (per tutti)
+1. Un lavoro = una **issue** assegnata a te. Non c'è? Creala prima di iniziare, così gli altri sanno che ci sei sopra.
+2. Un **ramo** per lavoro (`nome/cosa-fai`), partendo da `main` aggiornato. **Mai commit o push diretti su `main`.**
+3. Lavoro piccolo: una PR = una cosa. Meglio tre PR da un'ora che una da una settimana (meno conflitti con gli altri).
+4. Chiudi con **`/consegna`**: test veloci → PR → controlli di GitHub → merge → deploy automatico.
+5. **Il deploy lo fa solo GitHub** quando `main` passa la suite completa. Mai `npm run deploy` né `wrangler` verso Cloudflare a mano.
 
-## Fine sessione (orchestratore)
-`npm test` → `npm run deploy` → contact sheet a Jack → `_STATO.md` («Siamo arrivati a / Prossimo passo», data) → `_MEMORIA.md` (dettaglio) → `python3 "$HOME/Desktop/JACK/0 JACKOS/_strumenti/tabellone.py"` → commit e push.
+## Regole di codice
+1. **Mai lasciare `main` rotto.** Se i controlli della tua PR sono rossi, non si fa merge: si sistema.
+2. **`packages/sim` è puro**: niente DOM, `three`, `Math.random`, `Date.now`, `performance.now`, timer. Casualità solo da `createRng(seed)`. Lo controlla `tools/check_static.mjs`.
+3. **TypeScript erasable**: niente `enum`, `namespace`, parameter properties; `import type` per i tipi; import relativi con `.ts`. Node 26 esegue i `.ts` senza build.
+4. **Numeri di gioco solo in `packages/content`** (JSON). Cambiarli = aggiornare la tabella del GDD e una riga in `ROADMAP.md` §Deviazioni.
+5. **Nessuna dipendenza nuova** senza riga in `ROADMAP.md` §Deviazioni.
+6. **Verifica prima di dire fatto**: test verdi, screenshot in `tests/out/` guardati davvero, numeri (draw call, KB). Un tool che risponde ok non prova niente.
+7. **Look**: solo colori della palette (`ART_BIBLE.md` §2), texture nearest, un atlas, flat shading, avatar a 6 teste stile PS1. Mai Roblox/Fall Guys, mai gradienti lisci, mai PBR.
+8. **Telefono prima**: tutto si prova a 390×844; un pollice basta per giocare. Jack gioca da PC: tastiera e mouse devono restare comodi.
+9. **Budget** (`TECH.md` §5) fa fallire la build: rispettalo, non alzarlo.
+10. **Database**: una modifica allo schema = nuova migrazione in `apps/server/migrations/` col numero successivo all'ultimo su `main`. Se un altro ha preso il tuo numero prima di te, rinumera la tua.
+11. **Subagent dentro una sessione**: file disgiunti tra loro (un agente per pacchetto, mappa in `CONTRACTS.md` §1). Gli agenti non fanno commit, push, merge.
+
+## Come si parla alle persone
+Italiano, corto, operativo. Niente «ottima domanda», niente entusiasmo finto, niente muri di testo. Scelte A/B con screenshot. A fine lavoro: 3 righe su cosa è fatto, cosa resta, e il link al gioco.
+
+## Solo sul Mac di Jack (utente `giacomolevi`, cartella `~/Desktop/JACK/`)
+Se non sei su quel Mac, salta questa sezione: i file qui citati non esistono da te.
+- File da fargli vedere: aprili tu con `open "<percorso>"`.
+- Fine sessione: `_STATO.md` («Siamo arrivati a / Prossimo passo», data) → `_MEMORIA.md` (dettaglio) → `python3 "$HOME/Desktop/JACK/0 JACKOS/_strumenti/tabellone.py"`. `_STATO.md` e `_MEMORIA.md` li scrive solo il Claude di Jack (sono il suo diario del progetto): gli amici raccontano il loro lavoro nella PR.
+- Link personale con token in `~/.config/jackos/marea-jack-link.txt` (mai nel repo). Inviti: `node apps/server/scripts/invito_gruppo.mjs --usi N --remote` (usa il login Cloudflare del Mac).
+- Push con il token locale: `git -c credential.helper='!f() { echo username=worldwidejack; echo "password=$(cat ~/.config/jackos/gh-token)"; }; f' push`.

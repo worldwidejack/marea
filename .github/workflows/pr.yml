@@ -1,0 +1,38 @@
+# Controlli su ogni Pull Request: tipi, sim, budget della build, avvio del gioco. Verde = si può fare merge.
+name: Controlli
+on:
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: controlli-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  controlli:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: '1'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - name: Migrazioni D1 senza numeri doppi
+        run: |
+          doppi=$(ls apps/server/migrations/*.sql | xargs -n1 basename | cut -d_ -f1 | sort | uniq -d)
+          if [ -n "$doppi" ]; then echo "::error::Due migrazioni con lo stesso numero: $doppi. Rinumera la tua (successivo all'ultimo su main)."; exit 1; fi
+      - name: Test veloci (static, types, sim, boot)
+        run: node tests/run.mjs static types sim boot
+      - name: Screenshot e report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-out
+          path: |
+            tests/out/report.json
+            tests/out/shots/
+          retention-days: 7
+          if-no-files-found: ignore

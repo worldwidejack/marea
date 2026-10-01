@@ -5,7 +5,7 @@ aggiornato: 2026-10-01
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-**Online** (build `mupod22y`) con link di gruppo (https://marea.stanza-idee.workers.dev/?invito=cjEKGFp4xvgh, 7 ingressi): isola Casa, Porto, Regata e ora **Scacco in 3** al Tavolo del Porto (il Nero sta fermo, 3 mosse di fila per il matto, 6 problemi).
+**Online** (build `mupod22y`) con link di gruppo, Regata e Scacco in 3. Pronto il **lavoro in gruppo** (ramo `jack/lavoro-in-gruppo`): ogni amico col suo Claude prende una issue (#1-#9 già in bacheca), fa una PR, GitHub la controlla e la manda online da solo; guida `docs/CONTRIBUIRE.md`.
 
 ## Prossimo passo
-Jack manda il link nel gruppo e raccoglie cosa non capiscono/cosa piace; Claude corregge. Link nuovo: `node apps/server/scripts/invito_gruppo.mjs --usi N --remote`.
+Jack: spunta `workflow` sul token GitHub, crea il token Cloudflare, dà gli username GitHub degli amici. Claude: push del ramo, PR, primo deploy da GitHub, inviti, messaggio per il gruppo (dettaglio in `docs/HANDOFF.md`).
