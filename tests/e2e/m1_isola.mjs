@@ -165,8 +165,9 @@ export default async function (ctx) {
       await page.click('#mzSheet button[data-act="raccogli"]');
       const flew = await page.waitForSelector('.mz-fly', { timeout: 3000 }).then(() => true).catch(() => false);
       await ctx.waitState(page, (s, b) => s.lot.resources.legno > b, 8000, before);
-      await sleep(900);
       const after = await st();
+      // la barra arriva al valore col volo: si aspetta che coincida (a 2 fps, su GitHub, ci mette ben più di 900 ms)
+      await page.waitForFunction((n) => document.querySelector('#mzBar [data-res="legno"]')?.textContent.trim() === String(n), after.resources.legno, { timeout: 8000 }).catch(() => {});
       const bar = await page.textContent('#mzBar [data-res="legno"]');
       ctx.log(`raccolti ${after.resources.legno - before} Legno · volo ${flew} · barra «${bar.trim()}»`);
       ctx.assert(flew, 'nessuna risorsa in volo');

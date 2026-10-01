@@ -56,6 +56,7 @@ Conflitti: tieni **entrambe** le modifiche quando possibile (sono lavori diversi
 - GitHub fa girare **tutta** la suite (`npm test`, ~10-12 min). Verde → `tools/deploy.mjs` pubblica su https://marea.stanza-idee.workers.dev (migrazioni del database comprese). Rosso → online resta la versione di prima, e chi ha fatto l'ultimo merge sistema con una PR nuova.
 - Se dopo un deploy il gioco online ha un problema: GitHub → Actions → **Torna indietro** → Run workflow. Riporta online la versione precedente in un minuto. Attenzione: non annulla le migrazioni del database.
 - Due merge ravvicinati: i deploy vanno in coda, non si accavallano.
+- GitHub disegna il gioco a 2-4 fps (contro ~60 di un Mac): se cade una suite e2e, il deploy la riprova una volta sola. Static, types, sim e budget non si riprovano. Un test e2e nuovo non deve aspettare tempi fissi brevi (`sleep(200)` sul Mac sono ~12 frame, su GitHub nemmeno uno): aspetta lo stato (`ctx.waitState`, `waitForFunction`).
 
 ## 7. Regole del gruppo
 - **Mai push su `main`, mai `npm run deploy`, mai `wrangler` verso Cloudflare.** GitHub non lo impedisce (repo privato gratis), quindi è una regola d'onore: il gioco online è di tutti.
