@@ -174,7 +174,7 @@ export function createEmotes(o: { world: GameWorld; camera: Camera; canvas: HTML
   }
 
   registerStateProvider('emotes', () => ({
-    cooldown: cooldownS(), last, coarse, row: !!row?.classList.contains('on'),
+    cooldown: cooldownS(), last, coarse, row: !!row?.classList.contains('on'), blocked: o.world.race.on || o.world.frozen,
     shown: [...bubbles.values()].map((b) => ({ who: b.who, id: b.id, x: b.x, y: b.y, on: b.on, age: (performance.now() - b.born) / 1000 })),
   }));
   return {
