@@ -23,6 +23,8 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
+      - name: ffmpeg (serve al contact sheet)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
       - name: Suite completa
         run: npm test
       - name: Screenshot e report

@@ -6,6 +6,8 @@ import net from 'node:net';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 export const timeout = 200000;
+// Latenza massima del fumetto visto da un altro: 1,5 s (requisito, misurato sul Mac). Su GitHub Actions il rendering software va a 2-4 fps: lì si controlla che arrivi, con margine.
+const LAT = process.env.CI ? 4000 : 1500;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -88,11 +90,11 @@ export default async function (ctx) {
     let seenAt = 0;
     await ctx.test('Bruno vede il fumetto sopra Anna entro 1,5 s, sulla sua testa', async () => {
       // polling a intervallo (non a requestAnimationFrame: la scheda di Bruno è dietro); il ritardo vero lo dice l'età del fumetto
-      await bruno.page.waitForFunction(() => !!document.querySelector('.mz-emote[data-who="anna"][data-emote="saluto"]'), null, { timeout: 1500, polling: 30 });
+      await bruno.page.waitForFunction(() => !!document.querySelector('.mz-emote[data-who="anna"][data-emote="saluto"]'), null, { timeout: LAT, polling: 30 });
       seenAt = Date.now();
       const born = await bruno.page.evaluate(() => Date.now() - 1000 * (window.__game.state().emotes.shown.find((x) => x.who === 'anna')?.age ?? 0));
       ctx.log(`Bruno lo trova dopo ${seenAt - pressAt} ms (fumetto nato ${born - pressAt} ms dopo la pressione)`);
-      assert(seenAt - pressAt < 1500 && born - pressAt < 1500, `Bruno lo vede dopo ${seenAt - pressAt} ms`);
+      assert(seenAt - pressAt < LAT && born - pressAt < LAT, `Bruno lo vede dopo ${seenAt - pressAt} ms`);
       await bruno.page.bringToFront(); await sleep(150);
       const g = await bruno.page.evaluate(() => {
         const e = document.querySelector('.mz-emote[data-who="anna"]'), r = e.getBoundingClientRect(), c = document.getElementById('gl').getBoundingClientRect();
@@ -143,7 +145,7 @@ export default async function (ctx) {
       await ctx.waitState(anna.page, (s) => s.emotes.cooldown === 0 && !(s.emotes.shown ?? []).length, 5000);
       assert(await anna.page.evaluate(() => window.__game.test.openTavolo()), 'openTavolo ha risposto false');
       await ctx.waitState(anna.page, (s) => s.tavolo.open === true, 5000);
-      await sleep(200); // un frame: world.frozen
+      await ctx.waitState(anna.page, (s) => s.emotes.blocked === true, 5000); // world.frozen arriva al frame dopo (a 2 fps, su GitHub, sono 500 ms)
       anna.sent.length = 0;
       await anna.page.keyboard.press('Digit4');
       const viaHook = await anna.page.evaluate(() => window.__game.test.emote('no'));
