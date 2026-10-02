@@ -6,7 +6,12 @@
 **Issue** (il lavoro) → **ramo** → codice + test → **`/consegna`** (PR → controlli di GitHub → merge) → **deploy automatico** se la suite completa su `main` è verde. Nessuno deploya a mano, nessuno tocca Cloudflare.
 
 ## 1. Prima volta: preparare il computer (~10 minuti)
-Serve: un account GitHub già invitato nel repo (l'invito arriva per email da `worldwidejack`: va accettato), Claude Code o Codex.
+Serve: un account GitHub già invitato nel repo (l'invito arriva per email da `worldwidejack`: va accettato) e **Claude Code** (incluso in Claude Pro) o Codex.
+> **Claude Code, non la chat di claude.ai.** La chat del sito non può usare il terminale del computer e, nel cloud, non vede i repo privati: risponde «not found» o dice che non può clonare. Si installa senza permessi da amministratore:
+> - Windows (PowerShell): `irm https://claude.ai/install.ps1 | iex`
+> - Mac/Linux: `curl -fsSL https://claude.ai/install.sh | bash`
+>
+> Poi si apre un terminale in una cartella vuota e si scrive `claude`. Chi non può installare niente (PC della scuola) usa **claude.ai/code** nel browser: funziona solo dopo che Jack ha installato l'app «Claude» di GitHub sul repo `marea`, e lì non si vede il gioco in locale.
 1. **Strumenti**: `git`, **Node 26** (`node --version` → `v26.x`), **GitHub CLI** `gh`, **Google Chrome** (lo usano i test).
    - Mac: `brew install git node gh` (se Node non è il 26: `brew install node@26`). Chrome dal sito.
    - Windows: `winget install Git.Git OpenJS.NodeJS GitHub.cli Google.Chrome`.
@@ -68,4 +73,5 @@ Conflitti: tieni **entrambe** le modifiche quando possibile (sono lavori diversi
 
 ## 8. Problemi già risolti
 *(Aggiungi qui una riga quando sistemi un intoppo di installazione o di test.)*
+- «Repository not found» clonando: invito non accettato, oppure manca `gh auth login` (repo privato: `git clone` senza login e «Download ZIP» non funzionano).
 - I test e2e cercano Chrome installato; senza, provano la «headless shell» di Playwright in cache (solo Mac).
