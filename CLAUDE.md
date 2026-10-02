@@ -38,4 +38,5 @@ Se non sei su quel Mac, salta questa sezione: i file qui citati non esistono da 
 - File da fargli vedere: aprili tu con `open "<percorso>"`.
 - Fine sessione: `_STATO.md` («Siamo arrivati a / Prossimo passo», data) → `_MEMORIA.md` (dettaglio) → `python3 "$HOME/Desktop/JACK/0 JACKOS/_strumenti/tabellone.py"`. `_STATO.md` e `_MEMORIA.md` li scrive solo il Claude di Jack (sono il suo diario del progetto): gli amici raccontano il loro lavoro nella PR.
 - Link personale con token in `~/.config/jackos/marea-jack-link.txt` (mai nel repo). Inviti: `node apps/server/scripts/invito_gruppo.mjs --usi N --remote` (usa il login Cloudflare del Mac).
-- Push con il token locale: `git -c credential.helper='!f() { echo username=worldwidejack; echo "password=$(cat ~/.config/jackos/gh-token)"; }; f' push`.
+- Push e PR con `gh` (loggato come `worldwidejack`, scope `workflow`): `git -c credential.helper= -c credential.helper='!gh auth git-credential' push`. Il vecchio `~/.config/jackos/gh-token` ha solo `repo`: GitHub gli rifiuta i file in `.github/workflows/`.
+- Invitare un amico: `gh api -X PUT repos/worldwidejack/marea/collaborators/<username> -f permission=push`.
