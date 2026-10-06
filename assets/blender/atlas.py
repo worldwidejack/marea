@@ -68,8 +68,21 @@ REGIONS['ui_legno'] = (320, 896, 16, 16)
 REGIONS['ui_pietra'] = (336, 896, 16, 16)
 REGIONS['ui_perle'] = (352, 896, 16, 16)
 
+# Mondo Sotterraneo (6 ott 2026) — solo aggiunte in zone libere, le regioni esistenti non si spostano.
+_grid(['grotta_pav', 'grotta_muro', 'cripta_pav', 'cripta_muro', 'vuoto_pav', 'vuoto_muro', 'vetro_serra'], 256, 128)   # dungeon e serra
+_grid(['ossa', 'pelliccia', 'chitina', 'cristallo', 'ferro_rotto', 'cuoio', 'pagine', 'foglie'], 768, 512, 32, 32, 32)  # nemici e prop
+_grid(['tela_sacco', 'cappuccio', 'lacca_scura', 'pietra_cripta'], 256, 544, 32, 32, 32)
+REGIONS['teschio'] = (128, 576, 14, 18)       # viso del teschio, proiezione frontale come `testa`
+# campioni piatti 8x8 di ogni colore della palette (dettagli piccoli: occhi, fiori, liquidi, segni)
+for _i, _n in enumerate(P):
+    REGIONS['p_' + _n] = (_i * 8, 640, 8, 8)
+REGIONS['testa_bandito'] = (224, 768, 14, 18)  # viso a colore fisso (cappuccio e fazzoletto), 64 texel/m come `testa`
+REGIONS['pelle_bandito'] = (240, 768, 8, 8)
+REGIONS['lama'] = (248, 768, 16, 16)           # maschera bianca delle lame (mat_lama): il client la tinge col colore del materiale
+_grid(['em_fuoco', 'em_cristallo', 'em_neon_rosso', 'em_scala', 'em_vuoto', 'em_spettro', 'em_runa'], 0, 928, 32, 32, 32)
+
 EMISSIVE = {n for n in REGIONS if n.startswith('em_')}
-TINT_MASK = {'testa', 'pelle', 'capelli', 'vestito', 'mano', 'cappello'}
+TINT_MASK = {'testa', 'pelle', 'capelli', 'vestito', 'mano', 'cappello', 'lama'}
 
 
 # ---------------------------------------------------------------- pittura
@@ -587,10 +600,238 @@ def paint_m1(cv):
     R('insegna_h', bottega(False))
 
 
+def paint_rpg(cv):
+    """Regioni del Mondo Sotterraneo: kit dei 3 dungeon, nemici, prop, lame, fuoco e cristalli emissivi."""
+    R = cv.region
+
+    def voronoi(cols, edge, seed, period=32, n=6, squash=1.0, vein=None):
+        def f(x, y, w, h):
+            xx, yy = x % period, y % period
+            best, second, bi = 1e9, 1e9, 0
+            for i in range(n):
+                px, py = h01(i, 1, seed) * period, h01(i, 2, seed) * period
+                for ox in (-period, 0, period):
+                    for oy in (-period, 0, period):
+                        d = (xx - px - ox) ** 2 + ((yy - py - oy) * squash) ** 2
+                        if d < best:
+                            best, second, bi = d, best, i
+                        elif d < second:
+                            second = d
+            gap = second ** 0.5 - best ** 0.5
+            if gap < 1.0:
+                if vein and h01(xx // 2, yy // 2, seed + 5) < vein[1]:
+                    return vein[0]
+                return edge
+            c = cols[bi % len(cols)]
+            if h01(xx, yy, seed + 9) < 0.06:
+                return cols[(bi + 1) % len(cols)]
+            return c
+        return f
+
+    # --- grotta: terra battuta con ciottoli, roccia scura
+    def grotta_pav(x, y, w, h):
+        xx, yy = x % 32, y % 32
+        for i in range(7):  # ciottoli 2x2 / 3x2
+            px, py = int(h01(i, 3, 201) * 30), int(h01(i, 4, 201) * 30)
+            if px <= xx <= px + 1 + (i % 2) and py <= yy <= py + 1:
+                return 'pietra_scura' if yy == py else 'roccia'
+        r = h01(xx, yy, 202)
+        return 'ombra_calda' if r < 0.12 else ('legno' if r < 0.18 else 'legno_scuro')
+    R('grotta_pav', grotta_pav)
+    R('grotta_muro', voronoi(['roccia', 'pietra_scura', 'roccia', 'roccia'], 'nero_caldo', 203, squash=1.5))
+    # --- cripta: lastre grandi con fughe, blocchi scuri con fascia incisa
+    def cripta_pav(x, y, w, h):
+        xx, yy = x % 32, y % 32
+        row = yy // 16
+        xo = (xx + (8 if row % 2 else 0)) % 32
+        if yy % 16 == 15 or xo % 16 == 0:
+            return 'nero_caldo'
+        if yy % 16 == 0 and h01(xo, yy, 204) < 0.7:
+            return 'pietra'
+        c = 'pietra_scura' if h01(xo // 16, row, 205) < 0.6 else 'roccia'
+        if h01(xx, yy, 206) < 0.05:
+            return 'roccia' if c == 'pietra_scura' else 'pietra_scura'
+        if (xx * 7 + yy * 3) % 41 == 0:
+            return 'nero_caldo'  # crepa
+        return c
+    R('cripta_pav', cripta_pav)
+
+    def cripta_muro(x, y, w, h):
+        yy = y % 32
+        if yy in (12, 13):  # fascia incisa con motivo a meandro
+            return 'nero_caldo' if (x % 6 < 3) == (yy == 12) else 'roccia'
+        return blocks('pietra_scura', 'roccia', 'nero_caldo', 'pietra', bw=10, bh=6, seed=207)(x, y, w, h)
+    R('cripta_muro', cripta_muro)
+    # --- vuoto: roccia nera con vene viola e ciano (non emissive: il bagliore lo fanno i cristalli)
+    R('vuoto_pav', voronoi(['nero_caldo', 'roccia', 'nero_caldo'], 'roccia', 208, vein=('viola', 0.22)))
+    R('vuoto_muro', voronoi(['nero_caldo', 'roccia', 'nero_caldo', 'nero_caldo'], 'roccia', 209, squash=1.7, vein=('viola', 0.18)))
+
+    def vetro_serra(x, y, w, h):  # lastre di vetro con riflesso diagonale a pixel e listelli
+        xx, yy = x % 16, y % 16
+        if xx == 0 or yy == 0:
+            return 'legno_chiaro'
+        if (xx + yy) % 9 in (0, 1) and xx < 10:
+            return 'sabbia_chiara'
+        return 'acqua_bassa' if h01(x % 32, y % 32, 210) > 0.15 else 'acqua'
+    R('vetro_serra', vetro_serra)
+
+    # --- nemici e prop (32x32)
+    def ossa(x, y, w, h):
+        r = h01(x, y, 211)
+        if (x + 2 * y) % 13 == 0:
+            return 'pietra'
+        return 'pietra_chiara' if r > 0.18 else ('sabbia_chiara' if r > 0.08 else 'pietra')
+    R('ossa', ossa)
+
+    def pelliccia(x, y, w, h):  # ciuffi diagonali grigi
+        if (x + y // 2) % 5 == 0:
+            return 'roccia'
+        r = h01(x, y, 212)
+        return 'pietra_scura' if r > 0.2 else ('pietra' if r > 0.1 else 'roccia')
+    R('pelliccia', pelliccia)
+
+    def chitina(x, y, w, h):  # placche lucide nere con bordi
+        if y % 8 == 0:
+            return 'roccia'
+        if y % 8 == 1 and x % 3 == 0:
+            return 'pietra_scura'
+        return 'nero_caldo' if h01(x, y, 213) > 0.1 else 'roccia'
+    R('chitina', chitina)
+
+    def cristallo(x, y, w, h):  # sfaccettature viola/acqua (non emissivo)
+        d = (x - y) % 12
+        if d == 0:
+            return 'acqua_bassa'
+        if d < 4:
+            return 'viola'
+        return 'abisso' if h01(x, y, 214) < 0.1 else ('acqua_profonda' if d < 8 else 'viola')
+    R('cristallo', cristallo)
+    R('ferro_rotto', speckle('roccia', [('legno_scuro', 0.18), ('legno', 0.06), ('pietra_scura', 0.08), ('nero_caldo', 0.06)], 215))
+
+    def cuoio(x, y, w, h):
+        if y % 10 == 0 or (x % 16 == 0 and y % 2 == 0):
+            return 'ombra_calda'  # cuciture
+        return 'legno' if h01(x, y, 216) > 0.12 else 'legno_scuro'
+    R('cuoio', cuoio)
+
+    def pagine(x, y, w, h):  # pagine scritte a righe, bordo scuro
+        if x in (0, w - 1) or y in (0, h - 1):
+            return 'legno_chiaro'
+        if y % 3 == 0 and 2 <= x % 16 <= 13 and h01(x, y, 217) > 0.25:
+            return 'legno'
+        return 'sabbia_chiara'
+    R('pagine', pagine)
+
+    def foglie(x, y, w, h):  # fogliame folto della serra
+        r = h01(x, y, 218)
+        if (x * 3 + y) % 7 == 0:
+            return 'erba_chiara'
+        return 'erba' if r > 0.45 else ('erba_scura' if r > 0.1 else 'bosco')
+    R('foglie', foglie)
+
+    def tela_sacco(x, y, w, h):  # iuta a trama
+        if (x % 2) ^ (y % 2):
+            return 'sabbia' if h01(x, y, 219) > 0.1 else 'legno_chiaro'
+        return 'legno_chiaro'
+    R('tela_sacco', tela_sacco)
+    R('cappuccio', speckle('bosco_ombra', [('nero_caldo', 0.12), ('bosco', 0.06)], 220))
+    R('lacca_scura', speckle('legno_scuro', [('ombra_calda', 0.1), ('rosso', 0.02)], 221))
+    R('pietra_cripta', blocks('pietra_chiara', 'pietra', 'pietra_scura', 'sabbia_chiara', bw=8, bh=5, seed=222))
+
+    def teschio(x, y, w, h):  # 14x18: orbite grandi, naso a cuore rovesciato, denti
+        e = x if x < 7 else 13 - x
+        if 7 <= y <= 10 and 2 <= e <= 5:
+            return 'nero_caldo' if not (y == 7 and e in (2, 5)) else 'pietra'
+        if y in (11, 12) and e == 6:
+            return 'nero_caldo'
+        if y == 15 and 2 <= e <= 6:
+            return 'nero_caldo' if x % 2 else 'pietra_chiara'
+        if y == 14 or y == 16:
+            return 'pietra' if 2 <= e <= 6 else 'pietra_chiara'
+        if y >= 17:
+            return 'pietra'
+        return 'pietra_chiara' if h01(x, y, 223) > 0.1 else 'sabbia_chiara'
+    R('teschio', teschio)
+    for n in P:
+        R('p_' + n, lambda x, y, w, h, n=n: n)
+
+    # --- bandito: viso a colore fisso, ombra del cappuccio in alto, fazzoletto rosso sotto gli occhi
+    def testa_bandito(x, y, w, h):
+        e = x if x < 7 else 13 - x
+        if y <= 3:
+            return 'nero_caldo' if y <= 1 else 'ombra_calda'
+        if y == 6 and e in (2, 3, 4):
+            return 'ombra_calda'                      # sopracciglia aggrottate
+        if (e, y) in ((4, 8), (4, 9), (3, 8)):
+            return 'nero_caldo'                       # occhi
+        if y >= 11:
+            if y == 11:
+                return 'legno_scuro'                  # orlo del fazzoletto
+            if (x + y) % 5 == 0:
+                return 'arancio'
+            return 'rosso'
+        return SKIN[3]
+    R('testa_bandito', testa_bandito)
+    R('pelle_bandito', lambda x, y, w, h: SKIN[3])
+    R('lama', lambda x, y, w, h: 'pietra_chiara' if (x == 0 or (x + y) % 11 == 0) else MASK)
+
+    # --- emissivi
+    def fuoco(x, y, w, h):  # lingue di fuoco a pixel: giallo al centro, arancio, rosso ai bordi
+        xx, yy = x % 32, y % 32
+        wob = int(h01(xx // 3, 0, 224) * 4)
+        d = abs(xx - 16) + max(0, (yy - 16) // 2) + wob
+        if d < 6:
+            return 'giallo'
+        if d < 11:
+            return 'arancio' if (xx + yy) % 7 else 'giallo'
+        return 'rosso_neon' if (xx + yy) % 5 else 'arancio'
+    R('em_fuoco', fuoco)
+
+    def em_cristallo(x, y, w, h):
+        d = (x + y) % 10
+        if d == 0:
+            return 'sabbia_chiara'
+        return 'ciano_neon' if d < 4 else 'viola_neon'
+    R('em_cristallo', em_cristallo)
+    R('em_neon_rosso', lambda x, y, w, h: 'rosso_neon')
+
+    def em_scala(x, y, w, h):  # luce che scende: bande verticali chiare
+        return 'sabbia_chiara' if (x // 4) % 3 == 0 else ('giallo' if h01(x, y, 225) > 0.2 else 'sabbia_chiara')
+    R('em_scala', em_scala)
+
+    def em_vuoto(x, y, w, h):  # centro del portale: spirale a pixel viola con lampi rosa e ciano
+        cx, cy = x - 15.5, y - 15.5
+        a = (int((cx * cx + cy * cy) ** 0.5) + int(4 * (1 + __import__('math').atan2(cy, cx)))) % 6
+        if a == 0:
+            return 'rosa_neon' if h01(x, y, 226) < 0.3 else 'viola'
+        if a == 3 and h01(x, y, 227) < 0.4:
+            return 'ciano_neon'
+        return 'viola_neon'
+    R('em_vuoto', em_vuoto)
+
+    def em_spettro(x, y, w, h):  # tessuto spettrale: viola neon con pieghe più scure e lampi rosa
+        if x % 8 == 0 and h01(x, y // 4, 228) < 0.7:
+            return 'viola'
+        if h01(x, y, 229) < 0.06:
+            return 'rosa_neon'
+        return 'viola_neon'
+    R('em_spettro', em_spettro)
+
+    def em_runa(x, y, w, h):  # rune ciano su nero (anello del portale)
+        xx, yy = x % 16, y % 16
+        if yy in (0, 15):
+            return 'viola_neon'
+        if 4 <= yy <= 11 and ((xx in (3, 11)) or (yy in (4, 11) and 3 <= xx <= 11) or (xx == 7 and yy < 8)):
+            return 'ciano_neon'
+        return 'nero_caldo'
+    R('em_runa', em_runa)
+
+
 def build(path):
     cv = Canvas()
     paint(cv)
     paint_m1(cv)
+    paint_rpg(cv)
     cv.png(path)
     return path
 
