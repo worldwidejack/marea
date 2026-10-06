@@ -793,7 +793,7 @@ def dng_cripta_pavimento():
     for a, b, nn in (((-1, -1), (1, -1), (0, 0, -1)), ((1, -1), (1, 1), (1, 0, 0)), ((1, 1), (-1, 1), (0, 0, 1)), ((-1, 1), (-1, -1), (-1, 0, 0))):
         face(m, [(a[0], 0, a[1]), (b[0], 0, b[1]), (b[0], -0.3, b[1]), (a[0], -0.3, a[1])], 'cripta_muro', nn)
     face(m, [(math.cos(2 * math.pi * i / 8 + math.pi / 8) * 0.32, 0.006, math.sin(2 * math.pi * i / 8 + math.pi / 8) * 0.32) for i in range(8)], 'p_roccia', (0, 1, 0))
-    face(m, [(math.cos(2 * math.pi * i / 4) * 0.18, 0.012, math.sin(2 * math.pi * i / 4) * 0.18) for i in range(4)], 'p_rosso', (0, 1, 0))
+    face(m, [(math.cos(2 * math.pi * i / 4) * 0.18, 0.012, math.sin(2 * math.pi * i / 4) * 0.18) for i in range(4)], 'p_pietra', (0, 1, 0))
     return _obj(m)
 
 

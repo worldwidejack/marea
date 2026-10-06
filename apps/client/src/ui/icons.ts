@@ -1,4 +1,4 @@
-// Icone a pixel (ART_BIBLE §9): risorse (Legno, Pietra, Perle) e luoghi/azioni (casa, Porto, Regata, Scacchi, martello). 8×8 celle → SVG nitido a qualsiasi scala.
+// Icone a pixel (ART_BIBLE §9): risorse (Legno, Pietra, Perle) e luoghi/azioni (casa, Porto, Regata, Scacchi, martello, ingresso dei dungeon). 8×8 celle → SVG nitido a qualsiasi scala.
 import type { Resources } from '@marea/sim';
 import { PAL } from './style.ts';
 
@@ -45,12 +45,13 @@ const ART: Record<ResId, string[]> = {
 };
 
 /** Icone di luoghi e azioni (bussola, guida, cartelli degli slot). */
-export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi';
+export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingresso';
 const PIX: Record<PixId, string[]> = {
   casa: ['...RR...', '..RRRR..', '.RRRRRR.', 'RRRRRRRR', '.wwwwww.', '.wwccww.', '.wwccww.', '.wwccww.'],
   porto: ['RRRRRRRR', '.RRRRRR.', '..R..R..', 'RRRRRRRR', '..R..R..', '..R..R..', '..R..R..', '.cc..cc.'],
   regata: ['.c......', '.cRRRR..', '.cRRwRR.', '.cRRRR..', '.c......', '.c......', '.c......', 'ccc.....'],
   scacchi: ['.w.ww.w.', '.wwwwww.', '..wwww..', '..wwww..', '..wwww..', '..wwww..', '.wwwwww.', 'wwwwwwww'],
+  ingresso: ['..rrrr..', '.rqqqqr.', 'rqnnnnqr', 'rqnnnnqr', 'rqnnnnqr', 'rqnnYnqr', 'rqnnnnqr', 'rrnnnnrr'], // bocca di un dungeon (Mondo Sotterraneo)
   martello: ['.qqqqqq.', 'rqqqqqqr', '.rrbbrr.', '...ba...', '...ba...', '...ba...', '...ba...', '...cc...'],
 };
 

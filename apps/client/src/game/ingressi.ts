@@ -44,7 +44,7 @@ export const INGRESSI = [
 export const dungeonLink: { autopilot: number; state: (() => Record<string, unknown>) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, state: null };
 
 const NEAR_M = 4;
-const ICON: PixId = 'martello'; // TODO icona «ingresso» a pixel: chiesta in tests/out/richieste/r-scena.md
+const ICON: PixId = 'ingresso';
 const CSS = `.mz-lbl.dng { border-color: ${PAL.viola}; font-size: 15px; min-height: 34px; }
 body.mz-sotto #mzDngEntra { display: none; }`;
 
