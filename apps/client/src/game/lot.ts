@@ -38,6 +38,8 @@ export type LotViewOptions = {
 export type LotView = {
   readonly readonly: boolean; readonly group: THREE.Group; readonly ready: Promise<void>;
   state(): LotState | null; refresh(): Promise<void>;
+  /** Stato arrivato da un'altra risposta del server (azione GDR, spedizione): si applica senza rileggere. */
+  set(l: LotState): void;
   /** Ogni frame. `focus` = posizione dell'avatar: la rilettura ogni 30 s gira solo quando è sull'isola (senza focus: sempre). */
   update(dt: number, focus?: { x: number; z: number }): void;
   tap(target: string | [number, number]): boolean; contains(x: number, z: number): boolean; dispose(): void;
@@ -355,7 +357,7 @@ export function createLotView(o: LotViewOptions): LotView {
   const ready = lot ? (sync(), refreshUi(true), Promise.resolve()) : refresh();
   return {
     readonly: ro, group, ready,
-    state: () => lot, refresh, tap, contains,
+    state: () => lot, refresh, tap, contains, set: (l: LotState) => { if (!disposed) setLot(l); },
     update(dt, focus) {
       if (disposed) return;
       slow += dt;

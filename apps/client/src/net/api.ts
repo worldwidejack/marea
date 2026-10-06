@@ -4,6 +4,8 @@
 // SOLO per animare i conti alla rovescia. L'economia la decide il server.
 import type { Challenge, LotState, Medal, PackedInputs, Resources } from '@marea/sim';
 import type { FeedItem, Look } from '@marea/protocol';
+import type { RpgAction, RunHero, RunResult } from '@marea/sim/rpg/types.ts';
+import type { PackedDungeon } from '@marea/sim/dungeon/types.ts';
 
 export type Me = { id: string; nome: string; look: Look; lotto: LotState | null; slot?: number | null };
 export type { FeedItem };
@@ -20,6 +22,11 @@ export type PlayResult = { score: number; medal: Medal; detail: Record<string, n
 export type SoloStart = { minigame: string; seed: number; difficulty: number; lot: LotState };
 /** Esito di una partita da solo (POST /api/solo/play): medaglia ricalcolata dal server, premio (zero oltre il tetto del giorno), lotto aggiornato. */
 export type SoloResult = { score: number; medal: Medal; detail: Record<string, number>; premio: Resources; premiata: boolean; lot: LotState };
+
+/** Spedizione aperta dal server (POST /api/dungeon/start): seed e fotografia del personaggio. CONTRACTS §15. */
+export type DungeonStart = { dungeon: string; seed: number; hero: RunHero; lot: LotState };
+/** Esito della spedizione ricalcolato dal server (POST /api/dungeon/finish). */
+export type DungeonFinish = { result: RunResult; tenuto: Record<string, number>; monete: number; livelliSu: number; lot: LotState };
 
 export const MSG_401 = 'Link non valido, chiedi a Jack un link nuovo';
 export const MSG_RETE = 'Niente connessione, riprova tra poco';
@@ -60,6 +67,11 @@ export type Api = {
   soloStart(minigame: string): Promise<SoloStart>;
   /** Consegna gli input della partita da solo: il server la rigioca e premia la medaglia. */
   soloPlay(inputs: PackedInputs): Promise<SoloResult>;
+  // ---- Mondo Sotterraneo (CONTRACTS §15) ----
+  /** Azione del personaggio (livello, perk, equip, forgia, alchimia, forziere, serra…): risponde col lotto aggiornato. */
+  rpg(a: RpgAction): Promise<LotState>;
+  dungeonStart(dungeon: string): Promise<DungeonStart>;
+  dungeonFinish(inputs: PackedDungeon, hash: number): Promise<DungeonFinish>;
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;
@@ -198,6 +210,20 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       if (!isObj(d) || typeof d['score'] !== 'number' || !isObj(d['premio'])) throw new ApiError(500, 'Risposta del server non valida');
       const medal = d['medal'] === 'oro' || d['medal'] === 'argento' || d['medal'] === 'bronzo' ? d['medal'] : null;
       return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, premio: d['premio'] as Resources, premiata: !!d['premiata'], lot: asLot(d['lot']) };
+    },
+    async rpg(a) { return asLot(await call('POST', '/api/rpg', { azione: a })); },
+    async dungeonStart(dungeon) {
+      const d = await call('POST', '/api/dungeon/start', { dungeon });
+      if (!isObj(d) || typeof d['seed'] !== 'number' || !isObj(d['hero'])) throw new ApiError(500, 'Risposta del server non valida');
+      return { dungeon: String(d['dungeon'] ?? dungeon), seed: d['seed'], hero: d['hero'] as RunHero, lot: asLot(d['lot']) };
+    },
+    async dungeonFinish(inputs, hash) {
+      const d = await call('POST', '/api/dungeon/finish', { inputs, hash });
+      if (!isObj(d) || !isObj(d['result'])) throw new ApiError(500, 'Risposta del server non valida');
+      return {
+        result: d['result'] as RunResult, tenuto: isObj(d['tenuto']) ? (d['tenuto'] as Record<string, number>) : {},
+        monete: typeof d['monete'] === 'number' ? d['monete'] : 0, livelliSu: typeof d['livelliSu'] === 'number' ? d['livelliSu'] : 0, lot: asLot(d['lot']),
+      };
     },
     async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
     buyHat: (id) => post('/api/look/hat', { cappello: id }),
