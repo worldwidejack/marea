@@ -1,1 +1,68 @@
-[]
+[
+  { "id": "nessuno", "monete": [0, 0], "voci": [] },
+
+  { "id": "bandito", "monete": [3, 10], "voci": [
+    { "item": "lingotto_bronzo", "p": 0.35, "n": [1, 1] }, { "item": "lingotto_ferro", "p": 0.12, "n": [1, 1] },
+    { "item": "erba_curativa", "p": 0.3, "n": [1, 2] }, { "item": "pozione_vita_minore", "p": 0.1, "n": [1, 1] },
+    { "item": "pepita_oro", "p": 0.03, "n": [1, 1], "raro": true } ] },
+  { "id": "bandito_arciere", "monete": [2, 8], "voci": [
+    { "item": "frecce_legno", "p": 0.5, "n": [3, 6] }, { "item": "frecce_bronzo", "p": 0.2, "n": [2, 4] },
+    { "item": "lingotto_bronzo", "p": 0.2, "n": [1, 1] }, { "item": "arco_legno", "p": 0.05, "n": [1, 1], "raro": true } ] },
+  { "id": "lupo", "monete": [0, 0], "voci": [
+    { "item": "zanna_lupo", "p": 0.6, "n": [1, 2] }, { "item": "radice_vigore", "p": 0.1, "n": [1, 1], "raro": true } ] },
+  { "id": "ragno", "monete": [0, 0], "voci": [
+    { "item": "seta_ragno", "p": 0.6, "n": [1, 2] }, { "item": "fungo_luminoso", "p": 0.25, "n": [1, 1] } ] },
+  { "id": "comune", "monete": [10, 30], "voci": [
+    { "item": "lingotto_bronzo", "p": 0.5, "n": [1, 3] }, { "item": "lingotto_ferro", "p": 0.35, "n": [1, 2] },
+    { "item": "erba_curativa", "p": 0.5, "n": [1, 3] }, { "item": "fiore_azzurro", "p": 0.3, "n": [1, 2] },
+    { "item": "pozione_vita_minore", "p": 0.4, "n": [1, 1] }, { "item": "pozione_stamina", "p": 0.15, "n": [1, 1] },
+    { "item": "frecce_ferro", "p": 0.15, "n": [3, 6] }, { "item": "pepita_oro", "p": 0.08, "n": [1, 1], "raro": true } ] },
+  { "id": "raro", "monete": [40, 90], "voci": [
+    { "item": "lingotto_ferro", "p": 0.7, "n": [2, 4] }, { "item": "lingotto_bronzo", "p": 0.5, "n": [2, 3] },
+    { "item": "pepita_oro", "p": 0.4, "n": [1, 2], "raro": true }, { "item": "lingotto_argento", "p": 0.15, "n": [1, 1] },
+    { "item": "pozione_vita", "p": 0.5, "n": [1, 2] }, { "item": "pozione_forza", "p": 0.2, "n": [1, 1] },
+    { "item": "katana_ferro", "p": 0.12, "n": [1, 1], "raro": true }, { "item": "armatura_ferro", "p": 0.06, "n": [1, 1], "raro": true },
+    { "item": "anello_vita_debole", "p": 0.08, "n": [1, 1], "raro": true } ] },
+
+  { "id": "scheletro", "monete": [5, 15], "voci": [
+    { "item": "polvere_ossa", "p": 0.6, "n": [1, 2] }, { "item": "lingotto_argento", "p": 0.12, "n": [1, 1] },
+    { "item": "pozione_magicka_minore", "p": 0.1, "n": [1, 1] }, { "item": "spadone_ferro", "p": 0.02, "n": [1, 1], "raro": true } ] },
+  { "id": "scheletro_arciere", "monete": [4, 12], "voci": [
+    { "item": "frecce_ferro", "p": 0.5, "n": [3, 6] }, { "item": "frecce_argento", "p": 0.15, "n": [2, 4], "raro": true },
+    { "item": "polvere_ossa", "p": 0.4, "n": [1, 1] } ] },
+  { "id": "nonmorto", "monete": [10, 25], "voci": [
+    { "item": "lingotto_argento", "p": 0.3, "n": [1, 2] }, { "item": "polvere_ossa", "p": 0.5, "n": [1, 3] },
+    { "item": "pozione_vita", "p": 0.15, "n": [1, 1] }, { "item": "libro_scheletro_evocato", "p": 0.04, "n": [1, 1], "raro": true } ] },
+  { "id": "boss_ossa", "monete": [150, 300], "voci": [
+    { "item": "ossa_mostro", "p": 1, "n": [3, 5] }, { "item": "lingotto_argento", "p": 0.8, "n": [2, 4] },
+    { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }, { "item": "libro_scheletro_evocato", "p": 0.5, "n": [1, 1], "raro": true },
+    { "item": "unico_martello_re", "p": 0.25, "n": [1, 1], "raro": true } ] },
+  { "id": "comune_cripta", "monete": [20, 50], "voci": [
+    { "item": "lingotto_ferro", "p": 0.5, "n": [1, 2] }, { "item": "lingotto_argento", "p": 0.35, "n": [1, 2] },
+    { "item": "polvere_ossa", "p": 0.4, "n": [1, 3] }, { "item": "pozione_vita", "p": 0.3, "n": [1, 1] },
+    { "item": "pozione_magicka_minore", "p": 0.3, "n": [1, 1] }, { "item": "frecce_argento", "p": 0.15, "n": [3, 5] },
+    { "item": "pepita_oro", "p": 0.12, "n": [1, 1], "raro": true } ] },
+  { "id": "raro_cripta", "monete": [60, 140], "voci": [
+    { "item": "lingotto_argento", "p": 0.8, "n": [2, 4] }, { "item": "pepita_oro", "p": 0.4, "n": [1, 2] },
+    { "item": "pozione_vita", "p": 0.6, "n": [1, 2] }, { "item": "pozione_magicka", "p": 0.4, "n": [1, 1] },
+    { "item": "libro_scheletro_evocato", "p": 0.15, "n": [1, 1], "raro": true }, { "item": "spadone_argento", "p": 0.1, "n": [1, 1], "raro": true },
+    { "item": "arco_argento", "p": 0.08, "n": [1, 1], "raro": true }, { "item": "anello_vita_debole", "p": 0.1, "n": [1, 1], "raro": true } ] },
+
+  { "id": "spettro", "monete": [8, 20], "voci": [
+    { "item": "essenza_vuoto", "p": 0.6, "n": [1, 2] }, { "item": "frammento_vetro", "p": 0.3, "n": [1, 1] },
+    { "item": "pozione_magicka", "p": 0.2, "n": [1, 1] }, { "item": "libro_fulmine", "p": 0.03, "n": [1, 1], "raro": true } ] },
+  { "id": "golem", "monete": [0, 0], "voci": [
+    { "item": "frammento_vetro", "p": 0.8, "n": [2, 4] }, { "item": "frammento_meteorite", "p": 0.25, "n": [1, 2], "raro": true } ] },
+  { "id": "boss_vuoto", "monete": [300, 600], "voci": [
+    { "item": "frammento_meteorite", "p": 1, "n": [3, 6] }, { "item": "frammento_vetro", "p": 1, "n": [3, 6] },
+    { "item": "essenza_vuoto", "p": 0.8, "n": [2, 4] }, { "item": "unico_arco_custode", "p": 0.3, "n": [1, 1], "raro": true },
+    { "item": "armatura_meteorite", "p": 0.15, "n": [1, 1], "raro": true }, { "item": "libro_lupo_spettrale", "p": 0.3, "n": [1, 1], "raro": true } ] },
+  { "id": "comune_vuoto", "monete": [30, 70], "voci": [
+    { "item": "frammento_vetro", "p": 0.6, "n": [1, 3] }, { "item": "essenza_vuoto", "p": 0.4, "n": [1, 2] },
+    { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }, { "item": "pozione_magicka", "p": 0.3, "n": [1, 1] },
+    { "item": "frecce_vetro", "p": 0.2, "n": [3, 6] }, { "item": "frammento_meteorite", "p": 0.1, "n": [1, 1], "raro": true } ] },
+  { "id": "raro_vuoto", "monete": [100, 220], "voci": [
+    { "item": "frammento_meteorite", "p": 0.7, "n": [1, 3] }, { "item": "frammento_vetro", "p": 0.7, "n": [2, 4] },
+    { "item": "pozione_vita_grande", "p": 0.5, "n": [1, 1] }, { "item": "katana_vetro", "p": 0.15, "n": [1, 1], "raro": true },
+    { "item": "frecce_meteorite", "p": 0.15, "n": [3, 6], "raro": true }, { "item": "unico_arco_custode", "p": 0.05, "n": [1, 1], "raro": true } ] }
+]
