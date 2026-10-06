@@ -4,6 +4,7 @@
 // Richieste dal Worker: GET /state · POST /collect {building} · /build {building, cell} · /upgrade {building} · /decor {decor, cell, rot} · /hat {hat}.
 // Minigiochi da solo: POST /solo_start {minigame} → {seed, difficulty, lot} · /solo_play {inputs} → il server rigioca gli input, premia la
 // medaglia (balance.solo) e risponde {score, medal, detail, premio, premiata, lot}.
+// Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_finish {inputs, hash}. La Regata da solo dà xp di Navigazione.
 // Richieste dal DO Sfide (mai esposte dal Worker): POST /hold {cid, stake, kind} · /release {cid, release}: idempotenti per id sfida.
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
@@ -16,12 +17,12 @@ import { finishSolo, soloOf, startSolo } from '@marea/sim/economy/rewards.ts';
 import { EconomyError } from '@marea/sim/economy/types.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
 import { isPackedInputs, replay } from '@marea/sim/replay.ts';
+import { regataXp } from '@marea/sim/rpg/run.ts';
 import type { EconomyErrorCode, LotState, Resources } from '@marea/sim/economy/types.ts';
 import { nowFromHeader } from '../clock.ts';
 import type { Env } from '../env.ts';
+import { RPG_ACTS, json, rpgRoute } from './lot_rpg.ts';
 
-const json = (dati: unknown, status = 200): Response =>
-  new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const isCell = (v: unknown): v is [number, number] => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= 0 && n < 256);
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 40;
 const isRes = (v: unknown): v is Resources => {
@@ -80,6 +81,7 @@ export class Lot extends DurableObject<Env> {
       try { body = (await req.json()) as Record<string, unknown>; } catch { return json({ error: 'Richiesta non valida' }, 400); }
       if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
       if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now);
+      if (RPG_ACTS.has(act)) return rpgRoute(lot, act, body, now, (l) => this.save(l));
       const next = this.act(lot, act, body, now);
       if (next instanceof Response) return next;
       this.save(next);
@@ -111,8 +113,9 @@ export class Lot extends DurableObject<Env> {
     if (!isPackedInputs(inputs, getMinigame(p.minigame).maxTicks)) return json({ error: 'Partita non valida' }, 400);
     const r = replay(p.minigame, p.seed, p.difficulty, inputs);
     const out = finishSolo(lot, r.medal, now);
-    this.save(out.lot);
-    return json({ score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: out.lot });
+    const next = p.minigame === 'regata' ? regataXp(out.lot, r.medal) : out.lot;
+    this.save(next);
+    return json({ score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: next });
   }
 
   private act(lot: LotState, act: string, body: Record<string, unknown>, now: number): LotState | Response {

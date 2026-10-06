@@ -15,6 +15,8 @@ export { Sfide } from './do/Sfide.ts';
 const MAX_BODY = 4096;
 /** Un input log di Regata da 120 s fatto a mano sta sotto i 100 KB (7.200 righe al massimo, di solito poche centinaia). */
 const MAX_PLAY_BODY = 131072;
+/** Input log di una spedizione nel dungeon (fino a 20 minuti, RLE): CONTRACTS §15, ≤ 512 KB. */
+const MAX_DUNGEON_BODY = 524288;
 const NO_TOKEN = 'Link non valido: chiedi a Jack un invito nuovo';
 const json = (dati: unknown, status = 200): Response =>
   new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
@@ -184,6 +186,22 @@ export default {
         const body = await corpo(MAX_PLAY_BODY);
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, 'solo_play', { inputs: body['inputs'] });
+      }
+      // Mondo Sotterraneo: azioni del personaggio e spedizioni; il replay lo fa il DO del lotto, mai il Worker (10 ms di CPU)
+      if (path === '/api/rpg' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'rpg', { azione: body['azione'] });
+      }
+      if (path === '/api/dungeon/start' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'dungeon_start', { dungeon: body['dungeon'] });
+      }
+      if (path === '/api/dungeon/finish' && req.method === 'POST') {
+        const body = await corpo(MAX_DUNGEON_BODY);
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'dungeon_finish', { inputs: body['inputs'], hash: body['hash'] });
       }
       const altrui = path.match(/^\/api\/lot\/([a-z0-9_-]{1,40})$/);
       if (altrui && req.method === 'GET') {

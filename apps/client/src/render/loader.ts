@@ -10,6 +10,8 @@ export type Loader = {
   texture(name: string): Promise<THREE.Texture>;
   /** Solo i modelli del manifest che esistono: nomi → presenti. */
   missing?(names: readonly string[]): string[];
+  /** Aggiunge i modelli di un manifest secondario (es. 'manifest_rpg.json', caricato entrando in un dungeon). Una volta sola per file. */
+  extend(file: string): Promise<void>;
 };
 export class MissingAsset extends Error { override name = 'MissingAsset'; }
 
@@ -42,8 +44,20 @@ export async function createLoader(o: { base: string }): Promise<Loader> {
       if (mm.emissiveMap) pixelTexture(mm.emissiveMap);
     }
   });
+  const extended = new Map<string, Promise<void>>();
   const api: Loader = {
     manifest,
+    extend(file) {
+      let p = extended.get(file);
+      if (!p) {
+        p = fetch(o.base + file, { cache: 'no-store' })
+          .then((r) => (r.ok ? r.json() : { models: {} }))
+          .then((j: Partial<Manifest>) => { if (j.models && typeof j.models === 'object') Object.assign(manifest.models, j.models); })
+          .catch(() => { console.warn(`[marea] ${file} non leggibile: uso i segnaposto`); });
+        extended.set(file, p);
+      }
+      return p;
+    },
     has: (name) => Object.prototype.hasOwnProperty.call(manifest.models, name),
     missing: (names) => names.filter((n) => !api.has(n)),
     load(name) {

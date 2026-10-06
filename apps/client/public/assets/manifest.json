@@ -1,12 +1,138 @@
 {
- "version": "2026-09-29-43",
+ "version": "2026-10-06-58",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
+  "bld_alchimia_l1": {
+   "file": "bld_alchimia_l1.glb",
+   "tris": 413,
+   "kb": 17.9,
+   "bounds": {
+    "min": [
+     -0.95,
+     0,
+     -0.95
+    ],
+    "max": [
+     0.95,
+     1.25,
+     0.95
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_alchimia_l2": {
+   "file": "bld_alchimia_l2.glb",
+   "tris": 519,
+   "kb": 21.6,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -0.97
+    ],
+    "max": [
+     1,
+     2.05,
+     1
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_alchimia_l3": {
+   "file": "bld_alchimia_l3.glb",
+   "tris": 664,
+   "kb": 27.5,
+   "bounds": {
+    "min": [
+     -1.12,
+     0,
+     -1.12
+    ],
+    "max": [
+     1.12,
+     3,
+     1.12
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_banco_l1": {
+   "file": "bld_banco_l1.glb",
+   "tris": 349,
+   "kb": 15.1,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -0.95
+    ],
+    "max": [
+     1.26,
+     1.3,
+     0.95
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_banco_l2": {
+   "file": "bld_banco_l2.glb",
+   "tris": 401,
+   "kb": 17,
+   "bounds": {
+    "min": [
+     -0.98,
+     0,
+     -0.97
+    ],
+    "max": [
+     0.97,
+     1.98,
+     0.98
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_banco_l3": {
+   "file": "bld_banco_l3.glb",
+   "tris": 619,
+   "kb": 25.2,
+   "bounds": {
+    "min": [
+     -1.1,
+     0,
+     -1
+    ],
+    "max": [
+     1.1,
+     3.05,
+     1.1
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
   "bld_cantiere": {
    "file": "bld_cantiere.glb",
    "tris": 330,
-   "kb": 16.1,
+   "kb": 13.6,
    "bounds": {
     "min": [
      -0.96,
@@ -27,7 +153,7 @@
   "bld_casa_l1": {
    "file": "bld_casa_l1.glb",
    "tris": 363,
-   "kb": 18.5,
+   "kb": 15.7,
    "bounds": {
     "min": [
      -1.28,
@@ -44,7 +170,7 @@
   "bld_casa_l2": {
    "file": "bld_casa_l2.glb",
    "tris": 359,
-   "kb": 18.2,
+   "kb": 15.5,
    "bounds": {
     "min": [
      -1.18,
@@ -65,7 +191,7 @@
   "bld_casa_l3": {
    "file": "bld_casa_l3.glb",
    "tris": 503,
-   "kb": 25,
+   "kb": 21,
    "bounds": {
     "min": [
      -1.08,
@@ -86,7 +212,7 @@
   "bld_cava_l1": {
    "file": "bld_cava_l1.glb",
    "tris": 306,
-   "kb": 15.6,
+   "kb": 13.1,
    "bounds": {
     "min": [
      -1.06,
@@ -103,7 +229,7 @@
   "bld_cava_l2": {
    "file": "bld_cava_l2.glb",
    "tris": 364,
-   "kb": 18.6,
+   "kb": 15.7,
    "bounds": {
     "min": [
      -1.1,
@@ -124,7 +250,7 @@
   "bld_cava_l3": {
    "file": "bld_cava_l3.glb",
    "tris": 461,
-   "kb": 23.1,
+   "kb": 19.5,
    "bounds": {
     "min": [
      -1.12,
@@ -145,7 +271,7 @@
   "bld_faro_l1": {
    "file": "bld_faro_l1.glb",
    "tris": 315,
-   "kb": 16.9,
+   "kb": 14.3,
    "bounds": {
     "min": [
      -1.2,
@@ -162,7 +288,7 @@
   "bld_faro_l2": {
    "file": "bld_faro_l2.glb",
    "tris": 465,
-   "kb": 23.5,
+   "kb": 19.8,
    "bounds": {
     "min": [
      -1.26,
@@ -180,10 +306,73 @@
     2
    ]
   },
+  "bld_forziere_l1": {
+   "file": "bld_forziere_l1.glb",
+   "tris": 350,
+   "kb": 14.8,
+   "bounds": {
+    "min": [
+     -0.95,
+     0,
+     -0.95
+    ],
+    "max": [
+     0.95,
+     1.3,
+     0.95
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_forziere_l2": {
+   "file": "bld_forziere_l2.glb",
+   "tris": 318,
+   "kb": 13.7,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -0.97
+    ],
+    "max": [
+     1,
+     1.8,
+     1
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_forziere_l3": {
+   "file": "bld_forziere_l3.glb",
+   "tris": 424,
+   "kb": 17.9,
+   "bounds": {
+    "min": [
+     -1.26,
+     0,
+     -1
+    ],
+    "max": [
+     1.26,
+     2.6,
+     1.14
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
   "bld_magazzino_l1": {
    "file": "bld_magazzino_l1.glb",
    "tris": 338,
-   "kb": 17.2,
+   "kb": 14.6,
    "bounds": {
     "min": [
      -1.24,
@@ -200,7 +389,7 @@
   "bld_magazzino_l2": {
    "file": "bld_magazzino_l2.glb",
    "tris": 434,
-   "kb": 21.4,
+   "kb": 18.1,
    "bounds": {
     "min": [
      -1.24,
@@ -221,7 +410,7 @@
   "bld_magazzino_l3": {
    "file": "bld_magazzino_l3.glb",
    "tris": 400,
-   "kb": 19.7,
+   "kb": 16.7,
    "bounds": {
     "min": [
      -1.31,
@@ -242,7 +431,7 @@
   "bld_porto_casa_a": {
    "file": "bld_porto_casa_a.glb",
    "tris": 332,
-   "kb": 16.9,
+   "kb": 14.4,
    "bounds": {
     "min": [
      -1.26,
@@ -263,7 +452,7 @@
   "bld_porto_casa_b": {
    "file": "bld_porto_casa_b.glb",
    "tris": 432,
-   "kb": 21.4,
+   "kb": 18.1,
    "bounds": {
     "min": [
      -2.24,
@@ -284,7 +473,7 @@
   "bld_porto_casa_c": {
    "file": "bld_porto_casa_c.glb",
    "tris": 484,
-   "kb": 23.5,
+   "kb": 19.8,
    "bounds": {
     "min": [
      -0.98,
@@ -305,7 +494,7 @@
   "bld_porto_tavolo": {
    "file": "bld_porto_tavolo.glb",
    "tris": 670,
-   "kb": 31.5,
+   "kb": 26.4,
    "bounds": {
     "min": [
      -1.89,
@@ -326,7 +515,7 @@
   "bld_segheria_l1": {
    "file": "bld_segheria_l1.glb",
    "tris": 347,
-   "kb": 16.4,
+   "kb": 13.9,
    "bounds": {
     "min": [
      -1.02,
@@ -343,7 +532,7 @@
   "bld_segheria_l2": {
    "file": "bld_segheria_l2.glb",
    "tris": 513,
-   "kb": 24.7,
+   "kb": 20.8,
    "bounds": {
     "min": [
      -1.28,
@@ -364,7 +553,7 @@
   "bld_segheria_l3": {
    "file": "bld_segheria_l3.glb",
    "tris": 604,
-   "kb": 29.2,
+   "kb": 24.5,
    "bounds": {
     "min": [
      -1,
@@ -382,10 +571,73 @@
     2
    ]
   },
+  "bld_serra_l1": {
+   "file": "bld_serra_l1.glb",
+   "tris": 316,
+   "kb": 14.3,
+   "bounds": {
+    "min": [
+     -0.98,
+     0,
+     -0.95
+    ],
+    "max": [
+     0.98,
+     1.4,
+     0.95
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_serra_l2": {
+   "file": "bld_serra_l2.glb",
+   "tris": 415,
+   "kb": 18.2,
+   "bounds": {
+    "min": [
+     -0.97,
+     0,
+     -0.97
+    ],
+    "max": [
+     0.97,
+     1.65,
+     0.97
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
+  "bld_serra_l3": {
+   "file": "bld_serra_l3.glb",
+   "tris": 639,
+   "kb": 26.9,
+   "bounds": {
+    "min": [
+     -1.05,
+     0,
+     -1
+    ],
+    "max": [
+     1.05,
+     2.35,
+     1
+    ]
+   },
+   "footprint": [
+    2,
+    2
+   ]
+  },
   "bld_tavolo_l1": {
    "file": "bld_tavolo_l1.glb",
    "tris": 376,
-   "kb": 18.7,
+   "kb": 15.9,
    "bounds": {
     "min": [
      -0.9,
@@ -402,7 +654,7 @@
   "bld_tavolo_l2": {
    "file": "bld_tavolo_l2.glb",
    "tris": 390,
-   "kb": 19.4,
+   "kb": 16.4,
    "bounds": {
     "min": [
      -1.26,
@@ -423,7 +675,7 @@
   "bld_tavolo_l3": {
    "file": "bld_tavolo_l3.glb",
    "tris": 704,
-   "kb": 33.1,
+   "kb": 27.8,
    "bounds": {
     "min": [
      -1.12,
@@ -444,7 +696,7 @@
   "boat_barca": {
    "file": "boat_barca.glb",
    "tris": 346,
-   "kb": 17.5,
+   "kb": 14.9,
    "bounds": {
     "min": [
      -0.78,
@@ -474,7 +726,7 @@
   "chr_base": {
    "file": "chr_base.glb",
    "tris": 1309,
-   "kb": 161.9,
+   "kb": 151.2,
    "bounds": {
     "min": [
      -0.27,
@@ -534,7 +786,7 @@
   "fac_neon": {
    "file": "fac_neon.glb",
    "tris": 278,
-   "kb": 14.7,
+   "kb": 12.6,
    "bounds": {
     "min": [
      -8.4,
@@ -555,7 +807,7 @@
   "fac_selvaggia": {
    "file": "fac_selvaggia.glb",
    "tris": 211,
-   "kb": 11.2,
+   "kb": 9.4,
    "bounds": {
     "min": [
      -8,
@@ -576,7 +828,7 @@
   "mod_erba": {
    "file": "mod_erba.glb",
    "tris": 32,
-   "kb": 3,
+   "kb": 2.7,
    "bounds": {
     "min": [
      -1,
@@ -593,7 +845,7 @@
   "mod_molo": {
    "file": "mod_molo.glb",
    "tris": 58,
-   "kb": 3.9,
+   "kb": 3.5,
    "bounds": {
     "min": [
      -1,
@@ -610,7 +862,7 @@
   "mod_sabbia": {
    "file": "mod_sabbia.glb",
    "tris": 17,
-   "kb": 2.2,
+   "kb": 2.1,
    "bounds": {
     "min": [
      -1,
@@ -627,7 +879,7 @@
   "mod_sabbia_bordo": {
    "file": "mod_sabbia_bordo.glb",
    "tris": 30,
-   "kb": 2.6,
+   "kb": 2.4,
    "bounds": {
     "min": [
      -1,
@@ -644,7 +896,7 @@
   "mod_scogliera": {
    "file": "mod_scogliera.glb",
    "tris": 56,
-   "kb": 4,
+   "kb": 3.6,
    "bounds": {
     "min": [
      -1,
@@ -661,7 +913,7 @@
   "prop_barile": {
    "file": "prop_barile.glb",
    "tris": 77,
-   "kb": 4.8,
+   "kb": 4.2,
    "bounds": {
     "min": [
      -0.29,
@@ -678,7 +930,7 @@
   "prop_boa": {
    "file": "prop_boa.glb",
    "tris": 90,
-   "kb": 6.2,
+   "kb": 5.5,
    "bounds": {
     "min": [
      -0.46,
@@ -695,7 +947,7 @@
   "prop_boa_next": {
    "file": "prop_boa_next.glb",
    "tris": 110,
-   "kb": 7.1,
+   "kb": 6.3,
    "bounds": {
     "min": [
      -1.05,
@@ -712,7 +964,7 @@
   "prop_cassa": {
    "file": "prop_cassa.glb",
    "tris": 90,
-   "kb": 5.4,
+   "kb": 4.7,
    "bounds": {
     "min": [
      -0.44,
@@ -729,7 +981,7 @@
   "prop_deposito": {
    "file": "prop_deposito.glb",
    "tris": 104,
-   "kb": 6.1,
+   "kb": 5.3,
    "bounds": {
     "min": [
      -0.34,
@@ -746,7 +998,7 @@
   "prop_filo_lanterne": {
    "file": "prop_filo_lanterne.glb",
    "tris": 170,
-   "kb": 9.7,
+   "kb": 8.4,
    "bounds": {
     "min": [
      -2.09,
@@ -764,10 +1016,73 @@
     0.3
    ]
   },
+  "prop_ingresso_cripta": {
+   "file": "prop_ingresso_cripta.glb",
+   "tris": 178,
+   "kb": 9.2,
+   "bounds": {
+    "min": [
+     -1.9,
+     0,
+     -2
+    ],
+    "max": [
+     1.9,
+     3.01,
+     1.9
+    ]
+   },
+   "footprint": [
+    4,
+    4
+   ]
+  },
+  "prop_ingresso_grotta": {
+   "file": "prop_ingresso_grotta.glb",
+   "tris": 180,
+   "kb": 9.5,
+   "bounds": {
+    "min": [
+     -2,
+     -0.03,
+     -2.03
+    ],
+    "max": [
+     1.91,
+     2.7,
+     1.91
+    ]
+   },
+   "footprint": [
+    4,
+    4
+   ]
+  },
+  "prop_ingresso_vuoto": {
+   "file": "prop_ingresso_vuoto.glb",
+   "tris": 200,
+   "kb": 9.7,
+   "bounds": {
+    "min": [
+     -1.6,
+     0,
+     -1.85
+    ],
+    "max": [
+     1.68,
+     3.47,
+     1.85
+    ]
+   },
+   "footprint": [
+    4,
+    4
+   ]
+  },
   "prop_insegna_neon": {
    "file": "prop_insegna_neon.glb",
    "tris": 72,
-   "kb": 5.5,
+   "kb": 4.9,
    "bounds": {
     "min": [
      -0.62,
@@ -784,7 +1099,7 @@
   "prop_lanterna": {
    "file": "prop_lanterna.glb",
    "tris": 122,
-   "kb": 7.5,
+   "kb": 6.6,
    "bounds": {
     "min": [
      -0.15,
@@ -801,7 +1116,7 @@
   "prop_molo_l2": {
    "file": "prop_molo_l2.glb",
    "tris": 146,
-   "kb": 8.6,
+   "kb": 7.5,
    "bounds": {
     "min": [
      -0.91,
@@ -822,7 +1137,7 @@
   "prop_molo_l3": {
    "file": "prop_molo_l3.glb",
    "tris": 190,
-   "kb": 10.6,
+   "kb": 9.1,
    "bounds": {
     "min": [
      -0.93,
@@ -843,7 +1158,7 @@
   "prop_palma": {
    "file": "prop_palma.glb",
    "tris": 126,
-   "kb": 8.6,
+   "kb": 7.3,
    "bounds": {
     "min": [
      -0.61,
@@ -860,7 +1175,7 @@
   "prop_torii": {
    "file": "prop_torii.glb",
    "tris": 160,
-   "kb": 8.4,
+   "kb": 7.2,
    "bounds": {
     "min": [
      -1.7,

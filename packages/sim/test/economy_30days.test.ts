@@ -1,7 +1,10 @@
 // Taratura (GDD §5): 30 giorni per tre archetipi con una politica semplice. Obiettivo: ~100 % / ~75 % / ~40 % degli edifici a L2, nessuno a L3 pieno.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BUILDINGS, ISLANDS, building } from '@marea/content';
+import { BUILDINGS as ALL_BUILDINGS, ISLANDS, building } from '@marea/content';
+// La taratura del GDD §5 riguarda il villaggio: gli edifici del Mondo Sotterraneo (docs/RPG.md) sono un percorso a parte.
+const GDR = new Set(['banco', 'alchimia', 'forziere', 'serra']);
+const BUILDINGS = ALL_BUILDINGS.filter((d) => !GDR.has(d.id));
 import { parseIsland } from '../src/world/grid.ts';
 import { build, collectAll, newLot, upgrade } from '../src/economy/actions.ts';
 import { advance } from '../src/economy/advance.ts';

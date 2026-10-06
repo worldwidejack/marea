@@ -43,14 +43,14 @@
       "~~~,,,,,.....ggggg....,,,,~~~~",
       "~~,,,,..rrggLgggggLg...,,,,~~~",
       "~~,,,..rrrggggggggggg...,,,,~~",
-      "~,,,,..grggggggggggggg...,,,,~",
+      "~,,,,..grggggggLgggggg...,,,,~",
       "~,,,...gggggggggggggggg...,,,,",
       "~,,,..gggggggggggggggggL...,,,",
       ",,,,..LgggggLgggggLgggggg...,,",
       ",,,...ggggggggggggggggggg...,,",
       ",,,..ggggggggggggggggggggg..,,",
-      ",,,..gggggggggggggggggggg...,,",
-      ",,,..ggggLggggggggggggggg...,,",
+      ",,,..ggggggggggggggggggLg...,,",
+      ",,,..ggggLggggLggggLggggg...,,",
       ",,,..ggggggggggggggggggg...,,,",
       ",,,...ggggggggggggggggg...,,,,",
       ",,,....gggggg....gggg....,,,,,",
@@ -70,7 +70,7 @@
       { "at": [12, 10], "kind": "magazzino" },
       { "at": [18, 10], "kind": "casa" },
       { "at": [23, 9], "kind": "faro" },
-      { "at": [9, 14], "kind": "tavolo" }
+      { "at": [9, 14], "kind": "tavolo" }, { "at": [14, 14], "kind": "banco" }, { "at": [19, 14], "kind": "alchimia" }, { "at": [15, 7], "kind": "forziere" }, { "at": [23, 13], "kind": "serra" }
     ],
     "props": [
       { "k": "lanterna", "at": [13.4, 20], "rot": 0 },

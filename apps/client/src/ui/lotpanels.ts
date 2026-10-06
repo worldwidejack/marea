@@ -8,6 +8,8 @@ import { mancaText } from '../net/api.ts';
 import { el } from './style.ts';
 import { RES_IDS, RES_NOME, resIcon } from './icons.ts';
 import { fmtDur, timerSpan } from './sheet.ts';
+import { eroeForPanels } from './eroe.ts';
+import type { BuildingKind } from '../rpg/types.ts';
 
 export type PanelCtx = {
   lot: LotState;
@@ -42,6 +44,11 @@ export function describe(def: BuildingDef, level: number): string[] {
     case 'faro': return [`+${Math.round(((l.boost ?? 1) - 1) * 100)}% di produzione per ${l.boostHours ?? 0} h dopo una vittoria`];
     case 'tavolo': return [`Posta massima ${l.wagerMax ?? 0} · ${l.freeChallenges ?? 0} sfide gratis al giorno`];
     case 'molo': return level <= 1 ? ['Qui attracca la tua barca'] : [`Barca più veloce del ${Math.round(((l.boatSpeed ?? 1) - 1) * 100)}%`];
+    // Mondo Sotterraneo (R-pannelli): i livelli del Banco sbloccano i materiali (docs/RPG.md §5)
+    case 'banco': return [level <= 1 ? 'Forgia legno, bronzo e ferro' : level === 2 ? 'Forgia anche argento, oro e vetro' : 'Forgia tutto, anche ossa e meteorite'];
+    case 'alchimia': return ['Pozioni con gli ingredienti della Serra'];
+    case 'forziere': return [level <= 1 ? 'Tiene quello che non porti nello zaino' : 'Più spazio per lo zaino in eccesso'];
+    case 'serra': return [`Fa ${l.rate ?? 0} ingredienti all'ora`];
     default: return [];
   }
 }
@@ -65,6 +72,8 @@ function btn(cls: string, act: string, main: string, sub: (string | HTMLElement)
   b.addEventListener('click', () => { if (!b.disabled) onClick(); });
   return b;
 }
+/** Edifici GDR: bottone d'azione che apre il loro pannello (chunk GDR). */
+const RPG_ACT: Partial<Record<string, [string, string]>> = { banco: ['FORGIA', 'armi e armature'], alchimia: ['PREPARA', 'pozioni'], forziere: ['APRI', 'zaino ↔ forziere'], serra: ['RACCOGLI', ''] };
 const missNode = (m: Resources) => el('span', 'miss', mancaText(m));
 const sigOf = (body: HTMLElement) => body.textContent + '|' + [...body.querySelectorAll('button')].map((b) => (b.disabled ? 0 : 1)).join('');
 
@@ -95,6 +104,12 @@ export function buildingPanel(ctx: PanelCtx, b: PlacedBuilding): Panel {
     else if (room < 1) { sub.push('magazzino pieno'); dis = true; }
     else { const c = el('span', 'mz-cost'); c.append(resIcon(res, 16), el('span', '', `+${Math.min(amount, room)}`)); sub.push(c); }
     body.appendChild(btn('green', 'raccogli', 'RACCOGLI', sub, dis, () => ctx.onCollect(b.id)));
+  }
+  const rpg = RPG_ACT[b.building], eroe = eroeForPanels();
+  if (rpg && eroe && b.level >= 1) {
+    const kind = b.building as BuildingKind, pronti = kind === 'serra' ? Math.floor(b.buffer) : 0;
+    const sub = kind === 'serra' ? [pronti ? `${pronti} pronti` : 'niente di pronto'] : [rpg[1]];
+    body.appendChild(btn('green', 'rpg', rpg[0], sub, ctx.busy, () => { ctx.onClose(); eroe.openBuilding(kind); }));
   }
   const next = b.level >= 1 ? def.levels[b.level] : undefined;
   if (b.level < 1) { /* in costruzione: niente miglioramento */ }

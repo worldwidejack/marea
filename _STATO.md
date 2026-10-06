@@ -1,11 +1,11 @@
 ---
 progetto: MAREA
 stato: attivo
-aggiornato: 2026-10-02
+aggiornato: 2026-10-07
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-**Online** (build `mupynbxd`, primo deploy fatto da GitHub, 140/140 test). MAREA ora si fa **in gruppo**: ogni amico col suo Claude prende una issue (#1-#9 in bacheca), fa una PR, GitHub controlla e pubblica da solo se i test passano. Guida `docs/CONTRIBUIRE.md`.
+**Mondo Sotterraneo fatto** (design di Riccardo, `docs/RPG.md`, issue #17): 3 dungeon dagli ingressi sulle isole (Grotta, Cripta, Portale del Vuoto) con combattimento, archi, magie, pozioni, bottino; scheda del personaggio (I) con livelli, abilità, perk, zaino; Banco da Lavoro, Tavolo Alchemico, Forziere, Serra sull'isola. Il server rigioca ogni spedizione.
 
 ## Prossimo passo
-Invitato il primo amico (`riccardo99altieri`, 2/10): accetta la mail di GitHub e fa partire il suo Claude col messaggio del gruppo. Gli altri: Jack incolla gli username, Claude li invita. Poi ognuno prende una issue e chiude con `/consegna`.
+Jack: prova la Grotta della Marea (Isola Selvaggia) da PC e telefono e dice cosa cambiare; guarda i modelli nuovi. Riccardo: rivede le scelte provvisorie di `docs/RPG.md` e disegna l'albero dei perk (`packages/content/src/rpg/perks.json`).

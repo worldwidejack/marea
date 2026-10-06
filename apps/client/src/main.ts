@@ -24,6 +24,9 @@ import { entraConInvito } from './ui/entra.ts';
 import { createMinigiochi } from './game/minigiochi.ts';
 import { createGuida } from './ui/guida.ts';
 import type { GuidaStep } from './ui/guida.ts';
+import { createIngressi } from './game/ingressi.ts';
+import { createEroe } from './ui/eroe.ts';
+import type { LotState } from '@marea/sim';
 
 const TAVOLO_R = 3.5; // m: quanto vicino al Tavolo per aprirlo con E / A
 
@@ -82,6 +85,11 @@ async function boot(): Promise<void> {
   const tavoloAt = arch.buildings.find((b) => b.kind === 'tavolo') ?? null;
   const giochi = createMinigiochi({ world, loader, api: me && api.enabled ? api : null, hud, root, camera: renderer.camera, canvas, onLot: () => refreshMyLot(), tavolo: FLAGS.sfide ? null : tavoloAt });
   for (const sp of giochi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z });
+  // Mondo Sotterraneo (docs/RPG.md, CONTRACTS §15): ingressi dei dungeon sulle isole e scheda del personaggio; il codice vero è nel chunk GDR
+  const setMyLot = (l: LotState) => { lots.find((lv) => !lv.readonly)?.set(l); };
+  const ingressi = createIngressi({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot });
+  for (const sp of ingressi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z });
+  const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;
   const compass = createCompass({ root, targets });
   let closedAt = 0, nearWas = false, aWasT = false;
   /** Risorse cambiate fuori dal lotto (posta, esito di una sfida): la barra si aggiorna subito, non al poll dei 30 s. */
@@ -110,7 +118,7 @@ async function boot(): Promise<void> {
   const feed = FLAGS.sfide && me && api.enabled ? createFeed({ api, hud, root, onNews: (news) => { if (news.some((n) => n.tipo !== 'sfida_ricevuta' && n.tipo !== 'sfida_accettata')) refreshMyLot(); } }) : null;
   const emotes = createEmotes({ world, camera: renderer.camera, canvas, root });
   const EMOTES = AVATAR.emote as EmoteId[];
-  const panelsBusy = () => !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy();
+  const panelsBusy = () => !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || ingressi.active || ingressi.isBusy();
   const openEditor = () => { if (!editor || panelsBusy()) return false; feed?.close(); editor.open(); return true; };
   const openFeed = () => { if (!feed || panelsBusy()) return false; editor?.close(); feed.open(); return true; };
   // Un solo listener in bubble: i pannelli aperti fermano il keydown in capture, quindi qui arrivano solo i tasti «liberi».
@@ -118,11 +126,13 @@ async function boot(): Promise<void> {
     if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.code === 'KeyC') { if (editor?.isOpen()) editor.close(); else openEditor(); return; }
     if (e.code === 'KeyF') { if (feed?.isOpen()) feed.close(); else openFeed(); return; }
+    if (e.code === 'KeyI') { if (eroe?.isOpen()) eroe.close(); else if (eroe && !panelsBusy()) { editor?.close(); feed?.close(); eroe.open(); } return; }
     const m = /^(?:Digit|Numpad)([1-4])$/.exec(e.code);
     if (m && !panelsBusy() && !editor?.isOpen() && !feed?.isOpen()) { const id = EMOTES[Number(m[1]) - 1]; if (id) emotes.play(id); }
   });
   registerTestHook('openEditor', () => openEditor());
   registerTestHook('openFeed', () => openFeed());
+  registerTestHook('openHero', () => { if (!eroe || panelsBusy()) return false; eroe.open(); return true; });
   registerTestHook('emote', (id) => emotes.play(String(id) as EmoteId));
   // guida «Primi passi»: costruire → barca → minigioco → costruire col premio. Senza isola propria restano barca e minigioco.
   const home = world.slot !== null ? arch.spawnOf(world.slot) : null, homeDock = world.slot !== null ? arch.boatOf(world.slot) : null;
@@ -142,7 +152,7 @@ async function boot(): Promise<void> {
   ];
   const guida = createGuida({
     root, camera: renderer.camera, canvas, steps, storeKey: `marea:guida:${me?.id ?? 'ospite'}`,
-    hidden: () => regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen(),
+    hidden: () => regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || ingressi.active || ingressi.isBusy() || !!eroe?.isOpen(),
     onFocus: (id) => compass.focus(id === 'segheria' || id === 'costruisci' ? 'casa' : id === 'barca' ? null : id),
   });
   let last = performance.now(), acc = 0, t = 0;
@@ -151,18 +161,20 @@ async function boot(): Promise<void> {
     let steps = 0;
     while (acc >= DT && steps < 5) {
       const f = input.sample();
-      if (regata.active) regata.step(f); else { tickTavolo(f.a); giochi.tick(f.a); }
-      world.frozen = (!!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy()) && !regata.active;
+      if (ingressi.active) { ingressi.step(f); acc -= DT; steps++; continue; } // nel dungeon il mondo di superficie sta fermo
+      if (regata.active) regata.step(f); else { tickTavolo(f.a); giochi.tick(f.a); ingressi.tick(f.a); }
+      world.frozen = (!!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || !!eroe?.isOpen()) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
-    world.update(acc / DT, dt, t);
+    if (ingressi.active) ingressi.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); }
     regata.update(acc / DT, dt, t);
-    emotes.update(dt); setTopbarHidden(regata.active);
+    emotes.update(dt); setTopbarHidden(regata.active || ingressi.active);
     giochi.update(t); guideStep = guida.current(); guida.update(t);
     if (document.querySelector('#mzSheet.on')) { if (tavolo?.isOpen()) tavolo.close(); editor?.close(); feed?.close(); } // aperto un edificio: gli altri pannelli lasciano il posto
     const focus = world.mode === 'walk' ? world.avatar.state : world.boat.state;
     for (const lv of lots) lv.update(dt, focus); // rilettura ogni 30 s solo per l'isola dove sei; timer ed etichette ogni frame
+    document.body.classList.toggle('mz-sotto', ingressi.active); // nel dungeon: l'interfaccia di superficie si nasconde (CSS del chunk GDR)
     compass.update(focus, renderer.diorama.yaw);
     renderer.render(acc / DT, t);
     hud.setPerf(renderer.stats());

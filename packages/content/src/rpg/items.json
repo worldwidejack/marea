@@ -1,0 +1,53 @@
+[
+  { "id": "lingotto_bronzo", "nome": "Lingotto di bronzo", "kind": "materiale", "peso": 1, "colore": "#F2A33A", "descr": "Si forgia al Banco da Lavoro." },
+  { "id": "lingotto_ferro", "nome": "Lingotto di ferro", "kind": "materiale", "peso": 1, "colore": "#7F7568", "descr": "Si forgia al Banco da Lavoro." },
+  { "id": "lingotto_argento", "nome": "Lingotto d'argento", "kind": "materiale", "peso": 1, "colore": "#E8E1D6", "descr": "Si trova nella Cripta del Porto." },
+  { "id": "pepita_oro", "nome": "Pepita d'oro", "kind": "materiale", "peso": 0.5, "colore": "#F5D547", "descr": "Rara: luccica nelle grotte." },
+  { "id": "frammento_vetro", "nome": "Frammento di cristallo", "kind": "materiale", "peso": 0.5, "colore": "#7FE3E0", "descr": "Dai golem del Portale del Vuoto." },
+  { "id": "ossa_mostro", "nome": "Ossa di mostro", "kind": "materiale", "peso": 2, "colore": "#F4E3C1", "descr": "Dai boss scheletrici." },
+  { "id": "frammento_meteorite", "nome": "Frammento di meteorite", "kind": "materiale", "peso": 1.5, "colore": "#A64DFF", "descr": "Metallo caduto dal vuoto." },
+
+  { "id": "erba_curativa", "nome": "Erba curativa", "kind": "ingrediente", "peso": 0.1, "colore": "#8FC35B", "descr": "Cresce nella Serra." },
+  { "id": "fiore_azzurro", "nome": "Fiore azzurro", "kind": "ingrediente", "peso": 0.1, "colore": "#3FB9C9", "descr": "Cresce nella Serra." },
+  { "id": "radice_vigore", "nome": "Radice del vigore", "kind": "ingrediente", "peso": 0.2, "colore": "#8E5A2B", "descr": "Cresce nella Serra." },
+  { "id": "fungo_luminoso", "nome": "Fungo luminoso", "kind": "ingrediente", "peso": 0.2, "colore": "#3DF5FF", "descr": "Raro: cresce al buio delle grotte." },
+  { "id": "polvere_ossa", "nome": "Polvere d'ossa", "kind": "ingrediente", "peso": 0.2, "colore": "#E8E1D6", "descr": "Raro: dagli scheletri della Cripta." },
+  { "id": "essenza_vuoto", "nome": "Essenza del vuoto", "kind": "ingrediente", "peso": 0.1, "colore": "#8A5CFF", "descr": "Raro: dagli spettri del Portale." },
+  { "id": "seta_ragno", "nome": "Seta di ragno", "kind": "ingrediente", "peso": 0.1, "colore": "#F4E3C1", "descr": "Raro: dai ragni della Grotta." },
+  { "id": "zanna_lupo", "nome": "Zanna di lupo", "kind": "ingrediente", "peso": 0.3, "colore": "#B9AFA3", "descr": "Raro: dai lupi della Grotta." },
+
+  { "id": "pozione_vita_minore", "nome": "Pozione di vita minore", "kind": "pozione", "peso": 0.5, "colore": "#E8433F", "cura": { "vita": 40 }, "descr": "Ridà un po' di vita." },
+  { "id": "pozione_vita", "nome": "Pozione di vita", "kind": "pozione", "peso": 0.5, "colore": "#E8433F", "cura": { "vita": 90 }, "descr": "Ridà molta vita." },
+  { "id": "pozione_vita_grande", "nome": "Pozione di vita grande", "kind": "pozione", "peso": 0.5, "colore": "#E8433F", "cura": { "vita": 180 }, "descr": "Ti rimette in piedi." },
+  { "id": "pozione_magicka_minore", "nome": "Pozione di magicka minore", "kind": "pozione", "peso": 0.5, "colore": "#2478A8", "cura": { "magicka": 40 }, "descr": "Ridà un po' di magicka." },
+  { "id": "pozione_magicka", "nome": "Pozione di magicka", "kind": "pozione", "peso": 0.5, "colore": "#2478A8", "cura": { "magicka": 100 }, "descr": "Ridà molta magicka." },
+  { "id": "pozione_stamina", "nome": "Pozione di stamina", "kind": "pozione", "peso": 0.5, "colore": "#4E9A46", "cura": { "stamina": 100 }, "buff": { "mod": "regenStamina", "valore": 12, "secondi": 30 }, "descr": "Stamina piena e rigenerazione doppia per 30 s." },
+  { "id": "pozione_forza", "nome": "Pozione della forza", "kind": "pozione", "peso": 0.5, "colore": "#F2A33A", "buff": { "mod": "dannoPesanti", "valore": 0.3, "secondi": 60 }, "descr": "+30 % di danno con le armi pesanti per 60 s." },
+
+  { "id": "libro_fiammata", "nome": "Libro: Fiammata", "kind": "libro", "peso": 1, "colore": "#E8433F", "insegna": "fiammata", "descr": "Insegna Fiammata." },
+  { "id": "libro_fulmine", "nome": "Libro: Fulmine", "kind": "libro", "peso": 1, "colore": "#F5D547", "insegna": "fulmine", "descr": "Insegna Fulmine (Distruzione 30)." },
+  { "id": "libro_lupo_spettrale", "nome": "Libro: Lupo spettrale", "kind": "libro", "peso": 1, "colore": "#3DF5FF", "insegna": "lupo_spettrale", "descr": "Insegna Lupo spettrale (Evocazione 15)." },
+  { "id": "libro_scheletro_evocato", "nome": "Libro: Scheletro evocato", "kind": "libro", "peso": 1, "colore": "#E8E1D6", "insegna": "scheletro_evocato", "descr": "Insegna Scheletro evocato (Evocazione 30)." },
+
+  { "id": "anello_vita_debole", "nome": "Anello della Vita Debole", "kind": "anello", "peso": 0.1, "colore": "#E8433F", "mods": { "vita": 20 }, "descr": "+20 Vita." },
+  { "id": "anello_vita", "nome": "Anello della Vita", "kind": "anello", "peso": 0.1, "colore": "#E8433F", "mods": { "vita": 50 }, "descr": "+50 Vita." },
+  { "id": "anello_magicka_debole", "nome": "Anello della Magicka Debole", "kind": "anello", "peso": 0.1, "colore": "#2478A8", "mods": { "magicka": 20 }, "descr": "+20 Magicka." },
+  { "id": "anello_stamina_debole", "nome": "Anello della Stamina Debole", "kind": "anello", "peso": 0.1, "colore": "#4E9A46", "mods": { "stamina": 20 }, "descr": "+20 Stamina." },
+  { "id": "anello_guerriero", "nome": "Anello del Guerriero", "kind": "anello", "peso": 0.1, "colore": "#7F7568", "mods": { "dannoLeggere": 0.1, "dannoPesanti": 0.1 }, "descr": "+10 % di danno in mischia." },
+  { "id": "anello_arciere", "nome": "Anello dell'Arciere", "kind": "anello", "peso": 0.1, "colore": "#4E9A46", "mods": { "dannoArco": 0.15, "tensioneArco": 0.15 }, "descr": "+15 % di danno con l'arco, tendi più in fretta." },
+  { "id": "anello_mulo", "nome": "Anello del Mulo", "kind": "anello", "peso": 0.1, "colore": "#8E5A2B", "mods": { "peso": 40 }, "descr": "Porti 40 kg in più." },
+  { "id": "anello_vento", "nome": "Anello del Vento", "kind": "anello", "peso": 0.1, "colore": "#7FE3E0", "mods": { "velocitaCorsa": 0.1, "staminaCorsa": -0.2 }, "descr": "Corri più veloce e ti stanchi meno." },
+  { "id": "anello_mago", "nome": "Anello del Mago", "kind": "anello", "peso": 0.1, "colore": "#A64DFF", "mods": { "regenMagicka": 0.5, "costoDistruzione": -0.1 }, "descr": "Magicka che torna più in fretta, magie meno care." },
+
+  { "id": "veste_apprendista", "nome": "Veste dell'apprendista", "kind": "veste", "peso": 1, "difesa": 0, "colore": "#2478A8", "mods": { "magicka": 30, "regenMagicka": 0.25 }, "descr": "+30 Magicka, rigenerazione +25 %. Nessuna difesa." },
+  { "id": "veste_distruzione", "nome": "Veste della distruzione", "kind": "veste", "peso": 1, "difesa": 0, "colore": "#E8433F", "mods": { "magicka": 40, "dannoDistruzione": 0.25, "costoDistruzione": -0.15 }, "descr": "+40 Magicka, Distruzione più forte e meno cara. Nessuna difesa." },
+  { "id": "veste_evocazione", "nome": "Veste dell'evocazione", "kind": "veste", "peso": 1, "difesa": 0, "colore": "#A64DFF", "mods": { "magicka": 40, "durataEvocazione": 0.5, "costoEvocazione": -0.15 }, "descr": "+40 Magicka, evocazioni più lunghe e meno care. Nessuna difesa." },
+
+  { "id": "unico_martello_re", "nome": "Martello del Re delle Ossa", "kind": "arma", "base": "martello_ossa", "peso": 30, "danno": 100, "unico": true, "colore": "#F4E3C1", "traits": { "sanguina": 6, "sbilancia": true, "bonusVs": { "umano": 1.5, "bestia": 1.5 } }, "descr": "Dal Re delle Ossa. Ogni colpo fa tremare la cripta." },
+  { "id": "unico_arco_custode", "nome": "Arco del Custode", "kind": "arco", "base": "arco_meteorite", "peso": 2, "danno": 30, "unico": true, "colore": "#8A5CFF", "traits": { "noGravita": true, "penetra": 0.3 }, "descr": "Dal Custode del Vuoto. Le frecce non cadono mai." },
+  { "id": "unico_frecce_abisso", "nome": "Frecce dell'Abisso", "kind": "frecce", "base": "frecce_meteorite", "peso": 0.02, "danno": 12, "unico": true, "colore": "#8A5CFF", "traits": { "trapassa": true, "penetra": 0.75 }, "descr": "Trapassano tutto e quasi ignorano le armature." },
+  { "id": "unico_corazza_marea", "nome": "Corazza della Marea", "kind": "armatura", "base": "armatura_ferro", "peso": 10, "difesa": 70, "unico": true, "colore": "#3FB9C9", "mods": { "regenVita": 2, "resistMagia": 0.2 }, "descr": "Acciaio lavorato dalle onde: rigenera la vita, attenua la magia." },
+  { "id": "unico_katana_spettro", "nome": "Katana dello Spettro", "kind": "arma", "base": "katana_vetro", "peso": 2, "danno": 30, "unico": true, "colore": "#3DF5FF", "traits": { "fragile": 0, "penetra": 0.3 }, "descr": "Cristallo che non si rompe mai." },
+  { "id": "unico_nunchaku_bandito", "nome": "Nunchaku del Capobanda", "kind": "arma", "base": "nunchaku_oro", "peso": 4, "danno": 9, "unico": true, "colore": "#F5D547", "traits": { "dropMolt": 3 }, "descr": "Chi lo prende in faccia paga il triplo." },
+  { "id": "unico_veste_arcimago", "nome": "Veste dell'Arcimago", "kind": "veste", "peso": 1, "difesa": 0, "unico": true, "colore": "#8A5CFF", "mods": { "magicka": 80, "regenMagicka": 1, "dannoDistruzione": 0.3 }, "descr": "+80 Magicka, rigenerazione doppia, Distruzione +30 %." }
+]

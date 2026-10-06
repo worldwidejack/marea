@@ -1,0 +1,43 @@
+[
+  { "id": "al_lama", "skill": "armiLeggere", "nome": "Lama affilata", "livello": 20, "mods": { "dannoLeggere": 0.2 }, "descr": "+20 % di danno con le armi leggere." },
+  { "id": "al_polso", "skill": "armiLeggere", "nome": "Polso rapido", "livello": 30, "richiede": "al_lama", "mods": { "velocitaLeggere": 0.15 }, "descr": "Armi leggere più veloci del 15 %." },
+  { "id": "al_maestro", "skill": "armiLeggere", "nome": "Maestro di lama", "livello": 45, "richiede": "al_lama", "mods": { "dannoLeggere": 0.3 }, "descr": "Altro +30 % di danno con le armi leggere." },
+  { "id": "al_danza", "skill": "armiLeggere", "nome": "Danza leggera", "livello": 50, "richiede": "al_polso", "mods": { "dannoConArmaturaLeggera": 0.25 }, "descr": "+25 % di danno se l'armatura è leggera (o porti una veste)." },
+  { "id": "al_fulmineo", "skill": "armiLeggere", "nome": "Colpo fulmineo", "livello": 65, "richiede": "al_maestro", "mods": { "caricaVeloce": 0.3 }, "descr": "L'attacco caricato si carica il 30 % prima." },
+
+  { "id": "ap_braccia", "skill": "armiPesanti", "nome": "Braccia di ferro", "livello": 20, "mods": { "dannoPesanti": 0.2 }, "descr": "+20 % di danno con le armi pesanti." },
+  { "id": "ap_mulinello", "skill": "armiPesanti", "nome": "Mulinello", "livello": 30, "richiede": "ap_braccia", "mods": { "velocitaPesanti": 0.2 }, "descr": "Attacchi con le armi pesanti più veloci del 20 %." },
+  { "id": "ap_bruto", "skill": "armiPesanti", "nome": "Bruto agile", "livello": 40, "richiede": "ap_mulinello", "mods": { "dannoConArmaturaLeggera": 0.3 }, "descr": "+30 % di danno se l'armatura è leggera (o porti una veste)." },
+  { "id": "ap_sfondatore", "skill": "armiPesanti", "nome": "Sfondatore", "livello": 50, "richiede": "ap_braccia", "mods": { "dannoPesanti": 0.3 }, "descr": "Altro +30 % di danno con le armi pesanti." },
+  { "id": "ap_toro", "skill": "armiPesanti", "nome": "Carica del toro", "livello": 65, "richiede": "ap_sfondatore", "mods": { "caricaVeloce": 0.35 }, "descr": "L'attacco caricato si carica il 35 % prima." },
+
+  { "id": "ar_falco", "skill": "arceria", "nome": "Occhio di falco", "livello": 20, "mods": { "dannoArco": 0.2 }, "descr": "+20 % di danno con l'arco." },
+  { "id": "ar_tensione", "skill": "arceria", "nome": "Tensione rapida", "livello": 30, "richiede": "ar_falco", "mods": { "tensioneArco": 0.25 }, "descr": "Tendi l'arco il 25 % prima." },
+  { "id": "ar_cecchino", "skill": "arceria", "nome": "Cecchino", "livello": 45, "richiede": "ar_falco", "mods": { "dannoArco": 0.3 }, "descr": "Altro +30 % di danno con l'arco." },
+  { "id": "ar_mobile", "skill": "arceria", "nome": "Arciere mobile", "livello": 55, "richiede": "ar_tensione", "mods": { "velocitaCorsa": 0.1, "staminaCorsa": -0.2 }, "descr": "Corri più veloce e consumi meno stamina." },
+
+  { "id": "di_fiamma", "skill": "distruzione", "nome": "Fiamma viva", "livello": 20, "mods": { "dannoDistruzione": 0.2 }, "descr": "+20 % di danno con le magie di Distruzione." },
+  { "id": "di_concentrazione", "skill": "distruzione", "nome": "Concentrazione", "livello": 30, "richiede": "di_fiamma", "mods": { "costoDistruzione": -0.25 }, "descr": "Le magie di Distruzione costano il 25 % in meno." },
+  { "id": "di_flusso", "skill": "distruzione", "nome": "Flusso arcano", "livello": 40, "richiede": "di_concentrazione", "mods": { "regenMagicka": 0.5 }, "descr": "La magicka torna il 50 % più in fretta." },
+  { "id": "di_tempesta", "skill": "distruzione", "nome": "Tempesta", "livello": 55, "richiede": "di_fiamma", "mods": { "dannoDistruzione": 0.35 }, "descr": "Altro +35 % di danno con le magie di Distruzione." },
+
+  { "id": "ev_legame", "skill": "evocazione", "nome": "Legame", "livello": 20, "mods": { "durataEvocazione": 0.5 }, "descr": "Le evocazioni durano il 50 % in più." },
+  { "id": "ev_richiamo", "skill": "evocazione", "nome": "Richiamo facile", "livello": 30, "richiede": "ev_legame", "mods": { "costoEvocazione": -0.25 }, "descr": "Le evocazioni costano il 25 % in meno." },
+  { "id": "ev_riserva", "skill": "evocazione", "nome": "Riserva", "livello": 40, "richiede": "ev_richiamo", "mods": { "magicka": 30 }, "descr": "+30 Magicka." },
+  { "id": "ev_patto", "skill": "evocazione", "nome": "Patto duraturo", "livello": 55, "richiede": "ev_legame", "mods": { "durataEvocazione": 1 }, "descr": "Le evocazioni durano il doppio." },
+
+  { "id": "na_vento", "skill": "navigazione", "nome": "Vento in poppa", "livello": 20, "mods": { "velocitaBarca": 0.1 }, "descr": "La barca va il 10 % più veloce." },
+  { "id": "na_gambe", "skill": "navigazione", "nome": "Gambe da marinaio", "livello": 30, "richiede": "na_vento", "mods": { "stamina": 20 }, "descr": "+20 Stamina." },
+  { "id": "na_mozzo", "skill": "navigazione", "nome": "Passo del mozzo", "livello": 40, "richiede": "na_gambe", "mods": { "velocitaCorsa": 0.1 }, "descr": "Corri il 10 % più veloce." },
+  { "id": "na_corrente", "skill": "navigazione", "nome": "Leggere la corrente", "livello": 55, "richiede": "na_vento", "mods": { "velocitaBarca": 0.15 }, "descr": "La barca va un altro 15 % più veloce." },
+
+  { "id": "fo_parsimonia", "skill": "forgiatura", "nome": "Mano parsimoniosa", "livello": 20, "mods": { "materialiForgia": -0.2 }, "descr": "Forgiare costa il 20 % di materiale in meno." },
+  { "id": "fo_corazzaio", "skill": "forgiatura", "nome": "Corazzaio", "livello": 30, "richiede": "fo_parsimonia", "mods": { "difesa": 15 }, "descr": "+15 di difesa con qualunque armatura." },
+  { "id": "fo_cinghie", "skill": "forgiatura", "nome": "Cinghie su misura", "livello": 40, "richiede": "fo_corazzaio", "mods": { "malusArmatura": -0.5 }, "descr": "Il peso dell'armatura ti rallenta la metà." },
+  { "id": "fo_maestro", "skill": "forgiatura", "nome": "Maestro fabbro", "livello": 60, "richiede": "fo_parsimonia", "mods": { "materialiForgia": -0.2 }, "descr": "Un altro 20 % di materiale risparmiato." },
+
+  { "id": "alc_erborista", "skill": "alchimia", "nome": "Erborista", "livello": 20, "mods": { "potenzaPozioni": 0.2 }, "descr": "Le pozioni curano il 20 % in più." },
+  { "id": "alc_tasche", "skill": "alchimia", "nome": "Tasche profonde", "livello": 30, "richiede": "alc_erborista", "mods": { "peso": 25 }, "descr": "Porti 25 kg in più." },
+  { "id": "alc_medico", "skill": "alchimia", "nome": "Medico", "livello": 40, "richiede": "alc_erborista", "mods": { "potenzaPozioni": 0.25 }, "descr": "Le pozioni curano un altro 25 % in più." },
+  { "id": "alc_pelle", "skill": "alchimia", "nome": "Pelle d'alchimista", "livello": 55, "richiede": "alc_medico", "mods": { "resistMagia": 0.15 }, "descr": "Prendi il 15 % di danno in meno dalle magie." }
+]

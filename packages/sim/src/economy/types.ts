@@ -1,4 +1,5 @@
 import type { Resources } from '@marea/content';
+import type { DungeonLotState, HeroState } from '../rpg/types.ts';
 export type { Resources };
 
 export type PlacedBuilding = { id: string; building: string; level: number; cell: [number, number]; buffer: number; lastMs: number };
@@ -31,6 +32,12 @@ export type LotState = {
   settled?: string[];
   /** Minigiochi da solo. Assente = { day: 0, premiate: 0, giocate: 0, pending: null }. */
   solo?: SoloState;
+  /** Personaggio GDR (docs/RPG.md). Assente = newHero() di @marea/sim/rpg/hero.ts. */
+  hero?: HeroState;
+  /** Forziere dell'isola: id oggetto → quantità. Assente = {}. */
+  forziere?: Record<string, number>;
+  /** Spedizione nel dungeon aperta dal server. Assente = { pending: null }. */
+  dungeon?: DungeonLotState;
 };
 
 /**
@@ -75,7 +82,8 @@ export const missing = (have: Resources, cost: Resources): Resources => ({
   legno: Math.max(0, cost.legno - have.legno), pietra: Math.max(0, cost.pietra - have.pietra), perle: Math.max(0, cost.perle - have.perle),
 });
 
-export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow' | 'cappello' | 'posizione' | 'partita';
+export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow' | 'cappello' | 'posizione' | 'partita'
+  | 'peso' | 'equip' | 'perk' | 'materiale' | 'edificio' | 'livello_skill' | 'oggetto' | 'spedizione';
 export class EconomyError extends Error {
   code: EconomyErrorCode;
   manca: Resources | undefined;
