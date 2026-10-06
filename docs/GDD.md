@@ -94,4 +94,7 @@ Una scheda con un passo alla volta e una freccia gialla sulla meta (sopra la cos
 Fuori: battaglia unità, bot, puzzle, chat testuale, interni degli edifici, ciclo giorno/notte, commercio tra giocatori, apertura al pubblico, app installabile (PWA solo se gratis in tempo), musica originale, storia. Entrano dopo, uno alla volta, e solo dal `BACKLOG.md`.
 
 ## 11. Numeri
-I numeri di questo documento sono la **prima ipotesi**. La verità operativa sta in `packages/content/src/balance.json` e nei json di `packages/content/src/minigames/`; quando cambiano, si aggiorna la tabella qui e si annota in `ROADMAP.md` §Deviazioni.
+I numeri di questo documento sono la **prima ipotesi**. La verità operativa sta in `packages/content/src/balance.json`, nei json di `packages/content/src/minigames/` e (GDR) in `packages/content/src/rpg/`; quando cambiano, si aggiorna la tabella qui e si annota in `ROADMAP.md` §Deviazioni.
+
+## 12. Mondo Sotterraneo (GDR, dal 6 ott 2026)
+Sotto le isole ci sono dungeon con combattimento alla Skyrim, voluti da **Riccardo** (che ne cura il design): personaggio con Vita/Magicka/Stamina, 8 abilità, perk, forgia di armi e armature in 8 materiali, alchimia, bottino. **Facoltativo**: chi non scende gioca MAREA come prima. In superficie zero nemici. Tutto il design sta in **`docs/RPG.md`**, che vale come questo documento. Rispetto al §10: il combattimento entra (solo nei dungeon, contro la sim, mai contro gli amici); gli interni restano fuori dalla superficie.
