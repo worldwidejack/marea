@@ -5,7 +5,7 @@ aggiornato: 2026-10-06
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-**Online** (140/140 test, deploy da GitHub). 6/10: parte il **Mondo Sotterraneo** dal documento di Riccardo (dungeon, combattimento, personaggio, forgia, alchimia): design in `docs/RPG.md`, contratti in `CONTRACTS.md` §15, ramo `jack/mondo-sotterraneo`, issue #17. Prima ondata di agenti al lavoro (regole del personaggio, sim dei dungeon, modelli 3D).
+**Mondo Sotterraneo fatto** (design di Riccardo, `docs/RPG.md`, issue #17): 3 dungeon dagli ingressi sulle isole (Grotta, Cripta, Portale del Vuoto) con combattimento, archi, magie, pozioni, bottino; scheda del personaggio (I) con livelli, abilità, perk, zaino; Banco da Lavoro, Tavolo Alchemico, Forziere, Serra sull'isola. Il server rigioca ogni spedizione.
 
 ## Prossimo passo
-Claude: finita la prima ondata, seconda ondata (server, scena del dungeon, pannelli), test, PR e `/consegna`. Jack: guarda il contact sheet dei modelli nuovi e prova la Grotta della Marea. Riccardo: quando entra, rivede le scelte provvisorie di `docs/RPG.md` e disegna l'albero dei perk.
+Jack: prova la Grotta della Marea (Isola Selvaggia) da PC e telefono e dice cosa cambiare; guarda i modelli nuovi. Riccardo: rivede le scelte provvisorie di `docs/RPG.md` e disegna l'albero dei perk (`packages/content/src/rpg/perks.json`).
