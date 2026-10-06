@@ -74,5 +74,14 @@ Più gli **archi** e le **frecce**. **Armi uniche**: drop speciali non forgiabil
 - **Inventario a peso** (cresce con la Stamina). Sull'isola il **Forziere** tiene l'eccesso; migliorarlo alza quanto ci sta.
 - **[scelta provvisoria] Monete**: si trovano nei dungeon e servono a comprare i materiali di base al Banco da Lavoro (bottega minima), finché non c'è un mercante al Porto.
 
-## 7. Come funziona sotto (per chi programma)
+## 7. Prima taratura (6 ott 2026, da rivedere giocando)
+- **Armi** = tipo × materiale. Colpi al secondo: nunchaku 2,5 · katana 1,7 · ascia 1,15 · lancia 1,1 (portata 3 m) · spadone 0,8 · martello 0,55. DPS dei sei tipi entro ±25 % della media. Le pesanti costano 1,5× materiale.
+- **Materiali (danno)**: legno ×0,5 · bronzo ×1 · ferro ×1,4 · argento ×1,2 (×2 su non-morti e mostri) · oro ×0,6 (bottino ×2) · vetro ×1,9 (si rompe dopo 60 colpi) · ossa ×2,6 lentissime · meteorite ×2 (ignora metà armatura).
+- **Armature (difesa)**: tela 5 (malus zero) · ferro 50 · ossa 90 (40 kg) · meteorite 50 (−10 kg, velocità ×1,12) · vetro: tagli ×0,6, contundenti ×2 · argento dimezza la magia · oro 2 monete per colpo preso. Malus = kg × 0,012 (max 0,6), dimezzato a 200 di Stamina.
+- **Zaino** 20 + 0,8 × Stamina kg (100 alla partenza). **Partenza**: katana di legno, vesti di tela, arco di legno e 20 frecce, 2 pozioni di vita minori, Fiammata, 20 monete.
+- **Crescita**: ogni livello d'abilità dà al personaggio xp pari al nuovo livello; +0,5 % di danno e +1 % di pozioni per livello d'abilità oltre 15. Regata da solo: Navigazione +60/40/25/10 xp (oro/argento/bronzo/nessuna).
+- **Nemici** (vita · danno · armatura): bandito 24·7·0 · arciere 16·5·0 · lupo 16·6·0 · ragno 12·5·0 · scheletro 45·12·4 · scheletro arciere 35·8·3 · non-morto 80·18·6 · **Re delle Ossa** 420·26·10 · spettro 50·10·0 (magie) · golem 140·28·14 (contundente) · **Custode** 750·38·12. Alleati evocati: lupo spettrale 60·12, scheletro evocato 70·16 (invulnerabili finché durano) **[scelta provvisoria]**.
+- Mappe: Grotta 40×30 (15 nemici, 5 forzieri), Cripta 44×31 (16 nemici + boss, 6 forzieri, libro Fulmine), Vuoto 48×33 (16 nemici + boss, 5 forzieri, libro Lupo spettrale). Niente colpi critici **[scelta provvisoria]**.
+
+## 8. Come funziona sotto (per chi programma)
 Un dungeon è una **partita deterministica** della sim (come la Regata, ma lunga fino a 20 min): il server apre la spedizione fotografando il personaggio (`RunHero`) e un seed, il client gioca e registra gli input, il server li rigioca e applica il risultato (`RunResult`). Niente trucchi, niente rete nuova. Dettagli e interfacce: `CONTRACTS.md` §15.
