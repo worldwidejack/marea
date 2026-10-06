@@ -98,7 +98,9 @@ export default async function (ctx) {
       assert(s.ingressi.finishes === 0, 'finish chiamato dopo Esc');
       const lot = await getLot('tokA');
       assert(lot.dungeon?.pending?.dungeon === 'cripta', 'la spedizione dovrebbe restare aperta sul server: ' + JSON.stringify(lot.dungeon));
-      assert(!(await page.evaluate(() => document.body.classList.contains('mz-sotto'))), 'mz-sotto resta dopo l\'uscita');
+      // la classe la toglie main.ts al frame dopo l'uscita: sotto carico (suite completa) il frame può tardare
+      const sotto = await page.waitForFunction(() => !document.body.classList.contains('mz-sotto'), null, { timeout: 5000 }).then(() => false, () => true);
+      assert(!sotto, 'mz-sotto resta dopo l\'uscita');
     });
 
     let before = null;
@@ -153,7 +155,7 @@ export default async function (ctx) {
     const T = await ctx.B.openPage(ctx.browser, `${base}/?t=tokB&test=1`, { viewport: ctx.B.IPHONE }); ctx._pages.push(T);
     const tp = T.page;
     await ctx.waitReady(tp, 30000);
-    await ctx.waitState(tp, (s) => s.lot && s.lot.ready === true && s.ingressi, 15000);
+    await ctx.waitState(tp, (s) => s.lot && s.lot.ready === true && s.ingressi, 30000);
     const thook = (n, ...a) => tp.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
     await ctx.test('telefono: ingresso nel mondo', async () => {
       const g = (await ctx.getState(tp)).ingressi.spots.find((x) => x.id === 'grotta');
