@@ -5,7 +5,7 @@ import type { DungeonView, EnemyAnim, HeroAnim } from './types.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { pesoZaino } from './loot.ts';
 import { vicinoUscita } from './hero.ts';
-import { HZ } from './tuning.ts';
+import { BOSS_AREA_RAGGIO, HZ } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const r3 = (v: number): number => Math.round(v * 1000) / 1000;
@@ -51,7 +51,7 @@ export function viewOf(s: DungeonState): DungeonView {
     },
     nemici: s.enemies.map((e) => {
       const a = enemyAnim(e);
-      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0, boss: !!e.def.boss };
+      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0, boss: !!e.def.boss, ...(e.st === 'prepara' && e.area ? { area: e.def.portata * BOSS_AREA_RAGGIO } : {}) };
     }),
     proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz })),
     bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: l.vuoto })),

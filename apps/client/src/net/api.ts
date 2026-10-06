@@ -71,7 +71,8 @@ export type Api = {
   /** Azione del personaggio (livello, perk, equip, forgia, alchimia, forziere, serra…): risponde col lotto aggiornato. */
   rpg(a: RpgAction): Promise<LotState>;
   dungeonStart(dungeon: string): Promise<DungeonStart>;
-  dungeonFinish(inputs: PackedDungeon, hash: number): Promise<DungeonFinish>;
+  /** `inputs` come array o già compressi con `encodeDungeon` (stringa, molto più leggera): il server accetta entrambi. */
+  dungeonFinish(inputs: PackedDungeon | string, hash: number): Promise<DungeonFinish>;
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;

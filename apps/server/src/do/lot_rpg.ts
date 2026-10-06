@@ -1,9 +1,9 @@
 // Mondo Sotterraneo nel DO del lotto (CONTRACTS §15). Il personaggio sta dentro LotState (hero, forziere, dungeon.pending): niente D1.
-// POST /rpg {azione} → LotState · /dungeon_start {dungeon} → {dungeon, seed, hero, lot} · /dungeon_finish {inputs, hash} → il DO rigioca
+// POST /rpg {azione} → LotState · /dungeon_start {dungeon} → {dungeon, seed, hero, lot} · /dungeon_finish {inputs (array o stringa di encodeDungeon), hash} → il DO rigioca
 // gli input (replayDungeon) e applica il risultato del server → {result, tenuto, monete, livelliSu, lot}. Gli EconomyError li traduce Lot.fetch.
 import { DUNGEONS } from '@marea/content/rpg.ts';
 import { dungeon as dungeonSim } from '@marea/sim/dungeon/dungeon.ts';
-import { isPackedDungeon, replayDungeon } from '@marea/sim/dungeon/replay.ts';
+import { decodeDungeon, isPackedDungeon, replayDungeon } from '@marea/sim/dungeon/replay.ts';
 import type { LotState } from '@marea/sim/economy/types.ts';
 import { applyRpgAction, parseRpgAction } from '@marea/sim/rpg/actions.ts';
 import { finishDungeon, startDungeon } from '@marea/sim/rpg/run.ts';
@@ -34,7 +34,9 @@ export function rpgRoute(lot: LotState, act: string, body: Record<string, unknow
   // dungeon_finish
   const p = lot.dungeon?.pending;
   if (!p) return json({ error: 'Nessuna spedizione aperta: rientra dall’ingresso', code: 'spedizione' }, 409);
-  const inputs = body['inputs'];
+  // input come array RLE o compressi dal client con encodeDungeon (stringa base64, ~4× più leggera)
+  const raw = body['inputs'];
+  const inputs = typeof raw === 'string' ? decodeDungeon(raw, dungeonSim.maxTicks) : raw;
   if (!isPackedDungeon(inputs, dungeonSim.maxTicks)) return json({ error: 'Spedizione non valida' }, 400);
   const result = replayDungeon(p.seed, p.dungeon, p.hero, inputs);
   const hash = body['hash'];

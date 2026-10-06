@@ -188,3 +188,22 @@ test('dungeon: armatura d’ossa (terrore) — i nemici deboli scappano, gli sch
   assert.ok(b.x - s.hero.x > d0, 'il bandito si allontana');
   assert.notEqual(k.st, 'scappa', 'il non-morto (senza pauroso) non scappa');
 });
+
+test('dungeon: il colpo ad area dei boss si vede (view.nemici[].area) solo mentre lo prepara', () => {
+  const s = arena(heroBase({ max: { vita: 1000, magicka: 100, stamina: 100 } }));
+  const boss = newEnemy(s, 're_ossa', s.hero.x + 2.2, s.hero.z);
+  boss.aggro = true; boss.st = 'insegue';
+  const prep = (): boolean => boss.st === 'prepara';
+  const area = (): number | undefined => dungeon.view(s).nemici.find((n) => n.id === boss.id)!.area;
+  const viste: (number | undefined)[] = [];
+  let colpiAdArea = 0;
+  for (let t = 0; t < 60 * 12; t++) {
+    run(s, 1);
+    if (prep()) viste.push(area());
+    else assert.equal(area(), undefined, 'niente cerchio fuori dalla preparazione');
+    if (prep() && boss.stT === 1 && boss.area) colpiAdArea++;
+  }
+  assert.ok(colpiAdArea >= 1, 'almeno un colpo ad area in 12 s');
+  assert.ok(viste.some((a) => a === undefined), 'i colpi normali non hanno cerchio');
+  assert.ok(viste.some((a) => a !== undefined && Math.abs(a - boss.def.portata * 1.7) < 1e-9), `raggio ${viste.find((a) => a !== undefined)}`);
+});
