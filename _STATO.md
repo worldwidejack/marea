@@ -1,11 +1,11 @@
 ---
 progetto: MAREA
 stato: attivo
-aggiornato: 2026-10-02
+aggiornato: 2026-10-06
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-**Online** (build `mupynbxd`, primo deploy fatto da GitHub, 140/140 test). MAREA ora si fa **in gruppo**: ogni amico col suo Claude prende una issue (#1-#9 in bacheca), fa una PR, GitHub controlla e pubblica da solo se i test passano. Guida `docs/CONTRIBUIRE.md`.
+**Online** (140/140 test, deploy da GitHub). 6/10: parte il **Mondo Sotterraneo** dal documento di Riccardo (dungeon, combattimento, personaggio, forgia, alchimia): design in `docs/RPG.md`, contratti in `CONTRACTS.md` §15, ramo `jack/mondo-sotterraneo`, issue #17. Prima ondata di agenti al lavoro (regole del personaggio, sim dei dungeon, modelli 3D).
 
 ## Prossimo passo
-Invitato il primo amico (`riccardo99altieri`, 2/10): accetta la mail di GitHub e fa partire il suo Claude col messaggio del gruppo. Gli altri: Jack incolla gli username, Claude li invita. Poi ognuno prende una issue e chiude con `/consegna`.
+Claude: finita la prima ondata, seconda ondata (server, scena del dungeon, pannelli), test, PR e `/consegna`. Jack: guarda il contact sheet dei modelli nuovi e prova la Grotta della Marea. Riccardo: quando entra, rivede le scelte provvisorie di `docs/RPG.md` e disegna l'albero dei perk.
