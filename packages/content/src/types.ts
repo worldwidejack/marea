@@ -20,6 +20,8 @@ export type BuildingDef = {
   size: [number, number];
   model: string;
   produces?: ResourceId;
+  /** Serra (docs/RPG.md §6): produce ingredienti (id di rpg/items.json) invece di una risorsa; `rate` = ingredienti/ora, a rotazione. */
+  producesItems?: string[];
   requires?: string;
   levels: BuildingLevel[];
 };

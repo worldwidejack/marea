@@ -25,5 +25,21 @@
   { "id": "tavolo", "nome": "Tavolo delle Sfide", "size": [1, 1], "model": "bld_tavolo", "levels": [
     { "cost": { "legno": 40, "pietra": 10, "perle": 0 }, "seconds": 300, "wagerMax": 50, "freeChallenges": 3 },
     { "cost": { "legno": 180, "pietra": 100, "perle": 0 }, "seconds": 3600, "wagerMax": 150, "freeChallenges": 5 },
-    { "cost": { "legno": 500, "pietra": 350, "perle": 0 }, "seconds": 21600, "wagerMax": 400, "freeChallenges": 8 } ] }
+    { "cost": { "legno": 500, "pietra": 350, "perle": 0 }, "seconds": 21600, "wagerMax": 400, "freeChallenges": 8 } ] },
+  { "id": "banco", "nome": "Banco da Lavoro", "size": [1, 1], "model": "bld_banco", "levels": [
+    { "cost": { "legno": 80, "pietra": 40, "perle": 0 }, "seconds": 300 },
+    { "cost": { "legno": 300, "pietra": 200, "perle": 0 }, "seconds": 3600 },
+    { "cost": { "legno": 800, "pietra": 600, "perle": 0 }, "seconds": 21600 } ] },
+  { "id": "alchimia", "nome": "Tavolo Alchemico", "size": [1, 1], "model": "bld_alchimia", "levels": [
+    { "cost": { "legno": 60, "pietra": 40, "perle": 0 }, "seconds": 300 },
+    { "cost": { "legno": 250, "pietra": 180, "perle": 0 }, "seconds": 3600 },
+    { "cost": { "legno": 700, "pietra": 500, "perle": 0 }, "seconds": 21600 } ] },
+  { "id": "forziere", "nome": "Forziere", "size": [1, 1], "model": "bld_forziere", "levels": [
+    { "cost": { "legno": 50, "pietra": 30, "perle": 0 }, "seconds": 120 },
+    { "cost": { "legno": 200, "pietra": 150, "perle": 0 }, "seconds": 2400 },
+    { "cost": { "legno": 600, "pietra": 450, "perle": 0 }, "seconds": 14400 } ] },
+  { "id": "serra", "nome": "Serra", "size": [1, 1], "model": "bld_serra", "producesItems": ["erba_curativa", "fiore_azzurro", "radice_vigore"], "levels": [
+    { "cost": { "legno": 70, "pietra": 20, "perle": 0 }, "seconds": 600, "rate": 4 },
+    { "cost": { "legno": 260, "pietra": 120, "perle": 0 }, "seconds": 3600, "rate": 8 },
+    { "cost": { "legno": 650, "pietra": 400, "perle": 0 }, "seconds": 14400, "rate": 15 } ] }
 ]
