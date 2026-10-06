@@ -38,8 +38,12 @@ export type ItemDef = {
   traits?: Traits; unico?: boolean;
   /** Modello 3D (arma in mano, oggetto a terra). */
   model?: string;
-  /** Costo di forgia (id oggetto o 'risorsa:legno' → quantità) e livello del Banco; assente = non forgiabile. */
-  forgia?: { costo: Record<string, number>; banco: 1 | 2 | 3 };
+  /** Costo di forgia (id oggetto o 'risorsa:legno' → quantità) e livello del Banco; assente = non forgiabile. n = pezzi per forgiata (frecce: 10; assente = 1). */
+  forgia?: { costo: Record<string, number>; banco: 1 | 2 | 3; n?: number };
+  /** Pozioni, anelli, vesti, libri, armature uniche: come in items.json (R-rpg, facoltativi). */
+  cura?: Partial<Record<AttrId, number>>; buff?: { mod: string; valore: number; secondi: number }; mods?: Partial<Record<string, number>>; insegna?: string;
+  /** Frecce: gravità in m/s² (R-rpg, facoltativo). */
+  gravita?: number;
 };
 
 /** Numeri derivati per la UI (scheda del personaggio). */
@@ -68,6 +72,8 @@ export type RunWeapon = {
   /** Arco: velocità di base della freccia (m/s); si somma a quella della freccia. */
   gittata: number;
   traits: Traits;
+  /** Armi fragili (R-rpg, facoltativo): colpi già dati con la copia in uso prima della spedizione (HeroState.usura). */
+  usura?: number;
 };
 export type RunArrows = { id: string; n: number; danno: number; gittata: number; gravita: number; traits: Traits };
 export type RunArmor = {
@@ -85,6 +91,7 @@ export type RunArmor = {
 };
 export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione'; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number };
 export type RunPotion = { id: string; n: number; cura: Partial<Record<AttrId, number>>; buff: { mod: string; valore: number; secondi: number } | null };
+/** camminata, corsa, arma.tempo e arma.carica sono SENZA il malus dell'armatura e senza velocitaMolt: li applica la sim del dungeon da `armatura` (R-rpg). */
 export type RunHero = {
   livello: number;
   max: Record<AttrId, number>;

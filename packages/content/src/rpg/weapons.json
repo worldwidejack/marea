@@ -1,1 +1,8 @@
-[]
+[
+  { "id": "nunchaku", "nome": "Nunchaku", "classe": "leggera", "danno": 6, "velocita": 2.5, "portata": 1.4, "peso": 3, "carica": 0.6, "caricaMolt": 2.0, "model": "arm_nunchaku", "descr": "Velocissimo, danni bassi." },
+  { "id": "katana", "nome": "Katana", "classe": "leggera", "danno": 10, "velocita": 1.7, "portata": 1.8, "peso": 4, "carica": 0.9, "caricaMolt": 2.5, "model": "arm_katana", "descr": "Equilibrata." },
+  { "id": "ascia", "nome": "Ascia", "classe": "leggera", "danno": 15, "velocita": 1.15, "portata": 1.6, "peso": 6, "carica": 1.1, "caricaMolt": 2.8, "model": "arm_ascia", "descr": "La più lenta delle leggere, danni alti." },
+  { "id": "lancia", "nome": "Lancia", "classe": "pesante", "danno": 14, "velocita": 1.1, "portata": 3.0, "peso": 9, "carica": 1.2, "caricaMolt": 2.6, "model": "arm_lancia", "descr": "Ottima portata, veloce per essere pesante, danno contenuto." },
+  { "id": "spadone", "nome": "Spadone", "classe": "pesante", "danno": 22, "velocita": 0.8, "portata": 2.2, "peso": 14, "carica": 1.5, "caricaMolt": 3.0, "model": "arm_spadone", "descr": "Equilibrato." },
+  { "id": "martello", "nome": "Martello", "classe": "pesante", "danno": 34, "velocita": 0.55, "portata": 1.9, "peso": 20, "carica": 2.0, "caricaMolt": 3.5, "model": "arm_martello", "descr": "Lentissimo, danni devastanti." }
+]

@@ -104,7 +104,11 @@ export type RpgBalance = {
   livelli: { skillIniziale: number; skillMax: number; xpSkill: { base: number; perLivello: number }; xpPersonaggio: { base: number; perLivello: number } };
   movimento: { camminata: number; corsa: number; staminaCorsa: number; raggio: number; mentreCarichi: number };
   peso: { base: number; perStamina: number };
-  armatura: { k: number; malusPerPeso: number; malusMax: number };
+  /** R-rpg, facoltativi: leggera = peso massimo per i perk «con armatura leggera» (vesti e nessuna armatura contano sempre); liberi = kg che non rallentano. */
+  armatura: { k: number; malusPerPeso: number; malusMax: number; leggera?: number; liberi?: number };
+  /** R-rpg, facoltativi: arma quando non ne hai una; quanto ogni livello di abilità sopra skillIniziale alza danno (armi e magie) e potenza delle pozioni. */
+  pugni?: { danno: number; velocita: number; portata: number; carica: number; caricaMolt: number };
+  abilita?: { dannoPerLivello: number; potenzaPerLivello: number };
   partenza: { inv: Record<string, number>; equip: Record<string, string>; magie: string[]; monete: number };
   dungeon: { maxMinuti: number; morte: { bottino: number; xp: number } };
   xp: Record<string, number>;

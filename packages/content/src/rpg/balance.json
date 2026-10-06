@@ -2,11 +2,18 @@
   "attributi": { "base": { "vita": 100, "magicka": 100, "stamina": 100 }, "perLivello": 10, "regen": { "vita": 0.5, "magicka": 4, "stamina": 12 } },
   "livelli": { "skillIniziale": 15, "skillMax": 100, "xpSkill": { "base": 10, "perLivello": 4 }, "xpPersonaggio": { "base": 75, "perLivello": 25 } },
   "movimento": { "camminata": 3.2, "corsa": 5.6, "staminaCorsa": 20, "raggio": 0.35, "mentreCarichi": 0.4 },
-  "peso": { "base": 150, "perStamina": 0.5 },
-  "armatura": { "k": 100, "malusPerPeso": 0.012, "malusMax": 0.6 },
-  "partenza": { "inv": {}, "equip": {}, "magie": [], "monete": 0 },
+  "peso": { "base": 20, "perStamina": 0.8 },
+  "armatura": { "k": 100, "malusPerPeso": 0.012, "malusMax": 0.6, "leggera": 12, "liberi": 2 },
+  "pugni": { "danno": 3, "velocita": 2, "portata": 1.1, "carica": 0.6, "caricaMolt": 1.5 },
+  "abilita": { "dannoPerLivello": 0.005, "potenzaPerLivello": 0.01 },
+  "partenza": {
+    "inv": { "katana_legno": 1, "armatura_legno": 1, "pozione_vita_minore": 2, "arco_legno": 1, "frecce_legno": 20 },
+    "equip": { "arma": "katana_legno", "corpo": "armatura_legno", "pozione": "pozione_vita_minore", "frecce": "frecce_legno", "magia": "fiammata" },
+    "magie": ["fiammata"],
+    "monete": 20
+  },
   "dungeon": { "maxMinuti": 20, "morte": { "bottino": 0, "xp": 1 } },
-  "xp": {},
+  "xp": { "forgia": 15, "alchimia": 12, "alchimiaPerLivello": 0.4, "personaggioPerLivelloSkill": 1, "regata_oro": 60, "regata_argento": 40, "regata_bronzo": 25, "regata_nessuna": 10 },
   "forziere": [100, 250, 600],
-  "bottega": {}
+  "bottega": { "lingotto_bronzo": 12, "lingotto_ferro": 20, "erba_curativa": 3, "fiore_azzurro": 3, "radice_vigore": 4 }
 }

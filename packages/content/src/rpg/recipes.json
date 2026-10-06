@@ -1,1 +1,10 @@
-[]
+[
+  { "id": "r_vita_minore", "nome": "Pozione di vita minore", "ingredienti": { "erba_curativa": 2 }, "risultato": "pozione_vita_minore", "n": 1, "livello": 0 },
+  { "id": "r_magicka_minore", "nome": "Pozione di magicka minore", "ingredienti": { "fiore_azzurro": 2 }, "risultato": "pozione_magicka_minore", "n": 1, "livello": 10 },
+  { "id": "r_stamina", "nome": "Pozione di stamina", "ingredienti": { "radice_vigore": 2, "erba_curativa": 1 }, "risultato": "pozione_stamina", "n": 1, "livello": 20 },
+  { "id": "r_vita", "nome": "Pozione di vita", "ingredienti": { "erba_curativa": 3, "radice_vigore": 1 }, "risultato": "pozione_vita", "n": 1, "livello": 25 },
+  { "id": "r_forza", "nome": "Pozione della forza", "ingredienti": { "radice_vigore": 2, "zanna_lupo": 1 }, "risultato": "pozione_forza", "n": 1, "livello": 30 },
+  { "id": "r_magicka", "nome": "Pozione di magicka", "ingredienti": { "fiore_azzurro": 3, "fungo_luminoso": 1 }, "risultato": "pozione_magicka", "n": 1, "livello": 35 },
+  { "id": "r_vita_grande", "nome": "Pozione di vita grande", "ingredienti": { "erba_curativa": 3, "polvere_ossa": 1, "seta_ragno": 1 }, "risultato": "pozione_vita_grande", "n": 1, "livello": 50 },
+  { "id": "r_magicka_vuoto", "nome": "Pozioni di magicka del vuoto (×3)", "ingredienti": { "fiore_azzurro": 3, "essenza_vuoto": 1 }, "risultato": "pozione_magicka", "n": 3, "livello": 60 }
+]
