@@ -141,7 +141,7 @@ export function buildWorld(opts: { ai?: boolean } = {}): World {
     barrel(c, pp.start - 4.5, Y, 0.2); barrel(c, pp.start - 3.8, Y, -0.6, 0.9); crate(c, pp.start - 4.4, Y, 6.2, 0.8, 0.3); crate(c, pp.start - 3.6, Y, 5.6, 0.7, -0.2);
     banner(c, pp.start - 6, Y, 0.6, 0); banner(c, pp.start - 6, Y, 5.4, 0);
     dock(c, T0, -5, T0 + 6, 11, 1.5, 'z', { n: true, s: true, e: true, w: true }, 4);
-    walks.push({ x0: T0 + 0.2, z0: -4.8, x1: T0 + 5.8, z1: 10.8, y0: 1.5, y1: 1.5, axis: 'z' });
+    walks.push({ x0: T0 - 0.3, z0: -4.8, x1: T0 + 5.8, z1: 10.8, y0: 1.5, y1: 1.5, axis: 'z' }); // si sovrappone al molo lungo: niente fessure
     barrel(c, T0 + 1, 1.5, -3.8); barrel(c, T0 + 1.8, 1.5, -4.1, 0.85); crate(c, T0 + 4.8, 1.5, 9.8, 0.8, 0.4); crate(c, T0 + 4.6, 1.5, -3.9, 0.7);
     banner(c, T0 + 0.3, 1.5, -4.7, Math.PI / 2, 4); banner(c, T0 + 0.3, 1.5, 10.7, Math.PI / 2, 4);
     boat(c.b, M(T0 - 6, -0.15, -0.9, 0.05), { L: 4 }); boat(c.b, M(T0 - 3, -0.15, 7, Math.PI + 0.1), { L: 3.6, hull: '#7a8a9a' }); boat(c.b, M(T0 - 1.5, -0.15, -6.5, 0.4), { L: 3.8, hull: '#9a5a3a' });

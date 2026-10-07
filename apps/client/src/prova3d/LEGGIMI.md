@@ -12,4 +12,7 @@ Pagina a parte (`apps/client/prova3d.html`), fuori dalla build del gioco. Serve 
 3. **Alleggerire**: Blender in background, `tools/ai_glb_leggero.py` (triangoli: casa 3000, bancarella 2500, albero 1000, persona 800, lampione 400; texture 512, persone e piccoli 256). Mai col decimate sotto ~20% su oggetti con parti sottili (staccionate, scogliere): si rompono.
 4. **Metterlo nel mondo**: glb in `public/assets/prova3d/kit_<tipo>.glb`; nella funzione del kit (`kit.ts`/`kit2.ts`) una riga `if (ctx.ai) ctx.ai.push({ kind: '<tipo>', … })`. `main.ts` ne fa un InstancedMesh per tipo e per isola (un draw call).
 
-Costo per oggetto: 2 crediti, ~5 minuti. Limiti: texture in VRAM (~1,4 MB per tipo a 512²; tetto 16 MB) e niente animazioni (le persone AI sono statue: il giocatore resta quello da codice).
+Costo per oggetto: 2 crediti, ~5 minuti. Limite: texture in VRAM (~1,4 MB per tipo a 512²; tetto 16 MB). I passanti AI sono statue.
+
+## Personaggio animato
+`generate_3d` modello `3d_rigging` (Meshy, 8 crediti a clip) con `model_url` = glb di SAM 3, `height_meters: 1.78`, `enable_animation: true`, `animation_action_id` (0 fermo, 30 camminata; catalogo con `animation_actions`). Poi `node tools/eroe_glb_leggero.mjs in.glb out.glb` (texture 512, quantizzato: ~0,7 MB) e per le clip in più `--solo-animazione` (~0,1 MB): si attaccano allo stesso personaggio per nome delle ossa.

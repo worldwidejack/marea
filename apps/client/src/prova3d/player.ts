@@ -78,7 +78,7 @@ export function createPlayer(scene: THREE.Scene, world: World, mat: THREE.Materi
     boat: { x: start.x, z: start.z, ry: start.ry, v: 0, moored: start as Mooring | null },
   };
   st.y = world.groundAt(st.x, st.z) ?? 1.5;
-  const WALK = 4.6, BOAT = 9.5, R = 0.32;
+  const WALK = 4.2, BOAT = 9.5, R = 0.32;
   let boatObj: THREE.Object3D = boatMesh;
   let hint: Mooring | null = null;
 
@@ -126,7 +126,30 @@ export function createPlayer(scene: THREE.Scene, world: World, mat: THREE.Materi
     boatObj.position.set(b.x, -0.12 + bob, b.z);
     boatObj.rotation.set(Math.sin(t * 1.1) * 0.03, b.ry, Math.sin(t * 1.3 + 1) * 0.02 - (st.mode === 'boat' ? b.v * 0.004 : 0), 'YXZ');
   }
+  // personaggio AI con scheletro (prova ?ai=1): camminata e fermo mescolati in base alla velocità
+  let blend = 0;
+  let rig: { root: THREE.Object3D; mixer: THREE.AnimationMixer; walk: THREE.AnimationAction; idle: THREE.AnimationAction } | null = null;
+  function animateRig(dt: number) {
+    if (!rig) return;
+    blend += ((st.mode === 'walk' ? Math.min(1, st.speed / WALK) : 0) - blend) * Math.min(1, dt * 10);
+    const w = blend;
+    rig.walk.setEffectiveWeight(w); rig.idle.setEffectiveWeight(1 - w);
+    rig.walk.timeScale = 0.6 + w * 0.75;
+    rig.mixer.update(dt);
+    rig.root.position.copy(av.root.position); rig.root.position.y += st.mode === 'boat' ? 0.45 : 0;
+    rig.root.rotation.set(0, st.ry, 0);
+  }
   return {
+    /** Sostituisce l'avatar da codice con un modello con scheletro e due clip (camminata, fermo). */
+    setAvatarModel(root: THREE.Object3D, walkClip: THREE.AnimationClip, idleClip: THREE.AnimationClip) {
+      const mixer = new THREE.AnimationMixer(root), walk = mixer.clipAction(walkClip), idle = mixer.clipAction(idleClip);
+      walk.play(); idle.play();
+      av.root.visible = false; scene.add(root);
+      rig = { root, mixer, walk, idle };
+    },
+    animate: animateRig,
+    /** Per i test: pesi delle clip del personaggio AI. */
+    rigState: () => (rig ? { walk: +rig.walk.getEffectiveWeight().toFixed(2), idle: +rig.idle.getEffectiveWeight().toFixed(2), idleRunning: rig.idle.isRunning() } : null),
     /** Sostituisce il modello della barca (prova coi modelli AI). */
     setBoatModel(o: THREE.Object3D) { scene.remove(boatObj); boatObj = o; scene.add(o); },
     update, st, get hint() { return hint; }, near,

@@ -53,7 +53,19 @@ const aiReady = AI ? Promise.all([loadAi('/assets/prova3d/ai_barca.glb'), AI_ISO
   const holder = new THREE.Group(); b.rotation.y = -Math.PI / 2; b.position.y = -0.55; holder.add(b);
   player.setBoatModel(holder);
   if (isl) { isl.position.set(AI_ISLAND.x, -4, AI_ISLAND.z); scene.add(isl); }
-}).then(() => placeKit()) : Promise.resolve();
+}).then(() => Promise.all([placeKit(), placeHero()])) : Promise.resolve();
+
+/** Il giocatore AI: stesso uomo con lo zaino dei passanti, con scheletro (Meshy via Higgsfield) e due clip. */
+async function placeHero() {
+  const [w, i] = await Promise.all([new GLTFLoader().loadAsync('/assets/prova3d/eroe_cammina.glb'), new GLTFLoader().loadAsync('/assets/prova3d/eroe_fermo.glb')]);
+  w.scene.traverse((o) => {
+    const m = o as THREE.SkinnedMesh; if (!m.isMesh) return;
+    const map = (m.material as THREE.MeshStandardMaterial).map;
+    m.material = new THREE.MeshLambertMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.42, 0.4, 0.38) });
+    m.castShadow = true; m.frustumCulled = false;
+  });
+  if (w.animations[0] && i.animations[0]) player.setAvatarModel(w.scene, w.animations[0], i.animations[0]);
+}
 
 /** Kit AI: ogni tipo di oggetto = un InstancedMesh (un draw call), scalato alla misura che il mondo chiede. */
 const KIT_YAW: Record<string, number> = { casa: 0, casa_alta: 0, bancarella: 0, fontana: 0, lampione: 0, albero: 0, persona: 0 };
@@ -132,6 +144,7 @@ let last = performance.now(), time = 0;
 function frame(now: number) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
   player.update(dt, time, view.yaw);
+  player.animate(dt);
   const p = player.pos;
   view.update(p, dt, input.zoom, player.st.mode === 'boat');
   lights.follow(p.x, p.z);
@@ -159,6 +172,7 @@ const api = {
   boat(x: number, z: number, ry = 0) { player.st.mode = 'boat'; player.st.boat.moored = null; player.st.boat.x = x; player.st.boat.z = z; player.st.boat.ry = ry; },
   action: () => input.pressAction(),
   moorings: () => world.moorings,
+  rig: () => player.rigState(),
   chunks: () => world.group.children.map((m) => { const g = (m as THREE.Mesh).geometry; return [m.name, g.index ? g.index.count / 3 : g.getAttribute('position').count / 3]; }),
 };
 

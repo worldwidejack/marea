@@ -45,6 +45,10 @@ async function giro(page) {
   const s2 = await st(); out.sbarcaMaru = s2.mode === 'walk' && s2.boat.moored === 'Maru';
   await page.keyboard.down('KeyD'); await page.waitForTimeout(1200); await page.keyboard.up('KeyD');
   const s3 = await st(); out.camminaSulMolo = s3.x - s2.x > 2 && s3.y > 1.4;
+  // dal molo fino alla città a piedi (il 7/10 una fessura tra molo e testata a T bloccava tutto)
+  await page.reload(); await page.waitForFunction(() => window.__prova && window.__prova.ready);
+  await page.keyboard.down('KeyA'); await page.waitForTimeout(6500); await page.keyboard.up('KeyA');
+  const s4 = await st(); out.entraInCitta = s4.x < 8 && s4.y > 2.1;
   out.ok = Object.values(out).every(Boolean);
   return out;
 }
