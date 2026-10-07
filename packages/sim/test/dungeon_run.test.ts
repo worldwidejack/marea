@@ -138,7 +138,7 @@ test('dungeon: replay di una partita di 20 minuti (caso peggiore: nemici tutti v
   assert.ok(ms < 2000, `replay troppo lento: ${ms.toFixed(0)} ms`);
 });
 
-test('dungeon: RunResult.capo solo quando muore il capo (nella Grotta un bandito arciere: stessi numeri, stesso hash)', () => {
+test('dungeon: RunResult.capo solo quando muore il capo (nella Grotta il Capo dei banditi, un po’ più forte degli arcieri); la vista lo segna', () => {
   for (const d of ['grotta', 'cripta', 'vuoto']) {
     const s = dungeon.create({ seed: 2, dungeon: d, hero: heroBase() });
     const capo = s.enemies.filter((e) => e.capo);
@@ -150,5 +150,9 @@ test('dungeon: RunResult.capo solo quando muore il capo (nella Grotta un bandito
     assert.equal(dungeon.result(s).capo, true, d);
   }
   const g = dungeon.create({ seed: 2, dungeon: 'grotta', hero: heroBase() });
-  assert.equal(g.enemies.find((e) => e.capo)!.tipo, 'bandito_arciere');
+  const capo = g.enemies.find((e) => e.capo)!, arciere = g.enemies.find((e) => e.tipo === 'bandito_arciere')!;
+  assert.equal(capo.tipo, 'capo_banditi');
+  assert.ok(capo.max > arciere.max && capo.def.danno > arciere.def.danno && !capo.def.boss, 'il capo è un po’ più forte, non un boss');
+  const v = dungeon.view(g).nemici;
+  assert.deepEqual(v.filter((n) => n.capo).map((n) => n.id), [capo.id], 'nella vista solo il capo ha capo: true');
 });

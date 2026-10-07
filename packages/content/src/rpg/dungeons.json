@@ -1,5 +1,5 @@
 [
-  {"id":"grotta","nome":"Grotta della Marea","descr":"Grotte umide sotto le rocce del Porto: banditi accampati, lupi e ragni. Bronzo, ferro, monete, erbe.","stile":"grotta","difficolta":1,"tile":2,"legenda":{"b":{"nemico":"bandito"},"a":{"nemico":"bandito_arciere"},"l":{"nemico":"lupo"},"s":{"nemico":"ragno"},"c":{"forziere":"comune"},"R":{"forziere":"raro"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"C":{"nemico":"bandito_arciere","capo":true}},"ingresso":{"island":"porto","at":[32,7]},
+  {"id":"grotta","nome":"Grotta della Marea","descr":"Grotte umide sotto le rocce del Porto: banditi accampati, lupi e ragni. Bronzo, ferro, monete, erbe.","stile":"grotta","difficolta":1,"tile":2,"legenda":{"b":{"nemico":"bandito"},"a":{"nemico":"bandito_arciere"},"l":{"nemico":"lupo"},"s":{"nemico":"ragno"},"c":{"forziere":"comune"},"R":{"forziere":"raro"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"C":{"nemico":"capo_banditi","capo":true}},"ingresso":{"island":"porto","at":[32,7]},
    "rows": [
     "                                        ",
     "  ######  ################              ",

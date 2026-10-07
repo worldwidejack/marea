@@ -22,6 +22,10 @@ export type DungeonHud = {
 };
 
 const P = PAL;
+/** Corona a pixel sopra la barra del capo (7×5 celle, gialla con due gemme rosse). */
+const CROWN_ROWS = ['Y..Y..Y', 'YY.Y.YY', 'YYYYYYY', 'YRYYYRY', 'YYYYYYY'];
+const CROWN = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 7 5" width="21" height="15" shape-rendering="crispEdges" style="display:block">${
+  CROWN_ROWS.map((r, y) => [...r].map((c, x) => (c === '.' ? '' : `<rect x="${x}" y="${y}" width="1" height="1" fill="${c === 'R' ? P.rosso : P.giallo}"/>`)).join('')).join('')}</svg>`;
 const CSS = `
 body.mz-sotto #compass, body.mz-sotto #mzTop, body.mz-sotto #mzGuida, body.mz-sotto #mzGuidaPtr, body.mz-sotto .mz-bar, body.mz-sotto .mz-work,
 body.mz-sotto .mz-labels, body.mz-sotto #mzPlay, body.mz-sotto #mzEmoteRow, body.mz-sotto #mzEmotes, body.mz-sotto #mzSheet { display: none !important; }
@@ -43,6 +47,9 @@ body.mz-sotto .mz-labels, body.mz-sotto #mzPlay, body.mz-sotto #mzEmoteRow, body
 @keyframes mzDngNum { 0% { translate: -50% 0; opacity: 1; } 70% { opacity: 1; } 100% { translate: -50% -42px; opacity: 0; } }
 .mz-dng-hp { position: absolute; left: 0; top: 0; width: 40px; height: 6px; background: ${P.neroCaldo}; border: 1px solid ${P.neroCaldo}; }
 .mz-dng-hp.boss { width: 72px; height: 8px; }
+.mz-dng-hp b { display: none; position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%); filter: drop-shadow(0 2px 0 ${P.neroCaldo}); }
+.mz-dng-hp.capo b { display: block; }
+.mz-dng-hp.capo { border-color: ${P.giallo}; }
 .mz-dng-hp i { display: block; height: 100%; background: ${P.rosso}; }
 .mz-dng-hp.ally i { background: #8A5CFF; }
 .mz-dng-toast { position: absolute; left: 50%; top: 27%; transform: translateX(-50%); padding: 6px 12px; background: rgba(46,30,20,.94); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; font-weight: bold; font-size: 15px; z-index: 15; pointer-events: none !important; display: none; max-width: calc(100% - 32px); text-align: center; }
@@ -122,8 +129,8 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
       for (const b of list) {
         const s = screen(b.pos); if (!s.on) continue;
         let e = hpPool[i];
-        if (!e) { e = el('div', 'mz-dng-hp'); e.appendChild(el('i')); fx.appendChild(e); hpPool.push(e); }
-        e.className = `mz-dng-hp${b.boss ? ' boss' : ''}${b.ally ? ' ally' : ''}`;
+        if (!e) { e = el('div', 'mz-dng-hp'); e.appendChild(el('i')); const c = el('b'); c.innerHTML = CROWN; e.appendChild(c); fx.appendChild(e); hpPool.push(e); } // SVG statico
+        e.className = `mz-dng-hp${b.boss ? ' boss' : ''}${b.ally ? ' ally' : ''}${b.capo ? ' capo' : ''}`;
         (e.firstChild as HTMLElement).style.width = `${Math.max(1, Math.round(b.frac * 10)) * 10}%`;
         e.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px) translate(-50%, -100%)`; e.style.display = 'block';
         i++;
