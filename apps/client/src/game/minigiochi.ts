@@ -1,6 +1,7 @@
 // Minigiochi da solo (senza posta): ogni minigioco ha il suo posto su un'isola (la Regata al molo della Laguna, il via della gara;
 // Scacco in 3 al Tavolo del Porto, quando le sfide con posta sono spente: ti siedi e si apre la scacchiera, niente premio;
-// Lanterne sul molo del Porto, tra le 6 lanterne: si apre la schermata del gioco, premio come la Regata).
+// i «giochi a schermo» (SCHERMI: una schermata sopra il mondo, premio come la Regata) si scaricano solo quando parte la partita).
+// Le Lanterne (#7) sono state tolte l'8 ott 2026 (Jack: «fa cagare»).
 // Nel mondo: boa grande e cartello «REGATA» che si vede da lontano; vicino compare il bottone GIOCA (A / E / Spazio sulla tastiera).
 // Il seed lo sceglie il server, che poi rigioca gli input, decide la medaglia e paga il premio (balance.solo: Legno, Pietra, Perle).
 // Alla fine una scheda con l'esito, il premio che vola nella barra e RIGIOCA.
@@ -16,8 +17,8 @@ import { runRegata } from './regata.ts';
 import { PAL, el, injectUiStyle } from '../ui/style.ts';
 import { RES_IDS, pixIcon, resIcon } from '../ui/icons.ts';
 import type { PixId } from '../ui/icons.ts';
-import { createScacchi } from '../ui/scacchi.ts';
-import { createLanterne } from '../ui/lanterne.ts';
+import type { Scacchi } from '../ui/scacchi.ts';
+import type { PackedInputs } from '@marea/sim';
 import { createLabelLayer, flyResources } from '../ui/sheet.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
@@ -35,6 +36,12 @@ export type Minigiochi = {
 };
 
 const NEAR_M = 16;
+/** Gioco a schermo: la sua schermata sopra il mondo, restituisce gli input da far rigiocare al server (null = ritirato). */
+export type SchermoGioco = { run(o: { seed: number; difficulty: number }): Promise<PackedInputs | null>; isOpen(): boolean; esito?(detail: Record<string, unknown>): string };
+/** I giochi a schermo per id del minigioco, scaricati alla prima partita (il JS iniziale ha un tetto, TECH §5). */
+const SCHERMI: Record<string, (root: HTMLElement) => Promise<SchermoGioco>> = {};
+/** Registra un gioco a schermo (dal modulo del minigioco: posto in `spots` più schermata qui). */
+export function registraSchermo(id: string, load: (root: HTMLElement) => Promise<SchermoGioco>): void { SCHERMI[id] = load; }
 const MEDAL_TXT: Record<string, string> = { oro: 'ORO', argento: 'ARGENTO', bronzo: 'BRONZO' };
 const MEDAL_C: Record<string, string> = { oro: PAL.giallo, argento: PAL.pietraChiara, bronzo: PAL.arancio };
 const CSS = `
@@ -58,13 +65,11 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   // la Regata parte dal molo (B) dell'isola del percorso
   const cfg = MINIGAMES_CFG.regata, lag = arch.places.find((p) => p.island === cfg.course.island) ?? arch.places.find((p) => p.role === 'laguna');
   const spots: Spot[] = lag ? [{ id: 'regata', nome: cfg.nome, minigame: 'regata', x: lag.boat.x, z: lag.boat.z, icon: 'regata', near: NEAR_M, boa: true }] : [];
-  // Lanterne: tra le lanterne del molo del Porto (cella locale in content), lontano dalla barca: lì A deve far salire in barca
-  const lt = MINIGAMES_CFG.lanterne, ltPlace = arch.places.find((p) => p.island === lt.posto.island);
-  if (ltPlace) spots.push({ id: 'lanterne', nome: lt.nome, minigame: 'lanterne', x: (ltPlace.origin[0] + lt.posto.at[0] + 0.5) * arch.tile, z: (ltPlace.origin[1] + lt.posto.at[1] + 0.5) * arch.tile, icon: 'lanterna', near: 3, boa: false });
   if (o.tavolo) spots.push({ id: 'scacchi', nome: SCACCHI.nome, minigame: 'scacchi', x: o.tavolo.x, z: o.tavolo.z, icon: 'scacchi', near: 5, boa: false });
-  let chClosedAt = 0;
-  const scacchi = createScacchi({ root: o.root, onClose: () => { chClosedAt = performance.now(); } });
-  const lanterne = createLanterne({ root: o.root });
+  let chClosedAt = 0, scacchi: Scacchi | null = null;
+  const schermi = new Map<string, SchermoGioco>();
+  /** Una schermata (scacchi o gioco a schermo) è aperta: il mondo sta fermo. */
+  const schermoAperto = () => !!scacchi?.isOpen() || [...schermi.values()].some((g) => g.isOpen());
 
   // ---- nel mondo: boa grande al via + cartello DOM che si vede anche da lontano ----
   const group = new THREE.Group(); group.name = 'minigiochi'; o.world.scene.add(group);
@@ -101,7 +106,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     else if (e.code === 'KeyR') { e.preventDefault(); e.stopImmediatePropagation(); const s = spots.find((x) => x.id === last?.spot) ?? spots[0]; closeEsito(); if (s) void play(s); }
   };
   function showEsito(s: Spot, medal: Medal, sub: string, premio: Resources | null, note: string | null): void {
-    const title = el('h2', '', medal ? MEDAL_TXT[medal]! : s.minigame === 'lanterne' ? 'FINITA' : 'ARRIVATO');
+    const title = el('h2', '', medal ? MEDAL_TXT[medal]! : SCHERMI[s.minigame] ? 'FINITA' : 'ARRIVATO');
     title.style.color = medal ? MEDAL_C[medal]! : PAL.sabbiaChiara;
     esito.style.borderColor = medal ? MEDAL_C[medal]! : PAL.legnoChiaro;
     const body: Node[] = [title, el('div', 'sub', sub)];
@@ -127,8 +132,16 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   }
 
   async function play(s: Spot): Promise<void> {
-    if (busy || open || o.world.race.on || scacchi.isOpen() || lanterne.isOpen()) return;
-    if (s.minigame === 'scacchi') { btn.classList.remove('on'); if (performance.now() - chClosedAt > 400) { playedN++; scacchi.open(); } return; }
+    if (busy || open || o.world.race.on || schermoAperto()) return;
+    if (s.minigame === 'scacchi') {
+      btn.classList.remove('on');
+      if (performance.now() - chClosedAt <= 400) return;
+      busy = true;
+      try { scacchi ??= (await import('../ui/scacchi.ts')).createScacchi({ root: o.root, onClose: () => { chClosedAt = performance.now(); } }); playedN++; scacchi.open(); }
+      catch { o.hud.toast('Scacchiera non caricata: riprova', 2500); }
+      finally { busy = false; }
+      return;
+    }
     busy = true; btn.classList.remove('on');
     try {
       let seed = 0, difficulty = 2;
@@ -138,7 +151,13 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
         catch (e) { o.hud.toast(e instanceof ApiError ? e.message : 'Niente connessione, riprova tra poco', 3000); return; }
       } else seed = (Math.random() * 0x7fffffff) >>> 0; // senza link si gioca lo stesso, ma il premio non si salva
       busy = false; // da qui la gara tiene fermo il mondo da sé
-      const inputs = s.minigame === 'lanterne' ? await lanterne.run({ seed, difficulty }) : await runRegata({ challenge: { id: 'solo', minigame: s.minigame, difficulty, seed } });
+      const load = SCHERMI[s.minigame];
+      let schermo: SchermoGioco | null = null;
+      if (load) {
+        schermo = schermi.get(s.minigame) ?? null;
+        if (!schermo) { try { schermo = await load(o.root); schermi.set(s.minigame, schermo); } catch { o.hud.toast('Gioco non caricato: riprova', 2500); return; } }
+      }
+      const inputs = schermo ? await schermo.run({ seed, difficulty }) : await runRegata({ challenge: { id: 'solo', minigame: s.minigame, difficulty, seed } });
       if (!inputs) { o.hud.toast('Ritirato', 1500); return; }
       if (!online) { playedN++; showEsito(s, null, 'Partita di prova', null, 'Con il tuo link personale vinci Legno, Pietra e Perle'); return; }
       busy = true;
@@ -146,7 +165,8 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
         const r = await o.api!.soloPlay(inputs);
         playedN++; last = { ...r, spot: s.id };
         const secs = typeof r.detail['ms'] === 'number' ? ` · ${(r.detail['ms'] / 1000).toFixed(1)} s` : '';
-        const sub = s.minigame === 'lanterne' ? `${s.nome} · ${r.detail['sequenze'] ?? 0} sequenze · ${r.detail['giuste'] ?? 0} lanterne` : `${s.nome}${secs}`;
+        const extra = schermo?.esito?.(r.detail);
+        const sub = extra ? `${s.nome} · ${extra}` : `${s.nome}${secs}`;
         showEsito(s, r.medal, sub, r.premiata ? r.premio : null, r.premiata ? null : 'Per oggi i premi sono finiti: domani si riparte');
         if (r.premiata) fly(r.premio);
         o.onLot();
@@ -162,11 +182,11 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
 
   return {
     spots,
-    isBusy: () => busy || open || scacchi.isOpen() || lanterne.isOpen(),
+    isBusy: () => busy || open || schermoAperto(),
     played: () => playedN,
     tick(a) {
       const pressA = a && !aWas; aWas = a;
-      if (o.world.race.on || busy || open || scacchi.isOpen() || lanterne.isOpen()) { near = null; return; }
+      if (o.world.race.on || busy || open || schermoAperto()) { near = null; return; }
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
       near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near) ?? null;
       if (near && near !== nearWas) o.hud.toast(`${near.nome}: premi A o tocca GIOCA`, 2500);
@@ -174,7 +194,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       if (near && pressA) void play(near);
     },
     update(t) {
-      const show = !!near && !busy && !open && !o.world.race.on && !scacchi.isOpen() && !lanterne.isOpen();
+      const show = !!near && !busy && !open && !o.world.race.on && !schermoAperto();
       if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', 'A')); }
       btn.classList.toggle('on', show);
       for (const m of marks) {
