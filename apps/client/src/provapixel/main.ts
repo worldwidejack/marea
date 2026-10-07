@@ -16,11 +16,11 @@ import { createLoader } from '../render/loader.ts';
 import { createAvatar } from '../game/avatar.ts';
 import { createBoat } from '../game/boat.ts';
 import { createInput } from '../game/input.ts';
-import { createPost } from './post.ts';
+import { createPost } from '../render/post.ts';
 import { addWind, farIslands, setCel, setWind } from './look.ts';
 import { STYLES } from './styles.ts';
 import type { StyleId } from './styles.ts';
-import { createWater2 } from './water2.ts';
+import { createWater2 } from '../render/water2.ts';
 import { createDecor } from './decor.ts';
 
 // ---------- le viste da confrontare ----------
@@ -51,7 +51,7 @@ const gl = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 
 gl.setPixelRatio(1); gl.toneMapping = THREE.NoToneMapping; gl.outputColorSpace = THREE.SRGBColorSpace;
 gl.shadowMap.enabled = true; gl.shadowMap.type = THREE.BasicShadowMap;
 canvas.style.imageRendering = 'pixelated';
-const scene = new THREE.Scene();
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#7FE3E0'); // senza «cielo» la passata finale mostra il fondo
 const post = createPost();
 const view = createDioramaCamera({ aspect: 1, canvas, far: 900 });
 

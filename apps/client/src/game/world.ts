@@ -9,6 +9,8 @@ import type { Flags } from '../flags.ts';
 import type { Renderer } from '../render/scene.ts';
 import type { Loader } from '../render/loader.ts';
 import { createLights } from '../render/light.ts';
+import type { Lights } from '../render/light.ts';
+import type { Water } from '../render/water.ts';
 import { createWater } from '../render/water.ts';
 import { createIsland } from '../render/island.ts';
 import { createAvatar } from '../game/avatar.ts';
@@ -29,6 +31,8 @@ export type GameWorld = {
   slot: number | null;
   /** Quota del terreno in (x, z): piano delle isole, cima delle rocce, 0 in acqua. */
   groundY(x: number, z: number): number;
+  /** Luci e acqua del mondo: le ricolora il ciclo giorno/notte delle impostazioni (render/aspetto.ts, #53). */
+  lights: Lights; water: Water;
   step(input: InputFrame): void; update(alpha: number, dt: number, t: number): void; dispose(): void;
   /** Fermo (Tavolo, editor o feed aperti): l'avatar e la barca ignorano l'input. */
   frozen: boolean;
@@ -170,7 +174,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     },
   };
   const state = {
-    map, avatar, boat, net, archipelago: arch, scene, slot, groundY: island.groundY, race,
+    map, avatar, boat, net, archipelago: arch, scene, slot, groundY: island.groundY, race, lights, water,
     get mode() { return mode; },
     get frozen() { return frozen; },
     set frozen(v: boolean) { frozen = v; },

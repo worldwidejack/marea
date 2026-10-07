@@ -41,7 +41,9 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   // pagine di prova (prova3d.html, provapixel.html…): il gioco non le scarica mai, quindi il loro JS non pesa né sull'iniziale né sul GDR
   const pageLinks = (f) => [...fs.readFileSync(path.join(outDir, f), 'utf8').matchAll(/(?:src|href)="\/?([^"]+\.js)"/g)].map((m) => m[1]);
   const proveLinked = new Set(files.filter((f) => f.endsWith('.html') && f !== 'index.html' && !f.includes('/')).flatMap(pageLinks));
-  const prove = allJs.filter((f) => !js.includes(f) && proveLinked.has(f));
+  // …tranne i chunk che il gioco richiama anche lui (import() da index, es. la resa delle impostazioni condivisa con provapixel): quelli sono del gioco
+  const gameText = js.map((f) => fs.readFileSync(path.join(outDir, f), 'utf8')).join('\n');
+  const prove = allJs.filter((f) => !js.includes(f) && proveLinked.has(f) && !gameText.includes(path.basename(f)));
   const lazy = allJs.filter((f) => !js.includes(f) && !prove.includes(f));
   const gzOf = (f) => zlib.gzipSync(fs.readFileSync(path.join(outDir, f))).length;
   const jsBytes = js.reduce((a, f) => a + size(f), 0);

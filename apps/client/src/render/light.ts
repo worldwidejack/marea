@@ -5,7 +5,9 @@ export const SUN = { color: 0xffd9a3, intensity: 2.7, elevation: (40 * Math.PI) 
 // Direzione dal bersaglio verso il sole: sud-ovest = −X, +Z (−Z è nord).
 const DIR = new THREE.Vector3(-Math.cos(SUN.elevation) * Math.SQRT1_2, Math.sin(SUN.elevation), Math.cos(SUN.elevation) * Math.SQRT1_2).normalize();
 
-export type Lights = { group: THREE.Group; update(t: number): void; sun: THREE.DirectionalLight; follow?(x: number, z: number): void };
+/** Ciclo giorno/notte (#53): direzione (gradi), colori e intensità di sole/luna, cielo e ambiente. Senza chiamarla resta la luce di sempre. */
+export type SunSet = { elev: number; azim: number; color: THREE.ColorRepresentation; intensity: number; sky: THREE.ColorRepresentation; ground: THREE.ColorRepresentation; hemiI: number; amb: THREE.ColorRepresentation; ambI: number };
+export type Lights = { group: THREE.Group; update(t: number): void; sun: THREE.DirectionalLight; follow?(x: number, z: number): void; set?(s: SunSet): void };
 
 export function createLights(): Lights {
   const group = new THREE.Group();
@@ -25,7 +27,8 @@ export function createLights(): Lights {
 
   // Il sole segue il bersaglio con passo pari a un texel della shadow map: le ombre non "strisciano" quando la camera si muove.
   const texel = (SUN.half * 2) / 1024;
-  const lightRot = new THREE.Matrix4().lookAt(DIR, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0));
+  const dir = DIR.clone();
+  const lightRot = new THREE.Matrix4().lookAt(dir, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0));
   const inv = lightRot.clone().invert();
   const tmp = new THREE.Vector3();
   const aim = new THREE.Vector3();
@@ -34,13 +37,21 @@ export function createLights(): Lights {
     tmp.x = Math.round(tmp.x / texel) * texel; tmp.y = Math.round(tmp.y / texel) * texel;
     tmp.applyMatrix4(lightRot);
     sun.target.position.copy(tmp);
-    sun.position.copy(tmp).addScaledVector(DIR, SUN.dist);
+    sun.position.copy(tmp).addScaledVector(dir, SUN.dist);
     sun.target.updateMatrixWorld(); sun.updateMatrixWorld();
   };
   const api: Lights = {
     group, sun,
     follow: (x, z) => { aim.set(x, 0, z); place(); },
     update: () => {},
+    set: (s) => {
+      const el = (s.elev * Math.PI) / 180, az = (s.azim * Math.PI) / 180; // azimut come SUN: 225° = da sud-ovest (−X, +Z)
+      dir.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).normalize();
+      lightRot.lookAt(dir, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0)); inv.copy(lightRot).invert();
+      sun.color.set(s.color); sun.intensity = s.intensity;
+      hemi.color.set(s.sky); hemi.groundColor.set(s.ground); hemi.intensity = s.hemiI; amb.color.set(s.amb); amb.intensity = s.ambI;
+      place();
+    },
   };
   // Adattatore: world.ts (WP0) scrive sun.position/sun.target a mano; scene.ts chiama questo prima di ogni render
   // e riallinea il sole alla direzione e al passo giusti usando il bersaglio che world ha impostato.
