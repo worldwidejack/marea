@@ -14,8 +14,8 @@ Superficie (raccogli, coltiva, costruisci) → ti prepari (forgi armi, prepari p
 ## 2. Ingressi (V1)
 | Dungeon | Dove | Nemici | Cosa si trova |
 |---|---|---|---|
-| **Grotta della Marea** (facile) | Isola Selvaggia, sotto le rocce | banditi, lupi, ragni | bronzo, ferro, monete, erbe, un po' d'oro |
-| **Cripta del Porto** (media) | Porto, porta di pietra | scheletri, non-morti antichi, boss **Re delle Ossa** | argento, ossa di mostro, libri di magia |
+| **Grotta della Marea** (facile) | Porto, sotto le rocce a nord-est (il più facile da trovare) | banditi, lupi, ragni | bronzo, ferro, monete, erbe, un po' d'oro |
+| **Cripta delle Ossa** (media) | Isola Selvaggia, porta di pietra sotto le rocce | scheletri, non-morti antichi, boss **Re delle Ossa** | argento, ossa di mostro, libri di magia |
 | **Portale del Vuoto** (difficile) | Distretto Neon | spettri, golem di cristallo, boss **Custode del Vuoto** | vetro, meteorite, oggetti unici |
 Nessun «livello consigliato» a schermo: la difficoltà si capisce dai nemici e dall'ambiente. Libertà totale: se a livello 1 schivi tutto il Portale, buon per te.
 

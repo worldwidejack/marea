@@ -36,8 +36,8 @@ export type Ingressi = {
  * Il test e2e m2_dungeon controlla che coincida con DUNGEONS: se un dungeon si sposta, aggiornare anche qui.
  */
 export const INGRESSI = [
-  { id: 'grotta', nome: 'Grotta della Marea', island: 'selvaggia', at: [18, 12], stile: 'grotta' },
-  { id: 'cripta', nome: 'Cripta del Porto', island: 'porto', at: [32, 7], stile: 'cripta' },
+  { id: 'grotta', nome: 'Grotta della Marea', island: 'porto', at: [32, 7], stile: 'grotta' },
+  { id: 'cripta', nome: 'Cripta delle Ossa', island: 'selvaggia', at: [18, 12], stile: 'cripta' },
   { id: 'vuoto', nome: 'Portale del Vuoto', island: 'neon', at: [20, 13], stile: 'vuoto' },
 ] as const;
 

@@ -68,8 +68,9 @@ test('dungeon: nemici, tabelle e libri esistono; i boss stanno in fondo (Cripta 
   for (const id of ['lupo_spettrale', 'scheletro_evocato']) assert.ok(ids.has(id), `alleato ${id}`);
 });
 
-test('dungeon: ingressi su celle calpestabili delle isole giuste (la Grotta raggiungibile a piedi dalla P)', () => {
-  const dove: Record<string, string> = { grotta: 'selvaggia', cripta: 'porto', vuoto: 'neon' };
+test('dungeon: ingressi su celle calpestabili delle isole giuste, raggiungibili a piedi dalla P', () => {
+  // la Grotta (la più facile) al Porto, il posto più facile da trovare; la Cripta sull'Isola Selvaggia (scambiate il 7 ott 2026)
+  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'neon' };
   for (const d of DUNGEONS) {
     assert.equal(d.ingresso.island, dove[d.id]);
     const def = ISLANDS.find((i) => i.id === d.ingresso.island)!;
@@ -89,8 +90,8 @@ test('dungeon: ingressi su celle calpestabili delle isole giuste (la Grotta ragg
     }
     assert.ok(seen.has(`${cx},${cz}`), `${d.id}: ingresso non raggiungibile dalla P`);
   }
-  // la Grotta sta tra le rocce del nord
+  // la porta della Cripta sta tra le rocce del nord dell'Isola Selvaggia
   const sel = parseIsland(ISLANDS.find((i) => i.id === 'selvaggia')!);
-  const [gx, gz] = DUNGEONS[0]!.ingresso.at;
-  assert.ok(gz < 15 && [[1, 0], [-1, 0], [0, -1]].some(([dx, dz]) => sel.at(gx + dx!, gz + dz!) === 'r'), 'la Grotta non è sotto le rocce');
+  const [gx, gz] = DUNGEONS.find((d) => d.id === 'cripta')!.ingresso.at;
+  assert.ok(gz < 15 && [[1, 0], [-1, 0], [0, -1]].some(([dx, dz]) => sel.at(gx + dx!, gz + dz!) === 'r'), 'la Cripta non è sotto le rocce');
 });
