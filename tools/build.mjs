@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Build del client (vite) + controllo dei budget (TECH.md §5) + report tests/out/build.json.
 // Uso: node tools/build.mjs [--out <dir>] [--quiet] [--no-enforce]. Esporta build() per i test/deploy.
-// Budget: js iniziale ≤ 900 KB (gzip ≤ 250 KB; entry + chunk precaricati da index.html) · chunk caricati dopo con import() (GDR) ≤ 300 KB (gzip ≤ 90) ·
+// Budget: js iniziale ≤ 900 KB (gzip ≤ 250 KB; entry + chunk precaricati da index.html) · chunk caricati dopo con import() (GDR) ≤ 300 KB (gzip ≤ 90; il JS delle pagine di prova va a parte, in proveJsKB) ·
 // modelli del manifest secondario `manifest_rpg.json` (caricati entrando in un dungeon) ≤ 1,5 MB · caricamento iniziale ≤ 2 MB (html + js + css + manifest + atlas + modelli del manifest) · texture ≤ 16 MB stimati (w×h×4 di ogni PNG).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,7 +38,11 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   const html = files.includes('index.html') ? fs.readFileSync(path.join(outDir, 'index.html'), 'utf8') : '';
   const linked = new Set([...html.matchAll(/(?:src|href)="\/?([^"]+\.js)"/g)].map((m) => m[1]));
   const js = allJs.filter((f) => linked.has(f) || !html);
-  const lazy = allJs.filter((f) => !js.includes(f));
+  // pagine di prova (prova3d.html, provapixel.html…): il gioco non le scarica mai, quindi il loro JS non pesa né sull'iniziale né sul GDR
+  const pageLinks = (f) => [...fs.readFileSync(path.join(outDir, f), 'utf8').matchAll(/(?:src|href)="\/?([^"]+\.js)"/g)].map((m) => m[1]);
+  const proveLinked = new Set(files.filter((f) => f.endsWith('.html') && f !== 'index.html' && !f.includes('/')).flatMap(pageLinks));
+  const prove = allJs.filter((f) => !js.includes(f) && proveLinked.has(f));
+  const lazy = allJs.filter((f) => !js.includes(f) && !prove.includes(f));
   const gzOf = (f) => zlib.gzipSync(fs.readFileSync(path.join(outDir, f))).length;
   const jsBytes = js.reduce((a, f) => a + size(f), 0);
   const gz = js.reduce((a, f) => a + gzOf(f), 0);
@@ -66,7 +70,7 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   const tris = Object.values((manifest && manifest.models) || {}).reduce((a, m) => a + (Number(m && m.tris) || 0), 0);
 
   // --- caricamento iniziale: tutto fuori da assets/ + manifest + atlas + modelli ---
-  const initialSet = new Set([...files.filter((f) => !f.startsWith('assets/') && !lazy.includes(f)), ...(files.includes(manifestRel) ? [manifestRel] : []), ...assetFiles]);
+  const initialSet = new Set([...files.filter((f) => !f.startsWith('assets/') && !lazy.includes(f) && !prove.includes(f)), ...(files.includes(manifestRel) ? [manifestRel] : []), ...assetFiles]);
   // manifest secondario del GDR: modelli scaricati entrando in un dungeon (non nel caricamento iniziale)
   let rpgAssetsBytes = 0;
   const rpgRel = 'assets/manifest_rpg.json';
@@ -86,7 +90,7 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
 
   const version = JSON.parse(fs.readFileSync(path.join(outDir, 'version.json'), 'utf8'));
   const report = {
-    build: version.build, jsKB: kb(jsBytes), jsGzipKB: kb(gz), lazyJsKB: kb(lazyBytes), lazyJsGzipKB: kb(lazyGz), rpgAssetsMB: mb(rpgAssetsBytes), initialMB: mb(initialBytes), textureMB: mb(texBytes),
+    build: version.build, jsKB: kb(jsBytes), jsGzipKB: kb(gz), lazyJsKB: kb(lazyBytes), lazyJsGzipKB: kb(lazyGz), proveJsKB: kb(prove.reduce((a, f) => a + size(f), 0)), rpgAssetsMB: mb(rpgAssetsBytes), initialMB: mb(initialBytes), textureMB: mb(texBytes),
     files: files.length, assetsMB: mb(assetsBytes), atlas: manifest?.atlas || null, models: Object.keys(manifest?.models || {}).length, modelTris: tris,
     biggestJs: biggest, textures, budget: BUDGET, outDir,
   };

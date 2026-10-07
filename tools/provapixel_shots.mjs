@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Prova pixel 3D (#46): screenshot PC 1280×720 e telefono 390×844, «come il gioco» contro «tutto acceso», le 5 camere,
+// Prova pixel 3D (#46) e stili (#50): screenshot PC 1280×720 e telefono 390×844, «come il gioco» e i 3 stili nuovi, le 5 camere,
 // numeri (draw call, triangoli, fps) da window.__provapixel e un foglio di confronto (confronto.png).
 // Uso: node tools/provapixel_shots.mjs [url-base] (default http://localhost:5199). Serve il dev server (vite apps/client).
 import fs from 'node:fs';
@@ -23,7 +23,7 @@ const SHOTS = [
   ['lotto', (p) => p.evaluate(() => window.__provapixel.goto(246, 192))],
   ['barca', (p) => p.evaluate(() => window.__provapixel.boat(206, 262, 2.4))],
 ];
-const LOOKS = [['gioco', 'gioco'], ['nuovo', 'tutto']];
+const LOOKS = [['gioco', ['gioco']], ['stampa', ['tutto', { stile: 'stampa' }]], ['tramonto', ['tutto', { stile: 'tramonto' }]], ['giorno', ['tutto', { stile: 'giorno' }]]];
 
 const browser = await pw.chromium.launch({ channel: 'chrome', headless: true, args: ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=metal', '--disable-background-timer-throttling', '--disable-renderer-backgrounding'] });
 const report = {};
@@ -38,7 +38,7 @@ for (const [vn, vp] of Object.entries(VIEWS)) {
   await page.waitForFunction(() => window.__provapixel && window.__provapixel.ready, null, { timeout: 30000 });
   report[vn] = { loadMs: Date.now() - t0, shots: {}, errors: errs };
   for (const [sn, act] of SHOTS) for (const [ln, preset] of LOOKS) {
-    await page.evaluate((s) => window.__provapixel.set(s), preset);
+    await page.evaluate((list) => { for (const s of list) window.__provapixel.set(s); }, preset);
     await act(page);
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT, `${vn}_${sn}_${ln}.png`) });
@@ -46,7 +46,7 @@ for (const [vn, vp] of Object.entries(VIEWS)) {
   }
   // le 5 camere sul Porto, tutto acceso
   for (let c = 0; c < 5; c++) {
-    await page.evaluate((cam) => { window.__provapixel.set('tutto'); window.__provapixel.set({ cam }); const h = window.__provapixel.home; window.__provapixel.goto(h.x, h.z); }, c);
+    await page.evaluate((cam) => { window.__provapixel.set('tutto'); window.__provapixel.set({ cam }); const h = window.__provapixel.home; window.__provapixel.goto(h.x, h.z); }, c); // stile di partenza
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, `${vn}_cam${c}.png`) });
   }
@@ -62,15 +62,15 @@ await browser.close();
 
 // foglio di confronto: per ogni inquadratura PC, gioco a sinistra e nuovo a destra; sotto il telefono
 const img = (f) => `<img src="${pathToFileURL(path.join(OUT, f)).href}">`;
-const rowsPc = SHOTS.map(([sn]) => `<div class="r"><b>${sn}</b>${img(`pc_${sn}_gioco.png`)}${img(`pc_${sn}_nuovo.png`)}</div>`).join('');
-const rowsTel = `<div class="r"><b>telefono</b>${SHOTS.map(([sn]) => img(`tel_${sn}_gioco.png`) + img(`tel_${sn}_nuovo.png`)).join('')}</div>`;
+const rowsPc = SHOTS.map(([sn]) => `<div class="r"><b>${sn}</b>${LOOKS.map(([ln]) => img(`pc_${sn}_${ln}.png`)).join('')}</div>`).join('');
+const rowsTel = `<div class="r"><b>telefono</b>${LOOKS.map(([ln]) => img(`tel_porto_${ln}.png`) + img(`tel_barca_${ln}.png`)).join('')}</div>`;
 const html = `<html><body style="margin:0;background:#23201F;color:#F4E3C1;font:bold 20px ui-monospace,Menlo,monospace">
-<style>.r{display:flex;gap:8px;align-items:center;padding:6px}.r b{width:110px}.r img{height:360px;image-rendering:pixelated}.t img{height:420px}</style>
-<div class="r"><b></b><span style="width:640px">COME IL GIOCO</span><span>NUOVO</span></div>${rowsPc}<div class="t">${rowsTel}</div></body></html>`;
+<style>.r{display:flex;gap:8px;align-items:center;padding:6px}.r b{width:110px}.r span{width:640px}.r img{height:360px;image-rendering:pixelated}.t img{height:420px}</style>
+<div class="r"><b></b>${LOOKS.map(([ln]) => `<span>${ln.toUpperCase()}</span>`).join('')}</div>${rowsPc}<div class="t">${rowsTel}</div></body></html>`;
 const sheet = path.join(OUT, 'confronto.html');
 fs.writeFileSync(sheet, html);
 const b2 = await pw.chromium.launch({ channel: 'chrome', headless: true });
-const p2 = await (await b2.newContext({ viewport: { width: 1420, height: 900 } })).newPage();
+const p2 = await (await b2.newContext({ viewport: { width: 2730, height: 900 } })).newPage();
 await p2.goto(pathToFileURL(sheet).href); await p2.waitForTimeout(500);
 await p2.screenshot({ path: path.join(OUT, 'confronto.png'), fullPage: true });
 await b2.close();
