@@ -3,7 +3,7 @@
 // - camera ≠ 45°: vista più bassa, camera.far più lungo, passata finale con cielo all'orizzonte e foschia (copre il bordo del mondo)
 // - contorni: passata finale con i contorni dalla profondità (il colore stesso più scuro)
 // - stampa: palette giapponese, contorni a inchiostro, grana di carta, acqua a onde (water2.ts) al posto di quella del gioco
-// - ciclo: ogni ~½ s luce, bande del cielo, acqua e foschia dal momento della giornata (ciclo.ts)
+// - ciclo: ogni ~½ s luce, bande del cielo, acqua e foschia dal momento della giornata (ciclo.ts); di notte lanterne e insegne fanno luce (luci.ts, #60)
 import * as THREE from 'three';
 import type { GridMap } from '@marea/sim';
 import type { Renderer } from './scene.ts';
@@ -13,6 +13,8 @@ import { setWaterColors, setWaterNight } from './water.ts';
 import { createPost } from './post.ts';
 import type { Post, PostLook } from './post.ts';
 import { createWater2 } from './water2.ts';
+import { createLuci } from './luci.ts';
+import type { Luci } from './luci.ts';
 import type { Water2 } from './water2.ts';
 import { GIORNO, LUNA_DIR, fase, momento } from './ciclo.ts';
 import type { Momento } from './ciclo.ts';
@@ -23,14 +25,19 @@ import type { Impostazioni } from './viste.ts';
 export const PALETTE_STAMPA = ['#1b1d2b', '#1f3b6e', '#2f5f9e', '#5f8fbf', '#9cc0d8', '#f2ead6', '#e3d5b4', '#d9b07a', '#a8774a', '#6b4a33', '#3d5a3a', '#6f8f4e', '#a3b46a', '#c8402e', '#8a8478', '#bdb4a2', '#e9a23b'];
 
 export type Aspetto = {
-  set(s: Impostazioni): void; update(nowMs: number, t: number): void; readonly momento: string; readonly attivo: boolean;
+  set(s: Impostazioni): void; update(nowMs: number, t: number, focus?: { x: number; z: number }): void; readonly momento: string; readonly attivo: boolean;
+  /** Luci vere accese adesso (#60), per i test. */
+  readonly luci: number;
   /** Test e screenshot: fissa il momento del giro (0 giorno … 0,75 notte); null = l'orologio. */
   forzaFase(f: number | null): void;
 };
 
-export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Water; map: GridMap }): Aspetto {
+/** Decorazioni fisse (coordinate mondo) per le luci di notte, e la quota del terreno sotto di loro. */
+type Scena = { props: readonly { k: string; x: number; z: number; rot: number }[]; groundY(x: number, z: number): number };
+
+export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Water; map: GridMap; scena?: Scena }): Aspetto {
   let imp: Impostazioni = { ...SPENTO }, post: Post | null = null, water2: Water2 | null = null;
-  let m: Momento = GIORNO, cicloWas = false, nextTick = 0, forzata: number | null = null;
+  let m: Momento = GIORNO, cicloWas = false, nextTick = 0, forzata: number | null = null, luci: Luci | null = null;
   const tint = new THREE.Color();
   const look = (): PostLook => {
     const st = imp.stampa;
@@ -50,6 +57,7 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
   };
   const api: Aspetto = {
     get momento() { return imp.ciclo ? m.nome : 'giorno'; },
+    get luci() { return luci?.accese ?? 0; },
     get attivo() { return post !== null && (imp.contorni || imp.stampa || imp.cam > 0); },
     set(s) {
       imp = { ...s, cam: Math.max(0, Math.min(VISTE.length - 1, Math.round(s.cam) || 0)) };
@@ -69,11 +77,14 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
       if (water2) water2.mesh.visible = imp.stampa;
       o.water.mesh.visible = !imp.stampa;
       if (!imp.ciclo && cicloWas) { m = GIORNO; paint(); } // spento: torna esattamente al giorno di sempre
+      if (imp.ciclo && !luci && o.scena) luci = createLuci(o.scena);
+      if (luci) { if (imp.ciclo) o.renderer.scene.add(luci.group); else { luci.set(0, 0, 0, 0); luci.group.removeFromParent(); } }
       cicloWas = imp.ciclo; nextTick = 0;
       if (water2) water2.tint(tint.set(m.tint));
     },
-    update(nowMs, t) {
+    update(nowMs, t, focus) {
       if (water2?.mesh.visible) { const p = o.renderer.camera.position; water2.follow(p.x, p.z); water2.update(t); }
+      if (imp.ciclo && luci) { const f = focus ?? o.renderer.camera.position; luci.set(m.luci, f.x, f.z, nowMs); }
       if (!imp.ciclo || nowMs < nextTick) return;
       nextTick = nowMs + 500; // due volte al secondo bastano: un passaggio dura minuti
       m = momento(forzata ?? fase(nowMs)); paint();

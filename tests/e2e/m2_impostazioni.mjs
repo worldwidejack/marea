@@ -42,6 +42,19 @@ export default async function (ctx) {
     ctx.assert((await ctx.getState(p.page)).aspetto.momento === 'notte', 'non è notte');
     ctx.assert(notte.mean < giorno.mean - 20, `notte non più scura: giorno ${giorno.mean.toFixed(1)} notte ${notte.mean.toFixed(1)}`);
   });
+  await ctx.test('di notte lanterne e insegne fanno luce (#60), di giorno no', async () => {
+    await p.page.waitForTimeout(400);
+    const n = (await ctx.getState(p.page)).aspetto.luci;
+    ctx.assert(n > 0 && n <= 6, `luci accese di notte: ${n}`);
+    const perf = await ctx.getPerf(p.page); ctx.log('perf notte', JSON.stringify(perf));
+    ctx.assert(perf.drawCalls <= 100, `draw call ${perf.drawCalls}`);
+    await p.page.evaluate(() => window.__game.test.ciclo(0.2)); await p.page.waitForTimeout(600);
+    ctx.assert((await ctx.getState(p.page)).aspetto.luci === 0, 'luci accese di giorno');
+    await p.page.evaluate(() => window.__game.test.ciclo(0.6)); await p.page.waitForTimeout(600);
+    await ctx.shot(p.page, 'iphone_tramonto_luci');
+    await p.page.evaluate(() => window.__game.test.ciclo(0.78)); await p.page.waitForTimeout(600);
+    ctx.noErrors(p, 'luci');
+  });
   await ctx.test('la scelta resta dopo il ricaricamento; spegnere torna di serie', async () => {
     await p.page.reload(); await ctx.waitReady(p.page, 20000);
     await p.page.evaluate(() => window.__game.test.aspettoPronto());

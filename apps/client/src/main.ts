@@ -130,14 +130,14 @@ async function boot(): Promise<void> {
     if (aspetto) { aspetto.set(s); return; }
     if (tuttoSpento(s)) return;
     aspettoLoad ??= import('./render/aspetto.ts').then((m) => {
-      aspetto = m.createAspetto({ renderer, lights: world.lights, water: world.water, map: world.map });
+      aspetto = m.createAspetto({ renderer, lights: world.lights, water: world.water, map: world.map, scena: { props: world.archipelago.props, groundY: world.groundY } });
       if (voglio) aspetto.set(voglio);
     }).catch(() => { aspettoLoad = null; hud.toast('Impostazioni non caricate: riprova'); });
   };
   createImpostazioni({ root, onChange: applica });
   registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
   registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
-  registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto }));
+  registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0 }));
   const feed = FLAGS.sfide && me && api.enabled ? createFeed({ api, hud, root, onNews: (news) => { if (news.some((n) => n.tipo !== 'sfida_ricevuta' && n.tipo !== 'sfida_accettata')) refreshMyLot(); } }) : null;
   const emotes = createEmotes({ world, camera: renderer.camera, canvas, root });
   const EMOTES = AVATAR.emote as EmoteId[];
@@ -201,7 +201,7 @@ async function boot(): Promise<void> {
     for (const lv of lots) lv.update(dt, focus); // rilettura ogni 30 s solo per l'isola dove sei; timer ed etichette ogni frame
     document.body.classList.toggle('mz-sotto', ingressi.active); // nel dungeon: l'interfaccia di superficie si nasconde (CSS del chunk GDR)
     compass.update(focus, renderer.diorama.yaw, t);
-    aspetto?.update(Date.now(), t);
+    aspetto?.update(Date.now(), t, focus);
     renderer.render(acc / DT, t);
     hud.setPerf(renderer.stats());
     requestAnimationFrame(frame);
