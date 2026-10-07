@@ -1,6 +1,7 @@
 // Prova stili (#50): ogni stile cambia acqua, scogli e fiori sulle rive, luce, cielo, foschia, contorni e la palette finale.
 // Le palette sono in sRGB: la passata finale (post.ts) porta ogni pixel al colore più vicino, con dithering ordinato tra i due più vicini.
 // «gioco» = com'è il gioco oggi (niente palette, acqua e luce del gioco): serve da confronto.
+import { PALETTE_STAMPA } from '../render/aspetto.ts';
 
 export type StyleId = 'gioco' | 'stampa' | 'tramonto' | 'giorno';
 export type Style = {
@@ -24,7 +25,7 @@ export type Style = {
 // Endesga 32 (palette pixel art molto usata, colori caldi e saturi): per il giorno
 const ENDESGA = ['#be4a2f', '#d77643', '#ead4aa', '#e4a672', '#b86f50', '#733e39', '#3e2731', '#a22633', '#e43b44', '#f77622', '#feae34', '#fee761', '#63c74d', '#3e8948', '#265c42', '#193c3e', '#124e89', '#0099db', '#2ce8f5', '#ffffff', '#c0cbdc', '#8b9bb4', '#5a6988', '#3a4466', '#262b44', '#181425', '#ff0044', '#68386c', '#b55088', '#f6757a', '#e8b796', '#c28569'];
 // Stampa giapponese: indaco e blu di Prussia, carta crema, ocra, verde muschio, vermiglio, inchiostro
-const UKIYO = ['#1b1d2b', '#1f3b6e', '#2f5f9e', '#5f8fbf', '#9cc0d8', '#f2ead6', '#e3d5b4', '#d9b07a', '#a8774a', '#6b4a33', '#3d5a3a', '#6f8f4e', '#a3b46a', '#c8402e', '#8a8478', '#bdb4a2', '#e9a23b'];
+const UKIYO = PALETTE_STAMPA;
 // Tramonto: viole, rosa, aranci, teal, verdi caldi, legni
 const SUNSET = ['#1a1424', '#2b1d3a', '#4a2c5a', '#7a3b6b', '#b3546b', '#e07a5f', '#f2a65a', '#f7d08a', '#fff1c1', '#1f4e5f', '#2a7f8c', '#4fb3b3', '#9ee6d8', '#3d5a3a', '#6a8f3f', '#a5b84f', '#5c3b2e', '#8a5a3c', '#c08552', '#6b5f6e', '#a3949a', '#e3b47a', '#c23b3b', '#fff6e0', '#3a5c8c'];
 

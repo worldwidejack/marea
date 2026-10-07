@@ -1,4 +1,4 @@
-// Prova stili (#50): acqua nuova, solo su questa pagina. Un piano grande che segue il giocatore; il colore viene dalla distanza
+// Acqua degli stili (nata in provapixel #50; nel gioco con «stampa giapponese» #53). Un piano grande che segue il giocatore; il colore viene dalla distanza
 // dalla riva (campo di distanza calcolato una volta dalla GridMap, una texture da una cella per texel, filtrata lineare).
 // Modo 1 stampa: onde a linee chiare e creste di schiuma ricciute, schiuma bianca spessa sulla riva.
 // Modo 2 giorno: fasce turchesi, scogli sott'acqua nel basso fondale, riflessi a linee, scintille bianche.
@@ -44,7 +44,7 @@ uniform sampler2D tDist;
 uniform vec2 uMapSize;
 uniform float uTime;
 uniform int uMode;
-uniform vec3 uC0, uC1, uC2, uC3, uFoam, uLine, uSunDir;
+uniform vec3 uC0, uC1, uC2, uC3, uFoam, uLine, uSunDir, uTint;
 varying vec3 vW;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) {
@@ -93,18 +93,18 @@ void main() {
     float shore = 0.9 + 0.35 * sin(t * 1.4 + vnoise(q * 0.5) * 6.0);
     if (dd < shore) c = uFoam;
   }
-  gl_FragColor = vec4(c, 1.0);
+  gl_FragColor = vec4(c * uTint, 1.0); // uTint: il ciclo giorno/notte scurisce l'acqua (non è illuminata)
   #include <colorspace_fragment>
 }`;
 
-export type Water2 = { mesh: THREE.Mesh; follow(x: number, z: number): void; update(t: number): void; set(mode: number, c: string[], foam: string, line: string, sunDir: [number, number, number]): void };
+export type Water2 = { mesh: THREE.Mesh; follow(x: number, z: number): void; update(t: number): void; set(mode: number, c: string[], foam: string, line: string, sunDir: [number, number, number]): void; tint(c: THREE.Color): void };
 
 export function createWater2(map: GridMap): Water2 {
   const col = (h: string) => new THREE.Color(h);
   const U = {
     tDist: { value: distanceField(map) }, uMapSize: { value: new THREE.Vector2(map.w * map.tile, map.h * map.tile) }, uTime: { value: 0 }, uMode: { value: 1 },
     uC0: { value: col('#fff') }, uC1: { value: col('#fff') }, uC2: { value: col('#fff') }, uC3: { value: col('#fff') }, uFoam: { value: col('#fff') }, uLine: { value: col('#fff') },
-    uSunDir: { value: new THREE.Vector3(0, 1, 0) },
+    uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uTint: { value: new THREE.Color(1, 1, 1) },
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U });
   // 1,6 km di lato a 64 quadrati: la foschia copre il bordo; la griglia serve solo a non avere triangoli enormi
@@ -114,6 +114,7 @@ export function createWater2(map: GridMap): Water2 {
     mesh,
     follow: (x, z) => mesh.position.set(Math.round(x / 4) * 4, 0, Math.round(z / 4) * 4),
     update: (t) => { U.uTime.value = t % 3600; },
+    tint: (c) => { U.uTint.value.copy(c); },
     set: (mode, c, foam, line, sunDir) => {
       U.uMode.value = mode; U.uC0.value.set(c[0]!); U.uC1.value.set(c[1]!); U.uC2.value.set(c[2]!); U.uC3.value.set(c[3]!);
       U.uFoam.value.set(foam); U.uLine.value.set(line); U.uSunDir.value.set(...sunDir).normalize();

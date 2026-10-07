@@ -1,18 +1,25 @@
-// Prova pixel 3D (#46) e stili (#50): la scena si disegna in un'immagine piccola (render target, nearest), poi una sola passata a
-// schermo intero fa contorni, foschia a bande, cielo, ritocco colore e palette dello stile. Il canvas ha la stessa misura
-// dell'immagine piccola: l'ingrandimento lo fa il CSS (pixelated).
+// Passata finale (nata in provapixel #46/#50, usata dal gioco per le impostazioni #53): la scena si disegna in un'immagine piccola
+// (render target, nearest), poi una sola passata a schermo intero fa contorni, foschia a bande, cielo, ritocco colore e palette.
+// Il canvas ha la stessa misura dell'immagine piccola: l'ingrandimento lo fa il CSS (pixelated). Senza cielo il fondo è quello della scena.
 // Contorni dalla profondità inversa (1/z): su un piano è lineare sullo schermo, quindi il laplaciano è zero ovunque tranne su bordi e spigoli.
 //   - vicino molto più lontano del pixel → sagoma: inchiostro dello stile (o il colore stesso più scuro)
 //   - laplaciano negativo piccolo → spigolo convesso: schiarito (o a inchiostro, per la stampa)
 // Palette: ogni pixel va al colore più vicino della palette dello stile, con dithering Bayer 4×4 tra i due più vicini.
 import * as THREE from 'three';
-import type { Style } from './styles.ts';
 
+/** Quello che la passata prende da uno stile (provapixel/styles.ts lo soddisfa). */
+export type PostLook = {
+  palette: string[] | null; dither: number; grade: { exp: number; sat: number; con: number; tint: string }; paper: number;
+  ink: { col: string; mix: number; crease: number };
+  sky: { top: string; mid: string; hor: string; sun: string; glow: string; sunDir: [number, number, number]; sunSize: number; cloud: string; cloudDark: string };
+  fog: { col: string; near: number; far: number; max: number };
+};
 export type PostToggles = { contorni: boolean; foschia: boolean; cielo: boolean };
 export type Post = {
-  render(gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, t: number): void;
+  /** `world` = false (dungeon, scene a parte): niente cielo né foschia, resta il fondo della scena. */
+  render(gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, t: number, world?: boolean): void;
   setSize(w: number, h: number): void;
-  setStyle(s: Style): void;
+  setStyle(s: PostLook): void;
   toggles: PostToggles;
   /** Draw call della scena (senza la passata finale) dell'ultimo frame. */
   sceneCalls(): number; sceneTris(): number;
@@ -68,7 +75,7 @@ void main() {
   vec2 px = floor(vUv * uRes), t = 1.0 / uRes;
   float d = texture2D(tDepth, vUv).x;
   vec3 c;
-  if (d >= 0.99999) c = uSky > 0.5 ? skyCol(vUv, px) : uSkyMid;
+  if (d >= 0.99999) c = uSky > 0.5 ? skyCol(vUv, px) : texture2D(tColor, vUv).rgb;
   else {
     c = texture2D(tColor, vUv).rgb;
     float z = viewZ(vUv);
@@ -154,12 +161,12 @@ export function createPost(): Post {
       U.uPalN.value = pal.length;
     },
     sceneCalls: () => calls, sceneTris: () => tris,
-    render: (gl, scene, camera, t) => {
+    render: (gl, scene, camera, t, world = true) => {
       gl.setRenderTarget(rt); gl.render(scene, camera);
       calls = gl.info.render.calls; tris = gl.info.render.triangles;
       U.uNear.value = camera.near; U.uFar.value = camera.far; U.uTime.value = t % 3600;
       U.uInvProj.value.copy(camera.projectionMatrixInverse); U.uCamWorld.value.copy(camera.matrixWorld);
-      U.uOutline.value = toggles.contorni ? 1 : 0; U.uFog.value = toggles.foschia ? 1 : 0; U.uSky.value = toggles.cielo ? 1 : 0;
+      U.uOutline.value = toggles.contorni ? 1 : 0; U.uFog.value = toggles.foschia && world ? 1 : 0; U.uSky.value = toggles.cielo && world ? 1 : 0;
       gl.setRenderTarget(null); gl.render(quad, ortho);
     },
   };

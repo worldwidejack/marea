@@ -28,6 +28,11 @@ const U = {
   cSchiuma: { value: new THREE.Color(WATER_COLORS.schiuma) },
 };
 
+/** Ciclo giorno/notte (#53): ricolora tutte le acque (uniform condivisi). Senza chiamarla restano i colori di WATER_COLORS. */
+export function setWaterColors(c: { abisso: string; profonda: string; acqua: string; bassa: string; schiuma: string }): void {
+  U.cAbisso.value.set(c.abisso); U.cProfonda.value.set(c.profonda); U.cAcqua.value.set(c.acqua); U.cBassa.value.set(c.bassa); U.cSchiuma.value.set(c.schiuma);
+}
+
 const VERT = /* glsl */ `
 uniform float uTime; uniform sampler2D uMask; uniform float uHasMap; uniform vec2 uMaskOrigin; uniform vec2 uMaskSize;
 varying vec3 vWorld;

@@ -26,6 +26,10 @@ import { createGuida } from './ui/guida.ts';
 import type { GuidaStep } from './ui/guida.ts';
 import { createIngressi } from './game/ingressi.ts';
 import { createEroe } from './ui/eroe.ts';
+import { createImpostazioni } from './ui/impostazioni.ts';
+import type { Aspetto } from './render/aspetto.ts';
+import { diSerie } from './render/viste.ts';
+import type { Impostazioni } from './render/viste.ts';
 import type { LotState } from '@marea/sim';
 
 const TAVOLO_R = 3.5; // m: quanto vicino al Tavolo per aprirlo con E / A
@@ -118,6 +122,22 @@ async function boot(): Promise<void> {
   // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-4). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
   const link = `${location.origin}/?t=${encodeURIComponent(FLAGS.token)}`; // per entrare come sé da un altro dispositivo (editor: COPIA / MANDA)
   const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, onSaved: () => hud.toast('Look salvato'), onLot: refreshMyLot }) : null;
+  // impostazioni (#53): camera, ciclo giorno/notte, stampa, contorni; di serie tutto spento, per chiunque (anche senza link)
+  // la resa delle impostazioni (passata finale, acqua stampa, ciclo) si scarica solo alla prima impostazione accesa: di serie zero byte in più
+  let aspetto: Aspetto | null = null, aspettoLoad: Promise<void> | null = null, voglio: Impostazioni | null = null;
+  const applica = (s: Impostazioni) => {
+    voglio = s;
+    if (aspetto) { aspetto.set(s); return; }
+    if (diSerie(s)) return;
+    aspettoLoad ??= import('./render/aspetto.ts').then((m) => {
+      aspetto = m.createAspetto({ renderer, lights: world.lights, water: world.water, map: world.map });
+      if (voglio) aspetto.set(voglio);
+    }).catch(() => { aspettoLoad = null; hud.toast('Impostazioni non caricate: riprova'); });
+  };
+  createImpostazioni({ root, onChange: applica });
+  registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
+  registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
+  registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto }));
   const feed = FLAGS.sfide && me && api.enabled ? createFeed({ api, hud, root, onNews: (news) => { if (news.some((n) => n.tipo !== 'sfida_ricevuta' && n.tipo !== 'sfida_accettata')) refreshMyLot(); } }) : null;
   const emotes = createEmotes({ world, camera: renderer.camera, canvas, root });
   const EMOTES = AVATAR.emote as EmoteId[];
@@ -181,6 +201,7 @@ async function boot(): Promise<void> {
     for (const lv of lots) lv.update(dt, focus); // rilettura ogni 30 s solo per l'isola dove sei; timer ed etichette ogni frame
     document.body.classList.toggle('mz-sotto', ingressi.active); // nel dungeon: l'interfaccia di superficie si nasconde (CSS del chunk GDR)
     compass.update(focus, renderer.diorama.yaw, t);
+    aspetto?.update(Date.now(), t);
     renderer.render(acc / DT, t);
     hud.setPerf(renderer.stats());
     requestAnimationFrame(frame);

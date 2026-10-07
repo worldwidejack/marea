@@ -96,6 +96,11 @@ type Renderer = { scene: THREE.Scene; camera: THREE.PerspectiveCamera; render(al
 // render/pixel.ts (WP1)    pixelScale(flags): number   // 0,5 normale, 0,4 low
 // render/island.ts (WP1)   createIsland(o: { map: GridMap; loader: Loader }) → Promise<{ group: THREE.Group }>   // moduli glTF dal manifest, fallback a box colorati dalla palette se un modello manca
 // render/loader.ts (WP1)   createLoader(o: { base: string }) → Loader = { load(name: string): Promise<THREE.Group>; texture(name): Promise<THREE.Texture>; manifest: Manifest }   // NearestFilter, sRGB, cache; `manifest.json` in public/assets
+// render/aspetto.ts (#53)  createAspetto({ renderer, lights, water, map }) → { set(Impostazioni); update(nowMs, t); forzaFase(f|null) }   // si scarica con import() solo alla prima impostazione accesa
+// render/viste.ts (#53)    Impostazioni = { cam 0-4; ciclo; stampa; contorni }, DI_SERIE (tutto spento), VISTE (45/35/30/22/15°), CICLO_MIN   // dati leggeri per ui/impostazioni.ts
+// render/post.ts (#53)     createPost() → passata finale (contorni, foschia, cielo, palette); Renderer.setPost(p|null), Renderer.setView(v|null: solo in superficie)
+// render/ciclo.ts (#53)    momento(fase(Date.now())) → luce, bande del cielo, acqua; light.set(SunSet), sky.setBands(cols), setWaterColors(c)
+// ui/impostazioni.ts (#53) createImpostazioni({ root, onChange }) → ingranaggio #mzSetBtn (order 5), pannello #mzSet; localStorage «marea:impostazioni»
 // render/anim.ts (WP2)     createAnimator(root: THREE.Object3D, clips: THREE.AnimationClip[]) → { play(name: string, fadeS?: number): void; update(dt: number): void; current: string }
 // game/input.ts (WP2)      createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; cameraYaw: () => number }) → { sample(): InputFrame; dispose(): void }   // WASD/frecce + joystick touch (#joystick) + bottoni #btnA #btnB creati dal modulo; Shift = b (corsa/freno); il vettore viene ruotato in assi mondo con cameraYaw()
 // game/avatar.ts (WP2)     createAvatar(o: { loader: Loader; look: Look }) → Promise<{ object: THREE.Object3D; state: AvatarState; step(input: InputFrame, map: GridMap): void; update(alpha: number, dt: number): void }>
