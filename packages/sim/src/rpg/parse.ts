@@ -25,7 +25,7 @@ export function parseRpgAction(v: unknown): RpgAction | null {
     case 'alchimia':
       if (!str(o.ricetta) || (o.n !== undefined && !qty(o.n))) return null;
       return o.n === undefined ? { t: 'alchimia', ricetta: o.ricetta } : { t: 'alchimia', ricetta: o.ricetta, n: o.n as number };
-    case 'compra': case 'deposita': case 'preleva':
+    case 'compra': case 'deposita': case 'preleva': case 'butta':
       return str(o.item) && qty(o.n) ? { t: o.t, item: o.item, n: o.n } : null;
     case 'serra': return { t: 'serra' };
     default: return null;

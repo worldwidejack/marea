@@ -17,7 +17,12 @@ export type DungeonHud = {
   bars(list: Bar[]): void;
   event(e: DungeonEvent): void;
   big(text: string | null, color?: string, sub?: string): void;
-  icons(): { c: Node | null; d: Node | null };
+  /** Scritta grande che sparisce da sola dopo `ms` (SALVATO alla lanterna). */
+  flash(text: string, color: string, sub: string, ms: number): void;
+  /** Icone di C e D; `key` cambia quando cambiano magia o pozione pronte. */
+  icons(): { c: Node | null; d: Node | null; key: string };
+  /** RunHero rifatto (cambio d'equipaggiamento nel dungeon): frecce, pozione e magia pronte nuove. */
+  setHero(h: RunHero): void;
   dispose(): void;
 };
 
@@ -77,12 +82,13 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
   o.root.append(box, fx, toast, big);
 
   // icone: frecce e pozione rapida dal catalogo, magia come libro col colore della scuola
-  const arrowsIco = () => (o.hero.frecce && hasItem(o.hero.frecce.id) ? iconOf(itemDef(o.hero.frecce.id), 16) : null);
-  const pot = o.hero.pozione !== null ? o.hero.pozioni[o.hero.pozione] ?? null : null;
-  const spell = o.hero.magia !== null ? o.hero.magie[o.hero.magia] ?? null : null;
+  let rh = o.hero;
+  const arrowsIco = () => (rh.frecce && hasItem(rh.frecce.id) ? iconOf(itemDef(rh.frecce.id), 16) : null);
+  let pot = rh.pozione !== null ? rh.pozioni[rh.pozione] ?? null : null;
+  let spell = rh.magia !== null ? rh.magie[rh.magia] ?? null : null;
   const potIco = (px: number) => (pot && hasItem(pot.id) ? iconOf(itemDef(pot.id), px) : null);
   const spellIco = (px: number) => (spell ? itemIcon('libro', spell.scuola === 'evocazione' ? P.viola : P.arancio, px) : null);
-  let rowSig = '', toastT = 0, bigOn = false;
+  let rowSig = '', toastT = 0, bigOn = false, flashT = 0;
   const v3 = new THREE.Vector3();
   const screen = (p: THREE.Vector3) => {
     v3.copy(p).project(o.camera);
@@ -103,12 +109,12 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         if (sig !== b.last) { b.last = sig; b.fill.style.width = w; b.lag.style.width = lw; b.n.textContent = n; }
       }
       const left = Math.max(0, (maxTicks - v.tick) / 60), z = v.zaino;
-      const sig = `${h.frecce}|${h.pozioni}|${Math.round(z.peso)}|${z.monete}|${Math.floor(left)}`;
+      const sig = `${h.frecce}|${h.pozioni}|${Math.round(z.peso)}|${Math.round(z.max)}|${z.monete}|${Math.floor(left)}|${rh.frecce?.id}|${pot?.id}`;
       if (sig !== rowSig) {
         rowSig = sig;
         const it = (ico: Node | null, text: string, cls = '') => { const s = el('span', cls); if (ico) s.appendChild(ico); s.appendChild(document.createTextNode(text)); return s; };
         const kids: Node[] = [];
-        if (o.hero.frecce || o.hero.arma.kind === 'arco') kids.push(it(arrowsIco(), `${h.frecce}`, h.frecce === 0 ? 'warn' : ''));
+        if (rh.frecce || rh.arma.kind === 'arco') kids.push(it(arrowsIco(), `${h.frecce}`, h.frecce === 0 ? 'warn' : ''));
         if (pot) kids.push(it(potIco(16), `${h.pozioni}`, h.pozioni === 0 ? 'warn' : ''));
         kids.push(it(itemIcon('materiale', P.legnoChiaro, 16), `${Math.round(z.peso)}/${Math.round(z.max)} kg`, z.peso >= z.max ? 'warn' : ''));
         kids.push(it(itemIcon('anello', P.giallo, 16), `${z.monete}`));
@@ -147,18 +153,27 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'senzaFrecce': say('Frecce finite', 1400); break;
         case 'libro': say(`Hai imparato: ${nome(e.item).replace(/^Libro: /, '')}`, 2600); break;
         case 'evocato': say('Un alleato combatte per te', 1800); break;
-        case 'altare': say('Altare: il bottino fin qui è al sicuro', 2400); break;
-        case 'risveglio': say('Ti risvegli all’altare: perso solo il bottino raccolto dopo', 3200); break;
+        case 'risveglio': say('Ti risvegli alla lanterna: perso solo il bottino raccolto dopo', 3200); break;
         default:
       }
     },
     big(text, color, sub) {
+      clearTimeout(flashT);
       bigOn = !!text; big.classList.toggle('on', bigOn);
       if (!text) return;
       big.textContent = text; big.style.color = color ?? P.sabbiaChiara; big.style.borderColor = color ?? P.legnoChiaro;
       if (sub) big.appendChild(el('small', '', sub));
     },
-    icons: () => ({ c: spellIco(24), d: potIco(24) }),
-    dispose() { clearTimeout(toastT); for (const e of [box, fx, toast, big]) e.remove(); },
+    icons: () => ({ c: spellIco(24), d: potIco(24), key: `${spell?.id ?? ''}|${pot?.id ?? ''}` }),
+    setHero(h) {
+      rh = h; rowSig = '';
+      pot = rh.pozione !== null ? rh.pozioni[rh.pozione] ?? null : null;
+      spell = rh.magia !== null ? rh.magie[rh.magia] ?? null : null;
+    },
+    flash(text, color, sub, ms) {
+      this.big(text, color, sub);
+      flashT = window.setTimeout(() => { bigOn = false; big.classList.remove('on'); }, ms);
+    },
+    dispose() { clearTimeout(toastT); clearTimeout(flashT); for (const e of [box, fx, toast, big]) e.remove(); },
   };
 }

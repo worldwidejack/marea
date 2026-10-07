@@ -4,6 +4,7 @@ import type { LootTable } from '@marea/content/rpg.ts';
 import type { Rng } from '../rng.ts';
 import type { Bag, DungeonState, Loot } from './state.ts';
 import { PESO_IGNOTO, RAGGIO_RACCOLTA } from './tuning.ts';
+import { invNow } from './zaino.ts';
 
 export function lootTable(id: string): LootTable {
   const t = LOOT.find((x) => x.id === id);
@@ -25,8 +26,14 @@ export function rollLoot(id: string, rng: Rng, o: { molt: number; raro: boolean 
 
 export const pesoDi = (s: DungeonState, item: string): number => s.runHero.pesi[item] ?? PESO_IGNOTO;
 
-/** Peso trasportato: quello con cui si è entrati + quanto raccolto. */
+/** Peso trasportato: lo zaino di adesso (v5, con `stato`: senza usati, rotti e buttati); senza `stato` quello con cui si è entrati + il raccolto. */
 export function pesoZaino(s: DungeonState): number {
+  if (s.stato) {
+    const inv = invNow(s);
+    let w = 0;
+    for (const k of Object.keys(inv)) w += pesoDi(s, k) * inv[k]!;
+    return w;
+  }
   let p = s.runHero.carico;
   for (const k of Object.keys(s.bottino).sort()) p += pesoDi(s, k) * s.bottino[k]!;
   return p;

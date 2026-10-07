@@ -1,5 +1,6 @@
 // Tipi del personaggio GDR (docs/RPG.md, CONTRACTS §15). Interfaccia fissa tra sim/rpg, sim/dungeon, server e client.
 import type { AttrId, EnemyKind, ItemKind, MaterialId, SkillId, Traits, WeaponClass, WeaponTypeId } from '@marea/content/rpg.ts';
+import type { DungeonAzioni } from '../dungeon/types.ts';
 
 export type EquipSlot = 'arma' | 'frecce' | 'corpo' | 'anello1' | 'anello2' | 'magia' | 'pozione';
 export const EQUIP_SLOTS: readonly EquipSlot[] = ['arma', 'frecce', 'corpo', 'anello1', 'anello2', 'magia', 'pozione'];
@@ -30,6 +31,8 @@ export type HeroState = {
   morti: number;
   /** Dungeon completati (capo ucciso almeno una volta), id in ordine di completamento. Assente = nessuno. */
   completati?: string[];
+  /** Per dungeon: la lanterna da cui sei uscito l'ultima volta (azione `esci`): alla discesa dopo puoi ripartire da lì. Assente = nessuna. */
+  lanterne?: Record<string, number>;
 };
 
 /** Voce del catalogo (generata dalla sim: tipo × materiale + oggetti scritti a mano). La UI la usa per nome, peso, descrizione e statistiche. */
@@ -138,6 +141,12 @@ export type RunResult = {
   cadute?: number;
   /** Il capo del dungeon (legenda `capo`) è morto in questa spedizione: il dungeon è completato, qualunque sia l'esito. */
   capo?: boolean;
+  /** Uscito da questa lanterna (azione `esci`, dungeon v5): la discesa dopo può ripartire da lì. */
+  lanterna?: number | null;
+  /** Equipaggiamento a fine spedizione, se il dungeon sapeva com'era all'entrata (dungeon v5): il server lo rimette sul personaggio. */
+  equip?: Partial<Record<EquipSlot, string>>;
+  /** Buttati via dallo zaino portato da casa (dungeon v5; quelli raccolti nel dungeon escono già da `bottino`). */
+  buttati?: Record<string, number>;
   hash: number;
 };
 
@@ -152,12 +161,21 @@ export type RpgAction =
   | { t: 'compra'; item: string; n: number }
   | { t: 'deposita'; item: string; n: number }
   | { t: 'preleva'; item: string; n: number }
+  /** Butta via n oggetti dallo zaino: spariscono. */
+  | { t: 'butta'; item: string; n: number }
   | { t: 'serra' };
 
 /** Spedizione aperta dal server (dentro LotState.dungeon). */
 /** `salvataggio`: input fino all'ultimo altare (encodeDungeon), verificati dal server con POST /api/dungeon/save. Se la spedizione non
  * si chiude (scheda chiusa), il server la chiude rigiocandoli: si tiene il bottino dell'altare. */
-export type DungeonPending = { dungeon: string; seed: number; startMs: number; hero: RunHero; salvataggio?: { inputs: string; ticks: number } | null };
+/** `stato`: il personaggio all'entrata (zaino, equipaggiamento, perk) per rifare RunHero quando si cambia equipaggiamento nel dungeon
+ * (dungeon v5; assente nelle spedizioni aperte prima). `partenza`: lanterna da cui si riparte (null = ingresso). `salvataggio.azioni`:
+ * le azioni dal menu (DungeonAzioni) fino al salvataggio. */
+export type DungeonPending = {
+  dungeon: string; seed: number; startMs: number; hero: RunHero;
+  stato?: HeroState; partenza?: number | null;
+  salvataggio?: { inputs: string; ticks: number; azioni?: DungeonAzioni } | null;
+};
 export type DungeonLotState = { pending: DungeonPending | null };
 
 export type { EnemyKind };

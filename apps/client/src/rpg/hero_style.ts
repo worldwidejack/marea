@@ -77,9 +77,12 @@ const CSS = `
 .mz-rp-act .mz-row .mz-btn { font-size: 14px; padding: 4px 6px; }
 .mz-rp-ico { width: 24px; height: 24px; }
 .mz-rp-note { margin: 8px 0; padding: 6px 8px; border: 2px dashed ${P.legno}; color: ${P.sabbia}; font-size: 14px; }
+.mz-btn.butta { background: ${P.legnoScuro}; color: ${P.sabbiaChiara}; border-color: ${P.rosso}; }
+.mz-btn.butta.sicuro { background: ${P.rosso}; color: ${P.sabbiaChiara}; border-color: ${P.neroCaldo}; }
+.mz-rp-sotto { margin: 0 0 8px; padding: 6px 8px; border: 2px solid ${P.viola}; background: ${P.ombraCalda}; font-size: 13px; font-weight: bold; color: ${P.sabbiaChiara}; }
 .mz-btn.vita { background: ${P.rosso}; color: ${P.sabbiaChiara}; } .mz-btn.magicka { background: ${P.acqua}; } .mz-btn.stamina { background: ${P.erba}; }
 #mzHeroBtn canvas { width: 24px; height: 24px; }
-body.mz-sotto #mzEroe { display: none; }
+body.mz-sotto #mzEroe:not(.sotto) { display: none; }
 `;
 
 let injected = false;

@@ -1,7 +1,7 @@
 // Stato della partita nel dungeon e creazione da DungeonDef + RunHero + seed. Tutto il resto (passo, vista, risultato) lavora su questo.
 import { enemyDef } from '@marea/content/rpg.ts';
 import type { DungeonDef, EnemyDef, Traits } from '@marea/content/rpg.ts';
-import type { RunHero, RunOutcome, RunWeapon } from '../rpg/types.ts';
+import type { EquipSlot, HeroState, RunHero, RunOutcome, RunWeapon } from '../rpg/types.ts';
 import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
 import type { DungeonEvent, HeroAnim } from './types.ts';
@@ -79,6 +79,16 @@ export type DungeonState = {
   salvato: Salvato | null;
   /** Morti con risveglio all'altare in questa spedizione. */
   cadute: number;
+  /** Il personaggio all'entrata (dungeon v5): con lui si rifà RunHero quando cambia l'equipaggiamento. null = niente cambi (test, spedizioni
+   *  aperte prima del v5): si gioca con la fotografia `runHero` e basta. */
+  stato: HeroState | null;
+  /** Equipaggiato adesso (parte da stato.equip). */
+  equip: Partial<Record<EquipSlot, string>>;
+  /** Buttati via da quello portato da casa (quelli raccolti qui escono da `bottino`). */
+  buttati: Bag;
+  /** Lanterna di partenza (-1 = ingresso) e lanterna da cui si è usciti (-1 = no). */
+  partenza: number;
+  uscitaLanterna: number;
   eventi: DungeonEvent[];
 };
 
@@ -93,7 +103,7 @@ export function newEnemy(s: DungeonState, tipo: string, x: number, z: number, al
   return e;
 }
 
-export function createState(def: DungeonDef, seed: number, hero: RunHero): DungeonState {
+export function createState(def: DungeonDef, seed: number, hero: RunHero, o: { stato?: HeroState | null; partenza?: number | null } = {}): DungeonState {
   const map = parseDungeon(def);
   const rng = createRng(seed);
   const arma: RunWeapon = { ...hero.arma, traits: { ...hero.arma.traits } };
@@ -112,8 +122,17 @@ export function createState(def: DungeonDef, seed: number, hero: RunHero): Dunge
     anim: 'fermo', enemies: [], proj: [], loot: [], nextId: 1,
     flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, rng,
     bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,
-    altare: -1, salvato: null, cadute: 0, eventi: [],
+    altare: -1, salvato: null, cadute: 0,
+    stato: o.stato ?? null, equip: { ...(o.stato?.equip ?? {}) }, buttati: {}, partenza: -1, uscitaLanterna: -1, eventi: [],
   };
+  // ripartenza da una lanterna (quella da cui si è usciti l'ultima volta): l'eroe è lì sopra e la lanterna è già quella dei risvegli
+  const p = o.partenza;
+  if (typeof p === 'number' && Number.isInteger(p) && p >= 0 && p < map.altari.length) {
+    const a = map.altari[p]!;
+    s.hero.x = a.x; s.hero.z = a.z;
+    s.partenza = p; s.altare = p;
+    s.salvato = { altare: p, tick: 0, bottino: {}, monete: 0 };
+  }
   const sonno = rng.fork('sonno');
   for (const n of map.nemici) {
     const e = newEnemy(s, n.tipo, (n.cx + 0.5) * map.tile, (n.cz + 0.5) * map.tile);

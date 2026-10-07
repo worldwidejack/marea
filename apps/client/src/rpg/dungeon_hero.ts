@@ -7,7 +7,7 @@
 // Le ossa del glTF arrivano senza punti nel nome (three toglie «.» dai nomi dei nodi: UpperArm.R → UpperArmR).
 import * as THREE from 'three';
 import type { Look } from '@marea/protocol';
-import type { RunHero } from '@marea/sim/rpg/types.ts';
+import type { RunHero, RunWeapon } from '@marea/sim/rpg/types.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
 import { COLPI } from '@marea/sim/dungeon/tuning.ts';
 import { bladeAngle } from '@marea/sim/dungeon/swing.ts';
@@ -32,6 +32,8 @@ export type HeroActor = {
   flash(): void;
   /** L'arma si è rotta (evento `rotto`): via il modello, si combatte coi pugni. */
   rotta(): void;
+  /** Cambio d'arma dal menu dello zaino: modello nuovo nel pugno (o pugni), scia della portata nuova. */
+  setArma(a: RunWeapon): Promise<void>;
   /** Punto sopra la testa (numeri del danno). */
   head(): THREE.Vector3;
   dispose(): void;
@@ -94,22 +96,31 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: Run
   const bodyMats = materialsOf(avatar.object);
 
   // ---- arma: nel pugno, ingrandita perché la punta arrivi vicino alla portata (quel che si vede ≈ dove colpisce) ----
-  const arma = o.hero.arma, bow = arma.kind === 'arco';
-  const def = arma.id && hasItem(arma.id) ? itemDef(arma.id) : null;
-  let weapon: THREE.Object3D | null = null, bladeMats: THREE.MeshLambertMaterial[] = [], bladeLen = 0;
-  if (def?.model) {
-    weapon = await object(o.loader, def.model, () => boxes(bow ? [[0.05, 1.2, 0.05, 0, 0, 0.08, PAL.legno]] : [[0.05, 0.2, 0.05, 0, 0.05, 0, PAL.legnoScuro], [0.08, 0.75, 0.03, 0, 0.55, 0, PAL.pietra]]));
-    tintBlade(weapon, palColor(def.colore || PAL.pietra));
-    bladeMats = materialsOf(weapon).filter((m) => /^mat_lama/.test(m.name));
-    if (!bladeMats.length) bladeMats = materialsOf(weapon);
-    const tip = Math.max(0.3, new THREE.Box3().setFromObject(weapon).max.y);
-    const s = bow ? 1 : clamp((arma.portata - R_PUGNO) / tip, 1, 1.5);
-    weapon.scale.set(s * (bow ? 1 : 1.6), s, s * (bow ? 1 : 1.6)); bladeLen = tip * s; // più spessa: si legge da lontano
-    o.scene.add(weapon);
-  }
-  let kind: Kind = bow ? 'arco' : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' ? 'lancia' : 'lama';
+  let bow = false, weapon: THREE.Object3D | null = null, bladeMats: THREE.MeshLambertMaterial[] = [], bladeLen = 0, kind: Kind = 'pugni', mountN = 0;
   const fxFor = (portata: number) => createHeroFx(o.scene, { portata, rin: kind === 'pugni' ? 0.3 : R_PUGNO + 0.15 });
-  let fx: HeroFx = fxFor(kind === 'pugni' ? pugni().portata : arma.portata);
+  let fx: HeroFx = fxFor(pugni().portata);
+  /** Monta l'arma nel pugno (all'inizio e a ogni cambio dal menu); se nel frattempo ne arriva un'altra, vince l'ultima. */
+  async function mount(arma: RunWeapon): Promise<void> {
+    const my = ++mountN, b = arma.kind === 'arco';
+    const def = arma.id && hasItem(arma.id) ? itemDef(arma.id) : null;
+    let w: THREE.Object3D | null = null, mats: THREE.MeshLambertMaterial[] = [], len = 0;
+    if (def?.model) {
+      w = await object(o.loader, def.model, () => boxes(b ? [[0.05, 1.2, 0.05, 0, 0, 0.08, PAL.legno]] : [[0.05, 0.2, 0.05, 0, 0.05, 0, PAL.legnoScuro], [0.08, 0.75, 0.03, 0, 0.55, 0, PAL.pietra]]));
+      if (my !== mountN) return;
+      tintBlade(w, palColor(def.colore || PAL.pietra));
+      mats = materialsOf(w).filter((m) => /^mat_lama/.test(m.name));
+      if (!mats.length) mats = materialsOf(w);
+      const tip = Math.max(0.3, new THREE.Box3().setFromObject(w).max.y);
+      const s = b ? 1 : clamp((arma.portata - R_PUGNO) / tip, 1, 1.5);
+      w.scale.set(s * (b ? 1 : 1.6), s, s * (b ? 1 : 1.6)); len = tip * s; // più spessa: si legge da lontano
+    }
+    weapon?.removeFromParent();
+    weapon = w; bow = b; bladeMats = mats; bladeLen = len;
+    if (w) o.scene.add(w);
+    kind = bow ? 'arco' : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' ? 'lancia' : 'lama';
+    fx.dispose(); fx = fxFor(kind === 'pugni' ? pugni().portata : arma.portata);
+  }
+  await mount(o.hero.arma);
 
   // ---- rotazioni nello spazio del corpo (inner: asse X = destra, −Z = avanti) applicate sopra la clip ----
   const qa = new THREE.Quaternion(), qp = new THREE.Quaternion(), qr = new THREE.Quaternion(), qi = new THREE.Quaternion(), ql = new THREE.Quaternion(), qid = new THREE.Quaternion();
@@ -365,6 +376,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: Run
       else for (const m of bodyMats) m.emissive.setRGB(0, 0, 0);
     },
     flash() { flashT = 0.12; },
+    setArma: (a) => mount(a),
     rotta() {
       if (weapon) weapon.visible = false;
       if (kind === 'pugni' || kind === 'arco') return;

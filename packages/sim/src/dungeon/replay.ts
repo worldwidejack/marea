@@ -1,6 +1,8 @@
 // Input log del dungeon (RLE, mx/my a 1/8) e replay deterministico per il server.
-import type { RunHero, RunResult } from '../rpg/types.ts';
-import type { DungeonInput, PackedDungeon } from './types.ts';
+import type { HeroState, RunHero, RunResult } from '../rpg/types.ts';
+import { EQUIP_SLOTS } from '../rpg/types.ts';
+import type { EquipSlot } from '../rpg/types.ts';
+import type { DungeonAzione, DungeonAzioni, DungeonInput, PackedDungeon } from './types.ts';
 import { dungeon } from './dungeon.ts';
 
 /** In ottavi, senza −0 (così log e roundtrip sono identici anche con deepStrictEqual). */
@@ -46,17 +48,53 @@ export function isPackedDungeon(v: unknown, maxTicks: number): v is PackedDungeo
   return true;
 }
 
-/** Rigioca una spedizione: stesso seed, stesso eroe, stessi input → stesso RunResult (e hash) del client. */
-export function replayDungeon(seed: number, dungeonId: string, hero: RunHero, p: PackedDungeon): RunResult {
+const MAX_AZIONI = 400;
+const okStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 40;
+/** Controllo di forma di un'azione dalla rete (null = non valida); oggetto pulito, niente campi in più. */
+export function parseDungeonAzione(v: unknown): DungeonAzione | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const o = v as Record<string, unknown>;
+  switch (o['t']) {
+    case 'equip':
+      if (!EQUIP_SLOTS.includes(o['slot'] as EquipSlot) || (o['item'] !== null && !okStr(o['item']))) return null;
+      return { t: 'equip', slot: o['slot'] as EquipSlot, item: o['item'] as string | null };
+    case 'butta': return okStr(o['item']) && Number.isInteger(o['n']) && (o['n'] as number) >= 1 && (o['n'] as number) <= 999 ? { t: 'butta', item: o['item'], n: o['n'] as number } : null;
+    case 'salva': return { t: 'salva' };
+    case 'esci': return { t: 'esci' };
+    default: return null;
+  }
+}
+/** Azioni dalla rete: [[tick, azione], ...] con tick interi non decrescenti in 0..maxTicks, al massimo MAX_AZIONI; null se non valide. */
+export function parseDungeonAzioni(v: unknown, maxTicks: number): DungeonAzioni | null {
+  if (v === undefined || v === null) return [];
+  if (!Array.isArray(v) || v.length > MAX_AZIONI) return null;
+  const out: DungeonAzioni = [];
+  let last = 0;
+  for (const r of v) {
+    if (!Array.isArray(r) || r.length !== 2 || !Number.isInteger(r[0]) || r[0] < last || r[0] > maxTicks) return null;
+    const a = parseDungeonAzione(r[1]);
+    if (!a) return null;
+    out.push([r[0], a]); last = r[0];
+  }
+  return out;
+}
+
+/** Rigioca una spedizione: stesso seed, stesso eroe, stessi input e azioni → stesso RunResult (e hash) del client. Le azioni si applicano
+ *  prima del passo del loro tick (quelle oltre l'ultimo input, a fine log). */
+export function replayDungeon(seed: number, dungeonId: string, hero: RunHero, p: PackedDungeon, o: { stato?: HeroState | null; partenza?: number | null; azioni?: DungeonAzioni } = {}): RunResult {
   let ticks = 0;
   for (const r of p) ticks += r[0];
   if (ticks > dungeon.maxTicks) throw new Error('Input log troppo lungo');
-  const s = dungeon.create({ seed, dungeon: dungeonId, hero });
+  const s = dungeon.create({ seed, dungeon: dungeonId, hero, stato: o.stato ?? null, partenza: o.partenza ?? null });
+  const az = o.azioni ?? [];
+  let k = 0;
+  const due = (): void => { while (k < az.length && az[k]![0] <= s.tick && !s.done) dungeon.act(s, az[k++]![1]); };
   for (const [n, mx, my, b] of p) {
     const f: DungeonInput = { mx: mx / 8, my: my / 8, a: (b & 1) !== 0, b: (b & 2) !== 0, c: (b & 4) !== 0, d: (b & 8) !== 0 };
-    for (let i = 0; i < n && !s.done; i++) dungeon.step(s, f);
+    for (let i = 0; i < n && !s.done; i++) { due(); if (!s.done) dungeon.step(s, f); }
     if (s.done) break;
   }
+  due();
   return dungeon.result(s);
 }
 

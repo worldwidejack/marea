@@ -1,5 +1,6 @@
-// Altari di salvataggio (docs/RPG.md §4): almeno 2 per dungeon fuori dalla vista dei boss, salvataggio entrandoci, risveglio dopo la morte,
-// bottino dell'altare tenuto a fine spedizione (morte, tempo, partita lasciata a metà) e chiusura dal server di una spedizione interrotta.
+// Altari di salvataggio, le «lanterne» (docs/RPG.md §4): almeno 2 per dungeon fuori dalla vista dei boss, salvataggio con l'azione SALVA
+// (dal v5 passarci sopra non salva), risveglio dopo la morte, bottino dell'altare tenuto a fine spedizione (morte, tempo, partita lasciata a
+// metà) e chiusura dal server di una spedizione interrotta (input + azioni).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DUNGEONS, RPG, enemyDef } from '@marea/content/rpg.ts';
@@ -11,7 +12,7 @@ import { bfs, cellCenter, cellOf, parseDungeon, stepDown } from '../src/dungeon/
 import { encodeDungeon, packDungeon, quantizeDungeon, replayDungeon } from '../src/dungeon/replay.ts';
 import { chiudiSalvata, chiudiScaduta } from '../src/dungeon/settle.ts';
 import { hitHero } from '../src/dungeon/combat.ts';
-import type { DungeonInput } from '../src/dungeon/types.ts';
+import type { DungeonAzioni, DungeonInput } from '../src/dungeon/types.ts';
 import { finishDungeon, startDungeon } from '../src/rpg/run.ts';
 import { heroOf } from '../src/rpg/hero.ts';
 import type { RunHero, RunResult } from '../src/rpg/types.ts';
@@ -53,23 +54,62 @@ test('altari: almeno 2 per dungeon, sul pavimento raggiungibile e fuori dalla vi
   }
 });
 
-test('altari: entrandoci salvano bottino e monete (evento una volta), di nuovo solo se è cambiato qualcosa', () => {
+test('lanterne: passarci sopra non salva; SALVA sì (una volta), di nuovo solo se è cambiato qualcosa; lontano niente SALVA né ESCI', () => {
   const s = dungeon.create({ seed: 4, dungeon: 'grotta', hero: immortale() });
   const log: DungeonInput[] = [];
+  assert.equal(dungeon.act(s, { t: 'salva' }), null, 'all’ingresso non c’è una lanterna');
+  assert.equal(dungeon.act(s, { t: 'esci' }), null);
   walkTo(s, cellAt(s, 1), log);
-  assert.ok(s.salvato, 'salvato all’altare');
+  const v = dungeon.view(s);
+  assert.equal(s.salvato, null, 'passandoci sopra non salva più');
+  assert.equal(v.lanterna, 1);
+  assert.equal(v.salvatoQui, false);
+  const ev = dungeon.act(s, { t: 'salva' });
+  assert.deepEqual(ev, [{ t: 'altare', n: 1 }]);
   assert.equal(s.salvato!.altare, 1);
   assert.equal(dungeon.view(s).altari.filter((a) => a.attivo).length, 1);
-  // fermo sopra: nessun nuovo salvataggio
-  const ev = run(s, 30);
-  assert.ok(!ev.some((e) => e.t === 'altare'));
-  // esce, raccoglie qualcosa (finto), rientra: nuovo salvataggio col bottino nuovo
-  s.hero.x += 4; run(s, 1);
+  assert.equal(dungeon.view(s).salvatoQui, true);
+  assert.equal(dungeon.act(s, { t: 'salva' }), null, 'niente di nuovo da salvare');
+  // raccoglie qualcosa (finto): SALVA di nuovo col bottino nuovo
   s.bottino['lingotto_ferro'] = 2; s.monete += 7;
-  s.hero.x -= 4; const ev2 = run(s, 1);
-  assert.ok(ev2.some((e) => e.t === 'altare'));
+  assert.equal(dungeon.view(s).salvatoQui, false);
+  assert.ok(dungeon.act(s, { t: 'salva' }));
   assert.deepEqual(s.salvato!.bottino, s.bottino);
   assert.equal(s.salvato!.monete, s.monete);
+  // lontano dalla lanterna: niente
+  s.hero.x += 4; run(s, 1);
+  assert.equal(dungeon.view(s).lanterna, -1);
+  assert.equal(dungeon.act(s, { t: 'salva' }), null);
+});
+
+test('lanterne: ESCI = fuori col bottino («uscito», come la scala) e la lanterna nel risultato; il server la ricorda e ci si riparte', () => {
+  const s = dungeon.create({ seed: 4, dungeon: 'grotta', hero: immortale() });
+  s.hero.x = s.map.altari[1]!.x; s.hero.z = s.map.altari[1]!.z; run(s, 1);
+  s.bottino = { lingotto_ferro: 3 }; s.monete = 9;
+  assert.deepEqual(dungeon.act(s, { t: 'esci' }), [{ t: 'uscita', lanterna: 1 }]);
+  assert.equal(s.done, true);
+  const r = dungeon.result(s);
+  assert.equal(r.outcome, 'uscito');
+  assert.equal(r.lanterna, 1);
+  assert.equal(dungeon.act(s, { t: 'salva' }), null, 'a partita finita niente azioni');
+  const l0 = startDungeon(newLot('jack', T0, null), 'grotta', 9, T0 + 1000);
+  const out = finishDungeon(l0, r, T0 + 60_000);
+  assert.deepEqual(out.tenuto, { lingotto_ferro: 3 });
+  assert.equal(out.monete, 9);
+  assert.deepEqual(heroOf(out.lot).lanterne, { grotta: 1 });
+  // alla discesa dopo: dall'ingresso o dalla lanterna (sopra la lanterna, già attiva per i risvegli, niente bottino)
+  assert.equal(startDungeon(out.lot, 'grotta', 10, T0 + 70_000).dungeon!.pending!.partenza, null);
+  const p = startDungeon(out.lot, 'grotta', 10, T0 + 70_000, { lanterna: true }).dungeon!.pending!;
+  assert.equal(p.partenza, 1);
+  assert.equal(startDungeon(out.lot, 'cripta', 10, T0 + 70_000, { lanterna: true }).dungeon!.pending!.partenza, null, 'nella Cripta non sei mai uscito da una lanterna');
+  const s2 = dungeon.create({ seed: p.seed, dungeon: 'grotta', hero: p.hero, stato: p.stato!, partenza: p.partenza! });
+  assert.equal(s2.hero.x, s2.map.altari[1]!.x);
+  assert.equal(s2.hero.z, s2.map.altari[1]!.z);
+  assert.equal(s2.salvato?.altare, 1);
+  assert.equal(dungeon.view(s2).lanterna, 1);
+  // uscendo dalla scala la lanterna resta quella di prima
+  const fuori = finishDungeon(startDungeon(out.lot, 'grotta', 11, T0), { ...r, lanterna: null }, T0 + 1);
+  assert.deepEqual(heroOf(fuori.lot).lanterne, { grotta: 1 });
 });
 
 test('altari: morendo dopo un altare ti risvegli lì, barre piene, solo il bottino dell’altare, qualche secondo protetto', () => {
@@ -77,6 +117,7 @@ test('altari: morendo dopo un altare ti risvegli lì, barre piene, solo il botti
   s.hero.x = s.map.altari[0]!.x; s.hero.z = s.map.altari[0]!.z;
   s.bottino = { lingotto_bronzo: 1 }; s.monete = 5;
   run(s, 1);
+  assert.ok(dungeon.act(s, { t: 'salva' }));
   assert.equal(s.salvato?.altare, 0);
   // altro bottino dopo l'altare, poi muore lontano
   s.bottino['lingotto_ferro'] = 3; s.monete = 20;
@@ -129,16 +170,19 @@ test('altari: il replay degli input fino all’altare ritrova il salvataggio; il
   assert.ok(Object.keys(s.bottino).length > 0 || s.monete > 0, 'il forziere dà qualcosa');
   const alt = m.altari.map((_, i) => i).sort((a, b) => near(m.altari[a]!.cx, m.altari[a]!.cz) - near(m.altari[b]!.cx, m.altari[b]!.cz))[0]!;
   walkTo(s, cellAt(s, alt), log);
+  const azioni: DungeonAzioni = [[s.tick, { t: 'salva' }]];
+  assert.ok(dungeon.act(s, { t: 'salva' }));
   assert.equal(s.salvato?.altare, alt);
   const salvato = { bottino: { ...s.salvato!.bottino }, monete: s.salvato!.monete };
-  const r = replayDungeon(seed, 'grotta', hero, packDungeon(log));
+  assert.equal(replayDungeon(seed, 'grotta', hero, packDungeon(log)).salvato, null, 'senza l’azione SALVA niente salvataggio');
+  const r = replayDungeon(seed, 'grotta', hero, packDungeon(log), { azioni });
   assert.equal(r.done, false);
   assert.deepEqual(r.salvato, salvato);
   assert.equal(r.hash, dungeon.result(s).hash, 'stesso hash del client');
 
   // il server: spedizione aperta con quel salvataggio, mai chiusa (scheda chiusa)
   const l0 = startDungeon(newLot('jack', T0, null), 'grotta', seed, T0);
-  const lot: LotState = { ...l0, dungeon: { pending: { ...l0.dungeon!.pending!, hero, salvataggio: { inputs: encodeDungeon(packDungeon(log)), ticks: r.ticks } } } };
+  const lot: LotState = { ...l0, dungeon: { pending: { ...l0.dungeon!.pending!, hero, stato: undefined, salvataggio: { inputs: encodeDungeon(packDungeon(log)), ticks: r.ticks, azioni } } } };
   assert.equal(chiudiScaduta(lot, T0 + 60_000), null, 'una spedizione ancora in corso non si chiude da sola');
   for (const out of [chiudiSalvata(lot, T0 + 60_000), chiudiScaduta(lot, T0 + (RPG.dungeon.maxMinuti + 6) * 60_000)]) {
     assert.ok(out);

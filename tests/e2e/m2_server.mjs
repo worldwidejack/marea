@@ -131,12 +131,12 @@ export default async function (ctx) {
 
     await ctx.test('spedizione giocata in Node (autopilot) → il DO rigioca: stesso esito, bottino e hash; bottino nello zaino come finishDungeon', async () => {
       const s = (await post('/api/dungeon/start', 'tokA', { dungeon: 'grotta' })).body;
-      const st = dungeon.create({ seed: s.seed, dungeon: s.dungeon, hero: s.hero });
+      const st = dungeon.create({ seed: s.seed, dungeon: s.dungeon, hero: s.hero, stato: s.stato, partenza: s.partenza });
       const rng = createRng(s.seed), frames = [];
       while (!st.done && frames.length < dungeon.maxTicks) { const f = quantizeDungeon(autopilot(st, rng)); frames.push(f); dungeon.step(st, f); }
       const live = dungeon.result(st), inputs = packDungeon(frames);
       let t0 = performance.now();
-      const expect = replayDungeon(s.seed, s.dungeon, s.hero, inputs);
+      const expect = replayDungeon(s.seed, s.dungeon, s.hero, inputs, { stato: s.stato });
       const nodeMs = performance.now() - t0;
       assert(expect.hash === live.hash, 'replay in Node diverso dalla partita in Node');
       const before = await lot('tokA');
@@ -162,7 +162,7 @@ export default async function (ctx) {
     await ctx.test('hash del client diverso: risponde lo stesso con l’esito del server e lo scrive nel log', async () => {
       const s = (await post('/api/dungeon/start', 'tokB', { dungeon: 'grotta' })).body;
       const inputs = [[90, 0, -8, 0], [30, 8, 0, 2]];
-      const expect = replayDungeon(s.seed, s.dungeon, s.hero, inputs);
+      const expect = replayDungeon(s.seed, s.dungeon, s.hero, inputs, { stato: s.stato });
       const r = await post('/api/dungeon/finish', 'tokB', { inputs, hash: (expect.hash ^ 12345) >>> 0 });
       assert(r.status === 200 && r.body.result.hash === expect.hash && r.body.result.outcome === expect.outcome, 'finish con hash sbagliato: ' + JSON.stringify(r.body).slice(0, 200));
       if (expect.outcome !== 'uscito') assert(Object.keys(r.body.tenuto).length === 0 && r.body.monete === 0, 'spedizione non finita: niente bottino');
@@ -170,26 +170,30 @@ export default async function (ctx) {
       assert(log.includes('[marea] dungeon hash diverso'), 'manca l’avviso nel log di wrangler');
     });
 
-    await ctx.test('altare: save senza altare 409; input fino all’altare → save ok (uno più vecchio non lo copre); la discesa dopo chiude la spedizione interrotta', async () => {
+    await ctx.test('lanterna: save senza SALVA 409; input fino alla lanterna + SALVA → save ok (uno più vecchio non lo copre); la discesa dopo chiude la spedizione interrotta', async () => {
       const s = (await post('/api/dungeon/start', 'tokB', { dungeon: 'grotta' })).body;
       const no = await post('/api/dungeon/save', 'tokB', { inputs: [[30, 0, 0, 0]], hash: 0 });
       assert(no.status === 409 && no.body.code === 'altare', 'save senza altare: ' + JSON.stringify(no));
       // in Node: dall'uscita all'altare più vicino lungo le distanze BFS, input quantizzati come il client
-      const st = dungeon.create({ seed: s.seed, dungeon: s.dungeon, hero: s.hero }), m = st.map, frames = [];
+      const st = dungeon.create({ seed: s.seed, dungeon: s.dungeon, hero: s.hero, stato: s.stato }), m = st.map, frames = [];
       const fromExit = bfs(m, m.exit.cz * m.w + m.exit.cx);
       const alt = [...m.altari].sort((a, b) => fromExit[a.cz * m.w + a.cx] - fromExit[b.cz * m.w + b.cx])[0];
       const to = alt.cz * m.w + alt.cx, field = bfs(m, to);
-      while (!st.salvato && !st.done && frames.length < 60 * 60) {
+      while (dungeon.view(st).lanterna < 0 && !st.done && frames.length < 60 * 60) {
         const c = cellOf(m, st.hero.x, st.hero.z), next = c === to ? to : stepDown(m, field, c), p = cellCenter(m, next >= 0 ? next : to);
         const dx = p.x - st.hero.x, dz = p.z - st.hero.z, d = Math.sqrt(dx * dx + dz * dz) || 1;
         const f = quantizeDungeon({ mx: dx / d, my: dz / d, a: false, b: false, c: false, d: false });
         frames.push(f); dungeon.step(st, f);
       }
-      assert(st.salvato, `l’eroe non è arrivato all’altare (${frames.length} tick, ${st.outcome})`);
+      assert(dungeon.view(st).lanterna >= 0, `l’eroe non è arrivato alla lanterna (${frames.length} tick, ${st.outcome})`);
+      const solo = await post('/api/dungeon/save', 'tokB', { inputs: encodeDungeon(packDungeon(frames)), hash: 0 });
+      assert(solo.status === 409 && solo.body.code === 'altare', 'sopra la lanterna senza SALVA non si salva: ' + JSON.stringify(solo.body).slice(0, 120));
+      assert(dungeon.act(st, { t: 'salva' }), 'SALVA sulla lanterna');
+      const azioni = [[frames.length, { t: 'salva' }]];
       const inputs = encodeDungeon(packDungeon(frames)), hash = dungeon.result(st).hash;
-      const ok = await post('/api/dungeon/save', 'tokB', { inputs, hash });
+      const ok = await post('/api/dungeon/save', 'tokB', { inputs, azioni, hash });
       assert(ok.status === 200 && ok.body.ok && ok.body.ticks === frames.length && same(ok.body.salvato, dungeon.result(st).salvato), 'save: ' + JSON.stringify(ok.body).slice(0, 200));
-      const old = await post('/api/dungeon/save', 'tokB', { inputs: encodeDungeon(packDungeon(frames.slice(0, -1).concat([frames.at(-1)]))), hash });
+      const old = await post('/api/dungeon/save', 'tokB', { inputs: encodeDungeon(packDungeon(frames.slice(0, -1).concat([frames.at(-1)]))), azioni, hash });
       assert(old.status === 200 && old.body.ticks === frames.length, 'secondo save uguale: ' + JSON.stringify(old.body).slice(0, 120));
       const l1 = await lot('tokB');
       assert(l1.dungeon?.pending?.salvataggio?.ticks === frames.length, 'salvataggio nel lotto');
