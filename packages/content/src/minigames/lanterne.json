@@ -1,0 +1,16 @@
+{
+  "id": "lanterne",
+  "nome": "Lanterne",
+  "maxSeconds": 60,
+  "lanterne": 6,
+  "posto": { "island": "porto", "at": [22, 33.5] },
+  "primaSequenza": 3,
+  "mostra": {
+    "accesaSecondi": [0.7, 0.55, 0.42],
+    "spentaSecondi": 0.15,
+    "attesaSecondi": 0.8
+  },
+  "medaglie": { "oro": 6, "argento": 4, "bronzo": 2 },
+  "autopilotaSecondi": 0.3,
+  "_nota": "6 lanterne sul molo del Porto (posto = cella locale al Porto, al centro delle 6 lanterne). Ogni giro si accendono in sequenza e le tocchi nello stesso ordine; il giro dopo la sequenza ha una lanterna in più (parte da primaSequenza). accesaSecondi per difficoltà 1/2/3. medaglie = sequenze completate. score = lanterne giuste × max(1, sequenze completate)"
+}
