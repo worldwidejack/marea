@@ -135,7 +135,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       try {
         const prima = next();
         const r = await api.dungeonFinish(encodeDungeon(done.inputs), done.hash);
-        finishes++; lastResult = { outcome: r.result.outcome, tenuto: r.tenuto, monete: r.monete, livelliSu: r.livelliSu, capo: r.result.capo ?? false, hash: r.result.hash, clientHash: done.hash };
+        finishes++; lastResult = { outcome: r.result.outcome, tenuto: r.tenuto, monete: r.monete, livelliSu: r.livelliSu, capo: r.result.capo ?? false, usati: r.result.usati, rotti: r.result.rotti, hash: r.result.hash, clientHash: done.hash };
         o.setLot(r.lot);
         await mod.showResult(ctx, r);
         // capo ucciso la prima volta: la bussola passa al dungeon dopo, e lo si dice

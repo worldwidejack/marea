@@ -129,7 +129,9 @@ export default async function (ctx) {
       const after = await getLot('tokA');
       for (const [id, n] of Object.entries(r.tenuto)) {
         const had = (before.hero?.inv?.[id] ?? 0) + (before.forziere?.[id] ?? 0), has = (after.hero?.inv?.[id] ?? 0) + (after.forziere?.[id] ?? 0);
-        assert(has >= had + n, `${id}: prima ${had}, tenuto ${n}, adesso ${has}`);
+        // pozioni bevute e frecce tirate (usati) e armi rotte escono dallo zaino: il bottino si conta al netto di quelle
+        const via = (r.usati?.[id] ?? 0) + (r.rotti?.[id] ?? 0);
+        assert(has >= had + n - via, `${id}: prima ${had}, tenuto ${n}, usati ${via}, adesso ${has}`);
       }
       assert(Object.keys(r.tenuto).length > 0, 'l\'autopilot nella Grotta dovrebbe portare a casa qualcosa');
       assert((after.hero?.monete ?? 0) === (before.hero?.monete ?? 0) + r.monete, 'monete non arrivate');
