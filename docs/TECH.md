@@ -81,7 +81,7 @@ Ogni partita di minigioco invia al DO `Lot` il **seed** e l'**input log** (uno `
 - `npm run deploy` → build → `wrangler d1 migrations apply DB --remote` → `wrangler deploy` (cwd `apps/server`) → poll di `/version.json` finché `build` coincide → 2 min di `wrangler tail` a campione.
 - `npm run assets` → Blender headless (`tools/export_gltf.py`) + `gltf-transform` (dedup, prune, weld, quantize; **niente Draco**) → `apps/client/public/assets/` + `manifest.json`. Gli export sono **committati**: il client si costruisce senza Blender.
 - `npm test` → `tests/run.mjs all`: `static` (check_static), `types` (tsc per pacchetto), `sim` (node --test), `boot look perf net` (Playwright su Chrome di sistema, viewport iPhone emulato), `contact` (ffmpeg).
-- Flag URL: `?fps=1` overlay prestazioni · `?test=1` `window.__game` con hook mutanti e salvataggio in memoria · `?seed=N` · `?nosound=1` · `?quality=low|high` · `?net=0` offline · `?autopilot=1` · `?sfide=1` riaccende Tavolo con posta e feed (spenti dalla Sessione 5).
+- Flag URL: `?fps=1` overlay prestazioni · `?test=1` `window.__game` con hook mutanti e salvataggio in memoria · `?seed=N` · `?nosound=1` · `?quality=low|high` · `?net=0` offline · `?autopilot=1` · `?sfide=1` riaccende Tavolo con posta e feed (spenti dalla Sessione 5) · `?serie=1` coi test usa le impostazioni di serie (senza, `?test=1` parte con tutto spento).
 
 ## 10. Portabilità verso un motore
 `packages/sim` non conosce Three né il DOM; `packages/content` è JSON; gli asset sono glTF; questo documento e il GDD non citano API di Three. Le **fixture d'oro** (`packages/sim/test/fixtures/*.json`: seed + input log → hash e punteggio attesi) sono il criterio di parità: un porting è «fatto» quando le passa tutte.

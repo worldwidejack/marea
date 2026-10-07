@@ -1,11 +1,12 @@
-// Impostazioni (#53): di serie non cambia niente (niente passata finale), il pannello si apre dall'ingranaggio, camera / ciclo /
+// Impostazioni (#53): coi test (?test=1) si parte tutto spento (niente passata finale); con ?serie=1 i valori di serie (#59):
+// ciclo, camera 22°, contorni. il pannello si apre dall'ingranaggio, camera / ciclo /
 // stampa / contorni si accendono senza errori e dentro il budget (≤ 100 draw call), la scelta resta dopo il ricaricamento,
 // nel ciclo si vede la notte. Screenshot: tutto acceso di giorno e di notte, telefono e desktop.
 export const timeout = 120000;
 export default async function (ctx) {
   const p = await ctx.open('?test=1&net=0');
   await ctx.waitReady(p.page, 20000);
-  await ctx.test('di serie: tutto spento, render diretto', async () => {
+  await ctx.test('coi test: tutto spento, render diretto', async () => {
     const st = await ctx.getState(p.page);
     ctx.assert(st.impostazioni && st.impostazioni.cam === 0 && !st.impostazioni.ciclo && !st.impostazioni.stampa && !st.impostazioni.contorni, `impostazioni ${JSON.stringify(st.impostazioni)}`);
     ctx.assert(st.aspetto && st.aspetto.post === false, `passata finale accesa di serie: ${JSON.stringify(st.aspetto)}`);
@@ -58,4 +59,19 @@ export default async function (ctx) {
   await d.page.waitForTimeout(900);
   await ctx.shot(d.page, 'desktop_tramonto_stampa');
   await ctx.test('desktop: tutto acceso senza errori', async () => { ctx.noErrors(d, 'desktop'); });
+  const s = await ctx.open('?test=1&net=0&serie=1');
+  await ctx.waitReady(s.page, 20000);
+  await ctx.test('di serie (#59): ciclo, camera 22° e contorni accesi, stampa spenta', async () => {
+    await s.page.evaluate(() => window.__game.test.aspettoPronto());
+    const st = await ctx.getState(s.page);
+    ctx.assert(st.impostazioni.cam === 3 && st.impostazioni.ciclo && st.impostazioni.contorni && !st.impostazioni.stampa, `di serie: ${JSON.stringify(st.impostazioni)}`);
+    ctx.assert(st.aspetto.caricato && st.aspetto.post === true, `resa non caricata di serie: ${JSON.stringify(st.aspetto)}`);
+    await s.page.evaluate(() => window.__game.test.ciclo(0.2)); await s.page.waitForTimeout(800);
+    await ctx.shot(s.page, 'iphone_serie_giorno');
+    await s.page.evaluate(() => window.__game.test.ciclo(0.78)); await s.page.waitForTimeout(800);
+    await ctx.shot(s.page, 'iphone_serie_notte');
+    const perf = await ctx.getPerf(s.page); ctx.log('perf serie', JSON.stringify(perf));
+    ctx.assert(perf.drawCalls > 0 && perf.drawCalls <= 100, `draw call ${perf.drawCalls}`);
+    ctx.noErrors(s, 'di serie');
+  });
 }

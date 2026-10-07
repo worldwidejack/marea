@@ -1,5 +1,5 @@
 // Aspetto del mondo scelto nelle impostazioni (#53): camera, ciclo giorno/notte, stampa giapponese, contorni.
-// Di serie è tutto spento e qui non si tocca niente: render diretto, luce, cielo e acqua di sempre.
+// Con tutto spento qui non si tocca niente: render diretto, luce, cielo e acqua di sempre.
 // - camera ≠ 45°: vista più bassa, camera.far più lungo, passata finale con cielo all'orizzonte e foschia (copre il bordo del mondo)
 // - contorni: passata finale con i contorni dalla profondità (il colore stesso più scuro)
 // - stampa: palette giapponese, contorni a inchiostro, grana di carta, acqua a onde (water2.ts) al posto di quella del gioco
@@ -17,7 +17,7 @@ import type { Water2 } from './water2.ts';
 import { GIORNO, LUNA_DIR, fase, momento } from './ciclo.ts';
 import type { Momento } from './ciclo.ts';
 
-import { DI_SERIE, VISTE } from './viste.ts';
+import { SPENTO, VISTE } from './viste.ts';
 import type { Impostazioni } from './viste.ts';
 /** Stampa giapponese: indaco e blu di Prussia, carta crema, ocra, verde muschio, vermiglio, inchiostro (anche provapixel/styles.ts). */
 export const PALETTE_STAMPA = ['#1b1d2b', '#1f3b6e', '#2f5f9e', '#5f8fbf', '#9cc0d8', '#f2ead6', '#e3d5b4', '#d9b07a', '#a8774a', '#6b4a33', '#3d5a3a', '#6f8f4e', '#a3b46a', '#c8402e', '#8a8478', '#bdb4a2', '#e9a23b'];
@@ -29,7 +29,7 @@ export type Aspetto = {
 };
 
 export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Water; map: GridMap }): Aspetto {
-  let imp: Impostazioni = { ...DI_SERIE }, post: Post | null = null, water2: Water2 | null = null;
+  let imp: Impostazioni = { ...SPENTO }, post: Post | null = null, water2: Water2 | null = null;
   let m: Momento = GIORNO, cicloWas = false, nextTick = 0, forzata: number | null = null;
   const tint = new THREE.Color();
   const look = (): PostLook => {

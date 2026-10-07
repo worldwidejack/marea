@@ -1,13 +1,15 @@
 // Impostazioni (#53): ingranaggio #mzSetBtn nella barra in alto, pannello #mzSet con camera (5 viste), ciclo giorno/notte,
-// stampa giapponese e contorni. Di serie tutto spento (il gioco resta com'è); le scelte restano su questo dispositivo (localStorage).
+// stampa giapponese e contorni. Di serie (#59) ciclo, camera 22° e contorni; le scelte restano su questo dispositivo (localStorage).
+// Coi test automatici (?test=1) si parte tutto spento, così gli screenshot non dipendono dall'ora vera; ?serie=1 usa i valori di serie.
 // Il pannello non sa niente di three: chiama onChange e render/aspetto.ts fa il resto.
 import { PAL, el, injectUiStyle } from './style.ts';
 import { topButton } from './topbar.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-import { CICLO_MIN, DI_SERIE, VISTE } from '../render/viste.ts';
+import { CICLO_MIN, DI_SERIE, SPENTO, VISTE } from '../render/viste.ts';
+import { FLAGS } from '../flags.ts';
 import type { Impostazioni } from '../render/viste.ts';
 
-const KEY = 'marea:impostazioni';
+const KEY = 'marea:impostazioni:2'; // :2 dal #59: con i nuovi valori di serie tutti ripartono da lì
 const P = PAL;
 const CSS = `
 #mzSet .mz-set-sec { margin: 4px 0 12px; }
@@ -48,11 +50,12 @@ function gearIcon(): HTMLCanvasElement {
 
 /** Le impostazioni salvate (o quelle di serie se non ci sono o il browser non lascia leggere). */
 export function loadImpostazioni(): Impostazioni {
+  const base = FLAGS.test && !FLAGS.serie ? SPENTO : DI_SERIE;
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<Impostazioni> | null;
-    if (!raw) return { ...DI_SERIE };
+    if (!raw) return { ...base };
     return { cam: Number(raw.cam) || 0, ciclo: raw.ciclo === true, stampa: raw.stampa === true, contorni: raw.contorni === true };
-  } catch { return { ...DI_SERIE }; }
+  } catch { return { ...base }; }
 }
 
 export type ImpostazioniPanel = { open(): void; close(): void; isOpen(): boolean; readonly value: Impostazioni };
