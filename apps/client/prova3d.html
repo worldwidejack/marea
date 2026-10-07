@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#f2b98f" />
+<link rel="icon" href="data:," />
+<title>MAREA · prova 3D dipinto</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #f2b98f; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #ui { position: fixed; inset: 0; pointer-events: none; }
+  /* vignettatura calda: costa zero alla GPU (la fa il compositore) */
+  #vig { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 85% 80% at 50% 45%, rgba(0,0,0,0) 55%, rgba(60,20,30,.38) 100%); }
+  #ui > * { pointer-events: auto; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="vig"></div>
+<div id="ui"></div>
+<script type="module" src="/src/prova3d/main.ts"></script>
+</body>
+</html>
