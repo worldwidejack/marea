@@ -3,8 +3,11 @@
 import type { View } from './scene.ts';
 
 export type Impostazioni = { cam: number; ciclo: boolean; stampa: boolean; contorni: boolean };
-export const DI_SERIE: Impostazioni = { cam: 0, ciclo: false, stampa: false, contorni: false };
-export const diSerie = (s: Impostazioni): boolean => s.cam === 0 && !s.ciclo && !s.stampa && !s.contorni;
+/** Di serie (#59, Jack 7 ott): ciclo giorno/notte, camera 22°, contorni. La stampa giapponese resta da accendere. */
+export const DI_SERIE: Impostazioni = { cam: 3, ciclo: true, stampa: false, contorni: true };
+/** Tutto spento: la resa di sempre (45°, luce fissa, niente passata finale). È la partenza dei test automatici. */
+export const SPENTO: Impostazioni = { cam: 0, ciclo: false, stampa: false, contorni: false };
+export const tuttoSpento = (s: Impostazioni): boolean => s.cam === 0 && !s.ciclo && !s.stampa && !s.contorni;
 /** Viste della camera: la prima è quella di sempre (ART_BIBLE §7). far: fin dove si disegna (con la camera bassa si vede l'orizzonte). */
 export const VISTE: (View & { nome: string })[] = [
   { nome: '45°', pitch: 45, fov: 30, dist: 28, far: 300 },
