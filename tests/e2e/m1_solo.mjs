@@ -48,17 +48,6 @@ export default async function (ctx) {
       assert(d.status === 400, `input rotti: ${d.status}`);
     });
 
-    await ctx.test('API: Lanterne, il server rigioca gli input dell\'autopilota e paga l\'oro', async () => {
-      const sim = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src/index.ts')).href);
-      const st = await post('/api/solo/start', 'tokM', { minigame: 'lanterne' });
-      assert(st.status === 200 && st.body.minigame === 'lanterne', `start lanterne: ${st.status} ${JSON.stringify(st.body).slice(0, 200)}`);
-      const m = sim.getMinigame('lanterne'), s = m.create({ seed: st.body.seed, difficulty: st.body.difficulty }), rng = sim.createRng(1), frames = [];
-      for (let i = 0; i < m.maxTicks && !m.result(s).done; i++) { const f = sim.quantize(m.autopilot(s, rng)); frames.push(f); m.step(s, f); }
-      const r = await post('/api/solo/play', 'tokM', { inputs: sim.packInputs(frames) });
-      assert(r.status === 200 && r.body.medal === 'oro' && r.body.detail.sequenze >= 6, `play lanterne: ${r.status} ${JSON.stringify(r.body).slice(0, 300)}`);
-      assert(r.body.premiata && JSON.stringify(r.body.premio) === JSON.stringify(balance.solo.premi.oro), 'premio: ' + JSON.stringify(r.body.premio));
-    });
-
     const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokL&test=1`, { viewport: ctx.B.DESKTOP });
     luca = P; ctx._pages.push(P);
     const page = P.page;

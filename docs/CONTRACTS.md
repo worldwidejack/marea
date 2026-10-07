@@ -75,7 +75,6 @@ type MinigameModule<S> = { id: string; version: number; maxTicks: number; create
 // minigames/registry.ts
 MINIGAMES: Record<string, MinigameModule<unknown>> · getMinigame(id)
 // minigames/regata/regata.ts   modulo `regata` (GDD §6); `view(s)` → { boat, buoys: {x,z,passed}[], next, ms, maxMs, wind, gust, done, finished, medals:{oro,argento,bronzo} (ms), radius, start:{x,z}, island:'laguna' }; export `regataMap()` e `regataCourse()` per il client
-// minigames/lanterne.ts   modulo `lanterne` (GDD §6 n. 2); tocco = fronte di salita di `a` con mx = (lanterna + 1) / 8 → `tapFrame(i)`; `view(s)` → LanterneView { phase:'mostra'|'tocca', lit, litKind, len, pos, completate, giuste, ms, maxMs, done, wrong, expected, timeUp, medals, score }
 // replay.ts
 packInputs(frames: InputFrame[]): PackedInputs · unpackInputs(p): InputFrame[] · replay(id, seed, difficulty, p): MinigameResult
 ```

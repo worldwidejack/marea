@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Build del client (vite) + controllo dei budget (TECH.md §5) + report tests/out/build.json.
 // Uso: node tools/build.mjs [--out <dir>] [--quiet] [--no-enforce]. Esporta build() per i test/deploy.
-// Budget: js iniziale ≤ 900 KB (gzip ≤ 250 KB; entry + chunk precaricati da index.html) · chunk caricati dopo con import() (GDR) ≤ 300 KB (gzip ≤ 90; il JS delle pagine di prova va a parte, in proveJsKB) ·
+// Budget (alzati l'8 ott 2026 su decisione di Jack, ROADMAP §Deviazioni): js iniziale ≤ 1200 KB (gzip ≤ 350 KB; entry + chunk precaricati da index.html) · ogni chunk caricato dopo con import() ≤ 600 KB (gzip ≤ 180),
+// tutti insieme ≤ 3000 KB (gzip ≤ 900): ognuno si scarica solo quando serve (dall'8 ott 2026, ROADMAP §Deviazioni; il JS delle pagine di prova va a parte, in proveJsKB) ·
 // modelli del manifest secondario `manifest_rpg.json` (caricati entrando in un dungeon) ≤ 1,5 MB · caricamento iniziale ≤ 2 MB (html + js + css + manifest + atlas + modelli del manifest) · texture ≤ 16 MB stimati (w×h×4 di ogni PNG).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,7 +11,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLIENT = path.join(ROOT, 'apps/client');
-export const BUDGET = { jsKB: 900, jsGzipKB: 250, lazyJsKB: 300, lazyJsGzipKB: 90, initialMB: 2, rpgAssetsMB: 1.5, textureMB: 16 };
+export const BUDGET = { jsKB: 1200, jsGzipKB: 350, lazyChunkKB: 600, lazyChunkGzipKB: 180, lazyJsKB: 3000, lazyJsGzipKB: 900, initialMB: 3, rpgAssetsMB: 1.5, textureMB: 16 };
 const REPORT = path.join(ROOT, 'tests/out/build.json');
 
 const kb = (n) => +(n / 1024).toFixed(1);
@@ -49,6 +50,7 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   const jsBytes = js.reduce((a, f) => a + size(f), 0);
   const gz = js.reduce((a, f) => a + gzOf(f), 0);
   const lazyBytes = lazy.reduce((a, f) => a + size(f), 0), lazyGz = lazy.reduce((a, f) => a + gzOf(f), 0);
+  const lazyChunks = lazy.map((f) => ({ file: f, kb: kb(size(f)), gz: kb(gzOf(f)) })).sort((a, b) => b.gz - a.gz);
   const biggest = allJs.map((f) => ({ file: f, kb: kb(size(f)) })).sort((a, b) => b.kb - a.kb).slice(0, 3);
 
   // --- manifest asset: atlas + modelli elencati ---
@@ -94,12 +96,16 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   const report = {
     build: version.build, jsKB: kb(jsBytes), jsGzipKB: kb(gz), lazyJsKB: kb(lazyBytes), lazyJsGzipKB: kb(lazyGz), proveJsKB: kb(prove.reduce((a, f) => a + size(f), 0)), rpgAssetsMB: mb(rpgAssetsBytes), initialMB: mb(initialBytes), textureMB: mb(texBytes),
     files: files.length, assetsMB: mb(assetsBytes), atlas: manifest?.atlas || null, models: Object.keys(manifest?.models || {}).length, modelTris: tris,
-    biggestJs: biggest, textures, budget: BUDGET, outDir,
+    biggestJs: biggest, lazyChunks, textures, budget: BUDGET, outDir,
   };
   if (report.jsKB > BUDGET.jsKB) errs.push(`JS ${report.jsKB} KB oltre il limite di ${BUDGET.jsKB} KB (i più grossi: ${biggest.map((b) => `${b.file} ${b.kb} KB`).join(', ')})`);
   if (report.jsGzipKB > BUDGET.jsGzipKB) errs.push(`JS gzip ${report.jsGzipKB} KB oltre il limite di ${BUDGET.jsGzipKB} KB`);
-  if (report.lazyJsKB > BUDGET.lazyJsKB) errs.push(`JS caricato dopo (GDR) ${report.lazyJsKB} KB oltre il limite di ${BUDGET.lazyJsKB} KB (${lazy.join(', ')})`);
-  if (report.lazyJsGzipKB > BUDGET.lazyJsGzipKB) errs.push(`JS caricato dopo (GDR) gzip ${report.lazyJsGzipKB} KB oltre il limite di ${BUDGET.lazyJsGzipKB} KB`);
+  for (const c of lazyChunks) {
+    if (c.kb > BUDGET.lazyChunkKB) errs.push(`chunk caricato dopo ${c.file} ${c.kb} KB oltre il limite di ${BUDGET.lazyChunkKB} KB`);
+    if (c.gz > BUDGET.lazyChunkGzipKB) errs.push(`chunk caricato dopo ${c.file} gzip ${c.gz} KB oltre il limite di ${BUDGET.lazyChunkGzipKB} KB`);
+  }
+  if (report.lazyJsKB > BUDGET.lazyJsKB) errs.push(`JS caricato dopo, in tutto, ${report.lazyJsKB} KB oltre il limite di ${BUDGET.lazyJsKB} KB (${lazy.join(', ')})`);
+  if (report.lazyJsGzipKB > BUDGET.lazyJsGzipKB) errs.push(`JS caricato dopo, in tutto, gzip ${report.lazyJsGzipKB} KB oltre il limite di ${BUDGET.lazyJsGzipKB} KB`);
   if (report.rpgAssetsMB > BUDGET.rpgAssetsMB) errs.push(`modelli del GDR ${report.rpgAssetsMB} MB oltre il limite di ${BUDGET.rpgAssetsMB} MB`);
   if (report.initialMB > BUDGET.initialMB) errs.push(`caricamento iniziale ${report.initialMB} MB oltre il limite di ${BUDGET.initialMB} MB (JS ${report.jsKB} KB + asset del manifest ${mb(assetFiles.reduce((a, f) => a + size(f), 0))} MB)`);
   if (report.textureMB > BUDGET.textureMB) errs.push(`texture stimate ${report.textureMB} MB oltre il limite di ${BUDGET.textureMB} MB (${textures.map((t) => `${t.file} ${t.w}×${t.h}`).join(', ')})`);

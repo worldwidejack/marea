@@ -28,7 +28,7 @@
 - Modello `dng_altare` (oggi piedistallo di box + cristallo che si accende, in `rpg/dungeon_scene.ts`): un pezzo per stile (grotta, cripta, vuoto) nel `manifest_rpg.json`.
 - Test e2e con `wrangler dev` su Windows: `npx` va lanciato come `node node_modules/wrangler/bin/wrangler.js` e lo spegnimento con `process.kill(-pid)` non esiste (serve `taskkill /T`).
 
-- Minigiochi da soli su altre isole (Lanterne al Porto, un gioco per ogni facciata quando diventa zona vera): il formato c'è (`game/minigiochi.ts`, un posto per minigioco).
+- Minigiochi da soli su altre isole (un gioco per ogni isola a tema; le Lanterne sono state tolte l'8 ott 2026): il formato c'è (`game/minigiochi.ts`, un posto per minigioco).
 - Sfide con posta tra amici (`?sfide=1`): si riaccendono quando la prova da soli è piaciuta; da decidere se il Tavolo sull'isola resta o se la sfida si lancia dal posto del minigioco.
 
 - Isole a tema dopo la Tempesta (GDD §3): **Ghiacci** (iceberg, aurora, pinguini), **Vulcano** (lava, ossidiana, forge: aggancio con Riccardo), **Giardino** (ciliegi, templi, carpe koi). Sblocchi da distribuire: livello del personaggio, un cappello «se no gli abitanti ti linciano», una mappa.
