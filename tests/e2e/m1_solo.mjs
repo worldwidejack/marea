@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { spawn, execFileSync } from 'node:child_process';
 export const timeout = 150000;
 
@@ -45,6 +46,17 @@ export default async function (ctx) {
       assert(c.status === 200 && Number.isInteger(c.body.seed) && c.body.lot?.solo?.pending?.seed === c.body.seed, `start: ${c.status} ${JSON.stringify(c.body).slice(0, 200)}`);
       const d = await post('/api/solo/play', 'tokM', { inputs: 'rotto' });
       assert(d.status === 400, `input rotti: ${d.status}`);
+    });
+
+    await ctx.test('API: Lanterne, il server rigioca gli input dell\'autopilota e paga l\'oro', async () => {
+      const sim = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src/index.ts')).href);
+      const st = await post('/api/solo/start', 'tokM', { minigame: 'lanterne' });
+      assert(st.status === 200 && st.body.minigame === 'lanterne', `start lanterne: ${st.status} ${JSON.stringify(st.body).slice(0, 200)}`);
+      const m = sim.getMinigame('lanterne'), s = m.create({ seed: st.body.seed, difficulty: st.body.difficulty }), rng = sim.createRng(1), frames = [];
+      for (let i = 0; i < m.maxTicks && !m.result(s).done; i++) { const f = sim.quantize(m.autopilot(s, rng)); frames.push(f); m.step(s, f); }
+      const r = await post('/api/solo/play', 'tokM', { inputs: sim.packInputs(frames) });
+      assert(r.status === 200 && r.body.medal === 'oro' && r.body.detail.sequenze >= 6, `play lanterne: ${r.status} ${JSON.stringify(r.body).slice(0, 300)}`);
+      assert(r.body.premiata && JSON.stringify(r.body.premio) === JSON.stringify(balance.solo.premi.oro), 'premio: ' + JSON.stringify(r.body.premio));
     });
 
     const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokL&test=1`, { viewport: ctx.B.DESKTOP });

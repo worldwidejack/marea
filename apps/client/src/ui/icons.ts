@@ -45,13 +45,14 @@ const ART: Record<ResId, string[]> = {
 };
 
 /** Icone di luoghi e azioni (bussola, guida, cartelli degli slot). */
-export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingresso';
+export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingresso' | 'lanterna';
 const PIX: Record<PixId, string[]> = {
   casa: ['...RR...', '..RRRR..', '.RRRRRR.', 'RRRRRRRR', '.wwwwww.', '.wwccww.', '.wwccww.', '.wwccww.'],
   porto: ['RRRRRRRR', '.RRRRRR.', '..R..R..', 'RRRRRRRR', '..R..R..', '..R..R..', '..R..R..', '.cc..cc.'],
   regata: ['.c......', '.cRRRR..', '.cRRwRR.', '.cRRRR..', '.c......', '.c......', '.c......', 'ccc.....'],
   scacchi: ['.w.ww.w.', '.wwwwww.', '..wwww..', '..wwww..', '..wwww..', '..wwww..', '.wwwwww.', 'wwwwwwww'],
   ingresso: ['..rrrr..', '.rqqqqr.', 'rqnnnnqr', 'rqnnnnqr', 'rqnnnnqr', 'rqnnYnqr', 'rqnnnnqr', 'rrnnnnrr'], // bocca di un dungeon (Mondo Sotterraneo)
+  lanterna: ['...nn...', '.nnnnnn.', 'nRRRRRRn', 'nRYYRRRn', 'nRYYRRRn', 'nRRRRRRn', '.nnnnnn.', '...YY...'], // lanterna di carta del molo del Porto
   martello: ['.qqqqqq.', 'rqqqqqqr', '.rrbbrr.', '...ba...', '...ba...', '...ba...', '...ba...', '...cc...'],
 };
 

@@ -69,6 +69,21 @@ export type BalanceDef = {
 /** Scacco in 3 (Tavolo del Porto): posizioni FEN (solo pezzi), il Bianco fa `mosse` mosse di fila e il Nero sta fermo. */
 export type ScacchiCfg = { nome: string; mosse: number; problemi: { fen: string; soluzione: string }[] };
 
+/** Lanterne (molo del Porto): 6 lanterne si accendono in sequenza, le tocchi nello stesso ordine; ogni giro una lanterna in più. */
+export type LanterneCfg = {
+  id: 'lanterne';
+  nome: string;
+  maxSeconds: number;
+  lanterne: number;
+  /** Dove si gioca: cella locale [x, z] dell'isola (al centro delle lanterne del molo). */
+  posto: { island: string; at: [number, number] };
+  primaSequenza: number;
+  /** accesaSecondi per difficoltà 1/2/3; spenta = pausa tra due lanterne; attesa = pausa prima di ogni sequenza. */
+  mostra: { accesaSecondi: [number, number, number]; spentaSecondi: number; attesaSecondi: number };
+  /** Sequenze completate per la medaglia. */
+  medaglie: { oro: number; argento: number; bronzo: number };
+  autopilotaSecondi: number;
+};
 export type RegataCfg = {
   id: 'regata';
   nome: string;
