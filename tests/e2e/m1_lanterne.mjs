@@ -16,7 +16,13 @@ export default async function (ctx) {
       const s = await st();
       const spot = s.minigiochi.spots.find((x) => x.id === 'lanterne');
       assert(spot, 'spot lanterne assente: ' + JSON.stringify(s.minigiochi.spots.map((x) => x.id)));
-      await page.evaluate(({ x, z }) => window.__game.test.teleport(x, z - 2), spot);
+      // accanto alla barca ormeggiata e allo spawn del Porto A deve restare «sali in barca», non far partire le Lanterne (wp2_move)
+      for (const k of ['dock', 'spawn']) {
+        await page.evaluate((k) => { const d = window.__game.state().island[k]; window.__game.test.teleport(d.x, d.z); }, k);
+        await page.waitForTimeout(250);
+        assert((await st()).minigiochi.near !== 'lanterne', `al punto ${k} del Porto si è vicini alle Lanterne`);
+      }
+      await page.evaluate(({ x, z }) => window.__game.test.teleport(x, z), spot);
       await ctx.waitState(page, (q) => q.minigiochi.near === 'lanterne', 5000);
       await page.waitForSelector('#mzPlay.on', { timeout: 3000 });
       assert(/LANTERNE/.test(await page.$eval('#mzPlay', (e) => e.textContent)), 'bottone senza LANTERNE');

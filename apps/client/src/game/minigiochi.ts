@@ -58,9 +58,9 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   // la Regata parte dal molo (B) dell'isola del percorso
   const cfg = MINIGAMES_CFG.regata, lag = arch.places.find((p) => p.island === cfg.course.island) ?? arch.places.find((p) => p.role === 'laguna');
   const spots: Spot[] = lag ? [{ id: 'regata', nome: cfg.nome, minigame: 'regata', x: lag.boat.x, z: lag.boat.z, icon: 'regata', near: NEAR_M, boa: true }] : [];
-  // Lanterne: al centro delle 6 lanterne del molo del Porto (cella locale in content)
+  // Lanterne: tra le lanterne del molo del Porto (cella locale in content), lontano dalla barca: lì A deve far salire in barca
   const lt = MINIGAMES_CFG.lanterne, ltPlace = arch.places.find((p) => p.island === lt.posto.island);
-  if (ltPlace) spots.push({ id: 'lanterne', nome: lt.nome, minigame: 'lanterne', x: (ltPlace.origin[0] + lt.posto.at[0] + 0.5) * arch.tile, z: (ltPlace.origin[1] + lt.posto.at[1] + 0.5) * arch.tile, icon: 'lanterna', near: 4.5, boa: false });
+  if (ltPlace) spots.push({ id: 'lanterne', nome: lt.nome, minigame: 'lanterne', x: (ltPlace.origin[0] + lt.posto.at[0] + 0.5) * arch.tile, z: (ltPlace.origin[1] + lt.posto.at[1] + 0.5) * arch.tile, icon: 'lanterna', near: 3, boa: false });
   if (o.tavolo) spots.push({ id: 'scacchi', nome: SCACCHI.nome, minigame: 'scacchi', x: o.tavolo.x, z: o.tavolo.z, icon: 'scacchi', near: 5, boa: false });
   let chClosedAt = 0;
   const scacchi = createScacchi({ root: o.root, onClose: () => { chClosedAt = performance.now(); } });
