@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { Builder, M, PAT, paintedMaterial, rng } from './paint.ts';
 import { BLOB, BLOB_LO, BUD, COL, ROCK, banner, barrel, box, bunting, crate, fountain, house, lanternPost, planter, sack, stall } from './kit.ts';
-import type { Ctx, Glow, Obstacle } from './kit.ts';
+import type { Ctx, Glow, Obstacle, Placement } from './kit.ts';
 import { boat, bush, dock, fence, ferryGate, garden, lighthouse, person, rock, tree, windmill, windmillBlades } from './kit2.ts';
 import type { Look } from './kit2.ts';
 import { blob, buildIsland, distanceField, pointInPoly } from './terrain.ts';
@@ -11,7 +11,7 @@ import type { DistField, Pt } from './terrain.ts';
 export type Walk = { x0: number; z0: number; x1: number; z1: number; y0: number; y1: number; axis: 'x' | 'z' };
 export type Mooring = { name: string; x: number; z: number; ry: number; landX: number; landZ: number };
 export type World = {
-  group: THREE.Group; glows: Glow[]; obst: Obstacle[]; df: DistField; moorings: Mooring[];
+  group: THREE.Group; glows: Glow[]; placements: Placement[]; obst: Obstacle[]; df: DistField; moorings: Mooring[];
   /** Quota calpestabile in (x,z), null se lì non si cammina (mare, fuori dal bordo). */
   groundAt(x: number, z: number): number | null;
   blocked(x: number, z: number, r: number): boolean;
@@ -31,11 +31,14 @@ const LOOKS: Look[] = [
 /** opts.ai: posto per l'isola generata con l'AI (prova di coerenza), entra nel campo di distanza del mare. */
 export const AI_ISLAND = { x: -50, z: -52, r: 16 };
 export function buildWorld(opts: { ai?: boolean } = {}): World {
+  const placements: Placement[] = [];
   const group = new THREE.Group(), glows: Glow[] = [], obst: Obstacle[] = [], walks: Walk[] = [], tops: { poly: Pt[]; y: number }[] = [], seaShapes: Pt[][] = [], rocks: { x: number; z: number; r: number }[] = [];
   const mat = paintedMaterial(), emis = new THREE.MeshBasicMaterial({ vertexColors: true });
   const chunk = (name: string, fill: (c: Ctx) => void, shadows = true) => {
-    const c: Ctx = { b: new Builder(name.length * 97), e: new Builder(7), glows, obst };
+    const c: Ctx = { b: new Builder(name.length * 97), e: new Builder(7), glows, obst, ...(opts.ai ? { ai: placements } : {}) };
+    const n0 = placements.length;
     fill(c);
+    for (let i = n0; i < placements.length; i++) placements[i]!.chunk = name;
     const g = c.b.geometry(), ge = c.e.geometry();
     if (g) { const m = new THREE.Mesh(g, mat); m.name = name; m.castShadow = shadows; m.receiveShadow = true; group.add(m); }
     if (ge) { const m = new THREE.Mesh(ge, emis); m.name = name + '-luci'; group.add(m); }
@@ -105,7 +108,7 @@ export function buildWorld(opts: { ai?: boolean } = {}): World {
     stall(c, -12.5, Y + 0.08, -8, face(-12.5, -8, -6, 0), COL.mustard, ['#f2e6c0', '#d9a050', '#b0603a']);
     for (let i = 0; i < 9; i++) { const a = -0.5 + i * 0.72; if (Math.abs(a - 0.3) < 0.3) continue; lanternPost(c, -6 + Math.cos(a) * 10.8, Y, Math.sin(a) * 10.8, 2.8, -a); }
     for (const [x, z] of [[-9, 4], [-2.5, -3.5], [-3, 4.2]] as const) planter(c, x, Y + 0.08, z, ['#e8709a', '#f2d36a', '#b080d8']);
-    tree(c, -25, Y, -12, 1.1, 1); tree(c, 11.5, Y, -11, 1.0, 2); tree(c, -17, Y, 16, 1.2, 3); tree(c, -4, Y, 16.5, 0.9, 4); tree(c, 7, Y, 12, 1.05, 5); tree(c, -27, Y, 4, 0.95, 6);
+    tree(c, -25, Y, -12, 1.1, 1); tree(c, 11.5, Y, -11, 1.0, 2); tree(c, -17, Y, 16, 1.2, 3); tree(c, 7, Y, 12, 1.05, 5); tree(c, -27, Y, 4, 0.95, 6);
     bush(c, -12, Y, 13, 1, '#e8709a'); bush(c, 2, Y, 13.5, 0.9, '#f2d36a'); bush(c, -24, Y, -7, 1, '#b080d8'); bush(c, 12.5, Y, -6, 0.9, '#e8709a'); bush(c, 13, Y, 8, 1);
     // muretto in pietra sul bordo della scogliera (lato mare, a sud e a est), con varchi per la scala del molo
     const tp = isl.top;
@@ -225,7 +228,7 @@ export function buildWorld(opts: { ai?: boolean } = {}): World {
 
   const inRect = (w: Walk, x: number, z: number) => x >= w.x0 && x <= w.x1 && z >= w.z0 && z <= w.z1;
   return {
-    group, glows, obst, df, moorings,
+    group, glows, placements, obst, df, moorings,
     groundAt(x, z) {
       for (const w of walks) if (inRect(w, x, z)) { const t = w.axis === 'x' ? (x - w.x0) / (w.x1 - w.x0) : (z - w.z0) / (w.z1 - w.z0); return w.y0 + (w.y1 - w.y0) * t; }
       for (const t of tops) if (pointInPoly(x, z, t.poly)) return t.y;

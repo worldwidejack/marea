@@ -22,9 +22,8 @@ const SHOTS = [
   ['piazza', (p) => p.evaluate(() => window.__prova.goto(-4, 9, Math.PI))],
   ['barca', (p) => p.evaluate(() => window.__prova.boat(48, -12, 0.9))],
   ['maru', (p) => p.evaluate(() => window.__prova.boat(40, -30, 0.3))],
-  ['ai_isola', (p) => p.evaluate(() => window.__prova.boat(-44, -26, 1.2)), 'ai'],
 ];
-// varianti: normale (kit da codice) e ?ai=1 (barca e isola generate con l'AI)
+// varianti: normale (kit da codice) e ?ai=1 (case, bancarelle, fontana, lampioni, alberi, passanti e barca generati con l'AI)
 const VARIANTS = [['', ''], ['ai_', '?ai=1']];
 
 /** Giro funzionale: a piedi al molo → Salpa → barca fino a Maru → Sbarca → cammina sul molo di Maru. */
@@ -65,8 +64,6 @@ for (const [pre, qs] of VARIANTS) for (const [vn0, vp] of Object.entries(VIEWS))
   const loadMs = Date.now() - t0;
   report[vn] = { loadMs, buildMs: await page.evaluate(() => window.__prova.buildMs), shots: {}, errors: errs };
   for (const [sn, act, only] of SHOTS) {
-    if (only === 'ai' && !qs) continue;
-    if (qs && !['barca', 'ai_isola', 'molo'].includes(sn)) continue;
     await act(page);
     await page.waitForTimeout(2500);
     const f = path.join(OUT, `${vn}_${sn}.png`);

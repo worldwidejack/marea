@@ -5,6 +5,7 @@ import { BALL, BLOB, BLOB_LO, BOX, BUD, COL, HEAD, ROCK, box, cyl, cylinder, lan
 import type { Ctx } from './kit.ts';
 
 export function tree(ctx: Ctx, x: number, y: number, z: number, s = 1, seed = 1, lo = false) {
+  if (ctx.ai && !lo) { ctx.ai.push({ kind: 'albero', x, y, z, ry: seed * 2.1, size: 5.2 * s, by: 'h' }); ctx.obst.push({ x, z, r: 0.5 * s }); return; }
   const r = rng(seed), P = M(x, y, z, r() * 6), b = ctx.b;
   cylinder(b, P, 0, 0, 0, 0.26 * s, 2.4 * s, COL.woodDark, 6, PAT.PLANKS, { grad: 0.2 }, 0.6);
   box(b, P, 0.3 * s, 1.5 * s, 0, 0.12 * s, 0.9 * s, 0.12 * s, COL.woodDark, PAT.PLANKS, {}, 0, 0, -0.7);
@@ -129,6 +130,7 @@ export function personParts(o: Look): { limb: Limb; pivot: THREE.Vector3; parts:
 }
 /** Passante fermo, fuso nel mondo statico. pose: braccia (rad) per variare le sagome. */
 export function person(ctx: Ctx, x: number, y: number, z: number, ry: number, o: Look, armL = 0.1, armR = -0.1) {
+  if (ctx.ai) { const v = ((Math.round(x * 7 + z * 3) % 4) + 4) % 4; ctx.ai.push({ kind: v ? `persona${v + 1}` : 'persona', x, y, z, ry, size: v === 2 ? 1.72 : v ? 1.68 : 1.8, by: 'h' }); ctx.obst.push({ x, z, r: 0.35 }); return; }
   const P = M(x, y, z, ry);
   for (const l of personParts(o)) {
     const rot = l.limb === 'armL' ? armL : l.limb === 'armR' ? armR : 0;

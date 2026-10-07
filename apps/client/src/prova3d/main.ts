@@ -22,7 +22,8 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(SKY.fog, 45, 320);
 const t0 = performance.now();
 const AI = q.has('ai');
-const world = buildWorld({ ai: AI });
+const world = buildWorld({ ai: q.get('ai') === 'isola' || AI });
+// ?ai=isola aggiunge anche l'isola intera generata dalla reference (22k triangoli: fuori budget, solo per confronto)
 const buildMs = performance.now() - t0;
 scene.add(world.group);
 const sky = createSky(); scene.add(sky);
@@ -46,12 +47,48 @@ async function loadAi(url: string): Promise<THREE.Object3D> {
   });
   return g.scene;
 }
-const aiReady = AI ? Promise.all([loadAi('/prova3d/ai_barca.glb'), loadAi('/prova3d/ai_isola.glb')]).then(([b, isl]) => {
+const AI_ISOLA = q.get('ai') === 'isola';
+const aiReady = AI ? Promise.all([loadAi('/assets/prova3d/ai_barca.glb'), AI_ISOLA ? loadAi('/assets/prova3d/ai_isola.glb') : Promise.resolve(null)]).then(([b, isl]) => {
   // la barca AI prende il posto di quella da codice (prua lungo +X come lo scafo da codice)
   const holder = new THREE.Group(); b.rotation.y = -Math.PI / 2; b.position.y = -0.55; holder.add(b);
   player.setBoatModel(holder);
-  isl.position.set(AI_ISLAND.x, -4, AI_ISLAND.z); scene.add(isl);
-}) : Promise.resolve();
+  if (isl) { isl.position.set(AI_ISLAND.x, -4, AI_ISLAND.z); scene.add(isl); }
+}).then(() => placeKit()) : Promise.resolve();
+
+/** Kit AI: ogni tipo di oggetto = un InstancedMesh (un draw call), scalato alla misura che il mondo chiede. */
+const KIT_YAW: Record<string, number> = { casa: 0, casa_alta: 0, bancarella: 0, fontana: 0, lampione: 0, albero: 0, persona: 0 };
+async function placeKit() {
+  const kinds = [...new Set(world.placements.map((p) => p.kind))];
+  await Promise.all(kinds.map(async (kind) => {
+    const g = await new GLTFLoader().loadAsync(`/assets/prova3d/kit_${kind}.glb`);
+    let src: THREE.Mesh | null = null; g.scene.traverse((o) => { if ((o as THREE.Mesh).isMesh && !src) src = o as THREE.Mesh; });
+    if (!src) return;
+    const mesh = src as THREE.Mesh, geo = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
+    geo.computeBoundingBox(); const bb = geo.boundingBox!, sz = bb.getSize(new THREE.Vector3());
+    const map = (mesh.material as THREE.MeshStandardMaterial).map;
+    const mat = new THREE.MeshLambertMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.42, 0.4, 0.38), side: THREE.DoubleSide });
+    // un InstancedMesh per tipo e per isola: three scarta quelli fuori vista (e fuori dalla mappa delle ombre)
+    for (const chunk of new Set(world.placements.filter((p) => p.kind === kind).map((p) => p.chunk))) {
+    const list = world.placements.filter((p) => p.kind === kind && p.chunk === chunk);
+    const im = new THREE.InstancedMesh(geo, mat, list.length);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    const tints = ['#ffffff', '#f6e4da', '#e4ebf5', '#f2ecd8'];
+    list.forEach((p, i) => {
+      // passanti: altezza e tinta diverse, così non sembrano cloni
+      const v = kind.startsWith('persona') ? 0.94 + ((i * 37) % 11) / 100 : 1;
+      if (kind.startsWith('persona')) im.setColorAt(i, new THREE.Color(tints[i % tints.length]!));
+      const k = (p.size * v) / (p.by === 'w' ? Math.max(sz.x, sz.z) : sz.y);
+      q.setFromAxisAngle(up, p.ry + (KIT_YAW[kind] ?? 0));
+      const c = new THREE.Vector3((bb.min.x + bb.max.x) / 2, bb.min.y, (bb.min.z + bb.max.z) / 2).multiplyScalar(k).applyQuaternion(q);
+      m.compose(new THREE.Vector3(p.x - c.x, p.y - c.y, p.z - c.z), q, new THREE.Vector3(k, k, k));
+      im.setMatrixAt(i, m);
+    });
+    im.castShadow = kind !== 'lampione' && !kind.startsWith('persona'); im.receiveShadow = true; im.name = `kit_${kind}_${chunk}`;
+    im.computeBoundingSphere();
+    scene.add(im);
+    }
+  }));
+}
 
 // ---------- HUD minimo: bottone d'azione e nomi delle isole ----------
 const btn = document.createElement('button');
@@ -116,7 +153,7 @@ requestAnimationFrame(frame);
 
 const api = {
   ready: true, buildMs, aiReady: false,
-  perf: () => ({ fps: +perf.fps.toFixed(1), calls: perf.calls, tris: perf.tris, maxCalls: perf.maxCalls, maxTris: perf.maxTris, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, dpr: renderer.getPixelRatio() }),
+  perf: () => ({ trisSchermo: (() => { renderer.shadowMap.autoUpdate = false; renderer.info.reset(); renderer.render(scene, view.cam); const t = renderer.info.render.triangles; renderer.shadowMap.autoUpdate = true; return t; })(), fps: +perf.fps.toFixed(1), calls: perf.calls, tris: perf.tris, maxCalls: perf.maxCalls, maxTris: perf.maxTris, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, dpr: renderer.getPixelRatio() }),
   state: () => ({ ...player.st, boat: { ...player.st.boat, moored: player.st.boat.moored?.name ?? null } }),
   goto(x: number, z: number, ry?: number) { player.st.x = x; player.st.z = z; player.st.y = world.groundAt(x, z) ?? player.st.y; if (ry !== undefined) player.st.ry = ry; },
   boat(x: number, z: number, ry = 0) { player.st.mode = 'boat'; player.st.boat.moored = null; player.st.boat.x = x; player.st.boat.z = z; player.st.boat.ry = ry; },

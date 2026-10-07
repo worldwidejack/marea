@@ -18,7 +18,9 @@ export const COL = {
 
 export type Glow = { x: number; y: number; z: number; size: number; color: THREE.Color };
 export type Obstacle = { x: number; z: number; r: number } | { x: number; z: number; hw: number; hd: number; rot: number };
-export type Ctx = { b: Builder; e: Builder; glows: Glow[]; obst: Obstacle[] };
+/** Posto per un modello AI (prova ?ai=1): tipo, posizione, rotazione, misura voluta in metri (larghezza 'w' o altezza 'h'). */
+export type Placement = { kind: string; chunk?: string; x: number; y: number; z: number; ry: number; size: number; by: 'w' | 'h' };
+export type Ctx = { b: Builder; e: Builder; glows: Glow[]; obst: Obstacle[]; ai?: Placement[] };
 
 export const BOX = new THREE.BoxGeometry(1, 1, 1);
 const CYL: Record<number, THREE.CylinderGeometry> = {};
@@ -70,6 +72,7 @@ export function lanternHead(ctx: Ctx, P: THREE.Matrix4, x: number, y: number, z:
   glowAt(ctx, P, x, y + 0.22 * s, z, 2.6 * s);
 }
 export function lanternPost(ctx: Ctx, x: number, y: number, z: number, h = 2.6, ry = 0) {
+  if (ctx.ai) { ctx.ai.push({ kind: 'lampione', x, y, z, ry, size: h + 0.4, by: 'h' }); ctx.glows.push({ x, y: y + h - 0.2, z, size: 2.4, color: new THREE.Color(COL.glow) }); ctx.obst.push({ x, z, r: 0.3 }); return; }
   const P = M(x, y, z, ry);
   box(ctx.b, P, 0, 0, 0, 0.32, 0.25, 0.32, COL.stoneGrey, PAT.BRICK);
   box(ctx.b, P, 0, 0.25, 0, 0.14, h - 0.25, 0.14, COL.woodDark, PAT.PLANKS);
@@ -81,6 +84,7 @@ export function lanternPost(ctx: Ctx, x: number, y: number, z: number, h = 2.6, 
 export type HouseOpts = { w: number; d: number; h: number; wall: string; roof: string; roofH?: number; shutters?: string; floors?: number; flowers?: boolean };
 /** Casa: zoccolo in pietra, muri intonacati, travi d'angolo, tetto a capanna, finestre accese con persiane. Facciata verso +Z locale. */
 export function house(ctx: Ctx, x: number, y: number, z: number, ry: number, o: HouseOpts) {
+  if (ctx.ai) { ctx.ai.push({ kind: (o.floors ?? 0) >= 3 || o.h >= 6 ? 'casa_alta' : 'casa', x, y, z, ry, size: o.w + 0.8, by: 'w' }); boxObst(ctx, x, z, o.w / 2 + 0.35, o.d / 2 + 0.35, ry); return; }
   const P = M(x, y, z, ry), b = ctx.b, { w, d, h } = o, floors = o.floors ?? (h > 4.5 ? 2 : 1), rh = o.roofH ?? Math.min(w, d) * 0.45;
   box(b, P, 0, 0, 0, w + 0.2, 0.7, d + 0.2, COL.stoneGrey, PAT.BRICK, { grad: 0.35 });
   box(b, P, 0, 0.7, 0, w, h - 0.7, d, o.wall, PAT.PLASTER, { grad: 0.3, jitter: 0.05 });
@@ -118,6 +122,7 @@ export function house(ctx: Ctx, x: number, y: number, z: number, ry: number, o: 
 
 /** Bancarella: 4 pali, banco con merce, tenda a strisce inclinata, lanterna appesa. Fronte verso +Z. */
 export function stall(ctx: Ctx, x: number, y: number, z: number, ry: number, cloth: string, goods: string[]) {
+  if (ctx.ai) { ctx.ai.push({ kind: 'bancarella', x, y, z, ry, size: 3.4, by: 'w' }); boxObst(ctx, x, z, 1.8, 1.3, ry); return; }
   const P = M(x, y, z, ry), b = ctx.b, w = 3, d = 1.8;
   for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) box(b, P, dx * (w / 2 - 0.1), 0, dz * (d / 2 - 0.1), 0.14, dz < 0 ? 2.7 : 2.2, 0.14, COL.wood, PAT.PLANKS);
   box(b, P, 0, 0, 0.3, w - 0.2, 0.95, 0.8, COL.wood, PAT.PLANKS, { grad: 0.35 });
@@ -159,6 +164,7 @@ export function planter(ctx: Ctx, x: number, y: number, z: number, flowers: stri
 
 /** Fontana a due vasche in pietra (niente di magico: acqua e basta). */
 export function fountain(ctx: Ctx, x: number, y: number, z: number) {
+  if (ctx.ai) { ctx.ai.push({ kind: 'fontana', x, y, z, ry: 0, size: 5.6, by: 'w' }); ctx.obst.push({ x, z, r: 2.9 }); return; }
   const P = M(x, y, z, Math.PI / 8), b = ctx.b;
   cylinder(b, P, 0, 0, 0, 2.6, 0.25, COL.stoneGrey, 8, PAT.COBBLE);
   cylinder(b, P, 0, 0.25, 0, 2.3, 0.55, COL.stone, 8, PAT.BRICK, { grad: 0.3 });
