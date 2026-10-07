@@ -1,11 +1,11 @@
 ---
 progetto: MAREA
 stato: attivo
-aggiornato: 2026-10-07
+aggiornato: 2026-10-08
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-**Impostazioni nel gioco vero** (7/10, #54) con **luna e stelle** di notte (#57): ingranaggio in alto con camera (45° di sempre o più bassa fino a 15°), ciclo giorno → tramonto → notte → alba (24 min, stessa ora per tutti; di notte falce di luna e stelle in cielo a 15°, scia della luna e stelle riflesse sull'acqua con ogni camera), stampa giapponese e contorni. Di serie tutto spento. `/provapixel.html` resta la sandbox degli stili.
+Intervista sui prossimi passi (7/10): niente scadenze, isole a tema (prima la Tempesta), minigiochi universali, minimappa. Online: di serie ciclo + camera 22° + contorni (#70), luce vera di notte dalle lanterne (#71), notte della stampa giapponese in indaco (#61).
 
 ## Prossimo passo
-Jack e gli amici: provano le impostazioni (anche la notte) da PC e telefono e dicono cosa tenere acceso di serie. Possibili seguiti: lanterne che fanno luce vera di notte, stampa più rifinita. In sospeso: Grotta della Marea e Lanterne da provare; Riccardo su Neon (#25) e Laguna (#26).
+Jack: guarda il gioco di notte (con e senza stampa). Claude: minimappa (#62), poi Porto (#63-#65), pesca (#66), animali (#67), Tempesta (#68).

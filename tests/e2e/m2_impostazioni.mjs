@@ -55,6 +55,17 @@ export default async function (ctx) {
     await p.page.evaluate(() => window.__game.test.ciclo(0.78)); await p.page.waitForTimeout(600);
     ctx.noErrors(p, 'luci');
   });
+  await ctx.test('stampa giapponese di notte (#61): palette notturna, niente errori', async () => {
+    await p.page.evaluate(() => window.__game.test.impostazioni({ cam: 3, ciclo: true, stampa: true, contorni: true }));
+    await p.page.evaluate(() => window.__game.test.ciclo(0.78)); await p.page.waitForTimeout(900);
+    await ctx.shot(p.page, 'iphone_stampa_notte');
+    const st = await ctx.screenStats(p.page); ctx.log('stampa notte', st.mean.toFixed(1));
+    ctx.assert(st.mean > 25, `stampa di notte troppo buia: ${st.mean.toFixed(1)}`);
+    await p.page.evaluate(() => window.__game.test.ciclo(0.93)); await p.page.waitForTimeout(900);
+    await ctx.shot(p.page, 'iphone_stampa_alba');
+    await p.page.evaluate(() => window.__game.test.impostazioni({ cam: 3, ciclo: true, stampa: false, contorni: true }));
+    ctx.noErrors(p, 'stampa notte');
+  });
   await ctx.test('la scelta resta dopo il ricaricamento; spegnere torna di serie', async () => {
     await p.page.reload(); await ctx.waitReady(p.page, 20000);
     await p.page.evaluate(() => window.__game.test.aspettoPronto());
