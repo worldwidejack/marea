@@ -5,6 +5,7 @@ import type { RunHero, RunOutcome, RunWeapon } from '../rpg/types.ts';
 import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
 import type { DungeonEvent, HeroAnim } from './types.ts';
+import type { SwingStyle } from './swing.ts';
 import { bfs, cellOf, parseDungeon } from './map.ts';
 import type { DMap } from './map.ts';
 import { rollLoot } from './loot.ts';
@@ -17,8 +18,8 @@ export type HeroRt = {
   x: number; z: number; fx: number; fz: number;
   vita: number; magicka: number; stamina: number;
   act: HeroAct; actT: number; actDur: number;
-  /** Swing: caricato, colpo già risolto. */
-  caricato: boolean; colpito: boolean;
+  /** Swing: caricato, stile del colpo (swing.ts), nemici già colpiti da questo swing, finestra del colpo chiusa. */
+  caricato: boolean; stile: SwingStyle; colpiti: number[]; colpito: boolean;
   /** 0..1 carica o tensione corrente. */
   carica: number;
   moving: boolean; running: boolean; hurt: number;
@@ -100,7 +101,7 @@ export function createState(def: DungeonDef, seed: number, hero: RunHero): Dunge
     hero: {
       x: map.spawn.x, z: map.spawn.z, fx: map.spawn.fx, fz: map.spawn.fz,
       vita: hero.max.vita, magicka: hero.max.magicka, stamina: hero.max.stamina,
-      act: 'idle', actT: 0, actDur: 0, caricato: false, colpito: false, carica: 0,
+      act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
       moving: false, running: false, hurt: 0, protetto: 0, arma,
       frecce: hero.frecce ? hero.frecce.n : 0,
       pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,

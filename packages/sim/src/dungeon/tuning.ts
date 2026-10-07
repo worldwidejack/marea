@@ -5,8 +5,22 @@ import { TICK_HZ } from '../constants.ts';
 export const HZ = TICK_HZ;
 /** A tenuto oltre questo = carica (mischia). */
 export const HOLD_TICKS = Math.round(0.2 * HZ);
-/** Coseni dei mezzi angoli: cono del colpo 90°, mira assistita dell'arco ~25°, semicerchio davanti. */
-export const COS_CONO_COLPO = 0.7071;
+const DEG = Math.PI / 180;
+/** Colpi di mischia (swing.ts): la lama spazza `arco` partendo da `inizio` (relativo alla faccia, + = destra) verso sinistra, tra le fasi
+ *  `da` e `a` dello swing; ogni nemico in portata è colpito quando la lama gli passa sopra. Il client anima con gli stessi numeri. */
+export const COLPI = {
+  /** Fendente orizzontale da destra a sinistra, 150° davanti. */
+  fendente: { inizio: 75 * DEG, arco: 150 * DEG, da: 0.3, a: 0.58 },
+  /** Lancia: affondo stretto (40°), la portata fa il resto. */
+  affondo: { inizio: 20 * DEG, arco: 40 * DEG, da: 0.32, a: 0.52 },
+  /** Pugni: gancio di 100°. */
+  pugno: { inizio: 50 * DEG, arco: 100 * DEG, da: 0.3, a: 0.55 },
+  /** Caricato pieno: giro completo, parte da dietro a destra (dove la carica tiene l'arma). */
+  giro: { inizio: 135 * DEG, arco: 360 * DEG, da: 0.22, a: 0.72 },
+} as const;
+/** Il giro del colpo caricato dura questo multiplo di uno swing normale. */
+export const GIRO_TEMPO = 1.4;
+/** Coseni dei mezzi angoli: mira assistita dell'arco ~25°, semicerchio davanti. */
 export const COS_CONO_ARCO = 0.976;
 export const COS_SEMICERCHIO = 0;
 /** Il nemico colpisce solo se l'eroe è ancora davanti a lui (~145°) e in portata (+ tolleranza). */

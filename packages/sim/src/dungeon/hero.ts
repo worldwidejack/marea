@@ -9,9 +9,10 @@ import { add, newEnemy, secToTicks } from './state.ts';
 import { buff, hitEnemy } from './combat.ts';
 import { lineOfSight, moveCircle } from './map.ts';
 import {
-  BEVE_TICKS, COS_CONO_ARCO, COS_CONO_COLPO, COS_SEMICERCHIO, FRECCIA_Y, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y,
+  BEVE_TICKS, COLPI, COS_CONO_ARCO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y,
   HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS, ALLEATO_SEGUE,
 } from './tuning.ts';
+import { sweepTo, swept, swingStyle } from './swing.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
@@ -50,26 +51,34 @@ function startSwing(s: DungeonState, caricato: boolean): void {
   const h = s.hero, a = h.arma;
   faceTo(s, aim(s, a.portata * 1.5, COS_SEMICERCHIO, a.portata, false));
   const vel = 1 + buff(s, a.classe === 'pesante' ? 'velocitaPesanti' : 'velocitaLeggere');
-  h.act = 'swing'; h.actT = 0; h.actDur = secToTicks((a.tempo * (1 + malusDi(s))) / vel);
-  h.caricato = caricato; h.colpito = false; h.carica = 0;
+  h.stile = swingStyle(a, caricato);
+  h.act = 'swing'; h.actT = 0; h.actDur = secToTicks((a.tempo * (h.stile === 'giro' ? GIRO_TEMPO : 1) * (1 + malusDi(s))) / vel);
+  h.caricato = caricato; h.colpiti = []; h.colpito = false; h.carica = 0;
 }
 
-/** Colpo a metà swing: tutti i nemici nel cono di 90° entro la portata. */
-function resolveSwing(s: DungeonState): void {
+/** La lama spazza il suo arco (swing.ts): colpisce, una volta per swing, ogni nemico in portata appena la lama gli passa sopra. A fine
+ *  arco, se ha colpito qualcuno, l'arma fragile si consuma. */
+function sweepSwing(s: DungeonState): void {
   const h = s.hero, a = h.arma, rh = s.runHero;
-  const mod = a.classe === 'pesante' ? 'dannoPesanti' : 'dannoLeggere';
-  const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod));
-  let colpi = 0;
-  for (const e of ostili(s)) {
-    const dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
-    if (d > a.portata + e.def.raggio) continue;
-    const dot = d > 1e-6 ? (dx * h.fx + dz * h.fz) / d : 1;
-    if (d > e.def.raggio + rh.raggio && dot < COS_CONO_COLPO) continue;
-    hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX: h.fx, dirZ: h.fz, daAlleato: false });
-    colpi++;
+  const k = swept(h.stile, h.actT / h.actDur), fatto = k * COLPI[h.stile].arco;
+  if (k > 0) {
+    const mod = a.classe === 'pesante' ? 'dannoPesanti' : 'dannoLeggere';
+    const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod));
+    for (const e of ostili(s)) {
+      if (h.colpiti.includes(e.id)) continue;
+      const dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
+      if (d > a.portata + e.def.raggio) continue;
+      if (sweepTo(h.stile, h.fx, h.fz, dx, dz, e.def.raggio, d <= e.def.raggio + rh.raggio) > fatto) continue;
+      h.colpiti.push(e.id);
+      // spinta e direzione del colpo: dove va la lama (nel giro, via dall'eroe)
+      const dirX = h.stile === 'giro' && d > 1e-6 ? dx / d : h.fx, dirZ = h.stile === 'giro' && d > 1e-6 ? dz / d : h.fz;
+      hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false });
+    }
   }
+  if (k < 1) return;
+  h.colpito = true;
   const fragile = a.traits.fragile ?? 0;
-  if (colpi > 0 && fragile > 0 && a.id) {
+  if (h.colpiti.length > 0 && fragile > 0 && a.id) {
     h.colpiFragile++;
     s.usura[a.id] = h.colpiFragile;
     if (h.colpiFragile >= fragile) {
@@ -197,7 +206,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       if (!inp.a) startSwing(s, h.carica >= 1);
       break;
     case 'swing':
-      if (!h.colpito && h.actT * 2 >= h.actDur) { h.colpito = true; resolveSwing(s); }
+      if (!h.colpito) sweepSwing(s);
       if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; }
       break;
     case 'tende': {

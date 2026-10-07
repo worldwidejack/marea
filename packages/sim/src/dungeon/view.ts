@@ -46,6 +46,7 @@ export function viewOf(s: DungeonState): DungeonView {
     dungeon: s.dungeon, tick: s.tick, done: s.done, outcome: s.outcome,
     hero: {
       x: h.x, z: h.z, fx: h.fx, fz: h.fz, anim: ha.anim, t: ha.t, carica: h.act === 'carica' || h.act === 'tende' ? h.carica : 0,
+      ...(ha.anim === 'attacca' ? { stile: h.stile } : {}),
       vita: h.vita, magicka: h.magicka, stamina: h.stamina, max: { ...rh.max },
       ricaricaMagia: h.cdMagia / HZ, frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0,
     },

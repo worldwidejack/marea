@@ -28,8 +28,8 @@ Nessun «livello consigliato» a schermo: la difficoltà si capisce dai nemici e
 
 ## 4. Combattimento
 - Tempismo, mobilità (corsa a stamina) e distanze.
-- **Attacco normale**: tocco breve di A, cadenza data dalla velocità dell'arma.
-- **Attacco caricato**: tieni premuto A per X secondi (dipende dall'arma) e lascia. Non costa stamina, ma mentre carichi ti muovi piano e sei esposto. Molto più lento e potente; scala con danno e peso dell'arma.
+- **Attacco normale**: tocco breve di A, cadenza data dalla velocità dell'arma. È un **fendente orizzontale da destra a sinistra** che spazza 150° davanti (lancia: affondo stretto di 40°; pugni: gancio di 100°) e colpisce ogni nemico in portata quando la lama gli passa sopra; la scia mostra l'arco vero (7 ott 2026).
+- **Attacco caricato**: tieni premuto A per X secondi (dipende dall'arma) e lascia. Non costa stamina, ma mentre carichi ti muovi piano e sei esposto. Molto più lento e potente; scala con danno e peso dell'arma. A carica piena è un **giro completo di 360°** (scelta di Riccardo, 7 ott 2026): colpisce tutti intorno entro la portata. Mentre carichi: corpo girato con l'arma bassa dietro, anello a terra grande quanto la portata che si riempie a tacche nel verso del giro, scintille, lama che si accende; al pieno lampo, onda e stella sopra la testa.
 - **Arco**: tieni premuto per tendere, lascia per tirare. Danno = arco + freccia; gittata = arco + freccia; ogni freccia ha la sua gravità.
 - **Magia** (C): lancia l'incantesimo preparato. **Pozione** (D): bevi la pozione rapida.
 - **Mira assistita** (telefono prima): il colpo si gira da solo verso il nemico più vicino davanti a te.
