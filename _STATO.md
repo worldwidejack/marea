@@ -5,7 +5,7 @@ aggiornato: 2026-10-07
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-**Prova vera del 3D dipinto** (7/10, #38, PR #40 aperta, non nel gioco): Porto + Maru + Solara giocabili a piedi e in barca su `prova3d.html`. Con `?ai=1` case, bancarelle, fontana, lampioni, alberi, passanti, barca e il tuo personaggio animato sono generati con l'AI (Higgsfield, ~38 crediti): molto più vicino alla reference, nei budget (42 draw call, ~100k triangoli a schermo). Prima: esplorazione stili, Lanterne (#7), Mondo Sotterraneo di Riccardo (#17).
+**Prova «pixel art più 3D»** (7/10, #46, PR #47) online su https://marea.stanza-idee.workers.dev/provapixel.html: Porto + 2 lotti nello stile pixel di oggi ma con camera bassa (22°), pixel più grossi, contorni, luce a gradini, foschia con isole lontane, nuvole, vento; bottone «stile» per accendere/spegnere ogni ritocco. Il 3D dipinto (`prova3d.html`) è bocciato: troppo complicato. Il gioco non è cambiato.
 
 ## Prossimo passo
-Jack: manda agli amici https://marea.stanza-idee.workers.dev/prova3d.html?ai=1 e decide con Riccardo 3D dipinto o pixel art. Se 3D: moli, terreno e giocatore animato nello stesso stile, e misura su un telefono vero. Jack: prova la Grotta della Marea (Isola Selvaggia) da PC e telefono; poi prova **Lanterne** sul molo del Porto e dice se è troppo facile o difficile. Riccardo (deciso il 7/10): il Distretto Neon diventa zona vera con negozi esotici (#25) e la **Laguna è sua**: sbarco a terra + saga di 4-5 dungeon col mega boss, Regata intatta (#26). Poi l'albero dei perk.
+Jack (con Riccardo e gli amici): prova `provapixel.html` da PC e telefono, sceglie la camera (45/35/30/22/15°, tasto C) e quali ritocchi tenere. Poi Claude li porta nel gioco vero con una PR (e riscrive ART_BIBLE §7). In sospeso: Grotta della Marea e Lanterne da provare; Riccardo su Neon (#25) e Laguna (#26).
