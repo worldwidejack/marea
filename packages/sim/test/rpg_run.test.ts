@@ -1,13 +1,14 @@
-// Spedizioni lato economia: apertura (fotografia + seed), chiusura (bottino, morte, consumati, usura, xp), Regata → Navigazione.
+// Spedizioni lato economia: apertura (fotografia + seed), chiusura (bottino, morte, consumati, usura, xp); personaggi salvati prima che
+// Navigazione sparisse (fitHero).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DUNGEONS, RPG } from '@marea/content/rpg.ts';
+import { DUNGEONS, RPG, SKILLS } from '@marea/content/rpg.ts';
 import { newLot } from '../src/economy/actions.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { hashJson } from '../src/hash.ts';
-import { heroOf, newHero } from '../src/rpg/hero.ts';
-import { finishDungeon, regataXp, startDungeon } from '../src/rpg/run.ts';
+import { fitHero, heroOf, newHero } from '../src/rpg/hero.ts';
+import { finishDungeon, startDungeon } from '../src/rpg/run.ts';
 import type { HeroState, RunResult } from '../src/rpg/types.ts';
 
 const T0 = 1_800_000_000_000;
@@ -94,14 +95,23 @@ test('rpg spedizione: bottino oltre il peso va nel Forziere, poi si perde', () =
   assert.equal(senza.lot.forziere, undefined);
 });
 
-test('rpg spedizione: deterministica, e la Regata dà xp di Navigazione per medaglia', () => {
+test('rpg spedizione: deterministica', () => {
   const go = () => finishDungeon(startDungeon(lot(), DUNGEON, 5, T0), result({ bottino: { pepita_oro: 2 }, monete: 3, xp: { arceria: 50 } }), T0 + 5000);
   assert.equal(hashJson(go()), hashJson(go()));
-  const oro = heroOf(regataXp(lot(), 'oro')).skill.navigazione;
-  const nulla = heroOf(regataXp(lot(), null)).skill.navigazione;
-  assert.equal(oro.xp, RPG.xp.regata_oro);
-  assert.equal(nulla.xp, RPG.xp.regata_nessuna);
-  assert.ok((RPG.xp.regata_oro ?? 0) > (RPG.xp.regata_argento ?? 0) && (RPG.xp.regata_argento ?? 0) > (RPG.xp.regata_bronzo ?? 0));
+});
+
+test('rpg personaggio salvato con Navigazione (tolta): via l\'abilità, i suoi perk tornano punti perk', () => {
+  const vuoto = lot(), nuovo = lot(newHero());
+  assert.equal(fitHero(vuoto), vuoto, 'senza personaggio: stesso lotto');
+  assert.equal(fitHero(nuovo), nuovo, 'niente da sistemare: stesso lotto');
+  const h = newHero();
+  const vecchio = lot({ ...h, perkPunti: 1, perk: ['al_lama', 'na_vento', 'na_gambe'], skill: { ...h.skill, navigazione: { lv: 31, xp: 4 } } as HeroState['skill'] });
+  const una = fitHero(vecchio), f = heroOf(una);
+  assert.deepEqual(f.perk, ['al_lama']);
+  assert.equal(f.perkPunti, 3, '1 + 2 perk di Navigazione restituiti');
+  assert.deepEqual(Object.keys(f.skill).sort(), [...SKILLS].sort());
+  assert.equal(una.version, vecchio.version, 'come fitToTemplate: la versione non cambia');
+  assert.equal(fitHero(una), una, 'una volta sistemato resta così');
 });
 
 test('rpg spedizione: capo ucciso = dungeon completato (anche da morto), una volta sola; senza capo niente', () => {

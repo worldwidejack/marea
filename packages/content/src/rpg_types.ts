@@ -1,8 +1,8 @@
 // Tipi dei contenuti del Mondo Sotterraneo (docs/RPG.md, CONTRACTS §15). Solo dati: le formule stanno in @marea/sim/rpg e @marea/sim/dungeon.
 // I JSON stanno in packages/content/src/rpg/; si importano da `@marea/content/rpg.ts` (MAI da index.ts: il client li carica solo nel chunk GDR).
 
-export type SkillId = 'armiLeggere' | 'armiPesanti' | 'arceria' | 'distruzione' | 'evocazione' | 'navigazione' | 'forgiatura' | 'alchimia';
-export const SKILLS: readonly SkillId[] = ['armiLeggere', 'armiPesanti', 'arceria', 'distruzione', 'evocazione', 'navigazione', 'forgiatura', 'alchimia'];
+export type SkillId = 'armiLeggere' | 'armiPesanti' | 'arceria' | 'distruzione' | 'evocazione' | 'forgiatura' | 'alchimia';
+export const SKILLS: readonly SkillId[] = ['armiLeggere', 'armiPesanti', 'arceria', 'distruzione', 'evocazione', 'forgiatura', 'alchimia'];
 export type AttrId = 'vita' | 'magicka' | 'stamina';
 export const ATTRS: readonly AttrId[] = ['vita', 'magicka', 'stamina'];
 export type MaterialId = 'legno' | 'bronzo' | 'ferro' | 'argento' | 'oro' | 'vetro' | 'ossa' | 'meteorite';
@@ -61,7 +61,7 @@ export type ModKey =
   | 'vita' | 'magicka' | 'stamina' | 'regenVita' | 'regenMagicka' | 'regenStamina'
   | 'dannoLeggere' | 'dannoPesanti' | 'dannoArco' | 'dannoDistruzione' | 'velocitaLeggere' | 'velocitaPesanti' | 'tensioneArco'
   | 'caricaVeloce' | 'costoDistruzione' | 'costoEvocazione' | 'durataEvocazione' | 'difesa' | 'malusArmatura' | 'peso'
-  | 'velocitaCorsa' | 'staminaCorsa' | 'dannoConArmaturaLeggera' | 'velocitaBarca' | 'materialiForgia' | 'potenzaPozioni' | 'resistMagia';
+  | 'velocitaCorsa' | 'staminaCorsa' | 'dannoConArmaturaLeggera' | 'materialiForgia' | 'potenzaPozioni' | 'resistMagia';
 
 export type SpellDef = {
   id: string; nome: string; scuola: 'distruzione' | 'evocazione'; costo: number; ricarica: number; descr: string;

@@ -27,7 +27,7 @@ export function heroBase(o: Partial<RunHero> = {}): RunHero {
     magia: 0,
     pozioni: [{ id: 'pozione_vita_minore', n: 3, cura: { vita: 40 }, buff: null }],
     pozione: 0,
-    skill: { armiLeggere: 15, armiPesanti: 15, arceria: 15, distruzione: 15, evocazione: 15, navigazione: 15, forgiatura: 15, alchimia: 15 },
+    skill: { armiLeggere: 15, armiPesanti: 15, arceria: 15, distruzione: 15, evocazione: 15, forgiatura: 15, alchimia: 15 },
     carico: 25, caricoMax: 150,
     pesi: { lingotto_bronzo: 1, lingotto_ferro: 1, lingotto_argento: 1, pepita_oro: 0.5, erba_curativa: 0.1, zanna_lupo: 0.2, seta_ragno: 0.1, ossa_mostro: 3, pietra_pesante: 2 },
     ...o,

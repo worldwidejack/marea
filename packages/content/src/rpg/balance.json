@@ -13,7 +13,7 @@
     "monete": 20
   },
   "dungeon": { "maxMinuti": 20, "morte": { "bottino": 0, "xp": 1 }, "altare": { "protezione": 3 } },
-  "xp": { "forgia": 15, "alchimia": 12, "alchimiaPerLivello": 0.4, "personaggioPerLivelloSkill": 1, "regata_oro": 60, "regata_argento": 40, "regata_bronzo": 25, "regata_nessuna": 10 },
+  "xp": { "forgia": 15, "alchimia": 12, "alchimiaPerLivello": 0.4, "personaggioPerLivelloSkill": 1 },
   "forziere": [100, 250, 600],
   "bottega": { "lingotto_bronzo": 12, "lingotto_ferro": 20, "erba_curativa": 3, "fiore_azzurro": 3, "radice_vigore": 4 }
 }

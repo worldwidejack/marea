@@ -1,6 +1,6 @@
 // M2-server (Mondo Sotterraneo, CONTRACTS §15): personaggio nel lotto, POST /api/rpg (equip, leggi, perk, compra, forgia, deposita),
 // spedizioni POST /api/dungeon/start|finish con replay nel DO (input giocati qui in Node con l'autopilot della sim: stesso esito e
-// stesso bottino), errori 409/400/413, hash diverso = solo un avviso nel log, la Regata da solo dà xp di Navigazione.
+// stesso bottino), errori 409/400/413, hash diverso = solo un avviso nel log, la Regata da solo non tocca il personaggio.
 // wrangler dev locale con `--var TEST_CLOCK:1`: l'header X-Test-Now-Offset fa finire il cantiere del Banco (solo qui, mai in produzione).
 import fs from 'node:fs';
 import net from 'node:net';
@@ -29,7 +29,7 @@ export default async function (ctx) {
   const { autopilot } = await sim('dungeon/autopilot.ts');
   const { encodeDungeon, packDungeon, quantizeDungeon, replayDungeon } = await sim('dungeon/replay.ts');
   const { bfs, cellCenter, cellOf, stepDown } = await sim('dungeon/map.ts');
-  const { newHero, gainSkillXp } = await sim('rpg/hero.ts');
+  const { newHero } = await sim('rpg/hero.ts');
   const { finishDungeon } = await sim('rpg/run.ts');
   const { RPG } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/rpg.ts')).href);
   const items = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/rpg/items.json'), 'utf8'));
@@ -199,19 +199,17 @@ export default async function (ctx) {
       assert(again.lot.hero.discese === (l1.hero.discese ?? 0) + 1 && again.lot.dungeon.pending.seed === again.seed && !again.lot.dungeon.pending.salvataggio, 'spedizione vecchia chiusa, nuova aperta');
     });
 
-    await ctx.test('Regata da solo: oltre al premio dà xp di Navigazione (RPG.xp per medaglia)', async () => {
-      const h0 = (await lot('tokB')).hero ?? newHero();
+    await ctx.test('Regata da solo: solo il premio, il personaggio non cambia (Navigazione tolta)', async () => {
+      const h0 = (await lot('tokB')).hero;
       const s = (await post('/api/solo/start', 'tokB', { minigame: 'regata' })).body;
       const st = regata.create({ seed: s.seed, difficulty: s.difficulty });
       const rng = createRng(s.seed), frames = [];
       while (!st.done) { const f = quantize(regata.autopilot(st, rng)); frames.push(f); regata.step(st, f); }
       const r = await post('/api/solo/play', 'tokB', { inputs: packInputs(frames) });
       assert(r.status === 200, 'solo play: ' + r.status + ' ' + JSON.stringify(r.body).slice(0, 200));
-      const xp = RPG.xp[`regata_${r.body.medal ?? 'nessuna'}`];
-      const want = gainSkillXp(h0, 'navigazione', xp);
-      ctx.log(`regata ${r.body.medal} → +${xp} xp Navigazione: ${JSON.stringify(h0.skill.navigazione)} → ${JSON.stringify(r.body.lot.hero?.skill?.navigazione)}`);
-      assert(xp > 0 && same(r.body.lot.hero?.skill?.navigazione, want.skill.navigazione), 'xp di Navigazione: ' + JSON.stringify(r.body.lot.hero?.skill?.navigazione));
-      assert(same((await lot('tokB')).hero.skill.navigazione, want.skill.navigazione), 'xp non salvata nel lotto');
+      ctx.log(`regata ${r.body.medal} → premio ${JSON.stringify(r.body.premio)}`);
+      assert(same(r.body.lot.hero, h0), 'la Regata ha cambiato il personaggio: ' + JSON.stringify(r.body.lot.hero?.skill));
+      assert(!('navigazione' in (h0?.skill ?? {})), 'abilità Navigazione ancora nel personaggio');
     });
 
     await ctx.test('nessun errore interno nel log di wrangler', async () => {

@@ -26,11 +26,6 @@
   { "id": "ev_riserva", "skill": "evocazione", "nome": "Riserva", "livello": 40, "richiede": "ev_richiamo", "mods": { "magicka": 30 }, "descr": "+30 Magicka." },
   { "id": "ev_patto", "skill": "evocazione", "nome": "Patto duraturo", "livello": 55, "richiede": "ev_legame", "mods": { "durataEvocazione": 1 }, "descr": "Le evocazioni durano il doppio." },
 
-  { "id": "na_vento", "skill": "navigazione", "nome": "Vento in poppa", "livello": 20, "mods": { "velocitaBarca": 0.1 }, "descr": "La barca va il 10 % più veloce." },
-  { "id": "na_gambe", "skill": "navigazione", "nome": "Gambe da marinaio", "livello": 30, "richiede": "na_vento", "mods": { "stamina": 20 }, "descr": "+20 Stamina." },
-  { "id": "na_mozzo", "skill": "navigazione", "nome": "Passo del mozzo", "livello": 40, "richiede": "na_gambe", "mods": { "velocitaCorsa": 0.1 }, "descr": "Corri il 10 % più veloce." },
-  { "id": "na_corrente", "skill": "navigazione", "nome": "Leggere la corrente", "livello": 55, "richiede": "na_vento", "mods": { "velocitaBarca": 0.15 }, "descr": "La barca va un altro 15 % più veloce." },
-
   { "id": "fo_parsimonia", "skill": "forgiatura", "nome": "Mano parsimoniosa", "livello": 20, "mods": { "materialiForgia": -0.2 }, "descr": "Forgiare costa il 20 % di materiale in meno." },
   { "id": "fo_corazzaio", "skill": "forgiatura", "nome": "Corazzaio", "livello": 30, "richiede": "fo_parsimonia", "mods": { "difesa": 15 }, "descr": "+15 di difesa con qualunque armatura." },
   { "id": "fo_cinghie", "skill": "forgiatura", "nome": "Cinghie su misura", "livello": 40, "richiede": "fo_corazzaio", "mods": { "malusArmatura": -0.5 }, "descr": "Il peso dell'armatura ti rallenta la metà." },
