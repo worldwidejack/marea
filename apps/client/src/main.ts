@@ -7,6 +7,7 @@ import { createInput } from './game/input.ts';
 import { createGameWorld } from './game/world.ts';
 import { createHud } from './ui/hud.ts';
 import { createCompass } from './ui/compass.ts';
+import type { Minimappa } from './ui/minimappa.ts';
 import type { CompassTarget } from './ui/compass.ts';
 import { createApi } from './net/api.ts';
 import { createLotView } from './game/lot.ts';
@@ -97,6 +98,11 @@ async function boot(): Promise<void> {
   const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;
   // mete: comprimibile, caselle per scegliere; con una sola accesa anche la freccia sullo schermo (nascosta quando c'è sopra un pannello)
   const compass = createCompass({ root, targets, camera: renderer.camera, canvas, groundY: world.groundY, hidden: () => coperto() });
+  // minimappa (#62): cerchio con l'arcipelago attorno a te, M o un tocco aprono la mappa intera; isole non visitate nella nebbia.
+  // Si scarica subito dopo l'avvio (import a parte): il JS iniziale ha un tetto (TECH §5), il cerchio arriva un attimo dopo il mondo.
+  const places = arch.places.map((p) => ({ id: `${p.role}:${p.index}`, nome: p.role === 'lotto' ? (p.slot === world.slot ? 'Casa' : '') : p.nome, x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, sempre: p.role === 'porto' || (p.role === 'lotto' && p.slot === world.slot) }));
+  let mappa: Minimappa | null = null;
+  void import('./ui/minimappa.ts').then((m) => { mappa = m.createMinimappa({ root, map: world.map, places, targets, hidden: () => coperto() }); }).catch(() => { /* senza minimappa si gioca lo stesso */ });
   let closedAt = 0, nearWas = false, aWasT = false;
   /** Risorse cambiate fuori dal lotto (posta, esito di una sfida): la barra si aggiorna subito, non al poll dei 30 s. */
   const refreshMyLot = () => { void lots.find((lv) => !lv.readonly)?.refresh(); };
@@ -149,6 +155,7 @@ async function boot(): Promise<void> {
     if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.code === 'KeyC') { if (editor?.isOpen()) editor.close(); else openEditor(); return; }
     if (e.code === 'KeyF') { if (feed?.isOpen()) feed.close(); else openFeed(); return; }
+    if (e.code === 'KeyM') { if (!panelsBusy()) mappa?.toggle(); return; }
     if (e.code === 'KeyI') { if (eroe?.isOpen()) eroe.close(); else if (eroe && !panelsBusy()) { editor?.close(); feed?.close(); eroe.open(); } return; }
     const m = /^(?:Digit|Numpad)([1-4])$/.exec(e.code);
     if (m && !panelsBusy() && !editor?.isOpen() && !feed?.isOpen()) { const id = EMOTES[Number(m[1]) - 1]; if (id) emotes.play(id); }
@@ -201,6 +208,7 @@ async function boot(): Promise<void> {
     for (const lv of lots) lv.update(dt, focus); // rilettura ogni 30 s solo per l'isola dove sei; timer ed etichette ogni frame
     document.body.classList.toggle('mz-sotto', ingressi.active); // nel dungeon: l'interfaccia di superficie si nasconde (CSS del chunk GDR)
     compass.update(focus, renderer.diorama.yaw, t);
+    mappa?.update({ x: focus.x, z: focus.z, yaw: focus.yaw }, renderer.diorama.yaw, world.net.peers());
     aspetto?.update(Date.now(), t, focus);
     renderer.render(acc / DT, t);
     hud.setPerf(renderer.stats());
