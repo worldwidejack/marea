@@ -8,4 +8,4 @@ dettaglio: docs/ROADMAP.md
 **Mondo Sotterraneo fatto** (design di Riccardo, `docs/RPG.md`, issue #17): 3 dungeon dagli ingressi sulle isole (Grotta, Cripta, Portale del Vuoto) con combattimento, archi, magie, pozioni, bottino; scheda del personaggio (I) con livelli, abilità, perk, zaino; Banco da Lavoro, Tavolo Alchemico, Forziere, Serra sull'isola. Il server rigioca ogni spedizione.
 
 ## Prossimo passo
-Jack: prova la Grotta della Marea (Isola Selvaggia) da PC e telefono e dice cosa cambiare; guarda i modelli nuovi. Riccardo: rivede le scelte provvisorie di `docs/RPG.md` e disegna l'albero dei perk (`packages/content/src/rpg/perks.json`).
+Jack: prova la Grotta della Marea (Isola Selvaggia) da PC e telefono; poi prende il minigioco **Lanterne al Porto** (#7). Riccardo (deciso il 7/10): negozi esotici al Porto (#25) e la **Laguna è sua**: sbarco a terra + saga di 4-5 dungeon col mega boss, Regata intatta (#26). Poi l'albero dei perk.
