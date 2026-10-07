@@ -2,7 +2,8 @@
 // (1) C apre #mzEditor, le frecce cambiano riga e valore, l'avatar cambia subito, nessuna POST /api/look; (2) Esc ripristina e chiude;
 // (3) vestito + Salva → POST 200, dopo il reload /api/me e l'avatar hanno il look nuovo; (4) cappello a Perle: prezzo, «Compra» senza Perle
 // → errore rosso, Salva spento; poi Perle vinte con una sfida chiusa (API) → Compra e Salva; (5) Tavolo aperto: C non apre l'editor;
-// (6) telefono 390×844: il bottone apre il foglio, che lascia libero il centro.
+// (6) «Altro dispositivo»: COPIA LINK / MANDA danno `/?t=token` (mai scritto a schermo), copia rifiutata → campo col link;
+// (7) telefono 390×844: il bottone apre il foglio, che lascia libero il centro.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -233,6 +234,37 @@ export default async function (ctx) {
       await ctx.waitState(anna.page, (x) => x.tavolo.open === false, 5000);
     });
 
+    await ctx.test('altro dispositivo: COPIA LINK copia /?t=token (mai a schermo), MANDA condivide, copia rifiutata → campo col link', async () => {
+      // appunti e condivisione finti: in headless mancano o chiedono permessi
+      await anna.page.evaluate(() => {
+        window.__copiato = null; window.__mandato = null; window.__copiaNo = false;
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (t) => { if (window.__copiaNo) throw new Error('negato'); window.__copiato = t; } } });
+        navigator.share = async (d) => { window.__mandato = d.url; };
+      });
+      await anna.page.evaluate(() => window.__game.test.openEditor());
+      await waitOpen(anna, true);
+      const want = `${base}/?t=tokA`;
+      const txt = await anna.page.locator('#mzEditor').innerText();
+      assert(/Altro dispositivo/i.test(txt) && !txt.includes('tokA'), 'sezione mancante o token a schermo: ' + txt.slice(-300));
+      await nav(anna, 'copia-link').click();
+      await anna.page.locator('#mzEditor .mz-note.ok').waitFor({ timeout: 5000 });
+      const copiato = await anna.page.evaluate(() => window.__copiato);
+      assert(copiato === want, `appunti: ${copiato} ≠ ${want}`);
+      await nav(anna, 'manda-link').click();
+      await anna.page.waitForFunction(() => window.__mandato !== null, null, { timeout: 5000 });
+      const mandato = await anna.page.evaluate(() => window.__mandato);
+      assert(mandato === want, `condivisione: ${mandato} ≠ ${want}`);
+      await anna.page.evaluate(() => { window.__copiaNo = true; });
+      await nav(anna, 'copia-link').click();
+      await ctx.waitState(anna.page, (s) => s.editor.linkVisibile === true, 5000);
+      const campo = await anna.page.locator('#mzEditor .mz-ed-url').inputValue();
+      assert(campo === want, `campo col link: ${campo}`);
+      assert(await anna.page.locator('#mzEditor .mz-note.bad').isVisible(), 'nessun avviso dopo la copia rifiutata');
+      await ctx.shot(anna.page, 'editor_altro_dispositivo');
+      await anna.page.keyboard.press('Escape'); await waitOpen(anna, false);
+      assert(!(await st(anna)).editor.linkVisibile, 'il campo col link resta dopo la chiusura');
+    });
+
     await ctx.test('telefono 390×844: tocco su #mzEditorBtn apre il foglio, il centro resta libero', async () => {
       const bruno = await open('tokB', ctx.B.IPHONE);
       const b0 = (await st(bruno)).wp2_avatar.look;
@@ -248,6 +280,11 @@ export default async function (ctx) {
       const salva = await nav(bruno, 'salva').boundingBox();
       assert(salva && salva.y + salva.height <= 844, 'Salva fuori schermo: ' + S(salva));
       await ctx.shot(bruno.page, 'telefono_foglio');
+      const copia = nav(bruno, 'copia-link');
+      await copia.scrollIntoViewIfNeeded();
+      const cb = await copia.boundingBox();
+      assert(cb && cb.height >= 44 && cb.y + cb.height <= 844, 'COPIA LINK < 44 px o fuori schermo: ' + S(cb));
+      await ctx.shot(bruno.page, 'telefono_altro_dispositivo');
       await nav(bruno, 'annulla').tap();
       await waitOpen(bruno, false);
       assert(sameLook((await st(bruno)).wp2_avatar.look, b0), 'Annulla non ripristina');
