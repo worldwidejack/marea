@@ -1,5 +1,6 @@
 // Scheda «Zaino» (R-pannelli): slot equipaggiati in alto, magia preparata, oggetti raggruppati con quantità e peso; tocchi un oggetto →
-// descrizione, statistiche ed Equipaggia/Togli/Leggi. Azioni `equip` e `leggi` su /api/rpg.
+// descrizione, statistiche ed Equipaggia/Togli/Leggi e Butta via (due tocchi: il secondo conferma). Azioni `equip`, `leggi`, `butta` su
+// /api/rpg; nel dungeon (v.sotto) equip e butta vanno alla sim della spedizione, Leggi aspetta l'isola.
 import { SPELLS, spellDef } from '@marea/content/rpg.ts';
 import { heroDerived } from '@marea/sim/rpg/hero.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
@@ -65,7 +66,7 @@ export function renderBag(v: View, out: HTMLElement): void {
     out.appendChild(sec(g.nome, fmtKg(w)));
     for (const it of items) {
       const n = h.inv[it.id] ?? 0, open = v.ui.item === it.id, eq = slotsOf(v, it.id);
-      const r = row(`item:${it.id}`, iconOf(it, 24), it.nome, `×${n} · ${fmtKg(it.peso * n)}`, open, () => { v.ui.item = open ? null : it.id; v.rerender(); });
+      const r = row(`item:${it.id}`, iconOf(it, 24), it.nome, `×${n} · ${fmtKg(it.peso * n)}`, open, () => { v.ui.item = open ? null : it.id; v.ui.butta = null; v.rerender(); });
       r.dataset['item'] = it.id;
       if (eq.length) r.appendChild(el('span', 'eq', TAG[eq[0]!]));
       out.appendChild(r);
@@ -102,7 +103,7 @@ function detail(v: View, it: ItemDef, eq: Exclude<EquipSlot, 'magia'>[]): HTMLEl
     if (s) {
       const known = v.hero.magie.includes(s.id);
       const lv = v.hero.skill[s.scuola]?.lv ?? 0;
-      const why = known ? 'La conosci già' : lv < s.livello ? `Serve ${SKILL_NOME[s.scuola]} ${s.livello}` : '';
+      const why = v.sotto ? 'Leggi fuori dal dungeon' : known ? 'La conosci già' : lv < s.livello ? `Serve ${SKILL_NOME[s.scuola]} ${s.livello}` : '';
       box.appendChild(el('p', '', `Insegna: ${s.nome}. ${s.descr}`));
       const b = button(`leggi:${it.id}`, 'Leggi', why || `impari ${s.nome}`, '', v.busy || !!why, () => v.act({ t: 'leggi', item: it.id }, () => `Hai imparato: ${s.nome}`));
       b.dataset['act'] = 'leggi';
@@ -110,5 +111,27 @@ function detail(v: View, it: ItemDef, eq: Exclude<EquipSlot, 'magia'>[]): HTMLEl
     }
   } else if (it.kind === 'materiale') box.appendChild(el('p', 'mz-rp-warn', 'Serve per forgiare al Banco da Lavoro.'));
   else if (it.kind === 'ingrediente') box.appendChild(el('p', 'mz-rp-warn', 'Serve al Tavolo Alchemico.'));
+  box.appendChild(buttaVia(v, it, eq));
   return box;
+}
+
+/** «Butta via» (1 o tutti): il primo tocco chiede conferma sullo stesso bottone, il secondo butta. Gli oggetti spariscono. */
+function buttaVia(v: View, it: ItemDef, eq: Exclude<EquipSlot, 'magia'>[]): HTMLElement {
+  const n = v.hero.inv[it.id] ?? 0;
+  const r = el('div', 'mz-rp-butta');
+  const one = (q: number, label: string) => {
+    const sure = v.ui.butta?.item === it.id && v.ui.butta.n === q;
+    const lascia = eq.length > 0 && q >= n ? 'è in uso: lo togli' : '';
+    const b = button(`butta:${it.id}:${q}`, sure ? `Sicuro? Butta via${q > 1 ? ` ×${q}` : ''}` : label, sure ? 'tocca di nuovo' : lascia, sure ? 'butta sicuro' : 'butta', v.busy, () => {
+      if (!sure) { v.ui.butta = { item: it.id, n: q }; v.ui.focus = `butta:${it.id}:${q}`; v.rerender(); return; }
+      v.ui.butta = null;
+      if (q >= n) v.ui.item = null;
+      v.act({ t: 'butta', item: it.id, n: q }, () => `Buttato via: ${q > 1 ? `${q} × ` : ''}${it.nome}`);
+    });
+    b.dataset['act'] = sure ? 'butta-sicuro' : 'butta';
+    return b;
+  };
+  r.appendChild(one(1, n > 1 ? 'Butta via 1' : 'Butta via'));
+  if (n > 1) r.appendChild(one(n, `Butta via tutti (×${n})`));
+  return r;
 }

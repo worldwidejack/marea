@@ -1,5 +1,6 @@
 // Zaino e Forziere: aggiungere, togliere, pesare, riporre. Puro, niente eccezioni (le decide chi chiama).
 import { PESI, caricoMaxOf, carriedOf, forziereCap } from './derived.ts';
+import { hasItem, itemDef } from './items.ts';
 import type { LotState } from '../economy/types.ts';
 import type { EquipSlot, HeroState } from './types.ts';
 
@@ -34,6 +35,20 @@ function fitting(id: string, n: number, room: number): number {
   const p = PESI[id] ?? 0;
   if (p <= 0) return n;
   return Math.max(0, Math.min(n, Math.floor((room + 1e-9) / p)));
+}
+
+/** Che tipo di oggetto va in ogni slot (la magia si sceglie tra quelle conosciute). */
+export const SLOT_KINDS: Record<Exclude<EquipSlot, 'magia'>, readonly string[]> = {
+  arma: ['arma', 'arco'], frecce: ['frecce'], corpo: ['armatura', 'veste'], anello1: ['anello'], anello2: ['anello'], pozione: ['pozione'],
+};
+/** null se `id` si può mettere in `slot` (lo zaino è h.inv, la magia tra h.magie), altrimenti il motivo in italiano. */
+export function equipError(h: HeroState, slot: EquipSlot, id: string): string | null {
+  if (slot === 'magia') return h.magie.includes(id) ? null : 'Non conosci questa magia';
+  if (!hasItem(id)) return 'Oggetto sconosciuto';
+  const it = itemDef(id);
+  if (!SLOT_KINDS[slot].includes(it.kind)) return `${it.nome} non va qui`;
+  const other = slot === 'anello1' ? h.equip.anello2 : slot === 'anello2' ? h.equip.anello1 : undefined;
+  return (h.inv[id] ?? 0) < (other === id ? 2 : 1) ? `Non hai: ${it.nome}` : null;
 }
 
 /** Toglie gli slot che puntano a un oggetto non più nello zaino (o al secondo anello uguale senza la seconda copia). */

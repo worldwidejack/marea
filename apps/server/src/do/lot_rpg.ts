@@ -1,11 +1,12 @@
 // Mondo Sotterraneo nel DO del lotto (CONTRACTS §15). Il personaggio sta dentro LotState (hero, forziere, dungeon.pending): niente D1.
-// POST /rpg {azione} → LotState · /dungeon_start {dungeon} → {dungeon, seed, hero, lot, recuperato} · /dungeon_save {inputs, hash} → il DO
-// rigioca gli input fino all'altare e li tiene in pending.salvataggio → {ok, salvato, ticks} · /dungeon_finish {inputs (array o stringa di
-// encodeDungeon), hash} → il DO rigioca gli input (replayDungeon) e applica il risultato del server → {result, tenuto, monete, livelliSu, lot}.
+// POST /rpg {azione} → LotState · /dungeon_start {dungeon, da?: 'lanterna'} → {dungeon, seed, hero, stato, partenza, lot, recuperato} ·
+// /dungeon_save {inputs, azioni, hash} → il DO rigioca input e azioni fino al SALVA sulla lanterna e li tiene in pending.salvataggio →
+// {ok, salvato, ticks} · /dungeon_finish {inputs (array o stringa di encodeDungeon), azioni, hash} → il DO rigioca (replayDungeon) e applica
+// il risultato del server → {result, tenuto, monete, livelliSu, lot}. Azioni = cambi d'equipaggiamento, butta via, salva, esci (dungeon v5).
 // Una spedizione lasciata aperta con un salvataggio si chiude alla discesa dopo (o quando scade, in Lot.load). Gli EconomyError li traduce Lot.fetch.
 import { DUNGEONS } from '@marea/content/rpg.ts';
 import { dungeon as dungeonSim } from '@marea/sim/dungeon/dungeon.ts';
-import { decodeDungeon, encodeDungeon, isPackedDungeon, replayDungeon } from '@marea/sim/dungeon/replay.ts';
+import { decodeDungeon, encodeDungeon, isPackedDungeon, parseDungeonAzioni, replayDungeon } from '@marea/sim/dungeon/replay.ts';
 import type { PackedDungeon } from '@marea/sim/dungeon/types.ts';
 import { chiudiSalvata } from '@marea/sim/dungeon/settle.ts';
 import type { LotState } from '@marea/sim/economy/types.ts';
@@ -38,24 +39,25 @@ export function rpgRoute(lot: LotState, act: string, body: Record<string, unknow
     // la spedizione di prima è rimasta aperta dopo un altare: si chiude tenendo quel bottino
     const prima = chiudiSalvata(lot, now);
     const seed = crypto.getRandomValues(new Uint32Array(1))[0]! >>> 1;
-    const next = startDungeon(prima ? prima.lot : lot, d, seed, now);
+    const next = startDungeon(prima ? prima.lot : lot, d, seed, now, { lanterna: body['da'] === 'lanterna' });
     save(next);
     const p = next.dungeon!.pending!;
-    return json({ dungeon: p.dungeon, seed: p.seed, hero: p.hero, lot: next, recuperato: prima ? { tenuto: prima.tenuto, monete: prima.monete } : null });
+    return json({ dungeon: p.dungeon, seed: p.seed, hero: p.hero, stato: p.stato ?? null, partenza: p.partenza ?? null, lot: next, recuperato: prima ? { tenuto: prima.tenuto, monete: prima.monete } : null });
   }
   const p = lot.dungeon?.pending;
   if (!p) return json({ error: 'Nessuna spedizione aperta: rientra dall’ingresso', code: 'spedizione' }, 409);
   const inputs = inputsOf(body['inputs']);
-  if (!inputs) return json({ error: 'Spedizione non valida' }, 400);
-  const result = replayDungeon(p.seed, p.dungeon, p.hero, inputs);
+  const azioni = parseDungeonAzioni(body['azioni'], dungeonSim.maxTicks);
+  if (!inputs || !azioni) return json({ error: 'Spedizione non valida' }, 400);
+  const result = replayDungeon(p.seed, p.dungeon, p.hero, inputs, { stato: p.stato ?? null, partenza: p.partenza ?? null, azioni });
   const hash = body['hash'];
   if (hash !== result.hash) console.warn('[marea] dungeon hash diverso', { act, owner: lot.owner, dungeon: p.dungeon, seed: p.seed, client: hash, server: result.hash, ticks: result.ticks });
   if (act === 'dungeon_save') {
-    if (result.done || !result.salvato) return json({ error: 'Nessun altare toccato in questa spedizione', code: 'altare' }, 409);
+    if (result.done || !result.salvato) return json({ error: 'Non hai salvato a nessuna lanterna in questa spedizione', code: 'altare' }, 409);
     // un salvataggio arrivato in ritardo non copre uno più recente
     if ((p.salvataggio?.ticks ?? -1) >= result.ticks) return json({ ok: true, salvato: result.salvato, ticks: p.salvataggio!.ticks });
     const enc = typeof body['inputs'] === 'string' ? body['inputs'] : encodeDungeon(inputs);
-    save({ ...lot, version: lot.version + 1, dungeon: { pending: { ...p, salvataggio: { inputs: enc, ticks: result.ticks } } } });
+    save({ ...lot, version: lot.version + 1, dungeon: { pending: { ...p, salvataggio: { inputs: enc, ticks: result.ticks, azioni } } } });
     return json({ ok: true, salvato: result.salvato, ticks: result.ticks });
   }
   // dungeon_finish

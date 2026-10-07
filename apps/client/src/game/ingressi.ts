@@ -1,7 +1,8 @@
 // Ingressi dei dungeon nel mondo (R-scena, CONTRACTS §15). Bundle iniziale: piccolo, niente import statici del GDR (solo `import type`).
 // Nel mondo: modello `prop_ingresso_<stile>` sull'isola, cartello col nome che si vede da lontano, bottone ENTRA vicino (≤ 4 m, anche A/E/Spazio).
-// Entrando: POST /api/dungeon/start → import('../rpg/index.ts') → startRun; alla fine POST /api/dungeon/finish (input compressi se la sim
-// ha encodeDungeon) → scheda dell'esito del server → setLot → di nuovo all'ingresso. Esc nel dungeon = uscita senza consegna (finish non parte).
+// Entrando: se sei uscito da una lanterna di quel dungeon, «Da dove parti?» (ingresso o lanterna) → POST /api/dungeon/start →
+// import('../rpg/index.ts') → startRun; alla fine POST /api/dungeon/finish (input compressi e azioni dal menu) → scheda dell'esito del server
+// → setLot → di nuovo all'ingresso. Uscita dalla Pausa senza aver salvato = niente consegna (finish non parte).
 import * as THREE from 'three';
 import type { InputFrame, LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
@@ -16,8 +17,8 @@ import { PAL, el, injectUiStyle } from '../ui/style.ts';
 import { createLabelLayer } from '../ui/sheet.ts';
 import { FLAGS } from '../flags.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-import type { DungeonRun, RunCtx } from '../rpg/types.ts';
-import type { PackedDungeon } from '@marea/sim/dungeon/types.ts';
+import type { DungeonRun, PanelCtx, RunCtx } from '../rpg/types.ts';
+import type { DungeonAzione, DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
 
 export type Ingressi = {
   readonly spots: readonly { id: string; nome: string; x: number; z: number; icon: PixId }[];
@@ -51,12 +52,18 @@ export function nextDungeon(completati: readonly string[]): string | null {
 /** Stato condiviso col chunk GDR (dungeon_run.ts lo legge): autopilot dei test e vista corrente per state().dungeon. */
 /** Ponte coi test (?test=1): autopilot (tick per frame), `altare` = cammina fino a quell'altare (-1 = no), stato della partita. */
 /** posa: solo test (hook dungeonPosa), campi della vista dell'eroe forzati per la resa (anim, t, stile, carica, fx, fz): la sim non cambia. */
-export const dungeonLink: { autopilot: number; altare: number; posa: Record<string, unknown> | null; state: (() => Record<string, unknown>) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, altare: -1, posa: null, state: null };
+/** act: azione dal menu nella spedizione in corso (hook dungeonAct: equip, butta, salva, esci); null = fatta, se no il motivo. */
+export const dungeonLink: { autopilot: number; altare: number; posa: Record<string, unknown> | null; state: (() => Record<string, unknown>) | null; act: ((a: DungeonAzione) => string | null) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, altare: -1, posa: null, state: null, act: null };
 
 const NEAR_M = 4;
 const ICON: PixId = 'ingresso';
 const CSS = `.mz-lbl.dng { border-color: ${PAL.viola}; font-size: 15px; min-height: 34px; }
-body.mz-sotto #mzDngEntra { display: none; }`;
+body.mz-sotto #mzDngEntra { display: none; }
+.mz-dng-da { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 32px)); padding: 14px 16px 16px; background: rgba(46,30,20,.97); border: 3px solid ${PAL.viola}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 24; text-align: center; }
+.mz-dng-da b { display: block; font-size: 19px; }
+.mz-dng-da .sub { color: ${PAL.sabbia}; font-size: 14px; margin: 4px 0 4px; }
+.mz-dng-da .mz-btn { justify-content: center; }
+.mz-dng-da .mz-btn.lan { background: ${PAL.giallo}; }`;
 
 export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; canvas: HTMLCanvasElement; getLot(): LotState | null; setLot(l: LotState): void }): Ingressi {
   injectUiStyle();
@@ -106,15 +113,36 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     return { x: r.left - rr.left + ((v.x + 1) / 2) * r.width, y: r.top - rr.top + ((1 - v.y) / 2) * r.height, on: v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05 };
   };
 
-  async function enter(s: Spot): Promise<void> {
-    if (busy || run || o.world.race.on) return;
+  /** Uscito l'ultima volta da una lanterna di questo dungeon: «Da dove parti?». null = ci ha ripensato. */
+  let daBox: HTMLElement | null = null;
+  function askDa(s: Spot): Promise<'ingresso' | 'lanterna' | null> {
+    return new Promise((res) => {
+      const box = el('div', 'mz mz-dng-da'); box.id = 'mzDngDa'; daBox = box;
+      const close = (v: 'ingresso' | 'lanterna' | null) => { box.remove(); daBox = null; removeEventListener('keydown', kd, true); res(v); };
+      const b = (cls: string, act: string, txt: string, v: 'ingresso' | 'lanterna' | null) => { const x = el('button', cls, txt); x.type = 'button'; x.dataset['act'] = act; x.addEventListener('click', () => close(v)); return x; };
+      const kd = (e: KeyboardEvent) => { if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(null); } };
+      box.append(el('b', '', s.nome), el('div', 'sub', 'Da dove parti?'),
+        b('mz-btn lan', 'lanterna', 'DALLA LANTERNA', 'lanterna'), b('mz-btn ghost', 'ingresso', 'DALL’INGRESSO', 'ingresso'), b('mz-btn ghost', 'annulla', 'Annulla', null));
+      for (const ev of ['pointerdown', 'touchstart']) box.addEventListener(ev, (x) => x.stopPropagation());
+      addEventListener('keydown', kd, true);
+      o.root.append(box);
+    });
+  }
+
+  async function enter(s: Spot, daTest?: 'ingresso' | 'lanterna'): Promise<void> {
+    if (busy || run || o.world.race.on || daBox) return;
     const api = o.api;
     if (!api) { o.hud.toast('Per scendere serve il tuo link personale', 3000); return; }
+    const lan = o.getLot()?.hero?.lanterne?.[s.id];
+    let da: 'ingresso' | 'lanterna' = 'ingresso';
+    if (daTest) da = daTest;
+    else if (typeof lan === 'number') { const v = await askDa(s); if (!v) return; da = v; }
+    if (busy || run) return;
     busy = true; btn.classList.remove('on'); lastErr = null;
     const zoom0 = o.renderer.diorama.zoom;
     try {
       let st;
-      try { st = await api.dungeonStart(s.id); } catch (e) { fail(e, 'Niente connessione, riprova tra poco'); return; }
+      try { st = await api.dungeonStart(s.id, da); } catch (e) { fail(e, 'Niente connessione, riprova tra poco'); return; }
       o.setLot(st.lot);
       const rec = st.recuperato, recN = rec ? Object.values(rec.tenuto).reduce((a, b) => a + b, 0) : 0;
       if (rec) recuperato = rec;
@@ -122,11 +150,12 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       else o.hud.toast(`${s.nome}…`, 1500);
       const mod = await import('../rpg/index.ts');
       const { encodeDungeon } = await import('@marea/sim/dungeon/replay.ts');
-      // altare toccato: input fin lì al server, che li rigioca e tiene il salvataggio anche se la scheda si chiude
-      const onAltare = (sv: { inputs: PackedDungeon; hash: number }) => {
-        api.dungeonSave(encodeDungeon(sv.inputs), sv.hash).then(() => { salvataggi++; }, (e: unknown) => console.warn('[marea] salvataggio all’altare non riuscito', e));
+      // SALVA alla lanterna: input e azioni fin lì al server, che li rigioca e tiene il salvataggio anche se la scheda si chiude
+      const onAltare = (sv: { inputs: PackedDungeon; hash: number; azioni: DungeonAzioni }) => {
+        api.dungeonSave(encodeDungeon(sv.inputs), sv.hash, sv.azioni).then(() => { salvataggi++; }, (e: unknown) => { console.warn('[marea] salvataggio alla lanterna non riuscito', e); o.hud.toast('Il server non ha ricevuto il salvataggio: se chiudi adesso lo perdi', 3000); });
       };
-      run = mod.startRun(ctx, { dungeon: st.dungeon, seed: st.seed, hero: st.hero, onAltare });
+      const panel: PanelCtx = { api, hud: o.hud, root: o.root, getLot: o.getLot, setLot: o.setLot };
+      run = mod.startRun(ctx, { dungeon: st.dungeon, seed: st.seed, hero: st.hero, stato: st.stato, partenza: st.partenza, panel, onAltare });
       entered++; current = s.id; busy = false;
       const done = await run.done;
       run = null; busy = true;
@@ -134,7 +163,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       if (!done) { aborts++; o.hud.toast('Sei risalito senza bottino', 2500); return; }
       try {
         const prima = next();
-        const r = await api.dungeonFinish(encodeDungeon(done.inputs), done.hash);
+        const r = await api.dungeonFinish(encodeDungeon(done.inputs), done.hash, done.azioni);
         finishes++; lastResult = { outcome: r.result.outcome, tenuto: r.tenuto, monete: r.monete, livelliSu: r.livelliSu, capo: r.result.capo ?? false, usati: r.result.usati, rotti: r.result.rotti, hash: r.result.hash, clientHash: done.hash };
         o.setLot(r.lot);
         await mod.showResult(ctx, r);
@@ -184,13 +213,14 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
 
   registerStateProvider('ingressi', () => ({ spots: spots.map(({ id, nome, x, z }) => ({ id, nome, x, z })), models: marks.map((m) => m.holder.children.length), cleared, near: near?.id ?? null, next: next(), busy, active: !!run?.active, entered, finishes, aborts, salvataggi, recuperato, lastErr, lastResult }));
   registerStateProvider('dungeon', () => (run && dungeonLink.state ? { ...dungeonLink.state(), busy } : { active: false, dungeon: current, busy, tick: 0, outcome: null, hero: null, nemici: 0, vivi: 0 }));
-  registerTestHook('enterDungeon', (id) => {
+  registerTestHook('enterDungeon', (id, da) => {
     const s = spots.find((x) => x.id === String(id ?? 'grotta'));
     if (!s || busy || run) return false;
     if (o.world.mode === 'walk') o.world.avatar.teleport(s.x, s.z + 3);
-    void enter(s);
+    void enter(s, da === 'lanterna' || da === 'ingresso' ? da : undefined);
     return true;
   });
+  registerTestHook('dungeonAct', (a) => (dungeonLink.act ? dungeonLink.act(a as DungeonAzione) : 'nessuna spedizione'));
   registerTestHook('dungeonAltare', (n) => { dungeonLink.altare = Number.isInteger(n) ? Number(n) : -1; return dungeonLink.altare; });
   registerTestHook('dungeonPosa', (p) => { dungeonLink.posa = p && typeof p === 'object' ? { ...(p as Record<string, unknown>) } : null; return dungeonLink.posa; });
   registerTestHook('dungeonAutopilot', (on, speed) => { dungeonLink.autopilot = on ? Math.max(1, Math.min(20, Math.round(Number(speed ?? 4)) || 4)) : 0; return dungeonLink.autopilot; });
@@ -198,7 +228,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
   return {
     spots: spots.map(({ id, nome, x, z, icon }) => ({ id, nome, x, z, icon })),
     get active() { return !!run && run.active; },
-    isBusy: () => busy || (!!run && !run.active),
+    isBusy: () => busy || !!daBox || (!!run && !run.active),
     next,
     tick(a) {
       const pressA = a && !aWas; aWas = a;
@@ -213,7 +243,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     update(alpha, dt, t) {
       if (run) { run.update(alpha, dt, t); return; }
       if (clearPasses === 0 || (clearPasses === 1 && t > 4)) { clearPasses++; clearScenery(); } // la scenografia può arrivare dopo
-      const show = !!near && !busy;
+      const show = !!near && !busy && !daBox;
       if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `ENTRA · ${near.nome.toUpperCase()}`), el('small', '', 'A')); }
       btn.classList.toggle('on', show);
       for (const m of marks) { const p = screenOf(m.s.x, m.holder.position.y + 3.6, m.s.z); m.label.place(p.x, p.y, p.on && !o.world.race.on); }

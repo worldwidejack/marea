@@ -5,7 +5,7 @@ import { advance } from '../economy/advance.ts';
 import { pay } from '../economy/actions.ts';
 import { EconomyError, ZERO } from '../economy/types.ts';
 import type { LotState } from '../economy/types.ts';
-import { addTo, available, bagWeight, buildingLevel, chestCap, fixEquip, removeFrom, stow, takeItems } from './bag.ts';
+import { addTo, available, bagWeight, buildingLevel, chestCap, equipError, fixEquip, removeFrom, stow, takeItems } from './bag.ts';
 import type { Bag } from './bag.ts';
 import { caricoMaxOf, carriedOf, modsOf } from './derived.ts';
 import { gainSkillXp, heroOf } from './hero.ts';
@@ -15,9 +15,6 @@ import type { EquipSlot, HeroState, ItemDef, RpgAction } from './types.ts';
 export { parseRpgAction } from './parse.ts';
 
 const HOUR = 3_600_000;
-const SLOT_KINDS: Record<Exclude<EquipSlot, 'magia'>, readonly string[]> = {
-  arma: ['arma', 'arco'], frecce: ['frecce'], corpo: ['armatura', 'veste'], anello1: ['anello'], anello2: ['anello'], pozione: ['pozione'],
-};
 const err = (code: ConstructorParameters<typeof EconomyError>[0], msg: string): EconomyError => new EconomyError(code, msg);
 
 function needItem(id: string): ItemDef {
@@ -49,14 +46,9 @@ function takeAll(lot: LotState, h: HeroState, cost: Record<string, number>): { h
 function equip(h: HeroState, slot: EquipSlot, id: string | null): HeroState {
   const e = { ...h.equip };
   if (id === null) { delete e[slot]; return { ...h, equip: e }; }
-  if (slot === 'magia') {
-    if (!h.magie.includes(id)) throw err('equip', 'Non conosci questa magia');
-  } else {
-    const it = needItem(id);
-    if (!SLOT_KINDS[slot].includes(it.kind)) throw err('equip', `${it.nome} non va qui`);
-    const other = slot === 'anello1' ? e.anello2 : slot === 'anello2' ? e.anello1 : undefined;
-    if ((h.inv[id] ?? 0) < (other === id ? 2 : 1)) throw err('oggetto', `Non hai: ${it.nome}`);
-  }
+  if (slot !== 'magia') needItem(id);
+  const why = equipError(h, slot, id);
+  if (why) throw err(why.startsWith('Non hai') ? 'oggetto' : 'equip', why);
   e[slot] = id;
   return { ...h, equip: e };
 }
@@ -178,6 +170,13 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       if (carriedOf(h) + it.peso * a.n > caricoMaxOf(h) + 1e-9) throw err('peso', 'Zaino troppo pesante');
       h = { ...h, inv: addTo(h.inv, it.id, a.n) };
       forziere = removeFrom(f, it.id, a.n);
+      break;
+    }
+    case 'butta': {
+      // gli slot che restano senza l'oggetto si svuotano (fixEquip in fondo): la UI chiede conferma prima
+      const it = needItem(a.item);
+      if ((h.inv[it.id] ?? 0) < a.n) throw err('oggetto', `Non hai abbastanza: ${it.nome}`);
+      h = { ...h, inv: removeFrom(h.inv, it.id, a.n) };
       break;
     }
     case 'serra': ({ hero: h, forziere, lot } = serra(lot, h)); break;

@@ -120,6 +120,21 @@ export default async function (ctx) {
       await waitEroe(D, '(e) => !e.open');
     });
 
+    await ctx.test('Zaino: Butta via una freccia (due tocchi: il primo chiede conferma), tolta sul server', async () => {
+      await click(D, '#mzHeroBtn');
+      await waitEroe(D, '(e) => e.open && e.view === "eroe"');
+      await click(D, '#mzEroe [data-tab="zaino"]');
+      const n0 = (await lot()).hero.inv.frecce_legno;
+      await click(D, '#mzEroe [data-item="frecce_legno"]');
+      await click(D, '#mzEroe [data-det="frecce_legno"] [data-act="butta"]');
+      assert((await lot()).hero.inv.frecce_legno === n0, 'buttata al primo tocco, senza conferma');
+      await click(D, '#mzEroe [data-det="frecce_legno"] [data-act="butta-sicuro"]');
+      await waitEroe(D, `(e) => e.inv.frecce_legno === ${n0 - 1} && !e.busy`);
+      assert((await lot()).hero.inv.frecce_legno === n0 - 1, 'freccia non buttata sul server');
+      await D.page.keyboard.press('KeyI');
+      await waitEroe(D, '(e) => !e.open');
+    });
+
     await ctx.test('Banco: costruito col clock di test, «Forgia» dal foglio, bronzo comprato in Bottega, arma di bronzo forgiata', async () => {
       await build('banco');
       // monete: la dotazione non basta per 3 lingotti → qualche spedizione nella Grotta giocata in Node con l'autopilot (come m2_server)
@@ -134,7 +149,7 @@ export default async function (ctx) {
         const need = Math.max(1, 3 - bronzo(l)); // almeno un lingotto si compra sempre dalla Bottega
         if ((l.hero?.monete ?? RPG.partenza.monete) >= need * prezzo) break;
         const s = (await post('/api/dungeon/start', 'tokA', { dungeon: 'grotta' })).body;
-        const g = dungeon.create({ seed: s.seed, dungeon: s.dungeon, hero: s.hero });
+        const g = dungeon.create({ seed: s.seed, dungeon: s.dungeon, hero: s.hero, stato: s.stato, partenza: s.partenza });
         const rng = createRng(s.seed), frames = [];
         while (!g.done && frames.length < dungeon.maxTicks) { const f = quantizeDungeon(autopilot(g, rng)); frames.push(f); dungeon.step(g, f); }
         const r = await post('/api/dungeon/finish', 'tokA', { inputs: packDungeon(frames), hash: dungeon.result(g).hash });

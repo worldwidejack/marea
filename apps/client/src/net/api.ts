@@ -4,8 +4,8 @@
 // SOLO per animare i conti alla rovescia. L'economia la decide il server.
 import type { Challenge, LotState, Medal, PackedInputs, Resources } from '@marea/sim';
 import type { FeedItem, Look } from '@marea/protocol';
-import type { RpgAction, RunHero, RunResult } from '@marea/sim/rpg/types.ts';
-import type { PackedDungeon } from '@marea/sim/dungeon/types.ts';
+import type { HeroState, RpgAction, RunHero, RunResult } from '@marea/sim/rpg/types.ts';
+import type { DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
 
 export type Me = { id: string; nome: string; look: Look; lotto: LotState | null; slot?: number | null };
 export type { FeedItem };
@@ -25,6 +25,8 @@ export type SoloResult = { score: number; medal: Medal; detail: Record<string, n
 
 /** Spedizione aperta dal server (POST /api/dungeon/start): seed e fotografia del personaggio. CONTRACTS §15. */
 export type DungeonStart = { dungeon: string; seed: number; hero: RunHero; lot: LotState;
+  /** Il personaggio all'entrata (per cambiare equipaggiamento nel dungeon) e la lanterna da cui si parte (null = ingresso). */
+  stato: HeroState | null; partenza: number | null;
   /** La spedizione di prima era rimasta aperta dopo un altare: il server l'ha chiusa tenendo questo bottino. */
   recuperato: { tenuto: Record<string, number>; monete: number } | null };
 /** Salvataggio all'altare (POST /api/dungeon/save): bottino al sicuro secondo il server. */
@@ -74,11 +76,12 @@ export type Api = {
   // ---- Mondo Sotterraneo (CONTRACTS §15) ----
   /** Azione del personaggio (livello, perk, equip, forgia, alchimia, forziere, serra…): risponde col lotto aggiornato. */
   rpg(a: RpgAction): Promise<LotState>;
-  dungeonStart(dungeon: string): Promise<DungeonStart>;
-  /** `inputs` come array o già compressi con `encodeDungeon` (stringa, molto più leggera): il server accetta entrambi. */
-  dungeonFinish(inputs: PackedDungeon | string, hash: number): Promise<DungeonFinish>;
-  /** Altare toccato: input fin lì (anche compressi), il server li rigioca e tiene il bottino al sicuro anche se la scheda si chiude. */
-  dungeonSave(inputs: PackedDungeon | string, hash: number): Promise<DungeonSave>;
+  /** `da: 'lanterna'` = riparti dalla lanterna da cui sei uscito l'ultima volta (hero.lanterne). */
+  dungeonStart(dungeon: string, da?: 'ingresso' | 'lanterna'): Promise<DungeonStart>;
+  /** `inputs` come array o già compressi con `encodeDungeon` (stringa, molto più leggera): il server accetta entrambi. `azioni`: dal menu, col tick. */
+  dungeonFinish(inputs: PackedDungeon | string, hash: number, azioni?: DungeonAzioni): Promise<DungeonFinish>;
+  /** SALVA sulla lanterna: input e azioni fin lì, il server li rigioca e tiene il bottino al sicuro anche se la scheda si chiude. */
+  dungeonSave(inputs: PackedDungeon | string, hash: number, azioni?: DungeonAzioni): Promise<DungeonSave>;
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;
@@ -219,23 +222,26 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, premio: d['premio'] as Resources, premiata: !!d['premiata'], lot: asLot(d['lot']) };
     },
     async rpg(a) { return asLot(await call('POST', '/api/rpg', { azione: a })); },
-    async dungeonStart(dungeon) {
-      const d = await call('POST', '/api/dungeon/start', { dungeon });
+    async dungeonStart(dungeon, da) {
+      const d = await call('POST', '/api/dungeon/start', da === 'lanterna' ? { dungeon, da } : { dungeon });
       if (!isObj(d) || typeof d['seed'] !== 'number' || !isObj(d['hero'])) throw new ApiError(500, 'Risposta del server non valida');
       const rec = isObj(d['recuperato']) ? d['recuperato'] : null;
       const recuperato = rec ? { tenuto: isObj(rec['tenuto']) ? (rec['tenuto'] as Record<string, number>) : {}, monete: typeof rec['monete'] === 'number' ? rec['monete'] : 0 } : null;
-      return { dungeon: String(d['dungeon'] ?? dungeon), seed: d['seed'], hero: d['hero'] as RunHero, lot: asLot(d['lot']), recuperato };
+      return {
+        dungeon: String(d['dungeon'] ?? dungeon), seed: d['seed'], hero: d['hero'] as RunHero, lot: asLot(d['lot']), recuperato,
+        stato: isObj(d['stato']) ? (d['stato'] as HeroState) : null, partenza: typeof d['partenza'] === 'number' ? d['partenza'] : null,
+      };
     },
-    async dungeonFinish(inputs, hash) {
-      const d = await call('POST', '/api/dungeon/finish', { inputs, hash });
+    async dungeonFinish(inputs, hash, azioni) {
+      const d = await call('POST', '/api/dungeon/finish', { inputs, hash, azioni: azioni ?? [] });
       if (!isObj(d) || !isObj(d['result'])) throw new ApiError(500, 'Risposta del server non valida');
       return {
         result: d['result'] as RunResult, tenuto: isObj(d['tenuto']) ? (d['tenuto'] as Record<string, number>) : {},
         monete: typeof d['monete'] === 'number' ? d['monete'] : 0, livelliSu: typeof d['livelliSu'] === 'number' ? d['livelliSu'] : 0, lot: asLot(d['lot']),
       };
     },
-    async dungeonSave(inputs, hash) {
-      const d = await call('POST', '/api/dungeon/save', { inputs, hash });
+    async dungeonSave(inputs, hash, azioni) {
+      const d = await call('POST', '/api/dungeon/save', { inputs, hash, azioni: azioni ?? [] });
       if (!isObj(d)) throw new ApiError(500, 'Risposta del server non valida');
       const sv = isObj(d['salvato']) ? d['salvato'] : null;
       return { ok: !!d['ok'], salvato: sv ? { bottino: isObj(sv['bottino']) ? (sv['bottino'] as Record<string, number>) : {}, monete: typeof sv['monete'] === 'number' ? sv['monete'] : 0 } : null, ticks: typeof d['ticks'] === 'number' ? d['ticks'] : 0 };

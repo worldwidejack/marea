@@ -40,7 +40,11 @@ export function showDungeonResult(root: HTMLElement, r: DungeonFinish): Promise<
   const h = el('h2', '', title); h.style.color = color;
   const secs = Math.round(res.ticks / 60);
   const cadute = res.cadute ?? 0;
-  box.append(h, el('div', 'sub', `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} sotto terra · ${Object.values(res.uccisi ?? {}).reduce((a, b) => a + b, 0)} nemici battuti${cadute ? ` · ${cadute} ${cadute === 1 ? 'risveglio' : 'risvegli'} all’altare` : ''}`));
+  box.append(h, el('div', 'sub', `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} sotto terra · ${Object.values(res.uccisi ?? {}).reduce((a, b) => a + b, 0)} nemici battuti${cadute ? ` · ${cadute} ${cadute === 1 ? 'risveglio' : 'risvegli'} alla lanterna` : ''}`));
+  if (out === 'uscito' && typeof res.lanterna === 'number') {
+    const lan = el('div', 'lvl', 'Uscito dalla lanterna: la prossima volta puoi ripartire da lì'); lan.dataset['lanterna'] = String(res.lanterna);
+    box.append(lan);
+  }
 
   const item = (id: string, n: number, lost = false) => {
     const d = hasItem(id) ? itemDef(id) : null;
@@ -54,7 +58,7 @@ export function showDungeonResult(root: HTMLElement, r: DungeonFinish): Promise<
   box.append(el('div', 'sec', 'BOTTINO TENUTO'));
   if (kept.length) for (const [id, n] of kept) box.append(item(id, n)); else box.append(el('div', 'it', out === 'morto' ? 'Niente: cadendo hai perso il bottino' : 'Niente stavolta'));
   const lost = Object.entries(res.bottino ?? {}).map(([id, n]) => [id, Math.floor(n) - (r.tenuto?.[id] ?? 0)] as const).filter(([, n]) => n > 0);
-  const lostLabel = out === 'uscito' ? 'PERSO (TROPPO PESO)' : res.salvato ? 'PERSO DOPO L’ULTIMO ALTARE' : out === 'morto' ? 'PERSO CADENDO' : 'PERSO';
+  const lostLabel = out === 'uscito' ? 'PERSO (TROPPO PESO)' : res.salvato ? 'PERSO DOPO L’ULTIMO SALVATAGGIO' : out === 'morto' ? 'PERSO CADENDO' : 'PERSO';
   if (lost.length) { box.append(el('div', 'sec', lostLabel)); for (const [id, n] of lost) box.append(item(id, n, true)); }
   const coins = el('div', 'it'); coins.append(itemIcon('anello', PAL.giallo, 24), el('span', '', 'Monete'), el('span', 'q', `+${r.monete}`));
   box.append(coins);

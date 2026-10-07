@@ -13,6 +13,7 @@ import {
   HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS, ALLEATO_SEGUE,
 } from './tuning.ts';
 import { sweepTo, swept, swingStyle } from './swing.ts';
+import { consuma } from './zaino.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
@@ -83,7 +84,7 @@ function sweepSwing(s: DungeonState): void {
     s.usura[a.id] = h.colpiFragile;
     if (h.colpiFragile >= fragile) {
       s.eventi.push({ t: 'rotto', item: a.id });
-      add(s.rotti, a.id, 1);
+      consuma(s, a.id, s.rotti);
       s.usura[a.id] = 0; // la copia successiva è nuova
       h.arma = pugni();
     }
@@ -122,7 +123,7 @@ function shoot(s: DungeonState): void {
   faceTo(s, aim(s, MAGIA_GITTATA * 2, COS_CONO_ARCO, 0, true));
   const traits = mergeTraits(a.traits, fr.traits);
   h.frecce--;
-  add(s.usati, fr.id, 1);
+  consuma(s, fr.id, s.usati);
   s.proj.push({
     id: s.nextId++, tipo: 'freccia', x: h.x + h.fx * 0.4, y: FRECCIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v,
     g: traits.noGravita ? 0 : fr.gravita, danno: (a.danno + fr.danno) * t * (1 + buff(s, 'dannoArco')), life: VOLO_MAX_TICKS,
@@ -165,7 +166,7 @@ function drink(s: DungeonState): void {
   const p = rh.pozione !== null ? rh.pozioni[rh.pozione] : undefined;
   if (!p || h.pozioni <= 0) return;
   h.pozioni--;
-  add(s.usati, p.id, 1);
+  consuma(s, p.id, s.usati);
   if (p.cura.vita) h.vita = Math.min(rh.max.vita, h.vita + p.cura.vita);
   if (p.cura.magicka) h.magicka = Math.min(rh.max.magicka, h.magicka + p.cura.magicka);
   if (p.cura.stamina) h.stamina = Math.min(rh.max.stamina, h.stamina + p.cura.stamina);

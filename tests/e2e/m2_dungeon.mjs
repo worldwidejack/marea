@@ -1,7 +1,8 @@
 // M2-dungeon (R-scena, CONTRACTS §15): ingressi nel mondo (coincidono con DUNGEONS), discesa con l'hook enterDungeon, scena, HUD,
-// controlli, autopilot fino all'uscita, esito DEL SERVER e bottino nel lotto (/api/lot); uscita con Esc che NON chiama finish (la
-// spedizione resta aperta sul server); altare: salvataggio sul server, Esc tiene il bottino dell'altare («SEI RISALITO»); i 4 bottoni
-// sul telefono non si sovrappongono; draw call ≤ 100 e triangoli ≤ 150k nel dungeon.
+// controlli, autopilot fino all'uscita, esito DEL SERVER e bottino nel lotto (/api/lot); Esc = Pausa (partita ferma) → Esci → «Uscire?»
+// che NON chiama finish (la spedizione resta aperta sul server); lanterna: SALVA (sul server), Esci tiene il bottino salvato («SEI RISALITO»);
+// zaino nel dungeon (cambio d'arma, Butta via, partita in pausa), ESCI dalla lanterna e ripartenza da lì; i bottoni sul telefono non si
+// sovrappongono (anche la lanterna); draw call ≤ 100 e triangoli ≤ 150k nel dungeon.
 // Screenshot a 1280×720 e 390×844 in tests/out/shots/m2_dungeon_*.png. Persone vere su wrangler dev locale (come m1_solo).
 import fs from 'node:fs';
 import net from 'node:net';
@@ -82,7 +83,7 @@ export default async function (ctx) {
     });
     await ctx.shot(page, '1_ingresso_1280');
 
-    await ctx.test('Cripta: si entra, scena e HUD, Q lancia la magia; Esc → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
+    await ctx.test('Cripta: si entra, scena e HUD, Q lancia la magia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
       await hook('enterDungeon', 'cripta');
       await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await page.waitForSelector('#mzDngHud', { timeout: 3000 });
@@ -95,8 +96,12 @@ export default async function (ctx) {
       await sleep(150);
       await ctx.shot(page, '3_cripta_1280');
       await page.keyboard.press('Escape');
-      await page.waitForSelector('#mzDngAsk.on', { timeout: 3000 });
+      await page.waitForSelector('#mzDngPausa.on', { timeout: 3000 });
       const t0 = (await st()).dungeon.tick; await sleep(400);
+      assert((await st()).dungeon.tick === t0 && (await st()).dungeon.paused, 'in pausa la partita deve stare ferma');
+      await ctx.shot(page, '3b_pausa_1280');
+      await page.locator('#mzDngPausa [data-act="esci-menu"]').click();
+      await page.waitForSelector('#mzDngAsk.on', { timeout: 3000 });
       assert((await st()).dungeon.tick === t0, 'con la domanda aperta la partita deve stare ferma');
       await page.locator('#mzDngAsk [data-act="esci"]').click();
       await ctx.waitState(page, (s) => s.ingressi.aborts === 1 && !s.dungeon.active && !s.ingressi.busy, 8000);
@@ -154,18 +159,30 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await sleep(1200); await samplePerf();
       await ctx.shot(page, '4_vuoto_1280');
-      await page.keyboard.press('Escape'); await page.locator('#mzDngAsk [data-act="esci"]').click();
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('#mzDngPausa.on', { timeout: 3000 });
+      await page.locator('#mzDngPausa [data-act="esci-menu"]').click();
+      await page.waitForSelector('#mzDngAsk.on', { timeout: 3000 });
+      await page.locator('#mzDngAsk [data-act="esci"]').click();
       await ctx.waitState(page, (s) => s.ingressi.aborts === 2 && !s.dungeon.active, 8000);
     });
 
-    await ctx.test('Grotta: fino all’altare (salvato sul server), Esc → «tieni il bottino dell’ultimo altare» → SEI RISALITO, spedizione chiusa', async () => {
+    const lanternaVicina = () => { const m = parseDungeon(DUNGEONS.find((d) => d.id === 'grotta')), dist = bfs(m, m.exit.cz * m.w + m.exit.cx); return m.altari.map((a, i) => [dist[a.cz * m.w + a.cx], i]).sort((a, b) => a[0] - b[0])[0][1]; };
+    await ctx.test('Grotta: fino alla lanterna (non salva da sola), SALVA (sul server), Esci → «tieni il bottino salvato alla lanterna» → SEI RISALITO', async () => {
       // l'altare più vicino alla scala: ci si arriva camminando (hook dungeonAltare, input registrati come quelli veri)
       const m = parseDungeon(DUNGEONS.find((d) => d.id === 'grotta')), dist = bfs(m, m.exit.cz * m.w + m.exit.cx);
       const n = m.altari.map((a, i) => [dist[a.cz * m.w + a.cx], i]).sort((a, b) => a[0] - b[0])[0][1];
       await hook('enterDungeon', 'grotta');
       await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await hook('dungeonAltare', n);
-      await ctx.waitState(page, (s) => !!s.dungeon.salvato && s.ingressi.salvataggi >= 1, 120000);
+      await ctx.waitState(page, (s, n) => s.dungeon.lanterna === n, 120000, n);
+      await page.waitForSelector('#mzDngLanterna.on', { timeout: 3000 });
+      assert(!(await st()).dungeon.salvato, 'passandoci sopra la lanterna non deve salvare da sola');
+      await ctx.shot(page, '6a_lanterna_1280');
+      await page.locator('#mzDngLanterna [data-act="salva"]').click();
+      await ctx.waitState(page, (s) => !!s.dungeon.salvato && s.dungeon.salvatoQui && s.ingressi.salvataggi >= 1, 15000);
+      assert(/SALVATO/.test(await page.locator('#mzDngBig').innerText()), 'manca la scritta SALVATO');
+      assert(/SALVATO/.test(await page.locator('#mzDngLanterna [data-act="salva"]').innerText()), 'il bottone non dice SALVATO');
       const s0 = await st();
       assert(s0.dungeon.altari.filter((a) => a.attivo).length === 1 && s0.dungeon.scene.altareAcceso === n, 'altare acceso: ' + JSON.stringify(s0.dungeon.altari));
       const lot = await getLot('tokA');
@@ -173,13 +190,75 @@ export default async function (ctx) {
       await sleep(300); await samplePerf();
       await ctx.shot(page, '6_altare_1280');
       await page.keyboard.press('Escape');
+      await page.waitForSelector('#mzDngPausa.on', { timeout: 3000 });
+      await page.locator('#mzDngPausa [data-act="esci-menu"]').click();
       await page.waitForSelector('#mzDngAsk.on', { timeout: 3000 });
-      assert(/altare/.test(await page.locator('#mzDngAsk').innerText()), 'la domanda d’uscita non dice che si tiene il bottino dell’altare');
+      assert(/lanterna/.test(await page.locator('#mzDngAsk').innerText()), 'la domanda d’uscita non dice che si tiene il bottino della lanterna');
       await page.locator('#mzDngAsk [data-act="esci"]').click();
       await ctx.waitState(page, (s) => s.dungeonEsito && s.dungeonEsito.open, 15000);
       const s = await st();
       assert(s.ingressi.finishes === 2 && s.ingressi.aborts === 2 && s.dungeonEsito.outcome === 'risalito' && /RISALITO/.test(s.dungeonEsito.text), 'esito: ' + JSON.stringify({ i: s.ingressi, e: s.dungeonEsito?.outcome }));
       assert(!(await getLot('tokA')).dungeon?.pending, 'la spedizione resta aperta dopo l’uscita con l’altare');
+      await page.locator('#mzDngEsito [data-act="ok"]').click();
+      await ctx.waitState(page, (s) => !s.dungeonEsito.open && !s.ingressi.busy && !s.dungeon.active, 5000);
+    });
+
+    await ctx.test('Grotta: ZAINO nel dungeon (partita ferma): arco in mano, Butta via una freccia; ESCI dalla lanterna → arco e lanterna sul server', async () => {
+      const n = lanternaVicina();
+      await hook('enterDungeon', 'grotta');
+      await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
+      await page.locator('#mzDngZaino').click();
+      await page.waitForSelector('#mzEroe.on.sotto', { state: 'visible', timeout: 5000 });
+      await ctx.waitState(page, (s) => s.eroe.sotto && s.eroe.tab === 'zaino' && s.dungeon.pannello, 3000);
+      const t0 = (await st()).dungeon.tick; await sleep(400);
+      assert((await st()).dungeon.tick === t0, 'con lo zaino aperto la partita deve stare ferma');
+      const click = async (sel) => { const l = page.locator(sel).first(); await l.scrollIntoViewIfNeeded(); await l.click(); };
+      await click('#mzEroe [data-item="arco_legno"]');
+      await click('#mzEroe [data-det="arco_legno"] [data-act="equipaggia"]');
+      await ctx.waitState(page, (s) => s.dungeon.hero.arma === 'arco_legno' && s.dungeon.azioni === 1, 3000);
+      const f0 = (await st()).dungeon.hero.frecce, inv0 = (await getLot('tokA')).hero.inv.frecce_legno;
+      await click('#mzEroe [data-item="frecce_legno"]');
+      await click('#mzEroe [data-det="frecce_legno"] [data-act="butta"]');
+      await ctx.shot(page, '7_zaino_dungeon_1280');
+      await click('#mzEroe [data-det="frecce_legno"] [data-act="butta-sicuro"]');
+      await ctx.waitState(page, (s, f) => s.dungeon.hero.frecce === f - 1 && s.dungeon.azioni === 2, 3000, f0);
+      await page.keyboard.press('KeyI');
+      await ctx.waitState(page, (s) => !s.eroe.open && !s.dungeon.paused, 3000);
+      await hook('dungeonAltare', n);
+      await ctx.waitState(page, (s, n) => s.dungeon.lanterna === n, 120000, n);
+      await page.waitForSelector('#mzDngLanterna.on', { timeout: 3000 });
+      await page.locator('#mzDngLanterna [data-act="esci-lanterna"]').click();
+      await ctx.waitState(page, (s) => s.dungeonEsito && s.dungeonEsito.open, 15000);
+      const s = await st();
+      assert(s.dungeonEsito.outcome === 'uscito' && /lanterna/.test(s.dungeonEsito.text), 'esito: ' + JSON.stringify(s.dungeonEsito));
+      await ctx.shot(page, '8_esito_lanterna_1280');
+      const lot = await getLot('tokA');
+      assert(lot.hero?.lanterne?.grotta === n, 'lanterna non ricordata: ' + JSON.stringify(lot.hero?.lanterne));
+      assert(lot.hero?.equip?.arma === 'arco_legno', 'arco non rimasto in mano: ' + JSON.stringify(lot.hero?.equip));
+      assert(lot.hero?.inv?.frecce_legno === inv0 - 1, `freccia buttata non tolta: ${inv0} → ${lot.hero?.inv?.frecce_legno}`);
+      assert(s.ingressi.lastResult.hash === s.ingressi.lastResult.clientHash, 'replay con le azioni diverso dal client');
+      await page.locator('#mzDngEsito [data-act="ok"]').click();
+      await ctx.waitState(page, (s) => !s.dungeonEsito.open && !s.ingressi.busy && !s.dungeon.active, 5000);
+    });
+
+    await ctx.test('Grotta: rientrando «Da dove parti?» → DALLA LANTERNA: si parte sulla lanterna, già quella dei risvegli', async () => {
+      const n = lanternaVicina();
+      const g = (await st()).ingressi.spots.find((x) => x.id === 'grotta');
+      await hook('teleport', g.x, g.z + 3); await sleep(600);
+      await page.locator('#mzDngEntra').click();
+      await page.waitForSelector('#mzDngDa', { timeout: 5000 });
+      await ctx.shot(page, '9_da_dove_1280');
+      await page.locator('#mzDngDa [data-act="lanterna"]').click();
+      await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
+      const s = await st();
+      assert(s.dungeon.partenza === n && s.dungeon.lanterna === n && s.dungeon.salvato, 'partenza: ' + JSON.stringify({ p: s.dungeon.partenza, l: s.dungeon.lanterna, sv: s.dungeon.salvato }));
+      assert((await getLot('tokA')).dungeon?.pending?.partenza === n, 'il server non sa della lanterna di partenza');
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('#mzDngPausa.on', { timeout: 3000 });
+      await page.locator('#mzDngPausa [data-act="esci-menu"]').click();
+      await page.waitForSelector('#mzDngAsk.on', { timeout: 3000 });
+      await page.locator('#mzDngAsk [data-act="esci"]').click();
+      await ctx.waitState(page, (s) => s.dungeonEsito && s.dungeonEsito.open, 15000);
       await page.locator('#mzDngEsito [data-act="ok"]').click();
       await ctx.waitState(page, (s) => !s.dungeonEsito.open && !s.ingressi.busy && !s.dungeon.active, 5000);
     });
@@ -202,12 +281,12 @@ export default async function (ctx) {
       await tp.waitForSelector('#mzDngEntra.on', { timeout: 5000 });
     });
     await ctx.shot(tp, '1_ingresso_390');
-    await ctx.test('telefono: dentro la Grotta i 4 bottoni (A B C D) e l\'HUD non si sovrappongono, ≥ 56 px', async () => {
+    await ctx.test('telefono: dentro la Grotta i 4 bottoni (A B C D), l\'HUD, Zaino e Pausa non si sovrappongono, ≥ 56 px', async () => {
       await thook('dungeonAutopilot', true, 1);
       await tp.locator('#mzDngEntra').click();
       await ctx.waitState(tp, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await ctx.waitState(tp, (s) => s.dungeon.vivi < s.dungeon.nemici || ['attacca', 'carica'].includes(s.dungeon.hero.anim), 90000);
-      const rects = await tp.evaluate(() => Object.fromEntries(['btnA', 'btnB', 'btnC', 'btnD', 'joystick', 'mzDngHud', 'mzDngQuit'].map((id) => { const r = document.getElementById(id)?.getBoundingClientRect(); return [id, r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null]; })));
+      const rects = await tp.evaluate(() => Object.fromEntries(['btnA', 'btnB', 'btnC', 'btnD', 'joystick', 'mzDngHud', 'mzDngZaino', 'mzDngPausaBtn'].map((id) => { const r = document.getElementById(id)?.getBoundingClientRect(); return [id, r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null]; })));
       const ids = Object.keys(rects);
       for (const id of ids) assert(rects[id], `manca #${id}`);
       for (const id of ['btnA', 'btnB', 'btnC', 'btnD']) assert(rects[id].w >= 56 && rects[id].h >= 56, `#${id} troppo piccolo: ${JSON.stringify(rects[id])}`);
@@ -216,6 +295,25 @@ export default async function (ctx) {
       for (const id of ids) { const r = rects[id]; assert(r.x >= 0 && r.y >= 0 && r.x + r.w <= 390 && r.y + r.h <= 844, `#${id} fuori schermo`); }
     });
     await ctx.shot(tp, '2_grotta_390');
+    await ctx.test('telefono: zaino nel dungeon e lanterna (SALVA/ESCI dentro lo schermo, sopra i bottoni senza coprirli)', async () => {
+      await thook('dungeonAutopilot', false);
+      await tp.locator('#mzDngZaino').click();
+      await tp.waitForSelector('#mzEroe.on.sotto', { state: 'visible', timeout: 5000 });
+      await ctx.shot(tp, '3_zaino_390');
+      await tp.locator('#mzEroe [data-act="chiudi"]').click();
+      await ctx.waitState(tp, (s) => !s.eroe.open, 3000);
+      const m = parseDungeon(DUNGEONS.find((d) => d.id === 'grotta')), dist = bfs(m, m.exit.cz * m.w + m.exit.cx);
+      const n = m.altari.map((a, i) => [dist[a.cz * m.w + a.cx], i]).sort((a, b) => a[0] - b[0])[0][1];
+      await thook('dungeonAltare', n);
+      await ctx.waitState(tp, (s, n) => s.dungeon.lanterna === n || !!s.dungeon.outcome, 120000, n);
+      if ((await ctx.getState(tp)).dungeon.lanterna !== n) return; // caduto per strada (autopilot di prima): la lanterna si prova al desktop
+      await tp.waitForSelector('#mzDngLanterna.on', { timeout: 3000 });
+      const rects = await tp.evaluate(() => Object.fromEntries(['btnA', 'btnB', 'btnC', 'btnD', 'joystick', 'mzDngLanterna'].map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return [id, { x: r.x, y: r.y, w: r.width, h: r.height }]; })));
+      const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+      for (const id of ['btnA', 'btnB', 'btnC', 'btnD', 'joystick']) assert(!hit(rects.mzDngLanterna, rects[id]), `la lanterna copre #${id}`);
+      const L = rects.mzDngLanterna; assert(L.x >= 0 && L.x + L.w <= 390 && L.y >= 0 && L.y + L.h <= 844, 'lanterna fuori schermo');
+      await ctx.shot(tp, '4_lanterna_390');
+    });
     await ctx.test('telefono: autopilot fino all\'esito', async () => {
       await thook('dungeonAutopilot', true, 12);
       await ctx.waitState(tp, (s) => s.dungeonEsito && s.dungeonEsito.open, 150000);

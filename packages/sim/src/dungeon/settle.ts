@@ -5,7 +5,7 @@ import type { LotState } from '../economy/types.ts';
 import { finishDungeon } from '../rpg/run.ts';
 import type { DungeonOutcome } from '../rpg/run.ts';
 import { dungeon } from './dungeon.ts';
-import { decodeDungeon, replayDungeon } from './replay.ts';
+import { decodeDungeon, parseDungeonAzioni, replayDungeon } from './replay.ts';
 
 /** Chiude la spedizione aperta col suo salvataggio (null se non c'è niente da chiudere). */
 export function chiudiSalvata(lot: LotState, nowMs: number): DungeonOutcome | null {
@@ -13,7 +13,8 @@ export function chiudiSalvata(lot: LotState, nowMs: number): DungeonOutcome | nu
   if (!p || !sv) return null;
   const inputs = decodeDungeon(sv.inputs, dungeon.maxTicks);
   if (!inputs) return null;
-  return finishDungeon(lot, replayDungeon(p.seed, p.dungeon, p.hero, inputs), nowMs);
+  const azioni = parseDungeonAzioni(sv.azioni ?? [], dungeon.maxTicks) ?? [];
+  return finishDungeon(lot, replayDungeon(p.seed, p.dungeon, p.hero, inputs, { stato: p.stato ?? null, partenza: p.partenza ?? null, azioni }), nowMs);
 }
 
 /** Come chiudiSalvata, ma solo se la spedizione è scaduta da un pezzo (durata massima + 5 minuti): nessuno la sta più giocando. */

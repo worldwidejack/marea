@@ -31,10 +31,14 @@ export type UiState = {
   serra: { arrivati: Record<string, number>; dove: string } | null;
   /** Dopo il prossimo ridisegno: porta in vista l'elemento con questo data-k. */
   focus: string | null;
+  /** «Butta via» toccato una volta: aspetta la conferma (stesso oggetto e quantità). */
+  butta: { item: string; n: number } | null;
 };
 /** Quello che ogni scheda riceve per disegnarsi. */
 export type View = {
   ctx: PanelCtx; lot: LotState; hero: HeroState; busy: boolean; ui: UiState;
+  /** Scheda aperta nel dungeon (zaino della spedizione): equip e butta vanno alla sim, il resto si fa fuori. */
+  sotto: boolean;
   /** Esegue un'azione sul server; `ok` compone il toast dal lotto nuovo. */
   act(a: RpgAction, ok?: (l: LotState) => string | void): void;
   rerender(): void;

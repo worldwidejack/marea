@@ -1,7 +1,10 @@
-// Altari di salvataggio (docs/RPG.md §4, scelta di Riccardo): passandoci sopra, il bottino e le monete raccolti fin lì sono al sicuro
-// (s.salvato). Morendo dopo un altare l'eroe si risveglia sull'ultimo toccato: barre piene, bottino e monete di quel momento (il resto è
-// perso, i forzieri aperti restano vuoti), qualche secondo senza danni; i nemici smettono di inseguirlo finché non lo rivedono.
+// Altari di salvataggio, le «lanterne» (docs/RPG.md §4, scelte di Riccardo): standoci sopra compaiono SALVA ed ESCI (azioni del menu, v5).
+// SALVA: il bottino e le monete raccolti fin lì sono al sicuro (s.salvato). ESCI: fuori col bottino, come dalla scala, e alla discesa dopo si
+// può ripartire da quella lanterna. Morendo dopo un salvataggio l'eroe si risveglia su quella lanterna: barre piene, bottino e monete di quel
+// momento (il resto è perso, i forzieri aperti restano vuoti), qualche secondo senza danni; i nemici smettono di inseguirlo finché non lo
+// rivedono. Fino al v4 si salvava da soli passandoci sopra: non si capiva (Riccardo, 7 ott 2026).
 import { RPG } from '@marea/content/rpg.ts';
+import type { DungeonEvent } from './types.ts';
 import type { Bag, DungeonState } from './state.ts';
 import { secToTicks } from './state.ts';
 import { RAGGIO_ALTARE } from './tuning.ts';
@@ -21,17 +24,32 @@ function sameBag(a: Bag, b: Bag): boolean {
   return ka.length === kb.length && ka.every((k) => a[k] === b[k]);
 }
 
-/** Dopo la raccolta del tick: entrando su un altare salva bottino e monete. Evento solo se cambia qualcosa (altare o bottino). */
+/** Fine tick: la lanterna sotto l'eroe (-1 = nessuna). Non salva da sola: lo fa l'azione `salva`. */
 export function stepAltari(s: DungeonState): void {
+  s.altare = altareSotto(s);
+}
+
+/** Sulla lanterna i (di default quella sotto l'eroe) è già salvato tutto quello che hai adesso? */
+export function salvatoQui(s: DungeonState, i = altareSotto(s)): boolean {
+  const p = s.salvato;
+  return !!p && i >= 0 && p.altare === i && p.monete === s.monete && sameBag(p.bottino, s.bottino);
+}
+
+/** Azione `salva`: sulla lanterna, bottino e monete al sicuro. null se non sei su una lanterna o lì è già salvato tutto. */
+export function salvaQui(s: DungeonState): DungeonEvent[] | null {
   const i = altareSotto(s);
-  if (i >= 0 && i !== s.altare) {
-    const p = s.salvato;
-    if (!p || p.altare !== i || p.monete !== s.monete || !sameBag(p.bottino, s.bottino)) {
-      s.salvato = { altare: i, tick: s.tick, bottino: { ...s.bottino }, monete: s.monete };
-      s.eventi.push({ t: 'altare', n: i });
-    }
-  }
+  if (i < 0 || salvatoQui(s, i)) return null;
+  s.salvato = { altare: i, tick: s.tick, bottino: { ...s.bottino }, monete: s.monete };
   s.altare = i;
+  return [{ t: 'altare', n: i }];
+}
+
+/** Azione `esci`: sulla lanterna, fuori col bottino (esito «uscito», come dalla scala) ricordando la lanterna per la discesa dopo. */
+export function esciQui(s: DungeonState): DungeonEvent[] | null {
+  const i = altareSotto(s);
+  if (i < 0) return null;
+  s.done = true; s.outcome = 'uscito'; s.uscitaLanterna = i;
+  return [{ t: 'uscita', lanterna: i }];
 }
 
 /** Morte con un altare salvato: risveglio lì invece della fine della spedizione. */

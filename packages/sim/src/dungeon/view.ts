@@ -5,6 +5,7 @@ import type { DungeonView, EnemyAnim, HeroAnim } from './types.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { pesoZaino } from './loot.ts';
 import { vicinoUscita } from './hero.ts';
+import { altareSotto, salvatoQui } from './altari.ts';
 import { BOSS_AREA_RAGGIO, HZ } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -48,7 +49,7 @@ export function viewOf(s: DungeonState): DungeonView {
       x: h.x, z: h.z, fx: h.fx, fz: h.fz, anim: ha.anim, t: ha.t, carica: h.act === 'carica' || h.act === 'tende' ? h.carica : 0,
       ...(ha.anim === 'attacca' ? { stile: h.stile } : {}),
       vita: h.vita, magicka: h.magicka, stamina: h.stamina, max: { ...rh.max },
-      ricaricaMagia: h.cdMagia / HZ, frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0,
+      ricaricaMagia: h.cdMagia / HZ, frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0, arma: h.arma.id,
     },
     nemici: s.enemies.map((e) => {
       const a = enemyAnim(e);
@@ -59,6 +60,7 @@ export function viewOf(s: DungeonState): DungeonView {
     uscita: { x: s.map.exit.x, z: s.map.exit.z },
     vicinoUscita: vicinoUscita(s),
     altari: s.map.altari.map((a, i) => ({ x: a.x, z: a.z, attivo: s.salvato?.altare === i })),
+    lanterna: s.done ? -1 : altareSotto(s), salvatoQui: salvatoQui(s),
     salvato: s.salvato ? { bottino: { ...s.salvato.bottino }, monete: s.salvato.monete } : null,
     zaino: { peso: r2(pesoZaino(s)), max: rh.caricoMax, monete: s.monete, bottino: { ...s.bottino } },
     eventi: s.eventi,
@@ -76,6 +78,9 @@ export function hashOf(s: DungeonState): number {
     bottino: roundBag(s.bottino), monete: s.monete, uccisi: roundBag(s.uccisi), usati: roundBag(s.usati),
     danni: [r3(s.danniFatti), r3(s.danniPresi)],
     salvato: s.salvato ? [s.salvato.altare, s.salvato.tick, s.salvato.monete, roundBag(s.salvato.bottino)] : null, cadute: s.cadute,
+    // v5: zaino ed equipaggiamento cambiati dal menu, lanterna di partenza e di uscita
+    zaino: [s.stato ? Object.keys(s.equip).sort().map((k) => [k, s.equip[k as keyof typeof s.equip]]) : null, roundBag(s.buttati), roundBag(s.rotti), s.hero.arma.id],
+    lanterne: [s.partenza, s.uscitaLanterna],
   });
 }
 
@@ -86,6 +91,9 @@ export function resultOf(s: DungeonState): RunResult {
     uccisi: { ...s.uccisi }, danniFatti: r2(s.danniFatti), danniPresi: r2(s.danniPresi),
     salvato: s.salvato ? { bottino: { ...s.salvato.bottino }, monete: s.salvato.monete } : null, cadute: s.cadute,
     capo: s.enemies.some((e) => e.capo && e.st === 'morto'),
+    ...(s.uscitaLanterna >= 0 ? { lanterna: s.uscitaLanterna } : {}),
+    ...(s.stato ? { equip: { ...s.equip } } : {}),
+    ...(Object.keys(s.buttati).length ? { buttati: { ...s.buttati } } : {}),
     hash: hashOf(s),
   };
 }

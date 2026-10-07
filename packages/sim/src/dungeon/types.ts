@@ -4,7 +4,7 @@
 // atan/atan2/hypot/pow/exp/log/cbrt e l'operatore **: solo + − × ÷, Math.sqrt (arrotondata correttamente ovunque), floor/round/min/max/abs.
 // Le direzioni sono versori (fx, fz), non angoli. Lo controlla tools/check_static.mjs.
 import type { AttrId } from '@marea/content/rpg.ts';
-import type { RunHero, RunOutcome, RunResult } from '../rpg/types.ts';
+import type { EquipSlot, HeroState, RunHero, RunOutcome, RunResult } from '../rpg/types.ts';
 import type { Rng } from '../rng.ts';
 import type { SwingStyle } from './swing.ts';
 
@@ -14,6 +14,18 @@ export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: 
 export const NO_DUNGEON_INPUT: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
 /** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3], ...]. */
 export type PackedDungeon = [number, number, number, number][];
+
+/** Azione dal menu (non dai tasti), dungeon v5: si applica tra due tick, prima del passo del tick in cui è registrata. Il server la rigioca
+ *  con gli input; se non si può fare (oggetto che non hai, lanterna lontana) la sim la ignora. */
+export type DungeonAzione =
+  | { t: 'equip'; slot: EquipSlot; item: string | null }
+  | { t: 'butta'; item: string; n: number }
+  /** Sulla lanterna: bottino e monete al sicuro (fino al v4 si salvava da soli passandoci sopra). */
+  | { t: 'salva' }
+  /** Sulla lanterna: esci col bottino (come dalla scala); alla discesa dopo si può ripartire da lì. */
+  | { t: 'esci' };
+/** [tick, azione] con tick non decrescenti: tick = passi già fatti quando l'azione è avvenuta. */
+export type DungeonAzioni = [number, DungeonAzione][];
 
 export type HeroAnim = 'fermo' | 'cammina' | 'corre' | 'carica' | 'attacca' | 'tende' | 'tira' | 'lancia' | 'beve' | 'colpito' | 'morto';
 export type EnemyAnim = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'colpito' | 'morto';
@@ -36,7 +48,11 @@ export type DungeonEvent =
   | { t: 'altare'; n: number }
   /** Morto dopo un altare: risvegliato sull'altare n. */
   | { t: 'risveglio'; n: number }
-  | { t: 'uscita' };
+  /** Azione `equip` riuscita: RunHero rifatto (arma in mano, barre, frecce, pozioni). */
+  | { t: 'equip'; slot: EquipSlot; item: string | null }
+  | { t: 'buttato'; item: string; n: number }
+  /** Uscito dalla scala, o dalla lanterna n. */
+  | { t: 'uscita'; lanterna?: number };
 
 export type DungeonView = {
   dungeon: string; tick: number; done: boolean; outcome: RunOutcome | null;
@@ -54,6 +70,8 @@ export type DungeonView = {
     frecce: number; pozioni: number;
     /** Appena risvegliato all'altare: niente danni per qualche secondo. */
     protetto: boolean;
+    /** Arma in mano (id, null = pugni): cambia con `equip` o quando si rompe. */
+    arma: string | null;
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
     /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
@@ -66,6 +84,9 @@ export type DungeonView = {
   vicinoUscita: boolean;
   /** Altari di salvataggio; `attivo` = l'ultimo toccato (lì ti risvegli). */
   altari: { x: number; z: number; attivo: boolean }[];
+  /** Lanterna (altare) sotto l'eroe, -1 = nessuna: lì compaiono SALVA ed ESCI. `salvatoQui` = qui non c'è niente di nuovo da salvare. */
+  lanterna: number;
+  salvatoQui: boolean;
   /** Bottino e monete al sicuro all'ultimo altare (null = nessun altare toccato). */
   salvato: { bottino: Record<string, number>; monete: number } | null;
   zaino: { peso: number; max: number; monete: number; bottino: Record<string, number> };
@@ -78,8 +99,12 @@ export type DungeonModule<S> = {
   version: number;
   /** RPG.dungeon.maxMinuti × 60 × 60. */
   maxTicks: number;
-  create(o: { seed: number; dungeon: string; hero: RunHero }): S;
+  /** `stato`: il personaggio all'entrata (senza: niente cambi d'equipaggiamento né butta via di quello portato da casa). `partenza`:
+   *  lanterna da cui si parte (null = ingresso). */
+  create(o: { seed: number; dungeon: string; hero: RunHero; stato?: HeroState | null; partenza?: number | null }): S;
   step(s: S, input: DungeonInput): void;
+  /** Azione dal menu adesso (tra due tick): eventi dell'azione, o null se non si può fare (allora non si registra). */
+  act(s: S, a: DungeonAzione): DungeonEvent[] | null;
   result(s: S): RunResult;
   view(s: S): DungeonView;
   /** Pilota automatico per i test: esplora, combatte, raccoglie, torna all'uscita. */

@@ -19,6 +19,8 @@ export type DungeonScene = {
   update(hx: number, hz: number, t: number): void;
   /** Altare acceso (l'ultimo toccato, -1 = nessuno): il suo cristallo si illumina. */
   setAltare(n: number): void;
+  /** SALVA riuscito sulla lanterna n: lampo di luce che torna normale in un secondo, a scatti. */
+  pulse(n: number): void;
   /** Livello di luce della cella in (x, z): 0 = mai vista, 0.25 = vista prima, ≥ 0.45 = in vista ora. */
   light(x: number, z: number): number;
   stats(): { floors: number; walls: number; low: number; lights: number; seen: number; altari: number; altareAcceso: number };
@@ -138,7 +140,7 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
   const bCristOff = makeBatch([boxPart(0.3, 0.6, 0.3, 0.8, PAL.abisso)], altarCells, altarM, 'altare_spento', group);
   const bCristOn = makeBatch([boxPart(0.36, 0.75, 0.36, 0.8, PAL.acquaBassa, true)], altarCells, altarM, 'altare_acceso', group);
   const altarSrc = map.altari.map((a, n) => { const src = { x: a.x, z: a.z, c: PAL.acquaBassa, i: 0.4, cell: altarCells[n]! }; sources.push(src); return src; });
-  let altarOn = -1;
+  let altarOn = -1, pulseN = -1, pulseT0 = -1;
   const batches = [bFloor, bWall, bLow, bCol, bBones, bTorch, bBraz, bExit, bAltare, bCristOff, bCristOn];
 
   // ---- luci ----
@@ -202,6 +204,13 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
       const hc = cellOfXZ(hx, hz);
       if (hc >= 0 && hc !== lastCell) { lastCell = hc; relight(hx, hz, hc); }
       lantern.position.set(hx, 2.4, hz);
+      if (pulseN >= 0 && altarSrc[pulseN]) {
+        if (pulseT0 < 0) pulseT0 = t;
+        const k = Math.ceil((1 - (t - pulseT0)) * 6) / 6; // 6 gradini
+        altarSrc[pulseN]!.i = k > 0 ? 1.1 + 3.5 * k : pulseN === altarOn ? 1.1 : 0.4;
+        if (k <= 0) pulseN = -1;
+        poolT = -1;
+      }
       dir.target.position.set(hx, 0, hz); dir.position.set(hx + 14, 30, hz + 18);
       // fiamme che tremano a scatti (8 al secondo), non in modo liscio
       const step = Math.floor(t * 8);
@@ -222,6 +231,7 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
       altarSrc.forEach((src, k) => (src.i = k === n ? 1.1 : 0.4));
       lastCell = -1; poolT = -1; // rifà luce e lampade al prossimo update
     },
+    pulse(n) { pulseN = n; pulseT0 = -1; },
     light: (x, z) => { const i = cellOfXZ(x, z); return i < 0 ? 0 : level[i]! > 0 ? level[i]! : seen[i] ? LV.seen : 0; },
     stats: () => ({ floors: floors.length, walls: walls.length, low: lowN, lights: pool.filter((l) => l.intensity > 0).length, seen: seenN, altari: altarCells.length, altareAcceso: altarOn }),
     dispose() {
