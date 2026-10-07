@@ -5,7 +5,8 @@ import { pixIcon } from './icons.ts';
 import type { PixId } from './icons.ts';
 import { PAL } from './style.ts';
 
-export type CompassTarget = { id: string; label: string; x: number; z: number; icon?: PixId };
+/** `show`: letto a ogni frame, false = la meta non c'è (es. i dungeon diversi dal prossimo da fare). */
+export type CompassTarget = { id: string; label: string; x: number; z: number; icon?: PixId; show?(): boolean };
 export type Compass = { update(me: { x: number; z: number }, cameraYaw: number): void; focus(id: string | null): void; dispose(): void };
 
 const NEAR_M = 30; // entro questa distanza la meta si vede già: niente freccia
@@ -43,7 +44,7 @@ export function createCompass(o: { root: HTMLElement; targets: CompassTarget[] }
       const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
       for (const r of rows) {
         const dx = r.t.x - me.x, dz = r.t.z - me.z, d = Math.hypot(dx, dz);
-        const show = d > NEAR_M;
+        const show = d > NEAR_M && (r.t.show?.() ?? true);
         if (show !== r.shown) { r.row.style.display = show ? 'flex' : 'none'; r.shown = show; }
         if (!show) continue;
         const ang = Math.atan2(dx * rx + dz * rz, dx * fx + dz * fz);

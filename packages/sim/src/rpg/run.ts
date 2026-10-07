@@ -65,6 +65,9 @@ export function finishDungeon(lot0: LotState, r: RunResult, nowMs: number): Dung
     if (typeof x === 'number' && x > 0) h = gainSkillXp(h, s, x * kx);
   }
   h = { ...h, monete: h.monete + monete, discese: h.discese + 1, morti: h.morti + (r.outcome === 'morto' ? 1 : 0) + cleanCount(r.cadute) };
+  // capo ucciso = dungeon completato (anche se poi sei morto: scelta di Riccardo, 7 ott 2026)
+  const id = lot.dungeon.pending.dungeon;
+  if (r.capo === true && !(h.completati ?? []).includes(id)) h = { ...h, completati: [...(h.completati ?? []), id] };
   const out: LotState = { ...state, version: lot.version + 1, hero: h, dungeon: { pending: null } };
   return { lot: out, tenuto, monete, livelliSu: h.livello - livello0 };
 }

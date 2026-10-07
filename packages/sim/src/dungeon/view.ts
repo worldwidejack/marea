@@ -85,6 +85,7 @@ export function resultOf(s: DungeonState): RunResult {
     bottino: { ...s.bottino }, monete: s.monete, xp: roundBag(s.xp), usati: { ...s.usati }, rotti: { ...s.rotti }, usura: { ...s.usura },
     uccisi: { ...s.uccisi }, danniFatti: r2(s.danniFatti), danniPresi: r2(s.danniPresi),
     salvato: s.salvato ? { bottino: { ...s.salvato.bottino }, monete: s.salvato.monete } : null, cadute: s.cadute,
+    capo: s.enemies.some((e) => e.capo && e.st === 'morto'),
     hash: hashOf(s),
   };
 }

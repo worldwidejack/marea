@@ -95,3 +95,19 @@ test('dungeon: ingressi su celle calpestabili delle isole giuste, raggiungibili 
   const [gx, gz] = DUNGEONS.find((d) => d.id === 'cripta')!.ingresso.at;
   assert.ok(gz < 15 && [[1, 0], [-1, 0], [0, -1]].some(([dx, dz]) => sel.at(gx + dx!, gz + dz!) === 'r'), 'la Cripta non è sotto le rocce');
 });
+
+test('dungeon: difficoltà invisibili tutte diverse (Grotta la più facile), un capo per dungeon e in fondo', () => {
+  const diff = DUNGEONS.map((d) => d.difficolta);
+  assert.ok(diff.every((x) => typeof x === 'number' && x > 0), JSON.stringify(diff));
+  assert.equal(new Set(diff).size, diff.length, 'due dungeon con la stessa difficoltà');
+  assert.equal(DUNGEONS.reduce((a, b) => (b.difficolta < a.difficolta ? b : a)).id, 'grotta');
+  for (const d of DUNGEONS) {
+    const m = parseDungeon(d);
+    const capi = m.nemici.filter((n) => n.capo);
+    assert.equal(capi.length, 1, `${d.id}: ${capi.length} capi`);
+    const c = capi[0]!, boss = ENEMIES.find((e) => e.id === c.tipo)?.boss;
+    if (d.id !== 'grotta') assert.ok(boss, `${d.id}: il capo è il boss`);
+    const dist = Math.abs(c.cx - m.exit.cx) + Math.abs(c.cz - m.exit.cz);
+    assert.ok(dist >= 20, `${d.id}: capo troppo vicino all'uscita (${dist})`);
+  }
+});

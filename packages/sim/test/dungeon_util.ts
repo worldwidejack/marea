@@ -46,7 +46,7 @@ export function heroForte(): RunHero {
 
 /** Arena 20×14 senza nemici: scala in basso a sinistra, l'eroe parte sopra la scala. */
 export const ARENA: DungeonDef = {
-  id: 'arena_test', nome: 'Arena', descr: 'test', stile: 'cripta', tile: 2,
+  id: 'arena_test', nome: 'Arena', descr: 'test', stile: 'cripta', tile: 2, difficolta: 99,
   rows: [
     '####################',
     '#..................#',

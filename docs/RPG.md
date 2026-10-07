@@ -18,6 +18,8 @@ Superficie (raccogli, coltiva, costruisci) → ti prepari (forgi armi, prepari p
 | **Cripta delle Ossa** (media) | Isola Selvaggia, porta di pietra sotto le rocce | scheletri, non-morti antichi, boss **Re delle Ossa** | argento, ossa di mostro, libri di magia |
 | **Portale del Vuoto** (difficile) | Distretto Neon | spettri, golem di cristallo, boss **Custode del Vuoto** | vetro, meteorite, oggetti unici |
 Nessun «livello consigliato» a schermo: la difficoltà si capisce dai nemici e dall'ambiente. Libertà totale: se a livello 1 schivi tutto il Portale, buon per te.
+- **Difficoltà invisibile** (Riccardo, 7 ott 2026): ogni dungeon ha un numero che il giocatore non vede (`difficolta` in `dungeons.json`: Grotta 1, Cripta 2, Vuoto 3). La bussola mostra **solo il dungeon più facile non ancora completato**; gli altri ingressi restano nel mondo, col loro cartello, e ci si entra lo stesso.
+- **Completato** = hai ucciso il **capo** almeno una volta, anche se poi sei morto (`HeroState.completati`). Cripta: Re delle Ossa · Vuoto: Custode · Grotta (niente boss): il **bandito arciere della sala dei banditi**, il nemico più lontano dall'ingresso (lettera `C`, stessi numeri degli altri). Uccisi tutti, l'eroe resta senza freccia verso i dungeon.
 
 ## 3. Statistiche e livelli
 - Tre barre: **Vita**, **Magicka** (incantesimi), **Stamina** (solo per correre; alza anche il peso trasportabile e attenua il malus delle armature pesanti). Colpire non costa stamina.

@@ -22,15 +22,15 @@ export default async function (ctx) {
   const { composeArchipelago } = await imp('packages/sim/src/index.ts');
   const { bfs, parseDungeon } = await imp('packages/sim/src/dungeon/map.ts');
 
-  await ctx.test('gli ingressi in game/ingressi.ts coincidono con DUNGEONS (isola, cella, stile, nome)', async () => {
+  await ctx.test('gli ingressi in game/ingressi.ts coincidono con DUNGEONS (isola, cella, stile, nome, difficoltà)', async () => {
     const src = fs.readFileSync(path.join(ctx.ROOT, 'apps/client/src/game/ingressi.ts'), 'utf8');
-    const rows = [...src.matchAll(/\{ id: '(\w+)', nome: '([^']+)', island: '(\w+)', at: \[(\d+), (\d+)\], stile: '(\w+)' \}/g)].map((m) => ({ id: m[1], nome: m[2], island: m[3], at: [Number(m[4]), Number(m[5])], stile: m[6] }));
+    const rows = [...src.matchAll(/\{ id: '(\w+)', nome: '([^']+)', island: '(\w+)', at: \[(\d+), (\d+)\], stile: '(\w+)', difficolta: (\d+) \}/g)].map((m) => ({ id: m[1], nome: m[2], island: m[3], at: [Number(m[4]), Number(m[5])], stile: m[6], difficolta: Number(m[7]) }));
     assert(rows.length === DUNGEONS.length, `ingressi.ts ha ${rows.length} ingressi, DUNGEONS ${DUNGEONS.length}`);
     for (const d of DUNGEONS) {
       const r = rows.find((x) => x.id === d.id);
       assert(r, `manca l'ingresso di ${d.id} in game/ingressi.ts`);
-      assert(r.island === d.ingresso.island && r.at[0] === d.ingresso.at[0] && r.at[1] === d.ingresso.at[1] && r.stile === d.stile && r.nome === d.nome,
-        `${d.id}: ingressi.ts ${JSON.stringify(r)} ≠ dungeons.json ${JSON.stringify({ nome: d.nome, ...d.ingresso, stile: d.stile })}`);
+      assert(r.island === d.ingresso.island && r.at[0] === d.ingresso.at[0] && r.at[1] === d.ingresso.at[1] && r.stile === d.stile && r.nome === d.nome && r.difficolta === d.difficolta,
+        `${d.id}: ingressi.ts ${JSON.stringify(r)} ≠ dungeons.json ${JSON.stringify({ nome: d.nome, ...d.ingresso, stile: d.stile, difficolta: d.difficolta })}`);
     }
   });
 
@@ -61,7 +61,7 @@ export default async function (ctx) {
     const perfMax = { drawCalls: 0, triangles: 0, samples: 0 };
     const samplePerf = async (n = 4) => { for (let i = 0; i < n; i++) { const p = await ctx.getPerf(page); perfMax.drawCalls = Math.max(perfMax.drawCalls, p.drawCalls); perfMax.triangles = Math.max(perfMax.triangles, p.triangles); perfMax.samples++; await sleep(250); } };
 
-    await ctx.test('nel mondo: tre ingressi dove dice DUNGEONS, in bussola; vicino compare ENTRA', async () => {
+    await ctx.test('nel mondo: tre ingressi dove dice DUNGEONS; in bussola solo il più facile (la Grotta); vicino compare ENTRA', async () => {
       const arch = composeArchipelago(ARCHIPELAGO, ISLANDS), s = await st();
       for (const d of DUNGEONS) {
         const p = arch.places.find((q) => q.island === d.ingresso.island);
@@ -69,8 +69,12 @@ export default async function (ctx) {
         const got = s.ingressi.spots.find((x) => x.id === d.id);
         assert(got && Math.abs(got.x - want.x) < 1e-6 && Math.abs(got.z - want.z) < 1e-6, `${d.id}: ${JSON.stringify(got)} ≠ ${JSON.stringify(want)}`);
       }
-      const rows = await page.evaluate(() => [...document.querySelectorAll('#compass > div')].map((r) => r.dataset.id));
-      assert(DUNGEONS.every((d) => rows.includes(d.id)), 'bussola: ' + rows.join(','));
+      // eroe nuovo: nessun dungeon completato → la bussola mostra solo quello con la difficoltà più bassa
+      const easiest = [...DUNGEONS].sort((a, b) => a.difficolta - b.difficolta)[0].id;
+      assert(s.ingressi.next === easiest, `prossimo dungeon ${s.ingressi.next}, atteso ${easiest}`);
+      const shown = await page.evaluate(() => [...document.querySelectorAll('#compass [data-id]')].filter((r) => getComputedStyle(r).display !== 'none').map((r) => r.dataset.id));
+      const dng = shown.filter((id) => DUNGEONS.some((d) => d.id === id));
+      assert(dng.length === 1 && dng[0] === easiest, 'bussola: ' + shown.join(','));
       const g = s.ingressi.spots.find((x) => x.id === 'grotta');
       await hook('teleport', g.x, g.z + 3); await sleep(900);
       await ctx.waitState(page, (s) => s.ingressi.near === 'grotta', 5000);
@@ -130,6 +134,11 @@ export default async function (ctx) {
       assert(Object.keys(r.tenuto).length > 0, 'l\'autopilot nella Grotta dovrebbe portare a casa qualcosa');
       assert((after.hero?.monete ?? 0) === (before.hero?.monete ?? 0) + r.monete, 'monete non arrivate');
       assert(!after.dungeon?.pending, 'spedizione ancora aperta dopo finish');
+      // capo della Grotta ucciso (lo dice il server) = Grotta completata, e la bussola passa alla Cripta
+      const fatta = (after.hero?.completati ?? []).includes('grotta');
+      assert(fatta === !!r.capo, `capo ${r.capo}, completati ${JSON.stringify(after.hero?.completati)}`);
+      await ctx.waitState(page, (s, c) => s.ingressi.next === (c ? 'cripta' : 'grotta'), 3000, fatta);
+      ctx.log(`capo della Grotta ${fatta ? 'ucciso: prossimo dungeon la Cripta' : 'vivo: la bussola resta sulla Grotta'}`);
     });
     await ctx.shot(page, '5_esito_1280');
     await ctx.test('OK chiude la scheda e si torna all\'ingresso', async () => {

@@ -11,7 +11,8 @@ export type DMap = {
   opaque: Uint8Array;
   exit: { cx: number; cz: number; x: number; z: number };
   spawn: { x: number; z: number; fx: number; fz: number };
-  nemici: (Spawn & { tipo: string })[];
+  /** `capo`: ucciso lui, il dungeon è completato (legenda `capo`). */
+  nemici: (Spawn & { tipo: string; capo?: true })[];
   forzieri: (Spawn & { tabella: string })[];
   libri: (Spawn & { item: string })[];
   /** Altari di salvataggio (legenda `altare`), in ordine di lettura: l'indice è quello di `salvato.altare`. */
@@ -40,7 +41,7 @@ export function parseDungeon(def: DungeonDef): DMap {
         const l = def.legenda[ch];
         if (!l) throw new Error(`Dungeon ${def.id}: lettera '${ch}' senza legenda (${cx},${cz})`);
         if (l.colonna) { solid[i] = 1; opaque[i] = 1; continue; }
-        if (l.nemico) nemici.push({ cx, cz, ch, tipo: l.nemico });
+        if (l.nemico) nemici.push(l.capo ? { cx, cz, ch, tipo: l.nemico, capo: true } : { cx, cz, ch, tipo: l.nemico });
         if (l.forziere) forzieri.push({ cx, cz, ch, tabella: l.forziere });
         if (l.libro) libri.push({ cx, cz, ch, item: l.libro });
         if (l.altare) altari.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile });

@@ -1,5 +1,5 @@
 [
-  {"id":"grotta","nome":"Grotta della Marea","descr":"Grotte umide sotto le rocce del Porto: banditi accampati, lupi e ragni. Bronzo, ferro, monete, erbe.","stile":"grotta","tile":2,"legenda":{"b":{"nemico":"bandito"},"a":{"nemico":"bandito_arciere"},"l":{"nemico":"lupo"},"s":{"nemico":"ragno"},"c":{"forziere":"comune"},"R":{"forziere":"raro"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"porto","at":[32,7]},
+  {"id":"grotta","nome":"Grotta della Marea","descr":"Grotte umide sotto le rocce del Porto: banditi accampati, lupi e ragni. Bronzo, ferro, monete, erbe.","stile":"grotta","difficolta":1,"tile":2,"legenda":{"b":{"nemico":"bandito"},"a":{"nemico":"bandito_arciere"},"l":{"nemico":"lupo"},"s":{"nemico":"ragno"},"c":{"forziere":"comune"},"R":{"forziere":"raro"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"C":{"nemico":"bandito_arciere","capo":true}},"ingresso":{"island":"porto","at":[32,7]},
    "rows": [
     "                                        ",
     "  ######  ################              ",
@@ -7,7 +7,7 @@
     " #..c...# #.............R.#             ",
     " #.....## #..o..b...b..o..#             ",
     " ##...##  #......t.......##             ",
-    "  ##.##   #..b.........a.#  #######     ",
+    "  ##.##   #..b.........C.#  #######     ",
     "   #.##   ##......##....## ##.....##    ",
     "   #..#    ##....####..## ##...s...##   ",
     "   ##.##    ##..##  ##..###..s...o..##  ",
@@ -32,7 +32,7 @@
     "               #############            ",
     "                                        "
    ]},
-  {"id":"cripta","nome":"Cripta delle Ossa","descr":"Sotto la porta di pietra dell’Isola Selvaggia: ossari, una biblioteca dimenticata e la sala del Re delle Ossa. Argento, ossa di mostro, libri.","stile":"cripta","tile":2,"legenda":{"s":{"nemico":"scheletro"},"a":{"nemico":"scheletro_arciere"},"n":{"nemico":"nonmorto"},"K":{"nemico":"re_ossa"},"c":{"forziere":"comune_cripta"},"R":{"forziere":"raro_cripta"},"f":{"libro":"libro_fulmine"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"selvaggia","at":[18,12]},
+  {"id":"cripta","nome":"Cripta delle Ossa","descr":"Sotto la porta di pietra dell’Isola Selvaggia: ossari, una biblioteca dimenticata e la sala del Re delle Ossa. Argento, ossa di mostro, libri.","stile":"cripta","difficolta":2,"tile":2,"legenda":{"s":{"nemico":"scheletro"},"a":{"nemico":"scheletro_arciere"},"n":{"nemico":"nonmorto"},"K":{"nemico":"re_ossa","capo":true},"c":{"forziere":"comune_cripta"},"R":{"forziere":"raro_cripta"},"f":{"libro":"libro_fulmine"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"selvaggia","at":[18,12]},
    "rows": [
     "                                            ",
     " #######     ################      #######  ",
@@ -66,7 +66,7 @@
     "                 #############              ",
     "                                            "
    ]},
-  {"id":"vuoto","nome":"Portale del Vuoto","descr":"Piattaforme sospese nel nulla oltre il portale del Distretto Neon: spettri, golem di cristallo e il Custode. Vetro, meteorite, oggetti unici.","stile":"vuoto","tile":2,"legenda":{"p":{"nemico":"spettro"},"g":{"nemico":"golem"},"X":{"nemico":"custode"},"c":{"forziere":"comune_vuoto"},"R":{"forziere":"raro_vuoto"},"w":{"libro":"libro_lupo_spettrale"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"neon","at":[20,13]},
+  {"id":"vuoto","nome":"Portale del Vuoto","descr":"Piattaforme sospese nel nulla oltre il portale del Distretto Neon: spettri, golem di cristallo e il Custode. Vetro, meteorite, oggetti unici.","stile":"vuoto","difficolta":3,"tile":2,"legenda":{"p":{"nemico":"spettro"},"g":{"nemico":"golem"},"X":{"nemico":"custode","capo":true},"c":{"forziere":"comune_vuoto"},"R":{"forziere":"raro_vuoto"},"w":{"libro":"libro_lupo_spettrale"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"neon","at":[20,13]},
    "rows": [
     "                                                ",
     "    .....         ###############               ",
