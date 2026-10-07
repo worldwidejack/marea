@@ -88,9 +88,11 @@ async function boot(): Promise<void> {
   // Mondo Sotterraneo (docs/RPG.md, CONTRACTS §15): ingressi dei dungeon sulle isole e scheda del personaggio; il codice vero è nel chunk GDR
   const setMyLot = (l: LotState) => { lots.find((lv) => !lv.readonly)?.set(l); };
   const ingressi = createIngressi({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot });
-  for (const sp of ingressi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z });
+  // dei dungeon la bussola mostra solo il più facile non ancora completato (difficoltà invisibile, docs/RPG.md §2)
+  for (const sp of ingressi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, show: () => ingressi.next() === sp.id, group: 'dungeon' });
   const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;
-  const compass = createCompass({ root, targets });
+  // mete: comprimibile, caselle per scegliere; con una sola accesa anche la freccia sullo schermo (nascosta quando c'è sopra un pannello)
+  const compass = createCompass({ root, targets, camera: renderer.camera, canvas, groundY: world.groundY, hidden: () => coperto() });
   let closedAt = 0, nearWas = false, aWasT = false;
   /** Risorse cambiate fuori dal lotto (posta, esito di una sfida): la barra si aggiorna subito, non al poll dei 30 s. */
   const refreshMyLot = () => { void lots.find((lv) => !lv.readonly)?.refresh(); };
@@ -151,9 +153,11 @@ async function boot(): Promise<void> {
       return cellTarget(freeCell(null));
     } }] : []),
   ];
+  /** Gara, minigioco, dungeon o un pannello aperto: le frecce sullo schermo (guida, mete) si tolgono. */
+  const coperto = () => regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || ingressi.active || ingressi.isBusy() || !!eroe?.isOpen();
   const guida = createGuida({
     root, camera: renderer.camera, canvas, steps, storeKey: `marea:guida:${me?.id ?? 'ospite'}`,
-    hidden: () => regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || ingressi.active || ingressi.isBusy() || !!eroe?.isOpen(),
+    hidden: coperto,
     onFocus: (id) => compass.focus(id === 'segheria' || id === 'costruisci' ? 'casa' : id === 'barca' ? null : id),
   });
   let last = performance.now(), acc = 0, t = 0;
@@ -176,7 +180,7 @@ async function boot(): Promise<void> {
     const focus = world.mode === 'walk' ? world.avatar.state : world.boat.state;
     for (const lv of lots) lv.update(dt, focus); // rilettura ogni 30 s solo per l'isola dove sei; timer ed etichette ogni frame
     document.body.classList.toggle('mz-sotto', ingressi.active); // nel dungeon: l'interfaccia di superficie si nasconde (CSS del chunk GDR)
-    compass.update(focus, renderer.diorama.yaw);
+    compass.update(focus, renderer.diorama.yaw, t);
     renderer.render(acc / DT, t);
     hud.setPerf(renderer.stats());
     requestAnimationFrame(frame);

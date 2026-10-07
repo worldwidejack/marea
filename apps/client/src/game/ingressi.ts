@@ -29,17 +29,24 @@ export type Ingressi = {
   readonly active: boolean;
   /** Spedizione che parte o scheda dell'esito aperta: il mondo sta fermo. */
   isBusy(): boolean;
+  /** Il dungeon più facile non ancora completato (`difficolta`, `hero.completati`): l'unico che la bussola mostra. null = tutti fatti. */
+  next(): string | null;
 };
 
 /**
- * Copia a mano di `ingresso` e `stile` di packages/content/src/rpg/dungeons.json (il JSON è GDR: qui non si può importare).
+ * Copia a mano di `ingresso`, `stile` e `difficolta` di packages/content/src/rpg/dungeons.json (il JSON è GDR: qui non si può importare).
  * Il test e2e m2_dungeon controlla che coincida con DUNGEONS: se un dungeon si sposta, aggiornare anche qui.
  */
 export const INGRESSI = [
-  { id: 'grotta', nome: 'Grotta della Marea', island: 'selvaggia', at: [18, 12], stile: 'grotta' },
-  { id: 'cripta', nome: 'Cripta del Porto', island: 'porto', at: [32, 7], stile: 'cripta' },
-  { id: 'vuoto', nome: 'Portale del Vuoto', island: 'neon', at: [20, 13], stile: 'vuoto' },
+  { id: 'grotta', nome: 'Grotta della Marea', island: 'porto', at: [32, 7], stile: 'grotta', difficolta: 1 },
+  { id: 'cripta', nome: 'Cripta delle Ossa', island: 'selvaggia', at: [18, 12], stile: 'cripta', difficolta: 2 },
+  { id: 'vuoto', nome: 'Portale del Vuoto', island: 'neon', at: [20, 13], stile: 'vuoto', difficolta: 3 },
 ] as const;
+const PER_DIFFICOLTA = [...INGRESSI].sort((a, b) => a.difficolta - b.difficolta);
+/** Il dungeon più facile tra quelli non ancora completati (null = tutti completati). */
+export function nextDungeon(completati: readonly string[]): string | null {
+  return PER_DIFFICOLTA.find((d) => !completati.includes(d.id))?.id ?? null;
+}
 
 /** Stato condiviso col chunk GDR (dungeon_run.ts lo legge): autopilot dei test e vista corrente per state().dungeon. */
 /** Ponte coi test (?test=1): autopilot (tick per frame), `altare` = cammina fino a quell'altare (-1 = no), stato della partita. */
@@ -61,6 +68,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     return [{ id: d.id, nome: d.nome, stile: d.stile, x: (p.origin[0] + d.at[0] + 0.5) * arch.tile, z: (p.origin[1] + d.at[1] + 0.5) * arch.tile, icon: ICON }];
   });
   type Spot = (typeof spots)[number];
+  const next = () => nextDungeon(o.getLot()?.hero?.completati ?? []);
 
   // ---- nel mondo: portale + cartello ----
   const group = new THREE.Group(); group.name = 'ingressi'; o.world.scene.add(group);
@@ -125,10 +133,17 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       backToEntrance(s, zoom0);
       if (!done) { aborts++; o.hud.toast('Sei risalito senza bottino', 2500); return; }
       try {
+        const prima = next();
         const r = await api.dungeonFinish(encodeDungeon(done.inputs), done.hash);
-        finishes++; lastResult = { outcome: r.result.outcome, tenuto: r.tenuto, monete: r.monete, livelliSu: r.livelliSu, hash: r.result.hash, clientHash: done.hash };
+        finishes++; lastResult = { outcome: r.result.outcome, tenuto: r.tenuto, monete: r.monete, livelliSu: r.livelliSu, capo: r.result.capo ?? false, hash: r.result.hash, clientHash: done.hash };
         o.setLot(r.lot);
         await mod.showResult(ctx, r);
+        // capo ucciso la prima volta: la bussola passa al dungeon dopo, e lo si dice
+        const dopo = next();
+        if (dopo !== prima && (r.lot.hero?.completati ?? []).includes(s.id)) {
+          const n = INGRESSI.find((d) => d.id === dopo);
+          o.hud.toast(n ? `${s.nome} completata! Prossimo dungeon: ${n.nome}` : `${s.nome} completato! Hai finito tutti i dungeon`, 4500);
+        }
       } catch (e) { fail(e, 'Spedizione non salvata, riprova'); }
     } catch (e) {
       console.error('[marea] dungeon', e); fail(e, 'Qualcosa è andato storto nel dungeon');
@@ -147,6 +162,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     o.renderer.diorama.setZoom(zoom);
     o.renderer.diorama.follow(a.state.x, o.world.groundY(a.state.x, a.state.z), a.state.z);
     o.renderer.diorama.snap?.();
+    nearWas = s; // di nuovo davanti alla bocca: niente «premi A», che coprirebbe il toast dell'esito
   }
 
   /** La scenografia casuale (palme, sassi) non sa degli ingressi: quella entro 6 m si toglie, se no copre la bocca vista dalla camera.
@@ -166,7 +182,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     });
   };
 
-  registerStateProvider('ingressi', () => ({ spots: spots.map(({ id, nome, x, z }) => ({ id, nome, x, z })), models: marks.map((m) => m.holder.children.length), cleared, near: near?.id ?? null, busy, active: !!run?.active, entered, finishes, aborts, salvataggi, recuperato, lastErr, lastResult }));
+  registerStateProvider('ingressi', () => ({ spots: spots.map(({ id, nome, x, z }) => ({ id, nome, x, z })), models: marks.map((m) => m.holder.children.length), cleared, near: near?.id ?? null, next: next(), busy, active: !!run?.active, entered, finishes, aborts, salvataggi, recuperato, lastErr, lastResult }));
   registerStateProvider('dungeon', () => (run && dungeonLink.state ? { ...dungeonLink.state(), busy } : { active: false, dungeon: current, busy, tick: 0, outcome: null, hero: null, nemici: 0, vivi: 0 }));
   registerTestHook('enterDungeon', (id) => {
     const s = spots.find((x) => x.id === String(id ?? 'grotta'));
@@ -183,6 +199,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     spots: spots.map(({ id, nome, x, z, icon }) => ({ id, nome, x, z, icon })),
     get active() { return !!run && run.active; },
     isBusy: () => busy || (!!run && !run.active),
+    next,
     tick(a) {
       const pressA = a && !aWas; aWas = a;
       if (busy || run || o.world.race.on || o.world.mode !== 'walk') { near = null; return; }

@@ -1,7 +1,7 @@
 [
   { "id": "lingotto_bronzo", "nome": "Lingotto di bronzo", "kind": "materiale", "peso": 1, "colore": "#F2A33A", "descr": "Si forgia al Banco da Lavoro." },
   { "id": "lingotto_ferro", "nome": "Lingotto di ferro", "kind": "materiale", "peso": 1, "colore": "#7F7568", "descr": "Si forgia al Banco da Lavoro." },
-  { "id": "lingotto_argento", "nome": "Lingotto d'argento", "kind": "materiale", "peso": 1, "colore": "#E8E1D6", "descr": "Si trova nella Cripta del Porto." },
+  { "id": "lingotto_argento", "nome": "Lingotto d'argento", "kind": "materiale", "peso": 1, "colore": "#E8E1D6", "descr": "Si trova nella Cripta delle Ossa." },
   { "id": "pepita_oro", "nome": "Pepita d'oro", "kind": "materiale", "peso": 0.5, "colore": "#F5D547", "descr": "Rara: luccica nelle grotte." },
   { "id": "frammento_vetro", "nome": "Frammento di cristallo", "kind": "materiale", "peso": 0.5, "colore": "#7FE3E0", "descr": "Dai golem del Portale del Vuoto." },
   { "id": "ossa_mostro", "nome": "Ossa di mostro", "kind": "materiale", "peso": 2, "colore": "#F4E3C1", "descr": "Dai boss scheletrici." },

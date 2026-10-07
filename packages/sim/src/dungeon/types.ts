@@ -56,6 +56,8 @@ export type DungeonView = {
     protetto: boolean;
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
+    /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
+    capo?: boolean;
     /** Raggio in m del colpo ad area dei boss, solo mentre lo prepara (il client disegna il cerchio a terra). */
     area?: number }[];
   proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica'; x: number; y: number; z: number; vx: number; vz: number }[];

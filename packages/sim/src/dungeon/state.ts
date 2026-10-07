@@ -48,6 +48,8 @@ export type Enemy = {
   bersaglio: number;
   /** Ultimo colpo subito: per dropRaro e dropMolt alla morte. */
   dropRaro: boolean; dropMolt: number;
+  /** Capo del dungeon (legenda `capo`): morto lui, la spedizione completa il dungeon (`RunResult.capo`). Fuori dall'hash. */
+  capo?: true;
 };
 export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica';
 export type Proj = {
@@ -115,6 +117,7 @@ export function createState(def: DungeonDef, seed: number, hero: RunHero): Dunge
   const sonno = rng.fork('sonno');
   for (const n of map.nemici) {
     const e = newEnemy(s, n.tipo, (n.cx + 0.5) * map.tile, (n.cz + 0.5) * map.tile);
+    if (n.capo) e.capo = true;
     // i boss vegliano sempre; gli altri dormono a caso (il seed decide)
     const dorme = sonno.next() < P_DORME && !e.def.boss;
     e.st = dorme ? 'dorme' : 'veglia';

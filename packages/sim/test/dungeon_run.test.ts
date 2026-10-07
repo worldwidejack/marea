@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dungeon } from '../src/dungeon/dungeon.ts';
 import { isPackedDungeon, packDungeon, quantizeDungeon, replayDungeon, unpackDungeon } from '../src/dungeon/replay.ts';
-import { wake } from '../src/dungeon/combat.ts';
+import { kill, wake } from '../src/dungeon/combat.ts';
 import type { RunHero } from '../src/rpg/types.ts';
 import { newHero, runHeroOf } from '../src/rpg/hero.ts';
 import { heroBase, heroForte, inp, playAuto, run } from './dungeon_util.ts';
@@ -136,4 +136,23 @@ test('dungeon: replay di una partita di 20 minuti (caso peggiore: nemici tutti v
   console.log(`  replay 20 min: ${ms.toFixed(0)} ms per ${r.ticks} tick (${((ms * 1000) / r.ticks).toFixed(1)} µs/tick), ${packed.length} righe RLE (${(JSON.stringify(packed).length / 1024).toFixed(0)} KB), ${svegli} nemici svegli, danni presi ${r.danniPresi.toFixed(0)}; replayDungeon della stessa partita senza sveglia ${ms2.toFixed(0)} ms`);
   assert.equal(r.hash, dungeon.result(s).hash);
   assert.ok(ms < 2000, `replay troppo lento: ${ms.toFixed(0)} ms`);
+});
+
+test('dungeon: RunResult.capo solo quando muore il capo (nella Grotta il Capo dei banditi, un po’ più forte degli arcieri); la vista lo segna', () => {
+  for (const d of ['grotta', 'cripta', 'vuoto']) {
+    const s = dungeon.create({ seed: 2, dungeon: d, hero: heroBase() });
+    const capo = s.enemies.filter((e) => e.capo);
+    assert.equal(capo.length, 1, d);
+    const altro = s.enemies.find((e) => !e.capo)!;
+    kill(s, altro);
+    assert.equal(dungeon.result(s).capo, false, d + ': un nemico qualunque non completa');
+    kill(s, capo[0]!);
+    assert.equal(dungeon.result(s).capo, true, d);
+  }
+  const g = dungeon.create({ seed: 2, dungeon: 'grotta', hero: heroBase() });
+  const capo = g.enemies.find((e) => e.capo)!, arciere = g.enemies.find((e) => e.tipo === 'bandito_arciere')!;
+  assert.equal(capo.tipo, 'capo_banditi');
+  assert.ok(capo.max > arciere.max && capo.def.danno > arciere.def.danno && !capo.def.boss, 'il capo è un po’ più forte, non un boss');
+  const v = dungeon.view(g).nemici;
+  assert.deepEqual(v.filter((n) => n.capo).map((n) => n.id), [capo.id], 'nella vista solo il capo ha capo: true');
 });

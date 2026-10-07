@@ -15,7 +15,8 @@ type Enemy = {
   id: number; root: THREE.Group; body: THREE.Group; mats: THREE.MeshLambertMaterial[]; base: THREE.Color[]; height: number;
   px: number; pz: number; x: number; z: number; v: NemV; diedAt: number; flashT: number; ring: THREE.Group | null; ready: boolean;
 };
-export type Bar = { id: number; pos: THREE.Vector3; frac: number; ally: boolean; boss: boolean };
+/** `capo`: corona sopra la barra, che si vede anche a vita piena (il nemico da battere per completare il dungeon). */
+export type Bar = { id: number; pos: THREE.Vector3; frac: number; ally: boolean; boss: boolean; capo: boolean };
 export type Actors = {
   tick(v: DungeonView): void;
   update(alpha: number, dt: number, t: number, heroXZ: { x: number; z: number }): void;
@@ -188,8 +189,8 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
       const out: Bar[] = [];
       for (const e of enemies.values()) {
         const n = e.v;
-        if (!e.root.visible || n.anim === 'morto' || n.vita >= n.max || !e.ready) continue;
-        out.push({ id: e.id, pos: e.root.position.clone().setY(fy + e.height), frac: n.vita / n.max, ally: n.alleato, boss: n.boss });
+        if (!e.root.visible || n.anim === 'morto' || (n.vita >= n.max && !n.capo) || !e.ready) continue;
+        out.push({ id: e.id, pos: e.root.position.clone().setY(fy + e.height), frac: n.vita / n.max, ally: n.alleato, boss: n.boss, capo: !!n.capo });
       }
       return out;
     },

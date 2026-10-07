@@ -28,6 +28,8 @@ export type HeroState = {
   /** Spedizioni fatte / morti (statistiche). */
   discese: number;
   morti: number;
+  /** Dungeon completati (capo ucciso almeno una volta), id in ordine di completamento. Assente = nessuno. */
+  completati?: string[];
 };
 
 /** Voce del catalogo (generata dalla sim: tipo × materiale + oggetti scritti a mano). La UI la usa per nome, peso, descrizione e statistiche. */
@@ -134,6 +136,8 @@ export type RunResult = {
   salvato?: { bottino: Record<string, number>; monete: number } | null;
   /** Morti con risveglio all'altare (dungeon v2). */
   cadute?: number;
+  /** Il capo del dungeon (legenda `capo`) è morto in questa spedizione: il dungeon è completato, qualunque sia l'esito. */
+  capo?: boolean;
   hash: number;
 };
 

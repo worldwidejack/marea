@@ -103,3 +103,15 @@ test('rpg spedizione: deterministica, e la Regata dà xp di Navigazione per meda
   assert.equal(nulla.xp, RPG.xp.regata_nessuna);
   assert.ok((RPG.xp.regata_oro ?? 0) > (RPG.xp.regata_argento ?? 0) && (RPG.xp.regata_argento ?? 0) > (RPG.xp.regata_bronzo ?? 0));
 });
+
+test('rpg spedizione: capo ucciso = dungeon completato (anche da morto), una volta sola; senza capo niente', () => {
+  const finisci = (l: LotState, d: string, r: Partial<RunResult>) => finishDungeon(startDungeon(l, d, 1, T0), result(r), T0 + 1000).lot;
+  let l = finisci(lot(), 'grotta', {});
+  assert.equal(heroOf(l).completati, undefined, 'uscito senza il capo: non completato');
+  l = finisci(l, 'grotta', { capo: true, outcome: 'morto' });
+  assert.deepEqual(heroOf(l).completati, ['grotta']);
+  l = finisci(l, 'grotta', { capo: true });
+  assert.deepEqual(heroOf(l).completati, ['grotta'], 'niente doppioni');
+  l = finisci(l, 'cripta', { capo: true, outcome: null, done: false });
+  assert.deepEqual(heroOf(l).completati, ['grotta', 'cripta']);
+});
