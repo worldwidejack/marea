@@ -44,7 +44,8 @@ uniform sampler2D tDist;
 uniform vec2 uMapSize;
 uniform float uTime;
 uniform int uMode;
-uniform vec3 uC0, uC1, uC2, uC3, uFoam, uLine, uSunDir, uTint;
+uniform vec3 uC0, uC1, uC2, uC3, uFoam, uLine, uSunDir, uTint, uMoonDir;
+uniform float uNight;
 varying vec3 vW;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) {
@@ -93,11 +94,19 @@ void main() {
     float shore = 0.9 + 0.35 * sin(t * 1.4 + vnoise(q * 0.5) * 6.0);
     if (dd < shore) c = uFoam;
   }
-  gl_FragColor = vec4(c * uTint, 1.0); // uTint: il ciclo giorno/notte scurisce l'acqua (non è illuminata)
+  c *= uTint;
+  if (uNight > 0.01) { // notte (#56): scia della luna e stelle riflesse, come nell'acqua del gioco
+    vec2 toP = vW.xz - cameraPosition.xz;
+    float al = dot(normalize(toP), normalize(uMoonDir.xz)), far = clamp(length(toP) / 70.0, 0.0, 1.0);
+    if (al > 0.99965 - 0.0012 * far && hash(floor(q * 4.0) + floor(t * 3.0)) > 0.6) c = mix(c, uFoam, uNight);
+    float st = hash(floor(q * 1.5) + 17.0);
+    if (st > 0.9965 && fract(t * 0.6 + st * 13.0) > 0.3) c = mix(c, uFoam, uNight * 0.85);
+  }
+  gl_FragColor = vec4(c, 1.0); // uTint: il ciclo giorno/notte scurisce l'acqua (non è illuminata)
   #include <colorspace_fragment>
 }`;
 
-export type Water2 = { mesh: THREE.Mesh; follow(x: number, z: number): void; update(t: number): void; set(mode: number, c: string[], foam: string, line: string, sunDir: [number, number, number]): void; tint(c: THREE.Color): void };
+export type Water2 = { mesh: THREE.Mesh; follow(x: number, z: number): void; update(t: number): void; set(mode: number, c: string[], foam: string, line: string, sunDir: [number, number, number]): void; tint(c: THREE.Color): void; night(n: number, moonDir: readonly [number, number, number]): void };
 
 export function createWater2(map: GridMap): Water2 {
   const col = (h: string) => new THREE.Color(h);
@@ -105,6 +114,7 @@ export function createWater2(map: GridMap): Water2 {
     tDist: { value: distanceField(map) }, uMapSize: { value: new THREE.Vector2(map.w * map.tile, map.h * map.tile) }, uTime: { value: 0 }, uMode: { value: 1 },
     uC0: { value: col('#fff') }, uC1: { value: col('#fff') }, uC2: { value: col('#fff') }, uC3: { value: col('#fff') }, uFoam: { value: col('#fff') }, uLine: { value: col('#fff') },
     uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uTint: { value: new THREE.Color(1, 1, 1) },
+    uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(0, 0, -1) },
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U });
   // 1,6 km di lato a 64 quadrati: la foschia copre il bordo; la griglia serve solo a non avere triangoli enormi
@@ -115,6 +125,7 @@ export function createWater2(map: GridMap): Water2 {
     follow: (x, z) => mesh.position.set(Math.round(x / 4) * 4, 0, Math.round(z / 4) * 4),
     update: (t) => { U.uTime.value = t % 3600; },
     tint: (c) => { U.uTint.value.copy(c); },
+    night: (n, d) => { U.uNight.value = n; U.uMoonDir.value.set(d[0], d[1], d[2]).normalize(); },
     set: (mode, c, foam, line, sunDir) => {
       U.uMode.value = mode; U.uC0.value.set(c[0]!); U.uC1.value.set(c[1]!); U.uC2.value.set(c[2]!); U.uC3.value.set(c[3]!);
       U.uFoam.value.set(foam); U.uLine.value.set(line); U.uSunDir.value.set(...sunDir).normalize();

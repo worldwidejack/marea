@@ -9,12 +9,12 @@ import type { GridMap } from '@marea/sim';
 import type { Renderer } from './scene.ts';
 import type { Lights } from './light.ts';
 import type { Water } from './water.ts';
-import { setWaterColors } from './water.ts';
+import { setWaterColors, setWaterNight } from './water.ts';
 import { createPost } from './post.ts';
 import type { Post, PostLook } from './post.ts';
 import { createWater2 } from './water2.ts';
 import type { Water2 } from './water2.ts';
-import { GIORNO, fase, momento } from './ciclo.ts';
+import { GIORNO, LUNA_DIR, fase, momento } from './ciclo.ts';
 import type { Momento } from './ciclo.ts';
 
 import { DI_SERIE, VISTE } from './viste.ts';
@@ -38,14 +38,14 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
       palette: st ? PALETTE_STAMPA : null, dither: st ? 0.08 : 0, paper: st ? 1 : 0,
       grade: st ? { exp: 1.05, sat: 0.8, con: 1.1, tint: '#fff2dc' } : { exp: 1, sat: 1, con: 1, tint: '#ffffff' },
       ink: st ? { col: '#1b1d2b', mix: 1, crease: -0.55 } : { col: '#000000', mix: 0, crease: 1 },
-      sky: { top: m.sky3[0], mid: m.sky3[1], hor: m.sky3[2], sun: '#ffffff', glow: '#ffffff', sunDir: [0, -1, 0], sunSize: 0, cloud: m.clouds[0], cloudDark: m.clouds[1] },
+      sky: { top: m.sky3[0], mid: m.sky3[1], hor: m.sky3[2], sun: '#ffffff', glow: '#ffffff', sunDir: [0, -1, 0], sunSize: 0, cloud: m.clouds[0], cloudDark: m.clouds[1], night: m.notte, moonDir: LUNA_DIR },
       fog: { col: m.fog, near: 35, far: 200, max: 0.8 },
     };
   };
   /** Luce, cielo e acqua dal momento `m` (anche per tornare al giorno di serie quando si spegne il ciclo). */
   const paint = () => {
-    o.lights.set?.(m.sun); o.renderer.sky.setBands(m.bands); setWaterColors(m.water);
-    water2?.tint(tint.set(m.tint));
+    o.lights.set?.(m.sun); o.renderer.sky.setBands(m.bands); setWaterColors(m.water); setWaterNight(m.notte, LUNA_DIR);
+    water2?.tint(tint.set(m.tint)); water2?.night(m.notte, LUNA_DIR);
     post?.setStyle(look());
   };
   const api: Aspetto = {

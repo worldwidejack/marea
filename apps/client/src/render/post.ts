@@ -11,7 +11,8 @@ import * as THREE from 'three';
 export type PostLook = {
   palette: string[] | null; dither: number; grade: { exp: number; sat: number; con: number; tint: string }; paper: number;
   ink: { col: string; mix: number; crease: number };
-  sky: { top: string; mid: string; hor: string; sun: string; glow: string; sunDir: [number, number, number]; sunSize: number; cloud: string; cloudDark: string };
+  sky: { top: string; mid: string; hor: string; sun: string; glow: string; sunDir: [number, number, number]; sunSize: number; cloud: string; cloudDark: string;
+    /** notte (#56): 0..1 stelle e luna; moonDir = dove sta la luna */ night?: number; moonDir?: [number, number, number] };
   fog: { col: string; near: number; far: number; max: number };
 };
 export type PostToggles = { contorni: boolean; foschia: boolean; cielo: boolean };
@@ -36,7 +37,8 @@ uniform float uNear, uFar, uTime, uOutline, uFog, uSky;
 uniform mat4 uInvProj, uCamWorld;
 uniform vec3 uFogCol, uInk, uInkCol, uTint;
 uniform float uInkMix, uCrease, uFogNear, uFogFar, uFogMax, uPaper, uDither, uExp, uSat, uCon, uSunSize;
-uniform vec3 uSkyTop, uSkyMid, uSkyHor, uSun, uGlow, uSunDir, uCloud, uCloudDark;
+uniform vec3 uSkyTop, uSkyMid, uSkyHor, uSun, uGlow, uSunDir, uCloud, uCloudDark, uMoonDir, uMoonCol;
+uniform float uNight;
 uniform vec3 uPal[${MAXPAL}];
 uniform int uPalN;
 
@@ -61,6 +63,18 @@ vec3 skyCol(vec2 uv, vec2 px) {
     float a = degrees(acos(clamp(dot(dir, normalize(uSunDir)), -1.0, 1.0)));
     if (a < uSunSize * 2.2 + (bayer(px) - 0.5) * 1.5) c = uGlow;
     if (a < uSunSize) c = uSun;
+  }
+  if (uNight > 0.01) {
+    // stelle: celle di ~0,15° in azimut × altezza, una su 40 accesa, tremolano; più rade vicino all'orizzonte
+    vec2 sc = floor(vec2(atan(dir.x, dir.z), asin(clamp(dir.y, -1.0, 1.0))) * 380.0);
+    float h = hash(sc);
+    if (e > 1.2 && h > 0.975 + (1.0 - smoothstep(1.2, 6.0, e)) * 0.01 && fract(uTime * 0.5 + h * 17.0) > 0.2) c = mix(c, uMoonCol, uNight * (0.75 + 0.25 * fract(h * 91.0)));
+    // luna: alone a pixel, poi falce (disco meno un disco spostato)
+    vec3 md = normalize(uMoonDir);
+    float a = degrees(acos(clamp(dot(dir, md), -1.0, 1.0)));
+    if (a < 3.6 + (bayer(px) - 0.5) * 1.5) c = mix(c, min(c * 1.6 + 0.05, vec3(1.0)), uNight * 0.5);
+    float b = degrees(acos(clamp(dot(dir, normalize(md + vec3(0.02, 0.008, -0.014))), -1.0, 1.0)));
+    if (a < 1.6 && b > 1.35) c = mix(c, uMoonCol, uNight);
   }
   if (dir.y > 0.02) {
     // nuvole su un piano a 220 m: due ottave di rumore a soglia, pancia di un altro colore; scorrono col vento
@@ -139,6 +153,7 @@ export function createPost(): Post {
     uSkyTop: { value: col('#3FB9C9') }, uSkyMid: { value: col('#7FE3E0') }, uSkyHor: { value: col('#E8E1D6') },
     uSun: { value: col('#fff') }, uGlow: { value: col('#fff') }, uSunDir: { value: new THREE.Vector3(0, -1, 0) }, uSunSize: { value: 0 },
     uCloud: { value: col('#F4E3C1') }, uCloudDark: { value: col('#E8E1D6') },
+    uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(-0.66, 0.05, -0.75) }, uMoonCol: { value: col('#E8E1D6') },
     uPal: { value: Array.from({ length: MAXPAL }, () => new THREE.Vector3()) }, uPalN: { value: 0 },
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U, depthTest: false, depthWrite: false });
@@ -156,6 +171,7 @@ export function createPost(): Post {
       U.uSkyTop.value.set(s.sky.top); U.uSkyMid.value.set(s.sky.mid); U.uSkyHor.value.set(s.sky.hor);
       U.uSun.value.set(s.sky.sun); U.uGlow.value.set(s.sky.glow); U.uSunDir.value.set(...s.sky.sunDir).normalize(); U.uSunSize.value = s.sky.sunSize;
       U.uCloud.value.set(s.sky.cloud); U.uCloudDark.value.set(s.sky.cloudDark);
+      U.uNight.value = s.sky.night ?? 0; if (s.sky.moonDir) U.uMoonDir.value.set(...s.sky.moonDir).normalize();
       const pal = (s.palette ?? []).slice(0, MAXPAL);
       pal.forEach((h, i) => U.uPal.value[i]!.copy(srgb(h)));
       U.uPalN.value = pal.length;

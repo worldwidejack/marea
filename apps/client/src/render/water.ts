@@ -26,8 +26,14 @@ const U = {
   cAcqua: { value: new THREE.Color(WATER_COLORS.acqua) },
   cBassa: { value: new THREE.Color(WATER_COLORS.bassa) },
   cSchiuma: { value: new THREE.Color(WATER_COLORS.schiuma) },
+  // notte (#56): 0 = acqua di sempre; la direzione è quella in cui si vede la luna (bassa davanti alla camera)
+  uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(-0.66, 0.05, -0.75) }, cLuna: { value: new THREE.Color('#E8E1D6') },
 };
 
+/** Notte (#56): scia della luna e stelle riflesse, `night` 0..1 (0 = acqua di sempre). */
+export function setWaterNight(night: number, moonDir?: readonly [number, number, number]): void {
+  U.uNight.value = night; if (moonDir) U.uMoonDir.value.set(moonDir[0], moonDir[1], moonDir[2]).normalize();
+}
 /** Ciclo giorno/notte (#53): ricolora tutte le acque (uniform condivisi). Senza chiamarla restano i colori di WATER_COLORS. */
 export function setWaterColors(c: { abisso: string; profonda: string; acqua: string; bassa: string; schiuma: string }): void {
   U.cAbisso.value.set(c.abisso); U.cProfonda.value.set(c.profonda); U.cAcqua.value.set(c.acqua); U.cBassa.value.set(c.bassa); U.cSchiuma.value.set(c.schiuma);
@@ -51,6 +57,7 @@ const FRAG = /* glsl */ `
 uniform float uTime; uniform sampler2D uMask; uniform float uHasMap; uniform vec2 uMaskOrigin; uniform vec2 uMaskSize;
 uniform vec2 uMapMin; uniform vec2 uMapMax; uniform sampler2D uPattern;
 uniform vec3 cAbisso; uniform vec3 cProfonda; uniform vec3 cAcqua; uniform vec3 cBassa; uniform vec3 cSchiuma;
+uniform float uNight; uniform vec3 uMoonDir; uniform vec3 cLuna;
 varying vec3 vWorld;
 const float DIST_MAX = 128.0; // metri codificati in 0..1 nel canale A della maschera
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -78,6 +85,15 @@ void main() {
   float ring = step(0.14 + breath, m.b) * step(m.b, 0.36 + breath);
   float spray = step(0.05, m.r + m.b) * step(m.r + m.b, 0.16 + breath) * step(0.93, n);
   if (uHasMap > 0.5 && (shore * step(0.25, n) + ring * step(0.35, n) + spray) > 0.5) c = cSchiuma;
+  if (uNight > 0.01) {
+    // scia della luna: i punti d'acqua nella direzione della luna (vista dall'alto, ±1,5°) luccicano a pixel, un po' più larga lontano
+    vec2 toP = vWorld.xz - cameraPosition.xz;
+    float al = dot(normalize(toP), normalize(uMoonDir.xz)), far = clamp(length(toP) / 70.0, 0.0, 1.0);
+    if (al > 0.99965 - 0.0012 * far && hash(floor(p * 4.0) + floor(uTime * 3.0)) > 0.6) c = mix(c, cLuna, uNight);
+    // stelle riflesse: pochi pixel fissi che tremolano
+    float st = hash(floor(p * 1.5) + 17.0);
+    if (st > 0.9965 && fract(uTime * 0.6 + st * 13.0) > 0.3) c = mix(c, cLuna, uNight * 0.85);
+  }
   gl_FragColor = vec4(c, 1.0);
   #include <colorspace_fragment>
 }`;
