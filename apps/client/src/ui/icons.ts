@@ -90,3 +90,7 @@ export function pixIcon(id: PixId, px = 16): HTMLSpanElement {
   e.setAttribute('aria-hidden', 'true');
   return e;
 }
+/** Disegna un'icona di luogo su una tela 2D (minimappa): 8×8 celle da `s` pixel, angolo in alto a sinistra in (x, y). */
+export function drawPix(g: CanvasRenderingContext2D, id: PixId, x: number, y: number, s: number): void {
+  PIX[id].forEach((row, yy) => { for (let xx = 0; xx < row.length; xx++) { const c = COL[row[xx] ?? '.']; if (c) { g.fillStyle = c; g.fillRect(x + xx * s, y + yy * s, s, s); } } });
+}
