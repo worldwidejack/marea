@@ -140,6 +140,8 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'senzaFrecce': say('Frecce finite', 1400); break;
         case 'libro': say(`Hai imparato: ${nome(e.item).replace(/^Libro: /, '')}`, 2600); break;
         case 'evocato': say('Un alleato combatte per te', 1800); break;
+        case 'altare': say('Altare: il bottino fin qui è al sicuro', 2400); break;
+        case 'risveglio': say('Ti risvegli all’altare: perso solo il bottino raccolto dopo', 3200); break;
         default:
       }
     },

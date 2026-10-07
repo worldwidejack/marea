@@ -17,9 +17,11 @@ export type DungeonScene = {
   scene: THREE.Scene; map: DMap; def: DungeonDef; floorY: number;
   /** Ogni frame: luce, muri, torce. */
   update(hx: number, hz: number, t: number): void;
+  /** Altare acceso (l'ultimo toccato, -1 = nessuno): il suo cristallo si illumina. */
+  setAltare(n: number): void;
   /** Livello di luce della cella in (x, z): 0 = mai vista, 0.25 = vista prima, ≥ 0.45 = in vista ora. */
   light(x: number, z: number): number;
-  stats(): { floors: number; walls: number; low: number; lights: number; seen: number };
+  stats(): { floors: number; walls: number; low: number; lights: number; seen: number; altari: number; altareAcceso: number };
   dispose(): void;
 };
 
@@ -128,7 +130,16 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
   const exitM = new THREE.Matrix4().compose(center(map.exit.cx, map.exit.cz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(-sdx, -sdz)), new THREE.Vector3(1, 1, 1));
   const bExit = makeBatch(pExit ?? [boxPart(1.4, 0.4, 1.8, 0, PAL.legno), boxPart(1.4, 0.4, 1.2, 0.4, PAL.legno), boxPart(1.4, 0.4, 0.6, 0.8, PAL.legnoChiaro)], [exitCell], [exitM], 'scala', group);
   sources.push({ x: map.exit.x, z: map.exit.z, c: PAL.giallo, i: 1.3, cell: exitCell });
-  const batches = [bFloor, bWall, bLow, bCol, bBones, bTorch, bBraz, bExit];
+
+  // ---- altari di salvataggio: piedistallo di pietra e cristallo (spento abisso; acceso, l'ultimo toccato, acqua bassa luminosa) ----
+  // segnaposto fatto di box finché non c'è un modello dng_altare; si vedono sempre, come la scala: sono i punti sicuri del dungeon
+  const altarCells = map.altari.map((a) => a.cz * W + a.cx), altarM = altarCells.map((i) => place(i % W, Math.floor(i / W), 0));
+  const bAltare = makeBatch([boxPart(1.1, 0.3, 1.1, 0, PAL.pietraScura), boxPart(0.7, 0.5, 0.7, 0.3, PAL.pietra)], altarCells, altarM, 'altare', group);
+  const bCristOff = makeBatch([boxPart(0.3, 0.6, 0.3, 0.8, PAL.abisso)], altarCells, altarM, 'altare_spento', group);
+  const bCristOn = makeBatch([boxPart(0.36, 0.75, 0.36, 0.8, PAL.acquaBassa, true)], altarCells, altarM, 'altare_acceso', group);
+  const altarSrc = map.altari.map((a, n) => { const src = { x: a.x, z: a.z, c: PAL.acquaBassa, i: 0.4, cell: altarCells[n]! }; sources.push(src); return src; });
+  let altarOn = -1;
+  const batches = [bFloor, bWall, bLow, bCol, bBones, bTorch, bBraz, bExit, bAltare, bCristOff, bCristOn];
 
   // ---- luci ----
   const hemi = new THREE.HemisphereLight(st.hemi[0], st.hemi[1], st.hemi[2]);
@@ -177,6 +188,10 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
     torchCells.forEach((i, n) => setInst(bTorch, n, Math.max(lv(i), seen[i] ? 1 : 0)));
     bBraz.cells.forEach((i, n) => setInst(bBraz, n, seen[i] ? 1 : 0));
     setInst(bExit, 0, Math.max(lv(exitCell), LV.seen)); // la scala si vede sempre: è da lì che si esce
+    altarCells.forEach((i, n) => {
+      const l = Math.max(lv(i), LV.seen);
+      setInst(bAltare, n, l); setInst(bCristOff, n, n === altarOn ? 0 : l); setInst(bCristOn, n, n === altarOn ? 1 : 0);
+    });
     for (const b of batches) flush(b);
   }
 
@@ -201,8 +216,14 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
         });
       }
     },
+    setAltare(n) {
+      if (n === altarOn) return;
+      altarOn = n;
+      altarSrc.forEach((src, k) => (src.i = k === n ? 1.1 : 0.4));
+      lastCell = -1; poolT = -1; // rifà luce e lampade al prossimo update
+    },
     light: (x, z) => { const i = cellOfXZ(x, z); return i < 0 ? 0 : level[i]! > 0 ? level[i]! : seen[i] ? LV.seen : 0; },
-    stats: () => ({ floors: floors.length, walls: walls.length, low: lowN, lights: pool.filter((l) => l.intensity > 0).length, seen: seenN }),
+    stats: () => ({ floors: floors.length, walls: walls.length, low: lowN, lights: pool.filter((l) => l.intensity > 0).length, seen: seenN, altari: altarCells.length, altareAcceso: altarOn }),
     dispose() {
       for (const b of batches) for (const im of b.meshes) im.dispose(); // le geometrie restano nella cache del kit (prossima discesa)
       scene.clear();

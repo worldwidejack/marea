@@ -47,7 +47,7 @@ export function viewOf(s: DungeonState): DungeonView {
     hero: {
       x: h.x, z: h.z, fx: h.fx, fz: h.fz, anim: ha.anim, t: ha.t, carica: h.act === 'carica' || h.act === 'tende' ? h.carica : 0,
       vita: h.vita, magicka: h.magicka, stamina: h.stamina, max: { ...rh.max },
-      ricaricaMagia: h.cdMagia / HZ, frecce: h.frecce, pozioni: h.pozioni,
+      ricaricaMagia: h.cdMagia / HZ, frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0,
     },
     nemici: s.enemies.map((e) => {
       const a = enemyAnim(e);
@@ -57,6 +57,8 @@ export function viewOf(s: DungeonState): DungeonView {
     bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: l.vuoto })),
     uscita: { x: s.map.exit.x, z: s.map.exit.z },
     vicinoUscita: vicinoUscita(s),
+    altari: s.map.altari.map((a, i) => ({ x: a.x, z: a.z, attivo: s.salvato?.altare === i })),
+    salvato: s.salvato ? { bottino: { ...s.salvato.bottino }, monete: s.salvato.monete } : null,
     zaino: { peso: r2(pesoZaino(s)), max: rh.caricoMax, monete: s.monete, bottino: { ...s.bottino } },
     eventi: s.eventi,
   };
@@ -72,6 +74,7 @@ export function hashOf(s: DungeonState): number {
     loot: s.loot.map((l) => [l.id, l.vuoto ? 1 : 0]),
     bottino: roundBag(s.bottino), monete: s.monete, uccisi: roundBag(s.uccisi), usati: roundBag(s.usati),
     danni: [r3(s.danniFatti), r3(s.danniPresi)],
+    salvato: s.salvato ? [s.salvato.altare, s.salvato.tick, s.salvato.monete, roundBag(s.salvato.bottino)] : null, cadute: s.cadute,
   });
 }
 
@@ -80,6 +83,7 @@ export function resultOf(s: DungeonState): RunResult {
     done: s.done, outcome: s.outcome, ticks: s.tick,
     bottino: { ...s.bottino }, monete: s.monete, xp: roundBag(s.xp), usati: { ...s.usati }, rotti: { ...s.rotti }, usura: { ...s.usura },
     uccisi: { ...s.uccisi }, danniFatti: r2(s.danniFatti), danniPresi: r2(s.danniPresi),
+    salvato: s.salvato ? { bottino: { ...s.salvato.bottino }, monete: s.salvato.monete } : null, cadute: s.cadute,
     hash: hashOf(s),
   };
 }

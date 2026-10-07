@@ -25,6 +25,8 @@
 - ~~Regata sulla laguna~~ fatto in Fetta 2 (v3).
 - Casa, «slot cosmetici 2 → 4 → 6» (GDD §5): nessun codice li usa. Da decidere con Jack (A/B): A = set salvati di look da richiamare con un tasto; B = la Casa sblocca colori/capelli extra. Finché non si decide, la Casa produce solo il numero mostrato nel pannello.
 - Clip di animazione per le 4 emote in `chr_base.glb` (oggi fumetto): 30 min di Blender, poi `avatar.setEmote(id)`.
+- Modello `dng_altare` (oggi piedistallo di box + cristallo che si accende, in `rpg/dungeon_scene.ts`): un pezzo per stile (grotta, cripta, vuoto) nel `manifest_rpg.json`.
+- Test e2e con `wrangler dev` su Windows: `npx` va lanciato come `node node_modules/wrangler/bin/wrangler.js` e lo spegnimento con `process.kill(-pid)` non esiste (serve `taskkill /T`).
 
 - Minigiochi da soli su altre isole (Lanterne al Porto, un gioco per ogni facciata quando diventa zona vera): il formato c'è (`game/minigiochi.ts`, un posto per minigioco).
 - Sfide con posta tra amici (`?sfide=1`): si riaccendono quando la prova da soli è piaciuta; da decidere se il Tavolo sull'isola resta o se la sfida si lancia dal posto del minigioco.

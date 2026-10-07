@@ -4,7 +4,7 @@
 // Richieste dal Worker: GET /state · POST /collect {building} · /build {building, cell} · /upgrade {building} · /decor {decor, cell, rot} · /hat {hat}.
 // Minigiochi da solo: POST /solo_start {minigame} → {seed, difficulty, lot} · /solo_play {inputs} → il server rigioca gli input, premia la
 // medaglia (balance.solo) e risponde {score, medal, detail, premio, premiata, lot}.
-// Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_finish {inputs, hash}. La Regata da solo dà xp di Navigazione.
+// Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_save {inputs, hash} · /dungeon_finish {inputs, hash}. La Regata da solo dà xp di Navigazione.
 // Richieste dal DO Sfide (mai esposte dal Worker): POST /hold {cid, stake, kind} · /release {cid, release}: idempotenti per id sfida.
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
@@ -18,6 +18,7 @@ import { EconomyError } from '@marea/sim/economy/types.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
 import { isPackedInputs, replay } from '@marea/sim/replay.ts';
 import { regataXp } from '@marea/sim/rpg/run.ts';
+import { chiudiScaduta } from '@marea/sim/dungeon/settle.ts';
 import type { EconomyErrorCode, LotState, Resources } from '@marea/sim/economy/types.ts';
 import { nowFromHeader } from '../clock.ts';
 import type { Env } from '../env.ts';
@@ -56,6 +57,9 @@ export class Lot extends DurableObject<Env> {
     const lot = JSON.parse(row.json) as LotState;
     // lotti nati prima del template `lotto` (celle arbitrarie): Molo sul molo, edifici sugli slot L; poi resta com'è
     const fit = fitToTemplate(lot, defaultTemplate());
+    // spedizione abbandonata da un pezzo con un altare toccato: si chiude tenendo il bottino dell'altare
+    const chiusa = chiudiScaduta(fit, now);
+    if (chiusa) { this.save(chiusa.lot); return chiusa.lot; }
     if (fit !== lot) this.save(fit);
     return fit;
   }

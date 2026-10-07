@@ -31,6 +31,10 @@ export type DungeonEvent =
   | { t: 'libro'; item: string }
   | { t: 'aggro'; id: number }
   | { t: 'evocato'; id: number; tipo: string }
+  /** Toccato l'altare n: bottino al sicuro (il client manda gli input al server, POST /api/dungeon/save). */
+  | { t: 'altare'; n: number }
+  /** Morto dopo un altare: risvegliato sull'altare n. */
+  | { t: 'risveglio'; n: number }
   | { t: 'uscita' };
 
 export type DungeonView = {
@@ -45,6 +49,8 @@ export type DungeonView = {
     /** Secondi di ricarica della magia rimasti (0 = pronta). */
     ricaricaMagia: number;
     frecce: number; pozioni: number;
+    /** Appena risvegliato all'altare: niente danni per qualche secondo. */
+    protetto: boolean;
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
     /** Raggio in m del colpo ad area dei boss, solo mentre lo prepara (il client disegna il cerchio a terra). */
@@ -53,6 +59,10 @@ export type DungeonView = {
   bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
   uscita: { x: number; z: number };
   vicinoUscita: boolean;
+  /** Altari di salvataggio; `attivo` = l'ultimo toccato (lì ti risvegli). */
+  altari: { x: number; z: number; attivo: boolean }[];
+  /** Bottino e monete al sicuro all'ultimo altare (null = nessun altare toccato). */
+  salvato: { bottino: Record<string, number>; monete: number } | null;
   zaino: { peso: number; max: number; monete: number; bottino: Record<string, number> };
   /** Solo gli eventi di questo tick (suoni, numeri di danno, toast). */
   eventi: DungeonEvent[];

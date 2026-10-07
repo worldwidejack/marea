@@ -198,10 +198,10 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, 'dungeon_start', { dungeon: body['dungeon'] });
       }
-      if (path === '/api/dungeon/finish' && req.method === 'POST') {
+      if ((path === '/api/dungeon/finish' || path === '/api/dungeon/save') && req.method === 'POST') {
         const body = await corpo(MAX_DUNGEON_BODY);
         if (body instanceof Response) return body;
-        return lotReq(env, p.id, now, 'dungeon_finish', { inputs: body['inputs'], hash: body['hash'] });
+        return lotReq(env, p.id, now, path.endsWith('save') ? 'dungeon_save' : 'dungeon_finish', { inputs: body['inputs'], hash: body['hash'] });
       }
       const altrui = path.match(/^\/api\/lot\/([a-z0-9_-]{1,40})$/);
       if (altrui && req.method === 'GET') {

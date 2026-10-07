@@ -10,6 +10,8 @@ export type Controls = {
   readonly paused: boolean;
   /** Vicino alla scala: mostra «A · Esci col bottino». */
   setExit(on: boolean): void;
+  /** Un altare è stato toccato: uscendo con Esc si tiene il bottino salvato lì. */
+  setSalvato(on: boolean): void;
   setIcons(c: Node | null, d: Node | null): void;
   /** Ricarica della magia 0..1 (1 = pronta) e pozioni rimaste. */
   setState(magia: number, pozioni: number, haMagia: boolean): void;
@@ -60,7 +62,8 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const yes = el('button', 'mz-btn', 'ESCI'), no = el('button', 'mz-btn ghost', 'RESTA');
   yes.dataset['act'] = 'esci'; no.dataset['act'] = 'resta';
   const row = el('div', 'mz-row'); row.append(no, yes);
-  ask.append(el('b', '', 'Uscire dal dungeon?'), el('div', 'sub', 'Perdi il bottino di questa discesa'), row);
+  const askSub = el('div', 'sub', 'Perdi il bottino di questa discesa');
+  ask.append(el('b', '', 'Uscire dal dungeon?'), askSub, row);
   for (const e of [quit, exit, ask]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   o.root.append(C.b, D.b, quit, exit, ask);
   const setAsk = (on: boolean) => { asking = on; ask.classList.toggle('on', on); };
@@ -95,6 +98,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
       return out;
     },
     setExit(on) { exit.classList.toggle('on', on); },
+    setSalvato(on) { askSub.textContent = on ? 'Tieni il bottino dell’ultimo altare, il resto lo perdi' : 'Perdi il bottino di questa discesa'; },
     setIcons(c, d) {
       const k = `${c ? 1 : 0}${d ? 1 : 0}`; if (k === lastIcons) return; lastIcons = k;
       C.ico.replaceChildren(...(c ? [c] : [])); D.ico.replaceChildren(...(d ? [d] : []));

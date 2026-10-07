@@ -1,6 +1,7 @@
 // Spedizioni nel dungeon lato economia (CONTRACTS §15): il server apre (fotografia + seed) e chiude (applica RunResult). Pure.
 // Esiti: 'uscito' tiene tutto; 'morto', 'tempo' e partita non finita (outcome null) seguono RPG.dungeon.morte (bottino e monete × bottino,
-// xp × xp). Usati e rotti restano persi in ogni caso. [scelta provvisoria: docs/RPG.md §4]
+// xp × xp), ma il bottino e le monete salvati all'ultimo altare (RunResult.salvato) restano sempre. Usati e rotti restano persi in ogni
+// caso. Confermata da Riccardo (docs/RPG.md §4).
 import { DUNGEONS, RPG, SKILLS } from '@marea/content/rpg.ts';
 import { advance } from '../economy/advance.ts';
 import { EconomyError } from '../economy/types.ts';
@@ -42,19 +43,20 @@ export function finishDungeon(lot0: LotState, r: RunResult, nowMs: number): Dung
   }
   for (const id of Object.keys(usura)) if (!inv[id] || !usura[id]) delete usura[id];
   h = fixEquip({ ...h, inv, usura });
-  // 2) bottino: zaino fino al peso massimo, poi Forziere, il resto è perso
+  // 2) bottino: zaino fino al peso massimo, poi Forziere, il resto è perso; quello dell'ultimo altare resta comunque
   const k = salvo ? 1 : M.bottino;
+  const sv = salvo ? null : r.salvato ?? null;
   const tenuto: Record<string, number> = {};
   let state: LotState = lot;
-  for (const id of Object.keys(r.bottino ?? {}).sort()) {
-    const n = Math.floor(cleanCount(r.bottino[id]) * k);
+  for (const id of [...new Set([...Object.keys(r.bottino ?? {}), ...Object.keys(sv?.bottino ?? {})])].sort()) {
+    const n = Math.max(Math.floor(cleanCount(r.bottino?.[id]) * k), cleanCount(sv?.bottino[id]));
     if (n < 1 || !hasItem(id)) continue;
     const s = stow(state, h, id, n);
     h = s.hero;
     if (s.chest > 0) state = { ...state, forziere: s.forziere };
     if (s.zaino + s.chest > 0) tenuto[id] = s.zaino + s.chest;
   }
-  const monete = Math.floor(cleanCount(r.monete) * k);
+  const monete = Math.max(Math.floor(cleanCount(r.monete) * k), cleanCount(sv?.monete));
   // 3) esperienza (con la morte: × morte.xp), statistiche
   const livello0 = h.livello;
   const kx = salvo ? 1 : M.xp;
@@ -62,7 +64,7 @@ export function finishDungeon(lot0: LotState, r: RunResult, nowMs: number): Dung
     const x = r.xp?.[s];
     if (typeof x === 'number' && x > 0) h = gainSkillXp(h, s, x * kx);
   }
-  h = { ...h, monete: h.monete + monete, discese: h.discese + 1, morti: h.morti + (r.outcome === 'morto' ? 1 : 0) };
+  h = { ...h, monete: h.monete + monete, discese: h.discese + 1, morti: h.morti + (r.outcome === 'morto' ? 1 : 0) + cleanCount(r.cadute) };
   const out: LotState = { ...state, version: lot.version + 1, hero: h, dungeon: { pending: null } };
   return { lot: out, tenuto, monete, livelliSu: h.livello - livello0 };
 }

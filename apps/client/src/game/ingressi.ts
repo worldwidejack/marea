@@ -17,6 +17,7 @@ import { createLabelLayer } from '../ui/sheet.ts';
 import { FLAGS } from '../flags.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import type { DungeonRun, RunCtx } from '../rpg/types.ts';
+import type { PackedDungeon } from '@marea/sim/dungeon/types.ts';
 
 export type Ingressi = {
   readonly spots: readonly { id: string; nome: string; x: number; z: number; icon: PixId }[];
@@ -41,7 +42,8 @@ export const INGRESSI = [
 ] as const;
 
 /** Stato condiviso col chunk GDR (dungeon_run.ts lo legge): autopilot dei test e vista corrente per state().dungeon. */
-export const dungeonLink: { autopilot: number; state: (() => Record<string, unknown>) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, state: null };
+/** Ponte coi test (?test=1): autopilot (tick per frame), `altare` = cammina fino a quell'altare (-1 = no), stato della partita. */
+export const dungeonLink: { autopilot: number; altare: number; state: (() => Record<string, unknown>) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, altare: -1, state: null };
 
 const NEAR_M = 4;
 const ICON: PixId = 'ingresso';
@@ -84,6 +86,8 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
 
   let near: Spot | null = null, nearWas: Spot | null = null, aWas = false, busy = false, run: DungeonRun | null = null;
   let entered = 0, finishes = 0, aborts = 0, lastErr: string | null = null, lastResult: unknown = null, current: string | null = null;
+  /** Salvataggi all'altare confermati dal server in questa sessione, e l'ultima spedizione interrotta recuperata alla discesa. */
+  let salvataggi = 0, recuperato: unknown = null;
   const ctx: RunCtx = { world: o.world, renderer: o.renderer, loader: o.loader, hud: o.hud, root: o.root, canvas: o.canvas };
 
   const v = new THREE.Vector3();
@@ -95,25 +99,32 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
 
   async function enter(s: Spot): Promise<void> {
     if (busy || run || o.world.race.on) return;
-    if (!o.api) { o.hud.toast('Per scendere serve il tuo link personale', 3000); return; }
+    const api = o.api;
+    if (!api) { o.hud.toast('Per scendere serve il tuo link personale', 3000); return; }
     busy = true; btn.classList.remove('on'); lastErr = null;
     const zoom0 = o.renderer.diorama.zoom;
     try {
       let st;
-      try { st = await o.api.dungeonStart(s.id); } catch (e) { fail(e, 'Niente connessione, riprova tra poco'); return; }
+      try { st = await api.dungeonStart(s.id); } catch (e) { fail(e, 'Niente connessione, riprova tra poco'); return; }
       o.setLot(st.lot);
-      o.hud.toast(`${s.nome}…`, 1500);
+      const rec = st.recuperato, recN = rec ? Object.values(rec.tenuto).reduce((a, b) => a + b, 0) : 0;
+      if (rec) recuperato = rec;
+      if (rec && (recN > 0 || rec.monete > 0)) o.hud.toast(`Dalla spedizione interrotta hai tenuto ${recN} oggetti e ${rec.monete} monete (altare)`, 3500);
+      else o.hud.toast(`${s.nome}…`, 1500);
       const mod = await import('../rpg/index.ts');
-      run = mod.startRun(ctx, { dungeon: st.dungeon, seed: st.seed, hero: st.hero });
+      const { encodeDungeon } = await import('@marea/sim/dungeon/replay.ts');
+      // altare toccato: input fin lì al server, che li rigioca e tiene il salvataggio anche se la scheda si chiude
+      const onAltare = (sv: { inputs: PackedDungeon; hash: number }) => {
+        api.dungeonSave(encodeDungeon(sv.inputs), sv.hash).then(() => { salvataggi++; }, (e: unknown) => console.warn('[marea] salvataggio all’altare non riuscito', e));
+      };
+      run = mod.startRun(ctx, { dungeon: st.dungeon, seed: st.seed, hero: st.hero, onAltare });
       entered++; current = s.id; busy = false;
       const done = await run.done;
       run = null; busy = true;
       backToEntrance(s, zoom0);
       if (!done) { aborts++; o.hud.toast('Sei risalito senza bottino', 2500); return; }
       try {
-        const rep = (await import('@marea/sim/dungeon/replay.ts')) as unknown as Record<string, unknown>;
-        const enc = typeof rep['encodeDungeon'] === 'function' ? (rep['encodeDungeon'] as (p: unknown) => string) : null;
-        const r = await o.api.dungeonFinish(enc ? enc(done.inputs) : done.inputs, done.hash);
+        const r = await api.dungeonFinish(encodeDungeon(done.inputs), done.hash);
         finishes++; lastResult = { outcome: r.result.outcome, tenuto: r.tenuto, monete: r.monete, livelliSu: r.livelliSu, hash: r.result.hash, clientHash: done.hash };
         o.setLot(r.lot);
         await mod.showResult(ctx, r);
@@ -154,7 +165,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     });
   };
 
-  registerStateProvider('ingressi', () => ({ spots: spots.map(({ id, nome, x, z }) => ({ id, nome, x, z })), models: marks.map((m) => m.holder.children.length), cleared, near: near?.id ?? null, busy, active: !!run?.active, entered, finishes, aborts, lastErr, lastResult }));
+  registerStateProvider('ingressi', () => ({ spots: spots.map(({ id, nome, x, z }) => ({ id, nome, x, z })), models: marks.map((m) => m.holder.children.length), cleared, near: near?.id ?? null, busy, active: !!run?.active, entered, finishes, aborts, salvataggi, recuperato, lastErr, lastResult }));
   registerStateProvider('dungeon', () => (run && dungeonLink.state ? { ...dungeonLink.state(), busy } : { active: false, dungeon: current, busy, tick: 0, outcome: null, hero: null, nemici: 0, vivi: 0 }));
   registerTestHook('enterDungeon', (id) => {
     const s = spots.find((x) => x.id === String(id ?? 'grotta'));
@@ -163,6 +174,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     void enter(s);
     return true;
   });
+  registerTestHook('dungeonAltare', (n) => { dungeonLink.altare = Number.isInteger(n) ? Number(n) : -1; return dungeonLink.altare; });
   registerTestHook('dungeonAutopilot', (on, speed) => { dungeonLink.autopilot = on ? Math.max(1, Math.min(20, Math.round(Number(speed ?? 4)) || 4)) : 0; return dungeonLink.autopilot; });
 
   return {
