@@ -6,6 +6,7 @@
 import type { AttrId } from '@marea/content/rpg.ts';
 import type { RunHero, RunOutcome, RunResult } from '../rpg/types.ts';
 import type { Rng } from '../rng.ts';
+import type { SwingStyle } from './swing.ts';
 
 /** Input di un tick nel dungeon. mx, my in assi mondo (come InputFrame); a = attacca (tieni = carica/tendi), b = corri, c = magia, d = pozione.
  * Il client registra un frame per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. */
@@ -45,6 +46,8 @@ export type DungeonView = {
     t: number;
     /** 0..1 durante la carica / tensione (1 = carico pieno). */
     carica: number;
+    /** Solo durante `attacca`: stile del colpo (swing.ts), per animare l'arco che la sim usa davvero. */
+    stile?: SwingStyle;
     vita: number; magicka: number; stamina: number; max: Record<AttrId, number>;
     /** Secondi di ricarica della magia rimasti (0 = pronta). */
     ricaricaMagia: number;

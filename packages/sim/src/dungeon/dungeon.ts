@@ -17,8 +17,8 @@ export type { DungeonState } from './state.ts';
 export const MAX_TICKS = (RPG.dungeon?.maxMinuti ?? 20) * 60 * HZ;
 
 export const dungeon: DungeonModule<DungeonState> = {
-  // v2: altari di salvataggio (mappe, risveglio, salvato nel risultato e nell'hash)
-  id: 'dungeon', version: 2, maxTicks: MAX_TICKS,
+  // v2: altari di salvataggio (mappe, risveglio, salvato nel risultato e nell'hash) · v3: colpi di mischia ad arco spazzato (swing.ts), caricato = giro
+  id: 'dungeon', version: 3, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero }) => createState(dungeonDef(id), seed, hero),
   step(s, input) {
     s.eventi = [];

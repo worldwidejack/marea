@@ -86,6 +86,7 @@ export function startRun(ctx: RunCtx, o: { dungeon: string; seed: number; hero: 
     else hud.event(e);
     if (e.t === 'altare') { controls?.setSalvato(true); o.onAltare?.({ inputs: packDungeon(frames), hash: dungeon.result(s).hash }); }
     if (e.t === 'risveglio') hero.flash();
+    if (e.t === 'rotto') hero.rotta();
   };
 
   // test (hook dungeonAltare): cammina fino all'altare n lungo le distanze BFS, input registrati come gli altri (il server li rigioca)
@@ -118,7 +119,7 @@ export function startRun(ctx: RunCtx, o: { dungeon: string; seed: number; hero: 
       const n = auto ? dungeonLink.autopilot : dungeonLink.altare >= 0 ? 8 : 1;
       for (let i = 0; i < n && !s.done; i++) tickOnce(f);
       view = dungeon.view(s);
-      hero!.tick(view.hero); actors!.tick(view);
+      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); actors!.tick(view);
       if (s.done) {
         phase = 'end'; wait = END_WAIT; controls.hide();
         const [txt, col] = OUT[s.outcome ?? 'tempo'] ?? OUT['tempo']!;
