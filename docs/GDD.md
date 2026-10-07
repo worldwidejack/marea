@@ -21,11 +21,14 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 5. **Esci** con almeno un timer che finirà prima del prossimo rientro (il gioco lo dice: «la Cava finisce tra 6 h»).
 
 ## 3. Il mondo: l'arcipelago
-- **Zone comuni** (tutti le vedono, nessuno le possiede): in V1 una sola zona vera, il **Porto** (villaggio con edifici e mood asiatico: lanterne, torii, moli di legno, insegne). Il **Distretto Neon** (cyberpunk leggero) e l'**Isola Selvaggia** (natura, scogliere, palme) esistono come **facciate** visibili dalla barca; diventano zone vere dopo dicembre.
+- **Zone comuni** (tutti le vedono, nessuno le possiede): in V1 una sola zona vera, il **Porto** (villaggio con edifici e mood asiatico: lanterne, torii, moli di legno, insegne). Il **Distretto Neon** (cyberpunk leggero) e l'**Isola Selvaggia** (natura, scogliere, palme) esistono come **facciate** visibili dalla barca; diventano zone vere quando chi ci lavora le apre (Neon e Laguna sono di Riccardo, #25 #26).
+- **Isole a tema** (Jack, 7 ott 2026): ogni isola nuova ha un **tema** suo (contenuti e grafica), **minigiochi suoi** e un **modo suo per sbloccarla** (barca potenziata, livello del personaggio, un certo cappello senza il quale gli abitanti ti cacciano, una mappa…). Prima: **Isola della Tempesta** (scogli neri, fulmini, faro in rovina, pirati), protetta da una tempesta in mare che si passa solo col Molo al livello giusto.
+- **Minigiochi universali** (pesca, caccia alle perle, consegne, ingorgo al porto): si giocano ovunque, dalla barca o al molo; le isole a tema hanno in più i loro.
+- **Minimappa**: cerchietto in un angolo; toccandolo, la mappa intera dell'arcipelago con la nebbia sulle isole non ancora sbloccate.
 - **Isole personali (lotti)**: una per amico, disposte attorno al Porto e alla Laguna, a **10-25 s di barca** (80-240 m) da entrambi. Vi si arriva in barca o con «vai a casa». Un lotto è una griglia di celle da 2 m con slot per edifici e decorazioni; il Molo è sempre costruito e fa da spawn.
 - **Barca**: il mezzo principale. Sali dal molo (tasto A vicino alla barca), guida arcade (accelerazione, virata, scia), scendi a qualsiasi molo. Anche a piedi sulle isole.
 - **Camera**: dall'alto in diagonale (diorama), segue l'avatar, zoom 0,6-1,6. Stessa vista per costruire.
-- **Ciclo giorno/notte**: no in V1 (luce fissa del tardo pomeriggio).
+- **Ciclo giorno/notte**: sì, dalle Impostazioni (#54), acceso di serie (#59); un giro ogni 24 min, stessa ora per tutti.
 
 ## 4. Chi sei: l'avatar
 Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 teste, 1,6 m), pochi poligoni, viso e vestiti dipinti a pixel. Personalizzazione V1: tono della pelle (6), capelli (8 tagli × 6 colori), vestito (6 colori), cappello (6, di cui 3 da sbloccare con Perle). Emote (4) al posto della chat. Animazioni: idle, camminata, corsa, seduto (in barca), remata/timone.

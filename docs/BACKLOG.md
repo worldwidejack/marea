@@ -9,7 +9,7 @@
 - Progetti comuni (ponte, faro del Porto) finanziati insieme.
 - Bot per i minigiochi in tempo reale.
 - Chat testuale (oggi solo emote).
-- Interni degli edifici; ciclo giorno/notte; meteo.
+- Interni degli edifici; meteo. (Il ciclo giorno/notte è entrato: #54.)
 - Commercio di risorse tra giocatori.
 - PWA installabile; notifiche «la Cava è finita».
 - Musica originale (ElevenLabs Music), voci per l'onboarding.
@@ -30,6 +30,9 @@
 
 - Minigiochi da soli su altre isole (Lanterne al Porto, un gioco per ogni facciata quando diventa zona vera): il formato c'è (`game/minigiochi.ts`, un posto per minigioco).
 - Sfide con posta tra amici (`?sfide=1`): si riaccendono quando la prova da soli è piaciuta; da decidere se il Tavolo sull'isola resta o se la sfida si lancia dal posto del minigioco.
+
+- Isole a tema dopo la Tempesta (GDD §3): **Ghiacci** (iceberg, aurora, pinguini), **Vulcano** (lava, ossidiana, forge: aggancio con Riccardo), **Giardino** (ciliegi, templi, carpe koi). Sblocchi da distribuire: livello del personaggio, un cappello «se no gli abitanti ti linciano», una mappa.
+- Minigiochi universali dopo la pesca: caccia alle perle, consegne in barca, ingorgo al porto.
 
 ## Mai
 - Soldi veri per risorse o acceleratori. (Cosmetici a pagamento: solo se un giorno si apre al pubblico, e solo cosmetici.)
