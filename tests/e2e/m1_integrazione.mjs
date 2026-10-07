@@ -47,6 +47,10 @@ export default async function (ctx) {
       await ctx.waitState(pa.page, (s) => s.lot && s.lot.ready === true, 15000);
       const s = await ctx.getState(pa.page);
       ctx.assert(s.lot.resources.legno > 0, 'risorse assenti: ' + JSON.stringify(s.lot.resources));
+      // sul telefono le mete partono chiuse: un tocco su METE le apre
+      ctx.assert(s.compass && s.compass.open === false, 'mete aperte di base sul telefono: ' + JSON.stringify(s.compass));
+      await pa.page.locator('#mzMete').tap();
+      await ctx.waitState(pa.page, (s) => s.compass.open === true, 3000);
       const txt = await pa.page.evaluate(() => [...document.querySelectorAll('#compass > div')].filter((r) => r.style.display !== 'none').map((r) => r.textContent).join('\n'));
       ctx.log('bussola: ' + txt.replace(/\n/g, ' · '));
       ctx.assert(/Porto\s*\d+ m/.test(txt), 'bussola senza Porto');
