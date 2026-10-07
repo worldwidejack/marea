@@ -51,6 +51,8 @@ export default async function (ctx) {
       ctx.assert(s.compass && s.compass.open === false, 'mete aperte di base sul telefono: ' + JSON.stringify(s.compass));
       await pa.page.locator('#mzMete').tap();
       await ctx.waitState(pa.page, (s) => s.compass.open === true, 3000);
+      // le righe le riempie il frame dopo il tocco (su GitHub 2-4 fps): si aspetta la riga del Porto con la distanza, non un tempo fisso
+      await pa.page.waitForFunction(() => { const r = document.querySelector('#compass [data-id="porto"]'); return !!r && r.style.display !== 'none' && /\d+ m/.test(r.textContent || ''); }, null, { timeout: 5000 });
       const txt = await pa.page.evaluate(() => [...document.querySelectorAll('#compass > div')].filter((r) => r.style.display !== 'none').map((r) => r.textContent).join('\n'));
       ctx.log('bussola: ' + txt.replace(/\n/g, ' · '));
       ctx.assert(/Porto\s*\d+ m/.test(txt), 'bussola senza Porto');
