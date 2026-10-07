@@ -100,6 +100,9 @@ const CSS = `
 .mz-ed-act { position: sticky; bottom: -10px; margin: 8px -12px -10px; padding: 0 12px 10px; background: ${P.ombraCalda}; border-top: 2px solid ${P.legno}; }
 .mz-ed-act .mz-note { margin-top: 6px; }
 .mz-ed-act .mz-row .mz-btn { margin-top: 8px; }
+.mz-ed-link p { margin: 0; color: ${P.sabbia}; font-size: 13px; line-height: 1.35; }
+.mz-ed-link .mz-row .mz-btn { margin-top: 6px; min-height: 44px; }
+.mz-ed-url { width: 100%; box-sizing: border-box; min-height: 44px; margin-top: 6px; padding: 0 8px; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; font: bold 13px ui-monospace, Menlo, monospace; -webkit-user-select: text; user-select: text; }
 `;
 
 let injected = false;

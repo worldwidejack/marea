@@ -3,6 +3,8 @@
 // Cappelli a Perle: prezzo, «Compra» (POST /api/look/hat), Salva spento finché il cappello scelto non è tuo. Tutto da AVATAR (@marea/content).
 // PC prima: frecce su/giù = riga (poi i bottoni), sinistra/destra = valore, Invio attiva il bottone, Tab funziona. Tasti in capture su
 // window solo a pannello aperto, con stopPropagation (mai keyup, altrimenti restano incollati in input.ts), come il Tavolo.
+// In fondo «Altro dispositivo»: COPIA / MANDA il proprio link col token (il token sta solo nel browser che ha aperto il link). Il link non
+// si mostra a schermo (niente screenshot con la chiave), tranne quando la copia non riesce: allora un campo da selezionare a mano.
 import { AVATAR } from '@marea/content';
 import type { Look, LotState, Resources } from '@marea/protocol';
 import { mancaText } from '../net/api.ts';
@@ -21,6 +23,8 @@ export type EditorOpts = {
   /** Dopo un acquisto (cappello a Perle) il lotto cambia: chi ascolta aggiorna la vista del lotto. */
   onLot?(lot: LotState): void;
   onOpen?(): void; onClose?(): void;
+  /** Il link personale (`/?t=token`): COPIA / MANDA per entrare come sé da un altro dispositivo. Senza, la sezione non c'è. */
+  link?: string;
 };
 
 type RowId = keyof Look;
@@ -72,8 +76,9 @@ export function createEditor(o: EditorOpts): Editor {
   let draft = clampLook(o.me.look);
   let lot: LotState | null = o.me.lotto;
   let note: Note = null;
+  let linkVisibile = false; // la copia non è riuscita: il link in un campo da selezionare a mano
 
-  const perle = (): number | null => (lot ? lot.resources.perle : null);
+  const perle =(): number | null => (lot ? lot.resources.perle : null);
   const owned = (): string[] => HATS.filter((h) => h.perle <= 0 || (lot?.posseduti ?? []).includes(h.id)).map((h) => h.id);
   /** Il cappello scelto si può salvare: gratis, comprato, o già nel look salvato (il server l'aveva accettato). */
   const hatOk = (): boolean => { const h = HATS[draft.cappello]; return !h || owned().includes(h.id) || draft.cappello === clampLook(o.me.look).cappello; };
@@ -122,6 +127,27 @@ export function createEditor(o: EditorOpts): Editor {
     } catch (e) {
       busy = false;
       if (g === gen) { note = { text: errText(e), bad: true }; render(); }
+    }
+  }
+  async function copiaLink(): Promise<void> {
+    const url = o.link;
+    if (!url) return;
+    const g = gen;
+    try {
+      await navigator.clipboard.writeText(url); // senza appunti (http, permesso negato) → catch
+      if (g === gen) note = { text: 'Link copiato: aprilo sull’altro dispositivo', bad: false };
+    } catch {
+      if (g === gen) { linkVisibile = true; note = { text: 'Copia non riuscita: seleziona il link qui sopra', bad: true }; }
+    }
+    if (g === gen) render();
+  }
+  async function mandaLink(): Promise<void> {
+    const url = o.link;
+    if (!url) return;
+    try {
+      await navigator.share({ title: 'MAREA', text: 'Il mio link di MAREA (personale, non girarlo)', url }); // foglio di condivisione del telefono
+    } catch (e) {
+      if ((e as { name?: string } | null)?.name !== 'AbortError') await copiaLink(); // AbortError = chiuso dalla persona
     }
   }
 
@@ -225,6 +251,23 @@ export function createEditor(o: EditorOpts): Editor {
     return w;
   }
 
+  function linkEl(url: string): HTMLElement {
+    const w = el('div', 'mz-ed-row mz-ed-link'); w.dataset['panel'] = 'link';
+    const lbl = el('div', 'mz-ed-lbl'); lbl.appendChild(el('span', '', 'Altro dispositivo'));
+    w.append(lbl, el('p', '', 'Per entrare come te dal PC o da un altro telefono, apri lì il tuo link. È personale: non darlo agli altri.'));
+    if (linkVisibile) {
+      const f = document.createElement('input');
+      f.className = 'mz-ed-url'; f.readOnly = true; f.value = url; f.setAttribute('aria-label', 'Il tuo link personale');
+      f.addEventListener('focus', () => f.select());
+      w.appendChild(f);
+    }
+    const row = el('div', 'mz-row');
+    row.appendChild(button('ghost', 'copia-link', 'COPIA LINK', [], false, () => void copiaLink()));
+    if (typeof navigator.share === 'function') row.appendChild(button('ghost', 'manda-link', 'MANDA', [], false, () => void mandaLink()));
+    w.appendChild(row);
+    return w;
+  }
+
   function render(): void {
     if (!open) return;
     const active = document.activeElement as HTMLElement | null;
@@ -241,6 +284,7 @@ export function createEditor(o: EditorOpts): Editor {
     const body = el('div'); body.dataset['panel'] = 'editor';
     if (busy) body.setAttribute('aria-busy', 'true');
     for (const r of ROWS) body.appendChild(rowEl(r));
+    if (o.link) body.appendChild(linkEl(o.link));
     const act = el('div', 'mz-ed-act');
     if (!note && !hatOk()) act.appendChild(el('div', 'mz-note', 'Cappello non tuo: compralo per salvare'));
     if (note) act.appendChild(el('div', 'mz-note ' + (note.bad ? 'bad' : 'ok'), note.text));
@@ -260,7 +304,7 @@ export function createEditor(o: EditorOpts): Editor {
   btn.el.prepend(headIcon(24));
   function show(): void {
     if (open) return;
-    open = true; busy = false; note = null; gen++;
+    open = true; busy = false; note = null; linkVisibile = false; gen++;
     draft = clampLook(o.me.look);
     sheet.classList.add('on'); btn.setOn(true);
     keys(true);
@@ -274,7 +318,7 @@ export function createEditor(o: EditorOpts): Editor {
   /** Chiude annullando: l'avatar torna al look salvato (dopo Salva, me.look è già quello nuovo). */
   function close(): void {
     if (!open) return;
-    open = false; busy = false; note = null; gen++;
+    open = false; busy = false; note = null; linkVisibile = false; gen++;
     keys(false);
     const a = document.activeElement as HTMLElement | null;
     if (a && sheet.contains(a)) a.blur();
@@ -285,6 +329,6 @@ export function createEditor(o: EditorOpts): Editor {
   }
   function toggle(): void { if (open) close(); else show(); }
 
-  registerStateProvider('editor', () => ({ open, draft: { ...draft }, saved: { ...o.me.look }, owned: owned(), perle: perle(), busy, note: note?.text ?? null }));
+  registerStateProvider('editor', () => ({ open, draft: { ...draft }, saved: { ...o.me.look }, owned: owned(), perle: perle(), busy, note: note?.text ?? null, linkVisibile }));
   return { open: show, close, toggle, isOpen: () => open };
 }
