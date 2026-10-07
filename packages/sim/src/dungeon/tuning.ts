@@ -23,6 +23,8 @@ export const MAGIA_GITTATA = 24;
 export const ALTEZZA_BERSAGLIO = 2.0;
 /** Uscita: A entro questa distanza dal centro della scala. */
 export const RAGGIO_USCITA = 1.2;
+/** Altare di salvataggio: l'eroe lo tocca entro questa distanza dal centro della cella. */
+export const RAGGIO_ALTARE = 1.2;
 /** Raccolta automatica: distanza dal centro del bottino oltre al raggio dell'eroe. */
 export const RAGGIO_RACCOLTA = 0.6;
 /** Nemici aggiornati ogni tick solo entro questa distanza dall'eroe. */

@@ -33,7 +33,8 @@ Nessun «livello consigliato» a schermo: la difficoltà si capisce dai nemici e
 - **Arco**: tieni premuto per tendere, lascia per tirare. Danno = arco + freccia; gittata = arco + freccia; ogni freccia ha la sua gravità.
 - **Magia** (C): lancia l'incantesimo preparato. **Pozione** (D): bevi la pozione rapida.
 - **Mira assistita** (telefono prima): il colpo si gira da solo verso il nemico più vicino davanti a te.
-- **[scelta provvisoria] Morte**: torni all'ingresso, **perdi il bottino della spedizione** (non quello che avevi già), tieni l'esperienza. Pozioni e frecce usate restano usate.
+- **Morte** (confermata da Riccardo, 7 ott 2026): torni all'ingresso, **perdi il bottino della spedizione** (non quello che avevi già), tieni l'esperienza. Pozioni e frecce usate restano usate.
+- **Altari di salvataggio** (scelta di Riccardo, 7 ott 2026): almeno **2 per dungeon**, in punti fissi della mappa (lettera `A`), fuori dalla vista dei boss. Passandoci sopra il bottino e le monete raccolti fin lì sono **al sicuro**. Se muori dopo un altare **ti risvegli sull'ultimo toccato**, con le barre piene e **3 secondi senza danni**; perdi solo il bottino raccolto dopo l'altare (i forzieri aperti restano vuoti) e la spedizione continua. Uscendo con Esc, a tempo scaduto o chiudendo la scheda tieni il bottino dell'ultimo altare (se la scheda si chiude, il server chiude la spedizione alla discesa dopo). Un salvataggio libero ovunque è stato scartato: renderebbe la morte senza peso.
 - Il bottino resta sui cadaveri e nei forzieri: ci passi sopra e lo raccogli, se il peso lo permette. Ogni discesa rigenera i nemici: farmare un dungeon facile per le risorse del villaggio è voluto.
 
 ## 5. Equipaggiamento e forgia
@@ -82,6 +83,7 @@ Più gli **archi** e le **frecce**. **Armi uniche**: drop speciali non forgiabil
 - **Crescita**: ogni livello d'abilità dà al personaggio xp pari al nuovo livello; +0,5 % di danno e +1 % di pozioni per livello d'abilità oltre 15. Regata da solo: Navigazione +60/40/25/10 xp (oro/argento/bronzo/nessuna).
 - **Nemici** (vita · danno · armatura): bandito 24·7·0 · arciere 16·5·0 · lupo 16·6·0 · ragno 12·5·0 · scheletro 45·12·4 · scheletro arciere 35·8·3 · non-morto 80·18·6 · **Re delle Ossa** 420·26·10 · spettro 50·10·0 (magie) · golem 140·28·14 (contundente) · **Custode** 750·38·12. Alleati evocati: lupo spettrale 60·12, scheletro evocato 70·16 (invulnerabili finché durano) **[scelta provvisoria]**.
 - Mappe: Grotta 40×30 (15 nemici, 5 forzieri), Cripta 44×31 (16 nemici + boss, 6 forzieri, libro Fulmine), Vuoto 48×33 (16 nemici + boss, 5 forzieri, libro Lupo spettrale). Niente colpi critici **[scelta provvisoria]**.
+- **Altari**: 2 per dungeon. Grotta: all'imbocco del ramo ovest e a metà del ramo est · Cripta: nel passaggio verso la sala grande e davanti alla porta del Re delle Ossa (16 m, lui vede a 14) · Vuoto: sul ramo ovest e sotto l'isola centrale. Protezione al risveglio 3 s (`balance.json` → `dungeon.altare.protezione`).
 
 ## 8. Come funziona sotto (per chi programma)
 Un dungeon è una **partita deterministica** della sim (come la Regata, ma lunga fino a 20 min): il server apre la spedizione fotografando il personaggio (`RunHero`) e un seed, il client gioca e registra gli input, il server li rigioca e applica il risultato (`RunResult`). Niente trucchi, niente rete nuova. Dettagli e interfacce: `CONTRACTS.md` §15.

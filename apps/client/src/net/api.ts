@@ -24,7 +24,11 @@ export type SoloStart = { minigame: string; seed: number; difficulty: number; lo
 export type SoloResult = { score: number; medal: Medal; detail: Record<string, number>; premio: Resources; premiata: boolean; lot: LotState };
 
 /** Spedizione aperta dal server (POST /api/dungeon/start): seed e fotografia del personaggio. CONTRACTS §15. */
-export type DungeonStart = { dungeon: string; seed: number; hero: RunHero; lot: LotState };
+export type DungeonStart = { dungeon: string; seed: number; hero: RunHero; lot: LotState;
+  /** La spedizione di prima era rimasta aperta dopo un altare: il server l'ha chiusa tenendo questo bottino. */
+  recuperato: { tenuto: Record<string, number>; monete: number } | null };
+/** Salvataggio all'altare (POST /api/dungeon/save): bottino al sicuro secondo il server. */
+export type DungeonSave = { ok: boolean; salvato: { bottino: Record<string, number>; monete: number } | null; ticks: number };
 /** Esito della spedizione ricalcolato dal server (POST /api/dungeon/finish). */
 export type DungeonFinish = { result: RunResult; tenuto: Record<string, number>; monete: number; livelliSu: number; lot: LotState };
 
@@ -73,6 +77,8 @@ export type Api = {
   dungeonStart(dungeon: string): Promise<DungeonStart>;
   /** `inputs` come array o già compressi con `encodeDungeon` (stringa, molto più leggera): il server accetta entrambi. */
   dungeonFinish(inputs: PackedDungeon | string, hash: number): Promise<DungeonFinish>;
+  /** Altare toccato: input fin lì (anche compressi), il server li rigioca e tiene il bottino al sicuro anche se la scheda si chiude. */
+  dungeonSave(inputs: PackedDungeon | string, hash: number): Promise<DungeonSave>;
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;
@@ -216,7 +222,9 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     async dungeonStart(dungeon) {
       const d = await call('POST', '/api/dungeon/start', { dungeon });
       if (!isObj(d) || typeof d['seed'] !== 'number' || !isObj(d['hero'])) throw new ApiError(500, 'Risposta del server non valida');
-      return { dungeon: String(d['dungeon'] ?? dungeon), seed: d['seed'], hero: d['hero'] as RunHero, lot: asLot(d['lot']) };
+      const rec = isObj(d['recuperato']) ? d['recuperato'] : null;
+      const recuperato = rec ? { tenuto: isObj(rec['tenuto']) ? (rec['tenuto'] as Record<string, number>) : {}, monete: typeof rec['monete'] === 'number' ? rec['monete'] : 0 } : null;
+      return { dungeon: String(d['dungeon'] ?? dungeon), seed: d['seed'], hero: d['hero'] as RunHero, lot: asLot(d['lot']), recuperato };
     },
     async dungeonFinish(inputs, hash) {
       const d = await call('POST', '/api/dungeon/finish', { inputs, hash });
@@ -225,6 +233,12 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
         result: d['result'] as RunResult, tenuto: isObj(d['tenuto']) ? (d['tenuto'] as Record<string, number>) : {},
         monete: typeof d['monete'] === 'number' ? d['monete'] : 0, livelliSu: typeof d['livelliSu'] === 'number' ? d['livelliSu'] : 0, lot: asLot(d['lot']),
       };
+    },
+    async dungeonSave(inputs, hash) {
+      const d = await call('POST', '/api/dungeon/save', { inputs, hash });
+      if (!isObj(d)) throw new ApiError(500, 'Risposta del server non valida');
+      const sv = isObj(d['salvato']) ? d['salvato'] : null;
+      return { ok: !!d['ok'], salvato: sv ? { bottino: isObj(sv['bottino']) ? (sv['bottino'] as Record<string, number>) : {}, monete: typeof sv['monete'] === 'number' ? sv['monete'] : 0 } : null, ticks: typeof d['ticks'] === 'number' ? d['ticks'] : 0 };
     },
     async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
     buyHat: (id) => post('/api/look/hat', { cappello: id }),

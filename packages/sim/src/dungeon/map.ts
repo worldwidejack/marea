@@ -14,6 +14,8 @@ export type DMap = {
   nemici: (Spawn & { tipo: string })[];
   forzieri: (Spawn & { tabella: string })[];
   libri: (Spawn & { item: string })[];
+  /** Altari di salvataggio (legenda `altare`), in ordine di lettura: l'indice è quello di `salvato.altare`. */
+  altari: (Spawn & { x: number; z: number })[];
   /** Celle calpestabili (indici), per i test e l'autopilot. */
   floor: number[];
 };
@@ -26,7 +28,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   const h = def.rows.length, w = Math.max(...def.rows.map((r) => r.length)), tile = def.tile;
   const solid = new Uint8Array(w * h), opaque = new Uint8Array(w * h);
   let exit: { cx: number; cz: number } | null = null;
-  const nemici: DMap['nemici'] = [], forzieri: DMap['forzieri'] = [], libri: DMap['libri'] = [], floor: number[] = [];
+  const nemici: DMap['nemici'] = [], forzieri: DMap['forzieri'] = [], libri: DMap['libri'] = [], altari: DMap['altari'] = [], floor: number[] = [];
   for (let cz = 0; cz < h; cz++)
     for (let cx = 0; cx < w; cx++) {
       const ch = def.rows[cz]![cx] ?? ' ';
@@ -41,6 +43,7 @@ export function parseDungeon(def: DungeonDef): DMap {
         if (l.nemico) nemici.push({ cx, cz, ch, tipo: l.nemico });
         if (l.forziere) forzieri.push({ cx, cz, ch, tabella: l.forziere });
         if (l.libro) libri.push({ cx, cz, ch, item: l.libro });
+        if (l.altare) altari.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile });
       }
       floor.push(i);
     }
@@ -54,7 +57,7 @@ export function parseDungeon(def: DungeonDef): DMap {
     spawn = { x: (nx + 0.5) * tile, z: (nz + 0.5) * tile, fx: dx, fz: dz };
     break;
   }
-  const m: DMap = { id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, floor };
+  const m: DMap = { id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, altari, floor };
   MAPS.set(def, m);
   return m;
 }

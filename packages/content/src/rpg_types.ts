@@ -94,7 +94,8 @@ export type LootTable = { id: string; monete: [number, number]; voci: LootEntry[
 export type DungeonDef = {
   id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto'; tile: number;
   rows: string[];
-  legenda: Record<string, { nemico?: string; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean }>;
+  /** `altare`: altare di salvataggio (docs/RPG.md §4): passandoci il bottino raccolto fin lì è al sicuro; morendo dopo si riparte da lì. */
+  legenda: Record<string, { nemico?: string; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean }>;
   /** Dove sta l'ingresso nel mondo: cella di un'isola di islands.json (il modello è `prop_ingresso_<stile>`). */
   ingresso: { island: string; at: [number, number] };
 };
@@ -110,7 +111,8 @@ export type RpgBalance = {
   pugni?: { danno: number; velocita: number; portata: number; carica: number; caricaMolt: number };
   abilita?: { dannoPerLivello: number; potenzaPerLivello: number };
   partenza: { inv: Record<string, number>; equip: Record<string, string>; magie: string[]; monete: number };
-  dungeon: { maxMinuti: number; morte: { bottino: number; xp: number } };
+  /** altare.protezione: secondi senza danni dopo il risveglio all'altare (i nemici non ti uccidono appena riapri gli occhi). */
+  dungeon: { maxMinuti: number; morte: { bottino: number; xp: number }; altare: { protezione: number } };
   xp: Record<string, number>;
   forziere: number[];
   bottega: Record<string, number>;

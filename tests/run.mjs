@@ -116,7 +116,8 @@ for (const suite of suites) {
       process.stdout.write(r.out.split('\n').filter(Boolean).map((l) => '    ' + l).join('\n') + '\n');
       record(suite, `check_${suite}`, r.code === 0, Date.now() - s0, r.code ? 'vedi sopra' : null);
     } else if (suite === 'sim') {
-      const r = await runNode(['--test', '--test-reporter=spec', path.join(ROOT, 'packages/sim/test/')]);
+      // glob relativo (cwd = ROOT): su Windows `node --test <cartella>` cerca un modulo con quel nome e fallisce
+      const r = await runNode(['--test', '--test-reporter=spec', 'packages/sim/test/*.test.ts']);
       process.stdout.write(r.out.split('\n').filter(Boolean).slice(-25).map((l) => '    ' + l).join('\n') + '\n');
       record(suite, 'node --test packages/sim/test', r.code === 0, Date.now() - s0, r.code ? 'vedi sopra' : null);
     } else if (suite === 'contact') {

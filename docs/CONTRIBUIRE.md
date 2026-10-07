@@ -75,3 +75,6 @@ Conflitti: tieni **entrambe** le modifiche quando possibile (sono lavori diversi
 *(Aggiungi qui una riga quando sistemi un intoppo di installazione o di test.)*
 - «Repository not found» clonando: invito non accettato, oppure manca `gh auth login` (repo privato: `git clone` senza login e «Download ZIP» non funzionano).
 - I test e2e cercano Chrome installato; senza, provano la «headless shell» di Playwright in cache (solo Mac).
+- Windows, PowerShell rifiuta `npm` («esecuzione di script disabilitata»): usa `npm.cmd` (`npm.cmd run dev`), senza cambiare le impostazioni di sicurezza.
+- `npm run dev:server` si ferma con «assets.directory … apps/client/dist does not exist»: lancia una volta `npm run build` (crea la cartella; resta solo sul tuo computer).
+- Windows: i test e2e che avviano `wrangler dev` (`m1_*`, `m2_server`, `m2_dungeon`, `wp4_net`) non partono («spawnSync npx ENOENT») e a fine suite non spengono il server: li fa girare GitHub nella suite completa dopo il merge (per provarli prima serve un Mac o Linux). Quelli veloci (`static types sim boot`) vanno.

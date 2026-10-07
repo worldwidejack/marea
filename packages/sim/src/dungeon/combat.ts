@@ -5,6 +5,7 @@ import type { DungeonState, Enemy } from './state.ts';
 import { add, secToTicks } from './state.ts';
 import { rollLoot } from './loot.ts';
 import { moveCircle } from './map.ts';
+import { risveglio } from './altari.ts';
 import { COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -80,10 +81,10 @@ export function kill(s: DungeonState, e: Enemy): void {
 }
 
 export type HurtKind = 'taglio' | 'contundente' | 'magia';
-/** Colpo su eroe: difesa dell'armatura (+ buff), moltiplicatori per tipo, monete dell'armatura d'oro, morte. */
+/** Colpo su eroe: difesa dell'armatura (+ buff), moltiplicatori per tipo, monete dell'armatura d'oro, morte (o risveglio all'altare). */
 export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: number, z: number): void {
   const h = s.hero, a = s.runHero.armatura;
-  if (s.done) return;
+  if (s.done || h.protetto > 0) return;
   const difesa = Math.max(0, a.difesa + buff(s, 'difesa'));
   const k = RPG.armatura?.k ?? 100;
   const tipo = kind === 'magia' ? a.vsMagia : kind === 'contundente' ? a.vsContundente : a.vsTaglio;
@@ -98,5 +99,8 @@ export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: numbe
     const n = Math.floor(ms) + (s.rng.next() < ms - Math.floor(ms) ? 1 : 0);
     if (n > 0) { s.monete += n; s.eventi.push({ t: 'monete', n }); }
   }
-  if (h.vita <= 0) { h.vita = 0; s.done = true; s.outcome = 'morto'; }
+  if (h.vita <= 0) {
+    if (s.salvato) risveglio(s);
+    else { h.vita = 0; s.done = true; s.outcome = 'morto'; }
+  }
 }

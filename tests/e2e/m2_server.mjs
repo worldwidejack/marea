@@ -27,7 +27,8 @@ export default async function (ctx) {
   const { createRng } = await sim('rng.ts');
   const { dungeon } = await sim('dungeon/dungeon.ts');
   const { autopilot } = await sim('dungeon/autopilot.ts');
-  const { packDungeon, quantizeDungeon, replayDungeon } = await sim('dungeon/replay.ts');
+  const { encodeDungeon, packDungeon, quantizeDungeon, replayDungeon } = await sim('dungeon/replay.ts');
+  const { bfs, cellCenter, cellOf, stepDown } = await sim('dungeon/map.ts');
   const { newHero, gainSkillXp } = await sim('rpg/hero.ts');
   const { finishDungeon } = await sim('rpg/run.ts');
   const { RPG } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/rpg.ts')).href);
@@ -167,6 +168,35 @@ export default async function (ctx) {
       if (expect.outcome !== 'uscito') assert(Object.keys(r.body.tenuto).length === 0 && r.body.monete === 0, 'spedizione non finita: niente bottino');
       for (let i = 0; i < 20 && !log.includes('dungeon hash diverso'); i++) await sleep(100);
       assert(log.includes('[marea] dungeon hash diverso'), 'manca l’avviso nel log di wrangler');
+    });
+
+    await ctx.test('altare: save senza altare 409; input fino all’altare → save ok (uno più vecchio non lo copre); la discesa dopo chiude la spedizione interrotta', async () => {
+      const s = (await post('/api/dungeon/start', 'tokB', { dungeon: 'grotta' })).body;
+      const no = await post('/api/dungeon/save', 'tokB', { inputs: [[30, 0, 0, 0]], hash: 0 });
+      assert(no.status === 409 && no.body.code === 'altare', 'save senza altare: ' + JSON.stringify(no));
+      // in Node: dall'uscita all'altare più vicino lungo le distanze BFS, input quantizzati come il client
+      const st = dungeon.create({ seed: s.seed, dungeon: s.dungeon, hero: s.hero }), m = st.map, frames = [];
+      const fromExit = bfs(m, m.exit.cz * m.w + m.exit.cx);
+      const alt = [...m.altari].sort((a, b) => fromExit[a.cz * m.w + a.cx] - fromExit[b.cz * m.w + b.cx])[0];
+      const to = alt.cz * m.w + alt.cx, field = bfs(m, to);
+      while (!st.salvato && !st.done && frames.length < 60 * 60) {
+        const c = cellOf(m, st.hero.x, st.hero.z), next = c === to ? to : stepDown(m, field, c), p = cellCenter(m, next >= 0 ? next : to);
+        const dx = p.x - st.hero.x, dz = p.z - st.hero.z, d = Math.sqrt(dx * dx + dz * dz) || 1;
+        const f = quantizeDungeon({ mx: dx / d, my: dz / d, a: false, b: false, c: false, d: false });
+        frames.push(f); dungeon.step(st, f);
+      }
+      assert(st.salvato, `l’eroe non è arrivato all’altare (${frames.length} tick, ${st.outcome})`);
+      const inputs = encodeDungeon(packDungeon(frames)), hash = dungeon.result(st).hash;
+      const ok = await post('/api/dungeon/save', 'tokB', { inputs, hash });
+      assert(ok.status === 200 && ok.body.ok && ok.body.ticks === frames.length && same(ok.body.salvato, dungeon.result(st).salvato), 'save: ' + JSON.stringify(ok.body).slice(0, 200));
+      const old = await post('/api/dungeon/save', 'tokB', { inputs: encodeDungeon(packDungeon(frames.slice(0, -1).concat([frames.at(-1)]))), hash });
+      assert(old.status === 200 && old.body.ticks === frames.length, 'secondo save uguale: ' + JSON.stringify(old.body).slice(0, 120));
+      const l1 = await lot('tokB');
+      assert(l1.dungeon?.pending?.salvataggio?.ticks === frames.length, 'salvataggio nel lotto');
+      // scheda chiusa: niente finish; la discesa dopo chiude quella spedizione col bottino dell'altare e ne apre una nuova
+      const again = (await post('/api/dungeon/start', 'tokB', { dungeon: 'grotta' })).body;
+      assert(again.recuperato && same(sorted(again.recuperato.tenuto), sorted(dungeon.result(st).salvato.bottino)) && again.recuperato.monete === dungeon.result(st).salvato.monete, 'recuperato: ' + JSON.stringify(again.recuperato));
+      assert(again.lot.hero.discese === (l1.hero.discese ?? 0) + 1 && again.lot.dungeon.pending.seed === again.seed && !again.lot.dungeon.pending.salvataggio, 'spedizione vecchia chiusa, nuova aperta');
     });
 
     await ctx.test('Regata da solo: oltre al premio dà xp di Navigazione (RPG.xp per medaglia)', async () => {

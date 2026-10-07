@@ -168,6 +168,7 @@ function drink(s: DungeonState): void {
 export function stepHero(s: DungeonState, inp: DungeonInput): void {
   const h = s.hero, rh = s.runHero, a = h.arma;
   if (h.hurt > 0) h.hurt--;
+  if (h.protetto > 0) h.protetto--;
   if (h.cdMagia > 0) h.cdMagia--;
   if (h.buffs.length) h.buffs = h.buffs.filter((b) => b.fine > s.tick);
   const aDown = inp.a && !h.prevA, cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD;

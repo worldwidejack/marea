@@ -23,7 +23,7 @@ const CSS = `
 .mz-dng-esito .xp .b i { display: block; height: 100%; background: ${PAL.giallo}; }
 .mz-dng-esito .lvl { margin: 10px 0 2px; padding: 8px; border: 2px solid ${PAL.giallo}; color: ${PAL.giallo}; font-weight: bold; font-size: 15px; background: ${PAL.legnoScuro}; }
 `;
-const TITLE: Record<string, [string, string]> = { uscito: ['USCITO', PAL.erbaChiara], morto: ['SEI CADUTO', PAL.rosso], tempo: ['TEMPO SCADUTO', PAL.arancio] };
+const TITLE: Record<string, [string, string]> = { uscito: ['USCITO', PAL.erbaChiara], morto: ['SEI CADUTO', PAL.rosso], tempo: ['TEMPO SCADUTO', PAL.arancio], risalito: ['SEI RISALITO', PAL.giallo] };
 let lastShown: Record<string, unknown> | null = null, closeFn: (() => void) | null = null, registered = false;
 
 export function showDungeonResult(root: HTMLElement, r: DungeonFinish): Promise<void> {
@@ -34,12 +34,13 @@ export function showDungeonResult(root: HTMLElement, r: DungeonFinish): Promise<
     registerStateProvider('dungeonEsito', () => lastShown);
     registerTestHook('closeDungeonEsito', () => { closeFn?.(); return true; });
   }
-  const res = r.result, out = res.outcome ?? 'tempo', [title, color] = TITLE[out] ?? TITLE['tempo']!;
+  const res = r.result, out = res.outcome ?? 'risalito', [title, color] = TITLE[out] ?? TITLE['tempo']!;
   const box = el('div', 'mz mz-dng-esito'); box.id = 'mzDngEsito'; box.style.borderColor = color;
   for (const ev of ['pointerdown', 'touchstart']) box.addEventListener(ev, (x) => x.stopPropagation());
   const h = el('h2', '', title); h.style.color = color;
   const secs = Math.round(res.ticks / 60);
-  box.append(h, el('div', 'sub', `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} sotto terra · ${Object.values(res.uccisi ?? {}).reduce((a, b) => a + b, 0)} nemici battuti`));
+  const cadute = res.cadute ?? 0;
+  box.append(h, el('div', 'sub', `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} sotto terra · ${Object.values(res.uccisi ?? {}).reduce((a, b) => a + b, 0)} nemici battuti${cadute ? ` · ${cadute} ${cadute === 1 ? 'risveglio' : 'risvegli'} all’altare` : ''}`));
 
   const item = (id: string, n: number, lost = false) => {
     const d = hasItem(id) ? itemDef(id) : null;
@@ -53,7 +54,8 @@ export function showDungeonResult(root: HTMLElement, r: DungeonFinish): Promise<
   box.append(el('div', 'sec', 'BOTTINO TENUTO'));
   if (kept.length) for (const [id, n] of kept) box.append(item(id, n)); else box.append(el('div', 'it', out === 'morto' ? 'Niente: cadendo hai perso il bottino' : 'Niente stavolta'));
   const lost = Object.entries(res.bottino ?? {}).map(([id, n]) => [id, Math.floor(n) - (r.tenuto?.[id] ?? 0)] as const).filter(([, n]) => n > 0);
-  if (lost.length) { box.append(el('div', 'sec', out === 'morto' ? 'PERSO CADENDO' : 'PERSO (TROPPO PESO)')); for (const [id, n] of lost) box.append(item(id, n, true)); }
+  const lostLabel = out === 'uscito' ? 'PERSO (TROPPO PESO)' : res.salvato ? 'PERSO DOPO L’ULTIMO ALTARE' : out === 'morto' ? 'PERSO CADENDO' : 'PERSO';
+  if (lost.length) { box.append(el('div', 'sec', lostLabel)); for (const [id, n] of lost) box.append(item(id, n, true)); }
   const coins = el('div', 'it'); coins.append(itemIcon('anello', PAL.giallo, 24), el('span', '', 'Monete'), el('span', 'q', `+${r.monete}`));
   box.append(coins);
 

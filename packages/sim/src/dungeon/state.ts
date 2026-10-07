@@ -22,6 +22,8 @@ export type HeroRt = {
   /** 0..1 carica o tensione corrente. */
   carica: number;
   moving: boolean; running: boolean; hurt: number;
+  /** Tick di protezione dopo il risveglio all'altare: niente danni. */
+  protetto: number;
   arma: RunWeapon; frecce: number; pozioni: number;
   cdMagia: number;
   buffs: { mod: string; valore: number; fine: number }[];
@@ -54,6 +56,8 @@ export type Proj = {
   traits: Traits; raggio: number; colpiti: number[];
   dalNemico: boolean; contundente: boolean; magico: boolean; arrowId: string | null;
 };
+/** Ultimo altare toccato: il bottino e le monete di quel momento sono al sicuro (docs/RPG.md §4). */
+export type Salvato = { altare: number; tick: number; bottino: Bag; monete: number };
 export type Loot = { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; items: Bag; monete: number; vuoto: boolean; pieno: boolean };
 export type DungeonState = {
   v: 1; seed: number; dungeon: string; def: DungeonDef; map: DMap; runHero: RunHero;
@@ -67,6 +71,11 @@ export type DungeonState = {
   // risultato
   bottino: Bag; monete: number; xp: Record<string, number>; usati: Bag; rotti: Bag; usura: Bag; uccisi: Bag;
   danniFatti: number; danniPresi: number;
+  /** Altare su cui sta l'eroe adesso (-1 = nessuno): salva solo entrandoci. */
+  altare: number;
+  salvato: Salvato | null;
+  /** Morti con risveglio all'altare in questa spedizione. */
+  cadute: number;
   eventi: DungeonEvent[];
 };
 
@@ -92,14 +101,15 @@ export function createState(def: DungeonDef, seed: number, hero: RunHero): Dunge
       x: map.spawn.x, z: map.spawn.z, fx: map.spawn.fx, fz: map.spawn.fz,
       vita: hero.max.vita, magicka: hero.max.magicka, stamina: hero.max.stamina,
       act: 'idle', actT: 0, actDur: 0, caricato: false, colpito: false, carica: 0,
-      moving: false, running: false, hurt: 0, arma,
+      moving: false, running: false, hurt: 0, protetto: 0, arma,
       frecce: hero.frecce ? hero.frecce.n : 0,
       pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,
       cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, prevA: false, prevC: false, prevD: false,
     },
     anim: 'fermo', enemies: [], proj: [], loot: [], nextId: 1,
     flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, rng,
-    bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0, eventi: [],
+    bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,
+    altare: -1, salvato: null, cadute: 0, eventi: [],
   };
   const sonno = rng.fork('sonno');
   for (const n of map.nemici) {

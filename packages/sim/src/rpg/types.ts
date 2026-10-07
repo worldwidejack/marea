@@ -130,6 +130,10 @@ export type RunResult = {
   usura: Record<string, number>;
   uccisi: Record<string, number>;
   danniFatti: number; danniPresi: number;
+  /** Bottino e monete al sicuro all'ultimo altare toccato: si tengono anche con morte, tempo scaduto o partita lasciata a metà (dungeon v2). */
+  salvato?: { bottino: Record<string, number>; monete: number } | null;
+  /** Morti con risveglio all'altare (dungeon v2). */
+  cadute?: number;
   hash: number;
 };
 
@@ -147,7 +151,9 @@ export type RpgAction =
   | { t: 'serra' };
 
 /** Spedizione aperta dal server (dentro LotState.dungeon). */
-export type DungeonPending = { dungeon: string; seed: number; startMs: number; hero: RunHero };
+/** `salvataggio`: input fino all'ultimo altare (encodeDungeon), verificati dal server con POST /api/dungeon/save. Se la spedizione non
+ * si chiude (scheda chiusa), il server la chiude rigiocandoli: si tiene il bottino dell'altare. */
+export type DungeonPending = { dungeon: string; seed: number; startMs: number; hero: RunHero; salvataggio?: { inputs: string; ticks: number } | null };
 export type DungeonLotState = { pending: DungeonPending | null };
 
 export type { EnemyKind };

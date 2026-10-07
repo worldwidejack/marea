@@ -1,6 +1,7 @@
 // M2-dungeon (R-scena, CONTRACTS §15): ingressi nel mondo (coincidono con DUNGEONS), discesa con l'hook enterDungeon, scena, HUD,
 // controlli, autopilot fino all'uscita, esito DEL SERVER e bottino nel lotto (/api/lot); uscita con Esc che NON chiama finish (la
-// spedizione resta aperta sul server); i 4 bottoni sul telefono non si sovrappongono; draw call ≤ 100 e triangoli ≤ 150k nel dungeon.
+// spedizione resta aperta sul server); altare: salvataggio sul server, Esc tiene il bottino dell'altare («SEI RISALITO»); i 4 bottoni
+// sul telefono non si sovrappongono; draw call ≤ 100 e triangoli ≤ 150k nel dungeon.
 // Screenshot a 1280×720 e 390×844 in tests/out/shots/m2_dungeon_*.png. Persone vere su wrangler dev locale (come m1_solo).
 import fs from 'node:fs';
 import net from 'node:net';
@@ -19,6 +20,7 @@ export default async function (ctx) {
   const { DUNGEONS } = await imp('packages/content/src/rpg.ts');
   const { ARCHIPELAGO, ISLANDS } = await imp('packages/content/src/index.ts');
   const { composeArchipelago } = await imp('packages/sim/src/index.ts');
+  const { bfs, parseDungeon } = await imp('packages/sim/src/dungeon/map.ts');
 
   await ctx.test('gli ingressi in game/ingressi.ts coincidono con DUNGEONS (isola, cella, stile, nome)', async () => {
     const src = fs.readFileSync(path.join(ctx.ROOT, 'apps/client/src/game/ingressi.ts'), 'utf8');
@@ -143,6 +145,32 @@ export default async function (ctx) {
       await ctx.shot(page, '4_vuoto_1280');
       await page.keyboard.press('Escape'); await page.locator('#mzDngAsk [data-act="esci"]').click();
       await ctx.waitState(page, (s) => s.ingressi.aborts === 2 && !s.dungeon.active, 8000);
+    });
+
+    await ctx.test('Grotta: fino all’altare (salvato sul server), Esc → «tieni il bottino dell’ultimo altare» → SEI RISALITO, spedizione chiusa', async () => {
+      // l'altare più vicino alla scala: ci si arriva camminando (hook dungeonAltare, input registrati come quelli veri)
+      const m = parseDungeon(DUNGEONS.find((d) => d.id === 'grotta')), dist = bfs(m, m.exit.cz * m.w + m.exit.cx);
+      const n = m.altari.map((a, i) => [dist[a.cz * m.w + a.cx], i]).sort((a, b) => a[0] - b[0])[0][1];
+      await hook('enterDungeon', 'grotta');
+      await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
+      await hook('dungeonAltare', n);
+      await ctx.waitState(page, (s) => !!s.dungeon.salvato && s.ingressi.salvataggi >= 1, 120000);
+      const s0 = await st();
+      assert(s0.dungeon.altari.filter((a) => a.attivo).length === 1 && s0.dungeon.scene.altareAcceso === n, 'altare acceso: ' + JSON.stringify(s0.dungeon.altari));
+      const lot = await getLot('tokA');
+      assert(lot.dungeon?.pending?.salvataggio?.ticks > 0, 'salvataggio non arrivato al server: ' + JSON.stringify(lot.dungeon?.pending?.salvataggio ?? null));
+      await sleep(300); await samplePerf();
+      await ctx.shot(page, '6_altare_1280');
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('#mzDngAsk.on', { timeout: 3000 });
+      assert(/altare/.test(await page.locator('#mzDngAsk').innerText()), 'la domanda d’uscita non dice che si tiene il bottino dell’altare');
+      await page.locator('#mzDngAsk [data-act="esci"]').click();
+      await ctx.waitState(page, (s) => s.dungeonEsito && s.dungeonEsito.open, 15000);
+      const s = await st();
+      assert(s.ingressi.finishes === 2 && s.ingressi.aborts === 2 && s.dungeonEsito.outcome === 'risalito' && /RISALITO/.test(s.dungeonEsito.text), 'esito: ' + JSON.stringify({ i: s.ingressi, e: s.dungeonEsito?.outcome }));
+      assert(!(await getLot('tokA')).dungeon?.pending, 'la spedizione resta aperta dopo l’uscita con l’altare');
+      await page.locator('#mzDngEsito [data-act="ok"]').click();
+      await ctx.waitState(page, (s) => !s.dungeonEsito.open && !s.ingressi.busy && !s.dungeon.active, 5000);
     });
 
     await ctx.test(`prestazioni nel dungeon: draw call ≤ 100, triangoli ≤ 150k`, async () => {
