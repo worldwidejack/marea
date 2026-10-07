@@ -94,7 +94,7 @@ export default async function (ctx) {
       assert(await D.page.locator('#mzHeroBtn.on').count(), 'bottone non acceso col pannello aperto');
       await click(D, '#mzEroe [data-tab="abilita"]');
       await waitEroe(D, '(e) => e.tab === "abilita"');
-      assert((await D.page.locator('#mzEroe [data-skill]').count()) === 8, 'non ci sono 8 abilità');
+      assert((await D.page.locator('#mzEroe [data-skill]').count()) === 7, 'non ci sono 7 abilità');
       await click(D, '#mzEroe [data-skill="armiLeggere"]');
       const n = await D.page.locator('#mzEroe [data-perks="armiLeggere"] [data-perk]').count();
       assert(n === PERKS.filter((p) => p.skill === 'armiLeggere').length, `perk di Armi leggere: ${n}`);

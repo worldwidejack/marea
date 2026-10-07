@@ -9,7 +9,7 @@ import { ITEMS, hasItem, itemDef } from '../src/rpg/items.ts';
 const PALETTE = new Set([...fs.readFileSync(new URL('../../../docs/ART_BIBLE.md', import.meta.url), 'utf8').matchAll(/`(#[0-9A-F]{6})`/g)].map((m) => m[1]));
 const MOD_KEYS = new Set(['vita', 'magicka', 'stamina', 'regenVita', 'regenMagicka', 'regenStamina', 'dannoLeggere', 'dannoPesanti', 'dannoArco', 'dannoDistruzione',
   'velocitaLeggere', 'velocitaPesanti', 'tensioneArco', 'caricaVeloce', 'costoDistruzione', 'costoEvocazione', 'durataEvocazione', 'difesa', 'malusArmatura', 'peso',
-  'velocitaCorsa', 'staminaCorsa', 'dannoConArmaturaLeggera', 'velocitaBarca', 'materialiForgia', 'potenzaPozioni', 'resistMagia']);
+  'velocitaCorsa', 'staminaCorsa', 'dannoConArmaturaLeggera', 'materialiForgia', 'potenzaPozioni', 'resistMagia']);
 
 test('rpg catalogo: 8 materiali, 6 armi, tipo × materiale generato, id unici', () => {
   assert.equal(MATERIALS.length, 8);

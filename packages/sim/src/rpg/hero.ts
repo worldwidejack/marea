@@ -1,7 +1,7 @@
 // Personaggio GDR (CONTRACTS §15): nascita, esperienza, numeri derivati e fotografia per il dungeon. Puro.
 // Crescita alla Skyrim (docs/RPG.md §3): l'xp di un'abilità la fa salire; ogni livello d'abilità dà al personaggio xp pari al nuovo livello
 // (× RPG.xp.personaggioPerLivelloSkill); ogni livello del personaggio = 1 scelta (+perLivello a una barra) e 1 punto perk.
-import { RPG, SKILLS } from '@marea/content/rpg.ts';
+import { PERKS, RPG, SKILLS } from '@marea/content/rpg.ts';
 import type { SkillId } from '@marea/content/rpg.ts';
 import type { LotState } from '../economy/types.ts';
 import { buildRunHero, carriedOf } from './derived.ts';
@@ -18,6 +18,20 @@ export function newHero(): HeroState {
 }
 /** Il personaggio del lotto (lot.hero ?? newHero()). */
 export function heroOf(lot: LotState): HeroState { return lot.hero ?? newHero(); }
+
+const PERK_IDS = new Set(PERKS.map((p) => p.id));
+/** Personaggi salvati prima che un'abilità sparisse (Navigazione, 7 ott 2026): via le abilità che non esistono più, i perk tolti tornano
+ *  punti perk. Lo stesso lotto se non c'è niente da sistemare (il server lo chiama a ogni lettura, come fitToTemplate). */
+export function fitHero(lot: LotState): LotState {
+  const h = lot.hero;
+  if (!h) return lot;
+  const perk = h.perk.filter((id) => PERK_IDS.has(id));
+  const via = Object.keys(h.skill).filter((s) => !SKILLS.includes(s as SkillId));
+  if (perk.length === h.perk.length && via.length === 0) return lot;
+  const skill = { ...h.skill } as Record<string, HeroState['skill'][SkillId]>;
+  for (const s of via) delete skill[s];
+  return { ...lot, hero: { ...h, perk, perkPunti: h.perkPunti + h.perk.length - perk.length, skill: skill as HeroState['skill'] } };
+}
 
 /** xp per passare dal livello `lv` di un'abilità al successivo. */
 export function skillXpNeeded(lv: number): number { return RPG.livelli.xpSkill.base + RPG.livelli.xpSkill.perLivello * lv; }

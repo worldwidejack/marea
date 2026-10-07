@@ -71,10 +71,3 @@ export function finishDungeon(lot0: LotState, r: RunResult, nowMs: number): Dung
   const out: LotState = { ...state, version: lot.version + 1, hero: h, dungeon: { pending: null } };
   return { lot: out, tenuto, monete, livelliSu: h.livello - livello0 };
 }
-
-/** Esperienza di Navigazione dopo una partita alla Regata (server, solo_play): RPG.xp per medaglia. */
-export function regataXp(lot: LotState, medal: 'oro' | 'argento' | 'bronzo' | null): LotState {
-  const xp = RPG.xp[`regata_${medal ?? 'nessuna'}`] ?? 0;
-  if (xp <= 0) return lot;
-  return { ...lot, version: lot.version + 1, hero: gainSkillXp(heroOf(lot), 'navigazione', xp) };
-}

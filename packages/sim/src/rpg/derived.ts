@@ -169,7 +169,5 @@ export function buildRunHero(h: HeroState): RunHero {
   };
 }
 
-/** Velocità della barca dai perk di Navigazione (moltiplicatore; per il client). */
-export function boatSpeedMolt(h: HeroState): number { return r2(1 + mod(modsOf(h), 'velocitaBarca')); }
 /** Capienza del Forziere (kg) dal livello dell'edificio (0 = non costruito). */
 export function forziereCap(level: number): number { return level >= 1 ? RPG.forziere[Math.min(level, RPG.forziere.length) - 1] ?? 0 : 0; }
