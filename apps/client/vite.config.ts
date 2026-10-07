@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 function buildId(): string {
   if (process.env['MAREA_BUILD']) return process.env['MAREA_BUILD'];
@@ -22,7 +23,8 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'es2022',
     sourcemap: false,
-    rollupOptions: { output: { entryFileNames: 'app-[hash].js', chunkFileNames: 'chunk-[hash].js', assetFileNames: 'a-[hash][extname]' } },
+    // prova3d.html: prova di stile 3D dipinto (#38), pagina a parte; il suo JS si carica solo da lì (in build.mjs conta come «dopo»)
+    rollupOptions: { input: { index: fileURLToPath(new URL('index.html', import.meta.url)), prova3d: fileURLToPath(new URL('prova3d.html', import.meta.url)) }, output: { entryFileNames: 'app-[hash].js', chunkFileNames: 'chunk-[hash].js', assetFileNames: 'a-[hash][extname]' } },
   },
   plugins: [{
     name: 'marea-version',
