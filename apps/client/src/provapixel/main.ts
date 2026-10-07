@@ -1,6 +1,6 @@
-// Prova «pixel art più 3D» (issue #46): pagina a parte, il gioco non cambia. Tre isole vere dell'arcipelago (Porto + due lotti
-// vicini) con i pezzi del gioco (isole, acqua, luci, avatar, barca, input) e sopra: camera più bassa, contorni, luce a gradini,
-// foschia a bande, cielo con nuvole, vento, camera agganciata ai pixel. Ogni ritocco si accende e spegne (tasti 1-6, C, P, 0).
+// Prova «pixel art più 3D» (issue #46) e stili (#50): pagina a parte, il gioco non cambia. Tre isole vere dell'arcipelago (Porto +
+// due lotti vicini) con i pezzi del gioco (isole, luci, avatar, barca, input) e sopra: stile (S: acqua, scogli, fiori, luce, cielo,
+// palette), camera più bassa, contorni, luce a gradini, foschia, vento, camera agganciata ai pixel. Tasti S, 1-6, C, P, 0.
 // Test: window.__provapixel.perf() / .state() / .goto(x, z) / .boat(x, z, yaw) / .set({...}).
 import * as THREE from 'three';
 import { canBoard, composeArchipelago, DT, gridFromRows, landingSpot, NO_INPUT } from '@marea/sim';
@@ -18,6 +18,10 @@ import { createBoat } from '../game/boat.ts';
 import { createInput } from '../game/input.ts';
 import { createPost } from './post.ts';
 import { addWind, farIslands, setCel, setWind } from './look.ts';
+import { STYLES } from './styles.ts';
+import type { StyleId } from './styles.ts';
+import { createWater2 } from './water2.ts';
+import { createDecor } from './decor.ts';
 
 // ---------- le viste da confrontare ----------
 const CAMS = [
@@ -29,15 +33,18 @@ const CAMS = [
 ] as const;
 const PIXELS = ['gioco', '360', '270'] as const; // gioco = metà risoluzione come oggi; 360/270 = righe di pixel fisse (più grossi)
 type Pix = (typeof PIXELS)[number];
-type Toggles = { contorni: boolean; luce: boolean; foschia: boolean; cielo: boolean; vento: boolean; aggancio: boolean; cam: number; px: Pix };
-const ALL_ON: Toggles = { contorni: true, luce: true, foschia: true, cielo: true, vento: true, aggancio: true, cam: 3, px: '360' };
-const GAME: Toggles = { contorni: false, luce: false, foschia: false, cielo: false, vento: false, aggancio: false, cam: 0, px: 'gioco' };
+type Toggles = { stile: StyleId; contorni: boolean; luce: boolean; foschia: boolean; cielo: boolean; vento: boolean; aggancio: boolean; cam: number; px: Pix };
+// 7/10 Jack: «per ora vince pixel gioco» (metà risoluzione) → di partenza; la camera bassa gli piace
+const ALL_ON: Toggles = { stile: 'giorno', contorni: true, luce: true, foschia: true, cielo: true, vento: true, aggancio: true, cam: 3, px: 'gioco' };
+const GAME: Toggles = { stile: 'gioco', contorni: false, luce: false, foschia: false, cielo: false, vento: false, aggancio: false, cam: 0, px: 'gioco' };
 
 const q = new URLSearchParams(location.search);
 const tg: Toggles = { ...(q.has('gioco') ? GAME : ALL_ON) };
 for (const k of (q.get('off') ?? '').split(',')) if (k in tg && typeof tg[k as keyof Toggles] === 'boolean') (tg as Record<string, unknown>)[k] = false;
 if (q.has('cam')) tg.cam = Math.max(0, Math.min(CAMS.length - 1, Number(q.get('cam')) || 0));
 if (PIXELS.includes(q.get('px') as Pix)) tg.px = q.get('px') as Pix;
+if (STYLES.some((st) => st.id === q.get('stile'))) tg.stile = q.get('stile') as StyleId;
+const styleOf = (id: StyleId) => STYLES.find((st) => st.id === id)!;
 
 const canvas = document.getElementById('gl') as HTMLCanvasElement, root = document.getElementById('ui') as HTMLElement;
 const gl = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: true, stencil: false });
@@ -74,7 +81,10 @@ avatar.setGround(island.groundY);
 const boat = await createBoat({ loader, x: dock.x, z: dock.z, look: LOOK }); scene.add(boat.object);
 const moor = (x: number, z: number) => { boat.teleport(x, z); const d = landingSpot(boat.state, map); if (d) boat.setYaw(Math.atan2(boat.state.x - d.x, -(boat.state.z - d.z))); };
 moor(dock.x, dock.z);
-const plants = addWind(island.group);
+const water2 = createWater2(map); scene.add(water2.mesh);
+const decor = createDecor({ map, groundY: island.groundY, avoid: [...(island.props ?? []), ...arch.buildings.filter((b) => inside(b.x, b.z))] });
+scene.add(decor.group);
+const plants = addWind(island.group) + addWind(decor.group);
 const input = createInput({ canvas, root, cameraYaw: () => view.yaw });
 
 // ---------- interruttori ----------
@@ -93,6 +103,7 @@ fold.addEventListener('pointerdown', (e) => { e.stopPropagation(); open = !open;
 panel.appendChild(fold);
 function paintFold() { fold.textContent = open ? 'stile ▴' : 'stile ▾'; for (const el of [...panel.children].slice(1)) (el as HTMLElement).style.display = open ? '' : 'none'; }
 const ROWS: [string, string, () => string, () => void][] = [
+  ['S', 'stile', () => styleOf(tg.stile).nome, () => { tg.stile = STYLES[(STYLES.findIndex((st) => st.id === tg.stile) + 1) % STYLES.length]!.id; }],
   ['0', 'come il gioco', () => (same(GAME) ? '●' : '○'), () => { Object.assign(tg, same(GAME) ? ALL_ON : GAME); }],
   ['1', 'contorni', () => (tg.contorni ? '●' : '○'), () => { tg.contorni = !tg.contorni; }],
   ['2', 'luce a gradini', () => (tg.luce ? '●' : '○'), () => { tg.luce = !tg.luce; }],
@@ -126,8 +137,36 @@ function resize() {
   gl.setSize(w, H, false); post.setSize(w, H);
   view.camera.aspect = cw / Math.max(1, ch); view.camera.updateProjectionMatrix();
 }
-let camWas = -1;
+// ---------- luce dello stile: colori e direzione del sole; il sole segue il giocatore a passi di un texel della shadow map ----------
+const hemi = lights.group.children.find((c) => (c as THREE.HemisphereLight).isHemisphereLight) as THREE.HemisphereLight;
+const amb = lights.group.children.find((c) => (c as THREE.AmbientLight).isAmbientLight) as THREE.AmbientLight;
+const sunDir = new THREE.Vector3(), lightRot = new THREE.Matrix4(), lightInv = new THREE.Matrix4(), sv = new THREE.Vector3();
+function setLight(id: StyleId) {
+  const L = styleOf(id).light, el = (L.elev * Math.PI) / 180, az = (L.azim * Math.PI) / 180;
+  // azimut come in render/light.ts: 225° = da sud-ovest (−X, +Z)
+  sunDir.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).normalize();
+  lightRot.lookAt(sunDir, new THREE.Vector3(), new THREE.Vector3(0, 1, 0)); lightInv.copy(lightRot).invert();
+  lights.sun.color.set(L.sun); lights.sun.intensity = L.sunI;
+  hemi.color.set(L.sky); hemi.groundColor.set(L.ground); hemi.intensity = L.hemiI; amb.color.set(L.amb); amb.intensity = L.ambI;
+}
+function sunFollow(x: number, z: number) {
+  const texel = 60 / 1024;
+  sv.set(x, 0, z).applyMatrix4(lightInv);
+  sv.x = Math.round(sv.x / texel) * texel; sv.y = Math.round(sv.y / texel) * texel;
+  sv.applyMatrix4(lightRot);
+  lights.sun.target.position.copy(sv); lights.sun.position.copy(sv).addScaledVector(sunDir, 60);
+  lights.sun.target.updateMatrixWorld(); lights.sun.updateMatrixWorld();
+}
+
+let camWas = -1, styleWas: StyleId | null = null;
 function apply() {
+  if (tg.stile !== styleWas) {
+    const st = styleOf(tg.stile);
+    post.setStyle(st); setLight(st.id); decor.setStyle(st);
+    water.mesh.visible = st.water.mode === 0; water2.mesh.visible = st.water.mode !== 0;
+    water2.set(st.water.mode, st.water.c, st.water.foam, st.water.line, st.sky.sunDir);
+    styleWas = tg.stile;
+  }
   post.toggles.contorni = tg.contorni; post.toggles.foschia = tg.foschia; post.toggles.cielo = tg.cielo;
   setCel(scene, tg.luce);
   far.visible = tg.foschia; // senza foschia le sagome lontane sembrano panettoni: vanno insieme
@@ -178,9 +217,9 @@ function frame(now: number) {
   const f = mode === 'walk' ? avatar.object.position : boat.object.position;
   view.follow(f.x, 0.5, f.z); view.update(dt);
   if (tg.aggancio) snapCamera();
-  lights.follow!(f.x, f.z); water.follow(f.x, f.z); far.position.set(f.x - home.x, 0, f.z - home.z);
+  sunFollow(f.x, f.z); water.follow(f.x, f.z); water2.follow(f.x, f.z); water2.update(time); far.position.set(f.x - home.x, 0, f.z - home.z);
   setWind(tg.vento, time);
-  for (const c of scene.children) (c.userData.preRender as (() => void) | undefined)?.();
+  for (const c of scene.children) if (c !== lights.group) (c.userData.preRender as (() => void) | undefined)?.(); // il sole lo mette sunFollow
   post.render(gl, scene, view.camera, time);
   if (toastT > 0 && (toastT -= dt) <= 0) toast.style.opacity = '0';
   perf.frames++; perf.acc += dt;

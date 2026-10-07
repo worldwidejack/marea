@@ -1,20 +1,24 @@
-// Prova pixel 3D (#46): la scena si disegna in un'immagine piccola (render target, nearest), poi una sola passata a schermo intero
-// aggiunge contorni, foschia a bande e cielo. Il canvas ha la stessa misura dell'immagine piccola: l'ingrandimento lo fa il CSS (pixelated).
+// Prova pixel 3D (#46) e stili (#50): la scena si disegna in un'immagine piccola (render target, nearest), poi una sola passata a
+// schermo intero fa contorni, foschia a bande, cielo, ritocco colore e palette dello stile. Il canvas ha la stessa misura
+// dell'immagine piccola: l'ingrandimento lo fa il CSS (pixelated).
 // Contorni dalla profondità inversa (1/z): su un piano è lineare sullo schermo, quindi il laplaciano è zero ovunque tranne su bordi e spigoli.
-//   - vicino più lontano del pixel di molto → sagoma: il pixel si scurisce (tono più scuro dello stesso colore, verso il viola delle ombre)
-//   - laplaciano negativo piccolo → spigolo convesso: il pixel si schiarisce (la riga di luce sul bordo di blocchi, tetti, moli)
-// Foschia e cielo a gradini con dithering Bayer 4×4: niente sfumature lisce (ART_BIBLE §3).
+//   - vicino molto più lontano del pixel → sagoma: inchiostro dello stile (o il colore stesso più scuro)
+//   - laplaciano negativo piccolo → spigolo convesso: schiarito (o a inchiostro, per la stampa)
+// Palette: ogni pixel va al colore più vicino della palette dello stile, con dithering Bayer 4×4 tra i due più vicini.
 import * as THREE from 'three';
+import type { Style } from './styles.ts';
 
 export type PostToggles = { contorni: boolean; foschia: boolean; cielo: boolean };
 export type Post = {
   render(gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, t: number): void;
   setSize(w: number, h: number): void;
+  setStyle(s: Style): void;
   toggles: PostToggles;
   /** Draw call della scena (senza la passata finale) dell'ultimo frame. */
   sceneCalls(): number; sceneTris(): number;
 };
 
+const MAXPAL = 32;
 const VERT = /* glsl */ `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 const FRAG = /* glsl */ `
 #include <packing>
@@ -23,8 +27,11 @@ uniform sampler2D tColor, tDepth;
 uniform vec2 uRes;
 uniform float uNear, uFar, uTime, uOutline, uFog, uSky;
 uniform mat4 uInvProj, uCamWorld;
-uniform vec3 uFogCol, uInk;
-uniform vec3 uSky0, uSky1, uCloud, uCloudDark;
+uniform vec3 uFogCol, uInk, uInkCol, uTint;
+uniform float uInkMix, uCrease, uFogNear, uFogFar, uFogMax, uPaper, uDither, uExp, uSat, uCon, uSunSize;
+uniform vec3 uSkyTop, uSkyMid, uSkyHor, uSun, uGlow, uSunDir, uCloud, uCloudDark;
+uniform vec3 uPal[${MAXPAL}];
+uniform int uPalN;
 
 float viewZ(vec2 uv) { float d = texture2D(tDepth, uv).x; return -perspectiveDepthToViewZ(d, uNear, uFar); }
 float bayer(vec2 p) {
@@ -38,13 +45,18 @@ float vnoise(vec2 p) {
   vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
 }
-vec3 sky(vec2 uv, vec2 px) {
+vec3 skyCol(vec2 uv, vec2 px) {
   vec4 v = uInvProj * vec4(uv * 2.0 - 1.0, 1.0, 1.0); v /= v.w;
   vec3 dir = normalize((uCamWorld * vec4(normalize(v.xyz), 0.0)).xyz);
-  float e = degrees(asin(clamp(dir.y, -1.0, 1.0))) + (bayer(px) - 0.5) * 1.2; // bordi delle bande a dente di sega di un pixel
-  vec3 c = e < 2.0 ? uFogCol : e < 9.0 ? uSky1 : uSky0; // all'orizzonte lo stesso colore della foschia: il mare lontano ci sfuma dentro
+  float e = degrees(asin(clamp(dir.y, -1.0, 1.0))) + (bayer(px) - 0.5) * 1.6; // bordi delle bande a dente di sega
+  vec3 c = e < 2.5 ? uSkyHor : e < 10.0 ? uSkyMid : uSkyTop;
+  if (uSunSize > 0.0) {
+    float a = degrees(acos(clamp(dot(dir, normalize(uSunDir)), -1.0, 1.0)));
+    if (a < uSunSize * 2.2 + (bayer(px) - 0.5) * 1.5) c = uGlow;
+    if (a < uSunSize) c = uSun;
+  }
   if (dir.y > 0.02) {
-    // nuvole su un piano a 220 m: due ottave di rumore a soglia, pancia più scura; scorrono col vento
+    // nuvole su un piano a 220 m: due ottave di rumore a soglia, pancia di un altro colore; scorrono col vento
     vec2 q = dir.xz / dir.y * 220.0 / 60.0 + vec2(uTime * 0.012, uTime * 0.004);
     float n = vnoise(q) * 0.65 + vnoise(q * 2.3 + 7.1) * 0.35;
     float edge = 0.62 + (1.0 - smoothstep(0.0, 0.25, dir.y)) * 0.04;
@@ -55,47 +67,72 @@ vec3 sky(vec2 uv, vec2 px) {
 void main() {
   vec2 px = floor(vUv * uRes), t = 1.0 / uRes;
   float d = texture2D(tDepth, vUv).x;
-  if (d >= 0.99999) { gl_FragColor = vec4(uSky > 0.5 ? sky(vUv, px) : uSky1, 1.0); gl_FragColor = linearToOutputTexel(gl_FragColor); return; }
-  vec3 c = texture2D(tColor, vUv).rgb;
-  float z = viewZ(vUv);
-  if (uOutline > 0.5) {
-    float w = 1.0 / z;
-    float wl = 1.0 / viewZ(vUv - vec2(t.x, 0.0)), wr = 1.0 / viewZ(vUv + vec2(t.x, 0.0));
-    float wd = 1.0 / viewZ(vUv - vec2(0.0, t.y)), wu = 1.0 / viewZ(vUv + vec2(0.0, t.y));
-    // sagoma: un vicino è molto più lontano di me (w più piccolo); solo per oggetti non lontanissimi
-    float far = max(max(w - wl, w - wr), max(w - wd, w - wu)) / w;
-    float lap = min(wl + wr - 2.0 * w, wd + wu - 2.0 * w) / w;
-    if (far > 0.12 && z < 160.0) c = c * uInk;
-    else if (lap < -0.006 && z < 90.0) c = min(c * 1.28 + 0.04, vec3(1.0));
+  vec3 c;
+  if (d >= 0.99999) c = uSky > 0.5 ? skyCol(vUv, px) : uSkyMid;
+  else {
+    c = texture2D(tColor, vUv).rgb;
+    float z = viewZ(vUv);
+    if (uOutline > 0.5) {
+      float w = 1.0 / z;
+      float wl = 1.0 / viewZ(vUv - vec2(t.x, 0.0)), wr = 1.0 / viewZ(vUv + vec2(t.x, 0.0));
+      float wd = 1.0 / viewZ(vUv - vec2(0.0, t.y)), wu = 1.0 / viewZ(vUv + vec2(0.0, t.y));
+      float far = max(max(w - wl, w - wr), max(w - wd, w - wu)) / w;
+      float lap = min(wl + wr - 2.0 * w, wd + wu - 2.0 * w) / w;
+      if (far > 0.12 && z < 160.0) c = mix(c * uInk, uInkCol, uInkMix);
+      else if (lap < -0.006 && z < 90.0) c = uCrease >= 0.0 ? min(c * (1.0 + uCrease * 0.56) + 0.04 * uCrease, vec3(1.0)) : mix(c, uInkCol, -uCrease);
+    }
+    if (uFog > 0.5) {
+      // fino a uFogMax entro uFogFar, poi piano fino al 100% a 700 m: le sagome lontane restano visibili, pallide
+      float f = uFogMax * clamp((z - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0) + (1.0 - uFogMax) * clamp((z - uFogFar) / 500.0, 0.0, 1.0);
+      float b = f * 5.0, fr = fract(b); // 5 bande piene, dithering solo sulle cuciture
+      f = min(1.0, (floor(b) + (fr > 0.75 + 0.25 * bayer(px) ? 1.0 : 0.0)) / 5.0);
+      c = mix(c, uFogCol, f);
+    }
   }
-  if (uFog > 0.5) {
-    // fino all'80% entro ~200 m, poi piano fino al 100% a ~700 m: le sagome lontane restano visibili, pallide
-    float f = 0.8 * clamp((z - 35.0) / 165.0, 0.0, 1.0) + 0.2 * clamp((z - 200.0) / 500.0, 0.0, 1.0);
-    // 5 bande piene (0, 20, 40, 60, 80, 100%); il dithering solo nell'ultimo quarto di ogni banda, come cucitura con la successiva
-    float b = f * 5.0, fr = fract(b);
-    f = min(1.0, (floor(b) + (fr > 0.75 + 0.25 * bayer(px) ? 1.0 : 0.0)) / 5.0);
-    c = mix(c, uFogCol, f);
+  // ritocco colore dello stile (in lineare), poi in sRGB per la palette
+  c *= uExp * uTint;
+  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  c = max(mix(vec3(l), c, uSat), 0.0);
+  vec3 s = clamp(sRGBTransferOETF(vec4(c, 1.0)).rgb, 0.0, 1.0);
+  s = clamp((s - 0.5) * uCon + 0.5, 0.0, 1.0);
+  if (uPalN > 0) {
+    vec3 b1 = s, b2 = s; float d1 = 1e9, d2 = 1e9;
+    for (int i = 0; i < ${MAXPAL}; i++) {
+      if (i >= uPalN) break;
+      vec3 dd = s - uPal[i];
+      float e = dot(dd * dd, vec3(2.0, 4.0, 3.0));
+      if (e < d1) { d2 = d1; b2 = b1; d1 = e; b1 = uPal[i]; } else if (e < d2) { d2 = e; b2 = uPal[i]; }
+    }
+    float r = sqrt(d1) / max(1e-5, sqrt(d1) + sqrt(d2)); // 0 = sul primo, 0,5 = a metà
+    s = bayer(px) < r * uDither ? b2 : b1;
   }
-  gl_FragColor = vec4(c, 1.0);
-  #include <colorspace_fragment>
+  if (uPaper > 0.0) {
+    // carta: fibre larghe e grana fine, solo un poco più scura (come inchiostro assorbito)
+    float g = vnoise(px * vec2(0.08, 0.5)) * 0.6 + hash(px) * 0.4;
+    s *= 1.0 - uPaper * 0.07 * g;
+  }
+  gl_FragColor = vec4(s, 1.0);
 }`;
 
 const col = (hex: string) => new THREE.Color(hex);
+const srgb = (hex: string) => { const c = new THREE.Color(hex); c.convertLinearToSRGB(); return new THREE.Vector3(c.r, c.g, c.b); };
 
 export function createPost(): Post {
   const depth = new THREE.DepthTexture(1, 1); depth.type = THREE.UnsignedIntType;
   const rt = new THREE.WebGLRenderTarget(1, 1, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthTexture: depth, depthBuffer: true, colorSpace: THREE.SRGBColorSpace });
   const toggles: PostToggles = { contorni: true, foschia: true, cielo: true };
-  // palette ART_BIBLE §2: cielo di giorno, dall'alto in basso acqua media → acqua bassa → pietra chiara (foschia) sull'orizzonte
   const U = {
     tColor: { value: rt.texture }, tDepth: { value: depth }, uRes: { value: new THREE.Vector2(1, 1) },
     uNear: { value: 1 }, uFar: { value: 900 }, uTime: { value: 0 }, uOutline: { value: 1 }, uFog: { value: 1 }, uSky: { value: 1 },
     uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() },
-    uFogCol: { value: col('#E8E1D6') },
-    // contorno: lo stesso colore più scuro e spinto verso il viola (#A64DFF) delle ombre, non nero
-    uInk: { value: new THREE.Vector3(0.5, 0.42, 0.62) },
-    uSky0: { value: col('#3FB9C9') }, uSky1: { value: col('#7FE3E0') },
+    // contorno «gioco»: lo stesso colore più scuro e spinto verso il viola (#A64DFF) delle ombre, non nero
+    uInk: { value: new THREE.Vector3(0.5, 0.42, 0.62) }, uInkCol: { value: col('#000') }, uInkMix: { value: 0 }, uCrease: { value: 1 },
+    uFogCol: { value: col('#E8E1D6') }, uFogNear: { value: 35 }, uFogFar: { value: 200 }, uFogMax: { value: 0.8 },
+    uTint: { value: col('#fff') }, uExp: { value: 1 }, uSat: { value: 1 }, uCon: { value: 1 }, uPaper: { value: 0 }, uDither: { value: 0 },
+    uSkyTop: { value: col('#3FB9C9') }, uSkyMid: { value: col('#7FE3E0') }, uSkyHor: { value: col('#E8E1D6') },
+    uSun: { value: col('#fff') }, uGlow: { value: col('#fff') }, uSunDir: { value: new THREE.Vector3(0, -1, 0) }, uSunSize: { value: 0 },
     uCloud: { value: col('#F4E3C1') }, uCloudDark: { value: col('#E8E1D6') },
+    uPal: { value: Array.from({ length: MAXPAL }, () => new THREE.Vector3()) }, uPalN: { value: 0 },
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U, depthTest: false, depthWrite: false });
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat); quad.frustumCulled = false;
@@ -104,6 +141,18 @@ export function createPost(): Post {
   return {
     toggles,
     setSize: (w, h) => { rt.setSize(w, h); U.uRes.value.set(w, h); },
+    setStyle: (s) => {
+      U.uInkCol.value.set(s.ink.col); U.uInkMix.value = s.ink.mix; U.uCrease.value = s.ink.crease;
+      U.uFogCol.value.set(s.fog.col); U.uFogNear.value = s.fog.near; U.uFogFar.value = s.fog.far; U.uFogMax.value = s.fog.max;
+      U.uTint.value.set(s.grade.tint); U.uExp.value = s.grade.exp; U.uSat.value = s.grade.sat; U.uCon.value = s.grade.con;
+      U.uPaper.value = s.paper; U.uDither.value = s.dither;
+      U.uSkyTop.value.set(s.sky.top); U.uSkyMid.value.set(s.sky.mid); U.uSkyHor.value.set(s.sky.hor);
+      U.uSun.value.set(s.sky.sun); U.uGlow.value.set(s.sky.glow); U.uSunDir.value.set(...s.sky.sunDir).normalize(); U.uSunSize.value = s.sky.sunSize;
+      U.uCloud.value.set(s.sky.cloud); U.uCloudDark.value.set(s.sky.cloudDark);
+      const pal = (s.palette ?? []).slice(0, MAXPAL);
+      pal.forEach((h, i) => U.uPal.value[i]!.copy(srgb(h)));
+      U.uPalN.value = pal.length;
+    },
     sceneCalls: () => calls, sceneTris: () => tris,
     render: (gl, scene, camera, t) => {
       gl.setRenderTarget(rt); gl.render(scene, camera);
