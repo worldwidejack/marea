@@ -54,7 +54,7 @@ Zombie e punti di comparsa si accendono zona per zona: finché una porta è chiu
 
 ## 5. Controlli
 - **Telefono**: joystick (spinto fino in fondo = corsa, 5 s di fiato), bottone grande **A** (attacca), **AZIONE** (compra, apri, prendi, ripara, accendi: il bottone dice cosa e quanto costa), **SCAMBIA** (le due armi), **SCUDO** (se ce l'hai).
-- **PC**: WASD/frecce, Spazio o clic = attacca, **E** = azione, **Q** = scambia, **F** = scudo in mano, Shift = corsa, Esc = pausa.
+- **PC**: WASD/frecce, Spazio, E o clic = attacca (tenuto = giro caricato), **F** = azione (tenuto per riparare), **Q** = scambia (lo scudo in mano è la terza «arma»), Shift = corsa, Esc = pausa.
 - **Mira automatica di serie**: ogni colpo si gira verso lo zombie più vicino davanti a te, e con **AUTO** acceso (di serie) l'eroe attacca da solo quando ne ha uno a tiro: basta il joystick. **A MANO** (dalla pausa): attacchi solo quando premi, così non sprechi frecce e colpi.
 
 ## 6. Armi

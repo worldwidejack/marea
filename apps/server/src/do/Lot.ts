@@ -13,6 +13,7 @@
 // le spedizioni `dungeon_finish` (registraPartita / registraDiscesa di @marea/sim/economy/diario.ts).
 // Dungeon insieme (#118): /dungeon_party_start arriva dal DO Spedizioni; con pending.party il lotto chiede il log della squadra (POST /log) e lo rigioca.
 // Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_save {inputs, hash} · /dungeon_finish {inputs, hash}.
+// Isola dei Templari (lot_templari.ts): POST /templari_start {subito?} · /templari_finish {inputs, azioni, hash} (replay e premio delle ondate).
 // Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
 // Richieste dal DO Sfide (mai esposte dal Worker): POST /hold {cid, stake, kind} · /release {cid, release}: idempotenti per id sfida.
@@ -42,6 +43,7 @@ import type { EconomyErrorCode, LotState, Resources } from '@marea/sim/economy/t
 import { nowFromHeader } from '../clock.ts';
 import type { Env } from '../env.ts';
 import { RPG_ACTS, SERVE_GRUPPO, json, rpgRoute } from './lot_rpg.ts';
+import { TEMPLARI_ACTS, templariRoute } from './lot_templari.ts';
 
 const isCell = (v: unknown): v is [number, number] => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= 0 && n < 256);
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 40;
@@ -129,6 +131,7 @@ export class Lot extends DurableObject<Env> {
         return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
       }
       if (act === 'faro_dona' || act === 'faro_livelli') return this.faro(lot, act, body, now);
+      if (TEMPLARI_ACTS.has(act)) return templariRoute(lot, act, body, now, (l) => this.save(l));
       if (act === 'rientro') {
         const out = rientra(Array.isArray(body['faro']) ? segnaFaro(lot, body['faro']) : lot, now);
         this.save(out.lot);

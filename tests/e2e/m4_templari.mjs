@@ -1,0 +1,97 @@
+// Isola dei Templari (docs/TEMPLARI.md): senza server (net=0) e con ?templari=1. Telefono 390×844: c'è il bottone ⚔ delle prove, si entra
+// subito nelle ondate (il chunk si scarica solo adesso), la chiesa si disegna (pavimento, muri, finestre con le assi), parte l'ondata 1, gli
+// zombie escono dal sagrato, strappano le assi ed entrano; col pilota si superano ondate e si fanno punti; draw call nel budget con gli
+// zombie in scena; AZIONE compare vicino a una finestra rotta; la pausa ferma la partita, ESCI → scheda dell'esito («senza link niente
+// premio») → di nuovo nel mondo. PC 1280×720: Esc apre la pausa, F posa la reliquia sull'altare (ondate dall'altare, non subito), la mira
+// A MANO resta salvata. Screenshot in tests/out/shots/m4_templari_*.png.
+export const timeout = 240000;
+
+export default async function (ctx) {
+  const { assert } = ctx;
+  const tpl = (st) => st.templari ?? {};
+
+  // ---------------- telefono ----------------
+  const p = await ctx.open('?test=1&net=0&templari=1');
+  await ctx.waitReady(p.page, 20000);
+  const page = p.page;
+  await ctx.test('telefono: bottone ⚔ delle prove, isola aperta, chunk non ancora scaricato', async () => {
+    assert(await page.isVisible('#mzTemplariProva'), 'bottone ⚔ assente');
+    const st = await ctx.getState(page);
+    assert(tpl(st).aperta === true && tpl(st).active === false, `templari: ${JSON.stringify(tpl(st))}`);
+    assert(st.temi.isole.some((i) => i.id === 'templari' && i.aperta), 'isola dei Templari non aperta con ?templari=1');
+  });
+  await ctx.test('telefono: dentro la chiesa, la scena si disegna e parte l’ondata 1', async () => {
+    await page.click('#mzTemplariProva');
+    await ctx.waitState(page, (st) => st.templari.active && st.templari.fase === 'gioca', 30000);
+    const st = await ctx.getState(page);
+    await ctx.waitState(page, (s) => s.templari.scena?.assi === 45, 5000);
+    assert(st.templari.scena.muri > 50, `scena: ${JSON.stringify(st.templari.scena)}`);
+    assert(await page.isVisible('#mzTpl'), 'HUD assente');
+    assert(!(await page.isVisible('#mzTop')), 'la barra in alto della superficie è ancora visibile');
+    await ctx.waitState(page, (s) => s.templari.ondata === 1, 20000);
+    await ctx.shot(page, 'ondata1');
+  });
+  await ctx.test('telefono: gli zombie escono, strappano le assi; col pilota si superano ondate', async () => {
+    await page.evaluate(() => window.__game.test.templariAutopilot(true, 6));
+    await ctx.waitState(page, (st) => st.templari.zombie > 0, 30000);
+    await ctx.waitState(page, (st) => st.templari.assi.some((n) => n < 5), 60000);
+    await ctx.shot(page, 'assalto');
+    const perf = await ctx.getPerf(page);
+    ctx.log('perf con gli zombie', JSON.stringify(perf));
+    assert(perf.drawCalls <= 100, `draw call ${perf.drawCalls} > 100`);
+    await ctx.waitState(page, (st) => st.templari.ondata >= 3 || st.templari.done, 150000);
+    const st = await ctx.getState(page);
+    ctx.log('dopo il pilota', JSON.stringify({ ondata: st.templari.ondata, uccisioni: st.templari.uccisioni, punti: st.templari.eroe.punti, vita: st.templari.eroe.vita }));
+    assert(st.templari.uccisioni >= 6 && st.templari.eroe.punti > 500, `uccisioni ${st.templari.uccisioni}, punti ${st.templari.eroe.punti}`);
+    await page.evaluate(() => window.__game.test.templariAutopilot(false));
+    await ctx.shot(page, 'ondata3');
+  });
+  await ctx.test('telefono: pausa ferma tutto, ESCI → scheda dell’esito senza premio → di nuovo nel mondo', async () => {
+    const st0 = await ctx.getState(page);
+    if (!st0.templari.done) {
+      await page.click('#mzTplPausaBtn');
+      await ctx.waitState(page, (st) => st.templari.pausa === true, 5000);
+      const t0 = (await ctx.getState(page)).templari.tick;
+      await page.waitForTimeout(800);
+      assert((await ctx.getState(page)).templari.tick === t0, 'la partita va avanti in pausa');
+      await page.click('#mzTplPausa [data-act=esci]');
+      await page.click('#mzTplPausa [data-act=esci]');
+    }
+    await ctx.waitState(page, (st) => !!st.templariEsito?.aperto, 20000);
+    const e = (await ctx.getState(page)).templariEsito;
+    assert(e.premio === null && e.ondata >= 1, `esito: ${JSON.stringify(e)}`);
+    assert((await page.textContent('#mzTplEsito')).includes('link personale'), 'manca la riga «senza link niente premio»');
+    await ctx.shot(page, 'esito');
+    await page.click('#mzTplEsito [data-act=ok]');
+    await ctx.waitState(page, (st) => !st.templari.active && !st.templari.busy, 10000);
+    assert(await page.isVisible('#mzTop'), 'la barra in alto non è tornata');
+    ctx.noErrors(p, 'telefono');
+  });
+
+  // ---------------- PC ----------------
+  const d = await ctx.open('?test=1&net=0&templari=1', { viewport: ctx.B.DESKTOP });
+  await ctx.waitReady(d.page, 20000);
+  const pc = d.page;
+  await ctx.test('PC: dall’altare (non subito), F posa la reliquia, Esc apre la pausa, A MANO resta salvata', async () => {
+    await pc.evaluate(() => window.__game.test.templariEntra(false));
+    await ctx.waitState(pc, (st) => st.templari.active && st.templari.fase === 'gioca', 30000);
+    let st = await ctx.getState(pc);
+    assert(st.templari.sim === 'altare' && st.templari.prompt === 'reliquia', `all'inizio: ${st.templari.sim}, prompt ${st.templari.prompt}`);
+    await pc.waitForSelector('#mzTplAzione.on', { timeout: 5000 }).catch(() => { throw new Error('AZIONE non visibile vicino all’altare'); });
+    await pc.keyboard.down('KeyF'); await pc.waitForTimeout(150); await pc.keyboard.up('KeyF');
+    await ctx.waitState(pc, (s) => s.templari.sim === 'inizio' || s.templari.sim === 'combatti', 8000);
+    await pc.keyboard.press('Escape');
+    await ctx.waitState(pc, (s) => s.templari.pausa === true, 5000);
+    await pc.click('#mzTplPausa [data-act=auto]');
+    st = await ctx.getState(pc);
+    assert(st.templari.mira === false, 'la mira non è passata a mano');
+    assert((await pc.evaluate(() => localStorage.getItem('marea:templari:auto'))) === '0', 'A MANO non salvata');
+    await ctx.shot(pc, 'pc_pausa');
+    await pc.click('#mzTplPausa [data-act=auto]');
+    await pc.keyboard.press('Escape');
+    await ctx.waitState(pc, (s) => s.templari.pausa === false, 5000);
+    await ctx.waitState(pc, (s) => s.templari.ondata === 1, 15000);
+    await ctx.shot(pc, 'pc_ondata1');
+    ctx.noErrors(d, 'PC');
+  });
+}

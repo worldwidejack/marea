@@ -1,4 +1,4 @@
-// Isole a tema (#68): terreni dipinti, montagne a colonne e decorazioni procedurali per Tempesta, Ghiacci, Vulcano e Giardino.
+// Isole a tema (#68): terreni dipinti, montagne a colonne e decorazioni procedurali per Tempesta, Ghiacci, Vulcano, Giardino e Templari.
 // Solo colori della palette (ART_BIBLE §2), facce piatte, colori per triangolo (niente sfumature). Le parti che brillano (lava, fuochi,
 // finestre delle lanterne di pietra) stanno in una geometria a parte disegnata con un materiale non illuminato.
 import * as THREE from 'three';
@@ -6,8 +6,9 @@ import type { Rng } from '@marea/sim';
 import type { TemaStyle } from '@marea/content';
 import { ISLAND, M, P, merged, painted, px, speckle, strata } from './island_parts.ts';
 import type { Painter } from './island_parts.ts';
+import { propTemplari, propTemplariGlow } from './island_templari.ts';
 
-export const TEMI: readonly TemaStyle[] = ['tempesta', 'ghiacci', 'vulcano', 'giardino'];
+export const TEMI: readonly TemaStyle[] = ['tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari'];
 export const isTema = (s: string | null | undefined): s is TemaStyle => !!s && (TEMI as readonly string[]).includes(s);
 
 // ——— terreni: sabbia (spiaggia), erba (interno), riva (scalino verso l'acqua) ———
@@ -35,6 +36,10 @@ export const PAINT_TEMI: Record<string, Painter> = {
     strata(g, [[P.erbaScura, 3], [P.legno, 7], [P.legnoScuro, 32]]);
   },
   giardino_riva: (g, r) => { px(g, P.pietra, 0, 0, 32, 32); speckle(g, r, P.pietraChiara, 30, 0, 32, 2, 1); speckle(g, r, P.pietraScura, 20, 0, 32); strata(g, [[P.pietraScura, 32]]); },
+  // Templari: sabbia grigia di cenere, erba scura e secca, riva di sassi
+  templari_sabbia: (g, r) => { px(g, P.sabbia, 0, 0, 32, 32); speckle(g, r, P.pietra, 30, 0, 32); speckle(g, r, P.legnoChiaro, 16, 0, 32); speckle(g, r, P.pietraScura, 8, 0, 32); strata(g, [[P.legnoChiaro, 3], [P.legno, 32]]); speckle(g, r, P.legnoScuro, 10, 36, 60); },
+  templari_erba: (g, r) => { px(g, P.bosco, 0, 0, 32, 32); speckle(g, r, P.erbaScura, 30, 0, 32, 1, 2); speckle(g, r, P.boscoOmbra, 30, 0, 32); speckle(g, r, P.legno, 10, 0, 32); speckle(g, r, P.rosso, 2, 0, 32); strata(g, [[P.boscoOmbra, 3], [P.legnoScuro, 7], [P.ombraCalda, 32]]); },
+  templari_riva: (g, r) => { px(g, P.pietraScura, 0, 0, 32, 32); speckle(g, r, P.pietra, 30, 0, 32, 2, 1); speckle(g, r, P.roccia, 30, 0, 32); strata(g, [[P.roccia, 32]]); },
 };
 
 // ——— montagne: colonne di roccia a gradoni, più alte lontano dalla riva (cono del vulcano col cratere di lava) ———
@@ -45,6 +50,7 @@ const ROCCIA: Record<TemaStyle, (top: boolean, y: number, h: number, r: Rng) => 
   ghiacci: (top, y, h) => (top ? { c: P.sabbiaChiara } : { c: h - y < 0.7 ? P.pietraChiara : y < 0.3 ? P.acqua : Math.floor(y / 1.1) % 2 ? P.acquaBassa : P.pietraChiara }),
   vulcano: (top, y, h, r) => (top ? { c: r.next() < 0.4 ? P.neroCaldo : P.roccia } : { c: y < 0.3 ? P.neroCaldo : Math.floor(y / 1.6) % 2 ? P.roccia : P.neroCaldo }),
   giardino: (top, y, h, r) => (top ? { c: r.next() < 0.5 ? P.erbaScura : P.bosco } : { c: h - y < 0.4 ? P.erbaScura : Math.floor(y / 1.2) % 2 ? P.pietra : P.pietraScura }),
+  templari: (top, y, h, r) => (top ? { c: r.next() < 0.5 ? P.pietraScura : P.roccia } : { c: y < 0.3 ? P.neroCaldo : Math.floor(y / 1.1) % 2 ? P.pietraScura : P.roccia }),
 };
 /** Quota della cima per distanza dalla riva della montagna `d` (1 = colonna sul bordo). */
 const ALTEZZA: Record<TemaStyle, (d: number, r: Rng) => number> = {
@@ -52,6 +58,7 @@ const ALTEZZA: Record<TemaStyle, (d: number, r: Rng) => number> = {
   ghiacci: (d, r) => 1.0 + d * 1.05 + r.next() * 0.5,
   vulcano: (d, r) => 0.9 + d * 1.3 + r.next() * 0.35,
   giardino: (d, r) => 0.7 + d * 0.75 + r.next() * 0.3,
+  templari: (d, r) => 0.8 + d * 0.8 + r.next() * 0.5,
 };
 
 /**
@@ -112,11 +119,13 @@ export function rocceTema(style: TemaStyle, cells: { x: number; z: number; d: nu
 
 // ——— decorazioni ———
 export type TemaProp = 'faro_rovina' | 'relitto' | 'bandiera_pirata' | 'cannone' | 'albero_secco' | 'iceberg' | 'pinguino' | 'igloo' | 'pino_neve'
-  | 'roccia_lavica' | 'capanna' | 'braciere' | 'statua' | 'cartello' | 'abitante' | 'ciliegio' | 'tempio' | 'torii_pietra' | 'lanterna_pietra' | 'ponticello';
+  | 'roccia_lavica' | 'capanna' | 'braciere' | 'statua' | 'cartello' | 'abitante' | 'ciliegio' | 'tempio' | 'torii_pietra' | 'lanterna_pietra' | 'ponticello'
+  | 'chiesa_templare' | 'casa_rovina' | 'tomba' | 'croce_pietra' | 'tenda';
 export const TEMA_PROPS = new Set<string>(['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
-  'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello']);
+  'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello',
+  'chiesa_templare', 'casa_rovina', 'tomba', 'croce_pietra', 'tenda']);
 /** Decorazioni con una parte che brilla (fuoco, lava, finestre): la seconda geometria va col materiale non illuminato. */
-export const TEMA_GLOW = new Set<string>(['faro_rovina', 'roccia_lavica', 'braciere', 'statua', 'lanterna_pietra', 'abitante']);
+export const TEMA_GLOW = new Set<string>(['faro_rovina', 'roccia_lavica', 'braciere', 'statua', 'lanterna_pietra', 'abitante', 'chiesa_templare']);
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cyl = (r0: number, r1: number, h: number, s = 6) => new THREE.CylinderGeometry(r0, r1, h, s);
@@ -301,6 +310,7 @@ export function propTema(kind: TemaProp): THREE.BufferGeometry {
       break;
     }
     case 'torii_pietra': torii(parts, P.pietra, P.pietraScura); break;
+    case 'chiesa_templare': case 'casa_rovina': case 'tomba': case 'croce_pietra': case 'tenda': return propTemplari(kind);
     case 'lanterna_pietra': {
       parts.push(painted(box(0.8, 0.25, 0.8), P.pietraScura, M(0, 0.12, 0)));
       parts.push(painted(cyl(0.16, 0.2, 0.8, 6), P.pietra, M(0, 0.65, 0)));
@@ -345,7 +355,7 @@ export function propTemaGlow(kind: TemaProp): THREE.BufferGeometry | null {
     parts.push(painted(box(0.12, 0.1, 0.12), P.giallo, M(0, 2.44, -0.09)));
   } else if (kind === 'lanterna_pietra') {
     parts.push(painted(box(0.36, 0.3, 0.36), P.giallo, M(0, 1.38, 0)));
-  }
+  } else if (kind === 'chiesa_templare') return propTemplariGlow();
   return parts.length ? merged(parts) : null;
 }
 
@@ -355,4 +365,5 @@ export const SCENA_TEMI: Record<TemaStyle, { sabbia: [string, number][]; erba: [
   ghiacci: { sabbia: [['pinguino', 0.025], ['sasso', 0.02]], erba: [['pino_neve', 0.12], ['sasso', 0.03]] },
   vulcano: { sabbia: [['roccia_lavica', 0.06]], erba: [['roccia_lavica', 0.07], ['albero_secco', 0.12]] },
   giardino: { sabbia: [], erba: [['ciliegio', 0.07], ['cespuglio', 0.16], ['sasso', 0.18]] },
+  templari: { sabbia: [['sasso', 0.05]], erba: [['albero_secco', 0.035], ['sasso', 0.08], ['cespuglio', 0.05]] },
 };

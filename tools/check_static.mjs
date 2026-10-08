@@ -27,13 +27,17 @@ for (const f of files) {
     if (/from\s+['"]three/.test(code)) errs.push(`${r}: three in pacchetto puro`);
   }
   // dungeon: niente funzioni trascendenti (diverse tra JavaScriptCore e V8 → il replay del server divergerebbe), CONTRACTS §15
-  if (r.startsWith('packages/sim/src/dungeon/')) {
+  if (r.startsWith('packages/sim/src/dungeon/') || r.startsWith('packages/sim/src/templari/')) {
     const m = code.match(/\bMath\.(sin|cos|tan|asin|acos|atan|atan2|hypot|pow|exp|expm1|log|log2|log10|log1p|cbrt|sinh|cosh|tanh)\s*\(|\*\*/);
-    if (m) errs.push(`${r}: ${m[0]} vietato nel dungeon (solo + − × ÷ e Math.sqrt: il replay deve coincidere su ogni motore JS)`);
+    if (m) errs.push(`${r}: ${m[0]} vietato nel dungeon e nei Templari (solo + − × ÷ e Math.sqrt: il replay deve coincidere su ogni motore JS)`);
   }
   // chunk GDR: nel client solo apps/client/src/rpg/** importa i dati e la sim del Mondo Sotterraneo (il resto solo `import type` o import() dinamico)
-  if (r.startsWith('apps/client/src/') && !r.startsWith('apps/client/src/rpg/')) {
+  if (r.startsWith('apps/client/src/') && !r.startsWith('apps/client/src/rpg/') && !r.startsWith('apps/client/src/templari/')) {
     for (const m of code.matchAll(/^\s*import\s+(?!type\b)[^'"]*from\s*['"](@marea\/content\/rpg[^'"]*|@marea\/sim\/(?:rpg|dungeon)\/[^'"]*)['"]/gm)) errs.push(`${r}: import statico di ${m[1]} fuori da apps/client/src/rpg/ (finirebbe nel bundle iniziale: usa import() dinamico)`);
+  }
+  // chunk dei Templari (docs/TEMPLARI.md): dati e sim delle ondate solo in apps/client/src/templari/** (il resto solo `import type` o import())
+  if (r.startsWith('apps/client/src/') && !r.startsWith('apps/client/src/templari/')) {
+    for (const m of code.matchAll(/^\s*import\s+(?!type\b)[^'"]*from\s*['"](@marea\/content\/templari[^'"]*|@marea\/sim\/templari\/[^'"]*)['"]/gm)) errs.push(`${r}: import statico di ${m[1]} fuori da apps/client/src/templari/ (finirebbe nel bundle iniziale: usa import() dinamico)`);
   }
   if (isSim && /\bconsole\s*\.\s*(log|debug|info)\s*\(/.test(code)) errs.push(`${r}: console.log in packages/sim (la sim non stampa; i log stanno nel client/server)`);
   if (!r.startsWith('apps/client/') && (/\b(?:from|import)\s*\(?\s*['"]three(?:\/[^'"]*)?['"]/.test(code) || /\bimport\s*\(\s*['"]three/.test(code))) errs.push(`${r}: import di three fuori da apps/client`);

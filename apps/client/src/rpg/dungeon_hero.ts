@@ -9,7 +9,7 @@
 // Le ossa del glTF arrivano senza punti nel nome (three toglie «.» dai nomi dei nodi: UpperArm.R → UpperArmR).
 import * as THREE from 'three';
 import type { Look } from '@marea/protocol';
-import type { RunHero, RunWeapon } from '@marea/sim/rpg/types.ts';
+import type { RunWeapon } from '@marea/sim/rpg/types.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
 import { COLPI, FRECCIA_Y } from '@marea/sim/dungeon/tuning.ts';
 import { bladeAngle } from '@marea/sim/dungeon/swing.ts';
@@ -27,6 +27,9 @@ import { armaArco } from './arco.ts';
 import type { Arco } from './arco.ts';
 import type { HeroFx } from './hero_fx.ts';
 
+/** Arma da montare: quella del GDR, o (Templari) con modello del kit e colore della lama dati direttamente. */
+export type ArmaInMano = RunWeapon & { modello?: string; colore?: string };
+
 export type HeroActor = {
   readonly avatar: Avatar;
   /** Un tick della sim (60 Hz): nuova posa di destinazione. */
@@ -37,7 +40,7 @@ export type HeroActor = {
   /** L'arma si è rotta (evento `rotto`): via il modello, si combatte coi pugni. */
   rotta(): void;
   /** Cambio d'arma dal menu dello zaino: modello nuovo nel pugno (o pugni), scia della portata nuova. */
-  setArma(a: RunWeapon): Promise<void>;
+  setArma(a: ArmaInMano): Promise<void>;
   /** Linea di mira (solo con `mirino`) mentre tende: direzione in cui partirà la freccia; null = davanti all'eroe. */
   mira(d: { x: number; z: number } | null): void;
   /** Punto sopra la testa (numeri del danno). */
@@ -89,7 +92,7 @@ function mixPose(o: Pose, a: Pose, b: Pose, k: number): Pose {
   return o;
 }
 
-export async function createHeroActor(o: { loader: Loader; look: Look; hero: RunHero; scene: THREE.Scene; floorY: number; x: number; z: number;
+export async function createHeroActor(o: { loader: Loader; look: Look; hero: { arma: ArmaInMano }; scene: THREE.Scene; floorY: number; x: number; z: number;
   /** Eroe di questo client: mentre tende si vede la linea di mira (i compagni no). */
   mirino?: boolean;
 }): Promise<HeroActor> {
@@ -109,14 +112,15 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: Run
   const fxFor = (portata: number) => createHeroFx(o.scene, { portata, rin: kind === 'pugni' ? 0.3 : R_PUGNO + 0.15 });
   let fx: HeroFx = fxFor(pugni().portata);
   /** Monta l'arma nel pugno (all'inizio e a ogni cambio dal menu); se nel frattempo ne arriva un'altra, vince l'ultima. */
-  async function mount(arma: RunWeapon): Promise<void> {
+  async function mount(arma: ArmaInMano): Promise<void> {
     const my = ++mountN, b = arma.kind === 'arco';
     const def = arma.id && hasItem(arma.id) ? itemDef(arma.id) : null;
     let w: THREE.Object3D | null = null, mats: THREE.MeshLambertMaterial[] = [], len = 0;
-    if (def?.model) {
-      w = await object(o.loader, def.model, () => boxes(b ? [[0.05, 1.2, 0.05, 0, 0, 0.08, PAL.legno]] : [[0.05, 0.2, 0.05, 0, 0.05, 0, PAL.legnoScuro], [0.08, 0.75, 0.03, 0, 0.55, 0, PAL.pietra]]));
+    const model = arma.modello ?? def?.model, colore = arma.colore ?? def?.colore;
+    if (model) {
+      w = await object(o.loader, model, () => boxes(b ? [[0.05, 1.2, 0.05, 0, 0, 0.08, PAL.legno]] : [[0.05, 0.2, 0.05, 0, 0.05, 0, PAL.legnoScuro], [0.08, 0.75, 0.03, 0, 0.55, 0, PAL.pietra]]));
       if (my !== mountN) return;
-      tintBlade(w, palColor(def.colore || PAL.pietra));
+      tintBlade(w, palColor(colore || PAL.pietra));
       mats = materialsOf(w).filter((m) => /^mat_lama/.test(m.name));
       if (!mats.length) mats = materialsOf(w);
       const tip = Math.max(0.3, new THREE.Box3().setFromObject(w).max.y);

@@ -21,6 +21,9 @@ export type DMap = {
   floor: number[];
 };
 
+/** Quel che serve a collisioni, vista e distanze: anche griglie che non sono un dungeon (l'arena dei Templari, con le porte che si aprono). */
+export type Griglia = Pick<DMap, 'w' | 'h' | 'tile' | 'solid' | 'opaque'>;
+
 const MAPS = new WeakMap<DungeonDef, DMap>();
 
 export function parseDungeon(def: DungeonDef): DMap {
@@ -63,20 +66,20 @@ export function parseDungeon(def: DungeonDef): DMap {
   return m;
 }
 
-export function cellOf(m: DMap, x: number, z: number): number {
+export function cellOf(m: Griglia,x: number, z: number): number {
   const cx = Math.floor(x / m.tile), cz = Math.floor(z / m.tile);
   if (cx < 0 || cz < 0 || cx >= m.w || cz >= m.h) return -1;
   return cz * m.w + cx;
 }
-export function isSolid(m: DMap, cx: number, cz: number): boolean {
+export function isSolid(m: Griglia,cx: number, cz: number): boolean {
   return cx < 0 || cz < 0 || cx >= m.w || cz >= m.h || m.solid[cz * m.w + cx] === 1;
 }
-export function isOpaque(m: DMap, cx: number, cz: number): boolean {
+export function isOpaque(m: Griglia,cx: number, cz: number): boolean {
   return cx < 0 || cz < 0 || cx >= m.w || cz >= m.h || m.opaque[cz * m.w + cx] === 1;
 }
 
 /** Spinge fuori un cerchio dalle celle solide che tocca. */
-function resolve(m: DMap, p: { x: number; z: number }, r: number): void {
+function resolve(m: Griglia,p: { x: number; z: number }, r: number): void {
   const t = m.tile;
   const c0 = Math.floor((p.x - r) / t), c1 = Math.floor((p.x + r) / t);
   const r0 = Math.floor((p.z - r) / t), r1 = Math.floor((p.z + r) / t);
@@ -99,7 +102,7 @@ function resolve(m: DMap, p: { x: number; z: number }, r: number): void {
 }
 
 /** Muove un cerchio di (dx, dz) scivolando sui muri; a passi ≤ r per non attraversarli. */
-export function moveCircle(m: DMap, p: { x: number; z: number }, dx: number, dz: number, r: number): void {
+export function moveCircle(m: Griglia,p: { x: number; z: number }, dx: number, dz: number, r: number): void {
   const len = Math.sqrt(dx * dx + dz * dz);
   if (len === 0) return;
   const n = Math.max(1, Math.ceil(len / (r * 0.9)));
@@ -111,7 +114,7 @@ export function moveCircle(m: DMap, p: { x: number; z: number }, dx: number, dz:
 }
 
 /** Linea di vista tra due punti (DDA di Amanatides-Woo): false se attraversa una cella opaca. */
-export function lineOfSight(m: DMap, x0: number, z0: number, x1: number, z1: number): boolean {
+export function lineOfSight(m: Griglia,x0: number, z0: number, x1: number, z1: number): boolean {
   const t = m.tile;
   let cx = Math.floor(x0 / t), cz = Math.floor(z0 / t);
   const ex = Math.floor(x1 / t), ez = Math.floor(z1 / t);
@@ -130,7 +133,7 @@ export function lineOfSight(m: DMap, x0: number, z0: number, x1: number, z1: num
 }
 
 /** Linea percorribile da un cerchio (per l'autopilot): campiona il segmento ogni mezzo raggio e controlla le celle solide. */
-export function clearPath(m: DMap, x0: number, z0: number, x1: number, z1: number, r: number): boolean {
+export function clearPath(m: Griglia,x0: number, z0: number, x1: number, z1: number, r: number): boolean {
   const dx = x1 - x0, dz = z1 - z0, len = Math.sqrt(dx * dx + dz * dz);
   const n = Math.max(1, Math.ceil(len / (r * 0.5)));
   for (let i = 0; i <= n; i++) {
@@ -144,7 +147,7 @@ export function clearPath(m: DMap, x0: number, z0: number, x1: number, z1: numbe
 const N8: readonly (readonly [number, number])[] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
 /** Distanze BFS (passi, 8 vicini senza tagliare gli spigoli) da una cella a tutte le altre; -1 = irraggiungibile. Con più celle di
  *  partenza (dungeon insieme: una per eroe) la distanza è dalla più vicina. */
-export function bfs(m: DMap, from: number | readonly number[], out?: Int32Array): Int32Array {
+export function bfs(m: Griglia,from: number | readonly number[], out?: Int32Array): Int32Array {
   const d = out && out.length === m.w * m.h ? out : new Int32Array(m.w * m.h);
   d.fill(-1);
   const q = new Int32Array(m.w * m.h);
@@ -166,7 +169,7 @@ export function bfs(m: DMap, from: number | readonly number[], out?: Int32Array)
 }
 
 /** Prossima cella verso l'origine del campo (vicino con distanza minore), o -1. */
-export function stepDown(m: DMap, field: Int32Array, from: number): number {
+export function stepDown(m: Griglia,field: Int32Array, from: number): number {
   if (from < 0) return -1;
   const cx = from % m.w, cz = (from - cx) / m.w;
   let best = -1, bd = field[from]!;
@@ -180,7 +183,7 @@ export function stepDown(m: DMap, field: Int32Array, from: number): number {
   }
   return best;
 }
-export function cellCenter(m: DMap, i: number): { x: number; z: number } {
+export function cellCenter(m: Griglia,i: number): { x: number; z: number } {
   const cx = i % m.w, cz = (i - cx) / m.w;
   return { x: (cx + 0.5) * m.tile, z: (cz + 0.5) * m.tile };
 }

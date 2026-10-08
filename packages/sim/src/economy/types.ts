@@ -80,6 +80,16 @@ export type LotState = {
   finito?: CantiereFinito;
   /** Faro comune del Porto (#111). Assente = livello 0, niente versato. */
   faro?: FaroLotto;
+  /** Isola dei Templari (docs/TEMPLARI.md): partita a ondate aperta, premio preso oggi (giorno UTC), record. Assente = mai giocato. */
+  templari?: TemplariLotto;
+  /** Reliquie trovate: aprono le isole a tema con sblocco `reliquia` (la Tempesta nasconde quella dei Templari). Assente = []. */
+  reliquie?: string[];
+};
+/** Partita a ondate aperta dal server (seed e opzioni da rigiocare), premio del giorno e migliori risultati. */
+export type TemplariLotto = {
+  pending: { seed: number; subito: boolean; startMs: number } | null;
+  giorno: number; preso: Resources;
+  record: number; partite: number;
 };
 
 /**

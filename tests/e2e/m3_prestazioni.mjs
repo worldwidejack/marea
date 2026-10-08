@@ -15,7 +15,7 @@ const PUNTI = [
   ['neon', [['goto', 'neon']]],
   ['selvaggia', [['goto', 'selvaggia']]],
   ...Array.from({ length: 8 }, (_, i) => [`lotto${i}`, [['goto', `lotto:${i}`]]]),
-  ...['tempesta', 'ghiacci', 'vulcano', 'giardino'].flatMap((id) => [
+  ...['tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari'].flatMap((id) => [
     [id, [['temiProva', 'tutte'], ['goto', id]]],
     [`${id}_chiusa`, [['temiProva', null], ['temiVerso', id, 6]]],
   ]),

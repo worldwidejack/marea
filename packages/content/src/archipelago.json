@@ -20,6 +20,7 @@
     { "island": "tempesta", "at": [296, 34], "role": "tema", "tema": { "sblocco": { "tipo": "molo", "livello": 2 }, "barriera": 12 } },
     { "island": "ghiacci", "at": [120, 16], "role": "tema", "tema": { "sblocco": { "tipo": "livello", "livello": 3 }, "barriera": 10 } },
     { "island": "vulcano", "at": [296, 236], "role": "tema", "tema": { "sblocco": { "tipo": "cappello", "cappello": "lanterna" }, "barriera": 0 } },
-    { "island": "giardino", "at": [14, 232], "role": "tema", "tema": { "sblocco": { "tipo": "mappa", "mappa": "giardino", "come": "oro" }, "barriera": 14 } }
+    { "island": "giardino", "at": [14, 232], "role": "tema", "tema": { "sblocco": { "tipo": "mappa", "mappa": "giardino", "come": "oro" }, "barriera": 14 } },
+    { "island": "templari", "at": [156, 240], "role": "tema", "tema": { "sblocco": { "tipo": "reliquia", "reliquia": "templari" }, "barriera": 14 } }
   ]
 }
