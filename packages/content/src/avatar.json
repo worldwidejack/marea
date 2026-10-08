@@ -2,6 +2,7 @@
   "pelle": ["#FBE2C8", "#EFC29B", "#D9A070", "#B8784C", "#8C5636", "#5A3A28"],
   "capelli": ["corti", "spettinati", "coda", "caschetto", "rasati", "ricci", "lunghi", "chignon"],
   "coloriCapelli": ["#2E1E14", "#5A3A1E", "#8E5A2B", "#C98A4B", "#E8433F", "#F4E3C1"],
+  "nomiColoriCapelli": ["nero corvino", "castano scuro", "castano", "biondo miele", "rosso fuoco", "biondo platino"],
   "vestiti": ["#3FB9C9", "#E8433F", "#F2A33A", "#8FC35B", "#A64DFF", "#F4E3C1"],
   "cappelli": [
     { "id": "nessuno", "nome": "Nessuno", "perle": 0 },
@@ -9,7 +10,13 @@
     { "id": "berretto", "nome": "Berretto", "perle": 0 },
     { "id": "pescatore", "nome": "Cappello da pescatore", "perle": 10 },
     { "id": "lanterna", "nome": "Lanterna in testa", "perle": 25 },
-    { "id": "neon", "nome": "Visiera neon", "perle": 40 }
+    { "id": "neon", "nome": "Visiera neon", "perle": 40 },
+    { "id": "kasa", "nome": "Cappello a cono", "perle": 20, "mercante": true },
+    { "id": "capitano", "nome": "Berretto da capitano", "perle": 30, "mercante": true },
+    { "id": "pirata", "nome": "Tricorno pirata", "perle": 45, "mercante": true },
+    { "id": "polpo", "nome": "Polpo in testa", "perle": 60, "mercante": true },
+    { "id": "corona", "nome": "Corona di perle", "perle": 80, "mercante": true },
+    { "id": "palombaro", "nome": "Elmo da palombaro", "perle": 100, "mercante": true }
   ],
   "emote": ["saluto", "esulta", "ride", "no"]
 }

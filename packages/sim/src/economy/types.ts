@@ -11,6 +11,8 @@ export type ChallengeCount = { day: number; used: number };
 /** Minigiochi da solo (senza posta): partita aperta dal server (seed) e conteggio del giorno UTC per il tetto dei premi. */
 export type SoloPending = { minigame: string; seed: number; difficulty: 1 | 2 | 3; startMs: number; /** Parametri della partita (es. il mare della pesca), già normalizzati dal modulo. */ opzioni?: Record<string, string> };
 export type SoloState = { day: number; premiate: number; giocate: number; pending: SoloPending | null };
+/** Missioni del giorno della Bacheca (#64): contatori di oggi (giorno UTC) per tipo e indici delle missioni già riscosse. */
+export type MissioniState = { day: number; prog: Record<string, number>; riscosse: number[] };
 export type LotState = {
   owner: string;
   version: number;
@@ -32,6 +34,8 @@ export type LotState = {
   settled?: string[];
   /** Minigiochi da solo. Assente = { day: 0, premiate: 0, giocate: 0, pending: null }. */
   solo?: SoloState;
+  /** Missioni della Bacheca del Porto. Assente = nessun progresso oggi. */
+  missioni?: MissioniState;
   /** Personaggio GDR (docs/RPG.md). Assente = newHero() di @marea/sim/rpg/hero.ts. */
   hero?: HeroState;
   /** Forziere dell'isola: id oggetto → quantità. Assente = {}. */
@@ -83,6 +87,7 @@ export const missing = (have: Resources, cost: Resources): Resources => ({
 });
 
 export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow' | 'cappello' | 'posizione' | 'partita'
+  | 'missione'
   | 'peso' | 'equip' | 'perk' | 'materiale' | 'edificio' | 'livello_skill' | 'oggetto' | 'spedizione';
 export class EconomyError extends Error {
   code: EconomyErrorCode;

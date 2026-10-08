@@ -97,6 +97,9 @@ export function createLotView(o: LotViewOptions): LotView {
   const slotsMesh = new THREE.InstancedMesh(fg, mat(PAL.arancio), Math.max(1, tpl.lots.length)); slotsMesh.count = 0; slotsMesh.name = 'lot_slot'; group.add(slotsMesh);
   const pick = new THREE.Mesh(fg, mat(PAL.giallo)); pick.visible = false; pick.name = 'lot_scelta'; group.add(pick);
   const drawn = new Map<string, Drawn>();
+  // decorazioni (#63, comprate dal Mercante): il codice dei segnaposto si scarica solo quando un'isola ne ha una
+  const decorDrawn = new Map<string, { holder: THREE.Group; model: string }>();
+  let decorMod: Promise<typeof import('../render/decor.ts')> | null = null;
   const slotLabels = new Map<string, { cell: [number, number]; label: Label }>(); // cartelli «Costruisci» sugli slot liberi
   let lot: LotState | null = o.initial ?? null, view: LotState | null = lot;
   let busy = false, poll = 0, slow = 0, endsSeen = 0, inflight: Promise<void> | null = null, lastError: string | null = null, refreshes = 0, disposed = false;
@@ -141,6 +144,17 @@ export function createLotView(o: LotViewOptions): LotView {
       if (d.key !== key) { d.key = key; void loadInto(d, b); }
     }
     for (const [id, d] of drawn) if (!seen.has(id)) { group.remove(d.holder); d.label.remove(); drawn.delete(id); }
+    const seenD = new Set<string>();
+    for (const dc of lot.decor) {
+      seenD.add(dc.id);
+      if (decorDrawn.has(dc.id)) continue;
+      const holder = new THREE.Group(); holder.name = 'decor_' + dc.id;
+      const p = world(dc.cell); holder.position.set(p.x, p.y, p.z); holder.rotation.y = FACING + (dc.rot * Math.PI) / 2; group.add(holder);
+      const rec = { holder, model: '' }; decorDrawn.set(dc.id, rec);
+      decorMod ??= import('../render/decor.ts');
+      void decorMod.then((m) => m.decorObject(dc.decor, o.loader)).then(({ obj, model }) => { if (!disposed && decorDrawn.get(dc.id) === rec) { holder.add(obj); rec.model = model; } }).catch(() => { /* senza decorazione si gioca lo stesso */ });
+    }
+    for (const [id, d] of decorDrawn) if (!seenD.has(id)) { group.remove(d.holder); decorDrawn.delete(id); }
     const free = ro ? [] : freeSlots(), m = new THREE.Matrix4();
     free.forEach((c, i) => { const p = world(c); slotsMesh.setMatrixAt(i, m.makeTranslation(p.x, p.y + 0.02, p.z)); });
     slotsMesh.count = free.length; slotsMesh.instanceMatrix.needsUpdate = true;
@@ -337,6 +351,7 @@ export function createLotView(o: LotViewOptions): LotView {
       freeSlots: ro ? [] : freeSlots(),
       panel: S.owner === me && panel ? { ...panel } : null,
       labels: [...drawn.entries()].map(([id, d]) => ({ id, text: d.label.el.textContent ?? '', cls: d.label.el.className })),
+      decor: (lot?.decor ?? []).map((d) => ({ id: d.id, decor: d.decor, cell: d.cell, model: decorDrawn.get(d.id)?.model ?? null })),
       slotSigns: [...slotLabels.values()].map((sl) => ({ cell: sl.cell, hint: sl.label.el.classList.contains('hint') })),
     };
   });

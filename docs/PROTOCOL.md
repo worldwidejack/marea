@@ -89,6 +89,13 @@ Nuovi campi facoltativi di `LotState`: `posseduti?: string[]` (cappelli a Perle 
 
 `FeedTipo = 'sfida_ricevuta' | 'sfida_accettata' | 'sfida_rifiutata' | 'sfida_scaduta' | 'sfida_chiusa'` · `FeedItem = { id: number; quando: number; tipo: FeedTipo; testo: string; sfida?: string; da?: string; letto: boolean }` (in `packages/protocol`). Le righe le scrive il DO `Sfide` a ogni passaggio di stato (niente riga alla creazione: lo sfidato viene avvisato quando lo sfidante ha giocato); il `testo` in italiano lo compone il Worker in lettura con i nomi delle persone. Emote: la Zone inoltra al massimo una emote ogni 800 ms per connessione, senza eco a chi la manda.
 
+### Aggiunte Porto (#63-#65, 8 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/missioni/riscuoti` | `{ i: 0-2 }` → `{ premio: Resources, missione, lot: LotState }`: RISCUOTI una missione della Bacheca compiuta oggi (giorno UTC). 409 `{ error, code: 'missione' }` se non è compiuta o è già riscossa, 404 se l'indice non esiste, 400 se `i` non è un intero — **nuovo** |
+
+Le missioni di oggi non hanno una GET: client e server le calcolano dal lotto con `missioniOf(lot, now)` di `@marea/sim/economy/missioni.ts` (seed = giorno + persona). Nuovo campo facoltativo di `LotState`: `missioni?: { day, prog: Record<tipo, number>, riscosse: number[] }`, aggiornato dal DO del lotto dopo `collect`, `build`, `upgrade`, `decor`, `hat`, `solo/play`, `dungeon/finish`. `POST /api/look/hat` vale anche per i cappelli esclusivi del Mercante (`mercante: true`).
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32 e `a, b` 0/1. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 

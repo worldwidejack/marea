@@ -1,0 +1,49 @@
+{
+  "posti": {
+    "mercante": { "nome": "Mercante delle Perle", "cartello": "MERCANTE", "at": [18, 15.4], "rot": 3.1416, "fronte": [18, 16.9], "raggio": 3.2 },
+    "bacheca": { "nome": "Bacheca delle missioni", "cartello": "BACHECA", "at": [26, 15.6], "rot": 3.1416, "fronte": [26, 16.9], "raggio": 3.2 }
+  },
+  "gente": [
+    {
+      "id": "ishi", "nome": "Maestro Ishi", "ruolo": "mercante",
+      "look": { "pelle": 1, "capelli": 7, "coloreCapelli": 5, "vestito": 4, "cappello": 6 },
+      "giro": [[16.95, 15.75]], "velocita": 0, "raggio": 0,
+      "battute": [
+        "Benvenuto! Tutto quello che vedi è in vendita. Anche il banco, ma costa troppo.",
+        "Cappelli esclusivi, decorazioni esclusive. Esclusive perché le vendo solo io.",
+        "Non accetto Legno, non accetto Pietra. Accetto Perle, complimenti e Perle.",
+        "Le Perle si vincono ai minigiochi e alla Bacheca. Io aspetto qui. Sono bravissimo ad aspettare."
+      ]
+    },
+    {
+      "id": "gigi", "nome": "Gigi il Mozzo", "ruolo": "guida",
+      "look": { "pelle": 2, "capelli": 1, "coloreCapelli": 4, "vestito": 2, "cappello": 8 },
+      "giro": [[21.4, 20.6], [21.4, 26.6]], "velocita": 1.1, "raggio": 3,
+      "battute": [
+        "Ehi, nuovo! Questo è il Porto. Qui non si paga l'affitto: si paga in Perle, e le Perle non crescono sugli alberi.",
+        "La barca sta al molo: avvicinati e premi A. Con la barca vai alle isole degli amici e alla Laguna, dove c'è la Regata.",
+        "Sotto alcune isole ci sono i dungeon. Io ci sono sceso una volta. Ne sono uscito con un pugnale arrugginito e gli incubi."
+      ]
+    },
+    {
+      "id": "remo", "nome": "Capitan Remo", "ruolo": "guida",
+      "look": { "pelle": 3, "capelli": 5, "coloreCapelli": 0, "vestito": 0, "cappello": 7 },
+      "giro": [[18.6, 12.7], [25.4, 12.7]], "velocita": 0.9, "raggio": 3,
+      "battute": [
+        "Capitan Remo, quarant'anni di mare e zero naufragi. Due, se contiamo la vasca da bagno.",
+        "Là fuori ci sono isole a tema da scoprire. Apri la mappa con M: la nebbia copre quelle dove non sei ancora stato.",
+        "Più in là c'è l'Isola della Tempesta: ci arriva solo chi ha il Molo al livello giusto. Io aspetto che passi. Da sei anni."
+      ]
+    },
+    {
+      "id": "pina", "nome": "Nonna Pina", "ruolo": "guida",
+      "look": { "pelle": 4, "capelli": 3, "coloreCapelli": 5, "vestito": 3, "cappello": 3 },
+      "giro": [[24.2, 28.4]], "velocita": 0, "raggio": 3,
+      "battute": [
+        "Ciao tesoro. La tua isola lavora anche quando dormi: Segheria e Cava riempiono i depositi, tu passi e raccogli.",
+        "Alla Bacheca in piazza ci sono tre missioni nuove ogni giorno. Le fai, torni e premi RISCUOTI. Così si campa.",
+        "Le Perle spendile dal Mercante. Ishi è onesto, eh. Per essere un mercante."
+      ]
+    }
+  ]
+}

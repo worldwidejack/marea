@@ -188,6 +188,12 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, 'solo_play', { inputs: body['inputs'] });
       }
+      // Bacheca del Porto (#64): le missioni di oggi le calcola anche il client dal lotto; qui solo RISCUOTI (il DO verifica e paga)
+      if (path === '/api/missioni/riscuoti' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'missione', { i: body['i'] });
+      }
       // Mondo Sotterraneo: azioni del personaggio e spedizioni; il replay lo fa il DO del lotto, mai il Worker (10 ms di CPU)
       if (path === '/api/rpg' && req.method === 'POST') {
         const body = await corpo();

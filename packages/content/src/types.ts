@@ -45,12 +45,15 @@ export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna';
 export type ArchipelagoIsland = { island: string; at: [number, number]; role: ArchipelagoRole; slot?: number };
 /** Il mondo continuo (CONTRACTS §11): isole di islands.json posate su una griglia w×h di celle da `tile` m; il resto è acqua profonda. */
 export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; tile: number; islands: ArchipelagoIsland[] };
-export type HatDef = { id: string; nome: string; perle: number };
-export type DecorDef = { id: string; nome: string; perle: number; model: string };
+/** `mercante`: esclusivo del Mercante delle Perle al Porto (#63): nell'editor si vede ma si compra solo da lui. */
+export type HatDef = { id: string; nome: string; perle: number; mercante?: boolean };
+export type DecorDef = { id: string; nome: string; perle: number; model: string; mercante?: boolean };
 export type AvatarDef = {
   pelle: string[];
   capelli: string[];
   coloriCapelli: string[];
+  /** Nomi da capelli dei colori (#3: «castano», non il nome della palette), stesso ordine di `coloriCapelli`. */
+  nomiColoriCapelli?: string[];
   vestiti: string[];
   cappelli: HatDef[];
   emote: string[];

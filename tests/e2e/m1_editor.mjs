@@ -1,7 +1,8 @@
 // M1 · Fetta 3, editor dell'avatar (F3-avatar, CONTRACTS §13) sul server locale (wrangler dev, TEST_CLOCK:1).
 // (1) C apre #mzEditor, le frecce cambiano riga e valore, l'avatar cambia subito, nessuna POST /api/look; (2) Esc ripristina e chiude;
 // (3) vestito + Salva → POST 200, dopo il reload /api/me e l'avatar hanno il look nuovo; (4) cappello a Perle: prezzo, «Compra» senza Perle
-// → errore rosso, Salva spento; poi Perle vinte con una sfida chiusa (API) → Compra e Salva; (5) Tavolo aperto: C non apre l'editor;
+// → avviso gentile sotto la riga del cappello (#4, arancio, nessuna chiamata al server), Salva spento; un esclusivo del Mercante (#63) non
+// ha «Compra» ma l'avviso «dal Mercante»; poi Perle vinte con una sfida chiusa (API) → Compra e Salva; (5) Tavolo aperto: C non apre l'editor;
 // (6) «Altro dispositivo»: COPIA LINK / MANDA danno `/?t=token` (mai scritto a schermo), copia rifiutata → campo col link;
 // (7) telefono 390×844: il bottone apre il foglio, che lascia libero il centro.
 import fs from 'node:fs';
@@ -73,7 +74,6 @@ export default async function (ctx) {
     const nav = (pg, n) => pg.page.locator(`#mzEditor [data-nav="${n}"]`);
     const waitOpen = (pg, v) => ctx.waitState(pg.page, (s, want) => s.editor.open === want, 5000, v);
     const focusedRow = (pg) => pg.page.evaluate(() => document.activeElement?.closest('[data-row]')?.dataset.row ?? document.activeElement?.dataset.nav ?? null);
-    const isRed = async (loc) => { const c = await loc.evaluate((e) => getComputedStyle(e).color); const [r, g, b] = c.match(/\d+/g).map(Number); return { ok: r > 200 && g < 100 && b < 100, c }; };
 
     const anna = await open('tokA', ctx.B.DESKTOP);
     const saved0 = (await get('/api/me', 'tokA')).body.look;
@@ -153,7 +153,7 @@ export default async function (ctx) {
       assert(posts.look.length === 1, 'POST /api/look attese 1: ' + posts.look.length);
     });
 
-    await ctx.test('cappello a Perle: prezzo, «Compra» senza Perle → errore rosso, Salva spento; con le Perle vinte compra e salva', async () => {
+    await ctx.test('cappello a Perle: prezzo, «Compra» senza Perle → avviso gentile vicino al bottone, Salva spento; con le Perle vinte compra e salva', async () => {
       await anna.page.evaluate(() => window.__game.test.openEditor());
       await waitOpen(anna, true);
       await ctx.waitState(anna.page, (s) => s.editor.perle !== null, 5000);
@@ -165,18 +165,23 @@ export default async function (ctx) {
       const row = await anna.page.locator('#mzEditor [data-row="cappello"]').innerText();
       assert(/10 Perle/.test(row) && /pescatore/i.test(row), 'prezzo non visibile: ' + row);
       assert(await nav(anna, 'salva').isDisabled(), 'Salva acceso con un cappello non tuo');
-      const [r1] = await Promise.all([
-        anna.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/look/hat', { timeout: 10000 }),
-        nav(anna, 'compra').click(),
-      ]);
-      assert(r1.status() === 409, 'compra senza Perle: ' + r1.status());
-      const bad = anna.page.locator('#mzEditor .mz-note.bad');
+      const hats0 = posts.hat.length;
+      await nav(anna, 'compra').click();
+      const bad = anna.page.locator('#mzEditor [data-row="cappello"] .mz-ed-miss.bad');
       await bad.waitFor({ timeout: 5000 });
-      const errTxt = await bad.innerText(), red = await isRed(bad);
-      ctx.log(`Perle ${p0} · errore: «${errTxt}» (${red.c})`);
-      assert(/mancano 10 Perle/.test(errTxt) && red.ok, 'errore non rosso/italiano: ' + errTxt + ' ' + red.c);
+      const errTxt = await bad.innerText(), col = await bad.evaluate((e) => getComputedStyle(e).color);
+      ctx.log(`Perle ${p0} · avviso: «${errTxt}» (${col})`);
+      assert(/Ti mancano 10 Perle/.test(errTxt) && /minigiochi/.test(errTxt), 'avviso non gentile: ' + errTxt);
+      assert(col === 'rgb(242, 163, 58)', 'avviso non arancio (#4: niente rosso da errore): ' + col);
+      assert(posts.hat.length === hats0, 'senza Perle «Compra» non deve chiamare il server');
       assert(await nav(anna, 'salva').isDisabled(), 'Salva acceso dopo l’errore');
       await ctx.shot(anna.page, 'cappello_senza_perle_errore');
+      // esclusivo del Mercante (#63): si prova, ma niente «Compra»: si compra al Porto
+      const EX = avatar.cappelli.findIndex((h) => h.mercante);
+      for (let i = HAT; i < EX; i++) await nav(anna, 'cappello:piu').click();
+      const rowEx = await anna.page.locator('#mzEditor [data-row="cappello"]').innerText();
+      assert(/Mercante/.test(rowEx) && (await nav(anna, 'compra').count()) === 0, 'esclusivo con «Compra» o senza avviso: ' + rowEx);
+      assert((await st(anna)).wp2_avatar.look.cappello === EX, 'esclusivo non in anteprima');
       await anna.page.keyboard.press('Escape'); await waitOpen(anna, false);
       assert(posts.look.length === 1, 'POST /api/look con cappello non tuo');
 

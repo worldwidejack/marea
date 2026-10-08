@@ -4,6 +4,8 @@
 // Richieste dal Worker: GET /state · POST /collect {building} · /build {building, cell} · /upgrade {building} · /decor {decor, cell, rot} · /hat {hat}.
 // Minigiochi da solo: POST /solo_start {minigame, opzioni?} → {seed, difficulty, opzioni, lot} · /solo_play {inputs} → il server rigioca gli input, premia la
 // medaglia (balance.solo) e risponde {score, medal, detail, premio, premiata, lot}.
+// Bacheca del Porto (#64): POST /missione {i} → RISCUOTI {premio, missione, lot}. I contatori delle missioni di oggi li aggiornano qui
+// le azioni che il server verifica davvero (raccolte, cantieri, acquisti, partite da solo, spedizioni): `tracciaMissioni` di @marea/sim.
 // Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_save {inputs, hash} · /dungeon_finish {inputs, hash}.
 // Richieste dal DO Sfide (mai esposte dal Worker): POST /hold {cid, stake, kind} · /release {cid, release}: idempotenti per id sfida.
 import { DurableObject } from 'cloudflare:workers';
@@ -15,6 +17,8 @@ import { holdStake, releaseStake } from '@marea/sim/economy/challenge.ts';
 import type { Release } from '@marea/sim/economy/challenge.ts';
 import { finishSolo, soloOf, startSolo } from '@marea/sim/economy/rewards.ts';
 import { EconomyError } from '@marea/sim/economy/types.ts';
+import { eventiPartita, eventiRaccolta, riscuotiMissione, tracciaMissioni } from '@marea/sim/economy/missioni.ts';
+import type { EventiMissione } from '@marea/sim/economy/missioni.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
 import { isPackedInputs, replay } from '@marea/sim/replay.ts';
 import { fitHero } from '@marea/sim/rpg/hero.ts';
@@ -38,6 +42,13 @@ function isRelease(v: unknown): v is Release {
   if (r['esito'] === 'rimborso') return true;
   if (!MEDALS.includes(r['medal'])) return false;
   return r['esito'] === 'persa' || r['esito'] === 'pari' || (r['esito'] === 'vinta' && isRes(r['pot']));
+}
+/** Contatori delle missioni mossi da un'azione andata a buon fine (le poste delle sfide non contano). */
+function eventiAzione(act: string, prima: LotState, dopo: LotState): EventiMissione {
+  if (act === 'collect') return eventiRaccolta(prima, dopo);
+  if (act === 'build' || act === 'upgrade') return { cantiere: 1 };
+  if (act === 'decor' || act === 'hat') return { mercante: 1 };
+  return {};
 }
 /** Stato HTTP di un errore economico: richiesta rotta 400, cosa inesistente 404, il resto è un conflitto con lo stato (409). */
 const STATUS: Partial<Record<EconomyErrorCode, number>> = { sconosciuto: 404, posizione: 400, posta: 400 };
@@ -86,9 +97,17 @@ export class Lot extends DurableObject<Env> {
       try { body = (await req.json()) as Record<string, unknown>; } catch { return json({ error: 'Richiesta non valida' }, 400); }
       if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
       if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now);
-      if (RPG_ACTS.has(act)) return rpgRoute(lot, act, body, now, (l) => this.save(l));
-      const next = this.act(lot, act, body, now);
-      if (next instanceof Response) return next;
+      if (RPG_ACTS.has(act)) return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tracciaMissioni(l, { dungeon: 1 }, now));
+      if (act === 'missione') {
+        const i = body['i'];
+        if (typeof i !== 'number' || !Number.isInteger(i) || i < 0 || i > 9) return json({ error: 'Missione non valida' }, 400);
+        const out = riscuotiMissione(lot, i, now);
+        this.save(out.lot);
+        return json({ premio: out.premio, missione: out.missione, lot: out.lot });
+      }
+      const next0 = this.act(lot, act, body, now);
+      if (next0 instanceof Response) return next0;
+      const next = tracciaMissioni(next0, eventiAzione(act, lot, next0), now);
       this.save(next);
       return json(next);
     } catch (e) {
@@ -120,8 +139,9 @@ export class Lot extends DurableObject<Env> {
     if (!isPackedInputs(inputs, getMinigame(p.minigame).maxTicks)) return json({ error: 'Partita non valida' }, 400);
     const r = replay(p.minigame, p.seed, p.difficulty, inputs, p.opzioni);
     const out = finishSolo(lot, r.medal, now);
-    this.save(out.lot);
-    return json({ score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: out.lot });
+    const next = tracciaMissioni(out.lot, eventiPartita(r.medal), now);
+    this.save(next);
+    return json({ score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: next });
   }
 
   private act(lot: LotState, act: string, body: Record<string, unknown>, now: number): LotState | Response {

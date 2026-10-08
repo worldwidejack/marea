@@ -24,8 +24,8 @@ function inputsOf(raw: unknown): PackedDungeon | null {
   return isPackedDungeon(inputs, dungeonSim.maxTicks) ? inputs : null;
 }
 
-/** Rotte GDR: `save` scrive il lotto nello storage del DO. Lancia EconomyError (le traduce chi chiama). */
-export function rpgRoute(lot: LotState, act: string, body: Record<string, unknown>, now: number, save: (l: LotState) => void): Response {
+/** Rotte GDR: `save` scrive il lotto nello storage del DO; `tornato` ritocca il lotto di una spedizione chiusa (contatori delle missioni). Lancia EconomyError (le traduce chi chiama). */
+export function rpgRoute(lot: LotState, act: string, body: Record<string, unknown>, now: number, save: (l: LotState) => void, tornato: (l: LotState) => LotState = (l) => l): Response {
   if (act === 'rpg') {
     const a = parseRpgAction(body['azione']);
     if (!a) return json({ error: 'Azione non valida' }, 400);
@@ -62,6 +62,7 @@ export function rpgRoute(lot: LotState, act: string, body: Record<string, unknow
   }
   // dungeon_finish
   const out = finishDungeon(lot, result, now);
-  save(out.lot);
-  return json({ result, tenuto: out.tenuto, monete: out.monete, livelliSu: out.livelliSu, lot: out.lot });
+  const next = tornato(out.lot); // missioni della Bacheca: una spedizione chiusa
+  save(next);
+  return json({ result, tenuto: out.tenuto, monete: out.monete, livelliSu: out.livelliSu, lot: next });
 }

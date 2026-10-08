@@ -72,7 +72,27 @@ const HATS: Record<string, (string | number)[][]> = {
   pescatore: [[0.24, 0.1, 0.26, 0, 0.18, 0, '#B9AFA3'], [0.34, 0.015, 0.34, 0, 0.13, 0, '#B9AFA3']],
   lanterna: [[0.05, 0.1, 0.05, 0, 0.18, 0, '#5A3A1E'], [0.13, 0.15, 0.13, 0, 0.3, 0, '#E8433F'], [0.09, 0.09, 0.09, 0, 0.3, 0, '#FFB03D']],
   neon: [[0.23, 0.03, 0.24, 0, 0.11, 0, '#8A5CFF'], [0.22, 0.06, 0.04, 0, 0.07, -0.135, '#FF3DA6']],
+  // esclusivi del Mercante (#63): niente nodo in chr_base, li monta loadModel sull'osso della testa (hatOnHead)
+  kasa: [[0.5, 0.025, 0.5, 0, 0.13, 0, '#E2B97F'], [0.38, 0.04, 0.38, 0, 0.16, 0, '#E2B97F'], [0.26, 0.045, 0.26, 0, 0.2, 0, '#C98A4B'], [0.14, 0.04, 0.14, 0, 0.24, 0, '#E2B97F'], [0.05, 0.03, 0.05, 0, 0.275, 0, '#8E5A2B']],
+  capitano: [[0.25, 0.09, 0.27, 0, 0.17, 0, '#E8E1D6'], [0.29, 0.035, 0.31, 0, 0.225, 0, '#E8E1D6'], [0.255, 0.025, 0.275, 0, 0.14, 0, '#23201F'], [0.2, 0.015, 0.1, 0, 0.13, -0.17, '#23201F'], [0.06, 0.04, 0.012, 0, 0.17, -0.137, '#F5D547']],
+  pirata: [[0.25, 0.1, 0.26, 0, 0.17, 0, '#23201F'], [0.42, 0.08, 0.07, 0, 0.2, -0.13, '#23201F'], [0.07, 0.08, 0.34, -0.17, 0.2, 0.03, '#23201F'], [0.07, 0.08, 0.34, 0.17, 0.2, 0.03, '#23201F'], [0.06, 0.06, 0.012, 0, 0.2, -0.168, '#E8E1D6'], [0.43, 0.012, 0.075, 0, 0.245, -0.13, '#F5D547']],
+  polpo: [[0.24, 0.17, 0.24, 0, 0.22, 0, '#E8433F'], [0.2, 0.06, 0.2, 0, 0.32, 0, '#E8433F'], [0.04, 0.045, 0.012, -0.055, 0.22, -0.124, '#F4E3C1'], [0.04, 0.045, 0.012, 0.055, 0.22, -0.124, '#F4E3C1'], [0.02, 0.025, 0.012, -0.05, 0.215, -0.131, '#23201F'], [0.02, 0.025, 0.012, 0.06, 0.215, -0.131, '#23201F'],
+    [0.045, 0.16, 0.045, -0.13, 0.1, -0.09, '#E8433F'], [0.045, 0.16, 0.045, 0.13, 0.1, -0.09, '#E8433F'], [0.045, 0.18, 0.045, -0.13, 0.09, 0.1, '#E8433F'], [0.045, 0.18, 0.045, 0.13, 0.09, 0.1, '#E8433F'], [0.045, 0.2, 0.045, 0, 0.08, 0.135, '#E8433F']],
+  corona: [[0.24, 0.06, 0.02, 0, 0.16, -0.12, '#F5D547'], [0.24, 0.06, 0.02, 0, 0.16, 0.12, '#F5D547'], [0.02, 0.06, 0.24, -0.11, 0.16, 0, '#F5D547'], [0.02, 0.06, 0.24, 0.11, 0.16, 0, '#F5D547'],
+    [0.04, 0.06, 0.02, -0.08, 0.215, -0.12, '#F5D547'], [0.04, 0.08, 0.02, 0, 0.225, -0.12, '#F5D547'], [0.04, 0.06, 0.02, 0.08, 0.215, -0.12, '#F5D547'], [0.04, 0.06, 0.02, 0, 0.215, 0.12, '#F5D547'],
+    [0.04, 0.04, 0.04, 0, 0.275, -0.12, '#E8E1D6'], [0.035, 0.035, 0.035, -0.08, 0.255, -0.12, '#E8E1D6'], [0.035, 0.035, 0.035, 0.08, 0.255, -0.12, '#E8E1D6']],
+  palombaro: [[0.32, 0.34, 0.32, 0, 0.03, 0, '#F2A33A'], [0.2, 0.06, 0.2, 0, 0.225, 0, '#F2A33A'], [0.17, 0.15, 0.012, 0, 0.02, -0.164, '#7FE3E0'], [0.2, 0.025, 0.02, 0, 0.105, -0.165, '#C98A4B'], [0.2, 0.025, 0.02, 0, -0.065, -0.165, '#C98A4B'],
+    [0.025, 0.12, 0.12, -0.17, 0.03, 0, '#7FE3E0'], [0.025, 0.12, 0.12, 0.17, 0.03, 0, '#7FE3E0'], [0.36, 0.05, 0.36, 0, -0.16, 0, '#C98A4B']],
 };
+/** Cappelli senza nodo nel modello: si costruiscono a box e si appendono all'osso della testa (centro testa = origine, come headBoxes). */
+function hatOnHead(id: string): THREE.Mesh | null {
+  const h = HATS[id];
+  if (!h) return null;
+  const m = new THREE.Mesh(mergeBoxes(h.map((b) => ({ s: [b[0] as number, b[1] as number, b[2] as number], at: [b[3] as number, b[4] as number, b[5] as number], c: b[6] as string }))), vertexMat());
+  m.name = 'extra_cappello_' + id; // non «cappello_…»: quelli li accende e spegne setLook per nome
+  m.castShadow = true; m.frustumCulled = false; m.visible = false;
+  return m;
+}
 
 function lookColors(look: Look) {
   const hat = AVATAR.cappelli[look.cappello]?.id ?? 'nessuno';
@@ -156,8 +176,26 @@ async function loadModel(loader: Loader): Promise<ModelRig> {
     m.material = Array.isArray(m.material) ? m.material.map(conv) : conv(m.material);
     m.castShadow = true; m.frustumCulled = false;
   });
+  // cappelli esclusivi (#63): il modello ha solo i 5 di partenza; gli altri a box sull'osso della testa, misurati sul cappello da pescatore
+  // (tesa larga 0,34 m, cima 0,23 m sopra il centro della testa in headBoxes) così stanno alla stessa altezza e scala dei cappelli veri
+  const extra = new Map<string, THREE.Mesh>();
+  const head = scene.getObjectByName('Head'), ref = scene.getObjectByName('cappello_pescatore') as THREE.Mesh | undefined;
+  if (head && ref?.geometry) {
+    scene.updateMatrixWorld(true);
+    // il glb è quantizzato: le posizioni sono normalizzate e la scala vera sta nelle matrici delle ossa → si passa dallo skinning a riposo
+    const pos = ref.geometry.getAttribute('position') as THREE.BufferAttribute, sk = ref as THREE.SkinnedMesh, q = new THREE.Vector3(), bb = new THREE.Box3();
+    for (let i = 0; i < pos.count; i++) { q.fromBufferAttribute(pos, i); if (sk.isSkinnedMesh) sk.applyBoneTransform(i, q); bb.expandByPoint(q.applyMatrix4(ref.matrixWorld)); }
+    const k = (bb.max.x - bb.min.x) / 0.34, c = bb.getCenter(new THREE.Vector3());
+    for (const h of AVATAR.cappelli) {
+      if (scene.getObjectByName('cappello_' + h.id)) continue;
+      const m = hatOnHead(h.id); if (!m) continue;
+      m.position.set(c.x, bb.max.y - 0.23 * k, c.z); m.scale.setScalar(k); m.updateMatrixWorld(true);
+      head.attach(m); extra.set(h.id, m);
+    }
+  }
   const setLook = (look: Look) => {
     const k = lookColors(look);
+    for (const [id, m] of extra) m.visible = id === k.hat;
     for (const m of groups.pelle) m.color.set(k.skin);
     for (const m of groups.capelli) m.color.set(k.hair);
     for (const m of groups.vestito) m.color.set(k.shirt);

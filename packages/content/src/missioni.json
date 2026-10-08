@@ -1,0 +1,13 @@
+{
+  "alGiorno": 3,
+  "tipi": [
+    { "tipo": "legno", "testo": "Raccogli {n} Legno dalla tua isola", "n": [40, 120], "passo": 10, "premio": { "legno": 0, "pietra": 15, "perle": 8 } },
+    { "tipo": "pietra", "testo": "Raccogli {n} Pietra dalla tua isola", "n": [20, 60], "passo": 10, "premio": { "legno": 30, "pietra": 0, "perle": 8 } },
+    { "tipo": "cantiere", "testo": "Avvia un cantiere: costruisci o migliora un edificio", "n": [1, 1], "passo": 1, "premio": { "legno": 0, "pietra": 0, "perle": 10 } },
+    { "tipo": "partite", "testo": "Gioca {n} partite ai minigiochi", "n": [2, 4], "passo": 1, "premio": { "legno": 20, "pietra": 10, "perle": 8 } },
+    { "tipo": "medaglia", "testo": "Vinci una medaglia a un minigioco", "n": [1, 1], "passo": 1, "gruppo": "medaglie", "premio": { "legno": 0, "pietra": 0, "perle": 12 } },
+    { "tipo": "oro", "testo": "Vinci un oro (sì, proprio oro)", "n": [1, 1], "passo": 1, "gruppo": "medaglie", "premio": { "legno": 0, "pietra": 0, "perle": 20 } },
+    { "tipo": "dungeon", "testo": "Torna da una spedizione nel Mondo Sotterraneo", "n": [1, 1], "passo": 1, "premio": { "legno": 0, "pietra": 10, "perle": 15 } },
+    { "tipo": "mercante", "testo": "Compra qualcosa dal Mercante (lui ringrazia)", "n": [1, 1], "passo": 1, "premio": { "legno": 20, "pietra": 0, "perle": 6 } }
+  ]
+}

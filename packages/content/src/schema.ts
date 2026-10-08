@@ -37,6 +37,15 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
   }
   for (const [k, arr] of Object.entries({ pelle: c.avatar.pelle, coloriCapelli: c.avatar.coloriCapelli, vestiti: c.avatar.vestiti }))
     for (const h of arr) if (!HEX.test(h)) errs.push(`avatar.${k}: colore non valido ${h}`);
+  const nomiCap = c.avatar.nomiColoriCapelli;
+  if (nomiCap && nomiCap.length !== c.avatar.coloriCapelli.length) errs.push(`avatar.nomiColoriCapelli: ${nomiCap.length} nomi per ${c.avatar.coloriCapelli.length} colori`);
+  const hatIds = new Set<string>();
+  for (const h of c.avatar.cappelli) {
+    if (hatIds.has(h.id)) errs.push(`cappello duplicato: ${h.id}`);
+    hatIds.add(h.id);
+    if (!(Number.isInteger(h.perle) && h.perle >= 0)) errs.push(`cappello ${h.id}: costo in perle non valido`);
+    if (h.mercante && h.perle <= 0) errs.push(`cappello ${h.id}: esclusivo del Mercante ma gratis`);
+  }
   const decorIds = new Set<string>();
   for (const d of c.decor ?? []) {
     if (decorIds.has(d.id)) errs.push(`decorazione duplicata: ${d.id}`);
