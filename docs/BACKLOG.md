@@ -9,7 +9,7 @@
 - Progetti comuni (ponte, faro del Porto) finanziati insieme.
 - Bot per i minigiochi in tempo reale.
 - Chat testuale (oggi solo emote).
-- Interni degli edifici; meteo. (Il ciclo giorno/notte è entrato: #54.)
+- Interni degli edifici. (Il ciclo giorno/notte è entrato: #54; il meteo: #85.)
 - Commercio di risorse tra giocatori.
 - ~~PWA installabile~~ fatto l'8 ott 2026; notifiche «la Cava è finita» (servono service worker e push).
 - Musica originale (ElevenLabs Music), voci per l'onboarding.

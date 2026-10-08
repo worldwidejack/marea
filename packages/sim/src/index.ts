@@ -28,3 +28,4 @@ export * from './minigames/koi.ts'; // Giardino
 export * from './minigames/arrembaggio.ts'; // Tempesta
 export * from './minigames/lava.ts'; // Vulcano
 export * from './economy/rientro.ts'; // Mentre eri via e libro degli ospiti (#86)
+export * from './meteo.ts'; // Meteo (#85)

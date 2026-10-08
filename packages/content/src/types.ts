@@ -324,3 +324,12 @@ export type KoiCfg = {
   premioExtra?: PremioExtra;
 };
 // fine Giardino
+/** Meteo (#85): stati del tempo, uguale per tutti (deriva dall'orologio come il ciclo giorno/notte). */
+export type MeteoStato = 'sereno' | 'nuvoloso' | 'pioggia' | 'nebbia' | 'vento';
+/** Ogni `cicloMin` minuti (dall'epoca) una sequenza di periodi da `createRng(seed:ciclo)`: stato a sorte per `peso` (mai lo stesso
+ *  due volte di fila), durata tra `durataMin`; il ciclo parte sereno e, se resta meno di `minimoMin`, finisce sereno.
+ *  L'intensità sale e scende in `gradini` passi durante `transizioneS` secondi all'inizio e alla fine di ogni periodo. */
+export type MeteoCfg = {
+  seed: string; cicloMin: number; transizioneS: number; gradini: number; minimoMin: number;
+  stati: Record<MeteoStato, { peso: number; durataMin: [number, number] }>;
+};

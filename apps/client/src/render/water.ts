@@ -28,7 +28,13 @@ const U = {
   cSchiuma: { value: new THREE.Color(WATER_COLORS.schiuma) },
   // notte (#56): 0 = acqua di sempre; la direzione è quella in cui si vede la luna (bassa davanti alla camera)
   uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(-0.66, 0.05, -0.75) }, cLuna: { value: new THREE.Color('#E8E1D6') },
+  // meteo (#85): 0 = acqua di sempre. Vento: onde più mosse e creste bianche; pioggia: cerchi a pixel vicino alla camera
+  uWind: { value: 0 }, uRain: { value: 0 }, uWindOff: { value: new THREE.Vector2() },
 };
+let lastT = -1;
+
+/** Meteo (#85): vento e pioggia 0..1 (0, 0 = acqua di sempre). */
+export function setWaterMeteo(wind: number, rain: number): void { U.uWind.value = wind; U.uRain.value = rain; }
 
 /** Notte (#56): scia della luna e stelle riflesse, `night` 0..1 (0 = acqua di sempre). */
 export function setWaterNight(night: number, moonDir?: readonly [number, number, number]): void {
@@ -40,14 +46,14 @@ export function setWaterColors(c: { abisso: string; profonda: string; acqua: str
 }
 
 const VERT = /* glsl */ `
-uniform float uTime; uniform sampler2D uMask; uniform float uHasMap; uniform vec2 uMaskOrigin; uniform vec2 uMaskSize;
+uniform float uTime; uniform sampler2D uMask; uniform float uHasMap; uniform vec2 uMaskOrigin; uniform vec2 uMaskSize; uniform float uWind;
 varying vec3 vWorld;
 void main() {
   vec3 w = (modelMatrix * vec4(position, 1.0)).xyz; // la griglia si sposta con la camera (a passi interi di cella)
   if (uHasMap > 0.5) {
     vec4 m = textureLod(uMask, (w.xz - uMaskOrigin) / uMaskSize, 0.0);
     float shore = smoothstep(0.02, 0.45, max(m.r, m.b)) * (1.0 - smoothstep(0.55, 0.8, m.r));
-    w.y += shore * 0.07 * sin(uTime * 1.7 + (w.x + w.z) * 0.8) ;
+    w.y += shore * 0.07 * (1.0 + 1.5 * uWind) * sin(uTime * (1.7 + 0.8 * uWind) + (w.x + w.z) * 0.8) ;
   }
   vWorld = w;
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
@@ -58,6 +64,7 @@ uniform float uTime; uniform sampler2D uMask; uniform float uHasMap; uniform vec
 uniform vec2 uMapMin; uniform vec2 uMapMax; uniform sampler2D uPattern;
 uniform vec3 cAbisso; uniform vec3 cProfonda; uniform vec3 cAcqua; uniform vec3 cBassa; uniform vec3 cSchiuma;
 uniform float uNight; uniform vec3 uMoonDir; uniform vec3 cLuna;
+uniform float uWind; uniform float uRain; uniform vec2 uWindOff;
 varying vec3 vWorld;
 const float DIST_MAX = 128.0; // metri codificati in 0..1 nel canale A della maschera
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -75,9 +82,16 @@ void main() {
   float shallow = max(m.g, m.r);
   if (shallow + checker * 0.06 > 0.5) { base = cBassa; streak = cAcqua; }
   // Due strati del motivo che scorrono in direzioni diverse: trattini chiari/scuri a pixel.
-  float a = texture2D(uPattern, p / 7.0 + vec2(uTime * 0.035, uTime * 0.012)).r;
-  float b = texture2D(uPattern, p.yx / 11.0 - vec2(uTime * 0.02, -uTime * 0.027)).g;
+  float a = texture2D(uPattern, p / 7.0 + vec2(uTime * 0.035, uTime * 0.012) + uWindOff * vec2(0.035, 0.012)).r;
+  float b = texture2D(uPattern, p.yx / 11.0 - vec2(uTime * 0.02, -uTime * 0.027) - uWindOff * vec2(0.02, -0.027)).g;
   vec3 c = (a > 0.5 || b > 0.5) ? streak : base;
+  if (uWind > 0.01 && m.r < 0.05) {
+    // vento (#85): creste bianche a trattini di 6×2 pixel che compaiono e spariscono, più fitte col vento più forte
+    float ry = floor(px.y / 2.0); // due righe di pixel: alla camera bassa una riga sola sparirebbe
+    vec2 cell = mod(vec2(floor(px.x / 6.0 + mod(ry, 7.0) * 0.37), ry), 512.0); // numeri piccoli: hash stabile anche in mediump
+    float h = hash(cell * 0.73 + 3.1), ph = fract(uTime * 0.45 + h * 7.0);
+    if (h > 1.0 - 0.08 * uWind && ph < 0.65) c = ph < 0.5 ? cSchiuma : streak;
+  }
   // Schiuma: una riga a pixel che respira lungo la riva (appena oltre lo scalino di sabbia) e attorno a moli e scogli.
   float breath = 0.035 * sin(uTime * 1.3 + (p.x - p.y) * 0.35);
   float n = hash(px + floor(uTime * 3.0));
@@ -85,6 +99,20 @@ void main() {
   float ring = step(0.14 + breath, m.b) * step(m.b, 0.36 + breath);
   float spray = step(0.05, m.r + m.b) * step(m.r + m.b, 0.16 + breath) * step(0.93, n);
   if (uHasMap > 0.5 && (shore * step(0.25, n) + ring * step(0.35, n) + spray) > 0.5) c = cSchiuma;
+  if (uRain > 0.01) {
+    // pioggia (#85): cerchi a pixel che si allargano (celle da 1,25 m, ognuna col suo tempo), solo vicino alla camera
+    vec2 toC = vWorld.xz - cameraPosition.xz;
+    if (dot(toC, toC) < 2500.0) {
+      vec2 cl = floor(p / 1.25);
+      float h0 = hash(cl + 5.3), tt = uTime / 0.9 + h0, gen = floor(tt), ph = fract(tt);
+      if (hash(cl + gen * 1.37) < 0.3 * uRain) {
+        vec2 ctr = (cl + 0.2 + 0.6 * vec2(hash(cl + gen + 0.5), hash(cl - gen + 9.1))) * 1.25;
+        float r = (0.06 + ph * 0.32) * 16.0, d = length((p - ctr) * 16.0);
+        if (ph < 0.12 && d < 0.8) c = cSchiuma;                  // lo schizzo
+        else if (abs(d - r) < 0.55 && ph < 0.7) c = ph < 0.3 ? cSchiuma : streak; // il cerchio
+      }
+    }
+  }
   if (uNight > 0.01) {
     // scia della luna: i punti d'acqua nella direzione della luna (vista dall'alto, ±1,5°) luccicano a pixel, un po' più larga lontano
     vec2 toP = vWorld.xz - cameraPosition.xz;
@@ -210,7 +238,11 @@ export function createWater(o: { size: number; map?: GridMap }): Water {
   follow(o.size / 2, o.size / 2);
   return {
     mesh: group,
-    update: (t) => { U.uTime.value = t % 3600; },
+    update: (t) => {
+      // vento (#85): le onde scorrono più svelte senza salti (lo spostamento in più si accumula); spento resta fermo a zero
+      if (lastT >= 0 && U.uWind.value > 0) { const dt = Math.min(0.1, Math.max(0, t - lastT)); U.uWindOff.value.addScalar(dt * 2.2 * U.uWind.value); if (U.uWindOff.value.x > 3600) U.uWindOff.value.set(0, 0); }
+      lastT = t; U.uTime.value = t % 3600;
+    },
     setMap: (m) => setWaterMap(m),
     follow,
   };

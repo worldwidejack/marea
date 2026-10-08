@@ -37,6 +37,17 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 - **Barca**: il mezzo principale. Sali dal molo (tasto A vicino alla barca), guida arcade (accelerazione, virata, scia), scendi a qualsiasi molo. Anche a piedi sulle isole.
 - **Camera**: dall'alto in diagonale (diorama), segue l'avatar, zoom 0,6-1,6. Stessa vista per costruire.
 - **Ciclo giorno/notte**: sì, dalle Impostazioni (#54), acceso di serie (#59); un giro ogni 24 min, stessa ora per tutti.
+- **Meteo** (#85): sereno, nuvoloso, pioggia, nebbia, vento forte; cambia ogni qualche minuto, **uguale per tutti** (dall'orologio, come il ciclo). Interruttore nelle Impostazioni, acceso di serie. Solo aspetto e suono, niente effetti sul gioco. Numeri in `packages/content/src/meteo.json`:
+
+| Stato | Peso | Durata (min) |
+|---|---|---|
+| sereno | 6 | 5-10 |
+| nuvoloso | 3 | 4-7 |
+| pioggia | 2 | 3-5 |
+| nebbia | 1,5 | 3-5 |
+| vento | 1,5 | 3-5 |
+
+  Ciclo di 40 min che parte sereno (mai due stati uguali di fila; se restano meno di 2,5 min finisce sereno); passaggi in 5 gradini da 8 s (40 s). In un giorno: sereno ~50% del tempo, poi nuvoloso ~20%, pioggia ~13%, nebbia e vento ~9% l'uno.
 
 ## 4. Chi sei: l'avatar
 Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 teste, 1,6 m), pochi poligoni, viso e vestiti dipinti a pixel. Personalizzazione V1: tono della pelle (6), capelli (8 tagli × 6 colori), vestito (6 colori), cappello (12: 3 gratis, 3 a Perle anche dall'editor, 6 **esclusivi del Mercante delle Perle** al Porto; colori dei capelli con nomi da capelli: nero corvino, castano scuro, castano, biondo miele, rosso fuoco, biondo platino). Emote (4) al posto della chat. Animazioni: idle, camminata, corsa, seduto (in barca), remata/timone.

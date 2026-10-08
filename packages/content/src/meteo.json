@@ -1,0 +1,14 @@
+{
+  "seed": "meteo:marea",
+  "cicloMin": 40,
+  "transizioneS": 40,
+  "gradini": 5,
+  "minimoMin": 2.5,
+  "stati": {
+    "sereno":   { "peso": 6, "durataMin": [5, 10] },
+    "nuvoloso": { "peso": 3, "durataMin": [4, 7] },
+    "pioggia":  { "peso": 2, "durataMin": [3, 5] },
+    "nebbia":   { "peso": 1.5, "durataMin": [3, 5] },
+    "vento":    { "peso": 1.5, "durataMin": [3, 5] }
+  }
+}
