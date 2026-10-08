@@ -62,7 +62,7 @@ export default async function (ctx) {
     const st = await ctx.getState(q.page);
     assert(st.arch.slot === 3 && st.arch.place === 'lotto', `slot ${st.arch.slot} place ${st.arch.place}`);
     await hook(q, 'teleport', st.island.dock.x, st.island.dock.z); await waitTicks(q, 10);
-    await q.page.keyboard.down('KeyJ').catch(() => {}); await q.page.keyboard.up('KeyJ').catch(() => {});
+    // (qui una volta si premeva anche J, che non faceva niente: dal #87 apre il Diario e ferma il gioco)
     await q.page.evaluate(() => { const b = document.getElementById('btnA'); b.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 5, pointerType: 'touch', bubbles: true })); b.dispatchEvent(new PointerEvent('pointerup', { pointerId: 5, pointerType: 'touch', bubbles: true })); });
     await waitTicks(q, 10);
     assert((await ctx.getState(q.page)).mode === 'boat', 'dal molo del lotto non si sale in barca');
