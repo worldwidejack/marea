@@ -15,5 +15,22 @@
   "dungeon": { "maxMinuti": 20, "morte": { "bottino": 0, "xp": 1 }, "altare": { "protezione": 3 }, "gruppo": { "max": 4, "vitaPerCompagno": 0.6 } },
   "xp": { "forgia": 15, "alchimia": 12, "alchimiaPerLivello": 0.4, "personaggioPerLivelloSkill": 1 },
   "forziere": [100, 250, 600],
-  "bottega": { "lingotto_bronzo": 12, "lingotto_ferro": 20, "erba_curativa": 3, "fiore_azzurro": 3, "radice_vigore": 4 }
+  "bottega": { "lingotto_bronzo": 12, "lingotto_ferro": 20, "erba_curativa": 3, "fiore_azzurro": 3, "radice_vigore": 4 },
+  "contrabbando": {
+    "vendita": 1.5, "compra": 0.3, "lavoro": 1.25, "pozione": 1.5,
+    "valori": {
+      "risorsa:legno": 0.25,
+      "lingotto_bronzo": 12, "lingotto_ferro": 20, "lingotto_argento": 35, "pepita_oro": 60, "frammento_vetro": 40, "ossa_mostro": 70, "frammento_meteorite": 90,
+      "erba_curativa": 3, "fiore_azzurro": 3, "radice_vigore": 4, "seta_ragno": 4, "zanna_lupo": 4, "fungo_luminoso": 6, "polvere_ossa": 6, "essenza_vuoto": 15,
+      "anello_vita_debole": 60, "anello_magicka_debole": 60, "anello_stamina_debole": 60, "veste_apprendista": 40
+    },
+    "tipi": { "anello": 140, "veste": 120, "libro": 150, "pozione": 20, "unico": 600 },
+    "banco": {
+      "arma": ["katana_bronzo", "nunchaku_bronzo", "ascia_bronzo", "lancia_bronzo", "spadone_bronzo", "martello_bronzo", "arco_bronzo",
+               "katana_ferro", "nunchaku_ferro", "ascia_ferro", "lancia_ferro", "spadone_ferro", "martello_ferro", "arco_ferro"],
+      "armatura": ["armatura_bronzo", "armatura_ferro", "veste_apprendista"],
+      "materiale": ["lingotto_bronzo", "lingotto_ferro", "lingotto_argento"],
+      "ingrediente": ["erba_curativa", "fiore_azzurro", "radice_vigore", "fungo_luminoso", "seta_ragno", "zanna_lupo", "polvere_ossa"]
+    }
+  }
 }

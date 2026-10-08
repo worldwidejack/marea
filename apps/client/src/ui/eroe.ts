@@ -5,7 +5,8 @@ import { PAL } from './style.ts';
 import { topButton } from './topbar.ts';
 import { registerStateProvider } from '../test/testapi.ts';
 
-export type Eroe = { open(): void; close(): void; isOpen(): boolean; openBuilding(kind: BuildingKind): void };
+/** openContrabbando: banco del Contrabbandiere al Porto (game/porto.ts), nello stesso foglio dei pannelli GDR. */
+export type Eroe = { open(): void; close(): void; isOpen(): boolean; openBuilding(kind: BuildingKind): void; openContrabbando(battuta: string): void };
 type Chunk = typeof import('../rpg/index.ts');
 
 let forPanels: Eroe | null = null;
@@ -42,6 +43,7 @@ export function createEroe(o: PanelCtx): Eroe {
     close() { m?.closePanels(); },
     isOpen: () => !!m?.isPanelOpen(),
     openBuilding(kind) { run((c) => c.openBuilding(o, kind)); },
+    openContrabbando(battuta) { run((c) => c.openContrabbando(o, battuta)); },
   };
   // finché il chunk non c'è, uno stato minimo (il chunk lo sostituisce col suo)
   registerStateProvider('eroe', () => { const h = o.getLot()?.hero; return { loaded: false, open: false, view: null, tab: null, livello: h?.livello ?? 1, carico: null, scelte: h?.scelte ?? 0 }; });

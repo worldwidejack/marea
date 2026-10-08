@@ -10,6 +10,7 @@ import type { Bag } from './bag.ts';
 import { caricoMaxOf, carriedOf, modsOf } from './derived.ts';
 import { gainSkillXp, heroOf } from './hero.ts';
 import { hasItem, itemDef } from './items.ts';
+import { inVendita, offertaLosca, prezzoLosco } from './contrabbando.ts';
 import type { EquipSlot, HeroState, ItemDef, RpgAction } from './types.ts';
 
 export { parseRpgAction } from './parse.ts';
@@ -180,6 +181,25 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       break;
     }
     case 'serra': ({ hero: h, forziere, lot } = serra(lot, h)); break;
+    case 'contrabbando': {
+      // al Porto: si compra nello zaino, si vende dallo zaino (quello che hai addosso no)
+      const it = needItem(a.item);
+      if (a.op === 'compra') {
+        if (!inVendita(nowMs, it.id)) throw err('oggetto', 'Oggi non lo vende');
+        const tot = prezzoLosco(it.id) * a.n;
+        if (h.monete < tot) throw err('risorse', `Monete insufficienti: ne servono ${tot}`);
+        if (carriedOf(h) + it.peso * a.n > caricoMaxOf(h) + 1e-9) throw err('peso', 'Zaino troppo pesante');
+        h = { ...h, monete: h.monete - tot, inv: addTo(h.inv, it.id, a.n) };
+      } else {
+        if ((h.inv[it.id] ?? 0) < a.n) throw err('oggetto', `Non hai abbastanza: ${it.nome}`);
+        const eq = Object.entries(h.equip).filter(([s, id]) => s !== 'magia' && id === it.id).length;
+        if ((h.inv[it.id] ?? 0) - a.n < eq) throw err('equip', `Togli prima ${it.nome} dall'equipaggiamento`);
+        const paga = offertaLosca(it.id, a.n);
+        if (paga < 1) throw err('oggetto', 'Non vale niente: non lo prende');
+        h = { ...h, monete: h.monete + paga, inv: removeFrom(h.inv, it.id, a.n) };
+      }
+      break;
+    }
     default: throw err('sconosciuto', 'Azione sconosciuta');
   }
   const out: LotState = { ...lot, version: lot.version + 1, hero: fixEquip(h) };

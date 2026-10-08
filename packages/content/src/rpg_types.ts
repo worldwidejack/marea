@@ -123,4 +123,13 @@ export type RpgBalance = {
   xp: Record<string, number>;
   forziere: number[];
   bottega: Record<string, number>;
+  /** Contrabbandiere del Porto (accanto alla Grotta): ogni giorno un oggetto per categoria di `banco`, venduto a valore × `vendita`;
+   *  compra tutto a valore × `compra` (monete, arrotondato giù sul totale). Valore: `valori[id]`, se no il costo di forgia × `lavoro`
+   *  (materiali a `valori`, il Legno a `valori['risorsa:legno']`), le pozioni dalla ricetta × `pozione`, il resto da `tipi` (`unico` per gli unici). */
+  contrabbando: {
+    vendita: number; compra: number; lavoro: number; pozione: number;
+    valori: Record<string, number>;
+    tipi: Partial<Record<ItemKind | 'unico', number>>;
+    banco: Record<'arma' | 'armatura' | 'materiale' | 'ingrediente', string[]>;
+  };
 };

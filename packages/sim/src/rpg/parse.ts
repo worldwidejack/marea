@@ -28,6 +28,8 @@ export function parseRpgAction(v: unknown): RpgAction | null {
     case 'compra': case 'deposita': case 'preleva': case 'butta':
       return str(o.item) && qty(o.n) ? { t: o.t, item: o.item, n: o.n } : null;
     case 'serra': return { t: 'serra' };
+    case 'contrabbando':
+      return (o.op === 'compra' || o.op === 'vendi') && str(o.item) && qty(o.n) ? { t: 'contrabbando', op: o.op, item: o.item, n: o.n } : null;
     default: return null;
   }
 }

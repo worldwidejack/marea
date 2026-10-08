@@ -163,7 +163,9 @@ export type RpgAction =
   | { t: 'preleva'; item: string; n: number }
   /** Butta via n oggetti dallo zaino: spariscono. */
   | { t: 'butta'; item: string; n: number }
-  | { t: 'serra' };
+  | { t: 'serra' }
+  /** Contrabbandiere del Porto: compra la merce di oggi o gli vendi roba dello zaino (monete). */
+  | { t: 'contrabbando'; op: 'compra' | 'vendi'; item: string; n: number };
 
 /** Spedizione aperta dal server (dentro LotState.dungeon). */
 /** `salvataggio`: input fino all'ultimo altare (encodeDungeon), verificati dal server con POST /api/dungeon/save. Se la spedizione non

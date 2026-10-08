@@ -19,15 +19,19 @@ import { renderBag } from './hero_bag.ts';
 import { renderForge } from './forge.ts';
 import { harvest, renderAlchemy, renderSerra } from './alchemy.ts';
 import { renderChest } from './chest.ts';
+import { renderContrabbando } from './contrabbando.ts';
 import type { UiState, View } from './items_ui.ts';
 
-type ViewId = 'eroe' | BuildingKind;
+type ViewId = 'eroe' | BuildingKind | 'contrabbando';
+const titolo = (v: ViewId): string => (v === 'eroe' ? 'Personaggio' : v === 'contrabbando' ? 'Il Furetto · contrabbando' : building(v).nome);
 const TABS: readonly { id: UiState['tab']; nome: string }[] = [{ id: 'pg', nome: 'Personaggio' }, { id: 'abilita', nome: 'Abilità' }, { id: 'zaino', nome: 'Zaino' }];
 
 let ctx: PanelCtx | null = null, sheet: HTMLElement | null = null, view: ViewId | null = null;
 let busy = false, lastSet: LotState | null = null, drawn: LotState | null = null, raf = 0, resetScroll = false;
 /** Zaino della spedizione in corso (scheda aperta nel dungeon), null sull'isola. */
 let bag: RunBag | null = null;
+/** Battuta del Furetto in cima al suo banco (la sceglie game/porto.ts a ogni apertura). */
+let battuta = '';
 const ui: UiState = { tab: 'pg', skill: null, item: null, mat: 'legno', cat: 'leggere', chest: null, serra: null, focus: null, butta: null };
 
 const curLot = (): LotState | null => ctx?.getLot() ?? lastSet;
@@ -71,8 +75,8 @@ function header(lot: LotState | null): HTMLElement {
   const top = el('div', 'mz-rp-top');
   const head = el('div', 'mz-head');
   const h = bag ? bag.hero() : lot ? heroOf(lot) : null;
-  const title = el('div', 'mz-title', view === 'eroe' || !view ? (bag ? 'Zaino · dungeon' : 'Personaggio') : building(view).nome);
-  const lv = view === 'eroe' ? (h ? `L${h.livello}` : '') : lot && view ? `L${buildingLevel(lot, view)}` : '';
+  const title = el('div', 'mz-title', view === 'eroe' || !view ? (bag ? 'Zaino · dungeon' : 'Personaggio') : titolo(view));
+  const lv = view === 'eroe' ? (h ? `L${h.livello}` : '') : lot && view && view !== 'contrabbando' ? `L${buildingLevel(lot, view)}` : '';
   if (lv) title.append(' ', el('span', 'mz-lvl', lv));
   head.appendChild(title);
   if (h) { const c = el('span', 'mz-rp-coins'); c.append(el('i'), String(h.monete)); c.title = 'Monete'; head.appendChild(c); }
@@ -118,6 +122,7 @@ function render(): void {
     else if (view === 'banco') renderForge(v, body);
     else if (view === 'alchimia') renderAlchemy(v, body);
     else if (view === 'forziere') renderChest(v, body);
+    else if (view === 'contrabbando') renderContrabbando(v, body, battuta);
     else renderSerra(v, body);
   }
   const top = header(lot);
@@ -170,7 +175,7 @@ function show(c: PanelCtx, v: ViewId): void {
   if (view !== v) { resetScroll = true; ui.item = null; ui.chest = null; ui.skill = null; ui.butta = null; if (v !== 'serra') ui.serra = null; }
   const was = view;
   view = v;
-  s.setAttribute('aria-label', v === 'eroe' ? 'Personaggio' : building(v).nome);
+  s.setAttribute('aria-label', titolo(v));
   s.classList.add('on');
   heroBtn()?.classList.toggle('on', v === 'eroe');
   if (!was) addEventListener('keydown', onKey, true);
@@ -194,6 +199,12 @@ export function openBuilding(c: PanelCtx, kind: BuildingKind): void {
   ui.serra = null;
   const lot = curLot();
   if (lot && sheet?.querySelector('[data-act="serra"]:not(:disabled)')) harvest({ ctx: c, lot, hero: heroOf(lot), busy, ui, act, rerender: render, sotto: false });
+}
+/** Banco del Contrabbandiere al Porto (game/porto.ts via ui/eroe.ts). */
+export function openContrabbando(c: PanelCtx, frase: string): void {
+  if (bag) return;
+  battuta = frase;
+  show(c, 'contrabbando');
 }
 export function closePanels(): void {
   if (!view) { bag = null; return; }

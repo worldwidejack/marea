@@ -47,7 +47,7 @@ const ART: Record<ResId, string[]> = {
 
 /** Icone di luoghi e azioni (bussola, guida, cartelli degli slot). */
 export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingresso' | 'lanterna' | 'mete' | 'pesca'
-  | 'mercante' | 'bacheca' | 'parla' // Porto (#63-#65)
+  | 'mercante' | 'bacheca' | 'parla' | 'contrabbando' // Porto (#63-#65), Contrabbandiere
   | 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'lucchetto' // Isole a tema (#68)
   | 'consegne' // Consegne
   | 'ingorgo' // Ingorgo
@@ -68,6 +68,7 @@ const PIX: Record<PixId, string[]> = {
   lanterna: ['...nn...', '.nnnnnn.', 'nRRRRRRn', 'nRYYRRRn', 'nRYYRRRn', 'nRRRRRRn', '.nnnnnn.', '...YY...'], // lanterna di carta del molo del Porto
   mete: ['..YYYY..', '.YnRRnY.', 'YnnRRnnY', 'YnnRRnnY', 'YnnwwnnY', 'YnnwwnnY', '.YnwwnY.', '..YYYY..'], // bussola: ago rosso a nord (menù delle mete)
   pesca: ['........', '..DDD...', '.AAAAA.D', 'AnAAAADD', 'AAAAAADD', '.wwwwA.D', '..DDD...', '........'], // pesce (Pesca dalla barca, #66)
+  contrabbando: ['...cc...', '..crrc..', '.rnnnnr.', 'rnnnnnnr', 'rnnnnnnr', 'rnnnnYYY', '.rnnYOOY', '..rrYYYY'], // sacco scuro e monete d'oro (Contrabbandiere)
   mercante: ['..cccc..', '.c....c.', 'aaaaaaaa', 'abbbbbba', 'abpwwpba', 'abpwwpba', 'abbppbba', '.aaaaaa.'], // sacchetto con le Perle (Mercante del Porto)
   bacheca: ['cccccccc', 'cwwRawwc', 'cwwawwwc', 'cawwRwwc', 'cwwwawwc', 'cccccccc', '.c....c.', '.c....c.'], // bacheca con i foglietti delle missioni
   parla: ['.wwwwww.', 'wwwwwwww', 'wnwnwnww', 'wwwwwwww', '.wwwwww.', '..ww....', '.ww.....', '........'], // fumetto: parla con la gente del Porto

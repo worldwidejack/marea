@@ -18,6 +18,7 @@ import { createIsland } from '../render/island.ts';
 import { LOD_M } from '../render/island_sagoma.ts';
 import { INGRESSI } from './ingressi.ts';
 import { PORTO_AMICI } from '@marea/content/porto_amici.ts';
+import { GENTE } from '@marea/content/porto.ts';
 import { createAvatar } from '../game/avatar.ts';
 import type { Avatar } from '../game/avatar.ts';
 import { createBoat } from '../game/boat.ts';
@@ -105,7 +106,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     libere: [
       ...INGRESSI.flatMap((d) => { const p = arch.places.find((q) => q.island === d.island); return p ? [{ x: (p.origin[0] + d.at[0] + 0.5) * arch.tile, z: (p.origin[1] + d.at[1] + 0.5) * arch.tile, r: 6 }] : []; }),
       // Porto tra amici (#110 #111): niente palme né sassi sul Tabellone dei record e attorno al Faro comune
-      ...[PORTO_AMICI.tabellone.at, PORTO_AMICI.faro.at, PORTO_AMICI.faro.fronte].flatMap((c) => { const p = arch.places.find((q) => q.role === 'porto'); return p ? [{ x: (p.origin[0] + c[0] + 0.5) * arch.tile, z: (p.origin[1] + c[1] + 0.5) * arch.tile, r: 3.5 }] : []; }),
+      // e il banco del Contrabbandiere accanto alla Grotta
+      ...[PORTO_AMICI.tabellone.at, PORTO_AMICI.faro.at, PORTO_AMICI.faro.fronte, GENTE.posti.contrabbando.at, GENTE.posti.contrabbando.fronte].flatMap((c) => { const p = arch.places.find((q) => q.role === 'porto'); return p ? [{ x: (p.origin[0] + c[0] + 0.5) * arch.tile, z: (p.origin[1] + c[1] + 0.5) * arch.tile, r: 3.5 }] : []; }),
     ],
   });
   scene.add(island.group);
