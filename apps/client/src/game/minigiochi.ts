@@ -24,6 +24,7 @@ import { createLabelLayer, flyResources } from '../ui/sheet.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { createPostoPesca } from './pesca.ts';
 import { suona } from '../audio/ponte.ts';
+import { createPostoPerle } from './perle.ts'; // Perle
 
 /** `opzioni` = parametri della partita per il server (es. il mare della pesca); `posto` = molo dove si gioca ('porto', 'lotto:N':
  *  lo riceve il gioco); `aPiedi` = parte solo a piedi (in barca A accelera); `vista` = il cartello si vede solo entro tanti metri;
@@ -214,6 +215,11 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   // la schermata (ui/pesca.ts) si scarica alla prima partita. Non sta in `spots` (niente boa, niente riga nella bussola).
   registraSchermo('pesca', (root) => import('../ui/pesca.ts').then((m) => m.createPesca({ root })));
   const pesca = createPostoPesca({ world: o.world, root: o.root, hud: o.hud, libero: () => !(busy || open || o.world.race.on || schermoAperto()), gioca: (sp) => { void play(sp); } });
+  // Perle: minigioco universale, posto mobile (in barca, ferma, su acqua bassa vicino a una costa, lontano dai moli): bottone TUFFATI e
+  // tasto T in game/perle.ts; la schermata (ui/perle.ts) si scarica alla prima partita. Non sta in `spots` (niente boa né bussola).
+  registraSchermo('perle', (root) => import('../ui/perle.ts').then((m) => m.createPerle({ root })));
+  const perle = createPostoPerle({ world: o.world, root: o.root, hud: o.hud, libero: () => !(busy || open || o.world.race.on || schermoAperto() || near), gioca: (sp) => { void play(sp); } });
+  // fine Perle
 
   registerStateProvider('minigiochi', () => ({ spots, near: near?.id ?? null, busy, open, played: playedN, last }));
   registerTestHook('playSpot', (id) => { const s = spots.find((x) => x.id === String(id ?? 'regata')); if (s) void play(s); return !!s; });
@@ -233,12 +239,14 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       nearWas = near;
       if (near && pressA) void play(near);
       pesca.tick(); // Pesca (#66)
+      perle.tick(); // Perle
     },
     update(t) {
       const show = !!near && !busy && !open && !o.world.race.on && !schermoAperto();
       if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', 'A')); }
       btn.classList.toggle('on', show);
       pesca.update(); // Pesca (#66)
+      perle.update(); // Perle
       for (const g of schermi.values()) g.update?.(t);
       const me = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
       for (const m of marks) {

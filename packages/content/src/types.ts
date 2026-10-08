@@ -101,6 +101,37 @@ export type PescaCfg = {
   mareDiSerie: string;
   mareVicinoM: number;
 };
+// Perle (minigioco universale)
+/** Premio in più di un minigioco rispetto a `balance.solo`, per medaglia (si somma al premio della medaglia). */
+export type PremioExtra = Partial<Record<'oro' | 'argento' | 'bronzo', Partial<Resources>>>;
+/** Caccia alle perle (dalla barca ferma su acqua bassa): vista di profilo del fondale, unità = pixel della schermata. */
+export type PerleCfg = {
+  id: 'perle';
+  nome: string;
+  maxSeconds: number;
+  /** Dove ci si tuffa: barca quasi ferma (m/s) su acqua bassa ',', nessun molo entro moloM metri (lì A fa scendere a terra). */
+  posto: { fermoMs: number; moloM: number };
+  /** La corrente porta il sub verso destra: px per tick. */
+  velocita: number;
+  /** Tieni premuto = `giu` (px/tick²), lascia = `su`; velocità massime e attrito per tick. */
+  fisica: { giu: number; su: number; maxGiu: number; maxSu: number; attrito: number };
+  /** Profondità del fondale (px sotto il pelo dell'acqua) e distanza tra due punti del profilo. */
+  fondale: { min: number; max: number; passo: number };
+  /** Aria: durata sott'acqua, ricarica a galla, quanto ridà una bolla e quanto toglie un colpo (frazioni della barra). */
+  aria: { secondi: number; ricaricaSecondi: number; bolla: number; colpo: number };
+  colpo: { invulnerabileSecondi: number; spinta: number };
+  punti: { bianca: number; conchiglia: number; rosa: number; nera: number };
+  /** L'ostrica della perla rosa si apre e si chiude: la perla si prende solo aperta. */
+  ostrica: { periodoSecondi: number; apertaSecondi: number };
+  /** Moltiplicatore delle meduse per difficoltà 1/2/3. */
+  pericoli: [number, number, number];
+  /** Soglie delle medaglie come frazione dei punti di tutto il fondale. */
+  medaglie: { oro: number; argento: number; bronzo: number };
+  premioExtra?: PremioExtra;
+  autopilota: { orizzonte: number };
+};
+// fine Perle
+
 export type RegataCfg = {
   id: 'regata';
   nome: string;

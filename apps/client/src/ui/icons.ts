@@ -48,7 +48,8 @@ const ART: Record<ResId, string[]> = {
 export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingresso' | 'lanterna' | 'mete' | 'pesca'
   | 'mercante' | 'bacheca' | 'parla' // Porto (#63-#65)
   | 'consegne' // Consegne
-  | 'ingorgo'; // Ingorgo
+  | 'ingorgo' // Ingorgo
+  | 'perle'; // Perle
 const PIX: Record<PixId, string[]> = {
   casa: ['...RR...', '..RRRR..', '.RRRRRR.', 'RRRRRRRR', '.wwwwww.', '.wwccww.', '.wwccww.', '.wwccww.'],
   porto: ['RRRRRRRR', '.RRRRRR.', '..R..R..', 'RRRRRRRR', '..R..R..', '..R..R..', '..R..R..', '.cc..cc.'],
@@ -61,28 +62,31 @@ const PIX: Record<PixId, string[]> = {
   mercante: ['..cccc..', '.c....c.', 'aaaaaaaa', 'abbbbbba', 'abpwwpba', 'abpwwpba', 'abbppbba', '.aaaaaa.'], // sacchetto con le Perle (Mercante del Porto)
   bacheca: ['cccccccc', 'cwwRawwc', 'cwwawwwc', 'cawwRwwc', 'cwwwawwc', 'cccccccc', '.c....c.', '.c....c.'], // bacheca con i foglietti delle missioni
   parla: ['.wwwwww.', 'wwwwwwww', 'wnwnwnww', 'wwwwwwww', '.wwwwww.', '..ww....', '.ww.....', '........'], // fumetto: parla con la gente del Porto
+  perle: ['..pppp..', '.pwwppq.', '.pwpppq.', '.ppppqq.', '..qqqq..', 'rr....rr', 'rqqrrqqr', '.rrrrrr.'], // perla sulla conchiglia aperta (Perle)
   martello: ['.qqqqqq.', 'rqqqqqqr', '.rrbbrr.', '...ba...', '...ba...', '...ba...', '...ba...', '...cc...'],
   consegne: ['.nnnnnn.', 'nsssRssn', 'nsssRssn', 'nRRRRRRn', 'nsssRssn', 'nsssRssn', 'nsssRssn', '.nnnnnn.'], // pacco del corriere, spago rosso
   ingorgo: ['qqq.ppp.', '........', 'RRRRR.Y.', 'RwwRRRYY', 'RRRRR.Y.', '........', '.ppp.qqq', '........'], // barca rossa che esce dall'ingorgo
 };
 
 const cache = new Map<string, string>();
-function svg(id: ResId | PixId): string {
-  let s = cache.get(id);
+/** `pix` = icona di luogo (PIX): serve perché «perle» è sia una risorsa (la perla rosa) sia un luogo (l'ostrica del tuffo). */
+function svg(id: ResId | PixId, pix = false): string {
+  const key = (pix ? 'pix:' : 'res:') + id;
+  let s = cache.get(key);
   if (s) return s;
-  const rows = (ART as Record<string, string[]>)[id] ?? PIX[id as PixId];
+  const rows = pix ? PIX[id as PixId] : (ART as Record<string, string[]>)[id] ?? PIX[id as PixId];
   let rects = '';
   rows.forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = COL[row[x] ?? '.']; if (c) rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`; } });
   s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" shape-rendering="crispEdges">${rects}</svg>`;
-  cache.set(id, s);
+  cache.set(key, s);
   return s;
 }
 
-function iconSpan(id: ResId | PixId, px: number): HTMLSpanElement {
+function iconSpan(id: ResId | PixId, px: number, pix = false): HTMLSpanElement {
   const e = document.createElement('span');
   e.className = 'mz-ico';
   e.style.width = e.style.height = px + 'px';
-  e.innerHTML = svg(id); // SVG statico generato qui, nessun dato esterno
+  e.innerHTML = svg(id, pix); // SVG statico generato qui, nessun dato esterno
   const s = e.firstElementChild as SVGElement | null;
   if (s) { s.setAttribute('width', String(px)); s.setAttribute('height', String(px)); s.style.display = 'block'; }
   return e;
@@ -95,7 +99,7 @@ export function resIcon(id: ResId, px = 16): HTMLSpanElement {
 }
 /** Icona di luogo/azione come <span> (vedi PixId). */
 export function pixIcon(id: PixId, px = 16): HTMLSpanElement {
-  const e = iconSpan(id, px);
+  const e = iconSpan(id, px, true);
   e.setAttribute('aria-hidden', 'true');
   return e;
 }
