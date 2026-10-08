@@ -169,4 +169,21 @@ export default async function (ctx) {
     await ctx.shot(pc, 'pc_ira');
     ctx.noErrors(d, 'PC');
   });
+  await ctx.test('PC: ambientazione — rotonda col tamburo e le croci, cimitero coi cipressi, borgo, spiaggia col mare e la nave', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    const sc = (await ctx.getState(pc)).templari.scena;
+    ctx.log('arredi', JSON.stringify(sc));
+    assert(sc.croci >= 8 && sc.archi >= 4 && sc.cipressi >= 20 && sc.usci >= 4, `arredi mancanti: ${JSON.stringify(sc)}`);
+    await pc.evaluate(() => window.__game.test.setZoom(1.3));
+    await prova({ pulisci: true, vita: 1e6, porte: ['cimitero', 'taverna', 'spiaggia_taverna'] });
+    const posti = [['rotonda', 47.5, 49.5], ['cimitero', 62.5, 14.5], ['borgo', 20.5, 47.5], ['taverna', 16.5, 77.5], ['accampamento', 60.5, 70.5]];
+    for (const [nome, x, z] of posti) {
+      await prova({ pulisci: true, dove: { x, z } });
+      await pc.waitForTimeout(900);
+      await ctx.shot(pc, 'pc_luogo_' + nome);
+      const perf = await ctx.getPerf(pc);
+      assert(perf.drawCalls <= 100, `draw call ${nome} ${perf.drawCalls} > 100`);
+    }
+    ctx.noErrors(d, 'PC');
+  });
 }
