@@ -62,6 +62,10 @@ export type Api = {
   build(building: string, cell: Cell): Promise<LotState>;
   upgrade(building: string): Promise<LotState>;
   decor(decor: string, cell: Cell, rot: number): Promise<LotState>;
+  /** Decorazioni libere (#108): sposta in una cella, ruota di 90°, rivendi (metà delle Perle). */
+  decorMove(id: string, cell: Cell): Promise<LotState>;
+  decorRotate(id: string): Promise<LotState>;
+  decorSell(id: string): Promise<LotState>;
   /** Tutte le persone dell'arcipelago (me compreso). */
   persone(): Promise<Persona[]>;
   /** Le mie sfide: in gioco (mandate e ricevute) e chiuse degli ultimi 7 giorni, le più recenti prima. */
@@ -214,6 +218,9 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     build: (building, cell) => post('/api/lot/build', { building, cell }),
     upgrade: (building) => post('/api/lot/upgrade', { building }),
     decor: (decor, cell, rot) => post('/api/lot/decor', { decor, cell, rot }),
+    decorMove: (id, cell) => post('/api/lot/decor/move', { id, cell }),
+    decorRotate: (id) => post('/api/lot/decor/rotate', { id }),
+    decorSell: (id) => post('/api/lot/decor/sell', { id }),
     async persone() {
       const d = await call('GET', '/api/persone');
       const list = Array.isArray(d) ? d : isObj(d) && Array.isArray(d['persone']) ? d['persone'] : [];

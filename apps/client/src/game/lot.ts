@@ -2,11 +2,13 @@
 // Sugli slot liberi dell'isola propria un cartello «Costruisci» (tocco = pannello); lo slot suggerito dalla guida apre già la conferma.
 // Stato e ora dal server (api.serverNow() solo per animare i timer e i depositi che crescono); rilettura dopo ogni azione e ogni 30 s
 // mentre sei sull'isola. Celle di LotState locali al template: mondo = (origin + cell + 0,5) × tile.
+// Decorazioni libere (#108): sulla tua isola tocco (o A vicino) su una decorazione = scheda SPOSTA / RUOTA / RIVENDI; SPOSTA mette una
+// sagoma sul lotto (verde se la cella va bene, rossa se no: stesse regole del server, decorCellError di @marea/sim).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ISLANDS, building as buildingDef } from '@marea/content';
-import { advance, bufferParams, parseIsland, storageCap } from '@marea/sim';
-import type { GridMap, LotState, PlacedBuilding, Resources } from '@marea/sim';
+import { advance, bufferParams, decorCellError, decorRimborso, parseIsland, storageCap } from '@marea/sim';
+import type { GridMap, LotState, PlacedBuilding, PlacedDecor, Resources } from '@marea/sim';
 import type { Loader } from '../render/loader.ts';
 import type { Hud } from '../ui/hud.ts';
 import { ApiError, MSG_401, mancaText } from '../net/api.ts';
@@ -15,8 +17,8 @@ import { PAL, el } from '../ui/style.ts';
 import { pixIcon, resIcon } from '../ui/icons.ts';
 import { createLabelLayer, createSheet, flyResources, fmtClock, tickTimers, timerSpan } from '../ui/sheet.ts';
 import type { Label, LabelLayer, Sheet } from '../ui/sheet.ts';
-import { buildPanel, buildable, buildingPanel } from '../ui/lotpanels.ts';
-import type { PanelCtx } from '../ui/lotpanels.ts';
+import { buildPanel, buildable, buildingPanel, decorNome, decorPanel, spostaPanel } from '../ui/lotpanels.ts';
+import type { DecorCtx, PanelCtx } from '../ui/lotpanels.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { suona } from '../audio/ponte.ts';
 
@@ -46,9 +48,16 @@ export type LotView = {
   /** Ogni frame. `focus` = posizione dell'avatar: la rilettura ogni 30 s gira solo quando è sull'isola (senza focus: sempre). */
   update(dt: number, focus?: { x: number; z: number }): void;
   tap(target: string | [number, number]): boolean; contains(x: number, z: number): boolean; dispose(): void;
+  /**
+   * Un tick (60 Hz), solo sulla tua isola: vicino a una decorazione (entro DECOR_NEAR m da `focus`, a piedi) il fronte di salita di A apre
+   * la sua scheda; in SPOSTA, A conferma. `focus` null = non a piedi (o pronto a salire in barca). true = A è della decorazione.
+   */
+  tick(a: boolean, focus: { x: number; z: number } | null): boolean;
 };
 
 const POLL_S = 30, FACING = Math.PI; // i modelli guardano −Z: li giriamo verso la camera (sud-est)
+const DECOR_NEAR = 1.7; // m: da qui A apre la scheda della decorazione più vicina (#108)
+const SAGOMA_OK = '#B6FF3D', SAGOMA_NO = '#FF5C3D'; // verde neon / rosso neon (ART_BIBLE §2)
 const COLORS: Record<string, [string, string]> = {
   segheria: [PAL.legno, PAL.legnoScuro], cava: [PAL.pietra, PAL.roccia], magazzino: [PAL.legnoChiaro, PAL.rosso],
   casa: [PAL.sabbiaChiara, PAL.rosso], faro: [PAL.pietraChiara, PAL.rosso], tavolo: [PAL.legno, PAL.arancio],
@@ -76,8 +85,7 @@ function placeholder(kind: string): THREE.Object3D {
   return g;
 }
 /** Cornice quadrata a terra (slot libero, cella scelta). */
-function frameGeo(): THREE.BufferGeometry {
-  const s = 1.7, t = 0.14, h = 0.05;
+function frameGeo(s = 1.7, t = 0.14, h = 0.05): THREE.BufferGeometry {
   return mergeGeometries([box(s, h, t, 0, 0, -s / 2 + t / 2), box(s, h, t, 0, 0, s / 2 - t / 2), box(t, h, s, -s / 2 + t / 2, 0, 0), box(t, h, s, s / 2 - t / 2, 0, 0)]);
 }
 
@@ -98,14 +106,20 @@ export function createLotView(o: LotViewOptions): LotView {
   const fg = frameGeo();
   const slotsMesh = new THREE.InstancedMesh(fg, mat(PAL.arancio), Math.max(1, tpl.lots.length)); slotsMesh.count = 0; slotsMesh.name = 'lot_slot'; group.add(slotsMesh);
   const pick = new THREE.Mesh(fg, mat(PAL.giallo)); pick.visible = false; pick.name = 'lot_scelta'; group.add(pick);
+  // sagoma di SPOSTA (#108): cornice spessa verde/rossa sulla cella scelta, la decorazione ci si sposta sopra finché non confermi o annulli
+  const sagoma = new THREE.Mesh(frameGeo(1.9, 0.24, 0.08), mat(SAGOMA_OK)); sagoma.visible = false; sagoma.name = 'lot_sagoma'; group.add(sagoma);
   const drawn = new Map<string, Drawn>();
   // decorazioni (#63, comprate dal Mercante): il codice dei segnaposto si scarica solo quando un'isola ne ha una
-  const decorDrawn = new Map<string, { holder: THREE.Group; model: string }>();
+  const decorDrawn = new Map<string, { holder: THREE.Group; model: string; key: string }>();
   let decorMod: Promise<typeof import('../render/decor.ts')> | null = null;
   const slotLabels = new Map<string, { cell: [number, number]; label: Label }>(); // cartelli «Costruisci» sugli slot liberi
   let lot: LotState | null = o.initial ?? null, view: LotState | null = lot;
   let busy = false, poll = 0, slow = 0, endsSeen = 0, inflight: Promise<void> | null = null, lastError: string | null = null, refreshes = 0, disposed = false;
-  let panel: { kind: 'edificio'; id: string } | { kind: 'costruisci'; cell: [number, number]; chosen: string | null } | null = null;
+  let panel: { kind: 'edificio'; id: string } | { kind: 'costruisci'; cell: [number, number]; chosen: string | null }
+    | { kind: 'decor'; id: string; vendi: boolean } | { kind: 'sposta'; id: string; cell: [number, number] } | null = null;
+  let nearDecor: string | null = null, aWas = false;
+  const nearLabel = ro ? null : S.labels.add(() => { if (nearDecor) openDecor(nearDecor); });
+  nearLabel?.set('bubble', [pixIcon('martello', 16), el('span', '', 'MODIFICA · A')], 'decor'); nearLabel?.el.classList.add('decor');
   let holdRes: LotState['resources'] | null = null;
 
   const now = () => o.api.serverNow();
@@ -149,10 +163,10 @@ export function createLotView(o: LotViewOptions): LotView {
     const seenD = new Set<string>();
     for (const dc of lot.decor) {
       seenD.add(dc.id);
-      if (decorDrawn.has(dc.id)) continue;
-      const holder = new THREE.Group(); holder.name = 'decor_' + dc.id;
-      const p = world(dc.cell); holder.position.set(p.x, p.y, p.z); holder.rotation.y = FACING + (dc.rot * Math.PI) / 2; group.add(holder);
-      const rec = { holder, model: '' }; decorDrawn.set(dc.id, rec);
+      const had = decorDrawn.get(dc.id);
+      if (had) { posaDecor(dc, had); continue; }
+      const holder = new THREE.Group(); holder.name = 'decor_' + dc.id; holder.userData['decorId'] = dc.id; group.add(holder);
+      const rec = { holder, model: '', key: '' }; decorDrawn.set(dc.id, rec); posaDecor(dc, rec);
       decorMod ??= import('../render/decor.ts');
       void decorMod.then((m) => m.decorObject(dc.decor, o.loader)).then(({ obj, model }) => { if (!disposed && decorDrawn.get(dc.id) === rec) { holder.add(obj); rec.model = model; } }).catch(() => { /* senza decorazione si gioca lo stesso */ });
     }
@@ -170,6 +184,29 @@ export function createLotView(o: LotViewOptions): LotView {
       label.el.classList.add('slot'); label.el.dataset['cell'] = k;
       slotLabels.set(k, { cell: c, label });
     }
+  }
+
+  /** Posa (o riposa) una decorazione: nella cella della sagoma se la stai spostando, altrimenti nella sua; rotazione a quarti di giro. */
+  function posaDecor(dc: PlacedDecor, rec: { holder: THREE.Group; key: string }): void {
+    const cell = panel?.kind === 'sposta' && panel.id === dc.id ? panel.cell : dc.cell, rot = dc.rot ?? 0, key = `${cell.join(',')}:${rot}`;
+    if (rec.key === key) return;
+    rec.key = key;
+    const p = world(cell); rec.holder.position.set(p.x, p.y, p.z); rec.holder.rotation.y = FACING + (rot * Math.PI) / 2;
+  }
+  const decorOf = (id: string): PlacedDecor | null => lot?.decor.find((d) => d.id === id) ?? null;
+  /** Perché la decorazione `id` non può andare in `cell` (null = va bene): stesse regole del server, senza contare lei stessa. */
+  function sagomaProblema(id: string, cell: [number, number]): string | null {
+    if (!lot) return 'Isola non pronta';
+    const err = decorCellError({ ...lot, decor: lot.decor.filter((d) => d.id !== id) }, cell, tpl);
+    return err ? (err.code === 'cella' ? 'Cella occupata' : err.msg) : null;
+  }
+  function syncSagoma(): void {
+    const d = panel?.kind === 'sposta' ? decorOf(panel.id) : null;
+    if (!d || panel?.kind !== 'sposta') { sagoma.visible = false; return; }
+    const ferma = panel.cell[0] === d.cell[0] && panel.cell[1] === d.cell[1], bad = !ferma && !!sagomaProblema(d.id, panel.cell);
+    const p = world(panel.cell); sagoma.position.set(p.x, p.y + 0.03, p.z); sagoma.visible = true;
+    sagoma.material = mat(bad ? SAGOMA_NO : SAGOMA_OK);
+    const rec = decorDrawn.get(d.id); if (rec) posaDecor(d, rec);
   }
 
   // ---- stato dal server ----
@@ -221,14 +258,64 @@ export function createLotView(o: LotViewOptions): LotView {
     o.hud.toast(`Cantiere avviato: ${buildingDef(building).nome} tra ${fmtClock(next.construction.endsMs - now())}`, 2600);
   });
 
+  // decorazioni libere (#108): ogni azione la decide il server, la sagoma è solo un'anteprima
+  const ruota = (id: string) => act(() => o.api.decorRotate(id), () => suona('martello'));
+  const vendi = (id: string) => {
+    const d = decorOf(id), rec = decorDrawn.get(id); if (!d) return Promise.resolve(false);
+    const pos = rec ? rec.holder.position.clone() : null;
+    return act(() => o.api.decorSell(id), (prev, next) => {
+      closePanel();
+      const gained = next.resources.perle - prev.resources.perle;
+      o.hud.toast(`${decorNome(d.decor)} rivenduta: +${gained} Perle`, 2400);
+      if (gained > 0) {
+        const at = pos ? screenOf(pos.x, pos.y + 1, pos.z) : null;
+        holdRes = prev.resources; refreshUi(true);
+        flyResources(root, at ?? { x: innerWidth / 2, y: innerHeight / 2 }, o.hud.resAnchor?.('perle') ?? null, 'perle', gained, () => { holdRes = null; o.hud.bump?.('perle'); refreshUi(true); });
+      }
+    });
+  };
+  const conferma = () => {
+    if (panel?.kind !== 'sposta') return Promise.resolve(false);
+    const { id, cell } = panel, d = decorOf(id);
+    if (!d || (cell[0] === d.cell[0] && cell[1] === d.cell[1]) || sagomaProblema(id, cell)) return Promise.resolve(false);
+    return act(() => o.api.decorMove(id, cell), () => { closePanel(); suona('martello'); o.hud.toast(`${decorNome(d.decor)}: spostata`, 1800); });
+  };
+
   // ---- pannelli ----
-  function closePanel(): void { panel = null; pick.visible = false; if (S.owner === me) S.sheet.close(); }
+  function closePanel(): void {
+    const era = panel?.kind === 'sposta' ? panel.id : null;
+    panel = null; pick.visible = false; sagoma.visible = false;
+    if (era) { const d = decorOf(era), rec = decorDrawn.get(era); if (d && rec) posaDecor(d, rec); } // ANNULLA: torna com'era
+    if (S.owner === me) S.sheet.close();
+  }
+  function openDecor(id: string): boolean {
+    if (ro || !decorOf(id)) return false;
+    if (panel?.kind === 'sposta') closePanel();
+    panel = { kind: 'decor', id, vendi: false }; pick.visible = false; S.owner = me; renderPanel(); return true;
+  }
+  /** SPOSTA: la sagoma parte dalla cella di adesso; un tocco su una cella la sposta lì. */
+  function startSposta(id: string): void {
+    const d = decorOf(id); if (!d || ro) return;
+    panel = { kind: 'sposta', id, cell: [d.cell[0], d.cell[1]] }; S.owner = me; syncSagoma(); renderPanel();
+  }
+  function scegliCella(cell: [number, number]): void {
+    if (panel?.kind !== 'sposta') return;
+    panel.cell = cell; syncSagoma(); renderPanel();
+  }
+  const dctx = (id: string): DecorCtx => ({
+    busy,
+    onSposta: () => startSposta(id), onRuota: () => void ruota(id), onVendi: () => void vendi(id),
+    onChiediVendi: (si) => { if (panel?.kind === 'decor') { panel.vendi = si; renderPanel(); } },
+    onConferma: () => void conferma(), onAnnulla: () => { if (panel?.kind === 'sposta') { const back = panel.id; closePanel(); openDecor(back); } else closePanel(); }, onClose: closePanel,
+  });
   function openBuilding(id: string): boolean {
     if (!lot?.buildings.some((b) => b.id === id)) return false;
+    if (panel?.kind === 'sposta') closePanel();
     panel = { kind: 'edificio', id }; pick.visible = false; S.owner = me; renderPanel(); return true;
   }
   function openBuild(cell: [number, number]): boolean {
     if (ro || !lot || !isFree(cell) || !tpl.lots.some((c) => c.cx === cell[0] && c.cz === cell[1])) return false;
+    if (panel?.kind === 'sposta') closePanel();
     const h = o.hint?.(), sug = h && h.cell[0] === cell[0] && h.cell[1] === cell[1] && buildable(lot).some((d) => d.id === h.building) ? h.building : null;
     panel = { kind: 'costruisci', cell, chosen: sug }; S.owner = me;
     const p = world(cell); pick.position.set(p.x, p.y + 0.04, p.z); pick.visible = true;
@@ -245,6 +332,11 @@ export function createLotView(o: LotViewOptions): LotView {
       const id = panel.id, b = view.buildings.find((x) => x.id === id);
       if (!b) { closePanel(); return; }
       const p = buildingPanel(ctx(), b); S.sheet.open('edificio:' + b.id, p.body, p.sig);
+    } else if (panel.kind === 'decor' || panel.kind === 'sposta') {
+      const d = decorOf(panel.id);
+      if (!d) { closePanel(); return; }
+      const p = panel.kind === 'decor' ? decorPanel(dctx(d.id), d, panel.vendi) : spostaPanel(dctx(d.id), d, panel.cell, sagomaProblema(d.id, panel.cell));
+      S.sheet.open(`${panel.kind}:${d.id}:${panel.kind === 'sposta' ? panel.cell.join(',') : panel.vendi}`, p.body, p.sig);
     } else {
       if (!isFree(panel.cell)) { closePanel(); return; }
       const p = buildPanel(ctx(), panel.cell, panel.chosen); S.sheet.open(`costruisci:${panel.cell.join(',')}:${panel.chosen ?? ''}`, p.body, p.sig);
@@ -286,6 +378,10 @@ export function createLotView(o: LotViewOptions): LotView {
       const p = has ? screenOf(d.holder.position.x, d.holder.position.y + d.height + 0.3, d.holder.position.z) : null;
       d.label.place(p?.x ?? 0, p?.y ?? 0, !!p?.on);
     }
+    if (nearLabel) {
+      const rec = nearDecor && !panel ? decorDrawn.get(nearDecor) : null, p = rec ? screenOf(rec.holder.position.x, rec.holder.position.y + 1.9, rec.holder.position.z) : null;
+      nearLabel.place(p?.x ?? 0, p?.y ?? 0, !!p?.on);
+    }
     const h = o.hint?.(), busyNow = !!lot?.construction && lot.construction.endsMs > t;
     for (const sl of slotLabels.values()) {
       const p = world(sl.cell), sp = !busyNow || panel ? screenOf(p.x, p.y + 0.9, p.z) : null; // col cantiere occupato i cartelli tacciono
@@ -302,14 +398,23 @@ export function createLotView(o: LotViewOptions): LotView {
     const r = o.canvas.getBoundingClientRect();
     ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, o.camera);
-    for (const h of ray.intersectObjects([...drawn.values()].map((d) => d.holder), true)) {
+    plane.constant = -gy((ox + tpl.w / 2) * T, (oz + tpl.h / 2) * T);
+    // SPOSTA (#108): il tocco sceglie la cella della sagoma (sul piano del lotto), niente altri pannelli
+    if (panel?.kind === 'sposta') {
+      if (ray.ray.intersectPlane(plane, hit)) scegliCella([Math.floor(hit.x / T) - ox, Math.floor(hit.z / T) - oz]);
+      return true;
+    }
+    const decorHolders = ro ? [] : [...decorDrawn.values()].map((d) => d.holder);
+    for (const h of ray.intersectObjects([...[...drawn.values()].map((d) => d.holder), ...decorHolders], true)) {
       let n: THREE.Object3D | null = h.object;
-      while (n && !n.userData['lotId']) n = n.parent;
+      while (n && !n.userData['lotId'] && !n.userData['decorId']) n = n.parent;
+      if (n?.userData['decorId']) return openDecor(String(n.userData['decorId']));
       if (n) return openBuilding(String(n.userData['lotId']));
     }
-    plane.constant = -gy((ox + tpl.w / 2) * T, (oz + tpl.h / 2) * T);
     if (ray.ray.intersectPlane(plane, hit)) {
       const cell: [number, number] = [Math.floor(hit.x / T) - ox, Math.floor(hit.z / T) - oz];
+      const dc = ro ? null : lot.decor.find((x) => x.cell[0] === cell[0] && x.cell[1] === cell[1]);
+      if (dc) return openDecor(dc.id);
       const b = lot.buildings.find((x) => x.cell[0] === cell[0] && x.cell[1] === cell[1] && x.building !== 'molo');
       if (b) return openBuilding(b.id);
       if (tpl.at(cell[0], cell[1]) === 'L' && openBuild(cell)) return true;
@@ -338,6 +443,7 @@ export function createLotView(o: LotViewOptions): LotView {
   const tap = (target: string | [number, number]): boolean => {
     if (Array.isArray(target)) { const c: [number, number] = [Number(target[0]), Number(target[1])]; const b = lot?.buildings.find((x) => x.cell[0] === c[0] && x.cell[1] === c[1]); return b ? openBuilding(b.id) : openBuild(c); }
     const b = lot?.buildings.find((x) => x.id === target) ?? lot?.buildings.find((x) => x.building === target);
+    if (!b && decorOf(target)) return openDecor(target);
     return b ? openBuilding(b.id) : false;
   };
 
@@ -353,7 +459,12 @@ export function createLotView(o: LotViewOptions): LotView {
       freeSlots: ro ? [] : freeSlots(),
       panel: S.owner === me && panel ? { ...panel } : null,
       labels: [...drawn.entries()].map(([id, d]) => ({ id, text: d.label.el.textContent ?? '', cls: d.label.el.className })),
-      decor: (lot?.decor ?? []).map((d) => ({ id: d.id, decor: d.decor, cell: d.cell, model: decorDrawn.get(d.id)?.model ?? null })),
+      decor: (lot?.decor ?? []).map((d) => {
+        const h = decorDrawn.get(d.id)?.holder;
+        return { id: d.id, decor: d.decor, cell: d.cell, rot: d.rot ?? 0, model: decorDrawn.get(d.id)?.model ?? null, at: h ? { x: h.position.x, z: h.position.z } : null };
+      }),
+      nearDecor,
+      sagoma: panel?.kind === 'sposta' ? { id: panel.id, cell: panel.cell, visible: sagoma.visible, color: '#' + (sagoma.material as THREE.MeshLambertMaterial).color.getHexString().toUpperCase(), problema: sagomaProblema(panel.id, panel.cell) } : null,
       slotSigns: [...slotLabels.values()].map((sl) => ({ cell: sl.cell, hint: sl.label.el.classList.contains('hint') })),
     };
   });
@@ -366,6 +477,9 @@ export function createLotView(o: LotViewOptions): LotView {
     const p = world(c), d = b ? drawn.get(b.id) : null;
     return screenOf(p.x, p.y + (d ? d.height * 0.4 : 0), p.z);
   });
+  /** Decorazioni (#108): posizione a schermo di una decorazione (per toccarla davvero) e rimborso previsto. */
+  registerTestHook('lotDecorScreen' + sfx, (id) => { const rec = decorDrawn.get(String(id)); return rec ? screenOf(rec.holder.position.x, rec.holder.position.y + 0.5, rec.holder.position.z) : null; });
+  registerTestHook('lotDecorRimborso', (decor) => decorRimborso(String(decor)));
   /** Azione diretta senza i controlli della UI (per vedere gli errori del server). */
   registerTestHook('lotAct' + sfx, async (kind, a, b) => {
     const ok = kind === 'collect' ? await collect(String(a)) : kind === 'upgrade' ? await upgrade(String(a)) : await build(String(a), b as [number, number]);
@@ -376,6 +490,19 @@ export function createLotView(o: LotViewOptions): LotView {
   return {
     readonly: ro, group, ready,
     state: () => lot, refresh, tap, contains, set: (l: LotState) => { if (!disposed) setLot(l); },
+    tick(a, focus) {
+      const pressA = a && !aWas; aWas = a;
+      if (ro || disposed || !lot) return false;
+      if (panel?.kind === 'sposta' && S.owner === me) { if (pressA) void conferma(); return true; }
+      if (panel && S.owner === me) { nearDecor = null; return panel.kind === 'decor'; }
+      nearDecor = null;
+      if (focus && !busy && !document.querySelector('#mzSheet.on')) {
+        let bd = DECOR_NEAR;
+        for (const [id, rec] of decorDrawn) { const d = Math.hypot(rec.holder.position.x - focus.x, rec.holder.position.z - focus.z); if (d < bd) { bd = d; nearDecor = id; } }
+      }
+      if (nearDecor && pressA) openDecor(nearDecor);
+      return !!nearDecor;
+    },
     async collectAll() {
       const r0 = lot?.resources ?? { legno: 0, pietra: 0, perle: 0 };
       for (const b of view?.buildings ?? []) if (b.level >= 1 && b.buffer >= 1 && buildingDef(b.building).produces) await collect(b.id);
@@ -389,6 +516,7 @@ export function createLotView(o: LotViewOptions): LotView {
       if (active && !document.hidden) { poll += dt; if (poll >= POLL_S) void refresh(); }
       const c = lot?.construction;
       if (c && now() >= c.endsMs + 300 && endsSeen !== c.endsMs) { endsSeen = c.endsMs; void refresh(); }
+      if (panel && S.owner !== me) closePanel(); // il pannello condiviso l'ha preso un'altra isola: la sagoma sparisce, la decorazione torna a posto
       if (slow >= 0.25) refreshUi();
       if (pick.visible) pick.scale.setScalar(1 + 0.06 * Math.sin(performance.now() / 180));
       placeLabels();
@@ -396,6 +524,7 @@ export function createLotView(o: LotViewOptions): LotView {
     dispose() {
       disposed = true; unState(); closePanel();
       for (const d of drawn.values()) d.label.remove();
+      nearLabel?.remove();
       for (const sl of slotLabels.values()) sl.label.remove();
       slotLabels.clear();
       drawn.clear(); o.scene.remove(group);

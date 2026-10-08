@@ -14,6 +14,7 @@
     },
     "premiateAlGiorno": 10
   },
+  "decor": { "rimborso": 0.5 },
   "wager": { "min": 10, "colpoDiCoda": { "sogliaRisorse": 0.5, "moltiplicatore": 1.5 }, "scadenzaOre": 24, "costoExtraPerle": 1 },
   "avatar": { "camminata": 3.0, "corsa": 5.0, "sogliaCorsa": 0.8, "raggio": 0.35 },
   "barca": { "accel": 6.0, "maxSpeed": 9.0, "virata": 1.6, "attrito": 0.6, "rimbalzo": -0.3, "raggioImbarco": 3.0, "raggio": 0.8 }
