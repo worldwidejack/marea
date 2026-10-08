@@ -125,6 +125,14 @@ Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, gioca
 
 `PlacedDecor.rot` diventa facoltativo (assente = 0: i lotti salvati restano validi; `rot` 0 non si scrive più). Le isole degli altri restano in sola lettura (il DO è quello della persona del token). Nessuna migrazione, `PROTOCOL_VERSION` resta 1.
 
+### Aggiunte La tua barca (#107, 8 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/barca` | `{ scafo, vela, nome? }` → `{ ok, barca }`: colori = id di `avatar.json` `barca.colori` (`vela` anche `'nessuna'`), nome ripulito dal server (lettere senza accenti, cifre, spazio, `' . ! ? -`, max `barca.nomeMax` = 14). 400 se un colore non esiste o è esclusivo e non è in `lotto.posseduti`. Il Worker la scrive nel look in D1 (`LookSalvato.barca`; la barca di serie non si scrive) e avvisa la Zone come `POST /api/look` — **nuovo** |
+| `POST /api/barca/colore` | `{ id }` → `LotState`: compra un colore esclusivo (`mercante: true`), una volta; in `posseduti` come `"barca:<id>"`. 400 sconosciuto, 409 `{ error, manca }` senza Perle, 409 se è gratis o già tuo. Conta per la missione `mercante` — **nuovo** |
+
+`POST /api/look` e `POST /api/diario/titolo` conservano la barca salvata; `GET /api/me` e `/api/lots` la danno nel `look`. **Presenza**: `Peer.barca?: { scafo, vela, nome }` (assente = di serie), nel `welcome`/`join` dal look in D1 e negli `snap` dopo un cambio. Il client accetta messaggi del server fino a `MAX_SERVER_MSG_BYTES` = 64 KB (quelli del client restano ≤ 2 KB). `PROTOCOL_VERSION` resta 1.
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32 e `a, b` 0/1. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 

@@ -3,14 +3,15 @@
 // Orologio: ogni risposta porta l'ora del server (`now` o `LotState.nowMs`); serverNow() la proietta con l'orologio locale
 // SOLO per animare i conti alla rovescia. L'economia la decide il server.
 import type { Challenge, LotState, Medal, PackedInputs, Resources, Riepilogo } from '@marea/sim';
-import type { FeedItem, Look } from '@marea/protocol';
+import type { BarcaLook, FeedItem, Look, LookSalvato } from '@marea/protocol';
 import type { HeroState, RpgAction, RunHero, RunResult } from '@marea/sim/rpg/types.ts';
 import type { DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
 
-export type Me = { id: string; nome: string; look: Look; lotto: LotState | null; slot?: number | null };
+/** `look` è quello salvato in D1: anche titolo (#87) e barca (#107) se scelti. */
+export type Me = { id: string; nome: string; look: LookSalvato; lotto: LotState | null; slot?: number | null };
 export type { FeedItem };
 /** Chi abita quale slot dell'arcipelago (per le visite in sola lettura). Richiede GET /api/lots lato server. */
-export type LotOwner = { slot: number; id: string; nome: string };
+export type LotOwner = { slot: number; id: string; nome: string; look?: LookSalvato };
 export type Cell = [number, number];
 /** Chiunque abiti l'arcipelago (GET /api/persone): serve per scegliere chi sfidare. */
 export type Persona = { id: string; nome: string; slot: number | null; look: Look };
@@ -111,6 +112,10 @@ export type Api = {
   look(l: Look): Promise<void>;
   /** Compra un cappello a Perle, una volta (POST /api/look/hat con l'id di avatar.json). 409 con `manca` senza Perle. */
   buyHat(id: string): Promise<LotState>;
+  /** La tua barca (#107): colori e nome (POST /api/barca), il server ripulisce il nome e controlla i colori esclusivi. Risponde con la barca salvata. */
+  barca(b: BarcaLook): Promise<BarcaLook>;
+  /** Compra un colore esclusivo della barca dal Mercante, una volta (POST /api/barca/colore). 409 con `manca` senza Perle. */
+  buyColore(id: string): Promise<LotState>;
   /** Novità (sfide ricevute, accettate, esiti…), le più recenti prima; `nonLetti` è il numero per il badge. */
   feed(): Promise<{ items: FeedItem[]; nonLetti: number }>;
   /** Segna letti gli id ≤ `fino` (tutti senza `fino`). Ritorna quanti restano non letti. */
@@ -212,7 +217,8 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     async lots() {
       const d = await call('GET', '/api/lots');
       const list = Array.isArray(d) ? d : isObj(d) && Array.isArray(d['lots']) ? d['lots'] : [];
-      return (list as unknown[]).filter((x): x is LotOwner => isObj(x) && typeof x['slot'] === 'number' && typeof x['id'] === 'string').map((x) => ({ slot: x.slot, id: x.id, nome: String(x.nome ?? x.id) }));
+      return (list as unknown[]).filter((x): x is LotOwner => isObj(x) && typeof x['slot'] === 'number' && typeof x['id'] === 'string')
+        .map((x) => ({ slot: x.slot, id: x.id, nome: String(x.nome ?? x.id), ...(isObj(x.look) ? { look: x.look } : {}) }));
     },
     collect: (building) => post('/api/lot/collect', { building }),
     build: (building, cell) => post('/api/lot/build', { building, cell }),
@@ -307,6 +313,12 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     diarioTitolo: (id) => post('/api/diario/titolo', { id }),
     async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
     buyHat: (id) => post('/api/look/hat', { cappello: id }),
+    async barca(b) {
+      const d = await call('POST', '/api/barca', { scafo: b.scafo, vela: b.vela, nome: b.nome });
+      if (!isObj(d) || !isObj(d['barca'])) throw new ApiError(500, 'Risposta del server non valida');
+      return d['barca'] as BarcaLook;
+    },
+    buyColore: (id) => post('/api/barca/colore', { id }),
     async feed() {
       const d = await call('GET', '/api/feed');
       const list = Array.isArray(d) ? d : isObj(d) && Array.isArray(d['items']) ? d['items'] : [];

@@ -61,7 +61,13 @@ export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; t
 /** `mercante`: esclusivo del Mercante delle Perle al Porto (#63): nell'editor si vede ma si compra solo da lui. */
 export type HatDef = { id: string; nome: string; perle: number; mercante?: boolean };
 export type DecorDef = { id: string; nome: string; perle: number; model: string; mercante?: boolean };
+/** Colore della barca (#107): per lo scafo e per la vela; `perle` > 0 = esclusivo del Mercante delle Perle (si compra una volta, vale per tutti e due). */
+export type BarcaColore = { id: string; nome: string; hex: string; perle: number; mercante?: boolean };
+/** La tua barca (#107): colori (id stabili, si aggiunge in fondo), scafo e vela di serie (`vela` 'nessuna' = la barca a remi di prima), nome lungo al massimo `nomeMax`. */
+export type BarcaDef = { nomeMax: number; scafo: string; vela: string; colori: BarcaColore[] };
 export type AvatarDef = {
+  /** Personalizzazione della barca (#107). */
+  barca: BarcaDef;
   pelle: string[];
   capelli: string[];
   coloriCapelli: string[];

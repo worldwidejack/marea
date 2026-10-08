@@ -4,9 +4,12 @@ export const PROTOCOL_VERSION = 1 as const;
 export type Mode = 'walk' | 'boat';
 export type Look = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
 /** `titolo` (#87, facoltativo): id del traguardo scelto, il client lo mostra sotto il nome (testo in @marea/content/diario.ts). */
-export type Peer = { id: string; nome: string; x: number; z: number; yaw: number; mode: Mode; anim: string; look: Look; titolo?: string };
+/** La tua barca (#107): id dei colori di avatar.json `barca` per scafo e vela ('nessuna' = senza vela), nome già ripulito dal server. */
+export type BarcaLook = { scafo: string; vela: string; nome: string };
+/** `barca` (#107, facoltativo): assente = la barca di serie. */
+export type Peer = { id: string; nome: string; x: number; z: number; yaw: number; mode: Mode; anim: string; look: Look; titolo?: string; barca?: BarcaLook };
 /** Look come sta in D1 (`persone.look`): più il titolo scelto nel diario (#87), che la Zone passa nel Peer. Niente migrazioni. */
-export type LookSalvato = Look & { titolo?: string };
+export type LookSalvato = Look & { titolo?: string; barca?: BarcaLook };
 /** Emote (PROTOCOL §3): le prime 4 da M1, le altre 4 dal #90. Un client vecchio scarta in silenzio quelle che non conosce. */
 export type EmoteId = 'saluto' | 'esulta' | 'ride' | 'no' | 'applauso' | 'cuore' | 'sorpresa' | 'balla';
 /** Feed (M1 · Fetta 3, PROTOCOL §4): righe scritte dal DO Sfide a ogni passaggio di stato, testo composto dal Worker con i nomi. */
@@ -34,6 +37,8 @@ export type ServerMsg =
 export const CLOSE = { ALTRO_DISPOSITIVO: 4000, TROPPO_GRANDE: 1009, ZONA_PIENA: 1013, TOKEN_O_VERSIONE: 1008, NON_VALIDO: 1003 } as const;
 
 export const MAX_MSG_BYTES = 2048;
+/** Messaggi del server (lato client): un `welcome` o uno `snap` con tutto il gruppo supera presto i 2 KB (#107: look, titolo e barca per peer). */
+export const MAX_SERVER_MSG_BYTES = 65536;
 export const MAX_ZONE_CONNECTIONS = 32;
 export const POS_HZ = 10;
 
@@ -45,8 +50,8 @@ const EMOTES: readonly string[] = EMOTE_IDS;
 /** `now` è in ogni messaggio del server; se manca (server vecchio) vale 0. */
 const nowOf = (m: Record<string, unknown>): number => (isNum(m['now']) ? m['now'] : 0);
 
-function parse(text: string): Record<string, unknown> | null {
-  if (text.length > MAX_MSG_BYTES) return null;
+function parse(text: string, max = MAX_MSG_BYTES): Record<string, unknown> | null {
+  if (text.length > max) return null;
   try {
     const v: unknown = JSON.parse(text);
     return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
@@ -83,7 +88,7 @@ export function isPeer(v: unknown): v is Peer {
 
 /** Valida un messaggio del server (lato client). */
 export function parseServerMsg(text: string): ServerMsg | null {
-  const m = parse(text);
+  const m = parse(text, MAX_SERVER_MSG_BYTES);
   if (!m) return null;
   switch (m['t']) {
     case 'welcome': {

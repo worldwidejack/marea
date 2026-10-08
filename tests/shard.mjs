@@ -11,6 +11,7 @@ const DURATE = {
   m1_editor: 45, m1_emote: 50, m1_feed: 65, m1_integrazione: 20, m1_isola: 56, m1_mondo: 40, m1_regata: 52, m1_scacchi: 15, m1_server: 15, m1_server_f3: 20, m1_solo: 45, m1_tavolo: 60,
   m2_dungeon: 180, m2_eroe: 120, m2_impostazioni: 95, m2_minimappa: 30, m2_server: 90,
   m3_animali: 75, m3_foto: 40, m3_decorazioni: 65, m3_emote: 40, m3_meteo: 30, m3_rientro: 20, m3_diario: 45, m3_app: 45, m3_consegne_ingorgo: 90, m3_giochi_ghiacci_giardino: 120, m3_giochi_tempesta_vulcano: 110, m3_interfaccia: 75, m3_isole: 165, m3_perle: 40, m3_pesca: 45, m3_porto: 50, m3_prestazioni: 200, m3_suoni: 20,
+  m3_barca: 48, // #107: ~30 s in locale × 1,6
 };
 const [i, n] = process.argv.slice(2).map(Number);
 if (!Number.isInteger(i) || !Number.isInteger(n) || n < 1 || i < 0 || i >= n) { console.error('uso: node tests/shard.mjs <i> <n>'); process.exit(2); }

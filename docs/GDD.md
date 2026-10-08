@@ -35,6 +35,7 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 - **Bordo del mondo** (#5): al bordo dell'arcipelago una corrente morbida riporta la barca verso le isole.
 - **Isole personali (lotti)**: una per amico, disposte attorno al Porto e alla Laguna, a **10-25 s di barca** (80-240 m) da entrambi. Vi si arriva in barca o con «vai a casa». Un lotto è una griglia di celle da 2 m con slot per edifici e decorazioni; il Molo è sempre costruito e fa da spawn.
 - **Barca**: il mezzo principale. Sali dal molo (tasto A vicino alla barca), guida arcade (accelerazione, virata, scia), scendi a qualsiasi molo. Anche a piedi sulle isole.
+- **La tua barca** (#107, 8 ott 2026): colore dello **scafo** (fasciame fuori e dentro) e della **vela** (una vela latina su un alberetto; di serie nessuna vela: la barca a remi di prima), e un **nome** di massimo 14 caratteri su una targa ai due fianchi. Si sceglie nell'editor (sezione Barca); 6 colori gratis, 6 **esclusivi del Mercante delle Perle** (§5), comprati una volta valgono per scafo e vela. Gli amici la vedono: quando navighi dov'è, quando sei a piedi o non ci sei **ormeggiata al molo della tua isola**. Due barche ferme non stanno mai una sopra l'altra: se uno scafo tocca la tua barca vuota, la tua si sposta al posto libero più vicino del molo (#6).
 - **Camera**: dall'alto in diagonale (diorama), segue l'avatar, zoom 0,6-1,6. Stessa vista per costruire.
 - **Ciclo giorno/notte**: sì, dalle Impostazioni (#54), acceso di serie (#59); un giro ogni 24 min, stessa ora per tutti.
 - **Meteo** (#85): sereno, nuvoloso, pioggia, nebbia, vento forte; cambia ogni qualche minuto, **uguale per tutti** (dall'orologio, come il ciclo). Interruttore nelle Impostazioni, acceso di serie. Solo aspetto e suono, niente effetti sul gioco. Numeri in `packages/content/src/meteo.json`:
@@ -85,7 +86,7 @@ Un minigioco può dare qualcosa in più (`premioExtra` nel suo json): la **Cacci
 - **Dalle sfide con posta** (spente per ora, §7): medaglia → Perle **5 / 10 / 20** (bronzo / argento / oro) e attiva il Faro. Chi perde una sfida prende comunque **2 Perle** (mai zero).
 
 ### Porto: Mercante, Bacheca e Gente (#63-#65, 8 ott 2026)
-- **Mercante delle Perle** (banco in piazza, a sinistra del Tavolo; Maestro Ishi accanto): vende tutti i cappelli a Perle e tutte le decorazioni; le **esclusive** si comprano solo da lui. Un cappello si compra una volta (poi INDOSSA); una decorazione si posa sulla tua isola, nella cella libera di sabbia/erba più vicina a casa; poi la tocchi (o premi A vicino) e la **sposti** dove vuoi (sagoma verde/rossa sulle celle), la **ruoti** o la **rivendi** per metà delle Perle (#108). Prezzi (`avatar.json`, `decor.json`):
+- **Mercante delle Perle** (banco in piazza, a sinistra del Tavolo; Maestro Ishi accanto): vende tutti i cappelli a Perle, tutte le decorazioni e i colori esclusivi della barca (#107); le **esclusive** si comprano solo da lui. Un cappello si compra una volta (poi INDOSSA); una decorazione si posa sulla tua isola, nella cella libera di sabbia/erba più vicina a casa; poi la tocchi (o premi A vicino) e la **sposti** dove vuoi (sagoma verde/rossa sulle celle), la **ruoti** o la **rivendi** per metà delle Perle (#108). Prezzi (`avatar.json`, `decor.json`):
 
 | Cappelli esclusivi | Perle | Decorazioni esclusive | Perle |
 |---|---|---|---|
@@ -97,6 +98,17 @@ Un minigioco può dare qualcosa in più (`premioExtra` nel suo json): la **Cacci
 | Elmo da palombaro | 100 | Bonsai paziente | 30 |
 | | | Papera gigante | 35 |
 | | | Pagoda in miniatura | 45 |
+
+Colori della barca (#107, `avatar.json` `barca`): gratis Legno (di serie), Tela, Rosso lanterna, Blu mare, Verde bosco, Giallo sole; esclusivi del Mercante (scheda BARCA, si comprano una volta e valgono per scafo e vela):
+
+| Colore esclusivo | Perle |
+|---|---|
+| Nero pirata | 15 |
+| Blu abisso | 15 |
+| Arancio tramonto | 20 |
+| Viola corsaro | 25 |
+| Rosa neon | 35 |
+| Ciano neon | 40 |
 
 - **Bacheca delle missioni** (in piazza, a destra del Tavolo): **3 missioni al giorno** (giorno UTC), diverse per ognuno, mai due dello stesso gruppo; si fanno durante il giorno e si **riscuotono** alla Bacheca (una volta). Contano solo cose che il server vede (`missioni.json`):
 

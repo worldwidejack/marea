@@ -3,6 +3,7 @@
 // e l'ora in `x-now` (vedi clock.ts). Il DO serializza le richieste (input gate) e lo storage SQL è sincrono: niente corse tra due azioni.
 // Richieste dal Worker: GET /state · POST /collect {building} · /build {building, cell} · /upgrade {building} · /decor {decor, cell, rot} · /hat {hat}.
 // Decorazioni libere (#108): POST /decor_move {id, cell} · /decor_rotate {id} · /decor_sell {id} → LotState (rimborso da BALANCE.decor).
+// · /barca {id} (#107: colore esclusivo della barca, una volta).
 // Minigiochi da solo: POST /solo_start {minigame, opzioni?} → {seed, difficulty, opzioni, lot} · /solo_play {inputs} → il server rigioca gli input, premia la
 // medaglia (balance.solo) e risponde {score, medal, detail, premio, premiata, lot}.
 // Bacheca del Porto (#64): POST /missione {i} → RISCUOTI {premio, missione, lot}. I contatori delle missioni di oggi li aggiornano qui
@@ -17,6 +18,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
 import { build, buyHat, collect, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
+import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
 import { holdStake, releaseStake } from '@marea/sim/economy/challenge.ts';
@@ -60,7 +62,7 @@ function isRelease(v: unknown): v is Release {
 function eventiAzione(act: string, prima: LotState, dopo: LotState): EventiMissione {
   if (act === 'collect') return eventiRaccolta(prima, dopo);
   if (act === 'build' || act === 'upgrade') return { cantiere: 1 };
-  if (act === 'decor' || act === 'hat') return { mercante: 1 };
+  if (act === 'decor' || act === 'hat' || act === 'barca') return { mercante: 1 };
   return {};
 }
 /** Stato HTTP di un errore economico: richiesta rotta 400, cosa inesistente 404, il resto è un conflitto con lo stato (409). */
@@ -237,6 +239,11 @@ export class Lot extends DurableObject<Env> {
         const h = body['hat'];
         if (!isId(h) || !AVATAR.cappelli.some((x) => x.id === h)) return json({ error: 'Cappello sconosciuto' }, 400);
         return buyHat(lot, h, now);
+      }
+      case 'barca': {
+        const id = body['id'];
+        if (!isId(id)) return json({ error: 'Colore sconosciuto' }, 400);
+        return compraColoreBarca(lot, id, now);
       }
       case 'hold': {
         const cid = body['cid'], stake = body['stake'], kind = body['kind'];

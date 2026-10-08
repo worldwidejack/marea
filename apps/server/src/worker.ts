@@ -2,6 +2,8 @@
 // il lavoro vero sta nei DO (Zone = presenza, Lot = isola). Errori sempre `{ error }` in italiano, mai il dettaglio tecnico.
 import { AVATAR } from '@marea/content';
 import type { Look, LookSalvato } from '@marea/protocol';
+import { barcaDi, coloreBarca, diSerie, validaBarca } from '@marea/sim/economy/barca.ts';
+import type { BarcaLook } from '@marea/sim/economy/barca.ts';
 import type { Env } from './env.ts';
 import { autentica } from './auth.ts';
 import { nowFor } from './clock.ts';
@@ -82,11 +84,13 @@ async function avvisaZona(env: Env, persona: string, look: LookSalvato): Promise
     await r.body?.cancel();
   } catch { /* la zona si aggiorna alla prossima connessione */ }
 }
-/** Il look salvato in D1 (JSON) col titolo del diario sostituito: `titolo` null lo toglie (#87). */
-function conTitolo(look: Look, salvato: string, titolo?: string | null): LookSalvato {
-  let t: unknown = titolo;
-  if (titolo === undefined) { try { t = (JSON.parse(salvato) as { titolo?: unknown }).titolo; } catch { t = undefined; } }
-  return typeof t === 'string' && t ? { ...look, titolo: t } : { ...look };
+/** Il look salvato in D1 (JSON) col titolo del diario sostituito: `titolo` null lo toglie (#87). La barca (#107) resta quella salvata,
+ *  o quella passata (`barca`; la barca di serie non si scrive). */
+function conTitolo(look: Look, salvato: string, titolo?: string | null, barca?: BarcaLook): LookSalvato {
+  let old: Record<string, unknown> = {};
+  try { const v: unknown = JSON.parse(salvato); if (v && typeof v === 'object') old = v as Record<string, unknown>; } catch { /* look rotto */ }
+  const t: unknown = titolo === undefined ? old['titolo'] : titolo, b = barca ?? barcaDi(old);
+  return { ...look, ...(typeof t === 'string' && t ? { titolo: t } : {}), ...(diSerie(b) ? {} : { barca: b }) };
 }
 /** Quanti altri hanno un'isola (per i traguardi «tutti gli amici», #87) e i loro id. */
 async function amiciConIsola(env: Env, me: string): Promise<string[]> {
@@ -201,6 +205,28 @@ export default {
         const id = hatId(body['cappello']);
         if (!id) return json({ error: 'Cappello sconosciuto' }, 400);
         return lotReq(env, p.id, now, 'hat', { hat: id });
+      }
+      // La tua barca (#107): colori e nome nel look in D1 (così la Zone la manda agli amici); i colori esclusivi si comprano dal Mercante
+      if (path === '/api/barca' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const r = await lotReq(env, p.id, now, 'state');
+        if (!r.ok) return r;
+        const barca = validaBarca(body, (await r.json()) as Parameters<typeof validaBarca>[1]);
+        if (typeof barca === 'string') return json({ error: barca }, 400);
+        let base: Look | string;
+        try { base = validaLook(JSON.parse(p.look) as Record<string, unknown>); } catch { base = 'look rotto'; }
+        const salvato = conTitolo(typeof base === 'string' ? { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 } : base, p.look, undefined, barca);
+        await salvaLook(env, p.id, salvato);
+        await avvisaZona(env, p.id, salvato);
+        return json({ ok: true, barca });
+      }
+      if (path === '/api/barca/colore' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const id = body['id'];
+        if (typeof id !== 'string' || !coloreBarca(id)) return json({ error: 'Colore sconosciuto' }, 400);
+        return lotReq(env, p.id, now, 'barca', { id });
       }
       if (path === '/api/lot' && req.method === 'GET') return lotReq(env, p.id, now, 'state');
       const azione = path.match(/^\/api\/lot\/(collect|build|upgrade|decor)$/);

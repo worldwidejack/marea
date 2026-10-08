@@ -7,12 +7,13 @@ import { GENTE } from '@marea/content/porto.ts';
 import type { PersonaPorto } from '@marea/content/porto.ts';
 import { finoAlCambio, missioniOf } from '@marea/sim/economy/missioni.ts';
 import type { Resources } from '@marea/sim';
+import { barcaDi } from '@marea/sim';
 import { ApiError } from '../net/api.ts';
 import type { PortoCtx } from '../game/porto.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
 import { RES_IDS, pixIcon, resIcon } from './icons.ts';
 import { flyResources, tickTimers, timerSpan } from './sheet.ts';
-import { mercanteBody } from './porto_mercante.ts';
+import { TABS, mercanteBody } from './porto_mercante.ts';
 import type { MercanteState } from './porto_mercante.ts';
 
 export type PortoUiKind = 'mercante' | 'bacheca' | 'parla';
@@ -46,6 +47,8 @@ const STYLE = `
 .mz-pt-row .pr.no { color: ${P.arancio}; }
 .mz-pt-act { flex: none; min-width: 96px; min-height: 44px; padding: 0 8px; background: ${P.arancio}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; box-shadow: 0 3px 0 ${P.neroCaldo}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; }
 .mz-pt-act.green { background: ${P.erba}; }
+.mz-pt-act.mini { min-width: 64px; padding: 0 4px; }
+.mz-pt-chip { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; border: 2px solid ${P.neroCaldo}; }
 .mz-pt-act:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
 .mz-pt-act:disabled { background: ${P.roccia}; color: ${P.pietra}; border-color: ${P.pietraScura}; cursor: default; }
 .mz-pt-miss { margin: 4px 2px 0; color: ${P.arancio}; font-size: 13px; font-weight: bold; line-height: 1.3; }
@@ -79,7 +82,7 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
   const ishi = GENTE.gente.find((p) => p.ruolo === 'mercante');
   let kind: PortoUiKind | null = null, gen = 0, aperture = 0, timer = 0;
   let persona: PersonaPorto | null = null, riga = 0;
-  const merc: MercanteState = { tab: 'cappelli', prova: null, note: null, busy: false };
+  const merc: MercanteState = { tab: 'cappelli', prova: null, provaBarca: null, note: null, busy: false };
   const bach = { busy: false, note: null as { i: number; text: string; bad: boolean } | null, riscosse: 0 };
 
   // ---------- tastiera ----------
@@ -99,7 +102,7 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
       const d = e.key === 'ArrowDown' ? 1 : -1;
       list[i < 0 ? (d > 0 ? 0 : list.length - 1) : Math.max(0, Math.min(list.length - 1, i + d))]?.focus();
     } else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && kind === 'mercante') {
-      e.preventDefault(); merc.tab = merc.tab === 'cappelli' ? 'decor' : 'cappelli'; merc.note = null; render();
+      e.preventDefault(); merc.tab = TABS[(TABS.indexOf(merc.tab) + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length]!; merc.note = null; render();
       sheet.querySelector<HTMLElement>(`[data-tab="${merc.tab}"]`)?.focus();
     } else if (e.key === 'Enter' && i < 0) { e.preventDefault(); list[0]?.focus(); }
   };
@@ -180,7 +183,7 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
   function openSheet(k: 'mercante' | 'bacheca'): void {
     close(true);
     kind = k; gen++; aperture++;
-    merc.note = null; merc.prova = null; merc.busy = false; bach.note = null; bach.busy = false;
+    merc.note = null; merc.prova = null; merc.provaBarca = null; merc.busy = false; bach.note = null; bach.busy = false;
     sheet.classList.add('on'); keys(true); render();
     sheet.scrollTop = 0;
     items()[0]?.focus({ preventScroll: true });
@@ -217,7 +220,8 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     if (a && (sheet.contains(a) || dlg.contains(a))) a.blur();
     sheet.classList.remove('on'); dlg.classList.remove('on');
     if (was === 'mercante' && merc.prova !== null && ctx.me) ctx.setLook({ ...ctx.me.look }); // la prova si toglie: torna il look salvato
-    merc.prova = null; persona = null;
+    if (was === 'mercante' && merc.provaBarca !== null) ctx.world.setBarca(barcaDi(ctx.me?.look)); // anche quella della barca (#107)
+    merc.prova = null; merc.provaBarca = null; persona = null;
     if (!silent) ctx.onClose();
   }
 
@@ -226,6 +230,6 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     mercante: () => openSheet('mercante'),
     bacheca: () => openSheet('bacheca'),
     parla, avanti, close: () => close(), isOpen: () => kind !== null,
-    state: () => ({ kind, tab: merc.tab, prova: merc.prova, note: merc.note?.text ?? bach.note?.text ?? null, busy: merc.busy || bach.busy, persona: persona?.id ?? null, riga, riscosse: bach.riscosse }),
+    state: () => ({ kind, tab: merc.tab, prova: merc.prova, provaBarca: merc.provaBarca, note: merc.note?.text ?? bach.note?.text ?? null, busy: merc.busy || bach.busy, persona: persona?.id ?? null, riga, riscosse: bach.riscosse }),
   };
 }

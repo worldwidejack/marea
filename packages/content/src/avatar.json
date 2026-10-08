@@ -1,4 +1,23 @@
 {
+  "barca": {
+    "nomeMax": 14,
+    "scafo": "legno",
+    "vela": "nessuna",
+    "colori": [
+      { "id": "legno", "nome": "Legno", "hex": "#8E5A2B", "perle": 0 },
+      { "id": "tela", "nome": "Tela", "hex": "#F4E3C1", "perle": 0 },
+      { "id": "rosso", "nome": "Rosso lanterna", "hex": "#E8433F", "perle": 0 },
+      { "id": "mare", "nome": "Blu mare", "hex": "#2478A8", "perle": 0 },
+      { "id": "bosco", "nome": "Verde bosco", "hex": "#4E9A46", "perle": 0 },
+      { "id": "sole", "nome": "Giallo sole", "hex": "#F5D547", "perle": 0 },
+      { "id": "nero", "nome": "Nero pirata", "hex": "#23201F", "perle": 15, "mercante": true },
+      { "id": "abisso", "nome": "Blu abisso", "hex": "#163F73", "perle": 15, "mercante": true },
+      { "id": "tramonto", "nome": "Arancio tramonto", "hex": "#F2A33A", "perle": 20, "mercante": true },
+      { "id": "corsaro", "nome": "Viola corsaro", "hex": "#A64DFF", "perle": 25, "mercante": true },
+      { "id": "rosa_neon", "nome": "Rosa neon", "hex": "#FF3DA6", "perle": 35, "mercante": true },
+      { "id": "ciano_neon", "nome": "Ciano neon", "hex": "#3DF5FF", "perle": 40, "mercante": true }
+    ]
+  },
   "pelle": ["#FBE2C8", "#EFC29B", "#D9A070", "#B8784C", "#8C5636", "#5A3A28"],
   "capelli": ["corti", "spettinati", "coda", "caschetto", "rasati", "ricci", "lunghi", "chignon"],
   "coloriCapelli": ["#2E1E14", "#5A3A1E", "#8E5A2B", "#C98A4B", "#E8433F", "#F4E3C1"],

@@ -1,5 +1,5 @@
 // Avvio del client: renderer, mondo, ciclo a 60 Hz con interpolazione, test API. Unico modulo con side effect.
-import { DT, canBoard } from '@marea/sim';
+import { DT, barcaDi, canBoard } from '@marea/sim';
 import { FLAGS } from './flags.ts';
 import { preparaInstallazione } from './installa.ts';
 import { createRenderer } from './render/scene.ts';
@@ -64,7 +64,7 @@ async function boot(): Promise<void> {
   const me = api.enabled && FLAGS.net ? await api.me().catch((e: Error) => { hud.banner?.(e.message); return null; }) : null;
   const owners = me ? await api.lots().catch(() => []) : [];
   let guideStep: string | null = null; // passo corrente della guida «Primi passi» (serve al lotto per lo slot suggerito)
-  const world = await createGameWorld({ renderer, loader, flags: FLAGS, hud, build: __BUILD__, slot: me ? me.slot ?? null : undefined, ...(me ? { look: me.look } : {}) }); // senza login: ?slot=N dall'URL (test), altrimenti Porto
+  const world = await createGameWorld({ renderer, loader, flags: FLAGS, hud, build: __BUILD__, slot: me ? me.slot ?? null : undefined, ...(me ? { look: me.look, barca: barcaDi(me.look), meId: me.id } : {}), abitanti: owners }); // senza login: ?slot=N dall'URL (test), altrimenti Porto; la barca (#107) e gli ormeggi degli amici (#6)
   renderer.diorama.setZoom(1.6); // si parte larghi: l'isola e i suoi cartelli si vedono subito
   // il proprio lotto (azioni) e quelli degli altri (sola lettura); la guida suggerisce dove costruire la Segheria
   const lots: LotView[] = [];
@@ -164,7 +164,7 @@ async function boot(): Promise<void> {
   registerTestHook('openTavolo', () => openTavolo());
   // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-8, G = ruota, #90). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
   const link = `${location.origin}/?t=${encodeURIComponent(FLAGS.token)}`; // per entrare come sé da un altro dispositivo (editor: COPIA / MANDA)
-  const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, onSaved: () => hud.toast('Look salvato'), onLot: refreshMyLot }) : null;
+  const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, barca: world, onSaved: () => hud.toast('Look salvato'), onBarca: () => hud.toast('Barca salvata'), onLot: refreshMyLot }) : null;
   // impostazioni (#53): camera, ciclo giorno/notte, meteo (#85), stampa, contorni; di serie (#59) ciclo, camera 22° e contorni, per chiunque (anche senza link)
   // la resa delle impostazioni (passata finale, acqua stampa, ciclo) si scarica solo se qualcosa è acceso: con tutto spento zero byte in più
   let aspetto: Aspetto | null = null, aspettoLoad: Promise<void> | null = null, voglio: Impostazioni | null = null;

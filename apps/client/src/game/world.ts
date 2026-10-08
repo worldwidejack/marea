@@ -1,10 +1,12 @@
 // Orchestrazione del mondo locale: arcipelago (un solo GridMap continuo), isole, avatar, barca, camera, rete. WP0 / M1-mondo.
 // Spawn sul molo del proprio lotto (`slot`), barca ormeggiata lì; senza slot al Porto.
+// Barche degli altri (#6, #107): chi naviga si vede dov'è, coi suoi colori; chi è a piedi (o offline) ha la barca ormeggiata al molo della
+// SUA isola. La tua, quando è vuota e uno scafo altrui la tocca, si sposta al posto libero più vicino (ormeggioLibero): mai una sopra l'altra.
 import * as THREE from 'three';
-import { canBoard, composeArchipelago, correnteBordo, landingSpot, NO_INPUT } from '@marea/sim';
-import type { Archipelago, ArchPlace, BoatState, GridMap, InputFrame } from '@marea/sim';
+import { BARCA_DI_SERIE, barcaDi, barcheSovrapposte, canBoard, composeArchipelago, correnteBordo, landingSpot, NO_INPUT, ormeggioLibero, yawOrmeggio } from '@marea/sim';
+import type { Archipelago, ArchPlace, BoatState, GridMap, InputFrame, Posa } from '@marea/sim';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
-import type { Look, Peer } from '@marea/protocol';
+import type { BarcaLook, Look, LookSalvato, Peer } from '@marea/protocol';
 import type { Flags } from '../flags.ts';
 import type { Renderer } from '../render/scene.ts';
 import type { Loader } from '../render/loader.ts';
@@ -58,7 +60,12 @@ export type GameWorld = {
   /** Isole a tema (#68): vincolo sulla barca dopo ogni passo (barriere in mare: game/temi.ts) e «rimettiti in barca» (il Vulcano ti caccia). */
   vincoloBarca: ((prev: BoatState, next: BoatState) => BoatState | null) | null;
   reimbarca(): boolean;
+  /** La tua barca (#107): colori e nome; setBarca la ridipinge (anteprima dell'editor, dopo il salvataggio). */
+  readonly barca: BarcaLook;
+  setBarca(b: BarcaLook): void;
 };
+/** Chi abita un'isola (GET /api/lots): la sua barca sta ormeggiata al suo molo quando non naviga (#6). */
+export type Abitante = { id: string; slot: number | null; look?: LookSalvato };
 
 /** Adattatore finché main.ts non passa lo slot da /api/me: `?slot=N` nell'URL. */
 function slotFromUrl(): number | null {
@@ -70,13 +77,17 @@ function slotFromUrl(): number | null {
   } catch { return null; }
 }
 
-/** Un altro giocatore: avatar a piedi e, solo quando serve, una barca col suo guidatore. La barca sta in `boatAt` (posizione) e ruota con setYaw. */
-type Remote = { avatar: Avatar; look: string; boat: Boat | null; boatAt: THREE.Group | null; loadingBoat: boolean };
+/** Un altro giocatore collegato: l'avatar a piedi (la barca sta nella flotta). */
+type Remote = { avatar: Avatar; look: string };
+/** La barca di un altro (#6): creata la prima volta che serve; `at` ne porta la posizione, `naviga` = c'è lui al timone. */
+type BarcaAltrui = { boat: Boat | null; at: THREE.Group | null; loading: boolean; look: string; naviga: boolean; posa: Posa | null };
+/** Oltre questa distanza da chi gioca le barche ormeggiate degli amici non si disegnano (e non si creano). */
+const VISTA_ORMEGGI_M = 150;
 
 const DEFAULT_LOOK: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 }; // avatar A (Sessione 2)
 const HEAD_Y = 1.9, BOAT_TOP_Y = 1.5; // metri sopra il piede dell'avatar / la barca, per fumetti ed etichette
 
-export async function createGameWorld(o: { renderer: Renderer; loader: Loader; flags: Flags; hud: Hud; build: string; slot?: number | null; look?: Look }): Promise<GameWorld> {
+export async function createGameWorld(o: { renderer: Renderer; loader: Loader; flags: Flags; hud: Hud; build: string; slot?: number | null; look?: Look; barca?: BarcaLook; meId?: string; abitanti?: readonly Abitante[] }): Promise<GameWorld> {
   const arch = composeArchipelago(ARCHIPELAGO, ISLANDS);
   const map = arch.map;
   let slot = o.slot !== undefined ? o.slot : slotFromUrl();
@@ -113,7 +124,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   let look: Look = o.look ?? DEFAULT_LOOK;
   const avatar = await createAvatar({ loader: o.loader, look, x: home.x, z: home.z }); scene.add(avatar.object);
   avatar.setGround(island.groundY);
-  const boat = await createBoat({ loader: o.loader, x: homeBoat.x, z: homeBoat.z, look }); scene.add(boat.object);
+  const boat = await createBoat({ loader: o.loader, x: homeBoat.x, z: homeBoat.z, look, barca: o.barca ?? BARCA_DI_SERIE }); scene.add(boat.object);
   /** Ormeggia la barca in (x, z) col muso verso il mare aperto, non contro il molo. */
   const moor = (x: number, z: number) => {
     boat.teleport(x, z);
@@ -132,23 +143,58 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       const a = await createAvatar({ loader: o.loader, look: p.look, x: p.x, z: p.z });
       if (!pending.has(p.id)) return; // se n'è andato mentre caricava
       a.setGround(island.groundY); a.object.name = 'peer_' + p.id; scene.add(a.object);
-      remotes.set(p.id, { avatar: a, look: JSON.stringify(p.look), boat: null, boatAt: null, loadingBoat: false });
+      remotes.set(p.id, { avatar: a, look: JSON.stringify(p.look) });
     } finally { pending.delete(p.id); }
-  };
-  const remoteBoat = async (r: Remote, p: Peer) => {
-    r.loadingBoat = true;
-    const b = await createBoat({ loader: o.loader, x: 0, z: 0, look: p.look });
-    const at = new THREE.Group(); at.name = 'peer_barca_' + p.id; at.add(b.object);
-    b.setDriver(r.avatar.state, p.look); r.boat = b; r.boatAt = at; r.loadingBoat = false;
-    if (remotes.get(p.id) === r) scene.add(at);
   };
   const dropRemote = (id: string) => {
     pending.delete(id);
     const r = remotes.get(id); if (!r) return;
-    scene.remove(r.avatar.object); if (r.boatAt) scene.remove(r.boatAt);
+    scene.remove(r.avatar.object);
     remotes.delete(id);
   };
   const unsubLeave = net.on('leave', (m) => dropRemote(m.id));
+
+  // ---- flotta (#6, #107): la barca di ogni altro, al timone dove naviga o ormeggiata al molo della sua isola
+  const abitanti = new Map((o.abitanti ?? []).filter((a) => a.id !== o.meId).map((a) => [a.id, a] as const));
+  const ormeggioDi = new Map<string, Posa>();
+  for (const a of abitanti.values()) {
+    if (a.slot === null || !arch.lots.some((l) => l.slot === a.slot)) continue;
+    const b = arch.boatOf(a.slot);
+    ormeggioDi.set(a.id, { x: b.x, z: b.z, yaw: yawOrmeggio(b.x, b.z, map) });
+  }
+  const flotta = new Map<string, BarcaAltrui>();
+  const creaBarca = async (id: string, f: BarcaAltrui, look: Look, barca: BarcaLook) => {
+    f.loading = true;
+    try {
+      const b = await createBoat({ loader: o.loader, x: 0, z: 0, look, barca });
+      const at = new THREE.Group(); at.name = 'peer_barca_' + id; at.add(b.object); at.visible = false;
+      f.boat = b; f.at = at; scene.add(at);
+    } finally { f.loading = false; }
+  };
+  let focus = { x: home.x, z: home.z };
+  const updateFlotta = (dt: number, t: number) => {
+    const peers = new Map(net.peers().map((p) => [p.id, p] as const));
+    for (const id of new Set([...abitanti.keys(), ...peers.keys()])) {
+      const p = peers.get(id), pose = p ? net.peerAt(id) : null, naviga = pose?.mode === 'boat';
+      const posa: Posa | null = naviga && pose ? { x: pose.x, z: pose.z, yaw: pose.yaw } : ormeggioDi.get(id) ?? null;
+      let f = flotta.get(id);
+      const vede = !!posa && (naviga || Math.hypot(posa.x - focus.x, posa.z - focus.z) < VISTA_ORMEGGI_M);
+      if (!f) { if (!vede) continue; f = { boat: null, at: null, loading: false, look: '', naviga: false, posa: null }; flotta.set(id, f); }
+      f.naviga = naviga; f.posa = vede ? posa : null;
+      // collegato: la barca è quella della presenza (assente = di serie); offline: quella salvata in /api/lots
+      const look = p?.look ?? abitanti.get(id)?.look ?? null, barca = p ? p.barca ?? BARCA_DI_SERIE : barcaDi(abitanti.get(id)?.look);
+      if (!f.boat) { if (vede && !f.loading && look) void creaBarca(id, f, look, barca); continue; }
+      if (!f.at) continue;
+      f.boat.setBarca(barca);
+      const key = JSON.stringify(look);
+      if (look && key !== f.look) { f.look = key; f.boat.driver.setLook(look); }
+      f.at.visible = vede;
+      if (!vede || !posa) continue;
+      const r = remotes.get(id);
+      f.boat.setDriver(naviga && r ? r.avatar.state : null);
+      f.at.position.set(posa.x, 0, posa.z); f.boat.setYaw(posa.yaw); f.boat.update(1, dt, t);
+    }
+  };
   const updateRemotes = (dt: number, t: number) => {
     const list = net.peers(), seen = new Set<string>();
     for (const p of list) {
@@ -156,19 +202,33 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       const r = remotes.get(p.id);
       if (!r) { if (!pending.has(p.id)) void addRemote(p); continue; }
       const key = JSON.stringify(p.look);
-      if (key !== r.look) { r.look = key; r.avatar.setLook(p.look); r.boat?.driver.setLook(p.look); }
+      if (key !== r.look) { r.look = key; r.avatar.setLook(p.look); }
       const pose = net.peerAt(p.id); if (!pose) continue;
       const inBoat = pose.mode === 'boat';
       r.avatar.visible = !inBoat;
-      if (inBoat && !r.boat && !r.loadingBoat) void remoteBoat(r, p);
-      if (r.boat && r.boatAt) {
-        r.boatAt.visible = inBoat;
-        if (inBoat) { r.boatAt.position.set(pose.x, 0, pose.z); r.boat.setYaw(pose.yaw); r.boat.update(1, dt, t); }
-      }
       if (!inBoat) r.avatar.setPose(pose);
       r.avatar.update(1, dt);
     }
     for (const id of remotes.keys()) if (!seen.has(id)) dropRemote(id);
+    updateFlotta(dt, t);
+  };
+  /** Barche degli altri che si vedono adesso (per l'ormeggio libero e i test). */
+  const altreBarche = (): (Posa & { id: string; naviga: boolean })[] =>
+    [...flotta.entries()].flatMap(([id, f]) => (f.at?.visible && f.posa ? [{ id, ...f.posa, naviga: f.naviga }] : []));
+  // la tua barca vuota si scansa se uno scafo altrui la tocca per più di mezzo secondo (chi ormeggia accanto, chi ci si ferma sopra)
+  let liberaT = 0, toccataT = 0;
+  const liberaOrmeggio = (dt: number) => {
+    liberaT += dt;
+    if (liberaT < 0.25) return;
+    const passo = liberaT; liberaT = 0;
+    if (mode !== 'walk' || racing) { toccataT = 0; return; }
+    const mia = { x: boat.state.x, z: boat.state.z, yaw: boat.state.yaw }, altre = altreBarche();
+    if (!altre.some((b) => barcheSovrapposte(mia, b))) { toccataT = 0; return; }
+    toccataT += passo;
+    if (toccataT < 0.5) return;
+    toccataT = 0;
+    const p = ormeggioLibero(map, mia.x, mia.z, altre);
+    if (p) { boat.teleport(p.x, p.z, p.yaw); dockAt = landingSpot(boat.state, map) ?? dockAt; }
   };
 
   let mode: Mode = 'walk', aWas = false, lastSent = 0, frozen = false;
@@ -208,6 +268,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   };
   const state = {
     map, avatar, boat, net, archipelago: arch, scene, slot, groundY: island.groundY, race, lights, water,
+    get barca() { return boat.barca; },
+    setBarca(b: BarcaLook) { boat.setBarca(b); },
     get mode() { return mode; },
     get frozen() { return frozen; },
     set frozen(v: boolean) { frozen = v; },
@@ -224,7 +286,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     anchorOf(id) {
       if (id === 'me') { const p = mode === 'boat' ? boat.object.position : avatar.object.position; return { x: p.x, y: p.y + (mode === 'boat' ? BOAT_TOP_Y : HEAD_Y), z: p.z }; }
       const r = remotes.get(id); if (!r) return null;
-      if (r.boatAt?.visible) return { x: r.boatAt.position.x, y: r.boatAt.position.y + BOAT_TOP_Y, z: r.boatAt.position.z };
+      const f = flotta.get(id);
+      if (f?.naviga && f.at?.visible) return { x: f.at.position.x, y: f.at.position.y + BOAT_TOP_Y, z: f.at.position.z };
       const p = r.avatar.object.position; return { x: p.x, y: p.y + HEAD_Y, z: p.z };
     },
     gesto(id, hop, spin) { (id === 'me' ? avatar : remotes.get(id)?.avatar)?.gesto(hop, spin); },
@@ -247,20 +310,29 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     },
     update(alpha: number, dt: number, t: number) {
       avatar.update(alpha, dt); boat.update(alpha, dt, t); water.update(t); lights.update(t);
-      updateRemotes(dt, t);
+      updateRemotes(dt, t); liberaOrmeggio(dt);
       const f = mode === 'walk' ? avatar.object.position : boat.object.position;
+      focus = { x: f.x, z: f.z };
       diorama.follow(f.x, 0.5, f.z); diorama.update(dt);
       lights.sun.position.set(f.x - 30, 40, f.z + 20); lights.sun.target.position.set(f.x, 0, f.z);
       water.follow(f.x, f.z);
     },
-    dispose() { unsubLeave(); net.close(); for (const id of [...remotes.keys()]) dropRemote(id); pending.clear(); },
+    dispose() { unsubLeave(); net.close(); for (const id of [...remotes.keys()]) dropRemote(id); pending.clear(); for (const f of flotta.values()) if (f.at) scene.remove(f.at); flotta.clear(); },
   } as GameWorld;
   registerStateProvider('avatar', () => ({ ...avatar.state }));
   registerStateProvider('boat', () => ({ ...boat.state }));
   registerStateProvider('mode', () => mode);
   registerStateProvider('camera', () => ({ zoom: diorama.zoom, x: diorama.camera.position.x, y: diorama.camera.position.y, z: diorama.camera.position.z }));
   registerStateProvider('net', () => ({ status: net.status, peers: net.peers().length, error: net.lastError }));
-  registerStateProvider('peersDrawn', () => [...remotes.entries()].map(([id, r]) => ({ id, x: r.avatar.object.position.x, z: r.avatar.object.position.z, walk: r.avatar.visible, boat: !!r.boatAt?.visible })));
+  registerStateProvider('peersDrawn', () => [...remotes.entries()].map(([id, r]) => ({ id, x: r.avatar.object.position.x, z: r.avatar.object.position.z, walk: r.avatar.visible, boat: !!(flotta.get(id)?.naviga && flotta.get(id)?.at?.visible) })));
+  // barche (#6, #107): la tua (posa e colori) e quelle degli altri che si vedono; `sovrapposte` = la tua tocca uno scafo altrui
+  registerStateProvider('barche', () => {
+    const mia = { x: boat.state.x, z: boat.state.z, yaw: boat.state.yaw }, altre = altreBarche();
+    return {
+      mia: { ...mia, barca: boat.barca, vuota: mode === 'walk' }, sovrapposte: altre.some((b) => barcheSovrapposte(mia, b)),
+      altre: altre.map((b) => ({ ...b, barca: flotta.get(b.id)?.boat?.barca ?? null })),
+    };
+  });
   // `island.spawn` = dove si nasce (il molo del proprio lotto o il Porto); `island.dock` = il punto del molo accanto alla barca ormeggiata.
   let spawnAt = { ...home }, dockAt = landingSpot(boat.state, map) ?? home;
   registerStateProvider('island', () => ({ id: map.id, w: map.w, h: map.h, tile: map.tile, spawn: spawnAt, dock: dockAt }));
@@ -281,6 +353,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   registerTestHook('setZoom', (z) => diorama.setZoom(Number(z)));
   registerTestHook('setMode', (m) => { if (m === 'boat') { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; } else { mode = 'walk'; boat.setDriver(null); avatar.visible = true; avatar.teleport(spawnAt.x, spawnAt.z); } });
   registerTestHook('goto', (name) => { const p = goto(name); return p ? { island: p.island, slot: p.slot, x: p.spawn.x, z: p.spawn.z } : null; });
+  /** Test (#6): sposta la tua barca in (x, z) con la prua a `yaw` (se ci sei sopra, anche te). */
+  registerTestHook('barcaA', (x, z, yaw) => { boat.teleport(Number(x), Number(z), Number(yaw ?? 0)); if (mode === 'boat') avatar.teleport(Number(x), Number(z)); });
   /** Test (prestazioni): cosa si disegna nel prossimo frame, mesh per mesh, nella vista e nel passo delle ombre (triangoli per mesh). */
   registerTestHook('disegnati', () => new Promise((res) => {
     const vista = new Set<THREE.Mesh>(), ombra = new Set<THREE.Mesh>(), prima = new Map<THREE.Object3D, [THREE.Object3D['onBeforeRender'], THREE.Object3D['onBeforeShadow']]>();
