@@ -4,6 +4,8 @@
 // Le Lanterne (#7) sono state tolte l'8 ott 2026 (Jack: «fa cagare»).
 // Minigiochi universali (GDD §3): Consegne (in barca, nel mondo) e Ingorgo (a schermo) su ogni molo con un posto in content, a piedi.
 // Nel mondo: boa grande e cartello «REGATA» che si vede da lontano; vicino compare il bottone GIOCA (A / E / Spazio sulla tastiera).
+// La Regata no: la boa del via sta accanto al molo della Laguna, dove A serve ad attraccare e scendere a terra (e a piedi a risalire in
+// barca). Lì si parte solo dalla barca, col bottone GIOCA · REGATA o col tasto R (`inBarca`, `tasto`).
 // Il seed lo sceglie il server, che poi rigioca gli input, decide la medaglia e paga il premio (balance.solo: Legno, Pietra, Perle).
 // Alla fine una scheda con l'esito, il premio che vola nella barra e RIGIOCA.
 import * as THREE from 'three';
@@ -30,8 +32,9 @@ import { temaAperta } from './temi.ts'; // Ghiacci e Giardino
 /** `opzioni` = parametri della partita per il server (es. il mare della pesca); `posto` = molo dove si gioca ('porto', 'lotto:N':
  *  lo riceve il gioco); `aPiedi` = parte solo a piedi (in barca A accelera); `vista` = il cartello si vede solo entro tanti metri;
  *  `mete: false` = non va nella bussola; `model` = modello del manifest sul posto; `aperta` = il posto c'è solo quando è vera (minigiochi
- *  delle isole a tema: Ghiacci, Giardino), anche nella bussola. */
-export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean; opzioni?: Record<string, string>; posto?: string; aPiedi?: boolean; vista?: number; mete?: boolean; model?: string; aperta?: () => boolean };
+ *  delle isole a tema: Ghiacci, Giardino), anche nella bussola. `inBarca` = parte solo dalla barca; `tasto` = parte col bottone o con
+ *  questo tasto, non con A (la Regata: al molo della Laguna A serve ad attraccare). */
+export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean; opzioni?: Record<string, string>; posto?: string; aPiedi?: boolean; inBarca?: boolean; tasto?: { code: string; nome: string }; vista?: number; mete?: boolean; model?: string; aperta?: () => boolean };
 export type Minigiochi = {
   readonly spots: readonly Spot[];
   /** Un tick (60 Hz): vicino a un posto, il fronte di salita di A fa partire la partita. `f` = l'input intero (giochi in barca). */
@@ -76,9 +79,9 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   injectUiStyle();
   if (!document.getElementById('mz-minigiochi-style')) { const st = document.createElement('style'); st.id = 'mz-minigiochi-style'; st.textContent = CSS; document.head.appendChild(st); }
   const arch = o.world.archipelago;
-  // la Regata parte dal molo (B) dell'isola del percorso
+  // la Regata parte dal molo (B) dell'isola del percorso, solo in barca e col suo bottone (o R): A lì attracca e fa scendere a terra
   const cfg = MINIGAMES_CFG.regata, lag = arch.places.find((p) => p.island === cfg.course.island) ?? arch.places.find((p) => p.role === 'laguna');
-  const spots: Spot[] = lag ? [{ id: 'regata', nome: cfg.nome, minigame: 'regata', x: lag.boat.x, z: lag.boat.z, icon: 'regata', near: NEAR_M, boa: true }] : [];
+  const spots: Spot[] = lag ? [{ id: 'regata', nome: cfg.nome, minigame: 'regata', x: lag.boat.x, z: lag.boat.z, icon: 'regata', near: NEAR_M, boa: true, inBarca: true, tasto: { code: 'KeyR', nome: 'R' } }] : [];
   if (o.tavolo) spots.push({ id: 'scacchi', nome: SCACCHI.nome, minigame: 'scacchi', x: o.tavolo.x, z: o.tavolo.z, icon: 'scacchi', near: 5, boa: false });
   /** Molo di un'isola, come lo chiamano i minigiochi universali: 'porto', 'laguna', 'lotto:N'. */
   const moloDi = (p: ArchPlace) => (p.role === 'lotto' ? `lotto:${p.slot}` : p.role);
@@ -154,6 +157,12 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   o.root.append(btn, esito);
   let near: Spot | null = null, nearWas: Spot | null = null, aWas = false, busy = false, open = false, playedN = 0, last: (SoloResult & { spot: string }) | null = null, esitoSpot: Spot | null = null;
   btn.addEventListener('click', () => { if (near) void play(near); });
+  // posti col loro tasto (la Regata: R), dove A fa altro
+  addEventListener('keydown', (e) => {
+    if (!near?.tasto || e.code !== near.tasto.code || e.repeat || e.altKey || e.ctrlKey || e.metaKey || open) return;
+    if ((e.target as HTMLElement | null)?.closest?.('input, textarea')) return;
+    void play(near);
+  });
 
   const v = new THREE.Vector3();
   const screenOf = (x: number, y: number, z: number) => {
@@ -272,16 +281,16 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       if (input) for (const g of schermi.values()) if (g.isOpen()) g.step?.(input); // giochi nel mondo (Consegne): la loro sim gira qui
       if (o.world.race.on || busy || open || schermoAperto()) { near = null; return; }
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
-      near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near && (!s.aPiedi || o.world.mode === 'walk') && (!s.aperta || s.aperta())) ?? null;
-      if (near && near !== nearWas) o.hud.toast(`${near.nome}: premi A o tocca GIOCA`, 2500);
+      near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near && (!s.aPiedi || o.world.mode === 'walk') && (!s.inBarca || o.world.mode === 'boat') && (!s.aperta || s.aperta())) ?? null;
+      if (near && near !== nearWas) o.hud.toast(near.tasto ? `${near.nome}: ${matchMedia('(pointer: coarse)').matches ? 'tocca GIOCA' : `${near.tasto.nome} o GIOCA`} · A al molo per scendere` : `${near.nome}: premi A o tocca GIOCA`, 2500);
       nearWas = near;
-      if (near && pressA) void play(near);
+      if (near && pressA && !near.tasto) void play(near);
       pesca.tick(); // Pesca (#66)
       perle.tick(); // Perle
     },
     update(t) {
       const show = !!near && !busy && !open && !o.world.race.on && !schermoAperto();
-      if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', 'A')); }
+      if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', near.tasto?.nome ?? 'A')); }
       btn.classList.toggle('on', show);
       pesca.update(); // Pesca (#66)
       perle.update(); // Perle
