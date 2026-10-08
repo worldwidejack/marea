@@ -157,6 +157,15 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.regata.active === false, 5000);
     });
 
+    await ctx.test('arrivo a scacchi all\'ultima boa e raffiche sullo schermo (#1)', async () => {
+      await hook('startRegataAuto', 777, 3, 1);
+      await ctx.waitState(page, (s) => s.regata.active === true && s.regata.total > 0 && s.regata.next === s.regata.total - 1, 40000);
+      await hook('setZoom', 2.2); await page.waitForTimeout(1200);
+      await shotsOf('arrivo_ultima_boa');
+      await hook('regataCancel');
+      await ctx.waitState(page, (s) => s.regata.active === false, 5000);
+    });
+
     await ctx.test('nessun pageerror né errore in console', async () => {
       ctx.noErrors(p, 'Anna');
       assert(liveRes, 'gara completa non eseguita');
