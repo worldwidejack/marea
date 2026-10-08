@@ -1,13 +1,21 @@
 // Input (WP2): tastiera WASD/frecce + joystick touch (#joystick) + bottoni A/B (#btnA #btnB). Il vettore esce in ASSI MONDO:
 // "su" sullo schermo = direzione in cui guarda la camera proiettata a terra (yaw 45° → nord-ovest, −x −z).
 // Un campione per tick (main.ts). Nessun doppio evento: solo pointer events; un tocco più breve di un tick viene comunque visto (latch).
+// «Una mano» (#143, Impostazioni, solo touch): niente joystick fisso; nasce dove il dito tocca il canvas e, dopo il rilascio, resta lì
+// (più chiaro) per i secondi scelti: un tocco sopra o appena fuori lo riprende col centro di prima, altrove ne nasce uno nuovo.
+// I tocchi brevi sul canvas restano dei loro (lotto, gatti): il joystick appare e basta. Un secondo dito sul canvas (pizzico) lo lascia.
 import type { InputFrame } from '@marea/sim';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
-export type Input = { sample(): InputFrame; dispose(): void; inject(f: Partial<InputFrame> | null): void };
+export type Input = {
+  sample(): InputFrame; dispose(): void; inject(f: Partial<InputFrame> | null): void;
+  /** Una mano (#143): joystick dove tocchi, che resta `sec` secondi dopo il rilascio. Spento = joystick fisso in basso a sinistra. */
+  setUnaMano(on: boolean, sec: number): void;
+};
 
 const DEAD = 0.14; // zona morta del joystick (frazione del raggio); oltre, la magnitudine riparte da 0
 const RING = 132, STICK = 52, R = 44; // px: anello, pomello, corsa massima del pomello
+const GRAB = RING / 2 + 3 + 28; // una mano: un tocco entro questo raggio dal centro riprende il joystick fermo (anello + bordo + margine del pollice)
 const KEY_WALK = 0.7; // tastiera: camminata; con Shift = 1 (corsa)
 const BTN_A = 84, BTN_B = 68;
 const SAFE = 'env(safe-area-inset-bottom, 0px)';
@@ -40,7 +48,9 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   const joy = mk('joystick'), stick = mk('stick'); joy.appendChild(stick);
   const btnA = mk('btnA', 'btn'), btnB = mk('btnB', 'btn'); btnA.textContent = 'A'; btnB.textContent = 'B';
   const nogesture = 'touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;';
-  joy.style.cssText = `${nogesture}position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(${SAFE} + 32px);width:${RING}px;height:${RING}px;border-radius:50%;background:rgba(46,30,20,.5);border:3px solid rgba(244,227,193,.55);`;
+  const ringCss = `${nogesture}position:absolute;width:${RING}px;height:${RING}px;border-radius:50%;background:rgba(46,30,20,.5);border:3px solid rgba(244,227,193,.55);`;
+  const fixedCss = `${ringCss}left:max(16px,env(safe-area-inset-left,0px));bottom:calc(${SAFE} + 32px);`;
+  joy.style.cssText = fixedCss;
   stick.style.cssText = `position:absolute;left:${(RING - 6 - STICK) / 2}px;top:${(RING - 6 - STICK) / 2}px;width:${STICK}px;height:${STICK}px;border-radius:50%;background:rgba(244,227,193,.88);border:3px solid #8E5A2B;pointer-events:none;will-change:transform;`;
   const btnCss = (size: number, right: string, bottom: string, bg: string) => `${nogesture}position:absolute;right:${right};bottom:${bottom};width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:3px solid rgba(244,227,193,.7);color:#F4E3C1;font:bold ${Math.round(size * 0.34)}px ui-monospace,Menlo,monospace;display:flex;align-items:center;justify-content:center;`;
   const aCss = btnCss(BTN_A, 'max(16px,env(safe-area-inset-right,0px))', `calc(${SAFE} + 36px)`, 'rgba(232,67,63,.78)');
@@ -56,23 +66,49 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
 
   // ---- joystick ----
   let jx = 0, jy = 0, jid: number | null = null, lastEv: Event | null = null;
+  // una mano: centro (px schermo) e stato del joystick volante; via = nascosto, su = dito giù, riposo = fermo dopo il rilascio
+  let una = false, restaMs = 2000, cx = 0, cy = 0, pad: 'via' | 'su' | 'riposo' = 'via', restT: ReturnType<typeof setTimeout> | null = null;
+  const paintJoy = () => {
+    if (!una) { joy.style.cssText = fixedCss; return; }
+    // il bordo conta: il centro dell'anello cade sotto il dito. Sopra guida e HUD (z 13-14), sotto schede e uscite; mai bersaglio dei tocchi:
+    // li prende il canvas (onCanvasDown), così da fermo non copre i bottoni che ha sotto
+    const half = RING / 2 + 3;
+    joy.style.cssText = `${ringCss}left:${Math.round(cx - half)}px;top:${Math.round(cy - half)}px;z-index:15;pointer-events:none;display:${pad === 'via' ? 'none' : 'block'};opacity:${pad === 'riposo' ? 0.5 : 1};`;
+  };
+  const setPad = (st: typeof pad) => {
+    if (restT !== null) { clearTimeout(restT); restT = null; }
+    pad = st;
+    if (st === 'riposo') restT = setTimeout(() => { restT = null; pad = 'via'; paintJoy(); }, restaMs);
+    paintJoy();
+  };
   const setStick = () => { stick.style.transform = `translate(${jx * R}px, ${jy * R}px)`; stick.style.background = jid === null ? 'rgba(244,227,193,.88)' : '#F4E3C1'; };
   const moveStick = (e: PointerEvent) => {
-    const r = joy.getBoundingClientRect(); const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    let ox = cx, oy = cy;
+    if (!una) { const r = joy.getBoundingClientRect(); ox = r.left + r.width / 2; oy = r.top + r.height / 2; }
+    const dx = e.clientX - ox, dy = e.clientY - oy;
     const d = Math.hypot(dx, dy); const k = d > R ? R / d : 1; jx = (dx * k) / R; jy = (dy * k) / R; setStick();
   };
-  function endStick() { jid = null; jx = jy = 0; setStick(); }
+  function endStick() { const era = jid !== null; jid = null; jx = jy = 0; setStick(); if (una && era) setPad(restaMs > 0 ? 'riposo' : 'via'); }
   const dedupe = (e: Event) => { if (e === lastEv) return true; lastEv = e; return false; };
   joy.addEventListener('pointerdown', (e) => {
     if (dedupe(e) || jid !== null) return; e.preventDefault(); jid = e.pointerId;
     try { joy.setPointerCapture(e.pointerId); } catch { /* pointer sintetico (test): niente cattura, gli eventi arrivano lo stesso */ }
     moveStick(e);
   });
+  // una mano: il dito sul canvas fa nascere il joystick lì (o riprende quello fermo se è vicino); il tocco arriva comunque al lotto e ai gatti
+  const onCanvasDown = (e: PointerEvent) => {
+    if (!una || e.pointerType === 'mouse') return;
+    if (jid !== null) { if (e.pointerId !== jid) { endStick(); setPad('via'); } return; } // secondo dito: è un pizzico, il joystick si fa da parte
+    if (dedupe(e)) return;
+    if (!(pad === 'riposo' && Math.hypot(e.clientX - cx, e.clientY - cy) <= GRAB)) { cx = e.clientX; cy = e.clientY; }
+    jid = e.pointerId; setPad('su'); moveStick(e);
+  };
+  o.canvas.addEventListener('pointerdown', onCanvasDown);
   const onMove = (e: PointerEvent) => { if (e.pointerId !== jid || dedupe(e)) return; e.preventDefault(); moveStick(e); };
   const onEnd = (e: PointerEvent) => { if (e.pointerId !== jid || dedupe(e)) return; endStick(); };
   joy.addEventListener('pointermove', onMove); joy.addEventListener('pointerup', onEnd); joy.addEventListener('pointercancel', onEnd);
-  // rete di sicurezza: se la cattura salta (uscita dal browser), lo stick si rilascia comunque
-  addEventListener('pointerup', onEnd); addEventListener('pointercancel', onEnd);
+  // rete di sicurezza: se la cattura salta (uscita dal browser), lo stick si rilascia comunque; i movimenti del joystick volante arrivano dal canvas
+  addEventListener('pointermove', onMove); addEventListener('pointerup', onEnd); addEventListener('pointercancel', onEnd);
 
   // ---- bottoni: un set di pointerId per bottone (multi-touch); il latch cattura anche i tocchi più brevi di un tick ----
   const aHeld = new Set<number>(), bHeld = new Set<number>();
@@ -94,6 +130,12 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   let last = { sx: 0, sy: 0, mag: 0, src: 'none' };
   const input: Input = {
     inject: (f) => { injected = f; },
+    setUnaMano(on, sec) {
+      restaMs = Math.max(0, sec) * 1000;
+      if (on === una) return;
+      endStick(); una = on;
+      setPad('via');
+    },
     sample(): InputFrame {
       if (injected) return { mx: 0, my: 0, a: false, b: false, ...injected };
       let sx = 0, sy = 0, src = 'none'; // schermo: x destra, y giù
@@ -117,13 +159,14 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
     },
     dispose() {
       removeEventListener('keydown', kd); removeEventListener('keyup', ku); removeEventListener('blur', releaseAll);
-      removeEventListener('pointerup', onEnd); removeEventListener('pointercancel', onEnd); removeEventListener('pointerup', upAny); removeEventListener('pointercancel', upAny);
+      removeEventListener('pointermove', onMove); removeEventListener('pointerup', onEnd); removeEventListener('pointercancel', onEnd); removeEventListener('pointerup', upAny); removeEventListener('pointercancel', upAny);
+      o.canvas.removeEventListener('pointerdown', onCanvasDown); if (restT !== null) clearTimeout(restT);
       document.removeEventListener('visibilitychange', onVis);
       for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.removeEventListener(ev, noGesture as EventListener);
       joy.remove(); btnA.remove(); btnB.remove();
     },
   };
-  registerStateProvider('wp2_input', () => ({ ...last, stick: [jx, jy], a: aHeld.size > 0, b: bHeld.size > 0, injected: !!injected }));
+  registerStateProvider('wp2_input', () => ({ ...last, stick: [jx, jy], a: aHeld.size > 0, b: bHeld.size > 0, injected: !!injected, unaMano: una, pad: una ? pad : 'fisso', padAt: [Math.round(cx), Math.round(cy)], restaMs }));
   registerTestHook('wp2_inject', (f) => input.inject((f ?? null) as Partial<InputFrame> | null));
   return input;
 }

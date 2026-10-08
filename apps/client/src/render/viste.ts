@@ -2,14 +2,17 @@
 // Il resto (render/aspetto.ts: passata finale, acqua stampa, ciclo) si scarica solo quando qualcuno accende un'impostazione.
 import type { View } from './scene.ts';
 
-/** musica, effetti: livelli 0 (spento) … 3 (audio/, sintetizzato). Le impostazioni salvate prima non li hanno: valgono quelli di serie. */
-export type Impostazioni = { cam: number; ciclo: boolean; stampa: boolean; contorni: boolean; musica: number; effetti: number; /** #85: sereno, nuvole, pioggia, nebbia, vento dall'orologio */ meteo: boolean };
+/** musica, effetti: livelli 0 (spento) … 3 (audio/, sintetizzato). Le impostazioni salvate prima non li hanno: valgono quelli di serie.
+ *  unaMano (#143, solo telefono): il joystick nasce dove tocchi lo schermo e dopo il rilascio resta lì padSec secondi (game/input.ts). */
+export type Impostazioni = { cam: number; ciclo: boolean; stampa: boolean; contorni: boolean; musica: number; effetti: number; /** #85: sereno, nuvole, pioggia, nebbia, vento dall'orologio */ meteo: boolean; unaMano: boolean; padSec: number };
 /** Di serie (#59, Jack 7 ott): ciclo giorno/notte, camera 22°, contorni, meteo (#85). La stampa giapponese resta da accendere. Musica media, effetti alti. */
-export const DI_SERIE: Impostazioni = { cam: 3, ciclo: true, stampa: false, contorni: true, musica: 2, effetti: 3, meteo: true };
+export const DI_SERIE: Impostazioni = { cam: 3, ciclo: true, stampa: false, contorni: true, musica: 2, effetti: 3, meteo: true, unaMano: false, padSec: 2 };
 /** Tutto spento: la resa di sempre (45°, luce fissa, niente passata finale), muto. È la partenza dei test automatici. */
-export const SPENTO: Impostazioni = { cam: 0, ciclo: false, stampa: false, contorni: false, musica: 0, effetti: 0, meteo: false };
+export const SPENTO: Impostazioni = { cam: 0, ciclo: false, stampa: false, contorni: false, musica: 0, effetti: 0, meteo: false, unaMano: false, padSec: 2 };
 /** Livelli dell'audio nel pannello (0 … 3). */
 export const VOLUMI = ['NO', '1', '2', '3'] as const;
+/** Una mano (#143): quanti secondi il joystick resta dove l'hai lasciato. Comodità del telefono, non numero di gioco. */
+export const PAD_SEC = [1, 2, 3, 5] as const;
 /** La resa (render/aspetto.ts) serve? L'audio non conta: ha il suo chunk. */
 export const tuttoSpento = (s: Impostazioni): boolean => s.cam === 0 && !s.ciclo && !s.stampa && !s.contorni && !s.meteo;
 /** Viste della camera: la prima è quella di sempre (ART_BIBLE §7). far: fin dove si disegna (con la camera bassa si vede l'orizzonte). */
