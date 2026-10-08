@@ -29,6 +29,7 @@ import { createIngressi } from './game/ingressi.ts';
 import { createEroe } from './ui/eroe.ts';
 import { createImpostazioni } from './ui/impostazioni.ts';
 import type { Aspetto } from './render/aspetto.ts';
+import type { Animali } from './game/animali.ts';
 import { tuttoSpento } from './render/viste.ts';
 import type { Impostazioni } from './render/viste.ts';
 import type { LotState } from '@marea/sim';
@@ -146,6 +147,9 @@ async function boot(): Promise<void> {
   registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0 }));
   const feed = FLAGS.sfide && me && api.enabled ? createFeed({ api, hud, root, onNews: (news) => { if (news.some((n) => n.tipo !== 'sfida_ricevuta' && n.tipo !== 'sfida_accettata')) refreshMyLot(); } }) : null;
   const emotes = createEmotes({ world, camera: renderer.camera, canvas, root });
+  // Animali (#67): gabbiani, gatti dei moli (fusa con A o un tocco), pesci, granchi, delfini, lucciole di notte. Solo resa, chunk a parte
+  let animali: Animali | null = null;
+  void import('./game/animali.ts').then((m) => { animali = m.createAnimali({ world, camera: renderer.camera, canvas, root, hud, buio: () => aspetto?.buio ?? 0 }); }).catch(() => { /* senza animali si gioca lo stesso */ });
   const EMOTES = AVATAR.emote as EmoteId[];
   const panelsBusy = () => !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || ingressi.active || ingressi.isBusy();
   const openEditor = () => { if (!editor || panelsBusy()) return false; feed?.close(); editor.open(); return true; };
@@ -194,12 +198,12 @@ async function boot(): Promise<void> {
     while (acc >= DT && steps < 5) {
       const f = input.sample();
       if (ingressi.active) { ingressi.step(f); acc -= DT; steps++; continue; } // nel dungeon il mondo di superficie sta fermo
-      if (regata.active) regata.step(f); else { tickTavolo(f.a); giochi.tick(f.a); ingressi.tick(f.a); }
+      if (regata.active) regata.step(f); else { tickTavolo(f.a); giochi.tick(f.a); ingressi.tick(f.a); animali?.tick(f.a); } // Animali (#67)
       world.frozen = (!!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || !!eroe?.isOpen()) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
-    if (ingressi.active) ingressi.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); }
+    if (ingressi.active) ingressi.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); animali?.update(dt, t); } // Animali (#67)
     regata.update(acc / DT, dt, t);
     emotes.update(dt); setTopbarHidden(regata.active || ingressi.active);
     giochi.update(t); guideStep = guida.current(); guida.update(t);

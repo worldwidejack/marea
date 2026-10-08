@@ -36,6 +36,8 @@ export type Aspetto = {
   set(s: Impostazioni): void; update(nowMs: number, t: number, focus?: { x: number; z: number }): void; readonly momento: string; readonly attivo: boolean;
   /** Luci vere accese adesso (#60), per i test. */
   readonly luci: number;
+  /** 0..1: quanto è buio (0 di giorno o col ciclo spento, 1 a notte piena): lucciole (#67). */
+  readonly buio: number;
   /** Test e screenshot: fissa il momento del giro (0 giorno … 0,75 notte); null = l'orologio. */
   forzaFase(f: number | null): void;
 };
@@ -73,6 +75,7 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
   const api: Aspetto = {
     get momento() { return imp.ciclo ? m.nome : 'giorno'; },
     get luci() { return luci?.accese ?? 0; },
+    get buio() { return imp.ciclo ? m.luci : 0; },
     get attivo() { return post !== null && (imp.contorni || imp.stampa || imp.cam > 0); },
     set(s) {
       imp = { ...s, cam: Math.max(0, Math.min(VISTE.length - 1, Math.round(s.cam) || 0)) };
