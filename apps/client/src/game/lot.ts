@@ -18,6 +18,7 @@ import type { Label, LabelLayer, Sheet } from '../ui/sheet.ts';
 import { buildPanel, buildable, buildingPanel } from '../ui/lotpanels.ts';
 import type { PanelCtx } from '../ui/lotpanels.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { suona } from '../audio/ponte.ts';
 
 export type LotViewOptions = {
   scene: THREE.Scene; loader: Loader; origin: [number, number]; tile: number; api: Api; hud: Hud;
@@ -197,10 +198,10 @@ export function createLotView(o: LotViewOptions): LotView {
       o.hud.toast(`+${gained} ${res === 'legno' ? 'Legno' : res === 'pietra' ? 'Pietra' : 'Perle'}`, 1400);
     });
   }
-  const upgrade = (id: string) => act(() => o.api.upgrade(id));
+  const upgrade = (id: string) => act(() => o.api.upgrade(id), () => suona('martello'));
   const build = (building: string, cell: [number, number]) => act(() => o.api.build(building, cell), (_p, next) => {
     if (!next.construction) return;
-    closePanel();
+    closePanel(); suona('martello');
     o.hud.toast(`Cantiere avviato: ${buildingDef(building).nome} tra ${fmtClock(next.construction.endsMs - now())}`, 2600);
   });
 

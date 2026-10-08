@@ -23,6 +23,7 @@ import type { InputFrame, PackedInputs } from '@marea/sim';
 import { createLabelLayer, flyResources } from '../ui/sheet.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { createPostoPesca } from './pesca.ts';
+import { suona } from '../audio/ponte.ts';
 
 /** `opzioni` = parametri della partita per il server (es. il mare della pesca); `posto` = molo dove si gioca ('porto', 'lotto:N':
  *  lo riceve il gioco); `aPiedi` = parte solo a piedi (in barca A accelera); `vista` = il cartello si vede solo entro tanti metri;
@@ -156,6 +157,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     r.append(again, ok); body.push(r);
     esito.replaceChildren(...body);
     esito.classList.add('on'); open = true;
+    suona(medal ? `medaglia_${medal}` : 'fine');
     addEventListener('keydown', onKey, true);
   }
   function fly(premio: Resources): void {

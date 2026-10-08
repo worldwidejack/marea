@@ -9,6 +9,7 @@ import type { Hud } from './hud.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
 import { topButton } from './topbar.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { suona } from '../audio/ponte.ts';
 
 export type Feed = { refresh(): Promise<void>; open(): void; close(): void; toggle(): void; isOpen(): boolean; readonly unread: number };
 /** `onNews`: righe mai viste (una sfida chiusa, rifiutata o scaduta muove le risorse: main rilegge il lotto). */
@@ -113,6 +114,7 @@ export function createFeed(o: FeedOpts): Feed {
       const news = items.filter((i) => i.id > seenId && !i.letto);
       seenId = Math.max(seenId, lastId);
       if (news.length) o.onNews?.(news);
+      if (news.length && !open) suona('notifica');
       if (open) { for (const i of news) fresh.add(i.id); render(); if (news.length || unread) void markRead(); }
       else if (news.length === 1) o.hud.toast(short(news[0]!.testo), 3500);
       else if (news.length > 1) o.hud.toast(`${news.length} novità · apri la campanella`, 3500);

@@ -18,6 +18,7 @@ import { heroNow } from '@marea/sim/dungeon/zaino.ts';
 import type { DungeonAzione, DungeonAzioni, DungeonEvent, DungeonInput, DungeonView } from '@marea/sim/dungeon/types.ts';
 import { PAL } from '../ui/style.ts';
 import { dungeonLink } from '../game/ingressi.ts';
+import { dungeonEvento, dungeonPasso } from '../audio/ponte.ts';
 import type { DungeonFinish, DungeonRun, PanelCtx, RunBag, RunCtx } from './types.ts';
 import { createDungeonScene } from './dungeon_scene.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
@@ -131,6 +132,7 @@ export function startRun(ctx: RunCtx, o: {
 
   const onEvent = (e: DungeonEvent) => {
     if (!hud || !actors || !hero) return;
+    dungeonEvento(e);
     if (e.t === 'colpo') {
       if (e.su === 'nemico') { if (e.id !== undefined) actors.hit(e.id); const p = (e.id !== undefined ? actors.posOf(e.id) : null); if (p) hud.number(p, `${Math.round(e.danno)}${e.critico ? '!' : ''}`, 'dato', !!e.caricato || !!e.critico); }
       else { hero.flash(); hud.number(hero.head(), `-${Math.round(e.danno)}`, 'preso'); }
@@ -163,7 +165,7 @@ export function startRun(ctx: RunCtx, o: {
     const c = controls!.sample();
     const raw: DungeonInput = auto ? dungeon.autopilot(s, auto) : dungeonLink.altare >= 0 ? walkToAltare(dungeonLink.altare) : { mx: f.mx, my: f.my, a: f.a || c.a, b: f.b, c: c.c, d: c.d };
     const q = quantizeDungeon(raw);
-    frames.push(q); dungeon.step(s, q);
+    frames.push(q); dungeon.step(s, q); dungeonPasso(s.hero.x, s.hero.z);
     for (const e of s.eventi) onEvent(e);
   }
 

@@ -1,11 +1,12 @@
 // Impostazioni (#53): ingranaggio #mzSetBtn nella barra in alto, pannello #mzSet con camera (5 viste), ciclo giorno/notte,
-// stampa giapponese e contorni. Di serie (#59) ciclo, camera 22° e contorni; le scelte restano su questo dispositivo (localStorage).
+// stampa giapponese e contorni, volume di Musica ed Effetti (audio/ponte.ts: 4 livelli, NO … ALTA). Di serie (#59) ciclo, camera 22° e contorni; le scelte restano su questo dispositivo (localStorage).
 // Coi test automatici (?test=1) si parte tutto spento, così gli screenshot non dipendono dall'ora vera; ?serie=1 usa i valori di serie.
 // Il pannello non sa niente di three: chiama onChange e render/aspetto.ts fa il resto.
 import { PAL, el, injectUiStyle } from './style.ts';
 import { topButton } from './topbar.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-import { CICLO_MIN, DI_SERIE, SPENTO, VISTE } from '../render/viste.ts';
+import { CICLO_MIN, DI_SERIE, SPENTO, VISTE, VOLUMI } from '../render/viste.ts';
+import { setVolumi } from '../audio/ponte.ts';
 import { FLAGS } from '../flags.ts';
 import type { Impostazioni } from '../render/viste.ts';
 
@@ -22,6 +23,9 @@ const CSS = `
 #mzSet .mz-set-row .sw { flex: none; min-width: 52px; padding: 4px 0; text-align: center; background: ${P.roccia}; border: 2px solid ${P.pietraScura}; color: ${P.pietra}; }
 #mzSet .mz-set-row.on { border-color: ${P.giallo}; }
 #mzSet .mz-set-row.on .sw { background: ${P.erba}; border-color: ${P.erbaScura}; color: ${P.neroCaldo}; }
+#mzSet .mz-set-vol { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; }
+#mzSet .mz-set-vol .mz-set-lbl { flex: 1; margin: 0; }
+#mzSet .mz-set-vol .mz-set-cam { min-width: 48px; }
 #mzSetBtn .mz-ico { width: 28px; height: 28px; }
 `;
 let styled = false;
@@ -54,7 +58,8 @@ export function loadImpostazioni(): Impostazioni {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<Impostazioni> | null;
     if (!raw) return { ...base };
-    return { cam: Number(raw.cam) || 0, ciclo: raw.ciclo === true, stampa: raw.stampa === true, contorni: raw.contorni === true };
+    const vol = (v: unknown, d: number) => (typeof v === 'number' && v >= 0 && v <= 3 ? Math.round(v) : d); // salvate prima dell'audio: di serie
+    return { cam: Number(raw.cam) || 0, ciclo: raw.ciclo === true, stampa: raw.stampa === true, contorni: raw.contorni === true, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti) };
   } catch { return { ...base }; }
 }
 
@@ -69,13 +74,24 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
   const body = el('div'); sheet.append(head, body); o.root.appendChild(sheet);
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch { /* navigazione privata: vale fino a fine sessione */ } };
-  const change = (p: Partial<Impostazioni>) => { cur = { ...cur, ...p }; save(); o.onChange(cur); render(); };
+  const change = (p: Partial<Impostazioni>) => { cur = { ...cur, ...p }; save(); o.onChange(cur); setVolumi(cur.musica, cur.effetti); render(); };
   const toggleRow = (key: 'ciclo' | 'stampa' | 'contorni', title: string, sub: string) => {
     const b = el('button', 'mz-set-row' + (cur[key] ? ' on' : '')); b.type = 'button'; b.dataset['set'] = key;
     const txt = el('span'); txt.append(el('span', '', title), el('span', 'q', sub));
     b.append(txt, el('span', 'sw', cur[key] ? 'SÌ' : 'NO'));
     b.addEventListener('click', () => change({ [key]: !cur[key] }));
     return b;
+  };
+  /** Volume a 4 livelli su una riga (NO, 1, 2, 3), bottoni grandi come quelli della camera: un pollice basta. In cima: è la cosa che si cambia più spesso. */
+  const volRow = (key: 'musica' | 'effetti', title: string) => {
+    const row = el('div', 'mz-set-vol'); row.append(el('div', 'mz-set-lbl', title));
+    VOLUMI.forEach((nome, i) => {
+      const b = el('button', 'mz-set-cam' + (cur[key] === i ? ' on' : ''), nome); b.type = 'button'; b.dataset[key] = String(i);
+      b.title = i === 0 ? 'Spento' : ['', 'Bassa', 'Media', 'Alta'][i] ?? '';
+      b.addEventListener('click', () => change({ [key]: i }));
+      row.appendChild(b);
+    });
+    return row;
   };
   function render(): void {
     body.replaceChildren();
@@ -88,7 +104,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
       row.appendChild(b);
     });
     cam.appendChild(row);
-    body.append(cam,
+    body.append(volRow('musica', 'Musica'), volRow('effetti', 'Effetti'), cam,
       toggleRow('ciclo', 'Ciclo giorno e notte', `giorno, tramonto, notte, alba: un giro ogni ${CICLO_MIN} minuti`),
       toggleRow('stampa', 'Stampa giapponese', 'colori da stampa antica, onde, carta'),
       toggleRow('contorni', 'Contorni', 'una riga scura attorno a cose e persone'));
@@ -103,7 +119,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
   function close(): void { if (!open) return; open = false; sheet.classList.remove('on'); btn.setOn(false); removeEventListener('keydown', onKey, true); }
   x.addEventListener('click', close);
   render();
-  o.onChange(cur);
+  o.onChange(cur); setVolumi(cur.musica, cur.effetti);
   registerStateProvider('impostazioni', () => ({ ...cur, open }));
   registerTestHook('impostazioni', (p) => change((p ?? {}) as Partial<Impostazioni>));
   return { open: show, close, isOpen: () => open, get value() { return cur; } };

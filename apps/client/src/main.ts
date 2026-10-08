@@ -28,6 +28,7 @@ import type { GuidaStep } from './ui/guida.ts';
 import { createIngressi } from './game/ingressi.ts';
 import { createEroe } from './ui/eroe.ts';
 import { createImpostazioni } from './ui/impostazioni.ts';
+import { collegaAudio } from './audio/ponte.ts';
 import type { Aspetto } from './render/aspetto.ts';
 import type { Animali } from './game/animali.ts';
 import { tuttoSpento } from './render/viste.ts';
@@ -142,6 +143,7 @@ async function boot(): Promise<void> {
     }).catch(() => { aspettoLoad = null; hud.toast('Impostazioni non caricate: riprova'); });
   };
   createImpostazioni({ root, onChange: applica });
+  collegaAudio({ world, root, momento: () => aspetto?.momento ?? 'giorno', gioco: () => giochi.isBusy(), dungeon: () => ingressi.active }); // suoni e musica (audio/ponte.ts), al primo gesto
   registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
   registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
   registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0 }));

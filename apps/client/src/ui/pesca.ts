@@ -9,6 +9,7 @@ import { MARI, PESCI, createRng, getMinigame, packInputs, quantize } from '@mare
 import type { Difficulty, InputFrame, MinigameModule, PackedInputs, PescaView } from '@marea/sim';
 import { PAL, el, injectUiStyle } from './style.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { pescaFase } from '../audio/ponte.ts';
 
 export type Pesca = {
   run(o: { seed: number; difficulty: number; opzioni?: Record<string, string> }): Promise<PackedInputs | null>;
@@ -340,7 +341,7 @@ export function createPesca(o: { root: HTMLElement }): Pesca {
   function render(): void {
     if (!gm) return;
     const v = view = gm.intro ? null : (mod.view(gm.s) as PescaView);
-    disegna(v);
+    disegna(v); pescaFase(v?.fase ?? null);
     const ms = v?.ms ?? 0, maxMs = v?.maxMs ?? CFG.maxSeconds * 1000;
     bar.style.width = `${Math.max(0, 100 - (ms / maxMs) * 100)}%`;
     time.classList.toggle('low', maxMs - ms < 10_000);
