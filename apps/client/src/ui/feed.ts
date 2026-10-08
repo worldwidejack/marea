@@ -10,10 +10,14 @@ import { PAL, el, injectUiStyle } from './style.ts';
 import { topButton } from './topbar.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { suona } from '../audio/ponte.ts';
+import { emoteIcon } from '../game/emote.ts';
+import type { EmoteId } from '@marea/protocol';
+import { AVATAR } from '@marea/content';
 
 export type Feed = { refresh(): Promise<void>; open(): void; close(): void; toggle(): void; isOpen(): boolean; readonly unread: number };
 /** `onNews`: righe mai viste (una sfida chiusa, rifiutata o scaduta muove le risorse: main rilegge il lotto). */
-export type FeedOpts = { api: Api; hud: Hud; root?: HTMLElement; pollMs?: number; onOpen?(): void; onClose?(): void; onNews?(items: FeedItem[]): void };
+/** `vuoto`: la riga quando non c'è niente (senza sfide con posta non si invita al Tavolo). */
+export type FeedOpts = { api: Api; hud: Hud; root?: HTMLElement; pollMs?: number; vuoto?: string; onOpen?(): void; onClose?(): void; onNews?(items: FeedItem[]): void };
 
 export const FEED_POLL_MS = 30_000;
 const FIRST_MS = 3000;
@@ -30,6 +34,9 @@ const CSS = `
 .mz-feed-row[data-tipo="sfida_accettata"] { border-left-color: ${P.acqua}; }
 .mz-feed-row[data-tipo="sfida_chiusa"] { border-left-color: ${P.erba}; }
 .mz-feed-row[data-tipo="sfida_rifiutata"], .mz-feed-row[data-tipo="sfida_scaduta"] { border-left-color: ${P.pietraScura}; }
+.mz-feed-row[data-tipo="visita"] { border-left-color: ${P.giallo}; display: flex; gap: 8px; align-items: flex-start; }
+.mz-feed-row[data-tipo="visita"] > .mz-ico { margin-top: 2px; }
+.mz-feed-row[data-tipo="visita"] > div { flex: 1; min-width: 0; }
 .mz-feed-empty { color: ${P.sabbia}; margin: 4px 0 10px; }
 #mzFeedBtn .mz-ico { width: 28px; height: 28px; }
 `;
@@ -94,12 +101,16 @@ export function createFeed(o: FeedOpts): Feed {
 
   const render = () => {
     body.replaceChildren();
-    if (!items.length) { body.appendChild(el('div', 'mz-feed-empty', 'Niente di nuovo. Sfida qualcuno al Tavolo del Porto.')); return; }
+    if (!items.length) { body.appendChild(el('div', 'mz-feed-empty', o.vuoto ?? 'Niente di nuovo. Sfida qualcuno al Tavolo del Porto.')); return; }
     const now = o.api.serverNow();
     for (const it of items) {
       const isNew = !it.letto || fresh.has(it.id);
       const row = el('div', 'mz-feed-row' + (isNew ? ' new' : '')); row.dataset['feed'] = String(it.id); row.dataset['tipo'] = it.tipo;
-      row.append(el('span', 't', it.testo), el('span', 'q', relTime(now - it.quando)));
+      if (it.tipo === 'visita') { // #86: il saluto della firma come icona a pixel accanto al testo
+        const box = el('div'); box.append(el('span', 't', it.testo), el('span', 'q', relTime(now - it.quando)));
+        if (it.emote && AVATAR.emote.includes(it.emote)) row.append(emoteIcon(it.emote as EmoteId, 24));
+        row.append(box);
+      } else row.append(el('span', 't', it.testo), el('span', 'q', relTime(now - it.quando)));
       body.appendChild(row);
     }
   };

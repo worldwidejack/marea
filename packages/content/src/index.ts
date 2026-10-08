@@ -12,12 +12,13 @@ import decor from './decor.json' with { type: 'json' };
 import archipelago from './archipelago.json' with { type: 'json' };
 import scacchi from './scacchi.json' with { type: 'json' };
 import perle from './minigames/perle.json' with { type: 'json' }; // Perle
+import rientro from './rientro.json' with { type: 'json' }; // Mentre eri via (#86)
 import pinguini from './minigames/pinguini.json' with { type: 'json' }; // Ghiacci
 import koi from './minigames/koi.json' with { type: 'json' }; // Giardino
 import arrembaggio from './minigames/arrembaggio.json' with { type: 'json' }; // Tempesta
 import lava from './minigames/lava.json' with { type: 'json' }; // Vulcano
 import type { ArrembaggioCfg, LavaCfg } from './types.ts'; // Tempesta, Vulcano
-import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, PerleCfg, PescaCfg, RegataCfg, ResourceDef, ScacchiCfg } from './types.ts';
+import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, PerleCfg, PescaCfg, RegataCfg, ResourceDef, RientroCfg, ScacchiCfg } from './types.ts';
 import type { PinguiniCfg } from './types.ts'; // Ghiacci
 import type { KoiCfg } from './types.ts'; // Giardino
 import { validateAll, validateArchipelago, validateTemi } from './schema.ts';
@@ -49,6 +50,7 @@ export const MINIGAMES_CFG: {
 export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;
 export const SCACCHI = scacchi as unknown as ScacchiCfg;
+export const RIENTRO = rientro as unknown as RientroCfg; // Mentre eri via e libro degli ospiti (#86)
 
 export function decorDef(id: string): DecorDef {
   const d = DECOR.find((x) => x.id === id);

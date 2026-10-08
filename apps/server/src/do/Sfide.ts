@@ -5,7 +5,7 @@
 //    (a ogni richiesta e con un alarm): un crash a metà non perde né raddoppia niente;
 //  - tutte le operazioni passano da un mutex in memoria: una alla volta (sono poche, tra amici).
 // Richieste dal Worker (x-persona, x-now): GET /list · POST /create {minigame, to, stake} · /play {id, inputs} · /accept {id} · /decline {id}
-// · GET /feed · POST /feed_letto {fino?}. Feed: una riga per persona a ogni passaggio di stato, scritta nella stessa transazione del `put`.
+// · GET /feed · POST /feed_letto {fino?} · POST /visita {chi, emote} (#86, riga «è passato sulla tua isola»). Feed: una riga per persona a ogni passaggio di stato, scritta nella stessa transazione del `put`.
 import { DurableObject } from 'cloudflare:workers';
 import { acceptChallenge, actionError, closeOutcome, isActive, isExpired, newChallenge, playTurn, refundsFor } from '@marea/sim/economy/challenge.ts';
 import type { HoldKind, Release } from '@marea/sim/economy/challenge.ts';
@@ -185,6 +185,12 @@ export class Sfide extends DurableObject<Env> {
           return json({ ok: true, nonLetti: nonLetti(sql, me) });
         }
         if (req.method !== 'POST') return json({ error: 'Metodo non consentito' }, 405);
+        if (act === 'visita') { // #86: un amico ha firmato il libro dell'isola di `me` (una riga al giorno per amico)
+          const chi = body['chi'], emote = body['emote'], giorno = Math.floor(now / 86_400_000);
+          if (typeof chi !== 'string' || !chi || chi.length > 40 || typeof emote !== 'string' || emote.length > 40) return json({ error: 'Richiesta non valida' }, 400);
+          scriviFeed(sql, { persona: me, tipo: 'visita', sfida: `visita:${giorno}:${chi}`, altro: chi, dati: { emote }, letto: false, quando: now });
+          return json({ ok: true });
+        }
         if (act === 'create') return await this.create(me, body, now);
         const row = typeof body['id'] === 'string' ? this.get(body['id']) : null;
         if (!row) return json({ error: 'Sfida non trovata' }, 404);

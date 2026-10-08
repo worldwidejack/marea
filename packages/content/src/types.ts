@@ -82,6 +82,17 @@ export type BalanceDef = {
   avatar: { camminata: number; corsa: number; sogliaCorsa: number; raggio: number };
   barca: { accel: number; maxSpeed: number; virata: number; attrito: number; rimbalzo: number; raggioImbarco: number };
 };
+/** «Mentre eri via» e libro degli ospiti (#86, GDD §2). */
+export type RientroCfg = {
+  /** Assenza minima (min) perché al rientro compaia la scheda «Mentre eri via». */
+  sogliaMinuti: number;
+  /** Ogni quanti secondi il client dice al server «ci sono» (così l'assenza si misura da quando sei uscito, non da quando eri entrato). */
+  presenzaSecondi: number;
+  /** Firme: quante ne tiene il libro di un'isola (le più vecchie escono), quante ne mostra, lunghezza massima del nome. Una al giorno (UTC) per persona e isola. */
+  firme: { tetto: number; mostra: number; nomeMax: number };
+  /** Il leggio col libro: cella locale [x, z] per id del template dell'isola, da quanti m compare FIRMA, da quanti m si vede il cartello. */
+  libro: { lotto: [number, number]; raggio: number; vista: number };
+};
 /** Scacco in 3 (Tavolo del Porto): posizioni FEN (solo pezzi), il Bianco fa `mosse` mosse di fila e il Nero sta fermo. */
 export type ScacchiCfg = { nome: string; mosse: number; problemi: { fen: string; soluzione: string }[] };
 

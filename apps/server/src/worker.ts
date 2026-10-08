@@ -215,6 +215,36 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, 'missione', { i: body['i'] });
       }
+      // Rientro (#86): all'ingresso il DO del lotto risponde col riepilogo dell'assenza (null se mancavi da poco) e segna «visto»; qui si
+      // aggiungono le novità non lette del feed che non sono visite (le visite stanno già nel riepilogo, come firme del libro)
+      if (path === '/api/rientro' && req.method === 'POST') {
+        const r = await lotReq(env, p.id, now, 'rientro', {});
+        if (!r.ok) return r;
+        const d = (await r.json()) as { riepilogo: unknown; lot: unknown };
+        let novita = 0;
+        try {
+          const f = await sfideReq(env, p.id, now, 'feed');
+          if (f.ok) novita = ((await f.json()) as { rows: FeedRow[] }).rows.filter((x) => !x.letto && x.tipo !== 'visita').length;
+        } catch { /* senza feed la scheda esce lo stesso */ }
+        return json({ riepilogo: d.riepilogo, novita, lot: d.lot, now });
+      }
+      if (path === '/api/presenza' && req.method === 'POST') return lotReq(env, p.id, now, 'visto', {});
+      // Libro degli ospiti (#86): firmi il libro dell'isola di un amico (nome dal tuo link, emote di avatar.json); il DO del suo lotto
+      // controlla «una al giorno» e risponde col suo LotState; poi una riga nel suo feed (best-effort)
+      if (path === '/api/libro/firma' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const isola = body['isola'], emote = body['emote'];
+        if (typeof isola !== 'string' || !/^[a-z0-9_-]{1,40}$/.test(isola)) return json({ error: 'Isola non valida' }, 400);
+        if (typeof emote !== 'string' || !AVATAR.emote.includes(emote)) return json({ error: 'Saluto sconosciuto' }, 400);
+        if (isola === p.id) return json({ error: 'È il tuo libro: qui firmano gli amici che passano', code: 'firma' }, 409);
+        if (!(await esistePersona(env, isola))) return json({ error: 'Isola non trovata' }, 404);
+        const r = await lotReq(env, isola, now, 'firma', { chi: p.id, nome: p.nome, emote });
+        if (!r.ok) return r;
+        const lot: unknown = await r.json();
+        try { const f = await doReq(env.SFIDE, 'tavolo', isola, now, 'visita', { chi: p.id, emote }); await f.body?.cancel(); } catch { /* il libro è firmato lo stesso */ }
+        return json(lot);
+      }
       // Mondo Sotterraneo: azioni del personaggio e spedizioni; il replay lo fa il DO del lotto, mai il Worker (10 ms di CPU)
       if (path === '/api/rpg' && req.method === 'POST') {
         const body = await corpo();

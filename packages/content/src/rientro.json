@@ -1,0 +1,6 @@
+{
+  "sogliaMinuti": 10,
+  "presenzaSecondi": 90,
+  "firme": { "tetto": 50, "mostra": 20, "nomeMax": 16 },
+  "libro": { "lotto": [15, 17], "raggio": 2.6, "vista": 30 }
+}

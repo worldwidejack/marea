@@ -2,7 +2,7 @@
 // Errori sempre come ApiError con messaggio italiano pronto da mostrare (il server manda `{ error, manca? }`, PROTOCOL.md §6).
 // Orologio: ogni risposta porta l'ora del server (`now` o `LotState.nowMs`); serverNow() la proietta con l'orologio locale
 // SOLO per animare i conti alla rovescia. L'economia la decide il server.
-import type { Challenge, LotState, Medal, PackedInputs, Resources } from '@marea/sim';
+import type { Challenge, LotState, Medal, PackedInputs, Resources, Riepilogo } from '@marea/sim';
 import type { FeedItem, Look } from '@marea/protocol';
 import type { HeroState, RpgAction, RunHero, RunResult } from '@marea/sim/rpg/types.ts';
 import type { DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
@@ -33,6 +33,9 @@ export type DungeonStart = { dungeon: string; seed: number; hero: RunHero; lot: 
 export type DungeonSave = { ok: boolean; salvato: { bottino: Record<string, number>; monete: number } | null; ticks: number };
 /** Esito della spedizione ricalcolato dal server (POST /api/dungeon/finish). */
 export type DungeonFinish = { result: RunResult; tenuto: Record<string, number>; monete: number; livelliSu: number; lot: LotState };
+
+/** Rientro (#86, POST /api/rientro): riepilogo dell'assenza (null se mancavi da poco o è il primo ingresso), novità non lette del feed. */
+export type Rientro = { riepilogo: Riepilogo | null; novita: number; lot: LotState };
 
 export const MSG_401 = 'Link non valido, chiedi a Jack un link nuovo';
 export const MSG_RETE = 'Niente connessione, riprova tra poco';
@@ -85,6 +88,13 @@ export type Api = {
   // ---- Porto (#64) ----
   /** RISCUOTI una missione compiuta della Bacheca (indice 0-2 di oggi): il server verifica, paga e risponde col lotto. */
   riscuoti(i: number): Promise<{ premio: Resources; lot: LotState }>;
+  // ---- Rientro e libro degli ospiti (#86) ----
+  /** All'ingresso: il server dice cosa è successo mentre eri via e segna che ci sei. */
+  rientro(): Promise<Rientro>;
+  /** «Ci sono» mentre giochi (ogni RIENTRO.presenzaSecondi): l'assenza si misura da quando esci. */
+  presenza(): Promise<void>;
+  /** Firma il libro dell'isola di `isola` (id del proprietario) con una emote: risponde col suo lotto. 409 se hai già firmato oggi. */
+  firma(isola: string, emote: string): Promise<LotState>;
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;
@@ -124,12 +134,13 @@ const asChallenge = (d: unknown): Challenge => {
   return v;
 };
 const cid = (id: string) => `/api/challenges/${encodeURIComponent(id)}`;
-const FEED_TIPI: readonly string[] = ['sfida_ricevuta', 'sfida_accettata', 'sfida_rifiutata', 'sfida_scaduta', 'sfida_chiusa'];
+const FEED_TIPI: readonly string[] = ['sfida_ricevuta', 'sfida_accettata', 'sfida_rifiutata', 'sfida_scaduta', 'sfida_chiusa', 'visita'];
 const asFeedItem = (v: unknown): FeedItem | null => {
   if (!isObj(v) || typeof v['id'] !== 'number' || typeof v['tipo'] !== 'string' || !FEED_TIPI.includes(v['tipo']) || typeof v['testo'] !== 'string') return null;
   return {
     id: v['id'], quando: typeof v['quando'] === 'number' ? v['quando'] : 0, tipo: v['tipo'] as FeedItem['tipo'], testo: v['testo'], letto: !!v['letto'],
     ...(typeof v['sfida'] === 'string' ? { sfida: v['sfida'] } : {}), ...(typeof v['da'] === 'string' ? { da: v['da'] } : {}),
+    ...(typeof v['emote'] === 'string' ? { emote: v['emote'] } : {}),
   };
 };
 
@@ -261,6 +272,13 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       if (!isObj(d) || !isObj(d['premio'])) throw new ApiError(500, 'Risposta del server non valida');
       return { premio: d['premio'] as Resources, lot: asLot(d['lot']) };
     },
+    async rientro() {
+      const d = await call('POST', '/api/rientro', {});
+      if (!isObj(d)) throw new ApiError(500, 'Risposta del server non valida');
+      return { riepilogo: isObj(d['riepilogo']) ? (d['riepilogo'] as Riepilogo) : null, novita: typeof d['novita'] === 'number' ? d['novita'] : 0, lot: asLot(d['lot']) };
+    },
+    async presenza() { await call('POST', '/api/presenza', {}); },
+    firma: (isola, emote) => post('/api/libro/firma', { isola, emote }),
     async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
     buyHat: (id) => post('/api/look/hat', { cappello: id }),
     async feed() {

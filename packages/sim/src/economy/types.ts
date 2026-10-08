@@ -13,6 +13,10 @@ export type SoloPending = { minigame: string; seed: number; difficulty: 1 | 2 | 
 export type SoloState = { day: number; premiate: number; giocate: number; pending: SoloPending | null };
 /** Missioni del giorno della Bacheca (#64): contatori di oggi (giorno UTC) per tipo e indici delle missioni già riscosse. */
 export type MissioniState = { day: number; prog: Record<string, number>; riscosse: number[] };
+/** Una firma nel libro degli ospiti di un'isola (#86): chi (id), il nome di allora, una delle emote di avatar.json, ms del server. */
+export type Firma = { chi: string; nome: string; emote: string; quando: number };
+/** Ultimo cantiere finito (lo scrive `advance`): serve a «Mentre eri via» anche se nel frattempo qualcuno ha guardato l'isola. */
+export type CantiereFinito = { building: string; level: number; endsMs: number };
 export type LotState = {
   owner: string;
   version: number;
@@ -44,6 +48,12 @@ export type LotState = {
   dungeon?: DungeonLotState;
   /** Mappe delle isole a tema possedute (#68: la prima medaglia d'oro da solo regala quella del Giardino). Assente = []. */
   mappe?: string[];
+  /** Ultima volta (ms del server) che il proprietario era nel gioco (#86): la muovono il rientro e il «ci sono» del client. Assente = mai entrato. */
+  visto?: number;
+  /** Libro degli ospiti (#86): le firme degli amici, dalla più vecchia, al massimo RIENTRO.firme.tetto. Assente = []. */
+  ospiti?: Firma[];
+  /** Ultimo cantiere finito (#86). Assente = nessuno. */
+  finito?: CantiereFinito;
 };
 
 /**
@@ -89,7 +99,7 @@ export const missing = (have: Resources, cost: Resources): Resources => ({
 });
 
 export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow' | 'cappello' | 'posizione' | 'partita'
-  | 'missione'
+  | 'missione' | 'firma'
   | 'peso' | 'equip' | 'perk' | 'materiale' | 'edificio' | 'livello_skill' | 'oggetto' | 'spedizione';
 export class EconomyError extends Error {
   code: EconomyErrorCode;
