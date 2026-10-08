@@ -1,4 +1,4 @@
-# Su ogni push a main: suite completa, poi deploy su Cloudflare. Se un test fallisce, online resta la versione di prima.
+# Su ogni push a main: suite completa (4 gruppi in parallelo, tests/shard.mjs), poi deploy su Cloudflare. Se un test fallisce, online resta la versione di prima.
 name: Deploy
 on:
   push:
@@ -10,9 +10,54 @@ concurrency:
   group: deploy
   cancel-in-progress: false
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        gruppo: [0, 1, 2, 3]
+    env:
+      CI: '1'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - name: Suite del gruppo ${{ matrix.gruppo }}
+        id: suite
+        run: |
+          suite=$(node tests/shard.mjs ${{ matrix.gruppo }} 4)
+          echo "Suite: $suite"
+          node tests/run.mjs $suite
+        continue-on-error: true
+      # GitHub disegna il gioco a 2-4 fps: un test e2e a tempo può cadere per lentezza. Si riprovano una volta sola le suite e2e cadute;
+      # se è caduto qualcosa di deterministico (static, types, sim, budget della build) non si riprova e il deploy non parte.
+      - name: Riprova le suite e2e cadute (una volta)
+        if: steps.suite.outcome == 'failure'
+        run: |
+          cadute=$(node -e "const r=require('./tests/out/report.json'); console.log([...new Set(r.results.filter(x=>!x.ok).map(x=>x.suite))].join(' '))")
+          echo "Cadute: $cadute"
+          for s in $cadute; do case "$s" in static|types|sim|build|runner) echo "::error::$s è deterministico: niente riprova."; exit 1;; esac; done
+          if [ -n "$cadute" ]; then node tests/run.mjs $cadute; fi
+      - name: Screenshot e report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-out-${{ matrix.gruppo }}
+          path: |
+            tests/out/report.json
+            tests/out/perf.json
+            tests/out/shots/
+          retention-days: 14
+          if-no-files-found: ignore
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       CI: '1'
       WRANGLER_SEND_METRICS: 'false'
@@ -25,37 +70,6 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
-      # l'8 ott 2026 apt si è piantato per 40 minuti: tempo massimo e niente blocco (senza ffmpeg cade solo il contact sheet, che non si riprova)
-      - name: ffmpeg (serve al contact sheet)
-        timeout-minutes: 5
-        continue-on-error: true
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
-      - name: Suite completa
-        id: suite
-        run: npm test
-        continue-on-error: true
-      # GitHub disegna il gioco a 2-4 fps: un test e2e a tempo può cadere per lentezza. Si riprovano una volta sola le suite e2e cadute;
-      # se è caduto qualcosa di deterministico (static, types, sim, budget della build) non si riprova e il deploy non parte.
-      - name: Riprova le suite e2e cadute (una volta)
-        if: steps.suite.outcome == 'failure'
-        run: |
-          cadute=$(node -e "const r=require('./tests/out/report.json'); console.log([...new Set(r.results.filter(x=>!x.ok).map(x=>x.suite))].join(' '))")
-          echo "Cadute: $cadute"
-          for s in $cadute; do case "$s" in static|types|sim|build|runner) echo "::error::$s è deterministico: niente riprova."; exit 1;; esac; done
-          da_rifare=$(echo "$cadute" | tr ' ' '\n' | grep -v '^contact$' | tr '\n' ' ')
-          if [ -n "$da_rifare" ]; then node tests/run.mjs $da_rifare; fi
-      - name: Screenshot e report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-out
-          path: |
-            tests/out/report.json
-            tests/out/perf.json
-            tests/out/shots/
-            tests/out/contact.png
-          retention-days: 14
-          if-no-files-found: ignore
       - name: Deploy su Cloudflare
         run: node tools/deploy.mjs --no-tail
       - name: Riepilogo
