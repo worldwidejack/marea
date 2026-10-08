@@ -17,7 +17,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from '../tools/build.mjs';
 import { contact } from '../tools/contact.mjs';
 import { startServer } from './lib/server.mjs';
-import { startWrangler } from './lib/wrangler.mjs';
+import { startWrangler, killAllWranglers } from './lib/wrangler.mjs';
 import * as B from './lib/browser.mjs';
 import assert from './lib/assert.mjs';
 
@@ -137,6 +137,7 @@ for (const suite of suites) {
         clearTimeout(timer);
         for (const p of ctx._pages) await p.close().catch(() => {});
         for (const w of wranglers.splice(0)) await w.close().catch(() => {});
+        killAllWranglers(); // quelli partiti ma non ancora pronti quando è scattato il timeout (#8)
       }
     } else record(suite, 'suite sconosciuta', false, 0, `'${suite}' (disponibili: static types sim ${e2eAvail.join(' ')} contact all)`);
   } catch (e) { record(suite, 'runner', false, Date.now() - s0, e); }

@@ -24,7 +24,7 @@
 - Caricamento a due tempi dei modelli: all'avvio solo L1 e ciò che serve al proprio lotto; L2/L3, Porto e facciate dopo (oggi 1,53 MB iniziali su 2).
 - Bordo del mondo: la barca può uscire dalla mappa (mare infinito). Un muro morbido o una corrente che riporta indietro.
 - Test `m1_isola`: usare l'orologio di test di M1-server (`X-Test-Now-Offset` con `--var TEST_CLOCK:1`) invece di aspettare 3 minuti veri.
-- Runner dei test: quando una suite va in timeout non spegne il `wrangler dev` staccato (processi orfani).
+- ~~Runner dei test: processi wrangler orfani dopo un timeout~~ fatto l'8 ott 2026 (#8).
 - ~~Regata sulla laguna~~ fatto in Fetta 2 (v3).
 - Casa, «slot cosmetici 2 → 4 → 6» (GDD §5): nessun codice li usa. Da decidere con Jack (A/B): A = set salvati di look da richiamare con un tasto; B = la Casa sblocca colori/capelli extra. Finché non si decide, la Casa produce solo il numero mostrato nel pannello.
 - Clip di animazione per le 4 emote in `chr_base.glb` (oggi fumetto): 30 min di Blender, poi `avatar.setEmote(id)`.
