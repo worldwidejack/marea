@@ -1,0 +1,14 @@
+{
+  "id": "consegne",
+  "nome": "Consegne",
+  "maxSeconds": 150,
+  "pacchi": 5,
+  "moli": ["porto", "laguna", "lotto"],
+  "distanza": [60, 170],
+  "raggio": 6,
+  "tempo": { "base": 3, "partenza": 5, "perMetro": [0.18, 0.15, 0.13] },
+  "cassette": { "perTratto": 3, "secondi": 4, "raggio": 2.6, "scarto": [3, 8] },
+  "medaglie": { "oro": 5, "argento": 3, "bronzo": 2 },
+  "posti": { "porto": [18, 28], "lotto": [12, 19] },
+  "_nota": "Pacco dopo pacco: il tempo avanzato passa al prossimo, le cassette danno secondi in più. Il molo di partenza è il primo input della partita (startFrame). Posti = cella locale del corriere (sabbia accanto al molo, lontano dalla barca: lì A deve far salire in barca)."
+}

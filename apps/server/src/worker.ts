@@ -13,8 +13,9 @@ export { Lot } from './do/Lot.ts';
 export { Sfide } from './do/Sfide.ts';
 
 const MAX_BODY = 4096;
-/** Un input log di Regata da 120 s fatto a mano sta sotto i 100 KB (7.200 righe al massimo, di solito poche centinaia). */
-const MAX_PLAY_BODY = 131072;
+/** Input log dei minigiochi da solo: una Regata da 120 s sta sotto i 100 KB (7.200 righe al massimo); le Consegne durano fino a
+ *  150 s col joystick che cambia quasi a ogni tick (9.000 righe ≈ 150 KB): tetto a 256 KB. */
+const MAX_PLAY_BODY = 262144;
 /** Input log di una spedizione nel dungeon (fino a 20 minuti, RLE): CONTRACTS §15, ≤ 512 KB. */
 const MAX_DUNGEON_BODY = 524288;
 const NO_TOKEN = 'Link non valido: chiedi a Jack un invito nuovo';

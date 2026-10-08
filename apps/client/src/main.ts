@@ -198,7 +198,7 @@ async function boot(): Promise<void> {
     while (acc >= DT && steps < 5) {
       const f = input.sample();
       if (ingressi.active) { ingressi.step(f); acc -= DT; steps++; continue; } // nel dungeon il mondo di superficie sta fermo
-      if (regata.active) regata.step(f); else { tickTavolo(f.a); giochi.tick(f.a); ingressi.tick(f.a); animali?.tick(f.a); } // Animali (#67)
+      if (regata.active) regata.step(f); else { tickTavolo(f.a); giochi.tick(f.a, f); ingressi.tick(f.a); animali?.tick(f.a); } // giochi.tick con l'input intero: le Consegne si guidano in barca · Animali (#67)
       world.frozen = (!!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || !!eroe?.isOpen()) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }

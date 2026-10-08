@@ -2,12 +2,13 @@
 // Scacco in 3 al Tavolo del Porto, quando le sfide con posta sono spente: ti siedi e si apre la scacchiera, niente premio;
 // i «giochi a schermo» (SCHERMI: una schermata sopra il mondo, premio come la Regata) si scaricano solo quando parte la partita).
 // Le Lanterne (#7) sono state tolte l'8 ott 2026 (Jack: «fa cagare»).
+// Minigiochi universali (GDD §3): Consegne (in barca, nel mondo) e Ingorgo (a schermo) su ogni molo con un posto in content, a piedi.
 // Nel mondo: boa grande e cartello «REGATA» che si vede da lontano; vicino compare il bottone GIOCA (A / E / Spazio sulla tastiera).
 // Il seed lo sceglie il server, che poi rigioca gli input, decide la medaglia e paga il premio (balance.solo: Legno, Pietra, Perle).
 // Alla fine una scheda con l'esito, il premio che vola nella barra e RIGIOCA.
 import * as THREE from 'three';
 import { MINIGAMES_CFG, SCACCHI } from '@marea/content';
-import type { Medal, Resources } from '@marea/sim';
+import type { ArchPlace, Medal, Resources } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Loader } from '../render/loader.ts';
 import type { Hud } from '../ui/hud.ts';
@@ -18,16 +19,19 @@ import { PAL, el, injectUiStyle } from '../ui/style.ts';
 import { RES_IDS, pixIcon, resIcon } from '../ui/icons.ts';
 import type { PixId } from '../ui/icons.ts';
 import type { Scacchi } from '../ui/scacchi.ts';
-import type { PackedInputs } from '@marea/sim';
+import type { InputFrame, PackedInputs } from '@marea/sim';
 import { createLabelLayer, flyResources } from '../ui/sheet.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { createPostoPesca } from './pesca.ts';
 
-export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean; /** Parametri della partita per il server (es. il mare della pesca). */ opzioni?: Record<string, string> };
+/** `opzioni` = parametri della partita per il server (es. il mare della pesca); `posto` = molo dove si gioca ('porto', 'lotto:N':
+ *  lo riceve il gioco); `aPiedi` = parte solo a piedi (in barca A accelera); `vista` = il cartello si vede solo entro tanti metri;
+ *  `mete: false` = non va nella bussola; `model` = modello del manifest sul posto. */
+export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean; opzioni?: Record<string, string>; posto?: string; aPiedi?: boolean; vista?: number; mete?: boolean; model?: string };
 export type Minigiochi = {
   readonly spots: readonly Spot[];
-  /** Un tick (60 Hz): vicino a un posto, il fronte di salita di A fa partire la partita. */
-  tick(a: boolean): void;
+  /** Un tick (60 Hz): vicino a un posto, il fronte di salita di A fa partire la partita. `f` = l'input intero (giochi in barca). */
+  tick(a: boolean, f?: InputFrame): void;
   /** Ogni frame: boa, cartello, bottone. */
   update(t: number): void;
   /** Scheda dell'esito aperta o partita che sta partendo: il mondo sta fermo. */
@@ -37,8 +41,13 @@ export type Minigiochi = {
 };
 
 const NEAR_M = 16;
-/** Gioco a schermo: la sua schermata sopra il mondo, restituisce gli input da far rigiocare al server (null = ritirato). */
-export type SchermoGioco = { run(o: { seed: number; difficulty: number; opzioni?: Record<string, string> }): Promise<PackedInputs | null>; isOpen(): boolean; esito?(detail: Record<string, unknown>): string };
+/** Gioco a schermo: la sua schermata sopra il mondo, restituisce gli input da far rigiocare al server (null = ritirato).
+ *  `posto` = il molo dello spot. Un gioco che si gioca nel mondo (Consegne, in barca) ha anche `step` (un tick con l'input intero,
+ *  mentre è aperto) e `update` (ogni frame). */
+export type SchermoGioco = {
+  run(o: { seed: number; difficulty: number; opzioni?: Record<string, string>; posto?: string }): Promise<PackedInputs | null>; isOpen(): boolean; esito?(detail: Record<string, unknown>): string;
+  step?(f: InputFrame): void; update?(t: number): void;
+};
 /** I giochi a schermo per id del minigioco, scaricati alla prima partita (il JS iniziale ha un tetto, TECH §5). */
 const SCHERMI: Record<string, (root: HTMLElement) => Promise<SchermoGioco>> = {};
 /** Registra un gioco a schermo (dal modulo del minigioco: posto in `spots` più schermata qui). */
@@ -67,6 +76,27 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   const cfg = MINIGAMES_CFG.regata, lag = arch.places.find((p) => p.island === cfg.course.island) ?? arch.places.find((p) => p.role === 'laguna');
   const spots: Spot[] = lag ? [{ id: 'regata', nome: cfg.nome, minigame: 'regata', x: lag.boat.x, z: lag.boat.z, icon: 'regata', near: NEAR_M, boa: true }] : [];
   if (o.tavolo) spots.push({ id: 'scacchi', nome: SCACCHI.nome, minigame: 'scacchi', x: o.tavolo.x, z: o.tavolo.z, icon: 'scacchi', near: 5, boa: false });
+  /** Molo di un'isola, come lo chiamano i minigiochi universali: 'porto', 'laguna', 'lotto:N'. */
+  const moloDi = (p: ArchPlace) => (p.role === 'lotto' ? `lotto:${p.slot}` : p.role);
+  /** Posto di un minigioco universale su ogni isola che ne ha uno in content (`posti`: cella locale per id dell'isola). */
+  const universali = (minigame: 'consegne' | 'ingorgo', icon: PixId, model?: string) => {
+    const c = MINIGAMES_CFG[minigame];
+    for (const p of arch.places) {
+      const at = c.posti[p.island];
+      if (!at) continue;
+      spots.push({
+        id: `${minigame}:${moloDi(p)}`, nome: c.nome, minigame, x: (p.origin[0] + at[0] + 0.5) * arch.tile, z: (p.origin[1] + at[1] + 0.5) * arch.tile,
+        icon, near: 3, boa: false, posto: moloDi(p), aPiedi: true, vista: 45, mete: p.role === 'porto', ...(model ? { model } : {}),
+      });
+    }
+  };
+  // Consegne (minigioco universale): il corriere sta su ogni molo (Porto e lotti), a piedi, lontano dalla barca; nella bussola solo quello
+  // del Porto. Si gioca in barca nel mondo (game/consegne.ts, gioco «a schermo» con step/update), scaricato alla prima partita.
+  universali('consegne', 'consegne', 'prop_cassa');
+  registraSchermo('consegne', (root) => import('./consegne.ts').then((m) => m.createConsegne({ root, world: o.world, loader: o.loader, hud: o.hud, camera: o.camera, canvas: o.canvas, api: o.api })));
+  // Ingorgo (minigioco universale): sull'altro lato di ogni molo; schermata a pixel (ui/ingorgo.ts) scaricata alla prima partita.
+  universali('ingorgo', 'ingorgo', 'prop_barile');
+  registraSchermo('ingorgo', (root) => import('../ui/ingorgo.ts').then((m) => m.createIngorgo({ root })));
   let chClosedAt = 0, scacchi: Scacchi | null = null;
   const schermi = new Map<string, SchermoGioco>();
   /** Una schermata (scacchi o gioco a schermo) è aperta: il mondo sta fermo. */
@@ -76,8 +106,8 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   const group = new THREE.Group(); group.name = 'minigiochi'; o.world.scene.add(group);
   const layer = createLabelLayer(o.root);
   const marks = spots.map((s) => {
-    const holder = new THREE.Group(); holder.name = 'spot_' + s.id; holder.position.set(s.x, 0, s.z); holder.scale.setScalar(1.8); group.add(holder);
-    const name = s.boa && o.loader.has('prop_boa_next') ? 'prop_boa_next' : null;
+    const holder = new THREE.Group(); holder.name = 'spot_' + s.id; holder.position.set(s.x, 0, s.z); holder.scale.setScalar(s.boa ? 1.8 : 1.2); group.add(holder);
+    const name = s.model && o.loader.has(s.model) ? s.model : s.boa && o.loader.has('prop_boa_next') ? 'prop_boa_next' : null;
     if (name) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => {});
     const label = layer.add(() => { void play(s); });
     label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome.toUpperCase())], 'spot');
@@ -159,7 +189,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
         schermo = schermi.get(s.minigame) ?? null;
         if (!schermo) { try { schermo = await load(o.root); schermi.set(s.minigame, schermo); } catch { o.hud.toast('Gioco non caricato: riprova', 2500); return; } }
       }
-      const inputs = schermo ? await schermo.run({ seed, difficulty, ...(opzioni ? { opzioni } : {}) }) : await runRegata({ challenge: { id: 'solo', minigame: s.minigame, difficulty, seed } });
+      const inputs = schermo ? await schermo.run({ seed, difficulty, ...(opzioni ? { opzioni } : {}), ...(s.posto ? { posto: s.posto } : {}) }) : await runRegata({ challenge: { id: 'solo', minigame: s.minigame, difficulty, seed } });
       if (!inputs) { o.hud.toast('Ritirato', 1500); return; }
       if (!online) { playedN++; showEsito(s, null, 'Partita di prova', null, 'Con il tuo link personale vinci Legno, Pietra e Perle'); return; }
       busy = true;
@@ -188,14 +218,15 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   registerTestHook('closeEsito', () => { closeEsito(); return true; });
 
   return {
-    spots,
+    spots: spots.filter((s) => s.mete !== false), // nella bussola: dei giochi universali solo il posto del Porto
     isBusy: () => busy || open || schermoAperto(),
     played: () => playedN,
-    tick(a) {
+    tick(a, input) {
       const pressA = a && !aWas; aWas = a;
+      if (input) for (const g of schermi.values()) if (g.isOpen()) g.step?.(input); // giochi nel mondo (Consegne): la loro sim gira qui
       if (o.world.race.on || busy || open || schermoAperto()) { near = null; return; }
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
-      near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near) ?? null;
+      near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near && (!s.aPiedi || o.world.mode === 'walk')) ?? null;
       if (near && near !== nearWas) o.hud.toast(`${near.nome}: premi A o tocca GIOCA`, 2500);
       nearWas = near;
       if (near && pressA) void play(near);
@@ -206,10 +237,14 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', 'A')); }
       btn.classList.toggle('on', show);
       pesca.update(); // Pesca (#66)
+      for (const g of schermi.values()) g.update?.(t);
+      const me = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
       for (const m of marks) {
-        m.holder.position.y = 0.1 * Math.sin(t * 2); m.holder.rotation.y = t * 0.5;
+        if (m.s.boa) { m.holder.position.y = 0.1 * Math.sin(t * 2); m.holder.rotation.y = t * 0.5; }
+        else m.holder.position.y = o.world.groundY(m.s.x, m.s.z);
         const p = screenOf(m.s.x, m.s.boa ? 4.2 : 3.4, m.s.z);
-        m.label.place(p.x, p.y, p.on && !o.world.race.on);
+        const vicino = !m.s.vista || Math.hypot(me.x - m.s.x, me.z - m.s.z) < m.s.vista; // i posti dei giochi universali si vedono solo da vicino
+        m.label.place(p.x, p.y, p.on && vicino && !o.world.race.on);
       }
     },
   };
