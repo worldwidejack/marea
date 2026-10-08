@@ -17,6 +17,7 @@ import { ApiError } from '../net/api.ts';
 import type { PixId } from '../ui/icons.ts';
 import { pixIcon } from '../ui/icons.ts';
 import { PAL, el, injectUiStyle } from '../ui/style.ts';
+import { placeholder } from './ingressi_forme.ts';
 import { createLabelLayer, LABEL_NEAR_M } from '../ui/sheet.ts';
 import { FLAGS } from '../flags.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
@@ -46,7 +47,8 @@ export type Ingressi = {
 export const INGRESSI = [
   { id: 'grotta', nome: 'Grotta della Marea', island: 'porto', at: [32, 7], stile: 'grotta', difficolta: 1 },
   { id: 'cripta', nome: 'Cripta delle Ossa', island: 'selvaggia', at: [18, 12], stile: 'cripta', difficolta: 2 },
-  { id: 'vuoto', nome: 'Portale del Vuoto', island: 'neon', at: [20, 13], stile: 'vuoto', difficolta: 3 },
+  { id: 'vuoto', nome: 'Portale del Vuoto', island: 'neon', at: [20, 13], stile: 'vuoto', difficolta: 6 },
+  { id: 'drenaggio', nome: 'Impianto di Drenaggio', island: 'laguna', at: [5, 30], stile: 'drenaggio', difficolta: 3 },
 ] as const;
 const PER_DIFFICOLTA = [...INGRESSI].sort((a, b) => a.difficolta - b.difficolta);
 /** Il dungeon più facile tra quelli non ancora completati (null = tutti completati). */
@@ -101,7 +103,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     group.add(holder);
     const name = `prop_ingresso_${s.stile}`;
     if (o.loader.has(name)) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => holder.add(placeholder()));
-    else holder.add(placeholder());
+    else holder.add(placeholder(s.stile));
     const label = layer.add(() => { void enter(s); });
     label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome.toUpperCase())], 'dng');
     label.el.classList.add('dng');
@@ -374,11 +376,3 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
   };
 }
 
-/** Segnaposto se il modello manca: arco di pietra scura con la bocca nera (colori di palette). */
-function placeholder(): THREE.Object3D {
-  const g = new THREE.Group(), stone = new THREE.MeshLambertMaterial({ color: '#4A4340', flatShading: true }), dark = new THREE.MeshLambertMaterial({ color: '#23201F' });
-  for (const sx of [-1.3, 1.3]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.6, 1.2), stone); p.position.set(sx, 1.3, 0); g.add(p); }
-  const top = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.7, 1.2), stone); top.position.y = 2.9; g.add(top);
-  const hole = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.5, 0.2), dark); hole.position.set(0, 1.25, -0.2); g.add(hole);
-  return g;
-}

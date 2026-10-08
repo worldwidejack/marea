@@ -1,5 +1,6 @@
 // Pilota automatico (test e modalità demo): esplora verso nemici e bottini vicini, combatte schivando i colpi telegrafati,
 // beve sotto il 35 % di vita, torna alla scala quando non c'è più niente (o lo zaino è pieno, o il tempo stringe) e preme A.
+// Drenaggio: gira le valvole chiuse che raggiunge (come un bottino) e non combatte chi sta oltre l'acqua.
 // Non tocca lo stato della sim: la sua memoria sta in una WeakMap (il replay non la vede).
 import type { Rng } from '../rng.ts';
 import type { DungeonInput } from './types.ts';
@@ -9,6 +10,8 @@ import { parte } from './state.ts';
 import { bfs, cellCenter, cellOf, clearPath, lineOfSight, stepDown } from './map.ts';
 import { fits, pesoZaino } from './loot.ts';
 import { vicinoUscita } from './hero.ts';
+import { valvolaVicina } from './acque.ts';
+import { areaRaggio } from './enemies.ts';
 import { HZ } from './tuning.ts';
 
 type Mem = {
@@ -71,7 +74,7 @@ function fight(s: DungeonState, m: Mem, e: Enemy, o: Out): void {
   }
   // schivata: il nemico sta per colpire e siamo nel suo raggio → via (correndo se il colpo è ad area)
   if (e.st === 'prepara' && !e.tiro && (h.act === 'idle' || h.act === 'press')) {
-    const raggio = e.area ? e.def.portata * 1.7 + rh.raggio + 0.6 : e.def.portata + e.def.raggio + rh.raggio + 0.6;
+    const raggio = e.area ? areaRaggio(e.def) + rh.raggio + 0.6 : e.def.portata + e.def.raggio + rh.raggio + 0.6;
     if (d < raggio) {
       const back = nav(s, m, h.x - u.x * 3, h.z - u.z * 3) ?? { x: -u.x, z: -u.z };
       o.mx = back.x; o.my = back.z; o.b = e.area;
@@ -104,10 +107,14 @@ export function autopilot(s: DungeonState, rng: Rng): DungeonInput {
   const tempo = s.tick > 20 * 60 * HZ - 3 * 60 * HZ;
   const ritirata = h.vita < rh.max.vita * 0.25 && h.pozioni <= 0;
   const disarmato = h.arma.kind === 'arco' && h.frecce <= 0;
-  // minaccia: un ostile in aggro vicino, o uno che si vede da vicino
+  // Drenaggio: accanto a una valvola chiusa la gira
+  if (s.map.valvole.length && valvolaVicina(s) >= 0 && !m.prevA && h.act === 'idle') { o.a = true; return finish(); }
+  // minaccia: un ostile in aggro vicino, o uno che si vede da vicino (col Drenaggio non chi sta oltre l'acqua)
+  const oltre = s.map.bacini.length ? heroField(s, m) : null;
   let threat: Enemy | null = null, td = Infinity;
   for (const e of s.enemies) {
     if (e.alleato || e.st === 'morto' || e.st === 'scappa') continue;
+    if (oltre && (oltre[cellOf(s.map, e.x, e.z)] ?? -1) < 0) continue;
     const dx = e.x - h.x, dz = e.z - h.z, d2 = dx * dx + dz * dz;
     if (d2 >= td) continue;
     if ((e.aggro && d2 < 14 * 14) || (d2 < 7 * 7 && lineOfSight(s.map, h.x, h.z, e.x, e.z))) { threat = e; td = d2; }
@@ -123,6 +130,11 @@ export function autopilot(s: DungeonState, rng: Rng): DungeonInput {
       const c = f[cellOf(s.map, l.x, l.z)] ?? -1;
       if (c >= 0 && c < best) { best = c; goal = `l${l.id}`; gx = l.x; gz = l.z; }
     }
+    s.map.valvole.forEach((v, i) => {
+      if (s.bacini.find((b) => b.n === v.n)?.aperta || m.ban.has(`v${i}`)) return;
+      const c = f[cellOf(s.map, v.x, v.z)] ?? -1;
+      if (c >= 0 && c < best) { best = c; goal = `v${i}`; gx = v.x; gz = v.z; }
+    });
     if (!disarmato)
       for (const e of s.enemies) {
         if (e.alleato || e.st === 'morto' || e.st === 'scappa' || m.ban.has(`e${e.id}`)) continue;

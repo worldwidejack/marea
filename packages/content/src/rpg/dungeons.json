@@ -66,7 +66,7 @@
     "                 #############              ",
     "                                            "
    ]},
-  {"id":"vuoto","nome":"Portale del Vuoto","descr":"Piattaforme sospese nel nulla oltre il portale del Distretto Neon: spettri, golem di cristallo e il Custode. Vetro, meteorite, oggetti unici.","stile":"vuoto","difficolta":3,"tile":2,"legenda":{"p":{"nemico":"spettro"},"g":{"nemico":"golem"},"X":{"nemico":"custode","capo":true},"c":{"forziere":"comune_vuoto"},"R":{"forziere":"raro_vuoto"},"w":{"libro":"libro_lupo_spettrale"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"neon","at":[20,13]},
+  {"id":"vuoto","nome":"Portale del Vuoto","descr":"Piattaforme sospese nel nulla oltre il portale del Distretto Neon: spettri, golem di cristallo e il Custode. Vetro, meteorite, oggetti unici.","stile":"vuoto","difficolta":6,"tile":2,"legenda":{"p":{"nemico":"spettro"},"g":{"nemico":"golem"},"X":{"nemico":"custode","capo":true},"c":{"forziere":"comune_vuoto"},"R":{"forziere":"raro_vuoto"},"w":{"libro":"libro_lupo_spettrale"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"neon","at":[20,13]},
    "rows": [
     "                                                ",
     "    .....         ###############               ",
@@ -101,5 +101,38 @@
     "                    ...t.<.t...                 ",
     "                     .........                  ",
     "                                                "
+   ]},
+  {"id":"drenaggio","nome":"Impianto di Drenaggio","descr":"Sotto l'anello della Laguna, le pompe arrugginite della civiltà degli automi: sale allagate, valvole da girare, il Collettivo Rottamautomi e il Capoturno. Ferro, argento, un po' d'oro.","stile":"drenaggio","difficolta":3,"tile":2,"legenda":{"f":{"nemico":"tubo_strisciante"},"w":{"nemico":"operaio_arrugginito"},"T":{"nemico":"valvola_sparavapore"},"K":{"nemico":"capoturno","capo":true},"c":{"forziere":"comune_drenaggio"},"R":{"forziere":"raro_drenaggio"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"L":{"altare":true,"asciutti":[1]},"1":{"acqua":1},"2":{"acqua":2},"3":{"acqua":3},"x":{"valvola":1},"y":{"valvola":2},"z":{"valvola":3}},"ingresso":{"island":"laguna","at":[5,30]},
+   "rows": [
+    "                    ######################## ",
+    " ####################............T.........# ",
+    " #.........t.##33333#.....t..........t....R# ",
+    " #x..........##33333#........w.............# ",
+    " #........w..##33..3#....o........K...o.f..# ",
+    " #...o...o.....33R.3#......................# ",
+    " #..........T..33..3#...f..................# ",
+    " #..w........##33333#....o............o....# ",
+    " #......f....##33333#.t..................t.# ",
+    " #.t........c##33333#......................# ",
+    " #...........#################2222########## ",
+    " ####...######               #2222#          ",
+    "    #.A.#                    #2222#          ",
+    "    #...#           ##########2222########## ",
+    "    #.t.#           #......................# ",
+    "    #...#           #.z.t..............w..c# ",
+    "    #.f.#           #.........w............# ",
+    "    #...#           #......................# ",
+    " ####...#######     #.....o..........o.....# ",
+    " #............#     #......................# ",
+    " #.t.....f....#######..........t..........T# ",
+    " #............1111111......f...............# ",
+    " #...o....o...1111111T............w........# ",
+    " #............1111111.....o..........o.....# ",
+    " #.........w..1111111......................# ",
+    " #..f.........#######.......L......f.......# ",
+    " #..........t.#     #...................t.y# ",
+    " #c....<......#     #......................# ",
+    " ##############     ######################## ",
+    "                                             "
    ]}
 ]

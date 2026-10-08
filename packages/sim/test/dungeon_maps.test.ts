@@ -7,18 +7,18 @@ import { parseIsland } from '../src/world/grid.ts';
 import { parseDungeon } from '../src/dungeon/map.ts';
 import { hasItem } from '../src/rpg/items.ts';
 
-test('dungeon: tre mappe (grotta, cripta, vuoto) con stile, tile 2 e dimensioni da gioco', () => {
-  assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto']);
+test('dungeon: quattro mappe (grotta, cripta, vuoto, drenaggio) con stile, tile 2 e dimensioni da gioco', () => {
+  assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto', 'drenaggio']);
   for (const d of DUNGEONS) {
     assert.equal(d.tile, 2);
-    assert.equal(d.stile, d.id === 'grotta' ? 'grotta' : d.id === 'cripta' ? 'cripta' : 'vuoto');
+    assert.equal(d.stile, d.id);
     const w = d.rows[0]!.length;
     assert.ok(d.rows.every((r) => r.length === w), `${d.id}: righe di lunghezza diversa`);
     assert.ok(w >= 36 && w <= 56 && d.rows.length >= 26 && d.rows.length <= 40, `${d.id}: ${w}×${d.rows.length}`);
   }
 });
 
-test('dungeon: una sola scala, lettere tutte in legenda, tutto il pavimento raggiungibile dall’uscita', () => {
+test('dungeon: una sola scala, lettere tutte in legenda, tutto il pavimento raggiungibile dall’uscita (coi bacini del Drenaggio svuotati)', () => {
   for (const d of DUNGEONS) {
     let scale = 0;
     for (const r of d.rows) for (const ch of r) {
@@ -26,7 +26,9 @@ test('dungeon: una sola scala, lettere tutte in legenda, tutto il pavimento ragg
       else if (ch !== '#' && ch !== '.' && ch !== ' ') assert.ok(d.legenda[ch], `${d.id}: '${ch}' senza legenda`);
     }
     assert.equal(scale, 1, `${d.id}: ${scale} scale`);
-    const m = parseDungeon(d);
+    const m0 = parseDungeon(d), solid = m0.solid.slice();
+    for (const b of m0.bacini) for (const i of b.celle) solid[i] = 0; // svuotati: l'acqua si toglie con le valvole
+    const m = { ...m0, solid, floor: [...m0.floor, ...m0.bacini.flatMap((b) => b.celle)] };
     // BFS a 4 vicini dalla scala sulle celle calpestabili
     const seen = new Uint8Array(m.w * m.h), q = [m.exit.cz * m.w + m.exit.cx];
     seen[q[0]!] = 1;
@@ -69,8 +71,9 @@ test('dungeon: nemici, tabelle e libri esistono; i boss stanno in fondo (Cripta 
 });
 
 test('dungeon: ingressi su celle calpestabili delle isole giuste, raggiungibili a piedi dalla P', () => {
-  // la Grotta (la più facile) al Porto, il posto più facile da trovare; la Cripta sull'Isola Selvaggia (scambiate il 7 ott 2026)
-  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'neon' };
+  // la Grotta (la più facile) al Porto, il posto più facile da trovare; la Cripta sull'Isola Selvaggia (scambiate il 7 ott 2026);
+  // il Drenaggio a terra sull'anello della Laguna, vicino al molo (Epopea della Regata)
+  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'neon', drenaggio: 'laguna' };
   for (const d of DUNGEONS) {
     assert.equal(d.ingresso.island, dove[d.id]);
     const def = ISLANDS.find((i) => i.id === d.ingresso.island)!;

@@ -8,7 +8,9 @@ import { conEroe, finita, parte } from './state.ts';
 import { pesoZaino } from './loot.ts';
 import { vicinoUscita } from './hero.ts';
 import { altareSotto, salvatoQui } from './altari.ts';
-import { BOSS_AREA_RAGGIO, HZ } from './tuning.ts';
+import { livello, valvolaVicina } from './acque.ts';
+import { areaRaggio } from './enemies.ts';
+import { HZ } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const r3 = (v: number): number => Math.round(v * 1000) / 1000;
@@ -51,11 +53,11 @@ export function viewOf(s: DungeonState): DungeonView {
       x: h.x, z: h.z, fx: h.fx, fz: h.fz, anim: ha.anim, t: ha.t, carica: h.act === 'carica' || h.act === 'tende' ? h.carica : 0,
       ...(ha.anim === 'attacca' ? { stile: h.stile } : {}),
       vita: h.vita, magicka: h.magicka, stamina: h.stamina, max: { ...rh.max },
-      ricaricaMagia: h.cdMagia / HZ, frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0, arma: h.arma.id,
+      ricaricaMagia: h.cdMagia / HZ, frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0, arma: h.arma.id, rallentato: h.lento > 0,
     },
     nemici: s.enemies.map((e) => {
       const a = enemyAnim(e);
-      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0, boss: !!e.def.boss, ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: e.def.portata * BOSS_AREA_RAGGIO } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}) };
+      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0, boss: !!e.def.boss, ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}) };
     }),
     proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz })),
     bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: parte(s, l).vuoto })),
@@ -64,6 +66,10 @@ export function viewOf(s: DungeonState): DungeonView {
     altari: s.map.altari.map((a, i) => ({ x: a.x, z: a.z, attivo: s.salvato?.altare === i })),
     lanterna: s.done ? -1 : altareSotto(s), salvatoQui: salvatoQui(s),
     salvato: s.salvato ? { bottino: { ...s.salvato.bottino }, monete: s.salvato.monete } : null,
+    acque: s.bacini.map((b) => ({ n: b.n, livello: livello(b) })),
+    valvole: s.map.valvole.map((v) => ({ x: v.x, z: v.z, n: v.n, aperta: !!s.bacini.find((b) => b.n === v.n)?.aperta })),
+    vicinoValvola: !s.done && s.map.valvole.length > 0 && valvolaVicina(s) >= 0,
+    geyser: s.geyser.map((g) => ({ id: g.id, x: g.x, z: g.z, r: g.r, getto: g.t > g.avviso, t: g.t > g.avviso ? Math.min(1, (g.t - g.avviso) / g.getto) : Math.min(1, g.t / g.avviso) })),
     zaino: { peso: r2(pesoZaino(s)), max: rh.caricoMax, monete: s.monete, bottino: { ...s.bottino } },
     eventi: s.eventi,
     io: s.cur, compagni: s.eroi.length > 1 ? compagni(s) : [], finita: finita(s),
@@ -92,12 +98,16 @@ export function hashOf(s: DungeonState): number {
   const nemici = s.enemies.map((e) => [e.id, e.tipo, r3(e.vita), r3(e.x), r3(e.z), e.st]);
   if (s.eroi.length > 1) {
     return hashJson({
-      v: s.v, d: s.dungeon, seed: s.seed, tick: s.tick, nemici,
+      v: s.v, d: s.dungeon, seed: s.seed, tick: s.tick, nemici, ...acqueHash(s),
       loot: s.loot.map((l) => [l.id, l.vuoto ? 1 : 0, ...(l.altri ?? []).map((p) => (p.vuoto ? 1 : 0))]),
       eroi: s.eroi.map((_, i) => conEroe(s, i, () => parteHash(s))),
     });
   }
-  return hashJson({ v: s.v, d: s.dungeon, seed: s.seed, tick: s.tick, nemici, loot: s.loot.map((l) => [l.id, l.vuoto ? 1 : 0]), ...parteHash(s) });
+  return hashJson({ v: s.v, d: s.dungeon, seed: s.seed, tick: s.tick, nemici, loot: s.loot.map((l) => [l.id, l.vuoto ? 1 : 0]), ...acqueHash(s), ...parteHash(s) });
+}
+/** Drenaggio: bacini e geyser nell'hash (negli altri dungeon niente chiave: l'hash resta quello di sempre). */
+function acqueHash(s: DungeonState): Record<string, unknown> {
+  return s.bacini.length ? { acque: s.bacini.map((b) => [b.n, b.aperta ? 1 : 0, b.scolo]), geyser: s.geyser.map((g) => [g.id, g.t, g.colpiti.length]) } : {};
 }
 /** La parte dell'eroe di turno nell'hash (da solo le chiavi sono quelle di sempre: hashJson le ordina). */
 function parteHash(s: DungeonState): Record<string, unknown> {

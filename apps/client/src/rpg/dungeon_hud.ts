@@ -175,6 +175,9 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'libro': say(`Hai imparato: ${nome(e.item).replace(/^Libro: /, '')}`, 2600); break;
         case 'evocato': say('Un alleato combatte per te', 1800); break;
         case 'risveglio': say('Ti risvegli alla lanterna: perso solo il bottino raccolto dopo', 3200); break;
+        case 'valvola': say('Valvola girata: l’acqua scende…', 2200); break;
+        case 'asciutto': say('Svuotato: adesso si passa', 2200); break;
+        case 'rallentato': say('La fanghiglia ti rallenta', 1600); break;
         default:
       }
     },

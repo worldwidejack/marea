@@ -33,6 +33,8 @@ export type HeroRt = {
   buffs: { mod: string; valore: number; fine: number }[];
   /** Colpi a segno con l'arma fragile (per usura e rottura). */
   colpiFragile: number;
+  /** Rallentato (Tubo-strisciante): tick rimasti e moltiplicatore della velocità. */
+  lento: number; lentoMolt: number;
   prevA: boolean; prevC: boolean; prevD: boolean;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
@@ -58,7 +60,7 @@ export type Enemy = {
   /** Insieme: ultimo eroe che l'ha colpito (a lui il danno del sanguinamento e l'uccisione). Fuori dall'hash. */
   ultimo?: number;
 };
-export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica';
+export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica';
 export type Proj = {
   id: number; tipo: ProjKind; x: number; y: number; z: number; vx: number; vy: number; vz: number; g: number;
   danno: number; life: number;
@@ -68,6 +70,10 @@ export type Proj = {
   /** Insieme: eroe che l'ha tirato (indice in `eroi`; assente = 0). */
   da?: number;
 };
+/** Drenaggio: un bacino allagato. `aperta` = la sua valvola è girata; `scolo` = tick che mancano all'asciutto (livello = scolo / SCOLO). */
+export type Bacino = { n: number; aperta: boolean; scolo: number };
+/** Geyser di vapore del Capoturno: avviso (cerchio a terra) e poi getto; `colpiti` = eroi già presi da questo getto. */
+export type Geyser = { id: number; x: number; z: number; r: number; t: number; avviso: number; getto: number; danno: number; colpiti: number[] };
 /** Ultimo altare toccato: il bottino e le monete di quel momento sono al sicuro (docs/RPG.md §4). */
 export type Salvato = { altare: number; tick: number; bottino: Bag; monete: number };
 /** Quello che resta in un bottino per un eroe: da solo sono i campi del bottino stesso; insieme ogni eroe ha la sua parte (`altri`). */
@@ -114,6 +120,9 @@ export type DungeonState = EroeRt & {
   /** Gli eroi della spedizione (da solo uno) e quello di turno: i campi di EroeRt qui sopra sono i suoi. */
   eroi: EroeRt[];
   cur: number;
+  /** Drenaggio (acque.ts): i bacini (uguali per tutti gli eroi) e i geyser in corso. Negli altri dungeon vuoti. */
+  bacini: Bacino[];
+  geyser: Geyser[];
 };
 
 /** Accessori dei campi dell'eroe di turno (prototipo comune a tutti gli stati). */
@@ -176,12 +185,13 @@ export function moltVita(n: number): number {
  *  nemici cresce con moltVita, ogni eroe ha la sua parte di ogni bottino. Con un eroe solo è la spedizione di sempre. */
 export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDef[], partenza: number | null = null): DungeonState {
   if (eroi.length < 1) throw new Error('Spedizione senza eroi');
-  const map = parseDungeon(def);
+  // con l'acqua le celle dei bacini diventano calpestabili quando si svuotano: ogni partita ha la sua copia di `solid`
+  const base = parseDungeon(def), map: DMap = base.bacini.length ? { ...base, solid: base.solid.slice() } : base;
   const rng = createRng(seed);
   const s = Object.create(PROTO) as DungeonState;
   Object.assign(s, {
     v: 1, seed, dungeon: def.id, def, map, tick: 0, anim: 'fermo',
-    enemies: [], proj: [], loot: [], nextId: 1,
+    enemies: [], proj: [], loot: [], nextId: 1, bacini: map.bacini.map((b) => ({ n: b.n, aperta: false, scolo: 0 })), geyser: [],
     flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, flowKey: '', rng, eventi: [],
     eroi: eroi.map(({ hero, stato }): EroeRt => ({
       hero: {
@@ -191,7 +201,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
         moving: false, running: false, hurt: 0, protetto: 0, arma: { ...hero.arma, traits: { ...hero.arma.traits } },
         frecce: hero.frecce ? hero.frecce.n : 0,
         pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,
-        cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, prevA: false, prevC: false, prevD: false,
+        cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, prevA: false, prevC: false, prevD: false,
       },
       runHero: hero, done: false, outcome: null,
       bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,
@@ -216,6 +226,13 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
       moveCircle(map, h, -h.fz * lato - h.fx * dietro, h.fx * lato - h.fz * dietro, e.runHero.raggio);
     }
   });
+  // Drenaggio: ripartendo da una lanterna oltre l'acqua, i bacini che avevi svuotato per arrivarci sono già vuoti
+  if (daLanterna) for (const n of map.altari[p]!.asciutti ?? []) {
+    const b = s.bacini.find((x) => x.n === n);
+    if (!b) continue;
+    b.aperta = true; b.scolo = 0;
+    for (const i of map.bacini.find((x) => x.n === n)?.celle ?? []) map.solid[i] = 0;
+  }
   const sonno = rng.fork('sonno');
   const kv = moltVita(eroi.length);
   for (const n of map.nemici) {

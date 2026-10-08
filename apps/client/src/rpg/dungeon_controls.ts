@@ -14,6 +14,8 @@ export type Controls = {
   readonly paused: boolean;
   /** Vicino alla scala: mostra «A · Esci col bottino». */
   setExit(on: boolean): void;
+  /** Drenaggio: accanto a una valvola chiusa (A la gira). */
+  setValvola(on: boolean): void;
   /** Hai salvato a una lanterna: uscendo con Esc si tiene il bottino salvato lì. */
   setSalvato(on: boolean): void;
   /** Sopra una lanterna (null = no): SALVA ed ESCI, e cosa c'è da mettere al sicuro. */
@@ -43,6 +45,7 @@ const CSS = `
 .mz-dng-tb .pz { display: flex; gap: 4px; } .mz-dng-tb .pz i { display: block; width: 5px; height: 16px; background: ${PAL.sabbiaChiara}; box-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
 .mz-dng-exit { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); display: none; align-items: center; gap: 8px; min-height: 56px; padding: 0 18px; background: ${PAL.giallo}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; font: bold 18px ui-monospace, Menlo, monospace; z-index: 16; cursor: pointer; white-space: nowrap; }
 .mz-dng-exit.on { display: flex; }
+.mz-dng-exit.valv { background: ${PAL.acquaBassa}; }
 .mz-dng-lan { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); padding: 8px 10px 10px; display: none; background: rgba(46,30,20,.95); border: 3px solid ${PAL.giallo}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 16; text-align: center; }
 .mz-dng-lan.on { display: block; }
 .mz-dng-lan b { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 16px; color: ${PAL.giallo}; letter-spacing: .06em; }
@@ -87,6 +90,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
 
   // ---- scala e lanterna ----
   const exit = btn('mz mz-dng-exit', 'scala', el('span', '', 'A · Esci col bottino')); exit.id = 'mzDngExit';
+  const valv = btn('mz mz-dng-exit valv', 'valvola', el('span', '', 'A · Gira la valvola')); valv.id = 'mzDngValvola';
   const lanBox = el('div', 'mz mz-dng-lan'); lanBox.id = 'mzDngLanterna';
   const lanTitle = el('b'); lanTitle.append(el('i'), 'LANTERNA');
   const lanSub = el('div', 'sub');
@@ -105,7 +109,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const row = el('div', 'mz-row'); row.append(no, yes);
   const askSub = el('div', 'sub', 'Perdi il bottino di questa discesa');
   ask.append(el('b', '', 'Uscire dal dungeon?'), askSub, row);
-  const all = [C.b, D.b, top, exit, lanBox, menu, ask];
+  const all = [C.b, D.b, top, exit, valv, lanBox, menu, ask];
   for (const e of all.slice(2)) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   o.root.append(...all);
 
@@ -120,6 +124,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   no.addEventListener('click', () => setAsk(false));
   yes.addEventListener('click', () => { setAsk(false); o.onAbort(); });
   exit.addEventListener('click', () => { aLatch = true; });
+  valv.addEventListener('click', () => { aLatch = true; });
   salva.addEventListener('click', () => { if (!pausa && !asking) o.onSalva(); });
   esciL.addEventListener('click', () => { if (!pausa && !asking) o.onEsciLanterna(); });
 
@@ -150,6 +155,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
       return out;
     },
     setExit(on) { exit.classList.toggle('on', on); },
+    setValvola(on) { valv.classList.toggle('on', on); },
     setSalvato(on) { askSub.textContent = on ? 'Tieni il bottino salvato alla lanterna, il resto lo perdi' : 'Perdi il bottino di questa discesa'; },
     setLanterna(l) {
       const sig = l ? `${l.salvatoQui ? 1 : 0}|${l.oggetti}|${l.monete}` : '';

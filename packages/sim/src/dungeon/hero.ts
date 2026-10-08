@@ -14,6 +14,7 @@ import {
 } from './tuning.ts';
 import { sweepTo, swept, swingStyle } from './swing.ts';
 import { consuma } from './zaino.ts';
+import { apriValvola, valvolaVicina } from './acque.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
@@ -182,10 +183,14 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   if (h.protetto > 0) h.protetto--;
   if (h.cdMagia > 0) h.cdMagia--;
   if (h.buffs.length) h.buffs = h.buffs.filter((b) => b.fine > s.tick);
-  const aDown = inp.a && !h.prevA, cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD;
+  if (h.lento > 0) h.lento--;
+  let aDown = inp.a && !h.prevA;
+  const cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD;
   h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d;
   // uscita: A sulla scala vince su tutto
   if (aDown && vicinoUscita(s)) { s.done = true; s.outcome = 'uscito'; ev(s, { t: 'uscita' }); return; }
+  // Drenaggio: A accanto a una valvola chiusa la gira (e non attacca)
+  if (aDown && s.map.valvole.length) { const v = valvolaVicina(s); if (v >= 0) { apriValvola(s, v); aDown = false; } }
   // azioni
   h.actT++;
   switch (h.act) {
@@ -232,6 +237,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   let v = h.running ? rh.corsa * (1 + buff(s, 'velocitaCorsa')) : rh.camminata;
   if (h.running) h.stamina = Math.max(0, h.stamina - rh.staminaCorsa * DT);
   if (lento) v *= rh.mentreCarichi;
+  if (h.lento > 0) v *= h.lentoMolt; // Tubo-strisciante
   v *= (1 - malusDi(s)) * rh.armatura.velocitaMolt;
   if (h.moving) {
     moveCircle(s.map, h, mx * v * DT, my * v * DT, rh.raggio);
