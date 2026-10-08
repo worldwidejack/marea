@@ -80,7 +80,7 @@ test('libro: firma con nome ed emote; mai sul proprio; una al giorno UTC per per
   assert.ok(firmatoOggi(a, 'marco', T0 + 2 * H) && !firmatoOggi(a, 'anna', T0 + 2 * H));
   assert.throws(() => firmaLibro(a, 'marco', 'Marco', e, T0 + 3 * H), isFirma, 'due volte lo stesso giorno');
   assert.throws(() => firmaLibro(a, 'bea', 'Bea', e, T0 + 3 * H), isFirma, 'sul proprio libro');
-  assert.throws(() => firmaLibro(a, 'anna', 'Anna', 'balla', T0 + 3 * H), isFirma, 'emote inesistente');
+  assert.throws(() => firmaLibro(a, 'anna', 'Anna', 'tango', T0 + 3 * H), isFirma, 'emote inesistente');
   assert.throws(() => firmaLibro(a, 'anna', '  <> ', e, T0 + 3 * H), isFirma, 'nome vuoto');
   const b = firmaLibro(a, 'anna', 'Anna', AVATAR.emote[1]!, T0 + 3 * H);
   const domani = (T0 - (T0 % DAY)) + DAY + 60_000;

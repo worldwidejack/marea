@@ -7,7 +7,8 @@ export type Look = { pelle: number; capelli: number; coloreCapelli: number; vest
 export type Peer = { id: string; nome: string; x: number; z: number; yaw: number; mode: Mode; anim: string; look: Look; titolo?: string };
 /** Look come sta in D1 (`persone.look`): più il titolo scelto nel diario (#87), che la Zone passa nel Peer. Niente migrazioni. */
 export type LookSalvato = Look & { titolo?: string };
-export type EmoteId = 'saluto' | 'esulta' | 'ride' | 'no';
+/** Emote (PROTOCOL §3): le prime 4 da M1, le altre 4 dal #90. Un client vecchio scarta in silenzio quelle che non conosce. */
+export type EmoteId = 'saluto' | 'esulta' | 'ride' | 'no' | 'applauso' | 'cuore' | 'sorpresa' | 'balla';
 /** Feed (M1 · Fetta 3, PROTOCOL §4): righe scritte dal DO Sfide a ogni passaggio di stato, testo composto dal Worker con i nomi. */
 /** `visita` (#86): un amico è passato sulla tua isola e ha firmato il libro degli ospiti (`da` = chi, `emote` = il suo saluto). */
 export type FeedTipo = 'sfida_ricevuta' | 'sfida_accettata' | 'sfida_rifiutata' | 'sfida_scaduta' | 'sfida_chiusa' | 'visita';
@@ -39,7 +40,8 @@ export const POS_HZ = 10;
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isStr = (v: unknown, max = 64): v is string => typeof v === 'string' && v.length <= max;
 const isMode = (v: unknown): v is Mode => v === 'walk' || v === 'boat';
-const EMOTES: readonly string[] = ['saluto', 'esulta', 'ride', 'no'];
+export const EMOTE_IDS: readonly EmoteId[] = ['saluto', 'esulta', 'ride', 'no', 'applauso', 'cuore', 'sorpresa', 'balla'];
+const EMOTES: readonly string[] = EMOTE_IDS;
 /** `now` è in ogni messaggio del server; se manca (server vecchio) vale 0. */
 const nowOf = (m: Record<string, unknown>): number => (isNum(m['now']) ? m['now'] : 0);
 

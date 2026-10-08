@@ -18,6 +18,8 @@ export type Avatar = {
   // ---- aggiunte WP2 (vedi tests/out/richieste/wp2.md) ----
   /** Applica colori e pezzi del look (pelle, capelli, vestito, cappello). */
   setLook(look: Look): void;
+  /** Gesto delle emote (#90): saltello `hop` (m) e giro `spin` (rad) del corpo, sopra la posa del frame. (0, 0) = fermo. */
+  gesto(hop: number, spin: number): void;
   /** Siede l'avatar dentro `parent` (es. barca) con il bacino sul punto `seat` (locale a parent). `null` = scende e torna nel genitore di prima. */
   attachTo(parent: THREE.Object3D | null, seat?: { x: number; y: number; z: number }, yaw?: number): void;
   /** Da seduto: rema (clip/posa `row`) con la fase `phase` (rad) invece di stare fermo. */
@@ -220,6 +222,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   let look = o.look, model: ModelRig | null = null, rig: Rig | null = null;
   if (o.loader.has('chr_base')) { try { model = await loadModel(o.loader); } catch (e) { console.warn('[marea] chr_base non caricabile, uso il segnaposto', e); } }
   if (model) object.add(model.root); else { rig = buildRig(look); object.add(rig.root); }
+  const body = model ? model.root : rig!.root, bodyY = body.position.y, bodyYaw = body.rotation.y; // il gesto muove il corpo, non `object` (lo posa update)
 
   let state = newAvatar(o.x, o.z), prev = state;
   let home: THREE.Object3D | null = null, attached = false, rowing = false, rowPh = 0;
@@ -290,6 +293,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
     },
     teleport(x, z) { state = { ...state, x, z, vx: 0, vz: 0 }; prev = state; snap = true; },
     setLook: applyLook,
+    gesto(hop, spin) { body.position.y = bodyY + hop; body.rotation.y = bodyYaw + spin; },
     setGround(fn) { groundFn = fn; snap = true; },
     attachTo(parent, seat = { x: 0, y: SEAT_DROP, z: 0 }, yaw = 0) {
       if (parent) {

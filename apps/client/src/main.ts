@@ -160,7 +160,7 @@ async function boot(): Promise<void> {
   };
   registerStateProvider('tavolo', () => ({ exists: !!tavolo, near: nearTavolo(), open: !!tavolo?.isOpen(), at: tavoloAt ? { x: tavoloAt.x, z: tavoloAt.z } : null }));
   registerTestHook('openTavolo', () => openTavolo());
-  // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-4). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
+  // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-8, G = ruota, #90). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
   const link = `${location.origin}/?t=${encodeURIComponent(FLAGS.token)}`; // per entrare come sé da un altro dispositivo (editor: COPIA / MANDA)
   const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, onSaved: () => hud.toast('Look salvato'), onLot: refreshMyLot }) : null;
   // impostazioni (#53): camera, ciclo giorno/notte, meteo (#85), stampa, contorni; di serie (#59) ciclo, camera 22° e contorni, per chiunque (anche senza link)
@@ -202,7 +202,8 @@ async function boot(): Promise<void> {
     if (e.code === 'KeyM') { if (!panelsBusy()) mappa?.toggle(); return; }
     if (e.code === 'KeyJ') { if (diario.isOpen()) diario.close(); else if (!panelsBusy()) { editor?.close(); feed?.close(); eroe?.close(); diario.open(); } return; } // Diario del capitano (#87)
     if (e.code === 'KeyI') { if (eroe?.isOpen()) eroe.close(); else if (eroe && !panelsBusy()) { editor?.close(); feed?.close(); eroe.open(); } return; }
-    const m = /^(?:Digit|Numpad)([1-4])$/.exec(e.code);
+    if (e.code === 'KeyG') { if (emotes.wheelOpen) emotes.closeWheel(); else if (!panelsBusy() && !editor?.isOpen() && !feed?.isOpen()) emotes.toggleWheel(); return; }
+    const m = /^(?:Digit|Numpad)([1-8])$/.exec(e.code);
     if (m && !panelsBusy() && !editor?.isOpen() && !feed?.isOpen()) { const id = EMOTES[Number(m[1]) - 1]; if (id) emotes.play(id); }
   });
   registerTestHook('openEditor', () => openEditor());

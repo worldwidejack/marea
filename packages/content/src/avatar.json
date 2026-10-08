@@ -18,5 +18,5 @@
     { "id": "corona", "nome": "Corona di perle", "perle": 80, "mercante": true },
     { "id": "palombaro", "nome": "Elmo da palombaro", "perle": 100, "mercante": true }
   ],
-  "emote": ["saluto", "esulta", "ride", "no"]
+  "emote": ["saluto", "esulta", "ride", "no", "applauso", "cuore", "sorpresa", "balla"]
 }

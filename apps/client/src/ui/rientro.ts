@@ -2,7 +2,7 @@
 // - Cartolina (al rientro, se mancavi da abbastanza): da quanto mancavi, depositi pieni, cantiere finito, chi ha firmato il libro, novità
 //   della campanella, missioni nuove. RACCOGLI TUTTO raccoglie tutti i depositi (l'azione di sempre, edificio per edificio) e chiude.
 //   Un tocco fuori dalla cartolina, × o Esc la chiudono; Invio / Spazio / E = il bottone grande.
-// - Libro: sull'isola di un amico FIRMA con una delle 4 emote (anche 1-4 sulla tastiera), una volta al giorno; sulla tua le ultime firme.
+// - Libro: sull'isola di un amico FIRMA con una delle 8 emote (anche 1-8 sulla tastiera), una volta al giorno; sulla tua le ultime firme.
 // Tastiera in capture su window solo a pannello aperto, con stopPropagation (mai keyup), come feed ed editor.
 import { AVATAR, RIENTRO, building } from '@marea/content';
 import { firmeRecenti } from '@marea/sim';
@@ -98,7 +98,7 @@ export function createRientroUi(o: { root: HTMLElement; hud: Hud; now(): number;
     else if (kind === 'cartolina' && !e.repeat && (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyE')) { e.preventDefault(); primary?.(); }
     else if (kind === 'libro' && !e.repeat && (e.code === 'KeyE' || e.code === 'Space')) { e.preventDefault(); close(); }
     else if (kind === 'libro' && firma) {
-      const m = /^(?:Digit|Numpad)([1-4])$/.exec(e.code), id = m ? AVATAR.emote[Number(m[1]) - 1] : undefined;
+      const m = /^(?:Digit|Numpad)([1-8])$/.exec(e.code), id = m ? AVATAR.emote[Number(m[1]) - 1] : undefined;
       if (id && isEmote(id)) { e.preventDefault(); firma(id); }
     }
     e.stopPropagation(); // a pannello aperto i tasti non arrivano al gioco
