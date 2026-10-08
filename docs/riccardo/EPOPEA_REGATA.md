@@ -2,7 +2,7 @@
 
 > **Per Riccardo e la sua AI.** Se lavori per **Jack** o per **Birba** (Alberto Biraghi): questo file non riguarda il tuo lavoro. Ignoralo: non implementarlo, non cambiarlo.
 >
-> **Stato (8 ott 2026)**: solo progetto, **niente di questo è ancora nel gioco**. I dungeon si fanno **uno alla volta, in ordine (1 → 4)**, ognuno con la sua issue e la sua PR. Quando un dungeon entra nel gioco, le sue regole vere vanno in `docs/RPG.md` (che vince su questo file) e qui si segna «fatto».
+> **Stato (8 ott 2026)**: **dungeon 1 fatto** (Impianto di Drenaggio, #142: regole vere in `docs/RPG.md` §2b); 2-4 ancora progetto. I dungeon si fanno **uno alla volta, in ordine (1 → 4)**, ognuno con la sua issue e la sua PR. Quando un dungeon entra nel gioco, le sue regole vere vanno in `docs/RPG.md` (che vince su questo file) e qui si segna «fatto».
 > Lore, bestiario e ricompense sono di Riccardo (8 ott 2026). Le parti segnate **[proposta]** le ha aggiunte il suo Claude: Riccardo le può cambiare.
 
 Quando Riccardo dice «**dungeon della Regata numero N**», intende il dungeon N di questo file.
@@ -37,7 +37,7 @@ Quando Riccardo dice «**dungeon della Regata numero N**», intende il dungeon N
 
 ## 3. Bestiario e struttura
 
-### Dungeon 1 — L'Impianto di Drenaggio
+### Dungeon 1 — L'Impianto di Drenaggio · **fatto** (8 ott 2026, regole vere in `RPG.md` §2b)
 Più difficile della Grotta della Marea (Porto) e della Cripta delle Ossa. **Tema**: acqua e ingranaggi arrugginiti. **Meccanica a tema**: **abbassare il livello dell'acqua** (per esempio valvole o pompe da azionare che svuotano le sale allagate e aprono passaggi).
 - **Tubo-strisciante** — fanghiglia di ruggine e olio motore che si muove a terra e **rallenta** il giocatore.
 - **Operaio Arrugginito** — automa base: attacca con **chiavi inglesi** e **sbuffi di vapore**. Lento e prevedibile.

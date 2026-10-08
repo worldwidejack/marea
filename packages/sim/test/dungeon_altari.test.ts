@@ -37,9 +37,11 @@ function walkTo(s: DungeonState, to: number, log: DungeonInput[], max = 60 * 90)
 }
 const cellAt = (s: DungeonState, i: number): number => { const a = s.map.altari[i]!; return a.cz * s.map.w + a.cx; };
 
-test('altari: almeno 2 per dungeon, sul pavimento raggiungibile e fuori dalla vista dei boss', () => {
+test('altari: almeno 2 per dungeon, sul pavimento raggiungibile (Drenaggio: coi bacini svuotati) e fuori dalla vista dei boss', () => {
   for (const d of DUNGEONS) {
-    const m = parseDungeon(d);
+    const m0 = parseDungeon(d), solid = m0.solid.slice();
+    for (const b of m0.bacini) for (const i of b.celle) solid[i] = 0;
+    const m = { ...m0, solid };
     assert.ok(m.altari.length >= 2, `${d.id}: ${m.altari.length} altari`);
     const dist = bfs(m, m.exit.cz * m.w + m.exit.cx);
     for (const a of m.altari) {

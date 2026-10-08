@@ -59,7 +59,7 @@ export function risveglio(s: DungeonState): void {
   h.x = a.x; h.z = a.z;
   h.vita = max.vita; h.magicka = max.magicka; h.stamina = max.stamina;
   h.act = 'idle'; h.actT = 0; h.actDur = 0; h.carica = 0; h.caricato = false; h.colpiti = []; h.colpito = false;
-  h.hurt = 0; h.moving = false; h.running = false; h.buffs = [];
+  h.hurt = 0; h.moving = false; h.running = false; h.buffs = []; h.lento = 0;
   h.protetto = secToTicks(RPG.dungeon.altare.protezione);
   s.bottino = { ...sv.bottino }; s.monete = sv.monete;
   s.cadute++;

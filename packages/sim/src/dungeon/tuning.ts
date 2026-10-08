@@ -74,5 +74,11 @@ export const PUGNI = { danno: 4, tempo: 0.5, portata: 1.1, carica: 0.8, caricaMo
 export const MONETE_COLPO: readonly [number, number] = [1, 3];
 /** Peso di un oggetto non elencato in hero.pesi. */
 export const PESO_IGNOTO = 1;
+/** Drenaggio: A entro questa distanza dal centro della valvola la gira; il bacino si svuota in SCOLO_TICKS. */
+export const RAGGIO_VALVOLA = 1.4;
+export const SCOLO_TICKS = Math.round(3 * HZ);
+/** Geyser attorno al Capoturno: 8 direzioni (versori), la prima cambia a ogni colpo ad area. */
+const D = 0.7071067811865476;
+export const GEYSER_DIR: readonly (readonly [number, number])[] = [[1, 0], [D, D], [0, 1], [-D, D], [-1, 0], [-D, -D], [0, -1], [D, -D]];
 /** Danno minimo di un colpo andato a segno. */
 export const DANNO_MIN = 1;

@@ -59,6 +59,11 @@ export type DungeonEvent = (
   | { t: 'uscita'; lanterna?: number }
   /** Insieme: un compagno se n'è andato (azione `ritira`). */
   | { t: 'ritirato' }
+  /** Drenaggio: girata la valvola del bacino n (comincia a svuotarsi) · bacino n asciutto (si passa) · geyser che erutta · rallentato. */
+  | { t: 'valvola'; n: number }
+  | { t: 'asciutto'; n: number }
+  | { t: 'geyser'; x: number; z: number }
+  | { t: 'rallentato' }
 ) & { eroe?: number };
 
 export type DungeonView = {
@@ -79,6 +84,8 @@ export type DungeonView = {
     protetto: boolean;
     /** Arma in mano (id, null = pugni): cambia con `equip` o quando si rompe. */
     arma: string | null;
+    /** Rallentato dal Tubo-strisciante (Drenaggio). */
+    rallentato?: boolean;
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
     /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
@@ -87,7 +94,7 @@ export type DungeonView = {
     area?: number;
     /** Sta preparando un tiro (freccia o magia), non un colpo in mischia: il client mostra l'arco che si tende. */
     tiro?: boolean }[];
-  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica'; x: number; y: number; z: number; vx: number; vz: number }[];
+  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica'; x: number; y: number; z: number; vx: number; vz: number }[];
   bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
   uscita: { x: number; z: number };
   vicinoUscita: boolean;
@@ -96,6 +103,12 @@ export type DungeonView = {
   /** Lanterna (altare) sotto l'eroe, -1 = nessuna: lì compaiono SALVA ed ESCI. `salvatoQui` = qui non c'è niente di nuovo da salvare. */
   lanterna: number;
   salvatoQui: boolean;
+  /** Drenaggio (negli altri dungeon liste vuote): livello di ogni bacino (1 pieno, 0 asciutto), valvole (girate o no), A qui gira una
+   *  valvola, geyser in corso (`getto` = erutta, se no è l'avviso; `t` 0..1 nella fase). */
+  acque: { n: number; livello: number }[];
+  valvole: { x: number; z: number; n: number; aperta: boolean }[];
+  vicinoValvola: boolean;
+  geyser: { id: number; x: number; z: number; r: number; getto: boolean; t: number }[];
   /** Bottino e monete al sicuro all'ultimo altare (null = nessun altare toccato). */
   salvato: { bottino: Record<string, number>; monete: number } | null;
   zaino: { peso: number; max: number; monete: number; bottino: Record<string, number> };

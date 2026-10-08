@@ -56,7 +56,7 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   // sbilancia o attacco caricato: interrompe la preparazione dei non-boss e spinge
   if ((src.traits.sbilancia || src.caricato) && !e.def.boss) {
     if (e.st === 'prepara') { e.st = 'recupera'; e.stT = 0; e.stDur = secToTicks(e.def.recupero); }
-    if (src.traits.sbilancia) moveCircle(s.map, e, src.dirX * SPINTA, src.dirZ * SPINTA, e.def.raggio);
+    if (src.traits.sbilancia && e.def.comportamento !== 'torretta') moveCircle(s.map, e, src.dirX * SPINTA, src.dirZ * SPINTA, e.def.raggio); // le torrette sono attaccate ai tubi
   }
   if (!e.aggro) wake(s, e);
   if (e.vita <= 0) kill(s, e);

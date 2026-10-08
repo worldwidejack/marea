@@ -16,7 +16,11 @@ export type DMap = {
   forzieri: (Spawn & { tabella: string })[];
   libri: (Spawn & { item: string })[];
   /** Altari di salvataggio (legenda `altare`), in ordine di lettura: l'indice è quello di `salvato.altare`. */
-  altari: (Spawn & { x: number; z: number })[];
+  altari: (Spawn & { x: number; z: number; asciutti?: number[] })[];
+  /** Drenaggio: bacini allagati (legenda `acqua: n`, in ordine di n) con le loro celle (solide finché c'è l'acqua, non opache) e le
+   *  valvole (legenda `valvola: n`, in ordine di lettura) che li svuotano. Negli altri dungeon vuoti. */
+  bacini: { n: number; celle: number[] }[];
+  valvole: (Spawn & { x: number; z: number; n: number })[];
   /** Celle calpestabili (indici), per i test e l'autopilot. */
   floor: number[];
 };
@@ -33,6 +37,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   const solid = new Uint8Array(w * h), opaque = new Uint8Array(w * h);
   let exit: { cx: number; cz: number } | null = null;
   const nemici: DMap['nemici'] = [], forzieri: DMap['forzieri'] = [], libri: DMap['libri'] = [], altari: DMap['altari'] = [], floor: number[] = [];
+  const bacini = new Map<number, number[]>(), valvole: DMap['valvole'] = [];
   for (let cz = 0; cz < h; cz++)
     for (let cx = 0; cx < w; cx++) {
       const ch = def.rows[cz]![cx] ?? ' ';
@@ -44,10 +49,12 @@ export function parseDungeon(def: DungeonDef): DMap {
         const l = def.legenda[ch];
         if (!l) throw new Error(`Dungeon ${def.id}: lettera '${ch}' senza legenda (${cx},${cz})`);
         if (l.colonna) { solid[i] = 1; opaque[i] = 1; continue; }
+        if (l.acqua !== undefined) { solid[i] = 1; const b = bacini.get(l.acqua) ?? []; b.push(i); bacini.set(l.acqua, b); continue; }
+        if (l.valvola !== undefined) valvole.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: l.valvola });
         if (l.nemico) nemici.push(l.capo ? { cx, cz, ch, tipo: l.nemico, capo: true } : { cx, cz, ch, tipo: l.nemico });
         if (l.forziere) forzieri.push({ cx, cz, ch, tabella: l.forziere });
         if (l.libro) libri.push({ cx, cz, ch, item: l.libro });
-        if (l.altare) altari.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile });
+        if (l.altare) altari.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, ...(l.asciutti ? { asciutti: l.asciutti } : {}) });
       }
       floor.push(i);
     }
@@ -61,7 +68,11 @@ export function parseDungeon(def: DungeonDef): DMap {
     spawn = { x: (nx + 0.5) * tile, z: (nz + 0.5) * tile, fx: dx, fz: dz };
     break;
   }
-  const m: DMap = { id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, altari, floor };
+  for (const v of valvole) if (!bacini.has(v.n)) throw new Error(`Dungeon ${def.id}: valvola ${v.n} senza bacino`);
+  const m: DMap = {
+    id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, altari, floor,
+    bacini: [...bacini].sort((a, b) => a[0] - b[0]).map(([n, celle]) => ({ n, celle })), valvole,
+  };
   MAPS.set(def, m);
   return m;
 }

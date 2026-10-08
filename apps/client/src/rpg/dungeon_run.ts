@@ -38,6 +38,8 @@ import type { HeroActor } from './dungeon_hero.ts';
 import { createActors } from './dungeon_actors.ts';
 import type { Actors } from './dungeon_actors.ts';
 import { createDungeonHud } from './dungeon_hud.ts';
+import { createDrenaggioFx } from './drenaggio.ts';
+import type { DrenaggioFx } from './drenaggio.ts';
 import type { DungeonHud } from './dungeon_hud.ts';
 import { createControls } from './dungeon_controls.ts';
 import type { Controls } from './dungeon_controls.ts';
@@ -72,7 +74,7 @@ export function startRun(ctx: RunCtx, o: {
   s.cur = io;
   const frames: DungeonInput[] = [], azioni: DungeonAzioni = [];
   let phase: Phase = 'loading', wait = 0, view: DungeonView = dungeon.view(s), auto: Rng | null = null, arma = view.hero.arma;
-  let sc: DungeonScene | null = null, hero: HeroActor | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, controls: Controls | null = null;
+  let sc: DungeonScene | null = null, hero: HeroActor | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, controls: Controls | null = null, fx: DrenaggioFx | null = null;
   let resolve!: (v: Out | { insieme: true } | null) => void;
   const done = new Promise<Out | { insieme: true } | null>((r) => (resolve = r));
   const out = (): Out => ({ inputs: packDungeon(frames), hash: dungeon.result(s).hash, azioni: azioni.map(([t, a]) => [t, a]) });
@@ -85,7 +87,7 @@ export function startRun(ctx: RunCtx, o: {
   const cleanup = () => {
     phase = 'over'; dungeonLink.state = null; dungeonLink.act = null;
     closePanels();
-    controls?.dispose(); hud?.dispose(); actors?.dispose(); hero?.dispose(); sc?.dispose();
+    controls?.dispose(); hud?.dispose(); actors?.dispose(); fx?.dispose(); hero?.dispose(); sc?.dispose();
     for (const a of amici) a.actor?.dispose();
     ctx.renderer.setScene(null);
   };
@@ -155,6 +157,7 @@ export function startRun(ctx: RunCtx, o: {
         a.actor = await createHeroActor({ loader: ctx.loader, look: rete!.eroi[a.i]!.look, hero: r.runHero, scene: sc.scene, floorY: sc.floorY, x: r.hero.x, z: r.hero.z });
       }
       actors = createActors({ loader: ctx.loader, scene: sc });
+      if (sc.map.valvole.length || sc.map.bacini.length || o.dungeon === 'drenaggio') fx = createDrenaggioFx({ sc });
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: s.runHero });
       controls = createControls({
@@ -166,7 +169,7 @@ export function startRun(ctx: RunCtx, o: {
       });
       const ic = hud.icons(); controls.setIcons(ic.c, ic.d, ic.key);
       if (s.salvato) controls.setSalvato(true);
-      hero.tick(view.hero); actors.tick(view); tickAmici();
+      hero.tick(view.hero); actors.tick(view); fx?.tick(view); sc.setAcque(view.acque); tickAmici();
       ctx.renderer.setScene(sc.scene);
       ctx.renderer.diorama.setZoom(1.0);
       ctx.renderer.diorama.follow(view.hero.x, sc.floorY + 0.9, view.hero.z); ctx.renderer.diorama.snap?.();
@@ -325,7 +328,7 @@ export function startRun(ctx: RunCtx, o: {
       const n = auto ? dungeonLink.autopilot : dungeonLink.altare >= 0 ? 8 : 1;
       for (let i = 0; i < n && !s.done; i++) tickOnce(f);
       refresh();
-      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); hero!.mira(miraArco()); actors!.tick(view);
+      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); hero!.mira(miraArco()); actors!.tick(view); fx?.tick(view);
       if (s.done) toEnd();
     },
     update(alpha, dt, t) {
@@ -336,6 +339,7 @@ export function startRun(ctx: RunCtx, o: {
       ctx.renderer.diorama.follow(p.x, sc.floorY + 0.9, p.z); ctx.renderer.diorama.update(dt);
       sc.update(p.x, p.z, t);
       actors.update(alpha, dt, t, { x: p.x, z: p.z });
+      if (fx) { fx.update(t, { x: p.x, z: p.z }, view); sc.setAcque(view.acque); }
       hud.set(view, dungeon.maxTicks); hud.bars(actors.bars());
       if (rete) hud.compagni(amici.filter((a) => a.actor && !a.done).map((a) => {
         const c = view.compagni.find((x) => x.i === a.i), pos = a.actor!.head().clone();
@@ -343,6 +347,7 @@ export function startRun(ctx: RunCtx, o: {
         return { pos, nome: a.nome, frac: c ? c.vita / Math.max(1, c.max) : 0 };
       }));
       controls.setExit(phase === 'play' && view.vicinoUscita);
+      controls.setValvola(phase === 'play' && view.vicinoValvola);
       controls.setLanterna(phase === 'play' && view.lanterna >= 0 ? { salvatoQui: view.salvatoQui, oggetti: nOggetti(view.zaino.bottino), monete: view.zaino.monete } : null);
       sc.setAltare(view.altari.findIndex((a) => a.attivo));
       const h = view.hero, rh = s.runHero, spell = rh.magia !== null ? rh.magie[rh.magia] : null;
@@ -359,6 +364,7 @@ export function startRun(ctx: RunCtx, o: {
       active: phase !== 'over', phase, dungeon: o.dungeon, tick: v.tick, outcome: v.outcome, frames: frames.length, auto: !!auto, paused: !!controls?.paused, zaino: v.zaino,
       hero: { x: v.hero.x, z: v.hero.z, vita: v.hero.vita, magicka: v.hero.magicka, stamina: v.hero.stamina, anim: v.hero.anim, arma: v.hero.arma, frecce: v.hero.frecce },
       nemici: v.nemici.filter((n) => !n.alleato).length, vivi, vicinoUscita: v.vicinoUscita,
+      acque: v.acque, valvole: v.valvole, vicinoValvola: v.vicinoValvola, geyser: v.geyser.length, rallentato: !!v.hero.rallentato, fx: fx?.counts() ?? null,
       altari: v.altari, salvato: v.salvato, cadute: s.cadute, protetto: v.hero.protetto, lanterna: v.lanterna, salvatoQui: v.salvatoQui, partenza: s.partenza,
       equip: { ...s.equip }, azioni: azioni.length, pannello: isPanelOpen(),
       scene: sc?.stats() ?? null, actors: actors?.counts() ?? null,

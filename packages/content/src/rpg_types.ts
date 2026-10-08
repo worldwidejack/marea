@@ -77,8 +77,17 @@ export type EnemyDef = {
   id: string; nome: string; kind: EnemyKind; model: string;
   vita: number; danno: number; armatura: number; resistMagia?: number;
   velocita: number; vista: number; portata: number; preparazione: number; recupero: number; raggio: number;
-  comportamento: 'mischia' | 'arciere' | 'mago';
+  /** `torretta` (Drenaggio, Valvola-SparaVapore): non si muove mai (né la spingono), si gira verso l'eroe e tira quando lo vede. */
+  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta';
   proiettile?: { danno: number; velocita: number; ricarica: number; gittata: number };
+  /** Il suo colpo in mischia rallenta l'eroe: velocità × `molt` per `secondi` (Tubo-strisciante). */
+  rallenta?: { molt: number; secondi: number };
+  /** Colpo ad area ogni `ogni` attacchi: `raggio` m attorno a sé, danno × `danno`, preparazione × `prep` (sbuffo di vapore
+   *  dell'Operaio, martello del Capoturno). Senza, i boss fanno quello di sempre (tuning.ts BOSS_AREA_*). */
+  area?: { ogni: number; raggio: number; danno: number; prep: number };
+  /** Il colpo ad area fa salire dal pavimento `n` geyser di vapore attorno a sé a `distanza` m, più uno sotto ogni eroe: cerchio
+   *  d'avviso per `avviso` s, poi getto per `getto` s che fa `danno` a chi ci sta dentro (`raggio` m). Il Capoturno. */
+  geyser?: { n: number; distanza: number; raggio: number; danno: number; avviso: number; getto: number };
   /** Il colpo è contundente (raddoppia sulle armature di vetro). */
   contundente?: boolean;
   /** Scappa da chi indossa armatura con `terrore` ≥ questo valore (nemici deboli contro le ossa). */
@@ -90,13 +99,16 @@ export type LootTable = { id: string; monete: [number, number]; voci: LootEntry[
 
 /** Mappa ASCII, una cella = `tile` m: '#' muro, '.' pavimento, '<' scala d'uscita (anche lo spawn, accanto), ' ' vuoto. Ogni altra lettera la spiega `legenda` (sopra c'è pavimento). */
 export type DungeonDef = {
-  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto'; tile: number;
+  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio'; tile: number;
   /** Difficoltà, invisibile al giocatore: la bussola punta solo al dungeon più facile non ancora completato (docs/RPG.md §2). */
   difficolta: number;
   rows: string[];
   /** `altare`: altare di salvataggio (docs/RPG.md §4): passandoci il bottino raccolto fin lì è al sicuro; morendo dopo si riparte da lì.
-   *  `capo` (con `nemico`): ucciso lui, il dungeon è completato (`HeroState.completati`); uno per dungeon. Non cambia il nemico. */
-  legenda: Record<string, { nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean }>;
+   *  `capo` (con `nemico`): ucciso lui, il dungeon è completato (`HeroState.completati`); uno per dungeon. Non cambia il nemico.
+   *  `acqua: n` (Drenaggio): cella allagata del bacino n, non si cammina (ma si vede e si tira sopra) finché la valvola n non la svuota.
+   *  `valvola: n`: valvola del bacino n (sul pavimento): A accanto la apre, il bacino si svuota in qualche secondo, per tutti.
+   *  `asciutti` (con `altare`): ripartendo da questa lanterna questi bacini sono già vuoti (per arrivarci li avevi svuotati). */
+  legenda: Record<string, { nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number }>;
   /** Dove sta l'ingresso nel mondo: cella di un'isola di islands.json (il modello è `prop_ingresso_<stile>`). */
   ingresso: { island: string; at: [number, number] };
 };

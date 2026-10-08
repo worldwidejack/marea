@@ -3,6 +3,8 @@
 // muri alti in una fascia davanti all'eroe (verso la camera) si abbassano mentre ci passi. Buio a scatti (niente nebbia liscia): ogni cella
 // ha un livello di luce a gradini (vista diretta vicina / media / lontana / già vista); quelle mai viste non si disegnano.
 // Luci: emisferica scura + direzionale debole + lanterna sull'eroe + 4 PointLight spostate sulle torce/scala più vicine.
+// Drenaggio: kit in codice (rpg/drenaggio.ts) finché mancano i modelli, e l'acqua dei bacini (un blocco per cella, alto 0,6 m) che scende
+// a gradini quando si gira la valvola (`setAcque`).
 import * as THREE from 'three';
 import { dungeonDef } from '@marea/content/rpg.ts';
 import type { DungeonDef } from '@marea/content/rpg.ts';
@@ -12,6 +14,7 @@ import type { Loader } from '../render/loader.ts';
 import { PAL } from '../ui/style.ts';
 import { boxPart, cellHash, parts } from './dungeon_kit.ts';
 import type { Part } from './dungeon_kit.ts';
+import { kitDrenaggio } from './drenaggio.ts';
 
 export type DungeonScene = {
   scene: THREE.Scene; map: DMap; def: DungeonDef; floorY: number;
@@ -23,6 +26,8 @@ export type DungeonScene = {
   pulse(n: number): void;
   /** Livello di luce della cella in (x, z): 0 = mai vista, 0.25 = vista prima, ≥ 0.45 = in vista ora. */
   light(x: number, z: number): number;
+  /** Drenaggio: livello dell'acqua di ogni bacino (1 pieno, 0 asciutto), dalla vista. */
+  setAcque(a: readonly { n: number; livello: number }[]): void;
   stats(): { floors: number; walls: number; low: number; lights: number; seen: number; altari: number; altareAcceso: number };
   dispose(): void;
 };
@@ -33,6 +38,7 @@ const STYLE: Record<string, { floor: string; wall: string; top: number; lantern:
   grotta: { floor: PAL.roccia, wall: PAL.pietraScura, top: 0.05, lantern: PAL.arancio, hemi: [PAL.pietraScura, PAL.ombraCalda, 1.3] },
   cripta: { floor: PAL.pietraScura, wall: PAL.pietra, top: 0.01, lantern: PAL.arancio, hemi: [PAL.pietra, PAL.ombraCalda, 1.2] },
   vuoto: { floor: PAL.abisso, wall: PAL.viola, top: 0.1, lantern: PAL.viola, hemi: [PAL.abisso, PAL.neroCaldo, 1.4] },
+  drenaggio: { floor: PAL.pietraScura, wall: PAL.roccia, top: 0.05, lantern: PAL.arancio, hemi: [PAL.acquaProfonda, PAL.ombraCalda, 1.35] },
 };
 
 /** Un tipo di modulo istanziato su più celle: una InstancedMesh per parte, stessa numerazione; nascondere = scala 0. */
@@ -103,10 +109,16 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
   ]);
   const rot = (i: number) => Math.floor(cellHash(i % W, Math.floor(i / W), 3) * 4);
   const mats = (list: number[], r: (i: number) => number) => list.map((i) => place(i % W, Math.floor(i / W), r(i)));
-  const bFloor = makeBatch(pFloor ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, rot), 'pavimento', group);
-  const bWall = makeBatch(pWall ?? [boxPart(T, 2.4, T, 0, st.wall)], walls, mats(walls, rot), 'muro', group);
-  const bLow = makeBatch(pLow ?? [boxPart(T, 0.6, T, 0, st.wall)], walls, mats(walls, rot), 'muro_basso', group);
-  const bCol = makeBatch(pCol ?? [boxPart(0.9, 2.4, 0.9, 0, st.wall)], cols, mats(cols, rot), 'colonna', group);
+  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : null; // segnaposto in codice finché non ci sono i modelli dng_drenaggio_*
+  const bFloor = makeBatch(pFloor ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, rot), 'pavimento', group);
+  const bWall = makeBatch(pWall ?? dk?.muro ?? [boxPart(T, 2.4, T, 0, st.wall)], walls, mats(walls, rot), 'muro', group);
+  const bLow = makeBatch(pLow ?? dk?.muro_basso ?? [boxPart(T, 0.6, T, 0, st.wall)], walls, mats(walls, rot), 'muro_basso', group);
+  const bCol = makeBatch((dk ? dk.colonna : pCol) ?? [boxPart(0.9, 2.4, 0.9, 0, st.wall)], cols, mats(cols, rot), 'colonna', group);
+  // acqua dei bacini: un batch per bacino, scala in altezza = livello a gradini (0 = asciutto, non si disegna)
+  const acque = map.bacini.map((b) => {
+    const base = b.celle.map((i) => place(i % W, Math.floor(i / W), rot(i)).multiply(new THREE.Matrix4().makeTranslation(0, st.top, 0)));
+    return { n: b.n, celle: b.celle, scala: 1, batch: makeBatch(dk?.acqua ?? [boxPart(T, 0.6, T, 0, PAL.acqua)], b.celle, base, 'acqua_' + b.n, group) };
+  });
   const bBones = makeBatch(pBones ?? [boxPart(0.6, 0.12, 0.3, 0, PAL.pietraChiara)], bones, mats(bones, (i) => cellHash(i, 0, 9) * 4), 'ossa', group);
 
   // ---- torce: sul muro accanto alla cella «luce» (meglio nord/ovest, che restano alti), altrimenti un braciere a terra ----
@@ -141,7 +153,8 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
   const bCristOn = makeBatch([boxPart(0.36, 0.75, 0.36, 0.8, PAL.acquaBassa, true)], altarCells, altarM, 'altare_acceso', group);
   const altarSrc = map.altari.map((a, n) => { const src = { x: a.x, z: a.z, c: PAL.acquaBassa, i: 0.4, cell: altarCells[n]! }; sources.push(src); return src; });
   let altarOn = -1, pulseN = -1, pulseT0 = -1;
-  const batches = [bFloor, bWall, bLow, bCol, bBones, bTorch, bBraz, bExit, bAltare, bCristOff, bCristOn];
+  const batches = [bFloor, bWall, bLow, bCol, bBones, bTorch, bBraz, bExit, bAltare, bCristOff, bCristOn, ...acque.map((a) => a.batch)];
+  const acquaSu = (a: (typeof acque)[number], lv: (i: number) => number) => a.celle.forEach((i, n) => setInst(a.batch, n, a.scala > 0 ? lv(i) : 0, a.scala));
 
   // ---- luci ----
   const hemi = new THREE.HemisphereLight(st.hemi[0], st.hemi[1], st.hemi[2]);
@@ -194,8 +207,10 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
       const l = Math.max(lv(i), LV.seen);
       setInst(bAltare, n, l); setInst(bCristOff, n, n === altarOn ? 0 : l); setInst(bCristOn, n, n === altarOn ? 1 : 0);
     });
+    for (const a of acque) acquaSu(a, lv);
     for (const b of batches) flush(b);
   }
+  const lvOra = (i: number) => (level[i]! > 0 ? level[i]! : seen[i] ? LV.seen : 0);
 
   let poolT = -1;
   const api: DungeonScene = {
@@ -232,6 +247,13 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
       lastCell = -1; poolT = -1; // rifà luce e lampade al prossimo update
     },
     pulse(n) { pulseN = n; pulseT0 = -1; },
+    setAcque(liv) {
+      for (const a of acque) {
+        const l = liv.find((x) => x.n === a.n)?.livello ?? 1, scala = Math.ceil(Math.max(0, Math.min(1, l)) * 6) / 6; // 6 gradini
+        if (scala === a.scala) continue;
+        a.scala = scala; acquaSu(a, lvOra); flush(a.batch);
+      }
+    },
     light: (x, z) => { const i = cellOfXZ(x, z); return i < 0 ? 0 : level[i]! > 0 ? level[i]! : seen[i] ? LV.seen : 0; },
     stats: () => ({ floors: floors.length, walls: walls.length, low: lowN, lights: pool.filter((l) => l.intensity > 0).length, seen: seenN, altari: altarCells.length, altareAcceso: altarOn }),
     dispose() {

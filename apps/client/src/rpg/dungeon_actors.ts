@@ -5,6 +5,8 @@
 // Arcieri: arco nella sinistra; quando preparano un tiro si girano di fianco, alzano l'arco verso il bersaglio e tendono la corda a
 // gradini con la freccia incoccata, scoccano con un rinculo e lo riabbassano (arco.ts). Frecce in volo grandi e con la scia.
 // Interpolazione tra due tick (alpha) per i 60 fps; quel che sta al buio (scena.light) non si disegna.
+// Drenaggio: i nemici senza modello usano le forme in codice di rpg/drenaggio.ts; la Valvola-SparaVapore non barcolla (è fissata ai tubi);
+// getti d'acqua azzurri.
 import * as THREE from 'three';
 import { ENEMIES } from '@marea/content/rpg.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
@@ -13,6 +15,7 @@ import { PAL } from '../ui/style.ts';
 import { boxes, materialsOf, object, tintBlade } from './dungeon_kit.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
 import { armaArco, frecciaInVolo } from './arco.ts';
+import { formaNemico } from './drenaggio.ts';
 import type { Arco } from './arco.ts';
 
 type NemV = DungeonView['nemici'][number] & { area?: number };
@@ -84,7 +87,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         body.add(m); e.arco = { obj: m, a: armaArco(m, o.loader, true, 2.6) };
       });
     }
-    void object(o.loader, n.model, () => boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
+    void object(o.loader, n.model, () => formaNemico(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
       body.add(m);
       e.mats = materialsOf(m);
       if (n.alleato) for (const x of e.mats) { x.color.lerp(NEON, 0.6); x.transparent = true; x.opacity = 0.85; }
@@ -108,6 +111,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
   }
   function projObj(tipo: string): Promise<THREE.Object3D> {
     if (tipo === 'freccia' || tipo === 'freccia_nemica') return frecciaInVolo(o.loader, tipo === 'freccia_nemica');
+    if (tipo === 'acqua_nemica') return Promise.resolve(boxes([[0.32, 0.32, 0.5, 0, 0, 0, PAL.acquaBassa], [0.2, 0.2, 0.5, 0, 0, 0.22, PAL.acqua], [0.12, 0.12, 0.3, 0, 0, 0.5, PAL.sabbiaChiara]], true));
     if (tipo === 'magia') return object(o.loader, 'fx_fiammata', () => boxes([[0.35, 0.35, 0.6, 0, 0, 0, PAL.arancio]], true)).then((f) => { for (const m of materialsOf(f)) { m.emissive.set(PAL.arancio); m.emissiveIntensity = 0.8; } return f; });
     return Promise.resolve(boxes([[0.35, 0.35, 0.35, 0, 0, 0, '#8A5CFF'], [0.18, 0.18, 0.5, 0, 0, 0.2, PAL.rosaNeon]], true));
   }
@@ -177,7 +181,10 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
           if (n.anim === 'colpisce') b.position.z = 0.12;
         } else switch (n.anim) {
           case 'dorme': b.scale.y = bs * (0.92 + 0.02 * Math.sin(t * 2)); break;
-          case 'insegue': case 'scappa': { const k = n.anim === 'scappa' ? 14 : 10; b.position.y = 0.08 * Math.abs(Math.sin(t * k + e.id)); b.rotation.z = 0.08 * Math.sin(t * k + e.id); break; }
+          case 'insegue': case 'scappa': {
+            if (n.model === 'nem_valvola') { b.position.y = 0.015 * (Math.floor(t * 8 + e.id) % 2); break; } // fissata ai tubi: vibra soltanto
+            const k = n.anim === 'scappa' ? 14 : 10; b.position.y = 0.08 * Math.abs(Math.sin(t * k + e.id)); b.rotation.z = 0.08 * Math.sin(t * k + e.id); break;
+          }
           case 'prepara': { // telegrafo leggibile: si tira indietro a gradini e lampeggia rosso sempre più spesso
             b.rotation.x = 0.4 * steps(n.t, 4); b.position.z = 0.15 * n.t;
             const hz = 4 + 10 * n.t; glowC = RED; glow = Math.floor(t * hz) % 2 === 0 ? 0.35 + 0.5 * n.t : 0.1;

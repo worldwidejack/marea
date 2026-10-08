@@ -66,12 +66,12 @@ function muovi(s: DungeonState): void {
         for (const k of inGioco(s)) {
           const r = s.eroi[k]!, dx = r.hero.x - p.x, dz = r.hero.z - p.z, rr = r.runHero.raggio + MARGINE;
           if (dx * dx + dz * dz > rr * rr) continue;
-          s.cur = k; hitHero(s, p.danno, p.magico ? 'magia' : 'taglio', r.hero.x, r.hero.z); fine = true;
+          s.cur = k; hitHero(s, p.danno, p.magico ? 'magia' : p.contundente ? 'contundente' : 'taglio', r.hero.x, r.hero.z); fine = true;
           break;
         }
       } else if (p.dalNemico) {
         const dx = h.x - p.x, dz = h.z - p.z, r = rh.raggio + MARGINE;
-        if (dx * dx + dz * dz <= r * r) { hitHero(s, p.danno, p.magico ? 'magia' : 'taglio', h.x, h.z); fine = true; }
+        if (dx * dx + dz * dz <= r * r) { hitHero(s, p.danno, p.magico ? 'magia' : p.contundente ? 'contundente' : 'taglio', h.x, h.z); fine = true; }
       } else fine = hitFoes(s, p);
     }
     if (finita(s)) return;

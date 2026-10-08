@@ -1,16 +1,24 @@
 // IA dei nemici e degli alleati evocati: dorme/veglia → aggro (vista + linea di vista), inseguimento col flow field, preparazione
 // telegrafata → colpo → recupero; arcieri e maghi tengono la distanza e tirano; i boss alternano un colpo ad area; i deboli scappano dalle ossa.
+// Drenaggio: le torrette (Valvola-SparaVapore) stanno ferme e tirano getti d'acqua; il colpo ad area c'è anche per chi ha `area` (sbuffo di
+// vapore dell'Operaio) e con `geyser` fa salire i geyser (Capoturno); il colpo del Tubo-strisciante rallenta (acque.ts).
 import { DT } from '../constants.ts';
+import type { EnemyDef } from '@marea/content/rpg.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { conEroe, ev, finita, inGioco, secToTicks } from './state.ts';
 import { hitEnemy, hitHero, kill, wake } from './combat.ts';
 import { bfs, cellCenter, cellOf, lineOfSight, moveCircle, stepDown } from './map.ts';
+import { geyserDa, rallenta } from './acque.ts';
 import {
   ALLEATO_SEGUE, BOSS_AREA_DANNO, BOSS_AREA_OGNI, BOSS_AREA_PREP, BOSS_AREA_RAGGIO, COLPISCE_TICKS, COS_CONO_NEMICO, DISTANZA_TIRATORI,
   FLOW_OGNI, MAGIA_Y, RAGGIO_ALLARME, RAGGIO_ATTIVO, TOLLERANZA_NEMICO, VISTA_DORMENDO,
 } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
+/** Raggio del colpo ad area: `area.raggio`, se no quello dei boss (portata × BOSS_AREA_RAGGIO). */
+export const areaRaggio = (d: EnemyDef): number => (d.area ? d.area.raggio : d.portata * BOSS_AREA_RAGGIO);
+/** Torretta: non si muove e non la sposta niente. */
+export const fisso = (e: Enemy): boolean => e.def.comportamento === 'torretta';
 /** Funzione (non confronto diretto): lo stato può cambiare dentro stepFoe/stepAlly. */
 const vivo = (e: Enemy): boolean => e.st !== 'morto';
 
@@ -87,9 +95,10 @@ function startPrep(s: DungeonState, e: Enemy, tx: number, tz: number, tiro: bool
   const dx = tx - e.x, dz = tz - e.z, d = Math.sqrt(dx * dx + dz * dz);
   if (d > 1e-6) { e.fx = dx / d; e.fz = dz / d; }
   e.attacchi++;
-  e.area = !tiro && !!e.def.boss && e.attacchi % BOSS_AREA_OGNI === 0;
+  const ar = e.def.area;
+  e.area = !tiro && (ar ? e.attacchi % ar.ogni === 0 : !!e.def.boss && e.attacchi % BOSS_AREA_OGNI === 0);
   e.tiro = tiro;
-  setState(e, 'prepara', secToTicks(e.def.preparazione * (e.area ? BOSS_AREA_PREP : 1)));
+  setState(e, 'prepara', secToTicks(e.def.preparazione * (e.area ? (ar ? ar.prep : BOSS_AREA_PREP) : 1)));
 }
 
 /** Fine preparazione contro l'eroe: colpo in mischia (se è ancora in portata e davanti), ad area, o proiettile. */
@@ -101,25 +110,29 @@ function resolveAttack(s: DungeonState, e: Enemy): void {
     e.tiro = false;
     e.cdTiro = secToTicks(p.ricarica);
     if (d < 1e-6) return;
-    const mago = e.def.comportamento === 'mago' || e.def.comportamento === 'mischia';
+    const acqua = fisso(e), mago = !acqua && (e.def.comportamento === 'mago' || e.def.comportamento === 'mischia');
     const vx = (dx / d) * p.velocita, vz = (dz / d) * p.velocita;
     s.proj.push({
-      id: s.nextId++, tipo: mago ? 'magia_nemica' : 'freccia_nemica', x: e.x + e.fx * (e.def.raggio + 0.1), y: MAGIA_Y, z: e.z + e.fz * (e.def.raggio + 0.1),
+      id: s.nextId++, tipo: acqua ? 'acqua_nemica' : mago ? 'magia_nemica' : 'freccia_nemica', x: e.x + e.fx * (e.def.raggio + 0.1), y: MAGIA_Y, z: e.z + e.fz * (e.def.raggio + 0.1),
       vx, vy: 0, vz, g: 0, danno: p.danno, life: secToTicks(p.gittata / p.velocita), traits: {}, raggio: 0, colpiti: [],
-      dalNemico: true, contundente: false, magico: mago, arrowId: null,
+      dalNemico: true, contundente: acqua, magico: mago, arrowId: null,
     });
     return;
   }
   const kind = e.def.contundente ? 'contundente' : 'taglio';
   if (e.area) {
+    if (e.def.geyser) geyserDa(s, e);
     if (s.eroi.length > 1) { areaSuTutti(s, e, kind); return; }
-    if (d <= e.def.portata * BOSS_AREA_RAGGIO + rh.raggio) hitHero(s, e.def.danno * BOSS_AREA_DANNO, kind, h.x, h.z);
+    if (d <= areaRaggio(e.def) + rh.raggio) hitHero(s, e.def.danno * (e.def.area ? e.def.area.danno : BOSS_AREA_DANNO), kind, h.x, h.z);
     else ev(s, { t: 'schivato', x: r2(h.x), z: r2(h.z) });
     return;
   }
   const dot = d > 1e-6 ? (dx * e.fx + dz * e.fz) / d : 1;
-  if (d <= e.def.portata + e.def.raggio + rh.raggio + TOLLERANZA_NEMICO && dot >= COS_CONO_NEMICO) hitHero(s, e.def.danno, kind, h.x, h.z);
-  else ev(s, { t: 'schivato', x: r2(h.x), z: r2(h.z) });
+  if (d <= e.def.portata + e.def.raggio + rh.raggio + TOLLERANZA_NEMICO && dot >= COS_CONO_NEMICO) {
+    const arriva = !s.done && h.protetto <= 0;
+    hitHero(s, e.def.danno, kind, h.x, h.z);
+    if (arriva && e.def.rallenta) rallenta(s, e.def);
+  } else ev(s, { t: 'schivato', x: r2(h.x), z: r2(h.z) });
 }
 
 /** Insieme: il colpo ad area del boss prende tutti gli eroi nel cerchio; il bersaglio, se è fuori, l'ha schivato. */
@@ -129,8 +142,8 @@ function areaSuTutti(s: DungeonState, e: Enemy, kind: 'taglio' | 'contundente'):
   for (const i of inGioco(s)) {
     conEroe(s, i, () => {
       const h = s.hero, dx = h.x - e.x, dz = h.z - e.z;
-      if (Math.sqrt(dx * dx + dz * dz) > e.def.portata * BOSS_AREA_RAGGIO + s.runHero.raggio) return;
-      hitHero(s, e.def.danno * BOSS_AREA_DANNO, kind, h.x, h.z);
+      if (Math.sqrt(dx * dx + dz * dz) > areaRaggio(e.def) + s.runHero.raggio) return;
+      hitHero(s, e.def.danno * (e.def.area ? e.def.area.danno : BOSS_AREA_DANNO), kind, h.x, h.z);
       if (i === t) preso = true;
     });
   }
@@ -160,6 +173,14 @@ function stepFoe(s: DungeonState, e: Enemy): void {
       return;
     }
     case 'insegue': {
+      if (fisso(e)) {
+        // torretta: girata verso l'eroe, tira quando lo vede ed è carica; non insegue mai
+        const p = def.proiettile;
+        if (!p || d < 1e-6 || d > p.gittata || !lineOfSight(s.map, e.x, e.z, h.x, h.z)) return;
+        e.fx = dx / d; e.fz = dz / d;
+        if (e.cdTiro <= 0) startPrep(s, e, h.x, h.z, true);
+        return;
+      }
       if (fearful(s, e)) { setState(e, 'scappa', 0); return; }
       const reach = def.portata + def.raggio + rh.raggio, p = def.proiettile;
       if (d <= reach) { startPrep(s, e, h.x, h.z, false); return; }
@@ -240,10 +261,13 @@ function separate(s: DungeonState, act: Enemy[]): void {
       if (d2 >= rr * rr) continue;
       const d = Math.sqrt(d2);
       const ux = d > 1e-6 ? dx / d : 1, uz = d > 1e-6 ? dz / d : 0, k = (rr - d) / 2;
-      moveCircle(s.map, a, -ux * k, -uz * k, a.def.raggio);
-      moveCircle(s.map, b, ux * k, uz * k, b.def.raggio);
+      // le torrette non si spostano: l'altro si sposta di tutto
+      const fa = fisso(a), fb = fisso(b);
+      if (fa && fb) continue;
+      if (!fa) moveCircle(s.map, a, -ux * k * (fb ? 2 : 1), -uz * k * (fb ? 2 : 1), a.def.raggio);
+      if (!fb) moveCircle(s.map, b, ux * k * (fa ? 2 : 1), uz * k * (fa ? 2 : 1), b.def.raggio);
     }
-    if (a.alleato) continue;
+    if (a.alleato || fisso(a)) continue;
     for (const r of s.eroi) {
       if (r.done) continue;
       const h = r.hero, dx = a.x - h.x, dz = a.z - h.z, d2 = dx * dx + dz * dz, rr = a.def.raggio + r.runHero.raggio;
