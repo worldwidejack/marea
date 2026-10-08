@@ -84,12 +84,23 @@ export default async function (ctx) {
     });
     await ctx.shot(page, '2_barca');
 
-    await ctx.test('in barca → guida 3/8 «Regata»; al molo della Laguna compare GIOCA', async () => {
+    await ctx.test('in barca → guida 3/8 «Regata»; alla Laguna A al molo sale e scende (la Regata non parte), in barca compare GIOCA (R)', async () => {
       await hook('setMode', 'boat');
       await ctx.waitState(page, (s) => s.guida.current === 'regata', 5000);
-      await hook('goto', 'laguna');
-      await ctx.waitState(page, (s) => s.minigiochi.near === 'regata', 5000);
+      await hook('goto', 'laguna'); // a piedi, con la barca ormeggiata accanto al molo della Laguna
+      const dock = (await st()).island.dock;
+      await hook('teleport', dock.x, dock.z); await sleep(300);
+      assert((await st()).minigiochi.near === null, 'a piedi la Regata non deve comparire');
+      await page.keyboard.press('KeyE'); // A sul molo: in barca (prima partiva la Regata)
+      await ctx.waitState(page, (s) => s.mode === 'boat' && s.minigiochi.near === 'regata', 5000);
       await page.waitForSelector('#mzPlay.on', { timeout: 3000 });
+      assert(/R/.test(await page.locator('#mzPlay small').innerText()), 'il bottone della Regata deve dire R, non A');
+      await page.keyboard.press('KeyE'); // A con la barca ferma al molo: a terra, la Regata non parte
+      await ctx.waitState(page, (s) => s.mode === 'walk', 5000);
+      const s = await st();
+      assert(!s.minigiochi.busy && !s.regata?.active, 'A al molo della Laguna ha fatto partire la Regata');
+      await page.keyboard.press('KeyE'); // e di nuovo in barca
+      await ctx.waitState(page, (s) => s.mode === 'boat' && s.minigiochi.near === 'regata', 5000);
     });
     await ctx.shot(page, '3_gioca');
 

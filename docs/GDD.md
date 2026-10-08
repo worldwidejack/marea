@@ -157,7 +157,7 @@ Il bonus è sulla velocità (il tetto del deposito resta quello dell'edificio) e
 ## 6. Minigiochi
 **Formato comune** (in `packages/sim/src/minigames/`): modulo puro e deterministico, 60 Hz, `create({seed, difficulty})`, `step(state, input)`, `result(state)`, `autopilot`. Stesso seed = stessa partita, sempre. Il punteggio è **sempre «più alto vince»**; i dettagli (tempo, combo) stanno in `result().detail`.
 
-**Ogni minigioco ha il suo posto** su un'isola (ogni isola ha giochi diversi): la Regata parte dal molo della Laguna. Nel mondo una boa grande con il cartello «REGATA» che si vede da lontano, nella bussola una riga con la distanza; vicino compare **GIOCA** (A). Si gioca da soli quando si vuole: il seed lo dà il server, che rigioca gli input e paga il premio (§5).
+**Ogni minigioco ha il suo posto** su un'isola (ogni isola ha giochi diversi): la Regata parte dal molo della Laguna. Nel mondo una boa grande con il cartello «REGATA» che si vede da lontano, nella bussola una riga con la distanza; vicino compare **GIOCA** (A). La Regata fa eccezione (8 ott 2026, Riccardo): la boa del via sta accanto al molo della Laguna, dove **A attracca e fa scendere a terra** (sull'anello della Laguna ci sono i dungeon dell'Epopea, `RPG.md`); la gara parte **solo dalla barca**, col bottone **GIOCA · REGATA** o il tasto **R**. Si gioca da soli quando si vuole: il seed lo dà il server, che rigioca gli input e paga il premio (§5).
 
 **Sfide differite** (spente per la prova con gli amici, si riaccendono con `?sfide=1`): A gioca oggi con un seed; B entra domani, gioca lo **stesso** seed e vede se batte il punteggio di A. Nessun bot. Il server rigioca l'input log nella sim e verifica il punteggio dichiarato.
 
