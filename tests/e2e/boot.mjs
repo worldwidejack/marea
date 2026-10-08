@@ -10,9 +10,12 @@ export default async function (ctx) {
   await ctx.test('il canvas disegna qualcosa', async () => { await p.page.waitForTimeout(600); const s = await ctx.screenStats(p.page); ctx.assert(s.variance > 50, `varianza ${s.variance.toFixed(1)} troppo bassa`); });
   await ctx.shot(p.page, 'iphone_spawn');
   await ctx.test('l’avatar cammina con un input iniettato', async () => {
-    const s0 = (await ctx.getState(p.page)).avatar;
     await p.page.evaluate(() => { window.__game.test.teleport(window.__game.state().island.spawn.x, window.__game.state().island.spawn.z); });
-    await p.page.keyboard.down('ArrowUp'); await p.page.waitForTimeout(700); await p.page.keyboard.up('ArrowUp');
+    const s0 = (await ctx.getState(p.page)).avatar; // dopo il teleport: conta solo il passo
+    // si tiene premuto finché non si è mosso (al massimo 20 s): su GitHub a 2-4 fps 700 ms erano un paio di fotogrammi
+    await p.page.keyboard.down('ArrowUp');
+    await p.page.waitForFunction(([x, z]) => { const a = window.__game.state().avatar; return Math.hypot(a.x - x, a.z - z) > 0.5; }, [s0.x, s0.z], { timeout: 20000 }).catch(() => {});
+    await p.page.keyboard.up('ArrowUp');
     const s1 = (await ctx.getState(p.page)).avatar;
     ctx.assert(Math.hypot(s1.x - s0.x, s1.z - s0.z) > 0.5, `non si è mosso (${s0.x},${s0.z}) → (${s1.x},${s1.z})`);
   });
