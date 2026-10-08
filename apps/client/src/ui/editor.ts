@@ -7,21 +7,28 @@
 // window solo a pannello aperto, con stopPropagation (mai keyup, altrimenti restano incollati in input.ts), come il Tavolo.
 // In fondo «Altro dispositivo»: COPIA / MANDA il proprio link col token (il token sta solo nel browser che ha aperto il link). Il link non
 // si mostra a schermo (niente screenshot con la chiave), tranne quando la copia non riesce: allora un campo da selezionare a mano.
+// Sezione «La tua barca» (#107, ui/editor_barca.ts): scafo, vela, nome; Salva manda anche quella se è cambiata.
 import { AVATAR } from '@marea/content';
-import type { Look, LotState, Resources } from '@marea/protocol';
+import type { BarcaLook, Look, LotState, Resources } from '@marea/protocol';
 import { mancaText, perleText } from '../net/api.ts';
 import type { Api, Me } from '../net/api.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
 import { resIcon } from './icons.ts';
 import { topButton } from './topbar.ts';
 import { registerStateProvider } from '../test/testapi.ts';
+import { createSezioneBarca } from './editor_barca.ts';
+import type { RigaBarca } from './editor_barca.ts';
 
 export type Editor = { open(): void; close(): void; toggle(): void; isOpen(): boolean };
 export type EditorOpts = {
   api: Api; me: Me; root?: HTMLElement;
   /** L'avatar del mondo: anteprima dal vivo mentre si scorre (world.setLook). */
   avatar: { setLook(l: Look): void };
+  /** La tua barca nel mondo (#107): anteprima dal vivo dei colori e del nome. Senza, la sezione Barca non c'è. */
+  barca?: { setBarca(b: BarcaLook): void };
   onSaved?(l: Look): void;
+  /** Barca salvata (#107). */
+  onBarca?(b: BarcaLook): void;
   /** Dopo un acquisto (cappello a Perle) il lotto cambia: chi ascolta aggiorna la vista del lotto. */
   onLot?(lot: LotState): void;
   onOpen?(): void; onClose?(): void;
@@ -82,6 +89,8 @@ export function createEditor(o: EditorOpts): Editor {
   let linkVisibile = false; // la copia non è riuscita: il link in un campo da selezionare a mano
 
   const perle =(): number | null => (lot ? lot.resources.perle : null);
+  const sez = o.barca ? createSezioneBarca({ api, me: o.me, world: o.barca, getLot: () => lot, onChange: () => { note = null; render(); } }) : null;
+  const isBarcaRow = (r: string | undefined): r is RigaBarca => r === 'scafo' || r === 'vela';
   const owned = (): string[] => HATS.filter((h) => h.perle <= 0 || (lot?.posseduti ?? []).includes(h.id)).map((h) => h.id);
   /** Il cappello scelto si può salvare: gratis, comprato, o già nel look salvato (il server l'aveva accettato). */
   const hatOk = (): boolean => { const h = HATS[draft.cappello]; return !h || owned().includes(h.id) || draft.cappello === clampLook(o.me.look).cappello; };
@@ -119,16 +128,19 @@ export function createEditor(o: EditorOpts): Editor {
     if (g === gen) render();
   }
   async function salva(): Promise<void> {
-    if (busy || !hatOk()) return;
-    const l = { ...draft };
-    if (same(l, clampLook(o.me.look))) { close(); return; } // niente da salvare: niente POST
+    if (busy || !hatOk() || (sez && !sez.ok())) return;
+    const l = { ...draft }, lookNuovo = !same(l, clampLook(o.me.look)), barcaNuova = !!sez?.changed();
+    if (!lookNuovo && !barcaNuova) { close(); return; } // niente da salvare: niente POST
     const g = gen;
     busy = true; note = null; render();
     try {
-      await api.look(l);
+      if (lookNuovo) {
+        await api.look(l);
+        o.me.look = { ...o.me.look, ...l }; // anche se nel frattempo il pannello è stato chiuso: il server l'ha salvato (titolo e barca restano)
+        o.onSaved?.(l);
+      }
+      if (barcaNuova && sez) { const b = await sez.save(); o.onBarca?.(b); } // (non `o.onBarca?.(await …)`: senza callback non salverebbe)
       busy = false;
-      o.me.look = l; // anche se nel frattempo il pannello è stato chiuso: il server l'ha salvato
-      o.onSaved?.(l);
       if (g === gen) close(); else o.avatar.setLook(l);
     } catch (e) {
       busy = false;
@@ -159,13 +171,18 @@ export function createEditor(o: EditorOpts): Editor {
 
   // ---------- tastiera (solo a pannello aperto) ----------
   const navItems = (): HTMLElement[] =>
-    [...sheet.querySelectorAll<HTMLElement>('[data-row], button:not(:disabled):not([tabindex="-1"])')].filter((e) => !e.classList.contains('mz-x'));
+    [...sheet.querySelectorAll<HTMLElement>('[data-row], button:not(:disabled):not([tabindex="-1"]), input[data-nav]')].filter((e) => !e.classList.contains('mz-x'));
   const onKey = (e: KeyboardEvent): void => {
     if (!open || e.metaKey || e.ctrlKey || e.altKey) return;
     e.stopPropagation(); // WASD/frecce/1-4/F non arrivano al gioco mentre l'editor è aperto
     const active = document.activeElement as HTMLElement | null;
     const inside = !!active && sheet.contains(active);
     const items = navItems();
+    if (active?.dataset['nav'] === 'barca-nome') { // nel nome si scrive: passano tutti i tasti (anche C), tranne Esc, Invio e le frecce su/giù
+      if (e.key === 'Escape') { e.preventDefault(); if (!e.repeat && !busy) close(); return; }
+      if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const i = items.indexOf(active); items[Math.max(0, Math.min(items.length - 1, i + (e.key === 'ArrowUp' ? -1 : 1)))]?.focus(); }
+      return;
+    }
     const rowOf = inside && active ? active.closest<HTMLElement>('[data-row]') : null;
     const cur = inside && active ? (items.includes(active) ? active : rowOf ?? active) : null;
     const rowId = cur === rowOf ? (rowOf?.dataset['row'] as RowId | undefined) : undefined; // su «Compra» le frecce laterali non cambiano cappello
@@ -180,7 +197,8 @@ export function createEditor(o: EditorOpts): Editor {
       }
       case 'ArrowLeft': case 'ArrowRight': {
         e.preventDefault();
-        if (rowId) set(rowId, draft[rowId] + (e.key === 'ArrowRight' ? 1 : -1));
+        if (isBarcaRow(rowId)) sez?.step(rowId, e.key === 'ArrowRight' ? 1 : -1);
+        else if (rowId) set(rowId, draft[rowId] + (e.key === 'ArrowRight' ? 1 : -1));
         else if (!inside) items[0]?.focus();
         return;
       }
@@ -293,12 +311,14 @@ export function createEditor(o: EditorOpts): Editor {
     const body = el('div'); body.dataset['panel'] = 'editor';
     if (busy) body.setAttribute('aria-busy', 'true');
     for (const r of ROWS) body.appendChild(rowEl(r));
+    if (sez) body.appendChild(sez.node);
     if (o.link) body.appendChild(linkEl(o.link));
     const act = el('div', 'mz-ed-act');
     if (!note && !hatOk()) act.appendChild(el('div', 'mz-note', HATS[draft.cappello]?.mercante ? 'Cappello del Mercante: si compra al Porto' : 'Cappello non tuo: compralo per salvare'));
+    else if (!note && sez && !sez.ok()) act.appendChild(el('div', 'mz-note', 'Colore della barca del Mercante: si compra al Porto'));
     if (note && !note.hat) act.appendChild(el('div', 'mz-note ' + (note.bad ? 'bad' : 'ok'), note.text));
     const row = el('div', 'mz-row');
-    row.append(button('ghost', 'annulla', 'ANNULLA', [], false, () => close()), button('green', 'salva', 'SALVA', [], !hatOk(), () => void salva()));
+    row.append(button('ghost', 'annulla', 'ANNULLA', [], false, () => close()), button('green', 'salva', 'SALVA', [], !hatOk() || (!!sez && !sez.ok()), () => void salva()));
     act.appendChild(row);
     body.appendChild(act);
     sheet.replaceChildren(head, body);
@@ -315,6 +335,7 @@ export function createEditor(o: EditorOpts): Editor {
     if (open) return;
     open = true; busy = false; note = null; linkVisibile = false; gen++;
     draft = clampLook(o.me.look);
+    sez?.reset();
     sheet.classList.add('on'); btn.setOn(true);
     keys(true);
     render();
@@ -334,10 +355,11 @@ export function createEditor(o: EditorOpts): Editor {
     sheet.classList.remove('on'); btn.setOn(false);
     draft = clampLook(o.me.look);
     o.avatar.setLook({ ...o.me.look });
+    sez?.reset();
     o.onClose?.();
   }
   function toggle(): void { if (open) close(); else show(); }
 
-  registerStateProvider('editor', () => ({ open, draft: { ...draft }, saved: { ...o.me.look }, owned: owned(), perle: perle(), busy, note: note?.text ?? null, linkVisibile }));
+  registerStateProvider('editor', () => ({ open, draft: { ...draft }, saved: { ...clampLook(o.me.look) }, owned: owned(), perle: perle(), busy, note: note?.text ?? null, linkVisibile, barca: sez?.state() ?? null }));
   return { open: show, close, toggle, isOpen: () => open };
 }

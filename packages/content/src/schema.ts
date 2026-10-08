@@ -46,6 +46,20 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
     if (!(Number.isInteger(h.perle) && h.perle >= 0)) errs.push(`cappello ${h.id}: costo in perle non valido`);
     if (h.mercante && h.perle <= 0) errs.push(`cappello ${h.id}: esclusivo del Mercante ma gratis`);
   }
+  const bc = c.avatar.barca, bcIds = new Set<string>();
+  if (!bc || !Array.isArray(bc.colori)) errs.push('avatar.barca mancante');
+  else {
+    for (const k of bc.colori) {
+      if (bcIds.has(k.id) || k.id === 'nessuna') errs.push(`barca: colore duplicato o riservato ${k.id}`);
+      bcIds.add(k.id);
+      if (!HEX.test(k.hex)) errs.push(`barca ${k.id}: colore non valido ${k.hex}`);
+      if (!(Number.isInteger(k.perle) && k.perle >= 0)) errs.push(`barca ${k.id}: costo in perle non valido`);
+      if (k.mercante ? k.perle <= 0 : k.perle > 0) errs.push(`barca ${k.id}: a Perle solo dal Mercante (perle > 0 ⇔ mercante)`);
+    }
+    if (!bcIds.has(bc.scafo) || (bc.colori.find((k) => k.id === bc.scafo)?.perle ?? 1) > 0) errs.push(`barca: scafo di serie non gratis o sconosciuto ${bc.scafo}`);
+    if (bc.vela !== 'nessuna' && (!bcIds.has(bc.vela) || (bc.colori.find((k) => k.id === bc.vela)?.perle ?? 1) > 0)) errs.push(`barca: vela di serie non gratis o sconosciuta ${bc.vela}`);
+    if (!(Number.isInteger(bc.nomeMax) && bc.nomeMax >= 4 && bc.nomeMax <= 20)) errs.push('barca.nomeMax fuori misura (4-20)');
+  }
   const decorIds = new Set<string>();
   for (const d of c.decor ?? []) {
     if (decorIds.has(d.id)) errs.push(`decorazione duplicata: ${d.id}`);

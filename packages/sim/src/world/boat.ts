@@ -111,3 +111,53 @@ export function landingSpot(b: BoatState, map: GridMap): { x: number; z: number 
   const best = nearestDock(map, b.x, b.z, Math.ceil(reach / map.tile) + 1);
   return best && best.d <= reach && map.walkable(best.x, best.z) ? { x: best.x, z: best.z } : null;
 }
+
+// ---------- ormeggi (#6): le barche ferme non si disegnano una sopra l'altra ----------
+/** Mezza lunghezza e mezza larghezza dello scafo (m), con un filo d'aria. */
+export const SCAFO = { mezzaL: 2.3, mezzaW: 0.8 } as const;
+export type Posa = { x: number; z: number; yaw: number };
+
+/** Due scafi (rettangoli orientati 4,6 × 1,6 m) si toccano: separazione degli assi. */
+export function barcheSovrapposte(a: Posa, b: Posa): boolean {
+  const dx = b.x - a.x, dz = b.z - a.z;
+  const axes = [a.yaw, b.yaw].flatMap((y) => [[Math.sin(y), -Math.cos(y)], [Math.cos(y), Math.sin(y)]] as const);
+  const half = (p: Posa, ax: number, az: number) =>
+    SCAFO.mezzaL * Math.abs(Math.sin(p.yaw) * ax - Math.cos(p.yaw) * az) + SCAFO.mezzaW * Math.abs(Math.cos(p.yaw) * ax + Math.sin(p.yaw) * az);
+  for (const [ax, az] of axes) if (Math.abs(dx * ax + dz * az) >= half(a, ax, az) + half(b, ax, az)) return false;
+  return true;
+}
+
+/** Prua di una barca ormeggiata in (x, z): verso il largo, via dal molo più vicino (0 se non c'è un molo). */
+export function yawOrmeggio(x: number, z: number, map: GridMap): number {
+  const dock = landingSpot(newBoat(x, z), map);
+  return dock ? Math.atan2(x - dock.x, -(z - dock.z)) : 0;
+}
+
+/**
+ * Posto libero per ormeggiare vicino a (x, z): acqua navigabile per tutto il cerchio della barca, un molo a portata (si scende e si
+ * risale) e nessuno scafo in `occupati` toccato con la prua verso il largo. Il più vicino a (x, z) entro `raggio` m (passo 0,5 m), o null.
+ */
+export function ormeggioLibero(map: GridMap, x: number, z: number, occupati: readonly Posa[], raggio = 12): Posa | null {
+  const R = boatParams().raggio, ring = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => [Math.cos((i * Math.PI) / 4) * R, Math.sin((i * Math.PI) / 4) * R] as const);
+  const cand: { x: number; z: number; d: number }[] = [];
+  for (let dz = -raggio; dz <= raggio; dz += 0.5)
+    for (let dx = -raggio; dx <= raggio; dx += 0.5) {
+      const d = Math.hypot(dx, dz);
+      if (d <= raggio) cand.push({ x: x + dx, z: z + dz, d });
+    }
+  cand.sort((a, b) => a.d - b.d || a.z - b.z || a.x - b.x);
+  for (const c of cand) {
+    if (!map.navigable(c.x, c.z) || ring.some(([rx, rz]) => !map.navigable(c.x + rx, c.z + rz))) continue;
+    if (!landingSpot(newBoat(c.x, c.z), map)) continue;
+    const p = { x: c.x, z: c.z, yaw: yawOrmeggio(c.x, c.z, map) };
+    if (!scafoInAcqua(p, map) || occupati.some((o) => barcheSovrapposte(p, o))) continue;
+    return p;
+  }
+  return null;
+}
+/** Dal centro alla prua lo scafo sta in acqua, fianchi compresi (la poppa può infilarsi sotto il molo, come all'ormeggio di sempre). */
+export function scafoInAcqua(p: Posa, map: GridMap): boolean {
+  const fx = Math.sin(p.yaw), fz = -Math.cos(p.yaw), rx = Math.cos(p.yaw), rz = Math.sin(p.yaw);
+  for (const l of [0, 1.1, 2.1]) for (const w of [-0.7, 0, 0.7]) if (!map.navigable(p.x + fx * l + rx * w, p.z + fz * l + rz * w)) return false;
+  return true;
+}

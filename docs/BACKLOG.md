@@ -19,7 +19,7 @@
 - ~~Negozio dei cappelli~~ fatto: `buyHat` + `posseduti`, e dall'8 ott 2026 il Mercante delle Perle al Porto (#63).
 - Modelli glb veri per le 8 decorazioni esclusive, le 6 decorazioni vecchie senza modello e i 6 cappelli esclusivi (oggi segnaposto a box in palette: `render/decor.ts`, `HATS` in `game/avatar.ts`); banco del Mercante e Bacheca idem (`game/porto.ts`).
 - Missioni della Bacheca con «visita un'isola» o «fai un giro in barca»: servirebbe una prova lato server della posizione (oggi la posizione è del client).
-- Barche per giocatore: oggi ogni client ha la sua barca a `boatSpawn`, quindi al molo la barca di un peer si sovrappone alla tua (vuota). In M1: una barca per lotto/persona con posto al molo proprio, o la tua barca nascosta finché non ci sali.
+- ~~Barche per giocatore~~ fatto l'8 ott 2026 (#6, #107): la barca di ognuno al molo della sua isola, la tua si scansa se uno scafo la tocca. Resta: la barca degli amici a piedi lontano da casa si vede a casa, non dove l'hanno lasciata (servirebbe la posizione della barca nel `pos`).
 - Caricamento a due tempi dei modelli: all'avvio solo L1 e ciò che serve al proprio lotto; L2/L3, Porto e facciate dopo (oggi 1,53 MB iniziali su 2).
 - Bordo del mondo: la barca può uscire dalla mappa (mare infinito). Un muro morbido o una corrente che riporta indietro.
 - Test `m1_isola`: usare l'orologio di test di M1-server (`X-Test-Now-Offset` con `--var TEST_CLOCK:1`) invece di aspettare 3 minuti veri.

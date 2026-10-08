@@ -1,8 +1,9 @@
 // Mercante delle Perle (#63), corpo del pannello: cappelli (prova sul tuo avatar, COMPRA, INDOSSA) e decorazioni (COMPRA → posata
-// sulla tua isola, nella cella libera più vicina a casa). Le esclusive del Mercante (avatar.json / decor.json `mercante: true`) in cima.
+// sulla tua isola, nella cella libera più vicina a casa) e colori esclusivi della barca (#107: prova sulla tua barca, COMPRA, poi SCAFO o
+// VELA). Le esclusive del Mercante (avatar.json / decor.json `mercante: true`) in cima.
 // Tutto deciso dal server: Perle, posseduti, celle. Fa parte del chunk dei pannelli del Porto (ui/porto_ui.ts).
 import { AVATAR, DECOR } from '@marea/content';
-import { cellsOf, decorCellError, defaultTemplate } from '@marea/sim';
+import { barcaDi, cellsOf, decorCellError, defaultTemplate, possiedeColore } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import type { Look } from '@marea/protocol';
 import { ApiError, mancaText, perleText } from '../net/api.ts';
@@ -10,12 +11,15 @@ import type { PortoCtx } from '../game/porto.ts';
 import { el } from './style.ts';
 import { resIcon } from './icons.ts';
 
-export type Tab = 'cappelli' | 'decor';
+export type Tab = 'cappelli' | 'decor' | 'barca';
+export const TABS: readonly Tab[] = ['cappelli', 'decor', 'barca'];
 export type Note = { id: string; text: string; bad: boolean } | null;
-export type MercanteState = { tab: Tab; prova: number | null; note: Note; busy: boolean };
+/** `provaBarca`: id del colore esclusivo che si sta provando sullo scafo (#107). */
+export type MercanteState = { tab: Tab; prova: number | null; provaBarca: string | null; note: Note; busy: boolean };
 
 const HATS = AVATAR.cappelli.map((h, i) => ({ ...h, i })).filter((h) => h.perle > 0).sort((a, b) => Number(!!b.mercante) - Number(!!a.mercante) || a.perle - b.perle);
 const DECORS = [...DECOR].sort((a, b) => Number(!!b.mercante) - Number(!!a.mercante) || a.perle - b.perle);
+const COLORI = AVATAR.barca.colori.filter((k) => k.mercante).sort((a, b) => a.perle - b.perle);
 
 /** Cella libera per una decorazione: sabbia/erba del template, la più vicina allo spawn di casa ma non attaccata (lì si arriva). */
 export function cellaLibera(lot: LotState): [number, number] | null {
@@ -38,7 +42,7 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
   const owned = (id: string) => (lot?.posseduti ?? []).includes(id);
   const body = el('div'); body.dataset['panel'] = 'mercante';
   const tabs = el('div', 'mz-pt-tabs');
-  for (const [id, nome] of [['cappelli', 'CAPPELLI'], ['decor', 'DECORAZIONI']] as const) {
+  for (const [id, nome] of [['cappelli', 'CAPPELLI'], ['decor', 'DECORAZIONI'], ['barca', 'BARCA']] as const) {
     const b = el('button', 'mz-pt-tab', nome); b.type = 'button'; b.dataset['tab'] = id; b.setAttribute('aria-pressed', String(st.tab === id));
     b.addEventListener('click', () => { st.tab = id; st.note = null; redraw(); });
     tabs.appendChild(b);
@@ -80,6 +84,34 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
       }));
       body.appendChild(row);
       const n = noteFor(h.id); if (n) body.appendChild(n);
+    }
+  } else if (st.tab === 'barca') {
+    const mia = barcaDi(ctx.me?.look);
+    const usa = (k: (typeof COLORI)[number], dove: 'scafo' | 'vela') => void busyRun(k.id, async () => {
+      const b = await ctx.api!.barca({ ...mia, [dove]: k.id });
+      if (ctx.me) ctx.me.look = { ...ctx.me.look, barca: b };
+      st.provaBarca = null; ctx.world.setBarca(b);
+      return `${k.nome}: ${dove === 'scafo' ? 'scafo ridipinto' : 'vela nuova'}`;
+    });
+    for (const k of COLORI) {
+      const mine = possiedeColore(lot, k.id);
+      const row = el('div', 'mz-pt-row' + (st.provaBarca === k.id ? ' sel' : '')); row.dataset['item'] = k.id;
+      const nm = el('button', 'nm'); nm.type = 'button'; nm.dataset['act'] = 'prova'; nm.title = 'Provalo sulla tua barca';
+      const chip = el('span', 'mz-pt-chip'); chip.style.background = k.hex;
+      const b = el('b'); b.append(chip, k.nome);
+      nm.append(b, el('small', mine ? 'tag dim' : 'tag', mine ? 'tuo: per scafo e vela' : 'ESCLUSIVA · scafo o vela'));
+      nm.addEventListener('click', () => { st.provaBarca = st.provaBarca === k.id ? null : k.id; ctx.world.setBarca(st.provaBarca ? { ...mia, scafo: k.id } : mia); redraw(); });
+      row.appendChild(nm);
+      if (mine) {
+        row.append(act('SCAFO', 'scafo', 'green mini', !online || mia.scafo === k.id, () => usa(k, 'scafo')), act('VELA', 'vela', 'green mini', !online || mia.vela === k.id, () => usa(k, 'vela')));
+      } else {
+        row.append(price(k.perle), act('COMPRA', 'compra', '', !online, () => {
+          if (perle !== null && perle < k.perle) { st.note = { id: k.id, text: perleText(k.perle - perle), bad: true }; redraw(); return; }
+          void busyRun(k.id, async () => { const l = await ctx.api!.buyColore(k.id); ctx.setLot(l); return `${k.nome}: è tuo! Premi SCAFO o VELA`; });
+        }));
+      }
+      body.appendChild(row);
+      const n = noteFor(k.id); if (n) body.appendChild(n);
     }
   } else {
     for (const d of DECORS) {
