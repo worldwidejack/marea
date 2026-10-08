@@ -163,7 +163,7 @@ async function boot(): Promise<void> {
   // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-4). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
   const link = `${location.origin}/?t=${encodeURIComponent(FLAGS.token)}`; // per entrare come sé da un altro dispositivo (editor: COPIA / MANDA)
   const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, onSaved: () => hud.toast('Look salvato'), onLot: refreshMyLot }) : null;
-  // impostazioni (#53): camera, ciclo giorno/notte, stampa, contorni; di serie (#59) ciclo, camera 22° e contorni, per chiunque (anche senza link)
+  // impostazioni (#53): camera, ciclo giorno/notte, meteo (#85), stampa, contorni; di serie (#59) ciclo, camera 22° e contorni, per chiunque (anche senza link)
   // la resa delle impostazioni (passata finale, acqua stampa, ciclo) si scarica solo se qualcosa è acceso: con tutto spento zero byte in più
   let aspetto: Aspetto | null = null, aspettoLoad: Promise<void> | null = null, voglio: Impostazioni | null = null;
   const applica = (s: Impostazioni) => {
@@ -180,7 +180,10 @@ async function boot(): Promise<void> {
   collegaAudio({ world, root, momento: () => aspetto?.momento ?? 'giorno', gioco: () => giochi.isBusy(), dungeon: () => ingressi.active }); // suoni e musica (audio/ponte.ts), al primo gesto
   registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
   registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
-  registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0 }));
+  registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0, meteoK: aspetto?.meteoK ?? 0, gocce: aspetto?.gocce ?? 0 }));
+  // meteo (#85): 'sereno' | 'nuvoloso' | 'pioggia' | 'nebbia' | 'vento', 'spento' con l'impostazione spenta; dai test si forza (k di serie 1, null = l'orologio)
+  registerStateProvider('meteo', () => aspetto?.meteo ?? 'spento');
+  registerTestHook('meteo', (st, k) => aspetto?.forzaMeteo(st === null || st === undefined ? null : (String(st) as 'sereno'), k === undefined ? 1 : Number(k)));
   // feed: con le sfide con posta spente resta per le visite al libro degli ospiti (#86)
   const feed = me && api.enabled ? createFeed({ api, hud, root, ...(FLAGS.sfide ? {} : { vuoto: 'Niente di nuovo. Quando un amico firma il libro della tua isola, lo vedi qui.' }), onNews: (news) => { if (news.some((n) => n.tipo !== 'sfida_ricevuta' && n.tipo !== 'sfida_accettata')) refreshMyLot(); } }) : null;
   const emotes = createEmotes({ world, camera: renderer.camera, canvas, root });

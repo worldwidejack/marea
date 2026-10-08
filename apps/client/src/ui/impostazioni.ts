@@ -1,5 +1,5 @@
 // Impostazioni (#53): ingranaggio #mzSetBtn nella barra in alto, pannello #mzSet con camera (5 viste), ciclo giorno/notte,
-// stampa giapponese e contorni, volume di Musica ed Effetti (audio/ponte.ts: 4 livelli, NO … ALTA). Di serie (#59) ciclo, camera 22° e contorni; le scelte restano su questo dispositivo (localStorage).
+// meteo (#85), stampa giapponese e contorni, volume di Musica ed Effetti (audio/ponte.ts: 4 livelli, NO … ALTA). Di serie (#59) ciclo, camera 22° e contorni; le scelte restano su questo dispositivo (localStorage).
 // Coi test automatici (?test=1) si parte tutto spento, così gli screenshot non dipendono dall'ora vera; ?serie=1 usa i valori di serie.
 // Il pannello non sa niente di three: chiama onChange e render/aspetto.ts fa il resto.
 import { PAL, el, injectUiStyle } from './style.ts';
@@ -59,7 +59,7 @@ export function loadImpostazioni(): Impostazioni {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<Impostazioni> | null;
     if (!raw) return { ...base };
     const vol = (v: unknown, d: number) => (typeof v === 'number' && v >= 0 && v <= 3 ? Math.round(v) : d); // salvate prima dell'audio: di serie
-    return { cam: Number(raw.cam) || 0, ciclo: raw.ciclo === true, stampa: raw.stampa === true, contorni: raw.contorni === true, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti) };
+    return { cam: Number(raw.cam) || 0, ciclo: raw.ciclo === true, stampa: raw.stampa === true, contorni: raw.contorni === true, meteo: typeof raw.meteo === 'boolean' ? raw.meteo : base.meteo, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti) };
   } catch { return { ...base }; }
 }
 
@@ -76,7 +76,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch { /* navigazione privata: vale fino a fine sessione */ } };
   const change = (p: Partial<Impostazioni>) => { cur = { ...cur, ...p }; save(); o.onChange(cur); setVolumi(cur.musica, cur.effetti); render(); };
-  const toggleRow = (key: 'ciclo' | 'stampa' | 'contorni', title: string, sub: string) => {
+  const toggleRow = (key: 'ciclo' | 'stampa' | 'contorni' | 'meteo', title: string, sub: string) => {
     const b = el('button', 'mz-set-row' + (cur[key] ? ' on' : '')); b.type = 'button'; b.dataset['set'] = key;
     const txt = el('span'); txt.append(el('span', '', title), el('span', 'q', sub));
     b.append(txt, el('span', 'sw', cur[key] ? 'SÌ' : 'NO'));
@@ -107,6 +107,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
     cam.appendChild(row);
     body.append(volRow('musica', 'Musica'), volRow('effetti', 'Effetti'), cam,
       toggleRow('ciclo', 'Ciclo giorno e notte', `giorno, tramonto, notte, alba: un giro ogni ${CICLO_MIN} minuti`),
+      toggleRow('meteo', 'Meteo', 'sole, nuvole, pioggia, nebbia, vento: lo stesso per tutti'),
       toggleRow('stampa', 'Stampa giapponese', 'colori da stampa antica, onde, carta'),
       toggleRow('contorni', 'Contorni', 'una riga scura attorno a cose e persone'));
     const g = o.guida;

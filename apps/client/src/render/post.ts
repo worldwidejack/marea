@@ -12,7 +12,8 @@ export type PostLook = {
   palette: string[] | null; dither: number; grade: { exp: number; sat: number; con: number; tint: string }; paper: number;
   ink: { col: string; mix: number; crease: number };
   sky: { top: string; mid: string; hor: string; sun: string; glow: string; sunDir: [number, number, number]; sunSize: number; cloud: string; cloudDark: string;
-    /** notte (#56): 0..1 stelle e luna; moonDir = dove sta la luna */ night?: number; moonDir?: [number, number, number] };
+    /** notte (#56): 0..1 stelle e luna; moonDir = dove sta la luna */ night?: number; moonDir?: [number, number, number];
+    /** meteo (#85): 0..1 quanto è coperto il cielo; vento 0..1 fa correre le nuvole */ cover?: number; wind?: number };
   fog: { col: string; near: number; far: number; max: number };
 };
 export type PostToggles = { contorni: boolean; foschia: boolean; cielo: boolean };
@@ -38,7 +39,8 @@ uniform mat4 uInvProj, uCamWorld;
 uniform vec3 uFogCol, uInk, uInkCol, uTint;
 uniform float uInkMix, uCrease, uFogNear, uFogFar, uFogMax, uPaper, uDither, uExp, uSat, uCon, uSunSize;
 uniform vec3 uSkyTop, uSkyMid, uSkyHor, uSun, uGlow, uSunDir, uCloud, uCloudDark, uMoonDir, uMoonCol;
-uniform float uNight;
+uniform float uNight, uCover;
+uniform vec2 uCloudOff;
 uniform vec3 uPal[${MAXPAL}];
 uniform int uPalN;
 
@@ -78,9 +80,9 @@ vec3 skyCol(vec2 uv, vec2 px) {
   }
   if (dir.y > 0.02) {
     // nuvole su un piano a 220 m: due ottave di rumore a soglia, pancia di un altro colore; scorrono col vento
-    vec2 q = dir.xz / dir.y * 220.0 / 60.0 + vec2(uTime * 0.012, uTime * 0.004);
+    vec2 q = dir.xz / dir.y * 220.0 / 60.0 + vec2(uTime * 0.012, uTime * 0.004) + uCloudOff;
     float n = vnoise(q) * 0.65 + vnoise(q * 2.3 + 7.1) * 0.35;
-    float edge = 0.62 + (1.0 - smoothstep(0.0, 0.25, dir.y)) * 0.04;
+    float edge = 0.62 - 0.42 * uCover + (1.0 - smoothstep(0.0, 0.25, dir.y)) * 0.04;
     if (n > edge + 0.06) c = uCloud; else if (n > edge) c = uCloudDark;
   }
   return c;
@@ -153,13 +155,13 @@ export function createPost(): Post {
     uSkyTop: { value: col('#3FB9C9') }, uSkyMid: { value: col('#7FE3E0') }, uSkyHor: { value: col('#E8E1D6') },
     uSun: { value: col('#fff') }, uGlow: { value: col('#fff') }, uSunDir: { value: new THREE.Vector3(0, -1, 0) }, uSunSize: { value: 0 },
     uCloud: { value: col('#F4E3C1') }, uCloudDark: { value: col('#E8E1D6') },
-    uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(-0.66, 0.05, -0.75) }, uMoonCol: { value: col('#E8E1D6') },
+    uNight: { value: 0 }, uCover: { value: 0 }, uCloudOff: { value: new THREE.Vector2() }, uMoonDir: { value: new THREE.Vector3(-0.66, 0.05, -0.75) }, uMoonCol: { value: col('#E8E1D6') },
     uPal: { value: Array.from({ length: MAXPAL }, () => new THREE.Vector3()) }, uPalN: { value: 0 },
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U, depthTest: false, depthWrite: false });
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat); quad.frustumCulled = false;
   const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  let calls = 0, tris = 0;
+  let calls = 0, tris = 0, wind = 0, lastT = -1;
   return {
     toggles,
     setSize: (w, h) => { rt.setSize(w, h); U.uRes.value.set(w, h); },
@@ -171,7 +173,7 @@ export function createPost(): Post {
       U.uSkyTop.value.set(s.sky.top); U.uSkyMid.value.set(s.sky.mid); U.uSkyHor.value.set(s.sky.hor);
       U.uSun.value.set(s.sky.sun); U.uGlow.value.set(s.sky.glow); U.uSunDir.value.set(...s.sky.sunDir).normalize(); U.uSunSize.value = s.sky.sunSize;
       U.uCloud.value.set(s.sky.cloud); U.uCloudDark.value.set(s.sky.cloudDark);
-      U.uNight.value = s.sky.night ?? 0; if (s.sky.moonDir) U.uMoonDir.value.set(...s.sky.moonDir).normalize();
+      U.uNight.value = s.sky.night ?? 0; U.uCover.value = s.sky.cover ?? 0; wind = s.sky.wind ?? 0; if (s.sky.moonDir) U.uMoonDir.value.set(...s.sky.moonDir).normalize();
       const pal = (s.palette ?? []).slice(0, MAXPAL);
       pal.forEach((h, i) => U.uPal.value[i]!.copy(srgb(h)));
       U.uPalN.value = pal.length;
@@ -181,6 +183,8 @@ export function createPost(): Post {
       gl.setRenderTarget(rt); gl.render(scene, camera);
       calls = gl.info.render.calls; tris = gl.info.render.triangles;
       U.uNear.value = camera.near; U.uFar.value = camera.far; U.uTime.value = t % 3600;
+      if (lastT >= 0 && wind > 0) U.uCloudOff.value.x += Math.min(0.1, Math.max(0, t - lastT)) * 0.08 * wind; // col vento le nuvole corrono (#85), senza salti
+      lastT = t;
       U.uInvProj.value.copy(camera.projectionMatrixInverse); U.uCamWorld.value.copy(camera.matrixWorld);
       U.uOutline.value = toggles.contorni ? 1 : 0; U.uFog.value = toggles.foschia && world ? 1 : 0; U.uSky.value = toggles.cielo && world ? 1 : 0;
       gl.setRenderTarget(null); gl.render(quad, ortho);
