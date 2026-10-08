@@ -26,7 +26,8 @@ export const COLPISCE_TICKS = Math.round(0.15 * HZ);
 export const MORTO_TICKS = Math.round(1.2 * HZ);
 
 export type Slot = { id: string; colpi: number; riserva: number };
-export type EroeAct = 'idle' | 'press' | 'carica' | 'swing';
+/** Mischia: press → carica → swing · arco: tende → tira · fuoco: spara · fuoco greco: lancia · scudo in mano: spallata. */
+export type EroeAct = 'idle' | 'press' | 'carica' | 'swing' | 'tende' | 'tira' | 'spara' | 'lancia' | 'spallata';
 export type Eroe = {
   x: number; z: number; fx: number; fz: number;
   vita: number; max: number;
@@ -39,6 +40,10 @@ export type Eroe = {
   hurt: number;
   /** Tick dell'ultimo AZIONE su una finestra (ritmo della riparazione). */
   riparaT: number;
+  /** Armi a distanza: tick prima del prossimo colpo, tick di ricarica che restano (0 = no) e quelli in tutto. */
+  cd: number; ricarica: number; ricaricaDur: number;
+  /** Scudo templare (null = non ce l'hai) e se è in mano (sennò sulle spalle). */
+  scudo: { vita: number } | null; inMano: boolean;
   prevA: boolean; prevC: boolean; prevD: boolean;
 };
 export type ZombieSt = 'sorge' | 'insegue' | 'strappa' | 'prepara' | 'colpisce' | 'recupera' | 'morto';
@@ -56,6 +61,16 @@ export type Zombie = {
   grido: number;
 };
 
+/** Proiettile dell'eroe: freccia, palla (pistole, moschetto, pallini del trombone), vaso del fuoco greco (esplode dove arriva). */
+export type Proj = { id: number; tipo: 'freccia' | 'palla' | 'vaso'; arma: string; x: number; z: number; vx: number; vz: number; danno: number;
+  /** Tick di volo che restano, nemici che può ancora trapassare, già colpiti. */
+  vita: number; trapassa: number; colpiti: number[] };
+/** Fiamme a terra (fuoco greco, scia della spada di de Molay): bruciano gli zombie dentro. */
+export type Fiamma = { id: number; x: number; z: number; r: number; dps: number; fine: number };
+export type Drop = { id: number; tipo: 'scudo'; x: number; z: number; fine: number };
+export type CassaFase = 'chiusa' | 'gira' | 'pronta' | 'teschio' | 'vola';
+export type Cassa = { posto: number; usi: number; max: number; fase: CassaFase; inizio: number; fine: number; arma: string | null };
+
 export type TState = {
   v: 1; seed: number; tick: number; opzioni: TOpzioni;
   arena: Arena; gr: Griglie;
@@ -71,6 +86,8 @@ export type TState = {
   assi: number[];
   porte: Record<string, boolean>;
   zombie: Zombie[];
+  proj: Proj[]; fiamme: Fiamma[]; drops: Drop[];
+  cassa: Cassa;
   nextId: number;
   flow: Int32Array; flowCell: number; flowTick: number;
   done: boolean; esito: TEsito | null;
@@ -79,6 +96,7 @@ export type TState = {
 
 export function slotDi(a: TArmaDef): Slot { return { id: a.id, colpi: a.colpi ?? 0, riserva: a.riserva ?? 0 }; }
 export const armaIn = (s: TState): TArmaDef => armaDef(s.eroe.armi[s.eroe.cur]?.id ?? TEMPLARI.partenza.arma);
+export const slotIn = (s: TState): Slot | null => s.eroe.armi[s.eroe.cur] ?? null;
 export const ev = (s: TState, e: TEvento): void => { s.eventi.push(e); };
 
 export function createState(seed: number, opzioni: TOpzioni = {}): TState {
@@ -89,16 +107,20 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
     eroe: {
       x: sp.x, z: sp.z, fx: sp.fx, fz: sp.fz, vita: c.vita, max: c.vita, quiete: 9999, fiato: c.fiato, corre: false, moving: false,
       act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
-      armi: [slotDi(armaDef(TEMPLARI.partenza.arma)), null], cur: 0, hurt: 0, riparaT: -999, prevA: false, prevC: false, prevD: false,
+      armi: [slotDi(armaDef(TEMPLARI.partenza.arma)), null], cur: 0, hurt: 0, riparaT: -999, cd: 0, ricarica: 0, ricaricaDur: 1, scudo: null, inMano: false,
+      prevA: false, prevC: false, prevD: false,
     },
     punti: TEMPLARI.partenza.punti, guadagnati: 0, uccisioni: 0,
     fase: opzioni.subito ? 'inizio' : 'altare', faseT: 0, ondata: 0, quanti: 0, usciti: 0, prossima: 0, puntiAssi: 0,
     assi: arena.finestre.map(() => TEMPLARI.barricate.assi),
     porte: Object.fromEntries(arena.porte.map((p) => [p.id, false])),
-    zombie: [], nextId: 1,
+    zombie: [], proj: [], fiamme: [], drops: [],
+    cassa: { posto: 0, usi: 0, max: TEMPLARI.cassa.usiMax, fase: 'chiusa', inizio: 0, fine: 0, arma: null },
+    nextId: 1,
     flow: new Int32Array(arena.w * arena.h), flowCell: -1, flowTick: -999,
     done: false, esito: null, eventi: [],
   };
+  s.cassa.max = s.rng.int(TEMPLARI.cassa.usiMin, TEMPLARI.cassa.usiMax);
   s.flowCell = cellOf(gr.percorso, s.eroe.x, s.eroe.z);
   bfs(gr.percorso, s.flowCell, s.flow);
   s.flowTick = 0;

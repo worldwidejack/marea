@@ -130,7 +130,7 @@ export function createScena(a: Arena): Scena {
   // ---- cose basse: stalli del coro (legno), macerie (pietra), altare ----
   const rows = (i: number) => a.cell[i] === C.basso;
   const altareCells = bassi.filter((i) => { const p = ctr(i); return Math.abs(p.x - a.altare.x) < 1.6 && Math.abs(p.z - a.altare.z) < 2; });
-  const braCells = new Set(a.bracieri.map((b) => Math.floor(b.z / T) * W + Math.floor(b.x / T)));
+  const braCells = new Set([...a.bracieri, ...a.altarini, ...a.casse].map((b) => Math.floor(b.z / T) * W + Math.floor(b.x / T))); // bracieri, altari laterali e casse li disegna chi li conosce
   const resto = bassi.filter((i) => !altareCells.includes(i) && !braCells.has(i) && rows(i));
   const legnoGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9); legnoGeo.translate(0, 0.45, 0);
   const sassoGeo = new THREE.DodecahedronGeometry(0.55, 0);

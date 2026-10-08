@@ -3,9 +3,10 @@
 
 export type TRisorse = { legno: number; pietra: number; perle: number };
 
-/** Arma della partita. `tipo`: mischia (fendente; tenuto = giro), arco (tieni = tendi), fuoco (pistole e moschetti: colpo e ricarica). */
+/** Arma della partita. `tipo`: mischia (fendente; tenuto = giro), arco (tieni = tendi), fuoco (pistole e moschetti: colpo e ricarica),
+ *  lancio (il fuoco greco: un vaso che esplode dove cade e lascia le fiamme). */
 export type TArmaDef = {
-  id: string; nome: string; tipo: 'mischia' | 'arco' | 'fuoco';
+  id: string; nome: string; tipo: 'mischia' | 'arco' | 'fuoco' | 'lancio';
   /** Danno di un colpo (arco: a corda tesa; fuoco: per pallino). */
   danno: number;
   /** Mischia: secondi per un fendente. Arco: secondi per tendere al massimo. Fuoco: secondi tra due colpi dello stesso caricatore. */
@@ -26,9 +27,16 @@ export type TArmaDef = {
   pallini?: number; cono?: number;
   /** Nemici trapassati da un colpo (oltre al primo). */
   trapassa?: number;
+  /** Lancio: raggio dell'esplosione (m) e fiamme che restano a terra (danno al secondo, secondi, raggio). Mischia: `scia` = fiamme dove passa la lama. */
+  area?: number; fuoco?: TFiamma; scia?: TFiamma;
+  /** Sul muro (wall buy): prezzo dell'arma e delle munizioni (assente = solo dalla cassa). */
+  prezzo?: number; prezzoMunizioni?: number;
+  /** Peso nella cassa del tesoro (assente = mai dalla cassa); `miracolosa` = rara, la cassa la annuncia. */
+  cassa?: number; miracolosa?: boolean;
   /** Aspetto nel client: modello del kit GDR da prendere (o null = procedurale) e colore della lama. */
   aspetto: { modello: string | null; colore: string; forma?: string };
 };
+export type TFiamma = { dps: number; durata: number; raggio: number };
 
 export type TNemicoDef = {
   id: string; nome: string;
@@ -44,6 +52,10 @@ export type TNemicoDef = {
   strappa: number;
   /** Secondi per uscire da terra quando compare. */
   sorge: number;
+  /** Scudo davanti (coseno del mezzo angolo coperto): i colpi da lì non fanno niente. Morto, lascia lo scudo a terra. */
+  scudo?: number;
+  /** Da quale ondata compare e quanta parte dell'ondata è sua (base + perOndata × (n − da), al massimo max). Senza: il fante, che fa il resto. */
+  da?: number; quota?: { base: number; perOndata: number; max: number };
 };
 
 export type TOndateCfg = {
@@ -88,10 +100,16 @@ export type TemplariCfg = {
   ondate: TOndateCfg;
   armi: TArmaDef[];
   nemici: TNemicoDef[];
+  /** Scudo templare: quanti danni regge, coseno del mezzo angolo che copre, velocità con lo scudo in mano, spallata, secondi a terra. */
+  scudo: { vita: number; cono: number; lentezza: number; spallata: { danno: number; spinta: number; tempo: number; portata: number }; aTerra: number };
+  /** Cassa del tesoro: prezzo, secondi che gira e che resta l'arma da prendere, aperture prima del teschio (a caso tra min e max), secondi per sparire, distanza per usarla. */
+  cassa: { prezzo: number; gira: number; pronta: number; usiMin: number; usiMax: number; vola: number; raggio: number };
+  /** Armi sul muro: distanza per comprarle. */
+  muro: { raggio: number };
   /** Premio per ondata superata (fino a `maxOndate`) e tetto del giorno UTC. */
   premio: { perOndata: TRisorse; maxOndate: number; tetto: TRisorse };
 };
 
 /** Legenda della mappa dell'arena oltre ai caratteri fissi (tools/templari_mappa.mjs). */
-export type TLegenda = { porta?: string };
+export type TLegenda = { porta?: string; muro?: string };
 export type TMappaDef = { tile: number; legenda: Record<string, TLegenda>; rows: string[] };

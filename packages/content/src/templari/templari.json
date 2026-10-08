@@ -1,8 +1,18 @@
 {
-  "version": 1,
+  "version": 2,
   "maxMinuti": 60,
   "partenza": { "punti": 500, "arma": "spada" },
-  "eroe": { "vita": 100, "raggio": 0.4, "regenDopo": 4, "regen": 50, "camminata": 3.2, "corsa": 5.0, "fiato": 5, "fiatoPieno": 4, "mentreAttacca": 0.6 },
+  "eroe": {
+    "vita": 100,
+    "raggio": 0.4,
+    "regenDopo": 4,
+    "regen": 50,
+    "camminata": 3.2,
+    "corsa": 5,
+    "fiato": 5,
+    "fiatoPieno": 4,
+    "mentreAttacca": 0.6
+  },
   "punti": { "colpo": 10, "uccisione": 60, "mischia": 100, "asse": 10, "assiMaxOndata": 200 },
   "barricate": { "assi": 5, "ripara": 0.6, "raggio": 1.6 },
   "altare": { "raggio": 4 },
@@ -10,7 +20,7 @@
     "vita": { "base": 150, "perOndata": 100, "finoA": 9, "molt": 1.1 },
     "quanti": { "base": 6, "lin": 2.6, "quad": 0.06, "max": 80 },
     "insieme": 18,
-    "intervallo": { "base": 2.0, "perOndata": -0.08, "min": 0.5 },
+    "intervallo": { "base": 2, "perOndata": -0.08, "min": 0.5 },
     "pausa": 10,
     "inizio": 4,
     "corsa": { "da": 4, "perOndata": 0.12, "max": 0.6 },
@@ -19,12 +29,31 @@
     "bloccato": 20
   },
   "armi": [
-    { "id": "spada", "nome": "Spada arrugginita", "tipo": "mischia", "danno": 250, "tempo": 0.55, "portata": 1.8, "carica": 0.9, "caricaMolt": 1.6, "spinta": 0.3,
-      "aspetto": { "modello": "arm_katana", "colore": "#8E5A2B" } }
+    { "id": "spada", "nome": "Spada arrugginita", "tipo": "mischia", "danno": 250, "tempo": 0.55, "portata": 1.8, "carica": 0.9, "caricaMolt": 1.6, "spinta": 0.3, "aspetto": {"modello": "arm_katana", "colore": "#8E5A2B"} },
+    { "id": "arco", "nome": "Arco", "tipo": "arco", "danno": 450, "tempo": 0.6, "colpi": 20, "riserva": 40, "velocita": 34, "gittata": 26, "prezzo": 0, "prezzoMunizioni": 150, "cassa": 5, "aspetto": {"modello": "arm_arco", "colore": "#8E5A2B"} },
+    { "id": "mazza", "nome": "Mazza ferrata", "tipo": "mischia", "danno": 700, "tempo": 0.8, "portata": 1.9, "carica": 1, "caricaMolt": 1.6, "spinta": 0.9, "prezzo": 750, "cassa": 6, "aspetto": {"modello": "arm_martello", "colore": "#7F7568"} },
+    { "id": "ascia", "nome": "Ascia danese", "tipo": "mischia", "danno": 1000, "tempo": 1, "portata": 2.2, "carica": 1.1, "caricaMolt": 1.6, "spinta": 0.4, "prezzo": 1000, "cassa": 6, "aspetto": {"modello": "arm_ascia", "colore": "#B9AFA3"} },
+    { "id": "pistola", "nome": "Pistola a pietra focaia", "tipo": "fuoco", "danno": 900, "tempo": 0.3, "colpi": 1, "riserva": 30, "ricarica": 1.4, "velocita": 60, "gittata": 22, "prezzo": 1000, "prezzoMunizioni": 500, "cassa": 6, "aspetto": {"modello": null, "forma": "pistola", "colore": "#5A3A1E"} },
+    { "id": "moschetto", "nome": "Moschetto", "tipo": "fuoco", "danno": 2000, "tempo": 0.3, "colpi": 1, "riserva": 24, "ricarica": 2.2, "velocita": 70, "gittata": 34, "trapassa": 2, "prezzo": 1500, "prezzoMunizioni": 750, "cassa": 6, "aspetto": {"modello": null, "forma": "moschetto", "colore": "#5A3A1E"} },
+    { "id": "trombone", "nome": "Trombone", "tipo": "fuoco", "danno": 350, "tempo": 0.3, "colpi": 1, "riserva": 20, "ricarica": 2, "velocita": 45, "gittata": 9, "pallini": 7, "cono": 15, "prezzo": 1500, "prezzoMunizioni": 750, "cassa": 6, "aspetto": {"modello": null, "forma": "trombone", "colore": "#8E5A2B"} },
+    { "id": "arco_lungo", "nome": "Arco lungo", "tipo": "arco", "danno": 1400, "tempo": 0.8, "colpi": 30, "riserva": 60, "velocita": 40, "gittata": 32, "trapassa": 3, "cassa": 8, "aspetto": {"modello": "arm_arco", "colore": "#5A3A1E"} },
+    { "id": "martello", "nome": "Martello da guerra", "tipo": "mischia", "danno": 1600, "tempo": 1.1, "portata": 2, "carica": 1.2, "caricaMolt": 1.8, "spinta": 1.4, "cassa": 8, "aspetto": {"modello": "arm_martello", "colore": "#4A4340"} },
+    { "id": "pistola_doppia", "nome": "Pistola doppia", "tipo": "fuoco", "danno": 1100, "tempo": 0.35, "colpi": 2, "riserva": 40, "ricarica": 1.8, "velocita": 60, "gittata": 22, "cassa": 8, "aspetto": {"modello": null, "forma": "pistola_doppia", "colore": "#5A3A1E"} },
+    { "id": "fuoco_greco", "nome": "Fuoco greco", "tipo": "lancio", "danno": 3000, "tempo": 0.8, "colpi": 6, "riserva": 12, "velocita": 14, "gittata": 14, "area": 3, "fuoco": {"dps": 600, "durata": 3, "raggio": 2.5}, "cassa": 2, "miracolosa": true, "aspetto": {"modello": null, "forma": "vaso", "colore": "#F2A33A"} },
+    { "id": "spada_molay", "nome": "Spada maledetta di de Molay", "tipo": "mischia", "danno": 6000, "tempo": 0.5, "portata": 2.1, "carica": 0.8, "caricaMolt": 1.5, "spinta": 0.5, "scia": {"dps": 800, "durata": 2, "raggio": 1.2}, "cassa": 1, "miracolosa": true, "aspetto": {"modello": "arm_spadone", "colore": "#E8433F"} }
   ],
   "nemici": [
-    { "id": "fante", "nome": "Fante crociato", "vitaMolt": 1, "raggio": 0.38, "velocita": { "cammina": 1.0, "corre": 2.2, "scatta": 3.6 },
-      "danno": 45, "portata": 0.75, "preparazione": 0.55, "recupero": 0.7, "strappa": 1.2, "sorge": 1.4 }
+    { "id": "fante", "nome": "Fante crociato", "vitaMolt": 1, "raggio": 0.38, "velocita": {"cammina": 1, "corre": 2.2, "scatta": 3.6}, "danno": 45, "portata": 0.75, "preparazione": 0.55, "recupero": 0.7, "strappa": 1.2, "sorge": 1.4 },
+    { "id": "scudato", "nome": "Templare scudato", "vitaMolt": 1.5, "raggio": 0.42, "velocita": {"cammina": 1.2, "corre": 1.6, "scatta": 2}, "danno": 50, "portata": 0.8, "preparazione": 0.65, "recupero": 0.8, "strappa": 1, "sorge": 1.6, "scudo": 0.5, "da": 6, "quota": {"base": 0.08, "perOndata": 0.015, "max": 0.22} }
   ],
-  "premio": { "perOndata": { "legno": 15, "pietra": 8, "perle": 2 }, "maxOndate": 30, "tetto": { "legno": 600, "pietra": 300, "perle": 60 } }
+  "premio": { "perOndata": {"legno": 15, "pietra": 8, "perle": 2}, "maxOndate": 30, "tetto": {"legno": 600, "pietra": 300, "perle": 60} },
+  "scudo": {
+    "vita": 1500,
+    "cono": 0.34,
+    "lentezza": 0.6,
+    "spallata": { "danno": 100, "spinta": 1.5, "tempo": 0.6, "portata": 1.5 },
+    "aTerra": 20
+  },
+  "cassa": { "prezzo": 950, "gira": 4, "pronta": 10, "usiMin": 4, "usiMax": 8, "vola": 5, "raggio": 1.9 },
+  "muro": { "raggio": 1.5 }
 }

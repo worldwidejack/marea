@@ -1,7 +1,7 @@
 // Regista delle ondate (docs/TEMPLARI.md §4): reliquia sull'altare → presentazione → ondata 1; in ogni ondata un numero fisso di zombie,
 // mai più di `insieme` vivi, uno ogni `intervallo` secondi dalle comparse attive più vicine all'eroe; ucciso l'ultimo, pausa, poi la prossima.
 // Chi corre e chi scatta lo decide il seed, con più corridori a ogni ondata.
-import { TEMPLARI } from '@marea/content/templari.ts';
+import { TEMPLARI, nemicoDef } from '@marea/content/templari.ts';
 import type { Comparsa } from './mappa.ts';
 import type { TState } from './stato.ts';
 import { ev, intervalloOndata, nuovoZombie, quantiOndata, secToTicks } from './stato.ts';
@@ -16,6 +16,18 @@ export function comparsaVicina(s: TState): Comparsa | null {
   if (!ok.length) return null;
   const k = Math.min(ok.length, TEMPLARI.ondate.comparseVicine);
   return ok[s.rng.int(0, k - 1)]!.c;
+}
+
+/** Chi esce: ogni nemico con `da` ≤ ondata ha la sua quota (crescente), il fante fa il resto. */
+function tipoNuovo(s: TState): string {
+  let r = s.rng.next();
+  for (const n of TEMPLARI.nemici) {
+    if (n.da === undefined || !n.quota || s.ondata < n.da) continue;
+    const q = Math.min(n.quota.max, n.quota.base + n.quota.perOndata * (s.ondata - n.da));
+    if (r < q) return n.id;
+    r -= q;
+  }
+  return 'fante';
 }
 
 /** Velocità di uno zombie nuovo dell'ondata n: cammina, corre o scatta (frazioni da TEMPLARI.ondate). */
@@ -49,8 +61,8 @@ export function stepOndate(s: TState): void {
       if (s.usciti < s.quanti && vivi < o.insieme && s.tick >= s.prossima) {
         const c = comparsaVicina(s);
         if (c) {
-          const v = TEMPLARI.nemici.find((n) => n.id === 'fante')!.velocita;
-          const z = nuovoZombie(s, 'fante', c.x, c.z, velocita(s, v.cammina, v.corre, v.scatta));
+          const tipo = tipoNuovo(s), v = nemicoDef(tipo).velocita;
+          const z = nuovoZombie(s, tipo, c.x, c.z, velocita(s, v.cammina, v.corre, v.scatta));
           s.usciti++;
           ev(s, { t: 'sorge', id: z.id, x: c.x, z: c.z });
         }

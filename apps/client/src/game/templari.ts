@@ -34,7 +34,8 @@ export type Templari = {
 
 const NEAR_M = 4;
 /** Stato condiviso col chunk (test): autopilota (tick per frame) e vista corrente per state().templari. */
-export const templariLink: { autopilot: number; state: (() => Record<string, unknown>) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, state: null };
+/** `prova`: solo test, mette nella partita un'arma, lo scudo, punti o uno zombie davanti (la partita così non si rigioca uguale: solo senza server). */
+export const templariLink: { autopilot: number; state: (() => Record<string, unknown>) | null; prova: ((o: Record<string, unknown>) => unknown) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, state: null, prova: null };
 
 export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; canvas: HTMLCanvasElement; getLot(): LotState | null; setLot(l: LotState): void }): Templari {
   injectUiStyle();
@@ -110,6 +111,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
     : { active: false, busy, entrate, finite, lastErr, lastResult, near, aperta: aperta(), spot }));
   /** Test: dentro subito (come il bottone ⚔), da ovunque. */
   registerTestHook('templariEntra', (subito) => { if (busy || run) return false; void entra(subito !== false); return true; });
+  registerTestHook('templariProva', (o) => (templariLink.prova && o && typeof o === 'object' ? templariLink.prova(o as Record<string, unknown>) : null));
   registerTestHook('templariAutopilot', (on, speed) => { templariLink.autopilot = on ? Math.max(1, Math.min(30, Math.round(Number(speed ?? 4)) || 4)) : 0; return templariLink.autopilot; });
   /** Test: a piedi davanti alla porta della chiesa. */
   registerTestHook('templariPorta', () => { if (!spot) return null; o.world.avatar.teleport(spot.x - 1.5, spot.z + 1); return spot; });
