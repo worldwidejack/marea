@@ -63,6 +63,8 @@ const CSS = `
 `;
 
 export function createDiario(o: { root: HTMLElement; hud: Hud; api: Api | null; me: Me | null; world: GameWorld; owners: readonly LotOwner[]; getLot(): LotState | null; setLot(l: LotState): void; hidden(): boolean;
+  /** Pannelli aperti (scheda dell'eroe, edifici…): gli avvistamenti aspettano, perché il lotto nuovo li farebbe ridisegnare sotto il dito. */
+  pausa?(): boolean;
   /** Prima di aprire: gli altri pannelli si chiudono (uno alla volta). */ onOpen?(): void }): Diario {
   if (!document.getElementById('mz-diario-style')) { const st = document.createElement('style'); st.id = 'mz-diario-style'; st.textContent = CSS; document.head.appendChild(st); }
   const online = !!o.api?.enabled && !!o.me;
@@ -148,7 +150,7 @@ export function createDiario(o: { root: HTMLElement; hud: Hud; api: Api | null; 
         const id = isolaQui(focus.x, focus.z);
         if (id && o.me && isolaValida(id, o.me.id)) metti('isole', id);
       }
-      if (attesa >= 0) { attesa -= dt; if (attesa < 0) void flush(); }
+      if (attesa >= 0) { if (o.pausa?.()) attesa = Math.max(attesa, 0.5); else { attesa -= dt; if (attesa < 0) void flush(); } }
     },
     open(tab) {
       if (o.hidden()) return;

@@ -129,6 +129,7 @@ async function boot(): Promise<void> {
   const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;
   // Diario del capitano (#87): bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette con nome e titolo sopra la testa
   const diario = createDiario({ root, hud, api: me && api.enabled ? api : null, me, world, owners, getLot: () => myLot(), setLot: setMyLot, hidden: () => regata.active || giochi.isBusy() || ingressi.active || ingressi.isBusy(),
+    pausa: () => !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || !!tavolo?.isOpen() || porto.isBusy() || libri.isBusy() || !!document.querySelector('#mzSheet.on'),
     onOpen: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); } });
   const targhette = createTarghette({ world, camera: renderer.camera, canvas, root, mio: () => { const l = myLot(); return me && l ? { nome: me.nome, titolo: titoloDi(diarioOf(l).titolo) } : null; } });
   // mete: comprimibile, caselle per scegliere, sezioni Porto e Isole; con una sola accesa anche la freccia sullo schermo (nascosta quando c'è sopra un pannello)
