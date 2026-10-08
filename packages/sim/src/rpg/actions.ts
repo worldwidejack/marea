@@ -134,7 +134,6 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       if ((h.inv[it.id] ?? 0) < 1) throw err('oggetto', `Non hai: ${it.nome}`);
       const s = spellDef(it.insegna);
       if (h.magie.includes(s.id)) throw err('unico', `Conosci già: ${s.nome}`);
-      if ((h.skill[s.scuola]?.lv ?? 0) < s.livello) throw err('livello_skill', `Serve ${s.scuola === 'distruzione' ? 'Distruzione' : 'Evocazione'} ${s.livello}`);
       h = { ...h, inv: removeFrom(h.inv, it.id, 1), magie: [...h.magie, s.id], equip: h.equip.magia ? h.equip : { ...h.equip, magia: s.id } };
       break;
     }

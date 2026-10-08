@@ -27,7 +27,7 @@ Nessun «livello consigliato» a schermo: la difficoltà si capisce dai nemici e
 - **Abilità (7)**: Armi Leggere · Armi Pesanti · Arceria · Distruzione · Evocazione · Forgiatura · Alchimia. Come salgono: colpendo con l'arma della classe; con le frecce a segno; con la magicka spesa; evocando; forgiando; preparando pozioni.
 - **Niente Navigazione** (scelta di Riccardo, 7 ott 2026): la barca più veloce la dà già il livello del **Molo** della propria isola (GDD §5), e la Regata dà solo il suo premio. Chi aveva già preso perk di Navigazione si riprende i punti perk.
 - **Perk**: creano sinergie (es. Armi Pesanti → attacchi più veloci; più danni con l'armatura leggera). **[scelta provvisoria]** prima bozza di 4-5 perk per albero in `rpg/perks.json`: «Da pensare ora: SKILL TREE!!» (Riccardo) — l'albero vero lo decide lui, il codice legge il JSON.
-- **Magie**: si imparano trovando e leggendo i **libri** nei dungeon. **[scelta provvisoria]** si parte sapendo *Fiammata*.
+- **Magie**: si imparano trovando e leggendo i **libri** nei dungeon, a qualsiasi livello di abilità (Riccardo, 8 ott 2026). **[scelta provvisoria]** si parte sapendo *Fiammata*. Evocazioni (costo in Magicka · ricarica · durata · alleato vita/danno/armatura): **Lupo spettrale** 45 · 10 s · 30 s · 60/12/0; **Scheletro evocato** 110 · 15 s · 45 s · 70/16/4; **Golem evocato** 180 · 25 s · 40 s · 220/32/14 (libro dal Custode del Vuoto o, raro, dai forzieri rari del Vuoto).
 
 ## 4. Combattimento
 - Tempismo, mobilità (corsa a stamina) e distanze.

@@ -6,7 +6,7 @@ import { heroDerived } from '@marea/sim/rpg/hero.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
 import type { EquipSlot, ItemDef } from '@marea/sim/rpg/types.ts';
 import { el } from '../ui/style.ts';
-import { GROUPS, SKILL_NOME, SLOT_NOME, button, chip, fmtKg, iconOf, row, sec, statLines } from './items_ui.ts';
+import { GROUPS, SLOT_NOME, button, chip, fmtKg, iconOf, row, sec, statLines } from './items_ui.ts';
 import type { View } from './items_ui.ts';
 
 const SLOTS: readonly Exclude<EquipSlot, 'magia'>[] = ['arma', 'corpo', 'frecce', 'pozione', 'anello1', 'anello2'];
@@ -102,8 +102,7 @@ function detail(v: View, it: ItemDef, eq: Exclude<EquipSlot, 'magia'>[]): HTMLEl
     try { s = spellDef(it.insegna); } catch { s = null; }
     if (s) {
       const known = v.hero.magie.includes(s.id);
-      const lv = v.hero.skill[s.scuola]?.lv ?? 0;
-      const why = v.sotto ? 'Leggi fuori dal dungeon' : known ? 'La conosci già' : lv < s.livello ? `Serve ${SKILL_NOME[s.scuola]} ${s.livello}` : '';
+      const why = v.sotto ? 'Leggi fuori dal dungeon' : known ? 'La conosci già' : '';
       box.appendChild(el('p', '', `Insegna: ${s.nome}. ${s.descr}`));
       const b = button(`leggi:${it.id}`, 'Leggi', why || `impari ${s.nome}`, '', v.busy || !!why, () => v.act({ t: 'leggi', item: it.id }, () => `Hai imparato: ${s.nome}`));
       b.dataset['act'] = 'leggi';
