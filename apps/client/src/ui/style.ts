@@ -18,6 +18,8 @@ const CSS = `
 .mz-chip.bump { border-color: ${P.giallo}; color: ${P.giallo}; }
 .mz-work { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 50px); left: 50%; transform: translateX(-50%); display: none; min-height: 44px; padding: 0 12px; align-items: center; gap: 8px; background: rgba(46,30,20,.92); border: 2px solid ${P.arancio}; box-shadow: 0 3px 0 ${P.neroCaldo}; font-size: 15px; font-weight: bold; z-index: 12; cursor: pointer; white-space: nowrap; }
 .mz-work.on { display: flex; }
+/* telefono: a sinistra la colonna dei bottoni (44 px), a destra la minimappa (92 px): il cantiere sta in mezzo, e se il testo è lungo si taglia */
+@media (max-width: 699px) { .mz-work { left: 60px; transform: none; max-width: calc(100% - 172px); box-sizing: border-box; min-height: 40px; padding: 0 8px; font-size: 13px; } .mz-work.on { display: block; line-height: 36px; overflow: hidden; text-overflow: ellipsis; } }
 .mz-banner { position: absolute; left: 12px; right: 12px; top: 40%; padding: 14px; background: rgba(46,30,20,.95); border: 2px solid ${P.rosso}; box-shadow: 0 4px 0 ${P.neroCaldo}; font-size: 16px; text-align: center; z-index: 30; display: none; }
 .mz-banner.on { display: block; }
 .mz-labels { position: absolute; inset: 0; pointer-events: none !important; z-index: 5; overflow: hidden; }

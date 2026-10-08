@@ -26,13 +26,17 @@ export type MappaTarget = { id: string; label: string; x: number; z: number; ico
 export type Pose = { x: number; z: number; yaw: number };
 export type Minimappa = { update(me: Pose, cameraYaw: number, peers: readonly { nome?: string; x: number; z: number }[]): void; toggle(): void; close(): void; isOpen(): boolean;
   /** L'isola `id` (MappaPlace.id) è già stata scoperta (ci sei passato vicino)? La bussola mostra le isole a tema solo da scoperte. */
-  vista(id: string): boolean };
+  vista(id: string): boolean;
+  /** Bordo giallo che lampeggia sul cerchio (la guida «Primi passi» dice di toccarlo). */
+  evidenzia(on: boolean): void };
 
 const CSS = `
 #mzMini { position: absolute; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 136px); /* sopra il bottone A (84 px a 36 px dal fondo) */ width: 148px; height: 148px; z-index: 13; cursor: pointer; padding: 0; border: none; background: none; }
 #mzMini canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; border-radius: 50%; border: 3px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; box-sizing: border-box; background: ${P.abisso}; }
 #mzMini .n { position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%); font: bold 11px ui-monospace, Menlo, monospace; color: ${P.giallo}; text-shadow: 0 1px 0 ${P.neroCaldo}, 1px 0 0 ${P.neroCaldo}, -1px 0 0 ${P.neroCaldo}; pointer-events: none; }
 #mzMini:focus { outline: none; } #mzMini:focus-visible canvas { border-color: ${P.giallo}; }
+#mzMini.qui canvas { animation: mzMiniQui 1s steps(2, jump-none) infinite; }
+@keyframes mzMiniQui { from { border-color: ${P.giallo}; } to { border-color: ${P.legnoChiaro}; } }
 @media (max-width: 699px) { #mzMini { width: 92px; height: 92px; bottom: auto; top: calc(max(8px, env(safe-area-inset-top)) + 58px); } }
 #mzMappa { position: absolute; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 8px; background: rgba(22,63,115,.9); padding: 12px; box-sizing: border-box; }
 #mzMappa.on { display: flex; }
@@ -215,5 +219,6 @@ export function createMinimappa(o: {
     },
     toggle, close, isOpen: () => open,
     vista: (id) => viste.has(id),
+    evidenzia(on) { mini.classList.toggle('qui', on); },
   };
 }

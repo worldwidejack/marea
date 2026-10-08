@@ -91,7 +91,7 @@ export default async function (ctx) {
       const s = await st(), ids = s.minigiochi.spots.map((x) => x.id);
       for (const id of ['consegne:porto', 'ingorgo:porto', 'consegne:lotto:0', 'ingorgo:lotto:0', 'consegne:lotto:7', 'ingorgo:lotto:7']) assert(ids.includes(id), `manca ${id}: ${ids.join(',')}`);
       assert(ids.indexOf('regata') === 0, 'la Regata deve restare il primo posto (guida)');
-      const rows = await page.evaluate(() => [...document.querySelectorAll('#compass > div')].map((r) => r.dataset.id));
+      const rows = await page.evaluate(() => [...document.querySelectorAll('#compass [data-id]')].map((r) => r.dataset.id));
       assert(rows.includes('consegne:porto') && rows.includes('ingorgo:porto'), 'bussola: ' + rows.join(','));
       assert(!rows.some((r) => /lotto:/.test(r ?? '')), 'nella bussola ci sono i posti dei lotti: ' + rows.join(','));
     });

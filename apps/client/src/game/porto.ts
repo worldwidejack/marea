@@ -33,6 +33,10 @@ export type Porto = {
   update(dt: number, focus: { x: number; z: number }): void;
   /** Un pannello del Porto è aperto (o si sta scaricando): il mondo sta fermo. */
   isBusy(): boolean;
+  /** Cosa è aperto adesso (la guida «Primi passi» aspetta un 'parla'). */
+  aperto(): 'mercante' | 'bacheca' | 'parla' | null;
+  /** Dove sta la Gente del Porto adesso (coordinate mondo): la guida punta la persona più vicina. */
+  gente(): readonly { x: number; z: number }[];
   close(): void;
 };
 export type PortoOpts = {
@@ -209,6 +213,8 @@ export function createPorto(o: PortoOpts): Porto {
   return {
     spots: posti.map((s) => ({ id: s.id, nome: s.posto.nome, x: s.fx, z: s.fz })),
     isBusy: () => !!ui?.isOpen(),
+    aperto: () => (ui?.isOpen() ? ui.kind : null),
+    gente: () => npcs,
     close: () => ui?.close(),
     tick(a) {
       const pressA = a && !aWas; aWas = a;
