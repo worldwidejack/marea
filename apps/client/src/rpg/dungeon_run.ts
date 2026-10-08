@@ -21,6 +21,8 @@ import type { DungeonState } from '@marea/sim/dungeon/dungeon.ts';
 import { packDungeon, quantizeDungeon } from '@marea/sim/dungeon/replay.ts';
 import { bfs, cellCenter, cellOf, stepDown } from '@marea/sim/dungeon/map.ts';
 import { heroNow } from '@marea/sim/dungeon/zaino.ts';
+import { aim } from '@marea/sim/dungeon/hero.ts';
+import { COS_CONO_ARCO, MAGIA_GITTATA } from '@marea/sim/dungeon/tuning.ts';
 import type { CompagnoView, DungeonAzione, DungeonAzioni, DungeonEvent, DungeonInput, DungeonView } from '@marea/sim/dungeon/types.ts';
 import { NO_DUNGEON_INPUT } from '@marea/sim/dungeon/types.ts';
 import { SQ_TICKS } from '@marea/protocol/squadra.ts';
@@ -147,7 +149,7 @@ export function startRun(ctx: RunCtx, o: {
     try {
       await ctx.loader.extend('manifest_rpg.json');
       sc = await createDungeonScene(ctx.loader, o.dungeon);
-      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: s.runHero, scene: sc.scene, floorY: sc.floorY, x: view.hero.x, z: view.hero.z });
+      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: s.runHero, scene: sc.scene, floorY: sc.floorY, x: view.hero.x, z: view.hero.z, mirino: true });
       for (const a of amici) {
         const r = s.eroi[a.i]!;
         a.actor = await createHeroActor({ loader: ctx.loader, look: rete!.eroi[a.i]!.look, hero: r.runHero, scene: sc.scene, floorY: sc.floorY, x: r.hero.x, z: r.hero.z });
@@ -206,6 +208,14 @@ export function startRun(ctx: RunCtx, o: {
     if (e.t === 'rotto') hero.rotta();
   };
 
+  /** Arco teso: verso il nemico che la sim prenderà al rilascio (la stessa `aim` di shoot), null se non c'è (la freccia va dritta). */
+  const miraArco = (): { x: number; z: number } | null => {
+    const h = s.hero;
+    if (h.act !== 'tende') return null;
+    const e = aim(s, MAGIA_GITTATA * 2, COS_CONO_ARCO, 0, true);
+    const dx = e ? e.x - h.x : 0, dz = e ? e.z - h.z : 0, d = Math.sqrt(dx * dx + dz * dz);
+    return d > 1e-6 ? { x: dx / d, z: dz / d } : null;
+  };
   /** Compagni: posa dalla vista, arma nuova se è cambiata, spariscono quando escono (con un avviso). */
   function tickAmici(): void {
     for (const c of view.compagni) {
@@ -278,7 +288,7 @@ export function startRun(ctx: RunCtx, o: {
     const n = pronti > RECUPERO ? pronti - CUSCINETTO : pronti > SVELTO ? 2 : 1;
     for (let k = 0; k < n && phase !== 'over'; k++) tickRete(n > 2);
     refresh();
-    hero!.tick(view.hero); actors!.tick(view); tickAmici();
+    hero!.tick(view.hero); hero!.mira(miraArco()); actors!.tick(view); tickAmici();
     if (s.done && phase === 'play') toEnd();
   }
   /** Un tick del turno in testa: al primo tick le azioni del turno (eroe per eroe, come il server le ha messe), poi il passo di tutti. */
@@ -315,7 +325,7 @@ export function startRun(ctx: RunCtx, o: {
       const n = auto ? dungeonLink.autopilot : dungeonLink.altare >= 0 ? 8 : 1;
       for (let i = 0; i < n && !s.done; i++) tickOnce(f);
       refresh();
-      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); actors!.tick(view);
+      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); hero!.mira(miraArco()); actors!.tick(view);
       if (s.done) toEnd();
     },
     update(alpha, dt, t) {

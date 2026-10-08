@@ -84,7 +84,9 @@ export type DungeonView = {
     /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
     capo?: boolean;
     /** Raggio in m del colpo ad area dei boss, solo mentre lo prepara (il client disegna il cerchio a terra). */
-    area?: number }[];
+    area?: number;
+    /** Sta preparando un tiro (freccia o magia), non un colpo in mischia: il client mostra l'arco che si tende. */
+    tiro?: boolean }[];
   proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica'; x: number; y: number; z: number; vx: number; vz: number }[];
   bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
   uscita: { x: number; z: number };

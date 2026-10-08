@@ -207,3 +207,20 @@ test('dungeon: il colpo ad area dei boss si vede (view.nemici[].area) solo mentr
   assert.ok(viste.some((a) => a === undefined), 'i colpi normali non hanno cerchio');
   assert.ok(viste.some((a) => a !== undefined && Math.abs(a - boss.def.portata * 1.7) < 1e-9), `raggio ${viste.find((a) => a !== undefined)}`);
 });
+
+test('dungeon: la vista dice `tiro` quando un arciere prepara una freccia (il client tende l’arco), non nei colpi in mischia', () => {
+  const s = arena(heroBase());
+  const arciere = newEnemy(s, 'bandito_arciere', s.hero.x + 8, s.hero.z);
+  let prep: ReturnType<typeof dungeon.view>['nemici'][number] | undefined;
+  for (let i = 0; i < 600 && !prep; i++) { run(s, 1); prep = dungeon.view(s).nemici.find((n) => n.id === arciere.id && n.anim === 'prepara'); }
+  assert.ok(prep, 'l’arciere prepara un tiro');
+  assert.equal(prep.tiro, true);
+  for (let i = 0; i < 120 && !s.proj.some((p) => p.tipo === 'freccia_nemica'); i++) run(s, 1);
+  assert.ok(s.proj.some((p) => p.tipo === 'freccia_nemica'), 'poi la freccia parte');
+  assert.equal(dungeon.view(s).nemici.find((n) => n.id === arciere.id)!.tiro, undefined, 'scoccata: niente più tiro nella vista');
+  const s2 = arena(heroBase()), bandito = newEnemy(s2, 'bandito', s2.hero.x + 1.2, s2.hero.z);
+  let p2: ReturnType<typeof dungeon.view>['nemici'][number] | undefined;
+  for (let i = 0; i < 600 && !p2; i++) { run(s2, 1); p2 = dungeon.view(s2).nemici.find((n) => n.id === bandito.id && n.anim === 'prepara'); }
+  assert.ok(p2, 'il bandito prepara un colpo');
+  assert.equal(p2.tiro, undefined);
+});

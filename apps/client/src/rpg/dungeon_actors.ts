@@ -2,18 +2,25 @@
 // indietro telegrafata durante `prepara` (con lampeggio rosso che accelera), affondo nel colpo, flash bianco quando colpiti, caduta e
 // dissolvenza a scatti alla morte; alleati evocati tinti viola neon; boss più grandi; cerchio rosso a terra per il colpo ad area.
 // Proiettili orientati con la velocità; sacchi sui cadaveri, forzieri che si aprono, libri; ombre a disco in un'unica InstancedMesh.
+// Arcieri: arco nella sinistra; quando preparano un tiro si girano di fianco, alzano l'arco verso il bersaglio e tendono la corda a
+// gradini con la freccia incoccata, scoccano con un rinculo e lo riabbassano (arco.ts). Frecce in volo grandi e con la scia.
 // Interpolazione tra due tick (alpha) per i 60 fps; quel che sta al buio (scena.light) non si disegna.
 import * as THREE from 'three';
+import { ENEMIES } from '@marea/content/rpg.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
 import type { Loader } from '../render/loader.ts';
 import { PAL } from '../ui/style.ts';
 import { boxes, materialsOf, object, tintBlade } from './dungeon_kit.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
+import { armaArco, frecciaInVolo } from './arco.ts';
+import type { Arco } from './arco.ts';
 
 type NemV = DungeonView['nemici'][number] & { area?: number };
 type Enemy = {
   id: number; root: THREE.Group; body: THREE.Group; mats: THREE.MeshLambertMaterial[]; base: THREE.Color[]; height: number;
   px: number; pz: number; x: number; z: number; v: NemV; diedAt: number; flashT: number; ring: THREE.Group | null; ready: boolean;
+  /** Solo arcieri: l'arco nella sinistra e se l'ultimo attacco preparato era un tiro (vale anche per colpisce e recupera). */
+  arco: { obj: THREE.Object3D; a: Arco } | null; tiro: boolean;
 };
 /** `capo`: corona sopra la barra, che si vede anche a vita piena (il nemico da battere per completare il dungeon). */
 export type Bar = { id: number; pos: THREE.Vector3; frac: number; ally: boolean; boss: boolean; capo: boolean };
@@ -42,6 +49,11 @@ const FALLBACK: Record<string, (number | string)[][]> = {
 const NEON = new THREE.Color('#8A5CFF'), RED = new THREE.Color(PAL.rosso), WHITE = new THREE.Color(PAL.sabbiaChiara);
 const yawOf = (fx: number, fz: number) => Math.atan2(-fx, -fz);
 const steps = (v: number, n: number) => Math.floor(Math.max(0, Math.min(1, v)) * n) / n;
+const ARCIERI = new Set(ENEMIES.filter((d) => d.comportamento === 'arciere').map((d) => d.id));
+/** Impugnatura dell'arco (spazio della radice del nemico, −Z avanti): a riposo nella mano sinistra lungo il fianco; in mira davanti
+ *  all'altezza delle spalle, col corpo girato di fianco (la sinistra verso il bersaglio). */
+const ARCO_GIU = new THREE.Vector3(-0.38, 0.85, -0.06), ARCO_SU = new THREE.Vector3(-0.04, 1.28, -0.62), FIANCO = -0.9, ALLUNGO = 0.45;
+const YA = new THREE.Vector3(0, 1, 0);
 
 export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors {
   const root = new THREE.Group(); root.name = 'attori'; o.scene.scene.add(root);
@@ -55,7 +67,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
   const blobGeo = new THREE.CircleGeometry(0.5, 8); blobGeo.rotateX(-Math.PI / 2);
   const blobs = new THREE.InstancedMesh(blobGeo, new THREE.MeshBasicMaterial({ color: PAL.neroCaldo, transparent: true, opacity: 0.45, depthWrite: false }), MAXB);
   blobs.frustumCulled = false; blobs.renderOrder = 1; root.add(blobs);
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v3 = new THREE.Vector3(), s3 = new THREE.Vector3();
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v3 = new THREE.Vector3(), s3 = new THREE.Vector3(), cocca = new THREE.Vector3();
 
   const ringGeo = new THREE.RingGeometry(0.92, 1, 20, 1); ringGeo.rotateX(-Math.PI / 2);
   const discGeo = new THREE.CircleGeometry(1, 20); discGeo.rotateX(-Math.PI / 2);
@@ -65,7 +77,13 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
   function addEnemy(n: NemV): Enemy {
     const r = new THREE.Group(); r.name = 'nemico_' + n.id; root.add(r);
     const body = new THREE.Group(); r.add(body);
-    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false };
+    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false };
+    if (ARCIERI.has(n.tipo) && !n.alleato) {
+      void object(o.loader, 'arm_arco', () => boxes([[0.05, 1.3, 0.05, 0, 0, 0, PAL.legno]])).then((m) => {
+        tintBlade(m, PAL.legnoChiaro); // chiaro: sul pavimento scuro della grotta si legge
+        body.add(m); e.arco = { obj: m, a: armaArco(m, o.loader, true, 2.6) };
+      });
+    }
     void object(o.loader, n.model, () => boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
       body.add(m);
       e.mats = materialsOf(m);
@@ -89,7 +107,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
     return object(o.loader, name, () => boxes(fb[name]!));
   }
   function projObj(tipo: string): Promise<THREE.Object3D> {
-    if (tipo === 'freccia' || tipo === 'freccia_nemica') return object(o.loader, 'arm_freccia', () => boxes([[0.04, 0.7, 0.04, 0, 0.35, 0, PAL.legnoChiaro]])).then((a) => { if (tipo === 'freccia_nemica') tintBlade(a, PAL.rosso); return a; });
+    if (tipo === 'freccia' || tipo === 'freccia_nemica') return frecciaInVolo(o.loader, tipo === 'freccia_nemica');
     if (tipo === 'magia') return object(o.loader, 'fx_fiammata', () => boxes([[0.35, 0.35, 0.6, 0, 0, 0, PAL.arancio]], true)).then((f) => { for (const m of materialsOf(f)) { m.emissive.set(PAL.arancio); m.emissiveIntensity = 0.8; } return f; });
     return Promise.resolve(boxes([[0.35, 0.35, 0.35, 0, 0, 0, '#8A5CFF'], [0.18, 0.18, 0.5, 0, 0, 0.2, PAL.rosaNeon]], true));
   }
@@ -148,7 +166,16 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         e.root.position.set(x, fy, z); e.root.rotation.y = yawOf(n.fx, n.fz);
         const b = e.body, bs = n.boss ? 1.2 : 1; b.position.set(0, 0, 0); b.rotation.set(0, 0, 0); b.scale.setScalar(bs);
         let glowC: THREE.Color | null = null, glow = 0;
-        switch (n.anim) {
+        if (n.anim === 'prepara') e.tiro = !!n.tiro;
+        const tiro = !!e.arco && e.tiro && (n.anim === 'prepara' || n.anim === 'colpisce' || n.anim === 'recupera');
+        let su = 0, tesa = 0; // arco alzato, corda tirata (0..1, a gradini)
+        if (tiro) { // arciere: di fianco, arco su, corda tirata a gradini col lampeggio rosso; scocca con un rinculo; riabbassa
+          su = n.anim === 'prepara' ? steps(n.t / 0.3, 3) : n.anim === 'colpisce' ? 1 : 1 - steps(n.t, 3);
+          tesa = n.anim === 'prepara' ? steps((n.t - 0.25) / 0.75, 4) : 0;
+          b.rotation.y = FIANCO * su;
+          if (n.anim === 'prepara') { const hz = 4 + 10 * n.t; glowC = RED; glow = Math.floor(t * hz) % 2 === 0 ? 0.35 + 0.5 * n.t : 0.1; }
+          if (n.anim === 'colpisce') b.position.z = 0.12;
+        } else switch (n.anim) {
           case 'dorme': b.scale.y = bs * (0.92 + 0.02 * Math.sin(t * 2)); break;
           case 'insegue': case 'scappa': { const k = n.anim === 'scappa' ? 14 : 10; b.position.y = 0.08 * Math.abs(Math.sin(t * k + e.id)); b.rotation.z = 0.08 * Math.sin(t * k + e.id); break; }
           case 'prepara': { // telegrafo leggibile: si tira indietro a gradini e lampeggia rosso sempre più spesso
@@ -168,6 +195,12 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
           default: b.position.y = 0.02 * Math.sin(t * 2 + e.id);
         }
         if (n.alleato) b.position.y += 0.15 + 0.05 * Math.sin(t * 3 + e.id);
+        if (e.arco) {
+          const yaw = b.rotation.y, a = e.arco.obj;
+          a.position.lerpVectors(ARCO_GIU, ARCO_SU, su).applyAxisAngle(YA, -yaw); // nello spazio del corpo, che è girato di yaw
+          a.rotation.set(-0.15 * (1 - su), -yaw, 0.15 * su, 'YXZ'); // corda verso di sé, un filo inclinato
+          e.arco.a.tendi(tiro && n.anim === 'prepara' && su > 0 ? cocca.set(0, 0, 0.17 + ALLUNGO * tesa) : null, true);
+        }
         e.flashT = Math.max(0, e.flashT - dt);
         if (e.flashT > 0 || n.anim === 'colpito') { glowC = WHITE; glow = 0.9; }
         const fade = dead && since > 0.6 ? 1 - steps((since - 0.6) / 0.6, 3) : 1;
