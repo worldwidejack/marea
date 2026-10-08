@@ -141,6 +141,18 @@ Colori della barca (#107, `avatar.json` `barca`): gratis Legno (di serie), Tela,
 | Tutte le isole · un amico · tutti gli amici | 15 · 5 · 15 | Esploratore · Buon vicino · Ospite d'onore |
 | 1 spedizione · 10 spedizioni nel Mondo Sotterraneo | 10 · 25 | Speleologo · Avventuriero |
 
+### Porto tra amici: Tabellone dei record e Faro comune (#110 #111, 8 ott 2026)
+- **Tabellone dei record** (prato a ovest della piazza, accanto al Mercante): per ogni minigioco da solo il **migliore di oggi** (giorno UTC) e il **migliore di sempre** tra gli amici, con nome, punteggio (tempo per la Regata, pacchi per le Consegne, ingorghi/livelli e mosse per Ingorgo e Pinguini, altrimenti punti) e medaglia. Lo scrive il server quando rigioca la partita; a pari punteggio resta chi c'era. Chi perde il record di sempre lo legge nella campanella («Luca ha battuto il tuo record alla Pesca»).
+- **Faro comune** (sullo scoglio a nord-est del Porto, accanto alla Grotta della Marea): un progetto di tutti. Vicino al faro (A) si versano **50 / 200 / TUTTO** Legno o Pietra dal proprio Magazzino (escono come una spesa; mai oltre quello che manca al faro completo); il pannello mostra le barre verso il prossimo livello e chi ha versato di più. A ogni livello il faro cresce (spento al livello 0, poi acceso, più alto, di notte un fascio che gira più lungo) e dà **a tutti** un bonus di produzione; una riga nella campanella di tutti quando sale. Numeri in `porto_amici.json`:
+
+| Livello | Legno totale | Pietra totale | Segherie e Cave |
+|---|---|---|---|
+| 1 | 2000 | 1000 | +5 % |
+| 2 | 6000 | 3000 | +10 % |
+| 3 | 15000 | 8000 | +15 % |
+
+Il bonus è sulla velocità (il tetto del deposito resta quello dell'edificio) e vale dal momento in cui il faro sale. Non c'entra col **Faro** edificio dell'isola (+50 % per 2 h dopo una vittoria), che resta com'è.
+
 ## 6. Minigiochi
 **Formato comune** (in `packages/sim/src/minigames/`): modulo puro e deterministico, 60 Hz, `create({seed, difficulty})`, `step(state, input)`, `result(state)`, `autopilot`. Stesso seed = stessa partita, sempre. Il punteggio è **sempre «più alto vince»**; i dettagli (tempo, combo) stanno in `result().detail`.
 

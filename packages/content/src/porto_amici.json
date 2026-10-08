@@ -1,0 +1,19 @@
+{
+  "tabellone": { "nome": "Tabellone dei record", "cartello": "RECORD", "at": [13.6, 18.2], "rot": 1.5708, "fronte": [15, 18.2], "raggio": 2.8 },
+  "faro": {
+    "nome": "Faro del Porto", "cartello": "FARO", "at": [28, 5.4], "rot": 0.6, "fronte": [27, 7.8], "raggio": 3.4,
+    "livelli": [
+      { "legno": 2000, "pietra": 1000, "bonus": 0.05 },
+      { "legno": 6000, "pietra": 3000, "bonus": 0.10 },
+      { "legno": 15000, "pietra": 8000, "bonus": 0.15 }
+    ],
+    "edifici": ["segheria", "cava"],
+    "versa": [50, 200],
+    "classifica": 8,
+    "doniTenuti": 20
+  },
+  "alGioco": {
+    "regata": "alla Regata", "pesca": "alla Pesca", "perle": "alla Caccia alle perle", "consegne": "alle Consegne", "ingorgo": "all'Ingorgo",
+    "pinguini": "ai Pinguini", "koi": "alle Carpe koi", "arrembaggio": "all'Arrembaggio", "lava": "alla Fuga dalla lava"
+  }
+}

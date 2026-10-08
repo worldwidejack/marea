@@ -14,7 +14,7 @@ export type LookSalvato = Look & { titolo?: string; barca?: BarcaLook };
 export type EmoteId = 'saluto' | 'esulta' | 'ride' | 'no' | 'applauso' | 'cuore' | 'sorpresa' | 'balla';
 /** Feed (M1 · Fetta 3, PROTOCOL §4): righe scritte dal DO Sfide a ogni passaggio di stato, testo composto dal Worker con i nomi. */
 /** `visita` (#86): un amico è passato sulla tua isola e ha firmato il libro degli ospiti (`da` = chi, `emote` = il suo saluto). */
-export type FeedTipo = 'sfida_ricevuta' | 'sfida_accettata' | 'sfida_rifiutata' | 'sfida_scaduta' | 'sfida_chiusa' | 'visita';
+export type FeedTipo = 'sfida_ricevuta' | 'sfida_accettata' | 'sfida_rifiutata' | 'sfida_scaduta' | 'sfida_chiusa' | 'visita' | 'record' | 'faro';
 export type FeedItem = { id: number; quando: number; tipo: FeedTipo; testo: string; sfida?: string; da?: string; emote?: string; letto: boolean };
 
 export type ClientMsg =

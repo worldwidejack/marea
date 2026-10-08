@@ -1,6 +1,7 @@
 // Testo del feed (M1 · Fetta 3, CONTRACTS §13): il DO Sfide scrive righe strutturate, il Worker le legge e qui le trasforma in frasi brevi
 // in italiano con i nomi delle persone. Funzioni pure: niente Cloudflare, niente I/O (i nomi arrivano da `nomeDi`).
 import { BALANCE, MINIGAMES_CFG, RESOURCES } from '@marea/content';
+import { FARO, alGioco } from '@marea/content/porto_amici.ts';
 import type { FeedItem, FeedTipo } from '@marea/protocol';
 import type { Resources } from '@marea/sim/economy/types.ts';
 
@@ -15,6 +16,8 @@ export type FeedDati = {
   perle?: number;
   /** Visita (#86): il saluto della firma nel libro. */
   emote?: string;
+  /** Faro comune (#111): il livello raggiunto. */
+  livello?: number;
 };
 /** Riga come la restituisce il DO Sfide (rotta `feed`). */
 export type FeedRow = { id: number; quando: number; tipo: FeedTipo; sfida: string | null; altro: string | null; dati: FeedDati; letto: boolean };
@@ -71,13 +74,19 @@ export function feedText(row: FeedRow, nomeDi: (id: string) => string): string {
     }
     case 'visita':
       return `${chi} è passato sulla tua isola e ha firmato il libro`;
+    case 'record': // #110
+      return `${chi} ha battuto il tuo record ${alGioco(d.minigame ?? '', nomeGioco(d.minigame))}`;
+    case 'faro': { // #111
+      const lv = num(d.livello), bonus = Math.round((FARO.livelli[lv - 1]?.bonus ?? 0) * 100);
+      return `Il Faro del Porto è salito al livello ${lv}, grazie a ${chi}: Segherie e Cave +${bonus} % per tutti`;
+    }
   }
   return 'Novità dal Tavolo';
 }
 
 export function toFeedItem(row: FeedRow, nomeDi: (id: string) => string): FeedItem {
   const item: FeedItem = { id: row.id, quando: row.quando, tipo: row.tipo, testo: feedText(row, nomeDi), letto: !!row.letto };
-  if (row.sfida && row.tipo !== 'visita') item.sfida = row.sfida; // per le visite `sfida` è solo la chiave contro i doppioni
+  if (row.sfida && row.tipo.startsWith('sfida_')) item.sfida = row.sfida; // per visite, record e faro `sfida` è solo la chiave contro i doppioni
   if (row.altro) item.da = row.altro;
   if (row.tipo === 'visita' && typeof row.dati?.emote === 'string') item.emote = row.dati.emote;
   return item;

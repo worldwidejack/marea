@@ -17,6 +17,7 @@ import { createWater } from '../render/water.ts';
 import { createIsland } from '../render/island.ts';
 import { LOD_M } from '../render/island_sagoma.ts';
 import { INGRESSI } from './ingressi.ts';
+import { PORTO_AMICI } from '@marea/content/porto_amici.ts';
 import { createAvatar } from '../game/avatar.ts';
 import type { Avatar } from '../game/avatar.ts';
 import { createBoat } from '../game/boat.ts';
@@ -101,7 +102,11 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     areas: arch.places.map((p) => ({ id: p.island + (p.slot !== null ? '_' + p.slot : ''), x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, style: p.style, scenery: p.scenery })),
     props: arch.props, buildings: arch.buildings, paved: arch.paved,
     // davanti agli ingressi dei dungeon niente scenografia (prima la toglieva ingressi.ts dagli InstancedMesh: ora i prop sono fusi)
-    libere: INGRESSI.flatMap((d) => { const p = arch.places.find((q) => q.island === d.island); return p ? [{ x: (p.origin[0] + d.at[0] + 0.5) * arch.tile, z: (p.origin[1] + d.at[1] + 0.5) * arch.tile, r: 6 }] : []; }),
+    libere: [
+      ...INGRESSI.flatMap((d) => { const p = arch.places.find((q) => q.island === d.island); return p ? [{ x: (p.origin[0] + d.at[0] + 0.5) * arch.tile, z: (p.origin[1] + d.at[1] + 0.5) * arch.tile, r: 6 }] : []; }),
+      // Porto tra amici (#110 #111): niente palme né sassi sul Tabellone dei record e attorno al Faro comune
+      ...[PORTO_AMICI.tabellone.at, PORTO_AMICI.faro.at, PORTO_AMICI.faro.fronte].flatMap((c) => { const p = arch.places.find((q) => q.role === 'porto'); return p ? [{ x: (p.origin[0] + c[0] + 0.5) * arch.tile, z: (p.origin[1] + c[1] + 0.5) * arch.tile, r: 3.5 }] : []; }),
+    ],
   });
   scene.add(island.group);
   // prima di ogni render: si disegnano solo le isole nell'inquadratura, da lontano la sagoma (render/island.ts, TECH §5);
