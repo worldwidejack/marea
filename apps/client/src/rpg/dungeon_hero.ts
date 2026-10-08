@@ -27,8 +27,9 @@ import { armaArco } from './arco.ts';
 import type { Arco } from './arco.ts';
 import type { HeroFx } from './hero_fx.ts';
 
-/** Arma da montare: quella del GDR, o (Templari) con modello del kit e colore della lama dati direttamente. */
-export type ArmaInMano = RunWeapon & { modello?: string; colore?: string };
+/** Arma da montare: quella del GDR, o (Templari) con modello del kit e colore della lama dati direttamente, oppure un oggetto già fatto
+ *  (`oggetto`: pistole, moschetto, vaso del fuoco greco; canna lungo +Y dall'impugnatura, sopra +Z) tenuto a due mani in avanti. */
+export type ArmaInMano = RunWeapon & { modello?: string; colore?: string; oggetto?: () => THREE.Object3D };
 
 export type HeroActor = {
   readonly avatar: Avatar;
@@ -49,7 +50,7 @@ export type HeroActor = {
 };
 
 type V3 = THREE.Vector3;
-type Kind = 'lama' | 'lancia' | 'pugni' | 'arco';
+type Kind = 'lama' | 'lancia' | 'pugni' | 'arco' | 'fuoco';
 const v3 = (x = 0, y = 0, z = 0): V3 => new THREE.Vector3(x, y, z);
 const X = v3(1, 0, 0), Y = v3(0, 1, 0), Z = v3(0, 0, 1);
 const UPPER = 0.2754, FOREARM = 0.27; // m: spalla → gomito (glTF), gomito → pugno
@@ -117,7 +118,8 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     const def = arma.id && hasItem(arma.id) ? itemDef(arma.id) : null;
     let w: THREE.Object3D | null = null, mats: THREE.MeshLambertMaterial[] = [], len = 0;
     const model = arma.modello ?? def?.model, colore = arma.colore ?? def?.colore;
-    if (model) {
+    if (arma.oggetto) { w = arma.oggetto(); mats = materialsOf(w); len = Math.max(0.2, new THREE.Box3().setFromObject(w).max.y); }
+    else if (model) {
       w = await object(o.loader, model, () => boxes(b ? [[0.05, 1.2, 0.05, 0, 0, 0.08, PAL.legno]] : [[0.05, 0.2, 0.05, 0, 0.05, 0, PAL.legnoScuro], [0.08, 0.75, 0.03, 0, 0.55, 0, PAL.pietra]]));
       if (my !== mountN) return;
       tintBlade(w, palColor(colore || PAL.pietra));
@@ -131,7 +133,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     weapon = w; bow = b; bladeMats = mats; bladeLen = len;
     arco = b && w ? armaArco(w, o.loader, false, 1.8) : null;
     if (w) o.scene.add(w);
-    kind = bow ? 'arco' : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' ? 'lancia' : 'lama';
+    kind = bow ? 'arco' : arma.oggetto ? 'fuoco' : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' ? 'lancia' : 'lama';
     fx.dispose(); fx = fxFor(kind === 'pugni' ? pugni().portata : arma.portata);
   }
   await mount(o.hero.arma);
@@ -184,6 +186,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
       case 'lama': p.wR = 1; p.fR.set(0.27, 0.97, -0.2); p.dir.set(0.12, 0.62, -0.78).normalize(); p.piatto.set(1, 0, 0); p.wA = 1; break;
       case 'lancia': p.wR = 1; p.fR.set(0.24, 1.0, -0.04); p.dir.set(0, 0.32, -1).normalize(); p.piatto.set(0, 1, 0); p.wA = 1; p.wL = 1; p.fL.copy(p.fR).addScaledVector(p.dir, 0.42); break;
       case 'pugni': p.wR = p.wL = 1; p.fR.set(0.15, 1.27, -0.25); p.fL.set(-0.15, 1.3, -0.22); break;
+      case 'fuoco': p.wR = 1; p.fR.set(0.17, 1.2, -0.34); p.dir.set(0, 0.04, -1).normalize(); p.piatto.set(0, 1, 0); p.wA = 1; p.wL = 1; p.fL.copy(p.fR).addScaledVector(p.dir, Math.min(0.32, bladeLen * 0.5)).add(tmp.set(-0.06, -0.04, 0)); break;
       default: p.dir.set(0, 1, -0.12).normalize(); p.piatto.set(0, 0, 1); p.wA = 1; // arco dritto nella sinistra, corda verso di sé, braccia della clip
     }
   }
@@ -275,7 +278,12 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
         break;
       }
       case 'lancia': { // magia: due mani avanti
-        guard(p); const e = Math.sin(Math.PI * Math.min(1, t * 1.3));
+        guard(p);
+        if (kind === 'fuoco') { // sparo: rinculo all'indietro e in su, poi torna
+          const k = t < 0.12 ? t / 0.12 : Math.max(0, 1 - (t - 0.12) / 0.6);
+          p.fR.add(tmp.set(0, 0.06 * k, 0.14 * k)); p.dir.set(0, 0.04 + 0.45 * k, -1).normalize(); p.fL.copy(p.fR).addScaledVector(p.dir, Math.min(0.32, bladeLen * 0.5)); p.lean = -0.08 * k;
+          break;
+        } const e = Math.sin(Math.PI * Math.min(1, t * 1.3));
         p.wR = Math.max(p.wR, e); p.fR.lerp(tmp.set(0.13, 1.3, -0.5), e); p.wL = e; p.fL.set(-0.13, 1.3, -0.5); p.lean = 0.12 * e;
         break;
       }

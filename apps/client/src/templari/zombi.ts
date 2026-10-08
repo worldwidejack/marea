@@ -43,8 +43,22 @@ function parti(): Record<string, THREE.BufferGeometry> {
   const avambraccio = merged([painted(pri(0.05, 0.045, 0.27, 5), MAGLIA, M(0, -0.13, 0)), painted(box(0.08, 0.1, 0.06), PELLE, M(0, -0.31, 0))]);
   const coscia = merged([painted(pri(0.08, 0.065, 0.45, 5), MAGLIA, M(0, -0.22, 0))]);
   const stinco = merged([painted(pri(0.065, 0.055, 0.42, 5), MAGLIA, M(0, -0.2, 0)), painted(box(0.11, 0.08, 0.2), PAL.legnoScuro, M(0, -0.43, -0.04))]);
-  return { testa, busto, falda, braccio, avambraccio, coscia, stinco };
+  // templare scudato: elmo a secchio con la fessura e lo scudo a goccia al braccio sinistro (solo per chi ce l'ha)
+  const elmo = merged([
+    painted(pri(0.17, 0.17, 0.3, 8), MAGLIA, M(0, 0.17, 0)),
+    painted(pri(0.18, 0.18, 0.04, 8), PAL.roccia, M(0, 0.32, 0)),
+    painted(box(0.24, 0.025, 0.04), PAL.neroCaldo, M(0, 0.2, -0.16)), // fessura degli occhi
+    painted(box(0.03, 0.12, 0.04), CROCE, M(0, 0.1, -0.16)),
+  ]);
+  const scudo = merged([
+    painted(pri(0.3, 0.06, 0.72, 6), TELA, M(0, -0.18, -0.12, Math.PI / 2, 0, 0, 1, 1, 0.15)),
+    painted(box(0.06, 0.03, 0.5), CROCE, M(0, -0.2, -0.17)),
+    painted(box(0.38, 0.03, 0.06), CROCE, M(0, -0.2, -0.05)),
+  ]);
+  return { testa, busto, falda, braccio, avambraccio, coscia, stinco, elmo, scudo };
 }
+/** Parti che hanno solo certi tipi (contate a parte). */
+const SOLO: Record<string, string> = { elmo: 'scudato', scudo: 'scudato' };
 const DOPPIE = new Set(['braccio', 'avambraccio', 'coscia', 'stinco']);
 
 type Rig = { root: THREE.Object3D; anca: THREE.Object3D; busto: THREE.Object3D; testa: THREE.Object3D; spalla: THREE.Object3D[]; gomito: THREE.Object3D[]; coscia: THREE.Object3D[]; ginocchio: THREE.Object3D[] };
@@ -97,6 +111,7 @@ export function createZombi(scene: THREE.Scene): Zombi {
     // di serie: braccia tese avanti (lo zombie), testa storta, chino quanto corre
     const tese = (alto: number) => { for (let s = 0; s < 2; s++) { r.spalla[s]!.rotation.x = alto + (s ? 0.12 : -0.12) * Math.sin(t * 2 + z.id); r.gomito[s]!.rotation.x = 0.25; r.spalla[s]!.rotation.z = s ? 0.12 : -0.12; } };
     r.testa.rotation.z = 0.25 * Math.sin(z.id * 1.7); r.testa.rotation.x = 0.15;
+    if (z.v.tipo === 'scudato' && v.anim !== 'morto' && v.anim !== 'sorge') { r.spalla[0]!.rotation.x = 0.9; r.gomito[0]!.rotation.x = 0.7; r.spalla[0]!.rotation.z = 0.5; }
     switch (v.anim) {
       case 'cammina': case 'corre': {
         tese(corsa ? 1.15 : 1.4);
@@ -155,6 +170,7 @@ export function createZombi(scene: THREE.Scene): Zombi {
     },
     update(alpha, dt, t) {
       let i = 0, b = 0;
+      const extra: Record<string, number> = { elmo: 0, scudo: 0 };
       const put = (k: string, j: number, o: THREE.Object3D, tinta: THREE.Color) => { meshes[k]!.setMatrixAt(j, o.matrixWorld); meshes[k]!.setColorAt(j, tinta); };
       for (const z of zs.values()) {
         if (i >= MAX) break;
@@ -172,10 +188,11 @@ export function createZombi(scene: THREE.Scene): Zombi {
         c.copy(z.tinta); if (z.flash > 0) c.copy(BIANCO); else if (lampo) c.copy(ROSSO);
         put('testa', i, z.rig.testa, c); put('busto', i, z.rig.busto, c); put('falda', i, z.rig.anca, c);
         for (let s = 0; s < 2; s++) { put('braccio', i * 2 + s, z.rig.spalla[s]!, c); put('avambraccio', i * 2 + s, z.rig.gomito[s]!, c); put('coscia', i * 2 + s, z.rig.coscia[s]!, c); put('stinco', i * 2 + s, z.rig.ginocchio[s]!, c); }
+        if (z.v.tipo === 'scudato') { put('elmo', extra['elmo']!++, z.rig.testa, c); put('scudo', extra['scudo']!++, z.rig.gomito[0]!, c); }
         if (z.v.anim !== 'morto' && z.v.anim !== 'sorge') { blobs.setMatrixAt(b++, m4.compose(v3.set(x, 0.03, zz), q, s3.set(1, 1, 1))); }
         i++;
       }
-      for (const [k, im] of Object.entries(meshes)) { im.count = DOPPIE.has(k) ? i * 2 : i; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
+      for (const [k, im] of Object.entries(meshes)) { im.count = SOLO[k] ? extra[k] ?? 0 : DOPPIE.has(k) ? i * 2 : i; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
       blobs.count = b; blobs.instanceMatrix.needsUpdate = true;
     },
     colpito(id) { const z = zs.get(id); if (z) z.flash = 0.1; },

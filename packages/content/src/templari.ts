@@ -36,6 +36,12 @@ export function validateTemplari(): string[] {
   const rows = TEMPLARI_MAPPA.rows, all = rows.join('');
   for (const [ch, cosa] of [['S', 'la partenza'], ['A', "l'altare"], ['z', 'le comparse'], ['W', 'le finestre']] as const) if (!all.includes(ch)) errs.push(`templari: la mappa non ha ${cosa}`);
   if (all.split('S').length !== 2) errs.push('templari: la mappa vuole una sola partenza');
-  for (const [ch, l] of Object.entries(TEMPLARI_MAPPA.legenda)) if (l.porta && !all.includes(ch)) errs.push(`templari: porta ${l.porta} non nella mappa`);
+  for (const [ch, l] of Object.entries(TEMPLARI_MAPPA.legenda)) {
+    if (l.porta && !all.includes(ch)) errs.push(`templari: porta ${l.porta} non nella mappa`);
+    if (l.muro && !c.armi.some((a) => a.id === l.muro)) errs.push(`templari: arma sul muro ${l.muro} sconosciuta`);
+    if (l.muro && c.armi.find((a) => a.id === l.muro)?.prezzo === undefined) errs.push(`templari: l'arma sul muro ${l.muro} non ha prezzo`);
+  }
+  if (!all.includes('C')) errs.push('templari: la mappa non ha posti per la cassa');
+  if (!c.armi.some((a) => (a.cassa ?? 0) > 0)) errs.push('templari: la cassa non ha armi');
   return errs;
 }

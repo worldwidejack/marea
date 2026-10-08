@@ -75,8 +75,8 @@ Due armi alla volta (come COD): una nuova prende il posto di quella in mano. Le 
 | **Fuoco greco** (miracolosa) | cassa, rara | — | 3000 in 3 m + fiamme | lancio 0,8 s | 6 + 12 | 21 |
 | **Spada maledetta di de Molay** (miracolosa) | cassa, rarissima | — | 6000 + scia di fuoco | 0,5 s | ∞ | 29 |
 
-- **Ricarica**: da sola quando il colpo è finito (R sul PC per farla prima).
-- **Cassa del tesoro templare** (= mystery box): **950** punti, gira e tira fuori un'arma a caso (tutte tranne la spada; le miracolose rare). Ogni 4-8 aperture esce il **teschio** (la leggenda del teschio dei Templari): la cassa ride, ti rende i punti e sparisce, per ricomparire in un altro dei 4 posti (chiesa, piazza, cimitero, accampamento).
+- **Ricarica**: da sola quando il caricatore è vuoto (A col caricatore vuoto la fa partire). Le armi da fuoco tirano anche fuori dalle finestre, agli zombie che strappano le assi.
+- **Cassa del tesoro templare** (= mystery box): **950** punti, gira 4 s e tira fuori un'arma a caso da prendere entro 10 s (tutte tranne la spada e quelle che hai già; pesi in `templari.json`: le miracolose rare, la spada di de Molay rarissima). Ogni 4-8 aperture esce il **teschio** (la leggenda del teschio dei Templari): la cassa ride, ti rende i punti e sparisce, per ricomparire in un altro dei suoi posti (per ora due nella chiesa; con le porte anche piazza, cimitero, accampamento). Un fascio di luce gialla la fa trovare.
 
 ## 7. Scudo templare
 Cade dal **templare scudato** quando muore (resta a terra 20 s: A per prenderlo). Lo porti **sulle spalle**: blocca i colpi da dietro. Con **SCUDO** lo **impugni** al posto dell'arma: blocca i colpi da davanti, cammini piano e con A dai una spallata (poco danno, li respinge). Regge **1500** danni, poi si spacca; se ne prende un altro dallo scudato successivo.

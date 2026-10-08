@@ -42,10 +42,22 @@ export type TEvento =
   | { t: 'mancato' }
   | { t: 'caduto' }
   | { t: 'alba' }
-  | { t: 'scambia'; arma: string };
+  | { t: 'scambia'; arma: string }
+  /** Colpo di un'arma a distanza (sparo, freccia, vaso lanciato) e caricatore vuoto o ricarica. */
+  | { t: 'sparo'; arma: string; x: number; z: number }
+  | { t: 'vuoto'; arma: string }
+  | { t: 'ricarica'; arma: string }
+  | { t: 'esplosione'; x: number; z: number; r: number }
+  /** Colpo fermato da uno scudo: quello dello scudato (`zombie`) o il tuo (`eroe`). */
+  | { t: 'parato'; chi: 'eroe' | 'zombie'; x: number; z: number }
+  | { t: 'scudo'; preso: boolean }
+  | { t: 'scudoRotto' }
+  | { t: 'compra'; arma: string; munizioni: boolean }
+  /** Cassa del tesoro: si apre (gira), esce un'arma, esce il teschio (la cassa ride e se ne va), ricompare altrove. */
+  | { t: 'cassa'; fase: 'gira' | 'arma' | 'teschio' | 'vola' | 'qui' | 'presa'; arma?: string };
 
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
-export type TPrompt = { cosa: 'reliquia' | 'ripara'; testo: string; prezzo: number; puoi: boolean } | null;
+export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo'; testo: string; prezzo: number; puoi: boolean } | null;
 
 export type TView = {
   tick: number; fase: TFase;
@@ -59,9 +71,19 @@ export type TView = {
     /** Ferito da poco (0..1, per il bordo rosso dello schermo). */
     ferita: number;
     arma: string; armi: ({ id: string; colpi: number; riserva: number } | null)[]; cur: number;
+    /** Ricarica in corso (0..1, 0 = no). */
+    ricarica: number;
+    /** Scudo templare: vita, massimo, in mano (sennò sulle spalle). */
+    scudo: { vita: number; max: number; inMano: boolean } | null;
   };
   zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number }[];
   finestre: { x: number; z: number; assi: number; max: number }[];
+  proiettili: { id: number; tipo: 'freccia' | 'palla' | 'vaso'; x: number; z: number; vx: number; vz: number }[];
+  fiamme: { id: number; x: number; z: number; r: number; resta: number }[];
+  /** Cose a terra da prendere (lo scudo dello scudato), con i secondi che restano. */
+  drops: { id: number; tipo: 'scudo'; x: number; z: number; resta: number }[];
+  /** Cassa del tesoro: dove sta, cosa fa, l'arma uscita (pronta) e quanto manca alla fase dopo (0..1). */
+  cassa: { x: number; z: number; fx: number; fz: number; fase: 'chiusa' | 'gira' | 'pronta' | 'teschio' | 'vola'; arma: string | null; t: number };
   /** Porte (id e se sono aperte). */
   porte: { id: string; aperta: boolean }[];
   prompt: TPrompt;

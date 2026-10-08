@@ -42,9 +42,24 @@ export default async function (ctx) {
     await ctx.waitState(page, (st) => st.templari.ondata >= 3 || st.templari.done, 150000);
     const st = await ctx.getState(page);
     ctx.log('dopo il pilota', JSON.stringify({ ondata: st.templari.ondata, uccisioni: st.templari.uccisioni, punti: st.templari.eroe.punti, vita: st.templari.eroe.vita }));
-    assert(st.templari.uccisioni >= 6 && st.templari.eroe.punti > 500, `uccisioni ${st.templari.uccisioni}, punti ${st.templari.eroe.punti}`);
+    assert(st.templari.uccisioni >= 6, `uccisioni ${st.templari.uccisioni}, punti ${st.templari.eroe.punti}`); // i punti il pilota li spende in armi
     await page.evaluate(() => window.__game.test.templariAutopilot(false));
     await ctx.shot(page, 'ondata3');
+  });
+  await ctx.test('telefono: armi — l’arco dall’altare laterale, la cassa del tesoro, munizioni nel HUD', async () => {
+    let st = await ctx.getState(page);
+    if (!st.templari.done) {
+      await page.evaluate(() => window.__game.test.templariAutopilot(true, 6));
+      await ctx.waitState(page, (s) => s.templari.done || s.templari.armi.some((a) => a?.id === 'arco'), 60000);
+      await ctx.waitState(page, (s) => s.templari.done || s.templari.cassa.fase === 'gira' || s.templari.cassa.fase === 'pronta', 90000).catch(() => {});
+      st = await ctx.getState(page);
+      await page.evaluate(() => window.__game.test.templariAutopilot(false));
+      if (st.templari.cassa.fase === 'gira' || st.templari.cassa.fase === 'pronta') await ctx.shot(page, 'cassa');
+    }
+    st = await ctx.getState(page);
+    ctx.log('armi', JSON.stringify(st.templari.armi), 'cassa', JSON.stringify(st.templari.cassa), 'effetti', JSON.stringify(st.templari.effetti));
+    assert(st.templari.armi.some((a) => a?.id === 'arco'), `l’arco non è stato preso: ${JSON.stringify(st.templari.armi)}`);
+    if (!st.templari.done) assert((await page.textContent('#mzTpl .arma')).length > 3, 'HUD dell’arma vuoto');
   });
   await ctx.test('telefono: pausa ferma tutto, ESCI → scheda dell’esito senza premio → di nuovo nel mondo', async () => {
     const st0 = await ctx.getState(page);
@@ -92,6 +107,21 @@ export default async function (ctx) {
     await ctx.waitState(pc, (s) => s.templari.pausa === false, 5000);
     await ctx.waitState(pc, (s) => s.templari.ondata === 1, 15000);
     await ctx.shot(pc, 'pc_ondata1');
+  });
+  await ctx.test('PC: si vedono moschetto, scudato, scudo in mano e fuoco greco (hook di prova, solo resa)', async () => {
+    const r = await pc.evaluate(() => window.__game.test.templariProva({ arma: 'moschetto', zombie: 'scudato', scudo: 'spalle' }));
+    assert(r && r.arma === 'moschetto' && r.scudo, `prova: ${JSON.stringify(r)}`);
+    await pc.evaluate(() => window.__game.test.setZoom(0.7));
+    await pc.waitForTimeout(700);
+    await ctx.shot(pc, 'pc_moschetto_scudato');
+    await pc.keyboard.press('KeyQ'); await pc.keyboard.press('KeyQ');
+    await ctx.waitState(pc, (st) => st.templari.scudo?.inMano === true, 5000);
+    await pc.waitForTimeout(400);
+    await ctx.shot(pc, 'pc_scudo_in_mano');
+    await pc.evaluate(() => window.__game.test.templariProva({ arma: 'fuoco_greco', zombie: 'fante' }));
+    await pc.keyboard.down('Space'); await pc.waitForTimeout(120); await pc.keyboard.up('Space');
+    await ctx.waitState(pc, (st) => st.templari.effetti.fiamme > 0, 8000);
+    await ctx.shot(pc, 'pc_fuoco_greco');
     ctx.noErrors(d, 'PC');
   });
 }

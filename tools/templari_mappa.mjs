@@ -4,7 +4,9 @@
 // Uso: node tools/templari_mappa.mjs [--stampa]   (--stampa mostra la mappa nel terminale)
 // Legenda: ' ' fuori dalla mappa · '#' muro · 'o' colonna · '.' pavimento della chiesa · ',' terra del sagrato · 'W' finestra sbarrata
 // · '1'..'9' porte (chiuse finché non si comprano) · 'A' altare maggiore · 'p' stalli del coro · 'r' macerie del tetto · 'S' partenza
-// · 'z' comparsa degli zombie (sagrato) · 'q' macerie fuori (ostacolo) · 'b' braciere (ostacolo basso che fa luce).
+// · 'z' comparsa degli zombie (sagrato) · 'q' macerie fuori (ostacolo) · 'b' braciere (ostacolo basso che fa luce)
+// · 'a' altare laterale · 'C' posto della cassa del tesoro (ostacolo basso) · armi da comprare sul muro accanto, nella cella davanti:
+//   'R' arco (sull'altare laterale), 'M' mazza ferrata, 'X' ascia danese (legenda `muro`).
 // La chiesa è alla templare: una rotonda (come il Santo Sepolcro, la Temple Church di Londra, la Vera Cruz di Segovia) col giro di
 // colonne, e a est il presbiterio con l'abside e l'altare maggiore.
 import fs from 'node:fs';
@@ -79,6 +81,12 @@ for (const [x, z] of finestre) set(x, z, 'W');
 for (let z = 41; z <= 43; z++) { for (let x = 30; x < R.cx; x++) if (sulMuro(x, z)) { set(x, z, '1'); break; } }
 for (const x of [57, 58]) set(x, P.z0, '2');
 
+// ——— armi sul muro (disegnate col gesso), l'arco sull'altare laterale, i posti della cassa del tesoro ———
+set(38, 38, 'a'); set(39, 38, 'R');   // altare laterale a sinistra del portale, con l'arco
+set(61, 37, 'M');                     // mazza ferrata: muro nord del presbiterio, tra gli stalli
+set(40, 36, 'X');                     // ascia danese: muro nord-ovest della rotonda, tra le macerie
+set(44, 34, 'C'); set(67, 37, 'C');   // cassa: in fondo alla rotonda e accanto all'abside
+
 // ——— partenza davanti all'altare, comparse sul sagrato fuori dalle finestre ———
 set(66, 42, 'S');
 const fuori = (x, z) => get(x, z) === ',';
@@ -99,7 +107,7 @@ for (const [x, z] of finestre) {
 for (const [x, z] of [[33, 33], [34, 52], [60, 30], [72, 33], [76, 50], [52, 56]]) if (fuori(x, z)) set(x, z, 'q');
 
 // ——— controlli: le comparse raggiungono la partenza passando dalle finestre, la partenza non esce dalla chiesa ———
-const solidoZ = (c) => c === ' ' || c === '#' || c === 'o' || c === 'A' || c === 'p' || c === 'r' || c === 'q' || c === 'b' || /[1-9]/.test(c);
+const solidoZ = (c) => c === ' ' || c === '#' || c === 'o' || c === 'A' || c === 'p' || c === 'r' || c === 'q' || c === 'b' || c === 'a' || c === 'C' || /[1-9]/.test(c);
 const solidoE = (c) => solidoZ(c) || c === 'W';
 function bfs(sx, sz, solido) {
   const seen = new Set([sx + ',' + sz]), q = [[sx, sz]];
@@ -130,6 +138,7 @@ const out = {
   tile: 1,
   legenda: {
     '1': { porta: 'portale' }, '2': { porta: 'cimitero' },
+    'R': { muro: 'arco' }, 'M': { muro: 'mazza' }, 'X': { muro: 'ascia' },
   },
   rows: trimmed,
 };

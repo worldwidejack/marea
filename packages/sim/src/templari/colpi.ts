@@ -1,10 +1,14 @@
-// Danni e punti: colpo dell'eroe su uno zombie (+10, all'uccisione +60 o +100 in mischia), colpo di uno zombie sull'eroe (caduto a zero).
+// Danni e punti: colpo dell'eroe su uno zombie (+10, all'uccisione +60 o +100 in mischia; lo scudato para quello che gli arriva davanti),
+// esplosioni e fiamme, colpo di uno zombie sull'eroe (lo scudo templare para: in mano davanti, sulle spalle dietro; a zero sei caduto).
 import { TEMPLARI } from '@marea/content/templari.ts';
+import type { TFiamma } from '@marea/content/templari.ts';
 import { moveCircle } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
-import { COLPITO_TICKS, ev } from './stato.ts';
+import { COLPITO_TICKS, ev, secToTicks } from './stato.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
+/** Fiamme a terra insieme al massimo (le più vecchie si spengono). */
+const MAX_FIAMME = 14;
 
 export function dai(s: TState, n: number, perche: 'colpo' | 'uccisione' | 'mischia' | 'asse'): void {
   if (n <= 0) return;
@@ -14,37 +18,94 @@ export function dai(s: TState, n: number, perche: 'colpo' | 'uccisione' | 'misch
 /** Spende punti; false (e niente spesa) se non bastano. */
 export function spendi(s: TState, n: number): boolean {
   if (s.punti < n) return false;
-  s.punti -= n;
-  ev(s, { t: 'punti', n: -n, perche: 'spesa' });
+  if (n > 0) { s.punti -= n; ev(s, { t: 'punti', n: -n, perche: 'spesa' }); }
   return true;
 }
+/** Punti restituiti (il teschio della cassa): non contano tra quelli guadagnati. */
+export function rendi(s: TState, n: number): void { s.punti += n; ev(s, { t: 'punti', n, perche: 'spesa' }); }
 
-export type Colpo = { danno: number; mischia: boolean; caricato: boolean; dirX: number; dirZ: number; spinta: number };
-/** Colpo su uno zombie: danno, spinta, punti, morte. Ritorna true se lo uccide. */
-export function colpisci(s: TState, z: Zombie, c: Colpo): boolean {
-  if (z.st === 'morto' || z.st === 'sorge') return false;
+/** `dirX, dirZ`: verso in cui va il colpo (dal colpitore allo zombie); `scudo` false = passa lo scudo (fiamme). */
+export type Colpo = { danno: number; mischia: boolean; caricato: boolean; dirX: number; dirZ: number; spinta: number; scudo?: boolean };
+export type Esito = 'no' | 'parato' | 'colpito' | 'ucciso';
+
+/** Lo scudato para un colpo che gli arriva davanti (chi colpisce sta nel suo cono). */
+export function parato(z: Zombie, dirX: number, dirZ: number): boolean {
+  const c = z.def.scudo;
+  return c !== undefined && -(dirX * z.fx + dirZ * z.fz) >= c;
+}
+
+/** Colpo su uno zombie: scudo, danno, spinta, punti, morte. */
+export function colpisci(s: TState, z: Zombie, c: Colpo): Esito {
+  if (z.st === 'morto' || z.st === 'sorge') return 'no';
+  if (c.scudo !== false && parato(z, c.dirX, c.dirZ)) {
+    ev(s, { t: 'parato', chi: 'zombie', x: r2(z.x), z: r2(z.z) });
+    if (c.spinta > 0) moveCircle(s.gr.zombie, z, c.dirX * c.spinta * 0.5, c.dirZ * c.spinta * 0.5, z.def.raggio);
+    return 'parato';
+  }
   const d = Math.min(z.vita, c.danno);
   z.vita -= c.danno;
   z.hurt = COLPITO_TICKS;
   const uccide = z.vita <= 0;
   ev(s, { t: 'colpo', id: z.id, x: r2(z.x), z: r2(z.z), danno: Math.round(d), uccide, caricato: c.caricato });
   if (c.spinta > 0 && !uccide) moveCircle(s.gr.zombie, z, c.dirX * c.spinta, c.dirZ * c.spinta, z.def.raggio);
-  if (!uccide) { dai(s, TEMPLARI.punti.colpo, 'colpo'); return false; }
+  if (!uccide) { dai(s, TEMPLARI.punti.colpo, 'colpo'); return 'colpito'; }
   uccidi(s, z);
   dai(s, c.mischia ? TEMPLARI.punti.mischia : TEMPLARI.punti.uccisione, c.mischia ? 'mischia' : 'uccisione');
-  return true;
+  return 'ucciso';
 }
 
 export function uccidi(s: TState, z: Zombie): void {
   z.vita = 0; z.st = 'morto'; z.stT = 0; z.finestra = -1;
   s.uccisioni++;
   ev(s, { t: 'morte', id: z.id, tipo: z.tipo, x: r2(z.x), z: r2(z.z) });
+  // lo scudato lascia lo scudo a terra
+  if (z.def.scudo !== undefined) {
+    s.drops = s.drops.filter((d) => d.fine > s.tick).slice(-2);
+    s.drops.push({ id: s.nextId++, tipo: 'scudo', x: z.x, z: z.z, fine: s.tick + secToTicks(TEMPLARI.scudo.aTerra) });
+  }
 }
 
-/** Colpo sull'eroe: a zero è caduto (fine partita). */
+/** Esplosione in (x, z): danno a chi sta nel raggio (lo scudato para se la guarda), poi le fiamme a terra. */
+export function esplodi(s: TState, x: number, z: number, r: number, danno: number, fuoco?: TFiamma): void {
+  ev(s, { t: 'esplosione', x: r2(x), z: r2(z), r });
+  for (const zz of s.zombie) {
+    if (zz.st === 'morto' || zz.st === 'sorge') continue;
+    const dx = zz.x - x, dz = zz.z - z, d = Math.sqrt(dx * dx + dz * dz);
+    if (d > r + zz.def.raggio) continue;
+    colpisci(s, zz, { danno, mischia: false, caricato: false, dirX: d > 1e-6 ? dx / d : 0, dirZ: d > 1e-6 ? dz / d : 1, spinta: 0.6 });
+  }
+  if (fuoco) accendi(s, x, z, fuoco);
+}
+export function accendi(s: TState, x: number, z: number, f: TFiamma): void {
+  if (s.fiamme.length >= MAX_FIAMME) s.fiamme.shift();
+  s.fiamme.push({ id: s.nextId++, x, z, r: f.raggio, dps: f.dps, fine: s.tick + secToTicks(f.durata) });
+}
+/** Le fiamme bruciano chi c'è dentro (passano lo scudo); chi muore così dà i punti dell'uccisione. */
+export function stepFiamme(s: TState): void {
+  if (!s.fiamme.length) return;
+  s.fiamme = s.fiamme.filter((f) => f.fine > s.tick);
+  for (const f of s.fiamme) for (const z of s.zombie) {
+    if (z.st === 'morto' || z.st === 'sorge') continue;
+    const dx = z.x - f.x, dz = z.z - f.z, rr = f.r + z.def.raggio;
+    if (dx * dx + dz * dz > rr * rr) continue;
+    z.vita -= f.dps / 60;
+    if (z.vita <= 0) { uccidi(s, z); dai(s, TEMPLARI.punti.uccisione, 'uccisione'); }
+  }
+}
+
+/** Colpo sull'eroe da (x, z): lo scudo para (in mano chi è davanti, sulle spalle chi è dietro), sennò vita; a zero è caduto. */
 export function ferisci(s: TState, danno: number, x: number, z: number): void {
   const h = s.eroe;
   if (s.done) return;
+  if (h.scudo) {
+    const dx = x - h.x, dz = z - h.z, d = Math.sqrt(dx * dx + dz * dz) || 1, dot = (dx * h.fx + dz * h.fz) / d, c = TEMPLARI.scudo.cono;
+    if ((h.inMano && dot >= c) || (!h.inMano && dot <= -c)) {
+      h.scudo.vita -= danno;
+      ev(s, { t: 'parato', chi: 'eroe', x: r2(h.x), z: r2(h.z) });
+      if (h.scudo.vita <= 0) { h.scudo = null; h.inMano = false; ev(s, { t: 'scudoRotto' }); }
+      return;
+    }
+  }
   h.vita -= danno; h.quiete = 0; h.hurt = COLPITO_TICKS;
   ev(s, { t: 'ferito', danno: Math.round(danno), x: r2(x), z: r2(z) });
   if (h.vita <= 0) { h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' }); }

@@ -16,6 +16,7 @@ const CSS = `
 @keyframes mzTplSu { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-28px); opacity: 0; } }
 #mzTpl .arma { position: absolute; left: ${LEFT}; top: calc(${TOP} + 86px); font-size: 13px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
 #mzTpl .arma em { font-style: normal; color: ${PAL.sabbia}; }
+#mzTpl .arma b { color: ${PAL.giallo}; }
 #mzTpl .vita { position: absolute; left: ${LEFT}; top: calc(${TOP} + 106px); width: 96px; height: 7px; background: ${PAL.ombraCalda}; border: 2px solid ${PAL.neroCaldo}; }
 #mzTpl .vita i { display: block; height: 100%; background: ${PAL.rosso}; }
 #mzTpl .vign { position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 0 10px rgba(232,67,63,.55), inset 0 0 0 22px rgba(232,67,63,.3), inset 0 0 0 40px rgba(232,67,63,.14); }
@@ -43,7 +44,7 @@ export type TplHud = {
 
 const NOMI_FASE = { altare: 'Porta la reliquia all’altare', inizio: 'La terra trema…', pausa: 'Respira: arriva la prossima ondata', combatti: '' } as const;
 
-export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string): TplHud {
+export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string, munizioni: (id: string) => boolean): TplHud {
   injectUiStyle();
   if (!document.getElementById('mz-tpl-style')) { const st = document.createElement('style'); st.id = 'mz-tpl-style'; st.textContent = CSS; document.head.appendChild(st); }
   const box = el('div', 'mz'); box.id = 'mzTpl';
@@ -66,9 +67,13 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string
         ondL.textContent = n > 0 ? (v.fase === 'combatti' ? `ONDATA · ne restano ${v.restano}` : 'ONDATA') : '';
       }
       if (v.eroe.punti !== shown.pti) { shown.pti = v.eroe.punti; pti.firstChild!.textContent = String(v.eroe.punti); }
-      const a = v.eroe.armi[v.eroe.cur], altra = v.eroe.armi.find((x, i) => i !== v.eroe.cur && x);
-      const aTxt = `${a ? nomeArma(a.id) : ''}${altra ? ` · Q ${nomeArma(altra.id)}` : ''}`;
-      if (aTxt !== shown.arma) { shown.arma = aTxt; arma.replaceChildren(el('span', '', a ? nomeArma(a.id) : ''), ...(altra ? [el('em', '', ` · ${nomeArma(altra.id)}`)] : [])); }
+      const inMano = v.eroe.scudo?.inMano, a = v.eroe.armi[v.eroe.cur], altra = v.eroe.armi.find((x, i) => i !== v.eroe.cur && x);
+      const colpi = !inMano && a && (a.colpi > 0 || a.riserva > 0 || munizioni(a.id)) ? ` ${a.colpi} | ${a.riserva}` : '';
+      const nome = inMano ? 'Scudo templare' : a ? nomeArma(a.id) : '';
+      const sc = v.eroe.scudo ? ` · scudo ${Math.ceil((v.eroe.scudo.vita / v.eroe.scudo.max) * 100)}%` : '';
+      const ric = v.eroe.ricarica > 0 ? ' · ricarica…' : '';
+      const aTxt = `${nome}|${colpi}|${altra?.id ?? ''}|${sc}|${ric}`;
+      if (aTxt !== shown.arma) { shown.arma = aTxt; arma.replaceChildren(el('span', '', nome), el('b', '', colpi), el('em', '', `${ric}${altra && !inMano ? ` · ${nomeArma(altra.id)}` : ''}${sc}`)); }
       const fr = Math.max(0, Math.min(1, v.eroe.vita / v.eroe.max));
       if (Math.abs(fr - shown.vita) > 0.01) { shown.vita = fr; vitaI.style.width = `${Math.round(fr * 100)}%`; }
       // bordo rosso: a gradini, più forte quando la vita è bassa e appena colpito

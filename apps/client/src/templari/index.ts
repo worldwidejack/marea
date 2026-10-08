@@ -14,7 +14,8 @@ import type { DungeonInput } from '@marea/sim/dungeon/types.ts';
 import { pugni } from '@marea/sim/dungeon/hero.ts';
 import { stepTemplari, templari } from '@marea/sim/templari/templari.ts';
 import type { TState } from '@marea/sim/templari/templari.ts';
-import { aPortata } from '@marea/sim/templari/eroe.ts';
+import { autoA, daiArma, miraTiro } from '@marea/sim/templari/eroe.ts';
+import { nuovoZombie } from '@marea/sim/templari/stato.ts';
 import type { TAzioni, TEvento, TView } from '@marea/sim/templari/types.ts';
 import { createHeroActor } from '../rpg/dungeon_hero.ts';
 import type { ArmaInMano, HeroActor } from '../rpg/dungeon_hero.ts';
@@ -28,6 +29,9 @@ import type { Zombi } from './zombi.ts';
 import { createTplHud } from './hud.ts';
 import type { TplHud } from './hud.ts';
 import { createControlli } from './controlli.ts';
+import { createEffetti } from './effetti.ts';
+import type { Effetti } from './effetti.ts';
+import { oggettoArma } from './armi3d.ts';
 import type { Controlli } from './controlli.ts';
 import type { TemplariCtx, TemplariFine, TemplariRun } from './types.ts';
 
@@ -41,23 +45,29 @@ const FINE: Record<string, [string, string, string]> = {
   uscito: ['SEI USCITO', PAL.sabbiaChiara, 'La chiesa ti aspetta.'],
 };
 
-/** L'arma della sim come la vuole l'attore dell'eroe (modello del kit, colore della lama, portata per la scia). */
+/** L'arma della sim come la vuole l'attore dell'eroe (modello del kit, colore della lama, portata per la scia; pistole, moschetto e vaso
+ *  fatti qui). Con lo scudo in mano niente arma (lo scudo lo disegna effetti.ts). */
 function armaVista(id: string): ArmaInMano {
-  const a = armaDef(id), base = pugni();
-  return { ...base, id: null, kind: a.tipo === 'arco' ? 'arco' : 'mischia', danno: a.danno, tempo: a.tempo, portata: a.portata ?? base.portata, ...(a.aspetto.modello ? { modello: a.aspetto.modello } : {}), colore: a.aspetto.colore };
+  const base = pugni();
+  if (id === 'scudo') return { ...base, id: null };
+  const a = armaDef(id), forma = a.aspetto.forma;
+  return {
+    ...base, id: null, kind: a.tipo === 'arco' ? 'arco' : 'mischia', danno: a.danno, tempo: a.tempo, portata: a.portata ?? base.portata,
+    ...(forma ? { oggetto: () => oggettoArma(forma) } : a.aspetto.modello ? { modello: a.aspetto.modello } : {}), colore: a.aspetto.colore,
+  };
 }
 
 export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boolean }): TemplariRun {
   const s: TState = templari.create({ seed: o.seed, opzioni: o.subito ? { subito: true } : {} });
   const frames: DungeonInput[] = [], azioni: TAzioni = [];
   let fase: Fase = 'carica', wait = 0, view: TView = templari.view(s), auto: Rng | null = null, armaOra = view.eroe.arma;
-  let sc: Scena | null = null, hero: HeroActor | null = null, zombi: Zombi | null = null, hud: TplHud | null = null, ctl: Controlli | null = null;
+  let sc: Scena | null = null, hero: HeroActor | null = null, zombi: Zombi | null = null, hud: TplHud | null = null, ctl: Controlli | null = null, fx: Effetti | null = null;
   let resolve!: (v: TemplariFine | null) => void;
   const done = new Promise<TemplariFine | null>((r) => (resolve = r));
 
   const pulisci = () => {
-    fase = 'finita'; templariLink.state = null;
-    ctl?.dispose(); hud?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
+    fase = 'finita'; templariLink.state = null; templariLink.prova = null;
+    ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
     ctx.renderer.setScene(null);
   };
   const consegna = () => {
@@ -89,12 +99,13 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     try {
       await ctx.loader.extend('manifest_rpg.json'); // modelli delle armi (kit GDR)
       sc = createScena(s.arena);
-      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: { arma: armaVista(view.eroe.arma) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z });
+      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: { arma: armaVista(view.eroe.arma) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true });
       zombi = createZombi(sc.scene);
+      fx = createEffetti({ scene: sc.scene, arena: s.arena, loader: ctx.loader, root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera });
       if ((fase as Fase) === 'finita') { pulisci(); return; }
-      hud = createTplHud(ctx.root, (id) => armaDef(id).nome);
+      hud = createTplHud(ctx.root, (id) => armaDef(id).nome, (id) => armaDef(id).tipo !== 'mischia');
       ctl = createControlli({ root: ctx.root, canvas: ctx.canvas, onEsci: esci });
-      hero.tick(view.posa); zombi.tick(view);
+      hero.tick(view.posa); zombi.tick(view); fx.tick(view);
       ctx.renderer.setScene(sc.scene);
       ctx.renderer.diorama.setZoom(innerWidth < innerHeight ? 1.3 : 1.05); // al telefono in verticale un po' più largo: si vedono le finestre
       ctx.renderer.diorama.follow(view.eroe.x, 0.9, view.eroe.z); ctx.renderer.diorama.snap?.();
@@ -109,6 +120,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
 
   const evento = (e: TEvento) => {
     if (!hud || !zombi || !hero) return;
+    fx?.evento(e);
     switch (e.t) {
       case 'colpo': zombi.colpito(e.id); suona(e.uccide ? 'nemico_ko' : 'colpo_dato'); break;
       case 'ferito': hero.flash(); suona('colpo_preso'); break;
@@ -118,6 +130,21 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'reliquia': hud.grande('LA RELIQUIA', PAL.giallo, 'La terra trema. Qualcosa si muove sotto il sagrato.', 3200); suona('altare'); break;
       case 'asse': if (e.da === 'eroe') suona('martello'); break;
       case 'mancato': suona('schivato'); break;
+      case 'sparo': suona(armaDef(e.arma).tipo === 'fuoco' ? 'cannone' : 'lancio'); break;
+      case 'vuoto': suona('click'); hud.grande('', PAL.sabbiaChiara, 'Niente munizioni: comprale sul muro o scambia arma', 1600); break;
+      case 'ricarica': suona('martello'); break;
+      case 'esplosione': suona('tuono'); break;
+      case 'parato': suona('schivato'); break;
+      case 'scudo': suona('raccolto'); hud.grande('SCUDO', PAL.sabbiaChiara, 'Sulle spalle para da dietro · SCAMBIA per impugnarlo', 2400); break;
+      case 'scudoRotto': suona('colpo_critico'); hud.grande('', PAL.rosso, 'Lo scudo si è spaccato', 1600); break;
+      case 'compra': suona('moneta'); break;
+      case 'cassa':
+        if (e.fase === 'gira') suona('apri');
+        else if (e.fase === 'arma' && e.arma) { suona(armaDef(e.arma).miracolosa ? 'medaglia_oro' : 'notifica'); if (armaDef(e.arma).miracolosa) hud.grande('✦', PAL.giallo, armaDef(e.arma).nome, 2200); }
+        else if (e.fase === 'teschio') { suona('scappato'); hud.grande('☠', PAL.pietraChiara, 'Il teschio ride: la cassa se ne va', 2400); }
+        else if (e.fase === 'qui') hud.grande('', PAL.giallo, 'La cassa è ricomparsa da un’altra parte', 2000);
+        else if (e.fase === 'presa') suona('raccolto');
+        break;
       default:
     }
   };
@@ -126,7 +153,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   function inputOra(f: InputFrame): DungeonInput {
     const c = ctl!.sample();
     if (auto) return templari.autopilot(s, auto);
-    const a = f.a || c.a || (ctl!.auto && aPortata(s) && s.eroe.act === 'idle' && !s.eroe.prevA);
+    const a = f.a || c.a || (ctl!.auto && autoA(s));
     return { mx: f.mx, my: f.my, a, b: f.b, c: c.c, d: c.d };
   }
   function tickUno(f: InputFrame): void {
@@ -146,30 +173,43 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       for (let i = 0; i < n && !s.done; i++) tickUno(f);
       view = templari.view(s);
       if (view.eroe.arma !== armaOra) { armaOra = view.eroe.arma; void hero?.setArma(armaVista(armaOra)); }
-      hero!.tick(view.posa); zombi!.tick(view);
+      hero!.tick(view.posa); zombi!.tick(view); fx!.tick(view);
+      // arco teso: la linea di mira verso chi prenderà la freccia
+      const t0 = s.eroe.act === 'tende' ? miraTiro(s, armaDef(view.eroe.arma === 'scudo' ? 'spada' : view.eroe.arma).gittata ?? 20) : null;
+      if (t0) { const dx = t0.x - s.eroe.x, dz = t0.z - s.eroe.z, d = Math.sqrt(dx * dx + dz * dz) || 1; hero!.mira({ x: dx / d, z: dz / d }); } else hero!.mira(null);
       if (s.done) versoFine();
     },
     update(alpha, dt, t) {
       if (!sc || !hero || !zombi || !hud || !ctl || fase === 'finita' || fase === 'carica') return;
       hero.update(alpha, dt);
       zombi.update(alpha, dt, t);
+      fx?.update(alpha, dt, t, hero.avatar.object, view);
       const p = hero.avatar.object.position;
       ctx.renderer.diorama.follow(p.x, 0.9, p.z); ctx.renderer.diorama.update(dt);
       sc.update(p.x, p.z, t, s.assi);
       hud.set(view);
       ctl.setPrompt(fase === 'gioca' ? view.prompt : null);
-      ctl.setScambia(fase === 'gioca' && view.eroe.armi.filter(Boolean).length > 1);
+      ctl.setScambia(fase === 'gioca' && view.eroe.armi.filter(Boolean).length + (view.eroe.scudo ? 1 : 0) > 1);
     },
     abort,
     done,
   };
 
+  // test (hook templariProva): arma, scudo (in mano), punti, uno zombie davanti fermo; solo per guardare la resa, senza server
+  templariLink.prova = (p) => {
+    if (typeof p['arma'] === 'string') daiArma(s, p['arma']);
+    if (p['scudo']) { s.eroe.scudo = { vita: TEMPLARI.scudo.vita }; s.eroe.inMano = p['scudo'] === 'mano'; }
+    if (typeof p['punti'] === 'number') s.punti = p['punti'];
+    if (typeof p['zombie'] === 'string') { const z = nuovoZombie(s, p['zombie'], s.eroe.x + s.eroe.fx * 2.2, s.eroe.z + s.eroe.fz * 2.2, 0); z.st = 'insegue'; z.fx = -s.eroe.fx; z.fz = -s.eroe.fz; }
+    view = templari.view(s);
+    return { arma: view.eroe.arma, scudo: view.eroe.scudo, zombie: view.zombie.length };
+  };
   const pos = new THREE.Vector3();
   templariLink.state = () => ({
     active: fase !== 'finita', fase, sim: view.fase, tick: view.tick, ondata: view.ondata, restano: view.restano, done: view.done, esito: view.esito,
     eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma }, zombie: view.zombie.length,
     uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: ctl?.auto ?? true,
-    scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
+    scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma }, camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: TEMPLARI.ondate.insieme,
   });
   return run;
