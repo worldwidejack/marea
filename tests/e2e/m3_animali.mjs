@@ -69,9 +69,10 @@ export default async function (ctx) {
   });
   await ctx.test('in barca veloce al largo: delfini', async () => {
     // in barca A da fermi vicino al molo fa scendere: si va col joystick (freccia giù = verso la camera, al largo a sud-est del Porto)
-    await hook(p, 'setMode', 'boat'); await hook(p, 'setZoom', 1.0);
+    // si parte già al largo (pescaVai): su GitHub (2-4 fps) la barca ci metteva troppo
+    await hook(p, 'setMode', 'boat'); await hook(p, 'pescaVai', 'largo'); await hook(p, 'setZoom', 1.0);
     await p.page.keyboard.down('ArrowDown');
-    await ctx.waitState(p.page, (st) => st.animali.delfiniFuori >= 1, 20000).catch(() => {});
+    await ctx.waitState(p.page, (st) => st.animali.delfiniFuori >= 1, 45000).catch(() => {});
     const st = await ctx.getState(p.page);
     await ctx.shot(p.page, 'iphone_barca');
     await p.page.keyboard.up('ArrowDown');
@@ -104,10 +105,11 @@ export default async function (ctx) {
     await confronto(d, 'PC notte');
   });
   await ctx.test('PC: in barca con i delfini', async () => {
-    await hook(d, 'ciclo', 0.2); await hook(d, 'goto', 'porto'); await hook(d, 'setMode', 'boat'); await hook(d, 'setZoom', 0.9);
+    // si parte già al largo (pescaVai): su GitHub (2-4 fps) la barca ci metteva troppo
+    await hook(d, 'ciclo', 0.2); await hook(d, 'goto', 'porto'); await hook(d, 'setMode', 'boat'); await hook(d, 'pescaVai', 'largo'); await hook(d, 'setZoom', 0.9);
     await d.page.keyboard.down('ArrowDown');
     // il PC in SwiftShader va lento (la sim rallenta sotto i 12 fps): si aspetta che la barca arrivi al largo
-    await ctx.waitState(d.page, (st) => st.animali.delfiniFuori >= 1, 20000).catch(() => {});
+    await ctx.waitState(d.page, (st) => st.animali.delfiniFuori >= 1, 45000).catch(() => {});
     await ctx.shot(d.page, 'desktop_barca');
     const st = await ctx.getState(d.page);
     await d.page.keyboard.up('ArrowDown');
