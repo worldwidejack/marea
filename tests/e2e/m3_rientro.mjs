@@ -75,7 +75,7 @@ export default async function (ctx) {
 
     // ---- Marco, un'ora dopo, sull'isola di Bea (telefono) ----
     await ctx.test('telefono, Marco: al leggio di Bea FIRMA → saluto → firma nel libro; la seconda nello stesso giorno 409', async () => {
-      const M = await openAt(ctx, `${B}/?t=tokM&test=1`, ctx.B.IPHONE, H), page = M.page;
+      const M = await openAt(ctx, `${B}/?t=tokM&test=1&rientro=1`, ctx.B.IPHONE, H), page = M.page;
       const st = () => ctx.getState(page), hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
       await ctx.waitReady(page, 30000);
       await ctx.waitState(page, (s) => s['lot:bea'] && s['lot:bea'].ready && s.libro && s.libro.libri.length === 2, 20000);
@@ -113,7 +113,7 @@ export default async function (ctx) {
     // ---- Bea rientra dopo sei ore (telefono) ----
     const OFF = 6 * H;
     await ctx.test('telefono, Bea dopo 6 h: cartolina con assenza, depositi, cantiere, la firma di Marco; RACCOGLI TUTTO alza le risorse', async () => {
-      const P = await openAt(ctx, `${B}/?t=tokB&test=1`, ctx.B.IPHONE, OFF), page = P.page;
+      const P = await openAt(ctx, `${B}/?t=tokB&test=1&rientro=1`, ctx.B.IPHONE, OFF), page = P.page;
       const st = () => ctx.getState(page), hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
       await ctx.waitReady(page, 30000);
       await ctx.waitState(page, (s) => s.lot && s.lot.ready, 20000);
