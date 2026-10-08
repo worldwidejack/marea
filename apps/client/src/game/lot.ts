@@ -15,7 +15,7 @@ import { ApiError, MSG_401, mancaText } from '../net/api.ts';
 import type { Api } from '../net/api.ts';
 import { PAL, el } from '../ui/style.ts';
 import { pixIcon, resIcon } from '../ui/icons.ts';
-import { createLabelLayer, createSheet, flyResources, fmtClock, tickTimers, timerSpan } from '../ui/sheet.ts';
+import { createLabelLayer, createSheet, flyResources, fmtClock, LABEL_NEAR_M, tickTimers, timerSpan } from '../ui/sheet.ts';
 import type { Label, LabelLayer, Sheet } from '../ui/sheet.ts';
 import { buildPanel, buildable, buildingPanel, decorNome, decorPanel, spostaPanel } from '../ui/lotpanels.ts';
 import type { DecorCtx, PanelCtx } from '../ui/lotpanels.ts';
@@ -370,13 +370,15 @@ export function createLotView(o: LotViewOptions): LotView {
     tickTimers(S.labels.el, t);
     if (panel) renderPanel();
   }
-  function placeLabels(): void {
+  /** `focus` = dove sei: oltre LABEL_NEAR_M i cartelli sono discreti (#129, solo da PC); senza focus restano pieni. */
+  function placeLabels(focus?: { x: number; z: number }): void {
     const t = now(), c = view?.construction;
+    const vic = (p: { x: number; z: number }) => !focus || Math.hypot(p.x - focus.x, p.z - focus.z) < LABEL_NEAR_M;
     for (const [id, d] of drawn) {
       const b = view?.buildings.find((x) => x.id === id);
       const has = !!b && ((c && c.placedId === id && c.endsMs > t) || (b.level >= 1 && b.buffer >= 1 && !!buildingDef(b.building).produces));
       const p = has ? screenOf(d.holder.position.x, d.holder.position.y + d.height + 0.3, d.holder.position.z) : null;
-      d.label.place(p?.x ?? 0, p?.y ?? 0, !!p?.on);
+      d.label.place(p?.x ?? 0, p?.y ?? 0, !!p?.on, vic(d.holder.position));
     }
     if (nearLabel) {
       const rec = nearDecor && !panel ? decorDrawn.get(nearDecor) : null, p = rec ? screenOf(rec.holder.position.x, rec.holder.position.y + 1.9, rec.holder.position.z) : null;
@@ -387,7 +389,7 @@ export function createLotView(o: LotViewOptions): LotView {
       const p = world(sl.cell), sp = !busyNow || panel ? screenOf(p.x, p.y + 0.9, p.z) : null; // col cantiere occupato i cartelli tacciono
       const isHint = !!h && h.cell[0] === sl.cell[0] && h.cell[1] === sl.cell[1];
       sl.label.el.classList.toggle('hint', isHint);
-      sl.label.place(sp?.x ?? 0, sp?.y ?? 0, !!sp?.on);
+      sl.label.place(sp?.x ?? 0, sp?.y ?? 0, !!sp?.on, isHint || vic(p)); // lo slot suggerito dalla guida resta pieno
     }
   }
 
@@ -519,7 +521,7 @@ export function createLotView(o: LotViewOptions): LotView {
       if (panel && S.owner !== me) closePanel(); // il pannello condiviso l'ha preso un'altra isola: la sagoma sparisce, la decorazione torna a posto
       if (slow >= 0.25) refreshUi();
       if (pick.visible) pick.scale.setScalar(1 + 0.06 * Math.sin(performance.now() / 180));
-      placeLabels();
+      placeLabels(focus);
     },
     dispose() {
       disposed = true; unState(); closePanel();

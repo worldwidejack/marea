@@ -20,7 +20,7 @@ import { RES_IDS, pixIcon, resIcon } from '../ui/icons.ts';
 import type { PixId } from '../ui/icons.ts';
 import type { Scacchi } from '../ui/scacchi.ts';
 import type { InputFrame, PackedInputs } from '@marea/sim';
-import { createLabelLayer, flyResources } from '../ui/sheet.ts';
+import { createLabelLayer, flyResources, LABEL_NEAR_M } from '../ui/sheet.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { createPostoPesca } from './pesca.ts';
 import { suona } from '../audio/ponte.ts';
@@ -292,7 +292,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
         else m.holder.position.y = o.world.groundY(m.s.x, m.s.z);
         const p = screenOf(m.s.x, m.s.boa ? 4.2 : 3.4, m.s.z);
         const vicino = (!m.s.vista || Math.hypot(me.x - m.s.x, me.z - m.s.z) < m.s.vista) && (!m.s.aperta || m.s.aperta()); // i posti dei giochi universali si vedono solo da vicino; quelli delle isole a tema solo da aperte
-        m.label.place(p.x, p.y, p.on && vicino && !o.world.race.on);
+        m.label.place(p.x, p.y, p.on && vicino && !o.world.race.on, Math.hypot(me.x - m.s.x, me.z - m.s.z) < LABEL_NEAR_M);
       }
     },
   };
