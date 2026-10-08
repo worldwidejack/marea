@@ -45,7 +45,9 @@ const ART: Record<ResId, string[]> = {
 };
 
 /** Icone di luoghi e azioni (bussola, guida, cartelli degli slot). */
-export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingresso' | 'lanterna' | 'mete' | 'pesca';
+export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingresso' | 'lanterna' | 'mete' | 'pesca'
+  | 'consegne' // Consegne
+  | 'ingorgo'; // Ingorgo
 const PIX: Record<PixId, string[]> = {
   casa: ['...RR...', '..RRRR..', '.RRRRRR.', 'RRRRRRRR', '.wwwwww.', '.wwccww.', '.wwccww.', '.wwccww.'],
   porto: ['RRRRRRRR', '.RRRRRR.', '..R..R..', 'RRRRRRRR', '..R..R..', '..R..R..', '..R..R..', '.cc..cc.'],
@@ -56,6 +58,8 @@ const PIX: Record<PixId, string[]> = {
   mete: ['..YYYY..', '.YnRRnY.', 'YnnRRnnY', 'YnnRRnnY', 'YnnwwnnY', 'YnnwwnnY', '.YnwwnY.', '..YYYY..'], // bussola: ago rosso a nord (menù delle mete)
   pesca: ['........', '..DDD...', '.AAAAA.D', 'AnAAAADD', 'AAAAAADD', '.wwwwA.D', '..DDD...', '........'], // pesce (Pesca dalla barca, #66)
   martello: ['.qqqqqq.', 'rqqqqqqr', '.rrbbrr.', '...ba...', '...ba...', '...ba...', '...ba...', '...cc...'],
+  consegne: ['.nnnnnn.', 'nsssRssn', 'nsssRssn', 'nRRRRRRn', 'nsssRssn', 'nsssRssn', 'nsssRssn', '.nnnnnn.'], // pacco del corriere, spago rosso
+  ingorgo: ['qqq.ppp.', '........', 'RRRRR.Y.', 'RwwRRRYY', 'RRRRR.Y.', '........', '.ppp.qqq', '........'], // barca rossa che esce dall'ingorgo
 };
 
 const cache = new Map<string, string>();

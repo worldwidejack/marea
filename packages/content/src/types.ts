@@ -111,3 +111,52 @@ export type RegataCfg = {
   lazyGas: number;
   scoreBase: number;
 };
+
+/** Consegne in barca (minigioco universale, GDD §6): il corriere di un molo ti dà un pacco per un altro molo, scelto dal seed.
+ *  Ogni pacco ha il suo tempo (base + perMetro × lunghezza della rotta); quello avanzato passa al pacco dopo, le cassette ne aggiungono. */
+export type ConsegneCfg = {
+  id: 'consegne';
+  nome: string;
+  maxSeconds: number;
+  /** Pacchi della partita: consegnarli tutti = fine (e oro). */
+  pacchi: number;
+  /** Ruoli delle isole (archipelago.json) i cui moli (la B) fanno da partenza e destinazione. */
+  moli: string[];
+  /** Distanza in linea d'aria (m) tra un molo e il prossimo. */
+  distanza: [number, number];
+  /** Consegnato quando la barca passa entro questo raggio (m) dalla B del molo. */
+  raggio: number;
+  /** Secondi per pacco = base + perMetro[difficoltà − 1] × metri della rotta (+ partenza sul primo, per orientarsi). */
+  tempo: { base: number; partenza: number; perMetro: [number, number, number] };
+  /** Cassette che galleggiano lungo ogni tratto: `secondi` in più a testa; `scarto` = quanto stanno di lato alla rotta (m). */
+  cassette: { perTratto: number; secondi: number; raggio: number; scarto: [number, number] };
+  /** Pacchi consegnati per la medaglia. */
+  medaglie: { oro: number; argento: number; bronzo: number };
+  /** Dove sta il corriere: cella locale [x, z] dell'isola (per id del template), sul molo, lontano dalla barca. */
+  posti: Record<string, [number, number]>;
+};
+
+/** Ingorgo al porto (minigioco universale, GDD §6): griglia 6×6 di barche ormeggiate, fai uscire la tua dal varco a destra. */
+export type IngorgoLivello = {
+  /** 6 righe da 6: '.' acqua libera, 'A' la tua barca (orizzontale, terza riga), altre lettere = una barca ciascuna. */
+  righe: string[];
+  /** Mosse della soluzione più corta (una mossa = una barca spostata di quante celle vuoi). */
+  mosse: number;
+};
+export type IngorgoCfg = {
+  id: 'ingorgo';
+  nome: string;
+  maxSeconds: number;
+  /** Fasce dei livelli per difficoltà (1, 2, 3): una lettera per ingorgo della partita, nell'ordine. */
+  partite: { '1': string[]; '2': string[]; '3': string[] };
+  /** Pausa dopo un ingorgo risolto (la barca esce), prima del prossimo. */
+  pausaSecondi: number;
+  /** Ritmo dell'autopilota di riferimento: una mossa ogni N secondi. */
+  autopilotaSecondi: number;
+  /** Ingorghi risolti per la medaglia. */
+  medaglie: { oro: number; argento: number; bronzo: number };
+  /** Dove si gioca: cella locale [x, z] dell'isola (per id del template), sul molo, lontano dalla barca. */
+  posti: Record<string, [number, number]>;
+  /** Livelli per fascia, generati con `node tools/ingorgo_livelli.mjs` (la soluzione minima la verificano i test). */
+  livelli: Record<string, IngorgoLivello[]>;
+};

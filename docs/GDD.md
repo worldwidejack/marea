@@ -73,6 +73,15 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 **Ordine**
 1. **Regata** (M1) — gara in barca a tempo tra 5 boe fisse nella laguna del Porto, con raffiche di vento da seed che spingono di lato. Riusa barca, mondo e camera. Tempo massimo 120 s; `score = max(0, 12000 − floor(ms/10))`. Medaglie relative al pilota di riferimento con le stesse raffiche: oro ≤ 1,04×, argento ≤ 1,3×, bronzo ≤ 2,0× (dall'8 ott 2026, #2; prima 1,1 / 1,4 / 2,3 ≈ 22 / 28 / 46 s; giro di ~167 m). Le boe si passano in ordine, la prossima è evidenziata. Controllo: joystick per virare, A per accelerare.
 2. ~~**Lanterne**~~ — tolto l'8 ott 2026 (Jack: non divertiva). Al suo posto i minigiochi universali (§3): la **pesca** per prima.
+
+**Minigiochi universali** (§3; premio a medaglie come la Regata, `balance.solo`; il server rigioca gli input). Si giocano **su ogni molo** che ha un posto in content (Porto e lotti), **a piedi**, in un punto del molo lontano dalla barca (lì A fa salire in barca); nella bussola solo quelli del Porto, il cartello degli altri si vede da 45 m.
+
+| Gioco | Come si gioca | Durata | Medaglie | Numeri |
+|---|---|---|---|---|
+| **Consegne** (corriere: cassa sul molo) | Il corriere ti dà un pacco per un altro molo (Porto, Laguna, lotti, 60-170 m in linea d'aria, scelto dal seed); lo porti **in barca**, la guida è quella di sempre. Puntini gialli sulla rotta, boa con bandiera al molo, freccia e metri nell'HUD. Consegnato entro 6 m dalla B. Poi lì c'è il pacco dopo: **5 pacchi**. Tempo per pacco = 3 s + 0,15 s/m di rotta (+5 s sul primo); **quello avanzato passa al pacco dopo**; ogni **cassetta** che galleggia lungo la rotta (3 a tratto, 3-8 m di lato) dà **+4 s**. Finito il tempo, finisce la partita. | 60-120 s (max 150) | oro 5 pacchi · argento 3 · bronzo 2 | `minigames/consegne.json`; per difficoltà 0,18 / 0,15 / 0,13 s/m |
+| **Ingorgo** (barile sul molo) | Stile Rush Hour: griglia 6×6 vista dall'alto, barchette ormeggiate che scorrono solo lungo il loro verso (trascini, o tocchi la barca dalla parte dove vuoi che vada: un passo). Fai uscire la **barca rossa** dal varco a destra. **3 ingorghi** di fila, sempre più intricati (difficoltà 2: facile 3-5 mosse, medio 7-9, intricato 11-14); RICOMINCIA rimette l'ingorgo com'era. | 120 s | oro 3 ingorghi · argento 2 · bronzo 1 | `minigames/ingorgo.json`; 36 livelli generati con `tools/ingorgo_livelli.mjs` |
+
+Punteggio («più alto vince»): Consegne = 1000 a pacco + 10 a secondo avanzato + 5 a cassetta; Ingorgo = 1000 a ingorgo + fino a 100 per quanto ti avvicini alla soluzione più corta + 5 a secondo avanzato se li risolvi tutti.
 3. **Puzzle leggero** (2027) — tubi o tessere da ruotare con i moduli dell'isola.
 4. **Battaglia carte/unità in tempo reale** (2027) — richiede avversario live o bot, netcode a bassa latenza, bilanciamento: si fa dopo il collaudo di dicembre.
 

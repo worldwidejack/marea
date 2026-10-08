@@ -32,7 +32,7 @@
 - Sfide con posta tra amici (`?sfide=1`): si riaccendono quando la prova da soli è piaciuta; da decidere se il Tavolo sull'isola resta o se la sfida si lancia dal posto del minigioco.
 
 - Isole a tema dopo la Tempesta (GDD §3): **Ghiacci** (iceberg, aurora, pinguini), **Vulcano** (lava, ossidiana, forge: aggancio con Riccardo), **Giardino** (ciliegi, templi, carpe koi). Sblocchi da distribuire: livello del personaggio, un cappello «se no gli abitanti ti linciano», una mappa.
-- Minigiochi universali dopo la pesca: caccia alle perle, consegne in barca, ingorgo al porto.
+- Minigiochi universali dopo la pesca: caccia alle perle (consegne in barca e ingorgo al porto fatti l'8 ott 2026, GDD §6).
 
 ## Mai
 - Soldi veri per risorse o acceleratori. (Cosmetici a pagamento: solo se un giorno si apre al pubblico, e solo cosmetici.)

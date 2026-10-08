@@ -1,0 +1,61 @@
+{
+  "id": "ingorgo",
+  "nome": "Ingorgo",
+  "maxSeconds": 120,
+  "partite": {
+    "1": ["a", "a", "b"],
+    "2": ["a", "b", "c"],
+    "3": ["b", "c", "c"]
+  },
+  "pausaSecondi": 1.2,
+  "autopilotaSecondi": 0.5,
+  "medaglie": { "oro": 3, "argento": 2, "bronzo": 1 },
+  "posti": {
+    "porto": [26, 28],
+    "lotto": [17, 19]
+  },
+  "livelli": {
+    "a": [
+      { "righe": ["......", "..CCC.", "AAD...", "..DBBB", "..EEE.", "......"], "mosse": 3 },
+      { "righe": ["CC....", "E...FD", "E.AAFD", "E.....", "......", "..BB.."], "mosse": 3 },
+      { "righe": ["....CC", "..FF..", "AA..E.", "....E.", "...DD.", "....BB"], "mosse": 3 },
+      { "righe": [".....B", ".....B", "EAA..F", "E..CCF", "....DD", "......"], "mosse": 3 },
+      { "righe": ["...FFF", ".....H", "GAA.DH", "G...DC", ".BBB.C", "....EE"], "mosse": 4 },
+      { "righe": [".....F", "..GE.F", "AAGE.F", ".CC.DD", "BB.H..", "...H.."], "mosse": 5 },
+      { "righe": ["F.CCCB", "F.EE.B", "...AAB", "..HHDD", "......", "....GG"], "mosse": 5 },
+      { "righe": ["......", "...E..", "AA.E.C", "DD.E.C", "..BFFC", "..B..."], "mosse": 5 },
+      { "righe": [".....D", "..C..D", "AACEFD", "...EF.", "BB..G.", "....G."], "mosse": 5 },
+      { "righe": [".....F", "...BBF", ".EAADF", ".E..D.", "GE.CCC", "G....."], "mosse": 5 },
+      { "righe": [".EEG..", "...GCC", "...AAB", "..D..B", "..D..F", ".....F"], "mosse": 5 },
+      { "righe": [".FDD..", ".FC.BG", "AAC.BG", "H.....", "H.E...", "H.E..."], "mosse": 5 }
+    ],
+    "b": [
+      { "righe": ["EE..CC", "....FD", "..AAFD", "...BFD", "...BGG", "...B.."], "mosse": 7 },
+      { "righe": [".BI...", ".BIGDF", "AAIGDF", "CEEH.F", "CJ.H..", "CJ...."], "mosse": 7 },
+      { "righe": ["....G.", ".CCCG.", "AA.BG.", "F..BEE", "F.HHH.", "F..DD."], "mosse": 7 },
+      { "righe": ["..EJJJ", "H.ECCC", "HAADBG", "...DBG", ".....F", "...IIF"], "mosse": 8 },
+      { "righe": ["JJ.CCI", "....GI", "AA..GI", ".FBBEE", ".F..HH", ".DDD.."], "mosse": 8 },
+      { "righe": ["..FF.B", "....GB", "..AAGB", "...EG.", "...ECC", "..DDD."], "mosse": 8 },
+      { "righe": [".E.HDD", ".E.HF.", ".AABF.", "..GBCI", "..G.CI", "....C."], "mosse": 9 },
+      { "righe": ["......", "....HB", ".CAAHB", ".CGIH.", ".EGIFF", ".E.DD."], "mosse": 9 },
+      { "righe": ["BB..D.", "..I.D.", "AAI.DE", "CCC..E", "FGG.HH", "F....."], "mosse": 9 },
+      { "righe": [".GG...", "..C..B", "AAC..B", "..C.DD", ".EE.H.", ".FFFH."], "mosse": 9 },
+      { "righe": ["..IIE.", ".GGCEB", "AA.CEB", "..D.FF", "HHD...", "..JJJ."], "mosse": 9 },
+      { "righe": ["G...B.", "GC..B.", "ECAAB.", "E.HDDD", "E.H.FF", "...II."], "mosse": 9 }
+    ],
+    "c": [
+      { "righe": ["B.JJJF", "BDDDEF", "AA.LEF", "...LCC", "I..GGG", "I.HHKK"], "mosse": 11 },
+      { "righe": ["CIIDK.", "CGGDKH", "AABD.H", "..B..L", "F.J..L", "F.JEEE"], "mosse": 11 },
+      { "righe": ["JD.GG.", "JDFFKK", "IAA.C.", "I...C.", "EEE.H.", "BBB.H."], "mosse": 11 },
+      { "righe": [".HHHKK", "JCCCLF", "JAAELF", "..DE.B", ".GDE.B", ".GDIIB"], "mosse": 12 },
+      { "righe": [".II..E", "DDBB.E", "AA...E", "F.GGJJ", "FLLCCC", "F.HHKK"], "mosse": 12 },
+      { "righe": [".FCCE.", ".FD.EH", "AAD.EH", "..BJ..", "IKBJ..", "IKBJGG"], "mosse": 13 },
+      { "righe": [".LFFEE", ".L....", "AAD..B", "CCDIIB", "HHJJK.", ".GGGK."], "mosse": 13 },
+      { "righe": ["....JH", "II..JH", ".CAAJ.", "BC.EKK", "BGGEFF", "DD...."], "mosse": 14 },
+      { "righe": ["D.CCGG", "D...I.", "..AAIF", ".BBKKF", ".J.E.F", ".J.EHH"], "mosse": 14 },
+      { "righe": ["F.BBID", "FEEEID", "..AAID", "..CG..", "J.CGHH", "JLLKK."], "mosse": 14 },
+      { "righe": [".II.H.", "EJJDH.", "EAADH.", "LLCC..", ".KFBB.", ".KF.GG"], "mosse": 14 },
+      { "righe": ["II..DK", "L.BBDK", "LAA.D.", "LCE.GG", ".CEJJJ", "FF..HH"], "mosse": 14 }
+    ]
+  }
+}
