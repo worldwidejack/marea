@@ -38,9 +38,9 @@ export async function waitState(page, fnSrc, timeout = 10000, arg = null) {
 }
 export const getState = (page) => page.evaluate(() => window.__game.state());
 export const getPerf = (page) => page.evaluate(() => window.__game.perf());
-export async function shot(page, name) { fs.mkdirSync(SHOTS, { recursive: true }); const f = path.join(SHOTS, name.replace(/[^\w.-]+/g, '_') + '.png'); await page.screenshot({ path: f }); return f; }
+export async function shot(page, name) { fs.mkdirSync(SHOTS, { recursive: true }); const f = path.join(SHOTS, name.replace(/[^\w.-]+/g, '_') + '.png'); await page.screenshot({ path: f, timeout: 90000 }); return f; } // su GitHub (SwiftShader, 2-4 fps) un fotogramma pesante supera i 30 s di serie
 export async function screenStats(page) {
-  const b64 = (await page.screenshot()).toString('base64');
+  const b64 = (await page.screenshot({ timeout: 90000 })).toString('base64');
   return page.evaluate(async (src) => {
     const img = new Image(); img.src = 'data:image/png;base64,' + src; await img.decode();
     const c = document.createElement('canvas'); c.width = 160; c.height = 90; const g = c.getContext('2d'); g.drawImage(img, 0, 0, 160, 90);
@@ -56,7 +56,7 @@ export async function screenStats(page) {
 export async function samplePixels(page, n = 2000, { hideUi = true, seed = 12345 } = {}) {
   let prev = null;
   if (hideUi) prev = await page.evaluate(() => { const u = document.getElementById('ui'); if (!u) return null; const v = u.style.visibility; u.style.visibility = 'hidden'; return v; });
-  const b64 = (await page.screenshot()).toString('base64');
+  const b64 = (await page.screenshot({ timeout: 90000 })).toString('base64');
   if (hideUi && prev !== null) await page.evaluate((v) => { const u = document.getElementById('ui'); if (u) u.style.visibility = v; }, prev);
   return page.evaluate(async ([src, count, sd]) => {
     const img = new Image(); img.src = 'data:image/png;base64,' + src; await img.decode();
