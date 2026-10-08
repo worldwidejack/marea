@@ -35,6 +35,8 @@ import type { Animali } from './game/animali.ts';
 import { tuttoSpento } from './render/viste.ts';
 import type { Impostazioni } from './render/viste.ts';
 import type { LotState } from '@marea/sim';
+import { createTemi } from './game/temi.ts';
+import type { PixId } from './ui/icons.ts';
 
 const TAVOLO_R = 3.5; // m: quanto vicino al Tavolo per aprirlo con E / A
 
@@ -101,14 +103,17 @@ async function boot(): Promise<void> {
   // Porto (#63-#65): Mercante delle Perle, Bacheca delle missioni, Gente del Porto; i pannelli si scaricano alla prima apertura
   const porto = createPorto({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot });
   for (const sp of porto.spots) targets.push({ id: sp.id, label: sp.id === 'mercante' ? 'Mercante' : 'Bacheca', icon: sp.id, x: sp.x, z: sp.z });
+  // Isole a tema (#68): sblocchi, barriere in mare, il Vulcano che caccia; in bussola appena scoperte (minimappa), col lucchetto in mappa finché chiuse
+  const temi = createTemi({ world, hud, loader, root, camera: renderer.camera, canvas, getLot: () => myLot(), notte: () => aspetto?.momento === 'notte' });
+  for (const p of temi.isole) targets.push({ id: 'tema:' + p.island, label: p.nome.replace(/^Isola (della |dei |del )?/, ''), icon: p.island as PixId, x: p.spawn.x, z: p.spawn.z, show: () => mappa?.vista(`${p.role}:${p.index}`) ?? false });
   const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;
   // mete: comprimibile, caselle per scegliere; con una sola accesa anche la freccia sullo schermo (nascosta quando c'è sopra un pannello)
   const compass = createCompass({ root, targets, camera: renderer.camera, canvas, groundY: world.groundY, hidden: () => coperto() });
   // minimappa (#62): cerchio con l'arcipelago attorno a te, M o un tocco aprono la mappa intera; isole non visitate nella nebbia.
   // Si scarica subito dopo l'avvio (import a parte): il JS iniziale ha un tetto (TECH §5), il cerchio arriva un attimo dopo il mondo.
-  const places = arch.places.map((p) => ({ id: `${p.role}:${p.index}`, nome: p.role === 'lotto' ? (p.slot === world.slot ? 'Casa' : '') : p.nome, x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, sempre: p.role === 'porto' || (p.role === 'lotto' && p.slot === world.slot) }));
+  const places = arch.places.map((p) => ({ id: `${p.role}:${p.index}`, nome: p.role === 'lotto' ? (p.slot === world.slot ? 'Casa' : '') : p.nome, x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, sempre: p.role === 'porto' || (p.role === 'lotto' && p.slot === world.slot), ...(p.tema ? { chiusa: () => !temi.aperta(p.island) } : {}) }));
   let mappa: Minimappa | null = null;
-  void import('./ui/minimappa.ts').then((m) => { mappa = m.createMinimappa({ root, map: world.map, places, targets, hidden: () => coperto() }); }).catch(() => { /* senza minimappa si gioca lo stesso */ });
+  void import('./ui/minimappa.ts').then((m) => { mappa = m.createMinimappa({ root, map: world.map, places, targets, hidden: () => coperto() }); }).catch((e: unknown) => { console.warn('[marea] minimappa non caricata', e); }); // senza minimappa si gioca lo stesso
   let closedAt = 0, nearWas = false, aWasT = false;
   /** Risorse cambiate fuori dal lotto (posta, esito di una sfida): la barra si aggiorna subito, non al poll dei 30 s. */
   const refreshMyLot = () => { void lots.find((lv) => !lv.readonly)?.refresh(); };
@@ -213,6 +218,7 @@ async function boot(): Promise<void> {
     regata.update(acc / DT, dt, t);
     emotes.update(dt); setTopbarHidden(regata.active || ingressi.active);
     giochi.update(t); if (!ingressi.active) porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); guideStep = guida.current(); guida.update(t);
+    if (!ingressi.active) temi.update(dt, t); // Isole a tema (#68)
     if (document.querySelector('#mzSheet.on')) { if (tavolo?.isOpen()) tavolo.close(); editor?.close(); feed?.close(); porto.close(); } // aperto un edificio: gli altri pannelli lasciano il posto
     const focus = world.mode === 'walk' ? world.avatar.state : world.boat.state;
     for (const lv of lots) lv.update(dt, focus); // rilettura ogni 30 s solo per l'isola dove sei; timer ed etichette ogni frame

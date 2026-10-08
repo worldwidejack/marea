@@ -1,5 +1,5 @@
 // Validatore dei contenuti: niente dipendenze, errori in italiano. Chiamato da tools/check_static.mjs e dai test.
-import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, DecorDef, IslandDef, ResourceDef } from './types.ts';
+import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, DecorDef, IslandDef, ResourceDef, TemaDef } from './types.ts';
 
 const HEX = /^#[0-9A-F]{6}$/;
 const TILES = new Set(['~', ',', '.', 'g', 'r', 'd', 'P', 'B', 'L']);
@@ -63,8 +63,11 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
   return errs;
 }
 
-const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia']);
-const PROP_KINDS = new Set(['torii', 'lanterna', 'insegna_neon', 'palma', 'cassa', 'barile', 'sasso', 'cespuglio', 'filo_lanterne', 'fac_neon', 'fac_selvaggia']);
+const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia', 'tempesta', 'ghiacci', 'vulcano', 'giardino']);
+/** Decorazioni delle isole a tema (#68): segnaposto procedurali in apps/client/src/render/island_temi.ts. */
+export const PROP_TEMI = ['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
+  'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello'] as const;
+const PROP_KINDS = new Set(['torii', 'lanterna', 'insegna_neon', 'palma', 'cassa', 'barile', 'sasso', 'cespuglio', 'filo_lanterne', 'fac_neon', 'fac_selvaggia', ...PROP_TEMI]);
 /** Campi facoltativi di un'isola: stile, densità della scenografia, slot (su celle L) e decorazioni fisse (dentro la mappa). */
 function validateIslandExtras(isl: IslandDef, w: number): string[] {
   const errs: string[] = [];
@@ -107,7 +110,7 @@ export function validateArchipelago(a: ArchipelagoDef, islands: IslandDef[]): st
     const def = islands.find((d) => d.id === e.island);
     const tag = `arcipelago[${i}] ${e.island}`;
     if (!def) { errs.push(`${tag}: isola inesistente`); continue; }
-    if (!['porto', 'lotto', 'facciata', 'laguna'].includes(e.role)) errs.push(`${tag}: ruolo sconosciuto ${e.role}`);
+    if (!['porto', 'lotto', 'facciata', 'laguna', 'tema'].includes(e.role)) errs.push(`${tag}: ruolo sconosciuto ${e.role}`);
     const w = def.rows[0]?.length ?? 0, h = def.rows.length;
     const [x0, z0] = e.at;
     if (!Number.isInteger(x0) || !Number.isInteger(z0)) errs.push(`${tag}: posizione non intera`);
@@ -121,8 +124,43 @@ export function validateArchipelago(a: ArchipelagoDef, islands: IslandDef[]): st
       else if (slots.has(e.slot)) errs.push(`${tag}: slot ${e.slot} duplicato`);
       else slots.add(e.slot);
     } else if (e.slot !== undefined) errs.push(`${tag}: slot solo per i lotti`);
+    if (e.role === 'tema') {
+      if (!e.tema) errs.push(`${tag}: un'isola a tema vuole \`tema\` (sblocco e barriera)`);
+      else errs.push(...validateTema(tag, e.tema, x0, z0, w, h, a));
+    } else if (e.tema) errs.push(`${tag}: \`tema\` solo per il ruolo 'tema'`);
   }
   if (porto !== 1) errs.push(`arcipelago: serve esattamente un Porto (trovati ${porto})`);
   for (let s = 0; s < slots.size; s++) if (!slots.has(s)) errs.push(`arcipelago: slot ${s} mancante (servono 0..${slots.size - 1})`);
+  return errs;
+}
+
+/** Sblocco e barriera di un'isola a tema: numeri sensati, barriera dentro la griglia. Molo, cappelli e livelli li controlla validateTemi (servono edifici e avatar). */
+function validateTema(tag: string, t: TemaDef, x0: number, z0: number, w: number, h: number, a: ArchipelagoDef): string[] {
+  const errs: string[] = [];
+  const s = t.sblocco as TemaDef['sblocco'] | undefined;
+  if (!s || !['molo', 'livello', 'cappello', 'mappa'].includes(s.tipo)) errs.push(`${tag}: sblocco sconosciuto`);
+  else if ((s.tipo === 'molo' || s.tipo === 'livello') && !(Number.isInteger(s.livello) && s.livello >= 1)) errs.push(`${tag}: livello di sblocco non valido`);
+  else if (s.tipo === 'cappello' && typeof s.cappello !== 'string') errs.push(`${tag}: cappello mancante`);
+  else if (s.tipo === 'mappa' && (typeof s.mappa !== 'string' || s.come !== 'oro')) errs.push(`${tag}: mappa non valida (come: 'oro')`);
+  if (!(t.barriera >= 0 && t.barriera <= 40)) errs.push(`${tag}: barriera fuori da 0-40 m`);
+  const m = Math.ceil(t.barriera / a.tile);
+  if (x0 - m < 0 || z0 - m < 0 || x0 + w + m > a.w || z0 + h + m > a.h) errs.push(`${tag}: la barriera esce dalla griglia`);
+  return errs;
+}
+
+/** Isole a tema contro edifici e avatar: il Molo ha quel livello, il cappello esiste ed è a Perle (uno gratuito non sbloccherebbe niente). */
+export function validateTemi(a: ArchipelagoDef, buildings: BuildingDef[], avatar: AvatarDef): string[] {
+  const errs: string[] = [];
+  const molo = buildings.find((b) => b.id === 'molo');
+  for (const e of a.islands) {
+    const s = e.tema?.sblocco;
+    if (!s) continue;
+    if (s.tipo === 'molo' && (!molo || s.livello > molo.levels.length)) errs.push(`isola ${e.island}: il Molo non ha il livello ${s.livello}`);
+    if (s.tipo === 'cappello') {
+      const h = avatar.cappelli.find((c) => c.id === s.cappello);
+      if (!h) errs.push(`isola ${e.island}: cappello sconosciuto ${s.cappello}`);
+      else if (h.perle <= 0) errs.push(`isola ${e.island}: il cappello ${s.cappello} è gratuito`);
+    }
+  }
   return errs;
 }

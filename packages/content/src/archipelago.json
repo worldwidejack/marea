@@ -1,8 +1,8 @@
 {
   "id": "marea",
   "nome": "Arcipelago di Marea",
-  "w": 290,
-  "h": 240,
+  "w": 360,
+  "h": 300,
   "tile": 2,
   "islands": [
     { "island": "porto", "at": [110, 120], "role": "porto" },
@@ -16,6 +16,10 @@
     { "island": "lotto", "at": [68, 166], "role": "lotto", "slot": 6 },
     { "island": "lotto", "at": [112, 172], "role": "lotto", "slot": 7 },
     { "island": "neon", "at": [236, 180], "role": "facciata" },
-    { "island": "selvaggia", "at": [14, 30], "role": "facciata" }
+    { "island": "selvaggia", "at": [14, 30], "role": "facciata" },
+    { "island": "tempesta", "at": [296, 34], "role": "tema", "tema": { "sblocco": { "tipo": "molo", "livello": 2 }, "barriera": 12 } },
+    { "island": "ghiacci", "at": [120, 16], "role": "tema", "tema": { "sblocco": { "tipo": "livello", "livello": 3 }, "barriera": 10 } },
+    { "island": "vulcano", "at": [296, 236], "role": "tema", "tema": { "sblocco": { "tipo": "cappello", "cappello": "lanterna" }, "barriera": 0 } },
+    { "island": "giardino", "at": [14, 232], "role": "tema", "tema": { "sblocco": { "tipo": "mappa", "mappa": "giardino", "come": "oro" }, "barriera": 14 } }
   ]
 }

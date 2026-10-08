@@ -42,6 +42,8 @@ export type LotState = {
   forziere?: Record<string, number>;
   /** Spedizione nel dungeon aperta dal server. Assente = { pending: null }. */
   dungeon?: DungeonLotState;
+  /** Mappe delle isole a tema possedute (#68: la prima medaglia d'oro da solo regala quella del Giardino). Assente = []. */
+  mappe?: string[];
 };
 
 /**

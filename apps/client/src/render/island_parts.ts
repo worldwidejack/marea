@@ -13,10 +13,11 @@ export const P = {
   pietraChiara: '#E8E1D6', pietra: '#B9AFA3', pietraScura: '#7F7568', roccia: '#4A4340', neroCaldo: '#23201F',
   rosso: '#E8433F', arancio: '#F2A33A', giallo: '#F5D547',
   rosaNeon: '#FF3DA6', cianoNeon: '#3DF5FF', ambraNeon: '#FFB03D', violaNeon: '#8A5CFF',
+  acquaBassa: '#7FE3E0', acqua: '#3FB9C9', acquaProfonda: '#2478A8', abisso: '#163F73', viola: '#A64DFF', verdeNeon: '#B6FF3D', rossoNeon: '#FF5C3D',
 } as const;
 
 // ——— texture procedurali a pixel (16 texel/m): 32×64, metà alta = faccia superiore (2×2 m), metà bassa = fianco (2 m) ———
-type Painter = (g: CanvasRenderingContext2D, r: Rng) => void;
+export type Painter = (g: CanvasRenderingContext2D, r: Rng) => void;
 export function tex(label: string, seed: string, paint: Painter): THREE.CanvasTexture {
   const c = document.createElement('canvas'); c.width = 32; c.height = 64;
   const g = c.getContext('2d')!;
@@ -26,10 +27,10 @@ export function tex(label: string, seed: string, paint: Painter): THREE.CanvasTe
   t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
 }
-const px = (g: CanvasRenderingContext2D, c: string, x: number, y: number, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
-const speckle = (g: CanvasRenderingContext2D, r: Rng, c: string, n: number, y0: number, y1: number, w = 1, h = 1) => { for (let i = 0; i < n; i++) px(g, c, r.int(0, 31), r.int(y0, y1 - h), w, h); };
+export const px = (g: CanvasRenderingContext2D, c: string, x: number, y: number, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+export const speckle = (g: CanvasRenderingContext2D, r: Rng, c: string, n: number, y0: number, y1: number, w = 1, h = 1) => { for (let i = 0; i < n; i++) px(g, c, r.int(0, 31), r.int(y0, y1 - h), w, h); };
 /** Fianco: lista di [colore, righe] dall'alto; tra una fascia e l'altra una riga a scacchi (dithering tra colori adiacenti). */
-function strata(g: CanvasRenderingContext2D, bands: [string, number][]): void {
+export function strata(g: CanvasRenderingContext2D, bands: [string, number][]): void {
   let y = 32;
   for (const [c, n] of bands) { px(g, c, 0, y, 32, 64 - y); y += n; }
   y = 32;

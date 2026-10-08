@@ -1,6 +1,6 @@
 // Barca arcade: pura, deterministica. Vento che spinge di lato, collisione a cerchio con rimbalzo morbido, imbarco/sbarco robusti.
 import { BALANCE } from '@marea/content';
-import { DT } from '../constants.ts';
+import { BORDO, DT } from '../constants.ts';
 import type { InputFrame, Vec2 } from '../types.ts';
 import type { AvatarState } from './avatar.ts';
 import { resolveCircle } from './collide.ts';
@@ -59,6 +59,26 @@ export function stepBoat(s: BoatState, input: InputFrame, map: GridMap, wind: Ve
   }
   const wake = Math.min(1, speed / B.maxSpeed);
   return { x, z, yaw, speed, rudder, wake };
+}
+
+/**
+ * Corrente al bordo del mondo (#5): nella fascia di BORDO.fascia m dentro il bordo della mappa una corrente morbida spinge la barca
+ * verso il centro (più forte verso il bordo) e frena chi punta fuori; oltre il bordo non si va. Dentro la mappa, lontano dal bordo,
+ * restituisce lo stesso stato (`attiva` false): la sim della barca e le partite registrate non cambiano.
+ */
+export function correnteBordo(s: BoatState, map: GridMap): { s: BoatState; attiva: boolean } {
+  const W = map.w * map.tile, H = map.h * map.tile, F = BORDO.fascia;
+  const kx = s.x < F ? (F - s.x) / F : s.x > W - F ? -(s.x - (W - F)) / F : 0;
+  const kz = s.z < F ? (F - s.z) / F : s.z > H - F ? -(s.z - (H - F)) / F : 0;
+  if (kx === 0 && kz === 0) return { s, attiva: false };
+  const k = Math.min(1.5, Math.sqrt(kx * kx + kz * kz));
+  const hx = Math.sin(s.yaw), hz = -Math.cos(s.yaw);
+  const fuori = -(hx * kx + hz * kz) / Math.max(1e-6, Math.sqrt(kx * kx + kz * kz)); // > 0 = la prua guarda verso il bordo
+  const speed = fuori > 0 ? s.speed * Math.max(0, 1 - BORDO.freno * k * fuori * DT) : s.speed;
+  const x = Math.min(W - 1, Math.max(1, s.x + Math.min(1.5, kx) * BORDO.corrente * DT));
+  const z = Math.min(H - 1, Math.max(1, s.z + Math.min(1.5, kz) * BORDO.corrente * DT));
+  if (!map.navigable(x, z)) return { s, attiva: true };
+  return { s: { ...s, x, z, speed }, attiva: k > 0.05 };
 }
 
 /** Distanza dal centro della cella di molo più vicina (entro `cells` celle), o Infinity. */

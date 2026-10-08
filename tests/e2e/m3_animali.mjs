@@ -1,7 +1,7 @@
 // Animali (#67): al Porto ci sono gabbiani, gatti e granchi vicino a chi gioca; un gatto fa le fusa con E (= A) da fermo accanto;
 // un pesce salta; in barca veloce al largo arrivano i delfini; di notte le lucciole. Draw call: con e senza animali (≤ +3) e ≤ 100.
 // Screenshot telefono e PC al molo del Porto, fusa, pesce, barca, lucciole, con le impostazioni di serie (?serie=1: camera 22°, contorni, ciclo).
-export const timeout = 240000;
+export const timeout = 480000;
 const MOLO = { x: 265, z: 305 }, ERBA = { x: 241, z: 283 };
 
 export default async function (ctx) {

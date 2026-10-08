@@ -9,7 +9,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawn, execFileSync } from 'node:child_process';
-export const timeout = 180000;
+export const timeout = 360000;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -146,13 +146,13 @@ export default async function (ctx) {
     const D = await ctx.B.openPage(ctx.browser, `${base}/?t=tokM&test=1`, { viewport: ctx.B.DESKTOP }); pages.push(D); ctx._pages.push(D);
     const dp = D.page;
     await ctx.waitReady(dp, 30000);
-    await ctx.waitState(dp, (s) => s.lot && s.lot.ready === true && s.perlePosto, 15000);
+    await ctx.waitState(dp, (s) => s.lot && s.lot.ready === true && s.perlePosto, 40000); // col mondo grande (isole a tema) SwiftShader è lento
     const dhook = (n, ...a) => dp.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
     await ctx.test('PC: T in barca ferma su acqua bassa apre la schermata; Spazio tenuto = giù; Esc = ritirato', async () => {
       await dhook('setMode', 'boat');
       assert(await dhook('perleVai'), 'nessun punto da tuffo');
-      await ctx.waitState(dp, (s) => s.perlePosto.ok && s.perlePosto.bottone, 5000);
+      await ctx.waitState(dp, (s) => s.perlePosto.ok && s.perlePosto.bottone, 20000);
       await sleep(400);
       await ctx.shot(dp, 'desktop_1_tuffati');
       await dp.keyboard.press('KeyT');

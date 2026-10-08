@@ -10,6 +10,7 @@ const COL: Record<string, string> = {
   a: PAL.legnoChiaro, b: PAL.legno, c: PAL.legnoScuro, s: PAL.sabbia,
   p: PAL.pietraChiara, q: PAL.pietra, r: PAL.pietraScura, n: PAL.neroCaldo,
   k: PAL.rosaNeon, w: PAL.sabbiaChiara, R: PAL.rosso, Y: PAL.giallo, A: PAL.acqua, D: PAL.acquaProfonda,
+  C: PAL.acquaBassa, O: PAL.arancio, E: PAL.erbaScura,
 };
 const ART: Record<ResId, string[]> = {
   legno: [
@@ -47,6 +48,7 @@ const ART: Record<ResId, string[]> = {
 /** Icone di luoghi e azioni (bussola, guida, cartelli degli slot). */
 export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingresso' | 'lanterna' | 'mete' | 'pesca'
   | 'mercante' | 'bacheca' | 'parla' // Porto (#63-#65)
+  | 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'lucchetto' // Isole a tema (#68)
   | 'consegne' // Consegne
   | 'ingorgo' // Ingorgo
   | 'perle'; // Perle
@@ -63,6 +65,12 @@ const PIX: Record<PixId, string[]> = {
   bacheca: ['cccccccc', 'cwwRawwc', 'cwwawwwc', 'cawwRwwc', 'cwwwawwc', 'cccccccc', '.c....c.', '.c....c.'], // bacheca con i foglietti delle missioni
   parla: ['.wwwwww.', 'wwwwwwww', 'wnwnwnww', 'wwwwwwww', '.wwwwww.', '..ww....', '.ww.....', '........'], // fumetto: parla con la gente del Porto
   perle: ['..pppp..', '.pwwppq.', '.pwpppq.', '.ppppqq.', '..qqqq..', 'rr....rr', 'rqqrrqqr', '.rrrrrr.'], // perla sulla conchiglia aperta (Perle)
+  // isole a tema (#68): fulmine dalla nuvola, fiocco di neve, vulcano che fuma lava, fiore di ciliegio; lucchetto = isola chiusa
+  tempesta: ['..nnnn..', '.nrrrrn.', 'nrrrrrrn', '.nnnYnn.', '...YY...', '..YYYY..', '....YY..', '....Y...'],
+  ghiacci: ['...p....', '.C.p.C..', '..ppp...', 'ppppppp.', '..ppp...', '.C.p.C..', '...p....', '........'],
+  vulcano: ['..R.O...', '...OR...', '..nOOn..', '..nnnn..', '.nnrnnn.', '.nnnnrn.', 'nnrnnnnn', 'nnnnnnnn'],
+  giardino: ['...kk...', '.kkkkkk.', '.kkYYkk.', 'kkkYYkkk', '.kkkkkk.', '...kk...', '...EE...', '..EEEE..'],
+  lucchetto: ['..rrrr..', '.r....r.', '.r....r.', 'YYYYYYYY', 'YYYnnYYY', 'YYYnnYYY', 'YYYYYYYY', '.YYYYYY.'],
   martello: ['.qqqqqq.', 'rqqqqqqr', '.rrbbrr.', '...ba...', '...ba...', '...ba...', '...ba...', '...cc...'],
   consegne: ['.nnnnnn.', 'nsssRssn', 'nsssRssn', 'nRRRRRRn', 'nsssRssn', 'nsssRssn', 'nsssRssn', '.nnnnnn.'], // pacco del corriere, spago rosso
   ingorgo: ['qqq.ppp.', '........', 'RRRRR.Y.', 'RwwRRRYY', 'RRRRR.Y.', '........', '.ppp.qqq', '........'], // barca rossa che esce dall'ingorgo

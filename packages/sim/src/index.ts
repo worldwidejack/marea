@@ -6,6 +6,7 @@ export * from './world/grid.ts';
 export * from './world/archipelago.ts';
 export * from './world/avatar.ts';
 export * from './world/boat.ts';
+export * from './world/temi.ts';
 export * from './economy/types.ts';
 export * from './economy/advance.ts';
 export * from './economy/actions.ts';

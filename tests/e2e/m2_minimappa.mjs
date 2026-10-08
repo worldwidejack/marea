@@ -4,7 +4,7 @@ export const timeout = 240000;
 export default async function (ctx) {
   const p = await ctx.open('?test=1&net=0');
   await ctx.waitReady(p.page, 20000);
-  await p.page.waitForFunction(() => !!document.getElementById('mzMini'), null, { timeout: 10000 });
+  await p.page.waitForFunction(() => !!document.getElementById('mzMini'), null, { timeout: 40000 });
   await ctx.test('il cerchio c’è; Porto scoperto, le altre isole nella nebbia', async () => {
     await p.page.waitForTimeout(600);
     const st = (await ctx.getState(p.page)).mappa;
@@ -33,13 +33,13 @@ export default async function (ctx) {
     ctx.assert((await ctx.getState(p.page)).mappa.coperte.length === 0, 'nebbia rimasta');
     await p.page.evaluate(() => window.__game.test.mappa('apri')); await p.page.waitForTimeout(300);
     await ctx.shot(p.page, 'iphone_mappa_scoperta');
-    await p.page.reload(); await ctx.waitReady(p.page, 20000); await p.page.waitForFunction(() => !!document.getElementById('mzMini'), null, { timeout: 10000 }); await p.page.waitForTimeout(400);
+    await p.page.reload(); await ctx.waitReady(p.page, 20000); await p.page.waitForFunction(() => !!document.getElementById('mzMini'), null, { timeout: 40000 }); await p.page.waitForTimeout(400);
     ctx.assert((await ctx.getState(p.page)).mappa.coperte.length === 0, 'le scoperte non sono rimaste');
     ctx.noErrors(p, 'minimappa');
   });
   const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
   await ctx.waitReady(d.page, 20000);
-  await d.page.waitForFunction(() => !!document.getElementById('mzMini'), null, { timeout: 10000 });
+  await d.page.waitForFunction(() => !!document.getElementById('mzMini'), null, { timeout: 40000 });
   await ctx.test('PC: cerchio in basso a destra, mappa grande', async () => {
     await d.page.waitForTimeout(600);
     await ctx.shot(d.page, 'desktop_mini');

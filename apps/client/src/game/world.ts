@@ -1,7 +1,7 @@
 // Orchestrazione del mondo locale: arcipelago (un solo GridMap continuo), isole, avatar, barca, camera, rete. WP0 / M1-mondo.
 // Spawn sul molo del proprio lotto (`slot`), barca ormeggiata lì; senza slot al Porto.
 import * as THREE from 'three';
-import { canBoard, composeArchipelago, landingSpot, NO_INPUT } from '@marea/sim';
+import { canBoard, composeArchipelago, correnteBordo, landingSpot, NO_INPUT } from '@marea/sim';
 import type { Archipelago, ArchPlace, BoatState, GridMap, InputFrame } from '@marea/sim';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import type { Look, Peer } from '@marea/protocol';
@@ -51,6 +51,9 @@ export type GameWorld = {
     /** Torna dov'eri prima della gara. */
     end(): void;
   };
+  /** Isole a tema (#68): vincolo sulla barca dopo ogni passo (barriere in mare: game/temi.ts) e «rimettiti in barca» (il Vulcano ti caccia). */
+  vincoloBarca: ((prev: BoatState, next: BoatState) => BoatState | null) | null;
+  reimbarca(): boolean;
 };
 
 /** Adattatore finché main.ts non passa lo slot da /api/me: `?slot=N` nell'URL. */
@@ -146,6 +149,13 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   };
 
   let mode: Mode = 'walk', aWas = false, lastSent = 0, frozen = false;
+  // Isole a tema (#68) e bordo del mondo (#5): dopo il passo della barca la corrente al bordo e le barriere delle isole chiuse
+  let vincoloBarca: GameWorld['vincoloBarca'] = null, bordoToast = 0;
+  const dopoBarca = () => {
+    const c = correnteBordo(boat.state, map);
+    if (c.attiva) { Object.assign(boat.state, c.s); if (performance.now() > bordoToast) { bordoToast = performance.now() + 8000; o.hud.toast('La corrente ti riporta verso le isole', 2500); } }
+    const v = vincoloBarca?.(boat.prev, boat.state); if (v) Object.assign(boat.state, v);
+  };
   let racing: { mode: Mode; avatar: { x: number; z: number }; boat: { x: number; z: number; yaw: number } } | null = null;
   const race: GameWorld['race'] = {
     get on() { return !!racing; },
@@ -179,6 +189,14 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     get frozen() { return frozen; },
     set frozen(v: boolean) { frozen = v; },
     get look() { return look; },
+    get vincoloBarca() { return vincoloBarca; },
+    set vincoloBarca(f) { vincoloBarca = f; },
+    reimbarca() {
+      if (mode !== 'walk' || racing) return false;
+      moor(boat.state.x, boat.state.z); // prua verso il largo
+      mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; avatar.teleport(boat.state.x, boat.state.z);
+      return true;
+    },
     setLook(l) { look = l; avatar.setLook(l); boat.driver.setLook(l); },
     anchorOf(id) {
       if (id === 'me') { const p = mode === 'boat' ? boat.object.position : avatar.object.position; return { x: p.x, y: p.y + (mode === 'boat' ? BOAT_TOP_Y : HEAD_Y), z: p.z }; }
@@ -196,7 +214,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
         boat.step(NO_INPUT, map);
         if (pressA && canBoard(avatar.state, boat.state, map)) { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; o.hud.toast('Sei in barca: A per accelerare, joystick per virare'); }
       } else {
-        boat.step(input, map);
+        boat.step(input, map); dopoBarca();
         avatar.teleport(boat.state.x, boat.state.z);
         if (pressA && boat.state.speed < 2) { const spot = landingSpot(boat.state, map); if (spot) { mode = 'walk'; boat.setDriver(null); avatar.visible = true; avatar.teleport(spot.x, spot.z); o.hud.toast('A terra'); } else o.hud.toast('Avvicinati a un molo per scendere'); }
       }

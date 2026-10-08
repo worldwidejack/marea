@@ -1,7 +1,7 @@
 // L'arcipelago come un solo mondo continuo (CONTRACTS §11): le isole di islands.json posate su una griglia w×h, il resto acqua
 // profonda. Un GridMap unico per collisioni di avatar e barca (niente cambi di mappa) + dove stanno Porto, lotti, laguna e facciate.
 // Pura e deterministica: niente DOM, niente orologio, niente casualità.
-import type { ArchipelagoDef, ArchipelagoRole, IslandDef, IslandStyle } from '@marea/content';
+import type { ArchipelagoDef, ArchipelagoRole, IslandDef, IslandStyle, TemaDef } from '@marea/content';
 import { gridFromRows } from './grid.ts';
 import type { Cell, GridMap } from './grid.ts';
 
@@ -20,6 +20,8 @@ export type ArchPlace = {
   h: number;
   spawn: XZ;
   boat: XZ;
+  /** Isola a tema (#68): come si sblocca e quanta barriera in mare ha. null per le altre isole. */
+  tema: TemaDef | null;
 };
 /** Lotto di una persona: le celle di LotState sono locali al template (`[cx, cz]` dall'angolo dell'isola); mondo = origin + cella. */
 export type ArchLot = { slot: number; origin: [number, number]; template: string };
@@ -90,6 +92,7 @@ export function composeArchipelago(def: ArchipelagoDef, islands: readonly Island
       index, island: isl.id, nome: isl.nome, role: e.role, slot: e.role === 'lotto' ? (e.slot ?? null) : null,
       style: isl.style ?? null, scenery: isl.scenery ?? 1, origin: [ox, oz], w: iw, h: ih,
       spawn: toWorld(ox + p.cx, oz + p.cz), boat: toWorld(ox + b.cx, oz + b.cz),
+      tema: e.role === 'tema' && e.tema ? e.tema : null,
     };
     places.push(place);
     for (const pr of isl.props ?? []) props.push({ k: pr.k, x: (ox + pr.at[0] + 0.5) * tile, z: (oz + pr.at[1] + 0.5) * tile, rot: pr.rot ?? 0, island: isl.id });
