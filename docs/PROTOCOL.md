@@ -116,6 +116,15 @@ Nuovi campi facoltativi di `LotState`: `visto?`, `ospiti?: { chi, nome, emote, q
 Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, giocati, animali, isole, dungeon, riscossi, titolo }` (`DiarioState` in `economy/types.ts`). Pesci, perle (per tipo), medaglia migliore e partite li scrive `solo/play` dopo il replay; le spedizioni `dungeon/finish`. `GET /api/lot/:id` lo dà anche per gli altri (diario degli amici in sola lettura). `GET /api/me` e `/api/lots` hanno `look.titolo` se scelto; `POST /api/look` non lo tocca.
 **Presenza**: `Peer.titolo?: string` (id del traguardo; il client lo traduce col testo di `traguardi.json`). Arriva nel `welcome`/`join` (dal look in D1) e negli `snap` dopo un cambio di titolo. Campo facoltativo: `PROTOCOL_VERSION` resta 1.
 
+### Aggiunte Decorazioni libere (#108, 8 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/lot/decor/move` | `{ id, cell }` → `LotState`: sposta una decorazione della tua isola. Stesse celle di `POST /api/lot/decor` (sabbia `.`/erba `g`, non il leggio del libro degli ospiti `RIENTRO.libro.lotto` né le decorazioni fisse del template); **400** cella non ammessa o rotta, **409** `{ code: 'cella' }` se occupata, **404** id che non c'è. Nella stessa cella: niente da fare — **nuovo** |
+| `POST /api/lot/decor/rotate` | `{ id }` → `LotState`: un quarto di giro (`rot` 0 → 1 → 2 → 3 → 0) — **nuovo** |
+| `POST /api/lot/decor/sell` | `{ id }` → `LotState`: la decorazione sparisce e tornano `floor(prezzo × BALANCE.decor.rimborso)` Perle (metà, per difetto), scritte nel libro mastro come entrata — **nuovo** |
+
+`PlacedDecor.rot` diventa facoltativo (assente = 0: i lotti salvati restano validi; `rot` 0 non si scrive più). Le isole degli altri restano in sola lettura (il DO è quello della persona del token). Nessuna migrazione, `PROTOCOL_VERSION` resta 1.
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32 e `a, b` 0/1. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 

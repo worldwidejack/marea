@@ -3,7 +3,8 @@ import type { DungeonLotState, HeroState } from '../rpg/types.ts';
 export type { Resources };
 
 export type PlacedBuilding = { id: string; building: string; level: number; cell: [number, number]; buffer: number; lastMs: number };
-export type PlacedDecor = { id: string; decor: string; cell: [number, number]; rot: number };
+/** Decorazione posata. `rot` = quarti di giro (0-3) attorno all'asse verticale; assente = 0 (#108). */
+export type PlacedDecor = { id: string; decor: string; cell: [number, number]; rot?: number };
 export type Construction = { building: string; level: number; endsMs: number; placedId: string };
 export type LedgerTotals = { generated: Resources; spent: Resources };
 /** Sfide lanciate oggi (giorno UTC = floor(nowMs / 86 400 000)): servono per le sfide gratis del Tavolo. */

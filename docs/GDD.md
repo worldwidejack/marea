@@ -64,7 +64,7 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 | Casa | Slot cosmetici avatar 2 → 4 → 6 | 60/30 · 250/150 · 700/500 | 10 min · 2 h · 8 h |
 | Faro | +50 % produzione per 2 h dopo una vittoria (1 attivo) | 120/120 · 400/400 | 30 min · 3 h |
 | Tavolo delle Sfide | Wager max 50 → 150 → 400; sfide gratis/giorno 3 → 5 → 8 | 40/10 · 180/100 · 500/350 | 5 min · 1 h · 6 h |
-| Decorazioni (20, 8 esclusive) | Solo estetica, sulla sabbia/erba del lotto; si comprano dal Mercante delle Perle | 5-45 Perle | istantanee |
+| Decorazioni (20, 8 esclusive) | Solo estetica, sulla sabbia/erba del lotto; si comprano dal Mercante delle Perle; sulla tua isola si spostano, si girano di 90° e si **rivendono a metà prezzo** (per difetto, `balance.json` `decor.rimborso` 0,5) | 5-45 Perle | istantanee |
 
 **Regole**
 - **Produzione pigra**: ogni edificio accumula nel suo deposito in base al tempo trascorso (`advance(lotto, oraServer)`): piena velocità per **10 ore**, poi al **25 %** fino a 110 ore (così chi entra due volte a settimana non resta fermo). Raccogliere sposta il deposito nel Magazzino, fino al suo tetto. Il server è l'unica autorità del tempo; il client non usa mai il suo orologio per l'economia.
@@ -85,7 +85,7 @@ Un minigioco può dare qualcosa in più (`premioExtra` nel suo json): la **Cacci
 - **Dalle sfide con posta** (spente per ora, §7): medaglia → Perle **5 / 10 / 20** (bronzo / argento / oro) e attiva il Faro. Chi perde una sfida prende comunque **2 Perle** (mai zero).
 
 ### Porto: Mercante, Bacheca e Gente (#63-#65, 8 ott 2026)
-- **Mercante delle Perle** (banco in piazza, a sinistra del Tavolo; Maestro Ishi accanto): vende tutti i cappelli a Perle e tutte le decorazioni; le **esclusive** si comprano solo da lui. Un cappello si compra una volta (poi INDOSSA); una decorazione si posa sulla tua isola, nella cella libera di sabbia/erba più vicina a casa. Prezzi (`avatar.json`, `decor.json`):
+- **Mercante delle Perle** (banco in piazza, a sinistra del Tavolo; Maestro Ishi accanto): vende tutti i cappelli a Perle e tutte le decorazioni; le **esclusive** si comprano solo da lui. Un cappello si compra una volta (poi INDOSSA); una decorazione si posa sulla tua isola, nella cella libera di sabbia/erba più vicina a casa; poi la tocchi (o premi A vicino) e la **sposti** dove vuoi (sagoma verde/rossa sulle celle), la **ruoti** o la **rivendi** per metà delle Perle (#108). Prezzi (`avatar.json`, `decor.json`):
 
 | Cappelli esclusivi | Perle | Decorazioni esclusive | Perle |
 |---|---|---|---|

@@ -1,9 +1,9 @@
 // Contenuto dei pannelli dell'isola (edificio, costruzione) a partire da un LotState già proiettato all'ora del server.
 // Solo DOM e testi: le azioni le esegue lot.ts tramite i callback. Testi italiani corti, pulsanti ≥ 52 px.
-import { BUILDINGS, building as buildingDef } from '@marea/content';
+import { BUILDINGS, DECOR, building as buildingDef } from '@marea/content';
 import type { BuildingDef } from '@marea/content';
-import { bufferCap, geq, missing, storageCap } from '@marea/sim';
-import type { LotState, PlacedBuilding, Resources } from '@marea/sim';
+import { bufferCap, decorRimborso, geq, missing, storageCap } from '@marea/sim';
+import type { LotState, PlacedBuilding, PlacedDecor, Resources } from '@marea/sim';
 import { mancaText } from '../net/api.ts';
 import { el } from './style.ts';
 import { RES_IDS, RES_NOME, resIcon } from './icons.ts';
@@ -172,5 +172,46 @@ export function buildPanel(ctx: PanelCtx, cell: [number, number], chosen: string
     b.dataset['building'] = def.id;
     body.appendChild(b);
   }
+  return { body, sig: sigOf(body) };
+}
+
+/** Decorazioni libere (#108): azioni della scheda e della modalità SPOSTA (le esegue lot.ts). */
+export type DecorCtx = {
+  busy: boolean;
+  onSposta(): void; onRuota(): void; onChiediVendi(si: boolean): void; onVendi(): void;
+  onConferma(): void; onAnnulla(): void; onClose(): void;
+};
+export const decorNome = (id: string): string => DECOR.find((d) => d.id === id)?.nome ?? id;
+const perleNode = (n: number) => { const c = el('span', 'mz-cost'); c.append(resIcon('perle', 16), el('span', '', `+${n}`)); return c; };
+
+/** Scheda di una decorazione della tua isola: SPOSTA, RUOTA (90° a tocco), RIVENDI (con conferma, metà delle Perle). */
+export function decorPanel(ctx: DecorCtx, d: PlacedDecor, conferma: boolean): Panel {
+  const nome = decorNome(d.decor), back = decorRimborso(d.decor);
+  const body = el('div'); body.dataset['panel'] = conferma ? 'decor-vendi' : 'decor'; body.dataset['id'] = d.id;
+  body.appendChild(head(nome, '', ctx.onClose));
+  if (conferma) {
+    body.appendChild(el('div', 'mz-info', `Rivendere ${nome}? Tornano ${back} Perle (metà del prezzo) e sparisce dall’isola.`));
+    const row = el('div', 'mz-row');
+    row.append(btn('ghost', 'indietro', 'INDIETRO', [], ctx.busy, () => ctx.onChiediVendi(false)), btn('', 'vendi', 'RIVENDI', [perleNode(back)], ctx.busy, ctx.onVendi));
+    body.appendChild(row);
+    return { body, sig: sigOf(body) };
+  }
+  const row = el('div', 'mz-row');
+  row.append(btn('', 'sposta', 'SPOSTA', [], ctx.busy, ctx.onSposta), btn('', 'ruota', 'RUOTA ↻', [], ctx.busy, ctx.onRuota));
+  body.appendChild(row);
+  body.appendChild(btn('ghost', 'rivendi', 'RIVENDI', [perleNode(back)], ctx.busy, () => ctx.onChiediVendi(true)));
+  return { body, sig: sigOf(body) };
+}
+
+/** Modalità SPOSTA: la cella scelta (sagoma verde o rossa sul lotto), CONFERMA solo se va bene, ANNULLA rimette com'era. */
+export function spostaPanel(ctx: DecorCtx, d: PlacedDecor, cell: [number, number], problema: string | null): Panel {
+  const ferma = cell[0] === d.cell[0] && cell[1] === d.cell[1];
+  const body = el('div'); body.dataset['panel'] = 'sposta'; body.dataset['id'] = d.id; body.dataset['cell'] = cell.join(','); body.dataset['ok'] = String(!ferma && !problema);
+  body.appendChild(head(`Sposta: ${decorNome(d.decor)}`, '', ctx.onClose));
+  body.appendChild(el('div', 'mz-info', 'Tocca una cella di sabbia o d’erba libera. A o CONFERMA per posarla lì.'));
+  body.appendChild(el('div', 'mz-note' + (ferma ? '' : problema ? ' no' : ' ok'), ferma ? 'È qui adesso: scegli un’altra cella' : problema ? `✗ ${problema}` : '✓ Qui va bene'));
+  const row = el('div', 'mz-row');
+  row.append(btn('ghost', 'annulla', 'ANNULLA', [], ctx.busy, ctx.onAnnulla), btn('green', 'conferma', 'CONFERMA', [], ctx.busy || ferma || !!problema, ctx.onConferma));
+  body.appendChild(row);
   return { body, sig: sigOf(body) };
 }

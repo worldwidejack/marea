@@ -2,6 +2,7 @@
 // server), azioni economiche pure di @marea/sim. Il Worker instrada qui con idFromName(persona.id) e passa il proprietario in `x-persona`
 // e l'ora in `x-now` (vedi clock.ts). Il DO serializza le richieste (input gate) e lo storage SQL è sincrono: niente corse tra due azioni.
 // Richieste dal Worker: GET /state · POST /collect {building} · /build {building, cell} · /upgrade {building} · /decor {decor, cell, rot} · /hat {hat}.
+// Decorazioni libere (#108): POST /decor_move {id, cell} · /decor_rotate {id} · /decor_sell {id} → LotState (rimborso da BALANCE.decor).
 // Minigiochi da solo: POST /solo_start {minigame, opzioni?} → {seed, difficulty, opzioni, lot} · /solo_play {inputs} → il server rigioca gli input, premia la
 // medaglia (balance.solo) e risponde {score, medal, detail, premio, premiata, lot}.
 // Bacheca del Porto (#64): POST /missione {i} → RISCUOTI {premio, missione, lot}. I contatori delle missioni di oggi li aggiornano qui
@@ -15,7 +16,7 @@
 // Richieste dal DO Sfide (mai esposte dal Worker): POST /hold {cid, stake, kind} · /release {cid, release}: idempotenti per id sfida.
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
-import { build, buyHat, collect, newLot, placeDecor, upgrade } from '@marea/sim/economy/actions.ts';
+import { build, buyHat, collect, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
 import { holdStake, releaseStake } from '@marea/sim/economy/challenge.ts';
@@ -223,6 +224,14 @@ export class Lot extends DurableObject<Env> {
         if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
         if (typeof rot !== 'number' || !Number.isInteger(rot) || rot < 0 || rot > 3) return json({ error: 'Rotazione non valida (0-3)' }, 400);
         return placeDecor(lot, d.id, cell, rot, now, d.perle);
+      }
+      case 'decor_move': case 'decor_rotate': case 'decor_sell': {
+        const id = body['id'], cell = body['cell'];
+        if (!isId(id)) return json({ error: 'Manca la decorazione' }, 400);
+        if (act === 'decor_rotate') return rotateDecor(lot, id, now);
+        if (act === 'decor_sell') return sellDecor(lot, id, now).lot;
+        if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
+        return moveDecor(lot, id, cell, now);
       }
       case 'hat': {
         const h = body['hat'];

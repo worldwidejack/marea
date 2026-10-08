@@ -1,5 +1,5 @@
 // Avvio del client: renderer, mondo, ciclo a 60 Hz con interpolazione, test API. Unico modulo con side effect.
-import { DT } from '@marea/sim';
+import { DT, canBoard } from '@marea/sim';
 import { FLAGS } from './flags.ts';
 import { preparaInstallazione } from './installa.ts';
 import { createRenderer } from './render/scene.ts';
@@ -193,6 +193,8 @@ async function boot(): Promise<void> {
   let animali: Animali | null = null;
   void import('./game/animali.ts').then((m) => { animali = m.createAnimali({ world, camera: renderer.camera, canvas, root, hud, buio: () => aspetto?.buio ?? 0, avvista: (id) => diario.avvista(id) }); }).catch(() => { /* senza animali si gioca lo stesso */ });
   const EMOTES = AVATAR.emote as EmoteId[];
+  /** Pannelli aperti che non sono il foglio delle isole (#mzSheet): lì sotto le decorazioni non rispondono ad A. */
+  const panelsBusyNoSheet = () => diario.isOpen() || porto.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || regata.active || giochi.isBusy() || ingressi.active || ingressi.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || !!eroe?.isOpen();
   const panelsBusy = () => diario.isOpen() || porto.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || ingressi.active || ingressi.isBusy();
   const openEditor = () => { if (!editor || panelsBusy()) return false; feed?.close(); editor.open(); return true; };
   const openFeed = () => { if (!feed || panelsBusy()) return false; editor?.close(); feed.open(); return true; };
@@ -274,6 +276,13 @@ async function boot(): Promise<void> {
     prima: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); libri.close(); diario.close(); mappa?.close(); impostazioni.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); },
   });
   const FERMO = { mx: 0, my: 0, a: false, b: false }; // in modalità foto l'avatar sta fermo (il mondo no)
+  // Decorazioni libere (#108): vicino a una decorazione della tua isola, a piedi, A apre la sua scheda (in SPOSTA conferma)
+  const mioLotto = lots.find((lv) => !lv.readonly) ?? null;
+  const decorTick = (a: boolean): boolean => {
+    if (!mioLotto) return false;
+    const aPiedi = world.mode === 'walk' && !world.frozen && !panelsBusyNoSheet() && !canBoard(world.avatar.state, world.boat.state, world.map);
+    return mioLotto.tick(a, aPiedi ? world.avatar.state : null);
+  };
   let last = performance.now(), acc = 0, t = 0;
   const frame = (now: number) => {
     const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt; t += dt;
@@ -281,7 +290,7 @@ async function boot(): Promise<void> {
     while (acc >= DT && steps < 5) {
       const f0 = input.sample(), f = foto.isOpen() ? FERMO : f0;
       if (ingressi.active) { ingressi.step(f); acc -= DT; steps++; continue; } // nel dungeon il mondo di superficie sta fermo
-      if (regata.active) regata.step(f); else { const aP = porto.tick(f.a), aPorto = libri.tick(f.a && !aP) || aP; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
+      if (regata.active) regata.step(f); else { const aP0 = porto.tick(f.a), aP1 = libri.tick(f.a && !aP0) || aP0, aPorto = decorTick(f.a && !aP1) || aP1; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
       world.frozen = (diario.isOpen() || porto.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || !!eroe?.isOpen() || foto.isOpen()) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }

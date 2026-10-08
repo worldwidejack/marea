@@ -93,7 +93,7 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
           const cur = ctx.getLot(); const cell = cur ? cellaLibera(cur) : null;
           if (!cell) throw new ApiError(409, 'Sulla tua isola non c’è più posto per le decorazioni');
           const l = await ctx.api!.decor(d.id, cell, 0); ctx.setLot(l);
-          return `${d.nome}: consegnata sulla tua isola, vicino a casa`;
+          return `${d.nome}: consegnata vicino a casa. Toccala sull’isola per spostarla`;
         });
       }));
       body.appendChild(row);

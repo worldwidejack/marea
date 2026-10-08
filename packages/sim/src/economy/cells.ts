@@ -1,6 +1,6 @@
 // Celle del lotto (CONTRACTS §11): tutte le isole personali usano il template `lotto` di islands.json. Le celle di LotState sono locali
 // al template ([cx, cz] dall'angolo in alto a sinistra). Edifici solo su celle `L` libere; decorazioni su sabbia/erba libere; il Molo sul `d`.
-import { ISLANDS } from '@marea/content';
+import { ISLANDS, RIENTRO } from '@marea/content';
 import type { LotState } from './types.ts';
 
 /** Basta la griglia ASCII: vanno bene sia un IslandDef sia un GridMap. */
@@ -41,9 +41,25 @@ export function buildCellError(lot: LotState, cell: readonly [number, number], t
   return occupied(lot, cell) ? OCCUPATA : null;
 }
 
-/** null se la decorazione può stare in `cell`. Senza template accetta ogni cella libera. */
+/**
+ * Celle del template `lotto` già prese da cose fisse (#108): il leggio del libro degli ospiti (RIENTRO.libro.lotto) e le decorazioni
+ * fisse del template (`props`, cella più vicina). Valgono solo per il template vero (stesse righe di islands.json); gli altri template
+ * (test) non ne hanno.
+ */
+const LOTTO = lotTemplate() as (LotTemplate & { props?: readonly { at: readonly [number, number] }[] }) | null;
+const LOTTO_ROWS = LOTTO ? LOTTO.rows.join('\n') : null;
+const RISERVATE: readonly (readonly [number, number])[] = LOTTO
+  ? [RIENTRO.libro.lotto, ...(LOTTO.props ?? []).map((p): [number, number] => [Math.round(p.at[0]), Math.round(p.at[1])])]
+  : [];
+const isLotto = (t: LotTemplate): boolean => !!LOTTO && (t.rows === LOTTO.rows || t.rows.join('\n') === LOTTO_ROWS);
+export function riservate(t: LotTemplate | null): readonly (readonly [number, number])[] {
+  return t && isLotto(t) ? RISERVATE : [];
+}
+
+/** null se la decorazione può stare in `cell`: sabbia/erba del template, non sul libro degli ospiti, libera. Senza template accetta ogni cella libera. */
 export function decorCellError(lot: LotState, cell: readonly [number, number], t: LotTemplate | null): CellProblem | null {
   if (t && !DECOR_TILES.has(tileAt(t, cell[0], cell[1]))) return { code: 'posizione', msg: 'Qui non si può mettere una decorazione' };
+  if (riservate(t).some((c) => same(c, cell))) return { code: 'posizione', msg: 'Qui c’è già qualcosa dell’isola' };
   return occupied(lot, cell) ? OCCUPATA : null;
 }
 

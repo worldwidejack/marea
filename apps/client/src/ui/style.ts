@@ -50,6 +50,9 @@ const CSS = `
 .mz-row { display: flex; gap: 8px; }
 .mz-row .mz-btn { flex: 1; justify-content: center; }
 .mz-note { margin-top: 8px; color: ${P.arancio}; font-weight: bold; }
+/* Decorazioni libere (#108): esito della cella scelta in SPOSTA (verde neon / rosso neon dell'ART_BIBLE). */
+.mz-note.ok { color: #B6FF3D; }
+.mz-note.no { color: #FF5C3D; }
 .mz-fly { position: absolute; left: 0; top: 0; z-index: 25; pointer-events: none !important; }
 .mz-ico { display: inline-block; flex: none; image-rendering: pixelated; }
 /* F2-tavolo: Tavolo delle Sfide. Focus da tastiera ben visibile (giallo pieno, niente alone sfocato). */
