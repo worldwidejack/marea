@@ -134,7 +134,11 @@ export default async function (ctx) {
       await anna.page.waitForTimeout(200);
       await ctx.shot(anna.page, 'anna_sceglie_la_posta');
       assert(!(await nav(anna, 'sfida').isDisabled()), 'SFIDA E GIOCA spento con posta valida: ' + (await panelText(anna)).slice(0, 200));
-      await nav(anna, 'sfida').click();
+      // il pannello si può ridisegnare proprio mentre si clicca (poll del lotto): se la gara non parte, si riclicca (fino a 3 volte)
+      for (let i = 0; i < 3; i++) {
+        if (!(await ctx.getState(anna.page)).regata.active) await nav(anna, 'sfida').click().catch(() => {});
+        if (await ctx.waitState(anna.page, (s) => s.regata.active === true, 6000).then(() => true, () => false)) break;
+      }
       // la gara parte: pannello nascosto, regata attiva
       await ctx.waitState(anna.page, (s) => s.regata.active === true, 15000);
       await ctx.waitState(anna.page, (s) => s.tavolo.open === false, 5000);
@@ -166,7 +170,10 @@ export default async function (ctx) {
       const txt = await panelText(bruno);
       assert(/Anna ti sfida/i.test(txt) && /da battere/i.test(txt), 'la sfida non mostra chi sfida e il punteggio da battere: ' + txt.slice(0, 250));
       await ctx.shot(bruno.page, 'bruno_vede_la_sfida');
-      await acc.click();
+      for (let i = 0; i < 3; i++) { // il pannello può ridisegnarsi mentre si clicca: se la gara non parte, si riclicca
+        if (!(await ctx.getState(bruno.page)).regata.active) await nav(bruno, `accetta:${ids.c1}`).click().catch(() => {});
+        if (await ctx.waitState(bruno.page, (s) => s.regata.active === true, 6000).then(() => true, () => false)) break;
+      }
       await ctx.waitState(bruno.page, (s) => s.regata.active === true, 15000);
       await panel(bruno, 'esito', 40000);
       const esito = await panelText(bruno);
@@ -204,7 +211,10 @@ export default async function (ctx) {
       await ctx.waitState(bruno.page, (s) => s.tavolo && s.tavolo.exists === true, 15000);
       await bruno.page.evaluate(() => window.__game.test.regataAutopilot(20));
       await openTavolo(bruno);
-      await nav(bruno, `accetta:${c.id}`).click();
+      for (let i = 0; i < 3; i++) { // il pannello può ridisegnarsi mentre si clicca: se la gara non parte, si riclicca
+        if (!(await ctx.getState(bruno.page)).regata.active) await nav(bruno, `accetta:${c.id}`).click().catch(() => {});
+        if (await ctx.waitState(bruno.page, (s) => s.regata.active === true, 6000).then(() => true, () => false)) break;
+      }
       await ctx.waitState(bruno.page, (s) => s.regata.active === true, 15000);
       await panel(bruno, 'esito', 40000);
       const esito = await panelText(bruno);
