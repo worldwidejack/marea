@@ -27,9 +27,9 @@
   },
   "scoreBase": 12000,
   "medalsPar": {
-    "oro": 1.1,
-    "argento": 1.4,
-    "bronzo": 2.3
+    "oro": 1.04,
+    "argento": 1.3,
+    "bronzo": 2.0
   },
   "lazyGas": 0.35,
   "_nota": "course.buoys = boe fisse [x, z] in metri locali all'isola laguna (partenza = B del molo); le soglie delle medaglie sono medalsPar × il tempo del pilota di riferimento con le raffiche del seed"

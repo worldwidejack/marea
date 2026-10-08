@@ -71,6 +71,16 @@ async function createBuoys(loader: Loader): Promise<Buoys> {
     parts.push({ mesh: im, rel: m.matrixWorld.clone() }); group.add(im);
   });
   const nextAt = new THREE.Group(); nextAt.name = 'boa_prossima'; nextAt.add(next); group.add(nextAt);
+  // arrivo (#1): due pali e uno striscione a scacchi attorno all'ultima boa, di traverso rispetto all'ultimo tratto
+  const arrivo = new THREE.Group(); arrivo.name = 'regata_arrivo'; group.add(arrivo);
+  const legno = new THREE.MeshLambertMaterial({ color: PAL.legnoScuro, flatShading: true });
+  const scacchi = document.createElement('canvas'); scacchi.width = 6; scacchi.height = 2;
+  const sg = scacchi.getContext('2d')!;
+  for (let x = 0; x < 6; x++) for (let y = 0; y < 2; y++) { sg.fillStyle = (x + y) % 2 ? PAL.neroCaldo : PAL.sabbiaChiara; sg.fillRect(x, y, 1, 1); }
+  const tela = new THREE.CanvasTexture(scacchi); tela.magFilter = tela.minFilter = THREE.NearestFilter; tela.colorSpace = THREE.SRGBColorSpace;
+  const pali = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.12, 0.15, 3.2, 6), legno, 2); pali.name = 'arrivo_pali'; pali.frustumCulled = false;
+  const banner = new THREE.Mesh(new THREE.BoxGeometry(1, 1.2, 0.5), new THREE.MeshLambertMaterial({ map: tela, flatShading: true })); banner.name = 'arrivo_striscione'; banner.rotation.order = 'YXZ'; // prima girato sul tratto, poi inclinato verso la camera
+  arrivo.add(pali, banner); arrivo.visible = false;
   const m4 = new THREE.Matrix4(), tmp = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0);
   let drawn = 0;
   return {
@@ -94,6 +104,15 @@ async function createBuoys(loader: Loader): Promise<Buoys> {
       const n = v.buoys[v.next];
       nextAt.visible = !!n && !v.done;
       if (n) { nextAt.position.set(n.x + off.x, 0.08 * Math.sin(t * 2.2), n.z + off.z); nextAt.rotation.y = t * 0.6; drawn++; }
+      const fin = list[list.length - 1], prima = list[list.length - 2];
+      arrivo.visible = !!fin && !!prima && !fin.passed;
+      if (fin && prima) {
+        const dx = fin.x - prima.x, dz = fin.z - prima.z, l = Math.hypot(dx, dz) || 1, px = -dz / l, pz = dx / l, w = (v.radius ?? 3) + 0.6;
+        for (const [k2, s] of [[0, -1], [1, 1]] as const) { m4.makeTranslation(fin.x + off.x + px * w * s, 1.4, fin.z + off.z + pz * w * s); pali.setMatrixAt(k2, m4); }
+        pali.instanceMatrix.needsUpdate = true;
+        banner.position.set(fin.x + off.x, 2.7 + 0.05 * Math.sin(t * 3), fin.z + off.z);
+        banner.rotation.set(-0.5 + 0.05 * Math.sin(t * 2.3), Math.atan2(-pz, px), 0); banner.scale.set(w * 2, 1, 1); // inclinato verso la camera: dall'alto gli scacchi si leggono
+      }
     },
   };
 }
@@ -128,10 +147,15 @@ function createRaceHud(root: HTMLElement): RaceHud {
   const chip = (cls: string) => { const c = document.createElement('div'); c.className = 'c ' + cls; bar.appendChild(c); return c; };
   const time = chip('time'), boa = chip('boa'), wind = chip('wind');
   const big = document.createElement('div'); big.className = 'mz-race-big'; big.id = 'mzRaceBig';
+  // raffica (#1): righe di vento a pixel che attraversano lo schermo nella direzione del vento, tante quanto è forte
+  const vento = document.createElement('canvas'); vento.className = 'mz-race-vento'; vento.id = 'mzRaceVento';
+  Object.assign(vento.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', pointerEvents: 'none', zIndex: '13', imageRendering: 'pixelated', display: 'none' });
+  const vg = vento.getContext('2d')!;
+  const righe = Array.from({ length: 28 }, (_, i) => ({ u: (i * 0.618) % 1, w: ((i * 0.377) % 1), len: 6 + (i % 4) * 3 }));
   const quit = document.createElement('button'); quit.className = 'mz-race-quit'; quit.id = 'mzRaceQuit'; quit.textContent = 'Esc · Ritirati';
   let quitFn: (() => void) | null = null;
   quit.addEventListener('click', () => quitFn?.());
-  root.append(bar, big, quit);
+  root.append(vento, bar, big, quit);
   /** Direzione nel mondo → angolo a schermo (0 = su), con la yaw della camera (inverso di screenToWorld in input.ts). */
   const screenAngle = (dx: number, dz: number, yaw: number) => {
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
@@ -142,7 +166,7 @@ function createRaceHud(root: HTMLElement): RaceHud {
   let last = '', hitT = 0;
   return {
     hit() { boa.classList.add('hit'); clearTimeout(hitT); hitT = window.setTimeout(() => boa.classList.remove('hit'), 700); },
-    show(on) { bar.classList.toggle('on', on); quit.classList.toggle('on', on); root.classList.toggle('mz-racing', on); if (!on) big.classList.remove('on'); },
+    show(on) { bar.classList.toggle('on', on); quit.classList.toggle('on', on); root.classList.toggle('mz-racing', on); if (!on) { big.classList.remove('on'); vento.style.display = 'none'; } },
     set(v, yaw, b, off) {
       const tot = v.buoys.length, n = v.buoys[v.next];
       const d = n ? Math.hypot(n.x + off.x - b.x, n.z + off.z - b.z) : 0;
@@ -155,6 +179,23 @@ function createRaceHud(root: HTMLElement): RaceHud {
       const key = html.join('|');
       if (key !== last) { last = key; time.innerHTML = html[0]!; boa.innerHTML = html[1]!; wind.innerHTML = html[2]!; } // solo testo nostro, niente dati del server
       wind.classList.toggle('gust', ws > 0.15);
+      const g = v.gust ?? 0;
+      vento.style.display = g > 0.05 ? 'block' : 'none';
+      if (g > 0.05) {
+        const W = Math.ceil(root.clientWidth / 4), H = Math.ceil(root.clientHeight / 4); // a metà della metà: pixel grossi
+        if (vento.width !== W || vento.height !== H) { vento.width = W; vento.height = H; }
+        vg.clearRect(0, 0, W, H);
+        const a = screenAngle(v.wind.x, v.wind.z, yaw), sx = Math.sin(a), sy = -Math.cos(a), tt = performance.now() / 1000;
+        vg.fillStyle = PAL.sabbiaChiara; vg.globalAlpha = Math.min(0.85, 0.3 + g * 0.6);
+        const n2 = Math.round(righe.length * Math.min(1, g * 1.4));
+        for (let i = 0; i < n2; i++) {
+          const r = righe[i]!, prog = (r.u + tt * (0.5 + r.w * 0.4)) % 1, D = Math.hypot(W, H);
+          const cx = W / 2 + sx * (prog - 0.5) * D + -sy * (r.w - 0.5) * D, cy = H / 2 + sy * (prog - 0.5) * D + sx * (r.w - 0.5) * D;
+          for (let k = 0; k < r.len; k++) vg.fillRect(Math.round(cx - sx * k), Math.round(cy - sy * k), 1, 1);
+        }
+        vg.globalAlpha = 1;
+        if (g > 0.3 && !wind.querySelector('.raffica')) wind.insertAdjacentHTML('beforeend', '<small class="raffica" style="color:' + PAL.acquaBassa + '">RAFFICA!</small>');
+      }
     },
     big(text, color, sub) {
       big.classList.toggle('on', !!text);
