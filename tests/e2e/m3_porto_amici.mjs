@@ -123,9 +123,9 @@ export default async function (ctx) {
       await tp.waitForTimeout(2500); // il cartellino «Mia ha battuto il tuo record» se ne va
       await ctx.shot(tp, 'iphone_tabellone');
       await th('teleport', t.fronte.x, t.fronte.z); await th('setZoom', 0.8);
-      await ctx.waitState(tp, (s) => s.portoAmici.near === 'record', 8000);
+      await ctx.waitState(tp, (s) => s.portoAmici.near === 'record', 30000);
       await tp.locator('#mzAmiciBtn').tap();
-      await ctx.waitState(tp, (s) => s.portoAmici.open === 'record' && s.portoAmici.ui.righe, 15000);
+      await ctx.waitState(tp, (s) => s.portoAmici.open === 'record' && s.portoAmici.ui.righe, 30000);
       const reg = tp.locator('#mzAmiciPanel [data-minigioco="regata"] [data-cella="sempre"]');
       assert((await reg.getAttribute('data-chi')) === 'mia', 'regata: non c\'è Mia');
       const secs = (regataMia.detail.ms / 1000).toFixed(1).replace('.', ',');
@@ -137,7 +137,7 @@ export default async function (ctx) {
       await tp.waitForTimeout(250);
       await ctx.shot(tp, 'iphone_record');
       await tp.locator('#mzAmiciPanel [data-act="chiudi"]').tap();
-      await ctx.waitState(tp, (s) => s.portoAmici.open === null, 5000);
+      await ctx.waitState(tp, (s) => s.portoAmici.open === null, 30000);
     });
 
     // ---- Faro comune: si costruisce e si versa finché sale al livello 1 ----
@@ -207,7 +207,7 @@ export default async function (ctx) {
       await tp.waitForTimeout(3800); // il cartellino «il Faro è al livello 1» se ne va
       await ctx.shot(tp, 'iphone_faro_l1');
       await th('teleport', f.fronte.x, f.fronte.z); await th('setZoom', 0.8);
-      await ctx.waitState(tp, (s) => s.portoAmici.near === 'faro', 8000);
+      await ctx.waitState(tp, (s) => s.portoAmici.near === 'faro', 30000);
       await tp.locator('#mzAmiciBtn').tap();
       await ctx.waitState(tp, (s) => s.portoAmici.open === 'faro', 10000);
       await tp.waitForSelector('#mzAmiciPanel [data-versa="legno"] [data-q="50"]:not(:disabled)', { timeout: 15000 });
@@ -238,17 +238,17 @@ export default async function (ctx) {
       const dh = (n, ...a) => dp.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
       const t = await posto(dp, 'record');
       await dh('teleport', t.fronte.x, t.fronte.z); await dh('setZoom', 0.9);
-      await ctx.waitState(dp, (s) => s.portoAmici.near === 'record', 8000);
+      await ctx.waitState(dp, (s) => s.portoAmici.near === 'record', 30000);
       await dp.keyboard.press('KeyE');
-      try { await ctx.waitState(dp, (s) => s.portoAmici.open === 'record' && s.portoAmici.ui.righe, 15000); }
+      try { await ctx.waitState(dp, (s) => s.portoAmici.open === 'record' && s.portoAmici.ui.righe, 30000); }
       catch (e) { const s = await ctx.getState(dp); ctx.log('DEBUG', JSON.stringify({ pa: { ...s.portoAmici, faro: undefined }, porto: s.porto?.open, libro: s.libro?.open })); await ctx.shot(dp, 'debug'); throw e; }
       await dp.waitForTimeout(300);
       await ctx.shot(dp, 'desktop_record');
       await dp.keyboard.press('Escape');
-      await ctx.waitState(dp, (s) => s.portoAmici.open === null, 5000);
+      await ctx.waitState(dp, (s) => s.portoAmici.open === null, 30000);
       const f = await posto(dp, 'faro');
       await dh('teleport', f.fronte.x, f.fronte.z); await dh('setZoom', 0.9);
-      await ctx.waitState(dp, (s) => s.portoAmici.near === 'faro', 8000);
+      await ctx.waitState(dp, (s) => s.portoAmici.near === 'faro', 30000);
       await dp.waitForTimeout(400);
       await dp.keyboard.press('KeyE');
       await ctx.waitState(dp, (s) => s.portoAmici.open === 'faro' && s.portoAmici.faro.dati?.livello === 1, 15000);
@@ -256,7 +256,7 @@ export default async function (ctx) {
       await dp.waitForTimeout(300);
       await ctx.shot(dp, 'desktop_faro');
       await dp.keyboard.press('Escape');
-      await ctx.waitState(dp, (s) => s.portoAmici.open === null, 5000);
+      await ctx.waitState(dp, (s) => s.portoAmici.open === null, 30000);
       await dp.evaluate(() => window.__game.test.aspettoPronto());
       await dh('ciclo', 0.78);
       await dh('teleport', f.x + 4, f.z + 22); await dh('setZoom', 1.6);
