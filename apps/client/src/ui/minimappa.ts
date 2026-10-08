@@ -1,8 +1,8 @@
 // Minimappa (#62): un cerchio in alto a destra (telefono) o in basso a destra sopra il bottone A (PC) con l'arcipelago attorno a te, girato come la
 // camera; toccandolo o premendo M si apre la mappa intera, con te, gli amici, le mete della bussola e i nomi delle isole.
 // Le isole non ancora visitate stanno sotto la nebbia (Porto e la tua isola si vedono da subito): ci passi vicino in barca e
-// si scoprono. Le scoperte restano su questo dispositivo (localStorage). Un'isola chiusa (es. la Tempesta) resterà nella nebbia
-// finché non la sblocchi, perché non ci puoi arrivare. Disegno su <canvas> a pixel con la palette: un pixel per cella della mappa.
+// si scoprono. Le scoperte restano su questo dispositivo (localStorage). Un'isola a tema chiusa (#68: Tempesta, Ghiacci, Vulcano,
+// Giardino) resta nella nebbia col lucchetto finché non la sblocchi, anche se ci sei passato vicino. Disegno su <canvas> a pixel con la palette: un pixel per cella della mappa.
 import type { GridMap, Tile } from '@marea/sim';
 import { drawPix } from './icons.ts';
 import type { PixId } from './icons.ts';
@@ -20,10 +20,13 @@ const TILE_COL: Record<Tile, string> = {
 };
 const NEBBIA = [P.pietraChiara, P.pietra];
 
-export type MappaPlace = { id: string; nome: string; x0: number; z0: number; w: number; h: number; sempre?: boolean };
+/** `chiusa`: letto ogni ½ s; true = nebbia e lucchetto anche se scoperta (isole a tema non ancora sbloccate). */
+export type MappaPlace = { id: string; nome: string; x0: number; z0: number; w: number; h: number; sempre?: boolean; chiusa?(): boolean };
 export type MappaTarget = { id: string; label: string; x: number; z: number; icon?: PixId; show?(): boolean };
 export type Pose = { x: number; z: number; yaw: number };
-export type Minimappa = { update(me: Pose, cameraYaw: number, peers: readonly { nome?: string; x: number; z: number }[]): void; toggle(): void; close(): void; isOpen(): boolean };
+export type Minimappa = { update(me: Pose, cameraYaw: number, peers: readonly { nome?: string; x: number; z: number }[]): void; toggle(): void; close(): void; isOpen(): boolean;
+  /** L'isola `id` (MappaPlace.id) è già stata scoperta (ci sei passato vicino)? La bussola mostra le isole a tema solo da scoperte. */
+  vista(id: string): boolean };
 
 const CSS = `
 #mzMini { position: absolute; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 136px); /* sopra il bottone A (84 px a 36 px dal fondo) */ width: 148px; height: 148px; z-index: 13; cursor: pointer; padding: 0; border: none; background: none; }
@@ -57,6 +60,10 @@ export function createMinimappa(o: {
   const viste = new Set(load().viste ?? []);
   for (const p of o.places) if (p.sempre) viste.add(p.id);
   const coperta = (p: MappaPlace) => !viste.has(p.id);
+  const chiusa = (p: MappaPlace) => !!p.chiusa?.();
+  const nascosta = (p: MappaPlace) => coperta(p) || chiusa(p);
+  const firmaChiuse = () => o.places.filter(chiusa).map((p) => p.id).join(',');
+  let chiuseFirma = firmaChiuse();
 
   // ——— base: un pixel per cella, nebbia a scacchi sulle isole non scoperte (ridisegnata quando ne scopri una) ———
   const base = document.createElement('canvas'); base.width = W; base.height = H;
@@ -69,7 +76,7 @@ export function createMinimappa(o: {
       img.data[i] = r; img.data[i + 1] = g; img.data[i + 2] = b; img.data[i + 3] = 255;
     }
     for (const p of o.places) {
-      if (!coperta(p)) continue;
+      if (!nascosta(p)) continue;
       // nuvola: ellisse che sborda dall'isola (la forma non si indovina) col bordo mangiucchiato; dentro chiara, sul bordo a scacchi
       const rx = p.w / 2 + 5, rz = p.h / 2 + 5, mx = p.x0 + p.w / 2, mz = p.z0 + p.h / 2;
       for (let cz = Math.max(0, Math.floor(mz - rz)); cz < Math.min(H, Math.ceil(mz + rz)); cz++) for (let cx = Math.max(0, Math.floor(mx - rx)); cx < Math.min(W, Math.ceil(mx + rx)); cx++) {
@@ -86,7 +93,7 @@ export function createMinimappa(o: {
   paintBase();
   /** Centro di un'isola in metri (per nomi e «?»). */
   const centro = (p: MappaPlace) => ({ x: (p.x0 + p.w / 2) * T, z: (p.z0 + p.h / 2) * T });
-  const dentroCoperta = (x: number, z: number) => o.places.some((p) => coperta(p) && x >= p.x0 * T && x <= (p.x0 + p.w) * T && z >= p.z0 * T && z <= (p.z0 + p.h) * T);
+  const dentroCoperta = (x: number, z: number) => o.places.some((p) => nascosta(p) && x >= p.x0 * T && x <= (p.x0 + p.w) * T && z >= p.z0 * T && z <= (p.z0 + p.h) * T);
 
   // ——— minimappa ———
   const mini = document.createElement('button'); mini.type = 'button'; mini.id = 'mzMini'; mini.className = 'mz'; mini.title = 'Mappa (M)'; mini.setAttribute('aria-label', 'Apri la mappa');
@@ -141,7 +148,11 @@ export function createMinimappa(o: {
     const scritta = (t: string, cx: number, cy: number, col: string, size = 20) => { big.font = `bold ${size}px ui-monospace, Menlo, monospace`; big.lineWidth = size / 4; big.strokeStyle = P.neroCaldo; big.strokeText(t, cx, cy); big.fillStyle = col; big.fillText(t, cx, cy); };
     for (const p of o.places) {
       const c = centro(p);
-      if (coperta(p)) scritta('?', px(c.x), px(c.z), P.sabbiaChiara, 44);
+      if (chiusa(p)) { // lucchetto sulla nebbia; il nome solo se l'hai già vista
+        big.fillStyle = P.neroCaldo; big.fillRect(px(c.x) - 22, px(c.z) - 22, 44, 44);
+        drawPix(big, 'lucchetto', px(c.x) - 20, px(c.z) - 20, 5);
+        if (!coperta(p) && p.nome) scritta(p.nome, px(c.x), px(c.z) + 40, P.sabbiaChiara, 16);
+      } else if (coperta(p)) scritta('?', px(c.x), px(c.z), P.sabbiaChiara, 44);
       else if (p.nome) scritta(p.nome, px(c.x), px((p.z0 + p.h) * T) + 14, P.sabbiaChiara);
     }
     for (const t of o.targets) {
@@ -179,7 +190,7 @@ export function createMinimappa(o: {
   }
 
   let nextScopri = 0, nextMini = 0;
-  registerStateProvider('mappa', () => ({ open, viste: [...viste], coperte: o.places.filter(coperta).map((p) => p.id), mini: mini.style.visibility !== 'hidden' && getComputedStyle(mini).visibility !== 'hidden' }));
+  registerStateProvider('mappa', () => ({ open, viste: [...viste], coperte: o.places.filter(coperta).map((p) => p.id), chiuse: o.places.filter(chiusa).map((p) => p.id), mini: mini.style.visibility !== 'hidden' && getComputedStyle(mini).visibility !== 'hidden' }));
   registerTestHook('mappa', (v) => { if (v === 'apri') show(); else if (v === 'chiudi') close(); else toggle(); return open; });
   registerTestHook('mappaScopri', (id) => { if (typeof id === 'string') viste.add(id); else for (const p of o.places) viste.add(p.id); save({ viste: [...viste] }); paintBase(); if (open) drawBig(); });
 
@@ -195,11 +206,14 @@ export function createMinimappa(o: {
           const dx = Math.max(p.x0 * T - me.x, 0, me.x - (p.x0 + p.w) * T), dz = Math.max(p.z0 * T - me.z, 0, me.z - (p.z0 + p.h) * T);
           if (Math.hypot(dx, dz) < SCOPRI_M) { viste.add(p.id); nuove = true; }
         }
-        if (nuove) { save({ viste: [...viste] }); paintBase(); }
+        if (nuove) save({ viste: [...viste] });
+        const f = firmaChiuse(); // un'isola a tema appena sbloccata: via la nebbia
+        if (nuove || f !== chiuseFirma) { chiuseFirma = f; paintBase(); }
       }
       if (open && o.hidden?.()) close();
       if (now >= nextMini) { nextMini = now + 66; drawMini(me, lastYaw); if (open) drawBig(); } // 15 volte al secondo bastano
     },
     toggle, close, isOpen: () => open,
+    vista: (id) => viste.has(id),
   };
 }

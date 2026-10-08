@@ -3,6 +3,7 @@ import { BALANCE, MINIGAMES_CFG, building } from '@marea/content';
 import type { PremioExtra } from '@marea/content';
 import type { Medal } from '../minigames/types.ts';
 import { advance } from './advance.ts';
+import { mappeDaOro } from '../world/temi.ts';
 import { EconomyError, ZERO, add } from './types.ts';
 import type { LotState, Resources, SoloState } from './types.ts';
 
@@ -63,7 +64,8 @@ export function startSolo(lot: LotState, minigame: string, seed: number, nowMs: 
   const pending = { minigame, seed: seed >>> 0, difficulty, startMs: nowMs, ...(opzioni && Object.keys(opzioni).length ? { opzioni: { ...opzioni } } : {}) };
   return { ...lot, version: lot.version + 1, solo: { ...s, pending } };
 }
-export type SoloOutcome = { lot: LotState; premio: Resources; premiata: boolean };
+/** `mappe`: mappe delle isole a tema trovate con questa partita (#68: la prima medaglia d'oro regala quella del Giardino). */
+export type SoloOutcome = { lot: LotState; premio: Resources; premiata: boolean; mappe: string[] };
 /**
  * Chiude la partita aperta con la medaglia che il server ha ricalcolato rigiocando gli input. Premio pieno finché ci sono partite
  * premiate oggi, poi zero (si gioca lo stesso).
@@ -74,10 +76,12 @@ export function finishSolo(lot0: LotState, medal: Medal, nowMs: number): SoloOut
   const premiata = s.premiate < BALANCE.solo.premiateAlGiorno;
   const premio = premiata ? soloPrize(medal, s.pending.minigame) : { ...ZERO };
   const lot = advance(lot0, nowMs);
+  const mappe = medal === 'oro' ? mappeDaOro().filter((m) => !(lot.mappe ?? []).includes(m)) : [];
   return {
-    premio, premiata,
+    premio, premiata, mappe,
     lot: {
       ...lot,
+      ...(mappe.length ? { mappe: [...(lot.mappe ?? []), ...mappe] } : {}),
       version: lot.version + 1,
       resources: add(lot.resources, premio),
       ledger: { ...lot.ledger, generated: add(lot.ledger.generated, premio) },

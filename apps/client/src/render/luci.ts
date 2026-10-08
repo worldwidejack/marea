@@ -19,6 +19,9 @@ function lampade(k: string): { at: [number, number, number]; col: string; kind: 
   if (k === 'lanterna') return [{ at: [0, 1.62, -0.45], col: P.arancio, kind: 'carta' }];
   if (k === 'filo_lanterne') return [-1.2, -0.4, 0.4, 1.2].map((x) => ({ at: [x, 2.4, 0] as [number, number, number], col: P.arancio, kind: 'carta' as const }));
   if (k === 'insegna_neon') return [{ at: [0, 1.9, 0], col: P.rosaNeon, kind: 'insegna' }];
+  // isole a tema (#68): lanterne di pietra del Giardino, bracieri del Vulcano
+  if (k === 'lanterna_pietra') return [{ at: [0, 1.38, 0], col: P.arancio, kind: 'carta' }];
+  if (k === 'braciere') return [{ at: [0, 1.6, 0], col: P.arancio, kind: 'carta' }];
   return [];
 }
 

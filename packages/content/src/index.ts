@@ -13,7 +13,7 @@ import archipelago from './archipelago.json' with { type: 'json' };
 import scacchi from './scacchi.json' with { type: 'json' };
 import perle from './minigames/perle.json' with { type: 'json' }; // Perle
 import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, PerleCfg, PescaCfg, RegataCfg, ResourceDef, ScacchiCfg } from './types.ts';
-import { validateAll, validateArchipelago } from './schema.ts';
+import { validateAll, validateArchipelago, validateTemi } from './schema.ts';
 
 export type * from './types.ts';
 
@@ -54,5 +54,6 @@ export function validateContent(): string[] {
   return [
     ...validateAll({ buildings: [...BUILDINGS], resources: [...RESOURCES], islands: [...ISLANDS], avatar: AVATAR, balance: BALANCE, decor: [...DECOR] }),
     ...validateArchipelago(ARCHIPELAGO, [...ISLANDS]),
+    ...validateTemi(ARCHIPELAGO, [...BUILDINGS], AVATAR),
   ];
 }

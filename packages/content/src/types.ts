@@ -38,11 +38,24 @@ export type IslandDef = {
   /** Rettangoli [x0, z0, x1, z1] (celle, inclusi) di sabbia battuta che la resa lastrica (piazza e viale del Porto). */
   paved?: [number, number, number, number][];
 };
-export type IslandStyle = 'lotto' | 'porto' | 'laguna' | 'neon' | 'selvaggia';
+export type IslandStyle = 'lotto' | 'porto' | 'laguna' | 'neon' | 'selvaggia' | TemaStyle;
+/** Isole a tema (#68, GDD §3): stile della resa = id del tema. */
+export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino';
 export type IslandSlot = { at: [number, number]; kind: string; rot?: number };
 export type IslandProp = { k: string; at: [number, number]; rot?: number };
-export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna';
-export type ArchipelagoIsland = { island: string; at: [number, number]; role: ArchipelagoRole; slot?: number };
+export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna' | 'tema';
+/**
+ * Come si sblocca un'isola a tema (#68): Molo della propria isola al livello N, personaggio GDR al livello N, un cappello indosso,
+ * una mappa posseduta (`come: 'oro'` = la prima medaglia d'oro in un minigioco da solo la regala).
+ */
+export type TemaSblocco =
+  | { tipo: 'molo'; livello: number }
+  | { tipo: 'livello'; livello: number }
+  | { tipo: 'cappello'; cappello: string }
+  | { tipo: 'mappa'; mappa: string; come: 'oro' };
+/** Isola a tema: `barriera` = metri di mare attorno al rettangolo dell'isola che la barca non passa finché è chiusa (0 = nessuna: ci si arriva, ma a terra ti cacciano). */
+export type TemaDef = { sblocco: TemaSblocco; barriera: number };
+export type ArchipelagoIsland = { island: string; at: [number, number]; role: ArchipelagoRole; slot?: number; tema?: TemaDef };
 /** Il mondo continuo (CONTRACTS §11): isole di islands.json posate su una griglia w×h di celle da `tile` m; il resto è acqua profonda. */
 export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; tile: number; islands: ArchipelagoIsland[] };
 /** `mercante`: esclusivo del Mercante delle Perle al Porto (#63): nell'editor si vede ma si compra solo da lui. */
