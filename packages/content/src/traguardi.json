@@ -1,0 +1,27 @@
+{
+  "traguardi": [
+    { "id": "primo_pesce", "nome": "Primo pesce", "testo": "Pesca il tuo primo pesce", "titolo": "Mozzo", "perle": 5, "se": { "tipo": "pesci", "n": 1 } },
+    { "id": "pescatore", "nome": "Dieci pesci", "testo": "Pesca 10 pesci", "titolo": "Pescatore", "perle": 10, "se": { "tipo": "pesci", "n": 10 } },
+    { "id": "re_della_lenza", "nome": "Cinquanta pesci", "testo": "Pesca 50 pesci", "titolo": "Re della lenza", "perle": 20, "se": { "tipo": "pesci", "n": 50 } },
+    { "id": "naturalista", "nome": "Sei specie", "testo": "Pesca 6 specie diverse", "titolo": "Naturalista", "perle": 15, "se": { "tipo": "specie", "n": 6 } },
+    { "id": "tutte_le_specie", "nome": "Tutte le specie", "testo": "Pesca ogni specie del mare", "titolo": "Re dei pesci", "perle": 30, "se": { "tipo": "specie", "tutti": true } },
+    { "id": "leggenda", "nome": "Pesce leggendario", "testo": "Pesca un pesce leggendario", "titolo": "Leggenda del mare", "perle": 20, "se": { "tipo": "rarita", "rarita": "leggendario", "n": 1 } },
+    { "id": "cercatore", "nome": "Cento perle", "testo": "Raccogli 100 perle e conchiglie nella caccia", "titolo": "Cercatore di perle", "perle": 15, "se": { "tipo": "perle", "n": 100 } },
+    { "id": "perla_nera", "nome": "Perla nera", "testo": "Trova una perla nera in fondo a un crepaccio", "titolo": "Palombaro", "perle": 10, "se": { "tipo": "perla", "perla": "nera", "n": 1 } },
+    { "id": "collezionista", "nome": "Tutte le perle", "testo": "Trova ogni tipo di perla e la conchiglia", "titolo": "Collezionista", "perle": 15, "se": { "tipo": "tipiPerle", "tutti": true } },
+    { "id": "prima_medaglia", "nome": "Prima medaglia", "testo": "Vinci una medaglia a un minigioco", "titolo": "Promessa", "perle": 5, "se": { "tipo": "medaglie", "medaglia": "bronzo", "n": 1 } },
+    { "id": "primo_oro", "nome": "Primo oro", "testo": "Vinci un oro a un minigioco", "titolo": "Campione", "perle": 15, "se": { "tipo": "medaglie", "medaglia": "oro", "n": 1 } },
+    { "id": "oro_ovunque", "nome": "Oro ovunque", "testo": "Vinci l'oro in ogni minigioco", "titolo": "Leggenda di MAREA", "perle": 30, "se": { "tipo": "medaglie", "medaglia": "oro", "tutti": true } },
+    { "id": "tuttofare", "nome": "Un po' di tutto", "testo": "Gioca a ogni minigioco almeno una volta", "titolo": "Tuttofare", "perle": 15, "se": { "tipo": "giocati", "tutti": true } },
+    { "id": "lupo_di_mare", "nome": "Cinquanta partite", "testo": "Gioca 50 partite ai minigiochi", "titolo": "Lupo di mare", "perle": 20, "se": { "tipo": "partite", "n": 50 } },
+    { "id": "capomastro", "nome": "Isola completa", "testo": "Costruisci Segheria, Cava, Magazzino, Casa e Faro", "titolo": "Capomastro", "perle": 20, "se": { "tipo": "edifici", "ids": ["segheria", "cava", "magazzino", "casa", "faro"] } },
+    { "id": "boscaiolo", "nome": "Segheria al massimo", "testo": "Porta la Segheria al livello 3", "titolo": "Boscaiolo", "perle": 20, "se": { "tipo": "edificio", "edificio": "segheria", "livello": 3 } },
+    { "id": "amico_animali", "nome": "Cinque animali", "testo": "Avvista 5 animali diversi", "titolo": "Amico degli animali", "perle": 10, "se": { "tipo": "animali", "n": 5 } },
+    { "id": "sussurratore", "nome": "Tutti gli animali", "testo": "Avvista ogni animale dell'arcipelago", "titolo": "Sussurratore", "perle": 20, "se": { "tipo": "animali", "tutti": true } },
+    { "id": "esploratore", "nome": "Tutte le isole", "testo": "Visita ogni isola dell'arcipelago", "titolo": "Esploratore", "perle": 15, "se": { "tipo": "isole", "tutti": true } },
+    { "id": "buon_vicino", "nome": "Prima visita", "testo": "Visita l'isola di un amico", "titolo": "Buon vicino", "perle": 5, "se": { "tipo": "amici", "n": 1 } },
+    { "id": "ospite_d_onore", "nome": "Tutti gli amici", "testo": "Visita le isole di tutti gli amici", "titolo": "Ospite d'onore", "perle": 15, "se": { "tipo": "amici", "tutti": true } },
+    { "id": "speleologo", "nome": "Prima discesa", "testo": "Torna da una spedizione nel Mondo Sotterraneo", "titolo": "Speleologo", "perle": 10, "se": { "tipo": "dungeon", "n": 1 } },
+    { "id": "avventuriero", "nome": "Dieci spedizioni", "testo": "Torna da 10 spedizioni nel Mondo Sotterraneo", "titolo": "Avventuriero", "perle": 25, "se": { "tipo": "dungeon", "n": 10 } }
+  ]
+}

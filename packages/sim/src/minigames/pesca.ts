@@ -195,6 +195,12 @@ export const pesca: MinigameModule<PescaState> = {
       },
     };
   },
+  /** Diario del capitano (#87): quanti pesci per specie. */
+  raccolta(s): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const id of s.presi) out[id] = (out[id] ?? 0) + 1;
+    return out;
+  },
   /** Pilota di riferimento (deve fare oro): lancia subito, tira dopo 0,3 s, nel recupero tocca quando la barra è a metà della zona verde. */
   autopilot(s): InputFrame {
     if (s.done || s.prevA) return NO;

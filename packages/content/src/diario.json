@@ -1,0 +1,27 @@
+{
+  "minigiochi": [
+    { "id": "regata", "nome": "Regata" },
+    { "id": "pesca", "nome": "Pesca", "raccolta": "pesci" },
+    { "id": "perle", "nome": "Caccia alle perle", "raccolta": "perle" },
+    { "id": "consegne", "nome": "Consegne" },
+    { "id": "ingorgo", "nome": "Ingorgo" },
+    { "id": "pinguini", "nome": "Pinguini" },
+    { "id": "koi", "nome": "Carpe koi" },
+    { "id": "arrembaggio", "nome": "Arrembaggio" },
+    { "id": "lava", "nome": "Fuga dalla lava" }
+  ],
+  "perle": [
+    { "id": "bianca", "nome": "Perla bianca", "battuta": "La più comune. Ma pur sempre una perla." },
+    { "id": "conchiglia", "nome": "Conchiglia", "battuta": "Dentro si sente il mare. O forse è il vicino." },
+    { "id": "rosa", "nome": "Perla rosa", "battuta": "L'ostrica non voleva mollarla." },
+    { "id": "nera", "nome": "Perla nera", "battuta": "In fondo al crepaccio, tra due meduse permalose." }
+  ],
+  "animali": [
+    { "id": "gabbiano", "nome": "Gabbiano", "dove": "sopra il Porto e le coste", "battuta": "Ti guarda il panino da tre isole di distanza." },
+    { "id": "gatto", "nome": "Gatto del molo", "dove": "sui moli", "battuta": "Fa le fusa solo a chi se le merita." },
+    { "id": "granchio", "nome": "Granchio", "dove": "sulla sabbia vicino all'acqua bassa", "battuta": "Cammina di lato, per principio." },
+    { "id": "pesce", "nome": "Pesce saltatore", "dove": "salta vicino a te, in acqua", "battuta": "Voleva solo vedere com'è fuori." },
+    { "id": "delfino", "nome": "Delfino", "dove": "in mare aperto, con la barca veloce", "battuta": "Fa la gara con te. E vince." },
+    { "id": "lucciola", "nome": "Lucciola", "dove": "sull'erba, di notte", "battuta": "Si accende quando nessuno guarda." }
+  ]
+}

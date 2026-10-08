@@ -67,7 +67,9 @@ function cuore(size: number): HTMLCanvasElement {
   return c;
 }
 
-export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canvas: HTMLCanvasElement; root: HTMLElement; hud?: Hud; buio?: () => number }): Animali {
+export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canvas: HTMLCanvasElement; root: HTMLElement; hud?: Hud; buio?: () => number;
+  /** Diario del capitano (#87): un animale passato vicino a chi gioca (una volta per specie a sessione). */
+  avvista?: (id: 'gabbiano' | 'gatto' | 'granchio' | 'pesce' | 'delfino' | 'lucciola') => void }): Animali {
   const w = o.world, map = w.map, arch = w.archipelago, T = map.tile;
   const rng = createRng(`animali:${arch.id}`);
   const mondo: Mondo = { map, groundY: w.groundY, rng: rng.fork('vita') };
@@ -132,6 +134,9 @@ export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canva
     }
   }
   const gabbiani: Gabbiano[] = nuoviGabbiani(stormi, rng.fork('gabbiani'), 0);
+  // Diario del capitano (#87): ogni specie si segnala una volta sola, quando passa davvero vicino
+  const avvistati = new Set<string>();
+  const avvista = (id: 'gabbiano' | 'gatto' | 'granchio' | 'pesce' | 'delfino' | 'lucciola') => { if (!o.avvista || avvistati.has(id)) return; avvistati.add(id); o.avvista(id); };
   const rVita = rng.fork('salti');
 
   // ———— chi gioca ————
@@ -261,8 +266,13 @@ export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canva
     for (const g of gabbiani) aggiornaGabbiano(g, t, c, mondo.rng, F.gabbiano, vic(g.s.c, RAGGIO + 15) ? draw : null);
     for (const k of gatti) aggiornaGatto(k, mondo, t, dt, c, F.gatto, vic(k) ? draw : null);
     for (const g of granchi) if (vic(g, RAGGIO)) aggiornaGranchio(g, mondo, t, dt, c, F.granchio, draw);
+    if (o.avvista) { // Diario del capitano (#87)
+      if (gabbiani.some((g) => vic(g.p, 15))) avvista('gabbiano');
+      if (gatti.some((k) => vic(k, 8))) avvista('gatto');
+      if (granchi.some((g) => vic(g, 8))) avvista('granchio');
+    }
     // pesci: ogni tanto, più spesso in barca
-    if (t >= prossimoSalto) { salta(c, t); prossimoSalto = t + (c.walk ? 3 + rVita.next() * 4 : 1.8 + rVita.next() * 2.7); }
+    if (t >= prossimoSalto) { if (salta(c, t)) avvista('pesce'); prossimoSalto = t + (c.walk ? 3 + rVita.next() * 4 : 1.8 + rVita.next() * 2.7); }
     for (let i = salti.length - 1; i >= 0; i--) if (!disegnaSalto(salti[i]!, t, F, draw)) salti.splice(i, 1);
     // delfini: in barca, veloce, su acqua profonda
     const largo = !c.walk && c.speed > 5 && (() => { const q = map.worldToCell(c.x, c.z); return map.at(q.cx, q.cz) === '~'; })();
@@ -307,6 +317,8 @@ export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canva
         accese++;
       }
     }
+    if (delfiniVisti > 0) avvista('delfino');
+    if (accese > 0) avvista('lucciola');
     corpi.end(); luci.end();
     // fumetti delle fusa e suggerimento la prima volta che ti fermi accanto a un gatto
     for (let i = fumetti.length - 1; i >= 0; i--) {

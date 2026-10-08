@@ -1,7 +1,7 @@
 // MAREA Worker: /api/* e /ws/* qui, tutto il resto lo servono gli asset (client). Budget CPU ~10 ms: solo routing, auth e piccoli JSON;
 // il lavoro vero sta nei DO (Zone = presenza, Lot = isola). Errori sempre `{ error }` in italiano, mai il dettaglio tecnico.
 import { AVATAR } from '@marea/content';
-import type { Look } from '@marea/protocol';
+import type { Look, LookSalvato } from '@marea/protocol';
 import type { Env } from './env.ts';
 import { autentica } from './auth.ts';
 import { nowFor } from './clock.ts';
@@ -73,14 +73,24 @@ function doReq(ns: DurableObjectNamespace, name: string, persona: string, now: n
 }
 const lotReq = (env: Env, owner: string, now: number, path: string, body?: unknown) => doReq(env.LOT, owner, owner, now, path, body);
 const sfideReq = (env: Env, me: string, now: number, path: string, body?: unknown) => doReq(env.SFIDE, 'tavolo', me, now, path, body);
-/** Look nuovo alla zona `porto` (i socket vivi di quella persona lo mandano nel prossimo snap). Best-effort: se fallisce, pazienza. */
-async function avvisaZona(env: Env, persona: string, look: Look): Promise<void> {
+/** Look nuovo alla zona `porto` (i socket vivi di quella persona lo mandano nel prossimo snap), col titolo del diario se c'è (#87). Best-effort: se fallisce, pazienza. */
+async function avvisaZona(env: Env, persona: string, look: LookSalvato): Promise<void> {
   try {
     const r = await env.ZONE.get(env.ZONE.idFromName('porto')).fetch('https://zone/look', {
       method: 'POST', headers: { 'x-persona': persona, 'content-type': 'application/json' }, body: JSON.stringify(look),
     });
     await r.body?.cancel();
   } catch { /* la zona si aggiorna alla prossima connessione */ }
+}
+/** Il look salvato in D1 (JSON) col titolo del diario sostituito: `titolo` null lo toglie (#87). */
+function conTitolo(look: Look, salvato: string, titolo?: string | null): LookSalvato {
+  let t: unknown = titolo;
+  if (titolo === undefined) { try { t = (JSON.parse(salvato) as { titolo?: unknown }).titolo; } catch { t = undefined; } }
+  return typeof t === 'string' && t ? { ...look, titolo: t } : { ...look };
+}
+/** Quanti altri hanno un'isola (per i traguardi «tutti gli amici», #87) e i loro id. */
+async function amiciConIsola(env: Env, me: string): Promise<string[]> {
+  return (await elencoPersone(env)).filter((x) => x.slot !== null && x.id !== me).map((x) => x.id);
 }
 /** Id del cappello da indice (come in Look) o da id. */
 function hatId(v: unknown): string | null {
@@ -180,8 +190,9 @@ export default {
           const lot = r.ok ? ((await r.json()) as { posseduti?: string[] }) : null;
           if (!lot?.posseduti?.includes(hat.id)) return json({ error: `${hat.nome}: non è tuo, compralo prima (${hat.perle} Perle)` }, 400);
         }
-        await salvaLook(env, p.id, look);
-        await avvisaZona(env, p.id, look);
+        const salvato = conTitolo(look, p.look); // il titolo del diario (#87) resta quello scelto: l'editor non lo conosce
+        await salvaLook(env, p.id, salvato);
+        await avvisaZona(env, p.id, salvato);
         return json({ ok: true });
       }
       if (path === '/api/look/hat' && req.method === 'POST') {
@@ -244,6 +255,38 @@ export default {
         const lot: unknown = await r.json();
         try { const f = await doReq(env.SFIDE, 'tavolo', isola, now, 'visita', { chi: p.id, emote }); await f.body?.cancel(); } catch { /* il libro è firmato lo stesso */ }
         return json(lot);
+      }
+      // Diario del capitano (#87): avvistamenti (i lotti solo di amici veri), RISCUOTI di un traguardo (il DO verifica e paga), titolo sotto il nome
+      if (path === '/api/diario/visto' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        let isole = body['isole'];
+        if (Array.isArray(isole) && isole.some((i) => typeof i === 'string' && i.startsWith('lotto:'))) {
+          const amici = new Set(await amiciConIsola(env, p.id));
+          isole = isole.filter((i) => typeof i !== 'string' || !i.startsWith('lotto:') || amici.has(i.slice(6)));
+        }
+        return lotReq(env, p.id, now, 'diario_visto', { animali: body['animali'], isole });
+      }
+      if (path === '/api/diario/riscuoti' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'diario_riscuoti', { id: body['id'], amici: (await amiciConIsola(env, p.id)).length });
+      }
+      if (path === '/api/diario/titolo' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const id = body['id'] ?? null;
+        const r = await lotReq(env, p.id, now, 'diario_titolo', { id });
+        if (!r.ok) return r;
+        const lot = await r.text();
+        let base: Look | string;
+        try { base = validaLook(JSON.parse(p.look) as Record<string, unknown>); } catch { base = 'look rotto'; }
+        if (typeof base !== 'string') { // il titolo va col look (D1 + presenza): così gli amici lo vedono sotto il nome
+          const salvato = conTitolo(base, p.look, typeof id === 'string' ? id : null);
+          await salvaLook(env, p.id, salvato);
+          await avvisaZona(env, p.id, salvato);
+        }
+        return new Response(lot, { status: 200, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
       }
       // Mondo Sotterraneo: azioni del personaggio e spedizioni; il replay lo fa il DO del lotto, mai il Worker (10 ms di CPU)
       if (path === '/api/rpg' && req.method === 'POST') {

@@ -4,10 +4,11 @@
 // packInputs(frames): punteggio e medaglia li decide il server. Il tempo parte dal primo tocco (prima c'è il cartello delle regole).
 // Un pollice: si tocca ovunque (o Spazio / Invio / E / P). Esc o × = ritirati. Solo colori della palette (ART_BIBLE §2).
 import { MINIGAMES_CFG } from '@marea/content';
-import type { PescaPesce, PescaRarita } from '@marea/content';
+import type { PescaRarita } from '@marea/content';
 import { MARI, PESCI, createRng, getMinigame, packInputs, quantize } from '@marea/sim';
 import type { Difficulty, InputFrame, MinigameModule, PackedInputs, PescaView } from '@marea/sim';
 import { PAL, el, injectUiStyle } from './style.ts';
+import { SH, SW, sprite } from './pesci_sprite.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { pescaFase } from '../audio/ponte.ts';
 
@@ -18,7 +19,6 @@ export type Pesca = {
 };
 
 const P = PAL;
-type Col = keyof typeof PAL;
 const CFG = MINIGAMES_CFG.pesca;
 /** Scena 160×96: orizzonte a SEA, galleggiante in (FX, FY) (più vicino di qualche metro, così si vede bene sul telefono). */
 const W = 160, H = 96, SEA = 34, FX = 112, FY = 54, TIP = { x: 64, y: 12 };
@@ -61,56 +61,6 @@ const CSS = `
 .mz-pe .act:active { transform: translateY(3px); box-shadow: 0 2px 0 ${P.neroCaldo}; }
 `;
 
-// ---------- sprite dei pesci (20×12): k contorno, c corpo, p pancia, f pinne/accento, e bianco dell'occhio, o pupilla, Y giallo, W chiaro ----------
-const SW = 20, SH = 12;
-const mirror = (half: string[]) => half.map((r) => r + [...r].reverse().join(''));
-const MANUALI: Record<string, string[]> = {
-  ciabatta: [
-    '....................', '....................', '......kkkkkkk.......', '.....kcccccccckk....', '....kcfcfcfcfcccck..', '...kccccccccccccccck',
-    '..kkkkkkkkkkkkkkkkkk', '..kppppppppppppppppk', '...kkkkkkkkkkkkkkkk.', '....................', '....................', '....................',
-  ],
-  granchio: mirror(['..kk......', '.kcck.....', '.kcfk.....', '..kck..ek.', '...kk..ok.', '....kkkkkk', '...kcccccc', '..kccpcccc', '..kccccccc', '...kkkkkkk', '...k.k.k..', '..k.k.k...']),
-  polpo: mirror(['.......kkk', '.....kkccc', '....kccpcc', '....kccccc', '....kceocc', '....kccccc', '....kccccc', '...kcckccc', '..kcck.kcc', '..kck..kck', '..kk...kk.', '..........']),
-};
-function pesceForma(forma: string): string[] {
-  const g = Array.from({ length: SH }, () => Array.from({ length: SW }, () => '.'));
-  const big = forma === 'tonno', palla = forma === 'palla';
-  const cx = palla ? 9 : big ? 9 : 8, cy = 6, rx = palla ? 5 : big ? 7 : 5.5, ry = palla ? 4.6 : big ? 3.6 : 3.2;
-  const set = (x: number, y: number, ch: string) => { if (x >= 0 && y >= 0 && x < SW && y < SH) g[y]![x] = ch; };
-  for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
-    const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry;
-    if (dx * dx + dy * dy <= 1) set(x, y, y >= cy + (palla ? 1 : 0) ? 'p' : 'c');
-  }
-  // coda a ventaglio
-  const x0 = Math.round(cx + rx) - 1, tl = palla ? 2 : big ? 3 : 3;
-  for (let i = 0; i <= tl; i++) for (let y = cy - 1 - i; y <= cy + i; y++) if (g[y]?.[x0 + i] === '.') set(x0 + i, y, 'f');
-  // pinna sul dorso e strisce
-  const top = Math.ceil(cy - ry) - 1;
-  for (let x = cx - 1; x <= cx + 2; x++) set(x, top + (x === cx - 1 || x === cx + 2 ? 1 : 0), 'f');
-  if (big) for (let x = cx - 3; x <= cx + 5; x += 2) set(x, cy, 'f');
-  if (forma === 'pesce') for (let x = cx; x <= cx + 3; x++) set(x, cy - 1, 'f');
-  if (palla) for (const [x, y] of [[cx - 5, cy - 3], [cx, cy - 6], [cx + 4, cy - 4], [cx - 6, cy + 1], [cx - 3, cy + 5], [cx + 2, cy + 5]] as [number, number][]) set(x, y, 'f');
-  // occhio
-  const ex = Math.round(cx - rx * 0.55), ey = cy - (palla ? 2 : 1);
-  set(ex, ey, 'o'); set(ex - 1, ey, 'e');
-  if (forma === 'lanterna') { set(cx - 2, top, 'k'); set(cx - 3, top - 1, 'k'); set(cx - 4, top - 1, 'k'); set(cx - 5, top, 'Y'); set(cx - 6, top, 'Y'); set(cx - 5, top + 1, 'Y'); set(cx - 6, top + 1, 'Y'); }
-  if (forma === 'spada') for (let x = Math.round(cx - rx) - 6; x < Math.round(cx - rx); x++) set(x, cy - 1, x % 2 === 0 && x < Math.round(cx - rx) - 4 ? '.' : 'W');
-  // contorno
-  const filled = (x: number, y: number) => { const ch = g[y]?.[x]; return ch !== undefined && ch !== '.' && ch !== 'k'; };
-  for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) if (g[y]![x] === '.' && (filled(x - 1, y) || filled(x + 1, y) || filled(x, y - 1) || filled(x, y + 1))) g[y]![x] = 'k';
-  return g.map((r) => r.join(''));
-}
-const spriteCache = new Map<string, (string | null)[][]>();
-function sprite(p: PescaPesce): (string | null)[][] {
-  let s = spriteCache.get(p.id);
-  if (s) return s;
-  const rows = MANUALI[p.forma] ?? pesceForma(p.forma);
-  const [c, pp, f] = p.colori.map((n) => P[n as Col] ?? P.pietra) as [string, string, string];
-  const map: Record<string, string> = { k: P.neroCaldo, c, p: pp, f, e: P.sabbiaChiara, o: P.neroCaldo, Y: P.giallo, W: P.pietraChiara };
-  s = rows.map((r) => [...r].map((ch) => map[ch] ?? null));
-  spriteCache.set(p.id, s);
-  return s;
-}
 const pesceDi = (id: string | null) => PESCI.find((p) => p.id === id) ?? null;
 
 // ---------- disegno ----------

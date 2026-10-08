@@ -42,7 +42,7 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 teste, 1,6 m), pochi poligoni, viso e vestiti dipinti a pixel. Personalizzazione V1: tono della pelle (6), capelli (8 tagli × 6 colori), vestito (6 colori), cappello (12: 3 gratis, 3 a Perle anche dall'editor, 6 **esclusivi del Mercante delle Perle** al Porto; colori dei capelli con nomi da capelli: nero corvino, castano scuro, castano, biondo miele, rosso fuoco, biondo platino). Emote (4) al posto della chat. Animazioni: idle, camminata, corsa, seduto (in barca), remata/timone.
 
 ## 5. Economia
-**Risorse**: **Legno** e **Pietra** (prodotte dall'isola, servono a costruire) e **Perle** (solo da minigiochi e wager: sbloccano cappelli e decorazioni esclusive; non si producono, non si comprano).
+**Risorse**: **Legno** e **Pietra** (prodotte dall'isola, servono a costruire) e **Perle** (da minigiochi, wager, missioni della Bacheca e **traguardi del Diario**: sbloccano cappelli e decorazioni esclusive; non si producono, non si comprano).
 
 | Edificio | Cosa fa | Costo L1 · L2 · L3 (Legno/Pietra) | Tempo L1 · L2 · L3 |
 |---|---|---|---|
@@ -101,6 +101,22 @@ Un minigioco può dare qualcosa in più (`premioExtra` nel suo json): la **Cacci
 | Compra qualcosa dal Mercante | 1 | 20 / 0 / 6 |
 
 - **Gente del Porto** (`gente.json`): Maestro Ishi (il Mercante), Gigi il Mozzo (sul viale: barca, Laguna, dungeon), Capitan Remo (passeggia in piazza: isole a tema, mappa, Tempesta), Nonna Pina (al molo: produzione, Bacheca, Mercante). Vicino premi A (o tocca il nome): 3 battute ironiche che spiegano il gioco ai nuovi.
+
+### Diario del capitano e traguardi (#87, 8 ott 2026)
+- **Diario** (libro in alto, tasto **J**): album a pagine con caselle grigie e «?» per quello che manca e il contatore «3/12». **Pesci** (ogni specie con la sagoma a pixel e quante volte), **Perle** (bianca, conchiglia, rosa, nera), **Animali** avvistati (gabbiano, gatto, granchio, pesce saltatore, delfino, lucciola: si segnano passandoci vicino), **Medaglie** (la migliore per minigioco e le partite), **Isole** visitate (Porto, Laguna, facciate, isole a tema e le isole degli amici), **Traguardi**. Si sfoglia anche il diario di un amico (sola lettura). Cataloghi in `diario.json`.
+- **Traguardi** (`traguardi.json`, 23): compiuto → **RISCUOTI** (una volta, il server verifica e paga) → il suo **titolo** si può mettere sotto il nome, sopra la testa (lo vedono gli amici). Avviso breve quando se ne compie uno, numerino sul libro.
+
+| Traguardo | Premio (Perle) | Titolo |
+|---|---|---|
+| Primo pesce · 10 pesci · 50 pesci | 5 · 10 · 20 | Mozzo · Pescatore · Re della lenza |
+| 6 specie · tutte le specie · un leggendario | 15 · 30 · 20 | Naturalista · Re dei pesci · Leggenda del mare |
+| 100 perle e conchiglie · una perla nera · tutti i tipi | 15 · 10 · 15 | Cercatore di perle · Palombaro · Collezionista |
+| Prima medaglia · primo oro · oro in ogni minigioco | 5 · 15 · 30 | Promessa · Campione · Leggenda di MAREA |
+| Ogni minigioco giocato · 50 partite | 15 · 20 | Tuttofare · Lupo di mare |
+| Segheria, Cava, Magazzino, Casa e Faro · Segheria L3 | 20 · 20 | Capomastro · Boscaiolo |
+| 5 animali · tutti gli animali | 10 · 20 | Amico degli animali · Sussurratore |
+| Tutte le isole · un amico · tutti gli amici | 15 · 5 · 15 | Esploratore · Buon vicino · Ospite d'onore |
+| 1 spedizione · 10 spedizioni nel Mondo Sotterraneo | 10 · 25 | Speleologo · Avventuriero |
 
 ## 6. Minigiochi
 **Formato comune** (in `packages/sim/src/minigames/`): modulo puro e deterministico, 60 Hz, `create({seed, difficulty})`, `step(state, input)`, `result(state)`, `autopilot`. Stesso seed = stessa partita, sempre. Il punteggio è **sempre «più alto vince»**; i dettagli (tempo, combo) stanno in `result().detail`.

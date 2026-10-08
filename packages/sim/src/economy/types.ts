@@ -17,6 +17,22 @@ export type MissioniState = { day: number; prog: Record<string, number>; riscoss
 export type Firma = { chi: string; nome: string; emote: string; quando: number };
 /** Ultimo cantiere finito (lo scrive `advance`): serve a «Mentre eri via» anche se nel frattempo qualcuno ha guardato l'isola. */
 export type CantiereFinito = { building: string; level: number; endsMs: number };
+/**
+ * Diario del capitano (#87): quello che conta (pesci, perle, medaglie, partite, spedizioni) lo scrive il server quando verifica una
+ * partita; animali e isole arrivano dal client (collezionismo, id validati). `riscossi` = traguardi già pagati, `titolo` = id del
+ * traguardo il cui titolo si mostra sotto il nome.
+ */
+export type DiarioState = {
+  pesci: Record<string, number>;
+  perle: Record<string, number>;
+  medaglie: Record<string, 'oro' | 'argento' | 'bronzo'>;
+  giocati: Record<string, number>;
+  animali: string[];
+  isole: string[];
+  dungeon: number;
+  riscossi: string[];
+  titolo: string | null;
+};
 export type LotState = {
   owner: string;
   version: number;
@@ -40,6 +56,8 @@ export type LotState = {
   solo?: SoloState;
   /** Missioni della Bacheca del Porto. Assente = nessun progresso oggi. */
   missioni?: MissioniState;
+  /** Diario del capitano e traguardi (#87). Assente = album vuoto. */
+  diario?: DiarioState;
   /** Personaggio GDR (docs/RPG.md). Assente = newHero() di @marea/sim/rpg/hero.ts. */
   hero?: HeroState;
   /** Forziere dell'isola: id oggetto → quantità. Assente = {}. */
@@ -99,7 +117,7 @@ export const missing = (have: Resources, cost: Resources): Resources => ({
 });
 
 export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow' | 'cappello' | 'posizione' | 'partita'
-  | 'missione' | 'firma'
+  | 'missione' | 'firma' | 'traguardo'
   | 'peso' | 'equip' | 'perk' | 'materiale' | 'edificio' | 'livello_skill' | 'oggetto' | 'spedizione';
 export class EconomyError extends Error {
   code: EconomyErrorCode;
