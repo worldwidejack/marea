@@ -374,6 +374,10 @@ export const perle: MinigameModule<PerleState> = {
       },
     };
   },
+  /** Diario del capitano (#87): perle e conchiglie prese, per tipo (le bolle non sono un tesoro). */
+  raccolta(s): Record<string, number> {
+    return { bianca: s.prese.bianca, conchiglia: s.prese.conchiglia, rosa: s.prese.rosa, nera: s.prese.nera };
+  },
   /** Pilota di riferimento (deve fare oro): a ogni tick prova i piani e tiene premuto se il migliore comincia giù. */
   autopilot(s): InputFrame { return autopilotaPerle(s); },
   view(s): PerleView {

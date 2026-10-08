@@ -3,7 +3,10 @@ export const PROTOCOL_VERSION = 1 as const;
 
 export type Mode = 'walk' | 'boat';
 export type Look = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
-export type Peer = { id: string; nome: string; x: number; z: number; yaw: number; mode: Mode; anim: string; look: Look };
+/** `titolo` (#87, facoltativo): id del traguardo scelto, il client lo mostra sotto il nome (testo in @marea/content/diario.ts). */
+export type Peer = { id: string; nome: string; x: number; z: number; yaw: number; mode: Mode; anim: string; look: Look; titolo?: string };
+/** Look come sta in D1 (`persone.look`): più il titolo scelto nel diario (#87), che la Zone passa nel Peer. Niente migrazioni. */
+export type LookSalvato = Look & { titolo?: string };
 export type EmoteId = 'saluto' | 'esulta' | 'ride' | 'no';
 /** Feed (M1 · Fetta 3, PROTOCOL §4): righe scritte dal DO Sfide a ogni passaggio di stato, testo composto dal Worker con i nomi. */
 /** `visita` (#86): un amico è passato sulla tua isola e ha firmato il libro degli ospiti (`da` = chi, `emote` = il suo saluto). */

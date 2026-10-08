@@ -15,6 +15,8 @@ export type MinigameModule<S> = {
   opzioni?(v: unknown): MinigameOpzioni;
   step(s: S, input: InputFrame): void;
   result(s: S): MinigameResult;
+  /** Facoltativo (#87): cosa la partita ha raccolto, id → quante (pesci per specie, perle per tipo). Lo registra il server nel diario. */
+  raccolta?(s: S): Record<string, number>;
   autopilot(s: S, rng: Rng): InputFrame;
   view(s: S): unknown;
 };

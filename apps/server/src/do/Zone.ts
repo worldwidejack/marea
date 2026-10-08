@@ -3,11 +3,12 @@
 // solo con i peer cambiati. Il flush usa un setTimeout interno (non un alarm): costa zero richieste e tiene sveglio il DO solo finché
 // arrivano posizioni; quando nessuno si muove non resta nessun timer e il DO può ibernare (lo stato dei peer vive negli attachment).
 // Rotta interna `POST /look` (dal Worker dopo `POST /api/look`, CONTRACTS §13): aggiorna il look dei socket di quella persona e lo manda nel
-// prossimo `snap`. Emote: al massimo una ogni 800 ms per connessione, mai in eco a chi la manda.
+// prossimo `snap`; il corpo può avere anche `titolo` (#87, id di un traguardo: il client lo mostra sotto il nome). Emote: al massimo una ogni 800 ms per connessione, mai in eco a chi la manda.
 import { DurableObject } from 'cloudflare:workers';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import { MAX_MSG_BYTES, MAX_ZONE_CONNECTIONS, POS_HZ, PROTOCOL_VERSION, parseClientMsg } from '@marea/protocol';
 import type { Look, Peer, ServerMsg } from '@marea/protocol';
+import { TRAGUARDI } from '@marea/content/diario.ts';
 /** Messaggio in uscita: `now` lo aggiunge `send`/`broadcast`. */
 type Outgoing = { [K in ServerMsg['t']]: Omit<Extract<ServerMsg, { t: K }>, 'now'> & { now?: number } }[ServerMsg['t']];
 import type { Env } from '../env.ts';
@@ -35,6 +36,12 @@ function asLook(v: unknown): Look | null {
   const o = v as Record<string, unknown>, out = {} as Look;
   for (const k of LOOK_KEYS) { const x = o[k]; if (typeof x !== 'number' || !Number.isInteger(x) || x < 0 || x > 255) return null; out[k] = x; }
   return out;
+}
+/** Titolo del diario (#87): id di un traguardo esistente, altrimenti niente. */
+function asTitolo(v: unknown): string | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const t = (v as Record<string, unknown>)['titolo'];
+  return typeof t === 'string' && TRAGUARDI.some((x) => x.id === t) ? t : undefined;
 }
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 const r2 = (v: number) => Math.round(v * 100) / 100;
@@ -69,9 +76,9 @@ export class Zone extends DurableObject<Env> {
       return new Response(null, { status: 101, webSocket: client });
     }
 
-    let parsedLook: Look = DEFAULT_LOOK;
-    try { parsedLook = { ...DEFAULT_LOOK, ...(JSON.parse(look) as Partial<Look>) }; } catch { /* look di default */ }
-    const peer: Peer = { id, nome, x: 0, z: 0, yaw: 0, mode: 'walk', anim: 'idle', look: parsedLook };
+    let parsedLook: Look = DEFAULT_LOOK, titolo: string | undefined;
+    try { const raw = JSON.parse(look) as Record<string, unknown>; parsedLook = asLook({ ...DEFAULT_LOOK, ...raw }) ?? DEFAULT_LOOK; titolo = asTitolo(raw); } catch { /* look di default */ }
+    const peer: Peer = { id, nome, x: 0, z: 0, yaw: 0, mode: 'walk', anim: 'idle', look: parsedLook, ...(titolo ? { titolo } : {}) };
     this.ctx.acceptWebSocket(server, [id]);
     server.serializeAttachment({ peer, hello: false, lastPos: 0 } satisfies Attach);
     return new Response(null, { status: 101, webSocket: client });
@@ -80,14 +87,15 @@ export class Zone extends DurableObject<Env> {
   /** Look salvato dal Worker (già validato lì: qui solo la forma). Vale anche per i socket che non hanno ancora fatto `hello`. */
   private async nuovoLook(req: Request): Promise<Response> {
     const id = req.headers.get('x-persona') ?? '';
-    let look: Look | null = null;
-    try { look = asLook(await req.json()); } catch { /* corpo rotto */ }
+    let look: Look | null = null, titolo: string | undefined;
+    try { const raw: unknown = await req.json(); look = asLook(raw); titolo = asTitolo(raw); } catch { /* corpo rotto */ }
     if (!id || !look) return new Response(null, { status: 400 });
     let any = false;
     for (const ws of this.ctx.getWebSockets(id)) {
       const a = this.att(ws);
       if (!a || a.gone) continue;
-      a.peer = { ...a.peer, look };
+      const { titolo: _via, ...resto } = a.peer; // il titolo arriva sempre insieme al look (#87): assente = tolto
+      a.peer = { ...resto, look, ...(titolo ? { titolo } : {}) };
       try { ws.serializeAttachment(a); any = true; } catch { /* socket già finito */ }
     }
     if (any) { this.dirty.add(id); this.schedule(); }

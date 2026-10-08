@@ -104,6 +104,15 @@ Le missioni di oggi non hanno una GET: client e server le calcolano dal lotto co
 | `POST /api/libro/firma` | `{ isola: idProprietario, emote }` → `LotState` dell'isola firmata. Nome dal link di chi firma, `emote` di `avatar.json`. 400 isola o saluto non validi, 404 isola inesistente, 409 `{ error, code: 'firma' }` sul proprio libro o se hai già firmato oggi (giorno UTC). Il libro tiene le ultime `RIENTRO.firme.tetto` firme; il proprietario riceve nel feed una riga `visita` — **nuovo** |
 
 Nuovi campi facoltativi di `LotState`: `visto?`, `ospiti?: { chi, nome, emote, quando }[]`, `finito?: { building, level, endsMs }` (ultimo cantiere chiuso da `advance`). `FeedTipo` + `'visita'` e `FeedItem.emote?` (il saluto della firma). Il campanello del feed ora c'è anche senza `?sfide=1`. `PROTOCOL_VERSION` resta 1.
+### Aggiunte Diario del capitano (#87, 8 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/diario/visto` | `{ animali?: string[], isole?: string[] }` (≤ 20 a lista) → `{ nuovi: { animali, isole }, lot }`: avvistamenti dal client. Si tengono solo id dei cataloghi (`diario.json` animali; isole dell'arcipelago che non sono lotti; `lotto:<persona>` solo di un'altra persona con un'isola, lo controlla il Worker), una volta. 400 se le liste non sono liste di stringhe — **nuovo** |
+| `POST /api/diario/riscuoti` | `{ id }` → `{ premio: Resources, traguardo, lot }`: RISCUOTI un traguardo compiuto (Perle nel lotto e nel libro mastro, una volta). 409 `{ error, code: 'traguardo' }` se non è compiuto o è già riscosso, 404 se non esiste — **nuovo** |
+| `POST /api/diario/titolo` | `{ id: string \| null }` → `LotState`: titolo sotto il nome (id di un traguardo **riscosso**; null lo toglie). 409 se non è riscosso, 404 se non esiste. Il Worker lo scrive anche nel look in D1 (`look.titolo`) e avvisa la Zone come `POST /api/look` — **nuovo** |
+
+Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, giocati, animali, isole, dungeon, riscossi, titolo }` (`DiarioState` in `economy/types.ts`). Pesci, perle (per tipo), medaglia migliore e partite li scrive `solo/play` dopo il replay; le spedizioni `dungeon/finish`. `GET /api/lot/:id` lo dà anche per gli altri (diario degli amici in sola lettura). `GET /api/me` e `/api/lots` hanno `look.titolo` se scelto; `POST /api/look` non lo tocca.
+**Presenza**: `Peer.titolo?: string` (id del traguardo; il client lo traduce col testo di `traguardi.json`). Arriva nel `welcome`/`join` (dal look in D1) e negli `snap` dopo un cambio di titolo. Campo facoltativo: `PROTOCOL_VERSION` resta 1.
 
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32 e `a, b` 0/1. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.

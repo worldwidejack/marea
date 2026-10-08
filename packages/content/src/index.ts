@@ -22,6 +22,7 @@ import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, ConsegneCfg, D
 import type { PinguiniCfg } from './types.ts'; // Ghiacci
 import type { KoiCfg } from './types.ts'; // Giardino
 import { validateAll, validateArchipelago, validateTemi } from './schema.ts';
+import { DIARIO, validateDiario } from './diario.ts'; // Diario del capitano (#87)
 
 export type * from './types.ts';
 
@@ -74,5 +75,7 @@ export function validateContent(): string[] {
     ...validateAll({ buildings: [...BUILDINGS], resources: [...RESOURCES], islands: [...ISLANDS], avatar: AVATAR, balance: BALANCE, decor: [...DECOR] }),
     ...validateArchipelago(ARCHIPELAGO, [...ISLANDS]),
     ...validateTemi(ARCHIPELAGO, [...BUILDINGS], AVATAR),
+    ...validateDiario(), // Diario del capitano (#87)
+    ...DIARIO.minigiochi.filter((m) => !Object.hasOwn(MINIGAMES_CFG, m.id)).map((m) => `diario: minigioco sconosciuto ${m.id}`),
   ];
 }

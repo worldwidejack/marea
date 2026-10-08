@@ -6,6 +6,9 @@
 // medaglia (balance.solo) e risponde {score, medal, detail, premio, premiata, lot}.
 // Bacheca del Porto (#64): POST /missione {i} → RISCUOTI {premio, missione, lot}. I contatori delle missioni di oggi li aggiornano qui
 // le azioni che il server verifica davvero (raccolte, cantieri, acquisti, partite da solo, spedizioni): `tracciaMissioni` di @marea/sim.
+// Diario del capitano (#87): POST /diario_visto {animali, isole} (avvistamenti dal client, solo id dei cataloghi) · /diario_riscuoti {id, amici}
+// → {premio, traguardo, lot} · /diario_titolo {id | null} → LotState. Pesci, perle, medaglie e partite li scrive `solo_play` dopo il replay,
+// le spedizioni `dungeon_finish` (registraPartita / registraDiscesa di @marea/sim/economy/diario.ts).
 // Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_save {inputs, hash} · /dungeon_finish {inputs, hash}.
 // Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
@@ -23,7 +26,8 @@ import { eventiPartita, eventiRaccolta, riscuotiMissione, tracciaMissioni } from
 import type { EventiMissione } from '@marea/sim/economy/missioni.ts';
 import { firmaLibro, rientra, segnaVisto } from '@marea/sim/economy/rientro.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
-import { isPackedInputs, replay } from '@marea/sim/replay.ts';
+import { isPackedInputs, replayPartita } from '@marea/sim/replay.ts';
+import { registraDiscesa, registraPartita, registraVisti, riscuotiTraguardo, scegliTitolo } from '@marea/sim/economy/diario.ts';
 import { fitHero } from '@marea/sim/rpg/hero.ts';
 import { chiudiScaduta } from '@marea/sim/dungeon/settle.ts';
 import type { EconomyErrorCode, LotState, Resources } from '@marea/sim/economy/types.ts';
@@ -37,6 +41,11 @@ const isRes = (v: unknown): v is Resources => {
   if (!v || typeof v !== 'object') return false;
   const r = v as Record<string, unknown>;
   return (['legno', 'pietra', 'perle'] as const).every((k) => Number.isInteger(r[k]) && (r[k] as number) >= 0);
+};
+/** Lista di id dal client: al massimo 20, stringhe corte. null = forma sbagliata. */
+const idList = (v: unknown): string[] | null => {
+  if (v === undefined || v === null) return [];
+  return Array.isArray(v) && v.length <= 20 && v.every((x) => typeof x === 'string' && x.length > 0 && x.length <= 48) ? (v as string[]) : null;
 };
 const MEDALS: readonly unknown[] = ['oro', 'argento', 'bronzo', null];
 function isRelease(v: unknown): v is Release {
@@ -55,6 +64,8 @@ function eventiAzione(act: string, prima: LotState, dopo: LotState): EventiMissi
 }
 /** Stato HTTP di un errore economico: richiesta rotta 400, cosa inesistente 404, il resto è un conflitto con lo stato (409). */
 const STATUS: Partial<Record<EconomyErrorCode, number>> = { sconosciuto: 404, posizione: 400, posta: 400 };
+/** Partite e spedizioni contano anche nel diario del capitano (#87). */
+const tornatoDaSpedizione = (l: LotState, now: number): LotState => registraDiscesa(tracciaMissioni(l, { dungeon: 1 }, now));
 
 export class Lot extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
@@ -100,7 +111,7 @@ export class Lot extends DurableObject<Env> {
       try { body = (await req.json()) as Record<string, unknown>; } catch { return json({ error: 'Richiesta non valida' }, 400); }
       if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
       if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now);
-      if (RPG_ACTS.has(act)) return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tracciaMissioni(l, { dungeon: 1 }, now));
+      if (RPG_ACTS.has(act)) return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
       if (act === 'rientro') {
         const out = rientra(lot, now);
         this.save(out.lot);
@@ -118,6 +129,7 @@ export class Lot extends DurableObject<Env> {
         this.save(next);
         return json(next);
       }
+      if (act.startsWith('diario_')) return this.diario(lot, act, body, now);
       if (act === 'missione') {
         const i = body['i'];
         if (typeof i !== 'number' || !Number.isInteger(i) || i < 0 || i > 9) return json({ error: 'Missione non valida' }, 400);
@@ -157,11 +169,38 @@ export class Lot extends DurableObject<Env> {
     if (!p) return json({ error: 'Nessuna partita aperta: riparti dal via', code: 'partita' }, 409);
     const inputs = body['inputs'];
     if (!isPackedInputs(inputs, getMinigame(p.minigame).maxTicks)) return json({ error: 'Partita non valida' }, 400);
-    const r = replay(p.minigame, p.seed, p.difficulty, inputs, p.opzioni);
+    const { result: r, raccolta } = replayPartita(p.minigame, p.seed, p.difficulty, inputs, p.opzioni);
     const out = finishSolo(lot, r.medal, now);
-    const next = tracciaMissioni(out.lot, eventiPartita(r.medal), now);
+    const next = registraPartita(tracciaMissioni(out.lot, eventiPartita(r.medal), now), p.minigame, r.medal, raccolta);
     this.save(next);
     return json({ score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: next });
+  }
+
+  /** Diario del capitano (#87): avvistamenti, RISCUOTI di un traguardo (paga il server, una volta), titolo sotto il nome. */
+  private diario(lot: LotState, act: string, body: Record<string, unknown>, now: number): Response {
+    if (act === 'diario_visto') {
+      const animali = idList(body['animali']), isole = idList(body['isole']);
+      if (!animali || !isole) return json({ error: 'Avvistamenti non validi' }, 400);
+      const out = registraVisti(lot, { animali, isole });
+      if (out.lot !== lot) this.save(out.lot);
+      return json({ nuovi: out.nuovi, lot: out.lot });
+    }
+    if (act === 'diario_riscuoti') {
+      const id = body['id'], amici = body['amici'];
+      if (!isId(id)) return json({ error: 'Traguardo non valido' }, 400);
+      const ctx = { amici: typeof amici === 'number' && Number.isInteger(amici) && amici >= 0 && amici < 1000 ? amici : 0 };
+      const out = riscuotiTraguardo(lot, id, now, ctx);
+      this.save(out.lot);
+      return json({ premio: out.premio, traguardo: out.traguardo, lot: out.lot });
+    }
+    if (act === 'diario_titolo') {
+      const id = body['id'];
+      if (id !== null && !isId(id)) return json({ error: 'Titolo non valido' }, 400);
+      const next = scegliTitolo(lot, id);
+      if (next !== lot) this.save(next);
+      return json(next);
+    }
+    return json({ error: 'Non trovato' }, 404);
   }
 
   private act(lot: LotState, act: string, body: Record<string, unknown>, now: number): LotState | Response {

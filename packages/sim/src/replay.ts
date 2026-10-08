@@ -45,10 +45,15 @@ export function quantize(f: InputFrame): InputFrame {
 }
 
 export function replay(id: string, seed: number, difficulty: Difficulty, packed: PackedInputs, opzioni?: MinigameOpzioni): MinigameResult {
+  return replayPartita(id, seed, difficulty, packed, opzioni).result;
+}
+
+/** Come `replay`, più quello che la partita ha raccolto (`module.raccolta`, #87: pesci, perle) per il diario del capitano. */
+export function replayPartita(id: string, seed: number, difficulty: Difficulty, packed: PackedInputs, opzioni?: MinigameOpzioni): { result: MinigameResult; raccolta: Record<string, number> } {
   const m = getMinigame(id);
   const s = m.create(opzioni ? { seed, difficulty, opzioni } : { seed, difficulty });
   const frames = unpackInputs(packed);
   if (frames.length > m.maxTicks) throw new Error('Input log troppo lungo');
   for (const f of frames) m.step(s, f);
-  return m.result(s);
+  return { result: m.result(s), raccolta: m.raccolta ? m.raccolta(s) : {} };
 }

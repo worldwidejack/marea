@@ -95,6 +95,13 @@ export type Api = {
   presenza(): Promise<void>;
   /** Firma il libro dell'isola di `isola` (id del proprietario) con una emote: risponde col suo lotto. 409 se hai già firmato oggi. */
   firma(isola: string, emote: string): Promise<LotState>;
+  // ---- Diario del capitano (#87) ----
+  /** Avvistamenti (animali passati vicino, isole visitate): il server tiene solo gli id dei cataloghi, una volta. */
+  diarioVisto(v: { animali?: string[]; isole?: string[] }): Promise<{ nuovi: { animali: string[]; isole: string[] }; lot: LotState }>;
+  /** RISCUOTI un traguardo compiuto: il server verifica, paga le Perle (una volta) e risponde col lotto. */
+  diarioRiscuoti(id: string): Promise<{ premio: Resources; lot: LotState }>;
+  /** Titolo sotto il nome (id di un traguardo riscosso; null = nessuno): lo vedono anche gli amici. */
+  diarioTitolo(id: string | null): Promise<LotState>;
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;
@@ -279,6 +286,18 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     },
     async presenza() { await call('POST', '/api/presenza', {}); },
     firma: (isola, emote) => post('/api/libro/firma', { isola, emote }),
+    async diarioVisto(v) {
+      const d = await call('POST', '/api/diario/visto', v);
+      const n = isObj(d) && isObj(d['nuovi']) ? d['nuovi'] : {};
+      const ids = (x: unknown) => (Array.isArray(x) ? x.filter((s): s is string => typeof s === 'string') : []);
+      return { nuovi: { animali: ids(n['animali']), isole: ids(n['isole']) }, lot: asLot(d) };
+    },
+    async diarioRiscuoti(id) {
+      const d = await call('POST', '/api/diario/riscuoti', { id });
+      if (!isObj(d) || !isObj(d['premio'])) throw new ApiError(500, 'Risposta del server non valida');
+      return { premio: d['premio'] as Resources, lot: asLot(d['lot']) };
+    },
+    diarioTitolo: (id) => post('/api/diario/titolo', { id }),
     async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
     buyHat: (id) => post('/api/look/hat', { cappello: id }),
     async feed() {
