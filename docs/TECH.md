@@ -59,6 +59,16 @@ La stessa `sim` gira nel browser (per giocare) e nel Durable Object (per **verif
 | FPS | 60 su iPhone 12+, ≥ 45 su Android medio, mai < 30 |
 Il `perf` test legge `window.__game.perf()` (draw call, triangoli, fps) durante 20 s di navigazione.
 
+### 5b. Come si sta nel budget (8 ott 2026, camera di serie a 22°)
+Con la camera bassa si vede fino all'orizzonte: senza accorgimenti si disegnava mezzo arcipelago (fino a 179 draw call e 313.000 triangoli). Le regole, tutte in `render/island.ts` e `render/island_sagoma.ts`:
+- **Culling per isola**: ogni isola ha una scatola stretta (rettangolo delle celle + 4 m, dal pelo dell'acqua alla cima); `Island.cull(camera)` (chiamato da `world.ts` prima di ogni render) spegne le isole la cui scatola è fuori inquadratura. Serve perché la sfera di un InstancedMesh di mezza isola scende di decine di metri sott'acqua ed entrava nell'inquadratura anche da isole invisibili.
+- **Sagoma da lontano**: oltre `LOD_M` (210 m dalla camera al bordo dell'isola, dove la foschia è già all'80 %) si disegna la sagoma: terreno a colori della palette, rive, scogliere, palme e blocchi degli edifici in **una** geometria (1 draw call, niente ombre, 1-6 mila triangoli); montagne, torri e decorazioni a tema riusano le loro geometrie. Isteresi 15 m.
+- **Scenografia minuta** (sassi, cespugli, casse, barili, lanterne, fili di lanterne): niente ombre e spenta oltre `MINUTI_M` (150 m).
+- **Tutto fuso per isola**: moduli del terreno, prop ed edifici glTF stanno tutti sull'atlas (materiali `mat_atlas` e `mat_emissivo`): si fondono in una geometria per isola, materiale e gruppo (vicino / minuti, con o senza ombra). Un'isola costa ~5-8 draw call invece di 15-30. Davanti agli ingressi dei dungeon niente scenografia (`createIsland({ libere })`).
+- **Edifici dei lotti** (`lot_*`, `game/lot.ts`): spenti fuori inquadratura o oltre `LOD_M`.
+- Un modello nuovo per le isole: **sull'atlas** (così si fonde). Una scenografia nuova vicino a un'isola: dentro il suo gruppo, o con un culling suo (come `temi_fx.ts`, `porto.ts`, `animali.ts`).
+- Controllo: `tests/e2e/m3_prestazioni.mjs` (giro di tutte le isole e del mare aperto, 22° e 45°, zoom di partenza e massimo, giorno e notte, telefono e PC; fallisce sopra 100 draw call o 150.000 triangoli; numeri in `tests/out/m3_prestazioni.json`). Hook di test `disegnati()`: mesh per mesh cosa si disegna nella vista e nell'ombra (con `PREST_DIAG=1` finisce nel json).
+
 ## 6. Cloudflare piano Free (verificato il 29 set 2026)
 | Servizio | Limite Free | Come lo usiamo |
 |---|---|---|

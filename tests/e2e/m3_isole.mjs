@@ -17,14 +17,14 @@ export default async function (ctx) {
   const ticks = (p) => p.page.evaluate(() => window.__game.state().wp2_boat.ticks);
   const waitTicks = async (p, n) => { const t0 = await ticks(p); await p.page.waitForFunction(([t0, n]) => window.__game.state().wp2_boat.ticks - t0 >= n, [t0, n], { timeout: 60000, polling: 50 }); };
   const isola = async (p, id) => (await st(p)).temi.isole.find((i) => i.id === id);
-  /** Budget TECH §5. `bassa`: camera di serie a 22° (far 900 m): lì si disegna mezzo arcipelago sotto la foschia e i triangoli
-   *  sforano già al Porto, alla Laguna e al Neon (problema che c'era prima delle isole a tema): si controllano solo i draw call. */
+  /** Budget TECH §5 (draw call e triangoli), anche con la camera di serie a 22° (`bassa`: solo per i numeri; dal culling per isola
+   *  e dalle sagome, render/island.ts, il giro completo lo controlla m3_prestazioni). */
   const budget = async (p, name, bassa = false) => {
     const perf = await ctx.getPerf(p.page);
     numbers[name] = { drawCalls: perf.drawCalls, triangles: perf.triangles, fps: perf.fps, camera: bassa ? '22°' : '45°' };
     ctx.log(name, JSON.stringify(numbers[name]));
     assert(perf.drawCalls > 0 && perf.drawCalls <= 100, `${name}: draw call ${perf.drawCalls}`);
-    if (!bassa) assert(perf.triangles <= 150000, `${name}: triangoli ${perf.triangles}`);
+    assert(perf.triangles <= 150000, `${name}: triangoli ${perf.triangles}`);
   };
   /** Barca verso l'isola a tutta forza per `s` secondi (tick veri): restituisce la distanza minima dal punto della barca dell'isola. */
   const verso = async (p, id, s) => {

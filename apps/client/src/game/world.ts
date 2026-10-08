@@ -13,6 +13,8 @@ import type { Lights } from '../render/light.ts';
 import type { Water } from '../render/water.ts';
 import { createWater } from '../render/water.ts';
 import { createIsland } from '../render/island.ts';
+import { LOD_M } from '../render/island_sagoma.ts';
+import { INGRESSI } from './ingressi.ts';
 import { createAvatar } from '../game/avatar.ts';
 import type { Avatar } from '../game/avatar.ts';
 import { createBoat } from '../game/boat.ts';
@@ -85,8 +87,27 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     map, loader: o.loader,
     areas: arch.places.map((p) => ({ id: p.island + (p.slot !== null ? '_' + p.slot : ''), x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, style: p.style, scenery: p.scenery })),
     props: arch.props, buildings: arch.buildings, paved: arch.paved,
+    // davanti agli ingressi dei dungeon niente scenografia (prima la toglieva ingressi.ts dagli InstancedMesh: ora i prop sono fusi)
+    libere: INGRESSI.flatMap((d) => { const p = arch.places.find((q) => q.island === d.island); return p ? [{ x: (p.origin[0] + d.at[0] + 0.5) * arch.tile, z: (p.origin[1] + d.at[1] + 0.5) * arch.tile, r: 6 }] : []; }),
   });
   scene.add(island.group);
+  // prima di ogni render: si disegnano solo le isole nell'inquadratura, da lontano la sagoma (render/island.ts, TECH §5);
+  // gli edifici dei lotti (game/lot.ts, gruppi «lot_*» nella scena) stanno nella loro isola: fuori inquadratura o oltre LOD_M non si disegnano
+  const lotti = { box: new Map<THREE.Object3D, THREE.Box3>(), frame: 0 }, fr = new THREE.Frustum(), pv = new THREE.Matrix4();
+  island.group.userData.preRender = () => {
+    const cam = o.renderer.camera;
+    island.cull?.(cam);
+    const rifai = lotti.frame++ % 30 === 0; // gli edifici cambiano di rado: la scatola si rifà ogni mezzo secondo
+    fr.setFromProjectionMatrix(pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    for (const g of scene.children) {
+      if (!g.name.startsWith('lot_')) continue;
+      let b = lotti.box.get(g);
+      if (!b || rifai) { g.visible = true; b = new THREE.Box3().setFromObject(g); lotti.box.set(g, b); }
+      if (b.isEmpty()) continue;
+      const dx = Math.max(b.min.x - cam.position.x, 0, cam.position.x - b.max.x), dz = Math.max(b.min.z - cam.position.z, 0, cam.position.z - b.max.z);
+      g.visible = fr.intersectsBox(b) && Math.hypot(dx, dz) < LOD_M;
+    }
+  };
   let look: Look = o.look ?? DEFAULT_LOOK;
   const avatar = await createAvatar({ loader: o.loader, look, x: home.x, z: home.z }); scene.add(avatar.object);
   avatar.setGround(island.groundY);
@@ -240,7 +261,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   // `island.spawn` = dove si nasce (il molo del proprio lotto o il Porto); `island.dock` = il punto del molo accanto alla barca ormeggiata.
   let spawnAt = { ...home }, dockAt = landingSpot(boat.state, map) ?? home;
   registerStateProvider('island', () => ({ id: map.id, w: map.w, h: map.h, tile: map.tile, spawn: spawnAt, dock: dockAt }));
-  registerStateProvider('arch', () => ({ slot, place: arch.placeAt(avatar.state.x, avatar.state.z)?.island ?? null, lots: arch.lots.length, chunks: island.chunks?.map((c) => ({ id: c.id, tris: c.tris, visible: c.group.visible })) }));
+  registerStateProvider('arch', () => ({ slot, place: arch.placeAt(avatar.state.x, avatar.state.z)?.island ?? null, lots: arch.lots.length, chunks: island.chunks?.map((c) => ({ id: c.id, tris: c.tris, visible: c.group.visible && c.group.parent?.visible !== false })) }));
   /** Porta a piedi sulla P di un'isola ('porto', 'laguna', 'neon', 'selvaggia', 'lotto:N') con la barca ormeggiata alla sua B. */
   const goto = (name: unknown): ArchPlace | null => {
     const n = String(name);
@@ -257,5 +278,22 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   registerTestHook('setZoom', (z) => diorama.setZoom(Number(z)));
   registerTestHook('setMode', (m) => { if (m === 'boat') { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; } else { mode = 'walk'; boat.setDriver(null); avatar.visible = true; avatar.teleport(spawnAt.x, spawnAt.z); } });
   registerTestHook('goto', (name) => { const p = goto(name); return p ? { island: p.island, slot: p.slot, x: p.spawn.x, z: p.spawn.z } : null; });
+  /** Test (prestazioni): cosa si disegna nel prossimo frame, mesh per mesh, nella vista e nel passo delle ombre (triangoli per mesh). */
+  registerTestHook('disegnati', () => new Promise((res) => {
+    const vista = new Set<THREE.Mesh>(), ombra = new Set<THREE.Mesh>(), prima = new Map<THREE.Object3D, [THREE.Object3D['onBeforeRender'], THREE.Object3D['onBeforeShadow']]>();
+    const nome = (n: THREE.Object3D) => { let p: THREE.Object3D | null = n, s = n.name || n.type; while ((p = p.parent)) if (p.name.startsWith('isola_')) { s = p.name + '/' + s; break; } return s; };
+    const tri = (n: THREE.Mesh) => { const g = n.geometry, c = (g.index ? g.index.count : g.attributes.position?.count ?? 0) / 3; return Math.round(c * ((n as THREE.InstancedMesh).isInstancedMesh ? (n as THREE.InstancedMesh).count : 1)); };
+    scene.traverse((n) => {
+      if (!(n as THREE.Mesh).isMesh) return;
+      prima.set(n, [n.onBeforeRender, n.onBeforeShadow]);
+      n.onBeforeRender = () => { vista.add(n as THREE.Mesh); };
+      n.onBeforeShadow = () => { ombra.add(n as THREE.Mesh); };
+    });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      for (const [n, [a, b]] of prima) { n.onBeforeRender = a; n.onBeforeShadow = b; }
+      const lista = (m: Set<THREE.Mesh>) => { const t = new Map<string, number>(); for (const n of m) t.set(nome(n), (t.get(nome(n)) ?? 0) + tri(n)); return [...t].sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ k, t: v })); };
+      res({ vista: lista(vista), ombra: lista(ombra) });
+    }));
+  }));
   return state;
 }

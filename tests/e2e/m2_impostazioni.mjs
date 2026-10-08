@@ -2,8 +2,8 @@
 // ciclo, camera 22°, contorni. il pannello si apre dall'ingranaggio, camera / ciclo /
 // stampa / contorni si accendono senza errori e dentro il budget (≤ 100 draw call), la scelta resta dopo il ricaricamento,
 // nel ciclo si vede la notte. Screenshot: tutto acceso di giorno e di notte, telefono e desktop.
-// MAX_DC: 120 provvisorio dall'8 ott 2026 (Porto con Mercante, Bacheca, gente e animali arriva a 104-107); torna a 100 col lavoro sulle prestazioni (ROADMAP §Deviazioni)
-const MAX_DC = 120;
+// MAX_DC: il budget di TECH §5 (provvisorio a 120 la mattina dell'8 ott 2026; tornato a 100 con le prestazioni a camera bassa, TECH §5b)
+const MAX_DC = 100;
 export const timeout = 360000; // su GitHub il gioco gira a 2-4 fps: con luci e stampa di notte la suite supera i 2 minuti
 export default async function (ctx) {
   const p = await ctx.open('?test=1&net=0');

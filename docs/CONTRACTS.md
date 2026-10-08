@@ -109,7 +109,9 @@ type Renderer = { scene: THREE.Scene; camera: THREE.PerspectiveCamera; render(al
 // render/water.ts (WP1)    createWater(o: { size: number }) → { mesh: THREE.Object3D; update(t: number): void }
 // render/sky.ts (WP1)      createSky() → { object: THREE.Object3D }   // bande a pixel
 // render/pixel.ts (WP1)    pixelScale(flags): number   // 0,5 normale, 0,4 low
-// render/island.ts (WP1)   createIsland(o: { map: GridMap; loader: Loader }) → Promise<{ group: THREE.Group }>   // moduli glTF dal manifest, fallback a box colorati dalla palette se un modello manca
+// render/island.ts (WP1)   createIsland(o: { map: GridMap; loader: Loader; areas?; props?; buildings?; paved?; libere?: {x,z,r}[] }) → Promise<Island = { group; groundY(x, z); props; drawCalls; chunks; cull(camera) }>   // moduli glTF dal manifest (fusi per isola e materiale), fallback a box colorati dalla palette se un modello manca; `libere` = cerchi senza scenografia (ingressi dei dungeon)
+//                          gerarchia: group → «vista_<id>» (cull: fuori inquadratura) → «isola_<id>_<n>» (lo nasconde chi vuole, es. nebbia del Giardino) → «vicino» (con «minuti») | «sagoma»; cull() va chiamato prima di ogni render (world.ts lo fa nel preRender)
+// render/island_sagoma.ts  sagomaGeometry(…) → geometria da lontano di un'isola; LOD_M 210, MINUTI_M 150, LOD_ISTERESI 15 (TECH §5b)
 // render/loader.ts (WP1)   createLoader(o: { base: string }) → Loader = { load(name: string): Promise<THREE.Group>; texture(name): Promise<THREE.Texture>; manifest: Manifest }   // NearestFilter, sRGB, cache; `manifest.json` in public/assets
 // render/aspetto.ts (#53)  createAspetto({ renderer, lights, water, map }) → { set(Impostazioni); update(nowMs, t); forzaFase(f|null) }   // si scarica con import() solo alla prima impostazione accesa
 // render/viste.ts (#53)    Impostazioni = { cam 0-4; ciclo; stampa; contorni; musica 0-3; effetti 0-3 }, DI_SERIE (ciclo, 22°, contorni, musica 2, effetti 3), SPENTO (test: tutto spento e muto), VOLUMI, VISTE (45/35/30/22/15°), CICLO_MIN   // dati leggeri per ui/impostazioni.ts; le impostazioni salvate senza musica/effetti prendono quelli di serie
@@ -131,7 +133,7 @@ type Renderer = { scene: THREE.Scene; camera: THREE.PerspectiveCamera; render(al
 // ui/hud.ts (WP0)          createHud(o: { root: HTMLElement; flags }) → { setPerf(s): void; toast(text: string, ms?: number): void }
 // test/testapi.ts (WP0)    installTestApi() → registerStateProvider(key, fn) · registerPerfProvider(fn) · registerTestHook(name, fn) · setReady()
 ```
-`window.__game = { ready: boolean, build: string, flags, state(): Record<string, unknown>, perf(): { drawCalls, triangles, fps, frameMs }, test: { teleport(x, z), setMode('walk'|'boat'), setZoom(z), ... } }`. Gli hook mutanti funzionano solo con `?test=1`. Ogni scena/modulo registra il suo pezzo di `state()`: `avatar`, `boat`, `camera`, `net`, `island`.
+`window.__game = { ready: boolean, build: string, flags, state(): Record<string, unknown>, perf(): { drawCalls, triangles, fps, frameMs }, test: { teleport(x, z), setMode('walk'|'boat'), setZoom(z), disegnati() → Promise<{ vista, ombra: { k, t }[] }> (mesh e triangoli del prossimo frame), ... } }`. Gli hook mutanti funzionano solo con `?test=1`. Ogni scena/modulo registra il suo pezzo di `state()`: `avatar`, `boat`, `camera`, `net`, `island`.
 
 ## 8. Server (`apps/server`, WP4)
 - `wrangler.jsonc`: `assets` = `../client/dist` con `run_worker_first: ["/api/*", "/ws/*"]`; D1 `DB`; DO `ZONE` (classe `Zone`), `LOT` (classe `Lot`), `new_sqlite_classes`.
