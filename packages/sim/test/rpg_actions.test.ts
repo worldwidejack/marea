@@ -60,9 +60,9 @@ test('rpg azioni: equip controlla slot, tipo e zaino; leggere un libro insegna l
   assert.throws(() => act(l, { t: 'equip', slot: 'magia', item: 'fulmine' }), isErr('equip'));
   l = act(l, { t: 'equip', slot: 'corpo', item: null });
   assert.equal(heroOf(l).equip.corpo, undefined);
-  assert.throws(() => act(l, { t: 'leggi', item: 'libro_fulmine' }), isErr('livello_skill'), 'Distruzione 30');
+  l = act(l, { t: 'leggi', item: 'libro_fulmine' });
   l = act(l, { t: 'leggi', item: 'libro_lupo_spettrale' });
-  assert.deepEqual(heroOf(l).magie, ['fiammata', 'lupo_spettrale']);
+  assert.deepEqual(heroOf(l).magie, ['fiammata', 'fulmine', 'lupo_spettrale'], 'i libri non chiedono livelli');
   assert.equal(heroOf(l).inv.libro_lupo_spettrale, undefined, 'il libro si consuma');
   l = act(l, { t: 'equip', slot: 'magia', item: 'lupo_spettrale' });
   assert.equal(heroOf(l).equip.magia, 'lupo_spettrale');

@@ -65,7 +65,7 @@ test('dungeon: nemici, tabelle e libri esistono; i boss stanno in fondo (Cripta 
     const b = boss[0]!, dist = Math.abs(b.cx - m.exit.cx) + Math.abs(b.cz - m.exit.cz);
     assert.ok(dist >= 20, `${d.id}: boss troppo vicino all'uscita (${dist})`);
   }
-  for (const id of ['lupo_spettrale', 'scheletro_evocato']) assert.ok(ids.has(id), `alleato ${id}`);
+  for (const id of ['lupo_spettrale', 'scheletro_evocato', 'golem_evocato']) assert.ok(ids.has(id), `alleato ${id}`);
 });
 
 test('dungeon: ingressi su celle calpestabili delle isole giuste, raggiungibili a piedi dalla P', () => {

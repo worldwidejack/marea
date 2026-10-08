@@ -1,6 +1,7 @@
 [
-  { "id": "fiammata", "nome": "Fiammata", "scuola": "distruzione", "costo": 15, "ricarica": 0.8, "danno": 14, "velocita": 12, "raggio": 0.5, "sanguina": 2, "livello": 0, "descr": "Una palla di fuoco che brucia per qualche secondo." },
-  { "id": "fulmine", "nome": "Fulmine", "scuola": "distruzione", "costo": 32, "ricarica": 1.5, "danno": 34, "velocita": 30, "raggio": 0.35, "livello": 30, "descr": "Un lampo velocissimo e potente." },
-  { "id": "lupo_spettrale", "nome": "Lupo spettrale", "scuola": "evocazione", "costo": 45, "ricarica": 10, "evoca": "lupo_spettrale", "durata": 30, "livello": 15, "descr": "Evoca un lupo spettrale che combatte per te per 30 s." },
-  { "id": "scheletro_evocato", "nome": "Scheletro evocato", "scuola": "evocazione", "costo": 70, "ricarica": 15, "evoca": "scheletro_evocato", "durata": 45, "livello": 30, "descr": "Evoca uno scheletro guerriero per 45 s." }
+  { "id": "fiammata", "nome": "Fiammata", "scuola": "distruzione", "costo": 15, "ricarica": 0.8, "danno": 14, "velocita": 12, "raggio": 0.5, "sanguina": 2, "descr": "Una palla di fuoco che brucia per qualche secondo." },
+  { "id": "fulmine", "nome": "Fulmine", "scuola": "distruzione", "costo": 32, "ricarica": 1.5, "danno": 34, "velocita": 30, "raggio": 0.35, "descr": "Un lampo velocissimo e potente." },
+  { "id": "lupo_spettrale", "nome": "Lupo spettrale", "scuola": "evocazione", "costo": 45, "ricarica": 10, "evoca": "lupo_spettrale", "durata": 30, "descr": "Evoca un lupo spettrale che combatte per te per 30 s." },
+  { "id": "scheletro_evocato", "nome": "Scheletro evocato", "scuola": "evocazione", "costo": 110, "ricarica": 15, "evoca": "scheletro_evocato", "durata": 45, "descr": "Evoca uno scheletro guerriero per 45 s." },
+  { "id": "golem_evocato", "nome": "Golem evocato", "scuola": "evocazione", "costo": 180, "ricarica": 25, "evoca": "golem_evocato", "durata": 40, "descr": "Evoca un golem di cristallo, lento e fortissimo, per 40 s." }
 ]

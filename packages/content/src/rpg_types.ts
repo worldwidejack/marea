@@ -69,8 +69,6 @@ export type SpellDef = {
   danno?: number; velocita?: number; raggio?: number; sanguina?: number;
   /** Evocazione: alleato (id di enemies.json) per `durata` s. */
   evoca?: string; durata?: number;
-  /** Livello di abilità richiesto per leggerne il libro. */
-  livello: number;
 };
 export type PerkDef = { id: string; skill: SkillId; nome: string; descr: string; livello: number; richiede?: string; mods: Partial<Record<ModKey, number>> };
 export type RecipeDef = { id: string; nome: string; ingredienti: Record<string, number>; risultato: string; n: number; livello: number };

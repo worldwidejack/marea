@@ -25,9 +25,10 @@
   { "id": "pozione_forza", "nome": "Pozione della forza", "kind": "pozione", "peso": 0.5, "colore": "#F2A33A", "buff": { "mod": "dannoPesanti", "valore": 0.3, "secondi": 60 }, "descr": "+30 % di danno con le armi pesanti per 60 s." },
 
   { "id": "libro_fiammata", "nome": "Libro: Fiammata", "kind": "libro", "peso": 1, "colore": "#E8433F", "insegna": "fiammata", "descr": "Insegna Fiammata." },
-  { "id": "libro_fulmine", "nome": "Libro: Fulmine", "kind": "libro", "peso": 1, "colore": "#F5D547", "insegna": "fulmine", "descr": "Insegna Fulmine (Distruzione 30)." },
-  { "id": "libro_lupo_spettrale", "nome": "Libro: Lupo spettrale", "kind": "libro", "peso": 1, "colore": "#3DF5FF", "insegna": "lupo_spettrale", "descr": "Insegna Lupo spettrale (Evocazione 15)." },
-  { "id": "libro_scheletro_evocato", "nome": "Libro: Scheletro evocato", "kind": "libro", "peso": 1, "colore": "#E8E1D6", "insegna": "scheletro_evocato", "descr": "Insegna Scheletro evocato (Evocazione 30)." },
+  { "id": "libro_fulmine", "nome": "Libro: Fulmine", "kind": "libro", "peso": 1, "colore": "#F5D547", "insegna": "fulmine", "descr": "Insegna Fulmine." },
+  { "id": "libro_lupo_spettrale", "nome": "Libro: Lupo spettrale", "kind": "libro", "peso": 1, "colore": "#3DF5FF", "insegna": "lupo_spettrale", "descr": "Insegna Lupo spettrale." },
+  { "id": "libro_scheletro_evocato", "nome": "Libro: Scheletro evocato", "kind": "libro", "peso": 1, "colore": "#E8E1D6", "insegna": "scheletro_evocato", "descr": "Insegna Scheletro evocato." },
+  { "id": "libro_golem_evocato", "nome": "Libro: Golem evocato", "kind": "libro", "peso": 1, "colore": "#A64DFF", "insegna": "golem_evocato", "descr": "Insegna Golem evocato." },
 
   { "id": "anello_vita_debole", "nome": "Anello della Vita Debole", "kind": "anello", "peso": 0.1, "colore": "#E8433F", "mods": { "vita": 20 }, "descr": "+20 Vita." },
   { "id": "anello_vita", "nome": "Anello della Vita", "kind": "anello", "peso": 0.1, "colore": "#E8433F", "mods": { "vita": 50 }, "descr": "+50 Vita." },
