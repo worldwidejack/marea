@@ -9,7 +9,7 @@ export type LedgerTotals = { generated: Resources; spent: Resources };
 /** Sfide lanciate oggi (giorno UTC = floor(nowMs / 86 400 000)): servono per le sfide gratis del Tavolo. */
 export type ChallengeCount = { day: number; used: number };
 /** Minigiochi da solo (senza posta): partita aperta dal server (seed) e conteggio del giorno UTC per il tetto dei premi. */
-export type SoloPending = { minigame: string; seed: number; difficulty: 1 | 2 | 3; startMs: number };
+export type SoloPending = { minigame: string; seed: number; difficulty: 1 | 2 | 3; startMs: number; /** Parametri della partita (es. il mare della pesca), già normalizzati dal modulo. */ opzioni?: Record<string, string> };
 export type SoloState = { day: number; premiate: number; giocate: number; pending: SoloPending | null };
 export type LotState = {
   owner: string;

@@ -69,6 +69,35 @@ export type BalanceDef = {
 /** Scacco in 3 (Tavolo del Porto): posizioni FEN (solo pezzi), il Bianco fa `mosse` mosse di fila e il Nero sta fermo. */
 export type ScacchiCfg = { nome: string; mosse: number; problemi: { fen: string; soluzione: string }[] };
 
+/** Pesca dalla barca (#66), minigioco universale: numeri e pesci in minigames/pesca.json. */
+export type PescaRarita = 'comune' | 'noncomune' | 'raro' | 'leggendario';
+export type PescaPesce = { id: string; nome: string; rarita: PescaRarita; forma: string; colori: [string, string, string]; battuta: string };
+export type PescaCfg = {
+  id: 'pesca';
+  nome: string;
+  maxSeconds: number;
+  /** Dove si può pescare: barca quasi ferma (m/s) e nessuna cella non profonda entro rivaM metri. */
+  posto: { fermoMs: number; rivaM: number };
+  lancioSecondi: number;
+  /** Attesa prima che abbocchi [min, max] s, abboccate finte [min, max] e quanto dura una finta. */
+  attesa: { secondi: [number, number]; finte: [number, number]; fintaSecondi: number };
+  /** Finestra per tirare quando abbocca, per difficoltà 1/2/3. */
+  abboccaSecondi: [number, number, number];
+  prestoSecondi: number;
+  scappatoSecondi: number;
+  presoSecondi: number;
+  recupero: { maxSecondi: number; strappi: number };
+  /** zona = larghezza della zona verde su 1000, velocita = passate della barra al secondo, colpi = tocchi giusti. */
+  rarita: Record<PescaRarita, { nome: string; peso: number; punti: number; colpi: number; zona: number; velocita: number }>;
+  /** Punti per la medaglia. */
+  medaglie: { oro: number; argento: number; bronzo: number };
+  autopilotaReazioneSecondi: number;
+  pesci: PescaPesce[];
+  /** Mari: isole (id di islands.json) che ci stanno vicino e pesci che ci vivono (almeno uno per rarità). */
+  mari: Record<string, { nome: string; isole: string[]; pesci: string[] }>;
+  mareDiSerie: string;
+  mareVicinoM: number;
+};
 export type RegataCfg = {
   id: 'regata';
   nome: string;

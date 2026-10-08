@@ -21,8 +21,9 @@ import type { Scacchi } from '../ui/scacchi.ts';
 import type { PackedInputs } from '@marea/sim';
 import { createLabelLayer, flyResources } from '../ui/sheet.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { createPostoPesca } from './pesca.ts';
 
-export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean };
+export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean; /** Parametri della partita per il server (es. il mare della pesca). */ opzioni?: Record<string, string> };
 export type Minigiochi = {
   readonly spots: readonly Spot[];
   /** Un tick (60 Hz): vicino a un posto, il fronte di salita di A fa partire la partita. */
@@ -37,7 +38,7 @@ export type Minigiochi = {
 
 const NEAR_M = 16;
 /** Gioco a schermo: la sua schermata sopra il mondo, restituisce gli input da far rigiocare al server (null = ritirato). */
-export type SchermoGioco = { run(o: { seed: number; difficulty: number }): Promise<PackedInputs | null>; isOpen(): boolean; esito?(detail: Record<string, unknown>): string };
+export type SchermoGioco = { run(o: { seed: number; difficulty: number; opzioni?: Record<string, string> }): Promise<PackedInputs | null>; isOpen(): boolean; esito?(detail: Record<string, unknown>): string };
 /** I giochi a schermo per id del minigioco, scaricati alla prima partita (il JS iniziale ha un tetto, TECH §5). */
 const SCHERMI: Record<string, (root: HTMLElement) => Promise<SchermoGioco>> = {};
 /** Registra un gioco a schermo (dal modulo del minigioco: posto in `spots` più schermata qui). */
@@ -89,7 +90,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   const esito = el('div', 'mz mz-esito'); esito.id = 'mzEsito';
   for (const e of [btn, esito]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   o.root.append(btn, esito);
-  let near: Spot | null = null, nearWas: Spot | null = null, aWas = false, busy = false, open = false, playedN = 0, last: (SoloResult & { spot: string }) | null = null;
+  let near: Spot | null = null, nearWas: Spot | null = null, aWas = false, busy = false, open = false, playedN = 0, last: (SoloResult & { spot: string }) | null = null, esitoSpot: Spot | null = null;
   btn.addEventListener('click', () => { if (near) void play(near); });
 
   const v = new THREE.Vector3();
@@ -103,9 +104,10 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   const onKey = (e: KeyboardEvent) => {
     if (!open) return;
     if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) { e.preventDefault(); e.stopImmediatePropagation(); closeEsito(); }
-    else if (e.code === 'KeyR') { e.preventDefault(); e.stopImmediatePropagation(); const s = spots.find((x) => x.id === last?.spot) ?? spots[0]; closeEsito(); if (s) void play(s); }
+    else if (e.code === 'KeyR') { e.preventDefault(); e.stopImmediatePropagation(); const s = esitoSpot ?? spots.find((x) => x.id === last?.spot) ?? spots[0]; closeEsito(); if (s) void play(s); }
   };
   function showEsito(s: Spot, medal: Medal, sub: string, premio: Resources | null, note: string | null): void {
+    esitoSpot = s; // RIGIOCA (R) rigioca questo, anche se il posto è mobile (pesca)
     const title = el('h2', '', medal ? MEDAL_TXT[medal]! : SCHERMI[s.minigame] ? 'FINITA' : 'ARRIVATO');
     title.style.color = medal ? MEDAL_C[medal]! : PAL.sabbiaChiara;
     esito.style.borderColor = medal ? MEDAL_C[medal]! : PAL.legnoChiaro;
@@ -144,10 +146,10 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     }
     busy = true; btn.classList.remove('on');
     try {
-      let seed = 0, difficulty = 2;
+      let seed = 0, difficulty = 2, opzioni = s.opzioni;
       const online = !!o.api?.enabled;
       if (online) {
-        try { const st = await o.api!.soloStart(s.minigame); seed = st.seed; difficulty = st.difficulty; }
+        try { const st = await o.api!.soloStart(s.minigame, s.opzioni); seed = st.seed; difficulty = st.difficulty; if (s.opzioni) opzioni = st.opzioni; }
         catch (e) { o.hud.toast(e instanceof ApiError ? e.message : 'Niente connessione, riprova tra poco', 3000); return; }
       } else seed = (Math.random() * 0x7fffffff) >>> 0; // senza link si gioca lo stesso, ma il premio non si salva
       busy = false; // da qui la gara tiene fermo il mondo da sé
@@ -157,7 +159,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
         schermo = schermi.get(s.minigame) ?? null;
         if (!schermo) { try { schermo = await load(o.root); schermi.set(s.minigame, schermo); } catch { o.hud.toast('Gioco non caricato: riprova', 2500); return; } }
       }
-      const inputs = schermo ? await schermo.run({ seed, difficulty }) : await runRegata({ challenge: { id: 'solo', minigame: s.minigame, difficulty, seed } });
+      const inputs = schermo ? await schermo.run({ seed, difficulty, ...(opzioni ? { opzioni } : {}) }) : await runRegata({ challenge: { id: 'solo', minigame: s.minigame, difficulty, seed } });
       if (!inputs) { o.hud.toast('Ritirato', 1500); return; }
       if (!online) { playedN++; showEsito(s, null, 'Partita di prova', null, 'Con il tuo link personale vinci Legno, Pietra e Perle'); return; }
       busy = true;
@@ -176,6 +178,11 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     } finally { busy = false; }
   }
 
+  // ---- Pesca (#66): minigioco universale, posto mobile (in barca, ferma, in mare aperto): bottone PESCA e tasto P in game/pesca.ts;
+  // la schermata (ui/pesca.ts) si scarica alla prima partita. Non sta in `spots` (niente boa, niente riga nella bussola).
+  registraSchermo('pesca', (root) => import('../ui/pesca.ts').then((m) => m.createPesca({ root })));
+  const pesca = createPostoPesca({ world: o.world, root: o.root, hud: o.hud, libero: () => !(busy || open || o.world.race.on || schermoAperto()), gioca: (sp) => { void play(sp); } });
+
   registerStateProvider('minigiochi', () => ({ spots, near: near?.id ?? null, busy, open, played: playedN, last }));
   registerTestHook('playSpot', (id) => { const s = spots.find((x) => x.id === String(id ?? 'regata')); if (s) void play(s); return !!s; });
   registerTestHook('closeEsito', () => { closeEsito(); return true; });
@@ -192,11 +199,13 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       if (near && near !== nearWas) o.hud.toast(`${near.nome}: premi A o tocca GIOCA`, 2500);
       nearWas = near;
       if (near && pressA) void play(near);
+      pesca.tick(); // Pesca (#66)
     },
     update(t) {
       const show = !!near && !busy && !open && !o.world.race.on && !schermoAperto();
       if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', 'A')); }
       btn.classList.toggle('on', show);
+      pesca.update(); // Pesca (#66)
       for (const m of marks) {
         m.holder.position.y = 0.1 * Math.sin(t * 2); m.holder.rotation.y = t * 0.5;
         const p = screenOf(m.s.x, m.s.boa ? 4.2 : 3.4, m.s.z);

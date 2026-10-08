@@ -76,6 +76,18 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 3. **Puzzle leggero** (2027) — tubi o tessere da ruotare con i moduli dell'isola.
 4. **Battaglia carte/unità in tempo reale** (2027) — richiede avversario live o bot, netcode a bassa latenza, bilanciamento: si fa dopo il collaudo di dicembre.
 
+**Minigiochi universali** (§3): si giocano ovunque, non hanno un posto fisso.
+- **Pesca dalla barca** (#66) — in barca **ferma** su acqua profonda, ad almeno 10 m dalla riva, compare **PESCA** (tasto P; la A resta l'acceleratore). 60 s: tocchi per lanciare, aspetti (il galleggiante a volte trema per finta: chi tira troppo presto spaventa il pesce), quando va sotto hai una finestra per tirare (0,9 / 0,7 / 0,55 s per difficoltà 1/2/3), poi il **recupero**: una barra va avanti e indietro e tocchi quando è nel verde; 2 tocchi fuori zona tollerati, al terzo scappa. Il tempo parte al primo tocco (prima il cartello delle regole coi pesci del mare). Il **mare** viene dall'isola più vicina (entro 40 m: Acque del Porto, Laguna; altrove Mare aperto) e decide quali pesci abboccano; rarità e punti sono uguali in ogni mare. Medaglie in punti: **oro 12, argento 8, bronzo 4** (il pilota di riferimento ne fa 13-37, ~22 di media; ~12 pesci al minuto).
+
+| Rarità | Probabilità | Punti | Tocchi nel verde | Zona verde | Barra |
+|---|---|---|---|---|---|
+| Comune | 55 % | 1 | 1 | 34 % | 0,85 passate/s |
+| Non comune | 28 % | 2 | 2 | 26 % | 1,0 |
+| Raro | 13 % | 3 | 2 | 20 % | 1,2 |
+| Leggendario | 4 % | 6 | 3 | 16 % | 1,3 |
+
+12 pesci: Sardina Pensierosa, Ciabatta Spaiata (non è un pesce, vale lo stesso), Ghiozzo Brontolone, Sgombro in Ritardo · Orata col Mutuo, Branzino Influencer, Granchio Burocrate · Pesce Palla Offeso, Polpo Multitasking · Tonno Pensionato, Pesce Lanterna Nostalgico, Pesce Spada Spuntato. Ogni mare ne ha 6 (almeno uno per rarità); le isole a tema avranno i loro (`minigames/pesca.json` → `mari`).
+
 Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anche chi perde prende qualcosa.
 
 ## 7. Sfide e wager

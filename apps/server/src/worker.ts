@@ -180,7 +180,7 @@ export default {
       if (path === '/api/solo/start' && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
-        return lotReq(env, p.id, now, 'solo_start', { minigame: body['minigame'] });
+        return lotReq(env, p.id, now, 'solo_start', { minigame: body['minigame'], opzioni: body['opzioni'] });
       }
       if (path === '/api/solo/play' && req.method === 'POST') {
         const body = await corpo(MAX_PLAY_BODY);

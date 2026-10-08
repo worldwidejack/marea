@@ -55,9 +55,10 @@ export function soloLeft(lot: LotState, nowMs: number): number {
   return Math.max(0, BALANCE.solo.premiateAlGiorno - soloOf(lot, nowMs).premiate);
 }
 /** Il server apre una partita: il seed lo sceglie lui (una sola aperta per volta: la nuova sostituisce la vecchia). */
-export function startSolo(lot: LotState, minigame: string, seed: number, nowMs: number, difficulty: 1 | 2 | 3 = 2): LotState {
+export function startSolo(lot: LotState, minigame: string, seed: number, nowMs: number, difficulty: 1 | 2 | 3 = 2, opzioni?: Record<string, string>): LotState {
   const s = soloOf(lot, nowMs);
-  return { ...lot, version: lot.version + 1, solo: { ...s, pending: { minigame, seed: seed >>> 0, difficulty, startMs: nowMs } } };
+  const pending = { minigame, seed: seed >>> 0, difficulty, startMs: nowMs, ...(opzioni && Object.keys(opzioni).length ? { opzioni: { ...opzioni } } : {}) };
+  return { ...lot, version: lot.version + 1, solo: { ...s, pending } };
 }
 export type SoloOutcome = { lot: LotState; premio: Resources; premiata: boolean };
 /**

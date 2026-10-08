@@ -1,6 +1,6 @@
 // Input log compresso (run-length) e replay deterministico: è ciò che il server usa per verificare un punteggio.
 import { getMinigame } from './minigames/registry.ts';
-import type { Difficulty, MinigameResult } from './minigames/types.ts';
+import type { Difficulty, MinigameOpzioni, MinigameResult } from './minigames/types.ts';
 import type { InputFrame } from './types.ts';
 
 /** [[ticks, mx, my, a, b], ...] con mx, my quantizzati a 1/32 e a, b come 0/1. */
@@ -44,9 +44,9 @@ export function quantize(f: InputFrame): InputFrame {
   return { mx: q(f.mx) / 32, my: q(f.my) / 32, a: f.a, b: f.b };
 }
 
-export function replay(id: string, seed: number, difficulty: Difficulty, packed: PackedInputs): MinigameResult {
+export function replay(id: string, seed: number, difficulty: Difficulty, packed: PackedInputs, opzioni?: MinigameOpzioni): MinigameResult {
   const m = getMinigame(id);
-  const s = m.create({ seed, difficulty });
+  const s = m.create(opzioni ? { seed, difficulty, opzioni } : { seed, difficulty });
   const frames = unpackInputs(packed);
   if (frames.length > m.maxTicks) throw new Error('Input log troppo lungo');
   for (const f of frames) m.step(s, f);
