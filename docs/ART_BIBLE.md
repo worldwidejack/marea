@@ -58,7 +58,7 @@ Pelle degli avatar (6 toni, dentro la palette estesa dell'atlas avatar): `#FBE2C
 ## 5. Personaggi
 - Stile **PS1 / Final Fantasy IX**: proporzioni quasi vere (**6 teste**), forme semplici, viso dipinto a pixel (occhi, sopracciglia, bocca: **mai** occhi a puntino, **mai** forme a blocchi o da giocattolo tipo Roblox / Fall Guys / KayKit).
 - Base: Quaternius Ultimate Modular Men/Women (CC0) o modellati in Blender da Jack; rig umanoide standard; **animazioni Mixamo** (idle, walk, run, sit, remata) ricondotte al rig e esportate in glTF.
-- Personalizzazione = mesh intercambiabili sullo stesso atlas (capelli, vestito, cappello) + colori da tabella (`avatar.json`). Le emote sono clip corte (saluto, esulta, ride, no).
+- Personalizzazione = mesh intercambiabili sullo stesso atlas (capelli, vestito, cappello) + colori da tabella (`avatar.json`). Le emote (8: saluto, esulta, ride, no, applauso, cuore, sorpresa, balla) oggi sono un fumetto a pixel sopra la testa (icone 16×16 in palette, contorno nero caldo) + per le ultime 4 un gesto del corpo a scatti (saltello/giro, niente clip); clip corte nel glb quando ci saranno.
 
 ## 6. Mood per zona
 | Zona | Materiali | Luce e accenti |

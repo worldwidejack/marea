@@ -90,11 +90,12 @@ export default async function (ctx) {
     let seenAt = 0;
     await ctx.test('Bruno vede il fumetto sopra Anna entro 1,5 s, sulla sua testa', async () => {
       // polling a intervallo (non a requestAnimationFrame: la scheda di Bruno è dietro); il ritardo vero lo dice l'età del fumetto
-      await bruno.page.waitForFunction(() => !!document.querySelector('.mz-emote[data-who="anna"][data-emote="saluto"]'), null, { timeout: LAT, polling: 30 });
+      await bruno.page.waitForFunction(() => !!document.querySelector('.mz-emote[data-who="anna"][data-emote="saluto"]'), null, { timeout: LAT + 1000, polling: 30 });
       seenAt = Date.now();
       const born = await bruno.page.evaluate(() => Date.now() - 1000 * (window.__game.state().emotes.shown.find((x) => x.who === 'anna')?.age ?? 0));
       ctx.log(`Bruno lo trova dopo ${seenAt - pressAt} ms (fumetto nato ${born - pressAt} ms dopo la pressione)`);
-      assert(seenAt - pressAt < LAT && born - pressAt < LAT, `Bruno lo vede dopo ${seenAt - pressAt} ms`);
+      // il requisito è sull'arrivo (età del fumetto, orologio di Bruno); la scheda di Bruno è dietro e Chrome rallenta il polling (~1 s): margine di 1 s sul ritrovamento
+      assert(born - pressAt < LAT && seenAt - pressAt < LAT + 1000, `Bruno lo vede dopo ${seenAt - pressAt} ms (nato dopo ${Math.round(born - pressAt)} ms)`);
       await bruno.page.bringToFront(); await sleep(150);
       const g = await bruno.page.evaluate(() => {
         const e = document.querySelector('.mz-emote[data-who="anna"]'), r = e.getBoundingClientRect(), c = document.getElementById('gl').getBoundingClientRect();

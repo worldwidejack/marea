@@ -67,7 +67,7 @@ export default async function (ctx) {
       assert(poco.body.riepilogo === null, 'dopo due minuti niente cartolina');
       const mio = await bea(2 * MIN, 'POST', '/api/libro/firma', { isola: 'bea', emote: 'saluto' });
       assert(mio.status === 409, 'firma sul proprio libro: ' + mio.status);
-      const brutta = await marco(2 * MIN, 'POST', '/api/libro/firma', { isola: 'bea', emote: 'balla' });
+      const brutta = await marco(2 * MIN, 'POST', '/api/libro/firma', { isola: 'bea', emote: 'tango' });
       assert(brutta.status === 400, 'saluto sconosciuto: ' + brutta.status);
       const nessuno = await marco(2 * MIN, 'POST', '/api/libro/firma', { isola: 'nessuno', emote: 'saluto' });
       assert(nessuno.status === 404, 'isola inesistente: ' + nessuno.status);

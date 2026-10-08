@@ -43,6 +43,8 @@ export type GameWorld = {
   setLook(l: Look): void;
   /** Punto sopra la testa (mondo): 'me' oppure l'id di un peer; in barca sopra la barca. null se non c'è. */
   anchorOf(id: 'me' | string): { x: number; y: number; z: number } | null;
+  /** Gesto delle emote (#90) sull'avatar a piedi di 'me' o di un peer: saltello `hop` (m) e giro `spin` (rad); (0, 0) lo riporta fermo. */
+  gesto(id: 'me' | string, hop: number, spin: number): void;
   /** Regata (F2): la barca la muove la sim del minigioco (game/regata.ts); il mondo la disegna, la segue con la camera e manda la posizione. */
   race: {
     readonly on: boolean;
@@ -225,6 +227,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       if (r.boatAt?.visible) return { x: r.boatAt.position.x, y: r.boatAt.position.y + BOAT_TOP_Y, z: r.boatAt.position.z };
       const p = r.avatar.object.position; return { x: p.x, y: p.y + HEAD_Y, z: p.z };
     },
+    gesto(id, hop, spin) { (id === 'me' ? avatar : remotes.get(id)?.avatar)?.gesto(hop, spin); },
     step(input: InputFrame) {
       if (frozen || racing) input = NO_INPUT; // la gara muove la barca da sé (race.set); col Tavolo aperto l'avatar sta fermo
       const pressA = input.a && !aWas; aWas = input.a;

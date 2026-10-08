@@ -21,7 +21,7 @@
 { t: 'hello', v: 1, build: string }                                  // subito dopo la connessione (token già nell'URL)
 { t: 'pos', x: number, z: number, yaw: number, mode: 'walk'|'boat', anim: string }   // 10 Hz, solo se cambiato
 { t: 'ping', c: number }                                             // c = performance.now() del client
-{ t: 'emote', id: 'saluto'|'esulta'|'ride'|'no' }                    // M1
+{ t: 'emote', id: EmoteId }                                          // M1 (8 emote dal #90, vedi sotto)
 
 // server → client
 { t: 'welcome', now: number, you: { id: string, nome: string }, zone: string, peers: Peer[] }
@@ -33,7 +33,9 @@
 
 type Peer = { id: string, nome: string, x: number, z: number, yaw: number, mode: 'walk'|'boat', anim: string, look: Look }
 type Look = { pelle: number, capelli: number, coloreCapelli: number, vestito: number, cappello: number }   // indici in avatar.json
+type EmoteId = 'saluto'|'esulta'|'ride'|'no'|'applauso'|'cuore'|'sorpresa'|'balla'   // EMOTE_IDS in packages/protocol; ordine = tasti 1-8
 ```
+**Emote (#90, 8 ott 2026)**: da 4 a 8 (`applauso`, `cuore`, `sorpresa`, `balla` in coda), stesso messaggio, `PROTOCOL_VERSION` invariata. Retrocompatibile: la Zone accetta e inoltra le 8; un client vecchio che riceve un id che non conosce lo scarta in silenzio (`parseServerMsg` → null, niente errore né chiusura) e le sue 4 continuano a passare. Un id fuori elenco dal client resta un messaggio non valido (conta per la chiusura 1003). Client e Zone vanno online insieme (stesso deploy).
 Ogni messaggio del server porta `now` (ms del server). Limiti: `pos` più fitte di 45 ms (oltre ~20 Hz) ignorate; oltre 60 messaggi/s ignorati; messaggio > 2 KB → chiusura **1009**; 10 messaggi non validi → chiusura **1003**; 33ª connessione → `error pieno` + chiusura **1013**; token o versione sbagliati → `error` + chiusura **1008**; stessa persona connessa altrove → la vecchia connessione chiude con **4000** (il client non riconnette e mostra «MAREA è aperta su un altro dispositivo»). Costanti in `packages/protocol` `CLOSE`. Presenza: il server accumula le `pos` e manda uno `snap` al massimo ogni 100 ms con i soli peer cambiati (nessuno snap se nessuno si muove).
 
 ## 4. HTTP (V1)
