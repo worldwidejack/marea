@@ -122,7 +122,7 @@ export default async function (ctx) {
       assert(Math.hypot(s.consegne.boat.x - lot0.x, s.consegne.boat.z - lot0.z) < 1, 'la barca non parte dal molo del lotto 0');
       assert(/Pacco per/.test(await page.$eval('#mzConsegneBig', (e) => e.textContent)), 'conto alla rovescia senza meta');
       await ctx.shot(page, 'pc_2_via');
-      await ctx.waitState(page, (q) => q.consegne.phase === 'race', 6000);
+      await ctx.waitState(page, (q) => q.consegne.phase === 'race', 30000); // il conto alla rovescia su GitHub (2-4 fps) dura di più
       await hook('consegneAuto', 1);
       await page.waitForTimeout(3500);
       const q = await st();

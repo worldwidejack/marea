@@ -50,7 +50,9 @@ export default async function (ctx) {
     ctx.assert(n > 0 && n <= 6, `luci accese di notte: ${n}`);
     const perf = await ctx.getPerf(p.page); ctx.log('perf notte', JSON.stringify(perf));
     ctx.assert(perf.drawCalls <= MAX_DC, `draw call ${perf.drawCalls}`);
-    await p.page.evaluate(() => window.__game.test.ciclo(0.2)); await p.page.waitForTimeout(600);
+    await p.page.evaluate(() => window.__game.test.ciclo(0.2));
+    // le luci si aggiornano a ogni fotogramma: su GitHub (2-4 fps) ci vuole più di ½ s
+    await ctx.waitState(p.page, (st) => st.aspetto.luci === 0, 10000).catch(() => {});
     ctx.assert((await ctx.getState(p.page)).aspetto.luci === 0, 'luci accese di giorno');
     await p.page.evaluate(() => window.__game.test.ciclo(0.6)); await p.page.waitForTimeout(600);
     await ctx.shot(p.page, 'iphone_tramonto_luci');
