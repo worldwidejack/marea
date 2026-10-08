@@ -8,6 +8,19 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const SERVER = path.join(ROOT, 'apps/server');
 
+// Tutti i wrangler accesi da questo processo (pid del gruppo): si spengono anche se la suite va in
+// timeout prima di ricevere l'oggetto, o se il runner viene interrotto (Ctrl+C, kill, uscita).
+const LIVE = new Set();
+function killGroup(pid, sig) { try { process.kill(-pid, sig); } catch { /* già morto */ } }
+/** Spegne subito (SIGKILL) tutti i wrangler ancora accesi da questo processo. */
+export function killAllWranglers() { for (const pid of LIVE) killGroup(pid, 'SIGKILL'); LIVE.clear(); }
+let hooked = false;
+function hookExit() {
+  if (hooked) return; hooked = true;
+  process.on('exit', killAllWranglers);
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.once(sig, () => { killAllWranglers(); process.exit(130); });
+}
+
 /** Porta TCP libera su 127.0.0.1. */
 export function freePort() {
   return new Promise((resolve, reject) => {
@@ -32,16 +45,17 @@ export async function startWrangler({ distDir, port, timeoutMs = 60000, persistD
     cwd: SERVER, stdio: ['ignore', 'pipe', 'pipe'], detached: true,
     env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false', NO_D1_WARNING: 'true', FORCE_COLOR: '0' },
   });
+  if (child.pid) { LIVE.add(child.pid); hookExit(); }
   let out = '';
   const grab = (d) => { out += d; if (out.length > 60000) out = out.slice(-40000); };
   child.stdout.on('data', grab); child.stderr.on('data', grab);
   let exited = false; child.on('exit', () => { exited = true; });
   const kill = () => new Promise((resolve) => {
-    if (exited) return resolve();
+    if (exited) { killGroup(child.pid, 'SIGKILL'); return resolve(); } // npx uscito: workerd può restare nel gruppo
     child.once('exit', () => resolve());
     try { process.kill(-child.pid, 'SIGTERM'); } catch { try { child.kill('SIGTERM'); } catch { /* già morto */ } }
-    setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* ok */ } resolve(); }, 4000).unref();
-  }).then(() => { if (!persistDir) fs.rmSync(persist, { recursive: true, force: true }); });
+    setTimeout(() => { killGroup(child.pid, 'SIGKILL'); resolve(); }, 4000).unref();
+  }).then(() => { LIVE.delete(child.pid); }).then(() => { if (!persistDir) fs.rmSync(persist, { recursive: true, force: true }); });
   const url = `http://127.0.0.1:${p}`;
   const t0 = Date.now();
   while (Date.now() - t0 < timeoutMs) {
