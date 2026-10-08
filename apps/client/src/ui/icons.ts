@@ -51,7 +51,9 @@ export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingr
   | 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'lucchetto' // Isole a tema (#68)
   | 'consegne' // Consegne
   | 'ingorgo' // Ingorgo
-  | 'perle'; // Perle
+  | 'perle' // Perle
+  | 'pinguini' // Ghiacci
+  | 'koi'; // Giardino
 const PIX: Record<PixId, string[]> = {
   casa: ['...RR...', '..RRRR..', '.RRRRRR.', 'RRRRRRRR', '.wwwwww.', '.wwccww.', '.wwccww.', '.wwccww.'],
   porto: ['RRRRRRRR', '.RRRRRR.', '..R..R..', 'RRRRRRRR', '..R..R..', '..R..R..', '..R..R..', '.cc..cc.'],
@@ -73,6 +75,8 @@ const PIX: Record<PixId, string[]> = {
   lucchetto: ['..rrrr..', '.r....r.', '.r....r.', 'YYYYYYYY', 'YYYnnYYY', 'YYYnnYYY', 'YYYYYYYY', '.YYYYYY.'],
   martello: ['.qqqqqq.', 'rqqqqqqr', '.rrbbrr.', '...ba...', '...ba...', '...ba...', '...ba...', '...cc...'],
   consegne: ['.nnnnnn.', 'nsssRssn', 'nsssRssn', 'nRRRRRRn', 'nsssRssn', 'nsssRssn', 'nsssRssn', '.nnnnnn.'], // pacco del corriere, spago rosso
+  pinguini: ['..nnnn..', '.nwnnwn.', '.nnOOnn.', 'nnppppnn', 'nnppppnn', '.nppppn.', '.nnppnn.', '.OO..OO.'], // Ghiacci: pinguino (Pinguini sul ghiaccio)
+  koi: ['........', '.....RR.', 'p..pRRpp', 'pppppRpn', 'p..RRppp', '....pp..', '........', '........'], // Giardino: carpa koi bianca e rossa
   ingorgo: ['qqq.ppp.', '........', 'RRRRR.Y.', 'RwwRRRYY', 'RRRRR.Y.', '........', '.ppp.qqq', '........'], // barca rossa che esce dall'ingorgo
 };
 

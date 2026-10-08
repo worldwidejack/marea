@@ -33,6 +33,12 @@ const CSS = `
 body.mz-sotto #mzTemaFumetto { display: none; }
 `;
 
+// Ghiacci e Giardino: i minigiochi delle isole (game/minigiochi.ts) chiedono qui se l'isola è aperta, senza passare da main.ts
+let attiva: Temi | null = null;
+/** L'isola a tema `id` è aperta per te adesso? (false prima che createTemi giri). */
+export function temaAperta(id: string): boolean { return attiva?.aperta(id) ?? false; }
+// fine Ghiacci e Giardino
+
 export function createTemi(o: {
   world: GameWorld; hud: Hud; loader: Loader; root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement;
   getLot(): LotState | null; notte(): boolean;
@@ -121,7 +127,7 @@ export function createTemi(o: {
   });
   registerTestHook('temiFx', () => caricaFx());
 
-  return {
+  const temi: Temi = {
     isole,
     aperta: (id) => !!stato[id]?.aperta,
     motivo: (id) => stato[id]?.motivo ?? '',
@@ -147,4 +153,6 @@ export function createTemi(o: {
       }
     },
   };
+  attiva = temi; // Ghiacci e Giardino
+  return temi;
 }

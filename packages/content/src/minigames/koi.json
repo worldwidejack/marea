@@ -1,0 +1,29 @@
+{
+  "id": "koi",
+  "nome": "Carpe koi",
+  "isola": "giardino",
+  "posto": [23, 19],
+  "maxSeconds": 60,
+  "stagno": { "w": 160, "h": 112, "bordo": 10 },
+  "cibo": {
+    "ritmo": [60, 96],
+    "doppio": 0.18,
+    "oro": 0.14,
+    "galla": 270,
+    "caduta": 36,
+    "chiamata": 16
+  },
+  "carpe": { "giro": 0.32, "corsa": 1.35, "virata": 0.16, "mangia": 18, "bocca": 5 },
+  "nera": {
+    "velocita": [0.55, 0.72, 0.9],
+    "vista": 80,
+    "sazia": 120,
+    "spavento": 100,
+    "fuga": 1.4,
+    "tocco": 15
+  },
+  "punti": { "petalo": 10, "oro": 30, "combo": 5, "comboMax": 3 },
+  "medaglie": { "oro": 0.5, "argento": 0.32, "bronzo": 0.15 },
+  "premioExtra": { "oro": { "legno": 6 } },
+  "_nota": "Carpe koi (Isola Giardino, sul ponticello rosso dello stagno; solo a isola aperta). Stagno visto dall'alto, unità = pixel (stagno.w × stagno.h, `bordo` = margine dove non cade niente). Il ciliegio fa cadere petali (e ogni tanto una briciola d'oro) a ritmo: un cibo ogni ritmo[0]-ritmo[1] tick, a volte due (doppio), d'oro con probabilità `oro`; resta a galla `galla` tick, si vede cadere `caduta` tick prima. Tocchi il cibo (entro `chiamata` px): la carpa colorata libera più vicina ci corre (carpe.corsa px/tick) e lo mangia. La carpa nera (velocità per difficoltà 1/2/3, vede il cibo entro `vista` px) lo ruba: la tocchi (entro `tocco` px) e scappa per `spavento` tick; dopo un furto è sazia per `sazia` tick. Punti: petalo/oro × (1 + combo÷punti.combo, al massimo comboMax); un furto azzera la combo. medaglie = frazione dei punti di tutto il cibo con la combo piena. premioExtra = risorse in più rispetto a balance.solo."
+}

@@ -4,6 +4,8 @@ import { pesca } from './pesca.ts';
 import { consegne } from './consegne/consegne.ts'; // Consegne
 import { ingorgo } from './ingorgo.ts'; // Ingorgo
 import { perle } from './perle.ts'; // Perle
+import { pinguini } from './pinguini.ts'; // Ghiacci
+import { koi } from './koi.ts'; // Giardino
 
 export const MINIGAMES: Record<string, MinigameModule<unknown>> = {
   regata: regata as unknown as MinigameModule<unknown>,
@@ -11,6 +13,8 @@ export const MINIGAMES: Record<string, MinigameModule<unknown>> = {
   consegne: consegne as unknown as MinigameModule<unknown>, // Consegne
   ingorgo: ingorgo as unknown as MinigameModule<unknown>, // Ingorgo
   perle: perle as unknown as MinigameModule<unknown>, // minigioco universale (dalla barca ferma su acqua bassa)
+  pinguini: pinguini as unknown as MinigameModule<unknown>, // Ghiacci: solo sull'isola, quando è aperta
+  koi: koi as unknown as MinigameModule<unknown>, // Giardino: solo sull'isola, quando è aperta
 };
 export function getMinigame(id: string): MinigameModule<unknown> {
   const m = MINIGAMES[id];
