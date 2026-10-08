@@ -366,6 +366,7 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, 'templari_start', { subito: body['subito'] });
       }
+      if (path === '/api/templari/reliquia' && req.method === 'POST') return lotReq(env, p.id, now, 'templari_reliquia', {});
       if (path === '/api/templari/finish' && req.method === 'POST') {
         const body = await corpo(MAX_TEMPLARI_BODY);
         if (body instanceof Response) return body;

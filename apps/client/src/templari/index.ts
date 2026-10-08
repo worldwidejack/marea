@@ -116,11 +116,11 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       hud = createTplHud(ctx.root, (id) => armaDef(id).nome, (id) => armaDef(id).tipo !== 'mischia');
       ctl = createControlli({ root: ctx.root, canvas: ctx.canvas, onEsci: esci });
       hero.tick(view.posa); zombi.tick(view); fx.tick(view);
-      sc.setPorte(s.porte);
+      sc.setPorte(s.porte); sc.setCalice(s.fase !== 'altare');
       ctx.renderer.setScene(sc.scene);
       ctx.renderer.diorama.setZoom(innerWidth < innerHeight ? 1.3 : 1.05); // al telefono in verticale un po' più largo: si vedono le finestre
       ctx.renderer.diorama.follow(view.eroe.x, 0.9, view.eroe.z); ctx.renderer.diorama.snap?.();
-      hud.grande('✠', PAL.rosso, o.subito ? 'Le ondate stanno per cominciare' : 'Porta la reliquia sull’altare (AZIONE)', 2600);
+      hud.grande('✠', PAL.rosso, o.subito ? 'Le ondate stanno per cominciare' : 'Porta il calice sull’altare (AZIONE)', 2600);
       fase = 'gioca';
     } catch (e) {
       console.error('[marea] templari non caricata', e);
@@ -138,7 +138,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'punti': hud.punti(e.n); break;
       case 'ondata': hud.grande(String(e.n), PAL.rosso, e.n === 1 ? 'I Templari si svegliano' : 'Arrivano', 2400); suona('via'); break;
       case 'ondataFinita': hud.grande(`ONDATA ${e.n}`, PAL.giallo, 'superata', 2200); suona('medaglia_bronzo'); break;
-      case 'reliquia': hud.grande('LA RELIQUIA', PAL.giallo, 'La terra trema. Qualcosa si muove sotto il sagrato.', 3200); suona('altare'); break;
+      case 'reliquia': sc?.setCalice(true); hud.grande('IL CALICE', PAL.giallo, 'La terra trema. Qualcosa si muove sotto il sagrato.', 3200); suona('altare'); break;
       case 'asse': if (e.da === 'eroe') suona('martello'); break;
       case 'mancato': suona('schivato'); break;
       case 'sparo': suona(armaDef(e.arma).tipo === 'fuoco' ? 'cannone' : 'lancio'); break;

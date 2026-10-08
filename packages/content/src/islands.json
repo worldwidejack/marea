@@ -390,6 +390,8 @@
     ],
     "props": [
       { "k": "faro_rovina", "at": [37, 8], "rot": 0.4 },
+      { "k": "relitto_templare", "at": [43.6, 9.4], "rot": 2.1 },
+      { "k": "scheletro", "at": [41.4, 10.2], "rot": -1.3 },
       { "k": "relitto", "at": [34, 24], "rot": 0.7 },
       { "k": "relitto", "at": [8, 18], "rot": -0.5 },
       { "k": "bandiera_pirata", "at": [16, 31] },

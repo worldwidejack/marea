@@ -1,6 +1,9 @@
 // La partita a ondate nel lotto (docs/TEMPLARI.md §10): il server apre la partita col seed, a fine partita rigioca gli input e paga le ondate
 // superate (Legno, Pietra, Perle a ondata, fino a maxOndate) entro il tetto del giorno UTC. Il record resta nel lotto. Pura.
+// In più lo sblocco dell'isola (§2): il calice preso accanto allo scheletro sotto il faro della Tempesta resta nel lotto (`reliquie`).
+import { ARCHIPELAGO } from '@marea/content';
 import { TEMPLARI } from '@marea/content/templari.ts';
+import { sbloccoTema, viaggiatore } from '../world/temi.ts';
 import { advance } from '../economy/advance.ts';
 import { EconomyError, ZERO, add } from '../economy/types.ts';
 import type { LotState, Resources, TemplariLotto } from '../economy/types.ts';
@@ -13,6 +16,15 @@ const NESSUNO: TemplariLotto = { pending: null, giorno: 0, preso: { ...ZERO }, r
 export function templariOf(lot: LotState, nowMs: number): TemplariLotto {
   const t = lot.templari ?? NESSUNO, g = Math.floor(nowMs / DAY);
   return t.giorno === g ? t : { ...t, giorno: g, preso: { ...ZERO } };
+}
+
+/** Il calice dei Templari (la reliquia `id`) preso accanto allo scheletro sotto il faro della Tempesta: serve aver aperto la Tempesta (lo
+ *  scheletro sta lì), poi la nebbia rossa si dirada per sempre. `nuova` false = ce l'avevi già (niente cambia). */
+export function prendiReliquia(lot: LotState, id = 'templari'): { lot: LotState; nuova: boolean } {
+  if ((lot.reliquie ?? []).includes(id)) return { lot, nuova: false };
+  const tempesta = ARCHIPELAGO.islands.find((i) => i.island === 'tempesta')?.tema?.sblocco;
+  if (tempesta && !sbloccoTema(tempesta, viaggiatore(lot, null)).aperta) throw new EconomyError('requisito', 'La tempesta non ti lascia arrivare al relitto: prima alza il Molo');
+  return { lot: { ...lot, version: lot.version + 1, reliquie: [...(lot.reliquie ?? []), id] }, nuova: true };
 }
 
 /** Premio pieno per `superate` ondate (prima del tetto). */

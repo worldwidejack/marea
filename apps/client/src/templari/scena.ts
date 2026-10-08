@@ -23,6 +23,8 @@ export type Scena = {
   update(hx: number, hz: number, t: number, assi: readonly number[], trappole: TView['trappole']): void;
   /** Porte aperte: la porta e il suo cartello spariscono. */
   setPorte(aperte: Record<string, boolean>): void;
+  /** Il calice dei Templari sull'altare (dopo che l'hai posato; nelle prove ⚔ c'è già). */
+  setCalice(visibile: boolean): void;
   stats(): { muri: number; bassi: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number };
   dispose(): void;
 };
@@ -381,6 +383,16 @@ export function createScena(a: Arena): Scena {
   add(new THREE.BoxGeometry(0.16, 0.16, 0.8), rossoMat, 0.5, 2.05, 0);
   const fiammaMat = new THREE.MeshBasicMaterial({ color: PAL.giallo });
   for (const z of [-1.1, -0.6, 0.6, 1.1]) { add(new THREE.BoxGeometry(0.1, 0.35, 0.1), tovMat, -0.3, 1.27, z); add(new THREE.BoxGeometry(0.08, 0.12, 0.08), fiammaMat, -0.3, 1.52, z); }
+  // il calice d'oro coi rubini, davanti alla croce (si accende quando lo posi)
+  const caliceGeo = unisci([
+    { g: new THREE.CylinderGeometry(0.13, 0.15, 0.05, 8), c: PAL.arancio, y: 0.025 },
+    { g: new THREE.CylinderGeometry(0.03, 0.04, 0.2, 6), c: PAL.giallo, y: 0.15 },
+    { g: new THREE.OctahedronGeometry(0.06, 0), c: PAL.arancio, y: 0.16 },
+    { g: new THREE.CylinderGeometry(0.12, 0.05, 0.16, 8), c: PAL.giallo, y: 0.33 },
+    ...[0, 2.1, 4.2].map((r): Pezzo => ({ g: new THREE.BoxGeometry(0.035, 0.035, 0.035), c: PAL.rosso, x: Math.cos(r) * 0.1, y: 0.32, z: Math.sin(r) * 0.1 })),
+  ]);
+  const caliceAlt = new THREE.Mesh(caliceGeo, new THREE.MeshBasicMaterial({ vertexColors: true })); caliceAlt.name = 'calice';
+  caliceAlt.scale.setScalar(1.5); caliceAlt.position.set(0, 1.1, 0); caliceAlt.visible = false; altare.add(caliceAlt); disp.push(caliceGeo, caliceAlt.material as THREE.Material);
   scene.add(altare); disp.push(pietraMat, tovMat, rossoMat, fiammaMat);
 
   // ---- finestre: stipiti e assi (orizzontali nel piano del muro) ----
@@ -534,6 +546,7 @@ export function createScena(a: Arena): Scena {
       campana.rotation.x = accesa ? Math.sin(ts * 2.8) * 1.2 : Math.sin(ts * 0.8) * 0.04;
     },
     setPorte(aperte) { for (const [id, l] of porte) for (const o of l) o.visible = !aperte[id]; },
+    setCalice(v) { caliceAlt.visible = v; },
     stats: () => ({ muri: muri.length, bassi: bassiN, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats() }),
     dispose() { arredi.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
   };

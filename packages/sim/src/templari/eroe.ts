@@ -200,7 +200,7 @@ function offerta(s: TState, m: Muro): { munizioni: boolean; prezzo: number } | n
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
 export function prompt(s: TState): TPrompt {
   if (s.done) return null;
-  if (s.fase === 'altare' && vicinoAltare(s)) return { cosa: 'reliquia', testo: 'Posa la reliquia', prezzo: 0, puoi: true };
+  if (s.fase === 'altare' && vicinoAltare(s)) return { cosa: 'reliquia', testo: 'Posa il calice', prezzo: 0, puoi: true };
   if (vicinoCassa(s)) {
     const c = s.cassa;
     if (c.fase === 'chiusa') return { cosa: 'cassa', testo: 'Cassa del tesoro', prezzo: TEMPLARI.cassa.prezzo, puoi: s.punti >= TEMPLARI.cassa.prezzo };

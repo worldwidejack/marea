@@ -9,7 +9,9 @@ import { stepTemplari, templari } from '../src/templari/templari.ts';
 import type { TState } from '../src/templari/templari.ts';
 import { inputsTemplari, parseTAzioni, replayTemplari } from '../src/templari/replay.ts';
 import { quantiOndata, vitaOndata } from '../src/templari/stato.ts';
-import { finishTemplari, premioOndate, startTemplari } from '../src/templari/premio.ts';
+import { finishTemplari, premioOndate, prendiReliquia, startTemplari } from '../src/templari/premio.ts';
+import { sbloccoTema, viaggiatore } from '../src/world/temi.ts';
+import { EconomyError } from '../src/economy/types.ts';
 import { newLot } from '../src/economy/actions.ts';
 
 /** Gioca col pilota fino a `ticks` (o alla fine): input quantizzati e registrati come fa il client. */
@@ -97,4 +99,18 @@ test('templari: premio per ondata superata col tetto del giorno', () => {
   // il giorno dopo si riparte
   lot = startTemplari(lot, 1, now + 86_400_000);
   assert.equal(finishTemplari(lot, r(2), now + 86_400_000).premio.legno, 30);
+});
+
+test('il calice della Tempesta: serve la Tempesta aperta (Molo 2), poi resta nel lotto e apre l’isola; la seconda volta non cambia niente', () => {
+  const lot = newLot('anna', 1_800_000_000_000);
+  assert.throws(() => prendiReliquia(lot), (e: unknown) => e instanceof EconomyError && e.code === 'requisito');
+  const molo2 = { ...lot, buildings: lot.buildings.map((b) => (b.building === 'molo' ? { ...b, level: 2 } : b)) };
+  const r = prendiReliquia(molo2);
+  assert.equal(r.nuova, true);
+  assert.deepEqual(r.lot.reliquie, ['templari']);
+  assert.equal(r.lot.version, molo2.version + 1);
+  assert.ok(sbloccoTema({ tipo: 'reliquia', reliquia: 'templari' }, viaggiatore(r.lot, null)).aperta, 'la nebbia rossa non si dirada');
+  const again = prendiReliquia(r.lot);
+  assert.equal(again.nuova, false);
+  assert.equal(again.lot, r.lot);
 });
