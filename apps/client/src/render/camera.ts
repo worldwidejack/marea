@@ -14,6 +14,10 @@ export type DioramaCamera = {
   snap?(): void;
   /** Cambia inclinazione (rad), FOV (°) e distanza (m) della vista. Solo le pagine di prova (provapixel): il gioco usa sempre CAM. */
   setView?(pitch: number, fov: number, dist: number): void;
+  /** Modalità foto (#109): gira attorno al bersaglio (yaw, rad) e cambia inclinazione (rad, mai sotto l'orizzonte). La yaw di serie è CAM.YAW. */
+  orbit?(yaw: number, pitch: number): void;
+  /** Inclinazione attuale (rad). */
+  readonly pitch?: number;
 };
 export const CAM = { PITCH: Math.PI / 4, YAW: Math.PI / 4, FOV: 30, DIST: 28, ZMIN: 0.6, ZMAX: 2.2, SMOOTH: 0.22, ZOOM_SMOOTH: 0.12 } as const;
 const clamp = (z: number) => Math.min(CAM.ZMAX, Math.max(CAM.ZMIN, z));
@@ -29,7 +33,7 @@ function damp(cur: number, target: number, vel: { v: number }, smooth: number, d
 }
 
 export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasElement; pitch?: number; fov?: number; dist?: number; far?: number }): DioramaCamera {
-  let pitch = o.pitch ?? CAM.PITCH, dist = o.dist ?? CAM.DIST;
+  let pitch = o.pitch ?? CAM.PITCH, dist = o.dist ?? CAM.DIST, yaw: number = CAM.YAW;
   const camera = new THREE.PerspectiveCamera(o.fov ?? CAM.FOV, o.aspect, 1, o.far ?? 300);
   const target = new THREE.Vector3(), cur = new THREE.Vector3();
   const vx = { v: 0 }, vy = { v: 0 }, vz = { v: 0 }, vzoom = { v: 0 };
@@ -38,7 +42,7 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
   let zoom = portrait ? 1.3 : 1, zoomTarget = zoom, first = true;
   // Offset unitario camera → bersaglio: da sud-est (yaw 45°) guardando a nord-ovest, 45° dall'alto.
   const off = new THREE.Vector3();
-  const aim = () => off.set(Math.sin(CAM.YAW) * Math.cos(pitch), Math.sin(pitch), Math.cos(CAM.YAW) * Math.cos(pitch));
+  const aim = () => off.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
   aim();
 
   const onWheel = (e: WheelEvent) => {
@@ -77,6 +81,8 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
     },
     snap: () => { cur.copy(target); vx.v = vy.v = vz.v = 0; place(); },
     setView: (p, fov, d) => { pitch = p; dist = d; aim(); camera.fov = fov; camera.updateProjectionMatrix(); place(); },
+    orbit: (y, p) => { yaw = y; pitch = Math.min(Math.PI / 2 - 0.05, Math.max(0.05, p)); api.yaw = yaw; aim(); place(); },
+    get pitch() { return pitch; },
     setZoom: (z) => { zoomTarget = clamp(z); zoom = zoomTarget; vzoom.v = 0; api.zoom = zoom; place(); },
     update: (dt) => {
       if (!(dt > 0)) return;

@@ -30,6 +30,7 @@ import { createIngressi } from './game/ingressi.ts';
 import { createEroe } from './ui/eroe.ts';
 import { createPorto } from './game/porto.ts';
 import { createImpostazioni } from './ui/impostazioni.ts';
+import { createFoto } from './ui/foto.ts';
 import { createDiario } from './game/diario.ts';
 import { createTarghette } from './game/targhette.ts';
 import { diarioOf, titoloDi } from '@marea/sim/economy/diario.ts';
@@ -177,7 +178,7 @@ async function boot(): Promise<void> {
     }).catch(() => { aspettoLoad = null; hud.toast('Impostazioni non caricate: riprova'); });
   };
   let guidaRef: Guida | null = null; // la guida si crea più sotto (dopo i passi); le Impostazioni la riaccendono
-  createImpostazioni({ root, onChange: applica, guida: { on: () => !(guidaRef?.chiusa() ?? false), set: (v) => guidaRef?.setChiusa(!v) } });
+  const impostazioni = createImpostazioni({ root, onChange: applica, guida: { on: () => !(guidaRef?.chiusa() ?? false), set: (v) => guidaRef?.setChiusa(!v) } });
   collegaAudio({ world, root, momento: () => aspetto?.momento ?? 'giorno', gioco: () => giochi.isBusy(), dungeon: () => ingressi.active }); // suoni e musica (audio/ponte.ts), al primo gesto
   registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
   registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
@@ -198,6 +199,7 @@ async function boot(): Promise<void> {
   // Un solo listener in bubble: i pannelli aperti fermano il keydown in capture, quindi qui arrivano solo i tasti «liberi».
   addEventListener('keydown', (e) => {
     if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.code === 'KeyO' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) { foto.open(); return; } // modalità foto (#109): dentro, O ed Esc escono (ui/foto_ui.ts)
     if (e.code === 'KeyC') { if (editor?.isOpen()) editor.close(); else openEditor(); return; }
     if (e.code === 'KeyF') { if (feed?.isOpen()) feed.close(); else openFeed(); return; }
     if (e.code === 'KeyM') { if (!panelsBusy()) mappa?.toggle(); return; }
@@ -257,15 +259,30 @@ async function boot(): Promise<void> {
     },
   });
   guidaRef = guida;
+  // Modalità foto (#109): macchina fotografica nella barra in alto o tasto O; interfaccia via, camera che gira attorno, SCATTA con cornice.
+  // Il codice vero (ui/foto_ui.ts) si scarica alla prima apertura; lo scatto è un render apposito letto nello stesso frame.
+  const postoDi = (f: { x: number; z: number }): string | null => {
+    const p = arch.placeAt(f.x, f.z) ?? arch.places.find((q) => dentro(q, f.x, f.z)) ?? null;
+    if (!p) return 'In mare aperto';
+    if (p.role !== 'lotto') return p.nome;
+    const chi = me && p.slot === world.slot ? me.nome : owners.find((w) => w.slot === p.slot)?.nome;
+    return chi ? `Isola di ${chi}` : null;
+  };
+  const foto = createFoto({
+    root, hud, canvas, diorama: renderer.diorama, rendi: () => renderer.render(acc / DT, t), posto: () => postoDi(qui()),
+    puo: () => !(regata.active || giochi.isBusy() || ingressi.active || ingressi.isBusy()),
+    prima: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); libri.close(); diario.close(); mappa?.close(); impostazioni.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); },
+  });
+  const FERMO = { mx: 0, my: 0, a: false, b: false }; // in modalità foto l'avatar sta fermo (il mondo no)
   let last = performance.now(), acc = 0, t = 0;
   const frame = (now: number) => {
     const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt; t += dt;
     let steps = 0;
     while (acc >= DT && steps < 5) {
-      const f = input.sample();
+      const f0 = input.sample(), f = foto.isOpen() ? FERMO : f0;
       if (ingressi.active) { ingressi.step(f); acc -= DT; steps++; continue; } // nel dungeon il mondo di superficie sta fermo
       if (regata.active) regata.step(f); else { const aP = porto.tick(f.a), aPorto = libri.tick(f.a && !aP) || aP; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
-      world.frozen = (diario.isOpen() || porto.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || !!eroe?.isOpen()) && !regata.active;
+      world.frozen = (diario.isOpen() || porto.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || !!eroe?.isOpen() || foto.isOpen()) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
