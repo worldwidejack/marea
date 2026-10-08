@@ -53,7 +53,9 @@ export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingr
   | 'ingorgo' // Ingorgo
   | 'perle' // Perle
   | 'pinguini' // Ghiacci
-  | 'koi'; // Giardino
+  | 'koi' // Giardino
+  | 'arrembaggio' // Tempesta: nave pirata dell'Arrembaggio
+  | 'lava'; // Vulcano: fiamma sul basalto della Fuga dalla lava
 const PIX: Record<PixId, string[]> = {
   casa: ['...RR...', '..RRRR..', '.RRRRRR.', 'RRRRRRRR', '.wwwwww.', '.wwccww.', '.wwccww.', '.wwccww.'],
   porto: ['RRRRRRRR', '.RRRRRR.', '..R..R..', 'RRRRRRRR', '..R..R..', '..R..R..', '..R..R..', '.cc..cc.'],
@@ -66,6 +68,8 @@ const PIX: Record<PixId, string[]> = {
   mercante: ['..cccc..', '.c....c.', 'aaaaaaaa', 'abbbbbba', 'abpwwpba', 'abpwwpba', 'abbppbba', '.aaaaaa.'], // sacchetto con le Perle (Mercante del Porto)
   bacheca: ['cccccccc', 'cwwRawwc', 'cwwawwwc', 'cawwRwwc', 'cwwwawwc', 'cccccccc', '.c....c.', '.c....c.'], // bacheca con i foglietti delle missioni
   parla: ['.wwwwww.', 'wwwwwwww', 'wnwnwnww', 'wwwwwwww', '.wwwwww.', '..ww....', '.ww.....', '........'], // fumetto: parla con la gente del Porto
+  arrembaggio: ['...R....', '...nn...', '..nnnn..', '.nnpnnn.', '.nnnnnn.', '...b....', 'bbbbbbbb', '.cccccc.'], // Tempesta: nave pirata dalla vela nera
+  lava: ['...Y....', '..YOY...', '.YOROY..', '.ORRRO..', '..ORO...', 'rrrrrrrr', 'rnrrnrrn', 'nnnnnnnn'], // Vulcano: fiamma di lava sul basalto
   perle: ['..pppp..', '.pwwppq.', '.pwpppq.', '.ppppqq.', '..qqqq..', 'rr....rr', 'rqqrrqqr', '.rrrrrr.'], // perla sulla conchiglia aperta (Perle)
   // isole a tema (#68): fulmine dalla nuvola, fiocco di neve, vulcano che fuma lava, fiore di ciliegio; lucchetto = isola chiusa
   tempesta: ['..nnnn..', '.nrrrrn.', 'nrrrrrrn', '.nnnYnn.', '...YY...', '..YYYY..', '....YY..', '....Y...'],

@@ -15,7 +15,9 @@ export type SuonoId =
   | 'boa' | 'bip' | 'via' | 'arrivo' | 'raffica'
   | 'apri' | 'chiudi' | 'click' | 'emote' | 'notifica'
   | 'lancio' | 'plop' | 'abbocca' | 'pesce' | 'scappato'
-  | 'colpo_dato' | 'colpo_critico' | 'colpo_preso' | 'schivato' | 'nemico_ko' | 'raccolto' | 'pozione' | 'magia' | 'altare' | 'vuoto' | 'goccia';
+  | 'colpo_dato' | 'colpo_critico' | 'colpo_preso' | 'schivato' | 'nemico_ko' | 'raccolto' | 'pozione' | 'magia' | 'altare' | 'vuoto' | 'goccia'
+  | 'cannone' | 'tuono' // Tempesta: Arrembaggio
+  | 'salto' | 'sfrigola'; // Vulcano: Fuga dalla lava
 export type MusicaModo = 'giorno' | 'notte' | 'gara' | 'dungeon' | 'silenzio';
 export type Meteo = 'sereno' | 'pioggia' | 'vento';
 /** Quello che il motore legge dal gioco a ogni frame (main.ts lo passa una volta con collegaAudio). */

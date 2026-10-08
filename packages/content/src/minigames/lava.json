@@ -1,0 +1,19 @@
+{
+  "id": "lava",
+  "nome": "Fuga dalla lava",
+  "maxSeconds": 60,
+  "isola": "vulcano",
+  "posto": [16, 24],
+  "velocita": 1,
+  "scena": { "lava": 120, "alto": 64, "basso": 106 },
+  "fisica": { "gravita": 0.16, "gravitaTenuto": 0.07, "salto": 2.9, "tenutoMax": 16, "cadutaMax": 4, "coyote": 5, "anticipo": 6, "gradino": 8 },
+  "scottatura": { "punti": 15, "rimbalzo": 3.6, "invulnerabileSecondi": 1 },
+  "affonda": { "ritardoSecondi": 0.25, "velocita": 0.3 },
+  "geyser": { "periodoSecondi": [2, 3], "attivoSecondi": 0.9, "avvisoSecondi": 0.5, "alto": 58 },
+  "punti": { "ossidiana": 10, "scintilla": 25, "rubino": 60 },
+  "difficolta": { "geyser": [0.6, 1, 1.3], "buchi": [0.85, 1, 1.1] },
+  "medaglie": { "oro": 0.5, "argento": 0.3, "bronzo": 0.12 },
+  "premioExtra": { "oro": { "pietra": 20 } },
+  "autopilota": { "orizzonte": 80 },
+  "_nota": "Fuga dalla lava (Isola Vulcano, vicino al cratere). Vista di profilo: corri da solo verso destra a `velocita` px/tick sulle colonne di basalto sopra un mare di lava; TOCCA = salto, TIENI PREMUTO = salto più lungo (gravitaTenuto per al massimo tenutoMax tick). Le rocce crepate affondano dopo il primo passo, i geyser eruttano a tempo (avviso prima). Toccare la lava o un geyser = scottatura: −punti, rimbalzo in su, invulnerabile (e niente premi) per invulnerabileSecondi. Prendi ossidiana, scintille (in alto) e rubini. Unità = pixel della schermata 192×136 (y cresce in giù), per tick (60 al secondo). medaglie = frazione dei punti di tutto il percorso. premioExtra = risorse in più rispetto a balance.solo (l'ossidiana dà pietra)."
+}

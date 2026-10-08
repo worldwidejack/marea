@@ -97,4 +97,18 @@ export const SUONI: Record<SuonoId, Ricetta> = {
   altare: (m, t) => { campana(m, t, hz(76), 0.09, 1.1); campana(m, t + 0.15, hz(83), 0.07, 1.1); campana(m, t + 0.3, hz(88), 0.06, 1.3); },
   vuoto: (m, t) => m.tono({ f: 180, f2: 140, onda: 'square', t, dur: 0.12, vol: 0.06, lp: 900 }),
   goccia: (m, t) => { const f = 1100 * vari(0.25); for (const [dt, v] of [[0, 0.05], [0.18, 0.018]] as const) m.tono({ f, f2: f * 1.7, onda: 'sine', t: t + dt, dur: 0.06, vol: v }); },
+  // ---- Tempesta: Arrembaggio ----
+  cannone: (m, t) => {
+    m.tono({ f: 95 * vari(0.06), f2: 38, onda: 'square', t, dur: 0.32, vol: 0.16, lp: 700 }); // botto
+    m.soffio({ tipo: 'lowpass', f: 2200, f2: 300, t, dur: 0.5, vol: 0.22, a: 0.004 }); // vampata e fumo
+    m.soffio({ f: 3400, q: 1.2, t, dur: 0.05, vol: 0.08 });
+  },
+  tuono: (m, t, k) => {
+    m.soffio({ tipo: 'lowpass', f: 900, f2: 120, t, dur: 1.6, vol: 0.12 + 0.1 * k, a: 0.03 }); // rombo lontano
+    m.tono({ f: 55 * vari(0.1), f2: 35, onda: 'triangle', t: t + 0.05, dur: 1.2, vol: 0.09 });
+    m.soffio({ tipo: 'lowpass', f: 1400, f2: 200, t: t + 0.35, dur: 0.9, vol: 0.07, a: 0.05 });
+  },
+  // ---- Vulcano: Fuga dalla lava ----
+  salto: (m, t) => m.tono({ f: 330 * vari(0.04), f2: 660, onda: 'impulso', t, dur: 0.09, vol: 0.06, lp: 3000 }),
+  sfrigola: (m, t) => { m.soffio({ f: 5200 * vari(0.1), q: 0.8, t, dur: 0.45, vol: 0.09, a: 0.01 }); m.tono({ f: 140, f2: 70, onda: 'square', t, dur: 0.18, vol: 0.06, lp: 800 }); },
 };

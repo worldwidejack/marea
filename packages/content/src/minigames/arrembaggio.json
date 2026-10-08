@@ -1,0 +1,22 @@
+{
+  "id": "arrembaggio",
+  "nome": "Arrembaggio",
+  "maxSeconds": 60,
+  "isola": "tempesta",
+  "posto": [34, 9],
+  "scena": { "cannone": [37, 57], "mare": 112, "uscita": 214 },
+  "tiro": { "dir": [0.6, -0.8], "vMin": 1.1, "vMax": 3.4, "gravita": 0.08, "caricaSecondi": 1, "ricaricaSecondi": 0.4, "palle": 36 },
+  "vento": { "max": 0.006, "rafficaSecondi": [3, 6], "cambioSecondi": 1 },
+  "navi": {
+    "galeone": { "nome": "Galeone", "punti": 10, "lungo": 34, "alto": 31, "velocita": 0.22, "peso": 3 },
+    "brigantino": { "nome": "Brigantino", "punti": 20, "lungo": 26, "alto": 26, "velocita": 0.34, "peso": 4 },
+    "sloop": { "nome": "Sloop", "punti": 40, "lungo": 18, "alto": 20, "velocita": 0.52, "peso": 4 },
+    "tesoro": { "nome": "Nave del tesoro", "punti": 80, "lungo": 18, "alto": 20, "velocita": 0.72, "peso": 1 }
+  },
+  "arrivi": { "primoSecondi": 0.4, "intervalloSecondi": [1.3, 2.6] },
+  "difficolta": { "velocita": [0.85, 1, 1.15], "vento": [0.6, 1, 1.3] },
+  "lampiSecondi": [4, 9],
+  "medaglie": { "oro": 0.5, "argento": 0.35, "bronzo": 0.12 },
+  "premioExtra": { "oro": { "legno": 20 } },
+  "_nota": "Arrembaggio (Isola della Tempesta, posto sul promontorio del faro). Vista di profilo: il cannone sul faro in rovina a sinistra, le navi pirata passano sul mare. TIENI PREMUTO = la potenza sale e scende (caricaSecondi su + caricaSecondi giù), LASCIA = spari (tiro.palle palle a partita: sparare a caso non basta); la palla parte lungo tiro.dir a una velocità tra vMin e vMax, la gravità la tira giù, il vento la spinge di lato (cambia a raffiche). Una palla che tocca una nave la affonda (punti della nave); le piccole e veloci valgono di più. Unità = pixel della schermata 192×136, per tick (60 al secondo). Le navi arrivano da un mazzo coi pesi, una ogni intervalloSecondi. medaglie = frazione dei punti di tutte le navi della partita. premioExtra = risorse in più rispetto a balance.solo (i relitti danno legno)."
+}

@@ -25,3 +25,5 @@ export * from './minigames/ingorgo.ts'; // Ingorgo
 export * from './minigames/perle.ts'; // Perle
 export * from './minigames/pinguini.ts'; // Ghiacci
 export * from './minigames/koi.ts'; // Giardino
+export * from './minigames/arrembaggio.ts'; // Tempesta
+export * from './minigames/lava.ts'; // Vulcano
