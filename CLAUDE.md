@@ -11,6 +11,7 @@
 **Comandi**: `npm run dev` (client, proxy verso `npm run dev:server`) · `npm run build` · `npm run check` · `node tests/run.mjs static types sim boot` (veloce) · `npm test` (tutto, ~10 min) · `npm run assets` · `/consegna` (chiude il lavoro e lo manda online).
 
 ## Flusso di lavoro (per tutti)
+0. **Prima di qualsiasi modifica: `git switch main && git pull`** (all'inizio di ogni sessione e di ogni lavoro nuovo). Perché e casi particolari: `AI_LEGGI_PRIMA.md`.
 1. Un lavoro = una **issue** assegnata a te. Non c'è? Creala prima di iniziare, così gli altri sanno che ci sei sopra.
 2. Un **ramo** per lavoro (`nome/cosa-fai`), partendo da `main` aggiornato. **Mai commit o push diretti su `main`.**
 3. Lavoro piccolo: una PR = una cosa. Meglio tre PR da un'ora che una da una settimana (meno conflitti con gli altri).
