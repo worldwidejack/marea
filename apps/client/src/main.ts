@@ -96,7 +96,7 @@ async function boot(): Promise<void> {
   // senza sfide con posta il Tavolo del Porto diventa il posto di Scacco in 3
   const tavoloAt = arch.buildings.find((b) => b.kind === 'tavolo') ?? null;
   const giochi = createMinigiochi({ world, loader, api: me && api.enabled ? api : null, hud, root, camera: renderer.camera, canvas, onLot: () => refreshMyLot(), tavolo: FLAGS.sfide ? null : tavoloAt });
-  for (const sp of giochi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z });
+  for (const sp of giochi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, ...(sp.aperta ? { show: sp.aperta } : {}) }); // aperta: minigiochi delle isole a tema (Ghiacci, Giardino)
   // Mondo Sotterraneo (docs/RPG.md, CONTRACTS §15): ingressi dei dungeon sulle isole e scheda del personaggio; il codice vero è nel chunk GDR
   const setMyLot = (l: LotState) => { lots.find((lv) => !lv.readonly)?.set(l); };
   const ingressi = createIngressi({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot });

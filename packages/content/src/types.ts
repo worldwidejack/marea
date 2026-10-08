@@ -207,3 +207,50 @@ export type IngorgoCfg = {
   /** Livelli per fascia, generati con `node tools/ingorgo_livelli.mjs` (la soluzione minima la verificano i test). */
   livelli: Record<string, IngorgoLivello[]>;
 };
+
+// Ghiacci
+/** Pinguini sul ghiaccio (minigioco dell'Isola dei Ghiacci, solo a isola aperta): livelli generati con tools/pinguini_livelli.mjs, scelti dal seed. */
+export type PinguiniFascia = { mosse: [number, number]; pinguini: [number, number]; buche: [number, number]; iceberg: [number, number] };
+/** Un livello: righe di `lato` caratteri ('.' ghiaccio, '#' iceberg, 'o' buca, 'A' 'B' 'C' i pinguini) e mosse della soluzione più corta. */
+export type PinguiniLivello = { righe: string[]; mosse: number };
+export type PinguiniCfg = {
+  id: 'pinguini';
+  nome: string;
+  /** Isola a tema dove si gioca (id del template): il posto c'è solo quando è aperta. */
+  isola: string;
+  /** Cella locale [x, z] dell'isola dove sta il posto. */
+  posto: [number, number];
+  maxSeconds: number;
+  /** Lato della lastra di ghiaccio, in celle. */
+  lato: number;
+  /** Fasce dei livelli per difficoltà (1, 2, 3): una lettera per livello della partita, nell'ordine. */
+  partite: { '1': string[]; '2': string[]; '3': string[] };
+  fasce: Record<string, PinguiniFascia>;
+  pausaSecondi: number;
+  autopilotaSecondi: number;
+  /** Livelli risolti per la medaglia. */
+  medaglie: { oro: number; argento: number; bronzo: number };
+  premioExtra?: PremioExtra;
+  /** Livelli per fascia, generati con `node tools/pinguini_livelli.mjs` (la soluzione minima la verificano i test). */
+  livelli: Record<string, PinguiniLivello[]>;
+};
+// fine Ghiacci
+
+// Giardino
+/** Carpe koi (minigioco dell'Isola Giardino, solo a isola aperta): stagno visto dall'alto, unità = pixel. */
+export type KoiCfg = {
+  id: 'koi';
+  nome: string;
+  isola: string;
+  posto: [number, number];
+  maxSeconds: number;
+  stagno: { w: number; h: number; bordo: number };
+  cibo: { ritmo: [number, number]; doppio: number; oro: number; galla: number; caduta: number; chiamata: number };
+  carpe: { giro: number; corsa: number; virata: number; mangia: number; bocca: number };
+  nera: { velocita: [number, number, number]; vista: number; sazia: number; spavento: number; fuga: number; tocco: number };
+  punti: { petalo: number; oro: number; combo: number; comboMax: number };
+  /** Frazione dei punti di tutto il cibo (con la combo piena) per la medaglia. */
+  medaglie: { oro: number; argento: number; bronzo: number };
+  premioExtra?: PremioExtra;
+};
+// fine Giardino

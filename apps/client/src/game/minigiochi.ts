@@ -25,11 +25,13 @@ import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { createPostoPesca } from './pesca.ts';
 import { suona } from '../audio/ponte.ts';
 import { createPostoPerle } from './perle.ts'; // Perle
+import { temaAperta } from './temi.ts'; // Ghiacci e Giardino
 
 /** `opzioni` = parametri della partita per il server (es. il mare della pesca); `posto` = molo dove si gioca ('porto', 'lotto:N':
  *  lo riceve il gioco); `aPiedi` = parte solo a piedi (in barca A accelera); `vista` = il cartello si vede solo entro tanti metri;
- *  `mete: false` = non va nella bussola; `model` = modello del manifest sul posto. */
-export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean; opzioni?: Record<string, string>; posto?: string; aPiedi?: boolean; vista?: number; mete?: boolean; model?: string };
+ *  `mete: false` = non va nella bussola; `model` = modello del manifest sul posto; `aperta` = il posto c'è solo quando è vera (minigiochi
+ *  delle isole a tema: Ghiacci, Giardino), anche nella bussola. */
+export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean; opzioni?: Record<string, string>; posto?: string; aPiedi?: boolean; vista?: number; mete?: boolean; model?: string; aperta?: () => boolean };
 export type Minigiochi = {
   readonly spots: readonly Spot[];
   /** Un tick (60 Hz): vicino a un posto, il fronte di salita di A fa partire la partita. `f` = l'input intero (giochi in barca). */
@@ -99,6 +101,26 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   // Ingorgo (minigioco universale): sull'altro lato di ogni molo; schermata a pixel (ui/ingorgo.ts) scaricata alla prima partita.
   universali('ingorgo', 'ingorgo', 'prop_barile');
   registraSchermo('ingorgo', (root) => import('../ui/ingorgo.ts').then((m) => m.createIngorgo({ root })));
+  /** Posto del minigioco di un'isola a tema: la cella `posto` (locale) dell'isola `isola` del suo json; c'è solo quando l'isola è aperta
+   *  (regola di @marea/sim/world/temi.ts, via game/temi.ts), a piedi, nella bussola solo da aperta. */
+  const diIsola = (minigame: string, icon: PixId) => {
+    const c = (MINIGAMES_CFG as unknown as Record<string, { nome: string; isola?: string; posto?: [number, number] }>)[minigame];
+    const p = c?.isola && c.posto ? arch.places.find((q) => q.island === c.isola) : undefined;
+    if (!c || !p || !c.posto) return;
+    const isola = p.island;
+    spots.push({
+      id: `${minigame}:${isola}`, nome: c.nome, minigame, x: (p.origin[0] + c.posto[0] + 0.5) * arch.tile, z: (p.origin[1] + c.posto[1] + 0.5) * arch.tile,
+      icon, near: 3, boa: false, aPiedi: true, vista: 50, aperta: () => temaAperta(isola),
+    });
+  };
+  // Ghiacci: Pinguini sul ghiaccio, vicino agli igloo; schermata a pixel (ui/pinguini.ts) scaricata alla prima partita
+  diIsola('pinguini', 'pinguini');
+  registraSchermo('pinguini', (root) => import('../ui/pinguini.ts').then((m) => m.createPinguini({ root })));
+  // fine Ghiacci
+  // Giardino: Carpe koi, sul ponticello rosso dello stagno; schermata a pixel (ui/koi.ts) scaricata alla prima partita
+  diIsola('koi', 'koi');
+  registraSchermo('koi', (root) => import('../ui/koi.ts').then((m) => m.createKoi({ root })));
+  // fine Giardino
   let chClosedAt = 0, scacchi: Scacchi | null = null;
   const schermi = new Map<string, SchermoGioco>();
   /** Una schermata (scacchi o gioco a schermo) è aperta: il mondo sta fermo. */
@@ -168,6 +190,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
 
   async function play(s: Spot): Promise<void> {
     if (busy || open || o.world.race.on || schermoAperto()) return;
+    if (s.aperta && !s.aperta()) return; // Ghiacci e Giardino: isola ancora chiusa
     if (s.minigame === 'scacchi') {
       btn.classList.remove('on');
       if (performance.now() - chClosedAt <= 400) return;
@@ -234,7 +257,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       if (input) for (const g of schermi.values()) if (g.isOpen()) g.step?.(input); // giochi nel mondo (Consegne): la loro sim gira qui
       if (o.world.race.on || busy || open || schermoAperto()) { near = null; return; }
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
-      near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near && (!s.aPiedi || o.world.mode === 'walk')) ?? null;
+      near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near && (!s.aPiedi || o.world.mode === 'walk') && (!s.aperta || s.aperta())) ?? null;
       if (near && near !== nearWas) o.hud.toast(`${near.nome}: premi A o tocca GIOCA`, 2500);
       nearWas = near;
       if (near && pressA) void play(near);
@@ -253,7 +276,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
         if (m.s.boa) { m.holder.position.y = 0.1 * Math.sin(t * 2); m.holder.rotation.y = t * 0.5; }
         else m.holder.position.y = o.world.groundY(m.s.x, m.s.z);
         const p = screenOf(m.s.x, m.s.boa ? 4.2 : 3.4, m.s.z);
-        const vicino = !m.s.vista || Math.hypot(me.x - m.s.x, me.z - m.s.z) < m.s.vista; // i posti dei giochi universali si vedono solo da vicino
+        const vicino = (!m.s.vista || Math.hypot(me.x - m.s.x, me.z - m.s.z) < m.s.vista) && (!m.s.aperta || m.s.aperta()); // i posti dei giochi universali si vedono solo da vicino; quelli delle isole a tema solo da aperte
         m.label.place(p.x, p.y, p.on && vicino && !o.world.race.on);
       }
     },

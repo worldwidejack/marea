@@ -27,7 +27,7 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
   - **Isola dei Ghiacci** (nord): neve, scogliere di ghiaccio, iceberg, igloo, pinguini, aurora boreale di notte. Il mare gela e la barca si ferma finché il **personaggio** (Mondo Sotterraneo) non è al **livello 3**.
   - **Isola Vulcano** (est): cono con cratere di lava, spiaggia d'ossidiana, capanne, bracieri, teste di pietra, fumo e cenere. Ci sbarchi, ma gli abitanti ti rimettono in barca se non indossi la **Lanterna in testa** (cappello a Perle).
   - **Isola Giardino** (sud-ovest): ciliegi in fiore, tempio, torii e lanterne di pietra, stagno con le carpe koi e il ponticello rosso. Nascosta nella nebbia, dove la barca si perde e torna indietro, finché non hai la **mappa**: la regala la prima medaglia d'oro in un minigioco.
-  - I minigiochi propri delle isole a tema non ci sono ancora: per ora sono mete da sbloccare.
+  - Minigiochi propri (§6, tabella «Isole a tema»): **Ghiacci → Pinguini sul ghiaccio** (vicino agli igloo), **Giardino → Carpe koi** (sul ponticello rosso). Il posto c'è (anche in bussola) solo quando l'isola è aperta.
 - **Minigiochi universali** (pesca, caccia alle perle, consegne, ingorgo al porto): si giocano ovunque, dalla barca o al molo; le isole a tema hanno in più i loro.
 - **Minimappa**: cerchietto in un angolo; toccandolo, la mappa intera dell'arcipelago con la nebbia sulle isole non ancora visitate; le isole a tema chiuse restano nella nebbia col lucchetto finché non le sblocchi. Un'isola a tema scoperta compare tra le mete della bussola.
 - **Bordo del mondo** (#5): al bordo dell'arcipelago una corrente morbida riporta la barca verso le isole.
@@ -143,6 +143,15 @@ Punteggio («più alto vince»): Consegne = 1000 a pacco + 10 a secondo avanzato
 | Perla rosa | 60 | nell'ostrica (si prende aperta), un granchio accanto |
 | Perla nera | 120 | in fondo ai crepacci, due meduse di guardia |
 | Bolla | aria +40 % | a mezz'acqua |
+
+**Minigiochi delle isole a tema** (§3; premio a medaglie `balance.solo` più `premioExtra`, il server rigioca gli input). Uno per isola, **a piedi** sul posto dell'isola (`isola` e `posto` nel json), che compare (cartello, GIOCA, bussola) **solo quando l'isola è aperta**. Schermata a pixel sopra il mondo.
+
+| Isola · gioco | Come si gioca | Durata | Medaglie | Oro in più | Numeri |
+|---|---|---|---|---|---|
+| **Ghiacci · Pinguini sul ghiaccio** (vicino agli igloo) | Lastra 6×6 vista dall'alto sotto l'aurora: **trascini un pinguino** (o lo tocchi e poi tocchi da che parte; frecce/WASD sul PC) e scivola finché non sbatte contro un iceberg, un altro pinguino o il bordo; se passa sopra una **buca di pesca** ci si tuffa. Tutti nelle buche = livello fatto. **3 livelli** sempre più difficili (fasce a 2-3, 3-5, 5-6 mosse minime; dalla seconda fascia un pinguino deve fare da sponda all'altro). Incastrati? RICOMINCIA. | 90 s | livelli risolti 1 / 2 / 3 | +6 Pietra | `minigames/pinguini.json`; livelli da `tools/pinguini_livelli.mjs` |
+| **Giardino · Carpe koi** (sul ponticello rosso) | Lo stagno visto dal ponticello: dal ciliegio cadono **petali** (10 punti) e ogni tanto una **briciola d'oro** (30), uno ogni 1-1,6 s. **Tocchi il cibo**: la carpa colorata libera più vicina ci corre e lo mangia. La **carpa nera** punta il cibo che vede e lo ruba (combo azzerata): **toccala e scappa** per 1,7 s. Combo: ×2 da 5 bocconi in fila, ×3 da 10; il ciliegio fiorisce coi punti. | 60 s | 15 / 32 / 50 % dei punti di tutto il cibo con la combo piena | +6 Legno | `minigames/koi.json` |
+
+Punteggio: Pinguini = 1000 a livello + fino a 100 per quanto ti avvicini alla soluzione più corta (−15 a mossa in più) + 5 a secondo avanzato se li risolvi tutti; Carpe koi = i punti. Chi non scaccia mai la nera fa di solito argento; l'oro vuole anche lei.
 
 Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anche chi perde prende qualcosa.
 

@@ -23,3 +23,5 @@ export * from './minigames/pesca.ts';
 export * from './minigames/consegne/consegne.ts'; // Consegne
 export * from './minigames/ingorgo.ts'; // Ingorgo
 export * from './minigames/perle.ts'; // Perle
+export * from './minigames/pinguini.ts'; // Ghiacci
+export * from './minigames/koi.ts'; // Giardino
