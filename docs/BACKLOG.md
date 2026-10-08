@@ -35,6 +35,9 @@
 - Isole a tema dopo la Tempesta (GDD §3): **Ghiacci** (iceberg, aurora, pinguini), **Vulcano** (lava, ossidiana, forge: aggancio con Riccardo), **Giardino** (ciliegi, templi, carpe koi). Sblocchi da distribuire: livello del personaggio, un cappello «se no gli abitanti ti linciano», una mappa.
 - Minigiochi universali dopo la pesca: caccia alle perle (consegne in barca e ingorgo al porto fatti l'8 ott 2026, GDD §6).
 
+- **Isola dei Samurai zombie** (idea di birbasan, 8 ott 2026): un'altra isola a ondate come quella dei Templari (`docs/TEMPLARI.md`), con samurai, ronin e ashigaru zombie. Non sul Giardino, che è già giapponese ma tranquillo: un'isola sua, dopo che i Templari sono piaciuti.
+- Templari: **partita insieme** fino a 4 (come i dungeon, #118: turni del server e replay del log), easter egg con la forma finale di de Molay (da decidere in chat leggera), musica originale vera (oggi sintetizzata).
+
 ## Mai
 - Soldi veri per risorse o acceleratori. (Cosmetici a pagamento: solo se un giorno si apre al pubblico, e solo cosmetici.)
 - Attacchi alle isole altrui.

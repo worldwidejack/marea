@@ -29,6 +29,7 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
   - **Isola dei Ghiacci** (nord): neve, scogliere di ghiaccio, iceberg, igloo, pinguini, aurora boreale di notte. Il mare gela e la barca si ferma finché il **personaggio** (Mondo Sotterraneo) non è al **livello 3**.
   - **Isola Vulcano** (est): cono con cratere di lava, spiaggia d'ossidiana, capanne, bracieri, teste di pietra, fumo e cenere. Ci sbarchi, ma gli abitanti ti rimettono in barca se non indossi la **Lanterna in testa** (cappello a Perle).
   - **Isola Giardino** (sud-ovest): ciliegi in fiore, tempio, torii e lanterne di pietra, stagno con le carpe koi e il ponticello rosso. Nascosta nella nebbia, dove la barca si perde e torna indietro, finché non hai la **mappa**: la regala la prima medaglia d'oro in un minigioco.
+  - **Isola dei Templari** (sud, tra Giardino e Vulcano; isola di birbasan, 8 ott 2026): chiesa templare in rovina, borgo abbandonato, cimitero, accampamento pirata. Nebbia rossastra finché non trovi la **reliquia** nel relitto templare sotto il faro della Tempesta. Non ha un minigioco ma una **modalità a ondate** di crociati zombie (§6, design in **`docs/TEMPLARI.md`**).
   - Minigiochi propri (§6, tabella «Isole a tema»): **Ghiacci → Pinguini sul ghiaccio** (vicino agli igloo), **Giardino → Carpe koi** (sul ponticello rosso), **Tempesta → Arrembaggio** (cannone sul promontorio del faro), **Vulcano → Fuga dalla lava** (tra le capanne e il cratere). Il posto c'è (anche in bussola) solo quando l'isola è aperta.
 - **Minigiochi universali** (pesca, caccia alle perle, consegne, ingorgo al porto): si giocano ovunque, dalla barca o al molo; le isole a tema hanno in più i loro.
 - **Minimappa**: cerchietto in un angolo; toccandolo, la mappa intera dell'arcipelago con la nebbia sulle isole non ancora visitate; le isole a tema chiuse restano nella nebbia col lucchetto finché non le sblocchi. Un'isola a tema scoperta compare tra le mete della bussola.
@@ -210,6 +211,8 @@ Punteggio: Pinguini = 1000 a livello + fino a 100 per quanto ti avvicini alla so
 
 Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anche chi perde prende qualcosa.
 
+**Ondate dei Templari** (Isola dei Templari, §3): non è un minigioco ma una modalità a ondate infinite alla Call of Duty Zombies, **eccezione voluta ai 30-120 s** del pilastro 2 (dura quanto sopravvivi, 10-40 min; facoltativa come i dungeon, un pollice basta, anche chi muore subito prende qualcosa). Premio per ondata superata con tetto giornaliero. Tutto in **`docs/TEMPLARI.md`**.
+
 ## 7. Sfide e wager
 > **Sospese dal 30 set 2026** per la prova con gli amici: si prova il gioco da soli e si viene premiati dai minigiochi (§5, §6). Il codice resta (Tavolo, feed, escrow) e si riaccende con `?sfide=1`; il Tavolo non compare nel pannello Costruisci.
 
@@ -235,3 +238,6 @@ I numeri di questo documento sono la **prima ipotesi**. La verità operativa sta
 
 ## 12. Mondo Sotterraneo (GDR, dal 6 ott 2026)
 Sotto le isole ci sono dungeon con combattimento alla Skyrim, voluti da **Riccardo** (che ne cura il design): personaggio con Vita/Magicka/Stamina, 7 abilità, perk, forgia di armi e armature in 8 materiali, alchimia, bottino. **Facoltativo**: chi non scende gioca MAREA come prima. In superficie zero nemici. Tutto il design sta in **`docs/RPG.md`**, che vale come questo documento. Rispetto al §10: il combattimento entra (solo nei dungeon, contro la sim, mai contro gli amici); gli interni restano fuori dalla superficie.
+
+## 13. Isola dei Templari (modalità a ondate, dall'8 ott 2026)
+Isola personale di **birbasan** (tema libero, ok di Jack): crociati zombie a ondate infinite, armi da comprare coi punti della partita, porte, trappole, boss. Tutto il design sta in **`docs/TEMPLARI.md`**, che vale come questo documento. Rispetto al §1 (30-120 s) e al §10 (storia, nemici): la partita è lunga e ha una storia, ma si gioca in una scena a parte come i dungeon; nel resto dell'arcipelago restano zero nemici.
