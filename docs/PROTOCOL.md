@@ -148,3 +148,25 @@ Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1
 
 ## 6. Errori
 Sempre `{ error: string }` in italiano con status HTTP giusto: 400 richiesta rotta, 401 token, 403 non tuo, 404, 409 conflitto (cantiere già in corso, risorse insufficienti: `{ error, manca: Resources }`), 413 troppo grande, 429 troppi messaggi, 500 interno (mai il dettaglio tecnico al client).
+
+## 7. Dungeon insieme (#118, 8 ott 2026)
+Squadre all'ingresso dei dungeon e spedizioni in tempo reale: **WebSocket** `/ws/squadra/<dungeon>?t=<token>` → DO `Spedizioni` (un'istanza sola, `idFromName('spedizioni')`, socket normali senza ibernazione). Tipi e parser in `packages/protocol/src/squadra.ts` (`SqClientMsg`, `SqServerMsg`, `parseSqClient`, `parseSqServer`, `SQ_TURNO_MS` = 50, `SQ_TICKS` = 3). `PROTOCOL_VERSION` resta 1 (canale nuovo, la Zone non cambia).
+```ts
+// client → server
+{ t: 'via' }                                 // SCENDIAMO: chiunque della squadra, con almeno 2 membri
+{ t: 'carico' }                              // dungeon caricato: il primo turno parte quando l'hanno detto tutti (o dopo 20 s)
+{ t: 'in', f: [mx8, my8, bit] }              // input per i prossimi turni (solo se cambia: il server ripete l'ultimo); bit = a|b<<1|c<<2|d<<3
+{ t: 'az', a: DungeonAzione }                // equip, butta, salva, esci (mai `ritira`): va nel prossimo turno
+{ t: 'esco' }                                // esco dalla squadra o dalla spedizione
+
+// server → client
+{ t: 'squadra', dungeon, membri: { id, nome }[], max }                        // la squadra all'ingresso, a ogni cambio
+{ t: 'parte', run, dungeon, seed, io, eroi: { id, nome, look, hero: RunHero, stato: HeroState | null }[] }   // si scende; io = il mio indice
+{ t: 'T', n, f: [mx8, my8, bit][], az?: [eroe, DungeonAzione][] }             // turno n: un input per eroe (in ordine), azioni prima del primo tick
+{ t: 'errore', msg }                                                          // squadra piena, da soli, non si parte…
+```
+- **Squadra**: aprire il socket = entrare nella squadra di quel dungeon (al massimo `RPG.dungeon.gruppo.max` = 4, la 5ª riceve `errore` e chiusura 1013). La stessa persona da un'altra scheda sostituisce la vecchia. Chiudere il socket o `esco` = uscire. Il client chiude da solo se ci si allontana dall'ingresso.
+- **Partenza**: con `via` il DO sceglie seed e id della spedizione e per ogni membro chiama il DO del suo lotto (`POST /dungeon_party_start {dungeon, seed, run, idx}` → `{hero, stato, lot}`: fotografia dell'eroe e `pending.party = {run, idx}`; mai esposta dal Worker). Se un lotto fallisce la squadra resta all'ingresso con un `errore`.
+- **Turni**: ogni 50 ms (a tempo di orologio: un timer in ritardo recupera fino a 10 turni) un turno con l'input più vecchio in coda di ciascuno, o l'ultimo se la coda è vuota (chi è uscito: fermo); un turno vale 3 tick della sim. Coda oltre 4 input: i più vecchi si scartano tenendo i bottoni premuti. Al massimo 40 messaggi/s per socket, 390 azioni per eroe. Chi esce: azione `ritira` nel turno dopo (per lui la spedizione finisce senza esito, gli altri continuano). Finito il tempo (`maxTicks`) il DO chiude i socket.
+- **Client**: la sim avanza solo coi turni (stessi input e azioni = stessa partita per tutti); il mio input va una volta per turno (joystick dell'ultimo tick, bottoni premuti in qualunque tick del turno). Cuscinetto di 2 turni contro i ritardi, recupero di corsa dopo uno stacco.
+- **Fine**: il client chiude il socket e chiama `POST /api/dungeon/finish` (corpo qualunque): il DO del lotto, vedendo `pending.party`, chiede il log al DO Spedizioni (`POST /log {run, idx}` → `{dungeon, seed, eroi, inputs: string[] (encodeDungeon), azioni}`; da quel momento l'eroe idx è fuori), lo rigioca con `replayParty` e applica l'esito del suo eroe come una spedizione da solo (stessa risposta). Log salvati nello storage del DO (ogni 10 s e a fine spedizione, tenuti un giorno): se il DO si riavvia a metà, la spedizione si chiude dove era arrivata. Senza log (perso) la spedizione si chiude senza niente (409 `code: 'gruppo'`). Una spedizione insieme rimasta aperta si chiude alla discesa dopo (`dungeon_start`). `POST /api/dungeon/save` insieme non serve (409).

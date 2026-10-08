@@ -2,7 +2,7 @@
 // telegrafata → colpo → recupero; arcieri e maghi tengono la distanza e tirano; i boss alternano un colpo ad area; i deboli scappano dalle ossa.
 import { DT } from '../constants.ts';
 import type { DungeonState, Enemy } from './state.ts';
-import { secToTicks } from './state.ts';
+import { conEroe, ev, finita, inGioco, secToTicks } from './state.ts';
 import { hitEnemy, hitHero, kill, wake } from './combat.ts';
 import { bfs, cellCenter, cellOf, lineOfSight, moveCircle, stepDown } from './map.ts';
 import {
@@ -17,10 +17,40 @@ const vivo = (e: Enemy): boolean => e.st !== 'morto';
 function refreshFlow(s: DungeonState): void {
   if (s.tick - s.flowTick < FLOW_OGNI) return;
   s.flowTick = s.tick;
-  const c = cellOf(s.map, s.hero.x, s.hero.z);
-  if (c === s.flowCell) return;
-  s.flowCell = c;
-  bfs(s.map, c, s.flow);
+  if (s.eroi.length === 1) {
+    const c = cellOf(s.map, s.hero.x, s.hero.z);
+    if (c === s.flowCell) return;
+    s.flowCell = c;
+    bfs(s.map, c, s.flow);
+    return;
+  }
+  // insieme: verso l'eroe in gioco più vicino
+  const celle = inGioco(s).map((i) => { const h = s.eroi[i]!.hero; return cellOf(s.map, h.x, h.z); });
+  const key = celle.join(',');
+  if (key === s.flowKey) return;
+  s.flowKey = key;
+  bfs(s.map, celle, s.flow);
+}
+
+/** Insieme: l'eroe che un nemico punta, il più vicino ancora in gioco (chi è appena risvegliato e protetto solo se non c'è nessun altro). */
+function bersaglio(s: DungeonState, e: Enemy): number {
+  let best = -1, bd = Infinity;
+  for (let i = 0; i < s.eroi.length; i++) {
+    const r = s.eroi[i]!;
+    if (r.done) continue;
+    const dx = r.hero.x - e.x, dz = r.hero.z - e.z, d = dx * dx + dz * dz + (r.hero.protetto > 0 ? 1e6 : 0);
+    if (d < bd) { bd = d; best = i; }
+  }
+  return best;
+}
+/** Un eroe in gioco entro `vista` e in linea di vista (da solo: l'eroe). */
+function vedeEroe(s: DungeonState, e: Enemy, vista: number): boolean {
+  for (const r of s.eroi) {
+    if (r.done) continue;
+    const dx = r.hero.x - e.x, dz = r.hero.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
+    if (d <= vista && lineOfSight(s.map, e.x, e.z, r.hero.x, r.hero.z)) return true;
+  }
+  return false;
 }
 
 /** Passo verso l'eroe: diretto se lo vede ed è vicino, altrimenti lungo il flow field (aggira i muri). */
@@ -82,13 +112,29 @@ function resolveAttack(s: DungeonState, e: Enemy): void {
   }
   const kind = e.def.contundente ? 'contundente' : 'taglio';
   if (e.area) {
+    if (s.eroi.length > 1) { areaSuTutti(s, e, kind); return; }
     if (d <= e.def.portata * BOSS_AREA_RAGGIO + rh.raggio) hitHero(s, e.def.danno * BOSS_AREA_DANNO, kind, h.x, h.z);
-    else s.eventi.push({ t: 'schivato', x: r2(h.x), z: r2(h.z) });
+    else ev(s, { t: 'schivato', x: r2(h.x), z: r2(h.z) });
     return;
   }
   const dot = d > 1e-6 ? (dx * e.fx + dz * e.fz) / d : 1;
   if (d <= e.def.portata + e.def.raggio + rh.raggio + TOLLERANZA_NEMICO && dot >= COS_CONO_NEMICO) hitHero(s, e.def.danno, kind, h.x, h.z);
-  else s.eventi.push({ t: 'schivato', x: r2(h.x), z: r2(h.z) });
+  else ev(s, { t: 'schivato', x: r2(h.x), z: r2(h.z) });
+}
+
+/** Insieme: il colpo ad area del boss prende tutti gli eroi nel cerchio; il bersaglio, se è fuori, l'ha schivato. */
+function areaSuTutti(s: DungeonState, e: Enemy, kind: 'taglio' | 'contundente'): void {
+  const t = s.cur;
+  let preso = false;
+  for (const i of inGioco(s)) {
+    conEroe(s, i, () => {
+      const h = s.hero, dx = h.x - e.x, dz = h.z - e.z;
+      if (Math.sqrt(dx * dx + dz * dz) > e.def.portata * BOSS_AREA_RAGGIO + s.runHero.raggio) return;
+      hitHero(s, e.def.danno * BOSS_AREA_DANNO, kind, h.x, h.z);
+      if (i === t) preso = true;
+    });
+  }
+  if (!preso && !s.eroi[t]!.done) ev(s, { t: 'schivato', x: r2(s.hero.x), z: r2(s.hero.z) });
 }
 
 function fearful(s: DungeonState, e: Enemy): boolean {
@@ -103,7 +149,7 @@ function stepFoe(s: DungeonState, e: Enemy): void {
   switch (e.st) {
     case 'dorme': case 'veglia': {
       const vista = def.vista * (e.st === 'dorme' ? VISTA_DORMENDO : 1);
-      if (d <= vista && lineOfSight(s.map, e.x, e.z, h.x, h.z)) {
+      if (vedeEroe(s, e, vista)) {
         wake(s, e);
         for (const o of s.enemies) {
           if (o === e || o.aggro || o.alleato || o.st === 'morto') continue;
@@ -150,7 +196,7 @@ function stepFoe(s: DungeonState, e: Enemy): void {
 /** Alleato: attacca il nemico ostile più vicino che vede, altrimenti segue l'eroe. Sparisce allo scadere. */
 function stepAlly(s: DungeonState, e: Enemy): void {
   const h = s.hero, def = e.def;
-  if (s.tick >= e.scade) { e.st = 'morto'; s.eventi.push({ t: 'morte', id: e.id, tipo: e.tipo }); return; }
+  if (s.tick >= e.scade) { e.st = 'morto'; ev(s, { t: 'morte', id: e.id, tipo: e.tipo }); return; }
   e.stT++;
   let t = e.bersaglio >= 0 ? s.enemies.find((o) => o.id === e.bersaglio && o.st !== 'morto') : undefined;
   if (!t) {
@@ -184,9 +230,8 @@ function stepAlly(s: DungeonState, e: Enemy): void {
   if (hx * hx + hz * hz > ALLEATO_SEGUE * ALLEATO_SEGUE) chase(s, e, def.velocita, 1);
 }
 
-/** Separa i nemici tra loro e dall'eroe (cerchi solidi). */
+/** Separa i nemici tra loro e dagli eroi (cerchi solidi). */
 function separate(s: DungeonState, act: Enemy[]): void {
-  const h = s.hero, rh = s.runHero;
   for (let i = 0; i < act.length; i++) {
     const a = act[i]!;
     for (let j = i + 1; j < act.length; j++) {
@@ -199,27 +244,43 @@ function separate(s: DungeonState, act: Enemy[]): void {
       moveCircle(s.map, b, ux * k, uz * k, b.def.raggio);
     }
     if (a.alleato) continue;
-    const dx = a.x - h.x, dz = a.z - h.z, d2 = dx * dx + dz * dz, rr = a.def.raggio + rh.raggio;
-    if (d2 < rr * rr && d2 > 1e-12) { const d = Math.sqrt(d2), k = (rr - d) / d; moveCircle(s.map, a, dx * k, dz * k, a.def.raggio); }
+    for (const r of s.eroi) {
+      if (r.done) continue;
+      const h = r.hero, dx = a.x - h.x, dz = a.z - h.z, d2 = dx * dx + dz * dz, rr = a.def.raggio + r.runHero.raggio;
+      if (d2 < rr * rr && d2 > 1e-12) { const d = Math.sqrt(d2), k = (rr - d) / d; moveCircle(s.map, a, dx * k, dz * k, a.def.raggio); }
+    }
   }
 }
 
+/** Nemici e alleati. Insieme ogni nemico lavora sul suo bersaglio (l'eroe in gioco più vicino) e ogni alleato sul suo padrone: per la
+ *  durata del suo passo quello è l'eroe di turno. Il sanguinamento va a chi l'ha colpito per ultimo. */
 export function stepEnemies(s: DungeonState): void {
   refreshFlow(s);
-  const h = s.hero, act: Enemy[] = [];
+  const multi = s.eroi.length > 1, prima = s.cur, act: Enemy[] = [];
   for (const e of s.enemies) {
     if (e.st === 'morto') continue;
-    const dx = h.x - e.x, dz = h.z - e.z;
+    let t = prima;
+    if (multi) {
+      t = e.alleato ? e.padrone ?? 0 : bersaglio(s, e);
+      if (t < 0) continue;
+      s.cur = t;
+      // il padrone è uscito o caduto: l'evocazione sparisce con lui
+      if (e.alleato && s.done) { e.st = 'morto'; ev(s, { t: 'morte', id: e.id, tipo: e.tipo }); continue; }
+    }
+    const h = s.hero, dx = h.x - e.x, dz = h.z - e.z;
     if (!e.alleato && dx * dx + dz * dz > RAGGIO_ATTIVO * RAGGIO_ATTIVO) continue;
     if (e.hurt > 0) e.hurt--;
     if (e.cdTiro > 0) e.cdTiro--;
     if (e.bleedT > 0) {
+      if (multi) s.cur = e.ultimo ?? t;
       e.bleedT--; e.vita -= e.bleed * DT; s.danniFatti += e.bleed * DT;
       if (e.vita <= 0) { kill(s, e); continue; }
+      s.cur = t;
     }
     if (e.alleato) stepAlly(s, e); else stepFoe(s, e);
-    if (s.done) return;
+    if (finita(s)) { s.cur = prima; return; }
     if (vivo(e)) act.push(e);
   }
+  s.cur = prima;
   separate(s, act);
 }

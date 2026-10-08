@@ -1,12 +1,15 @@
 // Stato della partita nel dungeon e creazione da DungeonDef + RunHero + seed. Tutto il resto (passo, vista, risultato) lavora su questo.
-import { enemyDef } from '@marea/content/rpg.ts';
+// Dungeon insieme (#118): la partita può avere più eroi (`eroi`, uno per giocatore, stessi nemici). I campi «dell'eroe» di DungeonState
+// (hero, runHero, bottino, monete, done, outcome, … elencati in PER_EROE) sono accessori verso l'eroe di turno `eroi[cur]`: le funzioni della
+// sim lavorano sull'eroe di turno come quando era uno solo, il passo (dungeon.ts) li scorre tutti. Da solo cur resta 0 e tutto va come prima.
+import { RPG, enemyDef } from '@marea/content/rpg.ts';
 import type { DungeonDef, EnemyDef, Traits } from '@marea/content/rpg.ts';
 import type { EquipSlot, HeroState, RunHero, RunOutcome, RunWeapon } from '../rpg/types.ts';
 import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
 import type { DungeonEvent, HeroAnim } from './types.ts';
 import type { SwingStyle } from './swing.ts';
-import { bfs, cellOf, parseDungeon } from './map.ts';
+import { bfs, cellOf, moveCircle, parseDungeon } from './map.ts';
 import type { DMap } from './map.ts';
 import { rollLoot } from './loot.ts';
 import { HZ, P_DORME } from './tuning.ts';
@@ -50,6 +53,10 @@ export type Enemy = {
   dropRaro: boolean; dropMolt: number;
   /** Capo del dungeon (legenda `capo`): morto lui, la spedizione completa il dungeon (`RunResult.capo`). Fuori dall'hash. */
   capo?: true;
+  /** Insieme: alleato evocato da questo eroe (indice in `eroi`). Fuori dall'hash. */
+  padrone?: number;
+  /** Insieme: ultimo eroe che l'ha colpito (a lui il danno del sanguinamento e l'uccisione). Fuori dall'hash. */
+  ultimo?: number;
 };
 export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica';
 export type Proj = {
@@ -58,19 +65,20 @@ export type Proj = {
   /** Eroe: tratti uniti di arco e frecce, magia (raggio esplosione, sanguina). */
   traits: Traits; raggio: number; colpiti: number[];
   dalNemico: boolean; contundente: boolean; magico: boolean; arrowId: string | null;
+  /** Insieme: eroe che l'ha tirato (indice in `eroi`; assente = 0). */
+  da?: number;
 };
 /** Ultimo altare toccato: il bottino e le monete di quel momento sono al sicuro (docs/RPG.md §4). */
 export type Salvato = { altare: number; tick: number; bottino: Bag; monete: number };
-export type Loot = { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; items: Bag; monete: number; vuoto: boolean; pieno: boolean };
-export type DungeonState = {
-  v: 1; seed: number; dungeon: string; def: DungeonDef; map: DMap; runHero: RunHero;
-  tick: number; done: boolean; outcome: RunOutcome | null;
-  hero: HeroRt; anim: HeroAnim;
-  enemies: Enemy[]; proj: Proj[]; loot: Loot[];
-  nextId: number;
-  /** Flow field verso l'eroe (BFS dalla sua cella) e tick del calcolo. */
-  flow: Int32Array; flowTick: number; flowCell: number;
-  rng: Rng;
+/** Quello che resta in un bottino per un eroe: da solo sono i campi del bottino stesso; insieme ogni eroe ha la sua parte (`altri`). */
+export type LootParte = { items: Bag; monete: number; vuoto: boolean; pieno: boolean };
+/** I campi di LootParte sono la parte dell'eroe 0; insieme `altri[i - 1]` è quella dell'eroe i: ognuno raccoglie il suo, uguale. */
+export type Loot = LootParte & { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; altri?: LootParte[] };
+/** Un eroe della spedizione: i suoi campi in DungeonState sono quelli dell'eroe di turno (`cur`). */
+export type EroeRt = {
+  hero: HeroRt; runHero: RunHero;
+  /** Finita per questo eroe (uscito, morto, tempo, ritirato) ed esito. */
+  done: boolean; outcome: RunOutcome | null;
   // risultato
   bottino: Bag; monete: number; xp: Record<string, number>; usati: Bag; rotti: Bag; usura: Bag; uccisi: Bag;
   danniFatti: number; danniPresi: number;
@@ -89,8 +97,56 @@ export type DungeonState = {
   /** Lanterna di partenza (-1 = ingresso) e lanterna da cui si è usciti (-1 = no). */
   partenza: number;
   uscitaLanterna: number;
-  eventi: DungeonEvent[];
 };
+export const PER_EROE = [
+  'hero', 'runHero', 'done', 'outcome', 'bottino', 'monete', 'xp', 'usati', 'rotti', 'usura', 'uccisi', 'danniFatti', 'danniPresi',
+  'altare', 'salvato', 'cadute', 'stato', 'equip', 'buttati', 'partenza', 'uscitaLanterna',
+] as const satisfies readonly (keyof EroeRt)[];
+export type DungeonState = EroeRt & {
+  v: 1; seed: number; dungeon: string; def: DungeonDef; map: DMap;
+  tick: number; anim: HeroAnim;
+  enemies: Enemy[]; proj: Proj[]; loot: Loot[];
+  nextId: number;
+  /** Flow field verso l'eroe (BFS dalla sua cella; insieme dalle celle di tutti) e tick del calcolo. */
+  flow: Int32Array; flowTick: number; flowCell: number; flowKey: string;
+  rng: Rng;
+  eventi: DungeonEvent[];
+  /** Gli eroi della spedizione (da solo uno) e quello di turno: i campi di EroeRt qui sopra sono i suoi. */
+  eroi: EroeRt[];
+  cur: number;
+};
+
+/** Accessori dei campi dell'eroe di turno (prototipo comune a tutti gli stati). */
+const PROTO: object = (() => {
+  const p = {};
+  for (const k of PER_EROE) {
+    Object.defineProperty(p, k, {
+      get(this: DungeonState) { return this.eroi[this.cur]![k]; },
+      set(this: DungeonState, v: unknown) { (this.eroi[this.cur] as Record<string, unknown>)[k] = v; },
+      enumerable: true,
+    });
+  }
+  return p;
+})();
+
+/** Evento del tick: insieme porta l'eroe di turno (`eroe`), da solo resta com'era. */
+export function ev(s: DungeonState, e: DungeonEvent): void { s.eventi.push(s.eroi.length > 1 ? { ...e, eroe: s.cur } : e); }
+/** La parte dell'eroe di turno in un bottino. */
+export function parte(s: DungeonState, l: Loot): LootParte { return s.cur === 0 ? l : l.altri?.[s.cur - 1] ?? l; }
+/** La spedizione è finita per tutti. */
+export const finita = (s: DungeonState): boolean => s.eroi.every((e) => e.done);
+/** Indici degli eroi ancora in gioco. */
+export function inGioco(s: DungeonState): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < s.eroi.length; i++) if (!s.eroi[i]!.done) out.push(i);
+  return out;
+}
+/** Fa `fn` con l'eroe i di turno, poi rimette quello di prima. */
+export function conEroe<T>(s: DungeonState, i: number, fn: () => T): T {
+  const prima = s.cur;
+  s.cur = i;
+  try { return fn(); } finally { s.cur = prima; }
+}
 
 export function newEnemy(s: DungeonState, tipo: string, x: number, z: number, alleato = false): Enemy {
   const def = enemyDef(tipo);
@@ -103,40 +159,69 @@ export function newEnemy(s: DungeonState, tipo: string, x: number, z: number, al
   return e;
 }
 
+/** Un eroe per la spedizione: `hero` = la fotografia, `stato` = il personaggio all'entrata (v5, null = niente cambi d'equipaggiamento). */
+export type EroeDef = { hero: RunHero; stato?: HeroState | null };
+
 export function createState(def: DungeonDef, seed: number, hero: RunHero, o: { stato?: HeroState | null; partenza?: number | null } = {}): DungeonState {
+  return createParty(def, seed, [{ hero, stato: o.stato ?? null }], o.partenza ?? null);
+}
+
+/** Vita dei nemici insieme: × (1 + vitaPerCompagno × (eroi − 1)), da RPG.dungeon.gruppo (#118). */
+export function moltVita(n: number): number {
+  const k = RPG.dungeon?.gruppo?.vitaPerCompagno ?? 0.6;
+  return n > 1 ? 1 + k * (n - 1) : 1;
+}
+
+/** Spedizione con uno o più eroi (insieme, #118): tutti partono dall'ingresso (o dalla lanterna `partenza`), stessi nemici, la vita dei
+ *  nemici cresce con moltVita, ogni eroe ha la sua parte di ogni bottino. Con un eroe solo è la spedizione di sempre. */
+export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDef[], partenza: number | null = null): DungeonState {
+  if (eroi.length < 1) throw new Error('Spedizione senza eroi');
   const map = parseDungeon(def);
   const rng = createRng(seed);
-  const arma: RunWeapon = { ...hero.arma, traits: { ...hero.arma.traits } };
-  const s: DungeonState = {
-    v: 1, seed, dungeon: def.id, def, map, runHero: hero,
-    tick: 0, done: false, outcome: null,
-    hero: {
-      x: map.spawn.x, z: map.spawn.z, fx: map.spawn.fx, fz: map.spawn.fz,
-      vita: hero.max.vita, magicka: hero.max.magicka, stamina: hero.max.stamina,
-      act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
-      moving: false, running: false, hurt: 0, protetto: 0, arma,
-      frecce: hero.frecce ? hero.frecce.n : 0,
-      pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,
-      cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, prevA: false, prevC: false, prevD: false,
-    },
-    anim: 'fermo', enemies: [], proj: [], loot: [], nextId: 1,
-    flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, rng,
-    bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,
-    altare: -1, salvato: null, cadute: 0,
-    stato: o.stato ?? null, equip: { ...(o.stato?.equip ?? {}) }, buttati: {}, partenza: -1, uscitaLanterna: -1, eventi: [],
-  };
+  const s = Object.create(PROTO) as DungeonState;
+  Object.assign(s, {
+    v: 1, seed, dungeon: def.id, def, map, tick: 0, anim: 'fermo',
+    enemies: [], proj: [], loot: [], nextId: 1,
+    flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, flowKey: '', rng, eventi: [],
+    eroi: eroi.map(({ hero, stato }): EroeRt => ({
+      hero: {
+        x: map.spawn.x, z: map.spawn.z, fx: map.spawn.fx, fz: map.spawn.fz,
+        vita: hero.max.vita, magicka: hero.max.magicka, stamina: hero.max.stamina,
+        act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
+        moving: false, running: false, hurt: 0, protetto: 0, arma: { ...hero.arma, traits: { ...hero.arma.traits } },
+        frecce: hero.frecce ? hero.frecce.n : 0,
+        pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,
+        cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, prevA: false, prevC: false, prevD: false,
+      },
+      runHero: hero, done: false, outcome: null,
+      bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,
+      altare: -1, salvato: null, cadute: 0,
+      stato: stato ?? null, equip: { ...(stato?.equip ?? {}) }, buttati: {}, partenza: -1, uscitaLanterna: -1,
+    })),
+    cur: 0,
+  });
   // ripartenza da una lanterna (quella da cui si è usciti l'ultima volta): l'eroe è lì sopra e la lanterna è già quella dei risvegli
-  const p = o.partenza;
-  if (typeof p === 'number' && Number.isInteger(p) && p >= 0 && p < map.altari.length) {
-    const a = map.altari[p]!;
-    s.hero.x = a.x; s.hero.z = a.z;
-    s.partenza = p; s.altare = p;
-    s.salvato = { altare: p, tick: 0, bottino: {}, monete: 0 };
-  }
+  const p = partenza;
+  const daLanterna = typeof p === 'number' && Number.isInteger(p) && p >= 0 && p < map.altari.length;
+  s.eroi.forEach((e, i) => {
+    if (daLanterna) {
+      const a = map.altari[p]!;
+      e.hero.x = a.x; e.hero.z = a.z;
+      e.partenza = p; e.altare = p;
+      e.salvato = { altare: p, tick: 0, bottino: {}, monete: 0 };
+    }
+    // insieme: gli altri un passo di lato (e il quarto anche dietro) al primo, i muri li fermano: così non partono uno dentro l'altro
+    if (i > 0) {
+      const h = e.hero, lato = i === 2 ? -0.9 : 0.9, dietro = i === 3 ? 0.9 : 0;
+      moveCircle(map, h, -h.fz * lato - h.fx * dietro, h.fx * lato - h.fz * dietro, e.runHero.raggio);
+    }
+  });
   const sonno = rng.fork('sonno');
+  const kv = moltVita(eroi.length);
   for (const n of map.nemici) {
     const e = newEnemy(s, n.tipo, (n.cx + 0.5) * map.tile, (n.cz + 0.5) * map.tile);
     if (n.capo) e.capo = true;
+    if (kv !== 1) { e.max = e.def.vita * kv; e.vita = e.max; }
     // i boss vegliano sempre; gli altri dormono a caso (il seed decide)
     const dorme = sonno.next() < P_DORME && !e.def.boss;
     e.st = dorme ? 'dorme' : 'veglia';
@@ -145,13 +230,25 @@ export function createState(def: DungeonDef, seed: number, hero: RunHero, o: { s
   }
   map.forzieri.forEach((f, i) => {
     const r = rollLoot(f.tabella, rng.fork(`forziere:${i}`), { molt: 1, raro: false });
-    s.loot.push({ id: s.nextId++, x: (f.cx + 0.5) * map.tile, z: (f.cz + 0.5) * map.tile, tipo: 'forziere', items: r.items, monete: r.monete, vuoto: false, pieno: false });
+    s.loot.push(nuovoBottino(s, { id: s.nextId++, x: (f.cx + 0.5) * map.tile, z: (f.cz + 0.5) * map.tile, tipo: 'forziere', items: r.items, monete: r.monete, vuoto: false, pieno: false }));
   });
-  for (const l of map.libri) s.loot.push({ id: s.nextId++, x: (l.cx + 0.5) * map.tile, z: (l.cz + 0.5) * map.tile, tipo: 'libro', items: { [l.item]: 1 }, monete: 0, vuoto: false, pieno: false });
-  s.flowCell = cellOf(map, s.hero.x, s.hero.z);
-  bfs(map, s.flowCell, s.flow);
+  for (const l of map.libri) s.loot.push(nuovoBottino(s, { id: s.nextId++, x: (l.cx + 0.5) * map.tile, z: (l.cz + 0.5) * map.tile, tipo: 'libro', items: { [l.item]: 1 }, monete: 0, vuoto: false, pieno: false }));
+  if (s.eroi.length === 1) {
+    s.flowCell = cellOf(map, s.hero.x, s.hero.z);
+    bfs(map, s.flowCell, s.flow);
+  } else {
+    const celle = s.eroi.map((e) => cellOf(map, e.hero.x, e.hero.z));
+    s.flowKey = celle.join(',');
+    bfs(map, celle, s.flow);
+  }
   s.flowTick = 0;
   return s;
+}
+
+/** Bottino nuovo: insieme ogni eroe oltre il primo ne riceve una copia uguale (`altri`). */
+export function nuovoBottino(s: DungeonState, l: Loot): Loot {
+  if (s.eroi.length > 1) l.altri = s.eroi.slice(1).map(() => ({ items: { ...l.items }, monete: l.monete, vuoto: l.vuoto, pieno: false }));
+  return l;
 }
 
 export const secToTicks = (sec: number): number => Math.max(1, Math.round(sec * HZ));

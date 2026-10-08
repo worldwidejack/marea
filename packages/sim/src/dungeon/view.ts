@@ -1,8 +1,10 @@
-// Vista per il client (DungeonView), risultato (RunResult) e hash dello stato riassunto a fine partita.
+// Vista per il client (DungeonView), risultato (RunResult) e hash dello stato riassunto a fine partita. Vista e risultato sono quelli
+// dell'eroe di turno (`s.cur`); insieme la vista ha anche i compagni.
 import type { RunResult } from '../rpg/types.ts';
 import { hashJson } from '../hash.ts';
-import type { DungeonView, EnemyAnim, HeroAnim } from './types.ts';
+import type { CompagnoView, DungeonView, EnemyAnim, HeroAnim } from './types.ts';
 import type { DungeonState, Enemy } from './state.ts';
+import { conEroe, finita, parte } from './state.ts';
 import { pesoZaino } from './loot.ts';
 import { vicinoUscita } from './hero.ts';
 import { altareSotto, salvatoQui } from './altari.ts';
@@ -56,7 +58,7 @@ export function viewOf(s: DungeonState): DungeonView {
       return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0, boss: !!e.def.boss, ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: e.def.portata * BOSS_AREA_RAGGIO } : {}) };
     }),
     proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz })),
-    bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: l.vuoto })),
+    bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: parte(s, l).vuoto })),
     uscita: { x: s.map.exit.x, z: s.map.exit.z },
     vicinoUscita: vicinoUscita(s),
     altari: s.map.altari.map((a, i) => ({ x: a.x, z: a.z, attivo: s.salvato?.altare === i })),
@@ -64,24 +66,52 @@ export function viewOf(s: DungeonState): DungeonView {
     salvato: s.salvato ? { bottino: { ...s.salvato.bottino }, monete: s.salvato.monete } : null,
     zaino: { peso: r2(pesoZaino(s)), max: rh.caricoMax, monete: s.monete, bottino: { ...s.bottino } },
     eventi: s.eventi,
+    io: s.cur, compagni: s.eroi.length > 1 ? compagni(s) : [], finita: finita(s),
   };
 }
 
-/** Hash dello stato riassunto: posizione e barre dell'eroe, nemici, bottino, contatori. */
+/** Insieme: gli altri eroi visti dall'eroe di turno. */
+function compagni(s: DungeonState): CompagnoView[] {
+  const out: CompagnoView[] = [];
+  for (let i = 0; i < s.eroi.length; i++) {
+    if (i === s.cur) continue;
+    out.push(conEroe(s, i, () => {
+      const h = s.hero, ha = heroAnim(s);
+      return {
+        i, x: h.x, z: h.z, fx: h.fx, fz: h.fz, anim: ha.anim, t: ha.t, carica: h.act === 'carica' || h.act === 'tende' ? h.carica : 0,
+        ...(ha.anim === 'attacca' ? { stile: h.stile } : {}),
+        vita: h.vita, max: s.runHero.max.vita, arma: h.arma.id, protetto: h.protetto > 0, done: s.done, outcome: s.outcome,
+      };
+    }));
+  }
+  return out;
+}
+
+/** Hash dello stato riassunto: posizione e barre dell'eroe, nemici, bottino, contatori. Insieme: le parti di tutti gli eroi. */
 export function hashOf(s: DungeonState): number {
+  const nemici = s.enemies.map((e) => [e.id, e.tipo, r3(e.vita), r3(e.x), r3(e.z), e.st]);
+  if (s.eroi.length > 1) {
+    return hashJson({
+      v: s.v, d: s.dungeon, seed: s.seed, tick: s.tick, nemici,
+      loot: s.loot.map((l) => [l.id, l.vuoto ? 1 : 0, ...(l.altri ?? []).map((p) => (p.vuoto ? 1 : 0))]),
+      eroi: s.eroi.map((_, i) => conEroe(s, i, () => parteHash(s))),
+    });
+  }
+  return hashJson({ v: s.v, d: s.dungeon, seed: s.seed, tick: s.tick, nemici, loot: s.loot.map((l) => [l.id, l.vuoto ? 1 : 0]), ...parteHash(s) });
+}
+/** La parte dell'eroe di turno nell'hash (da solo le chiavi sono quelle di sempre: hashJson le ordina). */
+function parteHash(s: DungeonState): Record<string, unknown> {
   const h = s.hero;
-  return hashJson({
-    v: s.v, d: s.dungeon, seed: s.seed, tick: s.tick, outcome: s.outcome,
+  return {
+    outcome: s.outcome,
     hero: [r3(h.x), r3(h.z), r3(h.vita), r3(h.magicka), r3(h.stamina), h.frecce, h.pozioni],
-    nemici: s.enemies.map((e) => [e.id, e.tipo, r3(e.vita), r3(e.x), r3(e.z), e.st]),
-    loot: s.loot.map((l) => [l.id, l.vuoto ? 1 : 0]),
     bottino: roundBag(s.bottino), monete: s.monete, uccisi: roundBag(s.uccisi), usati: roundBag(s.usati),
     danni: [r3(s.danniFatti), r3(s.danniPresi)],
     salvato: s.salvato ? [s.salvato.altare, s.salvato.tick, s.salvato.monete, roundBag(s.salvato.bottino)] : null, cadute: s.cadute,
     // v5: zaino ed equipaggiamento cambiati dal menu, lanterna di partenza e di uscita
     zaino: [s.stato ? Object.keys(s.equip).sort().map((k) => [k, s.equip[k as keyof typeof s.equip]]) : null, roundBag(s.buttati), roundBag(s.rotti), s.hero.arma.id],
     lanterne: [s.partenza, s.uscitaLanterna],
-  });
+  };
 }
 
 export function resultOf(s: DungeonState): RunResult {

@@ -175,6 +175,9 @@ export type DungeonPending = {
   dungeon: string; seed: number; startMs: number; hero: RunHero;
   stato?: HeroState; partenza?: number | null;
   salvataggio?: { inputs: string; ticks: number; azioni?: DungeonAzioni } | null;
+  /** Dungeon insieme (#118): spedizione della squadra `run` (DO Spedizioni), questo eroe è il numero `idx`. Si chiude rigiocando il log
+   *  della squadra (replayParty), non con gli input del client. */
+  party?: { run: string; idx: number } | null;
 };
 export type DungeonLotState = { pending: DungeonPending | null };
 

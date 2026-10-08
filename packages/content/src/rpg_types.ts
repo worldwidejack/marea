@@ -115,7 +115,11 @@ export type RpgBalance = {
   abilita?: { dannoPerLivello: number; potenzaPerLivello: number };
   partenza: { inv: Record<string, number>; equip: Record<string, string>; magie: string[]; monete: number };
   /** altare.protezione: secondi senza danni dopo il risveglio all'altare (i nemici non ti uccidono appena riapri gli occhi). */
-  dungeon: { maxMinuti: number; morte: { bottino: number; xp: number }; altare: { protezione: number } };
+  dungeon: {
+    maxMinuti: number; morte: { bottino: number; xp: number }; altare: { protezione: number };
+    /** Dungeon insieme (#118): al massimo `max` eroi; la vita dei nemici cresce di `vitaPerCompagno` (frazione) per ogni eroe oltre il primo. */
+    gruppo?: { max: number; vitaPerCompagno: number };
+  };
   xp: Record<string, number>;
   forziere: number[];
   bottega: Record<string, number>;

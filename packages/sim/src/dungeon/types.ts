@@ -23,13 +23,17 @@ export type DungeonAzione =
   /** Sulla lanterna: bottino e monete al sicuro (fino al v4 si salvava da soli passandoci sopra). */
   | { t: 'salva' }
   /** Sulla lanterna: esci col bottino (come dalla scala); alla discesa dopo si può ripartire da lì. */
-  | { t: 'esci' };
+  | { t: 'esci' }
+  /** Insieme (#118): il giocatore se n'è andato (Esci, connessione persa). La registra il server, mai il client: per lui la spedizione
+   *  finisce lì senza esito (come chiudere la scheda), gli altri continuano. */
+  | { t: 'ritira' };
 /** [tick, azione] con tick non decrescenti: tick = passi già fatti quando l'azione è avvenuta. */
 export type DungeonAzioni = [number, DungeonAzione][];
 
 export type HeroAnim = 'fermo' | 'cammina' | 'corre' | 'carica' | 'attacca' | 'tende' | 'tira' | 'lancia' | 'beve' | 'colpito' | 'morto';
 export type EnemyAnim = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'colpito' | 'morto';
-export type DungeonEvent =
+/** Insieme (#118) ogni evento porta `eroe`: l'indice dell'eroe a cui è successo (o che l'ha causato). Da solo non c'è. */
+export type DungeonEvent = (
   | { t: 'colpo'; x: number; z: number; danno: number; su: 'eroe' | 'nemico'; id?: number; caricato?: boolean; critico?: boolean }
   | { t: 'schivato'; x: number; z: number }
   | { t: 'morte'; id: number; tipo: string }
@@ -52,7 +56,10 @@ export type DungeonEvent =
   | { t: 'equip'; slot: EquipSlot; item: string | null }
   | { t: 'buttato'; item: string; n: number }
   /** Uscito dalla scala, o dalla lanterna n. */
-  | { t: 'uscita'; lanterna?: number };
+  | { t: 'uscita'; lanterna?: number }
+  /** Insieme: un compagno se n'è andato (azione `ritira`). */
+  | { t: 'ritirato' }
+) & { eroe?: number };
 
 export type DungeonView = {
   dungeon: string; tick: number; done: boolean; outcome: RunOutcome | null;
@@ -92,8 +99,20 @@ export type DungeonView = {
   zaino: { peso: number; max: number; monete: number; bottino: Record<string, number> };
   /** Solo gli eventi di questo tick (suoni, numeri di danno, toast). */
   eventi: DungeonEvent[];
+  /** Insieme (#118): indice del mio eroe (da solo 0), gli altri eroi (da solo []) e se la spedizione è finita per tutti. `done`/`outcome`
+   *  qui sopra sono quelli del mio eroe. */
+  io: number;
+  compagni: CompagnoView[];
+  finita: boolean;
+};
+/** Un compagno visto da me: posa per l'avatar, vita per la barra, finito (uscito, caduto, andato via) = non si disegna più. */
+export type CompagnoView = {
+  i: number; x: number; z: number; fx: number; fz: number; anim: HeroAnim; t: number; carica: number; stile?: SwingStyle;
+  vita: number; max: number; arma: string | null; protetto: boolean; done: boolean; outcome: RunOutcome | null;
 };
 
+/** Il modulo della spedizione da solo. Insieme (#118): createParty / stepParty / actParty di dungeon.ts; act, result, view e autopilot
+ *  lavorano sull'eroe di turno `s.cur` (il client lo mette sul suo eroe). */
 export type DungeonModule<S> = {
   id: 'dungeon';
   version: number;
