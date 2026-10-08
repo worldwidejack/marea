@@ -11,7 +11,7 @@
 - Chat testuale (oggi solo emote).
 - Interni degli edifici; meteo. (Il ciclo giorno/notte è entrato: #54.)
 - Commercio di risorse tra giocatori.
-- PWA installabile; notifiche «la Cava è finita».
+- ~~PWA installabile~~ fatto l'8 ott 2026; notifiche «la Cava è finita» (servono service worker e push).
 - Musica originale (ElevenLabs Music), voci per l'onboarding.
 - Apertura al pubblico: inviti a catena, moderazione, dominio, piano Paid.
 - Passaggio a un motore (Godot) se il browser mostra un tetto: le fixture d'oro di `packages/sim` sono il criterio di parità.

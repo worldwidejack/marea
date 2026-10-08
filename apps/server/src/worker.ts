@@ -88,6 +88,24 @@ function hatId(v: unknown): string | null {
   return typeof v === 'string' && AVATAR.cappelli.some((h) => h.id === v) ? v : null;
 }
 
+/** Manifest dell'app installabile. `t` finisce solo nello start_url (come nel link personale), mai nei log. */
+function manifesto(t: string): Response {
+  const token = /^[A-Za-z0-9_-]{8,128}$/.test(t) ? t : '';
+  const body = {
+    name: 'MAREA', short_name: 'MAREA', lang: 'it',
+    description: "L'arcipelago con gli amici",
+    start_url: token ? `/?t=${token}` : '/', scope: '/', id: '/',
+    display: 'fullscreen', orientation: 'any',
+    background_color: '#163F73', theme_color: '#163F73',
+    icons: [
+      { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+  };
+  return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/manifest+json; charset=utf-8', 'cache-control': 'no-store' } });
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
@@ -108,6 +126,9 @@ export default {
         target.searchParams.set('id', p.id); target.searchParams.set('nome', p.nome); target.searchParams.set('look', p.look); target.searchParams.delete('t');
         return stub.fetch(new Request(target.toString(), req));
       }
+
+      // app installabile (PWA): il manifest porta dentro il link personale, così l'icona sul telefono entra come sé
+      if (path === '/manifest.webmanifest') return manifesto(url.searchParams.get('t') ?? '');
 
       if (!path.startsWith('/api/')) {
         if (path.startsWith('/ws/')) return json({ error: 'Non trovato' }, 404);

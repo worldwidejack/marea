@@ -1,6 +1,7 @@
 // Avvio del client: renderer, mondo, ciclo a 60 Hz con interpolazione, test API. Unico modulo con side effect.
 import { DT } from '@marea/sim';
 import { FLAGS } from './flags.ts';
+import { preparaInstallazione } from './installa.ts';
 import { createRenderer } from './render/scene.ts';
 import { createLoader } from './render/loader.ts';
 import { createInput } from './game/input.ts';
@@ -43,6 +44,7 @@ const TAVOLO_R = 3.5; // m: quanto vicino al Tavolo per aprirlo con E / A
 async function boot(): Promise<void> {
   if (FLAGS.invito && !FLAGS.token) await entraConInvito(FLAGS.invito); // link di gruppo: prima il nome, poi si riparte col token
   installTestApi(__BUILD__);
+  preparaInstallazione(); // l'icona sul telefono entra col proprio link
   const canvas = document.getElementById('gl') as HTMLCanvasElement;
   const root = document.getElementById('ui') as HTMLElement;
   const hud = createHud({ root, flags: FLAGS });
