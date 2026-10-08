@@ -20,7 +20,7 @@ export type TOpzioni = { subito?: boolean };
 export type TAzione = { t: 'esci' };
 export type TAzioni = [number, TAzione][];
 
-export type TZombieAnim = 'sorge' | 'cammina' | 'corre' | 'strappa' | 'prepara' | 'colpisce' | 'recupera' | 'morto';
+export type TZombieAnim = 'sorge' | 'cammina' | 'corre' | 'strappa' | 'prepara' | 'lancia' | 'colpisce' | 'recupera' | 'carica' | 'fugge' | 'morto';
 
 export type TEvento =
   /** Colpo dell'eroe su uno zombie. */
@@ -54,7 +54,14 @@ export type TEvento =
   | { t: 'scudoRotto' }
   | { t: 'compra'; arma: string; munizioni: boolean }
   /** Cassa del tesoro: si apre (gira), esce un'arma, esce il teschio (la cassa ride e se ne va), ricompare altrove. */
-  | { t: 'cassa'; fase: 'gira' | 'arma' | 'teschio' | 'vola' | 'qui' | 'presa'; arma?: string };
+  | { t: 'cassa'; fase: 'gira' | 'arma' | 'teschio' | 'vola' | 'qui' | 'presa'; arma?: string }
+  /** Arriva un boss (il corno del cavaliere, de Molay in fiamme); il cavaliere si lancia; de Molay ride e scappa, poi sparisce. */
+  | { t: 'boss'; tipo: string }
+  | { t: 'corno'; id: number }
+  | { t: 'risata'; id: number }
+  | { t: 'scompare'; id: number; tipo: string }
+  | { t: 'bomba'; x: number; z: number; tx: number; tz: number }
+  | { t: 'brucia' };
 
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
 export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo'; testo: string; prezzo: number; puoi: boolean } | null;
@@ -76,7 +83,11 @@ export type TView = {
     /** Scudo templare: vita, massimo, in mano (sennò sulle spalle). */
     scudo: { vita: number; max: number; inMano: boolean } | null;
   };
-  zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number }[];
+  zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number; boss: boolean }[];
+  /** Tiri dei nemici in volo: bombe (con dove cadono e il raggio, per il cerchio a terra) e palle di fuoco; `k` = 0..1 del volo. */
+  tiri: { id: number; tipo: 'bomba' | 'palla'; x: number; z: number; tx: number; tz: number; r: number; k: number }[];
+  /** Il boss in campo (barra in alto): `fugge` = soglia della vita a cui scappa (de Molay), 0 = si combatte fino in fondo. */
+  boss: { id: number; tipo: string; nome: string; vita: number; max: number; fugge: number } | null;
   finestre: { x: number; z: number; assi: number; max: number }[];
   proiettili: { id: number; tipo: 'freccia' | 'palla' | 'vaso'; x: number; z: number; vx: number; vz: number }[];
   fiamme: { id: number; x: number; z: number; r: number; resta: number }[];

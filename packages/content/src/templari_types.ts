@@ -56,6 +56,14 @@ export type TNemicoDef = {
   scudo?: number;
   /** Da quale ondata compare e quanta parte dell'ondata è sua (base + perOndata × (n − da), al massimo max). Senza: il fante, che fa il resto. */
   da?: number; quota?: { base: number; perOndata: number; max: number };
+  /** Boss (Templare a cavallo, de Molay): esce da solo nelle sue ondate, barra della vita in alto, `punti` in più a chi lo abbatte. */
+  boss?: boolean; punti?: number;
+  /** Cannoniere: bomba lanciata dove sei (cerchio a terra), da `distanza` m, ogni `ricarica` s; esplode dopo `volo` s. */
+  bomba?: { danno: number; raggio: number; gittata: number; distanza: number; ricarica: number; volo: number; preparazione: number };
+  /** Cavaliere: carica in linea retta verso dove eri quando l'ha vista (si impenna `preparazione` s prima). */
+  carica?: { velocita: number; durata: number; danno: number; spinta: number; vista: number; ricarica: number; preparazione: number };
+  /** De Molay: fiamme dove passa (ogni `ogni` s), palle di fuoco che lasciano fiamme, e a questa frazione della vita scappa ridendo. */
+  scia?: TFiamma & { ogni: number }; palla?: { danno: number; velocita: number; gittata: number; ricarica: number; fuoco: TFiamma }; fugge?: number;
 };
 
 export type TOndateCfg = {
@@ -104,6 +112,9 @@ export type TemplariCfg = {
   scudo: { vita: number; cono: number; lentezza: number; spallata: { danno: number; spinta: number; tempo: number; portata: number }; aTerra: number };
   /** Cassa del tesoro: prezzo, secondi che gira e che resta l'arma da prendere, aperture prima del teschio (a caso tra min e max), secondi per sparire, distanza per usarla. */
   cassa: { prezzo: number; gira: number; pronta: number; usiMin: number; usiMax: number; vola: number; raggio: number };
+  /** Boss: il cavaliere nelle ondate da `da` ogni `ogni` (5, 15, 25…) e in tutte le ondate da `insiemeDa`; de Molay ogni `ogni` da `da`
+   *  (10, 20, 30…). Nelle ondate dei boss esce questa quota dei fanti; il boss arriva dopo `attesa` s. */
+  boss: { cavaliere: { ogni: number; da: number; insiemeDa: number }; molay: { ogni: number; da: number }; quotaFanti: number; attesa: number };
   /** Armi sul muro: distanza per comprarle. */
   muro: { raggio: number };
   /** Premio per ondata superata (fino a `maxOndate`) e tetto del giorno UTC. */

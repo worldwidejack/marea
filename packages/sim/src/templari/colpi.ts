@@ -36,7 +36,7 @@ export function parato(z: Zombie, dirX: number, dirZ: number): boolean {
 
 /** Colpo su uno zombie: scudo, danno, spinta, punti, morte. */
 export function colpisci(s: TState, z: Zombie, c: Colpo): Esito {
-  if (z.st === 'morto' || z.st === 'sorge') return 'no';
+  if (z.st === 'morto' || z.st === 'sorge' || z.st === 'fugge') return 'no';
   if (c.scudo !== false && parato(z, c.dirX, c.dirZ)) {
     ev(s, { t: 'parato', chi: 'zombie', x: r2(z.x), z: r2(z.z) });
     if (c.spinta > 0) moveCircle(s.gr.zombie, z, c.dirX * c.spinta * 0.5, c.dirZ * c.spinta * 0.5, z.def.raggio);
@@ -45,12 +45,19 @@ export function colpisci(s: TState, z: Zombie, c: Colpo): Esito {
   const d = Math.min(z.vita, c.danno);
   z.vita -= c.danno;
   z.hurt = COLPITO_TICKS;
+  // de Molay non muore: a metà vita ride e scappa (si uccide davvero solo nel finale dell'easter egg)
+  if (z.def.fugge !== undefined && z.vita <= z.max * z.def.fugge) {
+    z.vita = z.max * z.def.fugge; z.st = 'fugge'; z.stT = 0; z.fuga = null;
+    ev(s, { t: 'colpo', id: z.id, x: r2(z.x), z: r2(z.z), danno: Math.round(d), uccide: false, caricato: c.caricato });
+    ev(s, { t: 'risata', id: z.id });
+    return 'colpito';
+  }
   const uccide = z.vita <= 0;
   ev(s, { t: 'colpo', id: z.id, x: r2(z.x), z: r2(z.z), danno: Math.round(d), uccide, caricato: c.caricato });
   if (c.spinta > 0 && !uccide) moveCircle(s.gr.zombie, z, c.dirX * c.spinta, c.dirZ * c.spinta, z.def.raggio);
   if (!uccide) { dai(s, TEMPLARI.punti.colpo, 'colpo'); return 'colpito'; }
   uccidi(s, z);
-  dai(s, c.mischia ? TEMPLARI.punti.mischia : TEMPLARI.punti.uccisione, c.mischia ? 'mischia' : 'uccisione');
+  dai(s, (c.mischia ? TEMPLARI.punti.mischia : TEMPLARI.punti.uccisione) + (z.def.punti ?? 0), c.mischia ? 'mischia' : 'uccisione');
   return 'ucciso';
 }
 
@@ -76,20 +83,31 @@ export function esplodi(s: TState, x: number, z: number, r: number, danno: numbe
   }
   if (fuoco) accendi(s, x, z, fuoco);
 }
-export function accendi(s: TState, x: number, z: number, f: TFiamma): void {
+export function accendi(s: TState, x: number, z: number, f: TFiamma, nemico = false): void {
   if (s.fiamme.length >= MAX_FIAMME) s.fiamme.shift();
-  s.fiamme.push({ id: s.nextId++, x, z, r: f.raggio, dps: f.dps, fine: s.tick + secToTicks(f.durata) });
+  s.fiamme.push({ id: s.nextId++, x, z, r: f.raggio, dps: f.dps, fine: s.tick + secToTicks(f.durata), ...(nemico ? { nemico: true } : {}) });
 }
 /** Le fiamme bruciano chi c'è dentro (passano lo scudo); chi muore così dà i punti dell'uccisione. */
 export function stepFiamme(s: TState): void {
   if (!s.fiamme.length) return;
   s.fiamme = s.fiamme.filter((f) => f.fine > s.tick);
+  const h = s.eroe;
+  for (const f of s.fiamme) {
+    if (!f.nemico) continue;
+    // le fiamme di de Molay bruciano l'eroe (niente scudo, niente rigenerazione mentre ci sei dentro)
+    const dx = h.x - f.x, dz = h.z - f.z, rr = f.r + TEMPLARI.eroe.raggio;
+    if (dx * dx + dz * dz > rr * rr || s.done) continue;
+    h.vita -= f.dps / 60; h.quiete = 0;
+    if (s.tick % 30 === 0) ev(s, { t: 'brucia' });
+    if (h.vita <= 0) { h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' }); return; }
+  }
   for (const f of s.fiamme) for (const z of s.zombie) {
-    if (z.st === 'morto' || z.st === 'sorge') continue;
+    if (f.nemico || z.st === 'morto' || z.st === 'sorge' || z.st === 'fugge') continue;
     const dx = z.x - f.x, dz = z.z - f.z, rr = f.r + z.def.raggio;
     if (dx * dx + dz * dz > rr * rr) continue;
     z.vita -= f.dps / 60;
-    if (z.vita <= 0) { uccidi(s, z); dai(s, TEMPLARI.punti.uccisione, 'uccisione'); }
+    if (z.def.fugge !== undefined && z.vita <= z.max * z.def.fugge) { z.vita = z.max * z.def.fugge; z.st = 'fugge'; z.stT = 0; z.fuga = null; ev(s, { t: 'risata', id: z.id }); continue; }
+    if (z.vita <= 0) { uccidi(s, z); dai(s, TEMPLARI.punti.uccisione + (z.def.punti ?? 0), 'uccisione'); }
   }
 }
 

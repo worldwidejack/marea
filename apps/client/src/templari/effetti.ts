@@ -15,7 +15,7 @@ export type Effetti = {
   tick(v: TView): void;
   evento(e: TEvento): void;
   update(alpha: number, dt: number, t: number, eroe: THREE.Object3D, v: TView): void;
-  stats(): { proiettili: number; fiamme: number; drops: number; cassa: string };
+  stats(): { proiettili: number; fiamme: number; drops: number; cassa: string; tiri: number };
   dispose(): void;
 };
 
@@ -36,6 +36,12 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
   const palle = inst(new THREE.IcosahedronGeometry(0.07, 0), new THREE.MeshBasicMaterial({ color: PAL.giallo }), 64, 'palle');
   const vasi = inst(new THREE.IcosahedronGeometry(0.16, 0), new THREE.MeshLambertMaterial({ color: PAL.arancio, emissive: PAL.arancio, emissiveIntensity: 0.4, flatShading: true }), 12, 'vasi');
   type P = { tipo: string; px: number; pz: number; x: number; z: number; vx: number; vz: number; nato: number };
+  // ---- tiri dei nemici: bombe del cannoniere (a parabola, col cerchio rosso dove cadono) e palle di fuoco di de Molay ----
+  const bombe = inst(new THREE.IcosahedronGeometry(0.16, 0), new THREE.MeshLambertMaterial({ color: PAL.neroCaldo, flatShading: true }), 12, 'bombe');
+  const palleFuoco = inst(new THREE.IcosahedronGeometry(0.3, 0), new THREE.MeshBasicMaterial({ color: PAL.arancio }), 8, 'palle_fuoco');
+  const cerchioGeo = new THREE.RingGeometry(0.9, 1, 20); cerchioGeo.rotateX(-Math.PI / 2);
+  const cerchi = inst(cerchioGeo, new THREE.MeshBasicMaterial({ color: PAL.rosso, side: THREE.DoubleSide }), 12, 'cerchi_bomba');
+  let tiriV: TView['tiri'] = [];
   const proj = new Map<number, P>();
   // ---- fiamme: 6 coni per macchia, accesi (niente luce: colori pieni) ----
   const FPF = 6;
@@ -99,6 +105,7 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
       }
       for (const id of [...proj.keys()]) if (!seen.has(id)) proj.delete(id);
       fiamme.clear(); for (const f of v.fiamme) fiamme.set(f.id, f);
+      tiriV = v.tiri;
       const ds = new Set<number>();
       for (const d of v.drops) {
         ds.add(d.id);
@@ -127,7 +134,15 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
         else if (p.tipo === 'vaso' && nv < 12) { const u = Math.min(1, (performance.now() - p.nato) / 900); vasi.setMatrixAt(nv++, m4.compose(v3.set(x, 1.4 + 1.6 * u * (1 - u) * 4 * 0.5, z), q.setFromEuler(new THREE.Euler(t * 9, t * 7, 0)), s3.set(1, 1, 1))); }
       }
       frecce.count = nf; palle.count = np; vasi.count = nv;
-      for (const im of [frecce, palle, vasi]) im.instanceMatrix.needsUpdate = true;
+      let nb = 0, nfu = 0, nc = 0;
+      for (const b of tiriV) {
+        if (b.tipo === 'bomba') {
+          if (nb < 12) bombe.setMatrixAt(nb++, m4.compose(v3.set(b.x, 1.2 + 6 * b.k * (1 - b.k), b.z), q.setFromEuler(new THREE.Euler(t * 8, t * 5, 0)), s3.set(1, 1, 1)));
+          if (nc < 12) cerchi.setMatrixAt(nc++, m4.compose(v3.set(b.tx, 0.06, b.tz), q.identity(), s3.setScalar(b.r * (0.4 + 0.6 * steps(b.k, 4)))));
+        } else if (nfu < 8) palleFuoco.setMatrixAt(nfu++, m4.compose(v3.set(b.x, 1.2, b.z), q.setFromEuler(new THREE.Euler(t * 9, t * 6, 0)), s3.setScalar(0.8 + 0.3 * ((Math.floor(t * 12) * 0.618) % 1))));
+      }
+      bombe.count = nb; palleFuoco.count = nfu; cerchi.count = nc;
+      for (const im of [frecce, palle, vasi, bombe, palleFuoco, cerchi]) { im.visible = im.count > 0; im.instanceMatrix.needsUpdate = true; }
       // fiamme: coni che tremano a scatti (10 al secondo), colori pieni
       const st = Math.floor(t * 10);
       let n = 0, vicina: { x: number; z: number } | null = null, vd = Infinity;
@@ -192,7 +207,7 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
         if (testo) { if (etichetta.textContent !== testo) etichetta.textContent = testo; etichetta.style.left = `${p.x}px`; etichetta.style.top = `${p.y}px`; }
       }
     },
-    stats: () => ({ proiettili: proj.size, fiamme: fiamme.size, drops: drops.size, cassa: cassaV?.fase ?? '' }),
+    stats: () => ({ proiettili: proj.size, fiamme: fiamme.size, drops: drops.size, cassa: cassaV?.fase ?? '', tiri: tiriV.length }),
     dispose() { root.removeFromParent(); etichetta.remove(); for (const d of disp) d.dispose(); },
   };
 }

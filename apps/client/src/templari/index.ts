@@ -138,6 +138,15 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'scudo': suona('raccolto'); hud.grande('SCUDO', PAL.sabbiaChiara, 'Sulle spalle para da dietro · SCAMBIA per impugnarlo', 2400); break;
       case 'scudoRotto': suona('colpo_critico'); hud.grande('', PAL.rosso, 'Lo scudo si è spaccato', 1600); break;
       case 'compra': suona('moneta'); break;
+      case 'boss':
+        if (e.tipo === 'cavaliere') { suona('tuono'); hud.grande('TEMPLARE A CAVALLO', PAL.rosso, 'La terra trema: arriva al galoppo', 3000); }
+        else { suona('tuono'); hud.grande('JACQUES DE MOLAY', PAL.arancio, 'L’ultimo Gran Maestro esce dalle fiamme', 3400); }
+        break;
+      case 'corno': suona('raffica'); break;
+      case 'risata': suona('scappato'); hud.grande('', PAL.arancio, 'De Molay ride e scappa: non è ancora il suo momento', 3000); break;
+      case 'scompare': hud.grande('', PAL.giallo, 'De Molay è sparito nella notte', 2200); break;
+      case 'bomba': suona('lancio'); break;
+      case 'brucia': suona('sfrigola'); break;
       case 'cassa':
         if (e.fase === 'gira') suona('apri');
         else if (e.fase === 'arma' && e.arma) { suona(armaDef(e.arma).miracolosa ? 'medaglia_oro' : 'notifica'); if (armaDef(e.arma).miracolosa) hud.grande('✦', PAL.giallo, armaDef(e.arma).nome, 2200); }
@@ -200,7 +209,11 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (typeof p['arma'] === 'string') daiArma(s, p['arma']);
     if (p['scudo']) { s.eroe.scudo = { vita: TEMPLARI.scudo.vita }; s.eroe.inMano = p['scudo'] === 'mano'; }
     if (typeof p['punti'] === 'number') s.punti = p['punti'];
-    if (typeof p['zombie'] === 'string') { const z = nuovoZombie(s, p['zombie'], s.eroe.x + s.eroe.fx * 2.2, s.eroe.z + s.eroe.fz * 2.2, 0); z.st = 'insegue'; z.fx = -s.eroe.fx; z.fz = -s.eroe.fz; }
+    if (typeof p['zombie'] === 'string') {
+      const dist = typeof p['dist'] === 'number' ? p['dist'] : 2.2, lato = typeof p['lato'] === 'number' ? p['lato'] : 0;
+      const z = nuovoZombie(s, p['zombie'], s.eroe.x + s.eroe.fx * dist - s.eroe.fz * lato, s.eroe.z + s.eroe.fz * dist + s.eroe.fx * lato, 0);
+      z.st = 'insegue'; z.fx = -s.eroe.fx; z.fz = -s.eroe.fz;
+    }
     view = templari.view(s);
     return { arma: view.eroe.arma, scudo: view.eroe.scudo, zombie: view.zombie.length };
   };
