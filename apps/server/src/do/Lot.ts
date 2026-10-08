@@ -15,6 +15,9 @@
 // Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
 // Richieste dal DO Sfide (mai esposte dal Worker): POST /hold {cid, stake, kind} · /release {cid, release}: idempotenti per id sfida.
+// Faro comune (#111), sempre dal DO Sfide: POST /faro_dona {id, dono} (Legno e Pietra escono dal lotto, idempotente per id) ·
+// /faro_livelli {livelli} (i momenti in cui il faro è salito: il bonus di produzione lo applica `advance`). Anche /rientro può portare
+// `faro` (i livelli, letti dal Worker): così chi entra dopo una salita la impara subito.
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
 import { build, buyHat, collect, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
@@ -28,6 +31,7 @@ import { EconomyError } from '@marea/sim/economy/types.ts';
 import { eventiPartita, eventiRaccolta, riscuotiMissione, tracciaMissioni } from '@marea/sim/economy/missioni.ts';
 import type { EventiMissione } from '@marea/sim/economy/missioni.ts';
 import { firmaLibro, rientra, segnaVisto } from '@marea/sim/economy/rientro.ts';
+import { donaAlFaro, segnaFaro } from '@marea/sim/economy/faro.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
 import { isPackedInputs, replayPartita } from '@marea/sim/replay.ts';
 import { registraDiscesa, registraPartita, registraVisti, riscuotiTraguardo, scegliTitolo } from '@marea/sim/economy/diario.ts';
@@ -115,8 +119,9 @@ export class Lot extends DurableObject<Env> {
       if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
       if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now);
       if (RPG_ACTS.has(act)) return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
+      if (act === 'faro_dona' || act === 'faro_livelli') return this.faro(lot, act, body, now);
       if (act === 'rientro') {
-        const out = rientra(lot, now);
+        const out = rientra(Array.isArray(body['faro']) ? segnaFaro(lot, body['faro']) : lot, now);
         this.save(out.lot);
         return json({ riepilogo: out.riepilogo, lot: out.lot });
       }
@@ -176,7 +181,24 @@ export class Lot extends DurableObject<Env> {
     const out = finishSolo(lot, r.medal, now);
     const next = registraPartita(tracciaMissioni(out.lot, eventiPartita(r.medal), now), p.minigame, r.medal, raccolta);
     this.save(next);
-    return json({ score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: next });
+    return json({ minigame: p.minigame, score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: next });
+  }
+
+  /** Faro comune (#111): versamento (idempotente per id: il coordinatore può ripeterlo dopo un crash) e livelli raggiunti. */
+  private faro(lot: LotState, act: 'faro_dona' | 'faro_livelli', body: Record<string, unknown>, now: number): Response {
+    if (act === 'faro_livelli') {
+      if (!Array.isArray(body['livelli'])) return json({ error: 'Richiesta non valida' }, 400);
+      const next = segnaFaro(lot, body['livelli']);
+      if (next !== lot) this.save(next);
+      return json(next);
+    }
+    const id = body['id'], dono = body['dono'] as Record<string, unknown> | null;
+    if (!isId(id) || !dono || typeof dono !== 'object') return json({ error: 'Richiesta non valida' }, 400);
+    const legno = dono['legno'], pietra = dono['pietra'];
+    if (!Number.isInteger(legno) || !Number.isInteger(pietra) || (legno as number) < 0 || (pietra as number) < 0) return json({ error: 'Versamento non valido' }, 400);
+    const next = donaAlFaro(lot, id, { legno: legno as number, pietra: pietra as number }, now);
+    if (next !== lot) this.save(next);
+    return json(next);
   }
 
   /** Diario del capitano (#87): avvistamenti, RISCUOTI di un traguardo (paga il server, una volta), titolo sotto il nome. */

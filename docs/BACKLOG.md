@@ -6,7 +6,6 @@
 - Battaglia carte/unità in tempo reale (Clash Royale-like): netcode a bassa latenza, bot, bilanciamento. Unica ragione per il piano Paid di Cloudflare.
 - Puzzle leggero con i moduli dell'isola (tubi/tessere).
 - Distretto Neon e Isola Selvaggia come zone vere (oggi facciate).
-- Progetti comuni (ponte, faro del Porto) finanziati insieme.
 - Bot per i minigiochi in tempo reale.
 - Chat testuale (oggi solo emote).
 - Interni degli edifici. (Il ciclo giorno/notte è entrato: #54; il meteo: #85.)

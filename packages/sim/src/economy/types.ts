@@ -19,6 +19,11 @@ export type Firma = { chi: string; nome: string; emote: string; quando: number }
 /** Ultimo cantiere finito (lo scrive `advance`): serve a «Mentre eri via» anche se nel frattempo qualcuno ha guardato l'isola. */
 export type CantiereFinito = { building: string; level: number; endsMs: number };
 /**
+ * Faro comune del Porto (#111), visto da un lotto: quando il faro ha raggiunto ogni livello (ms del server, crescenti: li porta il server,
+ * `advance` li usa per il bonus di produzione), quanto Legno e Pietra ha versato quest'isola, gli ultimi id dei versamenti (idempotenza).
+ */
+export type FaroLotto = { livelli: number[]; versato: { legno: number; pietra: number }; doni: string[] };
+/**
  * Diario del capitano (#87): quello che conta (pesci, perle, medaglie, partite, spedizioni) lo scrive il server quando verifica una
  * partita; animali e isole arrivano dal client (collezionismo, id validati). `riscossi` = traguardi già pagati, `titolo` = id del
  * traguardo il cui titolo si mostra sotto il nome.
@@ -73,6 +78,8 @@ export type LotState = {
   ospiti?: Firma[];
   /** Ultimo cantiere finito (#86). Assente = nessuno. */
   finito?: CantiereFinito;
+  /** Faro comune del Porto (#111). Assente = livello 0, niente versato. */
+  faro?: FaroLotto;
 };
 
 /**
@@ -118,7 +125,7 @@ export const missing = (have: Resources, cost: Resources): Resources => ({
 });
 
 export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow' | 'cappello' | 'posizione' | 'partita'
-  | 'missione' | 'firma' | 'traguardo'
+  | 'missione' | 'firma' | 'traguardo' | 'faro'
   | 'peso' | 'equip' | 'perk' | 'materiale' | 'edificio' | 'livello_skill' | 'oggetto' | 'spedizione';
 export class EconomyError extends Error {
   code: EconomyErrorCode;

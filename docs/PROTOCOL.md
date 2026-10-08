@@ -133,6 +133,16 @@ Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, gioca
 
 `POST /api/look` e `POST /api/diario/titolo` conservano la barca salvata; `GET /api/me` e `/api/lots` la danno nel `look`. **Presenza**: `Peer.barca?: { scafo, vela, nome }` (assente = di serie), nel `welcome`/`join` dal look in D1 e negli `snap` dopo un cambio. Il client accetta messaggi del server fino a `MAX_SERVER_MSG_BYTES` = 64 KB (quelli del client restano ≤ 2 KB). `PROTOCOL_VERSION` resta 1.
 
+### Aggiunte Porto tra amici (#110 #111, 8 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/solo/play` | come prima, **in più** `minigame` e `record: { oggi, sempre } \| null` (la partita è il migliore di oggi / di sempre). Il Worker manda il punteggio rigiocato dal DO del lotto al tabellone (DO `Sfide`, best-effort) |
+| `GET /api/record` | → `{ voci: { minigame, nome, oggi: RecordVista \| null, sempre: RecordVista \| null }[] }`, una voce per minigioco di `diario.json`; `RecordVista = { chi, nome, score, medal, detail, quando }`. «Oggi» = giorno UTC — **nuovo** |
+| `GET /api/faro` | → `{ faro: FaroVista }`, `FaroVista = { legno, pietra, livello, max, livelli: ms[], bonus, prossimo: { livello, legno, pietra, bonus } \| null, classifica: { id, nome, legno, pietra }[] }` — **nuovo** |
+| `POST /api/faro/versa` | `{ legno?, pietra? }` → `{ faro: FaroVista, saliti: number[], dono: { legno, pietra }, lot: LotState }`: il versamento è dosato (interi ≥ 0, mai oltre quello che manca al faro completo); il Magazzino paga (409 `{ error, manca }` se non basta), il faro conta. 400 `{ code: 'faro' }` se non c'è niente da versare, 409 `{ code: 'faro' }` a faro completo — **nuovo** |
+
+`FeedTipo` + `'record'` («Mia ha battuto il tuo record alla Regata», a chi perde il record di sempre) e `'faro'` («Il Faro del Porto è salito al livello 2, grazie a Luca: Segherie e Cave +10 % per tutti», a chi ha un'isola). Nuovo campo facoltativo di `LotState`: `faro?: { livelli: ms[], versato: { legno, pietra }, doni: id[] }` (momenti delle salite del faro, quanto ha versato l'isola, ultimi versamenti per l'idempotenza). `POST /api/rientro` porta al lotto i livelli del faro se se li era persi. `PROTOCOL_VERSION` resta 1.
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32 e `a, b` 0/1. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 

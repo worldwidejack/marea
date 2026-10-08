@@ -10,6 +10,7 @@ import { nowFor } from './clock.ts';
 import { elencoPersone, entraConInvito, esistePersona, salvaLook, segnaAccesso } from './db.ts';
 import { toFeedItem } from './feed.ts';
 import type { FeedRow } from './feed.ts';
+import { rottePortoAmici, segnaRecordDa } from './porto_amici.ts';
 export { Zone } from './do/Zone.ts';
 export { Lot } from './do/Lot.ts';
 export { Sfide } from './do/Sfide.ts';
@@ -251,7 +252,8 @@ export default {
       if (path === '/api/solo/play' && req.method === 'POST') {
         const body = await corpo(MAX_PLAY_BODY);
         if (body instanceof Response) return body;
-        return lotReq(env, p.id, now, 'solo_play', { inputs: body['inputs'] });
+        // il punteggio vero (dal replay) va anche al tabellone dei record del Porto (#110)
+        return segnaRecordDa(await lotReq(env, p.id, now, 'solo_play', { inputs: body['inputs'] }), (q, b) => sfideReq(env, p.id, now, q, b));
       }
       // Bacheca del Porto (#64): le missioni di oggi le calcola anche il client dal lotto; qui solo RISCUOTI (il DO verifica e paga)
       if (path === '/api/missioni/riscuoti' && req.method === 'POST') {
@@ -261,17 +263,24 @@ export default {
       }
       // Rientro (#86): all'ingresso il DO del lotto risponde col riepilogo dell'assenza (null se mancavi da poco) e segna «visto»; qui si
       // aggiungono le novità non lette del feed che non sono visite (le visite stanno già nel riepilogo, come firme del libro)
+      // e i momenti delle salite del Faro comune (#111), che il lotto impara qui se se li era persi
       if (path === '/api/rientro' && req.method === 'POST') {
-        const r = await lotReq(env, p.id, now, 'rientro', {});
-        if (!r.ok) return r;
-        const d = (await r.json()) as { riepilogo: unknown; lot: unknown };
-        let novita = 0;
+        let novita = 0, faro: number[] | undefined;
         try {
           const f = await sfideReq(env, p.id, now, 'feed');
-          if (f.ok) novita = ((await f.json()) as { rows: FeedRow[] }).rows.filter((x) => !x.letto && x.tipo !== 'visita').length;
+          if (f.ok) {
+            const fd = (await f.json()) as { rows: FeedRow[]; faroLivelli?: number[] };
+            novita = fd.rows.filter((x) => !x.letto && x.tipo !== 'visita').length;
+            faro = fd.faroLivelli;
+          }
         } catch { /* senza feed la scheda esce lo stesso */ }
+        const r = await lotReq(env, p.id, now, 'rientro', faro?.length ? { faro } : {});
+        if (!r.ok) return r;
+        const d = (await r.json()) as { riepilogo: unknown; lot: unknown };
         return json({ riepilogo: d.riepilogo, novita, lot: d.lot, now });
       }
+      const pa = await rottePortoAmici(path, req, env, (q, b) => sfideReq(env, p.id, now, q, b), corpo);
+      if (pa) return pa;
       if (path === '/api/presenza' && req.method === 'POST') return lotReq(env, p.id, now, 'visto', {});
       // Libro degli ospiti (#86): firmi il libro dell'isola di un amico (nome dal tuo link, emote di avatar.json); il DO del suo lotto
       // controlla «una al giorno» e risponde col suo LotState; poi una riga nel suo feed (best-effort)
