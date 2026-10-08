@@ -4,6 +4,7 @@
 //   Ghiacci  → personaggio GDR al livello N (il mare gela, la barca si ferma)
 //   Vulcano  → un cappello indosso (niente barriera: sbarchi, gli abitanti ti cacciano e ti rimettono in barca)
 //   Giardino → una mappa (la nebbia ti fa girare in tondo e tornare indietro); la regala la prima medaglia d'oro da solo
+//   Templari → la reliquia del relitto templare sotto il faro della Tempesta (nebbia rossa, come il Giardino)
 import { ARCHIPELAGO, AVATAR } from '@marea/content';
 import type { TemaSblocco } from '@marea/content';
 import type { LotState } from '../economy/types.ts';
@@ -12,8 +13,8 @@ import type { BoatState } from './boat.ts';
 import type { GridMap } from './grid.ts';
 
 /** Quel che serve per decidere: livello del Molo (0 = nessuna isola), livello del personaggio, cappello indosso (id), mappe possedute. */
-export type Viaggiatore = { molo: number; livello: number; cappello: string | null; mappe: readonly string[] };
-export const NESSUNO: Viaggiatore = { molo: 0, livello: 1, cappello: null, mappe: [] };
+export type Viaggiatore = { molo: number; livello: number; cappello: string | null; mappe: readonly string[]; reliquie: readonly string[] };
+export const NESSUNO: Viaggiatore = { molo: 0, livello: 1, cappello: null, mappe: [], reliquie: [] };
 /** `motivo`: la frase che vede chi viene respinto; `manca`: cosa serve, corto (minimappa, bussola). */
 export type Sblocco = { aperta: boolean; motivo: string; manca: string };
 
@@ -21,7 +22,7 @@ export type Sblocco = { aperta: boolean; motivo: string; manca: string };
 export function viaggiatore(lot: LotState | null, cappello: number | string | null): Viaggiatore {
   const molo = lot ? lot.buildings.reduce((m, b) => (b.building === 'molo' ? Math.max(m, b.level) : m), 0) : 0;
   const hat = typeof cappello === 'number' ? AVATAR.cappelli[cappello]?.id ?? null : cappello;
-  return { molo, livello: lot?.hero?.livello ?? 1, cappello: hat && hat !== 'nessuno' ? hat : null, mappe: lot?.mappe ?? [] };
+  return { molo, livello: lot?.hero?.livello ?? 1, cappello: hat && hat !== 'nessuno' ? hat : null, mappe: lot?.mappe ?? [], reliquie: lot?.reliquie ?? [] };
 }
 
 const hatOf = (id: string) => AVATAR.cappelli.find((c) => c.id === id);
@@ -49,6 +50,10 @@ export function sbloccoTema(s: TemaSblocco, v: Viaggiatore): Sblocco {
     case 'mappa': {
       const ok = v.mappe.includes(s.mappa), isola = isolaDellaMappa(s.mappa);
       return { aperta: ok, motivo: ok ? 'Aperta' : `Ti perdi nella nebbia: serve la mappa del ${isola} (te la regala la prima medaglia d'oro in un minigioco)`, manca: `Mappa del ${isola}` };
+    }
+    case 'reliquia': {
+      const ok = (v.reliquie ?? []).includes(s.reliquia);
+      return { aperta: ok, motivo: ok ? 'Aperta' : 'Una nebbia rossa ti fa girare al largo: qualcosa, sotto il faro della Tempesta, apre la strada', manca: 'La reliquia dei Templari' };
     }
   }
 }
@@ -94,7 +99,7 @@ export function respingi(prev: BoatState, next: BoatState, place: ArchPlace, map
   const tipo = t.sblocco.tipo;
   const fuori = t.barriera + (tipo === 'molo' ? 2.5 : 0.05); // la tempesta ti butta un po' più in là
   let out: BoatState;
-  if (tipo === 'mappa') out = { ...next, x: b.qx + b.nx * fuori, z: b.qz + b.nz * fuori, yaw: Math.atan2(b.nx, -b.nz), speed: next.speed * 0.6, rudder: 0 };
+  if (tipo === 'mappa' || tipo === 'reliquia') out = { ...next, x: b.qx + b.nx * fuori, z: b.qz + b.nz * fuori, yaw: Math.atan2(b.nx, -b.nz), speed: next.speed * 0.6, rudder: 0 };
   else out = { ...next, x: b.qx + b.nx * fuori, z: b.qz + b.nz * fuori, speed: 0, wake: tipo === 'molo' ? 1 : 0 };
   if (!map.navigable(out.x, out.z)) out = { ...prev, speed: 0 };
   return out;

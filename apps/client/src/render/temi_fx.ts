@@ -4,6 +4,7 @@
 //   Ghiacci:  banchisa nella barriera finché è chiusa (poi il mare si sgela), neve, aurora boreale di notte
 //   Vulcano:  fumo dal cratere, cenere e scintille (gli abitanti col cappello giusto sono decorazioni ferme: island_temi.ts)
 //   Giardino: muro di nebbia che nasconde l'isola finché non hai la mappa, petali di ciliegio, carpe koi nello stagno
+//   Templari: nebbia rossastra che nasconde l'isola finché non hai la reliquia, poi cenere che cade e corvi neri sopra la chiesa
 import * as THREE from 'three';
 import { distanzaIsola } from '@marea/sim';
 import type { Archipelago, ArchPlace, GridMap } from '@marea/sim';
@@ -259,6 +260,49 @@ function giardino(p: ArchPlace, map: GridMap, scene: THREE.Scene, aperta: () => 
   };
 }
 
+/** Templari (docs/TEMPLARI.md §2): finché non hai la reliquia, nebbia rossastra sopra l'isola e nella barriera (nasconde l'isola, come il
+ *  Giardino); aperta, cenere che cade e un giro di corvi sopra la chiesa. */
+function templari(p: ArchPlace, map: GridMap, scene: THREE.Scene, aperta: () => boolean): Fx {
+  const T = map.tile, B = p.tema!.barriera, group = new THREE.Group(); group.name = 'fx_templari';
+  const bb = box(p, T, B), posti: { x: number; z: number }[] = [];
+  for (let i = 0; i < 240; i++) {
+    const x = bb[0] + rnd() * (bb[2] - bb[0]), z = bb[1] + rnd() * (bb[3] - bb[1]);
+    if (distanzaIsola(p, T, x, z).d < B - 3) posti.push({ x, z });
+  }
+  const nebbia = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ map: scacchi(36, 24), alphaTest: 0.5, flatShading: true }), Math.max(1, posti.length)); nebbia.name = 'nebbia_rossa'; nebbia.frustumCulled = false;
+  instColors(nebbia, [P.roccia, P.rosso, P.pietraScura, P.ombraCalda, P.roccia, P.pietraScura]); group.add(nebbia);
+  const dim = posti.map(() => [5 + rnd() * 8, 2.5 + rnd() * 5, 5 + rnd() * 8, rnd() * 6.28] as const);
+  const b = box(p, T, 2);
+  const cenere = particelle(200, b, 0, 14, [P.pietra, P.roccia, P.pietraScura], 2); cenere.name = 'cenere'; group.add(cenere);
+  const corvo = merged([new THREE.BoxGeometry(0.25, 0.15, 0.6), new THREE.BoxGeometry(1.4, 0.05, 0.3).translate(0, 0.05, 0)]);
+  const NC = 7, corvi = new THREE.InstancedMesh(corvo, instMat(), NC); corvi.name = 'corvi'; corvi.frustumCulled = false;
+  instColors(corvi, [P.neroCaldo]); group.add(corvi);
+  let isola: THREE.Object3D | null = null;
+  scene.traverse((n) => { if (!isola && n.name.startsWith('isola_' + p.island)) isola = n; });
+  const cx = (p.origin[0] + p.w / 2) * T, cz = (p.origin[1] + p.h / 2) * T, m4 = new THREE.Matrix4();
+  return {
+    id: p.island, group,
+    update(dt, t) {
+      const chiusa = !aperta();
+      nebbia.visible = chiusa; if (isola) (isola as THREE.Object3D).visible = !chiusa; cenere.visible = !chiusa; corvi.visible = !chiusa;
+      if (chiusa) {
+        for (let i = 0; i < posti.length; i++) { const d = dim[i]!; nebbia.setMatrixAt(i, m4.copy(M(posti[i]!.x + Math.sin(t * 0.15 + d[3]) * 2, d[1] / 2 + Math.sin(t * 0.4 + d[3]) * 0.6, posti[i]!.z + Math.cos(t * 0.13 + d[3]) * 2, 0, d[3], 0, d[0], d[1], d[2]))); }
+        nebbia.instanceMatrix.needsUpdate = true;
+        return;
+      }
+      const a = cenere.geometry.attributes.position as THREE.BufferAttribute, arr = a.array as Float32Array;
+      for (let i = 0; i < arr.length; i += 3) { let yy = arr[i + 1]! - 0.6 * dt; if (yy < 0.4) yy += 14; arr[i + 1] = yy; arr[i] = arr[i]! + Math.sin(t * 0.9 + i) * 0.4 * dt; }
+      a.needsUpdate = true;
+      for (let i = 0; i < NC; i++) {
+        const ang = t * (0.35 + (i % 3) * 0.07) + i * 0.9, r = 9 + (i % 4) * 2.5, flap = Math.floor(t * 6 + i) % 2 ? 0.35 : -0.25;
+        corvi.setMatrixAt(i, m4.copy(M(cx + Math.cos(ang) * r, 15 + (i % 3) * 1.5, cz + Math.sin(ang) * r, 0, -ang, flap)));
+      }
+      corvi.instanceMatrix.needsUpdate = true;
+    },
+    stato: () => ({ nebbia: nebbia.visible, isolaNascosta: isola ? !(isola as THREE.Object3D).visible : null, corvi: NC, cenere: cenere.visible }),
+  };
+}
+
 export function createTemiFx(o: {
   scene: THREE.Scene; arch: Archipelago; map: GridMap; loader: Loader; root: HTMLElement; groundY(x: number, z: number): number;
   aperta(id: string): boolean; notte(): boolean;
@@ -268,7 +312,8 @@ export function createTemiFx(o: {
     if (!p.tema) continue;
     const ap = () => o.aperta(p.island);
     const fx = p.island === 'tempesta' ? tempesta(p, o.map, o.root) : p.island === 'ghiacci' ? ghiacci(p, o.map, ap, o.notte)
-      : p.island === 'vulcano' ? vulcano(p, o.map, o.groundY) : p.island === 'giardino' ? giardino(p, o.map, o.scene, ap) : null;
+      : p.island === 'vulcano' ? vulcano(p, o.map, o.groundY) : p.island === 'giardino' ? giardino(p, o.map, o.scene, ap)
+      : p.island === 'templari' ? templari(p, o.map, o.scene, ap) : null;
     if (!fx) continue;
     fx.group.visible = false; o.scene.add(fx.group); fxs.push({ ...fx, place: p });
   }
@@ -277,7 +322,7 @@ export function createTemiFx(o: {
       for (const fx of fxs) {
         const d = distanzaIsola(fx.place, o.map.tile, f.x, f.z).d, on = d < VISTA_M;
         fx.group.visible = on;
-        if (on || fx.id === 'giardino') fx.update(dt, t, d); // il Giardino nasconde l'isola anche da lontano
+        if (on || fx.id === 'giardino' || fx.id === 'templari') fx.update(dt, t, d); // Giardino e Templari nascondono l'isola anche da lontano
       }
     },
     respinta(id) { fxs.find((f) => f.id === id)?.respinta?.(); },

@@ -27,6 +27,7 @@ import { createMinigiochi } from './game/minigiochi.ts';
 import { createGuida } from './ui/guida.ts';
 import type { Guida, GuidaStep } from './ui/guida.ts';
 import { createIngressi } from './game/ingressi.ts';
+import { createTemplari } from './game/templari.ts';
 import { createEroe } from './ui/eroe.ts';
 import { createPorto } from './game/porto.ts';
 import { createPortoAmici } from './game/porto_amici.ts';
@@ -119,6 +120,10 @@ async function boot(): Promise<void> {
   const ingressi = createIngressi({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot });
   // dei dungeon la bussola mostra solo il più facile non ancora completato (difficoltà invisibile, docs/RPG.md §2)
   for (const sp of ingressi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, show: () => ingressi.next() === sp.id, group: 'dungeon' });
+  // Isola dei Templari (docs/TEMPLARI.md): la porta della chiesa e le ondate (chunk templari/ scaricato entrando); ?templari=1 per le prove
+  const tpl = createTemplari({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot });
+  /** Nel dungeon o nella chiesa dei Templari: il mondo di superficie sta fermo e la sua interfaccia sparisce. */
+  const sotto = () => ingressi.active || tpl.active;
   // Porto (#63-#65): Mercante delle Perle, Bacheca delle missioni, Gente del Porto; i pannelli si scaricano alla prima apertura
   const porto = createPorto({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot });
   // nella sezione del Porto subito dopo la piazza: Mercante e Bacheca prima dei minigiochi
@@ -128,12 +133,13 @@ async function boot(): Promise<void> {
   targets.splice(targets.findIndex((t) => t.id === 'bacheca') + 1, 0, ...amici.spots.map((sp): CompassTarget => ({ id: sp.id, label: sp.id === 'record' ? 'Record' : 'Faro', icon: sp.id, x: sp.x, z: sp.z, sezione: 'porto' })));
   // Isole a tema (#68): sblocchi, barriere in mare, il Vulcano che caccia; in bussola appena scoperte (minimappa), col lucchetto in mappa finché chiuse
   const temi = createTemi({ world, hud, loader, root, camera: renderer.camera, canvas, getLot: () => myLot(), notte: () => aspetto?.momento === 'notte' });
+  if (tpl.spot) targets.push({ id: 'templari', label: 'Chiesa', icon: 'templari', x: tpl.spot.x, z: tpl.spot.z, show: () => FLAGS.templari || temi.aperta('templari'), sezione: 'isole' });
   for (const p of temi.isole) targets.push({ id: 'tema:' + p.island, label: p.nome.replace(/^Isola (della |dei |del )?/, ''), icon: p.island as PixId, x: p.spawn.x, z: p.spawn.z, show: () => mappa?.vista(`${p.role}:${p.index}`) ?? false, sezione: 'isole' });
   // Libro degli ospiti e «Mentre eri via» (#86): leggio vicino al molo di ogni isola abitata; la cartolina al rientro (dopo i primi passi)
   const libri = createLibri({ world, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, isole, onFirma: (e) => emotes.play(e) });
   const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;
   // Diario del capitano (#87): bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette con nome e titolo sopra la testa
-  const diario = createDiario({ root, hud, api: me && api.enabled ? api : null, me, world, owners, getLot: () => myLot(), setLot: setMyLot, hidden: () => regata.active || giochi.isBusy() || ingressi.active || ingressi.isBusy(),
+  const diario = createDiario({ root, hud, api: me && api.enabled ? api : null, me, world, owners, getLot: () => myLot(), setLot: setMyLot, hidden: () => regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy(),
     pausa: () => !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || !!tavolo?.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!document.querySelector('#mzSheet.on'),
     onOpen: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); } });
   const targhette = createTarghette({ world, camera: renderer.camera, canvas, root, mio: () => { const l = myLot(); return me && l ? { nome: me.nome, titolo: titoloDi(diarioOf(l).titolo) } : null; } });
@@ -183,7 +189,7 @@ async function boot(): Promise<void> {
   };
   let guidaRef: Guida | null = null; // la guida si crea più sotto (dopo i passi); le Impostazioni la riaccendono
   const impostazioni = createImpostazioni({ root, onChange: applica, guida: { on: () => !(guidaRef?.chiusa() ?? false), set: (v) => guidaRef?.setChiusa(!v) } });
-  collegaAudio({ world, root, momento: () => aspetto?.momento ?? 'giorno', gioco: () => giochi.isBusy(), dungeon: () => ingressi.active }); // suoni e musica (audio/ponte.ts), al primo gesto
+  collegaAudio({ world, root, momento: () => aspetto?.momento ?? 'giorno', gioco: () => giochi.isBusy(), dungeon: () => sotto() }); // suoni e musica (audio/ponte.ts), al primo gesto
   registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
   registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
   registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0, meteoK: aspetto?.meteoK ?? 0, gocce: aspetto?.gocce ?? 0 }));
@@ -198,8 +204,8 @@ async function boot(): Promise<void> {
   void import('./game/animali.ts').then((m) => { animali = m.createAnimali({ world, camera: renderer.camera, canvas, root, hud, buio: () => aspetto?.buio ?? 0, avvista: (id) => diario.avvista(id) }); }).catch(() => { /* senza animali si gioca lo stesso */ });
   const EMOTES = AVATAR.emote as EmoteId[];
   /** Pannelli aperti che non sono il foglio delle isole (#mzSheet): lì sotto le decorazioni non rispondono ad A. */
-  const panelsBusyNoSheet = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || regata.active || giochi.isBusy() || ingressi.active || ingressi.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || !!eroe?.isOpen();
-  const panelsBusy = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || ingressi.active || ingressi.isBusy();
+  const panelsBusyNoSheet = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || !!eroe?.isOpen();
+  const panelsBusy = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy();
   const openEditor = () => { if (!editor || panelsBusy()) return false; feed?.close(); editor.open(); return true; };
   const openFeed = () => { if (!feed || panelsBusy()) return false; editor?.close(); feed.open(); return true; };
   // Un solo listener in bubble: i pannelli aperti fermano il keydown in capture, quindi qui arrivano solo i tasti «liberi».
@@ -254,7 +260,7 @@ async function boot(): Promise<void> {
     } }] : []),
   ];
   /** Gara, minigioco, dungeon o un pannello aperto: le frecce sullo schermo (guida, mete) si tolgono. */
-  const coperto = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || ingressi.active || ingressi.isBusy() || !!eroe?.isOpen();
+  const coperto = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!eroe?.isOpen();
   const META_DEL_PASSO: Record<string, string> = { segheria: 'casa', costruisci: 'casa', parla: 'porto' };
   const guida = createGuida({
     root, camera: renderer.camera, canvas, steps, vecchi: (hasLot ? 2 : 0) + 1 + (reg ? 1 : 0), storeKey: `marea:guida:${me?.id ?? 'ospite'}`,
@@ -276,7 +282,7 @@ async function boot(): Promise<void> {
   };
   const foto = createFoto({
     root, hud, canvas, diorama: renderer.diorama, rendi: () => renderer.render(acc / DT, t), posto: () => postoDi(qui()),
-    puo: () => !(regata.active || giochi.isBusy() || ingressi.active || ingressi.isBusy()),
+    puo: () => !(regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy()),
     prima: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); libri.close(); diario.close(); mappa?.close(); impostazioni.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); },
   });
   const FERMO = { mx: 0, my: 0, a: false, b: false }; // in modalità foto l'avatar sta fermo (il mondo no)
@@ -294,22 +300,23 @@ async function boot(): Promise<void> {
     while (acc >= DT && steps < 5) {
       const f0 = input.sample(), f = foto.isOpen() ? FERMO : f0;
       if (ingressi.active) { ingressi.step(f); acc -= DT; steps++; continue; } // nel dungeon il mondo di superficie sta fermo
-      if (regata.active) regata.step(f); else { const aP0 = porto.tick(f.a), aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
-      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || !!eroe?.isOpen() || foto.isOpen()) && !regata.active;
+      if (tpl.active) { tpl.step(f); acc -= DT; steps++; continue; } // nella chiesa dei Templari idem
+      if (regata.active) regata.step(f); else { const aP0 = porto.tick(f.a), aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
+      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || !!eroe?.isOpen() || foto.isOpen()) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
-    if (ingressi.active) ingressi.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); animali?.update(dt, t); } // Animali (#67)
+    if (ingressi.active) ingressi.update(acc / DT, dt, t); else if (tpl.active) tpl.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); tpl.update(acc / DT, dt, t); animali?.update(dt, t); } // Animali (#67)
     regata.update(acc / DT, dt, t);
-    emotes.update(dt); setTopbarHidden(regata.active || ingressi.active);
-    giochi.update(t); if (!ingressi.active) { porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); amici.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); libri.update(world.mode === 'walk' ? world.avatar.state : world.boat.state); } guideStep = guida.current(); guida.update(t);
-    if (!ingressi.active) temi.update(dt, t); // Isole a tema (#68)
+    emotes.update(dt); setTopbarHidden(regata.active || sotto());
+    giochi.update(t); if (!sotto()) { porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); amici.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); libri.update(world.mode === 'walk' ? world.avatar.state : world.boat.state); } guideStep = guida.current(); guida.update(t);
+    if (!sotto()) temi.update(dt, t); // Isole a tema (#68)
     if (document.querySelector('#mzSheet.on')) { if (tavolo?.isOpen()) tavolo.close(); editor?.close(); feed?.close(); porto.close(); amici.close(); libri.close(); diario.close(); } // aperto un edificio: gli altri pannelli lasciano il posto
     const focus = world.mode === 'walk' ? world.avatar.state : world.boat.state;
     for (const lv of lots) lv.update(dt, focus);
     if (diario.isOpen() && (editor?.isOpen() || feed?.isOpen() || eroe?.isOpen() || porto.isBusy() || amici.isBusy())) diario.close(); // aperto un altro pannello dopo il diario
     diario.update(dt, focus); targhette.update(); // Diario del capitano (#87) // rilettura ogni 30 s solo per l'isola dove sei; timer ed etichette ogni frame
-    document.body.classList.toggle('mz-sotto', ingressi.active); // nel dungeon: l'interfaccia di superficie si nasconde (CSS del chunk GDR)
+    document.body.classList.toggle('mz-sotto', sotto()); // nel dungeon e nella chiesa dei Templari: l'interfaccia di superficie si nasconde (CSS dei chunk)
     compass.update(focus, renderer.diorama.yaw, t);
     mappa?.update({ x: focus.x, z: focus.z, yaw: focus.yaw }, renderer.diorama.yaw, world.net.peers());
     aspetto?.update(Date.now(), t, focus);

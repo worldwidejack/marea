@@ -1,0 +1,91 @@
+// Tipi della partita a ondate dell'Isola dei Templari (docs/TEMPLARI.md, CONTRACTS «Templari»). Interfaccia fissa tra sim, server (replay)
+// e client (resa da `view`). Stessa regola di determinismo del dungeon (vedi dungeon/types.ts): in packages/sim/src/templari/** niente
+// Math.sin/cos/atan2/hypot/pow/… e niente `**`, solo + − × ÷ e Math.sqrt. Lo controlla tools/check_static.mjs.
+import type { DungeonInput, DungeonView } from '../dungeon/types.ts';
+import type { Rng } from '../rng.ts';
+
+/** Input di un tick: mx, my in assi mondo; a = attacca (tieni = carica il giro), b = corri, c = scambia arma, d = AZIONE (posa la
+ *  reliquia, ripara la finestra tenendo premuto, compra). Stesso formato e stessa compressione del dungeon (quantizeDungeon, packDungeon,
+ *  encodeDungeon): il server li rigioca uguali. */
+export type TInput = DungeonInput;
+
+/** `altare` = si aspetta la reliquia; `inizio` = presentazione della prima ondata; `combatti`; `pausa` = respiro tra due ondate. */
+export type TFase = 'altare' | 'inizio' | 'combatti' | 'pausa';
+/** morto = caduto · alba = 60 minuti passati, sopravvissuto · uscito = lasciata dalla pausa (vale come cadere: contano le ondate superate). */
+export type TEsito = 'morto' | 'alba' | 'uscito';
+/** Opzioni della partita, decise all'apertura (il server le tiene e le rigioca): `subito` = ondate già partite (bottone ⚔ delle prove). */
+export type TOpzioni = { subito?: boolean };
+
+/** Azioni dal menu, tra due tick (registrate col tick come nel dungeon). */
+export type TAzione = { t: 'esci' };
+export type TAzioni = [number, TAzione][];
+
+export type TZombieAnim = 'sorge' | 'cammina' | 'corre' | 'strappa' | 'prepara' | 'colpisce' | 'recupera' | 'morto';
+
+export type TEvento =
+  /** Colpo dell'eroe su uno zombie. */
+  | { t: 'colpo'; id: number; x: number; z: number; danno: number; uccide: boolean; caricato: boolean }
+  /** L'eroe è stato colpito. */
+  | { t: 'ferito'; danno: number; x: number; z: number }
+  | { t: 'morte'; id: number; tipo: string; x: number; z: number }
+  /** Punti guadagnati (o spesi, negativi) e perché. */
+  | { t: 'punti'; n: number; perche: 'colpo' | 'uccisione' | 'mischia' | 'asse' | 'spesa' }
+  | { t: 'ondata'; n: number }
+  | { t: 'ondataFinita'; n: number }
+  | { t: 'reliquia' }
+  /** Un'asse in meno (zombie) o in più (eroe) sulla finestra `finestra`. */
+  | { t: 'asse'; finestra: number; assi: number; da: 'zombie' | 'eroe' }
+  | { t: 'sorge'; id: number; x: number; z: number }
+  /** Uno zombie grida (il client sceglie il verso: «Deus vult!», rantolo, urlo di chi scatta). */
+  | { t: 'grido'; id: number; tipo: 'deus' | 'rantolo' | 'urlo' }
+  | { t: 'fendente'; caricato: boolean }
+  | { t: 'mancato' }
+  | { t: 'caduto' }
+  | { t: 'alba' }
+  | { t: 'scambia'; arma: string };
+
+/** Cosa farebbe AZIONE adesso (il bottone lo dice). */
+export type TPrompt = { cosa: 'reliquia' | 'ripara'; testo: string; prezzo: number; puoi: boolean } | null;
+
+export type TView = {
+  tick: number; fase: TFase;
+  /** Ondata in corso (0 prima della prima) e secondi che restano alla fase (presentazione, pausa). */
+  ondata: number; faseS: number;
+  done: boolean; esito: TEsito | null;
+  /** L'eroe nella forma della vista del dungeon: l'attore del client (rpg/dungeon_hero.ts) lo anima così. */
+  posa: DungeonView['hero'];
+  eroe: {
+    x: number; z: number; vita: number; max: number; fiato: number; punti: number;
+    /** Ferito da poco (0..1, per il bordo rosso dello schermo). */
+    ferita: number;
+    arma: string; armi: ({ id: string; colpi: number; riserva: number } | null)[]; cur: number;
+  };
+  zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number }[];
+  finestre: { x: number; z: number; assi: number; max: number }[];
+  /** Porte (id e se sono aperte). */
+  porte: { id: string; aperta: boolean }[];
+  prompt: TPrompt;
+  /** Zombie ancora da far uscire in questa ondata più quelli vivi. */
+  restano: number;
+  uccisioni: number;
+  eventi: TEvento[];
+};
+
+export type TRisultato = {
+  done: boolean; esito: TEsito | null; ticks: number;
+  /** Ondata a cui sei arrivato e ondate superate (quelle che contano per il premio). */
+  ondata: number; superate: number;
+  uccisioni: number; punti: number; guadagnati: number;
+  hash: number;
+};
+
+export type TModulo<S> = {
+  id: 'templari'; version: number; maxTicks: number;
+  create(o: { seed: number; opzioni?: TOpzioni }): S;
+  step(s: S, input: TInput): void;
+  act(s: S, a: TAzione): TEvento[] | null;
+  result(s: S): TRisultato;
+  view(s: S): TView;
+  /** Pilota automatico per i test: posa la reliquia, ripara, combatte. */
+  autopilot(s: S, rng: Rng): TInput;
+};

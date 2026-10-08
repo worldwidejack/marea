@@ -49,6 +49,7 @@ const ART: Record<ResId, string[]> = {
 export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingresso' | 'lanterna' | 'mete' | 'pesca'
   | 'mercante' | 'bacheca' | 'parla' | 'contrabbando' // Porto (#63-#65), Contrabbandiere
   | 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'lucchetto' // Isole a tema (#68)
+  | 'templari' // Isola dei Templari: croce patente rossa su bianco
   | 'consegne' // Consegne
   | 'ingorgo' // Ingorgo
   | 'perle' // Perle
@@ -81,6 +82,7 @@ const PIX: Record<PixId, string[]> = {
   ghiacci: ['...p....', '.C.p.C..', '..ppp...', 'ppppppp.', '..ppp...', '.C.p.C..', '...p....', '........'],
   vulcano: ['..R.O...', '...OR...', '..nOOn..', '..nnnn..', '.nnrnnn.', '.nnnnrn.', 'nnrnnnnn', 'nnnnnnnn'],
   giardino: ['...kk...', '.kkkkkk.', '.kkYYkk.', 'kkkYYkkk', '.kkkkkk.', '...kk...', '...EE...', '..EEEE..'],
+  templari: ['wwRRRRww', 'wwwRRwww', 'RwwRRwwR', 'RRRRRRRR', 'RRRRRRRR', 'RwwRRwwR', 'wwwRRwww', 'wwRRRRww'],
   lucchetto: ['..rrrr..', '.r....r.', '.r....r.', 'YYYYYYYY', 'YYYnnYYY', 'YYYnnYYY', 'YYYYYYYY', '.YYYYYY.'],
   libro: ['........', '.ww..ww.', 'wqqwwqqw', 'wwwRwwww', 'wqqRwqqw', 'wwwRwwww', 'cccccccc', '........'], // libro degli ospiti aperto, col nastro rosso (#86)
   record: ['.YYYYYY.', 'YYwYYYYY', 'Y.YwYY.Y', '.YYYYYY.', '..YYYY..', '...YY...', '..cccc..', '.cccccc.'], // coppa del Tabellone dei record (#110)

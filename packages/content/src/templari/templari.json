@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "maxMinuti": 60,
+  "partenza": { "punti": 500, "arma": "spada" },
+  "eroe": { "vita": 100, "raggio": 0.4, "regenDopo": 4, "regen": 50, "camminata": 3.2, "corsa": 5.0, "fiato": 5, "fiatoPieno": 4, "mentreAttacca": 0.6 },
+  "punti": { "colpo": 10, "uccisione": 60, "mischia": 100, "asse": 10, "assiMaxOndata": 200 },
+  "barricate": { "assi": 5, "ripara": 0.6, "raggio": 1.6 },
+  "altare": { "raggio": 4 },
+  "ondate": {
+    "vita": { "base": 150, "perOndata": 100, "finoA": 9, "molt": 1.1 },
+    "quanti": { "base": 6, "lin": 2.6, "quad": 0.06, "max": 80 },
+    "insieme": 18,
+    "intervallo": { "base": 2.0, "perOndata": -0.08, "min": 0.5 },
+    "pausa": 10,
+    "inizio": 4,
+    "corsa": { "da": 4, "perOndata": 0.12, "max": 0.6 },
+    "scatto": { "da": 8, "perOndata": 0.08, "max": 0.5 },
+    "comparseVicine": 4,
+    "bloccato": 20
+  },
+  "armi": [
+    { "id": "spada", "nome": "Spada arrugginita", "tipo": "mischia", "danno": 250, "tempo": 0.55, "portata": 1.8, "carica": 0.9, "caricaMolt": 1.6, "spinta": 0.3,
+      "aspetto": { "modello": "arm_katana", "colore": "#8E5A2B" } }
+  ],
+  "nemici": [
+    { "id": "fante", "nome": "Fante crociato", "vitaMolt": 1, "raggio": 0.38, "velocita": { "cammina": 1.0, "corre": 2.2, "scatta": 3.6 },
+      "danno": 45, "portata": 0.75, "preparazione": 0.55, "recupero": 0.7, "strappa": 1.2, "sorge": 1.4 }
+  ],
+  "premio": { "perOndata": { "legno": 15, "pietra": 8, "perle": 2 }, "maxOndate": 30, "tetto": { "legno": 600, "pietra": 300, "perle": 60 } }
+}

@@ -19,9 +19,9 @@ const temi = arch.places.filter((p) => p.tema);
 const isola = (id: string): ArchPlace => { const p = temi.find((q) => q.island === id); assert.ok(p, id); return p; };
 const T0 = Date.UTC(2026, 9, 8, 12);
 
-test('quattro isole a tema, ognuna con uno sblocco diverso e lontana dal giro iniziale', () => {
-  assert.deepEqual(temi.map((p) => p.island).sort(), ['ghiacci', 'giardino', 'tempesta', 'vulcano']);
-  assert.deepEqual(temi.map((p) => p.tema!.sblocco.tipo).sort(), ['cappello', 'livello', 'mappa', 'molo']);
+test('cinque isole a tema, ognuna con uno sblocco diverso e lontana dal giro iniziale', () => {
+  assert.deepEqual(temi.map((p) => p.island).sort(), ['ghiacci', 'giardino', 'tempesta', 'templari', 'vulcano']);
+  assert.deepEqual(temi.map((p) => p.tema!.sblocco.tipo).sort(), ['cappello', 'livello', 'mappa', 'molo', 'reliquia']);
   for (const p of temi) assert.equal(p.style, p.island, `${p.island}: stile = tema`);
   const porto = arch.spawnOf(null);
   for (const p of temi) {
@@ -48,12 +48,13 @@ test('viaggiatore dal lotto: Molo, personaggio, cappello, mappe', () => {
 
 test('di serie tutte chiuse, col motivo giusto in italiano', () => {
   const s = sblocchi(arch.places, NESSUNO);
-  assert.equal(Object.keys(s).length, 4);
+  assert.equal(Object.keys(s).length, 5);
   for (const v of Object.values(s)) assert.equal(v.aperta, false);
   assert.match(s['tempesta']!.motivo, /tempesta ti respinge.*Molo al livello 2/);
   assert.match(s['ghiacci']!.motivo, /mare gela.*livello 3/);
   assert.match(s['vulcano']!.motivo, /abitanti ti cacciano.*Lanterna in testa/);
   assert.match(s['giardino']!.motivo, /nebbia.*mappa del Giardino/);
+  assert.match(s['templari']!.motivo, /nebbia rossa.*faro della Tempesta/);
   // con lotto nuovo (Molo L1) e cappello di paglia: sempre tutto chiuso
   const v = viaggiatore(newLot('bruno', T0), 1);
   assert.ok(Object.values(sblocchi(arch.places, v)).every((x) => !x.aperta));
@@ -61,12 +62,13 @@ test('di serie tutte chiuse, col motivo giusto in italiano', () => {
 });
 
 test('ognuna si apre col suo requisito, e solo con quello', () => {
-  const base: Viaggiatore = { molo: 1, livello: 1, cappello: 'paglia', mappe: [] };
+  const base: Viaggiatore = { molo: 1, livello: 1, cappello: 'paglia', mappe: [], reliquie: [] };
   const casi: [string, Viaggiatore][] = [
     ['tempesta', { ...base, molo: 2 }],
     ['ghiacci', { ...base, livello: 3 }],
     ['vulcano', { ...base, cappello: 'lanterna' }],
     ['giardino', { ...base, mappe: ['giardino'] }],
+    ['templari', { ...base, reliquie: ['templari'] }],
   ];
   for (const [id, v] of casi) {
     const s = sblocchi(arch.places, v);

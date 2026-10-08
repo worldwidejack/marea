@@ -22,6 +22,9 @@ const MAX_BODY = 4096;
 const MAX_PLAY_BODY = 262144;
 /** Input log di una spedizione nel dungeon (fino a 20 minuti, RLE): CONTRACTS §15, ≤ 512 KB. */
 const MAX_DUNGEON_BODY = 524288;
+/** Input log della partita a ondate dei Templari (fino a 60 minuti, compressi con encodeDungeon: ~1 KB al minuto col pilota, fino a ~10
+ *  con un pollice nervoso): tetto a 1 MB. */
+const MAX_TEMPLARI_BODY = 1048576;
 const NO_TOKEN = 'Link non valido: chiedi a Jack un invito nuovo';
 const json = (dati: unknown, status = 200): Response =>
   new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
@@ -356,6 +359,17 @@ export default {
         const body = await corpo(MAX_DUNGEON_BODY);
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, path.endsWith('save') ? 'dungeon_save' : 'dungeon_finish', { inputs: body['inputs'], azioni: body['azioni'], hash: body['hash'] });
+      }
+      // Isola dei Templari (docs/TEMPLARI.md): apre la partita a ondate (seed dal DO) e la chiude (il DO rigioca e paga le ondate superate)
+      if (path === '/api/templari/start' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'templari_start', { subito: body['subito'] });
+      }
+      if (path === '/api/templari/finish' && req.method === 'POST') {
+        const body = await corpo(MAX_TEMPLARI_BODY);
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'templari_finish', { inputs: body['inputs'], azioni: body['azioni'], hash: body['hash'] });
       }
       const altrui = path.match(/^\/api\/lot\/([a-z0-9_-]{1,40})$/);
       if (altrui && req.method === 'GET') {

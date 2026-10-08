@@ -11,6 +11,7 @@ import type { Loader } from '../render/loader.ts';
 import type { TemiFx } from '../render/temi_fx.ts';
 import { PAL } from '../ui/style.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { FLAGS } from '../flags.ts';
 
 export type Temi = {
   /** Isole a tema (ArchPlace) nell'ordine dell'arcipelago. */
@@ -46,7 +47,8 @@ export function createTemi(o: {
   const { world, hud } = o, arch = world.archipelago, map = world.map;
   const isole = arch.places.filter((p) => p.tema);
   let prova: Partial<Viaggiatore> | null = null; // hook di test: forza Molo, livello, cappello, mappe
-  const chi = (): Viaggiatore => ({ ...viaggiatore(o.getLot(), world.look.cappello), ...prova });
+  // Templari per le prove (?templari=1): come se avessi già la reliquia
+  const chi = (): Viaggiatore => ({ ...viaggiatore(o.getLot(), world.look.cappello), ...(FLAGS.templari ? { reliquie: ['templari'] } : {}), ...prova });
   let stato: Record<string, Sblocco & { nome: string }> = sblocchi(arch.places, chi());
   let mappeNote = new Set(chi().mappe), next = 0, respinte = 0, ultimo = '', toastAt = 0, cacce = 0;
 
@@ -106,7 +108,7 @@ export function createTemi(o: {
     respinte, ultimo, cacce, caccia: !!caccia, fumetto: fum.classList.contains('on') ? fum.textContent : null, fx: fx?.stato() ?? null,
   }));
   /** Test: forza parti del viaggiatore (`{ molo: 2 }`, `{ cappello: 'lanterna' }`, `{ mappe: ['giardino'] }`, `{ livello: 3 }`); null = quello vero. 'tutte' apre tutto. */
-  registerTestHook('temiProva', (v) => { prova = v === 'tutte' ? { molo: 9, livello: 99, cappello: 'lanterna', mappe: ['giardino'] } : (v as Partial<Viaggiatore> | null) ?? null; ricalcola(); return Object.fromEntries(Object.entries(stato).map(([k, x]) => [k, x.aperta])); });
+  registerTestHook('temiProva', (v) => { prova = v === 'tutte' ? { molo: 9, livello: 99, cappello: 'lanterna', mappe: ['giardino'], reliquie: ['templari'] } : (v as Partial<Viaggiatore> | null) ?? null; ricalcola(); return Object.fromEntries(Object.entries(stato).map(([k, x]) => [k, x.aperta])); });
   /** Test: barca a `m` metri fuori dalla barriera dell'isola, prua verso il suo molo (poi il test accelera con Spazio). */
   registerTestHook('temiVerso', (id, m) => {
     const p = isole.find((q) => q.island === id); if (!p) return null;

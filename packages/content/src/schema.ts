@@ -78,10 +78,11 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
   return errs;
 }
 
-const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia', 'tempesta', 'ghiacci', 'vulcano', 'giardino']);
+const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia', 'tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari']);
 /** Decorazioni delle isole a tema (#68): segnaposto procedurali in apps/client/src/render/island_temi.ts. */
 export const PROP_TEMI = ['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
-  'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello'] as const;
+  'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello',
+  'chiesa_templare', 'casa_rovina', 'tomba', 'croce_pietra', 'tenda'] as const;
 const PROP_KINDS = new Set(['torii', 'lanterna', 'insegna_neon', 'palma', 'cassa', 'barile', 'sasso', 'cespuglio', 'filo_lanterne', 'fac_neon', 'fac_selvaggia', ...PROP_TEMI]);
 /** Campi facoltativi di un'isola: stile, densità della scenografia, slot (su celle L) e decorazioni fisse (dentro la mappa). */
 function validateIslandExtras(isl: IslandDef, w: number): string[] {
@@ -153,10 +154,11 @@ export function validateArchipelago(a: ArchipelagoDef, islands: IslandDef[]): st
 function validateTema(tag: string, t: TemaDef, x0: number, z0: number, w: number, h: number, a: ArchipelagoDef): string[] {
   const errs: string[] = [];
   const s = t.sblocco as TemaDef['sblocco'] | undefined;
-  if (!s || !['molo', 'livello', 'cappello', 'mappa'].includes(s.tipo)) errs.push(`${tag}: sblocco sconosciuto`);
+  if (!s || !['molo', 'livello', 'cappello', 'mappa', 'reliquia'].includes(s.tipo)) errs.push(`${tag}: sblocco sconosciuto`);
   else if ((s.tipo === 'molo' || s.tipo === 'livello') && !(Number.isInteger(s.livello) && s.livello >= 1)) errs.push(`${tag}: livello di sblocco non valido`);
   else if (s.tipo === 'cappello' && typeof s.cappello !== 'string') errs.push(`${tag}: cappello mancante`);
   else if (s.tipo === 'mappa' && (typeof s.mappa !== 'string' || s.come !== 'oro')) errs.push(`${tag}: mappa non valida (come: 'oro')`);
+  else if (s.tipo === 'reliquia' && (typeof s.reliquia !== 'string' || !s.reliquia)) errs.push(`${tag}: reliquia mancante`);
   if (!(t.barriera >= 0 && t.barriera <= 40)) errs.push(`${tag}: barriera fuori da 0-40 m`);
   const m = Math.ceil(t.barriera / a.tile);
   if (x0 - m < 0 || z0 - m < 0 || x0 + w + m > a.w || z0 + h + m > a.h) errs.push(`${tag}: la barriera esce dalla griglia`);

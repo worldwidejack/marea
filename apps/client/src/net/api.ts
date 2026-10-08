@@ -6,6 +6,7 @@ import type { Challenge, LotState, Medal, PackedInputs, Resources, Riepilogo } f
 import type { BarcaLook, FeedItem, Look, LookSalvato } from '@marea/protocol';
 import type { HeroState, RpgAction, RunHero, RunResult } from '@marea/sim/rpg/types.ts';
 import type { DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
+import type { TAzioni, TRisultato } from '@marea/sim/templari/types.ts';
 
 /** `look` è quello salvato in D1: anche titolo (#87) e barca (#107) se scelti. */
 export type Me = { id: string; nome: string; look: LookSalvato; lotto: LotState | null; slot?: number | null };
@@ -46,6 +47,10 @@ export type DungeonStart = { dungeon: string; seed: number; hero: RunHero; lot: 
 export type DungeonSave = { ok: boolean; salvato: { bottino: Record<string, number>; monete: number } | null; ticks: number };
 /** Esito della spedizione ricalcolato dal server (POST /api/dungeon/finish). */
 export type DungeonFinish = { result: RunResult; tenuto: Record<string, number>; monete: number; livelliSu: number; lot: LotState };
+
+/** Isola dei Templari (docs/TEMPLARI.md): partita a ondate aperta dal server (seed) e chiusa col replay (premio delle ondate superate, tetto del giorno). */
+export type TemplariStart = { seed: number; subito: boolean; lot: LotState };
+export type TemplariFinish = { result: TRisultato; premio: Resources; pieno: Resources; tetto: boolean; record: boolean; lot: LotState };
 
 /** Rientro (#86, POST /api/rientro): riepilogo dell'assenza (null se mancavi da poco o è il primo ingresso), novità non lette del feed. */
 export type Rientro = { riepilogo: Riepilogo | null; novita: number; lot: LotState };
@@ -102,6 +107,10 @@ export type Api = {
   dungeonFinish(inputs: PackedDungeon | string, hash: number, azioni?: DungeonAzioni): Promise<DungeonFinish>;
   /** SALVA sulla lanterna: input e azioni fin lì, il server li rigioca e tiene il bottino al sicuro anche se la scheda si chiude. */
   dungeonSave(inputs: PackedDungeon | string, hash: number, azioni?: DungeonAzioni): Promise<DungeonSave>;
+  // ---- Isola dei Templari ----
+  templariStart(subito?: boolean): Promise<TemplariStart>;
+  /** `inputs` compressi con `encodeDungeon` (o array RLE): il server rigioca e paga. */
+  templariFinish(inputs: PackedDungeon | string, hash: number, azioni?: TAzioni): Promise<TemplariFinish>;
   // ---- Porto (#64) ----
   /** RISCUOTI una missione compiuta della Bacheca (indice 0-2 di oggi): il server verifica, paga e risponde col lotto. */
   riscuoti(i: number): Promise<{ premio: Resources; lot: LotState }>;
@@ -322,6 +331,17 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       if (!isObj(d)) throw new ApiError(500, 'Risposta del server non valida');
       const sv = isObj(d['salvato']) ? d['salvato'] : null;
       return { ok: !!d['ok'], salvato: sv ? { bottino: isObj(sv['bottino']) ? (sv['bottino'] as Record<string, number>) : {}, monete: typeof sv['monete'] === 'number' ? sv['monete'] : 0 } : null, ticks: typeof d['ticks'] === 'number' ? d['ticks'] : 0 };
+    },
+    async templariStart(subito) {
+      const d = await call('POST', '/api/templari/start', subito ? { subito: true } : {});
+      if (!isObj(d) || typeof d['seed'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');
+      return { seed: d['seed'], subito: !!d['subito'], lot: asLot(d['lot']) };
+    },
+    async templariFinish(inputs, hash, azioni) {
+      const d = await call('POST', '/api/templari/finish', { inputs, hash, azioni: azioni ?? [] });
+      if (!isObj(d) || !isObj(d['result'])) throw new ApiError(500, 'Risposta del server non valida');
+      const res = (v: unknown): Resources => (isObj(v) ? { legno: Number(v['legno']) || 0, pietra: Number(v['pietra']) || 0, perle: Number(v['perle']) || 0 } : { legno: 0, pietra: 0, perle: 0 });
+      return { result: d['result'] as TRisultato, premio: res(d['premio']), pieno: res(d['pieno']), tetto: !!d['tetto'], record: !!d['record'], lot: asLot(d['lot']) };
     },
     async riscuoti(i) {
       const d = await call('POST', '/api/missioni/riscuoti', { i });
