@@ -1,5 +1,6 @@
 // Premi dei minigiochi: Perle per medaglia nelle sfide (mai zero), premio in risorse nelle partite da solo, Faro acceso dopo una vittoria.
-import { BALANCE, building } from '@marea/content';
+import { BALANCE, MINIGAMES_CFG, building } from '@marea/content';
+import type { PremioExtra } from '@marea/content';
 import type { Medal } from '../minigames/types.ts';
 import { advance } from './advance.ts';
 import { EconomyError, ZERO, add } from './types.ts';
@@ -45,10 +46,12 @@ export function soloOf(lot: LotState, nowMs: number): SoloState {
   const s = lot.solo ?? NO_SOLO, day = Math.floor(nowMs / DAY);
   return s.day === day ? s : { ...s, day, premiate: 0 };
 }
-/** Premio di una partita da solo per medaglia (senza medaglia = premio di consolazione). */
-export function soloPrize(medal: Medal): Resources {
+/** Premio di una partita da solo per medaglia (senza medaglia = premio di consolazione); più il `premioExtra` del minigioco, se ne ha uno (es. le Perle: l'oro dà Perle in più). */
+export function soloPrize(medal: Medal, minigame?: string): Resources {
   const p = BALANCE.solo.premi[medal ?? 'nessuna'];
-  return { legno: p.legno, pietra: p.pietra, perle: p.perle };
+  const cfg = minigame && Object.hasOwn(MINIGAMES_CFG, minigame) ? (MINIGAMES_CFG as Record<string, { premioExtra?: PremioExtra }>)[minigame] : undefined;
+  const x = medal ? cfg?.premioExtra?.[medal] : undefined;
+  return { legno: p.legno + (x?.legno ?? 0), pietra: p.pietra + (x?.pietra ?? 0), perle: p.perle + (x?.perle ?? 0) };
 }
 /** Partite premiate che restano oggi. */
 export function soloLeft(lot: LotState, nowMs: number): number {
@@ -69,7 +72,7 @@ export function finishSolo(lot0: LotState, medal: Medal, nowMs: number): SoloOut
   const s = soloOf(lot0, nowMs);
   if (!s.pending) throw new EconomyError('partita', 'Nessuna partita aperta: riparti dal via');
   const premiata = s.premiate < BALANCE.solo.premiateAlGiorno;
-  const premio = premiata ? soloPrize(medal) : { ...ZERO };
+  const premio = premiata ? soloPrize(medal, s.pending.minigame) : { ...ZERO };
   const lot = advance(lot0, nowMs);
   return {
     premio, premiata,

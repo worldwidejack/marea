@@ -11,7 +11,8 @@ import ingorgo from './minigames/ingorgo.json' with { type: 'json' };
 import decor from './decor.json' with { type: 'json' };
 import archipelago from './archipelago.json' with { type: 'json' };
 import scacchi from './scacchi.json' with { type: 'json' };
-import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, PescaCfg, RegataCfg, ResourceDef, ScacchiCfg } from './types.ts';
+import perle from './minigames/perle.json' with { type: 'json' }; // Perle
+import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, PerleCfg, PescaCfg, RegataCfg, ResourceDef, ScacchiCfg } from './types.ts';
 import { validateAll, validateArchipelago } from './schema.ts';
 
 export type * from './types.ts';
@@ -21,11 +22,12 @@ export const RESOURCES = resources as unknown as readonly ResourceDef[];
 export const ISLANDS = islands as unknown as readonly IslandDef[];
 export const AVATAR = avatar as unknown as AvatarDef;
 export const BALANCE = balance as unknown as BalanceDef;
-export const MINIGAMES_CFG: { regata: RegataCfg; pesca: PescaCfg; consegne: ConsegneCfg; ingorgo: IngorgoCfg } = {
+export const MINIGAMES_CFG: { regata: RegataCfg; pesca: PescaCfg; consegne: ConsegneCfg; ingorgo: IngorgoCfg; perle: PerleCfg } = {
   regata: regata as unknown as RegataCfg,
   pesca: pesca as unknown as PescaCfg,
   consegne: consegne as unknown as ConsegneCfg, // Consegne
   ingorgo: ingorgo as unknown as IngorgoCfg, // Ingorgo
+  perle: perle as unknown as PerleCfg, // Perle
 };
 export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;

@@ -61,6 +61,8 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 | Bronzo | 15 | 8 | 5 |
 | Nessuna | 0 | 0 | 2 |
 
+Un minigioco può dare qualcosa in più (`premioExtra` nel suo json): la **Caccia alle perle** all'oro dà **+10 Perle** (§6).
+
 - **Dalle sfide con posta** (spente per ora, §7): medaglia → Perle **5 / 10 / 20** (bronzo / argento / oro) e attiva il Faro. Chi perde una sfida prende comunque **2 Perle** (mai zero).
 
 ### Porto: Mercante, Bacheca e Gente (#63-#65, 8 ott 2026)
@@ -125,6 +127,16 @@ Punteggio («più alto vince»): Consegne = 1000 a pacco + 10 a secondo avanzato
 | Leggendario | 4 % | 6 | 3 | 16 % | 1,3 |
 
 12 pesci: Sardina Pensierosa, Ciabatta Spaiata (non è un pesce, vale lo stesso), Ghiozzo Brontolone, Sgombro in Ritardo · Orata col Mutuo, Branzino Influencer, Granchio Burocrate · Pesce Palla Offeso, Polpo Multitasking · Tonno Pensionato, Pesce Lanterna Nostalgico, Pesce Spada Spuntato. Ogni mare ne ha 6 (almeno uno per rarità); le isole a tema avranno i loro (`minigames/pesca.json` → `mari`).
+
+- **Caccia alle perle** — in barca **ferma** su **acqua bassa** vicino a una costa (a più di 8 m da un molo, dove la A fa scendere a terra) compare **TUFFATI** (tasto T). Schermata a pixel di profilo: la corrente ti porta verso destra, **tieni premuto = nuoti giù, lascia = risali** (un dito, stile «Flappy» morbido). 60 s: prendi perle bianche, conchiglie, perle **rosa** nelle ostriche (si aprono quando arrivi) e perle **nere** in fondo ai crepacci; **meduse** e **granchi** ti tolgono un quarto d'aria (non si muore). L'aria dura 7 s sott'acqua e si ricarica in 1 s a galla o nelle bolle; senz'aria risali da solo e perdi tempo. Il fondale nasce dal seed (≈ 57 perle bianche, 11 conchiglie, 4 rosa, 3 nere, 6 bolle: ≈ 1400 punti in tutto). Medaglie in **frazione dei punti di tutto il fondale**: **oro 55 %, argento 35 %, bronzo 15 %** (il pilota di riferimento fa 60-87 %; chi tocca a caso prende il bronzo, chi resta a galla niente). L'oro dà **10 Perle in più** del premio di §5 (`premioExtra` in `minigames/perle.json`): oro = 60 Legno, 30 Pietra, **30 Perle**.
+
+| Cosa | Punti | Dove |
+|---|---|---|
+| Perla bianca | 10 | a mezz'acqua, in archi e scie |
+| Conchiglia | 25 | sul fondo |
+| Perla rosa | 60 | nell'ostrica (si prende aperta), un granchio accanto |
+| Perla nera | 120 | in fondo ai crepacci, due meduse di guardia |
+| Bolla | aria +40 % | a mezz'acqua |
 
 Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anche chi perde prende qualcosa.
 

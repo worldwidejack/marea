@@ -1,0 +1,18 @@
+{
+  "id": "perle",
+  "nome": "Perle",
+  "maxSeconds": 60,
+  "posto": { "fermoMs": 0.8, "moloM": 8 },
+  "velocita": 0.8,
+  "fisica": { "giu": 0.1, "su": 0.065, "maxGiu": 1.8, "maxSu": 1.5, "attrito": 0.97 },
+  "fondale": { "min": 62, "max": 108, "passo": 16 },
+  "aria": { "secondi": 7, "ricaricaSecondi": 1, "bolla": 0.4, "colpo": 0.25 },
+  "colpo": { "invulnerabileSecondi": 1, "spinta": 1.2 },
+  "punti": { "bianca": 10, "conchiglia": 25, "rosa": 60, "nera": 120 },
+  "ostrica": { "periodoSecondi": 2.4, "apertaSecondi": 1.4 },
+  "pericoli": [0.5, 1, 1.5],
+  "medaglie": { "oro": 0.55, "argento": 0.35, "bronzo": 0.15 },
+  "premioExtra": { "oro": { "perle": 10 } },
+  "autopilota": { "orizzonte": 120 },
+  "_nota": "Caccia alle perle (minigioco universale, dalla barca ferma su acqua bassa ','). Vista di profilo: la corrente porta il sub verso destra a `velocita` px/tick, tieni premuto = nuota giù (fisica.giu), lascia = sale (fisica.su). Unità = pixel della schermata (0 = pelo dell'acqua, fondale tra fondale.min e fondale.max, un punto ogni fondale.passo px). aria: dura `secondi` sott'acqua, si ricarica in `ricaricaSecondi` a galla, una bolla ne ridà `bolla`, un colpo di medusa o granchio ne toglie `colpo`. Senz'aria il sub risale da solo (perde tempo). pericoli = moltiplicatore delle meduse per difficoltà 1/2/3. medaglie = frazione dei punti di tutto il fondale. premioExtra = risorse in più rispetto a balance.solo per medaglia (solo questo minigioco)."
+}
