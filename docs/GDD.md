@@ -20,6 +20,8 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 4. **Minigiochi** (1-3): prendi la barca e vai dove sta il minigioco (la Regata al molo della Laguna); con una medaglia vinci Legno, Pietra e Perle. Le sfide differite con posta tornano dopo la prova con gli amici (vedi §7).
 5. **Esci** con almeno un timer che finirà prima del prossimo rientro (il gioco lo dice: «la Cava finisce tra 6 h»).
 
+**Mentre eri via** (#86, 8 ott 2026): se mancavi da almeno **10 minuti** (`rientro.json`), all'ingresso una cartolina dice da quanto mancavi, quanto c'è nei depositi, il cantiere finito, chi ha firmato il tuo libro degli ospiti, le novità della campanella e le missioni nuove della Bacheca; **RACCOGLI TUTTO** svuota tutti i depositi nel Magazzino (fino al tetto). L'assenza la misura il server, da quando sei uscito.
+
 ## 3. Il mondo: l'arcipelago
 - **Zone comuni** (tutti le vedono, nessuno le possiede): in V1 una sola zona vera, il **Porto** (villaggio con edifici e mood asiatico: lanterne, torii, moli di legno, insegne). Il **Distretto Neon** (cyberpunk leggero) e l'**Isola Selvaggia** (natura, scogliere, palme) esistono come **facciate** visibili dalla barca; diventano zone vere quando chi ci lavora le apre (Neon e Laguna sono di Riccardo, #25 #26).
 - **Isole a tema** (Jack, 7 ott 2026): ogni isola nuova ha un **tema** suo (contenuti e grafica), **minigiochi suoi** e un **modo suo per sbloccarla** (barca potenziata, livello del personaggio, un certo cappello senza il quale gli abitanti ti cacciano, una mappa…). Le prime quattro (#68, 8 ott 2026), lontane dal giro iniziale:
@@ -168,6 +170,8 @@ Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anc
 
 ## 8. Tra amici
 Mondo alla GTA: né coop né guerra. Nessuno attacca o modifica le isole altrui. Ci si vede muoversi nel Porto e in mare (presenza a 10 Hz), si visitano le isole degli altri (sola lettura), si comunica con 4 emote e con le sfide. Niente chat testuale in V1. Ingresso solo con link personale mandato da Jack.
+
+**Libro degli ospiti** (#86): vicino al molo di ogni isola c'è un leggio col libro. Sull'isola di un amico **FIRMA** lascia il tuo nome e uno dei 4 saluti delle emote, **una volta al giorno** per isola; lui lo vede nella campanella («Marco è passato sulla tua isola») e nella cartolina «Mentre eri via». Sulla tua isola il libro mostra le ultime **20** firme (ne tiene **50**).
 
 ## 9. Onboarding «Primi passi» (anticipato in M1, 30 set 2026; allungato l'8 ott 2026)
 Una scheda con un passo alla volta e una freccia gialla sulla meta (sopra la cosa se è in vista, sul bordo dello schermo se è fuori): **1** costruisci la Segheria (il cartello «Costruisci» evidenziato apre già la conferma) → **2** sali in barca → **3** vai alla Regata e gioca → **4** costruisci col premio → **5** fai due chiacchiere con la Gente del Porto → **6** pesca o tuffati dalla barca (minigiochi universali) → **7** guarda la mappa (il cerchio lampeggia) → **8** scopri un'isola a tema. Senza isola propria niente 1 e 4. Un passo fatto vale anche fuori ordine; SALTA salta il passo, × chiude la guida (si riaccende dalle Impostazioni). Testi corti e ironici. Sugli slot liberi dell'isola c'è sempre un cartello «Costruisci». Niente tutorial a testo lungo.

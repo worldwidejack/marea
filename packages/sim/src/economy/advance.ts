@@ -1,6 +1,6 @@
 // Produzione pigra: lo stato avanza fino a nowMs. Pura. Il Faro moltiplica la produzione solo dentro la sua finestra.
 import { BALANCE, building } from '@marea/content';
-import type { LotState, PlacedBuilding } from './types.ts';
+import type { CantiereFinito, LotState, PlacedBuilding } from './types.ts';
 
 const HOUR = 3_600_000;
 
@@ -73,14 +73,16 @@ export function advance(lot: LotState, nowMs: number): LotState {
   const k = boostFactor(lot);
   let buildings = lot.buildings;
   let construction = lot.construction;
+  let finito: CantiereFinito | null = null;
   if (construction && nowMs >= construction.endsMs) {
     const c = construction;
     // fino alla fine del cantiere si produce al livello vecchio, poi al nuovo
     buildings = produceTo(buildings, Math.max(c.endsMs, lot.nowMs), boostUntil, k);
     buildings = buildings.map((b) => (b.id === c.placedId ? { ...b, level: c.level, lastMs: Math.max(b.lastMs, c.endsMs) } : b));
     construction = null;
+    finito = { building: c.building, level: c.level, endsMs: c.endsMs }; // per «Mentre eri via» (#86)
   }
   const kAfter = boostFactor({ ...lot, buildings }); // il Faro appena finito vale da subito
   buildings = produceTo(buildings, nowMs, boostUntil, kAfter);
-  return { ...lot, nowMs, construction, buildings, version: lot.version + 1 };
+  return { ...lot, nowMs, construction, buildings, version: lot.version + 1, ...(finito ? { finito } : {}) };
 }

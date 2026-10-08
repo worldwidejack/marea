@@ -96,6 +96,15 @@ Nuovi campi facoltativi di `LotState`: `posseduti?: string[]` (cappelli a Perle 
 
 Le missioni di oggi non hanno una GET: client e server le calcolano dal lotto con `missioniOf(lot, now)` di `@marea/sim/economy/missioni.ts` (seed = giorno + persona). Nuovo campo facoltativo di `LotState`: `missioni?: { day, prog: Record<tipo, number>, riscosse: number[] }`, aggiornato dal DO del lotto dopo `collect`, `build`, `upgrade`, `decor`, `hat`, `solo/play`, `dungeon/finish`. `POST /api/look/hat` vale anche per i cappelli esclusivi del Mercante (`mercante: true`).
 
+### Aggiunte Rientro e libro degli ospiti (#86, 8 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/rientro` | `{}` → `{ riepilogo: Riepilogo \| null, novita: number, lot: LotState, now }`: all'avvio del client. Il DO del lotto confronta `lot.visto` con adesso: oltre `RIENTRO.sogliaMinuti` manda il riepilogo dell'assenza (`assenteMs`, `depositi`, `cantiere` finito, `ospiti` = firme arrivate, `ospitiTot`, `missioniNuove`), null al primo ingresso o dopo poco; poi `visto = adesso`. `novita` = righe del feed non lette che non sono visite — **nuovo** |
+| `POST /api/presenza` | `{}` → `{ ok, now }`: «ci sono» del client ogni `RIENTRO.presenzaSecondi` a scheda visibile (l'assenza si misura da quando esci) — **nuovo** |
+| `POST /api/libro/firma` | `{ isola: idProprietario, emote }` → `LotState` dell'isola firmata. Nome dal link di chi firma, `emote` di `avatar.json`. 400 isola o saluto non validi, 404 isola inesistente, 409 `{ error, code: 'firma' }` sul proprio libro o se hai già firmato oggi (giorno UTC). Il libro tiene le ultime `RIENTRO.firme.tetto` firme; il proprietario riceve nel feed una riga `visita` — **nuovo** |
+
+Nuovi campi facoltativi di `LotState`: `visto?`, `ospiti?: { chi, nome, emote, quando }[]`, `finito?: { building, level, endsMs }` (ultimo cantiere chiuso da `advance`). `FeedTipo` + `'visita'` e `FeedItem.emote?` (il saluto della firma). Il campanello del feed ora c'è anche senza `?sfide=1`. `PROTOCOL_VERSION` resta 1.
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32 e `a, b` 0/1. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 

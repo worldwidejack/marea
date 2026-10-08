@@ -56,7 +56,8 @@ export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingr
   | 'koi' // Giardino
   | 'arrembaggio' // Tempesta: nave pirata dell'Arrembaggio
   | 'lava' // Vulcano: fiamma sul basalto della Fuga dalla lava
-  | 'isole'; // sezione «Isole» della bussola
+  | 'isole' // sezione «Isole» della bussola
+  | 'libro'; // libro degli ospiti (#86)
 const PIX: Record<PixId, string[]> = {
   casa: ['...RR...', '..RRRR..', '.RRRRRR.', 'RRRRRRRR', '.wwwwww.', '.wwccww.', '.wwccww.', '.wwccww.'],
   porto: ['RRRRRRRR', '.RRRRRR.', '..R..R..', 'RRRRRRRR', '..R..R..', '..R..R..', '..R..R..', '.cc..cc.'],
@@ -79,6 +80,7 @@ const PIX: Record<PixId, string[]> = {
   vulcano: ['..R.O...', '...OR...', '..nOOn..', '..nnnn..', '.nnrnnn.', '.nnnnrn.', 'nnrnnnnn', 'nnnnnnnn'],
   giardino: ['...kk...', '.kkkkkk.', '.kkYYkk.', 'kkkYYkkk', '.kkkkkk.', '...kk...', '...EE...', '..EEEE..'],
   lucchetto: ['..rrrr..', '.r....r.', '.r....r.', 'YYYYYYYY', 'YYYnnYYY', 'YYYnnYYY', 'YYYYYYYY', '.YYYYYY.'],
+  libro: ['........', '.ww..ww.', 'wqqwwqqw', 'wwwRwwww', 'wqqRwqqw', 'wwwRwwww', 'cccccccc', '........'], // libro degli ospiti aperto, col nastro rosso (#86)
   martello: ['.qqqqqq.', 'rqqqqqqr', '.rrbbrr.', '...ba...', '...ba...', '...ba...', '...ba...', '...cc...'],
   consegne: ['.nnnnnn.', 'nsssRssn', 'nsssRssn', 'nRRRRRRn', 'nsssRssn', 'nsssRssn', 'nsssRssn', '.nnnnnn.'], // pacco del corriere, spago rosso
   pinguini: ['..nnnn..', '.nwnnwn.', '.nnOOnn.', 'nnppppnn', 'nnppppnn', '.nppppn.', '.nnppnn.', '.OO..OO.'], // Ghiacci: pinguino (Pinguini sul ghiaccio)

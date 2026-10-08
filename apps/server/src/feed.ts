@@ -13,6 +13,8 @@ export type FeedDati = {
   medal?: Medal;
   esito?: 'vittoria' | 'sconfitta' | 'parita';
   perle?: number;
+  /** Visita (#86): il saluto della firma nel libro. */
+  emote?: string;
 };
 /** Riga come la restituisce il DO Sfide (rotta `feed`). */
 export type FeedRow = { id: number; quando: number; tipo: FeedTipo; sfida: string | null; altro: string | null; dati: FeedDati; letto: boolean };
@@ -67,13 +69,16 @@ export function feedText(row: FeedRow, nomeDi: (id: string) => string): string {
       if (d.esito === 'sconfitta') return `${chi} ti ha battuto${coda}`;
       return `Pari con ${chi}: posta restituita${netto ? ', ' + netto : ''}`;
     }
+    case 'visita':
+      return `${chi} è passato sulla tua isola e ha firmato il libro`;
   }
   return 'Novità dal Tavolo';
 }
 
 export function toFeedItem(row: FeedRow, nomeDi: (id: string) => string): FeedItem {
   const item: FeedItem = { id: row.id, quando: row.quando, tipo: row.tipo, testo: feedText(row, nomeDi), letto: !!row.letto };
-  if (row.sfida) item.sfida = row.sfida;
+  if (row.sfida && row.tipo !== 'visita') item.sfida = row.sfida; // per le visite `sfida` è solo la chiave contro i doppioni
   if (row.altro) item.da = row.altro;
+  if (row.tipo === 'visita' && typeof row.dati?.emote === 'string') item.emote = row.dati.emote;
   return item;
 }

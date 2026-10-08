@@ -7,6 +7,8 @@
 // Bacheca del Porto (#64): POST /missione {i} → RISCUOTI {premio, missione, lot}. I contatori delle missioni di oggi li aggiornano qui
 // le azioni che il server verifica davvero (raccolte, cantieri, acquisti, partite da solo, spedizioni): `tracciaMissioni` di @marea/sim.
 // Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_save {inputs, hash} · /dungeon_finish {inputs, hash}.
+// Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
+// · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
 // Richieste dal DO Sfide (mai esposte dal Worker): POST /hold {cid, stake, kind} · /release {cid, release}: idempotenti per id sfida.
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
@@ -19,6 +21,7 @@ import { finishSolo, soloOf, startSolo } from '@marea/sim/economy/rewards.ts';
 import { EconomyError } from '@marea/sim/economy/types.ts';
 import { eventiPartita, eventiRaccolta, riscuotiMissione, tracciaMissioni } from '@marea/sim/economy/missioni.ts';
 import type { EventiMissione } from '@marea/sim/economy/missioni.ts';
+import { firmaLibro, rientra, segnaVisto } from '@marea/sim/economy/rientro.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
 import { isPackedInputs, replay } from '@marea/sim/replay.ts';
 import { fitHero } from '@marea/sim/rpg/hero.ts';
@@ -98,6 +101,23 @@ export class Lot extends DurableObject<Env> {
       if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
       if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now);
       if (RPG_ACTS.has(act)) return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tracciaMissioni(l, { dungeon: 1 }, now));
+      if (act === 'rientro') {
+        const out = rientra(lot, now);
+        this.save(out.lot);
+        return json({ riepilogo: out.riepilogo, lot: out.lot });
+      }
+      if (act === 'visto') {
+        const next = segnaVisto(lot, now);
+        if (next !== lot) this.save(next);
+        return json({ ok: true, now });
+      }
+      if (act === 'firma') {
+        const chi = body['chi'], nome = body['nome'], emote = body['emote'];
+        if (!isId(chi) || typeof nome !== 'string' || nome.length > 64 || !isId(emote)) return json({ error: 'Firma non valida' }, 400);
+        const next = firmaLibro(lot, chi, nome, emote, now);
+        this.save(next);
+        return json(next);
+      }
       if (act === 'missione') {
         const i = body['i'];
         if (typeof i !== 'number' || !Number.isInteger(i) || i < 0 || i > 9) return json({ error: 'Missione non valida' }, 400);

@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ISLANDS, building as buildingDef } from '@marea/content';
 import { advance, bufferParams, parseIsland, storageCap } from '@marea/sim';
-import type { GridMap, LotState, PlacedBuilding } from '@marea/sim';
+import type { GridMap, LotState, PlacedBuilding, Resources } from '@marea/sim';
 import type { Loader } from '../render/loader.ts';
 import type { Hud } from '../ui/hud.ts';
 import { ApiError, MSG_401, mancaText } from '../net/api.ts';
@@ -41,6 +41,8 @@ export type LotView = {
   state(): LotState | null; refresh(): Promise<void>;
   /** Stato arrivato da un'altra risposta del server (azione GDR, spedizione): si applica senza rileggere. */
   set(l: LotState): void;
+  /** RACCOGLI TUTTO (#86): ogni deposito con l'azione di sempre (le risorse volano nella barra); risponde con quanto è entrato. */
+  collectAll(): Promise<Resources>;
   /** Ogni frame. `focus` = posizione dell'avatar: la rilettura ogni 30 s gira solo quando è sull'isola (senza focus: sempre). */
   update(dt: number, focus?: { x: number; z: number }): void;
   tap(target: string | [number, number]): boolean; contains(x: number, z: number): boolean; dispose(): void;
@@ -374,6 +376,12 @@ export function createLotView(o: LotViewOptions): LotView {
   return {
     readonly: ro, group, ready,
     state: () => lot, refresh, tap, contains, set: (l: LotState) => { if (!disposed) setLot(l); },
+    async collectAll() {
+      const r0 = lot?.resources ?? { legno: 0, pietra: 0, perle: 0 };
+      for (const b of view?.buildings ?? []) if (b.level >= 1 && b.buffer >= 1 && buildingDef(b.building).produces) await collect(b.id);
+      const r1 = lot?.resources ?? r0;
+      return { legno: r1.legno - r0.legno, pietra: r1.pietra - r0.pietra, perle: r1.perle - r0.perle };
+    },
     update(dt, focus) {
       if (disposed) return;
       slow += dt;
