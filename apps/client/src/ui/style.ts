@@ -29,6 +29,12 @@ const CSS = `
 .mz-lbl.timer { border-color: ${P.arancio}; }
 .mz-lbl.slot { border-color: ${P.arancio}; min-height: 44px; font-size: 13px; }
 .mz-lbl.slot.hint { border-color: ${P.giallo}; background: ${P.legnoScuro}; color: ${P.giallo}; font-size: 15px; min-height: 48px; }
+/* #129: solo da PC (mouse): ogni etichetta del mondo da lontano (oltre LABEL_NEAR_M) è più piccola e un po' trasparente, da vicino torna piena;
+   lo slot suggerito dalla guida (.hint) resta pieno; sul telefono restano com'erano */
+@media (hover: hover) and (pointer: fine) {
+  .mz-lbl.far:not(.hint) { min-height: 26px; min-width: 0; padding: 0 6px; gap: 4px; font-size: 12px; border-width: 1px; box-shadow: none; opacity: .75; }
+  .mz-lbl { transition: opacity .2s; }
+}
 .mz-sheet { position: absolute; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 62%; overflow-y: auto; padding: 12px 12px 10px; background: rgba(46,30,20,.96); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 4px 0 ${P.neroCaldo}; z-index: 20; display: none; font-size: 15px; line-height: 1.35; touch-action: pan-y; }
 .mz-sheet.on { display: block; }
 .mz-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }

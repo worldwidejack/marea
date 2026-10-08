@@ -18,7 +18,7 @@ import type { Api, Me } from '../net/api.ts';
 import type { Hud } from '../ui/hud.ts';
 import { el, injectUiStyle } from '../ui/style.ts';
 import { pixIcon } from '../ui/icons.ts';
-import { createLabelLayer } from '../ui/sheet.ts';
+import { createLabelLayer, LABEL_NEAR_M } from '../ui/sheet.ts';
 import { eroeForPanels } from '../ui/eroe.ts';
 import type { Label } from '../ui/sheet.ts';
 import type { PortoUi } from '../ui/porto_ui.ts';
@@ -56,6 +56,8 @@ const CSS = `
 .mz-lbl.persona { border-color: ${P.sabbiaChiara}; font-size: 13px; }
 `;
 const SHOW_M = 60, NAME_M = 13, TAP_M = 7;
+/** Entro quanti metri il nome di una persona torna pieno (#129, solo da PC): oltre, fino a NAME_M, è discreto. */
+const NAME_NEAR_M = 6;
 /** Draw call (TECH §5): `chr_base` fa 5 draw call a persona, il doppio con l'ombra. Le persone si disegnano solo se sono nell'inquadratura
  *  (i mesh con lo scheletro non hanno frustum culling) ed entro NPC_M m da chi gioca, e fanno ombra solo vicinissime, dove si nota. */
 const SHADOW_M = 7, NPC_M = 26;
@@ -264,7 +266,7 @@ export function createPorto(o: PortoOpts): Porto {
       }
       btn.classList.toggle('on', show);
       const fd = (x: number, z: number) => Math.hypot(focus.x - x, focus.z - z);
-      for (const s of posti) { const p = screenOf(s.x, 3.3, s.z); s.label.place(p.x, p.y, p.on && fd(s.x, s.z) < SHOW_M && !o.world.race.on); }
+      for (const s of posti) { const p = screenOf(s.x, 3.3, s.z); s.label.place(p.x, p.y, p.on && fd(s.x, s.z) < SHOW_M && !o.world.race.on, dist(s.x, s.z) < LABEL_NEAR_M); }
       for (const n of npcs) {
         const sp = screenOf(n.x, 1, n.z), far = fd(n.x, n.z) > NPC_M || !(sp.on || Math.abs(v.x) < 1.25 && Math.abs(v.y) < 1.25 && v.z < 1);
         if (n.av) { n.av.visible = !far; n.av.object.visible = !far; } // avatar.update (che lo copierebbe) da lontano non gira
@@ -280,7 +282,7 @@ export function createPorto(o: PortoOpts): Porto {
         } else if (close && !bancoDi(n.p)) n.yaw = Math.atan2(f.x - n.x, -(f.z - n.z)); // si gira verso di te
         if (n.av) { n.av.setPose({ x: n.x, z: n.z, yaw: n.yaw, anim }); n.av.update(1, dt); }
         const p = screenOf(n.x, 2.25, n.z);
-        n.label.place(p.x, p.y, p.on && !!n.av && fd(n.x, n.z) < NAME_M && !n.talk && !o.world.race.on && !bancoDi(n.p)); // chi sta a un banco ha già il cartello del banco
+        n.label.place(p.x, p.y, p.on && !!n.av && fd(n.x, n.z) < NAME_M && !n.talk && !o.world.race.on && !bancoDi(n.p), dist(n.x, n.z) < NAME_NEAR_M); // chi sta a un banco ha già il cartello del banco
       }
     },
   };

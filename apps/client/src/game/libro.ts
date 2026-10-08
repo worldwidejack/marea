@@ -15,7 +15,7 @@ import type { Hud } from '../ui/hud.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
 import { el, injectUiStyle } from '../ui/style.ts';
 import { pixIcon } from '../ui/icons.ts';
-import { createLabelLayer } from '../ui/sheet.ts';
+import { createLabelLayer, LABEL_NEAR_M } from '../ui/sheet.ts';
 import type { RientroUi } from '../ui/rientro.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
@@ -187,7 +187,7 @@ export function createLibri(o: LibriOpts): Libri {
       btn.classList.toggle('on', show);
       for (const l of libri) {
         const d = Math.hypot(focus.x - l.px, focus.z - l.pz), p = d < cfg.vista ? screenOf(l.px, l.y + 2.0, l.pz) : null;
-        l.label.place(p?.x ?? 0, p?.y ?? 0, !!p?.on && !o.world.race.on && !ui?.isOpen());
+        l.label.place(p?.x ?? 0, p?.y ?? 0, !!p?.on && !o.world.race.on && !ui?.isOpen(), dist(l.px, l.pz) < LABEL_NEAR_M);
       }
     },
   };

@@ -7,6 +7,7 @@ import { titoloDi } from '@marea/sim/economy/diario.ts';
 import type { GameWorld } from './world.ts';
 import { PAL, el } from '../ui/style.ts';
 import { registerStateProvider } from '../test/testapi.ts';
+import { LABEL_NEAR_M } from '../ui/sheet.ts';
 
 export type Targhette = { update(): void };
 const DIST = 40;
@@ -16,6 +17,12 @@ const STYLE = `
 .mz-targa { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; padding: 1px 6px 2px; background: rgba(46,30,20,.82); border: 2px solid ${PAL.legnoChiaro}; box-shadow: 0 2px 0 ${PAL.neroCaldo}; font: bold 12px/1.2 ui-monospace, Menlo, monospace; color: ${PAL.sabbiaChiara}; white-space: nowrap; pointer-events: none; will-change: transform; }
 .mz-targa i { font-style: normal; font-size: 11px; color: ${PAL.giallo}; }
 .mz-targa[data-who="me"] { border-color: ${PAL.giallo}; }
+/* #129: da PC, oltre LABEL_NEAR_M la targhetta è più piccola e un po' trasparente; sul telefono resta com'è */
+@media (hover: hover) and (pointer: fine) {
+  .mz-targa { transition: opacity .2s; }
+  .mz-targa.far { padding: 0 4px 1px; border-width: 1px; box-shadow: none; font-size: 10px; opacity: .75; }
+  .mz-targa.far i { font-size: 9px; }
+}
 `;
 
 type Tag = { el: HTMLElement; sig: string };
@@ -33,7 +40,8 @@ export function createTarghette(o: { world: GameWorld; camera: Camera; canvas: H
     if (!t) { t = { el: el('div', 'mz-targa'), sig: '' }; t.el.dataset['who'] = who; layer.appendChild(t.el); tags.set(who, t); }
     if (t.sig !== sig) { t.sig = sig; t.el.replaceChildren(el('span', '', nome), ...(titolo ? [el('i', '', titolo)] : [])); }
     const a = o.world.anchorOf(who);
-    let on = !!a && (who === 'me' || Math.hypot(a.x - me.x, a.z - me.z) < DIST) && !document.querySelector(`#mzEmotes .mz-emote[data-who="${who === 'me' ? 'me' : CSS.escape(who)}"]`);
+    if (a) t.el.classList.toggle('far', who !== 'me' && Math.hypot(a.x - me.x, a.z - me.z) >= LABEL_NEAR_M);
+    let on = !!a && (who === 'me' || Math.hypot(a.x - me.x, a.z - me.z) < DIST) &&!document.querySelector(`#mzEmotes .mz-emote[data-who="${who === 'me' ? 'me' : CSS.escape(who)}"]`);
     if (a && on) {
       v.set(a.x, a.y + 0.25, a.z).project(o.camera);
       on = v.z > -1 && v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;

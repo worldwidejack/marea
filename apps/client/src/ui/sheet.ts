@@ -61,7 +61,10 @@ export function createSheet(root: HTMLElement, onClose?: () => void): Sheet {
   };
 }
 
-export type Label = { el: HTMLElement; set(kind: 'bubble' | 'timer' | 'full' | 'info', content: Node[], sig: string): void; place(x: number, y: number, on: boolean): void; remove(): void };
+/** Entro quanti metri un cartello delle attività torna pieno (#129): oltre è piccolo e in trasparenza (classe `far`). */
+export const LABEL_NEAR_M = 12;
+/** `vicino` = false: cartello discreto (piccolo, in trasparenza); di serie pieno. */
+export type Label = { el: HTMLElement; set(kind: 'bubble' | 'timer' | 'full' | 'info', content: Node[], sig: string): void; place(x: number, y: number, on: boolean, vicino?: boolean): void; remove(): void };
 export type LabelLayer = { add(onTap?: () => void): Label; el: HTMLElement };
 /** Strato di etichette sopra il canvas; la posizione la calcola chi proietta dal mondo (x, y in px CSS). */
 export function createLabelLayer(root: HTMLElement): LabelLayer {
@@ -74,17 +77,19 @@ export function createLabelLayer(root: HTMLElement): LabelLayer {
       if (onTap) e.addEventListener('click', (ev) => { ev.stopPropagation(); onTap(); });
       e.addEventListener('pointerdown', (ev) => ev.stopPropagation());
       layer.appendChild(e);
-      let sig = '', shown = false, lx = NaN, ly = NaN;
+      let sig = '', shown = false, lx = NaN, ly = NaN, far = false;
       return {
         el: e,
         set(kind, content, s) {
           if (s === sig) return;
           sig = s;
           e.className = 'mz-lbl ' + (kind === 'full' ? 'bubble full' : kind);
+          e.classList.toggle('far', far);
           e.replaceChildren(...content);
         },
-        place(x, y, on) {
+        place(x, y, on, vicino = true) {
           if (!on) { if (shown) { e.style.transform = 'translate(-9999px,0)'; shown = false; } return; }
+          if (far === vicino) { far = !vicino; e.classList.toggle('far', far); }
           const rx = Math.round(x), ry = Math.round(y);
           if (shown && rx === lx && ry === ly) return;
           shown = true; lx = rx; ly = ry;

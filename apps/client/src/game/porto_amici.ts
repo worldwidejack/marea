@@ -13,7 +13,7 @@ import type { Api, FaroVista, Me } from '../net/api.ts';
 import type { Hud } from '../ui/hud.ts';
 import { el, injectUiStyle } from '../ui/style.ts';
 import { pixIcon } from '../ui/icons.ts';
-import { createLabelLayer } from '../ui/sheet.ts';
+import { createLabelLayer, LABEL_NEAR_M } from '../ui/sheet.ts';
 import type { PortoAmiciUi } from '../ui/porto_amici_ui.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
@@ -206,7 +206,7 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
       for (const s of posti) {
         const h = s.id === 'faro' ? (ALTEZZA[modelloOn] ?? 5) * (CRESCITA[Math.max(0, livello)]?.scala ?? 1) + 1.6 : 4.1;
         const p = screenOf(s.x, s.y + h, s.z);
-        s.label.place(p.x, p.y, p.on && Math.hypot(focus.x - s.x, focus.z - s.z) < SHOW_M && !o.world.race.on && !ui?.isOpen());
+        s.label.place(p.x, p.y, p.on && Math.hypot(focus.x - s.x, focus.z - s.z) < SHOW_M && !o.world.race.on && !ui?.isOpen(), Math.hypot(me().x - s.x, me().z - s.z) < LABEL_NEAR_M);
       }
       // di notte, acceso: il fascio gira (un giro ogni 8 s)
       const c = CRESCITA[Math.max(0, livello)];

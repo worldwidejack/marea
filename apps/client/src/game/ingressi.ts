@@ -17,7 +17,7 @@ import { ApiError } from '../net/api.ts';
 import type { PixId } from '../ui/icons.ts';
 import { pixIcon } from '../ui/icons.ts';
 import { PAL, el, injectUiStyle } from '../ui/style.ts';
-import { createLabelLayer } from '../ui/sheet.ts';
+import { createLabelLayer, LABEL_NEAR_M } from '../ui/sheet.ts';
 import { FLAGS } from '../flags.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import type { DungeonRun, PanelCtx, RunCtx, SquadraRete } from '../rpg/types.ts';
@@ -368,7 +368,8 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       const showSq = show && vicini > 0, sig = `${near?.id}|${vicini}`;
       if (showSq && btnSq.dataset['sig'] !== sig) { btnSq.dataset['sig'] = sig; btnSq.replaceChildren(pixIcon(ICON, 24), el('span', '', 'AFFRONTA INSIEME'), el('small', '', `${vicini + 1} qui`)); }
       btnSq.classList.toggle('on', showSq);
-      for (const m of marks) { const p = screenOf(m.s.x, m.holder.position.y + 3.6, m.s.z); m.label.place(p.x, p.y, p.on && !o.world.race.on); }
+      const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
+      for (const m of marks) { const p = screenOf(m.s.x, m.holder.position.y + 3.6, m.s.z); m.label.place(p.x, p.y, p.on && !o.world.race.on, Math.hypot(f.x - m.s.x, f.z - m.s.z) < LABEL_NEAR_M); }
     },
   };
 }
