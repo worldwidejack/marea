@@ -5,7 +5,7 @@ aggiornato: 2026-10-08
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-Notte dell'8 ott, tutto su main: pesca, consegne, ingorgo, caccia alle perle (minigiochi universali), Porto con mercante, missioni e gente, animali, suoni e musica, minimappa, 4 isole a tema con sblocchi (Tempesta, Ghiacci, Vulcano, Giardino). Via le Lanterne.
+Online dall'8 ott mattina (`e486c37`): minigiochi universali (pesca, perle, consegne, ingorgo), Porto con mercante, missioni e gente, animali, suoni, minimappa, 4 isole a tema ognuna col suo gioco (Arrembaggio, Fuga dalla lava, Pinguini, Carpe koi), bussola a sezioni, guida in 8 passi, prestazioni dentro il budget. Dall'altra sessione: meteo, diario, rientro, emote, app installabile.
 
 ## Prossimo passo
-Jack e l'amico: provate tutto da PC e telefono e dite cosa non va. Claude: minigiochi delle isole a tema, prestazioni a camera bassa, bussola e guida (agenti al lavoro).
+Jack e l'amico: provate tutto da PC e telefono e dite cosa tenere, cosa tarare (medaglie dei minigiochi) e cosa togliere. In corso dall'altra sessione: barca personalizzata, decorazioni libere, modalità foto, record e Faro al Porto.
