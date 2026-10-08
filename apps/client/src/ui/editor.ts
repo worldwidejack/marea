@@ -1,13 +1,15 @@
 // Editor dell'avatar (F3-avatar, CONTRACTS §13): pelle, taglio, colore dei capelli, vestito, cappello. Anteprima DAL VIVO sul proprio avatar
 // (o.avatar.setLook a ogni cambio, nessuna chiamata al server); Salva → POST /api/look; Esc, C, × o Annulla ripristinano il look salvato.
 // Cappelli a Perle: prezzo, «Compra» (POST /api/look/hat), Salva spento finché il cappello scelto non è tuo. Tutto da AVATAR (@marea/content).
+// Senza Perle abbastanza «Compra» non chiama il server: sotto la riga un avviso gentile (#4). Gli esclusivi del Mercante (#63) si vedono
+// e si provano, ma si comprano solo da lui al Porto. Colori dei capelli con nomi da capelli (#3, `nomiColoriCapelli`).
 // PC prima: frecce su/giù = riga (poi i bottoni), sinistra/destra = valore, Invio attiva il bottone, Tab funziona. Tasti in capture su
 // window solo a pannello aperto, con stopPropagation (mai keyup, altrimenti restano incollati in input.ts), come il Tavolo.
 // In fondo «Altro dispositivo»: COPIA / MANDA il proprio link col token (il token sta solo nel browser che ha aperto il link). Il link non
 // si mostra a schermo (niente screenshot con la chiave), tranne quando la copia non riesce: allora un campo da selezionare a mano.
 import { AVATAR } from '@marea/content';
 import type { Look, LotState, Resources } from '@marea/protocol';
-import { mancaText } from '../net/api.ts';
+import { mancaText, perleText } from '../net/api.ts';
 import type { Api, Me } from '../net/api.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
 import { resIcon } from './icons.ts';
@@ -29,7 +31,8 @@ export type EditorOpts = {
 
 type RowId = keyof Look;
 type Row = { id: RowId; nome: string; n: number; kind: 'colori' | 'nomi'; colore?(i: number): string; nomeDi(i: number): string };
-type Note = { text: string; bad: boolean } | null;
+/** `hat`: l'avviso sta sotto la riga del cappello, vicino a «Compra»; altrimenti in fondo, sopra Annulla/Salva. */
+type Note = { text: string; bad: boolean; hat?: boolean } | null;
 
 /** Nome della palette (ART_BIBLE §2) di un colore, «sabbia chiara» da `sabbiaChiara`; '' se non è in palette. */
 const palName = (hex: string): string => {
@@ -40,7 +43,7 @@ const HATS = AVATAR.cappelli;
 const ROWS: readonly Row[] = [
   { id: 'pelle', nome: 'Pelle', n: AVATAR.pelle.length, kind: 'colori', colore: (i) => AVATAR.pelle[i] ?? PAL.sabbia, nomeDi: (i) => `tono ${i + 1}` },
   { id: 'capelli', nome: 'Capelli', n: AVATAR.capelli.length, kind: 'nomi', nomeDi: (i) => AVATAR.capelli[i] ?? '' },
-  { id: 'coloreCapelli', nome: 'Colore capelli', n: AVATAR.coloriCapelli.length, kind: 'colori', colore: (i) => AVATAR.coloriCapelli[i] ?? PAL.legno, nomeDi: (i) => palName(AVATAR.coloriCapelli[i] ?? '') || `colore ${i + 1}` },
+  { id: 'coloreCapelli', nome: 'Colore capelli', n: AVATAR.coloriCapelli.length, kind: 'colori', colore: (i) => AVATAR.coloriCapelli[i] ?? PAL.legno, nomeDi: (i) => AVATAR.nomiColoriCapelli?.[i] ?? (palName(AVATAR.coloriCapelli[i] ?? '') || `colore ${i + 1}`) },
   { id: 'vestito', nome: 'Vestito', n: AVATAR.vestiti.length, kind: 'colori', colore: (i) => AVATAR.vestiti[i] ?? PAL.acqua, nomeDi: (i) => palName(AVATAR.vestiti[i] ?? '') || `colore ${i + 1}` },
   { id: 'cappello', nome: 'Cappello', n: HATS.length, kind: 'nomi', nomeDi: (i) => HATS[i]?.nome ?? '' },
 ];
@@ -84,6 +87,7 @@ export function createEditor(o: EditorOpts): Editor {
   const hatOk = (): boolean => { const h = HATS[draft.cappello]; return !h || owned().includes(h.id) || draft.cappello === clampLook(o.me.look).cappello; };
   const errText = (e: unknown): string => {
     const x = e as { message?: string; manca?: Resources };
+    if (x?.manca && x.manca.perle > 0 && !x.manca.legno && !x.manca.pietra) return perleText(x.manca.perle);
     const m = mancaText(x?.manca);
     return (x?.message || 'Qualcosa non va, riprova') + (m ? `: ${m}` : '');
   };
@@ -101,14 +105,16 @@ export function createEditor(o: EditorOpts): Editor {
   }
   async function compra(): Promise<void> {
     const h = HATS[draft.cappello];
-    if (!h || busy) return;
+    if (!h || busy || h.mercante) return;
+    const p = perle();
+    if (p !== null && p < h.perle) { note = { text: perleText(h.perle - p), bad: true, hat: true }; render(); return; } // niente 409: lo diciamo prima
     const g = gen;
     busy = true; note = null; render();
     try {
       const l = await api.buyHat(h.id);
       lot = l; o.onLot?.(l);
-      if (g === gen) note = { text: `${h.nome}: è tuo`, bad: false };
-    } catch (e) { if (g === gen) note = { text: errText(e), bad: true }; }
+      if (g === gen) note = { text: `${h.nome}: è tuo`, bad: false, hat: true };
+    } catch (e) { if (g === gen) note = { text: errText(e), bad: true, hat: true }; }
     busy = false;
     if (g === gen) render();
   }
@@ -216,7 +222,8 @@ export function createEditor(o: EditorOpts): Editor {
       const mine = owned().includes(hat.id);
       const t = el('span', 'v' + (mine ? '' : ' lock'));
       if (mine) t.textContent = 'tuo'; else t.appendChild(perleTag(hat.perle));
-      if (!hatOk()) { // prezzo + «Compra» sulla riga del cappello: Annulla/Salva restano in vista in fondo
+      if (!hatOk() && hat.mercante) t.appendChild(el('span', 'mz-ed-merc', 'dal Mercante'));
+      else if (!hatOk()) { // prezzo + «Compra» sulla riga del cappello: Annulla/Salva restano in vista in fondo
         const b = el('button', 'mz-ed-buy', 'COMPRA'); b.type = 'button'; b.dataset['nav'] = 'compra'; b.dataset['act'] = 'compra';
         b.disabled = busy; b.title = `Compra ${hat.nome} per ${hat.perle} Perle`;
         b.addEventListener('click', () => { if (!busy) void compra(); });
@@ -247,6 +254,8 @@ export function createEditor(o: EditorOpts): Editor {
       };
       st.append(mk(-1, '‹'), el('span', 'n', cap(r.nomeDi(v))), mk(1, '›'));
       w.appendChild(st);
+      if (hat?.mercante && !owned().includes(hat.id)) w.appendChild(el('div', 'mz-note mz-ed-miss', 'Esclusiva del Mercante delle Perle: si compra da lui, in piazza al Porto'));
+      else if (r.id === 'cappello' && note?.hat) w.appendChild(el('div', 'mz-note mz-ed-miss ' + (note.bad ? 'bad' : 'ok'), note.text));
     }
     return w;
   }
@@ -286,8 +295,8 @@ export function createEditor(o: EditorOpts): Editor {
     for (const r of ROWS) body.appendChild(rowEl(r));
     if (o.link) body.appendChild(linkEl(o.link));
     const act = el('div', 'mz-ed-act');
-    if (!note && !hatOk()) act.appendChild(el('div', 'mz-note', 'Cappello non tuo: compralo per salvare'));
-    if (note) act.appendChild(el('div', 'mz-note ' + (note.bad ? 'bad' : 'ok'), note.text));
+    if (!note && !hatOk()) act.appendChild(el('div', 'mz-note', HATS[draft.cappello]?.mercante ? 'Cappello del Mercante: si compra al Porto' : 'Cappello non tuo: compralo per salvare'));
+    if (note && !note.hat) act.appendChild(el('div', 'mz-note ' + (note.bad ? 'bad' : 'ok'), note.text));
     const row = el('div', 'mz-row');
     row.append(button('ghost', 'annulla', 'ANNULLA', [], false, () => close()), button('green', 'salva', 'SALVA', [], !hatOk(), () => void salva()));
     act.appendChild(row);

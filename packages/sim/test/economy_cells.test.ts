@@ -91,12 +91,17 @@ test('cappelli: i gratuiti sono di tutti, quelli a Perle si comprano una volta',
   assert.ok(!ownsHat(lot, paid.id));
   assert.throws(() => buyHat(lot, paid.id, 0), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.perle === paid.perle);
   assert.throws(() => buyHat(lot, free.id, 0), isErr('cappello'));
-  assert.throws(() => buyHat(lot, 'corona', 0), isErr('sconosciuto'));
+  assert.throws(() => buyHat(lot, 'tiara_inesistente', 0), isErr('sconosciuto'));
   const perle = paid.perle + 3;
   lot = { ...lot, resources: { ...lot.resources, perle }, ledger: { ...lot.ledger, generated: { ...lot.ledger.generated, perle } } };
   lot = buyHat(lot, paid.id, 1000);
   assert.equal(lot.resources.perle, 3);
   assert.ok(ownsHat(lot, paid.id));
   assert.throws(() => buyHat(lot, paid.id, 2000), isErr('unico'));
+  // gli esclusivi del Mercante (#63) si comprano allo stesso modo, una volta
+  const ex = AVATAR.cappelli.find((h) => h.mercante)!;
+  lot = { ...lot, resources: { ...lot.resources, perle: lot.resources.perle + ex.perle }, ledger: { ...lot.ledger, generated: { ...lot.ledger.generated, perle: lot.ledger.generated.perle + ex.perle } } };
+  lot = buyHat(lot, ex.id, 3000);
+  assert.ok(ownsHat(lot, ex.id) && lot.resources.perle === 3);
   assert.equal(checkInvariant([lot]), null);
 });

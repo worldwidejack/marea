@@ -16,7 +16,10 @@
 - Apertura al pubblico: inviti a catena, moderazione, dominio, piano Paid.
 - Passaggio a un motore (Godot) se il browser mostra un tetto: le fixture d'oro di `packages/sim` sono il criterio di parità.
 
-- Negozio dei cappelli (M1): i cappelli con costo in Perle si comprano una volta (campo `posseduti` nel `LotState`, azione `buyHat`); finché non c'è, `/api/look` accetta solo i cappelli gratuiti.
+- ~~Negozio dei cappelli~~ fatto: `buyHat` + `posseduti`, e dall'8 ott 2026 il Mercante delle Perle al Porto (#63).
+- Decorazioni dell'isola: spostarle, ruotarle, rivenderle (oggi il Mercante le posa da solo nella cella libera più vicina a casa e restano lì).
+- Modelli glb veri per le 8 decorazioni esclusive, le 6 decorazioni vecchie senza modello e i 6 cappelli esclusivi (oggi segnaposto a box in palette: `render/decor.ts`, `HATS` in `game/avatar.ts`); banco del Mercante e Bacheca idem (`game/porto.ts`).
+- Missioni della Bacheca con «visita un'isola» o «fai un giro in barca»: servirebbe una prova lato server della posizione (oggi la posizione è del client).
 - Barche per giocatore: oggi ogni client ha la sua barca a `boatSpawn`, quindi al molo la barca di un peer si sovrappone alla tua (vuota). In M1: una barca per lotto/persona con posto al molo proprio, o la tua barca nascosta finché non ci sali.
 - Caricamento a due tempi dei modelli: all'avvio solo L1 e ciò che serve al proprio lotto; L2/L3, Porto e facciate dopo (oggi 1,53 MB iniziali su 2).
 - Bordo del mondo: la barca può uscire dalla mappa (mare infinito). Un muro morbido o una corrente che riporta indietro.

@@ -10,5 +10,13 @@
   { "id": "statua", "nome": "Statua del pescatore", "perle": 30, "model": "prop_statua" },
   { "id": "faro_mini", "nome": "Faretto da molo", "perle": 12, "model": "prop_faro_mini" },
   { "id": "bandiera", "nome": "Bandiera", "perle": 10, "model": "prop_bandiera" },
-  { "id": "cartello_neon", "nome": "Cartello neon \"Casa\"", "perle": 40, "model": "prop_cartello_neon" }
+  { "id": "cartello_neon", "nome": "Cartello neon \"Casa\"", "perle": 40, "model": "prop_cartello_neon" },
+  { "id": "ancora", "nome": "Ancora arrugginita", "perle": 15, "model": "prop_ancora", "mercante": true },
+  { "id": "carpa", "nome": "Carpa di carta", "perle": 18, "model": "prop_carpa", "mercante": true },
+  { "id": "bandiera_pirata", "nome": "Bandiera pirata", "perle": 20, "model": "prop_bandiera_pirata", "mercante": true },
+  { "id": "lampione_pietra", "nome": "Lampione di pietra", "perle": 22, "model": "prop_lampione_pietra", "mercante": true },
+  { "id": "gong", "nome": "Gong del porto", "perle": 25, "model": "prop_gong", "mercante": true },
+  { "id": "bonsai", "nome": "Bonsai paziente", "perle": 30, "model": "prop_bonsai", "mercante": true },
+  { "id": "papera", "nome": "Papera gigante", "perle": 35, "model": "prop_papera", "mercante": true },
+  { "id": "pagoda", "nome": "Pagoda in miniatura", "perle": 45, "model": "prop_pagoda", "mercante": true }
 ]

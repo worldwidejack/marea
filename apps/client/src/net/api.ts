@@ -82,6 +82,9 @@ export type Api = {
   dungeonFinish(inputs: PackedDungeon | string, hash: number, azioni?: DungeonAzioni): Promise<DungeonFinish>;
   /** SALVA sulla lanterna: input e azioni fin lì, il server li rigioca e tiene il bottino al sicuro anche se la scheda si chiude. */
   dungeonSave(inputs: PackedDungeon | string, hash: number, azioni?: DungeonAzioni): Promise<DungeonSave>;
+  // ---- Porto (#64) ----
+  /** RISCUOTI una missione compiuta della Bacheca (indice 0-2 di oggi): il server verifica, paga e risponde col lotto. */
+  riscuoti(i: number): Promise<{ premio: Resources; lot: LotState }>;
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;
@@ -105,6 +108,11 @@ export function mancaText(m: Resources | undefined | null): string {
   if (!parts.length) return '';
   const last = parts.pop();
   return `ti mancano ${parts.length ? parts.join(', ') + ' e ' : ''}${last}`;
+}
+
+/** Perle che mancano, detto con garbo (#4): vicino al bottone «Compra» dell'editor e del Mercante, invece dell'errore secco. */
+export function perleText(n: number): string {
+  return `Ti mancano ${Math.ceil(n)} Perle: si vincono ai minigiochi e con le missioni della Bacheca, al Porto`;
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -247,6 +255,11 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       if (!isObj(d)) throw new ApiError(500, 'Risposta del server non valida');
       const sv = isObj(d['salvato']) ? d['salvato'] : null;
       return { ok: !!d['ok'], salvato: sv ? { bottino: isObj(sv['bottino']) ? (sv['bottino'] as Record<string, number>) : {}, monete: typeof sv['monete'] === 'number' ? sv['monete'] : 0 } : null, ticks: typeof d['ticks'] === 'number' ? d['ticks'] : 0 };
+    },
+    async riscuoti(i) {
+      const d = await call('POST', '/api/missioni/riscuoti', { i });
+      if (!isObj(d) || !isObj(d['premio'])) throw new ApiError(500, 'Risposta del server non valida');
+      return { premio: d['premio'] as Resources, lot: asLot(d['lot']) };
     },
     async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
     buyHat: (id) => post('/api/look/hat', { cappello: id }),

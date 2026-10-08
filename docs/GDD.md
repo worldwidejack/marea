@@ -31,7 +31,7 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 - **Ciclo giorno/notte**: sì, dalle Impostazioni (#54), acceso di serie (#59); un giro ogni 24 min, stessa ora per tutti.
 
 ## 4. Chi sei: l'avatar
-Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 teste, 1,6 m), pochi poligoni, viso e vestiti dipinti a pixel. Personalizzazione V1: tono della pelle (6), capelli (8 tagli × 6 colori), vestito (6 colori), cappello (6, di cui 3 da sbloccare con Perle). Emote (4) al posto della chat. Animazioni: idle, camminata, corsa, seduto (in barca), remata/timone.
+Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 teste, 1,6 m), pochi poligoni, viso e vestiti dipinti a pixel. Personalizzazione V1: tono della pelle (6), capelli (8 tagli × 6 colori), vestito (6 colori), cappello (12: 3 gratis, 3 a Perle anche dall'editor, 6 **esclusivi del Mercante delle Perle** al Porto; colori dei capelli con nomi da capelli: nero corvino, castano scuro, castano, biondo miele, rosso fuoco, biondo platino). Emote (4) al posto della chat. Animazioni: idle, camminata, corsa, seduto (in barca), remata/timone.
 
 ## 5. Economia
 **Risorse**: **Legno** e **Pietra** (prodotte dall'isola, servono a costruire) e **Perle** (solo da minigiochi e wager: sbloccano cappelli e decorazioni esclusive; non si producono, non si comprano).
@@ -45,7 +45,7 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 | Casa | Slot cosmetici avatar 2 → 4 → 6 | 60/30 · 250/150 · 700/500 | 10 min · 2 h · 8 h |
 | Faro | +50 % produzione per 2 h dopo una vittoria (1 attivo) | 120/120 · 400/400 | 30 min · 3 h |
 | Tavolo delle Sfide | Wager max 50 → 150 → 400; sfide gratis/giorno 3 → 5 → 8 | 40/10 · 180/100 · 500/350 | 5 min · 1 h · 6 h |
-| Decorazioni (10+) | Solo estetica, ovunque nel lotto | 5-40 Perle | istantanee |
+| Decorazioni (20, 8 esclusive) | Solo estetica, sulla sabbia/erba del lotto; si comprano dal Mercante delle Perle | 5-45 Perle | istantanee |
 
 **Regole**
 - **Produzione pigra**: ogni edificio accumula nel suo deposito in base al tempo trascorso (`advance(lotto, oraServer)`): piena velocità per **10 ore**, poi al **25 %** fino a 110 ore (così chi entra due volte a settimana non resta fermo). Raccogliere sposta il deposito nel Magazzino, fino al suo tetto. Il server è l'unica autorità del tempo; il client non usa mai il suo orologio per l'economia.
@@ -62,6 +62,35 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 | Nessuna | 0 | 0 | 2 |
 
 - **Dalle sfide con posta** (spente per ora, §7): medaglia → Perle **5 / 10 / 20** (bronzo / argento / oro) e attiva il Faro. Chi perde una sfida prende comunque **2 Perle** (mai zero).
+
+### Porto: Mercante, Bacheca e Gente (#63-#65, 8 ott 2026)
+- **Mercante delle Perle** (banco in piazza, a sinistra del Tavolo; Maestro Ishi accanto): vende tutti i cappelli a Perle e tutte le decorazioni; le **esclusive** si comprano solo da lui. Un cappello si compra una volta (poi INDOSSA); una decorazione si posa sulla tua isola, nella cella libera di sabbia/erba più vicina a casa. Prezzi (`avatar.json`, `decor.json`):
+
+| Cappelli esclusivi | Perle | Decorazioni esclusive | Perle |
+|---|---|---|---|
+| Cappello a cono | 20 | Ancora arrugginita | 15 |
+| Berretto da capitano | 30 | Carpa di carta | 18 |
+| Tricorno pirata | 45 | Bandiera pirata | 20 |
+| Polpo in testa | 60 | Lampione di pietra | 22 |
+| Corona di perle | 80 | Gong del porto | 25 |
+| Elmo da palombaro | 100 | Bonsai paziente | 30 |
+| | | Papera gigante | 35 |
+| | | Pagoda in miniatura | 45 |
+
+- **Bacheca delle missioni** (in piazza, a destra del Tavolo): **3 missioni al giorno** (giorno UTC), diverse per ognuno, mai due dello stesso gruppo; si fanno durante il giorno e si **riscuotono** alla Bacheca (una volta). Contano solo cose che il server vede (`missioni.json`):
+
+| Missione | Quanto | Premio (Legno / Pietra / Perle) |
+|---|---|---|
+| Raccogli Legno dalla tua isola | 40-120 (a 10) | 0 / 15 / 8 |
+| Raccogli Pietra dalla tua isola | 20-60 (a 10) | 30 / 0 / 8 |
+| Avvia un cantiere (costruisci o migliora) | 1 | 0 / 0 / 10 |
+| Gioca partite ai minigiochi | 2-4 | 20 / 10 / 8 |
+| Vinci una medaglia *(gruppo medaglie)* | 1 | 0 / 0 / 12 |
+| Vinci un oro *(gruppo medaglie)* | 1 | 0 / 0 / 20 |
+| Torna da una spedizione nel Mondo Sotterraneo | 1 | 0 / 10 / 15 |
+| Compra qualcosa dal Mercante | 1 | 20 / 0 / 6 |
+
+- **Gente del Porto** (`gente.json`): Maestro Ishi (il Mercante), Gigi il Mozzo (sul viale: barca, Laguna, dungeon), Capitan Remo (passeggia in piazza: isole a tema, mappa, Tempesta), Nonna Pina (al molo: produzione, Bacheca, Mercante). Vicino premi A (o tocca il nome): 3 battute ironiche che spiegano il gioco ai nuovi.
 
 ## 6. Minigiochi
 **Formato comune** (in `packages/sim/src/minigames/`): modulo puro e deterministico, 60 Hz, `create({seed, difficulty})`, `step(state, input)`, `result(state)`, `autopilot`. Stesso seed = stessa partita, sempre. Il punteggio è **sempre «più alto vince»**; i dettagli (tempo, combo) stanno in `result().detail`.
