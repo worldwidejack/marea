@@ -284,3 +284,18 @@ export function instanced(geo: THREE.BufferGeometry, mat: THREE.Material | THREE
   im.castShadow = cast; im.receiveShadow = true; im.name = name;
   return im;
 }
+/** Geometria di un modulo pronta da fondere con le altre: posizione, normale, uv (e colori per i segnaposto a colori) in Float32, sempre indicizzata. */
+export function perFondere(src: THREE.BufferGeometry, colori = false): THREE.BufferGeometry {
+  const g = new THREE.BufferGeometry();
+  for (const name of colori ? ['position', 'normal', 'uv', 'color'] as const : ['position', 'normal', 'uv'] as const) {
+    const a = src.getAttribute(name) as THREE.BufferAttribute | undefined; if (!a) continue;
+    const out = new Float32Array(a.count * a.itemSize);
+    for (let i = 0; i < a.count; i++) for (let k = 0; k < a.itemSize; k++) out[i * a.itemSize + k] = a.getComponent(i, k);
+    g.setAttribute(name, new THREE.BufferAttribute(out, a.itemSize));
+  }
+  const n = g.getAttribute('position')!.count;
+  if (!g.getAttribute('uv')) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+  g.setIndex(src.index ? Array.from(src.index.array as ArrayLike<number>) : Array.from({ length: n }, (_, i) => i));
+  if (!g.getAttribute('normal')) g.computeVertexNormals();
+  return g;
+}

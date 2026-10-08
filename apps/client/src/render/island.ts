@@ -1,7 +1,8 @@
 // Isole dalle celle della mappa (CONTRACTS §4, §11): moduli glTF dal manifest quando esistono (mod_sabbia, mod_sabbia_bordo, mod_erba,
 // mod_scogliera, mod_molo, prop_*, bld_*), altrimenti blocchi e segnaposto con texture a pixel dalla palette.
-// Mappa grande (arcipelago, centinaia di metri): un gruppo per isola («chunk») con un InstancedMesh per tipo di modulo, così il frustum
-// culling di three scarta le isole fuori vista (anche nel passo delle ombre, che segue la camera). L'acqua profonda non si istanzia mai.
+// Mappa grande (arcipelago, centinaia di metri): un gruppo per isola («chunk»). Moduli del terreno, prop ed edifici glTF (tutti
+// sull'atlas) fusi in una geometria per isola e materiale; cull() prima di ogni render spegne le isole fuori inquadratura, da lontano
+// mette la sagoma (island_sagoma.ts) e spegne la scenografia minuta (TECH §5, «Come si sta nel budget»). L'acqua profonda non c'è.
 // Stili per isola: porto (piazza lastricata), neon (piattaforma di cemento e torri con finestre accese), selvaggia (vegetazione fitta);
 // isole a tema (#68: tempesta, ghiacci, vulcano, giardino) con terreni loro, montagne a colonne e decorazioni da island_temi.ts.
 // Scenografia deterministica da createRng(map.id) + origine dell'isola.
@@ -14,10 +15,12 @@ import type { GridMap, Tile } from '@marea/sim';
 import { createRng } from '@marea/sim';
 import type { Loader } from './loader.ts';
 import { setWaterMap } from './water.ts';
-import { ISLAND, P, PAINT, PROP_KINDS, PROP_MODEL, MODEL_ONLY, M, block, merged, buildingGeometry, instanced, modelParts, painted, propGeometry, tex, towerGeometry } from './island_parts.ts';
+import { ISLAND, P, PAINT, PROP_KINDS, PROP_MODEL, MODEL_ONLY, M, block, merged, perFondere, buildingGeometry, instanced, modelParts, painted, propGeometry, tex, towerGeometry } from './island_parts.ts';
 import type { Fit, PropKind } from './island_parts.ts';
 import { PAINT_TEMI, SCENA_TEMI, TEMA_GLOW, TEMA_PROPS, isTema, propTema, propTemaGlow, rocceTema } from './island_temi.ts';
 import type { TemaProp } from './island_temi.ts';
+import { LOD_ISTERESI, LOD_M, MINUTI_M, sagomaGeometry } from './island_sagoma.ts';
+import type { SagomaIn } from './island_sagoma.ts';
 export { ISLAND } from './island_parts.ts';
 
 const WATER = new Set<Tile>(['~', ',', 'B']);
@@ -27,6 +30,10 @@ const N4: readonly [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 // Negli angoli il modulo di bordo guarda di preferenza verso la camera (sud, est): la discesa si vede, il fianco dritto resta dietro.
 const BORDO_PREF: readonly [number, number][] = [[0, 1], [1, 0], [-1, 0], [0, -1]];
 const key = (cx: number, cz: number) => cz * 4096 + cx;
+/** Culling per isola: margine attorno al rettangolo (m: palme storte, tetti) e fondo della scatola (m: sotto il pelo dell'acqua, che ondeggia). */
+const CULL_MARGIN = 4, CULL_Y0 = -0.6;
+/** Scenografia minuta (TECH §5): niente ombra (è un secondo passo di disegno e non si nota) e spenta oltre MINUTI_M dalla camera. */
+const MINUTI = new Set(['sasso', 'cespuglio', 'cassa', 'barile', 'lanterna', 'filo_lanterne']);
 
 /** Un'isola della mappa da rendere come gruppo a sé: rettangolo di celle, stile, densità della scenografia. */
 export type IslandArea = { id: string; x0: number; z0: number; w: number; h: number; style?: IslandStyle | null; scenery?: number };
@@ -40,9 +47,15 @@ export type Island = {
   props?: { kind: string; x: number; z: number }[];
   drawCalls?: number;
   chunks?: { id: string; group: THREE.Group; tris: number }[];
+  /** Prima di ogni render (world.ts, preRender): spegne le isole fuori dall'inquadratura (TECH §5, «Come si sta nel budget»). */
+  cull?(camera: THREE.Camera): void;
 };
 
-export async function createIsland(o: { map: GridMap; loader: Loader; areas?: IslandArea[]; props?: StaticProp[]; buildings?: StaticBuilding[]; paved?: readonly (readonly [number, number, number, number])[] }): Promise<Island> {
+export async function createIsland(o: {
+  map: GridMap; loader: Loader; areas?: IslandArea[]; props?: StaticProp[]; buildings?: StaticBuilding[]; paved?: readonly (readonly [number, number, number, number])[];
+  /** Cerchi (m) senza scenografia: davanti agli ingressi dei dungeon palme e lanterne coprirebbero la bocca vista dalla camera. */
+  libere?: readonly { x: number; z: number; r: number }[];
+}): Promise<Island> {
   const { map, loader } = o;
   const T = map.tile, TOP = ISLAND.TOP;
   const group = new THREE.Group(); group.name = 'island';
@@ -81,6 +94,7 @@ export async function createIsland(o: { map: GridMap; loader: Loader; areas?: Is
   const block1 = (set: Set<number>, cx: number, cz: number, r: number) => { for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) set.add(key(cx + dx, cz + dz)); };
   // Decorazioni fisse ed edifici bloccano la scenografia casuale attorno a sé.
   for (const p of o.props ?? []) { const c = map.worldToCell(p.x, p.z); block1(blockedGlobal, c.cx, c.cz, 0); }
+  const libera = (x: number, z: number) => (o.libere ?? []).some((l) => Math.hypot(x - l.x, z - l.z) < l.r);
   for (const b of o.buildings ?? []) { const c = map.worldToCell(b.x, b.z); block1(blockedGlobal, c.cx, c.cz, 1); }
   const areaOf = (x: number, z: number) => {
     const c = map.worldToCell(x, z);
@@ -89,6 +103,8 @@ export async function createIsland(o: { map: GridMap; loader: Loader; areas?: Is
   const propsOut: { kind: string; x: number; z: number }[] = [];
   const jobs: Promise<void>[] = [];
   const chunks: { id: string; group: THREE.Group; tris: number }[] = [];
+  const daFondere: Map<string, { mat: THREE.Material; cast: boolean; dest: THREE.Group; geos: THREE.BufferGeometry[] }>[] = [];
+  const viste: { g: THREE.Group; area: IslandArea; chunk: THREE.Group; vicino: THREE.Group; minuti: THREE.Group; sag: SagomaIn; blocchi: { name: string; mats: THREE.Matrix4[] }[] }[] = [];
 
   const groundY = (x: number, z: number): number => {
     const c = map.worldToCell(x, z), t = at(c.cx, c.cz);
@@ -99,13 +115,27 @@ export async function createIsland(o: { map: GridMap; loader: Loader; areas?: Is
   for (const [ai, area] of areas.entries()) {
     const style = area.style ?? null, dens = area.scenery ?? 1;
     const chunk = new THREE.Group(); chunk.name = 'isola_' + area.id + (areas.length > 1 ? '_' + ai : '');
-    group.add(chunk);
-    const add = (objs: (THREE.Object3D | null)[] | null) => { for (const ob of objs ?? []) if (ob) chunk.add(ob); };
-    const model = (name: string, mats: THREE.Matrix4[], fit: Fit, cast: boolean, fallback: () => THREE.Object3D | null) => {
+    // involucro per la resa: lo accende e spegne cull(); il gruppo «isola_» resta libero per chi nasconde l'isola (nebbia del Giardino)
+    const vista = new THREE.Group(); vista.name = 'vista_' + area.id; vista.add(chunk); group.add(vista);
+    // l'isola vera («vicino») e, da lontano, la sua sagoma (island_sagoma.ts): le accende cull()
+    const vicino = new THREE.Group(); vicino.name = 'vicino'; chunk.add(vicino);
+    // scenografia minuta (sassi, cespugli, casse, barili, lanterne): si spegne già oltre MINUTI_M, dove è grande pochi pixel
+    const minuti = new THREE.Group(); minuti.name = 'minuti'; vicino.add(minuti);
+    const add = (objs: (THREE.Object3D | null)[] | null, dest: THREE.Group = vicino) => { for (const ob of objs ?? []) if (ob) dest.add(ob); };
+    // Prop ed edifici glTF (tutti sull'atlas: due materiali, atlas ed emissivo) si fondono in una geometria per isola, materiale e
+    // gruppo: ~2-4 draw call per isola invece di uno (più uno nell'ombra) per ogni tipo e parte. Si fa dopo Promise.all(jobs).
+    const fondi = (geo: THREE.BufferGeometry, mat: THREE.Material, mats: THREE.Matrix4[], cast: boolean, dest: THREE.Group) => {
+      const k = `${dest.name}:${cast ? 1 : 0}:${mat.name || mat.uuid}`;
+      let u = fusi.get(k); if (!u) { u = { mat, cast, dest, geos: [] }; fusi.set(k, u); }
+      const base = perFondere(geo, mat === propMat);
+      for (const m of mats) u.geos.push(base.clone().applyMatrix4(m));
+      base.dispose();
+    };
+    const unisci = (name: string, mats: THREE.Matrix4[], cast: boolean, fallback: () => THREE.Object3D | null, dest: THREE.Group = vicino, fit: Fit = 'prop') => {
       if (!mats.length) return;
       jobs.push(modelParts(loader, name, fit).then((parts) => {
-        if (!parts) { add([fallback()]); return; }
-        add(parts.map((q) => instanced(q.geo, q.mat, mats, name, cast)));
+        if (!parts) { add([fallback()], dest); return; }
+        for (const q of parts) fondi(q.geo, (Array.isArray(q.mat) ? q.mat[0] : q.mat)!, mats, cast, dest);
       }));
     };
     const rng = createRng(`${map.id}:${area.x0},${area.z0}`);
@@ -116,6 +146,9 @@ export async function createIsland(o: { map: GridMap; loader: Loader; areas?: Is
     const sand: THREE.Matrix4[] = [], sandEdge: THREE.Matrix4[] = [], grass: THREE.Matrix4[] = [], rock: THREE.Matrix4[] = [], dock: THREE.Matrix4[] = [];
     const steps: THREE.Matrix4[] = [], posts: THREE.Matrix4[] = [], rockMod: THREE.Matrix4[] = [], paved: THREE.Matrix4[] = [], concrete: THREE.Matrix4[] = [];
     const towerCells: { cx: number; cz: number }[] = [];
+    const blocchi: { name: string; mats: THREE.Matrix4[] }[] = []; // edifici e facciate: da lontano diventano blocchi (sagoma)
+    const fusi = new Map<string, { mat: THREE.Material; cast: boolean; dest: THREE.Group; geos: THREE.BufferGeometry[] }>();
+    daFondere.push(fusi);
     const tema = isTema(style) ? style : null; // isole a tema: blocchi dipinti (niente moduli glTF del villaggio) e montagne a colonne
     const tSand: THREE.Matrix4[] = [], tGrass: THREE.Matrix4[] = [], tRock: { cx: number; cz: number }[] = [];
     const bordoCells = new Set<number>(), pavedCells = new Set<number>();
@@ -201,8 +234,8 @@ export async function createIsland(o: { map: GridMap; loader: Loader; areas?: Is
       const cells = tRock.map((c) => { const w = map.cellToWorld(c.cx, c.cz); return { x: w.x, z: w.z, d: dist.get(key(c.cx, c.cz)) ?? 1, key: c.cz * map.w + c.cx }; });
       const rr = rocceTema(tema, cells, rng.fork('montagne'));
       for (const [k, h] of rr.tops) rockTop.set(k, h);
-      if (rr.body) { const m = new THREE.Mesh(rr.body, propMat); m.castShadow = m.receiveShadow = true; m.name = 'montagne_' + tema; chunk.add(m); }
-      if (rr.glow) { const m = new THREE.Mesh(rr.glow, glowMat); m.name = 'lava'; chunk.add(m); }
+      if (rr.body) { const m = new THREE.Mesh(rr.body, propMat); m.castShadow = m.receiveShadow = true; m.name = 'montagne_' + tema; vicino.add(m); }
+      if (rr.glow) { const m = new THREE.Mesh(rr.glow, glowMat); m.name = 'lava'; vicino.add(m); }
     }
     const near = (cx: number, cz: number, set: (t: Tile) => boolean, r: number) => { for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) if (set(at(cx + dx, cz + dz))) return true; return false; };
     if (dens > 0) for (let cz = area.z0; cz < area.z0 + area.h; cz++) for (let cx = area.x0; cx < area.x0 + area.w; cx++) {
@@ -231,27 +264,29 @@ export async function createIsland(o: { map: GridMap; loader: Loader; areas?: Is
       if (!kind) continue;
       const { x, z } = map.cellToWorld(cx, cz);
       const px0 = x + jx * 0.9, pz0 = z + jz * 0.9;
+      if (libera(px0, pz0)) continue;
       const tilt = kind === 'palma' || kind === 'albero_secco' ? 0.1 : 0;
       placed[kind]?.push(M(px0, TOP, pz0, 0, rot, tilt, sc, sc, sc));
       propsOut.push({ kind, x: +px0.toFixed(2), z: +pz0.toFixed(2) });
     }
     // Decorazioni fisse di quest'isola.
     for (const p of o.props ?? []) {
-      if (!knownProp(p.k) || areaOf(p.x, p.z) !== ai) continue;
+      if (!knownProp(p.k) || areaOf(p.x, p.z) !== ai || libera(p.x, p.z)) continue;
       placed[p.k]!.push(M(p.x, groundY(p.x, p.z), p.z, 0, p.rot));
     }
 
     // ——— mesh: glTF se c'è, altrimenti segnaposto ———
     const blk = (paint: string, mats: THREE.Matrix4[], name: string, geo = blockGeo, cast = false) => () => instanced(geo, lambertOf(paint), mats, name, cast);
-    model('mod_sabbia', sand, 'terrain', false, blk('sabbia', sand, 'sabbia'));
-    model('mod_sabbia_bordo', sandEdge, 'terrain', false, blk('sabbia', sandEdge, 'sabbia_bordo'));
-    model('mod_erba', grass, 'terrain', false, blk('erba', grass, 'erba'));
-    model('mod_scogliera', rockMod, 'terrain', true, () => instanced(rockGeo, lambertOf('roccia'), rock.map((m) => m.clone().premultiply(new THREE.Matrix4().makeTranslation(0, ISLAND.BOTTOM, 0))), 'scogliera', true));
-    model('mod_molo', dock, 'terrain', true, blk('molo', dock, 'molo', dockGeo, true));
+    // moduli del terreno glTF (tutti sull'atlas) fusi come i prop: un draw call per isola invece di cinque
+    unisci('mod_sabbia', sand, false, blk('sabbia', sand, 'sabbia'), vicino, 'terrain');
+    unisci('mod_sabbia_bordo', sandEdge, false, blk('sabbia', sandEdge, 'sabbia_bordo'), vicino, 'terrain');
+    unisci('mod_erba', grass, false, blk('erba', grass, 'erba'), vicino, 'terrain');
+    unisci('mod_scogliera', rockMod, true, () => instanced(rockGeo, lambertOf('roccia'), rock.map((m) => m.clone().premultiply(new THREE.Matrix4().makeTranslation(0, ISLAND.BOTTOM, 0))), 'scogliera', true), vicino, 'terrain');
+    unisci('mod_molo', dock, false, blk('molo', dock, 'molo', dockGeo, false), vicino, 'terrain'); // l'ombra del molo cade sull'acqua, che non la riceve
     add([instanced(blockGeo, lambertOf('lastricato'), paved, 'lastricato', false), instanced(blockGeo, lambertOf('cemento'), concrete, 'cemento', false)]);
     if (tema) add([instanced(blockGeo, lambertOf(tema + '_sabbia'), tSand, tema + '_sabbia', false), instanced(blockGeo, lambertOf(tema + '_erba'), tGrass, tema + '_erba', false)]);
     add([instanced(stepGeo, lambertOf(tema ? tema + '_riva' : 'riva'), steps, 'riva', false)]);
-    add([instanced(postGeo, propMat, posts, 'pali', true)]);
+    add([instanced(postGeo, propMat, posts, 'pali', false)]);
     // isole a tema: le decorazioni procedurali sono ferme, quindi una sola geometria (più una che brilla) per isola: 2 draw call invece di ~15
     if (tema) {
       const body: THREE.BufferGeometry[] = [], hot: THREE.BufferGeometry[] = [];
@@ -261,14 +296,16 @@ export async function createIsland(o: { map: GridMap; loader: Loader; areas?: Is
         for (const m of placed[kind]!) { body.push(propGeo(kind).clone().applyMatrix4(m)); if (gg) hot.push(gg.clone().applyMatrix4(m)); }
         placed[kind] = [];
       }
-      if (body.length) { const m = new THREE.Mesh(merged(body), propMat); m.castShadow = m.receiveShadow = true; m.name = 'decorazioni_' + tema; chunk.add(m); }
-      if (hot.length) { const m = new THREE.Mesh(merged(hot), glowMat); m.name = 'luci_' + tema; chunk.add(m); }
+      if (body.length) { const m = new THREE.Mesh(merged(body), propMat); m.castShadow = m.receiveShadow = true; m.name = 'decorazioni_' + tema; vicino.add(m); }
+      if (hot.length) { const m = new THREE.Mesh(merged(hot), glowMat); m.name = 'luci_' + tema; vicino.add(m); }
     }
     for (const kind of Object.keys(placed)) {
-      const mats = placed[kind]!, name = PROP_MODEL[kind as PropKind];
+      const mats = placed[kind]!, name = PROP_MODEL[kind as PropKind], cast = !MINUTI.has(kind), dest = MINUTI.has(kind) ? minuti : vicino;
       if (!mats.length) continue;
-      if (name) model(name, mats, 'prop', true, () => (MODEL_ONLY.has(kind) ? null : instanced(propGeo(kind), propMat, mats, kind, true)));
-      else add([instanced(propGeo(kind), propMat, mats, kind, true)]);
+      if (name) unisci(name, mats, cast, () => (MODEL_ONLY.has(kind) ? null : instanced(propGeo(kind), propMat, mats, kind, cast)), dest);
+      else if (MINUTI.has(kind)) fondi(propGeo(kind), propMat, mats, cast, dest); // sassi e cespugli a colori: anche loro fusi
+      else add([instanced(propGeo(kind), propMat, mats, kind, cast)], dest);
+      if (name && MODEL_ONLY.has(kind)) blocchi.push({ name, mats });
       const gg = TEMA_GLOW.has(kind) ? glowGeo(kind) : null;
       if (gg) add([instanced(gg, glowMat, mats, kind + '_luce', false)]);
     }
@@ -281,7 +318,8 @@ export async function createIsland(o: { map: GridMap; loader: Loader; areas?: Is
     for (const [kind, mats] of bld) {
       // Modelli del Porto (M1-asset) se ci sono, poi l'edificio L1 dello stesso tipo, poi il segnaposto.
       const name = [`bld_porto_${kind}`, `bld_${kind}_l1`, `bld_${kind.replace(/_[a-z]$/, '')}_l1`].find((n) => loader.has(n)) ?? `bld_${kind}_l1`;
-      model(name, mats, 'prop', true, () => instanced(bldGeo(kind), propMat, mats, 'bld_' + kind, true));
+      unisci(name, mats, true, () => instanced(bldGeo(kind), propMat, mats, 'bld_' + kind, true));
+      blocchi.push({ name, mats });
     }
     // Distretto Neon: torri per blocco (altezza di base per blocco, ±1 piano per cella), finestre accese non illuminate.
     if (towerCells.length) {
@@ -301,18 +339,60 @@ export async function createIsland(o: { map: GridMap; loader: Loader; areas?: Is
         return { x: w.x, z: w.z, floors, tone: tone[b]! };
       });
       const g = towerGeometry(cells, tr);
-      if (g.body) { const m = new THREE.Mesh(g.body, propMat); m.castShadow = m.receiveShadow = true; m.name = 'torri'; chunk.add(m); }
-      if (g.lights) { const m = new THREE.Mesh(g.lights, glowMat); m.name = 'luci_neon'; chunk.add(m); }
+      if (g.body) { const m = new THREE.Mesh(g.body, propMat); m.castShadow = m.receiveShadow = true; m.name = 'torri'; vicino.add(m); }
+      if (g.lights) { const m = new THREE.Mesh(g.lights, glowMat); m.name = 'luci_neon'; vicino.add(m); }
     }
     chunks.push({ id: area.id, group: chunk, tris: 0 });
+    viste.push({ g: vista, area, chunk, vicino, minuti, sag: { map, area, style, tema, rockTop, paved: pavedCells, palme: placed['palma'] ?? [], cespugli: placed['cespuglio'] ?? [], blocchi: [] }, blocchi });
   }
   await Promise.all(jobs);
+  for (const fusi of daFondere) for (const [k, u] of fusi) {
+    const m = new THREE.Mesh(merged(u.geos), u.mat); m.castShadow = u.cast; m.receiveShadow = true; m.name = 'uniti_' + k; u.dest.add(m);
+  }
 
+  // ——— culling per isola (TECH §5): la sfera di una mesh grande quanto l'isola scende di decine di metri sott'acqua, e con la camera
+  // bassa (22°) quella sfera entra nell'inquadratura anche per isole oltre l'orizzonte dell'acqua: si disegnavano (con le ombre) isole
+  // che nessuno vede. Qui ogni isola ha una scatola stretta (rettangolo delle celle + margine, dal pelo dell'acqua alla cima) e si
+  // disegna solo se la scatola tocca l'inquadratura: è esatto (sotto il pelo dell'acqua l'acqua è opaca), niente cambia a schermo.
+  const boxes = await Promise.all(viste.map(async ({ g, area, chunk, vicino, minuti, sag, blocchi }) => {
+    const top = new THREE.Box3().setFromObject(g).max.y;
+    const b = new THREE.Box3(new THREE.Vector3(area.x0 * T - CULL_MARGIN, CULL_Y0, area.z0 * T - CULL_MARGIN), new THREE.Vector3((area.x0 + area.w) * T + CULL_MARGIN, Math.max(TOP + 1, top), (area.z0 + area.h) * T + CULL_MARGIN));
+    // sagoma da lontano: terreno, rive, palme, blocchi degli edifici; montagne, torri e decorazioni a tema con le loro geometrie
+    for (const q of blocchi) {
+      const parts = await modelParts(loader, q.name, 'prop'); if (!parts) continue;
+      const box = new THREE.Box3(); for (const p of parts) { p.geo.computeBoundingBox(); box.union(p.geo.boundingBox!); }
+      sag.blocchi.push({ box, mats: q.mats });
+    }
+    const sagoma = new THREE.Group(); sagoma.name = 'sagoma'; sagoma.visible = false;
+    const geo = sagomaGeometry(sag);
+    if (geo) { const m = new THREE.Mesh(geo, propMat); m.name = 'sagoma_terreno'; m.receiveShadow = true; sagoma.add(m); }
+    for (const n of [...vicino.children]) if (/^(montagne_|lava$|torri$|luci_|decorazioni_)/.test(n.name) && (n as THREE.Mesh).isMesh) {
+      const src = n as THREE.Mesh, m = new THREE.Mesh(src.geometry, src.material); m.name = 'sagoma_' + src.name; sagoma.add(m);
+    }
+    chunk.add(sagoma);
+    return { g, b, vicino, minuti, sagoma, lontano: false, piccoli: true };
+  }));
+  const frustum = new THREE.Frustum(), pv = new THREE.Matrix4();
+  const cull = (camera: THREE.Camera) => {
+    camera.updateMatrixWorld();
+    frustum.setFromProjectionMatrix(pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+    const cx = camera.position.x, cz = camera.position.z;
+    for (const c of boxes) {
+      c.g.visible = frustum.intersectsBox(c.b);
+      if (!c.g.visible) continue;
+      // distanza in piano dalla camera al rettangolo dell'isola: oltre LOD_M la sagoma (con un po' di isteresi sul confine)
+      const dx = Math.max(c.b.min.x - cx, 0, cx - c.b.max.x), dz = Math.max(c.b.min.z - cz, 0, cz - c.b.max.z), d = Math.hypot(dx, dz);
+      c.lontano = c.lontano ? d > LOD_M - LOD_ISTERESI : d > LOD_M;
+      c.vicino.visible = !c.lontano; c.sagoma.visible = c.lontano;
+      c.piccoli = c.piccoli ? d < MINUTI_M + LOD_ISTERESI : d < MINUTI_M;
+      c.minuti.visible = c.piccoli;
+    }
+  };
   let calls = 0;
-  for (const c of chunks) c.group.traverse((n) => {
+  for (const c of chunks) (c.group.getObjectByName('vicino') ?? c.group).traverse((n) => {
     const m = n as THREE.Mesh; if (!m.isMesh) return; calls++;
     const g = m.geometry, tri = (g.index ? g.index.count : g.attributes.position!.count) / 3;
     c.tris += Math.round(tri * ((m as THREE.InstancedMesh).isInstancedMesh ? (m as THREE.InstancedMesh).count : 1));
   });
-  return { group, groundY, props: propsOut, drawCalls: calls, chunks };
+  return { group, groundY, props: propsOut, drawCalls: calls, chunks, cull };
 }
