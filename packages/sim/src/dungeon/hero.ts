@@ -5,7 +5,7 @@ import type { RunWeapon } from '../rpg/types.ts';
 import { DT } from '../constants.ts';
 import type { DungeonInput } from './types.ts';
 import type { DungeonState, Enemy } from './state.ts';
-import { add, newEnemy, secToTicks } from './state.ts';
+import { add, ev, newEnemy, secToTicks } from './state.ts';
 import { buff, hitEnemy } from './combat.ts';
 import { lineOfSight, moveCircle } from './map.ts';
 import {
@@ -83,7 +83,7 @@ function sweepSwing(s: DungeonState): void {
     h.colpiFragile++;
     s.usura[a.id] = h.colpiFragile;
     if (h.colpiFragile >= fragile) {
-      s.eventi.push({ t: 'rotto', item: a.id });
+      ev(s, { t: 'rotto', item: a.id });
       consuma(s, a.id, s.rotti);
       s.usura[a.id] = 0; // la copia successiva è nuova
       h.arma = pugni();
@@ -127,7 +127,7 @@ function shoot(s: DungeonState): void {
   s.proj.push({
     id: s.nextId++, tipo: 'freccia', x: h.x + h.fx * 0.4, y: FRECCIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v,
     g: traits.noGravita ? 0 : fr.gravita, danno: (a.danno + fr.danno) * t * (1 + buff(s, 'dannoArco')), life: VOLO_MAX_TICKS,
-    traits, raggio: 0, colpiti: [], dalNemico: false, contundente: !!traits.sbilancia, magico: false, arrowId: fr.id,
+    traits, raggio: 0, colpiti: [], dalNemico: false, contundente: !!traits.sbilancia, magico: false, arrowId: fr.id, da: s.cur,
   });
 }
 
@@ -135,19 +135,20 @@ function cast(s: DungeonState): void {
   const h = s.hero, rh = s.runHero;
   const sp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
   if (!sp || h.cdMagia > 0) return;
-  if (h.magicka < sp.costo) { s.eventi.push({ t: 'senzaMagicka' }); return; }
+  if (h.magicka < sp.costo) { ev(s, { t: 'senzaMagicka' }); return; }
   h.magicka -= sp.costo;
   h.cdMagia = secToTicks(sp.ricarica);
   h.act = 'lancia'; h.actT = 0; h.actDur = LANCIA_TICKS;
-  s.eventi.push({ t: 'magia', id: sp.id });
+  ev(s, { t: 'magia', id: sp.id });
   if (sp.scuola === 'evocazione' && sp.evoca) {
-    // un'evocazione alla volta: la vecchia sparisce
-    for (const e of s.enemies) if (e.alleato && e.st !== 'morto') { e.st = 'morto'; s.eventi.push({ t: 'morte', id: e.id, tipo: e.tipo }); }
+    // un'evocazione alla volta (per eroe): la vecchia sparisce
+    for (const e of s.enemies) if (e.alleato && e.st !== 'morto' && (e.padrone ?? 0) === s.cur) { e.st = 'morto'; ev(s, { t: 'morte', id: e.id, tipo: e.tipo }); }
     const e = newEnemy(s, sp.evoca, h.x, h.z, true);
+    if (s.eroi.length > 1) e.padrone = s.cur;
     moveCircle(s.map, e, h.fx * ALLEATO_SEGUE * 0.5, h.fz * ALLEATO_SEGUE * 0.5, e.def.raggio);
     e.fx = h.fx; e.fz = h.fz; e.aggro = true; e.st = 'insegue';
     e.scade = s.tick + secToTicks(sp.durata);
-    s.eventi.push({ t: 'evocato', id: e.id, tipo: e.tipo });
+    ev(s, { t: 'evocato', id: e.id, tipo: e.tipo });
     add(s.xp, 'evocazione', 1);
     return;
   }
@@ -157,7 +158,7 @@ function cast(s: DungeonState): void {
   s.proj.push({
     id: s.nextId++, tipo: 'magia', x: h.x + h.fx * 0.4, y: MAGIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v, g: 0,
     danno: sp.danno * (1 + buff(s, 'dannoDistruzione')), life: Math.max(1, Math.round((MAGIA_GITTATA / Math.max(1, v)) * HZ)),
-    traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio, colpiti: [], dalNemico: false, contundente: false, magico: true, arrowId: null,
+    traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio, colpiti: [], dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur,
   });
 }
 
@@ -172,7 +173,7 @@ function drink(s: DungeonState): void {
   if (p.cura.stamina) h.stamina = Math.min(rh.max.stamina, h.stamina + p.cura.stamina);
   if (p.buff) h.buffs.push({ mod: p.buff.mod, valore: p.buff.valore, fine: s.tick + secToTicks(p.buff.secondi) });
   h.act = 'beve'; h.actT = 0; h.actDur = BEVE_TICKS;
-  s.eventi.push({ t: 'pozione', id: p.id });
+  ev(s, { t: 'pozione', id: p.id });
 }
 
 export function stepHero(s: DungeonState, inp: DungeonInput): void {
@@ -184,7 +185,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   const aDown = inp.a && !h.prevA, cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD;
   h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d;
   // uscita: A sulla scala vince su tutto
-  if (aDown && vicinoUscita(s)) { s.done = true; s.outcome = 'uscito'; s.eventi.push({ t: 'uscita' }); return; }
+  if (aDown && vicinoUscita(s)) { s.done = true; s.outcome = 'uscito'; ev(s, { t: 'uscita' }); return; }
   // azioni
   h.actT++;
   switch (h.act) {
@@ -192,7 +193,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       h.actT = 0;
       if (aDown) {
         if (a.kind === 'arco') {
-          if (!rh.frecce || h.frecce <= 0) s.eventi.push({ t: 'senzaFrecce' });
+          if (!rh.frecce || h.frecce <= 0) ev(s, { t: 'senzaFrecce' });
           else { h.act = 'tende'; h.actT = 0; h.actDur = secToTicks(a.tempo * (1 + malusDi(s)) / (1 + buff(s, 'tensioneArco'))); h.carica = 0; }
         } else { h.act = 'press'; h.actT = 0; }
       } else if (cDown) cast(s);

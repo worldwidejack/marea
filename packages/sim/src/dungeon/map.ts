@@ -142,14 +142,15 @@ export function clearPath(m: DMap, x0: number, z0: number, x1: number, z1: numbe
 }
 
 const N8: readonly (readonly [number, number])[] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
-/** Distanze BFS (passi, 8 vicini senza tagliare gli spigoli) da una cella a tutte le altre; -1 = irraggiungibile. */
-export function bfs(m: DMap, from: number, out?: Int32Array): Int32Array {
+/** Distanze BFS (passi, 8 vicini senza tagliare gli spigoli) da una cella a tutte le altre; -1 = irraggiungibile. Con più celle di
+ *  partenza (dungeon insieme: una per eroe) la distanza è dalla più vicina. */
+export function bfs(m: DMap, from: number | readonly number[], out?: Int32Array): Int32Array {
   const d = out && out.length === m.w * m.h ? out : new Int32Array(m.w * m.h);
   d.fill(-1);
-  if (from < 0 || m.solid[from]) return d;
   const q = new Int32Array(m.w * m.h);
   let qh = 0, qt = 0;
-  q[qt++] = from; d[from] = 0;
+  for (const f of typeof from === 'number' ? [from] : from) if (f >= 0 && !m.solid[f] && d[f] === -1) { q[qt++] = f; d[f] = 0; }
+  if (qt === 0) return d;
   while (qh < qt) {
     const i = q[qh++]!, cx = i % m.w, cz = (i - cx) / m.w, nd = d[i]! + 1;
     for (const [dx, dz] of N8) {

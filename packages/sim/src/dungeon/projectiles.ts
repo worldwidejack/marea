@@ -1,7 +1,7 @@
 // Proiettili 2,5D: frecce con gravità (a terra o su un muro si fermano), magie dritte con esplosione, tiri dei nemici sull'eroe.
 import { DT } from '../constants.ts';
 import type { DungeonState, Enemy, Proj } from './state.ts';
-import { add } from './state.ts';
+import { add, finita, inGioco } from './state.ts';
 import { hitEnemy, hitHero } from './combat.ts';
 import { isOpaque } from './map.ts';
 import { ALTEZZA_BERSAGLIO } from './tuning.ts';
@@ -37,10 +37,17 @@ function hitFoes(s: DungeonState, p: Proj): boolean {
   return true;
 }
 
+/** Insieme: un tiro nemico prende il primo eroe in gioco che tocca; quelli degli eroi lavorano sull'eroe che li ha tirati (xp, uccisioni). */
 export function stepProjectiles(s: DungeonState): void {
   if (!s.proj.length) return;
-  const h = s.hero, rh = s.runHero, keep: Proj[] = [];
+  const prima = s.cur;
+  try { muovi(s); } finally { s.cur = prima; }
+}
+function muovi(s: DungeonState): void {
+  const multi = s.eroi.length > 1, keep: Proj[] = [];
+  const h = s.hero, rh = s.runHero;
   for (const p of s.proj) {
+    if (multi && !p.dalNemico) s.cur = p.da ?? 0;
     p.life--;
     p.vy -= p.g * DT;
     const sx = p.vx * DT, sy = p.vy * DT, sz = p.vz * DT;
@@ -55,12 +62,19 @@ export function stepProjectiles(s: DungeonState): void {
         fine = true; break;
       }
       if (p.y > ALTEZZA_BERSAGLIO) continue;
-      if (p.dalNemico) {
+      if (p.dalNemico && multi) {
+        for (const k of inGioco(s)) {
+          const r = s.eroi[k]!, dx = r.hero.x - p.x, dz = r.hero.z - p.z, rr = r.runHero.raggio + MARGINE;
+          if (dx * dx + dz * dz > rr * rr) continue;
+          s.cur = k; hitHero(s, p.danno, p.magico ? 'magia' : 'taglio', r.hero.x, r.hero.z); fine = true;
+          break;
+        }
+      } else if (p.dalNemico) {
         const dx = h.x - p.x, dz = h.z - p.z, r = rh.raggio + MARGINE;
         if (dx * dx + dz * dz <= r * r) { hitHero(s, p.danno, p.magico ? 'magia' : 'taglio', h.x, h.z); fine = true; }
       } else fine = hitFoes(s, p);
     }
-    if (s.done) return;
+    if (finita(s)) return;
     if (!fine && p.life > 0) keep.push(p);
   }
   s.proj = keep;

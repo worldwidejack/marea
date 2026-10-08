@@ -5,6 +5,7 @@ import type { Rng } from '../rng.ts';
 import type { DungeonInput } from './types.ts';
 import { NO_DUNGEON_INPUT } from './types.ts';
 import type { DungeonState, Enemy } from './state.ts';
+import { parte } from './state.ts';
 import { bfs, cellCenter, cellOf, clearPath, lineOfSight, stepDown } from './map.ts';
 import { fits, pesoZaino } from './loot.ts';
 import { vicinoUscita } from './hero.ts';
@@ -17,13 +18,16 @@ type Mem = {
   goal: string; anchorX: number; anchorZ: number; anchorTick: number;
   ban: Map<string, number>;
 };
-const MEM = new WeakMap<DungeonState, Mem>();
+/** Una memoria per eroe (insieme ognuno ha il suo pilota). */
+const MEM = new WeakMap<DungeonState, Map<number, Mem>>();
 function mem(s: DungeonState): Mem {
-  let m = MEM.get(s);
+  let all = MEM.get(s);
+  if (!all) { all = new Map(); MEM.set(s, all); }
+  let m = all.get(s.cur);
   if (!m) {
     const n = s.map.w * s.map.h;
     m = { field: new Int32Array(n), fieldGoal: -2, fieldTick: -999, heroField: new Int32Array(n), heroFieldTick: -999, prevA: false, prevC: false, prevD: false, goal: '', anchorX: s.hero.x, anchorZ: s.hero.z, anchorTick: s.tick, ban: new Map() };
-    MEM.set(s, m);
+    all.set(s.cur, m);
   }
   return m;
 }
@@ -62,7 +66,7 @@ function fight(s: DungeonState, m: Mem, e: Enemy, o: Out): void {
   // magia: distruzione se vede il bersaglio, evocazione se non c'è già un alleato
   const sp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
   if (sp && h.act === 'idle' && h.cdMagia === 0 && h.magicka >= sp.costo && !m.prevC && vede && d < 14) {
-    const alleato = s.enemies.some((x) => x.alleato && x.st !== 'morto');
+    const alleato = s.enemies.some((x) => x.alleato && x.st !== 'morto' && (x.padrone ?? 0) === s.cur);
     if (sp.scuola === 'distruzione' || !alleato) { o.c = true; o.mx = u.x * 0.2; o.my = u.z * 0.2; return; }
   }
   // schivata: il nemico sta per colpire e siamo nel suo raggio → via (correndo se il colpo è ad area)
@@ -115,7 +119,7 @@ export function autopilot(s: DungeonState, rng: Rng): DungeonInput {
     const f = heroField(s, m);
     let best = Infinity;
     for (const l of s.loot) {
-      if (l.vuoto || m.ban.has(`l${l.id}`) || !fits(s, l)) continue;
+      if (parte(s, l).vuoto || m.ban.has(`l${l.id}`) || !fits(s, l)) continue;
       const c = f[cellOf(s.map, l.x, l.z)] ?? -1;
       if (c >= 0 && c < best) { best = c; goal = `l${l.id}`; gx = l.x; gz = l.z; }
     }

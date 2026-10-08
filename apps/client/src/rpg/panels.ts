@@ -112,7 +112,7 @@ function render(): void {
   if (!lot) body.appendChild(el('div', 'mz-rp-note', 'Serve la tua isola: apri MAREA col tuo link personale.'));
   else if (!hero) body.appendChild(el('div', 'mz-rp-note', 'Questa discesa è iniziata prima dell’aggiornamento: lo zaino si cambia dalla prossima.'));
   else {
-    if (bag) body.appendChild(el('div', 'mz-rp-sotto', 'Sei nel dungeon: il gioco è in pausa. Cambia arma o butta via quello che non serve.'));
+    if (bag) body.appendChild(el('div', 'mz-rp-sotto', bag.insieme ? 'Sei nel dungeon con la squadra: il gioco NON è in pausa, occhio ai nemici!' : 'Sei nel dungeon: il gioco è in pausa. Cambia arma o butta via quello che non serve.'));
     const v: View = { ctx, lot, hero, busy, ui, act, rerender: render, sotto: !!bag };
     if (view === 'eroe') (ui.tab === 'pg' ? renderPg : ui.tab === 'abilita' ? renderSkills : renderBag)(v, body);
     else if (view === 'banco') renderForge(v, body);
@@ -207,6 +207,8 @@ export function closePanels(): void {
   }
 }
 export function isPanelOpen(): boolean { return view !== null; }
+/** Dungeon insieme (#118): un'azione dello zaino è arrivata dal server (turno): la scheda aperta si ridisegna. */
+export function refreshBag(): void { if (bag && view) render(); }
 
 // state().eroe (?test=1): sostituisce quello di ui/eroe.ts appena il chunk è caricato
 registerStateProvider('eroe', () => {

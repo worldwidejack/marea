@@ -11,6 +11,7 @@
 // Diario del capitano (#87): POST /diario_visto {animali, isole} (avvistamenti dal client, solo id dei cataloghi) · /diario_riscuoti {id, amici}
 // → {premio, traguardo, lot} · /diario_titolo {id | null} → LotState. Pesci, perle, medaglie e partite li scrive `solo_play` dopo il replay,
 // le spedizioni `dungeon_finish` (registraPartita / registraDiscesa di @marea/sim/economy/diario.ts).
+// Dungeon insieme (#118): /dungeon_party_start arriva dal DO Spedizioni; con pending.party il lotto chiede il log della squadra (POST /log) e lo rigioca.
 // Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_save {inputs, hash} · /dungeon_finish {inputs, hash}.
 // Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
@@ -40,7 +41,7 @@ import { chiudiScaduta } from '@marea/sim/dungeon/settle.ts';
 import type { EconomyErrorCode, LotState, Resources } from '@marea/sim/economy/types.ts';
 import { nowFromHeader } from '../clock.ts';
 import type { Env } from '../env.ts';
-import { RPG_ACTS, json, rpgRoute } from './lot_rpg.ts';
+import { RPG_ACTS, SERVE_GRUPPO, json, rpgRoute } from './lot_rpg.ts';
 
 const isCell = (v: unknown): v is [number, number] => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= 0 && n < 256);
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 40;
@@ -118,7 +119,15 @@ export class Lot extends DurableObject<Env> {
       try { body = (await req.json()) as Record<string, unknown>; } catch { return json({ error: 'Richiesta non valida' }, 400); }
       if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
       if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now);
-      if (RPG_ACTS.has(act)) return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
+      if (RPG_ACTS.has(act)) {
+        const g = lot.dungeon?.pending?.party;
+        // spedizione insieme aperta (#118): prima il log della squadra dal DO Spedizioni, poi il lotto riletto (nell'attesa può essere cambiato)
+        if (g && SERVE_GRUPPO.has(act)) {
+          const gruppo = await this.logGruppo(g);
+          return rpgRoute(this.load(owner, now), act, { ...body, gruppo }, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
+        }
+        return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
+      }
       if (act === 'faro_dona' || act === 'faro_livelli') return this.faro(lot, act, body, now);
       if (act === 'rientro') {
         const out = rientra(Array.isArray(body['faro']) ? segnaFaro(lot, body['faro']) : lot, now);
@@ -158,6 +167,16 @@ export class Lot extends DurableObject<Env> {
       console.error('[marea] lot error', e);
       return json({ error: 'Errore interno, riprova tra poco' }, 500);
     }
+  }
+
+  /** Log della spedizione insieme (DO Spedizioni: da adesso questo eroe è fuori); null se non si trova più. */
+  private async logGruppo(g: { run: string; idx: number }): Promise<unknown> {
+    try {
+      const r = await this.env.SPEDIZIONI.get(this.env.SPEDIZIONI.idFromName('spedizioni')).fetch(new Request('https://spedizioni/log', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ run: g.run, idx: g.idx }),
+      }));
+      return r.ok ? await r.json() : null;
+    } catch (e) { console.warn('[marea] log della squadra non letto', e); return null; }
   }
 
   /** Partita da solo: il seed lo sceglie il server, il punteggio lo ricalcola il server rigiocando gli input. */

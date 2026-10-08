@@ -6,7 +6,7 @@
 import { RPG } from '@marea/content/rpg.ts';
 import type { DungeonEvent } from './types.ts';
 import type { Bag, DungeonState } from './state.ts';
-import { secToTicks } from './state.ts';
+import { conEroe, ev, inGioco, secToTicks } from './state.ts';
 import { RAGGIO_ALTARE } from './tuning.ts';
 
 /** Indice dell'altare sotto l'eroe, o -1. */
@@ -26,7 +26,8 @@ function sameBag(a: Bag, b: Bag): boolean {
 
 /** Fine tick: la lanterna sotto l'eroe (-1 = nessuna). Non salva da sola: lo fa l'azione `salva`. */
 export function stepAltari(s: DungeonState): void {
-  s.altare = altareSotto(s);
+  if (s.eroi.length === 1) { s.altare = altareSotto(s); return; }
+  for (const i of inGioco(s)) conEroe(s, i, () => { s.altare = altareSotto(s); });
 }
 
 /** Sulla lanterna i (di default quella sotto l'eroe) è già salvato tutto quello che hai adesso? */
@@ -63,12 +64,14 @@ export function risveglio(s: DungeonState): void {
   s.bottino = { ...sv.bottino }; s.monete = sv.monete;
   s.cadute++;
   s.altare = sv.altare; // già sopra l'altare: niente nuovo salvataggio al risveglio
+  s.flowTick = -999; // il flow field verso l'eroe va rifatto dalla nuova cella
+  ev(s, { t: 'risveglio', n: sv.altare });
+  // insieme, con altri compagni ancora in gioco, la battaglia continua per loro: niente tregua generale
+  if (s.eroi.some((r, i) => i !== s.cur && !r.done)) return;
   s.proj = s.proj.filter((p) => !p.dalNemico);
   for (const e of s.enemies) {
     if (e.alleato || e.st === 'morto') continue;
     e.aggro = false; e.area = false; e.tiro = false;
     if (e.st !== 'dorme') { e.st = 'veglia'; e.stT = 0; e.stDur = 0; }
   }
-  s.flowTick = -999; // il flow field verso l'eroe va rifatto dalla nuova cella
-  s.eventi.push({ t: 'risveglio', n: sv.altare });
 }

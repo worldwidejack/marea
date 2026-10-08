@@ -2,7 +2,8 @@
 import { LOOT } from '@marea/content/rpg.ts';
 import type { LootTable } from '@marea/content/rpg.ts';
 import type { Rng } from '../rng.ts';
-import type { Bag, DungeonState, Loot } from './state.ts';
+import type { Bag, DungeonState, Loot, LootParte } from './state.ts';
+import { ev, inGioco, parte } from './state.ts';
 import { PESO_IGNOTO, RAGGIO_RACCOLTA } from './tuning.ts';
 import { invNow } from './zaino.ts';
 
@@ -40,20 +41,27 @@ export function pesoZaino(s: DungeonState): number {
 }
 
 /** Raccoglie in automatico i bottini su cui l'eroe passa: monete sempre, oggetti finché il peso lo permette. */
+/** Insieme: ogni eroe in gioco raccoglie la sua parte di ogni bottino. */
 export function pickup(s: DungeonState): void {
-  const h = s.hero, r = s.runHero.raggio + RAGGIO_RACCOLTA;
-  for (const l of s.loot) {
-    if (l.vuoto) continue;
-    const dx = l.x - h.x, dz = l.z - h.z;
-    if (dx * dx + dz * dz > r * r) { l.pieno = false; continue; }
-    take(s, l);
+  const prima = s.cur;
+  for (const i of s.eroi.length > 1 ? inGioco(s) : [prima]) {
+    s.cur = i;
+    const h = s.hero, r = s.runHero.raggio + RAGGIO_RACCOLTA;
+    for (const l of s.loot) {
+      const p = parte(s, l);
+      if (p.vuoto) continue;
+      const dx = l.x - h.x, dz = l.z - h.z;
+      if (dx * dx + dz * dz > r * r) { p.pieno = false; continue; }
+      take(s, p);
+    }
   }
+  s.cur = prima;
 }
 
-function take(s: DungeonState, l: Loot): void {
+function take(s: DungeonState, l: LootParte): void {
   if (l.monete > 0) {
     s.monete += l.monete;
-    s.eventi.push({ t: 'monete', n: l.monete });
+    ev(s, { t: 'monete', n: l.monete });
     l.monete = 0;
   }
   let peso = pesoZaino(s);
@@ -65,19 +73,20 @@ function take(s: DungeonState, l: Loot): void {
     if (quanti > 0) {
       s.bottino[k] = (s.bottino[k] ?? 0) + quanti;
       peso += quanti * w;
-      s.eventi.push({ t: 'raccolto', item: k, n: quanti });
-      if (k.startsWith('libro_')) s.eventi.push({ t: 'libro', item: k });
+      ev(s, { t: 'raccolto', item: k, n: quanti });
+      if (k.startsWith('libro_')) ev(s, { t: 'libro', item: k });
     }
     if (quanti < n) { l.items[k] = n - quanti; if (!bloccato) bloccato = k; }
     else delete l.items[k];
   }
-  if (bloccato && !l.pieno) s.eventi.push({ t: 'pieno', item: bloccato });
+  if (bloccato && !l.pieno) ev(s, { t: 'pieno', item: bloccato });
   l.pieno = bloccato !== '';
   l.vuoto = Object.keys(l.items).length === 0 && l.monete === 0;
 }
 
 /** C'è qualcosa in questo bottino che entra nello zaino? (per l'autopilot) */
-export function fits(s: DungeonState, l: Loot): boolean {
+export function fits(s: DungeonState, bottino: Loot): boolean {
+  const l = parte(s, bottino);
   if (l.vuoto) return false;
   if (l.monete > 0) return true;
   const libero = s.runHero.caricoMax - pesoZaino(s);

@@ -2,7 +2,8 @@
 // coprirli), Q = C e R = D sulla tastiera, clic sinistro tenuto sul canvas = A, «A · Esci col bottino» vicino alla scala. In alto a destra
 // ZAINO (tasto I: la scheda del personaggio sullo zaino della spedizione) e PAUSA (Esc): Riprendi · Zaino · Esci dal dungeon (→ «Uscire?»).
 // Sopra una lanterna: SALVA ed ESCI (dungeon v5, scelta di Riccardo). Latch: un tocco più breve di un tick arriva comunque alla sim.
-// Con la pausa o la domanda aperta la partita è ferma (nessun tick); con la scheda aperta (blocked) i tasti sono suoi.
+// Con la pausa o la domanda aperta la partita è ferma (nessun tick); con la scheda aperta (blocked) i tasti sono suoi. Insieme (#118) la
+// partita non si ferma mai: la Pausa diventa un menu.
 import { PAL, el } from '../ui/style.ts';
 
 export type LanternaUi = { salvatoQui: boolean; oggetti: number; monete: number };
@@ -58,7 +59,7 @@ const CSS = `
 .mz-dng-ask .mz-btn small { font-size: 12px; color: inherit; opacity: .8; }
 `;
 
-export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; blocked(): boolean }): Controls {
+export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; blocked(): boolean; insieme?: boolean }): Controls {
   if (!document.getElementById('mz-dng-ctrl-style')) { const st = document.createElement('style'); st.id = 'mz-dng-ctrl-style'; st.textContent = CSS; document.head.appendChild(st); }
   let cLatch = false, dLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
   const cHeld = new Set<number>(), dHeld = new Set<number>(), keys = new Set<string>();
@@ -98,7 +99,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const resume = btn('mz-btn green', 'riprendi', 'RIPRENDI', el('small', '', 'Esc'));
   const mZaino = btn('mz-btn ghost', 'zaino', 'ZAINO', el('small', '', 'I'));
   const mEsci = btn('mz-btn ghost', 'esci-menu', 'ESCI DAL DUNGEON');
-  menu.append(el('b', '', 'Pausa'), el('div', 'sub', 'Il dungeon ti aspetta'), resume, mZaino, mEsci);
+  menu.append(el('b', '', o.insieme ? 'Menu' : 'Pausa'), el('div', 'sub', o.insieme ? 'La squadra continua: il dungeon non si ferma' : 'Il dungeon ti aspetta'), resume, mZaino, mEsci);
   const ask = el('div', 'mz mz-dng-ask'); ask.id = 'mzDngAsk';
   const yes = btn('mz-btn', 'esci', 'ESCI'), no = btn('mz-btn ghost', 'resta', 'RESTA');
   const row = el('div', 'mz-row'); row.append(no, yes);

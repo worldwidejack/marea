@@ -2,7 +2,7 @@
 import { RPG } from '@marea/content/rpg.ts';
 import type { SkillId, Traits } from '@marea/content/rpg.ts';
 import type { DungeonState, Enemy } from './state.ts';
-import { add, secToTicks } from './state.ts';
+import { add, ev, nuovoBottino, secToTicks } from './state.ts';
 import { rollLoot } from './loot.ts';
 import { moveCircle } from './map.ts';
 import { risveglio } from './altari.ts';
@@ -41,13 +41,14 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   const d = dannoSu(e, src);
   e.vita -= d;
   e.hurt = COLPITO_TICKS;
-  s.eventi.push({ t: 'colpo', x: r2(e.x), z: r2(e.z), danno: Math.round(d), su: 'nemico', id: e.id, ...(src.caricato ? { caricato: true } : {}) });
+  if (s.eroi.length > 1) e.ultimo = s.cur; // insieme: a chi va il sanguinamento (l'eroe di turno, o il padrone dell'alleato)
+  ev(s, { t: 'colpo', x: r2(e.x), z: r2(e.z), danno: Math.round(d), su: 'nemico', id: e.id, ...(src.caricato ? { caricato: true } : {}) });
   if (!src.daAlleato) {
     s.danniFatti += d;
     if (src.skill) add(s.xp, src.skill, d);
     // arco d'oro: monete a ogni colpo (probabilità)
     const mc = src.traits.moneteColpo ?? 0;
-    if (mc > 0 && s.rng.next() < mc) { const n = s.rng.int(MONETE_COLPO[0], MONETE_COLPO[1]); s.monete += n; s.eventi.push({ t: 'monete', n }); }
+    if (mc > 0 && s.rng.next() < mc) { const n = s.rng.int(MONETE_COLPO[0], MONETE_COLPO[1]); s.monete += n; ev(s, { t: 'monete', n }); }
   }
   if (src.traits.sanguina) { e.bleed = Math.max(e.bleed, src.traits.sanguina); e.bleedT = SANGUINA_TICKS; }
   e.dropRaro = !!src.traits.dropRaro;
@@ -66,18 +67,18 @@ export function wake(s: DungeonState, e: Enemy): void {
   if (e.aggro || e.alleato || e.st === 'morto') return;
   e.aggro = true;
   if (e.st === 'dorme' || e.st === 'veglia') { e.st = 'insegue'; e.stT = 0; }
-  s.eventi.push({ t: 'aggro', id: e.id });
+  ev(s, { t: 'aggro', id: e.id });
 }
 
 export function kill(s: DungeonState, e: Enemy): void {
   e.vita = 0; e.st = 'morto'; e.stT = 0; e.bleed = 0; e.bleedT = 0;
-  s.eventi.push({ t: 'morte', id: e.id, tipo: e.tipo });
+  ev(s, { t: 'morte', id: e.id, tipo: e.tipo });
   if (e.alleato) return;
   add(s.uccisi, e.tipo, 1);
   // rng per nemico (dal suo id): l'ordine delle uccisioni non cambia il bottino
   const r = rollLoot(e.def.loot, s.rng.fork(`loot:${e.id}`), { molt: e.dropMolt, raro: e.dropRaro });
   const vuoto = r.monete === 0 && Object.keys(r.items).length === 0;
-  s.loot.push({ id: s.nextId++, x: e.x, z: e.z, tipo: 'cadavere', items: r.items, monete: r.monete, vuoto, pieno: false });
+  s.loot.push(nuovoBottino(s, { id: s.nextId++, x: e.x, z: e.z, tipo: 'cadavere', items: r.items, monete: r.monete, vuoto, pieno: false }));
 }
 
 export type HurtKind = 'taglio' | 'contundente' | 'magia';
@@ -93,11 +94,11 @@ export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: numbe
   h.vita -= d;
   h.hurt = COLPITO_TICKS;
   s.danniPresi += d;
-  s.eventi.push({ t: 'colpo', x: r2(x), z: r2(z), danno: Math.round(d), su: 'eroe' });
+  ev(s, { t: 'colpo', x: r2(x), z: r2(z), danno: Math.round(d), su: 'eroe' });
   const ms = a.moneteSuColpito;
   if (ms > 0) {
     const n = Math.floor(ms) + (s.rng.next() < ms - Math.floor(ms) ? 1 : 0);
-    if (n > 0) { s.monete += n; s.eventi.push({ t: 'monete', n }); }
+    if (n > 0) { s.monete += n; ev(s, { t: 'monete', n }); }
   }
   if (h.vita <= 0) {
     if (s.salvato) risveglio(s);

@@ -3,7 +3,10 @@ import type { HeroState, RunHero, RunResult } from '../rpg/types.ts';
 import { EQUIP_SLOTS } from '../rpg/types.ts';
 import type { EquipSlot } from '../rpg/types.ts';
 import type { DungeonAzione, DungeonAzioni, DungeonInput, PackedDungeon } from './types.ts';
-import { dungeon } from './dungeon.ts';
+import { NO_DUNGEON_INPUT } from './types.ts';
+import { actParty, createPartyRun, dungeon, stepParty } from './dungeon.ts';
+import { conEroe, finita } from './state.ts';
+import type { EroeDef } from './state.ts';
 
 /** In ottavi, senza −0 (così log e roundtrip sono identici anche con deepStrictEqual). */
 const q8 = (v: number): number => Math.round(Math.max(-1, Math.min(1, v)) * 8) || 0;
@@ -61,6 +64,7 @@ export function parseDungeonAzione(v: unknown): DungeonAzione | null {
     case 'butta': return okStr(o['item']) && Number.isInteger(o['n']) && (o['n'] as number) >= 1 && (o['n'] as number) <= 999 ? { t: 'butta', item: o['item'], n: o['n'] as number } : null;
     case 'salva': return { t: 'salva' };
     case 'esci': return { t: 'esci' };
+    case 'ritira': return { t: 'ritira' };
     default: return null;
   }
 }
@@ -96,6 +100,51 @@ export function replayDungeon(seed: number, dungeonId: string, hero: RunHero, p:
   }
   due();
   return dungeon.result(s);
+}
+
+/** Insieme (#118): il log della squadra, un input log e una lista di azioni per eroe. Il server (DO Spedizioni) registra un input per tutti
+ *  a ogni turno, quindi i log hanno la stessa lunghezza; chi se n'è andato ha l'azione `ritira`. */
+export type PartyLog = { inputs: PackedDungeon[]; azioni: DungeonAzioni[] };
+const frameOf = (r: readonly number[]): DungeonInput => {
+  const b = r[3]!;
+  return { mx: r[1]! / 8, my: r[2]! / 8, a: (b & 1) !== 0, b: (b & 2) !== 0, c: (b & 4) !== 0, d: (b & 8) !== 0 };
+};
+
+/** Rigioca una spedizione insieme: un RunResult per eroe (nell'ordine di `eroi`). A ogni tick prima le azioni (eroe per eroe, in ordine),
+ *  poi il passo di tutti; le azioni oltre l'ultimo input si applicano a fine log. Con un eroe solo è replayDungeon. */
+export function replayParty(seed: number, dungeonId: string, eroi: readonly EroeDef[], log: PartyLog): RunResult[] {
+  const n = eroi.length;
+  if (n < 1 || log.inputs.length !== n || log.azioni.length !== n) throw new Error('Log della squadra incompleto');
+  let T = 0;
+  for (const p of log.inputs) {
+    let t = 0;
+    for (const r of p) t += r[0];
+    if (t > dungeon.maxTicks) throw new Error('Input log troppo lungo');
+    T = Math.max(T, t);
+  }
+  const s = createPartyRun({ seed, dungeon: dungeonId, eroi });
+  const cur = log.inputs.map(() => ({ r: 0, left: 0, f: NO_DUNGEON_INPUT }));
+  const k = log.azioni.map(() => 0);
+  const due = (): void => {
+    for (let i = 0; i < n; i++) {
+      const az = log.azioni[i]!;
+      while (k[i]! < az.length && az[k[i]!]![0] <= s.tick) actParty(s, i, az[k[i]!++]![1]);
+    }
+  };
+  const frames: DungeonInput[] = new Array<DungeonInput>(n);
+  for (let t = 0; t < T && !finita(s); t++) {
+    due();
+    if (finita(s)) break;
+    for (let i = 0; i < n; i++) {
+      const c = cur[i]!;
+      if (c.left === 0) { const row = log.inputs[i]![c.r++]; c.f = row ? frameOf(row) : NO_DUNGEON_INPUT; c.left = row ? row[0] : Infinity; }
+      c.left--;
+      frames[i] = c.f;
+    }
+    stepParty(s, frames);
+  }
+  due();
+  return s.eroi.map((_, i) => conEroe(s, i, () => dungeon.result(s)));
 }
 
 // ---------- formato compatto per la rete: binario in base64 (codec scritto qui: niente btoa/atob, gira in Node, Worker e browser) ----------

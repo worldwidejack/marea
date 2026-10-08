@@ -104,7 +104,7 @@ test('dungeon: un eroe a 1 di vita in mezzo ai nemici muore', () => {
 test('dungeon: la vista ha la forma di DungeonView e gli eventi sono solo del tick', () => {
   const s = dungeon.create({ seed: 1, dungeon: 'cripta', hero: heroBase() });
   const v = dungeon.view(s);
-  assert.deepEqual(Object.keys(v).sort(), ['altari', 'bottini', 'done', 'dungeon', 'eventi', 'hero', 'lanterna', 'nemici', 'outcome', 'proiettili', 'salvato', 'salvatoQui', 'tick', 'uscita', 'vicinoUscita', 'zaino']);
+  assert.deepEqual(Object.keys(v).sort(), ['altari', 'bottini', 'compagni', 'done', 'dungeon', 'eventi', 'finita', 'hero', 'io', 'lanterna', 'nemici', 'outcome', 'proiettili', 'salvato', 'salvatoQui', 'tick', 'uscita', 'vicinoUscita', 'zaino']);
   assert.ok(v.nemici.some((n) => n.boss && n.model === 'nem_re_ossa'));
   assert.ok(v.bottini.some((b) => b.tipo === 'libro'));
   assert.ok(v.bottini.filter((b) => b.tipo === 'forziere').length >= 3);

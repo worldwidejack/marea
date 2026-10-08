@@ -3,13 +3,16 @@
 // Entrando: se sei uscito da una lanterna di quel dungeon, «Da dove parti?» (ingresso o lanterna) → POST /api/dungeon/start →
 // import('../rpg/index.ts') → startRun; alla fine POST /api/dungeon/finish (input compressi e azioni dal menu) → scheda dell'esito del server
 // → setLot → di nuovo all'ingresso. Uscita dalla Pausa senza aver salvato = niente consegna (finish non parte).
+// Insieme (#118): con un altro giocatore a piedi vicino allo stesso ingresso compare AFFRONTA INSIEME → riquadro della squadra (WebSocket
+// /ws/squadra/<dungeon> al DO Spedizioni: chi c'è, SCENDIAMO con almeno 2, Esci; allontanarsi = uscire) → `parte` → startRun con la rete
+// della squadra → a fine spedizione POST /api/dungeon/finish senza input (il server rigioca il log della squadra) → scheda dell'esito.
 import * as THREE from 'three';
 import type { InputFrame, LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
 import type { Loader } from '../render/loader.ts';
 import type { Hud } from '../ui/hud.ts';
-import type { Api } from '../net/api.ts';
+import type { Api, DungeonFinish } from '../net/api.ts';
 import { ApiError } from '../net/api.ts';
 import type { PixId } from '../ui/icons.ts';
 import { pixIcon } from '../ui/icons.ts';
@@ -17,7 +20,9 @@ import { PAL, el, injectUiStyle } from '../ui/style.ts';
 import { createLabelLayer } from '../ui/sheet.ts';
 import { FLAGS } from '../flags.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-import type { DungeonRun, PanelCtx, RunCtx } from '../rpg/types.ts';
+import type { DungeonRun, PanelCtx, RunCtx, SquadraRete } from '../rpg/types.ts';
+import { parseSqServer } from '@marea/protocol/squadra.ts';
+import type { SqClientMsg, SqMembro, SqServerMsg } from '@marea/protocol/squadra.ts';
 import type { DungeonAzione, DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
 
 export type Ingressi = {
@@ -56,9 +61,18 @@ export function nextDungeon(completati: readonly string[]): string | null {
 export const dungeonLink: { autopilot: number; altare: number; posa: Record<string, unknown> | null; state: (() => Record<string, unknown>) | null; act: ((a: DungeonAzione) => string | null) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, altare: -1, posa: null, state: null, act: null };
 
 const NEAR_M = 4;
+/** Squadra: chi si allontana più di così dall'ingresso esce dalla squadra. */
+const LONTANO_M = NEAR_M + 3;
 const ICON: PixId = 'ingresso';
 const CSS = `.mz-lbl.dng { border-color: ${PAL.viola}; font-size: 15px; min-height: 34px; }
-body.mz-sotto #mzDngEntra { display: none; }
+body.mz-sotto #mzDngEntra, body.mz-sotto #mzDngInsieme, body.mz-sotto #mzDngSquadra { display: none; }
+#mzDngInsieme { top: calc(60% + 66px); background: ${PAL.erbaChiara}; }
+.mz-dng-sq { position: absolute; left: 50%; top: max(64px, calc(env(safe-area-inset-top) + 56px)); transform: translateX(-50%); width: min(320px, calc(100% - 32px)); padding: 12px 14px 14px; background: rgba(46,30,20,.96); border: 3px solid ${PAL.erbaChiara}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 24; text-align: center; }
+.mz-dng-sq b { display: block; font-size: 18px; }
+.mz-dng-sq .chi { margin: 6px 0 2px; font-weight: bold; font-size: 16px; color: ${PAL.erbaChiara}; }
+.mz-dng-sq .sub { color: ${PAL.sabbia}; font-size: 13px; margin: 2px 0 6px; }
+.mz-dng-sq .mz-btn { justify-content: center; }
+.mz-dng-sq .mz-btn.via { background: ${PAL.erbaChiara}; }
 .mz-dng-da { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(320px, calc(100% - 32px)); padding: 14px 16px 16px; background: rgba(46,30,20,.97); border: 3px solid ${PAL.viola}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 24; text-align: center; }
 .mz-dng-da b { display: block; font-size: 19px; }
 .mz-dng-da .sub { color: ${PAL.sabbia}; font-size: 14px; margin: 4px 0 4px; }
@@ -100,6 +114,93 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
   btn.addEventListener('click', () => { if (near) void enter(near); });
   o.root.append(btn);
 
+  // ---- dungeon insieme (#118): AFFRONTA INSIEME quando all'ingresso c'è anche qualcun altro ----
+  const btnSq = el('button', 'mz mz-play'); btnSq.id = 'mzDngInsieme'; btnSq.type = 'button';
+  for (const ev of ['pointerdown', 'touchstart']) btnSq.addEventListener(ev, (x) => x.stopPropagation());
+  btnSq.addEventListener('click', () => { if (near) apriSquadra(near); });
+  o.root.append(btnSq);
+  type Squadra = { spot: Spot; ws: WebSocket; box: HTMLElement; chi: HTMLElement; sub: HTMLElement; via: HTMLButtonElement; membri: SqMembro[]; rete: SquadraRete | null; chiusa: boolean };
+  /** La squadra in cui sei (riquadro all'ingresso, poi il WebSocket della spedizione); `vicini` = altri giocatori a piedi qui adesso. */
+  let squadra: Squadra | null = null, vicini = 0, insieme = 0;
+  const viciniA = (s: Spot) => o.world.net.peers().filter((p) => p.mode === 'walk' && Math.hypot(p.x - s.x, p.z - s.z) < NEAR_M + 1).length;
+
+  /** AFFRONTA INSIEME: entri nella squadra di questo dungeon (WebSocket del DO Spedizioni); quando ci sono almeno 2, chiunque dice SCENDIAMO. */
+  function apriSquadra(s: Spot): void {
+    if (squadra || busy || run || daBox) return;
+    if (!o.api || !FLAGS.token) { o.hud.toast('Per scendere serve il tuo link personale', 3000); return; }
+    let ws: WebSocket;
+    try {
+      const u = new URL('/ws/squadra/' + s.id, location.href);
+      u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('t', FLAGS.token);
+      ws = new WebSocket(u.toString());
+    } catch { o.hud.toast('Squadra non disponibile, riprova', 2500); return; }
+    const box = el('div', 'mz mz-dng-sq'); box.id = 'mzDngSquadra';
+    const chi = el('div', 'chi', '…'), sub = el('div', 'sub', 'Mi collego…');
+    const via = el('button', 'mz-btn via', 'SCENDIAMO') as HTMLButtonElement; via.type = 'button'; via.dataset['act'] = 'via'; via.disabled = true;
+    const esci = el('button', 'mz-btn ghost', 'Esci dalla squadra'); esci.type = 'button'; esci.dataset['act'] = 'esci';
+    box.append(el('b', '', `Squadra · ${s.nome}`), chi, sub, via, esci);
+    for (const ev of ['pointerdown', 'touchstart']) box.addEventListener(ev, (x) => x.stopPropagation());
+    o.root.append(box);
+    const sq: Squadra = { spot: s, ws, box, chi, sub, via, membri: [], rete: null, chiusa: false };
+    squadra = sq; btnSq.classList.remove('on');
+    via.addEventListener('click', () => {
+      if (sq.membri.length < 2 || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ t: 'via' } satisfies SqClientMsg)); via.disabled = true; sub.textContent = 'Si scende…';
+    });
+    esci.addEventListener('click', () => chiudiSquadra());
+    ws.onmessage = (ev) => {
+      const m = parseSqServer(String(ev.data));
+      if (!m) return;
+      if (m.t === 'T') { sq.rete?.turni.push(m); return; }
+      if (m.t === 'squadra') { sq.membri = m.membri; disegnaSquadra(sq, m.max); return; }
+      if (m.t === 'errore') { o.hud.toast(m.msg, 3000); if (!sq.rete) { sub.textContent = m.msg; via.disabled = sq.membri.length < 2; } return; }
+      if (m.t === 'parte') void scendiInsieme(sq, m);
+    };
+    ws.onclose = () => { sq.chiusa = true; if (squadra === sq && !sq.rete) { o.hud.toast('La squadra si è sciolta', 2000); chiudiSquadra(); } };
+  }
+  function disegnaSquadra(sq: Squadra, max: number): void {
+    const n = sq.membri.length;
+    sq.chi.textContent = sq.membri.map((x) => x.nome).join(' · ');
+    sq.sub.textContent = n < 2 ? 'Aspetta i compagni: devono premere AFFRONTA INSIEME anche loro' : `${n} su ${max}: chiunque può dire SCENDIAMO`;
+    sq.via.disabled = n < 2; sq.via.textContent = n < 2 ? 'SCENDIAMO' : `SCENDIAMO (${n})`;
+  }
+  function chiudiSquadra(): void {
+    const sq = squadra;
+    if (!sq) return;
+    squadra = null; sq.box.remove();
+    try { if (sq.ws.readyState === WebSocket.OPEN) sq.ws.send(JSON.stringify({ t: 'esco' } satisfies SqClientMsg)); sq.ws.close(1000, 'ciao'); } catch { /* già chiusa */ }
+  }
+
+  /** Il server ha aperto la spedizione per tutta la squadra: si scende. A fine spedizione l'esito lo calcola il server dal log. */
+  async function scendiInsieme(sq: Squadra, m: Extract<SqServerMsg, { t: 'parte' }>): Promise<void> {
+    if (busy || run || !o.api) { chiudiSquadra(); return; }
+    const api = o.api, s = sq.spot, zoom0 = o.renderer.diorama.zoom, me = m.eroi[m.io];
+    if (!me) { chiudiSquadra(); return; }
+    sq.box.remove();
+    busy = true; btn.classList.remove('on'); btnSq.classList.remove('on'); lastErr = null;
+    sq.rete = {
+      io: m.io, eroi: m.eroi, turni: [],
+      manda: (x) => { if (sq.ws.readyState === WebSocket.OPEN) sq.ws.send(JSON.stringify(x)); },
+      get chiusa() { return sq.chiusa; },
+    };
+    try {
+      o.hud.toast(`${s.nome}: si scende insieme`, 1800);
+      const mod = await import('../rpg/index.ts');
+      const panel: PanelCtx = { api, hud: o.hud, root: o.root, getLot: o.getLot, setLot: o.setLot };
+      run = mod.startRun(ctx, { dungeon: m.dungeon, seed: m.seed, hero: me.hero, stato: me.stato, partenza: null, panel, rete: sq.rete });
+      entered++; insieme++; current = s.id; busy = false;
+      await run.done;
+      run = null; busy = true;
+      backToEntrance(s, zoom0);
+      chiudiSquadra();
+      try { await consegna(s, mod, await api.dungeonFinish('', 0)); } catch (e) { fail(e, 'Spedizione non salvata, riprova'); }
+    } catch (e) {
+      console.error('[marea] dungeon insieme', e); fail(e, 'Qualcosa è andato storto nel dungeon');
+      if (run) { run.abort(); run = null; }
+      backToEntrance(s, zoom0); chiudiSquadra();
+    } finally { busy = false; current = null; }
+  }
+
   let near: Spot | null = null, nearWas: Spot | null = null, aWas = false, busy = false, run: DungeonRun | null = null;
   let entered = 0, finishes = 0, aborts = 0, lastErr: string | null = null, lastResult: unknown = null, current: string | null = null;
   /** Salvataggi all'altare confermati dal server in questa sessione, e l'ultima spedizione interrotta recuperata alla discesa. */
@@ -127,6 +228,20 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       addEventListener('keydown', kd, true);
       o.root.append(box);
     });
+  }
+
+  /** Esito del server arrivato: lotto nuovo, scheda dell'esito, e se il capo è caduto per la prima volta il dungeon dopo. */
+  async function consegna(s: Spot, mod: typeof import('../rpg/index.ts'), r: DungeonFinish, clientHash?: number): Promise<void> {
+    const prima = next();
+    finishes++; lastResult = { outcome: r.result.outcome, tenuto: r.tenuto, monete: r.monete, livelliSu: r.livelliSu, capo: r.result.capo ?? false, usati: r.result.usati, rotti: r.result.rotti, hash: r.result.hash, clientHash: clientHash ?? null };
+    o.setLot(r.lot);
+    await mod.showResult(ctx, r);
+    // capo ucciso la prima volta: la bussola passa al dungeon dopo, e lo si dice
+    const dopo = next();
+    if (dopo !== prima && (r.lot.hero?.completati ?? []).includes(s.id)) {
+      const n = INGRESSI.find((d) => d.id === dopo);
+      o.hud.toast(n ? `${s.nome} completata! Prossimo dungeon: ${n.nome}` : `${s.nome} completato! Hai finito tutti i dungeon`, 4500);
+    }
   }
 
   async function enter(s: Spot, daTest?: 'ingresso' | 'lanterna'): Promise<void> {
@@ -160,20 +275,8 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       const done = await run.done;
       run = null; busy = true;
       backToEntrance(s, zoom0);
-      if (!done) { aborts++; o.hud.toast('Sei risalito senza bottino', 2500); return; }
-      try {
-        const prima = next();
-        const r = await api.dungeonFinish(encodeDungeon(done.inputs), done.hash, done.azioni);
-        finishes++; lastResult = { outcome: r.result.outcome, tenuto: r.tenuto, monete: r.monete, livelliSu: r.livelliSu, capo: r.result.capo ?? false, usati: r.result.usati, rotti: r.result.rotti, hash: r.result.hash, clientHash: done.hash };
-        o.setLot(r.lot);
-        await mod.showResult(ctx, r);
-        // capo ucciso la prima volta: la bussola passa al dungeon dopo, e lo si dice
-        const dopo = next();
-        if (dopo !== prima && (r.lot.hero?.completati ?? []).includes(s.id)) {
-          const n = INGRESSI.find((d) => d.id === dopo);
-          o.hud.toast(n ? `${s.nome} completata! Prossimo dungeon: ${n.nome}` : `${s.nome} completato! Hai finito tutti i dungeon`, 4500);
-        }
-      } catch (e) { fail(e, 'Spedizione non salvata, riprova'); }
+      if (!done || 'insieme' in done) { aborts++; o.hud.toast('Sei risalito senza bottino', 2500); return; }
+      try { await consegna(s, mod, await api.dungeonFinish(encodeDungeon(done.inputs), done.hash, done.azioni), done.hash); } catch (e) { fail(e, 'Spedizione non salvata, riprova'); }
     } catch (e) {
       console.error('[marea] dungeon', e); fail(e, 'Qualcosa è andato storto nel dungeon');
       if (run) { run.abort(); run = null; }
@@ -211,7 +314,19 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     });
   };
 
-  registerStateProvider('ingressi', () => ({ spots: spots.map(({ id, nome, x, z }) => ({ id, nome, x, z })), models: marks.map((m) => m.holder.children.length), cleared, near: near?.id ?? null, next: next(), busy, active: !!run?.active, entered, finishes, aborts, salvataggi, recuperato, lastErr, lastResult }));
+  registerStateProvider('ingressi', () => ({
+    spots: spots.map(({ id, nome, x, z }) => ({ id, nome, x, z })), models: marks.map((m) => m.holder.children.length), cleared, near: near?.id ?? null, next: next(), busy, active: !!run?.active, entered, finishes, aborts, salvataggi, recuperato, lastErr, lastResult,
+    vicini, insieme, squadra: squadra ? { dungeon: squadra.spot.id, membri: squadra.membri.map((x) => x.nome), giu: !!squadra.rete, chiusa: squadra.chiusa } : null,
+  }));
+  // insieme (#118): entra nella squadra di un dungeon (anche senza nessuno vicino) e SCENDIAMO
+  registerTestHook('squadra', (id) => {
+    const s = spots.find((x) => x.id === String(id ?? 'grotta'));
+    if (!s || busy || run || squadra) return false;
+    if (o.world.mode === 'walk') o.world.avatar.teleport(s.x, s.z + 3);
+    apriSquadra(s);
+    return true;
+  });
+  registerTestHook('squadraVia', () => { if (!squadra || squadra.membri.length < 2) return false; squadra.via.click(); return true; });
   registerStateProvider('dungeon', () => (run && dungeonLink.state ? { ...dungeonLink.state(), busy } : { active: false, dungeon: current, busy, tick: 0, outcome: null, hero: null, nemici: 0, vivi: 0 }));
   registerTestHook('enterDungeon', (id, da) => {
     const s = spots.find((x) => x.id === String(id ?? 'grotta'));
@@ -232,20 +347,27 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     next,
     tick(a) {
       const pressA = a && !aWas; aWas = a;
-      if (busy || run || o.world.race.on || o.world.mode !== 'walk') { near = null; return; }
-      const f = o.world.avatar.state;
+      if (busy || run) { near = null; return; }
+      const f = o.world.avatar.state, aPiedi = o.world.mode === 'walk' && !o.world.race.on;
+      // in squadra (prima di scendere): chi si allontana dall'ingresso ne esce
+      if (squadra && !squadra.rete && (!aPiedi || Math.hypot(f.x - squadra.spot.x, f.z - squadra.spot.z) > LONTANO_M)) { chiudiSquadra(); o.hud.toast('Troppo lontano dall’ingresso: fuori dalla squadra', 2500); }
+      if (!aPiedi) { near = null; vicini = 0; return; }
       near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < NEAR_M) ?? null;
-      if (near && near !== nearWas) o.hud.toast(`${near.nome}: premi A o tocca ENTRA`, 2500);
+      vicini = near ? viciniA(near) : 0;
+      if (near && near !== nearWas) o.hud.toast(vicini ? `${near.nome}: ENTRA da solo o AFFRONTA INSIEME` : `${near.nome}: premi A o tocca ENTRA`, 2500);
       nearWas = near;
-      if (near && pressA) void enter(near);
+      if (near && pressA && !squadra) void enter(near);
     },
     step(f) { run?.step(f); },
     update(alpha, dt, t) {
       if (run) { run.update(alpha, dt, t); return; }
       if (clearPasses === 0 || (clearPasses === 1 && t > 4)) { clearPasses++; clearScenery(); } // la scenografia può arrivare dopo
-      const show = !!near && !busy && !daBox;
+      const show = !!near && !busy && !daBox && !squadra;
       if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `ENTRA · ${near.nome.toUpperCase()}`), el('small', '', 'A')); }
       btn.classList.toggle('on', show);
+      const showSq = show && vicini > 0, sig = `${near?.id}|${vicini}`;
+      if (showSq && btnSq.dataset['sig'] !== sig) { btnSq.dataset['sig'] = sig; btnSq.replaceChildren(pixIcon(ICON, 24), el('span', '', 'AFFRONTA INSIEME'), el('small', '', `${vicini + 1} qui`)); }
+      btnSq.classList.toggle('on', showSq);
       for (const m of marks) { const p = screenOf(m.s.x, m.holder.position.y + 3.6, m.s.z); m.label.place(p.x, p.y, p.on && !o.world.race.on); }
     },
   };
