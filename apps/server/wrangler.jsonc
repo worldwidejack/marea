@@ -10,7 +10,7 @@
     "directory": "../client/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/ws/*"]
+    "run_worker_first": ["/api/*", "/ws/*", "/manifest.webmanifest"]
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "marea", "database_id": "2a3c4e32-4974-44d5-bb2a-aca1c39230a9", "migrations_dir": "migrations" }
