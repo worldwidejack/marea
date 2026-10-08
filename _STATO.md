@@ -5,7 +5,7 @@ aggiornato: 2026-10-08
 dettaglio: docs/ROADMAP.md
 ---
 ## Siamo arrivati a
-Online dall'8 ott mattina (`e486c37`): minigiochi universali (pesca, perle, consegne, ingorgo), Porto con mercante, missioni e gente, animali, suoni, minimappa, 4 isole a tema ognuna col suo gioco (Arrembaggio, Fuga dalla lava, Pinguini, Carpe koi), bussola a sezioni, guida in 8 passi, prestazioni dentro il budget. Dall'altra sessione: meteo, diario, rientro, emote, app installabile.
+8 ott: online minigiochi universali, Porto con mercante, missioni, gente, record e Faro comune, 4 isole a tema coi loro giochi, animali, suoni, meteo, diario con traguardi, «Mentre eri via», barca personalizzata, decorazioni libere, modalità foto, minimappa, app installabile.
 
 ## Prossimo passo
-Jack e l'amico: provate tutto da PC e telefono e dite cosa tenere, cosa tarare (medaglie dei minigiochi) e cosa togliere. In corso dall'altra sessione: barca personalizzata, decorazioni libere, modalità foto, record e Faro al Porto.
+Jack e l'amico: provate tutto e dite cosa tenere e tarare. Da decidere (A/B): targhette coi nomi sopra gli amici, i due «Faro» con lo stesso nome, meteo acceso di serie.
