@@ -11,7 +11,7 @@ import type { TState, Zombie } from './stato.ts';
 import { COLPISCE_TICKS, COS_CONO_NEMICO, FLOW_OGNI, MORTO_TICKS, TOLLERANZA, ev, secToTicks } from './stato.ts';
 import { accendi, dai, ferisci } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
-import { comparsaVicina } from './ondate.ts';
+import { attive, comparsaVicina } from './ondate.ts';
 
 function aggiornaFlow(s: TState): void {
   if (s.tick - s.flowTick < FLOW_OGNI) return;
@@ -128,8 +128,8 @@ function carica(s: TState, z: Zombie): void {
 /** De Molay a metà vita: corre via verso la comparsa più lontana dall'eroe e sparisce (punti come un boss abbattuto). */
 function fuggi(s: TState, z: Zombie): void {
   if (!z.fuga) {
-    let best = s.arena.comparse[0] ?? { x: z.x, z: z.z }, bd = -1;
-    for (const c of s.arena.comparse) { const d = (c.x - s.eroe.x) * (c.x - s.eroe.x) + (c.z - s.eroe.z) * (c.z - s.eroe.z); if (d > bd) { bd = d; best = c; } }
+    let best = attive(s)[0] ?? { x: z.x, z: z.z }, bd = -1;
+    for (const c of attive(s)) { const d = (c.x - s.eroe.x) * (c.x - s.eroe.x) + (c.z - s.eroe.z) * (c.z - s.eroe.z); if (d > bd) { bd = d; best = c; } }
     z.fuga = { x: best.x, z: best.z };
   }
   const dx = z.fuga.x - z.x, dz = z.fuga.z - z.z;

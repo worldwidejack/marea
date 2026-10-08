@@ -41,6 +41,15 @@ export function validateTemplari(): string[] {
     if (l.muro && !c.armi.some((a) => a.id === l.muro)) errs.push(`templari: arma sul muro ${l.muro} sconosciuta`);
     if (l.muro && c.armi.find((a) => a.id === l.muro)?.prezzo === undefined) errs.push(`templari: l'arma sul muro ${l.muro} non ha prezzo`);
   }
+  for (const l of Object.values(TEMPLARI_MAPPA.legenda)) {
+    if (l.porta && !c.porte[l.porta]) errs.push(`templari: la porta ${l.porta} non ha prezzo (templari.json porte)`);
+    if ((l.trappola || l.leva) && !c.trappole[(l.trappola ?? l.leva)!]) errs.push(`templari: la trappola ${l.trappola ?? l.leva} non è in templari.json`);
+    if (l.comparsa && !Object.values(c.porte).some((p) => p.zona === l.comparsa)) errs.push(`templari: nessuna porta apre la zona ${l.comparsa}`);
+    if (l.trappola && !Object.entries(TEMPLARI_MAPPA.legenda).some(([k, x]) => x.leva === l.trappola && all.includes(k))) errs.push(`templari: la trappola ${l.trappola} non ha la leva`);
+  }
+  for (const [id, p] of Object.entries(c.porte)) if (!pos(p.prezzo)) errs.push(`templari: porta ${id} senza prezzo`);
+  for (const [id, t] of Object.entries(c.trappole)) if (!pos(t.prezzo) || !pos(t.durata) || !pos(t.eroe.ogni)) errs.push(`templari: trappola ${id} non valida`);
+  if (!(c.poteri.probabilita > 0 && c.poteri.probabilita < 1) || !c.poteri.tipi.length) errs.push('templari: power-up non validi');
   if (!all.includes('C')) errs.push('templari: la mappa non ha posti per la cassa');
   if (!c.armi.some((a) => (a.cassa ?? 0) > 0)) errs.push('templari: la cassa non ha armi');
   return errs;

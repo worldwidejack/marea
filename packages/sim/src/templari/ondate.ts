@@ -5,9 +5,10 @@ import { TEMPLARI, nemicoDef } from '@marea/content/templari.ts';
 import type { Comparsa } from './mappa.ts';
 import type { TState } from './stato.ts';
 import { ev, intervalloOndata, nuovoZombie, quantiOndata, secToTicks } from './stato.ts';
+import { zonaAperta } from './porte.ts';
 
-/** Comparse attive (le porte chiuse spengono le loro zone: per ora c'è solo il sagrato). */
-const attive = (s: TState): Comparsa[] => s.arena.comparse;
+/** Comparse attive: il sagrato sempre, le zone quando una loro porta è aperta. */
+export const attive = (s: TState): Comparsa[] => s.arena.comparse.filter((c) => zonaAperta(s, c.zona));
 
 /** Una comparsa tra le più vicine all'eroe (a caso dal seed), lontana almeno 6 m da lui; null se non ce n'è. */
 export function comparsaVicina(s: TState): Comparsa | null {
@@ -51,7 +52,7 @@ export function bossDi(n: number): { tipo: string; solo: boolean } | null {
 function nuovaOndata(s: TState): void {
   s.ondata++;
   s.fase = 'combatti'; s.faseT = 0;
-  s.quanti = quantiOndata(s.ondata); s.usciti = 0; s.prossima = s.tick + secToTicks(1); s.puntiAssi = 0;
+  s.quanti = quantiOndata(s.ondata); s.usciti = 0; s.prossima = s.tick + secToTicks(1); s.puntiAssi = 0; s.poteri.ondata = 0;
   const b = bossDi(s.ondata);
   s.boss = b ? { tipo: b.tipo, at: s.tick + secToTicks(b.solo ? TEMPLARI.boss.attesa : intervalloOndata(s.ondata) * s.quanti * 0.5), uscito: false } : null;
   if (b?.solo) s.quanti = Math.max(1, Math.round(s.quanti * TEMPLARI.boss.quotaFanti));

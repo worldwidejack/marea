@@ -19,6 +19,10 @@ const CSS = `
 #mzTpl .arma b { color: ${PAL.giallo}; }
 #mzTpl .vita { position: absolute; left: ${LEFT}; top: calc(${TOP} + 106px); width: 96px; height: 7px; background: ${PAL.ombraCalda}; border: 2px solid ${PAL.neroCaldo}; }
 #mzTpl .vita i { display: block; height: 100%; background: ${PAL.rosso}; }
+#mzTpl .pot { position: absolute; left: ${LEFT}; top: calc(${TOP} + 122px); display: flex; gap: 6px; }
+#mzTpl .pot span { padding: 2px 6px; background: rgba(35,32,31,.85); border: 2px solid currentColor; font-size: 12px; font-weight: bold; }
+#mzTpl .pot span.lamp { animation: mzTplLamp .5s steps(2) infinite; }
+@keyframes mzTplLamp { 50% { opacity: .2; } }
 #mzTpl .vign { position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 0 10px rgba(232,67,63,.55), inset 0 0 0 22px rgba(232,67,63,.3), inset 0 0 0 40px rgba(232,67,63,.14); }
 #mzTpl .boss { position: absolute; left: 50%; top: calc(${TOP} + 34px); transform: translateX(-50%); width: min(360px, calc(100% - 140px)); display: none; text-align: center; }
 #mzTpl .boss.on { display: block; }
@@ -62,9 +66,10 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string
   const boss = el('div', 'boss'), bossN = el('b'), bossBar = el('div', 'bar'), bossI = el('i'), bossF = el('em');
   bossBar.append(bossI, bossF); boss.append(bossN, bossBar);
   big.append(bigB, bigS);
-  box.append(vign, ond, pti, arma, vita, msg, boss, big);
+  const pot = el('div', 'pot');
+  box.append(vign, ond, pti, arma, vita, pot, msg, boss, big);
   root.append(box);
-  let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1 };
+  let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1, pot: '' };
 
   return {
     set(v) {
@@ -94,6 +99,13 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string
         if (bossN.textContent !== nome) bossN.textContent = nome;
         bossI.style.width = `${Math.round((v.boss.vita / Math.max(1, v.boss.max)) * 100)}%`;
         bossF.style.display = v.boss.fugge > 0 ? 'block' : 'none'; bossF.style.left = `${Math.round(v.boss.fugge * 100)}%`;
+      }
+      // power-up a tempo: Ira di Dio e Decima coi secondi che restano (lampeggiano negli ultimi 5)
+      const pk = `${Math.ceil(v.poteri.ira)}|${Math.ceil(v.poteri.decima)}`;
+      if (pk !== shown.pot) {
+        shown.pot = pk;
+        const b = (testo: string, s: number, c: string) => { const x = el('span', s <= 5 ? 'lamp' : '', `${testo} ${Math.ceil(s)}`); x.style.color = c; return x; };
+        pot.replaceChildren(...(v.poteri.ira > 0 ? [b('✠ IRA', v.poteri.ira, PAL.rosso)] : []), ...(v.poteri.decima > 0 ? [b('×2 DECIMA', v.poteri.decima, PAL.arancio)] : []));
       }
       const m = v.fase === 'pausa' || v.fase === 'inizio' ? `${NOMI_FASE[v.fase]} · ${Math.ceil(v.faseS)} s` : NOMI_FASE[v.fase];
       if (m !== shown.msg) { shown.msg = m; msg.textContent = m; }

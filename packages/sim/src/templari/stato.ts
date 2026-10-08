@@ -1,6 +1,6 @@
 // Stato della partita a ondate e sua creazione. Tutto il resto (passo, vista, risultato) lavora su questo.
 import { TEMPLARI, TEMPLARI_MAPPA, armaDef, nemicoDef } from '@marea/content/templari.ts';
-import type { TArmaDef, TNemicoDef } from '@marea/content/templari.ts';
+import type { TArmaDef, TNemicoDef, TPotere } from '@marea/content/templari.ts';
 import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
 import { TICK_HZ } from '../constants.ts';
@@ -78,7 +78,10 @@ export type Proj = { id: number; tipo: 'freccia' | 'palla' | 'vaso'; arma: strin
 export type Fiamma = { id: number; x: number; z: number; r: number; dps: number; fine: number;
   /** Fiamme di de Molay: bruciano l'eroe, non gli zombie. */
   nemico?: boolean };
-export type Drop = { id: number; tipo: 'scudo'; x: number; z: number; fine: number };
+/** Cose a terra: lo scudo dello scudato (si prende con AZIONE) e i power-up (si prendono passandoci sopra). */
+export type Drop = { id: number; tipo: 'scudo' | TPotere; x: number; z: number; fine: number };
+/** Trappola: accesa fino al tick `fine`, di nuovo pronta dal tick `pronta`, prossimo colpo all'eroe se ci sta dentro. */
+export type StatoTrappola = { fine: number; pronta: number; colpo: number };
 export type CassaFase = 'chiusa' | 'gira' | 'pronta' | 'teschio' | 'vola';
 export type Cassa = { posto: number; usi: number; max: number; fase: CassaFase; inizio: number; fine: number; arma: string | null };
 
@@ -101,6 +104,9 @@ export type TState = {
   /** Boss dell'ondata: chi, quando esce, se è già uscito. */
   boss: { tipo: string; at: number; uscito: boolean } | null;
   cassa: Cassa;
+  trappole: StatoTrappola[];
+  /** Power-up: Ira di Dio e Decima accese fino al tick, quanti ne sono usciti in questa ondata, l'ultimo uscito. */
+  poteri: { ira: number; decima: number; ondata: number; ultimo: string };
   nextId: number;
   flow: Int32Array; flowCell: number; flowTick: number;
   done: boolean; esito: TEsito | null;
@@ -128,7 +134,9 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
     assi: arena.finestre.map(() => TEMPLARI.barricate.assi),
     porte: Object.fromEntries(arena.porte.map((p) => [p.id, false])),
     zombie: [], proj: [], fiamme: [], drops: [], tiri: [], boss: null,
-    cassa: { posto: 0, usi: 0, max: TEMPLARI.cassa.usiMax, fase: 'chiusa', inizio: 0, fine: 0, arma: null },
+    cassa: { posto: postoIniziale(arena), usi: 0, max: TEMPLARI.cassa.usiMax, fase: 'chiusa', inizio: 0, fine: 0, arma: null },
+    trappole: arena.trappole.map(() => ({ fine: 0, pronta: 0, colpo: 0 })),
+    poteri: { ira: 0, decima: 0, ondata: 0, ultimo: '' },
     nextId: 1,
     flow: new Int32Array(arena.w * arena.h), flowCell: -1, flowTick: -999,
     done: false, esito: null, eventi: [],
@@ -138,6 +146,16 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
   bfs(gr.percorso, s.flowCell, s.flow);
   s.flowTick = 0;
   return s;
+}
+
+/** La cassa comincia nel primo dei suoi posti che si raggiunge dalla chiesa (a porte chiuse). */
+function postoIniziale(a: Arena): number {
+  const dentro = new Set(a.dentro);
+  const i = a.casse.findIndex((p) => {
+    const cx = Math.floor(p.x / a.tile), cz = Math.floor(p.z / a.tile);
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => dentro.has((cz + dz!) * a.w + cx + dx!));
+  });
+  return Math.max(0, i);
 }
 
 /** Vita degli zombie all'ondata n (come COD: +100 a ondata fino alla 9, poi ×1,1 a ondata). */

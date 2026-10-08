@@ -115,12 +115,28 @@ export type TemplariCfg = {
   /** Boss: il cavaliere nelle ondate da `da` ogni `ogni` (5, 15, 25…) e in tutte le ondate da `insiemeDa`; de Molay ogni `ogni` da `da`
    *  (10, 20, 30…). Nelle ondate dei boss esce questa quota dei fanti; il boss arriva dopo `attesa` s. */
   boss: { cavaliere: { ogni: number; da: number; insiemeDa: number }; molay: { ogni: number; da: number }; quotaFanti: number; attesa: number };
-  /** Armi sul muro: distanza per comprarle. */
+  /** Armi sul muro e leve delle trappole: distanza per usarle. */
   muro: { raggio: number };
+  /** Porte (id della legenda della mappa): nome sul cartello, prezzo e zona che aprono (le sue comparse si accendono). */
+  porte: Record<string, TPortaDef>;
+  /** Porte: distanza per comprarle. */
+  porta: { raggio: number };
+  /** Trappole (id della legenda): prezzo, secondi accese e di ricarica dopo, danno al secondo ai boss (gli altri muoiono), e all'eroe
+   *  `danno` ogni `ogni` secondi se ci sta dentro. */
+  trappole: Record<string, TTrappolaDef>;
+  /** Power-up: probabilità a uccisione, al massimo per ondata (i boss ne lasciano sempre uno), secondi a terra e di lampeggio, durata di
+   *  Ira di Dio e Decima, distanza per prenderli, punti di Campane a martello e Muratori, tipi che possono uscire. */
+  poteri: { probabilita: number; maxOndata: number; aTerra: number; lampeggia: number; durata: number; raggio: number; campane: number; muratori: number; tipi: TPotere[] };
   /** Premio per ondata superata (fino a `maxOndate`) e tetto del giorno UTC. */
   premio: { perOndata: TRisorse; maxOndate: number; tetto: TRisorse };
 };
 
-/** Legenda della mappa dell'arena oltre ai caratteri fissi (tools/templari_mappa.mjs). */
-export type TLegenda = { porta?: string; muro?: string };
+export type TPortaDef = { nome: string; prezzo: number; zona: string };
+export type TTrappolaDef = { nome: string; prezzo: number; durata: number; ricarica: number; boss: number; eroe: { danno: number; ogni: number } };
+/** Faretra piena (munizioni piene) · Ira di Dio (ogni colpo uccide) · Campane a martello (muoiono tutti) · Decima (punti doppi) · Muratori (finestre rifatte). */
+export type TPotere = 'faretra' | 'ira' | 'campane' | 'decima' | 'muratori';
+
+/** Legenda della mappa dell'arena oltre ai caratteri fissi (tools/templari_mappa.mjs): porte, armi sul muro, comparse delle zone (`comparsa`
+ *  = zona), celle delle trappole e loro leve. */
+export type TLegenda = { porta?: string; muro?: string; comparsa?: string; trappola?: string; leva?: string };
 export type TMappaDef = { tile: number; legenda: Record<string, TLegenda>; rows: string[] };

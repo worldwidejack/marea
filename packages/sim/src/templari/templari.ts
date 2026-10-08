@@ -1,6 +1,6 @@
 // Partita a ondate dell'Isola dei Templari (docs/TEMPLARI.md, CONTRACTS «Templari»): pura e deterministica come il dungeon (niente funzioni
 // trascendenti, vedi types.ts). Un tick: eroe, zombie, regista delle ondate, poi l'alba. Moduli: mappa, stato, eroe, zombie, ondate, colpi,
-// vista, autopilota, proiettili, cassa; replay e premio per il server in replay.ts e premio.ts.
+// vista, autopilota, proiettili, cassa, porte (e trappole), poteri, raggiungi; replay e premio per il server in replay.ts e premio.ts.
 import { TEMPLARI } from '@marea/content/templari.ts';
 import type { TAzione, TEvento, TInput, TModulo } from './types.ts';
 import { HZ, createState, ev } from './stato.ts';
@@ -11,6 +11,8 @@ import { stepOndate } from './ondate.ts';
 import { stepProiettili } from './proiettili.ts';
 import { stepFiamme } from './colpi.ts';
 import { stepCassa } from './cassa.ts';
+import { stepTrappole } from './porte.ts';
+import { stepPoteri } from './poteri.ts';
 import { resultOf, viewOf } from './vista.ts';
 import { autopilota } from './autopilota.ts';
 
@@ -24,7 +26,9 @@ export function stepTemplari(s: TState, inp: TInput): void {
   if (!s.done) stepProiettili(s);
   if (!s.done) stepFiamme(s);
   if (!s.done) stepZombi(s);
+  if (!s.done) stepTrappole(s);
   if (!s.done) stepOndate(s);
+  if (!s.done) stepPoteri(s);
   stepCassa(s);
   if (s.drops.length && s.drops[0]!.fine <= s.tick) s.drops = s.drops.filter((d) => d.fine > s.tick);
   s.tick++;

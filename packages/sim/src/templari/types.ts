@@ -3,6 +3,7 @@
 // Math.sin/cos/atan2/hypot/pow/… e niente `**`, solo + − × ÷ e Math.sqrt. Lo controlla tools/check_static.mjs.
 import type { DungeonInput, DungeonView } from '../dungeon/types.ts';
 import type { Rng } from '../rng.ts';
+import type { TPotere } from '@marea/content/templari.ts';
 
 /** Input di un tick: mx, my in assi mondo; a = attacca (tieni = carica il giro), b = corri, c = scambia arma, d = AZIONE (posa la
  *  reliquia, ripara la finestra tenendo premuto, compra). Stesso formato e stessa compressione del dungeon (quantizeDungeon, packDungeon,
@@ -29,7 +30,7 @@ export type TEvento =
   | { t: 'ferito'; danno: number; x: number; z: number }
   | { t: 'morte'; id: number; tipo: string; x: number; z: number }
   /** Punti guadagnati (o spesi, negativi) e perché. */
-  | { t: 'punti'; n: number; perche: 'colpo' | 'uccisione' | 'mischia' | 'asse' | 'spesa' }
+  | { t: 'punti'; n: number; perche: 'colpo' | 'uccisione' | 'mischia' | 'asse' | 'potere' | 'spesa' }
   | { t: 'ondata'; n: number }
   | { t: 'ondataFinita'; n: number }
   | { t: 'reliquia' }
@@ -61,10 +62,16 @@ export type TEvento =
   | { t: 'risata'; id: number }
   | { t: 'scompare'; id: number; tipo: string }
   | { t: 'bomba'; x: number; z: number; tx: number; tz: number }
-  | { t: 'brucia' };
+  | { t: 'brucia' }
+  /** Porta comprata e aperta. */
+  | { t: 'porta'; id: string }
+  /** Trappola accesa (leva), spenta (finiti i secondi), di nuovo pronta. */
+  | { t: 'trappola'; id: string; fase: 'accesa' | 'spenta' | 'pronta' }
+  /** Power-up uscito da terra (`preso` false) o preso. */
+  | { t: 'potere'; tipo: TPotere; preso: boolean; x: number; z: number };
 
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
-export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo'; testo: string; prezzo: number; puoi: boolean } | null;
+export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola'; testo: string; prezzo: number; puoi: boolean } | null;
 
 export type TView = {
   tick: number; fase: TFase;
@@ -91,8 +98,12 @@ export type TView = {
   finestre: { x: number; z: number; assi: number; max: number }[];
   proiettili: { id: number; tipo: 'freccia' | 'palla' | 'vaso'; x: number; z: number; vx: number; vz: number }[];
   fiamme: { id: number; x: number; z: number; r: number; resta: number }[];
-  /** Cose a terra da prendere (lo scudo dello scudato), con i secondi che restano. */
-  drops: { id: number; tipo: 'scudo'; x: number; z: number; resta: number }[];
+  /** Cose a terra da prendere (lo scudo dello scudato, i power-up), con i secondi che restano. */
+  drops: { id: number; tipo: 'scudo' | TPotere; x: number; z: number; resta: number }[];
+  /** Power-up a tempo: secondi che restano (0 = spento). */
+  poteri: { ira: number; decima: number };
+  /** Trappole: accesa (secondi che restano), pronta (sennò si ricarica: secondi che mancano). */
+  trappole: { id: string; accesa: number; pronta: boolean; ricarica: number }[];
   /** Cassa del tesoro: dove sta, cosa fa, l'arma uscita (pronta) e quanto manca alla fase dopo (0..1). */
   cassa: { x: number; z: number; fx: number; fz: number; fase: 'chiusa' | 'gira' | 'pronta' | 'teschio' | 'vola'; arma: string | null; t: number };
   /** Porte (id e se sono aperte). */
