@@ -124,7 +124,7 @@ export default async function (ctx) {
       await bruno.page.waitForSelector('.mz-emote[data-who="anna"]', { state: 'detached', timeout: 4000 });
       const life = Date.now() - pressAt;
       ctx.log(`fumetto di Anna su Bruno durato ~${life} ms dalla pressione`);
-      assert(life > 2100 && life < 3600, 'durata del fumetto: ' + life);
+      assert(life > 2100 && life < 5000, 'durata del fumetto: ' + life); // su GitHub (2-4 fps) il fumetto si toglie al fotogramma dopo: fino a ~3,9 s
     });
 
     await ctx.test('10 pressioni in 1 s → un solo frame emote', async () => {
