@@ -130,7 +130,7 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
     const su = faro !== null && f.livello > faro.livello;
     faro = f;
     if (f.livello !== livello) void mostraLivello(f.livello);
-    if (su) o.hud.toast(`Il Faro del Porto è al livello ${f.livello}: Segherie e Cave +${Math.round(f.bonus * 100)} % per tutti`, 3600);
+    if (su) o.hud.toast(`Il Grande Faro è al livello ${f.livello}: Segherie e Cave +${Math.round(f.bonus * 100)} % per tutti`, 3600);
   };
   const ricarica = () => (o.api?.enabled ? o.api.faro().then(setFaro, () => { /* resta quello noto */ }) : Promise.resolve());
   const pronto = ricarica();
@@ -200,7 +200,7 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
       const show = !!near && !ui?.isOpen() && !o.world.race.on && !o.world.frozen;
       if (show && near && btn.dataset['k'] !== near) {
         btn.dataset['k'] = near;
-        btn.replaceChildren(pixIcon(near, 24), el('span', '', near === 'record' ? 'RECORD' : 'FARO'), el('small', '', 'A'));
+        btn.replaceChildren(pixIcon(near, 24), el('span', '', near === 'record' ? 'RECORD' : 'GRANDE FARO'), el('small', '', 'A'));
       }
       btn.classList.toggle('on', show);
       for (const s of posti) {

@@ -147,7 +147,7 @@ export function createPortoAmiciUi(ctx: PortoAmiciCtx): PortoAmiciUi {
     if (f.livello > 0) say.append('Adesso: ', el('b', '', `Segherie e Cave ${pc(f.bonus)} per tutti`), '. ');
     else say.append('Un faro per tutto l\'arcipelago: ogni Legno e ogni Pietra di chiunque lo fanno crescere. ');
     if (f.prossimo) say.append(`Al livello ${f.prossimo.livello}: `, el('b', '', pc(f.prossimo.bonus)), '.');
-    else say.append(el('b', '', 'Faro completo: grazie a tutti!'));
+    else say.append(el('b', '', 'Grande Faro completo: grazie a tutti!'));
     body.appendChild(say);
     if (f.prossimo) {
       const prima = FARO.livelli[f.prossimo.livello - 2];
@@ -191,7 +191,7 @@ export function createPortoAmiciUi(ctx: PortoAmiciCtx): PortoAmiciUi {
     if (kind === 'record') sheet.replaceChildren(head('Record', 'record'), recordBody());
     else {
       const f = ctx.getFaro(), lv = el('span', 'mz-pa-lv', f ? `LIV. ${f.livello}/${f.max}` : 'LIV. –'); lv.dataset['livello'] = String(f?.livello ?? '');
-      sheet.replaceChildren(head('Faro', 'faro', lv), faroBody(f));
+      sheet.replaceChildren(head('Grande Faro', 'faro', lv), faroBody(f));
     }
     tickTimers(sheet, ctx.api?.serverNow() ?? Date.now());
     if (keep) {
@@ -208,7 +208,7 @@ export function createPortoAmiciUi(ctx: PortoAmiciCtx): PortoAmiciUi {
       const r = await ctx.api.faroVersa(res === 'legno' ? q : 0, res === 'pietra' ? q : 0);
       ctx.setLot(r.lot); ctx.setFaro(r.faro); st.versati++;
       const dato = r.dono.legno ? `${fmt(r.dono.legno)} Legno` : `${fmt(r.dono.pietra)} Pietra`;
-      if (g === gen) st.note = { text: r.saliti.length ? `Il Faro sale al livello ${r.faro.livello}! Grazie per ${dato}` : `Versati ${dato}. Il faro ringrazia`, bad: false };
+      if (g === gen) st.note = { text: r.saliti.length ? `Il Grande Faro sale al livello ${r.faro.livello}! Grazie per ${dato}` : `Versati ${dato}. Il faro ringrazia`, bad: false };
     } catch (e) {
       if (g === gen) st.note = { text: e instanceof ApiError ? (e.manca ? `${e.message}: ${mancaText(e.manca)}` : e.message) : 'Qualcosa non va, riprova', bad: true };
       if (e instanceof ApiError && e.status === 409) void ctx.api.faro().then(ctx.setFaro, () => { /* resta quello noto */ });
