@@ -65,7 +65,8 @@ export function loadImpostazioni(): Impostazioni {
 
 export type ImpostazioniPanel = { open(): void; close(): void; isOpen(): boolean; readonly value: Impostazioni };
 
-export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazioni): void }): ImpostazioniPanel {
+/** `guida`: la riga «Guida Primi passi» (SÌ/NO) per riaccendere la guida chiusa con ×; non è un'impostazione salvata qui (sta nella guida). */
+export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazioni): void; guida?: { on(): boolean; set(on: boolean): void } }): ImpostazioniPanel {
   injectUiStyle(); injectStyle();
   let cur = loadImpostazioni(), open = false;
   const sheet = el('div', 'mz mz-sheet mz-side'); sheet.id = 'mzSet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Impostazioni');
@@ -108,6 +109,14 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
       toggleRow('ciclo', 'Ciclo giorno e notte', `giorno, tramonto, notte, alba: un giro ogni ${CICLO_MIN} minuti`),
       toggleRow('stampa', 'Stampa giapponese', 'colori da stampa antica, onde, carta'),
       toggleRow('contorni', 'Contorni', 'una riga scura attorno a cose e persone'));
+    const g = o.guida;
+    if (g) {
+      const on = g.on(), b = el('button', 'mz-set-row' + (on ? ' on' : '')); b.type = 'button'; b.dataset['set'] = 'guida';
+      const txt = el('span'); txt.append(el('span', '', 'Guida «Primi passi»'), el('span', 'q', 'la scheda gialla coi consigli per chi arriva'));
+      b.append(txt, el('span', 'sw', on ? 'SÌ' : 'NO'));
+      b.addEventListener('click', () => { g.set(!g.on()); render(); });
+      body.appendChild(b);
+    }
   }
   const btn = topButton({ root: o.root, id: 'mzSetBtn', order: 5, label: '', title: 'Impostazioni', onClick: () => (open ? close() : show()) });
   btn.el.insertBefore(gearIcon(), btn.el.firstChild);

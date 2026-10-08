@@ -169,8 +169,8 @@ Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anc
 ## 8. Tra amici
 Mondo alla GTA: né coop né guerra. Nessuno attacca o modifica le isole altrui. Ci si vede muoversi nel Porto e in mare (presenza a 10 Hz), si visitano le isole degli altri (sola lettura), si comunica con 4 emote e con le sfide. Niente chat testuale in V1. Ingresso solo con link personale mandato da Jack.
 
-## 9. Onboarding «Primi passi» (anticipato in M1, 30 set 2026)
-Una scheda con un passo alla volta e una freccia gialla sulla meta (sopra la cosa se è in vista, sul bordo dello schermo se è fuori): **1** costruisci la Segheria (il cartello «Costruisci» evidenziato apre già la conferma) → **2** sali in barca → **3** vai alla Regata e gioca → **4** costruisci col premio. Sugli slot liberi dell'isola c'è sempre un cartello «Costruisci». Niente tutorial a testo lungo.
+## 9. Onboarding «Primi passi» (anticipato in M1, 30 set 2026; allungato l'8 ott 2026)
+Una scheda con un passo alla volta e una freccia gialla sulla meta (sopra la cosa se è in vista, sul bordo dello schermo se è fuori): **1** costruisci la Segheria (il cartello «Costruisci» evidenziato apre già la conferma) → **2** sali in barca → **3** vai alla Regata e gioca → **4** costruisci col premio → **5** fai due chiacchiere con la Gente del Porto → **6** pesca o tuffati dalla barca (minigiochi universali) → **7** guarda la mappa (il cerchio lampeggia) → **8** scopri un'isola a tema. Senza isola propria niente 1 e 4. Un passo fatto vale anche fuori ordine; SALTA salta il passo, × chiude la guida (si riaccende dalle Impostazioni). Testi corti e ironici. Sugli slot liberi dell'isola c'è sempre un cartello «Costruisci». Niente tutorial a testo lungo.
 
 ## 10. Tagli espliciti V1 (fino a dicembre 2026)
 Fuori: battaglia unità, bot, puzzle, chat testuale, interni degli edifici, ciclo giorno/notte, commercio tra giocatori, apertura al pubblico, app installabile (PWA solo se gratis in tempo), musica originale, storia. Entrano dopo, uno alla volta, e solo dal `BACKLOG.md`.

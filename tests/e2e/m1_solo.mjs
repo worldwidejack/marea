@@ -56,19 +56,19 @@ export default async function (ctx) {
     const st = () => ctx.getState(page);
     const hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
-    await ctx.test('apertura: guida 1/4 «Segheria», cartelli Costruisci con lo slot suggerito, bussola con Porto e Regata, niente Tavolo', async () => {
+    await ctx.test('apertura: guida 1/8 «Segheria», cartelli Costruisci con lo slot suggerito, bussola con Porto e Regata, niente Tavolo', async () => {
       const s = await st();
-      assert(s.guida.current === 'segheria' && s.guida.total === 4 && s.guida.pointer, 'guida: ' + JSON.stringify(s.guida));
+      assert(s.guida.current === 'segheria' && s.guida.total === 8 && s.guida.pointer, 'guida: ' + JSON.stringify(s.guida));
       const signs = s.lot.slotSigns;
       assert(signs.length >= 5 && signs.filter((x) => x.hint).length === 1, 'cartelli: ' + JSON.stringify(signs));
-      const rows = await page.evaluate(() => [...document.querySelectorAll('#compass > div')].map((r) => r.dataset.id));
+      const rows = await page.evaluate(() => [...document.querySelectorAll('#compass [data-id]')].map((r) => r.dataset.id));
       assert(rows.includes('porto') && rows.includes('regata') && rows.includes('casa'), 'bussola: ' + rows.join(','));
       assert(s.tavolo.exists === false, 'il Tavolo con posta non deve esserci senza ?sfide=1');
       assert(s.minigiochi.spots.some((x) => x.id === 'regata'), 'manca il posto della Regata');
     });
     await ctx.shot(page, '1_apertura');
 
-    await ctx.test('il cartello suggerito apre «Costruire Segheria?», il pannello non offre il Tavolo; costruita → guida 2/4', async () => {
+    await ctx.test('il cartello suggerito apre «Costruire Segheria?», il pannello non offre il Tavolo; costruita → guida 2/8', async () => {
       const s = await st(), h = s.lot.slotSigns.find((x) => x.hint);
       await hook('teleport', (s.lot.origin[0] + h.cell[0] + 0.5) * 2, (s.lot.origin[1] + h.cell[1] + 2.5) * 2); await sleep(1200);
       await page.locator('.mz-lbl.slot.hint').click();
@@ -84,7 +84,7 @@ export default async function (ctx) {
     });
     await ctx.shot(page, '2_barca');
 
-    await ctx.test('in barca → guida 3/4 «Regata»; al molo della Laguna compare GIOCA', async () => {
+    await ctx.test('in barca → guida 3/8 «Regata»; al molo della Laguna compare GIOCA', async () => {
       await hook('setMode', 'boat');
       await ctx.waitState(page, (s) => s.guida.current === 'regata', 5000);
       await hook('goto', 'laguna');
@@ -93,7 +93,7 @@ export default async function (ctx) {
     });
     await ctx.shot(page, '3_gioca');
 
-    await ctx.test('GIOCA → gara (autopilot) → il server premia la medaglia; scheda con il premio; guida 4/4', async () => {
+    await ctx.test('GIOCA → gara (autopilot) → il server premia la medaglia; scheda con il premio; guida 4/8', async () => {
       const before = (await st()).lot.resources;
       await hook('regataAutopilot', 20);
       await page.locator('#mzPlay').click();

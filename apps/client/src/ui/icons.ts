@@ -55,7 +55,8 @@ export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingr
   | 'pinguini' // Ghiacci
   | 'koi' // Giardino
   | 'arrembaggio' // Tempesta: nave pirata dell'Arrembaggio
-  | 'lava'; // Vulcano: fiamma sul basalto della Fuga dalla lava
+  | 'lava' // Vulcano: fiamma sul basalto della Fuga dalla lava
+  | 'isole'; // sezione «Isole» della bussola
 const PIX: Record<PixId, string[]> = {
   casa: ['...RR...', '..RRRR..', '.RRRRRR.', 'RRRRRRRR', '.wwwwww.', '.wwccww.', '.wwccww.', '.wwccww.'],
   porto: ['RRRRRRRR', '.RRRRRR.', '..R..R..', 'RRRRRRRR', '..R..R..', '..R..R..', '..R..R..', '.cc..cc.'],
@@ -71,6 +72,7 @@ const PIX: Record<PixId, string[]> = {
   arrembaggio: ['...R....', '...nn...', '..nnnn..', '.nnpnnn.', '.nnnnnn.', '...b....', 'bbbbbbbb', '.cccccc.'], // Tempesta: nave pirata dalla vela nera
   lava: ['...Y....', '..YOY...', '.YOROY..', '.ORRRO..', '..ORO...', 'rrrrrrrr', 'rnrrnrrn', 'nnnnnnnn'], // Vulcano: fiamma di lava sul basalto
   perle: ['..pppp..', '.pwwppq.', '.pwpppq.', '.ppppqq.', '..qqqq..', 'rr....rr', 'rqqrrqqr', '.rrrrrr.'], // perla sulla conchiglia aperta (Perle)
+  isole: ['..EEE...', '.E.bEE..', '....b...', '....b...', '..ssbss.', '.ssssss.', 'AAAAAAAA', '.AA..AA.'], // isoletta con la palma (sezione «Isole» delle mete)
   // isole a tema (#68): fulmine dalla nuvola, fiocco di neve, vulcano che fuma lava, fiore di ciliegio; lucchetto = isola chiusa
   tempesta: ['..nnnn..', '.nrrrrn.', 'nrrrrrrn', '.nnnYnn.', '...YY...', '..YYYY..', '....YY..', '....Y...'],
   ghiacci: ['...p....', '.C.p.C..', '..ppp...', 'ppppppp.', '..ppp...', '.C.p.C..', '...p....', '........'],

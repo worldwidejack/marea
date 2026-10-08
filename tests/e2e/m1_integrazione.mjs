@@ -51,9 +51,9 @@ export default async function (ctx) {
       ctx.assert(s.compass && s.compass.open === false, 'mete aperte di base sul telefono: ' + JSON.stringify(s.compass));
       await pa.page.locator('#mzMete').tap();
       await ctx.waitState(pa.page, (s) => s.compass.open === true, 3000);
-      // le righe le riempie il frame dopo il tocco (su GitHub 2-4 fps): si aspetta la riga del Porto con la distanza, non un tempo fisso
-      await pa.page.waitForFunction(() => { const r = document.querySelector('#compass [data-id="porto"]'); return !!r && r.style.display !== 'none' && /\d+ m/.test(r.textContent || ''); }, null, { timeout: 5000 });
-      const txt = await pa.page.evaluate(() => [...document.querySelectorAll('#compass > div')].filter((r) => r.style.display !== 'none').map((r) => r.textContent).join('\n'));
+      // il Porto è la riga della sua sezione (Mercante, Bacheca, minigiochi del Porto); le righe le riempie il frame dopo il tocco (su GitHub 2-4 fps): si aspetta la riga del Porto con la distanza, non un tempo fisso
+      await pa.page.waitForFunction(() => { const r = document.querySelector('#compass [data-sez="porto"]'); return !!r && r.style.display !== 'none' && /\d+ m/.test(r.textContent || ''); }, null, { timeout: 5000 });
+      const txt = await pa.page.evaluate(() => [...document.querySelectorAll('#compass .mz-mete-row')].filter((r) => r.style.display !== 'none').map((r) => r.textContent).join('\n'));
       ctx.log('bussola: ' + txt.replace(/\n/g, ' · '));
       ctx.assert(/Porto\s*\d+ m/.test(txt), 'bussola senza Porto');
     });
@@ -68,7 +68,7 @@ export default async function (ctx) {
     await ctx.shot(pa.page, 'm1_int_isola_di_bea');
     await ctx.test('in mare la bussola indica Casa e Porto', async () => {
       await pa.page.evaluate(() => window.__game.test.goto('laguna')); await sleep(800);
-      const txt = await pa.page.evaluate(() => [...document.querySelectorAll('#compass > div')].filter((r) => r.style.display !== 'none').map((r) => r.textContent).join('\n'));
+      const txt = await pa.page.evaluate(() => [...document.querySelectorAll('#compass .mz-mete-row')].filter((r) => r.style.display !== 'none').map((r) => r.textContent).join('\n'));
       ctx.log('bussola in laguna: ' + txt.replace(/\n/g, ' · '));
       ctx.assert(/Casa\s*\d+ m/.test(txt) && /Porto\s*\d+ m/.test(txt), 'bussola incompleta: ' + txt);
       ctx.noErrors(pa, 'Ada');

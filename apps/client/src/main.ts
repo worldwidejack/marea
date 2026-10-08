@@ -9,7 +9,7 @@ import { createGameWorld } from './game/world.ts';
 import { createHud } from './ui/hud.ts';
 import { createCompass } from './ui/compass.ts';
 import type { Minimappa } from './ui/minimappa.ts';
-import type { CompassTarget } from './ui/compass.ts';
+import type { CompassSezione, CompassTarget } from './ui/compass.ts';
 import { createApi } from './net/api.ts';
 import { createLotView } from './game/lot.ts';
 import type { LotView } from './game/lot.ts';
@@ -25,7 +25,7 @@ import { setTopbarHidden } from './ui/topbar.ts';
 import { entraConInvito } from './ui/entra.ts';
 import { createMinigiochi } from './game/minigiochi.ts';
 import { createGuida } from './ui/guida.ts';
-import type { GuidaStep } from './ui/guida.ts';
+import type { Guida, GuidaStep } from './ui/guida.ts';
 import { createIngressi } from './game/ingressi.ts';
 import { createEroe } from './ui/eroe.ts';
 import { createPorto } from './game/porto.ts';
@@ -89,14 +89,20 @@ async function boot(): Promise<void> {
   }
   const arch = world.archipelago, targets: CompassTarget[] = [];
   if (world.slot !== null) targets.push({ id: 'casa', label: 'Casa', icon: 'casa', ...arch.spawnOf(world.slot) });
-  targets.push({ id: 'porto', label: 'Porto', icon: 'porto', ...arch.spawnOf(null) });
+  targets.push({ id: 'porto', label: 'Porto', icon: 'porto', ...arch.spawnOf(null), sezione: 'porto' });
+  // bussola a sezioni: quello che sta al Porto (Mercante, Bacheca, Scacchi, Consegne, Ingorgo) in una riga che si apre, le isole a tema in un'altra
+  const SEZIONI: CompassSezione[] = [{ id: 'porto', nome: 'Porto', icon: 'porto' }, { id: 'isole', nome: 'Isole', icon: 'isole' }];
+  const portoPl = arch.places.find((p) => p.role === 'porto') ?? null;
+  const dentro = (p: { origin: readonly number[]; w: number; h: number }, x: number, z: number) => x >= (p.origin[0]! - 4) * arch.tile && x <= (p.origin[0]! + p.w + 4) * arch.tile && z >= (p.origin[1]! - 4) * arch.tile && z <= (p.origin[1]! + p.h + 4) * arch.tile;
+  /** Sezione della bussola di un posto: al Porto → 'porto', su un'isola a tema → 'isole' (i suoi minigiochi), altrove nessuna. */
+  const sezioneDi = (x: number, z: number) => (portoPl && dentro(portoPl, x, z) ? 'porto' : arch.places.some((p) => p.role === 'tema' && dentro(p, x, z)) ? 'isole' : undefined);
   // Regata e Tavolo: E (o A) vicino al Tavolo del Porto apre il pannello; in gara la barca la muove la sim, l'avatar sta fermo.
   const regata = await setupRegata({ world, loader, hud, root, cameraYaw: () => renderer.diorama.yaw });
   // minigiochi da solo: ognuno al suo posto (la Regata al molo della Laguna), premio in risorse deciso dal server
   // senza sfide con posta il Tavolo del Porto diventa il posto di Scacco in 3
   const tavoloAt = arch.buildings.find((b) => b.kind === 'tavolo') ?? null;
   const giochi = createMinigiochi({ world, loader, api: me && api.enabled ? api : null, hud, root, camera: renderer.camera, canvas, onLot: () => refreshMyLot(), tavolo: FLAGS.sfide ? null : tavoloAt });
-  for (const sp of giochi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, ...(sp.aperta ? { show: sp.aperta } : {}) }); // aperta: minigiochi delle isole a tema
+  for (const sp of giochi.spots) { const sez = sezioneDi(sp.x, sp.z); targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, ...(sp.aperta ? { show: sp.aperta } : {}), ...(sez ? { sezione: sez } : {}) }); } // aperta: minigiochi delle isole a tema (Ghiacci, Giardino, Tempesta, Vulcano)
   // Mondo Sotterraneo (docs/RPG.md, CONTRACTS §15): ingressi dei dungeon sulle isole e scheda del personaggio; il codice vero è nel chunk GDR
   const setMyLot = (l: LotState) => { lots.find((lv) => !lv.readonly)?.set(l); };
   const ingressi = createIngressi({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot });
@@ -104,13 +110,14 @@ async function boot(): Promise<void> {
   for (const sp of ingressi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, show: () => ingressi.next() === sp.id, group: 'dungeon' });
   // Porto (#63-#65): Mercante delle Perle, Bacheca delle missioni, Gente del Porto; i pannelli si scaricano alla prima apertura
   const porto = createPorto({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot });
-  for (const sp of porto.spots) targets.push({ id: sp.id, label: sp.id === 'mercante' ? 'Mercante' : 'Bacheca', icon: sp.id, x: sp.x, z: sp.z });
+  // nella sezione del Porto subito dopo la piazza: Mercante e Bacheca prima dei minigiochi
+  targets.splice(targets.findIndex((t) => t.id === 'porto') + 1, 0, ...porto.spots.map((sp): CompassTarget => ({ id: sp.id, label: sp.id === 'mercante' ? 'Mercante' : 'Bacheca', icon: sp.id, x: sp.x, z: sp.z, sezione: 'porto' })));
   // Isole a tema (#68): sblocchi, barriere in mare, il Vulcano che caccia; in bussola appena scoperte (minimappa), col lucchetto in mappa finché chiuse
   const temi = createTemi({ world, hud, loader, root, camera: renderer.camera, canvas, getLot: () => myLot(), notte: () => aspetto?.momento === 'notte' });
-  for (const p of temi.isole) targets.push({ id: 'tema:' + p.island, label: p.nome.replace(/^Isola (della |dei |del )?/, ''), icon: p.island as PixId, x: p.spawn.x, z: p.spawn.z, show: () => mappa?.vista(`${p.role}:${p.index}`) ?? false });
+  for (const p of temi.isole) targets.push({ id: 'tema:' + p.island, label: p.nome.replace(/^Isola (della |dei |del )?/, ''), icon: p.island as PixId, x: p.spawn.x, z: p.spawn.z, show: () => mappa?.vista(`${p.role}:${p.index}`) ?? false, sezione: 'isole' });
   const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;
-  // mete: comprimibile, caselle per scegliere; con una sola accesa anche la freccia sullo schermo (nascosta quando c'è sopra un pannello)
-  const compass = createCompass({ root, targets, camera: renderer.camera, canvas, groundY: world.groundY, hidden: () => coperto() });
+  // mete: comprimibile, caselle per scegliere, sezioni Porto e Isole; con una sola accesa anche la freccia sullo schermo (nascosta quando c'è sopra un pannello)
+  const compass = createCompass({ root, targets, sezioni: SEZIONI, camera: renderer.camera, canvas, groundY: world.groundY, hidden: () => coperto() });
   // minimappa (#62): cerchio con l'arcipelago attorno a te, M o un tocco aprono la mappa intera; isole non visitate nella nebbia.
   // Si scarica subito dopo l'avvio (import a parte): il JS iniziale ha un tetto (TECH §5), il cerchio arriva un attimo dopo il mondo.
   const places = arch.places.map((p) => ({ id: `${p.role}:${p.index}`, nome: p.role === 'lotto' ? (p.slot === world.slot ? 'Casa' : '') : p.nome, x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, sempre: p.role === 'porto' || (p.role === 'lotto' && p.slot === world.slot), ...(p.tema ? { chiusa: () => !temi.aperta(p.island) } : {}) }));
@@ -153,7 +160,8 @@ async function boot(): Promise<void> {
       if (voglio) aspetto.set(voglio);
     }).catch(() => { aspettoLoad = null; hud.toast('Impostazioni non caricate: riprova'); });
   };
-  createImpostazioni({ root, onChange: applica });
+  let guidaRef: Guida | null = null; // la guida si crea più sotto (dopo i passi); le Impostazioni la riaccendono
+  createImpostazioni({ root, onChange: applica, guida: { on: () => !(guidaRef?.chiusa() ?? false), set: (v) => guidaRef?.setChiusa(!v) } });
   collegaAudio({ world, root, momento: () => aspetto?.momento ?? 'giorno', gioco: () => giochi.isBusy(), dungeon: () => ingressi.active }); // suoni e musica (audio/ponte.ts), al primo gesto
   registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
   registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
@@ -181,29 +189,52 @@ async function boot(): Promise<void> {
   registerTestHook('openFeed', () => openFeed());
   registerTestHook('openHero', () => { if (!eroe || panelsBusy()) return false; eroe.open(); return true; });
   registerTestHook('emote', (id) => emotes.play(String(id) as EmoteId));
-  // guida «Primi passi»: costruire → barca → minigioco → costruire col premio. Senza isola propria restano barca e minigioco.
+  // guida «Primi passi»: costruire → barca → minigioco → costruire col premio, poi le cose nuove: parla al Porto, pesca o perle, mappa, un'isola
+  // nuova. Senza isola propria niente Segheria né costruisci. I primi quattro restano in testa e in quest'ordine: il vecchio progresso salvato
+  // (un numero) vale per loro (ui/guida.ts). I passi si contano anche fuori ordine.
   const home = world.slot !== null ? arch.spawnOf(world.slot) : null, homeDock = world.slot !== null ? arch.boatOf(world.slot) : null;
   const hasLot = !!me && world.slot !== null && lots.some((lv) => !lv.readonly);
   const cellTarget = (c: [number, number] | null) => { if (!c || world.slot === null) return null; const w = arch.lotCellToWorld(world.slot, c); return { x: w.x, y: world.groundY(w.x, w.z) + 1.2, z: w.z }; };
   const giocate = () => (myLot()?.solo?.giocate ?? 0) + giochi.played();
   const reg = giochi.spots[0] ?? null;
+  const qui = () => (world.mode === 'walk' ? world.avatar.state : world.boat.state);
+  const dist = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z);
+  const piuVicino = <T extends { x: number; z: number }>(l: readonly T[]): T | null => { const f = qui(); let best: T | null = null; for (const p of l) if (!best || dist(p, f) < dist(best, f)) best = p; return best; };
+  const portoAt = arch.spawnOf(null);
+  const barcaTarget = () => { const p = world.boat.object.position; return { x: p.x, y: 1.8, z: p.z }; };
+  const isolaVista = (p: { role: string; index: number }) => mappa?.vista(`${p.role}:${p.index}`) ?? false;
   const steps: GuidaStep[] = [
-    ...(hasLot ? [{ id: 'segheria', titolo: 'Costruisci la Segheria', come: 'Tocca il cartello giallo sulla tua isola: la Segheria fa Legno anche quando non giochi.', done: () => !!myLot()?.buildings.some((b) => b.building === 'segheria'), target: () => cellTarget(hint()?.cell ?? null) }] : []),
-    { id: 'barca', titolo: 'Sali in barca', come: 'Cammina fino alla barca e premi A: con la barca vai sulle altre isole.', done: () => world.mode === 'boat' || giocate() > 0, target: () => { const p = world.boat.object.position; return { x: p.x, y: 1.8, z: p.z }; } },
-    ...(reg ? [{ id: reg.id, titolo: `Vai alla ${reg.nome}`, come: 'Segui la freccia gialla fino alla bandiera e gioca: con una medaglia vinci Legno, Pietra e Perle.', done: () => giocate() > 0, target: () => ({ x: reg.x, y: 4, z: reg.z }) }] : []),
+    ...(hasLot ? [{ id: 'segheria', titolo: 'Costruisci la Segheria', come: 'Tocca il cartello giallo: la Segheria fa Legno anche quando non giochi.', done: () => !!myLot()?.buildings.some((b) => b.building === 'segheria'), target: () => cellTarget(hint()?.cell ?? null) }] : []),
+    { id: 'barca', titolo: 'Sali in barca', come: 'Cammina fino alla barca e premi A: con la barca vai sulle altre isole.', done: () => world.mode === 'boat' || giocate() > 0, target: barcaTarget },
+    ...(reg ? [{ id: reg.id, titolo: `Vai alla ${reg.nome}`, come: 'Segui la freccia fino alla bandiera: una medaglia vale Legno, Pietra e Perle.', done: () => giocate() > 0, target: () => ({ x: reg.x, y: 4, z: reg.z }) }] : []),
     ...(hasLot ? [{ id: 'costruisci', titolo: 'Costruisci col premio', come: 'Torna a casa e tocca un cartello: Cava, Magazzino, Casa, Faro.', done: () => (myLot()?.buildings.filter((b) => b.building !== 'molo' && b.building !== 'segheria').length ?? 0) > 0, target: () => {
-      const f = world.mode === 'walk' ? world.avatar.state : world.boat.state;
+      const f = qui();
       if (home && homeDock && Math.hypot(f.x - home.x, f.z - home.z) > 45) return { x: homeDock.x, y: 2, z: homeDock.z };
       return cellTarget(freeCell(null));
+    } }] : []),
+    { id: 'parla', titolo: 'Fai due chiacchiere al Porto', come: 'Al Porto c\'è gente che parla volentieri, anche troppo. Vai vicino e premi A.', done: () => porto.aperto() === 'parla', target: () => {
+      const p = piuVicino(porto.gente());
+      return p && dist(p, qui()) < 80 ? { x: p.x, y: world.groundY(p.x, p.z) + 2.4, z: p.z } : { x: portoAt.x, y: 3, z: portoAt.z };
+    } },
+    { id: 'universale', titolo: 'Pesca o tuffati', come: 'Barca ferma in mare aperto: PESCA. Su acqua bassa vicino a riva: TUFFATI.', done: () => !!document.querySelector('#mzPescaGioco.on, #mzPerleGioco.on'), target: () => (world.mode === 'walk' ? barcaTarget() : null) },
+    { id: 'mappa', titolo: 'Guarda la mappa', come: 'Tocca il cerchio della mappa (o M). La nebbia copre dove non sei mai stato.', done: () => !!mappa?.isOpen(), target: () => null },
+    ...(temi.isole.length ? [{ id: 'isola', titolo: 'Scopri un\'isola nuova', come: 'Segui la freccia nella nebbia. Certe isole non ti fanno entrare: è carattere.', done: () => temi.isole.some(isolaVista), target: () => {
+      const p = piuVicino(temi.isole.filter((x) => !isolaVista(x)).map((x) => x.spawn));
+      return p ? { x: p.x, y: 3, z: p.z } : null;
     } }] : []),
   ];
   /** Gara, minigioco, dungeon o un pannello aperto: le frecce sullo schermo (guida, mete) si tolgono. */
   const coperto = () => porto.isBusy() || regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || ingressi.active || ingressi.isBusy() || !!eroe?.isOpen();
+  const META_DEL_PASSO: Record<string, string> = { segheria: 'casa', costruisci: 'casa', parla: 'porto' };
   const guida = createGuida({
-    root, camera: renderer.camera, canvas, steps, storeKey: `marea:guida:${me?.id ?? 'ospite'}`,
+    root, camera: renderer.camera, canvas, steps, vecchi: (hasLot ? 2 : 0) + 1 + (reg ? 1 : 0), storeKey: `marea:guida:${me?.id ?? 'ospite'}`,
     hidden: coperto,
-    onFocus: (id) => compass.focus(id === 'segheria' || id === 'costruisci' ? 'casa' : id === 'barca' ? null : id),
+    onFocus: (id) => {
+      compass.focus(id === null ? null : META_DEL_PASSO[id] ?? (targets.some((t) => t.id === id) ? id : null));
+      mappa?.evidenzia(id === 'mappa'); // il cerchio lampeggia finché non lo apri
+    },
   });
+  guidaRef = guida;
   let last = performance.now(), acc = 0, t = 0;
   const frame = (now: number) => {
     const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt; t += dt;
