@@ -1,6 +1,6 @@
 // Minimappa (#62): il cerchio c'è (telefono in alto a destra, PC in basso a destra), M e il tocco aprono la mappa intera, Esc e ×
 // la chiudono; Porto scoperto da subito, le altre isole nella nebbia finché non ci passi vicino. Screenshot: telefono e PC.
-export const timeout = 120000;
+export const timeout = 240000;
 export default async function (ctx) {
   const p = await ctx.open('?test=1&net=0');
   await ctx.waitReady(p.page, 20000);

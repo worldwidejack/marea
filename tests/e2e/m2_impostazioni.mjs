@@ -2,7 +2,7 @@
 // ciclo, camera 22°, contorni. il pannello si apre dall'ingranaggio, camera / ciclo /
 // stampa / contorni si accendono senza errori e dentro il budget (≤ 100 draw call), la scelta resta dopo il ricaricamento,
 // nel ciclo si vede la notte. Screenshot: tutto acceso di giorno e di notte, telefono e desktop.
-export const timeout = 120000;
+export const timeout = 360000; // su GitHub il gioco gira a 2-4 fps: con luci e stampa di notte la suite supera i 2 minuti
 export default async function (ctx) {
   const p = await ctx.open('?test=1&net=0');
   await ctx.waitReady(p.page, 20000);
