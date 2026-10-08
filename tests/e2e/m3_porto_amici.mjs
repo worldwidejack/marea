@@ -182,7 +182,7 @@ export default async function (ctx) {
       assert(lotL.faro.livelli.length === 1 && lotM.faro.livelli.length === 1 && lotL.faro.livelli[0] === lotM.faro.livelli[0], 'livelli nei lotti: ' + JSON.stringify([lotL.faro, lotM.faro]));
       for (const t of ['tokL', 'tokM']) {
         const riga = (await get('/api/feed', t)).body.items.find((x) => x.tipo === 'faro');
-        assert(riga && /Faro del Porto è salito al livello 1/.test(riga.testo) && riga.testo.includes(`+${Math.round(L1.bonus * 100)} %`), `feed ${t}: ${JSON.stringify(riga)}`);
+        assert(riga && /Grande Faro è salito al livello 1/.test(riga.testo) && riga.testo.includes(`+${Math.round(L1.bonus * 100)} %`), `feed ${t}: ${JSON.stringify(riga)}`);
       }
       // due ore dopo: la Segheria di Mia è cresciuta come dice la sim col faro, più che senza
       OFF += 2 * H;

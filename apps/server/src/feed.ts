@@ -78,7 +78,7 @@ export function feedText(row: FeedRow, nomeDi: (id: string) => string): string {
       return `${chi} ha battuto il tuo record ${alGioco(d.minigame ?? '', nomeGioco(d.minigame))}`;
     case 'faro': { // #111
       const lv = num(d.livello), bonus = Math.round((FARO.livelli[lv - 1]?.bonus ?? 0) * 100);
-      return `Il Faro del Porto è salito al livello ${lv}, grazie a ${chi}: Segherie e Cave +${bonus} % per tutti`;
+      return `Il Grande Faro è salito al livello ${lv}, grazie a ${chi}: Segherie e Cave +${bonus} % per tutti`;
     }
   }
   return 'Novità dal Tavolo';
