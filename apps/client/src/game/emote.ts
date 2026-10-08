@@ -9,6 +9,7 @@ import type { GameWorld } from './world.ts';
 import { PAL, el } from '../ui/style.ts';
 import { topButton } from '../ui/topbar.ts';
 import { registerStateProvider } from '../test/testapi.ts';
+import { suona } from '../audio/ponte.ts';
 
 export type Emotes = { play(id: EmoteId): boolean; update(dt: number): void; dispose(): void };
 export const EMOTE_COOLDOWN_S = 1.5;
@@ -127,6 +128,7 @@ export function createEmotes(o: { world: GameWorld; camera: Camera; canvas: HTML
   };
   const show = (who: string, id: EmoteId) => {
     const old = bubbles.get(who); if (old) drop(old);
+    suona('emote');
     const e = el('div', 'mz mz-emote'); e.dataset['who'] = who; e.dataset['emote'] = id; e.setAttribute('role', 'status');
     const inner = el('div', 'mz-emote-b'); inner.append(emoteIcon(id, 24), el('span', '', EMOTE_WORDS[id]));
     e.appendChild(inner); layer.appendChild(e);

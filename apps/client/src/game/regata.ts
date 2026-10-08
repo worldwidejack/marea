@@ -11,6 +11,7 @@ import type { Hud } from '../ui/hud.ts';
 import { PAL } from '../ui/style.ts';
 import { FLAGS } from '../flags.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { suona, vento } from '../audio/ponte.ts';
 
 export type RegataChallenge = { id: string; minigame: string; difficulty: string | number; seed: number; [k: string]: unknown };
 export type RegataDriver = {
@@ -274,8 +275,9 @@ export async function setupRegata(o: Ctx): Promise<RegataDriver> {
       if (r.phase === 'countdown') {
         r.wait--;
         const left = Math.ceil(r.wait / 60);
+        if ((r.wait + 1) % 60 === 0) suona('bip'); // 3, 2, 1
         if (r.wait > 0) { hud.big(String(left)); o.world.race.set(worldBoat(r, view(r))); return; }
-        r.phase = 'race'; hud.big('VIA!', PAL.erbaChiara);
+        r.phase = 'race'; hud.big('VIA!', PAL.erbaChiara); suona('via');
         return;
       }
       if (r.phase === 'race') {
@@ -285,16 +287,16 @@ export async function setupRegata(o: Ctx): Promise<RegataDriver> {
           r.frames.push(frame); r.mod.step(r.s, frame);
           const v = view(r);
           if (r.frames.length === 45) hud.big(null);
-          if (v.next !== r.lastNext) { r.lastNext = v.next; hud.hit(); } // boa passata: il chip lampeggia (niente toast: coprirebbe la gara)
+          if (v.next !== r.lastNext) { r.lastNext = v.next; hud.hit(); suona('boa'); } // boa passata: il chip lampeggia (niente toast: coprirebbe la gara)
           if (v.done || r.frames.length >= r.mod.maxTicks) {
-            r.phase = 'end'; r.wait = END_WAIT; r.result = r.mod.result(r.s);
+            r.phase = 'end'; r.wait = END_WAIT; r.result = r.mod.result(r.s); suona('arrivo');
             const m = r.result.medal;
             const finished = v.finished ?? v.next >= v.buoys.length;
             const title = !finished ? 'TEMPO SCADUTO' : m ? MEDAL[m]! : 'ARRIVO';
             hud.big(title, m ? MEDAL_C[m] : PAL.sabbiaChiara, `${fmt(v.ms)} · ${v.next}/${v.buoys.length} boe · il server conferma`);
           }
         }
-        const v = view(r); o.world.race.set(worldBoat(r, v));
+        const v = view(r); o.world.race.set(worldBoat(r, v)); vento(v.gust ?? 0);
         return;
       }
       // esito a schermo; poi si torna al Tavolo (o prima, con A/Invio dopo un attimo)

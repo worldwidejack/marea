@@ -2,6 +2,7 @@
 import { el } from './style.ts';
 import { resIcon } from './icons.ts';
 import type { ResId } from './icons.ts';
+import { suona } from '../audio/ponte.ts';
 
 /** Conto alla rovescia «1:32» / «1:04:09». */
 export function fmtClock(ms: number): string {
@@ -111,6 +112,6 @@ export function flyResources(root: HTMLElement, from: { x: number; y: number }, 
       { transform: `translate(${to.x - 12}px, ${to.y - 12}px) scale(.8)` },
     ];
     const a = f.animate(k, { duration: 620, delay: i * 60, easing: 'ease-in', fill: 'both' });
-    a.onfinish = a.oncancel = () => { f.remove(); if (--left === 0) done(); };
+    a.onfinish = a.oncancel = () => { f.remove(); suona('moneta', (n - left) / 7); if (--left === 0) done(); };
   }
 }
