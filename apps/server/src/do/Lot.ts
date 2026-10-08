@@ -2,7 +2,7 @@
 // server), azioni economiche pure di @marea/sim. Il Worker instrada qui con idFromName(persona.id) e passa il proprietario in `x-persona`
 // e l'ora in `x-now` (vedi clock.ts). Il DO serializza le richieste (input gate) e lo storage SQL è sincrono: niente corse tra due azioni.
 // Richieste dal Worker: GET /state · POST /collect {building} · /build {building, cell} · /upgrade {building} · /decor {decor, cell, rot} · /hat {hat}.
-// Minigiochi da solo: POST /solo_start {minigame} → {seed, difficulty, lot} · /solo_play {inputs} → il server rigioca gli input, premia la
+// Minigiochi da solo: POST /solo_start {minigame, opzioni?} → {seed, difficulty, opzioni, lot} · /solo_play {inputs} → il server rigioca gli input, premia la
 // medaglia (balance.solo) e risponde {score, medal, detail, premio, premiata, lot}.
 // Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_save {inputs, hash} · /dungeon_finish {inputs, hash}.
 // Richieste dal DO Sfide (mai esposte dal Worker): POST /hold {cid, stake, kind} · /release {cid, release}: idempotenti per id sfida.
@@ -107,16 +107,18 @@ export class Lot extends DurableObject<Env> {
       const mg = body['minigame'];
       if (typeof mg !== 'string' || !Object.hasOwn(MINIGAMES, mg)) return json({ error: 'Minigioco sconosciuto' }, 400);
       const seed = crypto.getRandomValues(new Uint32Array(1))[0]! >>> 1;
-      const next = startSolo(lot, mg, seed, now);
+      // opzioni della partita (es. il mare della pesca): le normalizza il modulo; senza `opzioni` nel modulo si ignorano
+      const mod = getMinigame(mg), opzioni = mod.opzioni ? mod.opzioni(body['opzioni']) : undefined;
+      const next = startSolo(lot, mg, seed, now, 2, opzioni);
       this.save(next);
       const p = soloOf(next, now).pending!;
-      return json({ minigame: p.minigame, seed: p.seed, difficulty: p.difficulty, lot: next });
+      return json({ minigame: p.minigame, seed: p.seed, difficulty: p.difficulty, opzioni: p.opzioni ?? {}, lot: next });
     }
     const p = soloOf(lot, now).pending;
     if (!p) return json({ error: 'Nessuna partita aperta: riparti dal via', code: 'partita' }, 409);
     const inputs = body['inputs'];
     if (!isPackedInputs(inputs, getMinigame(p.minigame).maxTicks)) return json({ error: 'Partita non valida' }, 400);
-    const r = replay(p.minigame, p.seed, p.difficulty, inputs);
+    const r = replay(p.minigame, p.seed, p.difficulty, inputs, p.opzioni);
     const out = finishSolo(lot, r.medal, now);
     this.save(out.lot);
     return json({ score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: out.lot });

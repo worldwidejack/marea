@@ -19,7 +19,7 @@ export type { Challenge, PackedInputs };
 export type PlayResult = { score: number; medal: Medal; detail: Record<string, number>; challenge: Challenge };
 
 /** Partita da solo aperta dal server (POST /api/solo/start): il seed lo sceglie lui. */
-export type SoloStart = { minigame: string; seed: number; difficulty: number; lot: LotState };
+export type SoloStart = { minigame: string; seed: number; difficulty: number; /** Opzioni normalizzate dal server (es. { mare } della pesca). */ opzioni: Record<string, string>; lot: LotState };
 /** Esito di una partita da solo (POST /api/solo/play): medaglia ricalcolata dal server, premio (zero oltre il tetto del giorno), lotto aggiornato. */
 export type SoloResult = { score: number; medal: Medal; detail: Record<string, number>; premio: Resources; premiata: boolean; lot: LotState };
 
@@ -69,8 +69,8 @@ export type Api = {
   decline(id: string): Promise<Challenge>;
   /** Manda gli input della mia partita; il server la rigioca e risponde con punteggio, medaglia e sfida aggiornata. */
   play(id: string, inputs: PackedInputs): Promise<PlayResult>;
-  /** Minigiochi da solo (senza posta): apre una partita col seed del server. */
-  soloStart(minigame: string): Promise<SoloStart>;
+  /** Minigiochi da solo (senza posta): apre una partita col seed del server; `opzioni` = parametri della partita (es. il mare della pesca). */
+  soloStart(minigame: string, opzioni?: Record<string, string>): Promise<SoloStart>;
   /** Consegna gli input della partita da solo: il server la rigioca e premia la medaglia. */
   soloPlay(inputs: PackedInputs): Promise<SoloResult>;
   // ---- Mondo Sotterraneo (CONTRACTS §15) ----
@@ -210,10 +210,12 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       const medal = d['medal'] === 'oro' || d['medal'] === 'argento' || d['medal'] === 'bronzo' ? d['medal'] : null;
       return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, challenge: asChallenge(d['challenge']) };
     },
-    async soloStart(minigame) {
-      const d = await call('POST', '/api/solo/start', { minigame });
+    async soloStart(minigame, opzioni) {
+      const d = await call('POST', '/api/solo/start', opzioni ? { minigame, opzioni } : { minigame });
       if (!isObj(d) || typeof d['seed'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');
-      return { minigame: String(d['minigame'] ?? minigame), seed: d['seed'], difficulty: typeof d['difficulty'] === 'number' ? d['difficulty'] : 2, lot: asLot(d['lot']) };
+      const opz: Record<string, string> = {};
+      if (isObj(d['opzioni'])) for (const [k, v] of Object.entries(d['opzioni'])) if (typeof v === 'string') opz[k] = v;
+      return { minigame: String(d['minigame'] ?? minigame), seed: d['seed'], difficulty: typeof d['difficulty'] === 'number' ? d['difficulty'] : 2, opzioni: opz, lot: asLot(d['lot']) };
     },
     async soloPlay(inputs) {
       const d = await call('POST', '/api/solo/play', { inputs });
