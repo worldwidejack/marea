@@ -59,7 +59,7 @@ export default async function (ctx) {
     ctx.log('D1 pronto');
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', dist, '--persist-to', persist, '--var', 'MAREA_TEST:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', dist, '--persist-to', persist, '--var', 'MAREA_TEST:1', '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const base = `http://127.0.0.1:${port}`;
     let up = false;
@@ -67,10 +67,12 @@ export default async function (ctx) {
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
     ctx.log('wrangler dev pronto su ' + base);
     // orologio di prova del server (richiesta a M1-server): se c'è, si salta il tempo invece di aspettarlo
-    const skip = async (ms) => (await fetch(base + '/api/test/skip', { method: 'POST', headers: { 'x-token': 'tokI', 'content-type': 'application/json' }, body: JSON.stringify({ ms }) })).ok;
 
     const P = await openPage(ctx.browser, `${base}/${htmlRel}?t=tokI&test=1`, ctx.B.IPHONE); pages.push(P);
     const page = P.page;
+    // orologio di prova (#9): wrangler con TEST_CLOCK:1, ogni richiesta della pagina porta X-Test-Now-Offset; skip(ms) lo sposta avanti
+    let offset = 0;
+    const skip = async (ms) => { offset += Math.ceil(ms); await page.setExtraHTTPHeaders({ 'x-test-now-offset': String(offset) }); return true; };
     const st = async () => (await ctx.getState(page)).lot;
     const hook = (name, ...a) => page.evaluate(([n, args]) => window.__game.test[n](...args), [name, a]);
     const center = async (cell) => { await hook('look', (cell[0] + 0.5) * 2, (cell[1] + 0.5) * 2 + 1.5, 1.0); await sleep(300); };
