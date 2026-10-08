@@ -297,7 +297,7 @@ async function boot(): Promise<void> {
     const ciSono = () => { if (document.visibilityState === 'visible') void api.presenza().catch(() => { /* riprova al prossimo giro */ }); };
     rientro = api.rientro().then(async (r) => {
       myView?.set(r.lot);
-      if (r.riepilogo) await libri.cartolina(r.riepilogo, r.novita, myView ? () => { void myView.collectAll().then((g) => { if (g.legno + g.pietra + g.perle > 0) hud.toast(`Raccolto: ${[g.legno && `+${g.legno} Legno`, g.pietra && `+${g.pietra} Pietra`, g.perle && `+${g.perle} Perle`].filter(Boolean).join(', ')}`, 2600); }); } : null);
+      if (r.riepilogo && (!FLAGS.test || FLAGS.rientro)) await libri.cartolina(r.riepilogo, r.novita, myView ? () => { void myView.collectAll().then((g) => { if (g.legno + g.pietra + g.perle > 0) hud.toast(`Raccolto: ${[g.legno && `+${g.legno} Legno`, g.pietra && `+${g.pietra} Pietra`, g.perle && `+${g.perle} Perle`].filter(Boolean).join(', ')}`, 2600); }); } : null);
     }).catch(() => { /* senza rientro si gioca lo stesso */ }).finally(() => {
       setInterval(ciSono, RIENTRO.presenzaSecondi * 1000);
       document.addEventListener('visibilitychange', ciSono);
