@@ -7,10 +7,11 @@ import type { Resources } from './types.ts';
 
 export type PortoLook = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
 /** Una persona del Porto: `giro` = punti da percorrere avanti e indietro (uno solo = ferma), `velocita` in m/s, `raggio` = da quanto vicino si parla. */
-export type PersonaPorto = { id: string; nome: string; ruolo: 'mercante' | 'guida'; look: PortoLook; giro: [number, number][]; velocita: number; raggio: number; battute: string[] };
+export type PersonaPorto = { id: string; nome: string; ruolo: 'mercante' | 'contrabbandiere' | 'guida'; look: PortoLook; giro: [number, number][]; velocita: number; raggio: number; battute: string[] };
 /** Banco del Mercante o Bacheca: dove sta il prop (`at`, `rot`) e dove si mette chi gioca per usarlo (`fronte`, entro `raggio` m). */
 export type PortoPosto = { nome: string; cartello: string; at: [number, number]; rot: number; fronte: [number, number]; raggio: number };
-export type GenteDef = { posti: { mercante: PortoPosto; bacheca: PortoPosto }; gente: PersonaPorto[] };
+/** `contrabbando`: banco del Contrabbandiere accanto alla Grotta (GDR: monete, merce in rpg/balance.json `contrabbando`). */
+export type GenteDef = { posti: { mercante: PortoPosto; bacheca: PortoPosto; contrabbando: PortoPosto }; gente: PersonaPorto[] };
 /** Un tipo di missione: `testo` con {n}; `n` = [min, max] a passi di `passo`; `gruppo`: due tipi dello stesso gruppo non escono lo stesso giorno. */
 export type MissioneTipoDef = { tipo: string; testo: string; n: [number, number]; passo: number; gruppo?: string; premio: Resources };
 export type MissioniDef = { alGiorno: number; tipi: MissioneTipoDef[] };
@@ -33,6 +34,7 @@ export function validatePorto(): string[] {
     if (p.giro.length > 1 && !(p.velocita > 0)) errs.push(`gente ${p.id}: giro senza velocità`);
   }
   if (GENTE.gente.filter((p) => p.ruolo === 'mercante').length !== 1) errs.push('gente: serve esattamente un mercante');
+  if (GENTE.gente.filter((p) => p.ruolo === 'contrabbandiere').length !== 1) errs.push('gente: serve esattamente un contrabbandiere');
   const tipi = new Set<string>();
   for (const t of MISSIONI.tipi) {
     if (tipi.has(t.tipo)) errs.push(`missioni: tipo duplicato ${t.tipo}`);

@@ -2,6 +2,7 @@
 // piazza (segnaposto procedurali a colori di palette + cartello DOM), la Gente del Porto (avatar `chr_base` con look diversi, ferma o
 // su un giro avanti e indietro), il bottone PARLA / MERCANTE / BACHECA quando ci sei vicino (A / E / Spazio sulla tastiera).
 // I pannelli (negozio, missioni, battute) stanno in ui/porto_ui.ts, scaricato con import() alla prima apertura (tetto del JS, TECH §5).
+// Accanto alla Grotta il banco del Contrabbandiere (il Furetto): il suo pannello è GDR (monete, oggetti) e lo apre il chunk GDR via ui/eroe.ts.
 import * as THREE from 'three';
 import { DECOR } from '@marea/content';
 import { GENTE } from '@marea/content/porto.ts';
@@ -18,11 +19,12 @@ import type { Hud } from '../ui/hud.ts';
 import { el, injectUiStyle } from '../ui/style.ts';
 import { pixIcon } from '../ui/icons.ts';
 import { createLabelLayer } from '../ui/sheet.ts';
+import { eroeForPanels } from '../ui/eroe.ts';
 import type { Label } from '../ui/sheet.ts';
 import type { PortoUi } from '../ui/porto_ui.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
-export type PortoKind = 'mercante' | 'bacheca';
+export type PortoKind = 'mercante' | 'bacheca' | 'contrabbando';
 export type Porto = {
   /** Banco e Bacheca in coordinate mondo (per la bussola). */
   readonly spots: readonly { id: PortoKind; nome: string; x: number; z: number }[];
@@ -71,6 +73,20 @@ function bancoGeometry(): THREE.BufferGeometry {
   for (const [x, z] of [[0.75, -0.42], [0.92, -0.45], [0.84, -0.33]] as const) p.push(painted(new THREE.IcosahedronGeometry(0.06, 0), P.pietraChiara, M(x, 1.08, z)));
   return merged(p);
 }
+/** Banco del Contrabbandiere (davanti verso −Z), contro le rocce della Grotta: casse impilate, telo scuro storto su due pali, barile,
+ *  merce coperta da un telo, sacchetto, bottiglia. */
+function loscoGeometry(): THREE.BufferGeometry {
+  const p: THREE.BufferGeometry[] = [];
+  p.push(painted(new THREE.BoxGeometry(0.9, 0.8, 0.8), P.legnoScuro, M(-0.65, 0.4, -0.15)), painted(new THREE.BoxGeometry(0.9, 0.8, 0.8), P.legno, M(0.35, 0.4, -0.1, 0, 0.12, 0)));
+  p.push(painted(new THREE.BoxGeometry(0.62, 0.55, 0.6), P.legnoScuro, M(0.95, 0.28, 0.55, 0, -0.3, 0)), painted(new THREE.BoxGeometry(0.6, 0.5, 0.6), P.legno, M(-0.6, 1.05, 0.15, 0, 0.25, 0)));
+  for (const x of [-0.65, 0.35]) p.push(painted(new THREE.BoxGeometry(0.92, 0.06, 0.06), P.ombraCalda, M(x, 0.62, -0.56)));
+  p.push(painted(new THREE.CylinderGeometry(0.3, 0.3, 0.75, 8), P.legnoChiaro, M(1.2, 0.38, -0.35)), painted(new THREE.CylinderGeometry(0.31, 0.31, 0.06, 8), P.ombraCalda, M(1.2, 0.6, -0.35)));
+  for (const x of [-1.15, 1.15]) p.push(painted(new THREE.BoxGeometry(0.1, 2.1, 0.1), P.legnoScuro, M(x, 1.05, 0.75)));
+  p.push(painted(new THREE.BoxGeometry(2.6, 0.05, 1.7), P.roccia, M(0, 2.0, 0.05, -0.32, 0, 0.06)), painted(new THREE.BoxGeometry(2.6, 0.3, 0.04), P.roccia, M(0, 1.6, -0.75, 0, 0, 0.06)));
+  p.push(painted(new THREE.BoxGeometry(0.75, 0.12, 0.3), P.pietraScura, M(-0.6, 0.86, -0.2, 0, 0.3, 0)), painted(new THREE.IcosahedronGeometry(0.16, 0), P.sabbia, M(0.2, 0.92, -0.2)));
+  p.push(painted(new THREE.CylinderGeometry(0.07, 0.09, 0.26, 6), P.erbaScura, M(0.55, 0.93, -0.25)), painted(new THREE.BoxGeometry(0.2, 0.28, 0.2), P.neroCaldo, M(-0.6, 1.44, 0.15)));
+  return merged(p);
+}
 /** Bacheca delle missioni (davanti verso −Z): due pali, tavola con cornice, tre foglietti con la puntina, tettuccio. */
 function bachecaGeometry(): THREE.BufferGeometry {
   const p: THREE.BufferGeometry[] = [];
@@ -99,9 +115,9 @@ export function createPorto(o: PortoOpts): Porto {
   // ---- banco e bacheca ----
   // banco e bacheca in un solo mesh (un draw call, uno per l'ombra)
   const geos: THREE.BufferGeometry[] = [];
-  const posti = (['mercante', 'bacheca'] as const).map((id) => {
+  const posti = (['mercante', 'bacheca', 'contrabbando'] as const).map((id) => {
     const posto = GENTE.posti[id], w = at(posto.at), f = at(posto.fronte);
-    geos.push((id === 'mercante' ? bancoGeometry() : bachecaGeometry()).applyMatrix4(M(w.x, o.world.groundY(w.x, w.z), w.z, 0, posto.rot, 0)));
+    geos.push((id === 'mercante' ? bancoGeometry() : id === 'contrabbando' ? loscoGeometry() : bachecaGeometry()).applyMatrix4(M(w.x, o.world.groundY(w.x, w.z), w.z, 0, posto.rot, 0)));
     const label = layer.add(() => { if (dist(f.x, f.z) < TAP_M) void open({ kind: 'posto', id, posto }); else o.hud.toast(`${posto.nome}: in piazza, al Porto`, 2200); });
     label.set('bubble', [pixIcon(id, 16), el('span', '', posto.cartello)], 'spot'); label.el.classList.add('spot'); label.el.dataset['porto'] = id;
     return { id, posto, x: w.x, z: w.z, fx: f.x, fz: f.z, label };
@@ -109,13 +125,16 @@ export function createPorto(o: PortoOpts): Porto {
   const props = new THREE.Mesh(merged(geos), mat); props.name = 'porto_banco_bacheca'; props.castShadow = true; props.receiveShadow = true; group.add(props);
 
   // ---- gente del Porto ----
+  /** Chi sta a un banco: Maestro Ishi al Mercante, il Furetto al Contrabbando (null = gente che parla). */
+  const bancoDi = (p: PersonaPorto): PortoKind | null => (p.ruolo === 'mercante' ? 'mercante' : p.ruolo === 'contrabbandiere' ? 'contrabbando' : null);
+  const alBanco = (b: PortoKind): Target => ({ kind: 'posto', id: b, posto: GENTE.posti[b] });
   const npcs: Npc[] = GENTE.gente.map((p) => {
     const pts = p.giro.map((c) => at(c));
     let len = 0;
     for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.z - pts[i - 1]!.z);
-    const first = pts[0]!;
-    const n: Npc = { p, av: null, meshes: [], shadow: true, pts, len, s: 0, x: first.x, z: first.z, yaw: p.ruolo === 'mercante' ? -GENTE.posti.mercante.rot : Math.PI, label: layer.add(() => { if (dist(n.x, n.z) < TAP_M) void open(p.ruolo === 'mercante' ? { kind: 'posto', id: 'mercante', posto: GENTE.posti.mercante } : { kind: 'persona', p }); }), talk: false };
-    n.label.set('bubble', [pixIcon(p.ruolo === 'mercante' ? 'mercante' : 'parla', 16), el('span', '', p.nome)], 'persona'); n.label.el.classList.add('persona'); n.label.el.dataset['persona'] = p.id;
+    const first = pts[0]!, b = bancoDi(p);
+    const n: Npc = { p, av: null, meshes: [], shadow: true, pts, len, s: 0, x: first.x, z: first.z, yaw: b ? -GENTE.posti[b].rot : Math.PI, label: layer.add(() => { if (dist(n.x, n.z) < TAP_M) void open(b ? alBanco(b) : { kind: 'persona', p }); }), talk: false };
+    n.label.set('bubble', [pixIcon(b ?? 'parla', 16), el('span', '', p.nome)], 'persona'); n.label.el.classList.add('persona'); n.label.el.dataset['persona'] = p.id;
     void createAvatar({ loader: o.loader, look: p.look, x: first.x, z: first.z }).then((av) => {
       av.setGround(o.world.groundY); av.object.name = 'gente_' + p.id; group.add(av.object); n.av = av;
       av.object.traverse((x) => { if ((x as THREE.Mesh).isMesh) n.meshes.push(x as THREE.Mesh); });
@@ -142,7 +161,15 @@ export function createPorto(o: PortoOpts): Porto {
     return loading;
   }
   async function open(t: Target): Promise<boolean> {
-    if (ui?.isOpen() || o.world.race.on || performance.now() - closedAt < 350) return false;
+    if (ui?.isOpen() || eroeForPanels()?.isOpen() || o.world.race.on || performance.now() - closedAt < 350) return false;
+    if (t.kind === 'posto' && t.id === 'contrabbando') {
+      const e = eroeForPanels();
+      if (!e) { o.hud.toast('Il Furetto tratta solo con chi ha un\'isola: apri MAREA col tuo link personale', 3000); return false; }
+      const frasi = GENTE.gente.find((p) => p.ruolo === 'contrabbandiere')?.battute ?? [];
+      btn.classList.remove('on');
+      e.openContrabbando(frasi[Math.floor(Math.random() * frasi.length)] ?? '');
+      return true;
+    }
     const u = await loadUi();
     if (!u || u.isOpen()) return false;
     btn.classList.remove('on');
@@ -191,7 +218,7 @@ export function createPorto(o: PortoOpts): Porto {
     const k = String(id);
     const posto = posti.find((s) => s.id === k), n = npcs.find((x) => x.p.id === k);
     if (posto) return open({ kind: 'posto', id: posto.id, posto: posto.posto });
-    if (n) return open(n.p.ruolo === 'mercante' ? { kind: 'posto', id: 'mercante', posto: GENTE.posti.mercante } : { kind: 'persona', p: n.p });
+    if (n) { const b = bancoDi(n.p); return open(b ? alBanco(b) : { kind: 'persona', p: n.p }); }
     return false;
   });
   registerTestHook('portoChiudi', () => { ui?.close(); return true; });
@@ -228,7 +255,7 @@ export function createPorto(o: PortoOpts): Porto {
     },
     update(dt, focus) {
       const t = near;
-      const show = !!t && !ui?.isOpen() && !o.world.race.on && !o.world.frozen;
+      const show = !!t && !ui?.isOpen() && !eroeForPanels()?.isOpen() && !o.world.race.on && !o.world.frozen;
       const k = keyOf(t);
       if (show && t && btn.dataset['k'] !== k) {
         btn.dataset['k'] = k ?? '';
@@ -250,10 +277,10 @@ export function createPorto(o: PortoOpts): Porto {
           n.s += dt * n.p.velocita;
           const q = along(n, n.s);
           n.x = q.x; n.z = q.z; n.yaw = Math.atan2(q.dx, -q.dz); anim = 'walk';
-        } else if (close && n.p.ruolo !== 'mercante') n.yaw = Math.atan2(f.x - n.x, -(f.z - n.z)); // si gira verso di te
+        } else if (close && !bancoDi(n.p)) n.yaw = Math.atan2(f.x - n.x, -(f.z - n.z)); // si gira verso di te
         if (n.av) { n.av.setPose({ x: n.x, z: n.z, yaw: n.yaw, anim }); n.av.update(1, dt); }
         const p = screenOf(n.x, 2.25, n.z);
-        n.label.place(p.x, p.y, p.on && !!n.av && fd(n.x, n.z) < NAME_M && !n.talk && !o.world.race.on && n.p.ruolo !== 'mercante'); // il Mercante ha già il cartello del banco
+        n.label.place(p.x, p.y, p.on && !!n.av && fd(n.x, n.z) < NAME_M && !n.talk && !o.world.race.on && !bancoDi(n.p)); // chi sta a un banco ha già il cartello del banco
       }
     },
   };

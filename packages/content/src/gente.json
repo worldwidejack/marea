@@ -1,7 +1,8 @@
 {
   "posti": {
     "mercante": { "nome": "Mercante delle Perle", "cartello": "MERCANTE", "at": [18, 15.4], "rot": 3.1416, "fronte": [18, 16.9], "raggio": 3.2 },
-    "bacheca": { "nome": "Bacheca delle missioni", "cartello": "BACHECA", "at": [26, 15.6], "rot": 3.1416, "fronte": [26, 16.9], "raggio": 3.2 }
+    "bacheca": { "nome": "Bacheca delle missioni", "cartello": "BACHECA", "at": [26, 15.6], "rot": 3.1416, "fronte": [26, 16.9], "raggio": 3.2 },
+    "contrabbando": { "nome": "Banco del Furetto", "cartello": "CONTRABBANDO", "at": [31.2, 10.4], "rot": 2.6, "fronte": [30.4, 11.7], "raggio": 2.6 }
   },
   "gente": [
     {
@@ -13,6 +14,17 @@
         "Cappelli esclusivi, decorazioni esclusive. Esclusive perché le vendo solo io.",
         "Non accetto Legno, non accetto Pietra. Accetto Perle, complimenti e Perle.",
         "Le Perle si vincono ai minigiochi e alla Bacheca. Io aspetto qui. Sono bravissimo ad aspettare."
+      ]
+    },
+    {
+      "id": "furetto", "nome": "Il Furetto", "ruolo": "contrabbandiere",
+      "look": { "pelle": 2, "capelli": 4, "coloreCapelli": 0, "vestito": 1, "cappello": 2 },
+      "giro": [[30.1, 10.2]], "velocita": 0, "raggio": 0,
+      "battute": [
+        "Psst. Sì, tu. Roba buona, appena uscita dalla Grotta. Non chiedere da dove.",
+        "Ogni giorno un'arma, un'armatura, un materiale e un ingrediente. A mezzanotte cambio tutto e mi scordo cosa avevo.",
+        "Ti compro tutto quello che trovi lì sotto. A prezzo d'amico. Amico mio, non tuo.",
+        "Monete sonanti, niente Perle. Le Perle portale a Maestro Ishi, che ha il banco pulito."
       ]
     },
     {
