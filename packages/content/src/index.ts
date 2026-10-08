@@ -14,6 +14,9 @@ import scacchi from './scacchi.json' with { type: 'json' };
 import perle from './minigames/perle.json' with { type: 'json' }; // Perle
 import pinguini from './minigames/pinguini.json' with { type: 'json' }; // Ghiacci
 import koi from './minigames/koi.json' with { type: 'json' }; // Giardino
+import arrembaggio from './minigames/arrembaggio.json' with { type: 'json' }; // Tempesta
+import lava from './minigames/lava.json' with { type: 'json' }; // Vulcano
+import type { ArrembaggioCfg, LavaCfg } from './types.ts'; // Tempesta, Vulcano
 import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, PerleCfg, PescaCfg, RegataCfg, ResourceDef, ScacchiCfg } from './types.ts';
 import type { PinguiniCfg } from './types.ts'; // Ghiacci
 import type { KoiCfg } from './types.ts'; // Giardino
@@ -30,6 +33,8 @@ export const MINIGAMES_CFG: {
   regata: RegataCfg; pesca: PescaCfg; consegne: ConsegneCfg; ingorgo: IngorgoCfg; perle: PerleCfg;
   pinguini: PinguiniCfg; // Ghiacci
   koi: KoiCfg; // Giardino
+  arrembaggio: ArrembaggioCfg; // Tempesta
+  lava: LavaCfg; // Vulcano
 } = {
   regata: regata as unknown as RegataCfg,
   pesca: pesca as unknown as PescaCfg,
@@ -38,6 +43,8 @@ export const MINIGAMES_CFG: {
   perle: perle as unknown as PerleCfg, // Perle
   pinguini: pinguini as unknown as PinguiniCfg, // Ghiacci
   koi: koi as unknown as KoiCfg, // Giardino
+  arrembaggio: arrembaggio as unknown as ArrembaggioCfg, // Tempesta
+  lava: lava as unknown as LavaCfg, // Vulcano
 };
 export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;

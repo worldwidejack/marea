@@ -145,6 +145,65 @@ export type PerleCfg = {
 };
 // fine Perle
 
+// Tempesta: Arrembaggio
+export type ArrembaggioNave = 'galeone' | 'brigantino' | 'sloop' | 'tesoro';
+/** Arrembaggio (Isola della Tempesta): dal faro spari palle di cannone alle navi pirata. Unità = pixel della schermata (192×136), per tick. */
+export type ArrembaggioCfg = {
+  id: 'arrembaggio';
+  nome: string;
+  maxSeconds: number;
+  /** Isola a tema dove si gioca (solo a isola aperta) e cella locale [x, z] del posto. */
+  isola: string;
+  posto: [number, number];
+  /** Bocca del cannone [x, y], pelo del mare (y), x oltre cui una palla o una nave è uscita dallo schermo. */
+  scena: { cannone: [number, number]; mare: number; uscita: number };
+  /** dir = verso della canna (vettore unitario, niente trigonometria); velocità della palla tra vMin e vMax secondo la potenza;
+   *  la potenza sale e scende in `caricaSecondi` (su) + `caricaSecondi` (giù) finché tieni premuto; `palle` = munizioni della partita. */
+  tiro: { dir: [number, number]; vMin: number; vMax: number; gravita: number; caricaSecondi: number; ricaricaSecondi: number; palle: number };
+  /** Vento = spinta orizzontale (px/tick²) tra −max e +max; cambia a raffiche ogni `rafficaSecondi` e ci mette `cambioSecondi`. */
+  vento: { max: number; rafficaSecondi: [number, number]; cambioSecondi: number };
+  /** peso = quante nel mazzo da cui escono le navi; lungo/alto = sagoma (px); velocità px/tick. */
+  navi: Record<ArrembaggioNave, { nome: string; punti: number; lungo: number; alto: number; velocita: number; peso: number }>;
+  arrivi: { primoSecondi: number; intervalloSecondi: [number, number] };
+  /** Moltiplicatori per difficoltà 1/2/3. */
+  difficolta: { velocita: [number, number, number]; vento: [number, number, number] };
+  lampiSecondi: [number, number];
+  /** Soglie delle medaglie come frazione dei punti di tutte le navi della partita. */
+  medaglie: { oro: number; argento: number; bronzo: number };
+  premioExtra?: PremioExtra;
+};
+// fine Tempesta
+// Vulcano: Fuga dalla lava
+export type LavaCosa = 'ossidiana' | 'scintilla' | 'rubino';
+/** Fuga dalla lava (Isola Vulcano): corsa a scorrimento sulle colonne di basalto. Unità = pixel della schermata (192×136), per tick. */
+export type LavaCfg = {
+  id: 'lava';
+  nome: string;
+  maxSeconds: number;
+  /** Isola a tema dove si gioca (solo a isola aperta) e cella locale [x, z] del posto. */
+  isola: string;
+  posto: [number, number];
+  /** px per tick verso destra (costante). */
+  velocita: number;
+  /** y del pelo della lava; altezze delle cime delle colonne (alto = più su). */
+  scena: { lava: number; alto: number; basso: number };
+  /** salto = spinta verso l'alto; finché tieni premuto (max `tenutoMax` tick) la gravità è `gravitaTenuto`; coyote e anticipo in tick;
+   *  gradino = quanto può salire di colpo senza saltare (px). */
+  fisica: { gravita: number; gravitaTenuto: number; salto: number; tenutoMax: number; cadutaMax: number; coyote: number; anticipo: number; gradino: number };
+  /** Toccare la lava o un geyser: −punti (mai sotto zero), rimbalzo in su, invulnerabile per un po'. */
+  scottatura: { punti: number; rimbalzo: number; invulnerabileSecondi: number };
+  /** Le rocce che affondano: dopo `ritardoSecondi` dal primo passo scendono di `velocita` px/tick. */
+  affonda: { ritardoSecondi: number; velocita: number };
+  geyser: { periodoSecondi: [number, number]; attivoSecondi: number; avvisoSecondi: number; alto: number };
+  punti: Record<LavaCosa, number>;
+  /** Moltiplicatori per difficoltà 1/2/3: probabilità dei geyser, larghezza dei buchi. */
+  difficolta: { geyser: [number, number, number]; buchi: [number, number, number] };
+  medaglie: { oro: number; argento: number; bronzo: number };
+  premioExtra?: PremioExtra;
+  autopilota: { orizzonte: number };
+};
+// fine Vulcano
+
 export type RegataCfg = {
   id: 'regata';
   nome: string;

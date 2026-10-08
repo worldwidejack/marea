@@ -121,6 +121,14 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   diIsola('koi', 'koi');
   registraSchermo('koi', (root) => import('../ui/koi.ts').then((m) => m.createKoi({ root })));
   // fine Giardino
+  // Tempesta: Arrembaggio, il cannone sul promontorio del faro in rovina; schermata a pixel (ui/arrembaggio.ts) scaricata alla prima partita
+  diIsola('arrembaggio', 'arrembaggio');
+  registraSchermo('arrembaggio', (root) => import('../ui/arrembaggio.ts').then((m) => m.createArrembaggio({ root })));
+  // fine Tempesta
+  // Vulcano: Fuga dalla lava, tra le capanne e il cratere; schermata a pixel (ui/lava.ts) scaricata alla prima partita
+  diIsola('lava', 'lava');
+  registraSchermo('lava', (root) => import('../ui/lava.ts').then((m) => m.createLava({ root })));
+  // fine Vulcano
   let chClosedAt = 0, scacchi: Scacchi | null = null;
   const schermi = new Map<string, SchermoGioco>();
   /** Una schermata (scacchi o gioco a schermo) è aperta: il mondo sta fermo. */
@@ -247,6 +255,13 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   registerStateProvider('minigiochi', () => ({ spots, near: near?.id ?? null, busy, open, played: playedN, last }));
   registerTestHook('playSpot', (id) => { const s = spots.find((x) => x.id === String(id ?? 'regata')); if (s) void play(s); return !!s; });
   registerTestHook('closeEsito', () => { closeEsito(); return true; });
+  /** Test: a piedi davanti al posto di un minigioco (isole a tema comprese). Tempesta e Vulcano */
+  registerTestHook('spotVai', (id) => {
+    const s = spots.find((x) => x.id === String(id)); if (!s) return null;
+    (window as unknown as { __game: { test: Record<string, (...a: unknown[]) => unknown> } }).__game.test['setMode']?.('walk');
+    o.world.avatar.teleport(s.x - 1.5, s.z + 1.5);
+    return { x: s.x, z: s.z, aperta: !s.aperta || s.aperta() };
+  });
 
   return {
     spots: spots.filter((s) => s.mete !== false), // nella bussola: dei giochi universali solo il posto del Porto
