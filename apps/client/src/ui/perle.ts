@@ -179,7 +179,7 @@ export function createPerle(o: { root: HTMLElement }): Perle {
   }
   function loop(now: number): void {
     if (!open) return;
-    const dt = Math.min(0.25, (now - last) / 1000); last = now; tAnim += dt;
+    const dt = Math.max(0, Math.min(0.25, (now - last) / 1000)); last = now; tAnim += dt; // il primo rAF può avere un orario prima di run()
     if (auto) { for (let i = 0; i < 60 && open; i++) tick(); acc = 0; } // test: una partita intera in pochi secondi
     else { acc += dt; while (acc >= 1 / 60 && open) { acc -= 1 / 60; tick(); } }
     if (open) { render(); raf = requestAnimationFrame(loop); }

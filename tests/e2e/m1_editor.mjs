@@ -275,11 +275,11 @@ export default async function (ctx) {
       const b0 = (await st(bruno)).wp2_avatar.look;
       await bruno.page.locator('#mzEditorBtn').tap();
       await waitOpen(bruno, true);
+      // si misura quando è arrivato il lotto chiesto all'apertura: se cambia qualcosa il foglio si rifà e i bottoni di prima si staccano (#166)
+      await ctx.waitState(bruno.page, (s) => s.editor.lotFresco === true, 15000);
       const box = await bruno.page.locator('#mzEditor').boundingBox();
       ctx.log('foglio: ' + S(box));
       assert(box && box.y > 844 / 2 + 10, 'il foglio copre il centro del canvas: ' + S(box));
-      // su GitHub (2-4 fps) il foglio può ancora ridisegnarsi: si aspetta il campione visibile prima di misurarlo
-      await nav(bruno, 'vestito:3').waitFor({ state: 'visible', timeout: 30000 });
       const sw = await nav(bruno, 'vestito:3').boundingBox();
       assert(sw && sw.width >= 44 && sw.height >= 44, 'campione < 44 px: ' + S(sw));
       await nav(bruno, 'vestito:3').tap();
