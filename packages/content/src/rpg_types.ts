@@ -209,6 +209,8 @@ export type RpgBalance = {
     gruppo?: { max: number; vitaPerCompagno: number };
   };
   xp: Record<string, number>;
+  /** Xp di combattimento: danno utile (mai oltre la vita che restava al nemico) × questo, per abilità. Evocazione = danno della tua evocazione. */
+  xpDanno?: Partial<Record<SkillId, number>>;
   forziere: number[];
   bottega: Record<string, number>;
   /** Contrabbandiere del Porto (accanto alla Grotta): ogni giorno un oggetto per categoria di `banco`, venduto a valore × `vendita`;

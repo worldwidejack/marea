@@ -154,10 +154,9 @@ function cast(s: DungeonState): void {
     e.fx = h.fx; e.fz = h.fz; e.aggro = true; e.st = 'insegue';
     e.scade = s.tick + secToTicks(sp.durata);
     ev(s, { t: 'evocato', id: e.id, tipo: e.tipo });
-    add(s.xp, 'evocazione', 1);
+    add(s.xp, 'evocazione', sp.costo * (RPG.xp.evocazioneLancio ?? 0));
     return;
   }
-  add(s.xp, 'distruzione', sp.costo);
   faceTo(s, aim(s, MAGIA_GITTATA, COS_CONO_ARCO, 0, true));
   const v = sp.velocita;
   s.proj.push({
