@@ -1,6 +1,8 @@
 // La gara del motore v2 (docs/CORSE.md A11): una pista, il tuo veicolo e gli animali piloti (bot), a giri (circuito) o da A a B (fuga).
 // È un MinigameModule come gli altri. Per ora lo usa solo il banco di prova (provapiste.html); il server lo rigiocherà quando il
-// circuito della Spiaggia prenderà il posto del Gran Premio. Opzioni: pista, veicolo (della famiglia della pista), bot ('0' = da solo).
+// circuito della Spiaggia prenderà il posto del Gran Premio. Opzioni: pista, veicolo (della famiglia della pista), bot ('0' = da solo),
+// e le regole (#170, '0' = spenta, di serie accese): sterzo (curva, rampa e velocità), partenza (turbo al semaforo), acrobazie, scia, somma.
+// La gara parte col conto alla rovescia (tick negativi fino al VIA): i tempi contano dal VIA.
 // Medaglia = posizione all'arrivo (da solo: oro se arrivi). Punteggio = scoreBase − centesimi.
 // Piste miste (il porto): più famiglie sulla stessa pista, ognuna nella sua corsia; i bot sono misti. Fughe con l'inseguitore (l'onda).
 import { CORSE, CORSE_PISTE } from '@marea/content/corse.ts';
@@ -13,17 +15,22 @@ import type { Difficulty, Medal, MinigameModule, MinigameOpzioni, MinigameResult
 import { campo, svoltaTra } from './nastro.ts';
 import { effetto, nastroDi, pistaCorse, superficieA, veicoloCorse } from './pista.ts';
 import type { Pista } from './pista.ts';
-import { muovi, nuovoVeicolo, urti } from './veicolo.ts';
-import type { Veicolo } from './veicolo.ts';
+import { daiTurbo, muovi, nuovoVeicolo, urti } from './veicolo.ts';
+import type { Regole, Veicolo } from './veicolo.ts';
 
 const MAX_TICKS = CORSE.maxSeconds * TICK_HZ;
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 const PISTE = Object.keys(CORSE_PISTE);
+/** Tick del conto alla rovescia: la gara parte a tick −VIA e il VIA è il tick 1. */
+export const VIA = Math.round(CORSE.partenza.secondi * TICK_HZ);
+const REGOLE = ['sterzo', 'partenza', 'acrobazie', 'scia', 'somma'] as const;
 
 export type GaraState = {
   seed: number; difficulty: Difficulty;
   pista: string;
+  /** Tick della gara: negativo nel conto alla rovescia, 1 = il VIA. */
   tick: number;
+  regole: Regole;
   /** veicoli[0] = tu, poi i bot. */
   veicoli: Veicolo[];
   pesi: number[];
@@ -41,6 +48,8 @@ export type GaraView = {
   /** L'inseguitore: dov'è (m dal via, `null` = non c'è) e quanto sei lontano da lui (m, negativo = ti ha preso). */
   onda: number | null; ondaDist: number;
   ms: number; maxMs: number; giroMs: number; bestMs: number;
+  /** Secondi al VIA (0 = partiti). */
+  via: number;
   done: boolean; finished: boolean; timeUp: boolean; tick: number;
 };
 
@@ -54,7 +63,59 @@ export function opzioniGara(v: unknown): MinigameOpzioni {
   const fams = famiglieDi(CORSE_PISTE[pista]!);
   const adatti = CORSE.veicoli.filter((x) => fams.includes(x.famiglia));
   const veicolo = typeof o['veicolo'] === 'string' && adatti.some((x) => x.id === o['veicolo']) ? o['veicolo'] : adatti[0]!.id;
-  return { pista, veicolo, bot: o['bot'] === '0' ? '0' : '1' };
+  const out: MinigameOpzioni = { pista, veicolo, bot: o['bot'] === '0' ? '0' : '1' };
+  for (const r of REGOLE) out[r] = o[r] === '0' ? '0' : '1';
+  return out;
+}
+
+/** Curva del joystick: uscita = x × (lineare + (1 − lineare) × |x|) (al centro risponde piano, in fondo tutto). */
+export function curvaSterzo(x: number): number {
+  const L = CORSE.sterzo.lineare;
+  return x * (L + (1 - L) * Math.abs(x));
+}
+/** L'inversa della curva (il pilota automatico sa già quanto vuole sterzare). */
+function senzaCurva(y: number): number {
+  const L = CORSE.sterzo.lineare, a = Math.abs(y);
+  if (L >= 1) return y;
+  const u = (-L + Math.sqrt(L * L + 4 * (1 - L) * a)) / (2 * (1 - L));
+  return y < 0 ? -u : u;
+}
+/** Lo sterzo del giocatore: curva del joystick e rampa (da tastiera niente scatti: arriva in qualche decimo e torna più in fretta). */
+function sterzoGiocatore(k: Veicolo, mx: number, R: Regole): number {
+  if (!R.sterzo) return (k.st = mx);
+  const S = CORSE.sterzo, x = curvaSterzo(mx);
+  const sale = Math.abs(x) > Math.abs(k.st) && x * k.st >= 0, passo = (sale ? S.rampa : S.ritorno) * DT;
+  k.st += clamp(x - k.st, -passo, passo);
+  return k.st;
+}
+
+/** La scia: chi sta dietro a un altro (vicino e in fila) per `secondi` prende un turbo. Ordine fisso: deterministico. */
+function scia(s: GaraState, p: Pista): void {
+  const C = CORSE.scia;
+  for (const k of s.veicoli) {
+    if (k.fine || k.caduto || k.aria || k.v < C.velocitaMin) { k.scia = Math.max(0, k.scia - 2 * DT); continue; }
+    const n = nastroDi(p, k.ramo);
+    let dentro = false;
+    for (const o of s.veicoli) {
+      if (o === k || o.ramo !== k.ramo || o.caduto) continue;
+      let ds = o.s - k.s;
+      if (n.chiuso) { if (ds > n.len / 2) ds -= n.len; else if (ds < -n.len / 2) ds += n.len; }
+      if (ds >= C.metri[0] && ds <= C.metri[1] && Math.abs(o.lat - k.lat) <= C.lato) { dentro = true; break; }
+    }
+    if (!dentro) { k.scia = Math.max(0, k.scia - 2 * DT); continue; }
+    k.scia += DT;
+    if (k.scia >= C.secondi) { daiTurbo(k, C.turbo, 1, s.regole.somma); k.scia = 0; }
+  }
+}
+
+/** Il VIA: chi tiene DRIFT premuto da poco parte col turbo (da meno di `razzo` s: razzo), chi da troppo ingolfa il motore. */
+function partenza(k: Veicolo, R: Regole): void {
+  const P = CORSE.partenza;
+  if (!R.partenza || k.tenuto < 0) return;
+  if (k.tenuto > P.finestra) { k.fermo = P.ingolfato; k.partenza = -1; return; }
+  const razzo = k.tenuto <= P.razzo;
+  daiTurbo(k, P.turbo[razzo ? 1 : 0]!, razzo ? 3 : 1, R.somma);
+  k.partenza = razzo ? 2 : 1;
 }
 
 /** Dove punta chi guida da solo: la sua corsia (frazione della mezza carreggiata) o uno scarto fisso, un po' più avanti.
@@ -96,14 +157,17 @@ export function latObiettivo(p: Pista, k: Veicolo, bot: boolean): number | null 
 /** Il pilota automatico (prove e test): segue il centro (o l'imbocco delle scorciatoie), drift nelle curve lunghe. `pigro` = metà gas, niente drift. */
 export function pilotaGara(s: GaraState, pigro = false): InputFrame {
   const p = pistaCorse(s.pista), k = s.veicoli[0]!;
+  // al semaforo preme DRIFT a metà della finestra del razzo; in aria (fuori dal drift) fa l'acrobazia appena stacca
+  if (s.tick <= 0) return { mx: 0, my: 1, a: !pigro && s.regole.partenza && -s.tick <= Math.round(CORSE.partenza.razzo * 0.5 * TICK_HZ), b: false };
   const lat = latObiettivo(p, k, false);
-  const a = pilota(p, k, 0, lat);
-  if (pigro) return { mx: a.sterzo, my: 0.55, a: false, b: false };
+  const a = pilota(p, k, 0, lat), giu = (x: number) => (s.regole.sterzo ? senzaCurva(x) : x);
+  if (k.aria && !k.drift && !pigro && s.regole.acrobazie && !k.caduto) return { mx: giu(a.sterzo), my: 1, a: k.acro === 0 && k.tenuto < 0, b: false };
+  if (pigro) return { mx: giu(a.sterzo), my: 0.55, a: false, b: false };
   const D = CORSE.drift, lato = a.curva > 0 ? 1 : -1, ac = Math.abs(a.curva);
   // in acqua il pilota automatico non fa drift: con la presa bassa delle barche porta sulle boe (76 s liscio contro 83 in drift)
   const drift = p.def.famiglia === 'acqua' ? false : k.aria ? k.drift !== 0 : k.drift ? ac > 0.1 && lato === k.drift && a.sterzo * k.drift > -0.95 : ac > 0.3 && a.sterzo * lato > 0.15 && k.v > D.velocitaMin + 2;
   // per partire in drift lo sterzo deve passare la soglia: nelle curve larghe basterebbe meno
-  const mx = drift && !k.drift ? lato * Math.max(Math.abs(a.sterzo), D.tieniSterzo + 0.15) : a.sterzo;
+  const mx = drift && !k.drift ? lato * Math.max(Math.abs(giu(a.sterzo)), 1) : giu(a.sterzo);
   return { mx, my: a.gas, a: drift, b: false };
 }
 
@@ -117,6 +181,7 @@ function posizioni(s: GaraState): number[] {
 const triangolo = (t: number) => { const f = t - Math.floor(t); return f < 0.5 ? 4 * f - 1 : 3 - 4 * f; };
 const tickMs = (t: number) => Math.round((t / TICK_HZ) * 1000);
 const garaTicks = (s: GaraState, k: Veicolo) => Math.max(0, k.fine || s.tick);
+const regoleDa = (o: MinigameOpzioni): Regole => ({ sterzo: o['sterzo'] !== '0', partenza: o['partenza'] !== '0', acrobazie: o['acrobazie'] !== '0', scia: o['scia'] !== '0', somma: o['somma'] !== '0' });
 
 /** Dopo il moto: giri e arrivo. */
 function dopo(s: GaraState, p: Pista, k: Veicolo): void {
@@ -148,12 +213,16 @@ export const garaCorse: MinigameModule<GaraState> = {
       veicoli.push(nuovoVeicolo(p, lista[Math.floor(i / fams.length) % lista.length]!, G[i]![0], c !== undefined ? c + (G[i]![1] < 0 ? -1.4 : 1.4) : G[i]![1]));
     }
     const corsie = veicoli.slice(1).map(() => ({ base: (rng.next() * 2 - 1) * CORSE.bot.corsia, fase: rng.next() }));
-    return { seed, difficulty, pista: o['pista']!, tick: 0, veicoli, pesi: veicoli.map((k) => veicoloCorse(k.id).peso), corsie, onda: p.def.inseguitore?.parte ?? 0, done: false, timeUp: false };
+    return { seed, difficulty, pista: o['pista']!, tick: -VIA, regole: regoleDa(o), veicoli, pesi: veicoli.map((k) => veicoloCorse(k.id).peso), corsie, onda: p.def.inseguitore?.parte ?? 0, done: false, timeUp: false };
   },
   step(s, f) {
     if (s.done) return;
     s.tick++;
-    const p = pistaCorse(s.pista), me = s.veicoli[0]!, B = CORSE.bot, E = B.elastico, O = p.def.inseguitore;
+    const p = pistaCorse(s.pista), me = s.veicoli[0]!, B = CORSE.bot, E = B.elastico, O = p.def.inseguitore, R = s.regole;
+    me.tenuto = f.a ? (me.tenuto >= 0 ? me.tenuto + DT : 0) : -1;
+    const sterzo = sterzoGiocatore(me, clamp(f.mx, -1, 1), R);
+    if (s.tick <= 0) return; // conto alla rovescia: fermi (anche l'onda)
+    if (s.tick === 1) partenza(me, R);
     // l'inseguitore (l'onda): avanza da solo e, se ti stacchi troppo, accelera; chi prende prende un colpo e va piano finché il corpo passa
     if (O) {
       const gap = me.prog - s.onda;
@@ -161,15 +230,16 @@ export const garaCorse: MinigameModule<GaraState> = {
       for (const k of s.veicoli) if (!k.fine && !k.travolto && k.prog <= s.onda) { k.travolto = 1; k.v *= O.colpo; }
     }
     const dentro = (k: Veicolo) => (O && !k.fine && k.prog <= s.onda && k.prog > s.onda - O.spessore ? O.rallenta : 1);
-    muovi(p, me, veicoloCorse(me.id), clamp(f.mx, -1, 1), clamp(f.my, -1, 1), f.a, dentro(me), me.giro + 1);
+    muovi(p, me, veicoloCorse(me.id), sterzo, clamp(f.my, -1, 1), f.a, dentro(me), me.giro + 1, R);
     // i bot: puntano la loro corsia, frenano prima delle curve strette, l'elastico li tiene vicini a te
     for (let i = 1; i < s.veicoli.length; i++) {
       const k = s.veicoli[i]!, c = s.corsie[i - 1]!;
       const corsia = clamp(c.base + 0.3 * triangolo(k.prog / 280 + c.fase), -0.8, 0.8), lat = latObiettivo(p, k, true);
       const a = lat !== null ? pilota(p, k, 0, lat + c.base * 1.2) : pilota(p, k, corsia), diff = k.prog - me.prog;
       const el = diff > 0 ? 1 - Math.min(E.davantiMax, diff * E.davanti) : 1 + Math.min(E.dietroMax, -diff * E.dietro);
-      muovi(p, k, veicoloCorse(k.id), a.sterzo, k.fine ? 0.5 : a.gas, false, B.bravura[i - 1]! * B.bravuraFamiglia[veicoloCorse(k.id).famiglia] * el * dentro(k), k.giro + 1);
+      muovi(p, k, veicoloCorse(k.id), a.sterzo, k.fine ? 0.5 : a.gas, false, B.bravura[i - 1]! * B.bravuraFamiglia[veicoloCorse(k.id).famiglia] * el * dentro(k), k.giro + 1, R);
     }
+    if (R.scia) scia(s, p);
     urti(p, s.veicoli, s.pesi);
     for (const k of s.veicoli) dopo(s, p, k);
     if (me.fine) s.done = true;
@@ -191,7 +261,7 @@ export const garaCorse: MinigameModule<GaraState> = {
       onda: p.def.inseguitore ? s.onda : null, ondaDist: p.def.inseguitore ? me.prog - s.onda : 0,
       ms: tickMs(garaTicks(s, me)), maxMs: CORSE.maxSeconds * 1000,
       giroMs: me.fine ? 0 : tickMs(Math.max(0, s.tick - Math.max(1, me.giroTick))), bestMs: tickMs(me.best),
-      done: s.done, finished: me.fine > 0, timeUp: s.timeUp, tick: s.tick,
+      done: s.done, finished: me.fine > 0, timeUp: s.timeUp, tick: s.tick, via: s.tick < 0 ? -s.tick / TICK_HZ : 0,
     };
   },
 };
