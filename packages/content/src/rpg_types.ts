@@ -25,6 +25,25 @@ export type Traits = {
   noGravita?: boolean;         // arco del vuoto: le frecce volano dritte
   moltArgento?: number;        // arco benedetto: moltiplica il bonusVs delle frecce
   staminaTeso?: number;        // arco d'ossa: stamina al secondo mentre è teso
+  // Unici del Mausoleo Cinetico (Epopea della Regata 4, docs/RPG.md §2f). Li legge la sim del dungeon.
+  /** Anello dell'Onda della Regina (Eco della Marea): ogni colpo in mischia a segno libera un'onda d'acqua di `raggio` m attorno al nemico
+   *  colpito che fa `frazione` del danno agli ALTRI nemici nel cerchio; al massimo una ogni `ogni` s. Due anelli non si sommano. */
+  eco?: { raggio: number; frazione: number; ogni: number };
+  /** Armatura del Moto Perpetuo (Barriera Cinetica): muoversi la carica (piena in `secondi` s camminando, `corsa` volte più in fretta
+   *  correndo; da fermo no). Piena, il prossimo colpo subito è annullato e un'onda d'urto respinge di `spinta` m (e interrompe) i nemici
+   *  entro `raggio` m. */
+  barriera?: { secondi: number; corsa: number; raggio: number; spinta: number };
+  /** Fendiflutti (Taglio a pressione): ogni attacco normale scaglia una lama d'acqua dritta (`gittata` m a `velocita` m/s) che trapassa e
+   *  fa `frazione` del danno; il caricato ne scaglia `ventaglio` a ventaglio. `cariche` di pressione, una per attacco; a zero niente lame
+   *  finché non passi `ricarica` s senza attaccare (allora si ricarica tutta). */
+  lame?: { frazione: number; gittata: number; velocita: number; cariche: number; ricarica: number; ventaglio: number };
+  /** La Grande Lancetta (Tic-tac): finito un colpo, il tic batte dopo `attesa` s; il colpo normale che parte entro ±`finestra` s dal tic è
+   *  a tempo e alza il ritmo (+`passo` di danno per colpo di fila); il colpo numero `colpi` è il Rintocco: stordisce `stordisce` s chi
+   *  prende (non i boss) e il ritmo riparte. Fuori tempo, un colpo subito o `reset` s senza attaccare: da zero. */
+  ritmo?: { attesa: number; finestra: number; passo: number; colpi: number; stordisce: number; reset: number };
+  /** Arco Carillon (Carica a molla): non si tende, ogni tocco tira subito a tensione piena; tiene `colpi` colpi e ne ricarica uno ogni
+   *  `ricarica` s (anche mentre tiri); le frecce cadono con la gravità × `gravita`. */
+  carillon?: { colpi: number; ricarica: number; gravita: number };
 };
 
 export type MaterialDef = {
@@ -81,7 +100,7 @@ export type EnemyDef = {
    *  Archivio: `bombardiere` (Aerostato-Spia) sta a qualche metro dall'eroe e sgancia `bomba`; `astrolabio` è il capo con `astrolabio`;
    *  `anello` sono gli anelli-scudo che il capo stacca a metà vita (non hanno IA: girano attorno a lui).
    *  Fucina: `forgiatore` è il capo con `forgiatore`. */
-  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta' | 'bombardiere' | 'astrolabio' | 'anello' | 'forgiatore';
+  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta' | 'bombardiere' | 'astrolabio' | 'anello' | 'forgiatore' | 'chierico' | 'custode';
   /** Dove si muove (Archivio). `grate`: anche sulle grate (Drone Idro-Ragno), dove l'eroe non sale. `vola`: sopra acqua, grate e vuoto,
    *  non sopra muri e scaffali; il vento non lo sposta e in mischia lo prendi solo quando scende (prepara, colpisce, recupera).
    *  `asciutto` (Fucina, il Mastro Forgiatore): camminando gira attorno alle cascate d'acqua (`getto`), non ci entra mai da sé. */
@@ -107,7 +126,36 @@ export type EnemyDef = {
     raggio: { avviso: number; durata: number; danno: number; largo: number; gittata: number };
     anelli: { tipo: string; soglia: number; n: number; distanza: number; giro: number };
   };
-  proiettile?: { danno: number; velocita: number; ricarica: number; gittata: number };
+  /** `lama` (Mausoleo, Guardia d'Onore): è una lama d'acqua tagliente (né magia né freccia). */
+  proiettile?: { danno: number; velocita: number; ricarica: number; gittata: number; lama?: boolean };
+  /** Mausoleo, il Chierico a Ingranaggi (`chierico`): tiene `distanza` m dall'eroe; ogni `ogni` s ripara un altro automa ferito (o non
+   *  ancora potenziato) entro `raggio` m che vede: `vita` in più e danno × `molt` per `secondi` s (preparazione `prep` s). */
+  cura?: { raggio: number; vita: number; ogni: number; molt: number; secondi: number; prep: number; distanza: number };
+  /** Mausoleo, la Sentinella dell'Egida: scudo torre a energia cinetica. Da davanti (coseno oltre `cono`) para tutto e, se è un colpo di
+   *  lama, respinge l'eroe di `spinta` m; un attacco CARICATO da davanti lo sfonda: la Sentinella barcolla `rotto` s senza scudo. Da
+   *  dietro × `retro`. Si gira piano (`gira` rad/s) come il Golem-Palombaro. */
+  scudo?: { cono: number; retro: number; gira: number; spinta: number; rotto: number };
+  /** Il suo colpo in mischia a segno spinge l'eroe di tanti metri (il colpo di scudo della Sentinella). */
+  spinge?: number;
+  /** Mausoleo, la Guardia d'Onore: ogni attacco in mischia è una combinazione di `colpi` fendenti, i successivi preparati in `prep` s. */
+  combo?: { colpi: number; prep: number };
+  /** Il capo del Mausoleo (docs/RPG.md §2f): il Custode dell'Egida, tre cuori e tre fasi. Sotto `soglie` della vita cambia fase (per
+   *  `cambio` s è intoccabile: «cambia cuore»). Ogni fase gira il suo ciclo (`cicli`) con `pausa` s dopo ogni attacco; da vicino batte a
+   *  terra (`area`). `ondata`: anello d'acqua che si allarga da lui a `velocita` m/s fino a `raggio` m; prende chi ci sta sopra (`danno`,
+   *  spinto via di `spinta` m), tranne nei `varchi` (coseno `largo` attorno a direzioni che cambiano) e dietro le colonne. `fendenti`:
+   *  `salve` ventagli di `n` lame d'acqua verso l'eroe (`apertura` = scarto di lato tra una lama e l'altra). `scatto` (fase Vapore): la
+   *  nebbia segna dove ricompare (`avviso` s), `dietro` m alle spalle dell'eroe; poi ricompare lì e batte subito a terra (`raggio` m,
+   *  danno × `danno`). `geyser`: come il Capoturno, uno sotto ogni eroe e `n` attorno a lui. `barriera` (fase Energia Cinetica): ogni
+   *  `colpi` colpi presi scarica un'onda d'urto a 360° senza varchi (`raggio`, `danno`, `spinta`, `velocita`). */
+  custode?: {
+    soglie: number[]; cambio: number; pausa: number[];
+    cicli: ('ondata' | 'fendenti' | 'scatto' | 'geyser')[][];
+    ondata: { velocita: number; raggio: number; spessore: number; danno: number; spinta: number; varchi: number; largo: number; prep: number };
+    fendenti: { n: number; apertura: number; salve: number; ogni: number; danno: number; velocita: number; gittata: number; prep: number };
+    scatto: { avviso: number; dietro: number; raggio: number; danno: number };
+    geyser: { n: number; distanza: number; raggio: number; danno: number; avviso: number; getto: number; prep: number };
+    barriera: { colpi: number; raggio: number; danno: number; spinta: number; velocita: number };
+  };
   /** Il suo colpo in mischia rallenta l'eroe: velocità × `molt` per `secondi` (Tubo-strisciante). */
   rallenta?: { molt: number; secondi: number };
   /** Colpo ad area ogni `ogni` attacchi: `raggio` m attorno a sé, danno × `danno`, preparazione × `prep` (sbuffo di vapore
@@ -149,7 +197,7 @@ export type LootTable = { id: string; monete: [number, number]; voci: LootEntry[
 
 /** Mappa ASCII, una cella = `tile` m: '#' muro, '.' pavimento, '<' scala d'uscita (anche lo spawn, accanto), ' ' vuoto. Ogni altra lettera la spiega `legenda` (sopra c'è pavimento). */
 export type DungeonDef = {
-  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio' | 'archivio' | 'fucina'; tile: number;
+  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio' | 'archivio' | 'fucina' | 'mausoleo'; tile: number;
   /** Porta sigillata (Epopea della Regata): si entra solo dopo aver completato questo dungeon (`HeroState.completati`). */
   richiede?: string;
   /** Archivio: correnti d'aria. Le celle della corrente n (legenda `vento: n`) spingono chi ci cammina verso `dir` (n = −z, s = +z,
@@ -160,6 +208,10 @@ export type DungeonDef = {
    *  scorre (chi ci sta sopra brucia: `dps` al secondo, ancora per `secondi` s dopo) e per `crosta` s fa la crosta (si passa), a giro,
    *  sfasati di `fase` s; negli ultimi istanti della crosta le crepe si accendono (avviso). */
   lave?: { n: number; scorre: number; crosta: number; fase?: number; dps: number; secondi: number }[];
+  /** Mausoleo: lancette giganti che girano a terra attorno al perno nella cella `at` (una colonna): lunghe `lunga` m, `giro` rad/s (il
+   *  segno è il verso), angolo di partenza `fase` rad (0 = verso +x, poi verso +z). Chi sta sulla lancetta (entro `largo` m) prende `danno`
+   *  e vola avanti di `spinta` m; per `pausa` s quella lancetta non lo riprende. Gli automi conoscono il ritmo: a loro non fa niente. */
+  lancette?: { n: number; at: [number, number]; lunga: number; giro: number; fase: number; largo: number; danno: number; spinta: number; pausa: number }[];
   /** Difficoltà, invisibile al giocatore: la bussola punta solo al dungeon più facile non ancora completato (docs/RPG.md §2). */
   difficolta: number;
   rows: string[];
@@ -173,8 +225,11 @@ export type DungeonDef = {
    *  `ferme` (con `altare`): ripartendo da questa lanterna queste correnti sono già ferme (per arrivarci le avevi fermate).
    *  Fucina: `lava: n` cella della colata che respira n (pavimento); `colata: n` la Colata Maestra, un bacino come `acqua: n` (non si passa
    *  finché la `chiusa: n` non la raffredda; con `asciutti` la lanterna la trova già fredda); `chiusa: n` leva della chiusa (come
-   *  `valvola: n`); `getto` cascata d'acqua di raffreddamento (pavimento): spegne chi brucia e il Mastro Forgiatore. */
-  legenda: Record<string, { nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[]; lava?: number; colata?: number; chiusa?: number; getto?: boolean }>;
+   *  `valvola: n`); `getto` cascata d'acqua di raffreddamento (pavimento): spegne chi brucia e il Mastro Forgiatore.
+   *  Mausoleo: `cancello: n` il cancello del Santuario, un bacino come `acqua: n` (sbarre: ci si vede attraverso; con `asciutti` la
+   *  lanterna lo trova già aperto); `carica: n` la chiave di carica che lo apre (come `valvola: n`); `sarcofago` il sarcofago della Regina
+   *  (non ci si cammina, ci si vede sopra): ucciso il capo si apre e il bottino del capo compare lì davanti. */
+  legenda: Record<string, { nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[]; lava?: number; colata?: number; chiusa?: number; getto?: boolean; cancello?: number; carica?: number; sarcofago?: boolean }>;
   /** Dove sta l'ingresso nel mondo: cella di un'isola di islands.json (il modello è `prop_ingresso_<stile>`). */
   ingresso: { island: string; at: [number, number] };
   /** Lore dentro il dungeon (docs/RPG.md §2c): solo testo per il client, la sim non lo vede. */
@@ -187,8 +242,9 @@ export type DungeonTesti = {
   sottotitolo?: string;
   /** Obbligatorie: la prima volta che entri nella zona [x0, z0, x1, z1] (estremi compresi) parla `chi` (`capo`: è il capo, in rosso). */
   voci?: { id: string; zona: [number, number, number, number]; chi: string; capo?: boolean; testo: string }[];
-  /** Facoltative: `libro` = leggio sulla cella, `incisione` = targa sul muro a nord della cella. Si aprono solo tenendo premuto LEGGI. */
-  letture?: { id: string; tipo: 'libro' | 'incisione'; at: [number, number]; titolo: string; righe: string[] }[];
+  /** Facoltative: `libro` = leggio sulla cella, `incisione` = targa sul muro a nord della cella. Si aprono solo tenendo premuto LEGGI.
+   *  `dopo: 'capo'`: c'è solo quando il capo è morto (la lettera nel sarcofago del Mausoleo). */
+  letture?: { id: string; tipo: 'libro' | 'incisione'; at: [number, number]; titolo: string; righe: string[]; dopo?: 'capo' }[];
 };
 
 export type RpgBalance = {

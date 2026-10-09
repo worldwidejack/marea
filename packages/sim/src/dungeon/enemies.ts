@@ -7,6 +7,9 @@
 // grate o vola ha la sua griglia e il suo flow field (muove.ts); chi vola non si scontra con chi cammina e non lo sposta niente da terra.
 // Fucina: la Scintilla-Vapore dà fuoco a chi colpisce, la Fornace Semovente lascia la scia di fuoco (fuoco.ts), il Golem-Palombaro si gira
 // piano e attacca solo chi ha davanti (lo scafandro para da davanti: combat.ts); il Mastro Forgiatore sta in forgiatore.ts.
+// Mausoleo: il Chierico a Ingranaggi sta a distanza e ripara e potenzia gli altri automi (danno × molt per qualche secondo); la Sentinella
+// dell'Egida si gira piano come il Palombaro (lo scudo para da davanti: combat.ts) e il suo colpo di scudo spinge; la Guardia d'Onore
+// attacca a combinazioni di fendenti e da lontano tira lame d'acqua; chi è stordito dal Rintocco sta fermo; il Custode sta in custode.ts.
 import { DT } from '../constants.ts';
 import type { EnemyDef } from '@marea/content/rpg.ts';
 import type { DungeonState, Enemy } from './state.ts';
@@ -14,10 +17,11 @@ import { conEroe, ev, finita, inGioco, secToTicks } from './state.ts';
 import { hitEnemy, hitHero, kill, wake } from './combat.ts';
 import { bfs, cellCenter, cellOf, lineOfSight, moveCircle, stepDown } from './map.ts';
 import { geyserDa, rallenta } from './acque.ts';
-import { bombaDa } from './vento.ts';
+import { bombaDa, spingi } from './vento.ts';
 import { alto, flowDi, grigliaDi } from './muove.ts';
 import { stepAnello, stepAstrolabio } from './astrolabio.ts';
 import { stepForgiatore } from './forgiatore.ts';
+import { stepCustode } from './custode.ts';
 import { brucia, scia } from './fuoco.ts';
 import {
   ALLEATO_SEGUE, BOSS_AREA_DANNO, BOSS_AREA_OGNI, BOSS_AREA_PREP, BOSS_AREA_RAGGIO, COLPISCE_TICKS, COS_CONO_NEMICO, COS_SCAFANDRO, DISTANZA_TIRATORI,
@@ -32,6 +36,12 @@ export const fisso = (e: Enemy): boolean => e.def.comportamento === 'torretta' |
 const vola = (e: Enemy): boolean => e.def.muove === 'vola';
 /** Funzione (non confronto diretto): lo stato può cambiare dentro stepFoe/stepAlly. */
 const vivo = (e: Enemy): boolean => e.st !== 'morto';
+/** Potenziato da un Chierico (Mausoleo): moltiplicatore del danno dei suoi colpi (1 se no). */
+const potenza = (s: DungeonState, e: Enemy): number => (e.potT !== undefined && e.potT > s.tick ? e.potM ?? 1 : 1);
+/** Danno di un colpo del nemico in mischia. */
+const dannoDi = (s: DungeonState, e: Enemy): number => e.def.danno * potenza(s, e);
+/** Si gira piano (scafandro del Golem-Palombaro, scudo della Sentinella): rad/s, o null se si gira di colpo. */
+const girata = (d: EnemyDef): number | null => (d.scafandro ?? d.scudo)?.gira ?? null;
 
 function refreshFlow(s: DungeonState): void {
   if (s.tick - s.flowTick < FLOW_OGNI) return;
@@ -110,8 +120,9 @@ function moveToward(s: DungeonState, e: Enemy, tx: number, tz: number, speed: nu
   const dx = tx - e.x, dz = tz - e.z, d = Math.sqrt(dx * dx + dz * dz);
   if (d < 1e-6) return;
   let step = Math.min(d, speed * DT);
-  // Golem-Palombaro: si gira piano e avanza solo dritto (più è storto, più va piano)
-  if (e.def.scafandro) step *= Math.max(0, giraVerso(e, dx / d, dz / d, e.def.scafandro.gira * DT));
+  // Golem-Palombaro e Sentinella: si girano piano e avanzano solo dritti (più è storto, più vanno piano)
+  const gira = girata(e.def);
+  if (gira !== null) step *= Math.max(0, giraVerso(e, dx / d, dz / d, gira * DT));
   else { e.fx = dx / d; e.fz = dz / d; }
   if (step > 0) moveCircle(grigliaDi(s, e), e, e.fx * step, e.fz * step, e.def.raggio);
 }
@@ -129,7 +140,7 @@ function setState(e: Enemy, st: Enemy['st'], dur: number): void { e.st = st; e.s
 
 function startPrep(s: DungeonState, e: Enemy, tx: number, tz: number, tiro: boolean): void {
   const dx = tx - e.x, dz = tz - e.z, d = Math.sqrt(dx * dx + dz * dz);
-  if (d > 1e-6 && !e.def.scafandro) { e.fx = dx / d; e.fz = dz / d; } // lo scafandro non si gira di colpo
+  if (d > 1e-6 && girata(e.def) === null) { e.fx = dx / d; e.fz = dz / d; } // scafandro e scudo non si girano di colpo
   e.attacchi++;
   const ar = e.def.area;
   e.area = !tiro && (ar ? e.attacchi % ar.ogni === 0 : !!e.def.boss && e.attacchi % BOSS_AREA_OGNI === 0);
@@ -141,36 +152,82 @@ function startPrep(s: DungeonState, e: Enemy, tx: number, tz: number, tiro: bool
 function resolveAttack(s: DungeonState, e: Enemy): void {
   const h = s.hero, rh = s.runHero;
   const dx = h.x - e.x, dz = h.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
+  if (e.modo === 'cura') { curaFine(s, e); return; } // Chierico a Ingranaggi
   if (e.tiro) {
-    e.tiro = false;
+    e.tiro = false; e.mischia = false;
     if (e.def.bomba) { bombaDa(s, e); return; } // Aerostato-Spia
     const p = e.def.proiettile!;
     e.cdTiro = secToTicks(p.ricarica);
     if (d < 1e-6) return;
-    const acqua = fisso(e), mago = !acqua && (e.def.comportamento === 'mago' || e.def.comportamento === 'mischia'), arp = e.def.arpione;
+    const acqua = fisso(e), lama = !!p.lama, mago = !acqua && !lama && (e.def.comportamento === 'mago' || e.def.comportamento === 'mischia'), arp = e.def.arpione;
     const vx = (dx / d) * p.velocita, vz = (dz / d) * p.velocita;
     s.proj.push({
-      id: s.nextId++, tipo: acqua ? 'acqua_nemica' : arp ? 'arpione_nemico' : mago ? 'magia_nemica' : 'freccia_nemica', x: e.x + e.fx * (e.def.raggio + 0.1), y: MAGIA_Y, z: e.z + e.fz * (e.def.raggio + 0.1),
-      vx, vy: 0, vz, g: 0, danno: p.danno, life: secToTicks(p.gittata / p.velocita), traits: {}, raggio: 0, colpiti: [],
+      id: s.nextId++, tipo: acqua ? 'acqua_nemica' : lama ? 'lama_nemica' : arp ? 'arpione_nemico' : mago ? 'magia_nemica' : 'freccia_nemica', x: e.x + e.fx * (e.def.raggio + 0.1), y: MAGIA_Y, z: e.z + e.fz * (e.def.raggio + 0.1),
+      vx, vy: 0, vz, g: 0, danno: p.danno * potenza(s, e), life: secToTicks(p.gittata / p.velocita), traits: {}, raggio: 0, colpiti: [],
       dalNemico: true, contundente: acqua, magico: mago, arrowId: null, ...(arp ? { tira: arp.tira, tiraT: secToTicks(arp.secondi) } : {}),
     });
     return;
   }
+  e.mischia = !e.area;
   const kind = e.def.contundente ? 'contundente' : 'taglio';
   if (e.area) {
     if (e.def.geyser) geyserDa(s, e);
     if (s.eroi.length > 1) { areaSuTutti(s, e, kind); return; }
-    if (d <= areaRaggio(e.def) + rh.raggio) hitHero(s, e.def.danno * (e.def.area ? e.def.area.danno : BOSS_AREA_DANNO), kind, h.x, h.z);
+    if (d <= areaRaggio(e.def) + rh.raggio) hitHero(s, dannoDi(s, e) * (e.def.area ? e.def.area.danno : BOSS_AREA_DANNO), kind, h.x, h.z);
     else ev(s, { t: 'schivato', x: r2(h.x), z: r2(h.z) });
     return;
   }
   const dot = d > 1e-6 ? (dx * e.fx + dz * e.fz) / d : 1;
   if (d <= e.def.portata + e.def.raggio + rh.raggio + TOLLERANZA_NEMICO && dot >= COS_CONO_NEMICO) {
-    const arriva = !s.done && h.protetto <= 0;
-    hitHero(s, e.def.danno, kind, h.x, h.z);
+    const arriva = hitHero(s, dannoDi(s, e), kind, h.x, h.z) && !s.done;
     if (arriva && e.def.rallenta) rallenta(s, e.def);
     if (arriva && e.def.brucia) brucia(s, e.def.brucia.dps, e.def.brucia.secondi); // Scintilla-Vapore
+    if (arriva && e.def.spinge && d > 1e-6) spingi(s, dx / d, dz / d, e.def.spinge, 0.25); // colpo di scudo della Sentinella
   } else ev(s, { t: 'schivato', x: r2(h.x), z: r2(h.z) });
+}
+
+/** Chierico a Ingranaggi: l'automa da riparare (ferito, o non ancora potenziato, e in combattimento) entro `cura.raggio` che vede, il
+ *  più malmesso; null = nessuno. */
+function daCurare(s: DungeonState, e: Enemy): Enemy | null {
+  const C = e.def.cura!;
+  let best: Enemy | null = null, bv = Infinity;
+  for (const o of s.enemies) {
+    if (o === e || o.alleato || o.st === 'morto' || !o.aggro || fisso(o)) continue;
+    if (o.vita >= o.max && o.potT !== undefined && o.potT > s.tick) continue;
+    const dx = o.x - e.x, dz = o.z - e.z;
+    if (dx * dx + dz * dz > C.raggio * C.raggio || !lineOfSight(s.map, e.x, e.z, o.x, o.z)) continue;
+    const v = o.vita / o.max;
+    if (v < bv) { bv = v; best = o; }
+  }
+  return best;
+}
+/** Fine della preghiera del Chierico: ripara e potenzia il suo automa (se c'è ancora). */
+function curaFine(s: DungeonState, e: Enemy): void {
+  const C = e.def.cura!, o = s.enemies.find((x) => x.id === e.bersaglio && x.st !== 'morto');
+  e.modo = undefined; e.mira = undefined; e.tiro = false; e.bersaglio = -1; e.cdTiro = secToTicks(C.ogni);
+  if (!o) return;
+  o.vita = Math.min(o.max, o.vita + C.vita);
+  o.potT = s.tick + secToTicks(C.secondi); o.potM = C.molt;
+  ev(s, { t: 'cura', x: r2(o.x), z: r2(o.z), da: [r2(e.x), r2(e.z)] });
+}
+/** Chierico a Ingranaggi in caccia: ripara chi può, si difende da vicino, se no tiene la distanza dall'eroe. */
+function stepChierico(s: DungeonState, e: Enemy): void {
+  const C = e.def.cura!, h = s.hero, dx = h.x - e.x, dz = h.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
+  if (e.cdTiro <= 0) {
+    const o = daCurare(s, e);
+    if (o) {
+      const ox = o.x - e.x, oz = o.z - e.z, ol = Math.sqrt(ox * ox + oz * oz);
+      if (ol > 1e-6) { e.fx = ox / ol; e.fz = oz / ol; }
+      e.modo = 'cura'; e.bersaglio = o.id; e.tiro = true; e.area = false; e.mira = { dx: ox, dz: oz, len: ol };
+      setState(e, 'prepara', secToTicks(C.prep));
+      return;
+    }
+  }
+  if (d <= e.def.portata + e.def.raggio + s.runHero.raggio) { startPrep(s, e, h.x, h.z, false); return; }
+  const vede = lineOfSight(s.map, e.x, e.z, h.x, h.z);
+  if (vede && d < C.distanza * 0.7) chase(s, e, e.def.velocita, -1);
+  else if (!vede || d > C.distanza * 1.3) chase(s, e, e.def.velocita, 1);
+  if (vede && d > 1e-6) { e.fx = dx / d; e.fz = dz / d; }
 }
 
 /** Insieme: il colpo ad area del boss prende tutti gli eroi nel cerchio; il bersaglio, se è fuori, l'ha schivato. */
@@ -181,7 +238,7 @@ function areaSuTutti(s: DungeonState, e: Enemy, kind: 'taglio' | 'contundente'):
     conEroe(s, i, () => {
       const h = s.hero, dx = h.x - e.x, dz = h.z - e.z;
       if (Math.sqrt(dx * dx + dz * dz) > areaRaggio(e.def) + s.runHero.raggio) return;
-      hitHero(s, e.def.danno * (e.def.area ? e.def.area.danno : BOSS_AREA_DANNO), kind, h.x, h.z);
+      hitHero(s, dannoDi(s, e) * (e.def.area ? e.def.area.danno : BOSS_AREA_DANNO), kind, h.x, h.z);
       if (i === t) preso = true;
     });
   }
@@ -196,10 +253,14 @@ function fearful(s: DungeonState, e: Enemy): boolean {
 function stepFoe(s: DungeonState, e: Enemy): void {
   const h = s.hero, rh = s.runHero, def = e.def;
   const dx = h.x - e.x, dz = h.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
+  // Mausoleo: stordito dal Rintocco della Grande Lancetta, sta fermo
+  if (e.stordito !== undefined && e.stordito > s.tick) return;
   e.stT++;
   if (def.comportamento === 'anello') { stepAnello(s, e); return; }
   if (def.comportamento === 'astrolabio' && e.st !== 'dorme' && e.st !== 'veglia') { stepAstrolabio(s, e); return; }
   if (def.comportamento === 'forgiatore' && e.st !== 'dorme' && e.st !== 'veglia') { stepForgiatore(s, e); return; }
+  if (def.comportamento === 'custode' && e.st !== 'dorme' && e.st !== 'veglia') { stepCustode(s, e); return; }
+  if (def.comportamento === 'chierico' && e.st === 'insegue') { if (!fearful(s, e)) { stepChierico(s, e); return; } }
   switch (e.st) {
     case 'dorme': case 'veglia': {
       const vista = def.vista * (e.st === 'dorme' ? VISTA_DORMENDO : 1);
@@ -235,8 +296,9 @@ function stepFoe(s: DungeonState, e: Enemy): void {
       if (fearful(s, e)) { setState(e, 'scappa', 0); return; }
       const reach = def.portata + def.raggio + rh.raggio, p = def.proiettile;
       if (d <= reach) {
-        // lo scafandro attacca solo chi ha davanti: se no si gira (piano), e intanto alle spalle lo si colpisce
-        if (def.scafandro && d > 1e-6 && giraVerso(e, dx / d, dz / d, def.scafandro.gira * DT) < COS_SCAFANDRO) return;
+        // scafandro e scudo attaccano solo chi hanno davanti: se no si girano (piano), e intanto alle spalle li si colpisce
+        const gira = girata(def);
+        if (gira !== null && d > 1e-6 && giraVerso(e, dx / d, dz / d, gira * DT) < COS_SCAFANDRO) return;
         startPrep(s, e, h.x, h.z, false);
         return;
       }
@@ -258,6 +320,15 @@ function stepFoe(s: DungeonState, e: Enemy): void {
       return;
     case 'colpisce':
       if (e.stT >= e.stDur) {
+        // Guardia d'Onore: la combinazione continua col fendente dopo, preparato in fretta
+        const cb = def.combo;
+        if (cb && e.mischia && (e.comboN ?? 0) + 1 < cb.colpi) {
+          e.comboN = (e.comboN ?? 0) + 1;
+          if (d > 1e-6) { e.fx = dx / d; e.fz = dz / d; }
+          setState(e, 'prepara', secToTicks(cb.prep));
+          return;
+        }
+        e.comboN = 0;
         // Archivista a Molla: ogni tanto si ferma a ricaricarsi (recupero lungo)
         e.molla = !!def.molla && e.attacchi % def.molla.ogni === 0;
         setState(e, 'recupera', secToTicks(e.molla ? def.molla!.secondi : def.recupero));

@@ -37,6 +37,11 @@ export type DMap = {
   lava: Uint8Array;
   getti: (Spawn & { x: number; z: number })[];
   getto: Uint8Array;
+  /** Mausoleo: lancette (DungeonDef.lancette, in ordine di n) col perno in mondo (x, z); il sarcofago della Regina (legenda `sarcofago`,
+   *  solido e non opaco) o null. Il cancello del Santuario (`cancello: n`) e la sua chiave (`carica: n`) stanno in `bacini` e `valvole`.
+   *  Negli altri dungeon vuoti. */
+  lancette: { n: number; x: number; z: number; lunga: number; giro: number; fase: number; largo: number; danno: number; spinta: number; pausa: number }[];
+  sarcofago: (Spawn & { x: number; z: number }) | null;
   /** Celle calpestabili (indici), per i test e l'autopilot. */
   floor: number[];
 };
@@ -56,6 +61,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   const bacini = new Map<number, number[]>(), valvole: DMap['valvole'] = [];
   const zona = new Uint8Array(w * h), grata = new Uint8Array(w * h), timoni: DMap['timoni'] = [], grate: number[] = [];
   const lava = new Uint8Array(w * h), getto = new Uint8Array(w * h), getti: DMap['getti'] = [];
+  let sarcofago: DMap['sarcofago'] = null;
   for (let cz = 0; cz < h; cz++)
     for (let cx = 0; cx < w; cx++) {
       const ch = def.rows[cz]![cx] ?? ' ';
@@ -67,8 +73,10 @@ export function parseDungeon(def: DungeonDef): DMap {
         const l = def.legenda[ch];
         if (!l) throw new Error(`Dungeon ${def.id}: lettera '${ch}' senza legenda (${cx},${cz})`);
         if (l.colonna) { solid[i] = 1; opaque[i] = 1; continue; }
-        // la Colata Maestra della Fucina è un bacino come l'acqua del Drenaggio, la sua chiusa una valvola
-        const acqua = l.acqua ?? l.colata, valvola = l.valvola ?? l.chiusa;
+        // il sarcofago del Mausoleo: non ci si cammina, ma ci si vede sopra
+        if (l.sarcofago) { solid[i] = 1; sarcofago = { cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile }; continue; }
+        // la Colata Maestra della Fucina e il cancello del Mausoleo sono bacini come l'acqua del Drenaggio, chiusa e chiave di carica valvole
+        const acqua = l.acqua ?? l.colata ?? l.cancello, valvola = l.valvola ?? l.chiusa ?? l.carica;
         if (acqua !== undefined) { solid[i] = 1; const b = bacini.get(acqua) ?? []; b.push(i); bacini.set(acqua, b); continue; }
         if (valvola !== undefined) valvole.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: valvola });
         if (l.nemico) nemici.push(l.capo ? { cx, cz, ch, tipo: l.nemico, capo: true } : { cx, cz, ch, tipo: l.nemico });
@@ -111,10 +119,15 @@ export function parseDungeon(def: DungeonDef): DMap {
     return { n: v.n, scorre: v.scorre, crosta: v.crosta, fase: v.fase ?? 0, dps: v.dps, secondi: v.secondi, celle };
   });
   for (let i = 0; i < lava.length; i++) if (lava[i] && !lave.some((v) => v.n === lava[i])) throw new Error(`Dungeon ${def.id}: cella di lava ${lava[i]} senza colata in \`lave\``);
+  const lancette: DMap['lancette'] = [...(def.lancette ?? [])].sort((a, b) => a.n - b.n).map((l) => {
+    const [cx, cz] = l.at;
+    if (!solid[cz * w + cx]) throw new Error(`Dungeon ${def.id}: la lancetta ${l.n} non ha il perno su una colonna`);
+    return { n: l.n, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, lunga: l.lunga, giro: l.giro, fase: l.fase, largo: l.largo, danno: l.danno, spinta: l.spinta, pausa: l.pausa };
+  });
   const m: DMap = {
     id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, altari, floor,
     bacini: [...bacini].sort((a, b) => a[0] - b[0]).map(([n, celle]) => ({ n, celle })), valvole, venti, zona, timoni, grate, grata,
-    lave, lava, getti, getto,
+    lave, lava, getti, getto, lancette, sarcofago,
   };
   MAPS.set(def, m);
   return m;

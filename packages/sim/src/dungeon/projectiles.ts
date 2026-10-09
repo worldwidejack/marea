@@ -38,7 +38,8 @@ function hitFoes(s: DungeonState, p: Proj): boolean {
     return true;
   }
   const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
-  hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: false, skill: 'arceria', caricato: false, dirX: p.vx / v, dirZ: p.vz / v, daAlleato: false, ...da(p) });
+  // Mausoleo: la lama d'acqua del Fendiflutti dà l'esperienza dell'arma (come la mischia), le frecce quella dell'arco
+  hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: false, skill: p.tipo === 'lama' ? s.hero.arma.skill : 'arceria', caricato: false, dirX: p.vx / v, dirZ: p.vz / v, daAlleato: false, ...da(p) });
   if (p.traits.trapassa) { p.colpiti.push(first.id); return false; }
   return true;
 }

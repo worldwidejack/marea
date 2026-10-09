@@ -87,9 +87,9 @@ export default async function (ctx) {
     });
     await ctx.shot(page, '1_ingresso_1280');
 
-    await ctx.test('Archivio e Fucina (Epopea 2 e 3): porte sigillate finché non completi il dungeon di prima (niente ENTRA né AFFRONTA INSIEME); il server rifiuta', async () => {
+    await ctx.test('Archivio, Fucina e Mausoleo (Epopea 2, 3 e 4): porte sigillate finché non completi il dungeon di prima (niente ENTRA né AFFRONTA INSIEME); il server rifiuta', async () => {
       const s = await st();
-      assert(s.ingressi.sigillati.includes('archivio') && s.ingressi.sigillati.includes('fucina') && !s.ingressi.sigillati.includes('drenaggio'), 'sigillati: ' + JSON.stringify(s.ingressi.sigillati));
+      assert(s.ingressi.sigillati.includes('archivio') && s.ingressi.sigillati.includes('fucina') && s.ingressi.sigillati.includes('mausoleo') && !s.ingressi.sigillati.includes('drenaggio'), 'sigillati: ' + JSON.stringify(s.ingressi.sigillati));
       const a = s.ingressi.spots.find((x) => x.id === 'archivio');
       await hook('teleport', a.x, a.z + 3); await sleep(900);
       await ctx.waitState(page, (s) => s.ingressi.near === 'archivio', 5000);
@@ -104,6 +104,8 @@ export default async function (ctx) {
       assert(!r.ok && /sigillata/.test(b.error ?? ''), `il server non rifiuta: ${r.status} ${JSON.stringify(b)}`);
       const r3 = await fetch(base + '/api/dungeon/start', { method: 'POST', headers: { 'x-token': 'tokA', 'content-type': 'application/json' }, body: JSON.stringify({ dungeon: 'fucina' }) });
       assert(!r3.ok && /Archivio/.test((await r3.json()).error ?? ''), 'la Fucina si apre senza l’Archivio');
+      const r4 = await fetch(base + '/api/dungeon/start', { method: 'POST', headers: { 'x-token': 'tokA', 'content-type': 'application/json' }, body: JSON.stringify({ dungeon: 'mausoleo' }) });
+      assert(!r4.ok && /Fucina/.test((await r4.json()).error ?? ''), 'il Mausoleo si apre senza la Fucina');
     });
 
     await ctx.test('Cripta: si entra, scena e HUD, Q lancia la magia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {

@@ -59,12 +59,15 @@ export function rebuild(s: DungeonState): void {
   h.arma = { ...rh.arma, traits: { ...rh.arma.traits } };
   if (cambia) {
     h.colpiFragile = rh.arma.usura ?? 0;
+    // unici del Mausoleo: l'arma nuova parte carica (pressione, molle) e senza ritmo
+    h.pressione = rh.arma.traits.lame?.cariche ?? 0; h.molla = rh.arma.traits.carillon?.colpi ?? 0; h.mollaT = 0; h.ritmo = 0; h.tic = -1; h.rintocco = false;
     if (h.act === 'press' || h.act === 'carica' || h.act === 'swing' || h.act === 'tende') {
       h.act = 'idle'; h.actT = 0; h.actDur = 0; h.carica = 0; h.caricato = false; h.colpiti = []; h.colpito = false;
     }
   }
   h.frecce = rh.frecce ? rh.frecce.n : 0;
   h.pozioni = rh.pozione !== null ? rh.pozioni[rh.pozione]?.n ?? 0 : 0;
+  if (!rh.armatura.barriera) h.barr = 0; // tolta l'Armatura del Moto Perpetuo, la Barriera si spegne
 }
 
 /** Cambia equipaggiamento (item null = togli). null se non si può: niente `stato`, oggetto che non hai, slot sbagliato, niente da cambiare. */

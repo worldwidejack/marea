@@ -7,8 +7,8 @@ import { parseIsland } from '../src/world/grid.ts';
 import { parseDungeon } from '../src/dungeon/map.ts';
 import { hasItem } from '../src/rpg/items.ts';
 
-test('dungeon: sei mappe (grotta, cripta, vuoto, drenaggio, archivio, fucina) con stile, tile 2 e dimensioni da gioco', () => {
-  assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto', 'drenaggio', 'archivio', 'fucina']);
+test('dungeon: sette mappe (grotta, cripta, vuoto, drenaggio, archivio, fucina, mausoleo) con stile, tile 2 e dimensioni da gioco', () => {
+  assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto', 'drenaggio', 'archivio', 'fucina', 'mausoleo']);
   for (const d of DUNGEONS) {
     assert.equal(d.tile, 2);
     assert.equal(d.stile, d.id);
@@ -72,8 +72,8 @@ test('dungeon: nemici, tabelle e libri esistono; i boss stanno in fondo (Cripta 
 
 test('dungeon: ingressi su celle calpestabili delle isole giuste, raggiungibili a piedi dalla P', () => {
   // la Grotta (la più facile) al Porto, il posto più facile da trovare; la Cripta sull'Isola Selvaggia (scambiate il 7 ott 2026);
-  // il Drenaggio a terra sull'anello della Laguna, vicino al molo, l'Archivio più avanti sull'arco est, la Fucina sull'arco nord (Epopea della Regata)
-  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'neon', drenaggio: 'laguna', archivio: 'laguna', fucina: 'laguna' };
+  // il Drenaggio a terra sull'anello della Laguna, vicino al molo, l'Archivio più avanti sull'arco est, la Fucina sull'arco nord, il Mausoleo sull'arco nord-ovest (Epopea della Regata)
+  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'neon', drenaggio: 'laguna', archivio: 'laguna', fucina: 'laguna', mausoleo: 'laguna' };
   for (const d of DUNGEONS) {
     assert.equal(d.ingresso.island, dove[d.id]);
     const def = ISLANDS.find((i) => i.id === d.ingresso.island)!;

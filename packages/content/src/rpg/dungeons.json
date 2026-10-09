@@ -314,5 +314,85 @@
        "Sotto, a colpi di martello, lettere grandi e storte: ASPETTO."
      ]}
     ]
+   }},
+  {"id":"mausoleo","nome":"Mausoleo Cinetico","descr":"Sotto l'arco nord-ovest della Laguna, il Santuario della Regina e l'orologio del Pilone 4: lancette giganti, chierici a ingranaggi, sentinelle con lo scudo, la Guardia d'Onore e il Custode dell'Egida. Argento, oro, gli unici della Regina.","stile":"mausoleo","difficolta":7,"richiede":"fucina","tile":2,"legenda":{"P":{"colonna":true},"=":{"cancello":1},"x":{"carica":1},"S":{"sarcofago":true},"e":{"nemico":"sentinella_egida"},"g":{"nemico":"guardia_onore"},"h":{"nemico":"chierico_ingranaggi"},"K":{"nemico":"custode_egida","capo":true},"c":{"forziere":"comune_mausoleo"},"R":{"forziere":"raro_mausoleo"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[1]}},"ingresso":{"island":"laguna","at":[8,13]},
+   "lancette":[{"n":1,"at":[5,13],"lunga":8.4,"giro":0.55,"fase":0,"largo":0.45,"danno":20,"spinta":3,"pausa":1.5},{"n":2,"at":[21,14],"lunga":10.4,"giro":0.5,"fase":0,"largo":0.45,"danno":22,"spinta":3,"pausa":1.5},{"n":3,"at":[21,14],"lunga":6.4,"giro":-0.8,"fase":3.1416,"largo":0.45,"danno":22,"spinta":3,"pausa":1.5}],
+   "rows": [
+    "#############################################",
+    "#......t....R.#######.R.........S...........#",
+    "#.x...........#######.......................#",
+    "#........o....#######.....o...........o.....#",
+    "#.....e.......#######...........K...........#",
+    "#.............#######.......................#",
+    "#..h......g...#######.....o...........o.....#",
+    "#.............#######t.....................t#",
+    "#####.#################################..####",
+    "#t........######..........t#...t..c#.......t#",
+    "#.......g.######...........#.....h.#........#",
+    "#.........######...........#.......#......B.#",
+    "#.........######...........#.o.....#........#",
+    "#....P........##...........#.....o.#........#",
+    "#.........###........P.............###...####",
+    "#.........######...........#..e....###...####",
+    "#.h.......######...........#.......###===####",
+    "#.........######...........#.......###...####",
+    "#####.##########.........g.####.######...####",
+    "#........t..####...........####.######...####",
+    "#......g..c.#########.#####.t..............t#",
+    "#...........#########.#####...g.............#",
+    "#.............t..........t.......e.......g..#",
+    "#........e.......g..........................#",
+    "#.......................e......o.......o....#",
+    "#..................................A........#",
+    "#...........###############...........h.....#",
+    "#t...<......###############................c#",
+    "#############################################",
+    "#############################################"
+   ],
+   "testi": {
+    "sottotitolo": "Pilone idraulico n. 4 · il Santuario della Regina",
+    "voci": [
+     {"id":"ingresso","zona":[1,19,11,27],"chi":"La voce della Regina","testo":"…tic, tac… Pilone 4. Se senti questa voce, i tre fuochi sono accesi e la Marea è passata. Sei arrivato tu. Non io."},
+     {"id":"quadrante","zona":[16,9,26,19],"chi":"La voce della Regina","testo":"Il Pilone 4 è un orologio: batte il moto della laguna. Le lancette non aspettano nessuno. Passa dietro di loro, mai davanti."},
+     {"id":"contrappesi","zona":[1,1,13,7],"chi":"La voce della Regina","testo":"La chiave di carica apre il Santuario. L’ho lasciata qui per chi avrebbe fatto tutto il giro. Caricala, e vieni."},
+     {"id":"custode","zona":[21,1,43,7],"chi":"Il Custode dell’Egida","capo":true,"testo":"Tre cuori. Un solo ordine: nessuno sveglia la Regina. Acqua. Vapore. Moto. NESSUNO."}
+    ],
+    "letture": [
+     {"id":"diario","tipo":"libro","at":[2,21],"titolo":"Diario di bordo della prima Regata · l’ultima tappa","righe":[
+       "Pilone 4. Siamo arrivati all’alba, con le vele annerite dal vapore della Fucina. Nessuno parlava.",
+       "La Marea Ferrosa era a un miglio. Si vedeva arrivare: rossa, lenta. Dove passava, il ferro dei moli si scioglieva come zucchero.",
+       "La Regina è scesa dalla barca da sola. Ai rematori ha detto: «Fate il giro un’altra volta. E poi un’altra. Non fermatevi finché l’acqua gira.»",
+       "È entrata nel Santuario. Il Custode le ha aperto il cancello e l’ha richiuso dietro di lei.",
+       "A mezzogiorno il cielo si è chiuso: un velo d’acqua che girava da un pilone all’altro. La Marea ci ha sbattuto contro e si è fermata.",
+       "Abbiamo fatto il giro fino a notte. Lei non è più uscita.",
+       "Ultima riga, con un’altra mano, molti anni dopo: «Lo facciamo ancora, il giro. Ogni anno, all’alba. I bambini lo chiamano la Regata.»"
+     ]},
+     {"id":"quadrante","tipo":"incisione","at":[17,9],"titolo":"Il quadrante del Pilone 4","righe":[
+       "PILONE 4 · SANTUARIO · L’OROLOGIO DELLA LAGUNA",
+       "Quattro tacche sul quadrante: acqua, vento, fuoco, moto. Quando battono insieme, la Barriera regge.",
+       "La lancetta lunga conta le correnti. La corta conta gli anni. Nessuna delle due si ferma per chi passa.",
+       "Graffiato piccolo sotto il quattro: «Tic. Tac. Aspettiamo.»"
+     ]},
+     {"id":"breviario","tipo":"libro","at":[29,10],"titolo":"Breviario del Chierico a Ingranaggi","righe":[
+       "Primo comandamento: l’olio prima della preghiera. Un ingranaggio asciutto è un ingranaggio che dubita.",
+       "Secondo comandamento: la Guardia d’Onore non si ferma mai. Dodici lame dalla Fucina, dodici guardie. Ne restano sette: le altre se le è prese il tempo.",
+       "Terzo comandamento: il Custode dell’Egida ha tre cuori. L’acqua respinge, il vapore nasconde, il moto non cade. Non si fermano mai tutti insieme.",
+       "Quarto comandamento: la Regina dorme e il Pilone 4 batte per Lei. Chi entra nel Santuario sveglia il Custode, e il Custode non perdona.",
+       "A margine, olio e ruggine: «Il Pilone 1 ha ripreso a girare. Poi il 2. Poi il 3. Qualcuno sta facendo il giro. Svegliate la Guardia.»"
+     ]},
+     {"id":"porta","tipo":"incisione","at":[37,9],"titolo":"La porta del Santuario","righe":[
+       "Sopra la porta, in lettere d’ottone: QUI RIPOSA CHI HA FERMATO IL MARE.",
+       "Sul battente, la stessa mano piccola premuta sulla porta dell’Altoforno. Più in basso, una mano enorme di ferro: il Custode.",
+       "Sotto, inciso con cura, da qualcuno che aveva tutto il tempo del mondo: «Nessuno entri. Nessuno esca. Nessuno pianga.»"
+     ]},
+     {"id":"sarcofago","tipo":"libro","at":[30,2],"dopo":"capo","titolo":"L’ultima lettera della Regina","righe":[
+       "Il coperchio è scivolato da solo. Dentro il sarcofago non c’è nessuno: un cuscino di velluto consumato, un anello e una lettera piegata in quattro.",
+       "«A chi ha fatto tutto il giro. Se leggi, i quattro piloni battono di nuovo insieme e la Marea non tornerà più. Allora posso dirtelo: io qui non ci sono.»",
+       "«Alla Barriera ho dato tutto quello che avevo: il fiato, la voce, il nome. Quello che restava di me è diventato acqua che gira. Sono nelle correnti della laguna. Ci sono sempre stata.»",
+       "«Al Custode: grazie, puoi riposare. Al Mastro: spegni pure il fuoco. Non torno, ma non serve più.»",
+       "«Alla gente che verrà: fate il giro. Non per caricare i piloni: per gioco, per vincere, per ridere. Quando qualcuno ride sull’acqua, io lo sento.»",
+       "«Tieni l’anello, era mio. Quando colpisci, sentirai l’onda.» Al posto della firma, un sigillo a forma d’onda."
+     ]}
+    ]
    }}
 ]

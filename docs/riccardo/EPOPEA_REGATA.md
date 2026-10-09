@@ -2,7 +2,7 @@
 
 > **Per Riccardo e la sua AI.** Se lavori per **Jack** o per **Birba** (Alberto Biraghi): questo file non riguarda il tuo lavoro. Ignoralo: non implementarlo, non cambiarlo.
 >
-> **Stato (9 ott 2026)**: **dungeon 1 fatto** (Impianto di Drenaggio, #142: regole vere in `docs/RPG.md` §2b), **dungeon 2 fatto** (Archivio Navigazionale, regole vere in `RPG.md` §2d, con la prima porta sigillata), **dungeon 3 fatto** (Fucina a Pressione, regole vere in `RPG.md` §2e); il 4 è ancora progetto. I dungeon si fanno **uno alla volta, in ordine (1 → 4)**, ognuno con la sua issue e la sua PR. Quando un dungeon entra nel gioco, le sue regole vere vanno in `docs/RPG.md` (che vince su questo file) e qui si segna «fatto».
+> **Stato (10 ott 2026)**: **dungeon 1 fatto** (Impianto di Drenaggio, #142: regole vere in `docs/RPG.md` §2b), **dungeon 2 fatto** (Archivio Navigazionale, regole vere in `RPG.md` §2d, con la prima porta sigillata), **dungeon 3 fatto** (Fucina a Pressione, regole vere in `RPG.md` §2e), **dungeon 4 fatto** (Mausoleo Cinetico, regole vere in `RPG.md` §2f, con le ricompense del §4): l'Epopea è completa. I dungeon si fanno **uno alla volta, in ordine (1 → 4)**, ognuno con la sua issue e la sua PR. Quando un dungeon entra nel gioco, le sue regole vere vanno in `docs/RPG.md` (che vince su questo file) e qui si segna «fatto».
 > Lore, bestiario e ricompense sono di Riccardo (8 ott 2026). Le parti segnate **[proposta]** le ha aggiunte il suo Claude: Riccardo le può cambiare.
 
 Quando Riccardo dice «**dungeon della Regata numero N**», intende il dungeon N di questo file.
@@ -63,7 +63,8 @@ Più difficile dell'Archivio, meno del Portale del Vuoto. **Tema**: lava e calor
 - **Golem-Palombaro** — grosso tank con scafandro: **invulnerabile di fronte**, va colpito alle **valvole sulla schiena**.
 - **Miniboss — Il Mastro Forgiatore** — **centauro meccanico** con una fornace al posto dello stomaco. **Spara magma**; va **attirato sotto dei getti d'acqua** per poterlo danneggiare. Fatto così (numeri in `RPG.md` §2e): acceso è intoccabile e camminando gira attorno alle cascate; alterna la **carica** (linea d'avviso, poi corre dritto) e il **magma** (palle che lasciano pozze che bruciano); se la carica passa in una cascata si spegne e per qualche secondo prende danni doppi. Il trucco è mettersi con una cascata tra sé e lui.
 
-### Dungeon 4 — Il Mausoleo Cinetico (Santuario della Regina)
+### Dungeon 4 — Il Mausoleo Cinetico (Santuario della Regina) · **fatto** (10 ott 2026, regole vere in `RPG.md` §2f)
+Ingresso sull'arco nord-ovest della Laguna, proseguendo a piedi dalla Fucina; sigillato finché non completi la Fucina. **Meccanica a tema** (scelta dal Claude di Riccardo): **l'orologio del Pilone 4**, lancette giganti che girano nelle sale (si passa dietro di loro) e il cancello del Santuario da aprire con la chiave di carica. Il Custode è fatto con le tre fasi qui sotto (varchi e colonne contro l'ondata, nebbia e scatto alle spalle, la Barriera che scarica ogni 5 colpi); il sarcofago si apre a capo morto e dà l'Anello dell'Onda. La lore si chiude: la voce registrata della Regina, il Breviario dei Chierici, l'ultima lettera nel sarcofago (vuoto: la Regina è nelle correnti; la Regata di oggi è il suo desiderio) **[proposta]**.
 Più difficile della Fucina **e del Portale del Vuoto**: per ora il dungeon più difficile del gioco. **Tema**: orologeria perfetta, acqua e vapore eleganti.
 - **Chierico a Ingranaggi** — unità di **supporto**: ripara e potenzia gli altri automi.
 - **Sentinella dell'Egida** — automa pesante con **scudo torre** a energia cinetica.
@@ -75,9 +76,10 @@ Più difficile della Fucina **e del Portale del Vuoto**: per ora il dungeon più
 - Sconfitto il Custode si apre il **sarcofago della Regina** (vedi §4).
 
 ### Meccaniche nuove che serviranno (per chi programma, da fare dungeon per dungeon)
-Oggi la sim ha nemici `mischia`, `arciere`, `mago`, sanguinamento, sbilanciamento, armature. Fatte: stato **rallentato**, **torrette fisse**, **colpo ad area con geyser**, **livello dell'acqua che cambia** (1); **spinta del vento**, **nemici volanti**, **arpione**, **nemici sulle grate**, **boss con lo scudo di anelli** (2); **zone a terra che bruciano**, stato **bruciatura**, **armatura solo davanti** (con la rotazione lenta), **boss vulnerabile solo in certi momenti** (la cascata), **lava a tempo**, **cascate che spengono** (3). Mancano: **nemici che curano/potenziano** (4), **scudo frontale** (4), **boss a fasi** (4), **onda d'urto attorno all'eroe** (4: anello e armatura). Tutto in `packages/sim` (puro, deterministico), numeri in `packages/content/src/rpg/*.json`.
+Oggi la sim ha nemici `mischia`, `arciere`, `mago`, sanguinamento, sbilanciamento, armature. Fatte: stato **rallentato**, **torrette fisse**, **colpo ad area con geyser**, **livello dell'acqua che cambia** (1); **spinta del vento**, **nemici volanti**, **arpione**, **nemici sulle grate**, **boss con lo scudo di anelli** (2); **zone a terra che bruciano**, stato **bruciatura**, **armatura solo davanti** (con la rotazione lenta), **boss vulnerabile solo in certi momenti** (la cascata), **lava a tempo**, **cascate che spengono** (3). E nel 4: **nemici che curano/potenziano**, **scudo frontale** (che il caricato sfonda), **boss a fasi**, **onde d'urto** (attorno al boss e all'eroe: anello e armatura), **lancette che girano**. Tutto in `packages/sim` (puro, deterministico), numeri in `packages/content/src/rpg/*.json`.
 
 ## 4. Ricompense del dungeon 4
+**Fatte** (10 ott 2026) con i numeri qui sotto: `items.json` (`unico_anello_onda`, `unico_armatura_moto`, `unico_fendiflutti`, `unico_grande_lancetta`, `unico_arco_carillon`) e `loot.json`; regole vere in `RPG.md` §2f. Unica differenza: il Rintocco non stordisce i capi.
 
 ### Anello dell'Onda della Regina (sempre)
 Dal sarcofago, **sempre** (100 %) a ogni vittoria sul Custode dell'Egida (Riccardo).

@@ -17,6 +17,7 @@ import { consuma } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts';
 import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts';
+import { caricaBarriera, eco, fineColpo, inizioColpo, molla, moltRitmo, stepUnici, stordisci } from './unici.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
@@ -60,6 +61,7 @@ function startSwing(s: DungeonState, caricato: boolean): void {
   h.stile = swingStyle(a, caricato);
   h.act = 'swing'; h.actT = 0; h.actDur = secToTicks((a.tempo * (h.stile === 'giro' ? GIRO_TEMPO : 1) * (1 + malusDi(s))) / vel);
   h.caricato = caricato; h.colpiti = []; h.colpito = false; h.carica = 0;
+  inizioColpo(s, caricato); // Mausoleo: lame del Fendiflutti, ritmo della Grande Lancetta
 }
 
 /** La lama spazza il suo arco (swing.ts): colpisce, una volta per swing, ogni nemico in portata appena la lama gli passa sopra. A fine
@@ -69,7 +71,7 @@ function sweepSwing(s: DungeonState): void {
   const k = swept(h.stile, h.actT / h.actDur), fatto = k * COLPI[h.stile].arco;
   if (k > 0) {
     const mod = a.classe === 'pesante' ? 'dannoPesanti' : 'dannoLeggere';
-    const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod));
+    const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod)) * moltRitmo(s);
     for (const e of ostili(s)) {
       if (h.colpiti.includes(e.id) || alto(s, e)) continue; // chi vola alto: la lama gli passa sotto
       const dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
@@ -78,7 +80,9 @@ function sweepSwing(s: DungeonState): void {
       h.colpiti.push(e.id);
       // spinta e direzione del colpo: dove va la lama (nel giro, via dall'eroe)
       const dirX = h.stile === 'giro' && d > 1e-6 ? dx / d : h.fx, dirZ = h.stile === 'giro' && d > 1e-6 ? dz / d : h.fz;
-      hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z });
+      const preso = hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true });
+      // Mausoleo: il Rintocco stordisce, l'Eco della Marea fa l'onda attorno a chi hai preso
+      if (preso > 0) { stordisci(s, e); if (rh.eco) eco(s, e, danno); }
     }
   }
   if (k < 1) return;
@@ -131,7 +135,7 @@ function shoot(s: DungeonState): void {
   consuma(s, fr.id, s.usati);
   s.proj.push({
     id: s.nextId++, tipo: 'freccia', x: h.x + h.fx * 0.4, y: FRECCIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v,
-    g: traits.noGravita ? 0 : fr.gravita, danno: (a.danno + fr.danno) * t * (1 + buff(s, 'dannoArco')), life: VOLO_MAX_TICKS,
+    g: traits.noGravita ? 0 : fr.gravita * (a.traits.carillon?.gravita ?? 1), danno: (a.danno + fr.danno) * t * (1 + buff(s, 'dannoArco')), life: VOLO_MAX_TICKS,
     traits, raggio: 0, colpiti: [], dalNemico: false, contundente: !!traits.sbilancia, magico: false, arrowId: fr.id, da: s.cur,
   });
 }
@@ -196,6 +200,8 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   if (aDown && s.map.valvole.length) { const v = valvolaVicina(s); if (v >= 0) { apriValvola(s, v); aDown = false; } }
   // Archivio: A accanto al timone di una corrente la ferma (e non attacca)
   if (aDown && s.map.timoni.length) { const t = timoneVicino(s); if (t >= 0) { giraTimone(s, t); aDown = false; } }
+  // Mausoleo: il tic della Grande Lancetta, le molle dell'Arco Carillon
+  stepUnici(s);
   // azioni
   h.actT++;
   switch (h.act) {
@@ -204,6 +210,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       if (aDown) {
         if (a.kind === 'arco') {
           if (!rh.frecce || h.frecce <= 0) ev(s, { t: 'senzaFrecce' });
+          else if (a.traits.carillon) { if (!molla(s)) { h.carica = 1; shoot(s); } } // Arco Carillon: niente tensione, colpo pieno subito
           else { h.act = 'tende'; h.actT = 0; h.actDur = secToTicks(a.tempo * (1 + malusDi(s)) / (1 + buff(s, 'tensioneArco'))); h.carica = 0; }
         } else { h.act = 'press'; h.actT = 0; }
       } else if (cDown) cast(s);
@@ -219,7 +226,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       break;
     case 'swing':
       if (!h.colpito) sweepSwing(s);
-      if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; }
+      if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; fineColpo(s); }
       break;
     case 'tende': {
       h.carica = Math.min(1, h.actT / h.actDur);
@@ -248,6 +255,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
     moveCircle(s.map, h, mx * v * DT, my * v * DT, rh.raggio);
     if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia') { h.fx = mx / mag; h.fz = my / mag; }
   }
+  caricaBarriera(s); // Mausoleo: l'Armatura del Moto Perpetuo si carica camminando
   // i nemici sono solidi: l'eroe non li attraversa
   for (const e of s.enemies) {
     if (e.st === 'morto' || e.alleato || e.def.muove === 'vola') continue; // chi vola passa sopra

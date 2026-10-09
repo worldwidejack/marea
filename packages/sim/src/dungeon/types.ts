@@ -73,7 +73,7 @@ export type DungeonEvent = (
   | { t: 'raffica' }
   | { t: 'raggio'; x: number; z: number }
   /** Colpo parato: dagli anelli dell'Astrolabio (senza `perche`), dallo scafandro del Golem-Palombaro, dalla fornace del Mastro acceso. */
-  | { t: 'parato'; x: number; z: number; perche?: 'scafandro' | 'fornace' }
+  | { t: 'parato'; x: number; z: number; perche?: 'scafandro' | 'fornace' | 'scudo' | 'cuore' }
   | { t: 'anelli' }
   /** Fucina: prendi fuoco · una cascata ti spegne · il Mastro Forgiatore spento da una cascata (prende danni) · si riaccende · parte la
    *  sua carica · una palla di magma che cade. */
@@ -83,6 +83,24 @@ export type DungeonEvent = (
   | { t: 'riacceso' }
   | { t: 'carica' }
   | { t: 'magma'; x: number; z: number }
+  /** Mausoleo: presi da una lancetta · un Chierico ripara e potenzia l'automa in (x, z) (`da` = dove sta lui) · scudo della Sentinella
+   *  sfondato da un caricato · il Custode cambia cuore (fase `n`: 1 vapore, 2 moto) · parte un'onda (`barriera`: la scarica a 360°) · il
+   *  Custode scatta nella nebbia · il sarcofago si apre (capo morto). Gli unici: la Barriera Cinetica annulla un colpo · è di nuovo carica ·
+   *  onda dell'Eco della Marea · il Rintocco della Grande Lancetta · il suo tic · l'Arco Carillon ricarica un colpo (`n` pronti) o è scarico. */
+  | { t: 'lancetta'; x: number; z: number }
+  | { t: 'cura'; x: number; z: number; da: [number, number] }
+  | { t: 'sfondato'; x: number; z: number }
+  | { t: 'fase'; n: number }
+  | { t: 'ondata'; x: number; z: number; barriera?: boolean }
+  | { t: 'scatto' }
+  | { t: 'sarcofago' }
+  | { t: 'barriera'; x: number; z: number }
+  | { t: 'barrieraPronta' }
+  | { t: 'eco'; x: number; z: number }
+  | { t: 'rintocco'; x: number; z: number }
+  | { t: 'tic' }
+  | { t: 'carillon'; n: number }
+  | { t: 'scarico' }
 ) & { eroe?: number };
 
 export type DungeonView = {
@@ -109,6 +127,10 @@ export type DungeonView = {
     vento?: boolean; riparo?: boolean; spinto?: boolean;
     /** Fucina: brucia (fuoco addosso), sotto una cascata d'acqua. */
     brucia?: boolean; bagnato?: boolean;
+    /** Mausoleo, gli unici addosso: carica della Barriera Cinetica (0..1, 1 = pronta); il contatore dell'arma (pressione del Fendiflutti,
+     *  ritmo della Grande Lancetta con `tic` = secondi al prossimo tic, colpi dell'Arco Carillon). */
+    barriera?: number;
+    carico?: { tipo: 'pressione' | 'ritmo' | 'molla'; n: number; max: number; tic?: number };
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
     /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
@@ -121,8 +143,13 @@ export type DungeonView = {
      *  corso e, per il raggio, il punto dove arriva (linea d'avviso in `prepara`, raggio in `colpisce`). */
     alto?: boolean; grata?: boolean; molla?: boolean; schermo?: boolean;
     /** Fucina, il Mastro Forgiatore: attacco in corso (per la carica `mira` = dove arriva, solo durante l'avviso) e spento dalla cascata. */
-    attacco?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo'; mira?: [number, number]; spento?: boolean }[];
-  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico'; x: number; y: number; z: number; vx: number; vz: number }[];
+    attacco?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio'; mira?: [number, number]; spento?: boolean;
+    /** Mausoleo: potenziato da un Chierico, scudo sfondato (Sentinella), stordito dal Rintocco; il Custode: fase (0 acqua, 1 vapore, 2 moto)
+     *  e, nella terza, colpi presi verso la scarica (`cariche` su `colpi`). `mira`: per la cura chi ripara, per lo scatto dove ricompare. */
+    potenziato?: boolean; rotto?: boolean; stordito?: boolean; fase?: number; cariche?: number; colpi?: number;
+    /** Il Custode che prepara l'ondata: i suoi varchi (versori), per disegnarli prima che parta. */
+    varchi?: [number, number][] }[];
+  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica'; x: number; y: number; z: number; vx: number; vz: number }[];
   bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
   uscita: { x: number; z: number };
   vicinoUscita: boolean;
@@ -146,6 +173,12 @@ export type DungeonView = {
    *  quando sono nate a quando si spengono). La Colata Maestra e la sua chiusa stanno in `acque` e `valvole`, le palle di magma in `geyser`. */
   lave: { n: number; stato: 'crosta' | 'avviso' | 'scorre'; t: number }[];
   fuochi: { id: number; x: number; z: number; r: number; t: number }[];
+  /** Mausoleo (negli altri dungeon liste vuote, niente sarcofago): lancette (perno, versore di adesso, lunghezza, mezza larghezza, verso),
+   *  onde d'acqua in corsa (centro, raggio di adesso e massimo, varchi come versori), il sarcofago della Regina (aperto = capo morto). Il
+   *  cancello del Santuario e la sua chiave stanno in `acque` e `valvole`. */
+  lancette: { n: number; x: number; z: number; dx: number; dz: number; lunga: number; largo: number; giro: number }[];
+  onde: { id: number; x: number; z: number; r: number; max: number; spessore: number; varchi: [number, number][]; barriera: boolean }[];
+  sarcofago?: { x: number; z: number; aperto: boolean };
   /** Bottino e monete al sicuro all'ultimo altare (null = nessun altare toccato). */
   salvato: { bottino: Record<string, number>; monete: number } | null;
   zaino: { peso: number; max: number; monete: number; bottino: Record<string, number> };

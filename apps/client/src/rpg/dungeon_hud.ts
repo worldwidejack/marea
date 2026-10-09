@@ -49,6 +49,7 @@ body.mz-sotto .mz-labels, body.mz-sotto #mzPlay, body.mz-sotto #mzEmoteRow, body
 .mz-dng-hud .row2 { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; font-weight: bold; font-size: 13px; align-items: center; }
 .mz-dng-hud .row2 span { display: inline-flex; align-items: center; gap: 3px; }
 .mz-dng-hud .row2 .warn { color: ${P.rosso}; }
+.mz-dng-hud .row2 .ok { color: ${P.acquaBassa}; }
 .mz-dng-fx { position: absolute; inset: 0; pointer-events: none !important; z-index: 12; overflow: hidden; }
 .mz-dng-num { position: absolute; left: 0; top: 0; font: bold 16px ui-monospace, Menlo, monospace; text-shadow: 2px 2px 0 ${P.neroCaldo}; animation: mzDngNum .8s steps(8) forwards; white-space: nowrap; }
 .mz-dng-num.big { font-size: 22px; }
@@ -70,12 +71,15 @@ body.mz-sotto .mz-labels, body.mz-sotto #mzPlay, body.mz-sotto #mzEmoteRow, body
 .mz-dng-big.on { display: block; }
 .mz-dng-big small { display: block; margin-top: 6px; font-size: 14px; color: ${P.sabbia}; }
 `;
+/** Il contatore dell'arma unica (Mausoleo): pressione del Fendiflutti, ritmo della Grande Lancetta, molle dell'Arco Carillon. */
+const CARICO = { pressione: 'PRESS.', ritmo: 'RITMO', molla: 'MOLLE' } as const;
 const nome = (id: string) => (hasItem(id) ? itemDef(id).nome : id);
 const fmt = (s: number) => { const m = Math.floor(s / 60); return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
 
-/** `stile` del dungeon: nella Fucina la valvola è la chiusa e l'acqua che scende è la Colata che si raffredda. */
+/** `stile` del dungeon: nella Fucina la valvola è la chiusa e l'acqua che scende è la Colata che si raffredda; nel Mausoleo è la chiave di
+ *  carica e quello che scende è il cancello del Santuario. */
 export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasElement; camera: THREE.Camera; hero: RunHero; stile?: string }): DungeonHud {
-  const fucina = o.stile === 'fucina';
+  const fucina = o.stile === 'fucina', mausoleo = o.stile === 'mausoleo';
   if (!document.getElementById('mz-dng-hud-style')) { const st = document.createElement('style'); st.id = 'mz-dng-hud-style'; st.textContent = CSS; document.head.appendChild(st); }
   const box = el('div', 'mz mz-dng-hud'); box.id = 'mzDngHud';
   const mkBar = (k: string, c: string) => {
@@ -118,7 +122,8 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         if (sig !== b.last) { b.last = sig; b.fill.style.width = w; b.lag.style.width = lw; b.n.textContent = n; }
       }
       const left = Math.max(0, (maxTicks - v.tick) / 60), z = v.zaino;
-      const sig = `${h.frecce}|${h.pozioni}|${Math.round(z.peso)}|${Math.round(z.max)}|${z.monete}|${Math.floor(left)}|${rh.frecce?.id}|${pot?.id}`;
+      const car = h.carico, bar = h.barriera;
+      const sig = `${h.frecce}|${h.pozioni}|${Math.round(z.peso)}|${Math.round(z.max)}|${z.monete}|${Math.floor(left)}|${rh.frecce?.id}|${pot?.id}|${car ? `${car.tipo}${car.n}` : ''}|${bar === undefined ? '' : Math.floor(bar * 10)}`;
       if (sig !== rowSig) {
         rowSig = sig;
         const it = (ico: Node | null, text: string, cls = '') => { const s = el('span', cls); if (ico) s.appendChild(ico); s.appendChild(document.createTextNode(text)); return s; };
@@ -128,7 +133,12 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         kids.push(it(itemIcon('materiale', P.legnoChiaro, 16), `${Math.round(z.peso)}/${Math.round(z.max)} kg`, z.peso >= z.max ? 'warn' : ''));
         kids.push(it(itemIcon('anello', P.giallo, 16), `${z.monete}`));
         kids.push(it(null, fmt(left), left < 60 ? 'warn' : ''));
+        // gli unici della Regina: la Barriera Cinetica e il contatore dell'arma
+        if (bar !== undefined) kids.push(it(itemIcon('armatura', P.acquaBassa, 16), bar >= 1 ? 'PRONTA' : `${Math.floor(bar * 100)}%`, bar >= 1 ? 'ok' : ''));
+        if (car) kids.push(it(itemIcon(car.tipo === 'molla' ? 'arco' : 'arma', car.tipo === 'ritmo' ? P.giallo : car.tipo === 'molla' ? P.arancio : P.acqua, 16), `${CARICO[car.tipo]} ${car.n}/${car.max}`, car.n === 0 && car.tipo !== 'ritmo' ? 'warn' : car.n >= car.max && car.tipo === 'ritmo' ? 'ok' : ''));
         row2.replaceChildren(...kids);
+        // l'HUD può diventare più alto (gli unici aggiungono una riga): la voce del dungeon (dungeon_testi.ts) si mette sotto
+        o.root.style.setProperty('--mz-dng-hud-h', `${box.offsetHeight}px`);
       }
     },
     number(p, text, kind, isBig) {
@@ -177,13 +187,22 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'libro': say(`Hai imparato: ${nome(e.item).replace(/^Libro: /, '')}`, 2600); break;
         case 'evocato': say('Un alleato combatte per te', 1800); break;
         case 'risveglio': say('Ti risvegli alla lanterna: perso solo il bottino raccolto dopo', 3200); break;
-        case 'valvola': say(fucina ? 'Chiusa aperta: l’acqua raffredda la Colata Maestra…' : 'Valvola girata: l’acqua scende…', 2200); break;
-        case 'asciutto': say(fucina ? 'La Colata è fredda: adesso si passa' : 'Svuotato: adesso si passa', 2200); break;
+        case 'valvola': say(fucina ? 'Chiusa aperta: l’acqua raffredda la Colata Maestra…' : mausoleo ? 'Chiave caricata: il cancello del Santuario scende…' : 'Valvola girata: l’acqua scende…', 2200); break;
+        case 'asciutto': say(fucina ? 'La Colata è fredda: adesso si passa' : mausoleo ? 'Il cancello è aperto: il Santuario ti aspetta' : 'Svuotato: adesso si passa', 2200); break;
         case 'rallentato': say('La fanghiglia ti rallenta', 1600); break;
         case 'timone': say('Timone girato: il vento si ferma', 2400); break;
         case 'arpionato': say('Arpionato! Il drone ti tira a sé', 1600); break;
         case 'urto': say('Sbattuto contro il muro', 1400); break;
-        case 'parato': say(e.perche === 'scafandro' ? 'Lo scafandro para: colpiscilo alle valvole sulla schiena' : e.perche === 'fornace' ? 'Il fuoco lo protegge: fallo caricare dentro una cascata' : 'Gli anelli lo proteggono: rompili!', 2200); break;
+        case 'parato': say(e.perche === 'scafandro' ? 'Lo scafandro para: colpiscilo alle valvole sulla schiena' : e.perche === 'fornace' ? 'Il fuoco lo protegge: fallo caricare dentro una cascata'
+          : e.perche === 'scudo' ? 'Lo scudo para e ti respinge: un colpo caricato lo sfonda, o prendila alle spalle' : e.perche === 'cuore' ? 'Cambia cuore: adesso non lo scalfisci' : 'Gli anelli lo proteggono: rompili!', 2200); break;
+        case 'sfondato': say('Scudo sfondato: colpiscila adesso!', 1800); break;
+        case 'lancetta': say('Travolto dalla lancetta', 1200); break;
+        case 'fase': this.flash(e.n === 1 ? 'SECONDO CUORE' : 'TERZO CUORE', e.n === 1 ? P.pietraChiara : P.giallo, e.n === 1 ? 'il vapore: guarda dove ricompare' : 'il moto: ogni cinque colpi la Barriera scarica', 2200); break;
+        case 'sarcofago': this.flash('IL SARCOFAGO SI APRE', P.acquaBassa, 'il Custode dell’Egida è caduto', 2600); break;
+        case 'barriera': say('La Barriera annulla il colpo', 1400); break;
+        case 'barrieraPronta': say('Barriera carica', 1000); break;
+        case 'rintocco': say('RINTOCCO!', 1000); break;
+        case 'scarico': say('Molle scariche: aspetta il carillon', 1400); break;
         case 'anelli': say('L’Astrolabio stacca gli anelli: rompili per colpirlo', 3000); break;
         case 'bruciato': say('Bruci!', 1200); break;
         case 'estinto': say('L’acqua ti spegne', 1400); break;
@@ -209,6 +228,6 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
       this.big(text, color, sub);
       flashT = window.setTimeout(() => { bigOn = false; big.classList.remove('on'); }, ms);
     },
-    dispose() { clearTimeout(toastT); clearTimeout(flashT); for (const e of [box, fx, toast, big]) e.remove(); },
+    dispose() { clearTimeout(toastT); clearTimeout(flashT); for (const e of [box, fx, toast, big]) e.remove(); o.root.style.removeProperty('--mz-dng-hud-h'); },
   };
 }

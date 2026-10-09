@@ -7,6 +7,9 @@ import { rollLoot } from './loot.ts';
 import { moveCircle } from './map.ts';
 import { risveglio } from './altari.ts';
 import { grigliaDi, schermato } from './muove.ts';
+import { spingi } from './vento.ts';
+import { scarica } from './custode.ts';
+import { barriera } from './unici.ts';
 import { COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -27,6 +30,8 @@ export type HitSrc = {
   daAlleato: boolean;
   /** Da dove arriva il colpo (chi colpisce, la freccia, il centro dello scoppio): per lo scafandro del Golem-Palombaro (Fucina). */
   ox?: number; oz?: number;
+  /** Colpo di lama dell'eroe (non frecce, magie, lame d'acqua, onde): lo scudo della Sentinella lo respinge (Mausoleo). */
+  mischia?: boolean;
 };
 
 /** Danno di un colpo su un nemico (prima di applicarlo). */
@@ -45,12 +50,24 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   if (e.def.astrolabio && schermato(s, e)) { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z) }); return 0; }
   // Fucina: il Mastro Forgiatore acceso non prende danni; lo scafandro del Golem-Palombaro para da davanti, da dietro (le valvole) fa di più
   if (e.def.forgiatore && !e.spento) { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'fornace' }); if (!e.aggro) wake(s, e); return 0; }
+  // Mausoleo: il Custode che cambia cuore non prende danni
+  if (e.def.custode && e.modo === 'cambio') { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'cuore' }); return 0; }
   let retro = 1;
-  const sc = e.def.scafandro;
+  // lo scafandro del Golem-Palombaro e lo scudo della Sentinella dell'Egida (finché non è sfondato) parano da davanti
+  const scudo = e.def.scudo && !(e.rotto !== undefined && e.rotto > s.tick) ? e.def.scudo : undefined, sc = e.def.scafandro ?? scudo;
   if (sc && src.ox !== undefined && src.oz !== undefined) {
     const ax = src.ox - e.x, az = src.oz - e.z, l = Math.sqrt(ax * ax + az * az), k = l > 1e-6 ? (ax * e.fx + az * e.fz) / l : 0;
-    if (k >= sc.cono) { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'scafandro' }); if (!e.aggro) wake(s, e); return 0; }
-    if (k <= RETRO_SCAFANDRO) retro = sc.retro;
+    if (k >= sc.cono && scudo && src.caricato && src.mischia) {
+      // il caricato sfonda lo scudo: la Sentinella barcolla, senza scudo, e il colpo passa
+      e.rotto = s.tick + secToTicks(scudo.rotto); e.st = 'recupera'; e.stT = 0; e.stDur = secToTicks(scudo.rotto); e.area = false; e.tiro = false; e.comboN = 0;
+      ev(s, { t: 'sfondato', x: r2(e.x), z: r2(e.z) });
+    } else if (k >= sc.cono) {
+      ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: scudo ? 'scudo' : 'scafandro' });
+      // lo scudo a energia cinetica respinge chi lo colpisce di lama
+      if (scudo && src.mischia && !src.daAlleato && l > 1e-6) spingi(s, ax / l, az / l, scudo.spinta, 0.25);
+      if (!e.aggro) wake(s, e);
+      return 0;
+    } else if (k <= RETRO_SCAFANDRO) retro = sc.retro;
   }
   const d = dannoSu(e, src) * retro * (e.spento && e.def.forgiatore ? e.def.forgiatore.vulnerabile : 1);
   const utile = Math.min(d, Math.max(0, e.vita)); // il danno oltre la vita rimasta non dà xp: un colpo enorme su un nemico debole vale quanto due piccoli
@@ -74,7 +91,10 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
     if (src.traits.sbilancia && e.def.comportamento !== 'torretta' && e.def.comportamento !== 'anello') moveCircle(grigliaDi(s, e), e, src.dirX * SPINTA, src.dirZ * SPINTA, e.def.raggio); // le torrette sono attaccate ai tubi
   }
   if (!e.aggro) wake(s, e);
-  if (e.vita <= 0) kill(s, e);
+  if (e.vita <= 0) { kill(s, e); return d; }
+  // Mausoleo, il Custode nella terza fase: ogni tot colpi presi la Barriera scarica un'onda d'urto
+  const B = e.def.custode?.barriera;
+  if (B && (e.fase ?? 0) >= 2 && (e.colpiB = (e.colpiB ?? 0) + 1) >= B.colpi) scarica(s, e);
   return d;
 }
 
@@ -93,14 +113,20 @@ export function kill(s: DungeonState, e: Enemy): void {
   // rng per nemico (dal suo id): l'ordine delle uccisioni non cambia il bottino
   const r = rollLoot(e.def.loot, s.rng.fork(`loot:${e.id}`), { molt: e.dropMolt, raro: e.dropRaro });
   const vuoto = r.monete === 0 && Object.keys(r.items).length === 0;
-  s.loot.push(nuovoBottino(s, { id: s.nextId++, x: e.x, z: e.z, tipo: 'cadavere', items: r.items, monete: r.monete, vuoto, pieno: false }));
+  // Mausoleo: morto il capo, il sarcofago della Regina si apre e il bottino compare lì davanti
+  const sf = e.capo ? s.map.sarcofago : null;
+  if (sf) ev(s, { t: 'sarcofago' });
+  s.loot.push(nuovoBottino(s, { id: s.nextId++, x: sf ? sf.x : e.x, z: sf ? sf.z + s.map.tile : e.z, tipo: 'cadavere', items: r.items, monete: r.monete, vuoto, pieno: false }));
 }
 
 export type HurtKind = 'taglio' | 'contundente' | 'magia';
-/** Colpo su eroe: difesa dell'armatura (+ buff), moltiplicatori per tipo, monete dell'armatura d'oro, morte (o risveglio all'altare). */
-export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: number, z: number): void {
+/** Colpo su eroe: difesa dell'armatura (+ buff), moltiplicatori per tipo, monete dell'armatura d'oro, morte (o risveglio all'altare).
+ *  La Barriera Cinetica piena (Mausoleo) lo annulla. Il ritmo della Grande Lancetta si perde. true = il colpo è arrivato. */
+export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: number, z: number): boolean {
   const h = s.hero, a = s.runHero.armatura;
-  if (s.done || h.protetto > 0) return;
+  if (s.done || h.protetto > 0) return false;
+  if (a.barriera && barriera(s)) return false;
+  h.ritmo = 0;
   const difesa = Math.max(0, a.difesa + buff(s, 'difesa'));
   const k = RPG.armatura?.k ?? 100;
   const tipo = kind === 'magia' ? a.vsMagia : kind === 'contundente' ? a.vsContundente : a.vsTaglio;
@@ -116,6 +142,7 @@ export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: numbe
     if (n > 0) { s.monete += n; ev(s, { t: 'monete', n }); }
   }
   if (h.vita <= 0) caduto(s);
+  return true;
 }
 
 /** L'eroe di turno è a terra: si risveglia all'ultimo altare salvato, se no la spedizione finisce (morto). */
