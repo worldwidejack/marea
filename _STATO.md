@@ -3,11 +3,11 @@ progetto: MAREA
 stato: attivo
 aggiornato: 2026-10-09
 dettaglio: docs/ROADMAP.md
-rimasti: Isola delle Corse online: Gran Premio coi kart, 3 guide da provare.
-primo_passo: Tu: corri al Gran Premio da PC e telefono e scegli la guida (morbida/media/nervosa).
+rimasti: Corse v2 decisa: hub, 6 zone × 4 piste, 4 famiglie. Bibbia scritta, ora concept art.
+primo_passo: Tu: scegli la concept art di hub e zone; poi motore a nastro 3D e Spiaggia.
 ---
 ## Siamo arrivati a
-9 ott: nuova vision «ogni isola = il format di un gioco famoso» (per ora solo tra Jack e Claude, `_MEMORIA.md` §4). Prima isola-format online: **Isola delle Corse** (nord-est, aperta a tutti) col **Gran Premio**, kart alla Mario Kart, camera dietro, drift e turbo, 3 giri contro 4 bot (#156).
+9 ott: Isola delle Corse online col Gran Premio (#156), ma a Jack non basta (pista povera, poco da fare). Intervista fatta: l'isola diventa un'avventura completa alla Diddy Kong Racing. Hub aperto, 6 zone × 4 piste più i boss, 4 famiglie di veicoli più i buffi, manichini e animali piloti. Bibbia in `docs/CORSE.md` Parte A, #155 riscritta, dettaglio in `_MEMORIA.md` §4.
 
 ## Prossimo passo
-Jack: prova il Gran Premio da PC e telefono, sceglie la guida da tenere e dice com'è la sensazione di guida. Poi (#155): fantasmi degli amici, oggetti e stelle, seconda pista; dopo le Corse, l'isola della Difesa (PvZ).
+Claude genera la concept art (hub, 6 zone, veicoli, manichini, animali piloti) e Jack sceglie. Poi il motore a nastro 3D e la zona Spiaggia e porto.

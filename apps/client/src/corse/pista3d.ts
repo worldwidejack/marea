@@ -1,4 +1,4 @@
-// La pista del Gran Premio in 3D (docs/CORSE.md §3): asfalto con la riga tratteggiata, cordoli bianchi e rossi, prato rasato a strisce,
+// La pista del Gran Premio in 3D (docs/CORSE.md §B3): asfalto con la riga tratteggiata, cordoli bianchi e rossi, prato rasato a strisce,
 // muretto di gomme al bordo (dove la sim mette il muro), linea del via a scacchi sotto l'arco, tribune sul rettilineo, gomme nelle curve,
 // palme sul prato e il mare tutto intorno. Tutto statico e fuso in poche geometrie a colori per vertice (palette, facce piatte):
 // ~6 draw call per tutta la pista. Le misure vengono dalla sim (corsePista: centro campionato, mezza carreggiata, prato).

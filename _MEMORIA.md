@@ -44,3 +44,17 @@ Intervista di Jack in Claude Code (VS Code), 4 giri più 2 domande, piano approv
 
 **Scheda Difesa** — corsie alla PvZ (5 × 8 in verticale, tocca torre → tocca casella); valuta dentro la partita (Girasole 50, +25 ogni 24 s); una novità per livello; nemici che contrano torri. Talk GDC 2012 di George Fan (gdcvault 1015541): tutorial dentro il gioco, max 8 parole a schermo, messaggi che non fermano. Numeri PvZ: Sparapiselli 100 / 20 danni ogni 1,425 s; Muro-noce 50 / 4000; zombie 270, cono 640, secchio 1370. Prima fetta: 3 torri, 3 nemici, 3 livelli (1→3→5 corsie), stelle per vite, poi sfida del giorno con classifica. Fonti: plantsvszombies.wiki.gg, gamedeveloper «Kingdom Rush level design», redblobgames tower defense.
 
+
+**Corse v2: intervista del 9 ott sera** (bibbia in `docs/CORSE.md` Parte A, #155 riscritta). Il Gran Premio non va: il look della pista è povero e c'è troppo poco da fare. La guida invece va bene. Jack: «non aggiungere isole giusto per aggiungerle, ma isole complete e lunghe», fatte in modo serio, con asset generati. Le risposte:
+- **Riferimenti**: «tanti giochi diversi».
+- **Struttura**: avventura con hub alla DKR, sempre col veicolo. Bot + fantasmi.
+- **Famiglie di veicoli**: ruote, due ruote, acqua, più al posto degli aerei la famiglia «buffa» di Jack: kart da miniera, scivolo d'acqua, scivolo di ghiaccio, slitta. Buffi di tutti e 4 i tipi. Famiglie con guida propria + statistiche. Pilota = il tuo avatar.
+- **Zone**: ghiaccio, giungla, spiaggia e porto, neon, luna park, fondale e cielo, tutte dentro l'isola. Piste: circuiti, discese e fughe, piste folli. 6 zone × 4 piste.
+- **Oggetti** solo in alcune gare. **Sfide extra** rinviate («prima vibes e vision»).
+- **Sblocchi**: zone, veicoli, premi MAREA. **Musica**: un tema per zona.
+- **Tono**: «posto strano, per qualche motivo di lore tutto è diventato una corsa», felice da grande evento sportivo e un po' creepy (solo un filo, sempre colorato). Avventura con cattivo, lore dopo.
+- **Vibes**: pubblico di manichini, animali piloti seri. I bot sono gli abitanti strani dell'isola.
+- **Metodo**: evento firma per pista. La pista decide la famiglia, con qualche pista mista. Concept art prima. Asset misti (Blender + AI 3D per buffi e animali). Amici pezzo per pezzo. Tappe concept → grezza → finita.
+- **Prima zona**: l'ha lasciata scegliere a Claude, che ha preso **Spiaggia e porto** (ruote + acqua).
+
+Tecnica: la sim di oggi è piatta (x, z), quindi serve una pista a nastro 3D in coordinate di pista.
