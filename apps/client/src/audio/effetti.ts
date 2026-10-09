@@ -111,4 +111,7 @@ export const SUONI: Record<SuonoId, Ricetta> = {
   // ---- Vulcano: Fuga dalla lava ----
   salto: (m, t) => m.tono({ f: 330 * vari(0.04), f2: 660, onda: 'impulso', t, dur: 0.09, vol: 0.06, lp: 3000 }),
   sfrigola: (m, t) => { m.soffio({ f: 5200 * vari(0.1), q: 0.8, t, dur: 0.45, vol: 0.09, a: 0.01 }); m.tono({ f: 140, f2: 70, onda: 'square', t, dur: 0.18, vol: 0.06, lp: 800 }); },
+  // ---- lore nei dungeon: l'altoparlante gracchia e fa din-don; la pagina che si gira ----
+  altoparlante: (m, t) => { for (const dt of [0, 0.07, 0.15]) m.soffio({ f: 2400 * vari(0.2), q: 0.7, t: t + dt, dur: 0.05, vol: 0.06, a: 0.005 }); m.tono({ f: 660, onda: 'square', t: t + 0.22, dur: 0.16, vol: 0.05, lp: 1600 }); m.tono({ f: 495, onda: 'square', t: t + 0.4, dur: 0.24, vol: 0.05, lp: 1600 }); },
+  pagina: (m, t) => { m.soffio({ f: 3200 * vari(0.15), f2: 1400, q: 0.8, t, dur: 0.16, vol: 0.08, a: 0.02 }); m.soffio({ f: 1800, q: 1.2, t: t + 0.12, dur: 0.06, vol: 0.04 }); },
 };

@@ -17,7 +17,8 @@ export type SuonoId =
   | 'lancio' | 'plop' | 'abbocca' | 'pesce' | 'scappato'
   | 'colpo_dato' | 'colpo_critico' | 'colpo_preso' | 'schivato' | 'nemico_ko' | 'raccolto' | 'pozione' | 'magia' | 'altare' | 'vuoto' | 'goccia'
   | 'cannone' | 'tuono' // Tempesta: Arrembaggio
-  | 'salto' | 'sfrigola'; // Vulcano: Fuga dalla lava
+  | 'salto' | 'sfrigola' // Vulcano: Fuga dalla lava
+  | 'altoparlante' | 'pagina'; // lore nei dungeon (rpg/dungeon_testi.ts)
 export type MusicaModo = 'giorno' | 'notte' | 'gara' | 'dungeon' | 'silenzio';
 export type Meteo = 'sereno' | 'pioggia' | 'vento';
 /** Quello che il motore legge dal gioco a ogni frame (main.ts lo passa una volta con collegaAudio). */

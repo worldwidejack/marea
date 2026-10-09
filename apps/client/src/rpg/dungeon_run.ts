@@ -40,6 +40,8 @@ import type { Actors } from './dungeon_actors.ts';
 import { createDungeonHud } from './dungeon_hud.ts';
 import { createDrenaggioFx } from './drenaggio.ts';
 import type { DrenaggioFx } from './drenaggio.ts';
+import { createTesti } from './dungeon_testi.ts';
+import type { DungeonTestiUi } from './dungeon_testi.ts';
 import type { DungeonHud } from './dungeon_hud.ts';
 import { createControls } from './dungeon_controls.ts';
 import type { Controls } from './dungeon_controls.ts';
@@ -75,6 +77,7 @@ export function startRun(ctx: RunCtx, o: {
   const frames: DungeonInput[] = [], azioni: DungeonAzioni = [];
   let phase: Phase = 'loading', wait = 0, view: DungeonView = dungeon.view(s), auto: Rng | null = null, arma = view.hero.arma;
   let sc: DungeonScene | null = null, hero: HeroActor | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, controls: Controls | null = null, fx: DrenaggioFx | null = null;
+  let testi: DungeonTestiUi | null = null;
   let resolve!: (v: Out | { insieme: true } | null) => void;
   const done = new Promise<Out | { insieme: true } | null>((r) => (resolve = r));
   const out = (): Out => ({ inputs: packDungeon(frames), hash: dungeon.result(s).hash, azioni: azioni.map(([t, a]) => [t, a]) });
@@ -87,7 +90,7 @@ export function startRun(ctx: RunCtx, o: {
   const cleanup = () => {
     phase = 'over'; dungeonLink.state = null; dungeonLink.act = null;
     closePanels();
-    controls?.dispose(); hud?.dispose(); actors?.dispose(); fx?.dispose(); hero?.dispose(); sc?.dispose();
+    controls?.dispose(); testi?.dispose(); hud?.dispose(); actors?.dispose(); fx?.dispose(); hero?.dispose(); sc?.dispose();
     for (const a of amici) a.actor?.dispose();
     ctx.renderer.setScene(null);
   };
@@ -108,7 +111,7 @@ export function startRun(ctx: RunCtx, o: {
   /** Fine partita (esito della sim): scritta grande, poi consegna dopo END_WAIT tick. */
   const toEnd = () => {
     if (phase !== 'play') return;
-    phase = 'end'; wait = END_WAIT; controls?.hide(); closePanels();
+    phase = 'end'; wait = END_WAIT; controls?.hide(); testi?.hide(); closePanels();
     const [txt, col] = OUT[s.outcome ?? 'tempo'] ?? OUT['tempo']!;
     hud?.big(txt, col, s.uscitaLanterna >= 0 ? 'dalla lanterna: la prossima volta puoi ripartire da qui' : 'il server conferma il bottino');
   };
@@ -161,12 +164,13 @@ export function startRun(ctx: RunCtx, o: {
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: s.runHero });
       controls = createControls({
-        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen(), insieme: !!rete,
+        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, insieme: !!rete,
         onAbort: () => (phase === 'end' ? finish() : abort()),
         onZaino: openZaino,
         onSalva: () => { const e = act({ t: 'salva' }); if (e) ctx.hud.toast(e, 1800); },
         onEsciLanterna: () => { const e = act({ t: 'esci' }); if (e) ctx.hud.toast(e, 1800); },
       });
+      if (sc.def.testi) testi = createTesti({ root: ctx.root, camera: ctx.renderer.camera, canvas: ctx.canvas, sc, insieme: !!rete });
       const ic = hud.icons(); controls.setIcons(ic.c, ic.d, ic.key);
       if (s.salvato) controls.setSalvato(true);
       hero.tick(view.hero); actors.tick(view); fx?.tick(view); sc.setAcque(view.acque); tickAmici();
@@ -241,14 +245,23 @@ export function startRun(ctx: RunCtx, o: {
     return p;
   };
 
-  // test (hook dungeonAltare): cammina fino all'altare n lungo le distanze BFS, input registrati come gli altri (il server li rigioca)
-  let walkField: { n: number; to: number; field: Int32Array } | null = null;
+  // test (hook dungeonAltare / dungeonVai): cammina fino all'altare n o a una cella lungo le distanze BFS, input registrati come gli altri
+  let walkField: { to: number; field: Int32Array } | null = null;
   function walkToAltare(n: number): DungeonInput {
-    const m = s.map, a = m.altari[n];
-    if (!a || s.altare === n) { dungeonLink.altare = -1; return { mx: 0, my: 0, a: false, b: false, c: false, d: false }; }
-    if (walkField?.n !== n) { const to = a.cz * m.w + a.cx; walkField = { n, to, field: bfs(m, to) }; }
-    const cur = cellOf(m, s.hero.x, s.hero.z), next = cur === walkField.to ? walkField.to : stepDown(m, walkField.field, cur);
-    const p = next >= 0 && next !== walkField.to ? cellCenter(m, next) : { x: a.x, z: a.z };
+    const a = s.map.altari[n];
+    if (!a || s.altare === n) { dungeonLink.altare = -1; return { ...NO_DUNGEON_INPUT }; }
+    return walkTo(a.cz * s.map.w + a.cx, a.x, a.z);
+  }
+  function walkToCella([cx, cz]: [number, number]): DungeonInput {
+    const m = s.map, c = { x: (cx + 0.5) * m.tile, z: (cz + 0.5) * m.tile };
+    if (Math.abs(c.x - s.hero.x) + Math.abs(c.z - s.hero.z) < 0.3) { dungeonLink.vai = null; return { ...NO_DUNGEON_INPUT }; }
+    return walkTo(cz * m.w + cx, c.x, c.z);
+  }
+  function walkTo(to: number, x: number, z: number): DungeonInput {
+    const m = s.map;
+    if (walkField?.to !== to) walkField = { to, field: bfs(m, to) };
+    const cur = cellOf(m, s.hero.x, s.hero.z), next = cur === to ? to : stepDown(m, walkField.field, cur);
+    const p = next >= 0 && next !== to ? cellCenter(m, next) : { x, z };
     const dx = p.x - s.hero.x, dz = p.z - s.hero.z, d = Math.sqrt(dx * dx + dz * dz) || 1;
     return { mx: dx / d, my: dz / d, a: false, b: false, c: false, d: false };
   }
@@ -257,6 +270,7 @@ export function startRun(ctx: RunCtx, o: {
     const c = controls!.sample();
     if (auto) return dungeon.autopilot(s, auto);
     if (dungeonLink.altare >= 0) return walkToAltare(dungeonLink.altare);
+    if (dungeonLink.vai) return walkToCella(dungeonLink.vai);
     return { mx: f.mx, my: f.my, a: f.a || c.a, b: f.b, c: c.c, d: c.d };
   }
 
@@ -273,7 +287,7 @@ export function startRun(ctx: RunCtx, o: {
     if (dungeonLink.autopilot > 0 && !auto) auto = createRng(o.seed + io).fork('autopilot');
     if (dungeonLink.autopilot === 0) auto = null;
     if (phase === 'play' && !s.done) {
-      const fermo = !!controls?.paused || isPanelOpen();
+      const fermo = !!controls?.paused || isPanelOpen() || !!testi?.aperta;
       const q = quantizeDungeon(fermo && !auto ? { ...NO_DUNGEON_INPUT } : inputOra(f));
       win.mx = q.mx; win.my = q.my; win.bits |= bitsOf(q);
       if (++win.n >= SQ_TICKS) {
@@ -322,10 +336,10 @@ export function startRun(ctx: RunCtx, o: {
         return;
       }
       if (phase === 'end') { if (--wait <= 0 || (wait < END_WAIT - 40 && f.a)) finish(); return; }
-      if (phase !== 'play' || !controls || controls.paused || isPanelOpen()) return;
+      if (phase !== 'play' || !controls || controls.paused || isPanelOpen() || testi?.aperta) return;
       if (dungeonLink.autopilot > 0 && !auto) auto = createRng(o.seed).fork('autopilot');
       if (dungeonLink.autopilot === 0) auto = null;
-      const n = auto ? dungeonLink.autopilot : dungeonLink.altare >= 0 ? 8 : 1;
+      const n = auto ? dungeonLink.autopilot : dungeonLink.altare >= 0 || dungeonLink.vai ? 8 : 1;
       for (let i = 0; i < n && !s.done; i++) tickOnce(f);
       refresh();
       hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); hero!.mira(miraArco()); actors!.tick(view); fx?.tick(view);
@@ -340,6 +354,7 @@ export function startRun(ctx: RunCtx, o: {
       sc.update(p.x, p.z, t);
       actors.update(alpha, dt, t, { x: p.x, z: p.z });
       if (fx) { fx.update(t, { x: p.x, z: p.z }, view); sc.setAcque(view.acque); }
+      testi?.update({ x: p.x, z: p.z }, phase === 'play' && !controls.paused, dt);
       hud.set(view, dungeon.maxTicks); hud.bars(actors.bars());
       if (rete) hud.compagni(amici.filter((a) => a.actor && !a.done).map((a) => {
         const c = view.compagni.find((x) => x.i === a.i), pos = a.actor!.head().clone();
@@ -365,7 +380,7 @@ export function startRun(ctx: RunCtx, o: {
       hero: { x: v.hero.x, z: v.hero.z, vita: v.hero.vita, magicka: v.hero.magicka, stamina: v.hero.stamina, anim: v.hero.anim, arma: v.hero.arma, frecce: v.hero.frecce },
       nemici: v.nemici.filter((n) => !n.alleato).length, vivi, vicinoUscita: v.vicinoUscita,
       acque: v.acque, valvole: v.valvole, vicinoValvola: v.vicinoValvola, geyser: v.geyser.length, rallentato: !!v.hero.rallentato, fx: fx?.counts() ?? null,
-      altari: v.altari, salvato: v.salvato, cadute: s.cadute, protetto: v.hero.protetto, lanterna: v.lanterna, salvatoQui: v.salvatoQui, partenza: s.partenza,
+      testi: testi?.stato() ?? null, altari: v.altari, salvato: v.salvato, cadute: s.cadute, protetto: v.hero.protetto, lanterna: v.lanterna, salvatoQui: v.salvatoQui, partenza: s.partenza,
       equip: { ...s.equip }, azioni: azioni.length, pannello: isPanelOpen(),
       scene: sc?.stats() ?? null, actors: actors?.counts() ?? null,
       insieme: rete ? {

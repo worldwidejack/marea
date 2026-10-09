@@ -111,6 +111,18 @@ export type DungeonDef = {
   legenda: Record<string, { nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number }>;
   /** Dove sta l'ingresso nel mondo: cella di un'isola di islands.json (il modello è `prop_ingresso_<stile>`). */
   ingresso: { island: string; at: [number, number] };
+  /** Lore dentro il dungeon (docs/RPG.md §2c): solo testo per il client, la sim non lo vede. */
+  testi?: DungeonTesti;
+};
+
+/** Lore di un dungeon: poche cose obbligatorie e corte (sottotitolo, voci), il resto facoltativo (letture). Celle [x, z] della mappa. */
+export type DungeonTesti = {
+  /** Sotto il nome, nella scritta grande a ogni discesa. */
+  sottotitolo?: string;
+  /** Obbligatorie: la prima volta che entri nella zona [x0, z0, x1, z1] (estremi compresi) parla `chi` (`capo`: è il capo, in rosso). */
+  voci?: { id: string; zona: [number, number, number, number]; chi: string; capo?: boolean; testo: string }[];
+  /** Facoltative: `libro` = leggio sulla cella, `incisione` = targa sul muro a nord della cella. Si aprono solo tenendo premuto LEGGI. */
+  letture?: { id: string; tipo: 'libro' | 'incisione'; at: [number, number]; titolo: string; righe: string[] }[];
 };
 
 export type RpgBalance = {

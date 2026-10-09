@@ -134,5 +134,41 @@
     " #c....<......#     #......................# ",
     " ##############     ######################## ",
     "                                             "
-   ]}
+   ],
+   "testi": {
+    "sottotitolo": "Pilone idraulico n. 1 · turno di notte",
+    "voci": [
+     {"id":"ingresso","zona":[2,19,13,27],"chi":"Altoparlante","testo":"…krrr… Turno di notte, giorno 41.207. Marea Ferrosa: livello ALTO. Nessun operaio lasci la postazione."},
+     {"id":"pompe","zona":[2,2,12,9],"chi":"Altoparlante","testo":"Sala pompe. Con la Marea alta le valvole restano chiuse e l’acqua resta dentro. Ordine della Regina."},
+     {"id":"capoturno","zona":[21,1,42,9],"chi":"Il Capoturno","capo":true,"testo":"Operaio fuori postazione. Il turno non è finito. IL TURNO NON FINISCE."}
+    ],
+    "letture": [
+     {"id":"registro","tipo":"libro","at":[11,27],"titolo":"Registro del turno di notte","righe":[
+       "Giorno 1. La Marea Ferrosa si è mangiata il molo est in una notte sola: il ferro delle barche è diventato polvere rossa. Le pompe reggono. Doppio turno per tutti.",
+       "Giorno 4. La pompa maestra tiene asciutte le sale basse. Ma con la Marea alta non si scarica niente: apri le valvole e il mare rosso risale dai tubi.",
+       "Giorno 6. Stanotte la Regina è scesa all’impianto, da sola. Mi ha chiesto quanta pressione possiamo dare al Pilone 1. Le ho detto: tutta. Ha sorriso come chi sa una cosa che tu non sai.",
+       "Giorno 9. Ho caricato nel Capoturno l’ordine di emergenza: finché la Marea è alta, valvole chiuse e nessun operaio lascia la postazione. Le sale basse si allagheranno. Meglio acqua nostra che la Marea.",
+       "Giorno 11. All’alba le barche partono per il giro dei piloni. Io resto alle valvole. Se la Barriera regge, qualcuno torni quaggiù a spegnere il Capoturno: quell’ordine non l’ho scritto per durare.",
+       "Giorno 12. L’acqua arriva alle ginocchia. Gli operai di ferro lavorano con l’acqua alla cintura e non si lamentano. Io sì. L’acqua è"
+     ]},
+     {"id":"targa","tipo":"incisione","at":[7,2],"titolo":"Targa d’ottone","righe":[
+       "IMPIANTO DI DRENAGGIO · PILONE 1",
+       "Dono della Corona alla gente della Laguna.",
+       "FINCHÉ L’ACQUA GIRA, LA MAREA NON ENTRA.",
+       "Sotto, graffiato con un chiodo: «e se l’acqua smette di girare?»"
+     ]},
+     {"id":"manuale","tipo":"libro","at":[21,27],"titolo":"Manuale dell’operaio di ferro, modello 3","righe":[
+       "Regola 1. L’operaio non lascia la postazione.",
+       "Regola 2. L’operaio non discute gli ordini del Capoturno.",
+       "Regola 3. Con la Marea alta, l’operaio chiude le valvole e le tiene chiuse.",
+       "Regola 4. Se trova una persona dove non dovrebbe stare, l’operaio la accompagna fuori. Con garbo.",
+       "Regola 5. Se il garbo non basta, vedi regola 2.",
+       "A matita, sul margine: «Il sensore della Marea si è bloccato su ALTO. Se la Barriera regge e il mare torna pulito, il Capoturno non lo saprà mai.»"
+     ]},
+     {"id":"tacche","tipo":"incisione","at":[16,2],"titolo":"Tacche nel ferro","righe":[
+       "Centinaia di tacche graffiate nella lamiera, a gruppi di cinque. Le prime sono dritte e profonde. Le ultime sono storte, fatte con qualcosa che non è più una mano.",
+       "Sotto, in piccolo: «QUANDO FINISCE IL TURNO?»"
+     ]}
+    ]
+   }}
 ]

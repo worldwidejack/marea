@@ -32,6 +32,7 @@ Quando Riccardo dice «**dungeon della Regata numero N**», intende il dungeon N
     | 4 Mausoleo | 70-200 · 20-40 | ~1300 · 45, in 3 fasi |
 - Come gli altri dungeon: **almeno 2 lanterne** (altari) fuori dalla vista del capo, capo con la **corona gialla** (ucciderlo = dungeon completato), mappa ~45×30, deve funzionare anche **insieme** (fino a 4, sim deterministica: leve, acqua e porte uguali per tutti).
 - Ogni dungeon ha **una meccanica a tema** che lo rende diverso dagli altri (vedi sotto).
+- **La lore si racconta dentro il dungeon** (Riccardo, 8 ott 2026; regole vere in `RPG.md` §2c, fatto nel Drenaggio): pochissimo testo obbligatorio (scritta grande col nome e un sottotitolo; 2-4 voci corte la prima volta che entri in una stanza, per esempio l'altoparlante dell'impianto o il capo che ti parla), il resto facoltativo (libri, incisioni) che si capisce che è facoltativo e non si apre per sbaglio (LEGGI tenuto premuto). Ogni dungeon nuovo ha i suoi `testi` in `dungeons.json`, con voci a tema (l'Archivio può parlare con la voce dell'archivista, il Mausoleo con quella della Regina).
 - **[proposta] In superficie**: davanti a ogni ingresso un **pilone idraulico**. Spento finché non completi quel dungeon; acceso (per te) dopo. Con tutti e 4 accesi, nella Laguna si vedono le correnti cinetiche (strisce d'acqua luminosa lungo il percorso della Regata). Solo estetica: la Regata non cambia.
 - Look: palette di `ART_BIBLE.md` §2 (ottone = arancio/giallo della palette, ruggine = marroni, vapore = bianchi), niente gradienti lisci, niente PBR.
 
