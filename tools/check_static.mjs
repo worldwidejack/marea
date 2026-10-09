@@ -26,10 +26,11 @@ for (const f of files) {
     if (/\b(document|window|localStorage|navigator)\s*\./.test(code)) errs.push(`${r}: DOM/window in pacchetto puro`);
     if (/from\s+['"]three/.test(code)) errs.push(`${r}: three in pacchetto puro`);
   }
-  // dungeon: niente funzioni trascendenti (diverse tra JavaScriptCore e V8 → il replay del server divergerebbe), CONTRACTS §15
-  if (r.startsWith('packages/sim/src/dungeon/') || r.startsWith('packages/sim/src/templari/') || r === 'packages/sim/src/minigames/corse.ts' || r.startsWith('packages/sim/src/corse/')) {
+  // sim: niente funzioni trascendenti (diverse tra motori, anche tra V8 di Node e di workerd → il replay del server diverge, #169),
+  // CONTRACTS §15; seno, coseno, arcotangente e ipotenusa deterministici in packages/sim/src/trig.ts
+  if (isSim && r !== 'packages/sim/src/trig.ts') {
     const m = code.match(/\bMath\.(sin|cos|tan|asin|acos|atan|atan2|hypot|pow|exp|expm1|log|log2|log10|log1p|cbrt|sinh|cosh|tanh)\s*\(|\*\*/);
-    if (m) errs.push(`${r}: ${m[0]} vietato nel dungeon, nei Templari e nelle Corse (solo + − × ÷ e Math.sqrt: il replay deve coincidere su ogni motore JS)`);
+    if (m) errs.push(`${r}: ${m[0]} vietato in packages/sim (solo + − × ÷ e Math.sqrt, o trig.ts: il replay del server deve coincidere su ogni motore JS)`);
   }
   // chunk GDR: nel client solo apps/client/src/rpg/** importa i dati e la sim del Mondo Sotterraneo (il resto solo `import type` o import() dinamico)
   if (r.startsWith('apps/client/src/') && !r.startsWith('apps/client/src/rpg/') && !r.startsWith('apps/client/src/templari/')) {

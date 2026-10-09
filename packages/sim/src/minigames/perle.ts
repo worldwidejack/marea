@@ -11,6 +11,7 @@ import type { Rng } from '../rng.ts';
 import type { InputFrame } from '../types.ts';
 import type { Archipelago } from '../world/archipelago.ts';
 import type { Difficulty, Medal, MinigameModule, MinigameResult } from './types.ts';
+import * as trig from '../trig.ts';
 
 const C = MINIGAMES_CFG.perle;
 const MAX_TICKS = Math.round(C.maxSeconds * TICK_HZ);
@@ -112,7 +113,7 @@ export function perleQui(arch: Archipelago, x: number, z: number, speed: number)
     for (let dx = -r; dx <= r; dx++) {
       const t = m.at(cx + dx, cz + dz);
       if (t !== 'd' && t !== 'B') continue;
-      if (Math.hypot((cx + dx + 0.5) * tile - x, (cz + dz + 0.5) * tile - z) <= C.posto.moloM) return { ok: false, perche: 'molo' };
+      if (trig.hypot((cx + dx + 0.5) * tile - x, (cz + dz + 0.5) * tile - z) <= C.posto.moloM) return { ok: false, perche: 'molo' };
     }
   if (Math.abs(speed) > C.posto.fermoMs) return { ok: false, perche: 'veloce' };
   return { ok: true, perche: null };
@@ -124,7 +125,7 @@ export function cercaPerle(arch: Archipelago, x: number, z: number): { x: number
   for (let cz = 0; cz < m.h; cz++)
     for (let cx = 0; cx < m.w; cx++) {
       if (m.at(cx, cz) !== ',') continue;
-      const px = (cx + 0.5) * tile, pz = (cz + 0.5) * tile, d = Math.hypot(px - x, pz - z);
+      const px = (cx + 0.5) * tile, pz = (cz + 0.5) * tile, d = trig.hypot(px - x, pz - z);
       if (d < bestD && perleQui(arch, px, pz, 0).ok) { best = { x: px, z: pz }; bestD = d; }
     }
   return best;

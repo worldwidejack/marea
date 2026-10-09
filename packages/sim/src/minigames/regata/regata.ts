@@ -11,6 +11,7 @@ import type { BoatState } from '../../world/boat.ts';
 import { parseIsland } from '../../world/grid.ts';
 import type { GridMap } from '../../world/grid.ts';
 import type { Difficulty, Medal, MinigameModule, MinigameResult } from '../types.ts';
+import * as trig from '../../trig.ts';
 
 export type Buoy = { x: number; z: number; passed: boolean };
 /** Raffica: dal tick `start` per `len` tick, direzione (dx, dz) unitaria, forza in m/s al picco (inviluppo a seno). */
@@ -82,7 +83,7 @@ export function regataCourse(): Buoy[] {
 
 /** Tratto dritto tutto in acqua (campionato ogni mezzo metro): 2 m di margine, 1 m nei primi 3 m (la partenza è sotto il molo). */
 export function segmentClear(map: GridMap, a: Vec2, b: Vec2): boolean {
-  const len = Math.hypot(b.x - a.x, b.z - a.z);
+  const len = trig.hypot(b.x - a.x, b.z - a.z);
   const n = Math.max(1, Math.ceil(len * 2));
   for (let i = 0; i <= n; i++) {
     const x = a.x + ((b.x - a.x) * i) / n, z = a.z + ((b.z - a.z) * i) / n;
@@ -101,7 +102,7 @@ function makeGusts(rng: Rng, difficulty: Difficulty): Gust[] {
     t += Math.round((w.gustEverySeconds[0] + rng.next() * (w.gustEverySeconds[1] - w.gustEverySeconds[0])) * TICK_HZ);
     if (t >= MAX_TICKS) break;
     const a = rng.next() * Math.PI * 2;
-    out.push({ start: t, len: Math.round(w.gustSeconds * TICK_HZ), dx: Math.cos(a), dz: Math.sin(a), force: w.force * k * (0.7 + 0.3 * rng.next()) });
+    out.push({ start: t, len: Math.round(w.gustSeconds * TICK_HZ), dx: trig.cos(a), dz: trig.sin(a), force: w.force * k * (0.7 + 0.3 * rng.next()) });
   }
   return out;
 }
@@ -111,7 +112,7 @@ export function windAt(gusts: readonly Gust[], tick: number): { wind: Vec2; gust
   let x = 0, z = 0, g = 0;
   for (const q of gusts) {
     if (tick < q.start || tick >= q.start + q.len) continue;
-    const e = Math.sin((Math.PI * (tick - q.start)) / q.len);
+    const e = trig.sin((Math.PI * (tick - q.start)) / q.len);
     x += q.dx * q.force * e;
     z += q.dz * q.force * e;
     g = Math.max(g, e);
@@ -144,24 +145,24 @@ function pilot(s: RegataState, gas: number, compensate: boolean, careful: boolea
   if (!b) return { mx: 0, my: 0, a: false, b: false };
   const a = legStart(s, s.next);
   const lx = b.x - a.x, lz = b.z - a.z;
-  const L = Math.hypot(lx, lz) || 1;
+  const L = trig.hypot(lx, lz) || 1;
   const ux = lx / L, uz = lz / L;
   const along = Math.max(0, Math.min(L, (s.boat.x - a.x) * ux + (s.boat.z - a.z) * uz));
   const off = Math.abs((s.boat.x - a.x) * uz - (s.boat.z - a.z) * ux); // distanza dalla linea: se sei fuori, rientra quasi di traverso
   const ahead = Math.min(L, along + Math.max(1.5, 6 - off));
   const tx = a.x + ux * ahead - s.boat.x, tz = a.z + uz * ahead - s.boat.z;
-  const td = Math.hypot(tx, tz) || 1;
+  const td = trig.hypot(tx, tz) || 1;
   const v = boatParams().maxSpeed * gas;
   let hx = (tx / td) * v, hz = (tz / td) * v;
   if (compensate) { hx -= s.wind.x; hz -= s.wind.z; }
-  const h = Math.hypot(hx, hz) || 1;
+  const h = trig.hypot(hx, hz) || 1;
   // virata alla boa: quanto gira il tratto dopo; più è stretta, più si arriva piano
   const c = s.buoys[s.next + 1];
   let brake = false;
-  const d = Math.hypot(b.x - s.boat.x, b.z - s.boat.z);
+  const d = trig.hypot(b.x - s.boat.x, b.z - s.boat.z);
   if (c && careful) {
     const nx = c.x - b.x, nz = c.z - b.z;
-    const cos = (nx * ux + nz * uz) / (Math.hypot(nx, nz) || 1);
+    const cos = (nx * ux + nz * uz) / (trig.hypot(nx, nz) || 1);
     const vTurn = TURN_V[0] + TURN_V[1] * Math.max(0, (cos + 1) / 2);
     brake = d < 2 + s.boat.speed * TURN_V[2] && s.boat.speed > vTurn;
   }
@@ -184,7 +185,7 @@ export const regata: MinigameModule<RegataState> = {
     const buoys = regataCourse();
     let length = 0;
     let from: Vec2 = map.boatSpawn;
-    for (const p of buoys) { length += Math.hypot(p.x - from.x, p.z - from.z); from = p; }
+    for (const p of buoys) { length += trig.hypot(p.x - from.x, p.z - from.z); from = p; }
     const st: RegataState = {
       seed, difficulty, tick: 0, boat: newBoat(map.boatSpawn.x, map.boatSpawn.z), buoys, next: 0, done: false, finishTick: 0,
       wind: { x: 0, z: 0 }, gusts: makeGusts(root.fork('vento'), difficulty), length: Math.round(length * 10) / 10,
@@ -206,7 +207,7 @@ export const regata: MinigameModule<RegataState> = {
     s.wind = windAt(s.gusts, s.tick).wind;
     s.boat = stepBoat(s.boat, input, s.map, s.wind);
     const b = s.buoys[s.next];
-    if (b && Math.hypot(b.x - s.boat.x, b.z - s.boat.z) <= RADIUS) {
+    if (b && trig.hypot(b.x - s.boat.x, b.z - s.boat.z) <= RADIUS) {
       b.passed = true;
       s.next++;
     }

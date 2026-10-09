@@ -11,6 +11,7 @@ import type { LotState } from '../economy/types.ts';
 import type { ArchPlace } from './archipelago.ts';
 import type { BoatState } from './boat.ts';
 import type { GridMap } from './grid.ts';
+import * as trig from '../trig.ts';
 
 /** Quel che serve per decidere: livello del Molo (0 = nessuna isola), livello del personaggio, cappello indosso (id), mappe possedute. */
 export type Viaggiatore = { molo: number; livello: number; cappello: string | null; mappe: readonly string[]; reliquie: readonly string[] };
@@ -100,7 +101,7 @@ export function respingi(prev: BoatState, next: BoatState, place: ArchPlace, map
   const tipo = t.sblocco.tipo;
   const fuori = t.barriera + (tipo === 'molo' ? 2.5 : 0.05); // la tempesta ti butta un po' più in là
   let out: BoatState;
-  if (tipo === 'mappa' || tipo === 'reliquia') out = { ...next, x: b.qx + b.nx * fuori, z: b.qz + b.nz * fuori, yaw: Math.atan2(b.nx, -b.nz), speed: next.speed * 0.6, rudder: 0 };
+  if (tipo === 'mappa' || tipo === 'reliquia') out = { ...next, x: b.qx + b.nx * fuori, z: b.qz + b.nz * fuori, yaw: trig.atan2(b.nx, -b.nz), speed: next.speed * 0.6, rudder: 0 };
   else out = { ...next, x: b.qx + b.nx * fuori, z: b.qz + b.nz * fuori, speed: 0, wake: tipo === 'molo' ? 1 : 0 };
   if (!map.navigable(out.x, out.z)) out = { ...prev, speed: 0 };
   return out;

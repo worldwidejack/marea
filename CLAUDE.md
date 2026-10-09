@@ -20,7 +20,7 @@
 
 ## Regole di codice
 1. **Mai lasciare `main` rotto.** Se i controlli della tua PR sono rossi, non si fa merge: si sistema.
-2. **`packages/sim` è puro**: niente DOM, `three`, `Math.random`, `Date.now`, `performance.now`, timer. Casualità solo da `createRng(seed)`. Lo controlla `tools/check_static.mjs`.
+2. **`packages/sim` è puro**: niente DOM, `three`, `Math.random`, `Date.now`, `performance.now`, timer. Casualità solo da `createRng(seed)`. Niente `Math.sin/cos/atan2/hypot/pow/…` (danno bit diversi tra motori e il replay del server diverge): `trig.ts` o solo + − × ÷ e `Math.sqrt`. Lo controlla `tools/check_static.mjs`.
 3. **TypeScript erasable**: niente `enum`, `namespace`, parameter properties; `import type` per i tipi; import relativi con `.ts`. Node 26 esegue i `.ts` senza build.
 4. **Numeri di gioco solo in `packages/content`** (JSON). Cambiarli = aggiornare la tabella del GDD e una riga in `ROADMAP.md` §Deviazioni.
 5. **Nessuna dipendenza nuova** senza riga in `ROADMAP.md` §Deviazioni.
