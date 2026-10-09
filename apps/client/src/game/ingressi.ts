@@ -60,7 +60,7 @@ export function nextDungeon(completati: readonly string[]): string | null {
 /** Ponte coi test (?test=1): autopilot (tick per frame), `altare` = cammina fino a quell'altare (-1 = no), stato della partita. */
 /** posa: solo test (hook dungeonPosa), campi della vista dell'eroe forzati per la resa (anim, t, stile, carica, fx, fz): la sim non cambia. */
 /** act: azione dal menu nella spedizione in corso (hook dungeonAct: equip, butta, salva, esci); null = fatta, se no il motivo. */
-export const dungeonLink: { autopilot: number; altare: number; posa: Record<string, unknown> | null; state: (() => Record<string, unknown>) | null; act: ((a: DungeonAzione) => string | null) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, altare: -1, posa: null, state: null, act: null };
+export const dungeonLink: { autopilot: number; altare: number; vai: [number, number] | null; posa: Record<string, unknown> | null; state: (() => Record<string, unknown>) | null; act: ((a: DungeonAzione) => string | null) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, altare: -1, vai: null, posa: null, state: null, act: null };
 
 const NEAR_M = 4;
 /** Squadra: chi si allontana più di così dall'ingresso esce dalla squadra. */
@@ -339,6 +339,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
   });
   registerTestHook('dungeonAct', (a) => (dungeonLink.act ? dungeonLink.act(a as DungeonAzione) : 'nessuna spedizione'));
   registerTestHook('dungeonAltare', (n) => { dungeonLink.altare = Number.isInteger(n) ? Number(n) : -1; return dungeonLink.altare; });
+  registerTestHook('dungeonVai', (cx, cz) => { dungeonLink.vai = Number.isInteger(cx) && Number.isInteger(cz) ? [Number(cx), Number(cz)] : null; return dungeonLink.vai; });
   registerTestHook('dungeonPosa', (p) => { dungeonLink.posa = p && typeof p === 'object' ? { ...(p as Record<string, unknown>) } : null; return dungeonLink.posa; });
   registerTestHook('dungeonAutopilot', (on, speed) => { dungeonLink.autopilot = on ? Math.max(1, Math.min(20, Math.round(Number(speed ?? 4)) || 4)) : 0; return dungeonLink.autopilot; });
 

@@ -260,4 +260,7 @@ export const SUONI: Record<SuonoId, Ricetta> = {
     m.tono({ f: 55, onda: 'sine', t, dur: 3, vol: 0.09, a: 0.4 }); m.tono({ f: 58.3, onda: 'sine', t, dur: 3, vol: 0.06, a: 0.4 });
     for (const [dt, v] of [[0, 0.2], [0.22, 0.13], [0.9, 0.16], [1.13, 0.1], [2.0, 0.11], [2.25, 0.06]] as const) m.tono({ f: 62, f2: 40, onda: 'sine', t: t + dt, dur: 0.2, vol: v });
   },
+  // ---- lore nei dungeon: l'altoparlante gracchia e fa din-don; la pagina che si gira ----
+  altoparlante: (m, t) => { for (const dt of [0, 0.07, 0.15]) m.soffio({ f: 2400 * vari(0.2), q: 0.7, t: t + dt, dur: 0.05, vol: 0.06, a: 0.005 }); m.tono({ f: 660, onda: 'square', t: t + 0.22, dur: 0.16, vol: 0.05, lp: 1600 }); m.tono({ f: 495, onda: 'square', t: t + 0.4, dur: 0.24, vol: 0.05, lp: 1600 }); },
+  pagina: (m, t) => { m.soffio({ f: 3200 * vari(0.15), f2: 1400, q: 0.8, t, dur: 0.16, vol: 0.08, a: 0.02 }); m.soffio({ f: 1800, q: 1.2, t: t + 0.12, dur: 0.06, vol: 0.04 }); },
 };

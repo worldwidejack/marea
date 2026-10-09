@@ -21,7 +21,8 @@ export type SuonoId =
   // Isola dei Templari (docs/TEMPLARI.md §11): versi, stacchi d'ondata, campana, corno, risata, armi, porte, power-up, cassa
   | 'tpl_deus' | 'tpl_rantolo' | 'tpl_urlo' | 'tpl_sorge' | 'tpl_asse' | 'tpl_ondata' | 'tpl_ondata_fine' | 'tpl_campana' | 'tpl_corno' | 'tpl_risata'
   | 'tpl_pistola' | 'tpl_moschetto' | 'tpl_trombone' | 'tpl_freccia' | 'tpl_fendente' | 'tpl_porta' | 'tpl_potere' | 'tpl_potere_preso'
-  | 'tpl_cassa' | 'tpl_teschio' | 'tpl_rogo' | 'tpl_caduto';
+  | 'tpl_cassa' | 'tpl_teschio' | 'tpl_rogo' | 'tpl_caduto'
+  | 'altoparlante' | 'pagina'; // lore nei dungeon (rpg/dungeon_testi.ts)
 export type MusicaModo = 'giorno' | 'notte' | 'gara' | 'dungeon' | 'templari' | 'silenzio';
 export type Meteo = 'sereno' | 'pioggia' | 'vento';
 /** Quello che il motore legge dal gioco a ogni frame (main.ts lo passa una volta con collegaAudio). */
