@@ -111,12 +111,12 @@ function scia(s: GaraState, p: Pista): void {
   }
 }
 
-/** Il VIA: chi tiene DRIFT premuto da poco parte col turbo (da meno di `razzo` s: razzo), chi da troppo ingolfa il motore. */
+/** Il VIA: chi tiene il GAS a fondo da poco parte col turbo (da meno di `razzo` s: razzo), chi da troppo ingolfa il motore (come Mario Kart). */
 function partenza(k: Veicolo, R: Regole): void {
   const P = CORSE.partenza;
-  if (!R.partenza || k.tenuto < 0) return;
-  if (k.tenuto > P.finestra) { k.fermo = P.ingolfato; k.partenza = -1; return; }
-  const razzo = k.tenuto <= P.razzo;
+  if (!R.partenza || k.gasT < 0) return;
+  if (k.gasT > P.finestra) { k.fermo = P.ingolfato; k.partenza = -1; return; }
+  const razzo = k.gasT <= P.razzo;
   daiTurbo(k, P.turbo[razzo ? 1 : 0]!, razzo ? 3 : 1, R.somma);
   k.partenza = razzo ? 2 : 1;
 }
@@ -160,8 +160,8 @@ export function latObiettivo(p: Pista, k: Veicolo, bot: boolean): number | null 
 /** Il pilota automatico (prove e test): segue il centro (o l'imbocco delle scorciatoie), drift nelle curve lunghe. `pigro` = metà gas, niente drift. */
 export function pilotaGara(s: GaraState, pigro = false): InputFrame {
   const p = pistaCorse(s.pista), k = s.veicoli[0]!;
-  // al semaforo preme DRIFT a metà della finestra del razzo; in aria (fuori dal drift) fa l'acrobazia appena stacca
-  if (s.tick <= 0) return { mx: 0, my: 1, a: !pigro && s.regole.partenza && -s.tick <= Math.round(CORSE.partenza.razzo * 0.5 * TICK_HZ), b: false };
+  // al semaforo dà gas a metà della finestra del razzo; in aria (fuori dal drift) fa l'acrobazia appena stacca
+  if (s.tick <= 0) return { mx: 0, my: !pigro && s.regole.partenza && -s.tick <= Math.round(CORSE.partenza.razzo * 0.5 * TICK_HZ) ? 1 : 0, a: false, b: false };
   const lat = latObiettivo(p, k, false);
   const a = pilota(p, k, 0, lat), giu = (x: number) => (s.regole.sterzo ? senzaCurva(x) : x);
   if (k.aria && !k.drift && !pigro && s.regole.acrobazie && !k.caduto) return { mx: giu(a.sterzo), my: 1, a: k.acro === 0 && k.tenuto < 0, b: false };
@@ -223,6 +223,7 @@ export const garaCorse: MinigameModule<GaraState> = {
     s.tick++;
     const p = pistaCorse(s.pista), me = s.veicoli[0]!, B = CORSE.bot, E = B.elastico, O = p.def.inseguitore, R = s.regole;
     me.tenuto = f.a ? (me.tenuto >= 0 ? me.tenuto + DT : 0) : -1;
+    me.gasT = f.my > 0.5 ? (me.gasT >= 0 ? me.gasT + DT : 0) : -1;
     const sterzo = sterzoGiocatore(me, clamp(f.mx, -1, 1), R);
     if (s.tick <= 0) return; // conto alla rovescia: fermi (anche l'onda)
     if (s.tick === 1) partenza(me, R);

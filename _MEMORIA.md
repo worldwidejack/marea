@@ -97,3 +97,19 @@ Tecnica: la sim di oggi è piatta (x, z), quindi serve una pista a nastro 3D in 
   - sterzo: curva del joystick e sterzo che cala con la velocità (non trovate fonti serie: scelta nostra), rampa da tastiera perché il digitale è tutto o niente.
 - **Trappole pagate**: le scintille piccole (12 cm) restano dietro il kart e non si vedono, servono 20 cm e lanciate di lato; il viola neon della palette con la foschia diventa grigio, si usa `P.viola`; le acrobazie sulle creste delle onde davano turbo continuo in acqua; nel pannello nascosto del browser di Claude non girano i fotogrammi (si fotografa con `set({ pausa: true })`); la rampa dello sterzo sui valori di mezzo fa pendolare il pilota automatico in acqua (poca presa + ritardo), quindi rampa solo per tasti e joystick a fondo; lo sterzo ridotto ad alta velocità sulle barche + partenza razzo + urti al via le faceva mancare il canale del porto: in acqua niente calo; col razzo e la scia anche il carrello scappa all'onda della Fuga (nel test l'onda si prova senza).
 - **Prova di Jack (9 ott notte)**: «bellissimo», ma il drift «ruota troppo, quasi ingovernabile, mai si arriva al terzo livello» e il primo piano era quasi uguale alla camera dietro → sterzo −15 %, drift −28/−36 %, camera **cofano** negli occhi del pilota (davanti alla visiera: da dietro si vede il retro nero della visiera e copre tutto; sul telefono va inclinata più giù, sennò il muso finisce sotto i comandi). Il carrello che scappa all'onda: «sticazzi, i veicoli non hanno ancora le stats». Isola, grafica e piste vanno avanti in una sessione parallela.
+- **Gas in mano** (9 ott notte, Jack: «tutto perfetto», ma via il gas automatico: lasciare l'acceleratore deve servire nelle curve). Dal telefono il gas è il joystick in avanti, non un bottone: un pollice solo non tiene GAS e DRIFT insieme. Il razzo alla partenza è passato al gas.
+
+**La Spiaggia vestita** (9 ott notte, #176, PR #180; `docs/CORSE.md` A11 «Scenografia», CONTRACTS §34).
+- Kit di 31 pezzi `cs_*` scritti in Python per Blender headless (`assets/blender/models_corse_spiaggia.py`, la pipeline del repo, non il bridge MCP): case bianche coi coppi, lampioni, ombrelloni, faro, gru, container, manichini senza testa + testa a parte. Foglio: `assets/export/preview/contact.png` dopo `node tools/build_assets.mjs cs_…`.
+- Scenografia automatica (`apps/client/src/corse/scena.ts`): la config dice solo dov'è il mare (costa, lato, isola, porto) e i tratti di paese; il resto lo fanno le regole sul nastro. Teste dei manichini in un InstancedMesh girato da `onBeforeRender`, così non si tocca `prova/main.ts` (lo toccava la sessione parallela della guida).
+- **Trappole pagate**:
+  - in zsh `$N` con dentro più nomi non si spezza: `${=N}`, sennò Blender riceve un nome solo e non costruisce niente (risponde «ok» lo stesso);
+  - le glb quantizzate hanno posizioni Int16 normalizzate: `applyMatrix4` prima di convertire in float le schiaccia a [−1, 1] e i pezzi spariscono;
+  - l'atlas caricato a mano con TextureLoader ha `flipY = true`, le UV delle glb vogliono `false`: senza, pini e barche vengono neri o di colori a caso;
+  - la spezzata della costa ha il mare a sinistra di chi la percorre: nella Baia era girata e il mare era diventato terra;
+  - il mare a filo della pista d'acqua sfarfalla col molo e con la pista (5 cm): `polygonOffset` sul mare;
+  - nel test del banco la prima pista si fotografa prima che il kit sia scaricato: il test della scenografia aspetta `__corseScena.pronta`;
+  - budget: i triangoli contano due volte i pezzi che fanno ombra; riquadri da 160 m invece di 96 hanno dimezzato le draw call della Fuga (73 → 47).
+- Numeri: 26-47 draw call, 49.000-118.000 triangoli a 390×844 su tutta la gara; kit 0,2 MB.
+- A/B per Jack: muretto lungo il mare a gomme (A, com'è) o di pietra come nella concept (B, `?muro=pietra`), foglio `tests/out/corse_ab_muretto.png`.
+

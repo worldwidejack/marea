@@ -20,7 +20,7 @@ const nuova = (pista: string, veicolo?: string, bot = true, seed = 7, regole: Re
   garaCorse.create({ seed, difficulty: 2, opzioni: { pista, ...(veicolo ? { veicolo } : {}), bot: bot ? '1' : '0', ...regole } });
 const FERMO: InputFrame = { mx: 0, my: 1, a: false, b: false };
 /** Salta il conto alla rovescia senza toccare niente. */
-const via = (s: GaraState) => { while (s.tick < 1) garaCorse.step(s, FERMO); return s; };
+const via = (s: GaraState) => { while (s.tick < 1) garaCorse.step(s, { ...FERMO, my: 0 }); return s; }; // gas solo al VIA: niente motore ingolfato
 /** Corre la gara col pilota (di serie quello automatico) e conta muri, salti, cadute e tick sul ramo. */
 function corri(s: GaraState, pilota: (s: GaraState) => InputFrame = (x) => pilotaGara(x)) {
   const log: InputFrame[] = [];

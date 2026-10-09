@@ -5,7 +5,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, '..', '..', 'tools')]
 import bpy
 import lib, export_gltf
-import models_terreno, models_edifici, models_prop, models_chr, models_m1, models_rpg, models_drenaggio, models_archivio, models_fucina, models_corse_veicoli, models_corse_piloti, models_corse_veicoli_a, models_corse_veicoli_b, models_corse_veicoli_c, models_corse_piloti_b
+import models_terreno, models_edifici, models_prop, models_chr, models_m1, models_rpg, models_drenaggio, models_archivio, models_fucina, models_corse_spiaggia, models_corse_veicoli, models_corse_piloti, models_corse_veicoli_a, models_corse_veicoli_b, models_corse_veicoli_c, models_corse_piloti_b
 
 argv = sys.argv[sys.argv.index('--') + 1:]
 flags = {a for a in argv if a.startswith('--')}
@@ -13,7 +13,7 @@ args = [a for a in argv if not a.startswith('--')]
 lib.ATLAS_PNG, OUT, PREV = os.path.abspath(args[0]), os.path.abspath(args[1]), os.path.abspath(args[2])
 only = set(args[3:])
 REG = {}
-for m in (models_terreno, models_edifici, models_prop, models_chr, models_m1, models_rpg, models_drenaggio, models_archivio, models_fucina, models_corse_veicoli, models_corse_piloti, models_corse_veicoli_a, models_corse_veicoli_b, models_corse_veicoli_c, models_corse_piloti_b):
+for m in (models_terreno, models_edifici, models_prop, models_chr, models_m1, models_rpg, models_drenaggio, models_archivio, models_fucina, models_corse_spiaggia, models_corse_veicoli, models_corse_piloti, models_corse_veicoli_a, models_corse_veicoli_b, models_corse_veicoli_c, models_corse_piloti_b):
     REG.update(m.MODELS)
 
 
