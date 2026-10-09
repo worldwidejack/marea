@@ -15,6 +15,7 @@ import { cellHash } from '../rpg/dungeon_kit.ts';
 import { P } from '../render/island_parts.ts';
 import { unisci } from './armi3d.ts';
 import type { Pezzo } from './armi3d.ts';
+import { createArredi } from './arredi.ts';
 
 export type Scena = {
   scene: THREE.Scene;
@@ -22,7 +23,7 @@ export type Scena = {
   update(hx: number, hz: number, t: number, assi: readonly number[], trappole: TView['trappole']): void;
   /** Porte aperte: la porta e il suo cartello spariscono. */
   setPorte(aperte: Record<string, boolean>): void;
-  stats(): { muri: number; bassi: number; assi: number; luci: number; cose: number };
+  stats(): { muri: number; bassi: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number };
   dispose(): void;
 };
 
@@ -33,27 +34,42 @@ const BASSO = 0.7;
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 
 /** Pavimento: una texture a pixel per tutta l'arena, il suolo di ogni cella dalla mappa. */
-function pavimento(a: Arena): THREE.CanvasTexture {
+function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasTexture {
   const cv = document.createElement('canvas'); cv.width = a.w * PX; cv.height = a.h * PX;
   const g = cv.getContext('2d')!;
   const px = (c: string, x: number, y: number, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
   // distanza (celle) dalla terra o dal pavimento più vicini, per il buio a bande oltre le zone
-  const W = a.w, H = a.h, d = new Int16Array(W * H).fill(999), q: number[] = [];
-  for (let i = 0; i < W * H; i++) if (a.cell[i] !== C.fuori) { d[i] = 0; q.push(i); }
+  // e il suolo più vicino: oltre la sabbia c'è il mare, oltre il resto il bosco scuro
+  const W = a.w, H = a.h, d = new Int16Array(W * H).fill(999), q: number[] = [], vicino = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) if (a.cell[i] !== C.fuori) { d[i] = 0; q.push(i); vicino[i] = a.suolo[i]!; }
   for (let k = 0; k < q.length; k++) {
     const i = q[k]!, cx = i % W, cz = (i - cx) / W;
     for (const [dx, dz] of N4) {
       const nx = cx + dx, nz = cz + dz, j = nz * W + nx;
       if (nx < 0 || nz < 0 || nx >= W || nz >= H || d[j]! <= d[i]! + 1) continue;
-      d[j] = d[i]! + 1; q.push(j);
+      d[j] = d[i]! + 1; vicino[j] = vicino[i]!; q.push(j);
     }
   }
+  // mare: le celle di fuori vicine alla sabbia collegate al bordo della mappa (le sacche chiuse dentro l'isola restano bosco)
+  const acqua = new Uint8Array(W * H), qa: number[] = [];
+  const puo = (i: number) => a.cell[i] === C.fuori && vicino[i] === SUOLO.sabbia && d[i]! <= 12;
+  for (let i = 0; i < W * H; i++) { const cx = i % W, cz = (i - cx) / W; if ((cz === H - 1 || cx === 0 || cx === W - 1) && puo(i)) { acqua[i] = 1; qa.push(i); } }
+  for (let k = 0; k < qa.length; k++) {
+    const i = qa[k]!, cx = i % W, cz = (i - cx) / W;
+    for (const [dx, dz] of N4) { const nx = cx + dx, nz = cz + dz, j = nz * W + nx; if (nx >= 0 && nz >= 0 && nx < W && nz < H && !acqua[j] && puo(j)) { acqua[j] = 1; qa.push(j); } }
+  }
+  const mare = (i: number) => acqua[i] === 1;
   for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
     const i = cz * W + cx, x0 = cx * PX, y0 = cz * PX, hh = (s: number) => cellHash(cx, cz, s);
     const su = a.cell[i] === C.fuori ? SUOLO.niente : a.suolo[i]!;
     switch (su) {
       case SUOLO.niente: {
         const dd = d[i]!;
+        if (mare(i)) { // oltre la spiaggia: il mare
+          px(PAL.abisso, x0, y0, PX, PX);
+          if (hh(3) < 0.5) px(PAL.acquaProfonda, x0 + Math.floor(hh(4) * 5), y0 + Math.floor(hh(5) * PX), 3, 1);
+          break;
+        }
         px(dd <= 2 ? P.boscoOmbra : dd <= 5 ? PAL.ombraCalda : PAL.neroCaldo, x0, y0, PX, PX);
         if (dd <= 3) for (let s = 0; s < 3; s++) if (hh(s) < 0.5) px(PAL.bosco, x0 + Math.floor(hh(s + 9) * PX), y0 + Math.floor(hh(s + 19) * PX));
         break;
@@ -80,6 +96,10 @@ function pavimento(a: Arena): THREE.CanvasTexture {
         px(PAL.sabbia, x0, y0, PX, PX);
         for (let s = 0; s < 4; s++) { const c = hh(s + 4); px(c < 0.5 ? PAL.legnoChiaro : c < 0.85 ? PAL.sabbiaChiara : PAL.pietraScura, x0 + Math.floor(hh(s + 34) * PX), y0 + Math.floor(hh(s + 44) * PX)); }
         if (hh(5) < 0.3) px(PAL.legnoChiaro, x0 + Math.floor(hh(6) * 4), y0 + Math.floor(hh(7) * 7), 4, 1); // increspature del vento
+        // la schiuma sulla riva, dal lato del mare
+        if (cz + 1 >= H || mare(i + W)) { px(PAL.acquaBassa, x0, y0 + PX - 2, PX, 1); px(PAL.acqua, x0, y0 + PX - 1, PX, 1); for (let s = 0; s < 3; s++) if (hh(s + 90) < 0.6) px(PAL.sabbiaChiara, x0 + Math.floor(hh(s + 93) * PX), y0 + PX - 3); }
+        if (cx > 0 && mare(i - 1)) { px(PAL.acquaBassa, x0 + 1, y0, 1, PX); px(PAL.acqua, x0, y0, 1, PX); }
+        if (cx + 1 < W && mare(i + 1)) { px(PAL.acquaBassa, x0 + PX - 2, y0, 1, PX); px(PAL.acqua, x0 + PX - 1, y0, 1, PX); }
         break;
       case SUOLO.assi: // assito della taverna: tavole lungo x, fughe scure, giunte sfalsate
         for (let r = 0; r < 4; r++) {
@@ -99,6 +119,17 @@ function pavimento(a: Arena): THREE.CanvasTexture {
         if (hh(90) < 0.05) px(PAL.erbaScura, x0 + 2, y0 + 3, 2, 1); // erba tra le pietre
       }
     }
+  }
+  // lastre tombali dei cavalieri nel deambulatorio della rotonda (come le effigie della Temple Church): croce patente e spada incise
+  for (const deg of [60, 120, 240, 300]) {
+    const ang = (deg * Math.PI) / 180, cx = Math.floor(centro.x + Math.cos(ang) * 7.2), cz = Math.floor(centro.z + Math.sin(ang) * 7.2) - (deg > 180 ? 1 : 0);
+    const ok = [0, 1].every((k) => a.suolo[(cz + k) * W + cx] === SUOLO.pietra && a.cell[(cz + k) * W + cx] === C.pavimento);
+    if (!ok) continue;
+    const x0 = cx * PX, y0 = cz * PX;
+    px(PAL.roccia, x0, y0, PX, PX * 2); px(PAL.pietra, x0 + 1, y0 + 1, PX - 2, PX * 2 - 2);
+    px(PAL.pietraScura, x0 + 3, y0 + 2, 2, 4); px(PAL.pietraScura, x0 + 2, y0 + 3, 4, 2); // croce
+    px(PAL.roccia, x0 + 4, y0 + 7, 1, 7); px(PAL.roccia, x0 + 2, y0 + 8, 5, 1); // spada con l'elsa
+    if (deg === 120) px(PAL.erbaScura, x0 + 1, y0 + 13, 2, 1);
   }
   // corsia rossa dalla rotonda all'altare (passatoia lacera: è lì che si accende il rogo)
   for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
@@ -173,8 +204,14 @@ export function createScena(a: Arena): Scena {
   const m4 = new THREE.Matrix4(), col = new THREE.Color(), qq = new THREE.Quaternion(), eu = new THREE.Euler();
   const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 
+  // centro della rotonda: il braciere con più colonne attorno (nel Santo Sepolcro lì c'è l'edicola)
+  const colonneTutte = [...Array(a.cell.length).keys()].filter((i) => a.cell[i] === C.colonna);
+  const centro = a.bracieri.reduce((b, x) => {
+    const n = (p: { x: number; z: number }) => colonneTutte.filter((i) => { const c = ctr(i); return (c.x - p.x) * (c.x - p.x) + (c.z - p.z) * (c.z - p.z) < 49; }).length;
+    return n(x) > n(b) ? x : b;
+  }, a.bracieri[0] ?? { x: a.w / 2, z: a.h / 2 });
   // ---- pavimento ----
-  const tex = pavimento(a); disp.push(tex);
+  const tex = pavimento(a, centro); disp.push(tex);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(a.w * T, a.h * T), lambert({ map: tex }));
   floor.rotation.x = -Math.PI / 2; floor.position.set((a.w * T) / 2, 0, (a.h * T) / 2); floor.name = 'pavimento';
   scene.add(floor); disp.push(floor.geometry, floor.material as THREE.Material);
@@ -195,10 +232,17 @@ export function createScena(a: Arena): Scena {
     const bordo = N4.some(([dx, dz]) => tipoA(cx + dx, cz + dz) !== TIPO.casa);
     return bordo ? H_CASA[Math.floor(h * H_CASA.length)]! : 0.35 + 0.3 * cellHash(cx, cz, 12);
   });
+  // una tinta per casa, alla cipriota: intonaco chiaro, mattoni crudi, pietra; l'ossario sull'erba del cimitero è di pietra scura
+  const tintaCasa = new Map<number, string>();
+  gruppi(a, TIPO.casa).forEach((g, k) => {
+    const ossario = g.some((i) => N4.some(([dx, dz]) => a.suolo[i + dz * W + dx] === SUOLO.erba));
+    const c = ossario ? PAL.pietraScura : [PAL.sabbiaChiara, PAL.legnoChiaro, PAL.sabbia, PAL.pietra][k % 4]!;
+    for (const i of g) tintaCasa.set(i, c);
+  });
   muri.forEach((i, n) => {
     const p = ctr(i), casa = a.tipo[i] === TIPO.casa, h = cellHash(i, 1, 2);
     muro.setMatrixAt(n, m4.compose(v(p.x, 0, p.z), qq.identity(), v(T, altezza[n]!, T)));
-    muro.setColorAt(n, col.set(casa ? (altezza[n]! < 1 ? PAL.legnoScuro : h < 0.5 ? PAL.sabbia : h < 0.8 ? PAL.sabbiaChiara : PAL.pietra) : h < 0.3 ? PAL.pietra : PAL.pietraChiara));
+    muro.setColorAt(n, col.set(casa ? (altezza[n]! < 1 ? PAL.legnoScuro : h < 0.15 ? PAL.pietraScura : tintaCasa.get(i) ?? PAL.sabbia) : h < 0.3 ? PAL.pietra : PAL.pietraChiara));
   });
   scene.add(muro); disp.push(muroGeo, muroMat);
   const colGeo = new THREE.CylinderGeometry(0.4, 0.48, 1, 8); colGeo.translate(0, 0.5, 0);
@@ -207,6 +251,8 @@ export function createScena(a: Arena): Scena {
   const hCol = colonne.map((i) => (cellHash(i, 4, 4) < 0.25 ? 1.6 : 4.2));
   colonne.forEach((i, n) => { const p = ctr(i); colonna.setMatrixAt(n, m4.compose(v(p.x, 0, p.z), qq.identity(), v(1, hCol[n]!, 1))); });
   scene.add(colonna); disp.push(colGeo, colMat);
+  const altezzaDi = new Map(muri.map((i, n) => [i, altezza[n]!]));
+  const arredi = createArredi(scene, a, { centro, colonne, hCol, altezza: (i) => altezzaDi.get(i) ?? 0 });
 
   // ---- tende dei pirati: una piramide di tela per tenda (rossa o grezza, a strisce di colore per tenda) ----
   const tende = gruppi(a, TIPO.tenda);
@@ -233,11 +279,21 @@ export function createScena(a: Arena): Scena {
     switch (a.tipo[i]) {
       case TIPO.stallo: scatole.push({ x: p.x, z: p.z, sx: 1, sy: 0.9, sz: 0.9, c: PAL.legnoScuro }); break;
       case TIPO.muretto: scatole.push({ x: p.x, z: p.z, sx: 1.02, sy: 0.75 + 0.25 * h, sz: 1.02, c: h < 0.5 ? PAL.pietraScura : h < 0.85 ? PAL.roccia : PAL.pietra }); break;
-      case TIPO.tomba:
-        if (tipoA(cx, cz - 1) === TIPO.tomba) scatole.push({ x: p.x, z: p.z - 0.2, sx: 0.7, sy: 0.22, sz: 1.1, c: PAL.ombraCalda }); // il tumulo
-        else if (h < 0.35) { scatole.push({ x: p.x, z: p.z + 0.25, sx: 0.14, sy: 1.15, sz: 0.14, c: PAL.pietra }); scatole.push({ x: p.x, y: 0.72, z: p.z + 0.25, sx: 0.6, sy: 0.14, sz: 0.14, c: PAL.pietra }); }
+      case TIPO.tomba: {
+        // la tomba sono due celle (testa a nord): il tipo lo decide la testa. Lastra con croce e spada incise (cavalieri), croce di pietra,
+        // croce di legno storta (la gente del borgo), lapide
+        const testa = tipoA(cx, cz - 1) !== TIPO.tomba, ht = cellHash(cx, testa ? cz : cz - 1, 21);
+        if (ht < 0.3) {
+          if (!testa) break;
+          scatole.push({ x: p.x, z: p.z + 0.5, sx: 0.8, sy: 0.18, sz: 1.75, c: PAL.pietra }, { x: p.x, y: 0.18, z: p.z + 0.35, sx: 0.08, sy: 0.02, sz: 1.0, c: PAL.roccia }, { x: p.x, y: 0.18, z: p.z + 0.1, sx: 0.46, sy: 0.02, sz: 0.08, c: PAL.roccia });
+          break;
+        }
+        if (!testa) { scatole.push({ x: p.x, z: p.z - 0.2, sx: 0.7, sy: 0.22, sz: 1.1, c: PAL.ombraCalda }); break; } // il tumulo
+        if (ht < 0.5) scatole.push({ x: p.x, z: p.z + 0.25, sx: 0.14, sy: 1.15, sz: 0.14, c: PAL.pietra }, { x: p.x, y: 0.72, z: p.z + 0.25, sx: 0.6, sy: 0.14, sz: 0.14, c: PAL.pietra });
+        else if (ht < 0.72) { const rz = (h - 0.5) * 0.5; scatole.push({ x: p.x, z: p.z + 0.25, sx: 0.09, sy: 1.0, sz: 0.09, c: PAL.legnoScuro, rz }, { x: p.x - 0.33 * rz, y: 0.66, z: p.z + 0.25, sx: 0.46, sy: 0.08, sz: 0.08, c: PAL.legnoScuro, rz }); }
         else scatole.push({ x: p.x, z: p.z + 0.25, sx: 0.62, sy: 0.7 + 0.35 * h, sz: 0.2, c: h < 0.7 ? PAL.pietraScura : PAL.pietra, rz: (h - 0.5) * 0.3 });
         break;
+      }
       case TIPO.leva: break; // sotto, con le trappole
       case TIPO.cosa: break; // sotto, a gruppi
       default: sassi.push(i);
@@ -404,20 +460,21 @@ export function createScena(a: Arena): Scena {
   // ---- muri verso la camera: la camera guarda da sud-est, i muri in una fascia a sud-est dell'eroe si abbassano ----
   let lastCell = -1, bassiN = 0;
   const sc = new THREE.Vector3(), pos = new THREE.Vector3(), qi = new THREE.Quaternion();
+  const muroBasso = (i: number, hcx: number, hcz: number) => { const dx = (i % W) - hcx, dz = Math.floor(i / W) - hcz; return dx + dz >= 1 && dx + dz <= 11 && Math.abs(dx - dz) <= 7; };
+  const colonnaBassa = (i: number, hcx: number, hcz: number) => { const dx = (i % W) - hcx, dz = Math.floor(i / W) - hcz; return dx + dz >= 1 && dx + dz <= 6 && Math.abs(dx - dz) <= 4; };
   function abbassa(hx: number, hz: number): void {
     const hcx = Math.floor(hx / T), hcz = Math.floor(hz / T);
     bassiN = 0;
+    arredi.abbassa((i) => muroBasso(i, hcx, hcz), (i) => colonnaBassa(i, hcx, hcz));
     muri.forEach((i, n) => {
-      const dx = (i % W) - hcx, dz = Math.floor(i / W) - hcz;
-      const basso = dx + dz >= 1 && dx + dz <= 11 && Math.abs(dx - dz) <= 7;
+      const basso = muroBasso(i, hcx, hcz);
       if (basso) bassiN++;
       const p = ctr(i);
       muro.setMatrixAt(n, m4.compose(pos.set(p.x, 0, p.z), qi, sc.set(T, basso ? Math.min(BASSO, altezza[n]!) : altezza[n]!, T)));
     });
     muro.instanceMatrix.needsUpdate = true;
     colonne.forEach((i, n) => {
-      const dx = (i % W) - hcx, dz = Math.floor(i / W) - hcz, basso = dx + dz >= 1 && dx + dz <= 6 && Math.abs(dx - dz) <= 4;
-      const p = ctr(i);
+      const basso = colonnaBassa(i, hcx, hcz), p = ctr(i);
       colonna.setMatrixAt(n, m4.compose(pos.set(p.x, 0, p.z), qi, sc.set(1, basso ? 0.9 : hCol[n]!, 1)));
     });
     colonna.instanceMatrix.needsUpdate = true;
@@ -430,6 +487,7 @@ export function createScena(a: Arena): Scena {
       const hc = Math.floor(hz / T) * W + Math.floor(hx / T);
       if (hc !== lastCell) { lastCell = hc; abbassa(hx, hz); }
       lanterna.position.set(hx, 2.4, hz);
+      arredi.update(t);
       luna.target.position.set(hx, 0, hz); luna.position.set(hx - 30, 50, hz - 20);
       const key = assi.join(',');
       if (key !== assiOra) {
@@ -476,7 +534,7 @@ export function createScena(a: Arena): Scena {
       campana.rotation.x = accesa ? Math.sin(ts * 2.8) * 1.2 : Math.sin(ts * 0.8) * 0.04;
     },
     setPorte(aperte) { for (const [id, l] of porte) for (const o of l) o.visible = !aperte[id]; },
-    stats: () => ({ muri: muri.length, bassi: bassiN, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length }),
-    dispose() { for (const d of disp) d.dispose(); scene.clear(); },
+    stats: () => ({ muri: muri.length, bassi: bassiN, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats() }),
+    dispose() { arredi.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
   };
 }
