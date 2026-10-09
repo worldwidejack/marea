@@ -24,7 +24,7 @@ La stessa `sim` gira nel browser (per giocare) e nel Durable Object (per **verif
 ## 2. Pacchetti (npm workspaces)
 | Pacchetto | Cosa | Dipende da | Vietato |
 |---|---|---|---|
-| `@marea/sim` | rng seedabile, `economy` (advance/collect/build/ledger), `world` (griglia, collisioni, avatar, barca), `minigames/*`, `replay`, `hash` | `@marea/content` | DOM, `three`, `Math.random`, `Date.now`, `performance.now`, `setTimeout` |
+| `@marea/sim` | rng seedabile, `economy` (advance/collect/build/ledger), `world` (griglia, collisioni, avatar, barca), `minigames/*`, `replay`, `hash` | `@marea/content` | DOM, `three`, `Math.random`, `Date.now`, `performance.now`, `setTimeout`, funzioni trascendenti di `Math` (al loro posto `trig.ts`) |
 | `@marea/protocol` | tipi dei messaggi WS/HTTP, `PROTOCOL_VERSION`, validatori senza dipendenze | — | tutto ciò che non è tipi/validazione |
 | `@marea/content` | JSON data-driven + validatore: `buildings`, `resources`, `islands`, `avatar`, `balance`, `minigames/*` | — | codice di gioco |
 | `@marea/client` | Vite + Three.js; UI in HTML/CSS sopra il canvas, **niente framework** | sim, protocol, content, three | logica economica (solo il server decide) |

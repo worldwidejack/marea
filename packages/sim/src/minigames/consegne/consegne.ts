@@ -15,6 +15,7 @@ import type { BoatState } from '../../world/boat.ts';
 import type { GridMap } from '../../world/grid.ts';
 import type { Difficulty, Medal, MinigameModule, MinigameResult } from '../types.ts';
 import { lunghezza, rotta, trattoLibero } from './rotta.ts';
+import * as trig from '../../trig.ts';
 
 const CFG = MINIGAMES_CFG.consegne;
 const MAX_TICKS = CFG.maxSeconds * TICK_HZ;
@@ -226,7 +227,7 @@ export const consegne: MinigameModule<ConsegneState> = {
       s.route = makeRoute(s.seed, s.start);
       startLeg(s);
       const m = moli[s.start]!, q = s.path[1] ?? m;
-      s.boat = { ...newBoat(m.x, m.z), yaw: Math.atan2(q.x - m.x, -(q.z - m.z)) };
+      s.boat = { ...newBoat(m.x, m.z), yaw: trig.atan2(q.x - m.x, -(q.z - m.z)) };
       return;
     }
     s.boat = stepBoat(s.boat, input, consegneMappa());

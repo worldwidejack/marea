@@ -5,6 +5,7 @@ import type { InputFrame, Vec2 } from '../types.ts';
 import type { AvatarState } from './avatar.ts';
 import { resolveCircle } from './collide.ts';
 import type { GridMap } from './grid.ts';
+import * as trig from '../trig.ts';
 
 export type BoatState = { x: number; z: number; yaw: number; speed: number; rudder: number; wake: number };
 
@@ -13,7 +14,7 @@ export function newBoat(x: number, z: number): BoatState {
 }
 
 const NAV_TILES = new Set(['~', ',', 'B']);
-const wrap = (a: number): number => Math.atan2(Math.sin(a), Math.cos(a));
+const wrap = (a: number): number => trig.atan2(trig.sin(a), trig.cos(a));
 /** Parametri della barca con i default per i campi che BalanceDef non ha ancora (raggio). */
 export function boatParams(): typeof BALANCE.barca & { raggio: number } {
   const B = BALANCE.barca as typeof BALANCE.barca & { raggio?: number };
@@ -27,11 +28,11 @@ export function boatParams(): typeof BALANCE.barca & { raggio: number } {
  */
 export function stepBoat(s: BoatState, input: InputFrame, map: GridMap, wind: Vec2 = { x: 0, z: 0 }): BoatState {
   const B = boatParams();
-  const mag = Math.min(1, Math.hypot(input.mx, input.my));
+  const mag = Math.min(1, trig.hypot(input.mx, input.my));
   let yaw = s.yaw;
   let rudder = s.rudder * 0.8;
   if (mag > 0.15) {
-    const want = Math.atan2(input.mx, -input.my);
+    const want = trig.atan2(input.mx, -input.my);
     const diff = wrap(want - yaw);
     const maxTurn = B.virata * DT * (0.35 + 0.65 * Math.min(1, s.speed / B.maxSpeed + 0.5));
     const turn = Math.max(-maxTurn, Math.min(maxTurn, diff));
@@ -42,7 +43,7 @@ export function stepBoat(s: BoatState, input: InputFrame, map: GridMap, wind: Ve
   let speed = s.speed + B.accel * throttle * DT;
   speed -= B.attrito * speed * DT * (input.b ? 3 : 1);
   speed = Math.max(0, Math.min(B.maxSpeed, speed));
-  const hx = Math.sin(yaw), hz = -Math.cos(yaw);
+  const hx = trig.sin(yaw), hz = -trig.cos(yaw);
   const tx = s.x + (hx * speed + wind.x) * DT;
   const tz = s.z + (hz * speed + wind.z) * DT;
   const blocked = (cx: number, cz: number): boolean => !NAV_TILES.has(map.at(cx, cz));
@@ -72,7 +73,7 @@ export function correnteBordo(s: BoatState, map: GridMap): { s: BoatState; attiv
   const kz = s.z < F ? (F - s.z) / F : s.z > H - F ? -(s.z - (H - F)) / F : 0;
   if (kx === 0 && kz === 0) return { s, attiva: false };
   const k = Math.min(1.5, Math.sqrt(kx * kx + kz * kz));
-  const hx = Math.sin(s.yaw), hz = -Math.cos(s.yaw);
+  const hx = trig.sin(s.yaw), hz = -trig.cos(s.yaw);
   const fuori = -(hx * kx + hz * kz) / Math.max(1e-6, Math.sqrt(kx * kx + kz * kz)); // > 0 = la prua guarda verso il bordo
   const speed = fuori > 0 ? s.speed * Math.max(0, 1 - BORDO.freno * k * fuori * DT) : s.speed;
   const x = Math.min(W - 1, Math.max(1, s.x + Math.min(1.5, kx) * BORDO.corrente * DT));
@@ -89,7 +90,7 @@ function nearestDock(map: GridMap, x: number, z: number, cells: number): { x: nu
     for (let dx = -cells; dx <= cells; dx++) {
       if (map.at(c.cx + dx, c.cz + dz) !== 'd') continue;
       const p = map.cellToWorld(c.cx + dx, c.cz + dz);
-      const d = Math.hypot(p.x - x, p.z - z);
+      const d = trig.hypot(p.x - x, p.z - z);
       if (!best || d < best.d || (d === best.d && (p.z < best.z || (p.z === best.z && p.x < best.x)))) best = { ...p, d };
     }
   return best;
@@ -99,7 +100,7 @@ function nearestDock(map: GridMap, x: number, z: number, cells: number): { x: nu
 export function canBoard(a: AvatarState, b: BoatState, map: GridMap): boolean {
   const B = boatParams();
   if (!map.navigable(b.x, b.z)) return false;
-  if (Math.hypot(a.x - b.x, a.z - b.z) > B.raggioImbarco) return false;
+  if (trig.hypot(a.x - b.x, a.z - b.z) > B.raggioImbarco) return false;
   if (map.isDock(a.x, a.z)) return true;
   const d = nearestDock(map, a.x, a.z, 1);
   return !!d && d.d <= map.tile * 0.75;
@@ -120,9 +121,9 @@ export type Posa = { x: number; z: number; yaw: number };
 /** Due scafi (rettangoli orientati 4,6 × 1,6 m) si toccano: separazione degli assi. */
 export function barcheSovrapposte(a: Posa, b: Posa): boolean {
   const dx = b.x - a.x, dz = b.z - a.z;
-  const axes = [a.yaw, b.yaw].flatMap((y) => [[Math.sin(y), -Math.cos(y)], [Math.cos(y), Math.sin(y)]] as const);
+  const axes = [a.yaw, b.yaw].flatMap((y) => [[trig.sin(y), -trig.cos(y)], [trig.cos(y), trig.sin(y)]] as const);
   const half = (p: Posa, ax: number, az: number) =>
-    SCAFO.mezzaL * Math.abs(Math.sin(p.yaw) * ax - Math.cos(p.yaw) * az) + SCAFO.mezzaW * Math.abs(Math.cos(p.yaw) * ax + Math.sin(p.yaw) * az);
+    SCAFO.mezzaL * Math.abs(trig.sin(p.yaw) * ax - trig.cos(p.yaw) * az) + SCAFO.mezzaW * Math.abs(trig.cos(p.yaw) * ax + trig.sin(p.yaw) * az);
   for (const [ax, az] of axes) if (Math.abs(dx * ax + dz * az) >= half(a, ax, az) + half(b, ax, az)) return false;
   return true;
 }
@@ -130,7 +131,7 @@ export function barcheSovrapposte(a: Posa, b: Posa): boolean {
 /** Prua di una barca ormeggiata in (x, z): verso il largo, via dal molo più vicino (0 se non c'è un molo). */
 export function yawOrmeggio(x: number, z: number, map: GridMap): number {
   const dock = landingSpot(newBoat(x, z), map);
-  return dock ? Math.atan2(x - dock.x, -(z - dock.z)) : 0;
+  return dock ? trig.atan2(x - dock.x, -(z - dock.z)) : 0;
 }
 
 /**
@@ -138,11 +139,11 @@ export function yawOrmeggio(x: number, z: number, map: GridMap): number {
  * risale) e nessuno scafo in `occupati` toccato con la prua verso il largo. Il più vicino a (x, z) entro `raggio` m (passo 0,5 m), o null.
  */
 export function ormeggioLibero(map: GridMap, x: number, z: number, occupati: readonly Posa[], raggio = 12): Posa | null {
-  const R = boatParams().raggio, ring = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => [Math.cos((i * Math.PI) / 4) * R, Math.sin((i * Math.PI) / 4) * R] as const);
+  const R = boatParams().raggio, ring = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => [trig.cos((i * Math.PI) / 4) * R, trig.sin((i * Math.PI) / 4) * R] as const);
   const cand: { x: number; z: number; d: number }[] = [];
   for (let dz = -raggio; dz <= raggio; dz += 0.5)
     for (let dx = -raggio; dx <= raggio; dx += 0.5) {
-      const d = Math.hypot(dx, dz);
+      const d = trig.hypot(dx, dz);
       if (d <= raggio) cand.push({ x: x + dx, z: z + dz, d });
     }
   cand.sort((a, b) => a.d - b.d || a.z - b.z || a.x - b.x);
@@ -157,7 +158,7 @@ export function ormeggioLibero(map: GridMap, x: number, z: number, occupati: rea
 }
 /** Dal centro alla prua lo scafo sta in acqua, fianchi compresi (la poppa può infilarsi sotto il molo, come all'ormeggio di sempre). */
 export function scafoInAcqua(p: Posa, map: GridMap): boolean {
-  const fx = Math.sin(p.yaw), fz = -Math.cos(p.yaw), rx = Math.cos(p.yaw), rz = Math.sin(p.yaw);
+  const fx = trig.sin(p.yaw), fz = -trig.cos(p.yaw), rx = trig.cos(p.yaw), rz = trig.sin(p.yaw);
   for (const l of [0, 1.1, 2.1]) for (const w of [-0.7, 0, 0.7]) if (!map.navigable(p.x + fx * l + rx * w, p.z + fz * l + rz * w)) return false;
   return true;
 }

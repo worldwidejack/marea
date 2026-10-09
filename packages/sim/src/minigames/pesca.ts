@@ -11,6 +11,7 @@ import type { Rng } from '../rng.ts';
 import type { InputFrame } from '../types.ts';
 import type { Archipelago } from '../world/archipelago.ts';
 import type { Difficulty, Medal, MinigameModule, MinigameOpzioni, MinigameResult } from './types.ts';
+import * as trig from '../trig.ts';
 
 const CFG = MINIGAMES_CFG.pesca;
 const T = (s: number) => Math.round(s * TICK_HZ);
@@ -237,7 +238,7 @@ export function mareDi(arch: Archipelago, x: number, z: number): string {
     const mare = MARI.find((m) => CFG.mari[m]!.isole.includes(p.island));
     if (!mare) continue;
     const x0 = p.origin[0] * arch.tile, z0 = p.origin[1] * arch.tile, x1 = x0 + p.w * arch.tile, z1 = z0 + p.h * arch.tile;
-    const d = Math.hypot(Math.max(x0 - x, 0, x - x1), Math.max(z0 - z, 0, z - z1));
+    const d = trig.hypot(Math.max(x0 - x, 0, x - x1), Math.max(z0 - z, 0, z - z1));
     if (d <= bestD) { bestD = d; best = mare; }
   }
   return best;
@@ -251,7 +252,7 @@ export function pescaQui(arch: Archipelago, x: number, z: number, speed: number)
   for (let dz = -r; dz <= r; dz++)
     for (let dx = -r; dx <= r; dx++) {
       if (m.at(cx + dx, cz + dz) === '~') continue;
-      if (Math.hypot((cx + dx + 0.5) * tile - x, (cz + dz + 0.5) * tile - z) <= CFG.posto.rivaM) return { ok: false, mare, perche: 'riva' };
+      if (trig.hypot((cx + dx + 0.5) * tile - x, (cz + dz + 0.5) * tile - z) <= CFG.posto.rivaM) return { ok: false, mare, perche: 'riva' };
     }
   if (Math.abs(speed) > CFG.posto.fermoMs) return { ok: false, mare, perche: 'veloce' };
   return { ok: true, mare, perche: null };
@@ -262,7 +263,7 @@ export function cercaPesca(arch: Archipelago, mare: string, x: number, z: number
   const W = arch.map.w * arch.tile, H = arch.map.h * arch.tile;
   for (let pz = 2; pz < H; pz += 4)
     for (let px = 2; px < W; px += 4) {
-      const d = Math.hypot(px - x, pz - z);
+      const d = trig.hypot(px - x, pz - z);
       if (d >= bestD) continue;
       const q = pescaQui(arch, px, pz, 0);
       if (q.ok && q.mare === mare) { best = { x: px, z: pz }; bestD = d; }

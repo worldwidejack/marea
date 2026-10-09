@@ -1,6 +1,7 @@
 // Collisione cerchio contro griglia: spinge fuori dalle celle bloccate lungo la normale, così si scivola lungo i bordi
 // e negli angoli non ci si incastra (gli spigoli sono arrotondati dal raggio). Pura, deterministica.
 import type { GridMap } from './grid.ts';
+import * as trig from '../trig.ts';
 
 export type Blocked = (cx: number, cz: number) => boolean;
 export type Push = { x: number; z: number; nx: number; nz: number; hit: boolean };
@@ -19,7 +20,7 @@ export function resolveCircle(map: GridMap, blocked: Blocked, x0: number, z0: nu
         const minX = cx * t, maxX = minX + t, minZ = cz * t, maxZ = minZ + t;
         const px = Math.max(minX, Math.min(x, maxX)), pz = Math.max(minZ, Math.min(z, maxZ));
         let dx = x - px, dz = z - pz;
-        let d = Math.hypot(dx, dz);
+        let d = trig.hypot(dx, dz);
         if (d >= r) continue;
         if (d < 1e-9) {
           // centro dentro la cella: esci dal lato più vicino
@@ -38,6 +39,6 @@ export function resolveCircle(map: GridMap, blocked: Blocked, x0: number, z0: nu
       }
     if (!moved) break;
   }
-  const n = Math.hypot(nx, nz) || 1;
+  const n = trig.hypot(nx, nz) || 1;
   return { x, z, nx: nx / n, nz: nz / n, hit };
 }
