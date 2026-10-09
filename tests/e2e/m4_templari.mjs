@@ -24,7 +24,9 @@ export default async function (ctx) {
     await page.click('#mzTemplariProva');
     await ctx.waitState(page, (st) => st.templari.active && st.templari.fase === 'gioca', 30000);
     const st = await ctx.getState(page);
-    await ctx.waitState(page, (s) => s.templari.scena?.assi === s.templari.assi.length * 5, 5000);
+    // le assi disegnate sono quelle della sim; il tetto copre il primo disegno della chiesa, che appena dopo «gioca» blocca la pagina
+    // 5-6 s su SwiftShader in locale (di più su GitHub): misurato il 9/10 (#171), prima era 5 s e cadeva se il test arrivava prima del blocco
+    await ctx.waitState(page, (s) => s.templari.scena?.assi === s.templari.assi.reduce((t, n) => t + n, 0), 30000);
     assert(st.templari.scena.muri > 50, `scena: ${JSON.stringify(st.templari.scena)}`);
     assert(await page.isVisible('#mzTpl'), 'HUD assente');
     assert(!(await page.isVisible('#mzTop')), 'la barra in alto della superficie è ancora visibile');
@@ -32,6 +34,8 @@ export default async function (ctx) {
     await ctx.shot(page, 'ondata1');
   });
   await ctx.test('telefono: gli zombie escono, strappano le assi; col pilota si superano ondate', async () => {
+    // vita alta (hook di prova, senza server): il pilota a volte muore già all'ondata 2 e poi le armi non si provano più (#171)
+    await page.evaluate(() => window.__game.test.templariProva({ vita: 1e6 }));
     await page.evaluate(() => window.__game.test.templariAutopilot(true, 6));
     await ctx.waitState(page, (st) => st.templari.zombie > 0, 30000);
     await ctx.waitState(page, (st) => st.templari.assi.some((n) => n < 5), 60000);
@@ -46,20 +50,31 @@ export default async function (ctx) {
     await page.evaluate(() => window.__game.test.templariAutopilot(false));
     await ctx.shot(page, 'ondata3');
   });
-  await ctx.test('telefono: armi — l’arco dall’altare laterale, la cassa del tesoro, munizioni nel HUD', async () => {
-    let st = await ctx.getState(page);
-    if (!st.templari.done) {
-      await page.evaluate(() => window.__game.test.templariAutopilot(true, 6));
-      await ctx.waitState(page, (s) => s.templari.done || s.templari.armi.some((a) => a?.id === 'arco'), 60000);
-      await ctx.waitState(page, (s) => s.templari.done || s.templari.cassa.fase === 'gira' || s.templari.cassa.fase === 'pronta', 90000).catch(() => {});
-      st = await ctx.getState(page);
-      await page.evaluate(() => window.__game.test.templariAutopilot(false));
-      if (st.templari.cassa.fase === 'gira' || st.templari.cassa.fase === 'pronta') await ctx.shot(page, 'cassa');
-    }
-    st = await ctx.getState(page);
-    ctx.log('armi', JSON.stringify(st.templari.armi), 'cassa', JSON.stringify(st.templari.cassa), 'effetti', JSON.stringify(st.templari.effetti));
-    assert(st.templari.armi.some((a) => a?.id === 'arco'), `l’arco non è stato preso: ${JSON.stringify(st.templari.armi)}`);
-    if (!st.templari.done) assert((await page.textContent('#mzTpl .arma')).length > 3, 'HUD dell’arma vuoto');
+  await ctx.test('telefono: armi — l’arco dall’altare laterale col bottone AZIONE, munizioni nel HUD, la cassa del tesoro', async () => {
+    // a mano come un giocatore, non col pilota: lui compra anche ascia e mazza, e coi due posti pieni l'arco o non lo prende o lo cambia
+    // subito con l'arma nuova (il test cadeva 1 volta su 4, #171). Si parte da spada sola, davanti all'arco del muro dell'altare laterale.
+    const prova = (o) => page.evaluate((o) => window.__game.test.templariProva(o), o);
+    assert(!(await ctx.getState(page)).templari.done, 'la partita è finita prima delle armi');
+    await prova({ pulisci: true, vita: 1e6, armi: ['spada'], dove: { x: 39.5, z: 39.5 } });
+    await ctx.waitState(page, (s) => s.templari.prompt === 'compra', 10000);
+    // il bottone si ridisegna al fotogramma dopo: si aspetta il suo testo, non lo si legge subito
+    await page.waitForFunction(() => /PRENDI: ARCO/.test(document.querySelector('#mzTplAzione.on')?.textContent ?? ''), null, { timeout: 10000 })
+      .catch(async () => { throw new Error(`il bottone non dice di prendere l’arco: «${await page.textContent('#mzTplAzione')}»`); });
+    await page.tap('#mzTplAzione');
+    await ctx.waitState(page, (s) => s.templari.eroe.arma === 'arco' && s.templari.armi.some((a) => a?.id === 'spada'), 10000);
+    await page.waitForFunction(() => /Arco 20 \| 40/.test(document.querySelector('#mzTpl .arma')?.textContent ?? ''), null, { timeout: 10000 })
+      .catch(async () => { throw new Error(`munizioni dell’arco non nel HUD: «${await page.textContent('#mzTpl .arma')}»`); });
+    await ctx.shot(page, 'arco');
+    // la cassa del tesoro: davanti, coi punti, AZIONE → gira (se il pilota l'aveva aperta, prima si richiude da sola)
+    await ctx.waitState(page, (s) => s.templari.cassa.fase === 'chiusa' && !!s.templari.cassa.davanti, 30000);
+    await prova({ pulisci: true, punti: 2000, dove: (await ctx.getState(page)).templari.cassa.davanti });
+    await ctx.waitState(page, (s) => s.templari.prompt === 'cassa', 10000);
+    await page.tap('#mzTplAzione');
+    await ctx.waitState(page, (s) => s.templari.cassa.fase === 'gira', 10000);
+    await ctx.shot(page, 'cassa');
+    const st = await ctx.getState(page);
+    ctx.log('armi', JSON.stringify(st.templari.armi), 'cassa', JSON.stringify(st.templari.cassa), 'punti', st.templari.eroe.punti);
+    assert(st.templari.eroe.punti < 2000, `la cassa non ha preso i punti: ${st.templari.eroe.punti}`); // 950, più qualche uccisione
   });
   await ctx.test('telefono: pausa ferma tutto, ESCI → scheda dell’esito senza premio → di nuovo nel mondo', async () => {
     const st0 = await ctx.getState(page);
