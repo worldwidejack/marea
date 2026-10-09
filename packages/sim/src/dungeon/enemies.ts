@@ -5,6 +5,8 @@
 // Archivio: il Drone Idro-Ragno sale sulle grate (e ci scappa) e tira arpioni; l'Aerostato-Spia vola e sgancia bombe (vento.ts); l'Archivista
 // a Molla insegue a zig-zag e ogni tanto si ferma a ricaricare la molla; l'Astrolabio e i suoi anelli stanno in astrolabio.ts. Chi sale sulle
 // grate o vola ha la sua griglia e il suo flow field (muove.ts); chi vola non si scontra con chi cammina e non lo sposta niente da terra.
+// Fucina: la Scintilla-Vapore dà fuoco a chi colpisce, la Fornace Semovente lascia la scia di fuoco (fuoco.ts), il Golem-Palombaro si gira
+// piano e attacca solo chi ha davanti (lo scafandro para da davanti: combat.ts); il Mastro Forgiatore sta in forgiatore.ts.
 import { DT } from '../constants.ts';
 import type { EnemyDef } from '@marea/content/rpg.ts';
 import type { DungeonState, Enemy } from './state.ts';
@@ -15,8 +17,10 @@ import { geyserDa, rallenta } from './acque.ts';
 import { bombaDa } from './vento.ts';
 import { alto, flowDi, grigliaDi } from './muove.ts';
 import { stepAnello, stepAstrolabio } from './astrolabio.ts';
+import { stepForgiatore } from './forgiatore.ts';
+import { brucia, scia } from './fuoco.ts';
 import {
-  ALLEATO_SEGUE, BOSS_AREA_DANNO, BOSS_AREA_OGNI, BOSS_AREA_PREP, BOSS_AREA_RAGGIO, COLPISCE_TICKS, COS_CONO_NEMICO, DISTANZA_TIRATORI,
+  ALLEATO_SEGUE, BOSS_AREA_DANNO, BOSS_AREA_OGNI, BOSS_AREA_PREP, BOSS_AREA_RAGGIO, COLPISCE_TICKS, COS_CONO_NEMICO, COS_SCAFANDRO, DISTANZA_TIRATORI,
   BOMBA_LONTANO, BOMBA_VICINO, FLOW_OGNI, MAGIA_Y, RAGGIO_ALLARME, RAGGIO_ATTIVO, TOLLERANZA_NEMICO, VISTA_DORMENDO,
 } from './tuning.ts';
 
@@ -105,15 +109,27 @@ function chase(s: DungeonState, e: Enemy, speed: number, verso: 1 | -1): void {
 function moveToward(s: DungeonState, e: Enemy, tx: number, tz: number, speed: number): void {
   const dx = tx - e.x, dz = tz - e.z, d = Math.sqrt(dx * dx + dz * dz);
   if (d < 1e-6) return;
-  const step = Math.min(d, speed * DT);
-  e.fx = dx / d; e.fz = dz / d;
-  moveCircle(grigliaDi(s, e), e, e.fx * step, e.fz * step, e.def.raggio);
+  let step = Math.min(d, speed * DT);
+  // Golem-Palombaro: si gira piano e avanza solo dritto (più è storto, più va piano)
+  if (e.def.scafandro) step *= Math.max(0, giraVerso(e, dx / d, dz / d, e.def.scafandro.gira * DT));
+  else { e.fx = dx / d; e.fz = dz / d; }
+  if (step > 0) moveCircle(grigliaDi(s, e), e, e.fx * step, e.fz * step, e.def.raggio);
+}
+/** Gira il muso del nemico verso (ux, uz) di al massimo `a` radianti (seno e coseno in serie di Taylor, poi rinormalizza); ritorna il
+ *  coseno tra il muso e la meta dopo il giro. */
+function giraVerso(e: Enemy, ux: number, uz: number, a: number): number {
+  const a2 = a * a, c = 1 - a2 / 2 + (a2 * a2) / 24;
+  if (e.fx * ux + e.fz * uz >= c) { e.fx = ux; e.fz = uz; return 1; }
+  const sn = (a - (a * a2) / 6 + (a * a2 * a2) / 120) * (e.fx * uz - e.fz * ux >= 0 ? 1 : -1);
+  const nx = e.fx * c - e.fz * sn, nz = e.fz * c + e.fx * sn, l = Math.sqrt(nx * nx + nz * nz);
+  e.fx = nx / l; e.fz = nz / l;
+  return e.fx * ux + e.fz * uz;
 }
 function setState(e: Enemy, st: Enemy['st'], dur: number): void { e.st = st; e.stT = 0; e.stDur = dur; }
 
 function startPrep(s: DungeonState, e: Enemy, tx: number, tz: number, tiro: boolean): void {
   const dx = tx - e.x, dz = tz - e.z, d = Math.sqrt(dx * dx + dz * dz);
-  if (d > 1e-6) { e.fx = dx / d; e.fz = dz / d; }
+  if (d > 1e-6 && !e.def.scafandro) { e.fx = dx / d; e.fz = dz / d; } // lo scafandro non si gira di colpo
   e.attacchi++;
   const ar = e.def.area;
   e.area = !tiro && (ar ? e.attacchi % ar.ogni === 0 : !!e.def.boss && e.attacchi % BOSS_AREA_OGNI === 0);
@@ -153,6 +169,7 @@ function resolveAttack(s: DungeonState, e: Enemy): void {
     const arriva = !s.done && h.protetto <= 0;
     hitHero(s, e.def.danno, kind, h.x, h.z);
     if (arriva && e.def.rallenta) rallenta(s, e.def);
+    if (arriva && e.def.brucia) brucia(s, e.def.brucia.dps, e.def.brucia.secondi); // Scintilla-Vapore
   } else ev(s, { t: 'schivato', x: r2(h.x), z: r2(h.z) });
 }
 
@@ -182,6 +199,7 @@ function stepFoe(s: DungeonState, e: Enemy): void {
   e.stT++;
   if (def.comportamento === 'anello') { stepAnello(s, e); return; }
   if (def.comportamento === 'astrolabio' && e.st !== 'dorme' && e.st !== 'veglia') { stepAstrolabio(s, e); return; }
+  if (def.comportamento === 'forgiatore' && e.st !== 'dorme' && e.st !== 'veglia') { stepForgiatore(s, e); return; }
   switch (e.st) {
     case 'dorme': case 'veglia': {
       const vista = def.vista * (e.st === 'dorme' ? VISTA_DORMENDO : 1);
@@ -216,7 +234,12 @@ function stepFoe(s: DungeonState, e: Enemy): void {
       }
       if (fearful(s, e)) { setState(e, 'scappa', 0); return; }
       const reach = def.portata + def.raggio + rh.raggio, p = def.proiettile;
-      if (d <= reach) { startPrep(s, e, h.x, h.z, false); return; }
+      if (d <= reach) {
+        // lo scafandro attacca solo chi ha davanti: se no si gira (piano), e intanto alle spalle lo si colpisce
+        if (def.scafandro && d > 1e-6 && giraVerso(e, dx / d, dz / d, def.scafandro.gira * DT) < COS_SCAFANDRO) return;
+        startPrep(s, e, h.x, h.z, false);
+        return;
+      }
       const vede = !!p && d <= p.gittata && lineOfSight(s.map, e.x, e.z, h.x, h.z);
       if (def.comportamento !== 'mischia' && vede) {
         // arcieri e maghi: tengono la distanza e tirano quando sono carichi
@@ -271,7 +294,7 @@ function stepAlly(s: DungeonState, e: Enemy): void {
       if (t && !alto(s, t)) {
         const ox = t.x - e.x, oz = t.z - e.z;
         const reach = def.portata + def.raggio + t.def.raggio + TOLLERANZA_NEMICO;
-        if (ox * ox + oz * oz <= reach * reach) hitEnemy(s, t, { danno: def.danno, traits: {}, magico: false, skill: null, caricato: false, dirX: e.fx, dirZ: e.fz, daAlleato: true });
+        if (ox * ox + oz * oz <= reach * reach) hitEnemy(s, t, { danno: def.danno, traits: {}, magico: false, skill: null, caricato: false, dirX: e.fx, dirZ: e.fz, daAlleato: true, ox: e.x, oz: e.z });
       }
       setState(e, 'recupera', secToTicks(def.recupero));
     }
@@ -340,6 +363,7 @@ export function stepEnemies(s: DungeonState): void {
       s.cur = t;
     }
     if (e.alleato) stepAlly(s, e); else stepFoe(s, e);
+    if (e.def.scia) scia(s, e); // Fornace Semovente
     if (finita(s)) { s.cur = prima; return; }
     if (vivo(e)) act.push(e);
   }

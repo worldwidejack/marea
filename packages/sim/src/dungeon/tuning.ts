@@ -93,5 +93,14 @@ const C1 = 0.9238795325112867, S1 = 0.3826834323650898;
 export const DIR16: readonly (readonly [number, number])[] = [
   [1, 0], [C1, S1], [D, D], [S1, C1], [0, 1], [-S1, C1], [-D, D], [-C1, S1], [-1, 0], [-C1, -S1], [-D, -D], [-S1, -C1], [0, -1], [S1, -C1], [D, -D], [C1, -S1],
 ];
+/** Fucina: raggio di una cascata d'acqua (dal centro della sua cella); le crepe della lava si accendono così prima che scorra; chi brucia
+ *  vede il danno a numeri ogni BRUCIA_NUMERO tick; al massimo FUOCHI_MAX chiazze di fuoco a terra (le più vecchie si spengono). Il
+ *  Golem-Palombaro attacca solo con l'eroe così davanti (coseno); da dietro (coseno sotto RETRO_SCAFANDRO) gli colpisci le valvole. */
+export const GETTO_RAGGIO = 1.1;
+export const AVVISO_LAVA = Math.round(0.8 * HZ);
+export const BRUCIA_NUMERO = Math.round(0.5 * HZ);
+export const FUOCHI_MAX = 48;
+export const COS_SCAFANDRO = 0.8;
+export const RETRO_SCAFANDRO = -0.5;
 /** Danno minimo di un colpo andato a segno. */
 export const DANNO_MIN = 1;

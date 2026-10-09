@@ -10,6 +10,8 @@
 // Archivio: forme in codice di rpg/archivio.ts; chi vola (Aerostato, Astrolabio, anelli) sta alto e scende a scatti quando attacca o si
 // ricalibra; il Drone Idro-Ragno sulle grate ci sta sopra; gli anelli dell'Astrolabio girano a scatti e spariscono quando si staccano;
 // l'Archivista che ricarica la molla trema; l'Astrolabio protetto dagli anelli brilla d'azzurro. Arpioni e lame di vento in volo.
+// Fucina: forme in codice di rpg/fucina.ts (le parti accese brillano da sé); la Scintilla-Vapore guizza; il Mastro Forgiatore spento si
+// spegne davvero (niente brace, trema col vapore addosso: il vapore lo disegna fucina.ts).
 import * as THREE from 'three';
 import { ENEMIES } from '@marea/content/rpg.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
@@ -20,6 +22,7 @@ import type { DungeonScene } from './dungeon_scene.ts';
 import { armaArco, frecciaInVolo } from './arco.ts';
 import { formaNemico } from './drenaggio.ts';
 import { formaNemico as formaArchivio, giriAstrolabio } from './archivio.ts';
+import { formaNemico as formaFucina } from './fucina.ts';
 import type { Arco } from './arco.ts';
 
 type NemV = DungeonView['nemici'][number] & { area?: number };
@@ -28,6 +31,8 @@ type Enemy = {
   px: number; pz: number; x: number; z: number; v: NemV; diedAt: number; flashT: number; ring: THREE.Group | null; ready: boolean;
   /** Archivio: altezza da terra adesso (chi vola, chi sta sulle grate); anelli dell'Astrolabio (gruppi `giro_*`). */
   alt: number; giri: THREE.Object3D[];
+  /** Fucina: il Mastro Forgiatore è spento (la fornace è cenere). */
+  spento: boolean;
   /** Solo arcieri: l'arco nella sinistra e se l'ultimo attacco preparato era un tiro (vale anche per colpisce e recupera). */
   arco: { obj: THREE.Object3D; a: Arco } | null; tiro: boolean;
 };
@@ -62,7 +67,7 @@ const ARCIERI = new Set(ENEMIES.filter((d) => d.comportamento === 'arciere' && !
 /** Archivio: chi vola e quanto sta alto quando vola alto (quando scende sta a BASSO). */
 const VOLA = new Set(ENEMIES.filter((d) => d.muove === 'vola').map((d) => d.id));
 const ALTO: Record<string, number> = { nem_aerostato: 1.7, nem_astrolabio: 1.2, nem_anello: 1.4 }, BASSO = 0.35, SU_GRATA = 1.0;
-const AZZURRO = new THREE.Color(PAL.acquaBassa);
+const AZZURRO = new THREE.Color(PAL.acquaBassa), NERO = new THREE.Color(0, 0, 0);
 /** Impugnatura dell'arco (spazio della radice del nemico, −Z avanti): a riposo nella mano sinistra lungo il fianco; in mira davanti
  *  all'altezza delle spalle, col corpo girato di fianco (la sinistra verso il bersaglio). */
 const ARCO_GIU = new THREE.Vector3(-0.38, 0.85, -0.06), ARCO_SU = new THREE.Vector3(-0.04, 1.28, -0.62), FIANCO = -0.9, ALLUNGO = 0.45;
@@ -91,14 +96,14 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
   function addEnemy(n: NemV): Enemy {
     const r = new THREE.Group(); r.name = 'nemico_' + n.id; root.add(r);
     const body = new THREE.Group(); r.add(body);
-    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [] };
+    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false };
     if (ARCIERI.has(n.tipo) && !n.alleato) {
       void object(o.loader, 'arm_arco', () => boxes([[0.05, 1.3, 0.05, 0, 0, 0, PAL.legno]])).then((m) => {
         tintBlade(m, PAL.legnoChiaro); // chiaro: sul pavimento scuro della grotta si legge
         body.add(m); e.arco = { obj: m, a: armaArco(m, o.loader, true, 2.6) };
       });
     }
-    void object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
+    void object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? formaFucina(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
       body.add(m);
       if (n.model === 'nem_astrolabio') for (const g of giriAstrolabio()) { m.add(g); e.giri.push(g); } // anelli che girano (anche sul modello vero)
       e.mats = materialsOf(m);
@@ -228,6 +233,9 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
           e.giri.forEach((g, k) => { g.visible = !diviso; const sp = g.children[0]; if (sp) sp.rotation.y = Math.floor(t * (6 + k * 3)) * (Math.PI / 8) * (k % 2 ? -1 : 1) * (n.anim === 'recupera' ? 0 : 1); });
         }
         if (n.schermo) { glowC = AZZURRO; glow = Math.floor(t * 4) % 2 ? 0.55 : 0.25; }
+        // Fucina: la Scintilla guizza a scatti; il Mastro spento trema e la sua fornace è nera (il lampo dei colpi resta)
+        if (n.model === 'nem_scintilla' && !dead) { b.position.y += 0.08 * (Math.floor(t * 7 + e.id) % 3); b.rotation.y = Math.floor(t * 9 + e.id) * 0.7; }
+        if (n.spento) { b.position.x = 0.04 * (Math.floor(t * 16) % 2 ? 1 : -1); glowC = NERO; glow = 0; }
         if (e.arco) {
           const yaw = b.rotation.y, a = e.arco.obj;
           a.position.lerpVectors(ARCO_GIU, ARCO_SU, su).applyAxisAngle(YA, -yaw); // nello spazio del corpo, che è girato di yaw
@@ -237,6 +245,8 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         e.flashT = Math.max(0, e.flashT - dt);
         if (e.flashT > 0 || n.anim === 'colpito') { glowC = WHITE; glow = 0.9; }
         const fade = dead && since > 0.6 ? 1 - steps((since - 0.6) / 0.6, 3) : 1;
+        // Fucina: spento, anche il colore della fornace (le parti accese: `_brace` nel segnaposto, mat_emissivo nel modello) diventa cenere
+        if (n.spento !== e.spento) { e.spento = !!n.spento; for (const m of e.mats) if (/_brace$|emissiv/.test(m.name)) m.color.setScalar(e.spento ? 0.22 : 1); }
         e.mats.forEach((m, i) => {
           if (glowC) m.emissive.copy(glowC).multiplyScalar(glow); else m.emissive.copy(e.base[i]!);
           if (n.alleato) m.emissive.lerp(NEON, 0.35);

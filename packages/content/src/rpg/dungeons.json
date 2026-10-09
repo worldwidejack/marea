@@ -242,5 +242,77 @@
        "Al posto della firma, un sigillo a forma di onda."
      ]}
     ]
+   }},
+  {"id":"fucina","nome":"Fucina a Pressione","descr":"Sotto l'arco nord della Laguna, la forgia degli automi che teneva caldo il Pilone 3: colate di lava che respirano, cascate di raffreddamento, fornaci semoventi, scintille, palombari e il Mastro Forgiatore. Ferro, argento, oro.","stile":"fucina","difficolta":5,"richiede":"archivio","tile":2,"legenda":{"1":{"lava":1},"2":{"lava":2},"=":{"colata":1},"x":{"chiusa":1},"w":{"getto":true},"s":{"nemico":"scintilla_vapore"},"f":{"nemico":"fornace_semovente"},"g":{"nemico":"golem_palombaro"},"K":{"nemico":"mastro_forgiatore","capo":true},"c":{"forziere":"comune_fucina"},"R":{"forziere":"raro_fucina"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"B":{"altare":true,"asciutti":[1]}},"ingresso":{"island":"laguna","at":[26,5]},
+   "lave":[{"n":1,"scorre":2.4,"crosta":2.8,"fase":0,"dps":18,"secondi":2},{"n":2,"scorre":2,"crosta":3,"fase":1.4,"dps":18,"secondi":2}],
+   "rows": [
+    "#############################################",
+    "#......t....R.#######t....................R.#",
+    "#.x...........#######......w.........w......#",
+    "#........o....#######...o...............o...#",
+    "#.....g......t#######..........K............#",
+    "#..o..........#######.......................#",
+    "#.........s...#######...o..w.........w..o...#",
+    "#...w..s......#######.......................#",
+    "#...........f.#######.t....................t#",
+    "####...##############################..######",
+    "####...############################.........#",
+    "####222#########.t.......c#########........t#",
+    "####222#########.o......o.#########..B......#",
+    "####...#########.......f..#########.......s.#",
+    "####...#########....oo....############===####",
+    "####................oo....############===####",
+    "####.w...........s......g.############===####",
+    "####...#########..........############===####",
+    "####...############..######t...............t#",
+    "#.........c.#######..######......s..o.......#",
+    "#........t..#######..######....w..........o.#",
+    "#...........#######..######..f..............#",
+    "#.......s....t.11.....11.t...........g......#",
+    "#..............11..s..11................w...#",
+    "#..............11.....11......o...A.........#",
+    "#..o...........11..f..11...............s....#",
+    "#...........###############.g....o.......f..#",
+    "#t...<......###############.........t......c#",
+    "#############################################",
+    "                                             "
+   ],
+   "testi": {
+    "sottotitolo": "Pilone idraulico n. 3 · il fuoco che aspetta",
+    "voci": [
+     {"id":"ingresso","zona":[1,19,11,27],"chi":"Fuochista Capo","testo":"…fsss… Pilone 1: acqua. Pilone 2: vento. Pilone 3: fuoco. Pressione in risalita dopo 41.207 notti. Caricare i forni!"},
+     {"id":"colate","zona":[12,22,26,25],"chi":"Fuochista Capo","testo":"Le colate respirano. Crosta scura: si passa. Crepe accese: si brucia. Gli automi non bruciano. Gli operai di carne sì."},
+     {"id":"chiusa","zona":[1,1,13,8],"chi":"Fuochista Capo","testo":"Chiusa del raffreddamento: si apre solo per ordine della Regina. La Colata Maestra tiene caldo il cuore. NON TOCCARE."},
+     {"id":"forgiatore","zona":[21,1,43,8],"chi":"Il Mastro Forgiatore","capo":true,"testo":"Il fuoco non si spegne finché Lei non torna. Ho forgiato la Sua Egida. Ho forgiato il Suo letto di ferro. NON SI SPEGNE."}
+    ],
+    "letture": [
+     {"id":"quaderno","tipo":"libro","at":[2,21],"titolo":"Quaderno del garzone di forgia","righe":[
+       "Primo giorno alla Fucina. Il Mastro Forgiatore non dorme e non mangia: ha una fornace al posto della pancia e quattro zoccoli che fanno tremare il pavimento. Mi ha detto: «Il fuoco non si lascia mai solo.»",
+       "Ho capito come funziona il Pilone 3. Il fuoco scalda l’acqua della Laguna, il vapore spinge i pistoni, i pistoni caricano il pilone. Senza fuoco niente vapore. Senza vapore niente Barriera.",
+       "La Marea Ferrosa è arrivata a ponente. Il Mastro ha messo i palombari di guardia alle chiuse: se l’acqua rossa entra nei tubi, i forni si spengono per sempre.",
+       "Notte della Regata. Le barche sono arrivate al Pilone 3 con l’acqua che fumava. Abbiamo dato tutto il vapore che avevamo. La Regina è scesa a terra ed è venuta qui, alla forgia. Ha parlato a lungo col Mastro.",
+       "Dopo, il Mastro ha spento tutti i forni tranne il suo e ci ha mandati via. Gli ho chiesto per chi lavorava, adesso. Ha detto: «Per Lei. Finché non torna.»",
+       "Ultima riga, scritta in fretta: «Il martello batte da tre giorni. Il Mastro dice che sta forgiando un letto. Per chi?»"
+     ]},
+     {"id":"targa","tipo":"incisione","at":[21,11],"titolo":"Targa dell’Altoforno","righe":[
+       "FUCINA A PRESSIONE · PILONE 3",
+       "Il fuoco scalda l’acqua. L’acqua spinge il pilone. Il pilone tiene su il cielo.",
+       "Dono della Corona alla gente della Laguna.",
+       "Sotto, graffiato con un chiodo: «e chi tiene su il fuoco?»"
+     ]},
+     {"id":"commesse","tipo":"libro","at":[11,4],"titolo":"Registro delle commesse","righe":[
+       "Commessa n. 1 · Quattro piastre per i piloni, metallo della Corona. Consegnate.",
+       "Commessa n. 7 · Dodici lame per la Guardia d’Onore, temprate nell’acqua che corre: non sono acciaio, sono acqua che non smette di correre. Consegnate.",
+       "Commessa n. 9 · Una lancetta per l’orologio della Regina. Deve battere l’ora esatta anche quando nessuno la guarda. Consegnata.",
+       "Commessa n. 12 · Il Custode dell’Egida: un guardiano che non dorma mai, con tre cuori (acqua, vapore e moto). Consegnato al Santuario.",
+       "Commessa n. 13 · Un letto di ferro, misura di una persona. Nessun ornamento. Consegna: Santuario. Al posto della firma, un sigillo a forma d’onda.",
+       "A margine, la grafia del Mastro: «L’ultima l’ho fatta piano. Non volevo finirla.»"
+     ]},
+     {"id":"impronta","tipo":"incisione","at":[41,10],"titolo":"La porta dell’Altoforno","righe":[
+       "Nel ferro della porta, lucida come il primo giorno, l’impronta di una mano piccola premuta sul metallo ancora caldo.",
+       "Accanto, inciso con la punta di un chiodo: «Tienilo acceso per me. Tornerò io a spegnerlo.»",
+       "Sotto, a colpi di martello, lettere grandi e storte: ASPETTO."
+     ]}
+    ]
    }}
 ]

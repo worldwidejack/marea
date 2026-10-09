@@ -2,6 +2,7 @@
 // l'Aerostato-Spia e l'Astrolabio volano (`vola`: sopra acqua, grate e vuoto, non sopra muri e scaffali). Ognuno ha la sua griglia di
 // collisione e il suo flow field verso gli eroi, fatti alla prima richiesta (uguali per tutti: dipendono solo da mappa ed eroi).
 // Chi vola sta alto: in mischia lo prendi solo quando scende (`alto`). Le griglie non seguono l'acqua che scende (nel Drenaggio non serve).
+// Fucina: il Mastro Forgiatore (`asciutto`) cammina attorno alle cascate d'acqua.
 import type { DungeonState, Enemy } from './state.ts';
 import { inGioco } from './state.ts';
 import { bfs, cellOf } from './map.ts';
@@ -15,7 +16,9 @@ export function grigliaDi(s: DungeonState, e: Enemy): Griglia {
   let g = s.griglie[k];
   if (!g) {
     const m = s.map;
-    g = { w: m.w, h: m.h, tile: m.tile, opaque: m.opaque, solid: k === 'vola' ? m.opaque : m.solid.map((v, i) => (m.grata[i] ? 0 : v)) };
+    // Fucina, il Mastro Forgiatore (`asciutto`): le cascate per lui sono muri (ci entra solo caricando: forgiatore.ts)
+    const solid = k === 'vola' ? m.opaque : k === 'asciutto' ? m.solid.map((v, i) => (m.getto[i] ? 1 : v)) : m.solid.map((v, i) => (m.grata[i] ? 0 : v));
+    g = { w: m.w, h: m.h, tile: m.tile, opaque: m.opaque, solid };
     s.griglie[k] = g;
   }
   return g;

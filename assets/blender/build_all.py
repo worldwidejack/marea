@@ -5,7 +5,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, '..', '..', 'tools')]
 import bpy
 import lib, export_gltf
-import models_terreno, models_edifici, models_prop, models_chr, models_m1, models_rpg, models_drenaggio, models_archivio
+import models_terreno, models_edifici, models_prop, models_chr, models_m1, models_rpg, models_drenaggio, models_archivio, models_fucina
 
 argv = sys.argv[sys.argv.index('--') + 1:]
 flags = {a for a in argv if a.startswith('--')}
@@ -13,7 +13,7 @@ args = [a for a in argv if not a.startswith('--')]
 lib.ATLAS_PNG, OUT, PREV = os.path.abspath(args[0]), os.path.abspath(args[1]), os.path.abspath(args[2])
 only = set(args[3:])
 REG = {}
-for m in (models_terreno, models_edifici, models_prop, models_chr, models_m1, models_rpg, models_drenaggio, models_archivio):
+for m in (models_terreno, models_edifici, models_prop, models_chr, models_m1, models_rpg, models_drenaggio, models_archivio, models_fucina):
     REG.update(m.MODELS)
 
 

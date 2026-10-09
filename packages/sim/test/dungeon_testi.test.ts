@@ -42,6 +42,18 @@ test('testi: l’Archivio ha sottotitolo, 4 voci (l’Archivista Capo e l’Astr
   assert.equal(t.voci?.filter((v) => v.capo).length, 1, 'parla un capo solo');
 });
 
+test('testi: la Fucina ha sottotitolo, 4 voci (il Fuochista Capo e il Mastro Forgiatore) e 4 letture che portano al Santuario', () => {
+  const t = dungeonDef('fucina').testi;
+  assert.ok(t?.sottotitolo);
+  assert.ok(t.sottotitolo.startsWith('Pilone idraulico n. 3'));
+  assert.deepEqual(t.voci?.map((v) => v.id), ['ingresso', 'colate', 'chiusa', 'forgiatore']);
+  assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['quaderno:libro', 'targa:incisione', 'commesse:libro', 'impronta:incisione']);
+  assert.equal(t.voci?.filter((v) => v.capo).length, 1, 'parla un capo solo');
+  // la lore continua: il registro delle commesse annuncia il Custode dell'Egida e il letto di ferro del Santuario (dungeon 4)
+  const commesse = t.letture!.find((l) => l.id === 'commesse')!.righe.join(' ');
+  assert.ok(/Custode dell’Egida/.test(commesse) && /Santuario/.test(commesse));
+});
+
 test('testi: poche voci e corte, zone dentro la mappa sul pavimento, id unici', () => {
   for (const d of DUNGEONS) {
     const t = d.testi;

@@ -14,7 +14,7 @@ export type Controls = {
   readonly paused: boolean;
   /** Vicino alla scala: mostra «A · Esci col bottino». */
   setExit(on: boolean): void;
-  /** Drenaggio: accanto a una valvola chiusa (A la gira). */
+  /** Drenaggio: accanto a una valvola chiusa (A la gira). Fucina: la leva della chiusa (createControls({ valvola }) cambia la scritta). */
   setValvola(on: boolean): void;
   /** Archivio: accanto al timone di una corrente che soffia (A la ferma). */
   setTimone(on: boolean): void;
@@ -65,7 +65,7 @@ const CSS = `
 .mz-dng-ask .mz-btn small { font-size: 12px; color: inherit; opacity: .8; }
 `;
 
-export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; blocked(): boolean; insieme?: boolean }): Controls {
+export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; blocked(): boolean; insieme?: boolean; valvola?: string }): Controls {
   if (!document.getElementById('mz-dng-ctrl-style')) { const st = document.createElement('style'); st.id = 'mz-dng-ctrl-style'; st.textContent = CSS; document.head.appendChild(st); }
   let cLatch = false, dLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
   const cHeld = new Set<number>(), dHeld = new Set<number>(), keys = new Set<string>();
@@ -93,7 +93,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
 
   // ---- scala e lanterna ----
   const exit = btn('mz mz-dng-exit', 'scala', el('span', '', 'A · Esci col bottino')); exit.id = 'mzDngExit';
-  const valv = btn('mz mz-dng-exit valv', 'valvola', el('span', '', 'A · Gira la valvola')); valv.id = 'mzDngValvola';
+  const valv = btn('mz mz-dng-exit valv', 'valvola', el('span', '', o.valvola ?? 'A · Gira la valvola')); valv.id = 'mzDngValvola';
   const tim = btn('mz mz-dng-exit tim', 'timone', el('span', '', 'A · Gira il timone')); tim.id = 'mzDngTimone';
   const lanBox = el('div', 'mz mz-dng-lan'); lanBox.id = 'mzDngLanterna';
   const lanTitle = el('b'); lanTitle.append(el('i'), 'LANTERNA');

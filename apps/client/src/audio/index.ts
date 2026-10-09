@@ -143,7 +143,8 @@ export function createAudio(): Audio {
         : e.t === 'senzaMagicka' || e.t === 'senzaFrecce' || e.t === 'rotto' || e.t === 'pieno' ? 'vuoto'
         : e.t === 'valvola' ? 'martello' : e.t === 'asciutto' ? 'goccia' : e.t === 'geyser' ? 'sfrigola' : e.t === 'rallentato' ? 'plop' // Drenaggio
         : e.t === 'timone' ? 'martello' : e.t === 'bomba' ? 'cannone' : e.t === 'arpionato' ? 'lancio' : e.t === 'raffica' ? 'raffica' // Archivio
-        : e.t === 'raggio' ? 'tuono' : e.t === 'parato' ? 'schivato' : e.t === 'anelli' ? 'apri' : null;
+        : e.t === 'raggio' ? 'tuono' : e.t === 'parato' ? 'schivato' : e.t === 'anelli' ? 'apri'
+        : e.t === 'bruciato' ? 'sfrigola' : e.t === 'estinto' || e.t === 'spento' ? 'goccia' : e.t === 'carica' ? 'tuono' : e.t === 'magma' ? 'cannone' : e.t === 'riacceso' ? 'magia' : null; // Fucina
       if (id) suona(id);
     },
     resume() { if (vol.musica > 0 || vol.effetti > 0) void ctx.resume(); },

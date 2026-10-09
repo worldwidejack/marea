@@ -8,6 +8,7 @@ import { hitHero } from './combat.ts';
 import { isSolid } from './map.ts';
 import { GEYSER_DIR, RAGGIO_VALVOLA, SCOLO_TICKS } from './tuning.ts';
 import { spingi } from './vento.ts';
+import { fuocoA } from './fuoco.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const bacinoDi = (s: DungeonState, n: number): Bacino | undefined => s.bacini.find((b) => b.n === n);
@@ -66,13 +67,17 @@ export function geyserDa(s: DungeonState, e: Enemy): void {
 }
 
 /** Fine tick: i geyser avvisano, poi eruttano e prendono (una volta) chi ci sta dentro. Le bombe dell'Archivio (`spinta`) scoppiano e
- *  spingono via dal centro chi prendono. */
+ *  spingono via dal centro chi prendono; le palle di magma della Fucina (`magma`) cadono e lasciano una pozza che brucia. */
 export function stepGeyser(s: DungeonState): void {
   if (!s.geyser.length) return;
   const keep: DungeonState['geyser'] = [];
   for (const g of s.geyser) {
     g.t++;
-    if (g.t === g.avviso + 1) ev(s, { t: g.spinta !== undefined ? 'bomba' : 'geyser', x: r2(g.x), z: r2(g.z) });
+    if (g.t === g.avviso + 1) {
+      ev(s, { t: g.magma ? 'magma' : g.spinta !== undefined ? 'bomba' : 'geyser', x: r2(g.x), z: r2(g.z) });
+      // Fucina: la palla di magma lascia una pozza che brucia
+      if (g.magma) fuocoA(s, g.x, g.z, g.magma.raggio, g.magma.durata, g.magma.dps, g.magma.secondi);
+    }
     if (g.t > g.avviso) {
       for (const i of inGioco(s)) {
         if (g.colpiti.includes(i)) continue;

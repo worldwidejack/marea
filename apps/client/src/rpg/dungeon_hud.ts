@@ -73,7 +73,9 @@ body.mz-sotto .mz-labels, body.mz-sotto #mzPlay, body.mz-sotto #mzEmoteRow, body
 const nome = (id: string) => (hasItem(id) ? itemDef(id).nome : id);
 const fmt = (s: number) => { const m = Math.floor(s / 60); return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
 
-export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasElement; camera: THREE.Camera; hero: RunHero }): DungeonHud {
+/** `stile` del dungeon: nella Fucina la valvola è la chiusa e l'acqua che scende è la Colata che si raffredda. */
+export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasElement; camera: THREE.Camera; hero: RunHero; stile?: string }): DungeonHud {
+  const fucina = o.stile === 'fucina';
   if (!document.getElementById('mz-dng-hud-style')) { const st = document.createElement('style'); st.id = 'mz-dng-hud-style'; st.textContent = CSS; document.head.appendChild(st); }
   const box = el('div', 'mz mz-dng-hud'); box.id = 'mzDngHud';
   const mkBar = (k: string, c: string) => {
@@ -175,14 +177,18 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'libro': say(`Hai imparato: ${nome(e.item).replace(/^Libro: /, '')}`, 2600); break;
         case 'evocato': say('Un alleato combatte per te', 1800); break;
         case 'risveglio': say('Ti risvegli alla lanterna: perso solo il bottino raccolto dopo', 3200); break;
-        case 'valvola': say('Valvola girata: l’acqua scende…', 2200); break;
-        case 'asciutto': say('Svuotato: adesso si passa', 2200); break;
+        case 'valvola': say(fucina ? 'Chiusa aperta: l’acqua raffredda la Colata Maestra…' : 'Valvola girata: l’acqua scende…', 2200); break;
+        case 'asciutto': say(fucina ? 'La Colata è fredda: adesso si passa' : 'Svuotato: adesso si passa', 2200); break;
         case 'rallentato': say('La fanghiglia ti rallenta', 1600); break;
         case 'timone': say('Timone girato: il vento si ferma', 2400); break;
         case 'arpionato': say('Arpionato! Il drone ti tira a sé', 1600); break;
         case 'urto': say('Sbattuto contro il muro', 1400); break;
-        case 'parato': say('Gli anelli lo proteggono: rompili!', 1800); break;
+        case 'parato': say(e.perche === 'scafandro' ? 'Lo scafandro para: colpiscilo alle valvole sulla schiena' : e.perche === 'fornace' ? 'Il fuoco lo protegge: fallo caricare dentro una cascata' : 'Gli anelli lo proteggono: rompili!', 2200); break;
         case 'anelli': say('L’Astrolabio stacca gli anelli: rompili per colpirlo', 3000); break;
+        case 'bruciato': say('Bruci!', 1200); break;
+        case 'estinto': say('L’acqua ti spegne', 1400); break;
+        case 'spento': say('La fornace si spegne: colpiscilo adesso!', 2600); break;
+        case 'riacceso': say('Il Mastro si riaccende', 1800); break;
         default:
       }
     },

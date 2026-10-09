@@ -52,6 +52,7 @@ export const INGRESSI = [
   { id: 'vuoto', nome: 'Portale del Vuoto', island: 'neon', at: [20, 13], stile: 'vuoto', difficolta: 6 },
   { id: 'drenaggio', nome: 'Impianto di Drenaggio', island: 'laguna', at: [18, 45], stile: 'drenaggio', difficolta: 3 },
   { id: 'archivio', nome: 'Archivio Navigazionale', island: 'laguna', at: [47, 36], stile: 'archivio', difficolta: 4, richiede: 'drenaggio' },
+  { id: 'fucina', nome: 'Fucina a Pressione', island: 'laguna', at: [26, 5], stile: 'fucina', difficolta: 5, richiede: 'archivio' },
 ] as const;
 /** Il dungeon da completare prima di poter entrare (porta sigillata), o null. */
 export const richiesto = (id: string): string | null => { const d = INGRESSI.find((x) => x.id === id); return d && 'richiede' in d ? d.richiede : null; };

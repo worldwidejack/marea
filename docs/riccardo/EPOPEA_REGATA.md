@@ -2,7 +2,7 @@
 
 > **Per Riccardo e la sua AI.** Se lavori per **Jack** o per **Birba** (Alberto Biraghi): questo file non riguarda il tuo lavoro. Ignoralo: non implementarlo, non cambiarlo.
 >
-> **Stato (9 ott 2026)**: **dungeon 1 fatto** (Impianto di Drenaggio, #142: regole vere in `docs/RPG.md` §2b), **dungeon 2 fatto** (Archivio Navigazionale, regole vere in `RPG.md` §2d, con la prima porta sigillata); 3-4 ancora progetto. I dungeon si fanno **uno alla volta, in ordine (1 → 4)**, ognuno con la sua issue e la sua PR. Quando un dungeon entra nel gioco, le sue regole vere vanno in `docs/RPG.md` (che vince su questo file) e qui si segna «fatto».
+> **Stato (9 ott 2026)**: **dungeon 1 fatto** (Impianto di Drenaggio, #142: regole vere in `docs/RPG.md` §2b), **dungeon 2 fatto** (Archivio Navigazionale, regole vere in `RPG.md` §2d, con la prima porta sigillata), **dungeon 3 fatto** (Fucina a Pressione, regole vere in `RPG.md` §2e); il 4 è ancora progetto. I dungeon si fanno **uno alla volta, in ordine (1 → 4)**, ognuno con la sua issue e la sua PR. Quando un dungeon entra nel gioco, le sue regole vere vanno in `docs/RPG.md` (che vince su questo file) e qui si segna «fatto».
 > Lore, bestiario e ricompense sono di Riccardo (8 ott 2026). Le parti segnate **[proposta]** le ha aggiunte il suo Claude: Riccardo le può cambiare.
 
 Quando Riccardo dice «**dungeon della Regata numero N**», intende il dungeon N di questo file.
@@ -21,7 +21,7 @@ Quando Riccardo dice «**dungeon della Regata numero N**», intende il dungeon N
   - **Fatto (9 ott 2026, Archivio)**: porta sigillata = sbarre incrociate e sigillo rosso sulla bocca, cartello «SIGILLATO», bottone «SIGILLATO · prima: …» che non fa entrare, niente AFFRONTA INSIEME; il server rifiuta comunque (`DungeonDef.richiede`). Il pilone spento davanti all'ingresso (vedi «In superficie») non c'è ancora.
 - **Nemici**: il **Collettivo Rottamautomi**, antichi robot di sicurezza bloccati in un loop. Famiglia (`EnemyKind`) **[proposta]**: `costrutto` per tutti gli automi; `mostro` per Tubo-strisciante e Scintilla-Vapore (non sono macchine ma «scarti» della macchina).
 - **Difficoltà** (scelta di Riccardo): Drenaggio > Cripta delle Ossa; Archivio > Drenaggio; Fucina > Archivio ma < Portale del Vuoto; Mausoleo > Vuoto (diventa il dungeon più difficile del gioco).
-  - `difficolta` in `dungeons.json` (serve solo all'ordine della bussola) rinumerata: Grotta 1 · Cripta 2 · **Drenaggio 3** · **Archivio 4** (fatti) · **Fucina 5** · Vuoto 6 · **Mausoleo 7**. Va aggiornata anche la copia a mano in `apps/client/src/game/ingressi.ts`.
+  - `difficolta` in `dungeons.json` (serve solo all'ordine della bussola) rinumerata: Grotta 1 · Cripta 2 · **Drenaggio 3** · **Archivio 4** · **Fucina 5** (fatti) · Vuoto 6 · **Mausoleo 7**. Va aggiornata anche la copia a mano in `apps/client/src/game/ingressi.ts`.
   - **[proposta]** taratura indicativa (vita · danno), da rifare giocando. Riferimenti: Cripta scheletro 45·12, non-morto 80·18, Re delle Ossa 420·26 · Vuoto golem 140·28, Custode 750·38.
 
     | Dungeon | Nemici comuni | Capo |
@@ -56,12 +56,12 @@ Più difficile del Drenaggio. **Tema**: vento. **Meccanica a tema** (scelta dal 
   - **Allineamento**: gli anelli si allineano e per 1 s una linea sottile segna dove colpirà il raggio; ci si ripara dietro gli scaffali dell'archivio.
   - Sotto metà vita gli anelli si staccano e gli orbitano attorno come scudi: si rompono con frecce o magie, poi il nucleo resta scoperto. Dopo ogni attacco grosso si «ricalibra» e resta fermo 2-3 s: è il momento per colpirlo in mischia.
 
-### Dungeon 3 — La Fucina a Pressione
-Più difficile dell'Archivio, meno del Portale del Vuoto. **Tema**: lava e calore.
+### Dungeon 3 — La Fucina a Pressione · **fatto** (9 ott 2026, regole vere in `RPG.md` §2e)
+Più difficile dell'Archivio, meno del Portale del Vuoto. **Tema**: lava e calore. **Meccanica a tema** (scelta dal Claude di Riccardo): **la lava e l'acqua**. Colate di lava che respirano (crosta e lava a giro: si passa sulla crosta, sulla lava si prende fuoco), la **bruciatura**, **cascate di raffreddamento** che spengono chi brucia (e le Scintille, e il Mastro), la **Colata Maestra** da raffreddare con la leva della chiusa per arrivare al capo. Ingresso sull'arco nord della Laguna, proseguendo a piedi dall'Archivio. La lore continua: il Fuochista Capo (i tre piloni che ripartono uno dopo l'altro), il garzone che vide la Regina scendere alla forgia la notte della prima Regata, il **Registro delle commesse** del Mastro (le lame della Guardia d'Onore, la lancetta dell'orologio della Regina, il **Custode dell'Egida «con tre cuori: acqua, vapore e moto»**, un **letto di ferro** per il Santuario: il sarcofago), l'impronta della mano della Regina sulla porta dell'Altoforno («Tienilo acceso per me. Tornerò io a spegnerlo.»). Il dungeon 4 ha già il suo boss e il suo sarcofago annunciati.
 - **Fornace Semovente** — macchinario su **cingoli** che lascia una **scia di fuoco** a terra.
 - **Scintilla-Vapore** — nemico elementale **velocissimo**, causa lo stato **bruciatura**.
 - **Golem-Palombaro** — grosso tank con scafandro: **invulnerabile di fronte**, va colpito alle **valvole sulla schiena**.
-- **Miniboss — Il Mastro Forgiatore** — **centauro meccanico** con una fornace al posto dello stomaco. **Spara magma**; va **attirato sotto dei getti d'acqua** per poterlo danneggiare.
+- **Miniboss — Il Mastro Forgiatore** — **centauro meccanico** con una fornace al posto dello stomaco. **Spara magma**; va **attirato sotto dei getti d'acqua** per poterlo danneggiare. Fatto così (numeri in `RPG.md` §2e): acceso è intoccabile e camminando gira attorno alle cascate; alterna la **carica** (linea d'avviso, poi corre dritto) e il **magma** (palle che lasciano pozze che bruciano); se la carica passa in una cascata si spegne e per qualche secondo prende danni doppi. Il trucco è mettersi con una cascata tra sé e lui.
 
 ### Dungeon 4 — Il Mausoleo Cinetico (Santuario della Regina)
 Più difficile della Fucina **e del Portale del Vuoto**: per ora il dungeon più difficile del gioco. **Tema**: orologeria perfetta, acqua e vapore eleganti.
@@ -75,7 +75,7 @@ Più difficile della Fucina **e del Portale del Vuoto**: per ora il dungeon più
 - Sconfitto il Custode si apre il **sarcofago della Regina** (vedi §4).
 
 ### Meccaniche nuove che serviranno (per chi programma, da fare dungeon per dungeon)
-Oggi la sim ha nemici `mischia`, `arciere`, `mago`, sanguinamento, sbilanciamento, armature. Fatte: stato **rallentato**, **torrette fisse**, **colpo ad area con geyser**, **livello dell'acqua che cambia** (1); **spinta del vento**, **nemici volanti**, **arpione**, **nemici sulle grate**, **boss con lo scudo di anelli** (2). Mancano: **zone a terra che bruciano** (3), stato **bruciatura** (3), **armatura solo davanti** (3), **boss vulnerabile solo in certi punti** (3), **nemici che curano/potenziano** (4), **scudo frontale** (4), **boss a fasi** (4), **onda d'urto attorno all'eroe** (4: anello e armatura). Tutto in `packages/sim` (puro, deterministico), numeri in `packages/content/src/rpg/*.json`.
+Oggi la sim ha nemici `mischia`, `arciere`, `mago`, sanguinamento, sbilanciamento, armature. Fatte: stato **rallentato**, **torrette fisse**, **colpo ad area con geyser**, **livello dell'acqua che cambia** (1); **spinta del vento**, **nemici volanti**, **arpione**, **nemici sulle grate**, **boss con lo scudo di anelli** (2); **zone a terra che bruciano**, stato **bruciatura**, **armatura solo davanti** (con la rotazione lenta), **boss vulnerabile solo in certi momenti** (la cascata), **lava a tempo**, **cascate che spengono** (3). Mancano: **nemici che curano/potenziano** (4), **scudo frontale** (4), **boss a fasi** (4), **onda d'urto attorno all'eroe** (4: anello e armatura). Tutto in `packages/sim` (puro, deterministico), numeri in `packages/content/src/rpg/*.json`.
 
 ## 4. Ricompense del dungeon 4
 

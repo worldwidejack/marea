@@ -29,6 +29,14 @@ export type DMap = {
   timoni: (Spawn & { x: number; z: number; n: number })[];
   grate: number[];
   grata: Uint8Array;
+  /** Fucina: colate che respirano (DungeonDef.lave, in ordine di n) coi loro numeri e celle; `lava[i]` = n della colata della cella i
+   *  (0 = nessuna; pavimento: si cammina sempre); cascate d'acqua (legenda `getto`, pavimento) e `getto[i]` = 1 se la cella i ne ha una.
+   *  La Colata Maestra (`colata: n`) e la sua chiusa (`chiusa: n`) stanno in `bacini` e `valvole` come l'acqua del Drenaggio.
+   *  Negli altri dungeon vuoti. */
+  lave: { n: number; scorre: number; crosta: number; fase: number; dps: number; secondi: number; celle: number[] }[];
+  lava: Uint8Array;
+  getti: (Spawn & { x: number; z: number })[];
+  getto: Uint8Array;
   /** Celle calpestabili (indici), per i test e l'autopilot. */
   floor: number[];
 };
@@ -47,6 +55,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   const nemici: DMap['nemici'] = [], forzieri: DMap['forzieri'] = [], libri: DMap['libri'] = [], altari: DMap['altari'] = [], floor: number[] = [];
   const bacini = new Map<number, number[]>(), valvole: DMap['valvole'] = [];
   const zona = new Uint8Array(w * h), grata = new Uint8Array(w * h), timoni: DMap['timoni'] = [], grate: number[] = [];
+  const lava = new Uint8Array(w * h), getto = new Uint8Array(w * h), getti: DMap['getti'] = [];
   for (let cz = 0; cz < h; cz++)
     for (let cx = 0; cx < w; cx++) {
       const ch = def.rows[cz]![cx] ?? ' ';
@@ -58,8 +67,10 @@ export function parseDungeon(def: DungeonDef): DMap {
         const l = def.legenda[ch];
         if (!l) throw new Error(`Dungeon ${def.id}: lettera '${ch}' senza legenda (${cx},${cz})`);
         if (l.colonna) { solid[i] = 1; opaque[i] = 1; continue; }
-        if (l.acqua !== undefined) { solid[i] = 1; const b = bacini.get(l.acqua) ?? []; b.push(i); bacini.set(l.acqua, b); continue; }
-        if (l.valvola !== undefined) valvole.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: l.valvola });
+        // la Colata Maestra della Fucina è un bacino come l'acqua del Drenaggio, la sua chiusa una valvola
+        const acqua = l.acqua ?? l.colata, valvola = l.valvola ?? l.chiusa;
+        if (acqua !== undefined) { solid[i] = 1; const b = bacini.get(acqua) ?? []; b.push(i); bacini.set(acqua, b); continue; }
+        if (valvola !== undefined) valvole.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: valvola });
         if (l.nemico) nemici.push(l.capo ? { cx, cz, ch, tipo: l.nemico, capo: true } : { cx, cz, ch, tipo: l.nemico });
         // grata: solida per chi cammina, non opaca; sopra può partire un nemico (il Drone Idro-Ragno)
         if (l.grata) { solid[i] = 1; grata[i] = 1; grate.push(i); continue; }
@@ -68,6 +79,8 @@ export function parseDungeon(def: DungeonDef): DMap {
         if (l.altare) altari.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, ...(l.asciutti ? { asciutti: l.asciutti } : {}), ...(l.ferme ? { ferme: l.ferme } : {}) });
         if (l.vento !== undefined) zona[i] = l.vento;
         if (l.timone !== undefined) timoni.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: l.timone });
+        if (l.lava !== undefined) lava[i] = l.lava;
+        if (l.getto) { getto[i] = 1; getti.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile }); }
       }
       floor.push(i);
     }
@@ -91,9 +104,17 @@ export function parseDungeon(def: DungeonDef): DMap {
   });
   for (let i = 0; i < zona.length; i++) if (zona[i] && !venti.some((v) => v.n === zona[i])) throw new Error(`Dungeon ${def.id}: cella di vento ${zona[i]} senza corrente in \`venti\``);
   for (const t of timoni) if (!venti.some((v) => v.n === t.n)) throw new Error(`Dungeon ${def.id}: timone ${t.n} senza corrente`);
+  const lave: DMap['lave'] = [...(def.lave ?? [])].sort((a, b) => a.n - b.n).map((v) => {
+    const celle: number[] = [];
+    for (let i = 0; i < lava.length; i++) if (lava[i] === v.n) celle.push(i);
+    if (!celle.length) throw new Error(`Dungeon ${def.id}: colata ${v.n} senza celle`);
+    return { n: v.n, scorre: v.scorre, crosta: v.crosta, fase: v.fase ?? 0, dps: v.dps, secondi: v.secondi, celle };
+  });
+  for (let i = 0; i < lava.length; i++) if (lava[i] && !lave.some((v) => v.n === lava[i])) throw new Error(`Dungeon ${def.id}: cella di lava ${lava[i]} senza colata in \`lave\``);
   const m: DMap = {
     id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, altari, floor,
     bacini: [...bacini].sort((a, b) => a[0] - b[0]).map(([n, celle]) => ({ n, celle })), valvole, venti, zona, timoni, grate, grata,
+    lave, lava, getti, getto,
   };
   MAPS.set(def, m);
   return m;
