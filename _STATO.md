@@ -3,11 +3,14 @@ progetto: MAREA
 stato: attivo
 aggiornato: 2026-10-09
 dettaglio: docs/ROADMAP.md
-rimasti: Corse v2 decisa: hub, 6 zone × 4 piste, 4 famiglie. Bibbia scritta, ora concept art.
-primo_passo: Tu: scegli la concept art di hub e zone; poi motore a nastro 3D e Spiaggia.
+rimasti: Corse v2: motore a nastro 3D fatto, banco provapiste.html online. Ora le 4 piste Spiaggia.
+primo_passo: Tu: prova provapiste.html (giro della morte, salto, baia); poi Claude fa la Spiaggia.
 ---
 ## Siamo arrivati a
-9 ott: Isola delle Corse online col Gran Premio (#156), ma a Jack non basta (pista povera, poco da fare). Intervista fatta: l'isola diventa un'avventura completa alla Diddy Kong Racing. Hub aperto, 6 zone × 4 piste più i boss, 4 famiglie di veicoli più i buffi, manichini e animali piloti. Bibbia in `docs/CORSE.md` Parte A, #155 riscritta, dettaglio in `_MEMORIA.md` §4.
+9 ott: l'Isola delle Corse diventa un'avventura completa alla Diddy Kong Racing.
+- Intervista, bibbia (`docs/CORSE.md` Parte A, #163) e concept art approvata (#164): il metro di qualità è la Giungla.
+- Fatto il **motore v2**: pista a nastro 3D con giri della morte, salti, discese, acqua, scorciatoie ed eventi firma.
+- Il banco di prova **provapiste.html** ha 4 piste e 6 veicoli (anche carrello e vasca). Il gioco non cambia: il Gran Premio resta.
 
 ## Prossimo passo
-Claude genera la concept art (hub, 6 zone, veicoli, manichini, animali piloti) e Jack sceglie. Poi il motore a nastro 3D e la zona Spiaggia e porto.
+Jack: prova provapiste.html da PC e telefono e dice com'è la guida su salti, giro della morte e acqua. Claude: le 4 piste grezze della Spiaggia e porto (lungomare, baia, porto misto, fuga dall'onda), da provare sul banco prima di vestirle.

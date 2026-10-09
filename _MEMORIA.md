@@ -58,3 +58,16 @@ Intervista di Jack in Claude Code (VS Code), 4 giri più 2 domande, piano approv
 - **Prima zona**: l'ha lasciata scegliere a Claude, che ha preso **Spiaggia e porto** (ruote + acqua).
 
 Tecnica: la sim di oggi è piatta (x, z), quindi serve una pista a nastro 3D in coordinate di pista.
+
+**Concept art Corse** (9 ott sera, #164): 14 immagini fatte con ChatGPT nel Chrome di Jack, con lo screenshot del Giardino come riferimento di stile, foglio in `assets/concept/corse/_FOGLIO_concept_corse.jpg`. Jack le ha approvate tutte («sì, è questa»), con due hub (mappa + paese al molo). La sua preferita è la **Giungla (kart da miniera)**, che diventa il metro di qualità. I manichini sono venuti lisci due volte: sono passati solo usando come riferimento una concept già a pixel (il porto) al posto dello screenshot del gioco. In Chrome la prima digitazione in una scheda in secondo piano va persa: si clicca e si riscrive.
+
+**Motore v2 delle Corse** (9 ott notte, `docs/CORSE.md` A11, CONTRACTS §32).
+- La pista è un nastro 3D campionato ogni metro, con la terna avanti-destra-sopra. Il veicolo vive in coordinate di pista (s, lat, h), con muso e moto come nel Gran Premio. Quando la pista curva, sotto il veicolo gira lei.
+- Le piste si scrivono con una tartaruga in `tools/corse_piste/` (dritto, curva sopraelevata, giro della morte, salto, ramo, chiudi) e lo strumento fa JSON e planimetria.
+- **Trappole pagate**:
+  - la camera inseguitrice dietro in linea retta esce dal giro della morte: va messa «sui binari», sul nastro qualche metro indietro;
+  - a testa in giù la strada è nera, quindi è arancione a strisce;
+  - il pilota automatico non partiva in drift nelle curve larghe, perché lo sterzo stava sotto la soglia di 0,3;
+  - in acqua il drift automatico porta sulle boe (76 s liscio contro 83);
+  - il salto da 16 m era troppo lungo: rampe al 45 % della velocità, buchi da 12 m.
+- Banco di prova `provapiste.html` con 4 piste di prova: 8-14 draw call.

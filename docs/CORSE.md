@@ -109,25 +109,48 @@ Le scelte di Jack arrivano a tre tappe, per ogni zona:
 
 Gli amici vedono **pezzo per pezzo**: ogni pista va online appena è giocabile.
 
-## A11. Come funziona sotto (piano)
-- **Motore v2: la pista è un nastro 3D.** Il Gran Premio di oggi è piatto (x, z). Il nastro nuovo ha:
-  - il centro in 3D, con il «sopra» locale, che permette sopraelevazioni, salite e giri della morte;
-  - un **profilo di sezione**: strada piatta, canale d'acqua, mezzo tubo dello scivolo, binario;
-  - le **superfici**: asfalto, sabbia, acqua, ghiaccio, turbo, rampa;
-  - i **bivi** per le scorciatoie.
-- Il veicolo vive in **coordinate di pista**: avanzamento, scarto laterale, altezza sulla superficie. Si usano solo + − × ÷ e la radice, come oggi, così il replay del server coincide con la partita.
-- **Hub**: guida libera nel client, sul rilievo dell'isola. Non dà premi, quindi niente replay.
-- **Fantasmi**: si salvano gli input della gara migliore (pochi KB, con una migrazione nuova) e la sim li rigioca nel client.
-- **Dati**: piste, veicoli e famiglie in JSON in `packages/content` (`corse/`).
-- **Budget**:
-  - una zona = un chunk ≤ 600 KB più un pacchetto di asset caricato all'ingresso della zona, con una riga di budget nuova in `TECH.md` §5 senza alzare quelle che ci sono;
-  - in pista ≤ 100 draw call e ≤ 150.000 triangoli a 390×844.
-- **Pagina di prova** `provapiste.html`: selettore della pista, interruttori A/B, camera libera. Uno script fa planimetria e screenshot lungo la pista in `tests/out/`.
+## A11. Come funziona sotto (motore v2, fatto il 9 ott 2026)
+Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di prova; il Gran Premio (Parte B) resta sul motore vecchio finché il circuito della Spiaggia non lo sostituisce.
+- **La pista è un nastro 3D.** Il centro passa per i punti di controllo ed è campionato ogni metro. In ogni punto c'è il «sopra», che serve per sopraelevazioni, salite e giri della morte. Su ogni tratto si possono dare:
+  - le **superfici** (asfalto, legno, erba, sabbia, ghiaccio, acqua, acqua bassa, corrente);
+  - i **buchi** da saltare e i **bordi senza muro**, da dove si cade;
+  - le **rampe** e i **tappeti del turbo**;
+  - i **rami**, cioè le scorciatoie che lasciano la pista e la ritrovano;
+  - gli **eventi firma**, che da un certo giro cambiano la superficie di un tratto.
+- **Il veicolo vive in coordinate di pista**: avanzamento, scarto laterale, altezza. La guida è quella del Gran Premio (sterzo, presa, drift, turbo). In più:
+  - la **pendenza** frena in salita e spinge in discesa;
+  - i **dossi** presi forte fanno volare;
+  - nei **giri della morte** si resta attaccati se si va almeno a 12 m/s;
+  - chi **cade** riparte 25 m prima di dove era a terra, a mezza velocità;
+  - le barche **saltano sulle creste delle onde** e, se atterrano dritte, prendono un po' di turbo.
+
+  Solo + − × ÷ e radice, come prima: il replay del server coinciderà con la partita.
+- **Numeri** in `packages/content/src/corse/motore.json`:
+  - 2 famiglie (Ruote, Acqua);
+  - 6 veicoli: kart, auto sportiva, carrello della spesa, moto d'acqua, gommone, vasca da bagno;
+  - le superfici, per famiglia;
+  - i bot.
+
+  I buffi hanno il loro difetto: il carrello tira a destra, la vasca sulla terra rallenta meno delle altre barche.
+- **Come si fa una pista**: si scrive il percorso in `tools/corse_piste/<id>.mjs` con le mosse della tartaruga (dritto, curva, giro della morte, salto, scorciatoia…), poi `node tools/corse_piste.mjs --planimetria`. Escono il JSON in content e la planimetria in `tests/out/piste/`.
+- **Banco di prova `provapiste.html`** (online accanto al gioco):
+  - si guida su ogni pista col proprio veicolo, contro i bot o da soli;
+  - si può far guidare il pilota automatico;
+  - c'è la camera dietro, che resta dentro i giri della morte, la camera alta, la vista dall'alto della pista intera e quella che gira intorno;
+  - si cambia la luce.
+
+  Le piste di adesso sono 4 piste di prova del motore: l'anello, la pista folle (giro della morte, curva sopraelevata, salto, dosso, scorciatoia, ponte senza muri), la baia (acqua, corrente, secca) e la discesa (fuga da A a B).
+- **Budget**: in gara 8-14 draw call e al massimo 36.000 triangoli a 390×844 (`tests/out/m4_provapiste.json`).
+- **Da fare** con le zone:
+  - le famiglie Due ruote e Scivoli e binari;
+  - un pacchetto di asset per zona caricato all'ingresso, con la sua riga nel budget di `TECH.md` §5;
+  - i fantasmi: gli input della gara migliore salvati sul server e rigiocati;
+  - il bilanciamento per zona: in acqua i bot sono ancora un filo troppo deboli e la vasca vince.
 
 ## A12. Ordine di lavoro (fette di #155)
 1. Questa bibbia.
 2. Concept art di hub, zone, veicoli, manichini e animali piloti.
-3. Motore v2: nastro 3D, famiglie Ruote e Acqua, bot sul nastro, evento firma, pagina di prova.
+3. Motore v2: nastro 3D, famiglie Ruote e Acqua, bot sul nastro, evento firma, pagina di prova (**fatto**: `provapiste.html`).
 4. **Zona Spiaggia e porto**: 4 piste, boss granchio, kit 3D, veicoli buffi, manichini, musica e suoni. Il primo circuito finito sostituisce il Gran Premio.
 5. Hub alla Diddy Kong Racing: isola aperta, porta della Spiaggia, garage, le altre porte chiuse.
 6. Fantasmi, stelle e sblocchi, premi per MAREA.

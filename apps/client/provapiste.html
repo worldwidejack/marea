@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#7FE3E0" />
+<link rel="icon" href="data:," />
+<title>MAREA · banco di prova delle piste</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #163F73; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #ui { position: fixed; inset: 0; pointer-events: none; }
+  #ui > * { pointer-events: auto; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="ui"></div>
+<script type="module" src="/src/corse/prova/main.ts"></script>
+</body>
+</html>
