@@ -30,10 +30,10 @@ def prop_ingresso_drenaggio():
     _disco(m, (0, 1.3, -0.62), 1.05, 0.22, 'p_arancio')
     _disco(m, (0, 1.3, -0.74), 0.82, 0.04, 'p_nero_caldo')
     for x, h in ((-1.95, 3.1), (1.95, 2.4)):
-        m.prism(6, 0.2, 0.2, 0, h, 'p_legno', top='p_legno', cx=x, cz=-0.1)
+        m.prism(5, 0.2, 0.2, 0, h, 'p_legno', top='p_legno', cx=x, cz=-0.1)
     m.prism(6, 0.28, 0.28, 2.22, 2.38, 'p_arancio', top='p_arancio', bottom='p_arancio', cx=-1.95, cz=-0.1)
     _disco(m, (1.95, 2.1, -0.38), 0.38, 0.07, 'p_rosso')
-    m.prism(6, 0.17, 0.17, 2.95, 3.95, 'p_nero_caldo', top='p_nero_caldo', cx=1.1, cz=0.95)
+    m.prism(5, 0.17, 0.17, 2.95, 3.95, 'p_nero_caldo', top='p_nero_caldo', cx=1.1, cz=0.95)
     return _obj(m, footprint=[4, 4])
 
 

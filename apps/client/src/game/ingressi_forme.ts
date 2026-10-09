@@ -23,11 +23,11 @@ function boccaporto(): THREE.Object3D {
     painted(new THREE.BoxGeometry(3.5, 0.18, 2.1), PAL.legno, M(0, 0.55, 0.4)), // fascia di ruggine
     painted(cil(1.05, 0.22, 10), PAL.arancio, M(0, 1.3, -0.62, Math.PI / 2)),
     painted(cil(0.82, 0.24, 10), PAL.neroCaldo, M(0, 1.3, -0.62, Math.PI / 2)),
-    painted(cil(0.2, 3.1, 6), PAL.legno, M(-1.95, 1.55, -0.1)),
-    painted(cil(0.2, 2.4, 6), PAL.legno, M(1.95, 1.2, -0.1)),
+    painted(cil(0.2, 3.1, 5), PAL.legno, M(-1.95, 1.55, -0.1)),
+    painted(cil(0.2, 2.4, 5), PAL.legno, M(1.95, 1.2, -0.1)),
     painted(cil(0.28, 0.16, 6), PAL.arancio, M(-1.95, 2.3, -0.1)),
     painted(cil(0.38, 0.07, 8), PAL.rosso, M(1.95, 2.1, -0.38, Math.PI / 2)),
-    painted(cil(0.17, 1, 6), PAL.neroCaldo, M(1.1, 3.45, 0.95)),
+    painted(cil(0.17, 1, 5), PAL.neroCaldo, M(1.1, 3.45, 0.95)),
   ]);
   const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })); m.name = 'ingresso_drenaggio';
   return m;
