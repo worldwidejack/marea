@@ -3,6 +3,7 @@
 // - la strada a fasce colorate per superficie, con la riga di mezzo sull'asfalto, il bordo e i cordoli nelle curve;
 // - il muretto di gomme (sulle piste d'acqua le boe), che manca dove la sim non ha il muro;
 // - la scogliera sotto i tratti alti, le rampe a strisce, i tappeti del turbo, le creste delle onde, la linea del via;
+// - nelle piste miste (il porto) la striscia gialla e nera tra la corsia del molo e quella dell'acqua;
 // - gli eventi firma, a parte: si accendono dal loro giro.
 // Grigio da banco di prova: la scenografia vera delle zone arriva con i kit Blender (A9). Facce piatte, colori della palette, doppia
 // faccia (i giri della morte si vedono anche da sotto).
@@ -16,7 +17,7 @@ import { P } from '../render/island_parts.ts';
 
 export const COLORE_SUP: Record<string, string> = {
   asfalto: P.roccia, legno: P.legnoChiaro, erba: P.erba, sabbia: P.sabbia, ghiaccio: P.pietraChiara,
-  acqua: P.acqua, acquaBassa: P.acquaBassa, corrente: P.acquaProfonda,
+  acqua: P.acqua, acquaBassa: P.acquaBassa, corrente: P.acquaProfonda, container: P.rosso,
 };
 const coloreDi = (sup: string) => COLORE_SUP[sup] ?? P.pietra;
 type V3 = [number, number, number];
@@ -62,6 +63,11 @@ function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number): void
     }
     // riga di mezzo sull'asfalto, a tratti
     if (!acqua && i % 6 < 3 && superficieA(p, ramo, sm, 0, 1) === 'asfalto') t.quad(pt(n, s0, -0.15, 0.02), pt(n, s0, 0.15, 0.02), pt(n, s1, -0.15, 0.02), pt(n, s1, 0.15, 0.02), P.pietraChiara);
+    // piste miste: il divisorio a righe gialle e nere tra le corsie (dove finisce l'acqua)
+    if (ramo < 0 && d.corsie && i % 2 === 0) {
+      const lim = (d.corsie.acqua ?? 0) < (d.corsie.ruote ?? 0) ? -1 : 1, c = (i >> 1) % 2 ? P.giallo : P.neroCaldo;
+      t.quad(pt(n, s0, lim - 0.35, 0.1), pt(n, s0, lim + 0.35, 0.1), pt(n, s1, lim - 0.35, 0.1), pt(n, s1, lim + 0.35, 0.1), c);
+    }
     // il bordo oltre la carreggiata, e i cordoli dove la pista curva
     const curva = Math.abs(n.k[i]!) > 0.012;
     for (const lato of [-1, 1]) {

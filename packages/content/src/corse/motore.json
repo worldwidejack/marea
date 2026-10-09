@@ -14,7 +14,8 @@
     "sterzo": 2.6,
     "prudenza": { "metri": 24, "curva": 1.1, "freno": 0.35 },
     "elastico": { "davanti": 0.0004, "davantiMax": 0.06, "dietro": 0.0003, "dietroMax": 0.05 },
-    "veicoli": { "ruote": ["kart", "auto", "kart", "auto"], "acqua": ["moto_acqua", "moto_acqua", "gommone", "moto_acqua"] }
+    "veicoli": { "ruote": ["kart", "auto", "kart", "auto"], "acqua": ["moto_acqua", "moto_acqua", "gommone", "moto_acqua"] },
+    "bravuraFamiglia": { "ruote": 1, "acqua": 0.97 }
   },
   "maxSeconds": 240,
   "scoreBase": 30000,
@@ -51,6 +52,7 @@
     "legno": { "id": "legno", "nome": "Molo", "per": { "ruote": { "velocita": 1, "presa": 0.95, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.5, "accelerazione": 0.5 } } },
     "erba": { "id": "erba", "nome": "Prato", "per": { "ruote": { "velocita": 0.55, "presa": 0.7, "accelerazione": 0.8 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 } } },
     "sabbia": { "id": "sabbia", "nome": "Sabbia", "per": { "ruote": { "velocita": 0.72, "presa": 0.6, "accelerazione": 0.8 }, "acqua": { "velocita": 0.35, "presa": 1, "accelerazione": 0.5 } } },
+    "container": { "id": "container", "nome": "Tetto di container", "per": { "ruote": { "velocita": 1, "presa": 0.55, "accelerazione": 0.9 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 } } },
     "ghiaccio": { "id": "ghiaccio", "nome": "Ghiaccio", "per": { "ruote": { "velocita": 1.05, "presa": 0.25, "accelerazione": 0.7 }, "acqua": { "velocita": 0.5, "presa": 0.5, "accelerazione": 0.5 } } },
     "acqua": {
       "id": "acqua", "nome": "Acqua", "acqua": true, "onde": { "passo": 16 },

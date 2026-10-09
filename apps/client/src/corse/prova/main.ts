@@ -4,6 +4,7 @@
 // Comandi:
 // - telefono: joystick = sterzo (il gas è automatico), DRIFT, FRENO;
 // - PC: A D o ← →, Spazio = drift, S o ↓ = freno.
+// Fughe con l'onda: l'indicatore ONDA in alto dice a quanti metri ti sta dietro (rosso sotto i 25).
 // Interruttori: P pista, V veicolo, C camera, B bot, T pilota automatico, R ricomincia, L luce. Indirizzo:
 // ?pista=…&veicolo=…&cam=…&bot=0&auto=1.
 // Test: window.__provapiste.ready / .perf() / .state() / .set({...}).
@@ -11,7 +12,7 @@ import * as THREE from 'three';
 import { CORSE, CORSE_PISTE } from '@marea/content/corse.ts';
 import { DT, quantize } from '@marea/sim';
 import type { InputFrame } from '@marea/sim';
-import { garaCorse, opzioniGara, pilotaGara } from '@marea/sim/corse/gara.ts';
+import { famiglieDi, garaCorse, opzioniGara, pilotaGara } from '@marea/sim/corse/gara.ts';
 import type { GaraState, GaraView } from '@marea/sim/corse/gara.ts';
 import { nuovaTerna, terna } from '@marea/sim/corse/nastro.ts';
 import { nastroDi, pistaCorse } from '@marea/sim/corse/pista.ts';
@@ -24,6 +25,7 @@ import { P } from '../../render/island_parts.ts';
 import { STYLES } from '../../provapixel/styles.ts';
 import type { StyleId } from '../../provapixel/styles.ts';
 import { creaPista3d } from '../nastro3d.ts';
+import { matOnda, ondaGeo } from '../onda3d.ts';
 import type { Pista3d } from '../nastro3d.ts';
 import { veicoloGeo } from '../veicoli3d.ts';
 
@@ -75,8 +77,9 @@ function setLuce(id: StyleId) {
 // ---------- la gara ----------
 let p: Pista = pistaCorse(opz['pista']!), p3d: Pista3d | null = null;
 let s: GaraState = garaCorse.create({ seed: 1, difficulty: 2, opzioni: opz });
-let meshes: THREE.Mesh[] = [], fase: 'via' | 'gara' | 'fine' = 'via', attesa = VIA, finita = 0;
+let meshes: THREE.Mesh[] = [], ondaMesh: THREE.Mesh | null = null, fase: 'via' | 'gara' | 'fine' = 'via', attesa = VIA, finita = 0;
 const matVeicoli = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+const materialeOnda = matOnda();
 
 function nuovaGara(cambiaPista: boolean) {
   Object.assign(opz, opzioniGara(opz));
@@ -91,6 +94,11 @@ function nuovaGara(cambiaPista: boolean) {
     m.castShadow = true; m.matrixAutoUpdate = false; m.name = i ? `corse_bot_${i}` : 'corse_tu'; scene.add(m);
     return m;
   });
+  if (ondaMesh) { scene.remove(ondaMesh); ondaMesh.geometry.dispose(); ondaMesh = null; }
+  if (p.def.inseguitore) {
+    ondaMesh = new THREE.Mesh(ondaGeo(p.def.larghezza + p.def.bordo + 8), materialeOnda);
+    ondaMesh.matrixAutoUpdate = false; ondaMesh.name = 'corse_onda'; ondaMesh.frustumCulled = false; scene.add(ondaMesh);
+  }
   fase = 'via'; attesa = VIA; finita = 0; camOk = false;
   scrivi();
 }
@@ -123,6 +131,13 @@ function posa(i: number, pos: THREE.Vector3, fwd: THREE.Vector3, up: THREE.Vecto
   if (k.caduto) pos.addScaledVector(up, -Math.min(6, k.caduto * 8)); // chi è caduto sprofonda
 }
 function aggiornaVeicoli() {
+  if (ondaMesh) { // l'onda sta sul nastro principale, al centro, col muso (la cresta) verso l'arrivo
+    const so = Math.max(0, Math.min(p.n.len, p.def.via + s.onda));
+    terna(p.n, so, T3);
+    vU.set(T3.ux, T3.uy, T3.uz).normalize(); vR.set(T3.rx, T3.ry, T3.rz); vF.set(-T3.tx, -T3.ty, -T3.tz);
+    M4.makeBasis(vR, vU, vF).setPosition(T3.x, T3.y, T3.z);
+    ondaMesh.matrix.copy(M4); ondaMesh.matrixWorldNeedsUpdate = true;
+  }
   for (let i = 0; i < meshes.length; i++) {
     posa(i, vP, vF, vU);
     vR.crossVectors(vF, vU).normalize();
@@ -159,6 +174,9 @@ function aggiornaCamera(dt: number) {
   terna(nc, sc, T3);
   const latc = k.lat * 0.7;
   camP.set(T3.x + T3.rx * latc + T3.ux * alt, T3.y + T3.ry * latc + T3.uy * alt, T3.z + T3.rz * latc + T3.uz * alt);
+  // l'onda che si avvicina fa tremare la camera (sotto i 35 m)
+  const tremo = p.def.inseguitore ? Math.max(0, 1 - (k.prog - s.onda) / 35) : 0;
+  if (tremo > 0) camP.addScaledVector(camU, Math.sin(performance.now() * 0.06) * 0.14 * tremo);
   tmp.set(T3.ux, T3.uy, T3.uz).normalize();
   camU.lerp(tmp, camOk ? 1 - Math.exp(-dt * 10) : 1).normalize();
   camera.position.lerp(camP, camOk ? 1 - Math.exp(-dt * 20) : 1);
@@ -191,7 +209,7 @@ let aperto = innerWidth >= 700;
 const fold = document.createElement('button'); fold.className = 'fold'; panel.appendChild(fold);
 const ferma = (e: Event) => e.stopPropagation();
 fold.addEventListener('pointerdown', (e) => { ferma(e); aperto = !aperto; scrivi(); });
-const famigliaVeicoli = () => CORSE.veicoli.filter((v) => v.famiglia === p.def.famiglia);
+const famigliaVeicoli = () => CORSE.veicoli.filter((v) => famiglieDi(p.def).includes(v.famiglia));
 const ROWS: [string, string, () => string, () => void][] = [
   ['P', 'pista', () => p.def.nome, () => { opz['pista'] = PISTE[(PISTE.indexOf(opz['pista']!) + 1) % PISTE.length]!; opz['veicolo'] = ''; nuovaGara(true); }],
   ['V', 'veicolo', () => CORSE.veicoli.find((v) => v.id === opz['veicolo'])?.nome ?? '', () => { const l = famigliaVeicoli(); opz['veicolo'] = l[(l.findIndex((v) => v.id === opz['veicolo']) + 1) % l.length]!.id; nuovaGara(false); }],
@@ -217,12 +235,14 @@ const tempo = (ms: number) => { const t = Math.max(0, ms) / 1000, m = Math.floor
 function aggiornaHud(v: GaraView) {
   const k = s.veicoli[0]!;
   const tipo = p.def.tipo === 'fuga' ? 'FUGA' : `GIRO ${v.giro}/${v.giri}`;
-  hud.innerHTML = `<div>${v.posizioni[0]}°<small>/${s.veicoli.length}</small></div><div>${tipo}</div><div>${tempo(v.ms)}</div><div>${Math.round(Math.abs(k.v) * 3.6)}<small> km/h</small></div>`;
+  const onda = v.onda === null ? '' : `<div style="${v.ondaDist < 25 ? `background:${P.rosso};color:${P.pietraChiara}` : ''}">ONDA ${v.ondaDist < 0 ? '!!' : Math.round(v.ondaDist) + '<small> m</small>'}</div>`;
+  hud.innerHTML = `<div>${v.posizioni[0]}°<small>/${s.veicoli.length}</small></div><div>${tipo}</div><div>${tempo(v.ms)}</div><div>${Math.round(Math.abs(k.v) * 3.6)}<small> km/h</small></div>${onda}`;
   if (fase === 'via') { big.style.display = 'block'; big.innerHTML = `${Math.ceil(attesa / 40)}<small>${p.def.nome} · il gas è automatico</small>`; }
   else if (fase === 'fine') {
     big.style.display = 'block';
     big.innerHTML = v.finished ? `${v.posizioni[0]}° · ${tempo(v.ms)}<small>salti ${k.salti} · cadute ${k.cadute} · R per rifare</small>` : `TEMPO SCADUTO<small>R per rifare</small>`;
   } else if (k.caduto) { big.style.display = 'block'; big.innerHTML = 'CADUTO!<small>si riparte</small>'; }
+  else if (v.onda !== null && v.ondaDist < 0 && v.ondaDist > -(p.def.inseguitore?.spessore ?? 0)) { big.style.display = 'block'; big.innerHTML = 'TRAVOLTO!<small>l\'onda ti ha preso</small>'; }
   else big.style.display = 'none';
   if (p3d) for (const e of p3d.eventi) e.mesh.visible = k.giro + 1 >= e.daGiro;
 }
@@ -253,7 +273,7 @@ const api = {
     const k = s.veicoli[0]!, v = garaCorse.view(s) as GaraView;
     return { pista: p.def.id, veicolo: k.id, fase, cam, auto, bot: s.veicoli.length - 1, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: s.done,
       s: Math.round(k.s * 10) / 10, lat: Math.round(k.lat * 100) / 100, h: Math.round(k.h * 100) / 100, v: Math.round(k.v * 10) / 10,
-      ramo: k.ramo, aria: k.aria, caduto: k.caduto > 0, salti: k.salti, cadute: k.cadute, sup: k.sup, risultato: s.done ? garaCorse.result(s) : null };
+      ramo: k.ramo, aria: k.aria, caduto: k.caduto > 0, salti: k.salti, cadute: k.cadute, sup: k.sup, onda: v.onda === null ? null : Math.round(v.onda * 10) / 10, ondaDist: Math.round(v.ondaDist * 10) / 10, travolto: k.travolto, risultato: s.done ? garaCorse.result(s) : null };
   },
   /** Cambia pista, veicolo, bot, camera, pilota automatico; `vai` = salta il conto alla rovescia; `fino` = porta il tuo veicolo a quella s (prove). */
   set: (o: { pista?: string; veicolo?: string; bot?: boolean; cam?: Camera; auto?: boolean; luce?: StyleId; vai?: boolean }) => {

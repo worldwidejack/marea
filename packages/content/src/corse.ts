@@ -6,6 +6,10 @@ import provaAnello from './corse/piste/prova_anello.json' with { type: 'json' };
 import provaFolle from './corse/piste/prova_folle.json' with { type: 'json' };
 import provaBaia from './corse/piste/prova_baia.json' with { type: 'json' };
 import provaFuga from './corse/piste/prova_fuga.json' with { type: 'json' };
+import spiaggiaLungomare from './corse/piste/spiaggia_lungomare.json' with { type: 'json' };
+import spiaggiaBaia from './corse/piste/spiaggia_baia.json' with { type: 'json' };
+import spiaggiaPorto from './corse/piste/spiaggia_porto.json' with { type: 'json' };
+import spiaggiaFuga from './corse/piste/spiaggia_fuga.json' with { type: 'json' };
 import type { CPistaDef, CorseMotoreCfg } from './corse_types.ts';
 
 export type * from './corse_types.ts';
@@ -13,7 +17,7 @@ export type * from './corse_types.ts';
 export const CORSE = motore as unknown as CorseMotoreCfg;
 /** Le piste per id, nell'ordine del banco di prova. */
 export const CORSE_PISTE: Record<string, CPistaDef> = Object.fromEntries(
-  ([provaAnello, provaFolle, provaBaia, provaFuga] as unknown as CPistaDef[]).map((p) => [p.id, p]),
+  ([provaAnello, provaFolle, provaBaia, provaFuga, spiaggiaLungomare, spiaggiaBaia, spiaggiaPorto, spiaggiaFuga] as unknown as CPistaDef[]).map((p) => [p.id, p]),
 );
 
 /** Controlli dei dati (in italiano): veicoli e superfici conosciuti, piste coerenti (griglia, tratti dentro la pista, rami). */
@@ -26,6 +30,7 @@ export function validateCorse(): string[] {
     for (const k of ['velocita', 'accelerazione', 'sterzo', 'presa', 'presaDrift', 'drift', 'peso'] as const) if (!pos(v[k])) errs.push(`corse: veicolo ${v.id} con ${k} non valido`);
     for (const s of Object.keys(v.effetti ?? {})) if (!c.superfici[s]) errs.push(`corse: veicolo ${v.id} con un effetto su una superficie sconosciuta (${s})`);
   }
+  for (const f of famiglie) if (!pos(c.bot.bravuraFamiglia[f as keyof typeof c.bot.bravuraFamiglia])) errs.push(`corse: bot senza bravuraFamiglia per ${f}`);
   for (const [f, ids] of Object.entries(c.bot.veicoli)) for (const id of ids) {
     const v = c.veicoli.find((x) => x.id === id);
     if (!v || v.famiglia !== f) errs.push(`corse: veicolo dei bot ${id} non è della famiglia ${f}`);
@@ -35,7 +40,20 @@ export function validateCorse(): string[] {
   for (const p of Object.values(CORSE_PISTE)) {
     const d = `pista ${p.id}`;
     if (!famiglie.includes(p.famiglia)) errs.push(`corse: ${d} di una famiglia sconosciuta`);
-    if (!c.veicoli.some((v) => v.famiglia === p.famiglia)) errs.push(`corse: ${d}: nessun veicolo della sua famiglia`);
+    const fams = p.famiglie ?? [p.famiglia];
+    if (fams[0] !== p.famiglia) errs.push(`corse: ${d}: la prima delle famiglie deve essere ${p.famiglia}`);
+    for (const f of fams) {
+      if (!famiglie.includes(f)) errs.push(`corse: ${d}: famiglia sconosciuta ${f}`);
+      else if (!c.veicoli.some((v) => v.famiglia === f)) errs.push(`corse: ${d}: nessun veicolo della famiglia ${f}`);
+      if (fams.length > 1 && typeof p.corsie?.[f] !== 'number') errs.push(`corse: ${d}: pista mista senza corsia per ${f}`);
+    }
+    for (const r of p.rami) for (const f of r.famiglie ?? []) if (!fams.includes(f)) errs.push(`corse: ${d}, ramo ${r.id}: famiglia ${f} che non corre qui`);
+    const O = p.inseguitore;
+    if (O) {
+      if (p.tipo !== 'fuga') errs.push(`corse: ${d}: l'inseguitore c'è solo nelle fughe`);
+      for (const k of ['v0', 'accel', 'vmax', 'distMax', 'recupero', 'spessore', 'colpo', 'rallenta'] as const) if (!pos(O[k])) errs.push(`corse: ${d}: inseguitore con ${k} non valido`);
+      if (!(O.parte < 0) || p.via + O.parte < 0) errs.push(`corse: ${d}: l'inseguitore deve partire dietro il via ma dentro la pista (alza via)`);
+    }
     if (p.punti.length < 3) errs.push(`corse: ${d} con meno di 3 punti`);
     if (p.griglia.length < 1) errs.push(`corse: ${d} senza griglia`);
     if (p.tipo === 'fuga' && p.griglia.some(([s]) => p.via + s < 0)) errs.push(`corse: ${d}: griglia prima dell'inizio della pista (alza via)`);

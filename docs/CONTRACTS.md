@@ -449,3 +449,17 @@ Design in `docs/CORSE.md` A11. Per ora lo usa solo il banco di prova `provapiste
   - `veicoli3d.ts` `veicoloGeo(id, colore, casco)` (kart, auto, carrello, moto d'acqua, gommone, vasca, col pilota).
   - Banco di prova `provapiste.html` → `corse/prova/main.ts`: interruttori P V C B T R L; `window.__provapiste = { ready, perf(), state(), set({ pista, veicolo, bot, cam, auto, luce, vai }), avanti(tick), piste }`; camera «sui binari» dietro (resta dentro i giri della morte), alta, pianta, giro.
   - E2e `tests/e2e/m4_provapiste.mjs` (ogni pista col pilota automatico, budget a 390×844, giro della morte, salto e scorciatoia da PC; numeri in `tests/out/m4_provapiste.json`).
+
+## 33. Isola delle Corse: Spiaggia e porto, 4 piste grezze (#155, 9 ott 2026)
+Design in `docs/CORSE.md` A11 (tabella delle piste). Estende il motore v2 del §32; il Gran Premio (§31) resta com'è e il gioco non cambia: le piste si provano su `provapiste.html?pista=spiaggia_lungomare|spiaggia_baia|spiaggia_porto|spiaggia_fuga`.
+- **Content** (`@marea/content/corse.ts`, `corse_types.ts`):
+  - `CPistaDef.famiglie?` (piste miste, la prima = `famiglia`), `corsie?` (scarto laterale per famiglia: dove partono e guidano pilota automatico e bot) e `inseguitore?: CInseguitoreDef` (`tipo`, `parte`, `v0`, `accel`, `vmax`, `distMax`, `recupero`, `spessore`, `colpo`, `rallenta`; solo `tipo: 'fuga'`, `via + parte ≥ 0`).
+  - `CRamoDef.famiglie?` (chi la prende, bot compresi; senza, solo il pilota automatico) e `turbo?` (tappeti sul ramo, `s` in metri del ramo).
+  - `CorseMotoreCfg.bot.bravuraFamiglia` (ruote 1, acqua 0,97); superficie `container`.
+  - `validateCorse()` controlla famiglie, corsie delle piste miste, famiglie dei rami e i numeri dell'inseguitore.
+- **Piste** `tools/corse_piste/spiaggia_*.mjs`. Nuovo in `tools/corse_piste.mjs`: `superficieTutta(tipo, lat)` (una fascia su tutta la lunghezza: l'acqua del porto), `famiglie`, `corsie` e `inseguitore` nei `meta`, `turbo()` dentro un ramo. I rami del porto hanno `famiglie` e un tappeto ciascuno.
+- **Sim** `packages/sim/src/corse/`:
+  - `gara.ts`: `famiglieDi(def)`, `latObiettivo(p, k, bot)` (imbocco della scorciatoia della famiglia, corsia della famiglia, corsia veloce per il pilota automatico: lo usano `pilotaGara` e i bot). `GaraState.onda` (fronte, m dal via), `GaraView.onda | null` e `ondaDist` (m, negativo = ti ha preso), `result.detail.travolti`. `opzioniGara` accetta i veicoli di tutte le famiglie della pista; i bot si alternano tra le famiglie.
+  - `veicolo.ts`: `Veicolo.travolto` (0/1); i tappeti del turbo valgono anche sui rami.
+- **Client**: `onda3d.ts` (`ondaGeo(larghezza)`, `matOnda()`: il muro d'acqua a fasce, una geometria sola, senza luce). `nastro3d.ts`: divisorio giallo e nero tra le corsie delle piste miste, colore `container`. `prova/main.ts`: indicatore `ONDA n m` (rosso sotto i 25), messaggio TRAVOLTO!, la camera trema sotto i 35 m, `state()` ha `onda`, `ondaDist`, `travolto`, i veicoli del selettore sono quelli di tutte le famiglie della pista.
+- **Test**: `packages/sim/test/corse_motore.test.ts` (il primo veicolo della famiglia principale vince su ogni pista, quelli delle altre famiglie salgono sul podio; eventi firma; porto misto; scorciatoie per famiglia che convengono; onda), `tests/e2e/m4_provapiste.mjs` (le 8 piste, porto da PC con barca e ruote, fuga con l'onda).

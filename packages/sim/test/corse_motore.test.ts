@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CORSE, CORSE_PISTE, validateCorse } from '@marea/content/corse.ts';
-import { garaCorse, opzioniGara, pilotaGara } from '../src/corse/gara.ts';
+import { famiglieDi, garaCorse, opzioniGara, pilotaGara } from '../src/corse/gara.ts';
 import type { GaraState } from '../src/corse/gara.ts';
 import { campo, costruisciNastro, dove, punto, svoltaTra } from '../src/corse/nastro.ts';
 import { VUOTO, effetto, pistaCorse, superficieA, veicoloCorse } from '../src/corse/pista.ts';
@@ -34,7 +34,7 @@ function corri(s: GaraState, pilota: (s: GaraState) => InputFrame = (x) => pilot
 
 test('corse v2: i dati sono a posto e ogni pista ha veicoli della sua famiglia', () => {
   assert.deepEqual(validateCorse(), []);
-  assert.ok(Object.keys(CORSE_PISTE).length >= 4);
+  assert.ok(Object.keys(CORSE_PISTE).length >= 8);
 });
 
 test('corse v2: il nastro ha campioni a passo costante e una terna ortonormale; mondo ↔ pista torna', () => {
@@ -147,10 +147,10 @@ test('corse v2: il pilota automatico prende la scorciatoia e il progresso non sa
   assert.equal(r.detail['giri'], r.detail['tot']);
 });
 
-test('corse v2: il pilota automatico arriva su ogni pista con ogni veicolo, e col primo della famiglia vince', () => {
+test('corse v2: il pilota automatico arriva su ogni pista con ogni veicolo; il primo della famiglia principale vince, quelli delle altre salgono sul podio', () => {
   for (const id of Object.keys(CORSE_PISTE)) {
-    const fam = CORSE_PISTE[id]!.famiglia;
-    for (const v of CORSE.veicoli.filter((x) => x.famiglia === fam)) {
+    const d = CORSE_PISTE[id]!, fams = famiglieDi(d);
+    for (const v of CORSE.veicoli.filter((x) => fams.includes(x.famiglia))) {
       const { r } = corri(nuova(id, v.id));
       assert.equal(r.detail['giri'], r.detail['tot'], `${id} ${v.id}: ${JSON.stringify(r.detail)}`);
       assert.equal(r.detail['cadute'], 0, `${id} ${v.id}: ${JSON.stringify(r.detail)}`);
@@ -160,10 +160,110 @@ test('corse v2: il pilota automatico arriva su ogni pista con ogni veicolo, e co
       const { r } = corri(nuova(id, undefined, true, seed));
       assert.equal(r.medal, 'oro', `${id} seed ${seed}: ${JSON.stringify(r.detail)}`);
     }
+    // piste miste: tra le barche e le ruote si fa traffico, quindi il primo veicolo delle altre famiglie deve almeno stare sul podio
+    for (const f of fams.slice(1)) {
+      const primo = CORSE.veicoli.find((x) => x.famiglia === f)!;
+      const { r } = corri(nuova(id, primo.id, true, 1));
+      assert.ok((r.detail['pos'] as number) <= 3, `${id} ${primo.id}: ${JSON.stringify(r.detail)}`);
+    }
   }
   // chi va a mezzo gas senza drift arriva ultimo
   const { r } = corri(nuova('prova_anello'), (s) => pilotaGara(s, true));
   assert.equal(r.detail['pos'], 5); assert.equal(r.medal, null);
+});
+
+test('corse v2: Spiaggia e porto: 4 piste, una per tipo (circuito ruote, circuito acqua, misto, fuga), tutte con un evento o una sorpresa sua', () => {
+  const ids = ['spiaggia_lungomare', 'spiaggia_baia', 'spiaggia_porto', 'spiaggia_fuga'];
+  for (const id of ids) assert.equal(CORSE_PISTE[id]!.zona, 'spiaggia', id);
+  assert.deepEqual(ids.map((id) => famiglieDi(CORSE_PISTE[id]!)), [['ruote'], ['acqua'], ['ruote', 'acqua'], ['ruote']]);
+  assert.deepEqual(ids.map((id) => CORSE_PISTE[id]!.tipo), ['circuito', 'circuito', 'circuito', 'fuga']);
+  // gli eventi firma cambiano il tratto dal giro giusto: l'onda del lungomare (3°), la marea della baia (2°), i container del porto (2°)
+  const dove = (id: string) => { const e = CORSE_PISTE[id]!.eventi[0]!, p = pistaCorse(id), lat = e.lat ? (e.lat[0] + e.lat[1]) / 2 : 0; return { e, p, lat, s: (e.da + e.a) / 2 }; };
+  for (const [id, giro, sup, prima] of [['spiaggia_lungomare', 3, 'acquaBassa', 'asfalto'], ['spiaggia_baia', 2, 'acqua', 'sabbia'], ['spiaggia_porto', 2, 'container', 'legno']] as const) {
+    const { e, p, lat, s } = dove(id);
+    assert.equal(e.daGiro, giro, id);
+    assert.equal(superficieA(p, -1, s, lat, giro - 1), prima, `${id} prima del giro ${giro}`);
+    assert.equal(superficieA(p, -1, s, lat, giro), sup, `${id} dal giro ${giro}`);
+  }
+});
+
+test('corse v2: il porto è misto: tutte e due le famiglie, bot misti, ognuno parte e guida nella sua corsia (barche nell\'acqua, ruote sul molo)', () => {
+  const d = CORSE_PISTE['spiaggia_porto']!;
+  assert.deepEqual(opzioniGara({ pista: 'spiaggia_porto', veicolo: 'vasca' }), { pista: 'spiaggia_porto', veicolo: 'vasca', bot: '1' }, 'una barca è ammessa');
+  assert.equal(opzioniGara({ pista: 'spiaggia_porto', veicolo: 'carrello' })['veicolo'], 'carrello', 'e anche un veicolo a ruote');
+  const s = nuova('spiaggia_porto', 'kart'), p = pistaCorse('spiaggia_porto');
+  const fam = s.veicoli.map((k) => veicoloCorse(k.id).famiglia);
+  assert.deepEqual(fam, ['ruote', 'ruote', 'acqua', 'ruote', 'acqua'], 'tu e quattro bot alternati');
+  for (const k of s.veicoli) assert.equal(Math.sign(k.lat), Math.sign(d.corsie![veicoloCorse(k.id).famiglia]!), `${k.id} parte nella sua corsia (${k.lat})`);
+  // dove sta l'acqua e dove il molo, sulla carreggiata
+  assert.equal(superficieA(p, -1, 100, -4.2, 1), 'acqua'); assert.equal(superficieA(p, -1, 100, 4.2, 1), 'legno');
+  // fuori dalla sua corsia si rallenta molto
+  const barca = veicoloCorse('moto_acqua'), ruote = veicoloCorse('kart');
+  assert.ok(effetto(barca, 'legno').velocita < 0.4 && effetto(ruote, 'acqua').velocita < 0.5);
+  // e in gara: le ruote restano sul molo, le barche nell'acqua
+  const r = corri(nuova('spiaggia_porto', 'kart', true, 3)), g = nuova('spiaggia_porto', 'moto_acqua', true, 3);
+  assert.equal(r.r.detail['giri'], 3);
+  const lat: Record<string, number[]> = { ruote: [], acqua: [] };
+  while (!g.done) {
+    garaCorse.step(g, quantize(pilotaGara(g)));
+    if (g.tick % 30 === 0) for (const k of g.veicoli) if (k.ramo < 0 && !k.aria) lat[veicoloCorse(k.id).famiglia]!.push(k.lat);
+  }
+  const media = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+  assert.ok(media(lat['ruote']!) > 2 && media(lat['acqua']!) < -2, `corsie: ruote ${media(lat['ruote']!).toFixed(1)}, acqua ${media(lat['acqua']!).toFixed(1)}`);
+});
+
+test('corse v2: le scorciatoie del porto sono di una famiglia sola: la passerella delle ruote, il canale delle barche (e convengono)', () => {
+  const p = pistaCorse('spiaggia_porto');
+  assert.deepEqual(p.def.rami.map((r) => [r.id, r.famiglie]), [['passerella', ['ruote']], ['canale', ['acqua']]]);
+  assert.ok(p.def.rami.every((r) => r.turbo && r.turbo.length === 1), 'ognuna ha il suo tappeto del turbo');
+  for (const [veicolo, ramo] of [['kart', 'passerella'], ['moto_acqua', 'canale']] as const) {
+    const s = nuova('spiaggia_porto', veicolo, false), idx = p.rami.findIndex((r) => r.def.id === ramo), altro = 1 - idx;
+    let suQuesto = 0, suAltro = 0;
+    while (!s.done) { garaCorse.step(s, quantize(pilotaGara(s))); const k = s.veicoli[0]!; if (k.ramo === idx) suQuesto++; else if (k.ramo === altro) suAltro++; }
+    assert.ok(suQuesto > 200 && suAltro === 0, `${veicolo}: ${suQuesto} tick sulla sua scorciatoia, ${suAltro} sull'altra`);
+    // senza scorciatoia si perde tempo
+    const tempo = garaCorse.result(s).detail['ms'] as number, saved = p.rami.splice(0);
+    const t2 = corri(nuova('spiaggia_porto', veicolo, false)).r.detail['ms'] as number;
+    p.rami.push(...saved);
+    assert.ok(t2 > tempo, `${veicolo}: con la scorciatoia ${tempo} ms, senza ${t2} ms`);
+  }
+});
+
+test('corse v2: la fuga dall\'onda: il pilota automatico non si fa prendere, chi sta fermo sì (colpo e rallentamento una volta sola); i bot ritardatari vengono presi', () => {
+  const p = pistaCorse('spiaggia_fuga'), O = p.def.inseguitore!;
+  assert.ok(O && p.def.tipo === 'fuga' && p.def.via + O.parte >= 0);
+  // il pilota automatico: l'onda resta dietro per tutta la corsa (e si vede dal risultato)
+  const s = nuova('spiaggia_fuga', 'kart', true, 5);
+  let min = Infinity, ondaPrima = s.onda;
+  while (!s.done) {
+    garaCorse.step(s, quantize(pilotaGara(s)));
+    min = Math.min(min, s.veicoli[0]!.prog - s.onda);
+    assert.ok(s.onda >= ondaPrima, 'l\'onda non torna indietro'); ondaPrima = s.onda;
+  }
+  const r = garaCorse.result(s);
+  assert.equal(r.detail['travolti'], 0); assert.ok(min > 10, `distanza minima ${min.toFixed(1)} m`);
+  assert.equal((garaCorse.view(s) as { onda: number | null }).onda, s.onda);
+  assert.ok(s.veicoli.slice(1).some((k) => k.travolto === 1), 'qualche bot in ritardo viene preso');
+  // chi sta fermo: l'onda lo prende, lo colpisce una volta, e poi gli passa sopra
+  const f = nuova('spiaggia_fuga', 'kart', false);
+  let vPrima = 0, preso = 0, dentro = 0, fuori = 0;
+  for (let i = 0; i < 60 * 40; i++) {
+    const k = f.veicoli[0]!;
+    garaCorse.step(f, { mx: 0, my: 0, a: false, b: false });
+    if (!preso && k.travolto) { preso = f.tick; vPrima = k.v; }
+    if (k.prog <= f.onda && k.prog > f.onda - O.spessore) dentro++;
+    else if (k.travolto && k.prog <= f.onda - O.spessore) fuori++;
+  }
+  assert.ok(preso > 60 * 3 && preso < 60 * 15, `preso al tick ${preso}`);
+  assert.equal(f.veicoli[0]!.travolto, 1); assert.ok(dentro > 20 && fuori > 100, `dentro ${dentro}, dopo ${fuori}`);
+  assert.ok(vPrima === 0);
+  // un veicolo in corsa preso dall'onda: colpo (velocità × colpo) e poi massimo rallentato finché il corpo passa
+  const c = nuova('spiaggia_fuga', 'kart', false, 2), k = c.veicoli[0]!;
+  c.onda = k.prog + 0.1; k.v = 20;
+  garaCorse.step(c, { mx: 0, my: 1, a: false, b: false });
+  assert.equal(k.travolto, 1); assert.ok(k.v < 20 * (O.colpo + 0.05), `v dopo il colpo ${k.v}`);
+  for (let i = 0; i < 40; i++) garaCorse.step(c, { mx: 0, my: 1, a: false, b: false });
+  assert.ok(k.v <= 20 * O.rallenta + 1, `v nel corpo dell'onda ${k.v}`);
 });
 
 test('corse v2: deterministico (stessi input → stesso risultato e stessi veicoli) e opzioni normalizzate', () => {
