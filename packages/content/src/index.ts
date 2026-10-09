@@ -18,10 +18,12 @@ import pinguini from './minigames/pinguini.json' with { type: 'json' }; // Ghiac
 import koi from './minigames/koi.json' with { type: 'json' }; // Giardino
 import arrembaggio from './minigames/arrembaggio.json' with { type: 'json' }; // Tempesta
 import lava from './minigames/lava.json' with { type: 'json' }; // Vulcano
+import corse from './minigames/corse.json' with { type: 'json' }; // Isola delle Corse
 import type { ArrembaggioCfg, LavaCfg } from './types.ts'; // Tempesta, Vulcano
 import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, MeteoCfg, PerleCfg, PescaCfg, RegataCfg, ResourceDef, RientroCfg, ScacchiCfg } from './types.ts';
 import type { PinguiniCfg } from './types.ts'; // Ghiacci
 import type { KoiCfg } from './types.ts'; // Giardino
+import type { CorseCfg } from './types.ts'; // Isola delle Corse
 import { validateAll, validateArchipelago, validateTemi } from './schema.ts';
 import { DIARIO, validateDiario } from './diario.ts'; // Diario del capitano (#87)
 
@@ -38,6 +40,7 @@ export const MINIGAMES_CFG: {
   koi: KoiCfg; // Giardino
   arrembaggio: ArrembaggioCfg; // Tempesta
   lava: LavaCfg; // Vulcano
+  corse: CorseCfg; // Isola delle Corse
 } = {
   regata: regata as unknown as RegataCfg,
   pesca: pesca as unknown as PescaCfg,
@@ -48,6 +51,7 @@ export const MINIGAMES_CFG: {
   koi: koi as unknown as KoiCfg, // Giardino
   arrembaggio: arrembaggio as unknown as ArrembaggioCfg, // Tempesta
   lava: lava as unknown as LavaCfg, // Vulcano
+  corse: corse as unknown as CorseCfg, // Isola delle Corse
 };
 export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;

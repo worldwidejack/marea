@@ -19,9 +19,10 @@ const temi = arch.places.filter((p) => p.tema);
 const isola = (id: string): ArchPlace => { const p = temi.find((q) => q.island === id); assert.ok(p, id); return p; };
 const T0 = Date.UTC(2026, 9, 8, 12);
 
-test('cinque isole a tema, ognuna con uno sblocco diverso e lontana dal giro iniziale', () => {
-  assert.deepEqual(temi.map((p) => p.island).sort(), ['ghiacci', 'giardino', 'tempesta', 'templari', 'vulcano']);
-  assert.deepEqual(temi.map((p) => p.tema!.sblocco.tipo).sort(), ['cappello', 'livello', 'mappa', 'molo', 'reliquia']);
+test('sei isole a tema, ognuna con uno sblocco diverso e lontana dal giro iniziale', () => {
+  assert.deepEqual(temi.map((p) => p.island).sort(), ['corse', 'ghiacci', 'giardino', 'tempesta', 'templari', 'vulcano']);
+  // le Corse (docs/CORSE.md) sono aperte a tutti, anche senza link personale
+  assert.deepEqual(temi.map((p) => p.tema!.sblocco.tipo).sort(), ['cappello', 'libera', 'livello', 'mappa', 'molo', 'reliquia']);
   for (const p of temi) assert.equal(p.style, p.island, `${p.island}: stile = tema`);
   const porto = arch.spawnOf(null);
   for (const p of temi) {
@@ -46,18 +47,18 @@ test('viaggiatore dal lotto: Molo, personaggio, cappello, mappe', () => {
   assert.equal(v2.molo, 2); assert.equal(v2.livello, 4); assert.deepEqual(v2.mappe, ['giardino']);
 });
 
-test('di serie tutte chiuse, col motivo giusto in italiano', () => {
+test('di serie tutte chiuse (tranne le Corse, aperte a tutti), col motivo giusto in italiano', () => {
   const s = sblocchi(arch.places, NESSUNO);
-  assert.equal(Object.keys(s).length, 5);
-  for (const v of Object.values(s)) assert.equal(v.aperta, false);
+  assert.equal(Object.keys(s).length, 6);
+  for (const [id, v] of Object.entries(s)) assert.equal(v.aperta, id === 'corse', id);
   assert.match(s['tempesta']!.motivo, /tempesta ti respinge.*Molo al livello 2/);
   assert.match(s['ghiacci']!.motivo, /mare gela.*livello 3/);
   assert.match(s['vulcano']!.motivo, /abitanti ti cacciano.*Lanterna in testa/);
   assert.match(s['giardino']!.motivo, /nebbia.*mappa del Giardino/);
   assert.match(s['templari']!.motivo, /nebbia rossa.*faro della Tempesta/);
-  // con lotto nuovo (Molo L1) e cappello di paglia: sempre tutto chiuso
+  // con lotto nuovo (Molo L1) e cappello di paglia: tutto chiuso tranne le Corse
   const v = viaggiatore(newLot('bruno', T0), 1);
-  assert.ok(Object.values(sblocchi(arch.places, v)).every((x) => !x.aperta));
+  assert.ok(Object.entries(sblocchi(arch.places, v)).every(([id, x]) => x.aperta === (id === 'corse')));
   assert.match(sblocchi(arch.places, v)['tempesta']!.motivo, /il tuo è al 1/);
 });
 
@@ -72,9 +73,10 @@ test('ognuna si apre col suo requisito, e solo con quello', () => {
   ];
   for (const [id, v] of casi) {
     const s = sblocchi(arch.places, v);
-    for (const p of temi) assert.equal(s[p.island]!.aperta, p.island === id, `${id}: ${p.island} ${s[p.island]!.aperta ? 'aperta' : 'chiusa'}`);
+    for (const p of temi) assert.equal(s[p.island]!.aperta, p.island === id || p.island === 'corse', `${id}: ${p.island} ${s[p.island]!.aperta ? 'aperta' : 'chiusa'}`);
   }
   assert.equal(sbloccoTema({ tipo: 'molo', livello: 2 }, { ...base, molo: 3 }).aperta, true, 'Molo più alto del necessario');
+  assert.equal(sbloccoTema({ tipo: 'libera' }, NESSUNO).aperta, true, 'libera: aperta anche senza niente');
 });
 
 /** Barca che punta dritta verso il molo dell'isola partendo da 120 m, a tutta forza: dove arriva. */

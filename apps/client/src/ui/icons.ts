@@ -50,6 +50,7 @@ export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingr
   | 'mercante' | 'bacheca' | 'parla' | 'contrabbando' // Porto (#63-#65), Contrabbandiere
   | 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'lucchetto' // Isole a tema (#68)
   | 'templari' // Isola dei Templari: croce patente rossa su bianco
+  | 'corse' // Isola delle Corse: bandiera a scacchi
   | 'consegne' // Consegne
   | 'ingorgo' // Ingorgo
   | 'perle' // Perle
@@ -82,6 +83,7 @@ const PIX: Record<PixId, string[]> = {
   ghiacci: ['...p....', '.C.p.C..', '..ppp...', 'ppppppp.', '..ppp...', '.C.p.C..', '...p....', '........'],
   vulcano: ['..R.O...', '...OR...', '..nOOn..', '..nnnn..', '.nnrnnn.', '.nnnnrn.', 'nnrnnnnn', 'nnnnnnnn'],
   giardino: ['...kk...', '.kkkkkk.', '.kkYYkk.', 'kkkYYkkk', '.kkkkkk.', '...kk...', '...EE...', '..EEEE..'],
+  corse: ['bnwnwnw.', 'bwnwnwn.', 'bnwnwnw.', 'bwnwnwn.', 'b.......', 'b.......', 'b.......', 'cc......'], // Isola delle Corse: bandiera a scacchi
   templari: ['wwRRRRww', 'wwwRRwww', 'RwwRRwwR', 'RRRRRRRR', 'RRRRRRRR', 'RwwRRwwR', 'wwwRRwww', 'wwRRRRww'],
   lucchetto: ['..rrrr..', '.r....r.', '.r....r.', 'YYYYYYYY', 'YYYnnYYY', 'YYYnnYYY', 'YYYYYYYY', '.YYYYYY.'],
   libro: ['........', '.ww..ww.', 'wqqwwqqw', 'wwwRwwww', 'wqqRwqqw', 'wwwRwwww', 'cccccccc', '........'], // libro degli ospiti aperto, col nastro rosso (#86)

@@ -113,7 +113,7 @@ async function boot(): Promise<void> {
   // minigiochi da solo: ognuno al suo posto (la Regata al molo della Laguna), premio in risorse deciso dal server
   // senza sfide con posta il Tavolo del Porto diventa il posto di Scacco in 3
   const tavoloAt = arch.buildings.find((b) => b.kind === 'tavolo') ?? null;
-  const giochi = createMinigiochi({ world, loader, api: me && api.enabled ? api : null, hud, root, camera: renderer.camera, canvas, onLot: () => refreshMyLot(), tavolo: FLAGS.sfide ? null : tavoloAt });
+  const giochi = createMinigiochi({ world, loader, api: me && api.enabled ? api : null, hud, root, camera: renderer.camera, canvas, renderer, onLot: () => refreshMyLot(), tavolo: FLAGS.sfide ? null : tavoloAt });
   for (const sp of giochi.spots) { const sez = sezioneDi(sp.x, sp.z); targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, ...(sp.aperta ? { show: sp.aperta } : {}), ...(sez ? { sezione: sez } : {}) }); } // aperta: minigiochi delle isole a tema (Ghiacci, Giardino, Tempesta, Vulcano)
   // Mondo Sotterraneo (docs/RPG.md, CONTRACTS §15): ingressi dei dungeon sulle isole e scheda del personaggio; il codice vero è nel chunk GDR
   const setMyLot = (l: LotState) => { lots.find((lv) => !lv.readonly)?.set(l); };
@@ -136,7 +136,7 @@ async function boot(): Promise<void> {
   if (tpl.spot) targets.push({ id: 'templari', label: 'Chiesa', icon: 'templari', x: tpl.spot.x, z: tpl.spot.z, show: () => FLAGS.templari || temi.aperta('templari'), sezione: 'isole' });
   // lo scheletro col calice sotto il faro della Tempesta: in bussola finché il calice non è tuo (e la Tempesta è aperta)
   if (tpl.relitto) targets.push({ id: 'relitto_templare', label: 'Relitto', icon: 'templari', x: tpl.relitto.x, z: tpl.relitto.z, show: () => !tpl.calice() && temi.aperta('tempesta'), sezione: 'isole' });
-  for (const p of temi.isole) targets.push({ id: 'tema:' + p.island, label: p.nome.replace(/^Isola (della |dei |del )?/, ''), icon: p.island as PixId, x: p.spawn.x, z: p.spawn.z, show: () => mappa?.vista(`${p.role}:${p.index}`) ?? false, sezione: 'isole' });
+  for (const p of temi.isole) targets.push({ id: 'tema:' + p.island, label: p.nome.replace(/^Isola (della |delle |dei |del )?/, ''), icon: p.island as PixId, x: p.spawn.x, z: p.spawn.z, show: () => mappa?.vista(`${p.role}:${p.index}`) ?? false, sezione: 'isole' });
   // Libro degli ospiti e «Mentre eri via» (#86): leggio vicino al molo di ogni isola abitata; la cartolina al rientro (dopo i primi passi)
   const libri = createLibri({ world, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, isole, onFirma: (e) => emotes.play(e) });
   const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;

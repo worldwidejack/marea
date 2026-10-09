@@ -1,0 +1,39 @@
+{
+  "id": "corse",
+  "nome": "Gran Premio",
+  "maxSeconds": 240,
+  "isola": "corse",
+  "posto": [22, 26],
+  "giri": 3,
+  "pista": {
+    "nome": "Anello del Faro",
+    "punti": [
+      [0, 0], [60, 0], [100, 5], [125, 25], [130, 55], [115, 80], [85, 88], [60, 78], [45, 60], [25, 55],
+      [5, 65], [-10, 90], [-35, 100], [-65, 92], [-85, 70], [-90, 40], [-80, 15], [-50, 2]
+    ],
+    "passo": 2,
+    "larghezza": 6,
+    "erba": 3,
+    "muro": 0.7
+  },
+  "kart": { "raggio": 0.9, "frenata": 26, "folle": 5, "sterzoPieno": 7, "erbaVelocita": 0.55, "retro": 4 },
+  "guide": [
+    { "id": "morbida", "nome": "Morbida", "velocita": 19, "accelerazione": 11, "sterzo": 1.9, "presa": 14, "presaDrift": 5, "drift": 1.25 },
+    { "id": "media", "nome": "Media", "velocita": 20, "accelerazione": 14, "sterzo": 2.25, "presa": 10, "presaDrift": 3.5, "drift": 1.35 },
+    { "id": "nervosa", "nome": "Nervosa", "velocita": 21, "accelerazione": 17, "sterzo": 2.7, "presa": 7, "presaDrift": 2.5, "drift": 1.45 }
+  ],
+  "guidaDiSerie": 1,
+  "drift": { "velocitaMin": 9, "autoSecondi": 0.35, "autoSterzo": 0.85, "tieniSterzo": 0.3, "carica": [0.8, 1.6], "spinta": [0.5, 1.2], "turbo": 0.3, "turboAccelerazione": 30 },
+  "bot": {
+    "nomi": ["Gabbiano", "Granchio", "Polpo", "Delfino"],
+    "bravura": [0.975, 0.955, 0.935, 0.915],
+    "corsia": 0.5,
+    "sguardo": [6, 0.35],
+    "sterzo": 2.6,
+    "elastico": { "davanti": 0.0004, "davantiMax": 0.06, "dietro": 0.0003, "dietroMax": 0.05 }
+  },
+  "griglia": [[-5, -2.5], [-5, 2.5], [-11, -2.5], [-11, 2.5], [-17, 0]],
+  "scoreBase": 30000,
+  "premioExtra": { "oro": { "legno": 20 } },
+  "_nota": "Gran Premio (Isola delle Corse, docs/CORSE.md). Kart arcade: niente fisica vera, il kart segue la pista con sterzo, presa (quanto in fretta la direzione del moto raggiunge il muso: bassa = scivola) e drift. pista.punti = centro della pista in metri (anello chiuso, levigato con Catmull-Rom e campionato ogni `passo` m); larghezza = mezza carreggiata; oltre c'è `erba` m di prato (velocità × kart.erbaVelocita) e poi il muro (velocità × muro). guide = i 3 tipi di guida da provare (scelta nel primo tick della partita): velocità m/s, accelerazione m/s², sterzo rad/s a sterzo pieno, presa e presaDrift 1/s, drift = sterzo in più in derapata. drift: parte col bottone o da solo tenendo lo sterzo oltre autoSterzo per autoSecondi (0 = mai da solo); la carica (s) dà la spinta (s) del turbo (+turbo × velocità). bot: bravura = frazione della velocità massima, corsia = quanto si allargano (frazione della mezza carreggiata), sguardo = metri davanti [fissi, × velocità], elastico = quanto rallentano se sono davanti a te (per metro, fino a Max) e accelerano se sono dietro. griglia = [metri prima del via, lato] dei 5 kart: i 4 bot e tu (l'ultimo). Medaglia = posizione all'arrivo (1° oro, 2° argento, 3° bronzo). scoreBase − centesimi = punteggio (tempo più basso = più alto)."
+}

@@ -27,9 +27,9 @@ for (const f of files) {
     if (/from\s+['"]three/.test(code)) errs.push(`${r}: three in pacchetto puro`);
   }
   // dungeon: niente funzioni trascendenti (diverse tra JavaScriptCore e V8 → il replay del server divergerebbe), CONTRACTS §15
-  if (r.startsWith('packages/sim/src/dungeon/') || r.startsWith('packages/sim/src/templari/')) {
+  if (r.startsWith('packages/sim/src/dungeon/') || r.startsWith('packages/sim/src/templari/') || r === 'packages/sim/src/minigames/corse.ts') {
     const m = code.match(/\bMath\.(sin|cos|tan|asin|acos|atan|atan2|hypot|pow|exp|expm1|log|log2|log10|log1p|cbrt|sinh|cosh|tanh)\s*\(|\*\*/);
-    if (m) errs.push(`${r}: ${m[0]} vietato nel dungeon e nei Templari (solo + − × ÷ e Math.sqrt: il replay deve coincidere su ogni motore JS)`);
+    if (m) errs.push(`${r}: ${m[0]} vietato nel dungeon, nei Templari e nelle Corse (solo + − × ÷ e Math.sqrt: il replay deve coincidere su ogni motore JS)`);
   }
   // chunk GDR: nel client solo apps/client/src/rpg/** importa i dati e la sim del Mondo Sotterraneo (il resto solo `import type` o import() dinamico)
   if (r.startsWith('apps/client/src/') && !r.startsWith('apps/client/src/rpg/') && !r.startsWith('apps/client/src/templari/')) {
