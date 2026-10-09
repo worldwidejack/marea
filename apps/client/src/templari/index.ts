@@ -20,7 +20,9 @@ import { apriPorta } from '@marea/sim/templari/porte.ts';
 import type { TAzioni, TEvento, TView } from '@marea/sim/templari/types.ts';
 import { createHeroActor } from '../rpg/dungeon_hero.ts';
 import type { ArmaInMano, HeroActor } from '../rpg/dungeon_hero.ts';
-import { suona } from '../audio/ponte.ts';
+import { suona, tensione } from '../audio/ponte.ts';
+import type { SuonoId } from '../audio/ponte.ts';
+import { SUOLO } from '@marea/sim/templari/mappa.ts';
 import { PAL } from '../ui/style.ts';
 import { templariLink } from '../game/templari.ts';
 import { createScena } from './scena.ts';
@@ -46,6 +48,11 @@ const FINE: Record<string, [string, string, string]> = {
   uscito: ['SEI USCITO', PAL.sabbiaChiara, 'La chiesa ti aspetta.'],
 };
 
+/** Il suono dell'arma che spara (docs/TEMPLARI.md §11). */
+const SPARO: Record<string, SuonoId> = { pistola: 'tpl_pistola', pistola_doppia: 'tpl_pistola', moschetto: 'tpl_moschetto', trombone: 'tpl_trombone', arco: 'tpl_freccia', arco_lungo: 'tpl_freccia', fuoco_greco: 'lancio' };
+/** Passi sul suolo dell'arena. */
+const PASSO: Record<number, SuonoId> = { [SUOLO.pietra]: 'passo_pietra', [SUOLO.ciottoli]: 'passo_pietra', [SUOLO.terra]: 'passo_erba', [SUOLO.erba]: 'passo_erba', [SUOLO.sabbia]: 'passo_sabbia', [SUOLO.assi]: 'passo_legno' };
+const ORDINE_POTERI = ['faretra', 'ira', 'campane', 'decima', 'muratori'];
 /** Nome, cosa fa e colore dei power-up (la scritta grande quando li prendi). */
 const POTERI: Record<string, [string, string, string]> = {
   faretra: ['FARETRA PIENA', 'Munizioni piene a tutte le armi', PAL.giallo],
@@ -76,7 +83,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   const done = new Promise<TemplariFine | null>((r) => (resolve = r));
 
   const pulisci = () => {
-    fase = 'finita'; templariLink.state = null; templariLink.prova = null;
+    fase = 'finita'; templariLink.state = null; templariLink.prova = null; tensione(0);
     ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
     ctx.renderer.setScene(null);
   };
@@ -93,7 +100,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     fase = 'fine'; wait = FINE_TICK; ctl?.hide();
     const [t, c, sub] = FINE[s.esito ?? 'uscito'] ?? FINE['uscito']!;
     hud?.grande(t, c, `Ondata ${Math.max(1, s.ondata)} · ${sub}`, 0);
-    suona('fine');
+    suona(s.esito === 'morto' ? 'tpl_caduto' : s.esito === 'alba' ? 'tpl_ondata_fine' : 'fine');
   };
   const esci = () => {
     if (fase !== 'gioca') return;
@@ -129,19 +136,24 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     }
   })();
 
+  /** Volume di un verso con la distanza dall'eroe (1 vicino … 0 oltre ~22 m). */
+  const vicino = (x: number, z: number) => Math.max(0, 1 - Math.sqrt((x - s.eroe.x) * (x - s.eroe.x) + (z - s.eroe.z) * (z - s.eroe.z)) / 22);
   const evento = (e: TEvento) => {
     if (!hud || !zombi || !hero) return;
     fx?.evento(e);
     switch (e.t) {
+      case 'grido': { const z = s.zombie.find((x) => x.id === e.id); if (z) suona(e.tipo === 'deus' ? 'tpl_deus' : e.tipo === 'urlo' ? 'tpl_urlo' : 'tpl_rantolo', vicino(z.x, z.z)); break; }
+      case 'sorge': suona('tpl_sorge', vicino(e.x, e.z)); break;
+      case 'fendente': suona('tpl_fendente', e.caricato ? 1 : 0); break;
       case 'colpo': zombi.colpito(e.id); suona(e.uccide ? 'nemico_ko' : 'colpo_dato'); break;
       case 'ferito': hero.flash(); suona('colpo_preso'); break;
       case 'punti': hud.punti(e.n); break;
-      case 'ondata': hud.grande(String(e.n), PAL.rosso, e.n === 1 ? 'I Templari si svegliano' : 'Arrivano', 2400); suona('via'); break;
-      case 'ondataFinita': hud.grande(`ONDATA ${e.n}`, PAL.giallo, 'superata', 2200); suona('medaglia_bronzo'); break;
+      case 'ondata': hud.grande(String(e.n), PAL.rosso, e.n === 1 ? 'I Templari si svegliano' : 'Arrivano', 2400); suona('tpl_ondata'); break;
+      case 'ondataFinita': hud.grande(`ONDATA ${e.n}`, PAL.giallo, 'superata', 2200); suona('tpl_ondata_fine'); break;
       case 'reliquia': sc?.setCalice(true); hud.grande('IL CALICE', PAL.giallo, 'La terra trema. Qualcosa si muove sotto il sagrato.', 3200); suona('altare'); break;
-      case 'asse': if (e.da === 'eroe') suona('martello'); break;
+      case 'asse': { if (e.da === 'eroe') { suona('martello'); break; } const f = s.arena.finestre[e.finestra]; suona('tpl_asse', f ? vicino(f.x, f.z) : 0.5); break; }
       case 'mancato': suona('schivato'); break;
-      case 'sparo': suona(armaDef(e.arma).tipo === 'fuoco' ? 'cannone' : 'lancio'); break;
+      case 'sparo': suona(SPARO[e.arma] ?? (armaDef(e.arma).tipo === 'fuoco' ? 'tpl_pistola' : 'lancio')); break;
       case 'vuoto': suona('click'); hud.grande('', PAL.sabbiaChiara, 'Niente munizioni: comprale sul muro o scambia arma', 1600); break;
       case 'ricarica': suona('martello'); break;
       case 'esplosione': suona('tuono'); break;
@@ -149,28 +161,32 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'scudo': suona('raccolto'); hud.grande('SCUDO', PAL.sabbiaChiara, 'Sulle spalle para da dietro · SCAMBIA per impugnarlo', 2400); break;
       case 'scudoRotto': suona('colpo_critico'); hud.grande('', PAL.rosso, 'Lo scudo si è spaccato', 1600); break;
       case 'compra': suona('moneta'); break;
-      case 'porta': sc?.setPorte(s.porte); suona('apri'); suona('tuono', 0.5); hud.grande('', PAL.giallo, `Si apre: ${TEMPLARI.porte[e.id]?.nome ?? e.id}`, 2000); break;
+      case 'porta': sc?.setPorte(s.porte); suona('tpl_porta'); hud.grande('', PAL.giallo, `Si apre: ${TEMPLARI.porte[e.id]?.nome ?? e.id}`, 2000); break;
       case 'trappola':
-        if (e.fase === 'accesa') { suona(e.id === 'rogo' ? 'sfrigola' : 'tuono'); hud.grande('', PAL.arancio, e.id === 'rogo' ? 'Il rogo di de Molay brucia la navata' : 'La campana grande si stacca e oscilla', 2200); }
+        if (e.fase === 'accesa') { suona(e.id === 'rogo' ? 'tpl_rogo' : 'tpl_campana', 1); hud.grande('', PAL.arancio, e.id === 'rogo' ? 'Il rogo di de Molay brucia la navata' : 'La campana grande si stacca e oscilla', 2200); }
         else if (e.fase === 'pronta') suona('click');
         break;
       case 'potere':
-        if (!e.preso) suona('magia');
-        else { const [nome, sub, colore] = POTERI[e.tipo] ?? ['', '', PAL.giallo]; suona('medaglia_oro'); hud.grande(nome, colore, sub, 2200); }
+        if (!e.preso) suona('tpl_potere');
+        else {
+          const [nome, sub, colore] = POTERI[e.tipo] ?? ['', '', PAL.giallo];
+          suona('tpl_potere_preso', Math.max(0, ORDINE_POTERI.indexOf(e.tipo)) / 4); if (e.tipo === 'campane') suona('tpl_campana', 1);
+          hud.grande(nome, colore, sub, 2200);
+        }
         break;
       case 'boss':
-        if (e.tipo === 'cavaliere') { suona('tuono'); hud.grande('TEMPLARE A CAVALLO', PAL.rosso, 'La terra trema: arriva al galoppo', 3000); }
-        else { suona('tuono'); hud.grande('JACQUES DE MOLAY', PAL.arancio, 'L’ultimo Gran Maestro esce dalle fiamme', 3400); }
+        if (e.tipo === 'cavaliere') { suona('tpl_corno', 1); suona('tuono', 0.6); hud.grande('TEMPLARE A CAVALLO', PAL.rosso, 'La terra trema: arriva al galoppo', 3000); }
+        else { suona('tpl_rogo'); suona('tpl_risata', 1); hud.grande('JACQUES DE MOLAY', PAL.arancio, 'L’ultimo Gran Maestro esce dalle fiamme', 3400); }
         break;
-      case 'corno': suona('raffica'); break;
-      case 'risata': suona('scappato'); hud.grande('', PAL.arancio, 'De Molay ride e scappa: non è ancora il suo momento', 3000); break;
+      case 'corno': { const z = s.zombie.find((x) => x.id === e.id); suona('tpl_corno', z ? vicino(z.x, z.z) : 0.6); break; }
+      case 'risata': suona('tpl_risata', 1); hud.grande('', PAL.arancio, 'De Molay ride e scappa: non è ancora il suo momento', 3000); break;
       case 'scompare': hud.grande('', PAL.giallo, 'De Molay è sparito nella notte', 2200); break;
       case 'bomba': suona('lancio'); break;
       case 'brucia': suona('sfrigola'); break;
       case 'cassa':
-        if (e.fase === 'gira') suona('apri');
+        if (e.fase === 'gira') { suona('apri'); suona('tpl_cassa'); }
         else if (e.fase === 'arma' && e.arma) { suona(armaDef(e.arma).miracolosa ? 'medaglia_oro' : 'notifica'); if (armaDef(e.arma).miracolosa) hud.grande('✦', PAL.giallo, armaDef(e.arma).nome, 2200); }
-        else if (e.fase === 'teschio') { suona('scappato'); hud.grande('☠', PAL.pietraChiara, 'Il teschio ride: la cassa se ne va', 2400); }
+        else if (e.fase === 'teschio') { suona('tpl_teschio'); hud.grande('☠', PAL.pietraChiara, 'Il teschio ride: la cassa se ne va', 2400); }
         else if (e.fase === 'qui') hud.grande('', PAL.giallo, 'La cassa è ricomparsa da un’altra parte', 2000);
         else if (e.fase === 'presa') suona('raccolto');
         break;
@@ -185,10 +201,20 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     const a = f.a || c.a || (ctl!.auto && autoA(s));
     return { mx: f.mx, my: f.my, a, b: f.b, c: c.c, d: c.d };
   }
+  // passi sul suolo sotto i piedi (ogni ~1 m, 1,5 m di corsa) e la tensione della musica (boss in campo, tanti zombie vicini)
+  let px = NaN, pz = NaN, strada = 0;
   function tickUno(f: InputFrame): void {
     const q = quantizeDungeon(inputOra(f));
     frames.push(q); stepTemplari(s, q);
     for (const e of s.eventi) evento(e);
+    const h = s.eroe, d = Number.isNaN(px) ? 0 : Math.sqrt((h.x - px) * (h.x - px) + (h.z - pz) * (h.z - pz));
+    px = h.x; pz = h.z;
+    if (d > 2 || !h.moving) strada = 0;
+    else if ((strada += d) >= (h.corre ? 1.5 : 1.05)) { strada = 0; suona(PASSO[s.arena.suolo[Math.floor(h.z / s.arena.tile) * s.arena.w + Math.floor(h.x / s.arena.tile)] ?? 0] ?? 'passo_pietra'); }
+    if (s.tick % 30 === 0) {
+      const vivi = s.zombie.filter((z) => z.st !== 'morto').length;
+      tensione(s.fase !== 'combatti' ? 0.1 : s.zombie.some((z) => z.def.boss && z.st !== 'morto') ? 1 : Math.min(0.75, vivi / 16));
+    }
   }
 
   const run: TemplariRun = {

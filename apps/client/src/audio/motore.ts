@@ -8,6 +8,8 @@ export type Tono = {
   f: number; f2?: number; onda?: Onda; t?: number; dur: number; vol: number;
   /** attacco (s); il rilascio è esponenziale fino a `dur` */
   a?: number; lp?: number; q?: number; vib?: { f: number; d: number }; bus?: AudioNode; pan?: number;
+  /** passa-banda (Hz) al posto del passa-basso: una formante, per le vocali dei versi (Q da `q`, di serie 6) */
+  bp?: number;
 };
 export type Soffio = { tipo?: BiquadFilterType; f: number; f2?: number; q?: number; t?: number; dur: number; vol: number; a?: number; bus?: AudioNode; pan?: number };
 export type Motore = {
@@ -79,7 +81,8 @@ export function createMotore(ctx: BaseAudioContext): Motore {
         lfo.start(t); lfo.stop(t + o.dur + 0.05);
       }
       let src: AudioNode = osc;
-      if (o.lp) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; f.Q.value = o.q ?? 0.7; osc.connect(f); src = f; }
+      if (o.bp) { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = o.bp; f.Q.value = o.q ?? 6; osc.connect(f); src = f; }
+      else if (o.lp) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; f.Q.value = o.q ?? 0.7; osc.connect(f); src = f; }
       inviluppo(g, t, a, o.dur, o.vol);
       src.connect(g); g.connect(uscita(o.bus ?? effetti, o.pan));
       osc.start(t); osc.stop(t + o.dur + 0.05);

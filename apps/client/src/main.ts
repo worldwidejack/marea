@@ -191,7 +191,7 @@ async function boot(): Promise<void> {
   };
   let guidaRef: Guida | null = null; // la guida si crea più sotto (dopo i passi); le Impostazioni la riaccendono
   const impostazioni = createImpostazioni({ root, onChange: applica, guida: { on: () => !(guidaRef?.chiusa() ?? false), set: (v) => guidaRef?.setChiusa(!v) } });
-  collegaAudio({ world, root, momento: () => aspetto?.momento ?? 'giorno', gioco: () => giochi.isBusy(), dungeon: () => sotto() }); // suoni e musica (audio/ponte.ts), al primo gesto
+  collegaAudio({ world, root, momento: () => aspetto?.momento ?? 'giorno', gioco: () => giochi.isBusy(), dungeon: () => sotto(), templari: () => tpl.active }); // suoni e musica (audio/ponte.ts), al primo gesto
   registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
   registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
   registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0, meteoK: aspetto?.meteoK ?? 0, gocce: aspetto?.gocce ?? 0 }));

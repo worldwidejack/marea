@@ -119,7 +119,13 @@ Lo calcola il **server** rigiocando la partita (come i dungeon): per ogni **onda
 Il **record** (ondata più alta) resta nel lotto e si vede nella scheda finale.
 
 ## 11. Audio (priorità alta)
-Atmosfera alla COD Zombies con suoni **nostri, sintetizzati** (motore di `apps/client/src/audio/`, zero file, mai niente copiato da COD): versi e rantoli degli zombie, urla di chi scatta, «Deus vult!» come grido ritmato, jingle di inizio e fine ondata (campane e organo stonato), corno del cavaliere, risata di de Molay e crepitio del fuoco, musica tesa che cresce con l'ondata, la cassa che gira e ride. Niente ElevenLabs per ora (resta in BACKLOG).
+Atmosfera alla COD Zombies con suoni **nostri, sintetizzati** (motore di `apps/client/src/audio/`, zero file, mai niente copiato da COD). Fatto al passo 8:
+- **Versi** (più piano se lontani): «Deus vult!» gridato da una gola morta (tre sillabe con le vocali vere: formanti su un dente di sega ruvido), il rantolo lungo che trema, l'urlo stridulo di chi scatta, la terra che si apre quando escono.
+- **Ondate**: lo stacco d'inizio (timpano, ottoni bassi in Re col Mi bemolle che stona, la campana grande) e quello di fine (un coro che respira e scende). Cadere: il cuore che rallenta su un bordone basso.
+- **Boss**: il corno del Templare a cavallo (sale di una quarta, con l'eco), la risata di de Molay (HA ha ha ha che scende, con una voce un'ottava sotto e l'eco) e la fiammata quando arriva.
+- **Armi e cose**: pietra focaia e scoppio delle pistole, il tuono del moschetto, il ventaglio del trombone, la corda dell'arco, il fendente; l'asse strappata (schianto e chiodi), la porta che cede (cigolio, tonfo, polvere), la campana grande (trappola e Campane a martello), il rogo che prende, il luccichio del power-up e l'accordo quando lo prendi (uno per tipo), la cassa che suona come un carillon per 4 s e il teschio che ride. Passi sul suolo sotto i piedi (pietra, erba, sabbia, assito).
+- **Musica** `templari` (generativa, mai uguale): Re frigio dominante (il Mi bemolle e il Do diesis, il colore delle crociate), 50 bpm, un coro che respira, il cuore che batte a ogni battuta, la campana a morto ogni due; con la **tensione** (tanti zombie, un boss in campo) arrivano i tamburi di guerra, il rullo e la campana a ogni battuta. Tra un'ondata e l'altra si calma. Nelle ondate è sempre notte anche per l'ambiente.
+- Niente ElevenLabs per ora (resta in BACKLOG): le voci vere («Deus vult!» detto da un attore) sarebbero il passo dopo.
 
 ## 12. Da decidere (non bloccano)
 - **Easter egg** (spezzare la maledizione, il tesoro, il Graal) e **forma finale di de Molay**: in una chat leggera prima del passo 9.

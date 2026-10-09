@@ -2,7 +2,9 @@
 // attacco lento), basso, una melodia pentatonica che ricorda la sua frase e la varia (motivo A, A', poi una frase nuova), eco
 // lo-fi sulla melodia e una batteria leggera con lo swing. Quattro stili: giorno (Re maggiore pentatonico, 76 bpm), notte (La minore
 // pentatonico, 62 bpm, flauto e niente cassa), gara (Regata: 128 bpm, arpeggi e rullante) e dungeon (scala «in», 54 bpm, solo pad e
-// pizzichi). Lo scheduler mette in coda le note di ~0,3 s in avanti sull'orologio dell'audio (programma), così il tempo non balla.
+// pizzichi). Templari (ondate, docs/TEMPLARI.md §11): Re frigio dominante (il Mi bemolle e il Do diesis delle crociate), 50 bpm, un coro
+// che respira, il cuore che batte, la campana a morto ogni due battute; con la tensione (boss, tanti zombie) i tamburi di guerra. Lo
+// scheduler mette in coda le note di ~0,3 s in avanti sull'orologio dell'audio (programma), così il tempo non balla.
 import type { MusicaModo } from './ponte.ts';
 import { hz } from './motore.ts';
 import type { Motore, Onda } from './motore.ts';
@@ -13,7 +15,9 @@ type Stile = {
   accordi: number[][]; bassi: number[]; barre: number;
   /** note della melodia (MIDI, in ordine), timbro e quanto suona (0..1) */
   scala: number[]; mel: { onda: Onda; lp: number; a: number; dur: number; vol: number; vib?: number }; densita: number;
-  batteria: 'lofi' | 'gara' | 'spazzola' | null; arpeggio: boolean; pad: number;
+  batteria: 'lofi' | 'gara' | 'spazzola' | 'cuore' | null; arpeggio: boolean; pad: number;
+  /** campana a morto ogni N battute (nota MIDI e N) */
+  campana?: { n: number; ogni: number };
 };
 const STILI: Record<Exclude<MusicaModo, 'silenzio'>, Stile> = {
   giorno: {
@@ -34,6 +38,12 @@ const STILI: Record<Exclude<MusicaModo, 'silenzio'>, Stile> = {
     scala: [74, 76, 78, 81, 83, 86, 88, 90], mel: { onda: 'impulso', lp: 3000, a: 0.005, dur: 0.9, vol: 0.05 }, densita: 0.9,
     batteria: 'gara', arpeggio: true,
   },
+  templari: {
+    bpm: 50, swing: 0, barre: 2, pad: 0.036,
+    accordi: [[50, 57, 62, 65], [51, 58, 62, 67], [46, 53, 58, 62], [49, 52, 56, 61]], bassi: [38, 39, 34, 37],
+    scala: [62, 63, 66, 67, 69, 70, 73, 74, 75], mel: { onda: 'triangle', lp: 1300, a: 0.12, dur: 3.2, vol: 0.055, vib: 0.014 }, densita: 0.3,
+    batteria: 'cuore', arpeggio: false, campana: { n: 38, ogni: 2 },
+  },
   dungeon: {
     bpm: 54, swing: 0, barre: 2, pad: 0.03,
     accordi: [[50, 57, 62, 64], [46, 53, 58, 62], [43, 50, 55, 58], [45, 52, 57, 62]], bassi: [38, 34, 31, 33],
@@ -42,7 +52,7 @@ const STILI: Record<Exclude<MusicaModo, 'silenzio'>, Stile> = {
   },
 };
 
-export type Musica = { readonly modo: MusicaModo; set(m: MusicaModo, t?: number): void; programma(fino: number): void };
+export type Musica = { readonly modo: MusicaModo; set(m: MusicaModo, t?: number): void; programma(fino: number): void; tensione(k: number): void };
 
 export function createMusica(mt: Motore): Musica {
   const { ctx } = mt;
@@ -53,7 +63,7 @@ export function createMusica(mt: Motore): Musica {
 
   let modo: MusicaModo = 'silenzio', st: Stile | null = null, step = 0, tNext = 0;
   let layer: GainNode | null = null, mel: GainNode | null = null;
-  let frase: (number | null)[] = [], idx = 3;
+  let frase: (number | null)[] = [], idx = 3, tens = 0;
 
   /** Una frase di 2 battute (16 crome): passi brevi sulla scala, più note sui tempi forti, qualche pausa. */
   const nuovaFrase = (s: Stile): (number | null)[] => {
@@ -96,6 +106,11 @@ export function createMusica(mt: Motore): Musica {
       const f = hz(s.scala[ni]!), m = s.mel;
       mt.tono({ f, onda: m.onda, t, dur: sd * m.dur, vol: m.vol * (pos === 0 ? 1 : 0.85), a: m.a, lp: m.lp, ...(m.vib ? { vib: { f: 5, d: m.vib } } : {}), bus: mel! });
     }
+    // campana a morto: un rintocco grave ogni `ogni` battute (parziali stonate come il bronzo)
+    if (s.campana && pos === 0 && bar % (tens > 0.6 ? 1 : s.campana.ogni) === 0) {
+      const f0 = hz(s.campana.n);
+      for (const [r, v, d] of [[1, 0.05, 3.5], [2, 0.028, 2], [2.4, 0.02, 1.4], [3, 0.012, 1]] as const) mt.tono({ f: f0 * r, onda: 'sine', t, dur: d, vol: v, a: 0.003, bus: L });
+    }
     // batteria
     if (s.batteria === 'lofi') {
       if (pos === 0) cassa(t, 0.16); if (pos === 5) cassa(t, 0.09);
@@ -105,6 +120,11 @@ export function createMusica(mt: Motore): Musica {
       if (pos === 0 || pos === 4) cassa(t, 0.18);
       if (pos === 2 || pos === 6) rullante(t, 0.08);
       charleston(t, pos % 2 ? 0.03 : 0.018);
+    } else if (s.batteria === 'cuore') {
+      // il cuore: due colpi sordi a inizio battuta; con la tensione i tamburi di guerra e il rullo prima del giro
+      if (pos === 0) { mt.tono({ f: 62, f2: 40, onda: 'sine', t, dur: 0.22, vol: 0.16, bus: L }); mt.tono({ f: 58, f2: 38, onda: 'sine', t: t + 0.24, dur: 0.2, vol: 0.1, bus: L }); }
+      if (tens > 0.45 && (pos === 3 || pos === 6)) mt.tono({ f: 110, f2: 70, onda: 'triangle', t, dur: 0.25, vol: 0.09 * tens, bus: L });
+      if (tens > 0.7 && bar % 2 === 1 && pos >= 6) for (let r = 0; r < 3; r++) mt.soffio({ f: 1500, q: 0.9, t: t + r * sd / 3, dur: 0.06, vol: 0.035 * tens, bus: L });
     } else if (s.batteria === 'spazzola') {
       if (pos % 2 === 1 && Math.random() < 0.5) mt.soffio({ f: 5000, q: 0.6, t, dur: 0.08, vol: 0.012, a: 0.02, bus: L });
     }
@@ -125,6 +145,7 @@ export function createMusica(mt: Motore): Musica {
       eco.delayTime.setValueAtTime((60 / st.bpm) * 0.75, t); // eco a 3 crome
       step = 0; tNext = t + 0.1; corrente = []; idx = Math.floor(st.scala.length / 2);
     },
+    tensione(k) { tens = Math.max(0, Math.min(1, k)); },
     programma(fino) {
       if (!st) return;
       const sd = 60 / st.bpm / 2;
