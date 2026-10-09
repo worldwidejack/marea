@@ -12,8 +12,8 @@ import type { InputFrame } from '../src/types.ts';
 const nuova = (pista: string, veicolo?: string, bot = true, seed = 7, regole: Record<string, string> = {}): GaraState =>
   garaCorse.create({ seed, difficulty: 2, opzioni: { pista, ...(veicolo ? { veicolo } : {}), bot: bot ? '1' : '0', ...regole } });
 const FERMO: InputFrame = { mx: 0, my: 1, a: false, b: false };
-/** Salta il conto alla rovescia senza toccare niente. */
-const via = (s: GaraState) => { while (s.tick < 1) garaCorse.step(s, FERMO); return s; };
+/** Salta il conto alla rovescia senza toccare niente (gas dato solo al VIA: niente turbo e niente motore ingolfato). */
+const via = (s: GaraState) => { while (s.tick < 1) garaCorse.step(s, { ...FERMO, my: 0 }); return s; };
 /** Corre la gara col pilota (di serie quello automatico). */
 function corri(s: GaraState, pilota: (s: GaraState) => InputFrame = (x) => pilotaGara(x)) {
   while (!s.done) garaCorse.step(s, quantize(pilota(s)));
@@ -83,11 +83,11 @@ test('corse v2 (#170): il drift ha 3 livelli, contro il muro perde la carica e i
   }
 });
 
-test('corse v2 (#170): turbo alla partenza (razzo, buona, motore ingolfato) e conto alla rovescia', () => {
+test('corse v2 (#170): turbo alla partenza col gas (razzo, buona, motore ingolfato) e conto alla rovescia', () => {
   const parti = (premi: number | null, regole: Record<string, string> = {}) => {
     const s = nuova('prova_fuga', 'kart', false, 7, regole), k = s.veicoli[0]!;
     assert.equal(s.tick, -VIA);
-    while (s.tick < 1) { assert.equal(k.v, 0, 'nel conto alla rovescia si sta fermi'); garaCorse.step(s, { mx: 0, my: 1, a: premi !== null && -s.tick <= premi * 60, b: false }); }
+    while (s.tick < 1) { assert.equal(k.v, 0, 'nel conto alla rovescia si sta fermi'); garaCorse.step(s, { mx: 0, my: premi !== null && -s.tick <= premi * 60 ? 1 : 0, a: false, b: false }); }
     for (let i = 0; i < 90; i++) garaCorse.step(s, FERMO);
     return k;
   };
@@ -95,7 +95,7 @@ test('corse v2 (#170): turbo alla partenza (razzo, buona, motore ingolfato) e co
   assert.ok(razzo.partenza === 2 && buona.partenza === 1 && ingolfato.partenza === -1 && niente.partenza === 0 && spenta.partenza === 0);
   assert.ok(razzo.prog > buona.prog && buona.prog > niente.prog && niente.prog > ingolfato.prog, [razzo, buona, niente, ingolfato].map((k) => k.prog.toFixed(2)).join(' > '));
   const g = nuova('prova_fuga', 'kart', false), q = g.veicoli[0]!;
-  while (g.tick < 30) garaCorse.step(g, { mx: 0, my: 1, a: true, b: false });
+  while (g.tick < 30) garaCorse.step(g, { mx: 0, my: 1, a: false, b: false }); // gas tenuto da prima del 3
   assert.ok(q.partenza === -1 && q.v === 0, 'ingolfato: mezzo secondo dopo il VIA è ancora fermo');
   // i tempi contano dal VIA
   const s = nuova('prova_fuga', 'kart', false);

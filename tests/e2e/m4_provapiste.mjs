@@ -68,6 +68,7 @@ export default async function (ctx) {
     assert(via.partenza === 2 && via.turbo > 0, `partenza ${via.partenza}, turbo ${via.turbo}`);
     // da tastiera: Spazio tenuto e freccia a destra = drift, che carica
     await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: false }); });
+    await d.page.keyboard.down('ArrowUp'); // il gas non è più automatico
     await d.page.waitForFunction(() => window.__provapiste.state().v > 12, null, { timeout: 15000 }); // il drift parte sopra i 9 m/s
     await d.page.keyboard.down('ArrowRight'); await d.page.keyboard.down('Space');
     const tasti = await d.page.evaluate(() => new Promise((r) => {
@@ -75,8 +76,11 @@ export default async function (ctx) {
       const f = () => { const st = a.state(); if (st.drift) o.drift = st.drift; o.sc = Math.max(o.sc, a.perf().scintille); o.v = st.v; if ((o.drift && o.sc > 0) || performance.now() - t0 > 3000) r(o); else setTimeout(f, 30); };
       f();
     }));
-    await d.page.keyboard.up('Space'); await d.page.keyboard.up('ArrowRight');
+    await d.page.keyboard.up('Space'); await d.page.keyboard.up('ArrowRight'); await d.page.keyboard.up('ArrowUp');
     assert(tasti.drift === 1 && tasti.sc > 0, JSON.stringify(tasti));
+    // senza gas si rallenta (il gas non è automatico): lasciare l'acceleratore è il modo di prendere le curve
+    const v0 = await d.page.evaluate(() => window.__provapiste.state().v);
+    await d.page.waitForFunction((x) => window.__provapiste.state().v < x - 3, v0, { timeout: 15000 });
     // il pilota automatico fino al viola, poi la foto in pausa; lasciato il drift parte il turbo
     const viola = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ regole: {}, vai: true }); let st = a.state(); for (let i = 0; i < 60 * 60 && !(st.drift && st.livello === 3); i++) st = a.avanti(1); a.set({ pausa: true }); return st; });
     assert(viola.livello === 3, JSON.stringify(viola));

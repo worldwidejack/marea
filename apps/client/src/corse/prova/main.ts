@@ -2,8 +2,8 @@
 // (pista a nastro 3D): giri della morte, salti, discese, acqua, scorciatoie, ponti senza muri, eventi firma. Le piste sono quelle di
 // tools/corse_piste/ (per ora quelle di prova; poi le grezze delle zone, da provare prima di vestirle).
 // Comandi:
-// - telefono: joystick = sterzo (il gas è automatico), DRIFT, FRENO;
-// - PC: A D o ← →, Spazio = drift (e turbo alla partenza, acrobazia in aria), S o ↓ = freno.
+// - telefono: joystick = sterzo, in avanti = gas (in diagonale sterzi e acceleri), in giù o FRENO = freno, DRIFT;
+// - PC: A D o ← → sterzo, W o ↑ gas (tenuto quando compare l'1: turbo alla partenza), S o ↓ freno, Spazio = drift (in aria: acrobazia).
 // La guida (#170): drift col saltello e 3 livelli di scintille (blu, arancio, viola), turbo alla partenza, acrobazie, scia, turbo
 // che si sommano; fiammate, linee di velocità, scossa, FOV e suoni. Ogni regola ha il suo interruttore A/B nel pannello «prove».
 // Fughe con l'onda: l'indicatore ONDA in alto dice a quanti metri ti sta dietro (rosso sotto i 25).
@@ -55,7 +55,7 @@ const q = new URLSearchParams(location.search);
 const opz = { ...opzioniGara({ pista: q.get('pista'), veicolo: q.get('veicolo'), bot: q.get('bot'), ...Object.fromEntries(REGOLE.map(([id]) => [id, q.get(id)])) }) };
 const camQ = q.get('cam') === 'vicina' ? 'cofano' : q.get('cam');
 let cam: Camera = CAMERE.includes(camQ as Camera) ? (camQ as Camera) : 'dietro';
-let auto = q.get('auto') === '1', luce: StyleId = 'giorno', effetti = q.get('effetti') !== '0', pausa = false;
+let gasAuto = q.get('gas') === 'auto', auto = q.get('auto') === '1', luce: StyleId = 'giorno', effetti = q.get('effetti') !== '0', pausa = false;
 
 // ---------- resa (come provapixel: immagine piccola, passata finale coi contorni, il cielo e la palette) ----------
 const canvas = document.getElementById('gl') as HTMLCanvasElement, root = document.getElementById('ui') as HTMLElement;
@@ -125,10 +125,11 @@ function nuovaGara(cambiaPista: boolean) {
   scrivi();
 }
 
-/** Joystick e tasti → sterzo, gas automatico, freno, drift. Curva e rampa dello sterzo le fa la sim (regola «sterzo»). */
+/** Joystick e tasti → sterzo, gas, freno, drift. Il gas si dà (Jack: lasciarlo è il modo di prendere bene le curve): W o ↑, joystick in
+ *  avanti (in proporzione); «gas automatico» nel menù opzioni per chi non gioca mai. Curva e rampa dello sterzo le fa la sim. */
 function comandi(f: InputFrame): InputFrame {
-  const freno = f.b || f.my > 0.5;
-  return { mx: Math.max(-1, Math.min(1, f.mx / 0.7)), my: freno ? -1 : 1, a: f.a, b: false };
+  const freno = f.b || f.my > 0.5, gas = Math.max(0, Math.min(1, -f.my / 0.6));
+  return { mx: Math.max(-1, Math.min(1, f.mx / 0.7)), my: freno ? -1 : gasAuto ? 1 : gas, a: f.a, b: false };
 }
 function step() {
   if (fase === 'fine') { if (++finita > 60 * 4 && auto) nuovaGara(false); return; }
@@ -260,6 +261,7 @@ const riga = (titolo: string, voci: [string, () => boolean, () => void][]) => {
   }
 };
 riga('camera', CAMERE.map((c): [string, () => boolean, () => void] => [NOME_CAMERA[c], () => cam === c, () => { cam = c; regia.st.ok = false; }]));
+riga('gas', [['manuale', () => !gasAuto, () => { gasAuto = false; }], ['automatico', () => gasAuto, () => { gasAuto = true; }]]);
 riga('suoni', [['sì', () => suoni.acceso, () => { suoni.acceso = true; }], ['no', () => !suoni.acceso, () => { suoni.acceso = false; }]]);
 let menuAperto = false;
 ingr.addEventListener('pointerdown', (e) => { ferma(e); menuAperto = !menuAperto; scrivi(); });
@@ -301,7 +303,7 @@ function aggiornaHud(v: GaraView, dt: number) {
   tstT -= dt; if (tstT <= 0 && tst.style.display !== 'none') toast(null);
   if (v.via > 0) {
     big.style.display = 'block'; big.style.color = conto > 1 ? P.rosso : P.giallo;
-    big.innerHTML = `${conto}<small>${s.regole.partenza ? (auto ? 'pilota automatico' : 'tieni DRIFT quando compare l\'1') : p.def.nome + ' · il gas è automatico'}</small>`;
+    big.innerHTML = `${conto}<small>${s.regole.partenza ? (auto ? 'pilota automatico' : 'dai GAS quando compare l\'1') : p.def.nome + (gasAuto ? ' · il gas è automatico' : ' · W o ↑ = gas')}</small>`;
   } else if (viaFlash > 0) { big.style.display = 'block'; big.style.color = P.erbaChiara; big.innerHTML = 'VIA!'; }
   else if (fase === 'fine') {
     big.style.display = 'block'; big.style.color = P.sabbiaChiara;
