@@ -3,7 +3,7 @@
 // mare aperto verso le isole lontane), a 22° e a 45°, zoom di partenza e zoom massimo, giorno e notte, telefono 390×844 e PC 1280×720.
 // FALLISCE se in un qualsiasi punto draw call > 100 o triangoli > 150.000 (TECH §5). Numeri: tests/out/m3_prestazioni.json
 // Screenshot (22°): Porto, molo, Vulcano, Laguna, mare aperto verso le isole, Porto di notte.
-export const timeout = 420000;
+export const timeout = 600000; // su GitHub il giro dura ~6 min (era al limite dei 7 con le isole a tema)
 const MAX_DRAW = 100, MAX_TRIS = 150000;
 const SHOTS = new Set(['porto', 'molo', 'laguna', 'vulcano', 'vulcano_chiusa', 'mare_sudest', 'mare_est']);
 
@@ -15,7 +15,8 @@ const PUNTI = [
   ['neon', [['goto', 'neon']]],
   ['selvaggia', [['goto', 'selvaggia']]],
   ...Array.from({ length: 8 }, (_, i) => [`lotto${i}`, [['goto', `lotto:${i}`]]]),
-  ...['tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari'].flatMap((id) => [
+  ['templari', [['temiProva', 'tutte'], ['goto', 'templari']]], // aperta (chiusa è nella nebbia come il Giardino: la controlla m3_isole)
+  ...['tempesta', 'ghiacci', 'vulcano', 'giardino'].flatMap((id) => [
     [id, [['temiProva', 'tutte'], ['goto', id]]],
     [`${id}_chiusa`, [['temiProva', null], ['temiVerso', id, 6]]],
   ]),

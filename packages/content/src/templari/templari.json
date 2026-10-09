@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "maxMinuti": 60,
   "partenza": { "punti": 500, "arma": "spada" },
   "eroe": {
@@ -44,7 +44,11 @@
   ],
   "nemici": [
     { "id": "fante", "nome": "Fante crociato", "vitaMolt": 1, "raggio": 0.38, "velocita": {"cammina": 1, "corre": 2.2, "scatta": 3.6}, "danno": 45, "portata": 0.75, "preparazione": 0.55, "recupero": 0.7, "strappa": 1.2, "sorge": 1.4 },
-    { "id": "scudato", "nome": "Templare scudato", "vitaMolt": 1.5, "raggio": 0.42, "velocita": {"cammina": 1.2, "corre": 1.6, "scatta": 2}, "danno": 50, "portata": 0.8, "preparazione": 0.65, "recupero": 0.8, "strappa": 1, "sorge": 1.6, "scudo": 0.5, "da": 6, "quota": {"base": 0.08, "perOndata": 0.015, "max": 0.22} }
+    { "id": "scudato", "nome": "Templare scudato", "vitaMolt": 1.5, "raggio": 0.42, "velocita": {"cammina": 1.2, "corre": 1.6, "scatta": 2}, "danno": 50, "portata": 0.8, "preparazione": 0.65, "recupero": 0.8, "strappa": 1, "sorge": 1.6, "scudo": 0.5, "da": 6, "quota": {"base": 0.08, "perOndata": 0.015, "max": 0.22} },
+    { "id": "pirata", "nome": "Pirata zombie", "vitaMolt": 0.6, "raggio": 0.36, "velocita": {"cammina": 2.6, "corre": 4, "scatta": 4.4}, "danno": 30, "portata": 0.7, "preparazione": 0.4, "recupero": 0.5, "strappa": 0.9, "sorge": 1, "da": 3, "quota": {"base": 0.12, "perOndata": 0.02, "max": 0.3} },
+    { "id": "cannoniere", "nome": "Cannoniere pirata", "vitaMolt": 1.2, "raggio": 0.4, "velocita": {"cammina": 1.6, "corre": 1.8, "scatta": 2}, "danno": 35, "portata": 0.75, "preparazione": 0.6, "recupero": 0.7, "strappa": 1.2, "sorge": 1.4, "da": 12, "quota": {"base": 0.06, "perOndata": 0.01, "max": 0.15}, "bomba": {"danno": 50, "raggio": 2.2, "gittata": 10, "distanza": 7, "ricarica": 4, "volo": 1.2, "preparazione": 0.8} },
+    { "id": "cavaliere", "nome": "Templare a cavallo", "vitaMolt": 12, "raggio": 0.48, "velocita": {"cammina": 2, "corre": 2, "scatta": 2}, "danno": 50, "portata": 1.6, "preparazione": 0.7, "recupero": 1, "strappa": 0.3, "sorge": 2, "boss": true, "punti": 500, "carica": {"velocita": 7, "durata": 1.6, "danno": 70, "spinta": 2.5, "vista": 12, "ricarica": 5, "preparazione": 0.9} },
+    { "id": "molay", "nome": "Jacques de Molay", "vitaMolt": 25, "raggio": 0.46, "velocita": {"cammina": 2.4, "corre": 2.4, "scatta": 2.4}, "danno": 40, "portata": 1, "preparazione": 0.6, "recupero": 0.8, "strappa": 0.2, "sorge": 2.4, "boss": true, "punti": 500, "scia": {"dps": 20, "durata": 3, "raggio": 0.9, "ogni": 0.5}, "palla": {"danno": 40, "velocita": 9, "gittata": 14, "ricarica": 3.5, "fuoco": {"dps": 20, "durata": 2, "raggio": 1.4}}, "fugge": 0.5 }
   ],
   "premio": { "perOndata": {"legno": 15, "pietra": 8, "perle": 2}, "maxOndate": 30, "tetto": {"legno": 600, "pietra": 300, "perle": 60} },
   "scudo": {
@@ -55,5 +59,6 @@
     "aTerra": 20
   },
   "cassa": { "prezzo": 950, "gira": 4, "pronta": 10, "usiMin": 4, "usiMax": 8, "vola": 5, "raggio": 1.9 },
-  "muro": { "raggio": 1.5 }
+  "muro": { "raggio": 1.5 },
+  "boss": { "cavaliere": {"ogni": 10, "da": 5, "insiemeDa": 20}, "molay": {"ogni": 10, "da": 10}, "quotaFanti": 0.5, "attesa": 3 }
 }

@@ -38,10 +38,23 @@ function velocita(s: TState, cammina: number, corre: number, scatta: number): nu
   return r < pS ? scatta : r < pS + pC ? corre : cammina;
 }
 
+/** Il boss dell'ondata n: de Molay alle 10, 20, 30…; il cavaliere alle 5, 15, 25… e, dalla 20, anche nelle altre; null = nessuno.
+ *  `solo` = ondata del boss (escono meno fanti). */
+export function bossDi(n: number): { tipo: string; solo: boolean } | null {
+  const b = TEMPLARI.boss;
+  if (n >= b.molay.da && n % b.molay.ogni === 0) return { tipo: 'molay', solo: true };
+  if (n >= b.cavaliere.da && (n - b.cavaliere.da) % b.cavaliere.ogni === 0) return { tipo: 'cavaliere', solo: true };
+  if (n >= b.cavaliere.insiemeDa) return { tipo: 'cavaliere', solo: false };
+  return null;
+}
+
 function nuovaOndata(s: TState): void {
   s.ondata++;
   s.fase = 'combatti'; s.faseT = 0;
   s.quanti = quantiOndata(s.ondata); s.usciti = 0; s.prossima = s.tick + secToTicks(1); s.puntiAssi = 0;
+  const b = bossDi(s.ondata);
+  s.boss = b ? { tipo: b.tipo, at: s.tick + secToTicks(b.solo ? TEMPLARI.boss.attesa : intervalloOndata(s.ondata) * s.quanti * 0.5), uscito: false } : null;
+  if (b?.solo) s.quanti = Math.max(1, Math.round(s.quanti * TEMPLARI.boss.quotaFanti));
   ev(s, { t: 'ondata', n: s.ondata });
 }
 
@@ -68,7 +81,16 @@ export function stepOndate(s: TState): void {
         }
         s.prossima = s.tick + secToTicks(intervalloOndata(s.ondata));
       }
-      if (s.usciti >= s.quanti && vivi === 0) {
+      // il boss esce quando è l'ora, dalla comparsa più vicina all'eroe (il cavaliere al galoppo, de Molay a passo lento)
+      if (s.boss && !s.boss.uscito && s.tick >= s.boss.at) {
+        const c = comparsaVicina(s);
+        if (c) {
+          const z = nuovoZombie(s, s.boss.tipo, c.x, c.z, nemicoDef(s.boss.tipo).velocita.cammina);
+          s.boss.uscito = true;
+          ev(s, { t: 'sorge', id: z.id, x: c.x, z: c.z }); ev(s, { t: 'boss', tipo: s.boss.tipo });
+        }
+      }
+      if (s.usciti >= s.quanti && vivi === 0 && (!s.boss || s.boss.uscito)) {
         ev(s, { t: 'ondataFinita', n: s.ondata });
         s.fase = 'pausa'; s.faseT = 0;
       }

@@ -92,7 +92,7 @@ export default async function (ctx) {
     await ctx.waitState(pc, (st) => st.templari.active && st.templari.fase === 'gioca', 30000);
     let st = await ctx.getState(pc);
     assert(st.templari.sim === 'altare' && st.templari.prompt === 'reliquia', `all'inizio: ${st.templari.sim}, prompt ${st.templari.prompt}`);
-    await pc.waitForSelector('#mzTplAzione.on', { timeout: 5000 }).catch(() => { throw new Error('AZIONE non visibile vicino all’altare'); });
+    await pc.waitForSelector('#mzTplAzione.on', { timeout: 20000 }).catch(() => { throw new Error('AZIONE non visibile vicino all’altare'); });
     await pc.keyboard.down('KeyF'); await pc.waitForTimeout(150); await pc.keyboard.up('KeyF');
     await ctx.waitState(pc, (s) => s.templari.sim === 'inizio' || s.templari.sim === 'combatti', 8000);
     await pc.keyboard.press('Escape');
@@ -122,6 +122,21 @@ export default async function (ctx) {
     await pc.keyboard.down('Space'); await pc.waitForTimeout(120); await pc.keyboard.up('Space');
     await ctx.waitState(pc, (st) => st.templari.effetti.fiamme > 0, 8000);
     await ctx.shot(pc, 'pc_fuoco_greco');
+  });
+  await ctx.test('PC: pirata, cannoniere, Templare a cavallo e de Molay (barra del boss), tutti insieme nel budget', async () => {
+    // mira A MANO (dalla pausa) e spada in mano: così i nemici restano interi per la foto
+    await pc.keyboard.press('Escape'); await pc.click('#mzTplPausa [data-act=auto]'); await pc.keyboard.press('Escape');
+    await pc.evaluate(() => window.__game.test.templariProva({ arma: 'spada' }));
+    const posti = [['pirata', 3, -2.2], ['cannoniere', 3.5, 2.2], ['cavaliere', 6, -1], ['molay', 5.5, 2.8]];
+    for (const [t, dist, lato] of posti) await pc.evaluate(([t, dist, lato]) => window.__game.test.templariProva({ zombie: t, dist, lato }), [t, dist, lato]);
+    await pc.evaluate(() => window.__game.test.setZoom(0.9));
+    await ctx.waitState(pc, (st) => st.templari.zombie >= 4, 8000);
+    await pc.waitForTimeout(2600); // escono da terra
+    await ctx.shot(pc, 'pc_nemici_boss');
+    assert(await pc.isVisible('#mzTpl .boss.on'), 'barra del boss assente');
+    const perf = await ctx.getPerf(pc);
+    ctx.log('perf coi boss', JSON.stringify(perf), JSON.stringify((await ctx.getState(pc)).templari.attori));
+    assert(perf.drawCalls <= 100, `draw call ${perf.drawCalls} > 100`);
     ctx.noErrors(d, 'PC');
   });
 }

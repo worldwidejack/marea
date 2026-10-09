@@ -46,7 +46,10 @@ export type Eroe = {
   scudo: { vita: number } | null; inMano: boolean;
   prevA: boolean; prevC: boolean; prevD: boolean;
 };
-export type ZombieSt = 'sorge' | 'insegue' | 'strappa' | 'prepara' | 'colpisce' | 'recupera' | 'morto';
+/** `carica` = il cavaliere lanciato in linea retta; `fugge` = de Molay a metà vita che scappa ridendo. */
+export type ZombieSt = 'sorge' | 'insegue' | 'strappa' | 'prepara' | 'colpisce' | 'recupera' | 'carica' | 'fugge' | 'morto';
+/** Cosa sta preparando: colpo in mischia, carica a cavallo, bomba, palla di fuoco. */
+export type ZombieModo = 'mischia' | 'carica' | 'bomba' | 'palla';
 export type Zombie = {
   id: number; tipo: string; def: TNemicoDef;
   x: number; z: number; fx: number; fz: number;
@@ -59,14 +62,22 @@ export type Zombie = {
   best: number; bestT: number;
   /** Prossimo grido (tick). */
   grido: number;
+  /** Colpo in preparazione, tick prima del prossimo colpo speciale (carica, bomba, palla), verso della carica e dove mira la bomba. */
+  modo: ZombieModo; cd: number; dx: number; dz: number; tx: number; tz: number;
+  /** La carica ha già preso l'eroe; prossima fiamma della scia (de Molay); dove scappa. */
+  preso: boolean; scia: number; fuga: { x: number; z: number } | null;
 };
+/** Tiro di un nemico: bomba del cannoniere (vola a parabola fino a dove eri), palla di fuoco di de Molay (dritta). */
+export type TiroNemico = { id: number; tipo: 'bomba' | 'palla'; x: number; z: number; sx: number; sz: number; tx: number; tz: number; vx: number; vz: number; t: number; dur: number; danno: number; r: number };
 
 /** Proiettile dell'eroe: freccia, palla (pistole, moschetto, pallini del trombone), vaso del fuoco greco (esplode dove arriva). */
 export type Proj = { id: number; tipo: 'freccia' | 'palla' | 'vaso'; arma: string; x: number; z: number; vx: number; vz: number; danno: number;
   /** Tick di volo che restano, nemici che può ancora trapassare, già colpiti. */
   vita: number; trapassa: number; colpiti: number[] };
 /** Fiamme a terra (fuoco greco, scia della spada di de Molay): bruciano gli zombie dentro. */
-export type Fiamma = { id: number; x: number; z: number; r: number; dps: number; fine: number };
+export type Fiamma = { id: number; x: number; z: number; r: number; dps: number; fine: number;
+  /** Fiamme di de Molay: bruciano l'eroe, non gli zombie. */
+  nemico?: boolean };
 export type Drop = { id: number; tipo: 'scudo'; x: number; z: number; fine: number };
 export type CassaFase = 'chiusa' | 'gira' | 'pronta' | 'teschio' | 'vola';
 export type Cassa = { posto: number; usi: number; max: number; fase: CassaFase; inizio: number; fine: number; arma: string | null };
@@ -86,7 +97,9 @@ export type TState = {
   assi: number[];
   porte: Record<string, boolean>;
   zombie: Zombie[];
-  proj: Proj[]; fiamme: Fiamma[]; drops: Drop[];
+  proj: Proj[]; fiamme: Fiamma[]; drops: Drop[]; tiri: TiroNemico[];
+  /** Boss dell'ondata: chi, quando esce, se è già uscito. */
+  boss: { tipo: string; at: number; uscito: boolean } | null;
   cassa: Cassa;
   nextId: number;
   flow: Int32Array; flowCell: number; flowTick: number;
@@ -114,7 +127,7 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
     fase: opzioni.subito ? 'inizio' : 'altare', faseT: 0, ondata: 0, quanti: 0, usciti: 0, prossima: 0, puntiAssi: 0,
     assi: arena.finestre.map(() => TEMPLARI.barricate.assi),
     porte: Object.fromEntries(arena.porte.map((p) => [p.id, false])),
-    zombie: [], proj: [], fiamme: [], drops: [],
+    zombie: [], proj: [], fiamme: [], drops: [], tiri: [], boss: null,
     cassa: { posto: 0, usi: 0, max: TEMPLARI.cassa.usiMax, fase: 'chiusa', inizio: 0, fine: 0, arma: null },
     nextId: 1,
     flow: new Int32Array(arena.w * arena.h), flowCell: -1, flowTick: -999,
@@ -151,6 +164,7 @@ export function nuovoZombie(s: TState, tipo: string, x: number, z: number, vel: 
   const zz: Zombie = {
     id: s.nextId++, tipo, def, x, z, fx: 0, fz: 1, vita: max, max, vel, st: 'sorge', stT: 0, stDur: secToTicks(def.sorge),
     finestra: -1, hurt: 0, best: 1e9, bestT: s.tick, grido: s.tick + secToTicks(2 + s.rng.next() * 6),
+    modo: 'mischia', cd: secToTicks(2), dx: 0, dz: 1, tx: 0, tz: 0, preso: false, scia: 0, fuga: null,
   };
   s.zombie.push(zz);
   return zz;
@@ -160,10 +174,12 @@ export function animZombie(z: Zombie): TZombieAnim {
   switch (z.st) {
     case 'sorge': return 'sorge';
     case 'strappa': return 'strappa';
-    case 'prepara': return 'prepara';
+    case 'prepara': return z.modo === 'bomba' || z.modo === 'palla' ? 'lancia' : 'prepara';
     case 'colpisce': return 'colpisce';
     case 'recupera': return 'recupera';
     case 'morto': return 'morto';
+    case 'carica': return 'carica';
+    case 'fugge': return 'fugge';
     default: return z.vel > z.def.velocita.cammina * 1.3 ? 'corre' : 'cammina';
   }
 }

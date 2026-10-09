@@ -20,6 +20,12 @@ const CSS = `
 #mzTpl .vita { position: absolute; left: ${LEFT}; top: calc(${TOP} + 106px); width: 96px; height: 7px; background: ${PAL.ombraCalda}; border: 2px solid ${PAL.neroCaldo}; }
 #mzTpl .vita i { display: block; height: 100%; background: ${PAL.rosso}; }
 #mzTpl .vign { position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 0 10px rgba(232,67,63,.55), inset 0 0 0 22px rgba(232,67,63,.3), inset 0 0 0 40px rgba(232,67,63,.14); }
+#mzTpl .boss { position: absolute; left: 50%; top: calc(${TOP} + 34px); transform: translateX(-50%); width: min(360px, calc(100% - 140px)); display: none; text-align: center; }
+#mzTpl .boss.on { display: block; }
+#mzTpl .boss b { display: block; font-size: 13px; color: ${PAL.sabbiaChiara}; text-shadow: 2px 2px 0 ${PAL.neroCaldo}; letter-spacing: .08em; }
+#mzTpl .boss .bar { position: relative; height: 10px; margin-top: 3px; background: ${PAL.ombraCalda}; border: 2px solid ${PAL.neroCaldo}; }
+#mzTpl .boss .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: ${PAL.rosso}; }
+#mzTpl .boss .bar em { position: absolute; top: -3px; bottom: -3px; width: 2px; background: ${PAL.giallo}; }
 #mzTpl .big { position: absolute; left: 50%; top: 32%; transform: translate(-50%, -50%); text-align: center; display: none; width: min(92%, 520px); }
 #mzTpl .big.on { display: block; }
 #mzTpl .big b { display: block; font: bold 34px/1.15 'Press Start 2P', ui-monospace, monospace; text-shadow: 3px 3px 0 ${PAL.neroCaldo}; }
@@ -53,8 +59,10 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string
   const pti = el('div', 'pti', '500'), arma = el('div', 'arma', ''), vita = el('div', 'vita'), vitaI = el('i'), vign = el('div', 'vign');
   vita.append(vitaI);
   const big = el('div', 'big'), bigB = el('b'), bigS = el('span'), msg = el('div', 'msg');
+  const boss = el('div', 'boss'), bossN = el('b'), bossBar = el('div', 'bar'), bossI = el('i'), bossF = el('em');
+  bossBar.append(bossI, bossF); boss.append(bossN, bossBar);
   big.append(bigB, bigS);
-  box.append(vign, ond, pti, arma, vita, msg, big);
+  box.append(vign, ond, pti, arma, vita, msg, boss, big);
   root.append(box);
   let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1 };
 
@@ -79,6 +87,14 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string
       // bordo rosso: a gradini, più forte quando la vita è bassa e appena colpito
       const k = Math.max(v.eroe.ferita, 1 - fr);
       vign.style.opacity = String(Math.round(k * 4) / 4);
+      // barra del boss: il nome, la vita, e per de Molay il segno di dove scapperà
+      boss.classList.toggle('on', !!v.boss);
+      if (v.boss) {
+        const nome = v.boss.nome.toUpperCase();
+        if (bossN.textContent !== nome) bossN.textContent = nome;
+        bossI.style.width = `${Math.round((v.boss.vita / Math.max(1, v.boss.max)) * 100)}%`;
+        bossF.style.display = v.boss.fugge > 0 ? 'block' : 'none'; bossF.style.left = `${Math.round(v.boss.fugge * 100)}%`;
+      }
       const m = v.fase === 'pausa' || v.fase === 'inizio' ? `${NOMI_FASE[v.fase]} · ${Math.ceil(v.faseS)} s` : NOMI_FASE[v.fase];
       if (m !== shown.msg) { shown.msg = m; msg.textContent = m; }
     },
