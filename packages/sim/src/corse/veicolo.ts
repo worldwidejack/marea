@@ -39,6 +39,8 @@ export type Veicolo = {
   turbo: number; livello: number;
   /** Sterzo del giocatore dopo curva e rampa (gara.ts); secondi da cui DRIFT è tenuto (−1 = lasciato, 0 = premuto ora). */
   st: number; tenuto: number;
+  /** Secondi da cui il GAS è tenuto a fondo (−1 = no): serve al turbo della partenza. */
+  gasT: number;
   /** Acrobazia in corso (s da quando è partita, 0 = no, −1 = salto da un'onda); scia caricata (s); motore ingolfato (s fermo); partenza (−1 ingolfato, 1 buona, 2 razzo). */
   acro: number; scia: number; fermo: number; partenza: number;
   muro: boolean;
@@ -67,7 +69,7 @@ export function nuovoVeicolo(p: Pista, id: string, prog: number, lat: number): V
   const s = posa(p, p.def.via + prog);
   return {
     id, ramo: -1, s, lat, h: 0, vh: 0, hf: 1, hl: 0, mf: 1, ml: 0, v: 0, prog, aria: false, caduto: 0, terra: s,
-    drift: 0, carica: 0, daBottone: false, autoT: 0, turbo: 0, livello: 0, st: 0, tenuto: -1, acro: 0, scia: 0, fermo: 0, partenza: 0, muro: false, sup: p.def.superficie, salti: 0, cadute: 0, travolto: 0,
+    drift: 0, carica: 0, daBottone: false, autoT: 0, turbo: 0, livello: 0, st: 0, tenuto: -1, gasT: -1, acro: 0, scia: 0, fermo: 0, partenza: 0, muro: false, sup: p.def.superficie, salti: 0, cadute: 0, travolto: 0,
     giro: 0, giroTick: 1, best: 0, fine: 0,
   };
 }
