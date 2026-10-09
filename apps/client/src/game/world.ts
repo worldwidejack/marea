@@ -62,6 +62,8 @@ export type GameWorld = {
   /** Isole a tema (#68): vincolo sulla barca dopo ogni passo (barriere in mare: game/temi.ts) e «rimettiti in barca» (il Vulcano ti caccia). */
   vincoloBarca: ((prev: BoatState, next: BoatState) => BoatState | null) | null;
   reimbarca(): boolean;
+  /** A piedi sull'isola `id` (es. 'templari'), con la barca ormeggiata al suo molo: per i bottoni delle prove. null se non c'è. */
+  vai(id: string): ArchPlace | null;
   /** La tua barca (#107): colori e nome; setBarca la ridipinge (anteprima dell'editor, dopo il salvataggio). */
   readonly barca: BarcaLook;
   setBarca(b: BarcaLook): void;
@@ -283,6 +285,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     get look() { return look; },
     get vincoloBarca() { return vincoloBarca; },
     set vincoloBarca(f) { vincoloBarca = f; },
+    vai(id) { return racing ? null : goto(id); },
     reimbarca() {
       if (mode !== 'walk' || racing) return false;
       moor(boat.state.x, boat.state.z); // prua verso il largo
