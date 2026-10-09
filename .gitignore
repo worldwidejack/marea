@@ -9,3 +9,6 @@ assets/export/
 __pycache__/
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
+
+# concept art: nel repo solo i JPG, i PNG originali restano sul Mac
+assets/concept/**/*.png
