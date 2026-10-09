@@ -136,7 +136,8 @@ export default async function (ctx) {
 
   await ctx.test('PC: nella fuga l\'onda insegue: l\'indicatore c\'è, chi va piano viene preso (colpo una volta sola) e il carrello a tutto gas pure', async () => {
     const d = await apri('pista=spiaggia_fuga&veicolo=carrello&bot=1', { viewport: ctx.B.DESKTOP });
-    const prima = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'alta' }); return a.avanti(60 * 8); });
+    // (#170) senza turbo al semaforo né scia: col razzo e la scia anche il carrello scappa all'onda (chi guida bene si salva)
+    const prima = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'alta', regole: { partenza: false, scia: false } }); return a.avanti(60 * 8); });
     assert(prima.onda !== null && prima.ondaDist > 20 && prima.travolto === 0, JSON.stringify(prima));
     const hud = await d.page.evaluate(() => document.querySelector('.pp-hud').textContent);
     assert(/ONDA \d+/.test(hud), hud);

@@ -248,7 +248,9 @@ test('corse v2: la fuga dall\'onda: il pilota automatico non si fa prendere, chi
   const r = garaCorse.result(s);
   assert.equal(r.detail['travolti'], 0); assert.ok(min > 10, `distanza minima ${min.toFixed(1)} m`);
   assert.equal((garaCorse.view(s) as { onda: number | null }).onda, s.onda);
-  assert.ok(s.veicoli.slice(1).some((k) => k.travolto === 1), 'qualche bot in ritardo viene preso');
+  // qualche bot in ritardo viene preso (su tre semi: con uno solo dipende da come si incastrano partenza, scia e urti, #170)
+  const presi = [5, 6, 7].map((seed) => { const g = nuova('spiaggia_fuga', 'kart', true, seed); corri(g); return g.veicoli.slice(1).filter((k) => k.travolto === 1).length; });
+  assert.ok(presi.reduce((a, b) => a + b, 0) >= 3, `bot presi dall'onda: ${presi}`);
   // chi sta fermo: l'onda lo prende, lo colpisce una volta, e poi gli passa sopra
   const f = nuova('spiaggia_fuga', 'kart', false);
   let vPrima = 0, preso = 0, dentro = 0, fuori = 0;

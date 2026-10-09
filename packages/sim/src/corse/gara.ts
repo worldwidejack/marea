@@ -80,10 +80,13 @@ function senzaCurva(y: number): number {
   const u = (-L + Math.sqrt(L * L + 4 * (1 - L) * a)) / (2 * (1 - L));
   return y < 0 ? -u : u;
 }
-/** Lo sterzo del giocatore: curva del joystick e rampa (da tastiera niente scatti: arriva in qualche decimo e torna più in fretta). */
+/** Lo sterzo del giocatore: curva del joystick e rampa. La rampa vale per gli ingressi «tutto o niente» (tasti, joystick a fondo o
+ *  lasciato): niente scatti, arriva in qualche decimo e torna più in fretta. I valori di mezzo del joystick passano subito (un ritardo
+ *  lì fa pendolare chi corregge di continuo, in acqua soprattutto). */
 function sterzoGiocatore(k: Veicolo, mx: number, R: Regole): number {
   if (!R.sterzo) return (k.st = mx);
-  const S = CORSE.sterzo, x = curvaSterzo(mx);
+  const S = CORSE.sterzo, x = curvaSterzo(mx), a = Math.abs(mx);
+  if (a > 0.001 && a < 0.999) return (k.st = x);
   const sale = Math.abs(x) > Math.abs(k.st) && x * k.st >= 0, passo = (sale ? S.rampa : S.ritorno) * DT;
   k.st += clamp(x - k.st, -passo, passo);
   return k.st;

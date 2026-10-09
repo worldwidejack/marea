@@ -10,7 +10,7 @@ export function stileProva(): void {
 .pp-hud div.turbo { border-color: ${P.arancio}; color: ${P.arancio}; }
 .pp-hud small { font-size: 11px; color: ${P.sabbia}; }
 .pp-big { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%); padding: 10px 20px; background: rgba(46,30,20,.95); border: 3px solid ${P.legnoChiaro}; font: bold 38px ui-monospace, Menlo, monospace; color: ${P.sabbiaChiara}; text-align: center; pointer-events: none; display: none; white-space: nowrap; }
-.pp-big small { display: block; font-size: 14px; color: ${P.sabbia}; margin-top: 4px; }
+.pp-big small { display: block; font-size: 14px; color: ${P.sabbia}; margin-top: 4px; white-space: normal; max-width: 86vw; margin-left: auto; margin-right: auto; }
 .pp-toast { position: absolute; left: 50%; top: 21%; transform: translateX(-50%); font: bold 26px ui-monospace, Menlo, monospace; pointer-events: none; text-shadow: 2px 2px 0 ${P.neroCaldo}, -2px 2px 0 ${P.neroCaldo}, 2px -2px 0 ${P.neroCaldo}, -2px -2px 0 ${P.neroCaldo}; display: none; white-space: nowrap; }
 .pp-panel { position: absolute; left: max(8px, env(safe-area-inset-left)); top: calc(max(8px, env(safe-area-inset-top)) + 44px); display: flex; flex-direction: column; gap: 4px; font: bold 12px ui-monospace, Menlo, monospace; max-width: 60vw; z-index: 4; }
 .pp-panel button, .pp-opz button, .pp-ingr { pointer-events: auto; text-align: left; border: 2px solid ${P.legno}; background: rgba(46,30,20,.78); color: ${P.sabbiaChiara}; padding: 5px 7px; border-radius: 4px; font: bold 12px ui-monospace, Menlo, monospace; cursor: pointer; touch-action: manipulation; }

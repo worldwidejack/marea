@@ -29,7 +29,8 @@
     "acqua": {
       "id": "acqua", "nome": "Acqua", "pendenza": 0.6, "casa": "acqua",
       "onde": { "salto": 0.2, "max": 6 },
-      "atterraggioTurbo": { "secondi": 0.6, "allineato": 0.35 }
+      "atterraggioTurbo": { "secondi": 0.6, "allineato": 0.35 },
+      "sterzoAlto": 0
     }
   },
   "veicoli": [

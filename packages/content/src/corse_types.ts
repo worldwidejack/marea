@@ -14,6 +14,8 @@ export type CFamigliaDef = {
   onde?: { salto: number; max: number };
   /** Atterraggio dritto (solo acqua): turbo in secondi se il muso è allineato al moto entro `allineato` (seno dell'angolo). */
   atterraggioTurbo?: { secondi: number; allineato: number };
+  /** Sterzo tolto a tutta velocità per questa famiglia (al posto di `sterzo.alto`): le barche scivolano già, ne perdono meno (#170). */
+  sterzoAlto?: number;
 };
 
 /** Un veicolo: famiglia e numeri di guida (come le guide morbida / media / nervosa del Gran Premio). */

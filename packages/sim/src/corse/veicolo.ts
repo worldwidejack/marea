@@ -207,7 +207,7 @@ export function muovi(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas:
   // ---- sterzo: in drift si gira sempre verso il lato del drift, lo sterzo stringe (fino a ×1,3) o allarga (fino a ×0,1) ----
   const presa = Math.min(1, Math.abs(k.v) / K.sterzoPieno) * (k.v < 0 ? -1 : 1);
   // fuori dal drift lo sterzo cala con la velocità (a tutta velocità −alto): le curve strette prese forte vogliono il drift
-  const S = C.sterzo, alto = R.sterzo ? 1 - S.alto * clamp((Math.abs(k.v) - S.da) / Math.max(1, V.velocita - S.da), 0, 1) : 1;
+  const S = C.sterzo, alto = R.sterzo ? 1 - (F.sterzoAlto ?? S.alto) * clamp((Math.abs(k.v) - S.da) / Math.max(1, V.velocita - S.da), 0, 1) : 1;
   const giri = k.drift ? k.drift * V.sterzo * V.drift * 0.75 * (0.7 + 0.6 * sterzo * k.drift) : sterzo * V.sterzo * alto;
   if (terra) {
     [k.hf, k.hl] = gira(k.hf, k.hl, giri * presa * DT);
