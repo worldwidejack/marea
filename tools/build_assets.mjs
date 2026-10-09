@@ -7,6 +7,7 @@
 // 4. apps/client/public/assets/{*.glb, atlas.png, manifest.json, manifest_rpg.json} + contact sheet assets/export/preview/contact.png
 //    manifest_rpg.json (stesso formato) = modelli del GDR (dng_, nem_, arm_, fx_, prop_sacco), scaricati solo entrando in un dungeon
 //    (CONTRACTS §15): il manifest principale non li elenca. Foglio per Jack: tests/out/rpg_contact.png.
+//    manifest_corse.json = kit delle zone dell'Isola delle Corse (cs_), scaricato solo dal chunk delle Corse (CONTRACTS §34).
 // Fallisce se un modello supera il budget (ART_BIBLE §4) o manca un nome obbligatorio (CONTRACTS §9).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,10 +39,13 @@ const REQUIRED_RPG = [...['grotta', 'cripta', 'vuoto'].flatMap((st) => ['pavimen
   'nem_bandito', 'nem_lupo', 'nem_ragno', 'nem_scheletro', 'nem_nonmorto', 'nem_re_ossa', 'nem_spettro', 'nem_golem', 'nem_custode',
   'arm_nunchaku', 'arm_katana', 'arm_ascia', 'arm_lancia', 'arm_spadone', 'arm_martello', 'arm_arco', 'arm_freccia', 'fx_fiammata'];
 const isRpg = (n) => /^(dng_|nem_|arm_|fx_)/.test(n) || n === 'prop_sacco';
+const isCorse = (n) => n.startsWith('cs_');
 const CLIPS = ['idle', 'walk', 'run', 'sit', 'row'];
 const DNG_MODULE = /^dng_(grotta|cripta|vuoto|drenaggio|archivio|fucina)_(pavimento|muro|muro_basso)$/;
 const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno', 'nem_astrolabio', 'nem_forgiatore']);
-const BUDGET = (n) => n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
+// Corse: edifici, gru, faro e arco di roccia come gli edifici; prop e manichini come i prop (le teste sotto il minimo dei prop).
+const CORSE_GRANDI = /^cs_(casa_|gru_|faro|tribuna|arco_)/;
+const BUDGET = (n) => n === 'cs_manichino_testa' ? [1, 50] : CORSE_GRANDI.test(n) ? [1, 800] : isCorse(n) ? [1, 300] : n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
   : n.startsWith('boat_') ? [1, 600] : n.startsWith('chr_') ? [1, 1500] : BOSS.has(n) ? [1, 1200] : n.startsWith('nem_') ? [1, 600]
   : n.startsWith('arm_') ? [1, 80] : n.startsWith('fx_') ? [1, 40] : [1, 800];
 // Tinte di default dell'avatar: le zone pelle/capelli/vestito dell'atlas sono maschere bianche, il colore è il fattore del materiale.
@@ -78,10 +82,11 @@ const io = new NodeIO().registerExtensions([KHRMeshQuantization, KHRMaterialsEmi
 fs.mkdirSync(PUB, { recursive: true });
 const manPath = path.join(PUB, 'manifest.json');
 const rpgPath = path.join(PUB, 'manifest_rpg.json');
+const corsePath = path.join(PUB, 'manifest_corse.json');
 const readMan = (p) => (fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : { models: {} });
-const old = readMan(manPath); const oldRpg = readMan(rpgPath);
+const old = readMan(manPath); const oldRpg = readMan(rpgPath); const oldCorse = readMan(corsePath);
 // tutti i modelli in un dizionario solo; la separazione nei due manifest avviene alla scrittura (isRpg)
-const models = only.length ? { ...(old.models || {}), ...(oldRpg.models || {}) } : {};
+const models = only.length ? { ...(old.models || {}), ...(oldRpg.models || {}), ...(oldCorse.models || {}) } : {};
 const errors = [];
 
 /** Toglie l'atlas incorporato dal GLB: l'immagine diventa `uri: atlas.png` (una sola texture condivisa, file piccoli). */
@@ -177,12 +182,15 @@ if (!only.length) for (const f of fs.readdirSync(PUB)) if (f.endsWith('.glb') &&
 
 fs.copyFileSync(ATLAS, path.join(PUB, 'atlas.png'));
 const sorted = Object.fromEntries(Object.keys(models).sort().map((k) => [k, models[k]]));
-const mainModels = Object.fromEntries(Object.entries(sorted).filter(([k]) => !isRpg(k)));
+const mainModels = Object.fromEntries(Object.entries(sorted).filter(([k]) => !isRpg(k) && !isCorse(k)));
+const corseModels = Object.fromEntries(Object.entries(sorted).filter(([k]) => isCorse(k)));
 const rpgModels = Object.fromEntries(Object.entries(sorted).filter(([k]) => isRpg(k)));
 const version = new Date().toISOString().slice(0, 10) + '-' + Object.keys(mainModels).length;
 fs.writeFileSync(manPath, JSON.stringify({ version, atlas: 'atlas.png', texelsPerMeter: 16, models: mainModels }, null, 1) + '\n');
 const versionRpg = new Date().toISOString().slice(0, 10) + '-' + Object.keys(rpgModels).length;
 fs.writeFileSync(rpgPath, JSON.stringify({ version: versionRpg, atlas: 'atlas.png', texelsPerMeter: 16, models: rpgModels }, null, 1) + '\n');
+const versionCorse = new Date().toISOString().slice(0, 10) + '-' + Object.keys(corseModels).length;
+fs.writeFileSync(corsePath, JSON.stringify({ version: versionCorse, atlas: 'atlas.png', texelsPerMeter: 16, models: corseModels }, null, 1) + '\n');
 
 // ---- 4. contact sheet delle anteprime
 if (!noPreview) {

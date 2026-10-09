@@ -14,6 +14,7 @@ import type { Nastro } from '@marea/sim/corse/nastro.ts';
 import { VUOTO, muroA, nelTratto, superficieA } from '@marea/sim/corse/pista.ts';
 import type { Pista } from '@marea/sim/corse/pista.ts';
 import { P } from '../render/island_parts.ts';
+import { creaScena } from './scena.ts';
 
 export const COLORE_SUP: Record<string, string> = {
   asfalto: P.roccia, legno: P.legnoChiaro, erba: P.erba, sabbia: P.sabbia, ghiaccio: P.pietraChiara,
@@ -43,11 +44,14 @@ class Tela {
 }
 
 const pt = (n: Nastro, s: number, lat: number, h: number): V3 => punto(n, s, lat, h, [0, 0, 0]);
+/** Prova A/B di Jack (#176): il muretto delle piste della Spiaggia di pietra chiara come nella concept invece che a gomme rosse e
+ *  bianche. Si accende con `?muro=pietra` nell'indirizzo del banco. */
+const muroDiPietra = (id: string) => id.startsWith('spiaggia_') && typeof location !== 'undefined' && new URLSearchParams(location.search).get('muro') === 'pietra';
 const ALTO_MURO = 0.9, SPESSO = 0.5, CORDOLO = 0.7;
 
 /** Strada, bordi, cordoli e muri di un nastro (principale o ramo). */
 function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number): void {
-  const d = p.def, acqua = d.stile === 'acqua', ultimo = n.chiuso ? n.n : n.n - 1;
+  const d = p.def, acqua = d.stile === 'acqua', ultimo = n.chiuso ? n.n : n.n - 1, pietra = muroDiPietra(d.id);
   for (let i = 0; i < ultimo; i++) {
     const s0 = i * n.passo, s1 = s0 + n.passo, sm = s0 + n.passo / 2;
     if (ramo < 0 && superficieA(p, -1, sm, 0, 1) === VUOTO) continue; // i buchi
@@ -77,9 +81,9 @@ function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number): void
       if (!acqua && curva) t.quad(pt(n, s0, a0, 0.03), pt(n, s0, a0 + lato * CORDOLO, 0.03), pt(n, s1, a1, 0.03), pt(n, s1, a1 + lato * CORDOLO, 0.03), (i >> 1) % 2 ? P.rosso : P.pietraChiara);
       // muretto di gomme: faccia verso la pista, cima, faccia di fuori
       if (!acqua && muroA(p, ramo, sm, lato)) {
-        const c = (i >> 1) % 2 ? P.rosso : P.pietraChiara, e0 = b0 + lato * SPESSO, e1 = b1 + lato * SPESSO;
+        const c = pietra ? ((i >> 1) % 3 ? P.sabbia : P.sabbiaChiara) : (i >> 1) % 2 ? P.rosso : P.pietraChiara, e0 = b0 + lato * SPESSO, e1 = b1 + lato * SPESSO;
         t.quad(pt(n, s0, b0, 0), pt(n, s0, b0, ALTO_MURO), pt(n, s1, b1, 0), pt(n, s1, b1, ALTO_MURO), c);
-        t.quad(pt(n, s0, b0, ALTO_MURO), pt(n, s0, e0, ALTO_MURO), pt(n, s1, b1, ALTO_MURO), pt(n, s1, e1, ALTO_MURO), P.neroCaldo);
+        t.quad(pt(n, s0, b0, ALTO_MURO), pt(n, s0, e0, ALTO_MURO), pt(n, s1, b1, ALTO_MURO), pt(n, s1, e1, ALTO_MURO), pietra ? P.pietraChiara : P.neroCaldo);
         t.quad(pt(n, s0, e0, ALTO_MURO), pt(n, s0, e0, 0), pt(n, s1, e1, ALTO_MURO), pt(n, s1, e1, 0), P.roccia);
       }
     }
@@ -161,6 +165,8 @@ export type Pista3d = {
   /** Gli eventi firma: si accendono quando il giro in corso arriva a `daGiro`. */
   eventi: { daGiro: number; tipo: string; mesh: THREE.Mesh }[];
   bounds: { x0: number; x1: number; z0: number; z1: number; y0: number; y1: number };
+  /** La scenografia della zona (scena.ts), se la pista ce l'ha: si risolve quando i pezzi del kit sono montati. */
+  scena: Promise<{ pezzi: number; teste: number; triangoli: number }> | null;
 };
 
 export function creaPista3d(p: Pista): Pista3d {
@@ -186,6 +192,8 @@ export function creaPista3d(p: Pista): Pista3d {
     const me = te.mesh(mat, 'corse_evento_' + e.tipo);
     if (me) { me.visible = false; group.add(me); eventi.push({ daGiro: e.daGiro, tipo: e.tipo, mesh: me }); }
   }
-  const bb = new THREE.Box3().setFromObject(group);
-  return { group, eventi, bounds: { x0: bb.min.x, x1: bb.max.x, z0: bb.min.z, z1: bb.max.z, y0: bb.min.y, y1: bb.max.y } };
+  const bb = new THREE.Box3().setFromObject(group); // prima della scenografia: i bordi sono quelli della pista (minimappa, camera)
+  const sc = creaScena(p);
+  if (sc) group.add(sc.gruppo);
+  return { group, eventi, bounds: { x0: bb.min.x, x1: bb.max.x, z0: bb.min.z, z1: bb.max.z, y0: bb.min.y, y1: bb.max.y }, scena: sc?.pronta ?? null };
 }
