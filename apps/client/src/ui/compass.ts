@@ -7,6 +7,8 @@
 // che dà il nome alla sezione (il Porto) o della più vicina accesa. Una sezione con una meta sola si vede come una riga normale. L'elenco ha un'altezza massima (sopra minimappa e bottoni sul
 // PC, sopra il bottone GIOCA al centro sul telefono) e oltre quella scorre: non copre mai il resto dell'interfaccia (test m3_interfaccia).
 // Aperto/chiuso, sezione aperta e mete spente restano su questo dispositivo (localStorage). `focus(id)` evidenzia la meta della guida.
+// La meta del **navigatore** (`navi`: il segnalino fissato dalla mappa, ui/segno.ts) sta in cima, è sempre accesa (× al posto della casella:
+// toccandola si toglie) e ha lei la freccia sullo schermo e il riassunto a menù chiuso, anche se ci sono altre mete accese.
 import type * as THREE from 'three';
 import { pixIcon } from './icons.ts';
 import type { PixId } from './icons.ts';
@@ -16,8 +18,9 @@ import { registerStateProvider } from '../test/testapi.ts';
 
 /** `show`: letto a ogni frame, false = la meta non c'è (es. i dungeon diversi dal prossimo da fare).
  *  `group`: chiave della casella condivisa da più mete che non si vedono mai insieme (i dungeon: spegnerne uno li spegne tutti).
- *  `sezione`: id di una `CompassSezione`: la meta sta nella riga richiudibile di quella sezione. */
-export type CompassTarget = { id: string; label: string; x: number; z: number; icon?: PixId; show?(): boolean; group?: string; sezione?: string };
+ *  `sezione`: id di una `CompassSezione`: la meta sta nella riga richiudibile di quella sezione.
+ *  `navi`: meta del navigatore (una sola): `label`, `x`, `z` letti a ogni frame; toccando la riga si chiama `togli`. */
+export type CompassTarget = { id: string; label: string; x: number; z: number; icon?: PixId; show?(): boolean; group?: string; sezione?: string; navi?: boolean; togli?(): void };
 export type CompassSezione = { id: string; nome: string; icon: PixId };
 export type Compass = { update(me: { x: number; z: number }, cameraYaw: number, t?: number): void; focus(id: string | null): void; dispose(): void };
 
@@ -56,7 +59,9 @@ const CSS = `
 .mz-mete-row:not(.off) .mz-mete-box { background: ${P.giallo}; border-color: ${P.giallo}; box-shadow: inset 0 0 0 2px ${P.ombraCalda}; }
 .mz-mete-row.part .mz-mete-box { position: relative; border-color: ${P.giallo}; }
 .mz-mete-row.part .mz-mete-box::after { content: ''; position: absolute; left: 1px; right: 1px; top: 3px; height: 2px; background: ${P.giallo}; }
-.mz-mete-row.sez .mz-mete-apri { flex: none; display: flex; align-items: center; justify-content: center; align-self: stretch; min-width: 30px; margin: -2px -8px -2px 2px; border-left: 2px solid ${P.legno}; color: ${P.giallo}; font-size: 12px; }
+.mz-mete-row.sez .mz-mete-apri, .mz-mete-row .mz-mete-x { flex: none; display: flex; align-items: center; justify-content: center; align-self: stretch; min-width: 30px; margin: -2px -8px -2px 2px; border-left: 2px solid ${P.legno}; color: ${P.giallo}; font-size: 12px; }
+.mz-mete-row.navi { border-color: ${P.rosso}; }
+.mz-mete-row .mz-mete-x { color: ${P.sabbiaChiara}; font-size: 16px; }
 .mz-mete-row.sez.aperta { border-color: ${P.sabbia}; }
 .mz-mete-arr { display: inline-block; color: ${P.giallo}; width: 16px; height: 20px; flex: none; }
 @media (max-width: 699px) {
@@ -64,7 +69,7 @@ const CSS = `
   #compass .nome, #compass .mz-mete-lbl { display: none; }
   .mz-mete-head button { min-height: 44px; min-width: 44px; justify-content: center; }
   .mz-mete-row { min-height: 40px; }
-  .mz-mete-row.sez .mz-mete-apri { min-width: 36px; }
+  .mz-mete-row.sez .mz-mete-apri, .mz-mete-row .mz-mete-x { min-width: 36px; }
   .mz-mete-row.figlio { margin-left: 10px; }
 }
 #mzMetePtr { position: absolute; left: 0; top: 0; display: none; z-index: 12; pointer-events: none !important; }
@@ -85,7 +90,7 @@ const arrowEl = (cls: string) => { const a = span(cls); a.innerHTML = ARROW_SVG;
 const guard = (e: HTMLElement) => { for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation()); };
 const distText = (d: number) => (d <= NEAR_M ? 'qui' : `${Math.round(d)} m`);
 
-type Row = { t: CompassTarget; row: HTMLElement; arrow: HTMLElement; text: HTMLElement; shown: string; ang: number; d: number; sez: Sez | null };
+type Row = { t: CompassTarget; row: HTMLElement; arrow: HTMLElement; text: HTMLElement; nome: HTMLElement; shown: string; ang: number; d: number; sez: Sez | null };
 type Sez = { s: CompassSezione; row: HTMLElement; arrow: HTMLElement; text: HTMLElement; chev: HTMLElement; members: Row[]; shown: string; mode: string; sig: string };
 
 export function createCompass(o: {
@@ -114,7 +119,7 @@ export function createCompass(o: {
   toggle.append(pixIcon('mete', 16), span('mz-mete-lbl', 'METE'), sum, chev);
   const allBtn = (act: 'tutte' | 'nessuna', text: string) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'mz tutte'; b.dataset['act'] = act; b.textContent = text;
-    b.addEventListener('click', (e) => { e.preventDefault(); b.blur(); if (act === 'tutte') off.clear(); else for (const r of rows) off.add(keyOf(r.t)); store(); });
+    b.addEventListener('click', (e) => { e.preventDefault(); b.blur(); if (act === 'tutte') off.clear(); else for (const r of rows) if (!r.t.navi) off.add(keyOf(r.t)); store(); });
     return b;
   };
   toggle.addEventListener('click', (e) => { e.preventDefault(); toggle.blur(); open = !open; store(); });
@@ -127,14 +132,21 @@ export function createCompass(o: {
   const sezs = new Map<string, Sez>();
   const rows: Row[] = [];
   const mkRow = (t: CompassTarget, sez: Sez | null): Row => {
-    const row = div('mz-mete-row' + (sez ? ' figlio' : ''));
+    const row = div('mz-mete-row' + (sez ? ' figlio' : '') + (t.navi ? ' navi' : ''));
     row.dataset['id'] = t.id;
-    row.setAttribute('role', 'checkbox');
     row.style.display = 'none';
-    const arrow = arrowEl('mz-mete-arr'), text = span('mz-mete-dist');
-    row.append(span('mz-mete-box'), ...(t.icon ? [pixIcon(t.icon, 16)] : []), span('nome', t.label), text, arrow);
-    row.addEventListener('click', () => { const k = keyOf(t); if (off.has(k)) off.delete(k); else off.add(k); store(); });
-    return { t, row, arrow, text, shown: '', ang: 0, d: 0, sez };
+    const arrow = arrowEl('mz-mete-arr'), text = span('mz-mete-dist'), nome = span('nome', t.label);
+    if (t.navi) { // navigatore: niente casella, × in fondo; la riga intera lo toglie
+      row.setAttribute('role', 'button'); row.title = 'Togli il segnalino';
+      const x = span('mz-mete-x', '×'); x.dataset['act'] = 'togli';
+      row.append(...(t.icon ? [pixIcon(t.icon, 16)] : []), nome, text, arrow, x);
+      row.addEventListener('click', () => { t.togli?.(); });
+    } else {
+      row.setAttribute('role', 'checkbox');
+      row.append(span('mz-mete-box'), ...(t.icon ? [pixIcon(t.icon, 16)] : []), nome, text, arrow);
+      row.addEventListener('click', () => { const k = keyOf(t); if (off.has(k)) off.delete(k); else off.add(k); store(); });
+    }
+    return { t, row, arrow, text, nome, shown: '', ang: 0, d: 0, sez };
   };
   const mkSez = (s: CompassSezione): Sez => {
     const row = div('mz-mete-row sez');
@@ -167,7 +179,8 @@ export function createCompass(o: {
       const after = z.members[z.members.length - 1]?.row ?? z.row;
       after.after(r.row);
       z.members.push(r);
-    } else list.appendChild(r.row);
+    } else if (t.navi) list.prepend(r.row); // il navigatore in cima
+    else list.appendChild(r.row);
     rows.push(r);
   }
   o.root.appendChild(box);
@@ -186,7 +199,7 @@ export function createCompass(o: {
     box.classList.toggle('open', open);
     chev.textContent = open ? '▾' : '▸';
     toggle.setAttribute('aria-expanded', String(open));
-    for (const r of rows) { const on = !off.has(keyOf(r.t)); r.row.classList.toggle('off', !on); r.row.setAttribute('aria-checked', String(on)); }
+    for (const r of rows) { if (r.t.navi) continue; const on = !off.has(keyOf(r.t)); r.row.classList.toggle('off', !on); r.row.setAttribute('aria-checked', String(on)); }
     for (const z of sezs.values()) {
       const a = aperta === z.s.id;
       z.row.classList.toggle('aperta', a); z.chev.textContent = a ? '▾' : '▸'; z.chev.setAttribute('aria-expanded', String(a));
@@ -241,10 +254,12 @@ export function createCompass(o: {
     el.text.textContent = distText(d);
   };
 
+  /** Accesa: la casella è piena (il navigatore lo è sempre). */
+  const acceso = (r: Row) => !!r.t.navi || !off.has(keyOf(r.t));
   registerStateProvider('compass', () => {
-    const vis = rows.filter((r) => r.t.show?.() ?? true), on = vis.filter((r) => !off.has(keyOf(r.t)));
+    const vis = rows.filter((r) => r.t.show?.() ?? true), on = vis.filter(acceso);
     return {
-      open, shown: vis.map((r) => r.t.id), on: on.map((r) => r.t.id), single: on.length === 1 ? on[0]!.t.id : null, pointer: ptrMode, aperta,
+      open, shown: vis.map((r) => r.t.id), on: on.map((r) => r.t.id), single: on.length === 1 ? on[0]!.t.id : null, navi: on.find((r) => r.t.navi)?.t.id ?? null, pointer: ptrMode, aperta,
       sezioni: [...sezs.values()].map((z) => ({ id: z.s.id, mode: z.mode, mete: z.members.filter((r) => r.t.show?.() ?? true).map((r) => r.t.id) })),
     };
   });
@@ -258,7 +273,7 @@ export function createCompass(o: {
         const dx = r.t.x - me.x, dz = r.t.z - me.z;
         r.d = Math.hypot(dx, dz);
         r.ang = Math.atan2(dx * rx + dz * rz, dx * fx + dz * fz);
-        if ((r.t.show?.() ?? true) && !off.has(keyOf(r.t))) on.push(r);
+        if ((r.t.show?.() ?? true) && acceso(r)) on.push(r);
       }
       // sezioni: nessuna meta = niente; una = riga normale (non rientrata); più = riga della sezione, mete sotto solo se aperta
       let focusDirty = false;
@@ -290,9 +305,10 @@ export function createCompass(o: {
         const show = there && open && (!r.sez || r.sez.mode !== 'sez' || aperta === r.sez.s.id);
         showRow(r, show);
         if (show) arrowTo(r, r.d, r.ang);
+        if (show && r.t.navi && r.nome.textContent !== r.t.label) r.nome.textContent = r.t.label; // il segnalino agganciato a una meta ne prende il nome
       }
-      // chiuso: una meta accesa = la sua icona, distanza e freccia nell'intestazione; più mete = quante sono
-      const one = on.length === 1 ? on[0]! : null;
+      // chiuso: una meta accesa (o il navigatore) = la sua icona, distanza e freccia nell'intestazione; più mete = quante sono
+      const one = on.find((r) => r.t.navi) ?? (on.length === 1 ? on[0]! : null);
       const key = open ? 'open' : one ? 'one:' + one.t.id : 'n:' + on.length;
       if (key !== sumFor) {
         sumFor = key;

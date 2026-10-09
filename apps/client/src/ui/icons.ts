@@ -60,7 +60,8 @@ export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingr
   | 'lava' // Vulcano: fiamma sul basalto della Fuga dalla lava
   | 'isole' // sezione «Isole» della bussola
   | 'libro' // libro degli ospiti (#86)
-  | 'record' | 'faro'; // Porto tra amici (#110 #111): coppa del tabellone, Faro comune
+  | 'record' | 'faro' // Porto tra amici (#110 #111): coppa del tabellone, Faro comune
+  | 'segno'; // segnalino del navigatore fissato dalla mappa (#144)
 const PIX: Record<PixId, string[]> = {
   casa: ['...RR...', '..RRRR..', '.RRRRRR.', 'RRRRRRRR', '.wwwwww.', '.wwccww.', '.wwccww.', '.wwccww.'],
   porto: ['RRRRRRRR', '.RRRRRR.', '..R..R..', 'RRRRRRRR', '..R..R..', '..R..R..', '..R..R..', '.cc..cc.'],
@@ -88,6 +89,7 @@ const PIX: Record<PixId, string[]> = {
   lucchetto: ['..rrrr..', '.r....r.', '.r....r.', 'YYYYYYYY', 'YYYnnYYY', 'YYYnnYYY', 'YYYYYYYY', '.YYYYYY.'],
   libro: ['........', '.ww..ww.', 'wqqwwqqw', 'wwwRwwww', 'wqqRwqqw', 'wwwRwwww', 'cccccccc', '........'], // libro degli ospiti aperto, col nastro rosso (#86)
   record: ['.YYYYYY.', 'YYwYYYYY', 'Y.YwYY.Y', '.YYYYYY.', '..YYYY..', '...YY...', '..cccc..', '.cccccc.'], // coppa del Tabellone dei record (#110)
+  segno: ['.nnnnnn.', 'nRRRRRRn', 'nRRwwRRn', 'nRRwwRRn', 'nRRRRRRn', '.nRRRRn.', '..nRRn..', '...nn...'], // segnalino rosso a goccia, punta in basso (#144)
   faro: ['...YY...', '..nYYn..', '..RRRR..', '..wwww..', '..RRRR..', '..wwww..', '.RRRRRR.', 'rrrrrrrr'], // Faro comune del Porto (#111)
   martello: ['.qqqqqq.', 'rqqqqqqr', '.rrbbrr.', '...ba...', '...ba...', '...ba...', '...ba...', '...cc...'],
   consegne: ['.nnnnnn.', 'nsssRssn', 'nsssRssn', 'nRRRRRRn', 'nsssRssn', 'nsssRssn', 'nsssRssn', '.nnnnnn.'], // pacco del corriere, spago rosso

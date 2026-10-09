@@ -8,6 +8,7 @@ import { createInput } from './game/input.ts';
 import { createGameWorld } from './game/world.ts';
 import { createHud } from './ui/hud.ts';
 import { createCompass } from './ui/compass.ts';
+import { createSegno } from './ui/segno.ts';
 import type { Minimappa } from './ui/minimappa.ts';
 import type { CompassSezione, CompassTarget } from './ui/compass.ts';
 import { createApi } from './net/api.ts';
@@ -145,13 +146,16 @@ async function boot(): Promise<void> {
     pausa: () => !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || !!tavolo?.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!document.querySelector('#mzSheet.on'),
     onOpen: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); } });
   const targhette = createTarghette({ world, camera: renderer.camera, canvas, root, mio: () => { const l = myLot(); return me && l ? { nome: me.nome, titolo: titoloDi(diarioOf(l).titolo) } : null; } });
+  // segnalino del navigatore (#144): si fissa toccando la mappa grande; in cima alle mete, ha lui la freccia sullo schermo
+  const segno = createSegno();
+  targets.unshift(segno.target);
   // mete: comprimibile, caselle per scegliere, sezioni Porto e Isole; con una sola accesa anche la freccia sullo schermo (nascosta quando c'è sopra un pannello)
   const compass = createCompass({ root, targets, sezioni: SEZIONI, camera: renderer.camera, canvas, groundY: world.groundY, hidden: () => coperto() });
   // minimappa (#62): cerchio con l'arcipelago attorno a te, M o un tocco aprono la mappa intera; isole non visitate nella nebbia.
   // Si scarica subito dopo l'avvio (import a parte): il JS iniziale ha un tetto (TECH §5), il cerchio arriva un attimo dopo il mondo.
   const places = arch.places.map((p) => ({ id: `${p.role}:${p.index}`, nome: p.role === 'lotto' ? (p.slot === world.slot ? 'Casa' : '') : p.nome, x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, sempre: p.role === 'porto' || (p.role === 'lotto' && p.slot === world.slot), ...(p.tema ? { chiusa: () => !temi.aperta(p.island) } : {}) }));
   let mappa: Minimappa | null = null;
-  void import('./ui/minimappa.ts').then((m) => { mappa = m.createMinimappa({ root, map: world.map, places, targets, hidden: () => coperto() }); }).catch((e: unknown) => { console.warn('[marea] minimappa non caricata', e); }); // senza minimappa si gioca lo stesso
+  void import('./ui/minimappa.ts').then((m) => { mappa = m.createMinimappa({ root, map: world.map, places, targets: targets.filter((x) => !x.navi), segno, hidden: () => coperto() }); }).catch((e: unknown) => { console.warn('[marea] minimappa non caricata', e); }); // senza minimappa si gioca lo stesso
   let closedAt = 0, nearWas = false, aWasT = false;
   /** Risorse cambiate fuori dal lotto (posta, esito di una sfida): la barra si aggiorna subito, non al poll dei 30 s. */
   const refreshMyLot = () => { void lots.find((lv) => !lv.readonly)?.refresh(); };
@@ -320,6 +324,8 @@ async function boot(): Promise<void> {
     diario.update(dt, focus); targhette.update(); // Diario del capitano (#87) // rilettura ogni 30 s solo per l'isola dove sei; timer ed etichette ogni frame
     document.body.classList.toggle('mz-sotto', sotto()); // nel dungeon e nella chiesa dei Templari: l'interfaccia di superficie si nasconde (CSS dei chunk)
     compass.update(focus, renderer.diorama.yaw, t);
+    const arrivato = segno.update(focus); // segnalino raggiunto: si toglie da solo
+    if (arrivato) hud.toast(`Sei arrivato${arrivato.nome ? ` · ${arrivato.nome}` : ''}`, 2200);
     mappa?.update({ x: focus.x, z: focus.z, yaw: focus.yaw }, renderer.diorama.yaw, world.net.peers());
     aspetto?.update(Date.now(), t, focus);
     renderer.render(acc / DT, t);
