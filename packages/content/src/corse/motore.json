@@ -1,0 +1,69 @@
+{
+  "gravita": 24,
+  "giroVelocitaMin": 12,
+  "caduta": { "quota": 6, "secondi": 1.2, "ripartenza": 0.5 },
+  "atterraggio": { "duro": 10, "perdita": 0.88 },
+  "rampa": { "quota": 0.45 },
+  "tappetoTurbo": 1.0,
+  "veicolo": { "raggio": 0.9, "frenata": 26, "folle": 5, "sterzoPieno": 7, "retro": 4 },
+  "drift": { "velocitaMin": 9, "autoSecondi": 0.35, "autoSterzo": 0.85, "tieniSterzo": 0.3, "carica": [0.8, 1.6], "spinta": [0.5, 1.2], "turbo": 0.3, "turboAccelerazione": 30 },
+  "bot": {
+    "bravura": [0.975, 0.955, 0.935, 0.915],
+    "corsia": 0.45,
+    "sguardo": [6, 0.35],
+    "sterzo": 2.6,
+    "prudenza": { "metri": 24, "curva": 1.1, "freno": 0.35 },
+    "elastico": { "davanti": 0.0004, "davantiMax": 0.06, "dietro": 0.0003, "dietroMax": 0.05 },
+    "veicoli": { "ruote": ["kart", "auto", "kart", "auto"], "acqua": ["moto_acqua", "moto_acqua", "gommone", "moto_acqua"] }
+  },
+  "maxSeconds": 240,
+  "scoreBase": 30000,
+  "famiglie": {
+    "ruote": { "id": "ruote", "nome": "Ruote", "pendenza": 1, "casa": "asfalto" },
+    "acqua": {
+      "id": "acqua", "nome": "Acqua", "pendenza": 0.6, "casa": "acqua",
+      "onde": { "salto": 0.2, "max": 6 },
+      "atterraggioTurbo": { "secondi": 0.6, "allineato": 0.35 }
+    }
+  },
+  "veicoli": [
+    { "id": "kart", "nome": "Kart", "famiglia": "ruote", "velocita": 20, "accelerazione": 14, "sterzo": 2.25, "presa": 10, "presaDrift": 3.5, "drift": 1.35, "peso": 1 },
+    { "id": "auto", "nome": "Auto sportiva", "famiglia": "ruote", "velocita": 21.5, "accelerazione": 12, "sterzo": 2.0, "presa": 9, "presaDrift": 3, "drift": 1.3, "peso": 1.4 },
+    {
+      "id": "carrello", "nome": "Carrello della spesa", "famiglia": "ruote", "velocita": 18.5, "accelerazione": 18, "sterzo": 2.8, "presa": 6, "presaDrift": 2.5, "drift": 1.5, "peso": 0.6,
+      "buffo": "Ha la ruota storta: tira sempre un po' a destra.", "tira": 0.1
+    },
+    { "id": "moto_acqua", "nome": "Moto d'acqua", "famiglia": "acqua", "velocita": 19.5, "accelerazione": 13, "sterzo": 2.5, "presa": 4.5, "presaDrift": 2, "drift": 1.3, "peso": 0.9 },
+    { "id": "gommone", "nome": "Gommone", "famiglia": "acqua", "velocita": 18.5, "accelerazione": 15, "sterzo": 2.2, "presa": 6, "presaDrift": 2.5, "drift": 1.25, "peso": 1.2 },
+    {
+      "id": "vasca", "nome": "Vasca da bagno", "famiglia": "acqua", "velocita": 17, "accelerazione": 11, "sterzo": 2.1, "presa": 3.5, "presaDrift": 1.8, "drift": 1.2, "peso": 1.5,
+      "buffo": "Ha le zampe: sulla terra rallenta molto meno delle altre barche.",
+      "effetti": {
+        "asfalto": { "velocita": 0.75, "presa": 1.2, "accelerazione": 0.8 },
+        "legno": { "velocita": 0.75, "presa": 1.2, "accelerazione": 0.8 },
+        "sabbia": { "velocita": 0.7, "presa": 1, "accelerazione": 0.8 },
+        "erba": { "velocita": 0.65, "presa": 1, "accelerazione": 0.8 }
+      }
+    }
+  ],
+  "superfici": {
+    "asfalto": { "id": "asfalto", "nome": "Asfalto", "per": { "ruote": { "velocita": 1, "presa": 1, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.5, "accelerazione": 0.5 } } },
+    "legno": { "id": "legno", "nome": "Molo", "per": { "ruote": { "velocita": 1, "presa": 0.95, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.5, "accelerazione": 0.5 } } },
+    "erba": { "id": "erba", "nome": "Prato", "per": { "ruote": { "velocita": 0.55, "presa": 0.7, "accelerazione": 0.8 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 } } },
+    "sabbia": { "id": "sabbia", "nome": "Sabbia", "per": { "ruote": { "velocita": 0.72, "presa": 0.6, "accelerazione": 0.8 }, "acqua": { "velocita": 0.35, "presa": 1, "accelerazione": 0.5 } } },
+    "ghiaccio": { "id": "ghiaccio", "nome": "Ghiaccio", "per": { "ruote": { "velocita": 1.05, "presa": 0.25, "accelerazione": 0.7 }, "acqua": { "velocita": 0.5, "presa": 0.5, "accelerazione": 0.5 } } },
+    "acqua": {
+      "id": "acqua", "nome": "Acqua", "acqua": true, "onde": { "passo": 16 },
+      "per": { "ruote": { "velocita": 0.4, "presa": 0.5, "accelerazione": 0.5 }, "acqua": { "velocita": 1, "presa": 1, "accelerazione": 1 } }
+    },
+    "acquaBassa": {
+      "id": "acquaBassa", "nome": "Acqua bassa", "acqua": true,
+      "per": { "ruote": { "velocita": 0.7, "presa": 0.6, "accelerazione": 0.7 }, "acqua": { "velocita": 0.85, "presa": 1, "accelerazione": 0.9 } }
+    },
+    "corrente": {
+      "id": "corrente", "nome": "Corrente", "acqua": true, "onde": { "passo": 11 }, "spinta": [4, 0],
+      "per": { "ruote": { "velocita": 0.4, "presa": 0.5, "accelerazione": 0.5 }, "acqua": { "velocita": 1.08, "presa": 0.9, "accelerazione": 1 } }
+    }
+  },
+  "_nota": "Motore v2 dell'Isola delle Corse (docs/CORSE.md A11). La pista è un nastro 3D e i veicoli vivono in coordinate di pista (avanzamento, scarto laterale, altezza). gravita in m/s² (arcade: più forte del vero, salti brevi e secchi). giroVelocitaMin = sotto questa velocità nei tratti aderenti (giri della morte) si cade. caduta: sotto quota m si è caduti, dopo secondi si riparte da terra con ripartenza × velocità massima. atterraggio: oltre duro m/s di velocità verticale si perde velocità (× perdita). rampa.quota = parte della velocità che va in salto. tappetoTurbo = s di turbo dei tappeti. veicolo e drift = come il Gran Premio (minigames/corse.json). bot: bravura = frazione della velocità massima, corsia = quanto si allargano, sguardo = m davanti [fissi, × velocità], prudenza = tolgono gas prima delle curve strette, elastico = come il Gran Premio, veicoli = i veicoli dei bot per famiglia. famiglie: pendenza = quanto conta la salita, onde = salto sulle creste (× velocità, max m/s), atterraggioTurbo = turbo se atterri dritto. veicoli: velocita m/s, accelerazione m/s², sterzo rad/s, presa e presaDrift 1/s, drift = sterzo in più in derapata, peso negli urti, tira = sterzo che tira da solo, effetti = superfici dove il veicolo va diverso dalla famiglia. superfici: per famiglia i moltiplicatori di velocità massima, presa e accelerazione; onde = una cresta ogni passo m; spinta = corrente [lungo, di lato] m/s²."
+}
