@@ -78,6 +78,8 @@ export type CorseMotoreCfg = {
     elastico: { davanti: number; davantiMax: number; dietro: number; dietroMax: number };
     /** Veicoli dei bot per famiglia (id), a giro. */
     veicoli: Record<CFamigliaId, string[]>;
+    /** Quanto spingono i bot di una famiglia (× bravura): chi non fa drift né salti sulle onde ne ha bisogno (in acqua erano troppo deboli). */
+    bravuraFamiglia: Record<CFamigliaId, number>;
   };
   maxSeconds: number;
   scoreBase: number;
@@ -101,8 +103,26 @@ export type CRamoDef = {
   larghezza: number; bordo: number;
   superficie: string; bordoTipo: string;
   superfici?: (CTrattoDef & { tipo: string })[];
+  /** Tappeti del turbo sul ramo (`s` in metri del ramo): una scorciatoia con un tappeto all'imbocco conviene davvero. */
+  turbo?: { s: number; lungo: number; lat: [number, number] }[];
   /** Il pilota automatico la prende (è una scorciatoia). */
   scorciatoia?: boolean;
+  /** Piste miste: le famiglie che la prendono (anche i bot). Senza, la prende solo il pilota automatico, di qualsiasi famiglia. */
+  famiglie?: CFamigliaId[];
+};
+
+/** L'inseguitore deterministico delle fughe (l'onda gigante): un fronte che avanza lungo la pista e travolge chi prende.
+ *  Velocità = `v0` che sale di `accel` m/s² fino a `vmax`, più `recupero` × i metri oltre `distMax` di vantaggio su di te (non scappi troppo). */
+export type CInseguitoreDef = {
+  tipo: string;
+  /** Dove parte il fronte (m dal via, negativo = dietro). */
+  parte: number;
+  v0: number; accel: number; vmax: number;
+  distMax: number; recupero: number;
+  /** Spessore del corpo (m davanti al fronte... dietro il fronte, verso chi scappa) e come ti prende. */
+  spessore: number;
+  /** Al contatto la velocità si moltiplica per `colpo`; finché si è dentro il corpo il massimo è × `rallenta`. */
+  colpo: number; rallenta: number;
 };
 
 export type CEventoDef = CTrattoDef & {
@@ -119,6 +139,12 @@ export type CPistaDef = {
   /** Zona dell'isola (A4): spiaggia, ghiaccio… `prova` = piste del banco di prova. */
   zona: string;
   famiglia: CFamigliaId;
+  /** Piste miste (il porto): tutte le famiglie che ci corrono insieme (la prima è `famiglia`). Senza, solo `famiglia`. */
+  famiglie?: CFamigliaId[];
+  /** Piste miste: scarto laterale (m, + = destra) della corsia di ogni famiglia, dove puntano pilota automatico e bot e dove partono. */
+  corsie?: Partial<Record<CFamigliaId, number>>;
+  /** Fughe: l'inseguitore (l'onda). */
+  inseguitore?: CInseguitoreDef;
   /** circuito = a giri; fuga = da A a B. */
   tipo: 'circuito' | 'fuga';
   giri: number;

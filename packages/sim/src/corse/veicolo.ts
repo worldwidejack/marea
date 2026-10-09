@@ -39,6 +39,8 @@ export type Veicolo = {
   sup: string;
   /** Salti fatti (rampe, dossi, onde) e cadute: per le prove e le statistiche. */
   salti: number; cadute: number;
+  /** Preso dall'inseguitore (l'onda delle fughe): 0 = no, 1 = sì (una volta sola: poi il fronte è passato). */
+  travolto: number;
   giro: number; giroTick: number; best: number; fine: number;
 };
 
@@ -58,7 +60,7 @@ export function nuovoVeicolo(p: Pista, id: string, prog: number, lat: number): V
   const s = posa(p, p.def.via + prog);
   return {
     id, ramo: -1, s, lat, h: 0, vh: 0, hf: 1, hl: 0, mf: 1, ml: 0, v: 0, prog, aria: false, caduto: 0, terra: s,
-    drift: 0, carica: 0, daBottone: false, autoT: 0, turbo: 0, livello: 0, muro: false, sup: p.def.superficie, salti: 0, cadute: 0,
+    drift: 0, carica: 0, daBottone: false, autoT: 0, turbo: 0, livello: 0, muro: false, sup: p.def.superficie, salti: 0, cadute: 0, travolto: 0,
     giro: 0, giroTick: 1, best: 0, fine: 0,
   };
 }
@@ -234,10 +236,10 @@ function verticale(p: Pista, k: Veicolo, V: CVeicoloDef, sPrima: number, ramoPri
         k.aria = true; k.vh = Math.max(r.salto, k.v * C.rampa.quota); k.salti++; return;
       }
     }
-    for (const t of p.def.turbo) {
-      const dentro = k.s >= t.s && k.s < t.s + t.lungo && k.lat >= t.lat[0] && k.lat <= t.lat[1];
-      if (dentro) { k.turbo = Math.max(k.turbo, C.tappetoTurbo); k.livello = 2; }
-    }
+  }
+  for (const t of k.ramo < 0 ? p.def.turbo : p.rami[k.ramo]!.def.turbo ?? []) {
+    const dentro = k.s >= t.s && k.s < t.s + t.lungo && k.lat >= t.lat[0] && k.lat <= t.lat[1];
+    if (dentro) { k.turbo = Math.max(k.turbo, C.tappetoTurbo); k.livello = 2; }
   }
   // creste delle onde: chi galleggia salta, tanto più quanto va forte
   const onde = C.superfici[sup]?.onde;

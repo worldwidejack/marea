@@ -140,7 +140,25 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
   - si cambia la luce.
 
   Le piste di adesso sono 4 piste di prova del motore: l'anello, la pista folle (giro della morte, curva sopraelevata, salto, dosso, scorciatoia, ponte senza muri), la baia (acqua, corrente, secca) e la discesa (fuga da A a B).
-- **Budget**: in gara 8-14 draw call e al massimo 36.000 triangoli a 390×844 (`tests/out/m4_provapiste.json`).
+- **Piste miste** (il Porto): una pista può avere più `famiglie` e una `corsia` per famiglia (scarto laterale, + = destra).
+  - Il molo di legno e il canale d'acqua stanno affiancati nella stessa carreggiata larga: ognuno parte e guida nella sua corsia, e fuori dalla sua rallenta molto (barca sul legno ×0,3, ruote nell'acqua ×0,4).
+  - I bot si alternano tra le famiglie (ruote, barca, ruote, barca) e partono nella corsia della loro.
+  - Ogni famiglia ha la sua scorciatoia: un ramo con `famiglie: [...]` lo prendono solo quelle (anche i bot); le altre lo ignorano.
+- **Scorciatoie che convengono**: un ramo può avere i suoi tappeti del turbo (all'imbocco). Tagliare una chicane da sola non basta: i metri risparmiati sono pochi, così la scorciatoia vale se ha il turbo o se salta un giro largo.
+- **L'inseguitore** (l'onda della Fuga): un fronte che parte dietro la griglia e avanza da solo (`v0` che sale di `accel` fino a `vmax`), più veloce se ti stacchi oltre `distMax` (così non scappi: ti sta sempre dietro, ma lontano se guidi bene). Chi viene preso prende un colpo (velocità × `colpo`, una volta sola) e va a `rallenta` × il massimo finché il corpo dell'onda (`spessore` m) gli passa sopra; poi è dietro l'onda e riparte. Tocca anche i bot: i ritardatari vengono presi. Deterministico: solo + − × ÷, il replay del server coincide.
+- **Superfici**: nuova `container` (tetto di lamiera: ruote veloci ma con poca presa), per l'evento dei container del Porto.
+- **Bot in acqua**: `bot.bravuraFamiglia` (ruote 1, acqua 0,97). A 0,97 (misurato sulla Baia, sul Porto e sulla baia di prova) il pilota automatico con la moto d'acqua vince e la vasca da bagno arriva ultima. L'elastico dei bot li tiene vicini a chi guida, quindi il margine in acqua è di pochi decimi: va riletto quando cambiano le piste d'acqua.
+- **Budget**: in gara 8-15 draw call e al massimo 55.000 triangoli a 390×844 (`tests/out/m4_provapiste.json`); il limite di `TECH.md` §5 è 150.000.
+- **Le 4 piste della Spiaggia e porto** (grezze, giocabili sul banco di prova, 9 ott 2026; concept in `assets/concept/corse/`, confronto in `_FOGLIO_spiaggia_grezza.jpg`):
+
+| Pista | Tipo · famiglia | Lunghezza · tempo del pilota automatico | Cosa c'è | Evento firma |
+|---|---|---|---|---|
+| **Lungomare** `spiaggia_lungomare` | circuito, 3 giri · ruote | 661 m · 90 s (kart) | rettilineo sul mare, tornante sopraelevato intorno al faro in salita, dosso, salto sul canale di scolo, tappeto del turbo, curve del paese | dal 3° giro l'**onda** copre mezza strada del rettilineo del mare (acqua bassa: rallenta, si passa dall'altra parte) |
+| **Baia** `spiaggia_baia` | circuito, 3 giri · acqua | 771 m · 100 s (moto d'acqua) | onde su tutta la baia, turbo al via, tratto di corrente, canale stretto tra gli scogli, curva lunga con la secca, onda gigante (rampa) | dal 2° giro sale la **marea** e la secca diventa acqua (la curva si taglia) |
+| **Porto** `spiaggia_porto` | circuito misto, 3 giri · ruote + acqua | 740 m · 95 s (kart), 100 s (moto d'acqua) | molo e canale affiancati, divisorio a righe gialle e nere, grande giro intorno al magazzino con la passerella (ruote) e il canale tra i container (barche), un tappeto del turbo per corsia | dal 2° giro le gru calano i **container** sul molo: i tetti di lamiera scivolano |
+| **Fuga dall'onda** `spiaggia_fuga` | fuga A→B · ruote | 1.366 m (corsa 1.258) · 61 s (kart) | discesa dalla scogliera al faro, 100 m di rettilineo prima del via, curve ampie e due sopraelevate, il salto dove la ringhiera è crollata | l'**onda gigante** insegue (inseguitore); il kart del pilota automatico non viene mai preso, il carrello sì |
+
+  La scorciatoia sulla sabbia del Lungomare, pensata all'inizio, è stata tolta: tagliare una chicane faceva perdere 0,6-2,7 s invece di farne guadagnare.
 - **Da fare** con le zone:
   - le famiglie Due ruote e Scivoli e binari;
   - un pacchetto di asset per zona caricato all'ingresso, con la sua riga nel budget di `TECH.md` §5;
@@ -152,6 +170,9 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 2. Concept art di hub, zone, veicoli, manichini e animali piloti.
 3. Motore v2: nastro 3D, famiglie Ruote e Acqua, bot sul nastro, evento firma, pagina di prova (**fatto**: `provapiste.html`).
 4. **Zona Spiaggia e porto**: 4 piste, boss granchio, kit 3D, veicoli buffi, manichini, musica e suoni. Il primo circuito finito sostituisce il Gran Premio.
+   - **4a. Le 4 piste grezze** (**fatto**, 9 ott 2026): Lungomare, Baia, Porto misto, Fuga dall'onda, giocabili su `provapiste.html?pista=spiaggia_…`. Il gioco non cambia ancora.
+   - 4b. Vestire la zona: kit Blender, veicoli buffi e granchio campione, manichini, musica e suoni.
+   - 4c. Il Lungomare al posto del Gran Premio (`garaCorse` nel registro, il server rigioca).
 5. Hub alla Diddy Kong Racing: isola aperta, porta della Spiaggia, garage, le altre porte chiuse.
 6. Fantasmi, stelle e sblocchi, premi per MAREA.
 7. Zone 2-6 con la stessa catena di montaggio.

@@ -108,6 +108,8 @@ export class Tartaruga {
   chiudi() { const p = this.punti[0].p; return this.raggiungi(p, this.dir[0]); }
   // ---- tratti (da e a sono segni presi con qui()) ----
   superficie(tipo, da, a, lat) { this.tratti.superfici.push({ tipo, da, a, lat }); return this; }
+  /** Una superficie su tutta la lunghezza della pista (di una fascia laterale `lat`): per le corsie delle piste miste. */
+  superficieTutta(tipo, lat) { this.tratti.superfici.push({ tipo, intero: true, lat }); return this; }
   senzaMuro(lato, da, a) { this.tratti.senzaMuro.push({ lato, da, a }); return this; }
   turbo(m, lat = [-2.5, 2.5], lungo = 5) { this.tratti.turbo.push({ m, lungo, lat }); return this; }
   evento(tipo, daGiro, superficie, da, a, lat) { this.tratti.eventi.push({ tipo, daGiro, superficie, da, a, lat }); return this; }
@@ -121,6 +123,8 @@ function definizione(t) {
   const m = t.meta;
   const n = costruisciNastro(t.punti, { chiuso: m.chiusa, passo: m.passo ?? 1, larghezza: m.larghezza });
   const S = (seg) => { let s = n.sPunti[seg.i] + seg.o; if (n.chiuso) s = ((s % n.len) + n.len) % n.len; return r3(s); };
+  /** Tratto di superficie: `intero` = da 0 a oltre la fine. */
+  const sup = (x) => (x.intero ? { da: 0, a: r3(n.len + 1), ...lat(x.lat), tipo: x.tipo } : { da: S(x.da), a: S(x.a), ...lat(x.lat), tipo: x.tipo });
   const lat = (v) => (v ? { lat: v } : {});
   const rami = t.rami.map((r) => {
     const ia = r.da.i, ib = r.a.i, pa = t.punti[ia].p, pb = t.punti[ib].p, aa = t.dir[ia], ab = t.dir[ib];
@@ -135,15 +139,18 @@ function definizione(t) {
       id: r.id, da: S(r.da), a: S(r.a), punti: sub.punti, larghezza: r.o.larghezza, bordo: r.o.bordo ?? 1.5,
       superficie: r.o.superficie ?? m.superficie, bordoTipo: r.o.bordoTipo ?? m.bordoTipo,
       superfici: sub.tratti.superfici.map((x) => ({ da: SR(x.da), a: SR(x.a), ...lat(x.lat), tipo: x.tipo })),
+      ...(sub.tratti.turbo.length ? { turbo: sub.tratti.turbo.map((x) => ({ s: SR(x.m), lungo: x.lungo, lat: x.lat })) } : {}),
       ...(r.o.scorciatoia ? { scorciatoia: true } : {}),
+      ...(r.o.famiglie ? { famiglie: r.o.famiglie } : {}),
     };
   });
   return {
-    id: m.id, nome: m.nome, zona: m.zona, famiglia: m.famiglia, tipo: m.tipo, giri: m.giri ?? (m.tipo === 'fuga' ? 1 : 3), chiusa: m.chiusa,
+    id: m.id, nome: m.nome, zona: m.zona, famiglia: m.famiglia, ...(m.famiglie ? { famiglie: m.famiglie } : {}), ...(m.corsie ? { corsie: m.corsie } : {}),
+    ...(m.inseguitore ? { inseguitore: m.inseguitore } : {}), tipo: m.tipo, giri: m.giri ?? (m.tipo === 'fuga' ? 1 : 3), chiusa: m.chiusa,
     passo: m.passo ?? 1, via: m.via ?? 0, larghezza: m.larghezza, bordo: m.bordo, muro: m.muro ?? 0.7,
     superficie: m.superficie, bordoTipo: m.bordoTipo, stile: m.stile ?? 'strada',
     punti: t.punti,
-    superfici: t.tratti.superfici.map((x) => ({ da: S(x.da), a: S(x.a), ...lat(x.lat), tipo: x.tipo })),
+    superfici: t.tratti.superfici.map(sup),
     vuoti: t.tratti.vuoti.map((x) => ({ da: S(x.da), a: S(x.a) })),
     senzaMuro: t.tratti.senzaMuro.map((x) => ({ da: S(x.da), a: S(x.a), lato: x.lato })),
     rampe: t.tratti.rampe.map((x) => ({ s: S(x.m), salto: x.salto })),

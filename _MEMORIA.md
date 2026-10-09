@@ -71,3 +71,14 @@ Tecnica: la sim di oggi è piatta (x, z), quindi serve una pista a nastro 3D in 
   - in acqua il drift automatico porta sulle boe (76 s liscio contro 83);
   - il salto da 16 m era troppo lungo: rampe al 45 % della velocità, buchi da 12 m.
 - Banco di prova `provapiste.html` con 4 piste di prova: 8-14 draw call.
+
+**Spiaggia e porto: le 4 piste grezze** (9 ott notte, `docs/CORSE.md` A11, CONTRACTS §33, ROADMAP §Deviazioni).
+- Jack non aveva ancora provato `provapiste.html` (risposta alle 3 domande A/B: «non l'ho provato» su salti, giro della morte e acqua): nessun numero di guida ritoccato.
+- Piste in `tools/corse_piste/spiaggia_*.mjs`: Lungomare (661 m, kart 90 s), Baia (771 m, moto 100 s), Porto misto (740 m, kart 95 s / moto 100 s), Fuga dall'onda (1.366 m, kart 61 s). Confronto con la concept: `assets/concept/corse/_FOGLIO_spiaggia_grezza.jpg` (il gap con le illustrazioni è enorme: è la pista nuda, la zona si veste dopo).
+- **Trappole pagate**:
+  - **tagliare una chicane non dà una scorciatoia**: la passerella sulla sabbia del Lungomare faceva perdere 0,6-2,7 s anche allargandola, perché i metri risparmiati sono pochi e il ramo è stretto. Una scorciatoia vale col tappeto del turbo all'imbocco (ora i rami lo supportano) o se salta un giro largo; l'ho tolta dal Lungomare;
+  - sui circuiti la griglia sta dietro il via (s ≈ lunghezza − 20): nei test «s > 30» è vero subito, bisogna guardare anche i tick o il giro;
+  - in una pista mista la corsia interna è più corta: il Porto è in senso orario con le ruote dentro, e va bene perché le barche in acqua vanno più forte (le onde danno il turbo a ogni atterraggio);
+  - in acqua i bot dipendono molto dall'elastico: restano attaccati al pilota, quindi 0,97 dà un margine di pochi decimi; il bot davanti alla griglia parte con 12-14 m di vantaggio sul pilota;
+  - la camera dietro non vede l'onda (sta alle spalle di chi guida): serve l'indicatore ONDA, e la camera che trema sotto i 35 m. Nel gioco vero andrà pensato (specchietto?).
+- Da decidere con Jack: come si mostra l'onda quando è alle spalle; se la Fuga deve avere il colpo (oggi: colpo e rallentamento, mai caduta).
