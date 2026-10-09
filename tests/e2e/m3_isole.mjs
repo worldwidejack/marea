@@ -1,4 +1,4 @@
-// Isole a tema (#68): le 5 isole ci sono, di serie sono chiuse col motivo giusto (barriera in mare per Tempesta, Ghiacci, Giardino e Templari,
+// Isole a tema (#68): le 5 isole con lo sblocco ci sono, di serie sono chiuse col motivo giusto (la sesta, le Corse, è aperta a tutti) (barriera in mare per Tempesta, Ghiacci, Giardino e Templari,
 // il Vulcano ti caccia a terra), si aprono col requisito (hook temiProva), minimappa col lucchetto, bussola dopo la scoperta,
 // scenografia viva (pioggia, banchisa, nebbia, fumo) e corrente al bordo del mondo (#5). Screenshot di ogni isola da vicino a 390×844 e
 // da PC, draw call ≤ 100, niente errori. Numeri: tests/out/m3_isole.json
@@ -40,10 +40,11 @@ export default async function (ctx) {
   const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
   await ctx.waitReady(d.page, 30000);
 
-  await ctx.test('cinque isole a tema, chiuse di serie col motivo giusto', async () => {
+  await ctx.test('sei isole a tema: cinque chiuse di serie col motivo giusto, le Corse aperte a tutti', async () => {
     const s = await st(d);
-    assert(s.temi && s.temi.isole.length === 5, `isole a tema: ${JSON.stringify(s.temi)}`);
+    assert(s.temi && s.temi.isole.length === 6, `isole a tema: ${JSON.stringify(s.temi)}`);
     for (const i of s.temi.isole) {
+      if (i.id === 'corse') { assert(i.aperta, 'le Corse sono chiuse'); continue; } // docs/CORSE.md: sblocco `libera`
       assert(!i.aperta, `${i.id} aperta di serie`);
       assert(MOTIVI[i.id].test(i.motivo), `${i.id}: motivo «${i.motivo}»`);
     }
@@ -58,7 +59,7 @@ export default async function (ctx) {
     await hook(d, 'mappaScopri'); await d.page.waitForTimeout(300);
     const s = await st(d);
     assert(s.mappa.chiuse.length === 5, 'scoperte ma ancora chiuse: il lucchetto resta');
-    for (const id of ISOLE) assert(s.compass.shown.includes('tema:' + id), `bussola senza ${id}: ${JSON.stringify(s.compass.shown)}`);
+    for (const id of [...ISOLE, 'corse']) assert(s.compass.shown.includes('tema:' + id), `bussola senza ${id}: ${JSON.stringify(s.compass.shown)}`);
     await hook(d, 'mappa', 'apri'); await d.page.waitForTimeout(300);
     await ctx.shot(d.page, 'desktop_mappa_chiuse');
     await hook(d, 'mappa', 'chiudi');

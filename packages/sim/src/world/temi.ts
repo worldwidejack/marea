@@ -51,6 +51,7 @@ export function sbloccoTema(s: TemaSblocco, v: Viaggiatore): Sblocco {
       const ok = v.mappe.includes(s.mappa), isola = isolaDellaMappa(s.mappa);
       return { aperta: ok, motivo: ok ? 'Aperta' : `Ti perdi nella nebbia: serve la mappa del ${isola} (te la regala la prima medaglia d'oro in un minigioco)`, manca: `Mappa del ${isola}` };
     }
+    case 'libera': return { aperta: true, motivo: 'Aperta', manca: '' }; // Isola delle Corse: aperta a tutti
     case 'reliquia': {
       const ok = (v.reliquie ?? []).includes(s.reliquia);
       return { aperta: ok, motivo: ok ? 'Aperta' : 'Una nebbia rossa ti fa girare al largo: qualcosa, sotto il faro della Tempesta, apre la strada', manca: 'La reliquia dei Templari' };

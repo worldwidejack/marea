@@ -8,6 +8,7 @@ import { pinguini } from './pinguini.ts'; // Ghiacci
 import { koi } from './koi.ts'; // Giardino
 import { arrembaggio } from './arrembaggio.ts'; // Tempesta
 import { lava } from './lava.ts'; // Vulcano
+import { corse } from './corse.ts'; // Isola delle Corse
 
 export const MINIGAMES: Record<string, MinigameModule<unknown>> = {
   regata: regata as unknown as MinigameModule<unknown>,
@@ -19,6 +20,7 @@ export const MINIGAMES: Record<string, MinigameModule<unknown>> = {
   koi: koi as unknown as MinigameModule<unknown>, // Giardino: solo sull'isola, quando è aperta
   arrembaggio: arrembaggio as unknown as MinigameModule<unknown>, // Tempesta: sul promontorio del faro, solo a isola aperta
   lava: lava as unknown as MinigameModule<unknown>, // Vulcano: vicino al cratere, solo a isola aperta
+  corse: corse as unknown as MinigameModule<unknown>, // Isola delle Corse: Gran Premio, alla linea di partenza
 };
 export function getMinigame(id: string): MinigameModule<unknown> {
   const m = MINIGAMES[id];

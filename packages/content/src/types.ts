@@ -40,7 +40,7 @@ export type IslandDef = {
 };
 export type IslandStyle = 'lotto' | 'porto' | 'laguna' | 'neon' | 'selvaggia' | TemaStyle;
 /** Isole a tema (#68, GDD §3): stile della resa = id del tema. */
-export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'templari';
+export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'templari' | 'corse';
 export type IslandSlot = { at: [number, number]; kind: string; rot?: number };
 export type IslandProp = { k: string; at: [number, number]; rot?: number };
 export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna' | 'tema';
@@ -54,7 +54,8 @@ export type TemaSblocco =
   | { tipo: 'livello'; livello: number }
   | { tipo: 'cappello'; cappello: string }
   | { tipo: 'mappa'; mappa: string; come: 'oro' }
-  | { tipo: 'reliquia'; reliquia: string };
+  | { tipo: 'reliquia'; reliquia: string }
+  | { tipo: 'libera' }; // aperta a tutti (Isola delle Corse)
 /** Isola a tema: `barriera` = metri di mare attorno al rettangolo dell'isola che la barca non passa finché è chiusa (0 = nessuna: ci si arriva, ma a terra ti cacciano). */
 export type TemaDef = { sblocco: TemaSblocco; barriera: number };
 export type ArchipelagoIsland = { island: string; at: [number, number]; role: ArchipelagoRole; slot?: number; tema?: TemaDef };
@@ -194,6 +195,35 @@ export type ArrembaggioCfg = {
   premioExtra?: PremioExtra;
 };
 // fine Tempesta
+// Isola delle Corse: Gran Premio (docs/CORSE.md)
+/** Un tipo di guida (le 3 da provare): velocità m/s, accelerazione m/s², sterzo rad/s a sterzo pieno, presa e presaDrift 1/s (quanto in
+ *  fretta il moto segue il muso), drift = moltiplicatore dello sterzo in derapata. */
+export type CorseGuida = { id: string; nome: string; velocita: number; accelerazione: number; sterzo: number; presa: number; presaDrift: number; drift: number };
+/** Gran Premio (Isola delle Corse): kart arcade su una pista chiusa, 3 giri contro 4 bot. Metri e secondi. */
+export type CorseCfg = {
+  id: 'corse';
+  nome: string;
+  maxSeconds: number;
+  /** Isola a tema dove si gioca e cella locale [x, z] del posto (la linea di partenza sull'isola). */
+  isola: string;
+  posto: [number, number];
+  giri: number;
+  /** Centro della pista (anello chiuso, metri), campionato ogni `passo` m; larghezza = mezza carreggiata; poi `erba` m di prato e il muro. */
+  pista: { nome: string; punti: [number, number][]; passo: number; larghezza: number; erba: number; muro: number };
+  kart: { raggio: number; frenata: number; folle: number; sterzoPieno: number; erbaVelocita: number; retro: number };
+  guide: CorseGuida[];
+  guidaDiSerie: number;
+  drift: { velocitaMin: number; autoSecondi: number; autoSterzo: number; tieniSterzo: number; carica: [number, number]; spinta: [number, number]; turbo: number; turboAccelerazione: number };
+  bot: {
+    nomi: string[]; bravura: number[]; corsia: number; sguardo: [number, number]; sterzo: number;
+    elastico: { davanti: number; davantiMax: number; dietro: number; dietroMax: number };
+  };
+  /** [metri prima del via, lato] dei kart: prima i bot, ultimo tu. */
+  griglia: [number, number][];
+  scoreBase: number;
+  premioExtra?: PremioExtra;
+};
+// fine Isola delle Corse
 // Vulcano: Fuga dalla lava
 export type LavaCosa = 'ossidiana' | 'scintilla' | 'rubino';
 /** Fuga dalla lava (Isola Vulcano): corsa a scorrimento sulle colonne di basalto. Unità = pixel della schermata (192×136), per tick. */

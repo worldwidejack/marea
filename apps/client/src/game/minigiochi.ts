@@ -13,6 +13,7 @@ import { MINIGAMES_CFG, SCACCHI } from '@marea/content';
 import type { ArchPlace, Medal, Resources } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Loader } from '../render/loader.ts';
+import type { Renderer } from '../render/scene.ts'; // Isola delle Corse
 import type { Hud } from '../ui/hud.ts';
 import type { Api, SoloResult } from '../net/api.ts';
 import { ApiError } from '../net/api.ts';
@@ -75,7 +76,7 @@ const CSS = `
 .mz-esito .premio span { display: inline-flex; align-items: center; gap: 6px; }
 `;
 
-export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement; onLot(): void; tavolo?: { x: number; z: number } | null }): Minigiochi {
+export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement; renderer?: Renderer; onLot(): void; tavolo?: { x: number; z: number } | null }): Minigiochi {
   injectUiStyle();
   if (!document.getElementById('mz-minigiochi-style')) { const st = document.createElement('style'); st.id = 'mz-minigiochi-style'; st.textContent = CSS; document.head.appendChild(st); }
   const arch = o.world.archipelago;
@@ -132,6 +133,14 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   diIsola('lava', 'lava');
   registraSchermo('lava', (root) => import('../ui/lava.ts').then((m) => m.createLava({ root })));
   // fine Vulcano
+  // Isola delle Corse (docs/CORSE.md): il Gran Premio parte dall'arco del via; la gara 3D (corse/index.ts, scena sua e camera dietro al
+  // kart) si scarica alla prima partita. Serve il renderer (la scena della pista prende lo schermo).
+  if (o.renderer) {
+    const renderer = o.renderer;
+    diIsola('corse', 'corse');
+    registraSchermo('corse', (root) => import('../corse/index.ts').then((m) => m.createCorse({ root, renderer, world: o.world })));
+  }
+  // fine Isola delle Corse
   let chClosedAt = 0, scacchi: Scacchi | null = null;
   const schermi = new Map<string, SchermoGioco>();
   /** Una schermata (scacchi o gioco a schermo) è aperta: il mondo sta fermo. */

@@ -62,9 +62,12 @@ const STYLE = `
 
 const num = (d: Record<string, number>, k: string): number => (typeof d[k] === 'number' ? d[k] : 0);
 /** Il punteggio come lo mostra il gioco quando è facile (tempo, pacchi, livelli), altrimenti i punti. */
+/** Tempo di una corsa: 1:24,3. */
+export const tempoCorsa = (ms: number): string => `${Math.floor(ms / 60000)}:${((ms % 60000) / 1000).toFixed(1).padStart(4, '0').replace('.', ',')}`;
 export function punteggioText(mg: string, r: { score: number; detail: Record<string, number> }): string {
   const d = r.detail ?? {};
   if (mg === 'regata' && num(d, 'ms') > 0 && num(d, 'boe') >= num(d, 'tot') && num(d, 'tot') > 0) return `${(num(d, 'ms') / 1000).toFixed(1).replace('.', ',')} s`;
+  if (mg === 'corse' && num(d, 'ms') > 0 && num(d, 'giri') >= num(d, 'tot') && num(d, 'tot') > 0) return `${tempoCorsa(num(d, 'ms'))} · ${num(d, 'pos')}°`; // Isola delle Corse
   if (mg === 'consegne' && 'consegne' in d) return `${num(d, 'consegne')}/${num(d, 'totale') || 5} pacchi`;
   if ((mg === 'ingorgo' || mg === 'pinguini') && 'risolti' in d) return `${num(d, 'risolti')}/${num(d, 'totale') || 3} · ${num(d, 'mosse')} mosse`;
   return `${r.score.toLocaleString('it-IT')} punti`;
