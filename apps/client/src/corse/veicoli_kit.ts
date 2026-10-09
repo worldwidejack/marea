@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createLoader } from '../render/loader.ts';
+import type { Loader } from '../render/loader.ts';
 
 /** Il modello vero di ogni veicolo della sim (gli id di packages/content/src/corse/motore.json). Chi non c'è resta il segnaposto. */
 export const MODELLO: Record<string, string> = {
@@ -59,11 +60,16 @@ function float32(g: THREE.BufferGeometry): THREE.BufferGeometry {
 }
 
 /** Carica una volta sola tutti i modelli del kit; poi `veicoloKit` è sincrono. Se manca un file il segnaposto resta. */
+let loaderP: Promise<Loader> | null = null;
+/** Il loader del gioco con anche il manifest delle Corse (una volta sola: lo usano anche l'avatar e la scenografia). */
+export function loaderCorse(): Promise<Loader> {
+  return (loaderP ??= createLoader({ base: '/assets/' }).then(async (l) => { await l.extend('manifest_corse.json'); return l; }));
+}
+
 export function caricaKit(): Promise<void> {
   if (promessa) return promessa;
   promessa = (async () => {
-    const l = await createLoader({ base: '/assets/' });
-    await l.extend('manifest_corse.json');
+    const l = await loaderCorse();
     const tex = await l.texture('atlas.png');
     const img = tex.image as CanvasImageSource & { width: number; height: number };
     const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
@@ -125,13 +131,26 @@ export type VeicoloKit = { geo: THREE.BufferGeometry; occhi: [number, number] };
 
 /** Il veicolo vero: `modello` (cs_v_…), il pilota animale se c'è (`pilota`, cs_p_…) o quello segnaposto (`segnaposto` lo disegna il chiamante
  *  con altezza e posizione della seduta). null se il kit non c'è: si usa il segnaposto intero. */
-export function veicoloKit(modello: string, pilota: string | null, segnaposto: (y: number, z: number) => THREE.BufferGeometry): VeicoloKit | null {
+export function veicoloKit(modello: string, pilota: string | null, senzaPilota: boolean, segnaposto: (y: number, z: number) => THREE.BufferGeometry): VeicoloKit | null {
   const v = kit.get(modello); if (!v) return null;
   const s = (LUNG[modello] ?? v.lung) / v.lung, [sy, sz] = SEDILE[modello] ?? [0.5, 0.1];
   const body = v.geo.clone().applyMatrix4(new THREE.Matrix4().makeScale(s, s, s));
   const y = sy * s, z = sz * s;
   const a = pilota ? animale(pilota, y, z, modello, s) : null;
-  const geo = mergeGeometries([body, a ?? segnaposto(y, z)])!;
-  const spunta = pilota ? Math.min(ANCA[pilota]?.[1] ?? 1, (MAX_PILOTA[modello] ?? [1.3, 1.4])[0]) : 0.8;
+  const geo = senzaPilota ? body : mergeGeometries([body, a ?? segnaposto(y, z)])!;
+  const spunta = pilota && !senzaPilota ? Math.min(ANCA[pilota]?.[1] ?? 1, (MAX_PILOTA[modello] ?? [1.3, 1.4])[0]) : 0.8;
   return { geo, occhi: [y + spunta - 0.1, 0.42 - z] };
+}
+
+/** Il modello che si disegna per un veicolo della sim (o per l'aspetto scelto). */
+export const modelloDi = (id: string, aspetto?: string | null): string | null => aspetto || MODELLO[id] || null;
+
+/** Dove siede l'avatar MAREA (1,6 m) sul veicolo, in coordinate del veicolo già scalato: `seat` per `attachTo` e `scala` dell'avatar
+ *  (sotto un tetto si fa più piccolo, come gli animali). Senza modello (il gommone): il segnaposto. */
+export function postoAvatar(id: string, aspetto?: string | null): { seat: { x: number; y: number; z: number }; scala: number } {
+  const modello = modelloDi(id, aspetto), v = modello ? kit.get(modello) : null;
+  const [sy, sz, s] = modello && v ? [...(SEDILE[modello] ?? [0.5, 0.1]), (LUNG[modello] ?? v.lung) / v.lung] as [number, number, number] : [0.3, 0.6, 1];
+  const scala = Math.max(0.5, Math.min(1, (modello ? (MAX_PILOTA[modello] ?? [1.3, 1.4])[0] : 1.3) / 1.05));
+  // il bacino da seduto sta 0,42 m sopra i piedi dell'avatar e 0,12 sopra la seduta; `attachTo` toglie 0,37 (SEAT_DROP di avatar.ts)
+  return { seat: { x: 0, y: sy * s + 0.37 - 0.3 * scala, z: sz * s }, scala };
 }

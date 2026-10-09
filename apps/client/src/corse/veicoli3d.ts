@@ -15,11 +15,13 @@ const ruota = (parts: THREE.BufferGeometry[], x: number, z: number, r: number, w
 /** Dove sono gli occhi del pilota di ogni veicolo, [altezza, avanti] in m (per la camera cofano: appena davanti alla visiera, che sennò copre tutto). */
 const OCCHI = new Map<string, [number, number]>();
 let occhi: [number, number] = [1.37, 0];
+let senzaPilota = false;
 export const occhio = (id: string): [number, number] => OCCHI.get(id) ?? [1.37, 0];
 
 /** Il pilota seduto (busto, testa col casco, visiera) all'altezza `y`, `z` avanti/indietro. */
 function pilota(parts: THREE.BufferGeometry[], colore: string, casco: string, y: number, z = 0.2): void {
   occhi = [y + 0.78, 0.42 - z];
+  if (senzaPilota) return; // guida l'avatar MAREA, attaccato dal chiamante
   parts.push(painted(box(0.55, 0.55, 0.4), colore, M(0, y + 0.28, z)));
   parts.push(painted(box(0.46, 0.44, 0.48), casco, M(0, y + 0.75, z - 0.08)));
   parts.push(painted(box(0.4, 0.14, 0.06), P.neroCaldo, M(0, y + 0.77, z - 0.33)));
@@ -27,10 +29,14 @@ function pilota(parts: THREE.BufferGeometry[], colore: string, casco: string, y:
 
 /** `aspetto` = un modello del kit (cs_v_…) al posto di quello del veicolo; `animale` = il pilota animale (cs_p_…) al posto del segnaposto.
  *  Finché il kit non è caricato (o per i veicoli senza modello) si disegnano i segnaposto grigi di sempre. */
-export function veicoloGeo(id: string, colore: string, casco: string, aspetto?: string | null, animale?: string | null): THREE.BufferGeometry {
+export function veicoloGeo(id: string, colore: string, casco: string, aspetto?: string | null, animale?: string | null, avatar = false): THREE.BufferGeometry {
+  senzaPilota = avatar;
+  try { return veicoloGeo2(id, colore, casco, aspetto, animale, avatar); } finally { senzaPilota = false; }
+}
+function veicoloGeo2(id: string, colore: string, casco: string, aspetto: string | null | undefined, animale: string | null | undefined, avatar: boolean): THREE.BufferGeometry {
   const modello = aspetto || MODELLO[id];
   if (modello && kitPronto()) {
-    const k = veicoloKit(modello, animale ?? null, (y, z) => { const p: THREE.BufferGeometry[] = []; pilota(p, colore, casco, y, z); return merged(p); });
+    const k = veicoloKit(modello, animale ?? null, avatar, (y, z) => { const p: THREE.BufferGeometry[] = []; pilota(p, colore, casco, y, z); return merged(p); });
     if (k) { if (!animale) OCCHI.set(id, k.occhi); return k.geo; } // la camera cofano guarda dagli occhi del giocatore, non dei bot
   }
   const parts: THREE.BufferGeometry[] = [];

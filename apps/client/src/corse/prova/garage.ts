@@ -1,13 +1,14 @@
 // Il garage delle Corse (#178): tutti i veicoli del kit in fila, ognuno col suo animale pilota, che girano piano su una piattaforma.
 // Serve a guardarli da vicino (seduta, scala, colori) senza correre. ?solo=cs_v_pizza = uno solo grande; ?giro=0 = fermi (per le foto);
-// ?angolo=gradi = da dove si guarda; ?animali=0 = col pilota segnaposto.
+// ?angolo=gradi = da dove si guarda; ?animali=0 = col pilota segnaposto; ?avatar=1 = guida l'avatar MAREA (come nella corsa) al posto degli animali.
 import * as THREE from 'three';
 import { P } from '../../render/island_parts.ts';
 import { veicoloGeo } from '../veicoli3d.ts';
-import { ASPETTI, PILOTI, caricaKit } from '../veicoli_kit.ts';
+import { ASPETTI, PILOTI, caricaKit, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
+import { createAvatar } from '../../game/avatar.ts';
 
 const q = new URLSearchParams(location.search);
-const solo = q.get('solo'), giro = q.get('giro') !== '0', animali = q.get('animali') !== '0', angolo = Number(q.get('angolo') ?? 150) * Math.PI / 180;
+const solo = q.get('solo'), giro = q.get('giro') !== '0', avatar = q.get('avatar') === '1', animali = q.get('animali') !== '0' && !avatar, angolo = Number(q.get('angolo') ?? 150) * Math.PI / 180;
 const canvas = document.getElementById('gl') as HTMLCanvasElement;
 const gl = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 gl.setPixelRatio(Math.min(2, devicePixelRatio || 1)); gl.outputColorSpace = THREE.SRGBColorSpace;
@@ -20,6 +21,7 @@ const asfalto = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshLa
 
 const modelli = solo ? [solo] : [...ASPETTI];
 const giranti: THREE.Mesh[] = [];
+const avatari: { update(a: number, dt: number): void }[] = [];
 const nome = document.getElementById('nome')!;
 function resize() { gl.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
@@ -28,9 +30,14 @@ await caricaKit();
 const cols = solo ? 1 : 5, passo = 4.6;
 modelli.forEach((m, i) => {
   const a = animali ? PILOTI[i % PILOTI.length]! : null;
-  const mesh = new THREE.Mesh(veicoloGeo('kart', P.rosso, P.pietraChiara, m, a), mat);
+  const mesh = new THREE.Mesh(veicoloGeo('kart', P.rosso, P.pietraChiara, m, a, avatar), mat);
   mesh.position.set((i % cols - (cols - 1) / 2) * passo, 0, Math.floor(i / cols) * 5.4 - (solo ? 0 : 5.4));
   mesh.rotation.y = angolo; scene.add(mesh); if (giro) giranti.push(mesh);
+  if (avatar) void (async () => {
+    const l = await loaderCorse(), av = await createAvatar({ loader: l, look: { pelle: 1, capelli: 3, coloreCapelli: 1, vestito: 2, cappello: 0 }, x: 0, z: 0 });
+    const { seat, scala } = postoAvatar('kart', m);
+    av.attachTo(mesh, seat, 0); av.object.scale.setScalar(scala); avatari.push(av);
+  })();
 });
 nome.textContent = modelli.map((m, i) => m.replace('cs_v_', '') + (animali ? ' + ' + PILOTI[i % PILOTI.length]!.replace('cs_p_', '') : '')).join(' · ');
 const dist = solo ? 8 : (cols * passo * 1.5) / (2 * Math.tan(camera.fov * Math.PI / 360) * camera.aspect);
@@ -40,6 +47,7 @@ let t0 = performance.now();
 function frame(now: number) {
   const dt = (now - t0) / 1000; t0 = now;
   for (const g of giranti) g.rotation.y += dt * 0.5;
+  for (const a of avatari) a.update(1, dt);
   gl.render(scene, camera); requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

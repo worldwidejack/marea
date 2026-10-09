@@ -33,7 +33,10 @@ import type { Pista3d } from '../nastro3d.ts';
 import { matOnda, ondaGeo } from '../onda3d.ts';
 import { creaSuoni } from '../suoni.ts';
 import { veicoloGeo } from '../veicoli3d.ts';
-import { ASPETTI, PILOTI, caricaKit } from '../veicoli_kit.ts';
+import { ASPETTI, PILOTI, caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
+import { createAvatar } from '../../game/avatar.ts';
+import type { Avatar } from '../../game/avatar.ts';
+import type { Look } from '@marea/protocol';
 import { creaRegia } from './camera.ts';
 import { stileProva } from './stile.ts';
 
@@ -56,6 +59,19 @@ const q = new URLSearchParams(location.search);
 const opz = { ...opzioniGara({ pista: q.get('pista'), veicolo: q.get('veicolo'), bot: q.get('bot'), ...Object.fromEntries(REGOLE.map(([id]) => [id, q.get(id)])) }) };
 const camQ = q.get('cam') === 'vicina' ? 'cofano' : q.get('cam');
 let cam: Camera = CAMERE.includes(camQ as Camera) ? (camQ as Camera) : 'dietro';
+// L'avatar MAREA guida: nel banco di prova il look è quello di serie o `?look=pelle,capelli,coloreCapelli,vestito,cappello` (nel gioco sarà il tuo).
+const LOOK0: Look = { pelle: 1, capelli: 3, coloreCapelli: 1, vestito: 2, cappello: 0 };
+const lookQ = (q.get('look') ?? '').split(',').map(Number);
+const look: Look = lookQ.length === 5 && lookQ.every(Number.isFinite) ? { pelle: lookQ[0]!, capelli: lookQ[1]!, coloreCapelli: lookQ[2]!, vestito: lookQ[3]!, cappello: lookQ[4]! } : LOOK0;
+const avatarOn = q.get('avatar') !== '0';
+let avatar: Avatar | null = null, avatarP: Promise<Avatar | null> | null = null;
+const avatarCaricato = (): Promise<Avatar | null> => (avatarP ??= loaderCorse().then((l) => createAvatar({ loader: l, look, x: 0, z: 0 })).catch((e) => { console.warn('[corse] avatar non caricato, resta il segnaposto', e); return null; }));
+/** Siede l'avatar sul veicolo del giocatore (appena ricostruito). */
+async function siediAvatar(mesh: THREE.Mesh, id: string) {
+  const a = await avatarCaricato(); if (!a || meshes[0] !== mesh) return;
+  const { seat, scala } = postoAvatar(id, aspetto);
+  a.attachTo(mesh, seat, 0); a.object.scale.setScalar(scala); a.visible = true; avatar = a;
+}
 let aspetto = ASPETTI.includes(q.get('aspetto') as never) ? q.get('aspetto')! : '', animali = q.get('animali') !== '0';
 let gasAuto = q.get('gas') === 'auto', auto = q.get('auto') === '1', luce: StyleId = 'giorno', effetti = q.get('effetti') !== '0', pausa = false;
 
@@ -113,10 +129,11 @@ function nuovaGara(cambiaPista: boolean) {
   s = garaCorse.create({ seed: (Math.random() * 1e9) >>> 0, difficulty: 2, opzioni: opz });
   for (const m of meshes) { scene.remove(m); m.geometry.dispose(); }
   meshes = s.veicoli.map((k, i) => {
-    const m = new THREE.Mesh(veicoloGeo(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!, aspetto, animali && i ? PILOTI[(i - 1) % PILOTI.length]! : null), matVeicoli);
+    const m = new THREE.Mesh(veicoloGeo(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!, aspetto, animali && i ? PILOTI[(i - 1) % PILOTI.length]! : null, !i && avatarOn && kitPronto()), matVeicoli);
     m.castShadow = true; m.matrixAutoUpdate = false; m.name = i ? `corse_bot_${i}` : 'corse_tu'; scene.add(m);
     return m;
   });
+  if (avatarOn && kitPronto()) void siediAvatar(meshes[0]!, s.veicoli[0]!.id);
   if (ondaMesh) { scene.remove(ondaMesh); ondaMesh.geometry.dispose(); ondaMesh = null; }
   if (p.def.inseguitore) {
     ondaMesh = new THREE.Mesh(ondaGeo(p.def.larghezza + p.def.bordo + 8), materialeOnda);
@@ -333,7 +350,7 @@ function frame(now: number) {
   let n = 0;
   while (acc >= DT && n < 6) { if (!pausa) step(); acc -= DT; n++; }
   if (n === 6) acc = 0;
-  aggiornaVeicoli(dt); fx.aggiorna(dt); aggiornaCamera(dt); eventi();
+  aggiornaVeicoli(dt); avatar?.update(1, dt); fx.aggiorna(dt); aggiornaCamera(dt); eventi();
   const k = s.veicoli[0]!;
   if (fase === 'gara' && s.tick > 0) suoni.motore(k.v, veicoloCorse(k.id).velocita, k.turbo > 0, k.drift !== 0, !k.aria);
   lights.follow?.(vP.x, vP.z);
