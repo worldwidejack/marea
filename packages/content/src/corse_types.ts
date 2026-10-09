@@ -14,6 +14,8 @@ export type CFamigliaDef = {
   onde?: { salto: number; max: number };
   /** Atterraggio dritto (solo acqua): turbo in secondi se il muso è allineato al moto entro `allineato` (seno dell'angolo). */
   atterraggioTurbo?: { secondi: number; allineato: number };
+  /** Sterzo tolto a tutta velocità per questa famiglia (al posto di `sterzo.alto`): le barche scivolano già, ne perdono meno (#170). */
+  sterzoAlto?: number;
 };
 
 /** Un veicolo: famiglia e numeri di guida (come le guide morbida / media / nervosa del Gran Premio). */
@@ -67,7 +69,21 @@ export type CorseMotoreCfg = {
   /** Turbo dei tappeti di spinta (s). */
   tappetoTurbo: number;
   veicolo: { raggio: number; frenata: number; folle: number; sterzoPieno: number; retro: number };
-  drift: { velocitaMin: number; autoSecondi: number; autoSterzo: number; tieniSterzo: number; carica: [number, number]; spinta: [number, number]; turbo: number; turboAccelerazione: number };
+  /** Sterzo del giocatore (#170): curva del joystick, rampa da tastiera, meno sterzo ad alta velocità. */
+  sterzo: { lineare: number; rampa: number; ritorno: number; alto: number; da: number };
+  /** Drift a 3 livelli: `carica` = secondi per livello, `spinta` = secondi di turbo per livello. */
+  drift: {
+    velocitaMin: number; autoSecondi: number; autoSterzo: number; tieniSterzo: number; pronto: number;
+    carica: [number, number, number]; stringi: number; spinta: [number, number, number]; turbo: number; turboAccelerazione: number;
+  };
+  /** Tetto dei turbo sommati (s). */
+  turbo: { max: number };
+  /** Conto alla rovescia (s) e turbo alla partenza: finestra e razzo in s prima del VIA, turbo [buona, razzo] s, ingolfato s fermo. */
+  partenza: { secondi: number; finestra: number; razzo: number; turbo: [number, number]; ingolfato: number };
+  /** Acrobazia in aria: turbo all'atterraggio (s). */
+  acrobazia: { turbo: number };
+  /** Scia: distanza [min, max] m dietro, scarto laterale massimo m, velocità minima m/s, secondi per caricarla, turbo s. */
+  scia: { metri: [number, number]; lato: number; velocitaMin: number; secondi: number; turbo: number };
   bot: {
     bravura: number[];
     corsia: number;

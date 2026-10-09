@@ -1,6 +1,8 @@
 // Il veicolo del motore v2 (docs/CORSE.md A11) in coordinate di pista: s lungo il nastro, lat a destra, h sopra la superficie.
 // Muso e moto sono versori nel piano della pista, (avanti, destra). La guida è quella del Gran Premio, che piace:
 // - sterzo, «presa» (quanto in fretta il moto raggiunge il muso), drift che carica il turbo;
+// - (#170) sterzo che cala con la velocità (in drift no: il drift serve a stringere), drift a 3 livelli che carica più in fretta
+//   stringendo e si perde contro il muro, acrobazie in aria (turbo all'atterraggio), turbo che si sommano, motore ingolfato;
 // - in più la pendenza, i salti (rampe, dossi presi forte, creste delle onde), i giri della morte, le cadute e la ripartenza;
 // - le superfici cambiano velocità, presa e accelerazione, per famiglia e per i veicoli buffi;
 // - quando la pista curva, sotto il veicolo gira lei: muso e moto ruotano al contrario.
@@ -33,7 +35,12 @@ export type Veicolo = {
   /** Ultimo punto a terra, sulla principale (per ripartire dopo una caduta). */
   terra: number;
   drift: number; carica: number; daBottone: boolean; autoT: number;
+  /** Turbo rimasto (s) e da dove viene (1-3 = livello del drift, per i colori). */
   turbo: number; livello: number;
+  /** Sterzo del giocatore dopo curva e rampa (gara.ts); secondi da cui DRIFT è tenuto (−1 = lasciato, 0 = premuto ora). */
+  st: number; tenuto: number;
+  /** Acrobazia in corso (s da quando è partita, 0 = no, −1 = salto da un'onda); scia caricata (s); motore ingolfato (s fermo); partenza (−1 ingolfato, 1 buona, 2 razzo). */
+  acro: number; scia: number; fermo: number; partenza: number;
   muro: boolean;
   /** Superficie sotto (per gli effetti del client). */
   sup: string;
@@ -60,10 +67,20 @@ export function nuovoVeicolo(p: Pista, id: string, prog: number, lat: number): V
   const s = posa(p, p.def.via + prog);
   return {
     id, ramo: -1, s, lat, h: 0, vh: 0, hf: 1, hl: 0, mf: 1, ml: 0, v: 0, prog, aria: false, caduto: 0, terra: s,
-    drift: 0, carica: 0, daBottone: false, autoT: 0, turbo: 0, livello: 0, muro: false, sup: p.def.superficie, salti: 0, cadute: 0, travolto: 0,
+    drift: 0, carica: 0, daBottone: false, autoT: 0, turbo: 0, livello: 0, st: 0, tenuto: -1, acro: 0, scia: 0, fermo: 0, partenza: 0, muro: false, sup: p.def.superficie, salti: 0, cadute: 0, travolto: 0,
     giro: 0, giroTick: 1, best: 0, fine: 0,
   };
 }
+/** Le regole accese (opzioni della gara, interruttori del banco di prova). */
+export type Regole = { sterzo: boolean; partenza: boolean; acrobazie: boolean; scia: boolean; somma: boolean };
+export const REGOLE_TUTTE: Regole = { sterzo: true, partenza: true, acrobazie: true, scia: true, somma: true };
+
+/** Dà `sec` secondi di turbo: sommati a quelli che restano (alla Crash Team Racing, fino a turbo.max) o, senza `somma`, il più lungo dei due. */
+export function daiTurbo(k: Veicolo, sec: number, livello: number, somma: boolean): void {
+  k.turbo = somma ? Math.min(CORSE.turbo.max, k.turbo + sec) : Math.max(k.turbo, sec);
+  k.livello = livello;
+}
+
 /** s dentro la principale (sulla chiusa si gira intorno, sull'aperta si resta tra 0 e la fine). */
 function posa(p: Pista, s: number): number {
   const L = p.n.len;
@@ -132,13 +149,17 @@ function riparti(p: Pista, k: Veicolo, V: CVeicoloDef): void {
   }
   k.prog += d;
   k.ramo = -1; k.s = sNuovo; k.lat = 0; k.h = 0; k.vh = 0; k.hf = 1; k.hl = 0; k.mf = 1; k.ml = 0;
-  k.v = V.velocita * C.ripartenza; k.aria = false; k.caduto = 0; k.drift = 0; k.carica = 0; k.turbo = 0; k.livello = 0; k.muro = false;
+  k.v = V.velocita * C.ripartenza; k.aria = false; k.caduto = 0; k.drift = 0; k.carica = 0; k.turbo = 0; k.livello = 0; k.muro = false; k.acro = 0; k.scia = 0;
 }
 
-/** Un tick di guida: sterzo −1..1 (+ destra), gas −1..1, drift tenuto; `vmax` = moltiplicatore della velocità massima; `giro` = giro in corso (1…). */
-export function muovi(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas: number, btn: boolean, vmax: number, giro: number): void {
+/** Un tick di guida: sterzo −1..1 (+ destra), gas −1..1, drift tenuto; `vmax` = moltiplicatore della velocità massima; `giro` = giro in corso (1…).
+ *  `k.tenuto` (da quanto DRIFT è premuto) lo aggiorna gara.ts prima: 0 = premuto in questo tick. */
+export function muovi(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas: number, btn: boolean, vmax: number, giro: number, R: Regole = REGOLE_TUTTE): void {
   const C = CORSE, K = C.veicolo, D = C.drift, F = C.famiglie[V.famiglia], G = C.gravita;
   if (k.caduto > 0) { k.caduto += DT; if (k.caduto >= C.caduta.secondi) riparti(p, k, V); return; }
+  if (k.fermo > 0) { k.fermo = Math.max(0, k.fermo - DT); gas = 0; } // motore ingolfato: niente gas
+  // DRIFT premuto in aria = acrobazia (−1 = salto da un'onda: lì il turbo lo dà già l'atterraggio dritto)
+  if (k.aria && k.acro >= 0) k.acro = k.acro > 0 ? k.acro + DT : R.acrobazie && btn && k.tenuto === 0 && !k.drift ? DT : 0;
   const n = nastroDi(p, k.ramo);
   const sup = superficieA(p, k.ramo, k.s, k.lat, giro);
   k.sup = sup;
@@ -151,14 +172,16 @@ export function muovi(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas:
     if (!k.drift) {
       k.autoT = sa >= D.autoSterzo && gas > 0 ? k.autoT + DT : 0;
       const auto = D.autoSecondi > 0 && k.autoT >= D.autoSecondi;
-      if ((btn || auto) && sa >= D.tieniSterzo && k.v >= D.velocitaMin) { k.drift = sterzo > 0 ? 1 : -1; k.carica = 0; k.daBottone = btn; }
+      // col bottone: il lato si sceglie entro `pronto` s da quando lo premi (come il saltello di Mario Kart), poi non parte più finché non lo ripremi
+      const bottone = btn && k.tenuto >= 0 && k.tenuto <= D.pronto;
+      if ((bottone || auto) && sa >= D.tieniSterzo && k.v >= D.velocitaMin) { k.drift = sterzo > 0 ? 1 : -1; k.carica = 0; k.daBottone = btn; }
     } else {
       const tiene = (k.daBottone ? btn : sterzo * k.drift >= D.tieniSterzo) && k.v >= D.velocitaMin * 0.7 && gas > 0;
       if (!tiene) {
-        const lv = k.carica >= D.carica[1] ? 2 : k.carica >= D.carica[0] ? 1 : 0;
-        if (lv) { k.turbo = D.spinta[lv - 1]!; k.livello = lv; }
+        const lv = livelloDrift(k.carica);
+        if (lv) daiTurbo(k, D.spinta[lv - 1]!, lv, R.somma);
         k.drift = 0; k.carica = 0; k.autoT = 0;
-      } else k.carica += DT;
+      } else k.carica += DT * (1 + D.stringi * clamp(sterzo * k.drift, -1, 1)); // stringendo carica prima, allargando dopo
     }
   }
   // ---- velocità ----
@@ -183,7 +206,9 @@ export function muovi(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas:
   }
   // ---- sterzo: in drift si gira sempre verso il lato del drift, lo sterzo stringe (fino a ×1,3) o allarga (fino a ×0,1) ----
   const presa = Math.min(1, Math.abs(k.v) / K.sterzoPieno) * (k.v < 0 ? -1 : 1);
-  const giri = k.drift ? k.drift * V.sterzo * V.drift * 0.75 * (0.7 + 0.6 * sterzo * k.drift) : sterzo * V.sterzo;
+  // fuori dal drift lo sterzo cala con la velocità (a tutta velocità −alto): le curve strette prese forte vogliono il drift
+  const S = C.sterzo, alto = R.sterzo ? 1 - (F.sterzoAlto ?? S.alto) * clamp((Math.abs(k.v) - S.da) / Math.max(1, V.velocita - S.da), 0, 1) : 1;
+  const giri = k.drift ? k.drift * V.sterzo * V.drift * 0.75 * (0.7 + 0.6 * sterzo * k.drift) : sterzo * V.sterzo * alto;
   if (terra) {
     [k.hf, k.hl] = gira(k.hf, k.hl, giri * presa * DT);
     const g = (k.drift ? V.presaDrift : V.presa) * E.presa;
@@ -198,13 +223,14 @@ export function muovi(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas:
   // la pista gira sotto il veicolo: muso e moto ruotano al contrario
   [k.hf, k.hl] = gira(k.hf, k.hl, -kap * ds);
   [k.mf, k.ml] = gira(k.mf, k.ml, -kap * ds);
-  verticale(p, k, V, sPrima, ramoPrima, giro);
+  verticale(p, k, V, sPrima, ramoPrima, giro, R);
   bordi(p, k);
+  if (k.muro && k.drift) k.carica = 0; // contro il muro la carica del drift si perde
   if (!k.aria && k.ramo < 0 && superficieA(p, -1, k.s, k.lat, giro) !== VUOTO && Math.abs(k.lat) <= campo(p.n, p.n.l, k.s)) k.terra = k.s;
 }
 
 /** Salti, atterraggi, giri della morte, cadute; rampe, onde e tappeti del turbo. */
-function verticale(p: Pista, k: Veicolo, V: CVeicoloDef, sPrima: number, ramoPrima: number, giro: number): void {
+function verticale(p: Pista, k: Veicolo, V: CVeicoloDef, sPrima: number, ramoPrima: number, giro: number, R: Regole): void {
   const C = CORSE, G = C.gravita, F = C.famiglie[V.famiglia], n = nastroDi(p, k.ramo), c = cella(n, k.s);
   const uy = n.uy[c.i]! + (n.uy[c.j]! - n.uy[c.i]!) * c.t, kv = n.kv[c.i]! + (n.kv[c.j]! - n.kv[c.i]!) * c.t, ad = n.ad[c.i]! && n.ad[c.j]!;
   const sup = superficieA(p, k.ramo, k.s, k.lat, giro);
@@ -220,6 +246,8 @@ function verticale(p: Pista, k: Veicolo, V: CVeicoloDef, sPrima: number, ramoPri
       if (urto > C.atterraggio.duro) k.v *= C.atterraggio.perdita;
       const at = F.atterraggioTurbo;
       if (at && Math.abs(k.hf * k.ml - k.hl * k.mf) < at.allineato && k.v > 5) { k.turbo = Math.max(k.turbo, at.secondi); k.livello = Math.max(k.livello, 1); }
+      if (k.acro > 0) daiTurbo(k, C.acrobazia.turbo, 2, R.somma);
+      k.acro = 0;
     } else if (k.h < -C.caduta.quota || (ad && k.h > 4)) { k.caduto = DT; k.cadute++; }
     return;
   }
@@ -244,8 +272,14 @@ function verticale(p: Pista, k: Veicolo, V: CVeicoloDef, sPrima: number, ramoPri
   // creste delle onde: chi galleggia salta, tanto più quanto va forte
   const onde = C.superfici[sup]?.onde;
   if (onde && F.onde && Math.floor(k.s / onde.passo) !== Math.floor(sPrima / onde.passo) && k.v > 8) {
-    k.aria = true; k.vh = Math.min(F.onde.max, F.onde.salto * k.v); k.salti++;
+    k.aria = true; k.vh = Math.min(F.onde.max, F.onde.salto * k.v); k.salti++; k.acro = -1;
   }
+}
+
+/** Livello della carica del drift: 0 (niente), 1 blu, 2 arancio, 3 viola. */
+export function livelloDrift(carica: number): number {
+  const c = CORSE.drift.carica;
+  return carica >= c[2] ? 3 : carica >= c[1] ? 2 : carica >= c[0] ? 1 : 0;
 }
 
 /** Muri e bordi: col muro si striscia (e si frena la prima volta), senza muro si vola giù. */

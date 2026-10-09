@@ -125,6 +125,14 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
   - le barche **saltano sulle creste delle onde** e, se atterrano dritte, prendono un po' di turbo.
 
   Solo + − × ÷ e radice, come prima: il replay del server coinciderà con la partita.
+- **La guida divertente** (#170, dopo la prova di Jack del 9 ott: «sterzo esagerato, non capisco cosa cambi dal drift»). Ogni regola ha un interruttore A/B nel banco di prova (opzioni della gara, di serie accese):
+  - **sterzo**: curva del joystick (al centro risponde piano), rampa per i tasti e il joystick a fondo (arriva in 1/6 di secondo, torna più in fretta; i valori di mezzo del joystick passano subito), e a tutta velocità le ruote sterzano il 45 % in meno (le barche no: scivolano già). Il drift no: **per stringere a tutta velocità serve il drift**;
+  - **drift alla Mario Kart**: si parte col bottone DRIFT e il lato si sceglie entro 0,35 s (il saltello si vede); niente più drift automatico tenendo lo sterzo. Il kart va di traverso, la carica ha **3 livelli** con le scintille dalle ruote dietro, **blu → arancio → viola** (0,55 / 1,15 / 1,9 s; stringendo carica prima), e lasciando parte il turbo (0,55 / 1 / 1,6 s). Contro il muro la carica si perde. Col pilota automatico il drift fa guadagnare l'8 % sull'anello (79,0 s contro 85,8), il 9 % sul Lungomare (87,3 contro 95,7) e il 4 % sulla pista folle;
+  - **turbo alla partenza**: conto alla rovescia 3-2-1 nella sim; tieni DRIFT premuto da quando compare l'1: da meno di 0,4 s al VIA è la **partenza razzo** (1,4 s di turbo), fino a 0,9 s una buona partenza (0,7 s); da prima il **motore si ingolfa** (fermo 0,8 s, fumo);
+  - **acrobazie**: DRIFT premuto in aria → avvitamento e 0,8 s di turbo all'atterraggio (non sulle onde: lì c'è già il turbo dell'atterraggio dritto);
+  - **scia**: 1,2 s dietro un avversario (2-12 m, in fila) → 1 s di turbo; vale anche per i bot;
+  - **turbo sommati** alla Crash Team Racing: un turbo preso durante un altro si aggiunge (tetto 3 s).
+  - Si vede e si sente: fiammate dal tubo, FOV che si allarga con un colpo quando parte il turbo, linee di velocità col turbo e nella scia, scossa negli atterraggi, suoni sintetizzati (motore, sgommata, «ding» per livello, turbo, semaforo).
 - **Numeri** in `packages/content/src/corse/motore.json`:
   - 2 famiglie (Ruote, Acqua);
   - 6 veicoli: kart, auto sportiva, carrello della spesa, moto d'acqua, gommone, vasca da bagno;
@@ -136,8 +144,8 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 - **Banco di prova `provapiste.html`** (online accanto al gioco):
   - si guida su ogni pista col proprio veicolo, contro i bot o da soli;
   - si può far guidare il pilota automatico;
-  - c'è la camera dietro, che resta dentro i giri della morte, la camera alta, la vista dall'alto della pista intera e quella che gira intorno;
-  - si cambia la luce.
+  - le camere si scelgono dal **menù ⚙ opzioni** (anche coi suoni): **dietro** (sui binari, resta dentro i giri della morte), **alta** e **primo piano** (bassa e vicina); la pista intera è la **minimappa** nell'angolo;
+  - nel pannello «prove» si cambia la luce e si accendono e spengono le regole della guida (1-5) e gli effetti (6).
 
   Le piste di adesso sono 4 piste di prova del motore: l'anello, la pista folle (giro della morte, curva sopraelevata, salto, dosso, scorciatoia, ponte senza muri), la baia (acqua, corrente, secca) e la discesa (fuga da A a B).
 - **Piste miste** (il Porto): una pista può avere più `famiglie` e una `corsia` per famiglia (scarto laterale, + = destra).
