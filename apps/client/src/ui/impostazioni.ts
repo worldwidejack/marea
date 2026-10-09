@@ -1,11 +1,12 @@
 // Impostazioni (#53): ingranaggio #mzSetBtn nella barra in alto, pannello #mzSet con camera (5 viste), ciclo giorno/notte,
 // meteo (#85), stampa giapponese e contorni, volume di Musica ed Effetti (audio/ponte.ts: 4 livelli, NO … ALTA). Di serie (#59) ciclo, camera 22° e contorni; le scelte restano su questo dispositivo (localStorage).
+// Solo sui dispositivi touch (#143): «Una mano» (il joystick nasce dove tocchi) e quanti secondi resta dopo il rilascio.
 // Coi test automatici (?test=1) si parte tutto spento, così gli screenshot non dipendono dall'ora vera; ?serie=1 usa i valori di serie.
 // Il pannello non sa niente di three: chiama onChange e render/aspetto.ts fa il resto.
 import { PAL, el, injectUiStyle } from './style.ts';
 import { topButton } from './topbar.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-import { CICLO_MIN, DI_SERIE, SPENTO, VISTE, VOLUMI } from '../render/viste.ts';
+import { CICLO_MIN, DI_SERIE, PAD_SEC, SPENTO, VISTE, VOLUMI } from '../render/viste.ts';
 import { setVolumi } from '../audio/ponte.ts';
 import { FLAGS } from '../flags.ts';
 import type { Impostazioni } from '../render/viste.ts';
@@ -26,6 +27,7 @@ const CSS = `
 #mzSet .mz-set-vol { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; }
 #mzSet .mz-set-vol .mz-set-lbl { flex: 1; margin: 0; }
 #mzSet .mz-set-vol .mz-set-cam { min-width: 48px; }
+#mzSet .mz-set-pad { margin: 6px 0 0 12px; }
 #mzSetBtn .mz-ico { width: 28px; height: 28px; }
 `;
 let styled = false;
@@ -59,7 +61,8 @@ export function loadImpostazioni(): Impostazioni {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<Impostazioni> | null;
     if (!raw) return { ...base };
     const vol = (v: unknown, d: number) => (typeof v === 'number' && v >= 0 && v <= 3 ? Math.round(v) : d); // salvate prima dell'audio: di serie
-    return { cam: Number(raw.cam) || 0, ciclo: raw.ciclo === true, stampa: raw.stampa === true, contorni: raw.contorni === true, meteo: typeof raw.meteo === 'boolean' ? raw.meteo : base.meteo, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti) };
+    const padSec = (PAD_SEC as readonly number[]).includes(Number(raw.padSec)) ? Number(raw.padSec) : base.padSec;
+    return { cam: Number(raw.cam) || 0, ciclo: raw.ciclo === true, stampa: raw.stampa === true, contorni: raw.contorni === true, meteo: typeof raw.meteo === 'boolean' ? raw.meteo : base.meteo, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti), unaMano: raw.unaMano === true, padSec };
   } catch { return { ...base }; }
 }
 
@@ -69,6 +72,7 @@ export type ImpostazioniPanel = { open(): void; close(): void; isOpen(): boolean
 export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazioni): void; guida?: { on(): boolean; set(on: boolean): void } }): ImpostazioniPanel {
   injectUiStyle(); injectStyle();
   let cur = loadImpostazioni(), open = false;
+  const touch = typeof matchMedia === 'function' && matchMedia('(any-pointer: coarse)').matches; // «Una mano» solo dove si gioca col dito
   const sheet = el('div', 'mz mz-sheet mz-side'); sheet.id = 'mzSet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', 'Impostazioni');
   const head = el('div', 'mz-head'); head.append(el('div', 'mz-title', 'Impostazioni'));
   const x = el('button', 'mz-x', '×'); x.type = 'button'; x.title = 'Chiudi (Esc)'; head.appendChild(x);
@@ -76,7 +80,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch { /* navigazione privata: vale fino a fine sessione */ } };
   const change = (p: Partial<Impostazioni>) => { cur = { ...cur, ...p }; save(); o.onChange(cur); setVolumi(cur.musica, cur.effetti); render(); };
-  const toggleRow = (key: 'ciclo' | 'stampa' | 'contorni' | 'meteo', title: string, sub: string) => {
+  const toggleRow = (key: 'ciclo' | 'stampa' | 'contorni' | 'meteo' | 'unaMano', title: string, sub: string) => {
     const b = el('button', 'mz-set-row' + (cur[key] ? ' on' : '')); b.type = 'button'; b.dataset['set'] = key;
     const txt = el('span'); txt.append(el('span', '', title), el('span', 'q', sub));
     b.append(txt, el('span', 'sw', cur[key] ? 'SÌ' : 'NO'));
@@ -105,7 +109,21 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
       row.appendChild(b);
     });
     cam.appendChild(row);
-    body.append(volRow('musica', 'Musica'), volRow('effetti', 'Effetti'), cam,
+    body.append(volRow('musica', 'Musica'), volRow('effetti', 'Effetti'), cam);
+    if (touch) {
+      body.appendChild(toggleRow('unaMano', 'Una mano', 'il joystick appare dove tocchi lo schermo'));
+      if (cur.unaMano) { // quanto resta il joystick dopo il rilascio: bottoni grandi come quelli del volume
+        const r = el('div', 'mz-set-vol mz-set-pad'); r.append(el('div', 'mz-set-lbl', 'Il joystick resta'));
+        for (const sec of PAD_SEC) {
+          const b = el('button', 'mz-set-cam' + (cur.padSec === sec ? ' on' : ''), `${sec} s`); b.type = 'button'; b.dataset['pad'] = String(sec);
+          b.title = `Dopo che alzi il dito resta ${sec} ${sec === 1 ? 'secondo' : 'secondi'}: rimettici il pollice sopra e lo riprendi`;
+          b.addEventListener('click', () => change({ padSec: sec }));
+          r.appendChild(b);
+        }
+        body.appendChild(r);
+      }
+    }
+    body.append(
       toggleRow('ciclo', 'Ciclo giorno e notte', `giorno, tramonto, notte, alba: un giro ogni ${CICLO_MIN} minuti`),
       toggleRow('meteo', 'Meteo', 'sole, nuvole, pioggia, nebbia, vento: lo stesso per tutti'),
       toggleRow('stampa', 'Stampa giapponese', 'colori da stampa antica, onde, carta'),

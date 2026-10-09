@@ -185,6 +185,7 @@ async function boot(): Promise<void> {
   // la resa delle impostazioni (passata finale, acqua stampa, ciclo) si scarica solo se qualcosa è acceso: con tutto spento zero byte in più
   let aspetto: Aspetto | null = null, aspettoLoad: Promise<void> | null = null, voglio: Impostazioni | null = null;
   const applica = (s: Impostazioni) => {
+    input.setUnaMano(s.unaMano, s.padSec); // telefono: joystick dove tocchi (#143)
     voglio = s;
     if (aspetto) { aspetto.set(s); return; }
     if (tuttoSpento(s)) return;
