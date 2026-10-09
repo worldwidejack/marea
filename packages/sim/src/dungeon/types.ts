@@ -64,6 +64,16 @@ export type DungeonEvent = (
   | { t: 'asciutto'; n: number }
   | { t: 'geyser'; x: number; z: number }
   | { t: 'rallentato' }
+  /** Archivio: fermata la corrente n col suo timone · bomba a pressione che scoppia · preso dall'arpione · sbattuto contro un muro da una
+   *  spinta · raffica dell'Astrolabio · il suo raggio · colpo sul capo protetto dagli anelli (niente danno) · anelli staccati. */
+  | { t: 'timone'; n: number }
+  | { t: 'bomba'; x: number; z: number }
+  | { t: 'arpionato' }
+  | { t: 'urto'; x: number; z: number }
+  | { t: 'raffica' }
+  | { t: 'raggio'; x: number; z: number }
+  | { t: 'parato'; x: number; z: number }
+  | { t: 'anelli' }
 ) & { eroe?: number };
 
 export type DungeonView = {
@@ -86,6 +96,8 @@ export type DungeonView = {
     arma: string | null;
     /** Rallentato dal Tubo-strisciante (Drenaggio). */
     rallentato?: boolean;
+    /** Archivio: nel vento che soffia (e ti sposta), al riparo dietro uno scaffale, spinto da fuori (arpione, raffica, bomba). */
+    vento?: boolean; riparo?: boolean; spinto?: boolean;
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
     /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
@@ -93,8 +105,12 @@ export type DungeonView = {
     /** Raggio in m del colpo ad area dei boss, solo mentre lo prepara (il client disegna il cerchio a terra). */
     area?: number;
     /** Sta preparando un tiro (freccia o magia), non un colpo in mischia: il client mostra l'arco che si tende. */
-    tiro?: boolean }[];
-  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica'; x: number; y: number; z: number; vx: number; vz: number }[];
+    tiro?: boolean;
+    /** Archivio: vola alto (in mischia non lo prendi), sulle grate, ricarica la molla, protetto dagli anelli; l'Astrolabio: attacco in
+     *  corso e, per il raggio, il punto dove arriva (linea d'avviso in `prepara`, raggio in `colpisce`). */
+    alto?: boolean; grata?: boolean; molla?: boolean; schermo?: boolean;
+    attacco?: 'rosa' | 'raffica' | 'raggio'; mira?: [number, number] }[];
+  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico'; x: number; y: number; z: number; vx: number; vz: number }[];
   bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
   uscita: { x: number; z: number };
   vicinoUscita: boolean;
@@ -108,7 +124,12 @@ export type DungeonView = {
   acque: { n: number; livello: number }[];
   valvole: { x: number; z: number; n: number; aperta: boolean }[];
   vicinoValvola: boolean;
-  geyser: { id: number; x: number; z: number; r: number; getto: boolean; t: number }[];
+  geyser: { id: number; x: number; z: number; r: number; getto: boolean; t: number; bomba?: boolean }[];
+  /** Archivio (negli altri dungeon liste vuote): correnti d'aria (direzione, stato e fase 0..1 nello stato), timoni (fermi o no), A qui
+   *  ferma una corrente. */
+  venti: { n: number; dx: number; dz: number; stato: 'calma' | 'avviso' | 'soffia' | 'ferma'; t: number }[];
+  timoni: { x: number; z: number; n: number; fermo: boolean }[];
+  vicinoTimone: boolean;
   /** Bottino e monete al sicuro all'ultimo altare (null = nessun altare toccato). */
   salvato: { bottino: Record<string, number>; monete: number } | null;
   zaino: { peso: number; max: number; monete: number; bottino: Record<string, number> };

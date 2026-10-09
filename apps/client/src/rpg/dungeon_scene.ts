@@ -5,6 +5,8 @@
 // Luci: emisferica scura + direzionale debole + lanterna sull'eroe + 4 PointLight spostate sulle torce/scala più vicine.
 // Drenaggio: kit in codice (rpg/drenaggio.ts) finché mancano i modelli, e l'acqua dei bacini (un blocco per cella, alto 0,6 m) che scende
 // a gradini quando si gira la valvola (`setAcque`).
+// Archivio: kit in codice (rpg/archivio.ts) finché mancano i modelli dng_archivio_*, scaffali al posto delle colonne e le rastrelliere
+// a grata sulle celle `grata` (ci si vede attraverso: la luce le tratta come pavimento).
 import * as THREE from 'three';
 import { dungeonDef } from '@marea/content/rpg.ts';
 import type { DungeonDef } from '@marea/content/rpg.ts';
@@ -15,6 +17,7 @@ import { PAL } from '../ui/style.ts';
 import { boxPart, cellHash, parts } from './dungeon_kit.ts';
 import type { Part } from './dungeon_kit.ts';
 import { kitDrenaggio } from './drenaggio.ts';
+import { kitArchivio } from './archivio.ts';
 
 export type DungeonScene = {
   scene: THREE.Scene; map: DMap; def: DungeonDef; floorY: number;
@@ -39,6 +42,7 @@ const STYLE: Record<string, { floor: string; wall: string; top: number; lantern:
   cripta: { floor: PAL.pietraScura, wall: PAL.pietra, top: 0.01, lantern: PAL.arancio, hemi: [PAL.pietra, PAL.ombraCalda, 1.2] },
   vuoto: { floor: PAL.abisso, wall: PAL.viola, top: 0.1, lantern: PAL.viola, hemi: [PAL.abisso, PAL.neroCaldo, 1.4] },
   drenaggio: { floor: PAL.pietraScura, wall: PAL.roccia, top: 0.05, lantern: PAL.arancio, hemi: [PAL.acquaProfonda, PAL.ombraCalda, 1.35] },
+  archivio: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.giallo, hemi: [PAL.sabbia, PAL.ombraCalda, 1.25] },
 };
 
 /** Un tipo di modulo istanziato su più celle: una InstancedMesh per parte, stessa numerazione; nascondere = scala 0. */
@@ -92,7 +96,7 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
       floors.push(i);
       if (isCol(cx, cz)) cols.push(i);
       if (def.legenda[c]?.luce) lightsAt.push(i);
-      if (c === '.' && def.stile !== 'vuoto' && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
+      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
     } else if (c === '#') {
       let touches = false;
       for (let dz = -1; dz <= 1 && !touches; dz++) for (let dx = -1; dx <= 1; dx++) if (isFloor(cx + dx, cz + dz)) { touches = true; break; }
@@ -109,7 +113,8 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
   ]);
   const rot = (i: number) => Math.floor(cellHash(i % W, Math.floor(i / W), 3) * 4);
   const mats = (list: number[], r: (i: number) => number) => list.map((i) => place(i % W, Math.floor(i / W), r(i)));
-  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : null; // segnaposto in codice finché non ci sono i modelli dng_drenaggio_*
+  // segnaposto in codice finché non ci sono i modelli dng_drenaggio_* / dng_archivio_*
+  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
   const bFloor = makeBatch(pFloor ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, rot), 'pavimento', group);
   const bWall = makeBatch(pWall ?? dk?.muro ?? [boxPart(T, 2.4, T, 0, st.wall)], walls, mats(walls, rot), 'muro', group);
   const bLow = makeBatch(pLow ?? dk?.muro_basso ?? [boxPart(T, 0.6, T, 0, st.wall)], walls, mats(walls, rot), 'muro_basso', group);
@@ -117,9 +122,12 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
   // acqua dei bacini: un batch per bacino, scala in altezza = livello a gradini (0 = asciutto, non si disegna)
   const acque = map.bacini.map((b) => {
     const base = b.celle.map((i) => place(i % W, Math.floor(i / W), rot(i)).multiply(new THREE.Matrix4().makeTranslation(0, st.top, 0)));
-    return { n: b.n, celle: b.celle, scala: 1, batch: makeBatch(dk?.acqua ?? [boxPart(T, 0.6, T, 0, PAL.acqua)], b.celle, base, 'acqua_' + b.n, group) };
+    return { n: b.n, celle: b.celle, scala: 1, batch: makeBatch((dk && 'acqua' in dk ? dk.acqua : null) ?? [boxPart(T, 0.6, T, 0, PAL.acqua)], b.celle, base, 'acqua_' + b.n, group) };
   });
   const bBones = makeBatch(pBones ?? [boxPart(0.6, 0.12, 0.3, 0, PAL.pietraChiara)], bones, mats(bones, (i) => cellHash(i, 0, 9) * 4), 'ossa', group);
+  // Archivio: rastrelliere a grata, girate lungo il lato lungo della grata (orizzontale o verticale)
+  const grate = map.grate, rotGrata = (i: number) => (map.grata[i - 1] || map.grata[i + 1] ? 0 : 1);
+  const bGrata = makeBatch(ak?.grata ?? [boxPart(T * 0.9, 2, 0.15, 0, PAL.roccia)], grate, mats(grate, rotGrata), 'grata', group);
 
   // ---- torce: sul muro accanto alla cella «luce» (meglio nord/ovest, che restano alti), altrimenti un braciere a terra ----
   const torchMats: THREE.Matrix4[] = [], braziers: THREE.Vector3[] = [];
@@ -153,7 +161,7 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
   const bCristOn = makeBatch([boxPart(0.36, 0.75, 0.36, 0.8, PAL.acquaBassa, true)], altarCells, altarM, 'altare_acceso', group);
   const altarSrc = map.altari.map((a, n) => { const src = { x: a.x, z: a.z, c: PAL.acquaBassa, i: 0.4, cell: altarCells[n]! }; sources.push(src); return src; });
   let altarOn = -1, pulseN = -1, pulseT0 = -1;
-  const batches = [bFloor, bWall, bLow, bCol, bBones, bTorch, bBraz, bExit, bAltare, bCristOff, bCristOn, ...acque.map((a) => a.batch)];
+  const batches = [bFloor, bWall, bLow, bCol, bBones, bGrata, bTorch, bBraz, bExit, bAltare, bCristOff, bCristOn, ...acque.map((a) => a.batch)];
   const acquaSu = (a: (typeof acque)[number], lv: (i: number) => number) => a.celle.forEach((i, n) => setInst(a.batch, n, a.scala > 0 ? lv(i) : 0, a.scala));
 
   // ---- luci ----
@@ -200,6 +208,7 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
     });
     cols.forEach((i, n) => { const cx = i % W, cz = (i - cx) / W, dx = cx - hcx, dz = cz - hcz; setInst(bCol, n, lv(i), dx + dz >= 1 && dx + dz <= 4 && Math.abs(dx - dz) <= 2 ? 0.3 : 1); });
     bones.forEach((i, n) => setInst(bBones, n, lv(i)));
+    grate.forEach((i, n) => setInst(bGrata, n, lv(i)));
     torchCells.forEach((i, n) => setInst(bTorch, n, Math.max(lv(i), seen[i] ? 1 : 0)));
     bBraz.cells.forEach((i, n) => setInst(bBraz, n, seen[i] ? 1 : 0));
     setInst(bExit, 0, Math.max(lv(exitCell), LV.seen)); // la scala si vede sempre: è da lì che si esce

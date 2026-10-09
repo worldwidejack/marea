@@ -1,5 +1,6 @@
 // Lore nei dungeon (`DungeonDef.testi`, docs/RPG.md §2c): la sim non la vede, qui si controlla che i testi stiano in piedi sulla mappa
-// e che le regole di Riccardo reggano: poche voci obbligatorie e corte, letture facoltative raggiungibili e lontane dai bottoni.
+// e che le regole di Riccardo reggano: poche voci obbligatorie e corte, letture facoltative raggiungibili e lontane dai bottoni (anche dai
+// timoni dell'Archivio).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DUNGEONS, dungeonDef } from '@marea/content/rpg.ts';
@@ -29,6 +30,15 @@ test('testi: il Drenaggio ha sottotitolo, 3 voci e 4 letture (2 libri, 2 incisio
   assert.ok(t?.sottotitolo);
   assert.deepEqual(t.voci?.map((v) => v.id), ['ingresso', 'pompe', 'capoturno']);
   assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['registro:libro', 'targa:incisione', 'manuale:libro', 'tacche:incisione']);
+  assert.equal(t.voci?.filter((v) => v.capo).length, 1, 'parla un capo solo');
+});
+
+test('testi: l’Archivio ha sottotitolo, 4 voci (l’Archivista Capo e l’Astrolabio) e 4 letture (2 libri, 2 incisioni)', () => {
+  const t = dungeonDef('archivio').testi;
+  assert.ok(t?.sottotitolo);
+  assert.ok(t.sottotitolo.startsWith('Pilone idraulico n. 2'));
+  assert.deepEqual(t.voci?.map((v) => v.id), ['ingresso', 'galleria', 'mantici', 'astrolabio']);
+  assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['diario:libro', 'carta:incisione', 'registro:libro', 'lettera:incisione']);
   assert.equal(t.voci?.filter((v) => v.capo).length, 1, 'parla un capo solo');
 });
 
@@ -73,6 +83,7 @@ test('testi: letture raggiungibili, incisioni col muro a nord, lontane da scala,
       assert.ok(lontano(cx, cz, m.exit, 2), `${d.id}/${l.id}: troppo vicina alla scala`);
       for (const a of m.altari) assert.ok(lontano(cx, cz, a, 3), `${d.id}/${l.id}: troppo vicina a una lanterna`);
       for (const v of m.valvole) assert.ok(lontano(cx, cz, v, 2), `${d.id}/${l.id}: troppo vicina a una valvola`);
+      for (const t of m.timoni) assert.ok(lontano(cx, cz, t, 2), `${d.id}/${l.id}: troppo vicina a un timone`);
       for (const f of m.forzieri) assert.ok(lontano(cx, cz, f, 1), `${d.id}/${l.id}: sopra un forziere`);
     }
     for (const [i, a] of letture.entries()) for (const b of letture.slice(i + 1)) assert.ok(lontano(a.at[0], a.at[1], { cx: b.at[0], cz: b.at[1] }, 2), `${d.id}: ${a.id} e ${b.id} attaccate`);

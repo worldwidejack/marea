@@ -6,6 +6,7 @@ import { add, ev, nuovoBottino, secToTicks } from './state.ts';
 import { rollLoot } from './loot.ts';
 import { moveCircle } from './map.ts';
 import { risveglio } from './altari.ts';
+import { grigliaDi, schermato } from './muove.ts';
 import { COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -38,6 +39,8 @@ export function dannoSu(e: Enemy, src: HitSrc): number {
 /** Applica un colpo dell'eroe (o di un alleato) a un nemico: danno, sanguinamento, spinta, aggro, morte. Ritorna il danno. */
 export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   if (e.st === 'morto' || e.alleato) return 0;
+  // Archivio: l'Astrolabio con gli anelli-scudo ancora interi non prende danni
+  if (e.def.astrolabio && schermato(s, e)) { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z) }); return 0; }
   const d = dannoSu(e, src);
   e.vita -= d;
   e.hurt = COLPITO_TICKS;
@@ -56,7 +59,7 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   // sbilancia o attacco caricato: interrompe la preparazione dei non-boss e spinge
   if ((src.traits.sbilancia || src.caricato) && !e.def.boss) {
     if (e.st === 'prepara') { e.st = 'recupera'; e.stT = 0; e.stDur = secToTicks(e.def.recupero); }
-    if (src.traits.sbilancia && e.def.comportamento !== 'torretta') moveCircle(s.map, e, src.dirX * SPINTA, src.dirZ * SPINTA, e.def.raggio); // le torrette sono attaccate ai tubi
+    if (src.traits.sbilancia && e.def.comportamento !== 'torretta' && e.def.comportamento !== 'anello') moveCircle(grigliaDi(s, e), e, src.dirX * SPINTA, src.dirZ * SPINTA, e.def.raggio); // le torrette sono attaccate ai tubi
   }
   if (!e.aggro) wake(s, e);
   if (e.vita <= 0) kill(s, e);

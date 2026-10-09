@@ -1,10 +1,12 @@
 // Proiettili 2,5D: frecce con gravità (a terra o su un muro si fermano), magie dritte con esplosione, tiri dei nemici sull'eroe.
+// Archivio: l'arpione del Drone Idro-Ragno, se prende, tira l'eroe verso chi l'ha lanciato (vento.ts, spinta da fuori).
 import { DT } from '../constants.ts';
 import type { DungeonState, Enemy, Proj } from './state.ts';
-import { add, finita, inGioco } from './state.ts';
+import { add, ev, finita, inGioco } from './state.ts';
 import { hitEnemy, hitHero } from './combat.ts';
 import { isOpaque } from './map.ts';
-import { ALTEZZA_BERSAGLIO } from './tuning.ts';
+import { ALTEZZA_BERSAGLIO, HZ } from './tuning.ts';
+import { spingi } from './vento.ts';
 
 const MARGINE = 0.15;
 
@@ -37,6 +39,16 @@ function hitFoes(s: DungeonState, p: Proj): boolean {
   return true;
 }
 
+/** Tiro nemico a segno sull'eroe di turno; l'arpione lo tira all'indietro lungo il volo. */
+function colpisciEroe(s: DungeonState, p: Proj, x: number, z: number): void {
+  const arriva = !s.done && s.hero.protetto <= 0;
+  hitHero(s, p.danno, p.magico ? 'magia' : p.contundente ? 'contundente' : 'taglio', x, z);
+  if (!p.tira || !arriva || s.done) return;
+  const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
+  spingi(s, -p.vx / v, -p.vz / v, p.tira, (p.tiraT ?? 15) / HZ);
+  ev(s, { t: 'arpionato' });
+}
+
 /** Insieme: un tiro nemico prende il primo eroe in gioco che tocca; quelli degli eroi lavorano sull'eroe che li ha tirati (xp, uccisioni). */
 export function stepProjectiles(s: DungeonState): void {
   if (!s.proj.length) return;
@@ -66,12 +78,12 @@ function muovi(s: DungeonState): void {
         for (const k of inGioco(s)) {
           const r = s.eroi[k]!, dx = r.hero.x - p.x, dz = r.hero.z - p.z, rr = r.runHero.raggio + MARGINE;
           if (dx * dx + dz * dz > rr * rr) continue;
-          s.cur = k; hitHero(s, p.danno, p.magico ? 'magia' : p.contundente ? 'contundente' : 'taglio', r.hero.x, r.hero.z); fine = true;
+          s.cur = k; colpisciEroe(s, p, r.hero.x, r.hero.z); fine = true;
           break;
         }
       } else if (p.dalNemico) {
         const dx = h.x - p.x, dz = h.z - p.z, r = rh.raggio + MARGINE;
-        if (dx * dx + dz * dz <= r * r) { hitHero(s, p.danno, p.magico ? 'magia' : p.contundente ? 'contundente' : 'taglio', h.x, h.z); fine = true; }
+        if (dx * dx + dz * dz <= r * r) { colpisciEroe(s, p, h.x, h.z); fine = true; }
       } else fine = hitFoes(s, p);
     }
     if (finita(s)) return;

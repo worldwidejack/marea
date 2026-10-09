@@ -170,5 +170,77 @@
        "Sotto, in piccolo: «QUANDO FINISCE IL TURNO?»"
      ]}
     ]
+   }},
+  {"id":"archivio","nome":"Archivio Navigazionale","descr":"Sotto l'arco est della Laguna, le carte delle rotte della civiltà degli automi: gallerie del vento, archivisti a molla, droni sulle grate, aerostati e l'Astrolabio Impazzito. Argento, ferro, un po' d'oro.","stile":"archivio","difficolta":4,"richiede":"drenaggio","tile":2,"legenda":{"1":{"vento":1},"2":{"vento":2},"3":{"vento":3},"m":{"nemico":"archivista_molla"},"h":{"nemico":"idro_ragno","grata":true},"g":{"grata":true},"b":{"nemico":"aerostato_spia"},"B":{"nemico":"aerostato_spia","vento":1},"K":{"nemico":"astrolabio","capo":true},"c":{"forziere":"comune_archivio"},"R":{"forziere":"raro_archivio"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"L":{"altare":true,"ferme":[3]},"z":{"timone":3}},"ingresso":{"island":"laguna","at":[47,36]},
+   "venti":[{"n":1,"dir":"o","forza":4.5,"soffia":2.2,"pausa":2.4,"fase":0},{"n":2,"dir":"s","forza":4.5,"soffia":2,"pausa":2.6,"fase":1.3},{"n":3,"dir":"s","forza":9,"soffia":1,"pausa":0}],
+   "rows": [
+    "#############################################",
+    "#R.............#######.t...................R#",
+    "#.....m......z.#######......................#",
+    "#..............#######.....o.........o......#",
+    "#.......b......#######..........K...........#",
+    "#.g............#######......................#",
+    "#.h...o...o....#######.....o.........o......#",
+    "#.g............#######......................#",
+    "#.g........b...#######c...................t.#",
+    "#t.............######################..######",
+    "#.............t####################t........#",
+    "####222############################........m#",
+    "####222######............t#########.L.......#",
+    "####222######.m.........b.#########.........#",
+    "####222######.....hggg....###########333#####",
+    "####222...........gggh....###########333#####",
+    "####222...................###########333#####",
+    "####222######...........m.###########333#####",
+    "####222######c............###########333#####",
+    "####222###########..######.t............gghg#",
+    "#...........######..######........b.........#",
+    "#.t......m..######..######....ghgg......t...#",
+    "#...........11111B11o11111.............m....#",
+    "#...........111o1111111111..................#",
+    "#...........11111111111o11.......m..g.......#",
+    "#...........111111o1111111...A......h.......#",
+    "#.........t.##############..........g....m..#",
+    "#....<......##############.................c#",
+    "#############################################",
+    "                                             "
+   ],
+   "testi": {
+    "sottotitolo": "Pilone idraulico n. 2 · le carte del vento",
+    "voci": [
+     {"id":"ingresso","zona":[1,20,11,27],"chi":"Archivista Capo","testo":"…tic… Segnale dal Pilone 1: l’acqua gira di nuovo. Prima volta in 41.207 notti. Ricalcolare tutte le rotte. Silenzio in sala."},
+     {"id":"galleria","zona":[12,22,25,25],"chi":"Archivista Capo","testo":"Le ventole soffiano verso l’uscita: l’aria della Marea non entra e le carte restano asciutte. Visitatori: dietro gli scaffali."},
+     {"id":"mantici","zona":[1,1,14,10],"chi":"Archivista Capo","testo":"Sala dei Mantici. Il Condotto Maestro soffia finché la Marea è alta. Il timone non si tocca. Ordine della Regina."},
+     {"id":"astrolabio","zona":[22,1,43,8],"chi":"L’Astrolabio Impazzito","capo":true,"testo":"Stella polare: NON TROVATA. Cielo: CHIUSO. Rotta: NON TROVATA. Ricalcolo. Ricalcolo. RICALCOLO."}
+    ],
+    "letture": [
+     {"id":"diario","tipo":"libro","at":[2,24],"titolo":"Diario di bordo della prima Regata","righe":[
+       "Notte prima della partenza. La Regina ha voluto dall’Archivio tutte le rotte: correnti, venti, secche. Dodici archivisti a molla hanno copiato per tre giorni senza fermarsi.",
+       "Alba. Si parte dal molo con il vento contro, come aveva detto l’Astrolabio: a remi fino al Pilone 1. Il Capoturno ci ha salutato col martello. Non so se ci ha riconosciuti.",
+       "Pilone 2, l’Archivio. Qui il vento gira sempre dove dice l’Astrolabio. Abbiamo issato le vele all’istante giusto e il pilone si è caricato da solo, come un respiro.",
+       "La Marea ci segue. Dalla poppa si vede: una striscia rossa che si mangia il riflesso delle stelle. La Regina dice di non guardarla. Lei la guarda sempre.",
+       "Pilone 3. Fa caldo, l’acqua fuma. Scrivo poco.",
+       "Ultima pagina, un’altra mano: «Il giro è chiuso. La Barriera è su e il cielo si è fatto di vetro. La Regina non è tornata a bordo.»"
+     ]},
+     {"id":"carta","tipo":"incisione","at":[16,12],"titolo":"Carta delle correnti","righe":[
+       "LA ROTTA DEI QUATTRO PILONI",
+       "Un anello d’acqua inciso nel muro, con quattro tacche: DRENAGGIO · ARCHIVIO · FUCINA · SANTUARIO.",
+       "Sotto, più piccolo: «Si parte dal molo e si torna al molo. Chi salta un pilone, ricomincia da capo.»",
+       "Qualcuno ha cerchiato la quarta tacca, più e più volte, finché il ferro non si è consumato."
+     ]},
+     {"id":"registro","tipo":"libro","at":[3,2],"titolo":"Registro dell’Archivista a Molla n. 12","righe":[
+       "Archivista n. 12. Carica: piena. Compito: ricopiare le carte prima che l’umidità della Marea le mangi.",
+       "Regola 1. Una carta copiata è una carta salvata. Regola 2. Un archivista che si ferma va ricaricato. Regola 3. Chi tocca le carte senza permesso va accompagnato fuori. Di corsa.",
+       "Nota. Da quando c’è la Barriera il cielo è chiuso: l’Astrolabio non vede le stelle e dice che tutte le rotte sono sbagliate. Ricopiamo tutto da capo, ogni notte.",
+       "Nota. Carte ricopiate: 41.206 volte. Carte giuste: nessuna. Carica: piena.",
+       "A matita, storto: «Se qualcuno ferma il Condotto, la Marea entra. O forse la Marea non c’è più. Non lo so. Qui sotto non ci sono finestre.»"
+     ]},
+     {"id":"lettera","tipo":"incisione","at":[41,10],"titolo":"Lettera della Regina","righe":[
+       "Una lastra d’ottone avvitata storta, incisa in fretta.",
+       "«All’Astrolabio. Quando alzerò la Barriera il cielo si chiuderà e per un po’ non vedrai più le stelle. Non avere paura. Continua a girare.»",
+       "«Un giorno qualcuno tornerà a fare il giro per davvero. Mostragli la rotta. Io sarò dove la rotta finisce.»",
+       "Al posto della firma, un sigillo a forma di onda."
+     ]}
+    ]
    }}
 ]

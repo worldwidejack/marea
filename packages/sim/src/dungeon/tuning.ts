@@ -80,5 +80,18 @@ export const SCOLO_TICKS = Math.round(3 * HZ);
 /** Geyser attorno al Capoturno: 8 direzioni (versori), la prima cambia a ogni colpo ad area. */
 const D = 0.7071067811865476;
 export const GEYSER_DIR: readonly (readonly [number, number])[] = [[1, 0], [D, D], [0, 1], [-D, D], [-1, 0], [-D, -D], [0, -1], [D, -D]];
+/** Archivio: A entro questa distanza dal centro del timone ferma la corrente; le carte cominciano a volare (avviso) così prima della
+ *  raffica. Spinta da fuori: se l'eroe fa meno di questa frazione del passo voluto ha sbattuto contro un muro. */
+export const RAGGIO_TIMONE = 1.4;
+export const AVVISO_RAFFICA = Math.round(0.8 * HZ);
+export const URTO_FRAZ = 0.5;
+/** Bombardiere: distanza che tiene dall'eroe (frazioni della gittata della bomba). */
+export const BOMBA_VICINO = 0.35;
+export const BOMBA_LONTANO = 0.65;
+/** Rosa dei venti dell'Astrolabio: 16 direzioni (versori), le salve pari usano quelle pari, le dispari quelle a mezzo spicchio. */
+const C1 = 0.9238795325112867, S1 = 0.3826834323650898;
+export const DIR16: readonly (readonly [number, number])[] = [
+  [1, 0], [C1, S1], [D, D], [S1, C1], [0, 1], [-S1, C1], [-D, D], [-C1, S1], [-1, 0], [-C1, -S1], [-D, -D], [-S1, -C1], [0, -1], [S1, -C1], [D, -D], [C1, -S1],
+];
 /** Danno minimo di un colpo andato a segno. */
 export const DANNO_MIN = 1;

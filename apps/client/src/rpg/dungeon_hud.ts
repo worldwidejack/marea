@@ -178,6 +178,11 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'valvola': say('Valvola girata: l’acqua scende…', 2200); break;
         case 'asciutto': say('Svuotato: adesso si passa', 2200); break;
         case 'rallentato': say('La fanghiglia ti rallenta', 1600); break;
+        case 'timone': say('Timone girato: il vento si ferma', 2400); break;
+        case 'arpionato': say('Arpionato! Il drone ti tira a sé', 1600); break;
+        case 'urto': say('Sbattuto contro il muro', 1400); break;
+        case 'parato': say('Gli anelli lo proteggono: rompili!', 1800); break;
+        case 'anelli': say('L’Astrolabio stacca gli anelli: rompili per colpirlo', 3000); break;
         default:
       }
     },

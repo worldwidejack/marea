@@ -141,7 +141,9 @@ export function createAudio(): Audio {
         : e.t === 'schivato' ? 'schivato' : e.t === 'morte' ? 'nemico_ko' : e.t === 'raccolto' ? 'raccolto' : e.t === 'monete' ? 'moneta'
         : e.t === 'pozione' ? 'pozione' : e.t === 'magia' ? 'magia' : e.t === 'altare' || e.t === 'risveglio' ? 'altare'
         : e.t === 'senzaMagicka' || e.t === 'senzaFrecce' || e.t === 'rotto' || e.t === 'pieno' ? 'vuoto'
-        : e.t === 'valvola' ? 'martello' : e.t === 'asciutto' ? 'goccia' : e.t === 'geyser' ? 'sfrigola' : e.t === 'rallentato' ? 'plop' : null; // Drenaggio
+        : e.t === 'valvola' ? 'martello' : e.t === 'asciutto' ? 'goccia' : e.t === 'geyser' ? 'sfrigola' : e.t === 'rallentato' ? 'plop' // Drenaggio
+        : e.t === 'timone' ? 'martello' : e.t === 'bomba' ? 'cannone' : e.t === 'arpionato' ? 'lancio' : e.t === 'raffica' ? 'raffica' // Archivio
+        : e.t === 'raggio' ? 'tuono' : e.t === 'parato' ? 'schivato' : e.t === 'anelli' ? 'apri' : null;
       if (id) suona(id);
     },
     resume() { if (vol.musica > 0 || vol.effetti > 0) void ctx.resume(); },

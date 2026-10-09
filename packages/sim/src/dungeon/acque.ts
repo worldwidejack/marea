@@ -7,6 +7,7 @@ import { conEroe, ev, finita, inGioco, secToTicks } from './state.ts';
 import { hitHero } from './combat.ts';
 import { isSolid } from './map.ts';
 import { GEYSER_DIR, RAGGIO_VALVOLA, SCOLO_TICKS } from './tuning.ts';
+import { spingi } from './vento.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const bacinoDi = (s: DungeonState, n: number): Bacino | undefined => s.bacini.find((b) => b.n === n);
@@ -64,13 +65,14 @@ export function geyserDa(s: DungeonState, e: Enemy): void {
   }
 }
 
-/** Fine tick: i geyser avvisano, poi eruttano e prendono (una volta) chi ci sta dentro. */
+/** Fine tick: i geyser avvisano, poi eruttano e prendono (una volta) chi ci sta dentro. Le bombe dell'Archivio (`spinta`) scoppiano e
+ *  spingono via dal centro chi prendono. */
 export function stepGeyser(s: DungeonState): void {
   if (!s.geyser.length) return;
   const keep: DungeonState['geyser'] = [];
   for (const g of s.geyser) {
     g.t++;
-    if (g.t === g.avviso + 1) ev(s, { t: 'geyser', x: r2(g.x), z: r2(g.z) });
+    if (g.t === g.avviso + 1) ev(s, { t: g.spinta !== undefined ? 'bomba' : 'geyser', x: r2(g.x), z: r2(g.z) });
     if (g.t > g.avviso) {
       for (const i of inGioco(s)) {
         if (g.colpiti.includes(i)) continue;
@@ -78,7 +80,12 @@ export function stepGeyser(s: DungeonState): void {
           const h = s.hero, dx = h.x - g.x, dz = h.z - g.z, r = g.r + s.runHero.raggio;
           if (dx * dx + dz * dz > r * r) return;
           g.colpiti.push(i);
+          const prima = !s.done && h.protetto <= 0;
           hitHero(s, g.danno, 'contundente', h.x, h.z);
+          if (g.spinta && prima && !s.done) {
+            const d = Math.sqrt(dx * dx + dz * dz);
+            spingi(s, d > 1e-6 ? dx / d : -h.fx, d > 1e-6 ? dz / d : -h.fz, g.spinta, 0.3);
+          }
         });
         if (finita(s)) return;
       }

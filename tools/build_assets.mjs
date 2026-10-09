@@ -39,8 +39,8 @@ const REQUIRED_RPG = [...['grotta', 'cripta', 'vuoto'].flatMap((st) => ['pavimen
   'arm_nunchaku', 'arm_katana', 'arm_ascia', 'arm_lancia', 'arm_spadone', 'arm_martello', 'arm_arco', 'arm_freccia', 'fx_fiammata'];
 const isRpg = (n) => /^(dng_|nem_|arm_|fx_)/.test(n) || n === 'prop_sacco';
 const CLIPS = ['idle', 'walk', 'run', 'sit', 'row'];
-const DNG_MODULE = /^dng_(grotta|cripta|vuoto|drenaggio)_(pavimento|muro|muro_basso)$/;
-const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno']);
+const DNG_MODULE = /^dng_(grotta|cripta|vuoto|drenaggio|archivio)_(pavimento|muro|muro_basso)$/;
+const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno', 'nem_astrolabio']);
 const BUDGET = (n) => n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
   : n.startsWith('boat_') ? [1, 600] : n.startsWith('chr_') ? [1, 1500] : BOSS.has(n) ? [1, 1200] : n.startsWith('nem_') ? [1, 600]
   : n.startsWith('arm_') ? [1, 80] : n.startsWith('fx_') ? [1, 40] : [1, 800];

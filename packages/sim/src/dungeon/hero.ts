@@ -15,6 +15,8 @@ import {
 import { sweepTo, swept, swingStyle } from './swing.ts';
 import { consuma } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts';
+import { giraTimone, timoneVicino } from './vento.ts';
+import { alto } from './muove.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
@@ -30,11 +32,13 @@ export function vicinoUscita(s: DungeonState): boolean {
   return dx * dx + dz * dz <= RAGGIO_USCITA * RAGGIO_USCITA;
 }
 
-/** Mira assistita: nemico più vicino entro `range` nel cono (coseno `cosMin`) davanti, altrimenti il più vicino entro `fallback`. */
+/** Mira assistita: nemico più vicino entro `range` nel cono (coseno `cosMin`) davanti, altrimenti il più vicino entro `fallback`.
+ *  In mischia (`vista` false) non conta chi vola alto (Archivio): la lama non ci arriva. */
 export function aim(s: DungeonState, range: number, cosMin: number, fallback: number, vista: boolean): Enemy | null {
   const h = s.hero;
   let best: Enemy | null = null, bd = Infinity, near: Enemy | null = null, nd = Infinity;
   for (const e of ostili(s)) {
+    if (!vista && alto(s, e)) continue;
     const dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz), reach = d - e.def.raggio;
     if (vista && !lineOfSight(s.map, h.x, h.z, e.x, e.z)) continue;
     const dot = d > 1e-6 ? (dx * h.fx + dz * h.fz) / d : 1;
@@ -67,7 +71,7 @@ function sweepSwing(s: DungeonState): void {
     const mod = a.classe === 'pesante' ? 'dannoPesanti' : 'dannoLeggere';
     const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod));
     for (const e of ostili(s)) {
-      if (h.colpiti.includes(e.id)) continue;
+      if (h.colpiti.includes(e.id) || alto(s, e)) continue; // chi vola alto: la lama gli passa sotto
       const dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
       if (d > a.portata + e.def.raggio) continue;
       if (sweepTo(h.stile, h.fx, h.fz, dx, dz, e.def.raggio, d <= e.def.raggio + rh.raggio) > fatto) continue;
@@ -191,6 +195,8 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   if (aDown && vicinoUscita(s)) { s.done = true; s.outcome = 'uscito'; ev(s, { t: 'uscita' }); return; }
   // Drenaggio: A accanto a una valvola chiusa la gira (e non attacca)
   if (aDown && s.map.valvole.length) { const v = valvolaVicina(s); if (v >= 0) { apriValvola(s, v); aDown = false; } }
+  // Archivio: A accanto al timone di una corrente la ferma (e non attacca)
+  if (aDown && s.map.timoni.length) { const t = timoneVicino(s); if (t >= 0) { giraTimone(s, t); aDown = false; } }
   // azioni
   h.actT++;
   switch (h.act) {
@@ -245,7 +251,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   }
   // i nemici sono solidi: l'eroe non li attraversa
   for (const e of s.enemies) {
-    if (e.st === 'morto' || e.alleato) continue;
+    if (e.st === 'morto' || e.alleato || e.def.muove === 'vola') continue; // chi vola passa sopra
     const dx = h.x - e.x, dz = h.z - e.z, d2 = dx * dx + dz * dz, rr = rh.raggio + e.def.raggio;
     if (d2 >= rr * rr || d2 < 1e-12) continue;
     const d = Math.sqrt(d2), k = (rr - d) / d;

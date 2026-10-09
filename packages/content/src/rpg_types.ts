@@ -77,8 +77,34 @@ export type EnemyDef = {
   id: string; nome: string; kind: EnemyKind; model: string;
   vita: number; danno: number; armatura: number; resistMagia?: number;
   velocita: number; vista: number; portata: number; preparazione: number; recupero: number; raggio: number;
-  /** `torretta` (Drenaggio, Valvola-SparaVapore): non si muove mai (né la spingono), si gira verso l'eroe e tira quando lo vede. */
-  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta';
+  /** `torretta` (Drenaggio, Valvola-SparaVapore): non si muove mai (né la spingono), si gira verso l'eroe e tira quando lo vede.
+   *  Archivio: `bombardiere` (Aerostato-Spia) sta a qualche metro dall'eroe e sgancia `bomba`; `astrolabio` è il capo con `astrolabio`;
+   *  `anello` sono gli anelli-scudo che il capo stacca a metà vita (non hanno IA: girano attorno a lui). */
+  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta' | 'bombardiere' | 'astrolabio' | 'anello';
+  /** Dove si muove (Archivio). `grate`: anche sulle grate (Drone Idro-Ragno), dove l'eroe non sale. `vola`: sopra acqua, grate e vuoto,
+   *  non sopra muri e scaffali; il vento non lo sposta e in mischia lo prendi solo quando scende (prepara, colpisce, recupera). */
+  muove?: 'grate' | 'vola';
+  /** Il suo proiettile è un arpione: preso, l'eroe è tirato di `tira` m verso chi l'ha lanciato in `secondi` s (Drone Idro-Ragno). */
+  arpione?: { tira: number; secondi: number };
+  /** Bombardiere: entro `gittata` m sgancia una bomba dove sta l'eroe; cerchio d'avviso per `caduta` s, poi scoppia: `danno` a chi sta
+   *  entro `raggio` m e lo spinge via di `spinta` m. Una ogni `ricarica` s (Aerostato-Spia). */
+  bomba?: { danno: number; raggio: number; caduta: number; spinta: number; ricarica: number; gittata: number };
+  /** Movimento erratico: mentre insegue scarta di lato di `ampiezza` (frazione del passo), cambiando lato ogni `periodo` s. */
+  zigzag?: { ampiezza: number; periodo: number };
+  /** Ogni `ogni` attacchi si ferma a ricaricare la molla: il recupero dura `secondi` (Archivista a Molla). */
+  molla?: { ogni: number; secondi: number };
+  /** Il capo dell'Archivio (docs/RPG.md §2d): gira il `ciclo` di attacchi, dopo ognuno si ricalibra fermo e basso per `ricalibra` s.
+   *  `rosa`: `salve` raggiere da `n` proiettili, una ogni `ogni` s, ruotate di mezzo spicchio a ogni salva. `raffica`: chi sta entro
+   *  `raggio` m vola via di `spinta` m in `secondi` s (`danno`, più `urto` se sbatte contro un muro). `raggio`: linea d'avviso per `avviso`
+   *  s, poi il raggio per `durata` s (`danno` a chi sta entro `largo` m dalla linea; gli scaffali lo fermano). Sotto `anelli.soglia` della
+   *  vita stacca `anelli.n` anelli-scudo (`anelli.tipo`) che gli girano attorno a `distanza` m (`giro` rad/s): finché ce n'è uno è intoccabile. */
+  astrolabio?: {
+    ciclo: ('rosa' | 'raffica' | 'raggio')[]; ricalibra: number; distanza: number; pausa: number;
+    rosa: { n: number; salve: number; ogni: number; danno: number; velocita: number; gittata: number; prep: number };
+    raffica: { raggio: number; spinta: number; secondi: number; danno: number; urto: number; prep: number };
+    raggio: { avviso: number; durata: number; danno: number; largo: number; gittata: number };
+    anelli: { tipo: string; soglia: number; n: number; distanza: number; giro: number };
+  };
   proiettile?: { danno: number; velocita: number; ricarica: number; gittata: number };
   /** Il suo colpo in mischia rallenta l'eroe: velocità × `molt` per `secondi` (Tubo-strisciante). */
   rallenta?: { molt: number; secondi: number };
@@ -99,7 +125,13 @@ export type LootTable = { id: string; monete: [number, number]; voci: LootEntry[
 
 /** Mappa ASCII, una cella = `tile` m: '#' muro, '.' pavimento, '<' scala d'uscita (anche lo spawn, accanto), ' ' vuoto. Ogni altra lettera la spiega `legenda` (sopra c'è pavimento). */
 export type DungeonDef = {
-  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio'; tile: number;
+  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio' | 'archivio'; tile: number;
+  /** Porta sigillata (Epopea della Regata): si entra solo dopo aver completato questo dungeon (`HeroState.completati`). */
+  richiede?: string;
+  /** Archivio: correnti d'aria. Le celle della corrente n (legenda `vento: n`) spingono chi ci cammina verso `dir` (n = −z, s = +z,
+   *  e = +x, o = −x) a `forza` m/s mentre soffia: `soffia` s di raffica e `pausa` s di calma, a giro, sfasati di `fase` s; pausa 0 = sempre.
+   *  Al riparo: la cella subito sottovento di uno scaffale (colonna). Il timone n ferma la corrente per sempre (per tutti). */
+  venti?: { n: number; dir: 'n' | 's' | 'e' | 'o'; forza: number; soffia: number; pausa: number; fase?: number }[];
   /** Difficoltà, invisibile al giocatore: la bussola punta solo al dungeon più facile non ancora completato (docs/RPG.md §2). */
   difficolta: number;
   rows: string[];
@@ -107,8 +139,11 @@ export type DungeonDef = {
    *  `capo` (con `nemico`): ucciso lui, il dungeon è completato (`HeroState.completati`); uno per dungeon. Non cambia il nemico.
    *  `acqua: n` (Drenaggio): cella allagata del bacino n, non si cammina (ma si vede e si tira sopra) finché la valvola n non la svuota.
    *  `valvola: n`: valvola del bacino n (sul pavimento): A accanto la apre, il bacino si svuota in qualche secondo, per tutti.
-   *  `asciutti` (con `altare`): ripartendo da questa lanterna questi bacini sono già vuoti (per arrivarci li avevi svuotati). */
-  legenda: Record<string, { nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number }>;
+   *  `asciutti` (con `altare`): ripartendo da questa lanterna questi bacini sono già vuoti (per arrivarci li avevi svuotati).
+   *  Archivio: `vento: n` cella della corrente n (pavimento); `timone: n` timone che ferma la corrente n (sul pavimento, A accanto);
+   *  `grata` rastrelliera a grata: non ci si cammina (solo il Drone Idro-Ragno ci sale), ma ci si vede e ci si tira attraverso;
+   *  `ferme` (con `altare`): ripartendo da questa lanterna queste correnti sono già ferme (per arrivarci le avevi fermate). */
+  legenda: Record<string, { nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[] }>;
   /** Dove sta l'ingresso nel mondo: cella di un'isola di islands.json (il modello è `prop_ingresso_<stile>`). */
   ingresso: { island: string; at: [number, number] };
   /** Lore dentro il dungeon (docs/RPG.md §2c): solo testo per il client, la sim non lo vede. */

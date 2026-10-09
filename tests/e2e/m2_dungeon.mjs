@@ -25,15 +25,15 @@ export default async function (ctx) {
   const { composeArchipelago } = await imp('packages/sim/src/index.ts');
   const { bfs, parseDungeon } = await imp('packages/sim/src/dungeon/map.ts');
 
-  await ctx.test('gli ingressi in game/ingressi.ts coincidono con DUNGEONS (isola, cella, stile, nome, difficoltà)', async () => {
+  await ctx.test('gli ingressi in game/ingressi.ts coincidono con DUNGEONS (isola, cella, stile, nome, difficoltà, porta sigillata)', async () => {
     const src = fs.readFileSync(path.join(ctx.ROOT, 'apps/client/src/game/ingressi.ts'), 'utf8');
-    const rows = [...src.matchAll(/\{ id: '(\w+)', nome: '([^']+)', island: '(\w+)', at: \[(\d+), (\d+)\], stile: '(\w+)', difficolta: (\d+) \}/g)].map((m) => ({ id: m[1], nome: m[2], island: m[3], at: [Number(m[4]), Number(m[5])], stile: m[6], difficolta: Number(m[7]) }));
+    const rows = [...src.matchAll(/\{ id: '(\w+)', nome: '([^']+)', island: '(\w+)', at: \[(\d+), (\d+)\], stile: '(\w+)', difficolta: (\d+)(?:, richiede: '(\w+)')? \}/g)].map((m) => ({ id: m[1], nome: m[2], island: m[3], at: [Number(m[4]), Number(m[5])], stile: m[6], difficolta: Number(m[7]), richiede: m[8] }));
     assert(rows.length === DUNGEONS.length, `ingressi.ts ha ${rows.length} ingressi, DUNGEONS ${DUNGEONS.length}`);
     for (const d of DUNGEONS) {
       const r = rows.find((x) => x.id === d.id);
       assert(r, `manca l'ingresso di ${d.id} in game/ingressi.ts`);
-      assert(r.island === d.ingresso.island && r.at[0] === d.ingresso.at[0] && r.at[1] === d.ingresso.at[1] && r.stile === d.stile && r.nome === d.nome && r.difficolta === d.difficolta,
-        `${d.id}: ingressi.ts ${JSON.stringify(r)} ≠ dungeons.json ${JSON.stringify({ nome: d.nome, ...d.ingresso, stile: d.stile, difficolta: d.difficolta })}`);
+      assert(r.island === d.ingresso.island && r.at[0] === d.ingresso.at[0] && r.at[1] === d.ingresso.at[1] && r.stile === d.stile && r.nome === d.nome && r.difficolta === d.difficolta && r.richiede === d.richiede,
+        `${d.id}: ingressi.ts ${JSON.stringify(r)} ≠ dungeons.json ${JSON.stringify({ nome: d.nome, ...d.ingresso, stile: d.stile, difficolta: d.difficolta, richiede: d.richiede })}`);
     }
   });
 
@@ -57,6 +57,8 @@ export default async function (ctx) {
 
     const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(P);
     const page = P.page;
+    // Windows: wrangler dev locale risponde in ~3,5 s sulle connessioni riusate (keep-alive): una connessione per richiesta, come m2_insieme
+    if (process.platform === 'win32') await page.route(/\/(api|chunk|assets)/, (r) => r.continue({ headers: { ...r.request().headers(), connection: 'close' } }));
     await ctx.waitReady(page, 30000);
     await ctx.waitState(page, (s) => s.lot && s.lot.ready === true && s.ingressi, 15000);
     const st = () => ctx.getState(page);
@@ -84,6 +86,23 @@ export default async function (ctx) {
       await page.waitForSelector('#mzDngEntra.on', { timeout: 3000 });
     });
     await ctx.shot(page, '1_ingresso_1280');
+
+    await ctx.test('Archivio (Epopea 2): porta sigillata finché non completi il Drenaggio (niente ENTRA né AFFRONTA INSIEME); il server rifiuta', async () => {
+      const s = await st();
+      assert(s.ingressi.sigillati.includes('archivio') && !s.ingressi.sigillati.includes('drenaggio'), 'sigillati: ' + JSON.stringify(s.ingressi.sigillati));
+      const a = s.ingressi.spots.find((x) => x.id === 'archivio');
+      await hook('teleport', a.x, a.z + 3); await sleep(900);
+      await ctx.waitState(page, (s) => s.ingressi.near === 'archivio', 5000);
+      await page.waitForSelector('#mzDngEntra.on.sig', { timeout: 3000 });
+      assert(!(await page.locator('#mzDngInsieme.on').count()), 'AFFRONTA INSIEME su una porta sigillata');
+      await ctx.shot(page, '1b_archivio_sigillato_1280');
+      await hook('enterDungeon', 'archivio');
+      await ctx.waitState(page, (s) => /Sigillato/.test(s.ingressi.lastErr ?? ''), 3000);
+      assert(!(await st()).dungeon.active, 'entrato in un dungeon sigillato');
+      const r = await fetch(base + '/api/dungeon/start', { method: 'POST', headers: { 'x-token': 'tokA', 'content-type': 'application/json' }, body: JSON.stringify({ dungeon: 'archivio' }) });
+      const b = await r.json();
+      assert(!r.ok && /sigillata/.test(b.error ?? ''), `il server non rifiuta: ${r.status} ${JSON.stringify(b)}`);
+    });
 
     await ctx.test('Cripta: si entra, scena e HUD, Q lancia la magia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
       await hook('enterDungeon', 'cripta');

@@ -10,7 +10,7 @@ import type { Rng } from '../rng.ts';
 import type { DungeonEvent, HeroAnim } from './types.ts';
 import type { SwingStyle } from './swing.ts';
 import { bfs, cellOf, moveCircle, parseDungeon } from './map.ts';
-import type { DMap } from './map.ts';
+import type { DMap, Griglia } from './map.ts';
 import { rollLoot } from './loot.ts';
 import { HZ, P_DORME } from './tuning.ts';
 
@@ -35,6 +35,9 @@ export type HeroRt = {
   colpiFragile: number;
   /** Rallentato (Tubo-strisciante): tick rimasti e moltiplicatore della velocità. */
   lento: number; lentoMolt: number;
+  /** Archivio: spinta da fuori (arpione, raffica dell'Astrolabio, bomba): velocità in m/s per `spT` tick; `spUrto` = danno se sbatte
+   *  contro un muro (0 = niente). */
+  spX: number; spZ: number; spT: number; spUrto: number;
   prevA: boolean; prevC: boolean; prevD: boolean;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
@@ -59,8 +62,17 @@ export type Enemy = {
   padrone?: number;
   /** Insieme: ultimo eroe che l'ha colpito (a lui il danno del sanguinamento e l'uccisione). Fuori dall'hash. */
   ultimo?: number;
+  /** Archivio: l'Archivista a Molla ricarica la molla (recupero lungo). */
+  molla?: boolean;
+  /** Archivio, l'Astrolabio (astrolabio.ts): attacco in corso, direzione e lunghezza del raggio, salve già tirate, anelli staccati.
+   *  Gli anelli: id del loro Astrolabio e versore della loro posizione attorno a lui. */
+  modo?: 'rosa' | 'raffica' | 'raggio';
+  mira?: { dx: number; dz: number; len: number };
+  salve?: number;
+  diviso?: boolean;
+  padre?: number; ux?: number; uz?: number;
 };
-export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica';
+export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico';
 export type Proj = {
   id: number; tipo: ProjKind; x: number; y: number; z: number; vx: number; vy: number; vz: number; g: number;
   danno: number; life: number;
@@ -69,11 +81,17 @@ export type Proj = {
   dalNemico: boolean; contundente: boolean; magico: boolean; arrowId: string | null;
   /** Insieme: eroe che l'ha tirato (indice in `eroi`; assente = 0). */
   da?: number;
+  /** Arpione (Drone Idro-Ragno): chi è preso è tirato di `tira` m all'indietro lungo il volo in `tiraT` tick. */
+  tira?: number; tiraT?: number;
 };
 /** Drenaggio: un bacino allagato. `aperta` = la sua valvola è girata; `scolo` = tick che mancano all'asciutto (livello = scolo / SCOLO). */
 export type Bacino = { n: number; aperta: boolean; scolo: number };
 /** Geyser di vapore del Capoturno: avviso (cerchio a terra) e poi getto; `colpiti` = eroi già presi da questo getto. */
-export type Geyser = { id: number; x: number; z: number; r: number; t: number; avviso: number; getto: number; danno: number; colpiti: number[] };
+export type Geyser = { id: number; x: number; z: number; r: number; t: number; avviso: number; getto: number; danno: number; colpiti: number[];
+  /** Archivio: è una bomba a pressione dell'Aerostato-Spia, che spinge via di `spinta` m chi prende. */
+  spinta?: number };
+/** Archivio: una corrente d'aria (le celle e i numeri stanno in map.venti); `ferma` = il suo timone è girato. */
+export type Corrente = { n: number; ferma: boolean };
 /** Ultimo altare toccato: il bottino e le monete di quel momento sono al sicuro (docs/RPG.md §4). */
 export type Salvato = { altare: number; tick: number; bottino: Bag; monete: number };
 /** Quello che resta in un bottino per un eroe: da solo sono i campi del bottino stesso; insieme ogni eroe ha la sua parte (`altri`). */
@@ -120,9 +138,14 @@ export type DungeonState = EroeRt & {
   /** Gli eroi della spedizione (da solo uno) e quello di turno: i campi di EroeRt qui sopra sono i suoi. */
   eroi: EroeRt[];
   cur: number;
-  /** Drenaggio (acque.ts): i bacini (uguali per tutti gli eroi) e i geyser in corso. Negli altri dungeon vuoti. */
+  /** Drenaggio (acque.ts): i bacini (uguali per tutti gli eroi) e i geyser in corso (anche le bombe dell'Archivio). Negli altri dungeon vuoti. */
   bacini: Bacino[];
   geyser: Geyser[];
+  /** Archivio (vento.ts): le correnti d'aria (uguali per tutti). Negli altri dungeon vuote. */
+  correnti: Corrente[];
+  /** Archivio: griglie e flow field di chi sale sulle grate o vola (enemies.ts), fatti alla prima richiesta. Fuori dall'hash. */
+  griglie: Partial<Record<'grate' | 'vola', Griglia>>;
+  flowAlt: Partial<Record<'grate' | 'vola', { field: Int32Array; key: string; tick: number }>>;
 };
 
 /** Accessori dei campi dell'eroe di turno (prototipo comune a tutti gli stati). */
@@ -192,6 +215,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
   Object.assign(s, {
     v: 1, seed, dungeon: def.id, def, map, tick: 0, anim: 'fermo',
     enemies: [], proj: [], loot: [], nextId: 1, bacini: map.bacini.map((b) => ({ n: b.n, aperta: false, scolo: 0 })), geyser: [],
+    correnti: map.venti.map((v) => ({ n: v.n, ferma: false })), griglie: {}, flowAlt: {},
     flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, flowKey: '', rng, eventi: [],
     eroi: eroi.map(({ hero, stato }): EroeRt => ({
       hero: {
@@ -201,7 +225,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
         moving: false, running: false, hurt: 0, protetto: 0, arma: { ...hero.arma, traits: { ...hero.arma.traits } },
         frecce: hero.frecce ? hero.frecce.n : 0,
         pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,
-        cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, prevA: false, prevC: false, prevD: false,
+        cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, prevA: false, prevC: false, prevD: false,
       },
       runHero: hero, done: false, outcome: null,
       bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,
@@ -233,6 +257,8 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
     b.aperta = true; b.scolo = 0;
     for (const i of map.bacini.find((x) => x.n === n)?.celle ?? []) map.solid[i] = 0;
   }
+  // Archivio: ripartendo dalla lanterna oltre il Condotto, le correnti che avevi fermato per arrivarci sono già ferme
+  if (daLanterna) for (const n of map.altari[p]!.ferme ?? []) { const c = s.correnti.find((x) => x.n === n); if (c) c.ferma = true; }
   const sonno = rng.fork('sonno');
   const kv = moltVita(eroi.length);
   for (const n of map.nemici) {

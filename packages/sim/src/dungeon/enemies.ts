@@ -2,6 +2,9 @@
 // telegrafata → colpo → recupero; arcieri e maghi tengono la distanza e tirano; i boss alternano un colpo ad area; i deboli scappano dalle ossa.
 // Drenaggio: le torrette (Valvola-SparaVapore) stanno ferme e tirano getti d'acqua; il colpo ad area c'è anche per chi ha `area` (sbuffo di
 // vapore dell'Operaio) e con `geyser` fa salire i geyser (Capoturno); il colpo del Tubo-strisciante rallenta (acque.ts).
+// Archivio: il Drone Idro-Ragno sale sulle grate (e ci scappa) e tira arpioni; l'Aerostato-Spia vola e sgancia bombe (vento.ts); l'Archivista
+// a Molla insegue a zig-zag e ogni tanto si ferma a ricaricare la molla; l'Astrolabio e i suoi anelli stanno in astrolabio.ts. Chi sale sulle
+// grate o vola ha la sua griglia e il suo flow field (muove.ts); chi vola non si scontra con chi cammina e non lo sposta niente da terra.
 import { DT } from '../constants.ts';
 import type { EnemyDef } from '@marea/content/rpg.ts';
 import type { DungeonState, Enemy } from './state.ts';
@@ -9,16 +12,20 @@ import { conEroe, ev, finita, inGioco, secToTicks } from './state.ts';
 import { hitEnemy, hitHero, kill, wake } from './combat.ts';
 import { bfs, cellCenter, cellOf, lineOfSight, moveCircle, stepDown } from './map.ts';
 import { geyserDa, rallenta } from './acque.ts';
+import { bombaDa } from './vento.ts';
+import { alto, flowDi, grigliaDi } from './muove.ts';
+import { stepAnello, stepAstrolabio } from './astrolabio.ts';
 import {
   ALLEATO_SEGUE, BOSS_AREA_DANNO, BOSS_AREA_OGNI, BOSS_AREA_PREP, BOSS_AREA_RAGGIO, COLPISCE_TICKS, COS_CONO_NEMICO, DISTANZA_TIRATORI,
-  FLOW_OGNI, MAGIA_Y, RAGGIO_ALLARME, RAGGIO_ATTIVO, TOLLERANZA_NEMICO, VISTA_DORMENDO,
+  BOMBA_LONTANO, BOMBA_VICINO, FLOW_OGNI, MAGIA_Y, RAGGIO_ALLARME, RAGGIO_ATTIVO, TOLLERANZA_NEMICO, VISTA_DORMENDO,
 } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 /** Raggio del colpo ad area: `area.raggio`, se no quello dei boss (portata × BOSS_AREA_RAGGIO). */
 export const areaRaggio = (d: EnemyDef): number => (d.area ? d.area.raggio : d.portata * BOSS_AREA_RAGGIO);
-/** Torretta: non si muove e non la sposta niente. */
-export const fisso = (e: Enemy): boolean => e.def.comportamento === 'torretta';
+/** Torretta: non si muove e non la sposta niente. Gli anelli dell'Astrolabio li mette lui. */
+export const fisso = (e: Enemy): boolean => e.def.comportamento === 'torretta' || e.def.comportamento === 'anello';
+const vola = (e: Enemy): boolean => e.def.muove === 'vola';
 /** Funzione (non confronto diretto): lo stato può cambiare dentro stepFoe/stepAlly. */
 const vivo = (e: Enemy): boolean => e.st !== 'morto';
 
@@ -61,24 +68,37 @@ function vedeEroe(s: DungeonState, e: Enemy, vista: number): boolean {
   return false;
 }
 
-/** Passo verso l'eroe: diretto se lo vede ed è vicino, altrimenti lungo il flow field (aggira i muri). */
+/** Passo verso l'eroe: diretto se lo vede ed è vicino, altrimenti lungo il flow field (aggira i muri). Sulla griglia del nemico (chi sale
+ *  sulle grate scappando le preferisce); l'Archivista a Molla scarta di lato a zig-zag. */
 function chase(s: DungeonState, e: Enemy, speed: number, verso: 1 | -1): void {
-  const h = s.hero;
+  const h = s.hero, g = grigliaDi(s, e), flow = flowDi(s, e);
   let tx = h.x, tz = h.z;
   const dx0 = h.x - e.x, dz0 = h.z - e.z, d0 = Math.sqrt(dx0 * dx0 + dz0 * dz0);
   if (verso === -1) {
-    // scappa: verso la cella vicina più lontana dall'eroe sul campo
-    const c = cellOf(s.map, e.x, e.z), cx = c % s.map.w, cz = (c - cx) / s.map.w;
-    let best = -1, bd = s.flow[c] ?? -1;
+    // scappa: verso la cella vicina più lontana dall'eroe sul campo (sulle grate, per chi ci sale)
+    const grate = e.def.muove === 'grate', peso = (j: number): number => (flow[j] ?? -1) + (grate && s.map.grata[j] ? 3 : 0);
+    const c = cellOf(g, e.x, e.z), cx = c % g.w, cz = (c - cx) / g.w;
+    let best = -1, bd = peso(c);
     for (const [ddx, ddz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-      const j = (cz + ddz) * s.map.w + cx + ddx, v = s.flow[j] ?? -1;
-      if (cx + ddx >= 0 && cx + ddx < s.map.w && v > bd) { bd = v; best = j; }
+      const nx = cx + ddx, nz = cz + ddz, j = nz * g.w + nx;
+      if (nx < 0 || nz < 0 || nx >= g.w || nz >= g.h || g.solid[j] || (flow[j] ?? -1) < 0) continue;
+      const v = peso(j);
+      if (v > bd) { bd = v; best = j; }
     }
     if (best < 0) return;
-    const p = cellCenter(s.map, best); tx = p.x; tz = p.z;
+    const p = cellCenter(g, best); tx = p.x; tz = p.z;
   } else if (!(d0 < 4 && lineOfSight(s.map, e.x, e.z, h.x, h.z))) {
-    const nx = stepDown(s.map, s.flow, cellOf(s.map, e.x, e.z));
-    if (nx >= 0 && nx !== cellOf(s.map, e.x, e.z)) { const p = cellCenter(s.map, nx); tx = p.x; tz = p.z; }
+    const nx = stepDown(g, flow, cellOf(g, e.x, e.z));
+    if (nx >= 0 && nx !== cellOf(g, e.x, e.z)) { const p = cellCenter(g, nx); tx = p.x; tz = p.z; }
+  }
+  const zz = e.def.zigzag;
+  if (zz && verso === 1 && d0 > 2) {
+    // a zig-zag: la direzione giusta più un pezzo di lato, che cambia lato ogni `periodo`
+    const ux = tx - e.x, uz = tz - e.z, ul = Math.sqrt(ux * ux + uz * uz);
+    if (ul > 1e-6) {
+      const lato = (Math.floor(s.tick / secToTicks(zz.periodo)) + e.id) % 2 === 0 ? zz.ampiezza : -zz.ampiezza;
+      tx = e.x + ux / ul - (uz / ul) * lato; tz = e.z + uz / ul + (ux / ul) * lato;
+    }
   }
   moveToward(s, e, tx, tz, speed);
 }
@@ -87,7 +107,7 @@ function moveToward(s: DungeonState, e: Enemy, tx: number, tz: number, speed: nu
   if (d < 1e-6) return;
   const step = Math.min(d, speed * DT);
   e.fx = dx / d; e.fz = dz / d;
-  moveCircle(s.map, e, e.fx * step, e.fz * step, e.def.raggio);
+  moveCircle(grigliaDi(s, e), e, e.fx * step, e.fz * step, e.def.raggio);
 }
 function setState(e: Enemy, st: Enemy['st'], dur: number): void { e.st = st; e.stT = 0; e.stDur = dur; }
 
@@ -106,16 +126,17 @@ function resolveAttack(s: DungeonState, e: Enemy): void {
   const h = s.hero, rh = s.runHero;
   const dx = h.x - e.x, dz = h.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
   if (e.tiro) {
-    const p = e.def.proiettile!;
     e.tiro = false;
+    if (e.def.bomba) { bombaDa(s, e); return; } // Aerostato-Spia
+    const p = e.def.proiettile!;
     e.cdTiro = secToTicks(p.ricarica);
     if (d < 1e-6) return;
-    const acqua = fisso(e), mago = !acqua && (e.def.comportamento === 'mago' || e.def.comportamento === 'mischia');
+    const acqua = fisso(e), mago = !acqua && (e.def.comportamento === 'mago' || e.def.comportamento === 'mischia'), arp = e.def.arpione;
     const vx = (dx / d) * p.velocita, vz = (dz / d) * p.velocita;
     s.proj.push({
-      id: s.nextId++, tipo: acqua ? 'acqua_nemica' : mago ? 'magia_nemica' : 'freccia_nemica', x: e.x + e.fx * (e.def.raggio + 0.1), y: MAGIA_Y, z: e.z + e.fz * (e.def.raggio + 0.1),
+      id: s.nextId++, tipo: acqua ? 'acqua_nemica' : arp ? 'arpione_nemico' : mago ? 'magia_nemica' : 'freccia_nemica', x: e.x + e.fx * (e.def.raggio + 0.1), y: MAGIA_Y, z: e.z + e.fz * (e.def.raggio + 0.1),
       vx, vy: 0, vz, g: 0, danno: p.danno, life: secToTicks(p.gittata / p.velocita), traits: {}, raggio: 0, colpiti: [],
-      dalNemico: true, contundente: acqua, magico: mago, arrowId: null,
+      dalNemico: true, contundente: acqua, magico: mago, arrowId: null, ...(arp ? { tira: arp.tira, tiraT: secToTicks(arp.secondi) } : {}),
     });
     return;
   }
@@ -159,6 +180,8 @@ function stepFoe(s: DungeonState, e: Enemy): void {
   const h = s.hero, rh = s.runHero, def = e.def;
   const dx = h.x - e.x, dz = h.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
   e.stT++;
+  if (def.comportamento === 'anello') { stepAnello(s, e); return; }
+  if (def.comportamento === 'astrolabio' && e.st !== 'dorme' && e.st !== 'veglia') { stepAstrolabio(s, e); return; }
   switch (e.st) {
     case 'dorme': case 'veglia': {
       const vista = def.vista * (e.st === 'dorme' ? VISTA_DORMENDO : 1);
@@ -181,6 +204,16 @@ function stepFoe(s: DungeonState, e: Enemy): void {
         if (e.cdTiro <= 0) startPrep(s, e, h.x, h.z, true);
         return;
       }
+      if (def.comportamento === 'bombardiere') {
+        // Aerostato-Spia: sta a qualche metro dall'eroe e, quando lo vede ed è carico, scende a sganciare (prepara)
+        const b = def.bomba;
+        if (!b) return;
+        const vede = d <= b.gittata && lineOfSight(s.map, e.x, e.z, h.x, h.z);
+        if (vede && e.cdTiro <= 0) { startPrep(s, e, h.x, h.z, true); return; }
+        if (d < b.gittata * BOMBA_VICINO) chase(s, e, def.velocita, -1);
+        else if (!vede || d > b.gittata * BOMBA_LONTANO) chase(s, e, def.velocita, 1);
+        return;
+      }
       if (fearful(s, e)) { setState(e, 'scappa', 0); return; }
       const reach = def.portata + def.raggio + rh.raggio, p = def.proiettile;
       if (d <= reach) { startPrep(s, e, h.x, h.z, false); return; }
@@ -201,10 +234,14 @@ function stepFoe(s: DungeonState, e: Enemy): void {
       if (e.stT >= e.stDur) { resolveAttack(s, e); setState(e, 'colpisce', COLPISCE_TICKS); }
       return;
     case 'colpisce':
-      if (e.stT >= e.stDur) setState(e, 'recupera', secToTicks(def.recupero));
+      if (e.stT >= e.stDur) {
+        // Archivista a Molla: ogni tanto si ferma a ricaricarsi (recupero lungo)
+        e.molla = !!def.molla && e.attacchi % def.molla.ogni === 0;
+        setState(e, 'recupera', secToTicks(e.molla ? def.molla!.secondi : def.recupero));
+      }
       return;
     case 'recupera':
-      if (e.stT >= e.stDur) setState(e, 'insegue', 0);
+      if (e.stT >= e.stDur) { e.molla = false; setState(e, 'insegue', 0); }
       return;
     case 'scappa':
       if (!fearful(s, e)) { setState(e, 'insegue', 0); return; }
@@ -223,7 +260,7 @@ function stepAlly(s: DungeonState, e: Enemy): void {
   if (!t) {
     let bd = Infinity;
     for (const o of s.enemies) {
-      if (o.alleato || o.st === 'morto') continue;
+      if (o.alleato || o.st === 'morto' || alto(s, o)) continue; // chi vola alto non lo prende
       const ox = o.x - e.x, oz = o.z - e.z, od = ox * ox + oz * oz;
       if (od < bd && od <= def.vista * def.vista && lineOfSight(s.map, e.x, e.z, o.x, o.z)) { bd = od; t = o; }
     }
@@ -231,7 +268,7 @@ function stepAlly(s: DungeonState, e: Enemy): void {
   }
   if (e.st === 'prepara') {
     if (e.stT >= e.stDur) {
-      if (t) {
+      if (t && !alto(s, t)) {
         const ox = t.x - e.x, oz = t.z - e.z;
         const reach = def.portata + def.raggio + t.def.raggio + TOLLERANZA_NEMICO;
         if (ox * ox + oz * oz <= reach * reach) hitEnemy(s, t, { danno: def.danno, traits: {}, magico: false, skill: null, caricato: false, dirX: e.fx, dirZ: e.fz, daAlleato: true });
@@ -257,6 +294,7 @@ function separate(s: DungeonState, act: Enemy[]): void {
     const a = act[i]!;
     for (let j = i + 1; j < act.length; j++) {
       const b = act[j]!;
+      if (vola(a) !== vola(b)) continue; // chi vola passa sopra chi cammina
       const dx = b.x - a.x, dz = b.z - a.z, d2 = dx * dx + dz * dz, rr = a.def.raggio + b.def.raggio;
       if (d2 >= rr * rr) continue;
       const d = Math.sqrt(d2);
@@ -264,14 +302,14 @@ function separate(s: DungeonState, act: Enemy[]): void {
       // le torrette non si spostano: l'altro si sposta di tutto
       const fa = fisso(a), fb = fisso(b);
       if (fa && fb) continue;
-      if (!fa) moveCircle(s.map, a, -ux * k * (fb ? 2 : 1), -uz * k * (fb ? 2 : 1), a.def.raggio);
-      if (!fb) moveCircle(s.map, b, ux * k * (fa ? 2 : 1), uz * k * (fa ? 2 : 1), b.def.raggio);
+      if (!fa) moveCircle(grigliaDi(s, a), a, -ux * k * (fb ? 2 : 1), -uz * k * (fb ? 2 : 1), a.def.raggio);
+      if (!fb) moveCircle(grigliaDi(s, b), b, ux * k * (fa ? 2 : 1), uz * k * (fa ? 2 : 1), b.def.raggio);
     }
-    if (a.alleato || fisso(a)) continue;
+    if (a.alleato || fisso(a) || vola(a)) continue;
     for (const r of s.eroi) {
       if (r.done) continue;
       const h = r.hero, dx = a.x - h.x, dz = a.z - h.z, d2 = dx * dx + dz * dz, rr = a.def.raggio + r.runHero.raggio;
-      if (d2 < rr * rr && d2 > 1e-12) { const d = Math.sqrt(d2), k = (rr - d) / d; moveCircle(s.map, a, dx * k, dz * k, a.def.raggio); }
+      if (d2 < rr * rr && d2 > 1e-12) { const d = Math.sqrt(d2), k = (rr - d) / d; moveCircle(grigliaDi(s, a), a, dx * k, dz * k, a.def.raggio); }
     }
   }
 }
