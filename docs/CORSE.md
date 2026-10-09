@@ -1,24 +1,159 @@
-# Isola delle Corse — Gran Premio (design)
+# Isola delle Corse (design)
 
-> Parte del GDD (vale come `docs/GDD.md`; dove si contraddicono, aggiornare tutti e due). Numeri in `packages/content/src/minigames/corse.json`.
-> Jack, 9 ott 2026, issue #155. Scelte segnate **[scelta provvisoria]** = da confermare giocando.
+> Parte del GDD: vale come `docs/GDD.md`, e dove si contraddicono si aggiornano tutti e due.
+> I numeri del Gran Premio di oggi stanno in `packages/content/src/minigames/corse.json`.
+> Jack, 9 ott 2026, issue madre #155. L'intervista del 9 ott ha deciso la **Parte A**, cioè l'isola completa: è la bibbia, e vince sulla Parte B. La **Parte B** è il Gran Premio online oggi (fetta 1), che resta finché il circuito della Spiaggia non lo sostituisce.
+> **[proposta]** = idea di Claude da confermare con la concept art o giocando. **[da decidere]** = la scelta spetta a Jack.
 
-## 0. In tre righe
+# Parte A — L'isola completa
+
+## A0. In tre righe
+Un'isola strana dove **tutto è diventato una corsa**. La giri liberamente col tuo veicolo, come in Diddy Kong Racing, e da lì entri in **6 zone da 4 piste**, più i boss. Si corre con veicoli di **4 famiglie che si guidano in modo diverso**, dalle auto serie alle vasche da bagno, contro animali piloti che si prendono molto sul serio e contro i fantasmi degli amici. L'idea guida è non aggiungere piste tanto per farlo: si fa una zona completa alla volta, finita bene.
+
+## A1. Tono e lore
+- **Riferimenti**: tanti giochi mescolati. Da Diddy Kong Racing la struttura (isola-hub, porte, boss), da Mario Kart e Crash Team Racing la gara (drift, turbo, scorciatoie), da Trackmania le piste folli (salti, giri della morte, pareti).
+- **Un posto strano**: per un motivo che sarà la lore, sull'isola tutto è diventato una corsa. Il tono mescola due cose:
+  - il **grande evento sportivo**, felice e buffo (bandiere, podio, fuochi d'artificio);
+  - un **filo di creepy, sempre colorato**, alla Luigi's Mansion: mai horror e mai buio vero.
+- **C'è un cattivo**, che si affronta zona dopo zona. La lore si scrive dopo **[da decidere]**.
+
+## A2. Vibes (le due scelte di Jack)
+- **Pubblico di manichini**: tribune, moli e ombrelloni sono pieni di manichini. Applaudono a scatti e **girano la testa quando passi**. È il filo creepy di tutta l'isola.
+- **Animali piloti seri**: granchi, struzzi, trichechi con casco, tuta, sponsor e numero di gara. Si prendono sul serio come in Formula 1: rituali prima del via, sguardi, podio impettito. Sono i **bot** e gli abitanti dell'isola.
+- **Tu guidi col tuo avatar MAREA** (cappello e vestiti), seduto nel veicolo.
+
+## A3. L'hub: l'isola aperta
+- L'Isola delle Corse si gira **sempre col veicolo**: scendi dalla barca al molo e sali sul veicolo. Strade, spiaggia, acqua, salite e segreti, come l'isola di Diddy Kong Racing.
+- Ogni zona ha la sua **porta**, cioè l'ingresso del suo quartiere. Le **stelle** aprono le porte e, dentro ogni zona, le piste.
+- C'è un **garage** per cambiare veicolo. Nell'hub non si vince niente, quindi la guida è libera.
+- Se con le ruote entri in acqua, il veicolo si trasforma in barca, alla Sonic Racing Transformed **[proposta]**.
+- Le zone ancora chiuse si vedono, ma con la porta sbarrata.
+
+## A4. Le 6 zone
+Tutte dentro l'isola. Ogni zona ha:
+- 4 piste;
+- un **boss** (un animale campione da battere uno contro uno);
+- un **tema musicale**;
+- le sue famiglie di veicoli.
+
+Le famiglie per zona sono una **[proposta]** da confermare con la concept art:
+
+| # | Zona | Famiglie | Piste [proposta] | Boss |
+|---|---|---|---|---|
+| 1 | **Spiaggia e porto** (la prima) | Ruote + Acqua | Lungomare (circuito) · Baia (acqua) · Porto (mista: moli e canali) · Fuga dall'onda (A→B) | Granchio campione |
+| 2 | **Ghiaccio e neve** | Scivoli (bob, slitta) + Ruote (fuoristrada) | Canale del bob · Slitte nel bosco · Lago ghiacciato · Valanga | [da decidere] |
+| 3 | **Giungla e templi** | Scivoli (kart da miniera, rapide) + Due ruote (cross) | Miniera del tempio · Rapide · Sentiero del cross · Tempio che crolla | [da decidere] |
+| 4 | **Città al neon di notte** | Due ruote + Ruote sportive | Strade bagnate · Tetti (salti) · Tunnel · Incrocio del treno | [da decidere] |
+| 5 | **Luna park e giocattoli** | Veicoli buffi e giocattoli, montagne russe | Viale delle giostre · Montagne russe (giri della morte) · Scatola dei giocattoli · Casa degli specchi | [da decidere] |
+| 6 | **Fondale e cielo** (il finale) | Acqua + piste sulle nuvole | Coralli · Corrente · Strada delle nuvole · Sfida al cattivo | il cattivo |
+
+## A5. Le piste
+- **Tipi**: circuiti a giri (3 giri, scorciatoie, sorpassi), **discese e fughe** da A a B (si scende da una montagna, si scappa da qualcosa) e **piste folli** (salti, giri della morte, pareti, trampolini).
+- **Evento firma**: ogni pista ha una sorpresa sua che **cambia giro dopo giro**. Esempi:
+  - sulla spiaggia l'onda che al 3° giro copre il lungomare;
+  - nella giungla il tempio che crolla;
+  - in città il treno che taglia la strada;
+  - sul lago il ghiaccio che si crepa.
+- **La pista decide la famiglia** (strada, acqua, scivolo…) e tu scegli il veicolo dentro quella famiglia. Alcune **piste speciali sono miste**: per esempio nel porto la moto d'acqua prende la scorciatoia nel canale e l'auto il molo.
+- **Durata**: un circuito dura 1:30-2:00, una discesa o una fuga 60-90 s **[proposta]**.
+
+## A6. Veicoli: 4 famiglie
+Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano velocità, accelerazione, peso e sterzo, come le guide morbida, media e nervosa di oggi. Niente aerei per ora.
+
+| Famiglia | Veicoli | Come si guida [proposta] |
+|---|---|---|
+| **Ruote** | kart, auto sportive, fuoristrada, camion | come il Gran Premio di oggi: drift che carica il turbo |
+| **Due ruote** | moto, scooter, bici | si piegano in curva, sterzo che dipende dalla velocità, l'impennata dà la spinta |
+| **Acqua** | moto d'acqua, hovercraft, gommone | scivolano sempre, saltano sulle onde, il salto dà il turbo, la corrente spinge |
+| **Scivoli e binari** | kart da miniera, scivolo d'acqua, bob, slitta | niente gas: spinge la gravità. Ti pieghi per stare in traiettoria e prendere le curve alte; sui binari scegli i bivi |
+
+**Veicoli buffi**, uno o più per famiglia, ciascuno con **un pregio o un difetto comico** **[proposta]**:
+- **Oggetti di casa**: il carrello della spesa ha la ruota storta e tira da una parte; la vasca da bagno galleggia, quindi va bene nelle piste miste; il divano a motore è pesante e nessuno lo sposta; il tosaerba non rallenta sull'erba.
+- **Animali**: lo struzzo salta, la tartaruga gigante è lenta ma nessuno la ferma, il granchio va di lato.
+- **Mezzi da lavoro**: l'ape car si inclina nelle curve strette, il muletto spinge, il trattore va ovunque.
+- **Giocattoli e cibo**: la macchinina a molla va a scatti, la papera di gomma rimbalza, la fetta di pizza scivola tantissimo.
+
+## A7. Avversari, oggetti, sblocchi
+- **Avversari**: bot (gli animali piloti) più i **fantasmi degli amici**, cioè la loro gara migliore rigiocata in pista. Funziona anche se giocate a orari diversi e non costa niente. Niente gare dal vivo per ora **[da decidere più avanti]**.
+- **Oggetti**: **solo in alcune gare**. Ci sono gare con oggetti e gare di guida pura. Quali sono è **[da decidere]**.
+- **Sblocchi**:
+  - **stelle-trofeo**, finite e che non si spendono: aprono zone e piste;
+  - **veicoli**: i boss e i traguardi regalano veicoli nuovi, quelli buffi sono anche nascosti;
+  - **premi per MAREA**: materiali e oggetti che servono fuori dall'isola.
+- **Sfide extra** in pista (contro il tempo, collezionabili, prove speciali): dopo. Per ora contano vibes e vision.
+
+## A8. Musica e suoni
+- **Un tema per zona** più uno per l'hub, in stile console anni '90 (Diddy Kong Racing, Crash Team Racing). **All'ultimo giro accelera**.
+- Suoni:
+  - un motore per famiglia;
+  - drift, turbo, spruzzi;
+  - lo **sferragliare dei manichini** che applaudono a scatti e girano la testa.
+
+## A9. Look e asset
+- Valgono le regole di `ART_BIBLE.md`: palette, texture nearest, un atlas, flat shading, stile PS1, niente gradienti, niente PBR.
+- **Prima la concept art**: per l'hub, ogni zona, ogni famiglia di veicoli, i buffi, i manichini e gli animali piloti si generano immagini di riferimento, e Jack sceglie da un foglio di confronto. Le scelte stanno in `assets/concept/corse/`, fuori dalla build. Solo dopo si passa al 3D, **fedele a quelle immagini**.
+- **Asset misti**:
+  - **piste e ambienti** da Blender via codice, con un kit per zona (`assets/blender/models_corse_<zona>.py`, sull'atlas come gli altri);
+  - **veicoli buffi e animali** con l'AI 3D, poi ridotti allo stile PS1: pochi poligoni, palette, atlas.
+
+## A10. Come si lavora con Jack
+Le scelte di Jack arrivano a tre tappe, per ogni zona:
+1. **Concept art**: Jack sceglie il look.
+2. **Pista grezza giocabile**: Jack prova la forma.
+3. **Pista finita**: Jack dà il voto.
+
+Gli amici vedono **pezzo per pezzo**: ogni pista va online appena è giocabile.
+
+## A11. Come funziona sotto (piano)
+- **Motore v2: la pista è un nastro 3D.** Il Gran Premio di oggi è piatto (x, z). Il nastro nuovo ha:
+  - il centro in 3D, con il «sopra» locale, che permette sopraelevazioni, salite e giri della morte;
+  - un **profilo di sezione**: strada piatta, canale d'acqua, mezzo tubo dello scivolo, binario;
+  - le **superfici**: asfalto, sabbia, acqua, ghiaccio, turbo, rampa;
+  - i **bivi** per le scorciatoie.
+- Il veicolo vive in **coordinate di pista**: avanzamento, scarto laterale, altezza sulla superficie. Si usano solo + − × ÷ e la radice, come oggi, così il replay del server coincide con la partita.
+- **Hub**: guida libera nel client, sul rilievo dell'isola. Non dà premi, quindi niente replay.
+- **Fantasmi**: si salvano gli input della gara migliore (pochi KB, con una migrazione nuova) e la sim li rigioca nel client.
+- **Dati**: piste, veicoli e famiglie in JSON in `packages/content` (`corse/`).
+- **Budget**:
+  - una zona = un chunk ≤ 600 KB più un pacchetto di asset caricato all'ingresso della zona, con una riga di budget nuova in `TECH.md` §5 senza alzare quelle che ci sono;
+  - in pista ≤ 100 draw call e ≤ 150.000 triangoli a 390×844.
+- **Pagina di prova** `provapiste.html`: selettore della pista, interruttori A/B, camera libera. Uno script fa planimetria e screenshot lungo la pista in `tests/out/`.
+
+## A12. Ordine di lavoro (fette di #155)
+1. Questa bibbia.
+2. Concept art di hub, zone, veicoli, manichini e animali piloti.
+3. Motore v2: nastro 3D, famiglie Ruote e Acqua, bot sul nastro, evento firma, pagina di prova.
+4. **Zona Spiaggia e porto**: 4 piste, boss granchio, kit 3D, veicoli buffi, manichini, musica e suoni. Il primo circuito finito sostituisce il Gran Premio.
+5. Hub alla Diddy Kong Racing: isola aperta, porta della Spiaggia, garage, le altre porte chiuse.
+6. Fantasmi, stelle e sblocchi, premi per MAREA.
+7. Zone 2-6 con la stessa catena di montaggio.
+
+## A13. Da decidere
+- Lore e cattivo.
+- In quali gare ci sono gli oggetti.
+- Sfide extra in pista.
+- I boss animali delle zone 2-6.
+- Quante stelle apre ogni porta.
+- Gare dal vivo (più avanti, forse).
+
+# Parte B — Il Gran Premio di oggi (fetta 1, #156)
+
+## B0. In tre righe
 Un'isola con il format delle **corse arcade alla Mario Kart**: kart, camera dietro al veicolo, drift che carica il turbo, 3 giri contro 4 bot. Si gioca da telefono (il gas è automatico, un pollice sterza) e da PC (frecce/WASD + Spazio). Il server rigioca la gara e paga il premio come per gli altri minigiochi.
 
-## 1. Storia
+## B1. Storia
 Nessuna per ora **[scelta provvisoria]**. Il circuito si chiama «Anello del Faro». I bot si chiamano Gabbiano, Granchio, Polpo e Delfino.
 
-## 2. Dove sta e come si apre
+## B2. Dove sta e come si apre
 - Nell'arcipelago a `[215, 18]` (nord-est, tra i Ghiacci e la Tempesta), stile `corse`.
 - Sblocco `{ tipo: 'libera' }`: è **aperta a tutti**, anche senza link personale **[scelta provvisoria]**.
 - Il posto del gioco è l'**arco del via** sull'anello d'asfalto dell'isola (cella `[22, 26]`): lì compare **GIOCA · GRAN PREMIO**. Si arriva dal molo a sud.
 
-## 3. L'isola
+## B3. L'isola
 - **Nel mondo:** isola verde col prato rasato a strisce, un anello d'asfalto con la riga tratteggiata, la riva a cordoli bianchi e rossi, una collinetta in mezzo, l'arco del via a scacchi col semaforo, due tribune col pubblico, pile di gomme, due kart parcheggiati e le bandierine.
 - **La pista vera** è una scena a parte (come la chiesa dei Templari): 580 m di anello levigato con 12 m di carreggiata, 3 m di prato e il muretto di gomme a bande. Intorno ci sono tribune sul rettilineo, gomme all'esterno delle curve, palme e il mare.
 
-## 4. La partita
+## B4. La partita
 1. Scegli la **guida** (MORBIDA, MEDIA o NERVOSA): è la prova A/B di Jack e il gioco si ricorda l'ultima scelta.
 2. **VIA!** → semaforo 3-2-1 → 3 giri.
 3. Si parte **ultimi** in griglia, dietro ai 4 bot.
@@ -29,7 +164,7 @@ Il tempo massimo è 240 s: chi non arriva non prende medaglia.
 
 Con la guida media una gara pulita dura ~1:24 (giro ~27 s). Chi va a mezzo gas e non fa il drift arriva ultimo in ~2:35.
 
-## 5. Controlli
+## B5. Controlli
 | | Telefono | PC |
 |---|---|---|
 | Sterzo | joystick (al 70% della corsa è già pieno) | A/D o ← → |
@@ -40,7 +175,7 @@ Con la guida media una gara pulita dura ~1:24 (giro ~27 s). Chi va a mezzo gas e
 
 Nella scelta della guida il PC usa 1/2/3 e Invio.
 
-## 6. Guida (i numeri)
+## B6. Guida (i numeri)
 - **Niente fisica vera.** Il kart ha un muso, una direzione del moto e una velocità:
   - lo sterzo gira il muso (fino a `sterzo` rad/s, pieno sopra `sterzoPieno` m/s);
   - la **presa** porta il moto verso il muso: bassa = scivola.
@@ -62,7 +197,7 @@ Nella scelta della guida il PC usa 1/2/3 e Invio.
 | Media | 20 m/s | 14 | 2,25 | 10 | 3,5 | ×1,35 |
 | Nervosa | 21 m/s | 17 | 2,7 | 7 | 2,5 | ×1,45 |
 
-## 7. I bot
+## B7. I bot
 - Guidano con la guida media, a una frazione della velocità massima (97,5 / 95,5 / 93,5 / 91,5%), senza drift.
 - Ognuno segue la sua **corsia**, che ondeggia piano, puntando un punto 6 m + 0,35 s davanti.
 - **Elastico leggero:**
@@ -70,15 +205,15 @@ Nella scelta della guida il PC usa 1/2/3 e Invio.
   - se sono dietro spingono (+0,03% al metro, fino a +5%).
 - I kart che si toccano si spingono via e quello dietro perde l'1,5%.
 
-## 8-9. Pista e griglia
+## B8-B9. Pista e griglia
 - Il centro della pista è in `pista.punti`: 18 punti, levigati con Catmull-Rom e campionati ogni 2 m.
 - Griglia: 2 file da 2 bot a −5 e −11 m dal via; tu da solo a −17 m.
 - Il progresso si misura lungo la pista: chi torna indietro perde giro.
 
-## 10. Premio
+## B10. Premio
 `balance.solo` (10 partite premiate al giorno) più **+20 Legno** per l'oro (`premioExtra`). La gara entra nel **diario** (pagina Medaglie: «Oro ovunque» ora vuole anche il Gran Premio) e nel **tabellone dei record** del Porto, che mostra tempo e posizione (es. «1:23,4 · 1°»).
 
-## 11. Audio
+## B11. Audio
 Solo i suoni che esistono già **[scelta provvisoria]**:
 - `bip` per il semaforo;
 - `via` alla partenza;
@@ -87,16 +222,10 @@ Solo i suoni che esistono già **[scelta provvisoria]**:
 
 Da fare: motore, sgommata del drift, turbo.
 
-## 12. Da decidere
-- Quale guida tenere di serie (prova di Jack), o se lasciarle tutte e tre come scelta.
-- **Fette successive** (issue #155):
-  - fantasmi degli amici (il miglior giro di ognuno rigiocato in pista);
-  - oggetti (fungo, banana, guscio) in base alla distanza dal primo;
-  - stelle-trofeo per pista;
-  - seconda pista e secondo veicolo.
-- Se l'isola deve avere uno sblocco (oggi è aperta a tutti).
+## B12. Da decidere
+- Quale guida tenere di serie (prova di Jack), o se lasciarle tutte e tre come scelta. Le fette successive stanno in A12.
 
-## 13. Come funziona sotto
+## B13. Come funziona sotto
 Mappa del codice in `docs/CONTRACTS.md` §31.
 - **Sim** `packages/sim/src/minigames/corse.ts`: solo + − × ÷ e radice quadrata, come dungeon e Templari, perché il replay del server coincida con quello di Safari. È un `MinigameModule` normale, registrato nel registro dei minigiochi. Il server lo rigioca col giro «da solo» (`/api/solo/start` · `/api/solo/play`), senza rotte nuove e senza migrazioni.
 - **Client:** chunk `apps/client/src/corse/` (scena sua, camera dietro al kart) aperto da `game/minigiochi.ts` come gioco nel mondo (`SchermoGioco` con `step`/`update`).
