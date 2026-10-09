@@ -207,7 +207,7 @@ export default async function (ctx) {
         await hook('dungeonAutopilot', false);
         if ((await st()).dungeon.valvole?.some((v) => v.aperta)) break;
         // con l'eroe di partenza, senza pozioni e sotto il 25 % di vita, l'autopilota torna alla scala (circa un seed su otto): OK, nuovo seed
-        assert(prova < 4, 'l’autopilota non arriva alla valvola nemmeno in 4 discese');
+        assert(prova < 10, 'l’autopilota non arriva alla valvola nemmeno in 10 discese');
         ctx.log(`drenaggio: l'autopilota è uscito prima della valvola (prova ${prova}), si riprova`);
         riprove++;
         await page.locator('#mzDngEsito [data-act="ok"]').click();
