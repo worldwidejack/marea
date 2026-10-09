@@ -33,6 +33,10 @@ import type { Pista3d } from '../nastro3d.ts';
 import { matOnda, ondaGeo } from '../onda3d.ts';
 import { creaSuoni } from '../suoni.ts';
 import { veicoloGeo } from '../veicoli3d.ts';
+import { ASPETTI, PILOTI, caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
+import { createAvatar } from '../../game/avatar.ts';
+import type { Avatar } from '../../game/avatar.ts';
+import type { Look } from '@marea/protocol';
 import { creaRegia } from './camera.ts';
 import { stileProva } from './stile.ts';
 
@@ -55,6 +59,20 @@ const q = new URLSearchParams(location.search);
 const opz = { ...opzioniGara({ pista: q.get('pista'), veicolo: q.get('veicolo'), bot: q.get('bot'), ...Object.fromEntries(REGOLE.map(([id]) => [id, q.get(id)])) }) };
 const camQ = q.get('cam') === 'vicina' ? 'cofano' : q.get('cam');
 let cam: Camera = CAMERE.includes(camQ as Camera) ? (camQ as Camera) : 'dietro';
+// L'avatar MAREA guida: nel banco di prova il look è quello di serie o `?look=pelle,capelli,coloreCapelli,vestito,cappello` (nel gioco sarà il tuo).
+const LOOK0: Look = { pelle: 1, capelli: 3, coloreCapelli: 1, vestito: 2, cappello: 0 };
+const lookQ = (q.get('look') ?? '').split(',').map(Number);
+const look: Look = lookQ.length === 5 && lookQ.every(Number.isFinite) ? { pelle: lookQ[0]!, capelli: lookQ[1]!, coloreCapelli: lookQ[2]!, vestito: lookQ[3]!, cappello: lookQ[4]! } : LOOK0;
+const avatarOn = q.get('avatar') !== '0';
+let avatar: Avatar | null = null, avatarP: Promise<Avatar | null> | null = null;
+const avatarCaricato = (): Promise<Avatar | null> => (avatarP ??= loaderCorse().then((l) => createAvatar({ loader: l, look, x: 0, z: 0 })).catch((e) => { console.warn('[corse] avatar non caricato, resta il segnaposto', e); return null; }));
+/** Siede l'avatar sul veicolo del giocatore (appena ricostruito). */
+async function siediAvatar(mesh: THREE.Mesh, id: string) {
+  const a = await avatarCaricato(); if (!a || meshes[0] !== mesh) return;
+  const { seat, scala } = postoAvatar(id, aspetto);
+  a.attachTo(mesh, seat, 0); a.object.scale.setScalar(scala); a.visible = true; avatar = a;
+}
+let aspetto = ASPETTI.includes(q.get('aspetto') as never) ? q.get('aspetto')! : '', animali = q.get('animali') !== '0';
 let gasAuto = q.get('gas') === 'auto', auto = q.get('auto') === '1', luce: StyleId = 'giorno', effetti = q.get('effetti') !== '0', pausa = false;
 
 // ---------- resa (come provapixel: immagine piccola, passata finale coi contorni, il cielo e la palette) ----------
@@ -101,6 +119,17 @@ const materialeOnda = matOnda();
 type Vis = { hop: number; traverso: number; drift: number; lv: number; turbo: number; aria: boolean; vh: number; acro: number; scia: number };
 let vis: Vis[] = [];
 
+/** I veicoli in scena (uno per ogni veicolo della gara): si rifanno anche quando arriva il kit, senza toccare la gara. */
+function veicoliMesh() {
+  for (const m of meshes) { scene.remove(m); m.geometry.dispose(); }
+  meshes = s.veicoli.map((k, i) => {
+    const m = new THREE.Mesh(veicoloGeo(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!, aspetto, animali && i ? PILOTI[(i - 1) % PILOTI.length]! : null, !i && avatarOn && kitPronto()), matVeicoli);
+    m.castShadow = true; m.matrixAutoUpdate = false; m.name = i ? `corse_bot_${i}` : 'corse_tu'; scene.add(m);
+    return m;
+  });
+  if (avatarOn && kitPronto()) void siediAvatar(meshes[0]!, s.veicoli[0]!.id);
+}
+
 function nuovaGara(cambiaPista: boolean) {
   Object.assign(opz, opzioniGara(opz));
   if (cambiaPista || !p3d) {
@@ -109,12 +138,7 @@ function nuovaGara(cambiaPista: boolean) {
     mappa.pista(p);
   }
   s = garaCorse.create({ seed: (Math.random() * 1e9) >>> 0, difficulty: 2, opzioni: opz });
-  for (const m of meshes) { scene.remove(m); m.geometry.dispose(); }
-  meshes = s.veicoli.map((k, i) => {
-    const m = new THREE.Mesh(veicoloGeo(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!), matVeicoli);
-    m.castShadow = true; m.matrixAutoUpdate = false; m.name = i ? `corse_bot_${i}` : 'corse_tu'; scene.add(m);
-    return m;
-  });
+  veicoliMesh();
   if (ondaMesh) { scene.remove(ondaMesh); ondaMesh.geometry.dispose(); ondaMesh = null; }
   if (p.def.inseguitore) {
     ondaMesh = new THREE.Mesh(ondaGeo(p.def.larghezza + p.def.bordo + 8), materialeOnda);
@@ -233,6 +257,8 @@ const ROWS: Riga[] = [
   ['P', 'pista', () => p.def.nome, () => { opz['pista'] = PISTE[(PISTE.indexOf(opz['pista']!) + 1) % PISTE.length]!; opz['veicolo'] = ''; nuovaGara(true); }],
   ['V', 'veicolo', () => CORSE.veicoli.find((v) => v.id === opz['veicolo'])?.nome ?? '', () => { const l = famigliaVeicoli(); opz['veicolo'] = l[(l.findIndex((v) => v.id === opz['veicolo']) + 1) % l.length]!.id; nuovaGara(false); }],
   ['B', 'bot', () => (opz['bot'] === '0' ? 'no' : 'sì'), () => { opz['bot'] = opz['bot'] === '0' ? '1' : '0'; nuovaGara(false); }],
+  ['S', 'aspetto', () => (aspetto ? aspetto.replace('cs_v_', '').replace('_', ' ') : 'del veicolo'), () => { aspetto = aspetto ? (ASPETTI[ASPETTI.indexOf(aspetto as never) + 1] ?? '') : ASPETTI[0]; veicoliMesh(); }],
+  ['A', 'animali piloti', () => (animali ? 'sì' : 'no'), () => { animali = !animali; veicoliMesh(); }, () => animali],
   ['T', 'pilota automatico', () => (auto ? 'sì' : 'no'), () => { auto = !auto; }],
   ['R', 'ricomincia', () => '', () => nuovaGara(false)],
   ['L', 'luce', () => luce, () => setLuce(LUCI[(LUCI.indexOf(luce) + 1) % LUCI.length]!)],
@@ -321,6 +347,7 @@ function aggiornaHud(v: GaraView, dt: number) {
 
 // ---------- ciclo ----------
 setLuce(luce); resize(); nuovaGara(true);
+void caricaKit().then(() => veicoliMesh()); // i veicoli veri arrivano appena i glb sono scaricati; intanto ci sono i segnaposto
 const perf = { fps: 0, frames: 0, acc: 0 };
 let last = performance.now(), acc = 0, time = 0;
 function frame(now: number) {
@@ -328,7 +355,7 @@ function frame(now: number) {
   let n = 0;
   while (acc >= DT && n < 6) { if (!pausa) step(); acc -= DT; n++; }
   if (n === 6) acc = 0;
-  aggiornaVeicoli(dt); fx.aggiorna(dt); aggiornaCamera(dt); eventi();
+  aggiornaVeicoli(dt); avatar?.update(1, dt); fx.aggiorna(dt); aggiornaCamera(dt); eventi();
   const k = s.veicoli[0]!;
   if (fase === 'gara' && s.tick > 0) suoni.motore(k.v, veicoloCorse(k.id).velocita, k.turbo > 0, k.drift !== 0, !k.aria);
   lights.follow?.(vP.x, vP.z);
@@ -345,7 +372,7 @@ const api = {
   perf: () => ({ drawCalls: post.sceneCalls() + 1, triangles: post.sceneTris() + 2, fps: Math.round(perf.fps * 10) / 10, w: gl.domElement.width, h: gl.domElement.height, scintille: fx.mesh.count }),
   state: () => {
     const k = s.veicoli[0]!, v = garaCorse.view(s) as GaraView;
-    return { pista: p.def.id, veicolo: k.id, fase, cam, auto, bot: s.veicoli.length - 1, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: s.done, via: v.via,
+    return { kit: kitPronto(), avatar: !!avatar?.attached, aspetto, animali, pista: p.def.id, veicolo: k.id, fase, cam, auto, bot: s.veicoli.length - 1, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: s.done, via: v.via,
       s: Math.round(k.s * 10) / 10, lat: Math.round(k.lat * 100) / 100, h: Math.round(k.h * 100) / 100, v: Math.round(k.v * 10) / 10,
       ramo: k.ramo, aria: k.aria, caduto: k.caduto > 0, salti: k.salti, cadute: k.cadute, sup: k.sup,
       onda: v.onda === null ? null : Math.round(v.onda * 10) / 10, ondaDist: Math.round(v.ondaDist * 10) / 10, travolto: k.travolto,
@@ -353,10 +380,12 @@ const api = {
       risultato: s.done ? garaCorse.result(s) : null };
   },
   /** Cambia pista, veicolo, bot, regole, camera, pilota automatico; `vai` = salta il conto alla rovescia; `pausa` = ferma la gara. */
-  set: (o: { pista?: string; veicolo?: string; bot?: boolean; cam?: Camera; auto?: boolean; luce?: StyleId; vai?: boolean; regole?: Record<string, boolean>; effetti?: boolean; pausa?: boolean }) => {
+  set: (o: { pista?: string; veicolo?: string; aspetto?: string; animali?: boolean; bot?: boolean; cam?: Camera; auto?: boolean; luce?: StyleId; vai?: boolean; regole?: Record<string, boolean>; effetti?: boolean; pausa?: boolean }) => {
     const nuovaPista = o.pista !== undefined && o.pista !== opz['pista'];
     if (o.pista !== undefined) { opz['pista'] = o.pista; if (nuovaPista) opz['veicolo'] = ''; }
     if (o.veicolo !== undefined) opz['veicolo'] = o.veicolo;
+    if (o.aspetto !== undefined) aspetto = o.aspetto;
+    if (o.animali !== undefined) animali = o.animali;
     if (o.bot !== undefined) opz['bot'] = o.bot ? '1' : '0';
     if (o.regole) for (const [id, on] of Object.entries(o.regole)) opz[id] = on ? '1' : '0';
     if (o.cam) cam = o.cam;
@@ -364,7 +393,7 @@ const api = {
     if (o.effetti !== undefined) effetti = o.effetti;
     if (o.pausa !== undefined) pausa = o.pausa; // la gara si ferma, la resa e gli effetti no (per le foto dei test)
     if (o.luce) setLuce(o.luce);
-    if (o.pista !== undefined || o.veicolo !== undefined || o.bot !== undefined || o.regole) nuovaGara(nuovaPista);
+    if (o.pista !== undefined || o.veicolo !== undefined || o.aspetto !== undefined || o.animali !== undefined || o.bot !== undefined || o.regole) nuovaGara(nuovaPista);
     if (o.vai && s.tick < 0) s.tick = 0;
     regia.st.ok = false; scrivi();
     return api.state();

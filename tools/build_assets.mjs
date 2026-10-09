@@ -45,7 +45,8 @@ const DNG_MODULE = /^dng_(grotta|cripta|vuoto|drenaggio|archivio|fucina)_(pavime
 const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno', 'nem_astrolabio', 'nem_forgiatore']);
 // Corse: edifici, gru, faro e arco di roccia come gli edifici; prop e manichini come i prop (le teste sotto il minimo dei prop).
 const CORSE_GRANDI = /^cs_(casa_|gru_|faro|tribuna|arco_)/;
-const BUDGET = (n) => n === 'cs_manichino_testa' ? [1, 50] : CORSE_GRANDI.test(n) ? [1, 800] : isCorse(n) ? [1, 300] : n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
+// Corse (#178, Jack 9 ott: sull'isola si può andare oltre il budget del resto): veicoli fino a 1800 triangoli, animali piloti fino a 3000.
+const BUDGET = (n) => n === 'cs_manichino_testa' ? [1, 50] : n.startsWith('cs_v_') ? [1, 1800] : n.startsWith('cs_p_') ? [1, 3000] : CORSE_GRANDI.test(n) ? [1, 800] : isCorse(n) ? [1, 300] : n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
   : n.startsWith('boat_') ? [1, 600] : n.startsWith('chr_') ? [1, 1500] : BOSS.has(n) ? [1, 1200] : n.startsWith('nem_') ? [1, 600]
   : n.startsWith('arm_') ? [1, 80] : n.startsWith('fx_') ? [1, 40] : [1, 800];
 // Tinte di default dell'avatar: le zone pelle/capelli/vestito dell'atlas sono maschere bianche, il colore è il fattore del materiale.

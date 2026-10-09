@@ -52,7 +52,7 @@ La stessa `sim` gira nel browser (per giocare) e nel Durable Object (per **verif
 | Ogni chunk caricato dopo (`import()`: GDR, minimappa, isole, giochi a schermo, audio) | ≤ 600 KB minificato, ≤ 180 KB gzip; tutti insieme ≤ 3000 KB, ≤ 900 KB gzip |
 
 | Caricamento iniziale (html + js + atlas + modelli della prima isola) | ≤ 3 MB (era 2) |
-| Kit delle zone dell'Isola delle Corse (`manifest_corse.json`, scaricato aprendo una pista vestita) | ≤ 0,6 MB (Spiaggia e porto: 0,2 MB) |
+| Kit delle zone dell'Isola delle Corse (`manifest_corse.json`, scaricato aprendo una pista vestita) | ≤ 2,5 MB (era 0,6: Spiaggia e porto 0,2 MB + 20 veicoli e piloti 1,4 MB, deviazione del 9 ott 2026) |
 | Draw call per frame | ≤ 100 |
 | Triangoli a schermo | ≤ 150.000 |
 | Texture in VRAM | ≤ 16 MB |
