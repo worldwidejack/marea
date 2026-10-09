@@ -92,6 +92,11 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
 ## A9. Look e asset
 - Valgono le regole di `ART_BIBLE.md`: palette, texture nearest, un atlas, flat shading, stile PS1, niente gradienti, niente PBR.
 - **Prima la concept art**: per l'hub, ogni zona, ogni famiglia di veicoli, i buffi, i manichini e gli animali piloti si generano immagini di riferimento, e Jack sceglie da un foglio di confronto. Le scelte stanno in `assets/concept/corse/`, fuori dalla build. Solo dopo si passa al 3D, **fedele a quelle immagini**.
+- **Concept scelta** (9 ott 2026, `assets/concept/corse/`, foglio `_FOGLIO_concept_corse.jpg`): Jack ha approvato tutte e 14 le immagini, senza niente da rifare.
+  - **Look**: questa direzione. Colori saturi, pixel grossi, piste piene di dettagli.
+  - **Hub**: tutte e due le immagini. `corse_01_hub` è la mappa dell'isola con le zone intorno; `corse_13_hub_arrivo` è il paese dei piloti al molo (garage, podio, statua del manichino col trofeo).
+  - **Il metro di qualità è la Giungla** (`corse_08_giungla_miniera`): ogni zona deve arrivare a quel livello.
+  - In gioco il 3D sarà più semplice delle illustrazioni: si prendono colori, densità, atmosfera e soggetti.
 - **Asset misti**:
   - **piste e ambienti** da Blender via codice, con un kit per zona (`assets/blender/models_corse_<zona>.py`, sull'atlas come gli altri);
   - **veicoli buffi e animali** con l'AI 3D, poi ridotti allo stile PS1: pochi poligoni, palette, atlas.
