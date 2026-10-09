@@ -14,7 +14,7 @@ export default async function (ctx) {
   const fotogrammi = (page, n = 3) => page.evaluate((k) => new Promise((r) => { let i = 0; const f = () => (++i >= k ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
   const scena = (page, id) => page.waitForFunction((x) => window.__corseScena && window.__corseScena.pista === x, id, { timeout: 30000 })
     .then(() => page.evaluate(() => window.__corseScena.pronta));
-  const p = await ctx.open('provapiste.html?pista=spiaggia_lungomare');
+  const p = await ctx.open('provapiste.html?ruota=0&pista=spiaggia_lungomare');
   await p.page.waitForFunction(() => window.__provapiste && window.__provapiste.ready === true, null, { timeout: 30000 });
   for (const id of PISTE) {
     await ctx.test(`telefono: ${id} vestita — kit montato, budget rispettato per tutta la gara`, async () => {
