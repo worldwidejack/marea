@@ -15,7 +15,8 @@ export type Modo = 'dietro' | 'alta' | 'cofano';
 export type Inquadra = { pos: THREE.Vector3; fwd: THREE.Vector3; up: THREE.Vector3; moto: THREE.Vector3; k: Veicolo; p: Pista; onda: number; hop: number; effetti: boolean; dt: number };
 
 export function creaRegia(camera: THREE.PerspectiveCamera) {
-  const camF = new THREE.Vector3(1, 0, 0), camU = new THREE.Vector3(0, 1, 0), camP = new THREE.Vector3(), tmp = new THREE.Vector3(), dx = new THREE.Vector3(), T3 = nuovaTerna();
+  const camF = new THREE.Vector3(1, 0, 0), camU = new THREE.Vector3(0, 1, 0), camP = new THREE.Vector3(), camPos = new THREE.Vector3(), // camPos: la posizione nostra (nel gioco il mondo rimette la camera ogni frame)
+     tmp = new THREE.Vector3(), dx = new THREE.Vector3(), T3 = nuovaTerna();
   /** ok = false: la prossima inquadratura salta subito al posto giusto (cambio di camera o di gara). */
   const st = { ok: false, pugno: 0, scossa: 0 };
   const lente = (fov: number, near: number, dt: number) => {
@@ -48,7 +49,8 @@ export function creaRegia(camera: THREE.PerspectiveCamera) {
     if (tremo > 0) camP.addScaledVector(camU, Math.sin(performance.now() * 0.06) * 0.14 * tremo);
     tmp.set(T3.ux, T3.uy, T3.uz).normalize();
     camU.lerp(tmp, st.ok ? 1 - Math.exp(-dt * 10) : 1).normalize();
-    camera.position.lerp(camP, st.ok ? 1 - Math.exp(-dt * 20) : 1);
+    if (st.ok) camPos.lerp(camP, 1 - Math.exp(-dt * 20)); else camPos.copy(camP);
+    camera.position.copy(camPos);
     if (scossa > 0.005) camera.position.addScaledVector(camU, (Math.random() - 0.5) * scossa).addScaledVector(dx.set(T3.rx, T3.ry, T3.rz), (Math.random() - 0.5) * scossa);
     camera.up.copy(camU);
     camF.copy(q.fwd).multiplyScalar(0.4).addScaledVector(q.moto, 0.6).normalize();

@@ -55,6 +55,10 @@ const NEAR_M = 16;
 export type SchermoGioco = {
   run(o: { seed: number; difficulty: number; opzioni?: Record<string, string>; posto?: string }): Promise<PackedInputs | null>; isOpen(): boolean; esito?(detail: Record<string, unknown>): string;
   step?(f: InputFrame): void; update?(t: number): void;
+  /** Prima che il server apra la partita: sceglie le `opzioni` (le Corse: pista e veicolo). null = ci ripensa. */
+  scegli?(opzioni?: Record<string, string>): Promise<Record<string, string> | null>;
+  /** La partita non si apre (server giù): richiude quello che `scegli` ha lasciato su. */
+  annulla?(): void;
 };
 /** I giochi a schermo per id del minigioco, scaricati alla prima partita (il JS iniziale ha un tetto, TECH §5). */
 const SCHERMI: Record<string, (root: HTMLElement) => Promise<SchermoGioco>> = {};
@@ -230,17 +234,19 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     try {
       let seed = 0, difficulty = 2, opzioni = s.opzioni;
       const online = !!o.api?.enabled;
-      if (online) {
-        try { const st = await o.api!.soloStart(s.minigame, s.opzioni); seed = st.seed; difficulty = st.difficulty; if (s.opzioni) opzioni = st.opzioni; }
-        catch (e) { o.hud.toast(e instanceof ApiError ? e.message : 'Niente connessione, riprova tra poco', 3000); return; }
-      } else seed = (Math.random() * 0x7fffffff) >>> 0; // senza link si gioca lo stesso, ma il premio non si salva
-      busy = false; // da qui la gara tiene fermo il mondo da sé
       const load = SCHERMI[s.minigame];
       let schermo: SchermoGioco | null = null;
       if (load) {
         schermo = schermi.get(s.minigame) ?? null;
         if (!schermo) { try { schermo = await load(o.root); schermi.set(s.minigame, schermo); } catch { o.hud.toast('Gioco non caricato: riprova', 2500); return; } }
       }
+      // un gioco a schermo può far scegliere qualcosa prima che il server apra la partita (le Corse: pista e veicolo)
+      if (schermo?.scegli) { const sel = await schermo.scegli(s.opzioni); if (!sel) return; opzioni = sel; }
+      if (online) {
+        try { const st = await o.api!.soloStart(s.minigame, opzioni); seed = st.seed; difficulty = st.difficulty; if (opzioni) opzioni = st.opzioni; }
+        catch (e) { o.hud.toast(e instanceof ApiError ? e.message : 'Niente connessione, riprova tra poco', 3000); schermo?.annulla?.(); return; }
+      } else seed = (Math.random() * 0x7fffffff) >>> 0; // senza link si gioca lo stesso, ma il premio non si salva
+      busy = false; // da qui la gara tiene fermo il mondo da sé
       const inputs = schermo ? await schermo.run({ seed, difficulty, ...(opzioni ? { opzioni } : {}), ...(s.posto ? { posto: s.posto } : {}) }) : await runRegata({ challenge: { id: 'solo', minigame: s.minigame, difficulty, seed } });
       if (!inputs) { o.hud.toast('Ritirato', 1500); return; }
       if (!online) { playedN++; showEsito(s, null, 'Partita di prova', null, 'Con il tuo link personale vinci Legno, Pietra e Perle'); return; }
