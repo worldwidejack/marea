@@ -59,6 +59,30 @@ export type DungeonEvent = (
   | { t: 'uscita'; lanterna?: number }
   /** Insieme: un compagno se n'è andato (azione `ritira`). */
   | { t: 'ritirato' }
+  /** Drenaggio: girata la valvola del bacino n (comincia a svuotarsi) · bacino n asciutto (si passa) · geyser che erutta · rallentato. */
+  | { t: 'valvola'; n: number }
+  | { t: 'asciutto'; n: number }
+  | { t: 'geyser'; x: number; z: number }
+  | { t: 'rallentato' }
+  /** Archivio: fermata la corrente n col suo timone · bomba a pressione che scoppia · preso dall'arpione · sbattuto contro un muro da una
+   *  spinta · raffica dell'Astrolabio · il suo raggio · colpo sul capo protetto dagli anelli (niente danno) · anelli staccati. */
+  | { t: 'timone'; n: number }
+  | { t: 'bomba'; x: number; z: number }
+  | { t: 'arpionato' }
+  | { t: 'urto'; x: number; z: number }
+  | { t: 'raffica' }
+  | { t: 'raggio'; x: number; z: number }
+  /** Colpo parato: dagli anelli dell'Astrolabio (senza `perche`), dallo scafandro del Golem-Palombaro, dalla fornace del Mastro acceso. */
+  | { t: 'parato'; x: number; z: number; perche?: 'scafandro' | 'fornace' }
+  | { t: 'anelli' }
+  /** Fucina: prendi fuoco · una cascata ti spegne · il Mastro Forgiatore spento da una cascata (prende danni) · si riaccende · parte la
+   *  sua carica · una palla di magma che cade. */
+  | { t: 'bruciato' }
+  | { t: 'estinto' }
+  | { t: 'spento'; x: number; z: number }
+  | { t: 'riacceso' }
+  | { t: 'carica' }
+  | { t: 'magma'; x: number; z: number }
 ) & { eroe?: number };
 
 export type DungeonView = {
@@ -79,6 +103,12 @@ export type DungeonView = {
     protetto: boolean;
     /** Arma in mano (id, null = pugni): cambia con `equip` o quando si rompe. */
     arma: string | null;
+    /** Rallentato dal Tubo-strisciante (Drenaggio). */
+    rallentato?: boolean;
+    /** Archivio: nel vento che soffia (e ti sposta), al riparo dietro uno scaffale, spinto da fuori (arpione, raffica, bomba). */
+    vento?: boolean; riparo?: boolean; spinto?: boolean;
+    /** Fucina: brucia (fuoco addosso), sotto una cascata d'acqua. */
+    brucia?: boolean; bagnato?: boolean;
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
     /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
@@ -86,8 +116,13 @@ export type DungeonView = {
     /** Raggio in m del colpo ad area dei boss, solo mentre lo prepara (il client disegna il cerchio a terra). */
     area?: number;
     /** Sta preparando un tiro (freccia o magia), non un colpo in mischia: il client mostra l'arco che si tende. */
-    tiro?: boolean }[];
-  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica'; x: number; y: number; z: number; vx: number; vz: number }[];
+    tiro?: boolean;
+    /** Archivio: vola alto (in mischia non lo prendi), sulle grate, ricarica la molla, protetto dagli anelli; l'Astrolabio: attacco in
+     *  corso e, per il raggio, il punto dove arriva (linea d'avviso in `prepara`, raggio in `colpisce`). */
+    alto?: boolean; grata?: boolean; molla?: boolean; schermo?: boolean;
+    /** Fucina, il Mastro Forgiatore: attacco in corso (per la carica `mira` = dove arriva, solo durante l'avviso) e spento dalla cascata. */
+    attacco?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo'; mira?: [number, number]; spento?: boolean }[];
+  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico'; x: number; y: number; z: number; vx: number; vz: number }[];
   bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
   uscita: { x: number; z: number };
   vicinoUscita: boolean;
@@ -96,6 +131,21 @@ export type DungeonView = {
   /** Lanterna (altare) sotto l'eroe, -1 = nessuna: lì compaiono SALVA ed ESCI. `salvatoQui` = qui non c'è niente di nuovo da salvare. */
   lanterna: number;
   salvatoQui: boolean;
+  /** Drenaggio (negli altri dungeon liste vuote): livello di ogni bacino (1 pieno, 0 asciutto), valvole (girate o no), A qui gira una
+   *  valvola, geyser in corso (`getto` = erutta, se no è l'avviso; `t` 0..1 nella fase). */
+  acque: { n: number; livello: number }[];
+  valvole: { x: number; z: number; n: number; aperta: boolean }[];
+  vicinoValvola: boolean;
+  geyser: { id: number; x: number; z: number; r: number; getto: boolean; t: number; bomba?: boolean; magma?: boolean }[];
+  /** Archivio (negli altri dungeon liste vuote): correnti d'aria (direzione, stato e fase 0..1 nello stato), timoni (fermi o no), A qui
+   *  ferma una corrente. */
+  venti: { n: number; dx: number; dz: number; stato: 'calma' | 'avviso' | 'soffia' | 'ferma'; t: number }[];
+  timoni: { x: number; z: number; n: number; fermo: boolean }[];
+  vicinoTimone: boolean;
+  /** Fucina (negli altri dungeon liste vuote): colate che respirano (stato e fase 0..1 nello stato), chiazze di fuoco a terra (`t` 0..1 da
+   *  quando sono nate a quando si spengono). La Colata Maestra e la sua chiusa stanno in `acque` e `valvole`, le palle di magma in `geyser`. */
+  lave: { n: number; stato: 'crosta' | 'avviso' | 'scorre'; t: number }[];
+  fuochi: { id: number; x: number; z: number; r: number; t: number }[];
   /** Bottino e monete al sicuro all'ultimo altare (null = nessun altare toccato). */
   salvato: { bottino: Record<string, number>; monete: number } | null;
   zaino: { peso: number; max: number; monete: number; bottino: Record<string, number> };

@@ -15,13 +15,19 @@ import { EQUIP_SLOTS } from './types.ts';
 import type { HeroState, RunResult } from './types.ts';
 
 /** Apre una spedizione: lot.dungeon.pending = { dungeon, seed, startMs, hero: runHeroOf(hero), stato: hero, partenza }. Una sola aperta (la
- *  nuova sostituisce). `lanterna`: riparte dalla lanterna da cui sei uscito l'ultima volta (hero.lanterne), se c'è; se no dall'ingresso. */
+ *  nuova sostituisce). `lanterna`: riparte dalla lanterna da cui sei uscito l'ultima volta (hero.lanterne), se c'è; se no dall'ingresso.
+ *  Porta sigillata (`DungeonDef.richiede`): finché quel dungeon non è in hero.completati, EconomyError 'requisito'. */
 export function startDungeon(lot0: LotState, dungeon: string, seed: number, nowMs: number, o: { lanterna?: boolean } = {}): LotState {
   const lot = advance(lot0, nowMs);
   if (typeof dungeon !== 'string' || !dungeon || dungeon.length > 40) throw new EconomyError('sconosciuto', 'Dungeon sconosciuto');
   // finché R-dungeon non ha scritto dungeons.json la lista è vuota: allora va bene qualunque id
   if (DUNGEONS.length > 0 && !DUNGEONS.some((d) => d.id === dungeon)) throw new EconomyError('sconosciuto', 'Dungeon sconosciuto');
   const hero = heroOf(lot);
+  // porta sigillata (Epopea della Regata): si entra solo dopo aver completato il dungeon di prima
+  const req = DUNGEONS.find((d) => d.id === dungeon)?.richiede;
+  if (req && !(hero.completati ?? []).includes(req)) {
+    throw new EconomyError('requisito', `La porta è sigillata: prima completa ${DUNGEONS.find((d) => d.id === req)?.nome ?? req}`);
+  }
   const l = hero.lanterne?.[dungeon];
   const partenza = o.lanterna && typeof l === 'number' && Number.isInteger(l) && l >= 0 ? l : null;
   return { ...lot, version: lot.version + 1, hero, dungeon: { pending: { dungeon, seed: seed >>> 0, startMs: nowMs, hero: buildRunHero(hero), stato: hero, partenza } } };

@@ -140,7 +140,11 @@ export function createAudio(): Audio {
       const id: SuonoId | null = e.t === 'colpo' ? (e.su === 'eroe' ? 'colpo_preso' : e.critico ? 'colpo_critico' : 'colpo_dato')
         : e.t === 'schivato' ? 'schivato' : e.t === 'morte' ? 'nemico_ko' : e.t === 'raccolto' ? 'raccolto' : e.t === 'monete' ? 'moneta'
         : e.t === 'pozione' ? 'pozione' : e.t === 'magia' ? 'magia' : e.t === 'altare' || e.t === 'risveglio' ? 'altare'
-        : e.t === 'senzaMagicka' || e.t === 'senzaFrecce' || e.t === 'rotto' || e.t === 'pieno' ? 'vuoto' : null;
+        : e.t === 'senzaMagicka' || e.t === 'senzaFrecce' || e.t === 'rotto' || e.t === 'pieno' ? 'vuoto'
+        : e.t === 'valvola' ? 'martello' : e.t === 'asciutto' ? 'goccia' : e.t === 'geyser' ? 'sfrigola' : e.t === 'rallentato' ? 'plop' // Drenaggio
+        : e.t === 'timone' ? 'martello' : e.t === 'bomba' ? 'cannone' : e.t === 'arpionato' ? 'lancio' : e.t === 'raffica' ? 'raffica' // Archivio
+        : e.t === 'raggio' ? 'tuono' : e.t === 'parato' ? 'schivato' : e.t === 'anelli' ? 'apri'
+        : e.t === 'bruciato' ? 'sfrigola' : e.t === 'estinto' || e.t === 'spento' ? 'goccia' : e.t === 'carica' ? 'tuono' : e.t === 'magma' ? 'cannone' : e.t === 'riacceso' ? 'magia' : null; // Fucina
       if (id) suona(id);
     },
     resume() { if (vol.musica > 0 || vol.effetti > 0) void ctx.resume(); },

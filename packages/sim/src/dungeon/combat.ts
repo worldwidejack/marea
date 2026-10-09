@@ -6,7 +6,8 @@ import { add, ev, nuovoBottino, secToTicks } from './state.ts';
 import { rollLoot } from './loot.ts';
 import { moveCircle } from './map.ts';
 import { risveglio } from './altari.ts';
-import { COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
+import { grigliaDi, schermato } from './muove.ts';
+import { COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 
@@ -24,6 +25,8 @@ export type HitSrc = {
   caricato: boolean; dirX: number; dirZ: number;
   /** Chi colpisce: eroe (anche frecce e magie) o alleato. */
   daAlleato: boolean;
+  /** Da dove arriva il colpo (chi colpisce, la freccia, il centro dello scoppio): per lo scafandro del Golem-Palombaro (Fucina). */
+  ox?: number; oz?: number;
 };
 
 /** Danno di un colpo su un nemico (prima di applicarlo). */
@@ -38,7 +41,18 @@ export function dannoSu(e: Enemy, src: HitSrc): number {
 /** Applica un colpo dell'eroe (o di un alleato) a un nemico: danno, sanguinamento, spinta, aggro, morte. Ritorna il danno. */
 export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   if (e.st === 'morto' || e.alleato) return 0;
-  const d = dannoSu(e, src);
+  // Archivio: l'Astrolabio con gli anelli-scudo ancora interi non prende danni
+  if (e.def.astrolabio && schermato(s, e)) { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z) }); return 0; }
+  // Fucina: il Mastro Forgiatore acceso non prende danni; lo scafandro del Golem-Palombaro para da davanti, da dietro (le valvole) fa di più
+  if (e.def.forgiatore && !e.spento) { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'fornace' }); if (!e.aggro) wake(s, e); return 0; }
+  let retro = 1;
+  const sc = e.def.scafandro;
+  if (sc && src.ox !== undefined && src.oz !== undefined) {
+    const ax = src.ox - e.x, az = src.oz - e.z, l = Math.sqrt(ax * ax + az * az), k = l > 1e-6 ? (ax * e.fx + az * e.fz) / l : 0;
+    if (k >= sc.cono) { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'scafandro' }); if (!e.aggro) wake(s, e); return 0; }
+    if (k <= RETRO_SCAFANDRO) retro = sc.retro;
+  }
+  const d = dannoSu(e, src) * retro * (e.spento && e.def.forgiatore ? e.def.forgiatore.vulnerabile : 1);
   e.vita -= d;
   e.hurt = COLPITO_TICKS;
   if (s.eroi.length > 1) e.ultimo = s.cur; // insieme: a chi va il sanguinamento (l'eroe di turno, o il padrone dell'alleato)
@@ -56,7 +70,7 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   // sbilancia o attacco caricato: interrompe la preparazione dei non-boss e spinge
   if ((src.traits.sbilancia || src.caricato) && !e.def.boss) {
     if (e.st === 'prepara') { e.st = 'recupera'; e.stT = 0; e.stDur = secToTicks(e.def.recupero); }
-    if (src.traits.sbilancia) moveCircle(s.map, e, src.dirX * SPINTA, src.dirZ * SPINTA, e.def.raggio);
+    if (src.traits.sbilancia && e.def.comportamento !== 'torretta' && e.def.comportamento !== 'anello') moveCircle(grigliaDi(s, e), e, src.dirX * SPINTA, src.dirZ * SPINTA, e.def.raggio); // le torrette sono attaccate ai tubi
   }
   if (!e.aggro) wake(s, e);
   if (e.vita <= 0) kill(s, e);
@@ -100,8 +114,11 @@ export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: numbe
     const n = Math.floor(ms) + (s.rng.next() < ms - Math.floor(ms) ? 1 : 0);
     if (n > 0) { s.monete += n; ev(s, { t: 'monete', n }); }
   }
-  if (h.vita <= 0) {
-    if (s.salvato) risveglio(s);
-    else { h.vita = 0; s.done = true; s.outcome = 'morto'; }
-  }
+  if (h.vita <= 0) caduto(s);
+}
+
+/** L'eroe di turno è a terra: si risveglia all'ultimo altare salvato, se no la spedizione finisce (morto). */
+export function caduto(s: DungeonState): void {
+  if (s.salvato) risveglio(s);
+  else { s.hero.vita = 0; s.done = true; s.outcome = 'morto'; }
 }

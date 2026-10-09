@@ -5,6 +5,13 @@
 // Arcieri: arco nella sinistra; quando preparano un tiro si girano di fianco, alzano l'arco verso il bersaglio e tendono la corda a
 // gradini con la freccia incoccata, scoccano con un rinculo e lo riabbassano (arco.ts). Frecce in volo grandi e con la scia.
 // Interpolazione tra due tick (alpha) per i 60 fps; quel che sta al buio (scena.light) non si disegna.
+// Drenaggio: i nemici senza modello usano le forme in codice di rpg/drenaggio.ts; la Valvola-SparaVapore non barcolla (è fissata ai tubi);
+// getti d'acqua azzurri.
+// Archivio: forme in codice di rpg/archivio.ts; chi vola (Aerostato, Astrolabio, anelli) sta alto e scende a scatti quando attacca o si
+// ricalibra; il Drone Idro-Ragno sulle grate ci sta sopra; gli anelli dell'Astrolabio girano a scatti e spariscono quando si staccano;
+// l'Archivista che ricarica la molla trema; l'Astrolabio protetto dagli anelli brilla d'azzurro. Arpioni e lame di vento in volo.
+// Fucina: forme in codice di rpg/fucina.ts (le parti accese brillano da sé); la Scintilla-Vapore guizza; il Mastro Forgiatore spento si
+// spegne davvero (niente brace, trema col vapore addosso: il vapore lo disegna fucina.ts).
 import * as THREE from 'three';
 import { ENEMIES } from '@marea/content/rpg.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
@@ -13,12 +20,19 @@ import { PAL } from '../ui/style.ts';
 import { boxes, materialsOf, object, tintBlade } from './dungeon_kit.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
 import { armaArco, frecciaInVolo } from './arco.ts';
+import { formaNemico } from './drenaggio.ts';
+import { formaNemico as formaArchivio, giriAstrolabio } from './archivio.ts';
+import { formaNemico as formaFucina } from './fucina.ts';
 import type { Arco } from './arco.ts';
 
 type NemV = DungeonView['nemici'][number] & { area?: number };
 type Enemy = {
   id: number; root: THREE.Group; body: THREE.Group; mats: THREE.MeshLambertMaterial[]; base: THREE.Color[]; height: number;
   px: number; pz: number; x: number; z: number; v: NemV; diedAt: number; flashT: number; ring: THREE.Group | null; ready: boolean;
+  /** Archivio: altezza da terra adesso (chi vola, chi sta sulle grate); anelli dell'Astrolabio (gruppi `giro_*`). */
+  alt: number; giri: THREE.Object3D[];
+  /** Fucina: il Mastro Forgiatore è spento (la fornace è cenere). */
+  spento: boolean;
   /** Solo arcieri: l'arco nella sinistra e se l'ultimo attacco preparato era un tiro (vale anche per colpisce e recupera). */
   arco: { obj: THREE.Object3D; a: Arco } | null; tiro: boolean;
 };
@@ -49,7 +63,11 @@ const FALLBACK: Record<string, (number | string)[][]> = {
 const NEON = new THREE.Color('#8A5CFF'), RED = new THREE.Color(PAL.rosso), WHITE = new THREE.Color(PAL.sabbiaChiara);
 const yawOf = (fx: number, fz: number) => Math.atan2(-fx, -fz);
 const steps = (v: number, n: number) => Math.floor(Math.max(0, Math.min(1, v)) * n) / n;
-const ARCIERI = new Set(ENEMIES.filter((d) => d.comportamento === 'arciere').map((d) => d.id));
+const ARCIERI = new Set(ENEMIES.filter((d) => d.comportamento === 'arciere' && !d.arpione).map((d) => d.id));
+/** Archivio: chi vola e quanto sta alto quando vola alto (quando scende sta a BASSO). */
+const VOLA = new Set(ENEMIES.filter((d) => d.muove === 'vola').map((d) => d.id));
+const ALTO: Record<string, number> = { nem_aerostato: 1.7, nem_astrolabio: 1.2, nem_anello: 1.4 }, BASSO = 0.35, SU_GRATA = 1.0;
+const AZZURRO = new THREE.Color(PAL.acquaBassa), NERO = new THREE.Color(0, 0, 0);
 /** Impugnatura dell'arco (spazio della radice del nemico, −Z avanti): a riposo nella mano sinistra lungo il fianco; in mira davanti
  *  all'altezza delle spalle, col corpo girato di fianco (la sinistra verso il bersaglio). */
 const ARCO_GIU = new THREE.Vector3(-0.38, 0.85, -0.06), ARCO_SU = new THREE.Vector3(-0.04, 1.28, -0.62), FIANCO = -0.9, ALLUNGO = 0.45;
@@ -61,6 +79,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
   const proj = new Map<number, { obj: THREE.Object3D; px: number; py: number; pz: number; x: number; y: number; z: number; vy: number; tipo: string }>();
   const loot = new Map<number, { obj: THREE.Group; state: string }>();
   const fy = o.scene.floorY;
+  let ultima: DungeonView | null = null;
 
   // ombre a disco (nero caldo, 8 lati): una draw call per tutti
   const MAXB = 96;
@@ -77,15 +96,16 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
   function addEnemy(n: NemV): Enemy {
     const r = new THREE.Group(); r.name = 'nemico_' + n.id; root.add(r);
     const body = new THREE.Group(); r.add(body);
-    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false };
+    const e: Enemy = { id: n.id, root: r, body, mats: [], base: [], height: n.boss ? 3.4 : 1.9, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, diedAt: -1, flashT: 0, ring: null, ready: false, arco: null, tiro: false, alt: 0, giri: [], spento: false };
     if (ARCIERI.has(n.tipo) && !n.alleato) {
       void object(o.loader, 'arm_arco', () => boxes([[0.05, 1.3, 0.05, 0, 0, 0, PAL.legno]])).then((m) => {
         tintBlade(m, PAL.legnoChiaro); // chiaro: sul pavimento scuro della grotta si legge
         body.add(m); e.arco = { obj: m, a: armaArco(m, o.loader, true, 2.6) };
       });
     }
-    void object(o.loader, n.model, () => boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
+    void object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? formaFucina(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
       body.add(m);
+      if (n.model === 'nem_astrolabio') for (const g of giriAstrolabio()) { m.add(g); e.giri.push(g); } // anelli che girano (anche sul modello vero)
       e.mats = materialsOf(m);
       if (n.alleato) for (const x of e.mats) { x.color.lerp(NEON, 0.6); x.transparent = true; x.opacity = 0.85; }
       e.base = e.mats.map((x) => x.emissive.clone());
@@ -108,12 +128,16 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
   }
   function projObj(tipo: string): Promise<THREE.Object3D> {
     if (tipo === 'freccia' || tipo === 'freccia_nemica') return frecciaInVolo(o.loader, tipo === 'freccia_nemica');
+    if (tipo === 'arpione_nemico') return Promise.resolve(boxes([[0.06, 0.06, 0.9, 0, 0, 0.15, PAL.legno], [0.16, 0.16, 0.28, 0, 0, -0.42, PAL.pietraChiara], [0.3, 0.05, 0.05, 0, 0, -0.3, PAL.pietra]]));
+    if (tipo === 'vento_nemico') return Promise.resolve(boxes([[0.7, 0.08, 0.3, 0, 0, 0, PAL.sabbiaChiara], [0.5, 0.06, 0.22, 0, 0, 0.22, PAL.acquaBassa], [0.3, 0.05, 0.15, 0, 0, 0.42, PAL.acqua]], true));
+    if (tipo === 'acqua_nemica') return Promise.resolve(boxes([[0.32, 0.32, 0.5, 0, 0, 0, PAL.acquaBassa], [0.2, 0.2, 0.5, 0, 0, 0.22, PAL.acqua], [0.12, 0.12, 0.3, 0, 0, 0.5, PAL.sabbiaChiara]], true));
     if (tipo === 'magia') return object(o.loader, 'fx_fiammata', () => boxes([[0.35, 0.35, 0.6, 0, 0, 0, PAL.arancio]], true)).then((f) => { for (const m of materialsOf(f)) { m.emissive.set(PAL.arancio); m.emissiveIntensity = 0.8; } return f; });
     return Promise.resolve(boxes([[0.35, 0.35, 0.35, 0, 0, 0, '#8A5CFF'], [0.18, 0.18, 0.5, 0, 0, 0.2, PAL.rosaNeon]], true));
   }
 
   const api: Actors = {
     tick(v) {
+      ultima = v;
       const seen = new Set<number>();
       for (const n of v.nemici as NemV[]) {
         seen.add(n.id);
@@ -177,7 +201,10 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
           if (n.anim === 'colpisce') b.position.z = 0.12;
         } else switch (n.anim) {
           case 'dorme': b.scale.y = bs * (0.92 + 0.02 * Math.sin(t * 2)); break;
-          case 'insegue': case 'scappa': { const k = n.anim === 'scappa' ? 14 : 10; b.position.y = 0.08 * Math.abs(Math.sin(t * k + e.id)); b.rotation.z = 0.08 * Math.sin(t * k + e.id); break; }
+          case 'insegue': case 'scappa': {
+            if (n.model === 'nem_valvola') { b.position.y = 0.015 * (Math.floor(t * 8 + e.id) % 2); break; } // fissata ai tubi: vibra soltanto
+            const k = n.anim === 'scappa' ? 14 : 10; b.position.y = 0.08 * Math.abs(Math.sin(t * k + e.id)); b.rotation.z = 0.08 * Math.sin(t * k + e.id); break;
+          }
           case 'prepara': { // telegrafo leggibile: si tira indietro a gradini e lampeggia rosso sempre più spesso
             b.rotation.x = 0.4 * steps(n.t, 4); b.position.z = 0.15 * n.t;
             const hz = 4 + 10 * n.t; glowC = RED; glow = Math.floor(t * hz) % 2 === 0 ? 0.35 + 0.5 * n.t : 0.1;
@@ -195,6 +222,20 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
           default: b.position.y = 0.02 * Math.sin(t * 2 + e.id);
         }
         if (n.alleato) b.position.y += 0.15 + 0.05 * Math.sin(t * 3 + e.id);
+        // Archivio: in volo (alto o sceso a sganciare, a ricalibrarsi) o aggrappato alla grata; si sposta a scatti di 10 cm
+        const want = VOLA.has(n.tipo) ? (n.alto ? ALTO[n.model] ?? 1.5 : BASSO) : n.grata ? SU_GRATA : 0;
+        e.alt += (want - e.alt) * Math.min(1, dt * 5);
+        if (Math.abs(want - e.alt) < 0.02) e.alt = want;
+        b.position.y += Math.round(e.alt * 10) / 10 + (VOLA.has(n.tipo) && !dead ? 0.06 * (Math.floor(t * 3 + e.id) % 2) : 0);
+        if (n.molla) b.rotation.z = 0.12 * (Math.floor(t * 14) % 2 ? 1 : -1); // ricarica la molla: trema
+        if (e.giri.length) {
+          const diviso = (ultima?.nemici ?? []).some((x) => x.tipo === 'anello_astrolabio');
+          e.giri.forEach((g, k) => { g.visible = !diviso; const sp = g.children[0]; if (sp) sp.rotation.y = Math.floor(t * (6 + k * 3)) * (Math.PI / 8) * (k % 2 ? -1 : 1) * (n.anim === 'recupera' ? 0 : 1); });
+        }
+        if (n.schermo) { glowC = AZZURRO; glow = Math.floor(t * 4) % 2 ? 0.55 : 0.25; }
+        // Fucina: la Scintilla guizza a scatti; il Mastro spento trema e la sua fornace è nera (il lampo dei colpi resta)
+        if (n.model === 'nem_scintilla' && !dead) { b.position.y += 0.08 * (Math.floor(t * 7 + e.id) % 3); b.rotation.y = Math.floor(t * 9 + e.id) * 0.7; }
+        if (n.spento) { b.position.x = 0.04 * (Math.floor(t * 16) % 2 ? 1 : -1); glowC = NERO; glow = 0; }
         if (e.arco) {
           const yaw = b.rotation.y, a = e.arco.obj;
           a.position.lerpVectors(ARCO_GIU, ARCO_SU, su).applyAxisAngle(YA, -yaw); // nello spazio del corpo, che è girato di yaw
@@ -204,6 +245,8 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         e.flashT = Math.max(0, e.flashT - dt);
         if (e.flashT > 0 || n.anim === 'colpito') { glowC = WHITE; glow = 0.9; }
         const fade = dead && since > 0.6 ? 1 - steps((since - 0.6) / 0.6, 3) : 1;
+        // Fucina: spento, anche il colore della fornace (le parti accese: `_brace` nel segnaposto, mat_emissivo nel modello) diventa cenere
+        if (n.spento !== e.spento) { e.spento = !!n.spento; for (const m of e.mats) if (/_brace$|emissiv/.test(m.name)) m.color.setScalar(e.spento ? 0.22 : 1); }
         e.mats.forEach((m, i) => {
           if (glowC) m.emissive.copy(glowC).multiplyScalar(glow); else m.emissive.copy(e.base[i]!);
           if (n.alleato) m.emissive.lerp(NEON, 0.35);
@@ -223,11 +266,11 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
       for (const e of enemies.values()) {
         const n = e.v;
         if (!e.root.visible || n.anim === 'morto' || (n.vita >= n.max && !n.capo) || !e.ready) continue;
-        out.push({ id: e.id, pos: e.root.position.clone().setY(fy + e.height), frac: n.vita / n.max, ally: n.alleato, boss: n.boss, capo: !!n.capo });
+        out.push({ id: e.id, pos: e.root.position.clone().setY(fy + e.height + e.alt), frac: n.vita / n.max, ally: n.alleato, boss: n.boss, capo: !!n.capo });
       }
       return out;
     },
-    posOf(id) { const e = enemies.get(id); return e ? e.root.position.clone().setY(fy + e.height) : null; },
+    posOf(id) { const e = enemies.get(id); return e ? e.root.position.clone().setY(fy + e.height + e.alt) : null; },
     counts: () => ({ enemies: enemies.size, drawn: [...enemies.values()].filter((e) => e.root.visible).length, proj: proj.size, loot: loot.size }),
     dispose() { root.removeFromParent(); blobGeo.dispose(); ringGeo.dispose(); discGeo.dispose(); },
   };

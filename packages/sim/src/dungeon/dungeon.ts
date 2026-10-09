@@ -13,6 +13,9 @@ import { stepProjectiles } from './projectiles.ts';
 import { pickup } from './loot.ts';
 import { esciQui, salvaQui, stepAltari } from './altari.ts';
 import { buttaNow, equipNow } from './zaino.ts';
+import { stepAcque, stepGeyser } from './acque.ts';
+import { stepVento } from './vento.ts';
+import { stepFuoco } from './fuoco.ts';
 import { resultOf, viewOf } from './view.ts';
 import { autopilot } from './autopilot.ts';
 import { HZ } from './tuning.ts';
@@ -20,7 +23,8 @@ import { HZ } from './tuning.ts';
 export type { DungeonState, EroeDef } from './state.ts';
 export const MAX_TICKS = (RPG.dungeon?.maxMinuti ?? 20) * 60 * HZ;
 
-/** Un tick per tutti: prima ogni eroe in gioco col suo input (in ordine), poi nemici, proiettili, raccolta, lanterne. L'eroe di turno
+/** Un tick per tutti: prima ogni eroe in gioco col suo input (in ordine), poi nemici, proiettili, geyser e acqua (Drenaggio), lava, fuoco
+ *  e cascate (Fucina), vento e spinte (Archivio), raccolta, lanterne. L'eroe di turno
  *  (`s.cur`) alla fine è quello di prima. */
 export function stepParty(s: DungeonState, inputs: readonly DungeonInput[]): void {
   s.eventi = [];
@@ -34,6 +38,10 @@ export function stepParty(s: DungeonState, inputs: readonly DungeonInput[]): voi
   s.cur = prima;
   if (!finita(s)) stepEnemies(s);
   if (!finita(s)) stepProjectiles(s);
+  if (!finita(s) && s.geyser.length) stepGeyser(s);
+  if (!finita(s) && s.bacini.length) stepAcque(s);
+  if (!finita(s) && (s.map.lave.length || s.map.getti.length || s.fuochi.length || s.eroi.some((r) => r.hero.brucia > 0))) stepFuoco(s);
+  if (!finita(s) && (s.correnti.length || s.eroi.some((r) => r.hero.spT > 0))) stepVento(s);
   if (!finita(s)) pickup(s);
   if (!finita(s)) stepAltari(s);
   s.tick++;

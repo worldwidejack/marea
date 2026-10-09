@@ -48,6 +48,68 @@
     { "item": "libro_scheletro_evocato", "p": 0.15, "n": [1, 1], "raro": true }, { "item": "spadone_argento", "p": 0.1, "n": [1, 1], "raro": true },
     { "item": "arco_argento", "p": 0.08, "n": [1, 1], "raro": true }, { "item": "anello_vita_debole", "p": 0.1, "n": [1, 1], "raro": true } ] },
 
+  { "id": "tubo_strisciante", "monete": [0, 4], "voci": [
+    { "item": "lingotto_ferro", "p": 0.2, "n": [1, 1] }, { "item": "fungo_luminoso", "p": 0.3, "n": [1, 1] },
+    { "item": "pozione_stamina", "p": 0.08, "n": [1, 1] } ] },
+  { "id": "operaio_arrugginito", "monete": [8, 20], "voci": [
+    { "item": "lingotto_ferro", "p": 0.55, "n": [1, 2] }, { "item": "lingotto_bronzo", "p": 0.4, "n": [1, 2] },
+    { "item": "lingotto_argento", "p": 0.12, "n": [1, 1] }, { "item": "pozione_vita", "p": 0.12, "n": [1, 1] },
+    { "item": "martello_ferro", "p": 0.02, "n": [1, 1], "raro": true } ] },
+  { "id": "valvola_sparavapore", "monete": [4, 12], "voci": [
+    { "item": "lingotto_bronzo", "p": 0.5, "n": [1, 2] }, { "item": "lingotto_ferro", "p": 0.25, "n": [1, 1] },
+    { "item": "frecce_ferro", "p": 0.2, "n": [3, 5] } ] },
+  { "id": "boss_drenaggio", "monete": [200, 400], "voci": [
+    { "item": "lingotto_ferro", "p": 1, "n": [3, 5] }, { "item": "lingotto_argento", "p": 0.8, "n": [2, 3] },
+    { "item": "pepita_oro", "p": 0.5, "n": [1, 3], "raro": true }, { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] },
+    { "item": "martello_argento", "p": 0.15, "n": [1, 1], "raro": true }, { "item": "armatura_argento", "p": 0.1, "n": [1, 1], "raro": true },
+    { "item": "anello_vita_debole", "p": 0.2, "n": [1, 1], "raro": true } ] },
+  { "id": "comune_drenaggio", "monete": [25, 55], "voci": [
+    { "item": "lingotto_ferro", "p": 0.6, "n": [1, 3] }, { "item": "lingotto_argento", "p": 0.25, "n": [1, 2] },
+    { "item": "pozione_vita", "p": 0.35, "n": [1, 1] }, { "item": "pozione_stamina", "p": 0.25, "n": [1, 1] },
+    { "item": "frecce_ferro", "p": 0.25, "n": [3, 6] }, { "item": "pepita_oro", "p": 0.12, "n": [1, 1], "raro": true } ] },
+  { "id": "raro_drenaggio", "monete": [80, 160], "voci": [
+    { "item": "lingotto_argento", "p": 0.7, "n": [2, 3] }, { "item": "lingotto_ferro", "p": 0.7, "n": [2, 4] },
+    { "item": "pepita_oro", "p": 0.45, "n": [1, 2], "raro": true }, { "item": "pozione_vita_grande", "p": 0.35, "n": [1, 1] },
+    { "item": "pozione_forza", "p": 0.3, "n": [1, 1] }, { "item": "martello_ferro", "p": 0.12, "n": [1, 1], "raro": true },
+    { "item": "armatura_ferro", "p": 0.1, "n": [1, 1], "raro": true }, { "item": "anello_vita_debole", "p": 0.1, "n": [1, 1], "raro": true } ] },
+  { "id": "archivista_molla", "monete": [6, 16], "voci": [
+    { "item": "lingotto_ferro", "p": 0.45, "n": [1, 2] }, { "item": "lingotto_argento", "p": 0.18, "n": [1, 1] },
+    { "item": "pozione_stamina", "p": 0.12, "n": [1, 1] }, { "item": "katana_ferro", "p": 0.02, "n": [1, 1], "raro": true } ] },
+  { "id": "idro_ragno", "monete": [4, 12], "voci": [
+    { "item": "lingotto_bronzo", "p": 0.4, "n": [1, 2] }, { "item": "lingotto_ferro", "p": 0.3, "n": [1, 1] },
+    { "item": "frecce_ferro", "p": 0.25, "n": [3, 5] }, { "item": "pozione_vita", "p": 0.08, "n": [1, 1] } ] },
+  { "id": "aerostato_spia", "monete": [10, 24], "voci": [
+    { "item": "lingotto_argento", "p": 0.3, "n": [1, 1] }, { "item": "pozione_magicka", "p": 0.15, "n": [1, 1] },
+    { "item": "frecce_argento", "p": 0.12, "n": [3, 5] }, { "item": "pepita_oro", "p": 0.1, "n": [1, 1], "raro": true } ] },
+  { "id": "boss_archivio", "monete": [240, 460], "voci": [
+    { "item": "lingotto_argento", "p": 1, "n": [3, 5] }, { "item": "pepita_oro", "p": 0.6, "n": [1, 3], "raro": true },
+    { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }, { "item": "anello_vento", "p": 0.2, "n": [1, 1], "raro": true },
+    { "item": "arco_argento", "p": 0.15, "n": [1, 1], "raro": true }, { "item": "katana_argento", "p": 0.12, "n": [1, 1], "raro": true },
+    { "item": "armatura_argento", "p": 0.1, "n": [1, 1], "raro": true } ] },
+  { "id": "comune_archivio", "monete": [30, 60], "voci": [
+    { "item": "lingotto_ferro", "p": 0.5, "n": [1, 3] }, { "item": "lingotto_argento", "p": 0.35, "n": [1, 2] },
+    { "item": "pozione_vita", "p": 0.35, "n": [1, 1] }, { "item": "pozione_magicka", "p": 0.25, "n": [1, 1] },
+    { "item": "frecce_argento", "p": 0.2, "n": [3, 6] }, { "item": "pepita_oro", "p": 0.15, "n": [1, 1], "raro": true } ] },
+  { "id": "raro_archivio", "monete": [90, 180], "voci": [
+    { "item": "lingotto_argento", "p": 0.75, "n": [2, 4] }, { "item": "pepita_oro", "p": 0.5, "n": [1, 2], "raro": true },
+    { "item": "pozione_vita_grande", "p": 0.4, "n": [1, 1] }, { "item": "pozione_forza", "p": 0.3, "n": [1, 1] },
+    { "item": "arco_argento", "p": 0.12, "n": [1, 1], "raro": true }, { "item": "katana_argento", "p": 0.1, "n": [1, 1], "raro": true },
+    { "item": "anello_vento", "p": 0.12, "n": [1, 1], "raro": true }, { "item": "anello_arciere", "p": 0.08, "n": [1, 1], "raro": true } ] },
+  { "id": "scintilla_vapore", "monete": [3, 10], "voci": [ { "item": "lingotto_argento", "p": 0.12, "n": [1, 1] }, { "item": "pozione_magicka", "p": 0.1, "n": [1, 1] },
+    { "item": "pepita_oro", "p": 0.08, "n": [1, 1], "raro": true } ] },
+  { "id": "fornace_semovente", "monete": [10, 24], "voci": [ { "item": "lingotto_ferro", "p": 0.6, "n": [1, 3] }, { "item": "lingotto_bronzo", "p": 0.35, "n": [1, 2] },
+    { "item": "lingotto_argento", "p": 0.15, "n": [1, 1] }, { "item": "pozione_vita", "p": 0.12, "n": [1, 1] }, { "item": "martello_ferro", "p": 0.02, "n": [1, 1], "raro": true } ] },
+  { "id": "golem_palombaro", "monete": [8, 20], "voci": [ { "item": "lingotto_ferro", "p": 0.5, "n": [1, 2] }, { "item": "lingotto_argento", "p": 0.25, "n": [1, 1] },
+    { "item": "pozione_vita", "p": 0.15, "n": [1, 1] }, { "item": "armatura_ferro", "p": 0.02, "n": [1, 1], "raro": true } ] },
+  { "id": "boss_fucina", "monete": [260, 500], "voci": [ { "item": "lingotto_argento", "p": 1, "n": [3, 5] }, { "item": "lingotto_ferro", "p": 1, "n": [3, 5] },
+    { "item": "pepita_oro", "p": 0.7, "n": [2, 4], "raro": true }, { "item": "pozione_vita_grande", "p": 0.6, "n": [1, 1] }, { "item": "spadone_argento", "p": 0.15, "n": [1, 1], "raro": true },
+    { "item": "martello_argento", "p": 0.12, "n": [1, 1], "raro": true }, { "item": "armatura_argento", "p": 0.12, "n": [1, 1], "raro": true }, { "item": "anello_guerriero", "p": 0.2, "n": [1, 1], "raro": true } ] },
+  { "id": "comune_fucina", "monete": [30, 65], "voci": [ { "item": "lingotto_ferro", "p": 0.55, "n": [1, 3] }, { "item": "lingotto_argento", "p": 0.35, "n": [1, 2] },
+    { "item": "pozione_vita", "p": 0.4, "n": [1, 1] }, { "item": "pozione_stamina", "p": 0.25, "n": [1, 1] }, { "item": "frecce_argento", "p": 0.2, "n": [3, 6] }, { "item": "pepita_oro", "p": 0.18, "n": [1, 1], "raro": true } ] },
+  { "id": "raro_fucina", "monete": [100, 200], "voci": [ { "item": "lingotto_argento", "p": 0.75, "n": [2, 4] }, { "item": "pepita_oro", "p": 0.55, "n": [1, 3], "raro": true },
+    { "item": "pozione_vita_grande", "p": 0.45, "n": [1, 1] }, { "item": "pozione_forza", "p": 0.35, "n": [1, 1] }, { "item": "spadone_argento", "p": 0.12, "n": [1, 1], "raro": true },
+    { "item": "ascia_argento", "p": 0.1, "n": [1, 1], "raro": true }, { "item": "armatura_argento", "p": 0.1, "n": [1, 1], "raro": true }, { "item": "anello_guerriero", "p": 0.1, "n": [1, 1], "raro": true } ] },
+
   { "id": "spettro", "monete": [8, 20], "voci": [
     { "item": "essenza_vuoto", "p": 0.6, "n": [1, 2] }, { "item": "frammento_vetro", "p": 0.3, "n": [1, 1] },
     { "item": "pozione_magicka", "p": 0.2, "n": [1, 1] }, { "item": "libro_fulmine", "p": 0.03, "n": [1, 1], "raro": true } ] },

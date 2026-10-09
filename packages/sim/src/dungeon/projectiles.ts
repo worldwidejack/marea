@@ -1,10 +1,12 @@
 // Proiettili 2,5D: frecce con gravità (a terra o su un muro si fermano), magie dritte con esplosione, tiri dei nemici sull'eroe.
+// Archivio: l'arpione del Drone Idro-Ragno, se prende, tira l'eroe verso chi l'ha lanciato (vento.ts, spinta da fuori).
 import { DT } from '../constants.ts';
 import type { DungeonState, Enemy, Proj } from './state.ts';
-import { add, finita, inGioco } from './state.ts';
+import { add, ev, finita, inGioco } from './state.ts';
 import { hitEnemy, hitHero } from './combat.ts';
 import { isOpaque } from './map.ts';
-import { ALTEZZA_BERSAGLIO } from './tuning.ts';
+import { ALTEZZA_BERSAGLIO, HZ } from './tuning.ts';
+import { spingi } from './vento.ts';
 
 const MARGINE = 0.15;
 
@@ -12,8 +14,13 @@ function explode(s: DungeonState, p: Proj): void {
   for (const e of s.enemies) {
     if (e.alleato || e.st === 'morto') continue;
     const dx = e.x - p.x, dz = e.z - p.z, r = p.raggio + e.def.raggio;
-    if (dx * dx + dz * dz <= r * r) hitEnemy(s, e, { danno: p.danno, traits: p.traits, magico: true, skill: null, caricato: false, dirX: 0, dirZ: 0, daAlleato: false });
+    if (dx * dx + dz * dz <= r * r) hitEnemy(s, e, { danno: p.danno, traits: p.traits, magico: true, skill: null, caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p) });
   }
+}
+/** Da dove arriva un proiettile (per lo scafandro del Golem-Palombaro): un metro indietro lungo il volo. */
+function da(p: Proj): { ox: number; oz: number } {
+  const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
+  return { ox: p.x - p.vx / v, oz: p.z - p.vz / v };
 }
 
 /** Colpisce il primo nemico toccato; true = il proiettile è finito. */
@@ -27,14 +34,24 @@ function hitFoes(s: DungeonState, p: Proj): boolean {
   if (!first) return false;
   if (p.magico) {
     if (p.raggio > 0) explode(s, p);
-    else hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: true, skill: null, caricato: false, dirX: 0, dirZ: 0, daAlleato: false });
+    else hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: true, skill: null, caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p) });
     return true;
   }
   const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
-  hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: false, skill: null, caricato: false, dirX: p.vx / v, dirZ: p.vz / v, daAlleato: false });
+  hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: false, skill: null, caricato: false, dirX: p.vx / v, dirZ: p.vz / v, daAlleato: false, ...da(p) });
   add(s.xp, 'arceria', 1);
   if (p.traits.trapassa) { p.colpiti.push(first.id); return false; }
   return true;
+}
+
+/** Tiro nemico a segno sull'eroe di turno; l'arpione lo tira all'indietro lungo il volo. */
+function colpisciEroe(s: DungeonState, p: Proj, x: number, z: number): void {
+  const arriva = !s.done && s.hero.protetto <= 0;
+  hitHero(s, p.danno, p.magico ? 'magia' : p.contundente ? 'contundente' : 'taglio', x, z);
+  if (!p.tira || !arriva || s.done) return;
+  const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
+  spingi(s, -p.vx / v, -p.vz / v, p.tira, (p.tiraT ?? 15) / HZ);
+  ev(s, { t: 'arpionato' });
 }
 
 /** Insieme: un tiro nemico prende il primo eroe in gioco che tocca; quelli degli eroi lavorano sull'eroe che li ha tirati (xp, uccisioni). */
@@ -66,12 +83,12 @@ function muovi(s: DungeonState): void {
         for (const k of inGioco(s)) {
           const r = s.eroi[k]!, dx = r.hero.x - p.x, dz = r.hero.z - p.z, rr = r.runHero.raggio + MARGINE;
           if (dx * dx + dz * dz > rr * rr) continue;
-          s.cur = k; hitHero(s, p.danno, p.magico ? 'magia' : 'taglio', r.hero.x, r.hero.z); fine = true;
+          s.cur = k; colpisciEroe(s, p, r.hero.x, r.hero.z); fine = true;
           break;
         }
       } else if (p.dalNemico) {
         const dx = h.x - p.x, dz = h.z - p.z, r = rh.raggio + MARGINE;
-        if (dx * dx + dz * dz <= r * r) { hitHero(s, p.danno, p.magico ? 'magia' : 'taglio', h.x, h.z); fine = true; }
+        if (dx * dx + dz * dz <= r * r) { colpisciEroe(s, p, h.x, h.z); fine = true; }
       } else fine = hitFoes(s, p);
     }
     if (finita(s)) return;

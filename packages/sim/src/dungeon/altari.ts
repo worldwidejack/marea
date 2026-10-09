@@ -59,7 +59,7 @@ export function risveglio(s: DungeonState): void {
   h.x = a.x; h.z = a.z;
   h.vita = max.vita; h.magicka = max.magicka; h.stamina = max.stamina;
   h.act = 'idle'; h.actT = 0; h.actDur = 0; h.carica = 0; h.caricato = false; h.colpiti = []; h.colpito = false;
-  h.hurt = 0; h.moving = false; h.running = false; h.buffs = [];
+  h.hurt = 0; h.moving = false; h.running = false; h.buffs = []; h.lento = 0; h.spT = 0; h.brucia = 0; h.bruciaAcc = 0;
   h.protetto = secToTicks(RPG.dungeon.altare.protezione);
   s.bottino = { ...sv.bottino }; s.monete = sv.monete;
   s.cadute++;
@@ -72,6 +72,7 @@ export function risveglio(s: DungeonState): void {
   for (const e of s.enemies) {
     if (e.alleato || e.st === 'morto') continue;
     e.aggro = false; e.area = false; e.tiro = false;
+    if (e.spento !== undefined) { e.spento = false; e.modo = undefined; e.mira = undefined; } // il Mastro Forgiatore si riaccende
     if (e.st !== 'dorme') { e.st = 'veglia'; e.stT = 0; e.stDur = 0; }
   }
 }

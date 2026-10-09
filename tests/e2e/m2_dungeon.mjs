@@ -2,7 +2,9 @@
 // controlli, autopilot fino all'uscita, esito DEL SERVER e bottino nel lotto (/api/lot); Esc = Pausa (partita ferma) → Esci → «Uscire?»
 // che NON chiama finish (la spedizione resta aperta sul server); lanterna: SALVA (sul server), Esci tiene il bottino salvato («SEI RISALITO»);
 // zaino nel dungeon (cambio d'arma, Butta via, partita in pausa), ESCI dalla lanterna e ripartenza da lì; i bottoni sul telefono non si
-// sovrappongono (anche la lanterna); draw call ≤ 100 e triangoli ≤ 150k nel dungeon.
+// sovrappongono (anche la lanterna); draw call ≤ 100 e triangoli ≤ 150k nel dungeon. Impianto di Drenaggio (#142): si entra, acqua e
+// valvole disegnate, l'autopilota gira una valvola e l'acqua scende; lore (RPG.md §2c): scritta col nome, voci dell'altoparlante (una
+// volta sola), LEGGI accanto al registro che un tocco al volo non apre e L tenuto sì (dungeon fermo), Esc chiude senza Pausa.
 // Screenshot a 1280×720 e 390×844 in tests/out/shots/m2_dungeon_*.png. Persone vere su wrangler dev locale (come m1_solo).
 import fs from 'node:fs';
 import net from 'node:net';
@@ -23,15 +25,15 @@ export default async function (ctx) {
   const { composeArchipelago } = await imp('packages/sim/src/index.ts');
   const { bfs, parseDungeon } = await imp('packages/sim/src/dungeon/map.ts');
 
-  await ctx.test('gli ingressi in game/ingressi.ts coincidono con DUNGEONS (isola, cella, stile, nome, difficoltà)', async () => {
+  await ctx.test('gli ingressi in game/ingressi.ts coincidono con DUNGEONS (isola, cella, stile, nome, difficoltà, porta sigillata)', async () => {
     const src = fs.readFileSync(path.join(ctx.ROOT, 'apps/client/src/game/ingressi.ts'), 'utf8');
-    const rows = [...src.matchAll(/\{ id: '(\w+)', nome: '([^']+)', island: '(\w+)', at: \[(\d+), (\d+)\], stile: '(\w+)', difficolta: (\d+) \}/g)].map((m) => ({ id: m[1], nome: m[2], island: m[3], at: [Number(m[4]), Number(m[5])], stile: m[6], difficolta: Number(m[7]) }));
+    const rows = [...src.matchAll(/\{ id: '(\w+)', nome: '([^']+)', island: '(\w+)', at: \[(\d+), (\d+)\], stile: '(\w+)', difficolta: (\d+)(?:, richiede: '(\w+)')? \}/g)].map((m) => ({ id: m[1], nome: m[2], island: m[3], at: [Number(m[4]), Number(m[5])], stile: m[6], difficolta: Number(m[7]), richiede: m[8] }));
     assert(rows.length === DUNGEONS.length, `ingressi.ts ha ${rows.length} ingressi, DUNGEONS ${DUNGEONS.length}`);
     for (const d of DUNGEONS) {
       const r = rows.find((x) => x.id === d.id);
       assert(r, `manca l'ingresso di ${d.id} in game/ingressi.ts`);
-      assert(r.island === d.ingresso.island && r.at[0] === d.ingresso.at[0] && r.at[1] === d.ingresso.at[1] && r.stile === d.stile && r.nome === d.nome && r.difficolta === d.difficolta,
-        `${d.id}: ingressi.ts ${JSON.stringify(r)} ≠ dungeons.json ${JSON.stringify({ nome: d.nome, ...d.ingresso, stile: d.stile, difficolta: d.difficolta })}`);
+      assert(r.island === d.ingresso.island && r.at[0] === d.ingresso.at[0] && r.at[1] === d.ingresso.at[1] && r.stile === d.stile && r.nome === d.nome && r.difficolta === d.difficolta && r.richiede === d.richiede,
+        `${d.id}: ingressi.ts ${JSON.stringify(r)} ≠ dungeons.json ${JSON.stringify({ nome: d.nome, ...d.ingresso, stile: d.stile, difficolta: d.difficolta, richiede: d.richiede })}`);
     }
   });
 
@@ -55,6 +57,8 @@ export default async function (ctx) {
 
     const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`, { viewport: ctx.B.DESKTOP }); ctx._pages.push(P);
     const page = P.page;
+    // Windows: wrangler dev locale risponde in ~3,5 s sulle connessioni riusate (keep-alive): una connessione per richiesta, come m2_insieme
+    if (process.platform === 'win32') await page.route(/\/(api|chunk|assets)/, (r) => r.continue({ headers: { ...r.request().headers(), connection: 'close' } }));
     await ctx.waitReady(page, 30000);
     await ctx.waitState(page, (s) => s.lot && s.lot.ready === true && s.ingressi, 15000);
     const st = () => ctx.getState(page);
@@ -62,7 +66,7 @@ export default async function (ctx) {
     const perfMax = { drawCalls: 0, triangles: 0, samples: 0 };
     const samplePerf = async (n = 4) => { for (let i = 0; i < n; i++) { const p = await ctx.getPerf(page); perfMax.drawCalls = Math.max(perfMax.drawCalls, p.drawCalls); perfMax.triangles = Math.max(perfMax.triangles, p.triangles); perfMax.samples++; await sleep(250); } };
 
-    await ctx.test('nel mondo: tre ingressi dove dice DUNGEONS; in bussola solo il più facile (la Grotta); vicino compare ENTRA', async () => {
+    await ctx.test('nel mondo: gli ingressi dove dice DUNGEONS; in bussola solo il più facile (la Grotta); vicino compare ENTRA', async () => {
       const arch = composeArchipelago(ARCHIPELAGO, ISLANDS), s = await st();
       for (const d of DUNGEONS) {
         const p = arch.places.find((q) => q.island === d.ingresso.island);
@@ -82,6 +86,25 @@ export default async function (ctx) {
       await page.waitForSelector('#mzDngEntra.on', { timeout: 3000 });
     });
     await ctx.shot(page, '1_ingresso_1280');
+
+    await ctx.test('Archivio e Fucina (Epopea 2 e 3): porte sigillate finché non completi il dungeon di prima (niente ENTRA né AFFRONTA INSIEME); il server rifiuta', async () => {
+      const s = await st();
+      assert(s.ingressi.sigillati.includes('archivio') && s.ingressi.sigillati.includes('fucina') && !s.ingressi.sigillati.includes('drenaggio'), 'sigillati: ' + JSON.stringify(s.ingressi.sigillati));
+      const a = s.ingressi.spots.find((x) => x.id === 'archivio');
+      await hook('teleport', a.x, a.z + 3); await sleep(900);
+      await ctx.waitState(page, (s) => s.ingressi.near === 'archivio', 5000);
+      await page.waitForSelector('#mzDngEntra.on.sig', { timeout: 3000 });
+      assert(!(await page.locator('#mzDngInsieme.on').count()), 'AFFRONTA INSIEME su una porta sigillata');
+      await ctx.shot(page, '1b_archivio_sigillato_1280');
+      await hook('enterDungeon', 'archivio');
+      await ctx.waitState(page, (s) => /Sigillato/.test(s.ingressi.lastErr ?? ''), 3000);
+      assert(!(await st()).dungeon.active, 'entrato in un dungeon sigillato');
+      const r = await fetch(base + '/api/dungeon/start', { method: 'POST', headers: { 'x-token': 'tokA', 'content-type': 'application/json' }, body: JSON.stringify({ dungeon: 'archivio' }) });
+      const b = await r.json();
+      assert(!r.ok && /sigillata/.test(b.error ?? ''), `il server non rifiuta: ${r.status} ${JSON.stringify(b)}`);
+      const r3 = await fetch(base + '/api/dungeon/start', { method: 'POST', headers: { 'x-token': 'tokA', 'content-type': 'application/json' }, body: JSON.stringify({ dungeon: 'fucina' }) });
+      assert(!r3.ok && /Archivio/.test((await r3.json()).error ?? ''), 'la Fucina si apre senza l’Archivio');
+    });
 
     await ctx.test('Cripta: si entra, scena e HUD, Q lancia la magia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
       await hook('enterDungeon', 'cripta');
@@ -167,6 +190,70 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.ingressi.aborts === 2 && !s.dungeon.active, 8000);
     });
 
+    let riprove = 0; // discese del Drenaggio finite dall'autopilota prima della valvola: contano tra i finish
+    await ctx.test('Drenaggio: si entra (3 bacini pieni, 3 valvole); l’autopilota gira una valvola e l’acqua scende; uscita con Esc', async () => {
+      for (let prova = 1; ; prova++) {
+        await hook('enterDungeon', 'drenaggio');
+        await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
+        if (prova === 1) {
+          const d0 = (await st()).dungeon;
+          assert(d0.acque.length === 3 && d0.acque.every((a) => a.livello === 1) && d0.valvole.length === 3 && d0.fx?.valvole === 3, 'drenaggio: ' + JSON.stringify({ acque: d0.acque, valvole: d0.valvole, fx: d0.fx }));
+          assert(d0.testi?.titolo, 'drenaggio: scritta col nome ' + JSON.stringify(d0.testi));
+          await sleep(1200); await samplePerf();
+          await ctx.shot(page, '4b_drenaggio_1280');
+        }
+        await hook('dungeonAutopilot', true, 20); // ~3.800 tick fino alla prima valvola: su GitHub (2-4 fps) serve la velocità massima
+        await ctx.waitState(page, (s) => s.dungeon.valvole?.some((v) => v.aperta) || s.dungeonEsito?.open, 150000);
+        await hook('dungeonAutopilot', false);
+        if ((await st()).dungeon.valvole?.some((v) => v.aperta)) break;
+        // con l'eroe di partenza, senza pozioni e sotto il 25 % di vita, l'autopilota torna alla scala (circa un seed su otto): OK, nuovo seed
+        assert(prova < 10, 'l’autopilota non arriva alla valvola nemmeno in 10 discese');
+        ctx.log(`drenaggio: l'autopilota è uscito prima della valvola (prova ${prova}), si riprova`);
+        riprove++;
+        await page.locator('#mzDngEsito [data-act="ok"]').click();
+        await ctx.waitState(page, (s) => !s.dungeonEsito.open && !s.ingressi.busy && !s.dungeon.active, 5000);
+      }
+      await ctx.waitState(page, (s) => s.dungeon.acque.some((a) => a.livello < 1), 5000);
+      await sleep(600); await samplePerf(2);
+      await ctx.shot(page, '4c_drenaggio_valvola_1280');
+      // lore: dopo la scritta col nome ha parlato l'altoparlante dell'ingresso, poi quello della sala pompe (dove sta la valvola 1)
+      await ctx.waitState(page, (s) => ['ingresso', 'pompe'].every((v) => s.dungeon.testi?.viste.includes('drenaggio:' + v)), 20000);
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('#mzDngPausa.on', { timeout: 3000 });
+      await page.locator('#mzDngPausa [data-act="esci-menu"]').click();
+      await page.waitForSelector('#mzDngAsk.on', { timeout: 3000 });
+      await page.locator('#mzDngAsk [data-act="esci"]').click();
+      await ctx.waitState(page, (s) => s.ingressi.aborts === 3 && !s.dungeon.active, 8000);
+    });
+
+    await ctx.test('Drenaggio, lore: accanto al registro LEGGI; un tocco al volo non apre, L tenuto sì (dungeon fermo); Esc chiude senza Pausa', async () => {
+      await hook('enterDungeon', 'drenaggio');
+      await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
+      assert((await st()).dungeon.testi?.viste.includes('drenaggio:ingresso'), 'la voce dell’ingresso si sente una volta sola');
+      await hook('dungeonVai', 11, 27);
+      await ctx.waitState(page, (s) => s.dungeon.testi?.vicino === 'registro', 30000);
+      await page.waitForSelector('#mzDngLeggi.on', { timeout: 3000 });
+      await page.locator('#mzDngLeggi').click();
+      await sleep(400);
+      assert((await st()).dungeon.testi.aperta === null, 'un tocco al volo non apre la lettura');
+      await page.keyboard.down('KeyL');
+      await ctx.waitState(page, (s) => s.dungeon.testi?.aperta === 'registro', 15000); // 0,8 s di dt: a pochi fps ci vuole di più
+      await page.keyboard.up('KeyL');
+      await page.waitForSelector('#mzDngLettura.on', { timeout: 3000 });
+      const tk = (await st()).dungeon.tick;
+      await sleep(500);
+      assert((await st()).dungeon.tick === tk, 'da solo, mentre leggi il dungeon sta fermo');
+      await ctx.shot(page, '4b_drenaggio_registro_1280');
+      await page.keyboard.press('Escape');
+      await ctx.waitState(page, (s) => s.dungeon.testi?.aperta === null && !s.dungeon.paused && s.dungeon.testi.lette.includes('drenaggio:registro'), 3000);
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('#mzDngPausa.on', { timeout: 3000 });
+      await page.locator('#mzDngPausa [data-act="esci-menu"]').click();
+      await page.waitForSelector('#mzDngAsk.on', { timeout: 3000 });
+      await page.locator('#mzDngAsk [data-act="esci"]').click();
+      await ctx.waitState(page, (s) => s.ingressi.aborts === 4 && !s.dungeon.active, 8000);
+    });
+
     const lanternaVicina = () => { const m = parseDungeon(DUNGEONS.find((d) => d.id === 'grotta')), dist = bfs(m, m.exit.cz * m.w + m.exit.cx); return m.altari.map((a, i) => [dist[a.cz * m.w + a.cx], i]).sort((a, b) => a[0] - b[0])[0][1]; };
     await ctx.test('Grotta: fino alla lanterna (non salva da sola), SALVA (sul server), Esci → «tieni il bottino salvato alla lanterna» → SEI RISALITO', async () => {
       // l'altare più vicino alla scala: ci si arriva camminando (hook dungeonAltare, input registrati come quelli veri)
@@ -197,7 +284,7 @@ export default async function (ctx) {
       await page.locator('#mzDngAsk [data-act="esci"]').click();
       await ctx.waitState(page, (s) => s.dungeonEsito && s.dungeonEsito.open, 15000);
       const s = await st();
-      assert(s.ingressi.finishes === 2 && s.ingressi.aborts === 2 && s.dungeonEsito.outcome === 'risalito' && /RISALITO/.test(s.dungeonEsito.text), 'esito: ' + JSON.stringify({ i: s.ingressi, e: s.dungeonEsito?.outcome }));
+      assert(s.ingressi.finishes === 2 + riprove && s.ingressi.aborts === 4 && s.dungeonEsito.outcome === 'risalito' && /RISALITO/.test(s.dungeonEsito.text), 'esito: ' + JSON.stringify({ i: s.ingressi, e: s.dungeonEsito?.outcome }));
       assert(!(await getLot('tokA')).dungeon?.pending, 'la spedizione resta aperta dopo l’uscita con l’altare');
       await page.locator('#mzDngEsito [data-act="ok"]').click();
       await ctx.waitState(page, (s) => !s.dungeonEsito.open && !s.ingressi.busy && !s.dungeon.active, 5000);

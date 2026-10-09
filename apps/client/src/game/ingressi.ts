@@ -6,6 +6,8 @@
 // Insieme (#118): con un altro giocatore a piedi vicino allo stesso ingresso compare AFFRONTA INSIEME → riquadro della squadra (WebSocket
 // /ws/squadra/<dungeon> al DO Spedizioni: chi c'è, SCENDIAMO con almeno 2, Esci; allontanarsi = uscire) → `parte` → startRun con la rete
 // della squadra → a fine spedizione POST /api/dungeon/finish senza input (il server rigioca il log della squadra) → scheda dell'esito.
+// Porta sigillata (Epopea della Regata, `richiede`): finché non hai completato il dungeon di prima, sbarre e sigillo sulla bocca, cartello
+// «sigillato», niente ENTRA né AFFRONTA INSIEME (il server rifiuta comunque: startDungeon).
 import * as THREE from 'three';
 import type { InputFrame, LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
@@ -17,6 +19,7 @@ import { ApiError } from '../net/api.ts';
 import type { PixId } from '../ui/icons.ts';
 import { pixIcon } from '../ui/icons.ts';
 import { PAL, el, injectUiStyle } from '../ui/style.ts';
+import { placeholder, sigillo, togliScenografia } from './ingressi_forme.ts';
 import { createLabelLayer, LABEL_NEAR_M } from '../ui/sheet.ts';
 import { FLAGS } from '../flags.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
@@ -40,14 +43,19 @@ export type Ingressi = {
 };
 
 /**
- * Copia a mano di `ingresso`, `stile` e `difficolta` di packages/content/src/rpg/dungeons.json (il JSON è GDR: qui non si può importare).
+ * Copia a mano di `ingresso`, `stile`, `difficolta` e `richiede` di packages/content/src/rpg/dungeons.json (il JSON è GDR: qui non si può importare).
  * Il test e2e m2_dungeon controlla che coincida con DUNGEONS: se un dungeon si sposta, aggiornare anche qui.
  */
 export const INGRESSI = [
   { id: 'grotta', nome: 'Grotta della Marea', island: 'porto', at: [32, 7], stile: 'grotta', difficolta: 1 },
   { id: 'cripta', nome: 'Cripta delle Ossa', island: 'selvaggia', at: [18, 12], stile: 'cripta', difficolta: 2 },
-  { id: 'vuoto', nome: 'Portale del Vuoto', island: 'neon', at: [20, 13], stile: 'vuoto', difficolta: 3 },
+  { id: 'vuoto', nome: 'Portale del Vuoto', island: 'neon', at: [20, 13], stile: 'vuoto', difficolta: 6 },
+  { id: 'drenaggio', nome: 'Impianto di Drenaggio', island: 'laguna', at: [18, 45], stile: 'drenaggio', difficolta: 3 },
+  { id: 'archivio', nome: 'Archivio Navigazionale', island: 'laguna', at: [47, 36], stile: 'archivio', difficolta: 4, richiede: 'drenaggio' },
+  { id: 'fucina', nome: 'Fucina a Pressione', island: 'laguna', at: [26, 5], stile: 'fucina', difficolta: 5, richiede: 'archivio' },
 ] as const;
+/** Il dungeon da completare prima di poter entrare (porta sigillata), o null. */
+export const richiesto = (id: string): string | null => { const d = INGRESSI.find((x) => x.id === id); return d && 'richiede' in d ? d.richiede : null; };
 const PER_DIFFICOLTA = [...INGRESSI].sort((a, b) => a.difficolta - b.difficolta);
 /** Il dungeon più facile tra quelli non ancora completati (null = tutti completati). */
 export function nextDungeon(completati: readonly string[]): string | null {
@@ -58,7 +66,7 @@ export function nextDungeon(completati: readonly string[]): string | null {
 /** Ponte coi test (?test=1): autopilot (tick per frame), `altare` = cammina fino a quell'altare (-1 = no), stato della partita. */
 /** posa: solo test (hook dungeonPosa), campi della vista dell'eroe forzati per la resa (anim, t, stile, carica, fx, fz): la sim non cambia. */
 /** act: azione dal menu nella spedizione in corso (hook dungeonAct: equip, butta, salva, esci); null = fatta, se no il motivo. */
-export const dungeonLink: { autopilot: number; altare: number; posa: Record<string, unknown> | null; state: (() => Record<string, unknown>) | null; act: ((a: DungeonAzione) => string | null) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, altare: -1, posa: null, state: null, act: null };
+export const dungeonLink: { autopilot: number; altare: number; vai: [number, number] | null; posa: Record<string, unknown> | null; state: (() => Record<string, unknown>) | null; act: ((a: DungeonAzione) => string | null) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, altare: -1, vai: null, posa: null, state: null, act: null };
 
 const NEAR_M = 4;
 /** Squadra: chi si allontana più di così dall'ingresso esce dalla squadra. */
@@ -77,7 +85,9 @@ body.mz-sotto #mzDngEntra, body.mz-sotto #mzDngInsieme, body.mz-sotto #mzDngSqua
 .mz-dng-da b { display: block; font-size: 19px; }
 .mz-dng-da .sub { color: ${PAL.sabbia}; font-size: 14px; margin: 4px 0 4px; }
 .mz-dng-da .mz-btn { justify-content: center; }
-.mz-dng-da .mz-btn.lan { background: ${PAL.giallo}; }`;
+.mz-dng-da .mz-btn.lan { background: ${PAL.giallo}; }
+#mzDngEntra.sig { background: ${PAL.pietra}; }
+.mz-lbl.dng.sig { border-color: ${PAL.rosso}; }`;
 
 export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; canvas: HTMLCanvasElement; getLot(): LotState | null; setLot(l: LotState): void }): Ingressi {
   injectUiStyle();
@@ -90,6 +100,9 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
   });
   type Spot = (typeof spots)[number];
   const next = () => nextDungeon(o.getLot()?.hero?.completati ?? []);
+  /** Porta sigillata per me adesso: il dungeon di prima non è tra i completati. */
+  const sigillato = (s: Spot): boolean => { const r = richiesto(s.id); return !!r && !(o.getLot()?.hero?.completati ?? []).includes(r); };
+  const nomeDi = (id: string | null) => INGRESSI.find((d) => d.id === id)?.nome ?? '';
 
   // ---- nel mondo: portale + cartello ----
   const group = new THREE.Group(); group.name = 'ingressi'; o.world.scene.add(group);
@@ -101,11 +114,13 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     group.add(holder);
     const name = `prop_ingresso_${s.stile}`;
     if (o.loader.has(name)) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => holder.add(placeholder()));
-    else holder.add(placeholder());
+    else holder.add(placeholder(s.stile));
     const label = layer.add(() => { void enter(s); });
     label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome.toUpperCase())], 'dng');
     label.el.classList.add('dng');
-    return { s, holder, label };
+    const sig = richiesto(s.id) ? sigillo(s.stile) : null;
+    if (sig) holder.add(sig);
+    return { s, holder, label, sig, chiuso: null as boolean | null };
   });
 
   // ---- bottone ENTRA ----
@@ -126,7 +141,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
 
   /** AFFRONTA INSIEME: entri nella squadra di questo dungeon (WebSocket del DO Spedizioni); quando ci sono almeno 2, chiunque dice SCENDIAMO. */
   function apriSquadra(s: Spot): void {
-    if (squadra || busy || run || daBox) return;
+    if (squadra || busy || run || daBox || sigillato(s)) return;
     if (!o.api || !FLAGS.token) { o.hud.toast('Per scendere serve il tuo link personale', 3000); return; }
     let ws: WebSocket;
     try {
@@ -246,6 +261,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
 
   async function enter(s: Spot, daTest?: 'ingresso' | 'lanterna'): Promise<void> {
     if (busy || run || o.world.race.on || daBox) return;
+    if (sigillato(s)) { lastErr = `Sigillato: prima completa ${nomeDi(richiesto(s.id))}`; o.hud.toast(lastErr, 3200); return; }
     const api = o.api;
     if (!api) { o.hud.toast('Per scendere serve il tuo link personale', 3000); return; }
     const lan = o.getLot()?.hero?.lanterne?.[s.id];
@@ -297,25 +313,12 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     nearWas = s; // di nuovo davanti alla bocca: niente «premi A», che coprirebbe il toast dell'esito
   }
 
-  /** La scenografia casuale (palme, sassi) non sa degli ingressi: quella entro 6 m si toglie, se no copre la bocca vista dalla camera.
-   *  TODO: farlo in render/island.ts bloccando le celle come per edifici e prop (chiesto in tests/out/richieste/r-scena.md). */
+  /** La scenografia casuale entro 6 m dagli ingressi si toglie (ingressi_forme.ts). */
   let cleared = 0, clearPasses = 0;
-  const clearScenery = () => {
-    const m4 = new THREE.Matrix4(), p = new THREE.Vector3(), zero = new THREE.Matrix4().makeScale(0, 0, 0);
-    o.world.scene.traverse((n) => {
-      const im = n as THREE.InstancedMesh;
-      if (!im.isInstancedMesh || /^mod_|cemento|boa|regata|ingresso/.test(im.name)) return;
-      let hit = false;
-      for (let i = 0; i < im.count; i++) {
-        im.getMatrixAt(i, m4); p.setFromMatrixPosition(m4).applyMatrix4(im.matrixWorld);
-        if (spots.some((s) => Math.hypot(p.x - s.x, p.z - s.z) < 6) && m4.determinant() !== 0) { im.setMatrixAt(i, zero); hit = true; cleared++; }
-      }
-      if (hit) im.instanceMatrix.needsUpdate = true;
-    });
-  };
+  const clearScenery = () => { cleared += togliScenografia(o.world.scene, spots); };
 
   registerStateProvider('ingressi', () => ({
-    spots: spots.map(({ id, nome, x, z }) => ({ id, nome, x, z })), models: marks.map((m) => m.holder.children.length), cleared, near: near?.id ?? null, next: next(), busy, active: !!run?.active, entered, finishes, aborts, salvataggi, recuperato, lastErr, lastResult,
+    spots: spots.map(({ id, nome, x, z }) => ({ id, nome, x, z })), models: marks.map((m) => m.holder.children.length), sigillati: spots.filter((s) => sigillato(s)).map((s) => s.id), cleared, near: near?.id ?? null, next: next(), busy, active: !!run?.active, entered, finishes, aborts, salvataggi, recuperato, lastErr, lastResult,
     vicini, insieme, squadra: squadra ? { dungeon: squadra.spot.id, membri: squadra.membri.map((x) => x.nome), giu: !!squadra.rete, chiusa: squadra.chiusa } : null,
   }));
   // insieme (#118): entra nella squadra di un dungeon (anche senza nessuno vicino) e SCENDIAMO
@@ -337,6 +340,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
   });
   registerTestHook('dungeonAct', (a) => (dungeonLink.act ? dungeonLink.act(a as DungeonAzione) : 'nessuna spedizione'));
   registerTestHook('dungeonAltare', (n) => { dungeonLink.altare = Number.isInteger(n) ? Number(n) : -1; return dungeonLink.altare; });
+  registerTestHook('dungeonVai', (cx, cz) => { dungeonLink.vai = Number.isInteger(cx) && Number.isInteger(cz) ? [Number(cx), Number(cz)] : null; return dungeonLink.vai; });
   registerTestHook('dungeonPosa', (p) => { dungeonLink.posa = p && typeof p === 'object' ? { ...(p as Record<string, unknown>) } : null; return dungeonLink.posa; });
   registerTestHook('dungeonAutopilot', (on, speed) => { dungeonLink.autopilot = on ? Math.max(1, Math.min(20, Math.round(Number(speed ?? 4)) || 4)) : 0; return dungeonLink.autopilot; });
 
@@ -354,7 +358,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       if (!aPiedi) { near = null; vicini = 0; return; }
       near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < NEAR_M) ?? null;
       vicini = near ? viciniA(near) : 0;
-      if (near && near !== nearWas) o.hud.toast(vicini ? `${near.nome}: ENTRA da solo o AFFRONTA INSIEME` : `${near.nome}: premi A o tocca ENTRA`, 2500);
+      if (near && near !== nearWas) o.hud.toast(sigillato(near) ? `${near.nome}: sigillato. Prima completa ${nomeDi(richiesto(near.id))}` : vicini ? `${near.nome}: ENTRA da solo o AFFRONTA INSIEME` : `${near.nome}: premi A o tocca ENTRA`, 2500);
       nearWas = near;
       if (near && pressA && !squadra) void enter(near);
     },
@@ -363,22 +367,29 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       if (run) { run.update(alpha, dt, t); return; }
       if (clearPasses === 0 || (clearPasses === 1 && t > 4)) { clearPasses++; clearScenery(); } // la scenografia può arrivare dopo
       const show = !!near && !busy && !daBox && !squadra;
-      if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `ENTRA · ${near.nome.toUpperCase()}`), el('small', '', 'A')); }
-      btn.classList.toggle('on', show);
-      const showSq = show && vicini > 0, sig = `${near?.id}|${vicini}`;
+      const chiusa = !!near && sigillato(near), bsig = `${near?.id}|${chiusa}`;
+      if (show && near && btn.dataset['spot'] !== bsig) {
+        btn.dataset['spot'] = bsig;
+        btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', chiusa ? `SIGILLATO · ${near.nome.toUpperCase()}` : `ENTRA · ${near.nome.toUpperCase()}`), el('small', '', chiusa ? `prima: ${nomeDi(richiesto(near.id))}` : 'A'));
+      }
+      btn.classList.toggle('on', show); btn.classList.toggle('sig', chiusa);
+      const showSq = show && vicini > 0 && !chiusa, sig = `${near?.id}|${vicini}`;
       if (showSq && btnSq.dataset['sig'] !== sig) { btnSq.dataset['sig'] = sig; btnSq.replaceChildren(pixIcon(ICON, 24), el('span', '', 'AFFRONTA INSIEME'), el('small', '', `${vicini + 1} qui`)); }
       btnSq.classList.toggle('on', showSq);
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
-      for (const m of marks) { const p = screenOf(m.s.x, m.holder.position.y + 3.6, m.s.z); m.label.place(p.x, p.y, p.on && !o.world.race.on, Math.hypot(f.x - m.s.x, f.z - m.s.z) < LABEL_NEAR_M); }
+      for (const m of marks) {
+        // porta sigillata: sbarre e cartello finché non completi il dungeon di prima (si apre da sola appena il server lo dice)
+        if (m.sig) {
+          const c = sigillato(m.s);
+          if (c !== m.chiuso) {
+            m.chiuso = c; m.sig.visible = c;
+            m.label.set('bubble', [pixIcon(m.s.icon, 16), el('span', '', c ? `${m.s.nome.toUpperCase()} · SIGILLATO` : m.s.nome.toUpperCase())], c ? 'dng-sig' : 'dng');
+            m.label.el.classList.add('dng'); m.label.el.classList.toggle('sig', c); // set() rifà le classi
+          }
+        }
+        const p = screenOf(m.s.x, m.holder.position.y + 3.6, m.s.z); m.label.place(p.x, p.y, p.on && !o.world.race.on, Math.hypot(f.x - m.s.x, f.z - m.s.z) < LABEL_NEAR_M);
+      }
     },
   };
 }
 
-/** Segnaposto se il modello manca: arco di pietra scura con la bocca nera (colori di palette). */
-function placeholder(): THREE.Object3D {
-  const g = new THREE.Group(), stone = new THREE.MeshLambertMaterial({ color: '#4A4340', flatShading: true }), dark = new THREE.MeshLambertMaterial({ color: '#23201F' });
-  for (const sx of [-1.3, 1.3]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.6, 1.2), stone); p.position.set(sx, 1.3, 0); g.add(p); }
-  const top = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.7, 1.2), stone); top.position.y = 2.9; g.add(top);
-  const hole = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.5, 0.2), dark); hole.position.set(0, 1.25, -0.2); g.add(hole);
-  return g;
-}
