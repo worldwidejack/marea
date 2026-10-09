@@ -12,6 +12,7 @@ primo_passo: Tu: prova provapiste.html, accendi e spegni gli interruttori 1-6 e 
 - Turbo alla partenza (o motore ingolfato), acrobazie sui salti, scia, turbo sommati: ognuno con un interruttore A/B.
 - Camere dal menù ⚙ opzioni (dietro, alta, primo piano); la pista intera è la minimappa.
 - Piste: Lungomare, Baia, Porto misto (ruote e barche), Fuga dall'onda.
+- Deploy: chiuse le ultime cadute rare. Il server rigioca le partite in barca con gli stessi numeri del gioco, quindi la medaglia è sempre quella che vedi (#169); test dei Templari stabili (#171).
 
 ## Prossimo passo
 Jack: prova provapiste.html da PC e telefono (guida e interruttori 1-6, poi porto e fuga) e dice cosa tenere e cosa cambiare. Poi Claude: vestire la zona (kit Blender, buffi e animali con l'AI 3D: prima si chiedono i crediti), il Lungomare al posto del Gran Premio, poi l'hub.

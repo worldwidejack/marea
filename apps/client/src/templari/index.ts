@@ -263,9 +263,10 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     done,
   };
 
-  // test (hook templariProva): arma, scudo (in mano), punti, uno zombie davanti fermo, porte aperte, eroe spostato (`dove`), power-up davanti
-  // o sotto i piedi, trappola accesa, campo pulito, vita; solo per guardare la resa, senza server
+  // test (hook templariProva): armi da capo (`armi`), arma, scudo (in mano), punti, uno zombie davanti fermo, porte aperte, eroe spostato
+  // (`dove`), power-up davanti o sotto i piedi, trappola accesa, campo pulito, vita; solo per guardare la resa, senza server
   templariLink.prova = (p) => {
+    if (Array.isArray(p['armi'])) { s.eroe.armi = s.eroe.armi.map(() => null); s.eroe.cur = 0; for (const id of p['armi'] as string[]) daiArma(s, id); }
     if (typeof p['arma'] === 'string') daiArma(s, p['arma']);
     if (p['scudo']) { s.eroe.scudo = { vita: TEMPLARI.scudo.vita }; s.eroe.inMano = p['scudo'] === 'mano'; }
     if (typeof p['punti'] === 'number') s.punti = p['punti'];
@@ -286,11 +287,13 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     return { arma: view.eroe.arma, scudo: view.eroe.scudo, zombie: view.zombie.length };
   };
   const pos = new THREE.Vector3();
+  /** Dove si mette l'eroe per aprire la cassa (la cella davanti al posto di adesso): per i test. */
+  const cassaDavanti = () => { const c = s.arena.casse[s.cassa.posto]; return c ? { x: c.x + c.fx, z: c.z + c.fz } : null; };
   templariLink.state = () => ({
     active: fase !== 'finita', fase, sim: view.fase, tick: view.tick, ondata: view.ondata, restano: view.restano, done: view.done, esito: view.esito,
     eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma }, zombie: view.zombie.length,
     uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: false, faccia: [s.eroe.fx, s.eroe.fz],
-    scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
+    scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: TEMPLARI.ondate.insieme,
   });
   return run;
