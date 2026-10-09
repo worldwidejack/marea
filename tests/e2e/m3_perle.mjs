@@ -2,7 +2,8 @@
 // API (wrangler locale pulito): il server rigioca gli input dell'autopilota e paga l'oro di balance.solo più le Perle extra
 // (perle.json premioExtra); chi non si tuffa non prende medaglia; input oltre 60 s rifiutati. Browser (telefono 390×844): a piedi
 // niente TUFFATI; in barca ferma su acqua bassa compare; si apre la schermata (regole, tuffo, fondale a metà partita), l'autopilota
-// finisce e la scheda dà il premio. PC: tasto T, schermata grande, un tuffo tenendo premuto Spazio, Esc = ritirato.
+// finisce e la scheda dà il premio. PC: tasto T, schermata grande, un tuffo tenendo premuto Spazio, Esc = ritirato; lì gli orari di
+// requestAnimationFrame arrivano 200 ms «nel passato», come su GitHub col processo intasato (#166: dt negativo, disegno rotto, ciclo morto).
 // Screenshot in tests/out/shots/m3_perle_*.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -108,7 +109,7 @@ export default async function (ctx) {
       const b = await page.locator('#mzPerleGiu').boundingBox();
       await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await page.mouse.down();
-      await ctx.waitState(page, (s) => !s.perle.intro && s.perle.view && s.perle.view.y > 12, 4000);
+      await ctx.waitState(page, (s) => !s.perle.intro && s.perle.view && s.perle.view.y > 12, 15000); // 19 tick di gioco; su GitHub un fotogramma può durare più di 1 s
       await sleep(250);
       await ctx.shot(page, 'iphone_3_giu');
       await page.mouse.up();
@@ -150,6 +151,8 @@ export default async function (ctx) {
     const dhook = (n, ...a) => dp.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
     await ctx.test('PC: T in barca ferma su acqua bassa apre la schermata; Spazio tenuto = giù; Esc = ritirato', async () => {
+      // il primo fotogramma dopo l'apertura ha un orario prima di performance.now() di run(): il gioco deve reggere (dt mai negativo)
+      await dp.evaluate(() => { const raf = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = (cb) => raf((ts) => cb(ts - 200)); });
       await dhook('setMode', 'boat');
       assert(await dhook('perleVai'), 'nessun punto da tuffo');
       await ctx.waitState(dp, (s) => s.perlePosto.ok && s.perlePosto.bottone, 20000);
@@ -160,7 +163,7 @@ export default async function (ctx) {
       await sleep(300);
       await ctx.shot(dp, 'desktop_2_regole');
       await dp.keyboard.down('Space');
-      await ctx.waitState(dp, (s) => !s.perle.intro && s.perle.view.y > 15, 4000);
+      await ctx.waitState(dp, (s) => !s.perle.intro && s.perle.view.y > 15, 15000);
       await dp.keyboard.up('Space');
       assert(await dhook('perleFinoA', 2400), 'perleFinoA');
       await sleep(200);

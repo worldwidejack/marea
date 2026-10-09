@@ -90,8 +90,13 @@ function makeCtx(suite) {
     /** Esegue un test con nome; con --only i non corrispondenti sono saltati in silenzio. */
     async test(name, fn) {
       if (!wanted(suite, name)) return;
-      const s = Date.now();
-      try { await fn(); record(suite, name, true, Date.now() - s); } catch (e) { record(suite, name, false, Date.now() - s, e); }
+      const s = Date.now(), e0 = ctx._pages.map((p) => p.errors?.length ?? 0);
+      try { await fn(); record(suite, name, true, Date.now() - s); } catch (e) {
+        // un errore JS della pagina spiega spesso un timeout (es. un ciclo requestAnimationFrame morto, #166): va nel messaggio
+        const js = ctx._pages.flatMap((p, i) => (p.errors ?? []).slice(e0[i] ?? 0)).map((x) => 'pageerror: ' + x.split('\n').slice(0, 2).join(' ‹ '));
+        const [prima, ...resto] = String(e?.message || e).split('\n'), msg = [prima, ...js.slice(0, 3), ...resto].join('\n');
+        record(suite, name, false, Date.now() - s, js.length ? Object.assign(new Error(msg), { stack: msg + '\n' + String(e?.stack || '').split('\n').slice(1).join('\n') }) : e);
+      }
     },
     warn(name, msg) { record(suite, name, true, 0, msg, true); },
     noErrors(p, what = '') {

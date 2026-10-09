@@ -87,8 +87,12 @@ export function createEditor(o: EditorOpts): Editor {
   let lot: LotState | null = o.me.lotto;
   let note: Note = null;
   let linkVisibile = false; // la copia non è riuscita: il link in un campo da selezionare a mano
+  let lotFresco = false; // il lotto chiesto all'apertura è arrivato (o la richiesta è fallita): da qui il foglio non si ridisegna da solo
+  let firmaLot = ''; // cosa del lotto mostrava l'ultimo render
 
   const perle =(): number | null => (lot ? lot.resources.perle : null);
+  /** Quello che il foglio mostra del lotto: Perle e cose possedute (cappelli, colori della barca). */
+  const firma = (): string => `${perle()}|${(lot?.posseduti ?? []).join(',')}`;
   const sez = o.barca ? createSezioneBarca({ api, me: o.me, world: o.barca, getLot: () => lot, onChange: () => { note = null; render(); } }) : null;
   const isBarcaRow = (r: string | undefined): r is RigaBarca => r === 'scafo' || r === 'vela';
   const owned = (): string[] => HATS.filter((h) => h.perle <= 0 || (lot?.posseduti ?? []).includes(h.id)).map((h) => h.id);
@@ -297,6 +301,7 @@ export function createEditor(o: EditorOpts): Editor {
 
   function render(): void {
     if (!open) return;
+    firmaLot = firma();
     const active = document.activeElement as HTMLElement | null;
     const hadFocus = !!active && sheet.contains(active);
     const keep = hadFocus ? active?.dataset['nav'] ?? active?.closest<HTMLElement>('[data-nav]')?.dataset['nav'] : undefined;
@@ -333,7 +338,7 @@ export function createEditor(o: EditorOpts): Editor {
   btn.el.prepend(headIcon(24));
   function show(): void {
     if (open) return;
-    open = true; busy = false; note = null; linkVisibile = false; gen++;
+    open = true; busy = false; note = null; linkVisibile = false; lotFresco = false; gen++;
     draft = clampLook(o.me.look);
     sez?.reset();
     sheet.classList.add('on'); btn.setOn(true);
@@ -343,7 +348,9 @@ export function createEditor(o: EditorOpts): Editor {
     navItems()[0]?.focus({ preventScroll: true });
     o.onOpen?.();
     const g = gen;
-    api.lot().then((l) => { lot = l; if (g === gen) render(); }, () => { /* le Perle restano quelle note: lo dirà il server se non bastano */ });
+    // si ridisegna solo se Perle o cose possedute sono cambiate: rifare il foglio stacca i bottoni e si mangia il tocco in corso
+    api.lot().then((l) => { lot = l; if (g !== gen) return; lotFresco = true; if (firma() !== firmaLot) render(); },
+      () => { if (g === gen) lotFresco = true; /* le Perle restano quelle note: lo dirà il server se non bastano */ });
   }
   /** Chiude annullando: l'avatar torna al look salvato (dopo Salva, me.look è già quello nuovo). */
   function close(): void {
@@ -360,6 +367,6 @@ export function createEditor(o: EditorOpts): Editor {
   }
   function toggle(): void { if (open) close(); else show(); }
 
-  registerStateProvider('editor', () => ({ open, draft: { ...draft }, saved: { ...clampLook(o.me.look) }, owned: owned(), perle: perle(), busy, note: note?.text ?? null, linkVisibile, barca: sez?.state() ?? null }));
+  registerStateProvider('editor', () => ({ open, draft: { ...draft }, saved: { ...clampLook(o.me.look) }, owned: owned(), perle: perle(), busy, note: note?.text ?? null, linkVisibile, lotFresco, barca: sez?.state() ?? null }));
   return { open: show, close, toggle, isOpen: () => open };
 }

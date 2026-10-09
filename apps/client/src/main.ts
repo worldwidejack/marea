@@ -302,7 +302,7 @@ async function boot(): Promise<void> {
   };
   let last = performance.now(), acc = 0, t = 0;
   const frame = (now: number) => {
-    const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt; t += dt;
+    const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now; acc += dt; t += dt; // il primo rAF può avere un orario prima di performance.now() qui sopra
     let steps = 0;
     while (acc >= DT && steps < 5) {
       const f0 = input.sample(), f = foto.isOpen() ? FERMO : f0;
