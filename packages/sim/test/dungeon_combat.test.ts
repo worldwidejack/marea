@@ -159,7 +159,7 @@ test('dungeon: pozione (D) cura e conta in usati; magia (C) costa magicka; evoca
   assert.ok(ev3.some((x) => x.t === 'evocato' && x.tipo === 'lupo_spettrale'));
   assert.equal(t.st, 'morto', 'il lupo spettrale uccide il bandito');
   assert.equal(dungeon.result(se).uccisi['bandito'], 1);
-  assert.equal(dungeon.result(se).xp.evocazione, 1);
+  assert.ok((dungeon.result(se).xp.evocazione ?? 0) > 40 * 0.5, 'xp di evocazione: il lancio e i colpi del lupo');
   run(se, 20 * 60);
   assert.ok(se.enemies.every((x) => !x.alleato || x.st === 'morto'), 'l’evocazione scade');
 });
@@ -223,4 +223,18 @@ test('dungeon: la vista dice `tiro` quando un arciere prepara una freccia (il cl
   for (let i = 0; i < 600 && !p2; i++) { run(s2, 1); p2 = dungeon.view(s2).nemici.find((n) => n.id === bandito.id && n.anim === 'prepara'); }
   assert.ok(p2, 'il bandito prepara un colpo');
   assert.equal(p2.tiro, undefined);
+});
+
+test('dungeon: xp = danno utile (mai oltre la vita del nemico) × moltiplicatore; frecce e magie danno xp come le armi', () => {
+  // martello enorme su un nemico quasi morto: xp = la vita che restava, non il danno
+  const s = arena(heroBase({ arma: katana({ id: 'martello_ferro', skill: 'armiPesanti', classe: 'pesante', danno: 200 }) }));
+  dummy(s, 'bandito', 1.5, 10);
+  tap(s);
+  assert.equal(dungeon.result(s).xp.armiPesanti, 10);
+  // la fiammata: xp di distruzione solo se colpisce, × 3
+  const m = arena(heroBase()), e = dummy(m, 'bandito', 6, 1000);
+  const ev = [...run(m, 1, inp({ c: true })), ...run(m, 90)];
+  const d = colpiSu(ev, e.id)[0]!;
+  assert.ok(d > 0);
+  assert.ok(Math.abs((dungeon.result(m).xp.distruzione ?? 0) - d * 3) < 1, `distruzione ${dungeon.result(m).xp.distruzione} vs colpo ${d}`);
 });

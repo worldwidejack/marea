@@ -14,7 +14,7 @@ function explode(s: DungeonState, p: Proj): void {
   for (const e of s.enemies) {
     if (e.alleato || e.st === 'morto') continue;
     const dx = e.x - p.x, dz = e.z - p.z, r = p.raggio + e.def.raggio;
-    if (dx * dx + dz * dz <= r * r) hitEnemy(s, e, { danno: p.danno, traits: p.traits, magico: true, skill: null, caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p) });
+    if (dx * dx + dz * dz <= r * r) hitEnemy(s, e, { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p) });
   }
 }
 /** Da dove arriva un proiettile (per lo scafandro del Golem-Palombaro): un metro indietro lungo il volo. */
@@ -34,12 +34,11 @@ function hitFoes(s: DungeonState, p: Proj): boolean {
   if (!first) return false;
   if (p.magico) {
     if (p.raggio > 0) explode(s, p);
-    else hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: true, skill: null, caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p) });
+    else hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p) });
     return true;
   }
   const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
-  hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: false, skill: null, caricato: false, dirX: p.vx / v, dirZ: p.vz / v, daAlleato: false, ...da(p) });
-  add(s.xp, 'arceria', 1);
+  hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: false, skill: 'arceria', caricato: false, dirX: p.vx / v, dirZ: p.vz / v, daAlleato: false, ...da(p) });
   if (p.traits.trapassa) { p.colpiti.push(first.id); return false; }
   return true;
 }

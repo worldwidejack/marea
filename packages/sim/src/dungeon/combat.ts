@@ -53,17 +53,18 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
     if (k <= RETRO_SCAFANDRO) retro = sc.retro;
   }
   const d = dannoSu(e, src) * retro * (e.spento && e.def.forgiatore ? e.def.forgiatore.vulnerabile : 1);
+  const utile = Math.min(d, Math.max(0, e.vita)); // il danno oltre la vita rimasta non dà xp: un colpo enorme su un nemico debole vale quanto due piccoli
   e.vita -= d;
   e.hurt = COLPITO_TICKS;
   if (s.eroi.length > 1) e.ultimo = s.cur; // insieme: a chi va il sanguinamento (l'eroe di turno, o il padrone dell'alleato)
   ev(s, { t: 'colpo', x: r2(e.x), z: r2(e.z), danno: Math.round(d), su: 'nemico', id: e.id, ...(src.caricato ? { caricato: true } : {}) });
   if (!src.daAlleato) {
     s.danniFatti += d;
-    if (src.skill) add(s.xp, src.skill, d);
+    if (src.skill) add(s.xp, src.skill, utile * (RPG.xpDanno?.[src.skill] ?? 1));
     // arco d'oro: monete a ogni colpo (probabilità)
     const mc = src.traits.moneteColpo ?? 0;
     if (mc > 0 && s.rng.next() < mc) { const n = s.rng.int(MONETE_COLPO[0], MONETE_COLPO[1]); s.monete += n; ev(s, { t: 'monete', n }); }
-  }
+  } else add(s.xp, 'evocazione', utile * (RPG.xpDanno?.evocazione ?? 1)); // l'evocazione colpisce col padrone di turno
   if (src.traits.sanguina) { e.bleed = Math.max(e.bleed, src.traits.sanguina); e.bleedT = SANGUINA_TICKS; }
   e.dropRaro = !!src.traits.dropRaro;
   e.dropMolt = src.traits.dropMolt ?? 1;
