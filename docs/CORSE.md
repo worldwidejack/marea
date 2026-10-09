@@ -168,9 +168,15 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 | **Fuga dall'onda** `spiaggia_fuga` | fuga A→B · ruote | 1.366 m (corsa 1.258) · 61 s (kart) | discesa dalla scogliera al faro, 100 m di rettilineo prima del via, curve ampie e due sopraelevate, il salto dove la ringhiera è crollata | l'**onda gigante** insegue (inseguitore); il kart del pilota automatico non viene mai preso, il carrello sì |
 
   La scorciatoia sulla sabbia del Lungomare, pensata all'inizio, è stata tolta: tagliare una chicane faceva perdere 0,6-2,7 s invece di farne guadagnare.
+- **Scenografia** (#176, 9 ott 2026; mappa del codice in `CONTRACTS.md` §34). Le 4 piste della Spiaggia sono vestite col kit Blender della zona (31 pezzi in `models_corse_spiaggia.py`):
+  - **Lungomare**: spiaggia con ombrelloni, lettini e palme dal lato del mare, paese di case bianche coi coppi dall'altro, lampioni e manichini sul marciapiede, il faro a strisce al centro del tornante, il portale del via e due tribune di manichini seduti, pini a ombrello sulle colline, barche a vela al largo;
+  - **Baia**: l'isola dentro il circuito (spiaggia, palme, pini, case), la costa da un lato, l'arco di roccia sopra il canale stretto, scogli sulle rive;
+  - **Porto**: il molo corre sull'acqua della darsena, poi le banchine: container impilati e gru dentro il giro, bancarelle del pesce e case fuori, bitte, barriere a frecce nelle curve, pubblico sul bordo;
+  - **Fuga**: la strada sulla scogliera, il mare da un lato e il monte coi pini dall'altro, cartelli a frecce nelle curve, il faro all'arrivo.
+  Le regole guardano solo il nastro e il terreno, quindi una pista nuova della zona si veste da sola; la config dice dov'è il mare. Budget a 390×844 su tutta la gara (pilota automatico): 26-47 draw call, 49.000-118.000 triangoli (la Fuga è la più pesante).
 - **Da fare** con le zone:
   - le famiglie Due ruote e Scivoli e binari;
-  - un pacchetto di asset per zona caricato all'ingresso, con la sua riga nel budget di `TECH.md` §5;
+  - un pacchetto di asset per zona caricato all'ingresso, con la sua riga nel budget di `TECH.md` §5 (la Spiaggia c'è: `manifest_corse.json`);
   - i fantasmi: gli input della gara migliore salvati sul server e rigiocati;
   - il bilanciamento per zona: in acqua i bot sono ancora un filo troppo deboli e la vasca vince.
 
@@ -180,7 +186,7 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 3. Motore v2: nastro 3D, famiglie Ruote e Acqua, bot sul nastro, evento firma, pagina di prova (**fatto**: `provapiste.html`).
 4. **Zona Spiaggia e porto**: 4 piste, boss granchio, kit 3D, veicoli buffi, manichini, musica e suoni. Il primo circuito finito sostituisce il Gran Premio.
    - **4a. Le 4 piste grezze** (**fatto**, 9 ott 2026): Lungomare, Baia, Porto misto, Fuga dall'onda, giocabili su `provapiste.html?pista=spiaggia_…`. Il gioco non cambia ancora.
-   - 4b. Vestire la zona: kit Blender, veicoli buffi e granchio campione, manichini, musica e suoni.
+   - 4b. Vestire la zona: kit Blender e scenografia delle 4 piste con i manichini (**fatto**, 9 ott 2026, #176); restano veicoli buffi e granchio campione, musica e suoni.
    - 4c. Il Lungomare al posto del Gran Premio (`garaCorse` nel registro, il server rigioca).
 5. Hub alla Diddy Kong Racing: isola aperta, porta della Spiaggia, garage, le altre porte chiuse.
 6. Fantasmi, stelle e sblocchi, premi per MAREA.

@@ -73,6 +73,10 @@ _grid(['grotta_pav', 'grotta_muro', 'cripta_pav', 'cripta_muro', 'vuoto_pav', 'v
 _grid(['ossa', 'pelliccia', 'chitina', 'cristallo', 'ferro_rotto', 'cuoio', 'pagine', 'foglie'], 768, 512, 32, 32, 32)  # nemici e prop
 _grid(['tela_sacco', 'cappuccio', 'lacca_scura', 'pietra_cripta'], 256, 544, 32, 32, 32)
 REGIONS['teschio'] = (128, 576, 14, 18)       # viso del teschio, proiezione frontale come `testa`
+# Isola delle Corse, Spiaggia e porto (#176, 9 ott 2026): tessere 32x32 (2 m) nella zona libera in fondo alle righe dei terreni.
+_grid(['cs_coppi', 'cs_intonaco', 'cs_muro_mare', 'cs_finestra', 'cs_porta', 'cs_persiane', 'cs_tenda_rossa', 'cs_tenda_blu',
+       'cs_vela', 'cs_cabina', 'cs_container_rosso', 'cs_container_blu', 'cs_container_verde', 'cs_manichino', 'cs_chevron', 'cs_scacchi',
+       'cs_gru_rossa', 'cs_gru_blu', 'cs_pericolo', 'cs_sponsor', 'cs_pesce', 'cs_scoglio', 'cs_gomme', 'cs_maglia'], 0, 448, 32, 32, 32)
 # campioni piatti 8x8 di ogni colore della palette (dettagli piccoli: occhi, fiori, liquidi, segni)
 for _i, _n in enumerate(P):
     REGIONS['p_' + _n] = (_i * 8, 640, 8, 8)
@@ -827,11 +831,127 @@ def paint_rpg(cv):
     R('em_runa', em_runa)
 
 
+def paint_corse(cv):
+    """Isola delle Corse, Spiaggia e porto: paese bianco coi coppi, muro del lungomare, ombrelloni, vele, container, gru, manichini."""
+    R = cv.region
+
+    def coppi(x, y, w, h):  # coppi di terracotta a file sfalsate (4 texel = 25 cm)
+        row = y // 4
+        xx = (x + (2 if row % 2 else 0)) % 32
+        if y % 4 == 3:
+            return 'legno'
+        if xx % 4 == 0:
+            return 'legno' if y % 4 != 0 else 'legno_chiaro'
+        if y % 4 == 0:
+            return 'arancio' if xx % 4 in (1, 2) else 'legno_chiaro'
+        return 'rosso' if h01(xx, y % 32, 301) > 0.18 else 'legno_chiaro'
+    R('cs_coppi', coppi)
+    R('cs_intonaco', speckle('pietra_chiara', [('sabbia_chiara', 0.10), ('pietra', 0.03)], 302))
+    R('cs_muro_mare', blocks('sabbia', 'sabbia_chiara', 'legno_chiaro', 'sabbia_chiara', bw=10, bh=6, seed=303))
+
+    def finestra(x, y, w, h):  # finestra con persiane verdi aperte su intonaco bianco
+        if 6 <= y <= 25 and 3 <= x <= 28:
+            if x <= 8 or x >= 23:  # persiane a listelli
+                return 'erba_scura' if y % 3 else 'bosco'
+            if 10 <= x <= 21:
+                if y in (6, 25) or x in (10, 21) or x == 15 or x == 16 or y == 15:
+                    return 'pietra_chiara'
+                return 'acqua_profonda' if y < 12 else 'abisso'
+        if y == 26 and 8 <= x <= 23:
+            return 'pietra'
+        return 'pietra_chiara' if h01(x, y, 304) > 0.1 else 'sabbia_chiara'
+    R('cs_finestra', finestra)
+
+    def porta(x, y, w, h):  # porta di legno ad arco
+        if 8 <= x <= 23 and y >= 6:
+            if y < 9 and (x < 10 or x > 21):
+                return 'pietra_chiara'
+            if x in (8, 23) or y == 6:
+                return 'legno_scuro'
+            return 'legno' if x % 4 else 'legno_scuro'
+        return 'pietra_chiara' if h01(x, y, 305) > 0.1 else 'sabbia_chiara'
+    R('cs_porta', porta)
+    R('cs_persiane', lambda x, y, w, h: 'erba_scura' if y % 3 else 'bosco')
+
+    def strisce(a, b, larga=4):  # strisce verticali (ombrelloni, tende, cabine)
+        return lambda x, y, w, h: a if (x // larga) % 2 == 0 else b
+    R('cs_tenda_rossa', strisce('rosso', 'pietra_chiara'))
+    R('cs_tenda_blu', strisce('acqua_profonda', 'pietra_chiara'))
+    R('cs_cabina', strisce('acqua', 'pietra_chiara', 5))
+
+    def vela(x, y, w, h):  # tela bianca con una banda rossa
+        if 18 <= y <= 22:
+            return 'rosso'
+        return 'pietra_chiara' if h01(x, y, 306) > 0.06 else 'sabbia_chiara'
+    R('cs_vela', vela)
+
+    def lamiera(base, scuro, chiaro):  # lamiera ondulata dei container, bordo scuro
+        def f(x, y, w, h):
+            if y < 2 or y > 29:
+                return scuro
+            k = x % 4
+            return scuro if k == 0 else (chiaro if k == 2 else base)
+        return f
+    R('cs_container_rosso', lamiera('rosso', 'legno', 'arancio'))
+    R('cs_container_blu', lamiera('acqua_profonda', 'abisso', 'acqua'))
+    R('cs_container_verde', lamiera('erba_scura', 'bosco', 'erba'))
+    R('cs_manichino', speckle('sabbia', [('sabbia_chiara', 0.10), ('legno_chiaro', 0.05)], 307))
+
+    def chevron(x, y, w, h):  # frecce rosse e bianche della curva (puntano a sinistra)
+        if y < 3 or y > 28:
+            return 'nero_caldo'
+        return 'rosso' if ((x + abs(y - 15)) // 6) % 2 == 0 else 'pietra_chiara'
+    R('cs_chevron', chevron)
+    R('cs_scacchi', lambda x, y, w, h: 'nero_caldo' if ((x // 8) + (y // 8)) % 2 else 'pietra_chiara')
+
+    def traliccio(base, scuro):  # trave a traliccio delle gru
+        def f(x, y, w, h):
+            if y < 2 or y > 29 or x % 16 < 2:
+                return base
+            d = (x + y) % 16
+            if d < 2 or (x - y) % 16 < 2:
+                return base
+            return scuro
+        return f
+    R('cs_gru_rossa', traliccio('rosso', 'ombra_calda'))
+    R('cs_gru_blu', traliccio('acqua_profonda', 'ombra_calda'))
+    R('cs_pericolo', lambda x, y, w, h: 'giallo' if ((x + y) // 4) % 2 == 0 else 'nero_caldo')
+
+    def sponsor(x, y, w, h):  # striscione con la bandiera a scacchi e una scritta a blocchi
+        if y < 3 or y > 28:
+            return 'rosso'
+        if x < 10:
+            return 'nero_caldo' if ((x // 3) + (y // 3)) % 2 else 'pietra_chiara'
+        if 12 <= y <= 19 and x >= 12 and (x - 12) % 5 < 3 and h01(x // 5, y // 2, 308) < 0.75:
+            return 'giallo'
+        return 'acqua_profonda'
+    R('cs_sponsor', sponsor)
+
+    def pesce(x, y, w, h):  # insegna del pesce: pesce bianco su blu
+        cx, cy = x - 14, y - 16
+        if (cx * cx) / 81 + (cy * cy) / 20 <= 1 or (cx >= 8 and abs(cy) <= (cx - 7)):
+            return 'nero_caldo' if (cx == -5 and cy == -1) else 'pietra_chiara'
+        return 'acqua_profonda' if 2 <= y <= 29 else 'pietra_chiara'
+    R('cs_pesce', pesce)
+    R('cs_scoglio', speckle('pietra_scura', [('pietra', 0.12), ('roccia', 0.14)], 309))
+
+    def gomme(x, y, w, h):  # pila di gomme: bande nere con riga bianca
+        k = y % 8
+        if k == 0:
+            return 'ombra_calda'
+        if k == 4:
+            return 'pietra_chiara' if (x // 4) % 2 else 'rosso'
+        return 'nero_caldo' if h01(x, y, 310) > 0.1 else 'roccia'
+    R('cs_gomme', gomme)
+    R('cs_maglia', speckle('pietra_chiara', [('pietra', 0.06)], 311))  # maschera bianca: il colore della maglia è la tinta
+
+
 def build(path):
     cv = Canvas()
     paint(cv)
     paint_m1(cv)
     paint_rpg(cv)
+    paint_corse(cv)
     cv.png(path)
     return path
 
