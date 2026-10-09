@@ -2,7 +2,8 @@
 // Prende il controllo del ciclo come il dungeon: scena dell'arena, eroe (l'avatar con l'arma in pugno, rpg/dungeon_hero.ts), zombie, HUD e
 // controlli; a ogni tick registra UN input (joystick e B da main.ts, A = attacca anche col clic o da solo con AUTO, C = SCAMBIA, D = AZIONE)
 // quantizzato come lo rigioca il server. Pausa = nessun tick. Fine: scritta grande, poi consegna (input compressi, azioni, hash).
-// AUTO (di serie): quando c'è uno zombie a portata e l'eroe è libero, la A la preme il client (resta negli input: il server la rigioca uguale).
+// Niente attacco automatico. Da PC, se non cammini, l'eroe guarda il mouse: il client manda il joystick «sfiorato» verso il puntatore
+// (la sim lo gira sul posto, GIRA_SUL_POSTO) e il clic attacca lì; resta negli input, il server lo rigioca uguale.
 // Autopilota dei test (templariLink.autopilot o ?autopilot=1): gli input li dà la sim, registrati uguali.
 import * as THREE from 'three';
 import type { InputFrame } from '@marea/sim';
@@ -14,7 +15,7 @@ import type { DungeonInput } from '@marea/sim/dungeon/types.ts';
 import { pugni } from '@marea/sim/dungeon/hero.ts';
 import { stepTemplari, templari } from '@marea/sim/templari/templari.ts';
 import type { TState } from '@marea/sim/templari/templari.ts';
-import { autoA, daiArma, miraTiro } from '@marea/sim/templari/eroe.ts';
+import { daiArma, miraTiro } from '@marea/sim/templari/eroe.ts';
 import { nuovoZombie } from '@marea/sim/templari/stato.ts';
 import { apriPorta } from '@marea/sim/templari/porte.ts';
 import type { TAzioni, TEvento, TView } from '@marea/sim/templari/types.ts';
@@ -70,7 +71,7 @@ function armaVista(id: string): ArmaInMano {
   const a = armaDef(id), forma = a.aspetto.forma;
   return {
     ...base, id: null, kind: a.tipo === 'arco' ? 'arco' : 'mischia', danno: a.danno, tempo: a.tempo, portata: a.portata ?? base.portata,
-    ...(forma ? { oggetto: () => oggettoArma(forma) } : a.aspetto.modello ? { modello: a.aspetto.modello } : {}), colore: a.aspetto.colore,
+    ...(forma ? { oggetto: () => oggettoArma(forma), lama: a.tipo === 'mischia' } : a.aspetto.modello ? { modello: a.aspetto.modello } : {}), colore: a.aspetto.colore,
   };
 }
 
@@ -198,8 +199,19 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   function inputOra(f: InputFrame): DungeonInput {
     const c = ctl!.sample();
     if (auto) return templari.autopilot(s, auto);
-    const a = f.a || c.a || (ctl!.auto && autoA(s));
-    return { mx: f.mx, my: f.my, a, b: f.b, c: c.c, d: c.d };
+    const a = f.a || c.a;
+    let mx = f.mx, my = f.my;
+    // da PC, fermo: guarda il puntatore (il punto del pavimento sotto il mouse)
+    const m = ctl!.mouse;
+    if (m && Math.abs(mx) < 0.05 && Math.abs(my) < 0.05) {
+      const r = ctx.canvas.getBoundingClientRect();
+      ray.setFromCamera(nd.set((m.x / r.width) * 2 - 1, -(m.y / r.height) * 2 + 1), ctx.renderer.camera);
+      if (ray.ray.intersectPlane(suolo, hit)) {
+        const dx = hit.x - s.eroe.x, dz = hit.z - s.eroe.z, d = Math.sqrt(dx * dx + dz * dz);
+        if (d > 0.6) { mx = (dx / d) * 0.25; my = (dz / d) * 0.25; }
+      }
+    }
+    return { mx, my, a, b: f.b, c: c.c, d: c.d };
   }
   // passi sul suolo sotto i piedi (ogni ~1 m, 1,5 m di corsa) e la tensione della musica (boss in campo, tanti zombie vicini)
   let px = NaN, pz = NaN, strada = 0;
@@ -217,6 +229,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     }
   }
 
+  const ray = new THREE.Raycaster(), nd = new THREE.Vector2(), suolo = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.9), hit = new THREE.Vector3();
   const run: TemplariRun = {
     get active() { return fase !== 'finita'; },
     step(f) {
@@ -276,7 +289,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   templariLink.state = () => ({
     active: fase !== 'finita', fase, sim: view.fase, tick: view.tick, ondata: view.ondata, restano: view.restano, done: view.done, esito: view.esito,
     eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma }, zombie: view.zombie.length,
-    uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: ctl?.auto ?? true,
+    uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: false, faccia: [s.eroe.fx, s.eroe.fz],
     scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: TEMPLARI.ondate.insieme,
   });

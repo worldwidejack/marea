@@ -29,7 +29,7 @@
     "bloccato": 20
   },
   "armi": [
-    { "id": "spada", "nome": "Spada arrugginita", "tipo": "mischia", "danno": 250, "tempo": 0.55, "portata": 1.8, "carica": 0.9, "caricaMolt": 1.6, "spinta": 0.3, "aspetto": {"modello": "arm_katana", "colore": "#8E5A2B"} },
+    { "id": "spada", "nome": "Spada arrugginita", "tipo": "mischia", "danno": 250, "tempo": 0.55, "portata": 1.8, "carica": 0.9, "caricaMolt": 1.6, "spinta": 0.3, "aspetto": {"modello": null, "forma": "spada", "colore": "#E8E1D6"} },
     { "id": "arco", "nome": "Arco", "tipo": "arco", "danno": 450, "tempo": 0.6, "colpi": 20, "riserva": 40, "velocita": 34, "gittata": 26, "prezzo": 0, "prezzoMunizioni": 150, "cassa": 5, "aspetto": {"modello": "arm_arco", "colore": "#8E5A2B"} },
     { "id": "mazza", "nome": "Mazza ferrata", "tipo": "mischia", "danno": 700, "tempo": 0.8, "portata": 1.9, "carica": 1, "caricaMolt": 1.6, "spinta": 0.9, "prezzo": 750, "cassa": 6, "aspetto": {"modello": "arm_martello", "colore": "#7F7568"} },
     { "id": "ascia", "nome": "Ascia danese", "tipo": "mischia", "danno": 1000, "tempo": 1, "portata": 2.2, "carica": 1.1, "caricaMolt": 1.6, "spinta": 0.4, "prezzo": 1000, "cassa": 6, "aspetto": {"modello": "arm_ascia", "colore": "#B9AFA3"} },
@@ -66,7 +66,8 @@
     "cimitero": { "nome": "Porta del cimitero", "prezzo": 1000, "zona": "cimitero" },
     "taverna": { "nome": "Taverna del Teschio", "prezzo": 750, "zona": "taverna" },
     "spiaggia_taverna": { "nome": "Porta della spiaggia", "prezzo": 1250, "zona": "spiaggia" },
-    "spiaggia_cimitero": { "nome": "Cancello della spiaggia", "prezzo": 1250, "zona": "spiaggia" }
+    "spiaggia_cimitero": { "nome": "Cancello della spiaggia", "prezzo": 1250, "zona": "spiaggia" },
+    "sacrestia": { "nome": "Porta della sacrestia", "prezzo": 750, "zona": "sacrestia" }
   },
   "porta": { "raggio": 1.7 },
   "trappole": {

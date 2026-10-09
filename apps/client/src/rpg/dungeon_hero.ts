@@ -29,7 +29,9 @@ import type { HeroFx } from './hero_fx.ts';
 
 /** Arma da montare: quella del GDR, o (Templari) con modello del kit e colore della lama dati direttamente, oppure un oggetto già fatto
  *  (`oggetto`: pistole, moschetto, vaso del fuoco greco; canna lungo +Y dall'impugnatura, sopra +Z) tenuto a due mani in avanti. */
-export type ArmaInMano = RunWeapon & { modello?: string; colore?: string; oggetto?: () => THREE.Object3D };
+export type ArmaInMano = RunWeapon & { modello?: string; colore?: string; oggetto?: () => THREE.Object3D;
+  /** L'oggetto è una lama (si brandisce come le spade del kit), non un'arma da fuoco. */
+  lama?: boolean };
 
 export type HeroActor = {
   readonly avatar: Avatar;
@@ -133,7 +135,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     weapon = w; bow = b; bladeMats = mats; bladeLen = len;
     arco = b && w ? armaArco(w, o.loader, false, 1.8) : null;
     if (w) o.scene.add(w);
-    kind = bow ? 'arco' : arma.oggetto ? 'fuoco' : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' ? 'lancia' : 'lama';
+    kind = bow ? 'arco' : arma.oggetto ? (arma.lama ? 'lama' : 'fuoco') : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' ? 'lancia' : 'lama';
     fx.dispose(); fx = fxFor(kind === 'pugni' ? pugni().portata : arma.portata);
   }
   await mount(o.hero.arma);

@@ -24,7 +24,7 @@ export default async function (ctx) {
     await page.click('#mzTemplariProva');
     await ctx.waitState(page, (st) => st.templari.active && st.templari.fase === 'gioca', 30000);
     const st = await ctx.getState(page);
-    await ctx.waitState(page, (s) => s.templari.scena?.assi === 45, 5000);
+    await ctx.waitState(page, (s) => s.templari.scena?.assi === s.templari.assi.length * 5, 5000);
     assert(st.templari.scena.muri > 50, `scena: ${JSON.stringify(st.templari.scena)}`);
     assert(await page.isVisible('#mzTpl'), 'HUD assente');
     assert(!(await page.isVisible('#mzTop')), 'la barra in alto della superficie è ancora visibile');
@@ -114,14 +114,17 @@ export default async function (ctx) {
     await ctx.waitState(pc, (s) => s.templari.sim === 'inizio' || s.templari.sim === 'combatti', 8000);
     await pc.keyboard.press('Escape');
     await ctx.waitState(pc, (s) => s.templari.pausa === true, 5000);
-    await pc.click('#mzTplPausa [data-act=auto]');
-    st = await ctx.getState(pc);
-    assert(st.templari.mira === false, 'la mira non è passata a mano');
-    assert((await pc.evaluate(() => localStorage.getItem('marea:templari:auto'))) === '0', 'A MANO non salvata');
+    assert(!(await pc.isVisible('#mzTplPausa [data-act=auto]')), 'il bottone della mira automatica c’è ancora');
     await ctx.shot(pc, 'pc_pausa');
-    await pc.click('#mzTplPausa [data-act=auto]');
     await pc.keyboard.press('Escape');
     await ctx.waitState(pc, (s) => s.templari.pausa === false, 5000);
+    // da fermo l'eroe guarda il mouse: due punti opposti dello schermo, due direzioni opposte
+    const box = await pc.locator('canvas').first().boundingBox();
+    await pc.mouse.move(box.x + box.width * 0.15, box.y + box.height * 0.5); await pc.waitForTimeout(400);
+    const f1 = (await ctx.getState(pc)).templari.faccia;
+    await pc.mouse.move(box.x + box.width * 0.85, box.y + box.height * 0.5); await pc.waitForTimeout(400);
+    const f2 = (await ctx.getState(pc)).templari.faccia;
+    assert(f1[0] * f2[0] + f1[1] * f2[1] < -0.5, `l'eroe non segue il mouse: ${JSON.stringify([f1, f2])}`);
     await ctx.waitState(pc, (s) => s.templari.ondata === 1, 15000);
     await ctx.shot(pc, 'pc_ondata1');
   });
@@ -141,8 +144,7 @@ export default async function (ctx) {
     await ctx.shot(pc, 'pc_fuoco_greco');
   });
   await ctx.test('PC: pirata, cannoniere, Templare a cavallo e de Molay (barra del boss), tutti insieme nel budget', async () => {
-    // mira A MANO (dalla pausa) e spada in mano: così i nemici restano interi per la foto
-    await pc.keyboard.press('Escape'); await pc.click('#mzTplPausa [data-act=auto]'); await pc.keyboard.press('Escape');
+    // spada in mano (niente attacchi automatici): così i nemici restano interi per la foto
     await pc.evaluate(() => window.__game.test.templariProva({ arma: 'spada' }));
     const posti = [['pirata', 3, -2.2], ['cannoniere', 3.5, 2.2], ['cavaliere', 6, -1], ['molay', 5.5, 2.8]];
     for (const [t, dist, lato] of posti) await pc.evaluate(([t, dist, lato]) => window.__game.test.templariProva({ zombie: t, dist, lato }), [t, dist, lato]);

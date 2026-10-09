@@ -41,12 +41,13 @@ test('templari: vita e numero degli zombie come COD', () => {
 });
 
 test('templari: la reliquia sull\'altare fa partire le ondate, il pilota ne supera qualcuna', () => {
+  // (senza mira automatica il pilota deve girarsi verso chi colpisce: regge meno di un giocatore, basta che superi la prima)
   const { s } = gioca(7, 60 * 60 * 6);
-  assert.ok(s.ondata >= 3, `ondata ${s.ondata}`);
-  assert.ok(s.uccisioni >= 6 + 9, `uccisioni ${s.uccisioni}`);
+  assert.ok(s.ondata >= 2, `ondata ${s.ondata}`);
+  assert.ok(s.uccisioni >= 6, `uccisioni ${s.uccisioni}`);
   assert.ok(s.guadagnati > 0);
   const r = templari.result(s);
-  assert.ok(r.superate >= 2);
+  assert.ok(r.superate >= 1);
 });
 
 test('templari: subito = ondate già partite, senza altare', () => {

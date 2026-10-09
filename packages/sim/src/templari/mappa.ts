@@ -11,9 +11,9 @@ export const C = { fuori: 0, pavimento: 1, muro: 2, colonna: 3, basso: 4, finest
 /** Suolo delle celle (solo per la resa): pietre della chiesa, terra del sagrato, acciottolato, erba, sabbia, assito. */
 export const SUOLO = { niente: 0, pietra: 1, terra: 2, ciottoli: 3, erba: 4, sabbia: 5, assi: 6 } as const;
 /** Cos'è una cella piena (solo per la resa). */
-export const TIPO = { niente: 0, chiesa: 1, casa: 2, tenda: 3, colonna: 4, stallo: 5, maceria: 6, muretto: 7, tomba: 8, cosa: 9, braciere: 10, altare: 11, altarino: 12, cassa: 13, leva: 14 } as const;
+export const TIPO = { niente: 0, chiesa: 1, casa: 2, tenda: 3, colonna: 4, stallo: 5, maceria: 6, muretto: 7, tomba: 8, cosa: 9, braciere: 10, altare: 11, altarino: 12, cassa: 13, leva: 14, tramezzo: 15, sarcofago: 16, armadio: 17 } as const;
 const SUOLO_DI: Record<string, number> = { '.': SUOLO.pietra, ',': SUOLO.terra, v: SUOLO.ciottoli, e: SUOLO.erba, s: SUOLO.sabbia, w: SUOLO.assi };
-const TIPO_DI: Record<string, number> = { '#': TIPO.chiesa, h: TIPO.casa, t: TIPO.tenda, o: TIPO.colonna, p: TIPO.stallo, r: TIPO.maceria, q: TIPO.maceria, m: TIPO.muretto, g: TIPO.tomba, k: TIPO.cosa, b: TIPO.braciere, A: TIPO.altare, a: TIPO.altarino, C: TIPO.cassa };
+const TIPO_DI: Record<string, number> = { N: TIPO.tramezzo, V: TIPO.sarcofago, Y: TIPO.armadio, '#': TIPO.chiesa, h: TIPO.casa, t: TIPO.tenda, o: TIPO.colonna, p: TIPO.stallo, r: TIPO.maceria, q: TIPO.maceria, m: TIPO.muretto, g: TIPO.tomba, k: TIPO.cosa, b: TIPO.braciere, A: TIPO.altare, a: TIPO.altarino, C: TIPO.cassa };
 
 type P = { x: number; z: number };
 export type Finestra = { cx: number; cz: number; x: number; z: number;
@@ -70,10 +70,10 @@ export function parseArena(def: TMappaDef): Arena {
     suolo[i] = SUOLO_DI[ch] ?? SUOLO.niente; tipo[i] = TIPO_DI[ch] ?? TIPO.niente;
     switch (ch) {
       case ' ': cell[i] = C.fuori; break;
-      case '#': case 'h': case 't': cell[i] = C.muro; opaque[i] = 1; break;
+      case '#': case 'h': case 't': case 'N': cell[i] = C.muro; opaque[i] = 1; break;
       case 'o': cell[i] = C.colonna; opaque[i] = 1; break;
       case 'A': cell[i] = C.basso; altSum = { x: altSum.x + (cx + 0.5) * t, z: altSum.z + (cz + 0.5) * t, n: altSum.n + 1 }; break;
-      case 'p': case 'r': case 'q': case 'm': case 'g': case 'k': cell[i] = C.basso; break;
+      case 'p': case 'r': case 'q': case 'm': case 'g': case 'k': case 'V': case 'Y': cell[i] = C.basso; break;
       case 'b': cell[i] = C.basso; bracieri.push(ctr(cx, cz)); break;
       case 'a': cell[i] = C.basso; altarini.push(ctr(cx, cz)); break;
       case 'C': cell[i] = C.basso; casseC.push({ cx, cz }); break;

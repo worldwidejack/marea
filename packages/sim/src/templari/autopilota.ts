@@ -52,8 +52,30 @@ export function autopilota(s: TState, _rng: Rng): TInput {
     if (!vicino(s, a.x, a.z, TEMPLARI.altare.raggio - 0.5)) return verso(s, a.x, a.z);
     return tocca(s);
   }
+  // in mischia: se c'è qualcuno a portata davanti colpisce (sotto, come AUTO); se è solo alle spalle prima ci si gira
+  const am = armaIn(s);
+  if (am.tipo === 'mischia' && h.act === 'idle' && !h.inMano) {
+    const pr = (am.portata ?? 1.5) + TEMPLARI.eroe.raggio;
+    let dietro: { dx: number; dz: number; d: number } | null = null, davanti = false;
+    for (const z of s.zombie) {
+      if (z.st === 'morto' || z.st === 'sorge') continue;
+      const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
+      if (d < 1e-3 || d > pr + z.def.raggio) continue;
+      if ((dx * h.fx + dz * h.fz) / d >= 0.3) davanti = true; else if (!dietro || d < dietro.d) dietro = { dx, dz, d };
+    }
+    if (!davanti && dietro) return { ...FERMO, mx: (dietro.dx / dietro.d) * 0.25, my: (dietro.dz / dietro.d) * 0.25 };
+  }
   // attacca come AUTO; con l'arco tenuto teso resta fermo finché non tira
   if (autoA(s)) return { ...FERMO, a: true };
+  // a distanza: chi è in vista ma fuori dal cono, ci si gira (joystick sfiorato)
+  const ar = armaIn(s);
+  if (ar.tipo !== 'mischia' && h.act === 'idle') {
+    for (const z of s.zombie) {
+      if (z.st === 'morto' || z.st === 'sorge') continue;
+      const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
+      if (d > 1 && d < (ar.gittata ?? 20) * 0.8 && (dx * h.fx + dz * h.fz) / d < 0.85) return { ...FERMO, mx: (dx / d) * 0.25, my: (dz / d) * 0.25 };
+    }
+  }
   if (h.act === 'tende') return FERMO;
   // lo zombie dentro più vicino (che non stia ancora strappando fuori)
   let best: { x: number; z: number } | null = null, bd = Infinity;
@@ -85,6 +107,7 @@ export function autopilota(s: TState, _rng: Rng): TInput {
   for (const m of s.arena.muri) {
     if (!raggiungePunto(s, m.x, m.z)) continue;
     const ad = armaDef(m.arma);
+    if (!ad.prezzo && h.armi.every(Boolean)) continue; // l'arco gratis non al posto di un'arma comprata
     const meglio = Math.max(0, ...h.armi.map((x) => (x ? armaDef(x.id).prezzo ?? 0 : 0)));
     if (h.armi.some((x) => x?.id === m.arma) || s.punti < (ad.prezzo ?? 0) + (ad.prezzo ? 200 : 0) || ((ad.prezzo ?? 0) > 0 && (ad.prezzo ?? 0) <= meglio)) continue;
     return vicino(s, m.x, m.z, 1.0) ? tocca(s) : verso(s, m.x, m.z);
@@ -94,7 +117,7 @@ export function autopilota(s: TState, _rng: Rng): TInput {
   if (pc && ((c.fase === 'chiusa' && s.punti >= TEMPLARI.cassa.prezzo + 600) || c.fase === 'pronta')) return vicino(s, pc.x, pc.z, TEMPLARI.cassa.raggio - 0.4) ? tocca(s) : verso(s, pc.x, pc.z);
   if (finestraVicina(s) >= 0) return { ...FERMO, d: true };
   let fi = -1, fa = Infinity;
-  s.arena.finestre.forEach((f, i) => { const n = s.assi[i] ?? 0; if (n < TEMPLARI.barricate.assi && n < fa) { fa = n; fi = i; } });
+  s.arena.finestre.forEach((f, i) => { const n = s.assi[i] ?? 0; if (n < TEMPLARI.barricate.assi && n < fa && raggiungePunto(s, f.dentro.x, f.dentro.z)) { fa = n; fi = i; } });
   if (fi >= 0) { const f = s.arena.finestre[fi]!; return verso(s, f.dentro.x, f.dentro.z); }
   if (best) return verso(s, best.x, best.z);
   return FERMO;

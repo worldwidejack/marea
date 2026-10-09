@@ -15,8 +15,28 @@ function gruppo(list: B[], cil: [r0: number, r1: number, h: number, x: number, y
 }
 const FERRO = PAL.roccia, LEGNO = PAL.legnoScuro, OTTONE = PAL.arancio;
 
+/** Spada da crociato (la spada «a croce» del XII-XIII secolo): lama dritta d'acciaio a doppio filo con lo sguscio scuro al centro e
+ *  qualche macchia di ruggine, elsa a croce di ferro, impugnatura fasciata di cuoio, pomolo d'ottone. Una mesh sola. */
+function spadaCrociata(): THREE.Group {
+  const g = new THREE.Group();
+  const geo = unisci([
+    { g: new THREE.OctahedronGeometry(0.055, 0), c: OTTONE, y: -0.17 },
+    { g: new THREE.CylinderGeometry(0.024, 0.026, 0.2, 6), c: PAL.ombraCalda, y: -0.06 },
+    ...[-0.12, -0.06, 0].map((y) => ({ g: new THREE.CylinderGeometry(0.028, 0.028, 0.012, 6), c: PAL.legnoScuro, y })),
+    { g: new THREE.BoxGeometry(0.32, 0.038, 0.05), c: PAL.pietraScura, y: 0.06 },
+    ...[-1, 1].map((s) => ({ g: new THREE.BoxGeometry(0.045, 0.06, 0.055), c: PAL.roccia, x: s * 0.16, y: 0.05 })),
+    { g: new THREE.BoxGeometry(0.085, 0.88, 0.022), c: PAL.pietraChiara, y: 0.52 },
+    { g: new THREE.BoxGeometry(0.02, 0.66, 0.026), c: PAL.pietraScura, y: 0.44 },
+    { g: new THREE.ConeGeometry(0.06, 0.16, 4).rotateY(Math.PI / 4), c: PAL.pietraChiara, y: 1.04, sz: 0.36 },
+    ...([[0.025, 0.3, 1], [-0.022, 0.62, -1], [0.02, 0.8, 1]] as const).map(([x, y, s]) => ({ g: new THREE.BoxGeometry(0.022, 0.05, 0.004), c: PAL.legnoChiaro, x, y, z: s * 0.012 })),
+  ]);
+  g.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+  return g;
+}
+
 export function oggettoArma(forma: string): THREE.Group {
   switch (forma) {
+    case 'spada': return spadaCrociata();
     case 'pistola': return gruppo([[0.06, 0.16, 0.12, 0, -0.06, -0.04, LEGNO], [0.07, 0.22, 0.07, 0, 0.12, 0, LEGNO], [0.03, 0.06, 0.05, 0, 0.02, 0.06, OTTONE]], [[0.024, 0.028, 0.34, 0, 0.3, 0.02, FERRO]]);
     case 'pistola_doppia': return gruppo([[0.08, 0.16, 0.12, 0, -0.06, -0.04, LEGNO], [0.1, 0.22, 0.07, 0, 0.12, 0, LEGNO], [0.04, 0.06, 0.05, 0, 0.02, 0.06, OTTONE]],
       [[0.022, 0.026, 0.36, -0.03, 0.31, 0.02, FERRO], [0.022, 0.026, 0.36, 0.03, 0.31, 0.02, FERRO]]);
