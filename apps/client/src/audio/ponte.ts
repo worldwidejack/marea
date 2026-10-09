@@ -17,8 +17,12 @@ export type SuonoId =
   | 'lancio' | 'plop' | 'abbocca' | 'pesce' | 'scappato'
   | 'colpo_dato' | 'colpo_critico' | 'colpo_preso' | 'schivato' | 'nemico_ko' | 'raccolto' | 'pozione' | 'magia' | 'altare' | 'vuoto' | 'goccia'
   | 'cannone' | 'tuono' // Tempesta: Arrembaggio
-  | 'salto' | 'sfrigola'; // Vulcano: Fuga dalla lava
-export type MusicaModo = 'giorno' | 'notte' | 'gara' | 'dungeon' | 'silenzio';
+  | 'salto' | 'sfrigola' // Vulcano: Fuga dalla lava
+  // Isola dei Templari (docs/TEMPLARI.md §11): versi, stacchi d'ondata, campana, corno, risata, armi, porte, power-up, cassa
+  | 'tpl_deus' | 'tpl_rantolo' | 'tpl_urlo' | 'tpl_sorge' | 'tpl_asse' | 'tpl_ondata' | 'tpl_ondata_fine' | 'tpl_campana' | 'tpl_corno' | 'tpl_risata'
+  | 'tpl_pistola' | 'tpl_moschetto' | 'tpl_trombone' | 'tpl_freccia' | 'tpl_fendente' | 'tpl_porta' | 'tpl_potere' | 'tpl_potere_preso'
+  | 'tpl_cassa' | 'tpl_teschio' | 'tpl_rogo' | 'tpl_caduto';
+export type MusicaModo = 'giorno' | 'notte' | 'gara' | 'dungeon' | 'templari' | 'silenzio';
 export type Meteo = 'sereno' | 'pioggia' | 'vento';
 /** Quello che il motore legge dal gioco a ogni frame (main.ts lo passa una volta con collegaAudio). */
 export type AudioMondo = {
@@ -30,6 +34,8 @@ export type AudioMondo = {
   gioco(): boolean;
   /** Nel Mondo Sotterraneo: niente mare, musica scura, passi sulla pietra. */
   dungeon(): boolean;
+  /** Nelle ondate dei Templari: musica dei Templari, la notte attorno (vale anche dungeon() = true: il mondo sopra è fermo). */
+  templari?(): boolean;
 };
 /** Il motore caricato (audio/index.ts). */
 export type Audio = {
@@ -41,6 +47,8 @@ export type Audio = {
   collega(m: AudioMondo): void;
   dungeonPasso(x: number, z: number): void;
   dungeonEvento(e: { t: string; su?: string; critico?: boolean }): void;
+  /** Tensione della musica dei Templari (0 calma … 1 boss in campo): tamburi di guerra e campana più fitta. */
+  tensione(k: number): void;
   resume(): void;
   stato(): Record<string, unknown>;
 };
@@ -49,6 +57,8 @@ let motore: Audio | null = null, modulo: typeof import('./index.ts') | null = nu
 let mondo: AudioMondo | null = null, gesto = false, ascolto = false;
 let vol = { musica: 0, effetti: 0 }, forzata: MusicaModo | 'auto' = 'auto', meteo: { t: Meteo; k: number } = { t: 'sereno', k: 0 };
 
+/** Tensione della musica dei Templari (0..1, la manda il chunk delle ondate). */
+export function tensione(k: number): void { motore?.tensione(k); }
 /** Un suono una volta (variazione leggera di tono e volume già nel motore). `k` 0..1: intensità o indice (es. monete in fila). */
 export function suona(id: SuonoId, k?: number): void { motore?.suona(id, k); }
 /** Musica: 'auto' (di serie) la sceglie il gioco (giorno, notte, gara, dungeon); le altre la forzano. */

@@ -77,17 +77,18 @@ export function createAudio(): Audio {
     const dt = Math.min(0.1, (now - (lastFrame || now)) / 1000); lastFrame = now;
     if (ctx.state !== 'running') return;
     const t = ctx.currentTime, m = mondo;
-    const dng = !!m?.dungeon(), w = m?.world;
-    const mom = m?.momento() ?? 'giorno', nt = mom === 'notte' ? 1 : mom === 'tramonto' || mom === 'alba' ? 0.35 : 0;
+    const tpl = !!m?.templari?.(), dng = !!m?.dungeon() && !tpl, w = m?.world;
+    const mom = m?.momento() ?? 'giorno', nt = tpl || mom === 'notte' ? 1 : mom === 'tramonto' || mom === 'alba' ? 0.35 : 0; // nelle ondate dei Templari è sempre notte
     notte += (nt - notte) * Math.min(1, dt * 0.5);
     if (performance.now() - rafficaT > 300) raffica = 0; // la Regata la manda a ogni tick: se smette, è finita
     // musica: scelta dal gioco (o forzata), più bassa nei minigiochi a schermo
-    const auto: MusicaModo = dng ? 'dungeon' : w?.race.on ? 'gara' : mom === 'notte' ? 'notte' : 'giorno';
+    const auto: MusicaModo = tpl ? 'templari' : dng ? 'dungeon' : w?.race.on ? 'gara' : mom === 'notte' ? 'notte' : 'giorno';
     mu.set(forzata === 'auto' ? auto : forzata);
     mt.duck.gain.setTargetAtTime(m?.gioco() && !w?.race.on ? 0.3 : 1, t, 0.4);
     if (vol.musica > 0) mu.programma(t + 0.35);
     let inBarca = false, velocita = 0;
-    if (w && !dng) {
+    if (tpl) terra = 0.7; // la chiesa sul mare: un po' di onde lontane
+    if (w && !dng && !tpl) {
       // salire e scendere dalla barca
       if (modoWas !== null && w.mode !== modoWas) suona(w.mode === 'boat' ? 'barca_su' : 'barca_giu');
       modoWas = w.mode;
@@ -134,6 +135,7 @@ export function createAudio(): Audio {
       if (d > 3) { dStrada = 0; return; }
       if ((dStrada += d) >= 1.1) { dStrada = 0; suona('passo_dungeon'); }
     },
+    tensione(k) { mu.tensione(k); },
     dungeonEvento(e) {
       const id: SuonoId | null = e.t === 'colpo' ? (e.su === 'eroe' ? 'colpo_preso' : e.critico ? 'colpo_critico' : 'colpo_dato')
         : e.t === 'schivato' ? 'schivato' : e.t === 'morte' ? 'nemico_ko' : e.t === 'raccolto' ? 'raccolto' : e.t === 'monete' ? 'moneta'
@@ -159,14 +161,19 @@ export async function registraOffline(modo: MusicaModo, secs: number): Promise<{
   mt.musica.gain.value = BASE.musica * (LIVELLI[3] ?? 1); mt.effetti.gain.value = BASE.effetti * (LIVELLI[3] ?? 1);
   const mu: Musica = createMusica(mt), amb: Ambiente = createAmbiente(mt);
   mu.set(modo, 0); mu.programma(secs);
-  const notte = modo === 'notte' ? 1 : 0, dng = modo === 'dungeon', gara = modo === 'gara';
+  const tpl = modo === 'templari', notte = modo === 'notte' || tpl ? 1 : 0, dng = modo === 'dungeon', gara = modo === 'gara';
+  if (tpl) mu.tensione(0.8);
   for (let t = 0; t < secs; t += 0.05) amb.aggiorna({ terra: dng ? 1 : gara ? 0.1 : 0.4, inBarca: gara, velocita: gara ? 0.8 : 0, notte, dungeon: dng, raffica: gara && t > 4 && t < 6 ? 0.6 : 0 }, t);
   // scaletta: passi, barca, monete in fila, martello, medaglia, pannelli, boa, emote
   const at = (t: number, id: SuonoId, k = 0) => { if (t < secs) SUONI[id](mt, t, k); };
   const passo: SuonoId = dng ? 'passo_dungeon' : notte ? 'passo_erba' : 'passo_sabbia';
   for (let i = 0; i < 8; i++) at(0.3 + i * 0.33, passo);
   at(3, 'barca_su'); for (let i = 0; i < 6; i++) at(4 + i * 0.06, 'moneta', i / 7);
-  at(5, 'martello'); at(6, 'medaglia_oro'); at(7.2, 'apri'); at(7.6, 'click'); at(8, 'chiudi'); at(8.4, 'boa'); at(9, 'emote'); at(9.4, dng ? 'colpo_critico' : 'notifica');
+  if (tpl) { // un'ondata in 10 s: lo stacco, i versi, le assi, gli spari, il corno, la risata, la campana, un power-up
+    at(0.1, 'tpl_ondata'); at(2.2, 'tpl_sorge'); at(2.6, 'tpl_deus', 0.8); at(3.1, 'tpl_rantolo', 0.6); at(3.6, 'tpl_asse', 0.7); at(4.0, 'tpl_urlo', 0.7);
+    at(4.4, 'tpl_fendente'); at(4.5, 'colpo_dato'); at(4.9, 'tpl_pistola'); at(5.4, 'tpl_moschetto'); at(5.9, 'tpl_trombone'); at(6.3, 'tpl_freccia');
+    at(6.7, 'tpl_corno', 0.9); at(7.6, 'tpl_risata', 0.9); at(8.4, 'tpl_campana', 0.8); at(9.0, 'tpl_potere_preso', 0.3); at(9.5, 'tpl_porta');
+  } else { at(5, 'martello'); at(6, 'medaglia_oro'); at(7.2, 'apri'); at(7.6, 'click'); at(8, 'chiudi'); at(8.4, 'boa'); at(9, 'emote'); at(9.4, dng ? 'colpo_critico' : 'notifica'); }
   if (gara) for (let i = 0; i < 12; i++) at(0.2 + i * 0.7, 'remata', 0.8);
   const buf = await ctx.startRendering(), d = buf.getChannelData(0);
   let picco = 0, sq = 0, zitti = 0;

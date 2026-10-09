@@ -134,8 +134,15 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   for (const ev of ['pointerdown', 'touchstart']) btn.addEventListener(ev, (x) => x.stopPropagation());
   btn.addEventListener('click', () => { void entra(false); });
   o.root.append(btn);
-  // prove (?templari=1): subito nelle ondate, senza reliquia e senza barca
+  // prove (?templari=1): subito nelle ondate, senza reliquia e senza barca; ⛪ a piedi davanti alla porta della chiesa
   if (FLAGS.templari) topButton({ root: o.root, id: 'mzTemplariProva', order: 9, label: '⚔', title: 'Templari: ondate subito (prova)', onClick: () => { void entra(true); } });
+  if (FLAGS.templari) topButton({ root: o.root, id: 'mzTemplariVai', order: 9, label: '⛪', title: 'Templari: vai all’isola, davanti alla chiesa (prova)', onClick: () => { vaiChiesa(); } });
+  function vaiChiesa(): void {
+    if (busy || run || !spot || !o.world.vai('templari')) return;
+    o.world.avatar.teleport(spot.x - 1.5, spot.z + 2);
+    o.renderer.diorama.follow(spot.x - 1.5, o.world.groundY(spot.x, spot.z), spot.z + 2); o.renderer.diorama.snap?.();
+    o.hud.toast('L’Isola dei Templari: la porta della chiesa è qui davanti (A per entrare)', 3200);
+  }
 
   let near = false, nearWas = false, aWas = false, busy = false, run: TemplariRun | null = null;
   let entrate = 0, finite = 0, lastErr: string | null = null, lastResult: unknown = null;

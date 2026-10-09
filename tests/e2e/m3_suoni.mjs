@@ -75,8 +75,24 @@ export default async function (ctx) {
     const a = await audio(p); ctx.log('ambiente', JSON.stringify(a.ambiente), 'terra', a.terra);
     ctx.assert(a.ambiente.onde > 0, 'le onde non respirano');
   });
+  await ctx.test('nelle ondate dei Templari: la loro musica, lo stacco d’ondata e i versi; fuori torna quella di prima', async () => {
+    await hook(p, 'templariEntra', true);
+    await ctx.waitState(p.page, (st) => st.templari?.active === true && st.templari.fase === 'gioca', 30000);
+    await waitAudio(p, (a) => a.musica === 'templari', 8000);
+    await waitAudio(p, (a) => a.visti.includes('tpl_ondata'), 15000);
+    await hook(p, 'templariAutopilot', true, 4);
+    await waitAudio(p, (a) => a.visti.some((x) => x === 'tpl_deus' || x === 'tpl_rantolo' || x === 'tpl_urlo' || x === 'tpl_sorge'), 30000);
+    await hook(p, 'templariAutopilot', false);
+    await p.page.keyboard.press('Escape');
+    await p.page.click('#mzTplPausa [data-act=esci]'); await p.page.click('#mzTplPausa [data-act=esci]');
+    await ctx.waitState(p.page, (st) => !!st.templariEsito?.aperto, 20000);
+    await hook(p, 'chiudiTemplariEsito');
+    await ctx.waitState(p.page, (st) => !st.templari.active && !st.templari.busy, 10000);
+    await waitAudio(p, (a) => a.musica !== 'templari', 8000);
+    const a = await audio(p); ctx.log('templari', JSON.stringify(a.visti.filter((x) => x.startsWith('tpl_'))));
+  });
   await ctx.test('10 s registrati offline: niente clipping, niente silenzio (WAV in tests/out)', async () => {
-    for (const modo of ['giorno', 'notte', 'gara', 'dungeon']) {
+    for (const modo of ['giorno', 'notte', 'gara', 'dungeon', 'templari']) { // templari: un'ondata intera di versi, spari, corno, risata e campana
       const r = await hook(p, 'audioOffline', modo, 10);
       fs.writeFileSync(path.join(ctx.OUT, `suoni_${modo}.wav`), Buffer.from(r.wav, 'base64'));
       ctx.log(`${modo}: picco ${r.picco.toFixed(3)} · rms ${r.rms.toFixed(4)} · silenzio ${(r.silenzio * 100).toFixed(1)}%`);
