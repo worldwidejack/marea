@@ -34,6 +34,7 @@ import { matOnda, ondaGeo } from '../onda3d.ts';
 import { creaSuoni } from '../suoni.ts';
 import { veicoloGeo } from '../veicoli3d.ts';
 import { ASPETTI, PILOTI, caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
+import { avvisoRuota } from '../avviso_ruota.ts';
 import { createAvatar } from '../../game/avatar.ts';
 import type { Avatar } from '../../game/avatar.ts';
 import type { Look } from '@marea/protocol';
@@ -245,10 +246,11 @@ function toast(t: string | null, colore: string = P.sabbiaChiara) {
   tst.textContent = t; tst.style.color = colore; tstT = 1.1;
 }
 const ferma = (e: Event) => e.stopPropagation();
+const ruota = avvisoRuota(root);
 
 // il pannello delle prove (a sinistra)
 const panel = document.createElement('div'); panel.className = 'pp-panel'; root.appendChild(panel);
-let aperto = innerWidth >= 700;
+let aperto = innerWidth >= 700 && innerHeight >= 520; // sul telefono in orizzontale (844×390) il pannello delle prove coprirebbe la pista: si apre da solo
 const fold = document.createElement('button'); fold.className = 'fold'; panel.appendChild(fold);
 fold.addEventListener('pointerdown', (e) => { ferma(e); aperto = !aperto; scrivi(); });
 const famigliaVeicoli = () => CORSE.veicoli.filter((v) => famiglieDi(p.def).includes(v.famiglia));
@@ -353,7 +355,7 @@ let last = performance.now(), acc = 0, time = 0;
 function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt; time += dt;
   let n = 0;
-  while (acc >= DT && n < 6) { if (!pausa) step(); acc -= DT; n++; }
+  while (acc >= DT && n < 6) { if (!pausa && !ruota.visibile()) step(); acc -= DT; n++; }
   if (n === 6) acc = 0;
   aggiornaVeicoli(dt); avatar?.update(1, dt); fx.aggiorna(dt); aggiornaCamera(dt); eventi();
   const k = s.veicoli[0]!;

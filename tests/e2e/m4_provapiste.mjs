@@ -15,7 +15,7 @@ export default async function (ctx) {
   const { assert } = ctx;
   const numeri = {};
   const apri = async (q, o = {}) => {
-    const p = await ctx.open('provapiste.html?' + q, o);
+    const p = await ctx.open('provapiste.html?ruota=0&' + q, o);
     await p.page.waitForFunction(() => window.__provapiste && window.__provapiste.ready === true, null, { timeout: 30000 });
     return p;
   };

@@ -22,7 +22,7 @@ export function creaRegia(camera: THREE.PerspectiveCamera) {
     if (Math.abs(camera.fov - fov) > 0.05 || camera.near !== near || camera.far !== 900) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 8); camera.near = near; camera.far = 900; camera.updateProjectionMatrix(); }
   };
   function segui(modo: Modo, q: Inquadra): void {
-    const { k, p, dt } = q, tel = camera.aspect < 0.8, v = Math.max(0, k.v);
+    const { k, p, dt } = q, tel = camera.aspect < 0.8, lungo = camera.aspect > 1.8, v = Math.max(0, k.v); // lungo = telefono in orizzontale (844×390)
     st.scossa *= Math.exp(-dt * 9); st.pugno *= Math.exp(-dt * 2.2);
     const pugno = q.effetti ? st.pugno : 0, scossa = q.effetti ? st.scossa : 0;
     if (modo === 'cofano') {
@@ -36,7 +36,7 @@ export function creaRegia(camera: THREE.PerspectiveCamera) {
       st.ok = true;
       return;
     }
-    const base = modo === 'alta' ? [13, 7, 0.5] : [tel ? 7.6 : 6.4, tel ? 3.4 : 2.7, 1];
+    const base = modo === 'alta' ? [13, 7, 0.5] : [tel ? 7.6 : lungo ? 7.2 : 6.4, tel ? 3.4 : lungo ? 3.2 : 2.7, lungo ? 1.5 : 1]; // in orizzontale lo schermo è basso: un po' più su e indietro, il veicolo sale sopra i comandi
     const dist = base[0]! + v * 0.04, alt = base[1]! + Math.max(0, k.h) * 0.6;
     let nc = nastroDi(p, k.ramo), sc = k.s - dist;
     if (k.ramo >= 0 && sc < 0) { nc = p.n; sc = p.rami[k.ramo]!.def.da + sc; } // sull'imbocco di un ramo la camera è ancora sulla principale
@@ -53,7 +53,7 @@ export function creaRegia(camera: THREE.PerspectiveCamera) {
     camera.up.copy(camU);
     camF.copy(q.fwd).multiplyScalar(0.4).addScaledVector(q.moto, 0.6).normalize();
     camera.lookAt(tmp.copy(q.pos).addScaledVector(camF, 4).addScaledVector(q.up, base[2]!));
-    lente((tel ? 78 : 64) + (k.turbo > 0 ? 6 : 0) + Math.max(0, v - 15) * 0.3 + pugno, 0.3, dt);
+    lente((tel ? 78 : lungo ? 58 : 64) + (k.turbo > 0 ? 6 : 0) + Math.max(0, v - 15) * 0.3 + pugno, 0.3, dt);
     st.ok = true;
   }
   return { st, segui };

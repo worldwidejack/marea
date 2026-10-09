@@ -23,7 +23,7 @@ export default async function (ctx) {
   });
 
   await ctx.test('telefono: il kit arriva a gara in corso senza riavviarla e l\'avatar siede sul veicolo', async () => {
-    const p = await ctx.open('provapiste.html?pista=spiaggia_lungomare&bot=1');
+    const p = await ctx.open('provapiste.html?ruota=0&pista=spiaggia_lungomare&bot=1');
     await p.page.waitForFunction(() => window.__provapiste && window.__provapiste.ready === true, null, { timeout: 30000 });
     await p.page.evaluate(() => window.__provapiste.set({ vai: true, auto: true, cam: 'dietro' }));
     await p.page.waitForFunction(() => window.__provapiste.state().kit === true, null, { timeout: 30000 });
@@ -37,7 +37,7 @@ export default async function (ctx) {
   });
 
   await ctx.test('telefono: aspetto e animali cambiano i veicoli, draw call e triangoli nel budget', async () => {
-    const p = await ctx.open('provapiste.html?pista=spiaggia_lungomare&bot=1');
+    const p = await ctx.open('provapiste.html?ruota=0&pista=spiaggia_lungomare&bot=1');
     await p.page.waitForFunction(() => window.__provapiste && window.__provapiste.ready === true && window.__provapiste.state().kit === true, null, { timeout: 30000 });
     let dc = 0, tri = 0;
     for (const aspetto of ['', 'cs_v_pizza', 'cs_v_fuoristrada', 'cs_v_moto_acqua', 'cs_v_divano']) {
