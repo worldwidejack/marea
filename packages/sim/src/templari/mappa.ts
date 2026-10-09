@@ -1,18 +1,29 @@
 // Arena dei Templari: dalle righe di templari/mappa.json (tools/templari_mappa.mjs) alle griglie della partita. Tre griglie con gli stessi
 // muri: `eroe` (le finestre lo fermano sempre), `zombie` (le finestre lo fermano finché hanno assi), `percorso` (il flow field degli zombie
 // passa dalle finestre). Le porte chiuse fermano tutti; aperte diventano pavimento. Celle: (cx, cz), centro ((cx + 0.5) × tile, …).
+// Fuori dalla chiesa le zone (piazza, cimitero, taverna, spiaggia) si aprono con le porte: case e tende sono muri, muretti, tombe e
+// carretti ostacoli bassi. Per la resa ogni cella ha anche il suolo (`suolo`) e cos'è (`tipo`).
 import type { TMappaDef } from '@marea/content/templari.ts';
 import type { Griglia } from '../dungeon/map.ts';
 
 /** Codici di cella. */
 export const C = { fuori: 0, pavimento: 1, muro: 2, colonna: 3, basso: 4, finestra: 5, porta: 6, terra: 7 } as const;
+/** Suolo delle celle (solo per la resa): pietre della chiesa, terra del sagrato, acciottolato, erba, sabbia, assito. */
+export const SUOLO = { niente: 0, pietra: 1, terra: 2, ciottoli: 3, erba: 4, sabbia: 5, assi: 6 } as const;
+/** Cos'è una cella piena (solo per la resa). */
+export const TIPO = { niente: 0, chiesa: 1, casa: 2, tenda: 3, colonna: 4, stallo: 5, maceria: 6, muretto: 7, tomba: 8, cosa: 9, braciere: 10, altare: 11, altarino: 12, cassa: 13, leva: 14 } as const;
+const SUOLO_DI: Record<string, number> = { '.': SUOLO.pietra, ',': SUOLO.terra, v: SUOLO.ciottoli, e: SUOLO.erba, s: SUOLO.sabbia, w: SUOLO.assi };
+const TIPO_DI: Record<string, number> = { '#': TIPO.chiesa, h: TIPO.casa, t: TIPO.tenda, o: TIPO.colonna, p: TIPO.stallo, r: TIPO.maceria, q: TIPO.maceria, m: TIPO.muretto, g: TIPO.tomba, k: TIPO.cosa, b: TIPO.braciere, A: TIPO.altare, a: TIPO.altarino, C: TIPO.cassa };
 
 type P = { x: number; z: number };
 export type Finestra = { cx: number; cz: number; x: number; z: number;
   /** Centro della cella di pavimento dentro (dove l'eroe ripara) e di quella fuori (dove lo zombie strappa). */
   dentro: P; fuori: P };
 export type Porta = { id: string; celle: number[] };
+/** Comparsa degli zombie: `zona` = 'fuori' (il sagrato, sempre accesa) o la zona che apre una porta. */
 export type Comparsa = { x: number; z: number; zona: string };
+/** Trappola: le sue celle e la leva (cella piena accanto alla quale si usa). */
+export type Trappola = { id: string; celle: number[]; leva: P };
 /** Arma sul muro: la cella davanti (dove si compra) e il muro accanto col disegno a gesso (`n` = verso dal muro alla cella). */
 export type Muro = { arma: string; x: number; z: number; wx: number; wz: number; nx: number; nz: number };
 /** Posto della cassa del tesoro (la cella della cassa) e da che parte guarda (via dal muro). */
@@ -33,6 +44,11 @@ export type Arena = {
   casse: PostoCassa[];
   /** Celle calpestabili dall'eroe all'inizio (per i test e l'autopilota). */
   dentro: number[];
+  trappole: Trappola[];
+  /** Indice della trappola per cella (-1 = nessuna). */
+  trappolaDi: Int8Array;
+  /** Per la resa: suolo e tipo di ogni cella (SUOLO, TIPO). */
+  suolo: Uint8Array; tipo: Uint8Array;
 };
 
 const CACHE = new WeakMap<TMappaDef, Arena>();
@@ -43,36 +59,59 @@ export function parseArena(def: TMappaDef): Arena {
   if (c0) return c0;
   const rows = def.rows, h = rows.length, w = Math.max(...rows.map((r) => r.length)), t = def.tile;
   const cell = new Uint8Array(w * h), opaque = new Uint8Array(w * h), finestraDi = new Int16Array(w * h).fill(-1);
+  const suolo = new Uint8Array(w * h), tipo = new Uint8Array(w * h), trappolaDi = new Int8Array(w * h).fill(-1);
+  const trapMap = new Map<string, number[]>(), leve = new Map<string, P>();
   const ctr = (cx: number, cz: number) => ({ x: (cx + 0.5) * t, z: (cz + 0.5) * t });
   let spawn = { x: 0, z: 0, fx: 1, fz: 0 }, altSum = { x: 0, z: 0, n: 0 };
   const finestre: Finestra[] = [], porteMap = new Map<string, number[]>(), comparse: Comparsa[] = [], bracieri: P[] = [], altarini: P[] = [];
   const muriC: { arma: string; cx: number; cz: number }[] = [], casseC: { cx: number; cz: number }[] = [];
   for (let cz = 0; cz < h; cz++) for (let cx = 0; cx < w; cx++) {
     const ch = rows[cz]![cx] ?? ' ', i = cz * w + cx;
+    suolo[i] = SUOLO_DI[ch] ?? SUOLO.niente; tipo[i] = TIPO_DI[ch] ?? TIPO.niente;
     switch (ch) {
       case ' ': cell[i] = C.fuori; break;
-      case '#': cell[i] = C.muro; opaque[i] = 1; break;
+      case '#': case 'h': case 't': cell[i] = C.muro; opaque[i] = 1; break;
       case 'o': cell[i] = C.colonna; opaque[i] = 1; break;
       case 'A': cell[i] = C.basso; altSum = { x: altSum.x + (cx + 0.5) * t, z: altSum.z + (cz + 0.5) * t, n: altSum.n + 1 }; break;
-      case 'p': case 'r': case 'q': cell[i] = C.basso; break;
+      case 'p': case 'r': case 'q': case 'm': case 'g': case 'k': cell[i] = C.basso; break;
       case 'b': cell[i] = C.basso; bracieri.push(ctr(cx, cz)); break;
       case 'a': cell[i] = C.basso; altarini.push(ctr(cx, cz)); break;
       case 'C': cell[i] = C.basso; casseC.push({ cx, cz }); break;
       case 'W': cell[i] = C.finestra; finestraDi[i] = finestre.length; finestre.push({ cx, cz, ...ctr(cx, cz), dentro: ctr(cx, cz), fuori: ctr(cx, cz) }); break;
-      case '.': cell[i] = C.pavimento; break;
-      case ',': cell[i] = C.terra; break;
+      case '.': case 'w': cell[i] = C.pavimento; break;
+      case ',': case 'v': case 'e': case 's': cell[i] = C.terra; break;
       case 'S': cell[i] = C.pavimento; spawn = { ...ctr(cx, cz), fx: 1, fz: 0 }; break;
       case 'z': cell[i] = C.terra; comparse.push({ ...ctr(cx, cz), zona: 'fuori' }); break;
       default: {
         const l = def.legenda[ch];
         if (l?.porta) { cell[i] = C.porta; const a = porteMap.get(l.porta) ?? []; a.push(i); porteMap.set(l.porta, a); break; }
         if (l?.muro) { cell[i] = C.pavimento; muriC.push({ arma: l.muro, cx, cz }); break; }
+        if (l?.comparsa) { cell[i] = C.terra; comparse.push({ ...ctr(cx, cz), zona: l.comparsa }); break; }
+        if (l?.trappola) { cell[i] = C.pavimento; const a = trapMap.get(l.trappola) ?? []; a.push(i); trapMap.set(l.trappola, a); break; }
+        if (l?.leva) { cell[i] = C.basso; tipo[i] = TIPO.leva; leve.set(l.leva, ctr(cx, cz)); break; }
         throw new Error(`Arena dei Templari: lettera '${ch}' senza legenda (${cx},${cz})`);
       }
     }
   }
   if (!altSum.n) throw new Error('Arena dei Templari senza altare');
   const k = (cx: number, cz: number) => (cx < 0 || cz < 0 || cx >= w || cz >= h ? C.fuori : cell[cz * w + cx]!);
+  // suolo delle celle segnate (comparse, trappole, porte, armi, cose piene): quello più comune attorno; trappole fuori = terra
+  for (let pass = 0; pass < 3; pass++) for (let cz = 0; cz < h; cz++) for (let cx = 0; cx < w; cx++) {
+    const i = cz * w + cx;
+    if (suolo[i] || cell[i] === C.fuori) continue;
+    const n = new Uint8Array(7);
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      const x = cx + dx, z = cz + dz;
+      if (x >= 0 && z >= 0 && x < w && z < h) n[suolo[z * w + x]!]!++;
+    }
+    let best = 0, bn = 0;
+    for (let j = 1; j < 7; j++) if (n[j]! > bn) { bn = n[j]!; best = j; }
+    if (best) suolo[i] = best;
+  }
+  const trappole: Trappola[] = [...trapMap.entries()].map(([id, celle], ti) => {
+    for (const c of celle) { trappolaDi[c] = ti; if (suolo[c] !== SUOLO.pietra && suolo[c] !== SUOLO.assi) cell[c] = C.terra; }
+    return { id, celle, leva: leve.get(id) ?? ctr(celle[0]! % w, Math.floor(celle[0]! / w)) };
+  });
   // finestre: il lato di pavimento (dentro) e quello di terra (fuori), nei 4 vicini
   for (const f of finestre) for (const [dx, dz] of N4) {
     if (k(f.cx + dx, f.cz + dz) === C.pavimento) f.dentro = ctr(f.cx + dx, f.cz + dz);
@@ -95,6 +134,7 @@ export function parseArena(def: TMappaDef): Arena {
   const a: Arena = {
     w, h, tile: t, cell, opaque, spawn, altare: alt, finestre, finestraDi,
     porte: [...porteMap.entries()].map(([id, celle]) => ({ id, celle })), comparse, bracieri, altarini, muri, casse, dentro: [],
+    trappole, trappolaDi, suolo, tipo,
   };
   // celle dell'eroe all'inizio: a 4 vicini dalla partenza, senza attraversare finestre e porte
   const seen = new Uint8Array(w * h), q = [Math.floor(spawn.z / t) * w + Math.floor(spawn.x / t)];

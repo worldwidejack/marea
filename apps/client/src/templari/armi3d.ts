@@ -31,6 +31,49 @@ export function oggettoArma(forma: string): THREE.Group {
   }
 }
 
+/** Pezzo di un oggetto unito (`unisci`): geometria, colore, posizione e rotazione. */
+export type Pezzo = { g: THREE.BufferGeometry; c: string; x?: number; y?: number; z?: number; rx?: number; ry?: number; rz?: number; sx?: number; sy?: number; sz?: number };
+/** Pezzi uniti in una geometria sola coi colori per vertice (materiale con `vertexColors`): una draw call per oggetto. */
+export function unisci(pezzi: Pezzo[]): THREE.BufferGeometry {
+  const pos: number[] = [], nor: number[] = [], col: number[] = [];
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), c = new THREE.Color(), p = new THREE.Vector3(), s = new THREE.Vector3();
+  for (const k of pezzi) {
+    const g = k.g.index ? k.g.toNonIndexed() : k.g.clone();
+    g.applyMatrix4(m4.compose(p.set(k.x ?? 0, k.y ?? 0, k.z ?? 0), q.setFromEuler(e.set(k.rx ?? 0, k.ry ?? 0, k.rz ?? 0)), s.set(k.sx ?? 1, k.sy ?? 1, k.sz ?? 1)));
+    c.set(k.c);
+    const P = g.getAttribute('position'), N = g.getAttribute('normal');
+    for (let i = 0; i < P.count; i++) { pos.push(P.getX(i), P.getY(i), P.getZ(i)); nor.push(N.getX(i), N.getY(i), N.getZ(i)); col.push(c.r, c.g, c.b); }
+    g.dispose(); k.g.dispose();
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  out.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return out;
+}
+const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
+const cil = (r0: number, r1: number, h: number, n = 6) => new THREE.CylinderGeometry(r0, r1, h, n);
+
+/** Power-up a terra (docs/TEMPLARI.md §9), alto ~1 m sopra un anello: faretra piena di frecce, croce patente rossa (Ira di Dio), campana
+ *  d'oro (Campane a martello), pila di monete (Decima), martello e asse (Muratori). Una geometria sola coi colori per vertice. */
+export function potere(tipo: string): THREE.BufferGeometry {
+  const anello: Pezzo[] = [{ g: new THREE.RingGeometry(0.55, 0.7, 12).rotateX(-Math.PI / 2), c: PAL.giallo, y: 0.04 }];
+  switch (tipo) {
+    case 'faretra': return unisci([...anello, { g: cil(0.16, 0.13, 0.6), c: PAL.legno, y: 0.95, rz: 0.25 }, { g: box(0.34, 0.06, 0.34), c: PAL.legnoChiaro, y: 0.7, rz: 0.25 },
+      ...[-0.06, 0, 0.06].map((x): Pezzo => ({ g: box(0.025, 0.4, 0.025), c: PAL.legnoChiaro, x: x + 0.1, y: 1.3, rz: 0.25 })),
+      ...[-0.06, 0, 0.06].map((x): Pezzo => ({ g: box(0.06, 0.1, 0.02), c: PAL.rosso, x: x + 0.15, y: 1.45, rz: 0.25 }))]);
+    case 'ira': return unisci([...anello, { g: box(0.16, 0.7, 0.12), c: PAL.rosso, y: 1 }, { g: box(0.56, 0.16, 0.12), c: PAL.rosso, y: 1.12 },
+      ...([[0, 1.37], [0, 0.63], [-0.28, 1.12], [0.28, 1.12]] as const).map(([x, y]): Pezzo => ({ g: box(0.24, 0.24, 0.1), c: PAL.rosso, x, y, rz: Math.PI / 4 })),
+      { g: box(0.1, 0.1, 0.14), c: PAL.giallo, y: 1.12 }]);
+    case 'campane': return unisci([...anello, { g: cil(0.14, 0.34, 0.45, 8), c: PAL.giallo, y: 1 }, { g: cil(0.36, 0.36, 0.06, 8), c: PAL.arancio, y: 0.77 },
+      { g: box(0.08, 0.14, 0.08), c: PAL.arancio, y: 1.29 }, { g: box(0.08, 0.08, 0.08), c: PAL.roccia, y: 0.7 }]);
+    case 'decima': return unisci([...anello, ...[0, 1, 2, 3].map((i): Pezzo => ({ g: cil(0.2, 0.2, 0.07, 8), c: i % 2 ? PAL.arancio : PAL.giallo, x: i === 3 ? 0.05 : 0, y: 0.75 + i * 0.08 })),
+      { g: cil(0.2, 0.2, 0.07, 8), c: PAL.giallo, x: 0.12, y: 1.15, rx: Math.PI / 2 }]);
+    default: return unisci([...anello, { g: box(0.06, 0.62, 0.06), c: PAL.legnoChiaro, y: 1, rz: -0.5 }, { g: box(0.36, 0.14, 0.14), c: PAL.roccia, x: 0.16, y: 1.27, rz: -0.5 },
+      { g: box(0.7, 0.08, 0.2), c: PAL.legno, y: 0.72, ry: 0.4 }]);
+  }
+}
+
 /** Scudo templare a goccia: bianco col bordo di ferro e la croce rossa; davanti verso −Z, alto 0,9 m dal basso (pivot al centro). */
 export function scudo(): THREE.Group {
   const g = new THREE.Group();

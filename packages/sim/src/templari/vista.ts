@@ -57,6 +57,11 @@ export function viewOf(s: TState): TView {
     proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: r2(p.x), z: r2(p.z), vx: p.vx, vz: p.vz })),
     fiamme: s.fiamme.map((f) => ({ id: f.id, x: r2(f.x), z: r2(f.z), r: f.r, resta: Math.max(0, (f.fine - s.tick) / 60) })),
     drops: s.drops.map((d) => ({ id: d.id, tipo: d.tipo, x: r2(d.x), z: r2(d.z), resta: Math.max(0, (d.fine - s.tick) / 60) })),
+    poteri: { ira: Math.max(0, (s.poteri.ira - s.tick) / 60), decima: Math.max(0, (s.poteri.decima - s.tick) / 60) },
+    trappole: s.arena.trappole.map((t, i) => {
+      const st = s.trappole[i]!;
+      return { id: t.id, accesa: Math.max(0, (st.fine - s.tick) / 60), pronta: s.tick >= st.pronta, ricarica: Math.max(0, (st.pronta - s.tick) / 60) };
+    }),
     cassa: { ...(s.arena.casse[s.cassa.posto] ?? { x: 0, z: 0, fx: 0, fz: 1 }), fase: s.cassa.fase, arma: s.cassa.arma, t: faseCassa(s) },
     finestre: s.arena.finestre.map((f, i) => ({ x: f.x, z: f.z, assi: s.assi[i] ?? 0, max: TEMPLARI.barricate.assi })),
     porte: s.arena.porte.map((p) => ({ id: p.id, aperta: !!s.porte[p.id] })),
@@ -80,6 +85,7 @@ export function hashOf(s: TState): number {
     cassa: [s.cassa.posto, s.cassa.usi, s.cassa.fase, s.cassa.arma], proj: s.proj.length, fiamme: s.fiamme.length, tiri: s.tiri.length, boss: s.boss,
     zombie: s.zombie.map((z) => [z.id, z.tipo, Math.round(z.x * 100), Math.round(z.z * 100), Math.round(z.vita), z.st]),
     assi: s.assi, porte: s.porte, esito: s.esito,
+    trappole: s.trappole.map((t) => [t.fine, t.pronta]), poteri: [s.poteri.ira, s.poteri.decima, s.poteri.ondata], drops: s.drops.map((d) => [d.id, d.tipo]),
   });
 }
 

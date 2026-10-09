@@ -5,6 +5,10 @@ import { TEMPLARI } from '@marea/content/templari.ts';
 import type { TState } from './stato.ts';
 import { ev, secToTicks } from './stato.ts';
 import { rendi, spendi } from './colpi.ts';
+import { raggiungePunto } from './raggiungi.ts';
+
+/** Posti della cassa dove l'eroe arriva adesso (con le porte aperte). */
+const postiAperti = (s: TState): number[] => s.arena.casse.map((p, i) => (raggiungePunto(s, p.x, p.z) ? i : -1)).filter((i) => i >= 0);
 
 /** L'eroe è vicino alla cassa? */
 export function vicinoCassa(s: TState): boolean {
@@ -48,7 +52,7 @@ export function stepCassa(s: TState): void {
   switch (c.fase) {
     case 'gira':
       c.usi++;
-      if (c.usi >= c.max && s.arena.casse.length > 1) {
+      if (c.usi >= c.max && postiAperti(s).length > 1) {
         c.fase = 'teschio'; c.inizio = s.tick; c.fine = s.tick + secToTicks(3);
         rendi(s, k.prezzo);
         ev(s, { t: 'cassa', fase: 'teschio' });
@@ -60,8 +64,10 @@ export function stepCassa(s: TState): void {
     case 'pronta': c.fase = 'chiusa'; c.arma = null; return;
     case 'teschio': c.fase = 'vola'; c.inizio = s.tick; c.fine = s.tick + secToTicks(k.vola); ev(s, { t: 'cassa', fase: 'vola' }); return;
     case 'vola': {
-      const n = s.arena.casse.length, salto = 1 + s.rng.int(0, Math.max(0, n - 2));
-      c.posto = (c.posto + salto) % n; c.usi = 0; c.max = s.rng.int(k.usiMin, k.usiMax); c.fase = 'chiusa';
+      // ricompare in un altro dei posti che si raggiungono (le zone chiuse no)
+      const altri = postiAperti(s).filter((i) => i !== c.posto);
+      if (altri.length) c.posto = altri[s.rng.int(0, altri.length - 1)]!;
+      c.usi = 0; c.max = s.rng.int(k.usiMin, k.usiMax); c.fase = 'chiusa';
       ev(s, { t: 'cassa', fase: 'qui' });
     }
   }

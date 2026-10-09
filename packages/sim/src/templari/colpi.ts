@@ -1,17 +1,20 @@
 // Danni e punti: colpo dell'eroe su uno zombie (+10, all'uccisione +60 o +100 in mischia; lo scudato para quello che gli arriva davanti),
 // esplosioni e fiamme, colpo di uno zombie sull'eroe (lo scudo templare para: in mano davanti, sulle spalle dietro; a zero sei caduto).
+// Chi muore può lasciare un power-up (docs/TEMPLARI.md §9); con Ira di Dio ogni colpo uccide (boss esclusi), con la Decima punti doppi.
 import { TEMPLARI } from '@marea/content/templari.ts';
-import type { TFiamma } from '@marea/content/templari.ts';
+import type { TFiamma, TPotere } from '@marea/content/templari.ts';
 import { moveCircle } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
 import { COLPITO_TICKS, ev, secToTicks } from './stato.ts';
+import { vicinoRaggiungibile } from './raggiungi.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 /** Fiamme a terra insieme al massimo (le più vecchie si spengono). */
 const MAX_FIAMME = 14;
 
-export function dai(s: TState, n: number, perche: 'colpo' | 'uccisione' | 'mischia' | 'asse'): void {
+export function dai(s: TState, n: number, perche: 'colpo' | 'uccisione' | 'mischia' | 'asse' | 'potere'): void {
   if (n <= 0) return;
+  if (s.tick < s.poteri.decima) n *= 2;
   s.punti += n; s.guadagnati += n;
   ev(s, { t: 'punti', n, perche });
 }
@@ -42,14 +45,14 @@ export function colpisci(s: TState, z: Zombie, c: Colpo): Esito {
     if (c.spinta > 0) moveCircle(s.gr.zombie, z, c.dirX * c.spinta * 0.5, c.dirZ * c.spinta * 0.5, z.def.raggio);
     return 'parato';
   }
-  const d = Math.min(z.vita, c.danno);
-  z.vita -= c.danno;
+  const danno = s.tick < s.poteri.ira && !z.def.boss ? Math.max(c.danno, z.vita) : c.danno;
+  const d = Math.min(z.vita, danno);
+  z.vita -= danno;
   z.hurt = COLPITO_TICKS;
   // de Molay non muore: a metà vita ride e scappa (si uccide davvero solo nel finale dell'easter egg)
   if (z.def.fugge !== undefined && z.vita <= z.max * z.def.fugge) {
-    z.vita = z.max * z.def.fugge; z.st = 'fugge'; z.stT = 0; z.fuga = null;
     ev(s, { t: 'colpo', id: z.id, x: r2(z.x), z: r2(z.z), danno: Math.round(d), uccide: false, caricato: c.caricato });
-    ev(s, { t: 'risata', id: z.id });
+    scappa(s, z);
     return 'colpito';
   }
   const uccide = z.vita <= 0;
@@ -61,13 +64,44 @@ export function colpisci(s: TState, z: Zombie, c: Colpo): Esito {
   return 'ucciso';
 }
 
-export function uccidi(s: TState, z: Zombie): void {
+/** De Molay a metà vita: smette di prendere colpi, ride, lascia un power-up e scappa. */
+function scappa(s: TState, z: Zombie): void {
+  z.vita = z.max * (z.def.fugge ?? 0); z.st = 'fugge'; z.stT = 0; z.fuga = null;
+  ev(s, { t: 'risata', id: z.id });
+  lasciaPotere(s, z.x, z.z, true);
+}
+
+/** Danno senza colpo (fiamme, trappole): de Molay scappa a metà vita; chi muore dà `punti` (0 = nessuno). Con Ira di Dio muore subito. */
+export function danneggia(s: TState, z: Zombie, n: number, punti: number): void {
+  z.vita -= s.tick < s.poteri.ira && !z.def.boss ? z.vita : n;
+  if (z.def.fugge !== undefined && z.vita <= z.max * z.def.fugge) { scappa(s, z); return; }
+  if (z.vita <= 0) { uccidi(s, z); dai(s, punti, 'uccisione'); }
+}
+
+/** Un power-up a terra dove è morto uno zombie (o nella cella raggiungibile più vicina): a caso, e sempre se `sicuro` (i boss). */
+export function lasciaPotere(s: TState, x: number, z: number, sicuro: boolean): void {
+  const k = TEMPLARI.poteri;
+  if (!sicuro && (s.poteri.ondata >= k.maxOndata || s.rng.next() >= k.probabilita)) return;
+  const p = vicinoRaggiungibile(s, x, z, 6);
+  if (!p) return;
+  let tipo: TPotere = k.tipi[s.rng.int(0, k.tipi.length - 1)]!;
+  if (tipo === s.poteri.ultimo) tipo = k.tipi[s.rng.int(0, k.tipi.length - 1)]!;
+  if (!sicuro) s.poteri.ondata++;
+  s.poteri.ultimo = tipo;
+  s.drops.push({ id: s.nextId++, tipo, x: p.x, z: p.z, fine: s.tick + secToTicks(k.aTerra) });
+  ev(s, { t: 'potere', tipo, preso: false, x: r2(p.x), z: r2(p.z) });
+}
+
+/** Morte di uno zombie; `potere` false = non lascia power-up (le Campane a martello). */
+export function uccidi(s: TState, z: Zombie, potere = true): void {
   z.vita = 0; z.st = 'morto'; z.stT = 0; z.finestra = -1;
   s.uccisioni++;
   ev(s, { t: 'morte', id: z.id, tipo: z.tipo, x: r2(z.x), z: r2(z.z) });
+  if (potere) lasciaPotere(s, z.x, z.z, !!z.def.boss);
   // lo scudato lascia lo scudo a terra
   if (z.def.scudo !== undefined) {
-    s.drops = s.drops.filter((d) => d.fine > s.tick).slice(-2);
+    const scudi = s.drops.filter((d) => d.tipo === 'scudo' && d.fine > s.tick);
+    if (scudi.length > 2) s.drops = s.drops.filter((d) => d !== scudi[0]);
     s.drops.push({ id: s.nextId++, tipo: 'scudo', x: z.x, z: z.z, fine: s.tick + secToTicks(TEMPLARI.scudo.aTerra) });
   }
 }
@@ -97,18 +131,25 @@ export function stepFiamme(s: TState): void {
     // le fiamme di de Molay bruciano l'eroe (niente scudo, niente rigenerazione mentre ci sei dentro)
     const dx = h.x - f.x, dz = h.z - f.z, rr = f.r + TEMPLARI.eroe.raggio;
     if (dx * dx + dz * dz > rr * rr || s.done) continue;
-    h.vita -= f.dps / 60; h.quiete = 0;
-    if (s.tick % 30 === 0) ev(s, { t: 'brucia' });
-    if (h.vita <= 0) { h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' }); return; }
+    ferisciDiretto(s, f.dps / 60, s.tick % 30 === 0 ? 'brucia' : null);
+    if (s.done) return;
   }
   for (const f of s.fiamme) for (const z of s.zombie) {
     if (f.nemico || z.st === 'morto' || z.st === 'sorge' || z.st === 'fugge') continue;
     const dx = z.x - f.x, dz = z.z - f.z, rr = f.r + z.def.raggio;
     if (dx * dx + dz * dz > rr * rr) continue;
-    z.vita -= f.dps / 60;
-    if (z.def.fugge !== undefined && z.vita <= z.max * z.def.fugge) { z.vita = z.max * z.def.fugge; z.st = 'fugge'; z.stT = 0; z.fuga = null; ev(s, { t: 'risata', id: z.id }); continue; }
-    if (z.vita <= 0) { uccidi(s, z); dai(s, TEMPLARI.punti.uccisione + (z.def.punti ?? 0), 'uccisione'); }
+    danneggia(s, z, f.dps / 60, TEMPLARI.punti.uccisione + (z.def.punti ?? 0));
   }
+}
+
+/** Danno all'eroe che lo scudo non para (fiamme, trappole): `segnale` = l'evento da mandare (brucia o ferito), null = nessuno. */
+export function ferisciDiretto(s: TState, danno: number, segnale: 'brucia' | 'ferito' | null): void {
+  const h = s.eroe;
+  if (s.done) return;
+  h.vita -= danno; h.quiete = 0;
+  if (segnale === 'brucia') ev(s, { t: 'brucia' });
+  if (segnale === 'ferito') { h.hurt = COLPITO_TICKS; ev(s, { t: 'ferito', danno: Math.round(danno), x: r2(h.x), z: r2(h.z) }); }
+  if (h.vita <= 0) { h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' }); }
 }
 
 /** Colpo sull'eroe da (x, z): lo scudo para (in mano chi è davanti, sulle spalle chi è dietro), sennò vita; a zero è caduto. */

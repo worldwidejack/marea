@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "maxMinuti": 60,
   "partenza": { "punti": 500, "arma": "spada" },
   "eroe": {
@@ -60,5 +60,18 @@
   },
   "cassa": { "prezzo": 950, "gira": 4, "pronta": 10, "usiMin": 4, "usiMax": 8, "vola": 5, "raggio": 1.9 },
   "muro": { "raggio": 1.5 },
-  "boss": { "cavaliere": {"ogni": 10, "da": 5, "insiemeDa": 20}, "molay": {"ogni": 10, "da": 10}, "quotaFanti": 0.5, "attesa": 3 }
+  "boss": { "cavaliere": {"ogni": 10, "da": 5, "insiemeDa": 20}, "molay": {"ogni": 10, "da": 10}, "quotaFanti": 0.5, "attesa": 3 },
+  "porte": {
+    "portale": { "nome": "Portale della piazza", "prezzo": 750, "zona": "piazza" },
+    "cimitero": { "nome": "Porta del cimitero", "prezzo": 1000, "zona": "cimitero" },
+    "taverna": { "nome": "Taverna del Teschio", "prezzo": 750, "zona": "taverna" },
+    "spiaggia_taverna": { "nome": "Porta della spiaggia", "prezzo": 1250, "zona": "spiaggia" },
+    "spiaggia_cimitero": { "nome": "Cancello della spiaggia", "prezzo": 1250, "zona": "spiaggia" }
+  },
+  "porta": { "raggio": 1.7 },
+  "trappole": {
+    "rogo": { "nome": "Rogo", "prezzo": 1000, "durata": 25, "ricarica": 60, "boss": 300, "eroe": { "danno": 15, "ogni": 0.5 } },
+    "campana": { "nome": "Campana", "prezzo": 1000, "durata": 25, "ricarica": 60, "boss": 500, "eroe": { "danno": 60, "ogni": 1.2 } }
+  },
+  "poteri": { "probabilita": 0.025, "maxOndata": 4, "aTerra": 25, "lampeggia": 5, "durata": 30, "raggio": 1.1, "campane": 400, "muratori": 200, "tipi": ["faretra", "ira", "campane", "decima", "muratori"] }
 }

@@ -18,6 +18,7 @@ import { setFinestra } from './mappa.ts';
 import type { Muro } from './mappa.ts';
 import { ruota, tira } from './proiettili.ts';
 import { usaCassa, vicinoCassa } from './cassa.ts';
+import { accendiTrappola, apriPorta, levaVicina, portaDef, portaVicina, trappolaAccesa, trappolaDef, trappolaPronta } from './porte.ts';
 
 const vivi = (s: TState): Zombie[] => s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge');
 const ANIM_TIRO = Math.round(0.25 * 60), ANIM_LANCIO = Math.round(0.35 * 60);
@@ -185,7 +186,7 @@ function muroVicino(s: TState): Muro | null {
 }
 function dropVicino(s: TState): number {
   const h = s.eroe;
-  return s.drops.findIndex((d) => d.fine > s.tick && (d.x - h.x) * (d.x - h.x) + (d.z - h.z) * (d.z - h.z) <= 2.25);
+  return s.drops.findIndex((d) => d.tipo === 'scudo' && d.fine > s.tick && (d.x - h.x) * (d.x - h.x) + (d.z - h.z) * (d.z - h.z) <= 2.25);
 }
 /** Cosa fa l'arma sul muro per te: comprarla, ricaricarla (e quanto), o niente (null = ce l'hai già, piena o senza munizioni). */
 function offerta(s: TState, m: Muro): { munizioni: boolean; prezzo: number } | null {
@@ -213,6 +214,15 @@ export function prompt(s: TState): TPrompt {
   }
   const f = finestraVicina(s);
   if (f >= 0) return { cosa: 'ripara', testo: 'Ripara la finestra', prezzo: 0, puoi: !strappata(s, f) };
+  const p = portaVicina(s);
+  if (p) { const d = portaDef(p.id); return { cosa: 'porta', testo: d.nome, prezzo: d.prezzo, puoi: s.punti >= d.prezzo }; }
+  const l = levaVicina(s);
+  if (l >= 0) {
+    const d = trappolaDef(s.arena.trappole[l]!.id);
+    if (trappolaAccesa(s, l)) return { cosa: 'trappola', testo: `${d.nome}: in funzione`, prezzo: 0, puoi: false };
+    if (!trappolaPronta(s, l)) return { cosa: 'trappola', testo: `${d.nome}: si ricarica`, prezzo: 0, puoi: false };
+    return { cosa: 'trappola', testo: d.nome, prezzo: d.prezzo, puoi: s.punti >= d.prezzo };
+  }
   return null;
 }
 
@@ -243,7 +253,16 @@ function azione(s: TState, dDown: boolean, dHeld: boolean): void {
   }
   if (!dHeld) return;
   const f = finestraVicina(s);
-  if (f < 0 || strappata(s, f)) return;
+  if (f < 0) {
+    // niente finestre da riparare qui: le porte e le leve delle trappole (un tocco)
+    if (!dDown) return;
+    const p = portaVicina(s);
+    if (p) { apriPorta(s, p); return; }
+    const l = levaVicina(s);
+    if (l >= 0) accendiTrappola(s, l);
+    return;
+  }
+  if (strappata(s, f)) return;
   if (s.tick - h.riparaT < secToTicks(TEMPLARI.barricate.ripara)) return;
   h.riparaT = s.tick;
   const n = Math.min(TEMPLARI.barricate.assi, (s.assi[f] ?? 0) + 1);

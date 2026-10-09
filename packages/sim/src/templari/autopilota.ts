@@ -1,6 +1,7 @@
 // Pilota automatico per i test (e ?autopilot=1): prende l'arco sull'altare laterale e posa la reliquia; in combattimento attacca come
 // AUTO (autoA) e va incontro allo zombie più vicino dentro la chiesa; nei momenti tranquilli raccoglie lo scudo, compra le armi sul muro
-// che si può permettere e ripara le finestre. Cammina lungo le distanze BFS della griglia dell'eroe (aggira colonne e stalli).
+// che si può permettere e ripara le finestre; prende i power-up a terra. Cammina lungo le distanze BFS della griglia dell'eroe (aggira
+// colonne e stalli) e solo dove arriva: le porte non le compra, le zone chiuse non le cerca.
 import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
 import type { Rng } from '../rng.ts';
 import { bfs, cellCenter, cellOf, stepDown } from '../dungeon/map.ts';
@@ -8,10 +9,11 @@ import type { TInput } from './types.ts';
 import type { TState } from './stato.ts';
 import { armaIn } from './stato.ts';
 import { autoA, finestraVicina, miraTiro } from './eroe.ts';
+import { raggiungePunto } from './raggiungi.ts';
 
 const sq = (v: number): number => v * v;
 const FERMO: TInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-const campi = new WeakMap<TState, Map<number, Int32Array>>();
+const campi = new WeakMap<TState, Map<string, Int32Array>>();
 
 /** Passo verso (x, z) lungo il campo BFS della griglia dell'eroe (in cache per cella d'arrivo). */
 function verso(s: TState, x: number, z: number): TInput {
@@ -27,8 +29,10 @@ function verso(s: TState, x: number, z: number): TInput {
   }
   let m = campi.get(s);
   if (!m) { m = new Map(); campi.set(s, m); }
-  let f = m.get(to);
-  if (!f) { f = bfs(g, to); m.set(to, f); }
+  // i campi valgono finché non si apre una porta
+  const k = to + ':' + Object.values(s.porte).filter(Boolean).length;
+  let f = m.get(k);
+  if (!f) { f = bfs(g, to); m.set(k, f); }
   const qui = cellOf(g, h.x, h.z), nx = qui === to ? to : stepDown(g, f, qui);
   const p = nx >= 0 && nx !== to ? cellCenter(g, nx) : cellCenter(g, to);
   const dx = p.x - h.x, dz = p.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
@@ -73,10 +77,13 @@ export function autopilota(s: TState, _rng: Rng): TInput {
     }
     return verso(s, best.x, best.z);
   }
-  // tranquillo: lo scudo a terra, poi le armi sul muro che si può permettere, poi le finestre
-  const d0 = s.drops[0];
+  // tranquillo: i power-up e lo scudo a terra, poi le armi sul muro che si può permettere, poi le finestre
+  const pw = s.drops.find((d) => d.tipo !== 'scudo' && raggiungePunto(s, d.x, d.z));
+  if (pw) return verso(s, pw.x, pw.z);
+  const d0 = s.drops.find((d) => d.tipo === 'scudo' && raggiungePunto(s, d.x, d.z));
   if (d0 && (!h.scudo || h.scudo.vita < TEMPLARI.scudo.vita)) return vicino(s, d0.x, d0.z, 1.2) ? tocca(s) : verso(s, d0.x, d0.z);
   for (const m of s.arena.muri) {
+    if (!raggiungePunto(s, m.x, m.z)) continue;
     const ad = armaDef(m.arma);
     const meglio = Math.max(0, ...h.armi.map((x) => (x ? armaDef(x.id).prezzo ?? 0 : 0)));
     if (h.armi.some((x) => x?.id === m.arma) || s.punti < (ad.prezzo ?? 0) + (ad.prezzo ? 200 : 0) || ((ad.prezzo ?? 0) > 0 && (ad.prezzo ?? 0) <= meglio)) continue;

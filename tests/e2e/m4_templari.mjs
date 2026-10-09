@@ -139,4 +139,34 @@ export default async function (ctx) {
     assert(perf.drawCalls <= 100, `draw call ${perf.drawCalls} > 100`);
     ctx.noErrors(d, 'PC');
   });
+  await ctx.test('PC: F compra il portale (cartello col prezzo), la piazza si apre; la leva accende il rogo; i power-up a terra, Ira di Dio nel HUD', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    await prova({ pulisci: true, vita: 1e6, punti: 3000, dove: { x: 37.5, z: 42.5 } });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'porta', 5000);
+    await ctx.shot(pc, 'pc_portale');
+    await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
+    await ctx.waitState(pc, (st) => st.templari.porte?.portale === true, 5000);
+    await prova({ dove: { x: 22.5, z: 44.5 } });
+    await pc.waitForTimeout(600);
+    await ctx.shot(pc, 'pc_piazza');
+    const perf = await ctx.getPerf(pc);
+    ctx.log('perf in piazza', JSON.stringify(perf), JSON.stringify((await ctx.getState(pc)).templari.scena));
+    assert(perf.drawCalls <= 100, `draw call in piazza ${perf.drawCalls} > 100`);
+    // la leva del rogo, accanto agli stalli del presbiterio
+    await prova({ dove: { x: 63.5, z: 45.5 }, punti: 3000 });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'trappola', 5000);
+    await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
+    await ctx.waitState(pc, (st) => (st.templari.trappole?.find((t) => t.id === 'rogo')?.accesa ?? 0) > 20, 5000);
+    await pc.waitForTimeout(400);
+    await ctx.shot(pc, 'pc_rogo');
+    // power-up: uno davanti (per la foto), uno sotto i piedi (Ira di Dio)
+    await prova({ dove: { x: 50.5, z: 40.5 }, potere: 'campane' });
+    await pc.waitForTimeout(500);
+    await ctx.shot(pc, 'pc_potere');
+    await prova({ potereQui: 'ira' });
+    await ctx.waitState(pc, (st) => (st.templari.poteri?.ira ?? 0) > 25, 5000);
+    assert(await pc.isVisible('#mzTpl .pot span'), 'Ira di Dio non si vede nel HUD');
+    await ctx.shot(pc, 'pc_ira');
+    ctx.noErrors(d, 'PC');
+  });
 }

@@ -1,6 +1,6 @@
 // Cose che si muovono attorno all'eroe nelle ondate (docs/TEMPLARI.md §6-7): frecce, palle e vasi in volo (InstancedMesh, poche draw call),
 // fiamme del fuoco greco e della spada di de Molay (coni accesi che tremano a scatti), anelli delle esplosioni, lampo dello sparo, scudi a
-// terra (lampeggiano prima di sparire), lo scudo dell'eroe (sulle spalle o al braccio sinistro), la cassa del tesoro col suo fascio di luce
+// terra e i power-up (lampeggiano prima di sparire), lo scudo dell'eroe (sulle spalle o al braccio sinistro), la cassa del tesoro col suo fascio di luce
 // (si apre, gira, mostra l'arma, ride col teschio e vola via), le armi disegnate a gesso sui muri e l'arco sull'altare laterale.
 import * as THREE from 'three';
 import { armaDef } from '@marea/content/templari.ts';
@@ -9,7 +9,7 @@ import type { TEvento, TView } from '@marea/sim/templari/types.ts';
 import type { Loader } from '../render/loader.ts';
 import { PAL, el } from '../ui/style.ts';
 import { object } from '../rpg/dungeon_kit.ts';
-import { cassa as cassa3d, gesso, scudo } from './armi3d.ts';
+import { cassa as cassa3d, gesso, potere, scudo } from './armi3d.ts';
 
 export type Effetti = {
   tick(v: TView): void;
@@ -55,8 +55,15 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
   const anelli = [0, 1, 2].map(() => { const a = new THREE.Mesh(anelloGeo, anelloMat); a.visible = false; root.add(a); return { m: a, t: -1, r: 1 }; });
   const lampo = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.25), new THREE.MeshBasicMaterial({ color: PAL.giallo })); lampo.visible = false; root.add(lampo); disp.push(lampo.geometry, lampo.material as THREE.Material);
   let lampoT = 0;
-  // ---- scudi a terra e scudo dell'eroe ----
-  const drops = new Map<number, THREE.Group>();
+  // ---- scudi e power-up a terra, scudo dell'eroe ----
+  const drops = new Map<number, THREE.Object3D>();
+  const poteriGeo = new Map<string, THREE.BufferGeometry>();
+  const poteriMat = new THREE.MeshBasicMaterial({ vertexColors: true }); disp.push(poteriMat);
+  const iconaPotere = (tipo: string): THREE.Mesh => {
+    let g = poteriGeo.get(tipo);
+    if (!g) { g = potere(tipo); poteriGeo.set(tipo, g); disp.push(g); }
+    const me = new THREE.Mesh(g, poteriMat); me.name = 'potere_' + tipo; return me;
+  };
   const mio = scudo(); mio.visible = false; root.add(mio);
   const osso = (oggetto: THREE.Object3D, n: string) => oggetto.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n)) ?? oggetto.getObjectByName(n) ?? null;
   // ---- armi sul muro: tavola col disegno a gesso; l'arco sull'altare laterale ----
@@ -110,7 +117,7 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
       for (const d of v.drops) {
         ds.add(d.id);
         let g = drops.get(d.id);
-        if (!g) { g = scudo(); g.position.set(d.x, 0.5, d.z); root.add(g); drops.set(d.id, g); }
+        if (!g) { g = d.tipo === 'scudo' ? scudo() : iconaPotere(d.tipo); g.position.set(d.x, d.tipo === 'scudo' ? 0.5 : 0, d.z); g.userData['scudo'] = d.tipo === 'scudo'; root.add(g); drops.set(d.id, g); }
         g.userData['resta'] = d.resta;
       }
       for (const [id, g] of drops) if (!ds.has(id)) { g.removeFromParent(); drops.delete(id); }
@@ -171,10 +178,11 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
       lampoT = Math.max(0, lampoT - dt);
       lampo.visible = lampoT > 0;
       if (lampo.visible) { const yaw = eroe.rotation.y; lampo.position.set(eroe.position.x - Math.sin(yaw) * 0.9, 1.25, eroe.position.z - Math.cos(yaw) * 0.9); }
-      // scudi a terra: girano, lampeggiano negli ultimi 5 s
+      // scudi e power-up a terra: girano (lo scudo galleggia), lampeggiano negli ultimi 5 s
       for (const g of drops.values()) {
         const resta = Number(g.userData['resta'] ?? 99);
-        g.rotation.y = t * 1.5; g.position.y = 0.55 + 0.06 * Math.sin(t * 3);
+        g.rotation.y = t * (g.userData['scudo'] ? 1.5 : 2.2);
+        if (g.userData['scudo']) g.position.y = 0.55 + 0.06 * Math.sin(t * 3);
         g.visible = resta > 5 || Math.floor(t * 6) % 2 === 0;
       }
       // il mio scudo: al braccio sinistro in mano, sulle spalle se no

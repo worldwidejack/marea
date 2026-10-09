@@ -16,6 +16,7 @@ import { stepTemplari, templari } from '@marea/sim/templari/templari.ts';
 import type { TState } from '@marea/sim/templari/templari.ts';
 import { autoA, daiArma, miraTiro } from '@marea/sim/templari/eroe.ts';
 import { nuovoZombie } from '@marea/sim/templari/stato.ts';
+import { apriPorta } from '@marea/sim/templari/porte.ts';
 import type { TAzioni, TEvento, TView } from '@marea/sim/templari/types.ts';
 import { createHeroActor } from '../rpg/dungeon_hero.ts';
 import type { ArmaInMano, HeroActor } from '../rpg/dungeon_hero.ts';
@@ -43,6 +44,15 @@ const FINE: Record<string, [string, string, string]> = {
   morto: ['SEI CADUTO', PAL.rosso, 'Deus vult…'],
   alba: ['È L’ALBA', PAL.giallo, 'I morti tornano sotto terra. Sei sopravvissuto.'],
   uscito: ['SEI USCITO', PAL.sabbiaChiara, 'La chiesa ti aspetta.'],
+};
+
+/** Nome, cosa fa e colore dei power-up (la scritta grande quando li prendi). */
+const POTERI: Record<string, [string, string, string]> = {
+  faretra: ['FARETRA PIENA', 'Munizioni piene a tutte le armi', PAL.giallo],
+  ira: ['IRA DI DIO', 'Per 30 secondi ogni colpo uccide', PAL.rosso],
+  campane: ['CAMPANE A MARTELLO', 'Tutti i morti tornano sotto terra', PAL.giallo],
+  decima: ['DECIMA', 'Per 30 secondi punti doppi', PAL.arancio],
+  muratori: ['MURATORI', 'Tutte le finestre sbarrate di nuovo', PAL.sabbiaChiara],
 };
 
 /** L'arma della sim come la vuole l'attore dell'eroe (modello del kit, colore della lama, portata per la scia; pistole, moschetto e vaso
@@ -106,6 +116,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       hud = createTplHud(ctx.root, (id) => armaDef(id).nome, (id) => armaDef(id).tipo !== 'mischia');
       ctl = createControlli({ root: ctx.root, canvas: ctx.canvas, onEsci: esci });
       hero.tick(view.posa); zombi.tick(view); fx.tick(view);
+      sc.setPorte(s.porte);
       ctx.renderer.setScene(sc.scene);
       ctx.renderer.diorama.setZoom(innerWidth < innerHeight ? 1.3 : 1.05); // al telefono in verticale un po' più largo: si vedono le finestre
       ctx.renderer.diorama.follow(view.eroe.x, 0.9, view.eroe.z); ctx.renderer.diorama.snap?.();
@@ -138,6 +149,15 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'scudo': suona('raccolto'); hud.grande('SCUDO', PAL.sabbiaChiara, 'Sulle spalle para da dietro · SCAMBIA per impugnarlo', 2400); break;
       case 'scudoRotto': suona('colpo_critico'); hud.grande('', PAL.rosso, 'Lo scudo si è spaccato', 1600); break;
       case 'compra': suona('moneta'); break;
+      case 'porta': sc?.setPorte(s.porte); suona('apri'); suona('tuono', 0.5); hud.grande('', PAL.giallo, `Si apre: ${TEMPLARI.porte[e.id]?.nome ?? e.id}`, 2000); break;
+      case 'trappola':
+        if (e.fase === 'accesa') { suona(e.id === 'rogo' ? 'sfrigola' : 'tuono'); hud.grande('', PAL.arancio, e.id === 'rogo' ? 'Il rogo di de Molay brucia la navata' : 'La campana grande si stacca e oscilla', 2200); }
+        else if (e.fase === 'pronta') suona('click');
+        break;
+      case 'potere':
+        if (!e.preso) suona('magia');
+        else { const [nome, sub, colore] = POTERI[e.tipo] ?? ['', '', PAL.giallo]; suona('medaglia_oro'); hud.grande(nome, colore, sub, 2200); }
+        break;
       case 'boss':
         if (e.tipo === 'cavaliere') { suona('tuono'); hud.grande('TEMPLARE A CAVALLO', PAL.rosso, 'La terra trema: arriva al galoppo', 3000); }
         else { suona('tuono'); hud.grande('JACQUES DE MOLAY', PAL.arancio, 'L’ultimo Gran Maestro esce dalle fiamme', 3400); }
@@ -195,7 +215,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       fx?.update(alpha, dt, t, hero.avatar.object, view);
       const p = hero.avatar.object.position;
       ctx.renderer.diorama.follow(p.x, 0.9, p.z); ctx.renderer.diorama.update(dt);
-      sc.update(p.x, p.z, t, s.assi);
+      sc.update(p.x, p.z, t, s.assi, view.trappole);
       hud.set(view);
       ctl.setPrompt(fase === 'gioca' ? view.prompt : null);
       ctl.setScambia(fase === 'gioca' && view.eroe.armi.filter(Boolean).length + (view.eroe.scudo ? 1 : 0) > 1);
@@ -204,11 +224,20 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     done,
   };
 
-  // test (hook templariProva): arma, scudo (in mano), punti, uno zombie davanti fermo; solo per guardare la resa, senza server
+  // test (hook templariProva): arma, scudo (in mano), punti, uno zombie davanti fermo, porte aperte, eroe spostato (`dove`), power-up davanti
+  // o sotto i piedi, trappola accesa, campo pulito, vita; solo per guardare la resa, senza server
   templariLink.prova = (p) => {
     if (typeof p['arma'] === 'string') daiArma(s, p['arma']);
     if (p['scudo']) { s.eroe.scudo = { vita: TEMPLARI.scudo.vita }; s.eroe.inMano = p['scudo'] === 'mano'; }
     if (typeof p['punti'] === 'number') s.punti = p['punti'];
+    if (typeof p['dove'] === 'object' && p['dove']) { const d = p['dove'] as { x: number; z: number }; s.eroe.x = d.x; s.eroe.z = d.z; }
+    if (Array.isArray(p['porte'])) for (const id of p['porte'] as string[]) { const q = s.arena.porte.find((x) => x.id === id); if (q && !s.porte[id]) { s.punti += TEMPLARI.porte[id]?.prezzo ?? 0; apriPorta(s, q); } }
+    if (p['pulisci']) { s.zombie = []; s.tiri = []; s.fiamme = []; s.boss = null; }
+    if (typeof p['vita'] === 'number') { s.eroe.vita = s.eroe.max = p['vita']; }
+    if (typeof p['potere'] === 'string') s.drops.push({ id: s.nextId++, tipo: p['potere'] as 'ira', x: s.eroe.x + s.eroe.fx * 2.5, z: s.eroe.z + s.eroe.fz * 2.5, fine: s.tick + 60 * 25 });
+    if (typeof p['potereQui'] === 'string') s.drops.push({ id: s.nextId++, tipo: p['potereQui'] as 'ira', x: s.eroe.x, z: s.eroe.z, fine: s.tick + 60 * 25 });
+    if (typeof p['trappola'] === 'string') { const i = s.arena.trappole.findIndex((x) => x.id === p['trappola']); const st = s.trappole[i]; if (st) { st.fine = s.tick + 600; st.pronta = st.fine + 600; } }
+    if (p['porte'] || p['dove']) sc?.setPorte(s.porte);
     if (typeof p['zombie'] === 'string') {
       const dist = typeof p['dist'] === 'number' ? p['dist'] : 2.2, lato = typeof p['lato'] === 'number' ? p['lato'] : 0;
       const z = nuovoZombie(s, p['zombie'], s.eroe.x + s.eroe.fx * dist - s.eroe.fz * lato, s.eroe.z + s.eroe.fz * dist + s.eroe.fx * lato, 0);
@@ -222,7 +251,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     active: fase !== 'finita', fase, sim: view.fase, tick: view.tick, ondata: view.ondata, restano: view.restano, done: view.done, esito: view.esito,
     eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma }, zombie: view.zombie.length,
     uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: ctl?.auto ?? true,
-    scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma }, camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
+    scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: TEMPLARI.ondate.insieme,
   });
   return run;

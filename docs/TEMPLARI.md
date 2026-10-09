@@ -29,9 +29,9 @@ Si gioca in una scena a parte (come i dungeon): l'isola vista da vicino, camera 
 
 | Zona | Cosa c'è | Come ci arrivi |
 |---|---|---|
-| **Chiesa di Santa Maria del Tempio** | navata con le panche rovesciate, altare maggiore nell'abside a est, altare laterale con l'**arco**, finestre sbarrate (gli zombie entrano da lì), muri con le armi da comprare, la **trappola del rogo** | si parte qui |
+| **Chiesa di Santa Maria del Tempio** | navata con le panche rovesciate, altare maggiore nell'abside a est, altare laterale con l'**arco**, finestre sbarrate (gli zombie entrano da lì), muri con le armi da comprare, la **trappola del rogo**; fuori dalla porta nord la **campana** | si parte qui |
 | **Piazza del borgo** | case diroccate, pozzo, carretti, la cassa del tesoro (a volte) | porta ovest della chiesa, **750** |
-| **Cimitero** | tombe da cui escono gli zombie, ossario, campanile con la **trappola della campana** | porta nord della chiesa, **1000** |
+| **Cimitero** | tombe da cui escono gli zombie, ossario | porta nord della chiesa, **1000** |
 | **Taverna del Teschio** | banconi e botti, **pistola a pietra focaia** sul muro | dalla piazza, **750** |
 | **Accampamento pirata** | tende, falò, cannoni sulla spiaggia, **moschetto** e **trombone** abbandonati | dalla taverna o dal cimitero, **1250** |
 
@@ -93,12 +93,12 @@ Cade dal **templare scudato** quando muore (resta a terra 20 s: A per prenderlo)
 | **Jacques de Molay** (boss) | **10, 20, 30…** | ×25 | 2,4 m/s | 40 + palle di fuoco | cavaliere in fiamme, lascia scie di fuoco a terra; **a metà vita scappa ridendo** (+500 punti e un power-up). Si uccide davvero solo nel finale dell'easter egg (da decidere) |
 
 ## 9. Power-up, porte, barricate, trappole
-- **Power-up** (2,5 % a uccisione, al massimo 4 a ondata, 25 s a terra e lampeggiano negli ultimi 5): **Faretra piena** (munizioni piene a tutte le armi) · **Ira di Dio** (30 s, ogni colpo uccide) · **Campane a martello** (muoiono tutti quelli in vista, +400) · **Decima** (30 s punti doppi) · **Muratori** (tutte le finestre rifatte, +200).
-- **Porte**: macerie o cancelli con il prezzo sopra (AZIONE vicino); aperte una volta, restano aperte per tutta la partita.
+- **Power-up** (2,5 % a uccisione, al massimo 4 a ondata; i boss ne lasciano sempre uno, de Molay quando scappa; 25 s a terra e lampeggiano negli ultimi 5; si prendono passandoci sopra; se lo zombie muore fuori, il power-up cade dentro, dove arrivi): **Faretra piena** (munizioni piene a tutte le armi) · **Ira di Dio** (30 s, ogni colpo uccide, i boss no) · **Campane a martello** (muoiono tutti gli zombie in campo, i boss no, +400) · **Decima** (30 s punti doppi) · **Muratori** (tutte le finestre rifatte, +200). Quelli a tempo si vedono sotto la vita coi secondi che restano.
+- **Porte**: macerie o cancelli con il prezzo sopra (AZIONE vicino); aperte una volta, restano aperte per tutta la partita e accendono le comparse della loro zona. Prezzi nella tabella del §3; la spiaggia ha due porte (dalla taverna e il cancello dal cimitero, **1250** l'una): basta una.
 - **Barricate**: ogni finestra ha 5 assi. Uno zombie davanti ne strappa una ogni 1,2 s; a zero entra. Tu le rimetti tenendo AZIONE (una ogni 0,6 s, +10 punti).
-- **Trappole** **[scelta provvisoria]** (1000 punti, 25 s accese, 60 s per ricaricarsi):
-  - **Rogo** nella navata: l'incensiere rovesciato accende una striscia di brace sul pavimento (il rogo di de Molay); chi ci passa brucia.
-  - **Campana** nel campanile: la campana grande si stacca e oscilla nel passaggio verso il cimitero, falciando chi c'è sotto.
+- **Trappole** **[scelta provvisoria]** (AZIONE alla leva, 1000 punti, 25 s accese, poi 60 s per ricaricarsi; la leva rossa in su = pronta). Chi ci passa muore, ma **senza punti** (come in COD); i boss perdono vita (300 al secondo nel rogo, 500 sotto la campana). Tu ti fai male se ci stai dentro: 15 ogni mezzo secondo nel rogo, 60 a ogni passaggio della campana (ogni 1,2 s).
+  - **Rogo** nella navata: l'incensiere rovesciato accende la passatoia rossa del presbiterio (il rogo di de Molay). Leva accanto agli stalli a sud.
+  - **Campana** sul passaggio verso il cimitero, appena fuori dalla porta nord: la campana grande appesa all'incastellatura oscilla e falcia chi passa. Leva dentro, accanto alla porta nord.
 
 ## 10. Premio
 Lo calcola il **server** rigiocando la partita (come i dungeon): per ogni **ondata superata** (quella in cui muori non conta) **15 Legno, 8 Pietra, 2 Perle**, fino all'ondata 30. **Tetto giornaliero** (giorno UTC): **600 Legno, 300 Pietra, 60 Perle** in tutto; oltre, si gioca per il record. Il premio entra nel Magazzino fino al suo tetto, come quello dei minigiochi.
