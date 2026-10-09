@@ -66,7 +66,7 @@ export default async function (ctx) {
       const r = await post('/api/templari/finish', { inputs: g.inputs, azioni: [[g.frames.length, { t: 'esci' }]], hash: g.r.hash });
       assert(r.status === 200, 'finish: ' + r.status + ' ' + JSON.stringify(r.body).slice(0, 200));
       ctx.log(`ondata ${r.body.result.ondata}, superate ${r.body.result.superate}, premio ${JSON.stringify(r.body.premio)}`);
-      assert(r.body.result.esito === 'uscito' && r.body.result.superate === g.r.superate && r.body.result.uccisioni === g.r.uccisioni, 'esito diverso: ' + JSON.stringify(r.body.result));
+      assert(r.body.result.esito === (g.r.esito ?? 'uscito') && r.body.result.superate === g.r.superate && r.body.result.uccisioni === g.r.uccisioni, 'esito diverso: ' + JSON.stringify(r.body.result));
       const sup = Math.min(TEMPLARI.premio.maxOndate, g.r.superate), pp = TEMPLARI.premio.perOndata;
       assert(sup >= 1, 'il pilota non ha superato ondate');
       assert(r.body.premio.legno === pp.legno * sup && r.body.premio.pietra === pp.pietra * sup && r.body.premio.perle === pp.perle * sup, 'premio: ' + JSON.stringify(r.body.premio));
