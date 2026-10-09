@@ -70,11 +70,11 @@ export type CorseMotoreCfg = {
   tappetoTurbo: number;
   veicolo: { raggio: number; frenata: number; folle: number; sterzoPieno: number; retro: number };
   /** Sterzo del giocatore (#170): curva del joystick, rampa da tastiera, meno sterzo ad alta velocità. */
-  sterzo: { lineare: number; rampa: number; ritorno: number; alto: number; da: number };
+  sterzo: { normale: number; lineare: number; rampa: number; ritorno: number; alto: number; da: number };
   /** Drift a 3 livelli: `carica` = secondi per livello, `spinta` = secondi di turbo per livello. */
   drift: {
     velocitaMin: number; autoSecondi: number; autoSterzo: number; tieniSterzo: number; pronto: number;
-    carica: [number, number, number]; stringi: number; spinta: [number, number, number]; turbo: number; turboAccelerazione: number;
+    carica: [number, number, number]; stringi: number; giro: number; tieni: [number, number]; spinta: [number, number, number]; turbo: number; turboAccelerazione: number;
   };
   /** Tetto dei turbo sommati (s). */
   turbo: { max: number };

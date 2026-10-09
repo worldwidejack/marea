@@ -8,7 +8,7 @@
 // che si sommano; fiammate, linee di velocità, scossa, FOV e suoni. Ogni regola ha il suo interruttore A/B nel pannello «prove».
 // Fughe con l'onda: l'indicatore ONDA in alto dice a quanti metri ti sta dietro (rosso sotto i 25).
 // Interruttori: P pista, V veicolo, B bot, T pilota automatico, R ricomincia, L luce, 1-6 le regole A/B; C camera e ⚙ opzioni (camera
-// dietro / alta / primo piano, suoni). La pista intera è la minimappa nell'angolo. Indirizzo: ?pista=…&veicolo=…&cam=…&bot=0&auto=1
+// dietro / alta / cofano, suoni). La pista intera è la minimappa nell'angolo. Indirizzo: ?pista=…&veicolo=…&cam=…&bot=0&auto=1
 // e le regole (?scia=0…). Test: window.__provapiste.ready / .perf() / .state() / .set({...}) / .avanti(tick).
 import * as THREE from 'three';
 import { CORSE, CORSE_PISTE } from '@marea/content/corse.ts';
@@ -33,12 +33,13 @@ import type { Pista3d } from '../nastro3d.ts';
 import { matOnda, ondaGeo } from '../onda3d.ts';
 import { creaSuoni } from '../suoni.ts';
 import { veicoloGeo } from '../veicoli3d.ts';
+import { creaRegia } from './camera.ts';
 import { stileProva } from './stile.ts';
 
 const PISTE = Object.keys(CORSE_PISTE);
-const CAMERE = ['dietro', 'alta', 'vicina'] as const;
+const CAMERE = ['dietro', 'alta', 'cofano'] as const;
 type Camera = (typeof CAMERE)[number];
-const NOME_CAMERA: Record<Camera, string> = { dietro: 'dietro', alta: 'alta', vicina: 'primo piano' };
+const NOME_CAMERA: Record<Camera, string> = { dietro: 'dietro', alta: 'alta', cofano: 'cofano' };
 const REGOLE = [
   ['sterzo', 'sterzo', 'nuovo', 'vecchio'],
   ['partenza', 'turbo alla partenza', 'sì', 'no'],
@@ -52,7 +53,8 @@ const CASCHI = [P.pietraChiara, P.neroCaldo, P.neroCaldo, P.neroCaldo, P.neroCal
 
 const q = new URLSearchParams(location.search);
 const opz = { ...opzioniGara({ pista: q.get('pista'), veicolo: q.get('veicolo'), bot: q.get('bot'), ...Object.fromEntries(REGOLE.map(([id]) => [id, q.get(id)])) }) };
-let cam: Camera = CAMERE.includes(q.get('cam') as Camera) ? (q.get('cam') as Camera) : 'dietro';
+const camQ = q.get('cam') === 'vicina' ? 'cofano' : q.get('cam');
+let cam: Camera = CAMERE.includes(camQ as Camera) ? (camQ as Camera) : 'dietro';
 let auto = q.get('auto') === '1', luce: StyleId = 'giorno', effetti = q.get('effetti') !== '0', pausa = false;
 
 // ---------- resa (come provapixel: immagine piccola, passata finale coi contorni, il cielo e la palette) ----------
@@ -119,7 +121,7 @@ function nuovaGara(cambiaPista: boolean) {
     ondaMesh.matrixAutoUpdate = false; ondaMesh.name = 'corse_onda'; ondaMesh.frustumCulled = false; scene.add(ondaMesh);
   }
   vis = s.veicoli.map(() => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0 }));
-  fase = 'gara'; finita = 0; camOk = false; fx.svuota(); toast(null); contoPrima = 0; viaFlash = 0;
+  fase = 'gara'; finita = 0; regia.st.ok = false; fx.svuota(); toast(null); contoPrima = 0; viaFlash = 0;
   scrivi();
 }
 
@@ -138,8 +140,8 @@ function step() {
 // ---------- veicoli, effetti e camera ----------
 const T3 = nuovaTerna(), M4 = new THREE.Matrix4();
 const vF = new THREE.Vector3(), vU = new THREE.Vector3(), vR = new THREE.Vector3(), vP = new THREE.Vector3(), vM = new THREE.Vector3();
-const camF = new THREE.Vector3(1, 0, 0), camU = new THREE.Vector3(0, 1, 0), camP = new THREE.Vector3(), tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
-let camOk = false, pugno = 0, scossa = 0;
+const tmp = new THREE.Vector3();
+const regia = creaRegia(camera);
 /** Dove sta il veicolo `i` nel mondo: posizione, avanti (muso), sopra (la pista sotto di lui), destra e moto. */
 function posa(i: number, pos: THREE.Vector3, fwd: THREE.Vector3, up: THREE.Vector3, moto?: THREE.Vector3) {
   const k = s.veicoli[i]!, n = nastroDi(p, k.ramo);
@@ -186,12 +188,12 @@ function eventi() {
   const k = s.veicoli[0]!, w = vis[0]!, lv = k.drift ? livelloDrift(k.carica) : 0;
   if (lv > w.lv) suoni.livello(lv);
   if (k.turbo > w.turbo + 0.05) {
-    suoni.turbo(k.livello); pugno = 8 + 2 * Math.min(3, k.livello); scossa = Math.max(scossa, 0.1);
+    suoni.turbo(k.livello); regia.st.pugno = 8 + 2 * Math.min(3, k.livello); regia.st.scossa = Math.max(regia.st.scossa, 0.1);
     if (w.scia > CORSE.scia.secondi * 0.6 && k.scia === 0) { toast('SCIA!', P.pietraChiara); suoni.scia(); }
     else if (w.acro > 0 && k.acro === 0) toast('ACROBAZIA!', P.ambraNeon);
   }
   if (k.acro > 0 && w.acro === 0) suoni.acrobazia();
-  if (w.aria && !k.aria && !k.caduto) { const urto = Math.max(0, -w.vh); suoni.atterra(urto); scossa = Math.max(scossa, Math.min(0.35, urto * 0.025)); }
+  if (w.aria && !k.aria && !k.caduto) { const urto = Math.max(0, -w.vh); suoni.atterra(urto); regia.st.scossa = Math.max(regia.st.scossa, Math.min(0.35, urto * 0.025)); }
   for (let i = 0; i < vis.length; i++) {
     const x = s.veicoli[i]!, y = vis[i]!;
     y.drift = x.drift; y.turbo = x.turbo; y.aria = x.aria; y.vh = x.vh; y.acro = x.acro; y.scia = x.scia;
@@ -200,36 +202,9 @@ function eventi() {
 }
 function aggiornaCamera(dt: number) {
   posa(0, vP, vF, vU, vM);
-  const k = s.veicoli[0]!, n = nastroDi(p, k.ramo);
   post.toggles.foschia = luce !== 'gioco'; post.toggles.cielo = luce !== 'gioco';
-  // la camera sta sulla pista qualche metro dietro di te («sui binari»), così nei giri della morte e nelle curve resta sopra la strada;
-  // sopra = il sopra della pista lì. Guarda un po' più avanti, a metà tra il muso e il moto: in drift vedi il kart di traverso.
-  const tel = camera.aspect < 0.8, v = Math.max(0, k.v);
-  const base = cam === 'alta' ? [13, 7, 0.5] : cam === 'vicina' ? [tel ? 4.6 : 4, tel ? 1.75 : 1.45, 0.7] : [tel ? 7.6 : 6.4, tel ? 3.4 : 2.7, 1];
-  const dist = base[0]! + v * (cam === 'vicina' ? 0.02 : 0.04), alt = base[1]! + Math.max(0, k.h) * 0.6;
-  let nc = n, sc = k.s - dist;
-  if (k.ramo >= 0 && sc < 0) { nc = p.n; sc = p.rami[k.ramo]!.def.da + sc; } // sull'imbocco di un ramo la camera è ancora sulla principale
-  terna(nc, sc, T3);
-  const latc = k.lat * (cam === 'vicina' ? 0.85 : 0.7);
-  camP.set(T3.x + T3.rx * latc + T3.ux * alt, T3.y + T3.ry * latc + T3.uy * alt, T3.z + T3.rz * latc + T3.uz * alt);
-  // l'onda che si avvicina fa tremare la camera (sotto i 35 m)
-  const tremo = p.def.inseguitore ? Math.max(0, 1 - (k.prog - s.onda) / 35) : 0;
-  if (tremo > 0) camP.addScaledVector(camU, Math.sin(performance.now() * 0.06) * 0.14 * tremo);
-  tmp.set(T3.ux, T3.uy, T3.uz).normalize();
-  camU.lerp(tmp, camOk ? 1 - Math.exp(-dt * 10) : 1).normalize();
-  camera.position.lerp(camP, camOk ? 1 - Math.exp(-dt * 20) : 1);
-  // la scossa: atterraggi e turbo (piccola, e sparisce in fretta)
-  scossa *= Math.exp(-dt * 9);
-  if (effetti && scossa > 0.005) camera.position.addScaledVector(camU, (Math.random() - 0.5) * scossa).addScaledVector(tmp2.set(T3.rx, T3.ry, T3.rz), (Math.random() - 0.5) * scossa);
-  camera.up.copy(camU);
-  camF.copy(vF).multiplyScalar(0.4).addScaledVector(vM, 0.6).normalize();
-  tmp.copy(vP).addScaledVector(camF, cam === 'vicina' ? 5 : 4).addScaledVector(vU, base[2]!);
-  camera.lookAt(tmp);
-  // FOV: si allarga con la velocità e col turbo, con un colpo quando parte
-  pugno *= Math.exp(-dt * 2.2);
-  const fov = (tel ? 78 : 64) + (k.turbo > 0 ? 6 : 0) + Math.max(0, v - 15) * 0.3 + (effetti ? pugno : 0);
-  if (Math.abs(camera.fov - fov) > 0.05 || camera.far !== 900) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 8); camera.far = 900; camera.updateProjectionMatrix(); }
-  camOk = true;
+  const w = vis[0]!, hop = w.hop > 0 ? 1.52 * (w.hop / 0.26) * (1 - w.hop / 0.26) : 0;
+  regia.segui(cam, { pos: vP, fwd: vF, up: vU, moto: vM, k: s.veicoli[0]!, p, onda: s.onda, hop, effetti, dt });
 }
 
 // ---------- interfaccia ----------
@@ -284,7 +259,7 @@ const riga = (titolo: string, voci: [string, () => boolean, () => void][]) => {
     r.appendChild(b); bottoni.push(() => b.classList.toggle('sel', sel()));
   }
 };
-riga('camera', CAMERE.map((c): [string, () => boolean, () => void] => [NOME_CAMERA[c], () => cam === c, () => { cam = c; camOk = false; }]));
+riga('camera', CAMERE.map((c): [string, () => boolean, () => void] => [NOME_CAMERA[c], () => cam === c, () => { cam = c; regia.st.ok = false; }]));
 riga('suoni', [['sì', () => suoni.acceso, () => { suoni.acceso = true; }], ['no', () => !suoni.acceso, () => { suoni.acceso = false; }]]);
 let menuAperto = false;
 ingr.addEventListener('pointerdown', (e) => { ferma(e); menuAperto = !menuAperto; scrivi(); });
@@ -298,7 +273,7 @@ function scrivi() {
 }
 addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.repeat) return;
-  if (e.code === 'KeyC') { cam = CAMERE[(CAMERE.indexOf(cam) + 1) % CAMERE.length]!; camOk = false; scrivi(); return; }
+  if (e.code === 'KeyC') { cam = CAMERE[(CAMERE.indexOf(cam) + 1) % CAMERE.length]!; regia.st.ok = false; scrivi(); return; }
   if (e.code === 'Escape' || e.code === 'KeyO') { menuAperto = !menuAperto; scrivi(); return; }
   const r = ROWS.find(([k]) => k === e.key.toUpperCase());
   if (r && e.code !== 'KeyA' && e.code !== 'KeyD' && e.code !== 'KeyS' && e.code !== 'KeyW') { r[3](); scrivi(); }
@@ -389,11 +364,11 @@ const api = {
     if (o.luce) setLuce(o.luce);
     if (o.pista !== undefined || o.veicolo !== undefined || o.bot !== undefined || o.regole) nuovaGara(nuovaPista);
     if (o.vai && s.tick < 0) s.tick = 0;
-    camOk = false; scrivi();
+    regia.st.ok = false; scrivi();
     return api.state();
   },
   /** Avanza la gara di `tick` passi subito (pilota automatico), senza aspettare il tempo vero. */
-  avanti: (tick: number) => { const a = auto; auto = true; for (let i = 0; i < tick && fase === 'gara'; i++) step(); auto = a; camOk = false; return api.state(); },
+  avanti: (tick: number) => { const a = auto; auto = true; for (let i = 0; i < tick && fase === 'gara'; i++) step(); auto = a; regia.st.ok = false; return api.state(); },
   piste: PISTE,
 };
 (window as unknown as { __provapiste: typeof api }).__provapiste = api;

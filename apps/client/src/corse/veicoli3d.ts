@@ -11,8 +11,14 @@ const ruota = (parts: THREE.BufferGeometry[], x: number, z: number, r: number, w
   parts.push(painted(cyl(r, r, w, 8), P.neroCaldo, M(x, r, z, 0, 0, Math.PI / 2)));
   parts.push(painted(cyl(r * 0.45, r * 0.45, w + 0.02, 6), P.pietra, M(x, r, z, 0, 0, Math.PI / 2)));
 };
+/** Dove sono gli occhi del pilota di ogni veicolo, [altezza, avanti] in m (per la camera cofano: appena davanti alla visiera, che sennò copre tutto). */
+const OCCHI = new Map<string, [number, number]>();
+let occhi: [number, number] = [1.37, 0];
+export const occhio = (id: string): [number, number] => OCCHI.get(id) ?? [1.37, 0];
+
 /** Il pilota seduto (busto, testa col casco, visiera) all'altezza `y`, `z` avanti/indietro. */
 function pilota(parts: THREE.BufferGeometry[], colore: string, casco: string, y: number, z = 0.2): void {
+  occhi = [y + 0.78, 0.42 - z];
   parts.push(painted(box(0.55, 0.55, 0.4), colore, M(0, y + 0.28, z)));
   parts.push(painted(box(0.46, 0.44, 0.48), casco, M(0, y + 0.75, z - 0.08)));
   parts.push(painted(box(0.4, 0.14, 0.06), P.neroCaldo, M(0, y + 0.77, z - 0.33)));
@@ -81,5 +87,6 @@ export function veicoloGeo(id: string, colore: string, casco: string): THREE.Buf
       pilota(parts, colore, casco, 0.57, 0.2);
     }
   }
+  OCCHI.set(id, occhi);
   return merged(parts);
 }

@@ -5,8 +5,8 @@
 // Sulla pista folle si controlla che il giro della morte si faccia a testa in giù, che ci sia il salto e che si prenda la scorciatoia.
 // Poi la Spiaggia e porto: il porto è misto (ruote e barche, ognuno nella sua corsia) e nella fuga l'onda raggiunge chi va piano.
 // La guida (#170): partenza razzo del pilota automatico, drift da tastiera con le scintille (blu → viola), menù opzioni con le camere
-// (dietro, alta, primo piano), minimappa, interruttori delle regole.
-// Screenshot da telefono (camera dietro e primo piano) e da PC (giro della morte, drift viola, baia, porto, onda) in tests/out/shots/m4_provapiste_*.
+// (dietro, alta, cofano), minimappa, interruttori delle regole.
+// Screenshot da telefono (camera dietro e cofano) e da PC (giro della morte, drift viola, baia, porto, onda) in tests/out/shots/m4_provapiste_*.
 // Numeri in tests/out/m4_provapiste.json.
 export const timeout = 300000;
 const MAX_DC = 100, MAX_TRI = 150000;
@@ -35,9 +35,9 @@ export default async function (ctx) {
       st = await corri(p.page, 60 * 240);
       assert(st.done && st.risultato && st.risultato.detail.giri === st.risultato.detail.tot, `${id}: ${JSON.stringify(st)}`);
       assert(st.cadute === 0, `${id}: ${st.cadute} cadute`);
-      await p.page.evaluate(() => window.__provapiste.set({ cam: 'vicina' }));
+      await p.page.evaluate(() => window.__provapiste.set({ cam: 'cofano' }));
       await fotogrammi(p.page);
-      await ctx.shot(p.page, `${id}_primo_piano`);
+      await ctx.shot(p.page, `${id}_cofano`);
       const mappa = await p.page.evaluate(() => { const r = document.getElementById('ppMappa').getBoundingClientRect(); return { w: r.width, h: r.height, x: r.right }; });
       assert(mappa.w > 80 && mappa.h > 60 && mappa.x <= 390, `minimappa ${JSON.stringify(mappa)}`);
       assert(st.travolto === 0, `${id}: il pilota automatico non deve farsi prendere dall'onda`);
@@ -46,9 +46,9 @@ export default async function (ctx) {
       assert(perf.drawCalls <= MAX_DC && perf.triangles <= MAX_TRI, `${id}: ${perf.drawCalls} draw call, ${perf.triangles} triangoli`);
     });
   }
-  await ctx.test('telefono: il menù opzioni cambia la camera (dietro, alta, primo piano); le regole si spengono', async () => {
+  await ctx.test('telefono: il menù opzioni cambia la camera (dietro, alta, cofano); le regole si spengono', async () => {
     await p.page.click('#ppOpzioni');
-    for (const [voce, cam] of [['alta', 'alta'], ['primo piano', 'vicina'], ['dietro', 'dietro']]) {
+    for (const [voce, cam] of [['alta', 'alta'], ['cofano', 'cofano'], ['dietro', 'dietro']]) {
       await p.page.click(`#ppMenu button[data-voce="${voce}"]`);
       const st = await p.page.evaluate(() => window.__provapiste.state());
       assert(st.cam === cam && st.menu, `${voce}: ${st.cam}`);

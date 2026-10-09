@@ -204,11 +204,12 @@ export function muovi(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas:
     if (sp && k.v < top * 1.15) k.v += sp[0] * DT;
     if (sp) k.lat += sp[1] * DT;
   }
-  // ---- sterzo: in drift si gira sempre verso il lato del drift, lo sterzo stringe (fino a ×1,3) o allarga (fino a ×0,1) ----
+  // ---- sterzo ----
   const presa = Math.min(1, Math.abs(k.v) / K.sterzoPieno) * (k.v < 0 ? -1 : 1);
   // fuori dal drift lo sterzo cala con la velocità (a tutta velocità −alto): le curve strette prese forte vogliono il drift
   const S = C.sterzo, alto = R.sterzo ? 1 - (F.sterzoAlto ?? S.alto) * clamp((Math.abs(k.v) - S.da) / Math.max(1, V.velocita - S.da), 0, 1) : 1;
-  const giri = k.drift ? k.drift * V.sterzo * V.drift * 0.75 * (0.7 + 0.6 * sterzo * k.drift) : sterzo * V.sterzo * alto;
+  // in drift si gira verso il lato del drift; lo sterzo stringe o allarga (tieni = [base, ± quanto]). Jack (#170): «ruota troppo, quasi ingovernabile»
+  const giri = k.drift ? k.drift * V.sterzo * V.drift * D.giro * (D.tieni[0] + D.tieni[1] * sterzo * k.drift) : sterzo * V.sterzo * (R.sterzo ? S.normale : 1) * alto;
   if (terra) {
     [k.hf, k.hl] = gira(k.hf, k.hl, giri * presa * DT);
     const g = (k.drift ? V.presaDrift : V.presa) * E.presa;
