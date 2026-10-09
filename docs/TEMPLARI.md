@@ -20,8 +20,8 @@ Un'isola maledetta a sud dell'arcipelago: chiesa templare in rovina al centro, b
 ## 2. Dove sta e come si apre
 - **Posizione**: a sud del Porto, tra il Giardino e il Vulcano (cella `[156, 240]` dell'arcipelago, ~48×44 celle). Lontana dal giro iniziale, come le altre isole a tema.
 - **Chiusa**: avvolta da una **nebbia rossastra** (come il Giardino): la barca ci gira dentro e torna indietro; sulla minimappa nebbia col lucchetto.
-- **Sblocco**: la **reliquia** (croce o calice: scelta A/B al passo 7). Sta sull'**Isola della Tempesta**, sotto il faro, nel **relitto di una nave templare**: accanto c'è uno **scheletro** con un **biglietto** che racconta la fuga e indica l'isola. Quindi l'isola dei Templari si apre dopo la Tempesta (Molo L2). Presa la reliquia (A vicino allo scheletro), la nebbia si dirada per sempre (`LotState.mappe` o simile: viaggia col lotto).
-- **Avvio**: entri nella chiesa (porta sul lato ovest, ENTRA) e porti la reliquia all'**altare** (A): partono le ondate. La reliquia resta tua: ogni volta che torni all'altare si ricomincia dall'ondata 1.
+- **Sblocco**: la reliquia è il **calice dei Templari** (scelto da birbasan: d'oro coi rubini, forse il Graal). Sta sull'**Isola della Tempesta**, sotto il faro, accanto al **relitto della nave templare** (lo scafo spaccato sugli scogli, la vela bianca con la croce rossa, una cassa che luccica): lo tiene in grembo lo **scheletro di fra' Guillaume**, sergente del Tempio, col mantello stracciato e il **biglietto** che racconta la fuga da La Rochelle e indica la rotta (libeccio, tra la montagna di fuoco e il giardino). Il calice luccica e un fascio di luce lo segnala da lontano; in bussola c'è il «Relitto» finché non è tuo. **A** vicino (o PRENDI IL CALICE) lo prende e apre il biglietto, che poi si rilegge. Quindi l'isola dei Templari si apre dopo la Tempesta (Molo L2): il server lo controlla (`POST /api/templari/reliquia`) e mette il calice nel lotto (`LotState.reliquie`), la nebbia rossa si dirada per sempre.
+- **Avvio**: entri nella chiesa (porta sul lato ovest, ENTRA) e posi il calice sull'**altare** (A): il calice resta lì, davanti alla croce, e partono le ondate. Il calice resta tuo: ogni volta che torni all'altare si ricomincia dall'ondata 1.
 - **Per le prove** (`?templari=1` nell'indirizzo): l'isola è aperta, l'altare funziona senza reliquia e nella barra in alto c'è un bottone **⚔** che porta subito nella chiesa con le ondate già partite. Il premio resta quello vero (stesso tetto giornaliero).
 
 ## 3. L'isola
@@ -122,7 +122,6 @@ Il **record** (ondata più alta) resta nel lotto e si vede nella scheda finale.
 Atmosfera alla COD Zombies con suoni **nostri, sintetizzati** (motore di `apps/client/src/audio/`, zero file, mai niente copiato da COD): versi e rantoli degli zombie, urla di chi scatta, «Deus vult!» come grido ritmato, jingle di inizio e fine ondata (campane e organo stonato), corno del cavaliere, risata di de Molay e crepitio del fuoco, musica tesa che cresce con l'ondata, la cassa che gira e ride. Niente ElevenLabs per ora (resta in BACKLOG).
 
 ## 12. Da decidere (non bloccano)
-- Reliquia: **croce** o **calice** (A/B al passo 7).
 - **Easter egg** (spezzare la maledizione, il tesoro, il Graal) e **forma finale di de Molay**: in una chat leggera prima del passo 9.
 - Partita insieme (fino a 4, come i dungeon): BACKLOG.
 

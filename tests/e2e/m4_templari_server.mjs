@@ -90,6 +90,13 @@ export default async function (ctx) {
       ctx.log(`preso oggi ${JSON.stringify(l.templari.preso)} · tetto raggiunto: ${tetto}`);
     });
 
+    await ctx.test('il calice della Tempesta: senza il Molo la tempesta non ti lascia arrivare (requisito), il lotto non cambia', async () => {
+      const r = await post('/api/templari/reliquia', {});
+      assert(r.status >= 400 && r.status < 500 && r.body.code === 'requisito', 'reliquia senza Tempesta: ' + r.status + ' ' + JSON.stringify(r.body));
+      const l1 = await lot();
+      assert(!(l1.reliquie ?? []).includes('templari'), 'il calice è entrato senza la Tempesta');
+    });
+
     await ctx.test('nessun errore interno nel log di wrangler', async () => {
       assert(!/\[marea\] (lot error|errore)/.test(log), 'errori nel log:\n' + log.split('\n').filter((l) => /\[marea\]/.test(l)).slice(0, 5).join('\n'));
     });

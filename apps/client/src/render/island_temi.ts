@@ -120,10 +120,10 @@ export function rocceTema(style: TemaStyle, cells: { x: number; z: number; d: nu
 // ——— decorazioni ———
 export type TemaProp = 'faro_rovina' | 'relitto' | 'bandiera_pirata' | 'cannone' | 'albero_secco' | 'iceberg' | 'pinguino' | 'igloo' | 'pino_neve'
   | 'roccia_lavica' | 'capanna' | 'braciere' | 'statua' | 'cartello' | 'abitante' | 'ciliegio' | 'tempio' | 'torii_pietra' | 'lanterna_pietra' | 'ponticello'
-  | 'chiesa_templare' | 'casa_rovina' | 'tomba' | 'croce_pietra' | 'tenda';
+  | 'chiesa_templare' | 'casa_rovina' | 'tomba' | 'croce_pietra' | 'tenda' | 'relitto_templare' | 'scheletro';
 export const TEMA_PROPS = new Set<string>(['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
   'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello',
-  'chiesa_templare', 'casa_rovina', 'tomba', 'croce_pietra', 'tenda']);
+  'chiesa_templare', 'casa_rovina', 'tomba', 'croce_pietra', 'tenda', 'relitto_templare', 'scheletro']);
 /** Decorazioni con una parte che brilla (fuoco, lava, finestre): la seconda geometria va col materiale non illuminato. */
 export const TEMA_GLOW = new Set<string>(['faro_rovina', 'roccia_lavica', 'braciere', 'statua', 'lanterna_pietra', 'abitante', 'chiesa_templare']);
 
@@ -310,7 +310,7 @@ export function propTema(kind: TemaProp): THREE.BufferGeometry {
       break;
     }
     case 'torii_pietra': torii(parts, P.pietra, P.pietraScura); break;
-    case 'chiesa_templare': case 'casa_rovina': case 'tomba': case 'croce_pietra': case 'tenda': return propTemplari(kind);
+    case 'chiesa_templare': case 'casa_rovina': case 'tomba': case 'croce_pietra': case 'tenda': case 'relitto_templare': case 'scheletro': return propTemplari(kind);
     case 'lanterna_pietra': {
       parts.push(painted(box(0.8, 0.25, 0.8), P.pietraScura, M(0, 0.12, 0)));
       parts.push(painted(cyl(0.16, 0.2, 0.8, 6), P.pietra, M(0, 0.65, 0)));

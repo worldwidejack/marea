@@ -111,6 +111,8 @@ export type Api = {
   templariStart(subito?: boolean): Promise<TemplariStart>;
   /** `inputs` compressi con `encodeDungeon` (o array RLE): il server rigioca e paga. */
   templariFinish(inputs: PackedDungeon | string, hash: number, azioni?: TAzioni): Promise<TemplariFinish>;
+  /** Il calice dei Templari dallo scheletro della Tempesta (docs/TEMPLARI.md §2): nel lotto, la nebbia rossa si dirada. */
+  templariReliquia(): Promise<{ lot: LotState; nuova: boolean }>;
   // ---- Porto (#64) ----
   /** RISCUOTI una missione compiuta della Bacheca (indice 0-2 di oggi): il server verifica, paga e risponde col lotto. */
   riscuoti(i: number): Promise<{ premio: Resources; lot: LotState }>;
@@ -336,6 +338,11 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       const d = await call('POST', '/api/templari/start', subito ? { subito: true } : {});
       if (!isObj(d) || typeof d['seed'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');
       return { seed: d['seed'], subito: !!d['subito'], lot: asLot(d['lot']) };
+    },
+    async templariReliquia() {
+      const d = await call('POST', '/api/templari/reliquia', {});
+      if (!isObj(d)) throw new ApiError(500, 'Risposta del server non valida');
+      return { lot: asLot(d['lot']), nuova: d['nuova'] === true };
     },
     async templariFinish(inputs, hash, azioni) {
       const d = await call('POST', '/api/templari/finish', { inputs, hash, azioni: azioni ?? [] });

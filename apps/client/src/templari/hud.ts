@@ -52,7 +52,7 @@ export type TplHud = {
   dispose(): void;
 };
 
-const NOMI_FASE = { altare: 'Porta la reliquia all’altare', inizio: 'La terra trema…', pausa: 'Respira: arriva la prossima ondata', combatti: '' } as const;
+const NOMI_FASE = { altare: 'Porta il calice all’altare', inizio: 'La terra trema…', pausa: 'Respira: arriva la prossima ondata', combatti: '' } as const;
 
 export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string, munizioni: (id: string) => boolean): TplHud {
   injectUiStyle();

@@ -82,6 +82,23 @@ export default async function (ctx) {
     assert(await page.isVisible('#mzTop'), 'la barra in alto non è tornata');
     ctx.noErrors(p, 'telefono');
   });
+  await ctx.test('telefono: lo scheletro sotto il faro della Tempesta, A prende il calice e si legge il biglietto', async () => {
+    const r = await page.evaluate(() => window.__game.test.templariRelitto());
+    assert(r && typeof r.x === 'number', 'scheletro non trovato sulla Tempesta');
+    await ctx.waitState(page, (st) => st.templariRelitto?.near === true && st.templariRelitto.visibile === true, 10000);
+    await page.waitForSelector('#mzTemplariCalice.on', { timeout: 10000 });
+    assert((await page.textContent('#mzTemplariCalice')).includes('CALICE'), 'bottone del calice senza testo');
+    await ctx.shot(page, 'scheletro_calice');
+    await page.click('#mzTemplariCalice');
+    await ctx.waitState(page, (st) => st.templariRelitto.calice === true && st.templariRelitto.biglietto === true, 8000);
+    assert((await page.textContent('#mzBiglietto')).includes('La Rochelle'), 'biglietto senza la storia');
+    await ctx.shot(page, 'biglietto');
+    await page.click('#mzBiglietto [data-act=chiudi]');
+    await ctx.waitState(page, (st) => st.templariRelitto.biglietto === false && st.templariRelitto.visibile === false, 5000);
+    await page.waitForSelector('#mzTemplariCalice.on', { timeout: 8000 });
+    assert((await page.textContent('#mzTemplariCalice')).includes('BIGLIETTO'), 'dopo: il bottone non rilegge il biglietto');
+    ctx.noErrors(p, 'telefono');
+  });
 
   // ---------------- PC ----------------
   const d = await ctx.open('?test=1&net=0&templari=1', { viewport: ctx.B.DESKTOP });
