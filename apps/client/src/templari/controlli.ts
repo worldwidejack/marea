@@ -1,7 +1,8 @@
 // Controlli delle ondate oltre a joystick, A (attacca) e B (corri) di game/input.ts: AZIONE (dice cosa fa e quanto costa: posa la reliquia,
 // ripara tenendolo premuto, compra), SCAMBIA (le due armi), PAUSA in alto a destra con RIPRENDI · MIRA AUTO/A MANO · ESCI. Tastiera: F =
 // AZIONE (tenuto), Q = scambia, Esc = pausa; clic sinistro tenuto sul canvas = A. Con la pausa (o la domanda «Uscire?») la partita è ferma.
-// AUTO (di serie, salvato sul dispositivo): l'eroe attacca da solo quando ha uno zombie a portata; A MANO solo quando premi.
+// Niente attacco automatico: attacchi solo quando premi. Da PC l'eroe, se non cammini, guarda il puntatore del mouse (`mouse`: dove punta
+// sul canvas, in pixel, o null se il mouse non c'è).
 import type { TPrompt } from '@marea/sim/templari/types.ts';
 import { PAL, el } from '../ui/style.ts';
 
@@ -27,7 +28,8 @@ export type Controlli = {
   /** Un campione per tick: A in più (clic tenuto), SCAMBIA (fronte) e AZIONE (tenuto o appena toccato). */
   sample(): { a: boolean; c: boolean; d: boolean };
   readonly paused: boolean;
-  readonly auto: boolean;
+  /** Il puntatore del mouse sul canvas (px dal bordo in alto a sinistra), null se non è un mouse o è uscito. */
+  readonly mouse: { x: number; y: number } | null;
   /** Il bottone AZIONE dice cosa fa adesso (null = sparisce). */
   setPrompt(p: TPrompt): void;
   /** SCAMBIA c'è solo con due armi. */
@@ -36,12 +38,10 @@ export type Controlli = {
   dispose(): void;
 };
 
-const AUTO_KEY = 'marea:templari:auto';
 
 export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElement; onEsci(): void }): Controlli {
   if (!document.getElementById('mz-tpl-ctl-style')) { const st = document.createElement('style'); st.id = 'mz-tpl-ctl-style'; st.textContent = CSS; document.head.appendChild(st); }
-  let auto = true;
-  try { auto = localStorage.getItem(AUTO_KEY) !== '0'; } catch { /* storage bloccato: AUTO */ }
+  let mouse: { x: number; y: number } | null = null;
   const stop = (e: Event) => e.stopPropagation();
   // AZIONE: tenuto (ripara) o tocco breve (latch: anche più corto di un tick arriva alla sim)
   const az = el('div', 'mz mz-tpl-az'); az.id = 'mzTplAzione';
@@ -60,26 +60,21 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   const menu = el('div', 'mz mz-tpl-menu'); menu.id = 'mzTplPausa';
   const titolo = el('b', '', 'PAUSA'), sub = el('div', 'sub', 'Le ondate aspettano.');
   const riprendi = el('button', 'mz-btn green', 'RIPRENDI'); riprendi.type = 'button'; riprendi.dataset['act'] = 'riprendi';
-  const autoBtn = el('button', 'mz-btn auto'); autoBtn.type = 'button'; autoBtn.dataset['act'] = 'auto';
   const esci = el('button', 'mz-btn ghost', 'ESCI DALLA PARTITA'); esci.type = 'button'; esci.dataset['act'] = 'esci';
-  menu.append(titolo, sub, riprendi, autoBtn, esci);
+  menu.append(titolo, sub, riprendi, esci);
   for (const e of [az, sc, top, menu]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, stop);
   o.root.append(az, sc, top, menu);
   let pausa = false, chiedi = false;
-  const disegnaAuto = () => { autoBtn.textContent = auto ? 'MIRA: AUTO (attacca da solo)' : 'MIRA: A MANO (premi A)'; autoBtn.classList.toggle('auto', auto); };
   const setPausa = (on: boolean) => {
     pausa = on; chiedi = false; menu.classList.toggle('on', on);
-    titolo.textContent = 'PAUSA'; sub.textContent = 'Le ondate aspettano.'; esci.textContent = 'ESCI DALLA PARTITA'; riprendi.style.display = ''; autoBtn.style.display = '';
-    disegnaAuto();
+    titolo.textContent = 'PAUSA'; sub.textContent = 'Le ondate aspettano.'; esci.textContent = 'ESCI DALLA PARTITA'; riprendi.style.display = '';
   };
   pBtn.addEventListener('click', () => setPausa(!pausa));
   riprendi.addEventListener('click', () => setPausa(false));
-  autoBtn.addEventListener('click', () => { auto = !auto; try { localStorage.setItem(AUTO_KEY, auto ? '1' : '0'); } catch { /* niente */ } disegnaAuto(); });
   esci.addEventListener('click', () => {
-    if (!chiedi) { chiedi = true; titolo.textContent = 'USCIRE?'; sub.textContent = 'Contano le ondate superate fin qui.'; esci.textContent = 'SÌ, ESCI'; autoBtn.style.display = 'none'; return; }
+    if (!chiedi) { chiedi = true; titolo.textContent = 'USCIRE?'; sub.textContent = 'Contano le ondate superate fin qui.'; esci.textContent = 'SÌ, ESCI'; return; }
     setPausa(false); o.onEsci();
   });
-  disegnaAuto();
   const keys = new Set<string>();
   const kd = (e: KeyboardEvent) => {
     if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) setPausa(!pausa); return; }
@@ -90,10 +85,13 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
   const md = (e: PointerEvent) => { if (e.button === 0 && e.pointerType === 'mouse') mouseA = true; };
+  const mm = (e: PointerEvent) => { if (e.pointerType !== 'mouse') return; const r = o.canvas.getBoundingClientRect(); mouse = { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const ml = () => { mouse = null; };
   const mu = (e: PointerEvent) => { if (e.button === 0) mouseA = false; };
   const blur = () => { keys.clear(); mouseA = false; azHeld.clear(); };
   addEventListener('keydown', kd, true); addEventListener('keyup', ku, true);
   o.canvas.addEventListener('pointerdown', md); addEventListener('pointerup', mu); addEventListener('blur', blur);
+  o.canvas.addEventListener('pointermove', mm); o.canvas.addEventListener('pointerleave', ml);
   let promptKey = '';
   return {
     sample() {
@@ -102,7 +100,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
       return out;
     },
     get paused() { return pausa; },
-    get auto() { return auto; },
+    get mouse() { return mouse; },
     setPrompt(p) {
       const k = p ? `${p.cosa}|${p.testo}|${p.prezzo}|${p.puoi}` : '';
       if (k === promptKey) return;
@@ -117,6 +115,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
     dispose() {
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);
+      o.canvas.removeEventListener('pointermove', mm); o.canvas.removeEventListener('pointerleave', ml);
       az.remove(); sc.remove(); top.remove(); menu.remove();
     },
   };

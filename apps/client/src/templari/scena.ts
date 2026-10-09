@@ -16,6 +16,7 @@ import { P } from '../render/island_parts.ts';
 import { unisci } from './armi3d.ts';
 import type { Pezzo } from './armi3d.ts';
 import { createArredi } from './arredi.ts';
+import { createDettagli } from './dettagli.ts';
 
 export type Scena = {
   scene: THREE.Scene;
@@ -25,11 +26,12 @@ export type Scena = {
   setPorte(aperte: Record<string, boolean>): void;
   /** Il calice dei Templari sull'altare (dopo che l'hai posato; nelle prove ⚔ c'è già). */
   setCalice(visibile: boolean): void;
-  stats(): { muri: number; bassi: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number };
+  stats(): { muri: number; bassi: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number; sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number };
   dispose(): void;
 };
 
-const PX = 8; // texel per metro del pavimento
+const PX = 16; // texel per metro del pavimento (come le isole del mondo)
+const K = PX / 8, K2 = K * K; // i disegni dei suoli sono pensati per 8 texel: quante volte ripeterli
 const H_MURO = [2.6, 3.4, 3.0, 3.8, 2.2, 3.6, 3.1, 2.8]; // altezze dei muri diroccati (per cella, dal hash)
 const H_CASA = [2.2, 2.8, 1.8, 3.0, 2.5, 1.4];
 const BASSO = 0.7;
@@ -73,16 +75,16 @@ function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasText
           break;
         }
         px(dd <= 2 ? P.boscoOmbra : dd <= 5 ? PAL.ombraCalda : PAL.neroCaldo, x0, y0, PX, PX);
-        if (dd <= 3) for (let s = 0; s < 3; s++) if (hh(s) < 0.5) px(PAL.bosco, x0 + Math.floor(hh(s + 9) * PX), y0 + Math.floor(hh(s + 19) * PX));
+        if (dd <= 3) for (let s = 0; s < 3 * K2; s++) if (hh(s) < 0.5) px(PAL.bosco, x0 + Math.floor(hh(s + 9) * PX), y0 + Math.floor(hh(s + 19) * PX));
         break;
       }
       case SUOLO.terra:
         px(hh(1) < 0.5 ? PAL.bosco : P.boscoOmbra, x0, y0, PX, PX);
-        for (let s = 0; s < 7; s++) { const c = hh(s + 2); px(c < 0.3 ? PAL.erbaScura : c < 0.55 ? PAL.legnoScuro : c < 0.62 ? PAL.roccia : P.boscoOmbra, x0 + Math.floor(hh(s + 30) * PX), y0 + Math.floor(hh(s + 40) * PX), 1, 1 + (c < 0.3 ? 1 : 0)); }
+        for (let s = 0; s < 7 * K2; s++) { const c = hh(s + 2); px(c < 0.3 ? PAL.erbaScura : c < 0.55 ? PAL.legnoScuro : c < 0.62 ? PAL.roccia : P.boscoOmbra, x0 + Math.floor(hh(s + 30) * PX), y0 + Math.floor(hh(s + 40) * PX), 1, 1 + (c < 0.3 ? 1 : 0)); }
         break;
       case SUOLO.ciottoli: // acciottolato: sassi da 3 px con le fughe scure, file sfalsate
         px(PAL.roccia, x0, y0, PX, PX);
-        for (let r = 0; r < 2; r++) for (let k = 0; k < 3; k++) {
+        for (let r = 0; r < 2 * K; r++) for (let k = 0; k < 2 * K; k++) {
           const sx = (k * 4 + (r % 2 ? 2 : 0) + (cz % 2) * 1) % PX, c = hh(r * 3 + k + 5);
           px(c < 0.5 ? PAL.pietraScura : c < 0.8 ? PAL.pietra : PAL.roccia, x0 + sx, y0 + r * 4, Math.min(3, PX - sx), 3);
           if (c > 0.35 && c < 0.5) px(PAL.pietra, x0 + sx, y0 + r * 4);
@@ -91,12 +93,12 @@ function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasText
         break;
       case SUOLO.erba: // erba alta del cimitero, ciuffi scuri e qualche fiore
         px(hh(1) < 0.5 ? P.boscoOmbra : PAL.bosco, x0, y0, PX, PX);
-        for (let s = 0; s < 6; s++) { const c = hh(s + 3); px(c < 0.5 ? PAL.erbaScura : c < 0.9 ? PAL.bosco : PAL.erba, x0 + Math.floor(hh(s + 33) * PX), y0 + Math.floor(hh(s + 43) * (PX - 1)), 1, 2); }
+        for (let s = 0; s < 6 * K2; s++) { const c = hh(s + 3); px(c < 0.5 ? PAL.erbaScura : c < 0.9 ? PAL.bosco : PAL.erba, x0 + Math.floor(hh(s + 33) * PX), y0 + Math.floor(hh(s + 43) * (PX - 1)), 1, 2); }
         if (hh(70) < 0.06) px(PAL.pietraChiara, x0 + 2 + Math.floor(hh(71) * 4), y0 + 2 + Math.floor(hh(72) * 4));
         break;
       case SUOLO.sabbia:
         px(PAL.sabbia, x0, y0, PX, PX);
-        for (let s = 0; s < 4; s++) { const c = hh(s + 4); px(c < 0.5 ? PAL.legnoChiaro : c < 0.85 ? PAL.sabbiaChiara : PAL.pietraScura, x0 + Math.floor(hh(s + 34) * PX), y0 + Math.floor(hh(s + 44) * PX)); }
+        for (let s = 0; s < 4 * K2; s++) { const c = hh(s + 4); px(c < 0.5 ? PAL.legnoChiaro : c < 0.85 ? PAL.sabbiaChiara : PAL.pietraScura, x0 + Math.floor(hh(s + 34) * PX), y0 + Math.floor(hh(s + 44) * PX)); }
         if (hh(5) < 0.3) px(PAL.legnoChiaro, x0 + Math.floor(hh(6) * 4), y0 + Math.floor(hh(7) * 7), 4, 1); // increspature del vento
         // la schiuma sulla riva, dal lato del mare
         if (cz + 1 >= H || mare(i + W)) { px(PAL.acquaBassa, x0, y0 + PX - 2, PX, 1); px(PAL.acqua, x0, y0 + PX - 1, PX, 1); for (let s = 0; s < 3; s++) if (hh(s + 90) < 0.6) px(PAL.sabbiaChiara, x0 + Math.floor(hh(s + 93) * PX), y0 + PX - 3); }
@@ -104,8 +106,8 @@ function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasText
         if (cx + 1 < W && mare(i + 1)) { px(PAL.acquaBassa, x0 + PX - 2, y0, 1, PX); px(PAL.acqua, x0 + PX - 1, y0, 1, PX); }
         break;
       case SUOLO.assi: // assito della taverna: tavole lungo x, fughe scure, giunte sfalsate
-        for (let r = 0; r < 4; r++) {
-          const c = cellHash(cx >> 1, cz * 4 + r, 9);
+        for (let r = 0; r < 4 * K; r++) {
+          const c = cellHash(cx >> 1, cz * 8 + r, 9);
           px(c < 0.5 ? PAL.legno : c < 0.8 ? PAL.legnoScuro : PAL.legnoChiaro, x0, y0 + r * 2, PX, 2);
           px(PAL.ombraCalda, x0, y0 + r * 2 + 1, PX, 1);
           if (hh(r + 80) < 0.3) px(PAL.ombraCalda, x0 + Math.floor(hh(r + 84) * PX), y0 + r * 2, 1, 2);
@@ -116,7 +118,7 @@ function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasText
         px(lastra ? PAL.pietraScura : PAL.roccia, x0, y0, PX, PX);
         if (cx % 2 === 0) px(PAL.neroCaldo, x0, y0, 1, PX);
         if (cz % 2 === 0) px(PAL.neroCaldo, x0, y0, PX, 1);
-        for (let s = 0; s < 4; s++) if (hh(s + 50) < 0.45) px(lastra ? PAL.pietra : PAL.pietraScura, x0 + 1 + Math.floor(hh(s + 60) * (PX - 2)), y0 + 1 + Math.floor(hh(s + 70) * (PX - 2)));
+        for (let s = 0; s < 4 * K2; s++) if (hh(s + 50) < 0.45) px(lastra ? PAL.pietra : PAL.pietraScura, x0 + 1 + Math.floor(hh(s + 60) * (PX - 2)), y0 + 1 + Math.floor(hh(s + 70) * (PX - 2)));
         if (hh(80) < 0.08) for (let s = 0; s < PX - 2; s++) px(PAL.neroCaldo, x0 + s, y0 + 2 + Math.floor(hh(81 + s) * 2)); // crepa
         if (hh(90) < 0.05) px(PAL.erbaScura, x0 + 2, y0 + 3, 2, 1); // erba tra le pietre
       }
@@ -255,6 +257,9 @@ export function createScena(a: Arena): Scena {
   scene.add(colonna); disp.push(colGeo, colMat);
   const altezzaDi = new Map(muri.map((i, n) => [i, altezza[n]!]));
   const arredi = createArredi(scene, a, { centro, colonne, hCol, altezza: (i) => altezzaDi.get(i) ?? 0 });
+  const dettagli = createDettagli(scene, a, { centro, altezza: (i) => altezzaDi.get(i) ?? 0 });
+  // nebbia a distanza (alla PS1): il buio oltre le zone si perde, il primo piano resta pulito
+  scene.fog = new THREE.Fog(PAL.neroCaldo, 36, 85);
 
   // ---- tende dei pirati: una piramide di tela per tenda (rossa o grezza, a strisce di colore per tenda) ----
   const tende = gruppi(a, TIPO.tenda);
@@ -297,6 +302,7 @@ export function createScena(a: Arena): Scena {
         break;
       }
       case TIPO.leva: break; // sotto, con le trappole
+      case TIPO.sarcofago: case TIPO.armadio: break; // in dettagli.ts
       case TIPO.cosa: break; // sotto, a gruppi
       default: sassi.push(i);
     }
@@ -306,6 +312,7 @@ export function createScena(a: Arena): Scena {
     const xs = g.map((i) => i % W), zs = g.map((i) => Math.floor(i / W));
     const x0 = Math.min(...xs), x1 = Math.max(...xs) + 1, z0 = Math.min(...zs), z1 = Math.max(...zs) + 1, cx = ((x0 + x1) / 2) * T, cz = ((z0 + z1) / 2) * T;
     const sabbia = a.suolo[g[0]!] === SUOLO.sabbia;
+    if (g.length === 2 && a.suolo[g[0]!] === SUOLO.assi) continue; // i tavoli della sacrestia e della taverna: dettagli.ts
     if (g.length >= 4) { // pozzo: anello di pietra, due pali e il tetto
       tubi.push({ x: cx, z: cz, sx: 1.7, sy: 0.85, sz: 1.7, c: PAL.pietraScura }, { x: cx, y: 0.84, z: cz, sx: 1.3, sy: 0.02, sz: 1.3, c: PAL.neroCaldo });
       scatole.push({ x: cx - 0.8, z: cz, sx: 0.14, sy: 2, sz: 0.14, c: PAL.legnoScuro }, { x: cx + 0.8, z: cz, sx: 0.14, sy: 2, sz: 0.14, c: PAL.legnoScuro }, { x: cx, y: 2, z: cz, sx: 2, sy: 0.16, sz: 0.9, c: PAL.legno, rx: 0.1 });
@@ -376,13 +383,16 @@ export function createScena(a: Arena): Scena {
   // altare: blocco di pietra con la tovaglia bianca, la croce rossa e le candele (che brillano)
   const altare = new THREE.Group(); altare.name = 'altare'; altare.position.set(a.altare.x, 0, a.altare.z);
   const pietraMat = lambert({ color: PAL.pietraChiara }), tovMat = lambert({ color: PAL.pietra }), rossoMat = lambert({ color: PAL.rosso });
-  const add = (g: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number) => { const me = new THREE.Mesh(g, m); me.position.set(x, y, z); altare.add(me); disp.push(g); return me; };
-  add(new THREE.BoxGeometry(1.6, 1.0, 2.8), pietraMat, 0, 0.5, 0);
-  add(new THREE.BoxGeometry(1.7, 0.1, 2.9), tovMat, 0, 1.05, 0);
-  add(new THREE.BoxGeometry(0.16, 1.3, 0.16), rossoMat, 0.5, 1.75, 0);
-  add(new THREE.BoxGeometry(0.16, 0.16, 0.8), rossoMat, 0.5, 2.05, 0);
-  const fiammaMat = new THREE.MeshBasicMaterial({ color: PAL.giallo });
-  for (const z of [-1.1, -0.6, 0.6, 1.1]) { add(new THREE.BoxGeometry(0.1, 0.35, 0.1), tovMat, -0.3, 1.27, z); add(new THREE.BoxGeometry(0.08, 0.12, 0.08), fiammaMat, -0.3, 1.52, z); }
+  // l'altare in due mesh (pietra, tovaglia, croce, candele · fiammelle che non prendono luce): poche draw call
+  const altGeo = unisci([
+    { g: new THREE.BoxGeometry(1.6, 1.0, 2.8), c: PAL.pietraChiara, y: 0.5 }, { g: new THREE.BoxGeometry(1.7, 0.1, 2.9), c: PAL.pietra, y: 1.05 },
+    { g: new THREE.BoxGeometry(0.16, 1.3, 0.16), c: PAL.rosso, x: 0.5, y: 1.75 }, { g: new THREE.BoxGeometry(0.16, 0.16, 0.8), c: PAL.rosso, x: 0.5, y: 2.05 },
+    ...[-1.1, -0.6, 0.6, 1.1].map((z): Pezzo => ({ g: new THREE.BoxGeometry(0.1, 0.35, 0.1), c: PAL.pietra, x: -0.3, y: 1.27, z })),
+  ]);
+  const altMesh = new THREE.Mesh(altGeo, lambert({ vertexColors: true })); altare.add(altMesh); disp.push(altGeo, altMesh.material as THREE.Material);
+  const fiaAltGeo = unisci([-1.1, -0.6, 0.6, 1.1].map((z): Pezzo => ({ g: new THREE.BoxGeometry(0.08, 0.12, 0.08), c: PAL.giallo, x: -0.3, y: 1.52, z })));
+  const fiammaMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  altare.add(new THREE.Mesh(fiaAltGeo, fiammaMat)); disp.push(fiaAltGeo);
   // il calice d'oro coi rubini, davanti alla croce (si accende quando lo posi)
   const caliceGeo = unisci([
     { g: new THREE.CylinderGeometry(0.13, 0.15, 0.05, 8), c: PAL.arancio, y: 0.025 },
@@ -459,13 +469,12 @@ export function createScena(a: Arena): Scena {
   const piedeGeo = new THREE.CylinderGeometry(0.08, 0.12, 0.9, 5); piedeGeo.translate(0, 0.45, 0);
   const fiaGeo = new THREE.ConeGeometry(0.28, 0.6, 5); fiaGeo.translate(0, 1.35, 0);
   const fiaMat = new THREE.MeshBasicMaterial({ color: PAL.arancio });
-  const fiamme: THREE.Mesh[] = [];
-  for (const b of bracieri) {
-    const g = new THREE.Group(); g.position.set(b.x, 0, b.z);
-    g.add(new THREE.Mesh(braGeo, ferroMat), new THREE.Mesh(piedeGeo, ferroMat));
-    const f = new THREE.Mesh(fiaGeo, fiaMat); g.add(f); fiamme.push(f);
-    scene.add(g);
-  }
+  // bracieri: tutti i treppiedi in una mesh, tutte le fiamme in un InstancedMesh (tremano a scatti)
+  const braTutti = unisci(bracieri.flatMap((b): Pezzo[] => [{ g: braGeo.clone(), c: PAL.roccia, x: b.x, z: b.z }, { g: piedeGeo.clone(), c: PAL.roccia, x: b.x, z: b.z }]));
+  const braMesh = new THREE.Mesh(braTutti, lambert({ vertexColors: true })); braMesh.name = 'bracieri'; scene.add(braMesh); disp.push(braTutti, braMesh.material as THREE.Material);
+  const fiamme = new THREE.InstancedMesh(fiaGeo, fiaMat, Math.max(1, bracieri.length)); fiamme.name = 'fiamme_bracieri'; fiamme.count = bracieri.length; fiamme.frustumCulled = false;
+  bracieri.forEach((b, n) => fiamme.setMatrixAt(n, m4.compose(v(b.x, 0, b.z), qq.identity(), v(1, 1, 1))));
+  scene.add(fiamme);
   disp.push(braGeo, piedeGeo, fiaGeo, fiaMat, ferroMat);
   scene.add(hemi, amb, luna, luna.target, lanterna, candele);
 
@@ -478,6 +487,7 @@ export function createScena(a: Arena): Scena {
     const hcx = Math.floor(hx / T), hcz = Math.floor(hz / T);
     bassiN = 0;
     arredi.abbassa((i) => muroBasso(i, hcx, hcz), (i) => colonnaBassa(i, hcx, hcz));
+    dettagli.abbassa((i) => muroBasso(i, hcx, hcz));
     muri.forEach((i, n) => {
       const basso = muroBasso(i, hcx, hcz);
       if (basso) bassiN++;
@@ -499,7 +509,7 @@ export function createScena(a: Arena): Scena {
       const hc = Math.floor(hz / T) * W + Math.floor(hx / T);
       if (hc !== lastCell) { lastCell = hc; abbassa(hx, hz); }
       lanterna.position.set(hx, 2.4, hz);
-      arredi.update(t);
+      arredi.update(t); dettagli.update(t);
       luna.target.position.set(hx, 0, hz); luna.position.set(hx - 30, 50, hz - 20);
       const key = assi.join(',');
       if (key !== assiOra) {
@@ -523,7 +533,8 @@ export function createScena(a: Arena): Scena {
       const rogoAcceso = rogoT >= 0 && (trappole[rogoT]?.accesa ?? 0) > 0;
       if (step !== poolT) {
         poolT = step;
-        fuochi.forEach((l, n) => { l.intensity = 14 + 5 * cellHash(step, n, 5); fiamme[n]!.scale.set(1, 0.8 + 0.45 * cellHash(step, n, 6), 1); });
+        fuochi.forEach((l, n) => { l.intensity = 14 + 5 * cellHash(step, n, 5); const b = bracieri[n]!; fiamme.setMatrixAt(n, m4.compose(v(b.x, 0, b.z), qi, v(1, 0.8 + 0.45 * cellHash(step, n, 6), 1))); });
+        fiamme.instanceMatrix.needsUpdate = true;
         candele.intensity = 6 + 2 * cellHash(step, 9, 7);
         rogo.visible = rogoAcceso;
         luceRogo.intensity = rogoAcceso ? 16 + 6 * cellHash(step, 3, 8) : 0;
@@ -547,7 +558,7 @@ export function createScena(a: Arena): Scena {
     },
     setPorte(aperte) { for (const [id, l] of porte) for (const o of l) o.visible = !aperte[id]; },
     setCalice(v) { caliceAlt.visible = v; },
-    stats: () => ({ muri: muri.length, bassi: bassiN, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats() }),
-    dispose() { arredi.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
+    stats: () => ({ muri: muri.length, bassi: bassiN, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats(), ...dettagli.stats() }),
+    dispose() { arredi.dispose(); dettagli.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
   };
 }

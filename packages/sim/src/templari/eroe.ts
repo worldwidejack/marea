@@ -22,33 +22,33 @@ import { accendiTrappola, apriPorta, levaVicina, portaDef, portaVicina, trappola
 
 const vivi = (s: TState): Zombie[] => s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge');
 const ANIM_TIRO = Math.round(0.25 * 60), ANIM_LANCIO = Math.round(0.35 * 60);
-/** Mira a distanza: cono di ~30° davanti, sennò il più vicino in vista. */
-const COS_TIRO = 0.866;
+/** Mira a distanza: aiuta solo dentro un cono di ~35° davanti (sennò il colpo va dritto dove guardi). */
+const COS_TIRO = 0.82;
+/** Joystick sfiorato (sotto questa spinta): l'eroe si gira sul posto senza muoversi (mira fine col dito, il mouse da PC). */
+export const GIRA_SUL_POSTO = 0.3;
 
-/** Mira assistita in mischia: lo zombie più vicino entro `range` nel semicerchio davanti, altrimenti il più vicino entro `fallback`. */
-export function mira(s: TState, range: number, fallback: number): Zombie | null {
+/** Mira in mischia: lo zombie più vicino entro `range` nel mezzo cerchio davanti (quello alle spalle no: ti giri tu). */
+export function mira(s: TState, range: number): Zombie | null {
   const h = s.eroe;
-  let best: Zombie | null = null, bd = Infinity, near: Zombie | null = null, nd = Infinity;
+  let best: Zombie | null = null, bd = Infinity;
   for (const z of vivi(s)) {
     const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz), reach = d - z.def.raggio;
     const dot = d > 1e-6 ? (dx * h.fx + dz * h.fz) / d : 1;
-    if (reach <= range && dot >= 0 && d < bd) { bd = d; best = z; }
-    if (reach <= fallback && d < nd) { nd = d; near = z; }
+    if (reach <= range && dot >= 0.2 && d < bd) { bd = d; best = z; }
   }
-  return best ?? near;
+  return best;
 }
-/** Mira a distanza: lo zombie in vista entro la gittata nel cono davanti, sennò il più vicino in vista (anche fuori dalle finestre). */
+/** Mira a distanza: lo zombie in vista entro la gittata dentro il cono davanti; nessuno = il colpo va dritto dove guardi. */
 export function miraTiro(s: TState, gittata: number): Zombie | null {
   const h = s.eroe, g = s.gr.percorso;
-  let best: Zombie | null = null, bd = Infinity, near: Zombie | null = null, nd = Infinity;
+  let best: Zombie | null = null, bd = Infinity;
   for (const z of vivi(s)) {
     const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
     if (d > gittata || !lineOfSight(g, h.x, h.z, z.x, z.z)) continue;
     const dot = d > 1e-6 ? (dx * h.fx + dz * h.fz) / d : 1;
     if (dot >= COS_TIRO && d < bd) { bd = d; best = z; }
-    if (d < nd) { nd = d; near = z; }
   }
-  return best ?? near;
+  return best;
 }
 function guarda(s: TState, z: { x: number; z: number } | null): void {
   if (!z) return;
@@ -81,7 +81,7 @@ export function autoA(s: TState): boolean {
 // ---------------- armi ----------------
 function inizia(s: TState, a: TArmaDef, caricato: boolean): void {
   const h = s.eroe, portata = a.portata ?? 1.5;
-  guarda(s, mira(s, portata * 1.5, portata));
+  guarda(s, mira(s, portata * 1.5));
   h.stile = caricato ? 'giro' : 'fendente';
   h.act = 'swing'; h.actT = 0; h.actDur = secToTicks(a.tempo * (caricato ? GIRO_TEMPO : 1));
   h.caricato = caricato; h.colpiti = []; h.colpito = false; h.carica = 0;
@@ -334,7 +334,12 @@ export function stepEroe(s: TState, inp: TInput): void {
   let mx = inp.mx, my = inp.my;
   const mag = Math.sqrt(mx * mx + my * my);
   if (mag > 1) { mx /= mag; my /= mag; }
-  h.moving = Math.min(1, mag) > 0.1;
+  // sfiorato: si gira sul posto (non durante un colpo che tiene la sua direzione)
+  if (mag > 0.05 && mag <= GIRA_SUL_POSTO) {
+    if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'spara' && h.act !== 'lancia') { h.fx = mx / mag; h.fz = my / mag; }
+    mx = 0; my = 0;
+  }
+  h.moving = mag > GIRA_SUL_POSTO;
   const lento = h.act !== 'idle';
   h.corre = h.moving && (inp.b || mag > 0.92) && !lento && !h.inMano && h.fiato > 0;
   if (h.corre) h.fiato = Math.max(0, h.fiato - DT);

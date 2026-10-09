@@ -36,7 +36,9 @@ function insegui(s: TState, z: Zombie, v = z.vel): void {
       const f = a.finestraDi[nx] ?? -1;
       if (f >= 0 && (s.assi[f] ?? 0) > 0) {
         // davanti alla finestra sbarrata: si mette in posizione e strappa
-        const p = a.finestre[f]!.fuori, ex = p.x - z.x, ez = p.z - z.z;
+        // dal lato dove sta: di solito fuori, ma chi passa dalla sacrestia (dentro da una finestra, fuori dall'altra) strappa da dentro
+        const fw = a.finestre[f]!, df = (fw.fuori.x - z.x) * (fw.fuori.x - z.x) + (fw.fuori.z - z.z) * (fw.fuori.z - z.z), dd = (fw.dentro.x - z.x) * (fw.dentro.x - z.x) + (fw.dentro.z - z.z) * (fw.dentro.z - z.z);
+        const p = df <= dd ? fw.fuori : fw.dentro, ex = p.x - z.x, ez = p.z - z.z;
         if (ex * ex + ez * ez > 0.36) { muovi(s, z, p.x, p.z, v); return; }
         z.finestra = f; setSt(z, 'strappa', secToTicks(z.def.strappa));
         const w = a.finestre[f]!, wx = w.x - z.x, wz = w.z - z.z, wd = Math.sqrt(wx * wx + wz * wz) || 1;

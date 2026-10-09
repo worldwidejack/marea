@@ -2,13 +2,16 @@
 // Mappa dell'arena dei Templari (docs/TEMPLARI.md §3): celle da 1 m disegnate con forme semplici (cerchi, rettangoli, segmenti) e scritte
 // come righe ASCII in packages/content/src/templari/mappa.json, che la sim legge (packages/sim/src/templari/mappa.ts).
 // Uso: node tools/templari_mappa.mjs [--stampa]   (--stampa mostra la mappa nel terminale)
-// Legenda — chiesa: '#' muro · 'o' colonna · '.' pavimento · 'W' finestra sbarrata · 'A' altare maggiore · 'a' altare laterale · 'p' stalli
-//   del coro · 'r' macerie del tetto · 'b' braciere · 'S' partenza · 'C' posto della cassa del tesoro.
+// Legenda — chiesa: '#' muro · 'N' tramezzo (il muro col passaggio tra rotonda e coro) · 'o' colonna · '.' pavimento · 'W' finestra
+//   sbarrata · 'A' altare maggiore · 'a' altare laterale · 'p' stalli del coro · 'V' sarcofago di un cavaliere con la statua distesa ·
+//   'Y' armadio della sacrestia · 'r' macerie del tetto · 'b' braciere · 'S' partenza · 'C' posto della cassa del tesoro.
+// Tre stanze: la rotonda (la navata), il coro (presbiterio e abside con l'altare) e la sacrestia a sud del coro (assito, armadi), che si
+// apre con la porta '6'.
 // Fuori: ',' terra del sagrato · 'v' acciottolato della piazza · 'e' erba del cimitero · 's' sabbia della spiaggia · 'w' assito della taverna
 //   · 'h' casa diroccata (muro) · 't' tenda dei pirati (muro) · 'm' muretto (basso, ferma tutti) · 'g' tomba · 'k' pozzo, carretti, botti,
 //   cannoni · 'q' macerie · ' ' fuori dalla mappa.
 // Porte (legenda `porta`: si comprano, aprono una zona): '1' portale → piazza · '2' porta nord → cimitero · '3' taverna · '4' dalla taverna
-//   all'accampamento · '5' dal cimitero all'accampamento.
+//   all'accampamento · '5' dal cimitero all'accampamento · '6' dal coro alla sacrestia.
 // Comparse degli zombie: 'z' sagrato (sempre attive) · 'y' piazza · 'u' cimitero · 'x' taverna · 'j' spiaggia (legenda `comparsa`: attive
 //   quando la loro zona è aperta). Armi sul muro (legenda `muro`), nella cella davanti: 'R' arco · 'M' mazza · 'X' ascia · 'G' pistola ·
 //   'K' moschetto · 'E' trombone. Trappole (legenda `trappola`): 'J' zona del rogo e 'Q' la sua leva · 'T' zona della campana e 'L' la leva.
@@ -52,7 +55,9 @@ set(60, 65, 'b'); set(46, 79, 'k'); set(47, 79, 'k'); set(72, 79, 'k'); set(73, 
 const R = { cx: 46, cz: 42.5, r: 10 };          // rotonda: muro tra 9 e 10 m dal centro
 const P = { x0: 54, x1: 68, z0: 36, z1: 48 };   // presbiterio: muri sul bordo, dentro z 37..47
 const AB = { cx: 68, cz: 42.5, r: 6 };          // abside: semicerchio a est del presbiterio
-const dentroChiesa = (x, z) => d(x, z, R.cx, R.cz) < R.r || (x >= P.x0 && x <= P.x1 && z >= P.z0 && z <= P.z1) || (x > P.x1 - 1 && d(x, z, AB.cx, AB.cz) < AB.r);
+const SA = { x0: 56, x1: 68, z0: 48, z1: 56 };   // sacrestia: a sud del presbiterio, il muro in comune è z 48
+const dentroChiesa = (x, z) => d(x, z, R.cx, R.cz) < R.r || (x >= P.x0 && x <= P.x1 && z >= P.z0 && z <= P.z1) || (x > P.x1 - 1 && d(x, z, AB.cx, AB.cz) < AB.r)
+  || (x >= SA.x0 && x <= SA.x1 && z >= SA.z0 && z <= SA.z1);
 // sagrato attorno: tutto ciò che sta entro 8 m dai muri esterni
 each((x, z) => {
   let near = false;
@@ -69,6 +74,11 @@ each((x, z) => {
 for (let z = P.z0 + 2; z <= P.z1 - 2; z++) for (let x = 53; x <= 56; x++) if (get(x, z) === '#') set(x, z, '.');
 // muro di testa del presbiterio verso l'abside: aperto (l'abside è il fondo)
 for (let z = P.z0 + 1; z <= P.z1 - 1; z++) if (get(P.x1, z) === '#') set(P.x1, z, '.');
+// tramezzo tra rotonda e coro: muro con un passaggio di 3 m al centro (le colonne dell'arco restano ai lati)
+for (const z of [P.z0 + 3, P.z0 + 4, P.z1 - 4, P.z1 - 3]) set(55, z, 'N');
+// sacrestia: il muro in comune col coro (con la porta), l'assito
+for (let x = SA.x0; x <= SA.x1; x++) set(x, SA.z0, '#');
+for (let z = SA.z0 + 1; z < SA.z1; z++) for (let x = SA.x0 + 1; x < SA.x1; x++) if (get(x, z) === '.') set(x, z, 'w');
 
 // ——— muretti che dividono il sagrato: ovest (piazza), nord (cimitero), sud-est (spiaggia) ———
 const muretto = (x0, z0, x1, z1) => rect(x0, z0, x1, z1, 'm', (c) => 'v,es '.includes(c));
@@ -89,7 +99,16 @@ set(55, 38, 'o'); set(55, 46, 'o');
 // altare maggiore nell'abside (2×3), stalli del coro lungo i fianchi del presbiterio
 for (let z = 41; z <= 43; z++) for (let x = 69; x <= 70; x++) set(x, z, 'A');
 for (const x of [62, 63, 64]) set(x, 37, 'p');   // a nord tra la mazza e la finestra (la porta nord resta libera)
-for (const x of [58, 59, 62, 63, 64]) set(x, 47, 'p'); // a sud, lasciando libere le due finestre
+for (const x of [57, 58, 59, 64, 65, 66]) set(x, 47, 'p'); // a sud, lasciando libera la porta della sacrestia
+// sacrestia: armadi dei paramenti lungo il muro nord e ovest, un tavolo coi calici in mezzo
+for (const x of [57, 58, 66, 67]) set(x, SA.z0 + 1, 'Y');
+for (const z of [52, 53]) set(SA.x0 + 1, z, 'Y');
+for (const x of [61, 62]) set(x, 52, 'k');
+// sarcofagi dei cavalieri nel deambulatorio della rotonda (le effigie della Temple Church): 1 × 2 m, tra le colonne e il muro
+for (const deg of [60, 120, 240, 300]) {
+  const ang = (deg * Math.PI) / 180, cx = Math.floor(R.cx + Math.cos(ang) * 7.2), cz = Math.floor(R.cz + Math.sin(ang) * 7.2) - (deg > 180 ? 1 : 0);
+  if (get(cx, cz) === '.' && get(cx, cz + 1) === '.') { set(cx, cz, 'V'); set(cx, cz + 1, 'V'); }
+}
 // bracieri: al centro della rotonda (dove nel Santo Sepolcro c'è l'edicola) e ai lati dell'arco del presbiterio
 for (const [x, z] of [[46, 42], [57, 40], [57, 44]]) set(x, z, 'b');
 // macerie del tetto crollato (ostacoli dentro)
@@ -110,13 +129,14 @@ function rotondaA(deg) {
   }
   throw new Error(`nessun muro della rotonda a ${deg}°`);
 }
-const finestre = [rotondaA(90), rotondaA(270), rotondaA(140), rotondaA(220), [60, P.z0], [65, P.z0], [60, P.z1], [65, P.z1]];
+const finestre = [rotondaA(90), rotondaA(270), rotondaA(140), rotondaA(220), [60, P.z0], [65, P.z0], [60, SA.z1], [65, SA.z1], [SA.x1, SA.z0 + 4]];
 for (let x = W - 1; x > AB.cx; x--) if (sulMuro(x, 42)) { finestre.push([x, 42]); break; } // abside: finestra a est
 for (const [x, z] of finestre) set(x, z, 'W');
 
 // ——— porte della chiesa: 1 = portale ovest della rotonda (verso la piazza), 2 = porta nord del presbiterio (verso il cimitero) ———
 for (let z = 41; z <= 43; z++) { for (let x = 30; x < R.cx; x++) if (sulMuro(x, z)) { set(x, z, '1'); break; } }
 for (const x of [57, 58]) set(x, P.z0, '2');
+for (const x of [61, 62]) set(x, SA.z0, '6'); // dal coro alla sacrestia
 
 /** L'altare laterale contro il muro della rotonda tra il portale e la finestra di nord-ovest, l'arco sulla cella davanti (verso il centro). */
 function altareLaterale() {
@@ -139,6 +159,7 @@ set(7, 67, 'G');                      // pistola a pietra focaia: muro ovest del
 set(42, 69, 'K');                     // moschetto: accanto alla prima tenda
 set(65, 68, 'E');                     // trombone: accanto alla terza tenda
 set(44, 34, 'C'); set(67, 37, 'C');   // cassa: in fondo alla rotonda e accanto all'abside
+set(SA.x1 - 1, SA.z1 - 2, 'C');      // e in sacrestia, contro il muro est
 set(11, 44, 'C'); set(69, 11, 'C'); set(55, 71, 'C'); // e nella piazza (contro una casa), davanti all'ossario, accanto a una tenda
 
 // ——— trappole: il rogo sulla passatoia del presbiterio, la campana davanti alla porta nord (fuori) ———
@@ -169,8 +190,8 @@ for (const [c, l] of Object.entries(comparse)) for (const [x, z] of l) { if ('ve
 for (const [x, z] of [[33, 33], [34, 52], [60, 30], [72, 33], [76, 50], [52, 56]]) if (fuori(x, z)) set(x, z, 'q');
 
 // ——— controlli: zone collegate dalle porte giuste, comparse raggiungibili, l'eroe chiuso in chiesa all'inizio ———
-const PORTE = '12345';
-const pieno = (c) => ' #ohtmApbrqkgaCW'.includes(c);
+const PORTE = '123456';
+const pieno = (c) => ' #ohtmApbrqkgaCWNVY'.includes(c);
 function bfs(sx, sz, solido) {
   const seen = new Set([sx + ',' + sz]), q = [[sx, sz]];
   while (q.length) {
@@ -202,6 +223,8 @@ for (const [c, porte] of Object.entries(zona)) {
 // ogni finestra si passa dritta: dentro un pavimento, fuori il sagrato
 for (const [x, z] of finestre) if (!QUATTRO.some(([dx, dz]) => !pieno(get(x + dx, z + dz)) && get(x - dx, z - dz) !== ' ' && !pieno(get(x - dx, z - dz)))) errs.push(`la finestra ${x},${z} non si attraversa`);
 if (!aperte(['2', '5']).has('50,82')) errs.push('dal cimitero col cancello 5 non si arriva alla spiaggia');
+// la sacrestia si apre solo con la sua porta
+{ const sc = `${SA.x0 + 3},${SA.z0 + 3}`; if (chiuso.has(sc)) errs.push('la sacrestia si raggiunge senza la porta 6'); if (!aperte(['6']).has(sc)) errs.push('con la porta 6 non si entra in sacrestia'); }
 // gli zombie delle comparse 'z' arrivano alla partenza dalle finestre (senza porte aperte)
 const daZombie = bfs(sx, sz, (c) => (pieno(c) && c !== 'W') || PORTE.includes(c));
 rows.forEach((r, z) => [...r].forEach((c, x) => { if (c === 'z' && !daZombie.has(x + ',' + z)) errs.push(`comparsa ${x},${z} non arriva alla chiesa`); }));
@@ -212,7 +235,7 @@ const trimmed = rows.map((r) => r.replace(/ +$/, ''));
 const out = {
   tile: 1,
   legenda: {
-    '1': { porta: 'portale' }, '2': { porta: 'cimitero' }, '3': { porta: 'taverna' }, '4': { porta: 'spiaggia_taverna' }, '5': { porta: 'spiaggia_cimitero' },
+    '1': { porta: 'portale' }, '2': { porta: 'cimitero' }, '3': { porta: 'taverna' }, '4': { porta: 'spiaggia_taverna' }, '5': { porta: 'spiaggia_cimitero' }, '6': { porta: 'sacrestia' },
     'R': { muro: 'arco' }, 'M': { muro: 'mazza' }, 'X': { muro: 'ascia' }, 'G': { muro: 'pistola' }, 'K': { muro: 'moschetto' }, 'E': { muro: 'trombone' },
     'y': { comparsa: 'piazza' }, 'u': { comparsa: 'cimitero' }, 'x': { comparsa: 'taverna' }, 'j': { comparsa: 'spiaggia' },
     'J': { trappola: 'rogo' }, 'Q': { leva: 'rogo' }, 'T': { trappola: 'campana' }, 'L': { leva: 'campana' },

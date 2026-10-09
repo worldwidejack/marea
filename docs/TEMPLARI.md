@@ -29,7 +29,7 @@ Si gioca in una scena a parte (come i dungeon): l'isola vista da vicino, camera 
 
 | Zona | Cosa c'è | Come ci arrivi |
 |---|---|---|
-| **Chiesa di Santa Maria del Tempio** | navata con le panche rovesciate, altare maggiore nell'abside a est, altare laterale con l'**arco**, finestre sbarrate (gli zombie entrano da lì), muri con le armi da comprare, la **trappola del rogo**; fuori dalla porta nord la **campana** | si parte qui |
+| **Chiesa di Santa Maria del Tempio** | tre stanze: la **rotonda** (la navata: giro di colonne col tamburo di archi, i sarcofagi dei cavalieri con la statua distesa, panche rovesciate, l'altare laterale con l'**arco**), il **coro** (presbiterio e abside con l'altare maggiore, stalli, arazzi rossi, candelabri, la **trappola del rogo**; lo separa dalla rotonda un tramezzo col crocifisso e un passaggio di 3 m) e la **sacrestia** (assito, armadi dei paramenti, tavolo coi calici, un posto della cassa; porta dal coro); finestre sbarrate con le vetrate sopra, muri con le armi da comprare; fuori dalla porta nord la **campana** | si parte nel coro; sacrestia **750** |
 | **Piazza del borgo** | case diroccate, pozzo, carretti, la cassa del tesoro (a volte) | porta ovest della chiesa, **750** |
 | **Cimitero** | tombe da cui escono gli zombie, ossario | porta nord della chiesa, **1000** |
 | **Taverna del Teschio** | banconi e botti, **pistola a pietra focaia** sul muro | dalla piazza, **750** |
@@ -59,6 +59,7 @@ Zombie e punti di comparsa si accendono zona per zona: finché una porta è chiu
 | n | 6 + 2,6·(n−1) + 0,06·(n−1)², al massimo 80 | |
 
 ## 5. Controlli
+- **Mira** (passo 9): niente attacco automatico, colpisci solo quando premi. Il joystick (o WASD) appena sfiorato ti gira sul posto senza muoverti; da PC, se non cammini, l'eroe guarda il puntatore del mouse e il clic attacca lì. La spada colpisce davanti a te; archi e armi da fuoco aiutano solo dentro un cono stretto (~35°) davanti: fuori dal cono il colpo va dritto dove guardi. **Arco**: tieni premuto per tendere (più tendi, più fa male), lascia per tirare. **Pistole e moschetto**: un tocco = un colpo, a caricatore vuoto ricaricano da sole (le munizioni si comprano sul muro). **Fuoco greco**: un tocco lancia il vaso dove guardi.
 - **Telefono**: joystick (spinto fino in fondo = corsa, 5 s di fiato), bottone grande **A** (attacca), **AZIONE** (compra, apri, prendi, ripara, accendi: il bottone dice cosa e quanto costa), **SCAMBIA** (le due armi), **SCUDO** (se ce l'hai).
 - **PC**: WASD/frecce, Spazio, E o clic = attacca (tenuto = giro caricato), **F** = azione (tenuto per riparare), **Q** = scambia (lo scudo in mano è la terza «arma»), Shift = corsa, Esc = pausa.
 - **Mira automatica di serie**: ogni colpo si gira verso lo zombie più vicino davanti a te, e con **AUTO** acceso (di serie) l'eroe attacca da solo quando ne ha uno a tiro: basta il joystick. **A MANO** (dalla pausa): attacchi solo quando premi, così non sprechi frecce e colpi.
