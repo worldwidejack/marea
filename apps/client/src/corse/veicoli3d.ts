@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { M, P, merged, painted } from '../render/island_parts.ts';
 import { kartGeo } from '../render/island_corse.ts';
+import { MODELLO, kitPronto, veicoloKit } from './veicoli_kit.ts';
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cyl = (r0: number, r1: number, h: number, n = 8) => new THREE.CylinderGeometry(r0, r1, h, n);
@@ -24,7 +25,14 @@ function pilota(parts: THREE.BufferGeometry[], colore: string, casco: string, y:
   parts.push(painted(box(0.4, 0.14, 0.06), P.neroCaldo, M(0, y + 0.77, z - 0.33)));
 }
 
-export function veicoloGeo(id: string, colore: string, casco: string): THREE.BufferGeometry {
+/** `aspetto` = un modello del kit (cs_v_…) al posto di quello del veicolo; `animale` = il pilota animale (cs_p_…) al posto del segnaposto.
+ *  Finché il kit non è caricato (o per i veicoli senza modello) si disegnano i segnaposto grigi di sempre. */
+export function veicoloGeo(id: string, colore: string, casco: string, aspetto?: string | null, animale?: string | null): THREE.BufferGeometry {
+  const modello = aspetto || MODELLO[id];
+  if (modello && kitPronto()) {
+    const k = veicoloKit(modello, animale ?? null, (y, z) => { const p: THREE.BufferGeometry[] = []; pilota(p, colore, casco, y, z); return merged(p); });
+    if (k) { if (!animale) OCCHI.set(id, k.occhi); return k.geo; } // la camera cofano guarda dagli occhi del giocatore, non dei bot
+  }
   const parts: THREE.BufferGeometry[] = [];
   switch (id) {
     case 'auto': {

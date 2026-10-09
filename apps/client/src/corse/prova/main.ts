@@ -33,6 +33,7 @@ import type { Pista3d } from '../nastro3d.ts';
 import { matOnda, ondaGeo } from '../onda3d.ts';
 import { creaSuoni } from '../suoni.ts';
 import { veicoloGeo } from '../veicoli3d.ts';
+import { ASPETTI, PILOTI, caricaKit } from '../veicoli_kit.ts';
 import { creaRegia } from './camera.ts';
 import { stileProva } from './stile.ts';
 
@@ -55,6 +56,7 @@ const q = new URLSearchParams(location.search);
 const opz = { ...opzioniGara({ pista: q.get('pista'), veicolo: q.get('veicolo'), bot: q.get('bot'), ...Object.fromEntries(REGOLE.map(([id]) => [id, q.get(id)])) }) };
 const camQ = q.get('cam') === 'vicina' ? 'cofano' : q.get('cam');
 let cam: Camera = CAMERE.includes(camQ as Camera) ? (camQ as Camera) : 'dietro';
+let aspetto = ASPETTI.includes(q.get('aspetto') as never) ? q.get('aspetto')! : '', animali = q.get('animali') !== '0';
 let gasAuto = q.get('gas') === 'auto', auto = q.get('auto') === '1', luce: StyleId = 'giorno', effetti = q.get('effetti') !== '0', pausa = false;
 
 // ---------- resa (come provapixel: immagine piccola, passata finale coi contorni, il cielo e la palette) ----------
@@ -111,7 +113,7 @@ function nuovaGara(cambiaPista: boolean) {
   s = garaCorse.create({ seed: (Math.random() * 1e9) >>> 0, difficulty: 2, opzioni: opz });
   for (const m of meshes) { scene.remove(m); m.geometry.dispose(); }
   meshes = s.veicoli.map((k, i) => {
-    const m = new THREE.Mesh(veicoloGeo(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!), matVeicoli);
+    const m = new THREE.Mesh(veicoloGeo(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!, aspetto, animali && i ? PILOTI[(i - 1) % PILOTI.length]! : null), matVeicoli);
     m.castShadow = true; m.matrixAutoUpdate = false; m.name = i ? `corse_bot_${i}` : 'corse_tu'; scene.add(m);
     return m;
   });
@@ -233,6 +235,8 @@ const ROWS: Riga[] = [
   ['P', 'pista', () => p.def.nome, () => { opz['pista'] = PISTE[(PISTE.indexOf(opz['pista']!) + 1) % PISTE.length]!; opz['veicolo'] = ''; nuovaGara(true); }],
   ['V', 'veicolo', () => CORSE.veicoli.find((v) => v.id === opz['veicolo'])?.nome ?? '', () => { const l = famigliaVeicoli(); opz['veicolo'] = l[(l.findIndex((v) => v.id === opz['veicolo']) + 1) % l.length]!.id; nuovaGara(false); }],
   ['B', 'bot', () => (opz['bot'] === '0' ? 'no' : 'sì'), () => { opz['bot'] = opz['bot'] === '0' ? '1' : '0'; nuovaGara(false); }],
+  ['S', 'aspetto', () => (aspetto ? aspetto.replace('cs_v_', '').replace('_', ' ') : 'del veicolo'), () => { aspetto = aspetto ? (ASPETTI[ASPETTI.indexOf(aspetto as never) + 1] ?? '') : ASPETTI[0]; nuovaGara(false); }],
+  ['A', 'animali piloti', () => (animali ? 'sì' : 'no'), () => { animali = !animali; nuovaGara(false); }, () => animali],
   ['T', 'pilota automatico', () => (auto ? 'sì' : 'no'), () => { auto = !auto; }],
   ['R', 'ricomincia', () => '', () => nuovaGara(false)],
   ['L', 'luce', () => luce, () => setLuce(LUCI[(LUCI.indexOf(luce) + 1) % LUCI.length]!)],
@@ -321,6 +325,7 @@ function aggiornaHud(v: GaraView, dt: number) {
 
 // ---------- ciclo ----------
 setLuce(luce); resize(); nuovaGara(true);
+void caricaKit().then(() => nuovaGara(false)); // i veicoli veri arrivano appena i glb sono scaricati; intanto ci sono i segnaposto
 const perf = { fps: 0, frames: 0, acc: 0 };
 let last = performance.now(), acc = 0, time = 0;
 function frame(now: number) {
@@ -353,10 +358,12 @@ const api = {
       risultato: s.done ? garaCorse.result(s) : null };
   },
   /** Cambia pista, veicolo, bot, regole, camera, pilota automatico; `vai` = salta il conto alla rovescia; `pausa` = ferma la gara. */
-  set: (o: { pista?: string; veicolo?: string; bot?: boolean; cam?: Camera; auto?: boolean; luce?: StyleId; vai?: boolean; regole?: Record<string, boolean>; effetti?: boolean; pausa?: boolean }) => {
+  set: (o: { pista?: string; veicolo?: string; aspetto?: string; animali?: boolean; bot?: boolean; cam?: Camera; auto?: boolean; luce?: StyleId; vai?: boolean; regole?: Record<string, boolean>; effetti?: boolean; pausa?: boolean }) => {
     const nuovaPista = o.pista !== undefined && o.pista !== opz['pista'];
     if (o.pista !== undefined) { opz['pista'] = o.pista; if (nuovaPista) opz['veicolo'] = ''; }
     if (o.veicolo !== undefined) opz['veicolo'] = o.veicolo;
+    if (o.aspetto !== undefined) aspetto = o.aspetto;
+    if (o.animali !== undefined) animali = o.animali;
     if (o.bot !== undefined) opz['bot'] = o.bot ? '1' : '0';
     if (o.regole) for (const [id, on] of Object.entries(o.regole)) opz[id] = on ? '1' : '0';
     if (o.cam) cam = o.cam;
@@ -364,7 +371,7 @@ const api = {
     if (o.effetti !== undefined) effetti = o.effetti;
     if (o.pausa !== undefined) pausa = o.pausa; // la gara si ferma, la resa e gli effetti no (per le foto dei test)
     if (o.luce) setLuce(o.luce);
-    if (o.pista !== undefined || o.veicolo !== undefined || o.bot !== undefined || o.regole) nuovaGara(nuovaPista);
+    if (o.pista !== undefined || o.veicolo !== undefined || o.aspetto !== undefined || o.animali !== undefined || o.bot !== undefined || o.regole) nuovaGara(nuovaPista);
     if (o.vai && s.tick < 0) s.tick = 0;
     regia.st.ok = false; scrivi();
     return api.state();
