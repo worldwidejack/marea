@@ -190,29 +190,21 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.ingressi.aborts === 2 && !s.dungeon.active, 8000);
     });
 
-    let riprove = 0; // discese del Drenaggio finite dall'autopilota prima della valvola: contano tra i finish
-    await ctx.test('Drenaggio: si entra (3 bacini pieni, 3 valvole); l’autopilota gira una valvola e l’acqua scende; uscita con Esc', async () => {
-      for (let prova = 1; ; prova++) {
-        await hook('enterDungeon', 'drenaggio');
-        await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
-        if (prova === 1) {
-          const d0 = (await st()).dungeon;
-          assert(d0.acque.length === 3 && d0.acque.every((a) => a.livello === 1) && d0.valvole.length === 3 && d0.fx?.valvole === 3, 'drenaggio: ' + JSON.stringify({ acque: d0.acque, valvole: d0.valvole, fx: d0.fx }));
-          assert(d0.testi?.titolo, 'drenaggio: scritta col nome ' + JSON.stringify(d0.testi));
-          await sleep(1200); await samplePerf();
-          await ctx.shot(page, '4b_drenaggio_1280');
-        }
-        await hook('dungeonAutopilot', true, 20); // ~3.800 tick fino alla prima valvola: su GitHub (2-4 fps) serve la velocità massima
-        await ctx.waitState(page, (s) => s.dungeon.valvole?.some((v) => v.aperta) || s.dungeonEsito?.open, 150000);
-        await hook('dungeonAutopilot', false);
-        if ((await st()).dungeon.valvole?.some((v) => v.aperta)) break;
-        // con l'eroe di partenza, senza pozioni e sotto il 25 % di vita, l'autopilota torna alla scala (circa un seed su otto): OK, nuovo seed
-        assert(prova < 10, 'l’autopilota non arriva alla valvola nemmeno in 10 discese');
-        ctx.log(`drenaggio: l'autopilota è uscito prima della valvola (prova ${prova}), si riprova`);
-        riprove++;
-        await page.locator('#mzDngEsito [data-act="ok"]').click();
-        await ctx.waitState(page, (s) => !s.dungeonEsito.open && !s.ingressi.busy && !s.dungeon.active, 5000);
-      }
+    await ctx.test('Drenaggio: si entra (3 bacini pieni, 3 valvole); si cammina alla valvola, la si gira e l’acqua scende; uscita con Esc', async () => {
+      await hook('enterDungeon', 'drenaggio');
+      await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
+      const d0 = (await st()).dungeon;
+      assert(d0.acque.length === 3 && d0.acque.every((a) => a.livello === 1) && d0.valvole.length === 3 && d0.fx?.valvole === 3, 'drenaggio: ' + JSON.stringify({ acque: d0.acque, valvole: d0.valvole, fx: d0.fx }));
+      assert(d0.testi?.titolo, 'drenaggio: scritta col nome ' + JSON.stringify(d0.testi));
+      await sleep(1200); await samplePerf();
+      await ctx.shot(page, '4b_drenaggio_1280');
+      // si cammina dritti fino alla valvola 1 (sala delle pompe) e si preme il suo bottone: niente autopilota, che con l'eroe di partenza
+      // arrivava alla valvola solo qualche volta su dieci (dipende dai nemici e dal seed); a piedi ci arriva sempre (sim: 60 seed su 60)
+      const v1 = parseDungeon(DUNGEONS.find((d) => d.id === 'drenaggio')).valvole.find((v) => v.n === 1);
+      await hook('dungeonVai', v1.cx, v1.cz);
+      await ctx.waitState(page, (s) => s.dungeon.vicinoValvola || !s.dungeon.active, 150000);
+      await page.waitForSelector('#mzDngValvola.on', { timeout: 5000 });
+      await page.locator('#mzDngValvola').click();
       await ctx.waitState(page, (s) => s.dungeon.acque.some((a) => a.livello < 1), 5000);
       await sleep(600); await samplePerf(2);
       await ctx.shot(page, '4c_drenaggio_valvola_1280');
@@ -284,7 +276,7 @@ export default async function (ctx) {
       await page.locator('#mzDngAsk [data-act="esci"]').click();
       await ctx.waitState(page, (s) => s.dungeonEsito && s.dungeonEsito.open, 15000);
       const s = await st();
-      assert(s.ingressi.finishes === 2 + riprove && s.ingressi.aborts === 4 && s.dungeonEsito.outcome === 'risalito' && /RISALITO/.test(s.dungeonEsito.text), 'esito: ' + JSON.stringify({ i: s.ingressi, e: s.dungeonEsito?.outcome }));
+      assert(s.ingressi.finishes === 2 && s.ingressi.aborts === 4 && s.dungeonEsito.outcome === 'risalito' && /RISALITO/.test(s.dungeonEsito.text), 'esito: ' + JSON.stringify({ i: s.ingressi, e: s.dungeonEsito?.outcome }));
       assert(!(await getLot('tokA')).dungeon?.pending, 'la spedizione resta aperta dopo l’uscita con l’altare');
       await page.locator('#mzDngEsito [data-act="ok"]').click();
       await ctx.waitState(page, (s) => !s.dungeonEsito.open && !s.ingressi.busy && !s.dungeon.active, 5000);
