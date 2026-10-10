@@ -1,6 +1,6 @@
 // Corse tra amici (PROTOCOL.md §8, 10 ott 2026): messaggi del WebSocket `/ws/gara` verso il DO GaraAmici. Una sala sola: chi apre la
 // gara con gli amici alla porta della Spiaggia entra in sala; chiunque preme VIA (con almeno un altro in sala) e il server manda a tutti
-// pista, seed e posto in griglia. Ognuno corre la SUA gara (sim locale senza bot, rigiocata dal server come una partita da solo) e manda
+// pista, seed e posto in griglia. Ognuno corre la SUA gara (sim locale, coi suoi bot se chi preme VIA li vuole; rigiocata dal server come una partita da solo) e manda
 // la sua posizione ~12 volte al secondo; il server la gira agli altri, che disegnano gli amici come «fantasmi» (niente urti tra amici).
 // Solo tipi e controlli di forma: questo file non importa la sim.
 import type { Look } from './messages.ts';
@@ -16,8 +16,8 @@ export type GaPos = [number, number, number, number, number, number, number, num
 export type GaClientMsg =
   /** Entro in sala (o cambio veicolo). */
   | { t: 'ciao'; veicolo: string }
-  /** Si parte su `pista` (chiunque in sala, con almeno 2 persone). */
-  | { t: 'via'; pista: string }
+  /** Si parte su `pista` (chiunque in sala, con almeno 2 persone); `bot` = anche gli animali piloti (mancante = no). */
+  | { t: 'via'; pista: string; bot?: boolean }
   /** La mia posizione in gara. */
   | { t: 'p'; q: GaPos }
   /** Sono arrivato (ms di gara), o mi sono ritirato (ms = −1). */
@@ -28,8 +28,8 @@ export type GaClientMsg =
 export type GaServerMsg =
   /** La sala (a ogni cambio): chi c'è; `gara` = in corso (chi ci corre non può ripartire finché non finisce). */
   | { t: 'sala'; membri: GaMembro[]; max: number; gara: { pista: string; membri: string[] } | null }
-  /** Si parte: tutti i corridori in ordine di griglia, io = il mio posto (indice in `membri`). */
-  | { t: 'parte'; gara: string; pista: string; seed: number; io: number; membri: GaMembro[] }
+  /** Si parte: tutti i corridori in ordine di griglia, io = il mio posto (indice in `membri`); `bot` = ognuno corre anche coi suoi bot. */
+  | { t: 'parte'; gara: string; pista: string; seed: number; io: number; membri: GaMembro[]; bot?: boolean }
   /** La posizione del corridore `i` (indice in `membri` di `parte`). */
   | { t: 'p'; i: number; q: GaPos }
   /** Il corridore `i` è arrivato (ms) o si è ritirato (−1). */
@@ -48,7 +48,7 @@ export function parseGaClient(text: string): GaClientMsg | null {
   try { const v: unknown = JSON.parse(text); if (!v || typeof v !== 'object' || Array.isArray(v)) return null; m = v as Record<string, unknown>; } catch { return null; }
   switch (m['t']) {
     case 'ciao': return isId(m['veicolo']) ? { t: 'ciao', veicolo: m['veicolo'] } : null;
-    case 'via': return isId(m['pista']) ? { t: 'via', pista: m['pista'] } : null;
+    case 'via': return isId(m['pista']) ? { t: 'via', pista: m['pista'], bot: m['bot'] === true } : null;
     case 'p': return isGaPos(m['q']) ? { t: 'p', q: m['q'] } : null;
     case 'fine': return isInt(m['ms'], -1, 1e7) ? { t: 'fine', ms: m['ms'] } : null;
     case 'esco': return { t: 'esco' };

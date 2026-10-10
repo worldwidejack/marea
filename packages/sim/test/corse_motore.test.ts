@@ -284,9 +284,9 @@ test('corse v2: deterministico (stessi input → stesso risultato e stessi veico
   assert.equal(nuova('prova_baia', undefined, false).veicoli.length, 1);
 });
 
-test('corse tra amici: senza bot ognuno parte dal suo posto in griglia, e l\'opzione resta solo senza bot', () => {
+test('corse tra amici: ognuno parte dal suo posto in griglia (coi bot, dietro ai bot)', () => {
   assert.equal(opzioniGara({ pista: 'spiaggia_lungomare', bot: '0', posto: '2' })['posto'], '2');
-  assert.equal(opzioniGara({ pista: 'spiaggia_lungomare', bot: '1', posto: '2' })['posto'], undefined, 'coi bot il posto non vale');
+  assert.equal(opzioniGara({ pista: 'spiaggia_lungomare', bot: '1', posto: '2' })['posto'], '2', 'anche coi bot');
   assert.equal(opzioniGara({ pista: 'spiaggia_lungomare', bot: '0', posto: '9' })['posto'], undefined, 'posto fuori elenco');
   assert.equal(opzioniGara({ pista: 'spiaggia_lungomare' })['posto'], undefined, 'da solo come prima');
   const G = CORSE_PISTE['spiaggia_lungomare']!.griglia;
@@ -300,4 +300,11 @@ test('corse tra amici: senza bot ognuno parte dal suo posto in griglia, e l\'opz
   // da solo (senza posto) in fondo come sempre
   const solo = garaCorse.create({ seed: 7, difficulty: 2, opzioni: opzioniGara({ pista: 'spiaggia_lungomare', veicolo: 'kart', bot: '0' }) });
   assert.deepEqual([solo.veicoli[0]!.prog, solo.veicoli[0]!.lat], G[G.length - 1]);
+  // coi bot: i bot davanti come da solo, il primo amico dove starebbe da solo, il secondo una fila più indietro
+  const conBot = [0, 1].map((i) => garaCorse.create({ seed: 7, difficulty: 2, opzioni: opzioniGara({ pista: 'spiaggia_lungomare', veicolo: 'kart', bot: '1', posto: String(i) }) }));
+  const soloBot = garaCorse.create({ seed: 7, difficulty: 2, opzioni: opzioniGara({ pista: 'spiaggia_lungomare', veicolo: 'kart', bot: '1' }) });
+  assert.equal(conBot[0]!.veicoli.length, soloBot.veicoli.length, 'gli stessi bot di quando corri da solo');
+  assert.deepEqual(conBot[0]!.veicoli.map((k) => [k.prog, k.lat]), soloBot.veicoli.map((k) => [k.prog, k.lat]), 'il primo amico parte come da solo');
+  assert.ok(conBot[1]!.veicoli[0]!.prog < conBot[0]!.veicoli[0]!.prog, 'il secondo amico più indietro');
+  for (const s of conBot) for (const b of s.veicoli.slice(1)) assert.ok(b.prog > s.veicoli[0]!.prog, 'i bot partono davanti agli amici');
 });

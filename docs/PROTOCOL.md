@@ -179,20 +179,20 @@ Gara in tempo reale tra amici, a fantasmi (niente urti tra amici): **WebSocket**
 ```ts
 // client → server
 { t: 'ciao', veicolo }                       // entro in sala o cambio veicolo (id di CORSE.veicoli; sconosciuto → 'kart', che è anche il default)
-{ t: 'via', pista }                          // VIA: chiunque in sala, pista della Spiaggia (id in CORSE_PISTE che comincia con 'spiaggia_')
+{ t: 'via', pista, bot? }                    // VIA: chiunque in sala, pista della Spiaggia (id in CORSE_PISTE che comincia con 'spiaggia_'); bot: true = anche gli animali piloti
 { t: 'p', q: GaPos }                         // la mia posizione, ~ogni 80 ms: [prog, ramo, s, lat, h, hf, hl, v, drift, giro, caduto]
 { t: 'fine', ms }                            // sono arrivato (ms di gara ≥ 0) o mi ritiro (−1)
 { t: 'esco' }                                // esco dalla sala
 
 // server → client
 { t: 'sala', membri: GaMembro[], max, gara: { pista, membri: id[] } | null }   // a ogni cambio, a tutti; GaMembro = { id, nome, look, veicolo }
-{ t: 'parte', gara, pista, seed, io, membri: GaMembro[] }                       // si parte: membri in ordine di griglia, io = il mio posto
+{ t: 'parte', gara, pista, seed, io, membri: GaMembro[], bot }                  // si parte: membri in ordine di griglia, io = il mio posto, bot = coi bot
 { t: 'p', i, q: GaPos }                                                         // posizione del corridore i (indice in `membri` di `parte`)
 { t: 'fine', i, ms }                                                            // il corridore i è arrivato (ms) o si è ritirato (−1)
 { t: 'errore', msg }                                                            // sala piena, da soli, pista sbagliata, gara in corso
 ```
 - **Sala**: aprire il socket = entrare (in ordine di entrata, che è l'ordine di griglia). Al massimo 6: il 7° riceve `errore` («La sala è piena (6)») e chiusura 1013. La stessa persona da un'altra scheda sostituisce la vecchia (se era in gara, conta come uscita). Chiudere il socket o `esco` = uscire.
 - **Partenza**: una gara alla volta. `via` con una gara in corso → `errore` («C'è già una gara in corso: aspetta che finisca»); con meno di 2 in sala → `errore` («Servono almeno 2 amici in sala»). Altrimenti il DO sceglie id (UUID) e seed (0…2³²−1), i corridori sono tutti quelli in sala, e ognuno riceve `parte` col suo `io`; poi la sala con `gara`. Chi entra in sala durante una gara aspetta la prossima.
-- **In gara**: ognuno corre la sua sim locale (senza bot) col seed comune; `p` va agli altri corridori col suo indice (al massimo 25 `p` al secondo per socket, gli altri si scartano). `fine` va agli altri; un secondo `fine` è ignorato. Chi è arrivato resta collegato e riceve ancora `p` e `fine` degli altri finché la gara è in corso. Chi esce senza aver finito conta come `fine` −1 per gli altri; chi esce dopo il suo arrivo no (l'arrivo resta). Quando tutti hanno finito (arrivati o ritirati) la gara si chiude: sala con `gara: null`. Rete di sicurezza: una gara aperta da più di 8 minuti si chiude da sola.
+- **In gara**: ognuno corre la sua sim locale col seed comune, coi suoi 4 bot se `bot` (11 ott, #199: i bot sono di ognuno, come da solo; gli amici partono dietro ai bot, il posto `io` dopo di loro); `p` va agli altri corridori col suo indice (al massimo 25 `p` al secondo per socket, gli altri si scartano). `fine` va agli altri; un secondo `fine` è ignorato. Chi è arrivato resta collegato e riceve ancora `p` e `fine` degli altri finché la gara è in corso. Chi esce senza aver finito conta come `fine` −1 per gli altri; chi esce dopo il suo arrivo no (l'arrivo resta). Quando tutti hanno finito (arrivati o ritirati) la gara si chiude: sala con `gara: null`. Rete di sicurezza: una gara aperta da più di 8 minuti si chiude da sola.
 - **Esito**: il server della gara non dà premi né rigioca niente; ognuno chiude la sua corsa come una partita da solo (rigiocata dal DO del suo lotto).
 - **Abusi**: messaggi oltre 512 caratteri o non validi si scartano; 10 non validi di fila → chiusura 1003. Al massimo 40 messaggi al secondo (oltre ai `p`).
