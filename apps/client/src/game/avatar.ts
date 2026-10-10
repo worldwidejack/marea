@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { newAvatar, stepAvatar } from '@marea/sim';
 import type { AvatarState, GridMap, InputFrame } from '@marea/sim';
-import type { Look } from '@marea/protocol';
+import type { Indossa, Look } from '@marea/protocol';
 import { AVATAR, BALANCE } from '@marea/content';
 import type { Loader } from '../render/loader.ts';
 import { createAnimator } from '../render/anim.ts';
@@ -30,6 +30,13 @@ export type Avatar = {
   setGround(fn: ((x: number, z: number) => number) | null): void;
   readonly attached: boolean;
   readonly usesModel: boolean;
+  /** Armatura o veste sul corpo e arma sulla schiena (#190); `undefined` = niente. `schiena` falso = l'arma è in mano (dungeon): resta solo la faretra.
+   *  'partenza' = l'equipaggiamento di un personaggio nuovo (il lotto non ha ancora un personaggio salvato). Si vede solo col modello glTF (il segnaposto a box non si veste). L'equipaggiamento si carica a richiesta, senza bloccare. */
+  setIndossa(i: Indossa | 'partenza' | undefined, o?: { schiena?: boolean }): void;
+  /** Materiali dell'equipaggiamento già caricato (per il lampo quando l'eroe è colpito). */
+  indossaMats(): THREE.MeshLambertMaterial[];
+  /** Cosa si vede adesso (per i test); null se niente è ancora vestito. */
+  indossaStato(): { corpo: string | null; arma: string | null; faretra: boolean; tri: number } | null;
 };
 
 const HIP_H = 0.82, SIT_HIP = 0.42, SEAT_DROP = 0.37; // altezza del bacino in piedi / seduto; bacino → seduta
@@ -153,7 +160,7 @@ function buildRig(look: Look): Rig {
 }
 
 // ---------- modello glTF ----------
-type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void };
+type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void; rest: Map<string, THREE.Matrix4> };
 /** Il loader clona con Object3D.clone: gli SkinnedMesh restano legati alle ossa dell'originale. Le ricolleghiamo per nome (idempotente). */
 function rebindSkins(root: THREE.Object3D): void {
   root.traverse((n) => {
@@ -165,6 +172,10 @@ function rebindSkins(root: THREE.Object3D): void {
 async function loadModel(loader: Loader): Promise<ModelRig> {
   const { scene, clips } = await loader.load('chr_base');
   rebindSkins(scene);
+  // il corpo a riposo (prima che parta una clip): l'equipaggiamento (rpg/vestito.ts) ci misura i pezzi sulle ossa
+  scene.updateMatrixWorld(true);
+  const rest = new Map<string, THREE.Matrix4>();
+  scene.traverse((n) => { if ((n as THREE.Bone).isBone) rest.set(n.name, n.matrixWorld.clone()); });
   const groups: Record<'pelle' | 'capelli' | 'vestito' | 'cappello', THREE.MeshLambertMaterial[]> = { pelle: [], capelli: [], vestito: [], cappello: [] };
   const conv = (old: THREE.Material): THREE.Material => {
     const o = old as THREE.MeshStandardMaterial;
@@ -207,7 +218,7 @@ async function loadModel(loader: Loader): Promise<ModelRig> {
       if (n.name.startsWith('cappello_')) n.visible = n.name === `cappello_${k.hat}`;
     });
   };
-  return { root: scene, anim: createAnimator(scene, clips), setLook };
+  return { root: scene, anim: createAnimator(scene, clips), setLook, rest };
 }
 
 /** Dove guarda davvero l'oggetto in assi mondo [x, z] (per i test). */
@@ -238,6 +249,9 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   };
   const applyLook = (l: Look) => { look = l; if (model) model.setLook(l); else rig?.setLook(l); };
   applyLook(look);
+  // equipaggiamento (#190): il modulo si importa solo quando c'è qualcosa da vestire (porta con sé il catalogo del GDR)
+  let vestito: Promise<import('../rpg/vestito.ts').Vestito> | null = null, vestitoOra: import('../rpg/vestito.ts').Vestito | null = null, indossa: Indossa | 'partenza' | undefined;
+  const vuoto = (i: Indossa | 'partenza' | undefined) => !i || (i !== 'partenza' && !(i.corpo || i.arma || i.frecce));
 
   function poseRig(dt: number, speed: number, want: string): void {
     const r = rig!, sit = want === 'sit' || want === 'row';
@@ -293,6 +307,18 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
     },
     teleport(x, z) { state = { ...state, x, z, vx: 0, vz: 0 }; prev = state; snap = true; },
     setLook: applyLook,
+    setIndossa(i, opt) {
+      if (!model) return;
+      indossa = vuoto(i) ? undefined : i;
+      if (!indossa && !vestito) return; // niente da togliere
+      const schiena = opt?.schiena !== false, fatto = indossa;
+      // in superficie si carica a tempo perso (porta con sé i dati del GDR: qualche decina di KB gzip), nel dungeon subito
+      vestito ??= new Promise<void>((r) => (!schiena || typeof requestIdleCallback !== 'function' ? setTimeout(r, schiena ? 500 : 0) : requestIdleCallback(() => r(), { timeout: 3000 })))
+        .then(() => import('../rpg/vestito.ts')).then((m) => (vestitoOra = m.creaVestito({ loader: o.loader, root: model!.root, rest: model!.rest })));
+      void vestito.then((v) => v.set(fatto, schiena)).catch((e) => console.warn('[marea] equipaggiamento non vestito', e));
+    },
+    indossaMats: () => vestitoOra?.materiali() ?? [],
+    indossaStato: () => vestitoOra?.stato() ?? null,
     gesto(hop, spin) { body.position.y = bodyY + hop; body.rotation.y = bodyYaw + spin; },
     setGround(fn) { groundFn = fn; snap = true; },
     attachTo(parent, seat = { x: 0, y: SEAT_DROP, z: 0 }, yaw = 0) {
@@ -313,7 +339,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   };
   if (!registered) {
     registered = true;
-    registerStateProvider('wp2_avatar', () => ({ ticks, facing: facing(object), model: !!model, shown, clip: model?.anim.current ?? null, attached, y: object.position.y, mv, runB, sitB, rowB, look }));
+    registerStateProvider('wp2_avatar', () => ({ ticks, facing: facing(object), model: !!model, shown, clip: model?.anim.current ?? null, attached, y: object.position.y, mv, runB, sitB, rowB, look, indossa: indossa ?? null, vestito: api.indossaStato() }));
   }
   return api;
 }

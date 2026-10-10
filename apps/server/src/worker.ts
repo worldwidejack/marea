@@ -4,7 +4,10 @@ import { AVATAR } from '@marea/content';
 import type { Look, LookSalvato } from '@marea/protocol';
 import { barcaDi, coloreBarca, diSerie, validaBarca } from '@marea/sim/economy/barca.ts';
 import type { BarcaLook } from '@marea/sim/economy/barca.ts';
-import type { Env } from './env.ts';
+import type { LotState } from '@marea/sim';
+import { heroOf } from '@marea/sim/rpg/hero.ts';
+import { indossaDa, indossaValida, stessoIndossa } from '@marea/sim/rpg/indossa.ts';
+import type { Env, Persona } from './env.ts';
 import { autentica } from './auth.ts';
 import { nowFor } from './clock.ts';
 import { elencoPersone, entraConInvito, esistePersona, salvaLook, segnaAccesso } from './db.ts';
@@ -94,8 +97,30 @@ async function avvisaZona(env: Env, persona: string, look: LookSalvato): Promise
 function conTitolo(look: Look, salvato: string, titolo?: string | null, barca?: BarcaLook): LookSalvato {
   let old: Record<string, unknown> = {};
   try { const v: unknown = JSON.parse(salvato); if (v && typeof v === 'object') old = v as Record<string, unknown>; } catch { /* look rotto */ }
-  const t: unknown = titolo === undefined ? old['titolo'] : titolo, b = barca ?? barcaDi(old);
-  return { ...look, ...(typeof t === 'string' && t ? { titolo: t } : {}), ...(diSerie(b) ? {} : { barca: b }) };
+  const t: unknown = titolo === undefined ? old['titolo'] : titolo, b = barca ?? barcaDi(old), ind = indossaValida(old['indossa']); // l'equipaggiamento (#190) lo scrive sincIndossa, qui resta
+  return { ...look, ...(typeof t === 'string' && t ? { titolo: t } : {}), ...(diSerie(b) ? {} : { barca: b }), ...(ind ? { indossa: ind } : {}) };
+}
+/** Quello che si vede addosso (#190), ricavato dal personaggio vero (`hero.equip` nel lotto): se è cambiato rispetto al look salvato lo scrive in D1
+ *  e lo manda alla zona, così gli amici vedono armatura e arma solo se le hai davvero. Legge la risposta del DO (LotState, o `{ lot }` / `{ lotto }`)
+ *  senza consumarla; best-effort: se qualcosa va storto, la risposta passa lo stesso. */
+async function sincIndossa(env: Env, p: Persona, r: Response): Promise<Response> {
+  if (!r.ok) return r;
+  try {
+    const j: unknown = await r.clone().json();
+    const o = j && typeof j === 'object' ? (j as Record<string, unknown>) : null;
+    const lot = (o?.['lot'] ?? o?.['lotto'] ?? o) as LotState | null;
+    if (!lot || typeof lot !== 'object' || !Array.isArray(lot.buildings)) return r; // non c'è un lotto nella risposta: nulla da confrontare
+    const nuovo = indossaDa(heroOf(lot).equip); // senza personaggio salvato vale quello di partenza (tela, katana di legno, arco…)
+    let old: Record<string, unknown> = {};
+    try { const v: unknown = JSON.parse(p.look); if (v && typeof v === 'object') old = v as Record<string, unknown>; } catch { /* look rotto */ }
+    if (stessoIndossa(indossaValida(old['indossa']), nuovo)) return r;
+    const { indossa: _via, ...resto } = old;
+    const salvato = { ...resto, ...(nuovo ? { indossa: nuovo } : {}) } as LookSalvato;
+    await salvaLook(env, p.id, salvato);
+    p.look = JSON.stringify(salvato);
+    await avvisaZona(env, p.id, salvato);
+  } catch { /* si vede alla prossima */ }
+  return r;
 }
 /** Quanti altri hanno un'isola (per i traguardi «tutti gli amici», #87) e i loro id. */
 async function amiciConIsola(env: Env, me: string): Promise<string[]> {
@@ -190,7 +215,8 @@ export default {
 
       if (path === '/api/me' && req.method === 'GET') {
         const r = await lotReq(env, p.id, now, 'state');
-        const lotto: unknown = r.ok ? await r.json() : null;
+        const lotto: unknown = r.ok ? await r.clone().json() : null;
+        await sincIndossa(env, p, r);
         return json({ id: p.id, nome: p.nome, look: JSON.parse(p.look) as unknown, slot: p.slot ?? null, now, lotto });
       }
       // chi abita l'arcipelago: /api/persone tutti (per scegliere chi sfidare), /api/lots solo chi ha un lotto (per le visite)
@@ -243,7 +269,7 @@ export default {
         if (typeof id !== 'string' || !coloreBarca(id)) return json({ error: 'Colore sconosciuto' }, 400);
         return lotReq(env, p.id, now, 'barca', { id });
       }
-      if (path === '/api/lot' && req.method === 'GET') return lotReq(env, p.id, now, 'state');
+      if (path === '/api/lot' && req.method === 'GET') return sincIndossa(env, p, await lotReq(env, p.id, now, 'state'));
       const azione = path.match(/^\/api\/lot\/(collect|build|upgrade|decor)$/);
       if (azione && req.method === 'POST') {
         const body = await corpo();
@@ -348,7 +374,7 @@ export default {
       if (path === '/api/rpg' && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
-        return lotReq(env, p.id, now, 'rpg', { azione: body['azione'] });
+        return sincIndossa(env, p, await lotReq(env, p.id, now, 'rpg', { azione: body['azione'] }));
       }
       if (path === '/api/dungeon/start' && req.method === 'POST') {
         const body = await corpo();
@@ -358,7 +384,7 @@ export default {
       if ((path === '/api/dungeon/finish' || path === '/api/dungeon/save') && req.method === 'POST') {
         const body = await corpo(MAX_DUNGEON_BODY);
         if (body instanceof Response) return body;
-        return lotReq(env, p.id, now, path.endsWith('save') ? 'dungeon_save' : 'dungeon_finish', { inputs: body['inputs'], azioni: body['azioni'], hash: body['hash'] });
+        return sincIndossa(env, p, await lotReq(env, p.id, now, path.endsWith('save') ? 'dungeon_save' : 'dungeon_finish', { inputs: body['inputs'], azioni: body['azioni'], hash: body['hash'] }));
       }
       // Isola dei Templari (docs/TEMPLARI.md): apre la partita a ondate (seed dal DO) e la chiude (il DO rigioca e paga le ondate superate)
       if (path === '/api/templari/start' && req.method === 'POST') {

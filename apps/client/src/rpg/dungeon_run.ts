@@ -131,6 +131,7 @@ export function startRun(ctx: RunCtx, o: {
   const refresh = () => {
     view = dungeon.view(s);
     if (view.hero.arma !== arma) { arma = view.hero.arma; void hero?.setArma(s.hero.arma); }
+    hero?.equip(s.runHero); // armatura o veste cambiata dal menu, faretra con arco e frecce
   };
   /** Equipaggiamento cambiato (mio): barre, icone di C e D. */
   const nuovoEquip = () => { hud?.setHero(s.runHero); const ic = hud?.icons(); if (ic) controls?.setIcons(ic.c, ic.d, ic.key); };
@@ -251,6 +252,7 @@ export function startRun(ctx: RunCtx, o: {
       }
       const w = s.eroi[c.i]!.hero.arma;
       if (w.id !== a.arma) { a.arma = w.id; if (w.id) void a.actor.setArma(w); }
+      a.actor.equip(s.eroi[c.i]!.runHero);
       a.actor.tick(posaDi(c));
     }
   }
@@ -404,7 +406,7 @@ export function startRun(ctx: RunCtx, o: {
       lave: v.lave, fuochi: v.fuochi.length, brucia: !!v.hero.brucia, bagnato: !!v.hero.bagnato, ffx: ffx?.counts() ?? null, mastro: mastro(v),
       mfx: mfx?.counts() ?? null, ufx: ufx?.counts() ?? null, custode: custode(v), lancette: v.lancette.length, onde: v.onde.length, sarcofago: v.sarcofago ?? null, barriera: v.hero.barriera ?? null, carico: v.hero.carico ?? null,
       venti: v.venti, timoni: v.timoni, vento: !!v.hero.vento, riparo: !!v.hero.riparo, spinto: !!v.hero.spinto, testi: testi?.stato() ?? null, altari: v.altari, salvato: v.salvato, cadute: s.cadute, protetto: v.hero.protetto, lanterna: v.lanterna, salvatoQui: v.salvatoQui, partenza: s.partenza,
-      equip: { ...s.equip }, azioni: azioni.length, pannello: isPanelOpen(),
+      equip: { ...s.equip }, indossa: hero?.avatar.indossaStato() ?? null, azioni: azioni.length, pannello: isPanelOpen(),
       scene: sc?.stats() ?? null, actors: actors?.counts() ?? null,
       insieme: rete ? {
         io, eroi: s.eroi.length, turni: rete.turni.length, firme: { ...firme }, vitaNemici: n0 ? n0.max / n0.def.vita : 1,

@@ -288,6 +288,7 @@ export default async function (ctx) {
       const n = lanternaVicina();
       await hook('enterDungeon', 'grotta');
       await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
+      await ctx.waitState(page, (s) => s.dungeon.indossa && s.dungeon.indossa.corpo === 'armatura_legno' && !s.dungeon.indossa.faretra && s.dungeon.indossa.arma === null, 30000); // #190: la tela si vede addosso, la katana è in mano (niente sulla schiena)
       await page.locator('#mzDngZaino').click();
       await page.waitForSelector('#mzEroe.on.sotto', { state: 'visible', timeout: 5000 });
       await ctx.waitState(page, (s) => s.eroe.sotto && s.eroe.tab === 'zaino' && s.dungeon.pannello, 3000);
@@ -297,6 +298,7 @@ export default async function (ctx) {
       await click('#mzEroe [data-item="arco_legno"]');
       await click('#mzEroe [data-det="arco_legno"] [data-act="equipaggia"]');
       await ctx.waitState(page, (s) => s.dungeon.hero.arma === 'arco_legno' && s.dungeon.azioni === 1, 3000);
+      await ctx.waitState(page, (s) => s.dungeon.indossa && s.dungeon.indossa.corpo === 'armatura_legno' && s.dungeon.indossa.faretra, 10000); // #190: arco in mano → la faretra compare sulla schiena
       const f0 = (await st()).dungeon.hero.frecce, inv0 = (await getLot('tokA')).hero.inv.frecce_legno;
       await click('#mzEroe [data-item="frecce_legno"]');
       await click('#mzEroe [data-det="frecce_legno"] [data-act="butta"]');
@@ -305,6 +307,9 @@ export default async function (ctx) {
       await ctx.waitState(page, (s, f) => s.dungeon.hero.frecce === f - 1 && s.dungeon.azioni === 2, 3000, f0);
       await page.keyboard.press('KeyI');
       await ctx.waitState(page, (s) => !s.eroe.open && !s.dungeon.paused, 3000);
+      await hook('setZoom', 0.35); await sleep(600);
+      await ctx.shot(page, '7b_eroe_tela_e_faretra_1280'); // l'eroe da vicino: tela addosso, arco in mano, faretra sulla schiena
+      await hook('setZoom', 1);
       await hook('dungeonAltare', n);
       await ctx.waitState(page, (s, n) => s.dungeon.lanterna === n, 120000, n);
       await page.waitForSelector('#mzDngLanterna.on', { timeout: 3000 });

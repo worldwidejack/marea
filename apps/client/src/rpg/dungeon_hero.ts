@@ -8,7 +8,7 @@
 // una linea a trattini mostra per qualche metro dove partirà la freccia (la mira automatica della sim, se c'è un bersaglio).
 // Le ossa del glTF arrivano senza punti nel nome (three toglie «.» dai nomi dei nodi: UpperArm.R → UpperArmR).
 import * as THREE from 'three';
-import type { Look } from '@marea/protocol';
+import type { Indossa, Look } from '@marea/protocol';
 import type { RunWeapon } from '@marea/sim/rpg/types.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
 import { COLPI, FRECCIA_Y } from '@marea/sim/dungeon/tuning.ts';
@@ -33,8 +33,15 @@ export type ArmaInMano = RunWeapon & { modello?: string; colore?: string; oggett
   /** L'oggetto è una lama (si brandisce come le spade del kit), non un'arma da fuoco. */
   lama?: boolean };
 
+/** Quello del personaggio che si vede addosso nel dungeon (RunHero lo soddisfa): armatura o veste sul corpo e, con arco e frecce, la faretra sulla schiena; l'arma è in mano. */
+export type EquipVista = { arma: { id: string | null }; armatura?: { id: string | null }; frecce?: { id: string } | null };
+const indossaDi = (h: EquipVista): Indossa | undefined => (h.armatura?.id || (h.frecce && h.arma.id)
+  ? { ...(h.armatura?.id ? { corpo: h.armatura.id } : {}), ...(h.arma.id ? { arma: h.arma.id } : {}), ...(h.frecce ? { frecce: h.frecce.id } : {}) } : undefined);
+
 export type HeroActor = {
   readonly avatar: Avatar;
+  /** Armatura e faretra dopo un cambio dal menu dello zaino (non rifà niente se non è cambiato nulla). */
+  equip(h: EquipVista): void;
   /** Un tick della sim (60 Hz): nuova posa di destinazione. */
   tick(h: DungeonView['hero']): void;
   /** Ogni frame, dopo l'interpolazione: ossa, arma, effetti. */
@@ -95,7 +102,7 @@ function mixPose(o: Pose, a: Pose, b: Pose, k: number): Pose {
   return o;
 }
 
-export async function createHeroActor(o: { loader: Loader; look: Look; hero: { arma: ArmaInMano }; scene: THREE.Scene; floorY: number; x: number; z: number;
+export async function createHeroActor(o: { loader: Loader; look: Look; hero: { arma: ArmaInMano } & Omit<EquipVista, 'arma'>; scene: THREE.Scene; floorY: number; x: number; z: number;
   /** Eroe di questo client: mentre tende si vede la linea di mira (i compagni no). */
   mirino?: boolean;
 }): Promise<HeroActor> {
@@ -109,6 +116,13 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   };
   const inner = avatar.object.children[0] ?? avatar.object;
   const bodyMats = materialsOf(avatar.object);
+  let eqKey = '';
+  const equip = (h: EquipVista): void => {
+    const i = indossaDi(h), k = JSON.stringify(i ?? null);
+    if (k === eqKey) return;
+    eqKey = k; avatar.setIndossa(i, { schiena: false });
+  };
+  equip(o.hero);
 
   // ---- arma: nel pugno, ingrandita perché la punta arrivi vicino alla portata (quel che si vede ≈ dove colpisce) ----
   let bow = false, arco: Arco | null = null, weapon: THREE.Object3D | null = null, bladeMats: THREE.MeshLambertMaterial[] = [], bladeLen = 0, kind: Kind = 'pugni', mountN = 0;
@@ -392,7 +406,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   }
 
   return {
-    avatar,
+    avatar, equip,
     tick(h) {
       const k = h.anim + (h.stile ?? '');
       if (k !== key) {
@@ -429,9 +443,9 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
         });
       }
       flashT = Math.max(0, flashT - dt); fullT = Math.max(0, fullT - dt);
-      if (flashT > 0) for (const m of bodyMats) m.emissive.setRGB(0.85, 0.79, 0.68);
-      else if (fullT > 0) for (const m of bodyMats) m.emissive.setRGB(0.55, 0.45, 0.08); // lampo giallo del pieno
-      else for (const m of bodyMats) m.emissive.setRGB(0, 0, 0);
+      const lampo = flashT > 0 ? [0.85, 0.79, 0.68] as const : fullT > 0 ? [0.55, 0.45, 0.08] as const : [0, 0, 0] as const; // bianco al colpo, giallo al pieno della carica
+      for (const m of bodyMats) m.emissive.setRGB(lampo[0], lampo[1], lampo[2]);
+      for (const m of avatar.indossaMats()) m.emissive.setRGB(lampo[0], lampo[1], lampo[2]);
     },
     flash() { flashT = 0.12; },
     setArma: (a) => mount(a),

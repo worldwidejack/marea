@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { BARCA_DI_SERIE, barcaDi, barcheSovrapposte, canBoard, composeArchipelago, correnteBordo, landingSpot, NO_INPUT, ormeggioLibero, yawOrmeggio } from '@marea/sim';
 import type { Archipelago, ArchPlace, BoatState, GridMap, InputFrame, Posa } from '@marea/sim';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
-import type { BarcaLook, Look, LookSalvato, Peer } from '@marea/protocol';
+import type { BarcaLook, Indossa, Look, LookSalvato, Peer } from '@marea/protocol';
 import type { Flags } from '../flags.ts';
 import type { Renderer } from '../render/scene.ts';
 import type { Loader } from '../render/loader.ts';
@@ -45,6 +45,9 @@ export type GameWorld = {
   /** Look di chi gioca (da /api/me); setLook lo applica ad avatar e guidatore della barca (F3, editor dal vivo). */
   readonly look: Look;
   setLook(l: Look): void;
+  /** Equipaggiamento di chi gioca (`hero.equip` del lotto): armatura sul corpo e arma sulla schiena (#190), su avatar e guidatore della barca. Si può
+   *  chiamare di continuo: rifà qualcosa solo se quello che si vede è cambiato. */
+  setEquip(equip: Readonly<Partial<Record<string, string>>> | 'partenza' | undefined): void;
   /** Punto sopra la testa (mondo): 'me' oppure l'id di un peer; in barca sopra la barca. null se non c'è. */
   anchorOf(id: 'me' | string): { x: number; y: number; z: number } | null;
   /** Gesto delle emote (#90) sull'avatar a piedi di 'me' o di un peer: saltello `hop` (m) e giro `spin` (rad); (0, 0) lo riporta fermo. */
@@ -130,10 +133,14 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       g.visible = fr.intersectsBox(b) && Math.hypot(dx, dz) < LOD_M;
     }
   };
-  let look: Look = o.look ?? DEFAULT_LOOK;
+  let look: Look = o.look ?? DEFAULT_LOOK, equipKey = 'null';
   const avatar = await createAvatar({ loader: o.loader, look, x: home.x, z: home.z }); scene.add(avatar.object);
   avatar.setGround(island.groundY);
   const boat = await createBoat({ loader: o.loader, x: homeBoat.x, z: homeBoat.z, look, barca: o.barca ?? BARCA_DI_SERIE }); scene.add(boat.object);
+  const setEquip = (e: Readonly<Partial<Record<string, string>>> | 'partenza' | undefined): void => {
+    const i: Indossa | 'partenza' | undefined = e === 'partenza' ? e : e && (e['corpo'] || e['arma'] || e['frecce']) ? { corpo: e['corpo'], arma: e['arma'], frecce: e['frecce'] } : undefined, k = JSON.stringify(i ?? null);
+    if (k !== equipKey) { equipKey = k; avatar.setIndossa(i); boat.driver.setIndossa(i); }
+  };
   /** Ormeggia la barca in (x, z) col muso verso il mare aperto, non contro il molo. */
   const moor = (x: number, z: number) => {
     boat.teleport(x, z);
@@ -152,7 +159,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       const a = await createAvatar({ loader: o.loader, look: p.look, x: p.x, z: p.z });
       if (!pending.has(p.id)) return; // se n'è andato mentre caricava
       a.setGround(island.groundY); a.object.name = 'peer_' + p.id; scene.add(a.object);
-      remotes.set(p.id, { avatar: a, look: JSON.stringify(p.look) });
+      a.setIndossa(p.indossa);
+      remotes.set(p.id, { avatar: a, look: JSON.stringify([p.look, p.indossa ?? null]) });
     } finally { pending.delete(p.id); }
   };
   const dropRemote = (id: string) => {
@@ -195,8 +203,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       if (!f.boat) { if (vede && !f.loading && look) void creaBarca(id, f, look, barca); continue; }
       if (!f.at) continue;
       f.boat.setBarca(barca);
-      const key = JSON.stringify(look);
-      if (look && key !== f.look) { f.look = key; f.boat.driver.setLook(look); }
+      const indossa = p ? p.indossa : abitanti.get(id)?.look?.indossa, key = JSON.stringify([look, indossa ?? null]); // collegato: l'equipaggiamento della presenza; offline: quello salvato
+      if (look && key !== f.look) { f.look = key; f.boat.driver.setLook(look); f.boat.driver.setIndossa(indossa); }
       f.at.visible = vede;
       if (!vede || !posa) continue;
       const r = remotes.get(id);
@@ -210,8 +218,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       seen.add(p.id);
       const r = remotes.get(p.id);
       if (!r) { if (!pending.has(p.id)) void addRemote(p); continue; }
-      const key = JSON.stringify(p.look);
-      if (key !== r.look) { r.look = key; r.avatar.setLook(p.look); }
+      const key = JSON.stringify([p.look, p.indossa ?? null]);
+      if (key !== r.look) { r.look = key; r.avatar.setLook(p.look); r.avatar.setIndossa(p.indossa); }
       const pose = net.peerAt(p.id); if (!pose) continue;
       const inBoat = pose.mode === 'boat';
       r.avatar.visible = !inBoat;
@@ -293,6 +301,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       return true;
     },
     setLook(l) { look = l; avatar.setLook(l); boat.driver.setLook(l); },
+    setEquip,
     anchorOf(id) {
       if (id === 'me') { const p = mode === 'boat' ? boat.object.position : avatar.object.position; return { x: p.x, y: p.y + (mode === 'boat' ? BOAT_TOP_Y : HEAD_Y), z: p.z }; }
       const r = remotes.get(id); if (!r) return null;
@@ -361,6 +370,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   };
   registerTestHook('teleport', (x, z) => avatar.teleport(Number(x), Number(z)));
   registerTestHook('setZoom', (z) => diorama.setZoom(Number(z)));
+  registerTestHook('peerIndossa', (id) => remotes.get(String(id))?.avatar.indossaStato() ?? null);
+  registerTestHook('setEquip', (e) => setEquip(e as Record<string, string> | undefined)); // con ?test=1 e senza login (col login lo riallinea main.ts al personaggio vero)
   registerTestHook('setMode', (m) => { if (m === 'boat') { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; } else { mode = 'walk'; boat.setDriver(null); avatar.visible = true; avatar.teleport(spawnAt.x, spawnAt.z); } });
   registerTestHook('goto', (name) => { const p = goto(name); return p ? { island: p.island, slot: p.slot, x: p.spawn.x, z: p.spawn.z } : null; });
   /** Test (#6): sposta la tua barca in (x, z) con la prua a `yaw` (se ci sei sopra, anche te). */
