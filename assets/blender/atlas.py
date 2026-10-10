@@ -77,6 +77,14 @@ REGIONS['teschio'] = (128, 576, 14, 18)       # viso del teschio, proiezione fro
 _grid(['cs_coppi', 'cs_intonaco', 'cs_muro_mare', 'cs_finestra', 'cs_porta', 'cs_persiane', 'cs_tenda_rossa', 'cs_tenda_blu',
        'cs_vela', 'cs_cabina', 'cs_container_rosso', 'cs_container_blu', 'cs_container_verde', 'cs_manichino', 'cs_chevron', 'cs_scacchi',
        'cs_gru_rossa', 'cs_gru_blu', 'cs_pericolo', 'cs_sponsor', 'cs_pesce', 'cs_scoglio', 'cs_gomme', 'cs_maglia'], 0, 448, 32, 32, 32)
+# Isola delle Corse, hub (#185, 10 ott 2026): tessere 64x64 (4 m) dei quartieri a y 192, insegne 64x32 e numeri 32x32 a y 480,
+# insegne al neon a y 960. Solo zone libere: le regioni esistenti non si spostano.
+_grid(['cs_h_tempio', 'cs_h_neve', 'cs_h_ghiaccio', 'cs_h_palazzo_viola', 'cs_h_palazzo_blu', 'cs_h_tendone', 'cs_h_strisce_rg', 'cs_h_corallo',
+       'cs_h_saracinesca', 'cs_h_attrezzi', 'cs_h_muro_garage', 'cs_h_glifi'], 0, 192)
+_grid(['cs_h_ins_chiave', 'cs_h_ins_neve', 'cs_h_ins_foglia', 'cs_h_ins_tendone', 'cs_h_ins_onda', 'cs_h_ins_fondale', 'cs_h_chiuso'], 0, 480, 64, 32, 16)
+_grid(['cs_h_n1', 'cs_h_n2', 'cs_h_n3'], 448, 480, 32, 32, 32)
+REGIONS['em_h_citta'] = (0, 960, 64, 32)
+_grid(['em_h_lampadine', 'em_h_finestre', 'em_h_insegna_v', 'em_h_bianco'], 64, 960, 32, 32, 32)
 # campioni piatti 8x8 di ogni colore della palette (dettagli piccoli: occhi, fiori, liquidi, segni)
 for _i, _n in enumerate(P):
     REGIONS['p_' + _n] = (_i * 8, 640, 8, 8)
@@ -946,12 +954,281 @@ def paint_corse(cv):
     R('cs_maglia', speckle('pietra_chiara', [('pietra', 0.06)], 311))  # maschera bianca: il colore della maglia è la tinta
 
 
+def paint_corse_hub(cv):
+    """Isola delle Corse, hub (#185): tempio, neve, palazzi, tendone, coralli, garage, insegne delle porte, numeri del podio, neon."""
+    import math
+    R = cv.region
+    FONT = {  # 3x5
+        '1': ['010', '110', '010', '010', '111'], '2': ['111', '001', '111', '100', '111'], '3': ['111', '001', '011', '001', '111'],
+        'C': ['111', '100', '100', '100', '111'], 'H': ['101', '101', '111', '101', '101'], 'I': ['111', '010', '010', '010', '111'],
+        'U': ['101', '101', '101', '101', '111'], 'S': ['111', '100', '111', '001', '111'], 'O': ['111', '101', '101', '101', '111'],
+    }
+
+    def testo(s, x, y, x0, y0, sc, gap=1):
+        """True se (x, y) cade su una lettera della scritta s che parte da (x0, y0) in scala sc."""
+        dx, dy = x - x0, y - y0
+        if dy < 0 or dy >= 5 * sc or dx < 0:
+            return False
+        k, r = divmod(dx, (3 + gap) * sc)
+        if k >= len(s) or r >= 3 * sc:
+            return False
+        return FONT[s[k]][dy // sc][r // sc] == '1'
+
+    def seg(px, py, ax, ay, bx, by):
+        """Distanza del punto dal segmento."""
+        vx, vy = bx - ax, by - ay
+        t = max(0.0, min(1.0, ((px - ax) * vx + (py - ay) * vy) / ((vx * vx + vy * vy) or 1)))
+        return math.hypot(px - ax - t * vx, py - ay - t * vy)
+
+    def cornice(fondo, bordo, filo=None, b=2):
+        def deco(f):
+            def g(x, y, w, h):
+                if x < b or y < b or x >= w - b or y >= h - b:
+                    return bordo
+                if filo and (x == b or y == b or x == w - b - 1 or y == h - b - 1):
+                    return filo
+                return f(x, y, w, h) or fondo
+            return g
+        return deco
+
+    # --- tessere da 4 m
+    _bl = blocks('pietra_scura', 'pietra', 'roccia', 'pietra', bw=16, bh=10, seed=401, period=64)
+
+    def tempio(x, y, w, h):  # grossi blocchi di pietra con chiazze di muschio
+        if h01(x // 6, y // 5, 402) < 0.22 and h01(x, y, 403) < 0.7:
+            return 'erba_scura' if h01(x, y, 404) < 0.7 else 'erba'
+        return _bl(x, y, w, h)
+    R('cs_h_tempio', tempio)
+    R('cs_h_neve', speckle('pietra_chiara', [('acqua_bassa', 0.05), ('pietra', 0.04), ('sabbia_chiara', 0.06)], 405, period=64))
+    _gh = blocks('pietra_chiara', 'pietra_chiara', 'acqua_bassa', 'sabbia_chiara', bw=16, bh=10, seed=406, period=64)
+    R('cs_h_ghiaccio', lambda x, y, w, h: 'acqua_bassa' if _gh(x, y, w, h) == 'pietra_chiara' and h01(x, y, 407) < 0.05 else _gh(x, y, w, h))
+
+    def palazzo(muro, macchia, vetro, riflesso):  # facciata: 2x2 finestre per tessera (una ogni 2 m)
+        def f(x, y, w, h):
+            cx, cy = x % 32, y % 32
+            if 7 <= cx <= 24 and 5 <= cy <= 24:
+                if cx in (7, 24) or cy in (5, 24) or cx == 15 or cx == 16:
+                    return 'nero_caldo'
+                return riflesso if (cx - cy) % 9 == 0 and cx < 15 else vetro
+            if cy == 25 and 6 <= cx <= 25:
+                return 'pietra'
+            if cy == 31:
+                return macchia
+            return macchia if h01(x, y, 408) < 0.08 else muro
+        return f
+    R('cs_h_palazzo_viola', palazzo('viola', 'viola_neon', 'abisso', 'acqua_profonda'))
+    R('cs_h_palazzo_blu', palazzo('acqua_profonda', 'abisso', 'nero_caldo', 'roccia'))
+    R('cs_h_tendone', lambda x, y, w, h: ('rosso' if (x // 16) % 2 == 0 else 'pietra_chiara') if x % 16 not in (0, 15) or h01(x, y, 409) > 0.5 else ('legno' if (x // 16) % 2 == 0 else 'pietra'))
+    R('cs_h_strisce_rg', lambda x, y, w, h: 'rosso' if (x // 8) % 2 == 0 else 'giallo')
+
+    def corallo(x, y, w, h):  # corallo rosso coi pori arancio (piccoli, fitti) e venature scure
+        cx, cy = x % 6, (y + (3 if (x // 6) % 2 else 0)) % 6
+        if (cx - 2.5) ** 2 + (cy - 2.5) ** 2 < 1.6:
+            return 'arancio' if h01(x // 6, y // 6, 410) < 0.8 else 'giallo'
+        if (cx - 2.5) ** 2 + (cy - 2.5) ** 2 > 6.5 and h01(x, y, 411) < 0.25:
+            return 'legno'
+        return 'rosso'
+    R('cs_h_corallo', corallo)
+
+    def saracinesca(x, y, w, h):  # lamelle orizzontali di lamiera
+        k = y % 4
+        return 'pietra_scura' if k == 3 else ('pietra_chiara' if k == 0 else ('pietra' if h01(x, y, 412) > 0.05 else 'pietra_scura'))
+    R('cs_h_saracinesca', saracinesca)
+
+    def attrezzi(x, y, w, h):  # pannello forato dell'officina con gli attrezzi appesi
+        cx, cy = x % 32, y % 32
+        t = (x // 32 + 2 * (y // 32)) % 4
+        if t == 0 and 6 <= cx <= 8 and 4 <= cy <= 27:          # chiave inglese
+            return 'pietra_chiara'
+        if t == 0 and (5 <= cx <= 9) and (cy <= 6 or cy >= 25) and not (cx == 7 and cy in (3, 4, 27, 28)):
+            return 'pietra_chiara'
+        if t == 0 and 18 <= cx <= 19 and 12 <= cy <= 28:         # martello
+            return 'legno_chiaro'
+        if t == 0 and 14 <= cx <= 23 and 8 <= cy <= 11:
+            return 'pietra'
+        if t == 1 and cx in (6, 12, 18, 24) and 10 <= cy <= 26:  # cacciaviti
+            return 'pietra_chiara'
+        if t == 1 and 5 <= cx % 6 <= 7 and 4 <= cy <= 9 and 4 <= cx <= 26:
+            return ('rosso', 'giallo', 'rosso', 'acqua_profonda')[(cx - 4) // 6 % 4]
+        if t == 2 and 4 <= cx <= 27 and 10 <= cy <= 17 and cy - 10 <= (cx - 4) * 7 // 23:  # sega
+            return 'pietra_chiara' if cy > 10 else 'pietra'
+        if t == 2 and 24 <= cx <= 28 and 8 <= cy <= 19:
+            return 'rosso'
+        if t == 3 and 6 <= cx <= 25 and 8 <= cy <= 24 and seg(cx, cy, 8, 22, 23, 10) < 1.6:  # chiave a tubo
+            return 'pietra_chiara'
+        if t == 3 and ((cx - 23) ** 2 + (cy - 10) ** 2) < 10:
+            return 'pietra_chiara' if ((cx - 23) ** 2 + (cy - 10) ** 2) > 3 else 'roccia'
+        if cx % 4 == 2 and cy % 4 == 2:
+            return 'roccia'
+        return 'pietra_scura'
+    R('cs_h_attrezzi', attrezzi)
+    R('cs_h_muro_garage', speckle('pietra_chiara', [('pietra', 0.035), ('sabbia_chiara', 0.05)], 413, period=64))
+    _bg = blocks('pietra', 'pietra_scura', 'roccia', 'pietra_chiara', bw=32, bh=32, seed=414, period=64)
+
+    def glifi(x, y, w, h):  # blocchi scolpiti con una spirale quadrata
+        cx, cy = x % 32, y % 32
+        if cx in (0, 31) or cy in (0, 31):
+            return 'roccia'
+        d = max(abs(cx - 15.5), abs(cy - 15.5))
+        if d < 12 and int(d) % 4 == 1 and not (cy > 16 and abs(cx - 15.5) < 2 and d > 5):
+            return 'roccia'
+        if h01(x // 8, y // 8, 415) < 0.12:
+            return 'erba_scura'
+        return _bg(x, y, w, h)
+    R('cs_h_glifi', glifi)
+
+    # --- insegne delle porte (64x32, si stendono su tutto il cartello)
+    @cornice('roccia', 'pietra_chiara', 'nero_caldo')
+    def ins_chiave(x, y, w, h):
+        if (x - 15) ** 2 + (y - 16) ** 2 <= 56 and not (x < 16 and abs(y - 16) <= 2):
+            return 'pietra_chiara' if y < 18 else 'pietra'
+        if 18 <= x <= 46 and 13 <= y <= 18:
+            return 'pietra_chiara' if y < 17 else 'pietra'
+        dd = (x - 49) ** 2 + (y - 16) ** 2
+        if dd <= 30:
+            return 'roccia' if dd <= 6 else ('pietra_chiara' if y < 18 else 'pietra')
+    R('cs_h_ins_chiave', ins_chiave)
+
+    @cornice('acqua_profonda', 'legno_scuro', 'pietra_chiara')
+    def ins_neve(x, y, w, h):
+        px, py = (x - 31.5) / 1.6, y - 15.5
+        for k in range(6):
+            a = math.radians(90 + 60 * k)
+            ex, ey = math.cos(a) * 11, math.sin(a) * 11
+            if seg(px, py, 0, 0, ex, ey) < 0.85:
+                return 'pietra_chiara'
+            for s in (-1, 1):
+                bx, by = math.cos(a) * 6.5, math.sin(a) * 6.5
+                a2 = a + s * math.radians(45)
+                if seg(px, py, bx, by, bx + math.cos(a2) * 3.6, by + math.sin(a2) * 3.6) < 0.7:
+                    return 'acqua_bassa'
+        if px * px + py * py < 3:
+            return 'acqua_bassa'
+    R('cs_h_ins_neve', ins_neve)
+
+    @cornice('bosco', 'pietra', 'roccia')
+    def ins_foglia(x, y, w, h):
+        a = math.radians(-25)
+        dx, dy = (x - 32) / 1.15, y - 15.5
+        u, v = dx * math.cos(a) - dy * math.sin(a), dx * math.sin(a) + dy * math.cos(a)
+        if (u / 14) ** 2 + (v / 7.5) ** 2 <= 1:
+            if abs(v) < 0.8 or (abs(v - (abs(u) - 2) * 0.0) < 0.8 and False):
+                return 'bosco'
+            if u > -10 and abs(v) < 6 and (int(u) % 5 == 0) and abs(v) < (6 - abs(u) * 0.2):
+                return 'erba_scura'
+            return 'erba_chiara' if v < -3 else ('erba' if v < 3 else 'erba_scura')
+        if -19 <= u <= -13 and abs(v) < 0.9:
+            return 'erba_scura'
+    R('cs_h_ins_foglia', ins_foglia)
+
+    @cornice('ombra_calda', 'giallo', 'arancio')
+    def ins_tendone(x, y, w, h):
+        if 7 <= y <= 17 and abs(x - 31.5) <= (y - 6) * 1.5:  # tetto a spicchi
+            return 'rosso' if int((x - 31.5) / max(1, (y - 6)) * 2 + 10) % 2 == 0 else 'pietra_chiara'
+        if 18 <= y <= 27 and 17 <= x <= 46:
+            if abs(x - 31.5) <= (y - 17) * 0.6 and y >= 20:
+                return 'nero_caldo'
+            return 'rosso' if (x // 3) % 2 == 0 else 'pietra_chiara'
+        if y == 17 and 15 <= x <= 48:
+            return 'giallo'
+        if 3 <= y <= 7 and x == 31:
+            return 'legno'
+        if 3 <= y <= 5 and 32 <= x <= 36 - (y - 3):
+            return 'giallo'
+    R('cs_h_ins_tendone', ins_tendone)
+
+    @cornice('acqua_profonda', 'nero_caldo', 'acqua_bassa')
+    def ins_onda(x, y, w, h):
+        top = 25 - 9 * math.exp(-((x - 38) / 9) ** 2) + 1.2 * math.sin(x / 2.5)
+        d = math.hypot(x - 30, y - 12.5)
+        if 4.5 <= d <= 8.5 and not (x < 30 and y > 12.5):
+            return 'pietra_chiara' if d > 7 else 'acqua_bassa'
+        if 37 <= x <= 39 and 12.5 <= y <= 18:
+            return 'acqua_bassa'
+        if y >= top:
+            return 'pietra_chiara' if y < top + 1.2 else ('acqua_bassa' if y < top + 4 else 'acqua')
+    R('cs_h_ins_onda', ins_onda)
+
+    @cornice('acqua', 'arancio', 'rosso')
+    def ins_fondale(x, y, w, h):
+        if y >= 16:
+            fx, fy = x - 38, y - 23
+            if (fx / 9) ** 2 + (fy / 4.5) ** 2 <= 1:
+                return 'nero_caldo' if (fx, fy) == (-5, -1) else ('giallo' if fy < -1 else 'arancio')
+            if 9 <= -fx <= 14 and abs(fy) <= (-fx - 8) * 0.8:
+                return 'arancio'
+            if (x - 18) ** 2 + (y - 24) ** 2 in (4, 5) or (x - 23) ** 2 + (y - 19) ** 2 in (1, 2):
+                return 'acqua_bassa'
+            return 'acqua_profonda' if y < 26 else 'abisso'
+        for cx, cy, r in ((16, 11, 5), (23, 9, 6), (30, 11, 5), (23, 13, 4)):
+            if (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+                return 'pietra_chiara' if y < 12 else 'pietra'
+        if y == 15:
+            return 'acqua_bassa'
+    R('cs_h_ins_fondale', ins_fondale)
+
+    @cornice('pietra_chiara', 'rosso', None, b=3)
+    def chiuso(x, y, w, h):
+        if testo('CHIUSO', x, y, 6, 11, 2):
+            return 'rosso'
+        if y in (7, 24) and 6 <= x <= 57:
+            return 'rosso'
+    R('cs_h_chiuso', chiuso)
+    for i, (n, bordo) in enumerate((('1', 'giallo'), ('2', 'pietra'), ('3', 'legno_chiaro'))):
+        R('cs_h_n' + n, cornice('pietra_chiara', bordo, 'arancio' if n == '1' else 'pietra_scura')(
+            lambda x, y, w, h, n=n: 'roccia' if testo(n, x, y, 10, 6, 4) else None))
+
+    # --- neon
+    def citta(x, y, w, h):
+        if x < 2 or y < 2 or x >= w - 2 or y >= h - 2:
+            return 'rosa_neon'
+        if y == 26:
+            return 'viola_neon'
+        for bx0, bx1, by in ((7, 13, 12), (14, 20, 7), (21, 27, 15), (29, 35, 5), (36, 43, 11), (44, 50, 8), (51, 57, 14)):
+            if bx0 <= x <= bx1 and by <= y <= 25:
+                if x in (bx0, bx1) or y == by:
+                    return 'ciano_neon'
+                if (x - bx0) % 3 == 2 and (y - by) % 3 == 2:
+                    return 'ambra_neon' if h01(x, y, 416) < 0.7 else 'abisso'
+                return 'abisso'
+        if x == 32 and 1 < y < 5:
+            return 'rosso_neon'
+        return 'nero_caldo'
+    R('em_h_citta', citta)
+
+    def lampadine(x, y, w, h):
+        cx, cy = x % 8, y % 8
+        d = (cx - 3.5) ** 2 + (cy - 3.5) ** 2
+        return 'sabbia_chiara' if d < 2 else ('giallo' if d < 6 else 'ombra_calda')
+    R('em_h_lampadine', lampadine)
+
+    def finestre(x, y, w, h):
+        cx, cy = x % 8, y % 8
+        if 1 <= cx <= 5 and 1 <= cy <= 6:
+            r = h01(x // 8, y // 8, 417)
+            return 'nero_caldo' if r < 0.3 else ('ambra_neon' if r < 0.6 else ('ciano_neon' if r < 0.8 else 'rosa_neon'))
+        return 'abisso'
+    R('em_h_finestre', finestre)
+
+    def insegna_v(x, y, w, h):
+        if x < 2 or x > 29 or y < 1 or y > 30:
+            return 'rosa_neon'
+        k, cy = divmod(y - 2, 10)
+        if 6 <= x <= 25 and 1 <= cy <= 7:
+            g = h01(k, (x - 6) // 4, 418) < 0.5 or cy in (1, 7) and (x - 6) % 8 < 5
+            return 'ciano_neon' if g and (x - 6) % 4 != 3 and cy % 3 != 0 else 'nero_caldo'
+        return 'nero_caldo'
+    R('em_h_insegna_v', insegna_v)
+    R('em_h_bianco', lambda x, y, w, h: 'sabbia_chiara' if h01(x, y, 419) > 0.2 else 'giallo')
+
+
 def build(path):
     cv = Canvas()
     paint(cv)
     paint_m1(cv)
     paint_rpg(cv)
     paint_corse(cv)
+    paint_corse_hub(cv)
     cv.png(path)
     return path
 

@@ -23,8 +23,8 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'es2022',
     sourcemap: false,
-    // prova3d.html (#38), provapixel.html (#46) e provapiste.html (banco di prova delle Corse, #155): pagine a parte; il loro JS si carica solo da lì (in build.mjs conta come «dopo»)
-    rollupOptions: { input: { index: fileURLToPath(new URL('index.html', import.meta.url)), prova3d: fileURLToPath(new URL('prova3d.html', import.meta.url)), provapixel: fileURLToPath(new URL('provapixel.html', import.meta.url)), provapiste: fileURLToPath(new URL('provapiste.html', import.meta.url)), provascena: fileURLToPath(new URL('provascena.html', import.meta.url)), provagarage: fileURLToPath(new URL('provagarage.html', import.meta.url)) }, output: { entryFileNames: 'app-[hash].js', chunkFileNames: 'chunk-[hash].js', assetFileNames: 'a-[hash][extname]' } },
+    // prova3d.html (#38), provapixel.html (#46) provapiste.html (banco di prova delle Corse, #155), provahub.html e provahubvista.html (hub delle Corse, #185): pagine a parte; il loro JS si carica solo da lì (in build.mjs conta come «dopo»)
+    rollupOptions: { input: { index: fileURLToPath(new URL('index.html', import.meta.url)), prova3d: fileURLToPath(new URL('prova3d.html', import.meta.url)), provapixel: fileURLToPath(new URL('provapixel.html', import.meta.url)), provapiste: fileURLToPath(new URL('provapiste.html', import.meta.url)), provascena: fileURLToPath(new URL('provascena.html', import.meta.url)), provagarage: fileURLToPath(new URL('provagarage.html', import.meta.url)), provahub: fileURLToPath(new URL('provahub.html', import.meta.url)), provahubvista: fileURLToPath(new URL('provahubvista.html', import.meta.url)) }, output: { entryFileNames: 'app-[hash].js', chunkFileNames: 'chunk-[hash].js', assetFileNames: 'a-[hash][extname]' } },
   },
   plugins: [{
     name: 'marea-version',

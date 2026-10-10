@@ -1,5 +1,5 @@
 {
- "version": "2026-10-09-51",
+ "version": "2026-10-10-91",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
@@ -289,6 +289,686 @@
      2.6,
      16.34,
      2.6
+    ]
+   }
+  },
+  "cs_h_albero": {
+   "file": "cs_h_albero.glb",
+   "tris": 184,
+   "kb": 7.9,
+   "bounds": {
+    "min": [
+     -1.8,
+     -0.02,
+     -1.59
+    ],
+    "max": [
+     1.95,
+     4.5,
+     1.5
+    ]
+   }
+  },
+  "cs_h_albero_giungla": {
+   "file": "cs_h_albero_giungla.glb",
+   "tris": 210,
+   "kb": 8.9,
+   "bounds": {
+    "min": [
+     -3.17,
+     -0.04,
+     -2.56
+    ],
+    "max": [
+     3.11,
+     9.1,
+     2.56
+    ]
+   }
+  },
+  "cs_h_bancarella": {
+   "file": "cs_h_bancarella.glb",
+   "tris": 284,
+   "kb": 12.8,
+   "bounds": {
+    "min": [
+     -2.4,
+     0,
+     -1.11
+    ],
+    "max": [
+     1.95,
+     3.45,
+     1.05
+    ]
+   }
+  },
+  "cs_h_bandiera": {
+   "file": "cs_h_bandiera.glb",
+   "tris": 64,
+   "kb": 3.7,
+   "bounds": {
+    "min": [
+     -0.26,
+     0,
+     -0.3
+    ],
+    "max": [
+     2.36,
+     6.47,
+     0.3
+    ]
+   }
+  },
+  "cs_h_cartello": {
+   "file": "cs_h_cartello.glb",
+   "tris": 107,
+   "kb": 5.2,
+   "bounds": {
+    "min": [
+     -1.38,
+     -0.01,
+     -0.54
+    ],
+    "max": [
+     1.45,
+     3.1,
+     0.65
+    ]
+   }
+  },
+  "cs_h_casse": {
+   "file": "cs_h_casse.glb",
+   "tris": 84,
+   "kb": 4.5,
+   "bounds": {
+    "min": [
+     -1.25,
+     0,
+     -0.5
+    ],
+    "max": [
+     1.42,
+     1.66,
+     0.67
+    ]
+   }
+  },
+  "cs_h_cespuglio": {
+   "file": "cs_h_cespuglio.glb",
+   "tris": 162,
+   "kb": 7.2,
+   "bounds": {
+    "min": [
+     -1.1,
+     0.03,
+     -0.73
+    ],
+    "max": [
+     1.2,
+     1.07,
+     0.74
+    ]
+   }
+  },
+  "cs_h_coni": {
+   "file": "cs_h_coni.glb",
+   "tris": 328,
+   "kb": 14.1,
+   "bounds": {
+    "min": [
+     -0.82,
+     -0.17,
+     -0.72
+    ],
+    "max": [
+     1,
+     0.75,
+     0.72
+    ]
+   }
+  },
+  "cs_h_corallo": {
+   "file": "cs_h_corallo.glb",
+   "tris": 429,
+   "kb": 17.9,
+   "bounds": {
+    "min": [
+     -2.86,
+     -0.18,
+     -3.05
+    ],
+    "max": [
+     3.98,
+     5.03,
+     2.1
+    ]
+   }
+  },
+  "cs_h_festone": {
+   "file": "cs_h_festone.glb",
+   "tris": 156,
+   "kb": 7.5,
+   "bounds": {
+    "min": [
+     -0.17,
+     0,
+     -0.2
+    ],
+    "max": [
+     8.17,
+     4.76,
+     0.2
+    ]
+   }
+  },
+  "cs_h_garage": {
+   "file": "cs_h_garage.glb",
+   "tris": 934,
+   "kb": 39.4,
+   "bounds": {
+    "min": [
+     -7.06,
+     0,
+     -6.7
+    ],
+    "max": [
+     7.13,
+     7.82,
+     5.1
+    ]
+   }
+  },
+  "cs_h_gomme": {
+   "file": "cs_h_gomme.glb",
+   "tris": 320,
+   "kb": 13.3,
+   "bounds": {
+    "min": [
+     -0.33,
+     0,
+     -0.35
+    ],
+    "max": [
+     0.82,
+     0.72,
+     0.38
+    ]
+   }
+  },
+  "cs_h_igloo": {
+   "file": "cs_h_igloo.glb",
+   "tris": 199,
+   "kb": 8.8,
+   "bounds": {
+    "min": [
+     -3.73,
+     -0.3,
+     -3.81
+    ],
+    "max": [
+     3.85,
+     2.8,
+     2.7
+    ]
+   }
+  },
+  "cs_h_lampione": {
+   "file": "cs_h_lampione.glb",
+   "tris": 78,
+   "kb": 5.2,
+   "bounds": {
+    "min": [
+     -0.28,
+     0,
+     -0.28
+    ],
+    "max": [
+     0.75,
+     4.05,
+     0.28
+    ]
+   }
+  },
+  "cs_h_palazzo_a": {
+   "file": "cs_h_palazzo_a.glb",
+   "tris": 302,
+   "kb": 13.5,
+   "bounds": {
+    "min": [
+     -4.25,
+     0,
+     -5.5
+    ],
+    "max": [
+     5.65,
+     23.7,
+     4.25
+    ]
+   }
+  },
+  "cs_h_palazzo_b": {
+   "file": "cs_h_palazzo_b.glb",
+   "tris": 340,
+   "kb": 14.8,
+   "bounds": {
+    "min": [
+     -7.18,
+     0,
+     -4.7
+    ],
+    "max": [
+     6.25,
+     19,
+     4.25
+    ]
+   }
+  },
+  "cs_h_palma": {
+   "file": "cs_h_palma.glb",
+   "tris": 216,
+   "kb": 11.2,
+   "bounds": {
+    "min": [
+     -0.89,
+     -0.04,
+     -3.25
+    ],
+    "max": [
+     5.9,
+     8.25,
+     3.65
+    ]
+   }
+  },
+  "cs_h_palo_luce": {
+   "file": "cs_h_palo_luce.glb",
+   "tris": 64,
+   "kb": 4.6,
+   "bounds": {
+    "min": [
+     -0.23,
+     -2.5,
+     -0.27
+    ],
+    "max": [
+     0.23,
+     1.95,
+     0.27
+    ]
+   }
+  },
+  "cs_h_pino_neve": {
+   "file": "cs_h_pino_neve.glb",
+   "tris": 138,
+   "kb": 7.2,
+   "bounds": {
+    "min": [
+     -1.9,
+     0,
+     -1.85
+    ],
+    "max": [
+     1.71,
+     5.8,
+     1.85
+    ]
+   }
+  },
+  "cs_h_podio": {
+   "file": "cs_h_podio.glb",
+   "tris": 186,
+   "kb": 8.1,
+   "bounds": {
+    "min": [
+     -3.4,
+     0,
+     -3
+    ],
+    "max": [
+     3.4,
+     1.7,
+     1.3
+    ]
+   }
+  },
+  "cs_h_pontile": {
+   "file": "cs_h_pontile.glb",
+   "tris": 244,
+   "kb": 10.2,
+   "bounds": {
+    "min": [
+     -2.12,
+     -3,
+     -4
+    ],
+    "max": [
+     2.12,
+     0.3,
+     4
+    ]
+   }
+  },
+  "cs_h_porta_fondale": {
+   "file": "cs_h_porta_fondale.glb",
+   "tris": 544,
+   "kb": 21.6,
+   "bounds": {
+    "min": [
+     -8.96,
+     -0.14,
+     -1.35
+    ],
+    "max": [
+     8.96,
+     11.27,
+     1.44
+    ]
+   }
+  },
+  "cs_h_porta_ghiaccio": {
+   "file": "cs_h_porta_ghiaccio.glb",
+   "tris": 358,
+   "kb": 17.1,
+   "bounds": {
+    "min": [
+     -8,
+     0,
+     -1.52
+    ],
+    "max": [
+     8,
+     8.75,
+     1.52
+    ]
+   }
+  },
+  "cs_h_porta_giungla": {
+   "file": "cs_h_porta_giungla.glb",
+   "tris": 486,
+   "kb": 20.6,
+   "bounds": {
+    "min": [
+     -8,
+     0,
+     -1.26
+    ],
+    "max": [
+     8,
+     10.5,
+     1.26
+    ]
+   }
+  },
+  "cs_h_porta_lunapark": {
+   "file": "cs_h_porta_lunapark.glb",
+   "tris": 660,
+   "kb": 28.3,
+   "bounds": {
+    "min": [
+     -8.24,
+     0,
+     -1.3
+    ],
+    "max": [
+     8.24,
+     9.95,
+     1.3
+    ]
+   }
+  },
+  "cs_h_porta_neon": {
+   "file": "cs_h_porta_neon.glb",
+   "tris": 324,
+   "kb": 14.2,
+   "bounds": {
+    "min": [
+     -7.7,
+     0,
+     -0.95
+    ],
+    "max": [
+     7.7,
+     11.65,
+     0.95
+    ]
+   }
+  },
+  "cs_h_porta_spiaggia": {
+   "file": "cs_h_porta_spiaggia.glb",
+   "tris": 638,
+   "kb": 26.1,
+   "bounds": {
+    "min": [
+     -8.8,
+     -0.01,
+     -1.2
+    ],
+    "max": [
+     7.61,
+     10.29,
+     1.2
+    ]
+   }
+  },
+  "cs_h_roccia_a": {
+   "file": "cs_h_roccia_a.glb",
+   "tris": 119,
+   "kb": 6.1,
+   "bounds": {
+    "min": [
+     -2.15,
+     -0.05,
+     -1.95
+    ],
+    "max": [
+     2.43,
+     2.6,
+     2
+    ]
+   }
+  },
+  "cs_h_roccia_b": {
+   "file": "cs_h_roccia_b.glb",
+   "tris": 90,
+   "kb": 5.1,
+   "bounds": {
+    "min": [
+     -1.5,
+     0,
+     -1.17
+    ],
+    "max": [
+     1.96,
+     1.1,
+     1.24
+    ]
+   }
+  },
+  "cs_h_rovina": {
+   "file": "cs_h_rovina.glb",
+   "tris": 272,
+   "kb": 11.3,
+   "bounds": {
+    "min": [
+     -4.15,
+     -0.11,
+     -3.5
+    ],
+    "max": [
+     4.32,
+     10.2,
+     4.03
+    ]
+   }
+  },
+  "cs_h_ruota_base": {
+   "file": "cs_h_ruota_base.glb",
+   "tris": 260,
+   "kb": 11.9,
+   "bounds": {
+    "min": [
+     -7,
+     0,
+     -4.55
+    ],
+    "max": [
+     7,
+     11.8,
+     3.2
+    ]
+   }
+  },
+  "cs_h_ruota_giro": {
+   "file": "cs_h_ruota_giro.glb",
+   "tris": 1152,
+   "kb": 44.4,
+   "bounds": {
+    "min": [
+     -10.44,
+     -10.44,
+     -1.45
+    ],
+    "max": [
+     10.44,
+     10.44,
+     1.45
+    ]
+   }
+  },
+  "cs_h_salvagente": {
+   "file": "cs_h_salvagente.glb",
+   "tris": 128,
+   "kb": 6.2,
+   "bounds": {
+    "min": [
+     -0.38,
+     0.03,
+     -0.07
+    ],
+    "max": [
+     0.38,
+     0.78,
+     0.07
+    ]
+   }
+  },
+  "cs_h_sbarra": {
+   "file": "cs_h_sbarra.glb",
+   "tris": 274,
+   "kb": 11.6,
+   "bounds": {
+    "min": [
+     -6.07,
+     0,
+     -0.72
+    ],
+    "max": [
+     6.07,
+     4.4,
+     0.35
+    ]
+   }
+  },
+  "cs_h_staccionata": {
+   "file": "cs_h_staccionata.glb",
+   "tris": 60,
+   "kb": 3.8,
+   "bounds": {
+    "min": [
+     -1.58,
+     0,
+     -0.13
+    ],
+    "max": [
+     1.58,
+     1.22,
+     0.08
+    ]
+   }
+  },
+  "cs_h_statua": {
+   "file": "cs_h_statua.glb",
+   "tris": 886,
+   "kb": 33.4,
+   "bounds": {
+    "min": [
+     -2.03,
+     0,
+     -2.03
+    ],
+    "max": [
+     2.03,
+     10.39,
+     2.03
+    ]
+   }
+  },
+  "cs_h_tempio": {
+   "file": "cs_h_tempio.glb",
+   "tris": 926,
+   "kb": 37.7,
+   "bounds": {
+    "min": [
+     -10,
+     0,
+     -9.71
+    ],
+    "max": [
+     10,
+     22.4,
+     8
+    ]
+   }
+  },
+  "cs_h_tendone": {
+   "file": "cs_h_tendone.glb",
+   "tris": 332,
+   "kb": 14.9,
+   "bounds": {
+    "min": [
+     -9.8,
+     -0.01,
+     -10.26
+    ],
+    "max": [
+     9.8,
+     11.39,
+     10.26
+    ]
+   }
+  },
+  "cs_h_torre": {
+   "file": "cs_h_torre.glb",
+   "tris": 530,
+   "kb": 21.5,
+   "bounds": {
+    "min": [
+     -3.21,
+     0,
+     -2.85
+    ],
+    "max": [
+     3.21,
+     12.7,
+     2.85
+    ]
+   }
+  },
+  "cs_h_trofeo": {
+   "file": "cs_h_trofeo.glb",
+   "tris": 528,
+   "kb": 21.2,
+   "bounds": {
+    "min": [
+     -2.36,
+     0,
+     -2.2
+    ],
+    "max": [
+     2.36,
+     6.55,
+     2.2
     ]
    }
   },

@@ -7,7 +7,14 @@ import type { TemaStyle } from '@marea/content';
 import { ISLAND, M, P, merged, painted, px, speckle, strata } from './island_parts.ts';
 import type { Painter } from './island_parts.ts';
 import { propTemplari, propTemplariGlow } from './island_templari.ts';
-import { propCorse } from './island_corse.ts'; // Isola delle Corse
+// Isola delle Corse: le sue decorazioni (island_corse.ts, ~8 KB gzip) stanno in un chunk a parte, fuori dal JS iniziale (TECH §5): si
+// scarica appena parte il gioco e `createIsland` aspetta `corsePronta` prima di costruire le isole.
+type CorseMod = typeof import('./island_corse.ts');
+let corse: CorseMod | null = null;
+export const corsePronta: Promise<void> = import('./island_corse.ts').then((m) => { corse = m; }, () => {});
+/** Le decorazioni delle Corse con una parte che brilla (deve stare qui: serve prima che il chunk arrivi). */
+const CORSE_GLOW = new Set<string>(['arco_via', 'torre_corse', 'garage_corse', 'lampione', 'palo_molo', 'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia',
+  'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla', 'palazzo_neon', 'palazzo_neon_basso', 'faro']);
 
 export const TEMI: readonly TemaStyle[] = ['tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'corse'];
 export const isTema = (s: string | null | undefined): s is TemaStyle => !!s && (TEMI as readonly string[]).includes(s);
@@ -41,18 +48,15 @@ export const PAINT_TEMI: Record<string, Painter> = {
   templari_sabbia: (g, r) => { px(g, P.sabbia, 0, 0, 32, 32); speckle(g, r, P.pietra, 30, 0, 32); speckle(g, r, P.legnoChiaro, 16, 0, 32); speckle(g, r, P.pietraScura, 8, 0, 32); strata(g, [[P.legnoChiaro, 3], [P.legno, 32]]); speckle(g, r, P.legnoScuro, 10, 36, 60); },
   templari_erba: (g, r) => { px(g, P.bosco, 0, 0, 32, 32); speckle(g, r, P.erbaScura, 30, 0, 32, 1, 2); speckle(g, r, P.boscoOmbra, 30, 0, 32); speckle(g, r, P.legno, 10, 0, 32); speckle(g, r, P.rosso, 2, 0, 32); strata(g, [[P.boscoOmbra, 3], [P.legnoScuro, 7], [P.ombraCalda, 32]]); },
   templari_riva: (g, r) => { px(g, P.pietraScura, 0, 0, 32, 32); speckle(g, r, P.pietra, 30, 0, 32, 2, 1); speckle(g, r, P.roccia, 30, 0, 32); strata(g, [[P.roccia, 32]]); },
-  // Isola delle Corse: asfalto con la riga bianca tratteggiata, prato rasato a strisce, riva a cordoli bianchi e rossi
-  corse_sabbia: (g, r) => {
-    px(g, P.roccia, 0, 0, 32, 32); speckle(g, r, P.pietraScura, 40, 0, 32); speckle(g, r, P.neroCaldo, 20, 0, 32);
-    for (let x = 2; x < 32; x += 8) px(g, P.pietraChiara, x, 15, 4, 2);
-    strata(g, [[P.roccia, 3], [P.pietraScura, 32]]);
-  },
+  // Isola delle Corse (l'hub vista dal mare, #185): spiaggia chiara, prato pieno di fiori come nella concept, riva di sabbia
+  corse_sabbia: (g, r) => { px(g, P.sabbia, 0, 0, 32, 32); speckle(g, r, P.sabbiaChiara, 50, 0, 32); speckle(g, r, P.legnoChiaro, 12, 0, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 5], [P.legno, 32]]); speckle(g, r, P.sabbiaChiara, 8, 32, 36); },
   corse_erba: (g, r) => {
-    for (let y = 0; y < 32; y += 8) { px(g, P.erba, 0, y, 32, 4); px(g, P.erbaScura, 0, y + 4, 32, 4); }
-    speckle(g, r, P.erbaChiara, 12, 0, 32);
+    px(g, P.erba, 0, 0, 32, 32); speckle(g, r, P.erbaChiara, 30, 0, 32); speckle(g, r, P.erbaScura, 26, 0, 32, 1, 2);
+    speckle(g, r, P.giallo, 4, 0, 32); speckle(g, r, P.rosaNeon, 3, 0, 32); speckle(g, r, P.pietraChiara, 3, 0, 32);
     strata(g, [[P.erbaScura, 3], [P.legno, 7], [P.legnoScuro, 32]]);
+    for (let x = 0; x < 32; x++) if (r.next() < 0.45) px(g, P.erbaScura, x, 35, 1, r.int(1, 2));
   },
-  corse_riva: (g) => { for (let x = 0; x < 32; x += 8) { px(g, P.rosso, x, 0, 4, 32); px(g, P.pietraChiara, x + 4, 0, 4, 32); } strata(g, [[P.pietraScura, 32]]); },
+  corse_riva: (g, r) => { px(g, P.sabbiaChiara, 0, 0, 32, 32); speckle(g, r, P.sabbia, 60, 0, 32); strata(g, [[P.sabbia, 2], [P.legnoChiaro, 32]]); },
 };
 
 // ——— montagne: colonne di roccia a gradoni, più alte lontano dalla riva (cono del vulcano col cratere di lava) ———
@@ -64,7 +68,7 @@ const ROCCIA: Record<TemaStyle, (top: boolean, y: number, h: number, r: Rng) => 
   vulcano: (top, y, h, r) => (top ? { c: r.next() < 0.4 ? P.neroCaldo : P.roccia } : { c: y < 0.3 ? P.neroCaldo : Math.floor(y / 1.6) % 2 ? P.roccia : P.neroCaldo }),
   giardino: (top, y, h, r) => (top ? { c: r.next() < 0.5 ? P.erbaScura : P.bosco } : { c: h - y < 0.4 ? P.erbaScura : Math.floor(y / 1.2) % 2 ? P.pietra : P.pietraScura }),
   templari: (top, y, h, r) => (top ? { c: r.next() < 0.5 ? P.pietraScura : P.roccia } : { c: y < 0.3 ? P.neroCaldo : Math.floor(y / 1.1) % 2 ? P.pietraScura : P.roccia }),
-  corse: (top, y, h, r) => (top ? { c: r.next() < 0.5 ? P.erba : P.erbaScura } : { c: h - y < 0.4 ? P.erbaScura : Math.floor(y / 1.2) % 2 ? P.legno : P.legnoScuro }), // collinetta d'erba
+  corse: (top, y, h, r) => (top ? { c: r.next() < 0.75 ? P.pietraChiara : P.sabbiaChiara } : { c: y < 0.6 ? P.pietraScura : h - y < 1.2 || (y > 2.6 && r.next() < 0.72) ? P.pietraChiara : Math.floor(y / 1.3) % 2 ? P.pietra : P.pietraScura }), // montagna innevata del quartiere Neve
 };
 /** Quota della cima per distanza dalla riva della montagna `d` (1 = colonna sul bordo). */
 const ALTEZZA: Record<TemaStyle, (d: number, r: Rng) => number> = {
@@ -73,7 +77,7 @@ const ALTEZZA: Record<TemaStyle, (d: number, r: Rng) => number> = {
   vulcano: (d, r) => 0.9 + d * 1.3 + r.next() * 0.35,
   giardino: (d, r) => 0.7 + d * 0.75 + r.next() * 0.3,
   templari: (d, r) => 0.8 + d * 0.8 + r.next() * 0.5,
-  corse: (d, r) => 0.4 + d * 0.45 + r.next() * 0.2,
+  corse: (d, r) => 0.9 + d * 1.55 + r.next() * 0.6,
 };
 
 /**
@@ -136,13 +140,19 @@ export function rocceTema(style: TemaStyle, cells: { x: number; z: number; d: nu
 export type TemaProp = 'faro_rovina' | 'relitto' | 'bandiera_pirata' | 'cannone' | 'albero_secco' | 'iceberg' | 'pinguino' | 'igloo' | 'pino_neve'
   | 'roccia_lavica' | 'capanna' | 'braciere' | 'statua' | 'cartello' | 'abitante' | 'ciliegio' | 'tempio' | 'torii_pietra' | 'lanterna_pietra' | 'ponticello'
   | 'chiesa_templare' | 'casa_rovina' | 'tomba' | 'croce_pietra' | 'tenda' | 'relitto_templare' | 'scheletro'
-  | 'arco_via' | 'tribuna' | 'gomme' | 'kart_fermo' | 'bandierina'; // Isola delle Corse
+  | 'arco_via' | 'tribuna' | 'gomme' | 'kart_fermo' | 'bandierina' // Isola delle Corse
+  | 'strada' | 'rotatoria' | 'trofeo' | 'statua_trofeo' | 'torre_corse' | 'garage_corse' | 'bancarella' | 'festone' | 'lampione' | 'palo_molo'
+  | 'porta_neve' | 'porta_giungla' | 'porta_neon' | 'porta_luna' | 'porta_spiaggia' | 'ruota_panoramica' | 'tendone' | 'tendone_piccolo' | 'tempio_giungla'
+  | 'palazzo_neon' | 'palazzo_neon_basso' | 'faro' | 'ombrellone' | 'albero_tondo' | 'albero_giungla' | 'chiazza_neve';
 export const TEMA_PROPS = new Set<string>(['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
   'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello',
   'chiesa_templare', 'casa_rovina', 'tomba', 'croce_pietra', 'tenda', 'relitto_templare', 'scheletro',
-  'arco_via', 'tribuna', 'gomme', 'kart_fermo', 'bandierina']); // Isola delle Corse
+  'arco_via', 'tribuna', 'gomme', 'kart_fermo', 'bandierina', // Isola delle Corse
+  'strada', 'rotatoria', 'trofeo', 'statua_trofeo', 'torre_corse', 'garage_corse', 'bancarella', 'festone', 'lampione', 'palo_molo',
+  'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia', 'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla',
+  'palazzo_neon', 'palazzo_neon_basso', 'faro', 'ombrellone', 'albero_tondo', 'albero_giungla', 'chiazza_neve']);
 /** Decorazioni con una parte che brilla (fuoco, lava, finestre): la seconda geometria va col materiale non illuminato. */
-export const TEMA_GLOW = new Set<string>(['faro_rovina', 'roccia_lavica', 'braciere', 'statua', 'lanterna_pietra', 'abitante', 'chiesa_templare']);
+export const TEMA_GLOW = new Set<string>(['faro_rovina', 'roccia_lavica', 'braciere', 'statua', 'lanterna_pietra', 'abitante', 'chiesa_templare', ...CORSE_GLOW]);
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cyl = (r0: number, r1: number, h: number, s = 6) => new THREE.CylinderGeometry(r0, r1, h, s);
@@ -328,7 +338,11 @@ export function propTema(kind: TemaProp): THREE.BufferGeometry {
     }
     case 'torii_pietra': torii(parts, P.pietra, P.pietraScura); break;
     case 'chiesa_templare': case 'casa_rovina': case 'tomba': case 'croce_pietra': case 'tenda': case 'relitto_templare': case 'scheletro': return propTemplari(kind);
-    case 'arco_via': case 'tribuna': case 'gomme': case 'kart_fermo': case 'bandierina': return propCorse(kind); // Isola delle Corse
+    case 'arco_via': case 'tribuna': case 'gomme': case 'kart_fermo': case 'bandierina': // Isola delle Corse
+    case 'strada': case 'rotatoria': case 'trofeo': case 'statua_trofeo': case 'torre_corse': case 'garage_corse': case 'bancarella': case 'festone': case 'lampione': case 'palo_molo':
+    case 'porta_neve': case 'porta_giungla': case 'porta_neon': case 'porta_luna': case 'porta_spiaggia': case 'ruota_panoramica': case 'tendone': case 'tendone_piccolo': case 'tempio_giungla':
+    case 'palazzo_neon': case 'palazzo_neon_basso': case 'faro': case 'ombrellone': case 'albero_tondo': case 'albero_giungla': case 'chiazza_neve':
+      return corse ? corse.propCorse(kind) : painted(box(0.01, 0.01, 0.01), P.pietra); // (chunk non ancora arrivato: createIsland aspetta corsePronta)
     case 'lanterna_pietra': {
       parts.push(painted(box(0.8, 0.25, 0.8), P.pietraScura, M(0, 0.12, 0)));
       parts.push(painted(cyl(0.16, 0.2, 0.8, 6), P.pietra, M(0, 0.65, 0)));
@@ -356,6 +370,7 @@ export function propTema(kind: TemaProp): THREE.BufferGeometry {
 
 /** Parte che brilla (null se la decorazione non ne ha). */
 export function propTemaGlow(kind: TemaProp): THREE.BufferGeometry | null {
+  if (CORSE_GLOW.has(kind)) return corse ? corse.propCorseGlow(kind) : null; // Isola delle Corse
   const parts: THREE.BufferGeometry[] = [];
   if (kind === 'faro_rovina') parts.push(painted(box(0.5, 0.5, 0.5), P.giallo, M(0.1, 7.75, 0)));
   else if (kind === 'braciere') {
@@ -384,5 +399,5 @@ export const SCENA_TEMI: Record<TemaStyle, { sabbia: [string, number][]; erba: [
   vulcano: { sabbia: [['roccia_lavica', 0.06]], erba: [['roccia_lavica', 0.07], ['albero_secco', 0.12]] },
   giardino: { sabbia: [], erba: [['ciliegio', 0.07], ['cespuglio', 0.16], ['sasso', 0.18]] },
   templari: { sabbia: [['sasso', 0.05]], erba: [['albero_secco', 0.035], ['sasso', 0.08], ['cespuglio', 0.05]] },
-  corse: { sabbia: [], erba: [['cespuglio', 0.05], ['gomme', 0.025]] },
+  corse: { sabbia: [['sasso', 0.03]], erba: [['albero_tondo', 0.05], ['cespuglio', 0.06]] }, // l'isola nel json ha scenery 0: alberi e cespugli sono decorazioni fisse
 };

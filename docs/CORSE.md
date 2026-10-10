@@ -23,6 +23,8 @@ Un'isola strana dove **tutto è diventato una corsa**. La giri liberamente col t
 - **Tu guidi col tuo avatar MAREA** (cappello e vestiti), seduto nel veicolo.
 
 ## A3. L'hub: l'isola aperta
+- **Mondo a parte** (scelta di Jack, 10 ott 2026, #185): l'hub non sta nell'arcipelago. Sbarchi al molo dell'Isola delle Corse e si carica l'hub vero, grande come serve. Nell'hub giri da solo, come in Diddy Kong Racing; gli amici si incontrano come fantasmi nelle gare. Da fuori, l'isola nell'arcipelago è l'hub in piccolo.
+- **Grafica più curata del resto del gioco**, sempre dentro l'Art Bible: è la prova del look che in futuro passerà al resto di MAREA.
 - L'Isola delle Corse si gira **sempre col veicolo**: scendi dalla barca al molo e sali sul veicolo. Strade, spiaggia, acqua, salite e segreti, come l'isola di Diddy Kong Racing.
 - Ogni zona ha la sua **porta**, cioè l'ingresso del suo quartiere. Le **stelle** aprono le porte e, dentro ogni zona, le piste.
 - C'è un **garage** per cambiare veicolo. Nell'hub non si vince niente, quindi la guida è libera.
@@ -188,7 +190,7 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
    - **4a. Le 4 piste grezze** (**fatto**, 9 ott 2026): Lungomare, Baia, Porto misto, Fuga dall'onda, giocabili su `provapiste.html?pista=spiaggia_…`. Il gioco non cambia ancora.
    - 4b. Vestire la zona: kit Blender e scenografia delle 4 piste con i manichini (**fatto**, 9 ott 2026, #176); restano veicoli buffi e granchio campione, musica e suoni.
    - 4c. Il Lungomare al posto del Gran Premio (**fatto**, 10 ott 2026, #173): lo schermo delle Corse nel gioco gira sul motore v2 con scelta di pista e veicolo (le 4 piste), `garaCorse` sul server (`corse/registra.ts`), avatar al volante, telefono in orizzontale. Il vecchio Gran Premio (`minigames/corse.ts`) non è più collegato al gioco. Restano: record per pista (oggi un solo record `corse` per tutte), i veicoli veri nella sim (oggi 5 su 14).
-5. Hub alla Diddy Kong Racing: isola aperta, porta della Spiaggia, garage, le altre porte chiuse.
+5. Hub alla Diddy Kong Racing (#185, in corso dal 10 ott 2026): mondo a parte, guida libera, porta della Spiaggia, garage, le altre porte chiuse; l'isola nell'arcipelago rifatta come ingresso.
 6. Fantasmi, stelle e sblocchi, premi per MAREA.
 7. Zone 2-6 con la stessa catena di montaggio.
 
@@ -209,12 +211,12 @@ Un'isola con il format delle **corse arcade alla Mario Kart**: kart, camera diet
 Nessuna per ora **[scelta provvisoria]**. Il circuito si chiama «Anello del Faro». I bot si chiamano Gabbiano, Granchio, Polpo e Delfino.
 
 ## B2. Dove sta e come si apre
-- Nell'arcipelago a `[215, 18]` (nord-est, tra i Ghiacci e la Tempesta), stile `corse`.
+- Nell'arcipelago a `[208, 13]` (nord-est, tra i Ghiacci e la Tempesta), 58×46 celle, stile `corse`.
 - Sblocco `{ tipo: 'libera' }`: è **aperta a tutti**, anche senza link personale **[scelta provvisoria]**.
-- Il posto del gioco è l'**arco del via** sull'anello d'asfalto dell'isola (cella `[22, 26]`): lì compare **GIOCA · GRAN PREMIO**. Si arriva dal molo a sud.
+- Il posto del gioco è l'**arco a scacchi in cima al molo** (cella `[27, 35]`): lì compare **GIOCA · ISOLA DELLE CORSE**, che apre l'hub (A3, #185). Le gare partono dalla porta della Spiaggia nell'hub.
 
 ## B3. L'isola
-- **Nel mondo:** isola verde col prato rasato a strisce, un anello d'asfalto con la riga tratteggiata, la riva a cordoli bianchi e rossi, una collinetta in mezzo, l'arco del via a scacchi col semaforo, due tribune col pubblico, pile di gomme, due kart parcheggiati e le bandierine.
+- **Nel mondo** (#185, 10 ott 2026): l'hub in piccolo, come la concept `corse_13_hub_arrivo`. A sud il molo e il paese dei piloti (garage, podio con la statua del manichino col trofeo, torre di controllo, bancarelle, festoni); al centro la rotatoria col trofeo dorato e le strade coi cordoli; intorno i quartieri delle zone (montagna innevata, giungla col tempio, palazzi al neon, luna park, spiaggia col faro) con le loro porte.
 - **La pista vera** è una scena a parte (come la chiesa dei Templari): 580 m di anello levigato con 12 m di carreggiata, 3 m di prato e il muretto di gomme a bande. Intorno ci sono tribune sul rettilineo, gomme all'esterno delle curve, palme e il mare.
 
 ## B4. La partita

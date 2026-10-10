@@ -1,9 +1,9 @@
 {
   "id": "corse",
-  "nome": "Gran Premio",
+  "nome": "Isola delle Corse",
   "maxSeconds": 240,
   "isola": "corse",
-  "posto": [22, 26],
+  "posto": [27, 35],
   "giri": 3,
   "pista": {
     "nome": "Anello del Faro",
