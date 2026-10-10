@@ -143,6 +143,9 @@ Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, gioca
 
 `FeedTipo` + `'record'` («Mia ha battuto il tuo record alla Regata», a chi perde il record di sempre) e `'faro'` («Il Faro del Porto è salito al livello 2, grazie a Luca: Segherie e Cave +10 % per tutti», a chi ha un'isola). Nuovo campo facoltativo di `LotState`: `faro?: { livelli: ms[], versato: { legno, pietra }, doni: id[] }` (momenti delle salite del faro, quanto ha versato l'isola, ultimi versamenti per l'idempotenza). `POST /api/rientro` porta al lotto i livelli del faro se se li era persi. `PROTOCOL_VERSION` resta 1.
 
+### Aggiunte Armature e armi a vista (#190, 10 ott 2026)
+**Presenza**: `Peer.indossa?: { corpo?, arma?, frecce? }` = id del catalogo GDR di quello che si vede addosso (armatura o veste, arma di mischia o arco, frecce); assente = niente. Come `titolo` e `barca` arriva nel `welcome`/`join` (dal look in D1) e negli `snap` dopo un cambio. **Non lo manda il client**: lo ricava il Worker dal personaggio vero (`heroOf(lotto).equip`; senza personaggio salvato vale l'equipaggiamento di partenza) a ogni `GET /api/me`, `GET /api/lot`, `POST /api/rpg` e `POST /api/dungeon/finish|save`; se è cambiato lo scrive nel look in D1 (`LookSalvato.indossa`) e avvisa la Zone come `POST /api/look`. `POST /api/look`, `/api/diario/titolo` e `/api/barca` lo conservano e non lo leggono dal corpo (nessuno si vede addosso quello che non ha). La Zone scarta gli id che non esistono o non stanno nello slot giusto (`indossaValida` in `@marea/sim/rpg/indossa.ts`). Niente migrazioni; `GET /api/me` e `/api/lots` lo danno nel `look`. `PROTOCOL_VERSION` resta 1.
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32 e `a, b` 0/1. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 

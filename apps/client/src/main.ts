@@ -300,7 +300,7 @@ async function boot(): Promise<void> {
     const aPiedi = world.mode === 'walk' && !world.frozen && !panelsBusyNoSheet() && !canBoard(world.avatar.state, world.boat.state, world.map);
     return mioLotto.tick(a, aPiedi ? world.avatar.state : null);
   };
-  let last = performance.now(), acc = 0, t = 0;
+  let last = performance.now(), acc = 0, t = 0, eqN = 0;
   const frame = (now: number) => {
     const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now; acc += dt; t += dt; // il primo rAF può avere un orario prima di performance.now() qui sopra
     let steps = 0;
@@ -331,6 +331,7 @@ async function boot(): Promise<void> {
     aspetto?.update(Date.now(), t, focus);
     renderer.render(acc / DT, t);
     hud.setPerf(renderer.stats());
+    if ((eqN++ & 15) === 0) { const l = myLot(); if (l) world.setEquip(l.hero ? l.hero.equip : 'partenza'); } // armatura e arma a vista (#190): si riallinea al personaggio ogni ~¼ di secondo
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

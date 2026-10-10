@@ -4,13 +4,14 @@
 // arrivano posizioni; quando nessuno si muove non resta nessun timer e il DO può ibernare (lo stato dei peer vive negli attachment).
 // Rotta interna `POST /look` (dal Worker dopo `POST /api/look`, CONTRACTS §13): aggiorna il look dei socket di quella persona e lo manda nel
 // prossimo `snap`; il corpo può avere anche `titolo` (#87, id di un traguardo: il client lo mostra sotto il nome) e `barca` (#107: colori e
-// nome, nel Peer solo se non è quella di serie). Emote: al massimo una ogni 800 ms per connessione, mai in eco a chi la manda.
+// nome, nel Peer solo se non è quella di serie) e `indossa` (#190: armatura, arma e frecce che si vedono addosso, già ricavate dal Worker). Emote: al massimo una ogni 800 ms per connessione, mai in eco a chi la manda.
 import { DurableObject } from 'cloudflare:workers';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import { MAX_MSG_BYTES, MAX_ZONE_CONNECTIONS, POS_HZ, PROTOCOL_VERSION, parseClientMsg } from '@marea/protocol';
 import type { Look, Peer, ServerMsg } from '@marea/protocol';
 import { TRAGUARDI } from '@marea/content/diario.ts';
 import { barcaDi, diSerie } from '@marea/sim/economy/barca.ts';
+import { indossaValida } from '@marea/sim/rpg/indossa.ts';
 /** Messaggio in uscita: `now` lo aggiunge `send`/`broadcast`. */
 type Outgoing = { [K in ServerMsg['t']]: Omit<Extract<ServerMsg, { t: K }>, 'now'> & { now?: number } }[ServerMsg['t']];
 import type { Env } from '../env.ts';
@@ -83,9 +84,9 @@ export class Zone extends DurableObject<Env> {
       return new Response(null, { status: 101, webSocket: client });
     }
 
-    let parsedLook: Look = DEFAULT_LOOK, titolo: string | undefined, barca: { barca?: Peer['barca'] } = {};
-    try { const raw = JSON.parse(look) as Record<string, unknown>; parsedLook = asLook({ ...DEFAULT_LOOK, ...raw }) ?? DEFAULT_LOOK; titolo = asTitolo(raw); barca = asBarca(raw); } catch { /* look di default */ }
-    const peer: Peer = { id, nome, x: 0, z: 0, yaw: 0, mode: 'walk', anim: 'idle', look: parsedLook, ...(titolo ? { titolo } : {}), ...barca };
+    let parsedLook: Look = DEFAULT_LOOK, titolo: string | undefined, barca: { barca?: Peer['barca'] } = {}, indossa: Peer['indossa'];
+    try { const raw = JSON.parse(look) as Record<string, unknown>; parsedLook = asLook({ ...DEFAULT_LOOK, ...raw }) ?? DEFAULT_LOOK; titolo = asTitolo(raw); barca = asBarca(raw); indossa = indossaValida(raw['indossa']); } catch { /* look di default */ }
+    const peer: Peer = { id, nome, x: 0, z: 0, yaw: 0, mode: 'walk', anim: 'idle', look: parsedLook, ...(titolo ? { titolo } : {}), ...barca, ...(indossa ? { indossa } : {}) };
     this.ctx.acceptWebSocket(server, [id]);
     server.serializeAttachment({ peer, hello: false, lastPos: 0 } satisfies Attach);
     return new Response(null, { status: 101, webSocket: client });
@@ -94,15 +95,15 @@ export class Zone extends DurableObject<Env> {
   /** Look salvato dal Worker (già validato lì: qui solo la forma). Vale anche per i socket che non hanno ancora fatto `hello`. */
   private async nuovoLook(req: Request): Promise<Response> {
     const id = req.headers.get('x-persona') ?? '';
-    let look: Look | null = null, titolo: string | undefined, barca: { barca?: Peer['barca'] } = {};
-    try { const raw: unknown = await req.json(); look = asLook(raw); titolo = asTitolo(raw); barca = asBarca(raw); } catch { /* corpo rotto */ }
+    let look: Look | null = null, titolo: string | undefined, barca: { barca?: Peer['barca'] } = {}, indossa: Peer['indossa'];
+    try { const raw: unknown = await req.json(); look = asLook(raw); titolo = asTitolo(raw); barca = asBarca(raw); indossa = indossaValida((raw as Record<string, unknown> | null)?.['indossa']); } catch { /* corpo rotto */ }
     if (!id || !look) return new Response(null, { status: 400 });
     let any = false;
     for (const ws of this.ctx.getWebSockets(id)) {
       const a = this.att(ws);
       if (!a || a.gone) continue;
-      const { titolo: _via, barca: _b, ...resto } = a.peer; // titolo (#87) e barca (#107) arrivano sempre insieme al look: assenti = tolti
-      a.peer = { ...resto, look, ...(titolo ? { titolo } : {}), ...barca };
+      const { titolo: _via, barca: _b, indossa: _i, ...resto } = a.peer; // titolo (#87), barca (#107) e indossa (#190) arrivano sempre insieme al look: assenti = tolti
+      a.peer = { ...resto, look, ...(titolo ? { titolo } : {}), ...barca, ...(indossa ? { indossa } : {}) };
       try { ws.serializeAttachment(a); any = true; } catch { /* socket già finito */ }
     }
     if (any) { this.dirty.add(id); this.schedule(); }
