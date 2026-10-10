@@ -39,8 +39,12 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
     if (v) diorama.setView!((v.pitch * Math.PI) / 180, v.fov, v.dist); else diorama.setView!(CAM.PITCH, CAM.FOV, CAM.DIST);
     camera.far = v ? v.far : FAR; camera.updateProjectionMatrix();
   };
+  // iOS, girando il telefono, a volte manda «resize» prima di aver rifatto il layout: le misure restano quelle di prima e l'immagine
+  // esce stirata. Per questo `render` ricontrolla le misure a ogni frame (cw, ch) e rifà il resize se sono cambiate.
+  let cw0 = 0, ch0 = 0;
   const resize = () => {
     const cw = o.canvas.clientWidth || innerWidth, ch = o.canvas.clientHeight || innerHeight;
+    cw0 = cw; ch0 = ch;
     const k = Math.min(1.5, devicePixelRatio || 1) * scale;
     w = Math.max(1, Math.round(cw * k)); h = Math.max(1, Math.round(ch * k));
     gl.setSize(w, h, false); post?.setSize(w, h);
@@ -56,6 +60,7 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
     render: (_alpha, t) => {
       // Hook prima del render per chi deve riallineare qualcosa dopo world.update (es. il sole sul passo della shadow map).
       for (const c of active.children) (c.userData.preRender as (() => void) | undefined)?.();
+      if ((o.canvas.clientWidth || innerWidth) !== cw0 || (o.canvas.clientHeight || innerHeight) !== ch0) resize();
       const t0 = performance.now();
       if (post) post.render(gl, active, diorama.camera, t, active === scene); else gl.render(active, diorama.camera);
       const t1 = performance.now();

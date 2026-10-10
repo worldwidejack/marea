@@ -283,3 +283,21 @@ test('corse v2: deterministico (stessi input → stesso risultato e stessi veico
   assert.deepEqual(opzioniGara({ pista: 'prova_baia', veicolo: 'kart', bot: '0', scia: '0', somma: 'boh' }), { pista: 'prova_baia', veicolo: 'moto_acqua', bot: '0', ...tutte, scia: '0' });
   assert.equal(nuova('prova_baia', undefined, false).veicoli.length, 1);
 });
+
+test('corse tra amici: senza bot ognuno parte dal suo posto in griglia, e l\'opzione resta solo senza bot', () => {
+  assert.equal(opzioniGara({ pista: 'spiaggia_lungomare', bot: '0', posto: '2' })['posto'], '2');
+  assert.equal(opzioniGara({ pista: 'spiaggia_lungomare', bot: '1', posto: '2' })['posto'], undefined, 'coi bot il posto non vale');
+  assert.equal(opzioniGara({ pista: 'spiaggia_lungomare', bot: '0', posto: '9' })['posto'], undefined, 'posto fuori elenco');
+  assert.equal(opzioniGara({ pista: 'spiaggia_lungomare' })['posto'], undefined, 'da solo come prima');
+  const G = CORSE_PISTE['spiaggia_lungomare']!.griglia;
+  const progs = [0, 1, 2, 3, 4, 5].map((i) => {
+    const s = garaCorse.create({ seed: 7, difficulty: 2, opzioni: opzioniGara({ pista: 'spiaggia_lungomare', veicolo: 'kart', bot: '0', posto: String(i) }) });
+    assert.equal(s.veicoli.length, 1, 'senza bot');
+    return [s.veicoli[0]!.prog, s.veicoli[0]!.lat];
+  });
+  for (let i = 0; i < G.length; i++) assert.deepEqual(progs[i], G[i], `posto ${i} = casella ${i} della griglia`);
+  assert.ok(progs[5]![0]! < G[G.length - 1]![0], 'oltre la griglia si parte più indietro');
+  // da solo (senza posto) in fondo come sempre
+  const solo = garaCorse.create({ seed: 7, difficulty: 2, opzioni: opzioniGara({ pista: 'spiaggia_lungomare', veicolo: 'kart', bot: '0' }) });
+  assert.deepEqual([solo.veicoli[0]!.prog, solo.veicoli[0]!.lat], G[G.length - 1]);
+});

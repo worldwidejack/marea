@@ -1,6 +1,9 @@
 // Le camere del banco di prova delle piste (#170), dal menù opzioni:
-// - dietro e alta: «sui binari», sulla pista qualche metro dietro di te, così nei giri della morte e nelle curve restano sopra la
-//   strada (il sopra è quello della pista lì); guardano un po' più avanti, a metà tra il muso e il moto: in drift vedi il kart di traverso;
+// - alta: «sui binari», sulla pista qualche metro dietro di te, così nei giri della morte e nelle curve resta sopra la strada (il sopra
+//   è quello della pista lì); guarda un po' più avanti, a metà tra il muso e il moto: in drift vedi il kart di traverso;
+// - dietro (10 ott, Riccardo: «la guida è meglio nell'hub che in gara»): come la camera dell'hub, dietro al veicolo lungo la sua
+//   direzione (muso e moto, con un filo di ritardo), non sui binari: sterzando gira il mondo e il kart resta lì davanti. Non scende mai
+//   sotto la pista (nei giri della morte il sopra è quello del veicolo);
 // - cofano (Jack: «molto più dentro la macchina, solo il cofano e la strada»): negli occhi del pilota, guarda dove punta il muso.
 // FOV che si allarga con la velocità e col turbo (col colpo `pugno` quando parte), scossa negli atterraggi, tremolio con l'onda vicina.
 import * as THREE from 'three';
@@ -16,7 +19,7 @@ export type Inquadra = { pos: THREE.Vector3; fwd: THREE.Vector3; up: THREE.Vecto
 
 export function creaRegia(camera: THREE.PerspectiveCamera) {
   const camF = new THREE.Vector3(1, 0, 0), camU = new THREE.Vector3(0, 1, 0), camP = new THREE.Vector3(), camPos = new THREE.Vector3(), // camPos: la posizione nostra (nel gioco il mondo rimette la camera ogni frame)
-     tmp = new THREE.Vector3(), dx = new THREE.Vector3(), T3 = nuovaTerna();
+     tmp = new THREE.Vector3(), dx = new THREE.Vector3(), dir = new THREE.Vector3(0, 0, 1), voluto = new THREE.Vector3(), T3 = nuovaTerna();
   /** ok = false: la prossima inquadratura salta subito al posto giusto (cambio di camera o di gara). */
   const st = { ok: false, pugno: 0, scossa: 0 };
   const lente = (fov: number, near: number, dt: number) => {
@@ -44,10 +47,20 @@ export function creaRegia(camera: THREE.PerspectiveCamera) {
     terna(nc, sc, T3);
     const latc = k.lat * 0.7;
     camP.set(T3.x + T3.rx * latc + T3.ux * alt, T3.y + T3.ry * latc + T3.uy * alt, T3.z + T3.rz * latc + T3.uz * alt);
+    if (modo === 'dietro') {
+      // dietro al veicolo: direzione a metà tra muso e moto (in retromarcia il muso), nel piano del veicolo, che segue la svolta con un filo di ritardo
+      voluto.copy(q.fwd).multiplyScalar(0.45).addScaledVector(k.v >= 0 ? q.moto : q.fwd, 0.55);
+      voluto.addScaledVector(q.up, -voluto.dot(q.up)).normalize();
+      if (!st.ok) dir.copy(voluto); else dir.lerp(voluto, 1 - Math.exp(-dt * (4 + v * 0.16))).normalize();
+      camP.copy(q.pos).addScaledVector(dir, -dist).addScaledVector(q.up, alt);
+      // mai sotto la pista: rispetto al punto dei binari almeno 60 % dell'altezza
+      const sopra = (camP.x - T3.x) * T3.ux + (camP.y - T3.y) * T3.uy + (camP.z - T3.z) * T3.uz;
+      if (sopra < alt * 0.6) camP.addScaledVector(tmp.set(T3.ux, T3.uy, T3.uz), alt * 0.6 - sopra);
+    }
     // l'onda che si avvicina fa tremare la camera (sotto i 35 m)
     const tremo = p.def.inseguitore ? Math.max(0, 1 - (k.prog - q.onda) / 35) : 0;
     if (tremo > 0) camP.addScaledVector(camU, Math.sin(performance.now() * 0.06) * 0.14 * tremo);
-    tmp.set(T3.ux, T3.uy, T3.uz).normalize();
+    if (modo === 'dietro') tmp.copy(q.up); else tmp.set(T3.ux, T3.uy, T3.uz).normalize();
     camU.lerp(tmp, st.ok ? 1 - Math.exp(-dt * 10) : 1).normalize();
     if (st.ok) camPos.lerp(camP, 1 - Math.exp(-dt * 20)); else camPos.copy(camP);
     camera.position.copy(camPos);

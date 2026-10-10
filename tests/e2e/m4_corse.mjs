@@ -120,7 +120,14 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.corse.vista && s.corse.vista.kit === true && s.corse.vista.avatar === true, 30000);
       await sleep(400);
       await ctx.shot(page, 'telefono_3_semaforo');
-      // gas a tutta e dritto: in assi mondo (camera a 45°) l'avanti dello schermo è (−0,707, −0,707)
+      // col dito lo stick sterza e basta (Riccardo, 10 ott): GAS è il bottone grande nell'angolo
+      assert(await page.isVisible('#mzGpGas'), 'il bottone GAS non si vede');
+      for (const [nome, sel] of [['GAS', '#mzGpGas'], ['DRIFT', '#btnA'], ['FRENO', '#btnB']]) {
+        const b = await page.locator(sel).boundingBox();
+        assert(b && b.x >= 0 && b.y >= 0 && b.x + b.width <= 844 && b.y + b.height <= 390, `${nome} fuori dallo schermo: ${JSON.stringify(b)}`);
+      }
+      assert((await hook('corseGas', true)) === true, 'il gas non è sul bottone');
+      // gas a tutta e dritto: lo stick in avanti da solo non dà più gas (in assi mondo, camera a 45°, l'avanti è (−0,707, −0,707))
       await hook('wp2_inject', { mx: -0.707, my: -0.707, a: false });
       await ctx.waitState(page, (s) => s.corse.tick > 0 && s.corse.v > 12, 60000);
       // sterzo a destra sullo schermo + DRIFT tenuto, restando col gas
@@ -128,7 +135,7 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.corse.drift === 1, 5000);
       await sleep(500);
       await ctx.shot(page, 'telefono_4_drift');
-      await hook('wp2_inject', null);
+      await hook('wp2_inject', null); await hook('corseGas', false);
       const perf = await ctx.getPerf(page);
       ctx.log('perf in gara (telefono)', JSON.stringify(perf));
       assert(perf.drawCalls <= 100, `draw call ${perf.drawCalls} > 100`);
