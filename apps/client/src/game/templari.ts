@@ -3,7 +3,7 @@
 // dati delle ondate (solo `import type`): la partita vera è il chunk apps/client/src/templari/ scaricato entrando.
 // Giro: ENTRA → POST /api/templari/start (seed) → import('../templari/index.ts') → startTemplari → a fine partita POST /api/templari/finish
 // (input compressi, azioni) → scheda dell'esito del server → setLot → davanti alla porta. Senza link personale si gioca senza premio.
-// Lo sblocco (§2): sull'Isola della Tempesta, sotto il faro, lo scheletro di fra' Guillaume col calice in grembo (luccica, un fascio di luce
+// Il calice (§2; dal 10/10 non apre più niente, l'isola è libera e la porta fa entrare con le ondate già partite): sull'Isola della Tempesta, sotto il faro, lo scheletro di fra' Guillaume col calice in grembo (luccica, un fascio di luce
 // lo segnala da lontano): A vicino lo prende (POST /api/templari/reliquia → nel lotto, la nebbia rossa si dirada) e si legge il biglietto,
 // che si può rileggere dopo. Senza link personale il calice resta finché non ricarichi.
 import * as THREE from 'three';
@@ -124,7 +124,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       prese++;
       suona('medaglia_oro');
       biglietto.classList.add('on');
-      o.hud.toast('Il calice dei Templari è tuo: la nebbia rossa a sud-ovest si dirada', 4200);
+      o.hud.toast('Il calice dei Templari è tuo', 4200);
     } catch (e) { fail(e, 'Il calice non si stacca dalle ossa, riprova'); } finally { busyR = false; }
   }
 
@@ -132,7 +132,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   btn.style.background = PAL.rosso; btn.style.color = PAL.sabbiaChiara;
   btn.replaceChildren(el('span', '', '✠ ENTRA NELLA CHIESA'), el('small', '', 'A'));
   for (const ev of ['pointerdown', 'touchstart']) btn.addEventListener(ev, (x) => x.stopPropagation());
-  btn.addEventListener('click', () => { void entra(false); });
+  btn.addEventListener('click', () => { void entra(true); });
   o.root.append(btn);
   // prove (?templari=1): subito nelle ondate, senza reliquia e senza barca; ⛪ a piedi davanti alla porta della chiesa
   if (FLAGS.templari) topButton({ root: o.root, id: 'mzTemplariProva', order: 9, label: '⚔', title: 'Templari: ondate subito (prova)', onClick: () => { void entra(true); } });
@@ -228,7 +228,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       near = o.world.mode === 'walk' && !o.world.race.on && aperta() && Math.hypot(f.x - spot.x, f.z - spot.z) < NEAR_M;
       if (near && !nearWas) o.hud.toast('La chiesa dei Templari: premi A o tocca ENTRA', 2500);
       nearWas = near;
-      if (near && pressA) void entra(false);
+      if (near && pressA) void entra(true);
     },
     step(f) { run?.step(f); },
     update(alpha, dt, t) {
