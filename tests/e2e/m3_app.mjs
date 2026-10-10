@@ -15,6 +15,7 @@ export default async function (ctx) {
   await ctx.test('manifest col token: lo start_url entra come sé', async () => {
     const m = await man('?t=abcDEF_123-xyz');
     assert.equal(m.start_url, '/?t=abcDEF_123-xyz');
+    assert.equal(m.id, '/?t=abcDEF_123-xyz', 'ogni persona è un\'app a sé (id)');
   });
   await ctx.test('manifest con un token strano: ignorato', async () => {
     const m = await man('?t=' + encodeURIComponent('<script>'));

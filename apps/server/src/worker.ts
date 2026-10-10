@@ -139,7 +139,8 @@ function manifesto(t: string): Response {
   const body = {
     name: 'MAREA', short_name: 'MAREA', lang: 'it',
     description: "L'arcipelago con gli amici",
-    start_url: token ? `/?t=${token}` : '/', scope: '/', id: '/',
+    // id diverso per ogni persona: per il telefono ogni link è un'app a sé (con lo stesso id l'icona nuova si teneva l'account di prima)
+    start_url: token ? `/?t=${token}` : '/', scope: '/', id: token ? `/?t=${token}` : '/',
     display: 'fullscreen', orientation: 'any',
     background_color: '#163F73', theme_color: '#163F73',
     icons: [
