@@ -46,7 +46,10 @@ const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno', 'nem_astrol
 // Corse: edifici, gru, faro e arco di roccia come gli edifici; prop e manichini come i prop (le teste sotto il minimo dei prop).
 const CORSE_GRANDI = /^cs_(casa_|gru_|faro|tribuna|arco_)/;
 // Corse (#178, Jack 9 ott: sull'isola si può andare oltre il budget del resto): veicoli fino a 1800 triangoli, animali piloti fino a 3000.
-const BUDGET = (n) => n === 'cs_manichino_testa' ? [1, 50] : n.startsWith('cs_v_') ? [1, 1800] : n.startsWith('cs_p_') ? [1, 3000] : CORSE_GRANDI.test(n) ? [1, 800] : isCorse(n) ? [1, 300] : n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
+// Hub delle Corse (#185, grafica più curata del resto): edifici grandi e quartieri ≤ 1500, porte ≤ 1200, ruota che gira ≤ 2000, il resto ≤ 400.
+const HUB_GRANDI = /^cs_h_(garage|statua|torre|trofeo|tempio|rovina|ruota_base|tendone|palazzo_|corallo|igloo)/;
+const HUB_BUDGET = (n) => n === 'cs_h_ruota_giro' ? [1, 2000] : HUB_GRANDI.test(n) ? [1, 1500] : /^cs_h_(porta_|sbarra)/.test(n) ? [1, 1200] : [1, 400];
+const BUDGET = (n) => n.startsWith('cs_h_') ? HUB_BUDGET(n) : n === 'cs_manichino_testa' ? [1, 50] : n.startsWith('cs_v_') ? [1, 1800] : n.startsWith('cs_p_') ? [1, 3000] : CORSE_GRANDI.test(n) ? [1, 800] : isCorse(n) ? [1, 300] : n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
   : n.startsWith('boat_') ? [1, 600] : n.startsWith('chr_') ? [1, 1500] : BOSS.has(n) ? [1, 1200] : n.startsWith('nem_') ? [1, 600]
   : n.startsWith('arm_') ? [1, 80] : n.startsWith('fx_') ? [1, 40] : [1, 800];
 // Tinte di default dell'avatar: le zone pelle/capelli/vestito dell'atlas sono maschere bianche, il colore è il fattore del materiale.

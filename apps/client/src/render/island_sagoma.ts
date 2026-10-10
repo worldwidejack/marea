@@ -22,7 +22,7 @@ const TINTE: Record<TemaStyle | 'base' | 'neon', Tinte> = {
   vulcano: { sabbia: [P.neroCaldo, P.neroCaldo], erba: [P.roccia, P.neroCaldo] },
   giardino: { sabbia: [P.pietraChiara, P.pietraScura], erba: [P.erba, P.legno] },
   templari: { sabbia: [P.sabbia, P.legnoScuro], erba: [P.bosco, P.ombraCalda] },
-  corse: { sabbia: [P.roccia, P.pietraScura], erba: [P.erba, P.legno] },
+  corse: { sabbia: [P.sabbia, P.legnoChiaro], erba: [P.erba, P.legno] },
 };
 const N4: readonly [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const LAND = new Set<Tile>(['.', 'g', 'r', 'P', 'L', 'd']);

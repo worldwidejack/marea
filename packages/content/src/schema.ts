@@ -83,7 +83,10 @@ const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia', 'tempes
 export const PROP_TEMI = ['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
   'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello',
   'chiesa_templare', 'casa_rovina', 'tomba', 'croce_pietra', 'tenda', 'relitto_templare', 'scheletro',
-  'arco_via', 'tribuna', 'gomme', 'kart_fermo', 'bandierina'] as const; // Isola delle Corse
+  'arco_via', 'tribuna', 'gomme', 'kart_fermo', 'bandierina', // Isola delle Corse
+  'strada', 'rotatoria', 'trofeo', 'statua_trofeo', 'torre_corse', 'garage_corse', 'bancarella', 'festone', 'lampione', 'palo_molo',
+  'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia', 'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla',
+  'palazzo_neon', 'palazzo_neon_basso', 'faro', 'ombrellone', 'albero_tondo', 'albero_giungla', 'chiazza_neve'] as const;
 const PROP_KINDS = new Set(['torii', 'lanterna', 'insegna_neon', 'palma', 'cassa', 'barile', 'sasso', 'cespuglio', 'filo_lanterne', 'fac_neon', 'fac_selvaggia', ...PROP_TEMI]);
 /** Campi facoltativi di un'isola: stile, densità della scenografia, slot (su celle L) e decorazioni fisse (dentro la mappa). */
 function validateIslandExtras(isl: IslandDef, w: number): string[] {

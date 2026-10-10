@@ -55,7 +55,8 @@ const NEAR_M = 16;
 export type SchermoGioco = {
   run(o: { seed: number; difficulty: number; opzioni?: Record<string, string>; posto?: string }): Promise<PackedInputs | null>; isOpen(): boolean; esito?(detail: Record<string, unknown>): string;
   step?(f: InputFrame): void; update?(t: number): void;
-  /** Prima che il server apra la partita: sceglie le `opzioni` (le Corse: pista e veicolo). null = ci ripensa. */
+  /** Prima che il server apra la partita: sceglie le `opzioni`. null = ci ripensa, o il gioco resta aperto da sé e le partite le fa
+   *  partire lui (le Corse, #185: si apre l'hub, le gare partono dalle sue porte con `gioca` → `play(spot, scelte)`). */
   scegli?(opzioni?: Record<string, string>): Promise<Record<string, string> | null>;
   /** La partita non si apre (server giù): richiude quello che `scegli` ha lasciato su. */
   annulla?(): void;
@@ -142,7 +143,9 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   if (o.renderer) {
     const renderer = o.renderer;
     diIsola('corse', 'corse');
-    registraSchermo('corse', (root) => import('../corse/index.ts').then((m) => m.createCorse({ root, renderer, world: o.world })));
+    // `gioca`: l'hub delle Corse (#185) fa partire le gare dalle sue porte senza ripassare dal posto (vedi `play(s, scelte)`)
+    const gioca = (opzioni: Record<string, string>) => { const s = spots.find((x) => x.minigame === 'corse'); return s ? play(s, opzioni) : Promise.resolve(); };
+    registraSchermo('corse', (root) => import('../corse/index.ts').then((m) => m.createCorse({ root, renderer, world: o.world, gioca })));
   }
   // fine Isola delle Corse
   let chClosedAt = 0, scacchi: Scacchi | null = null;
@@ -169,6 +172,8 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   for (const e of [btn, esito]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   o.root.append(btn, esito);
   let near: Spot | null = null, nearWas: Spot | null = null, aWas = false, busy = false, open = false, playedN = 0, last: (SoloResult & { spot: string }) | null = null, esitoSpot: Spot | null = null;
+  /** Le scelte della partita della scheda dell'esito (le Corse: pista e veicolo): RIGIOCA rigioca quelle, senza ripassare da `scegli`. */
+  let esitoScelte: Record<string, string> | undefined;
   btn.addEventListener('click', () => { if (near) void play(near); });
   // posti col loro tasto (la Regata: R), dove A fa altro
   addEventListener('keydown', (e) => {
@@ -188,7 +193,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   const onKey = (e: KeyboardEvent) => {
     if (!open) return;
     if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) { e.preventDefault(); e.stopImmediatePropagation(); closeEsito(); }
-    else if (e.code === 'KeyR') { e.preventDefault(); e.stopImmediatePropagation(); const s = esitoSpot ?? spots.find((x) => x.id === last?.spot) ?? spots[0]; closeEsito(); if (s) void play(s); }
+    else if (e.code === 'KeyR') { e.preventDefault(); e.stopImmediatePropagation(); const s = esitoSpot ?? spots.find((x) => x.id === last?.spot) ?? spots[0]; const sc = esitoScelte; closeEsito(); if (s) void play(s, sc); }
   };
   function showEsito(s: Spot, medal: Medal, sub: string, premio: Resources | null, note: string | null): void {
     esitoSpot = s; // RIGIOCA (R) rigioca questo, anche se il posto è mobile (pesca)
@@ -204,7 +209,8 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     if (note) body.push(el('div', 'sub', note));
     const r = el('div', 'mz-row');
     const again = el('button', 'mz-btn ghost', 'RIGIOCA'); again.dataset['act'] = 'rigioca';
-    again.addEventListener('click', () => { closeEsito(); void play(s); });
+    const sc = esitoScelte;
+    again.addEventListener('click', () => { closeEsito(); void play(s, sc); });
     const ok = el('button', 'mz-btn', 'OK'); ok.dataset['act'] = 'ok';
     ok.addEventListener('click', () => closeEsito());
     r.append(again, ok); body.push(r);
@@ -218,8 +224,10 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     for (const id of RES_IDS) if (premio[id] > 0) flyResources(o.root, from, o.hud.resAnchor?.(id) ?? null, id, premio[id], () => o.hud.bump?.(id));
   }
 
-  async function play(s: Spot): Promise<void> {
-    if (busy || open || o.world.race.on || schermoAperto()) return;
+  /** `scelte` = opzioni già scelte dal gioco a schermo (le Corse: alla porta dell'hub, o RIGIOCA): niente `scegli`, e il gioco può
+   *  essere già aperto (l'hub delle Corse resta aperto sotto la gara e la scheda dell'esito). */
+  async function play(s: Spot, scelte?: Record<string, string>): Promise<void> {
+    if (busy || open || o.world.race.on || (!scelte && schermoAperto())) return;
     if (s.aperta && !s.aperta()) return; // Ghiacci e Giardino: isola ancora chiusa
     if (s.minigame === 'scacchi') {
       btn.classList.remove('on');
@@ -241,7 +249,9 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
         if (!schermo) { try { schermo = await load(o.root); schermi.set(s.minigame, schermo); } catch { o.hud.toast('Gioco non caricato: riprova', 2500); return; } }
       }
       // un gioco a schermo può far scegliere qualcosa prima che il server apra la partita (le Corse: pista e veicolo)
-      if (schermo?.scegli) { const sel = await schermo.scegli(s.opzioni); if (!sel) return; opzioni = sel; }
+      if (scelte) opzioni = scelte;
+      else if (schermo?.scegli) { const sel = await schermo.scegli(s.opzioni); if (!sel) return; opzioni = sel; }
+      esitoScelte = scelte ?? (schermo?.scegli ? opzioni : undefined);
       if (online) {
         try { const st = await o.api!.soloStart(s.minigame, opzioni); seed = st.seed; difficulty = st.difficulty; if (opzioni) opzioni = st.opzioni; }
         catch (e) { o.hud.toast(e instanceof ApiError ? e.message : 'Niente connessione, riprova tra poco', 3000); schermo?.annulla?.(); return; }
@@ -293,7 +303,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     played: () => playedN,
     tick(a, input) {
       const pressA = a && !aWas; aWas = a;
-      if (input) for (const g of schermi.values()) if (g.isOpen()) g.step?.(input); // giochi nel mondo (Consegne): la loro sim gira qui
+      if (input && !open) for (const g of schermi.values()) if (g.isOpen()) g.step?.(input); // giochi nel mondo (Consegne, l'hub delle Corse): la loro sim gira qui; ferma sotto la scheda dell'esito
       if (o.world.race.on || busy || open || schermoAperto()) { near = null; return; }
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
       near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near && (!s.aPiedi || o.world.mode === 'walk') && (!s.inBarca || o.world.mode === 'boat') && (!s.aperta || s.aperta())) ?? null;
