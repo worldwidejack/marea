@@ -1,6 +1,6 @@
 # MAREA — Isola dell'Adrenalina (GDD dell'isola)
 
-> Parte del GDD (`GDD.md` §3, §6 e §14 rimandano qui; vale come il GDD). Isola a tema **per tutti**, proposta da **birbasan** il 10 ott 2026; issue madre #189. Non è un'isola personale: entra solo con l'**ok di Jack**. Nasce da una bozza di decisioni presa in chat; le scelte che la bozza non diceva le ha prese Claude e sono segnate **[scelta provvisoria]**.
+> Parte del GDD (`GDD.md` §3, §6 e §14 rimandano qui; vale come il GDD). Isola a tema **per tutti**, proposta da **birbasan** il 10 ott 2026; issue madre #189. Non è un'isola personale: entra con l'**ok di Jack** (10 ott 2026). Nasce da una bozza di decisioni presa in chat; le scelte che la bozza non diceva le ha prese Claude e sono segnate **[scelta provvisoria]**.
 > Numeri: andranno in `packages/content/src/adrenalina/` e in `packages/content/src/minigames/<gioco>.json` (uno per gioco). Le tabelle qui sono la **prima ipotesi**; cambiarli = aggiornare qui e una riga in `ROADMAP.md` §Deviazioni.
 
 ## 0. In tre righe
@@ -113,7 +113,7 @@ Suoni nostri e sintetizzati (motore di `apps/client/src/audio/`, zero file), al 
 - **Sblocco**: `tipo: "cappello"` come il Vulcano, più un flag «liberatoria firmata» nel `LotState`.
 
 ## 14. Piano di lavoro (issue madre #189, una PR per passo, ognuna online)
-1. **Documenti**: questo file, GDD §3 §6 §14, ROADMAP §Deviazioni, BACKLOG. **Ok di Jack.**
+1. **Documenti**: questo file, GDD §3 §6 §14, ROADMAP §Deviazioni, BACKLOG. **Ok di Jack** (fatto, 10 ott 2026).
 2. **Isola**: la montagna (vetta innevata, bosco, scogliere), molo, funivia, posizione a nord-ovest, lucchetto; il casco e il cancello con la liberatoria; `?adrenalina=1`.
 3. **Snowboard completo**: pista verde, barra Adrenalina, cadute, medaglie e premio dal server, telefono 390×844. Qui si sceglie la camera. Se non diverte ci si ferma.
 4. **Fantasmi degli amici**: record per pista sul server, il fantasma in pista.
