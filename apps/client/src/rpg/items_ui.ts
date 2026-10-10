@@ -13,7 +13,7 @@ export const SKILL_NOME: Record<SkillId, string> = {
 export const ATTR_NOME: Record<AttrId, string> = { vita: 'Vita', magicka: 'Magicka', stamina: 'Stamina' };
 export const ATTR_COL: Record<AttrId, string> = { vita: PAL.rosso, magicka: PAL.acqua, stamina: PAL.erba };
 export const SLOT_NOME: Record<EquipSlot, string> = {
-  arma: 'Arma', frecce: 'Frecce', corpo: 'Corpo', anello1: 'Anello 1', anello2: 'Anello 2', pozione: 'Pozione rapida', magia: 'Magia',
+  arma: 'Arma', frecce: 'Frecce', corpo: 'Corpo', anello1: 'Anello 1', anello2: 'Anello 2', pozione: 'Pozione rapida', magia: 'Magia', mano: 'Mani',
 };
 export const GROUPS: readonly { id: string; nome: string; kinds: readonly ItemKind[] }[] = [
   { id: 'armi', nome: 'Armi', kinds: ['arma'] }, { id: 'archi', nome: 'Archi e frecce', kinds: ['arco', 'frecce'] },
@@ -86,6 +86,8 @@ export function itemIcon(kind: ItemKind, color: string, px = 24): HTMLCanvasElem
   return c;
 }
 export const iconOf = (it: ItemDef, px = 24): HTMLCanvasElement => itemIcon(it.kind, it.colore, px);
+/** Colore di una magia (icona, sfera nelle mani, linea di mira): le evocazioni viola, il Fulmine giallo, il resto fuoco. */
+export const coloreMagia = (id: string, scuola: string): string => (scuola === 'evocazione' ? PAL.viola : id === 'fulmine' ? PAL.giallo : PAL.arancio);
 
 // ---------- pezzi DOM ----------
 export function sec(title: string, right?: string): HTMLElement {

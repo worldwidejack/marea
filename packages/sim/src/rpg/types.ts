@@ -2,8 +2,12 @@
 import type { AttrId, EnemyKind, ItemKind, MaterialId, SkillId, Traits, WeaponClass, WeaponTypeId } from '@marea/content/rpg.ts';
 import type { DungeonAzioni } from '../dungeon/types.ts';
 
-export type EquipSlot = 'arma' | 'frecce' | 'corpo' | 'anello1' | 'anello2' | 'magia' | 'pozione';
-export const EQUIP_SLOTS: readonly EquipSlot[] = ['arma', 'frecce', 'corpo', 'anello1', 'anello2', 'magia', 'pozione'];
+/** `mano` (dungeon v6): cosa tengono le mani. Assente = l'arma; 'magia' = la magia preparata (`magia`), che la A lancia al posto dell'arma.
+ *  Prepararla (slot `magia`) la mette in mano; l'arma resta equipaggiata, a riposo, e si rimpugna con `mano` null. Va dopo `magia`. */
+export type EquipSlot = 'arma' | 'frecce' | 'corpo' | 'anello1' | 'anello2' | 'magia' | 'pozione' | 'mano';
+export const EQUIP_SLOTS: readonly EquipSlot[] = ['arma', 'frecce', 'corpo', 'anello1', 'anello2', 'magia', 'pozione', 'mano'];
+/** Gli slot che tengono un oggetto dello zaino (non magia né mani). */
+export type SlotOggetto = Exclude<EquipSlot, 'magia' | 'mano'>;
 
 /** Il personaggio, salvato dentro LotState.hero (una riga JSON nel DO del lotto). Assente = newHero(). */
 export type HeroState = {
@@ -110,8 +114,10 @@ export type RunHero = {
   frecce: RunArrows | null;
   armatura: RunArmor;
   magie: RunSpell[];
-  /** Magia preparata (tasto C): indice in `magie` o null. */
+  /** Magia preparata (slot `magia`): indice in `magie` o null. */
   magia: number | null;
+  /** Le mani tengono la magia preparata (equip.mano, dungeon v6): la A la lancia. Assente = l'arma in mano. */
+  manoMagia?: boolean;
   pozioni: RunPotion[];
   /** Pozione rapida (tasto D): indice in `pozioni` o null. */
   pozione: number | null;

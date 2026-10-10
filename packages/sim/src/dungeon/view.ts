@@ -7,7 +7,7 @@ import type { DungeonState, Enemy } from './state.ts';
 import { conEroe, finita, parte } from './state.ts';
 import { cellOf } from './map.ts';
 import { pesoZaino } from './loot.ts';
-import { vicinoUscita } from './hero.ts';
+import { magiaInMano, vicinoUscita } from './hero.ts';
 import { altareSotto, salvatoQui } from './altari.ts';
 import { livello, valvolaVicina } from './acque.ts';
 import { areaRaggio } from './enemies.ts';
@@ -60,6 +60,7 @@ export function viewOf(s: DungeonState): DungeonView {
       ...(ha.anim === 'attacca' ? { stile: h.stile } : {}),
       vita: h.vita, magicka: h.magicka, stamina: h.stamina, max: { ...rh.max },
       ricaricaMagia: h.cdMagia / HZ, frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0, arma: h.arma.id, rallentato: h.lento > 0,
+      ...inMano(s),
       ...(s.correnti.length ? { vento: !s.done && nelVento(s), riparo: !s.done && alRiparo(s) } : {}), ...(h.spT > 0 ? { spinto: true } : {}),
       ...(fucina(s) ? { brucia: h.brucia > 0, bagnato: !s.done && inGetto(s, h.x, h.z) } : {}),
       ...unici(s),
@@ -141,6 +142,11 @@ function mausoleo(s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][numb
   }
   return o;
 }
+/** La magia in mano all'eroe di turno (niente chiave con l'arma in mano). */
+function inMano(s: DungeonState): { magia?: string } {
+  const m = magiaInMano(s);
+  return m ? { magia: m } : {};
+}
 /** Mausoleo, gli unici addosso all'eroe di turno: carica della Barriera e il contatore dell'arma (niente chiavi senza unici). */
 function unici(s: DungeonState): Partial<DungeonView['hero']> {
   const h = s.hero, rh = s.runHero, t = h.arma.traits, o: Partial<DungeonView['hero']> = {};
@@ -161,7 +167,7 @@ function compagni(s: DungeonState): CompagnoView[] {
       return {
         i, x: h.x, z: h.z, fx: h.fx, fz: h.fz, anim: ha.anim, t: ha.t, carica: h.act === 'carica' || h.act === 'tende' ? h.carica : 0,
         ...(ha.anim === 'attacca' ? { stile: h.stile } : {}),
-        vita: h.vita, max: s.runHero.max.vita, arma: h.arma.id, protetto: h.protetto > 0, done: s.done, outcome: s.outcome,
+        vita: h.vita, max: s.runHero.max.vita, arma: h.arma.id, ...inMano(s), protetto: h.protetto > 0, done: s.done, outcome: s.outcome,
       };
     }));
   }
@@ -196,7 +202,7 @@ function parteHash(s: DungeonState): Record<string, unknown> {
   const h = s.hero;
   return {
     outcome: s.outcome,
-    hero: [r3(h.x), r3(h.z), r3(h.vita), r3(h.magicka), r3(h.stamina), h.frecce, h.pozioni],
+    hero: [r3(h.x), r3(h.z), r3(h.vita), r3(h.magicka), r3(h.stamina), h.frecce, h.pozioni, ...(h.incanta ? [1] : [])],
     bottino: roundBag(s.bottino), monete: s.monete, uccisi: roundBag(s.uccisi), usati: roundBag(s.usati),
     danni: [r3(s.danniFatti), r3(s.danniPresi)],
     salvato: s.salvato ? [s.salvato.altare, s.salvato.tick, s.salvato.monete, roundBag(s.salvato.bottino)] : null, cadute: s.cadute,

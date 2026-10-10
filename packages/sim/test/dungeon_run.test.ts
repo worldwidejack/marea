@@ -6,6 +6,7 @@ import { dungeon } from '../src/dungeon/dungeon.ts';
 import { isPackedDungeon, packDungeon, quantizeDungeon, replayDungeon, unpackDungeon } from '../src/dungeon/replay.ts';
 import { kill, wake } from '../src/dungeon/combat.ts';
 import type { RunHero } from '../src/rpg/types.ts';
+import type { PackedDungeon } from '../src/dungeon/types.ts';
 import { newHero, runHeroOf } from '../src/rpg/hero.ts';
 import { heroBase, heroForte, inp, playAuto, run } from './dungeon_util.ts';
 
@@ -54,7 +55,7 @@ test('dungeon: isPackedDungeon rifiuta log malformati o troppo lunghi', () => {
 
 test('dungeon: fixture d’oro della Grotta (seed + eroe + input → hash ed esito)', () => {
   const url = new URL('./fixtures/dungeon_grotta.json', import.meta.url);
-  type Fx = { dungeon: string; version: number; seed: number; hero: RunHero; inputs: [number, number, number, number][]; outcome: string; ticks: number; hash: number };
+  type Fx = { dungeon: string; version: number; seed: number; hero: RunHero; inputs: PackedDungeon; outcome: string; ticks: number; hash: number };
   if (process.env['DUNGEON_FIXTURE'] === '1' || !existsSync(url)) {
     const seed = 2026;
     const { s, log } = playAuto('grotta', seed, heroBase());
@@ -109,7 +110,7 @@ test('dungeon: la vista ha la forma di DungeonView e gli eventi sono solo del ti
   assert.ok(v.bottini.some((b) => b.tipo === 'libro'));
   assert.ok(v.bottini.filter((b) => b.tipo === 'forziere').length >= 3);
   assert.equal(v.hero.pozioni, 3);
-  run(s, 1, inp({ c: true }));
+  run(s, 1, inp({ c: true, a: true }));
   assert.ok(dungeon.view(s).eventi.some((e) => e.t === 'magia'));
   run(s, 1);
   assert.ok(!dungeon.view(s).eventi.some((e) => e.t === 'magia'));

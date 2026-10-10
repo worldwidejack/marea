@@ -2,7 +2,7 @@
 import { PESI, caricoMaxOf, carriedOf, forziereCap } from './derived.ts';
 import { hasItem, itemDef } from './items.ts';
 import type { LotState } from '../economy/types.ts';
-import type { EquipSlot, HeroState } from './types.ts';
+import type { EquipSlot, HeroState, SlotOggetto } from './types.ts';
 
 const r2 = (x: number): number => Math.round(x * 100) / 100;
 export type Bag = Record<string, number>;
@@ -37,18 +37,29 @@ function fitting(id: string, n: number, room: number): number {
   return Math.max(0, Math.min(n, Math.floor((room + 1e-9) / p)));
 }
 
-/** Che tipo di oggetto va in ogni slot (la magia si sceglie tra quelle conosciute). */
-export const SLOT_KINDS: Record<Exclude<EquipSlot, 'magia'>, readonly string[]> = {
+/** Che tipo di oggetto va in ogni slot (la magia si sceglie tra quelle conosciute, le mani tengono arma o magia). */
+export const SLOT_KINDS: Record<SlotOggetto, readonly string[]> = {
   arma: ['arma', 'arco'], frecce: ['frecce'], corpo: ['armatura', 'veste'], anello1: ['anello'], anello2: ['anello'], pozione: ['pozione'],
 };
-/** null se `id` si può mettere in `slot` (lo zaino è h.inv, la magia tra h.magie), altrimenti il motivo in italiano. */
+/** null se `id` si può mettere in `slot` (lo zaino è h.inv, la magia tra h.magie, in mano solo la magia preparata), altrimenti il motivo in italiano. */
 export function equipError(h: HeroState, slot: EquipSlot, id: string): string | null {
   if (slot === 'magia') return h.magie.includes(id) ? null : 'Non conosci questa magia';
+  if (slot === 'mano') return id === 'magia' && h.equip.magia && h.magie.includes(h.equip.magia) ? null : 'Prepara prima una magia';
   if (!hasItem(id)) return 'Oggetto sconosciuto';
   const it = itemDef(id);
   if (!SLOT_KINDS[slot].includes(it.kind)) return `${it.nome} non va qui`;
   const other = slot === 'anello1' ? h.equip.anello2 : slot === 'anello2' ? h.equip.anello1 : undefined;
   return (h.inv[id] ?? 0) < (other === id ? 2 : 1) ? `Non hai: ${it.nome}` : null;
+}
+
+/** L'equipaggiamento dopo aver messo `id` in `slot` (null = togli); i controlli li ha già fatti equipError. Le mani (v6): preparare una magia
+ *  la mette in mano, impugnare un'arma (anche quella già equipaggiata ma a riposo) rimette l'arma, togliere la magia libera le mani. */
+export function withEquip(equip: HeroState['equip'], slot: EquipSlot, id: string | null): HeroState['equip'] {
+  const e = { ...equip };
+  if (id === null) { delete e[slot]; if (slot === 'magia') delete e.mano; return e; }
+  e[slot] = id;
+  if (slot === 'magia') e.mano = 'magia'; else if (slot === 'arma') delete e.mano;
+  return e;
 }
 
 /** Toglie gli slot che puntano a un oggetto non più nello zaino (o al secondo anello uguale senza la seconda copia). */
@@ -57,7 +68,7 @@ export function fixEquip(h: HeroState): HeroState {
   let changed = false;
   for (const s of Object.keys(equip) as EquipSlot[]) {
     const id = equip[s];
-    if (!id || s === 'magia') continue;
+    if (!id || s === 'magia' || s === 'mano') continue;
     const need = s === 'anello2' && equip.anello1 === id ? 2 : 1;
     if ((h.inv[id] ?? 0) < need) { delete equip[s]; changed = true; }
   }

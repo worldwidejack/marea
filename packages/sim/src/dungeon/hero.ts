@@ -13,6 +13,7 @@ import {
   HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS, ALLEATO_SEGUE,
 } from './tuning.ts';
 import { sweepTo, swept, swingStyle } from './swing.ts';
+import { aimDir } from './mira.ts';
 import { consuma } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts';
 import { giraTimone, timoneVicino } from './vento.ts';
@@ -53,6 +54,15 @@ function faceTo(s: DungeonState, e: Enemy | null): void {
   const h = s.hero, dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
   if (d > 1e-6) { h.fx = dx / d; h.fz = dz / d; }
 }
+/** Mira col mouse (mira.ts) di questo tick, null = niente mira: vale quella assistita. */
+type Mira = readonly [number, number] | null;
+function faceDir(s: DungeonState, dir: Mira): void {
+  if (dir) { s.hero.fx = dir[0]; s.hero.fz = dir[1]; }
+}
+/** La magia preparata (quella che la A lancia con la magia in mano), se c'è. */
+const magiaPronta = (s: DungeonState) => (s.runHero.magia !== null ? s.runHero.magie[s.runHero.magia] : undefined);
+/** Id della magia che l'eroe di turno tiene in mano (la A la lancia), undefined = ha in mano l'arma. */
+export const magiaInMano = (s: DungeonState): string | undefined => (s.hero.incanta ? magiaPronta(s)?.id : undefined);
 
 function startSwing(s: DungeonState, caricato: boolean): void {
   const h = s.hero, a = h.arma;
@@ -123,13 +133,13 @@ export function mergeTraits(arco: Traits, fr: Traits): Traits {
   return out;
 }
 
-function shoot(s: DungeonState): void {
+function shoot(s: DungeonState, dir: Mira): void {
   const h = s.hero, a = h.arma, fr = s.runHero.frecce;
   const t = Math.max(TENSIONE_MIN, h.carica);
   h.act = 'tira'; h.actT = 0; h.actDur = LANCIA_TICKS; h.carica = 0;
   if (!fr || h.frecce <= 0) return;
   const v = (a.gittata + fr.gittata) * t;
-  faceTo(s, aim(s, MAGIA_GITTATA * 2, COS_CONO_ARCO, 0, true));
+  if (dir) faceDir(s, dir); else faceTo(s, aim(s, MAGIA_GITTATA * 2, COS_CONO_ARCO, 0, true));
   const traits = mergeTraits(a.traits, fr.traits);
   h.frecce--;
   consuma(s, fr.id, s.usati);
@@ -140,15 +150,16 @@ function shoot(s: DungeonState): void {
   });
 }
 
-function cast(s: DungeonState): void {
-  const h = s.hero, rh = s.runHero;
-  const sp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
+function cast(s: DungeonState, dir: Mira): void {
+  const h = s.hero;
+  const sp = magiaPronta(s);
   if (!sp || h.cdMagia > 0) return;
   if (h.magicka < sp.costo) { ev(s, { t: 'senzaMagicka' }); return; }
   h.magicka -= sp.costo;
   h.cdMagia = secToTicks(sp.ricarica);
   h.act = 'lancia'; h.actT = 0; h.actDur = LANCIA_TICKS;
   ev(s, { t: 'magia', id: sp.id });
+  faceDir(s, dir); // col mouse l'alleato nasce e la magia parte dove punta il cursore
   if (sp.scuola === 'evocazione' && sp.evoca) {
     // un'evocazione alla volta (per eroe): la vecchia sparisce
     for (const e of s.enemies) if (e.alleato && e.st !== 'morto' && (e.padrone ?? 0) === s.cur) { e.st = 'morto'; ev(s, { t: 'morte', id: e.id, tipo: e.tipo }); }
@@ -161,13 +172,23 @@ function cast(s: DungeonState): void {
     add(s.xp, 'evocazione', sp.costo * (RPG.xp.evocazioneLancio ?? 0));
     return;
   }
-  faceTo(s, aim(s, MAGIA_GITTATA, COS_CONO_ARCO, 0, true));
+  if (!dir) faceTo(s, aim(s, MAGIA_GITTATA, COS_CONO_ARCO, 0, true));
   const v = sp.velocita;
   s.proj.push({
     id: s.nextId++, tipo: 'magia', x: h.x + h.fx * 0.4, y: MAGIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v, g: 0,
     danno: sp.danno * (1 + buff(s, 'dannoDistruzione')), life: Math.max(1, Math.round((MAGIA_GITTATA / Math.max(1, v)) * HZ)),
     traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio, colpiti: [], dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur,
   });
+}
+
+/** C: alterna arma e magia in mano (v6). Senza una magia preparata non succede niente. Con `stato` scrive anche l'equipaggiamento
+ *  (equip.mano), che la spedizione restituisce a fine corsa. */
+function alternaMano(s: DungeonState): void {
+  const h = s.hero, sp = magiaPronta(s);
+  if (!h.incanta && !sp) return;
+  h.incanta = !h.incanta;
+  if (s.stato) { const e = { ...s.equip }; if (h.incanta) e.mano = 'magia'; else delete e.mano; s.equip = e; }
+  ev(s, { t: 'mano', magia: h.incanta && sp ? sp.id : null });
 }
 
 function drink(s: DungeonState): void {
@@ -194,6 +215,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   let aDown = inp.a && !h.prevA;
   const cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD;
   h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d;
+  const dir = aimDir(inp.m);
   // uscita: A sulla scala vince su tutto
   if (aDown && vicinoUscita(s)) { s.done = true; s.outcome = 'uscito'; ev(s, { t: 'uscita' }); return; }
   // Drenaggio: A accanto a una valvola chiusa la gira (e non attacca)
@@ -207,14 +229,19 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   switch (h.act) {
     case 'idle':
       h.actT = 0;
-      if (aDown) {
+      if (cDown) alternaMano(s); // C: le mani passano all'arma o alla magia, e la A dello stesso tick agisce con quella nuova
+      if (h.incanta) {
+        // magia in mano: la A la lancia (un tocco = un lancio; tenuta, le magie d'attacco ripartono da sole appena sono pronte)
+        const sp = magiaPronta(s);
+        if (aDown || (inp.a && sp?.scuola === 'distruzione' && h.cdMagia <= 0 && h.magicka >= sp.costo)) cast(s, dir);
+        else if (dDown) drink(s);
+      } else if (aDown) {
         if (a.kind === 'arco') {
           if (!rh.frecce || h.frecce <= 0) ev(s, { t: 'senzaFrecce' });
-          else if (a.traits.carillon) { if (!molla(s)) { h.carica = 1; shoot(s); } } // Arco Carillon: niente tensione, colpo pieno subito
-          else { h.act = 'tende'; h.actT = 0; h.actDur = secToTicks(a.tempo * (1 + malusDi(s)) / (1 + buff(s, 'tensioneArco'))); h.carica = 0; }
+          else if (a.traits.carillon) { if (!molla(s)) { h.carica = 1; shoot(s, dir); } } // Arco Carillon: niente tensione, colpo pieno subito
+          else { faceDir(s, dir); h.act = 'tende'; h.actT = 0; h.actDur = secToTicks(a.tempo * (1 + malusDi(s)) / (1 + buff(s, 'tensioneArco'))); h.carica = 0; }
         } else { h.act = 'press'; h.actT = 0; }
-      } else if (cDown) cast(s);
-      else if (dDown) drink(s);
+      } else if (dDown) drink(s);
       break;
     case 'press':
       if (!inp.a) startSwing(s, false);
@@ -232,7 +259,8 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       h.carica = Math.min(1, h.actT / h.actDur);
       const st = a.traits.staminaTeso ?? 0;
       if (st > 0) h.stamina = Math.max(0, h.stamina - st * DT);
-      if (!inp.a || (st > 0 && h.stamina <= 0)) shoot(s);
+      faceDir(s, dir); // col mouse l'arco segue il cursore finché è teso
+      if (!inp.a || (st > 0 && h.stamina <= 0)) shoot(s, dir);
       break;
     }
     default: // tira, lancia, beve
@@ -253,7 +281,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   v *= (1 - malusDi(s)) * rh.armatura.velocitaMolt;
   if (h.moving) {
     moveCircle(s.map, h, mx * v * DT, my * v * DT, rh.raggio);
-    if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia') { h.fx = mx / mag; h.fz = my / mag; }
+    if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia' && !(dir && h.act === 'tende')) { h.fx = mx / mag; h.fz = my / mag; }
   }
   caricaBarriera(s); // Mausoleo: l'Armatura del Moto Perpetuo si carica camminando
   // i nemici sono solidi: l'eroe non li attraversa

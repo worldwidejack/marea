@@ -144,18 +144,18 @@ test('dungeon: pozione (D) cura e conta in usati; magia (C) costa magicka; evoca
   assert.equal(dungeon.result(s).usati['pozione_vita_minore'], 1);
   run(s, 40);
   const e = dummy(s, 'bandito', 6, 30);
-  const ev2 = [...run(s, 1, inp({ c: true })), ...run(s, 90)];
+  const ev2 = [...run(s, 1, inp({ c: true, a: true })), ...run(s, 90)]; // C prende la magia in mano, la A la lancia
   assert.ok(ev2.some((x) => x.t === 'magia' && x.id === 'fiammata'));
   assert.ok(colpiSu(ev2, e.id).length >= 1, 'la fiammata colpisce');
   assert.ok(e.bleedT > 0 || e.st === 'morto', 'sanguina');
   s.hero.magicka = 5;
   run(s, 60);
-  assert.ok(run(s, 1, inp({ c: true })).some((x) => x.t === 'senzaMagicka'));
+  assert.ok(run(s, 1, inp({ a: true })).some((x) => x.t === 'senzaMagicka'));
   // evocazione
   const se = arena(heroBase({ magie: [{ id: 'lupo_spettrale', scuola: 'evocazione', costo: 40, ricarica: 2, danno: 0, velocita: 0, raggio: 0, sanguina: 0, evoca: 'lupo_spettrale', durata: 20 }] }));
   const t = dummy(se, 'bandito', 7, 40);
   t.st = 'veglia';
-  const ev3 = [...run(se, 1, inp({ c: true })), ...run(se, 600)];
+  const ev3 = [...run(se, 1, inp({ c: true, a: true })), ...run(se, 600)];
   assert.ok(ev3.some((x) => x.t === 'evocato' && x.tipo === 'lupo_spettrale'));
   assert.equal(t.st, 'morto', 'il lupo spettrale uccide il bandito');
   assert.equal(dungeon.result(se).uccisi['bandito'], 1);
@@ -233,7 +233,7 @@ test('dungeon: xp = danno utile (mai oltre la vita del nemico) × moltiplicatore
   assert.equal(dungeon.result(s).xp.armiPesanti, 10);
   // la fiammata: xp di distruzione solo se colpisce, × 3
   const m = arena(heroBase()), e = dummy(m, 'bandito', 6, 1000);
-  const ev = [...run(m, 1, inp({ c: true })), ...run(m, 90)];
+  const ev = [...run(m, 1, inp({ c: true, a: true })), ...run(m, 90)];
   const d = colpiSu(ev, e.id)[0]!;
   assert.ok(d > 0);
   assert.ok(Math.abs((dungeon.result(m).xp.distruzione ?? 0) - d * 3) < 1, `distruzione ${dungeon.result(m).xp.distruzione} vs colpo ${d}`);

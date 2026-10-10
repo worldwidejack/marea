@@ -5,13 +5,15 @@
 // pugni, giro completo del caricato. Carica: corpo girato, gambe piegate, arma bassa dietro, mano sinistra e testa verso il bersaglio,
 // lama che si accende a gradini; al pieno lampo, tremito e lama che lampeggia. Scia, anello di carica, onda e stella in hero_fx.ts.
 // Arco: corda verso chi tira; tendendo la corda segue la mano destra con la freccia incoccata (arco.ts) e, per l'eroe di questo client,
-// una linea a trattini mostra per qualche metro dove partirà la freccia (la mira automatica della sim, se c'è un bersaglio).
+// una linea a trattini mostra per qualche metro dove partirà la freccia (la mira automatica della sim, se c'è un bersaglio; col mouse, sempre,
+// verso il cursore). Magia in mano (v6, `DungeonView.hero.magia`): l'arma sparisce, le due mani stanno avanti col petto e tra loro c'è la sfera
+// della magia (hero_magia.ts); al lancio le mani scattano avanti e la sfera parte.
 // Le ossa del glTF arrivano senza punti nel nome (three toglie «.» dai nomi dei nodi: UpperArm.R → UpperArmR).
 import * as THREE from 'three';
 import type { Indossa, Look } from '@marea/protocol';
 import type { RunWeapon } from '@marea/sim/rpg/types.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
-import { COLPI, FRECCIA_Y } from '@marea/sim/dungeon/tuning.ts';
+import { COLPI, FRECCIA_Y, MAGIA_Y } from '@marea/sim/dungeon/tuning.ts';
 import { bladeAngle } from '@marea/sim/dungeon/swing.ts';
 import type { SwingStyle } from '@marea/sim/dungeon/swing.ts';
 import { pugni } from '@marea/sim/dungeon/hero.ts';
@@ -20,9 +22,11 @@ import type { Loader } from '../render/loader.ts';
 import { createAvatar } from '../game/avatar.ts';
 import type { Avatar } from '../game/avatar.ts';
 import { PAL } from '../ui/style.ts';
-import { palColor } from './items_ui.ts';
+import { spellDef } from '@marea/content/rpg.ts';
+import { coloreMagia, palColor } from './items_ui.ts';
 import { boxes, materialsOf, object, tintBlade } from './dungeon_kit.ts';
 import { createHeroFx } from './hero_fx.ts';
+import { createOrbe } from './hero_magia.ts';
 import { armaArco } from './arco.ts';
 import type { Arco } from './arco.ts';
 import type { HeroFx } from './hero_fx.ts';
@@ -51,19 +55,21 @@ export type HeroActor = {
   rotta(): void;
   /** Cambio d'arma dal menu dello zaino: modello nuovo nel pugno (o pugni), scia della portata nuova. */
   setArma(a: ArmaInMano): Promise<void>;
-  /** Linea di mira (solo con `mirino`) mentre tende: direzione in cui partirà la freccia; null = davanti all'eroe. */
-  mira(d: { x: number; z: number } | null): void;
+  /** Linea di mira (solo con `mirino`): mentre tende l'arco, o sempre (`sempre`: mira col mouse con arco o magia in mano) nella direzione `d`
+   *  (null = davanti all'eroe). */
+  mira(d: { x: number; z: number } | null, sempre?: boolean): void;
   /** Punto sopra la testa (numeri del danno). */
   head(): THREE.Vector3;
   dispose(): void;
 };
 
 type V3 = THREE.Vector3;
-type Kind = 'lama' | 'lancia' | 'pugni' | 'arco' | 'fuoco';
+type Kind = 'lama' | 'lancia' | 'pugni' | 'arco' | 'fuoco' | 'magia';
 const v3 = (x = 0, y = 0, z = 0): V3 => new THREE.Vector3(x, y, z);
 const X = v3(1, 0, 0), Y = v3(0, 1, 0), Z = v3(0, 0, 1);
 const UPPER = 0.2754, FOREARM = 0.27; // m: spalla → gomito (glTF), gomito → pugno
 const R_PUGNO = 0.45; // m dall'asse del corpo al pugno nei fendenti e nel giro
+const ORBE_SU = v3(0, 0.1, 0); // la sfera sta un po' sopra il punto tra i due pugni
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const smooth = (a: number, b: number, t: number) => { const k = clamp((t - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
@@ -126,6 +132,10 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
 
   // ---- arma: nel pugno, ingrandita perché la punta arrivi vicino alla portata (quel che si vede ≈ dove colpisce) ----
   let bow = false, arco: Arco | null = null, weapon: THREE.Object3D | null = null, bladeMats: THREE.MeshLambertMaterial[] = [], bladeLen = 0, kind: Kind = 'pugni', mountN = 0;
+  // magia in mano: kind diventa 'magia' (due mani avanti, sfera), l'arma resta montata ma nascosta; `weaponKind` è quello dell'arma
+  let weaponKind: Kind = 'pugni', magiaId: string | null = null, rottaOra = false;
+  const orbe = createOrbe(o.scene);
+  const applyMano = (): void => { kind = magiaId ? 'magia' : weaponKind; if (weapon) weapon.visible = !magiaId && !rottaOra; };
   const fxFor = (portata: number) => createHeroFx(o.scene, { portata, rin: kind === 'pugni' ? 0.3 : R_PUGNO + 0.15 });
   let fx: HeroFx = fxFor(pugni().portata);
   /** Monta l'arma nel pugno (all'inizio e a ogni cambio dal menu); se nel frattempo ne arriva un'altra, vince l'ultima. */
@@ -149,8 +159,10 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     weapon = w; bow = b; bladeMats = mats; bladeLen = len;
     arco = b && w ? armaArco(w, o.loader, false, 1.8) : null;
     if (w) o.scene.add(w);
-    kind = bow ? 'arco' : arma.oggetto ? (arma.lama ? 'lama' : 'fuoco') : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' ? 'lancia' : 'lama';
+    weaponKind = bow ? 'arco' : arma.oggetto ? (arma.lama ? 'lama' : 'fuoco') : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' ? 'lancia' : 'lama';
+    rottaOra = false; kind = weaponKind;
     fx.dispose(); fx = fxFor(kind === 'pugni' ? pugni().portata : arma.portata);
+    applyMano();
   }
   await mount(o.hero.arma);
 
@@ -202,6 +214,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
       case 'lama': p.wR = 1; p.fR.set(0.27, 0.97, -0.2); p.dir.set(0.12, 0.62, -0.78).normalize(); p.piatto.set(1, 0, 0); p.wA = 1; break;
       case 'lancia': p.wR = 1; p.fR.set(0.24, 1.0, -0.04); p.dir.set(0, 0.32, -1).normalize(); p.piatto.set(0, 1, 0); p.wA = 1; p.wL = 1; p.fL.copy(p.fR).addScaledVector(p.dir, 0.42); break;
       case 'pugni': p.wR = p.wL = 1; p.fR.set(0.15, 1.27, -0.25); p.fL.set(-0.15, 1.3, -0.22); break;
+      case 'magia': p.wR = p.wL = 1; p.fR.set(0.15, 1.22, -0.4); p.fL.set(-0.15, 1.22, -0.4); break; // mani a coppa davanti al petto, la sfera in mezzo
       case 'fuoco': p.wR = 1; p.fR.set(0.17, 1.2, -0.34); p.dir.set(0, 0.04, -1).normalize(); p.piatto.set(0, 1, 0); p.wA = 1; p.wL = 1; p.fL.copy(p.fR).addScaledVector(p.dir, Math.min(0.32, bladeLen * 0.5)).add(tmp.set(-0.06, -0.04, 0)); break;
       default: p.dir.set(0, 1, -0.12).normalize(); p.piatto.set(0, 0, 1); p.wA = 1; // arco dritto nella sinistra, corda verso di sé, braccia della clip
     }
@@ -300,7 +313,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
           p.fR.add(tmp.set(0, 0.06 * k, 0.14 * k)); p.dir.set(0, 0.04 + 0.45 * k, -1).normalize(); p.fL.copy(p.fR).addScaledVector(p.dir, Math.min(0.32, bladeLen * 0.5)); p.lean = -0.08 * k;
           break;
         } const e = Math.sin(Math.PI * Math.min(1, t * 1.3));
-        p.wR = Math.max(p.wR, e); p.fR.lerp(tmp.set(0.13, 1.3, -0.5), e); p.wL = e; p.fL.set(-0.13, 1.3, -0.5); p.lean = 0.12 * e;
+        p.wR = Math.max(p.wR, e); p.fR.lerp(tmp.set(0.13, 1.3, -0.5), e); p.wL = kind === 'magia' ? 1 : e; p.fL.set(-0.13, 1.3, -0.5); p.lean = 0.12 * e;
         break;
       }
       case 'beve': { // la mano libera (la sinistra, la destra con l'arco) porta la pozione alla bocca, testa all'indietro
@@ -377,7 +390,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     arco.tendi(cocca, true);
   }
   const MIRA = (() => { // 6 trattini piatti per ~4 m lungo −Z
-    const p: number[] = [], w = 0.035;
+    const p: number[] = [], w = 0.05;
     for (let k = 0; k < 6; k++) {
       const z0 = -0.2 - k * 0.66, z1 = z0 - 0.42;
       p.push(-w, 0, z0, w, 0, z0, w, 0, z1, -w, 0, z0, w, 0, z1, -w, 0, z1);
@@ -388,12 +401,14 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     return m;
   })();
   const miraMat = MIRA.material as THREE.MeshBasicMaterial, miraCol = { su: new THREE.Color(PAL.sabbiaChiara), pieno: new THREE.Color(PAL.giallo) };
-  let miraDir: { x: number; z: number } | null = null;
+  let miraDir: { x: number; z: number } | null = null, miraSempre = false;
   function mira(h: DungeonView['hero'], c: number): void {
-    MIRA.visible = !!o.mirino && h.anim === 'tende' && !!arco && !!weapon?.visible;
+    // l'arco teso, o col mouse (miraSempre) l'arco in mano / la magia in mano anche senza tendere
+    const arcoPronto = h.anim === 'tende' && !!arco && !!weapon?.visible;
+    MIRA.visible = !!o.mirino && (arcoPronto || (miraSempre && (!!magiaId || (!!arco && !!weapon?.visible))));
     if (!MIRA.visible) return;
     const dx = miraDir ? miraDir.x : h.fx, dz = miraDir ? miraDir.z : h.fz, p = avatar.object.position;
-    MIRA.position.set(p.x + dx * 0.4, o.floorY + FRECCIA_Y, p.z + dz * 0.4); // dove nasce la freccia nella sim
+    MIRA.position.set(p.x + dx * 0.4, o.floorY + (magiaId ? MAGIA_Y : FRECCIA_Y), p.z + dz * 0.4); // dove nasce il colpo nella sim
     MIRA.rotation.set(0, Math.atan2(-dx, -dz), 0);
     miraMat.color.copy(c >= 1 ? miraCol.pieno : miraCol.su); // gialla quando l'arco è teso del tutto
   }
@@ -408,6 +423,12 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   return {
     avatar, equip,
     tick(h) {
+      // la magia in mano cambia (presa, lasciata, cambiata dal menu rapido): mani e sfera, e una posa nuova senza scatti
+      const mg = h.magia ?? null;
+      if (mg !== magiaId) {
+        magiaId = mg; applyMano(); copyPose(from, final); blendT = 0;
+        if (mg) { let sc = ''; try { sc = spellDef(mg).scuola; } catch { /* magia sconosciuta */ } orbe.colora(coloreMagia(mg, sc)); }
+      }
       const k = h.anim + (h.stile ?? '');
       if (k !== key) {
         // nuova azione: si parte dalla posa di adesso e si va alla nuova in un attimo (niente scatti)
@@ -432,6 +453,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
         blendT += dt;
         mixPose(final, from, target, smooth(0, 0.09, blendT));
         apply(final, dt);
+        orbe.update({ pos: tmp.copy(wpR).add(wpL).multiplyScalar(0.5).add(ORBE_SU), on: !!magiaId && cur.anim !== 'morto', lancio: cur.anim === 'lancia' ? t : -1, dt });
         corda(cur); mira(cur, c);
         const g = glow(cur, t, c);
         for (const m of bladeMats) m.emissive.setRGB(g, g * 0.85, g * 0.3);
@@ -449,13 +471,13 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     },
     flash() { flashT = 0.12; },
     setArma: (a) => mount(a),
-    mira(d) { miraDir = d; },
+    mira(d, sempre = false) { miraDir = d; miraSempre = sempre; },
     rotta() {
-      if (weapon) weapon.visible = false;
-      if (kind === 'pugni' || kind === 'arco') return;
-      kind = 'pugni'; fx.dispose(); fx = fxFor(pugni().portata);
+      rottaOra = true; applyMano();
+      if (weaponKind === 'pugni' || weaponKind === 'arco') return;
+      weaponKind = 'pugni'; applyMano(); fx.dispose(); fx = fxFor(pugni().portata);
     },
     head() { return headP.copy(avatar.object.position).setY(avatar.object.position.y + 2.05); },
-    dispose() { avatar.object.removeFromParent(); weapon?.removeFromParent(); fx.dispose(); MIRA.removeFromParent(); MIRA.geometry.dispose(); miraMat.dispose(); },
+    dispose() { avatar.object.removeFromParent(); weapon?.removeFromParent(); orbe.dispose(); fx.dispose(); MIRA.removeFromParent(); MIRA.geometry.dispose(); miraMat.dispose(); },
   };
 }

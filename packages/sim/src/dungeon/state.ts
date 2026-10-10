@@ -29,6 +29,8 @@ export type HeroRt = {
   /** Tick di protezione dopo il risveglio all'altare: niente danni. */
   protetto: number;
   arma: RunWeapon; frecce: number; pozioni: number;
+  /** Le mani tengono la magia preparata (v6): la A la lancia, l'arma sta a riposo. Si alterna col tasto C (o con `equip` dal menu). */
+  incanta: boolean;
   cdMagia: number;
   buffs: { mod: string; valore: number; fine: number }[];
   /** Colpi a segno con l'arma fragile (per usura e rottura). */
@@ -252,6 +254,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
         moving: false, running: false, hurt: 0, protetto: 0, arma: { ...hero.arma, traits: { ...hero.arma.traits } },
         frecce: hero.frecce ? hero.frecce.n : 0,
         pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,
+        incanta: !!hero.manoMagia && hero.magia !== null,
         cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0,
         barr: 0, pressione: hero.arma.traits.lame?.cariche ?? 0, ultimoAttacco: -1e6, ritmo: 0, tic: -1, rintocco: false, molla: hero.arma.traits.carillon?.colpi ?? 0, mollaT: 0, ecoT: -1e6, lancT: [],
         prevA: false, prevC: false, prevD: false,

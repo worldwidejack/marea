@@ -7,6 +7,8 @@
 // (niente finish), o gli input fin lì se hai salvato a una lanterna (il server chiude la spedizione tenendo quel bottino). SALVA: o.onAltare
 // con input e azioni fin lì, così il server tiene il salvataggio anche se la scheda si chiude (POST /api/dungeon/save).
 // Autopilot (?autopilot=1 o hook dungeonAutopilot): gli input li dà dungeon.autopilot con un rng fisso e si registrano uguali.
+// Mira col mouse (v6, dungeon_mouse.ts): con l'arco o una magia in mano e un mouse vero, mentre la A è giù (o l'arco è teso) l'input porta anche
+// l'indice d'angolo del cursore (DungeonInput.m); senza mouse, o con la mischia, la sim usa la mira assistita. Il C alterna arma e magia.
 // Insieme (#118, `o.rete`): la sim ha un eroe per membro della squadra (createPartyRun, s.cur = il mio). Il mio input va al server una volta
 // per turno (SQ_TICKS tick: joystick dell'ultimo tick, bottoni premuti in qualunque tick del turno), solo se cambia; la sim avanza SOLO coi
 // turni del server (stessi input e azioni per tutti = stessa partita), con un piccolo cuscinetto contro i ritardi della rete e una corsa per
@@ -38,6 +40,8 @@ import type { HeroActor } from './dungeon_hero.ts';
 import { createActors } from './dungeon_actors.ts';
 import type { Actors } from './dungeon_actors.ts';
 import { createDungeonHud } from './dungeon_hud.ts';
+import { createMouse } from './dungeon_mouse.ts';
+import type { Mouse } from './dungeon_mouse.ts';
 import { createDrenaggioFx } from './drenaggio.ts';
 import type { DrenaggioFx } from './drenaggio.ts';
 import { createFucinaFx } from './fucina.ts';
@@ -52,7 +56,7 @@ import { createTesti } from './dungeon_testi.ts';
 import type { DungeonTestiUi } from './dungeon_testi.ts';
 import type { DungeonHud } from './dungeon_hud.ts';
 import { createControls } from './dungeon_controls.ts';
-import type { Controls } from './dungeon_controls.ts';
+import type { Controls, MagiaUi } from './dungeon_controls.ts';
 import { showDungeonResult } from './dungeon_result.ts';
 import { closePanels, isPanelOpen, openHero, refreshBag } from './panels.ts';
 
@@ -69,7 +73,7 @@ const mastro = (v: DungeonView) => { const k = v.nemici.find((n) => n.tipo === '
 /** Insieme: tick in cuscinetto prima di ripartire dopo uno stallo, oltre cui si va a 2 tick per frame, oltre cui si recupera di corsa. */
 const CUSCINETTO = 2 * SQ_TICKS, SVELTO = 4 * SQ_TICKS, RECUPERO = 30 * SQ_TICKS;
 const bitsOf = (f: DungeonInput) => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0);
-const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0 });
+const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...(x[3] ? { m: x[3] } : {}) });
 
 type Amico = { i: number; nome: string; actor: HeroActor | null; arma: string | null; done: boolean };
 
@@ -89,20 +93,20 @@ export function startRun(ctx: RunCtx, o: {
   const frames: DungeonInput[] = [], azioni: DungeonAzioni = [];
   let phase: Phase = 'loading', wait = 0, view: DungeonView = dungeon.view(s), auto: Rng | null = null, arma = view.hero.arma;
   let sc: DungeonScene | null = null, hero: HeroActor | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, controls: Controls | null = null, fx: DrenaggioFx | null = null, afx: ArchivioFx | null = null, ffx: FucinaFx | null = null, mfx: MausoleoFx | null = null, ufx: UniciFx | null = null;
-  let testi: DungeonTestiUi | null = null;
+  let testi: DungeonTestiUi | null = null, mouse: Mouse | null = null, magieUi: MagiaUi[] = [], cursore = '';
   let resolve!: (v: Out | { insieme: true } | null) => void;
   const done = new Promise<Out | { insieme: true } | null>((r) => (resolve = r));
   const out = (): Out => ({ inputs: packDungeon(frames), hash: dungeon.result(s).hash, azioni: azioni.map(([t, a]) => [t, a]) });
   // insieme: compagni, finestra del turno (joystick dell'ultimo tick, bottoni di tutti i tick), ultimo input mandato, turno a metà
   const amici: Amico[] = rete ? rete.eroi.map((e, i) => ({ i, nome: e.nome, actor: null, arma: e.hero.arma.id, done: false })).filter((a) => a.i !== io) : [];
-  const win = { mx: 0, my: 0, bits: 0, n: 0 };
+  const win = { mx: 0, my: 0, bits: 0, m: 0, n: 0 };
   let mandato = '0,0,0', inTurno = 0, attesa = true, rotto = false;
   const firme: Record<number, number> = {};
 
   const cleanup = () => {
     phase = 'over'; dungeonLink.state = null; dungeonLink.act = null;
     closePanels();
-    controls?.dispose(); testi?.dispose(); hud?.dispose(); actors?.dispose(); fx?.dispose(); afx?.dispose(); ffx?.dispose(); mfx?.dispose(); ufx?.dispose(); hero?.dispose(); sc?.dispose();
+    mouse?.dispose(); ctx.canvas.style.cursor = ''; controls?.dispose(); testi?.dispose(); hud?.dispose(); actors?.dispose(); fx?.dispose(); afx?.dispose(); ffx?.dispose(); mfx?.dispose(); ufx?.dispose(); hero?.dispose(); sc?.dispose();
     for (const a of amici) a.actor?.dispose();
     ctx.renderer.setScene(null);
   };
@@ -134,7 +138,7 @@ export function startRun(ctx: RunCtx, o: {
     hero?.equip(s.runHero); // armatura o veste cambiata dal menu, faretra con arco e frecce
   };
   /** Equipaggiamento cambiato (mio): barre, icone di C e D. */
-  const nuovoEquip = () => { hud?.setHero(s.runHero); const ic = hud?.icons(); if (ic) controls?.setIcons(ic.c, ic.d, ic.key); };
+  const nuovoEquip = () => { hud?.setHero(s.runHero); magieUi = hud?.magie() ?? []; const ic = hud?.icons(); if (ic) controls?.setIcons(ic.c, ic.d, ic.key); };
   /** Azione dal menu adesso: si applica alla sim, si registra col tick (= passi fatti) e si mostra. null = fatta, se no il motivo.
    *  Insieme va al server (torna nel turno, la sim la rifà lì): qui solo i controlli che si vedono dalla vista. */
   const act = (a: DungeonAzione): string | null => {
@@ -187,7 +191,11 @@ export function startRun(ctx: RunCtx, o: {
         onZaino: openZaino,
         onSalva: () => { const e = act({ t: 'salva' }); if (e) ctx.hud.toast(e, 1800); },
         onEsciLanterna: () => { const e = act({ t: 'esci' }); if (e) ctx.hud.toast(e, 1800); },
+        // menù rapido: la magia scelta va in mano (stessa azione dello zaino, quindi vale anche in squadra)
+        onMagia: (id) => { if (view.hero.magia === id) return; const e = act({ t: 'equip', slot: 'magia', item: id }); if (e) ctx.hud.toast(e, 1500); },
       });
+      mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: sc.floorY });
+      magieUi = hud.magie();
       if (sc.def.testi) testi = createTesti({ root: ctx.root, camera: ctx.renderer.camera, canvas: ctx.canvas, sc, insieme: !!rete, capoMorto: () => view.nemici.some((n) => n.capo && n.anim === 'morto') });
       const ic = hud.icons(); controls.setIcons(ic.c, ic.d, ic.key);
       if (s.salvato) controls.setSalvato(true);
@@ -241,6 +249,17 @@ export function startRun(ctx: RunCtx, o: {
     const dx = e ? e.x - h.x : 0, dz = e ? e.z - h.z : 0, d = Math.sqrt(dx * dx + dz * dz);
     return d > 1e-6 ? { x: dx / d, z: dz / d } : null;
   };
+  /** Linea di mira dell'eroe di questo client: col mouse (arco o magia in mano) sempre verso il cursore, se no solo l'arco teso, verso chi prenderà. */
+  const miraOra = (): void => {
+    const h = s.hero, v = (h.incanta || h.arma.kind === 'arco') && !controls?.paused ? mouse?.verso(h.x, h.z) ?? null : null;
+    if (!v) { hero!.mira(miraArco()); return; }
+    hero!.mira({ x: v.x, z: v.z }, true);
+  };
+  /** Indice di mira del mouse mentre si punta con qualcosa che si mira (arco, magia in mano) e il cursore c'è; 0 = mira assistita della sim. */
+  const puntaMouse = (): number => {
+    const h = s.hero;
+    return mouse && (h.incanta || h.arma.kind === 'arco') ? mouse.verso(h.x, h.z)?.m ?? 0 : 0;
+  };
   /** Compagni: posa dalla vista, arma nuova se è cambiata, spariscono quando escono (con un avviso). */
   function tickAmici(): void {
     for (const c of view.compagni) {
@@ -261,6 +280,7 @@ export function startRun(ctx: RunCtx, o: {
   const posaDi = (c: CompagnoView): DungeonView['hero'] => {
     const p: DungeonView['hero'] = { ...view.hero, x: c.x, z: c.z, fx: c.fx, fz: c.fz, anim: c.anim, t: c.t, carica: c.carica, vita: c.vita, protetto: c.protetto, arma: c.arma };
     if (c.stile) p.stile = c.stile; else delete p.stile;
+    if (c.magia) p.magia = c.magia; else delete p.magia;
     return p;
   };
 
@@ -290,7 +310,8 @@ export function startRun(ctx: RunCtx, o: {
     if (auto) return dungeon.autopilot(s, auto);
     if (dungeonLink.altare >= 0) return walkToAltare(dungeonLink.altare);
     if (dungeonLink.vai) return walkToCella(dungeonLink.vai);
-    return { mx: f.mx, my: f.my, a: f.a || c.a, b: f.b, c: c.c, d: c.d };
+    const a = f.a || c.a, m = a || s.hero.act === 'tende' ? puntaMouse() : 0; // la mira solo mentre si preme (e al rilascio dell'arco): il log resta corto
+    return { mx: f.mx, my: f.my, a, b: f.b, c: c.c, d: c.d, ...(m ? { m } : {}) };
   }
 
   function tickOnce(f: InputFrame): void {
@@ -308,11 +329,11 @@ export function startRun(ctx: RunCtx, o: {
     if (phase === 'play' && !s.done) {
       const fermo = !!controls?.paused || isPanelOpen() || !!testi?.aperta;
       const q = quantizeDungeon(fermo && !auto ? { ...NO_DUNGEON_INPUT } : inputOra(f));
-      win.mx = q.mx; win.my = q.my; win.bits |= bitsOf(q);
+      win.mx = q.mx; win.my = q.my; win.bits |= bitsOf(q); if (q.m) win.m = q.m;
       if (++win.n >= SQ_TICKS) {
-        const x: SqInput = [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits], k = x.join(',');
+        const x: SqInput = win.m ? [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits, win.m] : [Math.round(win.mx * 8) || 0, Math.round(win.my * 8) || 0, win.bits], k = x.join(',');
         if (k !== mandato) { mandato = k; r.manda({ t: 'in', f: x }); }
-        win.bits = 0; win.n = 0;
+        win.bits = 0; win.m = 0; win.n = 0;
       }
     }
     if (r.chiusa && !rotto && phase === 'play') { rotto = true; ctx.hud.toast('Connessione con la squadra persa', 3000); finish(); return; }
@@ -324,7 +345,7 @@ export function startRun(ctx: RunCtx, o: {
     const n = pronti > RECUPERO ? pronti - CUSCINETTO : pronti > SVELTO ? 2 : 1;
     for (let k = 0; k < n && phase !== 'over'; k++) tickRete(n > 2);
     refresh();
-    hero!.tick(view.hero); hero!.mira(miraArco()); actors!.tick(view); mfx?.tick(view); ufx?.tick(view); tickAmici();
+    hero!.tick(view.hero); miraOra(); actors!.tick(view); mfx?.tick(view); ufx?.tick(view); tickAmici();
     if (s.done && phase === 'play') toEnd();
   }
   /** Un tick del turno in testa: al primo tick le azioni del turno (eroe per eroe, come il server le ha messe), poi il passo di tutti. */
@@ -361,7 +382,7 @@ export function startRun(ctx: RunCtx, o: {
       const n = auto ? dungeonLink.autopilot : dungeonLink.altare >= 0 || dungeonLink.vai ? 8 : 1;
       for (let i = 0; i < n && !s.done; i++) tickOnce(f);
       refresh();
-      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); hero!.mira(miraArco()); actors!.tick(view); fx?.tick(view); afx?.tick(view); ffx?.tick(view); mfx?.tick(view); ufx?.tick(view);
+      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); miraOra(); actors!.tick(view); fx?.tick(view); afx?.tick(view); ffx?.tick(view); mfx?.tick(view); ufx?.tick(view);
       if (s.done) toEnd();
     },
     update(alpha, dt, t) {
@@ -389,7 +410,10 @@ export function startRun(ctx: RunCtx, o: {
       controls.setLanterna(phase === 'play' && view.lanterna >= 0 ? { salvatoQui: view.salvatoQui, oggetti: nOggetti(view.zaino.bottino), monete: view.zaino.monete } : null);
       sc.setAltare(view.altari.findIndex((a) => a.attivo));
       const h = view.hero, rh = s.runHero, spell = rh.magia !== null ? rh.magie[rh.magia] : null;
-      controls.setState(spell ? 1 - h.ricaricaMagia / Math.max(0.01, spell.ricarica) : 0, h.pozioni, !!spell && h.magicka >= spell.costo);
+      controls.setState(spell ? 1 - h.ricaricaMagia / Math.max(0.01, spell.ricarica) : 0, h.pozioni, !!spell);
+      controls.setMagie(magieUi, phase === 'play' ? h.magia ?? null : null, h.magicka);
+      const cur = mouse?.attivo && (!!h.magia || s.hero.arma.kind === 'arco') ? 'crosshair' : ''; // il cursore diventa un mirino
+      if (cur !== cursore) { cursore = cur; ctx.canvas.style.cursor = cur; }
     },
     abort,
     done,
@@ -400,7 +424,7 @@ export function startRun(ctx: RunCtx, o: {
     const v = view, vivi = v.nemici.filter((n) => !n.alleato && n.anim !== 'morto').length, n0 = s.enemies.find((e) => !e.alleato);
     return {
       active: phase !== 'over', phase, dungeon: o.dungeon, tick: v.tick, outcome: v.outcome, frames: frames.length, auto: !!auto, paused: !!controls?.paused, zaino: v.zaino,
-      hero: { x: v.hero.x, z: v.hero.z, vita: v.hero.vita, magicka: v.hero.magicka, stamina: v.hero.stamina, anim: v.hero.anim, arma: v.hero.arma, frecce: v.hero.frecce },
+      hero: { x: v.hero.x, z: v.hero.z, vita: v.hero.vita, magicka: v.hero.magicka, stamina: v.hero.stamina, anim: v.hero.anim, arma: v.hero.arma, frecce: v.hero.frecce, magia: v.hero.magia ?? null, fx: v.hero.fx, fz: v.hero.fz }, mouse: mouse?.attivo ?? false,
       nemici: v.nemici.filter((n) => !n.alleato).length, vivi, vicinoUscita: v.vicinoUscita, vicinoTimone: v.vicinoTimone, afx: afx?.counts() ?? null,
       acque: v.acque, valvole: v.valvole, vicinoValvola: v.vicinoValvola, geyser: v.geyser.length, rallentato: !!v.hero.rallentato, fx: fx?.counts() ?? null,
       lave: v.lave, fuochi: v.fuochi.length, brucia: !!v.hero.brucia, bagnato: !!v.hero.bagnato, ffx: ffx?.counts() ?? null, mastro: mastro(v),

@@ -5,7 +5,7 @@ import { advance } from '../economy/advance.ts';
 import { pay } from '../economy/actions.ts';
 import { EconomyError, ZERO } from '../economy/types.ts';
 import type { LotState } from '../economy/types.ts';
-import { addTo, available, bagWeight, buildingLevel, chestCap, equipError, fixEquip, removeFrom, stow, takeItems } from './bag.ts';
+import { addTo, available, bagWeight, buildingLevel, chestCap, equipError, fixEquip, removeFrom, stow, takeItems, withEquip } from './bag.ts';
 import type { Bag } from './bag.ts';
 import { caricoMaxOf, carriedOf, modsOf } from './derived.ts';
 import { gainSkillXp, heroOf } from './hero.ts';
@@ -45,13 +45,11 @@ function takeAll(lot: LotState, h: HeroState, cost: Record<string, number>): { h
 }
 
 function equip(h: HeroState, slot: EquipSlot, id: string | null): HeroState {
-  const e = { ...h.equip };
-  if (id === null) { delete e[slot]; return { ...h, equip: e }; }
-  if (slot !== 'magia') needItem(id);
+  if (id === null) return { ...h, equip: withEquip(h.equip, slot, null) };
+  if (slot !== 'magia' && slot !== 'mano') needItem(id);
   const why = equipError(h, slot, id);
   if (why) throw err(why.startsWith('Non hai') ? 'oggetto' : 'equip', why);
-  e[slot] = id;
-  return { ...h, equip: e };
+  return { ...h, equip: withEquip(h.equip, slot, id) };
 }
 
 function forgia(lot: LotState, h: HeroState, id: string, n: number): { hero: HeroState; forziere: Bag; lot: LotState } {

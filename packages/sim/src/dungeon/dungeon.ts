@@ -69,7 +69,8 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v2: altari di salvataggio (mappe, risveglio, salvato nel risultato e nell'hash) · v3: colpi di mischia ad arco spazzato (swing.ts), caricato = giro · v4: capo per dungeon (RunResult.capo), nella Grotta il Capo dei banditi
   // v5: azioni dal menu (equip, butta, salva ed esci sulla lanterna: le lanterne non salvano più da sole), ripartenza da una lanterna, consumi anche dal bottino
   // (insieme, #118: più eroi nella stessa partita; da solo non cambia niente, la versione resta 5)
-  id: 'dungeon', version: 5, maxTicks: MAX_TICKS,
+  // v6: magia in mano come un'arma (equip.mano: la A la lancia, il tasto C alterna arma e magia e non lancia più) e mira col mouse (DungeonInput.m, log v2)
+  id: 'dungeon', version: 6, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {

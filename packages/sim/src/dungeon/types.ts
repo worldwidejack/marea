@@ -8,12 +8,14 @@ import type { EquipSlot, HeroState, RunHero, RunOutcome, RunResult } from '../rp
 import type { Rng } from '../rng.ts';
 import type { SwingStyle } from './swing.ts';
 
-/** Input di un tick nel dungeon. mx, my in assi mondo (come InputFrame); a = attacca (tieni = carica/tendi), b = corri, c = magia, d = pozione.
- * Il client registra un frame per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. */
-export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean };
+/** Input di un tick nel dungeon. mx, my in assi mondo (come InputFrame); a = attacca (tieni = carica/tendi; con una magia in mano la lancia),
+ * b = corri, c = alterna arma e magia in mano (v6; fino al v5 lanciava la magia preparata), d = pozione. m = mira col mouse (mira.ts, v6):
+ * indice d'angolo 1..AIM_N della direzione in cui tirare l'arco o lanciare la magia; assente = mira assistita. Il client registra un frame
+ * per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. */
+export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean; m?: number };
 export const NO_DUNGEON_INPUT: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-/** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3], ...]. */
-export type PackedDungeon = [number, number, number, number][];
+/** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3, mira?], ...]; la mira (1..AIM_N) c'è solo nelle righe che ce l'hanno. */
+export type PackedDungeon = [number, number, number, number, number?][];
 
 /** Azione dal menu (non dai tasti), dungeon v5: si applica tra due tick, prima del passo del tick in cui è registrata. Il server la rigioca
  *  con gli input; se non si può fare (oggetto che non hai, lanterna lontana) la sim la ignora. */
@@ -54,6 +56,8 @@ export type DungeonEvent = (
   | { t: 'risveglio'; n: number }
   /** Azione `equip` riuscita: RunHero rifatto (arma in mano, barre, frecce, pozioni). */
   | { t: 'equip'; slot: EquipSlot; item: string | null }
+  /** Tasto C: le mani passano all'arma (magia null) o alla magia (id). */
+  | { t: 'mano'; magia: string | null }
   | { t: 'buttato'; item: string; n: number }
   /** Uscito dalla scala, o dalla lanterna n. */
   | { t: 'uscita'; lanterna?: number }
@@ -121,6 +125,8 @@ export type DungeonView = {
     protetto: boolean;
     /** Arma in mano (id, null = pugni): cambia con `equip` o quando si rompe. */
     arma: string | null;
+    /** Magia in mano (v6): id della magia che la A lancia al posto dell'arma; assente = l'arma è in mano. */
+    magia?: string;
     /** Rallentato dal Tubo-strisciante (Drenaggio). */
     rallentato?: boolean;
     /** Archivio: nel vento che soffia (e ti sposta), al riparo dietro uno scaffale, spinto da fuori (arpione, raffica, bomba). */
@@ -193,7 +199,7 @@ export type DungeonView = {
 /** Un compagno visto da me: posa per l'avatar, vita per la barra, finito (uscito, caduto, andato via) = non si disegna più. */
 export type CompagnoView = {
   i: number; x: number; z: number; fx: number; fz: number; anim: HeroAnim; t: number; carica: number; stile?: SwingStyle;
-  vita: number; max: number; arma: string | null; protetto: boolean; done: boolean; outcome: RunOutcome | null;
+  vita: number; max: number; arma: string | null; magia?: string; protetto: boolean; done: boolean; outcome: RunOutcome | null;
 };
 
 /** Il modulo della spedizione da solo. Insieme (#118): createParty / stepParty / actParty di dungeon.ts; act, result, view e autopilot

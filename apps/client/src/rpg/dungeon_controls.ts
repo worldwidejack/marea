@@ -1,12 +1,15 @@
-// Controlli del dungeon oltre a joystick/A/B di game/input.ts (R-scena): C = magia, D = pozione (bottoni ≥ 56 px sopra B e A, senza
-// coprirli), Q = C e R = D sulla tastiera, clic sinistro tenuto sul canvas = A, «A · Esci col bottino» vicino alla scala. In alto a destra
-// ZAINO (tasto I: la scheda del personaggio sullo zaino della spedizione) e PAUSA (Esc): Riprendi · Zaino · Esci dal dungeon (→ «Uscire?»).
-// Sopra una lanterna: SALVA ed ESCI (dungeon v5, scelta di Riccardo). Latch: un tocco più breve di un tick arriva comunque alla sim.
-// Con la pausa o la domanda aperta la partita è ferma (nessun tick); con la scheda aperta (blocked) i tasti sono suoi. Insieme (#118) la
-// partita non si ferma mai: la Pausa diventa un menu.
+// Controlli del dungeon oltre a joystick/A/B di game/input.ts (R-scena): C = alterna arma e magia in mano, D = pozione (bottoni ≥ 56 px sopra
+// B e A, senza coprirli), Q = C e R = D sulla tastiera, clic sinistro tenuto sul canvas = A (con la magia in mano la lancia), «A · Esci col
+// bottino» vicino alla scala. Con la magia in mano (v6) sopra i bottoni compare il MENÙ RAPIDO delle magie: un chip per magia conosciuta,
+// un tocco (o il tasto 1-9) la cambia al volo. In alto a destra ZAINO (tasto I: la scheda del personaggio sullo zaino della spedizione) e
+// PAUSA (Esc): Riprendi · Zaino · Esci dal dungeon (→ «Uscire?»). Sopra una lanterna: SALVA ed ESCI (dungeon v5, scelta di Riccardo).
+// Latch: un tocco più breve di un tick arriva comunque alla sim. Con la pausa o la domanda aperta la partita è ferma (nessun tick); con la
+// scheda aperta (blocked) i tasti sono suoi. Insieme (#118) la partita non si ferma mai: la Pausa diventa un menu.
 import { PAL, el } from '../ui/style.ts';
 
 export type LanternaUi = { salvatoQui: boolean; oggetti: number; monete: number };
+/** Una magia del menù rapido: nome, costo in Magicka e una funzione che fa l'icona (un canvas non si clona: ogni chip ne vuole una nuova). */
+export type MagiaUi = { id: string; nome: string; costo: number; icona(): Node };
 export type Controls = {
   /** Un campione per tick: c, d e la A in più (clic tenuto, bottone d'uscita). */
   sample(): { a: boolean; c: boolean; d: boolean };
@@ -26,6 +29,8 @@ export type Controls = {
   setIcons(c: Node | null, d: Node | null, key?: string): void;
   /** Ricarica della magia 0..1 (1 = pronta) e pozioni rimaste. */
   setState(magia: number, pozioni: number, haMagia: boolean): void;
+  /** Menù rapido delle magie: quelle conosciute, quale è in mano (null = in mano c'è l'arma: il menù si nasconde) e la Magicka che c'è. */
+  setMagie(elenco: readonly MagiaUi[], inMano: string | null, magicka: number): void;
   hide(): void;
   dispose(): void;
 };
@@ -37,6 +42,15 @@ const CSS = `
 .mz-dng-btn.d { right: calc(${RIGHT} + 12px); bottom: calc(${SAFE} + 132px); background: rgba(44,107,63,.82); }
 .mz-dng-btn.on { transform: scale(.92); filter: brightness(1.3); }
 .mz-dng-btn.off { opacity: .45; }
+.mz-dng-btn.mano { border-color: ${PAL.giallo}; box-shadow: 0 0 0 2px ${PAL.neroCaldo}; }
+.mz-dng-sp { position: absolute; right: ${RIGHT}; bottom: calc(${SAFE} + 206px); display: none; gap: 6px; z-index: 13; -webkit-user-select: none; user-select: none; touch-action: none; }
+.mz-dng-sp.on { display: flex; }
+.mz-dng-sp button { position: relative; width: 46px; height: 46px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(46,30,20,.88); border: 3px solid ${PAL.legnoChiaro}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; color: ${PAL.sabbiaChiara}; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.mz-dng-sp button.cur { border-color: ${PAL.giallo}; background: rgba(86,58,28,.96); }
+.mz-dng-sp button.no { opacity: .5; }
+.mz-dng-sp button:active { transform: translateY(2px); box-shadow: 0 1px 0 ${PAL.neroCaldo}; }
+.mz-dng-sp button i { position: absolute; left: 2px; top: 0; font: bold 11px ui-monospace, Menlo, monospace; font-style: normal; color: ${PAL.sabbia}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
+.mz-dng-sp button b { position: absolute; right: 2px; bottom: 0; font: bold 10px ui-monospace, Menlo, monospace; color: ${PAL.acquaBassa}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
 .mz-dng-btn .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(35,32,31,.7); pointer-events: none; }
 .mz-dng-btn small { font-size: 10px; opacity: .85; position: relative; }
 .mz-dng-btn .ico { position: relative; display: flex; }
@@ -65,7 +79,7 @@ const CSS = `
 .mz-dng-ask .mz-btn small { font-size: 12px; color: inherit; opacity: .8; }
 `;
 
-export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; blocked(): boolean; insieme?: boolean; valvola?: string }): Controls {
+export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; onMagia(id: string): void; blocked(): boolean; insieme?: boolean; valvola?: string }): Controls {
   if (!document.getElementById('mz-dng-ctrl-style')) { const st = document.createElement('style'); st.id = 'mz-dng-ctrl-style'; st.textContent = CSS; document.head.appendChild(st); }
   let cLatch = false, dLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
   const cHeld = new Set<number>(), dHeld = new Set<number>(), keys = new Set<string>();
@@ -75,6 +89,10 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     b.append(cd, ico, sm); return { b, cd, ico };
   };
   const C = mkBtn('c', 'Q', 'C'), D = mkBtn('d', 'R', 'D');
+  C.b.title = 'Alterna arma e magia in mano (Q)';
+  // menù rapido delle magie (solo con la magia in mano): un chip per magia, tocco o tasto 1-9
+  const sp = el('div', 'mz mz-dng-sp'); sp.id = 'mzDngMagie';
+  let spIds: string[] = [], spSig = '';
   const wire = (b: HTMLElement, held: Set<number>, latch: () => void) => {
     b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); held.add(e.pointerId); latch(); b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch { /* sintetico */ } });
     const up = (e: PointerEvent) => { held.delete(e.pointerId); if (!held.size) b.classList.remove('on'); };
@@ -113,8 +131,12 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const row = el('div', 'mz-row'); row.append(no, yes);
   const askSub = el('div', 'sub', 'Perdi il bottino di questa discesa');
   ask.append(el('b', '', 'Uscire dal dungeon?'), askSub, row);
-  const all = [C.b, D.b, top, exit, valv, tim, lanBox, menu, ask];
+  const all = [C.b, D.b, sp, top, exit, valv, tim, lanBox, menu, ask];
   for (const e of all.slice(2)) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
+  sp.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('button[data-magia]');
+    if (b && !pausa && !asking) o.onMagia(b.dataset['magia']!);
+  });
   o.root.append(...all);
 
   const setPausa = (on: boolean) => { pausa = on; menu.classList.toggle('on', on); };
@@ -142,6 +164,14 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
       e.preventDefault(); e.stopImmediatePropagation();
       if (e.repeat || pausa || asking) return;
       keys.add(e.code); if (e.code === 'KeyQ') cLatch = true; else dLatch = true;
+      return;
+    }
+    // 1-9: la magia n-esima del menù rapido (solo mentre il menù c'è)
+    const n = /^Digit([1-9])$/.exec(e.code)?.[1];
+    if (n && spIds.length && sp.classList.contains('on')) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      const id = spIds[Number(n) - 1];
+      if (id && !e.repeat && !pausa && !asking) o.onMagia(id);
     }
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
@@ -183,7 +213,20 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
       C.cd.style.height = `${Math.round((1 - Math.max(0, Math.min(1, magia))) * 10) * 10}%`; // a gradini del 10 %
       C.b.classList.toggle('off', !haMagia); D.b.classList.toggle('off', pozioni <= 0);
     },
-    hide() { setAsk(false); setPausa(false); exit.classList.remove('on'); lanBox.classList.remove('on'); top.style.display = 'none'; lanSig = ''; },
+    setMagie(elenco, inMano, magicka) {
+      const on = inMano !== null && elenco.length > 0;
+      sp.classList.toggle('on', on); C.b.classList.toggle('mano', inMano !== null);
+      const sig = on ? `${inMano}|${elenco.map((m) => `${m.id}${magicka >= m.costo ? '' : '-'}`).join(',')}` : '';
+      if (sig === spSig) return;
+      spSig = sig; spIds = on ? elenco.map((m) => m.id) : [];
+      if (!on) { sp.replaceChildren(); return; }
+      sp.replaceChildren(...elenco.map((m, i) => {
+        const b = btn(`${m.id === inMano ? 'cur' : ''}${magicka >= m.costo ? '' : ' no'}`.trim(), 'magia', m.icona(), el('i', '', String(i + 1)), el('b', '', String(m.costo)));
+        b.dataset['magia'] = m.id; b.title = `${m.nome} · ${m.costo} Magicka (tasto ${i + 1})`; b.setAttribute('aria-label', m.nome);
+        return b;
+      }));
+    },
+    hide() { setAsk(false); setPausa(false); exit.classList.remove('on'); lanBox.classList.remove('on'); sp.classList.remove('on'); top.style.display = 'none'; lanSig = ''; },
     dispose() {
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);

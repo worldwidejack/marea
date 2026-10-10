@@ -115,7 +115,16 @@ export default async function (ctx) {
       await click(D, '#mzEroe [data-det="katana_legno"] [data-act="equipaggia"]');
       await waitEroe(D, '(e) => e.equip.arma === "katana_legno" && !e.busy');
       assert((await lot()).hero.equip.arma === 'katana_legno', 'katana non salvata sul server');
-      assert(await D.page.locator('#mzEroe [data-magia="fiammata"].on').count(), 'Fiammata non segnata come preparata');
+      // la magia si sceglie come un'arma (v6): finché non la impugni l'arma resta in mano; di nuovo sulla magia in mano → torna l'arma
+      assert(!(await D.page.locator('#mzEroe [data-magia="fiammata"].on').count()), 'Fiammata già in mano');
+      await click(D, '#mzEroe [data-magia="fiammata"]');
+      await waitEroe(D, '(e) => e.equip.mano === "magia" && !e.busy');
+      assert((await lot()).hero.equip.mano === 'magia', 'magia in mano non salvata sul server');
+      assert(await D.page.locator('#mzEroe [data-magia="fiammata"].on').count(), 'Fiammata non segnata in mano');
+      await ctx.shot(D.page, 'desktop_zaino_magia_in_mano');
+      await click(D, '#mzEroe [data-magia="fiammata"]');
+      await waitEroe(D, '(e) => !e.equip.mano && !e.busy');
+      assert(!(await lot()).hero.equip.mano, 'mani non liberate sul server');
       await D.page.keyboard.press('KeyI');
       await waitEroe(D, '(e) => !e.open');
     });
