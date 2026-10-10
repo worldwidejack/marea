@@ -68,7 +68,8 @@ export type CorseMotoreCfg = {
   rampa: { quota: number };
   /** Turbo dei tappeti di spinta (s). */
   tappetoTurbo: number;
-  veicolo: { raggio: number; frenata: number; folle: number; sterzoPieno: number; retro: number };
+  /** `retro` = velocità massima in retromarcia (m/s), `retroAccelerazione` (m/s²), `retroSterzoPieno` = sopra questi m/s lo sterzo in retro è pieno. */
+  veicolo: { raggio: number; frenata: number; folle: number; sterzoPieno: number; retro: number; retroAccelerazione: number; retroSterzoPieno: number };
   /** Sterzo del giocatore (#170): curva del joystick, rampa da tastiera, meno sterzo ad alta velocità. */
   sterzo: { normale: number; lineare: number; rampa: number; ritorno: number; alto: number; da: number };
   /** Drift a 3 livelli: `carica` = secondi per livello, `spinta` = secondi di turbo per livello. */

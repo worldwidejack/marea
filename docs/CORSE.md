@@ -245,6 +245,7 @@ Nella scelta della guida il PC usa 1/2/3 e Invio.
 - **Niente fisica vera.** Il kart ha un muso, una direzione del moto e una velocità:
   - lo sterzo gira il muso (fino a `sterzo` rad/s, pieno sopra `sterzoPieno` m/s);
   - la **presa** porta il moto verso il muso: bassa = scivola.
+  - **retromarcia** (Jack, 10 ott: «se vai a sbattere contro il muro è un casino»): freno tenuto da fermo, fino a `retro` 7 m/s con `retroAccelerazione` 12 m/s²; lo sterzo in retro è pieno già sopra `retroSterzoPieno` 2,5 m/s, così ci si gira e si esce dal muro.
 - **Prato** = velocità × 0,55.
 - **Muro** = rimbalzo, velocità × 0,7, e si striscia lungo la pista. Il muro chiude le scorciatoie.
 - **Drift:**

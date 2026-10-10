@@ -283,3 +283,28 @@ test('corse v2: deterministico (stessi input → stesso risultato e stessi veico
   assert.deepEqual(opzioniGara({ pista: 'prova_baia', veicolo: 'kart', bot: '0', scia: '0', somma: 'boh' }), { pista: 'prova_baia', veicolo: 'moto_acqua', bot: '0', ...tutte, scia: '0' });
   assert.equal(nuova('prova_baia', undefined, false).veicoli.length, 1);
 });
+
+test('corse tra amici: ognuno parte dal suo posto in griglia (coi bot, dietro ai bot)', () => {
+  assert.equal(opzioniGara({ pista: 'spiaggia_lungomare', bot: '0', posto: '2' })['posto'], '2');
+  assert.equal(opzioniGara({ pista: 'spiaggia_lungomare', bot: '1', posto: '2' })['posto'], '2', 'anche coi bot');
+  assert.equal(opzioniGara({ pista: 'spiaggia_lungomare', bot: '0', posto: '9' })['posto'], undefined, 'posto fuori elenco');
+  assert.equal(opzioniGara({ pista: 'spiaggia_lungomare' })['posto'], undefined, 'da solo come prima');
+  const G = CORSE_PISTE['spiaggia_lungomare']!.griglia;
+  const progs = [0, 1, 2, 3, 4, 5].map((i) => {
+    const s = garaCorse.create({ seed: 7, difficulty: 2, opzioni: opzioniGara({ pista: 'spiaggia_lungomare', veicolo: 'kart', bot: '0', posto: String(i) }) });
+    assert.equal(s.veicoli.length, 1, 'senza bot');
+    return [s.veicoli[0]!.prog, s.veicoli[0]!.lat];
+  });
+  for (let i = 0; i < G.length; i++) assert.deepEqual(progs[i], G[i], `posto ${i} = casella ${i} della griglia`);
+  assert.ok(progs[5]![0]! < G[G.length - 1]![0], 'oltre la griglia si parte più indietro');
+  // da solo (senza posto) in fondo come sempre
+  const solo = garaCorse.create({ seed: 7, difficulty: 2, opzioni: opzioniGara({ pista: 'spiaggia_lungomare', veicolo: 'kart', bot: '0' }) });
+  assert.deepEqual([solo.veicoli[0]!.prog, solo.veicoli[0]!.lat], G[G.length - 1]);
+  // coi bot: i bot davanti come da solo, il primo amico dove starebbe da solo, il secondo una fila più indietro
+  const conBot = [0, 1].map((i) => garaCorse.create({ seed: 7, difficulty: 2, opzioni: opzioniGara({ pista: 'spiaggia_lungomare', veicolo: 'kart', bot: '1', posto: String(i) }) }));
+  const soloBot = garaCorse.create({ seed: 7, difficulty: 2, opzioni: opzioniGara({ pista: 'spiaggia_lungomare', veicolo: 'kart', bot: '1' }) });
+  assert.equal(conBot[0]!.veicoli.length, soloBot.veicoli.length, 'gli stessi bot di quando corri da solo');
+  assert.deepEqual(conBot[0]!.veicoli.map((k) => [k.prog, k.lat]), soloBot.veicoli.map((k) => [k.prog, k.lat]), 'il primo amico parte come da solo');
+  assert.ok(conBot[1]!.veicoli[0]!.prog < conBot[0]!.veicoli[0]!.prog, 'il secondo amico più indietro');
+  for (const s of conBot) for (const b of s.veicoli.slice(1)) assert.ok(b.prog > s.veicoli[0]!.prog, 'i bot partono davanti agli amici');
+});

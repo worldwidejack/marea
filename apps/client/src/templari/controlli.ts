@@ -10,8 +10,10 @@ const SAFE = 'env(safe-area-inset-bottom, 0px)', RIGHT = 'max(16px, env(safe-are
 const CSS = `
 .mz-tpl-az { position: absolute; right: ${RIGHT}; bottom: calc(${SAFE} + 196px); min-width: 150px; min-height: 54px; padding: 0 14px; display: none; align-items: center; justify-content: center; gap: 8px; background: ${PAL.giallo}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; z-index: 16; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 .mz-tpl-az.on { display: flex; } .mz-tpl-az.giu { transform: translateY(3px); box-shadow: 0 2px 0 ${PAL.neroCaldo}; } .mz-tpl-az.no { background: ${PAL.pietra}; }
-.mz-tpl-az small { font-size: 12px; opacity: .75; }
-.mz-tpl-sc { position: absolute; right: calc(${RIGHT} + 96px); bottom: calc(${SAFE} + 122px); width: 56px; height: 56px; border-radius: 50%; display: none; align-items: center; justify-content: center; background: rgba(46,30,20,.8); border: 3px solid rgba(244,227,193,.7); color: ${PAL.sabbiaChiara}; font: bold 12px ui-monospace, Menlo, monospace; z-index: 13; touch-action: none; }
+.mz-tpl-az small { font-size: 12px; opacity: .75; } .mz-tpl-az .tasto { opacity: .55; }
+.mz-tpl-az.nega { animation: mzTplNo .3s steps(4); } @keyframes mzTplNo { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+.mz-tpl-perche { position: absolute; right: ${RIGHT}; bottom: calc(${SAFE} + 258px); max-width: calc(100% - 32px); padding: 4px 8px; background: rgba(46,30,20,.9); color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.rosso}; font: bold 13px ui-monospace, Menlo, monospace; z-index: 16; pointer-events: none; display: none; }
+.mz-tpl-perche.on { display: block; }.mz-tpl-sc { position: absolute; right: calc(${RIGHT} + 96px); bottom: calc(${SAFE} + 122px); width: 56px; height: 56px; border-radius: 50%; display: none; align-items: center; justify-content: center; background: rgba(46,30,20,.8); border: 3px solid rgba(244,227,193,.7); color: ${PAL.sabbiaChiara}; font: bold 12px ui-monospace, Menlo, monospace; z-index: 13; touch-action: none; }
 .mz-tpl-sc.on { display: flex; }
 .mz-tpl-top { position: absolute; right: ${RIGHT}; top: ${TOP}; z-index: 14; display: flex; gap: 8px; }
 .mz-tpl-tb { min-height: 44px; min-width: 44px; padding: 0 10px; display: flex; align-items: center; justify-content: center; gap: 6px; background: ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.legnoChiaro}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; font: bold 14px ui-monospace, Menlo, monospace; cursor: pointer; }
@@ -43,15 +45,29 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   if (!document.getElementById('mz-tpl-ctl-style')) { const st = document.createElement('style'); st.id = 'mz-tpl-ctl-style'; st.textContent = CSS; document.head.appendChild(st); }
   let mouse: { x: number; y: number } | null = null;
   const stop = (e: Event) => e.stopPropagation();
-  // AZIONE: tenuto (ripara) o tocco breve (latch: anche più corto di un tick arriva alla sim)
-  const az = el('div', 'mz mz-tpl-az'); az.id = 'mzTplAzione';
-  const azHeld = new Set<number>();
-  let dLatch = false, cLatch = false, mouseA = false;
-  az.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); azHeld.add(e.pointerId); dLatch = true; az.classList.add('giu'); try { az.setPointerCapture(e.pointerId); } catch { /* sintetico */ } });
-  const azUp = (e: PointerEvent) => { azHeld.delete(e.pointerId); if (!azHeld.size) az.classList.remove('giu'); };
-  az.addEventListener('pointerup', azUp); az.addEventListener('pointercancel', azUp);
-  const sc = el('div', 'mz mz-tpl-sc', 'SCAMBIA'); sc.id = 'mzTplScambia';
+  // AZIONE: tenuto (ripara) o tocco breve (latch: anche più corto di un tick arriva alla sim). Dal telefono vero non partiva (10/10):
+  // ora ascolta anche i tocchi (touchstart/touchend, ogni dito per conto suo) oltre ai pointer, e se non puoi lo dice (punti, finestra).
+  const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  const az = el('div', 'mz mz-tpl-az'); az.id = 'mzTplAzione'; az.setAttribute('role', 'button');
+  const perche = el('div', 'mz mz-tpl-perche'); perche.id = 'mzTplPerche';
+  const azHeld = new Set<string>();
+  let dLatch = false, cLatch = false, mouseA = false, ora: TPrompt = null, percheT: ReturnType<typeof setTimeout> | null = null;
+  const nega = () => {
+    if (!ora || ora.puoi) return;
+    perche.textContent = ora.cosa === 'ripara' ? 'Uno zombie la sta strappando' : ora.cosa === 'trappola' ? ora.testo : `Servono ${ora.prezzo} punti`;
+    perche.classList.add('on'); az.classList.remove('nega'); void az.offsetWidth; az.classList.add('nega');
+    if (percheT) clearTimeout(percheT);
+    percheT = setTimeout(() => { perche.classList.remove('on'); percheT = null; }, 1600);
+  };
+  const azGiu = (k: string) => { if (!azHeld.size) nega(); azHeld.add(k); dLatch = true; az.classList.add('giu'); };
+  const azSu = (k: string) => { azHeld.delete(k); if (!azHeld.size) az.classList.remove('giu'); };
+  az.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); azGiu(`p${e.pointerId}`); try { az.setPointerCapture(e.pointerId); } catch { /* sintetico */ } });
+  for (const ev of ['pointerup', 'pointercancel']) az.addEventListener(ev, (e) => azSu(`p${(e as PointerEvent).pointerId}`));
+  az.addEventListener('touchstart', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); for (const t of e.changedTouches) azGiu(`t${t.identifier}`); }, { passive: false });
+  for (const ev of ['touchend', 'touchcancel']) az.addEventListener(ev, (e) => { for (const t of (e as TouchEvent).changedTouches) azSu(`t${t.identifier}`); });
+  const sc = el('div', 'mz mz-tpl-sc', 'SCAMBIA'); sc.id = 'mzTplScambia'; sc.setAttribute('role', 'button');
   sc.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); cLatch = true; });
+  sc.addEventListener('touchstart', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); cLatch = true; }, { passive: false });
   // pausa e menu
   const top = el('div', 'mz mz-tpl-top');
   const pz = el('span', 'pz'); pz.append(el('i'), el('i'));
@@ -63,7 +79,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   const esci = el('button', 'mz-btn ghost', 'ESCI DALLA PARTITA'); esci.type = 'button'; esci.dataset['act'] = 'esci';
   menu.append(titolo, sub, riprendi, esci);
   for (const e of [az, sc, top, menu]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, stop);
-  o.root.append(az, sc, top, menu);
+  o.root.append(az, perche, sc, top, menu);
   let pausa = false, chiedi = false;
   const setPausa = (on: boolean) => {
     pausa = on; chiedi = false; menu.classList.toggle('on', on);
@@ -102,21 +118,23 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
     get paused() { return pausa; },
     get mouse() { return mouse; },
     setPrompt(p) {
+      ora = p;
       const k = p ? `${p.cosa}|${p.testo}|${p.prezzo}|${p.puoi}` : '';
       if (k === promptKey) return;
       promptKey = k;
       az.classList.toggle('on', !!p);
       if (!p) return;
       az.classList.toggle('no', !p.puoi);
-      az.replaceChildren(el('span', '', p.testo.toUpperCase()), ...(p.prezzo > 0 ? [el('small', '', String(p.prezzo))] : []), el('small', '', 'F'));
+      az.replaceChildren(el('span', '', p.testo.toUpperCase()), ...(p.prezzo > 0 ? [el('small', '', String(p.prezzo))] : []), ...(dito ? [] : [el('small', 'tasto', 'F')]));
     },
     setScambia(on) { sc.classList.toggle('on', on); },
-    hide() { az.classList.remove('on'); sc.classList.remove('on'); top.style.display = 'none'; setPausa(false); },
+    hide() { az.classList.remove('on'); perche.classList.remove('on'); sc.classList.remove('on'); top.style.display = 'none'; setPausa(false); },
     dispose() {
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);
       o.canvas.removeEventListener('pointermove', mm); o.canvas.removeEventListener('pointerleave', ml);
-      az.remove(); sc.remove(); top.remove(); menu.remove();
+      if (percheT) clearTimeout(percheT);
+      az.remove(); perche.remove(); sc.remove(); top.remove(); menu.remove();
     },
   };
 }

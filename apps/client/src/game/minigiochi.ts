@@ -29,6 +29,7 @@ import { createPostoPesca } from './pesca.ts';
 import { suona } from '../audio/ponte.ts';
 import { createPostoPerle } from './perle.ts'; // Perle
 import { temaAperta } from './temi.ts'; // Ghiacci e Giardino
+import { FLAGS } from '../flags.ts';
 
 /** `opzioni` = parametri della partita per il server (es. il mare della pesca); `posto` = molo dove si gioca ('porto', 'lotto:N':
  *  lo riceve il gioco); `aPiedi` = parte solo a piedi (in barca A accelera); `vista` = il cartello si vede solo entro tanti metri;
@@ -138,6 +139,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   diIsola('lava', 'lava');
   registraSchermo('lava', (root) => import('../ui/lava.ts').then((m) => m.createLava({ root })));
   // fine Vulcano
+  let garaSubito = false; // link «gara tra amici» (#204)
   // Isola delle Corse (docs/CORSE.md): il Gran Premio parte dall'arco del via; la gara 3D (corse/index.ts, scena sua e camera dietro al
   // kart) si scarica alla prima partita. Serve il renderer (la scena della pista prende lo schermo).
   if (o.renderer) {
@@ -146,6 +148,8 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     // `gioca`: l'hub delle Corse (#185) fa partire le gare dalle sue porte senza ripassare dal posto (vedi `play(s, scelte)`)
     const gioca = (opzioni: Record<string, string>) => { const s = spots.find((x) => x.minigame === 'corse'); return s ? play(s, opzioni) : Promise.resolve(); };
     registraSchermo('corse', (root) => import('../corse/index.ts').then((m) => m.createCorse({ root, renderer, world: o.world, gioca })));
+    // link «gara tra amici» (`?gara=amici`, #204): al primo tick libero si apre l'hub delle Corse direttamente nella sala (senza spostarsi)
+    garaSubito = FLAGS.gara;
   }
   // fine Isola delle Corse
   let chClosedAt = 0, scacchi: Scacchi | null = null;
@@ -305,6 +309,11 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       const pressA = a && !aWas; aWas = a;
       if (input && !open) for (const g of schermi.values()) if (g.isOpen()) g.step?.(input); // giochi nel mondo (Consegne, l'hub delle Corse): la loro sim gira qui; ferma sotto la scheda dell'esito
       if (o.world.race.on || busy || open || schermoAperto()) { near = null; return; }
+      if (garaSubito) { // aspetta che l'isola risulti aperta (temi e lotto arrivano dopo il primo tick)
+        const s = spots.find((x) => x.minigame === 'corse');
+        if (!s) garaSubito = false;
+        else if (!s.aperta || s.aperta()) { garaSubito = false; void play({ ...s, opzioni: { amici: '1' } }); return; }
+      }
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
       near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near && (!s.aPiedi || o.world.mode === 'walk') && (!s.inBarca || o.world.mode === 'boat') && (!s.aperta || s.aperta())) ?? null;
       if (near && near !== nearWas) o.hud.toast(near.tasto ? `${near.nome}: ${matchMedia('(pointer: coarse)').matches ? 'tocca GIOCA' : `${near.tasto.nome} o GIOCA`} · A al molo per scendere` : `${near.nome}: premi A o tocca GIOCA`, 2500);

@@ -180,14 +180,14 @@ export function guida(m: MondoHub, a: AutoHub, f: InputFrame): void {
       if (a.v < t) a.v = Math.min(t, a.v + acc * DT);
       else a.v = Math.max(t, a.v - (E.velocita < 0.9 ? K.frenata : K.folle * 2) * DT);
     } else if (gas < -0.3) {
-      a.v = a.v > 0 ? Math.max(0, a.v - K.frenata * DT) : Math.max(-K.retro, a.v - V.accelerazione * 0.5 * DT);
+      a.v = a.v > 0 ? Math.max(0, a.v - K.frenata * DT) : Math.max(-K.retro, a.v - K.retroAccelerazione * DT);
     } else a.v = a.v > 0 ? Math.max(0, a.v - K.folle * DT) : Math.min(0, a.v + K.folle * DT);
     // la pendenza lungo il moto: in salita frena, in discesa spinge (come la sim)
     const d = 0.8, dh = (suolo(m, a.x + a.mx * d, a.z + a.mz * d, galleggia) - suolo(m, a.x - a.mx * d, a.z - a.mz * d, galleggia)) / (2 * d);
     a.v -= G * (dh / Math.sqrt(1 + dh * dh)) * F.pendenza * DT;
   }
   // ---- sterzo ----
-  const presa = Math.min(1, Math.abs(a.v) / K.sterzoPieno) * (a.v < 0 ? -1 : 1);
+  const presa = a.v < 0 ? -Math.min(1, -a.v / K.retroSterzoPieno) : Math.min(1, a.v / K.sterzoPieno);
   const alto = 1 - (F.sterzoAlto ?? S.alto) * clamp((Math.abs(a.v) - S.da) / Math.max(1, V.velocita - S.da), 0, 1);
   const giri = a.drift ? a.drift * V.sterzo * V.drift * D.giro * (D.tieni[0] + D.tieni[1] * sterzo * a.drift) : sterzo * V.sterzo * S.normale * alto;
   if (terra) {

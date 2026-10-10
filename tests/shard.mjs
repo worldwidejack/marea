@@ -15,6 +15,7 @@ const DURATE = {
   m4_templari: 75, m4_templari_server: 60, m4_corse: 130, // Templari (#137): ~45 s in locale × 1,6
   m4_adrenalina: 90, // Adrenalina (#189): telefono, PC e wrangler dev
   m4_una_mano: 32, // #143: ~19 s in locale × 1,6
+  m4_corse_amici_server: 25, // corse tra amici: ~9 s in locale (wrangler compreso) × 1,6 + avvio
 };
 const [i, n] = process.argv.slice(2).map(Number);
 if (!Number.isInteger(i) || !Number.isInteger(n) || n < 1 || i < 0 || i >= n) { console.error('uso: node tests/shard.mjs <i> <n>'); process.exit(2); }
