@@ -85,10 +85,11 @@ export default async function (ctx) {
       assert(/Pista/.test(e1.msg), 'errore: ' + e1.msg);
       bea.manda({ t: 'via', pista: 'spiaggia_nessuna' });
       await bea.aspetta((m) => m.t === 'errore', 5000, 'pista inesistente');
-      bea.manda({ t: 'via', pista: 'spiaggia_baia' });
+      bea.manda({ t: 'via', pista: 'spiaggia_baia', bot: true });
       parteA = await ada.aspetta((m) => m.t === 'parte', 5000, 'parte ada');
       parteB = await bea.aspetta((m) => m.t === 'parte', 5000, 'parte bea');
       assert(parteA.io === 0 && parteB.io === 1, `io: ${parteA.io} ${parteB.io}`);
+      assert(parteA.bot === true && parteB.bot === true, `coi bot (scelti da bea): ${parteA.bot} ${parteB.bot}`);
       assert(parteA.gara === parteB.gara && typeof parteA.gara === 'string' && parteA.gara.length > 10, 'gara: ' + parteA.gara + ' ' + parteB.gara);
       assert(parteA.seed === parteB.seed && Number.isInteger(parteA.seed) && parteA.seed >= 0 && parteA.seed < 2 ** 32, 'seed: ' + parteA.seed + ' ' + parteB.seed);
       assert(parteA.pista === 'spiaggia_baia' && parteA.membri.map((x) => x.id).join() === 'ada,bea' && parteA.membri[0].veicolo === 'moto_acqua', 'parte: ' + JSON.stringify(parteA).slice(0, 300));
@@ -135,6 +136,7 @@ export default async function (ctx) {
       await ada.sala((m) => m.membri.length === 3, 'cid in sala');
       cid.manda({ t: 'via', pista: 'spiaggia_lungomare' });
       const pc = await cid.aspetta((m) => m.t === 'parte', 5000, 'parte cid');
+      assert(pc.bot === false, 'senza bot se non li chiede nessuno: ' + pc.bot);
       assert(pc.io === 2 && pc.membri.length === 3, 'cid: ' + JSON.stringify(pc).slice(0, 200));
       cid.chiudi();
       const f = await ada.aspetta((m) => m.t === 'fine', 5000, 'cid chiude');

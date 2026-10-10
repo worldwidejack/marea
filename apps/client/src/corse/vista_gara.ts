@@ -278,7 +278,8 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     const tipo = pp.def.tipo === 'fuga' ? 'FUGA' : `GIRO ${v.giro}/${v.giri}`;
     const onda = v.onda === null ? '' : `<div style="${v.ondaDist < 25 ? `background:${P.rosso};color:${P.pietraChiara}` : ''}">ONDA ${v.ondaDist < 0 ? '!!' : Math.round(v.ondaDist) + '<small> m</small>'}</div>`;
     const ta = o2.amici?.length ? posTraAmici(o2.amici, k, v.ms) : null;
-    const pos = ta ? ta.pos : v.posizioni[0], tot = ta ? ta.tot : gs.veicoli.length;
+    // tra amici coi bot: la posizione tra i miei bot più gli amici davanti; senza bot solo tra amici
+    const pos = ta ? (gs.veicoli.length > 1 ? v.posizioni[0]! + ta.pos - 1 : ta.pos) : v.posizioni[0], tot = ta ? gs.veicoli.length + ta.tot - 1 : gs.veicoli.length;
     classifica.style.display = ta ? 'block' : 'none';
     if (ta) classifica.innerHTML = ta.righe.map((x, i) => `<div class="${x.tu ? 'tu' : ''}">${i + 1}° ${x.nome.replace(/[<>&]/g, '')}${x.fine !== null ? ' · ' + tempoGara(x.fine) : ''}</div>`).join('');
     hud.innerHTML = `<div>${pos}°<small>/${tot}</small></div><div>${tipo}</div><div>${tempoGara(v.ms)}</div><div class="${k.turbo > 0 ? 'turbo' : ''}">${Math.round(Math.abs(k.v) * 3.6)}<small> km/h</small></div>${onda}`;

@@ -97,7 +97,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   sala.onEsci = () => { if (hub.aperto() && !run) hub.riprendi(portaGara); };
   sala.onParte = (pt) => {
     if (run || !o.gioca) return;
-    const opz = opzioniGara({ pista: pt.pista, veicolo: veicoloPer({ ...scelta, pista: pt.pista }), bot: '0', posto: String(pt.io) });
+    const opz = opzioniGara({ pista: pt.pista, veicolo: veicoloPer({ ...scelta, pista: pt.pista }), bot: pt.bot ? '1' : '0', posto: String(pt.io) });
     hub.messaggio('Si parte…', 30);
     void o.gioca(opz).finally(() => { if (hub.aperto() && !run && hub.info().fermo) { sala.chiudi(); hub.riprendi(portaGara); } });
   };
@@ -201,7 +201,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
       return new Promise<PackedInputs | null>((resolve) => {
         const r: Run = {
           s, frames: [], fase: 'gara', wait: 0, dopo: 0, auto: autoSpeed > 0, speed: Math.max(1, autoSpeed), ritirato: false, esito: null,
-          amici: !!sala.info().gara && opzioni?.['bot'] === '0',
+          amici: !!sala.info().gara && opzioni?.['posto'] !== undefined,
           finish(v) {
             if (run !== r) return;
             run = null;

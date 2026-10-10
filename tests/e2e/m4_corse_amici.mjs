@@ -1,6 +1,6 @@
 // Corse tra amici (10 ott 2026, CONTRACTS §39): due telefoni in orizzontale (Luca e Mia) su wrangler dev locale. Tutti e due vanno all'Isola
 // delle Corse, alla porta della Spiaggia scelgono «CON GLI AMICI» ed entrano nella stessa sala; Luca preme VIA e partono insieme sulla
-// pista di Luca, senza bot, ognuno al suo posto in griglia. In gara ognuno vede l'altro come fantasma (veicolo e nome), la classifica è tra
+// pista di Luca, coi bot (li sceglie Luca), ognuno al suo posto in griglia dietro ai suoi bot. In gara ognuno vede l'altro come fantasma (veicolo e nome), la classifica è tra
 // amici; il pilota automatico finisce le due gare, il server le rigioca e la scheda dice «N° su 2 tra amici»; poi di nuovo nell'hub.
 // Screenshot in tests/out/shots/m4_corse_amici_*.png.
 import fs from 'node:fs';
@@ -63,12 +63,14 @@ export default async function (ctx) {
       await ctx.shot(L, 'sala');
     });
 
-    await ctx.test('VIA di Luca: partono tutti e due sulla Baia, senza bot, ai loro posti; ognuno vede l\'altro', async () => {
+    await ctx.test('VIA di Luca coi bot: partono tutti e due sulla Baia coi loro 4 bot, ai loro posti; ognuno vede l\'altro', async () => {
+      await L.locator('#mzGpSala [data-id="bot_si"]').click();
+      await L.locator('#mzGpSala [data-id="bot_si"].on').waitFor({ timeout: 4000 });
       await L.locator('#mzGpSalaVia').click();
       for (const p of [L, M]) await ctx.waitState(p, (s) => s.corse.active === true && s.corse.amici === true, 20000);
       const [sl, sm] = [await st(L), await st(M)];
       assert(sl.corse.pista === 'spiaggia_baia' && sm.corse.pista === 'spiaggia_baia', `piste ${sl.corse.pista} ${sm.corse.pista}`);
-      assert(sl.corse.vista.veicoli === 1 && sm.corse.vista.veicoli === 1, 'ci sono i bot');
+      assert(sl.corse.vista.veicoli === 5 && sm.corse.vista.veicoli === 5, `mancano i bot: ${sl.corse.vista.veicoli} ${sm.corse.vista.veicoli}`);
       // il gas è sul bottone: una gara a mano per un attimo, poi il pilota automatico
       for (const p of [L, M]) await hook(p, 'corseAuto', 3);
       for (const p of [L, M]) await ctx.waitState(p, (s) => s.corse.tick > 60 && s.corse.vista.fantasmi === 1 && s.corse.sala.amici[0].prog !== null, 40000);
@@ -79,6 +81,7 @@ export default async function (ctx) {
       assert(a.corse.sala.amici[0].veicolo === b.corse.veicolo && b.corse.sala.amici[0].veicolo === a.corse.veicolo, `il fantasma non ha il veicolo vero: ${a.corse.sala.amici[0].veicolo}/${b.corse.veicolo}, ${b.corse.sala.amici[0].veicolo}/${a.corse.veicolo}`);
       assert(a.corse.vista.nomi.length + b.corse.vista.nomi.length >= 1, 'chi sta dietro non vede il nome di chi sta davanti');
       assert(await L.isVisible('.pp-amici') && (await L.locator('.pp-amici div').count()) === 2, 'manca la classifica tra amici');
+      assert(/\/6/.test(await L.locator('.pp-hud').first().innerText()), 'la posizione non conta bot e amici (su 6)');
       await ctx.shot(L, 'gara_luca');
       await ctx.shot(M, 'gara_mia');
     });

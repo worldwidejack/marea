@@ -78,14 +78,14 @@ export class GaraAmici extends DurableObject<Env> {
     this.scaduta();
     switch (m.t) {
       case 'ciao': c.veicolo = VEICOLI.has(m.veicolo) ? m.veicolo : 'kart'; this.annuncia(); return;
-      case 'via': this.parti(c, m.pista); return;
+      case 'via': this.parti(c, m.pista, m.bot === true); return;
       case 'fine': { const g = this.gara, i = g ? g.corridori.findIndex((r) => r.conn === c) : -1; if (g && i >= 0) this.finito(g, i, m.ms); return; }
       case 'esco': this.esce(c); try { c.ws.close(1000, 'ciao'); } catch { /* chiusa */ } return;
     }
   }
 
-  /** VIA: tutti quelli in sala partono, in ordine di entrata. */
-  private parti(c: Conn, pista: string): void {
+  /** VIA: tutti quelli in sala partono, in ordine di entrata (coi bot se chi preme VIA li vuole: ognuno corre coi suoi). */
+  private parti(c: Conn, pista: string, bot: boolean): void {
     if (!pista.startsWith('spiaggia_') || !CORSE_PISTE[pista]) { this.send(c.ws, { t: 'errore', msg: 'Pista sconosciuta' }); return; }
     if (this.gara) { this.send(c.ws, { t: 'errore', msg: "C'è già una gara in corso: aspetta che finisca" }); return; }
     if (this.sala.length < 2) { this.send(c.ws, { t: 'errore', msg: 'Servono almeno 2 amici in sala' }); return; }
@@ -94,8 +94,8 @@ export class GaraAmici extends DurableObject<Env> {
     const g: Gara = { id, pista, seed, corridori, t0: Date.now(), timer: setTimeout(() => this.chiudi(g, 'tempo'), GARA_MAX_MS) };
     this.gara = g;
     const membri = corridori.map((r) => r.m);
-    corridori.forEach((r, io) => { if (r.conn) this.send(r.conn.ws, { t: 'parte', gara: id, pista, seed, io, membri }); });
-    console.log(`[marea] gara tra amici: ${pista}, ${corridori.length} corridori, gara ${id}`);
+    corridori.forEach((r, io) => { if (r.conn) this.send(r.conn.ws, { t: 'parte', gara: id, pista, seed, io, membri, bot }); });
+    console.log(`[marea] gara tra amici: ${pista}, ${corridori.length} corridori${bot ? ' + bot' : ''}, gara ${id}`);
     this.annuncia();
   }
 
