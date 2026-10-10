@@ -3,8 +3,7 @@
 // i due stendardi Beauceant (bianco e nero con la croce rossa, come nell'affresco di San Bevignate) ai lati del coro. Borgo: usci scuri e
 // tegole rimaste sulle case diroccate. Cimitero: i cipressi lungo i muri, l'ossario coi teschi. Spiaggia: il mare di notte, la nave dei
 // pirati tirata in secca su un fianco (carenaggio), la bandiera nera sulla tenda grande, la griglia del boucan sul falò, l'insegna col
-// teschio sopra la taverna. Tutto instanziato o unito: poche draw call. Muri e colonne verso la camera si abbassano: quello che ci sta
-// sopra si spegne con loro (`abbassa`).
+// teschio sopra la taverna. Tutto instanziato o unito: poche draw call.
 import * as THREE from 'three';
 import type { Arena } from '@marea/sim/templari/mappa.ts';
 import { C, SUOLO, TIPO } from '@marea/sim/templari/mappa.ts';
@@ -15,15 +14,12 @@ import { unisci } from './armi3d.ts';
 import type { Pezzo } from './armi3d.ts';
 
 export type Arredi = {
-  /** Muri e colonne abbassati verso la camera: croci, usci, tegole e archi sopra di loro spariscono. */
-  abbassa(muroBasso: (i: number) => boolean, colonnaBassa: (i: number) => boolean): void;
   update(t: number): void;
   stats(): { croci: number; usci: number; archi: number; cipressi: number };
   dispose(): void;
 };
 
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
-const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 
 function canvasTex(w: number, h: number, draw: (px: (c: string, x: number, y: number, w?: number, h?: number) => void) => void, ripeti = false): THREE.CanvasTexture {
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
@@ -76,7 +72,7 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
   };
 
   // ---- croci di consacrazione: dodici attorno alla rotonda, sulla faccia interna del muro (il raggio dal centro trova il muro) ----
-  type Deco = { cell: number; m: THREE.Matrix4 };
+  type Deco = { m: THREE.Matrix4 };
   const croci: Deco[] = [];
   for (let k = 0; k < 12; k++) {
     const ang = (k / 12) * Math.PI * 2 + Math.PI / 12, dx = Math.cos(ang), dz = Math.sin(ang);
@@ -88,7 +84,7 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
       if (k2 === C.muro && a.tipo[cz * W + cx] === TIPO.chiesa) {
         const nx = cx !== pcx ? pcx - cx : 0, nz = nx === 0 ? pcz - cz : 0;
         const fx = nx ? (nx > 0 ? cx + 1 : cx) * T + nx * 0.03 : x, fz = nz ? (nz > 0 ? cz + 1 : cz) * T + nz * 0.03 : z;
-        if (o.altezza(cz * W + cx) >= 2.2) croci.push({ cell: cz * W + cx, m: mat(fx, 1.75, fz, Math.atan2(nx, nz), 0.62, 0.62, 1) });
+        if (o.altezza(cz * W + cx) >= 2.2) croci.push({ m: mat(fx, 1.75, fz, Math.atan2(nx, nz), 0.62, 0.62, 1) });
         break;
       }
       if (k2 !== C.pavimento && k2 !== C.colonna && k2 !== C.basso) break; // finestra, porta, fuori: niente croce qui
@@ -119,14 +115,14 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
       const lato = g.filter((i) => bordo(i, dx, dz));
       if (lato.length < 3) continue;
       const i = lato[Math.floor(lato.length / 2)]!, p = ctr(i);
-      usci.push({ cell: i, m: mat(p.x + dx * 0.53, 0.75, p.z + dz * 0.53, Math.atan2(dx, dz), 0.8, 1.5, 1) });
+      usci.push({ m: mat(p.x + dx * 0.53, 0.75, p.z + dz * 0.53, Math.atan2(dx, dz), 0.8, 1.5, 1) });
       break;
     }
     for (const i of g) {
       const h = o.altezza(i), cx = i % W, cz = Math.floor(i / W);
       if (h < 2.4 || cellHash(cx, cz, 31) > 0.3 || erba) continue;
       const p = ctr(i), lungoX = a.tipo[i - 1] === TIPO.casa && a.tipo[i + 1] === TIPO.casa;
-      tegole.push({ cell: i, m: mat(p.x, h + 0.06, p.z, lungoX ? 0 : Math.PI / 2, 1.15, 1, 1, 0.28) });
+      tegole.push({ m: mat(p.x, h + 0.06, p.z, lungoX ? 0 : Math.PI / 2, 1.15, 1, 1, 0.28) });
     }
   }
   // l'ossario (la casa sull'erba del cimitero): usci scuri sul lato sud e i teschi ammucchiati davanti
@@ -135,7 +131,7 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
     const lato = ossario.filter((i) => a.tipo[i + W] !== TIPO.casa && a.cell[i + W] !== C.fuori);
     lato.forEach((i, k) => {
       const p = ctr(i);
-      if (k % 2 === 0) usci.push({ cell: i, m: mat(p.x, 0.75, p.z + 0.53, 0, 0.8, 1.5, 1) });
+      if (k % 2 === 0) usci.push({ m: mat(p.x, 0.75, p.z + 0.53, 0, 0.8, 1.5, 1) });
       for (let j = 0; j < 3; j++) if (cellHash(i, j, 44) < 0.5) ossa.push(mat(p.x - 0.3 + j * 0.3, 0.11 + (j === 1 ? 0.18 : 0), p.z + 0.68, cellHash(i, j, 45) * 2, 0.24, 0.22, 0.24));
     });
   }
@@ -154,12 +150,12 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
   const giro = o.colonne.map((i, n) => ({ i, n, p: ctr(i) }))
     .filter((c) => { const dx = c.p.x - o.centro.x, dz = c.p.z - o.centro.z, d = Math.sqrt(dx * dx + dz * dz); return d > 3.5 && d < 7.5; })
     .sort((x, y) => Math.atan2(x.p.z - o.centro.z, x.p.x - o.centro.x) - Math.atan2(y.p.z - o.centro.z, y.p.x - o.centro.x));
-  const archi: { a: number; b: number; m: THREE.Matrix4 }[] = [];
+  const archi: { m: THREE.Matrix4 }[] = [];
   giro.forEach((c, k) => {
     const d = giro[(k + 1) % giro.length]!;
     if (giro.length < 3 || (o.hCol[c.n] ?? 0) < 3 || (o.hCol[d.n] ?? 0) < 3) return;
     const dx = d.p.x - c.p.x, dz = d.p.z - c.p.z, len = Math.sqrt(dx * dx + dz * dz);
-    archi.push({ a: c.i, b: d.i, m: mat((c.p.x + d.p.x) / 2, 4.05, (c.p.z + d.p.z) / 2, -Math.atan2(dz, dx), len + 0.3, 1, 0.34) });
+    archi.push({ m: mat((c.p.x + d.p.x) / 2, 4.05, (c.p.z + d.p.z) / 2, -Math.atan2(dz, dx), len + 0.3, 1, 0.34) });
   });
   const arcoGeo = unisci([
     { g: new THREE.BoxGeometry(1, 0.22, 1), c: PAL.pietraChiara, y: 0.11 },
@@ -260,12 +256,6 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
 
   let passo = -1;
   return {
-    abbassa(muroBasso, colonnaBassa) {
-      croci.forEach((c, n) => croce.setMatrixAt(n, muroBasso(c.cell) ? ZERO : c.m)); croce.instanceMatrix.needsUpdate = true;
-      usci.forEach((u, n) => uscio.setMatrixAt(n, muroBasso(u.cell) ? ZERO : u.m)); uscio.instanceMatrix.needsUpdate = true;
-      tegole.forEach((t, n) => tegola.setMatrixAt(n, muroBasso(t.cell) ? ZERO : t.m)); tegola.instanceMatrix.needsUpdate = true;
-      archi.forEach((x, n) => arco.setMatrixAt(n, colonnaBassa(x.a) || colonnaBassa(x.b) ? ZERO : x.m)); arco.instanceMatrix.needsUpdate = true;
-    },
     update(t) {
       const st = Math.floor(t * 6);
       if (st === passo) return;

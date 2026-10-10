@@ -116,7 +116,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   void (async () => {
     try {
       await ctx.loader.extend('manifest_rpg.json'); // modelli delle armi (kit GDR)
-      sc = createScena(s.arena);
+      sc = createScena(s.arena, ctx.renderer.camera);
       hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: { arma: armaVista(view.eroe.arma) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true });
       zombi = createZombi(sc.scene);
       fx = createEffetti({ scene: sc.scene, arena: s.arena, loader: ctx.loader, root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera });

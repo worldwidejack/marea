@@ -54,7 +54,14 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
   const vv = window.visualViewport; vv?.addEventListener('resize', resize);
   return {
     gl, scene, camera: diorama.camera, diorama, resize, sky,
-    setScene: (s) => { const was = active; active = s ?? scene; if (was !== active && view) applyView(); },
+    setScene: (s) => {
+      const was = active; active = s ?? scene;
+      if (was !== active && view) applyView();
+      // le scene chiuse (dungeon, Templari) mettono il piano vicino più in là in `userData.near`: più precisione di profondità, niente
+      // facce vicine che sfarfallano sui telefoni col depth buffer corto (la camera sta sempre ad almeno 16 m dall'eroe)
+      const near = (active.userData.near as number | undefined) ?? 1;
+      if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
+    },
     setPost: (p) => { post = p; post?.setSize(w, h); },
     setView: (v) => { view = v; applyView(); },
     render: (_alpha, t) => {
