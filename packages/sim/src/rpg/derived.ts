@@ -168,7 +168,7 @@ export function buildRunHero(h: HeroState): RunHero {
     camminata: mv.camminata, corsa: r2(mv.corsa * (1 + mod(m, 'velocitaCorsa'))),
     staminaCorsa: r2(mv.staminaCorsa * clamp(1 + mod(m, 'staminaCorsa'), 0.1, 3)), mentreCarichi: mv.mentreCarichi, raggio: mv.raggio,
     arma: weaponOf(h, m, leggera), frecce: arrowsOf(h, m), armatura,
-    magie, magia: mi >= 0 ? mi : null, pozioni, pozione: pi >= 0 ? pi : null,
+    magie, magia: mi >= 0 ? mi : null, ...(mi >= 0 && h.equip.mano === 'magia' ? { manoMagia: true } : {}), pozioni, pozione: pi >= 0 ? pi : null,
     skill, carico: carriedOf(h), caricoMax: caricoMaxOf(h, m), pesi: { ...PESI },
   };
 }

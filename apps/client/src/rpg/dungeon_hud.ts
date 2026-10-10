@@ -6,9 +6,11 @@ import * as THREE from 'three';
 import type { DungeonEvent, DungeonView } from '@marea/sim/dungeon/types.ts';
 import type { RunHero } from '@marea/sim/rpg/types.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
+import { spellDef } from '@marea/content/rpg.ts';
 import { PAL, el } from '../ui/style.ts';
-import { iconOf, itemIcon } from './items_ui.ts';
+import { coloreMagia, iconOf, itemIcon } from './items_ui.ts';
 import type { Bar } from './dungeon_actors.ts';
+import type { MagiaUi } from './dungeon_controls.ts';
 
 export type DungeonHud = {
   set(v: DungeonView, maxTicks: number): void;
@@ -25,6 +27,8 @@ export type DungeonHud = {
   flash(text: string, color: string, sub: string, ms: number): void;
   /** Icone di C e D; `key` cambia quando cambiano magia o pozione pronte. */
   icons(): { c: Node | null; d: Node | null; key: string };
+  /** Le magie conosciute per il menù rapido (icona, nome, costo), nell'ordine dei tasti 1-9. */
+  magie(): MagiaUi[];
   /** RunHero rifatto (cambio d'equipaggiamento nel dungeon): frecce, pozione e magia pronte nuove. */
   setHero(h: RunHero): void;
   dispose(): void;
@@ -100,7 +104,8 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
   let pot = rh.pozione !== null ? rh.pozioni[rh.pozione] ?? null : null;
   let spell = rh.magia !== null ? rh.magie[rh.magia] ?? null : null;
   const potIco = (px: number) => (pot && hasItem(pot.id) ? iconOf(itemDef(pot.id), px) : null);
-  const spellIco = (px: number) => (spell ? itemIcon('libro', spell.scuola === 'evocazione' ? P.viola : P.arancio, px) : null);
+  const spellIco = (px: number) => (spell ? itemIcon('libro', coloreMagia(spell.id, spell.scuola), px) : null);
+  const nomeMagia = (id: string): string => { try { return spellDef(id).nome; } catch { return id; } };
   let rowSig = '', toastT = 0, bigOn = false, flashT = 0;
   const v3 = new THREE.Vector3();
   const screen = (p: THREE.Vector3) => {
@@ -123,11 +128,13 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
       }
       const left = Math.max(0, (maxTicks - v.tick) / 60), z = v.zaino;
       const car = h.carico, bar = h.barriera;
-      const sig = `${h.frecce}|${h.pozioni}|${Math.round(z.peso)}|${Math.round(z.max)}|${z.monete}|${Math.floor(left)}|${rh.frecce?.id}|${pot?.id}|${car ? `${car.tipo}${car.n}` : ''}|${bar === undefined ? '' : Math.floor(bar * 10)}`;
+      const inMano = h.magia ? rh.magie.find((m) => m.id === h.magia) : undefined;
+      const sig = `${h.magia ?? ''}|${h.frecce}|${h.pozioni}|${Math.round(z.peso)}|${Math.round(z.max)}|${z.monete}|${Math.floor(left)}|${rh.frecce?.id}|${pot?.id}|${car ? `${car.tipo}${car.n}` : ''}|${bar === undefined ? '' : Math.floor(bar * 10)}`;
       if (sig !== rowSig) {
         rowSig = sig;
         const it = (ico: Node | null, text: string, cls = '') => { const s = el('span', cls); if (ico) s.appendChild(ico); s.appendChild(document.createTextNode(text)); return s; };
         const kids: Node[] = [];
+        if (inMano) kids.push(it(itemIcon('libro', coloreMagia(inMano.id, inMano.scuola), 16), `${nomeMagia(inMano.id)} ${inMano.costo}`, 'ok'));
         if (rh.frecce || rh.arma.kind === 'arco') kids.push(it(arrowsIco(), `${h.frecce}`, h.frecce === 0 ? 'warn' : ''));
         if (pot) kids.push(it(potIco(16), `${h.pozioni}`, h.pozioni === 0 ? 'warn' : ''));
         kids.push(it(itemIcon('materiale', P.legnoChiaro, 16), `${Math.round(z.peso)}/${Math.round(z.max)} kg`, z.peso >= z.max ? 'warn' : ''));
@@ -219,6 +226,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
       if (sub) big.appendChild(el('small', '', sub));
     },
     icons: () => ({ c: spellIco(24), d: potIco(24), key: `${spell?.id ?? ''}|${pot?.id ?? ''}` }),
+    magie: () => rh.magie.map((m) => ({ id: m.id, nome: nomeMagia(m.id), costo: m.costo, icona: () => itemIcon('libro', coloreMagia(m.id, m.scuola), 28) })),
     setHero(h) {
       rh = h; rowSig = '';
       pot = rh.pozione !== null ? rh.pozioni[rh.pozione] ?? null : null;

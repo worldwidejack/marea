@@ -4,7 +4,7 @@
 // quello portato da casa (usati / rotti, li toglie il server a fine spedizione), poi quello raccolto qui (esce dal bottino).
 // Pura e deterministica (regola di dungeon/types.ts).
 import { buildRunHero } from '../rpg/derived.ts';
-import { equipError } from '../rpg/bag.ts';
+import { equipError, withEquip } from '../rpg/bag.ts';
 import { EQUIP_SLOTS } from '../rpg/types.ts';
 import type { EquipSlot, HeroState } from '../rpg/types.ts';
 import type { DungeonEvent } from './types.ts';
@@ -55,29 +55,32 @@ export function rebuild(s: DungeonState): void {
   const rh = buildRunHero({ ...st, inv: invNow(s), equip: s.equip, usura: { ...st.usura, ...s.usura } });
   s.runHero = { ...rh, carico: old.carico, pesi: old.pesi };
   h.vita = Math.min(h.vita, rh.max.vita); h.magicka = Math.min(h.magicka, rh.max.magicka); h.stamina = Math.min(h.stamina, rh.max.stamina);
-  const cambia = h.arma.id !== rh.arma.id || h.arma.kind !== rh.arma.kind;
+  const cambia = h.arma.id !== rh.arma.id || h.arma.kind !== rh.arma.kind, manoPrima = h.incanta;
   h.arma = { ...rh.arma, traits: { ...rh.arma.traits } };
+  h.incanta = !!rh.manoMagia;
   if (cambia) {
     h.colpiFragile = rh.arma.usura ?? 0;
     // unici del Mausoleo: l'arma nuova parte carica (pressione, molle) e senza ritmo
     h.pressione = rh.arma.traits.lame?.cariche ?? 0; h.molla = rh.arma.traits.carillon?.colpi ?? 0; h.mollaT = 0; h.ritmo = 0; h.tic = -1; h.rintocco = false;
-    if (h.act === 'press' || h.act === 'carica' || h.act === 'swing' || h.act === 'tende') {
-      h.act = 'idle'; h.actT = 0; h.actDur = 0; h.carica = 0; h.caricato = false; h.colpiti = []; h.colpito = false;
-    }
+  }
+  // arma nuova o mani cambiate (arma ⇄ magia): il colpo, la carica o l'arco teso in corso si interrompono
+  if ((cambia || manoPrima !== h.incanta) && (h.act === 'press' || h.act === 'carica' || h.act === 'swing' || h.act === 'tende')) {
+    h.act = 'idle'; h.actT = 0; h.actDur = 0; h.carica = 0; h.caricato = false; h.colpiti = []; h.colpito = false;
   }
   h.frecce = rh.frecce ? rh.frecce.n : 0;
   h.pozioni = rh.pozione !== null ? rh.pozioni[rh.pozione]?.n ?? 0 : 0;
   if (!rh.armatura.barriera) h.barr = 0; // tolta l'Armatura del Moto Perpetuo, la Barriera si spegne
 }
 
-/** Cambia equipaggiamento (item null = togli). null se non si può: niente `stato`, oggetto che non hai, slot sbagliato, niente da cambiare. */
+/** Cambia equipaggiamento (item null = togli). null se non si può: niente `stato`, oggetto che non hai, slot sbagliato, niente da cambiare.
+ *  Mani (v6): preparare una magia la mette in mano; impugnare l'arma già equipaggiata ma a riposo la rimette in mano. */
 export function equipNow(s: DungeonState, slot: EquipSlot, item: string | null): DungeonEvent[] | null {
   const h = heroNow(s);
-  if (!h || !EQUIP_SLOTS.includes(slot) || (s.equip[slot] ?? null) === item) return null;
+  if (!h || !EQUIP_SLOTS.includes(slot)) return null;
+  const cambiaMano = item !== null && ((slot === 'arma' && s.equip.mano === 'magia') || (slot === 'magia' && s.equip.mano !== 'magia'));
+  if ((s.equip[slot] ?? null) === item && !cambiaMano) return null;
   if (item !== null && equipError(h, slot, item)) return null;
-  const e = { ...s.equip };
-  if (item === null) delete e[slot]; else e[slot] = item;
-  s.equip = e;
+  s.equip = withEquip(s.equip, slot, item);
   rebuild(s);
   return [{ t: 'equip', slot, item }];
 }

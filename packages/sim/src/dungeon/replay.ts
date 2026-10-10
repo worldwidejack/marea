@@ -7,44 +7,54 @@ import { NO_DUNGEON_INPUT } from './types.ts';
 import { actParty, createPartyRun, dungeon, stepParty } from './dungeon.ts';
 import { conEroe, finita } from './state.ts';
 import type { EroeDef } from './state.ts';
+import { AIM_N } from './mira.ts';
 
 /** In ottavi, senza −0 (così log e roundtrip sono identici anche con deepStrictEqual). */
 const q8 = (v: number): number => Math.round(Math.max(-1, Math.min(1, v)) * 8) || 0;
 const bits = (f: DungeonInput): number => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0);
+/** Mira valida (1..AIM_N) o 0 = nessuna. */
+const mira = (m: number | undefined): number => (m !== undefined && Number.isInteger(m) && m >= 1 && m <= AIM_N ? m : 0);
+/** Il frame di una riga del log: [ticks, mx8, my8, bit, mira?] (la mira manca nei log del formato 1). */
+export function frameOfRiga(r: readonly (number | undefined)[]): DungeonInput {
+  const b = r[3]!, m = mira(r[4]);
+  return { mx: r[1]! / 8, my: r[2]! / 8, a: (b & 1) !== 0, b: (b & 2) !== 0, c: (b & 4) !== 0, d: (b & 8) !== 0, ...(m ? { m } : {}) };
+}
 
 /** Quantizza come farà il replay: il client DEVE giocare con questo, così l'esito coincide. */
 export function quantizeDungeon(f: DungeonInput): DungeonInput {
-  return { mx: q8(f.mx) / 8, my: q8(f.my) / 8, a: !!f.a, b: !!f.b, c: !!f.c, d: !!f.d };
+  const m = mira(f.m);
+  return { mx: q8(f.mx) / 8, my: q8(f.my) / 8, a: !!f.a, b: !!f.b, c: !!f.c, d: !!f.d, ...(m ? { m } : {}) };
 }
 
 export function packDungeon(frames: readonly DungeonInput[]): PackedDungeon {
   const out: PackedDungeon = [];
   for (const f of frames) {
-    const row: [number, number, number, number] = [1, q8(f.mx), q8(f.my), bits(f)];
+    const mx = q8(f.mx), my = q8(f.my), b = bits(f), m = mira(f.m);
     const last = out[out.length - 1];
-    if (last && last[1] === row[1] && last[2] === row[2] && last[3] === row[3]) last[0]++;
-    else out.push(row);
+    if (last && last[1] === mx && last[2] === my && last[3] === b && (last[4] ?? 0) === m) last[0]++;
+    else out.push(m ? [1, mx, my, b, m] : [1, mx, my, b]);
   }
   return out;
 }
 
 export function unpackDungeon(p: PackedDungeon): DungeonInput[] {
   const out: DungeonInput[] = [];
-  for (const [n, mx, my, b] of p) {
-    const f: DungeonInput = { mx: mx / 8, my: my / 8, a: (b & 1) !== 0, b: (b & 2) !== 0, c: (b & 4) !== 0, d: (b & 8) !== 0 };
-    for (let i = 0; i < n; i++) out.push(f);
+  for (const r of p) {
+    const f = frameOfRiga(r);
+    for (let i = 0; i < r[0]; i++) out.push(f);
   }
   return out;
 }
 
-/** Controllo di forma per un log dalla rete: righe [ticks ≥ 1, mx8, my8 ∈ [−8, 8], bit ∈ 0..15], al massimo `maxTicks` tick in tutto. */
+/** Controllo di forma per un log dalla rete: righe [ticks ≥ 1, mx8, my8 ∈ [−8, 8], bit ∈ 0..15, mira ∈ 0..AIM_N (facoltativa)], al massimo
+ *  `maxTicks` tick in tutto. */
 export function isPackedDungeon(v: unknown, maxTicks: number): v is PackedDungeon {
   if (!Array.isArray(v) || v.length > maxTicks) return false;
   let ticks = 0;
   for (const r of v) {
-    if (!Array.isArray(r) || r.length !== 4 || !r.every((n) => Number.isInteger(n))) return false;
-    const [n, mx, my, b] = r as number[];
-    if (n! < 1 || Math.abs(mx!) > 8 || Math.abs(my!) > 8 || b! < 0 || b! > 15) return false;
+    if (!Array.isArray(r) || (r.length !== 4 && r.length !== 5) || !r.every((n) => Number.isInteger(n))) return false;
+    const [n, mx, my, b, m] = r as number[];
+    if (n! < 1 || Math.abs(mx!) > 8 || Math.abs(my!) > 8 || b! < 0 || b! > 15 || (m !== undefined && (m < 0 || m > AIM_N))) return false;
     ticks += n!;
     if (ticks > maxTicks) return false;
   }
@@ -93,9 +103,9 @@ export function replayDungeon(seed: number, dungeonId: string, hero: RunHero, p:
   const az = o.azioni ?? [];
   let k = 0;
   const due = (): void => { while (k < az.length && az[k]![0] <= s.tick && !s.done) dungeon.act(s, az[k++]![1]); };
-  for (const [n, mx, my, b] of p) {
-    const f: DungeonInput = { mx: mx / 8, my: my / 8, a: (b & 1) !== 0, b: (b & 2) !== 0, c: (b & 4) !== 0, d: (b & 8) !== 0 };
-    for (let i = 0; i < n && !s.done; i++) { due(); if (!s.done) dungeon.step(s, f); }
+  for (const r of p) {
+    const f = frameOfRiga(r);
+    for (let i = 0; i < r[0] && !s.done; i++) { due(); if (!s.done) dungeon.step(s, f); }
     if (s.done) break;
   }
   due();
@@ -105,10 +115,6 @@ export function replayDungeon(seed: number, dungeonId: string, hero: RunHero, p:
 /** Insieme (#118): il log della squadra, un input log e una lista di azioni per eroe. Il server (DO Spedizioni) registra un input per tutti
  *  a ogni turno, quindi i log hanno la stessa lunghezza; chi se n'è andato ha l'azione `ritira`. */
 export type PartyLog = { inputs: PackedDungeon[]; azioni: DungeonAzioni[] };
-const frameOf = (r: readonly number[]): DungeonInput => {
-  const b = r[3]!;
-  return { mx: r[1]! / 8, my: r[2]! / 8, a: (b & 1) !== 0, b: (b & 2) !== 0, c: (b & 4) !== 0, d: (b & 8) !== 0 };
-};
 
 /** Rigioca una spedizione insieme: un RunResult per eroe (nell'ordine di `eroi`). A ogni tick prima le azioni (eroe per eroe, in ordine),
  *  poi il passo di tutti; le azioni oltre l'ultimo input si applicano a fine log. Con un eroe solo è replayDungeon. */
@@ -137,7 +143,7 @@ export function replayParty(seed: number, dungeonId: string, eroi: readonly Eroe
     if (finita(s)) break;
     for (let i = 0; i < n; i++) {
       const c = cur[i]!;
-      if (c.left === 0) { const row = log.inputs[i]![c.r++]; c.f = row ? frameOf(row) : NO_DUNGEON_INPUT; c.left = row ? row[0] : Infinity; }
+      if (c.left === 0) { const row = log.inputs[i]![c.r++]; c.f = row ? frameOfRiga(row) : NO_DUNGEON_INPUT; c.left = row ? row[0] : Infinity; }
       c.left--;
       frames[i] = c.f;
     }
@@ -148,9 +154,10 @@ export function replayParty(seed: number, dungeonId: string, eroi: readonly Eroe
 }
 
 // ---------- formato compatto per la rete: binario in base64 (codec scritto qui: niente btoa/atob, gira in Node, Worker e browser) ----------
-// Byte 0 = versione del formato (1). Poi per riga 2 byte: bit 0-4 mx8+8, bit 5-9 my8+8, bit 10-13 bottoni, bit 14-15 = ticks−1 se ticks ≤ 3,
-// altrimenti 3 e segue un varint (7 bit per byte, il bit alto = continua) con ticks−4.
-const FORMATO = 1;
+// Byte 0 = versione del formato (1, o 2 se qualche riga ha la mira del mouse). Poi per riga 2 byte: bit 0-4 mx8+8, bit 5-9 my8+8, bit 10-13
+// bottoni, bit 14-15 = ticks−1 se ticks ≤ 3, altrimenti 3 e segue un varint (7 bit per byte, il bit alto = continua) con ticks−4. Nel formato
+// 2 ogni riga ha in più un byte di mira (0 = nessuna, 1..AIM_N) subito dopo i 2 byte, prima del varint. Chi non usa il mouse scrive il formato 1.
+const FORMATO = 1, FORMATO_MIRA = 2;
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const B64_INV = ((): Int16Array => { const t = new Int16Array(128).fill(-1); for (let i = 0; i < 64; i++) t[B64.charCodeAt(i)] = i; return t; })();
 
@@ -183,13 +190,15 @@ function fromBase64(s: string): Uint8Array | null {
   return out;
 }
 
-/** Input log → stringa compatta (≈ 2 byte per riga RLE). */
+/** Input log → stringa compatta (≈ 2 byte per riga RLE, 3 se c'è la mira). */
 export function encodeDungeon(p: PackedDungeon): string {
-  const bytes: number[] = [FORMATO];
-  for (const [n, mx, my, b] of p) {
+  const conMira = p.some((r) => (r[4] ?? 0) > 0);
+  const bytes: number[] = [conMira ? FORMATO_MIRA : FORMATO];
+  for (const [n, mx, my, b, m] of p) {
     const t = n <= 3 ? n - 1 : 3;
     const w = (mx + 8) | ((my + 8) << 5) | ((b & 15) << 10) | (t << 14);
     bytes.push(w & 255, (w >> 8) & 255);
+    if (conMira) bytes.push(m ?? 0);
     if (t === 3) { let v = n - 4; while (v >= 128) { bytes.push((v & 127) | 128); v = Math.floor(v / 128); } bytes.push(v); }
   }
   return toBase64(Uint8Array.from(bytes));
@@ -199,15 +208,18 @@ export function encodeDungeon(p: PackedDungeon): string {
 export function decodeDungeon(s: string, maxTicks: number): PackedDungeon | null {
   if (typeof s !== 'string') return null;
   const b = fromBase64(s);
-  if (!b || b.length < 1 || b[0] !== FORMATO) return null;
+  if (!b || b.length < 1 || (b[0] !== FORMATO && b[0] !== FORMATO_MIRA)) return null;
+  const conMira = b[0] === FORMATO_MIRA;
   const out: PackedDungeon = [];
   let i = 1, ticks = 0;
   while (i < b.length) {
-    if (i + 1 >= b.length) return null;
+    if (i + (conMira ? 2 : 1) >= b.length) return null;
     const w = b[i]! | (b[i + 1]! << 8);
     i += 2;
     const mx = (w & 31) - 8, my = ((w >> 5) & 31) - 8, bt = (w >> 10) & 15, t = (w >> 14) & 3;
     if (Math.abs(mx) > 8 || Math.abs(my) > 8) return null;
+    const m = conMira ? b[i++]! : 0;
+    if (m > AIM_N) return null;
     let n = t + 1;
     if (t === 3) {
       let v = 0, mul = 1, k = 0;
@@ -221,7 +233,7 @@ export function decodeDungeon(s: string, maxTicks: number): PackedDungeon | null
     }
     ticks += n;
     if (ticks > maxTicks) return null;
-    out.push([n, mx, my, bt]);
+    out.push(m ? [n, mx, my, bt, m] : [n, mx, my, bt]);
   }
   return out;
 }

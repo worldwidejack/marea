@@ -9,8 +9,10 @@ import type { Look } from './messages.ts';
 /** Un turno ogni 50 ms = 3 tick della sim a 60 Hz. */
 export const SQ_TURNO_MS = 50;
 export const SQ_TICKS = 3;
-/** Input di un eroe per un turno: [mx×8, my×8, bit a|b<<1|c<<2|d<<3] (come una riga di PackedDungeon senza il conteggio). */
-export type SqInput = [number, number, number];
+/** Input di un eroe per un turno: [mx×8, my×8, bit a|b<<1|c<<2|d<<3, mira?] (come una riga di PackedDungeon senza il conteggio). La mira col
+ *  mouse (1..SQ_MIRA_MAX) c'è solo se l'eroe sta puntando; SQ_MIRA_MAX = AIM_N di sim/dungeon/mira.ts (qui non si importa: bundle iniziale). */
+export type SqInput = [number, number, number, number?];
+export const SQ_MIRA_MAX = 240;
 export type SqMembro = { id: string; nome: string };
 export type SqEroe = SqMembro & { look: Look; hero: RunHero; stato: HeroState | null };
 
@@ -36,7 +38,8 @@ export type SqServerMsg =
   | { t: 'errore'; msg: string };
 
 const isInt = (v: unknown, lo: number, hi: number): v is number => typeof v === 'number' && Number.isInteger(v) && v >= lo && v <= hi;
-export const isSqInput = (v: unknown): v is SqInput => Array.isArray(v) && v.length === 3 && isInt(v[0], -8, 8) && isInt(v[1], -8, 8) && isInt(v[2], 0, 15);
+export const isSqInput = (v: unknown): v is SqInput =>
+  Array.isArray(v) && (v.length === 3 || v.length === 4) && isInt(v[0], -8, 8) && isInt(v[1], -8, 8) && isInt(v[2], 0, 15) && (v.length === 3 || isInt(v[3], 0, SQ_MIRA_MAX));
 
 /** Forma dei messaggi del client (l'azione la controlla il server con parseDungeonAzione). null = scarta. */
 export function parseSqClient(text: string): SqClientMsg | null {

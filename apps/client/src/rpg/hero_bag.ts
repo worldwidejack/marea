@@ -4,17 +4,22 @@
 import { SPELLS, spellDef } from '@marea/content/rpg.ts';
 import { heroDerived } from '@marea/sim/rpg/hero.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
-import type { EquipSlot, ItemDef } from '@marea/sim/rpg/types.ts';
+import type { ItemDef, SlotOggetto } from '@marea/sim/rpg/types.ts';
 import { el } from '../ui/style.ts';
 import { GROUPS, SLOT_NOME, button, chip, fmtKg, iconOf, row, sec, statLines } from './items_ui.ts';
 import type { View } from './items_ui.ts';
 
-const SLOTS: readonly Exclude<EquipSlot, 'magia'>[] = ['arma', 'corpo', 'frecce', 'pozione', 'anello1', 'anello2'];
-const TAG: Record<Exclude<EquipSlot, 'magia'>, string> = { arma: 'in mano', frecce: 'in uso', corpo: 'indossata', anello1: 'al dito', anello2: 'al dito', pozione: 'rapida' };
-const SLOT_OF: Partial<Record<string, Exclude<EquipSlot, 'magia' | 'anello1' | 'anello2'>>> = { arma: 'arma', arco: 'arma', frecce: 'frecce', armatura: 'corpo', veste: 'corpo', pozione: 'pozione' };
+const SLOTS: readonly SlotOggetto[] = ['arma', 'corpo', 'frecce', 'pozione', 'anello1', 'anello2'];
+const TAG: Record<SlotOggetto, string> = { arma: 'in mano', frecce: 'in uso', corpo: 'indossata', anello1: 'al dito', anello2: 'al dito', pozione: 'rapida' };
+const SLOT_OF: Partial<Record<string, Exclude<SlotOggetto, 'anello1' | 'anello2'>>> = { arma: 'arma', arco: 'arma', frecce: 'frecce', armatura: 'corpo', veste: 'corpo', pozione: 'pozione' };
+
+/** Le mani tengono la magia preparata: l'arma equipaggiata sta a riposo. */
+const inMano = (v: View): boolean => v.hero.equip.mano === 'magia' && !!v.hero.equip.magia;
+/** Cosa dire di un oggetto equipaggiato nello slot: l'arma con una magia in mano è «a riposo». */
+const tag = (v: View, s: SlotOggetto): string => (s === 'arma' && inMano(v) ? 'a riposo' : TAG[s]);
 
 /** Slot in cui l'oggetto è equipaggiato (e davvero nello zaino). */
-function slotsOf(v: View, id: string): Exclude<EquipSlot, 'magia'>[] {
+function slotsOf(v: View, id: string): SlotOggetto[] {
   return SLOTS.filter((s) => v.hero.equip[s] === id && (v.hero.inv[id] ?? 0) > 0);
 }
 
@@ -28,7 +33,7 @@ export function renderBag(v: View, out: HTMLElement): void {
     const b = el('button', 'mz-rp-slot' + (it ? ' full' : '') + (it && v.ui.item === it.id ? ' on' : ''));
     b.type = 'button'; b.dataset['k'] = `slot:${s}`; b.dataset['slot'] = s;
     if (it) b.appendChild(iconOf(it, 24));
-    const t = el('span'); t.append(el('span', 'k', SLOT_NOME[s]), el('span', 'v', it ? it.nome : 'vuoto'));
+    const t = el('span'); t.append(el('span', 'k', SLOT_NOME[s]), el('span', 'v', it ? (s === 'arma' && inMano(v) ? `${it.nome} (riposta)` : it.nome) : 'vuoto'));
     b.appendChild(t);
     b.addEventListener('click', () => {
       if (!it) { v.ctx.hud.toast(`${SLOT_NOME[s]}: scegli un oggetto qui sotto`); return; }
@@ -38,16 +43,20 @@ export function renderBag(v: View, out: HTMLElement): void {
   }
   out.appendChild(grid);
 
-  // magia preparata (tasto C nel dungeon)
-  out.appendChild(sec('Magia preparata', 'tasto C'));
+  // magia in mano (v6): si sceglie come un'arma, occupa le mani e si lancia con la A; di nuovo sulla magia in mano rimette l'arma
+  out.appendChild(sec('Magia in mano', inMano(v) ? 'la A la lancia · C alterna' : 'tocca per impugnarla · C alterna'));
   if (!h.magie.length) out.appendChild(el('div', 'mz-rp-empty', 'Nessuna magia: leggi un libro.'));
   else {
     const chips = el('div', 'mz-rp-chips');
     for (const id of h.magie) {
       const s = SPELLS.find((x) => x.id === id);
       if (!s) continue;
-      const on = h.equip.magia === id;
-      const c = chip(`magia:${id}`, s.nome, on, () => { if (!on && !v.busy) v.act({ t: 'equip', slot: 'magia', item: id }, () => `Magia preparata: ${s.nome}`); });
+      const on = h.equip.magia === id && inMano(v);
+      const c = chip(`magia:${id}`, s.nome, on, () => {
+        if (v.busy) return;
+        if (on) v.act({ t: 'equip', slot: 'mano', item: null }, () => 'Arma in mano');
+        else v.act({ t: 'equip', slot: 'magia', item: id }, () => `In mano: ${s.nome}`);
+      });
       c.dataset['magia'] = id;
       chips.appendChild(c);
     }
@@ -68,24 +77,27 @@ export function renderBag(v: View, out: HTMLElement): void {
       const n = h.inv[it.id] ?? 0, open = v.ui.item === it.id, eq = slotsOf(v, it.id);
       const r = row(`item:${it.id}`, iconOf(it, 24), it.nome, `×${n} · ${fmtKg(it.peso * n)}`, open, () => { v.ui.item = open ? null : it.id; v.ui.butta = null; v.rerender(); });
       r.dataset['item'] = it.id;
-      if (eq.length) r.appendChild(el('span', 'eq', TAG[eq[0]!]));
+      if (eq.length) r.appendChild(el('span', 'eq', tag(v, eq[0]!)));
       out.appendChild(r);
       if (open) out.appendChild(detail(v, it, eq));
     }
   }
 }
 
-function detail(v: View, it: ItemDef, eq: Exclude<EquipSlot, 'magia'>[]): HTMLElement {
+function detail(v: View, it: ItemDef, eq: SlotOggetto[]): HTMLElement {
   const box = el('div', 'mz-rp-det'); box.dataset['det'] = it.id;
   box.appendChild(el('p', '', it.descr));
   for (const l of statLines(it)) box.appendChild(el('p', 'mz-rp-cmp', l));
-  const equip = (slot: EquipSlot, item: string | null, msg: string) => v.act({ t: 'equip', slot, item }, () => msg);
+  const equip = (slot: SlotOggetto, item: string | null, msg: string) => v.act({ t: 'equip', slot, item }, () => msg);
   const slot = SLOT_OF[it.kind];
   if (slot) {
     const on = eq.includes(slot);
-    const b = button(`eq:${it.id}`, on ? 'Togli' : it.kind === 'pozione' ? 'Pozione rapida' : 'Equipaggia', on ? SLOT_NOME[slot] : `→ ${SLOT_NOME[slot]}`, on ? 'ghost' : 'green', v.busy,
-      () => (on ? equip(slot, null, `Tolto: ${it.nome}`) : equip(slot, it.id, `${SLOT_NOME[slot]}: ${it.nome}`)));
-    b.dataset['act'] = on ? 'togli' : 'equipaggia';
+    const riposta = on && slot === 'arma' && inMano(v); // equipaggiata ma con la magia in mano: si rimpugna
+    const b = riposta
+      ? button(`eq:${it.id}`, 'Impugna', 'rimetti l’arma in mano', 'green', v.busy, () => equip('arma', it.id, `In mano: ${it.nome}`))
+      : button(`eq:${it.id}`, on ? 'Togli' : it.kind === 'pozione' ? 'Pozione rapida' : 'Equipaggia', on ? SLOT_NOME[slot] : `→ ${SLOT_NOME[slot]}`, on ? 'ghost' : 'green', v.busy,
+        () => (on ? equip(slot, null, `Tolto: ${it.nome}`) : equip(slot, it.id, `${SLOT_NOME[slot]}: ${it.nome}`)));
+    b.dataset['act'] = riposta ? 'impugna' : on ? 'togli' : 'equipaggia';
     box.appendChild(b);
   } else if (it.kind === 'anello') {
     const r = el('div', 'mz-row');
@@ -115,7 +127,7 @@ function detail(v: View, it: ItemDef, eq: Exclude<EquipSlot, 'magia'>[]): HTMLEl
 }
 
 /** «Butta via» (1 o tutti): il primo tocco chiede conferma sullo stesso bottone, il secondo butta. Gli oggetti spariscono. */
-function buttaVia(v: View, it: ItemDef, eq: Exclude<EquipSlot, 'magia'>[]): HTMLElement {
+function buttaVia(v: View, it: ItemDef, eq: SlotOggetto[]): HTMLElement {
   const n = v.hero.inv[it.id] ?? 0;
   const r = el('div', 'mz-rp-butta');
   const one = (q: number, label: string) => {

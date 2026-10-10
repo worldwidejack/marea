@@ -108,7 +108,7 @@ export default async function (ctx) {
       assert(!r4.ok && /Fucina/.test((await r4.json()).error ?? ''), 'il Mausoleo si apre senza la Fucina');
     });
 
-    await ctx.test('Cripta: si entra, scena e HUD, Q lancia la magia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
+    await ctx.test('Cripta: si entra, scena e HUD, Q prende la magia in mano e la A la lancia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
       await hook('enterDungeon', 'cripta');
       await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await page.waitForSelector('#mzDngHud', { timeout: 3000 });
@@ -116,7 +116,9 @@ export default async function (ctx) {
       assert(!(await page.locator('#compass').isVisible()), 'la bussola si vede nel dungeon');
       await sleep(1200); await samplePerf();
       const m0 = (await st()).dungeon.hero.magicka;
-      await page.keyboard.press('q'); // Q = C: la magia preparata (Fiammata) costa Magicka
+      await page.keyboard.press('q'); // Q = C (v6): la magia preparata (Fiammata) va in mano, il menù rapido compare
+      await ctx.waitState(page, (s) => s.dungeon.hero.magia === 'fiammata', 3000);
+      await page.keyboard.press('Space'); // la A la lancia: costa Magicka
       await ctx.waitState(page, (s, m) => s.dungeon.hero.magicka < m, 3000, m0);
       await sleep(150);
       await ctx.shot(page, '3_cripta_1280');

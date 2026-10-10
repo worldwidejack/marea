@@ -158,7 +158,7 @@ Squadre all'ingresso dei dungeon e spedizioni in tempo reale: **WebSocket** `/ws
 // client → server
 { t: 'via' }                                 // SCENDIAMO: chiunque della squadra, con almeno 2 membri
 { t: 'carico' }                              // dungeon caricato: il primo turno parte quando l'hanno detto tutti (o dopo 20 s)
-{ t: 'in', f: [mx8, my8, bit] }              // input per i prossimi turni (solo se cambia: il server ripete l'ultimo); bit = a|b<<1|c<<2|d<<3
+{ t: 'in', f: [mx8, my8, bit, mira?] }       // input per i prossimi turni (solo se cambia: il server ripete l'ultimo); bit = a|b<<1|c<<2|d<<3 (c = alterna arma/magia in mano); mira = indice d'angolo 1..240 del mouse, solo mentre punta (v6)
 { t: 'az', a: DungeonAzione }                // equip, butta, salva, esci (mai `ritira`): va nel prossimo turno
 { t: 'esco' }                                // esco dalla squadra o dalla spedizione
 

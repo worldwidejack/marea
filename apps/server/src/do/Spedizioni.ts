@@ -90,7 +90,7 @@ export class Spedizioni extends DurableObject<Env> {
     const r = c.run, me = r?.membri.find((x) => x.conn === c);
     if (!r || !me || me.fuori) return;
     if (m.t === 'carico') { me.carico = true; this.forsePronti(r); return; }
-    if (m.t === 'in') { me.coda.push(m.f); while (me.coda.length > MAX_CODA) { const old = me.coda.shift()!; me.coda[0]![2] |= old[2]; } return; }
+    if (m.t === 'in') { me.coda.push(m.f); while (me.coda.length > MAX_CODA) { const old = me.coda.shift()!, h = me.coda[0]!; h[2] |= old[2]; if (old[3] && !h[3]) h[3] = old[3]; } return; }
     if (m.t === 'az') {
       const a = parseDungeonAzione(m.a);
       if (a && a.t !== 'ritira' && me.azioni.length + me.az.length < MAX_AZIONI) me.az.push(a);
@@ -190,9 +190,9 @@ export class Spedizioni extends DurableObject<Env> {
       m.last = x; f.push(x);
       for (const a of m.az) { az.push([i, a]); m.azioni.push([tick, a]); }
       m.az = [];
-      const ult = m.log[m.log.length - 1];
-      if (ult && ult[1] === x[0] && ult[2] === x[1] && ult[3] === x[2]) ult[0] += SQ_TICKS;
-      else m.log.push([SQ_TICKS, x[0], x[1], x[2]]);
+      const ult = m.log[m.log.length - 1], mira = x[3] ?? 0;
+      if (ult && ult[1] === x[0] && ult[2] === x[1] && ult[3] === x[2] && (ult[4] ?? 0) === mira) ult[0] += SQ_TICKS;
+      else m.log.push(mira ? [SQ_TICKS, x[0], x[1], x[2], mira] : [SQ_TICKS, x[0], x[1], x[2]]);
     });
     const msg = JSON.stringify({ t: 'T', n: r.turno, f, ...(az.length ? { az } : {}) } satisfies SqServerMsg);
     for (const m of r.membri) if (m.conn && !m.fuori) { try { m.conn.ws.send(msg); } catch { /* chiusa */ } }
