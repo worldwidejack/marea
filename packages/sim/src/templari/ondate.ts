@@ -4,7 +4,7 @@
 import { TEMPLARI, nemicoDef } from '@marea/content/templari.ts';
 import type { Comparsa } from './mappa.ts';
 import type { TState } from './stato.ts';
-import { ev, intervalloOndata, nuovoZombie, quantiOndata, secToTicks } from './stato.ts';
+import { ev, inPiedi, intervalloOndata, nuovoZombie, posaEroe, quantiOndata, secToTicks, usa } from './stato.ts';
 import { zonaAperta } from './porte.ts';
 
 /** Comparse attive: il sagrato sempre, le zone quando una loro porta è aperta. */
@@ -12,6 +12,8 @@ export const attive = (s: TState): Comparsa[] => s.arena.comparse.filter((c) => 
 
 /** Una comparsa tra le più vicine all'eroe (a caso dal seed), lontana almeno 6 m da lui; null se non ce n'è. */
 export function comparsaVicina(s: TState): Comparsa | null {
+  // insieme: a turno vicino a ognuno degli eroi in piedi (da solo è sempre lui)
+  if (s.eroi.length > 1) { const p = inPiedi(s); if (p.length) usa(s, p[s.usciti % p.length]!); }
   const h = s.eroe;
   const ok = attive(s).map((c) => ({ c, d: (c.x - h.x) * (c.x - h.x) + (c.z - h.z) * (c.z - h.z) })).filter((x) => x.d >= 36).sort((a, b) => a.d - b.d);
   if (!ok.length) return null;
@@ -57,7 +59,19 @@ export function bossDi(n: number): { tipo: string; solo: boolean } | null {
   return null;
 }
 
+/** Insieme: chi era caduto si rialza in chiesa, con la vita piena e le sue armi. */
+function rialza(s: TState): void {
+  for (let i = 0; i < s.eroi.length; i++) {
+    const h = s.eroi[i]!;
+    if (!h.giu || h.fuori) continue;
+    h.giu = false; h.vita = h.max; h.quiete = 9999; h.fiato = TEMPLARI.eroe.fiato; h.act = 'idle'; h.actT = 0;
+    posaEroe(s, h, i);
+    usa(s, i); ev(s, { t: 'rialzato' });
+  }
+}
+
 function nuovaOndata(s: TState): void {
+  if (s.eroi.length > 1) rialza(s);
   s.ondata++;
   s.fase = 'combatti'; s.faseT = 0;
   s.quanti = quantiOndata(s.ondata); s.usciti = 0; s.tipiUsciti = {}; s.prossima = s.tick + secToTicks(1); s.puntiAssi = 0; s.poteri.ondata = 0;

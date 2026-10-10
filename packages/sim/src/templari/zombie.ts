@@ -4,17 +4,28 @@
 //   cannoniere: da 3-10 m e in vista lancia una bomba dove sei (cerchio a terra, esplode dopo il volo), sennò si avvicina fino a `distanza`
 //   cavaliere:  in vista entro `vista` m si impenna e carica in linea retta verso dove eri: chi prende lo butta via; sfonda le finestre
 //   de Molay:   lascia fiamme dove passa, tira palle di fuoco, e a metà vita smette di prendere colpi, ride e scappa via (sparisce)
+// Insieme: ogni zombie punta l'eroe in piedi più vicino (usa() lo fa diventare l'eroe di turno mentre si muove lui); il flow field parte da
+// tutti gli eroi in piedi; bombe, palle di fuoco e spinte valgono per chiunque ci sia sotto.
 import { TEMPLARI } from '@marea/content/templari.ts';
 import { DT } from '../constants.ts';
 import { bfs, cellCenter, cellOf, isOpaque, lineOfSight, moveCircle, stepDown } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
-import { COLPISCE_TICKS, COS_CONO_NEMICO, FLOW_OGNI, MORTO_TICKS, TOLLERANZA, ev, secToTicks } from './stato.ts';
+import { COLPISCE_TICKS, COS_CONO_NEMICO, FLOW_OGNI, MORTO_TICKS, TOLLERANZA, ev, inPiedi, secToTicks, usa } from './stato.ts';
 import { accendi, dai, ferisci } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
 import { attive, comparsaVicina } from './ondate.ts';
 
 function aggiornaFlow(s: TState): void {
   if (s.tick - s.flowTick < FLOW_OGNI) return;
+  if (s.eroi.length > 1) {
+    // insieme: da tutti gli eroi in piedi (ricalcolato solo se qualcuno ha cambiato cella)
+    const celle = inPiedi(s).map((i) => cellOf(s.gr.percorso, s.eroi[i]!.x, s.eroi[i]!.z)).filter((c) => c >= 0);
+    s.flowTick = s.tick;
+    if (!celle.length || (celle.length === s.flowCelle.length && celle.every((c, k) => c === s.flowCelle[k]))) return;
+    s.flowCelle = celle;
+    bfs(s.gr.percorso, celle, s.flow);
+    return;
+  }
   const c = cellOf(s.gr.percorso, s.eroe.x, s.eroe.z);
   s.flowTick = s.tick;
   if (c === s.flowCell || c < 0) return;
@@ -114,15 +125,17 @@ function scatta(s: TState, z: Zombie, dx: number, dz: number, d: number): void {
 
 /** Il cavaliere lanciato: dritto e veloce; chi prende lo ferisce e lo spinge via; contro un muro si ferma. */
 function carica(s: TState, z: Zombie): void {
-  const c = z.def.carica!, h = s.eroe, x0 = z.x, z0 = z.z;
+  const c = z.def.carica!, x0 = z.x, z0 = z.z;
   z.fx = z.dx; z.fz = z.dz;
   moveCircle(s.gr.zombie, z, z.dx * c.velocita * DT, z.dz * c.velocita * DT, z.def.raggio);
   const mosso = Math.sqrt((z.x - x0) * (z.x - x0) + (z.z - z0) * (z.z - z0));
-  const dx = h.x - z.x, dz = h.z - z.z, rr = z.def.raggio + TEMPLARI.eroe.raggio + 0.5;
-  if (!z.preso && dx * dx + dz * dz <= rr * rr) {
-    z.preso = true;
-    ferisci(s, c.danno, z.x, z.z);
-    moveCircle(s.gr.eroe, h, z.dx * c.spinta, z.dz * c.spinta, TEMPLARI.eroe.raggio);
+  if (!z.preso) {
+    // travolge chi trova sulla strada (da solo: l'eroe; insieme: tutti quelli che tocca in questo passo)
+    z.preso = sotto(s, z.x, z.z, z.def.raggio + 0.5, () => {
+      const p = s.eroe;
+      ferisci(s, c.danno, z.x, z.z);
+      moveCircle(s.gr.eroe, p, z.dx * c.spinta, z.dz * c.spinta, TEMPLARI.eroe.raggio);
+    });
   }
   if (z.stT >= z.stDur || mosso < c.velocita * DT * 0.3) { z.cd = secToTicks(c.ricarica); z.modo = 'mischia'; setSt(z, 'recupera', secToTicks(z.def.recupero)); }
 }
@@ -144,7 +157,16 @@ function fuggi(s: TState, z: Zombie): void {
   }
 }
 
+/** Insieme: l'eroe in piedi più vicino a z diventa quello di turno (a pari distanza il primo). */
+function bersaglio(s: TState, z: Zombie): void {
+  if (s.eroi.length === 1) return;
+  let best = -1, bd = Infinity;
+  for (const i of inPiedi(s)) { const h = s.eroi[i]!, d = (h.x - z.x) * (h.x - z.x) + (h.z - z.z) * (h.z - z.z); if (d < bd) { bd = d; best = i; } }
+  if (best >= 0) usa(s, best);
+}
+
 function stepUno(s: TState, z: Zombie): void {
+  bersaglio(s, z);
   const h = s.eroe, def = z.def;
   const dx = h.x - z.x, dz = h.z - z.z, d = Math.sqrt(dx * dx + dz * dz);
   z.stT++;
@@ -199,9 +221,21 @@ function stepUno(s: TState, z: Zombie): void {
 }
 
 /** Tiri dei nemici: la bomba vola fino a dove eri ed esplode (lo scudo para se guarda lì); la palla di fuoco va dritta e lascia fiamme. */
+/** Gli eroi in piedi dentro il cerchio (x, z, r): ognuno diventa quello di turno, poi `fai` (insieme; da solo è l'eroe). */
+function sotto(s: TState, x: number, z: number, r: number, fai: () => void): boolean {
+  let preso = false;
+  for (const i of inPiedi(s)) {
+    const h = s.eroi[i]!, dx = h.x - x, dz = h.z - z, rr = r + TEMPLARI.eroe.raggio;
+    if (dx * dx + dz * dz > rr * rr) continue;
+    usa(s, i); fai(); preso = true;
+    if (s.done) break;
+  }
+  return preso;
+}
+
 function stepTiri(s: TState): void {
   if (!s.tiri.length) return;
-  const h = s.eroe, keep: typeof s.tiri = [];
+  const keep: typeof s.tiri = [];
   for (const b of s.tiri) {
     b.t++;
     if (b.tipo === 'bomba') {
@@ -209,8 +243,7 @@ function stepTiri(s: TState): void {
       b.x = b.sx + (b.tx - b.sx) * k; b.z = b.sz + (b.tz - b.sz) * k;
       if (k < 1) { keep.push(b); continue; }
       ev(s, { t: 'esplosione', x: Math.round(b.x * 100) / 100, z: Math.round(b.z * 100) / 100, r: b.r });
-      const dx = h.x - b.x, dz = h.z - b.z;
-      if (dx * dx + dz * dz <= (b.r + TEMPLARI.eroe.raggio) * (b.r + TEMPLARI.eroe.raggio)) ferisci(s, b.danno, b.x, b.z);
+      sotto(s, b.x, b.z, b.r, () => ferisci(s, b.danno, b.x, b.z));
       if (s.done) return;
       continue;
     }
@@ -219,8 +252,10 @@ function stepTiri(s: TState): void {
     for (let i = 0; i < n && !fine; i++) {
       b.x += (b.vx * DT) / n; b.z += (b.vz * DT) / n;
       const g = s.gr.percorso;
-      const dx = h.x - b.x, dz = h.z - b.z, rr = b.r + TEMPLARI.eroe.raggio;
-      if (dx * dx + dz * dz <= rr * rr) { ferisci(s, b.danno, b.x - b.vx * 0.05, b.z - b.vz * 0.05); fine = true; }
+      // la palla si ferma sul primo eroe che tocca
+      let colpito = -1;
+      for (const k of inPiedi(s)) { const h = s.eroi[k]!, dx = h.x - b.x, dz = h.z - b.z, rr = b.r + TEMPLARI.eroe.raggio; if (dx * dx + dz * dz <= rr * rr) { colpito = k; break; } }
+      if (colpito >= 0) { usa(s, colpito); ferisci(s, b.danno, b.x - b.vx * 0.05, b.z - b.vz * 0.05); fine = true; }
       else if (isOpaque(g, Math.floor(b.x / g.tile), Math.floor(b.z / g.tile))) fine = true;
     }
     if (fine || b.t >= b.dur) {
@@ -236,7 +271,7 @@ function stepTiri(s: TState): void {
 
 /** Separa gli zombie tra loro e dall'eroe (cerchi solidi). */
 function separa(s: TState, act: Zombie[]): void {
-  const h = s.eroe, rh = TEMPLARI.eroe.raggio;
+  const rh = TEMPLARI.eroe.raggio, eroi = inPiedi(s).map((i) => s.eroi[i]!);
   for (let i = 0; i < act.length; i++) {
     const a = act[i]!;
     for (let j = i + 1; j < act.length; j++) {
@@ -249,8 +284,10 @@ function separa(s: TState, act: Zombie[]): void {
       moveCircle(s.gr.zombie, a, -ux * k * ka, -uz * k * ka, a.def.raggio);
       moveCircle(s.gr.zombie, b, ux * k * kb, uz * k * kb, b.def.raggio);
     }
-    const dx = a.x - h.x, dz = a.z - h.z, d2 = dx * dx + dz * dz, rr = a.def.raggio + rh;
-    if (d2 < rr * rr && d2 > 1e-12) { const d = Math.sqrt(d2), k = (rr - d) / d; moveCircle(s.gr.zombie, a, dx * k * 0.5, dz * k * 0.5, a.def.raggio); }
+    for (const h of eroi) {
+      const dx = a.x - h.x, dz = a.z - h.z, d2 = dx * dx + dz * dz, rr = a.def.raggio + rh;
+      if (d2 < rr * rr && d2 > 1e-12) { const d = Math.sqrt(d2), k = (rr - d) / d; moveCircle(s.gr.zombie, a, dx * k * 0.5, dz * k * 0.5, a.def.raggio); }
+    }
   }
 }
 
