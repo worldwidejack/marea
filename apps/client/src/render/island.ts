@@ -17,7 +17,7 @@ import type { Loader } from './loader.ts';
 import { setWaterMap } from './water.ts';
 import { ISLAND, P, PAINT, PROP_KINDS, PROP_MODEL, MODEL_ONLY, M, block, merged, perFondere, buildingGeometry, instanced, modelParts, painted, propGeometry, tex, towerGeometry } from './island_parts.ts';
 import type { Fit, PropKind } from './island_parts.ts';
-import { PAINT_TEMI, SCENA_TEMI, TEMA_GLOW, corsePronta, TEMA_PROPS, isTema, propTema, propTemaGlow, rocceTema } from './island_temi.ts';
+import { PAINT_TEMI, SCENA_TEMI, TEMA_GLOW, adrenalinaPronta, corsePronta, TEMA_PROPS, isTema, propTema, propTemaGlow, rocceTema } from './island_temi.ts';
 import type { TemaProp } from './island_temi.ts';
 import { LOD_ISTERESI, LOD_M, MINUTI_M, sagomaGeometry } from './island_sagoma.ts';
 import type { SagomaIn } from './island_sagoma.ts';
@@ -56,7 +56,7 @@ export async function createIsland(o: {
   /** Cerchi (m) senza scenografia: davanti agli ingressi dei dungeon palme e lanterne coprirebbero la bocca vista dalla camera. */
   libere?: readonly { x: number; z: number; r: number }[];
 }): Promise<Island> {
-  await corsePronta; // le decorazioni delle Corse sono in un chunk a parte (TECH §5)
+  await Promise.all([corsePronta, adrenalinaPronta]); // le decorazioni delle Corse e dell'Adrenalina sono in chunk a parte (TECH §5)
   const { map, loader } = o;
   const T = map.tile, TOP = ISLAND.TOP;
   const group = new THREE.Group(); group.name = 'island';

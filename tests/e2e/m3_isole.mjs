@@ -1,13 +1,13 @@
-// Isole a tema (#68): le 5 isole con lo sblocco ci sono, di serie sono chiuse col motivo giusto (la sesta, le Corse, è aperta a tutti) (barriera in mare per Tempesta, Ghiacci, Giardino e Templari,
-// il Vulcano ti caccia a terra), si aprono col requisito (hook temiProva), minimappa col lucchetto, bussola dopo la scoperta,
+// Isole a tema (#68): le 6 isole con lo sblocco ci sono, di serie sono chiuse col motivo giusto (la settima, le Corse, è aperta a tutti) (barriera in mare per Tempesta, Ghiacci, Giardino e Templari,
+// il Vulcano ti caccia a terra, all'Adrenalina ti ferma il cancello della funivia: m4_adrenalina), si aprono col requisito (hook temiProva), minimappa col lucchetto, bussola dopo la scoperta,
 // scenografia viva (pioggia, banchisa, nebbia, fumo) e corrente al bordo del mondo (#5). Screenshot di ogni isola da vicino a 390×844 e
 // da PC, draw call ≤ 100, niente errori. Numeri: tests/out/m3_isole.json
 import fs from 'node:fs';
 import path from 'node:path';
 export const timeout = 600000;
-const ISOLE = ['tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari'];
-const MOTIVI = { tempesta: /tempesta ti respinge.*Molo al livello 2/, ghiacci: /mare gela.*livello 3/, vulcano: /abitanti ti cacciano.*Lanterna in testa/, giardino: /nebbia.*mappa del Giardino/, templari: /nebbia rossa.*faro della Tempesta/ };
-const APRI = { tempesta: { molo: 2 }, ghiacci: { livello: 3 }, vulcano: { cappello: 'lanterna' }, giardino: { mappe: ['giardino'] }, templari: { reliquie: ['templari'] } };
+const ISOLE = ['tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'adrenalina'];
+const MOTIVI = { adrenalina: /guardiano della funivia.*liberatoria/, tempesta: /tempesta ti respinge.*Molo al livello 2/, ghiacci: /mare gela.*livello 3/, vulcano: /abitanti ti cacciano.*Lanterna in testa/, giardino: /nebbia.*mappa del Giardino/, templari: /nebbia rossa.*faro della Tempesta/ };
+const APRI = { adrenalina: { cappello: 'casco', liberatorie: ['adrenalina'] }, tempesta: { molo: 2 }, ghiacci: { livello: 3 }, vulcano: { cappello: 'lanterna' }, giardino: { mappe: ['giardino'] }, templari: { reliquie: ['templari'] } };
 
 export default async function (ctx) {
   const { assert } = ctx;
@@ -40,9 +40,9 @@ export default async function (ctx) {
   const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
   await ctx.waitReady(d.page, 30000);
 
-  await ctx.test('sei isole a tema: cinque chiuse di serie col motivo giusto, le Corse aperte a tutti', async () => {
+  await ctx.test('sette isole a tema: sei chiuse di serie col motivo giusto, le Corse aperte a tutti', async () => {
     const s = await st(d);
-    assert(s.temi && s.temi.isole.length === 6, `isole a tema: ${JSON.stringify(s.temi)}`);
+    assert(s.temi && s.temi.isole.length === 7, `isole a tema: ${JSON.stringify(s.temi)}`);
     for (const i of s.temi.isole) {
       if (i.id === 'corse') { assert(i.aperta, 'le Corse sono chiuse'); continue; } // docs/CORSE.md: sblocco `libera`
       assert(!i.aperta, `${i.id} aperta di serie`);
@@ -51,14 +51,14 @@ export default async function (ctx) {
     await d.page.waitForFunction(() => !!window.__game.state().mappa, null, { timeout: 10000 });
     await d.page.waitForTimeout(700);
     const m = (await st(d)).mappa;
-    assert(m.chiuse.length === 5, `minimappa: isole chiuse ${JSON.stringify(m.chiuse)}`);
+    assert(m.chiuse.length === 6, `minimappa: isole chiuse ${JSON.stringify(m.chiuse)}`);
     assert(!(await st(d)).compass.shown.some((x) => x.startsWith('tema:')), 'le isole a tema non scoperte sono già nella bussola');
   });
 
   await ctx.test('mappa: lucchetto sulle chiuse; scoperte → in bussola', async () => {
     await hook(d, 'mappaScopri'); await d.page.waitForTimeout(300);
     const s = await st(d);
-    assert(s.mappa.chiuse.length === 5, 'scoperte ma ancora chiuse: il lucchetto resta');
+    assert(s.mappa.chiuse.length === 6, 'scoperte ma ancora chiuse: il lucchetto resta');
     for (const id of [...ISOLE, 'corse']) assert(s.compass.shown.includes('tema:' + id), `bussola senza ${id}: ${JSON.stringify(s.compass.shown)}`);
     await hook(d, 'mappa', 'apri'); await d.page.waitForTimeout(300);
     await ctx.shot(d.page, 'desktop_mappa_chiuse');

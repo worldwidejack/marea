@@ -1,5 +1,5 @@
 // Isole a tema (#68): chi può entrare (regola pura in @marea/sim/world/temi.ts), barriere in mare sulla barca, il Vulcano che ti caccia
-// se non hai il cappello giusto, avvisi quando un'isola si apre o trovi una mappa. Piccolo, nel bundle iniziale: la scenografia viva
+// se non hai il cappello giusto (l'Adrenalina no: lì ti ferma il cancello della funivia, game/adrenalina.ts), avvisi quando un'isola si apre o trovi una mappa. Piccolo, nel bundle iniziale: la scenografia viva
 // (tempesta, neve, aurora, fumo, nebbia, carpe, guardiani) è un chunk a parte (render/temi_fx.ts) scaricato quando ti avvicini.
 import * as THREE from 'three';
 import { AVATAR } from '@marea/content';
@@ -46,10 +46,16 @@ export function createTemi(o: {
 }): Temi {
   const { world, hud } = o, arch = world.archipelago, map = world.map;
   const isole = arch.places.filter((p) => p.tema);
-  let prova: Partial<Viaggiatore> | null = null; // hook di test: forza Molo, livello, cappello, mappe
+  let prova: Partial<Viaggiatore> | null = null, tutte = false; // hook di test: forza Molo, livello, cappello, mappe ('tutte': ogni isola aperta)
   // Templari per le prove (?templari=1): come se avessi già la reliquia
   const chi = (): Viaggiatore => ({ ...viaggiatore(o.getLot(), world.look.cappello), ...(FLAGS.templari ? { reliquie: ['templari'] } : {}), ...prova });
-  let stato: Record<string, Sblocco & { nome: string }> = sblocchi(arch.places, chi());
+  // Adrenalina per le prove (?adrenalina=1): come se avessi firmato e avessi il casco in testa
+  const calcola = (v: Viaggiatore): Record<string, Sblocco & { nome: string }> => {
+    const s = sblocchi(arch.places, v);
+    for (const [id, x] of Object.entries(s)) if (tutte || (FLAGS.adrenalina && id === 'adrenalina')) s[id] = { ...x, aperta: true, motivo: 'Aperta', manca: '' };
+    return s;
+  };
+  let stato: Record<string, Sblocco & { nome: string }> = calcola(chi());
   let mappeNote = new Set(chi().mappe), next = 0, respinte = 0, ultimo = '', toastAt = 0, cacce = 0;
 
   // barriere in mare: dopo ogni passo della barca (world.ts), contro le isole chiuse
@@ -96,7 +102,7 @@ export function createTemi(o: {
   };
 
   const ricalcola = () => {
-    const v = chi(), nuovo = sblocchi(arch.places, v);
+    const v = chi(), nuovo = calcola(v);
     for (const p of isole) if (stato[p.island] && !stato[p.island]!.aperta && nuovo[p.island]!.aperta) hud.toast(`Si apre l'${p.nome}!`, 3500);
     for (const m of v.mappe) if (!mappeNote.has(m)) hud.toast(`Hai trovato la mappa del ${m.charAt(0).toUpperCase() + m.slice(1)}: la nebbia si apre`, 4000);
     mappeNote = new Set(v.mappe);
@@ -108,7 +114,7 @@ export function createTemi(o: {
     respinte, ultimo, cacce, caccia: !!caccia, fumetto: fum.classList.contains('on') ? fum.textContent : null, fx: fx?.stato() ?? null,
   }));
   /** Test: forza parti del viaggiatore (`{ molo: 2 }`, `{ cappello: 'lanterna' }`, `{ mappe: ['giardino'] }`, `{ livello: 3 }`); null = quello vero. 'tutte' apre tutto. */
-  registerTestHook('temiProva', (v) => { prova = v === 'tutte' ? { molo: 9, livello: 99, cappello: 'lanterna', mappe: ['giardino'], reliquie: ['templari'] } : (v as Partial<Viaggiatore> | null) ?? null; ricalcola(); return Object.fromEntries(Object.entries(stato).map(([k, x]) => [k, x.aperta])); });
+  registerTestHook('temiProva', (v) => { tutte = v === 'tutte'; prova = tutte ? { molo: 9, livello: 99, cappello: 'lanterna', mappe: ['giardino'], reliquie: ['templari'], liberatorie: ['adrenalina'] } : (v as Partial<Viaggiatore> | null) ?? null; ricalcola(); return Object.fromEntries(Object.entries(stato).map(([k, x]) => [k, x.aperta])); });
   /** Test: barca a `m` metri fuori dalla barriera dell'isola, prua verso il suo molo (poi il test accelera con Spazio). */
   registerTestHook('temiVerso', (id, m) => {
     const p = isole.find((q) => q.island === id); if (!p) return null;
@@ -139,9 +145,9 @@ export function createTemi(o: {
       const f = world.mode === 'walk' ? world.avatar.state : world.boat.state;
       if (!fxLoad && vicino(f.x, f.z)) void caricaFx();
       fx?.update(dt, t, f);
-      // Vulcano (o ogni isola chiusa senza barriera): a piedi lì sopra → fumetto, poi di nuovo in barca
+      // Vulcano (o ogni isola chiusa senza barriera): a piedi lì sopra → fumetto, poi di nuovo in barca. L'Adrenalina no: ti ferma il cancello della funivia
       const qui = world.mode === 'walk' && !world.race.on ? arch.placeAt(world.avatar.state.x, world.avatar.state.z) : null;
-      const cacciato = qui?.tema && qui.tema.barriera <= 0 && !stato[qui.island]?.aperta ? qui : null;
+      const cacciato = qui?.tema && qui.tema.barriera <= 0 && qui.tema.sblocco.tipo !== 'funivia' && !stato[qui.island]?.aperta ? qui : null;
       if (cacciato && !caccia) { caccia = { isola: cacciato.island, t: 0 }; cacce++; fx?.caccia(cacciato.island); }
       if (caccia) {
         caccia.t += dt;

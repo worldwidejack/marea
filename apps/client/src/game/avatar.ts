@@ -92,6 +92,8 @@ const HATS: Record<string, (string | number)[][]> = {
     [0.04, 0.04, 0.04, 0, 0.275, -0.12, '#E8E1D6'], [0.035, 0.035, 0.035, -0.08, 0.255, -0.12, '#E8E1D6'], [0.035, 0.035, 0.035, 0.08, 0.255, -0.12, '#E8E1D6']],
   palombaro: [[0.32, 0.34, 0.32, 0, 0.03, 0, '#F2A33A'], [0.2, 0.06, 0.2, 0, 0.225, 0, '#F2A33A'], [0.17, 0.15, 0.012, 0, 0.02, -0.164, '#7FE3E0'], [0.2, 0.025, 0.02, 0, 0.105, -0.165, '#C98A4B'], [0.2, 0.025, 0.02, 0, -0.065, -0.165, '#C98A4B'],
     [0.025, 0.12, 0.12, -0.17, 0.03, 0, '#7FE3E0'], [0.025, 0.12, 0.12, 0.17, 0.03, 0, '#7FE3E0'], [0.36, 0.05, 0.36, 0, -0.16, 0, '#C98A4B']],
+  // Isola dell'Adrenalina (docs/ADRENALINA.md §2): casco arancione con la striscia bianca e la visiera scura, si compra a Perle dall'editor
+  casco: [[0.25, 0.1, 0.27, 0, 0.17, 0, '#F2A33A'], [0.19, 0.05, 0.21, 0, 0.24, 0, '#F2A33A'], [0.04, 0.15, 0.28, 0, 0.19, 0, '#E8E1D6'], [0.23, 0.04, 0.03, 0, 0.13, -0.14, '#23201F'], [0.26, 0.07, 0.14, 0, 0.1, 0.05, '#F2A33A']],
 };
 /** Cappelli senza nodo nel modello: si costruiscono a box e si appendono all'osso della testa (centro testa = origine, come headBoxes). */
 function hatOnHead(id: string): THREE.Mesh | null {

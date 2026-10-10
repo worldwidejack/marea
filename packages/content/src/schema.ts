@@ -78,11 +78,12 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
   return errs;
 }
 
-const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia', 'tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'corse']);
+const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia', 'tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'corse', 'adrenalina']);
 /** Decorazioni delle isole a tema (#68): segnaposto procedurali in apps/client/src/render/island_temi.ts. */
 export const PROP_TEMI = ['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
   'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello',
   'chiesa_templare', 'casa_rovina', 'tomba', 'croce_pietra', 'tenda', 'relitto_templare', 'scheletro',
+  'funivia_valle', 'funivia_monte', 'guardiano', 'cartello_piste', 'piattaforma_lancio', 'porta_slalom', 'abete', // Isola dell'Adrenalina
   'arco_via', 'tribuna', 'gomme', 'kart_fermo', 'bandierina', // Isola delle Corse
   'strada', 'rotatoria', 'trofeo', 'statua_trofeo', 'torre_corse', 'garage_corse', 'bancarella', 'festone', 'lampione', 'palo_molo',
   'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia', 'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla',
@@ -158,11 +159,12 @@ export function validateArchipelago(a: ArchipelagoDef, islands: IslandDef[]): st
 function validateTema(tag: string, t: TemaDef, x0: number, z0: number, w: number, h: number, a: ArchipelagoDef): string[] {
   const errs: string[] = [];
   const s = t.sblocco as TemaDef['sblocco'] | undefined;
-  if (!s || !['molo', 'livello', 'cappello', 'mappa', 'reliquia', 'libera'].includes(s.tipo)) errs.push(`${tag}: sblocco sconosciuto`);
+  if (!s || !['molo', 'livello', 'cappello', 'mappa', 'reliquia', 'libera', 'funivia'].includes(s.tipo)) errs.push(`${tag}: sblocco sconosciuto`);
   else if ((s.tipo === 'molo' || s.tipo === 'livello') && !(Number.isInteger(s.livello) && s.livello >= 1)) errs.push(`${tag}: livello di sblocco non valido`);
   else if (s.tipo === 'cappello' && typeof s.cappello !== 'string') errs.push(`${tag}: cappello mancante`);
   else if (s.tipo === 'mappa' && (typeof s.mappa !== 'string' || s.come !== 'oro')) errs.push(`${tag}: mappa non valida (come: 'oro')`);
   else if (s.tipo === 'reliquia' && (typeof s.reliquia !== 'string' || !s.reliquia)) errs.push(`${tag}: reliquia mancante`);
+  else if (s.tipo === 'funivia' && (typeof s.cappello !== 'string' || typeof s.liberatoria !== 'string' || !s.liberatoria)) errs.push(`${tag}: funivia senza cappello o liberatoria`);
   if (!(t.barriera >= 0 && t.barriera <= 40)) errs.push(`${tag}: barriera fuori da 0-40 m`);
   const m = Math.ceil(t.barriera / a.tile);
   if (x0 - m < 0 || z0 - m < 0 || x0 + w + m > a.w || z0 + h + m > a.h) errs.push(`${tag}: la barriera esce dalla griglia`);
@@ -177,7 +179,7 @@ export function validateTemi(a: ArchipelagoDef, buildings: BuildingDef[], avatar
     const s = e.tema?.sblocco;
     if (!s) continue;
     if (s.tipo === 'molo' && (!molo || s.livello > molo.levels.length)) errs.push(`isola ${e.island}: il Molo non ha il livello ${s.livello}`);
-    if (s.tipo === 'cappello') {
+    if (s.tipo === 'cappello' || s.tipo === 'funivia') {
       const h = avatar.cappelli.find((c) => c.id === s.cappello);
       if (!h) errs.push(`isola ${e.island}: cappello sconosciuto ${s.cappello}`);
       else if (h.perle <= 0) errs.push(`isola ${e.island}: il cappello ${s.cappello} è gratuito`);

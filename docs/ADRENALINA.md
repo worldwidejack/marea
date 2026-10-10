@@ -24,12 +24,12 @@ L'Isola delle Corse (`docs/CORSE.md`, #155) ha già una zona di neve, le bici da
 Il **sistema dei fantasmi** è uno solo per le due isole: lo scrive chi arriva prima (§8).
 
 ## 2. Dove sta e come si apre
-- **Posizione** **[scelta provvisoria]**: a **nord-ovest**, tra la Selvaggia (`[14, 30]`) e i Ghiacci (`[120, 16]`), verso la cella `[64, 10]` dell'arcipelago (~46×46 celle). La bozza la metteva a nord tra Ghiacci e Tempesta, ma lì dal 9 ott c'è l'Isola delle Corse (`[208, 13]`). A nord-ovest resta a nord, accanto ai Ghiacci (la neve sta bene vicino alla neve) e lontana dal giro iniziale come le altre isole a tema.
+- **Posizione** **[scelta provvisoria]**: a **nord-ovest**, tra la Selvaggia (`[14, 30]`) e i Ghiacci (`[120, 16]`), alla cella `[64, 10]` dell'arcipelago (38×38 celle: più piccola delle prime ipotesi perché da lì si vedono anche Selvaggia, Ghiacci e il lotto 1, e i triangoli hanno un tetto, `TECH.md` §5). La bozza la metteva a nord tra Ghiacci e Tempesta, ma lì dal 9 ott c'è l'Isola delle Corse (`[208, 13]`). A nord-ovest resta a nord, accanto ai Ghiacci (la neve sta bene vicino alla neve) e lontana dal giro iniziale come le altre isole a tema.
 - **Sblocco: liberatoria e casco.** Ci sbarchi sempre (barriera 0, come il Vulcano), ma al **cancello della funivia** il guardiano non ti fa salire:
   - la prima volta ti fa **firmare una liberatoria** ironica: «Il parco declina ogni responsabilità per ossa rotte, orgoglio ferito e Perle perse.» FIRMA e basta, una volta sola (resta nel lotto);
   - poi ti fa salire **solo col casco in testa**. Senza casco: «Senza casco qui non sale nessuno.»
-  - Il **casco** è un cappello nuovo, il tredicesimo di GDD §4. **[scelta provvisoria]**: si compra a **35 Perle** dall'editor come la Lanterna (non è del Mercante), arancione con la visiera scura e una striscia bianca, colori della palette. Il tipo di sblocco è quello del Vulcano (`tipo: "cappello"`), più la firma.
-- **Per le prove** (`?adrenalina=1` nell'indirizzo): liberatoria già firmata, casco non richiesto, e un bottone nella barra in alto che porta subito in vetta. Il premio resta quello vero.
+  - Il **casco** è un cappello nuovo, il tredicesimo di GDD §4: si compra a **35 Perle** dall'editor come la Lanterna (lo vende anche il Mercante, ma non è un suo esclusivo), arancione con la striscia bianca e la visiera scura. Prezzo e aspetto si possono ancora cambiare. Lo sblocco è un tipo nuovo, `funivia`: firma più cappello, ma niente cacciata come al Vulcano.
+- **Per le prove** (`?adrenalina=1` nell'indirizzo): liberatoria già firmata, casco non richiesto, e un bottone 🚡 nella barra in alto che porta subito al cancello della funivia. Il premio resta quello vero.
 
 ## 3. L'isola
 Un picco solo, da guardare dalla barca come un cartello: «qui si scende».
@@ -110,11 +110,11 @@ Suoni nostri e sintetizzati (motore di `apps/client/src/audio/`, zero file), al 
 - **Barra Adrenalina** come pezzo comune ai tre moduli (stessa logica, stessi numeri da content).
 - **Scena a parte** nel client in un **chunk** suo caricato all'ingresso della funivia, con la sua riga nel budget di `TECH.md` §5.
 - **Fantasmi** (passo 4): record e input del migliore per pista sul server; se serve una tabella nuova, migrazione D1 col numero successivo. In comune con le Corse (§8).
-- **Sblocco**: `tipo: "cappello"` come il Vulcano, più un flag «liberatoria firmata» nel `LotState`.
+- **Sblocco** (fatto al passo 2): tipo nuovo `funivia` in `archipelago.json` (`cappello` e `liberatoria`), firme in `LotState.liberatorie`, `POST /api/adrenalina/liberatoria`. La funivia e il cancello sono un chunk a parte (`game/adrenalina_funivia.ts`), come le decorazioni dell'isola (`render/island_adrenalina.ts`): il JS iniziale ha un tetto. Dettagli in `CONTRACTS.md` §39.
 
 ## 14. Piano di lavoro (issue madre #189, una PR per passo, ognuna online)
 1. **Documenti**: questo file, GDD §3 §6 §14, ROADMAP §Deviazioni, BACKLOG. **Ok di Jack** (fatto, 10 ott 2026).
-2. **Isola**: la montagna (vetta innevata, bosco, scogliere), molo, funivia, posizione a nord-ovest, lucchetto; il casco e il cancello con la liberatoria; `?adrenalina=1`.
+2. **Isola** (fatto, 10 ott 2026): la montagna (vetta innevata, bosco, scogliere), molo, funivia con le cabine che vanno su e giù, posizione a nord-ovest, lucchetto; il casco e il cancello con la liberatoria; `?adrenalina=1`. Le piste ancora no: con firma e casco il guardiano dice che aprono a giorni.
 3. **Snowboard completo**: pista verde, barra Adrenalina, cadute, medaglie e premio dal server, telefono 390×844. Qui si sceglie la camera. Se non diverte ci si ferma.
 4. **Fantasmi degli amici**: record per pista sul server, il fantasma in pista.
 5. **Bici downhill**.

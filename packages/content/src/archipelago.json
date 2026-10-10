@@ -22,6 +22,7 @@
     { "island": "vulcano", "at": [296, 236], "role": "tema", "tema": { "sblocco": { "tipo": "cappello", "cappello": "lanterna" }, "barriera": 0 } },
     { "island": "giardino", "at": [14, 232], "role": "tema", "tema": { "sblocco": { "tipo": "mappa", "mappa": "giardino", "come": "oro" }, "barriera": 14 } },
     { "island": "templari", "at": [156, 240], "role": "tema", "tema": { "sblocco": { "tipo": "reliquia", "reliquia": "templari" }, "barriera": 14 } },
-    { "island": "corse", "at": [208, 13], "role": "tema", "tema": { "sblocco": { "tipo": "libera" }, "barriera": 0 } }
+    { "island": "corse", "at": [208, 13], "role": "tema", "tema": { "sblocco": { "tipo": "libera" }, "barriera": 0 } },
+    { "island": "adrenalina", "at": [64, 10], "role": "tema", "tema": { "sblocco": { "tipo": "funivia", "cappello": "casco", "liberatoria": "adrenalina" }, "barriera": 0 } }
   ]
 }

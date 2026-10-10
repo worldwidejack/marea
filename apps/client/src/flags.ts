@@ -1,5 +1,5 @@
 // Flag dall'URL, congelati all'avvio. Contratto: docs/TECH.md §9.
-export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; sfide: boolean; invito: string; serie: boolean; rientro: boolean; templari: boolean };
+export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; sfide: boolean; invito: string; serie: boolean; rientro: boolean; templari: boolean; adrenalina: boolean };
 function read(): Flags {
   const q = new URLSearchParams(location.search);
   const on = (k: string) => q.get(k) === '1' || q.get(k) === 'true';
@@ -17,6 +17,7 @@ function read(): Flags {
     serie: on('serie'), // coi test (?test=1) le impostazioni partono spente; ?serie=1 usa quelle di serie vere (#59)
     sfide: on('sfide'), // Tavolo delle Sfide con posta e feed: spenti finché si prova il gioco da soli (?sfide=1 li riaccende)
     templari: on('templari'), // Isola dei Templari per le prove: isola aperta, altare senza reliquia, bottone ⚔ per entrare subito nelle ondate
+    adrenalina: on('adrenalina'), // Isola dell'Adrenalina per le prove: liberatoria già firmata, casco non richiesto, bottone 🚡 per andare al cancello
   };
 }
 export const FLAGS: Readonly<Flags> = Object.freeze(read());

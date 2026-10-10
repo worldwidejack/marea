@@ -51,6 +51,7 @@ export type PixId = 'casa' | 'porto' | 'regata' | 'martello' | 'scacchi' | 'ingr
   | 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'lucchetto' // Isole a tema (#68)
   | 'templari' // Isola dei Templari: croce patente rossa su bianco
   | 'corse' // Isola delle Corse: bandiera a scacchi
+  | 'adrenalina' // Isola dell'Adrenalina: la montagna innevata con la cabina rossa della funivia
   | 'consegne' // Consegne
   | 'ingorgo' // Ingorgo
   | 'perle' // Perle
@@ -85,6 +86,7 @@ const PIX: Record<PixId, string[]> = {
   vulcano: ['..R.O...', '...OR...', '..nOOn..', '..nnnn..', '.nnrnnn.', '.nnnnrn.', 'nnrnnnnn', 'nnnnnnnn'],
   giardino: ['...kk...', '.kkkkkk.', '.kkYYkk.', 'kkkYYkkk', '.kkkkkk.', '...kk...', '...EE...', '..EEEE..'],
   corse: ['bnwnwnw.', 'bwnwnwn.', 'bnwnwnw.', 'bwnwnwn.', 'b.......', 'b.......', 'b.......', 'cc......'], // Isola delle Corse: bandiera a scacchi
+  adrenalina: ['n...pp..', '.n.pppp.', 'RRnrprq.', 'RR.nrrq.', '.rrqnrqr', 'rrqrrnrq', 'rqrrqrrr', 'EEEEEEEE'], // Isola dell'Adrenalina: picco innevato e funivia
   templari: ['wwRRRRww', 'wwwRRwww', 'RwwRRwwR', 'RRRRRRRR', 'RRRRRRRR', 'RwwRRwwR', 'wwwRRwww', 'wwRRRRww'],
   lucchetto: ['..rrrr..', '.r....r.', '.r....r.', 'YYYYYYYY', 'YYYnnYYY', 'YYYnnYYY', 'YYYYYYYY', '.YYYYYY.'],
   libro: ['........', '.ww..ww.', 'wqqwwqqw', 'wwwRwwww', 'wqqRwqqw', 'wwwRwwww', 'cccccccc', '........'], // libro degli ospiti aperto, col nastro rosso (#86)

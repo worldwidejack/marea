@@ -15,6 +15,8 @@ const PUNTI = [
   ['neon', [['goto', 'neon']]],
   ['selvaggia', [['goto', 'selvaggia']]],
   ...Array.from({ length: 8 }, (_, i) => [`lotto${i}`, [['goto', `lotto:${i}`]]]),
+  ['adrenalina', [['temiProva', 'tutte'], ['goto', 'adrenalina']]], // Isola dell'Adrenalina (#189): la montagna, con Selvaggia e Ghiacci in vista
+  ['adrenalina_chiusa', [['temiProva', null], ['temiVerso', 'adrenalina', 6]]],
   ['templari', [['temiProva', 'tutte'], ['goto', 'templari']]], // aperta (chiusa è nella nebbia come il Giardino: la controlla m3_isole)
   ...['tempesta', 'ghiacci', 'vulcano', 'giardino'].flatMap((id) => [
     [id, [['temiProva', 'tutte'], ['goto', id]]],

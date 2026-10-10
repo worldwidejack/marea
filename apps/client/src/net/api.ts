@@ -113,6 +113,8 @@ export type Api = {
   templariFinish(inputs: PackedDungeon | string, hash: number, azioni?: TAzioni): Promise<TemplariFinish>;
   /** Il calice dei Templari dallo scheletro della Tempesta (docs/TEMPLARI.md §2): nel lotto, la nebbia rossa si dirada. */
   templariReliquia(): Promise<{ lot: LotState; nuova: boolean }>;
+  /** Isola dell'Adrenalina: firma la liberatoria al cancello della funivia (una volta sola, resta nel lotto). */
+  adrenalinaLiberatoria(): Promise<{ lot: LotState; nuova: boolean }>;
   // ---- Porto (#64) ----
   /** RISCUOTI una missione compiuta della Bacheca (indice 0-2 di oggi): il server verifica, paga e risponde col lotto. */
   riscuoti(i: number): Promise<{ premio: Resources; lot: LotState }>;
@@ -341,6 +343,11 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     },
     async templariReliquia() {
       const d = await call('POST', '/api/templari/reliquia', {});
+      if (!isObj(d)) throw new ApiError(500, 'Risposta del server non valida');
+      return { lot: asLot(d['lot']), nuova: d['nuova'] === true };
+    },
+    async adrenalinaLiberatoria() {
+      const d = await call('POST', '/api/adrenalina/liberatoria', {});
       if (!isObj(d)) throw new ApiError(500, 'Risposta del server non valida');
       return { lot: asLot(d['lot']), nuova: d['nuova'] === true };
     },
