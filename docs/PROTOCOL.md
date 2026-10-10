@@ -173,3 +173,26 @@ Squadre all'ingresso dei dungeon e spedizioni in tempo reale: **WebSocket** `/ws
 - **Turni**: ogni 50 ms (a tempo di orologio: un timer in ritardo recupera fino a 10 turni) un turno con l'input più vecchio in coda di ciascuno, o l'ultimo se la coda è vuota (chi è uscito: fermo); un turno vale 3 tick della sim. Coda oltre 4 input: i più vecchi si scartano tenendo i bottoni premuti. Al massimo 40 messaggi/s per socket, 390 azioni per eroe. Chi esce: azione `ritira` nel turno dopo (per lui la spedizione finisce senza esito, gli altri continuano). Finito il tempo (`maxTicks`) il DO chiude i socket.
 - **Client**: la sim avanza solo coi turni (stessi input e azioni = stessa partita per tutti); il mio input va una volta per turno (joystick dell'ultimo tick, bottoni premuti in qualunque tick del turno). Cuscinetto di 2 turni contro i ritardi, recupero di corsa dopo uno stacco.
 - **Fine**: il client chiude il socket e chiama `POST /api/dungeon/finish` (corpo qualunque): il DO del lotto, vedendo `pending.party`, chiede il log al DO Spedizioni (`POST /log {run, idx}` → `{dungeon, seed, eroi, inputs: string[] (encodeDungeon), azioni}`; da quel momento l'eroe idx è fuori), lo rigioca con `replayParty` e applica l'esito del suo eroe come una spedizione da solo (stessa risposta). Log salvati nello storage del DO (ogni 10 s e a fine spedizione, tenuti un giorno): se il DO si riavvia a metà, la spedizione si chiude dove era arrivata. Senza log (perso) la spedizione si chiude senza niente (409 `code: 'gruppo'`). Una spedizione insieme rimasta aperta si chiude alla discesa dopo (`dungeon_start`). `POST /api/dungeon/save` insieme non serve (409).
+
+## 8. Corse tra amici (10 ott 2026)
+Gara in tempo reale tra amici, a fantasmi (niente urti tra amici): **WebSocket** `/ws/gara?t=<token>` → DO `GaraAmici` (una sala sola, `idFromName('garaamici')`, socket normali senza ibernazione). Tipi e parser in `packages/protocol/src/gara_amici.ts` (`GaClientMsg`, `GaServerMsg`, `GaMembro`, `GaPos`, `parseGaClient`, `parseGaServer`, `GA_MAX` = 6, `GA_POS_MS` = 80). `PROTOCOL_VERSION` resta 1 (canale nuovo).
+```ts
+// client → server
+{ t: 'ciao', veicolo }                       // entro in sala o cambio veicolo (id di CORSE.veicoli; sconosciuto → 'kart', che è anche il default)
+{ t: 'via', pista }                          // VIA: chiunque in sala, pista della Spiaggia (id in CORSE_PISTE che comincia con 'spiaggia_')
+{ t: 'p', q: GaPos }                         // la mia posizione, ~ogni 80 ms: [prog, ramo, s, lat, h, hf, hl, v, drift, giro, caduto]
+{ t: 'fine', ms }                            // sono arrivato (ms di gara ≥ 0) o mi ritiro (−1)
+{ t: 'esco' }                                // esco dalla sala
+
+// server → client
+{ t: 'sala', membri: GaMembro[], max, gara: { pista, membri: id[] } | null }   // a ogni cambio, a tutti; GaMembro = { id, nome, look, veicolo }
+{ t: 'parte', gara, pista, seed, io, membri: GaMembro[] }                       // si parte: membri in ordine di griglia, io = il mio posto
+{ t: 'p', i, q: GaPos }                                                         // posizione del corridore i (indice in `membri` di `parte`)
+{ t: 'fine', i, ms }                                                            // il corridore i è arrivato (ms) o si è ritirato (−1)
+{ t: 'errore', msg }                                                            // sala piena, da soli, pista sbagliata, gara in corso
+```
+- **Sala**: aprire il socket = entrare (in ordine di entrata, che è l'ordine di griglia). Al massimo 6: il 7° riceve `errore` («La sala è piena (6)») e chiusura 1013. La stessa persona da un'altra scheda sostituisce la vecchia (se era in gara, conta come uscita). Chiudere il socket o `esco` = uscire.
+- **Partenza**: una gara alla volta. `via` con una gara in corso → `errore` («C'è già una gara in corso: aspetta che finisca»); con meno di 2 in sala → `errore` («Servono almeno 2 amici in sala»). Altrimenti il DO sceglie id (UUID) e seed (0…2³²−1), i corridori sono tutti quelli in sala, e ognuno riceve `parte` col suo `io`; poi la sala con `gara`. Chi entra in sala durante una gara aspetta la prossima.
+- **In gara**: ognuno corre la sua sim locale (senza bot) col seed comune; `p` va agli altri corridori col suo indice (al massimo 25 `p` al secondo per socket, gli altri si scartano). `fine` va agli altri; un secondo `fine` è ignorato. Chi è arrivato resta collegato e riceve ancora `p` e `fine` degli altri finché la gara è in corso. Chi esce senza aver finito conta come `fine` −1 per gli altri; chi esce dopo il suo arrivo no (l'arrivo resta). Quando tutti hanno finito (arrivati o ritirati) la gara si chiude: sala con `gara: null`. Rete di sicurezza: una gara aperta da più di 8 minuti si chiude da sola.
+- **Esito**: il server della gara non dà premi né rigioca niente; ognuno chiude la sua corsa come una partita da solo (rigiocata dal DO del suo lotto).
+- **Abusi**: messaggi oltre 512 caratteri o non validi si scartano; 10 non validi di fila → chiusura 1003. Al massimo 40 messaggi al secondo (oltre ai `p`).

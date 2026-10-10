@@ -44,6 +44,7 @@ const CSS = `
 .mz-gp-sc .cmd { font-size: 11px; color: ${PAL.sabbia}; line-height: 1.5; margin: 10px 0; text-align: left; }
 .mz-gp-sc .cmd b { color: ${PAL.sabbiaChiara}; }
 .mz-gp-sc .via { width: 100%; min-height: 52px; background: ${PAL.erbaChiara}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; font: bold 22px ui-monospace, Menlo, monospace; cursor: pointer; border-radius: 4px; }
+.mz-gp-sc .via.amici { margin-top: 8px; background: ${PAL.giallo}; font-size: 18px; }
 .mz-gp-sc .esci { margin-top: 8px; background: none; border: none; color: ${PAL.sabbia}; font: 12px ui-monospace, Menlo, monospace; text-decoration: underline; cursor: pointer; min-height: 30px; }
 .mz-gp-sc .gar button { flex: 1 1 30%; text-align: left; padding: 6px 8px; }
 .mz-gp-sc .gar .fam { float: right; font-weight: normal; font-size: 10px; color: ${PAL.sabbia}; }
@@ -55,13 +56,14 @@ const CSS = `
 .mz-gp-sc .gar button.on .bar b i { background: ${PAL.legnoScuro}; }
 @media (max-height: 520px) { .mz-gp-sc .box { padding: 6px 12px 4px; } .mz-gp-sc h2 { font-size: 17px; } .mz-gp-sc .sub { margin: 1px 0 4px; font-size: 11px; } .mz-gp-sc .cmd { display: none; }
   .mz-gp-sc .sez { display: flex; align-items: center; gap: 8px; margin-top: 4px; } .mz-gp-sc .sez .lbl { margin: 0; width: 62px; flex: none; font-size: 11px; } .mz-gp-sc .sez .riga { flex: 1; flex-wrap: nowrap; }
-  .mz-gp-sc .riga button { min-height: 34px; flex-basis: 0; padding: 2px 4px; font-size: 12px; } .mz-gp-sc .riga button small { font-size: 9px; } .mz-gp-sc .via { min-height: 40px; font-size: 17px; margin-top: 6px; box-shadow: 0 3px 0 ${PAL.neroCaldo}; } .mz-gp-sc .esci { margin-top: 2px; min-height: 24px; }
+  .mz-gp-sc .riga button { min-height: 34px; flex-basis: 0; padding: 2px 4px; font-size: 12px; } .mz-gp-sc .riga button small { font-size: 9px; } .mz-gp-sc .via { min-height: 40px; font-size: 17px; margin-top: 6px; box-shadow: 0 3px 0 ${PAL.neroCaldo}; } .mz-gp-sc .via.amici { margin-top: 6px; font-size: 15px; }
+.mz-gp-sc .esci { margin-top: 2px; min-height: 24px; }
   .mz-gp-sc .gar { flex-wrap: wrap !important; } .mz-gp-sc .gar button { flex: 1 1 30%; min-height: 0; padding: 3px 6px; } .mz-gp-sc .bar { margin-top: 1px; } }
 `;
 
 export type Pannelli = {
   /** La scelta della pista: risolve con le opzioni della gara (VIA) o null (`esci`). Salva da sé pista, veicolo, gas e camera. */
-  piste(s: Scelta, o?: { titolo?: string; sottotitolo?: string; esci?: string }): Promise<Record<string, string> | null>;
+  piste(s: Scelta, o?: { titolo?: string; sottotitolo?: string; esci?: string; amici?: boolean }): Promise<Record<string, string> | null>;
   /** Il garage: risolve col veicolo scelto o null. */
   garage(attuale: string): Promise<string | null>;
   /** Chiude il pannello aperto (come «esci»). */
@@ -88,7 +90,8 @@ export function creaPannelli(root: HTMLElement): Pannelli {
   });
   const bottone = (cls: string, testo: string, fai: () => void, id?: string) => { const b = el('button', cls, testo) as HTMLButtonElement; b.type = 'button'; if (id) b.id = id; b.addEventListener('click', fai); return b; };
 
-  function piste(s: Scelta, o: { titolo?: string; sottotitolo?: string; esci?: string } = {}) {
+  /** `amici`: c'è anche «CON GLI AMICI» (risolve con `amici: '1'` e senza bot: la sala la apre chi usa il pannello). */
+  function piste(s: Scelta, o: { titolo?: string; sottotitolo?: string; esci?: string; amici?: boolean } = {}) {
     return apri<Record<string, string>>('piste', (fine) => {
       const disegna = () => {
         s.veicolo = veicoloPer(s);
@@ -101,7 +104,7 @@ export function creaPannelli(root: HTMLElement): Pannelli {
         const salva = () => { salvaScelta(s); disegna(); };
         const cmd = el('div', 'cmd');
         cmd.innerHTML = tocco
-          ? '<b>Joystick</b>: sterza · in avanti il gas · giù frena · <b>DRIFT</b> tenuto in curva (3 livelli di scintille), poi lascia e parti<br>Tieni il gas quando compare l\'<b>1</b> al semaforo: partenza razzo'
+          ? '<b>Joystick</b>: sterza · <b>GAS</b> tienilo premuto · <b>FRENO</b> · <b>DRIFT</b> tenuto in curva (dà anche gas; 3 livelli di scintille), poi lascia e parti<br>Tieni il GAS quando compare l\'<b>1</b> al semaforo: partenza razzo'
           : '<b>A D</b> o <b>← →</b> sterza · <b>W ↑</b> gas · <b>S ↓</b> freno · <b>Spazio</b> = DRIFT tenuto in curva, poi lascia e parti<br>Tieni il gas quando compare l\'<b>1</b> al semaforo: partenza razzo · <b>Esc</b> ti ritira';
         const box = el('div', 'box');
         box.append(
@@ -112,6 +115,7 @@ export function creaPannelli(root: HTMLElement): Pannelli {
           riga('CAMERA', CAMERE.map((c) => ({ id: c.id, nome: c.nome, on: c.id === s.cam, fai: () => { s.cam = c.id; salva(); } }))),
           cmd,
           bottone('via', 'VIA!', () => { salvaScelta(s); fine({ ...opzioniGara({ pista: s.pista, veicolo: veicoloPer(s), bot: '1' }) }); }, 'mzGpVia'),
+          ...(o.amici ? [bottone('via amici', '👥 CON GLI AMICI', () => { salvaScelta(s); fine({ ...opzioniGara({ pista: s.pista, veicolo: veicoloPer(s), bot: '0' }), amici: '1' }); }, 'mzGpAmici')] : []),
           bottone('esci', o.esci ?? 'Torna all’isola', () => fine(null)),
         );
         sc.replaceChildren(box);

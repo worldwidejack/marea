@@ -278,10 +278,10 @@ export default async function (ctx) {
       numeri.gioco.molo = { drawCalls: perf.drawCalls, triangles: perf.triangles };
       await foto(page, 'gioco_1_hub_molo');
       // gas in avanti sullo schermo (assi mondo con la camera del mondo a 45°: (−0,707, −0,707)); SwiftShader è lento: si aspetta lo spostamento
-      await hook('wp2_inject', { mx: -0.707, my: -0.707, a: false });
+      await hook('corseGas', true); await hook('wp2_inject', { mx: -0.707, my: -0.707, a: false }); // col dito il gas è il bottone GAS
       await ctx.waitState(page, (q, p0) => Math.hypot(q.corse.hub.x - p0[0], q.corse.hub.z - p0[1]) > 4, 30000, [h.x, h.z]);
       const h2 = (await st()).corse.hub;
-      await hook('wp2_inject', null);
+      await hook('wp2_inject', null); await hook('corseGas', false);
       assert(Math.abs(h2.y - h2.quota) < 0.6 || h2.aria, 'la quota non segue il terreno: ' + JSON.stringify(h2).slice(0, 200));
       assert(perf.drawCalls <= MAX_DC && perf.triangles <= MAX_TRI, `molo: ${perf.drawCalls} draw call, ${perf.triangles} triangoli`);
     });
@@ -313,9 +313,9 @@ export default async function (ctx) {
       // si riparte a guidare
       const perf2 = await ctx.getPerf(page);
       numeri.gioco.porta = { drawCalls: perf2.drawCalls, triangles: perf2.triangles };
-      await hook('wp2_inject', { mx: -0.707, my: -0.707, a: false });
+      await hook('corseGas', true); await hook('wp2_inject', { mx: -0.707, my: -0.707, a: false }); // col dito il gas è il bottone GAS
       await ctx.waitState(page, (q) => Math.abs(q.corse.hub.v) > 2, 30000);
-      await hook('wp2_inject', null);
+      await hook('wp2_inject', null); await hook('corseGas', false);
       await foto(page, 'gioco_4_di_nuovo_nell_hub');
     });
 

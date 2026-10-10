@@ -20,10 +20,12 @@
       { "name": "ZONE", "class_name": "Zone" },
       { "name": "LOT", "class_name": "Lot" },
       { "name": "SFIDE", "class_name": "Sfide" },
-      { "name": "SPEDIZIONI", "class_name": "Spedizioni" }
+      { "name": "SPEDIZIONI", "class_name": "Spedizioni" },
+      { "name": "GARA_AMICI", "class_name": "GaraAmici" }
     ]
   },
   // v2 (M1): Sfide = coordinatore unico delle sfide con posta (una sola istanza, idFromName('tavolo')).
   // v3 (#118): Spedizioni = squadre e dungeon insieme (una sola istanza, idFromName('spedizioni')).
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Zone", "Lot"] }, { "tag": "v2", "new_sqlite_classes": ["Sfide"] }, { "tag": "v3", "new_sqlite_classes": ["Spedizioni"] }]
+  // v4 (corse tra amici): GaraAmici = sala e gara a fantasmi in tempo reale (una sola istanza, idFromName('garaamici')).
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Zone", "Lot"] }, { "tag": "v2", "new_sqlite_classes": ["Sfide"] }, { "tag": "v3", "new_sqlite_classes": ["Spedizioni"] }, { "tag": "v4", "new_sqlite_classes": ["GaraAmici"] }]
 }

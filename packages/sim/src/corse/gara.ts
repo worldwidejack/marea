@@ -65,6 +65,8 @@ export function opzioniGara(v: unknown): MinigameOpzioni {
   const veicolo = typeof o['veicolo'] === 'string' && adatti.some((x) => x.id === o['veicolo']) ? o['veicolo'] : adatti[0]!.id;
   const out: MinigameOpzioni = { pista, veicolo, bot: o['bot'] === '0' ? '0' : '1' };
   for (const r of REGOLE) out[r] = o[r] === '0' ? '0' : '1';
+  // gara tra amici (senza bot): il tuo posto in griglia, 0 = davanti (manca = in fondo, come da solo)
+  if (out['bot'] === '0' && typeof o['posto'] === 'string' && /^[0-7]$/.test(o['posto'])) out['posto'] = o['posto'];
   return out;
 }
 
@@ -207,8 +209,11 @@ export const garaCorse: MinigameModule<GaraState> = {
   create({ seed, difficulty, opzioni }) {
     const o = opzioniGara(opzioni), p = pistaCorse(o['pista']!), G = p.def.griglia, fams = famiglieDi(p.def), C = p.def.corsie;
     const rng = createRng(seed).fork('corse2');
-    const tu = G[G.length - 1]!, mia = veicoloCorse(o['veicolo']!).famiglia;
-    const veicoli = [nuovoVeicolo(p, o['veicolo']!, tu[0], C?.[mia] ?? tu[1])];
+    const mia = veicoloCorse(o['veicolo']!).famiglia, posto = o['posto'] === undefined ? -1 : Number(o['posto']);
+    // da solo in fondo alla griglia; tra amici al proprio posto (oltre la griglia, file da 6 m più indietro, alternate a destra e sinistra)
+    const tu = posto < 0 ? G[G.length - 1]! : G[posto] ?? [G[G.length - 1]![0] - 6 * (posto - G.length + 1), posto % 2 ? 2.5 : -2.5];
+    const lat = posto < 0 ? C?.[mia] ?? tu[1] : C?.[mia] !== undefined ? C[mia]! + (tu[1] < 0 ? -1.4 : 1.4) : tu[1];
+    const veicoli = [nuovoVeicolo(p, o['veicolo']!, tu[0], lat)];
     const nBot = o['bot'] === '0' ? 0 : Math.min(CORSE.bot.bravura.length, G.length - 1);
     // piste miste: i bot si alternano tra le famiglie e partono nella corsia della loro (un po' di lato, per non stare in fila)
     for (let i = 0; i < nBot; i++) {
