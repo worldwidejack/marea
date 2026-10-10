@@ -67,9 +67,22 @@ export default async function (ctx) {
     await ctx.shot(page, 'arco');
     // la cassa del tesoro: davanti, coi punti, AZIONE → gira (se il pilota l'aveva aperta, prima si richiude da sola)
     await ctx.waitState(page, (s) => s.templari.cassa.fase === 'chiusa' && !!s.templari.cassa.davanti, 30000);
-    await prova({ pulisci: true, punti: 2000, dove: (await ctx.getState(page)).templari.cassa.davanti });
+    // senza punti il bottone lo dice (prima non succedeva niente, #202); sul telefono niente «F» della tastiera
+    await prova({ pulisci: true, punti: 100, dove: (await ctx.getState(page)).templari.cassa.davanti });
     await ctx.waitState(page, (s) => s.templari.prompt === 'cassa', 10000);
     await page.tap('#mzTplAzione');
+    await page.waitForFunction(() => /Servono 950 punti/.test(document.querySelector('#mzTplPerche.on')?.textContent ?? ''), null, { timeout: 5000 })
+      .catch(async () => { throw new Error(`senza punti nessun avviso: «${await page.textContent('#mzTplPerche')}»`); });
+    assert(!/F$/.test((await page.textContent('#mzTplAzione')) ?? ''), 'la «F» della tastiera sul telefono');
+    // coi punti, solo eventi touch (senza pointer): su iPhone il bottone non rispondeva (#202)
+    await prova({ punti: 2000 });
+    await page.evaluate(async () => {
+      const a = document.querySelector('#mzTplAzione'), r = a.getBoundingClientRect();
+      const t = new Touch({ identifier: 7, target: a, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 });
+      a.dispatchEvent(new TouchEvent('touchstart', { touches: [t], changedTouches: [t], bubbles: true, cancelable: true }));
+      await new Promise((ok) => setTimeout(ok, 100));
+      a.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t], bubbles: true, cancelable: true }));
+    });
     await ctx.waitState(page, (s) => s.templari.cassa.fase === 'gira', 10000);
     await ctx.shot(page, 'cassa');
     const st = await ctx.getState(page);
