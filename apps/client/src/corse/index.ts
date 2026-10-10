@@ -138,6 +138,8 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     if (opz?.['pista'] && PISTE.some((p) => p.id === opz['pista'])) scelta.pista = opz['pista'];
     if (FLAGS.autopilot || !o.gioca) return Promise.resolve({ ...opzioniGara({ pista: scelta.pista, veicolo: veicoloPer(scelta), bot: '1' }) });
     apriHub();
+    // link «gara tra amici» (#204): davanti alla porta della Spiaggia, fermi, con la sala già aperta (uscendo si guida nell'hub)
+    if (opz?.['amici'] === '1') { portaGara = 'spiaggia'; hub.riprendi('spiaggia'); hub.ferma(true); sala.apri(scelta.pista, scelta.veicolo); }
     return Promise.resolve(null);
   };
 

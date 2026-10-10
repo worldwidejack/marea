@@ -41,6 +41,8 @@ export type SalaAmici = {
 const posDi = (k: Veicolo): GaPos => [r2(k.prog), k.ramo, r2(k.s), r2(k.lat), r2(k.h), r3(k.hf), r3(k.hl), r2(k.v), k.drift, k.giro, k.caduto > 0 ? 1 : 0];
 const r2 = (x: number) => Math.round(x * 100) / 100, r3 = (x: number) => Math.round(x * 1000) / 1000;
 const CHIAVE_BOT = 'marea.corse.amiciBot';
+/** Le piste della gara tra amici (quelle della Spiaggia, come alla porta). */
+const PISTE_AMICI = Object.entries(CORSE_PISTE).filter(([id]) => id.startsWith('spiaggia_'));
 function leggiBot(): boolean { try { return localStorage.getItem(CHIAVE_BOT) !== '0'; } catch { return true; } }
 function salvaBot(v: boolean): void { try { localStorage.setItem(CHIAVE_BOT, v ? '1' : '0'); } catch { /* niente memoria */ } }
 
@@ -65,6 +67,13 @@ export function creaSalaAmici(o: { root: HTMLElement; token: () => string }): Sa
     const via = el('button', 'via', pronti ? `VIA! · ${CORSE_PISTE[pista]?.nome ?? pista}` : 'Aspetta gli amici…') as HTMLButtonElement;
     via.type = 'button'; via.id = 'mzGpSalaVia'; via.disabled = !pronti; via.style.opacity = pronti ? '1' : '.55';
     via.addEventListener('click', () => { suona('click'); invia({ t: 'via', pista, bot }); });
+    const piste = el('div', 'riga');
+    for (const [id, d] of PISTE_AMICI) {
+      const b = el('button', id === pista ? 'on' : '', d.nome) as HTMLButtonElement; b.type = 'button'; b.dataset['id'] = id;
+      b.appendChild(el('small', '', d.tipo === 'fuga' ? 'fuga dall’onda' : `${d.giri} giri`));
+      b.addEventListener('click', () => { pista = id; suona('click'); disegna(); });
+      piste.appendChild(b);
+    }
     const scelta = el('div', 'riga');
     for (const [v, nome, sub] of [[true, '🦊 CON I BOT', 'tu, gli amici e 4 animali'], [false, 'SOLO NOI', 'senza avversari finti']] as const) {
       const b = el('button', bot === v ? 'on' : '', nome) as HTMLButtonElement; b.type = 'button'; b.dataset['id'] = v ? 'bot_si' : 'bot_no';
@@ -77,14 +86,14 @@ export function creaSalaAmici(o: { root: HTMLElement; token: () => string }): Sa
     const nota = inCorso ? `C'è una gara in corso (${inCorso.membri.length}): quando finisce si riparte` : `Chi apre «con gli amici» entra qui · al massimo ${GA_MAX} · chiunque preme VIA`;
     box.append(el('h2', '', '👥 GARA TRA AMICI'), el('div', 'sub', nota), el('div', 'lbl', `IN SALA (${membri.length})`), lista);
     if (errore) { const e = el('div', 'sub', errore); e.style.color = PAL.rosso; box.appendChild(e); }
-    box.append(el('div', 'lbl', 'AVVERSARI'), scelta,
+    box.append(el('div', 'lbl', 'PISTA'), piste, el('div', 'lbl', 'AVVERSARI'), scelta,
       el('div', 'cmd', 'Gli amici li vedi in pista come fantasmi (passi attraverso). I bot li ha ognuno nella sua gara, come da solo. Pista e bot li sceglie chi preme VIA.'), via, esci);
     sc.replaceChildren(box); sc.classList.add('on');
   }
 
   function connetti() {
     const t = o.token();
-    if (!t) { errore = 'Serve il tuo link personale per correre con gli amici'; disegna(); return; }
+    if (!t) { errore = 'Serve il tuo link personale: aprilo dal messaggio che ti è arrivato (questo browser non sa chi sei)'; disegna(); return; }
     const u = new URL('/ws/gara', location.href);
     u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('t', t);
     const s = new WebSocket(u.toString()); ws = s;
