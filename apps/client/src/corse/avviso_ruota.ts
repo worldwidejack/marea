@@ -3,12 +3,12 @@
 // Sul PC non compare mai. `?ruota=1` lo forza (per provarlo), `?ruota=0` lo toglie.
 import { P } from '../render/island_parts.ts';
 
-export type AvvisoRuota = { visibile(): boolean; chiudi(): void };
+export type AvvisoRuota = { visibile(): boolean; chiudi(): void; /** Acceso solo mentre si gioca (nel gioco, schermo delle Corse aperto); sul banco di prova sempre. */ attiva(on: boolean): void };
 
-export function avvisoRuota(root: HTMLElement): AvvisoRuota {
+export function avvisoRuota(root: HTMLElement, attivoDaSubito = true): AvvisoRuota {
   const q = new URLSearchParams(location.search).get('ruota');
   const verticale = matchMedia('(orientation: portrait)'), dito = matchMedia('(pointer: coarse)');
-  let scappato = false;
+  let scappato = false, attivo = attivoDaSubito;
   const css = document.createElement('style');
   css.textContent = `
 .pp-ruota { position: fixed; inset: 0; z-index: 50; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px;
@@ -28,12 +28,12 @@ export function avvisoRuota(root: HTMLElement): AvvisoRuota {
   root.appendChild(el);
   const serve = () => q === '1' ? verticale.matches : q === '0' ? false : verticale.matches && dito.matches && Math.min(innerWidth, innerHeight) < 700;
   function agg() {
-    const on = !scappato && serve();
+    const on = attivo && !scappato && serve();
     el.classList.toggle('on', on);
-    if (!on && !serve()) scappato = false; // girato in orizzontale: la prossima volta in verticale riavvisa
+    if (!serve()) scappato = false; // girato in orizzontale: la prossima volta in verticale riavvisa
   }
   verticale.addEventListener('change', agg); addEventListener('resize', agg); agg();
   // su Android, da schermo intero o app installata, il blocco in orizzontale funziona; altrove si ignora in silenzio
   try { (screen.orientation as unknown as { lock?: (o: string) => Promise<void> }).lock?.('landscape')?.catch(() => {}); } catch { /* niente */ }
-  return { visibile: () => el.classList.contains('on'), chiudi: () => { scappato = true; agg(); } };
+  return { visibile: () => el.classList.contains('on'), chiudi: () => { scappato = true; agg(); }, attiva: (on) => { attivo = on; if (!on) scappato = false; agg(); } };
 }

@@ -27,6 +27,7 @@ import { dosaDono, faroProssimo, versaNelFaro } from '@marea/sim/economy/faro.ts
 import type { FaroStato } from '@marea/sim/economy/faro.ts';
 import { recordDi, segnaRecord } from '@marea/sim/economy/record.ts';
 import { MINIGAMES } from '@marea/sim/minigames/registry.ts';
+import '@marea/sim/corse/registra.ts'; // Corse: il server rigioca sul motore v2 (#173)
 import type { Env } from '../env.ts';
 
 const json = (dati: unknown, status = 200): Response =>

@@ -187,7 +187,7 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 4. **Zona Spiaggia e porto**: 4 piste, boss granchio, kit 3D, veicoli buffi, manichini, musica e suoni. Il primo circuito finito sostituisce il Gran Premio.
    - **4a. Le 4 piste grezze** (**fatto**, 9 ott 2026): Lungomare, Baia, Porto misto, Fuga dall'onda, giocabili su `provapiste.html?pista=spiaggia_…`. Il gioco non cambia ancora.
    - 4b. Vestire la zona: kit Blender e scenografia delle 4 piste con i manichini (**fatto**, 9 ott 2026, #176); restano veicoli buffi e granchio campione, musica e suoni.
-   - 4c. Il Lungomare al posto del Gran Premio (`garaCorse` nel registro, il server rigioca).
+   - 4c. Il Lungomare al posto del Gran Premio (**fatto**, 10 ott 2026, #173): lo schermo delle Corse nel gioco gira sul motore v2 con scelta di pista e veicolo (le 4 piste), `garaCorse` sul server (`corse/registra.ts`), avatar al volante, telefono in orizzontale. Il vecchio Gran Premio (`minigames/corse.ts`) non è più collegato al gioco. Restano: record per pista (oggi un solo record `corse` per tutte), i veicoli veri nella sim (oggi 5 su 14).
 5. Hub alla Diddy Kong Racing: isola aperta, porta della Spiaggia, garage, le altre porte chiuse.
 6. Fantasmi, stelle e sblocchi, premi per MAREA.
 7. Zone 2-6 con la stessa catena di montaggio.

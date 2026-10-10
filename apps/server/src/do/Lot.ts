@@ -36,6 +36,7 @@ import type { EventiMissione } from '@marea/sim/economy/missioni.ts';
 import { firmaLibro, rientra, segnaVisto } from '@marea/sim/economy/rientro.ts';
 import { donaAlFaro, segnaFaro } from '@marea/sim/economy/faro.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
+import '@marea/sim/corse/registra.ts'; // Corse: il server rigioca sul motore v2 (#173)
 import { isPackedInputs, replayPartita } from '@marea/sim/replay.ts';
 import { registraDiscesa, registraPartita, registraVisti, riscuotiTraguardo, scegliTitolo } from '@marea/sim/economy/diario.ts';
 import { fitHero } from '@marea/sim/rpg/hero.ts';
