@@ -16,7 +16,6 @@ import type { Hud } from '../ui/hud.ts';
 import type { Api } from '../net/api.ts';
 import { ApiError } from '../net/api.ts';
 import { CHIESA } from '../render/island_templari.ts';
-import { M, merged, painted } from '../render/island_parts.ts';
 import { suona } from '../audio/ponte.ts';
 import { PAL, el, injectUiStyle } from '../ui/style.ts';
 import { topButton } from '../ui/topbar.ts';
@@ -42,25 +41,6 @@ export type Templari = {
   calice(): boolean;
 };
 
-/** Il biglietto di fra' Guillaume (docs/TEMPLARI.md §1-2): la fuga da La Rochelle, la rotta verso l'isola, l'avvertimento. */
-export const BIGLIETTO = [
-  'Anno del Signore 1307, d’ottobre.',
-  'La notte di venerdì tredici il re di Francia ci ha fatti prendere tutti. Noi di La Rochelle siamo salpati prima dell’alba: diciotto navi, e nelle stive il tesoro del Tempio.',
-  'La tempesta ci ha spaccati su questi scogli, sotto il faro. Io solo sono vivo, e non per molto.',
-  'Le altre navi tenevano la rotta di libeccio, verso l’isola tra la montagna di fuoco e il giardino: là i fratelli alzeranno Santa Maria del Tempio e aspetteranno il Gran Maestro.',
-  'Porta loro il calice. Posalo sull’altare.',
-  'Ma se senti gridare «Deus vult» sotto la terra, scappa.',
-  '— fra’ Guillaume, sergente del Tempio',
-];
-const CSS_BIGLIETTO = `
-#mzBiglietto { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100% - 32px)); max-height: calc(100% - 120px); overflow-y: auto; box-sizing: border-box; padding: 16px 16px 12px; z-index: 31; display: none;
-  background: ${PAL.sabbiaChiara}; color: ${PAL.ombraCalda}; border: 3px solid ${PAL.legnoChiaro}; box-shadow: 0 4px 0 ${PAL.neroCaldo}, inset 0 0 0 2px ${PAL.sabbia}; font-size: 14px; line-height: 1.45; }
-#mzBiglietto.on { display: block; }
-#mzBiglietto b { display: block; margin-bottom: 8px; font-size: 13px; letter-spacing: .1em; color: ${PAL.rosso}; text-align: center; }
-#mzBiglietto p { margin: 0 0 8px; }
-#mzBiglietto p.firma { text-align: right; font-style: italic; }
-#mzBiglietto button { display: block; margin: 10px auto 0; min-width: 120px; min-height: 44px; background: ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.legnoChiaro}; font: bold 15px ui-monospace, Menlo, monospace; cursor: pointer; }
-`;
 
 const NEAR_M = 4;
 /** Stato condiviso col chunk (test): autopilota (tick per frame) e vista corrente per state().templari. */
@@ -85,28 +65,19 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   const haCalice = () => caliceQui || (o.getLot()?.reliquie ?? []).includes('templari');
   const calice = new THREE.Group(); calice.name = 'calice_templare'; calice.visible = false;
   if (relitto) {
-    const oro = merged([
-      painted(new THREE.CylinderGeometry(0.13, 0.15, 0.05, 8), PAL.arancio, M(0, 0.025, 0)),
-      painted(new THREE.CylinderGeometry(0.03, 0.04, 0.2, 6), PAL.giallo, M(0, 0.15, 0)),
-      painted(new THREE.OctahedronGeometry(0.06, 0), PAL.arancio, M(0, 0.16, 0)),
-      painted(new THREE.CylinderGeometry(0.12, 0.05, 0.16, 8), PAL.giallo, M(0, 0.33, 0)),
-      painted(new THREE.CylinderGeometry(0.125, 0.125, 0.025, 8), PAL.arancio, M(0, 0.41, 0)),
-      ...[0, 2.1, 4.2].map((a) => painted(new THREE.BoxGeometry(0.035, 0.035, 0.035), PAL.rosso, M(Math.cos(a) * 0.1, 0.32, Math.sin(a) * 0.1))),
-    ]);
-    const corpo = new THREE.Mesh(oro, new THREE.MeshBasicMaterial({ vertexColors: true })); corpo.scale.setScalar(1.4);
-    const fascio = new THREE.Mesh(new THREE.BoxGeometry(0.35, 9, 0.35).translate(0, 4.5, 0), new THREE.MeshBasicMaterial({ color: PAL.giallo, transparent: true, opacity: 0.22, depthWrite: false }));
-    fascio.renderOrder = 2;
-    calice.add(corpo, fascio);
     calice.position.set(relitto.x, o.world.groundY(relitto.x, relitto.z) + 0.45, relitto.z);
     o.world.scene.add(calice);
+    void import('./templari_relitto.ts').then((m) => m.riempiCalice(calice), () => {}); // l'oro e il fascio di luce: chunk a parte
   }
-  if (!document.getElementById('mz-biglietto-style')) { const st = document.createElement('style'); st.id = 'mz-biglietto-style'; st.textContent = CSS_BIGLIETTO; document.head.appendChild(st); }
-  const biglietto = el('div', 'mz'); biglietto.id = 'mzBiglietto';
-  const chiudi = el('button', '', 'Chiudi') as HTMLButtonElement; chiudi.type = 'button'; chiudi.dataset['act'] = 'chiudi';
-  biglietto.append(el('b', '', '✠ IL BIGLIETTO DELLO SCHELETRO'), ...BIGLIETTO.map((r, i) => el('p', i === BIGLIETTO.length - 1 ? 'firma' : '', r)), chiudi);
-  for (const ev of ['pointerdown', 'touchstart']) biglietto.addEventListener(ev, (x) => x.stopPropagation());
-  chiudi.addEventListener('click', () => { biglietto.classList.remove('on'); nearRWas = true; });
-  o.root.append(biglietto);
+  // il biglietto: chunk a parte (game/templari_relitto.ts), scaricato la prima volta che lo apri
+  let biglietto: HTMLElement | null = null;
+  const bigliettoAperto = () => !!biglietto?.classList.contains('on');
+  const apriBiglietto = async (): Promise<void> => {
+    try {
+      if (!biglietto) { const m = await import('./templari_relitto.ts'); biglietto ??= m.creaBiglietto(o.root, () => { nearRWas = true; }); }
+      biglietto.classList.add('on');
+    } catch { o.hud.toast('Il biglietto non si apre: niente connessione, riprova', 3000); }
+  };
   const btnR = el('button', 'mz mz-play'); btnR.id = 'mzTemplariCalice'; btnR.type = 'button';
   btnR.style.background = PAL.giallo; btnR.style.color = PAL.ombraCalda;
   for (const ev of ['pointerdown', 'touchstart']) btnR.addEventListener(ev, (x) => x.stopPropagation());
@@ -115,7 +86,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   let nearR = false, nearRWas = false, busyR = false, prese = 0;
   async function usaRelitto(): Promise<void> {
     if (busyR) return;
-    if (haCalice()) { biglietto.classList.add('on'); return; }
+    if (haCalice()) { await apriBiglietto(); return; }
     busyR = true;
     try {
       const api = o.api && FLAGS.token ? o.api : null;
@@ -123,7 +94,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       else { caliceQui = true; o.hud.toast('Senza il tuo link personale il calice resta tuo solo per questa visita', 3200); }
       prese++;
       suona('medaglia_oro');
-      biglietto.classList.add('on');
+      await apriBiglietto();
       o.hud.toast('Il calice dei Templari è tuo', 4200);
     } catch (e) { fail(e, 'Il calice non si stacca dalle ossa, riprova'); } finally { busyR = false; }
   }
@@ -205,7 +176,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   registerTestHook('templariPorta', () => { if (!spot) return null; o.world.avatar.teleport(spot.x - 1.5, spot.z + 1); return spot; });
   /** Test: a piedi accanto allo scheletro sotto il faro della Tempesta. */
   registerTestHook('templariRelitto', () => { if (!relitto) return null; o.world.avatar.teleport(relitto.x - 1.2, relitto.z + 0.8); return relitto; });
-  registerStateProvider('templariRelitto', () => ({ relitto, calice: haCalice(), visibile: calice.visible, near: nearR, prese, biglietto: biglietto.classList.contains('on') }));
+  registerStateProvider('templariRelitto', () => ({ relitto, calice: haCalice(), visibile: calice.visible, near: nearR, prese, biglietto: bigliettoAperto() }));
 
   return {
     spot,
@@ -218,7 +189,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       // lo scheletro della Tempesta: A vicino prende il calice o rilegge il biglietto
       if (relitto && !busy && !run) {
         const f = o.world.avatar.state;
-        nearR = o.world.mode === 'walk' && !o.world.race.on && !biglietto.classList.contains('on') && Math.hypot(f.x - relitto.x, f.z - relitto.z) < NEAR_M;
+        nearR = o.world.mode === 'walk' && !o.world.race.on && !bigliettoAperto() && Math.hypot(f.x - relitto.x, f.z - relitto.z) < NEAR_M;
         if (nearR && !nearRWas) o.hud.toast(haCalice() ? 'Lo scheletro del Templare: premi A per rileggere il biglietto' : 'Uno scheletro con un calice d’oro in grembo: premi A', 2800);
         nearRWas = nearR;
         if (nearR && pressA) { void usaRelitto(); return; }
@@ -240,7 +211,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       if (btnR.firstChild?.textContent !== testo) btnR.replaceChildren(el('span', '', testo), el('small', '', 'A'));
       // il calice gira piano e sale e scende a scatti (6 al secondo) finché non è tuo
       calice.visible = !!relitto && !mio;
-      if (calice.visible) { const st = Math.floor(t * 6); calice.rotation.y = st * 0.2; calice.children[0]!.position.y = 0.06 * Math.sin(st * 0.5); }
+      if (calice.visible) { const st = Math.floor(t * 6); calice.rotation.y = st * 0.2; const c0 = calice.children[0]; if (c0) c0.position.y = 0.06 * Math.sin(st * 0.5); }
     },
   };
 }

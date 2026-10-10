@@ -10,6 +10,7 @@ import { NESSUNO, distanzaIsola, mappeDaOro, respingi, sblocchi, sbloccoTema, vi
 import type { Viaggiatore } from '../src/world/temi.ts';
 import { newLot } from '../src/economy/actions.ts';
 import { finishSolo, startSolo } from '../src/economy/rewards.ts';
+import { LIBERATORIA, firmaLiberatoria } from '../src/adrenalina/liberatoria.ts';
 import { BORDO } from '../src/constants.ts';
 import type { InputFrame } from '../src/types.ts';
 
@@ -20,10 +21,10 @@ const isola = (id: string): ArchPlace => { const p = temi.find((q) => q.island =
 const T0 = Date.UTC(2026, 9, 8, 12);
 const LIBERE = new Set(['corse', 'templari']);
 
-test('sei isole a tema, ognuna con uno sblocco diverso e lontana dal giro iniziale', () => {
-  assert.deepEqual(temi.map((p) => p.island).sort(), ['corse', 'ghiacci', 'giardino', 'tempesta', 'templari', 'vulcano']);
-  // le Corse (docs/CORSE.md) e i Templari (dal 10/10, senza calice) sono aperte a tutti, anche senza link personale
-  assert.deepEqual(temi.map((p) => p.tema!.sblocco.tipo).sort(), ['cappello', 'libera', 'libera', 'livello', 'mappa', 'molo']);
+test('sette isole a tema, ognuna con uno sblocco diverso e lontana dal giro iniziale', () => {
+  assert.deepEqual(temi.map((p) => p.island).sort(), ['adrenalina', 'corse', 'ghiacci', 'giardino', 'tempesta', 'templari', 'vulcano']);
+  // le Corse (docs/CORSE.md) e i Templari (dal 10/10, senza calice) sono aperte a tutti, anche senza link personale; l'Adrenalina vuole firma e casco (docs/ADRENALINA.md)
+  assert.deepEqual(temi.map((p) => p.tema!.sblocco.tipo).sort(), ['cappello', 'funivia', 'libera', 'libera', 'livello', 'mappa', 'molo']);
   for (const p of temi) assert.equal(p.style, p.island, `${p.island}: stile = tema`);
   const porto = arch.spawnOf(null);
   for (const p of temi) {
@@ -50,12 +51,13 @@ test('viaggiatore dal lotto: Molo, personaggio, cappello, mappe', () => {
 
 test('di serie tutte chiuse (tranne Corse e Templari, aperte a tutti), col motivo giusto in italiano', () => {
   const s = sblocchi(arch.places, NESSUNO);
-  assert.equal(Object.keys(s).length, 6);
+  assert.equal(Object.keys(s).length, 7);
   for (const [id, v] of Object.entries(s)) assert.equal(v.aperta, LIBERE.has(id), id);
   assert.match(s['tempesta']!.motivo, /tempesta ti respinge.*Molo al livello 2/);
   assert.match(s['ghiacci']!.motivo, /mare gela.*livello 3/);
   assert.match(s['vulcano']!.motivo, /abitanti ti cacciano.*Lanterna in testa/);
   assert.match(s['giardino']!.motivo, /nebbia.*mappa del Giardino/);
+  assert.match(s['adrenalina']!.motivo, /guardiano della funivia.*liberatoria.*casco in testa/);
   // con lotto nuovo (Molo L1) e cappello di paglia: tutto chiuso tranne Corse e Templari
   const v = viaggiatore(newLot('bruno', T0), 1);
   assert.ok(Object.entries(sblocchi(arch.places, v)).every(([id, x]) => x.aperta === LIBERE.has(id)));
@@ -63,12 +65,13 @@ test('di serie tutte chiuse (tranne Corse e Templari, aperte a tutti), col motiv
 });
 
 test('ognuna si apre col suo requisito, e solo con quello', () => {
-  const base: Viaggiatore = { molo: 1, livello: 1, cappello: 'paglia', mappe: [], reliquie: [] };
+  const base: Viaggiatore = { molo: 1, livello: 1, cappello: 'paglia', mappe: [], reliquie: [], liberatorie: [] };
   const casi: [string, Viaggiatore][] = [
     ['tempesta', { ...base, molo: 2 }],
     ['ghiacci', { ...base, livello: 3 }],
     ['vulcano', { ...base, cappello: 'lanterna' }],
     ['giardino', { ...base, mappe: ['giardino'] }],
+    ['adrenalina', { ...base, cappello: 'casco', liberatorie: ['adrenalina'] }],
   ];
   for (const [id, v] of casi) {
     const s = sblocchi(arch.places, v);
@@ -76,6 +79,28 @@ test('ognuna si apre col suo requisito, e solo con quello', () => {
   }
   assert.equal(sbloccoTema({ tipo: 'molo', livello: 2 }, { ...base, molo: 3 }).aperta, true, 'Molo più alto del necessario');
   assert.equal(sbloccoTema({ tipo: 'libera' }, NESSUNO).aperta, true, 'libera: aperta anche senza niente');
+});
+
+test('Adrenalina: si sbarca sempre (niente barriera), ma la funivia vuole la liberatoria firmata e il casco in testa', () => {
+  const p = isola('adrenalina'), s = p.tema!.sblocco;
+  assert.equal(p.tema!.barriera, 0, 'niente barriera: ti ferma il cancello, non il mare');
+  assert.equal(s.tipo, 'funivia');
+  const casco = AVATAR.cappelli.find((h) => h.id === 'casco');
+  assert.ok(casco && casco.perle > 0 && !casco.mercante, 'il casco si compra a Perle dall’editor');
+  assert.equal(AVATAR.cappelli.at(-1)!.id, 'casco', 'in coda: gli indici dei cappelli salvati restano quelli');
+  const base: Viaggiatore = { ...NESSUNO, molo: 1 };
+  const solo = sbloccoTema(s, { ...base, cappello: 'casco' });
+  assert.equal(solo.aperta, false); assert.equal(solo.manca, 'La liberatoria');
+  const firma = sbloccoTema(s, { ...base, liberatorie: ['adrenalina'] });
+  assert.equal(firma.aperta, false); assert.match(firma.motivo, /senza casco qui non sale nessuno/); assert.equal(firma.manca, 'Casco (35 Perle)');
+  assert.equal(sbloccoTema(s, { ...base, liberatorie: ['adrenalina'], cappello: 'lanterna' }).aperta, false, 'un altro cappello non basta');
+  assert.equal(sbloccoTema(s, { ...base, liberatorie: ['adrenalina'], cappello: 'casco' }).aperta, true);
+  // la firma resta nel lotto, una volta sola
+  const lot = newLot('carla', T0), r1 = firmaLiberatoria(lot), r2 = firmaLiberatoria(r1.lot);
+  assert.equal(r1.nuova, true); assert.deepEqual(r1.lot.liberatorie, ['adrenalina']); assert.equal(r1.lot.version, lot.version + 1);
+  assert.equal(r2.nuova, false); assert.equal(r2.lot, r1.lot, 'seconda firma: il lotto non cambia');
+  assert.equal(sbloccoTema(s, viaggiatore(r1.lot, 'casco')).aperta, true, 'dal lotto: firma e casco');
+  assert.match(LIBERATORIA, /ossa rotte, orgoglio ferito e Perle perse/);
 });
 
 /** Barca che punta dritta verso il molo dell'isola partendo da 120 m, a tutta forza: dove arriva. */

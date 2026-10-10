@@ -84,6 +84,8 @@ export type LotState = {
   templari?: TemplariLotto;
   /** Reliquie trovate: aprono le isole a tema con sblocco `reliquia` (la Tempesta nasconde quella dei Templari). Assente = []. */
   reliquie?: string[];
+  /** Liberatorie firmate (Isola dell'Adrenalina, docs/ADRENALINA.md §2): con il cappello giusto aprono le isole con sblocco `funivia`. Assente = []. */
+  liberatorie?: string[];
 };
 /** Partita a ondate aperta dal server (seed e opzioni da rigiocare), premio del giorno e migliori risultati. */
 export type TemplariLotto = {

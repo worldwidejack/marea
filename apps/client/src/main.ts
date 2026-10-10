@@ -29,6 +29,7 @@ import { createGuida } from './ui/guida.ts';
 import type { Guida, GuidaStep } from './ui/guida.ts';
 import { createIngressi } from './game/ingressi.ts';
 import { createTemplari } from './game/templari.ts';
+import { createAdrenalina } from './game/adrenalina.ts';
 import { createEroe } from './ui/eroe.ts';
 import { createPorto } from './game/porto.ts';
 import { createPortoAmici } from './game/porto_amici.ts';
@@ -135,6 +136,9 @@ async function boot(): Promise<void> {
   // Isole a tema (#68): sblocchi, barriere in mare, il Vulcano che caccia; in bussola appena scoperte (minimappa), col lucchetto in mappa finché chiuse
   const temi = createTemi({ world, hud, loader, root, camera: renderer.camera, canvas, getLot: () => myLot(), notte: () => aspetto?.momento === 'notte' });
   if (tpl.spot) targets.push({ id: 'templari', label: 'Chiesa', icon: 'templari', x: tpl.spot.x, z: tpl.spot.z, show: () => FLAGS.templari || temi.aperta('templari'), sezione: 'isole' });
+  // Isola dell'Adrenalina (docs/ADRENALINA.md): la funivia e il cancello con la liberatoria; ?adrenalina=1 per le prove
+  const adr = createAdrenalina({ world, renderer, api: me && api.enabled ? api : null, hud, root, getLot: () => myLot(), setLot: setMyLot, nome: () => me?.nome ?? '', aperta: () => temi.aperta('adrenalina') });
+  if (adr.spot) targets.push({ id: 'funivia', label: 'Funivia', icon: 'adrenalina', x: adr.spot.x, z: adr.spot.z, show: () => FLAGS.adrenalina || temi.aperta('adrenalina'), sezione: 'isole' });
   // lo scheletro col calice sotto il faro della Tempesta: in bussola finché il calice non è tuo (e la Tempesta è aperta)
   if (tpl.relitto) targets.push({ id: 'relitto_templare', label: 'Relitto', icon: 'templari', x: tpl.relitto.x, z: tpl.relitto.z, show: () => !tpl.calice() && temi.aperta('tempesta'), sezione: 'isole' });
   for (const p of temi.isole) targets.push({ id: 'tema:' + p.island, label: p.nome.replace(/^Isola (della |delle |dei |del )?/, ''), icon: p.island as PixId, x: p.spawn.x, z: p.spawn.z, show: () => mappa?.vista(`${p.role}:${p.index}`) ?? false, sezione: 'isole' });
@@ -308,12 +312,12 @@ async function boot(): Promise<void> {
       const f0 = input.sample(), f = foto.isOpen() ? FERMO : f0;
       if (ingressi.active) { ingressi.step(f); acc -= DT; steps++; continue; } // nel dungeon il mondo di superficie sta fermo
       if (tpl.active) { tpl.step(f); acc -= DT; steps++; continue; } // nella chiesa dei Templari idem
-      if (regata.active) regata.step(f); else { const aP0 = porto.tick(f.a), aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
-      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || !!eroe?.isOpen() || foto.isOpen()) && !regata.active;
+      if (regata.active) regata.step(f); else { const aP0 = porto.tick(f.a), aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
+      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!eroe?.isOpen() || foto.isOpen()) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
-    if (ingressi.active) ingressi.update(acc / DT, dt, t); else if (tpl.active) tpl.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); tpl.update(acc / DT, dt, t); animali?.update(dt, t); } // Animali (#67)
+    if (ingressi.active) ingressi.update(acc / DT, dt, t); else if (tpl.active) tpl.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); tpl.update(acc / DT, dt, t); adr.update(dt, t); animali?.update(dt, t); } // Animali (#67)
     regata.update(acc / DT, dt, t);
     emotes.update(dt); setTopbarHidden(regata.active || sotto());
     giochi.update(t); if (!sotto()) { porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); amici.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); libri.update(world.mode === 'walk' ? world.avatar.state : world.boat.state); } guideStep = guida.current(); guida.update(t);

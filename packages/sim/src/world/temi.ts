@@ -5,6 +5,7 @@
 //   Vulcano  → un cappello indosso (niente barriera: sbarchi, gli abitanti ti cacciano e ti rimettono in barca)
 //   Giardino → una mappa (la nebbia ti fa girare in tondo e tornare indietro); la regala la prima medaglia d'oro da solo
 //   Templari → la reliquia del relitto templare sotto il faro della Tempesta (nebbia rossa, come il Giardino)
+//   Adrenalina → liberatoria firmata e casco indosso (niente barriera e niente cacciata: si sbarca, ti ferma il cancello della funivia)
 import { ARCHIPELAGO, AVATAR } from '@marea/content';
 import type { TemaSblocco } from '@marea/content';
 import type { LotState } from '../economy/types.ts';
@@ -13,9 +14,9 @@ import type { BoatState } from './boat.ts';
 import type { GridMap } from './grid.ts';
 import * as trig from '../trig.ts';
 
-/** Quel che serve per decidere: livello del Molo (0 = nessuna isola), livello del personaggio, cappello indosso (id), mappe possedute. */
-export type Viaggiatore = { molo: number; livello: number; cappello: string | null; mappe: readonly string[]; reliquie: readonly string[] };
-export const NESSUNO: Viaggiatore = { molo: 0, livello: 1, cappello: null, mappe: [], reliquie: [] };
+/** Quel che serve per decidere: livello del Molo (0 = nessuna isola), livello del personaggio, cappello indosso (id), mappe, reliquie e liberatorie. */
+export type Viaggiatore = { molo: number; livello: number; cappello: string | null; mappe: readonly string[]; reliquie: readonly string[]; liberatorie?: readonly string[] };
+export const NESSUNO: Viaggiatore = { molo: 0, livello: 1, cappello: null, mappe: [], reliquie: [], liberatorie: [] };
 /** `motivo`: la frase che vede chi viene respinto; `manca`: cosa serve, corto (minimappa, bussola). */
 export type Sblocco = { aperta: boolean; motivo: string; manca: string };
 
@@ -23,7 +24,7 @@ export type Sblocco = { aperta: boolean; motivo: string; manca: string };
 export function viaggiatore(lot: LotState | null, cappello: number | string | null): Viaggiatore {
   const molo = lot ? lot.buildings.reduce((m, b) => (b.building === 'molo' ? Math.max(m, b.level) : m), 0) : 0;
   const hat = typeof cappello === 'number' ? AVATAR.cappelli[cappello]?.id ?? null : cappello;
-  return { molo, livello: lot?.hero?.livello ?? 1, cappello: hat && hat !== 'nessuno' ? hat : null, mappe: lot?.mappe ?? [], reliquie: lot?.reliquie ?? [] };
+  return { molo, livello: lot?.hero?.livello ?? 1, cappello: hat && hat !== 'nessuno' ? hat : null, mappe: lot?.mappe ?? [], reliquie: lot?.reliquie ?? [], liberatorie: lot?.liberatorie ?? [] };
 }
 
 const hatOf = (id: string) => AVATAR.cappelli.find((c) => c.id === id);
@@ -56,6 +57,11 @@ export function sbloccoTema(s: TemaSblocco, v: Viaggiatore): Sblocco {
     case 'reliquia': {
       const ok = (v.reliquie ?? []).includes(s.reliquia);
       return { aperta: ok, motivo: ok ? 'Aperta' : 'Una nebbia rossa ti fa girare al largo: qualcosa, sotto il faro della Tempesta, apre la strada', manca: 'La reliquia dei Templari' };
+    }
+    case 'funivia': { // Isola dell'Adrenalina: prima la firma, poi il casco in testa
+      const firmata = (v.liberatorie ?? []).includes(s.liberatoria), casco = v.cappello === s.cappello, h = hatOf(s.cappello), prezzo = `${h?.nome ?? s.cappello} (${h?.perle} Perle)`;
+      if (firmata && casco) return { aperta: true, motivo: 'Aperta', manca: '' };
+      return { aperta: false, motivo: `Il guardiano della funivia: ${firmata ? 'senza casco qui non sale nessuno' : 'prima la liberatoria, poi casco in testa'}`, manca: firmata ? prezzo : casco ? 'La liberatoria' : `Liberatoria e ${prezzo}` };
     }
   }
 }

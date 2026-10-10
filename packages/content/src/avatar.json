@@ -35,7 +35,8 @@
     { "id": "pirata", "nome": "Tricorno pirata", "perle": 45, "mercante": true },
     { "id": "polpo", "nome": "Polpo in testa", "perle": 60, "mercante": true },
     { "id": "corona", "nome": "Corona di perle", "perle": 80, "mercante": true },
-    { "id": "palombaro", "nome": "Elmo da palombaro", "perle": 100, "mercante": true }
+    { "id": "palombaro", "nome": "Elmo da palombaro", "perle": 100, "mercante": true },
+    { "id": "casco", "nome": "Casco", "perle": 35 }
   ],
   "emote": ["saluto", "esulta", "ride", "no", "applauso", "cuore", "sorpresa", "balla"]
 }
