@@ -170,7 +170,7 @@ export function startRun(ctx: RunCtx, o: {
   void (async () => {
     try {
       await ctx.loader.extend('manifest_rpg.json');
-      sc = await createDungeonScene(ctx.loader, o.dungeon);
+      sc = await createDungeonScene(ctx.loader, o.dungeon, ctx.renderer.camera);
       hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: s.runHero, scene: sc.scene, floorY: sc.floorY, x: view.hero.x, z: view.hero.z, mirino: true });
       for (const a of amici) {
         const r = s.eroi[a.i]!;
@@ -201,7 +201,8 @@ export function startRun(ctx: RunCtx, o: {
       if (s.salvato) controls.setSalvato(true);
       hero.tick(view.hero); actors.tick(view); fx?.tick(view); afx?.tick(view); ffx?.tick(view); mfx?.tick(view); ufx.tick(view); sc.setAcque(view.acque); tickAmici();
       ctx.renderer.setScene(sc.scene);
-      ctx.renderer.diorama.setZoom(1.0);
+      // telefono in verticale: un po' più larghi (il campo orizzontale è stretto), come nell'arena dei Templari
+      ctx.renderer.diorama.setZoom(ctx.canvas.clientHeight > ctx.canvas.clientWidth * 1.2 ? 1.3 : 1.0);
       ctx.renderer.diorama.follow(view.hero.x, sc.floorY + 0.9, view.hero.z); ctx.renderer.diorama.snap?.();
       if (s.partenza >= 0) { sc.setAltare(s.partenza); hud.flash('LANTERNA', PAL.giallo, 'riparti da dove eri uscito', 1800); }
       if (rete) { rete.manda({ t: 'carico' }); hud.flash('INSIEME', PAL.erbaChiara, `${rete.eroi.map((e) => e.nome).join(', ')}: si parte quando ci siete tutti`, 2200); }

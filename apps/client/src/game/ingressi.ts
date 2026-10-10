@@ -262,6 +262,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
 
   async function enter(s: Spot, daTest?: 'ingresso' | 'lanterna'): Promise<void> {
     if (busy || run || o.world.race.on || daBox) return;
+    if (!o.api && FLAGS.test && !FLAGS.net) { await provaOffline(s); return; }
     if (sigillato(s)) { lastErr = `Sigillato: prima completa ${nomeDi(richiesto(s.id))}`; o.hud.toast(lastErr, 3200); return; }
     const api = o.api;
     if (!api) { o.hud.toast('Per scendere serve il tuo link personale', 3000); return; }
@@ -297,6 +298,19 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     } catch (e) {
       console.error('[marea] dungeon', e); fail(e, 'Qualcosa è andato storto nel dungeon');
       if (run) { run.abort(); run = null; }
+      backToEntrance(s, zoom0);
+    } finally { busy = false; current = null; }
+  }
+  /** Prova senza server (?test=1&net=0): eroe nuovo, seed dei flag, niente consegna né sigilli. Per guardare e fotografare ogni dungeon. */
+  async function provaOffline(s: Spot): Promise<void> {
+    busy = true; btn.classList.remove('on');
+    const zoom0 = o.renderer.diorama.zoom;
+    try {
+      const [mod, { newHero, runHeroOf }] = await Promise.all([import('../rpg/index.ts'), import('@marea/sim/rpg/hero.ts')]);
+      run = mod.startRun(ctx, { dungeon: s.id, seed: FLAGS.seed, hero: runHeroOf(newHero()) });
+      entered++; current = s.id; busy = false;
+      await run.done;
+      run = null; busy = true;
       backToEntrance(s, zoom0);
     } finally { busy = false; current = null; }
   }

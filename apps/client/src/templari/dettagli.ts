@@ -3,8 +3,7 @@
 // scudo, spada, il leone ai piedi, come alla Temple Church), gli armadi e il tavolo coi calici della sacrestia, il crocifisso sopra il
 // tramezzo, le panche rovesciate, i candelabri accesi, le vetrate colorate sopra le finestre sbarrate, gli arazzi rossi del coro, i raggi
 // di luna dal tetto crollato. Fuori: le tende da mercato sopra gli usci con casse e ceste di frutta, i balconi di legno a grata, le palme,
-// i lampioni con l'alone caldo, i tavoli della taverna, la nebbia bassa del cimitero. Tutto instanziato o unito (poche draw call); quello
-// che sta sui muri si spegne quando i muri verso la camera si abbassano (`abbassa`).
+// i lampioni con l'alone caldo, i tavoli della taverna, la nebbia bassa del cimitero. Tutto instanziato o unito (poche draw call).
 import * as THREE from 'three';
 import type { Arena } from '@marea/sim/templari/mappa.ts';
 import { C, SUOLO, TIPO } from '@marea/sim/templari/mappa.ts';
@@ -15,7 +14,6 @@ import { unisci } from './armi3d.ts';
 import type { Pezzo } from './armi3d.ts';
 
 export type Dettagli = {
-  abbassa(muroBasso: (i: number) => boolean): void;
   update(t: number): void;
   stats(): { sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number };
   dispose(): void;
@@ -24,8 +22,7 @@ export type Dettagli = {
 const B = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const CY = (r0: number, r1: number, h: number, n = 6) => new THREE.CylinderGeometry(r0, r1, h, n);
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
-const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
-type Posto = { x: number; y?: number; z: number; ry?: number; s?: number; cell?: number };
+type Posto = { x: number; y?: number; z: number; ry?: number; s?: number };
 
 function tex(w: number, h: number, draw: (px: (c: string, x: number, y: number, w?: number, h?: number) => void) => void): THREE.CanvasTexture {
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
@@ -174,13 +171,11 @@ export function createDettagli(scene: THREE.Scene, a: Arena, o: { centro: { x: n
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
   const lam = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }); disp.push(lam);
   const mat = (p: Posto) => new THREE.Matrix4().compose(v.set(p.x, p.y ?? 0, p.z), q.setFromEuler(e.set(0, p.ry ?? 0, 0)), sc.setScalar(p.s ?? 1));
-  const gruppo: { im: THREE.InstancedMesh; posti: Posto[] }[] = [];
-  /** Un tipo di oggetto in tutti i suoi posti: una draw call. Chi ha `cell` si spegne col muro abbassato. */
+  /** Un tipo di oggetto in tutti i suoi posti: una draw call. */
   const istanze = (geo: THREE.BufferGeometry, posti: Posto[], nome: string, m: THREE.Material = lam) => {
     const im = new THREE.InstancedMesh(geo, m, Math.max(1, posti.length)); im.name = nome; im.count = posti.length; im.frustumCulled = false; im.visible = posti.length > 0;
     posti.forEach((p, n) => im.setMatrixAt(n, mat(p)));
     scene.add(im); disp.push(geo); if (m !== lam) disp.push(m);
-    gruppo.push({ im, posti });
     return im;
   };
   const fiammelle: THREE.Vector3[] = [], aloni: { p: THREE.Vector3; c: string; s: number }[] = [];
@@ -247,7 +242,7 @@ export function createDettagli(scene: THREE.Scene, a: Arena, o: { centro: { x: n
     const lat = N4.filter(([dx, dz]) => Math.abs(dx) !== Math.abs(nx / d) || Math.abs(dz) !== Math.abs(nz / d)).map(([dx, dz]) => at(f.cx + dx, f.cz + dz)).filter((i) => i >= 0 && a.cell[i] === C.muro);
     const hMin = Math.min(...lat.map((i) => o.altezza(i)), 9);
     if (hMin < 3.0) return;
-    vet.push({ x: f.x + (nx / d) * 0.05, y: 2.35, z: f.z + (nz / d) * 0.05, ry: Math.atan2(nx / d, nz / d), cell: f.cz * W + f.cx });
+    vet.push({ x: f.x + (nx / d) * 0.05, y: 2.35, z: f.z + (nz / d) * 0.05, ry: Math.atan2(nx / d, nz / d) });
   });
   const vetT = vetrataTex(); disp.push(vetT);
   const vetGeo = new THREE.PlaneGeometry(0.9, 1.2); vetGeo.translate(0, 0.6, 0);
@@ -262,7 +257,7 @@ export function createDettagli(scene: THREE.Scene, a: Arena, o: { centro: { x: n
       const j = at(cx + dx, cz + dz);
       if (j < 0 || a.cell[j] !== C.pavimento || a.suolo[j] !== SUOLO.pietra) continue;
       if (Math.abs(ctr(j).z - a.altare.z) > 7 || ctr(j).x < o.centro.x + 9) continue; // solo nel coro
-      araz.push({ x: (cx + 0.5 + dx * 0.52) * T, y: 0.9, z: (cz + 0.5 + dz * 0.52) * T, ry: Math.atan2(dx, dz), cell: i });
+      araz.push({ x: (cx + 0.5 + dx * 0.52) * T, y: 0.9, z: (cz + 0.5 + dz * 0.52) * T, ry: Math.atan2(dx, dz) });
       break;
     }
   }
@@ -286,8 +281,8 @@ export function createDettagli(scene: THREE.Scene, a: Arena, o: { centro: { x: n
       if (o.altezza(i) < 2.2) continue;
       const h = cellHash(cx, cz, 81), p = ctr(i), ry = Math.atan2(dx, dz);
       const zona = Math.floor(cx / 6) * 1000 + Math.floor(cz / 6);
-      if (h < 0.22 && !caseViste.has(zona)) { caseViste.add(zona); bott.push({ x: p.x + dx * 0.5, z: p.z + dz * 0.5, ry, cell: i }); }
-      else if (h > 0.86 && o.altezza(i) >= 2.6) bal.push({ x: p.x + dx * 0.5, z: p.z + dz * 0.5, ry, cell: i });
+      if (h < 0.22 && !caseViste.has(zona)) { caseViste.add(zona); bott.push({ x: p.x + dx * 0.5, z: p.z + dz * 0.5, ry }); }
+      else if (h > 0.86 && o.altezza(i) >= 2.6) bal.push({ x: p.x + dx * 0.5, z: p.z + dz * 0.5, ry });
     }
   }
   const bt = bottega();
@@ -348,14 +343,6 @@ export function createDettagli(scene: THREE.Scene, a: Arena, o: { centro: { x: n
 
   let passo = -1;
   return {
-    abbassa(muroBasso) {
-      for (const g of gruppo) {
-        if (!g.posti.some((p) => p.cell !== undefined)) continue;
-        g.posti.forEach((p, n) => g.im.setMatrixAt(n, p.cell !== undefined && muroBasso(p.cell) ? ZERO : mat(p)));
-        g.im.instanceMatrix.needsUpdate = true;
-      }
-      if (croce) croce.visible = !tram.some((i) => muroBasso(i));
-    },
     update(t) {
       const st = Math.floor(t * 8);
       if (st === passo) return;
