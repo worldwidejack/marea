@@ -9,6 +9,8 @@
 // a grata sulle celle `grata` (ci si vede attraverso: la luce le tratta come pavimento).
 // Fucina: kit in codice (rpg/fucina.ts) finché mancano i modelli dng_fucina_*; presse a vapore al posto delle colonne (dng_fucina_colonna
 // se c'è), la Colata Maestra è un bacino di lava che si abbassa a gradini quando la chiusa la raffredda.
+// Mausoleo: kit in codice (rpg/mausoleo.ts) finché mancano i modelli dng_mausoleo_*; colonne di marmo con l'ingranaggio (dng_mausoleo_colonna
+// se c'è, anche i perni delle lancette), il cancello del Santuario è un bacino di sbarre che scende nel pavimento quando giri la chiave.
 import * as THREE from 'three';
 import { dungeonDef } from '@marea/content/rpg.ts';
 import type { DungeonDef } from '@marea/content/rpg.ts';
@@ -21,6 +23,7 @@ import type { Part } from './dungeon_kit.ts';
 import { kitDrenaggio } from './drenaggio.ts';
 import { kitArchivio } from './archivio.ts';
 import { kitFucina } from './fucina.ts';
+import { kitMausoleo } from './mausoleo.ts';
 
 export type DungeonScene = {
   scene: THREE.Scene; map: DMap; def: DungeonDef; floorY: number;
@@ -47,6 +50,7 @@ const STYLE: Record<string, { floor: string; wall: string; top: number; lantern:
   drenaggio: { floor: PAL.pietraScura, wall: PAL.roccia, top: 0.05, lantern: PAL.arancio, hemi: [PAL.acquaProfonda, PAL.ombraCalda, 1.35] },
   archivio: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.giallo, hemi: [PAL.sabbia, PAL.ombraCalda, 1.25] },
   fucina: { floor: PAL.roccia, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.arancio, hemi: [PAL.legno, PAL.neroCaldo, 1.3] },
+  mausoleo: { floor: PAL.pietraChiara, wall: PAL.pietra, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.pietraChiara, PAL.abisso, 1.25] },
 };
 
 /** Un tipo di modulo istanziato su più celle: una InstancedMesh per parte, stessa numerazione; nascondere = scala 0. */
@@ -100,7 +104,7 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
       floors.push(i);
       if (isCol(cx, cz)) cols.push(i);
       if (def.legenda[c]?.luce) lightsAt.push(i);
-      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && def.stile !== 'fucina' && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
+      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && def.stile !== 'fucina' && def.stile !== 'mausoleo' && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
     } else if (c === '#') {
       let touches = false;
       for (let dz = -1; dz <= 1 && !touches; dz++) for (let dx = -1; dx <= 1; dx++) if (isFloor(cx + dx, cz + dz)) { touches = true; break; }
@@ -113,17 +117,17 @@ export async function createDungeonScene(loader: Loader, id: string): Promise<Du
   const k = def.stile;
   const [pFloor, pWall, pLow, pCol, pTorch, pExit, pBones] = await Promise.all([
     parts(loader, `dng_${k}_pavimento`), parts(loader, `dng_${k}_muro`), parts(loader, `dng_${k}_muro_basso`),
-    parts(loader, k === 'vuoto' ? 'dng_cristallo' : k === 'fucina' ? 'dng_fucina_colonna' : 'dng_colonna'), parts(loader, 'dng_torcia'), parts(loader, 'dng_scala'), parts(loader, 'dng_ossa'),
+    parts(loader, k === 'vuoto' ? 'dng_cristallo' : k === 'fucina' || k === 'mausoleo' ? `dng_${k}_colonna` : 'dng_colonna'), parts(loader, 'dng_torcia'), parts(loader, 'dng_scala'), parts(loader, 'dng_ossa'),
   ]);
   const rot = (i: number) => Math.floor(cellHash(i % W, Math.floor(i / W), 3) * 4);
   const mats = (list: number[], r: (i: number) => number) => list.map((i) => place(i % W, Math.floor(i / W), r(i)));
-  // segnaposto in codice finché non ci sono i modelli dng_drenaggio_* / dng_archivio_* / dng_fucina_*
-  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : k === 'fucina' ? kitFucina(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
+  // segnaposto in codice finché non ci sono i modelli dng_drenaggio_* / dng_archivio_* / dng_fucina_* / dng_mausoleo_*
+  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : k === 'fucina' ? kitFucina(st.top) : k === 'mausoleo' ? kitMausoleo(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
   const bFloor = makeBatch(pFloor ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, rot), 'pavimento', group);
   const bWall = makeBatch(pWall ?? dk?.muro ?? [boxPart(T, 2.4, T, 0, st.wall)], walls, mats(walls, rot), 'muro', group);
   const bLow = makeBatch(pLow ?? dk?.muro_basso ?? [boxPart(T, 0.6, T, 0, st.wall)], walls, mats(walls, rot), 'muro_basso', group);
-  // la Fucina cerca la sua pressa (dng_fucina_colonna) prima del segnaposto; Drenaggio e Archivio hanno le colonne solo in codice
-  const bCol = makeBatch((k === 'fucina' ? pCol ?? dk?.colonna : dk ? dk.colonna : pCol) ?? [boxPart(0.9, 2.4, 0.9, 0, st.wall)], cols, mats(cols, rot), 'colonna', group);
+  // Fucina e Mausoleo cercano la loro colonna (dng_<stile>_colonna) prima del segnaposto; Drenaggio e Archivio le hanno solo in codice
+  const bCol = makeBatch((k === 'fucina' || k === 'mausoleo' ? pCol ?? dk?.colonna : dk ? dk.colonna : pCol) ?? [boxPart(0.9, 2.4, 0.9, 0, st.wall)], cols, mats(cols, rot), 'colonna', group);
   // acqua dei bacini: un batch per bacino, scala in altezza = livello a gradini (0 = asciutto, non si disegna)
   const acque = map.bacini.map((b) => {
     const base = b.celle.map((i) => place(i % W, Math.floor(i / W), rot(i)).multiply(new THREE.Matrix4().makeTranslation(0, st.top, 0)));

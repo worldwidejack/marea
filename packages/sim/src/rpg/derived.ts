@@ -66,6 +66,7 @@ function armorOf(h: HeroState, m: Mods, staminaMax: number): RunArmor & { legger
     out.vsMagia = mat?.vsMagia ?? 1; out.vsTaglio = mat?.vsTaglio ?? 1; out.vsContundente = mat?.vsContundente ?? 1;
     out.moneteSuColpito = mat?.moneteSuColpito ?? 0; out.terrore = mat?.terrore ?? 0;
     out.leggera = it.peso <= (A.leggera ?? 12);
+    if (it.traits?.barriera) (out as RunArmor).barriera = { ...it.traits.barriera }; // Armatura del Moto Perpetuo
   }
   out.vsMagia = r2(out.vsMagia * clamp(1 - mod(m, 'resistMagia'), 0.1, 1));
   return out;
@@ -159,7 +160,10 @@ export function buildRunHero(h: HeroState): RunHero {
   const pi = h.equip.pozione ? pozioni.findIndex((p) => p.id === h.equip.pozione) : -1;
   const skill = {} as Record<SkillId, number>;
   for (const s of SKILLS) skill[s] = h.skill[s]?.lv ?? RPG.livelli.skillIniziale;
+  // Anello dell'Onda della Regina: l'Eco della Marea c'è o non c'è (due anelli uguali non si sommano)
+  const eco = [equipped(h, 'anello1'), equipped(h, 'anello2')].find((it) => it?.traits?.eco)?.traits?.eco;
   return {
+    ...(eco ? { eco: { ...eco } } : {}),
     livello: h.livello, max, regen,
     camminata: mv.camminata, corsa: r2(mv.corsa * (1 + mod(m, 'velocitaCorsa'))),
     staminaCorsa: r2(mv.staminaCorsa * clamp(1 + mod(m, 'staminaCorsa'), 0.1, 3)), mentreCarichi: mv.mentreCarichi, raggio: mv.raggio,

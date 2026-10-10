@@ -54,6 +54,20 @@ test('testi: la Fucina ha sottotitolo, 4 voci (il Fuochista Capo e il Mastro For
   assert.ok(/Custode dell’Egida/.test(commesse) && /Santuario/.test(commesse));
 });
 
+test('testi: il Mausoleo ha sottotitolo, 4 voci (la voce della Regina e il Custode) e 5 letture; la lettera del sarcofago c’è solo a capo morto', () => {
+  const t = dungeonDef('mausoleo').testi;
+  assert.ok(t?.sottotitolo);
+  assert.ok(t.sottotitolo.startsWith('Pilone idraulico n. 4'));
+  assert.deepEqual(t.voci?.map((v) => v.id), ['ingresso', 'quadrante', 'contrappesi', 'custode']);
+  assert.deepEqual(t.voci?.map((v) => v.chi), ['La voce della Regina', 'La voce della Regina', 'La voce della Regina', 'Il Custode dell’Egida']);
+  assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['diario:libro', 'quadrante:incisione', 'breviario:libro', 'porta:incisione', 'sarcofago:libro']);
+  assert.deepEqual(t.letture?.filter((l) => l.dopo).map((l) => [l.id, l.dopo]), [['sarcofago', 'capo']]);
+  // la lore si chiude: la Regina nelle correnti, il Mastro può spegnere il fuoco, la Regata di oggi è il suo desiderio, l'anello è suo
+  const lettera = t.letture!.find((l) => l.id === 'sarcofago')!.righe.join(' ');
+  assert.ok(/Mastro/.test(lettera) && /spegni/.test(lettera) && /fate il giro/.test(lettera) && /anello/.test(lettera));
+  assert.ok(/Regata/.test(t.letture!.find((l) => l.id === 'diario')!.righe.join(' ')), 'il diario della prima Regata finisce qui');
+});
+
 test('testi: poche voci e corte, zone dentro la mappa sul pavimento, id unici', () => {
   for (const d of DUNGEONS) {
     const t = d.testi;

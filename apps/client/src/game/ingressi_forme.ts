@@ -1,6 +1,7 @@
 // Segnaposto degli ingressi dei dungeon (game/ingressi.ts) quando manca il modello prop_ingresso_<stile> nel manifest: arco di pietra,
 // per l'Impianto di Drenaggio un casotto di lamiera, per l'Archivio Navigazionale un osservatorio con la cupola d'ottone e la banderuola,
-// per la Fucina a Pressione un altoforno di mattoni con la bocca accesa e il camino (una draw call ciascuno). Porta sigillata (Epopea della
+// per la Fucina a Pressione un altoforno di mattoni con la bocca accesa e il camino, per il Mausoleo Cinetico un tempietto di marmo bianco
+// con la cupola, l'orologio sopra la porta e i canali d'acqua (una o due draw call ciascuno). Porta sigillata (Epopea della
 // Regata): sbarre incrociate e sigillo rosso davanti alla bocca. Bundle iniziale: piccolo.
 import * as THREE from 'three';
 import { PAL } from '../ui/style.ts';
@@ -11,6 +12,7 @@ export function placeholder(stile?: string): THREE.Object3D {
   if (stile === 'drenaggio') return boccaporto();
   if (stile === 'archivio') return osservatorio();
   if (stile === 'fucina') return altoforno();
+  if (stile === 'mausoleo') return tempietto();
   const g = new THREE.Group(), stone = new THREE.MeshLambertMaterial({ color: '#4A4340', flatShading: true }), dark = new THREE.MeshLambertMaterial({ color: '#23201F' });
   for (const sx of [-1.3, 1.3]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.6, 1.2), stone); p.position.set(sx, 1.3, 0); g.add(p); }
   const top = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.7, 1.2), stone); top.position.y = 2.9; g.add(top);
@@ -82,10 +84,36 @@ function altoforno(): THREE.Object3D {
   return g;
 }
 
+/** Mausoleo Cinetico (Epopea della Regata 4), finché manca prop_ingresso_mausoleo: tempietto di marmo bianco sull'arco nord-ovest
+ *  dell'anello, sul gradino; porta scura (verso −Z) tra due colonnine d'ottone, l'orologio sopra la porta, la cupola con la lanterna
+ *  d'acqua in cima e i due canali d'acqua che escono ai lati (come la ricetta Blender). */
+function tempietto(): THREE.Object3D {
+  const cil = (r: number, h: number, n = 8) => new THREE.CylinderGeometry(r, r, h, n);
+  const parts = [
+    painted(new THREE.BoxGeometry(3.6, 0.3, 3.0), PAL.pietra, M(0, 0.15, 0.2)), // gradino
+    painted(new THREE.BoxGeometry(3.0, 2.2, 2.4), PAL.pietraChiara, M(0, 1.4, 0.3)), // il tempietto
+    painted(new THREE.BoxGeometry(3.3, 0.2, 2.7), PAL.giallo, M(0, 2.6, 0.3)), // cornice d'ottone
+    painted(new THREE.CylinderGeometry(0.9, 1.3, 0.7, 8), PAL.pietraChiara, M(0, 3.05, 0.3)), painted(cil(0.32, 0.5, 6), PAL.giallo, M(0, 3.65, 0.3)), // cupola
+    painted(new THREE.BoxGeometry(1.3, 1.5, 0.12), PAL.neroCaldo, M(0, 1.05, -0.92)), // la porta
+    painted(cil(0.13, 2.2, 6), PAL.arancio, M(-0.95, 1.4, -1.0)), painted(cil(0.13, 2.2, 6), PAL.arancio, M(0.95, 1.4, -1.0)), // colonnine
+    painted(cil(0.42, 0.06, 10), PAL.giallo, M(0, 2.15, -0.93, Math.PI / 2)), painted(cil(0.34, 0.07, 10), PAL.sabbiaChiara, M(0, 2.15, -0.94, Math.PI / 2)), // l'orologio
+    painted(new THREE.BoxGeometry(0.05, 0.26, 0.03), PAL.neroCaldo, M(0, 2.25, -0.99)), painted(new THREE.BoxGeometry(0.2, 0.05, 0.03), PAL.neroCaldo, M(0.08, 2.15, -0.99)), // lancette
+    painted(new THREE.BoxGeometry(0.4, 0.12, 1.2), PAL.pietraScura, M(-1.75, 0.06, -0.6)), painted(new THREE.BoxGeometry(0.4, 0.12, 1.2), PAL.pietraScura, M(1.75, 0.06, -0.6)), // sponde dei canali
+  ];
+  const g = new THREE.Group(); g.name = 'ingresso_mausoleo';
+  g.add(new THREE.Mesh(merged(parts), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+  // l'acqua dei canali e la lanterna in cima brillano da sé: seconda draw call
+  g.add(new THREE.Mesh(merged([
+    painted(new THREE.BoxGeometry(0.26, 0.06, 1.2), PAL.acquaBassa, M(-1.75, 0.13, -0.6)), painted(new THREE.BoxGeometry(0.26, 0.06, 1.2), PAL.acquaBassa, M(1.75, 0.13, -0.6)),
+    painted(new THREE.IcosahedronGeometry(0.22, 0), PAL.acquaBassa, M(0, 4.05, 0.3)),
+  ]), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, emissive: PAL.acqua, emissiveIntensity: 0.6 })));
+  return g;
+}
+
 /** Porta sigillata: due sbarre di ferro incrociate davanti alla bocca e il sigillo rosso a forma d'onda (si nasconde quando si apre). */
 export function sigillo(stile?: string): THREE.Object3D {
-  const z = stile === 'archivio' ? -1.25 : stile === 'fucina' ? -1.18 : stile === 'drenaggio' ? -0.82 : -0.75;
-  const y = stile === 'archivio' || stile === 'drenaggio' ? 1.25 : stile === 'fucina' ? 0.9 : 1.2;
+  const z = stile === 'archivio' ? -1.25 : stile === 'fucina' ? -1.18 : stile === 'mausoleo' ? -1.08 : stile === 'drenaggio' ? -0.82 : -0.75;
+  const y = stile === 'archivio' || stile === 'drenaggio' ? 1.25 : stile === 'fucina' ? 0.9 : stile === 'mausoleo' ? 1.05 : 1.2;
   const geo = merged([
     painted(new THREE.BoxGeometry(2.4, 0.16, 0.1), PAL.roccia, M(0, y, z, 0, 0, Math.PI / 4)),
     painted(new THREE.BoxGeometry(2.4, 0.16, 0.1), PAL.roccia, M(0, y, z, 0, 0, -Math.PI / 4)),

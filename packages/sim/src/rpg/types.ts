@@ -93,6 +93,8 @@ export type RunArmor = {
   terrore: number;
   /** Meteorite: peso negativo → moltiplicatore di velocità > 1. */
   velocitaMolt: number;
+  /** Armatura del Moto Perpetuo (Mausoleo): la Barriera Cinetica (Traits.barriera). Assente con ogni altra armatura. */
+  barriera?: NonNullable<Traits['barriera']>;
 };
 export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione'; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number };
 export type RunPotion = { id: string; n: number; cura: Partial<Record<AttrId, number>>; buff: { mod: string; valore: number; secondi: number } | null };
@@ -102,6 +104,8 @@ export type RunHero = {
   max: Record<AttrId, number>;
   regen: Record<AttrId, number>;
   camminata: number; corsa: number; staminaCorsa: number; mentreCarichi: number; raggio: number;
+  /** Anello dell'Onda della Regina al dito (Mausoleo): l'Eco della Marea (Traits.eco; due anelli non si sommano). Assente senza. */
+  eco?: NonNullable<Traits['eco']>;
   arma: RunWeapon;
   frecce: RunArrows | null;
   armatura: RunArmor;

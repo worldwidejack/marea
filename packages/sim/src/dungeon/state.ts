@@ -40,6 +40,11 @@ export type HeroRt = {
   spX: number; spZ: number; spT: number; spUrto: number;
   /** Fucina: brucia (tick rimasti, vita al secondo) e danno accumulato non ancora mostrato (un numero ogni mezzo secondo). */
   brucia: number; bruciaDps: number; bruciaAcc: number;
+  /** Mausoleo, gli unici della Regina (unici.ts): carica della Barriera Cinetica (0..1); pressione del Fendiflutti; tick dell'ultimo attacco
+   *  in mischia; ritmo della Grande Lancetta (colpi a tempo di fila), tick del prossimo tic e se il colpo in corso è il Rintocco; colpi
+   *  caricati dell'Arco Carillon e tick della prossima ricarica; tick dell'ultima onda dell'Eco della Marea; per ogni lancetta (indice in
+   *  map.lancette) il tick fino a cui non lo riprende. */
+  barr: number; pressione: number; ultimoAttacco: number; ritmo: number; tic: number; rintocco: boolean; molla: number; mollaT: number; ecoT: number; lancT: number[];
   prevA: boolean; prevC: boolean; prevD: boolean;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
@@ -68,7 +73,7 @@ export type Enemy = {
   molla?: boolean;
   /** Archivio, l'Astrolabio (astrolabio.ts): attacco in corso, direzione e lunghezza del raggio, salve già tirate, anelli staccati.
    *  Gli anelli: id del loro Astrolabio e versore della loro posizione attorno a lui. */
-  modo?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo';
+  modo?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio';
   mira?: { dx: number; dz: number; len: number };
   salve?: number;
   diviso?: boolean;
@@ -77,8 +82,13 @@ export type Enemy = {
    *  La Fornace Semovente: dove ha lasciato l'ultima chiazza di fuoco e quando. */
   spento?: boolean; corsa?: number; presi?: number[];
   sciaX?: number; sciaZ?: number; sciaT?: number;
+  /** Mausoleo: potenziato da un Chierico fino al tick `potT` (danno × `potM`); scudo della Sentinella sfondato fino al tick `rotto`;
+   *  stordito dal Rintocco fino al tick `stordito`; colpi della combinazione già dati (Guardia d'Onore) e se l'ultimo attacco era in
+   *  mischia. Il Custode (custode.ts): fase (0 acqua, 1 vapore, 2 moto) e colpi presi verso la scarica della Barriera. */
+  potT?: number; potM?: number; rotto?: number; stordito?: number; comboN?: number; mischia?: boolean; fase?: number; colpiB?: number;
 };
-export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico';
+/** Mausoleo: `lama` = lama d'acqua del Fendiflutti (dell'eroe, trapassa), `lama_nemica` = quella della Guardia d'Onore e del Custode. */
+export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica';
 export type Proj = {
   id: number; tipo: ProjKind; x: number; y: number; z: number; vx: number; vy: number; vz: number; g: number;
   danno: number; life: number;
@@ -102,6 +112,9 @@ export type Geyser = { id: number; x: number; z: number; r: number; t: number; a
 export type Corrente = { n: number; ferma: boolean };
 /** Fucina: chiazza di fuoco a terra (scia della Fornace Semovente, pozza di magma) fino al tick `fine`: chi ci sta dentro brucia. */
 export type Fuoco = { id: number; x: number; z: number; r: number; fine: number; durata: number; dps: number; secondi: number };
+/** Mausoleo: un'onda d'acqua che si allarga da (x, z) (l'ondata del Custode, la scarica della Barriera): raggio `r` adesso, fino a `max`;
+ *  prende chi ci sta sopra (entro `spessore`) tranne nei `varchi` (versori, coseno `largo`) e dietro le colonne; `colpiti` = eroi già presi. */
+export type Onda = { id: number; x: number; z: number; r: number; v: number; max: number; spessore: number; danno: number; spinta: number; varchi: [number, number][]; largo: number; colpiti: number[]; barriera?: true };
 /** Ultimo altare toccato: il bottino e le monete di quel momento sono al sicuro (docs/RPG.md §4). */
 export type Salvato = { altare: number; tick: number; bottino: Bag; monete: number };
 /** Quello che resta in un bottino per un eroe: da solo sono i campi del bottino stesso; insieme ogni eroe ha la sua parte (`altri`). */
@@ -158,6 +171,8 @@ export type DungeonState = EroeRt & {
   flowAlt: Partial<Record<'grate' | 'vola' | 'asciutto', { field: Int32Array; key: string; tick: number }>>;
   /** Fucina (fuoco.ts): chiazze di fuoco a terra (uguali per tutti). Negli altri dungeon vuote. */
   fuochi: Fuoco[];
+  /** Mausoleo (mausoleo.ts): onde d'acqua in corsa (uguali per tutti). Negli altri dungeon vuote. */
+  onde: Onda[];
 };
 
 /** Accessori dei campi dell'eroe di turno (prototipo comune a tutti gli stati). */
@@ -227,7 +242,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
   Object.assign(s, {
     v: 1, seed, dungeon: def.id, def, map, tick: 0, anim: 'fermo',
     enemies: [], proj: [], loot: [], nextId: 1, bacini: map.bacini.map((b) => ({ n: b.n, aperta: false, scolo: 0 })), geyser: [],
-    correnti: map.venti.map((v) => ({ n: v.n, ferma: false })), griglie: {}, flowAlt: {}, fuochi: [],
+    correnti: map.venti.map((v) => ({ n: v.n, ferma: false })), griglie: {}, flowAlt: {}, fuochi: [], onde: [],
     flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, flowKey: '', rng, eventi: [],
     eroi: eroi.map(({ hero, stato }): EroeRt => ({
       hero: {
@@ -237,7 +252,9 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
         moving: false, running: false, hurt: 0, protetto: 0, arma: { ...hero.arma, traits: { ...hero.arma.traits } },
         frecce: hero.frecce ? hero.frecce.n : 0,
         pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,
-        cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0, prevA: false, prevC: false, prevD: false,
+        cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0,
+        barr: 0, pressione: hero.arma.traits.lame?.cariche ?? 0, ultimoAttacco: -1e6, ritmo: 0, tic: -1, rintocco: false, molla: hero.arma.traits.carillon?.colpi ?? 0, mollaT: 0, ecoT: -1e6, lancT: [],
+        prevA: false, prevC: false, prevD: false,
       },
       runHero: hero, done: false, outcome: null,
       bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,

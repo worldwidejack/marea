@@ -5,6 +5,7 @@
 // - Letture (libro sul leggio, incisione sulla targa del muro a nord della cella): in vista hanno sopra il segno «facoltativo»; accanto
 //   compare LEGGI (bordo tratteggiato), che apre il testo SOLO tenuto premuto 0,8 s (bottone o tasto L): A non lo apre mai, un tocco al
 //   volo nemmeno. Da solo il dungeon sta fermo mentre leggi; insieme no (l'eroe resta fermo). Chiudi: CHIUDI, Esc o L. Già lette: «✓ letto».
+//   Le letture `dopo: 'capo'` (la lettera nel sarcofago del Mausoleo) ci sono solo a capo morto.
 import * as THREE from 'three';
 import type { DungeonTesti } from '@marea/content/rpg.ts';
 import { M, merged, painted } from '../render/island_parts.ts';
@@ -43,7 +44,7 @@ const CSS = `
 .mz-dng-titolo i { display: block; width: 62%; height: 3px; margin: 7px auto; background: ${P.giallo}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
 .mz-dng-titolo small { display: block; font: bold 14px ui-monospace, Menlo, monospace; color: ${P.sabbia}; text-shadow: 2px 2px 0 ${P.neroCaldo}; }
 @keyframes mzDngTit { 0% { opacity: 0; } 12% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
-.mz-dng-voce { position: absolute; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + 112px); transform: translateX(-50%); width: min(440px, calc(100% - 32px)); box-sizing: border-box; padding: 7px 12px 9px; background: rgba(35,32,31,.94); border: 2px solid ${P.acquaBassa}; box-shadow: 0 4px 0 ${P.neroCaldo}; z-index: 16; display: none; cursor: pointer; pointer-events: auto; }
+.mz-dng-voce { position: absolute; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + max(112px, var(--mz-dng-hud-h, 0px) + 10px)); transform: translateX(-50%); width: min(440px, calc(100% - 32px)); box-sizing: border-box; padding: 7px 12px 9px; background: rgba(35,32,31,.94); border: 2px solid ${P.acquaBassa}; box-shadow: 0 4px 0 ${P.neroCaldo}; z-index: 16; display: none; cursor: pointer; pointer-events: auto; }
 .mz-dng-voce.on { display: block; }
 .mz-dng-voce.capo { border-color: ${P.rosso}; }
 .mz-dng-voce .chi { display: flex; align-items: center; gap: 6px; font-weight: bold; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: ${P.acquaBassa}; }
@@ -101,7 +102,7 @@ function targa(): THREE.BufferGeometry {
     ...([[-0.4, 0.24], [0.4, 0.24], [-0.4, -0.24], [0.4, -0.24]] as const).map(([x, y]) => painted(box(0.05, 0.05, 0.03), PAL.legnoScuro, M(x, y, 0.04)))]);
 }
 
-export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement; sc: DungeonScene; insieme: boolean }): DungeonTestiUi {
+export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement; sc: DungeonScene; insieme: boolean; capoMorto?: () => boolean }): DungeonTestiUi {
   if (!document.getElementById('mz-dng-testi-style')) { const st = document.createElement('style'); st.id = 'mz-dng-testi-style'; st.textContent = CSS; document.head.appendChild(st); }
   const def = o.sc.def, T = def.testi ?? {}, tile = o.sc.map.tile, fy = o.sc.floorY, id = (x: string) => `${def.id}:${x}`;
   const viste = ricorda(K_VISTE), lette = ricorda(K_LETTE);
@@ -209,7 +210,9 @@ export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas
       }
       // letture: in vista (luce della cella) il segnaposto e il segno; vicino, LEGGI
       vicino = null;
+      const capo = !!o.capoMorto?.();
       for (const r of letture) {
+        if (r.l.dopo === 'capo' && !capo) { r.mesh.visible = false; r.segno.style.display = 'none'; continue; } // il sarcofago è ancora chiuso
         const lit = o.sc.light(r.x, r.z), dx = r.x - hero.x, dz = r.z - hero.z, d = Math.sqrt(dx * dx + dz * dz);
         r.mesh.visible = lit > 0;
         const s = lit >= 0.45 && d <= SEGNO && d > VICINO && !aperta ? screen(r.top) : null; // accanto c'è già LEGGI

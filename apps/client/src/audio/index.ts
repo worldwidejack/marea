@@ -144,7 +144,10 @@ export function createAudio(): Audio {
         : e.t === 'valvola' ? 'martello' : e.t === 'asciutto' ? 'goccia' : e.t === 'geyser' ? 'sfrigola' : e.t === 'rallentato' ? 'plop' // Drenaggio
         : e.t === 'timone' ? 'martello' : e.t === 'bomba' ? 'cannone' : e.t === 'arpionato' ? 'lancio' : e.t === 'raffica' ? 'raffica' // Archivio
         : e.t === 'raggio' ? 'tuono' : e.t === 'parato' ? 'schivato' : e.t === 'anelli' ? 'apri'
-        : e.t === 'bruciato' ? 'sfrigola' : e.t === 'estinto' || e.t === 'spento' ? 'goccia' : e.t === 'carica' ? 'tuono' : e.t === 'magma' ? 'cannone' : e.t === 'riacceso' ? 'magia' : null; // Fucina
+        : e.t === 'bruciato' ? 'sfrigola' : e.t === 'estinto' || e.t === 'spento' ? 'goccia' : e.t === 'carica' ? 'tuono' : e.t === 'magma' ? 'cannone' : e.t === 'riacceso' ? 'magia' // Fucina
+        : e.t === 'lancetta' || e.t === 'sfondato' ? 'martello' : e.t === 'tic' ? 'click' : e.t === 'rintocco' ? 'tpl_campana' : e.t === 'fase' ? 'tuono' // Mausoleo
+        : e.t === 'ondata' ? 'raffica' : e.t === 'scatto' ? 'sfrigola' : e.t === 'cura' ? 'magia' : e.t === 'sarcofago' ? 'apri' : e.t === 'barriera' ? 'altare'
+        : e.t === 'barrieraPronta' || e.t === 'carillon' ? 'bip' : e.t === 'eco' ? 'plop' : e.t === 'scarico' ? 'vuoto' : null;
       if (id) suona(id);
     },
     resume() { if (vol.musica > 0 || vol.effetti > 0) void ctx.resume(); },

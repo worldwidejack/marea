@@ -4,6 +4,9 @@
 // stesso modo, combatte chi sta sulle grate solo se ci arriva con l'arma, e con un'arma da mischia aspetta che chi vola scenda.
 // Fucina: aspetta la crosta prima di mettere piede sulla lava (e sopra corre), gira alle spalle del Golem-Palombaro, e col Mastro
 // Forgiatore acceso si mette con una cascata tra sé e lui finché la carica non lo spegne; spento, gli va addosso.
+// Mausoleo: aspetta che la lancetta passi prima di entrare nel suo giro (dentro, corre), gira alle spalle della Sentinella come del
+// Palombaro, e col Custode corre nel varco dell'ondata (o dietro una colonna), si toglie da dove ricompare con lo scatto e non lo colpisce
+// mentre cambia cuore.
 // Non tocca lo stato della sim: la sua memoria sta in una WeakMap (il replay non la vede).
 import type { Rng } from '../rng.ts';
 import type { DungeonInput } from './types.ts';
@@ -18,6 +21,8 @@ import { timoneVicino } from './vento.ts';
 import { alto } from './muove.ts';
 import { areaRaggio } from './enemies.ts';
 import { inGetto, statoLava } from './fuoco.ts';
+import { lancettaDir } from './onde.ts';
+import { varchiDi } from './custode.ts';
 import { GEYSER_DIR, HZ } from './tuning.ts';
 
 type Mem = {
@@ -67,8 +72,51 @@ function lavaDavanti(s: DungeonState, dx: number, dz: number): boolean {
  *  davanti alla lava che scorre (0, 0): si aspetta la crosta. */
 function nav(s: DungeonState, m: Mem, gx: number, gz: number): { x: number; z: number } | null {
   const v = navDir(s, m, gx, gz);
-  m.aspetta = !!v && s.map.lave.length > 0 && lavaDavanti(s, v.x, v.z);
+  m.aspetta = !!v && ((s.map.lave.length > 0 && lavaDavanti(s, v.x, v.z)) || (s.map.lancette.length > 0 && lancettaDavanti(s, v.x, v.z)));
   return m.aspetta ? { x: 0, z: 0 } : v;
+}
+
+/** Mausoleo: in (x, z) passa una lancetta entro `sec` secondi (con un po' di margine). */
+function lancettaSu(s: DungeonState, x: number, z: number, sec: number): boolean {
+  const r = s.runHero.raggio + 0.35;
+  for (const l of s.map.lancette) {
+    const rx = x - l.x, rz = z - l.z;
+    if (rx * rx + rz * rz > (l.lunga + r) * (l.lunga + r)) continue;
+    for (let t = 0; t <= sec * HZ; t += 6) {
+      const [dx, dz] = lancettaDir(l, s.tick + t), lungo = rx * dx + rz * dz;
+      if (lungo >= -r && lungo <= l.lunga + r && Math.abs(rx * dz - rz * dx) <= l.largo + r) return true;
+    }
+  }
+  return false;
+}
+/** Mausoleo: dal sicuro, il prossimo passo lungo (dx, dz) finisce dove la lancetta sta per passare: meglio aspettare. Già in pericolo si
+ *  va avanti (fermarsi lì è peggio). */
+function lancettaDavanti(s: DungeonState, dx: number, dz: number): boolean {
+  const h = s.hero;
+  if (lancettaSu(s, h.x, h.z, 0.5)) return false;
+  return lancettaSu(s, h.x + dx * 1.3, h.z + dz * 1.3, 1.7);
+}
+
+/** Mausoleo, il Custode: dove mettersi per l'ondata (che sta per partire o è in corsa): nel varco più vicino alla stessa distanza da lui,
+ *  o restare fermi se già nel varco o dietro una colonna. null = nessuna ondata da schivare. */
+function schivaOnda(s: DungeonState, e: Enemy): { x: number; z: number } | null {
+  const h = s.hero, onde = s.onde.map((o) => ({ x: o.x, z: o.z, r: o.r, max: o.max, varchi: o.varchi, largo: o.largo }));
+  if (e.st === 'prepara' && e.modo === 'ondata' && e.def.custode) onde.push({ x: e.x, z: e.z, r: 0, max: e.def.custode.ondata.raggio, varchi: varchiDi(e), largo: e.def.custode.ondata.largo });
+  for (const o of onde) {
+    const dx = h.x - o.x, dz = h.z - o.z, d = Math.sqrt(dx * dx + dz * dz);
+    if (o.r > d + 1 || d > o.max + 1 || d < 1e-6) continue; // già passata o non arriva
+    if (!lineOfSight(s.map, o.x, o.z, h.x, h.z)) return { x: h.x, z: h.z };
+    let best: { x: number; z: number } | null = null, bd = Infinity;
+    for (const [vx, vz] of o.varchi) {
+      if ((dx * vx + dz * vz) / d >= o.largo + 0.02) return { x: h.x, z: h.z };
+      const k = Math.max(d, 3), x = o.x + vx * k, z = o.z + vz * k, c = cellOf(s.map, x, z);
+      if (c < 0 || s.map.solid[c]) continue;
+      const q = (x - h.x) * (x - h.x) + (z - h.z) * (z - h.z);
+      if (q < bd) { bd = q; best = { x, z }; }
+    }
+    if (best) return best;
+  }
+  return null;
 }
 function navDir(s: DungeonState, m: Mem, gx: number, gz: number): { x: number; z: number } | null {
   const h = s.hero, r = s.runHero.raggio + 0.05;
@@ -100,6 +148,24 @@ function fight(s: DungeonState, m: Mem, e: Enemy, o: Out): void {
     const alleato = s.enemies.some((x) => x.alleato && x.st !== 'morto' && (x.padrone ?? 0) === s.cur);
     if (sp.scuola === 'distruzione' || !alleato) { o.c = true; o.mx = u.x * 0.2; o.my = u.z * 0.2; return; }
   }
+  // Mausoleo, il Custode: l'ondata si prende nel varco, lo scatto si schiva, mentre cambia cuore non si colpisce
+  if (e.def.custode) {
+    const p = schivaOnda(s, e);
+    if (p) {
+      const ex = p.x - h.x, ez = p.z - h.z;
+      if (ex * ex + ez * ez > 0.09) { const v = nav(s, m, p.x, p.z); if (v) { o.mx = v.x; o.my = v.z; o.b = true; } }
+      return;
+    }
+    if (e.st === 'prepara' && e.modo === 'scatto' && e.mira) {
+      const mx = e.x + e.mira.dx * e.mira.len, mz = e.z + e.mira.dz * e.mira.len, ax = h.x - mx, az = h.z - mz, ad = Math.sqrt(ax * ax + az * az);
+      if (ad < e.def.custode.scatto.raggio + 1.2) {
+        const u2 = ad > 1e-6 ? { x: ax / ad, z: az / ad } : { x: -h.fx, z: -h.fz }, v = nav(s, m, h.x + u2.x * 3, h.z + u2.z * 3) ?? u2;
+        o.mx = v.x; o.my = v.z; o.b = true;
+        return;
+      }
+    }
+    if (e.modo === 'cambio') { if (d < 4) { const v = nav(s, m, h.x - u.x * 3, h.z - u.z * 3); if (v) { o.mx = v.x; o.my = v.z; } } return; }
+  }
   // schivata: il nemico sta per colpire e siamo nel suo raggio → via (correndo se il colpo è ad area)
   if (e.st === 'prepara' && !e.tiro && (h.act === 'idle' || h.act === 'press')) {
     const raggio = e.area ? areaRaggio(e.def) + rh.raggio + 0.6 : e.def.portata + e.def.raggio + rh.raggio + 0.6;
@@ -117,8 +183,8 @@ function fight(s: DungeonState, m: Mem, e: Enemy, o: Out): void {
     if (ex * ex + ez * ez > 0.16) { const v = nav(s, m, p.x, p.z); if (v) { o.mx = v.x; o.my = v.z; o.b = true; } }
     return;
   }
-  // il Golem-Palombaro para da davanti: prima di lato, poi alle spalle
-  if (e.def.scafandro && d > 1e-6) {
+  // il Golem-Palombaro e la Sentinella (finché lo scudo regge) parano da davanti: prima di lato, poi alle spalle
+  if ((e.def.scafandro || (e.def.scudo && !(e.rotto !== undefined && e.rotto > s.tick))) && d > 1e-6) {
     const k = (-dx * e.fx - dz * e.fz) / d;
     if (k > -0.3) {
       const r = e.def.raggio + rh.raggio + Math.min(a.portata, 1.8) * 0.7, lato = -dx * -e.fz + -dz * e.fx >= 0 ? 1 : -1;
@@ -254,7 +320,7 @@ export function autopilot(s: DungeonState, rng: Rng): DungeonInput {
   const v = nav(s, m, gx, gz);
   if (!v) { if (goal !== 'exit') m.ban.set(goal, s.tick + 20 * HZ); return finish(); }
   o.mx = v.x; o.my = v.z;
-  // corre verso la scala o quando ha stamina in abbondanza (e sulla lava sempre)
-  o.b = goal === 'exit' ? h.stamina > 10 : h.stamina > rh.max.stamina * 0.6 || !!s.map.lava[cellOf(s.map, h.x, h.z)];
+  // corre verso la scala o quando ha stamina in abbondanza (e sulla lava sempre, e dove gira una lancetta)
+  o.b = goal === 'exit' ? h.stamina > 10 : h.stamina > rh.max.stamina * 0.6 || !!s.map.lava[cellOf(s.map, h.x, h.z)] || (s.map.lancette.length > 0 && lancettaSu(s, h.x, h.z, 1.5));
   return finish();
 }

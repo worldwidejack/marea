@@ -41,6 +41,20 @@
       "magma": { "n": 3, "ogni": 0.35, "sparpaglia": 2.6, "caduta": 1.1, "danno": 18, "raggio": 1.4, "fuoco": 5, "dps": 8, "secondi": 2.5, "gittata": 18 } },
     "loot": "boss_fucina", "xp": 340, "boss": true },
 
+  { "id": "chierico_ingranaggi", "nome": "Chierico a Ingranaggi", "kind": "costrutto", "model": "nem_chierico", "vita": 75, "danno": 14, "armatura": 4, "resistMagia": 0.2, "velocita": 2.4, "vista": 12, "portata": 1.3, "preparazione": 0.6, "recupero": 0.8, "raggio": 0.4, "comportamento": "chierico", "cura": { "raggio": 9, "vita": 45, "ogni": 4, "molt": 1.25, "secondi": 6, "prep": 0.8, "distanza": 6 }, "loot": "chierico_ingranaggi", "xp": 34 },
+  { "id": "sentinella_egida", "nome": "Sentinella dell'Egida", "kind": "costrutto", "model": "nem_sentinella", "vita": 190, "danno": 26, "armatura": 12, "velocita": 1.6, "vista": 10, "portata": 1.7, "preparazione": 1, "recupero": 1.1, "raggio": 0.65, "comportamento": "mischia", "contundente": true, "scudo": { "cono": 0.45, "retro": 1.25, "gira": 1.3, "spinta": 2.2, "rotto": 2.5 }, "spinge": 2, "loot": "sentinella_egida", "xp": 50 },
+  { "id": "guardia_onore", "nome": "Guardia d'Onore", "kind": "costrutto", "model": "nem_guardia", "vita": 95, "danno": 20, "armatura": 5, "velocita": 3.3, "vista": 12, "portata": 1.8, "preparazione": 0.6, "recupero": 0.8, "raggio": 0.45, "comportamento": "mischia", "combo": { "colpi": 2, "prep": 0.35 }, "proiettile": { "danno": 16, "velocita": 15, "ricarica": 4, "gittata": 12, "lama": true }, "loot": "guardia_onore", "xp": 48 },
+  { "id": "custode_egida", "nome": "Il Custode dell'Egida", "kind": "costrutto", "model": "nem_custode_egida", "vita": 1300, "danno": 45, "armatura": 12, "resistMagia": 0.25, "velocita": 2.6, "vista": 18, "portata": 2.3, "preparazione": 0.9, "recupero": 1.0, "raggio": 1.0, "comportamento": "custode", "contundente": true,
+    "area": { "ogni": 1, "raggio": 2.8, "danno": 1.0, "prep": 1.2 },
+    "custode": { "soglie": [0.66, 0.33], "cambio": 2, "pausa": [1.4, 1.2, 1.0],
+      "cicli": [["ondata", "fendenti", "fendenti"], ["scatto", "geyser", "scatto"], ["ondata", "scatto", "fendenti"]],
+      "ondata": { "velocita": 7, "raggio": 15, "spessore": 0.8, "danno": 26, "spinta": 3, "varchi": 2, "largo": 0.93, "prep": 1.2 },
+      "fendenti": { "n": 3, "apertura": 0.42, "salve": 2, "ogni": 0.5, "danno": 18, "velocita": 13, "gittata": 18, "prep": 0.8 },
+      "scatto": { "avviso": 1.1, "dietro": 2.5, "raggio": 2.4, "danno": 1.0 },
+      "geyser": { "n": 6, "distanza": 4.5, "raggio": 1.4, "danno": 24, "avviso": 1.0, "getto": 0.6, "prep": 0.8 },
+      "barriera": { "colpi": 5, "raggio": 6, "danno": 20, "spinta": 4, "velocita": 18 } },
+    "loot": "boss_mausoleo", "xp": 600, "boss": true },
+
   { "id": "lupo_spettrale", "nome": "Lupo spettrale", "kind": "bestia", "model": "nem_lupo", "vita": 60, "danno": 12, "armatura": 0, "velocita": 4.2, "vista": 12, "portata": 1.2, "preparazione": 0.3, "recupero": 0.5, "raggio": 0.4, "comportamento": "mischia", "loot": "nessuno", "xp": 0 },
   { "id": "scheletro_evocato", "nome": "Scheletro evocato", "kind": "nonmorto", "model": "nem_scheletro", "vita": 70, "danno": 16, "armatura": 4, "velocita": 2.8, "vista": 12, "portata": 1.4, "preparazione": 0.45, "recupero": 0.6, "raggio": 0.4, "comportamento": "mischia", "loot": "nessuno", "xp": 0 },
   { "id": "golem_evocato", "nome": "Golem evocato", "kind": "costrutto", "model": "nem_golem", "vita": 220, "danno": 32, "armatura": 14, "resistMagia": 0.2, "velocita": 2.2, "vista": 12, "portata": 1.7, "preparazione": 0.9, "recupero": 1.0, "raggio": 0.6, "comportamento": "mischia", "contundente": true, "loot": "nessuno", "xp": 0 }
