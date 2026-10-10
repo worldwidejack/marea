@@ -143,3 +143,14 @@ test('corse v2 (#170): la scia dietro un avversario dà il turbo; i turbo si som
   k.turbo = 1; daiTurbo(k, 0.5, 1, false); assert.equal(k.turbo, 1);
   assert.deepEqual(Object.keys(REGOLE_TUTTE), ['sterzo', 'partenza', 'acrobazie', 'scia', 'somma']);
 });
+
+test('corse (#201): la retromarcia stacca dal muro (freno tenuto da fermo: indietro e il muso gira)', () => {
+  const K = CORSE.veicolo;
+  const s = via(nuova('prova_fuga', 'kart', false)), k = s.veicoli[0]!;
+  k.v = 0;
+  for (let i = 0; i < 60; i++) garaCorse.step(s, { mx: 1, my: -1, a: false, b: false });
+  assert.equal(k.v, -K.retro, `in 1 s si arriva alla velocità piena della retro (${k.v})`);
+  assert.ok(K.retro >= 6, 'la retro non è a passo d\'uomo');
+  // in retro sterzando a destra il muso gira a sinistra (come in macchina), e di parecchio: ci si gira per uscire
+  assert.ok(k.hl < -0.3, `muso girato (hl ${k.hl.toFixed(2)})`);
+});

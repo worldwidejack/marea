@@ -104,8 +104,8 @@ export function creaPannelli(root: HTMLElement): Pannelli {
         const salva = () => { salvaScelta(s); disegna(); };
         const cmd = el('div', 'cmd');
         cmd.innerHTML = tocco
-          ? '<b>Joystick</b>: sterza · <b>GAS</b> tienilo premuto · <b>FRENO</b> · <b>DRIFT</b> tenuto in curva (dà anche gas; 3 livelli di scintille), poi lascia e parti<br>Tieni il GAS quando compare l\'<b>1</b> al semaforo: partenza razzo'
-          : '<b>A D</b> o <b>← →</b> sterza · <b>W ↑</b> gas · <b>S ↓</b> freno · <b>Spazio</b> = DRIFT tenuto in curva, poi lascia e parti<br>Tieni il gas quando compare l\'<b>1</b> al semaforo: partenza razzo · <b>Esc</b> ti ritira';
+          ? '<b>Joystick</b>: sterza · <b>GAS</b> tienilo premuto · <b>FRENO</b> (tenuto da fermo = retromarcia) · <b>DRIFT</b> tenuto in curva (dà anche gas; 3 livelli di scintille), poi lascia e parti<br>Tieni il GAS quando compare l\'<b>1</b> al semaforo: partenza razzo'
+          : '<b>A D</b> o <b>← →</b> sterza · <b>W ↑</b> gas · <b>S ↓</b> freno e retromarcia · <b>Spazio</b> = DRIFT tenuto in curva, poi lascia e parti<br>Tieni il gas quando compare l\'<b>1</b> al semaforo: partenza razzo · <b>Esc</b> ti ritira';
         const box = el('div', 'box');
         box.append(
           el('h2', '', o.titolo ?? '🏁 GRAN PREMIO'), el('div', 'sub', o.sottotitolo ?? 'Isola delle Corse · Spiaggia e porto · tu e 4 avversari'),

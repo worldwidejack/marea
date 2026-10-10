@@ -196,7 +196,7 @@ export function muovi(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas:
       if (k.v < t) k.v = Math.min(t, k.v + acc * DT);
       else k.v = Math.max(t, k.v - (E.velocita < 0.9 ? K.frenata : K.folle * 2) * DT);
     } else if (gas < -0.3) {
-      k.v = k.v > 0 ? Math.max(0, k.v - K.frenata * DT) : Math.max(-K.retro, k.v - V.accelerazione * 0.5 * DT);
+      k.v = k.v > 0 ? Math.max(0, k.v - K.frenata * DT) : Math.max(-K.retro, k.v - K.retroAccelerazione * DT); // Jack (10 ott): la retro deve servire a staccarsi dal muro
     } else k.v = k.v > 0 ? Math.max(0, k.v - K.folle * DT) : Math.min(0, k.v + K.folle * DT);
     // la pendenza: la gravità lungo la direzione del moto (in salita frena, in discesa spinge); nei giri della morte conta poco
     const c = cella(n, k.s), gy = (n.ty[c.i]! + (n.ty[c.j]! - n.ty[c.i]!) * c.t) * k.mf + (n.ry[c.i]! + (n.ry[c.j]! - n.ry[c.i]!) * c.t) * k.ml;
@@ -207,7 +207,7 @@ export function muovi(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas:
     if (sp) k.lat += sp[1] * DT;
   }
   // ---- sterzo ----
-  const presa = Math.min(1, Math.abs(k.v) / K.sterzoPieno) * (k.v < 0 ? -1 : 1);
+  const presa = k.v < 0 ? -Math.min(1, -k.v / K.retroSterzoPieno) : Math.min(1, k.v / K.sterzoPieno);
   // fuori dal drift lo sterzo cala con la velocità (a tutta velocità −alto): le curve strette prese forte vogliono il drift
   const S = C.sterzo, alto = R.sterzo ? 1 - (F.sterzoAlto ?? S.alto) * clamp((Math.abs(k.v) - S.da) / Math.max(1, V.velocita - S.da), 0, 1) : 1;
   // in drift si gira verso il lato del drift; lo sterzo stringe o allarga (tieni = [base, ± quanto]). Jack (#170): «ruota troppo, quasi ingovernabile»
