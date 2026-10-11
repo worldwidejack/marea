@@ -5,14 +5,21 @@
 // PAUSA (Esc): Riprendi · Zaino · Esci dal dungeon (→ «Uscire?»). Sopra una lanterna: SALVA ed ESCI (dungeon v5, scelta di Riccardo).
 // Latch: un tocco più breve di un tick arriva comunque alla sim. Con la pausa o la domanda aperta la partita è ferma (nessun tick); con la
 // scheda aperta (blocked) i tasti sono suoi. Insieme (#118) la partita non si ferma mai: la Pausa diventa un menu.
+import { aimDir, aimIndex } from '@marea/sim/dungeon/mira.ts';
+import { screenToWorld } from '../game/input.ts';
 import { PAL, el } from '../ui/style.ts';
 
 export type LanternaUi = { salvatoQui: boolean; oggetti: number; monete: number };
 /** Una magia del menù rapido: nome, costo in Magicka e una funzione che fa l'icona (un canvas non si clona: ogni chip ne vuole una nuova). */
 export type MagiaUi = { id: string; nome: string; costo: number; icona(): Node };
 export type Controls = {
-  /** Un campione per tick: c, d e la A in più (clic tenuto, bottone d'uscita). */
-  sample(): { a: boolean; c: boolean; d: boolean };
+  /** Un campione per tick: c, d e la A in più (clic tenuto, bottone d'uscita, joystick di mira). `m` = indice di mira del joystick di mira
+   *  (mentre è tenuto e nel tick del rilascio, così l'arco parte dove puntavi); 0 = niente mira dal dito. */
+  sample(): { a: boolean; c: boolean; d: boolean; m: number };
+  /** Telefono, arco o magia in mano: al posto del bottone A compare il joystick di mira (trascini = punti e tiri, lasci = l'arco parte). */
+  setMira(on: boolean): void;
+  /** Direzione del joystick di mira mentre lo tieni (versore in assi mondo, la stessa che la sim userà), null se non lo tieni. */
+  miraDir(): { x: number; z: number } | null;
   /** Pausa o domanda «Uscire?» aperta: niente tick. */
   readonly paused: boolean;
   /** Vicino alla scala: mostra «A · Esci col bottino». */
@@ -35,11 +42,24 @@ export type Controls = {
   dispose(): void;
 };
 
+const MIRA = 108, KNOB = 44, MIRA_R = 36, MIRA_DEAD = 0.3; // px: anello, pomello, corsa del pomello; zona morta (frazione della corsa) prima di mirare
 const SAFE = 'env(safe-area-inset-bottom, 0px)', RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', TOP = 'max(8px, env(safe-area-inset-top))';
 const CSS = `
 .mz-dng-btn { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: 3px solid rgba(244,227,193,.7); color: ${PAL.sabbiaChiara}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font: bold 13px ui-monospace, Menlo, monospace; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; z-index: 13; overflow: hidden; }
 .mz-dng-btn.c { right: calc(${RIGHT} + 96px); bottom: calc(${SAFE} + 116px); background: rgba(22,63,115,.82); }
 .mz-dng-btn.d { right: calc(${RIGHT} + 12px); bottom: calc(${SAFE} + 132px); background: rgba(44,107,63,.82); }
+.mz-dng-aimon #btnA { display: none !important; }
+.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + ${MIRA + 8}px) !important; }
+.mz-dng-aimon .mz-dng-btn.c { bottom: calc(${SAFE} + 148px); }
+.mz-dng-aimon .mz-dng-btn.d { bottom: calc(${SAFE} + 160px); }
+.mz-dng-aimon .mz-dng-sp { bottom: calc(${SAFE} + 236px); }
+.mz-dng-aim { position: absolute; right: ${RIGHT}; bottom: calc(${SAFE} + 28px); width: ${MIRA}px; height: ${MIRA}px; box-sizing: border-box; border-radius: 50%; display: none; background: rgba(232,67,63,.22); border: 3px solid rgba(244,227,193,.7); z-index: 13; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.mz-dng-aim.on { display: block; }
+.mz-dng-aim::before, .mz-dng-aim::after { content: ''; position: absolute; background: rgba(244,227,193,.35); pointer-events: none; }
+.mz-dng-aim::before { left: 50%; top: 14px; bottom: 14px; width: 2px; margin-left: -1px; }
+.mz-dng-aim::after { top: 50%; left: 14px; right: 14px; height: 2px; margin-top: -1px; }
+.mz-dng-aim i { position: absolute; left: ${(MIRA - 6 - KNOB) / 2}px; top: ${(MIRA - 6 - KNOB) / 2}px; width: ${KNOB}px; height: ${KNOB}px; box-sizing: border-box; border-radius: 50%; background: rgba(232,67,63,.9); border: 3px solid ${PAL.sabbiaChiara}; pointer-events: none; will-change: transform; z-index: 1; }
+.mz-dng-aim.tieni i { background: ${PAL.rosso}; }
 .mz-dng-btn.on { transform: scale(.92); filter: brightness(1.3); }
 .mz-dng-btn.off { opacity: .45; }
 .mz-dng-btn.mano { border-color: ${PAL.giallo}; box-shadow: 0 0 0 2px ${PAL.neroCaldo}; }
@@ -79,7 +99,7 @@ const CSS = `
 .mz-dng-ask .mz-btn small { font-size: 12px; color: inherit; opacity: .8; }
 `;
 
-export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; onMagia(id: string): void; blocked(): boolean; insieme?: boolean; valvola?: string }): Controls {
+export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; onMagia(id: string): void; blocked(): boolean; yaw(): number; insieme?: boolean; valvola?: string }): Controls {
   if (!document.getElementById('mz-dng-ctrl-style')) { const st = document.createElement('style'); st.id = 'mz-dng-ctrl-style'; st.textContent = CSS; document.head.appendChild(st); }
   let cLatch = false, dLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
   const cHeld = new Set<number>(), dHeld = new Set<number>(), keys = new Set<string>();
@@ -100,6 +120,38 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     b.addEventListener('contextmenu', (e) => e.preventDefault());
   };
   wire(C.b, cHeld, () => (cLatch = true)); wire(D.b, dHeld, () => (dLatch = true));
+
+  // ---- joystick di mira (telefono, arco o magia in mano): trascini = punti e tiri, lasci = l'arco parte dove puntavi ----
+  // Il pomello sceglie la direzione come il joystick di movimento (su = verso dove guarda la camera); oltre la zona morta la mira è «agganciata»
+  // (A premuta e indice d'angolo nell'input) finché non lasci: tornare al centro non annulla, tiene l'ultima direzione. Un dito solo.
+  const aim = el('div', 'mz mz-dng-aim'); aim.id = 'mzDngMira';
+  const knob = el('i'); aim.append(knob);
+  let aimId: number | null = null, aimOn = false, aimHeld = false, aimRel = false, aimM = 0, touchSeen = false;
+  const aimPaint = (x: number, y: number) => { knob.style.transform = `translate(${x * MIRA_R}px, ${y * MIRA_R}px)`; aim.classList.toggle('tieni', aimHeld); };
+  const aimMove = (e: PointerEvent) => {
+    const r = aim.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const d = Math.sqrt(dx * dx + dy * dy), k = d > MIRA_R ? MIRA_R / d : 1, jx = (dx * k) / MIRA_R, jy = (dy * k) / MIRA_R, len = d * k / MIRA_R;
+    if (len > MIRA_DEAD) aimHeld = true;
+    if (aimHeld && len > 0.12) { const w = screenToWorld(jx, jy, o.yaw()); aimM = aimIndex(w.mx, w.my) || aimM; }
+    aimPaint(jx, jy);
+  };
+  const aimEnd = () => { if (aimId === null) return; aimId = null; if (aimHeld) aimRel = true; aimHeld = false; aimPaint(0, 0); };
+  const aimCancel = () => { aimEnd(); aimRel = false; }; // pausa, domanda, blur: il dito non conta più
+  aim.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (aimId !== null || pausa || asking || o.blocked()) return;
+    aimId = e.pointerId; aimM = 0; aimRel = false;
+    try { aim.setPointerCapture(e.pointerId); } catch { /* sintetico */ }
+    aimMove(e);
+  });
+  aim.addEventListener('pointermove', (e) => { if (e.pointerId === aimId) { e.preventDefault(); aimMove(e); } });
+  const aimUp = (e: PointerEvent) => { if (e.pointerId === aimId) aimEnd(); };
+  for (const ev of ['pointerup', 'pointercancel']) { aim.addEventListener(ev, aimUp as EventListener); addEventListener(ev, aimUp as EventListener); }
+  aim.addEventListener('contextmenu', (e) => e.preventDefault());
+  aim.addEventListener('touchmove', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+  const seen = (e: PointerEvent) => { if (e.pointerType === 'touch') touchSeen = true; };
+  addEventListener('pointerdown', seen, true);
+  const coarse = () => touchSeen || (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
   const btn = (cls: string, act: string, ...kids: (Node | string)[]) => { const b = el('button', cls); b.type = 'button'; b.dataset['act'] = act; b.append(...kids); return b; };
 
   // ---- in alto a destra: Zaino e Pausa ----
@@ -131,7 +183,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const row = el('div', 'mz-row'); row.append(no, yes);
   const askSub = el('div', 'sub', 'Perdi il bottino di questa discesa');
   ask.append(el('b', '', 'Uscire dal dungeon?'), askSub, row);
-  const all = [C.b, D.b, sp, top, exit, valv, tim, lanBox, menu, ask];
+  const all = [C.b, D.b, aim, sp, top, exit, valv, tim, lanBox, menu, ask];
   for (const e of all.slice(2)) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   sp.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('button[data-magia]');
@@ -139,8 +191,8 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   });
   o.root.append(...all);
 
-  const setPausa = (on: boolean) => { pausa = on; menu.classList.toggle('on', on); };
-  const setAsk = (on: boolean) => { asking = on; ask.classList.toggle('on', on); if (on) setPausa(false); };
+  const setPausa = (on: boolean) => { pausa = on; menu.classList.toggle('on', on); if (on) aimCancel(); };
+  const setAsk = (on: boolean) => { asking = on; ask.classList.toggle('on', on); if (on) { setPausa(false); aimCancel(); } };
   const openZaino = () => { setPausa(false); setAsk(false); o.onZaino(); };
   pauseBtn.addEventListener('click', () => { if (!asking) setPausa(!pausa); });
   zaino.addEventListener('click', openZaino);
@@ -177,7 +229,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
   const md = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0 && !pausa && !asking && !o.blocked()) { mouseA = true; aLatch = true; } };
   const mu = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0) mouseA = false; };
-  const blur = () => { keys.clear(); cHeld.clear(); dHeld.clear(); mouseA = false; };
+  const blur = () => { keys.clear(); cHeld.clear(); dHeld.clear(); mouseA = false; aimCancel(); };
   addEventListener('keydown', kd, true); addEventListener('keyup', ku, true);
   o.canvas.addEventListener('pointerdown', md); addEventListener('pointerup', mu); addEventListener('blur', blur);
 
@@ -185,10 +237,17 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   return {
     get paused() { return asking || pausa; },
     sample() {
-      const out = { a: aLatch || mouseA, c: cLatch || cHeld.size > 0 || keys.has('KeyQ'), d: dLatch || dHeld.size > 0 || keys.has('KeyR') };
-      aLatch = cLatch = dLatch = false;
+      const out = { a: aLatch || mouseA || aimHeld, c: cLatch || cHeld.size > 0 || keys.has('KeyQ'), d: dLatch || dHeld.size > 0 || keys.has('KeyR'), m: aimHeld || aimRel ? aimM : 0 };
+      aLatch = cLatch = dLatch = aimRel = false;
       return out;
     },
+    setMira(on) {
+      const v = on && coarse();
+      if (v === aimOn) return;
+      aimOn = v; aim.classList.toggle('on', v); o.root.classList.toggle('mz-dng-aimon', v);
+      if (!v) { aimId = null; aimHeld = aimRel = false; aimPaint(0, 0); }
+    },
+    miraDir() { const d = aimHeld ? aimDir(aimM) : null; return d ? { x: d[0], z: d[1] } : null; },
     setExit(on) { exit.classList.toggle('on', on); },
     setValvola(on) { valv.classList.toggle('on', on); },
     setTimone(on) { tim.classList.toggle('on', on); },
@@ -226,10 +285,12 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
         return b;
       }));
     },
-    hide() { setAsk(false); setPausa(false); exit.classList.remove('on'); lanBox.classList.remove('on'); sp.classList.remove('on'); top.style.display = 'none'; lanSig = ''; },
+    hide() { setAsk(false); setPausa(false); exit.classList.remove('on'); lanBox.classList.remove('on'); sp.classList.remove('on'); aim.classList.remove('on'); o.root.classList.remove('mz-dng-aimon'); aimOn = false; top.style.display = 'none'; lanSig = ''; },
     dispose() {
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);
+      for (const ev of ['pointerup', 'pointercancel']) removeEventListener(ev, aimUp as EventListener);
+      removeEventListener('pointerdown', seen, true); o.root.classList.remove('mz-dng-aimon');
       for (const e of all) e.remove();
     },
   };

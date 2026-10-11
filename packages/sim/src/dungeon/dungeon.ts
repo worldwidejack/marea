@@ -70,7 +70,8 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v5: azioni dal menu (equip, butta, salva ed esci sulla lanterna: le lanterne non salvano più da sole), ripartenza da una lanterna, consumi anche dal bottino
   // (insieme, #118: più eroi nella stessa partita; da solo non cambia niente, la versione resta 5)
   // v6: magia in mano come un'arma (equip.mano: la A la lancia, il tasto C alterna arma e magia e non lancia più) e mira col mouse (DungeonInput.m, log v2)
-  id: 'dungeon', version: 6, maxTicks: MAX_TICKS,
+  // v7: un unico a dungeon sicuro dal boss (loot.json) e magie quasi senza attesa (spells.json: il limite è la Magicka); la sim non cambia, cambiano i numeri
+  id: 'dungeon', version: 7, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {

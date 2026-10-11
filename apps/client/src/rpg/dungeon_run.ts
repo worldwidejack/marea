@@ -186,7 +186,7 @@ export function startRun(ctx: RunCtx, o: {
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: s.runHero, stile: sc.def.stile });
       controls = createControls({
-        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, insieme: !!rete, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : {}),
+        root: ctx.root, canvas: ctx.canvas, blocked: () => isPanelOpen() || !!testi?.aperta, yaw: () => ctx.renderer.diorama.yaw, insieme: !!rete, ...(sc.def.stile === 'fucina' ? { valvola: 'A · Apri la chiusa' } : sc.def.stile === 'mausoleo' ? { valvola: 'A · Gira la chiave di carica' } : {}),
         onAbort: () => (phase === 'end' ? finish() : abort()),
         onZaino: openZaino,
         onSalva: () => { const e = act({ t: 'salva' }); if (e) ctx.hud.toast(e, 1800); },
@@ -252,7 +252,7 @@ export function startRun(ctx: RunCtx, o: {
   };
   /** Linea di mira dell'eroe di questo client: col mouse (arco o magia in mano) sempre verso il cursore, se no solo l'arco teso, verso chi prenderà. */
   const miraOra = (): void => {
-    const h = s.hero, v = (h.incanta || h.arma.kind === 'arco') && !controls?.paused ? mouse?.verso(h.x, h.z) ?? null : null;
+    const h = s.hero, t = controls?.miraDir() ?? null, v = t ?? ((h.incanta || h.arma.kind === 'arco') && !controls?.paused ? mouse?.verso(h.x, h.z) ?? null : null);
     if (!v) { hero!.mira(miraArco()); return; }
     hero!.mira({ x: v.x, z: v.z }, true);
   };
@@ -311,7 +311,7 @@ export function startRun(ctx: RunCtx, o: {
     if (auto) return dungeon.autopilot(s, auto);
     if (dungeonLink.altare >= 0) return walkToAltare(dungeonLink.altare);
     if (dungeonLink.vai) return walkToCella(dungeonLink.vai);
-    const a = f.a || c.a, m = a || s.hero.act === 'tende' ? puntaMouse() : 0; // la mira solo mentre si preme (e al rilascio dell'arco): il log resta corto
+    const a = f.a || c.a, m = c.m || (a || s.hero.act === 'tende' ? puntaMouse() : 0); // la mira solo mentre si preme (e al rilascio dell'arco): il log resta corto; il joystick di mira porta la sua
     return { mx: f.mx, my: f.my, a, b: f.b, c: c.c, d: c.d, ...(m ? { m } : {}) };
   }
 
@@ -411,6 +411,7 @@ export function startRun(ctx: RunCtx, o: {
       controls.setLanterna(phase === 'play' && view.lanterna >= 0 ? { salvatoQui: view.salvatoQui, oggetti: nOggetti(view.zaino.bottino), monete: view.zaino.monete } : null);
       sc.setAltare(view.altari.findIndex((a) => a.attivo));
       const h = view.hero, rh = s.runHero, spell = rh.magia !== null ? rh.magie[rh.magia] : null;
+      controls.setMira(phase === 'play' && (!!h.magia || s.hero.arma.kind === 'arco'));
       controls.setState(spell ? 1 - h.ricaricaMagia / Math.max(0.01, spell.ricarica) : 0, h.pozioni, !!spell);
       controls.setMagie(magieUi, phase === 'play' ? h.magia ?? null : null, h.magicka);
       const cur = mouse?.attivo && (!!h.magia || s.hero.arma.kind === 'arco') ? 'crosshair' : ''; // il cursore diventa un mirino
