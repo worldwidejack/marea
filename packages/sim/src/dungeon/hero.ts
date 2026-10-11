@@ -1,9 +1,9 @@
 // Eroe nel dungeon: movimento (camminata, corsa a stamina), mischia normale/caricata con mira assistita, arco, magie, pozioni, uscita.
 import { RPG } from '@marea/content/rpg.ts';
 import type { SkillId, Traits } from '@marea/content/rpg.ts';
-import type { RunWeapon } from '../rpg/types.ts';
+import type { RunPotion, RunWeapon } from '../rpg/types.ts';
 import { DT } from '../constants.ts';
-import type { DungeonInput } from './types.ts';
+import type { DungeonEvent, DungeonInput } from './types.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { add, ev, newEnemy, secToTicks } from './state.ts';
 import { buff, hitEnemy } from './combat.ts';
@@ -14,7 +14,7 @@ import {
 } from './tuning.ts';
 import { sweepTo, swept, swingStyle } from './swing.ts';
 import { aimDir } from './mira.ts';
-import { consuma } from './zaino.ts';
+import { consuma, rebuild } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts';
 import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts';
@@ -196,13 +196,28 @@ function drink(s: DungeonState): void {
   const p = rh.pozione !== null ? rh.pozioni[rh.pozione] : undefined;
   if (!p || h.pozioni <= 0) return;
   h.pozioni--;
+  applyPotion(s, p);
+  h.act = 'beve'; h.actT = 0; h.actDur = BEVE_TICKS;
+  ev(s, { t: 'pozione', id: p.id });
+}
+
+/** Azione dal menu (dungeon v8): beve una pozione qualsiasi dello zaino, non solo la rapida. null se non ce l'hai (o niente `stato`). */
+export function beviNow(s: DungeonState, id: string): DungeonEvent[] | null {
+  if (!s.stato || typeof id !== 'string') return null;
+  const p = s.runHero.pozioni.find((x) => x.id === id);
+  if (!p || p.n <= 0) return null;
+  applyPotion(s, p);
+  rebuild(s); // pozioni rimaste e pozione rapida dallo zaino di adesso
+  return [{ t: 'pozione', id }];
+}
+
+function applyPotion(s: DungeonState, p: RunPotion): void {
+  const h = s.hero, rh = s.runHero;
   consuma(s, p.id, s.usati);
   if (p.cura.vita) h.vita = Math.min(rh.max.vita, h.vita + p.cura.vita);
   if (p.cura.magicka) h.magicka = Math.min(rh.max.magicka, h.magicka + p.cura.magicka);
   if (p.cura.stamina) h.stamina = Math.min(rh.max.stamina, h.stamina + p.cura.stamina);
   if (p.buff) h.buffs.push({ mod: p.buff.mod, valore: p.buff.valore, fine: s.tick + secToTicks(p.buff.secondi) });
-  h.act = 'beve'; h.actT = 0; h.actDur = BEVE_TICKS;
-  ev(s, { t: 'pozione', id: p.id });
 }
 
 export function stepHero(s: DungeonState, inp: DungeonInput): void {

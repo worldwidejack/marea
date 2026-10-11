@@ -64,7 +64,7 @@ type Phase = 'loading' | 'play' | 'end' | 'over';
 type Out = { inputs: ReturnType<typeof packDungeon>; hash: number; azioni: DungeonAzioni };
 const END_WAIT = 100; // tick di scritta finale prima di consegnare
 const OUT: Record<string, [string, string]> = { uscito: ['SEI USCITO', PAL.erbaChiara], morto: ['SEI CADUTO', PAL.rosso], tempo: ['TEMPO SCADUTO', PAL.arancio] };
-const NO_ACT: Record<DungeonAzione['t'], string> = { equip: 'Non si può mettere qui', butta: 'Non ce l’hai nello zaino', salva: 'Qui è già tutto al sicuro', esci: 'Serve una lanterna', ritira: 'Non si può' };
+const NO_ACT: Record<DungeonAzione['t'], string> = { equip: 'Non si può mettere qui', butta: 'Non ce l’hai nello zaino', bevi: 'Non ce l’hai nello zaino', salva: 'Qui è già tutto al sicuro', esci: 'Serve una lanterna', ritira: 'Non si può' };
 const nOggetti = (b: Record<string, number>) => Object.values(b).reduce((a, n) => a + n, 0);
 /** Per i test (Fucina): il Mastro Forgiatore, se c'è. */
 /** Per i test (Mausoleo): il Custode dell'Egida, se c'è. */
@@ -154,7 +154,7 @@ export function startRun(ctx: RunCtx, o: {
     if (!ev) return NO_ACT[a.t] ?? 'Non si può';
     azioni.push([frames.length, a]);
     for (const e of ev) onEvent(e);
-    if (a.t === 'equip' || a.t === 'butta') nuovoEquip();
+    if (a.t === 'equip' || a.t === 'butta' || a.t === 'bevi') nuovoEquip();
     refresh();
     if (s.done) toEnd();
     return null;

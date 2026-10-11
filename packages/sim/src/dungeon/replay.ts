@@ -72,6 +72,7 @@ export function parseDungeonAzione(v: unknown): DungeonAzione | null {
       if (!EQUIP_SLOTS.includes(o['slot'] as EquipSlot) || (o['item'] !== null && !okStr(o['item']))) return null;
       return { t: 'equip', slot: o['slot'] as EquipSlot, item: o['item'] as string | null };
     case 'butta': return okStr(o['item']) && Number.isInteger(o['n']) && (o['n'] as number) >= 1 && (o['n'] as number) <= 999 ? { t: 'butta', item: o['item'], n: o['n'] as number } : null;
+    case 'bevi': return okStr(o['item']) ? { t: 'bevi', item: o['item'] } : null;
     case 'salva': return { t: 'salva' };
     case 'esci': return { t: 'esci' };
     case 'ritira': return { t: 'ritira' };
