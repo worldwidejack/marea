@@ -27,7 +27,7 @@
 6. **Verifica prima di dire fatto**: test verdi, screenshot in `tests/out/` guardati davvero, numeri (draw call, KB). Un tool che risponde ok non prova niente.
 7. **Look**: solo colori della palette (`ART_BIBLE.md` §2), texture nearest, un atlas, flat shading, avatar a 6 teste stile PS1. Mai Roblox/Fall Guys, mai gradienti lisci, mai PBR.
 8. **Telefono prima**: tutto si prova a 390×844; un pollice basta per giocare. Jack gioca da PC: tastiera e mouse devono restare comodi.
-9. **Budget** (`TECH.md` §5) fa fallire la build: rispettalo, non alzarlo.
+9. **Budget** (`TECH.md` §5) fa fallire la build. Non è un dictat: Jack (voce, 11 ott 2026) ha detto che se serve ed è sensato si può superare. Prima prova a spostare codice in chunk caricati dopo (`import()`); se non basta, alza il limite con una riga in `ROADMAP.md` §Deviazioni (come l’8 ott), senza chiedere. Telefono: mai rallentare l’avvio.
 10. **Database**: una modifica allo schema = nuova migrazione in `apps/server/migrations/` col numero successivo all'ultimo su `main`. Se un altro ha preso il tuo numero prima di te, rinumera la tua.
 11. **Subagent dentro una sessione**: file disgiunti tra loro (un agente per pacchetto, mappa in `CONTRACTS.md` §1). Gli agenti non fanno commit, push, merge.
 
