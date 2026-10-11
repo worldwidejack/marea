@@ -371,7 +371,7 @@ function piazza(p: Pista, t: Terreno): { pezzi: Pezzo[]; teste: Testa[] } {
 
   // il mare: scogli sulla riva, barche a vela al largo
   const { x0, x1, z0, z1 } = t.bordo;
-  for (let i = 0; i < 380; i++) {
+  for (let i = 0; i < 900; i++) {
     const x = x0 + rnd() * (x1 - x0), z = z0 + rnd() * (z1 - z0), h = t.nat(x, z), q = t.vicini.vicino(x, z, 30);
     if (q && q.d < q.c.fuori + 6) continue;
     if (h < L - 0.3 && h > L - 1.6 && rnd() < 0.25) metti(rnd() < 0.5 ? 'cs_scoglio_a' : 'cs_scoglio_b', x, z, rnd() * 6.28, 2.5, { y: L - 0.4, s: 0.7 + rnd() * 0.8 });

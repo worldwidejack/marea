@@ -165,7 +165,11 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
   - **turbo della piega**: piegati verso l'interno sopra il 72 % del limite si carica il turbo a 3 livelli come il drift (scintille blu, arancio, viola); parte raddrizzandosi o uscendo dalla curva;
   - **SALTO** (il bottone del drift): in aria lo sterzo sceglie la rotaia accanto. Serve a cambiare binario, prendere i bivi (rami con le loro rotaie: entra chi passa sulla rotaia giusta) e saltare le rotaie rotte; atterrare lontano da una rotaia deraglia. Le acrobazie restano per i salti dalle rampe;
   - 3 carrelli: **da miniera** (17 m/s, medio), **da corsa** (18,2 m/s, tiene meno in curva), **corazzato** (16,4 m/s, lento a partire, tiene di più, pesa il doppio). Per ora hanno tutti il modello del carrello del kit;
-  - col pilota automatico (frena e si piega): 83 s sulla Miniera; chi si piega senza frenare ~101 s, chi tiene solo il gas ~105 s (cade alla rotaia rotta e nei tornanti).
+  - col pilota automatico (frena e si piega): 83 s sulla pista di prova dei carrelli `prova_binari` (la prima Miniera, tutta a binari); chi si piega senza frenare ~101 s, chi tiene solo il gas ~105 s (cade alla rotaia rotta e nei tornanti);
+  - **piste ibride** (dopo la prova di Jack dell'11 ott: «una gara intera sui binari è noiosa», «non si capisce quando saltare né perché vinci o perdi»): ogni veicolo corre col suo motore e nei tratti `agganci` della pista (la miniera) e sui rami a binari **si aggancia alla rotaia più vicina** e guida come un carrello (numeri della famiglia Binari, piega a `piegaAgganciati`); all'uscita si sgancia. Agganciandosi o sganciandosi il drift in corso dà il suo turbo;
+  - **rotaia che manca sotto le ruote = deragli** (anche a tutta velocità: niente «rimbalzo» sopra i buchi corti). Dopo un deragliamento la leva non spinge per `ripresa` (1 s) e per `salvo` (3 s) non si deraglia, al massimo si va su due ruote: cadere costa ~3 s, ma chi non sa ancora piegarsi non ricade all'infinito nella stessa curva;
+  - **avviso prima**: ~28 m prima di ogni rotaia rotta, bivio o rotaia che cede c'è un portale con una luce per rotaia (freccia verde = libera, X rossa = finisce, freccia gialla = da lì parte il bivio); nel tunnel due luci rosse basse 18 m prima del buco; le traversine prima di un buco sono a strisce gialle e nere; frecce del turbo anche sulle rotaie e nel tunnel; su due ruote scintille gialle dalla ruota di fuori (rosse vicino al deragliamento); entrando «BINARI! SALTA PER CAMBIARE» e il bottone diventa SALTO;
+  - **la scelta pesa**: il bivio rischioso (tunnel con la rotaia rotta da saltare) vale ~1,9 s a giro; i bot lo prendono uno sì e uno no.
 - **Scorciatoie che convengono**: un ramo può avere i suoi tappeti del turbo (all'imbocco). Tagliare una chicane da sola non basta: i metri risparmiati sono pochi, così la scorciatoia vale se ha il turbo o se salta un giro largo.
 - **L'inseguitore** (l'onda della Fuga): un fronte che parte dietro la griglia e avanza da solo (`v0` che sale di `accel` fino a `vmax`), più veloce se ti stacchi oltre `distMax` (così non scappi: ti sta sempre dietro, ma lontano se guidi bene). Chi viene preso prende un colpo (velocità × `colpo`, una volta sola) e va a `rallenta` × il massimo finché il corpo dell'onda (`spessore` m) gli passa sopra; poi è dietro l'onda e riparte. Tocca anche i bot: i ritardatari vengono presi. Deterministico: solo + − × ÷, il replay del server coincide.
 - **Superfici**: nuova `container` (tetto di lamiera: ruote veloci ma con poca presa), per l'evento dei container del Porto.
@@ -180,11 +184,12 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 | **Porto** `spiaggia_porto` | circuito misto, 3 giri · ruote + acqua | 740 m · 95 s (kart), 100 s (moto d'acqua) | molo e canale affiancati, divisorio a righe gialle e nere, grande giro intorno al magazzino con la passerella (ruote) e il canale tra i container (barche), un tappeto del turbo per corsia | dal 2° giro le gru calano i **container** sul molo: i tetti di lamiera scivolano |
 | **Fuga dall'onda** `spiaggia_fuga` | fuga A→B · ruote | 1.366 m (corsa 1.258) · 61 s (kart) | discesa dalla scogliera al faro, 100 m di rettilineo prima del via, curve ampie e due sopraelevate, il salto dove la ringhiera è crollata | l'**onda gigante** insegue (inseguitore); il kart del pilota automatico non viene mai preso, il carrello sì |
 
-- **Giungla e templi** (grezze, banco di prova):
+- **Giungla e templi** (banco di prova):
 
 | Pista | Tipo · famiglia | Lunghezza · tempo del pilota automatico | Cosa c'è | Evento firma |
 |---|---|---|---|---|
-| **Miniera del tempio** `giungla_miniera` | circuito, 2 giri · binari | 785 m · 83 s (carrello da miniera) | 3 rotaie su un ponte di legno su pali, discesa nel canyon, tornante sopra la cascata (frena e piegati), bivio del tunnel nel tempio (dalla rotaia di destra, col turbo), ponte crollato (manca la rotaia di mezzo), salto sopra la cascata, salita sopraelevata, tornante del tempio e rettilineo lungo il fiume | dal 2° giro il **ponte di corda** dopo il bivio cede a sinistra (la rotaia di sinistra cade) |
+| **Miniera del tempio** `giungla_miniera` | circuito **ibrido**, 2 giri · ruote, agganciati nella miniera | 789 m (miniera 237 m) · 74 s kart, 72 s auto, 81 s carrello della spesa | sterrato della giungla con la esse da drift e il curvone sopraelevato; l'imbuto e il portale di legno: ci si aggancia a 3 rotaie sul ponte di legno sopra il canyon col fiume (frecce del turbo a sinistra, curva in discesa da piegarsi), il bivio del tunnel nella bocca del tempio (dalla rotaia di destra, turbo, rotaia rotta da saltare: ~1,9 s a giro) o il giro largo, il ponte crollato (manca la rotaia di mezzo), l'uscita; il salto sopra la cascata e il rettilineo in salita lungo il fiume. Vestita: canyon, 4 cascate, tempio con la galleria, torce, giungla | dal 2° giro sul ponte dopo il bivio cede la rotaia di sinistra (il portale prima la segna rossa da quel giro) |
+| Prova carrelli `prova_binari` | circuito, 2 giri · binari (banco) | 785 m · 83 s (carrello da miniera) | la prima Miniera tutta a binari: base per il Tempio che crolla | come sopra |
 
   La scorciatoia sulla sabbia del Lungomare, pensata all'inizio, è stata tolta: tagliare una chicane faceva perdere 0,6-2,7 s invece di farne guadagnare.
 - **Scenografia** (#176, 9 ott 2026; mappa del codice in `CONTRACTS.md` §34). Le 4 piste della Spiaggia sono vestite col kit Blender della zona (31 pezzi in `models_corse_spiaggia.py`):
@@ -211,10 +216,11 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 6. Fantasmi, stelle e sblocchi, premi per MAREA.
 7. Zone 2-6 con la stessa catena di montaggio. **Zona 2 = Giungla e templi** (scelta di Jack, 11 ott 2026, #228; prima di stelle, boss e musica della Spiaggia):
    - 7a. Concept art (**fatto**, 11 ott 2026).
-   - 7b. Famiglia Scivoli e binari + Miniera del tempio grezza sul banco di prova (**fatto**, 11 ott 2026: `provapiste.html?pista=giungla_miniera`; regole in A11 «Binari»).
-   - 7c. Famiglia Due ruote + Sentiero del cross grezza.
-   - 7d. Rapide e Tempio che crolla grezze, eventi firma.
-   - 7e. Kit Blender e scenografia, pacchetto asset della zona.
+   - 7b. Famiglia Scivoli e binari + Miniera del tempio grezza sul banco di prova (**fatto**, 11 ott 2026; regole in A11 «Binari»). **Bocciata da Jack** come gara intera sui binari (guida noiosa, non si capisce quando saltare né perché si vince o si perde, niente look giungla): resta come pista di prova `prova_binari`.
+   - **Intervista dell'11 ott notte**: i binari diventano un **tratto** (piste ibride: il veicolo si aggancia); una sola pista tutta in carrello, **il Tempio che crolla in stile Subway Surfers** (cambio rotaia secco + salto + piega, la testa di pietra dietro come la guardia; veicoli: i 3 carrelli e la noce di cocco); ogni scelta deve pesare e si deve vedere prima; **prima il look**: mai più far giudicare la guida su una pista grigia.
+   - 7c. **Miniera ibrida e vestita** (**fatto**, 11 ott 2026, #228): aggancio ai binari, segnali, kit Giungla (`cs_g_*`) e scenografia (canyon, cascate, tempio sul tunnel). Da far provare a Jack.
+   - 7d. Tempio che crolla tutto in carrello, stile Subway Surfers (prima un'immagine da far scegliere a Jack).
+   - 7e. Famiglia Due ruote (una sola, condivisa con la discesa in bici) + Sentiero del cross; Rapide.
    - 7f. Veicoli e animali in 3D.
    - 7g. Porta della Giungla aperta nell'hub, piste nel gioco e nella gara tra amici.
 

@@ -265,7 +265,7 @@ const tst = document.createElement('div'); tst.className = 'pp-toast'; root.appe
 let tstT = 0;
 function toast(t: string | null, colore: string = P.sabbiaChiara) {
   tst.style.display = t ? 'block' : 'none'; if (!t) return;
-  tst.textContent = t; tst.style.color = colore; tstT = 1.1;
+  tst.textContent = t; tst.style.color = colore; tstT = t.length > 16 ? 2 : 1.1; tst.classList.toggle('lungo', t.length > 16); // i messaggi lunghi vanno a capo e restano di più
 }
 const ferma = (e: Event) => e.stopPropagation();
 const ruota = avvisoRuota(root);

@@ -1,12 +1,13 @@
-// Scenografia della Spiaggia e porto (apps/client/src/corse/scena.ts, kit `cs_*` in manifest_corse.json, #176). Per ogni pista della zona:
+// Scenografia delle zone (apps/client/src/corse/scena.ts, kit `cs_*` in manifest_corse.json): la Spiaggia e porto (#176) e la Miniera
+// della Giungla (#228: canyon, cascate, tempio sul tunnel, kit `cs_g_*`). Per ogni pista vestita:
 // - il kit si scarica e si monta (pezzi, teste dei manichini) senza errori in console;
 // - durante tutta la gara del pilota automatico draw call ≤ 100 e triangoli ≤ 150.000 a 390×844 (il massimo su una foto ogni 6 s);
 // - le teste dei manichini si girano verso la camera quando passa.
 // Screenshot di gara (telefono) e dall'alto (provascena.html) in tests/out/shots/m4_corse_scena_*. Numeri in tests/out/m4_corse_scena.json.
 export const timeout = 300000;
 const MAX_DC = 100, MAX_TRI = 150000;
-const PISTE = ['spiaggia_lungomare', 'spiaggia_baia', 'spiaggia_porto', 'spiaggia_fuga'];
-const DALL_ALTO = { spiaggia_lungomare: 'dist=230&pitch=50&yaw=200', spiaggia_baia: 'dist=380&pitch=60&yaw=200', spiaggia_porto: 'dist=330&pitch=60&yaw=200', spiaggia_fuga: 'dist=700&pitch=55&yaw=200' };
+const PISTE = ['spiaggia_lungomare', 'spiaggia_baia', 'spiaggia_porto', 'spiaggia_fuga', 'giungla_miniera'];
+const DALL_ALTO = { spiaggia_lungomare: 'dist=230&pitch=50&yaw=200', spiaggia_baia: 'dist=380&pitch=60&yaw=200', spiaggia_porto: 'dist=330&pitch=60&yaw=200', spiaggia_fuga: 'dist=700&pitch=55&yaw=200', giungla_miniera: 'dist=260&pitch=50&yaw=200' };
 
 export default async function (ctx) {
   const { assert } = ctx;
@@ -31,6 +32,10 @@ export default async function (ctx) {
         if (st.done) break;
       }
       numeri[id] = { pezzi: sc.pezzi, teste: sc.teste, triangoliScena: sc.triangoli, maxDrawCalls: dc, maxTriangoli: tri };
+      if (id === 'giungla_miniera') { // i pezzi che fanno la Miniera: il tempio sul tunnel, gli ingressi, le cascate, le torce sul ponte
+        const m = await p.page.evaluate(() => window.__corseScena.modelli);
+        assert(m.cs_g_tempio_galleria === 1 && m.cs_g_ingresso === 2 && m.cs_g_cascata >= 2 && m.cs_g_torcia >= 10, `miniera: ${JSON.stringify(m)}`);
+      }
       ctx.log(`${id}: ${sc.pezzi} pezzi, ${sc.teste} teste · max ${dc} draw call, ${tri} triangoli`);
       assert(dc <= MAX_DC && tri <= MAX_TRI, `${id}: ${dc} draw call, ${tri} triangoli`);
     });
