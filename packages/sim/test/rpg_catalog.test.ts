@@ -20,7 +20,7 @@ test('rpg catalogo: 8 materiali, 6 armi, tipo × materiale generato, id unici', 
     for (const p of ['arco', 'frecce', 'armatura']) assert.ok(hasItem(`${p}_${m.id}`), `${p}_${m.id}`);
     assert.ok(m.costo === 'risorsa:legno' || hasItem(m.costo), `costo di ${m.id}: ${m.costo}`);
   }
-  assert.equal(itemDef('armatura_legno').nome, 'Vesti di tela');
+  assert.equal(itemDef('armatura_legno').nome, 'Armatura di legno');
   assert.equal(itemDef('katana_ferro').model, 'arm_katana');
   assert.equal(itemDef('arco_vetro').model, 'arm_arco');
   assert.equal(itemDef('frecce_ferro').forgia?.n, 10);
