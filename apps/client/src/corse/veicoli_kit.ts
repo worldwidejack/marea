@@ -49,7 +49,7 @@ let pronto = false, promessa: Promise<void> | null = null;
 export const kitPronto = (): boolean => pronto;
 
 /** Quantizza position/normal/uv in float32 puri (le glb quantizzate arrivano normalizzate in Int16) e li rende non indicizzati. */
-function float32(g: THREE.BufferGeometry): THREE.BufferGeometry {
+export function float32(g: THREE.BufferGeometry): THREE.BufferGeometry {
   const src = g.index ? g.toNonIndexed() : g;
   const out = new THREE.BufferGeometry();
   for (const k of ['position', 'normal', 'uv'] as const) {
