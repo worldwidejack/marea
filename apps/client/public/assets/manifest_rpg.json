@@ -1,5 +1,5 @@
 {
- "version": "2026-10-10-36",
+ "version": "2026-10-11-63",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
@@ -163,6 +163,57 @@
     "mat_lama": "#B9AFA3"
    }
   },
+  "dng_archivio_muro": {
+   "file": "dng_archivio_muro.glb",
+   "tris": 26,
+   "kb": 2.4,
+   "bounds": {
+    "min": [
+     -1.04,
+     0,
+     -1.04
+    ],
+    "max": [
+     1.04,
+     2.4,
+     1.04
+    ]
+   }
+  },
+  "dng_archivio_muro_basso": {
+   "file": "dng_archivio_muro_basso.glb",
+   "tris": 10,
+   "kb": 1.7,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -1
+    ],
+    "max": [
+     1,
+     0.6,
+     1
+    ]
+   }
+  },
+  "dng_archivio_pavimento": {
+   "file": "dng_archivio_pavimento.glb",
+   "tris": 50,
+   "kb": 3.2,
+   "bounds": {
+    "min": [
+     -1,
+     -0.3,
+     -1
+    ],
+    "max": [
+     1,
+     0.01,
+     1
+    ]
+   }
+  },
   "dng_colonna": {
    "file": "dng_colonna.glb",
    "tris": 72,
@@ -289,6 +340,91 @@
     ]
    }
   },
+  "dng_fucina_colonna": {
+   "file": "dng_fucina_colonna.glb",
+   "tris": 124,
+   "kb": 6.8,
+   "bounds": {
+    "min": [
+     -0.75,
+     0,
+     -0.75
+    ],
+    "max": [
+     0.75,
+     2.51,
+     0.75
+    ]
+   }
+  },
+  "dng_fucina_leva": {
+   "file": "dng_fucina_leva.glb",
+   "tris": 72,
+   "kb": 3.9,
+   "bounds": {
+    "min": [
+     -0.47,
+     0,
+     -0.34
+    ],
+    "max": [
+     0.47,
+     2.6,
+     0.32
+    ]
+   }
+  },
+  "dng_fucina_muro": {
+   "file": "dng_fucina_muro.glb",
+   "tris": 26,
+   "kb": 2.4,
+   "bounds": {
+    "min": [
+     -1.03,
+     0,
+     -1.03
+    ],
+    "max": [
+     1.03,
+     2.4,
+     1.03
+    ]
+   }
+  },
+  "dng_fucina_muro_basso": {
+   "file": "dng_fucina_muro_basso.glb",
+   "tris": 10,
+   "kb": 1.7,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -1
+    ],
+    "max": [
+     1,
+     0.6,
+     1
+    ]
+   }
+  },
+  "dng_fucina_pavimento": {
+   "file": "dng_fucina_pavimento.glb",
+   "tris": 40,
+   "kb": 2.8,
+   "bounds": {
+    "min": [
+     -1,
+     -0.3,
+     -1
+    ],
+    "max": [
+     1,
+     0.01,
+     1
+    ]
+   }
+  },
   "dng_grotta_muro": {
    "file": "dng_grotta_muro.glb",
    "tris": 48,
@@ -361,6 +497,108 @@
      0,
      1.15,
      0
+    ]
+   }
+  },
+  "dng_mausoleo_colonna": {
+   "file": "dng_mausoleo_colonna.glb",
+   "tris": 190,
+   "kb": 8.2,
+   "bounds": {
+    "min": [
+     -0.8,
+     0,
+     -0.75
+    ],
+    "max": [
+     0.8,
+     2.68,
+     0.75
+    ]
+   }
+  },
+  "dng_mausoleo_leva": {
+   "file": "dng_mausoleo_leva.glb",
+   "tris": 74,
+   "kb": 4,
+   "bounds": {
+    "min": [
+     -0.52,
+     0,
+     -0.45
+    ],
+    "max": [
+     0.52,
+     1.2,
+     0.43
+    ]
+   }
+  },
+  "dng_mausoleo_muro": {
+   "file": "dng_mausoleo_muro.glb",
+   "tris": 26,
+   "kb": 2.4,
+   "bounds": {
+    "min": [
+     -1.02,
+     0,
+     -1.02
+    ],
+    "max": [
+     1.02,
+     2.4,
+     1.02
+    ]
+   }
+  },
+  "dng_mausoleo_muro_basso": {
+   "file": "dng_mausoleo_muro_basso.glb",
+   "tris": 10,
+   "kb": 1.7,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -1
+    ],
+    "max": [
+     1,
+     0.6,
+     1
+    ]
+   }
+  },
+  "dng_mausoleo_pavimento": {
+   "file": "dng_mausoleo_pavimento.glb",
+   "tris": 18,
+   "kb": 2,
+   "bounds": {
+    "min": [
+     -1,
+     -0.3,
+     -1
+    ],
+    "max": [
+     1,
+     0.01,
+     1
+    ]
+   }
+  },
+  "dng_mausoleo_sarcofago": {
+   "file": "dng_mausoleo_sarcofago.glb",
+   "tris": 56,
+   "kb": 3.4,
+   "bounds": {
+    "min": [
+     -1,
+     0,
+     -1
+    ],
+    "max": [
+     1,
+     1.03,
+     1
     ]
    }
   },
@@ -509,6 +747,74 @@
     ]
    }
   },
+  "nem_aerostato": {
+   "file": "nem_aerostato.glb",
+   "tris": 250,
+   "kb": 10.4,
+   "bounds": {
+    "min": [
+     -0.62,
+     -0.07,
+     -0.64
+    ],
+    "max": [
+     0.62,
+     2.35,
+     0.62
+    ]
+   }
+  },
+  "nem_anello": {
+   "file": "nem_anello.glb",
+   "tris": 136,
+   "kb": 6.4,
+   "bounds": {
+    "min": [
+     -0.48,
+     0,
+     -0.06
+    ],
+    "max": [
+     0.48,
+     1,
+     0.06
+    ]
+   }
+  },
+  "nem_archivista": {
+   "file": "nem_archivista.glb",
+   "tris": 216,
+   "kb": 9.2,
+   "bounds": {
+    "min": [
+     -0.32,
+     0,
+     -0.72
+    ],
+    "max": [
+     0.32,
+     1.85,
+     0.42
+    ]
+   }
+  },
+  "nem_astrolabio": {
+   "file": "nem_astrolabio.glb",
+   "tris": 170,
+   "kb": 7.6,
+   "bounds": {
+    "min": [
+     -0.55,
+     0.46,
+     -0.63
+    ],
+    "max": [
+     0.55,
+     2.05,
+     0.55
+    ]
+   }
+  },
   "nem_bandito": {
    "file": "nem_bandito.glb",
    "tris": 426,
@@ -523,6 +829,23 @@
      0.32,
      1.71,
      0.22
+    ]
+   }
+  },
+  "nem_chierico": {
+   "file": "nem_chierico.glb",
+   "tris": 314,
+   "kb": 13.3,
+   "bounds": {
+    "min": [
+     -0.55,
+     0,
+     -0.46
+    ],
+    "max": [
+     0.55,
+     2.17,
+     0.46
     ]
    }
   },
@@ -543,6 +866,57 @@
     ]
    }
   },
+  "nem_custode_egida": {
+   "file": "nem_custode_egida.glb",
+   "tris": 438,
+   "kb": 17.6,
+   "bounds": {
+    "min": [
+     -2.2,
+     0,
+     -0.75
+    ],
+    "max": [
+     1.51,
+     3.78,
+     0.73
+    ]
+   }
+  },
+  "nem_forgiatore": {
+   "file": "nem_forgiatore.glb",
+   "tris": 282,
+   "kb": 12.7,
+   "bounds": {
+    "min": [
+     -0.78,
+     0,
+     -2.03
+    ],
+    "max": [
+     0.87,
+     2.99,
+     0.95
+    ]
+   }
+  },
+  "nem_fornace": {
+   "file": "nem_fornace.glb",
+   "tris": 228,
+   "kb": 10.3,
+   "bounds": {
+    "min": [
+     -0.65,
+     0,
+     -1.08
+    ],
+    "max": [
+     0.65,
+     2.11,
+     0.75
+    ]
+   }
+  },
   "nem_golem": {
    "file": "nem_golem.glb",
    "tris": 342,
@@ -557,6 +931,40 @@
      1.05,
      2.39,
      0.51
+    ]
+   }
+  },
+  "nem_guardia": {
+   "file": "nem_guardia.glb",
+   "tris": 170,
+   "kb": 8.4,
+   "bounds": {
+    "min": [
+     -0.51,
+     0.03,
+     -1.67
+    ],
+    "max": [
+     0.64,
+     2.32,
+     0.29
+    ]
+   }
+  },
+  "nem_idroragno": {
+   "file": "nem_idroragno.glb",
+   "tris": 264,
+   "kb": 12,
+   "bounds": {
+    "min": [
+     -0.78,
+     0.05,
+     -0.68
+    ],
+    "max": [
+     0.78,
+     0.85,
+     0.38
     ]
    }
   },
@@ -591,6 +999,23 @@
      0.32,
      1.92,
      0.17
+    ]
+   }
+  },
+  "nem_palombaro": {
+   "file": "nem_palombaro.glb",
+   "tris": 382,
+   "kb": 14.9,
+   "bounds": {
+    "min": [
+     -0.8,
+     0,
+     -0.47
+    ],
+    "max": [
+     0.8,
+     2.28,
+     0.57
     ]
    }
   },
@@ -642,6 +1067,40 @@
      0.39,
      1.7,
      0.16
+    ]
+   }
+  },
+  "nem_scintilla": {
+   "file": "nem_scintilla.glb",
+   "tris": 216,
+   "kb": 10.6,
+   "bounds": {
+    "min": [
+     -0.45,
+     0.56,
+     -0.53
+    ],
+    "max": [
+     0.47,
+     1.52,
+     0.48
+    ]
+   }
+  },
+  "nem_sentinella": {
+   "file": "nem_sentinella.glb",
+   "tris": 176,
+   "kb": 8.8,
+   "bounds": {
+    "min": [
+     -0.8,
+     0,
+     -0.71
+    ],
+    "max": [
+     0.83,
+     2.34,
+     0.43
     ]
    }
   },

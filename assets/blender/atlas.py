@@ -92,6 +92,8 @@ REGIONS['testa_bandito'] = (224, 768, 14, 18)  # viso a colore fisso (cappuccio 
 REGIONS['pelle_bandito'] = (240, 768, 8, 8)
 REGIONS['lama'] = (248, 768, 16, 16)           # maschera bianca delle lame (mat_lama): il client la tinge col colore del materiale
 _grid(['em_fuoco', 'em_cristallo', 'em_neon_rosso', 'em_scala', 'em_vuoto', 'em_spettro', 'em_runa'], 0, 928, 32, 32, 32)
+# Fucina e Mausoleo (modelli 3D dei dungeon, 11 ott 2026): tessere 64x64 (4 m, ripetibili ogni 32) nella zona libera a y 384.
+_grid(['mattoni_fucina', 'basalto_fucina', 'marmo_muro'], 0, 384)
 
 EMISSIVE = {n for n in REGIONS if n.startswith('em_')}
 TINT_MASK = {'testa', 'pelle', 'capelli', 'vestito', 'mano', 'cappello', 'lama'}
@@ -837,6 +839,33 @@ def paint_rpg(cv):
             return 'ciano_neon'
         return 'nero_caldo'
     R('em_runa', em_runa)
+
+    # --- Fucina: mattoni refrattari anneriti dalla fuliggine, lastre di basalto con le braci cadute; Mausoleo: conci di marmo
+    mattoni = blocks('legno_scuro', 'legno', 'ombra_calda', 'legno', bw=8, bh=4, seed=231)
+
+    def mattoni_fucina(x, y, w, h):
+        c = mattoni(x, y, w, h)
+        if c != 'ombra_calda' and h01(x % 32, y % 32, 232) < 0.14:
+            return 'nero_caldo'  # fuliggine
+        return c
+    R('mattoni_fucina', mattoni_fucina)
+
+    def basalto_fucina(x, y, w, h):
+        xx, yy = x % 32, y % 32
+        if xx % 16 == 0 or yy % 16 == 0:
+            return 'nero_caldo'
+        if yy % 16 == 1 and h01(xx, yy, 233) < 0.5:
+            return 'pietra_scura'  # spigolo di luce
+        r = h01(xx, yy, 234)
+        if r < 0.005:
+            return 'arancio'  # brace caduta
+        if r < 0.14:
+            return 'nero_caldo'
+        if r < 0.20:
+            return 'pietra_scura'
+        return 'roccia'
+    R('basalto_fucina', basalto_fucina)
+    R('marmo_muro', blocks('pietra_chiara', 'pietra', 'pietra_scura', 'sabbia_chiara', bw=16, bh=8, seed=235))
 
 
 def paint_corse(cv):

@@ -1,6 +1,5 @@
 # Archivio Navigazionale (Epopea della Regata, dungeon 2 — Riccardo, 9 ott 2026): ingresso sull'arco est dell'anello della Laguna, kit
-# del dungeon e i nemici del Collettivo Rottamautomi. SCRITTO SUL PC DI RICCARDO SENZA BLENDER: non è mai stato eseguito. Lo lancia il
-# Claude di Jack:
+# del dungeon e i nemici del Collettivo Rottamautomi. Scritto sul PC di Riccardo senza Blender, poi eseguito il 11 ott 2026 sul fisso. Si lancia con:
 #   npm run assets prop_ingresso_archivio dng_archivio_pavimento dng_archivio_muro dng_archivio_muro_basso nem_archivista nem_idroragno nem_aerostato nem_astrolabio nem_anello
 # poi lo sistema se qualcosa non torna e guarda il foglio dei contatti (tests/out/rpg_contact.png).
 # I nomi sono quelli che cerca il codice: prop_ingresso_<stile> (game/ingressi.ts), dng_archivio_pavimento/muro/muro_basso
