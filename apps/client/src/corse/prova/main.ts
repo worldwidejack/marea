@@ -212,10 +212,10 @@ function aggiornaVeicoli(dt: number) {
     meshes[i]!.matrix.copy(M4); meshes[i]!.matrixWorldNeedsUpdate = true;
     if (effetti && !k.caduto && (i === 0 || camera.position.distanceToSquared(vP) < 60 * 60)) {
       emettiVeicolo(fx, k, i === 0 && k.scia > 0.15 && w.scia <= k.scia, pausa ? 0 : Math.max(0, k.v), vP, vF, vU, vR, vM);
-      // sulle rotaie, su due ruote: scintille dalla ruota di fuori (gialle, rosse quando sta per deragliare)
+      // sulle rotaie, su due ruote: scintille dalla ruota di fuori (gialle, rosse quando si esagera e si frena forte)
       const q = quotaBinari(p, k);
       if (q > 1 && !pausa) {
-        const n = nastroDi(p, k.ramo), fuori = campo(n, n.k, k.s) > 0 ? -1 : 1, rosso = q > CORSE.famiglie.binari.binari!.deraglia * 0.85;
+        const n = nastroDi(p, k.ramo), fuori = campo(n, n.k, k.s) > 0 ? -1 : 1, rosso = q > 1.35;
         tmp.copy(vP).addScaledVector(vR, fuori * 0.6).addScaledVector(vF, -0.5);
         vM2.copy(vM).multiplyScalar(k.v * 0.7).addScaledVector(vR, fuori * 2).addScaledVector(vU, 2.5);
         fx.emetti(tmp, vM2, rosso ? P.rossoNeon : P.giallo, rosso ? 3 : 2, 1.2, 0.18, 12, 0.6);
@@ -240,7 +240,8 @@ function eventi() {
     if (s.tick > 1 && !k.caduto) { suoni.atterra(6); regia.st.scossa = Math.max(regia.st.scossa, 0.12); if (k.agg && !famiglieDi(p.def).includes('binari')) toast('BINARI! SALTA PER CAMBIARE', P.ambraNeon); }
     w.agg = k.agg;
   }
-  if (k.cadute > w.cadute) { toast(k.agg ? 'DERAGLIATO!' : 'CADUTO!', P.rossoNeon); regia.st.scossa = Math.max(regia.st.scossa, 0.3); }
+  // sulle rotaie si cade solo dove manca la rotaia: lo si dice
+  if (k.cadute > w.cadute) { toast(k.agg ? 'ROTAIA ROTTA! SALTA O CAMBIA ROTAIA' : 'CADUTO!', P.rossoNeon); regia.st.scossa = Math.max(regia.st.scossa, 0.3); }
   w.cadute = k.cadute;
   for (let i = 0; i < vis.length; i++) {
     const x = s.veicoli[i]!, y = vis[i]!;

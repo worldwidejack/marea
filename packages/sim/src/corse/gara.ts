@@ -140,7 +140,7 @@ export function pilota(p: Pista, k: Veicolo, corsia: number, latFissa: number | 
   return { sterzo, gas, curva };
 }
 
-/** Chi guida da solo sui binari (#228): frena prima delle curve (fino a `prudenza` × il limite, piegato), si piega verso l'interno,
+/** Chi guida da solo sui binari (#228): stacca il gas prima delle curve (oltre 1,2 × `prudenza` × il limite, piegato), si piega verso l'interno,
  *  salta per cambiare rotaia (verso l'imbocco di un bivio che conviene o lontano da una rotaia rotta) e salta i buchi.
  *  `osa` = prende i bivi rischiosi delle piste ibride (rami a binari aperti a tutti): i bot uno sì e uno no. */
 export function pilotaBinari(p: Pista, k: Veicolo, prudenza: number, bot: boolean, osa = true): { sterzo: number; gas: number; salto: boolean } {
@@ -150,7 +150,8 @@ export function pilotaBinari(p: Pista, k: Veicolo, prudenza: number, bot: boolea
   let kmax = 0;
   for (let d = 0; d <= 8 + Math.max(0, k.v) * 1.1; d += 2) kmax = Math.max(kmax, Math.abs(campo(n, n.k, fino(d))));
   const vGiusta = kmax > 1e-4 ? Math.sqrt((limiteCurva(V, 1, 1) * prudenza) / kmax) : 1e9;
-  const gas = k.v > vGiusta + 0.6 ? -1 : k.v > vGiusta - 0.4 ? 0 : 1;
+  // in curva non si cade: oltre la velocità giusta stacca solo il gas (su due ruote si frena già da soli), e solo se è molto oltre
+  const gas = k.v > vGiusta * 1.2 ? 0 : 1;
   const kq = campo(n, n.k, fino(3));
   let sterzo = Math.abs(kq) > 0.006 ? (kq > 0 ? 1 : -1) : 0;
   // la rotaia dove andare: l'imbocco di un bivio che conviene (i bot solo quelli della loro famiglia), poi una rotaia senza buchi davanti

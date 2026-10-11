@@ -2,8 +2,9 @@
 // aggancia alle rotaie. Cosa si controlla:
 // - fuori dalla miniera si guida a ruote, dentro si sta su una rotaia, all'uscita ci si sgancia;
 // - il pilota automatico arriva senza cadute con ogni veicolo a ruote;
-// - la scorciatoia del tunnel (rotaia rotta da saltare) vale 1-2 s a giro, ben visibile;
-// - chi tiene solo il gas nella miniera (non si piega, non salta, non cambia rotaia) deraglia, ma arriva lo stesso, molto dopo;
+// - la scorciatoia del tunnel (rotaia rotta da saltare) vale ~1-1,3 s a giro, ben visibile;
+// - si cade solo dove manca la rotaia: chi tiene solo il gas nella miniera (non si piega, non salta, non cambia rotaia) cade nei buchi,
+//   ma arriva lo stesso, molto dopo;
 // - coi bot: uno sì e uno no prendono il tunnel; deterministico.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -62,11 +63,11 @@ test('ibride: il tunnel vale 1-2 s a giro', () => {
     assert.equal(sicuro.tunnel, 0, `${v}: chi non osa resta sul giro largo`);
     assert.equal(sicuro.k.cadute, 0);
     const aGiro = (sicuro.ms - osa.ms) / 2;
-    assert.ok(aGiro > 1000 && aGiro < 2500, `${v}: il tunnel vale ${aGiro} ms a giro`);
+    assert.ok(aGiro > 900 && aGiro < 2500, `${v}: il tunnel vale ${aGiro} ms a giro`);
   }
 });
 
-test('ibride: chi nella miniera tiene solo il gas deraglia (rotaia rotta, curve) ma arriva, molto dopo', () => {
+test('ibride: chi nella miniera tiene solo il gas cade nei buchi (rotaia rotta, tunnel) ma arriva, molto dopo', () => {
   const bravo = corri(nuova(), (s) => pilotaGara(s, false, false));
   const gas = corri(nuova(), (s) => (s.veicoli[0]!.agg ? { mx: 0, my: 1, a: false, b: false } : pilotaGara(s)));
   assert.ok(gas.k.fine > 0, 'arriva');

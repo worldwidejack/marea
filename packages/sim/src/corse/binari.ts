@@ -1,11 +1,12 @@
 // La guida sui binari (#228, docs/CORSE.md A6): i carrelli da miniera della Giungla. Il carrello sta sempre su una rotaia:
 // - la pendenza spinge forte (in discesa si vola), il GAS è la leva che spinge in piano, il FRENO frena; niente retromarcia;
-// - nelle curve conta la spinta di lato (v² × curvatura): sopra il limite si va su due ruote e il carrello frena da solo;
-//   molto sopra (chi entra lanciato senza piegarsi), se ci si resta, si deraglia;
+// - nelle curve conta la spinta di lato (v² × curvatura): sopra il limite si va su due ruote e il carrello frena da solo (tanto più
+//   quanto più si esagera). In curva non si cade mai (Jack, 11 ott: «in base a cosa si deraglia? non ci sono buchi»): si cade solo
+//   dove manca la rotaia;
 // - piegarsi verso l'interno (lo sterzo) alza il limite; piegati al limite si carica il turbo a 3 livelli, come il drift,
 //   e parte raddrizzandosi o uscendo dalla curva;
 // - DRIFT = salto: in aria lo sterzo sceglie la rotaia accanto (così si cambiano binario, si prendono i bivi e si saltano le rotaie
-//   rotte); atterrare lontano da una rotaia è un deragliamento.
+//   rotte); si atterra sempre sulla rotaia scelta (si cade solo se lì manca).
 // I bivi sono rami con le loro rotaie: ci entra chi passa l'imbocco sulla rotaia giusta.
 // Piste ibride (la Miniera, #228): ogni veicolo guida col suo motore e si aggancia alle rotaie solo nei tratti `agganci` della pista
 // (e sui rami a binari): lì guida come un carrello, coi numeri della famiglia Binari. Solo + − × ÷ e Math.sqrt.
@@ -37,7 +38,7 @@ export function limiteCurva(V: CVeicoloDef, presaSup: number, dentro: number): n
 
 /** Deraglia: si cade (dopo `caduta.secondi` si riparte da dove si era a terra, su una rotaia). */
 function deraglia(k: Veicolo): void {
-  k.caduto = DT; k.cadute++; k.aria = true; k.vh = 2; k.drift = 0; k.carica = 0; k.bilico = 0;
+  k.caduto = DT; k.cadute++; k.aria = true; k.vh = 2; k.drift = 0; k.carica = 0;
 }
 
 /** Un tick sui binari: sterzo = piega (−1..1), gas = leva (sotto −0,3 freno), btn = DRIFT (salto). Stessa firma di `muovi`. */
@@ -51,15 +52,11 @@ export function muoviBinari(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number
       const rot = rotaieDi(p, -1), libera = (i: number) => { for (let d = 0; d <= 50; d += 1.5) if (superficieA(p, -1, p.n.chiuso ? (k.s + d) % p.n.len : Math.min(p.n.len, k.s + d), rot[i]!, giro) === VUOTO) return false; return true; };
       k.rot = rotaiaVicina(rot, 0);
       if (!libera(k.rot)) for (let d = 1; d < rot.length; d++) { if (k.rot + d < rot.length && libera(k.rot + d)) { k.rot += d; break; } if (k.rot - d >= 0 && libera(k.rot - d)) { k.rot -= d; break; } }
-      k.lat = rot[k.rot]!; k.piega = 0; k.bilico = 0;
-      // si riparte piano (la leva torna dopo `ripresa` s) e per `salvo` s non si deraglia (al massimo su due ruote, che frena): cadere costa,
-      // ma chi non ha ancora capito come piegarsi non ricade all'infinito nella stessa curva
-      k.fermo = Math.max(k.fermo, B.ripresa); k.salvo = B.salvo;
+      k.lat = rot[k.rot]!; k.piega = 0;
     }
     return;
   }
   if (k.fermo > 0) { k.fermo = Math.max(0, k.fermo - DT); gas = 0; } // motore ingolfato: la leva non spinge
-  if (k.salvo > 0) k.salvo = Math.max(0, k.salvo - DT);
   let rot = rotaieDi(p, k.ramo);
   if (k.rot < 0 || k.rot >= rot.length) k.rot = rotaiaVicina(rot, k.lat);
   // la piega segue lo sterzo, alla velocità del carrello (in aria resta com'è)
@@ -92,13 +89,11 @@ export function muoviBinari(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number
     if (k.v > top) k.v -= B.attrito * (k.v - top) * DT;
     k.v = Math.max(-K.retro, k.v); // in salita, senza spinta, si torna indietro
   }
-  // ---- curve: spinta di lato, due ruote, deragliamento, carica del turbo ----
+  // ---- curve: spinta di lato, due ruote (frena), carica del turbo ----
   const kap = campo(n, n.k, k.s), lato = kap > 0 ? 1 : -1, dentro = k.piega * lato;
   const lim = limiteCurva(V, E.presa, dentro), quota = (k.v * k.v * Math.abs(kap)) / lim;
   if (terra) {
-    if (quota > 1) k.v = Math.max(0, k.v - B.frenaBilico * (quota - 1) * DT); // su due ruote: le ruote di fuori strisciano
-    if (quota > B.deraglia && k.salvo === 0) { k.bilico += DT; if (k.bilico >= B.bilico) { deraglia(k); return; } } // un attimo di troppo si perdona
-    else k.bilico = 0;
+    if (quota > 1) k.v = Math.max(0, k.v - B.frenaBilico * (quota - 1) * DT); // su due ruote: le ruote di fuori strisciano e si rallenta
     if (quota >= B.carica && dentro > 0.5 && k.v >= D.velocitaMin) {
       if (k.drift !== lato) { k.drift = lato; k.carica = 0; }
       k.carica += DT * (1 + D.stringi * clamp((quota - B.carica) / (1 - B.carica), 0, 1)); // più vicino al limite, prima carica
@@ -118,11 +113,10 @@ export function muoviBinari(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number
   if (k.ramo !== ramoPrima) { rot = rotaieDi(p, k.ramo); k.rot = rotaiaVicina(rot, k.lat); k.rot0 = k.aria ? k.rot : -1; }
   const eraInAria = k.aria;
   verticale(p, k, V, sPrima, ramoPrima, giro, R);
-  if (eraInAria && !k.aria) { // atterrato: sulla rotaia o fuori
-    const r = rotaiaVicina(rot, k.lat);
-    if (Math.abs(rot[r]! - k.lat) > B.tolleranza) { deraglia(k); return; }
-    k.rot = r; k.rot0 = -1;
-  }
+  // finito sul vuoto senza aver saltato (la rotaia è rotta lì): si deraglia, anche lanciati (niente «volo» sopra i buchi corti)
+  if (!eraInAria && k.aria && k.vh <= 0 && superficieA(p, k.ramo, k.s, k.lat, giro) === VUOTO) { deraglia(k); return; }
+  // atterrato: sulla rotaia scelta in aria (ci si accosta scivolando); niente cadute «tra due rotaie», si cade solo nei buchi
+  if (eraInAria && !k.aria) k.rot0 = -1;
   // il muso guarda un filo dove va di lato (per il disegno): il moto resta lungo la rotaia
   const vl = (k.lat - latPrima) / DT, hl = clamp(vl / Math.max(4, Math.abs(k.v)), -0.35, 0.35);
   k.hl = hl; k.hf = Math.sqrt(1 - hl * hl);
@@ -135,7 +129,7 @@ export function guida(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas:
   const su = suBinari(p, k.ramo, k.s, V.famiglia);
   if (su !== k.agg) {
     if (k.drift && !k.caduto) { const lv = livelloDrift(k.carica); if (lv) daiTurbo(k, CORSE.drift.spinta[lv - 1]!, lv, R.somma); }
-    k.drift = 0; k.carica = 0; k.piega = 0; k.bilico = 0; k.rot = -1; k.rot0 = -1; k.agg = su;
+    k.drift = 0; k.carica = 0; k.piega = 0; k.rot = -1; k.rot0 = -1; k.agg = su;
   }
   (su ? muoviBinari : muovi)(p, k, V, sterzo, gas, btn, vmax, giro, R);
 }

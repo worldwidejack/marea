@@ -37,7 +37,7 @@ export default function (t) {
   t.dritto(10);
   // il bivio: il giro largo intorno al tempio (sicuro); il tunnel nella bocca del tempio parte dalla rotaia di destra
   const a = t.qui();
-  t.curva(30, 22).dritto(15).curva(-60, 22).dritto(15).curva(30, 22);
+  t.curva(35, 22).dritto(15).curva(-70, 22).dritto(15).curva(35, 22);
   const b = t.qui();
   t.ramo('tunnel', a, b, { lat: 2.6, latA: 2.6, larghezza: 1.6, bordo: 0.3, superficie: 'rotaia', bordoTipo: 'legno', scorciatoia: true, binari: [0] }, (r) => {
     r.dritto(8); r.turbo(r.qui(), [-1.2, 1.2], 4); r.dritto(12);

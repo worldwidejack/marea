@@ -19,7 +19,7 @@ export function rollioBinari(p: Pista, k: Veicolo): number | null {
   const n = nastroDi(p, k.ramo), lato = campo(n, n.k, k.s) > 0 ? 1 : -1, quota = quotaBinari(p, k);
   return k.piega * 0.2 - (quota > 1 ? lato * Math.min(0.45, (quota - 1) * 0.9) : 0);
 }
-/** Sulle rotaie: la spinta di lato in curva rispetto al limite (sopra 1 su due ruote, oltre `binari.deraglia` si deraglia); 0 fuori. */
+/** Sulle rotaie: la spinta di lato in curva rispetto al limite (sopra 1 su due ruote, che frena); 0 fuori. */
 export function quotaBinari(p: Pista, k: Veicolo): number {
   if (!k.agg || k.aria || k.caduto) return 0;
   const n = nastroDi(p, k.ramo), kap = campo(n, n.k, k.s), lato = kap > 0 ? 1 : -1;
