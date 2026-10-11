@@ -54,7 +54,11 @@ const CORSE_GRANDI = /^cs_(casa_|gru_|faro|tribuna|arco_)/;
 // Hub delle Corse (#185, grafica più curata del resto): edifici grandi e quartieri ≤ 1500, porte ≤ 1200, ruota che gira ≤ 2000, il resto ≤ 400.
 const HUB_GRANDI = /^cs_h_(garage|statua|torre|trofeo|tempio|rovina|ruota_base|tendone|palazzo_|corallo|igloo)/;
 const HUB_BUDGET = (n) => n === 'cs_h_ruota_giro' ? [1, 2000] : HUB_GRANDI.test(n) ? [1, 1500] : /^cs_h_(porta_|sbarra)/.test(n) ? [1, 1200] : [1, 400];
-const BUDGET = (n) => n.startsWith('cs_h_') ? HUB_BUDGET(n) : n === 'cs_manichino_testa' ? [1, 50] : n.startsWith('cs_v_') ? [1, 1800] : n.startsWith('cs_p_') ? [1, 3000] : CORSE_GRANDI.test(n) ? [1, 800] : isCorse(n) ? [1, 300] : n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
+// Discesa in MTB (#229, banco di prova in prima persona): telaio e sterzo ≤ 1200, ruota ≤ 450 (sono due), braccia ≤ 900, alberi ≤ 500;
+// i pezzi che si ripetono a centinaia lungo il sentiero leggeri: erba ≤ 40, fiori e felce ≤ 60, cespuglio ≤ 120; il resto ≤ 300.
+const DISCESA_LEGGERI = { cs_d_bici_ruota: 450, cs_d_erba: 40, cs_d_fiori: 60, cs_d_felce: 60, cs_d_cespuglio: 120, cs_d_braccia: 900 };
+const DISCESA_BUDGET = (n) => DISCESA_LEGGERI[n] ? [1, DISCESA_LEGGERI[n]] : n.startsWith('cs_d_bici_') ? [1, 1200] : /^cs_d_(abete_|pino_|tronco_alto)/.test(n) ? [1, 500] : [1, 300];
+const BUDGET = (n) => n.startsWith('cs_d_') ? DISCESA_BUDGET(n) : n.startsWith('cs_h_') ? HUB_BUDGET(n) : n === 'cs_manichino_testa' ? [1, 50] : n.startsWith('cs_v_') ? [1, 1800] : n.startsWith('cs_p_') ? [1, 3000] : CORSE_GRANDI.test(n) ? [1, 800] : isCorse(n) ? [1, 300] : n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
   : n.startsWith('boat_') ? [1, 600] : n.startsWith('chr_') ? [1, 1500] : BOSS.has(n) ? [1, 1200] : n.startsWith('nem_') ? [1, 600]
   : n.startsWith('arm_') ? [1, 80] : n.startsWith('fx_') ? [1, 40] : [1, 800];
 // Tinte di default dell'avatar: le zone pelle/capelli/vestito dell'atlas sono maschere bianche, il colore è il fattore del materiale.

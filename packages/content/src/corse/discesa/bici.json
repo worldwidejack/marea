@@ -1,0 +1,19 @@
+{
+  "gravita": 9.8,
+  "interasse": 1.2,
+  "sterzoMax": 0.5,
+  "rampaSterzo": 5,
+  "presa": 9,
+  "rotolamento": 0.02,
+  "rotolamentoErba": 0.16,
+  "aria": 0.0072,
+  "pedale": 3.2,
+  "pedaleFinoA": 10,
+  "freno": 7.5,
+  "vMax": 24,
+  "scatto": { "spinta": 2.2, "ricarica": 1.1, "finoA": 17 },
+  "radici": { "frena": 1.2, "scossa": 0.7 },
+  "erba": { "scossa": 0.35 },
+  "caduta": { "secondi": 2, "urto": 6.5, "urtoLato": 3.5, "atterraggio": 11, "storto": 0.75, "ripartenza": 3 },
+  "rampa": { "quota": 0.3 }
+}
