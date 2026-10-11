@@ -49,7 +49,7 @@ const CLIPS = ['idle', 'walk', 'run', 'sit', 'row'];
 const DNG_MODULE = /^dng_(grotta|cripta|vuoto|drenaggio|archivio|fucina|mausoleo)_(pavimento|muro|muro_basso)$/;
 const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno', 'nem_astrolabio', 'nem_forgiatore', 'nem_custode_egida']);
 // Corse: edifici, gru, faro e arco di roccia come gli edifici; prop e manichini come i prop (le teste sotto il minimo dei prop).
-const CORSE_GRANDI = /^cs_(casa_|gru_|faro|tribuna|arco_)/;
+const CORSE_GRANDI = /^cs_(casa_|gru_|faro|tribuna|arco_|g_tempio|g_cascata)/;
 // Corse (#178, Jack 9 ott: sull'isola si può andare oltre il budget del resto): veicoli fino a 1800 triangoli, animali piloti fino a 3000.
 // Hub delle Corse (#185, grafica più curata del resto): edifici grandi e quartieri ≤ 1500, porte ≤ 1200, ruota che gira ≤ 2000, il resto ≤ 400.
 const HUB_GRANDI = /^cs_h_(garage|statua|torre|trofeo|tempio|rovina|ruota_base|tendone|palazzo_|corallo|igloo)/;

@@ -54,6 +54,7 @@ export default function (t) {
   t.dritto(10);
   const fuori = t.qui();
   t.aggancio(dentro, fuori);
+  t.superficie('legno', dentro, fuori);            // il ponte di assi sotto le rotaie
   // ---- fuori: ci si sgancia ----
   imbuto(t, meta.larghezza, 15);
   t.salto(7, { salto: 8 });                        // il salto sopra la cascata (in piano: una discesa subito dopo la rampa fa staccare prima)

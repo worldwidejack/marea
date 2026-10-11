@@ -14,12 +14,16 @@ import { MODELLO, kitPronto, veicoloKit } from './veicoli_kit.ts';
 /** Sui binari (#228) il carrello non va di traverso: si piega verso l'interno della curva e, oltre il limite, si alza su due ruote
  *  (si inclina verso fuori). Rollio in radianti (+ = la cima verso destra); `null` per chi non va sui binari. */
 export function rollioBinari(p: Pista, k: Veicolo): number | null {
-  const V = veicoloCorse(k.id);
-  if (V.famiglia !== 'binari') return null;
+  if (!k.agg) return null; // anche i veicoli a ruote agganciati alle rotaie (piste ibride)
   if (k.aria || k.caduto) return k.piega * 0.15;
-  const n = nastroDi(p, k.ramo), kap = campo(n, n.k, k.s), lato = kap > 0 ? 1 : -1;
-  const quota = (k.v * k.v * Math.abs(kap)) / limiteCurva(V, 1, k.piega * lato);
+  const n = nastroDi(p, k.ramo), lato = campo(n, n.k, k.s) > 0 ? 1 : -1, quota = quotaBinari(p, k);
   return k.piega * 0.2 - (quota > 1 ? lato * Math.min(0.45, (quota - 1) * 0.9) : 0);
+}
+/** Sulle rotaie: la spinta di lato in curva rispetto al limite (sopra 1 su due ruote, oltre `binari.deraglia` si deraglia); 0 fuori. */
+export function quotaBinari(p: Pista, k: Veicolo): number {
+  if (!k.agg || k.aria || k.caduto) return 0;
+  const n = nastroDi(p, k.ramo), kap = campo(n, n.k, k.s), lato = kap > 0 ? 1 : -1;
+  return (k.v * k.v * Math.abs(kap)) / limiteCurva(veicoloCorse(k.id), 1, k.piega * lato);
 }
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);

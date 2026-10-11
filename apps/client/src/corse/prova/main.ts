@@ -16,7 +16,7 @@ import { DT, quantize } from '@marea/sim';
 import type { InputFrame } from '@marea/sim';
 import { famiglieDi, garaCorse, opzioniGara, pilotaGara } from '@marea/sim/corse/gara.ts';
 import type { GaraState, GaraView } from '@marea/sim/corse/gara.ts';
-import { nuovaTerna, terna } from '@marea/sim/corse/nastro.ts';
+import { campo, nuovaTerna, terna } from '@marea/sim/corse/nastro.ts';
 import { nastroDi, pistaCorse, veicoloCorse } from '@marea/sim/corse/pista.ts';
 import type { Pista } from '@marea/sim/corse/pista.ts';
 import { livelloDrift } from '@marea/sim/corse/veicolo.ts';
@@ -32,7 +32,7 @@ import { creaPista3d } from '../nastro3d.ts';
 import type { Pista3d } from '../nastro3d.ts';
 import { matOnda, ondaGeo } from '../onda3d.ts';
 import { creaSuoni } from '../suoni.ts';
-import { rollioBinari, veicoloGeo } from '../veicoli3d.ts';
+import { quotaBinari, rollioBinari, veicoloGeo } from '../veicoli3d.ts';
 import { ASPETTI, PILOTI, caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
 import { avvisoRuota } from '../avviso_ruota.ts';
 import { createAvatar } from '../../game/avatar.ts';
@@ -117,7 +117,7 @@ let meshes: THREE.Mesh[] = [], ondaMesh: THREE.Mesh | null = null, fase: 'gara' 
 const matVeicoli = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
 const materialeOnda = matOnda();
 /** Quello che serve alla resa per ogni veicolo: saltello del drift, angolo di traverso, e i valori di prima per vedere cosa è cambiato. */
-type Vis = { hop: number; traverso: number; drift: number; lv: number; turbo: number; aria: boolean; vh: number; acro: number; scia: number };
+type Vis = { hop: number; traverso: number; drift: number; lv: number; turbo: number; aria: boolean; vh: number; acro: number; scia: number; agg: boolean; cadute: number };
 let vis: Vis[] = [];
 
 /** I veicoli in scena (uno per ogni veicolo della gara): si rifanno anche quando arriva il kit, senza toccare la gara. */
@@ -145,8 +145,8 @@ function nuovaGara(cambiaPista: boolean) {
     ondaMesh = new THREE.Mesh(ondaGeo(p.def.larghezza + p.def.bordo + 8), materialeOnda);
     ondaMesh.matrixAutoUpdate = false; ondaMesh.name = 'corse_onda'; ondaMesh.frustumCulled = false; scene.add(ondaMesh);
   }
-  vis = s.veicoli.map(() => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0 }));
-  if (btnA) btnA.textContent = famiglieDi(p.def).includes('binari') ? 'SALTO' : 'DRIFT'; // sui binari il bottone salta (e cambia rotaia)
+  vis = s.veicoli.map((k) => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0, agg: k.agg, cadute: 0 }));
+  if (btnA) btnA.textContent = s.veicoli[0]!.agg ? 'SALTO' : 'DRIFT'; // sui binari il bottone salta (e cambia rotaia): lo cambia eventi() quando ci si aggancia
   fase = 'gara'; finita = 0; regia.st.ok = false; fx.svuota(); toast(null); contoPrima = 0; viaFlash = 0;
   scrivi();
 }
@@ -167,7 +167,7 @@ function step() {
 // ---------- veicoli, effetti e camera ----------
 const T3 = nuovaTerna(), M4 = new THREE.Matrix4();
 const vF = new THREE.Vector3(), vU = new THREE.Vector3(), vR = new THREE.Vector3(), vP = new THREE.Vector3(), vM = new THREE.Vector3();
-const tmp = new THREE.Vector3();
+const tmp = new THREE.Vector3(), vM2 = new THREE.Vector3();
 const regia = creaRegia(camera);
 /** Dove sta il veicolo `i` nel mondo: posizione, avanti (muso), sopra (la pista sotto di lui), destra e moto. */
 function posa(i: number, pos: THREE.Vector3, fwd: THREE.Vector3, up: THREE.Vector3, moto?: THREE.Vector3) {
@@ -210,7 +210,17 @@ function aggiornaVeicoli(dt: number) {
     if (k.fermo > 0) vP.addScaledVector(vR, (Math.random() - 0.5) * 0.08); // motore ingolfato: trema
     M4.makeBasis(vR, vU, tmp.copy(vF).negate()).setPosition(vP);
     meshes[i]!.matrix.copy(M4); meshes[i]!.matrixWorldNeedsUpdate = true;
-    if (effetti && !k.caduto && (i === 0 || camera.position.distanceToSquared(vP) < 60 * 60)) emettiVeicolo(fx, k, i === 0 && k.scia > 0.15 && w.scia <= k.scia, pausa ? 0 : Math.max(0, k.v), vP, vF, vU, vR, vM);
+    if (effetti && !k.caduto && (i === 0 || camera.position.distanceToSquared(vP) < 60 * 60)) {
+      emettiVeicolo(fx, k, i === 0 && k.scia > 0.15 && w.scia <= k.scia, pausa ? 0 : Math.max(0, k.v), vP, vF, vU, vR, vM);
+      // sulle rotaie, su due ruote: scintille dalla ruota di fuori (gialle, rosse quando sta per deragliare)
+      const q = quotaBinari(p, k);
+      if (q > 1 && !pausa) {
+        const n = nastroDi(p, k.ramo), fuori = campo(n, n.k, k.s) > 0 ? -1 : 1, rosso = q > CORSE.famiglie.binari.binari!.deraglia * 0.85;
+        tmp.copy(vP).addScaledVector(vR, fuori * 0.6).addScaledVector(vF, -0.5);
+        vM2.copy(vM).multiplyScalar(k.v * 0.7).addScaledVector(vR, fuori * 2).addScaledVector(vU, 2.5);
+        fx.emetti(tmp, vM2, rosso ? P.rossoNeon : P.giallo, rosso ? 3 : 2, 1.2, 0.18, 12, 0.6);
+      }
+    }
   }
 }
 /** Messaggi e suoni quando cambia qualcosa (livello del drift, turbo, acrobazia, scia, atterraggi). */
@@ -224,6 +234,14 @@ function eventi() {
   }
   if (k.acro > 0 && w.acro === 0) suoni.acrobazia();
   if (w.aria && !k.aria && !k.caduto) { const urto = Math.max(0, -w.vh); suoni.atterra(urto); regia.st.scossa = Math.max(regia.st.scossa, Math.min(0.35, urto * 0.025)); }
+  // piste ibride: ci si aggancia alle rotaie (clac, e il bottone diventa SALTO) e ci si sgancia; deragliare si dice
+  if (k.agg !== w.agg) {
+    if (btnA) btnA.textContent = k.agg ? 'SALTO' : 'DRIFT';
+    if (s.tick > 1 && !k.caduto) { suoni.atterra(6); regia.st.scossa = Math.max(regia.st.scossa, 0.12); if (k.agg && !famiglieDi(p.def).includes('binari')) toast('BINARI! SALTA PER CAMBIARE', P.ambraNeon); }
+    w.agg = k.agg;
+  }
+  if (k.cadute > w.cadute) { toast(k.agg ? 'DERAGLIATO!' : 'CADUTO!', P.rossoNeon); regia.st.scossa = Math.max(regia.st.scossa, 0.3); }
+  w.cadute = k.cadute;
   for (let i = 0; i < vis.length; i++) {
     const x = s.veicoli[i]!, y = vis[i]!;
     y.drift = x.drift; y.turbo = x.turbo; y.aria = x.aria; y.vh = x.vh; y.acro = x.acro; y.scia = x.scia;
