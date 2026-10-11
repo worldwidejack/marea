@@ -10,6 +10,7 @@ import spiaggiaLungomare from './corse/piste/spiaggia_lungomare.json' with { typ
 import spiaggiaBaia from './corse/piste/spiaggia_baia.json' with { type: 'json' };
 import spiaggiaPorto from './corse/piste/spiaggia_porto.json' with { type: 'json' };
 import spiaggiaFuga from './corse/piste/spiaggia_fuga.json' with { type: 'json' };
+import giunglaMiniera from './corse/piste/giungla_miniera.json' with { type: 'json' };
 import type { CPistaDef, CorseMotoreCfg } from './corse_types.ts';
 
 export type * from './corse_types.ts';
@@ -17,7 +18,7 @@ export type * from './corse_types.ts';
 export const CORSE = motore as unknown as CorseMotoreCfg;
 /** Le piste per id, nell'ordine del banco di prova. */
 export const CORSE_PISTE: Record<string, CPistaDef> = Object.fromEntries(
-  ([provaAnello, provaFolle, provaBaia, provaFuga, spiaggiaLungomare, spiaggiaBaia, spiaggiaPorto, spiaggiaFuga] as unknown as CPistaDef[]).map((p) => [p.id, p]),
+  ([provaAnello, provaFolle, provaBaia, provaFuga, spiaggiaLungomare, spiaggiaBaia, spiaggiaPorto, spiaggiaFuga, giunglaMiniera] as unknown as CPistaDef[]).map((p) => [p.id, p]),
 );
 
 /** Controlli dei dati (in italiano): veicoli e superfici conosciuti, piste coerenti (griglia, tratti dentro la pista, rami). */
@@ -62,6 +63,15 @@ export function validateCorse(): string[] {
     for (const e of p.eventi) { sup(e.superficie, `${d}, evento ${e.tipo}`); if (!(e.daGiro >= 1)) errs.push(`corse: ${d}: evento ${e.tipo} senza giro di partenza`); }
     for (const r of p.rami) { sup(r.superficie, `${d}, ramo ${r.id}`); if (r.punti.length < 2) errs.push(`corse: ${d}: ramo ${r.id} con meno di 2 punti`); }
     if (!pos(p.larghezza) || !(p.bordo >= 0) || !(p.muro > 0 && p.muro <= 1)) errs.push(`corse: ${d}: larghezza, bordo o muro non validi`);
+    // binari (#228): chi corre sui binari ha le rotaie, dentro la carreggiata e in ordine da sinistra a destra
+    const rotaie = (b: number[] | undefined, l: number, dove: string) => {
+      if (!b?.length) { errs.push(`corse: ${dove}: pista a binari senza rotaie`); return; }
+      for (let i = 0; i < b.length; i++) if (Math.abs(b[i]!) > l || (i > 0 && !(b[i]! > b[i - 1]!))) errs.push(`corse: ${dove}: rotaie fuori dalla carreggiata o non in ordine`);
+    };
+    if (fams.includes('binari')) {
+      rotaie(p.binari, p.larghezza, d);
+      for (const r of p.rami) rotaie(r.binari ?? [0], r.larghezza, `${d}, ramo ${r.id}`);
+    } else if (p.binari) errs.push(`corse: ${d}: rotaie su una pista senza binari`);
   }
   return errs;
 }

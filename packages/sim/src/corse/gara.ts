@@ -13,8 +13,9 @@ import type { Rng } from '../rng.ts';
 import type { InputFrame } from '../types.ts';
 import type { Difficulty, Medal, MinigameModule, MinigameOpzioni, MinigameResult } from '../minigames/types.ts';
 import { campo, svoltaTra } from './nastro.ts';
-import { effetto, nastroDi, pistaCorse, superficieA, veicoloCorse } from './pista.ts';
+import { VUOTO, effetto, nastroDi, pistaCorse, rotaieDi, superficieA, veicoloCorse } from './pista.ts';
 import type { Pista } from './pista.ts';
+import { limiteCurva, muoviBinari, rotaiaVicina } from './binari.ts';
 import { daiTurbo, muovi, nuovoVeicolo, urti } from './veicolo.ts';
 import type { Regole, Veicolo } from './veicolo.ts';
 
@@ -139,6 +140,38 @@ export function pilota(p: Pista, k: Veicolo, corsia: number, latFissa: number | 
   return { sterzo, gas, curva };
 }
 
+/** Chi guida da solo sui binari (#228): frena prima delle curve (fino a `prudenza` × il limite, piegato), si piega verso l'interno,
+ *  salta per cambiare rotaia (verso l'imbocco di un bivio che conviene o lontano da una rotaia rotta) e salta i buchi. */
+export function pilotaBinari(p: Pista, k: Veicolo, prudenza: number, bot: boolean): { sterzo: number; gas: number; salto: boolean } {
+  const V = veicoloCorse(k.id), n = nastroDi(p, k.ramo), rot = rotaieDi(p, k.ramo);
+  const fino = (m: number) => (n.chiuso ? (k.s + m) % n.len : Math.min(n.len, k.s + m));
+  // la curva più stretta nei prossimi metri (quanti ne servono per frenare) dice la velocità giusta
+  let kmax = 0;
+  for (let d = 0; d <= 8 + Math.max(0, k.v) * 1.1; d += 2) kmax = Math.max(kmax, Math.abs(campo(n, n.k, fino(d))));
+  const vGiusta = kmax > 1e-4 ? Math.sqrt((limiteCurva(V, 1, 1) * prudenza) / kmax) : 1e9;
+  const gas = k.v > vGiusta + 0.6 ? -1 : k.v > vGiusta - 0.4 ? 0 : 1;
+  const kq = campo(n, n.k, fino(3));
+  let sterzo = Math.abs(kq) > 0.006 ? (kq > 0 ? 1 : -1) : 0;
+  // la rotaia dove andare: l'imbocco di un bivio che conviene (i bot solo quelli della loro famiglia), poi una rotaia senza buchi davanti
+  let voluta = k.rot;
+  if (k.ramo < 0) for (const r of p.rami) {
+    const f = r.def.famiglie, prende = r.def.scorciatoia && (bot ? !!f && f.includes(V.famiglia) : !f || f.includes(V.famiglia));
+    if (!prende) continue;
+    let d = r.def.da - k.s;
+    if (p.n.chiuso && d < 0) d += p.n.len;
+    if (d > 0 && d < 60) { voluta = rotaiaVicina(rot, r.latIngresso); break; }
+  }
+  const rotta = (i: number) => { for (let d = 2; d <= 10 + Math.max(0, k.v) * 1.2; d += 1.5) if (superficieA(p, k.ramo, fino(d), rot[i]!, k.giro + 1) === VUOTO) return d; return 0; };
+  const qui = rotta(voluta);
+  if (qui) { let meglio = -1; for (let i = 0; i < rot.length; i++) if (!rotta(i) && (meglio < 0 || Math.abs(i - k.rot) < Math.abs(meglio - k.rot))) meglio = i; if (meglio >= 0) voluta = meglio; }
+  if (k.aria) return { sterzo: voluta > (k.rot0 >= 0 ? k.rot0 : k.rot) ? 1 : voluta < (k.rot0 >= 0 ? k.rot0 : k.rot) ? -1 : 0, gas, salto: false };
+  if (voluta !== k.rot && k.v > 4) return { sterzo: voluta > k.rot ? 1 : -1, gas, salto: k.tenuto < 0 };
+  // un buco su tutte le rotaie: salta all'ultimo (il salto dura mezzo secondo)
+  const buco = rotta(k.rot);
+  if (buco && buco < 2 + k.v * 0.12) return { sterzo: 0, gas: 1, salto: k.tenuto < 0 };
+  return { sterzo, gas, salto: false };
+}
+
 /** Dove punta chi guida da solo, se ha un motivo per non stare al centro: l'imbocco di una scorciatoia della sua famiglia (i bot solo
  *  quelle che nominano la loro famiglia), la corsia della sua famiglia (piste miste) e, per il pilota automatico, una corsia veloce
  *  dove la superficie davanti rallenta (la secca nella baia, la pozzanghera, la sabbia dentro le curve). `null` = nessuno. */
@@ -162,6 +195,11 @@ export function latObiettivo(p: Pista, k: Veicolo, bot: boolean): number | null 
 /** Il pilota automatico (prove e test): segue il centro (o l'imbocco delle scorciatoie), drift nelle curve lunghe. `pigro` = metà gas, niente drift. */
 export function pilotaGara(s: GaraState, pigro = false): InputFrame {
   const p = pistaCorse(s.pista), k = s.veicoli[0]!;
+  if (famiglieDi(p.def).includes('binari') && s.tick > 0) {
+    if (k.aria && !pigro && s.regole.acrobazie && k.acro === 0 && !k.caduto) return { mx: 0, my: 1, a: k.tenuto < 0, b: false }; // salti dalle rampe: acrobazia
+    const a = pilotaBinari(p, k, pigro ? 0.7 : 0.95, false), giu = (x: number) => (s.regole.sterzo ? senzaCurva(x) : x);
+    return { mx: giu(a.sterzo), my: pigro ? Math.min(a.gas, 0.55) : a.gas, a: a.salto, b: false };
+  }
   // al semaforo dà gas a metà della finestra del razzo; in aria (fuori dal drift) fa l'acrobazia appena stacca
   if (s.tick <= 0) return { mx: 0, my: !pigro && s.regole.partenza && -s.tick <= Math.round(CORSE.partenza.razzo * 0.5 * TICK_HZ) ? 1 : 0, a: false, b: false };
   const lat = latObiettivo(p, k, false);
@@ -220,6 +258,8 @@ export const garaCorse: MinigameModule<GaraState> = {
       const f = fams[i % fams.length]!, lista = CORSE.bot.veicoli[f], c = C?.[f];
       veicoli.push(nuovoVeicolo(p, lista[Math.floor(i / fams.length) % lista.length]!, G[i]![0], c !== undefined ? c + (G[i]![1] < 0 ? -1.4 : 1.4) : G[i]![1]));
     }
+    // sui binari si parte sopra una rotaia
+    if (fams.includes('binari')) { const rot = rotaieDi(p, -1); for (const k of veicoli) { k.rot = rotaiaVicina(rot, k.lat); k.lat = rot[k.rot]!; } }
     const corsie = veicoli.slice(1).map(() => ({ base: (rng.next() * 2 - 1) * CORSE.bot.corsia, fase: rng.next() }));
     return { seed, difficulty, pista: o['pista']!, tick: -VIA, regole: regoleDa(o), veicoli, pesi: veicoli.map((k) => veicoloCorse(k.id).peso), corsie, onda: p.def.inseguitore?.parte ?? 0, done: false, timeUp: false };
   },
@@ -239,10 +279,18 @@ export const garaCorse: MinigameModule<GaraState> = {
       for (const k of s.veicoli) if (!k.fine && !k.travolto && k.prog <= s.onda) { k.travolto = 1; k.v *= O.colpo; }
     }
     const dentro = (k: Veicolo) => (O && !k.fine && k.prog <= s.onda && k.prog > s.onda - O.spessore ? O.rallenta : 1);
-    muovi(p, me, veicoloCorse(me.id), sterzo, clamp(f.my, -1, 1), f.a, dentro(me), me.giro + 1, R);
+    const guida = (k: Veicolo) => (veicoloCorse(k.id).famiglia === 'binari' ? muoviBinari : muovi);
+    guida(me)(p, me, veicoloCorse(me.id), sterzo, clamp(f.my, -1, 1), f.a, dentro(me), me.giro + 1, R);
     // i bot: puntano la loro corsia, frenano prima delle curve strette, l'elastico li tiene vicini a te
     for (let i = 1; i < s.veicoli.length; i++) {
       const k = s.veicoli[i]!, c = s.corsie[i - 1]!;
+      if (veicoloCorse(k.id).famiglia === 'binari') { // sui binari: più prudenti di te, tanto più quanto sono indietro nella griglia
+        const b = pilotaBinari(p, k, 0.9 - 0.03 * (i - 1), true), diff = k.prog - me.prog;
+        const el = diff > 0 ? 1 - Math.min(E.davantiMax, diff * E.davanti) : 1 + Math.min(E.dietroMax, -diff * E.dietro);
+        k.tenuto = b.salto ? (k.tenuto >= 0 ? k.tenuto + DT : 0) : -1;
+        muoviBinari(p, k, veicoloCorse(k.id), b.sterzo, k.fine ? 0.5 : b.gas, b.salto, B.bravura[i - 1]! * B.bravuraFamiglia.binari * el * dentro(k), k.giro + 1, R);
+        continue;
+      }
       const corsia = clamp(c.base + 0.3 * triangolo(k.prog / 280 + c.fase), -0.8, 0.8), lat = latObiettivo(p, k, true);
       const a = lat !== null ? pilota(p, k, 0, lat + c.base * 1.2) : pilota(p, k, corsia), diff = k.prog - me.prog;
       const el = diff > 0 ? 1 - Math.min(E.davantiMax, diff * E.davanti) : 1 + Math.min(E.dietroMax, -diff * E.dietro);

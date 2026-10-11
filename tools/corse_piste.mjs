@@ -110,6 +110,8 @@ export class Tartaruga {
   superficie(tipo, da, a, lat) { this.tratti.superfici.push({ tipo, da, a, lat }); return this; }
   /** Una superficie su tutta la lunghezza della pista (di una fascia laterale `lat`): per le corsie delle piste miste. */
   superficieTutta(tipo, lat) { this.tratti.superfici.push({ tipo, intero: true, lat }); return this; }
+  /** Binari: la rotaia allo scarto `lat` manca tra `da` e `a` (si cambia rotaia o si salta, sennò si cade). */
+  rotaiaRotta(lat, da, a) { this.tratti.vuoti.push({ da, a, lat: [lat - 1, lat + 1] }); return this; }
   senzaMuro(lato, da, a) { this.tratti.senzaMuro.push({ lato, da, a }); return this; }
   turbo(m, lat = [-2.5, 2.5], lungo = 5) { this.tratti.turbo.push({ m, lungo, lat }); return this; }
   evento(tipo, daGiro, superficie, da, a, lat) { this.tratti.eventi.push({ tipo, daGiro, superficie, da, a, lat }); return this; }
@@ -142,16 +144,17 @@ function definizione(t) {
       ...(sub.tratti.turbo.length ? { turbo: sub.tratti.turbo.map((x) => ({ s: SR(x.m), lungo: x.lungo, lat: x.lat })) } : {}),
       ...(r.o.scorciatoia ? { scorciatoia: true } : {}),
       ...(r.o.famiglie ? { famiglie: r.o.famiglie } : {}),
+      ...(r.o.binari ? { binari: r.o.binari } : {}),
     };
   });
   return {
     id: m.id, nome: m.nome, zona: m.zona, famiglia: m.famiglia, ...(m.famiglie ? { famiglie: m.famiglie } : {}), ...(m.corsie ? { corsie: m.corsie } : {}),
-    ...(m.inseguitore ? { inseguitore: m.inseguitore } : {}), tipo: m.tipo, giri: m.giri ?? (m.tipo === 'fuga' ? 1 : 3), chiusa: m.chiusa,
+    ...(m.inseguitore ? { inseguitore: m.inseguitore } : {}), ...(m.binari ? { binari: m.binari } : {}), tipo: m.tipo, giri: m.giri ?? (m.tipo === 'fuga' ? 1 : 3), chiusa: m.chiusa,
     passo: m.passo ?? 1, via: m.via ?? 0, larghezza: m.larghezza, bordo: m.bordo, muro: m.muro ?? 0.7,
     superficie: m.superficie, bordoTipo: m.bordoTipo, stile: m.stile ?? 'strada',
     punti: t.punti,
     superfici: t.tratti.superfici.map(sup),
-    vuoti: t.tratti.vuoti.map((x) => ({ da: S(x.da), a: S(x.a) })),
+    vuoti: t.tratti.vuoti.map((x) => ({ da: S(x.da), a: S(x.a), ...lat(x.lat) })),
     senzaMuro: t.tratti.senzaMuro.map((x) => ({ da: S(x.da), a: S(x.a), lato: x.lato })),
     rampe: t.tratti.rampe.map((x) => ({ s: S(x.m), salto: x.salto })),
     turbo: t.tratti.turbo.map((x) => ({ s: S(x.m), lungo: x.lungo, lat: x.lat })),

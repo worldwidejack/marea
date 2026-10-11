@@ -10,6 +10,8 @@ import type { Loader } from '../render/loader.ts';
 /** Il modello vero di ogni veicolo della sim (gli id di packages/content/src/corse/motore.json). Chi non c'è resta il segnaposto. */
 export const MODELLO: Record<string, string> = {
   kart: 'cs_v_kart', auto: 'cs_v_sportiva', carrello: 'cs_v_carrello_spesa', moto_acqua: 'cs_v_moto_acqua', vasca: 'cs_v_vasca',
+  // i tre carrelli della Giungla (#228) hanno per ora lo stesso modello: quelli veri della concept arrivano con la tappa dei veicoli
+  carrello_miniera: 'cs_v_carrello_miniera', carrello_corsa: 'cs_v_carrello_miniera', carrello_corazzato: 'cs_v_carrello_miniera',
 };
 /** Tutti i modelli (per provarli sul banco con l'aspetto a scelta, anche dove la sim non ha ancora il veicolo). */
 export const ASPETTI = [

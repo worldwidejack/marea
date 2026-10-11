@@ -67,7 +67,7 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
 | **Ruote** | kart, auto sportive, fuoristrada, camion | come il Gran Premio di oggi: drift che carica il turbo |
 | **Due ruote** | moto, scooter, bici | si piegano in curva, sterzo che dipende dalla velocità, l'impennata dà la spinta |
 | **Acqua** | moto d'acqua, hovercraft, gommone | scivolano sempre, saltano sulle onde, il salto dà il turbo, la corrente spinge |
-| **Scivoli e binari** | kart da miniera, scivolo d'acqua, bob, slitta | niente gas: spinge la gravità. Ti pieghi per stare in traiettoria e prendere le curve alte; sui binari scegli i bivi |
+| **Scivoli e binari** | kart da miniera, scivolo d'acqua, bob, slitta | spinge la gravità, il GAS è una leva che spinge in piano. Ti pieghi per prendere le curve; sui binari salti da una rotaia all'altra e scegli i bivi. **Binari fatti** (#228, banco di prova): vedi A11 |
 
 **Veicoli buffi**, uno o più per famiglia, ciascuno con **un pregio o un difetto comico** **[proposta]**:
 - **Oggetti di casa**: il carrello della spesa ha la ruota storta e tira da una parte; la vasca da bagno galleggia, quindi va bene nelle piste miste; il divano a motore è pesante e nessuno lo sposta; il tosaerba non rallenta sull'erba.
@@ -159,6 +159,13 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
   - Il molo di legno e il canale d'acqua stanno affiancati nella stessa carreggiata larga: ognuno parte e guida nella sua corsia, e fuori dalla sua rallenta molto (barca sul legno ×0,3, ruote nell'acqua ×0,4).
   - I bot si alternano tra le famiglie (ruote, barca, ruote, barca) e partono nella corsia della loro.
   - Ogni famiglia ha la sua scorciatoia: un ramo con `famiglie: [...]` lo prendono solo quelle (anche i bot); le altre lo ignorano.
+- **Binari** (#228, 11 ott 2026, sul banco di prova; numeri in `motore.json`, famiglia `binari`). I carrelli da miniera stanno sempre su una rotaia (la pista ha 3 rotaie, `binari` della pista):
+  - **leva e pendenza**: il GAS spinge fino alla velocità del carrello in piano, la discesa spinge oltre (frenata dall'`attrito` oltre quel massimo), il FRENO frena; niente retromarcia, in salita senza spinta si torna indietro;
+  - **curve**: conta la spinta di lato (velocità² × curvatura). Fino a 11 m/s² tiene; **piegarsi verso l'interno** (lo sterzo) alza il limite del 35 %, piegarsi fuori lo abbassa. Sopra il limite il carrello va **su due ruote** e frena da solo; oltre 1,6 volte il limite **deraglia** (si cade e si riparte, su una rotaia senza buchi davanti);
+  - **turbo della piega**: piegati verso l'interno sopra il 72 % del limite si carica il turbo a 3 livelli come il drift (scintille blu, arancio, viola); parte raddrizzandosi o uscendo dalla curva;
+  - **SALTO** (il bottone del drift): in aria lo sterzo sceglie la rotaia accanto. Serve a cambiare binario, prendere i bivi (rami con le loro rotaie: entra chi passa sulla rotaia giusta) e saltare le rotaie rotte; atterrare lontano da una rotaia deraglia. Le acrobazie restano per i salti dalle rampe;
+  - 3 carrelli: **da miniera** (17 m/s, medio), **da corsa** (18,2 m/s, tiene meno in curva), **corazzato** (16,4 m/s, lento a partire, tiene di più, pesa il doppio). Per ora hanno tutti il modello del carrello del kit;
+  - col pilota automatico (frena e si piega): 83 s sulla Miniera; chi si piega senza frenare ~101 s, chi tiene solo il gas ~105 s (cade alla rotaia rotta e nei tornanti).
 - **Scorciatoie che convengono**: un ramo può avere i suoi tappeti del turbo (all'imbocco). Tagliare una chicane da sola non basta: i metri risparmiati sono pochi, così la scorciatoia vale se ha il turbo o se salta un giro largo.
 - **L'inseguitore** (l'onda della Fuga): un fronte che parte dietro la griglia e avanza da solo (`v0` che sale di `accel` fino a `vmax`), più veloce se ti stacchi oltre `distMax` (così non scappi: ti sta sempre dietro, ma lontano se guidi bene). Chi viene preso prende un colpo (velocità × `colpo`, una volta sola) e va a `rallenta` × il massimo finché il corpo dell'onda (`spessore` m) gli passa sopra; poi è dietro l'onda e riparte. Tocca anche i bot: i ritardatari vengono presi. Deterministico: solo + − × ÷, il replay del server coincide.
 - **Superfici**: nuova `container` (tetto di lamiera: ruote veloci ma con poca presa), per l'evento dei container del Porto.
@@ -172,6 +179,12 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 | **Baia** `spiaggia_baia` | circuito, 3 giri · acqua | 771 m · 100 s (moto d'acqua) | onde su tutta la baia, turbo al via, tratto di corrente, canale stretto tra gli scogli, curva lunga con la secca, onda gigante (rampa) | dal 2° giro sale la **marea** e la secca diventa acqua (la curva si taglia) |
 | **Porto** `spiaggia_porto` | circuito misto, 3 giri · ruote + acqua | 740 m · 95 s (kart), 100 s (moto d'acqua) | molo e canale affiancati, divisorio a righe gialle e nere, grande giro intorno al magazzino con la passerella (ruote) e il canale tra i container (barche), un tappeto del turbo per corsia | dal 2° giro le gru calano i **container** sul molo: i tetti di lamiera scivolano |
 | **Fuga dall'onda** `spiaggia_fuga` | fuga A→B · ruote | 1.366 m (corsa 1.258) · 61 s (kart) | discesa dalla scogliera al faro, 100 m di rettilineo prima del via, curve ampie e due sopraelevate, il salto dove la ringhiera è crollata | l'**onda gigante** insegue (inseguitore); il kart del pilota automatico non viene mai preso, il carrello sì |
+
+- **Giungla e templi** (grezze, banco di prova):
+
+| Pista | Tipo · famiglia | Lunghezza · tempo del pilota automatico | Cosa c'è | Evento firma |
+|---|---|---|---|---|
+| **Miniera del tempio** `giungla_miniera` | circuito, 2 giri · binari | 785 m · 83 s (carrello da miniera) | 3 rotaie su un ponte di legno su pali, discesa nel canyon, tornante sopra la cascata (frena e piegati), bivio del tunnel nel tempio (dalla rotaia di destra, col turbo), ponte crollato (manca la rotaia di mezzo), salto sopra la cascata, salita sopraelevata, tornante del tempio e rettilineo lungo il fiume | dal 2° giro il **ponte di corda** dopo il bivio cede a sinistra (la rotaia di sinistra cade) |
 
   La scorciatoia sulla sabbia del Lungomare, pensata all'inizio, è stata tolta: tagliare una chicane faceva perdere 0,6-2,7 s invece di farne guadagnare.
 - **Scenografia** (#176, 9 ott 2026; mappa del codice in `CONTRACTS.md` §34). Le 4 piste della Spiaggia sono vestite col kit Blender della zona (31 pezzi in `models_corse_spiaggia.py`):
@@ -198,7 +211,7 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 6. Fantasmi, stelle e sblocchi, premi per MAREA.
 7. Zone 2-6 con la stessa catena di montaggio. **Zona 2 = Giungla e templi** (scelta di Jack, 11 ott 2026, #228; prima di stelle, boss e musica della Spiaggia):
    - 7a. Concept art (**fatto**, 11 ott 2026).
-   - 7b. Famiglia Scivoli e binari + Miniera del tempio grezza sul banco di prova.
+   - 7b. Famiglia Scivoli e binari + Miniera del tempio grezza sul banco di prova (**fatto**, 11 ott 2026: `provapiste.html?pista=giungla_miniera`; regole in A11 «Binari»).
    - 7c. Famiglia Due ruote + Sentiero del cross grezza.
    - 7d. Rapide e Tempio che crolla grezze, eventi firma.
    - 7e. Kit Blender e scenografia, pacchetto asset della zona.

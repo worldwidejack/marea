@@ -1,8 +1,19 @@
 // Tipi dei dati dell'Isola delle Corse, motore v2 (docs/CORSE.md A11). Numeri in corse/motore.json, piste in corse/piste/*.json
 // (generate da tools/corse_piste.mjs). Le formule stanno in @marea/sim/corse/*.
 
-/** Famiglie di veicoli (A6): ognuna ha una guida sua. Per ora ci sono Ruote e Acqua; Due ruote e Scivoli arrivano con le loro zone. */
-export type CFamigliaId = 'ruote' | 'acqua';
+/** Famiglie di veicoli (A6): ognuna ha una guida sua. Ci sono Ruote, Acqua e Binari (i carrelli da miniera della Giungla, #228);
+ *  Due ruote arriva con la sua pista. */
+export type CFamigliaId = 'ruote' | 'acqua' | 'binari';
+
+/** La guida sui binari (#228): il carrello sta sempre su una rotaia, la pendenza spinge forte, il GAS è la leva che spinge in piano.
+ *  Nelle curve conta la spinta di lato (v² × curvatura): sopra `presa` m/s² il carrello va su due ruote e frena da solo (`frenaBilico`
+ *  m/s² per ogni volta il limite in più); oltre `deraglia` × il limite, dopo `bilico` s, deraglia (si cade). Piegarsi verso l'interno (lo sterzo) alza il limite di `piega` (×); piegati al limite (sopra `carica` × il limite) si carica
+ *  il turbo a 3 livelli come il drift, e si scarica uscendo dalla curva. DRIFT = salto: in aria lo sterzo sceglie la rotaia accanto
+ *  (`cambio` m/s di lato); atterrare lontano da una rotaia (oltre `tolleranza` m) è un deragliamento. */
+export type CBinariDef = {
+  presa: number; piega: number; bilico: number; deraglia: number; frenaBilico: number; carica: number; scarica: number;
+  salto: number; cambio: number; tolleranza: number; attrito: number;
+};
 
 export type CFamigliaDef = {
   id: CFamigliaId; nome: string;
@@ -16,6 +27,8 @@ export type CFamigliaDef = {
   atterraggioTurbo?: { secondi: number; allineato: number };
   /** Sterzo tolto a tutta velocità per questa famiglia (al posto di `sterzo.alto`): le barche scivolano già, ne perdono meno (#170). */
   sterzoAlto?: number;
+  /** Solo binari: la guida sulle rotaie. */
+  binari?: CBinariDef;
 };
 
 /** Un veicolo: famiglia e numeri di guida (come le guide morbida / media / nervosa del Gran Premio). */
@@ -39,6 +52,8 @@ export type CVeicoloDef = {
   tira?: number;
   /** Buffi: superfici dove va diverso dalla sua famiglia (es. la vasca da bagno sulla sabbia). */
   effetti?: Record<string, CEffetto>;
+  /** Binari: quanto tiene in curva (× `binari.presa` della famiglia). */
+  presaCurva?: number;
 };
 
 /** Effetto di una superficie su una famiglia: moltiplicatori di velocità massima, presa e accelerazione. */
@@ -126,6 +141,8 @@ export type CRamoDef = {
   scorciatoia?: boolean;
   /** Piste miste: le famiglie che la prendono (anche i bot). Senza, la prende solo il pilota automatico, di qualsiasi famiglia. */
   famiglie?: CFamigliaId[];
+  /** Piste a binari: le rotaie del ramo (di serie una sola al centro, [0]): un ramo a binari è un bivio. */
+  binari?: number[];
 };
 
 /** L'inseguitore deterministico delle fughe (l'onda gigante): un fronte che avanza lungo la pista e travolge chi prende.
@@ -173,11 +190,11 @@ export type CPistaDef = {
   /** Mezza carreggiata di serie (m), bordo oltre la carreggiata prima del muro (m), rimbalzo sul muro (× velocità). */
   larghezza: number; bordo: number; muro: number;
   superficie: string; bordoTipo: string;
-  /** Come si disegna il bordo: muretto di gomme (strada) o boe (acqua). */
-  stile: 'strada' | 'acqua';
+  /** Come si disegna il bordo: muretto di gomme (strada), boe (acqua) o rotaie sulle traversine, senza muro (binari). */
+  stile: 'strada' | 'acqua' | 'binari';
   punti: CPuntoDef[];
   superfici: (CTrattoDef & { tipo: string })[];
-  /** Buchi: niente pista per tutta la larghezza (si salta o si cade). */
+  /** Buchi: niente pista per tutta la larghezza (si salta o si cade); con `lat` solo in quella fascia (una rotaia rotta). */
   vuoti: CTrattoDef[];
   /** Dove manca il muro: lato −1 sinistra, 1 destra, 0 tutti e due (si può cadere di sotto). */
   senzaMuro: (CTrattoDef & { lato: -1 | 0 | 1 })[];
@@ -186,6 +203,8 @@ export type CPistaDef = {
   /** Tappeti del turbo: da `s` per `lungo` m. */
   turbo: { s: number; lungo: number; lat: [number, number] }[];
   rami: CRamoDef[];
+  /** Piste a binari: scarti laterali (m, + = destra) delle rotaie della principale. I rami hanno le loro (di serie una al centro). */
+  binari?: number[];
   /** [metri dal via (negativi = dietro), scarto laterale] dei bot e, ultimo, il tuo. */
   griglia: [number, number][];
   eventi: CEventoDef[];

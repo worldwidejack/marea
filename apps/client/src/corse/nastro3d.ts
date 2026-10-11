@@ -4,21 +4,23 @@
 // - il muretto di gomme (sulle piste d'acqua le boe), che manca dove la sim non ha il muro;
 // - la scogliera sotto i tratti alti, le rampe a strisce, i tappeti del turbo, le creste delle onde, la linea del via;
 // - nelle piste miste (il porto) la striscia gialla e nera tra la corsia del molo e quella dell'acqua;
-// - gli eventi firma, a parte: si accendono dal loro giro.
+// - gli eventi firma, a parte: si accendono dal loro giro;
+// - sulle piste a binari (#228) le rotaie sulle traversine, niente muro; i tratti che crollano (il ponte) stanno a parte e spariscono
+//   dal loro giro.
 // Grigio da banco di prova: la scenografia vera delle zone arriva con i kit Blender (A9). Facce piatte, colori della palette, doppia
 // faccia (i giri della morte si vedono anche da sotto).
 import * as THREE from 'three';
 import { CORSE } from '@marea/content/corse.ts';
 import { campo, punto } from '@marea/sim/corse/nastro.ts';
 import type { Nastro } from '@marea/sim/corse/nastro.ts';
-import { VUOTO, muroA, nelTratto, superficieA } from '@marea/sim/corse/pista.ts';
+import { VUOTO, muroA, nelTratto, rotaieDi, superficieA } from '@marea/sim/corse/pista.ts';
 import type { Pista } from '@marea/sim/corse/pista.ts';
 import { P } from '../render/island_parts.ts';
 import { creaScena } from './scena.ts';
 
 export const COLORE_SUP: Record<string, string> = {
   asfalto: P.roccia, legno: P.legnoChiaro, erba: P.erba, sabbia: P.sabbia, ghiaccio: P.pietraChiara,
-  acqua: P.acqua, acquaBassa: P.acquaBassa, corrente: P.acquaProfonda, container: P.rosso,
+  acqua: P.acqua, acquaBassa: P.acquaBassa, corrente: P.acquaProfonda, container: P.rosso, rotaia: P.ombraCalda,
 };
 const coloreDi = (sup: string) => COLORE_SUP[sup] ?? P.pietra;
 type V3 = [number, number, number];
@@ -49,12 +51,33 @@ const pt = (n: Nastro, s: number, lat: number, h: number): V3 => punto(n, s, lat
 const muroDiPietra = (id: string) => id.startsWith('spiaggia_') && typeof location !== 'undefined' && new URLSearchParams(location.search).get('muro') === 'pietra';
 const ALTO_MURO = 0.9, SPESSO = 0.5, CORDOLO = 0.7;
 
-/** Strada, bordi, cordoli e muri di un nastro (principale o ramo). */
-function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number): void {
-  const d = p.def, acqua = d.stile === 'acqua', ultimo = n.chiuso ? n.n : n.n - 1, pietra = muroDiPietra(d.id);
+/** Dove va un pezzo a (s, lat) sulle piste a binari: niente (un buco già dal primo giro), `crollo` (un tratto che crolla con un evento
+ *  firma: sta a parte e sparisce dal suo giro) o la tela di sempre. */
+function telaDi(t: Tela, crollo: Tela | null, p: Pista, ramo: number, s: number, lat: number): Tela | null {
+  if (superficieA(p, ramo, s, lat, 1) === VUOTO) return null;
+  return crollo && superficieA(p, ramo, s, lat, 99) === VUOTO ? crollo : t;
+}
+const SCARTAMENTO = 0.55, TRAVERSA = 0.85;
+/** Rotaie e traversine (piste a binari): due rotaie chiare per ogni binario, una traversina di legno ogni 2 m. */
+function rotaie(t: Tela, crollo: Tela | null, p: Pista, n: Nastro, ramo: number): void {
+  const ultimo = n.chiuso ? n.n : n.n - 1, rot = rotaieDi(p, ramo);
   for (let i = 0; i < ultimo; i++) {
     const s0 = i * n.passo, s1 = s0 + n.passo, sm = s0 + n.passo / 2;
-    if (ramo < 0 && superficieA(p, -1, sm, 0, 1) === VUOTO) continue; // i buchi
+    for (const r of rot) {
+      const tl = telaDi(t, crollo, p, ramo, sm, r); if (!tl) continue;
+      if (i % 2 === 0) tl.quad(pt(n, s0 + 0.2, r - TRAVERSA, 0.06), pt(n, s0 + 0.2, r + TRAVERSA, 0.06), pt(n, s0 + 0.65, r - TRAVERSA, 0.06), pt(n, s0 + 0.65, r + TRAVERSA, 0.06), (i >> 1) % 3 ? P.legno : P.legnoChiaro);
+      for (const g of [-SCARTAMENTO, SCARTAMENTO]) tl.quad(pt(n, s0, r + g - 0.07, 0.16), pt(n, s0, r + g + 0.07, 0.16), pt(n, s1, r + g - 0.07, 0.16), pt(n, s1, r + g + 0.07, 0.16), P.pietraChiara);
+    }
+  }
+}
+
+/** Strada, bordi, cordoli e muri di un nastro (principale o ramo). Sulle piste a binari: il fondo scuro sotto le traversine, i bordi di
+ *  legno, niente cordoli né muro. */
+function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number, crollo: Tela | null = null): void {
+  const d = p.def, acqua = d.stile === 'acqua', binari = d.stile === 'binari', ultimo = n.chiuso ? n.n : n.n - 1, pietra = muroDiPietra(d.id);
+  for (let i = 0; i < ultimo; i++) {
+    const s0 = i * n.passo, s1 = s0 + n.passo, sm = s0 + n.passo / 2;
+    if (!binari && ramo < 0 && superficieA(p, -1, sm, 0, 1) === VUOTO) continue; // i buchi (sui binari si guarda fascia per fascia)
     const l0 = n.l[i]!, l1 = n.l[n.chiuso ? (i + 1) % n.n : i + 1]!, lm = (l0 + l1) / 2;
     // carreggiata a fasce di ~2 m, colorate con la superficie che c'è (giro 1: gli eventi stanno a parte)
     const nb = Math.max(2, Math.round(lm));
@@ -63,7 +86,9 @@ function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number): void
       const sup = superficieA(p, ramo, sm, ((f0 + f1) / 2) * lm, 1);
       // nei giri della morte la strada è arancione a strisce (a testa in giù la luce non la prende: così si legge lo stesso)
       const c = n.ad[i] ? ((i >> 1) % 2 ? P.arancio : P.giallo) : coloreDi(sup);
-      t.quad(pt(n, s0, f0 * l0, 0), pt(n, s0, f1 * l0, 0), pt(n, s1, f0 * l1, 0), pt(n, s1, f1 * l1, 0), c);
+      const tl = binari ? telaDi(t, crollo, p, ramo, sm, ((f0 + f1) / 2) * lm) : t;
+      if (!tl) continue;
+      tl.quad(pt(n, s0, f0 * l0, 0), pt(n, s0, f1 * l0, 0), pt(n, s1, f0 * l1, 0), pt(n, s1, f1 * l1, 0), c);
     }
     // riga di mezzo sull'asfalto, a tratti
     if (!acqua && i % 6 < 3 && superficieA(p, ramo, sm, 0, 1) === 'asfalto') t.quad(pt(n, s0, -0.15, 0.02), pt(n, s0, 0.15, 0.02), pt(n, s1, -0.15, 0.02), pt(n, s1, 0.15, 0.02), P.pietraChiara);
@@ -73,14 +98,14 @@ function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number): void
       t.quad(pt(n, s0, lim - 0.35, 0.1), pt(n, s0, lim + 0.35, 0.1), pt(n, s1, lim - 0.35, 0.1), pt(n, s1, lim + 0.35, 0.1), c);
     }
     // il bordo oltre la carreggiata, e i cordoli dove la pista curva
-    const curva = Math.abs(n.k[i]!) > 0.012;
+    const curva = !binari && Math.abs(n.k[i]!) > 0.012;
     for (const lato of [-1, 1]) {
       const supB = superficieA(p, ramo, sm, lato * (lm + bordo / 2), 1);
       const a0 = lato * l0, a1 = lato * l1, b0 = lato * (l0 + bordo), b1 = lato * (l1 + bordo);
       if (bordo > 0) t.quad(pt(n, s0, a0, 0), pt(n, s0, b0, 0), pt(n, s1, a1, 0), pt(n, s1, b1, 0), coloreDi(supB));
       if (!acqua && curva) t.quad(pt(n, s0, a0, 0.03), pt(n, s0, a0 + lato * CORDOLO, 0.03), pt(n, s1, a1, 0.03), pt(n, s1, a1 + lato * CORDOLO, 0.03), (i >> 1) % 2 ? P.rosso : P.pietraChiara);
       // muretto di gomme: faccia verso la pista, cima, faccia di fuori
-      if (!acqua && muroA(p, ramo, sm, lato)) {
+      if (!acqua && !binari && muroA(p, ramo, sm, lato)) {
         const c = pietra ? ((i >> 1) % 3 ? P.sabbia : P.sabbiaChiara) : (i >> 1) % 2 ? P.rosso : P.pietraChiara, e0 = b0 + lato * SPESSO, e1 = b1 + lato * SPESSO;
         t.quad(pt(n, s0, b0, 0), pt(n, s0, b0, ALTO_MURO), pt(n, s1, b1, 0), pt(n, s1, b1, ALTO_MURO), c);
         t.quad(pt(n, s0, b0, ALTO_MURO), pt(n, s0, e0, ALTO_MURO), pt(n, s1, b1, ALTO_MURO), pt(n, s1, e1, ALTO_MURO), pietra ? P.pietraChiara : P.neroCaldo);
@@ -90,8 +115,23 @@ function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number): void
   }
 }
 
+/** Sotto i binari (#228) niente scogliera: pali di legno ogni 6 m sotto i due bordi, giù fino all'acqua (il ponte tra le cascate). */
+function pali(t: Tela, p: Pista): void {
+  const n = p.n, ultimo = n.chiuso ? n.n : n.n - 1, L = 0.35;
+  for (let i = 0; i < ultimo; i += 6) {
+    const s0 = i * n.passo;
+    if (n.ad[i] || superficieA(p, -1, s0, 0, 1) === VUOTO) continue;
+    for (const lato of [-1, 1]) {
+      const l = lato * (n.l[i]! + p.def.bordo - 0.3), a = pt(n, s0, l - L, 0), b = pt(n, s0, l + L, 0), c = pt(n, s0 + 2 * L, l - L, 0), d = pt(n, s0 + 2 * L, l + L, 0);
+      if (a[1] < 0.6) continue;
+      for (const [u, v] of [[a, b], [b, d], [d, c], [c, a]] as const) t.quad(u, [u[0], -1.2, u[2]], v, [v[0], -1.2, v[2]], (i / 6) % 2 ? P.legno : P.legnoScuro);
+    }
+  }
+}
+
 /** Scogliera sotto i tratti alti della principale (non nei giri della morte né nei buchi): dal bordo giù fino al mare. */
 function scogliera(t: Tela, p: Pista): void {
+  if (p.def.stile === 'binari') { pali(t, p); return; }
   const n = p.n, ultimo = n.chiuso ? n.n : n.n - 1, fuori = p.def.bordo + (p.def.stile === 'acqua' ? 0 : SPESSO);
   for (let i = 0; i < ultimo; i++) {
     const j = n.chiuso ? (i + 1) % n.n : i + 1, s0 = i * n.passo, s1 = s0 + n.passo;
@@ -162,8 +202,8 @@ function boe(p: Pista): THREE.InstancedMesh | null {
 
 export type Pista3d = {
   group: THREE.Group;
-  /** Gli eventi firma: si accendono quando il giro in corso arriva a `daGiro`. */
-  eventi: { daGiro: number; tipo: string; mesh: THREE.Mesh }[];
+  /** Gli eventi firma: si accendono quando il giro in corso arriva a `daGiro` (quelli che `sparisce`, i crolli, si spengono). */
+  eventi: { daGiro: number; tipo: string; mesh: THREE.Mesh; sparisce?: boolean }[];
   bounds: { x0: number; x1: number; z0: number; z1: number; y0: number; y1: number };
   /** La scenografia della zona (scena.ts), se la pista ce l'ha: si risolve quando i pezzi del kit sono montati. */
   scena: Promise<{ pezzi: number; teste: number; triangoli: number }> | null;
@@ -172,15 +212,20 @@ export type Pista3d = {
 export function creaPista3d(p: Pista): Pista3d {
   const group = new THREE.Group(); group.name = 'pista_' + p.def.id;
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide });
-  const t = new Tela();
-  strada(t, p, p.n, -1, p.def.bordo);
+  const t = new Tela(), binari = p.def.stile === 'binari';
+  // il tratto che crolla con un evento firma (il ponte della miniera): a parte, sparisce dal suo giro
+  const ev0 = binari ? p.def.eventi.find((e) => e.superficie === VUOTO) : undefined, crollo = ev0 ? new Tela() : null;
+  strada(t, p, p.n, -1, p.def.bordo, crollo);
   p.rami.forEach((r, i) => strada(t, p, r.n, i, r.def.bordo));
+  if (binari) { rotaie(t, crollo, p, p.n, -1); p.rami.forEach((r, i) => rotaie(t, null, p, r.n, i)); }
   scogliera(t, p);
   segni(t, p);
   const m = t.mesh(mat, 'corse_nastro'); if (m) group.add(m);
   const b = boe(p); if (b) group.add(b);
   // eventi firma: un velo della superficie nuova appena sopra la strada
   const eventi: Pista3d['eventi'] = [];
+  const mc = ev0 && crollo?.mesh(mat, 'corse_crollo_' + ev0.tipo);
+  if (ev0 && mc) { group.add(mc); eventi.push({ daGiro: ev0.daGiro, tipo: ev0.tipo, mesh: mc, sparisce: true }); }
   for (const e of p.def.eventi) {
     if (e.superficie === VUOTO) continue;
     const te = new Tela(), n = p.n;
