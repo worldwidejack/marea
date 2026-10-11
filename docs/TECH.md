@@ -46,6 +46,8 @@ La stessa `sim` gira nel browser (per giocare) e nel Durable Object (per **verif
 - Look pixel: si renderizza su un canvas a **metà risoluzione** (pixel ratio ≤ 1,5 × 0,5) e lo si ingrandisce con `image-rendering: pixelated`. Zero post-processing.
 
 ## 5. Budget (la build fallisce se superati, `tools/build.mjs`)
+_I limiti non sono un dictat: si possono alzare quando serve ed è sensato (Jack, 11 ott 2026). Prima si prova a spostare codice in chunk `import()`; se non basta si alza il numero qui e si annota in `ROADMAP.md` §Deviazioni._
+
 | Cosa | Limite |
 |---|---|
 | `app.js` (client) | ≤ 1200 KB minificato, ≤ 350 KB gzip (era 250 fino all'8 ott 2026) |
