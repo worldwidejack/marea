@@ -19,7 +19,7 @@ import { apriValvola, valvolaVicina } from './acque.ts';
 import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts';
 import { caricaBarriera, eco, fineColpo, inizioColpo, molla, moltRitmo, stepUnici, stordisci } from './unici.ts';
-import { statiCaricato } from './perk.ts';
+import { curaCompagni, lamaAria, scaricaDi, statiCaricato, terremoto, veleno } from './perk.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
@@ -74,6 +74,7 @@ function startSwing(s: DungeonState, caricato: boolean): void {
   h.caricato = caricato; h.colpiti = []; h.colpito = false; h.carica = 0;
   h.massimo = caricato && h.massimo; h.massimaP = 0; // Carica massima: il colpo che parte è quello letale solo se la carica era arrivata in fondo
   inizioColpo(s, caricato); // Mausoleo: lame del Fendiflutti, ritmo della Grande Lancetta
+  if (caricato && s.runHero.perk?.aria) lamaAria(s); // Lama d'aria
 }
 
 /** La lama spazza il suo arco (swing.ts): colpisce, una volta per swing, ogni nemico in portata appena la lama gli passa sopra. A fine
@@ -93,13 +94,14 @@ function sweepSwing(s: DungeonState): void {
       // spinta e direzione del colpo: dove va la lama (nel giro, via dall'eroe)
       const dirX = h.stile === 'giro' && d > 1e-6 ? dx / d : h.fx, dirZ = h.stile === 'giro' && d > 1e-6 ? dz / d : h.fz;
       const preso = hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}) });
-      if (preso > 0 && h.caricato && rh.perk) statiCaricato(s, e); // Taglio Critico (sanguina e rallenta), Colpo fatale (paralizza)
+      if (preso > 0 && rh.perk) { if (h.caricato) statiCaricato(s, e); else veleno(s, e); } // Taglio Critico (sanguina e rallenta), Colpo fatale (paralizza); Lame avvelenate sui colpi normali
       // Mausoleo: il Rintocco stordisce, l'Eco della Marea fa l'onda attorno a chi hai preso
       if (preso > 0) { stordisci(s, e); if (rh.eco) eco(s, e, danno); }
     }
   }
   if (k < 1) return;
   h.colpito = true;
+  if (h.caricato && rh.perk?.terremoto && h.colpiti.length > 0) terremoto(s); // Terremoto: il caricato a segno scuote il terreno
   const fragile = a.traits.fragile ?? 0;
   if (h.colpiti.length > 0 && fragile > 0 && a.id) {
     h.colpiFragile++;
@@ -144,8 +146,8 @@ function shoot(s: DungeonState, dir: Mira): void {
   const v = (a.gittata + fr.gittata) * t;
   if (dir) faceDir(s, dir); else faceTo(s, aim(s, MAGIA_GITTATA * 2, COS_CONO_ARCO, 0, true));
   const traits = mergeTraits(a.traits, fr.traits);
-  h.frecce--;
-  consuma(s, fr.id, s.usati);
+  // Faretra infinita: a volte la freccia non si consuma
+  if (!(s.runHero.perk?.risparmio && s.rng.next() < s.runHero.perk.risparmio)) { h.frecce--; consuma(s, fr.id, s.usati); }
   s.proj.push({
     id: s.nextId++, tipo: 'freccia', x: h.x + h.fx * 0.4, y: FRECCIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v,
     g: traits.noGravita ? 0 : fr.gravita * (a.traits.carillon?.gravita ?? 1), danno: (a.danno + fr.danno) * t * (1 + buff(s, 'dannoArco')), life: VOLO_MAX_TICKS,
@@ -165,8 +167,9 @@ function cast(s: DungeonState, dir: Mira): void {
   ev(s, { t: 'magia', id: sp.id });
   faceDir(s, dir); // col mouse l'alleato nasce e la magia parte dove punta il cursore
   if (sp.scuola === 'evocazione' && sp.evoca) {
-    // un'evocazione alla volta (per eroe): la vecchia sparisce
-    for (const e of s.enemies) if (e.alleato && e.st !== 'morto' && (e.padrone ?? 0) === s.cur) { e.st = 'morto'; ev(s, { t: 'morte', id: e.id, tipo: e.tipo }); }
+    // un'evocazione alla volta (per eroe; due col Doppio richiamo): la più vecchia sparisce
+    const mie = s.enemies.filter((e) => e.alleato && e.st !== 'morto' && (e.padrone ?? 0) === s.cur);
+    for (const e of mie.slice(0, Math.max(0, mie.length - (s.runHero.perk?.alleati?.max ?? 1) + 1))) { e.st = 'morto'; ev(s, { t: 'morte', id: e.id, tipo: e.tipo }); }
     // Patto di sangue: l'evocazione dura finché non muore (e la prossima spedizione parte con lei)
     const e = evocaAlleato(s, sp.evoca, s.runHero.perk?.alleati?.perenne ? null : secToTicks(sp.durata), h.fx, h.fz);
     ev(s, { t: 'evocato', id: e.id, tipo: e.tipo });
@@ -179,7 +182,7 @@ function cast(s: DungeonState, dir: Mira): void {
     id: s.nextId++, tipo: 'magia', x: h.x + h.fx * 0.4, y: MAGIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v, g: 0,
     danno: sp.danno * (1 + buff(s, 'dannoDistruzione')), life: Math.max(1, Math.round((MAGIA_GITTATA / Math.max(1, v)) * HZ)),
     traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio, colpiti: [], dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur,
-    ...(sp.mole ? { mole: sp.mole } : {}),
+    ...(sp.mole ? { mole: sp.mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}),
   });
 }
 
@@ -195,7 +198,7 @@ function alternaMano(s: DungeonState): void {
 
 /** Scarica: parte se hai il perk, l'arco in mano (non il Carillon), frecce, e la ricarica è finita. */
 function avviaScarica(s: DungeonState): void {
-  const h = s.hero, a = h.arma, rh = s.runHero, P = RPG.perk?.scarica;
+  const h = s.hero, a = h.arma, rh = s.runHero, P = RPG.perk?.scarica && scaricaDi(s);
   if (!rh.perk?.scarica || !P || a.kind !== 'arco' || a.traits.carillon || h.incanta || h.cdScarica > 0 || h.raffica > 0) return;
   if (h.act !== 'idle' && h.act !== 'tende') return;
   if (!rh.frecce || h.frecce <= 0) { ev(s, { t: 'senzaFrecce' }); return; }
@@ -228,7 +231,7 @@ export function beviNow(s: DungeonState, id: string): DungeonEvent[] | null {
 function applyPotion(s: DungeonState, p: RunPotion): void {
   const h = s.hero, rh = s.runHero;
   consuma(s, p.id, s.usati);
-  if (p.cura.vita) h.vita = Math.min(rh.max.vita, h.vita + p.cura.vita);
+  if (p.cura.vita) { h.vita = Math.min(rh.max.vita, h.vita + p.cura.vita); curaCompagni(s, p.cura.vita); } // Medico da campo
   if (p.cura.magicka) h.magicka = Math.min(rh.max.magicka, h.magicka + p.cura.magicka);
   if (p.cura.stamina) h.stamina = Math.min(rh.max.stamina, h.stamina + p.cura.stamina);
   if (p.buff) h.buffs.push({ mod: p.buff.mod, valore: p.buff.valore, fine: s.tick + secToTicks(p.buff.secondi) });
@@ -263,7 +266,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
     if (h.raffT <= 0) {
       h.carica = 1; shoot(s, dir);
       h.raffica = h.frecce > 0 ? h.raffica - 1 : 0;
-      h.raffT = secToTicks(RPG.perk?.scarica.ogni ?? 0.07);
+      h.raffT = secToTicks(scaricaDi(s).ogni);
     } else h.raffT--;
     h.act = 'tira'; h.actT = 0; h.actDur = LANCIA_TICKS; // finché la raffica dura resta in posa di tiro
   }

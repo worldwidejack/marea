@@ -83,12 +83,18 @@ export type ModKey =
   | 'velocitaCorsa' | 'staminaCorsa' | 'dannoConArmaturaLeggera' | 'materialiForgia' | 'potenzaPozioni' | 'resistMagia'
   // perk dell'albero (11 ott 2026): effetti nel dungeon (sim/dungeon) e sulle cose forgiate (sim/rpg/derived)
   | 'sanguinaCaricato' | 'paralisiCaricato' | 'caricaMassima' | 'automira' | 'arcoMobile' | 'scarica' | 'raggioMagia'
-  | 'dannoAlleati' | 'vitaAlleati' | 'magickaPct' | 'evocazionePerenne' | 'difesaForgiata' | 'dannoForgiato' | 'pesoForgiato';
+  | 'dannoAlleati' | 'vitaAlleati' | 'magickaPct' | 'evocazionePerenne' | 'difesaForgiata' | 'dannoForgiato' | 'pesoForgiato'
+  // seconda tornata (11 ott 2026): avvelenamento, Lama d'aria, Spaccaossa, Terremoto, frecce perforanti, Faretra, Pioggia di frecce, Combustione,
+  // Catena di fulmini, Doppio richiamo, Banchetto, Medico da campo, Doppia dose, Pozioni durature, Capolavoro
+  | 'avvelena' | 'lamaAria' | 'penetraPesanti' | 'terremoto' | 'frecceTrapassano' | 'risparmioFrecce' | 'scaricaPiu' | 'combustione' | 'catena'
+  | 'richiamoDoppio' | 'banchetto' | 'medicoCampo' | 'doppiaDose' | 'durataPozioni' | 'forgiaDoppia';
 
 export type SpellDef = {
   id: string; nome: string; scuola: 'distruzione' | 'evocazione'; costo: number; ricarica: number; descr: string;
   /** Distruzione: proiettile. */
   danno?: number; velocita?: number; raggio?: number; sanguina?: number;
+  /** Elemento della magia d'attacco (perk Combustione sul fuoco, Catena di fulmini sull'elettricità). */
+  elemento?: 'fuoco' | 'elettricita';
   /** Evocazione: alleato (id di enemies.json) per `durata` s. */
   evoca?: string; durata?: number;
 };
@@ -260,7 +266,19 @@ export type RpgPerkBalance = {
   /** Automira (livello 1) e Automira plus (livello 2): la freccia sterza verso il nemico più vicino entro il cono (coseno) a `k` della differenza di direzione a ogni tick, fino a `gittata` m. */
   automira: { cos: number; k: number; gittata: number }[];
   /** Scarica: ogni `ricarica` s, `frecce` frecce a piena tensione, una ogni `ogni` s. */
-  scarica: { ricarica: number; frecce: number; ogni: number };
+  scarica: { ricarica: number; frecce: number; ogni: number; pioggia: { ricarica: number; frecce: number } };
+  /** Lame avvelenate: il colpo normale avvelena `dps` al secondo per `secondi` s. */
+  veleno: { dps: number; secondi: number };
+  /** Lama d'aria: il caricato lancia una lama che trapassa: `frazione` del danno del caricato, `gittata` m a `velocita` m/s. */
+  lamaAria: { frazione: number; gittata: number; velocita: number };
+  /** Terremoto: il caricato a segno scuote il terreno entro `raggio` m: `frazione` del danno e `spinta` m in più (i boss non si spostano). */
+  terremoto: { raggio: number; frazione: number; spinta: number };
+  /** Combustione: una magia di fuoco lascia a terra una chiazza (almeno `raggio` m) per `secondi` s che brucia i nemici per `frazione` del danno della magia al secondo. */
+  combustione: { raggio: number; secondi: number; frazione: number };
+  /** Catena di fulmini: l'elettricità salta al nemico più vicino entro `raggio` m con `frazione` del danno. */
+  catena: { raggio: number; frazione: number };
+  /** Medico da campo: la pozione che bevi cura anche i compagni di squadra entro `raggio` m. */
+  medicoCampo: { raggio: number };
 };
 export type RpgBalance = {
   attributi: { base: Record<AttrId, number>; perLivello: number; regen: Record<AttrId, number> };

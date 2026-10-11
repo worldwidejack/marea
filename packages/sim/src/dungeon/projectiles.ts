@@ -7,7 +7,7 @@ import { hitEnemy, hitHero } from './combat.ts';
 import { isOpaque } from './map.ts';
 import { ALTEZZA_BERSAGLIO, HZ } from './tuning.ts';
 import { spingi } from './vento.ts';
-import { guidaFreccia } from './perk.ts';
+import { effettiMagia, guidaFreccia } from './perk.ts';
 
 const MARGINE = 0.15;
 
@@ -36,6 +36,7 @@ function hitFoes(s: DungeonState, p: Proj): boolean {
   if (p.magico) {
     if (p.raggio > 0) explode(s, p);
     else hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p) });
+    if (p.elemento) effettiMagia(s, p, first); // Combustione, Catena di fulmini
     return true;
   }
   const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;

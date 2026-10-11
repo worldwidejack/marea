@@ -11,7 +11,9 @@ const MOD_KEYS = new Set(['vita', 'magicka', 'stamina', 'regenVita', 'regenMagic
   'velocitaLeggere', 'velocitaPesanti', 'tensioneArco', 'caricaVeloce', 'costoDistruzione', 'costoEvocazione', 'durataEvocazione', 'difesa', 'malusArmatura', 'peso',
   'velocitaCorsa', 'staminaCorsa', 'dannoConArmaturaLeggera', 'materialiForgia', 'potenzaPozioni', 'resistMagia',
   'sanguinaCaricato', 'paralisiCaricato', 'caricaMassima', 'automira', 'arcoMobile', 'scarica', 'raggioMagia', 'dannoAlleati', 'vitaAlleati', 'magickaPct',
-  'evocazionePerenne', 'difesaForgiata', 'dannoForgiato', 'pesoForgiato']);
+  'evocazionePerenne', 'difesaForgiata', 'dannoForgiato', 'pesoForgiato',
+  'avvelena', 'lamaAria', 'penetraPesanti', 'terremoto', 'frecceTrapassano', 'risparmioFrecce', 'scaricaPiu', 'combustione', 'catena', 'richiamoDoppio', 'banchetto',
+  'medicoCampo', 'doppiaDose', 'durataPozioni', 'forgiaDoppia']);
 
 test('rpg catalogo: 8 materiali, 6 armi, tipo × materiale generato, id unici', () => {
   assert.equal(MATERIALS.length, 8);
@@ -65,12 +67,12 @@ test('rpg catalogo: colori solo dalla palette, unici non forgiabili, anelli e ve
   for (const r of ITEMS_RAW) for (const k of [...Object.keys(r.mods ?? {}), ...(r.buff ? [r.buff.mod] : [])]) assert.ok(MOD_KEYS.has(k), `${r.id}: ${k}`);
 });
 
-test('rpg perk: 4-9 per abilità, prerequisiti a catena nella stessa abilità, chiavi valide', () => {
+test('rpg perk: 4-14 per abilità, prerequisiti a catena nella stessa abilità, chiavi valide', () => {
   const byId = new Map(PERKS.map((p) => [p.id, p]));
   assert.equal(byId.size, PERKS.length);
   for (const s of SKILLS) {
     const n = PERKS.filter((p) => p.skill === s).length;
-    assert.ok(n >= 4 && n <= 9, `${s}: ${n} perk`);
+    assert.ok(n >= 4 && n <= 14, `${s}: ${n} perk`);
   }
   for (const p of PERKS) {
     for (const k of Object.keys(p.mods)) assert.ok(MOD_KEYS.has(k), `${p.id}: ${k}`);

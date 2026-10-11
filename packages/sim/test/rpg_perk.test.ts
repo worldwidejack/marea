@@ -43,7 +43,12 @@ test('perk forgiati: Corazzaio, Armaiolo e Cinghie valgono solo per ciò che hai
   const nuda = runHeroOf({ ...heroCon(['fo_parsimonia', 'fo_corazzaio']), equip: {}, inv: {} });
   assert.equal(nuda.armatura.difesa, 0, 'senza armatura forgiata niente difesa');
   const spada = con('katana_bronzo', 'arma', []), armaiolo = con('katana_bronzo', 'arma', ['fo_parsimonia', 'fo_armaiolo']);
-  assert.ok(armaiolo.arma.danno >= spada.arma.danno + 15 && armaiolo.arma.danno < spada.arma.danno + 15.5, `${spada.arma.danno} → ${armaiolo.arma.danno}`);
+  // +15 danni AL SECONDO: a colpo è 15 / colpi al secondo dell'arma (katana bronzo 1,7 → +8,8; martello 0,55 → +27)
+  const colpiAlSec = 1 / spada.arma.tempo;
+  assert.ok(Math.abs((armaiolo.arma.danno - spada.arma.danno) * colpiAlSec - 15) < 0.3, `${spada.arma.danno} → ${armaiolo.arma.danno}`);
+  const martello = con('martello_bronzo', 'arma', []), martelloA = con('martello_bronzo', 'arma', ['fo_parsimonia', 'fo_armaiolo']);
+  assert.ok(Math.abs((martelloA.arma.danno - martello.arma.danno) / martello.arma.tempo - 15) < 0.5, 'sul martello lento è tanto per colpo');
+  assert.ok(martelloA.arma.danno - martello.arma.danno > 20 && armaiolo.arma.danno - spada.arma.danno < 10);
   const pesante = con('armatura_ferro', 'corpo', []), cinghie = con('armatura_ferro', 'corpo', ['fo_parsimonia', 'fo_corazzaio', 'fo_cinghie']);
   assert.ok(cinghie.armatura.malus < pesante.armatura.malus, `malus ${pesante.armatura.malus} → ${cinghie.armatura.malus}`);
 });
@@ -66,12 +71,12 @@ test('perk: RunHero.perk riassume gli effetti da dungeon (e non c\'è senza perk
   assert.equal(p.scarica, true);
   assert.equal(p.arcoMobile, true);
   const v = runHeroOf(heroCon(['ev_legame', 'ev_richiamo', 'ev_cattivelle', 'ev_cresciute', 'ev_bastarde', 'ev_grosse', 'ev_patto', 'ev_sangue'], { evocato: 'lupo_spettrale' })).perk!;
-  assert.deepEqual(v.alleati, { danno: 1.75, vita: 1.75, perenne: true });
+  assert.deepEqual(v.alleati, { danno: 1.75, vita: 1.75, perenne: true, max: 1, banchetto: 0 });
   assert.equal(v.evocato, 'lupo_spettrale');
   assert.equal(runHeroOf(heroCon(['ev_legame', 'ev_patto'], { evocato: 'lupo_spettrale' })).perk, undefined, 'senza il Patto di sangue nessuno ti segue');
 });
 
-test('Taglio Critico: il caricato fa sanguinare (5 % al secondo per 10 s) e rallenta; i boss sanguinano un quinto', () => {
+test('Taglio Critico: il caricato fa sanguinare (3 % al secondo per 10 s) e rallenta; i boss sanguinano un quinto', () => {
   const s = arena(conPerk({ sanguina: 1 })), e = dummy(s, 'bandito');
   colpiSu(caricato(s), e.id);
   const t = s.tick;
@@ -83,7 +88,7 @@ test('Taglio Critico: il caricato fa sanguinare (5 % al secondo per 10 s) e rall
   e.st = 'dorme'; e.aggro = false; // non si muove né colpisce: contiamo solo il sangue
   run(s, resto + 5);
   const perso = v0 - e.vita;
-  assert.ok(Math.abs(perso - 50 * (resto / 60)) < 2, `perso ${perso.toFixed(0)} in ${(resto / 60).toFixed(1)} s su 1000: il 5 % al secondo`);
+  assert.ok(Math.abs(perso - 30 * (resto / 60)) < 2, `perso ${perso.toFixed(0)} in ${(resto / 60).toFixed(1)} s su 1000: il 3 % al secondo`);
   assert.ok(resto > 8 * 60 && resto <= 10 * 60, 'dura 10 secondi dal colpo');
   // un normale tocco non fa niente
   const s2 = arena(conPerk({ sanguina: 1 })), e2 = dummy(s2, 'bandito');
@@ -92,7 +97,7 @@ test('Taglio Critico: il caricato fa sanguinare (5 % al secondo per 10 s) e rall
   // il boss
   const s3 = arena(conPerk({ sanguina: 1 })), b = dummy(s3, 're_ossa', 1.5, 1000);
   caricato(s3);
-  assert.ok(b.emorr !== undefined && Math.abs((b.emorrPct ?? 0) - 0.05 * 0.2) < 1e-9);
+  assert.ok(b.emorr !== undefined && Math.abs((b.emorrPct ?? 0) - 0.03 * 0.2) < 1e-9);
 });
 
 test('Taglio Critico: il rallentamento vale per i movimenti e per i tempi dei colpi (70 % dei tick)', () => {
@@ -248,7 +253,7 @@ const lupo = { id: 'lupo_spettrale', scuola: 'evocazione' as const, costo: 40, r
 const evoca = (s: DungeonState): void => { run(s, 1, inp({ c: true, a: true })); run(s, 2); };
 
 test('Evocazioni cattivelle/cresciute: l\'alleato ha più vita e più danno', () => {
-  const s = arena(conPerk({ alleati: { danno: 1.75, vita: 1.5, perenne: false } }, { magie: [lupo] }));
+  const s = arena(conPerk({ alleati: { danno: 1.75, vita: 1.5, perenne: false, max: 1, banchetto: 0 } }, { magie: [lupo] }));
   evoca(s);
   const a = s.enemies.find((x) => x.alleato)!;
   assert.equal(a.max, Math.round(a.def.vita * 1.5));
@@ -264,7 +269,7 @@ test('Evocazioni cattivelle/cresciute: l\'alleato ha più vita e più danno', ()
 });
 
 test('Patto di sangue: l\'evocazione non scade, resta finché vive, e riparte con te nella spedizione dopo', () => {
-  const s = arena(conPerk({ alleati: { danno: 1, vita: 1, perenne: true } }, { magie: [lupo] }));
+  const s = arena(conPerk({ alleati: { danno: 1, vita: 1, perenne: true, max: 1, banchetto: 0 } }, { magie: [lupo] }));
   evoca(s);
   const a = s.enemies.find((x) => x.alleato)!;
   run(s, 120 * 60);
@@ -278,7 +283,7 @@ test('Patto di sangue: l\'evocazione non scade, resta finché vive, e riparte co
   evoca(n);
   assert.equal('evocato' in dungeon.result(n), false);
   // la spedizione dopo parte con la creatura al fianco
-  const d = arena(conPerk({ alleati: { danno: 1, vita: 1, perenne: true }, evocato: 'lupo_spettrale' }));
+  const d = arena(conPerk({ alleati: { danno: 1, vita: 1, perenne: true, max: 1, banchetto: 0 }, evocato: 'lupo_spettrale' }));
   const nuovo = d.enemies.find((x) => x.alleato);
   assert.ok(nuovo && nuovo.tipo === 'lupo_spettrale' && nuovo.scade === Number.MAX_SAFE_INTEGER);
   // uscendo dalla scala il lupo resta vivo nel risultato

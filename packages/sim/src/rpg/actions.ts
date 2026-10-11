@@ -2,6 +2,7 @@
 import { PERKS, RECIPES, RPG, spellDef } from '@marea/content/rpg.ts';
 import { building } from '@marea/content';
 import { advance } from '../economy/advance.ts';
+import { hashJson } from '../hash.ts';
 import { pay } from '../economy/actions.ts';
 import { EconomyError, ZERO } from '../economy/types.ts';
 import type { LotState } from '../economy/types.ts';
@@ -52,6 +53,20 @@ function equip(h: HeroState, slot: EquipSlot, id: string | null): HeroState {
   return { ...h, equip: withEquip(h.equip, slot, id) };
 }
 
+/** Quante delle `n` preparazioni riescono «doppie» (Capolavoro, Doppia dose): ogni prova è un tiro dal seme dello stato (versione e orologio del
+ *  lotto, cosa si prepara), quindi lo stesso stato dà sempre lo stesso risultato. */
+function doppie(lot: LotState, cosa: string, n: number, p: number): number {
+  if (!(p > 0)) return 0;
+  let k = 0;
+  for (let i = 0; i < n; i++) {
+    // FNV da solo cambia poco tra semi che differiscono per l'ultimo carattere: si rimescola (finale di murmur3) prima di fare il tiro
+    let x = hashJson([lot.version, lot.nowMs, cosa, i]);
+    x ^= x >>> 16; x = Math.imul(x, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16;
+    if ((x >>> 0) / 4294967296 < p) k++;
+  }
+  return k;
+}
+
 function forgia(lot: LotState, h: HeroState, id: string, n: number): { hero: HeroState; forziere: Bag; lot: LotState } {
   const it = needItem(id);
   if (!it.forgia) throw err('oggetto', `${it.nome} non si può forgiare`);
@@ -66,7 +81,8 @@ function forgia(lot: LotState, h: HeroState, id: string, n: number): { hero: Her
   }
   if (legno > 0 && lot.resources.legno < legno) throw new EconomyError('risorse', `Mancano ${legno - lot.resources.legno} di Legno`, { ...ZERO, legno: legno - lot.resources.legno });
   let { hero, forziere } = takeAll(lot, h, cost);
-  ({ hero, forziere } = stowAll({ ...lot, forziere }, hero, id, n * (it.forgia.n ?? 1)));
+  const doppio = doppie(lot, id, n, modsOf(h).forgiaDoppia ?? 0); // Capolavoro
+  ({ hero, forziere } = stowAll({ ...lot, forziere }, hero, id, (n + doppio) * (it.forgia.n ?? 1)));
   const lot2 = legno > 0 ? pay(lot, { ...ZERO, legno }) : lot;
   hero = gainSkillXp(hero, 'forgiatura', (RPG.xp.forgia ?? 15) * it.forgia.banco * n);
   return { hero, forziere, lot: lot2 };
@@ -80,7 +96,8 @@ function alchimia(lot: LotState, h: HeroState, ricetta: string, n: number): { he
   const cost: Record<string, number> = {};
   for (const [id, q] of Object.entries(r.ingredienti)) cost[id] = q * n;
   let { hero, forziere } = takeAll(lot, h, cost);
-  ({ hero, forziere } = stowAll({ ...lot, forziere }, hero, r.risultato, r.n * n));
+  const doppio = doppie(lot, r.id, n, modsOf(h).doppiaDose ?? 0); // Doppia dose
+  ({ hero, forziere } = stowAll({ ...lot, forziere }, hero, r.risultato, r.n * (n + doppio)));
   hero = gainSkillXp(hero, 'alchimia', ((RPG.xp.alchimia ?? 12) + r.livello * (RPG.xp.alchimiaPerLivello ?? 0)) * n);
   return { hero, forziere };
 }

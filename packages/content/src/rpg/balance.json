@@ -16,12 +16,19 @@
   "xp": { "forgia": 22, "alchimia": 18, "alchimiaPerLivello": 0.6, "personaggioPerLivelloSkill": 1, "evocazioneLancio": 0.5 },
   "xpDanno": { "armiLeggere": 0.7, "armiPesanti": 0.7, "arceria": 1.5, "distruzione": 1.5, "evocazione": 1.5 },
   "perk": {
-    "sanguinamento": { "pctVitaAlSecondo": 0.05, "secondi": 10, "rallenta": 0.3, "moltBoss": 0.2 },
+    "sanguinamento": { "pctVitaAlSecondo": 0.03, "secondi": 10, "rallenta": 0.3, "moltBoss": 0.2 },
     "paralisi": { "secondi": 4 },
     "caricaMassima": { "moltBoss": 2 },
     "automira": [ { "cos": 0.966, "k": 0.05, "gittata": 30 }, { "cos": 0.7, "k": 0.16, "gittata": 30 } ],
-    "scarica": { "ricarica": 30, "frecce": 3, "ogni": 0.07 }
+    "scarica": { "ricarica": 30, "frecce": 3, "ogni": 0.07, "pioggia": { "ricarica": 20, "frecce": 5 } },
+    "veleno": { "dps": 3, "secondi": 5 },
+    "lamaAria": { "frazione": 0.5, "gittata": 10, "velocita": 16 },
+    "terremoto": { "raggio": 4, "frazione": 0.35, "spinta": 2.5 },
+    "combustione": { "raggio": 0.9, "secondi": 4, "frazione": 0.2 },
+    "catena": { "raggio": 5, "frazione": 0.5 },
+    "medicoCampo": { "raggio": 8 }
   },
+
   "forziere": [100, 250, 600],
   "bottega": { "lingotto_bronzo": 12, "lingotto_ferro": 20, "erba_curativa": 3, "fiore_azzurro": 3, "radice_vigore": 4 },
   "contrabbando": {

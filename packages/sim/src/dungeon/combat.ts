@@ -84,7 +84,11 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
     // arco d'oro: monete a ogni colpo (probabilità)
     const mc = src.traits.moneteColpo ?? 0;
     if (mc > 0 && s.rng.next() < mc) { const n = s.rng.int(MONETE_COLPO[0], MONETE_COLPO[1]); s.monete += n; ev(s, { t: 'monete', n }); }
-  } else add(s.xp, 'evocazione', utile * (RPG.xpDanno?.evocazione ?? 1)); // l'evocazione colpisce col padrone di turno
+  } else {
+    add(s.xp, 'evocazione', utile * (RPG.xpDanno?.evocazione ?? 1)); // l'evocazione colpisce col padrone di turno
+    const b = s.runHero.perk?.alleati?.banchetto; // Banchetto: una parte del danno dell'alleato cura il padrone
+    if (b && !s.done) s.hero.vita = Math.min(s.runHero.max.vita, s.hero.vita + utile * b);
+  }
   if (src.traits.sanguina) { e.bleed = Math.max(e.bleed, src.traits.sanguina); e.bleedT = SANGUINA_TICKS; }
   e.dropRaro = !!src.traits.dropRaro;
   e.dropMolt = src.traits.dropMolt ?? 1;

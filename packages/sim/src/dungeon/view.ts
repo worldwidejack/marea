@@ -19,7 +19,7 @@ import { varchiDi } from './custode.ts';
 import { RPG } from '@marea/content/rpg.ts';
 import { secToTicks } from './state.ts';
 import { HZ } from './tuning.ts';
-import { paralizzato, rallentato, sanguinante } from './perk.ts';
+import { paralizzato, rallentato, sanguinante, scaricaDi } from './perk.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const r3 = (v: number): number => Math.round(v * 1000) / 1000;
@@ -87,7 +87,7 @@ export function viewOf(s: DungeonState): DungeonView {
     vicinoTimone: !s.done && s.map.timoni.length > 0 && timoneVicino(s) >= 0,
     geyser: s.geyser.map((g) => ({ id: g.id, x: g.x, z: g.z, r: g.r, getto: g.t > g.avviso, t: g.t > g.avviso ? Math.min(1, (g.t - g.avviso) / g.getto) : Math.min(1, g.t / g.avviso), ...(g.spinta !== undefined ? { bomba: true } : {}), ...(g.magma ? { magma: true } : {}) })),
     lave: s.map.lave.map((v) => ({ n: v.n, ...statoLava(s, v) })),
-    fuochi: s.fuochi.map((f) => ({ id: f.id, x: f.x, z: f.z, r: f.r, t: Math.max(0, Math.min(1, 1 - (f.fine - s.tick) / f.durata)) })),
+    fuochi: s.fuochi.map((f) => ({ id: f.id, x: f.x, z: f.z, r: f.r, t: Math.max(0, Math.min(1, 1 - (f.fine - s.tick) / f.durata)), ...(f.amico ? { amico: true } : {}) })),
     lancette: s.map.lancette.map((l) => { const [dx, dz] = lancettaDir(l, s.tick); return { n: l.n, x: l.x, z: l.z, dx, dz, lunga: l.lunga, largo: l.largo, giro: l.giro }; }),
     onde: s.onde.map((o) => ({ id: o.id, x: o.x, z: o.z, r: o.r, max: o.max, spessore: o.spessore, varchi: o.varchi.map(([x, z]): [number, number] => [x, z]), barriera: !!o.barriera })),
     ...(s.map.sarcofago ? { sarcofago: { x: s.map.sarcofago.x, z: s.map.sarcofago.z, aperto: s.enemies.some((e) => e.capo && e.st === 'morto') } } : {}),
@@ -148,7 +148,7 @@ function mausoleo(s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][numb
 /** Perk Scarica (secondi di ricarica) e Carica massima (progresso verso il colpo letale): niente chiavi senza il perk. */
 function perkVista(s: DungeonState): { scarica?: number; massima?: number } {
   const P = s.runHero.perk, h = s.hero, o: { scarica?: number; massima?: number } = {};
-  if (P?.scarica) o.scarica = r2(1 - h.cdScarica / secToTicks(RPG.perk?.scarica.ricarica ?? 30));
+  if (P?.scarica) o.scarica = r2(1 - h.cdScarica / secToTicks(scaricaDi(s).ricarica));
   if (P?.massima) o.massima = r3(h.massimaP);
   return o;
 }
@@ -231,7 +231,7 @@ export function resultOf(s: DungeonState): RunResult {
     capo: s.enemies.some((e) => e.capo && e.st === 'morto'),
     ...(s.uscitaLanterna >= 0 ? { lanterna: s.uscitaLanterna } : {}),
     // Patto di sangue: la creatura evocata ancora viva (se non sei morto), per la spedizione dopo
-    ...(s.runHero.perk?.alleati?.perenne ? { evocato: s.outcome === 'morto' ? null : s.enemies.find((e) => e.alleato && e.st !== 'morto' && (e.padrone ?? 0) === s.cur)?.tipo ?? null } : {}),
+    ...(s.runHero.perk?.alleati?.perenne ? { evocato: s.outcome === 'morto' ? null : s.enemies.filter((e) => e.alleato && e.st !== 'morto' && (e.padrone ?? 0) === s.cur).at(-1)?.tipo ?? null } : {}),
     ...(s.stato ? { equip: { ...s.equip } } : {}),
     ...(Object.keys(s.buttati).length ? { buttati: { ...s.buttati } } : {}),
     hash: hashOf(s),

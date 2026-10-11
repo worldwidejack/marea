@@ -92,8 +92,8 @@ function weaponOf(h: HeroState, m: Mods, leggera: boolean): RunWeapon {
     const k = 1 + mod(m, pesante ? 'dannoPesanti' : 'dannoLeggere') + leggeraBonus + skillBonus(h, skill, dannoPerLv());
     const vel = (it.velocita ?? 1) * (1 + mod(m, pesante ? 'velocitaPesanti' : 'velocitaLeggere'));
     const w: RunWeapon = {
-      id: it.id, kind: 'mischia', skill, classe: it.classe ?? null, danno: r2(((it.danno ?? 0) + (it.forgia ? mod(m, 'dannoForgiato') : 0)) * k), tempo: r2(1 / Math.max(0.05, vel)), // Armaiolo: +danno piatto alle armi forgiate
-      portata: it.portata ?? 1.5, carica: r2((t?.carica ?? 1) * caricaK), caricaMolt: t?.caricaMolt ?? 2, gittata: 0, traits: { ...(it.traits ?? {}) },
+      id: it.id, kind: 'mischia', skill, classe: it.classe ?? null, danno: r2(((it.danno ?? 0) + (it.forgia ? mod(m, 'dannoForgiato') / Math.max(0.05, it.velocita ?? 1) : 0)) * k), tempo: r2(1 / Math.max(0.05, vel)), // Armaiolo: +15 danni AL SECONDO alle armi forgiate (a colpo: 15 / colpi al secondo)
+      portata: it.portata ?? 1.5, carica: r2((t?.carica ?? 1) * caricaK), caricaMolt: t?.caricaMolt ?? 2, gittata: 0, traits: { ...(it.traits ?? {}), ...(pesante && mod(m, 'penetraPesanti') > 0 ? { penetra: Math.max(it.traits?.penetra ?? 0, mod(m, 'penetraPesanti')) } : {}) }, // Spaccaossa
     };
     if (it.traits?.fragile) w.usura = h.usura[it.id] ?? 0;
     return w;
@@ -106,7 +106,7 @@ function arrowsOf(h: HeroState, m: Mods): RunArrows | null {
   const it = equipped(h, 'frecce');
   if (!it || it.kind !== 'frecce') return null;
   const k = 1 + mod(m, 'dannoArco') + skillBonus(h, 'arceria', dannoPerLv());
-  const traits: Traits = { ...(it.traits ?? {}) };
+  const traits: Traits = { ...(it.traits ?? {}), ...(mod(m, 'frecceTrapassano') > 0 ? { trapassa: true } : {}) }; // Frecce perforanti
   return { id: it.id, n: h.inv[it.id] ?? 0, danno: r2((it.danno ?? 0) * k), gittata: it.gittata ?? 0, gravita: it.gravita ?? materialOf(it)?.frecce.gravita ?? 9.8, traits };
 }
 
@@ -120,7 +120,7 @@ function spellsOf(h: HeroState, m: Mods): RunSpell[] {
     const k = 1 + mod(m, 'dannoDistruzione') + skillBonus(h, 'distruzione', dannoPerLv());
     const mole = dist && mod(m, 'raggioMagia') > 0 ? 1 + mod(m, 'raggioMagia') : 0; // Grandi Magie
     out.push({
-      ...(mole ? { mole } : {}),
+      ...(mole ? { mole } : {}), ...(s.elemento ? { elemento: s.elemento } : {}),
       id: s.id, scuola: s.scuola, costo, ricarica: s.ricarica, danno: dist ? r2((s.danno ?? 0) * k) : 0, velocita: s.velocita ?? 0, raggio: r2((s.raggio ?? 0) * (mole || 1)),
       sanguina: s.sanguina ?? 0, evoca: s.evoca ?? null, durata: s.evoca ? r2((s.durata ?? 0) * (1 + mod(m, 'durataEvocazione'))) : 0,
     });
@@ -142,7 +142,7 @@ function potionsOf(h: HeroState, m: Mods): RunPotion[] {
     if (it.kind !== 'pozione') continue;
     const cura: Partial<Record<AttrId, number>> = {};
     for (const [a, v] of Object.entries(it.cura ?? {})) cura[a as AttrId] = Math.round((v ?? 0) * k);
-    out.push({ id, n, cura, buff: it.buff ? { mod: it.buff.mod, valore: r2(it.buff.valore * k), secondi: it.buff.secondi } : null });
+    out.push({ id, n, cura, buff: it.buff ? { mod: it.buff.mod, valore: r2(it.buff.valore * k), secondi: r2(it.buff.secondi * (1 + mod(m, 'durataPozioni'))) } : null });
   }
   return out;
 }
@@ -158,7 +158,17 @@ function perkOf(h: HeroState, m: Mods): RunPerk | undefined {
   if (P('arcoMobile') > 0) p.arcoMobile = true;
   if (P('scarica') > 0) p.scarica = true;
   const perenne = P('evocazionePerenne') > 0;
-  if (P('dannoAlleati') > 0 || P('vitaAlleati') > 0 || perenne) p.alleati = { danno: 1 + P('dannoAlleati'), vita: 1 + P('vitaAlleati'), perenne };
+  if (P('dannoAlleati') > 0 || P('vitaAlleati') > 0 || P('banchetto') > 0 || P('richiamoDoppio') > 0 || perenne) {
+    p.alleati = { danno: 1 + P('dannoAlleati'), vita: 1 + P('vitaAlleati'), perenne, max: P('richiamoDoppio') > 0 ? 2 : 1, banchetto: P('banchetto') };
+  }
+  if (P('avvelena') > 0) p.veleno = clamp(P('avvelena'), 0, 1);
+  if (P('lamaAria') > 0) p.aria = true;
+  if (P('terremoto') > 0) p.terremoto = true;
+  if (P('risparmioFrecce') > 0) p.risparmio = clamp(P('risparmioFrecce'), 0, 1);
+  if (P('scaricaPiu') > 0) p.pioggia = true;
+  if (P('combustione') > 0) p.combustione = true;
+  if (P('catena') > 0) p.catena = true;
+  if (P('medicoCampo') > 0) p.campo = true;
   if (perenne && h.evocato) p.evocato = h.evocato;
   return Object.keys(p).length ? p : undefined;
 }

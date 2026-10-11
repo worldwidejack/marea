@@ -112,6 +112,9 @@ export type DungeonEvent = (
   | { t: 'sanguinamento'; id: number }
   | { t: 'paralisi'; id: number }
   | { t: 'scarica' }
+  /** Terremoto: il caricato scuote il terreno in (x, z) · Catena di fulmini: l'elettricità salta da un punto all'altro. */
+  | { t: 'terremoto'; x: number; z: number }
+  | { t: 'catena'; da: [number, number]; a: [number, number] }
   | { t: 'caricaMassima' }
 ) & { eroe?: number };
 
@@ -193,7 +196,7 @@ export type DungeonView = {
   /** Fucina (negli altri dungeon liste vuote): colate che respirano (stato e fase 0..1 nello stato), chiazze di fuoco a terra (`t` 0..1 da
    *  quando sono nate a quando si spengono). La Colata Maestra e la sua chiusa stanno in `acque` e `valvole`, le palle di magma in `geyser`. */
   lave: { n: number; stato: 'crosta' | 'avviso' | 'scorre'; t: number }[];
-  fuochi: { id: number; x: number; z: number; r: number; t: number }[];
+  fuochi: { id: number; x: number; z: number; r: number; t: number; amico?: true }[];
   /** Mausoleo (negli altri dungeon liste vuote, niente sarcofago): lancette (perno, versore di adesso, lunghezza, mezza larghezza, verso),
    *  onde d'acqua in corsa (centro, raggio di adesso e massimo, varchi come versori), il sarcofago della Regina (aperto = capo morto). Il
    *  cancello del Santuario e la sua chiave stanno in `acque` e `valvole`. */

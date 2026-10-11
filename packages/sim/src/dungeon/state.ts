@@ -110,6 +110,8 @@ export type Proj = {
   tira?: number; tiraT?: number;
   /** Magie: fattore di Grandi Magie (assente = 1). Frecce: livello dell'Automira (assente = 0). */
   mole?: number; guida?: number;
+  /** Magie: elemento (Combustione, Catena di fulmini). */
+  elemento?: 'fuoco' | 'elettricita';
 };
 /** Drenaggio: un bacino allagato. `aperta` = la sua valvola è girata; `scolo` = tick che mancano all'asciutto (livello = scolo / SCOLO). */
 export type Bacino = { n: number; aperta: boolean; scolo: number };
@@ -122,7 +124,9 @@ export type Geyser = { id: number; x: number; z: number; r: number; t: number; a
 /** Archivio: una corrente d'aria (le celle e i numeri stanno in map.venti); `ferma` = il suo timone è girato. */
 export type Corrente = { n: number; ferma: boolean };
 /** Fucina: chiazza di fuoco a terra (scia della Fornace Semovente, pozza di magma) fino al tick `fine`: chi ci sta dentro brucia. */
-export type Fuoco = { id: number; x: number; z: number; r: number; fine: number; durata: number; dps: number; secondi: number };
+export type Fuoco = { id: number; x: number; z: number; r: number; fine: number; durata: number; dps: number; secondi: number;
+  /** Combustione (perk): la chiazza è dell'eroe `da`, brucia i nemici e non l'eroe. */
+  amico?: true; da?: number };
 /** Mausoleo: un'onda d'acqua che si allarga da (x, z) (l'ondata del Custode, la scarica della Barriera): raggio `r` adesso, fino a `max`;
  *  prende chi ci sta sopra (entro `spessore`) tranne nei `varchi` (versori, coseno `largo`) e dietro le colonne; `colpiti` = eroi già presi. */
 export type Onda = { id: number; x: number; z: number; r: number; v: number; max: number; spessore: number; danno: number; spinta: number; varchi: [number, number][]; largo: number; colpiti: number[]; barriera?: true };
