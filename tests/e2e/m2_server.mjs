@@ -120,7 +120,7 @@ export default async function (ctx) {
       const s = await post('/api/dungeon/start', 'tokB', { dungeon: 'grotta' });
       assert(s.status === 200 && s.body.dungeon === 'grotta' && Number.isInteger(s.body.seed) && s.body.hero?.arma && s.body.hero?.max?.vita > 0, 'start: ' + JSON.stringify(s.body).slice(0, 200));
       assert(s.body.lot?.dungeon?.pending?.seed === s.body.seed && same(s.body.lot.dungeon.pending.hero, s.body.hero), 'pending nel lotto');
-      for (const inputs of ['rotto', [[0, 0, 0, 0]], [[5, 9, 0, 0]], [[5, 0, 0, 16]], [[dungeon.maxTicks + 1, 0, 0, 0]], [[1, 0.5, 0, 0]]]) {
+      for (const inputs of ['rotto', [[0, 0, 0, 0]], [[5, 9, 0, 0]], [[5, 0, 0, 32]], [[dungeon.maxTicks + 1, 0, 0, 0]], [[1, 0.5, 0, 0]]]) {
         const r = await post('/api/dungeon/finish', 'tokB', { inputs, hash: 0 });
         assert(r.status === 400, `input ${JSON.stringify(inputs).slice(0, 40)}: ${r.status}`);
       }
