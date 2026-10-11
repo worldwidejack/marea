@@ -99,6 +99,10 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
   - **Hub**: tutte e due le immagini. `corse_01_hub` è la mappa dell'isola con le zone intorno; `corse_13_hub_arrivo` è il paese dei piloti al molo (garage, podio, statua del manichino col trofeo).
   - **Il metro di qualità è la Giungla** (`corse_08_giungla_miniera`): ogni zona deve arrivare a quel livello.
   - In gioco il 3D sarà più semplice delle illustrazioni: si prendono colori, densità, atmosfera e soggetti.
+- **Concept della Giungla** (11 ott 2026, #228, foglio `_FOGLIO_concept_giungla.jpg`): Jack le ha approvate tutte.
+  - Piste: `corse_08_giungla_miniera` (Miniera del tempio), `corse_15_giungla_rapide` (tronchi sulle rapide, cascate come salti, manichini sul ponte di corda), `corse_16_giungla_cross` (fango, tronchi e radici come salti, scalinata del tempio, ponte sul torrente), `corse_17_giungla_tempio` (fuga in carrello, la testa di pietra rotola dietro, colonne che cadono, luce dell'uscita davanti).
+  - Veicoli (`corse_18_giungla_veicoli`), **tutti e 10 nel gioco**: carrello classico, carrello da corsa con alettone, carrello corazzato (le tre guide dei binari), moto da cross, scooter, tronco, gommone, e tre buffi: mezza noce di cocco sui binari, carriola a motore, testa d'idolo su ruote.
+  - Animali piloti (`corse_19_giungla_piloti`): tucano, bradipo, giaguaro, rana freccia, tapiro, camaleonte.
 - **Asset misti**:
   - **piste e ambienti** da Blender via codice, con un kit per zona (`assets/blender/models_corse_<zona>.py`, sull'atlas come gli altri);
   - **veicoli buffi e animali** con l'AI 3D, poi ridotti allo stile PS1: pochi poligoni, palette, atlas.
@@ -192,7 +196,14 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
    - 4c. Il Lungomare al posto del Gran Premio (**fatto**, 10 ott 2026, #173): lo schermo delle Corse nel gioco gira sul motore v2 con scelta di pista e veicolo (le 4 piste), `garaCorse` sul server (`corse/registra.ts`), avatar al volante, telefono in orizzontale. Il vecchio Gran Premio (`minigames/corse.ts`) non è più collegato al gioco. Restano: record per pista (oggi un solo record `corse` per tutte), i veicoli veri nella sim (oggi 5 su 14).
 5. Hub alla Diddy Kong Racing (#185, in corso dal 10 ott 2026): mondo a parte, guida libera, porta della Spiaggia, garage, le altre porte chiuse; l'isola nell'arcipelago rifatta come ingresso.
 6. Fantasmi, stelle e sblocchi, premi per MAREA.
-7. Zone 2-6 con la stessa catena di montaggio.
+7. Zone 2-6 con la stessa catena di montaggio. **Zona 2 = Giungla e templi** (scelta di Jack, 11 ott 2026, #228; prima di stelle, boss e musica della Spiaggia):
+   - 7a. Concept art (**fatto**, 11 ott 2026).
+   - 7b. Famiglia Scivoli e binari + Miniera del tempio grezza sul banco di prova.
+   - 7c. Famiglia Due ruote + Sentiero del cross grezza.
+   - 7d. Rapide e Tempio che crolla grezze, eventi firma.
+   - 7e. Kit Blender e scenografia, pacchetto asset della zona.
+   - 7f. Veicoli e animali in 3D.
+   - 7g. Porta della Giungla aperta nell'hub, piste nel gioco e nella gara tra amici.
 
 ## A13. Da decidere
 - Lore e cattivo.
