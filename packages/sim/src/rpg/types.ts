@@ -181,7 +181,7 @@ export type RunResult = {
   capo?: boolean;
   /** Uscito da questa lanterna (azione `esci`, dungeon v5): la discesa dopo può ripartire da lì. */
   lanterna?: number | null;
-  /** Patto di sangue (dungeon v10): la creatura evocata ancora viva a fine spedizione (id nemico), null = non c'è più. Assente senza il perk. */
+  /** Patto di sangue (dungeon v9): la creatura evocata ancora viva a fine spedizione (id nemico), null = non c'è più. Assente senza il perk. */
   evocato?: string | null;
   /** Equipaggiamento a fine spedizione, se il dungeon sapeva com'era all'entrata (dungeon v5): il server lo rimette sul personaggio. */
   equip?: Partial<Record<EquipSlot, string>>;

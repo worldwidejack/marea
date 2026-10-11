@@ -48,7 +48,7 @@ export type HeroRt = {
    *  map.lancette) il tick fino a cui non lo riprende. */
   barr: number; pressione: number; ultimoAttacco: number; ritmo: number; tic: number; rintocco: boolean; molla: number; mollaT: number; ecoT: number; lancT: number[];
   prevA: boolean; prevC: boolean; prevD: boolean; prevE: boolean;
-  /** Perk (v10). Scarica: tick di ricarica rimasti, frecce ancora da tirare nella raffica e tick al prossimo tiro. Carica massima: progresso 0..1
+  /** Perk (v9). Scarica: tick di ricarica rimasti, frecce ancora da tirare nella raffica e tick al prossimo tiro. Carica massima: progresso 0..1
    *  verso il colpo letale mentre tieni il colpo, e se il colpo che sta partendo è quello letale. */
   cdScarica: number; raffica: number; raffT: number; massimaP: number; massimo: boolean;
 };
@@ -91,7 +91,7 @@ export type Enemy = {
    *  stordito dal Rintocco fino al tick `stordito`; colpi della combinazione già dati (Guardia d'Onore) e se l'ultimo attacco era in
    *  mischia. Il Custode (custode.ts): fase (0 acqua, 1 vapore, 2 moto) e colpi presi verso la scarica della Barriera. */
   potT?: number; potM?: number; rotto?: number; stordito?: number; comboN?: number; mischia?: boolean; fase?: number; colpiB?: number;
-  /** Perk dell'eroe (v10). Taglio Critico: sanguina fino al tick `emorr` (% della vita massima al secondo `emorrPct`), rallentato fino al tick
+  /** Perk dell'eroe (v9). Taglio Critico: sanguina fino al tick `emorr` (% della vita massima al secondo `emorrPct`), rallentato fino al tick
    *  `lentoT` (`lentoAcc` accumula i tick: va al passo di `lentoMolt` tick su 1). Colpo fatale: paralizzato fino al tick `paralisi`.
    *  Evocazioni: danno × `dannoM`. Fuori dall'hash. */
   emorr?: number; emorrPct?: number; lentoT?: number; lentoMolt?: number; lentoAcc?: number; paralisi?: number; dannoM?: number;
