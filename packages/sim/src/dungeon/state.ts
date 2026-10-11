@@ -15,8 +15,8 @@ import { rollLoot } from './loot.ts';
 import { HZ, P_DORME } from './tuning.ts';
 
 export type Bag = Record<string, number>;
-/** Azione in corso dell'eroe. press = A appena premuto (si decide al rilascio o dopo HOLD_TICKS). */
-export type HeroAct = 'idle' | 'press' | 'carica' | 'swing' | 'tende' | 'tira' | 'lancia' | 'beve';
+/** Azione in corso dell'eroe. press = A appena premuto (si decide al rilascio o dopo HOLD_TICKS). punta = magia in mano, A tenuta: si mira, la magia parte al rilascio (v8). */
+export type HeroAct = 'idle' | 'press' | 'carica' | 'swing' | 'tende' | 'punta' | 'tira' | 'lancia' | 'beve';
 export type HeroRt = {
   x: number; z: number; fx: number; fz: number;
   vita: number; magicka: number; stamina: number;

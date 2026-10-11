@@ -144,7 +144,8 @@ function fight(s: DungeonState, m: Mem, e: Enemy, o: Out): void {
   const vede = lineOfSight(s.map, h.x, h.z, e.x, e.z);
   // magia: distruzione se vede il bersaglio, evocazione se non c'è già un alleato
   const sp = rh.magia !== null ? rh.magie[rh.magia] : undefined, acceso = !!e.def.forgiatore && !e.spento;
-  // (v6: la magia si lancia con la A, e C la prende in mano nello stesso tick; quando non c'è niente da lanciare C rimette l'arma)
+  // (v6: C la prende in mano nello stesso tick della A; v8: la A mira e la magia parte al rilascio, cioè al tick dopo; quando non c'è niente da lanciare C rimette l'arma)
+  if (h.act === 'punta') { o.mx = u.x * 0.2; o.my = u.z * 0.2; return; }
   const lancia = !!sp && h.act === 'idle' && h.cdMagia === 0 && h.magicka >= sp.costo && vede && d < 14 && !(acceso && sp.scuola === 'distruzione')
     && (sp.scuola === 'distruzione' || !s.enemies.some((x) => x.alleato && x.st !== 'morto' && (x.padrone ?? 0) === s.cur));
   if (lancia && !m.prevC && !m.prevA) { o.c = !h.incanta; o.a = true; o.mx = u.x * 0.2; o.my = u.z * 0.2; return; }

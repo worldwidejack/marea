@@ -111,7 +111,9 @@ test('mira: la magia in mano parte dove punta il mouse e la mira può essere div
   const s = arena(heroBase());
   dummy(s, 6, 0);
   const m = aimIndex(0, -1);
-  const ev = run(s, 1, inp({ c: true, a: true, m }));
+  assert.ok(!run(s, 1, inp({ c: true, a: true, m })).some((e) => e.t === 'magia'), 'premendo si mira, non si lancia');
+  assert.ok(vicino([s.hero.fx, s.hero.fz], aimDir(m)!), 'mirando l’eroe guarda il cursore');
+  const ev = run(s, 1, inp({ m })); // rilascio: la magia parte
   assert.ok(ev.some((e) => e.t === 'magia'));
   assert.equal(s.proj[0]!.tipo, 'magia');
   assert.ok(vicino(volo(s), aimDir(m)!, 1e-9));
@@ -119,11 +121,11 @@ test('mira: la magia in mano parte dove punta il mouse e la mira può essere div
   // senza mira: assistita, verso il nemico a +x
   const t = arena(heroBase());
   dummy(t, 6, 0);
-  run(t, 1, inp({ c: true, a: true }));
+  run(t, 1, inp({ c: true, a: true })); run(t, 1);
   assert.ok(volo(t)[0] > 0.99);
   // l’evocazione compare davanti, dalla parte del cursore
   const e = arena(heroBase({ magie: [{ id: 'lupo_spettrale', scuola: 'evocazione', costo: 40, ricarica: 2, danno: 0, velocita: 0, raggio: 0, sanguina: 0, evoca: 'lupo_spettrale', durata: 20 }] }));
-  run(e, 1, inp({ c: true, a: true, m: aimIndex(0, 1) }));
+  run(e, 1, inp({ c: true, a: true, m: aimIndex(0, 1) })); run(e, 1, inp({ m: aimIndex(0, 1) }));
   const lupo = e.enemies.find((x) => x.alleato)!;
   assert.ok(lupo.z > e.hero.z + 0.5 && Math.abs(lupo.x - e.hero.x) < 0.5, 'il lupo nasce verso +z');
 });
@@ -154,23 +156,43 @@ test('mani: C alterna arma e magia; con la magia in mano la A lancia, con l’ar
   assert.ok(s.hero.magicka >= mag0);
   // C e A nello stesso tick: prima si prende la magia, poi si lancia
   run(s, 30);
-  assert.ok(run(s, 1, inp({ c: true, a: true })).some((x) => x.t === 'magia'));
+  assert.ok([...run(s, 1, inp({ c: true, a: true })), ...run(s, 1)].some((x) => x.t === 'magia'));
   // senza magia preparata C non fa niente
   const senza = arena(heroBase({ magie: [], magia: null }));
   assert.deepEqual(run(senza, 1, inp({ c: true })).filter((x) => x.t === 'mano'), []);
   assert.equal(senza.hero.incanta, false);
 });
 
-test('mani: A tenuta rilancia le magie d’attacco appena sono pronte (non le evocazioni); il costo in Magicka le ferma', () => {
+test('mani: A tenuta mira e non lancia; la magia parte al rilascio (anche l’evocazione), una sola volta, senza rilancio da tenuta', () => {
   const s = arena(heroBase());
   dummy(s, 8, 0);
   run(s, 1, inp({ c: true }));
-  const lanci = run(s, 300, inp({ a: true })).filter((e) => e.t === 'magia').length;
-  assert.ok(lanci >= 3 && lanci <= 7, `lanci in 5 s: ${lanci}`);
-  assert.ok(!run(s, 300, inp({ a: true })).some((e) => e.t === 'senzaMagicka'), 'tenendo premuto non si ripete l’avviso di Magicka finita');
-  const ev = arena(heroBase({ magie: [{ id: 'lupo_spettrale', scuola: 'evocazione', costo: 10, ricarica: 1, danno: 0, velocita: 0, raggio: 0, sanguina: 0, evoca: 'lupo_spettrale', durata: 20 }] }));
-  run(ev, 1, inp({ c: true }));
-  assert.equal(run(ev, 400, inp({ a: true })).filter((e) => e.t === 'evocato').length, 1, 'un’evocazione sola per tocco');
+  const mira = run(s, 300, inp({ a: true })); // 5 s di mira
+  assert.equal(s.hero.act, 'punta');
+  assert.ok(!mira.some((e) => e.t === 'magia' || e.t === 'senzaMagicka') && s.proj.length === 0, 'tenendo premuto non parte niente');
+  assert.equal(s.hero.magicka, 100, 'e non costa Magicka');
+  const rilascio = run(s, 1);
+  assert.equal(rilascio.filter((e) => e.t === 'magia').length, 1, 'al rilascio parte una magia');
+  assert.equal(s.hero.act, 'lancia');
+  assert.equal(s.hero.magicka < 100, true, 'e si paga ora');
+  const evoc = arena(heroBase({ magie: [{ id: 'lupo_spettrale', scuola: 'evocazione', costo: 10, ricarica: 1, danno: 0, velocita: 0, raggio: 0, sanguina: 0, evoca: 'lupo_spettrale', durata: 20 }] }));
+  run(evoc, 1, inp({ c: true }));
+  assert.equal(run(evoc, 400, inp({ a: true })).filter((e) => e.t === 'evocato').length, 0, 'l’evocazione non parte mentre si mira');
+  assert.equal(run(evoc, 1).filter((e) => e.t === 'evocato').length, 1, 'parte al rilascio');
+  // senza Magicka il rilascio avvisa una volta sola e non lancia
+  const secca = arena(heroBase());
+  run(secca, 1, inp({ c: true })); secca.hero.magicka = 0;
+  run(secca, 20, inp({ a: true }));
+  const ev = run(secca, 1);
+  assert.deepEqual(ev.filter((e) => e.t === 'senzaMagicka').length, 1);
+  assert.equal(secca.hero.act, 'idle');
+  // cambiare le mani mentre si mira (menu, tasto) annulla la mira: niente lancio
+  const m = partenza(true);
+  run(m, 10, inp({ a: true }));
+  assert.equal(m.hero.act, 'punta');
+  assert.ok(dungeon.act(m, { t: 'equip', slot: 'mano', item: null }));
+  assert.equal(m.hero.act, 'idle');
+  assert.ok(!run(m, 2).some((e) => e.t === 'magia'), 'mira annullata: al rilascio non parte niente');
 });
 
 test('mani: dal menu preparare una magia la mette in mano, l’arma resta equipaggiata a riposo e si rimpugna; il tasto C scrive l’equipaggiamento', () => {
