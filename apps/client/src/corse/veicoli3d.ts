@@ -4,7 +4,23 @@
 import * as THREE from 'three';
 import { M, P, merged, painted } from '../render/island_parts.ts';
 import { kartGeo } from '../render/island_corse.ts';
+import { limiteCurva } from '@marea/sim/corse/binari.ts';
+import { campo } from '@marea/sim/corse/nastro.ts';
+import { nastroDi, veicoloCorse } from '@marea/sim/corse/pista.ts';
+import type { Pista } from '@marea/sim/corse/pista.ts';
+import type { Veicolo } from '@marea/sim/corse/veicolo.ts';
 import { MODELLO, kitPronto, veicoloKit } from './veicoli_kit.ts';
+
+/** Sui binari (#228) il carrello non va di traverso: si piega verso l'interno della curva e, oltre il limite, si alza su due ruote
+ *  (si inclina verso fuori). Rollio in radianti (+ = la cima verso destra); `null` per chi non va sui binari. */
+export function rollioBinari(p: Pista, k: Veicolo): number | null {
+  const V = veicoloCorse(k.id);
+  if (V.famiglia !== 'binari') return null;
+  if (k.aria || k.caduto) return k.piega * 0.15;
+  const n = nastroDi(p, k.ramo), kap = campo(n, n.k, k.s), lato = kap > 0 ? 1 : -1;
+  const quota = (k.v * k.v * Math.abs(kap)) / limiteCurva(V, 1, k.piega * lato);
+  return k.piega * 0.2 - (quota > 1 ? lato * Math.min(0.45, (quota - 1) * 0.9) : 0);
+}
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cyl = (r0: number, r1: number, h: number, n = 8) => new THREE.CylinderGeometry(r0, r1, h, n);

@@ -32,7 +32,7 @@ import { creaPista3d } from '../nastro3d.ts';
 import type { Pista3d } from '../nastro3d.ts';
 import { matOnda, ondaGeo } from '../onda3d.ts';
 import { creaSuoni } from '../suoni.ts';
-import { veicoloGeo } from '../veicoli3d.ts';
+import { rollioBinari, veicoloGeo } from '../veicoli3d.ts';
 import { ASPETTI, PILOTI, caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
 import { avvisoRuota } from '../avviso_ruota.ts';
 import { createAvatar } from '../../game/avatar.ts';
@@ -146,6 +146,7 @@ function nuovaGara(cambiaPista: boolean) {
     ondaMesh.matrixAutoUpdate = false; ondaMesh.name = 'corse_onda'; ondaMesh.frustumCulled = false; scene.add(ondaMesh);
   }
   vis = s.veicoli.map(() => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0 }));
+  if (btnA) btnA.textContent = famiglieDi(p.def).includes('binari') ? 'SALTO' : 'DRIFT'; // sui binari il bottone salta (e cambia rotaia)
   fase = 'gara'; finita = 0; regia.st.ok = false; fx.svuota(); toast(null); contoPrima = 0; viaFlash = 0;
   scrivi();
 }
@@ -190,13 +191,16 @@ function aggiornaVeicoli(dt: number) {
     const k = s.veicoli[i]!, w = vis[i]!;
     posa(i, vP, vF, vU, vM);
     vR.crossVectors(vF, vU).normalize();
-    // il saltello quando parte il drift, e il kart di traverso (un po' più di quanto dice la sim: si deve vedere)
-    if (k.drift && !w.drift) w.hop = 0.001;
+    // il saltello quando parte il drift, e il kart di traverso (un po' più di quanto dice la sim: si deve vedere); i carrelli dei binari
+    // invece si piegano (e vanno su due ruote quando esagerano)
+    const rb = rollioBinari(p, k);
+    if (rb === null && k.drift && !w.drift) w.hop = 0.001;
     if (w.hop > 0) { w.hop += dt; if (w.hop > 0.26) w.hop = 0; }
-    w.traverso += (k.drift * 0.32 - w.traverso) * Math.min(1, dt * 10);
+    w.traverso += ((rb === null ? k.drift * 0.32 : 0) - w.traverso) * Math.min(1, dt * 10);
     const hop = w.hop > 0 ? 4 * 0.38 * (w.hop / 0.26) * (1 - w.hop / 0.26) : 0;
     const c = Math.cos(w.traverso), sn = Math.sin(w.traverso);
     tmp.copy(vF).multiplyScalar(c).addScaledVector(vR, sn); vF.copy(tmp); vR.crossVectors(vF, vU).normalize();
+    if (rb) { tmp.copy(vU).multiplyScalar(Math.cos(rb)).addScaledVector(vR, Math.sin(rb)); vU.copy(tmp).normalize(); vR.crossVectors(vF, vU).normalize(); }
     // l'acrobazia: un avvitamento intorno al muso
     if (k.acro > 0) {
       const a = Math.PI * 2 * Math.min(1, k.acro / 0.42), ca = Math.cos(a), sa = Math.sin(a);
@@ -339,7 +343,7 @@ function aggiornaHud(v: GaraView, dt: number) {
   } else if (k.caduto) { big.style.display = 'block'; big.style.color = P.sabbiaChiara; big.innerHTML = 'CADUTO!<small>si riparte</small>'; }
   else if (v.onda !== null && v.ondaDist < 0 && v.ondaDist > -(p.def.inseguitore?.spessore ?? 0)) { big.style.display = 'block'; big.style.color = P.sabbiaChiara; big.innerHTML = 'TRAVOLTO!<small>l\'onda ti ha preso</small>'; }
   else big.style.display = 'none';
-  if (p3d) for (const e of p3d.eventi) e.mesh.visible = k.giro + 1 >= e.daGiro;
+  if (p3d) for (const e of p3d.eventi) e.mesh.visible = k.giro + 1 >= e.daGiro !== !!e.sparisce;
   mappa.disegna(s.veicoli.map((x, i) => {
     terna(nastroDi(p, x.ramo), x.s, T3);
     return { x: T3.x + T3.rx * x.lat, z: T3.z + T3.rz * x.lat, colore: COLORI[i % COLORI.length]!, tu: i === 0 };

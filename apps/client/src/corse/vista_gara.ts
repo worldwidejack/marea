@@ -307,7 +307,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     } else if (k.caduto) { big.style.display = 'block'; big.style.color = P.sabbiaChiara; big.innerHTML = 'CADUTO!<small>si riparte</small>'; }
     else if (v.onda !== null && v.ondaDist < 0 && v.ondaDist > -(pp.def.inseguitore?.spessore ?? 0)) { big.style.display = 'block'; big.style.color = P.sabbiaChiara; big.innerHTML = 'TRAVOLTO!<small>l\'onda ti ha preso</small>'; }
     else big.style.display = 'none';
-    if (p3d) for (const e of p3d.eventi) e.mesh.visible = k.giro + 1 >= e.daGiro;
+    if (p3d) for (const e of p3d.eventi) e.mesh.visible = k.giro + 1 >= e.daGiro !== !!e.sparisce;
     mappa.disegna(gs.veicoli.map((x, i) => {
       terna(nastroDi(pp, x.ramo), x.s, T3);
       return { x: T3.x + T3.rx * x.lat, z: T3.z + T3.rz * x.lat, colore: COLORI[i % COLORI.length]!, tu: i === 0 };

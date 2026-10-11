@@ -82,6 +82,9 @@ export function muroA(p: Pista, ramo: number, s: number, lato: number): boolean 
   return true;
 }
 
+/** Le rotaie (scarti laterali, m) del nastro su cui si sta, sulle piste a binari: la principale ha le sue, un ramo di serie una al centro. */
+export const rotaieDi = (p: Pista, ramo: number): readonly number[] => (ramo < 0 ? p.def.binari ?? [0] : p.rami[ramo]!.def.binari ?? [0]);
+
 /** Il bordo oltre la carreggiata (m) del nastro su cui si sta. */
 export const bordoDi = (p: Pista, ramo: number): number => (ramo < 0 ? p.def.bordo : p.rami[ramo]!.def.bordo);
 

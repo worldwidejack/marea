@@ -51,6 +51,9 @@ export type Veicolo = {
   /** Preso dall'inseguitore (l'onda delle fughe): 0 = no, 1 = sì (una volta sola: poi il fronte è passato). */
   travolto: number;
   giro: number; giroTick: number; best: number; fine: number;
+  /** Binari (#228): la rotaia su cui sta (indice nelle rotaie del nastro, −1 = da scegliere), quella da cui è saltato, quanto è piegato
+   *  (−1..1, + = a destra) e da quanti secondi è su due ruote (oltre `binari.bilico` deraglia). */
+  rot: number; rot0: number; piega: number; bilico: number;
 };
 
 /** Ruota il versore (f, l) di `a` rad verso destra (angoli piccoli; il risultato è rinormalizzato). */
@@ -70,7 +73,7 @@ export function nuovoVeicolo(p: Pista, id: string, prog: number, lat: number): V
   return {
     id, ramo: -1, s, lat, h: 0, vh: 0, hf: 1, hl: 0, mf: 1, ml: 0, v: 0, prog, aria: false, caduto: 0, terra: s,
     drift: 0, carica: 0, daBottone: false, autoT: 0, turbo: 0, livello: 0, st: 0, tenuto: -1, gasT: -1, acro: 0, scia: 0, fermo: 0, partenza: 0, muro: false, sup: p.def.superficie, salti: 0, cadute: 0, travolto: 0,
-    giro: 0, giroTick: 1, best: 0, fine: 0,
+    giro: 0, giroTick: 1, best: 0, fine: 0, rot: -1, rot0: -1, piega: 0, bilico: 0,
   };
 }
 /** Le regole accese (opzioni della gara, interruttori del banco di prova). */
@@ -106,7 +109,7 @@ function cambiaNastro(k: Veicolo, da: Nastro, sDa: number, a: Nastro, sA: number
 }
 
 /** Avanza di `ds` m lungo il nastro su cui sta: progresso, giro intorno, entrata e uscita dai rami. */
-function avanza(p: Pista, k: Veicolo, ds: number): void {
+export function avanza(p: Pista, k: Veicolo, ds: number): void {
   if (k.ramo >= 0) {
     const r = p.rami[k.ramo]!;
     k.s += ds; k.prog += ds * r.scala;
@@ -138,7 +141,7 @@ function avanza(p: Pista, k: Veicolo, ds: number): void {
 }
 
 /** Riparte dopo una caduta: un po' prima dell'ultimo punto a terra, in mezzo alla pista, dritto, a mezza velocità. */
-function riparti(p: Pista, k: Veicolo, V: CVeicoloDef): void {
+export function riparti(p: Pista, k: Veicolo, V: CVeicoloDef): void {
   const C = CORSE.caduta, indietro = 25;
   const sNuovo = p.n.chiuso ? posa(p, k.terra - indietro) : Math.max(0, k.terra - indietro);
   let d = k.ramo >= 0 ? 0 : sNuovo - k.s;
@@ -233,7 +236,7 @@ export function muovi(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas:
 }
 
 /** Salti, atterraggi, giri della morte, cadute; rampe, onde e tappeti del turbo. */
-function verticale(p: Pista, k: Veicolo, V: CVeicoloDef, sPrima: number, ramoPrima: number, giro: number, R: Regole): void {
+export function verticale(p: Pista, k: Veicolo, V: CVeicoloDef, sPrima: number, ramoPrima: number, giro: number, R: Regole): void {
   const C = CORSE, G = C.gravita, F = C.famiglie[V.famiglia], n = nastroDi(p, k.ramo), c = cella(n, k.s);
   const uy = n.uy[c.i]! + (n.uy[c.j]! - n.uy[c.i]!) * c.t, kv = n.kv[c.i]! + (n.kv[c.j]! - n.kv[c.i]!) * c.t, ad = n.ad[c.i]! && n.ad[c.j]!;
   const sup = superficieA(p, k.ramo, k.s, k.lat, giro);
