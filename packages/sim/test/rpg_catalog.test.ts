@@ -9,7 +9,9 @@ import { ITEMS, hasItem, itemDef } from '../src/rpg/items.ts';
 const PALETTE = new Set([...fs.readFileSync(new URL('../../../docs/ART_BIBLE.md', import.meta.url), 'utf8').matchAll(/`(#[0-9A-F]{6})`/g)].map((m) => m[1]));
 const MOD_KEYS = new Set(['vita', 'magicka', 'stamina', 'regenVita', 'regenMagicka', 'regenStamina', 'dannoLeggere', 'dannoPesanti', 'dannoArco', 'dannoDistruzione',
   'velocitaLeggere', 'velocitaPesanti', 'tensioneArco', 'caricaVeloce', 'costoDistruzione', 'costoEvocazione', 'durataEvocazione', 'difesa', 'malusArmatura', 'peso',
-  'velocitaCorsa', 'staminaCorsa', 'dannoConArmaturaLeggera', 'materialiForgia', 'potenzaPozioni', 'resistMagia']);
+  'velocitaCorsa', 'staminaCorsa', 'dannoConArmaturaLeggera', 'materialiForgia', 'potenzaPozioni', 'resistMagia',
+  'sanguinaCaricato', 'paralisiCaricato', 'caricaMassima', 'automira', 'arcoMobile', 'scarica', 'raggioMagia', 'dannoAlleati', 'vitaAlleati', 'magickaPct',
+  'evocazionePerenne', 'difesaForgiata', 'dannoForgiato', 'pesoForgiato']);
 
 test('rpg catalogo: 8 materiali, 6 armi, tipo × materiale generato, id unici', () => {
   assert.equal(MATERIALS.length, 8);
@@ -63,12 +65,12 @@ test('rpg catalogo: colori solo dalla palette, unici non forgiabili, anelli e ve
   for (const r of ITEMS_RAW) for (const k of [...Object.keys(r.mods ?? {}), ...(r.buff ? [r.buff.mod] : [])]) assert.ok(MOD_KEYS.has(k), `${r.id}: ${k}`);
 });
 
-test('rpg perk: 4-5 per abilità, prerequisiti a catena nella stessa abilità, chiavi valide', () => {
+test('rpg perk: 4-9 per abilità, prerequisiti a catena nella stessa abilità, chiavi valide', () => {
   const byId = new Map(PERKS.map((p) => [p.id, p]));
   assert.equal(byId.size, PERKS.length);
   for (const s of SKILLS) {
     const n = PERKS.filter((p) => p.skill === s).length;
-    assert.ok(n >= 4 && n <= 5, `${s}: ${n} perk`);
+    assert.ok(n >= 4 && n <= 9, `${s}: ${n} perk`);
   }
   for (const p of PERKS) {
     for (const k of Object.keys(p.mods)) assert.ok(MOD_KEYS.has(k), `${p.id}: ${k}`);

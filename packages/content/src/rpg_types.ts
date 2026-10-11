@@ -80,7 +80,10 @@ export type ModKey =
   | 'vita' | 'magicka' | 'stamina' | 'regenVita' | 'regenMagicka' | 'regenStamina'
   | 'dannoLeggere' | 'dannoPesanti' | 'dannoArco' | 'dannoDistruzione' | 'velocitaLeggere' | 'velocitaPesanti' | 'tensioneArco'
   | 'caricaVeloce' | 'costoDistruzione' | 'costoEvocazione' | 'durataEvocazione' | 'difesa' | 'malusArmatura' | 'peso'
-  | 'velocitaCorsa' | 'staminaCorsa' | 'dannoConArmaturaLeggera' | 'materialiForgia' | 'potenzaPozioni' | 'resistMagia';
+  | 'velocitaCorsa' | 'staminaCorsa' | 'dannoConArmaturaLeggera' | 'materialiForgia' | 'potenzaPozioni' | 'resistMagia'
+  // perk dell'albero (11 ott 2026): effetti nel dungeon (sim/dungeon) e sulle cose forgiate (sim/rpg/derived)
+  | 'sanguinaCaricato' | 'paralisiCaricato' | 'caricaMassima' | 'automira' | 'arcoMobile' | 'scarica' | 'raggioMagia'
+  | 'dannoAlleati' | 'vitaAlleati' | 'magickaPct' | 'evocazionePerenne' | 'difesaForgiata' | 'dannoForgiato' | 'pesoForgiato';
 
 export type SpellDef = {
   id: string; nome: string; scuola: 'distruzione' | 'evocazione'; costo: number; ricarica: number; descr: string;
@@ -247,6 +250,18 @@ export type DungeonTesti = {
   letture?: { id: string; tipo: 'libro' | 'incisione'; at: [number, number]; titolo: string; righe: string[]; dopo?: 'capo' }[];
 };
 
+export type RpgPerkBalance = {
+  /** Taglio Critico: il nemico perde `pctVitaAlSecondo` della vita massima al secondo per `secondi` s e va al `1 − rallenta` della velocità (movimento e colpi); i boss perdono × `moltBoss`. */
+  sanguinamento: { pctVitaAlSecondo: number; secondi: number; rallenta: number; moltBoss: number };
+  /** Colpo fatale: il nemico paralizzato non fa niente per `secondi` s (i boss sono immuni). */
+  paralisi: { secondi: number };
+  /** Carica massima: sui boss il danno è un caricato normale × `moltBoss`; sugli altri è letale. */
+  caricaMassima: { moltBoss: number };
+  /** Automira (livello 1) e Automira plus (livello 2): la freccia sterza verso il nemico più vicino entro il cono (coseno) a `k` della differenza di direzione a ogni tick, fino a `gittata` m. */
+  automira: { cos: number; k: number; gittata: number }[];
+  /** Scarica: ogni `ricarica` s, `frecce` frecce a piena tensione, una ogni `ogni` s. */
+  scarica: { ricarica: number; frecce: number; ogni: number };
+};
 export type RpgBalance = {
   attributi: { base: Record<AttrId, number>; perLivello: number; regen: Record<AttrId, number> };
   livelli: { skillIniziale: number; skillMax: number; xpSkill: { base: number; perLivello: number }; xpPersonaggio: { base: number; perLivello: number } };
@@ -267,6 +282,8 @@ export type RpgBalance = {
   xp: Record<string, number>;
   /** Xp di combattimento: danno utile (mai oltre la vita che restava al nemico) × questo, per abilità. Evocazione = danno della tua evocazione. */
   xpDanno?: Partial<Record<SkillId, number>>;
+  /** Numeri degli effetti dei perk (docs/RPG.md §3): quanto e per quanto tempo. I perk in sé stanno in perks.json (probabilità, livelli). */
+  perk?: RpgPerkBalance;
   forziere: number[];
   bottega: Record<string, number>;
   /** Contrabbandiere del Porto (accanto alla Grotta): ogni giorno un oggetto per categoria di `banco`, venduto a valore × `vendita`;

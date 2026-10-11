@@ -32,10 +32,13 @@ export type HitSrc = {
   ox?: number; oz?: number;
   /** Colpo di lama dell'eroe (non frecce, magie, lame d'acqua, onde): lo scudo della Sentinella lo respinge (Mausoleo). */
   mischia?: boolean;
+  /** Carica massima (perk): il colpo è letale; sui boss fa RPG.perk.caricaMassima.moltBoss volte il danno del caricato. */
+  letale?: boolean;
 };
 
 /** Danno di un colpo su un nemico (prima di applicarlo). */
 export function dannoSu(e: Enemy, src: HitSrc): number {
+  if (src.letale) return e.def.boss ? src.danno * (RPG.perk?.caricaMassima.moltBoss ?? 2) : Math.max(DANNO_MIN, e.vita + 1);
   const bonus = src.traits.bonusVs?.[e.def.kind] ?? 1;
   let d = src.danno * bonus;
   if (src.magico) d *= 1 - (e.def.resistMagia ?? 0);
@@ -69,7 +72,7 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
       return 0;
     } else if (k <= RETRO_SCAFANDRO) retro = sc.retro;
   }
-  const d = dannoSu(e, src) * retro * (e.spento && e.def.forgiatore ? e.def.forgiatore.vulnerabile : 1);
+  const d = dannoSu(e, src) * (src.letale ? 1 : retro) * (e.spento && e.def.forgiatore ? e.def.forgiatore.vulnerabile : 1);
   const utile = Math.min(d, Math.max(0, e.vita)); // il danno oltre la vita rimasta non dà xp: un colpo enorme su un nemico debole vale quanto due piccoli
   e.vita -= d;
   e.hurt = COLPITO_TICKS;
@@ -106,7 +109,7 @@ export function wake(s: DungeonState, e: Enemy): void {
 }
 
 export function kill(s: DungeonState, e: Enemy): void {
-  e.vita = 0; e.st = 'morto'; e.stT = 0; e.bleed = 0; e.bleedT = 0;
+  e.vita = 0; e.st = 'morto'; e.stT = 0; e.bleed = 0; e.bleedT = 0; e.emorr = undefined; e.paralisi = undefined;
   ev(s, { t: 'morte', id: e.id, tipo: e.tipo });
   if (e.alleato) return;
   add(s.uccisi, e.tipo, 1);

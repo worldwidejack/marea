@@ -158,6 +158,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         let r = proj.get(p.id);
         if (!r) {
           const holder = new THREE.Group(); root.add(holder);
+          if (p.mole) holder.scale.setScalar(p.mole); // Grandi Magie
           r = { obj: holder, px: p.x, py: p.y, pz: p.z, x: p.x, y: p.y, z: p.z, vy: 0, tipo: p.tipo };
           void projObj(p.tipo).then((m) => holder.add(m));
           proj.set(p.id, r);

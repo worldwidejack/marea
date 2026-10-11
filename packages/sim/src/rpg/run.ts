@@ -89,6 +89,11 @@ export function finishDungeon(lot0: LotState, r: RunResult, nowMs: number): Dung
   // capo ucciso = dungeon completato (anche se poi sei morto: scelta di Riccardo, 7 ott 2026)
   const id = lot.dungeon.pending.dungeon;
   if (r.capo === true && !(h.completati ?? []).includes(id)) h = { ...h, completati: [...(h.completati ?? []), id] };
+  // Patto di sangue: la creatura evocata ancora viva resta con te (anche nella spedizione dopo e sull'isola); se è morta, sparisce
+  if (r.evocato !== undefined) {
+    const { evocato: _vecchio, ...senza } = h;
+    h = typeof r.evocato === 'string' && r.evocato.length > 0 && r.evocato.length <= 40 ? { ...senza, evocato: r.evocato } : (senza as HeroState);
+  }
   // uscito da una lanterna: la discesa dopo può ripartire da lì
   if (salvo && typeof r.lanterna === 'number' && Number.isInteger(r.lanterna) && r.lanterna >= 0 && r.lanterna < 64) h = { ...h, lanterne: { ...(h.lanterne ?? {}), [id]: r.lanterna } };
   const out: LotState = { ...state, version: lot.version + 1, hero: h, dungeon: { pending: null } };

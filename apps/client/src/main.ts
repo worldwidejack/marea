@@ -41,6 +41,7 @@ import { diarioOf, titoloDi } from '@marea/sim/economy/diario.ts';
 import { collegaAudio } from './audio/ponte.ts';
 import type { Aspetto } from './render/aspetto.ts';
 import type { Animali } from './game/animali.ts';
+import type { Evocato } from './rpg/evocato.ts';
 import { tuttoSpento } from './render/viste.ts';
 import type { Impostazioni } from './render/viste.ts';
 import type { LotState } from '@marea/sim';
@@ -213,6 +214,8 @@ async function boot(): Promise<void> {
   // Animali (#67): gabbiani, gatti dei moli (fusa con A o un tocco), pesci, granchi, delfini, lucciole di notte. Solo resa, chunk a parte
   let animali: Animali | null = null;
   void import('./game/animali.ts').then((m) => { animali = m.createAnimali({ world, camera: renderer.camera, canvas, root, hud, buio: () => aspetto?.buio ?? 0, avvista: (id) => diario.avvista(id) }); }).catch(() => { /* senza animali si gioca lo stesso */ });
+  // Patto di sangue (perk di Evocazione): la creatura evocata ti segue sull'isola. Solo resa, chunk a parte, si carica quando il personaggio ne ha una
+  let evocato: Evocato | null = null, evocatoCarico = false;
   const EMOTES = AVATAR.emote as EmoteId[];
   /** Pannelli aperti che non sono il foglio delle isole (#mzSheet): lì sotto le decorazioni non rispondono ad A. */
   const panelsBusyNoSheet = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || !!eroe?.isOpen();
@@ -319,6 +322,7 @@ async function boot(): Promise<void> {
     if (steps === 5) acc = 0;
     if (ingressi.active) ingressi.update(acc / DT, dt, t); else if (tpl.active) tpl.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); tpl.update(acc / DT, dt, t); adr.update(dt, t); animali?.update(dt, t); } // Animali (#67)
     regata.update(acc / DT, dt, t);
+    { const ev = myLot()?.hero?.evocato ?? null; if (ev && !evocato && !evocatoCarico) { evocatoCarico = true; void import('./rpg/evocato.ts').then((mod) => { evocato = mod.createEvocato({ world, loader }); }).catch(() => { evocatoCarico = false; }); } try { evocato?.update(dt, t, ev, world.mode === 'walk' && !sotto() && !regata.active); } catch (e) { console.warn('[marea] evocato', e); evocato?.dispose(); evocato = null; } } // solo resa: se qualcosa va storto si spegne, il gioco continua
     emotes.update(dt); setTopbarHidden(regata.active || sotto());
     giochi.update(t); if (!sotto()) { porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); amici.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); libri.update(world.mode === 'walk' ? world.avatar.state : world.boat.state); } guideStep = guida.current(); guida.update(t);
     if (!sotto()) temi.update(dt, t); // Isole a tema (#68)

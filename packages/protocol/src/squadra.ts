@@ -39,7 +39,7 @@ export type SqServerMsg =
 
 const isInt = (v: unknown, lo: number, hi: number): v is number => typeof v === 'number' && Number.isInteger(v) && v >= lo && v <= hi;
 export const isSqInput = (v: unknown): v is SqInput =>
-  Array.isArray(v) && (v.length === 3 || v.length === 4) && isInt(v[0], -8, 8) && isInt(v[1], -8, 8) && isInt(v[2], 0, 15) && (v.length === 3 || isInt(v[3], 0, SQ_MIRA_MAX));
+  Array.isArray(v) && (v.length === 3 || v.length === 4) && isInt(v[0], -8, 8) && isInt(v[1], -8, 8) && isInt(v[2], 0, 31) && (v.length === 3 || isInt(v[3], 0, SQ_MIRA_MAX));
 
 /** Forma dei messaggi del client (l'azione la controlla il server con parseDungeonAzione). null = scarta. */
 export function parseSqClient(text: string): SqClientMsg | null {

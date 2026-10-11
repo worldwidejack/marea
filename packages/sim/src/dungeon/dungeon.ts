@@ -72,8 +72,10 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v6: magia in mano come un'arma (equip.mano: la A la lancia, il tasto C alterna arma e magia e non lancia più) e mira col mouse (DungeonInput.m, log v2)
   // v7: un unico a dungeon sicuro dal boss (loot.json) e magie quasi senza attesa (spells.json: il limite è la Magicka); la sim non cambia, cambiano i numeri
   // v8: la magia in mano si mira come l'arco: la A (o il joystick di mira) tenuta punta, la magia parte al rilascio; niente più rilancio da tenuta
-  // (azione `bevi` dallo zaino: qualsiasi pozione, non solo la rapida; i replay esistenti non cambiano, la versione resta 8)
-  id: 'dungeon', version: 8, maxTicks: MAX_TICKS,
+  // (azione `bevi` dallo zaino: qualsiasi pozione, non solo la rapida; i replay esistenti non cambiano, senza cambiare versione)
+  // v9: perk dell'albero (Taglio Critico, Colpo fatale, Carica massima, Automira, Arciere Mobile, Scarica con il tasto E = DungeonInput.e, Grandi
+  // Magie, evocazioni potenziate e Patto di sangue, e la seconda tornata); log v3 con il bit del tasto E
+  id: 'dungeon', version: 9, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {

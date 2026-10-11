@@ -2,6 +2,7 @@
 // zaino pieno, pozioni, magie ed evocazioni, uscita.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { RPG } from '@marea/content/rpg.ts';
 import { dungeon } from '../src/dungeon/dungeon.ts';
 import { newEnemy } from '../src/dungeon/state.ts';
 import type { DungeonState, Enemy } from '../src/dungeon/state.ts';
@@ -230,11 +231,11 @@ test('dungeon: xp = danno utile (mai oltre la vita del nemico) × moltiplicatore
   const s = arena(heroBase({ arma: katana({ id: 'martello_ferro', skill: 'armiPesanti', classe: 'pesante', danno: 200 }) }));
   dummy(s, 'bandito', 1.5, 10);
   tap(s);
-  assert.equal(dungeon.result(s).xp.armiPesanti, 10);
-  // la fiammata: xp di distruzione solo se colpisce, × 3
+  assert.ok(Math.abs((dungeon.result(s).xp.armiPesanti ?? 0) - 10 * RPG.xpDanno!.armiPesanti!) < 1e-9);
+  // la fiammata: xp di distruzione solo se colpisce, × RPG.xpDanno.distruzione
   const m = arena(heroBase()), e = dummy(m, 'bandito', 6, 1000);
   const ev = [...run(m, 1, inp({ c: true, a: true })), ...run(m, 90)];
   const d = colpiSu(ev, e.id)[0]!;
   assert.ok(d > 0);
-  assert.ok(Math.abs((dungeon.result(m).xp.distruzione ?? 0) - d * 3) < 1, `distruzione ${dungeon.result(m).xp.distruzione} vs colpo ${d}`);
+  assert.ok(Math.abs((dungeon.result(m).xp.distruzione ?? 0) - d * RPG.xpDanno!.distruzione!) < 1, `distruzione ${dungeon.result(m).xp.distruzione} vs colpo ${d}`);
 });

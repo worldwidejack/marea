@@ -11,10 +11,10 @@ import type { SwingStyle } from './swing.ts';
 /** Input di un tick nel dungeon. mx, my in assi mondo (come InputFrame); a = attacca (tieni = carica/tendi; con una magia in mano la lancia),
  * b = corri, c = alterna arma e magia in mano (v6; fino al v5 lanciava la magia preparata), d = pozione. m = mira col mouse (mira.ts, v6):
  * indice d'angolo 1..AIM_N della direzione in cui tirare l'arco o lanciare la magia; assente = mira assistita. Il client registra un frame
- * per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. */
-export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean; m?: number };
+ * per tick e lo quantizza con quantizeDungeon (mx, my a 1/8). A sulla scala d'uscita = esci. e = la Scarica dell'arco (perk Scarica, v10), assente = no. */
+export type DungeonInput = { mx: number; my: number; a: boolean; b: boolean; c: boolean; d: boolean; m?: number; e?: boolean };
 export const NO_DUNGEON_INPUT: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-/** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3, mira?], ...]; la mira (1..AIM_N) c'è solo nelle righe che ce l'hanno. */
+/** RLE: [[ticks, mx×8, my×8, bit a|b<<1|c<<2|d<<3|e<<4, mira?], ...]; la mira (1..AIM_N) c'è solo nelle righe che ce l'hanno. */
 export type PackedDungeon = [number, number, number, number, number?][];
 
 /** Azione dal menu (non dai tasti), dungeon v5: si applica tra due tick, prima del passo del tick in cui è registrata. Il server la rigioca
@@ -107,6 +107,12 @@ export type DungeonEvent = (
   | { t: 'tic' }
   | { t: 'carillon'; n: number }
   | { t: 'scarico' }
+  /** Perk: il nemico prende il sanguinamento del Taglio Critico · è paralizzato dal Colpo fatale · il colpo della Carica massima · parte la
+   *  Scarica di frecce · la Carica massima è carica (c'è un colpo letale pronto). */
+  | { t: 'sanguinamento'; id: number }
+  | { t: 'paralisi'; id: number }
+  | { t: 'scarica' }
+  | { t: 'caricaMassima' }
 ) & { eroe?: number };
 
 export type DungeonView = {
@@ -122,6 +128,9 @@ export type DungeonView = {
     vita: number; magicka: number; stamina: number; max: Record<AttrId, number>;
     /** Secondi di ricarica della magia rimasti (0 = pronta). */
     ricaricaMagia: number;
+    /** Perk Scarica: quanto è ricaricata, 0..1 (1 = pronta); assente senza il perk. Carica massima: 0..1 verso il colpo letale mentre
+     *  tieni il colpo (1 = pronto); assente senza il perk. */
+    scarica?: number; massima?: number;
     frecce: number; pozioni: number;
     /** Appena risvegliato all'altare: niente danni per qualche secondo. */
     protetto: boolean;
@@ -143,6 +152,8 @@ export type DungeonView = {
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
     /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
     capo?: boolean;
+    /** Perk: paralizzato (Colpo fatale; per il client è come stordito) o rallentato dal sanguinamento del Taglio Critico. */
+    paralizzato?: boolean; lento?: boolean;
     /** Raggio in m del colpo ad area dei boss, solo mentre lo prepara (il client disegna il cerchio a terra). */
     area?: number;
     /** Sta preparando un tiro (freccia o magia), non un colpo in mischia: il client mostra l'arco che si tende. */
@@ -157,7 +168,9 @@ export type DungeonView = {
     potenziato?: boolean; rotto?: boolean; stordito?: boolean; fase?: number; cariche?: number; colpi?: number;
     /** Il Custode che prepara l'ondata: i suoi varchi (versori), per disegnarli prima che parta. */
     varchi?: [number, number][] }[];
-  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica'; x: number; y: number; z: number; vx: number; vz: number }[];
+  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica'; x: number; y: number; z: number; vx: number; vz: number;
+    /** Grandi Magie: la magia è più grande di questo fattore (assente = 1). */
+    mole?: number }[];
   bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
   uscita: { x: number; z: number };
   vicinoUscita: boolean;
