@@ -7,12 +7,14 @@ export type CFamigliaId = 'ruote' | 'acqua' | 'binari';
 
 /** La guida sui binari (#228): il carrello sta sempre su una rotaia, la pendenza spinge forte, il GAS è la leva che spinge in piano.
  *  Nelle curve conta la spinta di lato (v² × curvatura): sopra `presa` m/s² il carrello va su due ruote e frena da solo (`frenaBilico`
- *  m/s² per ogni volta il limite in più); oltre `deraglia` × il limite, dopo `bilico` s, deraglia (si cade). Piegarsi verso l'interno (lo sterzo) alza il limite di `piega` (×); piegati al limite (sopra `carica` × il limite) si carica
+ *  m/s² per ogni volta il limite in più); in curva non si cade mai, si cade solo dove manca la rotaia. Piegarsi verso l'interno (lo sterzo) alza il limite di `piega` (×); piegati al limite (sopra `carica` × il limite) si carica
  *  il turbo a 3 livelli come il drift, e si scarica uscendo dalla curva. DRIFT = salto: in aria lo sterzo sceglie la rotaia accanto
- *  (`cambio` m/s di lato); atterrare lontano da una rotaia (oltre `tolleranza` m) è un deragliamento. */
+ *  (`cambio` m/s di lato) e ci si atterra sempre: si cade solo dove manca la rotaia. */
 export type CBinariDef = {
-  presa: number; piega: number; bilico: number; deraglia: number; frenaBilico: number; carica: number; scarica: number;
-  salto: number; cambio: number; tolleranza: number; attrito: number;
+  presa: number; piega: number; frenaBilico: number; carica: number; scarica: number;
+  salto: number; cambio: number; attrito: number;
+  /** Piste ibride: quanto in fretta si piegano (1/s) i veicoli delle altre famiglie agganciati alle rotaie (i carrelli usano il loro `sterzo`). */
+  piegaAgganciati: number;
 };
 
 export type CFamigliaDef = {
@@ -205,6 +207,9 @@ export type CPistaDef = {
   rami: CRamoDef[];
   /** Piste a binari: scarti laterali (m, + = destra) delle rotaie della principale. I rami hanno le loro (di serie una al centro). */
   binari?: number[];
+  /** Piste ibride (#228): i tratti della principale dove ogni veicolo si aggancia alle rotaie `binari` (la miniera) e guida come un
+   *  carrello; fuori si sgancia e torna alla sua guida. Anche i rami con `binari` sono agganciati. */
+  agganci?: CTrattoDef[];
   /** [metri dal via (negativi = dietro), scarto laterale] dei bot e, ultimo, il tuo. */
   griglia: [number, number][];
   eventi: CEventoDef[];

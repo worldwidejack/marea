@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { campo, punto } from '@marea/sim/corse/nastro.ts';
 import type { Nastro } from '@marea/sim/corse/nastro.ts';
-import { VUOTO, superficieA } from '@marea/sim/corse/pista.ts';
+import { VUOTO, suBinari, superficieA } from '@marea/sim/corse/pista.ts';
 import type { Pista } from '@marea/sim/corse/pista.ts';
 import { createLoader } from '../render/loader.ts';
 import type { Loader } from '../render/loader.ts';
@@ -29,6 +29,8 @@ type ConfScena = {
   paese?: [number, number][];
   /** Il faro: s sulla principale e scarto laterale (dentro il tornante del Lungomare, all'arrivo della fuga). */
   faro?: [number, number];
+  /** Giungla (#228): colline fitte all'altezza della strada, e sotto la miniera (i tratti sulle rotaie) il canyon col fiume a `livello`. */
+  giungla?: boolean;
 };
 const SCENE: Record<string, ConfScena> = {
   spiaggia_lungomare: {
@@ -40,11 +42,12 @@ const SCENE: Record<string, ConfScena> = {
   spiaggia_baia: { livello: -0.05, isola: true, costa: [[-110, -80], [-75, 20], [-60, 120], [-70, 230], [-120, 330]] },
   spiaggia_porto: { livello: -0.05, porto: true, costa: [[-200, -40], [80, -28], [260, -40]], paese: [[320, 560]] },
   spiaggia_fuga: { livello: -1.2, mareA: -1, paese: [[0, 140], [1230, 1366]], faro: [1350, 26] },
+  giungla_miniera: { livello: 0, giungla: true },
 };
 export const haScena = (id: string): boolean => id in SCENE;
 
 // ---------- vicinanza alla pista: i campioni di tutti i nastri in una griglia da 16 m ----------
-type Camp = { x: number; y: number; z: number; rx: number; rz: number; l: number; fuori: number; vuoto: boolean; s: number; ramo: number };
+type Camp = { x: number; y: number; z: number; rx: number; rz: number; l: number; fuori: number; vuoto: boolean; s: number; ramo: number; miniera: boolean };
 type Vicino = { c: Camp; d: number; lat: number };
 const CELLA = 16;
 class Vicini {
@@ -56,6 +59,14 @@ class Vicini {
     a.push(c); this.tutti.push(c);
   }
   private chiave(i: number, j: number) { return (i + 4096) * 8192 + (j + 4096); }
+  private mine: Camp[] = [];
+  /** Il campione della miniera (sulle rotaie) più vicino entro `r` m, a forza bruta (sono poche centinaia). */
+  vicinoMiniera(x: number, z: number, r: number): { d: number } | null {
+    if (!this.mine.length) for (const c of this.tutti) if (c.miniera) this.mine.push(c);
+    let bd = r * r, ok = false;
+    for (const c of this.mine) { const d2 = (x - c.x) ** 2 + (z - c.z) ** 2; if (d2 < bd) { bd = d2; ok = true; } }
+    return ok ? { d: Math.sqrt(bd) } : null;
+  }
   /** Il campione più vicino entro `r` m (in pianta). */
   vicino(x: number, z: number, r = 48): Vicino | null {
     const i0 = Math.floor((x - r) / CELLA), i1 = Math.floor((x + r) / CELLA), j0 = Math.floor((z - r) / CELLA), j1 = Math.floor((z + r) / CELLA);
@@ -77,7 +88,7 @@ function campioni(p: Pista): Vicini {
     for (let i = 0; i < ultimo; i++) {
       const s = i * n.passo;
       v.aggiungi({ x: n.x[i]!, y: n.y[i]!, z: n.z[i]!, rx: n.rx[i]!, rz: n.rz[i]!, l: n.l[i]!, fuori: n.l[i]! + bordo + muro, s, ramo,
-        vuoto: ramo < 0 && superficieA(p, -1, s, 0, 1) === VUOTO });
+        vuoto: ramo < 0 && superficieA(p, -1, s, 0, 1) === VUOTO, miniera: ramo < 0 && suBinari(p, -1, s, '') });
     }
   };
   metti(p.n, -1, p.def.bordo);
@@ -139,7 +150,16 @@ function terreno(p: Pista, conf: ConfScena): Terreno {
     // bordo del mondo: il terreno scende in mare (così da lontano è un'isola)
     const bordo = Math.min(x - x0, x1 - x, z - z0, z1 - z), cala = liscio(0, 30, bordo);
     let h: number;
-    if (conf.porto) {
+    if (conf.giungla) {
+      // le colline della giungla salgono dalla quota della strada; vicino alla miniera il canyon scende fino al fiume
+      const q = vicini.vicino(x, z, 140);
+      if (!q) h = L - 3;
+      else {
+        const e = Math.max(0, q.d - q.c.fuori), su = q.c.y + 0.4 + Math.min(14, e * 0.18) * (0.4 + rumore(x, z, 38, 7)) + 0.8 * rumore(x, z, 11, 8);
+        const m = vicini.vicinoMiniera(x, z, 60), canyon = m ? 1 - liscio(16, 34, m.d) : 0;
+        h = su + (L - 1.6 - su) * canyon;
+      }
+    } else if (conf.porto) {
       // banchine piatte a 0,6 m dentro il giro e a sud; il mare a nord della costa
       const sd = conf.costa ? distCosta(conf.costa, x, z) : -50;
       h = sd > 0 ? L - 3 : 0.6;
@@ -168,6 +188,7 @@ function terreno(p: Pista, conf: ConfScena): Terreno {
     if (!q) return n;
     const { c, d } = q;
     if (c.vuoto && d < c.fuori + 3) return L - 1.5;               // il canale sotto il salto
+    if (c.miniera) return n;                                      // sotto il ponte della miniera il canyon resta giù
     if (acqua) return d < c.fuori + 2 ? L - 2.5 : n;              // la pista d'acqua resta in acqua
     if (d < c.fuori) return c.y - 0.35;                           // sotto la strada
     if (conf.porto) return d < c.fuori + DARSENA ? L - 1.5 : n;   // il molo corre sull'acqua della darsena, poi la banchina
@@ -187,6 +208,13 @@ const DARSENA = 7;
 type Tela = { pos: number[]; col: number[] };
 function coloreTerra(t: Terreno, cx: number, cz: number, h: number, pend: number, i: number, j: number): string | null {
   const L = t.conf.livello, q = t.vicini.vicino(cx, cz, 12), dith = h01(i, j, 5);
+  if (t.conf.giungla) {
+    if (q && !q.c.miniera && q.d < q.c.fuori + 2.2 && h > L + 1) return dith < 0.6 ? P.legno : P.legnoScuro;                // lo sterrato oltre il bordo
+    if (h < L + 0.5) return dith < 0.6 ? P.pietra : P.pietraScura;                                                          // i sassi del fiume
+    if (pend > 0.9) return dith < 0.55 ? P.roccia : dith < 0.85 ? P.pietraScura : P.bosco;                                  // le pareti del canyon
+    if (pend > 0.5) return dith < 0.5 ? P.pietraScura : P.erbaScura;
+    return dith < 0.45 ? P.bosco : dith < 0.85 ? P.erbaScura : P.boscoOmbra;                                                 // il sottobosco
+  }
   if (q && q.d < q.c.fuori + 2.2 && h > L + 0.3 && !t.conf.porto) return dith < 0.5 ? P.pietraChiara : P.pietra; // marciapiede
   if (pend > 0.9) return dith < 0.6 ? P.pietraScura : P.roccia;
   if (t.conf.porto && h > L + 0.2 && pend < 0.25) return (i + j) % 2 ? P.pietra : P.pietraChiara;              // banchine
@@ -226,7 +254,8 @@ function griglia(t: Terreno): Map<number, Tela> {
 }
 
 // ---------- i pezzi ----------
-type Pezzo = { m: string; x: number; y: number; z: number; ry: number; s?: number; sx?: number };
+/** `ombra: false` = senza ombra (i pezzi lontani dalla pista: l'ombra raddoppia i triangoli e da lì non si vede). */
+type Pezzo = { m: string; x: number; y: number; z: number; ry: number; s?: number; sx?: number; ombra?: boolean };
 type Testa = { x: number; y: number; z: number; ry: number };
 const CASE = ['cs_casa_a', 'cs_casa_b', 'cs_casa_c'], OMBR = ['cs_ombrellone_rosso', 'cs_ombrellone_blu', 'cs_ombrellone_giallo'];
 const MANI_PIEDI = ['cs_manichino_rosso', 'cs_manichino_blu'], MANI_SEDUTI = ['cs_manichino_giallo', 'cs_manichino_verde'];
@@ -245,10 +274,10 @@ function piazza(p: Pista, t: Terreno): { pezzi: Pezzo[]; teste: Testa[] } {
     for (const [ox, oz, or] of occupati) if ((ox - x) ** 2 + (oz - z) ** 2 < (or + r) ** 2) return false;
     return true;
   };
-  const metti = (m: string, x: number, z: number, ry: number, r: number, o: { y?: number; s?: number; sx?: number; margine?: number } = {}): boolean => {
+  const metti = (m: string, x: number, z: number, ry: number, r: number, o: { y?: number; s?: number; sx?: number; margine?: number; ombra?: boolean } = {}): boolean => {
     if (!libero(x, z, r, o.margine)) return false;
     occupati.push([x, z, r]);
-    pezzi.push({ m, x, y: o.y ?? t.alt(x, z), z, ry, s: o.s, sx: o.sx });
+    pezzi.push({ m, x, y: o.y ?? t.alt(x, z), z, ry, s: o.s, sx: o.sx, ...(o.ombra === false ? { ombra: false } : {}) });
     return true;
   };
   const inPaese = (s: number) => (conf.paese ?? []).some(([a, b]) => s >= a && s <= b);
@@ -278,6 +307,8 @@ function piazza(p: Pista, t: Terreno): { pezzi: Pezzo[]; teste: Testa[] } {
       }
     }
   }
+
+  if (conf.giungla) { giungla(p, t, pezzi, metti, pt, fuoriA, rnd, occupati); return { pezzi, teste }; }
 
   // lungo la principale, ogni 2 m, per lato
   for (let s = 0; s < n.len - 2; s += 2) {
@@ -383,6 +414,80 @@ function piazza(p: Pista, t: Terreno): { pezzi: Pezzo[]; teste: Testa[] } {
   return { pezzi, teste };
 }
 
+/** La Giungla (#228, concept corse_08): l'ingresso di legno della miniera (e l'uscita), le torce sul ponte, le cascate sulle pareti del
+ *  canyon, il tempio con la galleria sopra il tunnel, e la giungla fitta lungo lo sterrato e sulle colline (alberi, palme, felci,
+ *  cespugli, rocce, qualche rovina, casse vicino alla miniera). */
+function giungla(p: Pista, t: Terreno, pezzi: Pezzo[], metti: (m: string, x: number, z: number, ry: number, r: number, o?: { y?: number; s?: number; sx?: number; margine?: number; ombra?: boolean }) => boolean,
+  pt: (s: number, lat: number) => readonly [number, number, number], fuoriA: (s: number) => number, rnd: () => number, occupati: [number, number, number][]): void {
+  const n = p.n, L = t.conf.livello, agg = p.def.agganci ?? [];
+  const inMiniera = (s: number) => suBinari(p, -1, s, '');
+  const diretto = (m: string, x: number, y: number, z: number, ry: number, o: { s?: number; sx?: number } = {}, r = 0) => { pezzi.push({ m, x, y, z, ry, ...o }); if (r) occupati.push([x, z, r]); };
+  // l'ingresso e l'uscita della miniera: il portale di legno a cavallo del ponte
+  for (const a of agg) for (const [sx, verso] of [[a.da + 3, 1], [a.a - 3, -1]] as const) {
+    const [x, y, z] = pt(sx, 0), [x2, , z2] = pt(sx + verso, 0);
+    diretto('cs_g_ingresso', x, y - 0.05, z, guarda(x2 - x, z2 - z), { sx: (fuoriA(sx) + 0.5) / 6 }, 7);
+    for (const lato of [-1, 1]) { const [cx, , cz] = pt(sx - verso * 6, lato * (fuoriA(sx) + 2.5)); metti('cs_h_casse', cx, cz, rnd() * 6.28, 1.5, { margine: 0 }); }
+  }
+  // le torce sul ponte, sui due bordi a turno
+  for (let s = 0; s < n.len; s += 12) {
+    if (!inMiniera(s) || superficieA(p, -1, s, 0, 1) === VUOTO) continue;
+    const lato = (Math.round(s / 12) % 2) * 2 - 1, [x, y, z] = pt(s, lato * (fuoriA(s) - 0.5));
+    diretto('cs_g_torcia', x, y, z, 0);
+  }
+  // le cascate sulle pareti del canyon, guardano la pista
+  let ultima = -999;
+  for (let s = 0; s < n.len; s += 4) {
+    if (!inMiniera(s) || s - ultima < 45) continue;
+    let fatta = false;
+    for (const lato of rnd() < 0.5 ? [-1, 1] : [1, -1]) {
+      // la parete del canyon da quel lato: l'ultimo punto ancora in fondo (sull'acqua), con la cima alta subito dietro
+      for (let off = 12; off <= 40 && !fatta; off += 2) {
+        const [x, , z] = pt(s, lato * off), [ox, , oz] = pt(s, lato * (off + 4)), cima = t.alt(ox, oz);
+        if (t.alt(x, z) > L + 2 || cima < L + 6) continue;
+        const [cx, , cz] = pt(s, 0);
+        fatta = metti('cs_g_cascata', x, z, guarda(cx - x, cz - z), 3.5, { y: L - 0.4, s: Math.min(2, (cima - L) / 12), margine: 0 });
+      }
+      if (fatta) { ultima = s; break; }
+    }
+  }
+  // il tempio a cavallo del tunnel: la faccia verso chi arriva
+  p.rami.forEach((r) => {
+    if (!r.def.binari) return;
+    const m = r.n.len / 2, q: [number, number, number] = [0, 0, 0], q2: [number, number, number] = [0, 0, 0];
+    punto(r.n, m, 0, 0, q); punto(r.n, m - 1, 0, 0, q2);
+    diretto('cs_g_tempio_galleria', q[0], q[1] - 0.05, q[2], guarda(q2[0] - q[0], q2[2] - q[2]), {}, 11);
+  });
+  // lungo lo sterrato: felci e cespugli sul ciglio, alberi, palme e rocce più in là; qualche rovina
+  for (let s = 0; s < n.len - 2; s += 2) {
+    if (inMiniera(s)) continue;
+    for (const lato of [-1, 1]) {
+      const at = (off: number) => pt(s, lato * (fuoriA(s) + off));
+      if (rnd() < 0.35) { const [x, , z] = at(0.8 + rnd() * 2.5); metti(rnd() < 0.6 ? 'cs_g_felce' : 'cs_h_cespuglio', x, z, rnd() * 6.28, 0.9, { margine: 0.2, s: 0.8 + rnd() * 0.5 }); }
+      if (rnd() < 0.22) {
+        const off = 4 + rnd() * 26, [x, , z] = at(off), h = t.alt(x, z), ombra = off < 11;
+        if (h < L + 1.5) continue;
+        const ripido = Math.abs(t.alt(x + 2, z) - h) + Math.abs(t.alt(x, z + 2) - h) > 1.8, c = rnd();
+        if (ripido) { if (c < 0.4) metti(c < 0.2 ? 'cs_h_roccia_a' : 'cs_h_roccia_b', x, z, rnd() * 6.28, 2.2, { s: 0.7 + rnd() * 0.6, ombra }); }
+        else if (c < 0.55) metti('cs_h_albero_giungla', x, z, rnd() * 6.28, 2.8, { s: 0.9 + rnd() * 0.5, ombra });
+        else if (c < 0.8) metti('cs_h_palma', x, z, rnd() * 6.28, 1.6, { s: 0.9 + rnd() * 0.4, ombra });
+        else if (c < 0.97) metti('cs_h_cespuglio', x, z, rnd() * 6.28, 1.2, { s: 1 + rnd() * 0.6, ombra });
+        else metti('cs_h_rovina', x, z, rnd() * 6.28, 4.5, { s: 0.8 + rnd() * 0.3, ombra });
+      }
+    }
+  }
+  // le colline intorno (e i bordi del canyon): alberi sparsi
+  const { x0, x1, z0, z1 } = t.bordo;
+  for (let i = 0; i < 380; i++) {
+    const x = x0 + rnd() * (x1 - x0), z = z0 + rnd() * (z1 - z0), h = t.alt(x, z), q = t.vicini.vicino(x, z, 90);
+    if (h < L + 2 || !q || q.d < q.c.fuori + 8) continue; // oltre 90 m dalla pista non si vede (foschia): niente
+    if (Math.abs(t.alt(x + 2, z) - h) + Math.abs(t.alt(x, z + 2) - h) > 2.2) { if (rnd() < 0.15) metti('cs_h_roccia_a', x, z, rnd() * 6.28, 2.4, { s: 0.8 + rnd() * 0.8, ombra: false }); continue; }
+    const c = rnd();
+    if (c < 0.5) metti('cs_h_albero_giungla', x, z, rnd() * 6.28, 3.2, { s: 1 + rnd() * 0.6, ombra: false });
+    else if (c < 0.75) metti('cs_h_palma', x, z, rnd() * 6.28, 2, { s: 1 + rnd() * 0.5, ombra: false });
+    else if (c < 0.78) metti('cs_h_rovina', x, z, rnd() * 6.28, 5, { s: 0.9 + rnd() * 0.4, ombra: false });
+  }
+}
+
 // ---------- montaggio ----------
 let loaderP: Promise<Loader> | null = null;
 function loader(): Promise<Loader> {
@@ -474,7 +579,7 @@ export function creaScena(p: Pista): Scena | null {
     const matA = new THREE.MeshLambertMaterial({ map: atlas, flatShading: true }), matE = new THREE.MeshBasicMaterial({ map: atlas });
     const kit = new Map<string, Parte[]>();
     for (const nome of new Set([...pezzi.map((x) => x.m), 'cs_manichino_testa'])) kit.set(nome, await parti(l, nome));
-    const riq = new Map<number, { a: THREE.BufferGeometry[]; e: THREE.BufferGeometry[] }>();
+    const riq = new Map<number, { a: THREE.BufferGeometry[]; e: THREE.BufferGeometry[]; n: THREE.BufferGeometry[] }>();
     const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0);
     let fatti = 0;
     for (const pz of pezzi) {
@@ -482,18 +587,19 @@ export function creaScena(p: Pista): Scena | null {
       const s = pz.s ?? 1, specchio = (pz.sx ?? 1) < 0;
       M4.compose(new THREE.Vector3(pz.x, pz.y, pz.z), Q.setFromAxisAngle(Y, pz.ry), new THREE.Vector3(s * (pz.sx ?? 1), s, s));
       const k = Math.floor((pz.x - t.bordo.x0) / RIQ) * 1000 + Math.floor((pz.z - t.bordo.z0) / RIQ);
-      let r = riq.get(k); if (!r) riq.set(k, (r = { a: [], e: [] }));
+      let r = riq.get(k); if (!r) riq.set(k, (r = { a: [], e: [], n: [] }));
       for (const x of pp) {
         const g = x.geo.clone(); g.applyMatrix4(M4);
         if (specchio) giraFacce(g);
-        (x.emissivo ? r.e : r.a).push(g); triangoli += g.attributes.position!.count / 3;
+        (x.emissivo ? r.e : pz.ombra === false ? r.n : r.a).push(g); triangoli += g.attributes.position!.count / 3;
       }
       fatti++;
     }
     for (const [k, r] of riq) {
       if (r.a.length) { const m = new THREE.Mesh(unisci(r.a), matA); m.name = 'corse_pezzi_' + k; m.castShadow = true; m.receiveShadow = true; gruppo.add(m); }
       if (r.e.length) { const m = new THREE.Mesh(unisci(r.e), matE); m.name = 'corse_luci_' + k; gruppo.add(m); }
-      for (const g of [...r.a, ...r.e]) g.dispose();
+      if (r.n.length) { const m = new THREE.Mesh(unisci(r.n), matA); m.name = 'corse_lontani_' + k; m.receiveShadow = true; gruppo.add(m); }
+      for (const g of [...r.a, ...r.e, ...r.n]) g.dispose();
     }
     const tg = kit.get('cs_manichino_testa')?.[0]?.geo;
     if (tg && teste.length) gruppo.add(testeManichini(tg, matA, teste));
@@ -502,7 +608,8 @@ export function creaScena(p: Pista): Scena | null {
   })();
   pronta.catch((e: unknown) => console.warn('[corse] scenografia non caricata:', e));
   // aggancio per i test e le foto: cosa c'è e quanto pesa
-  (globalThis as { __corseScena?: unknown }).__corseScena = { pista: p.def.id, pronta, gruppo, pezzi: pezzi.length, teste: teste.length };
+  const modelli: Record<string, number> = {}; for (const x of pezzi) modelli[x.m] = (modelli[x.m] ?? 0) + 1;
+  (globalThis as { __corseScena?: unknown }).__corseScena = { pista: p.def.id, pronta, gruppo, pezzi: pezzi.length, teste: teste.length, modelli };
   return { gruppo, pronta };
 }
 

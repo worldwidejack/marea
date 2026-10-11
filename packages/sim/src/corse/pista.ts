@@ -85,6 +85,15 @@ export function muroA(p: Pista, ramo: number, s: number, lato: number): boolean 
 /** Le rotaie (scarti laterali, m) del nastro su cui si sta, sulle piste a binari: la principale ha le sue, un ramo di serie una al centro. */
 export const rotaieDi = (p: Pista, ramo: number): readonly number[] => (ramo < 0 ? p.def.binari ?? [0] : p.rami[ramo]!.def.binari ?? [0]);
 
+/** Il veicolo `k` guida sulle rotaie? I carrelli sempre; sulle piste ibride (#228) tutti, nei tratti agganciati (la miniera) e sui
+ *  rami a binari. */
+export function suBinari(p: Pista, ramo: number, s: number, famiglia: string): boolean {
+  if (famiglia === 'binari') return true;
+  if (ramo >= 0) return !!p.rami[ramo]!.def.binari;
+  for (const t of p.def.agganci ?? []) if (nelTratto(t, s, 0, p.n)) return true;
+  return false;
+}
+
 /** Il bordo oltre la carreggiata (m) del nastro su cui si sta. */
 export const bordoDi = (p: Pista, ramo: number): number => (ramo < 0 ? p.def.bordo : p.rami[ramo]!.def.bordo);
 

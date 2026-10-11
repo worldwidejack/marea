@@ -1,7 +1,8 @@
-// Guida sui binari (#228, docs/CORSE.md A6): i carrelli da miniera della Giungla sulla Miniera del tempio. Cosa si controlla:
+// Guida sui binari (#228, docs/CORSE.md A6): i carrelli da miniera sulla pista di prova dei carrelli (tutta a binari). Cosa si controlla:
 // - si parte e si resta sopra una rotaia;
 // - il salto (DRIFT) con lo sterzo porta sulla rotaia accanto; senza sterzo si ricade sulla stessa;
-// - chi entra lanciato in una curva stretta senza piegarsi deraglia, chi frena e si piega passa (e piegati al limite si carica il turbo);
+// - in curva non si cade (Jack, 11 ott): chi entra lanciato senza piegarsi va su due ruote e rallenta, chi si piega esce più veloce
+//   (e piegati al limite si carica il turbo); si cade solo dove manca la rotaia;
 // - il pilota automatico prende il tunnel (bivio), salta la rotaia rotta, arriva senza cadute e batte chi non frena mai;
 // - chi tiene sempre il gas arriva lo stesso (le cadute non lo bloccano: si riparte su una rotaia senza buchi);
 // - deterministico.
@@ -16,7 +17,7 @@ import { hashJson } from '../src/hash.ts';
 import { quantize } from '../src/replay.ts';
 import type { InputFrame } from '../src/types.ts';
 
-const PISTA = 'giungla_miniera';
+const PISTA = 'prova_binari';
 const nuova = (veicolo = 'carrello_miniera', bot = false, seed = 7): GaraState =>
   garaCorse.create({ seed, difficulty: 2, opzioni: { pista: PISTA, veicolo, bot: bot ? '1' : '0' } });
 const via = (s: GaraState) => { while (s.tick < 1) garaCorse.step(s, { mx: 0, my: 0, a: false, b: false }); return s; };
@@ -57,20 +58,22 @@ test('binari: si parte sopra una rotaia; il salto con lo sterzo porta sulla rota
   assert.equal(k.rot, da + 1, 'senza sterzo resta sulla stessa');
 });
 
-test('binari: nel tornante sopra la cascata chi arriva lanciato senza piegarsi deraglia, chi frena e si piega passa', () => {
+test('binari: nel tornante sopra la cascata chi arriva lanciato senza piegarsi non cade ma va su due ruote e rallenta; chi si piega arriva prima', () => {
   const p = pistaCorse(PISTA);
   // il tornante: la curva più stretta dei primi 200 m
   let sT = 0, kT = 0;
   for (let s = 0; s < 200; s++) { const k = Math.abs(campo(p.n, p.n.k, s)); if (k > kT) { kT = k; sT = s; } }
   const prova = (pilota: (s: GaraState) => InputFrame) => {
     const s = via(nuova()), k = s.veicoli[0]!;
-    while (k.prog < sT + 30 && !k.caduto && s.tick < 3000) garaCorse.step(s, pilota(s));
-    return k;
+    let vmin = 99;
+    while (k.prog < sT + 30 && !k.caduto && s.tick < 3000) { garaCorse.step(s, pilota(s)); if (k.prog > sT - 15) vmin = Math.min(vmin, k.v); }
+    return { k, vmin, tick: s.tick };
   };
   const lanciato = prova(() => ({ mx: 0, my: 1, a: false, b: false }));
-  assert.ok(lanciato.cadute >= 1, 'deraglia');
+  assert.equal(lanciato.k.cadute, 0, 'in curva non si cade');
   const bravo = prova((s) => pilotaGara(s));
-  assert.equal(bravo.cadute, 0, 'il pilota automatico passa');
+  assert.equal(bravo.k.cadute, 0, 'il pilota automatico passa');
+  assert.ok(lanciato.vmin < bravo.vmin - 0.5, `su due ruote si rallenta: ${lanciato.vmin.toFixed(1)} contro ${bravo.vmin.toFixed(1)} m/s piegati`);
 });
 
 test('binari: piegati al limite in curva si carica il turbo (livelli come il drift) e parte uscendo', () => {
@@ -91,7 +94,7 @@ test('binari: il pilota automatico prende il tunnel, resta sulle rotaie, arriva 
   assert.ok(auto.r.detail['giri'] === 2 && auto.k.fine > 0, 'arriva');
   assert.equal(auto.k.cadute, 0);
   assert.ok(auto.ramo > 60, `nel tunnel per ${auto.ramo} tick`);
-  assert.equal(auto.fuori, 0, 'a terra sempre su una rotaia (gli scambi dopo il bivio a parte)');
+  assert.ok(auto.fuori <= 6, `a terra su una rotaia (a parte qualche tick dopo un atterraggio, mentre si accosta: ${auto.fuori})`);
   const ms = Number(auto.r.detail['ms']);
   assert.ok(ms > 70000 && ms < 95000, `pilota automatico ${ms} ms`);
   const gas = corri(nuova(), () => ({ mx: 0, my: 1, a: false, b: false }));

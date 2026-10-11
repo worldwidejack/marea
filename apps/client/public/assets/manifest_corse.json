@@ -1,5 +1,5 @@
 {
- "version": "2026-10-10-91",
+ "version": "2026-10-11-96",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
@@ -255,6 +255,91 @@
      4.85,
      13.9,
      3.6
+    ]
+   }
+  },
+  "cs_g_cascata": {
+   "file": "cs_g_cascata.glb",
+   "tris": 184,
+   "kb": 7.8,
+   "bounds": {
+    "min": [
+     -4.75,
+     0,
+     -1.42
+    ],
+    "max": [
+     4.75,
+     12.95,
+     1.2
+    ]
+   }
+  },
+  "cs_g_felce": {
+   "file": "cs_g_felce.glb",
+   "tris": 35,
+   "kb": 2.8,
+   "bounds": {
+    "min": [
+     -1.68,
+     0.1,
+     -1.7
+    ],
+    "max": [
+     1.62,
+     1,
+     1.58
+    ]
+   }
+  },
+  "cs_g_ingresso": {
+   "file": "cs_g_ingresso.glb",
+   "tris": 160,
+   "kb": 8.4,
+   "bounds": {
+    "min": [
+     -6.6,
+     -0.06,
+     -1.05
+    ],
+    "max": [
+     6.6,
+     7.82,
+     0.35
+    ]
+   }
+  },
+  "cs_g_tempio_galleria": {
+   "file": "cs_g_tempio_galleria.glb",
+   "tris": 688,
+   "kb": 29,
+   "bounds": {
+    "min": [
+     -7,
+     0,
+     -9
+    ],
+    "max": [
+     7.15,
+     12.75,
+     8.5
+    ]
+   }
+  },
+  "cs_g_torcia": {
+   "file": "cs_g_torcia.glb",
+   "tris": 100,
+   "kb": 6.2,
+   "bounds": {
+    "min": [
+     -0.31,
+     0,
+     -0.36
+    ],
+    "max": [
+     0.31,
+     3.12,
+     0.36
     ]
    }
   },
