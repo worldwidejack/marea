@@ -42,6 +42,8 @@ export type View = {
   /** Esegue un'azione sul server; `ok` compone il toast dal lotto nuovo. */
   act(a: RpgAction, ok?: (l: LotState) => string | void): void;
   rerender(): void;
+  /** Solo nel dungeon: beve una pozione dallo zaino. */
+  bevi?(item: string, nome: string): void;
 };
 
 const num = (x: number, d = 1): string => (Math.round(x * 10 ** d) / 10 ** d).toString().replace('.', ',');

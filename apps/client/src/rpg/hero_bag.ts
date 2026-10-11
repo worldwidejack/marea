@@ -89,6 +89,12 @@ function detail(v: View, it: ItemDef, eq: SlotOggetto[]): HTMLElement {
   box.appendChild(el('p', '', it.descr));
   for (const l of statLines(it)) box.appendChild(el('p', 'mz-rp-cmp', l));
   const equip = (slot: SlotOggetto, item: string | null, msg: string) => v.act({ t: 'equip', slot, item }, () => msg);
+  if (it.kind === 'pozione' && v.bevi) {
+    const bevi = v.bevi;
+    const b = button(`bevi:${it.id}`, 'Bevi', 'subito', 'green', v.busy, () => bevi(it.id, it.nome));
+    b.dataset['act'] = 'bevi';
+    box.appendChild(b);
+  }
   const slot = SLOT_OF[it.kind];
   if (slot) {
     const on = eq.includes(slot);

@@ -47,6 +47,14 @@ function ensureSheet(root: HTMLElement): HTMLElement {
   return s;
 }
 
+/** Nel dungeon: beve una pozione dallo zaino (azione della sim, la partita è in pausa). */
+function bevi(item: string, nome: string): void {
+  if (busy || !ctx || !bag) return;
+  const why = bag.act({ t: 'bevi', item });
+  render();
+  ctx.hud.toast(why ?? `Hai bevuto: ${nome}`, why ? 2500 : 1800);
+}
+
 function act(a: RpgAction, ok?: (l: LotState) => string | void): void {
   const c = ctx;
   if (busy || !c) return;
@@ -117,7 +125,7 @@ function render(): void {
   else if (!hero) body.appendChild(el('div', 'mz-rp-note', 'Questa discesa è iniziata prima dell’aggiornamento: lo zaino si cambia dalla prossima.'));
   else {
     if (bag) body.appendChild(el('div', 'mz-rp-sotto', bag.insieme ? 'Sei nel dungeon con la squadra: il gioco NON è in pausa, occhio ai nemici!' : 'Sei nel dungeon: il gioco è in pausa. Cambia arma o butta via quello che non serve.'));
-    const v: View = { ctx, lot, hero, busy, ui, act, rerender: render, sotto: !!bag };
+    const v: View = { ctx, lot, hero, busy, ui, act, rerender: render, sotto: !!bag, ...(bag ? { bevi } : {}) };
     if (view === 'eroe') (ui.tab === 'pg' ? renderPg : ui.tab === 'abilita' ? renderSkills : renderBag)(v, body);
     else if (view === 'banco') renderForge(v, body);
     else if (view === 'alchimia') renderAlchemy(v, body);

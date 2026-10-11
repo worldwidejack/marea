@@ -7,7 +7,7 @@ import type { DungeonAzione, DungeonEvent, DungeonInput, DungeonModule } from '.
 import { NO_DUNGEON_INPUT } from './types.ts';
 import { conEroe, createParty, createState, finita } from './state.ts';
 import type { DungeonState, EroeDef } from './state.ts';
-import { stepHero } from './hero.ts';
+import { beviNow, stepHero } from './hero.ts';
 import { stepEnemies } from './enemies.ts';
 import { stepProjectiles } from './projectiles.ts';
 import { pickup } from './loot.ts';
@@ -72,6 +72,7 @@ export const dungeon: DungeonModule<DungeonState> = {
   // v6: magia in mano come un'arma (equip.mano: la A la lancia, il tasto C alterna arma e magia e non lancia più) e mira col mouse (DungeonInput.m, log v2)
   // v7: un unico a dungeon sicuro dal boss (loot.json) e magie quasi senza attesa (spells.json: il limite è la Magicka); la sim non cambia, cambiano i numeri
   // v8: la magia in mano si mira come l'arco: la A (o il joystick di mira) tenuta punta, la magia parte al rilascio; niente più rilancio da tenuta
+  // (azione `bevi` dallo zaino: qualsiasi pozione, non solo la rapida; i replay esistenti non cambiano, la versione resta 8)
   id: 'dungeon', version: 8, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
@@ -80,6 +81,7 @@ export const dungeon: DungeonModule<DungeonState> = {
     switch (a.t) {
       case 'equip': return equipNow(s, a.slot, a.item);
       case 'butta': return buttaNow(s, a.item, a.n);
+      case 'bevi': return beviNow(s, a.item);
       case 'salva': return salvaQui(s);
       case 'esci': return esciQui(s);
       // insieme: il giocatore se n'è andato, per lui la spedizione finisce senza esito (gli altri continuano)

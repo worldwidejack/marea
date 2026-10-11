@@ -22,6 +22,8 @@ export type PackedDungeon = [number, number, number, number, number?][];
 export type DungeonAzione =
   | { t: 'equip'; slot: EquipSlot; item: string | null }
   | { t: 'butta'; item: string; n: number }
+  /** Dallo zaino: beve una pozione. */
+  | { t: 'bevi'; item: string }
   /** Sulla lanterna: bottino e monete al sicuro (fino al v4 si salvava da soli passandoci sopra). */
   | { t: 'salva' }
   /** Sulla lanterna: esci col bottino (come dalla scala); alla discesa dopo si può ripartire da lì. */
