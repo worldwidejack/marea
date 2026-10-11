@@ -51,16 +51,27 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
     const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
     zoomTarget = clamp(zoomTarget * Math.exp(Math.max(-60, Math.min(60, dy)) * (e.ctrlKey ? 0.01 : 0.0022)));
   };
-  let pinch = 0;
-  const onTouchStart = (e: TouchEvent) => { if (e.touches.length !== 2) pinch = 0; };
+  // Pizzico: conta solo se ENTRAMBE le dita sono nate sul canvas (targetTouches) e il secondo non cade nella zona dei controlli (in basso a
+  // destra: mira, bottoni). `touches` include anche le dita sui controlli, e col joystick volante sotto un dito miri con l'altro: niente zoom a caso.
+  let pinch = 0, nopinch = false;
+  const inControlli = (t: Touch) => {
+    const r = o.canvas.getBoundingClientRect();
+    return t.clientX > r.left + r.width * 0.5 && t.clientY > r.top + r.height * 0.4;
+  };
+  const onTouchStart = (e: TouchEvent) => {
+    pinch = 0;
+    if (e.touches.length === 1) nopinch = false;
+    if (e.touches.length !== e.targetTouches.length) nopinch = true; // un dito è finito su un controllo: niente pizzico finché non lo molli
+    if (e.touches.length > 1) for (const t of e.changedTouches) if (inControlli(t)) nopinch = true;
+  };
   const onTouchMove = (e: TouchEvent) => {
-    if (e.touches.length !== 2) { pinch = 0; return; }
-    const t0 = e.touches[0]!, t1 = e.touches[1]!;
+    if (nopinch || e.touches.length !== 2 || e.targetTouches.length !== 2) { pinch = 0; return; }
+    const t0 = e.targetTouches[0]!, t1 = e.targetTouches[1]!;
     const d = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
     if (pinch > 0 && d > 0) zoomTarget = clamp(zoomTarget * (pinch / d));
     pinch = d;
   };
-  const onTouchEnd = () => { pinch = 0; };
+  const onTouchEnd = (e: TouchEvent) => { pinch = 0; if (e.touches.length === 0) nopinch = false; };
   o.canvas.addEventListener('wheel', onWheel, { passive: false });
   o.canvas.addEventListener('touchstart', onTouchStart, { passive: true });
   o.canvas.addEventListener('touchmove', onTouchMove, { passive: true });

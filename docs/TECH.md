@@ -50,7 +50,7 @@ _I limiti non sono un dictat: si possono alzare quando serve ed è sensato (Jack
 
 | Cosa | Limite |
 |---|---|
-| `app.js` (client) | ≤ 1200 KB minificato, ≤ 350 KB gzip (era 250 fino all'8 ott 2026) |
+| `app.js` (client) | ≤ 1200 KB minificato, ≤ 360 KB gzip (era 250 fino all'8 ott 2026, 350 fino all'11 ott) |
 | Ogni chunk caricato dopo (`import()`: GDR, minimappa, isole, giochi a schermo, audio) | ≤ 600 KB minificato, ≤ 180 KB gzip; tutti insieme ≤ 3000 KB, ≤ 900 KB gzip |
 
 | Caricamento iniziale (html + js + atlas + modelli della prima isola) | ≤ 3 MB (era 2) |

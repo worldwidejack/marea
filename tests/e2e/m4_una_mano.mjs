@@ -110,6 +110,25 @@ export default async function (ctx) {
     assert(st.wp2_input.pad === 'via' && st.wp2_input.src === 'none' && st.avatar.anim === 'idle', `col pizzico cammina: ${JSON.stringify(st.wp2_input)}`);
   });
 
+  await ctx.test('zoom: un dito sul joystick e uno su un controllo (mira, bottoni) non zooma; due dita libere sì', async () => {
+    await spawn(); await page.evaluate(() => window.__game.test.setZoom(1));
+    const zoom = async () => { await page.waitForTimeout(500); return (await S()).camera.zoom; };
+    const A = await page.evaluate(() => { const r = document.getElementById('btnA').getBoundingClientRect(); return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)]; });
+    const J = [60, 400]; // joystick volante a sinistra, fuori dalla zona dei controlli
+    await touch('touchStart', [J]); await touch('touchMove', [[J[0], J[1] - 20]]); await waitTicks(2);
+    await touch('touchStart', [[J[0], J[1] - 20], A]); await waitTicks(2);
+    for (let i = 1; i <= 6; i++) await touch('touchMove', [[J[0], J[1] - 20 - i * 15], [A[0], A[1] + i * 5]]);
+    const z1 = await zoom(); await touch('touchEnd', []); await waitTicks(2);
+    ctx.log('joystick + bottone A', z1);
+    assert(Math.abs(z1 - 1) < 0.01, `il dito sul bottone ha zoomato: ${z1}`);
+    const X = [60, 300], Y = [160, 300];
+    await touch('touchStart', [X]); await touch('touchStart', [X, Y]); await waitTicks(2);
+    for (let i = 1; i <= 6; i++) await touch('touchMove', [[X[0] - i * 10, X[1]], [Y[0] + i * 10, Y[1]]]);
+    const z2 = await zoom(); await touch('touchEnd', []);
+    ctx.log('pizzico libero', z2);
+    assert(z2 < 0.95, `il pizzico a due dita libere non zooma: ${z2}`);
+  });
+
   await ctx.test('resta dopo il ricaricamento; spento torna il joystick fisso', async () => {
     await page.reload(); await ctx.waitReady(page, 20000);
     let st = await S();
