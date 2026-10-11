@@ -11,19 +11,19 @@ import { AIM_N } from './mira.ts';
 
 /** In ottavi, senza −0 (così log e roundtrip sono identici anche con deepStrictEqual). */
 const q8 = (v: number): number => Math.round(Math.max(-1, Math.min(1, v)) * 8) || 0;
-const bits = (f: DungeonInput): number => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0);
+const bits = (f: DungeonInput): number => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0);
 /** Mira valida (1..AIM_N) o 0 = nessuna. */
 const mira = (m: number | undefined): number => (m !== undefined && Number.isInteger(m) && m >= 1 && m <= AIM_N ? m : 0);
 /** Il frame di una riga del log: [ticks, mx8, my8, bit, mira?] (la mira manca nei log del formato 1). */
 export function frameOfRiga(r: readonly (number | undefined)[]): DungeonInput {
   const b = r[3]!, m = mira(r[4]);
-  return { mx: r[1]! / 8, my: r[2]! / 8, a: (b & 1) !== 0, b: (b & 2) !== 0, c: (b & 4) !== 0, d: (b & 8) !== 0, ...(m ? { m } : {}) };
+  return { mx: r[1]! / 8, my: r[2]! / 8, a: (b & 1) !== 0, b: (b & 2) !== 0, c: (b & 4) !== 0, d: (b & 8) !== 0, ...((b & 16) !== 0 ? { e: true } : {}), ...(m ? { m } : {}) };
 }
 
 /** Quantizza come farà il replay: il client DEVE giocare con questo, così l'esito coincide. */
 export function quantizeDungeon(f: DungeonInput): DungeonInput {
   const m = mira(f.m);
-  return { mx: q8(f.mx) / 8, my: q8(f.my) / 8, a: !!f.a, b: !!f.b, c: !!f.c, d: !!f.d, ...(m ? { m } : {}) };
+  return { mx: q8(f.mx) / 8, my: q8(f.my) / 8, a: !!f.a, b: !!f.b, c: !!f.c, d: !!f.d, ...(f.e ? { e: true } : {}), ...(m ? { m } : {}) };
 }
 
 export function packDungeon(frames: readonly DungeonInput[]): PackedDungeon {
@@ -46,7 +46,7 @@ export function unpackDungeon(p: PackedDungeon): DungeonInput[] {
   return out;
 }
 
-/** Controllo di forma per un log dalla rete: righe [ticks ≥ 1, mx8, my8 ∈ [−8, 8], bit ∈ 0..15, mira ∈ 0..AIM_N (facoltativa)], al massimo
+/** Controllo di forma per un log dalla rete: righe [ticks ≥ 1, mx8, my8 ∈ [−8, 8], bit ∈ 0..31, mira ∈ 0..AIM_N (facoltativa)], al massimo
  *  `maxTicks` tick in tutto. */
 export function isPackedDungeon(v: unknown, maxTicks: number): v is PackedDungeon {
   if (!Array.isArray(v) || v.length > maxTicks) return false;
@@ -54,7 +54,7 @@ export function isPackedDungeon(v: unknown, maxTicks: number): v is PackedDungeo
   for (const r of v) {
     if (!Array.isArray(r) || (r.length !== 4 && r.length !== 5) || !r.every((n) => Number.isInteger(n))) return false;
     const [n, mx, my, b, m] = r as number[];
-    if (n! < 1 || Math.abs(mx!) > 8 || Math.abs(my!) > 8 || b! < 0 || b! > 15 || (m !== undefined && (m < 0 || m > AIM_N))) return false;
+    if (n! < 1 || Math.abs(mx!) > 8 || Math.abs(my!) > 8 || b! < 0 || b! > 31 || (m !== undefined && (m < 0 || m > AIM_N))) return false;
     ticks += n!;
     if (ticks > maxTicks) return false;
   }
@@ -155,10 +155,12 @@ export function replayParty(seed: number, dungeonId: string, eroi: readonly Eroe
 }
 
 // ---------- formato compatto per la rete: binario in base64 (codec scritto qui: niente btoa/atob, gira in Node, Worker e browser) ----------
-// Byte 0 = versione del formato (1, o 2 se qualche riga ha la mira del mouse). Poi per riga 2 byte: bit 0-4 mx8+8, bit 5-9 my8+8, bit 10-13
-// bottoni, bit 14-15 = ticks−1 se ticks ≤ 3, altrimenti 3 e segue un varint (7 bit per byte, il bit alto = continua) con ticks−4. Nel formato
-// 2 ogni riga ha in più un byte di mira (0 = nessuna, 1..AIM_N) subito dopo i 2 byte, prima del varint. Chi non usa il mouse scrive il formato 1.
-const FORMATO = 1, FORMATO_MIRA = 2;
+// Byte 0 = versione del formato (1, o 2 se qualche riga ha la mira del mouse, o 3 se qualche riga ha il tasto E della Scarica). Poi per riga
+// 2 byte: bit 0-4 mx8+8, bit 5-9 my8+8, bit 10-13 bottoni, bit 14-15 = ticks−1 se ticks ≤ 3, altrimenti 3 e segue un varint (7 bit per byte,
+// il bit alto = continua) con ticks−4. Nel formato 2 ogni riga ha in più un byte di mira (0 = nessuna, 1..AIM_N) subito dopo i 2 byte, prima
+// del varint. Il formato 3 è il 2 con in più, dopo la mira, un byte di bottoni oltre i primi quattro (bit 0 = E). Chi non usa né mouse né E
+// scrive il formato 1.
+const FORMATO = 1, FORMATO_MIRA = 2, FORMATO_E = 3;
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const B64_INV = ((): Int16Array => { const t = new Int16Array(128).fill(-1); for (let i = 0; i < 64; i++) t[B64.charCodeAt(i)] = i; return t; })();
 
@@ -191,15 +193,17 @@ function fromBase64(s: string): Uint8Array | null {
   return out;
 }
 
-/** Input log → stringa compatta (≈ 2 byte per riga RLE, 3 se c'è la mira). */
+/** Input log → stringa compatta (≈ 2 byte per riga RLE, 3 se c'è la mira, 4 se c'è anche la Scarica). */
 export function encodeDungeon(p: PackedDungeon): string {
-  const conMira = p.some((r) => (r[4] ?? 0) > 0);
-  const bytes: number[] = [conMira ? FORMATO_MIRA : FORMATO];
+  const conE = p.some((r) => (r[3]! & 16) !== 0);
+  const conMira = conE || p.some((r) => (r[4] ?? 0) > 0);
+  const bytes: number[] = [conE ? FORMATO_E : conMira ? FORMATO_MIRA : FORMATO];
   for (const [n, mx, my, b, m] of p) {
     const t = n <= 3 ? n - 1 : 3;
     const w = (mx + 8) | ((my + 8) << 5) | ((b & 15) << 10) | (t << 14);
     bytes.push(w & 255, (w >> 8) & 255);
     if (conMira) bytes.push(m ?? 0);
+    if (conE) bytes.push((b! >> 4) & 1);
     if (t === 3) { let v = n - 4; while (v >= 128) { bytes.push((v & 127) | 128); v = Math.floor(v / 128); } bytes.push(v); }
   }
   return toBase64(Uint8Array.from(bytes));
@@ -209,18 +213,20 @@ export function encodeDungeon(p: PackedDungeon): string {
 export function decodeDungeon(s: string, maxTicks: number): PackedDungeon | null {
   if (typeof s !== 'string') return null;
   const b = fromBase64(s);
-  if (!b || b.length < 1 || (b[0] !== FORMATO && b[0] !== FORMATO_MIRA)) return null;
-  const conMira = b[0] === FORMATO_MIRA;
+  if (!b || b.length < 1 || (b[0] !== FORMATO && b[0] !== FORMATO_MIRA && b[0] !== FORMATO_E)) return null;
+  const conE = b[0] === FORMATO_E, conMira = b[0] === FORMATO_MIRA || conE;
   const out: PackedDungeon = [];
   let i = 1, ticks = 0;
   while (i < b.length) {
-    if (i + (conMira ? 2 : 1) >= b.length) return null;
+    if (i + (conE ? 3 : conMira ? 2 : 1) >= b.length) return null;
     const w = b[i]! | (b[i + 1]! << 8);
     i += 2;
-    const mx = (w & 31) - 8, my = ((w >> 5) & 31) - 8, bt = (w >> 10) & 15, t = (w >> 14) & 3;
+    const mx = (w & 31) - 8, my = ((w >> 5) & 31) - 8, t = (w >> 14) & 3;
+    let bt = (w >> 10) & 15;
     if (Math.abs(mx) > 8 || Math.abs(my) > 8) return null;
     const m = conMira ? b[i++]! : 0;
     if (m > AIM_N) return null;
+    if (conE) { const x = b[i++]!; if (x > 1) return null; bt |= x << 4; }
     let n = t + 1;
     if (t === 3) {
       let v = 0, mul = 1, k = 0;

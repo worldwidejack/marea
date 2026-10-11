@@ -12,7 +12,7 @@ import type { SwingStyle } from './swing.ts';
 import { bfs, cellOf, moveCircle, parseDungeon } from './map.ts';
 import type { DMap, Griglia } from './map.ts';
 import { rollLoot } from './loot.ts';
-import { HZ, P_DORME } from './tuning.ts';
+import { ALLEATO_SEGUE, HZ, P_DORME } from './tuning.ts';
 
 export type Bag = Record<string, number>;
 /** Azione in corso dell'eroe. press = A appena premuto (si decide al rilascio o dopo HOLD_TICKS). punta = magia in mano, A tenuta: si mira, la magia parte al rilascio (v8). */
@@ -47,7 +47,10 @@ export type HeroRt = {
    *  caricati dell'Arco Carillon e tick della prossima ricarica; tick dell'ultima onda dell'Eco della Marea; per ogni lancetta (indice in
    *  map.lancette) il tick fino a cui non lo riprende. */
   barr: number; pressione: number; ultimoAttacco: number; ritmo: number; tic: number; rintocco: boolean; molla: number; mollaT: number; ecoT: number; lancT: number[];
-  prevA: boolean; prevC: boolean; prevD: boolean;
+  prevA: boolean; prevC: boolean; prevD: boolean; prevE: boolean;
+  /** Perk (v9). Scarica: tick di ricarica rimasti, frecce ancora da tirare nella raffica e tick al prossimo tiro. Carica massima: progresso 0..1
+   *  verso il colpo letale mentre tieni il colpo, e se il colpo che sta partendo è quello letale. */
+  cdScarica: number; raffica: number; raffT: number; massimaP: number; massimo: boolean;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
 export type Enemy = {
@@ -88,6 +91,10 @@ export type Enemy = {
    *  stordito dal Rintocco fino al tick `stordito`; colpi della combinazione già dati (Guardia d'Onore) e se l'ultimo attacco era in
    *  mischia. Il Custode (custode.ts): fase (0 acqua, 1 vapore, 2 moto) e colpi presi verso la scarica della Barriera. */
   potT?: number; potM?: number; rotto?: number; stordito?: number; comboN?: number; mischia?: boolean; fase?: number; colpiB?: number;
+  /** Perk dell'eroe (v9). Taglio Critico: sanguina fino al tick `emorr` (% della vita massima al secondo `emorrPct`), rallentato fino al tick
+   *  `lentoT` (`lentoAcc` accumula i tick: va al passo di `lentoMolt` tick su 1). Colpo fatale: paralizzato fino al tick `paralisi`.
+   *  Evocazioni: danno × `dannoM`. Fuori dall'hash. */
+  emorr?: number; emorrPct?: number; lentoT?: number; lentoMolt?: number; lentoAcc?: number; paralisi?: number; dannoM?: number;
 };
 /** Mausoleo: `lama` = lama d'acqua del Fendiflutti (dell'eroe, trapassa), `lama_nemica` = quella della Guardia d'Onore e del Custode. */
 export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica';
@@ -101,6 +108,10 @@ export type Proj = {
   da?: number;
   /** Arpione (Drone Idro-Ragno): chi è preso è tirato di `tira` m all'indietro lungo il volo in `tiraT` tick. */
   tira?: number; tiraT?: number;
+  /** Magie: fattore di Grandi Magie (assente = 1). Frecce: livello dell'Automira (assente = 0). */
+  mole?: number; guida?: number;
+  /** Magie: elemento (Combustione, Catena di fulmini). */
+  elemento?: 'fuoco' | 'elettricita';
 };
 /** Drenaggio: un bacino allagato. `aperta` = la sua valvola è girata; `scolo` = tick che mancano all'asciutto (livello = scolo / SCOLO). */
 export type Bacino = { n: number; aperta: boolean; scolo: number };
@@ -113,7 +124,9 @@ export type Geyser = { id: number; x: number; z: number; r: number; t: number; a
 /** Archivio: una corrente d'aria (le celle e i numeri stanno in map.venti); `ferma` = il suo timone è girato. */
 export type Corrente = { n: number; ferma: boolean };
 /** Fucina: chiazza di fuoco a terra (scia della Fornace Semovente, pozza di magma) fino al tick `fine`: chi ci sta dentro brucia. */
-export type Fuoco = { id: number; x: number; z: number; r: number; fine: number; durata: number; dps: number; secondi: number };
+export type Fuoco = { id: number; x: number; z: number; r: number; fine: number; durata: number; dps: number; secondi: number;
+  /** Combustione (perk): la chiazza è dell'eroe `da`, brucia i nemici e non l'eroe. */
+  amico?: true; da?: number };
 /** Mausoleo: un'onda d'acqua che si allarga da (x, z) (l'ondata del Custode, la scarica della Barriera): raggio `r` adesso, fino a `max`;
  *  prende chi ci sta sopra (entro `spessore`) tranne nei `varchi` (versori, coseno `largo`) e dietro le colonne; `colpiti` = eroi già presi. */
 export type Onda = { id: number; x: number; z: number; r: number; v: number; max: number; spessore: number; danno: number; spinta: number; varchi: [number, number][]; largo: number; colpiti: number[]; barriera?: true };
@@ -220,6 +233,19 @@ export function newEnemy(s: DungeonState, tipo: string, x: number, z: number, al
   return e;
 }
 
+/** L'eroe di turno evoca `tipo` accanto a sé, davanti (fx, fz). `durata` in tick, null = per sempre (Patto di sangue). Vita e danno dei
+ *  perk Evocazioni cresciute/cattivelle. Insieme l'alleato è dell'eroe di turno. */
+export function evocaAlleato(s: DungeonState, tipo: string, durata: number | null, fx: number, fz: number): Enemy {
+  const h = s.hero, P = s.runHero.perk?.alleati;
+  const e = newEnemy(s, tipo, h.x, h.z, true);
+  if (s.eroi.length > 1) e.padrone = s.cur;
+  if (P) { e.max = Math.round(e.def.vita * P.vita); e.vita = e.max; if (P.danno !== 1) e.dannoM = P.danno; }
+  moveCircle(s.map, e, fx * ALLEATO_SEGUE * 0.5, fz * ALLEATO_SEGUE * 0.5, e.def.raggio);
+  e.fx = fx; e.fz = fz; e.aggro = true; e.st = 'insegue';
+  e.scade = durata === null ? Number.MAX_SAFE_INTEGER : s.tick + durata;
+  return e;
+}
+
 /** Un eroe per la spedizione: `hero` = la fotografia, `stato` = il personaggio all'entrata (v5, null = niente cambi d'equipaggiamento). */
 export type EroeDef = { hero: RunHero; stato?: HeroState | null };
 
@@ -257,7 +283,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
         incanta: !!hero.manoMagia && hero.magia !== null,
         cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0,
         barr: 0, pressione: hero.arma.traits.lame?.cariche ?? 0, ultimoAttacco: -1e6, ritmo: 0, tic: -1, rintocco: false, molla: hero.arma.traits.carillon?.colpi ?? 0, mollaT: 0, ecoT: -1e6, lancT: [],
-        prevA: false, prevC: false, prevD: false,
+        prevA: false, prevC: false, prevD: false, prevE: false, cdScarica: 0, raffica: 0, raffT: 0, massimaP: 0, massimo: false,
       },
       runHero: hero, done: false, outcome: null,
       bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,
@@ -291,6 +317,8 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
   }
   // Archivio: ripartendo dalla lanterna oltre il Condotto, le correnti che avevi fermato per arrivarci sono già ferme
   if (daLanterna) for (const n of map.altari[p]!.ferme ?? []) { const c = s.correnti.find((x) => x.n === n); if (c) c.ferma = true; }
+  // Patto di sangue: la creatura rimasta dalla spedizione prima parte con te
+  s.eroi.forEach((e, i) => { const t = e.runHero.perk?.evocato; if (t) conEroe(s, i, () => evocaAlleato(s, t, null, e.hero.fx, e.hero.fz)); });
   const sonno = rng.fork('sonno');
   const kv = moltVita(eroi.length);
   for (const n of map.nemici) {

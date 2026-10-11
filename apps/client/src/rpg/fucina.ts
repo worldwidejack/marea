@@ -342,6 +342,7 @@ export function createFucinaFx(o: { sc: DungeonScene; loader: Loader; say(text: 
       nF = 0;
       for (const f of v.fuochi) {
         if (nF >= MAXF) break;
+        if (f.amico) continue; // le chiazze della Combustione le disegna unici_fx
         if (o.sc.light(f.x, f.z) <= 0) continue;
         const k = f.r * (1 - steps(Math.max(0, f.t - 0.7) / 0.3, 3) * 0.7), h = 0.75 + 0.25 * (Math.floor(t * 8 + f.id) % 2);
         fuochi.setMatrixAt(nF++, m4.compose(p3.set(f.x, fy + 0.02, f.z), q.setFromAxisAngle(YA, Math.floor(t * 6 + f.id) * 0.9), s3.set(k, k * h, k)));

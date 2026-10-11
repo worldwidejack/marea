@@ -48,7 +48,8 @@ test('dungeon: stesso seed + stessi input = stesso hash; replay (pack/unpack) = 
 
 test('dungeon: isPackedDungeon rifiuta log malformati o troppo lunghi', () => {
   assert.ok(isPackedDungeon([[3, 8, -8, 15], [1, 0, 0, 0]], 10));
-  for (const bad of [null, {}, [[0, 0, 0, 0]], [[1, 9, 0, 0]], [[1, 0, 0, 16]], [[1, 0, 0]], [[1.5, 0, 0, 0]], [[11, 0, 0, 0]], [[6, 0, 0, 0], [6, 0, 0, 0]]])
+  assert.ok(isPackedDungeon([[3, 8, -8, 31], [1, 0, 0, 16]], 10), 'il bit E (Scarica)');
+  for (const bad of [null, {}, [[0, 0, 0, 0]], [[1, 9, 0, 0]], [[1, 0, 0, 32]], [[1, 0, 0]], [[1.5, 0, 0, 0]], [[11, 0, 0, 0]], [[6, 0, 0, 0], [6, 0, 0, 0]]])
     assert.equal(isPackedDungeon(bad, 10), false, JSON.stringify(bad));
   assert.throws(() => replayDungeon(1, 'grotta', heroBase(), [[dungeon.maxTicks + 1, 0, 0, 0]]));
 });

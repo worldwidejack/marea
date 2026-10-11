@@ -150,7 +150,7 @@ export function stepForgiatore(s: DungeonState, e: Enemy): void {
       return;
     case 'recupera':
       if (e.stT < e.stDur) return;
-      if (e.spento) { e.spento = false; e.bleed = 0; e.bleedT = 0; ev(s, { t: 'riacceso' }); }
+      if (e.spento) { e.spento = false; e.bleed = 0; e.bleedT = 0; e.emorr = undefined; ev(s, { t: 'riacceso' }); }
       e.cdTiro = 0;
       setState(e, 'insegue', 0);
       return;
