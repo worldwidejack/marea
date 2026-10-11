@@ -144,13 +144,13 @@ test('dungeon: pozione (D) cura e conta in usati; magia (C) costa magicka; evoca
   assert.equal(dungeon.result(s).usati['pozione_vita_minore'], 1);
   run(s, 40);
   const e = dummy(s, 'bandito', 6, 30);
-  const ev2 = [...run(s, 1, inp({ c: true, a: true })), ...run(s, 90)]; // C prende la magia in mano, la A la lancia
+  const ev2 = [...run(s, 1, inp({ c: true, a: true })), ...run(s, 90)]; // C prende la magia in mano, la A mira e al rilascio la lancia
   assert.ok(ev2.some((x) => x.t === 'magia' && x.id === 'fiammata'));
   assert.ok(colpiSu(ev2, e.id).length >= 1, 'la fiammata colpisce');
   assert.ok(e.bleedT > 0 || e.st === 'morto', 'sanguina');
   s.hero.magicka = 5;
   run(s, 60);
-  assert.ok(run(s, 1, inp({ a: true })).some((x) => x.t === 'senzaMagicka'));
+  assert.ok([...run(s, 1, inp({ a: true })), ...run(s, 1)].some((x) => x.t === 'senzaMagicka')); // la magia parte (o manca la Magicka) al rilascio
   // evocazione
   const se = arena(heroBase({ magie: [{ id: 'lupo_spettrale', scuola: 'evocazione', costo: 40, ricarica: 2, danno: 0, velocita: 0, raggio: 0, sanguina: 0, evoca: 'lupo_spettrale', durata: 20 }] }));
   const t = dummy(se, 'bandito', 7, 40);

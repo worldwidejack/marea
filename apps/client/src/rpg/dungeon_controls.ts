@@ -1,5 +1,5 @@
 // Controlli del dungeon oltre a joystick/A/B di game/input.ts (R-scena): C = alterna arma e magia in mano, D = pozione (bottoni ≥ 56 px sopra
-// B e A, senza coprirli), Q = C e R = D sulla tastiera, clic sinistro tenuto sul canvas = A (con la magia in mano la lancia), «A · Esci col
+// B e A, senza coprirli), Q = C e R = D sulla tastiera, clic sinistro tenuto sul canvas = A (con la magia in mano mira, e la lancia al rilascio), «A · Esci col
 // bottino» vicino alla scala. Con la magia in mano (v6) sopra i bottoni compare il MENÙ RAPIDO delle magie: un chip per magia conosciuta,
 // un tocco (o il tasto 1-9) la cambia al volo. In alto a destra ZAINO (tasto I: la scheda del personaggio sullo zaino della spedizione) e
 // PAUSA (Esc): Riprendi · Zaino · Esci dal dungeon (→ «Uscire?»). Sopra una lanterna: SALVA ed ESCI (dungeon v5, scelta di Riccardo).

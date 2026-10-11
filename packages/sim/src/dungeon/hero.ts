@@ -231,9 +231,8 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       h.actT = 0;
       if (cDown) alternaMano(s); // C: le mani passano all'arma o alla magia, e la A dello stesso tick agisce con quella nuova
       if (h.incanta) {
-        // magia in mano: la A la lancia (un tocco = un lancio; tenuta, le magie d'attacco ripartono da sole appena sono pronte)
-        const sp = magiaPronta(s);
-        if (aDown || (inp.a && sp?.scuola === 'distruzione' && h.cdMagia <= 0 && h.magicka >= sp.costo)) cast(s, dir);
+        // magia in mano: la A mira (come l'arco teso), la magia parte al rilascio (v8; fino al v7 partiva subito e tenuta ripartiva da sola)
+        if (aDown) { faceDir(s, dir); h.act = 'punta'; h.actT = 0; }
         else if (dDown) drink(s);
       } else if (aDown) {
         if (a.kind === 'arco') {
@@ -263,6 +262,10 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       if (!inp.a || (st > 0 && h.stamina <= 0)) shoot(s, dir);
       break;
     }
+    case 'punta':
+      faceDir(s, dir); // col mouse l'eroe segue il cursore finché si mira
+      if (!inp.a) { h.act = 'idle'; h.actT = 0; cast(s, dir); }
+      break;
     default: // tira, lancia, beve
       if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; }
   }
@@ -281,7 +284,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   v *= (1 - malusDi(s)) * rh.armatura.velocitaMolt;
   if (h.moving) {
     moveCircle(s.map, h, mx * v * DT, my * v * DT, rh.raggio);
-    if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia' && !(dir && h.act === 'tende')) { h.fx = mx / mag; h.fz = my / mag; }
+    if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia' && !(dir && (h.act === 'tende' || h.act === 'punta'))) { h.fx = mx / mag; h.fz = my / mag; }
   }
   caricaBarriera(s); // Mausoleo: l'Armatura del Moto Perpetuo si carica camminando
   // i nemici sono solidi: l'eroe non li attraversa

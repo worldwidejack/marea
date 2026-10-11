@@ -110,7 +110,9 @@ test('dungeon: la vista ha la forma di DungeonView e gli eventi sono solo del ti
   assert.ok(v.bottini.some((b) => b.tipo === 'libro'));
   assert.ok(v.bottini.filter((b) => b.tipo === 'forziere').length >= 3);
   assert.equal(v.hero.pozioni, 3);
-  run(s, 1, inp({ c: true, a: true }));
+  run(s, 1, inp({ c: true, a: true })); // v8: la A mira, la magia parte al rilascio
+  assert.ok(!dungeon.view(s).eventi.some((e) => e.t === 'magia'));
+  run(s, 1);
   assert.ok(dungeon.view(s).eventi.some((e) => e.t === 'magia'));
   run(s, 1);
   assert.ok(!dungeon.view(s).eventi.some((e) => e.t === 'magia'));

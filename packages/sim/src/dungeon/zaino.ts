@@ -64,7 +64,7 @@ export function rebuild(s: DungeonState): void {
     h.pressione = rh.arma.traits.lame?.cariche ?? 0; h.molla = rh.arma.traits.carillon?.colpi ?? 0; h.mollaT = 0; h.ritmo = 0; h.tic = -1; h.rintocco = false;
   }
   // arma nuova o mani cambiate (arma ⇄ magia): il colpo, la carica o l'arco teso in corso si interrompono
-  if ((cambia || manoPrima !== h.incanta) && (h.act === 'press' || h.act === 'carica' || h.act === 'swing' || h.act === 'tende')) {
+  if ((cambia || manoPrima !== h.incanta) && (h.act === 'press' || h.act === 'carica' || h.act === 'swing' || h.act === 'tende' || h.act === 'punta')) {
     h.act = 'idle'; h.actT = 0; h.actDur = 0; h.carica = 0; h.caricato = false; h.colpiti = []; h.colpito = false;
   }
   h.frecce = rh.frecce ? rh.frecce.n : 0;

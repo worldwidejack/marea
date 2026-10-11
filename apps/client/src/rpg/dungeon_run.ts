@@ -311,7 +311,7 @@ export function startRun(ctx: RunCtx, o: {
     if (auto) return dungeon.autopilot(s, auto);
     if (dungeonLink.altare >= 0) return walkToAltare(dungeonLink.altare);
     if (dungeonLink.vai) return walkToCella(dungeonLink.vai);
-    const a = f.a || c.a, m = c.m || (a || s.hero.act === 'tende' ? puntaMouse() : 0); // la mira solo mentre si preme (e al rilascio dell'arco): il log resta corto; il joystick di mira porta la sua
+    const a = f.a || c.a, m = c.m || (a || s.hero.act === 'tende' || s.hero.act === 'punta' ? puntaMouse() : 0); // la mira solo mentre si preme (e al rilascio dell'arco): il log resta corto; il joystick di mira porta la sua
     return { mx: f.mx, my: f.my, a, b: f.b, c: c.c, d: c.d, ...(m ? { m } : {}) };
   }
 

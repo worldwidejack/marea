@@ -44,7 +44,7 @@ export function renderBag(v: View, out: HTMLElement): void {
   out.appendChild(grid);
 
   // magia in mano (v6): si sceglie come un'arma, occupa le mani e si lancia con la A; di nuovo sulla magia in mano rimette l'arma
-  out.appendChild(sec('Magia in mano', inMano(v) ? 'la A la lancia · C alterna' : 'tocca per impugnarla · C alterna'));
+  out.appendChild(sec('Magia in mano', inMano(v) ? 'tieni A per mirare, lascia per lanciare · C alterna' : 'tocca per impugnarla · C alterna'));
   if (!h.magie.length) out.appendChild(el('div', 'mz-rp-empty', 'Nessuna magia: leggi un libro.'));
   else {
     const chips = el('div', 'mz-rp-chips');
