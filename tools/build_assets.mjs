@@ -18,7 +18,12 @@ import { KHRMeshQuantization, KHRMaterialsEmissiveStrength } from '@gltf-transfo
 import { dedup, prune, weld, quantize } from '@gltf-transform/functions';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const BLENDER = process.env.BLENDER || '/Applications/Blender.app/Contents/MacOS/Blender';
+// Blender: variabile BLENDER; altrimenti su Windows l'ultima versione in Program Files\Blender Foundation; altrimenti il Mac di Jack.
+const blenderWindows = () => {
+  const dir = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Blender Foundation');
+  try { return fs.readdirSync(dir).sort((a, b) => b.localeCompare(a, undefined, { numeric: true })).map((d) => path.join(dir, d, 'blender.exe')).find((p) => fs.existsSync(p)); } catch { return undefined; }
+};
+const BLENDER = process.env.BLENDER || (process.platform === 'win32' && blenderWindows()) || '/Applications/Blender.app/Contents/MacOS/Blender';
 const FFMPEG = fs.existsSync('/opt/homebrew/bin/ffmpeg') ? '/opt/homebrew/bin/ffmpeg' : 'ffmpeg';
 const SRC = path.join(ROOT, 'assets/blender');
 const ATLAS = path.join(ROOT, 'assets/atlas/atlas.png');
