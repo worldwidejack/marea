@@ -10,6 +10,7 @@ import spiaggiaLungomare from './corse/piste/spiaggia_lungomare.json' with { typ
 import spiaggiaBaia from './corse/piste/spiaggia_baia.json' with { type: 'json' };
 import spiaggiaPorto from './corse/piste/spiaggia_porto.json' with { type: 'json' };
 import spiaggiaFuga from './corse/piste/spiaggia_fuga.json' with { type: 'json' };
+import provaBinari from './corse/piste/prova_binari.json' with { type: 'json' };
 import giunglaMiniera from './corse/piste/giungla_miniera.json' with { type: 'json' };
 import type { CPistaDef, CorseMotoreCfg } from './corse_types.ts';
 
@@ -18,7 +19,7 @@ export type * from './corse_types.ts';
 export const CORSE = motore as unknown as CorseMotoreCfg;
 /** Le piste per id, nell'ordine del banco di prova. */
 export const CORSE_PISTE: Record<string, CPistaDef> = Object.fromEntries(
-  ([provaAnello, provaFolle, provaBaia, provaFuga, spiaggiaLungomare, spiaggiaBaia, spiaggiaPorto, spiaggiaFuga, giunglaMiniera] as unknown as CPistaDef[]).map((p) => [p.id, p]),
+  ([provaAnello, provaFolle, provaBaia, provaFuga, provaBinari, spiaggiaLungomare, spiaggiaBaia, spiaggiaPorto, spiaggiaFuga, giunglaMiniera] as unknown as CPistaDef[]).map((p) => [p.id, p]),
 );
 
 /** Controlli dei dati (in italiano): veicoli e superfici conosciuti, piste coerenti (griglia, tratti dentro la pista, rami). */
@@ -71,6 +72,9 @@ export function validateCorse(): string[] {
     if (fams.includes('binari')) {
       rotaie(p.binari, p.larghezza, d);
       for (const r of p.rami) rotaie(r.binari ?? [0], r.larghezza, `${d}, ramo ${r.id}`);
+    } else if (p.agganci?.length) { // piste ibride: le rotaie della principale servono nei tratti agganciati, i rami a binari hanno le loro
+      rotaie(p.binari, p.larghezza, d);
+      for (const r of p.rami) if (r.binari) rotaie(r.binari, r.larghezza, `${d}, ramo ${r.id}`);
     } else if (p.binari) errs.push(`corse: ${d}: rotaie su una pista senza binari`);
   }
   return errs;

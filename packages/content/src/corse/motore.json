@@ -34,7 +34,7 @@
     },
     "binari": {
       "id": "binari", "nome": "Binari", "pendenza": 1, "casa": "rotaia", "sterzoAlto": 0,
-      "binari": { "presa": 11, "piega": 1.35, "bilico": 0.15, "deraglia": 1.6, "frenaBilico": 20, "carica": 0.72, "scarica": 0.35, "salto": 6, "cambio": 7, "tolleranza": 0.6, "attrito": 0.6 }
+      "binari": { "presa": 11, "piega": 1.35, "bilico": 0.15, "deraglia": 1.6, "frenaBilico": 20, "carica": 0.72, "scarica": 0.35, "salto": 6, "cambio": 7, "tolleranza": 0.6, "attrito": 0.6, "piegaAgganciati": 4, "ripresa": 1, "salvo": 3 }
     }
   },
   "veicoli": [
@@ -64,6 +64,8 @@
     "asfalto": { "id": "asfalto", "nome": "Asfalto", "per": { "ruote": { "velocita": 1, "presa": 1, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.5, "accelerazione": 0.5 }, "binari": { "velocita": 1, "presa": 1, "accelerazione": 1 } } },
     "legno": { "id": "legno", "nome": "Molo", "per": { "ruote": { "velocita": 1, "presa": 0.95, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.5, "accelerazione": 0.5 }, "binari": { "velocita": 1, "presa": 1, "accelerazione": 1 } } },
     "erba": { "id": "erba", "nome": "Prato", "per": { "ruote": { "velocita": 0.55, "presa": 0.7, "accelerazione": 0.8 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 }, "binari": { "velocita": 0.9, "presa": 1, "accelerazione": 0.9 } } },
+    "terra": { "id": "terra", "nome": "Sterrato", "per": { "ruote": { "velocita": 1, "presa": 0.9, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 }, "binari": { "velocita": 1, "presa": 1, "accelerazione": 1 } } },
+    "fango": { "id": "fango", "nome": "Fango", "per": { "ruote": { "velocita": 0.7, "presa": 0.6, "accelerazione": 0.7 }, "acqua": { "velocita": 0.4, "presa": 1, "accelerazione": 0.5 }, "binari": { "velocita": 0.85, "presa": 1, "accelerazione": 0.85 } } },
     "sabbia": { "id": "sabbia", "nome": "Sabbia", "per": { "ruote": { "velocita": 0.72, "presa": 0.6, "accelerazione": 0.8 }, "acqua": { "velocita": 0.35, "presa": 1, "accelerazione": 0.5 }, "binari": { "velocita": 0.85, "presa": 1, "accelerazione": 0.85 } } },
     "container": { "id": "container", "nome": "Tetto di container", "per": { "ruote": { "velocita": 1, "presa": 0.55, "accelerazione": 0.9 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 }, "binari": { "velocita": 1, "presa": 1, "accelerazione": 1 } } },
     "ghiaccio": { "id": "ghiaccio", "nome": "Ghiaccio", "per": { "ruote": { "velocita": 1.05, "presa": 0.25, "accelerazione": 0.7 }, "acqua": { "velocita": 0.5, "presa": 0.5, "accelerazione": 0.5 }, "binari": { "velocita": 1.05, "presa": 1, "accelerazione": 1 } } },

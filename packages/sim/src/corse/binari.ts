@@ -6,17 +6,20 @@
 //   e parte raddrizzandosi o uscendo dalla curva;
 // - DRIFT = salto: in aria lo sterzo sceglie la rotaia accanto (così si cambiano binario, si prendono i bivi e si saltano le rotaie
 //   rotte); atterrare lontano da una rotaia è un deragliamento.
-// I bivi sono rami con le loro rotaie: ci entra chi passa l'imbocco sulla rotaia giusta. Solo + − × ÷ e Math.sqrt.
+// I bivi sono rami con le loro rotaie: ci entra chi passa l'imbocco sulla rotaia giusta.
+// Piste ibride (la Miniera, #228): ogni veicolo guida col suo motore e si aggancia alle rotaie solo nei tratti `agganci` della pista
+// (e sui rami a binari): lì guida come un carrello, coi numeri della famiglia Binari. Solo + − × ÷ e Math.sqrt.
 import { CORSE } from '@marea/content/corse.ts';
 import type { CVeicoloDef } from '@marea/content/corse.ts';
 import { TICK_HZ } from '../constants.ts';
 import { campo, cella } from './nastro.ts';
-import { VUOTO, effetto, nastroDi, rotaieDi, superficieA } from './pista.ts';
+import { VUOTO, effetto, nastroDi, rotaieDi, suBinari, superficieA } from './pista.ts';
 import type { Pista } from './pista.ts';
-import { avanza, daiTurbo, livelloDrift, riparti, verticale } from './veicolo.ts';
+import { avanza, daiTurbo, livelloDrift, muovi, riparti, verticale } from './veicolo.ts';
 import type { Regole, Veicolo } from './veicolo.ts';
 
 const DT = 1 / TICK_HZ;
+const PIENO = { velocita: 1, presa: 1, accelerazione: 1 };
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 
 /** L'indice della rotaia più vicina a `lat`. */
@@ -39,7 +42,7 @@ function deraglia(k: Veicolo): void {
 
 /** Un tick sui binari: sterzo = piega (−1..1), gas = leva (sotto −0,3 freno), btn = DRIFT (salto). Stessa firma di `muovi`. */
 export function muoviBinari(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas: number, btn: boolean, vmax: number, giro: number, R: Regole): void {
-  const C = CORSE, F = C.famiglie[V.famiglia], B = F.binari!, D = C.drift, K = C.veicolo, G = C.gravita;
+  const C = CORSE, F = C.famiglie.binari, B = F.binari!, D = C.drift, K = C.veicolo, G = C.gravita, carrello = V.famiglia === 'binari';
   if (k.caduto > 0) {
     k.caduto += DT;
     if (k.caduto >= C.caduta.secondi) {
@@ -49,14 +52,19 @@ export function muoviBinari(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number
       k.rot = rotaiaVicina(rot, 0);
       if (!libera(k.rot)) for (let d = 1; d < rot.length; d++) { if (k.rot + d < rot.length && libera(k.rot + d)) { k.rot += d; break; } if (k.rot - d >= 0 && libera(k.rot - d)) { k.rot -= d; break; } }
       k.lat = rot[k.rot]!; k.piega = 0; k.bilico = 0;
+      // si riparte piano (la leva torna dopo `ripresa` s) e per `salvo` s non si deraglia (al massimo su due ruote, che frena): cadere costa,
+      // ma chi non ha ancora capito come piegarsi non ricade all'infinito nella stessa curva
+      k.fermo = Math.max(k.fermo, B.ripresa); k.salvo = B.salvo;
     }
     return;
   }
   if (k.fermo > 0) { k.fermo = Math.max(0, k.fermo - DT); gas = 0; } // motore ingolfato: la leva non spinge
+  if (k.salvo > 0) k.salvo = Math.max(0, k.salvo - DT);
   let rot = rotaieDi(p, k.ramo);
   if (k.rot < 0 || k.rot >= rot.length) k.rot = rotaiaVicina(rot, k.lat);
   // la piega segue lo sterzo, alla velocità del carrello (in aria resta com'è)
-  if (!k.aria) k.piega += clamp(sterzo - k.piega, -V.sterzo * DT, V.sterzo * DT);
+  const vp = carrello ? V.sterzo : B.piegaAgganciati;
+  if (!k.aria) k.piega += clamp(sterzo - k.piega, -vp * DT, vp * DT);
   // DRIFT: a terra salta (in aria, un'altra pressione è l'acrobazia, ma non nei salti fatti da sé: −1 come le onde)
   if (k.aria && k.acro >= 0) k.acro = k.acro > 0 ? k.acro + DT : R.acrobazie && btn && k.tenuto === 0 && !k.drift ? DT : 0;
   if (!k.aria && btn && k.tenuto === 0 && k.v > 2) {
@@ -67,7 +75,9 @@ export function muoviBinari(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number
   if (k.aria && k.rot0 >= 0) k.rot = clamp(k.rot0 + (sterzo > 0.4 ? 1 : sterzo < -0.4 ? -1 : 0), 0, rot.length - 1);
   const n = nastroDi(p, k.ramo), sup = superficieA(p, k.ramo, k.s, k.lat, giro);
   k.sup = sup;
-  const E = effetto(V, sup === VUOTO ? F.casa : sup), terra = !k.aria;
+  if (!k.aria && sup === VUOTO && Math.abs(k.lat - rot[k.rot]!) < 0.3) { deraglia(k); return; } // la rotaia manca sotto le ruote: si salta, sennò si cade
+  // agganciati alle rotaie si va come un carrello (le ruote sulle rotaie non rallentano)
+  const sE = sup === VUOTO ? F.casa : sup, E = carrello ? effetto(V, sE) : C.superfici[sE]?.per.binari ?? PIENO, terra = !k.aria;
   // ---- velocità: leva, freno, pendenza, attrito oltre il massimo della leva ----
   let top = V.velocita * vmax * E.velocita;
   if (k.turbo > 0) { top *= 1 + D.turbo; k.turbo = Math.max(0, k.turbo - DT); if (k.turbo === 0) k.livello = 0; }
@@ -87,7 +97,7 @@ export function muoviBinari(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number
   const lim = limiteCurva(V, E.presa, dentro), quota = (k.v * k.v * Math.abs(kap)) / lim;
   if (terra) {
     if (quota > 1) k.v = Math.max(0, k.v - B.frenaBilico * (quota - 1) * DT); // su due ruote: le ruote di fuori strisciano
-    if (quota > B.deraglia) { k.bilico += DT; if (k.bilico >= B.bilico) { deraglia(k); return; } } // un attimo di troppo si perdona
+    if (quota > B.deraglia && k.salvo === 0) { k.bilico += DT; if (k.bilico >= B.bilico) { deraglia(k); return; } } // un attimo di troppo si perdona
     else k.bilico = 0;
     if (quota >= B.carica && dentro > 0.5 && k.v >= D.velocitaMin) {
       if (k.drift !== lato) { k.drift = lato; k.carica = 0; }
@@ -117,4 +127,15 @@ export function muoviBinari(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number
   const vl = (k.lat - latPrima) / DT, hl = clamp(vl / Math.max(4, Math.abs(k.v)), -0.35, 0.35);
   k.hl = hl; k.hf = Math.sqrt(1 - hl * hl);
   if (!k.aria && k.ramo < 0 && superficieA(p, -1, k.s, k.lat, giro) !== VUOTO) k.terra = k.s;
+}
+
+/** Un tick di chiunque, sulle piste ibride e no: sulle rotaie (carrelli sempre, gli altri nei tratti agganciati) `muoviBinari`, sennò
+ *  `muovi`. Quando ci si aggancia o sgancia si riparte puliti: rotaia più vicina, niente piega, e il drift in corso dà il suo turbo. */
+export function guida(p: Pista, k: Veicolo, V: CVeicoloDef, sterzo: number, gas: number, btn: boolean, vmax: number, giro: number, R: Regole): void {
+  const su = suBinari(p, k.ramo, k.s, V.famiglia);
+  if (su !== k.agg) {
+    if (k.drift && !k.caduto) { const lv = livelloDrift(k.carica); if (lv) daiTurbo(k, CORSE.drift.spinta[lv - 1]!, lv, R.somma); }
+    k.drift = 0; k.carica = 0; k.piega = 0; k.bilico = 0; k.rot = -1; k.rot0 = -1; k.agg = su;
+  }
+  (su ? muoviBinari : muovi)(p, k, V, sterzo, gas, btn, vmax, giro, R);
 }

@@ -54,6 +54,10 @@ export type Veicolo = {
   /** Binari (#228): la rotaia su cui sta (indice nelle rotaie del nastro, −1 = da scegliere), quella da cui è saltato, quanto è piegato
    *  (−1..1, + = a destra) e da quanti secondi è su due ruote (oltre `binari.bilico` deraglia). */
   rot: number; rot0: number; piega: number; bilico: number;
+  /** Piste ibride: era agganciato alle rotaie il tick prima (al cambio si riparte puliti). */
+  agg: boolean;
+  /** Binari: secondi dopo un deragliamento in cui non si deraglia (si riparte). */
+  salvo: number;
 };
 
 /** Ruota il versore (f, l) di `a` rad verso destra (angoli piccoli; il risultato è rinormalizzato). */
@@ -73,7 +77,7 @@ export function nuovoVeicolo(p: Pista, id: string, prog: number, lat: number): V
   return {
     id, ramo: -1, s, lat, h: 0, vh: 0, hf: 1, hl: 0, mf: 1, ml: 0, v: 0, prog, aria: false, caduto: 0, terra: s,
     drift: 0, carica: 0, daBottone: false, autoT: 0, turbo: 0, livello: 0, st: 0, tenuto: -1, gasT: -1, acro: 0, scia: 0, fermo: 0, partenza: 0, muro: false, sup: p.def.superficie, salti: 0, cadute: 0, travolto: 0,
-    giro: 0, giroTick: 1, best: 0, fine: 0, rot: -1, rot0: -1, piega: 0, bilico: 0,
+    giro: 0, giroTick: 1, best: 0, fine: 0, rot: -1, rot0: -1, piega: 0, bilico: 0, agg: false, salvo: 0,
   };
 }
 /** Le regole accese (opzioni della gara, interruttori del banco di prova). */

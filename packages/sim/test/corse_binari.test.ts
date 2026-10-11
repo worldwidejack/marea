@@ -1,4 +1,4 @@
-// Guida sui binari (#228, docs/CORSE.md A6): i carrelli da miniera della Giungla sulla Miniera del tempio. Cosa si controlla:
+// Guida sui binari (#228, docs/CORSE.md A6): i carrelli da miniera sulla pista di prova dei carrelli (tutta a binari). Cosa si controlla:
 // - si parte e si resta sopra una rotaia;
 // - il salto (DRIFT) con lo sterzo porta sulla rotaia accanto; senza sterzo si ricade sulla stessa;
 // - chi entra lanciato in una curva stretta senza piegarsi deraglia, chi frena e si piega passa (e piegati al limite si carica il turbo);
@@ -16,7 +16,7 @@ import { hashJson } from '../src/hash.ts';
 import { quantize } from '../src/replay.ts';
 import type { InputFrame } from '../src/types.ts';
 
-const PISTA = 'giungla_miniera';
+const PISTA = 'prova_binari';
 const nuova = (veicolo = 'carrello_miniera', bot = false, seed = 7): GaraState =>
   garaCorse.create({ seed, difficulty: 2, opzioni: { pista: PISTA, veicolo, bot: bot ? '1' : '0' } });
 const via = (s: GaraState) => { while (s.tick < 1) garaCorse.step(s, { mx: 0, my: 0, a: false, b: false }); return s; };

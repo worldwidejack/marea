@@ -21,6 +21,7 @@ import { creaScena } from './scena.ts';
 export const COLORE_SUP: Record<string, string> = {
   asfalto: P.roccia, legno: P.legnoChiaro, erba: P.erba, sabbia: P.sabbia, ghiaccio: P.pietraChiara,
   acqua: P.acqua, acquaBassa: P.acquaBassa, corrente: P.acquaProfonda, container: P.rosso, rotaia: P.ombraCalda,
+  terra: P.legno, fango: P.legnoScuro,
 };
 const coloreDi = (sup: string) => COLORE_SUP[sup] ?? P.pietra;
 type V3 = [number, number, number];

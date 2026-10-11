@@ -28,7 +28,7 @@ export class Tartaruga {
     this.l = da?.l ?? meta.larghezza;
     this.passo = 5;
     this.punti = []; this.dir = [];
-    this.tratti = { superfici: [], vuoti: [], senzaMuro: [], rampe: [], turbo: [], eventi: [] };
+    this.tratti = { superfici: [], vuoti: [], senzaMuro: [], rampe: [], turbo: [], eventi: [], agganci: [] };
     this.rami = [];
     this.metti();
   }
@@ -112,6 +112,8 @@ export class Tartaruga {
   superficieTutta(tipo, lat) { this.tratti.superfici.push({ tipo, intero: true, lat }); return this; }
   /** Binari: la rotaia allo scarto `lat` manca tra `da` e `a` (si cambia rotaia o si salta, sennò si cade). */
   rotaiaRotta(lat, da, a) { this.tratti.vuoti.push({ da, a, lat: [lat - 1, lat + 1] }); return this; }
+  /** Piste ibride (#228): tra `da` e `a` ogni veicolo si aggancia alle rotaie `binari` della pista (la miniera). */
+  aggancio(da, a) { this.tratti.agganci.push({ da, a }); return this; }
   senzaMuro(lato, da, a) { this.tratti.senzaMuro.push({ lato, da, a }); return this; }
   turbo(m, lat = [-2.5, 2.5], lungo = 5) { this.tratti.turbo.push({ m, lungo, lat }); return this; }
   evento(tipo, daGiro, superficie, da, a, lat) { this.tratti.eventi.push({ tipo, daGiro, superficie, da, a, lat }); return this; }
@@ -140,7 +142,8 @@ function definizione(t) {
     return {
       id: r.id, da: S(r.da), a: S(r.a), punti: sub.punti, larghezza: r.o.larghezza, bordo: r.o.bordo ?? 1.5,
       superficie: r.o.superficie ?? m.superficie, bordoTipo: r.o.bordoTipo ?? m.bordoTipo,
-      superfici: sub.tratti.superfici.map((x) => ({ da: SR(x.da), a: SR(x.a), ...lat(x.lat), tipo: x.tipo })),
+      // sui rami i buchi (le rotaie rotte) sono tratti di superficie `vuoto`
+      superfici: [...sub.tratti.superfici.map((x) => ({ da: SR(x.da), a: SR(x.a), ...lat(x.lat), tipo: x.tipo })), ...sub.tratti.vuoti.map((x) => ({ da: SR(x.da), a: SR(x.a), ...lat(x.lat), tipo: 'vuoto' }))],
       ...(sub.tratti.turbo.length ? { turbo: sub.tratti.turbo.map((x) => ({ s: SR(x.m), lungo: x.lungo, lat: x.lat })) } : {}),
       ...(r.o.scorciatoia ? { scorciatoia: true } : {}),
       ...(r.o.famiglie ? { famiglie: r.o.famiglie } : {}),
@@ -161,6 +164,7 @@ function definizione(t) {
     rami,
     griglia: m.griglia ?? [[-5, -2.5], [-5, 2.5], [-11, -2.5], [-11, 2.5], [-17, 0]],
     eventi: t.tratti.eventi.map((x) => ({ tipo: x.tipo, daGiro: x.daGiro, superficie: x.superficie, da: S(x.da), a: S(x.a), ...lat(x.lat) })),
+    ...(t.tratti.agganci.length ? { agganci: t.tratti.agganci.map((x) => ({ da: S(x.da), a: S(x.a) })) } : {}),
   };
 }
 
@@ -194,6 +198,7 @@ function planimetria(def, file) {
   const n = nast[0].n;
   for (let i = 0; i < n.n; i++) {
     const s = i * n.passo;
+    if ((def.agganci ?? []).some((t) => inTr(t, s, n.len))) for (const b of def.binari ?? []) disco(n.x[i] + n.rx[i] * b, n.z[i] + n.rz[i] * b, 0.5, [140, 90, 50]);
     if (def.vuoti.some((t) => inTr(t, s, n.len))) disco(n.x[i], n.z[i], n.l[i], [10, 10, 10]);
     if (def.turbo.some((t) => s >= t.s && s < t.s + t.lungo)) disco(n.x[i], n.z[i], 2, [245, 213, 71]);
     if (def.rampe.some((t) => Math.abs(s - t.s) < 1.5)) disco(n.x[i], n.z[i], n.l[i] * 0.8, [232, 67, 63]);

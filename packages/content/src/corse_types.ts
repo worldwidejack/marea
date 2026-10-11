@@ -13,6 +13,12 @@ export type CFamigliaId = 'ruote' | 'acqua' | 'binari';
 export type CBinariDef = {
   presa: number; piega: number; bilico: number; deraglia: number; frenaBilico: number; carica: number; scarica: number;
   salto: number; cambio: number; tolleranza: number; attrito: number;
+  /** Piste ibride: quanto in fretta si piegano (1/s) i veicoli delle altre famiglie agganciati alle rotaie (i carrelli usano il loro `sterzo`). */
+  piegaAgganciati: number;
+  /** Dopo un deragliamento la leva non spinge per `ripresa` s (si riparte piano: cadere costa e non si ricade nello stesso punto). */
+  ripresa: number;
+  /** …e per `salvo` s non si deraglia (al massimo su due ruote): chi non sa ancora piegarsi non ricade all'infinito nella stessa curva. */
+  salvo: number;
 };
 
 export type CFamigliaDef = {
@@ -205,6 +211,9 @@ export type CPistaDef = {
   rami: CRamoDef[];
   /** Piste a binari: scarti laterali (m, + = destra) delle rotaie della principale. I rami hanno le loro (di serie una al centro). */
   binari?: number[];
+  /** Piste ibride (#228): i tratti della principale dove ogni veicolo si aggancia alle rotaie `binari` (la miniera) e guida come un
+   *  carrello; fuori si sgancia e torna alla sua guida. Anche i rami con `binari` sono agganciati. */
+  agganci?: CTrattoDef[];
   /** [metri dal via (negativi = dietro), scarto laterale] dei bot e, ultimo, il tuo. */
   griglia: [number, number][];
   eventi: CEventoDef[];
