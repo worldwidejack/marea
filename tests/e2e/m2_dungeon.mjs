@@ -369,15 +369,19 @@ export default async function (ctx) {
       await tp.waitForSelector('#mzDngEntra.on', { timeout: 5000 });
     });
     await ctx.shot(tp, '1_ingresso_390');
-    await ctx.test('telefono: dentro la Grotta i 4 bottoni (A B C D), l\'HUD, Zaino e Pausa non si sovrappongono, ≥ 56 px', async () => {
+    await ctx.test('telefono: dentro la Grotta i 4 bottoni (A o la mira, B C D), l\'HUD, Zaino e Pausa non si sovrappongono, ≥ 56 px', async () => {
       await thook('dungeonAutopilot', true, 1);
       await tp.locator('#mzDngEntra').click();
       await ctx.waitState(tp, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await ctx.waitState(tp, (s) => s.dungeon.vivi < s.dungeon.nemici || ['attacca', 'carica'].includes(s.dungeon.hero.anim), 90000);
-      const rects = await tp.evaluate(() => Object.fromEntries(['btnA', 'btnB', 'btnC', 'btnD', 'joystick', 'mzDngHud', 'mzDngZaino', 'mzDngPausaBtn'].map((id) => { const r = document.getElementById(id)?.getBoundingClientRect(); return [id, r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null]; })));
+      // con arco o magia in mano (dipende dal bottino, cioè dal caso) al posto della A c'è il joystick di mira (#210): si controlla quello
+      const rects = await tp.evaluate(() => {
+        const mira = !!document.querySelector('.mz-dng-aimon'), a = mira ? 'mzDngMira' : 'btnA';
+        return Object.fromEntries([a, 'btnB', 'btnC', 'btnD', 'joystick', 'mzDngHud', 'mzDngZaino', 'mzDngPausaBtn'].map((id) => { const r = document.getElementById(id)?.getBoundingClientRect(); return [id, r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null]; }));
+      });
       const ids = Object.keys(rects);
       for (const id of ids) assert(rects[id], `manca #${id}`);
-      for (const id of ['btnA', 'btnB', 'btnC', 'btnD']) assert(rects[id].w >= 56 && rects[id].h >= 56, `#${id} troppo piccolo: ${JSON.stringify(rects[id])}`);
+      for (const id of [ids[0], 'btnB', 'btnC', 'btnD']) assert(rects[id].w >= 56 && rects[id].h >= 56, `#${id} troppo piccolo: ${JSON.stringify(rects[id])}`);
       const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
       for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) assert(!hit(rects[ids[i]], rects[ids[j]]), `#${ids[i]} copre #${ids[j]}: ${JSON.stringify([rects[ids[i]], rects[ids[j]]])}`);
       for (const id of ids) { const r = rects[id]; assert(r.x >= 0 && r.y >= 0 && r.x + r.w <= 390 && r.y + r.h <= 844, `#${id} fuori schermo`); }
