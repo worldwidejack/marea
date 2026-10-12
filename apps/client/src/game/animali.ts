@@ -128,8 +128,10 @@ export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canva
       gatti.push({ x: casa.x + (r.next() - 0.5), z: casa.z + (r.next() - 0.5), h: r.next() * 6.28, casa, area, mantello: [col(m1), col(m2)], stato, fino: r.next() * 12, meta: area[0] ?? casa, passo: 0, seguito: 0, calma: 0 });
     }
     // granchi: 3 sulla sabbia vicino all'acqua bassa (Porto, lotti, Selvaggia)
-    for (let i = 0; i < 3 && rive.length && (p.role === 'porto' || p.role === 'lotto' || p.island === 'selvaggia'); i++) {
-      const c = rive[Math.floor(r.next() * rive.length)]!, casa = centro(c.cx, c.cz);
+    // al Porto la riva è tutto il ferro di cavallo del Borgo (#247): i granchi stanno sulla baia, vicino al molo
+    const riveG = p.role === 'porto' ? rive.filter((c) => { const q = centro(c.cx, c.cz); return Math.hypot(q.x - p.boat.x, q.z - p.boat.z) < 40; }) : rive;
+    for (let i = 0; i < 3 && riveG.length && (p.role === 'porto' || p.role === 'lotto' || p.island === 'selvaggia'); i++) {
+      const c = riveG[Math.floor(r.next() * riveG.length)]!, casa = centro(c.cx, c.cz);
       granchi.push({ casa, b: { ...casa }, x: casa.x, z: casa.z, h: r.next() * 6.28, stato: 'fermo', fino: 0, meta: casa, fase: r.next() * 6.28, lontano: 0 });
     }
   }
