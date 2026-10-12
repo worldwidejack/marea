@@ -26,9 +26,9 @@ export default async function (ctx) {
   const corri = (page, tick) => page.evaluate((t) => { const a = window.__provapiste; a.set({ auto: true, vai: true }); let st = a.state(); for (let i = 0; i < t && !st.done; i += 60) st = a.avanti(60); return st; }, tick);
   const fotogrammi = (page, n = 3) => page.evaluate((k) => new Promise((r) => { let i = 0; const f = () => (++i >= k ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
 
-  const p = await apri('pista=prova_anello');
+  const p = await apri('pista=spiaggia_lungomare');
   const piste = await p.page.evaluate(() => window.__provapiste.piste);
-  assert(piste.length >= 8, `piste: ${piste}`);
+  assert(piste.length === 5 && !piste.some((id) => id.startsWith('prova_')), `piste del banco (solo le definitive): ${piste}`);
   for (const id of piste) {
     await ctx.test(`telefono: ${id} — il pilota automatico arriva in fondo senza cadute, draw call e triangoli nel budget`, async () => {
       await p.page.evaluate((x) => window.__provapiste.set({ pista: x, cam: 'dietro', bot: true }), id);

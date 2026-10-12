@@ -21,6 +21,8 @@ export const CORSE = motore as unknown as CorseMotoreCfg;
 export const CORSE_PISTE: Record<string, CPistaDef> = Object.fromEntries(
   ([provaAnello, provaFolle, provaBaia, provaFuga, provaBinari, spiaggiaLungomare, spiaggiaBaia, spiaggiaPorto, spiaggiaFuga, giunglaMiniera] as unknown as CPistaDef[]).map((p) => [p.id, p]),
 );
+/** Le piste del banco di prova (#258): solo le definitive delle zone. Le `prova_*` restano per i test e si aprono solo da indirizzo. */
+export const CORSE_PISTE_BANCO: string[] = Object.keys(CORSE_PISTE).filter((id) => !id.startsWith('prova_'));
 
 /** Controlli dei dati (in italiano): veicoli e superfici conosciuti, piste coerenti (griglia, tratti dentro la pista, rami). */
 export function validateCorse(): string[] {
