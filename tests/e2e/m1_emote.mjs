@@ -114,7 +114,7 @@ export default async function (ctx) {
       await bruno.page.keyboard.press('Digit2');
       await bruno.page.waitForSelector('.mz-emote[data-who="me"][data-emote="esulta"]', { state: 'attached', timeout: 1000 });
       const both = (await st(bruno)).emotes.shown;
-      const me = both.find((x) => x.who === 'me'), an = both.find((x) => x.who === 'anna');
+      const me = both.find((x) => x.who === 'me'), an = both.find((x) => x.who === 'anna') ?? g.s; // Anna è ferma: se il suo fumetto (2,5 s) è già sparito vale l'ancora letta sopra (CI lento)
       const d = Math.hypot(me.x - an.x, me.y - an.y);
       ctx.log(`teste in px: Bruno (${me.x}, ${me.y}) · Anna (${an.x}, ${an.y}) · ${d.toFixed(0)} px`);
       assert(d > 25 && d < 640, 'distanza tra le teste in px non plausibile: ' + d);
