@@ -32,11 +32,11 @@ test('consegne: nel registro, 150 s al massimo, 5 pacchi', () => {
   assert.equal(CFG.pacchi, 5);
 });
 
-test('consegne: i moli sono le B di Porto, Laguna e lotti, in acqua; il primo frame li codifica esatti', () => {
+test('consegne: i moli sono le B di Porto, Laguna e pontili, in acqua; il primo frame li codifica esatti', () => {
   const moli = consegneMoli(), map = consegneMappa();
   assert.ok(moli.length >= 8, `${moli.length} moli`);
   assert.equal(moli[0]!.id, 'porto');
-  assert.ok(moli.some((m) => m.id === 'laguna') && moli.some((m) => m.id === 'lotto:0'));
+  assert.ok(moli.some((m) => m.id === 'laguna') && moli.some((m) => m.id === 'molo:0'));
   assert.equal(new Set(moli.map((m) => m.id)).size, moli.length);
   for (const m of moli) {
     assert.equal(map.at(Math.floor(m.x / map.tile), Math.floor(m.z / map.tile)), 'B', `${m.id} non è su una B`);

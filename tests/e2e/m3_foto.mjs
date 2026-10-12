@@ -94,7 +94,7 @@ export default async function (ctx) {
     assert(box && box.width > 200 && box.height > 300 && box.x >= 0 && box.x + box.width <= 390 + 1 && box.y + box.height <= 844, `anteprima fuori misura: ${JSON.stringify(box)}`);
     await ctx.shot(page, 'iphone_anteprima');
     dPhone = await controllaScatto(page, 'm3_foto_scatto_iphone.png');
-    assert(dPhone.posto === 'Porto', `posto: ${dPhone.posto}`);
+    assert(dPhone.posto === 'Borgo Marea', `posto: ${dPhone.posto}`);
   });
   await ctx.test('telefono: SALVA scarica il PNG col nome giusto', async () => {
     const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 15000 }), page.click('#mzFotoSalva')]);

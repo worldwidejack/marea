@@ -80,8 +80,9 @@ export function consegneMappa(): GridMap {
 export function consegneMoli(): Molo[] {
   if (MOLI) return MOLI;
   consegneMappa();
+  let k = 0; // i Pontili (#237) dove prima c'erano le isole personali: molo:0, molo:1, …
   MOLI = ARCH!.places.filter((p) => CFG.moli.includes(p.role)).map((p) => ({
-    id: p.role === 'lotto' ? `lotto:${p.slot}` : p.role, nome: p.role === 'lotto' ? `Isola ${(p.slot ?? 0) + 1}` : p.nome.split(' ')[0]!,
+    id: p.role === 'molo' ? `molo:${k++}` : p.role, nome: p.role === 'molo' ? `Pontile ${k}` : p.nome.split(' ')[0]!,
     island: p.island, slot: p.slot, x: p.boat.x, z: p.boat.z,
   }));
   return MOLI;

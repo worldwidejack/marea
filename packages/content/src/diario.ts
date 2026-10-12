@@ -47,11 +47,11 @@ export const TITOLO_MAX = 20;
 
 type IsolaJson = { id: string; nome: string };
 type ArchJson = { islands: { island: string; role: string }[] };
-/** Le isole da visitare: tutte quelle dell'arcipelago che non sono lotti (Porto, Laguna, facciate, isole a tema), una volta sola. */
+/** Le isole da visitare: tutte quelle dell'arcipelago che non sono lotti, Borgo o pontili (Porto, Laguna, facciate, isole a tema), una volta sola. */
 export const ISOLE_DIARIO: readonly DiarioIsola[] = (() => {
   const out: DiarioIsola[] = [];
   for (const p of (archipelago as unknown as ArchJson).islands) {
-    if (p.role === 'lotto' || out.some((x) => x.id === p.island)) continue;
+    if (p.role === 'lotto' || p.role === 'borgo' || p.role === 'molo' || out.some((x) => x.id === p.island)) continue; // Borgo e pontili (#237) fanno parte del Porto
     const def = (islands as unknown as IsolaJson[]).find((i) => i.id === p.island);
     out.push({ id: p.island, nome: def?.nome ?? p.island });
   }

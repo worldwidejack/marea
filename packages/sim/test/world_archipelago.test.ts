@@ -44,8 +44,12 @@ test('arcipelago: contenuti validi e composizione deterministica', () => {
   assert.equal(ISLANDS[0]!.id, 'prova', 'prova resta la prima isola (regata e test)');
 });
 
-test('arcipelago: 8 lotti (slot 0-7), un Porto, una laguna, due facciate', () => {
-  assert.deepEqual(arch.lots.map((l) => l.slot), [0, 1, 2, 3, 4, 5, 6, 7]);
+test('arcipelago: 30 lotti (giardini delle case, #237), un Porto, il Borgo, una laguna, due facciate', () => {
+  assert.deepEqual(arch.lots.map((l) => l.slot), Array.from({ length: 30 }, (_, i) => i));
+  assert.equal(arch.places.filter((p) => p.role === 'borgo').length, 1);
+  assert.equal(arch.buildings.filter((b) => b.island === 'borgo').length, 30, 'una casa per lotto nel Borgo');
+  const mareH = ARCHIPELAGO.mare![1];
+  assert.ok(arch.places.filter((p) => p.role === 'lotto').every((p) => p.origin[1] > mareH), 'i giardini stanno oltre il mare navigabile');
   assert.ok(arch.lots.every((l) => l.template === 'lotto'));
   assert.equal(arch.places.filter((p) => p.role === 'porto').length, 1);
   assert.ok(arch.laguna);
@@ -72,6 +76,7 @@ test('arcipelago: ogni isola è copiata identica nella mappa, senza sovrapposizi
     const a = arch.places[i]!, b = arch.places[j]!;
     const gapX = Math.max(b.origin[0] - (a.origin[0] + a.w), a.origin[0] - (b.origin[0] + b.w));
     const gapZ = Math.max(b.origin[1] - (a.origin[1] + a.h), a.origin[1] - (b.origin[1] + b.h));
+    if ([a.role, b.role].includes('porto') && [a.role, b.role].includes('borgo')) continue; // il Borgo tocca il Porto: il ponte (#237)
     assert.ok(Math.max(gapX, gapZ) >= 4, `${a.island} e ${b.island} troppo vicine (${Math.max(gapX, gapZ)} celle)`);
   }
 });
@@ -94,23 +99,20 @@ test('arcipelago: spawn a terra, barche in acqua, dal molo si sale e si scende',
   assert.deepEqual(arch.spawnOf(42), arch.spawnOf(null), 'slot inesistente → Porto');
 });
 
-test('arcipelago: ogni lotto, la laguna e le facciate si raggiungono in barca dal Porto (al massimo ~40 s per i lotti: casa, Porto e Regata vicini)', () => {
+test('arcipelago: la laguna, le facciate e i pontili si raggiungono in barca dal Porto (i giardini no: ci si arriva dalla porta di casa, #237)', () => {
   const from = cellOf(arch.boatOf(null));
   const d = bfs(M, from, (x, z) => NAV.has(M.at(x, z)));
   const vmax = BALANCE.barca.maxSpeed;
   const times: string[] = [];
   for (const p of arch.places) {
-    if (p.role === 'porto') continue;
+    if (p.role === 'porto' || p.role === 'lotto') continue;
     const c = cellOf(p.boat), cells = d[c.cz * M.w + c.cx]!;
     assert.ok(cells >= 0, `${p.island}${p.slot !== null ? ' ' + p.slot : ''}: irraggiungibile in barca dal Porto`);
     // percorso a 4 vicini: la barca taglia in diagonale, stima ~0,8 della lunghezza Manhattan-locale
     const s = (cells * M.tile * 0.8) / vmax;
-    if (p.role === 'lotto') {
-      times.push(`${p.slot}:${Math.round(s)}s`);
-      assert.ok(s <= 40, `lotto ${p.slot}: ${Math.round(s)} s di barca dal Porto (attesi al massimo 40 s)`);
-    }
+    if (p.role === 'molo') times.push(`${p.index}:${Math.round(s)}s`);
   }
-  console.log('[marea] barca Porto → lotti (stima a 9 m/s):', times.join(' '));
+  console.log('[marea] barca Porto → pontili (stima a 9 m/s):', times.join(' '));
 });
 
 test('arcipelago: ogni cella L del template è una L nel mondo (lotCellToWorld)', () => {

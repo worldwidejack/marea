@@ -10,6 +10,7 @@ import consegne from './minigames/consegne.json' with { type: 'json' };
 import ingorgo from './minigames/ingorgo.json' with { type: 'json' };
 import decor from './decor.json' with { type: 'json' };
 import archipelago from './archipelago.json' with { type: 'json' };
+import borgo from './borgo.json' with { type: 'json' };
 import scacchi from './scacchi.json' with { type: 'json' };
 import perle from './minigames/perle.json' with { type: 'json' }; // Perle
 import meteo from './meteo.json' with { type: 'json' }; // Meteo (#85)
@@ -20,7 +21,7 @@ import arrembaggio from './minigames/arrembaggio.json' with { type: 'json' }; //
 import lava from './minigames/lava.json' with { type: 'json' }; // Vulcano
 import corse from './minigames/corse.json' with { type: 'json' }; // Isola delle Corse
 import type { ArrembaggioCfg, LavaCfg } from './types.ts'; // Tempesta, Vulcano
-import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, MeteoCfg, PerleCfg, PescaCfg, RegataCfg, ResourceDef, RientroCfg, ScacchiCfg } from './types.ts';
+import type { ArchipelagoDef, AvatarDef, BorgoDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, MeteoCfg, PerleCfg, PescaCfg, RegataCfg, ResourceDef, RientroCfg, ScacchiCfg } from './types.ts';
 import type { PinguiniCfg } from './types.ts'; // Ghiacci
 import type { KoiCfg } from './types.ts'; // Giardino
 import type { CorseCfg } from './types.ts'; // Isola delle Corse
@@ -55,6 +56,7 @@ export const MINIGAMES_CFG: {
 };
 export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;
+export const BORGO = borgo as unknown as BorgoDef; // Borgo Marea (#237): una casa per slot
 export const SCACCHI = scacchi as unknown as ScacchiCfg;
 export const RIENTRO = rientro as unknown as RientroCfg; // Mentre eri via e libro degli ospiti (#86)
 export const METEO = meteo as unknown as MeteoCfg;
@@ -81,7 +83,20 @@ export function validateContent(): string[] {
     ...validateAll({ buildings: [...BUILDINGS], resources: [...RESOURCES], islands: [...ISLANDS], avatar: AVATAR, balance: BALANCE, decor: [...DECOR] }),
     ...validateArchipelago(ARCHIPELAGO, [...ISLANDS]),
     ...validateTemi(ARCHIPELAGO, [...BUILDINGS], AVATAR),
+    ...validateBorgo(),
     ...validateDiario(), // Diario del capitano (#87)
     ...DIARIO.minigiochi.filter((m) => !Object.hasOwn(MINIGAMES_CFG, m.id)).map((m) => `diario: minigioco sconosciuto ${m.id}`),
   ];
+}
+
+/** Borgo Marea (#237): una casa per ogni lotto, porta su una cella camminabile del template `borgo`, edificio su una `L`. */
+function validateBorgo(): string[] {
+  const errs: string[] = [], lotti = ARCHIPELAGO.islands.filter((i) => i.role === 'lotto').length, t = ISLANDS.find((i) => i.id === 'borgo');
+  if (BORGO.case.length !== lotti) errs.push(`borgo: ${BORGO.case.length} case ma ${lotti} lotti`);
+  if (!t) return [...errs, 'borgo: manca il template borgo'];
+  for (const [n, c] of BORGO.case.entries()) {
+    if (t.rows[c.at[1]]?.[c.at[0]] !== 'L') errs.push(`borgo: la casa ${n} non sta su una L`);
+    if (!'.gdP'.includes(t.rows[c.porta[1]]?.[c.porta[0]] ?? '~')) errs.push(`borgo: la porta della casa ${n} non è camminabile`);
+  }
+  return errs;
 }

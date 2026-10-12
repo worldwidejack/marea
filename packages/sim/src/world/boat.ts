@@ -66,9 +66,10 @@ export function stepBoat(s: BoatState, input: InputFrame, map: GridMap, wind: Ve
  * Corrente al bordo del mondo (#5): nella fascia di BORDO.fascia m dentro il bordo della mappa una corrente morbida spinge la barca
  * verso il centro (più forte verso il bordo) e frena chi punta fuori; oltre il bordo non si va. Dentro la mappa, lontano dal bordo,
  * restituisce lo stesso stato (`attiva` false): la sim della barca e le partite registrate non cambiano.
+ * `mare` = [w, h] in celle della parte navigabile (ARCHIPELAGO.mare, #237): oltre ci sono i giardini delle case, la barca non ci va.
  */
-export function correnteBordo(s: BoatState, map: GridMap): { s: BoatState; attiva: boolean } {
-  const W = map.w * map.tile, H = map.h * map.tile, F = BORDO.fascia;
+export function correnteBordo(s: BoatState, map: GridMap, mare?: readonly [number, number]): { s: BoatState; attiva: boolean } {
+  const W = (mare?.[0] ?? map.w) * map.tile, H = (mare?.[1] ?? map.h) * map.tile, F = BORDO.fascia;
   const kx = s.x < F ? (F - s.x) / F : s.x > W - F ? -(s.x - (W - F)) / F : 0;
   const kz = s.z < F ? (F - s.z) / F : s.z > H - F ? -(s.z - (H - F)) / F : 0;
   if (kx === 0 && kz === 0) return { s, attiva: false };

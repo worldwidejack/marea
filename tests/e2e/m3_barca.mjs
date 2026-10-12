@@ -135,7 +135,7 @@ export default async function (ctx) {
     });
 
     await ctx.test('PC: a casa la barca di Luca ha scafo viola, vela gialla e nome sul fianco', async () => {
-      await lh('goto', 'lotto:0');
+      await lh('goto', 'porto');
       const s = await lst();
       await lh('teleport', s.island.dock.x, s.island.dock.z); await lh('setZoom', 0.6);
       await sleep(1500);
@@ -171,12 +171,12 @@ export default async function (ctx) {
       await ctx.waitState(mp, (s) => !s.editor.open, 5000);
     });
 
-    await ctx.test('telefono: sull’isola di Luca la sua barca è ormeggiata coi suoi colori; quella di Mia non ci sta sopra', async () => {
+    await ctx.test('telefono: al Porto la barca di Luca è ormeggiata coi suoi colori (#237); quella di Mia non ci sta sopra', async () => {
       const casaMia = (await mst()).barche.mia;
       assert(casaMia.barca.scafo === 'mare' && casaMia.barca.nome === 'Ancora b!', 'barca di Mia: ' + JSON.stringify(casaMia.barca));
-      await mh('goto', 'lotto:0');
+      await mh('goto', 'porto');
       await ctx.waitState(mp, (s) => { const b = s.barche.altre.find((x) => x.id === 'luca'); return !!b && !b.naviga && b.barca?.scafo === 'corsaro' && b.barca.vela === 'sole' && b.barca.nome === 'La Gabbiana'; }, 20000);
-      // goto ha ormeggiato la barca di Mia al molo di Luca, proprio dove sta la sua: si scansa da sola
+      // goto ha ormeggiato la barca di Mia alla B del Porto: quella di Luca sta nel primo posto libero accanto
       await ctx.waitState(mp, (s) => !s.barche.sovrapposte, 15000);
       const s = await mst(), l = luca(s);
       assert(!barcheSovrapposte(s.barche.mia, l), 'sovrapposte: ' + JSON.stringify({ mia: s.barche.mia, luca: l }));
@@ -191,7 +191,7 @@ export default async function (ctx) {
 
     await ctx.test('due al molo: Luca porta la sua barca sopra quella di Mia, che si sposta; nessuna sovrapposizione', async () => {
       const m0 = (await mst()).barche.mia;
-      await lh('goto', 'lotto:0'); await lh('setMode', 'boat');
+      await lh('goto', 'porto'); await lh('setMode', 'boat');
       await lh('barcaA', m0.x, m0.z, m0.yaw);
       await ctx.waitState(mp, (s, m) => { const b = s.barche.altre.find((x) => x.id === 'luca'); return !!b && b.naviga && Math.hypot(b.x - m.x, b.z - m.z) < 0.5; }, 15000, m0);
       await ctx.waitState(mp, (s, m) => !s.barche.sovrapposte && Math.hypot(s.barche.mia.x - m.x, s.barche.mia.z - m.z) > 1, 15000, m0);

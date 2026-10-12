@@ -162,10 +162,12 @@ export default async function (ctx) {
     await ctx.waitState(dp, (s) => s.lot && s.lot.ready === true && s.diario, 60000);
     const dhook = (n, ...a) => dp.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
-    await ctx.test('PC: sull\'isola di Luca si vede «Campione» sotto il suo nome; la visita finisce nel diario di Mia', async () => {
+    await ctx.test('PC: davanti a casa di Luca (Borgo, #237) si vede «Campione» sotto il suo nome; la visita al giardino finisce nel diario di Mia', async () => {
       await dhook('goto', 'lotto:0');
-      await ctx.waitState(dp, (s) => s.targhette.some((t) => t.who === 'luca' && t.nome === 'Luca' && t.titolo === 'Campione' && t.on), 20000);
       await ctx.waitState(dp, (s) => s.diario.isole.includes('lotto:luca'), 10000);
+      const porta = (await ctx.getState(dp)).borgo.porte.find((p) => p.slot === 0);
+      await dhook('teleport', porta.x + 2, porta.z);
+      await ctx.waitState(dp, (s) => s.targhette.some((t) => t.who === 'luca' && t.nome === 'Luca' && t.titolo === 'Campione' && t.on), 20000);
       await sleep(300);
       await ctx.shot(dp, 'desktop_1_targa');
     });
