@@ -332,7 +332,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
       if (!s || gara !== s || !p) return;
       aggiornaVeicoli(dt, o2);
       aggiornaFantasmi(dt, o2.amici);
-      ogg = ogg3d.aggiorna(gara, p, dt, o2.fine ? null : suoni);
+      ogg = ogg3d.aggiorna(gara, p, dt, o2.fine ? null : suoni, o.camera);
       avatar?.update(1, dt); fx.aggiorna(dt);
       posa(0, vP, vF, vU, vM);
       const w = vis[0]!, hop = w.hop > 0 ? 1.52 * (w.hop / 0.26) * (1 - w.hop / 0.26) : 0;

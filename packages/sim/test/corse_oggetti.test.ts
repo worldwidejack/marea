@@ -61,14 +61,14 @@ test('oggetti (#250): si pesca da una scatola, la roulette gira e USA allo scatt
 const CORSE_S = (s: GaraState, prog: number) => { const v = s.veicoli[0]!; return v.s + (prog - v.prog); };
 
 test('oggetti (#250): ogni effetto fa quello che deve (turbo, scudo, trappola, colpo dritto, colpo a ricerca)', () => {
-  const prova = (id: string) => {
+  const prova = (id: string, my = 1) => {
     const s = via(nuova('spiaggia_lungomare', true, 3, true)), o = s.oggetti!;
     for (let i = 0; i < 60; i++) garaCorse.step(s, { mx: 0, my: 1, a: false, b: false });
     for (const t of o.tasche) { t.ogg = ''; t.roulette = 0; } // i bot non usano niente
     o.scatole.length = 0;
     const t = o.tasche[0]!;
     t.ogg = id; t.cariche = oggettoDef(id).cariche; t.roulette = 0;
-    garaCorse.step(s, { mx: 0, my: 1, a: false, b: true });
+    garaCorse.step(s, { mx: 0, my, a: false, b: true });
     return s;
   };
   const tu = prova('turbo');
@@ -90,6 +90,15 @@ test('oggetti (#250): ogni effetto fa quello che deve (turbo, scudo, trappola, c
   assert.ok(pa.oggetti!.colpi.length + pa.oggetti!.presi.reduce((x, y) => x + y, 0) === 1);
   for (let i = 0; i < 300; i++) garaCorse.step(pa, { mx: 0, my: 1, a: false, b: false });
   assert.equal(pa.oggetti!.colpi.length, 0);
+  // col freno tenuto si lancia dall'altra parte (Jack, 12 ott): la buccia vola avanti (e chi l'ha lanciata non ci inciampa), la palla va indietro
+  const ba = prova('buccia', -1), tv = ba.oggetti!.trappole[0]!;
+  assert.ok(tv.prog > ba.veicoli[0]!.prog + 15 && tv.t < 0, `buccia avanti: ${tv.prog} vs ${ba.veicoli[0]!.prog}`);
+  for (let i = 0; i < 120; i++) garaCorse.step(ba, { mx: 0, my: 1, a: false, b: false });
+  assert.equal(ba.oggetti!.presi[0], 0, 'chi la lancia avanti non ci inciampa');
+  const pi = prova('palla', -1);
+  assert.ok(pi.oggetti!.colpi.length === 0 || pi.oggetti!.colpi[0]!.v < 0, 'palla indietro');
+  const ri = prova('razzo', -1), ci = ri.oggetti!.colpi[0];
+  assert.ok(!ci || ci.v < 0, 'razzo indietro');
   // lo scudo para un colpo
   const sp = prova('scudo');
   const j = 1, tj = sp.oggetti!.tasche[j]!;

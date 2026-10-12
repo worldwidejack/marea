@@ -41,7 +41,7 @@ export function validateCorse(): string[] {
   const O = c.oggetti, ids = new Set<string>();
   if (!O.scatole.righe.length || !O.scatole.lat.length || !pos(O.scatole.raggio) || !pos(O.scatole.ricompare) || !pos(O.scatole.roulette)) errs.push('corse: scatole degli oggetti non valide');
   if (!pos(O.colpito.secondi) || !(O.colpito.velocita >= 0 && O.colpito.velocita < 1)) errs.push('corse: colpito degli oggetti non valido');
-  const servono: Record<string, readonly (keyof COggettoDef)[]> = { turbo: ['secondi'], scudo: ['secondi'], trappola: ['dietro', 'durata', 'raggio'], dritto: ['velocita', 'vita', 'raggio'], ricerca: ['velocita', 'vita', 'raggio', 'sterza'] };
+  const servono: Record<string, readonly (keyof COggettoDef)[]> = { turbo: ['secondi'], scudo: ['secondi'], trappola: ['dietro', 'lancio', 'durata', 'raggio'], dritto: ['velocita', 'vita', 'raggio'], ricerca: ['velocita', 'vita', 'raggio', 'sterza'] };
   for (const o of O.catalogo) {
     const d = `oggetto ${o.id}`;
     if (ids.has(o.id)) errs.push(`corse: ${d} doppio`);

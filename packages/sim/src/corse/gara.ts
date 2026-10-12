@@ -2,7 +2,8 @@
 // È un MinigameModule come gli altri. Per ora lo usa solo il banco di prova (provapiste.html); il server lo rigiocherà quando il
 // circuito della Spiaggia prenderà il posto del Gran Premio. Opzioni: pista, veicolo (della famiglia della pista), bot ('0' = da solo),
 // e le regole (#170, '0' = spenta, di serie accese): sterzo (curva, rampa e velocità), partenza (turbo al semaforo), acrobazie, scia, somma.
-// Gli oggetti alla Mario Kart (#250, oggetti.ts) invece sono di serie spenti: oggetti = '1' (gara CON OGGETTI); USA = il bottone b.
+// Gli oggetti alla Mario Kart (#250, oggetti.ts) invece sono di serie spenti: oggetti = '1' (gara CON OGGETTI); USA = il bottone b,
+// col freno tenuto (gas < −0,3) l'oggetto va dall'altra parte.
 // La gara parte col conto alla rovescia (tick negativi fino al VIA): i tempi contano dal VIA.
 // Medaglia = posizione all'arrivo (da solo: oro se arrivi). Punteggio = scoreBase − centesimi.
 // Piste miste (il porto): più famiglie sulla stessa pista, ognuna nella sua corsia; i bot sono misti. Fughe con l'inseguitore (l'onda).
@@ -317,7 +318,7 @@ export const garaCorse: MinigameModule<GaraState> = {
       const el = diff > 0 ? 1 - Math.min(E.davantiMax, diff * E.davanti) : 1 + Math.min(E.dietroMax, -diff * E.dietro);
       guida(p, k, V, a.sterzo, k.fine ? 0.5 : a.gas, false, B.bravura[i - 1]! * B.bravuraFamiglia[V.famiglia] * el * dentro(k), k.giro + 1, R);
     }
-    if (s.oggetti) passoOggetti(s.oggetti, p, s.veicoli, f.b, () => posizioni(s), s.seed, s.tick, R);
+    if (s.oggetti) passoOggetti(s.oggetti, p, s.veicoli, f.b, f.my < -0.3, () => posizioni(s), s.seed, s.tick, R);
     if (R.scia) scia(s, p);
     urti(p, s.veicoli, s.pesi);
     for (const k of s.veicoli) dopo(s, p, k);

@@ -179,6 +179,16 @@ export default async function (ctx) {
     await d.page.keyboard.up('KeyQ');
     const dopo = await d.page.evaluate(() => window.__provapiste.state());
     assert(dopo.oggetti.usati[0] === prima + 1, `Q non usa l'oggetto: ${prima} → ${dopo.oggetti.usati[0]}`);
+    // col freno la buccia vola avanti (Jack, 12 ott) e atterra davanti: sprite a forma di banana
+    const av = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true }); a.dai('buccia'); const st = a.usa(true); a.avanti(10); a.set({ pausa: true }); return st; });
+    assert(av.oggetti.trappole >= 1, `buccia lanciata avanti: ${JSON.stringify(av.oggetti)}`);
+    await fotogrammi(d.page, 4);
+    await ctx.shot(d.page, 'pc_buccia_avanti');
+    // chi viene colpito gira e fuma (fumo a sbuffi tondi, non cubetti)
+    const colpito = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ pausa: false }); let st = a.state(); const p0 = st.oggetti.presi[0]; for (let i = 0; i < 60 * 90 && st.oggetti.presi[0] === p0 && !st.done; i++) st = a.avanti(1); a.avanti(6); a.set({ pausa: true }); return st; });
+    await fotogrammi(d.page, 30);
+    if (colpito.oggetti.presi[0] > 0) await ctx.shot(d.page, 'pc_colpito_fumo');
+    await d.page.evaluate(() => window.__provapiste.set({ pausa: false }));
     const fine = await corri(d.page, 60 * 240);
     const perf = await d.page.evaluate(() => window.__provapiste.perf());
     assert(fine.done && fine.oggetti.usati.slice(1).some((n) => n > 0), `i bot non usano gli oggetti: ${JSON.stringify(fine.oggetti)}`);

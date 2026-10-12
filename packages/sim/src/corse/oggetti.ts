@@ -2,6 +2,9 @@
 // colpo dritto, colpo che insegue chi sta davanti, scudo). Solo nelle gare CON OGGETTI. Numeri in CORSE.oggetti (motore.json).
 // Tutto vive in «progresso» (m dal via, come Veicolo.prog): sui circuiti si confronta a meno di un giro, così trappole e scatole valgono
 // a ogni giro. Scatole, trappole e colpi dritti stanno sulla principale: chi è su un ramo non li prende. Il colpo a ricerca invece arriva sempre.
+// Avanti o indietro (Jack, 12 ott): di serie la trappola cade dietro e i colpi partono avanti; USA col freno tenuto (gas < −0,3 nel tick
+// in cui si preme) li manda dall'altra parte: la trappola vola avanti di `lancio` m, il colpo dritto va indietro, quello a ricerca insegue
+// chi ti sta subito dietro.
 // La pesca è casuale ma dal seed (createRng con seed, tick e veicolo): il server la rigioca uguale. Chi è dietro in classifica pesca meglio.
 import { CORSE } from '@marea/content/corse.ts';
 import type { COggettoDef } from '@marea/content/corse.ts';
@@ -21,7 +24,7 @@ export type Tasca = { ogg: string; cariche: number; roulette: number; scudo: num
 /** Una scatola: progresso nel giro, scarto laterale, s prima che ricompaia (0 = c'è). */
 export type Scatola = { prog: number; lat: number; t: number };
 /** Una trappola a terra o un colpo in volo: chi l'ha lanciato, dove, da quanto (s). `bersaglio` = indice del veicolo inseguito (−1 = nessuno). */
-export type Trappola = { ogg: string; da: number; prog: number; lat: number; t: number };
+export type Trappola = { ogg: string; da: number; prog: number; lat: number; t: number; p0: number };
 export type Colpo = { ogg: string; da: number; prog: number; lat: number; t: number; v: number; bersaglio: number };
 export type OggettiState = {
   /** Gli id del catalogo che possono uscire su questa pista (base + quelli della zona). */
@@ -96,45 +99,51 @@ function colpisci(o: OggettiState, ks: Veicolo[], j: number): void {
 }
 const colpibile = (k: Veicolo) => !k.fine && !k.caduto && k.ramo < 0 && k.h < 1.5;
 
-/** Usa l'oggetto in tasca del veicolo `i`. `pos` = posizioni in classifica (1…). */
-function usa(o: OggettiState, p: Pista, ks: Veicolo[], i: number, pos: number[], R: Regole): void {
+/** Quanto vola una trappola lanciata avanti (s): finché vola non prende nessuno (la resa la disegna in aria). */
+export const VOLO_TRAPPOLA = 0.45;
+
+/** Usa l'oggetto in tasca del veicolo `i`, dall'altra parte se `indietro` (vedi in testa). `pos` = posizioni in classifica (1…). */
+function usa(o: OggettiState, p: Pista, ks: Veicolo[], i: number, pos: number[], R: Regole, indietro: boolean): void {
   const t = o.tasche[i]!, k = ks[i]!, d = oggettoDef(t.ogg);
   if (d.effetto === 'turbo') daiTurbo(k, d.secondi!, 3, R.somma);
   else if (d.effetto === 'scudo') t.scudo = d.secondi!;
   else if (d.effetto === 'trappola') {
-    o.trappole.push({ ogg: d.id, da: i, prog: k.prog - d.dietro!, lat: k.ramo < 0 ? k.lat : 0, t: 0 });
+    const avanti = indietro; // la trappola di serie va dietro: col freno vola avanti
+    o.trappole.push({ ogg: d.id, da: i, prog: k.prog + (avanti ? d.lancio! : -d.dietro!), lat: k.ramo < 0 ? k.lat : 0, t: avanti ? -VOLO_TRAPPOLA : 0, p0: k.prog });
     if (o.trappole.length > CORSE.oggetti.massimiATerra) o.trappole.shift();
   } else {
-    // il colpo a ricerca insegue chi ti sta subito davanti; dal primo posto va dritto
-    const bersaglio = d.effetto === 'ricerca' ? pos.indexOf(pos[i]! - 1) : -1;
-    o.colpi.push({ ogg: d.id, da: i, prog: k.prog + 2.5, lat: k.ramo < 0 ? k.lat : 0, t: 0, v: d.velocita! + Math.max(0, k.v), bersaglio });
+    // il colpo a ricerca insegue chi ti sta subito davanti (o dietro); dal primo (o dall'ultimo) posto va dritto
+    const bersaglio = d.effetto === 'ricerca' ? pos.indexOf(pos[i]! + (indietro ? 1 : -1)) : -1;
+    const v = indietro ? Math.max(0, k.v) - d.velocita! : d.velocita! + Math.max(0, k.v);
+    o.colpi.push({ ogg: d.id, da: i, prog: k.prog + (indietro ? -2.5 : 2.5), lat: k.ramo < 0 ? k.lat : 0, t: 0, v, bersaglio });
   }
   o.usati[i]!++;
   t.cariche--; t.tenuto = 0;
   if (t.cariche <= 0) { t.ogg = ''; t.cariche = 0; }
 }
 
-/** Quando usa l'oggetto un bot: lo scudo e il razzo quasi subito, il turbo dopo un attimo, la trappola se qualcuno lo segue da vicino,
- *  il colpo dritto se ha qualcuno davanti in fila (comunque, dopo un po', li usa). */
-function botUsa(o: OggettiState, p: Pista, ks: Veicolo[], i: number): boolean {
+/** Quando usa l'oggetto un bot (0 = no, 1 = sì, 2 = sì e indietro): lo scudo e il razzo quasi subito, il turbo dopo un attimo, la
+ *  trappola (dietro) se qualcuno lo segue da vicino, il colpo dritto se ha qualcuno in fila davanti, o dietro e vicino (comunque, dopo un po', li usa). */
+function botUsa(o: OggettiState, p: Pista, ks: Veicolo[], i: number): 0 | 1 | 2 {
   const t = o.tasche[i]!, k = ks[i]!, d = oggettoDef(t.ogg);
-  if (d.effetto === 'scudo') return t.tenuto > 0.4;
-  if (d.effetto === 'ricerca') return t.tenuto > 1;
-  if (d.effetto === 'turbo') return t.tenuto > 1.3;
-  if (t.tenuto > 6) return true;
-  if (k.ramo >= 0) return false;
+  if (d.effetto === 'scudo') return t.tenuto > 0.4 ? 1 : 0;
+  if (d.effetto === 'ricerca') return t.tenuto > 1 ? 1 : 0;
+  if (d.effetto === 'turbo') return t.tenuto > 1.3 ? 1 : 0;
+  if (t.tenuto > 6) return 1;
+  if (k.ramo >= 0) return 0;
   for (let j = 0; j < ks.length; j++) {
     const a = ks[j]!;
     if (j === i || !colpibile(a)) continue;
-    const dp = dprog(p, k.prog, a.prog);
-    if (d.effetto === 'trappola' && dp < -2 && dp > -14) return true;
-    if (d.effetto === 'dritto' && dp > 3 && dp < 30 && Math.abs(a.lat - k.lat) < 1.4) return true;
+    const dp = dprog(p, k.prog, a.prog), fila = Math.abs(a.lat - k.lat) < 1.4;
+    if (d.effetto === 'trappola' && dp < -2 && dp > -14) return 1;
+    if (d.effetto === 'dritto' && fila && dp > 3 && dp < 30) return 1;
+    if (d.effetto === 'dritto' && fila && dp < -3 && dp > -12) return 2;
   }
-  return false;
+  return 0;
 }
 
 /** Un tick degli oggetti, dopo la guida di tutti: scatole, roulette, USA (il tuo dal bottone, i bot da soli), trappole e colpi. */
-export function passoOggetti(o: OggettiState, p: Pista, ks: Veicolo[], usaTu: boolean, posizioni: () => number[], seed: number, tick: number, R: Regole): void {
+export function passoOggetti(o: OggettiState, p: Pista, ks: Veicolo[], usaTu: boolean, indietroTu: boolean, posizioni: () => number[], seed: number, tick: number, R: Regole): void {
   const S = CORSE.oggetti.scatole;
   let pos: number[] | null = null;
   const classifica = () => (pos ??= posizioni());
@@ -164,14 +173,15 @@ export function passoOggetti(o: OggettiState, p: Pista, ks: Veicolo[], usaTu: bo
     if (i === 0) t.premuto = usaTu;
     if (!t.ogg || t.roulette > 0 || k.fine || k.caduto) continue;
     t.tenuto += DT;
-    if (i === 0 ? scatto : botUsa(o, p, ks, i)) usa(o, p, ks, i, classifica(), R);
+    const b = i === 0 ? (scatto ? (indietroTu ? 2 : 1) : 0) : botUsa(o, p, ks, i);
+    if (b) usa(o, p, ks, i, classifica(), R, b === 2);
   }
   // trappole: chi ci passa sopra (anche chi l'ha lasciata, dopo un attimo) gira; spariscono col tempo
   for (let x = o.trappole.length - 1; x >= 0; x--) {
     const tr = o.trappole[x]!, d = oggettoDef(tr.ogg);
     tr.t += DT;
     let preso = tr.t > d.durata!;
-    if (!preso) for (let j = 0; j < ks.length; j++) {
+    if (!preso && tr.t >= 0) for (let j = 0; j < ks.length; j++) {
       const k = ks[j]!;
       if ((j === tr.da && tr.t < 1) || !colpibile(k)) continue;
       if (Math.abs(dprog(p, k.prog, tr.prog)) <= d.raggio! && Math.abs(k.lat - tr.lat) <= d.raggio!) { colpisci(o, ks, j); preso = true; break; }
@@ -186,10 +196,10 @@ export function passoOggetti(o: OggettiState, p: Pista, ks: Veicolo[], usaTu: bo
     const l = campo(p.n, p.n.l, sDiProg(p, c.prog));
     if (b && b.ramo < 0) c.lat += clamp(b.lat - c.lat, -d.sterza! * DT, d.sterza! * DT);
     c.lat = clamp(c.lat, -l, l);
-    let finito = c.t > d.vita! || (!p.n.chiuso && c.prog > p.arrivo);
+    let finito = c.t > d.vita! || (!p.n.chiuso && (c.prog > p.arrivo || c.prog < -p.def.via));
     if (!finito && b) {
       if (b.fine || b.caduto) c.bersaglio = -1;
-      else if (c.prog >= b.prog - d.raggio!) { colpisci(o, ks, c.bersaglio); finito = true; }
+      else if (c.v >= 0 ? c.prog >= b.prog - d.raggio! : c.prog <= b.prog + d.raggio!) { colpisci(o, ks, c.bersaglio); finito = true; }
     }
     if (!finito && !b) for (let j = 0; j < ks.length; j++) {
       const k = ks[j]!;

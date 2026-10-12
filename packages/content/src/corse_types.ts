@@ -72,8 +72,8 @@ export type COggettoDef = {
   pesi: [number, number, number];
   /** turbo e scudo: s. */
   secondi?: number;
-  /** trappola: m dietro chi la lascia, durata a terra (s). */
-  dietro?: number; durata?: number;
+  /** trappola: m dietro chi la lascia, m davanti dove atterra se lanciata avanti (USA col freno), durata a terra (s). */
+  dietro?: number; lancio?: number; durata?: number;
   /** colpi: m/s, vita (s), quanto in fretta inseguono di lato (m/s). Trappole e colpi: raggio di presa (m). */
   velocita?: number; vita?: number; sterza?: number; raggio?: number;
 };

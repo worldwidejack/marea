@@ -5,12 +5,13 @@ import * as THREE from 'three';
 import { CORSE } from '@marea/content/corse.ts';
 import type { GaraState } from '@marea/sim/corse/gara.ts';
 import { punto, terna, nuovaTerna } from '@marea/sim/corse/nastro.ts';
-import { oggettoDef, sDiProg } from '@marea/sim/corse/oggetti.ts';
+import { VOLO_TRAPPOLA, oggettoDef, sDiProg } from '@marea/sim/corse/oggetti.ts';
 import type { OggettiState } from '@marea/sim/corse/oggetti.ts';
 import { nastroDi } from '@marea/sim/corse/pista.ts';
 import type { Pista } from '@marea/sim/corse/pista.ts';
 import { P } from '../render/island_parts.ts';
 import type { SuoniGuida } from './suoni.ts';
+import { BUCCIA, texturePixel } from './sprite_oggetti.ts';
 
 const MAX = { scatole: 24, trappole: 12, colpi: 16, scudi: 8 };
 const NOMI = Object.fromEntries(CORSE.oggetti.catalogo.map((o) => [o.id, o.nome.toUpperCase()]));
@@ -64,7 +65,7 @@ function istanze(geo: THREE.BufferGeometry, colore: string, n: number, nome: str
 export type Oggetti3d = {
   readonly gruppo: THREE.Group;
   /** Un frame: scatole, trappole, colpi, scudi, casella in alto, suoni. Ritorna lo stato del tuo oggetto per il bottone USA. */
-  aggiorna(s: GaraState, p: Pista, dt: number, suoni: SuoniGuida | null): { etichetta: string; pronto: boolean };
+  aggiorna(s: GaraState, p: Pista, dt: number, suoni: SuoniGuida | null, camera?: THREE.Camera): { etichetta: string; pronto: boolean };
   /** Mostra o nasconde la casella in alto. */
   interfaccia(on: boolean): void;
   chiudi(): void;
@@ -75,14 +76,17 @@ export function creaOggetti3d(root: HTMLElement): Oggetti3d {
   const gruppo = new THREE.Group(); gruppo.name = 'corse_oggetti';
   const scatole = istanze(new THREE.BoxGeometry(1.1, 1.1, 1.1), P.ambraNeon, MAX.scatole, 'corse_scatole');
   const segno = istanze(new THREE.BoxGeometry(0.36, 0.36, 1.16), P.neroCaldo, MAX.scatole, 'corse_scatole_segno');
-  const bucce = istanze(new THREE.ConeGeometry(0.55, 0.45, 5), P.giallo, MAX.trappole, 'corse_bucce');
+  // la buccia è uno sprite in pixel art (dalla concept) che guarda sempre la camera, girando solo intorno alla verticale
+  const altoB = 1.15, largoB = (altoB * BUCCIA[0]!.length) / BUCCIA.length;
+  const bucce = new THREE.InstancedMesh(new THREE.PlaneGeometry(largoB, altoB).translate(0, altoB / 2, 0), new THREE.MeshBasicMaterial({ map: texturePixel(BUCCIA), alphaTest: 0.5, side: THREE.DoubleSide }), MAX.trappole);
+  bucce.name = 'corse_bucce'; bucce.count = 0; bucce.frustumCulled = false;
   const palle = istanze(new THREE.IcosahedronGeometry(0.5, 0), P.rosso, MAX.colpi, 'corse_palle');
   const razzi = istanze(new THREE.ConeGeometry(0.35, 1.3, 6).rotateX(-Math.PI / 2), P.violaNeon, MAX.colpi, 'corse_razzi');
   const scudi = istanze(new THREE.TorusGeometry(1.7, 0.25, 4, 10).rotateX(Math.PI / 2), P.rosso, MAX.scudi, 'corse_scudi');
   for (const m of [scatole, segno, bucce, palle, razzi, scudi]) gruppo.add(m);
   const casella = document.createElement('div'); casella.className = 'pp-ogg'; root.appendChild(casella);
   const T = nuovaTerna(), M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(1, 1, 1), V = new THREE.Vector3(), X = new THREE.Vector3(), Y = new THREE.Vector3(), Z = new THREE.Vector3();
-  const P3: [number, number, number] = [0, 0, 0], Q2 = new THREE.Quaternion();
+  const P3: [number, number, number] = [0, 0, 0], Q2 = new THREE.Quaternion(), CAM = new THREE.Vector3(), SU = new THREE.Vector3(0, 1, 0);
   let t = 0, prima: { ogg: string; roulette: number; presi: number; scudo: number; usati: number } | null = null, mostra = true, ultimo = '';
 
   /** Matrice di un oggetto sulla principale: a `prog`, `lat`, alto `h`, girato di `giro` rad intorno al «sopra» della pista. */
@@ -104,14 +108,14 @@ export function creaOggetti3d(root: HTMLElement): Oggetti3d {
       html = NOMI[ids[i]!]!; casella.className = 'pp-ogg gira'; casella.style.borderColor = P.legnoChiaro;
     } else if (tu.ogg) {
       const d = oggettoDef(tu.ogg);
-      html = `${NOMI[tu.ogg]}${tu.cariche > 1 ? ` ×${tu.cariche}` : ''}<small>Q</small>`; casella.className = 'pp-ogg'; casella.style.borderColor = COLORE[d.effetto]!;
+      html = `${NOMI[tu.ogg]}${tu.cariche > 1 ? ` ×${tu.cariche}` : ''}${d.effetto === 'turbo' || d.effetto === 'scudo' ? '<small>Q</small>' : `<small>Q · col freno ${d.effetto === 'trappola' ? 'avanti' : 'indietro'}</small>`}`; casella.className = 'pp-ogg'; casella.style.borderColor = COLORE[d.effetto]!;
     } else { html = `SALVAGENTE <small>${Math.ceil(tu.scudo)} s</small>`; casella.className = 'pp-ogg'; casella.style.borderColor = COLORE.scudo!; }
     if (html !== ultimo) { casella.innerHTML = html; ultimo = html; }
   }
 
   return {
     gruppo,
-    aggiorna(s, p, dt, suoni) {
+    aggiorna(s, p, dt, suoni, camera) {
       const o = s.oggetti;
       gruppo.visible = !!o;
       if (!o) { casella.style.display = 'none'; prima = null; return { etichetta: '', pronto: false }; }
@@ -125,12 +129,20 @@ export function creaOggetti3d(root: HTMLElement): Oggetti3d {
       }
       scatole.count = segno.count = n; scatole.instanceMatrix.needsUpdate = segno.instanceMatrix.needsUpdate = true;
       n = 0;
-      for (const tr of o.trappole) if (n < MAX.trappole) bucce.setMatrixAt(n++, posa(p, tr.prog, tr.lat, 0.22, tr.prog));
+      if (camera) camera.getWorldPosition(CAM);
+      for (const tr of o.trappole) {
+        if (n >= MAX.trappole) break;
+        // lanciata avanti vola in arco dal veicolo al punto dove atterra
+        const u = tr.t < 0 ? 1 + tr.t / VOLO_TRAPPOLA : 1, pr = tr.p0 + (tr.prog - tr.p0) * u, h = 4 * u * (1 - u) * 3.5;
+        punto(p.n, sDiProg(p, pr), tr.lat, h, P3);
+        Q.setFromAxisAngle(SU, camera ? Math.atan2(CAM.x - P3[0], CAM.z - P3[2]) : 0);
+        bucce.setMatrixAt(n++, M.compose(V.set(P3[0], P3[1], P3[2]), Q, S.setScalar(1)));
+      }
       bucce.count = n; bucce.instanceMatrix.needsUpdate = true;
       let np = 0, nr = 0;
       for (const c of o.colpi) {
         const e = oggettoDef(c.ogg).effetto;
-        if (e === 'ricerca' && nr < MAX.colpi) razzi.setMatrixAt(nr++, posa(p, c.prog, c.lat, 0.8, 0));
+        if (e === 'ricerca' && nr < MAX.colpi) razzi.setMatrixAt(nr++, posa(p, c.prog, c.lat, 0.8, c.v < 0 ? Math.PI : 0));
         else if (np < MAX.colpi) palle.setMatrixAt(np++, posa(p, c.prog, c.lat, 0.55 + 0.25 * Math.abs(Math.sin(c.t * 9)), c.t * 12));
       }
       palle.count = np; razzi.count = nr; palle.instanceMatrix.needsUpdate = razzi.instanceMatrix.needsUpdate = true;

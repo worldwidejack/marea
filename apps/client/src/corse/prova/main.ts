@@ -389,7 +389,7 @@ function frame(now: number) {
   while (acc >= DT && n < 6) { if (!pausa && !ruota.visibile()) step(); acc -= DT; n++; }
   if (n === 6) acc = 0;
   aggiornaVeicoli(dt); avatar?.update(1, dt); fx.aggiorna(dt); aggiornaCamera(dt); eventi();
-  const og = ogg3d.aggiorna(s, p, dt, fase === 'gara' ? suoni : null); usa.etichetta(og.etichetta, og.pronto);
+  const og = ogg3d.aggiorna(s, p, dt, fase === 'gara' ? suoni : null, camera); usa.etichetta(og.etichetta, og.pronto);
   const k = s.veicoli[0]!;
   if (fase === 'gara' && s.tick > 0) suoni.motore(k.v, veicoloCorse(k.id).velocita, k.turbo > 0, k.drift !== 0, !k.aria);
   lights.follow?.(vP.x, vP.z);
@@ -435,6 +435,10 @@ const api = {
   },
   /** Avanza la gara di `tick` passi subito (pilota automatico), senza aspettare il tempo vero. */
   avanti: (tick: number) => { const a = auto; auto = true; for (let i = 0; i < tick && fase === 'gara'; i++) step(); auto = a; regia.st.ok = false; return api.state(); },
+  /** Gara con gli oggetti (#250): mette l'oggetto `id` nella tua tasca, roulette già ferma. */
+  dai: (id: string) => { const t = s.oggetti?.tasche[0]; if (t) { t.ogg = id; t.cariche = CORSE.oggetti.catalogo.find((x) => x.id === id)?.cariche ?? 1; t.roulette = 0; } return api.state(); },
+  /** Usa l'oggetto adesso (un tick col bottone premuto), `indietro` = col freno: dall'altra parte. */
+  usa: (indietro = false) => { const t = s.oggetti?.tasche[0]; if (t) t.premuto = false; garaCorse.step(s, { mx: 0, my: indietro ? -1 : 1, a: false, b: true }); garaCorse.step(s, { mx: 0, my: 1, a: false, b: false }); return api.state(); },
   piste: PISTE,
 };
 (window as unknown as { __provapiste: typeof api }).__provapiste = api;
