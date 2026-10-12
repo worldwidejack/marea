@@ -12,9 +12,9 @@ export type LanternaUi = { salvatoQui: boolean; oggetti: number; monete: number 
 /** Una magia del menù rapido: nome, costo in Magicka e una funzione che fa l'icona (un canvas non si clona: ogni chip ne vuole una nuova). */
 export type MagiaUi = { id: string; nome: string; costo: number; icona(): Node; /** Raggio continuo: il costo è al secondo. */ alSecondo?: boolean };
 export type Controls = {
-  /** Un campione per tick: c, d e la A in più (clic tenuto, bottone d'uscita, joystick di mira). `m` = indice di mira del joystick di mira
+  /** Un campione per tick: c, d e la A in più (clic tenuto, bottone d'uscita, joystick di mira). `tap` = tocco veloce sul joystick di mira senza trascinare (vale un tick): colpo assistito. `m` = indice di mira del joystick di mira
    *  (mentre è tenuto e nel tick del rilascio, così l'arco parte dove puntavi); 0 = niente mira dal dito. */
-  sample(): { a: boolean; c: boolean; d: boolean; e: boolean; m: number };
+  sample(): { a: boolean; c: boolean; d: boolean; e: boolean; m: number; tap: boolean };
   /** Telefono, arco o magia in mano: al posto del bottone A compare il joystick di mira (trascini = punti e tiri, lasci = l'arco parte). */
   setMira(on: boolean): void;
   /** Direzione del joystick di mira mentre lo tieni (versore in assi mondo, la stessa che la sim userà), null se non lo tieni. */
@@ -207,7 +207,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     get paused() { return asking || pausa; },
     sample() {
       const st = stick.sample();
-      const out = { a: aLatch || mouseA || st.held, c: cLatch || cHeld.size > 0 || keys.has('KeyQ'), d: dLatch || dHeld.size > 0 || keys.has('KeyR'), e: eLatch || eHeld.size > 0 || keys.has('KeyE'), m: st.m };
+      const out = { a: aLatch || mouseA || st.held, c: cLatch || cHeld.size > 0 || keys.has('KeyQ'), d: dLatch || dHeld.size > 0 || keys.has('KeyR'), e: eLatch || eHeld.size > 0 || keys.has('KeyE'), m: st.m, tap: st.tap };
       aLatch = cLatch = dLatch = eLatch = false;
       return out;
     },
