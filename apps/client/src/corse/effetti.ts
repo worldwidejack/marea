@@ -182,3 +182,15 @@ export function creaMinimappa(root: HTMLElement): { pista(p: Pista): void; diseg
     },
   };
 }
+
+const VU = new THREE.Vector3(), PU = new THREE.Vector3();
+/** L'urto con un altro veicolo (#255): scintille e uno sbuffo sul fianco che ha preso la botta (opposto alla spinta), più forti se la botta è forte. */
+export function urtoVeicolo(fx: Particelle, k: Veicolo, pos: THREE.Vector3, up: THREE.Vector3, dx: THREE.Vector3, moto: THREE.Vector3): void {
+  const lato = k.spinta > 0 ? -1 : 1, forte = Math.min(1, k.botta / 10);
+  PU.copy(pos).addScaledVector(dx, lato * 0.9).addScaledVector(up, 0.6);
+  VU.copy(moto).multiplyScalar(Math.max(0, k.v) * 0.6).addScaledVector(dx, lato * 3).addScaledVector(up, 2);
+  fx.emetti(PU, VU, P.giallo, 8 + Math.round(forte * 8), 3.5, 0.5, 12, 0.9);
+  fx.emetti(PU, VU, P.arancio, 4 + Math.round(forte * 4), 2.5, 0.45, 12, 0.9);
+  VU.multiplyScalar(0.3);
+  fx.fumo(PU, VU, P.pietraChiara, 0.6, 0.8 + forte);
+}

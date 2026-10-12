@@ -77,6 +77,7 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
 
 ## A7. Avversari, oggetti, sblocchi
 - **Avversari**: bot (gli animali piloti) più i **fantasmi degli amici**, cioè la loro gara migliore rigiocata in pista. Funziona anche se giocate a orari diversi e non costa niente. Niente gare dal vivo per ora **[da decidere più avanti]**.
+- **Urti** (Jack, 12 ott, #255): coi bot (e tra bot) gli urti sono veri: chi tampona rallenta e chi è tamponato prende una spinta, di fianco si rimbalza di lato, il veicolo più pesante sposta di più. Si sentono: scintille e sbuffo sul fianco, il veicolo si piega, suono di lamiera e scossa della camera. Numeri in `corse/motore.json` → `urti`. Con gli amici (fantasmi) ancora no: arriverà insieme agli oggetti tra amici (BACKLOG).
 - **Oggetti** (Jack, 12 ott 2026, #250): alla Mario Kart, **in tre livelli**:
   - **base**: universali, ci sono in tutte le zone;
   - **di zona**: ogni zona ne aggiunge qualcuno suo, in più;

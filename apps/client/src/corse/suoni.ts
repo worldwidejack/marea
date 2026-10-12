@@ -14,6 +14,8 @@ export type SuoniGuida = {
   scia(): void;
   ingolfato(): void;
   atterra(forte: number): void;
+  /** Urto con un altro veicolo (#255): botta di lamiera, più forte se `forte` (m/s) è alto. */
+  urto(forte: number): void;
   /** Oggetti (#250): scatola presa, roulette ferma, oggetto usato, colpito, scudo che para. */
   scatola(): void; pronto(): void; lancia(): void; colpito(): void; parato(): void;
   acceso: boolean;
@@ -88,6 +90,7 @@ export function creaSuoni(): SuoniGuida {
     colpito() { tono(240, 0.35, 0.16, 'sawtooth', 60); soffio(0.4, 0.2, 200, 800); },
     parato() { tono(1200, 0.18, 0.1, 'triangle', 600); },
     atterra(forte) { tono(110, 0.14, Math.min(0.25, 0.06 + forte * 0.02), 'square', 55); },
+    urto(forte) { const g = Math.min(0.22, 0.08 + forte * 0.012); tono(170, 0.1, g, 'square', 70); tono(620, 0.06, g * 0.6, 'square', 300, 0.02); soffio(0.18, g, 300, 1800); },
     zitto() { if (!ctx || !mot || !sgomma) return; mot.g.gain.setTargetAtTime(0, ctx.currentTime, 0.1); sgomma.g.gain.setTargetAtTime(0, ctx.currentTime, 0.05); },
   };
   return api;
