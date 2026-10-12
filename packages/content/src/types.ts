@@ -43,7 +43,7 @@ export type IslandStyle = 'lotto' | 'porto' | 'laguna' | 'neon' | 'selvaggia' | 
 export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'templari' | 'corse' | 'adrenalina';
 export type IslandSlot = { at: [number, number]; kind: string; rot?: number };
 export type IslandProp = { k: string; at: [number, number]; rot?: number };
-export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna' | 'tema';
+export type ArchipelagoRole = 'porto' | 'borgo' | 'molo' | 'lotto' | 'facciata' | 'laguna' | 'tema';
 /**
  * Come si sblocca un'isola a tema (#68): Molo della propria isola al livello N, personaggio GDR al livello N, un cappello indosso,
  * una mappa posseduta (`come: 'oro'` = la prima medaglia d'oro in un minigioco da solo la regala), una reliquia trovata (`LotState.reliquie`:
@@ -62,7 +62,10 @@ export type TemaSblocco =
 export type TemaDef = { sblocco: TemaSblocco; barriera: number };
 export type ArchipelagoIsland = { island: string; at: [number, number]; role: ArchipelagoRole; slot?: number; tema?: TemaDef };
 /** Il mondo continuo (CONTRACTS §11): isole di islands.json posate su una griglia w×h di celle da `tile` m; il resto è acqua profonda. */
-export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; tile: number; islands: ArchipelagoIsland[] };
+/** `mare` = [w, h] in celle della parte navigabile (dall'angolo in alto a sinistra): oltre stanno i giardini delle case (#237), la barca non ci va. */
+export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; tile: number; mare?: [number, number]; islands: ArchipelagoIsland[] };
+/** Borgo Marea (#237): la casa `n` = lo slot `n` (= il lotto/giardino `n`). `at` = cella dell'edificio, `porta` = cella della via davanti, entrambe nel template `borgo`. */
+export type BorgoDef = { nome: string; case: { at: [number, number]; porta: [number, number] }[] };
 /** `mercante`: esclusivo del Mercante delle Perle al Porto (#63): nell'editor si vede ma si compra solo da lui. */
 export type HatDef = { id: string; nome: string; perle: number; mercante?: boolean };
 export type DecorDef = { id: string; nome: string; perle: number; model: string; mercante?: boolean };

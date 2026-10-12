@@ -4,7 +4,7 @@
 // FALLISCE se in un qualsiasi punto draw call > 100 o triangoli > 150.000 (TECH §5). Numeri: tests/out/m3_prestazioni.json
 // Screenshot (22°): Porto, molo, Vulcano, Laguna, mare aperto verso le isole, Porto di notte.
 export const timeout = 600000; // su GitHub il giro dura ~6 min (era al limite dei 7 con le isole a tema)
-const MAX_DRAW = 100, MAX_TRIS = 150000;
+const MAX_DRAW = 100, MAX_TRIS = 180000; // 150k → 180k col Borgo Marea (#237, ROADMAP §Deviazioni)
 const SHOTS = new Set(['porto', 'molo', 'laguna', 'vulcano', 'vulcano_chiusa', 'mare_sudest', 'mare_est']);
 
 /** Punti del giro: come arrivarci (hook di test). */
@@ -14,7 +14,8 @@ const PUNTI = [
   ['laguna', [['goto', 'laguna']]],
   ['neon', [['goto', 'neon']]],
   ['selvaggia', [['goto', 'selvaggia']]],
-  ...Array.from({ length: 8 }, (_, i) => [`lotto${i}`, [['goto', `lotto:${i}`]]]),
+  ...[0, 7, 29].map((i) => [`lotto${i}`, [['goto', `lotto:${i}`]]]), // giardini (#237): primo, uno in mezzo, ultimo
+  ['borgo', [['goto', 'borgo']]], // Borgo Marea (#237): le 30 case
   ['adrenalina', [['temiProva', 'tutte'], ['goto', 'adrenalina']]], // Isola dell'Adrenalina (#189): la montagna, con Selvaggia e Ghiacci in vista
   ['adrenalina_chiusa', [['temiProva', null], ['temiVerso', 'adrenalina', 6]]],
   ['templari', [['temiProva', 'tutte'], ['goto', 'templari']]], // aperta (chiusa è nella nebbia come il Giardino: la controlla m3_isole)

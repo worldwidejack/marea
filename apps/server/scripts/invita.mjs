@@ -22,9 +22,9 @@ const token = opt('--token') ?? crypto.randomBytes(18).toString('base64url');
 if (!/^[a-z0-9_-]{1,40}$/.test(id)) { console.error('id non valido: solo a-z 0-9 - _'); process.exit(1); }
 const q = (s) => "'" + String(s).replace(/'/g, "''") + "'";
 const LOOK_A = '{"pelle":2,"capelli":0,"coloreCapelli":0,"vestito":0,"cappello":1}'; // look di partenza (variante A, migrazione 0002)
-// slot del lotto (0-7): il primo libero, NULL se l'arcipelago è pieno (arriva al Porto). Una sola istruzione: niente corse tra due inviti.
+// numero della casa nel Borgo (0-29, come la migrazione 0005): il primo libero, NULL se il Borgo è pieno (arriva in piazza). Una sola istruzione: niente corse tra due inviti.
 // (json_each e non una UNION di 8 SELECT: D1 limita i termini di una SELECT composta)
-const SLOT_LIBERO = "(SELECT value FROM json_each('[0,1,2,3,4,5,6,7]') WHERE value NOT IN (SELECT slot FROM persone WHERE slot IS NOT NULL) ORDER BY value LIMIT 1)";
+const SLOT_LIBERO = `(SELECT value FROM json_each('${JSON.stringify(Array.from({ length: 30 }, (_, i) => i))}') WHERE value NOT IN (SELECT slot FROM persone WHERE slot IS NOT NULL) ORDER BY value LIMIT 1)`;
 const sql = `INSERT INTO persone (id, nome, token, admin, look, slot) VALUES (${q(id)}, ${q(nome)}, ${q(token)}, ${flag('--admin') ? 1 : 0}, ${q(LOOK_A)}, ${SLOT_LIBERO});`;
 const where = flag('--remote') ? ['--remote'] : ['--local', ...(opt('--persist-to') ? ['--persist-to', opt('--persist-to')] : [])];
 

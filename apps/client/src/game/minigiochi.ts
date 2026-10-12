@@ -104,7 +104,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       });
     }
   };
-  // Consegne (minigioco universale): il corriere sta su ogni molo (Porto e lotti), a piedi, lontano dalla barca; nella bussola solo quello
+  // Consegne (minigioco universale): il corriere sta al Porto (dal #237 i giardini non hanno un molo raggiungibile), a piedi, lontano dalla barca; nella bussola solo quello
   // del Porto. Si gioca in barca nel mondo (game/consegne.ts, gioco «a schermo» con step/update), scaricato alla prima partita.
   universali('consegne', 'consegne', 'prop_cassa');
   registraSchermo('consegne', (root) => import('./consegne.ts').then((m) => m.createConsegne({ root, world: o.world, loader: o.loader, hud: o.hud, camera: o.camera, canvas: o.canvas, api: o.api })));
