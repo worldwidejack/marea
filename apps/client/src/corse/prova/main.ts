@@ -11,7 +11,7 @@
 // dietro / alta / cofano, suoni). La pista intera è la minimappa nell'angolo. Indirizzo: ?pista=…&veicolo=…&cam=…&bot=0&auto=1
 // e le regole (?scia=0…). Test: window.__provapiste.ready / .perf() / .state() / .set({...}) / .avanti(tick).
 import * as THREE from 'three';
-import { CORSE, CORSE_PISTE } from '@marea/content/corse.ts';
+import { CORSE, CORSE_PISTE, CORSE_PISTE_BANCO } from '@marea/content/corse.ts';
 import { DT, quantize } from '@marea/sim';
 import type { InputFrame } from '@marea/sim';
 import { famiglieDi, garaCorse, opzioniGara, pilotaGara } from '@marea/sim/corse/gara.ts';
@@ -42,7 +42,8 @@ import type { Look } from '@marea/protocol';
 import { creaRegia } from './camera.ts';
 import { stileProva } from './stile.ts';
 
-const PISTE = Object.keys(CORSE_PISTE);
+/** Le piste che il bottone P fa girare: le definitive (#258); `?tutte=1` aggiunge quelle di prova. */
+const PISTE = new URLSearchParams(location.search).get('tutte') === '1' ? Object.keys(CORSE_PISTE) : CORSE_PISTE_BANCO;
 const CAMERE = ['dietro', 'alta', 'cofano'] as const;
 type Camera = (typeof CAMERE)[number];
 const NOME_CAMERA: Record<Camera, string> = { dietro: 'dietro', alta: 'alta', cofano: 'cofano' };
@@ -58,7 +59,7 @@ const COLORI = [P.rosso, P.giallo, P.acquaBassa, P.viola, P.erbaChiara];
 const CASCHI = [P.pietraChiara, P.neroCaldo, P.neroCaldo, P.neroCaldo, P.neroCaldo];
 
 const q = new URLSearchParams(location.search);
-const opz = { ...opzioniGara({ pista: q.get('pista'), veicolo: q.get('veicolo'), bot: q.get('bot'), oggetti: q.get('oggetti'), ...Object.fromEntries(REGOLE.map(([id]) => [id, q.get(id)])) }) };
+const opz = { ...opzioniGara({ pista: q.get('pista') ?? PISTE[0], veicolo: q.get('veicolo'), bot: q.get('bot'), oggetti: q.get('oggetti'), ...Object.fromEntries(REGOLE.map(([id]) => [id, q.get(id)])) }) };
 const camQ = q.get('cam') === 'vicina' ? 'cofano' : q.get('cam');
 let cam: Camera = CAMERE.includes(camQ as Camera) ? (camQ as Camera) : 'dietro';
 // L'avatar MAREA guida: nel banco di prova il look è quello di serie o `?look=pelle,capelli,coloreCapelli,vestito,cappello` (nel gioco sarà il tuo).
@@ -440,6 +441,8 @@ const api = {
   /** Avanza la gara di `tick` passi subito (pilota automatico), senza aspettare il tempo vero. */
   /** Prova degli urti (#255): mette il bot `i` affiancato a te (a destra, o tamponato davanti con `davanti`), stessa velocità. */
   affianca: (i = 1, davanti = false) => { const k = s.veicoli[0]!, b = s.veicoli[i]; if (b) { b.ramo = k.ramo; b.s = k.s + (davanti ? 1.7 : 0); b.prog = k.prog + (davanti ? 1.7 : 0); b.lat = k.lat + (davanti ? 0 : 1.6); b.v = davanti ? k.v * 0.6 : k.v; b.hf = k.hf; b.hl = k.hl; b.mf = k.mf; b.ml = k.ml; b.h = k.h; b.aria = false; } return api.state(); },
+  /** Mette il tuo veicolo a `s` m dal via e `lat` m a destra, fermo (per le foto dei bordi e delle curve, #258). */
+  metti: (sv: number, lat: number) => { const k = s.veicoli[0]!; k.ramo = -1; k.s = sv; k.prog = sv; k.terra = sv; k.lat = lat; k.v = 0; k.h = 0; k.vh = 0; k.aria = false; regia.st.ok = false; return api.state(); },
   /** `tick` passi coi comandi veri (tastiera, dito): per i test dei tasti senza aspettare il tempo vero. */
   passi: (tick: number) => { for (let i = 0; i < tick && fase === 'gara'; i++) step(); return api.state(); },
   avanti: (tick: number) => { const a = auto; auto = true; for (let i = 0; i < tick && fase === 'gara'; i++) step(); auto = a; regia.st.ok = false; return api.state(); },

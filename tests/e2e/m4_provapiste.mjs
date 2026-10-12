@@ -1,7 +1,8 @@
 // Banco di prova delle piste (provapiste.html, motore v2 dell'Isola delle Corse, docs/CORSE.md A11). Per ogni pista:
 // - la pagina si apre senza errori;
 // - il pilota automatico corre la gara fino in fondo, senza cadute;
-// - draw call ≤ 100 e triangoli ≤ 150.000 a 390×844.
+// - draw call ≤ 100 e triangoli ≤ 150.000 a 390×844;
+// - il terreno non spunta sopra la strada (curve sopraelevate, #258).
 // Sulla pista folle si controlla che il giro della morte si faccia a testa in giù, che ci sia il salto e che si prenda la scorciatoia.
 // Poi la Spiaggia e porto: il porto è misto (ruote e barche, ognuno nella sua corsia) e nella fuga l'onda raggiunge chi va piano.
 // La guida (#170): partenza razzo del pilota automatico, drift da tastiera con le scintille (blu → viola), menù opzioni con le camere
@@ -26,15 +27,18 @@ export default async function (ctx) {
   const corri = (page, tick) => page.evaluate((t) => { const a = window.__provapiste; a.set({ auto: true, vai: true }); let st = a.state(); for (let i = 0; i < t && !st.done; i += 60) st = a.avanti(60); return st; }, tick);
   const fotogrammi = (page, n = 3) => page.evaluate((k) => new Promise((r) => { let i = 0; const f = () => (++i >= k ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
 
-  const p = await apri('pista=prova_anello');
+  const p = await apri('pista=spiaggia_lungomare');
   const piste = await p.page.evaluate(() => window.__provapiste.piste);
-  assert(piste.length >= 8, `piste: ${piste}`);
+  assert(piste.length === 5 && !piste.some((id) => id.startsWith('prova_')), `piste del banco (solo le definitive): ${piste}`);
   for (const id of piste) {
     await ctx.test(`telefono: ${id} — il pilota automatico arriva in fondo senza cadute, draw call e triangoli nel budget`, async () => {
       await p.page.evaluate((x) => window.__provapiste.set({ pista: x, cam: 'dietro', bot: true }), id);
       let st = await corri(p.page, 60 * 8);
       await fotogrammi(p.page);
       const perf = await p.page.evaluate(() => window.__provapiste.perf());
+      // il terreno non spunta mai sopra la strada, nemmeno nelle curve sopraelevate (#258: prima il kart «entrava nel terreno»)
+      const sp = await p.page.evaluate(() => globalThis.__corseScena?.pista === window.__provapiste.state().pista ? globalThis.__corseScena.sporge : null);
+      assert(sp && sp.m <= 0.05, `${id}: il terreno spunta ${sp?.m?.toFixed(2)} m sopra la strada a s ${sp?.s}, lat ${sp?.lat}`);
       await ctx.shot(p.page, `${id}_dietro`);
       st = await corri(p.page, 60 * 240);
       assert(st.done && st.risultato && st.risultato.detail.giri === st.risultato.detail.tot, `${id}: ${JSON.stringify(st)}`);
