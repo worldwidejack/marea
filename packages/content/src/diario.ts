@@ -51,7 +51,7 @@ type ArchJson = { islands: { island: string; role: string }[] };
 export const ISOLE_DIARIO: readonly DiarioIsola[] = (() => {
   const out: DiarioIsola[] = [];
   for (const p of (archipelago as unknown as ArchJson).islands) {
-    if (p.role === 'lotto' || p.role === 'borgo' || p.role === 'molo' || out.some((x) => x.id === p.island)) continue; // Borgo e pontili (#237) fanno parte del Porto
+    if (p.role === 'lotto' || out.some((x) => x.id === p.island)) continue;
     const def = (islands as unknown as IsolaJson[]).find((i) => i.id === p.island);
     out.push({ id: p.island, nome: def?.nome ?? p.island });
   }

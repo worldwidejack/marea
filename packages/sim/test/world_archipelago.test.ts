@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ARCHIPELAGO, BALANCE, ISLANDS, island, validateContent } from '@marea/content';
+import { ARCHIPELAGO, BALANCE, BORGO, ISLANDS, island, validateContent } from '@marea/content';
 import { composeArchipelago } from '../src/world/archipelago.ts';
 import type { Archipelago } from '../src/world/archipelago.ts';
 import { parseIsland } from '../src/world/grid.ts';
@@ -44,10 +44,10 @@ test('arcipelago: contenuti validi e composizione deterministica', () => {
   assert.equal(ISLANDS[0]!.id, 'prova', 'prova resta la prima isola (regata e test)');
 });
 
-test('arcipelago: 30 lotti (giardini delle case, #237), un Porto, il Borgo, una laguna, due facciate', () => {
+test('arcipelago: 30 lotti (giardini delle case, #237), un Porto col Borgo attorno, una laguna, due facciate', () => {
   assert.deepEqual(arch.lots.map((l) => l.slot), Array.from({ length: 30 }, (_, i) => i));
-  assert.equal(arch.places.filter((p) => p.role === 'borgo').length, 1);
-  assert.equal(arch.buildings.filter((b) => b.island === 'borgo').length, 30, 'una casa per lotto nel Borgo');
+  const porto = arch.places.find((p) => p.role === 'porto')!;
+  for (const [n, c] of BORGO.case.entries()) assert.ok(arch.buildings.some((b) => b.island === 'porto' && b.cell[0] === porto.origin[0] + c.at[0] && b.cell[1] === porto.origin[1] + c.at[1]), `la casa ${n} non è un edificio del Porto (#247)`);
   const mareH = ARCHIPELAGO.mare![1];
   assert.ok(arch.places.filter((p) => p.role === 'lotto').every((p) => p.origin[1] > mareH), 'i giardini stanno oltre il mare navigabile');
   assert.ok(arch.lots.every((l) => l.template === 'lotto'));
@@ -76,7 +76,6 @@ test('arcipelago: ogni isola è copiata identica nella mappa, senza sovrapposizi
     const a = arch.places[i]!, b = arch.places[j]!;
     const gapX = Math.max(b.origin[0] - (a.origin[0] + a.w), a.origin[0] - (b.origin[0] + b.w));
     const gapZ = Math.max(b.origin[1] - (a.origin[1] + a.h), a.origin[1] - (b.origin[1] + b.h));
-    if ([a.role, b.role].includes('porto') && [a.role, b.role].includes('borgo')) continue; // il Borgo tocca il Porto: il ponte (#237)
     assert.ok(Math.max(gapX, gapZ) >= 4, `${a.island} e ${b.island} troppo vicine (${Math.max(gapX, gapZ)} celle)`);
   }
 });
@@ -100,7 +99,7 @@ test('arcipelago: spawn a terra, barche in acqua, dal molo si sale e si scende',
   assert.deepEqual(arch.spawnOf(42), arch.spawnOf(null), 'slot inesistente → Porto');
 });
 
-test('arcipelago: la laguna, le facciate e i pontili si raggiungono in barca dal Porto (i giardini no: ci si arriva dalla porta di casa, #237)', () => {
+test('arcipelago: la laguna, le facciate e le isole a tema si raggiungono in barca dal Porto (i giardini no: ci si arriva dalla porta di casa, #237)', () => {
   const from = cellOf(arch.boatOf(null));
   const d = bfs(M, from, (x, z) => NAV.has(M.at(x, z)));
   const vmax = BALANCE.barca.maxSpeed;
@@ -111,9 +110,9 @@ test('arcipelago: la laguna, le facciate e i pontili si raggiungono in barca dal
     assert.ok(cells >= 0, `${p.island}${p.slot !== null ? ' ' + p.slot : ''}: irraggiungibile in barca dal Porto`);
     // percorso a 4 vicini: la barca taglia in diagonale, stima ~0,8 della lunghezza Manhattan-locale
     const s = (cells * M.tile * 0.8) / vmax;
-    if (p.role === 'molo') times.push(`${p.index}:${Math.round(s)}s`);
+    times.push(`${p.island}:${Math.round(s)}s`);
   }
-  console.log('[marea] barca Porto → pontili (stima a 9 m/s):', times.join(' '));
+  console.log('[marea] barca Porto → isole (stima a 9 m/s):', times.join(' '));
 });
 
 test('arcipelago: ogni cella L del template è una L nel mondo (lotCellToWorld)', () => {

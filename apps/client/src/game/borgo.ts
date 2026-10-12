@@ -1,4 +1,4 @@
-// Borgo Marea (#237): le porte delle case. Davanti alla porta di una casa (a piedi) A ti porta dentro: la stanza sta in fondo al
+// Borgo Marea (#237, #247): le porte delle case, attorno alla piazza del Porto (un'isola sola). Davanti alla porta di una casa (a piedi) A ti porta dentro: la stanza sta in fondo al
 // giardino di quello slot (template `lotto`, nella fascia oltre il mare che la barca non raggiunge); dalla stanza si esce nel
 // giardino dalla porta sul retro (il varco nel muro) o si torna in città con A accanto al punto d'arrivo.
 // Base: niente scena separata né dissolvenza, è un teletrasporto. Casa di un amico = il suo giardino, in sola lettura come prima.
@@ -22,11 +22,11 @@ const RAGGIO = 2.2;
 
 /** Dove sta la porta della casa `slot` nel mondo (m), null se non c'è il Borgo o la casa. `fuori` = metri lungo la via (lo spawn: fuori dal raggio della porta). */
 export function portaDi(world: Pick<GameWorld, 'archipelago'>, slot: number, fuori = 0): { x: number; z: number } | null {
-  const arch = world.archipelago, b = arch.places.find((p) => p.role === 'borgo'), c = BORGO.case[slot];
+  const arch = world.archipelago, b = arch.places.find((p) => p.role === 'porto'), c = BORGO.case[slot];
   if (!b || !c) return null;
-  // lungo la via, non di traverso: dall'altra parte della via c'è la porta della casa di fronte
-  const lungoX = c.porta[1] === c.at[1] ? 0 : 1, lungoZ = 1 - lungoX;
-  return { x: (b.origin[0] + c.porta[0] + 0.5) * arch.tile + lungoX * fuori, z: (b.origin[1] + c.porta[1] + 0.5) * arch.tile + lungoZ * fuori };
+  // lungo la via, non di traverso (dall'altra parte della via c'è la porta della casa di fronte): perpendicolare a casa → porta
+  const dx = c.porta[0] - c.at[0], dz = c.porta[1] - c.at[1], l = Math.hypot(dx, dz) || 1;
+  return { x: (b.origin[0] + c.porta[0] + 0.5) * arch.tile - (dz / l) * fuori, z: (b.origin[1] + c.porta[1] + 0.5) * arch.tile + (dx / l) * fuori };
 }
 
 export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; abitanti: readonly { slot: number | null; nome: string; mia: boolean }[] }): Borgo {

@@ -41,7 +41,7 @@ export default async function (ctx) {
       const s = await ctx.getState(pa.page);
       ctx.log(`arch ${JSON.stringify(s.arch)} · avatar (${s.avatar.x.toFixed(1)}, ${s.avatar.z.toFixed(1)})`);
       ctx.assert(s.arch && s.arch.slot === 2, 'slot sbagliato: ' + JSON.stringify(s.arch));
-      ctx.assert(s.arch.place === 'borgo', 'non è nel Borgo: ' + JSON.stringify(s.arch.place));
+      ctx.assert(s.arch.place === 'porto', 'non è nel Borgo (al Porto): ' + JSON.stringify(s.arch.place));
     });
     await ctx.test('barra risorse e lotto pronti, bussola verso Porto', async () => {
       await ctx.waitState(pa.page, (s) => s.lot && s.lot.ready === true, 15000);

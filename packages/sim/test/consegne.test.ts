@@ -26,17 +26,19 @@ function play(seed: number, start: number, pick: (s: ConsegneState) => InputFram
 }
 const auto = (seed: number) => { const rng = createRng(seed).fork('autopilot'); return (s: ConsegneState) => consegne.autopilot(s, rng); };
 
-test('consegne: nel registro, 150 s al massimo, 5 pacchi', () => {
+test('consegne: nel registro, 180 s al massimo, 4 pacchi', () => {
   assert.equal(getMinigame('consegne'), consegne);
   assert.equal(consegne.maxTicks, CFG.maxSeconds * 60);
-  assert.equal(CFG.pacchi, 5);
+  assert.equal(CFG.pacchi, 4);
 });
 
-test('consegne: i moli sono le B di Porto, Laguna e pontili, in acqua; il primo frame li codifica esatti', () => {
+test('consegne: i moli sono le B di Porto, Laguna, facciate e isole a tema senza barriera (#247), in acqua; il primo frame li codifica esatti', () => {
   const moli = consegneMoli(), map = consegneMappa();
   assert.ok(moli.length >= 8, `${moli.length} moli`);
   assert.equal(moli[0]!.id, 'porto');
-  assert.ok(moli.some((m) => m.id === 'laguna') && moli.some((m) => m.id === 'molo:0'));
+  assert.ok(moli.some((m) => m.id === 'laguna') && moli.some((m) => m.id === 'vulcano') && moli.some((m) => m.id === 'neon'));
+  assert.ok(!moli.some((m) => m.id === 'tempesta'), 'la Tempesta ha la barriera: da chiusa non ci si arriva');
+  assert.deepEqual(moli.map((m) => m.nome), ['Borgo', 'Laguna', 'Neon', 'Selvaggia', 'Vulcano', 'Templari', 'Corse', 'Adrenalina']);
   assert.equal(new Set(moli.map((m) => m.id)).size, moli.length);
   for (const m of moli) {
     assert.equal(map.at(Math.floor(m.x / map.tile), Math.floor(m.z / map.tile)), 'B', `${m.id} non è su una B`);
@@ -89,14 +91,14 @@ test('consegne: le cassette galleggiano in acqua libera, vicino alla rotta del t
   }
 });
 
-test('consegne: l\'autopilota di riferimento fa oro da ogni molo, su tutte le difficoltà, in meno di 2 minuti', () => {
+test('consegne: l\'autopilota di riferimento fa oro da ogni molo, su tutte le difficoltà, in meno di 2 minuti e mezzo (rotte tra le isole a tema, #247)', () => {
   const moli = consegneMoli();
   for (const d of [1, 2, 3] as const) for (const seed of [1, 42, 999]) for (const start of [0, 1, 2, moli.length - 1]) {
     const { s } = play(seed, start, auto(seed), d);
     const r = consegne.result(s);
     assert.equal(r.medal, 'oro', `seed ${seed} d${d} dal molo ${moli[start]!.id}: ${JSON.stringify(r.detail)}`);
     assert.equal(r.detail['consegne'], CFG.pacchi); assert.equal(r.detail['partenza'], start);
-    assert.ok(r.detail['ms']! < 120_000, `${r.detail['ms']} ms`);
+    assert.ok(r.detail['ms']! < 150_000, `${r.detail['ms']} ms`);
   }
 });
 

@@ -1,5 +1,5 @@
 // Minigiochi universali: Consegne (in barca, dal molo al molo indicato) e Ingorgo (puzzle a schermo stile Rush Hour). Server locale pulito.
-// API: il server rigioca gli input dell'autopilota e paga l'oro (Consegne partite da un pontile: il molo è il primo input), input rotti 400.
+// API: il server rigioca gli input dell'autopilota e paga l'oro (Consegne partite dai Templari: il molo è il primo input, #247), input rotti 400.
 // Browser PC (Luca, casa 0): al Porto compaiono CONSEGNE e INGORGO (non accanto alla barca né allo spawn), Ingorgo anche nel giardino; nella bussola solo
 // quelli del Porto; Consegne dal molo: conto alla rovescia, rotta a puntini, meta con bandiera, HUD; l'autopilota consegna tutto, il server premia.
 // Telefono (Mia, 390×844): Ingorgo al Porto, la griglia sta nello schermo, una barca si trascina davvero, RICOMINCIA, Esc ritira;
@@ -47,14 +47,14 @@ export default async function (ctx) {
       return { frames, local: m.result(s) };
     };
 
-    await ctx.test('API: Consegne da un pontile (molo = primo input) e Ingorgo, il server rigioca l\'autopilota e paga l\'oro', async () => {
-      const moli = sim.consegneMoli(), lotto = moli.findIndex((m) => m.id === 'molo:2');
+    await ctx.test('API: Consegne dal molo dei Templari (molo = primo input) e Ingorgo, il server rigioca l\'autopilota e paga l\'oro', async () => {
+      const moli = sim.consegneMoli(), lotto = moli.findIndex((m) => m.id === 'templari');
       const st = await post('/api/solo/start', 'tokU', { minigame: 'consegne' });
       assert(st.status === 200 && st.body.minigame === 'consegne', `start consegne: ${st.status} ${JSON.stringify(st.body).slice(0, 200)}`);
       const a = autoplay('consegne', st.body.seed, st.body.difficulty, sim.startFrame(lotto));
       const r = await post('/api/solo/play', 'tokU', { inputs: sim.packInputs(a.frames) });
       assert(r.status === 200 && r.body.medal === 'oro', `play consegne: ${r.status} ${JSON.stringify(r.body).slice(0, 300)}`);
-      assert(r.body.detail.partenza === lotto && r.body.detail.consegne === 5 && r.body.score === a.local.score, 'detail: ' + JSON.stringify(r.body.detail));
+      assert(lotto > 0 && r.body.detail.partenza === lotto && r.body.detail.consegne === 4 && r.body.score === a.local.score, 'detail: ' + JSON.stringify(r.body.detail));
       assert(r.body.premiata && JSON.stringify(r.body.premio) === JSON.stringify(balance.solo.premi.oro), 'premio: ' + JSON.stringify(r.body.premio));
       ctx.log(`consegne: ${a.frames.length} tick, ${sim.packInputs(a.frames).length} righe, ${JSON.stringify(sim.packInputs(a.frames)).length} byte`);
       const s2 = await post('/api/solo/start', 'tokU', { minigame: 'ingorgo' });
@@ -150,9 +150,9 @@ export default async function (ctx) {
       await ctx.waitState(page, (q) => q.minigiochi.open === true, 90000);
       const s = await st(), r = s.minigiochi.last;
       ctx.log(`consegne: ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
-      assert(r.medal === 'oro' && r.premiata && r.detail.consegne === 5, 'esito: ' + JSON.stringify(r));
+      assert(r.medal === 'oro' && r.premiata && r.detail.consegne === 4, 'esito: ' + JSON.stringify(r));
       for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] === before[k] + balance.solo.premi.oro[k], k);
-      assert(/5\/5 pacchi/.test(await page.locator('#mzEsito').innerText()), 'la scheda non dice 5/5 pacchi');
+      assert(/4\/4 pacchi/.test(await page.locator('#mzEsito').innerText()), 'la scheda non dice 4/4 pacchi');
       assert(s.mode === 'walk' && !s.consegne.active, 'dopo la partita: ' + s.mode);
       await ctx.shot(page, 'pc_4_esito');
       await page.locator('#mzEsito [data-act="ok"]').click();

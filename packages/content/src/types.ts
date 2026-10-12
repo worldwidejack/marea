@@ -43,7 +43,7 @@ export type IslandStyle = 'lotto' | 'porto' | 'laguna' | 'neon' | 'selvaggia' | 
 export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'templari' | 'corse' | 'adrenalina';
 export type IslandSlot = { at: [number, number]; kind: string; rot?: number };
 export type IslandProp = { k: string; at: [number, number]; rot?: number };
-export type ArchipelagoRole = 'porto' | 'borgo' | 'molo' | 'lotto' | 'facciata' | 'laguna' | 'tema';
+export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna' | 'tema';
 /**
  * Come si sblocca un'isola a tema (#68): Molo della propria isola al livello N, personaggio GDR al livello N, un cappello indosso,
  * una mappa posseduta (`come: 'oro'` = la prima medaglia d'oro in un minigioco da solo la regala), una reliquia trovata (`LotState.reliquie`:

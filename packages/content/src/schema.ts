@@ -131,7 +131,7 @@ export function validateArchipelago(a: ArchipelagoDef, islands: IslandDef[]): st
     const def = islands.find((d) => d.id === e.island);
     const tag = `arcipelago[${i}] ${e.island}`;
     if (!def) { errs.push(`${tag}: isola inesistente`); continue; }
-    if (!['porto', 'borgo', 'molo', 'lotto', 'facciata', 'laguna', 'tema'].includes(e.role)) errs.push(`${tag}: ruolo sconosciuto ${e.role}`);
+    if (!['porto', 'lotto', 'facciata', 'laguna', 'tema'].includes(e.role)) errs.push(`${tag}: ruolo sconosciuto ${e.role}`);
     const w = def.rows[0]?.length ?? 0, h = def.rows.length;
     const [x0, z0] = e.at;
     if (!Number.isInteger(x0) || !Number.isInteger(z0)) errs.push(`${tag}: posizione non intera`);
