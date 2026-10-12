@@ -144,7 +144,7 @@ export function curaCompagni(s: DungeonState, vita: number): void {
 
 /** Effetti di una magia d'attacco dell'eroe che ha appena colpito `e`: Combustione (fuoco lascia una chiazza che brucia) e Catena di fulmini
  *  (l'elettricità salta al nemico più vicino). */
-export function effettiMagia(s: DungeonState, p: Proj, e: Enemy): void {
+export function effettiMagia(s: DungeonState, p: Pick<Proj, 'elemento' | 'raggio' | 'danno'>, e: Enemy): void {
   const P = s.runHero.perk, B = RPG.perk;
   if (!P || !B || !p.elemento) return;
   if (p.elemento === 'fuoco' && P.combustione) fuocoAmico(s, e.x, e.z, Math.max(B.combustione.raggio, p.raggio), B.combustione.secondi, p.danno * B.combustione.frazione);

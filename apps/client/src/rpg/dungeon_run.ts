@@ -51,6 +51,8 @@ import type { ArchivioFx } from './archivio.ts';
 import { createMausoleoFx } from './mausoleo_fx.ts';
 import type { MausoleoFx } from './mausoleo_fx.ts';
 import { createUniciFx } from './unici_fx.ts';
+import { createMagieFx } from './magie_fx.ts';
+import type { MagieFx } from './magie_fx.ts';
 import type { UniciFx } from './unici_fx.ts';
 import { createTesti } from './dungeon_testi.ts';
 import type { DungeonTestiUi } from './dungeon_testi.ts';
@@ -92,7 +94,7 @@ export function startRun(ctx: RunCtx, o: {
   s.cur = io;
   const frames: DungeonInput[] = [], azioni: DungeonAzioni = [];
   let phase: Phase = 'loading', wait = 0, view: DungeonView = dungeon.view(s), auto: Rng | null = null, arma = view.hero.arma;
-  let sc: DungeonScene | null = null, hero: HeroActor | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, controls: Controls | null = null, fx: DrenaggioFx | null = null, afx: ArchivioFx | null = null, ffx: FucinaFx | null = null, mfx: MausoleoFx | null = null, ufx: UniciFx | null = null;
+  let sc: DungeonScene | null = null, hero: HeroActor | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, controls: Controls | null = null, fx: DrenaggioFx | null = null, afx: ArchivioFx | null = null, ffx: FucinaFx | null = null, mfx: MausoleoFx | null = null, ufx: UniciFx | null = null, gfx: MagieFx | null = null;
   let testi: DungeonTestiUi | null = null, mouse: Mouse | null = null, magieUi: MagiaUi[] = [], cursore = '';
   let resolve!: (v: Out | { insieme: true } | null) => void;
   const done = new Promise<Out | { insieme: true } | null>((r) => (resolve = r));
@@ -106,7 +108,7 @@ export function startRun(ctx: RunCtx, o: {
   const cleanup = () => {
     phase = 'over'; dungeonLink.state = null; dungeonLink.act = null;
     closePanels();
-    mouse?.dispose(); ctx.canvas.style.cursor = ''; controls?.dispose(); testi?.dispose(); hud?.dispose(); actors?.dispose(); fx?.dispose(); afx?.dispose(); ffx?.dispose(); mfx?.dispose(); ufx?.dispose(); hero?.dispose(); sc?.dispose();
+    mouse?.dispose(); ctx.canvas.style.cursor = ''; controls?.dispose(); testi?.dispose(); hud?.dispose(); actors?.dispose(); fx?.dispose(); afx?.dispose(); ffx?.dispose(); mfx?.dispose(); ufx?.dispose(); gfx?.dispose(); hero?.dispose(); sc?.dispose();
     for (const a of amici) a.actor?.dispose();
     ctx.renderer.setScene(null);
   };
@@ -183,6 +185,7 @@ export function startRun(ctx: RunCtx, o: {
       else if (sc.def.stile === 'mausoleo') mfx = createMausoleoFx({ sc, loader: ctx.loader, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       else if (sc.map.valvole.length || sc.map.bacini.length || o.dungeon === 'drenaggio') fx = createDrenaggioFx({ sc }); else if (sc.map.venti.length || o.dungeon === 'archivio') afx = createArchivioFx({ sc, say: (txt, ms) => hud?.say(txt, ms), occupato: () => !!testi?.stato().voce });
       ufx = createUniciFx(sc.scene, sc.floorY); // gli unici della Regina si portano in ogni dungeon
+      gfx = createMagieFx(sc.scene, sc.floorY); // raggi, bombe e scoppi delle magie di fuoco ed elettricità
       if ((phase as Phase) === 'over') { cleanup(); return; }
       hud = createDungeonHud({ root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera, hero: s.runHero, stile: sc.def.stile });
       controls = createControls({
@@ -199,7 +202,7 @@ export function startRun(ctx: RunCtx, o: {
       if (sc.def.testi) testi = createTesti({ root: ctx.root, camera: ctx.renderer.camera, canvas: ctx.canvas, sc, insieme: !!rete, capoMorto: () => view.nemici.some((n) => n.capo && n.anim === 'morto') });
       const ic = hud.icons(); controls.setIcons(ic.c, ic.d, ic.key);
       if (s.salvato) controls.setSalvato(true);
-      hero.tick(view.hero); actors.tick(view); fx?.tick(view); afx?.tick(view); ffx?.tick(view); mfx?.tick(view); ufx.tick(view); sc.setAcque(view.acque); tickAmici();
+      hero.tick(view.hero); actors.tick(view); fx?.tick(view); afx?.tick(view); ffx?.tick(view); mfx?.tick(view); ufx.tick(view); gfx?.tick(view); sc.setAcque(view.acque); tickAmici();
       ctx.renderer.setScene(sc.scene);
       // telefono in verticale: un po' più larghi (il campo orizzontale è stretto), come nell'arena dei Templari
       ctx.renderer.diorama.setZoom(ctx.canvas.clientHeight > ctx.canvas.clientWidth * 1.2 ? 1.3 : 1.0);
@@ -348,7 +351,7 @@ export function startRun(ctx: RunCtx, o: {
     const n = pronti > RECUPERO ? pronti - CUSCINETTO : pronti > SVELTO ? 2 : 1;
     for (let k = 0; k < n && phase !== 'over'; k++) tickRete(n > 2);
     refresh();
-    hero!.tick(view.hero); miraOra(); actors!.tick(view); mfx?.tick(view); ufx?.tick(view); tickAmici();
+    hero!.tick(view.hero); miraOra(); actors!.tick(view); mfx?.tick(view); ufx?.tick(view); gfx?.tick(view); tickAmici();
     if (s.done && phase === 'play') toEnd();
   }
   /** Un tick del turno in testa: al primo tick le azioni del turno (eroe per eroe, come il server le ha messe), poi il passo di tutti. */
@@ -385,7 +388,7 @@ export function startRun(ctx: RunCtx, o: {
       const n = auto ? dungeonLink.autopilot : dungeonLink.altare >= 0 || dungeonLink.vai ? 8 : 1;
       for (let i = 0; i < n && !s.done; i++) tickOnce(f);
       refresh();
-      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); miraOra(); actors!.tick(view); fx?.tick(view); afx?.tick(view); ffx?.tick(view); mfx?.tick(view); ufx?.tick(view);
+      hero!.tick(dungeonLink.posa ? { ...view.hero, ...dungeonLink.posa } as DungeonView['hero'] : view.hero); miraOra(); actors!.tick(view); fx?.tick(view); afx?.tick(view); ffx?.tick(view); mfx?.tick(view); ufx?.tick(view); gfx?.tick(view);
       if (s.done) toEnd();
     },
     update(alpha, dt, t) {
@@ -401,6 +404,7 @@ export function startRun(ctx: RunCtx, o: {
       if (ffx) { ffx.update(t, { x: p.x, z: p.z }, view, phase === 'play'); sc.setAcque(view.acque); }
       if (mfx) { mfx.update(t, { x: p.x, z: p.z }, view, phase === 'play'); sc.setAcque(view.acque); }
       ufx?.update({ x: p.x, z: p.z }, view);
+      gfx?.update(t, { x: p.x, z: p.z }, view);
       testi?.update({ x: p.x, z: p.z }, phase === 'play' && !controls.paused, dt);
       hud.set(view, dungeon.maxTicks); hud.bars(actors.bars());
       if (rete) hud.compagni(amici.filter((a) => a.actor && !a.done).map((a) => {
@@ -434,7 +438,7 @@ export function startRun(ctx: RunCtx, o: {
       nemici: v.nemici.filter((n) => !n.alleato).length, vivi, vicinoUscita: v.vicinoUscita, vicinoTimone: v.vicinoTimone, afx: afx?.counts() ?? null,
       acque: v.acque, valvole: v.valvole, vicinoValvola: v.vicinoValvola, geyser: v.geyser.length, rallentato: !!v.hero.rallentato, fx: fx?.counts() ?? null,
       lave: v.lave, fuochi: v.fuochi.length, brucia: !!v.hero.brucia, bagnato: !!v.hero.bagnato, ffx: ffx?.counts() ?? null, mastro: mastro(v),
-      mfx: mfx?.counts() ?? null, ufx: ufx?.counts() ?? null, custode: custode(v), lancette: v.lancette.length, onde: v.onde.length, sarcofago: v.sarcofago ?? null, barriera: v.hero.barriera ?? null, carico: v.hero.carico ?? null,
+      mfx: mfx?.counts() ?? null, ufx: ufx?.counts() ?? null, gfx: gfx?.counts() ?? null, custode: custode(v), lancette: v.lancette.length, onde: v.onde.length, sarcofago: v.sarcofago ?? null, barriera: v.hero.barriera ?? null, carico: v.hero.carico ?? null,
       venti: v.venti, timoni: v.timoni, vento: !!v.hero.vento, riparo: !!v.hero.riparo, spinto: !!v.hero.spinto, testi: testi?.stato() ?? null, altari: v.altari, salvato: v.salvato, cadute: s.cadute, protetto: v.hero.protetto, lanterna: v.lanterna, salvatoQui: v.salvatoQui, partenza: s.partenza,
       equip: { ...s.equip }, indossa: hero?.avatar.indossaStato() ?? null, azioni: azioni.length, pannello: isPanelOpen(),
       scene: sc?.stats() ?? null, actors: actors?.counts() ?? null,

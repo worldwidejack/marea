@@ -1,5 +1,5 @@
 [
-  {"id":"grotta","nome":"Grotta della Marea","descr":"Grotte umide sotto le rocce del Porto: banditi accampati, lupi e ragni. Bronzo, ferro, monete, erbe.","stile":"grotta","difficolta":1,"tile":2,"legenda":{"b":{"nemico":"bandito"},"a":{"nemico":"bandito_arciere"},"l":{"nemico":"lupo"},"s":{"nemico":"ragno"},"c":{"forziere":"comune"},"R":{"forziere":"raro"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"C":{"nemico":"capo_banditi","capo":true}},"ingresso":{"island":"porto","at":[32,7]},
+  {"id":"grotta","nome":"Grotta della Marea","descr":"Grotte umide sotto le rocce del Porto: banditi accampati, lupi e ragni. Bronzo, ferro, monete, erbe.","stile":"grotta","difficolta":1,"tile":2,"legenda":{"u":{"libro":"libro_fuoco_continuo"},"b":{"nemico":"bandito"},"a":{"nemico":"bandito_arciere"},"l":{"nemico":"lupo"},"s":{"nemico":"ragno"},"c":{"forziere":"comune"},"R":{"forziere":"raro"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"C":{"nemico":"capo_banditi","capo":true}},"ingresso":{"island":"porto","at":[32,7]},
    "rows": [
     "                                        ",
     "  ######  ################              ",
@@ -27,12 +27,12 @@
     "     ##.A##      ##.##        #..###### ",
     "      ##..###   ##...##       #..## #R# ",
     "       ##...#####..t..#########...###.# ",
-    "        ###.......<......b............# ",
+    "        ###..u....<......b............# ",
     "          ######...........############ ",
     "               #############            ",
     "                                        "
    ]},
-  {"id":"cripta","nome":"Cripta delle Ossa","descr":"Sotto la porta di pietra dell’Isola Selvaggia: ossari, una biblioteca dimenticata e la sala del Re delle Ossa. Argento, ossa di mostro, libri.","stile":"cripta","difficolta":2,"tile":2,"legenda":{"s":{"nemico":"scheletro"},"a":{"nemico":"scheletro_arciere"},"n":{"nemico":"nonmorto"},"K":{"nemico":"re_ossa","capo":true},"c":{"forziere":"comune_cripta"},"R":{"forziere":"raro_cripta"},"f":{"libro":"libro_fulmine"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"selvaggia","at":[18,12]},
+  {"id":"cripta","nome":"Cripta delle Ossa","descr":"Sotto la porta di pietra dell’Isola Selvaggia: ossari, una biblioteca dimenticata e la sala del Re delle Ossa. Argento, ossa di mostro, libri.","stile":"cripta","difficolta":2,"tile":2,"legenda":{"u":{"libro":"libro_elettro_continuo"},"s":{"nemico":"scheletro"},"a":{"nemico":"scheletro_arciere"},"n":{"nemico":"nonmorto"},"K":{"nemico":"re_ossa","capo":true},"c":{"forziere":"comune_cripta"},"R":{"forziere":"raro_cripta"},"f":{"libro":"libro_fulmine"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"selvaggia","at":[18,12]},
    "rows": [
     "                                            ",
     " #######     ################      #######  ",
@@ -57,7 +57,7 @@
     "   ######.#  #......#  #......##.#######    ",
     "     ##...#  ##A...##  ##....###.#          ",
     "     #..f.#   ##..##    ##..## #.#####      ",
-    "     #....#    ##..######..##  #.....#      ",
+    "     #..u.#    ##..######..##  #.....#      ",
     "     ###.##     #..........#   ##.s..#      ",
     "       #.#########...t....########...#      ",
     "       #...........a..a...........n.c#      ",
@@ -102,7 +102,7 @@
     "                     .........                  ",
     "                                                "
    ]},
-  {"id":"drenaggio","nome":"Impianto di Drenaggio","descr":"Sotto l'anello della Laguna, le pompe arrugginite della civiltà degli automi: sale allagate, valvole da girare, il Collettivo Rottamautomi e il Capoturno. Ferro, argento, un po' d'oro.","stile":"drenaggio","difficolta":3,"tile":2,"legenda":{"f":{"nemico":"tubo_strisciante"},"w":{"nemico":"operaio_arrugginito"},"T":{"nemico":"valvola_sparavapore"},"K":{"nemico":"capoturno","capo":true},"c":{"forziere":"comune_drenaggio"},"R":{"forziere":"raro_drenaggio"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"L":{"altare":true,"asciutti":[1]},"1":{"acqua":1},"2":{"acqua":2},"3":{"acqua":3},"x":{"valvola":1},"y":{"valvola":2},"z":{"valvola":3}},"ingresso":{"island":"laguna","at":[18,45]},
+  {"id":"drenaggio","nome":"Impianto di Drenaggio","descr":"Sotto l'anello della Laguna, le pompe arrugginite della civiltà degli automi: sale allagate, valvole da girare, il Collettivo Rottamautomi e il Capoturno. Ferro, argento, un po' d'oro.","stile":"drenaggio","difficolta":3,"tile":2,"legenda":{"u":{"libro":"libro_bomba_elettrica"},"f":{"nemico":"tubo_strisciante"},"w":{"nemico":"operaio_arrugginito"},"T":{"nemico":"valvola_sparavapore"},"K":{"nemico":"capoturno","capo":true},"c":{"forziere":"comune_drenaggio"},"R":{"forziere":"raro_drenaggio"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"L":{"altare":true,"asciutti":[1]},"1":{"acqua":1},"2":{"acqua":2},"3":{"acqua":3},"x":{"valvola":1},"y":{"valvola":2},"z":{"valvola":3}},"ingresso":{"island":"laguna","at":[18,45]},
    "rows": [
     "                    ######################## ",
     " ####################............T.........# ",
@@ -112,7 +112,7 @@
     " #...o...o.....33R.3#......................# ",
     " #..........T..33..3#...f..................# ",
     " #..w........##33333#....o............o....# ",
-    " #......f....##33333#.t..................t.# ",
+    " #......fu...##33333#.t..................t.# ",
     " #.t........c##33333#......................# ",
     " #...........#################2222########## ",
     " ####...######               #2222#          ",
@@ -171,7 +171,7 @@
      ]}
     ]
    }},
-  {"id":"archivio","nome":"Archivio Navigazionale","descr":"Sotto l'arco est della Laguna, le carte delle rotte della civiltà degli automi: gallerie del vento, archivisti a molla, droni sulle grate, aerostati e l'Astrolabio Impazzito. Argento, ferro, un po' d'oro.","stile":"archivio","difficolta":4,"richiede":"drenaggio","tile":2,"legenda":{"1":{"vento":1},"2":{"vento":2},"3":{"vento":3},"m":{"nemico":"archivista_molla"},"h":{"nemico":"idro_ragno","grata":true},"g":{"grata":true},"b":{"nemico":"aerostato_spia"},"B":{"nemico":"aerostato_spia","vento":1},"K":{"nemico":"astrolabio","capo":true},"c":{"forziere":"comune_archivio"},"R":{"forziere":"raro_archivio"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"L":{"altare":true,"ferme":[3]},"z":{"timone":3}},"ingresso":{"island":"laguna","at":[47,36]},
+  {"id":"archivio","nome":"Archivio Navigazionale","descr":"Sotto l'arco est della Laguna, le carte delle rotte della civiltà degli automi: gallerie del vento, archivisti a molla, droni sulle grate, aerostati e l'Astrolabio Impazzito. Argento, ferro, un po' d'oro.","stile":"archivio","difficolta":4,"richiede":"drenaggio","tile":2,"legenda":{"u":{"libro":"libro_bomba_fuoco"},"1":{"vento":1},"2":{"vento":2},"3":{"vento":3},"m":{"nemico":"archivista_molla"},"h":{"nemico":"idro_ragno","grata":true},"g":{"grata":true},"b":{"nemico":"aerostato_spia"},"B":{"nemico":"aerostato_spia","vento":1},"K":{"nemico":"astrolabio","capo":true},"c":{"forziere":"comune_archivio"},"R":{"forziere":"raro_archivio"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true},"L":{"altare":true,"ferme":[3]},"z":{"timone":3}},"ingresso":{"island":"laguna","at":[47,36]},
    "venti":[{"n":1,"dir":"o","forza":4.5,"soffia":2.2,"pausa":2.4,"fase":0},{"n":2,"dir":"s","forza":4.5,"soffia":2,"pausa":2.6,"fase":1.3},{"n":3,"dir":"s","forza":9,"soffia":1,"pausa":0}],
    "rows": [
     "#############################################",
@@ -181,7 +181,7 @@
     "#.......b......#######..........K...........#",
     "#.g............#######......................#",
     "#.h...o...o....#######.....o.........o......#",
-    "#.g............#######......................#",
+    "#.g..........u.#######......................#",
     "#.g........b...#######c...................t.#",
     "#t.............######################..######",
     "#.............t####################t........#",

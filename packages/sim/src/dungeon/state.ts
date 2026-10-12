@@ -51,6 +51,8 @@ export type HeroRt = {
   /** Perk (v9). Scarica: tick di ricarica rimasti, frecce ancora da tirare nella raffica e tick al prossimo tiro. Carica massima: progresso 0..1
    *  verso il colpo letale mentre tieni il colpo, e se il colpo che sta partendo è quello letale. */
   cdScarica: number; raffica: number; raffT: number; massimaP: number; massimo: boolean;
+  /** Magia a raggio (Fuoco/Elettricità continua, magie.ts): tick da quando è accesa (0 = spenta), metri liberi davanti all'eroe, elemento. */
+  canale: number; canaleLen: number; canaleEl?: 'fuoco' | 'elettricita';
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
 export type Enemy = {
@@ -112,6 +114,8 @@ export type Proj = {
   mole?: number; guida?: number;
   /** Magie: elemento (Combustione, Catena di fulmini). */
   elemento?: 'fuoco' | 'elettricita';
+  /** Bomba (magie.ts): dove atterra (x, z); vola sopra muri e nemici e scoppia a terra. Elettriche: rallenta chi colpisce. */
+  bomba?: [number, number]; rallenta?: { molt: number; secondi: number };
 };
 /** Drenaggio: un bacino allagato. `aperta` = la sua valvola è girata; `scolo` = tick che mancano all'asciutto (livello = scolo / SCOLO). */
 export type Bacino = { n: number; aperta: boolean; scolo: number };
@@ -283,7 +287,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
         incanta: !!hero.manoMagia && hero.magia !== null,
         cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0,
         barr: 0, pressione: hero.arma.traits.lame?.cariche ?? 0, ultimoAttacco: -1e6, ritmo: 0, tic: -1, rintocco: false, molla: hero.arma.traits.carillon?.colpi ?? 0, mollaT: 0, ecoT: -1e6, lancT: [],
-        prevA: false, prevC: false, prevD: false, prevE: false, cdScarica: 0, raffica: 0, raffT: 0, massimaP: 0, massimo: false,
+        prevA: false, prevC: false, prevD: false, prevE: false, cdScarica: 0, raffica: 0, raffT: 0, massimaP: 0, massimo: false, canale: 0, canaleLen: 0,
       },
       runHero: hero, done: false, outcome: null,
       bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,

@@ -115,6 +115,8 @@ export type DungeonEvent = (
   /** Terremoto: il caricato scuote il terreno in (x, z) · Catena di fulmini: l'elettricità salta da un punto all'altro. */
   | { t: 'terremoto'; x: number; z: number }
   | { t: 'catena'; da: [number, number]; a: [number, number] }
+  /** Una bomba è atterrata e scoppia (raggio in m, elemento). */
+  | { t: 'scoppio'; x: number; z: number; r: number; el?: 'fuoco' | 'elettricita' }
   | { t: 'caricaMassima' }
 ) & { eroe?: number };
 
@@ -143,6 +145,8 @@ export type DungeonView = {
     magia?: string;
     /** Rallentato dal Tubo-strisciante (Drenaggio). */
     rallentato?: boolean;
+    /** Magia a raggio accesa: lunghezza in m davanti all'eroe (già accorciata dal primo muro) ed elemento. */
+    canale?: { len: number; el?: 'fuoco' | 'elettricita' };
     /** Archivio: nel vento che soffia (e ti sposta), al riparo dietro uno scaffale, spinto da fuori (arpione, raffica, bomba). */
     vento?: boolean; riparo?: boolean; spinto?: boolean;
     /** Fucina: brucia (fuoco addosso), sotto una cascata d'acqua. */
@@ -173,7 +177,9 @@ export type DungeonView = {
     varchi?: [number, number][] }[];
   proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica'; x: number; y: number; z: number; vx: number; vz: number;
     /** Grandi Magie: la magia è più grande di questo fattore (assente = 1). */
-    mole?: number }[];
+    mole?: number;
+    /** Magie: elemento; bomba: dove atterra (x, z) e raggio dello scoppio in m (il client disegna il cerchio a terra). */
+    el?: 'fuoco' | 'elettricita'; bomba?: [number, number]; r?: number }[];
   bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
   uscita: { x: number; z: number };
   vicinoUscita: boolean;
@@ -217,7 +223,7 @@ export type DungeonView = {
 /** Un compagno visto da me: posa per l'avatar, vita per la barra, finito (uscito, caduto, andato via) = non si disegna più. */
 export type CompagnoView = {
   i: number; x: number; z: number; fx: number; fz: number; anim: HeroAnim; t: number; carica: number; stile?: SwingStyle;
-  vita: number; max: number; arma: string | null; magia?: string; protetto: boolean; done: boolean; outcome: RunOutcome | null;
+  vita: number; max: number; arma: string | null; magia?: string; canale?: { len: number; el?: 'fuoco' | 'elettricita' }; protetto: boolean; done: boolean; outcome: RunOutcome | null;
 };
 
 /** Il modulo della spedizione da solo. Insieme (#118): createParty / stepParty / actParty di dungeon.ts; act, result, view e autopilot

@@ -11,7 +11,7 @@ import { PAL, el } from '../ui/style.ts';
 
 export type LanternaUi = { salvatoQui: boolean; oggetti: number; monete: number };
 /** Una magia del menù rapido: nome, costo in Magicka e una funzione che fa l'icona (un canvas non si clona: ogni chip ne vuole una nuova). */
-export type MagiaUi = { id: string; nome: string; costo: number; icona(): Node };
+export type MagiaUi = { id: string; nome: string; costo: number; icona(): Node; /** Raggio continuo: il costo è al secondo. */ alSecondo?: boolean };
 export type Controls = {
   /** Un campione per tick: c, d e la A in più (clic tenuto, bottone d'uscita, joystick di mira). `m` = indice di mira del joystick di mira
    *  (mentre è tenuto e nel tick del rilascio, così l'arco parte dove puntavi); 0 = niente mira dal dito. */
@@ -291,8 +291,8 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
       spSig = sig; spIds = on ? elenco.map((m) => m.id) : [];
       if (!on) { sp.replaceChildren(); return; }
       sp.replaceChildren(...elenco.map((m, i) => {
-        const b = btn(`${m.id === inMano ? 'cur' : ''}${magicka >= m.costo ? '' : ' no'}`.trim(), 'magia', m.icona(), el('i', '', String(i + 1)), el('b', '', String(m.costo)));
-        b.dataset['magia'] = m.id; b.title = `${m.nome} · ${m.costo} Magicka (tasto ${i + 1})`; b.setAttribute('aria-label', m.nome);
+        const b = btn(`${m.id === inMano ? 'cur' : ''}${magicka >= m.costo ? '' : ' no'}`.trim(), 'magia', m.icona(), el('i', '', String(i + 1)), el('b', '', `${m.costo}${m.alSecondo ? '/s' : ''}`));
+        b.dataset['magia'] = m.id; b.title = `${m.nome} · ${m.costo} Magicka${m.alSecondo ? ' al secondo' : ''} (tasto ${i + 1})`; b.setAttribute('aria-label', m.nome);
         return b;
       }));
     },
