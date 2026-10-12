@@ -30,6 +30,7 @@ Il **sistema dei fantasmi** è uno solo per le due isole: lo scrive chi arriva p
   - poi ti fa salire **solo col casco in testa**. Senza casco: «Senza casco qui non sale nessuno.»
   - Il **casco** è un cappello nuovo, il tredicesimo di GDD §4: si compra a **35 Perle** dall'editor come la Lanterna (lo vende anche il Mercante, ma non è un suo esclusivo), arancione con la striscia bianca e la visiera scura. Prezzo e aspetto si possono ancora cambiare. Lo sblocco è un tipo nuovo, `funivia`: firma più cappello, ma niente cacciata come al Vulcano.
 - **Per le prove** (`?adrenalina=1` nell'indirizzo): liberatoria già firmata, casco non richiesto, e un bottone 🚡 nella barra in alto che porta subito al cancello della funivia. Il premio resta quello vero.
+- **Dal passo 3b** (12 ott 2026) con firma e casco al cancello si sale in funivia e si scende con lo snowboard: aperto a tutti.
 
 ## 3. L'isola
 Un picco solo, da guardare dalla barca come un cartello: «qui si scende».
@@ -92,6 +93,8 @@ Stessi comandi; il tocco è lo **scatto** (un colpo di pedale, poi qualche istan
 Ti butti: **caduta libera** negli **anelli** sospesi (trascini per centrarli), il terreno sale. **Tocco = apri il paracadute**: più tardi lo apri, più punti; **troppo tardi** = atterraggio buffo sul prato o in mare sotto le scogliere, pochi punti, non si muore. Sotto il paracadute guidi verso il **bersaglio** d'atterraggio. La **wingsuit** è la pista nera: volo rasente alle rocce in un canyon, la barra si riempie quanto più stai basso.
 
 ## 8. I fantasmi degli amici
+> **Fatto per lo snowboard al passo 3b** (birbasan, 12 ott 2026): scendi contro il fantasma di chi ha il **miglior tempo** sulla pista (la sua discesa rigiocata coi suoi input, semitrasparente, coi suoi colori e il nome sopra; in alto il distacco in secondi). Classifica e input sul server (DO `Sfide`, tabella `discese`). Restano da fare: scegliere il fantasma di un amico al cartello, e le Corse sullo stesso sistema.
+
 - Nessun bot. In pista corri contro la **replica trasparente** del record di un amico su quella pista: è il suo log di input rigiocato nella sim (lo stesso log che il server già usa per controllare il punteggio).
 - Di serie il fantasma è quello del **migliore** del gruppo su quella pista; al cartello si può scegliere un amico.
 - I record per pista stanno sul server (come il Tabellone dei record del Porto, GDD §5), con gli input del migliore di ciascuno.
@@ -99,7 +102,8 @@ Ti butti: **caduta libera** negli **anelli** sospesi (trascini per centrarli), i
 
 ## 9. Premio e sblocchi
 - Ogni discesa paga a medaglie come gli altri minigiochi delle isole a tema: `balance.solo` più un **oro in più** (`premioExtra`), con lo stesso tetto di partite premiate al giorno. **[scelta provvisoria]**: +15 Pietra all'oro.
-- **Medaglie** **[scelta provvisoria]**: in frazione del punteggio del pilota di riferimento sulla stessa pista (come Arrembaggio e Fuga dalla lava). I numeri veri si fissano al passo 3 giocando.
+- **Medaglie col fantasma del record** (birbasan, 12 ott 2026, passo 3b; al posto della frazione del pilota automatico): la classifica di ogni pista è a **tempo finale** (il miglior tempo di ciascuno del gruppo). Se batti il fantasma del primo è **oro**, secondo **argento**, terzo **bronzo**, più giù niente. Se non c'è nessuno davanti (la prima discesa della pista) sei primo: **oro**.
+- **Tempo con abbuoni** (come SSX): tempo finale = tempo della discesa − abbuoni + penalità. Porte, salti, trick e presa fanno punti (per la barra Adrenalina) e i punti diventano secondi di abbuono (**1 s ogni 1.000 punti**); una **porta mancata +2 s**; una caduta costa già i suoi 2 s. All'arrivo: tempo, abbuoni, tempo finale, posto in classifica, medaglia, premio.
 - **Sblocchi delle piste**: una medaglia d'**argento** su una pista apre quella del colore dopo dello stesso gioco **[scelta provvisoria]**.
 
 ## 10. Camera
@@ -128,8 +132,8 @@ Suoni nostri e sintetizzati (motore di `apps/client/src/audio/`, zero file), al 
 2. **Isola** (fatto, 10 ott 2026): la montagna (vetta innevata, bosco, scogliere), molo, funivia con le cabine che vanno su e giù, posizione a nord-ovest, lucchetto; il casco e il cancello con la liberatoria; `?adrenalina=1`. Le piste ancora no: con firma e casco il guardiano dice che aprono a giorni.
 3. **Snowboard completo**, diviso in due PR (bozza del 12 ott 2026):
    - **3a** (fatto, 12 ott 2026): la pista verde col fuoripista, la tavola, la barra Adrenalina, le cadute, la scena a parte e la camera A/B, solo con `?adrenalina=1` (alla funivia, firma e casco già a posto, si scende). Serve a vedere se diverte; se no ci si ferma e si corregge.
-   - **3b**: medaglie (in proporzione al pilota automatico), premio dal server (`balance.solo` + 15 Pietra all'oro), cartello delle piste in vetta, cartello delle regole e 3-2-1, l'avatar col casco sulla tavola, schermata d'arrivo con «Ancora», «In vetta», «Al molo»; tutto aperto a tutti.
-4. **Fantasmi degli amici**: record per pista sul server, il fantasma in pista.
+   - **3b** (fatto, 12 ott 2026): medaglie col fantasma del record e classifica a tempo con abbuoni (§9, birbasan), premio dal server (`balance.solo` + 15 Pietra all'oro), il viaggio in funivia fino alla vetta, il cartello delle piste in vetta (blu, rossa, nera, bici e lancio col lucchetto), il cartello delle regole e 3-2-1, il tuo avatar vero col casco sulla tavola, la scheda d'arrivo con «Ancora», «In vetta», «Al molo»; aperto a tutti con firma e casco.
+4. **Fantasmi degli amici**: record per pista sul server, il fantasma in pista. *Per lo snowboard fatto col 3b (il fantasma del primo); restano la scelta di un amico al cartello e le Corse.*
 5. **Bici downhill**.
 6. **Lancio dalla vetta** (paracadute; la wingsuit come pista nera).
 7. **Piste blu, rossa e nera** per i tre giochi e sblocchi a medaglie.

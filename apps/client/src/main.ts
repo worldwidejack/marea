@@ -140,7 +140,7 @@ async function boot(): Promise<void> {
   const temi = createTemi({ world, hud, loader, root, camera: renderer.camera, canvas, getLot: () => myLot(), notte: () => aspetto?.momento === 'notte' });
   if (tpl.spot) targets.push({ id: 'templari', label: 'Chiesa', icon: 'templari', x: tpl.spot.x, z: tpl.spot.z, show: () => FLAGS.templari || temi.aperta('templari'), sezione: 'isole' });
   // Isola dell'Adrenalina (docs/ADRENALINA.md): la funivia e il cancello con la liberatoria; ?adrenalina=1 per le prove
-  const adr = createAdrenalina({ world, renderer, api: me && api.enabled ? api : null, hud, root, getLot: () => myLot(), setLot: setMyLot, nome: () => me?.nome ?? '', aperta: () => temi.aperta('adrenalina') });
+  const adr = createAdrenalina({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, getLot: () => myLot(), setLot: setMyLot, nome: () => me?.nome ?? '', aperta: () => temi.aperta('adrenalina') });
   if (adr.spot) targets.push({ id: 'funivia', label: 'Funivia', icon: 'adrenalina', x: adr.spot.x, z: adr.spot.z, show: () => FLAGS.adrenalina || temi.aperta('adrenalina'), sezione: 'isole' });
   // lo scheletro col calice sotto il faro della Tempesta: in bussola finché il calice non è tuo (e la Tempesta è aperta)
   if (tpl.relitto) targets.push({ id: 'relitto_templare', label: 'Relitto', icon: 'templari', x: tpl.relitto.x, z: tpl.relitto.z, show: () => !tpl.calice() && temi.aperta('tempesta'), sezione: 'isole' });

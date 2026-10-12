@@ -28,6 +28,10 @@ import type { FaroStato } from '@marea/sim/economy/faro.ts';
 import { recordDi, segnaRecord } from '@marea/sim/economy/record.ts';
 import { MINIGAMES } from '@marea/sim/minigames/registry.ts';
 import '@marea/sim/corse/registra.ts'; // Corse: il server rigioca sul motore v2 (#173)
+import '@marea/sim/adrenalina/registra.ts'; // Adrenalina: le discese nel tabellone dei record (passo 3b)
+import { SNOWBOARD_PISTE } from '@marea/content/adrenalina.ts';
+import { migliora } from '@marea/sim/adrenalina/classifica.ts';
+import { classificaDiscese, creaTabellaDiscese, fantasmaDiscesa, scriviDiscesa } from './disceseStore.ts';
 import type { Env } from '../env.ts';
 
 const json = (dati: unknown, status = 200): Response =>
@@ -53,6 +57,7 @@ export class Sfide extends DurableObject<Env> {
     ctx.storage.sql.exec('CREATE INDEX IF NOT EXISTS sfide_a ON sfide (a, creata)');
     creaTabellaFeed(ctx.storage.sql);
     creaTabellePorto(ctx.storage.sql);
+    creaTabellaDiscese(ctx.storage.sql);
   }
 
   /** Una operazione alla volta, anche mentre si aspettano i DO Lot (l'input gate non basta: le fetch in uscita lo aprono). */
@@ -199,6 +204,12 @@ export class Sfide extends DurableObject<Env> {
         if (req.method === 'GET' && act === 'feed') return json({ rows: leggiFeed(sql, me), nonLetti: nonLetti(sql, me), faroLivelli: leggiFaro(sql).livelli });
         if (req.method === 'GET' && act === 'record') return json({ tab: recordDi(leggiTabellone(sql), now) });
         if (req.method === 'GET' && act === 'faro') return json({ faro: leggiFaro(sql) });
+        // Adrenalina (passo 3b): la classifica a tempo di una pista e il fantasma del primo
+        if (req.method === 'GET' && (act === 'discese' || act === 'fantasma')) {
+          const pista = url.searchParams.get('pista') ?? '';
+          if (!Object.hasOwn(SNOWBOARD_PISTE, pista)) return json({ error: 'Pista sconosciuta' }, 400);
+          return json(act === 'discese' ? { pista, righe: classificaDiscese(sql, pista) } : { pista, fantasma: fantasmaDiscesa(sql, pista) });
+        }
         if (req.method === 'POST' && act === 'feed_letto') {
           const fino = body['fino'];
           if (fino !== undefined && (typeof fino !== 'number' || !Number.isFinite(fino))) return json({ error: 'Richiesta non valida' }, 400);
@@ -213,6 +224,7 @@ export class Sfide extends DurableObject<Env> {
           return json({ ok: true });
         }
         if (act === 'record') return this.record(me, body, now);
+        if (act === 'discesa') return this.discesa(me, body, now);
         if (act === 'faro_versa') return await this.faroVersa(me, body, now);
         if (act === 'create') return await this.create(me, body, now);
         const row = typeof body['id'] === 'string' ? this.get(body['id']) : null;
@@ -244,6 +256,18 @@ export class Sfide extends DurableObject<Env> {
       });
     }
     return json({ oggi: out.oggi, sempre: out.sempre });
+  }
+
+  /** Discesa dell'Adrenalina già rigiocata dal DO del lotto (passo 3b): se è il miglior tempo finale di `me` su quella pista entra in
+   *  classifica con i suoi input (diventa il fantasma, se è la prima). Dal Worker, dopo `solo_play`. */
+  private discesa(me: string, body: Record<string, unknown>, now: number): Response {
+    const pista = body['pista'], ms = body['ms'], seed = body['seed'], opzioni = body['opzioni'], inputs = body['inputs'];
+    if (typeof pista !== 'string' || !Object.hasOwn(SNOWBOARD_PISTE, pista) || typeof ms !== 'number' || !Number.isFinite(ms) || ms < 0 || typeof seed !== 'number'
+      || !opzioni || typeof opzioni !== 'object' || !isPackedInputs(inputs, getMinigame('snowboard').maxTicks)) return json({ error: 'Richiesta non valida' }, 400);
+    const sql = this.ctx.storage.sql, cl = classificaDiscese(sql, pista), primo = cl[0] ?? null;
+    if (!migliora(cl, me, ms)) return json({ migliorato: false });
+    scriviDiscesa(sql, pista, { chi: me, ms: Math.round(ms), quando: now, seed, opzioni: opzioni as Record<string, string>, inputs });
+    return json({ migliorato: true, record: !primo || ms < primo.ms });
   }
 
   /** Versa al Faro comune: intento → il lotto paga (idempotente per id) → il faro conta. Risponde col faro e col lotto aggiornati. */

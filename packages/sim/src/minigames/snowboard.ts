@@ -265,6 +265,15 @@ export function pilotaSnowboard(s: SnowState, pigro = false): InputFrame {
   return { mx, my: 0, a, b: false };
 }
 
+/** I tempi della discesa (ms): quello vero, gli abbuoni (punti → secondi), le penalità (porte mancate), il finale che fa classifica.
+ *  Chi non arriva non ha tempo finale (Infinity). */
+export function tempiSnowboard(s: SnowState): { ms: number; abbuono: number; penalita: number; finale: number } {
+  const ms = Math.round((s.arrivato ? s.arrivoTick : s.tick) * DT * 1000), T = C.tempo;
+  const abbuono = Math.round(((s.punti > 0 ? s.punti : 0) / T.puntiAlSecondo) * 1000), penalita = s.mancate * T.portaMancata * 1000;
+  const f = ms - abbuono + penalita;
+  return { ms, abbuono, penalita, finale: s.arrivato ? (f > 0 ? f : 0) : Infinity };
+}
+
 export type SnowView = SnowState & { molt: 1 | 2 | 3; bordo: number; neve: number; len: number; arrivo: number };
 export const snowboard: MinigameModule<SnowState> = {
   id: 'snowboard',
@@ -276,10 +285,14 @@ export const snowboard: MinigameModule<SnowState> = {
     return { pista: id === 'snowboard_verde' ? id : 'snowboard_verde' };
   },
   step,
-  result: (s) => ({
-    done: s.done, score: s.punti > 0 ? s.punti : 0, medal: null,
-    detail: { ms: Math.round((s.arrivato ? s.arrivoTick : s.tick) * DT * 1000), arrivato: s.arrivato ? 1 : 0, porte: s.porte, mancate: s.mancate, cadute: s.cadute, salti: s.salti, trick: s.trickFatti, combo: s.maxCombo },
-  }),
+  // la medaglia viene dalla classifica a tempo del gruppo (il fantasma del record): la decide il server (adrenalina/classifica.ts)
+  result: (s) => {
+    const t = tempiSnowboard(s), sc = s.arrivato ? C.tempo.scoreBase - Math.round(t.finale / 10) : 0;
+    return {
+    done: s.done, score: sc > 1 ? sc : s.arrivato ? 1 : 0, medal: null,
+    detail: { ms: t.ms, finale: s.arrivato ? t.finale : 0, abbuono: t.abbuono, penalita: t.penalita, punti: s.punti, arrivato: s.arrivato ? 1 : 0, porte: s.porte, mancate: s.mancate, cadute: s.cadute, salti: s.salti, trick: s.trickFatti, combo: s.maxCombo },
+    };
+  },
   autopilot: (s) => pilotaSnowboard(s),
   view: (s): SnowView => {
     const p = pistaSnowboard(s.pista);

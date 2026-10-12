@@ -1,7 +1,8 @@
 // Isola dell'Adrenalina, la parte grande (chunk scaricato da game/adrenalina.ts quando ti avvicini all'isola): cavi, piloni e due cabine che
 // vanno su e giù, il cancello della stazione a valle con il bottone FUNIVIA e la liberatoria da firmare (POST /api/adrenalina/liberatoria).
-// Senza link personale la firma vale solo per questa visita. Con ?adrenalina=1 (passo 3a, #189) chi sale scende con lo snowboard:
-// il chunk apps/client/src/adrenalina/ (scena a parte, il mondo sta fermo: `active` / `step` / `updateRun` da main.ts via adrenalina.ts).
+// Senza link personale la firma vale solo per questa visita. Con firma e casco si sale e si scende con lo snowboard (passo 3b, #189, aperto a
+// tutti): il chunk apps/client/src/adrenalina/ (scena a parte, il mondo sta fermo: `active` / `step` / `updateRun` da main.ts via adrenalina.ts).
+// Il server apre e rigioca le discese (`/api/solo/*`, minigioco `snowboard`) e tiene il fantasma del record (`/api/adrenalina/fantasma`).
 import * as THREE from 'three';
 import type { ArchPlace, InputFrame } from '@marea/sim';
 import { AVATAR, ISLANDS } from '@marea/content';
@@ -130,8 +131,8 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
     if (!casco()) { rifiuti++; dice(`Il guardiano: «Senza casco qui non sale nessuno.» Il Casco costa ${prezzo} Perle: lo compri dal tuo avatar (bottone in alto) o dal Mercante al Porto`, 4800); return; }
     salite++;
     suona('medaglia_bronzo');
-    if (FLAGS.adrenalina) { void scendi(); return; } // passo 3a: la discesa solo per le prove
-    dice('Il guardiano: «Casco in testa, firma fatta: sei dei nostri. Le piste aprono a giorni, la prima è lo snowboard.»', 4600);
+    dice('Il guardiano: «Casco in testa, firma fatta: sali. In vetta trovi le piste.»', 2600);
+    void scendi();
   }
   async function firma(): Promise<void> {
     if (busy) return;
@@ -163,7 +164,11 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
     carico = true; btn.classList.remove('on');
     try {
       const m = await import('../adrenalina/index.ts');
-      run = m.startSnowboard({ renderer: o.renderer, root: o.root, look: () => o.world.look });
+      const api = o.api && FLAGS.token ? o.api : null;
+      run = m.startSnowboard({
+        renderer: o.renderer, root: o.root, look: () => o.world.look, loader: o.loader, setLot: o.setLot, toast: (t, ms) => o.hud.toast(t, ms ?? 2600),
+        server: api ? { start: (pista) => api.soloStart('snowboard', { pista }), play: (inputs, pista) => api.soloPlay(inputs, { minigame: 'snowboard', pista }), fantasma: (pista) => api.adrenalinaFantasma(pista) } : null,
+      });
       discese++;
       await run.done;
     } catch (e) {

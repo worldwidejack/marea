@@ -14,6 +14,7 @@ import { elencoPersone, entraConInvito, esistePersona, salvaLook, segnaAccesso }
 import { toFeedItem } from './feed.ts';
 import type { FeedRow } from './feed.ts';
 import { rottePortoAmici, segnaRecordDa } from './porto_amici.ts';
+import { giocaSolo, rotteAdrenalina } from './adrenalina.ts';
 export { Zone } from './do/Zone.ts';
 export { Lot } from './do/Lot.ts';
 export { Sfide } from './do/Sfide.ts';
@@ -303,8 +304,10 @@ export default {
       if (path === '/api/solo/play' && req.method === 'POST') {
         const body = await corpo(MAX_PLAY_BODY);
         if (body instanceof Response) return body;
-        // il punteggio vero (dal replay) va anche al tabellone dei record del Porto (#110)
-        return segnaRecordDa(await lotReq(env, p.id, now, 'solo_play', { inputs: body['inputs'] }), (q, b) => sfideReq(env, p.id, now, q, b));
+        // il punteggio vero (dal replay) va anche al tabellone dei record del Porto (#110); le discese dell'Adrenalina passano dalla
+        // classifica a tempo (adrenalina.ts: medaglia dalla posizione, la discesa migliore diventa il fantasma)
+        const sfide = (q: string, b?: unknown) => sfideReq(env, p.id, now, q, b);
+        return segnaRecordDa(await giocaSolo(body, (b) => lotReq(env, p.id, now, 'solo_play', b), sfide), sfide);
       }
       // Bacheca del Porto (#64): le missioni di oggi le calcola anche il client dal lotto; qui solo RISCUOTI (il DO verifica e paga)
       if (path === '/api/missioni/riscuoti' && req.method === 'POST') {
@@ -330,6 +333,8 @@ export default {
         const d = (await r.json()) as { riepilogo: unknown; lot: unknown };
         return json({ riepilogo: d.riepilogo, novita, lot: d.lot, now });
       }
+      const ad = await rotteAdrenalina(path, url, req, env, (q, b) => sfideReq(env, p.id, now, q, b));
+      if (ad) return ad;
       const pa = await rottePortoAmici(path, req, env, (q, b) => sfideReq(env, p.id, now, q, b), corpo);
       if (pa) return pa;
       if (path === '/api/presenza' && req.method === 'POST') return lotReq(env, p.id, now, 'visto', {});

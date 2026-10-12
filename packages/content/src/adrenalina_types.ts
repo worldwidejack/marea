@@ -55,6 +55,9 @@ export type SnowboardCfg = {
   /** Un trick (o la presa) chiuso a meno di `ultimoIstante` s dall'atterraggio riempie la barra. */
   ultimoIstante: number;
   punti: { porta: number; portaMancata: number; saltoMetro: number };
+  /** La classifica è a tempo (birbasan, 12 ott, 3b): tempo finale = tempo − punti / `puntiAlSecondo` + `portaMancata` s per porta mancata;
+   *  score del minigioco = `scoreBase` − centesimi del tempo finale (più alto = meglio, come le Corse). */
+  tempo: { puntiAlSecondo: number; portaMancata: number; scoreBase: number };
   /** Rasente: passare a meno di `rasente` m da un albero, una roccia o un palo (oltre il corpo). */
   rasente: number;
   /** Raggio del corpo (m) per gli urti. */

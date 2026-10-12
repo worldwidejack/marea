@@ -146,6 +146,16 @@ Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, gioca
 ### Aggiunte Armature e armi a vista (#190, 10 ott 2026)
 **Presenza**: `Peer.indossa?: { corpo?, arma?, frecce? }` = id del catalogo GDR di quello che si vede addosso (armatura o veste, arma di mischia o arco, frecce); assente = niente. Come `titolo` e `barca` arriva nel `welcome`/`join` (dal look in D1) e negli `snap` dopo un cambio. **Non lo manda il client**: lo ricava il Worker dal personaggio vero (`heroOf(lotto).equip`; senza personaggio salvato vale l'equipaggiamento di partenza) a ogni `GET /api/me`, `GET /api/lot`, `POST /api/rpg` e `POST /api/dungeon/finish|save`; se è cambiato lo scrive nel look in D1 (`LookSalvato.indossa`) e avvisa la Zone come `POST /api/look`. `POST /api/look`, `/api/diario/titolo` e `/api/barca` lo conservano e non lo leggono dal corpo (nessuno si vede addosso quello che non ha). La Zone scarta gli id che non esistono o non stanno nello slot giusto (`indossaValida` in `@marea/sim/rpg/indossa.ts`). Niente migrazioni; `GET /api/me` e `/api/lots` lo danno nel `look`. `PROTOCOL_VERSION` resta 1.
 
+### Aggiunte Isola dell'Adrenalina, discese a medaglie (#189 passo 3b, 12 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/solo/start` | `{ minigame: 'snowboard', opzioni: { pista } }` come ogni minigioco da solo |
+| `POST /api/solo/play` | `{ inputs, minigame?: 'snowboard', pista? }` (il suggerimento risparmia un giro: il Worker passa al lotto la classifica della pista; se manca il lotto risponde 409 `classifica` e il Worker riprova) → come prima più `posizione` (1 = primo, 0 = non arrivato), `classificati` (quanti altri avevano un tempo), `pista`, `seed`, `opzioni`, `discesa: { migliorato, record } \| null`. **La medaglia è la posizione** nella classifica a tempo finale della pista (oro primo o nessuno davanti, argento secondo, bronzo terzo, più giù niente) |
+| `GET /api/adrenalina/discese?pista=` | → `{ pista, righe: { chi, nome, ms, quando }[] }`: il miglior tempo finale di ciascuno, dal più veloce — **nuovo** |
+| `GET /api/adrenalina/fantasma?pista=` | → `{ pista, fantasma: { chi, nome, look, ms, quando, seed, opzioni, inputs: PackedInputs } \| null }`: la discesa del primo, da rigiocare nella sim; 400 se la pista non esiste — **nuovo** |
+
+Niente migrazioni: classifica e input stanno nel SQLite del DO `Sfide` (tabella `discese`, accanto al tabellone del Porto).
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32, `a` 0/1 e `b` 0/1/2: **2 = `b` con `c`** («dall'altra parte», `InputFrame.c` facoltativo; nelle Corse l'oggetto va al contrario, #250). Le partite di prima (solo 0/1) restano valide; il server controlla la forma con `isPackedInputs`. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 

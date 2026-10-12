@@ -20,11 +20,13 @@ import koi from './minigames/koi.json' with { type: 'json' }; // Giardino
 import arrembaggio from './minigames/arrembaggio.json' with { type: 'json' }; // Tempesta
 import lava from './minigames/lava.json' with { type: 'json' }; // Vulcano
 import corse from './minigames/corse.json' with { type: 'json' }; // Isola delle Corse
+import snowboard from './minigames/snowboard.json' with { type: 'json' }; // Isola dell'Adrenalina
 import type { ArrembaggioCfg, LavaCfg } from './types.ts'; // Tempesta, Vulcano
 import type { ArchipelagoDef, AvatarDef, BorgoDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, MeteoCfg, PerleCfg, PescaCfg, RegataCfg, ResourceDef, RientroCfg, ScacchiCfg } from './types.ts';
 import type { PinguiniCfg } from './types.ts'; // Ghiacci
 import type { KoiCfg } from './types.ts'; // Giardino
 import type { CorseCfg } from './types.ts'; // Isola delle Corse
+import type { SnowboardMgCfg } from './types.ts'; // Isola dell'Adrenalina
 import { validateAll, validateArchipelago, validateTemi } from './schema.ts';
 import { DIARIO, validateDiario } from './diario.ts'; // Diario del capitano (#87)
 
@@ -42,6 +44,7 @@ export const MINIGAMES_CFG: {
   arrembaggio: ArrembaggioCfg; // Tempesta
   lava: LavaCfg; // Vulcano
   corse: CorseCfg; // Isola delle Corse
+  snowboard: SnowboardMgCfg; // Isola dell'Adrenalina
 } = {
   regata: regata as unknown as RegataCfg,
   pesca: pesca as unknown as PescaCfg,
@@ -53,6 +56,7 @@ export const MINIGAMES_CFG: {
   arrembaggio: arrembaggio as unknown as ArrembaggioCfg, // Tempesta
   lava: lava as unknown as LavaCfg, // Vulcano
   corse: corse as unknown as CorseCfg, // Isola delle Corse
+  snowboard: snowboard as unknown as SnowboardMgCfg, // Isola dell'Adrenalina (la discesa: @marea/content/adrenalina.ts)
 };
 export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;
