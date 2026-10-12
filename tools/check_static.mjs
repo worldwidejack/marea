@@ -41,8 +41,16 @@ for (const f of files) {
     for (const m of code.matchAll(/^\s*import\s+(?!type\b)[^'"]*from\s*['"](@marea\/content\/templari[^'"]*|@marea\/sim\/templari\/[^'"]*)['"]/gm)) errs.push(`${r}: import statico di ${m[1]} fuori da apps/client/src/templari/ (finirebbe nel bundle iniziale: usa import() dinamico)`);
   }
   // chunk delle Corse (motore v2, docs/CORSE.md A11): dati e sim delle piste solo in apps/client/src/corse/** (il resto solo `import type` o import())
+  // (il nastro della sim delle Corse lo usa anche il chunk delle discese dell'Adrenalina)
   if (r.startsWith('apps/client/src/') && !r.startsWith('apps/client/src/corse/')) {
-    for (const m of code.matchAll(/^\s*import\s+(?!type\b)[^'"]*from\s*['"](@marea\/content\/corse[^'"]*|@marea\/sim\/corse\/[^'"]*)['"]/gm)) errs.push(`${r}: import statico di ${m[1]} fuori da apps/client/src/corse/ (finirebbe nel bundle iniziale: usa import() dinamico)`);
+    for (const m of code.matchAll(/^\s*import\s+(?!type\b)[^'"]*from\s*['"](@marea\/content\/corse[^'"]*|@marea\/sim\/corse\/[^'"]*)['"]/gm)) {
+      if (r.startsWith('apps/client/src/adrenalina/') && m[1] === '@marea/sim/corse/nastro.ts') continue;
+      errs.push(`${r}: import statico di ${m[1]} fuori da apps/client/src/corse/ (finirebbe nel bundle iniziale: usa import() dinamico)`);
+    }
+  }
+  // chunk delle discese dell'Adrenalina (docs/ADRENALINA.md §13): dati, piste e sim solo in apps/client/src/adrenalina/** (il resto solo `import type` o import())
+  if (r.startsWith('apps/client/src/') && !r.startsWith('apps/client/src/adrenalina/')) {
+    for (const m of code.matchAll(/^\s*import\s+(?!type\b)[^'"]*from\s*['"](@marea\/content\/adrenalina[^'"]*|@marea\/sim\/adrenalina\/[^'"]*|@marea\/sim\/minigames\/snowboard[^'"]*)['"]/gm)) errs.push(`${r}: import statico di ${m[1]} fuori da apps/client/src/adrenalina/ (finirebbe nel bundle iniziale: usa import() dinamico)`);
   }
   if (isSim && /\bconsole\s*\.\s*(log|debug|info)\s*\(/.test(code)) errs.push(`${r}: console.log in packages/sim (la sim non stampa; i log stanno nel client/server)`);
   if (!r.startsWith('apps/client/') && (/\b(?:from|import)\s*\(?\s*['"]three(?:\/[^'"]*)?['"]/.test(code) || /\bimport\s*\(\s*['"]three/.test(code))) errs.push(`${r}: import di three fuori da apps/client`);

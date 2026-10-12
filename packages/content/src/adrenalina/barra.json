@@ -1,0 +1,6 @@
+{
+  "riempi": { "rasente": 0.1, "palo": 0.08, "salto_grande": 0.2, "salto_lungo": 0.12, "ultimo_istante": 0.15 },
+  "calaDopo": 3,
+  "cala": 0.08,
+  "soglie": [0.5, 1]
+}

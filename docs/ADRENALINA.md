@@ -56,9 +56,10 @@ Un pollice basta; sul PC tastiera.
 
 | | Telefono | PC |
 |---|---|---|
-| Curvare | trascini a destra e a sinistra | A/D o frecce |
-| Saltare (snowboard) | lasci il dito sul trampolino | lasci Spazio |
-| Trick in aria | un gesto col dito (su, giù, giro) | frecce in aria |
+| Curvare | trascini a destra e a sinistra (da dove hai toccato) | A/D o frecce |
+| Saltare (snowboard) | tieni il dito giù (ti accucci e carichi), lo alzi sul bordo del trampolino | tieni e lasci Spazio |
+| Trick in aria | un colpo veloce col dito: su = mortale avanti, giù = indietro, di lato = 360 | frecce in aria |
+| Presa (snowboard) | in aria tieni il dito fermo; lo alzi prima di toccare terra | Spazio tenuto in aria |
 | Scatto (bici) | tocco | Spazio |
 | Paracadute | tocco = apri | Spazio |
 
@@ -73,6 +74,14 @@ Il marchio dell'isola, uguale in tutti i giochi. **[scelta provvisoria]** sui nu
 
 ### Snowboard (le piste della neve, dalla vetta)
 Trascini per curvare tra le **porte** (bandierine a coppie), lasci sul **trampolino** per saltare, in aria un gesto = **trick**. Atterrare dritto chiude il trick; atterrare storto è una caduta. Punti: porte passate, salti, trick (più trick nello stesso salto valgono di più), tutto per la barra. Una porta saltata toglie punti, non ferma la discesa. È il primo gioco che si fa (passo 3): se non diverte ci si ferma e si corregge prima degli altri.
+
+Deciso da birbasan il 12 ott 2026 (bozza del passo 3, fatto al **3a**):
+- **Guida arcade** (Cool Boarders, SSX): niente gas, spinge la pendenza; la velocità di lato è pronta; una curva larga tiene la velocità, una stretta frena (è il modo di controllarla). Fuori dal bordo la **neve fresca** rallenta; oltre, tra gli alberi (o contro la roccia nella gola) si cade. Contro un albero cadi solo se ci vai proprio addosso; passarci **rasente** riempie la barra.
+- **Salto**: tieni premuto e ti accucci (carichi); lasci e salti. Sul trampolino conta quando lasci: proprio sul bordo è il **salto grande** (riempie la barra); se non lasci voli lo stesso, ma basso.
+- **Trick**: quattro gesti (mortale avanti, indietro, 360 a destra e a sinistra), uno dopo l'altro nello stesso salto (**combo**: ogni trick in più vale il 50 % in più del primo). La **presa**: in aria tieni premuto senza muovere il dito (PC: Spazio); vale punti finché tieni. Toccare terra ancora in presa o a metà di un trick = atterraggio storto, una caduta. Chiudere all'ultimo istante riempie la barra.
+- **Pista verde** (~1,6 km, ~90 s col pilota automatico, 19 porte, 3 trampolini): partenza dalla stazione a monte, pendio largo, slalom di 8 porte, due trampolini piccoli, gola stretta con le rocce, abeti radi, trampolino grande, poi il bosco. **Fuoripista** (birbasan, 12 ott, in chat durante il 3a): poco prima dell'arrivo un abete cade di traverso sulla pista battuta; si gira a sinistra in un sentiero stretto di neve alta tra gli alberi (più lento, abeti a filo da rasentare, due in mezzo da scansare), si rientra sulla pista e si arriva sotto lo striscione a scacchi. L'arrivo resta al limite del bosco: il bosco vero, coi sentieri di terra, resta alla bici (passo 5).
+- **Numeri** (`snowboard.json`, `barra.json`; prima ipotesi, si fissano giocando): gravità 13 m/s², velocità massima 26 m/s, neve fresca 7 m/s, fuoripista 14 m/s; porta +100, porta mancata −150, salto 40 punti per metro d'altezza, mortale 400, 360 250, presa 250 al secondo (minimo 0,2 s); barra: rasente +10 %, palo della porta +8 %, salto grande +20 %, salto lungo (oltre 1,2 s) +12 %, ultimo istante +15 %, cala dell'8 % al secondo dopo 3 s senza rischi; ×2 da metà, ×3 piena.
+- **Camera A/B**: tutte e due nel gioco (`?camera=a|b`, il bottone 📷 o C); birbasan sceglie dagli screenshot del 3a.
 
 ### Bici downhill (le piste del bosco)
 Stessi comandi; il tocco è lo **scatto** (un colpo di pedale, poi qualche istante per ricaricare). Sentieri stretti tra gli abeti, radici, passerelle, salti sui dossi. Qui il fantasma conta più che altrove: è una gara contro il tempo dell'amico, con i punti del rischio sopra.
@@ -105,7 +114,7 @@ Suoni nostri e sintetizzati (motore di `apps/client/src/audio/`, zero file), al 
 - **Dopo il primo giro** (`BACKLOG.md`): tuffo dalla scogliera, moto d'acqua (riusa la barca), parapendio, zipline, bungee.
 
 ## 13. Come funziona sotto (per chi programma)
-- **Un modulo per gioco** in `packages/sim/src/minigames/` (`snowboard.ts`, `downhill.ts`, `lancio.ts`), registrato in `registry.ts` come gli altri: il server paga dal solito giro dei minigiochi (`/api/solo/start`, `/api/solo/play`), rigiocando gli input. Le regole di `packages/sim` valgono tutte (niente trascendenti, `trig.ts`).
+- **Un modulo per gioco** in `packages/sim/src/minigames/` (`snowboard.ts`, `downhill.ts`, `lancio.ts`), registrato come gli altri (al 3b, come le Corse con un `registra.ts` che importa solo il server: il registro finisce nel JS iniziale): il server paga dal solito giro dei minigiochi (`/api/solo/start`, `/api/solo/play`), rigiocando gli input. Le regole di `packages/sim` valgono tutte (niente trascendenti, `trig.ts`).
 - **Piste in content**, non nel seed: `packages/content/src/adrenalina/piste/<gioco>_<colore>.json` (tracciato, porte, salti, anelli, ostacoli). La sim le legge; il seed cambia solo i dettagli.
 - **Barra Adrenalina** come pezzo comune ai tre moduli (stessa logica, stessi numeri da content).
 - **Scena a parte** nel client in un **chunk** suo caricato all'ingresso della funivia, con la sua riga nel budget di `TECH.md` §5.
@@ -115,7 +124,9 @@ Suoni nostri e sintetizzati (motore di `apps/client/src/audio/`, zero file), al 
 ## 14. Piano di lavoro (issue madre #189, una PR per passo, ognuna online)
 1. **Documenti**: questo file, GDD §3 §6 §14, ROADMAP §Deviazioni, BACKLOG. **Ok di Jack** (fatto, 10 ott 2026).
 2. **Isola** (fatto, 10 ott 2026): la montagna (vetta innevata, bosco, scogliere), molo, funivia con le cabine che vanno su e giù, posizione a nord-ovest, lucchetto; il casco e il cancello con la liberatoria; `?adrenalina=1`. Le piste ancora no: con firma e casco il guardiano dice che aprono a giorni.
-3. **Snowboard completo**: pista verde, barra Adrenalina, cadute, medaglie e premio dal server, telefono 390×844. Qui si sceglie la camera. Se non diverte ci si ferma.
+3. **Snowboard completo**, diviso in due PR (bozza del 12 ott 2026):
+   - **3a** (fatto, 12 ott 2026): la pista verde col fuoripista, la tavola, la barra Adrenalina, le cadute, la scena a parte e la camera A/B, solo con `?adrenalina=1` (alla funivia, firma e casco già a posto, si scende). Serve a vedere se diverte; se no ci si ferma e si corregge.
+   - **3b**: medaglie (in proporzione al pilota automatico), premio dal server (`balance.solo` + 15 Pietra all'oro), cartello delle piste in vetta, cartello delle regole e 3-2-1, l'avatar col casco sulla tavola, schermata d'arrivo con «Ancora», «In vetta», «Al molo»; tutto aperto a tutti.
 4. **Fantasmi degli amici**: record per pista sul server, il fantasma in pista.
 5. **Bici downhill**.
 6. **Lancio dalla vetta** (paracadute; la wingsuit come pista nera).
