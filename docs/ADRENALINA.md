@@ -88,6 +88,8 @@ Deciso da birbasan il 12 ott 2026 (bozza del passo 3, fatto al **3a**):
 ### Bici downhill (le piste del bosco)
 Stessi comandi; il tocco è lo **scatto** (un colpo di pedale, poi qualche istante per ricaricare). Sentieri stretti tra gli abeti, radici, passerelle, salti sui dossi. Qui il fantasma conta più che altrove: è una gara contro il tempo dell'amico, con i punti del rischio sopra.
 
+**Banco di prova** `provadiscesa3d.html` (#229, 11 ott 2026; mappa del codice in `CONTRACTS.md` §41). Jack: «un video come sfondo in lontananza, il resto restano modelli». Vicino è tutto 3D: bici pilotabile (pendenza che spinge, sterzo che dipende dalla velocità, piega in curva, salti, scossoni sulle radici, sassi da schivare, cadute da 2 s), sentiero dalla cresta sul mare al bosco di abeti, pezzi del kit Blender `cs_d_*`. Lontano un panorama dipinto (ChatGPT) animato in loop (Kling, 15 crediti) su una sfera che segue la camera. Due camere: occhi col manubrio e dietro bassa col ciclista. Tutto passa dalla stessa passata pixel del gioco. Numeri in `packages/content/src/corse/discesa/bici.json` **[prima ipotesi]**.
+
 ### Lancio dalla vetta (dalla piattaforma sul bordo)
 Ti butti: **caduta libera** negli **anelli** sospesi (trascini per centrarli), il terreno sale. **Tocco = apri il paracadute**: più tardi lo apri, più punti; **troppo tardi** = atterraggio buffo sul prato o in mare sotto le scogliere, pochi punti, non si muore. Sotto il paracadute guidi verso il **bersaglio** d'atterraggio. La **wingsuit** è la pista nera: volo rasente alle rocce in un canyon, la barra si riempie quanto più stai basso.
 
