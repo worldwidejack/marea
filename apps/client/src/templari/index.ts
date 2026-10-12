@@ -4,6 +4,9 @@
 // quantizzato come lo rigioca il server. Pausa = nessun tick. Fine: scritta grande, poi consegna (input compressi, azioni, hash).
 // Niente attacco automatico. Da PC, se non cammini, l'eroe guarda il mouse: il client manda il joystick «sfiorato» verso il puntatore
 // (la sim lo gira sul posto, GIRA_SUL_POSTO) e il clic attacca lì; resta negli input, il server lo rigioca uguale.
+// Mira (come nel dungeon, rpg/dungeon_mouse.ts e mira_stick.ts): con arco, pistole, moschetto, trombone o fuoco greco in mano il mouse porta
+// l'indice d'angolo del cursore (DungeonInput.m) mentre premi (e al rilascio dell'arco); dal telefono al posto di A c'è il joystick di mira
+// (arco: tieni per tendere, lascia per tirare; le armi da fuoco e il vaso partono al rilascio, un tocco veloce spara come prima, assistito).
 // Autopilota dei test (templariLink.autopilot o ?autopilot=1): gli input li dà la sim, registrati uguali.
 import * as THREE from 'three';
 import type { InputFrame } from '@marea/sim';
@@ -16,10 +19,12 @@ import { pugni } from '@marea/sim/dungeon/hero.ts';
 import { stepTemplari, templari } from '@marea/sim/templari/templari.ts';
 import type { TState } from '@marea/sim/templari/templari.ts';
 import { daiArma, miraTiro } from '@marea/sim/templari/eroe.ts';
-import { nuovoZombie } from '@marea/sim/templari/stato.ts';
+import { armaIn, nuovoZombie } from '@marea/sim/templari/stato.ts';
 import { apriPorta } from '@marea/sim/templari/porte.ts';
 import type { TAzioni, TEvento, TView } from '@marea/sim/templari/types.ts';
 import { createHeroActor } from '../rpg/dungeon_hero.ts';
+import { createMouse } from '../rpg/dungeon_mouse.ts';
+import type { Mouse } from '../rpg/dungeon_mouse.ts';
 import type { ArmaInMano, HeroActor } from '../rpg/dungeon_hero.ts';
 import { suona, tensione } from '../audio/ponte.ts';
 import type { SuonoId } from '../audio/ponte.ts';
@@ -70,7 +75,7 @@ function armaVista(id: string): ArmaInMano {
   if (id === 'scudo') return { ...base, id: null };
   const a = armaDef(id), forma = a.aspetto.forma;
   return {
-    ...base, id: null, kind: a.tipo === 'arco' ? 'arco' : 'mischia', danno: a.danno, tempo: a.tempo, portata: a.portata ?? base.portata,
+    ...base, id: null, kind: a.tipo === 'arco' ? 'arco' : 'mischia', danno: a.danno, tempo: a.tempo, portata: a.portata ?? base.portata, distanza: a.tipo === 'fuoco' || a.tipo === 'lancio',
     ...(forma ? { oggetto: () => oggettoArma(forma), lama: a.tipo === 'mischia' } : a.aspetto.modello ? { modello: a.aspetto.modello } : {}), colore: a.aspetto.colore,
   };
 }
@@ -79,13 +84,13 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   const s: TState = templari.create({ seed: o.seed, opzioni: o.subito ? { subito: true } : {} });
   const frames: DungeonInput[] = [], azioni: TAzioni = [];
   let fase: Fase = 'carica', wait = 0, view: TView = templari.view(s), auto: Rng | null = null, armaOra = view.eroe.arma;
-  let sc: Scena | null = null, hero: HeroActor | null = null, zombi: Zombi | null = null, hud: TplHud | null = null, ctl: Controlli | null = null, fx: Effetti | null = null;
+  let sc: Scena | null = null, hero: HeroActor | null = null, zombi: Zombi | null = null, hud: TplHud | null = null, ctl: Controlli | null = null, fx: Effetti | null = null, mouse: Mouse | null = null, mUltima = 0;
   let resolve!: (v: TemplariFine | null) => void;
   const done = new Promise<TemplariFine | null>((r) => (resolve = r));
 
   const pulisci = () => {
     fase = 'finita'; templariLink.state = null; templariLink.prova = null; tensione(0);
-    ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
+    mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
     ctx.renderer.setScene(null);
   };
   const consegna = () => {
@@ -122,7 +127,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       fx = createEffetti({ scene: sc.scene, arena: s.arena, loader: ctx.loader, root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera });
       if ((fase as Fase) === 'finita') { pulisci(); return; }
       hud = createTplHud(ctx.root, (id) => armaDef(id).nome, (id) => armaDef(id).tipo !== 'mischia');
-      ctl = createControlli({ root: ctx.root, canvas: ctx.canvas, onEsci: esci });
+      ctl = createControlli({ root: ctx.root, canvas: ctx.canvas, yaw: () => ctx.renderer.diorama.yaw, onEsci: esci });
+      mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: 0 });
       hero.tick(view.posa); zombi.tick(view); fx.tick(view);
       sc.setPorte(s.porte); sc.setCalice(s.fase !== 'altare');
       ctx.renderer.setScene(sc.scene);
@@ -195,23 +201,32 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     }
   };
 
-  /** L'input di adesso: autopilota (test), o tastiera/joystick + bottoni del chunk + AUTO. */
+  /** Arma a distanza in mano (si mira): arco, pistole, moschetto, trombone, fuoco greco; con lo scudo in mano no. */
+  const miraArma = (): 'arco' | 'tiro' | null => {
+    if (s.eroe.inMano) return null;
+    const t = armaIn(s).tipo;
+    return t === 'arco' ? 'arco' : t === 'mischia' ? null : 'tiro';
+  };
+  /** L'input di adesso: autopilota (test), o tastiera/joystick + bottoni del chunk. */
   function inputOra(f: InputFrame): DungeonInput {
     const c = ctl!.sample();
     if (auto) return templari.autopilot(s, auto);
-    const a = f.a || c.a;
+    let a = f.a || c.a, m = 0;
     let mx = f.mx, my = f.my;
-    // da PC, fermo: guarda il puntatore (il punto del pavimento sotto il mouse)
-    const m = ctl!.mouse;
-    if (m && Math.abs(mx) < 0.05 && Math.abs(my) < 0.05) {
-      const r = ctx.canvas.getBoundingClientRect();
-      ray.setFromCamera(nd.set((m.x / r.width) * 2 - 1, -(m.y / r.height) * 2 + 1), ctx.renderer.camera);
-      if (ray.ray.intersectPlane(suolo, hit)) {
-        const dx = hit.x - s.eroe.x, dz = hit.z - s.eroe.z, d = Math.sqrt(dx * dx + dz * dz);
-        if (d > 0.6) { mx = (dx / d) * 0.25; my = (dz / d) * 0.25; }
-      }
+    const h = s.eroe, tipo = miraArma();
+    if (tipo) {
+      // telefono: joystick di mira. Arco: tenuto = teso, lasciato = tira. Armi da fuoco e vaso: partono al rilascio, un tocco veloce spara assistito
+      const st = c.mira;
+      a = a || (tipo === 'arco' ? st.held : st.rel || st.tap);
+      m = tipo === 'arco' || st.rel ? st.m : 0;
+      // mouse: l'indice del cursore mentre premi (e al rilascio dell'arco, che parte nel tick in cui lasci)
+      if (!m && mouse?.attivo && (a || h.act === 'tende')) m = mouse.verso(h.x, h.z)?.m ?? 0;
     }
-    return { mx, my, a, b: f.b, c: c.c, d: c.d };
+    // da PC, fermo: guarda il puntatore (il punto sotto il mouse)
+    const v = mouse && Math.abs(mx) < 0.05 && Math.abs(my) < 0.05 ? mouse.verso(h.x, h.z) : null;
+    if (v) { mx = v.x * 0.25; my = v.z * 0.25; }
+    mUltima = m;
+    return { mx, my, a, b: f.b, c: c.c, d: c.d, ...(m ? { m } : {}) };
   }
   // passi sul suolo sotto i piedi (ogni ~1 m, 1,5 m di corsa) e la tensione della musica (boss in campo, tanti zombie vicini)
   let px = NaN, pz = NaN, strada = 0;
@@ -229,7 +244,6 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     }
   }
 
-  const ray = new THREE.Raycaster(), nd = new THREE.Vector2(), suolo = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.9), hit = new THREE.Vector3();
   const run: TemplariRun = {
     get active() { return fase !== 'finita'; },
     step(f) {
@@ -242,9 +256,12 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       view = templari.view(s);
       if (view.eroe.arma !== armaOra) { armaOra = view.eroe.arma; void hero?.setArma(armaVista(armaOra)); }
       hero!.tick(view.posa); zombi!.tick(view); fx!.tick(view);
-      // arco teso: la linea di mira verso chi prenderà la freccia
-      const t0 = s.eroe.act === 'tende' ? miraTiro(s, armaDef(view.eroe.arma === 'scudo' ? 'spada' : view.eroe.arma).gittata ?? 20) : null;
-      if (t0) { const dx = t0.x - s.eroe.x, dz = t0.z - s.eroe.z, d = Math.sqrt(dx * dx + dz * dz) || 1; hero!.mira({ x: dx / d, z: dz / d }); } else hero!.mira(null);
+      // linea di mira: dove punta il dito (joystick) o il cursore con un'arma a distanza in mano; sennò, con l'arco teso, verso chi prenderà la freccia
+      const tipo = miraArma(), vm = ctl.miraDir() ?? (tipo && !ctl.paused ? mouse?.verso(s.eroe.x, s.eroe.z) ?? null : null);
+      ctx.canvas.style.cursor = tipo && mouse?.attivo ? 'crosshair' : '';
+      const t0 = !vm && s.eroe.act === 'tende' ? miraTiro(s, armaDef(view.eroe.arma === 'scudo' ? 'spada' : view.eroe.arma).gittata ?? 20) : null;
+      if (vm) hero!.mira({ x: vm.x, z: vm.z }, true);
+      else if (t0) { const dx = t0.x - s.eroe.x, dz = t0.z - s.eroe.z, d = Math.sqrt(dx * dx + dz * dz) || 1; hero!.mira({ x: dx / d, z: dz / d }); } else hero!.mira(null);
       if (s.done) versoFine();
     },
     update(alpha, dt, t) {
@@ -257,6 +274,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       sc.update(p.x, p.z, t, s.assi, view.trappole);
       hud.set(view);
       ctl.setPrompt(fase === 'gioca' ? view.prompt : null);
+      ctl.setMira(fase === 'gioca' && miraArma() !== null);
       ctl.setScambia(fase === 'gioca' && view.eroe.armi.filter(Boolean).length + (view.eroe.scudo ? 1 : 0) > 1);
     },
     abort,
@@ -273,6 +291,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (typeof p['dove'] === 'object' && p['dove']) { const d = p['dove'] as { x: number; z: number }; s.eroe.x = d.x; s.eroe.z = d.z; }
     if (Array.isArray(p['porte'])) for (const id of p['porte'] as string[]) { const q = s.arena.porte.find((x) => x.id === id); if (q && !s.porte[id]) { s.punti += TEMPLARI.porte[id]?.prezzo ?? 0; apriPorta(s, q); } }
     if (p['pulisci']) { s.zombie = []; s.tiri = []; s.fiamme = []; s.boss = null; }
+    if (p['ferma']) { s.quanti = 1e6; s.usciti = 0; s.prossima = 1e9; } // niente altri zombie dall'ondata in corso (le prove di mira ne vogliono uno solo)
     if (typeof p['vita'] === 'number') { s.eroe.vita = s.eroe.max = p['vita']; }
     if (typeof p['potere'] === 'string') s.drops.push({ id: s.nextId++, tipo: p['potere'] as 'ira', x: s.eroe.x + s.eroe.fx * 2.5, z: s.eroe.z + s.eroe.fz * 2.5, fine: s.tick + 60 * 25 });
     if (typeof p['potereQui'] === 'string') s.drops.push({ id: s.nextId++, tipo: p['potereQui'] as 'ira', x: s.eroe.x, z: s.eroe.z, fine: s.tick + 60 * 25 });
@@ -286,13 +305,19 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     view = templari.view(s);
     return { arma: view.eroe.arma, scudo: view.eroe.scudo, zombie: view.zombie.length };
   };
-  const pos = new THREE.Vector3();
+  const pos = new THREE.Vector3(), pr = new THREE.Vector3();
+  /** Dove cade sullo schermo (px della pagina) un punto del pavimento: per i test, che mirano col mouse e col dito. */
+  const schermo = (x: number, z: number): [number, number] => {
+    const r = ctx.canvas.getBoundingClientRect();
+    pr.set(x, 1.2, z).project(ctx.renderer.camera);
+    return [Math.round(r.left + ((pr.x + 1) / 2) * r.width), Math.round(r.top + ((1 - pr.y) / 2) * r.height)];
+  };
   /** Dove si mette l'eroe per aprire la cassa (la cella davanti al posto di adesso): per i test. */
   const cassaDavanti = () => { const c = s.arena.casse[s.cassa.posto]; return c ? { x: c.x + c.fx, z: c.z + c.fz } : null; };
   templariLink.state = () => ({
     active: fase !== 'finita', fase, sim: view.fase, tick: view.tick, ondata: view.ondata, restano: view.restano, done: view.done, esito: view.esito,
     eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma }, zombie: view.zombie.length,
-    uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: false, faccia: [s.eroe.fx, s.eroe.fz],
+    uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: mUltima, act: s.eroe.act, mouse: mouse?.attivo ?? false, faccia: [s.eroe.fx, s.eroe.fz], yaw: ctx.renderer.diorama.yaw, eroeSchermo: schermo(s.eroe.x, s.eroe.z), zombiePos: s.zombie.filter((z) => z.st !== 'morto').slice(0, 6).map((z) => ({ x: z.x, z: z.z, schermo: schermo(z.x, z.z) })),
     scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: TEMPLARI.ondate.insieme,
   });

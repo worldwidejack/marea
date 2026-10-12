@@ -1,13 +1,15 @@
 // Eroe della partita a ondate (docs/TEMPLARI.md §5-7): movimento (corsa col fiato), due armi più lo scudo templare. Mischia: fendente con
 // mira assistita, tenuto = giro (gli archi di dungeon/swing.ts: quel che si vede è quel che colpisce); la spada di de Molay lascia fiamme.
 // Arco: tieni = tendi, lascia = freccia. Fuoco: un colpo per tocco, ricarica da sola a caricatore vuoto (il trombone spara pallini a
-// ventaglio). Fuoco greco: un vaso che esplode dove cade. Scudo: sulle spalle para da dietro; in mano (SCAMBIA) para davanti, rallenta
+// ventaglio). Fuoco greco: un vaso che esplode dove cade. Mira col mouse o col joystick di mira (`inp.m`, come nel dungeon: dungeon/mira.ts):
+// archi, pistole, moschetto, trombone e vaso vanno esattamente dove punta il cursore; senza `m` vale la mira assistita (cono davanti). Scudo: sulle spalle para da dietro; in mano (SCAMBIA) para davanti, rallenta
 // e la A dà una spallata. AZIONE: posa la reliquia, apre la cassa o ne prende l'arma, raccoglie lo scudo, compra le armi sul muro (o le
 // loro munizioni), ripara le finestre tenendolo premuto.
 import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
 import type { TArmaDef } from '@marea/content/templari.ts';
 import { DT } from '../constants.ts';
 import { lineOfSight, moveCircle } from '../dungeon/map.ts';
+import { aimDir } from '../dungeon/mira.ts';
 import { COLPI, GIRO_TEMPO } from '../dungeon/tuning.ts';
 import { sweepTo, swept } from '../dungeon/swing.ts';
 import type { TInput, TPrompt } from './types.ts';
@@ -47,6 +49,23 @@ export function miraTiro(s: TState, gittata: number): Zombie | null {
     if (d > gittata || !lineOfSight(g, h.x, h.z, z.x, z.z)) continue;
     const dot = d > 1e-6 ? (dx * h.fx + dz * h.fz) / d : 1;
     if (dot >= COS_TIRO && d < bd) { bd = d; best = z; }
+  }
+  return best;
+}
+/** Mira del tick (mouse o joystick di mira): versore, null = nessuna mira e vale quella assistita. */
+type Mira = readonly [number, number] | null;
+function girati(s: TState, dir: Mira): void {
+  if (dir) { s.eroe.fx = dir[0]; s.eroe.fz = dir[1]; }
+}
+/** Dove cade il vaso lanciato lungo la mira: sul primo zombie che sta vicino alla linea, se no a 3/5 della gittata. */
+function vasoLungo(s: TState, dir: readonly [number, number], g: number): number {
+  const h = s.eroe;
+  let best = g * 0.6, bd = Infinity;
+  for (const z of vivi(s)) {
+    const dx = z.x - h.x, dz = z.z - h.z, lungo = dx * dir[0] + dz * dir[1], lato = dx * dir[1] - dz * dir[0];
+    if (lungo <= 0 || lungo > g || lungo >= bd || lato * lato > (z.def.raggio + 0.8) * (z.def.raggio + 0.8)) continue;
+    if (!lineOfSight(s.gr.percorso, h.x, h.z, z.x, z.z)) continue;
+    bd = lungo; best = lungo;
   }
   return best;
 }
@@ -122,14 +141,14 @@ function fineRicarica(s: TState): void {
   if (n > 0) { sl.colpi += n; sl.riserva -= n; }
 }
 /** Un colpo a distanza: freccia (tensione `k`), palla, ventaglio di pallini, vaso. */
-function spara(s: TState, a: TArmaDef, sl: Slot, k: number): void {
-  const h = s.eroe, g = a.gittata ?? 20, t = miraTiro(s, g);
-  guarda(s, t);
+function spara(s: TState, a: TArmaDef, sl: Slot, k: number, dir: Mira): void {
+  const h = s.eroe, g = a.gittata ?? 20, t = dir ? null : miraTiro(s, g);
+  if (dir) girati(s, dir); else guarda(s, t);
   sl.colpi--;
   h.cd = secToTicks(a.tempo);
   const danno = a.danno * k;
   if (a.tipo === 'lancio') {
-    const fino = t ? Math.min(g, Math.sqrt((t.x - h.x) * (t.x - h.x) + (t.z - h.z) * (t.z - h.z))) : g * 0.6;
+    const fino = dir ? vasoLungo(s, dir, g) : t ? Math.min(g, Math.sqrt((t.x - h.x) * (t.x - h.x) + (t.z - h.z) * (t.z - h.z))) : g * 0.6;
     tira(s, a, h.fx, h.fz, danno, Math.max(2, fino));
   } else if ((a.pallini ?? 1) > 1) {
     const n = a.pallini!, cono = ((a.cono ?? 10) * Math.PI) / 180;
@@ -291,6 +310,7 @@ export function stepEroe(s: TState, inp: TInput): void {
   if (h.ricarica > 0 && --h.ricarica === 0) fineRicarica(s);
   const aDown = inp.a && !h.prevA, cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD;
   h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d;
+  const dir = aimDir(inp.m);
   azione(s, dDown, inp.d);
   if (cDown) scambia(s);
   const a = armaIn(s), sl = slotIn(s);
@@ -304,8 +324,8 @@ export function stepEroe(s: TState, inp: TInput): void {
       if (a.tipo === 'mischia') { h.act = 'press'; break; }
       if (!sl || sl.colpi <= 0) { if (sl && sl.riserva > 0) ricarica(s, a, sl); else if (sl) ev(s, { t: 'vuoto', arma: a.id }); break; }
       if (h.ricarica > 0 || h.cd > 0) break;
-      if (a.tipo === 'arco') { h.act = 'tende'; h.actDur = secToTicks(a.tempo); h.carica = 0; guarda(s, miraTiro(s, a.gittata ?? 20)); }
-      else { spara(s, a, sl, 1); h.act = a.tipo === 'lancio' ? 'lancia' : 'spara'; h.actDur = a.tipo === 'lancio' ? ANIM_LANCIO : ANIM_TIRO; }
+      if (a.tipo === 'arco') { h.act = 'tende'; h.actDur = secToTicks(a.tempo); h.carica = 0; if (dir) girati(s, dir); else guarda(s, miraTiro(s, a.gittata ?? 20)); }
+      else { spara(s, a, sl, 1, dir); h.act = a.tipo === 'lancio' ? 'lancia' : 'spara'; h.actDur = a.tipo === 'lancio' ? ANIM_LANCIO : ANIM_TIRO; }
       break;
     case 'press':
       if (!inp.a) inizia(s, a, false);
@@ -321,7 +341,8 @@ export function stepEroe(s: TState, inp: TInput): void {
       break;
     case 'tende':
       h.carica = Math.min(1, h.actT / h.actDur);
-      if (!inp.a && sl) { spara(s, a, sl, Math.max(0.25, h.carica)); h.act = 'tira'; h.actT = 0; h.actDur = ANIM_TIRO; h.carica = 0; }
+      girati(s, dir); // con la mira l'arco segue il cursore finché è teso
+      if (!inp.a && sl) { spara(s, a, sl, Math.max(0.25, h.carica), dir); h.act = 'tira'; h.actT = 0; h.actDur = ANIM_TIRO; h.carica = 0; }
       break;
     case 'spallata':
       if (h.actT === Math.floor(h.actDur / 2)) spallata(s);
@@ -336,7 +357,7 @@ export function stepEroe(s: TState, inp: TInput): void {
   if (mag > 1) { mx /= mag; my /= mag; }
   // sfiorato: si gira sul posto (non durante un colpo che tiene la sua direzione)
   if (mag > 0.05 && mag <= GIRA_SUL_POSTO) {
-    if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'spara' && h.act !== 'lancia') { h.fx = mx / mag; h.fz = my / mag; }
+    if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'spara' && h.act !== 'lancia' && !(dir && h.act === 'tende')) { h.fx = mx / mag; h.fz = my / mag; }
     mx = 0; my = 0;
   }
   h.moving = mag > GIRA_SUL_POSTO;
