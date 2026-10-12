@@ -111,7 +111,13 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   const water = createWater({ size: 0 }); water.follow(home.x, home.z); scene.add(water.mesh);
   const island = await createIsland({
     map, loader: o.loader,
-    areas: arch.places.map((p) => ({ id: p.island + (p.slot !== null ? '_' + p.slot : ''), x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, style: p.style, scenery: p.scenery })),
+    // il Porto col Borgo attorno (#247) è grande: si disegna in quattro pezzi, così quelli fuori inquadratura si spengono (TECH §5)
+    areas: arch.places.flatMap((p) => {
+      const id = p.island + (p.slot !== null ? '_' + p.slot : ''), base = { style: p.style, scenery: p.scenery };
+      if (p.role !== 'porto') return [{ id, x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, ...base }];
+      const mw = Math.ceil(p.w / 2), mh = Math.ceil(p.h / 2);
+      return [[0, 0], [1, 0], [0, 1], [1, 1]].map(([i, j]) => ({ id, x0: p.origin[0] + i! * mw, z0: p.origin[1] + j! * mh, w: i ? p.w - mw : mw, h: j ? p.h - mh : mh, ...base }));
+    }),
     props: arch.props, buildings: arch.buildings, paved: arch.paved,
     // davanti agli ingressi dei dungeon niente scenografia (prima la toglieva ingressi.ts dagli InstancedMesh: ora i prop sono fusi)
     libere: [

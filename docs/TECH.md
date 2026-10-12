@@ -57,7 +57,7 @@ _I limiti non sono un dictat: si possono alzare quando serve ed è sensato (Jack
 | Caricamento iniziale (html + js + atlas + modelli della prima isola) | ≤ 3 MB (era 2) |
 | Kit delle zone dell'Isola delle Corse (`manifest_corse.json`, scaricato aprendo una pista vestita) | ≤ 2,5 MB (era 0,6: Spiaggia e porto 0,2 MB + 20 veicoli e piloti 1,4 MB, deviazione del 9 ott 2026) |
 | Draw call per frame | ≤ 100 |
-| Triangoli a schermo | ≤ 180.000 (150.000 fino al Borgo Marea, #237) |
+| Triangoli a schermo | ≤ 200.000 (150.000 fino al Borgo Marea, #237; 180.000 fino alla città attorno al Porto, #247: si torna giù con case più leggere) |
 | Texture in VRAM | ≤ 16 MB |
 | Shadow map | 1 × 1024² (o blob) |
 | FPS | 60 su iPhone 12+, ≥ 45 su Android medio, mai < 30 |

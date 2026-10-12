@@ -103,11 +103,11 @@ test('Adrenalina: si sbarca sempre (niente barriera), ma la funivia vuole la lib
   assert.match(LIBERATORIA, /ossa rotte, orgoglio ferito e Perle perse/);
 });
 
-/** Barca che punta dritta verso il molo dell'isola partendo da 120 m, a tutta forza: dove arriva. */
+/** Barca che punta dritta verso il molo dell'isola partendo da 80 m (a 100 m dalle Ghiacci c'è il Borgo, #247), a tutta forza: dove arriva. */
 function rotta(p: ArchPlace, aperta: boolean): { minD: number; last: BoatState; respinte: number } {
   const dir = { x: p.spawn.x - (p.origin[0] + p.w / 2) * T, z: p.spawn.z - (p.origin[1] + p.h / 2) * T };
   const n = Math.hypot(dir.x, dir.z); dir.x /= n; dir.z /= n;
-  let b = newBoat(p.boat.x + dir.x * 120, p.boat.z + dir.z * 120);
+  let b = newBoat(p.boat.x + dir.x * 80, p.boat.z + dir.z * 80);
   let minD = Infinity, respinte = 0;
   for (let i = 0; i < 60 * 40; i++) {
     const f: InputFrame = { mx: (p.boat.x - b.x) / Math.max(1, Math.hypot(p.boat.x - b.x, p.boat.z - b.z)), my: (p.boat.z - b.z) / Math.max(1, Math.hypot(p.boat.x - b.x, p.boat.z - b.z)), a: true, b: false };
