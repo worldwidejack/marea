@@ -48,6 +48,7 @@ export function creaScenografia(S: Sentiero, ter: Terreno): Scenografia {
     punto(n, s, lat, 0, P3);
     const inf = ter.info(P3[0], P3[2]);
     if (!inf || inf.fuori < Math.abs(lat) - campo(n, n.l, s) - 0.5 || inf.fuori < margine) return;
+    if (inf.fuori < 4 && d.legno.some((t) => inf.s > t.da - 3 && inf.s < t.a + 3)) return; // accanto alle tavole niente: la terra è più giù
     metti(nome, inf.s, P3[0], inf.y - 0.05, P3[2], caso() * Math.PI * 2, scala, inclina);
   };
   const zonaA = (s: number) => d.zone.find((z) => s >= z.da && s < z.a)?.tipo ?? 'bosco';

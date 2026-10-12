@@ -1,7 +1,9 @@
 // La mountain bike della discesa (banco provadiscesa3d.html, #229; src/corse/bici.ts). Cosa si controlla:
-// - il pilota automatico arriva in fondo al sentiero in 60-120 s (ADRENALINA §4) senza cadere, e salta tutte le rampe;
+// - il pilota automatico arriva in fondo al sentiero in 80-140 s (~2 minuti, come la speciale vera) senza cadere, e salta tutte le rampe;
 // - è deterministica: due discese con gli stessi comandi finiscono identiche;
-// - in discesa senza pedalare si va (spinge la pendenza), il freno ferma, lo scatto dà la spinta e poi ricarica;
+// - in discesa senza pedalare si va (spinge la pendenza), il freno ferma, lo scatto dà la spinta e svuota l'energia, che torna da sola;
+// - le salite: senza pedalare ci si ferma, pedalando si sale e l'energia cala; a secco si sale lo stesso, piano;
+// - la parabolica tiene di più della stessa curva piatta;
 // - sterzo che dipende dalla velocità: forte la presa limita la svolta;
 // - un sasso preso forte fa cadere, si perdono 2 s e si riparte da lì; piano ci si ferma contro;
 // - il muro di traverso fa cadere, di striscio no.
@@ -17,12 +19,12 @@ const S = sentiero(SENTIERI.cresta_bosco!);
 const NIENTE: Comandi = { sterzo: 0, gas: 0, freno: false, scatto: false };
 const per = (b: Bici, sec: number, c: (b: Bici) => Comandi) => { for (let i = 0; i < sec * TICK_HZ && !b.fine; i++) pedala(S, b, c(b)); };
 
-test('il pilota automatico arriva in 60-120 s senza cadere e salta le rampe', () => {
+test('il pilota automatico arriva in 80-140 s senza cadere e salta le rampe', () => {
   const b = nuovaBici();
   per(b, 200, (x) => pilotaBici(S, x));
   assert.ok(b.fine > 0, 'arriva');
   const sec = b.fine / TICK_HZ;
-  assert.ok(sec >= 60 && sec <= 120, `tempo ${sec.toFixed(1)} s`);
+  assert.ok(sec >= 80 && sec <= 140, `tempo ${sec.toFixed(1)} s`);
   assert.equal(b.cadute, 0);
   assert.ok(b.salti >= S.def.rampe.length, `salti ${b.salti}`);
 });
@@ -32,7 +34,7 @@ test('deterministica: stessi comandi, stessa discesa', () => {
   assert.equal(corri(), corri());
 });
 
-test('la pendenza spinge, il freno ferma, lo scatto spinge e ricarica', () => {
+test("la pendenza spinge, il freno ferma, lo scatto spinge e svuota l'energia", () => {
   const b = nuovaBici(); b.s = 50;
   per(b, 3, () => NIENTE);
   assert.ok(b.v > 4, `senza pedalare in discesa si va (${b.v.toFixed(1)} m/s)`);
@@ -41,9 +43,62 @@ test('la pendenza spinge, il freno ferma, lo scatto spinge e ricarica', () => {
   const v0 = b.v;
   pedala(S, b, { ...NIENTE, scatto: true });
   assert.ok(b.v > v0 + BICI.scatto.spinta * 0.9, 'lo scatto spinge');
+  assert.equal(b.energia, 0, 'energia vuota');
+  pedala(S, b, NIENTE); // si lascia il tasto
   const v1 = b.v;
   pedala(S, b, { ...NIENTE, scatto: true });
-  assert.ok(b.v < v1 + 0.5, 'subito dopo ricarica');
+  assert.ok(b.v < v1 + 0.5, 'a secco non si scatta');
+  per(b, 1, () => ({ ...NIENTE, freno: true }));
+  per(b, 4, () => ({ ...NIENTE, freno: true }));
+  assert.ok(b.energia >= BICI.scatto.energia, `non pedalando torna (${b.energia.toFixed(2)})`);
+  const v2 = b.v;
+  pedala(S, b, { ...NIENTE, scatto: true });
+  assert.ok(b.v > v2 + BICI.scatto.spinta * 0.9, 'di nuovo carica: si scatta');
+  const v3 = b.v;
+  for (let i = 0; i < 30; i++) pedala(S, b, { ...NIENTE, scatto: true });
+  assert.ok(b.v < v3 + 1, 'tenendo premuto non si scatta di nuovo');
+});
+
+/** L'inizio della salita più ripida del sentiero. */
+function salita(): number {
+  let best = 0, s0 = 0;
+  for (let s = 0; s < S.n.len - 30; s += 1) { const p = campo(S.n, S.n.ty, s); if (p > best) { best = p; s0 = s; } }
+  assert.ok(best > 0.1, `c'è una salita vera (${(best * 100).toFixed(0)} %)`);
+  while (campo(S.n, S.n.ty, s0) > 0.02) s0--;
+  return s0;
+}
+
+test('le salite: senza pedalare ci si ferma, pedalando si sale consumando energia; a secco piano, ma si sale', () => {
+  const s0 = salita();
+  // dal lato del sentiero senza sassi
+  const sassi = S.def.ostacoli.filter((o) => o.s > s0 - 2 && o.s < s0 + 50), lat = sassi.some((o) => o.lat > 0) ? -0.6 : 0.6;
+  assert.ok(!sassi.some((o) => Math.sign(o.lat) === Math.sign(lat)), 'un lato libero');
+  const ferma = nuovaBici(); ferma.s = s0; ferma.lat = lat; ferma.v = 4;
+  per(ferma, 6, () => NIENTE);
+  assert.ok(ferma.v < 0.3, `senza pedalare ci si ferma (${ferma.v.toFixed(2)} m/s)`);
+  const su = nuovaBici(); su.s = s0; su.lat = lat; su.v = 4;
+  per(su, 6, () => ({ ...NIENTE, gas: 1 }));
+  assert.ok(su.s > ferma.s + 10 && su.v > 1.5, `pedalando si sale (${(su.s - s0).toFixed(1)} m, ${su.v.toFixed(1)} m/s)`);
+  assert.ok(su.energia < 0.4, `e l'energia cala (${su.energia.toFixed(2)})`);
+  const secco = nuovaBici(); secco.s = s0 + 5; secco.lat = lat; secco.v = 0; secco.energia = 0;
+  per(secco, 4, () => ({ ...NIENTE, gas: 1 }));
+  assert.ok(secco.v > 0.5 && secco.v < su.v, `a secco si sale piano (${secco.v.toFixed(2)} m/s)`);
+});
+
+test('la parabolica tiene di più della stessa curva piatta', () => {
+  let s = 0, banca = 0;
+  for (let x = 0; x < S.n.len; x += 1) { const r = Math.abs(campo(S.n, S.n.ry, x)); if (r > banca) { banca = r; s = x; } }
+  assert.ok(banca > 0.4, `c'è una parabolica (${banca.toFixed(2)})`);
+  const verso = campo(S.n, S.n.k, s) >= 0 ? 1 : -1;
+  const svolta = (piatta: boolean) => {
+    const b = nuovaBici(); b.s = s; b.v = 12; b.st = verso;
+    const ry = S.n.ry.slice();
+    if (piatta) S.n.ry.fill(0);
+    pedala(S, b, { ...NIENTE, sterzo: verso });
+    S.n.ry.splice(0, ry.length, ...ry);
+    return Math.abs(b.w);
+  };
+  assert.ok(svolta(false) > svolta(true) * 1.3, `in parabolica si gira di più (${svolta(false).toFixed(2)} contro ${svolta(true).toFixed(2)} rad/s)`);
 });
 
 test('sterzo che dipende dalla velocità: forte gira meno', () => {

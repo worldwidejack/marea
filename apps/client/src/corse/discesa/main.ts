@@ -2,7 +2,7 @@
 // Vicino è tutto 3D (bici pilotabile con la fisica di @marea/sim/corse/bici.ts, sentiero, sassi, radici, alberi dal kit Blender `cs_d_*`);
 // lontano un video dipinto in loop (fondale.ts) come cielo e orizzonte. Tutto passa dalla stessa passata pixel del gioco (metà
 // risoluzione, palette), così il video e il 3D si fondono.
-// Comandi: telefono joystick = sterzo (in avanti pedali), SCATTO, FRENO; PC A D o ← → sterzo, W o ↑ pedala, S o ↓ o Shift frena,
+// Comandi: telefono joystick = sterzo (in avanti pedali: consuma l'energia), SCATTO (con l'energia carica, la svuota), FRENO; PC A D o ← → sterzo, W o ↑ pedala, S o ↓ o Shift frena,
 // Spazio = scatto. C = camera (occhi col manubrio / dietro bassa), R = ricomincia, T = pilota automatico, M = muto.
 // Indirizzo: ?cam=occhi|dietro&auto=1&s=<metri dal via>. Test: window.__discesa = { ready, state(), set({...}), perf() }.
 import * as THREE from 'three';
@@ -71,6 +71,11 @@ const btnA = document.getElementById('btnA'), btnB = document.getElementById('bt
 if (btnA) { btnA.textContent = 'SCATTO'; btnA.style.fontSize = '14px'; }
 if (btnB) { btnB.textContent = 'FRENO'; btnB.style.fontSize = '13px'; }
 const hud = document.createElement('div'); hud.className = 'pp-hud'; root.appendChild(hud);
+// la barra dell'energia sotto l'HUD: pedalare la consuma, lo scatto (quando è accesa) la svuota, torna quando non si pedala
+const barra = document.createElement('div');
+barra.style.cssText = `position:absolute;top:calc(max(8px, env(safe-area-inset-top)) + 40px);left:50%;transform:translateX(-50%);width:170px;height:12px;background:rgba(46,30,20,.88);border:2px solid ${P.legnoChiaro};pointer-events:none;z-index:3`;
+const pieno = document.createElement('div'); pieno.style.cssText = 'height:100%;width:100%';
+barra.appendChild(pieno); root.appendChild(barra);
 const big = document.createElement('div'); big.className = 'pp-big'; root.appendChild(big);
 const linee = creaLinee(root);
 const suoni = creaSuoni();
@@ -107,7 +112,7 @@ addEventListener('keydown', (e) => {
 const T = nuovaTerna(), pos = new THREE.Vector3(), fwd = new THREE.Vector3(), up = new THREE.Vector3(), dx = new THREE.Vector3(), tmp = new THREE.Vector3();
 const camPos = new THREE.Vector3(), camUp = new THREE.Vector3(0, 1, 0), guardo = new THREE.Vector3();
 let camOk = false, piega = 0, scossaT = 0;
-const ROLLIO_OCCHI = 0.35;
+const ROLLIO_OCCHI = 0.35, CIELO = new THREE.Vector3(0, 1, 0);
 function posa(dt: number) {
   terna(S.n, b.s, T);
   up.set(T.ux, T.uy, T.uz).normalize();
@@ -116,7 +121,8 @@ function posa(dt: number) {
   dx.crossVectors(fwd, up).normalize();
   pos.set(T.x + T.rx * b.lat + T.ux * b.h, T.y + T.ry * b.lat + T.uy * b.h, T.z + T.rz * b.lat + T.uz * b.h);
   // piega in curva: tan = v·ω/g (limitata), con un filo di ritardo
-  const voluta = b.caduto ? 0 : Math.max(-0.75, Math.min(0.75, Math.atan((b.v * b.w) / 9.8)));
+  // la piega è rispetto al fondo: in parabolica la sopraelevazione (asin(−ry), + = il lato destro più basso) ne fa già una parte
+  const voluta = b.caduto ? 0 : Math.max(-0.75, Math.min(0.75, Math.atan((b.v * b.w) / 9.8) - Math.asin(Math.max(-1, Math.min(1, -T.ry)))));
   piega += (voluta - piega) * Math.min(1, dt * 10);
   // in prima persona bici e testa si piegano insieme (come una camera sul casco): manubrio e braccia restano fermi nell'inquadratura,
   // si inclina l'orizzonte; da fuori la bici si piega tutta
@@ -135,7 +141,8 @@ function inquadra(dt: number) {
   scossaT += dt;
   const sc = b.scossa * (cam === 'occhi' ? 0.06 : 0.1);
   // su = quello del sentiero, inclinato un poco dalla piega: la testa resta quasi dritta, sotto si piega la bici (si vede dal manubrio)
-  const rollato = tmp.copy(up).applyAxisAngle(fwd, piega * (cam === 'occhi' ? ROLLIO_OCCHI : 0.2)); // + attorno al davanti = verso destra, come la bici
+  // nelle paraboliche la testa resta quasi dritta: il su della camera è a metà tra quello del sentiero (sopraelevato) e il cielo
+  const rollato = tmp.copy(up).lerp(CIELO, 0.6).normalize().applyAxisAngle(fwd, piega * (cam === 'occhi' ? ROLLIO_OCCHI : 0.2)); // + attorno al davanti = verso destra, come la bici
   camUp.lerp(rollato, camOk ? 1 - Math.exp(-dt * 12) : 1).normalize();
   if (cam === 'alto') {
     camera.position.copy(pos).addScaledVector(fwd, -30).addScaledVector(up, 26).addScaledVector(dx, 10);
@@ -179,7 +186,9 @@ function frame(now: number) {
   post.render(gl, scene, camera, now / 1000, true);
   // HUD
   const t = (b.fine || b.tick) / TICK_HZ;
-  hud.innerHTML = `<div>${tempo(t)}</div><div>${Math.round(b.v * 3.6)} <small>km/h</small></div><div>${Math.round((b.s / S.def.arrivo) * 100)}<small>%</small></div>${b.ricarica > 0 ? '' : '<div class="turbo">SCATTO</div>'}`;
+  hud.innerHTML = `<div>${tempo(t)}</div><div>${Math.round(b.v * 3.6)} <small>km/h</small></div><div>${Math.round((b.s / S.def.arrivo) * 100)}<small>%</small></div>${b.energia >= BICI.scatto.energia ? '<div class="turbo">SCATTO</div>' : ''}`;
+  pieno.style.width = `${Math.round(b.energia * 100)}%`;
+  pieno.style.background = b.energia >= BICI.scatto.energia ? P.arancio : b.energia < 0.2 ? P.rosso : P.sabbia;
   if (b.cadute > ultimaCaduta) { ultimaCaduta = b.cadute; }
   big.style.display = b.caduto > 0 || b.fine ? 'block' : 'none';
   if (b.fine) big.innerHTML = `ARRIVO ${tempo(b.fine / TICK_HZ)}<small>cadute ${b.cadute} · salti ${b.salti} · R per rifare</small>`;
@@ -191,7 +200,7 @@ function frame(now: number) {
 }
 requestAnimationFrame(frame);
 
-const stato = () => ({ s: b.s, lat: b.lat, h: b.h, v: b.v, ang: b.ang, aria: b.aria, caduto: b.caduto, cadute: b.cadute, salti: b.salti, fine: b.fine, tick: b.tick, cam, auto, sup: b.sup, video: !fondale.video.paused, pezzi: scenografia?.pezzi ?? 0 });
+const stato = () => ({ s: b.s, lat: b.lat, h: b.h, v: b.v, energia: b.energia, ang: b.ang, aria: b.aria, caduto: b.caduto, cadute: b.cadute, salti: b.salti, fine: b.fine, tick: b.tick, cam, auto, sup: b.sup, video: !fondale.video.paused, pezzi: scenografia?.pezzi ?? 0 });
 (window as unknown as { __discesa: unknown }).__discesa = {
   get ready() { return ready && fondale.pronto(); },
   state: stato,

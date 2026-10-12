@@ -30,7 +30,7 @@ export default async function (ctx) {
     const st = await p.page.evaluate(() => window.__discesa.state());
     assert(st.pezzi > 500, `pezzi della scenografia: ${st.pezzi}`);
   });
-  for (const [nome, s] of [['cresta', 30], ['sassi', 120], ['salto', 330], ['bosco', 500], ['tornante', 520], ['radici', 600], ['arrivo', 880]]) {
+  for (const [nome, s] of [['cresta', 30], ['strappo', 225], ['parabolica', 315], ['salto', 440], ['bosco', 640], ['tornante', 665], ['tavole', 838], ['arrivo', 1140]]) {
     await ctx.test(`telefono: ${nome} (s=${s}) — draw call e triangoli nel budget, camera occhi e dietro`, async () => {
       for (const cam of ['occhi', 'dietro']) {
         await p.page.evaluate(([x, c]) => { window.__discesa.set({ s: x, cam: c, pausa: true }); }, [s, cam]);

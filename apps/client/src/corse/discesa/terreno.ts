@@ -81,12 +81,14 @@ export function creaTerreno(S: Sentiero): Terreno {
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const tmp = new THREE.Color();
   /** Colore di un triangolo: macchie larghe (rumore a 22 m) e un filo di variazione; roccia dove è ripido; sui bordi erba e terra. */
-  function colore(ax: number, ay: number, az: number, bx: number, by: number, bz: number, cx: number, cy: number, cz: number, bosco: boolean, bordo: boolean): THREE.Color {
+  function colore(ax: number, ay: number, az: number, bx: number, by: number, bz: number, cx: number, cy: number, cz: number, bosco: boolean, bordo: boolean, terra: number): THREE.Color {
     const ux = bx - ax, uy = by - ay, uz = bz - az, vx = cx - ax, vy = cy - ay, vz = cz - az;
     const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, ripido = Math.abs(ny) / Math.hypot(nx, ny, nz);
     const h = hash(ax + cx * 0.37, az + cz * 0.61), mx = (ax + bx + cx) / 3, mz = (az + bz + cz) / 3, macchia = onde(mx, mz, 22) + (h - 0.5) * 0.08;
     let c0: string = bosco ? (macchia > 0.2 ? P.bosco : macchia < -0.5 ? P.boscoOmbra : P.erbaScura) : macchia > 0.62 ? P.erbaChiara : macchia < -0.5 ? P.erbaScura : P.erba;
-    if (bordo) c0 = bosco ? (macchia > 0.3 ? P.bosco : P.erbaScura) : macchia > 0.75 ? P.erbaChiara : P.erba;
+    // la terra smossa ai bordi del sentiero (`terra` = 1: il riquadro è di terra, deciso da chi chiama per tutto il riquadro)
+    if (terra > 0) c0 = bosco ? (h < 0.6 ? P.legnoScuro : P.legno) : h < 0.5 ? P.legnoChiaro : P.sabbia;
+    else if (bordo) c0 = bosco ? (macchia > 0.3 ? P.bosco : P.erbaScura) : macchia > 0.75 ? P.erbaChiara : P.erba;
     else if (ripido < 0.6) c0 = h < 0.5 ? P.pietra : P.pietraScura;
     else if (ripido < 0.72) c0 = macchia > 0 ? P.pietraChiara : P.pietra;
     return tmp.set(c0);
@@ -94,11 +96,11 @@ export function creaTerreno(S: Sentiero): Terreno {
   // triangoli per riquadri da 96 m: ogni riquadro è una mesh, così la camera scarta quelli fuori dall'inquadratura
   const RIQ = 96, riquadri = new Map<number, { pos: number[]; col: number[] }>();
   let nTri = 0;
-  const tri3 = (a: number[], b: number[], c: number[], bosco: boolean, bordo: boolean) => {
+  const tri3 = (a: number[], b: number[], c: number[], bosco: boolean, bordo: boolean, terra = 0) => {
     const key = Math.floor((a[0]! + b[0]! + c[0]!) / 3 / RIQ) * 10007 + Math.floor((a[2]! + b[2]! + c[2]!) / 3 / RIQ);
     let r = riquadri.get(key); if (!r) riquadri.set(key, (r = { pos: [], col: [] }));
     r.pos.push(a[0]!, a[1]!, a[2]!, b[0]!, b[1]!, b[2]!, c[0]!, c[1]!, c[2]!);
-    const k = colore(a[0]!, a[1]!, a[2]!, b[0]!, b[1]!, b[2]!, c[0]!, c[1]!, c[2]!, bosco, bordo);
+    const k = colore(a[0]!, a[1]!, a[2]!, b[0]!, b[1]!, b[2]!, c[0]!, c[1]!, c[2]!, bosco, bordo, terra);
     for (let v = 0; v < 3; v++) r.col.push(k.r, k.g, k.b);
     nTri++;
   };
@@ -106,25 +108,39 @@ export function creaTerreno(S: Sentiero): Terreno {
   // ---------- vicino: una fascia larga 16 m per lato che segue il sentiero (i bordi combaciano col sentiero) ----------
   const COL = [0, 0.6, 1, 2.2, 4, 7, 11, 16]; // m oltre il bordo del sentiero
   const PASSO = 2;
+  // La fascia parte dal bordo del sentiero e va in fuori in orizzontale. Nelle paraboliche di terra il bordo esterno è più alto del
+  // centro: lì la sponda continua a salire un altro poco (il muro di terra) e poi scende alla natura. Sotto le paraboliche di tavole la
+  // terra resta giù, alla quota del bordo più basso: le tavole stanno sulla struttura (`sponde`, sotto).
+  const legnoA = (s: number) => d.legno.some((t) => s >= t.da - 1 && s <= t.a + 1);
+  /** Quota della terra sotto una parabolica di tavole a `s`. */
+  const sottoLegno = (s: number, P3: [number, number, number]) => { punto(n, s, -campo(n, n.l, s), 0, P3); const a = P3[1]; punto(n, s, campo(n, n.l, s), 0, P3); return Math.min(a, P3[1]) - 0.06; };
+  // la terra smossa (chiazze) nelle prime colonne fuori dal sentiero
+  const TERRA = [0.3, 0.06];
+  const E3: [number, number, number] = [0, 0, 0];
   for (const lato of [-1, 1] as const) {
     let prima: (number[] | null)[] | null = null;
     for (let s = 0; s <= n.len; s += PASSO) {
       const fila: (number[] | null)[] = [], l = campo(n, n.l, s), P3: [number, number, number] = [0, 0, 0];
+      punto(n, s, lato * l, 0, E3);
+      const yC = campo(n, n.y, s), sopra = E3[1] - yC, legno = legnoA(s), yL = legno ? sottoLegno(s, P3) : 0;
+      let hx = campo(n, n.rx, s) * lato, hz = campo(n, n.rz, s) * lato; const hl = Math.hypot(hx, hz) || 1; hx /= hl; hz /= hl;
       for (const o of COL) {
-        punto(n, s, lato * (l + o), 0, P3);
-        if (o === 0) { fila.push([P3[0], P3[1] + 0.01, P3[2]]); continue; }
-        const q = natura(P3[0], P3[2]);
+        const x = E3[0] + hx * o, z = E3[2] + hz * o;
+        if (o === 0) { fila.push([x, legno ? yL : E3[1] + 0.01, z]); continue; }
+        const q = natura(x, z);
         // un altro tratto del sentiero è più vicino (tornante): qui ci pensa la fascia di quell'altro
         if (!q || Math.abs(q.c.s - s) > 24) { fila.push(null); continue; }
-        fila.push([P3[0], raccorda(q.y, P3[1], 0, o), P3[2]]);
+        const base = legno ? yL : E3[1] + (sopra > 0.05 ? sopra * 0.9 * liscio(0, 1.4, o) : 0);
+        fila.push([x, raccorda(q.y, base, 0, o), z]);
       }
       if (prima) {
         const bos = zonaA(s) === 'bosco';
         for (let k = 0; k < COL.length - 1; k++) {
           const a = prima[k], b = prima[k + 1], c = fila[k], e = fila[k + 1];
           if (!a || !b || !c || !e) continue;
-          const bordo = COL[k + 1]! <= d.bordo;
-          if (lato > 0) { tri3(a, b, c, bos, bordo); tri3(b, e, c, bos, bordo); } else { tri3(a, c, b, bos, bordo); tri3(b, c, e, bos, bordo); }
+          // la terra a riquadri interi (i due triangoli insieme), più fitta vicino al sentiero
+          const bordo = COL[k + 1]! <= d.bordo, t = !legno && hash(s * 0.37 + lato * 5.3, k * 1.9) < (TERRA[k] ?? 0) ? 1 : 0;
+          if (lato > 0) { tri3(a, b, c, bos, bordo, t); tri3(b, e, c, bos, bordo, t); } else { tri3(a, c, b, bos, bordo, t); tri3(b, c, e, bos, bordo, t); }
         }
       }
       prima = fila;
@@ -167,10 +183,13 @@ export function creaTerreno(S: Sentiero): Terreno {
       const q = (ii: number, f: number): [number, number, number] => { const l = n.l[ii]! * f; return [n.x[ii]! + n.rx[ii]! * l + n.ux[ii]! * 0.02, n.y[ii]! + n.ry[ii]! * l + n.uy[ii]! * 0.02, n.z[ii]! + n.rz[ii]! * l + n.uz[ii]! * 0.02]; };
       const a = q(i, strisce[k]!), b = q(i, strisce[k + 1]!), c = q(i + 1, strisce[k]!), e = q(i + 1, strisce[k + 1]!);
       sp.push(...a, ...b, ...c, ...b, ...e, ...c);
-      const radici = d.radici.some((r) => i >= r.da && i < r.a), bosco = zonaA(i) === 'bosco';
+      const radici = d.radici.some((r) => i >= r.da && i < r.a), bosco = zonaA(i) === 'bosco', tavole = d.legno.some((t) => i >= t.da && i < t.a);
       const h = hash(i * 0.7, k * 3.1);
-      const chiazza = onde(n.x[i]!, n.z[i]!, 9);
-      tmp.set(bosco ? (k === 0 || k === 4 ? P.legnoScuro : chiazza > 0.1 || radici ? P.legnoChiaro : P.sabbia) : chiazza > 0.35 ? P.legnoChiaro : colStr[k]!);
+      const chiazza = onde(n.x[i]!, n.z[i]!, 9), bordo = k === 0 || k === strisce.length - 2;
+      if (tavole) tmp.set(bordo ? P.legnoScuro : i % 2 ? P.legno : P.legnoChiaro); // le tavole di traverso
+      // ai bordi l'erba entra nel sentiero a ciuffi (niente striscia netta); dentro, terra battuta con le chiazze
+      else if (bordo && h < 0.45) tmp.set(bosco ? (chiazza > 0.3 ? P.bosco : P.erbaScura) : P.erba);
+      else tmp.set(bosco ? (bordo ? P.legnoScuro : chiazza > 0.1 || radici ? P.legnoChiaro : P.sabbia) : chiazza > 0.35 ? P.legnoChiaro : colStr[k]!);
       for (let v = 0; v < 6; v++) sc.push(tmp.r, tmp.g, tmp.b);
     }
   }
@@ -179,6 +198,35 @@ export function creaTerreno(S: Sentiero): Terreno {
   sg.computeVertexNormals();
   const strada = new THREE.Mesh(sg, mat); strada.receiveShadow = true; strada.name = 'sentiero';
 
-  const group = new THREE.Group(); group.add(suolo, strada);
-  return { group, info, tris: nTri + sp.length / 9 };
+  // ---------- le paraboliche di tavole: le sponde di assi dal bordo delle tavole giù fino a terra, i pali ogni 2 m ----------
+  const lp: number[] = [], lc: number[] = [], A3: [number, number, number] = [0, 0, 0], B3: [number, number, number] = [0, 0, 0];
+  const quad = (a: number[], b: number[], c: number[], e: number[], col: string) => {
+    lp.push(...a, ...b, ...c, ...b, ...e, ...c); tmp.set(col); for (let v = 0; v < 6; v++) lc.push(tmp.r, tmp.g, tmp.b);
+  };
+  for (const t of d.legno) {
+    for (let s = t.da; s < t.a; s += 1) {
+      const s1 = Math.min(t.a, s + 1);
+      for (const lato of [-1, 1] as const) {
+        punto(n, s, lato * campo(n, n.l, s), 0.02, A3); const a = [...A3], ya = sottoLegno(s, B3);
+        punto(n, s1, lato * campo(n, n.l, s1), 0.02, A3); const b = [...A3], yb = sottoLegno(s1, B3);
+        const ag = [a[0]!, ya, a[2]!], bg = [b[0]!, yb, b[2]!], col = Math.floor(s) % 2 ? P.legnoScuro : P.legno;
+        if (lato > 0) quad(a, ag, b, bg, col); else quad(a, b, ag, bg, col);
+        if (Math.floor(s) % 2 === 0 && a[1]! - ya > 0.15) { // un palo
+          const w = 0.06, p: [number, number][] = [[-w, -w], [w, -w], [w, w], [-w, w]];
+          for (let f = 0; f < 4; f++) {
+            const [ux, uz] = p[f]!, [vx, vz] = p[(f + 1) % 4]!;
+            quad([a[0]! + ux, a[1]!, a[2]! + uz], [a[0]! + vx, a[1]!, a[2]! + vz], [a[0]! + ux, ya, a[2]! + uz], [a[0]! + vx, ya, a[2]! + vz], P.legnoScuro);
+          }
+        }
+      }
+    }
+  }
+  const lg = new THREE.BufferGeometry();
+  lg.setAttribute('position', new THREE.Float32BufferAttribute(lp, 3)); lg.setAttribute('color', new THREE.Float32BufferAttribute(lc, 3));
+  lg.computeVertexNormals();
+  const sponde = new THREE.Mesh(lg, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide }));
+  sponde.castShadow = true; sponde.receiveShadow = true; sponde.name = 'paraboliche_legno';
+
+  const group = new THREE.Group(); group.add(suolo, strada, sponde);
+  return { group, info, tris: nTri + sp.length / 9 + lp.length / 9 };
 }

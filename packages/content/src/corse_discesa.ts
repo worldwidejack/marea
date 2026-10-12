@@ -18,8 +18,14 @@ export type DBiciCfg = {
   rotolamento: number; rotolamentoErba: number; aria: number;
   /** Pedalata (m/s² a gas pieno, solo sotto `pedaleFinoA` m/s), freno (m/s²), velocità massima. */
   pedale: number; pedaleFinoA: number; freno: number; vMax: number;
-  /** Lo scatto (ADRENALINA §7: «un colpo di pedale, poi qualche istante per ricaricare»). */
-  scatto: { spinta: number; ricarica: number; finoA: number };
+  /** L'energia (0..1): pedalare a fondo ne consuma `consumo` al secondo, non pedalando ne torna `ricarica` al secondo; a secco la
+   *  pedalata ha `stanco` della sua forza. */
+  energia: { consumo: number; ricarica: number; stanco: number };
+  /** Lo scatto (ADRENALINA §7: «un colpo di pedale, poi qualche istante per ricaricare»): +`spinta` m/s sotto `finoA`, serve almeno
+   *  `energia` e la svuota tutta. */
+  scatto: { spinta: number; finoA: number; energia: number };
+  /** Sulle paraboliche di tavole: quanto si può andare oltre il bordo prima di cadere giù (m). */
+  bordoLegno: number;
   /** Radici e sassi piccoli sul sentiero: frenano e scuotono; l'erba ai lati scuote un po'. */
   radici: { frena: number; scossa: number };
   erba: { scossa: number };
@@ -54,6 +60,8 @@ export type DSentieroDef = {
   ostacoli: DOstacolo[];
   radici: DTratto[];
   rampe: DRampa[];
+  /** Le paraboliche di tavole (curve sopraelevate su una struttura di legno). */
+  legno: DTratto[];
   /** Dove si arriva (m dal via). */
   arrivo: number;
 };
