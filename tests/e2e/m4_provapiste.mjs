@@ -15,7 +15,10 @@ const MAX_DC = 100, MAX_TRI = 150000;
 export default async function (ctx) {
   const { assert } = ctx;
   const numeri = {};
+  // una pagina sola alla volta: ognuna fa girare il 3D, e senza scheda grafica (CI) cinque pagine aperte fanno scadere il caricamento della
+  // sesta e intasano il browser per le suite dopo (deploy di #253 fermo, 12 ott 2026)
   const apri = async (q, o = {}) => {
+    for (const x of ctx._pages.splice(0)) await x.close().catch(() => {});
     const p = await ctx.open('provapiste.html?ruota=0&' + q, o);
     await p.page.waitForFunction(() => window.__provapiste && window.__provapiste.ready === true, null, { timeout: 30000 });
     return p;
