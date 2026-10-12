@@ -22,6 +22,17 @@ export const COLPI = {
 export const GIRO_TEMPO = 1.4;
 /** Coseni dei mezzi angoli: mira assistita dell'arco ~25°, semicerchio davanti. */
 export const COS_CONO_ARCO = 0.976;
+/** Magie a raggio e a bomba (magie.ts). Raggio: colpisce ogni CANALE_OGNI tick (0,2 s); i perk di elemento una volta ogni CANALE_EFFETTI colpi; la mira
+ *  assistita lo aggancia entro ~45° (coseno). Bomba: aggancia entro ~25°, senza bersaglio atterra a BOMBA_VUOTO della gittata, tollera BOMBA_LATO m di
+ *  lato, gravità dell'arco; il boss prende metà del rallentamento elettrico. */
+export const CANALE_OGNI = Math.round(0.2 * HZ);
+export const CANALE_EFFETTI = 5;
+export const COS_RAGGIO = 0.7;
+export const COS_BOMBA = 0.9;
+export const BOMBA_VUOTO = 0.75;
+export const BOMBA_LATO = 1.2;
+export const BOMBA_G = 14;
+export const BOSS_RALLENTA = 0.5;
 export const COS_SEMICERCHIO = 0;
 /** Il nemico colpisce solo se l'eroe è ancora davanti a lui (~145°) e in portata (+ tolleranza). */
 export const COS_CONO_NEMICO = 0.3;

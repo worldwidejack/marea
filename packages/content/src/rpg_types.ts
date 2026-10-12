@@ -95,6 +95,12 @@ export type SpellDef = {
   danno?: number; velocita?: number; raggio?: number; sanguina?: number;
   /** Elemento della magia d'attacco (perk Combustione sul fuoco, Catena di fulmini sull'elettricità). */
   elemento?: 'fuoco' | 'elettricita';
+  /** Distruzione, la forma: `proiettile` (default: mira e parte al rilascio), `raggio` (continuo: finché tieni A; `costo` e `danno` sono al secondo,
+   *  `gittata` e `larghezza` in m) o `bomba` (lenta: scoppia dove atterra, `raggio` m di danno ad area; atterra al massimo a `gittata` m, in `volo` s). */
+  forma?: 'proiettile' | 'raggio' | 'bomba';
+  gittata?: number; larghezza?: number; volo?: number;
+  /** Elettriche: chi è colpito va a `molt` della velocità (anche dei colpi) per `secondi` s; il boss a metà effetto. */
+  rallenta?: { molt: number; secondi: number };
   /** Evocazione: alleato (id di enemies.json) per `durata` s. */
   evoca?: string; durata?: number;
 };

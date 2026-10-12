@@ -134,7 +134,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         rowSig = sig;
         const it = (ico: Node | null, text: string, cls = '') => { const s = el('span', cls); if (ico) s.appendChild(ico); s.appendChild(document.createTextNode(text)); return s; };
         const kids: Node[] = [];
-        if (inMano) kids.push(it(itemIcon('libro', coloreMagia(inMano.id, inMano.scuola), 16), `${nomeMagia(inMano.id)} ${inMano.costo}`, 'ok'));
+        if (inMano) kids.push(it(itemIcon('libro', coloreMagia(inMano.id, inMano.scuola), 16), `${nomeMagia(inMano.id)} ${inMano.costo}${inMano.forma === 'raggio' ? '/s' : ''}`, 'ok'));
         if (rh.frecce || rh.arma.kind === 'arco') kids.push(it(arrowsIco(), `${h.frecce}`, h.frecce === 0 ? 'warn' : ''));
         if (pot) kids.push(it(potIco(16), `${h.pozioni}`, h.pozioni === 0 ? 'warn' : ''));
         kids.push(it(itemIcon('materiale', P.legnoChiaro, 16), `${Math.round(z.peso)}/${Math.round(z.max)} kg`, z.peso >= z.max ? 'warn' : ''));
@@ -226,7 +226,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
       if (sub) big.appendChild(el('small', '', sub));
     },
     icons: () => ({ c: spellIco(24), d: potIco(24), key: `${spell?.id ?? ''}|${pot?.id ?? ''}` }),
-    magie: () => rh.magie.map((m) => ({ id: m.id, nome: nomeMagia(m.id), costo: m.costo, icona: () => itemIcon('libro', coloreMagia(m.id, m.scuola), 28) })),
+    magie: () => rh.magie.map((m) => ({ id: m.id, nome: nomeMagia(m.id), costo: m.costo, icona: () => itemIcon('libro', coloreMagia(m.id, m.scuola), 28), ...(m.forma === 'raggio' ? { alSecondo: true } : {}) })),
     setHero(h) {
       rh = h; rowSig = '';
       pot = rh.pozione !== null ? rh.pozioni[rh.pozione] ?? null : null;

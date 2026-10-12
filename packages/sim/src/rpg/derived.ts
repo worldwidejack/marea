@@ -123,6 +123,8 @@ function spellsOf(h: HeroState, m: Mods): RunSpell[] {
       ...(mole ? { mole } : {}), ...(s.elemento ? { elemento: s.elemento } : {}),
       id: s.id, scuola: s.scuola, costo, ricarica: s.ricarica, danno: dist ? r2((s.danno ?? 0) * k) : 0, velocita: s.velocita ?? 0, raggio: r2((s.raggio ?? 0) * (mole || 1)),
       sanguina: s.sanguina ?? 0, evoca: s.evoca ?? null, durata: s.evoca ? r2((s.durata ?? 0) * (1 + mod(m, 'durataEvocazione'))) : 0,
+      ...(s.forma ? { forma: s.forma } : {}), ...(s.gittata ? { gittata: s.gittata } : {}), ...(s.larghezza ? { larghezza: s.larghezza } : {}),
+      ...(s.volo ? { volo: s.volo } : {}), ...(s.rallenta ? { rallenta: { ...s.rallenta } } : {}),
     });
   }
   return out;

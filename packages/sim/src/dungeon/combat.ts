@@ -10,7 +10,7 @@ import { grigliaDi, schermato } from './muove.ts';
 import { spingi } from './vento.ts';
 import { scarica } from './custode.ts';
 import { barriera } from './unici.ts';
-import { COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
+import { BOSS_RALLENTA, COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 
@@ -34,7 +34,18 @@ export type HitSrc = {
   mischia?: boolean;
   /** Carica massima (perk): il colpo è letale; sui boss fa RPG.perk.caricaMassima.moltBoss volte il danno del caricato. */
   letale?: boolean;
+  /** Magie elettriche: il nemico colpito va a `molt` della velocità per `secondi` s. */
+  rallenta?: { molt: number; secondi: number };
 };
+
+/** Elettriche: il nemico cammina e attacca a `molt` della velocità per `secondi` s. Stessa macchina del Taglio Critico (perk.ts: lentoT, lentoMolt,
+ *  lentoAcc); se è già rallentato vale il più forte e il più lungo. I boss prendono metà dell'effetto. */
+export function rallentaNemico(s: DungeonState, e: Enemy, R: { molt: number; secondi: number }): void {
+  if (e.st === 'morto' || e.alleato || e.vita <= 0) return;
+  const molt = e.def.boss ? 1 - (1 - R.molt) * BOSS_RALLENTA : R.molt, fine = s.tick + secToTicks(R.secondi);
+  if (e.lentoT !== undefined && e.lentoT > s.tick) { e.lentoMolt = Math.min(e.lentoMolt ?? 1, molt); e.lentoT = Math.max(e.lentoT, fine); }
+  else { e.lentoT = fine; e.lentoMolt = molt; e.lentoAcc = 0; }
+}
 
 /** Danno di un colpo su un nemico (prima di applicarlo). */
 export function dannoSu(e: Enemy, src: HitSrc): number {
@@ -90,6 +101,7 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
     if (b && !s.done) s.hero.vita = Math.min(s.runHero.max.vita, s.hero.vita + utile * b);
   }
   if (src.traits.sanguina) { e.bleed = Math.max(e.bleed, src.traits.sanguina); e.bleedT = SANGUINA_TICKS; }
+  if (src.rallenta) rallentaNemico(s, e, src.rallenta);
   e.dropRaro = !!src.traits.dropRaro;
   e.dropMolt = src.traits.dropMolt ?? 1;
   // sbilancia o attacco caricato: interrompe la preparazione dei non-boss e spinge

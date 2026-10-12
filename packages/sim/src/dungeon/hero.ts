@@ -9,7 +9,7 @@ import { add, ev, evocaAlleato, secToTicks } from './state.ts';
 import { buff, hitEnemy } from './combat.ts';
 import { lineOfSight, moveCircle } from './map.ts';
 import {
-  BEVE_TICKS, COLPI, COS_CONO_ARCO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y,
+  BEVE_TICKS, COLPI, COS_BOMBA, COS_CONO_ARCO, COS_RAGGIO, COS_SEMICERCHIO, FRECCIA_Y, GIRO_TEMPO, HOLD_TICKS, LANCIA_TICKS, MAGIA_GITTATA, MAGIA_Y,
   HZ, PUGNI, RAGGIO_USCITA, TENSIONE_MIN, VOLO_MAX_TICKS,
 } from './tuning.ts';
 import { sweepTo, swept, swingStyle } from './swing.ts';
@@ -18,6 +18,7 @@ import { consuma, rebuild } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts';
 import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts';
+import { canale, fermaCanale, lanciaBomba } from './magie.ts';
 import { caricaBarriera, eco, fineColpo, inizioColpo, molla, moltRitmo, stepUnici, stordisci } from './unici.ts';
 import { curaCompagni, lamaAria, scaricaDi, statiCaricato, terremoto, veleno } from './perk.ts';
 
@@ -176,13 +177,18 @@ function cast(s: DungeonState, dir: Mira): void {
     add(s.xp, 'evocazione', sp.costo * (RPG.xp.evocazioneLancio ?? 0));
     return;
   }
+  if (sp.forma === 'bomba') { // lenta, in alto: atterra sul nemico che hai davanti e scoppia (magie.ts)
+    if (!dir) faceTo(s, aim(s, sp.gittata ?? MAGIA_GITTATA, COS_BOMBA, 0, true));
+    lanciaBomba(s, sp);
+    return;
+  }
   if (!dir) faceTo(s, aim(s, MAGIA_GITTATA, COS_CONO_ARCO, 0, true));
   const v = sp.velocita;
   s.proj.push({
     id: s.nextId++, tipo: 'magia', x: h.x + h.fx * 0.4, y: MAGIA_Y, z: h.z + h.fz * 0.4, vx: h.fx * v, vy: 0, vz: h.fz * v, g: 0,
     danno: sp.danno * (1 + buff(s, 'dannoDistruzione')), life: Math.max(1, Math.round((MAGIA_GITTATA / Math.max(1, v)) * HZ)),
     traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, raggio: sp.raggio, colpiti: [], dalNemico: false, contundente: false, magico: true, arrowId: null, da: s.cur,
-    ...(sp.mole ? { mole: sp.mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}),
+    ...(sp.mole ? { mole: sp.mole } : {}), ...(sp.elemento ? { elemento: sp.elemento } : {}), ...(sp.rallenta ? { rallenta: sp.rallenta } : {}),
   });
 }
 
@@ -243,6 +249,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   if (h.protetto > 0) h.protetto--;
   if (h.cdMagia > 0) h.cdMagia--;
   if (h.cdScarica > 0) h.cdScarica--;
+  if (h.canale > 0 && h.act !== 'punta') h.canale = 0; // il raggio vive solo mentre si punta
   if (h.buffs.length) h.buffs = h.buffs.filter((b) => b.fine > s.tick);
   if (h.lento > 0) h.lento--;
   let aDown = inp.a && !h.prevA;
@@ -311,10 +318,16 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       if (!inp.a || (st > 0 && h.stamina <= 0)) shoot(s, dir);
       break;
     }
-    case 'punta':
+    case 'punta': {
       faceDir(s, dir); // col mouse l'eroe segue il cursore finché si mira
-      if (!inp.a) { h.act = 'idle'; h.actT = 0; cast(s, dir); }
+      const sp = magiaPronta(s);
+      if (sp?.forma === 'raggio') {
+        // raggio continuo: finché tieni A resta acceso (costa Magicka al secondo) e si aggancia al nemico davanti; rilasci o finisci la Magicka e si spegne
+        if (inp.a && !dir) faceTo(s, aim(s, sp.gittata ?? 5, COS_RAGGIO, (sp.gittata ?? 5) * 0.5, true));
+        if (!inp.a || !canale(s, sp)) { fermaCanale(s, sp); h.act = 'idle'; h.actT = 0; }
+      } else if (!inp.a) { h.act = 'idle'; h.actT = 0; cast(s, dir); }
       break;
+    }
     default: // tira, lancia, beve
       if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; }
   }
@@ -335,7 +348,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   v *= (1 - malusDi(s)) * rh.armatura.velocitaMolt;
   if (h.moving) {
     moveCircle(s.map, h, mx * v * DT, my * v * DT, rh.raggio);
-    if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia' && !arcoLibero && !(dir && (h.act === 'tende' || h.act === 'punta'))) { h.fx = mx / mag; h.fz = my / mag; }
+    if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia' && !arcoLibero && h.canale === 0 && !(dir && (h.act === 'tende' || h.act === 'punta'))) { h.fx = mx / mag; h.fz = my / mag; }
   }
   caricaBarriera(s); // Mausoleo: l'Armatura del Moto Perpetuo si carica camminando
   // i nemici sono solidi: l'eroe non li attraversa

@@ -44,7 +44,7 @@ export function renderBag(v: View, out: HTMLElement): void {
   out.appendChild(grid);
 
   // magia in mano (v6): si sceglie come un'arma, occupa le mani e si lancia con la A; di nuovo sulla magia in mano rimette l'arma
-  out.appendChild(sec('Magia in mano', inMano(v) ? 'tieni A per mirare, lascia per lanciare · C alterna' : 'tocca per impugnarla · C alterna'));
+  out.appendChild(sec('Magia in mano', inMano(v) ? 'tieni A per mirare, lascia per lanciare (i raggi restano accesi finché tieni) · C alterna' : 'tocca per impugnarla · C alterna'));
   if (!h.magie.length) out.appendChild(el('div', 'mz-rp-empty', 'Nessuna magia: leggi un libro.'));
   else {
     const chips = el('div', 'mz-rp-chips');
@@ -62,7 +62,7 @@ export function renderBag(v: View, out: HTMLElement): void {
     }
     out.appendChild(chips);
     const cur = h.equip.magia ? SPELLS.find((x) => x.id === h.equip.magia) : undefined;
-    if (cur) out.appendChild(el('div', 'mz-rp-cmp', `${cur.descr} Costa ${cur.costo} Magicka.`));
+    if (cur) out.appendChild(el('div', 'mz-rp-cmp', `${cur.descr} Costa ${cur.costo} Magicka${cur.forma === 'raggio' ? ' al secondo' : ''}.`));
   }
 
   out.appendChild(sec('Zaino', `${fmtKg(d.carico)} / ${fmtKg(d.caricoMax)}`));

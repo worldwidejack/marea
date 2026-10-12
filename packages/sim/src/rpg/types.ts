@@ -103,6 +103,8 @@ export type RunArmor = {
   barriera?: NonNullable<Traits['barriera']>;
 };
 export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione'; elemento?: 'fuoco' | 'elettricita'; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number;
+  /** Forma e dettagli (SpellDef): assenti = proiettile. Raggio: `costo` e `danno` sono al secondo. */
+  forma?: 'proiettile' | 'raggio' | 'bomba'; gittata?: number; larghezza?: number; volo?: number; rallenta?: { molt: number; secondi: number };
   /** Grandi Magie: la magia è più grande di questo fattore (raggio dello scoppio già moltiplicato); assente = 1. */
   mole?: number };
 /** Effetti dei perk che la sim del dungeon deve conoscere (gli altri sono già numeri dentro RunHero). Assente o campo assente = non c'è. */

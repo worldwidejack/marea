@@ -1,5 +1,6 @@
 // Pezzi comuni dei pannelli GDR (R-pannelli): nomi italiani, icone a pixel degli oggetti (canvas 8×8 col colore del materiale), barre, righe.
 // Solo colori di PAL: il colore di un oggetto si riporta al più vicino della palette.
+import { SPELLS } from '@marea/content/rpg.ts';
 import type { AttrId, ItemKind, SkillId } from '@marea/content/rpg.ts';
 import type { EquipSlot, HeroState, ItemDef, RpgAction } from '@marea/sim/rpg/types.ts';
 import type { LotState } from '@marea/sim';
@@ -88,8 +89,8 @@ export function itemIcon(kind: ItemKind, color: string, px = 24): HTMLCanvasElem
   return c;
 }
 export const iconOf = (it: ItemDef, px = 24): HTMLCanvasElement => itemIcon(it.kind, it.colore, px);
-/** Colore di una magia (icona, sfera nelle mani, linea di mira): le evocazioni viola, il Fulmine giallo, il resto fuoco. */
-export const coloreMagia = (id: string, scuola: string): string => (scuola === 'evocazione' ? PAL.viola : id === 'fulmine' ? PAL.giallo : PAL.arancio);
+/** Colore di una magia (icona, sfera nelle mani, linea di mira): le evocazioni viola, le elettriche gialle, il resto fuoco. */
+export const coloreMagia = (id: string, scuola: string): string => (scuola === 'evocazione' ? PAL.viola : SPELLS.find((s) => s.id === id)?.elemento === 'elettricita' ? PAL.giallo : PAL.arancio);
 
 // ---------- pezzi DOM ----------
 export function sec(title: string, right?: string): HTMLElement {
