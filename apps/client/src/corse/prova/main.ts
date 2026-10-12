@@ -27,7 +27,7 @@ import { createPost } from '../../render/post.ts';
 import { P } from '../../render/island_parts.ts';
 import { STYLES } from '../../provapixel/styles.ts';
 import type { StyleId } from '../../provapixel/styles.ts';
-import { creaLinee, creaMinimappa, creaParticelle, emettiVeicolo } from '../effetti.ts';
+import { creaLinee, creaMinimappa, creaParticelle, emettiVeicolo, urtoVeicolo } from '../effetti.ts';
 import { creaPista3d } from '../nastro3d.ts';
 import type { Pista3d } from '../nastro3d.ts';
 import { matOnda, ondaGeo } from '../onda3d.ts';
@@ -121,7 +121,7 @@ let meshes: THREE.Mesh[] = [], ondaMesh: THREE.Mesh | null = null, fase: 'gara' 
 const matVeicoli = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
 const materialeOnda = matOnda();
 /** Quello che serve alla resa per ogni veicolo: saltello del drift, angolo di traverso, e i valori di prima per vedere cosa è cambiato. */
-type Vis = { hop: number; traverso: number; drift: number; lv: number; turbo: number; aria: boolean; vh: number; acro: number; scia: number; agg: boolean; cadute: number };
+type Vis = { hop: number; traverso: number; drift: number; lv: number; turbo: number; aria: boolean; vh: number; acro: number; scia: number; urti: number; agg: boolean; cadute: number };
 let vis: Vis[] = [];
 
 /** I veicoli in scena (uno per ogni veicolo della gara): si rifanno anche quando arriva il kit, senza toccare la gara. */
@@ -149,7 +149,7 @@ function nuovaGara(cambiaPista: boolean) {
     ondaMesh = new THREE.Mesh(ondaGeo(p.def.larghezza + p.def.bordo + 8), materialeOnda);
     ondaMesh.matrixAutoUpdate = false; ondaMesh.name = 'corse_onda'; ondaMesh.frustumCulled = false; scene.add(ondaMesh);
   }
-  vis = s.veicoli.map((k) => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0, agg: k.agg, cadute: 0 }));
+  vis = s.veicoli.map((k) => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0, urti: k.urti, agg: k.agg, cadute: 0 }));
   usa.mostra(!!s.oggetti); ogg3d.chiudi();
   if (btnA) btnA.textContent = s.veicoli[0]!.agg ? 'SALTO' : 'DRIFT'; // sui binari il bottone salta (e cambia rotaia): lo cambia eventi() quando ci si aggancia
   fase = 'gara'; finita = 0; regia.st.ok = false; fx.svuota(); toast(null); contoPrima = 0; viaFlash = 0;
@@ -214,10 +214,12 @@ function aggiornaVeicoli(dt: number) {
       const a = Math.PI * 2 * Math.min(1, k.acro / 0.42), ca = Math.cos(a), sa = Math.sin(a);
       tmp.copy(vU).multiplyScalar(ca).addScaledVector(vR, sa); vU.copy(tmp); vR.crossVectors(vF, vU).normalize();
     }
+    if (k.spinta) { const r = -k.spinta * 0.04; tmp.copy(vU).multiplyScalar(Math.cos(r)).addScaledVector(vR, Math.sin(r)); vU.copy(tmp).normalize(); vR.crossVectors(vF, vU).normalize(); } // la botta di un urto: si piega
     vP.addScaledVector(vU, hop);
     if (k.fermo > 0 && !gc) vP.addScaledVector(vR, (Math.random() - 0.5) * 0.08); // motore ingolfato: trema
     M4.makeBasis(vR, vU, tmp.copy(vF).negate()).setPosition(vP);
     meshes[i]!.matrix.copy(M4); meshes[i]!.matrixWorldNeedsUpdate = true;
+    if (k.urti > w.urti && effetti && camera.position.distanceToSquared(vP) < 60 * 60) urtoVeicolo(fx, k, vP, vU, vR, vM); // urto con un altro veicolo (#255)
     if (effetti && !k.caduto && (i === 0 || camera.position.distanceToSquared(vP) < 60 * 60)) {
       emettiVeicolo(fx, k, i === 0 && k.scia > 0.15 && w.scia <= k.scia, pausa ? 0 : Math.max(0, k.v), vP, vF, vU, vR, vM);
       // sulle rotaie, su due ruote: scintille dalla ruota di fuori (gialle, rosse quando si esagera e si frena forte)
@@ -242,6 +244,7 @@ function eventi() {
   }
   if (k.acro > 0 && w.acro === 0) suoni.acrobazia();
   if (w.aria && !k.aria && !k.caduto) { const urto = Math.max(0, -w.vh); suoni.atterra(urto); regia.st.scossa = Math.max(regia.st.scossa, Math.min(0.35, urto * 0.025)); }
+  if (k.urti > w.urti) { suoni.urto(k.botta); regia.st.scossa = Math.max(regia.st.scossa, Math.min(0.4, 0.12 + k.botta * 0.025)); } // urto con un altro veicolo (#255)
   // piste ibride: ci si aggancia alle rotaie (clac, e il bottone diventa SALTO) e ci si sgancia; deragliare si dice
   if (k.agg !== w.agg) {
     if (btnA) btnA.textContent = k.agg ? 'SALTO' : 'DRIFT';
@@ -253,7 +256,7 @@ function eventi() {
   w.cadute = k.cadute;
   for (let i = 0; i < vis.length; i++) {
     const x = s.veicoli[i]!, y = vis[i]!;
-    y.drift = x.drift; y.turbo = x.turbo; y.aria = x.aria; y.vh = x.vh; y.acro = x.acro; y.scia = x.scia;
+    y.drift = x.drift; y.turbo = x.turbo; y.aria = x.aria; y.vh = x.vh; y.acro = x.acro; y.scia = x.scia; y.urti = x.urti;
   }
   w.lv = lv;
 }
@@ -412,7 +415,7 @@ const api = {
       ramo: k.ramo, aria: k.aria, caduto: k.caduto > 0, salti: k.salti, cadute: k.cadute, sup: k.sup,
       onda: v.onda === null ? null : Math.round(v.onda * 10) / 10, ondaDist: Math.round(v.ondaDist * 10) / 10, travolto: k.travolto,
       oggetti: s.oggetti ? { tasca: s.oggetti.tasche[0]!.ogg, roulette: s.oggetti.tasche[0]!.roulette, usati: s.oggetti.usati, presi: s.oggetti.presi, scatole: s.oggetti.scatole.filter((b) => b.t === 0).length, prossima: Math.min(...s.oggetti.scatole.map((b) => { const d = b.prog - k.prog; return d > 0 ? d : 1e4; })), trappole: s.oggetti.trappole.length, colpi: s.oggetti.colpi.length } : null,
-      drift: k.drift, livello: livelloDrift(k.carica), turbo: Math.round(k.turbo * 100) / 100, partenza: k.partenza, regole: s.regole, menu: menuAperto,
+      urti: k.urti, botta: Math.round(k.botta * 10) / 10, spinta: Math.round(k.spinta * 10) / 10, drift: k.drift, livello: livelloDrift(k.carica), turbo: Math.round(k.turbo * 100) / 100, partenza: k.partenza, regole: s.regole, menu: menuAperto,
       risultato: s.done ? garaCorse.result(s) : null };
   },
   /** Cambia pista, veicolo, bot, regole, camera, pilota automatico; `vai` = salta il conto alla rovescia; `pausa` = ferma la gara. */
@@ -435,6 +438,8 @@ const api = {
     return api.state();
   },
   /** Avanza la gara di `tick` passi subito (pilota automatico), senza aspettare il tempo vero. */
+  /** Prova degli urti (#255): mette il bot `i` affiancato a te (a destra, o tamponato davanti con `davanti`), stessa velocità. */
+  affianca: (i = 1, davanti = false) => { const k = s.veicoli[0]!, b = s.veicoli[i]; if (b) { b.ramo = k.ramo; b.s = k.s + (davanti ? 1.7 : 0); b.prog = k.prog + (davanti ? 1.7 : 0); b.lat = k.lat + (davanti ? 0 : 1.6); b.v = davanti ? k.v * 0.6 : k.v; b.hf = k.hf; b.hl = k.hl; b.mf = k.mf; b.ml = k.ml; b.h = k.h; b.aria = false; } return api.state(); },
   /** `tick` passi coi comandi veri (tastiera, dito): per i test dei tasti senza aspettare il tempo vero. */
   passi: (tick: number) => { for (let i = 0; i < tick && fase === 'gara'; i++) step(); return api.state(); },
   avanti: (tick: number) => { const a = auto; auto = true; for (let i = 0; i < tick && fase === 'gara'; i++) step(); auto = a; regia.st.ok = false; return api.state(); },

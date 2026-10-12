@@ -15,7 +15,7 @@ import type { Look } from '@marea/protocol';
 import { P } from '../render/island_parts.ts';
 import { createAvatar } from '../game/avatar.ts';
 import type { Avatar } from '../game/avatar.ts';
-import { creaLinee, creaMinimappa, creaParticelle, emettiVeicolo } from './effetti.ts';
+import { creaLinee, creaMinimappa, creaParticelle, emettiVeicolo, urtoVeicolo } from './effetti.ts';
 import { creaPista3d } from './nastro3d.ts';
 import type { Pista3d } from './nastro3d.ts';
 import { matOnda, ondaGeo } from './onda3d.ts';
@@ -31,7 +31,7 @@ import { creaOggetti3d, giroColpito } from './oggetti3d.ts';
 const COLORI = [P.rosso, P.giallo, P.acquaBassa, P.viola, P.erbaChiara];
 const CASCHI = [P.pietraChiara, P.neroCaldo, P.neroCaldo, P.neroCaldo, P.neroCaldo];
 /** Quello che serve alla resa per ogni veicolo: saltello del drift, angolo di traverso, e i valori di prima per vedere cosa è cambiato. */
-type Vis = { hop: number; traverso: number; drift: number; lv: number; turbo: number; aria: boolean; vh: number; acro: number; scia: number };
+type Vis = { hop: number; traverso: number; drift: number; lv: number; turbo: number; aria: boolean; vh: number; acro: number; scia: number; urti: number };
 export const tempoGara = (ms: number) => { const t = Math.max(0, ms) / 1000, m = Math.floor(t / 60), sec = t - m * 60; return `${m}:${sec < 10 ? '0' : ''}${sec.toFixed(1).replace('.', ',')}`; };
 
 /** `amici`: gara tra amici (corse/amici.ts): gli amici si disegnano come fantasmi e la posizione è quella tra amici. */
@@ -123,7 +123,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
       ondaMesh = new THREE.Mesh(ondaGeo(p.def.larghezza + p.def.bordo + 8), materialeOnda);
       ondaMesh.matrixAutoUpdate = false; ondaMesh.name = 'corse_onda'; ondaMesh.frustumCulled = false; gruppo.add(ondaMesh);
     }
-    vis = gara.veicoli.map(() => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0 }));
+    vis = gara.veicoli.map((k) => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0, urti: k.urti }));
     regia.st.ok = false; fx.svuota(); toast(null); contoPrima = 0; viaFlash = 0;
     void caricaKit().then(() => { if (s === gara) veicoliMesh(); }); // i veicoli veri arrivano appena i glb sono scaricati: intanto i segnaposto
   }
@@ -256,10 +256,12 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
         const a = Math.PI * 2 * Math.min(1, k.acro / 0.42), ca = Math.cos(a), sa = Math.sin(a);
         tmp.copy(vU).multiplyScalar(ca).addScaledVector(vR, sa); vU.copy(tmp); vR.crossVectors(vF, vU).normalize();
       }
+      if (k.spinta) { const r = -k.spinta * 0.04; tmp.copy(vU).multiplyScalar(Math.cos(r)).addScaledVector(vR, Math.sin(r)); vU.copy(tmp).normalize(); vR.crossVectors(vF, vU).normalize(); } // la botta di un urto: si piega
       vP.addScaledVector(vU, hop);
       if (k.fermo > 0 && !gc) vP.addScaledVector(vR, (Math.random() - 0.5) * 0.08); // motore ingolfato: trema
       M4.makeBasis(vR, vU, tmp.copy(vF).negate()).setPosition(vP);
       meshes[i]!.matrix.copy(M4); meshes[i]!.matrixWorldNeedsUpdate = true;
+      if (k.urti > w.urti && o2.effetti && o.camera.position.distanceToSquared(vP) < 60 * 60) urtoVeicolo(fx, k, vP, vU, vR, vM); // urto con un altro veicolo (#255)
       if (o2.effetti && !k.caduto && (i === 0 || o.camera.position.distanceToSquared(vP) < 60 * 60)) emettiVeicolo(fx, k, i === 0 && k.scia > 0.15 && w.scia <= k.scia, o2.fine ? 0 : Math.max(0, k.v), vP, vF, vU, vR, vM);
     }
   }
@@ -274,9 +276,10 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     }
     if (k.acro > 0 && w.acro === 0) suoni.acrobazia();
     if (w.aria && !k.aria && !k.caduto) { const urto = Math.max(0, -w.vh); suoni.atterra(urto); regia.st.scossa = Math.max(regia.st.scossa, Math.min(0.35, urto * 0.025)); }
+      if (k.urti > w.urti) { suoni.urto(k.botta); regia.st.scossa = Math.max(regia.st.scossa, Math.min(0.4, 0.12 + k.botta * 0.025)); } // urto con un altro veicolo (#255)
     for (let i = 0; i < vis.length; i++) {
       const x = gs.veicoli[i]!, y = vis[i]!;
-      y.drift = x.drift; y.turbo = x.turbo; y.aria = x.aria; y.vh = x.vh; y.acro = x.acro; y.scia = x.scia;
+      y.drift = x.drift; y.turbo = x.turbo; y.aria = x.aria; y.vh = x.vh; y.acro = x.acro; y.scia = x.scia; y.urti = x.urti;
     }
     w.lv = lv;
   }

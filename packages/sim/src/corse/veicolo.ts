@@ -56,6 +56,8 @@ export type Veicolo = {
   rot: number; rot0: number; piega: number;
   /** Piste ibride: era agganciato alle rotaie il tick prima (al cambio si riparte puliti). */
   agg: boolean;
+  /** Urti (#255): spinta di lato (m/s, si smorza), botta dell'ultimo urto (m/s, scende a zero: per scossa e suono del client), urti presi. */
+  spinta: number; botta: number; urti: number;
 };
 
 /** Ruota il versore (f, l) di `a` rad verso destra (angoli piccoli; il risultato è rinormalizzato). */
@@ -75,7 +77,7 @@ export function nuovoVeicolo(p: Pista, id: string, prog: number, lat: number): V
   return {
     id, ramo: -1, s, lat, h: 0, vh: 0, hf: 1, hl: 0, mf: 1, ml: 0, v: 0, prog, aria: false, caduto: 0, terra: s,
     drift: 0, carica: 0, daBottone: false, autoT: 0, turbo: 0, livello: 0, st: 0, tenuto: -1, gasT: -1, acro: 0, scia: 0, fermo: 0, partenza: 0, muro: false, sup: p.def.superficie, salti: 0, cadute: 0, travolto: 0,
-    giro: 0, giroTick: 1, best: 0, fine: 0, rot: -1, rot0: -1, piega: 0, agg: false,
+    giro: 0, giroTick: 1, best: 0, fine: 0, rot: -1, rot0: -1, piega: 0, agg: false, spinta: 0, botta: 0, urti: 0,
   };
 }
 /** Le regole accese (opzioni della gara, interruttori del banco di prova). */
@@ -304,9 +306,23 @@ function bordi(p: Pista, k: Veicolo): void {
   k.muro = true;
 }
 
-/** Separa i veicoli che si toccano sullo stesso nastro (in ordine fisso: deterministico). Chi pesa di più sposta di più. */
+/** Gli urti tra veicoli della stessa gara (#255): si separano, poi un impulso coi pesi lungo la linea che li unisce (chi tampona rallenta,
+ *  chi è tamponato prende una spinta; di fianco si rimbalza di lato, almeno `spintaMin`). La spinta di lato si smorza qui, a ogni tick.
+ *  `botta` dice quanto è stato forte l'ultimo urto (il client ci fa la scossa e il suono). Solo + − × ÷ e √: il server lo rigioca uguale. */
 export function urti(p: Pista, ks: Veicolo[], pesi: number[]): void {
-  const r2 = CORSE.veicolo.raggio * 2;
+  const r2 = CORSE.veicolo.raggio * 2, U = CORSE.urti;
+  for (const k of ks) {
+    if (k.agg || k.caduto) k.spinta = 0;
+    if (k.spinta !== 0 && !k.aria) { // in aria non si sposta di lato (si atterra dove si è saltati)
+      const nn = nastroDi(p, k.ramo), l = campo(nn, nn.l, k.s), lat = k.lat + k.spinta * DT;
+      // la spinta non porta fuori dalla carreggiata (i muri e il bordo li fa la guida): lì si ferma
+      if ((lat > l || lat < -l) && (lat > k.lat ? lat > 0 : lat < 0)) k.spinta = 0;
+      else k.lat = lat;
+      k.spinta -= k.spinta * Math.min(1, U.smorza * DT);
+      if (k.spinta < 0.05 && k.spinta > -0.05) k.spinta = 0;
+    }
+    k.botta = Math.max(0, k.botta - 30 * DT);
+  }
   for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) {
     const a = ks[i]!, b = ks[j]!;
     if (a.ramo !== b.ramo || a.caduto || b.caduto || Math.abs(a.h - b.h) > 1.5) continue;
@@ -316,11 +332,25 @@ export function urti(p: Pista, ks: Veicolo[], pesi: number[]): void {
     const dl = b.lat - a.lat, d2 = ds * ds + dl * dl;
     if (d2 >= r2 * r2) continue;
     const d = Math.sqrt(d2) || 0.001, push = r2 - d, nf = ds / d, nl = dl / d;
-    const wa = pesi[j]! / (pesi[i]! + pesi[j]!), wb = 1 - wa;
+    const ma = pesi[i]!, mb = pesi[j]!, wa = mb / (ma + mb), wb = 1 - wa;
     a.lat -= nl * push * wa; b.lat += nl * push * wb;
     a.s -= nf * push * wa; b.s += nf * push * wb; a.prog -= nf * push * wa; b.prog += nf * push * wb;
     if (n.chiuso) { a.s = (a.s + n.len) % n.len; b.s = (b.s + n.len) % n.len; } else { a.s = clamp(a.s, 0, n.len); b.s = clamp(b.s, 0, n.len); }
-    // chi è dietro perde un filo di velocità
-    if (a.prog < b.prog) a.v *= 0.985; else b.v *= 0.985;
+    // velocità nel piano della pista (avanti, di lato) e quanto si vengono incontro lungo la linea che li unisce
+    const vaf = a.v * a.mf, val = a.v * a.ml + a.spinta, vbf = b.v * b.mf, vbl = b.v * b.ml + b.spinta;
+    const vn = (vbf - vaf) * nf + (vbl - val) * nl;
+    if (vn >= 0 && (nl < 0.3 && nl > -0.3)) continue; // si allontanano già e non sono di fianco: basta separarli
+    const J = vn < 0 ? (-(1 + U.rimbalzo) * vn) / (1 / ma + 1 / mb) : 0;
+    a.v -= (J / ma) * nf; b.v += (J / mb) * nf;
+    // di lato: l'impulso più un rimbalzo minimo (pesato), così il colpo di fianco si sente sempre
+    const lato = nl > 0 ? 1 : -1, fianco = nl < 0 ? -nl : nl;
+    const sa = a.spinta - (J / ma) * nl, sb = b.spinta + (J / mb) * nl;
+    const minA = -lato * U.spintaMin * fianco * 2 * wa, minB = lato * U.spintaMin * fianco * 2 * wb;
+    a.spinta = clamp(lato > 0 ? Math.min(sa, minA) : Math.max(sa, minA), -U.spintaMax, U.spintaMax);
+    b.spinta = clamp(lato > 0 ? Math.max(sb, minB) : Math.min(sb, minB), -U.spintaMax, U.spintaMax);
+    const botta = (vn < 0 ? -vn : 0) + U.spintaMin * fianco;
+    if (a.botta < 1) a.urti++;
+    if (b.botta < 1) b.urti++;
+    a.botta = Math.max(a.botta, botta); b.botta = Math.max(b.botta, botta);
   }
 }
