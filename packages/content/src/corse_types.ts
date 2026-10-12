@@ -58,6 +58,33 @@ export type CVeicoloDef = {
   presaCurva?: number;
 };
 
+/** Che cosa fa un oggetto (il codice sta in @marea/sim/corse/oggetti.ts): turbo, trappola lasciata dietro, colpo dritto, colpo che
+ *  insegue chi sta davanti, scudo. Gli oggetti di zona e quelli da sbloccare riusano questi effetti con numeri e look loro. */
+export type COggettoEffetto = 'turbo' | 'trappola' | 'dritto' | 'ricerca' | 'scudo';
+/** Un oggetto del catalogo. `livello`: base (in tutte le zone), zona (solo sulle piste di `zona`), sblocco (si guadagna battendo
+ *  l'isola `sblocco`: per ora non esce). `pesi` = [primi, metà, ultimi] della classifica. I numeri che non servono all'effetto mancano. */
+export type COggettoDef = {
+  id: string; nome: string;
+  livello: 'base' | 'zona' | 'sblocco';
+  zona?: string; sblocco?: string;
+  effetto: COggettoEffetto;
+  cariche: number;
+  pesi: [number, number, number];
+  /** turbo e scudo: s. */
+  secondi?: number;
+  /** trappola: m dietro chi la lascia, durata a terra (s). */
+  dietro?: number; durata?: number;
+  /** colpi: m/s, vita (s), quanto in fretta inseguono di lato (m/s). Trappole e colpi: raggio di presa (m). */
+  velocita?: number; vita?: number; sterza?: number; raggio?: number;
+};
+export type COggettiCfg = {
+  scatole: { righe: number[]; lat: number[]; raggio: number; ricompare: number; roulette: number };
+  colpito: { secondi: number; velocita: number };
+  /** Trappole a terra al massimo (le più vecchie spariscono). */
+  massimiATerra: number;
+  catalogo: COggettoDef[];
+};
+
 /** Effetto di una superficie su una famiglia: moltiplicatori di velocità massima, presa e accelerazione. */
 export type CEffetto = { velocita: number; presa: number; accelerazione: number };
 
@@ -102,6 +129,8 @@ export type CorseMotoreCfg = {
   acrobazia: { turbo: number };
   /** Scia: distanza [min, max] m dietro, scarto laterale massimo m, velocità minima m/s, secondi per caricarla, turbo s. */
   scia: { metri: [number, number]; lato: number; velocitaMin: number; secondi: number; turbo: number };
+  /** Oggetti alla Mario Kart (#250): scatole, colpi, catalogo. Solo nelle gare CON OGGETTI. */
+  oggetti: COggettiCfg;
   bot: {
     bravura: number[];
     corsia: number;

@@ -28,6 +28,7 @@ import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { avvisoRuota } from './avviso_ruota.ts';
 import { creaSalaAmici } from './amici.ts';
 import { creaVistaGara } from './vista_gara.ts';
+import { creaUsa } from './oggetti3d.ts';
 import { creaSchermoHub } from './hub/index.ts';
 import type { IdPorta } from './hub/mappa.ts';
 import { CAMERE, PISTE, creaPannelli, leggiScelta, salvaScelta, veicoloPer } from './hub/pannelli.ts';
@@ -89,6 +90,8 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   for (const ev of ['pointerup', 'pointercancel']) { gasBtn.addEventListener(ev, gasSu as EventListener); addEventListener(ev, gasSu as EventListener); }
   for (const ev of ['touchstart', 'touchmove', 'contextmenu']) gasBtn.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
   o.root.append(gasBtn);
+  // ---- USA (gare CON OGGETTI, #250): bottone col dito, Q da tastiera; la sim lo usa allo scatto (bit b) ----
+  const usa = creaUsa(o.root);
   if (dito) document.body.classList.add('mz-dito');
   const pannelli = creaPannelli(o.root);
   const scelta: Scelta = leggiScelta();
@@ -97,7 +100,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   sala.onEsci = () => { if (hub.aperto() && !run) hub.riprendi(portaGara); };
   sala.onParte = (pt) => {
     if (run || !o.gioca) return;
-    const opz = opzioniGara({ pista: pt.pista, veicolo: veicoloPer({ ...scelta, pista: pt.pista }), bot: pt.bot ? '1' : '0', posto: String(pt.io) });
+    const opz = opzioniGara({ pista: pt.pista, veicolo: veicoloPer({ ...scelta, pista: pt.pista }), bot: pt.bot ? '1' : '0', oggetti: pt.oggetti ? '1' : '0', posto: String(pt.io) });
     hub.messaggio('Si parte…', 30);
     void o.gioca(opz).finally(() => { if (hub.aperto() && !run && hub.info().fermo) { sala.chiudi(); hub.riprendi(portaGara); } });
   };
@@ -182,9 +185,10 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     const yaw = o.renderer.diorama.yaw, rx = Math.cos(yaw), rz = -Math.sin(yaw), fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     const sx = rx * f.mx + rz * f.my, sy = -(fx * f.mx + fz * f.my); // sy > 0 = giù
     const mx = Math.max(-1, Math.min(1, sx / 0.7));
-    if (dito) return { mx, my: f.b ? -1 : scelta.gasAuto || gasGiu.size > 0 || f.a ? 1 : 0, a: f.a, b: false };
+    const b = !!run?.s.oggetti && usa.giu();
+    if (dito) return { mx, my: f.b ? -1 : scelta.gasAuto || gasGiu.size > 0 || f.a ? 1 : 0, a: f.a, b };
     const freno = f.b || sy > 0.5, gas = Math.max(0, Math.min(1, -sy / 0.6));
-    return { mx, my: freno ? -1 : scelta.gasAuto ? 1 : gas, a: f.a, b: false };
+    return { mx, my: freno ? -1 : scelta.gasAuto ? 1 : gas, a: f.a, b };
   };
   const pulsanti = (on: boolean) => {
     const a = document.getElementById('btnA'), b = document.getElementById('btnB');
@@ -207,7 +211,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
           finish(v) {
             if (run !== r) return;
             run = null;
-            vista.chiudi();
+            vista.chiudi(); usa.mostra(false);
             if (r.amici) sala.chiudi(); // si esce dalla sala: per la rivincita si rientra dalla porta
             quit.classList.remove('on');
             const c = o.renderer.camera; c.fov = fov0.fov; c.far = fov0.far; c.near = fov0.near; c.updateProjectionMatrix();
@@ -225,7 +229,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
         run = r;
         if (hub.aperto()) hub.sospendi();
         ruota.attiva(true);
-        vista.mostra(s); vista.interfaccia(true);
+        vista.mostra(s); vista.interfaccia(true); usa.mostra(!!s.oggetti);
         o.renderer.setScene(scene);
         document.body.classList.add('mz-gp'); pulsanti(true); quit.classList.add('on');
         ultimo = performance.now();
@@ -271,6 +275,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
       const now = performance.now(), dt = Math.min(0.1, (now - ultimo) / 1000); ultimo = now;
       if (!r) { hub.aggiorna(dt); return; }
       vista.aggiorna(r.s, dt, { cam: scelta.cam, effetti: true, auto: r.auto, gasAuto: scelta.gasAuto, fine: r.fase === 'fine', ritirato: r.ritirato, ...(r.amici ? { amici: sala.amici() } : {}) });
+      if (r.s.oggetti) usa.etichetta(vista.ogg.etichetta, vista.ogg.pronto);
     },
   };
 
@@ -278,7 +283,8 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     const r = run;
     if (!r) return { active: false, scelta: pannelli.aperto() === 'piste', garage: pannelli.aperto() === 'garage', hub: hub.info(), last, pista: scelta.pista, veicolo: scelta.veicolo, sala: sala.info() };
     const v = garaCorse.view(r.s) as GaraView, k = r.s.veicoli[0]!;
-    return { active: true, hub: { aperto: hub.aperto() }, amici: r.amici, sala: sala.info(), fase: r.fase, auto: r.auto, pista: r.s.pista, veicolo: k.id, frames: r.frames.length, tick: r.s.tick, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: v.done, v: Math.round(k.v * 10) / 10, drift: k.drift, vista: vista.info(), last };
+    const og = r.s.oggetti;
+    return { active: true, hub: { aperto: hub.aperto() }, amici: r.amici, oggetti: og ? { tasca: og.tasche[0]!.ogg, usati: og.usati[0], presi: og.presi[0], scatole: og.scatole.length, bottone: usa.el.style.display } : null, sala: sala.info(), fase: r.fase, auto: r.auto, pista: r.s.pista, veicolo: k.id, frames: r.frames.length, tick: r.s.tick, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: v.done, v: Math.round(k.v * 10) / 10, drift: k.drift, vista: vista.info(), last };
   });
   /** Le gare le corre il pilota automatico (`speed` tick di sim per tick del ciclo, 1-20; 0 = di nuovo a mano). */
   registerTestHook('corseAuto', (speed) => {
@@ -293,6 +299,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     if (x.veicolo) scelta.veicolo = x.veicolo;
     if (x.cam) scelta.cam = x.cam;
     if (x.gasAuto !== undefined) scelta.gasAuto = !!x.gasAuto;
+    if (x.oggetti !== undefined) scelta.oggetti = !!x.oggetti;
     salvaScelta(scelta);
     return { ...scelta };
   });

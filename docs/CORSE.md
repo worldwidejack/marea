@@ -77,7 +77,31 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
 
 ## A7. Avversari, oggetti, sblocchi
 - **Avversari**: bot (gli animali piloti) più i **fantasmi degli amici**, cioè la loro gara migliore rigiocata in pista. Funziona anche se giocate a orari diversi e non costa niente. Niente gare dal vivo per ora **[da decidere più avanti]**.
-- **Oggetti**: **solo in alcune gare**. Ci sono gare con oggetti e gare di guida pura. Quali sono è **[da decidere]**.
+- **Oggetti** (Jack, 12 ott 2026, #250): alla Mario Kart, **in tre livelli**:
+  - **base**: universali, ci sono in tutte le zone;
+  - **di zona**: ogni zona ne aggiunge qualcuno suo, in più;
+  - **sbloccabili**: si guadagnano giocando a MAREA in un'altra isola (es. «solo chi batte i Templari trova il Fuoco greco»).
+  - **Dove**: lo sceglie chi parte. Alla porta e nella sala degli amici c'è «🎁 CON OGGETTI / GUIDA PURA» (di serie guida pura). Gli amici sono fantasmi, quindi gli oggetti colpiscono solo i bot.
+  - **Più avanti**: nel garage ti scegli la **lineup** di oggetti da portare in gara.
+  - **I base di oggi** (numeri in `corse/motore.json` → `oggetti`; look da confermare con la concept). Le scatole stanno in 3 file di 4 per giro, si prendono passandoci sopra e ricompaiono dopo 2,5 s. La roulette gira 1,1 s. Chi è dietro in classifica pesca meglio. USA = bottone col dito, **Q** da tastiera.
+
+    | Oggetto | Che fa | Chi lo pesca di più |
+    |---|---|---|
+    | Lattina-razzo | turbo 1,4 s | tutti, un po' di più chi è dietro |
+    | Tris di lattine | 3 turbo da 1,1 s | gli ultimi |
+    | Buccia | trappola dietro di te: chi ci passa gira 1,1 s e scende al 30 % | i primi |
+    | Pallonata | colpo dritto nella tua corsia (3 s) | tutti |
+    | Razzo a ricerca | insegue chi ti sta subito davanti e lo prende sempre (dal 1° posto va dritto) | metà e ultimi |
+    | Salvagente | scudo per 8 s: para un colpo | i primi |
+  - **Sbloccabili [proposta, da confermare]**: sulla carta. Il codice arriva con stelle e sblocchi (A12 punto 6). Il catalogo ha già `livello: sblocco` + `sblocco: <isola>`; finché lo sblocco non c'è, quegli oggetti non escono.
+
+    | Oggetto | Che fa | Si sblocca |
+    |---|---|---|
+    | Fuoco greco | chiazza di fuoco larga dietro di te | battendo l'isola dei Templari |
+    | Paracadute | salto in avanti che scavalca trappole e colpi | finendo una discesa dell'Adrenalina |
+    | Nuvola nera | un fulmine sul primo in classifica | superando la Tempesta |
+    | Nano da giardino | trappola che spunta in mezzo alla pista | sistemando casa e giardino nel Borgo |
+  - **Di zona [proposta]**: Spiaggia → granchio (trappola che cammina di lato); Giungla → noce di cocco (colpo che rimbalza sui muri).
 - **Sblocchi**:
   - **stelle-trofeo**, finite e che non si spendono: aprono zone e piste;
   - **veicoli**: i boss e i traguardi regalano veicoli nuovi, quelli buffi sono anche nascosti;
@@ -213,7 +237,8 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
    - 4b. Vestire la zona: kit Blender e scenografia delle 4 piste con i manichini (**fatto**, 9 ott 2026, #176); restano veicoli buffi e granchio campione, musica e suoni.
    - 4c. Il Lungomare al posto del Gran Premio (**fatto**, 10 ott 2026, #173): lo schermo delle Corse nel gioco gira sul motore v2 con scelta di pista e veicolo (le 4 piste), `garaCorse` sul server (`corse/registra.ts`), avatar al volante, telefono in orizzontale. Il vecchio Gran Premio (`minigames/corse.ts`) non è più collegato al gioco. Restano: record per pista (oggi un solo record `corse` per tutte), i veicoli veri nella sim (oggi 5 su 14).
 5. Hub alla Diddy Kong Racing (#185, in corso dal 10 ott 2026): mondo a parte, guida libera, porta della Spiaggia, garage, le altre porte chiuse; l'isola nell'arcipelago rifatta come ingresso.
-6. Fantasmi, stelle e sblocchi, premi per MAREA.
+6. Fantasmi, stelle e sblocchi, premi per MAREA. Qui entrano anche gli **oggetti sbloccabili** dalle altre isole (A7).
+6b. **Oggetti** (#250, 12 ott 2026): i 6 base nella sim (`sim/corse/oggetti.ts`, rigiocati dal server), scatole e colpi in pista, casella e bottone USA, scelta CON OGGETTI / GUIDA PURA alla porta e nella sala, interruttore 7 sul banco (`provapiste.html?oggetti=1`). Restano: concept del look degli oggetti, oggetti di zona, sbloccabili, lineup nel garage.
 7. Zone 2-6 con la stessa catena di montaggio. **Zona 2 = Giungla e templi** (scelta di Jack, 11 ott 2026, #228; prima di stelle, boss e musica della Spiaggia):
    - 7a. Concept art (**fatto**, 11 ott 2026).
    - 7b. Famiglia Scivoli e binari + Miniera del tempio grezza sul banco di prova (**fatto**, 11 ott 2026; regole in A11 «Binari»). **Bocciata da Jack** come gara intera sui binari (guida noiosa, non si capisce quando saltare né perché si vince o si perde, niente look giungla): resta come pista di prova `prova_binari`.
@@ -226,7 +251,6 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 
 ## A13. Da decidere
 - Lore e cattivo.
-- In quali gare ci sono gli oggetti.
 - Sfide extra in pista.
 - I boss animali delle zone 2-6.
 - Quante stelle apre ogni porta.

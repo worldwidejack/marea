@@ -12,13 +12,13 @@ import type { Modo } from '../prova/camera.ts';
 export const SCELTA_KEY = 'mz-corse-scelta';
 export const PISTE = Object.entries(CORSE_PISTE).filter(([id]) => id.startsWith('spiaggia_')).map(([id, d]) => ({ id, def: d }));
 export const CAMERE: { id: Modo; nome: string }[] = [{ id: 'dietro', nome: 'dietro' }, { id: 'alta', nome: 'alta' }, { id: 'cofano', nome: 'cofano' }];
-export type Scelta = { pista: string; veicolo: string; gasAuto: boolean; cam: Modo };
+export type Scelta = { pista: string; veicolo: string; gasAuto: boolean; cam: Modo; oggetti: boolean };
 
 export function leggiScelta(): Scelta {
-  let scelta: Scelta = { pista: 'spiaggia_lungomare', veicolo: 'kart', gasAuto: false, cam: 'dietro' };
+  let scelta: Scelta = { pista: 'spiaggia_lungomare', veicolo: 'kart', gasAuto: false, cam: 'dietro', oggetti: false };
   try {
     const m = JSON.parse(localStorage.getItem(SCELTA_KEY) ?? 'null') as Partial<Scelta> | null;
-    if (m) scelta = { pista: PISTE.some((p) => p.id === m.pista) ? m.pista! : scelta.pista, veicolo: CORSE.veicoli.some((v) => v.id === m.veicolo) ? m.veicolo! : scelta.veicolo, gasAuto: !!m.gasAuto, cam: CAMERE.some((c) => c.id === m.cam) ? m.cam! : 'dietro' };
+    if (m) scelta = { pista: PISTE.some((p) => p.id === m.pista) ? m.pista! : scelta.pista, veicolo: CORSE.veicoli.some((v) => v.id === m.veicolo) ? m.veicolo! : scelta.veicolo, gasAuto: !!m.gasAuto, cam: CAMERE.some((c) => c.id === m.cam) ? m.cam! : 'dietro', oggetti: !!m.oggetti };
   } catch { /* niente memoria: di serie */ }
   return scelta;
 }
@@ -104,17 +104,18 @@ export function creaPannelli(root: HTMLElement): Pannelli {
         const salva = () => { salvaScelta(s); disegna(); };
         const cmd = el('div', 'cmd');
         cmd.innerHTML = tocco
-          ? '<b>Joystick</b>: sterza · <b>GAS</b> tienilo premuto · <b>FRENO</b> (tenuto da fermo = retromarcia) · <b>DRIFT</b> tenuto in curva (dà anche gas; 3 livelli di scintille), poi lascia e parti<br>Tieni il GAS quando compare l\'<b>1</b> al semaforo: partenza razzo'
-          : '<b>A D</b> o <b>← →</b> sterza · <b>W ↑</b> gas · <b>S ↓</b> freno e retromarcia · <b>Spazio</b> = DRIFT tenuto in curva, poi lascia e parti<br>Tieni il gas quando compare l\'<b>1</b> al semaforo: partenza razzo · <b>Esc</b> ti ritira';
+          ? '<b>Joystick</b>: sterza · <b>GAS</b> tienilo premuto · <b>FRENO</b> (tenuto da fermo = retromarcia) · <b>DRIFT</b> tenuto in curva (dà anche gas; 3 livelli di scintille), poi lascia e parti · <b>USA</b> = l\'oggetto (con oggetti)<br>Tieni il GAS quando compare l\'<b>1</b> al semaforo: partenza razzo'
+          : '<b>A D</b> o <b>← →</b> sterza · <b>W ↑</b> gas · <b>S ↓</b> freno e retromarcia · <b>Spazio</b> = DRIFT tenuto in curva, poi lascia e parti · <b>Q</b> usa l\'oggetto<br>Tieni il gas quando compare l\'<b>1</b> al semaforo: partenza razzo · <b>Esc</b> ti ritira';
         const box = el('div', 'box');
         box.append(
           el('h2', '', o.titolo ?? '🏁 GRAN PREMIO'), el('div', 'sub', o.sottotitolo ?? 'Isola delle Corse · Spiaggia e porto · tu e 4 avversari'),
           riga('PISTA', PISTE.map(({ id, def }) => ({ id, nome: def.nome, sub: def.tipo === 'fuga' ? 'fuga · corri o l\'onda ti prende' : `${def.giri} giri`, on: id === s.pista, fai: () => { s.pista = id; salva(); } }))),
           riga('VEICOLO', veicoliDi(s.pista).map((v) => ({ id: v.id, nome: v.nome, on: v.id === s.veicolo, fai: () => { s.veicolo = v.id; salva(); } }))),
+          riga('OGGETTI', [{ id: 'ogg_si', nome: '🎁 con oggetti', on: s.oggetti, fai: () => { s.oggetti = true; salva(); } }, { id: 'ogg_no', nome: 'guida pura', on: !s.oggetti, fai: () => { s.oggetti = false; salva(); } }]),
           riga('GAS', [{ id: 'gas_man', nome: 'in mano', on: !s.gasAuto, fai: () => { s.gasAuto = false; salva(); } }, { id: 'gas_auto', nome: 'automatico', on: s.gasAuto, fai: () => { s.gasAuto = true; salva(); } }]),
           riga('CAMERA', CAMERE.map((c) => ({ id: c.id, nome: c.nome, on: c.id === s.cam, fai: () => { s.cam = c.id; salva(); } }))),
           cmd,
-          bottone('via', 'VIA!', () => { salvaScelta(s); fine({ ...opzioniGara({ pista: s.pista, veicolo: veicoloPer(s), bot: '1' }) }); }, 'mzGpVia'),
+          bottone('via', 'VIA!', () => { salvaScelta(s); fine({ ...opzioniGara({ pista: s.pista, veicolo: veicoloPer(s), bot: '1', oggetti: s.oggetti ? '1' : '0' }) }); }, 'mzGpVia'),
           ...(o.amici ? [bottone('via amici', '👥 CON GLI AMICI', () => { salvaScelta(s); fine({ ...opzioniGara({ pista: s.pista, veicolo: veicoloPer(s), bot: '0' }), amici: '1' }); }, 'mzGpAmici')] : []),
           bottone('esci', o.esci ?? 'Torna all’isola', () => fine(null)),
         );

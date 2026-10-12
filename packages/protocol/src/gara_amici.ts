@@ -16,8 +16,8 @@ export type GaPos = [number, number, number, number, number, number, number, num
 export type GaClientMsg =
   /** Entro in sala (o cambio veicolo). */
   | { t: 'ciao'; veicolo: string }
-  /** Si parte su `pista` (chiunque in sala, con almeno 2 persone); `bot` = anche gli animali piloti (mancante = no). */
-  | { t: 'via'; pista: string; bot?: boolean }
+  /** Si parte su `pista` (chiunque in sala, con almeno 2 persone); `bot` = anche gli animali piloti (mancante = no); `oggetti` = gara CON OGGETTI (#250). */
+  | { t: 'via'; pista: string; bot?: boolean; oggetti?: boolean }
   /** La mia posizione in gara. */
   | { t: 'p'; q: GaPos }
   /** Sono arrivato (ms di gara), o mi sono ritirato (ms = −1). */
@@ -28,8 +28,9 @@ export type GaClientMsg =
 export type GaServerMsg =
   /** La sala (a ogni cambio): chi c'è; `gara` = in corso (chi ci corre non può ripartire finché non finisce). */
   | { t: 'sala'; membri: GaMembro[]; max: number; gara: { pista: string; membri: string[] } | null }
-  /** Si parte: tutti i corridori in ordine di griglia, io = il mio posto (indice in `membri`); `bot` = ognuno corre anche coi suoi bot. */
-  | { t: 'parte'; gara: string; pista: string; seed: number; io: number; membri: GaMembro[]; bot?: boolean }
+  /** Si parte: tutti i corridori in ordine di griglia, io = il mio posto (indice in `membri`); `bot` = ognuno corre anche coi suoi bot;
+   *  `oggetti` = gara CON OGGETTI (ognuno ha le sue scatole: colpiscono i bot, non gli amici, che sono fantasmi). */
+  | { t: 'parte'; gara: string; pista: string; seed: number; io: number; membri: GaMembro[]; bot?: boolean; oggetti?: boolean }
   /** La posizione del corridore `i` (indice in `membri` di `parte`). */
   | { t: 'p'; i: number; q: GaPos }
   /** Il corridore `i` è arrivato (ms) o si è ritirato (−1). */
@@ -48,7 +49,7 @@ export function parseGaClient(text: string): GaClientMsg | null {
   try { const v: unknown = JSON.parse(text); if (!v || typeof v !== 'object' || Array.isArray(v)) return null; m = v as Record<string, unknown>; } catch { return null; }
   switch (m['t']) {
     case 'ciao': return isId(m['veicolo']) ? { t: 'ciao', veicolo: m['veicolo'] } : null;
-    case 'via': return isId(m['pista']) ? { t: 'via', pista: m['pista'], bot: m['bot'] === true } : null;
+    case 'via': return isId(m['pista']) ? { t: 'via', pista: m['pista'], bot: m['bot'] === true, oggetti: m['oggetti'] === true } : null;
     case 'p': return isGaPos(m['q']) ? { t: 'p', q: m['q'] } : null;
     case 'fine': return isInt(m['ms'], -1, 1e7) ? { t: 'fine', ms: m['ms'] } : null;
     case 'esco': return { t: 'esco' };

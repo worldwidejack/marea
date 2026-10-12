@@ -179,14 +179,14 @@ Gara in tempo reale tra amici, a fantasmi (niente urti tra amici): **WebSocket**
 ```ts
 // client → server
 { t: 'ciao', veicolo }                       // entro in sala o cambio veicolo (id di CORSE.veicoli; sconosciuto → 'kart', che è anche il default)
-{ t: 'via', pista, bot? }                    // VIA: chiunque in sala, pista della Spiaggia (id in CORSE_PISTE che comincia con 'spiaggia_'); bot: true = anche gli animali piloti
+{ t: 'via', pista, bot?, oggetti? }          // VIA: chiunque in sala, pista della Spiaggia (id in CORSE_PISTE che comincia con 'spiaggia_'); bot: true = anche gli animali piloti; oggetti: true = gara CON OGGETTI (#250)
 { t: 'p', q: GaPos }                         // la mia posizione, ~ogni 80 ms: [prog, ramo, s, lat, h, hf, hl, v, drift, giro, caduto]
 { t: 'fine', ms }                            // sono arrivato (ms di gara ≥ 0) o mi ritiro (−1)
 { t: 'esco' }                                // esco dalla sala
 
 // server → client
 { t: 'sala', membri: GaMembro[], max, gara: { pista, membri: id[] } | null }   // a ogni cambio, a tutti; GaMembro = { id, nome, look, veicolo }
-{ t: 'parte', gara, pista, seed, io, membri: GaMembro[], bot }                  // si parte: membri in ordine di griglia, io = il mio posto, bot = coi bot
+{ t: 'parte', gara, pista, seed, io, membri: GaMembro[], bot, oggetti }         // si parte: membri in ordine di griglia, io = il mio posto, bot = coi bot, oggetti = con gli oggetti
 { t: 'p', i, q: GaPos }                                                         // posizione del corridore i (indice in `membri` di `parte`)
 { t: 'fine', i, ms }                                                            // il corridore i è arrivato (ms) o si è ritirato (−1)
 { t: 'errore', msg }                                                            // sala piena, da soli, pista sbagliata, gara in corso

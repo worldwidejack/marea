@@ -2,6 +2,7 @@
 // È un MinigameModule come gli altri. Per ora lo usa solo il banco di prova (provapiste.html); il server lo rigiocherà quando il
 // circuito della Spiaggia prenderà il posto del Gran Premio. Opzioni: pista, veicolo (della famiglia della pista), bot ('0' = da solo),
 // e le regole (#170, '0' = spenta, di serie accese): sterzo (curva, rampa e velocità), partenza (turbo al semaforo), acrobazie, scia, somma.
+// Gli oggetti alla Mario Kart (#250, oggetti.ts) invece sono di serie spenti: oggetti = '1' (gara CON OGGETTI); USA = il bottone b.
 // La gara parte col conto alla rovescia (tick negativi fino al VIA): i tempi contano dal VIA.
 // Medaglia = posizione all'arrivo (da solo: oro se arrivi). Punteggio = scoreBase − centesimi.
 // Piste miste (il porto): più famiglie sulla stessa pista, ognuna nella sua corsia; i bot sono misti. Fughe con l'inseguitore (l'onda).
@@ -16,6 +17,8 @@ import { campo, svoltaTra } from './nastro.ts';
 import { VUOTO, effetto, nastroDi, pistaCorse, rotaieDi, suBinari, superficieA, veicoloCorse } from './pista.ts';
 import type { Pista } from './pista.ts';
 import { guida, limiteCurva, rotaiaVicina } from './binari.ts';
+import { nuoviOggetti, passoOggetti } from './oggetti.ts';
+import type { OggettiState } from './oggetti.ts';
 import { daiTurbo, nuovoVeicolo, urti } from './veicolo.ts';
 import type { Regole, Veicolo } from './veicolo.ts';
 
@@ -39,6 +42,8 @@ export type GaraState = {
   corsie: { base: number; fase: number }[];
   /** Fughe con l'inseguitore: dov'è il suo fronte (m dal via). Senza inseguitore resta 0. */
   onda: number;
+  /** Gli oggetti (gara CON OGGETTI), `null` = guida pura. */
+  oggetti: OggettiState | null;
   done: boolean; timeUp: boolean;
 };
 export type GaraView = {
@@ -48,6 +53,8 @@ export type GaraView = {
   giro: number; giri: number;
   /** L'inseguitore: dov'è (m dal via, `null` = non c'è) e quanto sei lontano da lui (m, negativo = ti ha preso). */
   onda: number | null; ondaDist: number;
+  /** Scatole, tasche, trappole e colpi (gara CON OGGETTI), `null` = guida pura. */
+  oggetti: OggettiState | null;
   ms: number; maxMs: number; giroMs: number; bestMs: number;
   /** Secondi al VIA (0 = partiti). */
   via: number;
@@ -66,6 +73,7 @@ export function opzioniGara(v: unknown): MinigameOpzioni {
   const veicolo = typeof o['veicolo'] === 'string' && adatti.some((x) => x.id === o['veicolo']) ? o['veicolo'] : adatti[0]!.id;
   const out: MinigameOpzioni = { pista, veicolo, bot: o['bot'] === '0' ? '0' : '1' };
   for (const r of REGOLE) out[r] = o[r] === '0' ? '0' : '1';
+  if (o['oggetti'] === '1') out['oggetti'] = '1'; // di serie spenti: le gare di prima restano identiche
   // gara tra amici: il tuo posto tra gli amici, 0 = il primo (senza bot davanti a tutti, coi bot subito dietro di loro; manca = in fondo, come da solo)
   if (typeof o['posto'] === 'string' && /^[0-7]$/.test(o['posto'])) out['posto'] = o['posto'];
   return out;
@@ -197,8 +205,14 @@ export function latObiettivo(p: Pista, k: Veicolo, bot: boolean): number | null 
   return null;
 }
 
-/** Il pilota automatico (prove e test): segue il centro (o l'imbocco delle scorciatoie), drift nelle curve lunghe. `pigro` = metà gas, niente drift. */
+/** Il pilota automatico (prove e test): segue il centro (o l'imbocco delle scorciatoie), drift nelle curve lunghe. `pigro` = metà gas, niente drift.
+ *  Con gli oggetti li usa appena la roulette si ferma (un colpo di USA ogni mezzo secondo). */
 export function pilotaGara(s: GaraState, pigro = false, osa = true): InputFrame {
+  const f = guidaAuto(s, pigro, osa), t = s.oggetti?.tasche[0];
+  if (t?.ogg && t.roulette === 0 && s.tick % Math.round(TICK_HZ / 2) === 0) f.b = true;
+  return f;
+}
+function guidaAuto(s: GaraState, pigro: boolean, osa: boolean): InputFrame {
   const p = pistaCorse(s.pista), k = s.veicoli[0]!;
   if (suBinari(p, k.ramo, k.s, veicoloCorse(k.id).famiglia) && s.tick > 0) {
     if (k.aria && !pigro && s.regole.acrobazie && k.acro === 0 && !k.caduto) return { mx: 0, my: 1, a: k.tenuto < 0, b: false }; // salti dalle rampe: acrobazia
@@ -267,7 +281,8 @@ export const garaCorse: MinigameModule<GaraState> = {
     if (fams.includes('binari')) { const rot = rotaieDi(p, -1); for (const k of veicoli) { k.rot = rotaiaVicina(rot, k.lat); k.lat = rot[k.rot]!; } }
     for (const k of veicoli) k.agg = suBinari(p, k.ramo, k.s, veicoloCorse(k.id).famiglia);
     const corsie = veicoli.slice(1).map(() => ({ base: (rng.next() * 2 - 1) * CORSE.bot.corsia, fase: rng.next() }));
-    return { seed, difficulty, pista: o['pista']!, tick: -VIA, regole: regoleDa(o), veicoli, pesi: veicoli.map((k) => veicoloCorse(k.id).peso), corsie, onda: p.def.inseguitore?.parte ?? 0, done: false, timeUp: false };
+    const oggetti = o['oggetti'] === '1' ? nuoviOggetti(p, veicoli.length) : null;
+    return { seed, difficulty, pista: o['pista']!, tick: -VIA, regole: regoleDa(o), veicoli, pesi: veicoli.map((k) => veicoloCorse(k.id).peso), corsie, onda: p.def.inseguitore?.parte ?? 0, oggetti, done: false, timeUp: false };
   },
   step(s, f) {
     if (s.done) return;
@@ -302,6 +317,7 @@ export const garaCorse: MinigameModule<GaraState> = {
       const el = diff > 0 ? 1 - Math.min(E.davantiMax, diff * E.davanti) : 1 + Math.min(E.dietroMax, -diff * E.dietro);
       guida(p, k, V, a.sterzo, k.fine ? 0.5 : a.gas, false, B.bravura[i - 1]! * B.bravuraFamiglia[V.famiglia] * el * dentro(k), k.giro + 1, R);
     }
+    if (s.oggetti) passoOggetti(s.oggetti, p, s.veicoli, f.b, () => posizioni(s), s.seed, s.tick, R);
     if (R.scia) scia(s, p);
     urti(p, s.veicoli, s.pesi);
     for (const k of s.veicoli) dopo(s, p, k);
@@ -312,7 +328,9 @@ export const garaCorse: MinigameModule<GaraState> = {
     const p = pistaCorse(s.pista), me = s.veicoli[0]!, fin = me.fine > 0, ms = tickMs(garaTicks(s, me)), pos = posizioni(s)[0]!;
     const medal: Medal = fin ? (pos === 1 ? 'oro' : pos === 2 ? 'argento' : pos === 3 ? 'bronzo' : null) : null;
     const score = fin ? Math.max(1000, CORSE.scoreBase - Math.floor(ms / 10)) : Math.floor(Math.max(0, me.prog) / 10);
-    return { done: s.done, score, medal, detail: { ms, pos, giri: Math.min(me.giro, p.def.giri), tot: p.def.giri, giro: tickMs(me.best), salti: me.salti, cadute: me.cadute, travolti: me.travolto } };
+    const detail: Record<string, number> = { ms, pos, giri: Math.min(me.giro, p.def.giri), tot: p.def.giri, giro: tickMs(me.best), salti: me.salti, cadute: me.cadute, travolti: me.travolto };
+    if (s.oggetti) { detail['oggetti'] = s.oggetti.usati[0]!; detail['colpito'] = s.oggetti.presi[0]!; }
+    return { done: s.done, score, medal, detail };
   },
   autopilot(s: GaraState, _rng: Rng): InputFrame {
     return pilotaGara(s);
@@ -321,7 +339,7 @@ export const garaCorse: MinigameModule<GaraState> = {
     const p = pistaCorse(s.pista), me = s.veicoli[0]!;
     return {
       pista: s.pista, veicoli: s.veicoli, posizioni: posizioni(s), giro: Math.min(p.def.giri, me.giro + 1), giri: p.def.giri,
-      onda: p.def.inseguitore ? s.onda : null, ondaDist: p.def.inseguitore ? me.prog - s.onda : 0,
+      onda: p.def.inseguitore ? s.onda : null, ondaDist: p.def.inseguitore ? me.prog - s.onda : 0, oggetti: s.oggetti,
       ms: tickMs(garaTicks(s, me)), maxMs: CORSE.maxSeconds * 1000,
       giroMs: me.fine ? 0 : tickMs(Math.max(0, s.tick - Math.max(1, me.giroTick))), bestMs: tickMs(me.best),
       done: s.done, finished: me.fine > 0, timeUp: s.timeUp, tick: s.tick, via: s.tick < 0 ? -s.tick / TICK_HZ : 0,

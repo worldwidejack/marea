@@ -6,6 +6,7 @@
 // Poi la Spiaggia e porto: il porto è misto (ruote e barche, ognuno nella sua corsia) e nella fuga l'onda raggiunge chi va piano.
 // La guida (#170): partenza razzo del pilota automatico, drift da tastiera con le scintille (blu → viola), menù opzioni con le camere
 // (dietro, alta, cofano), minimappa, interruttori delle regole.
+// Gli oggetti (#250): scatole, casella in alto, Q, bot che li usano.
 // Screenshot da telefono (camera dietro e cofano) e da PC (giro della morte, drift viola, baia, porto, onda) in tests/out/shots/m4_provapiste_*.
 // Numeri in tests/out/m4_provapiste.json.
 export const timeout = 300000;
@@ -156,6 +157,35 @@ export default async function (ctx) {
     await fotogrammi(d.page, 3);
     await ctx.shot(d.page, 'pc_fuga_travolto');
     ctx.noErrors(d, 'provapiste fuga');
+  });
+  await ctx.test('PC: con gli oggetti (#250) ci sono le scatole, la roulette si ferma sulla casella in alto, Q usa l\'oggetto, i bot li usano; budget', async () => {
+    const d = await apri('pista=spiaggia_lungomare&bot=1&oggetti=1', { viewport: ctx.B.DESKTOP });
+    const pronto = await d.page.evaluate(() => {
+      const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'dietro' });
+      let st = a.state();
+      for (let i = 0; i < 60 * 120 && !st.done && !(st.oggetti.tasca && st.oggetti.roulette === 0); i++) st = a.avanti(1);
+      a.set({ auto: false });
+      return st;
+    });
+    assert(pronto.oggetti && pronto.oggetti.tasca && pronto.oggetti.scatole > 0, JSON.stringify(pronto.oggetti));
+    await fotogrammi(d.page, 3);
+    const casella = await d.page.evaluate(() => { const e = document.querySelector('.pp-ogg'); return e && getComputedStyle(e).display !== 'none' ? e.textContent : null; });
+    assert(casella && casella.length > 2, `casella dell'oggetto: ${casella}`);
+    await ctx.shot(d.page, 'pc_oggetto_pronto');
+    const prima = pronto.oggetti.usati[0];
+    // Q tenuto finché la gara (che va in tempo vero) non lo usa: sotto carico i fotogrammi sono pochi
+    await d.page.keyboard.down('KeyQ');
+    await d.page.waitForFunction((n) => window.__provapiste.state().oggetti.usati[0] > n, prima, { timeout: 3000 }).catch(() => {});
+    await d.page.keyboard.up('KeyQ');
+    const dopo = await d.page.evaluate(() => window.__provapiste.state());
+    assert(dopo.oggetti.usati[0] === prima + 1, `Q non usa l'oggetto: ${prima} → ${dopo.oggetti.usati[0]}`);
+    const fine = await corri(d.page, 60 * 240);
+    const perf = await d.page.evaluate(() => window.__provapiste.perf());
+    assert(fine.done && fine.oggetti.usati.slice(1).some((n) => n > 0), `i bot non usano gli oggetti: ${JSON.stringify(fine.oggetti)}`);
+    assert(perf.drawCalls <= MAX_DC, `${perf.drawCalls} draw call`);
+    numeri['oggetti'] = { usati: fine.oggetti.usati, presi: fine.oggetti.presi, drawCalls: perf.drawCalls };
+    ctx.log(`oggetti: usati ${fine.oggetti.usati} · presi ${fine.oggetti.presi} · ${perf.drawCalls} draw call`);
+    ctx.noErrors(d, 'provapiste oggetti');
   });
   ctx.writeOut('m4_provapiste.json', numeri);
 }

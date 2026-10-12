@@ -35,6 +35,7 @@ import { creaSuoni } from '../suoni.ts';
 import { quotaBinari, rollioBinari, veicoloGeo } from '../veicoli3d.ts';
 import { ASPETTI, PILOTI, caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
 import { avvisoRuota } from '../avviso_ruota.ts';
+import { creaOggetti3d, creaUsa, giroColpito } from '../oggetti3d.ts';
 import { createAvatar } from '../../game/avatar.ts';
 import type { Avatar } from '../../game/avatar.ts';
 import type { Look } from '@marea/protocol';
@@ -57,7 +58,7 @@ const COLORI = [P.rosso, P.giallo, P.acquaBassa, P.viola, P.erbaChiara];
 const CASCHI = [P.pietraChiara, P.neroCaldo, P.neroCaldo, P.neroCaldo, P.neroCaldo];
 
 const q = new URLSearchParams(location.search);
-const opz = { ...opzioniGara({ pista: q.get('pista'), veicolo: q.get('veicolo'), bot: q.get('bot'), ...Object.fromEntries(REGOLE.map(([id]) => [id, q.get(id)])) }) };
+const opz = { ...opzioniGara({ pista: q.get('pista'), veicolo: q.get('veicolo'), bot: q.get('bot'), oggetti: q.get('oggetti'), ...Object.fromEntries(REGOLE.map(([id]) => [id, q.get(id)])) }) };
 const camQ = q.get('cam') === 'vicina' ? 'cofano' : q.get('cam');
 let cam: Camera = CAMERE.includes(camQ as Camera) ? (camQ as Camera) : 'dietro';
 // L'avatar MAREA guida: nel banco di prova il look è quello di serie o `?look=pelle,capelli,coloreCapelli,vestito,cappello` (nel gioco sarà il tuo).
@@ -91,6 +92,9 @@ mare.rotation.x = -Math.PI / 2; mare.position.y = -1.2; mare.receiveShadow = tru
 const fx = creaParticelle(); scene.add(fx.mesh);
 const suoni = creaSuoni();
 const input = createInput({ canvas, root, cameraYaw: () => 0 });
+// gli oggetti alla Mario Kart (#250): interruttore 7 o ?oggetti=1; USA = Q o il bottone col dito
+const ogg3d = creaOggetti3d(root); scene.add(ogg3d.gruppo);
+const usa = creaUsa(root);
 const btnA = document.getElementById('btnA'), btnB = document.getElementById('btnB');
 if (btnA) { btnA.textContent = 'DRIFT'; btnA.style.fontSize = '17px'; }
 if (btnB) { btnB.textContent = 'FRENO'; btnB.style.fontSize = '13px'; }
@@ -146,6 +150,7 @@ function nuovaGara(cambiaPista: boolean) {
     ondaMesh.matrixAutoUpdate = false; ondaMesh.name = 'corse_onda'; ondaMesh.frustumCulled = false; scene.add(ondaMesh);
   }
   vis = s.veicoli.map((k) => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0, agg: k.agg, cadute: 0 }));
+  usa.mostra(!!s.oggetti); ogg3d.chiudi();
   if (btnA) btnA.textContent = s.veicoli[0]!.agg ? 'SALTO' : 'DRIFT'; // sui binari il bottone salta (e cambia rotaia): lo cambia eventi() quando ci si aggancia
   fase = 'gara'; finita = 0; regia.st.ok = false; fx.svuota(); toast(null); contoPrima = 0; viaFlash = 0;
   scrivi();
@@ -155,7 +160,7 @@ function nuovaGara(cambiaPista: boolean) {
  *  avanti (in proporzione); «gas automatico» nel menù opzioni per chi non gioca mai. Curva e rampa dello sterzo le fa la sim. */
 function comandi(f: InputFrame): InputFrame {
   const freno = f.b || f.my > 0.5, gas = Math.max(0, Math.min(1, -f.my / 0.6));
-  return { mx: Math.max(-1, Math.min(1, f.mx / 0.7)), my: freno ? -1 : gasAuto ? 1 : gas, a: f.a, b: false };
+  return { mx: Math.max(-1, Math.min(1, f.mx / 0.7)), my: freno ? -1 : gasAuto ? 1 : gas, a: f.a, b: !!s.oggetti && usa.giu() };
 }
 function step() {
   if (fase === 'fine') { if (++finita > 60 * 4 && auto) nuovaGara(false); return; }
@@ -200,6 +205,8 @@ function aggiornaVeicoli(dt: number) {
     const hop = w.hop > 0 ? 4 * 0.38 * (w.hop / 0.26) * (1 - w.hop / 0.26) : 0;
     const c = Math.cos(w.traverso), sn = Math.sin(w.traverso);
     tmp.copy(vF).multiplyScalar(c).addScaledVector(vR, sn); vF.copy(tmp); vR.crossVectors(vF, vU).normalize();
+    const gc = giroColpito(s, i); // colpito da un oggetto: gira su sé stesso
+    if (gc) { tmp.copy(vF).multiplyScalar(Math.cos(gc)).addScaledVector(vR, Math.sin(gc)); vF.copy(tmp); vR.crossVectors(vF, vU).normalize(); }
     if (rb) { tmp.copy(vU).multiplyScalar(Math.cos(rb)).addScaledVector(vR, Math.sin(rb)); vU.copy(tmp).normalize(); vR.crossVectors(vF, vU).normalize(); }
     // l'acrobazia: un avvitamento intorno al muso
     if (k.acro > 0) {
@@ -207,7 +214,7 @@ function aggiornaVeicoli(dt: number) {
       tmp.copy(vU).multiplyScalar(ca).addScaledVector(vR, sa); vU.copy(tmp); vR.crossVectors(vF, vU).normalize();
     }
     vP.addScaledVector(vU, hop);
-    if (k.fermo > 0) vP.addScaledVector(vR, (Math.random() - 0.5) * 0.08); // motore ingolfato: trema
+    if (k.fermo > 0 && !gc) vP.addScaledVector(vR, (Math.random() - 0.5) * 0.08); // motore ingolfato: trema
     M4.makeBasis(vR, vU, tmp.copy(vF).negate()).setPosition(vP);
     meshes[i]!.matrix.copy(M4); meshes[i]!.matrixWorldNeedsUpdate = true;
     if (effetti && !k.caduto && (i === 0 || camera.position.distanceToSquared(vP) < 60 * 60)) {
@@ -289,6 +296,7 @@ const ROWS: Riga[] = [
   ['L', 'luce', () => luce, () => setLuce(LUCI[(LUCI.indexOf(luce) + 1) % LUCI.length]!)],
   ...REGOLE.map(([id, nome, si, no], j): Riga => [String(j + 1), nome, () => (opz[id] === '0' ? no : si), () => { opz[id] = opz[id] === '0' ? '1' : '0'; nuovaGara(false); }, () => opz[id] !== '0']),
   ['6', 'effetti', () => (effetti ? 'sì' : 'no'), () => { effetti = !effetti; if (!effetti) fx.svuota(); }, () => effetti],
+  ['7', 'oggetti (Q)', () => (opz['oggetti'] === '1' ? 'sì' : 'no'), () => { opz['oggetti'] = opz['oggetti'] === '1' ? '0' : '1'; nuovaGara(false); }, () => opz['oggetti'] === '1'],
 ];
 const righe = ROWS.map(([tasto, nome, val, fai, ab]) => {
   const b = document.createElement('button');
@@ -381,6 +389,7 @@ function frame(now: number) {
   while (acc >= DT && n < 6) { if (!pausa && !ruota.visibile()) step(); acc -= DT; n++; }
   if (n === 6) acc = 0;
   aggiornaVeicoli(dt); avatar?.update(1, dt); fx.aggiorna(dt); aggiornaCamera(dt); eventi();
+  const og = ogg3d.aggiorna(s, p, dt, fase === 'gara' ? suoni : null); usa.etichetta(og.etichetta, og.pronto);
   const k = s.veicoli[0]!;
   if (fase === 'gara' && s.tick > 0) suoni.motore(k.v, veicoloCorse(k.id).velocita, k.turbo > 0, k.drift !== 0, !k.aria);
   lights.follow?.(vP.x, vP.z);
@@ -401,6 +410,7 @@ const api = {
       s: Math.round(k.s * 10) / 10, lat: Math.round(k.lat * 100) / 100, h: Math.round(k.h * 100) / 100, v: Math.round(k.v * 10) / 10,
       ramo: k.ramo, aria: k.aria, caduto: k.caduto > 0, salti: k.salti, cadute: k.cadute, sup: k.sup,
       onda: v.onda === null ? null : Math.round(v.onda * 10) / 10, ondaDist: Math.round(v.ondaDist * 10) / 10, travolto: k.travolto,
+      oggetti: s.oggetti ? { tasca: s.oggetti.tasche[0]!.ogg, roulette: s.oggetti.tasche[0]!.roulette, usati: s.oggetti.usati, presi: s.oggetti.presi, scatole: s.oggetti.scatole.filter((b) => b.t === 0).length, trappole: s.oggetti.trappole.length, colpi: s.oggetti.colpi.length } : null,
       drift: k.drift, livello: livelloDrift(k.carica), turbo: Math.round(k.turbo * 100) / 100, partenza: k.partenza, regole: s.regole, menu: menuAperto,
       risultato: s.done ? garaCorse.result(s) : null };
   },

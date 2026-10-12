@@ -14,6 +14,8 @@ export type SuoniGuida = {
   scia(): void;
   ingolfato(): void;
   atterra(forte: number): void;
+  /** Oggetti (#250): scatola presa, roulette ferma, oggetto usato, colpito, scudo che para. */
+  scatola(): void; pronto(): void; lancia(): void; colpito(): void; parato(): void;
   acceso: boolean;
   /** Spegne i suoni continui (pausa, fine gara). */
   zitto(): void;
@@ -80,6 +82,11 @@ export function creaSuoni(): SuoniGuida {
     acrobazia() { tono(500, 0.22, 0.08, 'triangle', 1400); },
     scia() { soffio(0.6, 0.18, 300, 1400); },
     ingolfato() { for (let i = 0; i < 4; i++) tono(70 + i * 6, 0.09, 0.2, 'sawtooth', 40, i * 0.13); soffio(0.5, 0.1, 400, 200); },
+    scatola() { for (let i = 0; i < 3; i++) tono(520 + i * 260, 0.07, 0.07, 'square', undefined, i * 0.05); },
+    pronto() { tono(990, 0.12, 0.08, 'triangle'); tono(1480, 0.14, 0.06, 'triangle', undefined, 0.07); },
+    lancia() { soffio(0.25, 0.16, 900, 2400); tono(300, 0.12, 0.08, 'square', 700); },
+    colpito() { tono(240, 0.35, 0.16, 'sawtooth', 60); soffio(0.4, 0.2, 200, 800); },
+    parato() { tono(1200, 0.18, 0.1, 'triangle', 600); },
     atterra(forte) { tono(110, 0.14, Math.min(0.25, 0.06 + forte * 0.02), 'square', 55); },
     zitto() { if (!ctx || !mot || !sgomma) return; mot.g.gain.setTargetAtTime(0, ctx.currentTime, 0.1); sgomma.g.gain.setTargetAtTime(0, ctx.currentTime, 0.05); },
   };
