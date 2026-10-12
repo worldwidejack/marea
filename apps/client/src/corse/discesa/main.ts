@@ -6,8 +6,8 @@
 // Spazio = scatto. C = camera (occhi col manubrio / dietro bassa), R = ricomincia, T = pilota automatico, M = muto.
 // Indirizzo: ?cam=occhi|dietro&auto=1&s=<metri dal via>. Test: window.__discesa = { ready, state(), set({...}), perf() }.
 import * as THREE from 'three';
-import { SENTIERI } from '@marea/content/corse_discesa.ts';
-import { nuovaBici, pedala, pilotaBici, sentiero } from '@marea/sim/corse/bici.ts';
+import { BICI, SENTIERI } from '@marea/content/corse_discesa.ts';
+import { nuovaBici, pedala, pilotaBici, rilievo, sentiero } from '@marea/sim/corse/bici.ts';
 import type { Bici, Comandi } from '@marea/sim/corse/bici.ts';
 import { nuovaTerna, terna } from '@marea/sim/corse/nastro.ts';
 import { TICK_HZ } from '@marea/sim/constants.ts';
@@ -120,7 +120,11 @@ function posa(dt: number) {
   piega += (voluta - piega) * Math.min(1, dt * 10);
   // in prima persona bici e testa si piegano insieme (come una camera sul casco): manubrio e braccia restano fermi nell'inquadratura,
   // si inclina l'orizzonte; da fuori la bici si piega tutta
-  bici3d.posa(pos, fwd, up, cam === 'occhi' ? piega * ROLLIO_OCCHI : piega, b, dt);
+  // beccheggio: a terra la differenza di quota del rilievo tra le due ruote; in aria la direzione del volo (un po' meno)
+  const mezzo = BICI.interasse / 2, cs = Math.cos(b.ang);
+  const becc = b.aria ? Math.atan2(b.vh, Math.max(1, b.v)) * 0.6
+    : Math.atan2(rilievo(S, b.s + mezzo * cs, b.lat).g - rilievo(S, b.s - mezzo * cs, b.lat).g, 2 * mezzo);
+  bici3d.posa(pos, fwd, up, cam === 'occhi' ? piega * ROLLIO_OCCHI : piega, becc, b, dt);
   // in prima persona le braccia del kit, da fuori il ciclista intero
   const fuori = cam !== 'occhi';
   bici3d.braccia(!fuori || !ciclista);
@@ -195,7 +199,7 @@ const stato = () => ({ s: b.s, lat: b.lat, h: b.h, v: b.v, ang: b.ang, aria: b.a
     if (o.cam) { cam = o.cam; camOk = false; }
     if (o.auto !== undefined) auto = o.auto;
     if (o.pausa !== undefined) pausa = o.pausa;
-    if (o.s !== undefined) { b.s = o.s; b.lat = o.lat ?? 0; b.ang = 0; b.h = 0; b.aria = false; b.caduto = 0; camOk = false; }
+    if (o.s !== undefined) { b.s = o.s; b.lat = o.lat ?? 0; b.ang = 0; b.h = 0; b.vh = 0; b.volo = 0; b.aria = false; b.caduto = 0; camOk = false; }
     if (o.v !== undefined) b.v = o.v;
   },
   perf: () => ({ calls: post.sceneCalls(), tris: post.sceneTris(), terreno: terreno.tris, scenografia: scenografia?.tris ?? 0 }),

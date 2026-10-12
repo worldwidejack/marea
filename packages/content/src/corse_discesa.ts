@@ -26,16 +26,20 @@ export type DBiciCfg = {
   /** Cadute: secondi persi; urto (m/s) contro un sasso o un albero oltre il quale si cade; atterraggio troppo duro (m/s in giù);
    *  atterraggio storto (rad tra la bici e il sentiero); velocità alla ripartenza. */
   caduta: { secondi: number; urto: number; urtoLato: number; atterraggio: number; storto: number; ripartenza: number };
-  /** Rampe e tronchi: quanto si sale in proporzione alla velocità (m/s su per m/s avanti). */
-  rampa: { quota: number };
+  /** Tronco da saltare: mezza lunghezza della gobba che fa la ruota (m), quanta spinta in su resta al decollo (la sospensione assorbe
+   *  il resto), quanto frena il colpo (frazione della velocità). */
+  tronco: { mezzo: number; molla: number; frena: number };
+  /** Sassi e ceppi: raggio della base del modello rispetto a `r` e mezzo copertone (m), per l'urto con le ruote. */
+  sasso: { base: number; copertone: number };
 };
 
 /** Ostacolo sul sentiero o accanto: si urta (sasso, masso, ceppo) se si passa più bassi di `alto`. */
 export type DOstacolo = { s: number; lat: number; r: number; alto: number; tipo: 'sasso' | 'masso' | 'ceppo' };
 /** Un tratto lungo il sentiero (m dal via). */
 export type DTratto = { da: number; a: number };
-/** Rampa (di terra) o tronco da saltare: si vola se ci si passa sopra, `salto` = spinta minima in su (m/s). */
-export type DRampa = { s: number; salto: number; tipo: 'rampa' | 'tronco' };
+/** Rampa (di tavole e terra, il labbro a `s`, lunga 3 × `alto`) o tronco da saltare (centrato a `s`), alti `alto` m: la bici ci sale
+ *  sopra e stacca (@marea/sim/corse/bici.ts `rilievo`). */
+export type DRampa = { s: number; alto: number; tipo: 'rampa' | 'tronco' };
 /** Cosa c'è oltre il bordo, per lato (−1 sinistra, +1 destra): dirupo (il pendio sul mare), bosco (alberi fitti), prato. */
 export type DLato = DTratto & { lato: -1 | 1; tipo: 'dirupo' | 'bosco' | 'prato' };
 

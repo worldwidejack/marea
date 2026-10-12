@@ -20,7 +20,8 @@ export type Bici3d = {
   corpo: THREE.Group; prese: THREE.Object3D[]; pedali: THREE.Object3D[];
   /** Le braccia in prima persona (si spengono quando si vede il ciclista intero). */
   braccia(on: boolean): void;
-  monta(): void; posa(pos: THREE.Vector3, fwd: THREE.Vector3, up: THREE.Vector3, piega: number, b: Bici, dt: number): void };
+  /** `becc` = beccheggio voluto (rad, + = muso su). */
+  monta(): void; posa(pos: THREE.Vector3, fwd: THREE.Vector3, up: THREE.Vector3, piega: number, becc: number, b: Bici, dt: number): void };
 
 export function creaBici3d(): Bici3d {
   const group = new THREE.Group(); group.name = 'bici';
@@ -50,15 +51,15 @@ export function creaBici3d(): Bici3d {
         ruotaA = mesh(ruota); ruotaA.position.set(...MONTA.ruotaDietro); corpo.add(ruotaA);
       }
     },
-    posa(pos, fwd, up, piega, b, dt) {
+    posa(pos, fwd, up, piega, becc, b, dt) {
       // terna: x = destra, y = su, z = indietro (i modelli guardano −Z); poi la piega attorno al davanti
       dx.crossVectors(fwd, up).normalize(); indietro.copy(fwd).negate();
       m4.makeBasis(dx, up, indietro);
       group.position.copy(pos);
       group.quaternion.setFromRotationMatrix(m4);
-      // in aria il muso si alza un filo; agli atterraggi e sulle radici la bici sobbalza
-      const voluto = b.aria ? Math.max(-0.25, Math.min(0.25, b.vh * 0.04)) : 0;
-      beccheggio += (voluto - beccheggio) * Math.min(1, dt * 6);
+      // il beccheggio: a terra quello del rilievo sotto le ruote (rampe, tronchi), in aria segue il volo; agli atterraggi e sulle radici
+      // la bici sobbalza
+      beccheggio += (becc - beccheggio) * Math.min(1, dt * (b.aria ? 5 : 20));
       corpo.rotation.set(beccheggio, 0, -piega);
       corpo.position.y = b.scossa > 0.05 && !b.aria ? Math.abs(Math.sin(performance.now() * 0.045)) * b.scossa * 0.05 : 0;
       group.visible = b.caduto <= 0;

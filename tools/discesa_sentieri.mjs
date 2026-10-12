@@ -42,8 +42,8 @@ class Tartaruga {
     }
     return this;
   }
-  /** Rampa di terra o tronco qui (`salto` = spinta minima in su, m/s). */
-  rampa(salto, tipo = 'rampa') { this.segni.rampe.push({ m: this.qui(), salto, tipo }); return this; }
+  /** Rampa qui (il labbro, alta `alto` m e lunga 3 × alto) o tronco (alto `alto` m: la gobba che fa la ruota sopra il tronco). */
+  rampa(alto, tipo = 'rampa') { this.segni.rampe.push({ m: this.qui(), alto, tipo }); return this; }
   /** Da qui comincia una zona nuova (cresta o bosco) con i suoi lati: `sx`/`dx` = dirupo, bosco o prato. */
   inizia(tipo, sx, dx) {
     this.chiudi();
@@ -70,7 +70,7 @@ function definizione(t) {
   const m = t.meta, n = costruisciNastro(t.punti, { chiuso: false, passo: 1, larghezza: m.larghezza });
   const S = (seg) => r3(n.sPunti[seg.i] + seg.o), T = (x) => ({ da: S(x.da), a: S(x.a) });
   const zone = t.segni.zone.map((z) => ({ tipo: z.tipo, ...T(z) }));
-  const rampe = t.segni.rampe.map((r) => ({ s: S(r.m), salto: r.salto, tipo: r.tipo }));
+  const rampe = t.segni.rampe.map((r) => ({ s: S(r.m), alto: r.alto, tipo: r.tipo }));
   const radici = t.segni.radici.map(T);
   const arrivo = r3(n.len - 8);
   // sassi e ceppi sul sentiero: uno ogni `ogni` m (a caso ±40 %), non a meno di 14 m da una rampa, non nei tornanti, non nei primi 40 m

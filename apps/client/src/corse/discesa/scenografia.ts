@@ -7,6 +7,7 @@
 // Le posizioni sono a caso ma sempre uguali (seme fisso). Niente pezzi sul sentiero di un altro tratto (tornanti): si guarda il terreno.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { BICI } from '@marea/content/corse_discesa.ts';
 import { campo, punto, nuovaTerna, terna } from '@marea/sim/corse/nastro.ts';
 import type { Sentiero } from '@marea/sim/corse/bici.ts';
 import { pezzo } from './kit.ts';
@@ -33,10 +34,12 @@ export function creaScenografia(S: Sentiero, ter: Terreno): Scenografia {
   const PICCOLI = new Set(['cs_d_erba', 'cs_d_fiori', 'cs_d_felce', 'cs_d_cespuglio', 'cs_d_radici']);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(), v = new THREE.Vector3();
   let pezzi = 0;
-  const metti = (nome: string, s: number, x: number, y: number, z: number, yaw: number, scala: number, inclina = 0) => {
+  /** `scala` uguale sui tre assi, o [larghezza, altezza] (x e z, y). */
+  const metti = (nome: string, s: number, x: number, y: number, z: number, yaw: number, scala: number | [number, number], inclina = 0) => {
     if (!pezzo(nome)) return;
     const i = Math.max(0, Math.floor(s / TRATTO));
-    e.set(inclina * (caso() - 0.5), yaw, inclina * (caso() - 0.5)); q.setFromEuler(e); sc.setScalar(scala); v.set(x, y, z);
+    e.set(inclina * (caso() - 0.5), yaw, inclina * (caso() - 0.5)); q.setFromEuler(e); v.set(x, y, z);
+    if (typeof scala === 'number') sc.setScalar(scala); else sc.set(scala[0], scala[1], scala[0]);
     (tratti[i] ??= []).push({ nome, m: m4.clone().compose(v, q, sc) });
     pezzi++;
   };
@@ -74,16 +77,20 @@ export function creaScenografia(S: Sentiero, ter: Terreno): Scenografia {
   }
   // sul sentiero: ostacoli della sim (misure vere), rampe e tronchi, radici
   const yaw = (s: number) => { terna(n, s, T); return Math.atan2(-T.tx, -T.tz); }; // il davanti dei modelli è −Z
+  // i sassi con la base e l'altezza della sim (la base del corpo del sasso = BICI.sasso.base × r, models_discesa.py: sasso_a raggio
+  // 0,45 alto 0,62, sasso_b raggio 0,62 alto 0,48); il ceppo è già della misura giusta
+  const base = BICI.sasso.base;
   for (const o of d.ostacoli) {
     punto(n, o.s, o.lat, 0, P3);
-    const nome = o.tipo === 'ceppo' ? 'cs_d_ceppo' : caso() < 0.5 ? 'cs_d_sasso_a' : 'cs_d_sasso_b', g = pezzo(nome);
-    const larg = g ? Math.max(0.1, g.boundingBox!.max.x - g.boundingBox!.min.x) : 1;
-    metti(nome, o.s, P3[0], P3[1] - 0.05, P3[2], caso() * Math.PI * 2, (o.r * 2) / larg);
+    if (o.tipo === 'ceppo') { metti('cs_d_ceppo', o.s, P3[0], P3[1] - 0.05, P3[2], caso() * Math.PI * 2, o.r / 0.32); continue; }
+    const a = caso() < 0.5, raggio = a ? 0.45 : 0.62, alto = a ? 0.62 : 0.48;
+    metti(a ? 'cs_d_sasso_a' : 'cs_d_sasso_b', o.s, P3[0], P3[1] - 0.05, P3[2], caso() * Math.PI * 2, [(o.r * base) / raggio, o.alto / alto]);
   }
+  // rampe e tronchi dove li mette la sim (`rilievo`): la rampa del kit è lunga 3 e alta 1 col labbro a −Z, il tronco centrato
   for (const r of d.rampe) {
-    const s = r.tipo === 'tronco' ? r.s + 0.4 : r.s - 1.5; punto(n, s, 0, 0, P3);
+    const s = r.tipo === 'tronco' ? r.s : r.s - 1.5 * r.alto; punto(n, s, 0, 0, P3);
     if (r.tipo === 'tronco') metti('cs_d_tronco', r.s, P3[0], P3[1], P3[2], yaw(s) + Math.PI / 2, 1);
-    else metti('cs_d_rampa', r.s, P3[0], P3[1], P3[2], yaw(s), 1);
+    else metti('cs_d_rampa', r.s, P3[0], P3[1], P3[2], yaw(s), r.alto);
   }
   for (const t of d.radici) for (let s = t.da + 1; s < t.a; s += 2.2 + caso() * 1.5) { punto(n, s, 0, 0, P3); metti('cs_d_radici', s, P3[0], P3[1] - 0.02, P3[2], yaw(s) + (caso() - 0.5) * 0.6, 0.9 + caso() * 0.3); }
   { punto(n, 6, -campo(n, n.l, 6) - 1.2, 0, P3); metti('cs_d_cartello', 6, P3[0], P3[1], P3[2], yaw(6) + Math.PI * 0.3, 1); }

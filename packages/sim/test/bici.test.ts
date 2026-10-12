@@ -68,6 +68,26 @@ test('sasso preso forte = caduta, 2 s persi, si riparte da lì; piano ci si ferm
   assert.ok(p.s < o.s, 'fermo prima del sasso');
 });
 
+test('la rampa: si sale sopra (a terra) e si stacca dal labbro, dalla sua altezza', () => {
+  const r = S.def.rampe.find((x) => x.tipo === 'rampa')!;
+  const b = nuovaBici(); b.s = r.s - r.alto * 3 - 4; b.v = 12;
+  let hSulla = 0;
+  while (!b.aria && b.s < r.s + 2) { pedala(S, b, NIENTE); if (b.s < r.s - 0.3) hSulla = Math.max(hSulla, b.h); }
+  assert.ok(hSulla > r.alto * 0.8, `sulla rampa a terra, alta ${hSulla.toFixed(2)} m`);
+  assert.ok(b.aria && Math.abs(b.s - r.s) < 0.5, `stacca al labbro (s ${(b.s - r.s).toFixed(2)} m dal labbro)`);
+  assert.ok(b.h >= r.alto * 0.95 && b.vh > 4, `da lassù e verso l'alto (h ${b.h.toFixed(2)}, vh ${b.vh.toFixed(1)})`);
+  assert.equal(b.cadute, 0);
+});
+
+test('i sassi si urtano con le ruote: a 0,25 m dal bordo del sasso si passa forte', () => {
+  const o = S.def.ostacoli[0]!;
+  const b = nuovaBici(); b.s = o.s - 4; b.v = 10;
+  b.lat = o.lat + (o.lat > 0 ? -1 : 1) * (o.r * BICI.sasso.base + 0.25);
+  for (let i = 0; i < TICK_HZ; i++) pedala(S, b, NIENTE);
+  assert.equal(b.cadute, 0);
+  assert.ok(b.s > o.s + 2, 'passato');
+});
+
 test('il muro di traverso fa cadere, di striscio no', () => {
   const lim = campo(S.n, S.n.l, 60) + S.def.bordo;
   const a = nuovaBici(); a.s = 60; a.lat = lim - 0.3; a.v = 9; a.ang = 0.9;
