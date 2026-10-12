@@ -218,7 +218,7 @@ test('corse v2: il porto è misto: tutte e due le famiglie, bot misti, ognuno pa
 
 test('corse v2: le scorciatoie del porto sono di una famiglia sola: la passerella delle ruote, il canale delle barche (e convengono)', () => {
   const p = pistaCorse('spiaggia_porto');
-  assert.deepEqual(p.def.rami.map((r) => [r.id, r.famiglie]), [['passerella', ['ruote']], ['canale', ['acqua']]]);
+  assert.deepEqual(p.def.rami.map((r) => [r.id, r.famiglie]).sort(), [['canale', ['acqua']], ['passerella', ['ruote']]]);
   assert.ok(p.def.rami.every((r) => r.turbo && r.turbo.length === 1), 'ognuna ha il suo tappeto del turbo');
   for (const [veicolo, ramo] of [['kart', 'passerella'], ['moto_acqua', 'canale']] as const) {
     const s = nuova('spiaggia_porto', veicolo, false), idx = p.rami.findIndex((r) => r.def.id === ramo), altro = 1 - idx;
