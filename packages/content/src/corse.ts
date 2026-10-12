@@ -21,8 +21,13 @@ export const CORSE = motore as unknown as CorseMotoreCfg;
 export const CORSE_PISTE: Record<string, CPistaDef> = Object.fromEntries(
   ([provaAnello, provaFolle, provaBaia, provaFuga, provaBinari, spiaggiaLungomare, spiaggiaBaia, spiaggiaPorto, spiaggiaFuga, giunglaMiniera] as unknown as CPistaDef[]).map((p) => [p.id, p]),
 );
-/** Le piste del banco di prova (#258): solo le definitive delle zone. Le `prova_*` restano per i test e si aprono solo da indirizzo. */
-export const CORSE_PISTE_BANCO: string[] = Object.keys(CORSE_PISTE).filter((id) => !id.startsWith('prova_'));
+/** Piste tolte dal gioco ma tenute per i test e il banco da indirizzo: la Fuga dall'onda (Jack, 12 ott 2026, #258: «più un concept da
+ *  giungla», tornerà lì). */
+export const CORSE_FUORI_GIOCO: readonly string[] = ['spiaggia_fuga'];
+/** Le piste del banco di prova (#258): solo le definitive delle zone. Le `prova_*` e quelle fuori gioco si aprono solo da indirizzo. */
+export const CORSE_PISTE_BANCO: string[] = Object.keys(CORSE_PISTE).filter((id) => !id.startsWith('prova_') && !CORSE_FUORI_GIOCO.includes(id));
+/** Le piste della Spiaggia che il gioco offre (porta della zona e gara tra amici). */
+export const CORSE_PISTE_SPIAGGIA: string[] = CORSE_PISTE_BANCO.filter((id) => id.startsWith('spiaggia_'));
 
 /** Controlli dei dati (in italiano): veicoli e superfici conosciuti, piste coerenti (griglia, tratti dentro la pista, rami). */
 export function validateCorse(): string[] {

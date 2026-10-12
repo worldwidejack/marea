@@ -7,7 +7,7 @@
 // - `chiudi()`: esce dalla sala (si chiude il socket).
 import { GA_MAX, GA_POS_MS, parseGaServer } from '@marea/protocol/gara_amici.ts';
 import type { GaClientMsg, GaMembro, GaPos } from '@marea/protocol/gara_amici.ts';
-import { CORSE_PISTE } from '@marea/content/corse.ts';
+import { CORSE_PISTE, CORSE_PISTE_SPIAGGIA } from '@marea/content/corse.ts';
 import { opzioniGara } from '@marea/sim/corse/gara.ts';
 import { veicoloCorse } from '@marea/sim/corse/pista.ts';
 import type { Veicolo } from '@marea/sim/corse/veicolo.ts';
@@ -42,7 +42,7 @@ const posDi = (k: Veicolo): GaPos => [r2(k.prog), k.ramo, r2(k.s), r2(k.lat), r2
 const r2 = (x: number) => Math.round(x * 100) / 100, r3 = (x: number) => Math.round(x * 1000) / 1000;
 const CHIAVE_BOT = 'marea.corse.amiciBot', CHIAVE_OGG = 'marea.corse.amiciOggetti';
 /** Le piste della gara tra amici (quelle della Spiaggia, come alla porta). */
-const PISTE_AMICI = Object.entries(CORSE_PISTE).filter(([id]) => id.startsWith('spiaggia_'));
+const PISTE_AMICI = Object.entries(CORSE_PISTE).filter(([id]) => CORSE_PISTE_SPIAGGIA.includes(id));
 function leggiBot(): boolean { try { return localStorage.getItem(CHIAVE_BOT) !== '0'; } catch { return true; } }
 function salvaBot(v: boolean): void { try { localStorage.setItem(CHIAVE_BOT, v ? '1' : '0'); } catch { /* niente memoria */ } }
 function leggiOggetti(): boolean { try { return localStorage.getItem(CHIAVE_OGG) === '1'; } catch { return false; } }

@@ -232,9 +232,14 @@ const RIQ = 160;
 const LONTANO = 90;
 /** Porto: metri d'acqua tra il bordo del molo e la banchina. */
 const DARSENA = 7;
-type Tela = { pos: number[]; col: number[] };
+type Tela = { pos: number[]; col: number[]; nor: number[] };
+/** Prova A/B dell'erba (#258): `?erba=vecchia` = un colore a caso per triangolo e luce piatta per triangolo (si vedeva il disegno della
+ *  griglia); di serie macchie larghe, un colore per cella (i due triangoli uguali) e luce morbida (la passata pixel la divide a bande). */
+const ERBA_VECCHIA = typeof location !== 'undefined' && new URLSearchParams(location.search).get('erba') === 'vecchia';
+/** Le macchie: rumore morbido largo ~18 m più un filo di grana per cella, 0..1. */
+const macchia = (x: number, z: number, i: number, j: number) => Math.min(0.999, Math.max(0, rumore(x, z, 18, 5) * 0.85 + 0.15 * h01(i, j, 9) + (rumore(x, z, 7, 6) - 0.5) * 0.35));
 function coloreTerra(t: Terreno, cx: number, cz: number, h: number, pend: number, i: number, j: number): string | null {
-  const L = t.conf.livello, q = t.vicini.vicino(cx, cz, 12), dith = h01(i, j, 5);
+  const L = t.conf.livello, q = t.vicini.vicino(cx, cz, 12), dith = ERBA_VECCHIA ? h01(i, j, 5) : macchia(cx, cz, i, j);
   if (t.conf.giungla) {
     if (q && !q.c.miniera && q.d < q.c.fuori + 2.2 && h > L + 1) return dith < 0.6 ? P.legno : P.legnoScuro;                // lo sterrato oltre il bordo
     if (h < L + 0.5) return dith < 0.6 ? P.pietra : P.pietraScura;                                                          // i sassi del fiume
@@ -244,7 +249,7 @@ function coloreTerra(t: Terreno, cx: number, cz: number, h: number, pend: number
   }
   if (q && q.d < q.c.fuori + 2.2 && h > L + 0.3 && !t.conf.porto) return dith < 0.5 ? P.pietraChiara : P.pietra; // marciapiede
   if (pend > 0.9) return dith < 0.6 ? P.pietraScura : P.roccia;
-  if (t.conf.porto && h > L + 0.2 && pend < 0.25) return (i + j) % 2 ? P.pietra : P.pietraChiara;              // banchine
+  if (t.conf.porto && h > L + 0.2 && pend < 0.25) return (ERBA_VECCHIA ? (i + j) % 2 : dith < 0.5) ? P.pietra : P.pietraChiara; // banchine
   if (h < L + 0.15) return dith < 0.7 ? P.sabbia : P.legnoChiaro;                                              // bagnasciuga
   if (h < L + 1.6 && pend < 0.5) return dith < 0.8 ? P.sabbia : P.sabbiaChiara;                                // spiaggia
   if (pend > 0.55) return dith < 0.5 ? P.pietra : P.pietraScura;
@@ -259,6 +264,13 @@ function griglia(t: Terreno): { tele: Map<number, Tela>; quota: (x: number, z: n
   const H = new Float32Array((ni + 1) * (nj + 1));
   for (let j = 0; j <= nj; j++) for (let i = 0; i <= ni; i++) H[j * (ni + 1) + i] = t.alt(x0 + i * passo, z0 + j * passo);
   const tele = new Map<number, Tela>(), c = new THREE.Color();
+  /** La normale liscia in un vertice della griglia (differenze centrali): la luce scorre sulle colline invece di spezzarsi a triangoli. */
+  const normale = (x: number, z: number): [number, number, number] => {
+    const i = Math.round((x - x0) / passo), j = Math.round((z - z0) / passo), h = (ii: number, jj: number) => H[Math.min(nj, Math.max(0, jj)) * (ni + 1) + Math.min(ni, Math.max(0, ii))]!;
+    const nx = -(h(i + 1, j) - h(i - 1, j)) / (2 * passo), nz = -(h(i, j + 1) - h(i, j - 1)) / (2 * passo), l = Math.sqrt(nx * nx + 1 + nz * nz);
+    return [nx / l, 1 / l, nz / l];
+  };
+  let cella: string | null = null; // il colore della cella (erba nuova): uguale per i suoi due triangoli
   const tri = (a: number[], b: number[], d: number[], ii: number, jj: number) => {
     if (a[1]! < L - 0.25 && b[1]! < L - 0.25 && d[1]! < L - 0.25) return; // sott'acqua: lo copre il mare
     const cx = (a[0]! + b[0]! + d[0]!) / 3, cz = (a[2]! + b[2]! + d[2]!) / 3, cy = (a[1]! + b[1]! + d[1]!) / 3;
@@ -266,15 +278,20 @@ function griglia(t: Terreno): { tele: Map<number, Tela>; quota: (x: number, z: n
     if (q && q.d < q.c.l + 0.5 && !q.c.vuoto && t.conf.livello < -1) return; // sotto la carreggiata non si vede
     if (t.conf.mareA && !t.vicini.vicino(cx, cz, LONTANO)) return;
     const pend = (Math.max(a[1]!, b[1]!, d[1]!) - Math.min(a[1]!, b[1]!, d[1]!)) / passo;
-    const col = coloreTerra(t, cx, cz, cy, pend, ii, jj); if (!col) return;
+    const col = ERBA_VECCHIA ? coloreTerra(t, cx, cz, cy, pend, ii, jj) : cella; if (!col) return;
     const k = Math.floor((cx - x0) / RIQ) * 1000 + Math.floor((cz - z0) / RIQ);
-    let tl = tele.get(k); if (!tl) tele.set(k, (tl = { pos: [], col: [] }));
+    let tl = tele.get(k); if (!tl) tele.set(k, (tl = { pos: [], col: [], nor: [] }));
     tl.pos.push(...a, ...b, ...d); c.set(col);
+    if (!ERBA_VECCHIA) for (const p of [a, b, d]) tl.nor.push(...normale(p[0]!, p[2]!));
     for (let r = 0; r < 3; r++) tl.col.push(c.r, c.g, c.b);
   };
   for (let j = 0; j < nj; j++) for (let i = 0; i < ni; i++) {
     const v = (ii: number, jj: number) => [x0 + ii * passo, H[jj * (ni + 1) + ii]!, z0 + jj * passo];
     const a = v(i, j), b = v(i + 1, j), d = v(i, j + 1), e = v(i + 1, j + 1);
+    if (!ERBA_VECCHIA) {
+      const ys = [a[1]!, b[1]!, d[1]!, e[1]!], cx = x0 + (i + 0.5) * passo, cz = z0 + (j + 0.5) * passo;
+      cella = coloreTerra(t, cx, cz, (ys[0]! + ys[1]! + ys[2]! + ys[3]!) / 4, (Math.max(...ys) - Math.min(...ys)) / passo, i, j);
+    }
     if ((i + j) % 2) { tri(a, d, b, i * 2, j); tri(b, d, e, i * 2 + 1, j); } else { tri(a, d, e, i * 2, j); tri(a, e, b, i * 2 + 1, j); }
   }
   /** La quota del terreno disegnato in (x, z): gli stessi due triangoli per cella della mesh (per il controllo dei bordi, #258). */
@@ -608,14 +625,15 @@ export function creaScena(p: Pista): Scena | null {
   const conf = SCENE[p.def.id]; if (!conf) return null;
   const gruppo = new THREE.Group(); gruppo.name = 'corse_scena';
   const t = terreno(p, conf);
-  const matTerra = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const matTerra = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: ERBA_VECCHIA });
   let triangoli = 0;
   const gr = griglia(t);
   for (const [k, tl] of gr.tele) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(tl.pos, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(tl.col, 3));
-    g.computeVertexNormals(); g.computeBoundingSphere();
+    if (tl.nor.length) g.setAttribute('normal', new THREE.Float32BufferAttribute(tl.nor, 3)); else g.computeVertexNormals();
+    g.computeBoundingSphere();
     const m = new THREE.Mesh(g, matTerra); m.name = 'corse_terra_' + k; m.receiveShadow = true;
     gruppo.add(m); triangoli += tl.pos.length / 9;
   }

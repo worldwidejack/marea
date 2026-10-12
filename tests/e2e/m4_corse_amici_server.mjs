@@ -155,7 +155,7 @@ export default async function (ctx) {
       ada = await entra('ada');
       cid = await entra('cid');
       await bea.sala((m) => m.membri.length === 3, 'di nuovo in 3');
-      ada.manda({ t: 'via', pista: 'spiaggia_fuga' });
+      ada.manda({ t: 'via', pista: 'spiaggia_porto' });
       for (const c of [bea, ada, cid]) await c.aspetta((m) => m.t === 'parte', 5000, 'parte in 3');
       bea.manda({ t: 'fine', ms: 50000 }); // bea (io 0) arriva prima
       await ada.aspetta((m) => m.t === 'fine' && m.i === 0 && m.ms === 50000, 5000, 'arrivo di bea ad ada');

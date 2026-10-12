@@ -27,6 +27,8 @@ import type { Modo } from './prova/camera.ts';
 import { stileProva } from './prova/stile.ts';
 import type { Amico } from './amici.ts';
 import { creaOggetti3d, giroColpito } from './oggetti3d.ts';
+import { fondalePista } from './fondale_piste.ts';
+import type { Fondale } from './discesa/fondale.ts';
 
 const COLORI = [P.rosso, P.giallo, P.acquaBassa, P.viola, P.erbaChiara];
 const CASCHI = [P.pietraChiara, P.neroCaldo, P.neroCaldo, P.neroCaldo, P.neroCaldo];
@@ -81,7 +83,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     document.head.appendChild(st);
   }
 
-  let s: GaraState | null = null, p: Pista | null = null, p3d: Pista3d | null = null;
+  let s: GaraState | null = null, p: Pista | null = null, p3d: Pista3d | null = null, fondale: Fondale | null = null;
   let meshes: THREE.Mesh[] = [], ondaMesh: THREE.Mesh | null = null, vis: Vis[] = [];
   let avatar: Avatar | null = null, avatarP: Promise<Avatar | null> | null = null;
   let contoPrima = 0, viaFlash = 0, tstT = 0;
@@ -118,6 +120,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     chiudiPista();
     s = gara; p = pistaCorse(gara.pista); p3d = creaPista3d(p); gruppo.add(p3d.group);
     mappa.pista(p);
+    fondale = fondalePista(p.def.zona); if (fondale) gruppo.add(fondale.mesh); // il panorama dipinto dietro (#258)
     veicoliMesh();
     if (p.def.inseguitore) {
       ondaMesh = new THREE.Mesh(ondaGeo(p.def.larghezza + p.def.bordo + 8), materialeOnda);
@@ -134,6 +137,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     meshes = [];
     if (ondaMesh) { gruppo.remove(ondaMesh); ondaMesh.geometry.dispose(); ondaMesh = null; }
     if (p3d) { gruppo.remove(p3d.group); p3d.group.traverse((x) => { const m = x as THREE.Mesh; if (m.isMesh) m.geometry.dispose(); }); p3d = null; }
+    if (fondale) { gruppo.remove(fondale.mesh); fondale = null; } // resta in memoria per la prossima gara della zona
     s = null; p = null; fx.svuota(); ogg3d.chiudi(); ogg = { etichetta: '', pronto: false, ogg: '' };
   }
 
@@ -340,6 +344,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
       posa(0, vP, vF, vU, vM);
       const w = vis[0]!, hop = w.hop > 0 ? 1.52 * (w.hop / 0.26) * (1 - w.hop / 0.26) : 0;
       regia.segui(o2.cam, { pos: vP, fwd: vF, up: vU, moto: vM, k: gara.veicoli[0]!, p, onda: gara.onda, hop, effetti: o2.effetti, dt });
+      fondale?.segui(o.camera);
       cartellini();
       eventi();
       const k = gara.veicoli[0]!;

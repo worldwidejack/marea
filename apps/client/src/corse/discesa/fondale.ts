@@ -5,7 +5,7 @@
 // specchia (dietro le spalle non si guarda quasi mai). Sopra il bordo alto il colore del cielo, sotto il bordo basso quello del mare.
 import * as THREE from 'three';
 
-export type Fondale = { mesh: THREE.Mesh; video: HTMLVideoElement; segui(camera: THREE.Camera): void; pronto(): boolean; dispose(): void };
+export type Fondale = { mesh: THREE.Mesh; video: HTMLVideoElement | null; segui(camera: THREE.Camera): void; pronto(): boolean; dispose(): void };
 
 const VERT = /* glsl */ `
 varying vec3 vDir;
@@ -32,8 +32,10 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-/** `src` = i file del video (webm per Chrome, mp4 per Safari), `poster` = il primo fotogramma (finché il video non parte). */
+/** `src` = i file del video (webm per Chrome, mp4 per Safari), `poster` = il primo fotogramma (finché il video non parte). `src` vuoto =
+ *  un'immagine fissa (il `poster`), come i fondali delle piste delle Corse (#258). */
 export function creaFondale(o: { src: string[]; poster: string; centro: number; ampiezza: number; orizzonte: number; cielo: string; mare: string }): Fondale {
+  if (!o.src.length) return fondaleFisso(o);
   const video = document.createElement('video');
   video.muted = true; video.loop = true; video.playsInline = true; video.autoplay = true; video.crossOrigin = 'anonymous'; video.preload = 'auto';
   video.setAttribute('muted', ''); video.setAttribute('playsinline', '');
@@ -60,5 +62,25 @@ export function creaFondale(o: { src: string[]; poster: string; centro: number; 
     segui(camera) { mesh.position.copy(camera.position); },
     pronto: () => U.uPronto.value > 0.5,
     dispose() { video.pause(); video.removeAttribute('src'); tVideo.dispose(); tPoster.dispose(); mat.dispose(); mesh.geometry.dispose(); },
+  };
+}
+
+/** Il fondale con un'immagine fissa: stessa sfera, niente video. */
+function fondaleFisso(o: { poster: string; centro: number; ampiezza: number; orizzonte: number; cielo: string; mare: string }): Fondale {
+  const tex = new THREE.TextureLoader().load(o.poster, () => { U.uPronto.value = 1; });
+  tex.colorSpace = THREE.SRGBColorSpace; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+  const alto = (o.ampiezza * 9) / 16, basso = -alto * o.orizzonte;
+  const U = {
+    uMap: { value: tex as THREE.Texture }, uCentro: { value: o.centro }, uAmpiezza: { value: o.ampiezza }, uAlto: { value: basso + alto }, uBasso: { value: basso },
+    uCielo: { value: new THREE.Color(o.cielo) }, uMare: { value: new THREE.Color(o.mare) }, uPronto: { value: 0 },
+  };
+  const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U, depthWrite: false, depthTest: false, side: THREE.BackSide, fog: false });
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), mat);
+  mesh.renderOrder = -1000; mesh.frustumCulled = false; mesh.name = 'fondale';
+  return {
+    mesh, video: null,
+    segui(camera) { mesh.position.copy(camera.position); },
+    pronto: () => U.uPronto.value > 0.5,
+    dispose() { tex.dispose(); mat.dispose(); mesh.geometry.dispose(); },
   };
 }
