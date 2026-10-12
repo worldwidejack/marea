@@ -1,9 +1,11 @@
 // Controlli delle ondate oltre a joystick, A (attacca) e B (corri) di game/input.ts: AZIONE (dice cosa fa e quanto costa: posa la reliquia,
 // ripara tenendolo premuto, compra), SCAMBIA (le due armi), PAUSA in alto a destra con RIPRENDI · MIRA AUTO/A MANO · ESCI. Tastiera: F =
 // AZIONE (tenuto), Q = scambia, Esc = pausa; clic sinistro tenuto sul canvas = A. Con la pausa (o la domanda «Uscire?») la partita è ferma.
-// Niente attacco automatico: attacchi solo quando premi. Da PC l'eroe, se non cammini, guarda il puntatore del mouse (`mouse`: dove punta
-// sul canvas, in pixel, o null se il mouse non c'è).
+// Niente attacco automatico: attacchi solo quando premi. Telefono, con un'arma a distanza in mano: al posto di A compare il joystick di mira
+// (rpg/mira_stick.ts, `setMira`): trascini = punti, lasci = tira; l'indice di mira arriva in `sample().mira`.
 import type { TPrompt } from '@marea/sim/templari/types.ts';
+import { createMiraStick } from '../rpg/mira_stick.ts';
+import type { MiraCampione } from '../rpg/mira_stick.ts';
 import { PAL, el } from '../ui/style.ts';
 
 const SAFE = 'env(safe-area-inset-bottom, 0px)', RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', TOP = 'max(8px, env(safe-area-inset-top))';
@@ -24,14 +26,21 @@ const CSS = `
 .mz-tpl-menu .sub { color: ${PAL.sabbia}; font-size: 14px; margin-bottom: 12px; }
 .mz-tpl-menu .mz-btn { justify-content: center; margin-top: 8px; }
 .mz-tpl-menu .mz-btn.auto { background: ${PAL.giallo}; }
+.mz-tpl-aimon #btnA { display: none !important; }
+.mz-tpl-aimon #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 116px) !important; }
+.mz-tpl-aimon .mz-tpl-sc { bottom: calc(${SAFE} + 148px); }
+.mz-tpl-aimon .mz-tpl-az { bottom: calc(${SAFE} + 216px); }
+.mz-tpl-aimon .mz-tpl-perche { bottom: calc(${SAFE} + 278px); }
 `;
 
 export type Controlli = {
-  /** Un campione per tick: A in più (clic tenuto), SCAMBIA (fronte) e AZIONE (tenuto o appena toccato). */
-  sample(): { a: boolean; c: boolean; d: boolean };
+  /** Un campione per tick: A in più (clic tenuto), SCAMBIA (fronte), AZIONE (tenuto o appena toccato) e il joystick di mira (il dito). */
+  sample(): { a: boolean; c: boolean; d: boolean; mira: MiraCampione };
   readonly paused: boolean;
-  /** Il puntatore del mouse sul canvas (px dal bordo in alto a sinistra), null se non è un mouse o è uscito. */
-  readonly mouse: { x: number; y: number } | null;
+  /** Telefono, arma a distanza in mano: al posto di A il joystick di mira. */
+  setMira(on: boolean): void;
+  /** Direzione del joystick di mira mentre lo tieni (versore in assi mondo), null se non lo tieni. */
+  miraDir(): { x: number; z: number } | null;
   /** Il bottone AZIONE dice cosa fa adesso (null = sparisce). */
   setPrompt(p: TPrompt): void;
   /** SCAMBIA c'è solo con due armi. */
@@ -41,9 +50,8 @@ export type Controlli = {
 };
 
 
-export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElement; onEsci(): void }): Controlli {
+export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; onEsci(): void }): Controlli {
   if (!document.getElementById('mz-tpl-ctl-style')) { const st = document.createElement('style'); st.id = 'mz-tpl-ctl-style'; st.textContent = CSS; document.head.appendChild(st); }
-  let mouse: { x: number; y: number } | null = null;
   const stop = (e: Event) => e.stopPropagation();
   // AZIONE: tenuto (ripara) o tocco breve (latch: anche più corto di un tick arriva alla sim). Dal telefono vero non partiva (10/10):
   // ora ascolta anche i tocchi (touchstart/touchend, ogni dito per conto suo) oltre ai pointer, e se non puoi lo dice (punti, finestra).
@@ -78,11 +86,12 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   const riprendi = el('button', 'mz-btn green', 'RIPRENDI'); riprendi.type = 'button'; riprendi.dataset['act'] = 'riprendi';
   const esci = el('button', 'mz-btn ghost', 'ESCI DALLA PARTITA'); esci.type = 'button'; esci.dataset['act'] = 'esci';
   menu.append(titolo, sub, riprendi, esci);
-  for (const e of [az, sc, top, menu]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, stop);
-  o.root.append(az, perche, sc, top, menu);
   let pausa = false, chiedi = false;
+  const stick = createMiraStick({ id: 'mzTplMira', yaw: o.yaw, blocked: () => pausa });
+  for (const e of [az, sc, top, menu]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, stop);
+  o.root.append(az, perche, sc, stick.el, top, menu);
   const setPausa = (on: boolean) => {
-    pausa = on; chiedi = false; menu.classList.toggle('on', on);
+    pausa = on; chiedi = false; menu.classList.toggle('on', on); if (on) stick.cancel();
     titolo.textContent = 'PAUSA'; sub.textContent = 'Le ondate aspettano.'; esci.textContent = 'ESCI DALLA PARTITA'; riprendi.style.display = '';
   };
   pBtn.addEventListener('click', () => setPausa(!pausa));
@@ -101,22 +110,20 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
   const md = (e: PointerEvent) => { if (e.button === 0 && e.pointerType === 'mouse') mouseA = true; };
-  const mm = (e: PointerEvent) => { if (e.pointerType !== 'mouse') return; const r = o.canvas.getBoundingClientRect(); mouse = { x: e.clientX - r.left, y: e.clientY - r.top }; };
-  const ml = () => { mouse = null; };
   const mu = (e: PointerEvent) => { if (e.button === 0) mouseA = false; };
-  const blur = () => { keys.clear(); mouseA = false; azHeld.clear(); };
+  const blur = () => { keys.clear(); mouseA = false; azHeld.clear(); stick.cancel(); };
   addEventListener('keydown', kd, true); addEventListener('keyup', ku, true);
   o.canvas.addEventListener('pointerdown', md); addEventListener('pointerup', mu); addEventListener('blur', blur);
-  o.canvas.addEventListener('pointermove', mm); o.canvas.addEventListener('pointerleave', ml);
   let promptKey = '';
   return {
     sample() {
-      const out = { a: mouseA, c: cLatch, d: dLatch || azHeld.size > 0 || keys.has('KeyF') };
+      const out = { a: mouseA, c: cLatch, d: dLatch || azHeld.size > 0 || keys.has('KeyF'), mira: stick.sample() };
       cLatch = false; dLatch = false;
       return out;
     },
     get paused() { return pausa; },
-    get mouse() { return mouse; },
+    setMira(on) { o.root.classList.toggle('mz-tpl-aimon', stick.setOn(on)); },
+    miraDir() { return stick.dir(); },
     setPrompt(p) {
       ora = p;
       const k = p ? `${p.cosa}|${p.testo}|${p.prezzo}|${p.puoi}` : '';
@@ -128,11 +135,11 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
       az.replaceChildren(el('span', '', p.testo.toUpperCase()), ...(p.prezzo > 0 ? [el('small', '', String(p.prezzo))] : []), ...(dito ? [] : [el('small', 'tasto', 'F')]));
     },
     setScambia(on) { sc.classList.toggle('on', on); },
-    hide() { az.classList.remove('on'); perche.classList.remove('on'); sc.classList.remove('on'); top.style.display = 'none'; setPausa(false); },
+    hide() { az.classList.remove('on'); perche.classList.remove('on'); sc.classList.remove('on'); stick.setOn(false); o.root.classList.remove('mz-tpl-aimon'); top.style.display = 'none'; setPausa(false); },
     dispose() {
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);
-      o.canvas.removeEventListener('pointermove', mm); o.canvas.removeEventListener('pointerleave', ml);
+      stick.dispose(); o.root.classList.remove('mz-tpl-aimon');
       if (percheT) clearTimeout(percheT);
       az.remove(); perche.remove(); sc.remove(); top.remove(); menu.remove();
     },
