@@ -1,7 +1,8 @@
 // Banco di prova delle piste (provapiste.html, motore v2 dell'Isola delle Corse, docs/CORSE.md A11). Per ogni pista:
 // - la pagina si apre senza errori;
 // - il pilota automatico corre la gara fino in fondo, senza cadute;
-// - draw call ≤ 100 e triangoli ≤ 150.000 a 390×844.
+// - draw call ≤ 100 e triangoli ≤ 150.000 a 390×844;
+// - il terreno non spunta sopra la strada (curve sopraelevate, #258).
 // Sulla pista folle si controlla che il giro della morte si faccia a testa in giù, che ci sia il salto e che si prenda la scorciatoia.
 // Poi la Spiaggia e porto: il porto è misto (ruote e barche, ognuno nella sua corsia) e nella fuga l'onda raggiunge chi va piano.
 // La guida (#170): partenza razzo del pilota automatico, drift da tastiera con le scintille (blu → viola), menù opzioni con le camere
@@ -35,6 +36,9 @@ export default async function (ctx) {
       let st = await corri(p.page, 60 * 8);
       await fotogrammi(p.page);
       const perf = await p.page.evaluate(() => window.__provapiste.perf());
+      // il terreno non spunta mai sopra la strada, nemmeno nelle curve sopraelevate (#258: prima il kart «entrava nel terreno»)
+      const sp = await p.page.evaluate(() => globalThis.__corseScena?.pista === window.__provapiste.state().pista ? globalThis.__corseScena.sporge : null);
+      assert(sp && sp.m <= 0.05, `${id}: il terreno spunta ${sp?.m?.toFixed(2)} m sopra la strada a s ${sp?.s}, lat ${sp?.lat}`);
       await ctx.shot(p.page, `${id}_dietro`);
       st = await corri(p.page, 60 * 240);
       assert(st.done && st.risultato && st.risultato.detail.giri === st.risultato.detail.tot, `${id}: ${JSON.stringify(st)}`);

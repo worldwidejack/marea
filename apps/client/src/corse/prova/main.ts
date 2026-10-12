@@ -441,6 +441,8 @@ const api = {
   /** Avanza la gara di `tick` passi subito (pilota automatico), senza aspettare il tempo vero. */
   /** Prova degli urti (#255): mette il bot `i` affiancato a te (a destra, o tamponato davanti con `davanti`), stessa velocità. */
   affianca: (i = 1, davanti = false) => { const k = s.veicoli[0]!, b = s.veicoli[i]; if (b) { b.ramo = k.ramo; b.s = k.s + (davanti ? 1.7 : 0); b.prog = k.prog + (davanti ? 1.7 : 0); b.lat = k.lat + (davanti ? 0 : 1.6); b.v = davanti ? k.v * 0.6 : k.v; b.hf = k.hf; b.hl = k.hl; b.mf = k.mf; b.ml = k.ml; b.h = k.h; b.aria = false; } return api.state(); },
+  /** Mette il tuo veicolo a `s` m dal via e `lat` m a destra, fermo (per le foto dei bordi e delle curve, #258). */
+  metti: (sv: number, lat: number) => { const k = s.veicoli[0]!; k.ramo = -1; k.s = sv; k.prog = sv; k.terra = sv; k.lat = lat; k.v = 0; k.h = 0; k.vh = 0; k.aria = false; regia.st.ok = false; return api.state(); },
   /** `tick` passi coi comandi veri (tastiera, dito): per i test dei tasti senza aspettare il tempo vero. */
   passi: (tick: number) => { for (let i = 0; i < tick && fase === 'gara'; i++) step(); return api.state(); },
   avanti: (tick: number) => { const a = auto; auto = true; for (let i = 0; i < tick && fase === 'gara'; i++) step(); auto = a; regia.st.ok = false; return api.state(); },

@@ -11,7 +11,7 @@
 // faccia (i giri della morte si vedono anche da sotto).
 import * as THREE from 'three';
 import { CORSE } from '@marea/content/corse.ts';
-import { campo, punto } from '@marea/sim/corse/nastro.ts';
+import { campo, dove, punto } from '@marea/sim/corse/nastro.ts';
 import type { Nastro } from '@marea/sim/corse/nastro.ts';
 import { VUOTO, muroA, nelTratto, rotaieDi, superficieA } from '@marea/sim/corse/pista.ts';
 import { rotaiaVicina } from '@marea/sim/corse/binari.ts';
@@ -111,9 +111,11 @@ function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number, croll
       const supB = superficieA(p, ramo, sm, lato * (lm + bordo / 2), 1);
       const a0 = lato * l0, a1 = lato * l1, b0 = lato * (l0 + bordo), b1 = lato * (l1 + bordo);
       if (bordo > 0) t.quad(pt(n, s0, a0, 0), pt(n, s0, b0, 0), pt(n, s1, a1, 0), pt(n, s1, b1, 0), binari && d.stile !== 'binari' ? P.legnoScuro : coloreDi(supB));
-      if (!acqua && curva) t.quad(pt(n, s0, a0, 0.03), pt(n, s0, a0 + lato * CORDOLO, 0.03), pt(n, s1, a1, 0.03), pt(n, s1, a1 + lato * CORDOLO, 0.03), giungla ? ((i >> 1) % 2 ? P.pietra : P.pietraChiara) : (i >> 1) % 2 ? P.rosso : P.pietraChiara);
+      const cc = pt(n, sm, lato * (lm + CORDOLO / 2), 0);
+      if (!acqua && curva && !(p.rami.length && sullAltro(p, ramo, sm, cc[0], cc[1], cc[2]))) t.quad(pt(n, s0, a0, 0.03), pt(n, s0, a0 + lato * CORDOLO, 0.03), pt(n, s1, a1, 0.03), pt(n, s1, a1 + lato * CORDOLO, 0.03), giungla ? ((i >> 1) % 2 ? P.pietra : P.pietraChiara) : (i >> 1) % 2 ? P.rosso : P.pietraChiara);
       // muretto di gomme: faccia verso la pista, cima, faccia di fuori
-      if (!acqua && !binari && muroA(p, ramo, sm, lato)) {
+      const mm = pt(n, sm, lato * (lm + bordo), 0);
+      if (!acqua && !binari && muroA(p, ramo, sm, lato) && !(p.rami.length && sullAltro(p, ramo, sm, mm[0], mm[1], mm[2]))) {
         // giungla: una staccionata di tronchi; spiaggia: gomme rosse e bianche (o pietra chiara, prova A/B)
         const c = giungla ? ((i >> 1) % 3 ? P.legno : P.legnoChiaro) : pietra ? ((i >> 1) % 3 ? P.sabbia : P.sabbiaChiara) : (i >> 1) % 2 ? P.rosso : P.pietraChiara, e0 = b0 + lato * SPESSO, e1 = b1 + lato * SPESSO;
         t.quad(pt(n, s0, b0, 0), pt(n, s0, b0, ALTO_MURO), pt(n, s1, b1, 0), pt(n, s1, b1, ALTO_MURO), c);
@@ -122,6 +124,17 @@ function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number, croll
       }
     }
   }
+}
+
+/** Il punto (x, y, z) sta sulla carreggiata (bordo compreso) di un altro nastro? Ai bivi delle scorciatoie i muri di un nastro non si
+ *  disegnano sulla strada dell'altro: sennò si incrociano a X in mezzo alla pista (#258). Per la sim i muri restano dove sono. */
+function sullAltro(p: Pista, ramo: number, s: number, x: number, y: number, z: number): boolean {
+  const dentro = (n: Nastro, l: number[], bordo: number) => {
+    const w = dove(n, x, y, z, -1);
+    return (n.chiuso || (w.s > 0.5 && w.s < n.len - 0.5)) && Math.abs(w.lat) < campo(n, l, w.s) + bordo - 0.05 && Math.abs(w.h) < 2;
+  };
+  if (ramo >= 0) return dentro(p.n, p.n.l, p.def.bordo);
+  return p.rami.some((r) => s > r.def.da - 10 && s < r.def.a + 10 && dentro(r.n, r.n.l, r.def.bordo));
 }
 
 /** Sotto i binari (#228) niente scogliera: pali di legno ogni 6 m sotto i due bordi, giù fino all'acqua (il ponte tra le cascate). */
