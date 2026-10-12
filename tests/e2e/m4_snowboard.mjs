@@ -50,7 +50,7 @@ export default async function (ctx) {
     const l0 = (await sb(page)).lat;
     await page.dispatchEvent('#mzSbTocco', 'pointerdown', { pointerId: 7, clientX: x, clientY: y, pointerType: 'touch', isPrimary: true });
     await page.dispatchEvent('#mzSbTocco', 'pointermove', { pointerId: 7, clientX: x + 60, clientY: y, pointerType: 'touch', isPrimary: true });
-    await page.waitForTimeout(600);
+    await ctx.waitState(page, (st, l) => st.snowboard.lat > l + 0.5, 15000, l0).catch(() => {}); // passi della sim, non tempo (vedi sotto)
     const s = await sb(page);
     assert(s.dito && s.lat > l0 + 0.5, `il dito non curva: lat ${l0} → ${s.lat}`);
     await page.dispatchEvent('#mzSbTocco', 'pointerup', { pointerId: 7, clientX: x + 60, clientY: y, pointerType: 'touch', isPrimary: true });
@@ -114,7 +114,10 @@ export default async function (ctx) {
     await d.page.keyboard.down('KeyE'); await d.page.waitForTimeout(80); await d.page.keyboard.up('KeyE');
     await ctx.waitState(d.page, (st) => st.snowboard && st.snowboard.fase === 'gara' && st.snowboard.frames > 20, 15000);
     const l0 = (await sb(d.page)).lat;
-    await d.page.keyboard.down('ArrowRight'); await d.page.waitForTimeout(700); await d.page.keyboard.up('ArrowRight');
+    // si aspettano i passi della sim, non il tempo: su GitHub (SwiftShader, pochi fotogrammi al secondo) 0,7 s sono meno tick
+    await d.page.keyboard.down('ArrowRight');
+    await ctx.waitState(d.page, (st, l) => st.snowboard.lat > l + 0.5, 15000, l0).catch(() => {});
+    await d.page.keyboard.up('ArrowRight');
     const l1 = (await sb(d.page)).lat;
     assert(l1 > l0 + 0.5, `→ non curva: ${l0} → ${l1}`);
     await d.page.keyboard.down('Space'); await d.page.waitForTimeout(400); await d.page.keyboard.up('Space');
