@@ -92,7 +92,6 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   o.root.append(gasBtn);
   // ---- USA (gare CON OGGETTI, #250): bottone col dito, Q da tastiera; la sim lo usa allo scatto (bit b) ----
   const usa = creaUsa(o.root);
-  let usaPrima = false;
   if (dito) document.body.classList.add('mz-dito');
   const pannelli = creaPannelli(o.root);
   const scelta: Scelta = leggiScelta();
@@ -186,12 +185,11 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     const yaw = o.renderer.diorama.yaw, rx = Math.cos(yaw), rz = -Math.sin(yaw), fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     const sx = rx * f.mx + rz * f.my, sy = -(fx * f.mx + fz * f.my); // sy > 0 = giù
     const mx = Math.max(-1, Math.min(1, sx / 0.7));
-    const b = !!run?.s.oggetti && usa.giu(), scatto = b && !usaPrima;
-    usaPrima = b;
-    // col dito lo stick giù (o FRENO) mentre premi USA lancia dall'altra parte: la sim lo legge dal freno nel tick in cui premi (#250)
-    if (dito) return { mx, my: f.b || (scatto && sy > 0.5) ? -1 : scelta.gasAuto || gasGiu.size > 0 || f.a ? 1 : 0, a: f.a, b };
+    // USA: Q o il bottone; dall'altra parte (c) con R o, col dito, lo stick verso l'altra parte: senza frenare (#250)
+    const b = !!run?.s.oggetti && usa.giu(), c = b && usa.contrario(run!.s.oggetti!.tasche[0]!.ogg, sy, sx);
+    if (dito) return { mx, my: f.b ? -1 : scelta.gasAuto || gasGiu.size > 0 || f.a ? 1 : 0, a: f.a, b, c };
     const freno = f.b || sy > 0.5, gas = Math.max(0, Math.min(1, -sy / 0.6));
-    return { mx, my: freno ? -1 : scelta.gasAuto ? 1 : gas, a: f.a, b };
+    return { mx, my: freno ? -1 : scelta.gasAuto ? 1 : gas, a: f.a, b, c };
   };
   const pulsanti = (on: boolean) => {
     const a = document.getElementById('btnA'), b = document.getElementById('btnB');

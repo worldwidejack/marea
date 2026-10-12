@@ -2,8 +2,8 @@
 // colpo dritto, colpo che insegue chi sta davanti, scudo). Solo nelle gare CON OGGETTI. Numeri in CORSE.oggetti (motore.json).
 // Tutto vive in «progresso» (m dal via, come Veicolo.prog): sui circuiti si confronta a meno di un giro, così trappole e scatole valgono
 // a ogni giro. Scatole, trappole e colpi dritti stanno sulla principale: chi è su un ramo non li prende. Il colpo a ricerca invece arriva sempre.
-// Avanti o indietro (Jack, 12 ott): di serie la trappola cade dietro e i colpi partono avanti; USA col freno tenuto (gas < −0,3 nel tick
-// in cui si preme) li manda dall'altra parte: la trappola vola avanti di `lancio` m, il colpo dritto va indietro, quello a ricerca insegue
+// Avanti o indietro (Jack, 12 ott): di serie la trappola cade dietro e i colpi partono avanti; USA «dall'altra parte» (InputFrame.c, senza
+// frenare: Jack, «uno non deve per forza frenare per sparare») li manda al contrario: la trappola vola avanti di `lancio` m, il colpo dritto va indietro, quello a ricerca insegue
 // chi ti sta subito dietro.
 // La pesca è casuale ma dal seed (createRng con seed, tick e veicolo): il server la rigioca uguale. Chi è dietro in classifica pesca meglio.
 import { CORSE } from '@marea/content/corse.ts';
@@ -108,7 +108,7 @@ function usa(o: OggettiState, p: Pista, ks: Veicolo[], i: number, pos: number[],
   if (d.effetto === 'turbo') daiTurbo(k, d.secondi!, 3, R.somma);
   else if (d.effetto === 'scudo') t.scudo = d.secondi!;
   else if (d.effetto === 'trappola') {
-    const avanti = indietro; // la trappola di serie va dietro: col freno vola avanti
+    const avanti = indietro; // la trappola di serie va dietro: dall'altra parte vola avanti
     o.trappole.push({ ogg: d.id, da: i, prog: k.prog + (avanti ? d.lancio! : -d.dietro!), lat: k.ramo < 0 ? k.lat : 0, t: avanti ? -VOLO_TRAPPOLA : 0, p0: k.prog });
     if (o.trappole.length > CORSE.oggetti.massimiATerra) o.trappole.shift();
   } else {

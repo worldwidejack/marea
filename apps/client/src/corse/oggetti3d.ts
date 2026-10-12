@@ -1,5 +1,5 @@
 // Gli oggetti alla Mario Kart in pista (#250): scatole che girano, bucce a terra, colpi in volo, il salvagente-scudo intorno a chi ce l'ha,
-// la casella dell'oggetto in alto (con la roulette) e il bottone USA (telefono) / tasto Q (PC). Lo usano il gioco (vista_gara.ts + index.ts)
+// la casella dell'oggetto in alto (con la roulette) e il bottone USA (telefono) / tasti Q e R (PC). Lo usano il gioco (vista_gara.ts + index.ts)
 // e il banco di prova (prova/main.ts). Disegna e basta: lo stato è della sim (GaraState.oggetti).
 import * as THREE from 'three';
 import { CORSE } from '@marea/content/corse.ts';
@@ -27,26 +27,36 @@ const CSS = `.pp-ogg { position: absolute; top: calc(max(8px, env(safe-area-inse
 .pp-usa.pronto { background: rgba(232,67,63,.85); }
 .pp-usa.giu { transform: scale(.92); filter: brightness(1.25); }`;
 
-/** Il bottone USA (solo col dito) e il tasto Q: `giu()` = premuto adesso (la sim lo usa allo scatto). */
-export function creaUsa(root: HTMLElement): { giu(): boolean; mostra(on: boolean): void; etichetta(t: string, pronto: boolean): void; readonly el: HTMLElement } {
+/** Da che parte va di serie l'oggetto: la trappola dietro, i colpi avanti (turbo e scudo non hanno parte). */
+const dietroDiSerie = (ogg: string): boolean => !!ogg && oggettoDef(ogg).effetto === 'trappola';
+
+/** Il bottone USA (solo col dito) e i tasti: Q = USA di serie, R = USA dall'altra parte (#250, Jack: «uno non deve per forza frenare per
+ *  sparare»). `giu()` = premuto adesso (la sim lo usa allo scatto); `contrario(ogg, sy)` = va lanciato al contrario di serie: R, oppure col
+ *  dito lo stick tenuto verso l'altra parte (`sy` = stick a schermo, > 0 giù; col dito lo stick sterza e basta, la Y è libera). */
+export function creaUsa(root: HTMLElement): { giu(): boolean; contrario(ogg: string, sy?: number, sx?: number): boolean; mostra(on: boolean): void; etichetta(t: string, pronto: boolean): void; readonly el: HTMLElement } {
   stile();
   const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const b = document.createElement('button'); b.type = 'button'; b.className = 'pp-usa'; b.id = 'ppUsa'; b.textContent = 'USA';
   const dita = new Set<number>();
-  let tasto = false;
+  let tasto = false, retro = false;
   b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); dita.add(e.pointerId); try { b.setPointerCapture(e.pointerId); } catch { /* sintetico */ } b.classList.add('giu'); });
   const su = (e: PointerEvent) => { if (dita.delete(e.pointerId) && !dita.size) b.classList.remove('giu'); };
   for (const ev of ['pointerup', 'pointercancel']) { b.addEventListener(ev, su as EventListener); addEventListener(ev, su as EventListener); }
   for (const ev of ['touchstart', 'touchmove', 'contextmenu']) b.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
-  addEventListener('keydown', (e) => { if (e.code === 'KeyQ') tasto = true; });
-  addEventListener('keyup', (e) => { if (e.code === 'KeyQ') tasto = false; });
-  addEventListener('blur', () => { tasto = false; dita.clear(); });
+  addEventListener('keydown', (e) => { if (e.code === 'KeyQ') tasto = true; else if (e.code === 'KeyR') retro = true; });
+  addEventListener('keyup', (e) => { if (e.code === 'KeyQ') tasto = false; else if (e.code === 'KeyR') retro = false; });
+  addEventListener('blur', () => { tasto = retro = false; dita.clear(); });
   root.appendChild(b);
   let testo = '';
   return {
     el: b,
-    giu: () => tasto || dita.size > 0,
-    mostra(on) { b.style.display = on && dito ? 'flex' : 'none'; if (!on) { dita.clear(); tasto = false; b.classList.remove('giu'); } },
+    giu: () => tasto || retro || dita.size > 0,
+    contrario(ogg, sy = 0, sx = 0) {
+      if (retro) return true;
+      if (!dito || !dita.size || Math.abs(sy) < 0.6 || Math.abs(sy) < Math.abs(sx)) return false; // stick per lo più su o giù
+      return sy > 0 !== dietroDiSerie(ogg);
+    },
+    mostra(on) { b.style.display = on && dito ? 'flex' : 'none'; if (!on) { dita.clear(); tasto = retro = false; b.classList.remove('giu'); } },
     etichetta(t, pronto) { if (t !== testo) { b.textContent = t || 'USA'; testo = t; } b.classList.toggle('pronto', pronto); },
   };
 }
@@ -87,6 +97,7 @@ export function creaOggetti3d(root: HTMLElement): Oggetti3d {
   const casella = document.createElement('div'); casella.className = 'pp-ogg'; root.appendChild(casella);
   const T = nuovaTerna(), M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(1, 1, 1), V = new THREE.Vector3(), X = new THREE.Vector3(), Y = new THREE.Vector3(), Z = new THREE.Vector3();
   const P3: [number, number, number] = [0, 0, 0], Q2 = new THREE.Quaternion(), CAM = new THREE.Vector3(), SU = new THREE.Vector3(0, 1, 0);
+  const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   let t = 0, prima: { ogg: string; roulette: number; presi: number; scudo: number; usati: number } | null = null, mostra = true, ultimo = '';
 
   /** Matrice di un oggetto sulla principale: a `prog`, `lat`, alto `h`, girato di `giro` rad intorno al «sopra» della pista. */
@@ -108,7 +119,8 @@ export function creaOggetti3d(root: HTMLElement): Oggetti3d {
       html = NOMI[ids[i]!]!; casella.className = 'pp-ogg gira'; casella.style.borderColor = P.legnoChiaro;
     } else if (tu.ogg) {
       const d = oggettoDef(tu.ogg);
-      html = `${NOMI[tu.ogg]}${tu.cariche > 1 ? ` ×${tu.cariche}` : ''}${d.effetto === 'turbo' || d.effetto === 'scudo' ? '<small>Q</small>' : `<small>Q · col freno ${d.effetto === 'trappola' ? 'avanti' : 'indietro'}</small>`}`; casella.className = 'pp-ogg'; casella.style.borderColor = COLORE[d.effetto]!;
+      const parti = d.effetto === 'turbo' || d.effetto === 'scudo' ? '' : dietroDiSerie(tu.ogg) ? (dito ? 'stick ↑ avanti' : 'Q dietro · R avanti') : dito ? 'stick ↓ indietro' : 'Q avanti · R indietro';
+      html = `${NOMI[tu.ogg]}${tu.cariche > 1 ? ` ×${tu.cariche}` : ''}${parti || !dito ? `<small>${parti || 'Q'}</small>` : ''}`; casella.className = 'pp-ogg'; casella.style.borderColor = COLORE[d.effetto]!;
     } else { html = `SALVAGENTE <small>${Math.ceil(tu.scudo)} s</small>`; casella.className = 'pp-ogg'; casella.style.borderColor = COLORE.scudo!; }
     if (html !== ultimo) { casella.innerHTML = html; ultimo = html; }
   }

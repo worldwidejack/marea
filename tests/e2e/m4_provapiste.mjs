@@ -175,11 +175,20 @@ export default async function (ctx) {
     const prima = pronto.oggetti.usati[0];
     // Q tenuto finché la gara (che va in tempo vero) non lo usa: sotto carico i fotogrammi sono pochi
     await d.page.keyboard.down('KeyQ');
-    await d.page.waitForFunction((n) => window.__provapiste.state().oggetti.usati[0] > n, prima, { timeout: 3000 }).catch(() => {});
+    await d.page.waitForFunction((n) => window.__provapiste.state().oggetti.usati[0] > n, prima, { timeout: 8000 }).catch(() => {});
     await d.page.keyboard.up('KeyQ');
     const dopo = await d.page.evaluate(() => window.__provapiste.state());
-    assert(dopo.oggetti.usati[0] === prima + 1, `Q non usa l'oggetto: ${prima} → ${dopo.oggetti.usati[0]}`);
-    // col freno la buccia vola avanti (Jack, 12 ott) e atterra davanti: sprite a forma di banana
+    assert(dopo.oggetti.usati[0] === prima + 1, `Q non usa l'oggetto: ${prima} → ${dopo.oggetti.usati[0]} ${JSON.stringify({ ...dopo.oggetti, done: dopo.done, tick: dopo.tick })}`);
+    // R = dall'altra parte, senza frenare (Jack, 12 ott): la buccia vola avanti e atterra davanti (sprite a forma di banana)
+    const casR = await d.page.evaluate(() => { const a = window.__provapiste; a.dai('buccia'); return a.state(); });
+    await fotogrammi(d.page, 2);
+    const testoR = await d.page.evaluate(() => document.querySelector('.pp-ogg')?.textContent ?? '');
+    assert(/R avanti/.test(testoR), `casella della buccia senza R: ${testoR}`);
+    await d.page.keyboard.down('KeyR');
+    await d.page.waitForFunction((n) => window.__provapiste.state().oggetti.usati[0] > n, casR.oggetti.usati[0], { timeout: 8000 }).catch(() => {});
+    await d.page.keyboard.up('KeyR');
+    const conR = await d.page.evaluate(() => window.__provapiste.state());
+    assert(conR.oggetti.usati[0] === casR.oggetti.usati[0] + 1, `R non usa l'oggetto: ${casR.oggetti.usati[0]} → ${conR.oggetti.usati[0]}`);
     const av = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true }); a.dai('buccia'); const st = a.usa(true); a.avanti(10); a.set({ pausa: true }); return st; });
     assert(av.oggetti.trappole >= 1, `buccia lanciata avanti: ${JSON.stringify(av.oggetti)}`);
     await fotogrammi(d.page, 4);

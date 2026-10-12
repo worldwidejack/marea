@@ -7,7 +7,7 @@
 // La guida (#170): drift col saltello e 3 livelli di scintille (blu, arancio, viola), turbo alla partenza, acrobazie, scia, turbo
 // che si sommano; fiammate, linee di velocità, scossa, FOV e suoni. Ogni regola ha il suo interruttore A/B nel pannello «prove».
 // Fughe con l'onda: l'indicatore ONDA in alto dice a quanti metri ti sta dietro (rosso sotto i 25).
-// Interruttori: P pista, V veicolo, B bot, T pilota automatico, R ricomincia, L luce, 1-6 le regole A/B; C camera e ⚙ opzioni (camera
+// Interruttori: P pista, V veicolo, B bot, T pilota automatico, N ricomincia, 7 oggetti (Q usa, R dall'altra parte), L luce, 1-6 le regole A/B; C camera e ⚙ opzioni (camera
 // dietro / alta / cofano, suoni). La pista intera è la minimappa nell'angolo. Indirizzo: ?pista=…&veicolo=…&cam=…&bot=0&auto=1
 // e le regole (?scia=0…). Test: window.__provapiste.ready / .perf() / .state() / .set({...}) / .avanti(tick).
 import * as THREE from 'three';
@@ -160,7 +160,8 @@ function nuovaGara(cambiaPista: boolean) {
  *  avanti (in proporzione); «gas automatico» nel menù opzioni per chi non gioca mai. Curva e rampa dello sterzo le fa la sim. */
 function comandi(f: InputFrame): InputFrame {
   const freno = f.b || f.my > 0.5, gas = Math.max(0, Math.min(1, -f.my / 0.6));
-  return { mx: Math.max(-1, Math.min(1, f.mx / 0.7)), my: freno ? -1 : gasAuto ? 1 : gas, a: f.a, b: !!s.oggetti && usa.giu() };
+  const b = !!s.oggetti && usa.giu(), c = b && usa.contrario(s.oggetti!.tasche[0]!.ogg, f.my, f.mx);
+  return { mx: Math.max(-1, Math.min(1, f.mx / 0.7)), my: freno ? -1 : gasAuto ? 1 : gas, a: f.a, b, c };
 }
 function step() {
   if (fase === 'fine') { if (++finita > 60 * 4 && auto) nuovaGara(false); return; }
@@ -292,11 +293,11 @@ const ROWS: Riga[] = [
   ['S', 'aspetto', () => (aspetto ? aspetto.replace('cs_v_', '').replace('_', ' ') : 'del veicolo'), () => { aspetto = aspetto ? (ASPETTI[ASPETTI.indexOf(aspetto as never) + 1] ?? '') : ASPETTI[0]; veicoliMesh(); }],
   ['A', 'animali piloti', () => (animali ? 'sì' : 'no'), () => { animali = !animali; veicoliMesh(); }, () => animali],
   ['T', 'pilota automatico', () => (auto ? 'sì' : 'no'), () => { auto = !auto; }],
-  ['R', 'ricomincia', () => '', () => nuovaGara(false)],
+  ['N', 'ricomincia', () => '', () => nuovaGara(false)],
   ['L', 'luce', () => luce, () => setLuce(LUCI[(LUCI.indexOf(luce) + 1) % LUCI.length]!)],
   ...REGOLE.map(([id, nome, si, no], j): Riga => [String(j + 1), nome, () => (opz[id] === '0' ? no : si), () => { opz[id] = opz[id] === '0' ? '1' : '0'; nuovaGara(false); }, () => opz[id] !== '0']),
   ['6', 'effetti', () => (effetti ? 'sì' : 'no'), () => { effetti = !effetti; if (!effetti) fx.svuota(); }, () => effetti],
-  ['7', 'oggetti (Q)', () => (opz['oggetti'] === '1' ? 'sì' : 'no'), () => { opz['oggetti'] = opz['oggetti'] === '1' ? '0' : '1'; nuovaGara(false); }, () => opz['oggetti'] === '1'],
+  ['7', 'oggetti (Q, R)', () => (opz['oggetti'] === '1' ? 'sì' : 'no'), () => { opz['oggetti'] = opz['oggetti'] === '1' ? '0' : '1'; nuovaGara(false); }, () => opz['oggetti'] === '1'],
 ];
 const righe = ROWS.map(([tasto, nome, val, fai, ab]) => {
   const b = document.createElement('button');
@@ -438,7 +439,7 @@ const api = {
   /** Gara con gli oggetti (#250): mette l'oggetto `id` nella tua tasca, roulette già ferma. */
   dai: (id: string) => { const t = s.oggetti?.tasche[0]; if (t) { t.ogg = id; t.cariche = CORSE.oggetti.catalogo.find((x) => x.id === id)?.cariche ?? 1; t.roulette = 0; } return api.state(); },
   /** Usa l'oggetto adesso (un tick col bottone premuto), `indietro` = col freno: dall'altra parte. */
-  usa: (indietro = false) => { const t = s.oggetti?.tasche[0]; if (t) t.premuto = false; garaCorse.step(s, { mx: 0, my: indietro ? -1 : 1, a: false, b: true }); garaCorse.step(s, { mx: 0, my: 1, a: false, b: false }); return api.state(); },
+  usa: (indietro = false) => { const t = s.oggetti?.tasche[0]; if (t) t.premuto = false; garaCorse.step(s, { mx: 0, my: 1, a: false, b: true, c: indietro }); garaCorse.step(s, { mx: 0, my: 1, a: false, b: false }); return api.state(); },
   piste: PISTE,
 };
 (window as unknown as { __provapiste: typeof api }).__provapiste = api;
