@@ -50,6 +50,7 @@ import type { PixId } from './ui/icons.ts';
 import { RIENTRO } from '@marea/content';
 import { createLibri } from './game/libro.ts';
 import { createBorgo, portaDi } from './game/borgo.ts';
+import { createStanza } from './game/stanza.ts';
 import type { LibroIsola } from './game/libro.ts';
 
 const TAVOLO_R = 3.5; // m: quanto vicino al Tavolo per aprirlo con E / A
@@ -146,6 +147,7 @@ async function boot(): Promise<void> {
   for (const p of temi.isole) targets.push({ id: 'tema:' + p.island, label: p.nome.replace(/^Isola (della |delle |dei |del )?/, ''), icon: p.island as PixId, x: p.spawn.x, z: p.spawn.z, show: () => mappa?.vista(`${p.role}:${p.index}`) ?? false, sezione: 'isole' });
   // Libro degli ospiti e «Mentre eri via» (#86): leggio vicino al molo di ogni isola abitata; la cartolina al rientro (dopo i primi passi)
   const borgo = createBorgo({ world, hud, root, abitanti: [...owners.filter((w) => w.id !== me?.id).map((w) => ({ slot: w.slot, nome: w.nome, mia: false })), ...(world.slot !== null ? [{ slot: world.slot, nome: me?.nome ?? 'Tu', mia: true }] : [])] }); // porte delle case (#237)
+  createStanza({ world, slots: [...new Set([...owners.map((w) => w.slot), world.slot].filter((x): x is number => x !== null))] }); // la stanza della casa (#240)
   const libri = createLibri({ world, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, isole, onFirma: (e) => emotes.play(e) });
   const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;
   // Diario del capitano (#87): bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette con nome e titolo sopra la testa

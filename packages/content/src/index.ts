@@ -98,5 +98,12 @@ function validateBorgo(): string[] {
     if (t.rows[c.at[1]]?.[c.at[0]] !== 'L') errs.push(`borgo: la casa ${n} non sta su una L`);
     if (!'.gdP'.includes(t.rows[c.porta[1]]?.[c.porta[0]] ?? '~')) errs.push(`borgo: la porta della casa ${n} non è camminabile`);
   }
+  const lt = ISLANDS.find((i) => i.id === 'lotto'), st = BORGO.stanza, [x0, z0, x1, z1] = st.pavimento;
+  if (lt) {
+    for (let z = z0; z < z1; z++) for (let x = x0; x < x1; x++) if (!'.LP'.includes(lt.rows[z]?.[x] ?? '~')) errs.push(`borgo: la stanza ha una cella non di pavimento in ${x},${z}`);
+    if (!'.gdP'.includes(lt.rows[st.giardino[1]]?.[st.giardino[0]] ?? '~')) errs.push('borgo: la porta del giardino non è camminabile');
+    if (st.retro[1] !== z0) errs.push('borgo: la porta sul retro sta nella prima fila della stanza');
+  }
+  if (!BORGO.pavimenti.length || !BORGO.carte.length) errs.push('borgo: serve almeno un pavimento e una carta da parati');
   return errs;
 }
