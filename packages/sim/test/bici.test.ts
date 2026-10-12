@@ -1,7 +1,11 @@
 // La mountain bike della discesa (banco provadiscesa3d.html, #229; src/corse/bici.ts). Cosa si controlla:
 // - il pilota automatico arriva in fondo al sentiero in 80-140 s (~2 minuti, come la speciale vera) senza cadere, e salta tutte le rampe;
 // - è deterministica: due discese con gli stessi comandi finiscono identiche;
-// - in discesa senza pedalare si va (spinge la pendenza), il freno ferma, lo scatto dà la spinta e svuota l'energia, che torna da sola;
+// - in discesa senza pedalare si va (spinge la pendenza), il freno ferma, lo scatto dà la spinta e costa metà energia, che torna da sola;
+// - il SALTO: tenuto e lasciato stacca e passa sopra un sasso preso in pieno; tenuto a lungo in piano è l'impennata; sulla rampa si
+//   somma al volo;
+// - il ruscello: il pilota lo salta; anche piano si passa (si casca in acqua e si esce); quasi fermi ci si pianta, e si riparte
+//   sull'altra sponda;
 // - le salite: senza pedalare ci si ferma, pedalando si sale e l'energia cala; a secco si sale lo stesso, piano;
 // - la parabolica tiene di più della stessa curva piatta;
 // - sterzo che dipende dalla velocità: forte la presa limita la svolta;
@@ -16,7 +20,7 @@ import { nuovaBici, pedala, pilotaBici, sentiero } from '../src/corse/bici.ts';
 import type { Bici, Comandi } from '../src/corse/bici.ts';
 
 const S = sentiero(SENTIERI.cresta_bosco!);
-const NIENTE: Comandi = { sterzo: 0, gas: 0, freno: false, scatto: false };
+const NIENTE: Comandi = { sterzo: 0, gas: 0, freno: false, scatto: false, salto: false };
 const per = (b: Bici, sec: number, c: (b: Bici) => Comandi) => { for (let i = 0; i < sec * TICK_HZ && !b.fine; i++) pedala(S, b, c(b)); };
 
 test('il pilota automatico arriva in 80-140 s senza cadere e salta le rampe', () => {
@@ -34,7 +38,7 @@ test('deterministica: stessi comandi, stessa discesa', () => {
   assert.equal(corri(), corri());
 });
 
-test("la pendenza spinge, il freno ferma, lo scatto spinge e svuota l'energia", () => {
+test("la pendenza spinge, il freno ferma, lo scatto spinge e costa metà dell'energia", () => {
   const b = nuovaBici(); b.s = 50;
   per(b, 3, () => NIENTE);
   assert.ok(b.v > 4, `senza pedalare in discesa si va (${b.v.toFixed(1)} m/s)`);
@@ -43,8 +47,11 @@ test("la pendenza spinge, il freno ferma, lo scatto spinge e svuota l'energia", 
   const v0 = b.v;
   pedala(S, b, { ...NIENTE, scatto: true });
   assert.ok(b.v > v0 + BICI.scatto.spinta * 0.9, 'lo scatto spinge');
-  assert.equal(b.energia, 0, 'energia vuota');
+  assert.ok(Math.abs(b.energia - (1 - BICI.scatto.costo)) < 0.01, `costa metà (${b.energia.toFixed(2)})`);
   pedala(S, b, NIENTE); // si lascia il tasto
+  pedala(S, b, { ...NIENTE, scatto: true }); // il secondo, con l'altra metà
+  assert.ok(b.energia < 0.05, `due scatti la svuotano (${b.energia.toFixed(2)})`);
+  pedala(S, b, NIENTE);
   const v1 = b.v;
   pedala(S, b, { ...NIENTE, scatto: true });
   assert.ok(b.v < v1 + 0.5, 'a secco non si scatta');
@@ -141,6 +148,67 @@ test('i sassi si urtano con le ruote: a 0,25 m dal bordo del sasso si passa fort
   for (let i = 0; i < TICK_HZ; i++) pedala(S, b, NIENTE);
   assert.equal(b.cadute, 0);
   assert.ok(b.s > o.s + 2, 'passato');
+});
+
+/** Un tratto dritto e senza sassi, rampe, tronchi e ruscelli nei 30 m dopo `da`. */
+function libero(da: number): number {
+  for (let s = da; s < S.n.len - 40; s += 2) {
+    let ok = true;
+    for (let x = s; x < s + 30 && ok; x += 1) if (Math.abs(campo(S.n, S.n.k, x)) > 0.01) ok = false;
+    if (ok && !S.def.ostacoli.some((o) => o.s > s - 2 && o.s < s + 32) && !S.def.rampe.some((r) => r.s > s - 6 && r.s < s + 36)) return s;
+  }
+  throw new Error('nessun tratto libero');
+}
+
+test('il SALTO: tenuto carica, lasciato stacca e passa sopra un sasso preso in pieno; tenuto a lungo è l\'impennata', () => {
+  const o = S.def.ostacoli[0]!;
+  // in pieno contro il sasso a 7 m/s: senza saltare si cade
+  const a = nuovaBici(); a.s = o.s - 6; a.lat = o.lat; a.v = 7;
+  per(a, 1.5, () => NIENTE);
+  assert.equal(a.perche, 'sasso', 'senza salto contro il sasso');
+  // tenendo il salto e lasciandolo 2 m prima (la ruota davanti tocca a ~1 m): si passa sopra
+  const b = nuovaBici(); b.s = o.s - 6; b.lat = o.lat; b.v = 7;
+  per(b, 1.5, (x) => ({ ...NIENTE, salto: x.s < o.s - 2 }));
+  assert.equal(b.cadute, 0, `col salto si passa (${b.perche})`);
+  assert.ok(b.s > o.s + 3 && b.salti === 1, `passato in volo (salti ${b.salti})`);
+  // tenuto a lungo in piano: impennata, e lasciato stacca
+  const s0 = libero(20), c = nuovaBici(); c.s = s0; c.v = 6;
+  per(c, BICI.salto.impennata + 0.1, () => ({ ...NIENTE, salto: true }));
+  assert.ok(c.impennata && !c.aria && c.carica === 1, 'tenuto a lungo: impennata, carica piena, ancora a terra');
+  pedala(S, c, NIENTE); pedala(S, c, NIENTE);
+  assert.ok(c.aria && c.vh > BICI.salto.max * 0.8, `lasciato stacca (vh ${c.vh.toFixed(2)})`);
+});
+
+test('il salto sulla rampa si somma al volo', () => {
+  const r = S.def.rampe.find((x) => x.tipo === 'rampa' && !S.def.ruscelli.some((q) => q.s === x.s))!;
+  const vola = (salta: boolean) => {
+    const b = nuovaBici(); b.s = r.s - r.alto * 3 - 4; b.v = 11;
+    let hMax = 0;
+    for (let i = 0; i < 4 * TICK_HZ && b.s < r.s + 40; i++) { pedala(S, b, { ...NIENTE, salto: salta && b.s < r.s - 0.3 }); if (b.aria) hMax = Math.max(hMax, b.h); }
+    return hMax;
+  };
+  assert.ok(vola(true) > vola(false) + 0.3, `col salto più alto (${vola(true).toFixed(2)} contro ${vola(false).toFixed(2)} m)`);
+});
+
+test('il ruscello: il pilota lo salta; anche piano si passa; quasi fermi ci si pianta, e si riparte di là', () => {
+  const r = S.def.ruscelli[0]!;
+  assert.ok(r && S.def.rampe.some((x) => Math.abs(x.s - r.s) < 0.01), 'c\'è il ruscello col suo trampolino');
+  const b = nuovaBici(); b.s = r.s - 40;
+  let saltato = false;
+  for (let i = 0; i < 10 * TICK_HZ && b.s < r.s + r.largo + 5; i++) { pedala(S, b, pilotaBici(S, b)); if (b.aria && b.s > r.s + r.largo * 0.5) saltato = true; }
+  assert.ok(saltato && b.cadute === 0, `il pilota lo salta (cadute ${b.cadute})`);
+  // anche piano (13-30 km/h verso il trampolino) si passa: si casca in acqua, si esce dall'altra sponda
+  for (const v of [4, 6, 8]) {
+    const x = nuovaBici(); x.s = r.s - 5; x.v = v;
+    for (let i = 0; i < 6 * TICK_HZ && x.s < r.s + r.largo + 3; i++) pedala(S, x, NIENTE);
+    assert.ok(x.cadute === 0 && x.s > r.s + r.largo, `a ${v} m/s si passa (cadute ${x.cadute})`);
+  }
+  // quasi fermi (sul labbro a ~1 m/s): ci si pianta nell'acqua, e si riparte sull'altra sponda
+  const y = nuovaBici(); y.s = r.s - 5; y.v = 2;
+  for (let i = 0; i < 6 * TICK_HZ && !y.cadute; i++) pedala(S, y, NIENTE);
+  assert.equal(y.perche, 'ruscello', 'piantati nell\'acqua');
+  while (y.caduto > 0) pedala(S, y, NIENTE);
+  assert.ok(y.s > r.s + r.largo, 'si riparte di là');
 });
 
 test('il muro di traverso fa cadere, di striscio no', () => {

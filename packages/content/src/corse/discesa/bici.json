@@ -12,11 +12,13 @@
   "freno": 7.5,
   "vMax": 24,
   "energia": { "consumo": 0.14, "ricarica": 0.2, "stanco": 0.55 },
-  "scatto": { "spinta": 2.2, "finoA": 14, "energia": 0.6 },
+  "scatto": { "spinta": 2.2, "finoA": 14, "energia": 0.5, "costo": 0.5 },
+  "salto": { "carica": 0.3, "min": 1.8, "max": 3.6, "impennata": 0.45 },
+  "ruscello": { "frena": 0.8, "ferma": 0.6 },
   "bordoLegno": 0.25,
   "radici": { "frena": 1.2, "scossa": 0.7 },
   "erba": { "scossa": 0.35 },
   "caduta": { "secondi": 2, "urto": 6.5, "urtoLato": 3.5, "atterraggio": 11, "storto": 0.75, "ripartenza": 3 },
   "tronco": { "mezzo": 0.9, "molla": 0.3, "frena": 0.08 },
-  "sasso": { "base": 0.9, "copertone": 0.04 }
+  "sasso": { "base": 0.9, "copertone": 0.04, "sopra": 0.75 }
 }

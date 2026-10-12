@@ -7,6 +7,7 @@
 // - La griglia c'è solo entro `RAGGIO` m dal sentiero: oltre si vede il fondale (sulla cresta il dirupo è già sceso sotto l'orizzonte).
 import * as THREE from 'three';
 import { campo, punto } from '@marea/sim/corse/nastro.ts';
+import { rilievo } from '@marea/sim/corse/bici.ts';
 import type { Sentiero } from '@marea/sim/corse/bici.ts';
 import { P } from '../../render/island_parts.ts';
 
@@ -116,22 +117,26 @@ export function creaTerreno(S: Sentiero): Terreno {
   const sottoLegno = (s: number, P3: [number, number, number]) => { punto(n, s, -campo(n, n.l, s), 0, P3); const a = P3[1]; punto(n, s, campo(n, n.l, s), 0, P3); return Math.min(a, P3[1]) - 0.06; };
   // la terra smossa (chiazze) nelle prime colonne fuori dal sentiero
   const TERRA = [0.3, 0.06];
+  // il ruscello taglia il sentiero di traverso: il fosso (la stessa quota della sim) scende sotto il sentiero e la fascia fino a 7 m
+  // dal bordo, poi sfuma nella natura entro 16 m; lì la fascia va più fitta (mezzo metro) per tenere la forma delle sponde
+  const fosso = (s: number) => { const R = rilievo(S, s, 0); return R.ruscello ? R.g : 0; };
+  const vicinoFosso = (s: number) => d.ruscelli.some((r) => s > r.s - 3 && s < r.s + r.largo + 3);
   const E3: [number, number, number] = [0, 0, 0];
   for (const lato of [-1, 1] as const) {
     let prima: (number[] | null)[] | null = null;
-    for (let s = 0; s <= n.len; s += PASSO) {
-      const fila: (number[] | null)[] = [], l = campo(n, n.l, s), P3: [number, number, number] = [0, 0, 0];
+    for (let s = 0; s <= n.len; s += vicinoFosso(s) ? 0.5 : PASSO) {
+      const fila: (number[] | null)[] = [], l = campo(n, n.l, s), P3: [number, number, number] = [0, 0, 0], giu = fosso(s);
       punto(n, s, lato * l, 0, E3);
       const yC = campo(n, n.y, s), sopra = E3[1] - yC, legno = legnoA(s), yL = legno ? sottoLegno(s, P3) : 0;
       let hx = campo(n, n.rx, s) * lato, hz = campo(n, n.rz, s) * lato; const hl = Math.hypot(hx, hz) || 1; hx /= hl; hz /= hl;
       for (const o of COL) {
         const x = E3[0] + hx * o, z = E3[2] + hz * o;
-        if (o === 0) { fila.push([x, legno ? yL : E3[1] + 0.01, z]); continue; }
+        if (o === 0) { fila.push([x, (legno ? yL : E3[1] + 0.01) + giu, z]); continue; }
         const q = natura(x, z);
         // un altro tratto del sentiero è più vicino (tornante): qui ci pensa la fascia di quell'altro
         if (!q || Math.abs(q.c.s - s) > 24) { fila.push(null); continue; }
         const base = legno ? yL : E3[1] + (sopra > 0.05 ? sopra * 0.9 * liscio(0, 1.4, o) : 0);
-        fila.push([x, raccorda(q.y, base, 0, o), z]);
+        fila.push([x, raccorda(q.y, base, 0, o) + giu * (1 - liscio(7, 16, o)), z]);
       }
       if (prima) {
         const bos = zonaA(s) === 'bosco';
@@ -180,13 +185,14 @@ export function creaTerreno(S: Sentiero): Terreno {
   const colStr = [P.legnoChiaro, P.sabbia, P.sabbia, P.sabbia, P.legnoChiaro];
   for (let i = 0; i < n.n - 1; i++) {
     for (let k = 0; k < strisce.length - 1; k++) {
-      const q = (ii: number, f: number): [number, number, number] => { const l = n.l[ii]! * f; return [n.x[ii]! + n.rx[ii]! * l + n.ux[ii]! * 0.02, n.y[ii]! + n.ry[ii]! * l + n.uy[ii]! * 0.02, n.z[ii]! + n.rz[ii]! * l + n.uz[ii]! * 0.02]; };
+      const q = (ii: number, f: number): [number, number, number] => { const l = n.l[ii]! * f, h = 0.02 + fosso(ii * n.passo); return [n.x[ii]! + n.rx[ii]! * l + n.ux[ii]! * h, n.y[ii]! + n.ry[ii]! * l + n.uy[ii]! * h, n.z[ii]! + n.rz[ii]! * l + n.uz[ii]! * h]; };
       const a = q(i, strisce[k]!), b = q(i, strisce[k + 1]!), c = q(i + 1, strisce[k]!), e = q(i + 1, strisce[k + 1]!);
       sp.push(...a, ...b, ...c, ...b, ...e, ...c);
       const radici = d.radici.some((r) => i >= r.da && i < r.a), bosco = zonaA(i) === 'bosco', tavole = d.legno.some((t) => i >= t.da && i < t.a);
       const h = hash(i * 0.7, k * 3.1);
       const chiazza = onde(n.x[i]!, n.z[i]!, 9), bordo = k === 0 || k === strisce.length - 2;
-      if (tavole) tmp.set(bordo ? P.legnoScuro : i % 2 ? P.legno : P.legnoChiaro); // le tavole di traverso
+      if (fosso(i * n.passo) < -0.2) tmp.set(h < 0.5 ? P.legnoScuro : P.pietraScura); // il fondo del fosso: fango e sassi
+      else if (tavole) tmp.set(bordo ? P.legnoScuro : i % 2 ? P.legno : P.legnoChiaro); // le tavole di traverso
       // ai bordi l'erba entra nel sentiero a ciuffi (niente striscia netta); dentro, terra battuta con le chiazze
       else if (bordo && h < 0.45) tmp.set(bosco ? (chiazza > 0.3 ? P.bosco : P.erbaScura) : P.erba);
       else tmp.set(bosco ? (bordo ? P.legnoScuro : chiazza > 0.1 || radici ? P.legnoChiaro : P.sabbia) : chiazza > 0.35 ? P.legnoChiaro : colStr[k]!);
@@ -227,6 +233,26 @@ export function creaTerreno(S: Sentiero): Terreno {
   const sponde = new THREE.Mesh(lg, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide }));
   sponde.castShadow = true; sponde.receiveShadow = true; sponde.name = 'paraboliche_legno';
 
-  const group = new THREE.Group(); group.add(suolo, strada, sponde);
-  return { group, info, tris: nTri + sp.length / 9 + lp.length / 9 };
+  // ---------- l'acqua del ruscello: a strisce lungo la corrente (di traverso al sentiero), alla quota dell'acqua della sim ----------
+  const ap: number[] = [], ac: number[] = [], W3: [number, number, number] = [0, 0, 0];
+  for (const r of d.ruscelli) {
+    const a = rilievo(S, r.s + r.largo * 0.4, 0).acqua, s0 = r.s + r.largo * 0.1, s1 = r.s + r.largo * 0.72, L = campo(n, n.l, r.s) + 7;
+    const v = (s: number, x: number) => { punto(n, s, x, a, W3); return [W3[0], W3[1], W3[2]]; };
+    // a macchie: quasi tutta acqua, un po' di fondo scuro, qualche filo di schiuma
+    for (let lat = -L; lat < L; lat += 1) for (let k = 0; k < 3; k++) {
+      const sa = s0 + ((s1 - s0) * k) / 3, sb = s0 + ((s1 - s0) * (k + 1)) / 3, p0 = v(sa, lat), p1 = v(sa, lat + 1), p2 = v(sb, lat), p3 = v(sb, lat + 1);
+      ap.push(...p0, ...p2, ...p1, ...p1, ...p2, ...p3);
+      const h = hash(lat * 1.3 + k * 7.1, r.s);
+      tmp.set(h < 0.1 ? P.acquaBassa : h < 0.3 ? P.acquaProfonda : P.acqua);
+      for (let q = 0; q < 6; q++) ac.push(tmp.r, tmp.g, tmp.b);
+    }
+  }
+  const ag = new THREE.BufferGeometry();
+  ag.setAttribute('position', new THREE.Float32BufferAttribute(ap, 3)); ag.setAttribute('color', new THREE.Float32BufferAttribute(ac, 3));
+  ag.computeVertexNormals();
+  const acqua = new THREE.Mesh(ag, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide }));
+  acqua.receiveShadow = true; acqua.name = 'ruscello';
+
+  const group = new THREE.Group(); group.add(suolo, strada, sponde, acqua);
+  return { group, info, tris: nTri + sp.length / 9 + lp.length / 9 + ap.length / 9 };
 }

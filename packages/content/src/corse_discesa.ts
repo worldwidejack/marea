@@ -22,8 +22,12 @@ export type DBiciCfg = {
    *  pedalata ha `stanco` della sua forza. */
   energia: { consumo: number; ricarica: number; stanco: number };
   /** Lo scatto (ADRENALINA §7: «un colpo di pedale, poi qualche istante per ricaricare»): +`spinta` m/s sotto `finoA`, serve almeno
-   *  `energia` e la svuota tutta. */
-  scatto: { spinta: number; finoA: number; energia: number };
+   *  `energia` e ne costa `costo`. */
+  scatto: { spinta: number; finoA: number; energia: number; costo: number };
+  /** Il SALTO: secondi tenuto per la carica piena, spinta in su (m/s) a carica zero e piena, secondi tenuto in piano per l'impennata. */
+  salto: { carica: number; min: number; max: number; impennata: number };
+  /** Nell'acqua del ruscello: quanto frena (m/s²) e sotto che velocità ci si pianta dentro (m/s). */
+  ruscello: { frena: number; ferma: number };
   /** Sulle paraboliche di tavole: quanto si può andare oltre il bordo prima di cadere giù (m). */
   bordoLegno: number;
   /** Radici e sassi piccoli sul sentiero: frenano e scuotono; l'erba ai lati scuote un po'. */
@@ -35,8 +39,9 @@ export type DBiciCfg = {
   /** Tronco da saltare: mezza lunghezza della gobba che fa la ruota (m), quanta spinta in su resta al decollo (la sospensione assorbe
    *  il resto), quanto frena il colpo (frazione della velocità). */
   tronco: { mezzo: number; molla: number; frena: number };
-  /** Sassi e ceppi: raggio della base del modello rispetto a `r` e mezzo copertone (m), per l'urto con le ruote. */
-  sasso: { base: number; copertone: number };
+  /** Sassi e ceppi: raggio della base del modello rispetto a `r` e mezzo copertone (m), per l'urto con le ruote; in volo si passa
+   *  sopra quando si è più alti di `sopra` × alto (sono tondi). */
+  sasso: { base: number; copertone: number; sopra: number };
 };
 
 /** Ostacolo sul sentiero o accanto: si urta (sasso, masso, ceppo) se si passa più bassi di `alto`. */
@@ -46,6 +51,8 @@ export type DTratto = { da: number; a: number };
 /** Rampa (di tavole e terra, il labbro a `s`, lunga 3 × `alto`) o tronco da saltare (centrato a `s`), alti `alto` m: la bici ci sale
  *  sopra e stacca (@marea/sim/corse/bici.ts `rilievo`). */
 export type DRampa = { s: number; alto: number; tipo: 'rampa' | 'tronco' };
+/** Ruscello di traverso al sentiero, subito dopo un trampolino (una rampa col labbro a `s`). */
+export type DRuscello = { s: number; largo: number; profondo: number };
 /** Cosa c'è oltre il bordo, per lato (−1 sinistra, +1 destra): dirupo (il pendio sul mare), bosco (alberi fitti), prato. */
 export type DLato = DTratto & { lato: -1 | 1; tipo: 'dirupo' | 'bosco' | 'prato' };
 
@@ -62,6 +69,8 @@ export type DSentieroDef = {
   rampe: DRampa[];
   /** Le paraboliche di tavole (curve sopraelevate su una struttura di legno). */
   legno: DTratto[];
+  /** I ruscelli da saltare: il fosso comincia a `s` (il labbro del trampolino), è lungo `largo` m e profondo `profondo` m. */
+  ruscelli: DRuscello[];
   /** Dove si arriva (m dal via). */
   arrivo: number;
 };
