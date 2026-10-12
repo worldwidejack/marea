@@ -52,6 +52,7 @@ _I limiti non sono un dictat: si possono alzare quando serve ed è sensato (Jack
 |---|---|
 | `app.js` (client) | ≤ 1200 KB minificato, ≤ 360 KB gzip (era 250 fino all'8 ott 2026, 350 fino all'11 ott) |
 | Ogni chunk caricato dopo (`import()`: GDR, minimappa, isole, giochi a schermo, audio) | ≤ 600 KB minificato, ≤ 180 KB gzip; tutti insieme ≤ 3000 KB, ≤ 900 KB gzip |
+| Discese dell'Isola dell'Adrenalina (`apps/client/src/adrenalina/`, scaricato salendo in funivia; niente nel JS iniziale) | come ogni chunk (12 ott 2026: ~50 KB, ~20 gzip); in pista draw call e triangoli come sopra: abeti a riquadri da 100 m spenti oltre 420 m, il terreno si vede tutto fino in valle (12 ott: massimo 51 draw call e 97.000 triangoli a 390×844) |
 
 | Caricamento iniziale (html + js + atlas + modelli della prima isola) | ≤ 3 MB (era 2) |
 | Kit delle zone dell'Isola delle Corse (`manifest_corse.json`, scaricato aprendo una pista vestita) | ≤ 2,5 MB (era 0,6: Spiaggia e porto 0,2 MB + 20 veicoli e piloti 1,4 MB, deviazione del 9 ott 2026) |

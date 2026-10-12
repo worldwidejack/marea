@@ -1,8 +1,9 @@
 // Isola dell'Adrenalina, la parte grande (chunk scaricato da game/adrenalina.ts quando ti avvicini all'isola): cavi, piloni e due cabine che
 // vanno su e giù, il cancello della stazione a valle con il bottone FUNIVIA e la liberatoria da firmare (POST /api/adrenalina/liberatoria).
-// Senza link personale la firma vale solo per questa visita. Le discese arrivano col passo 3 (#189).
+// Senza link personale la firma vale solo per questa visita. Con ?adrenalina=1 (passo 3a, #189) chi sale scende con lo snowboard:
+// il chunk apps/client/src/adrenalina/ (scena a parte, il mondo sta fermo: `active` / `step` / `updateRun` da main.ts via adrenalina.ts).
 import * as THREE from 'three';
-import type { ArchPlace } from '@marea/sim';
+import type { ArchPlace, InputFrame } from '@marea/sim';
 import { AVATAR, ISLANDS } from '@marea/content';
 import { ApiError } from '../net/api.ts';
 import { FUNIVIA } from '../render/island_adrenalina.ts';
@@ -13,6 +14,7 @@ import { FLAGS } from '../flags.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { topButton } from '../ui/topbar.ts';
 import type { AdrenalinaOpts } from './adrenalina.ts';
+import type { SnowRun } from '../adrenalina/index.ts';
 
 export type Funivia = {
   tick(a: boolean): void;
@@ -20,6 +22,10 @@ export type Funivia = {
   isBusy(): boolean;
   /** A piedi davanti al cancello, con la camera lì (bottone 🚡 delle prove). */
   vai(): void;
+  /** Lo snowboard è aperto (scena a parte): un tick e un frame al posto del mondo. */
+  readonly active: boolean;
+  step(f: InputFrame): void;
+  updateRun(alpha: number, dt: number, t: number): void;
 };
 
 /** La liberatoria (docs/ADRENALINA.md §2): stesso testo di @marea/sim LIBERATORIA, qui per non portare la sim nel bundle. */
@@ -124,6 +130,7 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
     if (!casco()) { rifiuti++; dice(`Il guardiano: «Senza casco qui non sale nessuno.» Il Casco costa ${prezzo} Perle: lo compri dal tuo avatar (bottone in alto) o dal Mercante al Porto`, 4800); return; }
     salite++;
     suona('medaglia_bronzo');
+    if (FLAGS.adrenalina) { void scendi(); return; } // passo 3a: la discesa solo per le prove
     dice('Il guardiano: «Casco in testa, firma fatta: sei dei nostri. Le piste aprono a giorni, la prima è lo snowboard.»', 4600);
   }
   async function firma(): Promise<void> {
@@ -149,8 +156,30 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
     dice('L’Isola dell’Adrenalina: il cancello della funivia è qui davanti (A)', 3000);
   }
 
+  // ---- lo snowboard (passo 3a, solo ?adrenalina=1): chunk a parte, scena a parte ----
+  let run: SnowRun | null = null, carico = false, discese = 0;
+  async function scendi(): Promise<void> {
+    if (run || carico) return;
+    carico = true; btn.classList.remove('on');
+    try {
+      const m = await import('../adrenalina/index.ts');
+      run = m.startSnowboard({ renderer: o.renderer, root: o.root, look: () => o.world.look });
+      discese++;
+      await run.done;
+    } catch (e) {
+      console.error('[marea] snowboard', e); dice('La pista non si apre: riprova', 3000);
+      run?.esci();
+    } finally {
+      run = null; carico = false; nearWas = true;
+      const a = o.world.avatar.state;
+      o.renderer.diorama.follow(a.x, o.world.groundY(a.x, a.z), a.z); o.renderer.diorama.snap?.();
+    }
+  }
+  /** Test: giù con lo snowboard da ovunque (come salire in funivia con ?adrenalina=1). */
+  registerTestHook('snowboardVia', () => { if (run || carico) return false; void scendi(); return true; });
+
   const stato = () => ({
-    spot, caricata: true, near, firmata: firmata(), casco: casco(), aperta: o.aperta(), liberatoria: aperta(), firme, rifiuti, salite, ultimo,
+    spot, caricata: true, near, discese, snowboard: !!run, firmata: firmata(), casco: casco(), aperta: o.aperta(), liberatoria: aperta(), firme, rifiuti, salite, ultimo,
     cavo: pv && pm ? { da: a0.toArray().map((v) => +v.toFixed(2)), a: a1.toArray().map((v) => +v.toFixed(2)) } : null,
     cabine: cabine.map((c) => c.position.toArray().map((v) => +v.toFixed(2))),
   });
@@ -168,7 +197,10 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
 
   return {
     vai: vaiCancello,
-    isBusy: () => aperta() || busy,
+    get active() { return !!run?.active; },
+    step: (f) => run?.step(f),
+    updateRun: (alpha, dt, t) => run?.update(alpha, dt, t),
+    isBusy: () => aperta() || busy || carico,
     tick(a) {
       const pressA = a && !aWas; aWas = a;
       if (!spot) return;

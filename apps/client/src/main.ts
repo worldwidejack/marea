@@ -319,12 +319,13 @@ async function boot(): Promise<void> {
       const f0 = input.sample(), f = foto.isOpen() ? FERMO : f0;
       if (ingressi.active) { ingressi.step(f); acc -= DT; steps++; continue; } // nel dungeon il mondo di superficie sta fermo
       if (tpl.active) { tpl.step(f); acc -= DT; steps++; continue; } // nella chiesa dei Templari idem
+      if (adr.active) { adr.step(f); acc -= DT; steps++; continue; } // sulla pista dello snowboard idem
       if (regata.active) regata.step(f); else { const aB = borgo.tick(f.a), aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
       world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!eroe?.isOpen() || foto.isOpen()) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
-    if (ingressi.active) ingressi.update(acc / DT, dt, t); else if (tpl.active) tpl.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); tpl.update(acc / DT, dt, t); adr.update(dt, t); animali?.update(dt, t); } // Animali (#67)
+    if (ingressi.active) ingressi.update(acc / DT, dt, t); else if (tpl.active) tpl.update(acc / DT, dt, t); else if (adr.active) adr.update(dt, t, acc / DT); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); tpl.update(acc / DT, dt, t); adr.update(dt, t); animali?.update(dt, t); } // Animali (#67)
     regata.update(acc / DT, dt, t);
     { const ev = myLot()?.hero?.evocato ?? null; if (ev && !evocato && !evocatoCarico) { evocatoCarico = true; void import('./rpg/evocato.ts').then((mod) => { evocato = mod.createEvocato({ world, loader }); }).catch(() => { evocatoCarico = false; }); } try { evocato?.update(dt, t, ev, world.mode === 'walk' && !sotto() && !regata.active); } catch (e) { console.warn('[marea] evocato', e); evocato?.dispose(); evocato = null; } } // solo resa: se qualcosa va storto si spegne, il gioco continua
     emotes.update(dt); setTopbarHidden(regata.active || sotto());
