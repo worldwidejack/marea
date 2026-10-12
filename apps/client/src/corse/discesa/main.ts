@@ -200,7 +200,7 @@ function frame(now: number) {
 }
 requestAnimationFrame(frame);
 
-const stato = () => ({ s: b.s, lat: b.lat, h: b.h, v: b.v, energia: b.energia, ang: b.ang, aria: b.aria, caduto: b.caduto, cadute: b.cadute, salti: b.salti, fine: b.fine, tick: b.tick, cam, auto, sup: b.sup, video: !fondale.video.paused, pezzi: scenografia?.pezzi ?? 0 });
+const stato = () => ({ s: b.s, lat: b.lat, h: b.h, v: b.v, energia: b.energia, ang: b.ang, aria: b.aria, caduto: b.caduto, cadute: b.cadute, salti: b.salti, fine: b.fine, tick: b.tick, cam, auto, sup: b.sup, video: !!fondale.video && !fondale.video.paused, pezzi: scenografia?.pezzi ?? 0 });
 (window as unknown as { __discesa: unknown }).__discesa = {
   get ready() { return ready && fondale.pronto(); },
   state: stato,

@@ -29,7 +29,7 @@ export default async function (ctx) {
 
   const p = await apri('pista=spiaggia_lungomare');
   const piste = await p.page.evaluate(() => window.__provapiste.piste);
-  assert(piste.length === 5 && !piste.some((id) => id.startsWith('prova_')), `piste del banco (solo le definitive): ${piste}`);
+  assert(piste.length === 4 && !piste.some((id) => id.startsWith('prova_') || id === 'spiaggia_fuga'), `piste del banco (solo le definitive, Fuga fuori dal gioco): ${piste}`);
   for (const id of piste) {
     await ctx.test(`telefono: ${id} — il pilota automatico arriva in fondo senza cadute, draw call e triangoli nel budget`, async () => {
       await p.page.evaluate((x) => window.__provapiste.set({ pista: x, cam: 'dietro', bot: true }), id);

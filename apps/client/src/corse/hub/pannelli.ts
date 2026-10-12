@@ -3,14 +3,14 @@
 // - il garage: tutti i veicoli di `CORSE.veicoli` con nome e tre barre (velocità, accelerazione, sterzo).
 // La scelta (pista, veicolo, gas, camera) sta in localStorage `mz-corse-scelta`: la usano l'hub (con che veicolo guidi) e la gara.
 // Un pannello alla volta, nello stesso riquadro `#mzGpIntro` (i test lo cercano lì).
-import { CORSE, CORSE_PISTE } from '@marea/content/corse.ts';
+import { CORSE, CORSE_PISTE, CORSE_PISTE_SPIAGGIA } from '@marea/content/corse.ts';
 import { famiglieDi, opzioniGara } from '@marea/sim/corse/gara.ts';
 import { PAL, el } from '../../ui/style.ts';
 import { suona } from '../../audio/ponte.ts';
 import type { Modo } from '../prova/camera.ts';
 
 export const SCELTA_KEY = 'mz-corse-scelta';
-export const PISTE = Object.entries(CORSE_PISTE).filter(([id]) => id.startsWith('spiaggia_')).map(([id, d]) => ({ id, def: d }));
+export const PISTE = Object.entries(CORSE_PISTE).filter(([id]) => CORSE_PISTE_SPIAGGIA.includes(id)).map(([id, d]) => ({ id, def: d }));
 export const CAMERE: { id: Modo; nome: string }[] = [{ id: 'dietro', nome: 'dietro' }, { id: 'alta', nome: 'alta' }, { id: 'cofano', nome: 'cofano' }];
 export type Scelta = { pista: string; veicolo: string; gasAuto: boolean; cam: Modo; oggetti: boolean };
 

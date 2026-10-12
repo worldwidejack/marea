@@ -41,6 +41,8 @@ import type { Avatar } from '../../game/avatar.ts';
 import type { Look } from '@marea/protocol';
 import { creaRegia } from './camera.ts';
 import { stileProva } from './stile.ts';
+import { fondalePista } from '../fondale_piste.ts';
+import type { Fondale } from '../discesa/fondale.ts';
 
 /** Le piste che il bottone P fa girare: le definitive (#258); `?tutte=1` aggiunge quelle di prova. */
 const PISTE = new URLSearchParams(location.search).get('tutte') === '1' ? Object.keys(CORSE_PISTE) : CORSE_PISTE_BANCO;
@@ -112,7 +114,15 @@ addEventListener('resize', resize); window.visualViewport?.addEventListener('res
 function setLuce(id: StyleId) {
   const st = STYLES.find((x) => x.id === id)!;
   post.setStyle(st); luce = id;
-  post.toggles.contorni = id !== 'gioco'; post.toggles.foschia = id !== 'gioco'; post.toggles.cielo = id !== 'gioco';
+  post.toggles.contorni = id !== 'gioco'; post.toggles.foschia = id !== 'gioco'; post.toggles.cielo = id !== 'gioco' && !fondale;
+}
+// il fondale dipinto della zona (#258): dietro a tutto, il cielo della passata finale si spegne. `?fondale=0` o tasto F per il cielo di prima
+let conFondale = q.get('fondale') !== '0', fondale: Fondale | null = null;
+function montaFondale() {
+  if (fondale) scene.remove(fondale.mesh);
+  fondale = conFondale ? fondalePista(p.def.zona) : null;
+  if (fondale) scene.add(fondale.mesh);
+  post.toggles.cielo = luce !== 'gioco' && !fondale;
 }
 
 // ---------- la gara (il conto alla rovescia è nella sim: tick negativi fino al VIA) ----------
@@ -141,7 +151,7 @@ function nuovaGara(cambiaPista: boolean) {
   if (cambiaPista || !p3d) {
     if (p3d) { scene.remove(p3d.group); p3d.group.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).geometry.dispose(); }); }
     p = pistaCorse(opz['pista']!); p3d = creaPista3d(p); scene.add(p3d.group);
-    mappa.pista(p);
+    mappa.pista(p); montaFondale();
   }
   s = garaCorse.create({ seed: (Math.random() * 1e9) >>> 0, difficulty: 2, opzioni: opz });
   veicoliMesh();
@@ -263,7 +273,7 @@ function eventi() {
 }
 function aggiornaCamera(dt: number) {
   posa(0, vP, vF, vU, vM);
-  post.toggles.foschia = luce !== 'gioco'; post.toggles.cielo = luce !== 'gioco';
+  post.toggles.foschia = luce !== 'gioco'; post.toggles.cielo = luce !== 'gioco' && !fondale;
   const w = vis[0]!, hop = w.hop > 0 ? 1.52 * (w.hop / 0.26) * (1 - w.hop / 0.26) : 0;
   regia.segui(cam, { pos: vP, fwd: vF, up: vU, moto: vM, k: s.veicoli[0]!, p, onda: s.onda, hop, effetti, dt });
 }
@@ -299,6 +309,7 @@ const ROWS: Riga[] = [
   ['T', 'pilota automatico', () => (auto ? 'sì' : 'no'), () => { auto = !auto; }],
   ['N', 'ricomincia', () => '', () => nuovaGara(false)],
   ['L', 'luce', () => luce, () => setLuce(LUCI[(LUCI.indexOf(luce) + 1) % LUCI.length]!)],
+  ['F', 'fondale dipinto', () => (conFondale ? 'sì' : 'no'), () => { conFondale = !conFondale; montaFondale(); }, () => conFondale],
   ...REGOLE.map(([id, nome, si, no], j): Riga => [String(j + 1), nome, () => (opz[id] === '0' ? no : si), () => { opz[id] = opz[id] === '0' ? '1' : '0'; nuovaGara(false); }, () => opz[id] !== '0']),
   ['6', 'effetti', () => (effetti ? 'sì' : 'no'), () => { effetti = !effetti; if (!effetti) fx.svuota(); }, () => effetti],
   ['7', 'oggetti (Q, R)', () => (opz['oggetti'] === '1' ? 'sì' : 'no'), () => { opz['oggetti'] = opz['oggetti'] === '1' ? '0' : '1'; nuovaGara(false); }, () => opz['oggetti'] === '1'],
@@ -399,6 +410,7 @@ function frame(now: number) {
   if (fase === 'gara' && s.tick > 0) suoni.motore(k.v, veicoloCorse(k.id).velocita, k.turbo > 0, k.drift !== 0, !k.aria);
   lights.follow?.(vP.x, vP.z);
   aggiornaHud(garaCorse.view(s) as GaraView, dt);
+  fondale?.segui(camera);
   post.render(gl, scene, camera, time);
   perf.frames++; perf.acc += dt;
   if (perf.acc >= 0.5) { perf.fps = perf.frames / perf.acc; perf.frames = 0; perf.acc = 0; }

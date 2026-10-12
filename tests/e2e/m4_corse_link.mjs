@@ -45,7 +45,7 @@ export default async function (ctx) {
       assert(s.corse.hub.fermo === true && !s.corse.active, 'sotto la sala l\'hub deve essere fermo: ' + JSON.stringify(s.corse.hub));
       const box = await U.locator('#mzGpSala .box').boundingBox();
       assert(box && box.y >= 0 && box.y + box.height <= 390, 'la sala esce dal telefono: ' + JSON.stringify(box));
-      assert((await U.locator('#mzGpSala [data-id^="spiaggia_"]').count()) === 4, 'mancano le 4 piste nella sala');
+      assert((await U.locator('#mzGpSala [data-id^="spiaggia_"]').count()) === 3, 'mancano le 3 piste nella sala (la Fuga è fuori dal gioco, #258)');
     });
 
     await ctx.test('Ugo sceglie il Lungomare nella sala e preme VIA coi bot: partono tutti e tre lì, ognuno vede gli altri due', async () => {
