@@ -6,6 +6,7 @@
 // Poi la Spiaggia e porto: il porto è misto (ruote e barche, ognuno nella sua corsia) e nella fuga l'onda raggiunge chi va piano.
 // La guida (#170): partenza razzo del pilota automatico, drift da tastiera con le scintille (blu → viola), menù opzioni con le camere
 // (dietro, alta, cofano), minimappa, interruttori delle regole.
+// Gli oggetti (#250): scatole, casella in alto, Q, bot che li usano.
 // Screenshot da telefono (camera dietro e cofano) e da PC (giro della morte, drift viola, baia, porto, onda) in tests/out/shots/m4_provapiste_*.
 // Numeri in tests/out/m4_provapiste.json.
 export const timeout = 300000;
@@ -156,6 +157,84 @@ export default async function (ctx) {
     await fotogrammi(d.page, 3);
     await ctx.shot(d.page, 'pc_fuga_travolto');
     ctx.noErrors(d, 'provapiste fuga');
+  });
+  await ctx.test('PC: con gli oggetti (#250) ci sono le scatole, la roulette si ferma sulla casella in alto, Q usa l\'oggetto, i bot li usano; budget', async () => {
+    const d = await apri('pista=spiaggia_lungomare&bot=1&oggetti=1', { viewport: ctx.B.DESKTOP });
+    const pronto = await d.page.evaluate(() => {
+      const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'dietro' });
+      let st = a.state();
+      for (let i = 0; i < 60 * 120 && !st.done && !(st.oggetti.tasca && st.oggetti.roulette === 0); i++) st = a.avanti(1);
+      a.set({ auto: false });
+      return st;
+    });
+    assert(pronto.oggetti && pronto.oggetti.tasca && pronto.oggetti.scatole > 0, JSON.stringify(pronto.oggetti));
+    await fotogrammi(d.page, 3);
+    const casella = await d.page.evaluate(() => { const e = document.querySelector('.pp-ogg'); return e && getComputedStyle(e).display !== 'none' ? e.textContent : null; });
+    assert(casella && casella.length > 2, `casella dell'oggetto: ${casella}`);
+    await ctx.shot(d.page, 'pc_oggetto_pronto');
+    // la cassa del relitto (la scatola della Spiaggia): fino a quando la prossima fila è a 12-30 m davanti
+    await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true }); let st = a.state(); for (let i = 0; i < 60 * 60 && !(st.oggetti.prossima > 12 && st.oggetti.prossima < 30); i++) st = a.avanti(1); a.set({ pausa: true, auto: false }); });
+    await fotogrammi(d.page, 4);
+    await ctx.shot(d.page, 'pc_spiaggia_scatole');
+    await d.page.evaluate(() => window.__provapiste.set({ pausa: false }));
+    const prima = await d.page.evaluate(() => { const a = window.__provapiste; a.dai('turbo'); return a.state().oggetti.usati[0]; });
+    // Q tenuto e due passi coi comandi veri (non il tempo vero: sotto carico i fotogrammi non arrivano)
+    await d.page.evaluate(() => window.__provapiste.set({ pausa: true }));
+    await d.page.keyboard.down('KeyQ');
+    const dopo = await d.page.evaluate(() => window.__provapiste.passi(2));
+    await d.page.keyboard.up('KeyQ');
+    assert(dopo.oggetti.usati[0] === prima + 1, `Q non usa l'oggetto: ${prima} → ${dopo.oggetti.usati[0]} ${JSON.stringify({ ...dopo.oggetti, done: dopo.done, tick: dopo.tick })}`);
+    // R = dall'altra parte, senza frenare (Jack, 12 ott): la buccia vola avanti e atterra davanti (sprite a forma di banana)
+    const casR = await d.page.evaluate(() => { const a = window.__provapiste; a.passi(1); a.dai('buccia'); return a.state(); }); // un passo con Q lasciato: si usa allo scatto
+    await fotogrammi(d.page, 2);
+    const testoR = await d.page.evaluate(() => document.querySelector('.pp-ogg')?.textContent ?? '');
+    assert(/R avanti/.test(testoR), `casella della buccia senza R: ${testoR}`);
+    await d.page.keyboard.down('KeyR');
+    const conR = await d.page.evaluate(() => window.__provapiste.passi(2));
+    await d.page.keyboard.up('KeyR');
+    assert(conR.oggetti.trappole >= 1 && conR.v > 5, `R: la buccia va avanti senza frenare (${conR.v} m/s): ${JSON.stringify(conR.oggetti)}`);
+    assert(conR.oggetti.usati[0] === casR.oggetti.usati[0] + 1, `R non usa l'oggetto: ${casR.oggetti.usati[0]} → ${conR.oggetti.usati[0]}`);
+    const av = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true }); a.dai('buccia'); const st = a.usa(true); a.avanti(10); a.set({ pausa: true }); return st; });
+    assert(av.oggetti.trappole >= 1, `buccia lanciata avanti: ${JSON.stringify(av.oggetti)}`);
+    await fotogrammi(d.page, 4);
+    await ctx.shot(d.page, 'pc_buccia_avanti');
+    // il salvagente (3D a spicchi), la pallonata (sprite che rotola) e il razzo a ricerca (3D a fasce con l'occhio), dalla concept
+    for (const [ogg, cam, passi] of [['palla', 'dietro', 6], ['razzo', 'dietro', 2]]) {
+      await d.page.evaluate(([o, c, n]) => { const a = window.__provapiste; a.set({ pausa: false, cam: c }); a.dai('scudo'); a.usa(); a.dai(o); a.usa(); a.avanti(n); a.set({ pausa: true }); }, [ogg, cam, passi]);
+      await fotogrammi(d.page, 4);
+      await ctx.shot(d.page, `pc_${ogg}_scudo`);
+    }
+    await d.page.evaluate(() => window.__provapiste.set({ cam: 'dietro' }));
+    // chi viene colpito gira e fuma (fumo a sbuffi tondi, non cubetti)
+    const colpito = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ pausa: false }); let st = a.state(); const p0 = st.oggetti.presi[0]; for (let i = 0; i < 60 * 90 && st.oggetti.presi[0] === p0 && !st.done; i++) st = a.avanti(1); a.avanti(6); a.set({ pausa: true }); return st; });
+    await fotogrammi(d.page, 30);
+    if (colpito.oggetti.presi[0] > 0) await ctx.shot(d.page, 'pc_colpito_fumo');
+    await d.page.evaluate(() => window.__provapiste.set({ pausa: false }));
+    const fine = await corri(d.page, 60 * 240);
+    const perf = await d.page.evaluate(() => window.__provapiste.perf());
+    assert(fine.done && fine.oggetti.usati.slice(1).some((n) => n > 0), `i bot non usano gli oggetti: ${JSON.stringify(fine.oggetti)}`);
+    assert(perf.drawCalls <= MAX_DC, `${perf.drawCalls} draw call`);
+    numeri['oggetti'] = { usati: fine.oggetti.usati, presi: fine.oggetti.presi, drawCalls: perf.drawCalls };
+    ctx.log(`oggetti: usati ${fine.oggetti.usati} · presi ${fine.oggetti.presi} · ${perf.drawCalls} draw call`);
+    ctx.noErrors(d, 'provapiste oggetti');
+  });
+  await ctx.test('PC: la Giungla con gli oggetti (#250): blocco del tempio come scatola, noce di cocco, masso e liana in pista; budget', async () => {
+    const d = await apri('pista=giungla_miniera&bot=1&oggetti=1', { viewport: ctx.B.DESKTOP });
+    // fino a quando la prossima fila di scatole è a 12-30 m davanti
+    const st = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'dietro' }); let st = a.state(); for (let i = 0; i < 60 * 60 && !(st.oggetti.prossima > 12 && st.oggetti.prossima < 30); i++) st = a.avanti(1); a.set({ pausa: true }); return st; });
+    assert(st.oggetti && st.oggetti.scatole > 0, JSON.stringify(st.oggetti));
+    await fotogrammi(d.page, 4);
+    await ctx.shot(d.page, 'pc_giungla_scatole');
+    for (const [ogg, passi] of [['cocco', 8], ['masso', 2], ['liana', 4]]) {
+      const dopo = await d.page.evaluate(([o, n]) => { const a = window.__provapiste; a.set({ pausa: false }); a.avanti(60); a.dai(o); const u = a.usa(); a.avanti(n); a.set({ pausa: true }); return u; }, [ogg, passi]);
+      assert(dopo.oggetti.usati[0] > 0, `${ogg} non usato: ${JSON.stringify(dopo.oggetti)}`);
+      await fotogrammi(d.page, 4);
+      await ctx.shot(d.page, `pc_giungla_${ogg}`);
+    }
+    const perf = await d.page.evaluate(() => window.__provapiste.perf());
+    assert(perf.drawCalls <= MAX_DC, `${perf.drawCalls} draw call`);
+    numeri['oggetti_giungla'] = { drawCalls: perf.drawCalls };
+    ctx.noErrors(d, 'provapiste oggetti giungla');
   });
   ctx.writeOut('m4_provapiste.json', numeri);
 }

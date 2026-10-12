@@ -12,6 +12,23 @@
   "partenza": { "secondi": 3, "finestra": 0.9, "razzo": 0.4, "turbo": [0.7, 1.4], "ingolfato": 0.8 },
   "acrobazia": { "turbo": 0.8 },
   "scia": { "metri": [2, 12], "lato": 1.6, "velocitaMin": 12, "secondi": 1.2, "turbo": 1.0 },
+  "oggetti": {
+    "_nota": "Oggetti alla Mario Kart (#250, docs/CORSE.md A7), solo nelle gare CON OGGETTI (opzione oggetti = '1'). USA «dall'altra parte» (tasto R, col dito lo stick verso l'altra parte: senza frenare) = la buccia vola avanti di `lancio` m, i colpi vanno al contrario. indietro = colpo dritto che di serie va indietro (masso); rimbalzo = m/s di lato, rimbalza tra i bordi (cocco); scavalca = finché dura il turbo trappole e colpi non ti prendono (liana). scatole: file sulla principale a `righe` (frazioni del giro dal via), una scatola per ogni frazione `lat` della mezza carreggiata; si prendono entro `raggio` m, ricompaiono dopo `ricompare` s, la roulette gira `roulette` s. colpito: chi viene preso gira per `secondi` s senza gas e scende a × `velocita`. pesi = [primi, metà, ultimi] della classifica: chi è dietro pesca meglio. livello: base (ovunque), zona (solo sulle piste della `zona`), sblocco (si guadagna in un'altra isola, `sblocco` = id dell'isola: non ancora attivi).",
+    "scatole": { "righe": [0.14, 0.47, 0.78], "lat": [-0.62, -0.21, 0.21, 0.62], "raggio": 1.7, "ricompare": 2.5, "roulette": 1.1 },
+    "colpito": { "secondi": 1.1, "velocita": 0.3 },
+    "massimiATerra": 10,
+    "catalogo": [
+      { "id": "turbo", "nome": "Lattina-razzo", "livello": "base", "effetto": "turbo", "secondi": 1.4, "cariche": 1, "pesi": [2, 3, 3] },
+      { "id": "tris", "nome": "Tris di lattine", "livello": "base", "effetto": "turbo", "secondi": 1.1, "cariche": 3, "pesi": [0, 1, 3] },
+      { "id": "buccia", "nome": "Buccia", "livello": "base", "effetto": "trappola", "dietro": 2.6, "lancio": 22, "raggio": 1.3, "durata": 60, "cariche": 1, "pesi": [5, 3, 1] },
+      { "id": "palla", "nome": "Pallonata", "livello": "base", "effetto": "dritto", "velocita": 36, "vita": 3, "raggio": 1.6, "cariche": 1, "pesi": [3, 3, 2] },
+      { "id": "razzo", "nome": "Razzo a ricerca", "livello": "base", "effetto": "ricerca", "velocita": 31, "vita": 9, "raggio": 1.6, "sterza": 7, "cariche": 1, "pesi": [0, 2, 3] },
+      { "id": "scudo", "nome": "Salvagente", "livello": "base", "effetto": "scudo", "secondi": 8, "cariche": 1, "pesi": [3, 2, 1] },
+      { "id": "cocco", "nome": "Noce di cocco", "livello": "zona", "zona": "giungla", "effetto": "dritto", "velocita": 30, "vita": 4.5, "raggio": 1.5, "rimbalzo": 9, "cariche": 1, "pesi": [3, 3, 2] },
+      { "id": "masso", "nome": "Masso del tempio", "livello": "zona", "zona": "giungla", "effetto": "dritto", "indietro": true, "velocita": 32, "vita": 4, "raggio": 3, "cariche": 1, "pesi": [4, 2, 1] },
+      { "id": "liana", "nome": "Liana", "livello": "zona", "zona": "giungla", "effetto": "turbo", "secondi": 1.5, "scavalca": true, "cariche": 1, "pesi": [0, 2, 3] }
+    ]
+  },
   "bot": {
     "bravura": [0.975, 0.955, 0.935, 0.915],
     "corsia": 0.45,

@@ -26,6 +26,7 @@ import { creaRegia } from './prova/camera.ts';
 import type { Modo } from './prova/camera.ts';
 import { stileProva } from './prova/stile.ts';
 import type { Amico } from './amici.ts';
+import { creaOggetti3d, giroColpito } from './oggetti3d.ts';
 
 const COLORI = [P.rosso, P.giallo, P.acquaBassa, P.viola, P.erbaChiara];
 const CASCHI = [P.pietraChiara, P.neroCaldo, P.neroCaldo, P.neroCaldo, P.neroCaldo];
@@ -47,6 +48,8 @@ export type VistaGara = {
   chiudi(): void;
   /** Mostra o nasconde l'interfaccia (HUD, mappa, linee). */
   interfaccia(on: boolean): void;
+  /** Il tuo oggetto (gara CON OGGETTI, #250): cosa scrivere sul bottone USA e se si può usare. */
+  readonly ogg: { etichetta: string; pronto: boolean; ogg: string };
   readonly gruppo: THREE.Group;
   /** Per i test: quanti veicoli, se l'avatar è seduto, dove sono la camera e il tuo veicolo. */
   info(): { veicoli: number; avatar: boolean; kit: boolean; camera: number[]; padre: string | null; tu: number[] | null; fantasmi: number; nomi: string[] };
@@ -59,6 +62,8 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
   const materialeOnda = matOnda();
   const fx = creaParticelle(); gruppo.add(fx.mesh);
   const suoni = creaSuoni();
+  const ogg3d = creaOggetti3d(o.root); gruppo.add(ogg3d.gruppo);
+  let ogg = { etichetta: '', pronto: false, ogg: '' };
   const regia = creaRegia(o.camera);
   const linee = creaLinee(o.root), mappa = creaMinimappa(o.root);
   const hud = document.createElement('div'); hud.className = 'pp-hud'; o.root.appendChild(hud);
@@ -129,7 +134,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     meshes = [];
     if (ondaMesh) { gruppo.remove(ondaMesh); ondaMesh.geometry.dispose(); ondaMesh = null; }
     if (p3d) { gruppo.remove(p3d.group); p3d.group.traverse((x) => { const m = x as THREE.Mesh; if (m.isMesh) m.geometry.dispose(); }); p3d = null; }
-    s = null; p = null; fx.svuota();
+    s = null; p = null; fx.svuota(); ogg3d.chiudi(); ogg = { etichetta: '', pronto: false, ogg: '' };
   }
 
   /** Dove sta il veicolo `i` nel mondo: posizione, avanti (muso), sopra (la pista sotto di lui), destra e moto. */
@@ -245,12 +250,14 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
       const hop = w.hop > 0 ? 4 * 0.38 * (w.hop / 0.26) * (1 - w.hop / 0.26) : 0;
       const c = Math.cos(w.traverso), sn = Math.sin(w.traverso);
       tmp.copy(vF).multiplyScalar(c).addScaledVector(vR, sn); vF.copy(tmp); vR.crossVectors(vF, vU).normalize();
+      const gc = giroColpito(gs, i);
+      if (gc) { const c2 = Math.cos(gc), s2 = Math.sin(gc); tmp.copy(vF).multiplyScalar(c2).addScaledVector(vR, s2); vF.copy(tmp); vR.crossVectors(vF, vU).normalize(); } // colpito da un oggetto: gira su sé stesso
       if (k.acro > 0) { // l'acrobazia: un avvitamento intorno al muso
         const a = Math.PI * 2 * Math.min(1, k.acro / 0.42), ca = Math.cos(a), sa = Math.sin(a);
         tmp.copy(vU).multiplyScalar(ca).addScaledVector(vR, sa); vU.copy(tmp); vR.crossVectors(vF, vU).normalize();
       }
       vP.addScaledVector(vU, hop);
-      if (k.fermo > 0) vP.addScaledVector(vR, (Math.random() - 0.5) * 0.08); // motore ingolfato: trema
+      if (k.fermo > 0 && !gc) vP.addScaledVector(vR, (Math.random() - 0.5) * 0.08); // motore ingolfato: trema
       M4.makeBasis(vR, vU, tmp.copy(vF).negate()).setPosition(vP);
       meshes[i]!.matrix.copy(M4); meshes[i]!.matrixWorldNeedsUpdate = true;
       if (o2.effetti && !k.caduto && (i === 0 || o.camera.position.distanceToSquared(vP) < 60 * 60)) emettiVeicolo(fx, k, i === 0 && k.scia > 0.15 && w.scia <= k.scia, o2.fine ? 0 : Math.max(0, k.v), vP, vF, vU, vR, vM);
@@ -325,6 +332,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
       if (!s || gara !== s || !p) return;
       aggiornaVeicoli(dt, o2);
       aggiornaFantasmi(dt, o2.amici);
+      ogg = ogg3d.aggiorna(gara, p, dt, o2.fine ? null : suoni, o.camera);
       avatar?.update(1, dt); fx.aggiorna(dt);
       posa(0, vP, vF, vU, vM);
       const w = vis[0]!, hop = w.hop > 0 ? 1.52 * (w.hop / 0.26) * (1 - w.hop / 0.26) : 0;
@@ -336,9 +344,10 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
       o.onLuce?.(vP.x, vP.z);
       aggiornaHud(garaCorse.view(gara) as GaraView, dt, o2);
     },
+    get ogg() { return ogg; },
     cameraSalta() { regia.st.ok = false; },
     chiudi() { chiudiPista(); suoni.zitto(); for (const e of [hud, big, tst, mappa.el, linee.el, classifica]) e.style.display = 'none'; },
-    interfaccia(on) { for (const e of [hud, mappa.el, linee.el]) e.style.display = on ? '' : 'none'; if (!on) { big.style.display = 'none'; tst.style.display = 'none'; classifica.style.display = 'none'; } },
+    interfaccia(on) { ogg3d.interfaccia(on); for (const e of [hud, mappa.el, linee.el]) e.style.display = on ? '' : 'none'; if (!on) { big.style.display = 'none'; tst.style.display = 'none'; classifica.style.display = 'none'; } },
     info: () => ({ veicoli: meshes.length, avatar: !!avatar?.attached, kit: kitPronto(), camera: o.camera.getWorldPosition(new THREE.Vector3()).toArray().map((x) => Math.round(x * 10) / 10), padre: o.camera.parent?.type ?? null, tu: meshes[0] ? meshes[0].matrix.elements.slice(12, 15).map((x) => Math.round(x * 10) / 10) : null, fantasmi: fantasmi.filter((f) => f.visto).length, nomi: fantasmi.filter((f) => f.tag.style.display === 'block').map((f) => f.a.nome) }),
   };
 }

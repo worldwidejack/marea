@@ -147,7 +147,7 @@ Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, gioca
 **Presenza**: `Peer.indossa?: { corpo?, arma?, frecce? }` = id del catalogo GDR di quello che si vede addosso (armatura o veste, arma di mischia o arco, frecce); assente = niente. Come `titolo` e `barca` arriva nel `welcome`/`join` (dal look in D1) e negli `snap` dopo un cambio. **Non lo manda il client**: lo ricava il Worker dal personaggio vero (`heroOf(lotto).equip`; senza personaggio salvato vale l'equipaggiamento di partenza) a ogni `GET /api/me`, `GET /api/lot`, `POST /api/rpg` e `POST /api/dungeon/finish|save`; se è cambiato lo scrive nel look in D1 (`LookSalvato.indossa`) e avvisa la Zone come `POST /api/look`. `POST /api/look`, `/api/diario/titolo` e `/api/barca` lo conservano e non lo leggono dal corpo (nessuno si vede addosso quello che non ha). La Zone scarta gli id che non esistono o non stanno nello slot giusto (`indossaValida` in `@marea/sim/rpg/indossa.ts`). Niente migrazioni; `GET /api/me` e `/api/lots` lo danno nel `look`. `PROTOCOL_VERSION` resta 1.
 
 ## 5. Input log compresso (`PackedInputs`)
-Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32 e `a, b` 0/1. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
+Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32, `a` 0/1 e `b` 0/1/2: **2 = `b` con `c`** («dall'altra parte», `InputFrame.c` facoltativo; nelle Corse l'oggetto va al contrario, #250). Le partite di prima (solo 0/1) restano valide; il server controlla la forma con `isPackedInputs`. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 
 ## 6. Errori
 Sempre `{ error: string }` in italiano con status HTTP giusto: 400 richiesta rotta, 401 token, 403 non tuo, 404, 409 conflitto (cantiere già in corso, risorse insufficienti: `{ error, manca: Resources }`), 413 troppo grande, 429 troppi messaggi, 500 interno (mai il dettaglio tecnico al client).
@@ -179,14 +179,14 @@ Gara in tempo reale tra amici, a fantasmi (niente urti tra amici): **WebSocket**
 ```ts
 // client → server
 { t: 'ciao', veicolo }                       // entro in sala o cambio veicolo (id di CORSE.veicoli; sconosciuto → 'kart', che è anche il default)
-{ t: 'via', pista, bot? }                    // VIA: chiunque in sala, pista della Spiaggia (id in CORSE_PISTE che comincia con 'spiaggia_'); bot: true = anche gli animali piloti
+{ t: 'via', pista, bot?, oggetti? }          // VIA: chiunque in sala, pista della Spiaggia (id in CORSE_PISTE che comincia con 'spiaggia_'); bot: true = anche gli animali piloti; oggetti: true = gara CON OGGETTI (#250)
 { t: 'p', q: GaPos }                         // la mia posizione, ~ogni 80 ms: [prog, ramo, s, lat, h, hf, hl, v, drift, giro, caduto]
 { t: 'fine', ms }                            // sono arrivato (ms di gara ≥ 0) o mi ritiro (−1)
 { t: 'esco' }                                // esco dalla sala
 
 // server → client
 { t: 'sala', membri: GaMembro[], max, gara: { pista, membri: id[] } | null }   // a ogni cambio, a tutti; GaMembro = { id, nome, look, veicolo }
-{ t: 'parte', gara, pista, seed, io, membri: GaMembro[], bot }                  // si parte: membri in ordine di griglia, io = il mio posto, bot = coi bot
+{ t: 'parte', gara, pista, seed, io, membri: GaMembro[], bot, oggetti }         // si parte: membri in ordine di griglia, io = il mio posto, bot = coi bot, oggetti = con gli oggetti
 { t: 'p', i, q: GaPos }                                                         // posizione del corridore i (indice in `membri` di `parte`)
 { t: 'fine', i, ms }                                                            // il corridore i è arrivato (ms) o si è ritirato (−1)
 { t: 'errore', msg }                                                            // sala piena, da soli, pista sbagliata, gara in corso

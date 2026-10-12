@@ -3,6 +3,7 @@
 > Ogni idea nuova → una riga qui. Entra in una milestone solo tramite `ROADMAP.md`. Niente deroghe alla V1.
 
 ## Dopo dicembre 2026
+- Corse, gara tra amici: **urti e oggetti anche tra amici** (Jack, 12 ott 2026: «tanto comunque bisognerà implementare gli oggetti tra amici»). Oggi gli amici sono fantasmi: serve una soluzione di rete (l'urto o il colpo li decide chi colpisce e li manda agli altri). Prima gli urti veri coi bot.
 - Battaglia carte/unità in tempo reale (Clash Royale-like): netcode a bassa latenza, bot, bilanciamento. Unica ragione per il piano Paid di Cloudflare.
 - Puzzle leggero con i moduli dell'isola (tubi/tessere).
 - Distretto Neon e Isola Selvaggia come zone vere (oggi facciate).
