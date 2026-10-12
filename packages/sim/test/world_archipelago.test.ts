@@ -89,7 +89,8 @@ test('arcipelago: spawn a terra, barche in acqua, dal molo si sale e si scende',
     const spot = landingSpot(newBoat(b.x, b.z), M);
     assert.ok(spot && M.isDock(spot.x, spot.z), `lotto ${slot}: nessun molo accanto alla barca`);
     assert.ok(canBoard(newAvatar(spot.x, spot.z), newBoat(b.x, b.z), M), `lotto ${slot}: dal molo non si sale`);
-    // dallo spawn si arriva a piedi al molo
+    // dallo spawn si arriva a piedi al molo (nei giardini no: la stanza della casa è un isolotto a parte, si passa dalle porte, #240)
+    if (slot !== null) continue;
     const d = bfs(M, cellOf(s), (x, z) => WALK.has(M.at(x, z)));
     const c = cellOf(spot);
     assert.ok(d[c.cz * M.w + c.cx]! >= 0, `lotto ${slot}: dallo spawn non si arriva al molo`);

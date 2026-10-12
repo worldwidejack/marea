@@ -70,6 +70,8 @@ export type GameWorld = {
   vai(id: string): ArchPlace | null;
   /** A piedi in (x, z), la barca resta dov'è (porte del Borgo, #237). */
   aPiedi(x: number, z: number): void;
+  /** Chiamata dopo il cull di ogni frame, prima del render: chi deve nascondere qualcosa (la stanza della casa, #240). */
+  dopoCull: (() => void) | null;
   /** La tua barca (#107): colori e nome; setBarca la ridipinge (anteprima dell'editor, dopo il salvataggio). */
   readonly barca: BarcaLook;
   setBarca(b: BarcaLook): void;
@@ -122,6 +124,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   scene.add(island.group);
   // prima di ogni render: si disegnano solo le isole nell'inquadratura, da lontano la sagoma (render/island.ts, TECH §5);
   // gli edifici dei lotti (game/lot.ts, gruppi «lot_*» nella scena) stanno nella loro isola: fuori inquadratura o oltre LOD_M non si disegnano
+  let dopoCull: (() => void) | null = null;
   const lotti = { box: new Map<THREE.Object3D, THREE.Box3>(), frame: 0 }, fr = new THREE.Frustum(), pv = new THREE.Matrix4();
   island.group.userData.preRender = () => {
     const cam = o.renderer.camera;
@@ -129,6 +132,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     // Borgo Marea (#237): dei giardini si disegna solo quello dove sei (stanno vicini, oltre il mare: dall'alto se ne vedrebbero tre o quattro)
     { const qui = arch.placeAt(avatar.state.x, avatar.state.z), mio = qui?.role === 'lotto' ? 'vista_lotto_' + qui.slot : '';
       for (const g of island.group.children) if (g.name.startsWith('vista_lotto_') && g.name !== mio) g.visible = false; }
+    dopoCull?.(); // la stanza della casa (#240): dentro si nasconde il resto
     const rifai = lotti.frame++ % 30 === 0; // gli edifici cambiano di rado: la scatola si rifà ogni mezzo secondo
     fr.setFromProjectionMatrix(pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     for (const g of scene.children) {
@@ -302,6 +306,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     get frozen() { return frozen; },
     set frozen(v: boolean) { frozen = v; },
     get look() { return look; },
+    get dopoCull() { return dopoCull; },
+    set dopoCull(f) { dopoCull = f; },
     get vincoloBarca() { return vincoloBarca; },
     set vincoloBarca(f) { vincoloBarca = f; },
     vai(id) { return racing ? null : goto(id); },

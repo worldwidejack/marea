@@ -65,7 +65,14 @@ export type ArchipelagoIsland = { island: string; at: [number, number]; role: Ar
 /** `mare` = [w, h] in celle della parte navigabile (dall'angolo in alto a sinistra): oltre stanno i giardini delle case (#237), la barca non ci va. */
 export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; tile: number; mare?: [number, number]; islands: ArchipelagoIsland[] };
 /** Borgo Marea (#237): la casa `n` = lo slot `n` (= il lotto/giardino `n`). `at` = cella dell'edificio, `porta` = cella della via davanti, entrambe nel template `borgo`. */
-export type BorgoDef = { nome: string; case: { at: [number, number]; porta: [number, number] }[] };
+export type BorgoDef = {
+  nome: string; case: { at: [number, number]; porta: [number, number] }[];
+  /** La stanza della casa nel template `lotto` (#240): pavimento [x0, z0, x1, z1) in celle, altezza dei muri in m, porta in fondo (`retro`) e porta del giardino. */
+  stanza: { pavimento: [number, number, number, number]; altezza: number; retro: [number, number]; giardino: [number, number] };
+  /** Pavimenti e carte da parati: il primo è quello di serie. `motivo` = come si dipinge (render/stanza), `colori` dalla palette. */
+  pavimenti: StanzaFinitura[]; carte: StanzaFinitura[];
+};
+export type StanzaFinitura = { id: string; nome: string; motivo: string; colori: string[] };
 /** `mercante`: esclusivo del Mercante delle Perle al Porto (#63): nell'editor si vede ma si compra solo da lui. */
 export type HatDef = { id: string; nome: string; perle: number; mercante?: boolean };
 export type DecorDef = { id: string; nome: string; perle: number; model: string; mercante?: boolean };

@@ -14,7 +14,9 @@ export type Borgo = {
   tick(a: boolean): boolean;
   update(): void;
 };
-type Porta = { slot: number; x: number; z: number; dentro: { x: number; z: number }; nome: string | null; mia: boolean };
+type XZ = { x: number; z: number };
+/** Una casa: porta in città (x, z), punto d'arrivo nella stanza (`dentro`), porta in fondo alla stanza (`retro`) e porta del giardino (`giardino`). */
+type Porta = { slot: number; x: number; z: number; dentro: XZ; retro: XZ; giardino: XZ; nome: string | null; mia: boolean };
 
 const RAGGIO = 2.2;
 
@@ -34,25 +36,32 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
     const p = portaDi(w, l.slot);
     if (!p) continue;
     const chi = o.abitanti.find((a) => a.slot === l.slot) ?? null;
-    porte.push({ slot: l.slot, ...p, dentro: arch.spawnOf(l.slot), nome: chi?.nome ?? null, mia: !!chi?.mia });
+    const cella = (cx: number, cz: number): XZ => ({ x: (l.origin[0] + cx + 0.5) * arch.tile, z: (l.origin[1] + cz + 0.5) * arch.tile });
+    porte.push({ slot: l.slot, ...p, dentro: arch.spawnOf(l.slot), retro: cella(BORGO.stanza.retro[0], BORGO.stanza.retro[1]), giardino: cella(BORGO.stanza.giardino[0], BORGO.stanza.giardino[1]), nome: chi?.nome ?? null, mia: !!chi?.mia });
   }
-  type Vicino = { porta: Porta; esci: boolean };
+  // entra: dalla città nella stanza · esci: dalla stanza in città · retro: dalla stanza al giardino · giardino: dal giardino alla stanza (#240)
+  type Vicino = { porta: Porta; esci: boolean; dove: 'entra' | 'esci' | 'retro' | 'giardino' };
   let near: Vicino | null = null, nearWas = '', aWas = false;
   const trova = (): Vicino | null => {
     if (w.mode !== 'walk' || w.frozen || w.race.on) return null;
     const f = w.avatar.state;
     for (const p of porte) {
-      if (Math.hypot(f.x - p.x, f.z - p.z) < RAGGIO) return { porta: p, esci: false };
-      if (Math.hypot(f.x - p.dentro.x, f.z - p.dentro.z) < RAGGIO) return { porta: p, esci: true };
+      if (Math.hypot(f.x - p.x, f.z - p.z) < RAGGIO) return { porta: p, esci: false, dove: 'entra' };
+      if (Math.hypot(f.x - p.dentro.x, f.z - p.dentro.z) < RAGGIO) return { porta: p, esci: true, dove: 'esci' };
+      if (Math.hypot(f.x - p.retro.x, f.z - p.retro.z) < RAGGIO) return { porta: p, esci: false, dove: 'retro' };
+      if (Math.hypot(f.x - p.giardino.x, f.z - p.giardino.z) < RAGGIO) return { porta: p, esci: false, dove: 'giardino' };
     }
     return null;
   };
-  const testo = (v: Vicino) => v.esci ? 'Esci in città' : v.porta.mia ? 'Entra in casa' : v.porta.nome ? `Casa di ${v.porta.nome}` : 'Casa libera';
+  const testo = (v: Vicino) => v.dove === 'retro' ? 'Vai in giardino' : v.dove === 'giardino' ? 'Torna in casa' : v.esci ? 'Esci in città' : v.porta.mia ? 'Entra in casa' : v.porta.nome ? `Casa di ${v.porta.nome}` : 'Casa libera';
   const vai = (v: Vicino) => {
     if (v.esci) { w.aPiedi(v.porta.x, v.porta.z); return; }
+    // dalla porta in fondo si esce un passo nel giardino (davanti alla sua porta, a sud), dal giardino si entra un passo dentro la stanza
+    if (v.dove === 'retro') { w.aPiedi(v.porta.giardino.x, v.porta.giardino.z + 2.6); return; }
+    if (v.dove === 'giardino') { w.aPiedi(v.porta.retro.x, v.porta.retro.z + 2.6); return; }
     if (!v.porta.nome) { o.hud.toast('Questa casa non è ancora di nessuno', 2200); return; }
     w.aPiedi(v.porta.dentro.x, v.porta.dentro.z);
-    o.hud.toast(v.porta.mia ? 'Casa tua: il giardino è oltre la porta sul retro' : `Sei da ${v.porta.nome}: guarda pure, non si tocca`, 2600);
+    o.hud.toast(v.porta.mia ? 'Casa tua: il giardino è oltre la porta in fondo' : `Sei da ${v.porta.nome}: guarda pure, non si tocca`, 2600);
   };
 
   const btn = el('button', 'mz mz-play mz-libro-btn'); btn.id = 'mzPortaBtn'; btn.type = 'button';
@@ -60,15 +69,16 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
   btn.addEventListener('click', () => { if (near) vai(near); });
   o.root.appendChild(btn);
 
-  registerStateProvider('borgo', () => ({ near: near ? { slot: near.porta.slot, esci: near.esci } : null, porte: porte.map((p) => ({ slot: p.slot, x: p.x, z: p.z, nome: p.nome, mia: p.mia })) }));
-  registerTestHook('porta', (slot) => { const p = porte.find((x) => x.slot === Number(slot)); if (!p) return false; vai({ porta: p, esci: false }); return true; });
-  registerTestHook('esciDiCasa', (slot) => { const p = porte.find((x) => x.slot === Number(slot)); if (!p) return false; vai({ porta: p, esci: true }); return true; });
+  registerStateProvider('borgo', () => ({ near: near ? { slot: near.porta.slot, esci: near.esci, dove: near.dove } : null, porte: porte.map((p) => ({ slot: p.slot, x: p.x, z: p.z, nome: p.nome, mia: p.mia })) }));
+  registerTestHook('porta', (slot) => { const p = porte.find((x) => x.slot === Number(slot)); if (!p) return false; vai({ porta: p, esci: false, dove: 'entra' }); return true; });
+  registerTestHook('esciDiCasa', (slot) => { const p = porte.find((x) => x.slot === Number(slot)); if (!p) return false; vai({ porta: p, esci: true, dove: 'esci' }); return true; });
+  registerTestHook('portaRetro', (slot, verso) => { const p = porte.find((x) => x.slot === Number(slot)); if (!p) return false; vai({ porta: p, esci: false, dove: verso === 'stanza' ? 'giardino' : 'retro' }); return true; });
 
   return {
     tick(a) {
       const pressA = a && !aWas; aWas = a;
       near = trova();
-      const k = near ? `${near.porta.slot}:${near.esci}` : '';
+      const k = near ? `${near.porta.slot}:${near.dove}` : '';
       if (near && k !== nearWas) o.hud.toast(`${testo(near)}: premi A`, 2000);
       nearWas = k;
       if (near && pressA) { vai(near); return true; }
@@ -76,7 +86,7 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
     },
     update() {
       const show = !!near;
-      const k = near ? `${near.porta.slot}:${near.esci}` : '';
+      const k = near ? `${near.porta.slot}:${near.dove}` : '';
       if (show && near && btn.dataset['k'] !== k) { btn.dataset['k'] = k; btn.replaceChildren(pixIcon('casa', 24), el('span', '', testo(near).toUpperCase()), el('small', '', 'A')); }
       btn.classList.toggle('on', show);
     },
