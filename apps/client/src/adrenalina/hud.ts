@@ -1,10 +1,9 @@
 // L'interfaccia dello snowboard (docs/ADRENALINA.md §6-7): punti e tempo in alto, sotto la barra Adrenalina col gradino (sempre nello
 // stesso posto, la useranno anche bici e lancio), le scritte grandi al centro (trick, porte, salto grande, caduta, fuoripista), il 3-2-1,
-// l'aiuto dei comandi all'inizio, la scheda d'arrivo (3a: punti e numeri; medaglie e premio al 3b), Esc e il cambio camera A/B.
+// l'aiuto dei comandi all'inizio, la scheda d'arrivo (3a: punti e numeri; medaglie e premio al 3b), Esc.
 // Sotto tutto, la zona dei tocchi (`zona`) a schermo intero: col dito si gioca ovunque.
 import { PAL, el } from '../ui/style.ts';
 import type { SnowView } from '@marea/sim/minigames/snowboard.ts';
-import type { CameraId } from './regia.ts';
 
 const CSS = `
 body.mz-sb #compass, body.mz-sb #mzTop, body.mz-sb #mzGuida, body.mz-sb #mzGuidaPtr, body.mz-sb .mz-bar, body.mz-sb .mz-work, body.mz-sb .mz-labels,
@@ -29,10 +28,9 @@ body.mz-sb #mzTrag, body.mz-sb .mz-play, body.mz-sb #joystick, body.mz-sb #btnA,
 #mzSbAiuto { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); text-align: center; font-size: 13px; line-height: 1.5; padding: 8px 10px;
   background: rgba(46,30,20,.82); border: 2px solid ${PAL.legnoChiaro}; display: none; }
 #mzSbAiuto.on { display: block; }
-#mzSbEsci, #mzSbCam { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 8px); min-width: 44px; min-height: 40px; padding: 0 10px; background: rgba(46,30,20,.82); color: ${PAL.sabbiaChiara};
+#mzSbEsci { position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 8px); min-width: 44px; min-height: 40px; padding: 0 10px; background: rgba(46,30,20,.82); color: ${PAL.sabbiaChiara};
   border: 2px solid ${PAL.legno}; font: bold 13px ui-monospace, Menlo, monospace; border-radius: 6px; cursor: pointer; }
 #mzSbEsci { left: max(8px, env(safe-area-inset-left, 0px)); }
-#mzSbCam { right: max(8px, env(safe-area-inset-right, 0px)); }
 #mzSbFine { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(340px, calc(100% - 32px)); box-sizing: border-box; padding: 16px; display: none; text-align: center; pointer-events: auto;
   background: rgba(46,30,20,.97); border: 3px solid ${PAL.legnoChiaro}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; }
 #mzSbFine.on { display: block; }
@@ -48,12 +46,12 @@ body.mz-sb #mzTrag, body.mz-sb .mz-play, body.mz-sb #joystick, body.mz-sb #btnA,
 export type FineDati = { punti: number; ms: number; porte: number; porteTot: number; trick: number; combo: number; cadute: number; arrivato: boolean };
 export type HudNeve = {
   zona: HTMLElement;
-  aggiorna(v: SnowView, ms: number, cam: CameraId): void;
+  aggiorna(v: SnowView, ms: number): void;
   pop(testo: string, colore?: string): void;
   via(testo: string | null): void;
   aiuto(on: boolean): void;
   fine(d: FineDati | null): void;
-  onEsci: () => void; onCamera: () => void; onAncora: () => void;
+  onEsci: () => void; onAncora: () => void;
   dispose(): void;
 };
 
@@ -75,24 +73,22 @@ export function creaHud(root: HTMLElement, dito: boolean, soglie: readonly [numb
     ? 'Trascina a destra e sinistra: curvi · Lascia il dito sul bordo del trampolino: salti · In aria un colpo su, giù o di lato: trick · Dito fermo: presa'
     : 'A/D o ←/→: curvi · Spazio: tieni e lascia sul bordo del trampolino · In aria frecce: trick · Spazio tenuto: presa'); aiuto.id = 'mzSbAiuto';
   const esci = el('button', '', 'Esc ✕') as HTMLButtonElement; esci.id = 'mzSbEsci'; esci.type = 'button';
-  const cam = el('button', '', '📷 A') as HTMLButtonElement; cam.id = 'mzSbCam'; cam.type = 'button';
   const fine = el('div'); fine.id = 'mzSbFine';
   const ancora = el('button', '', 'ANCORA') as HTMLButtonElement; ancora.id = 'mzSbAncora'; ancora.type = 'button';
   const fineEsci = el('button', '', 'ESCI') as HTMLButtonElement; fineEsci.id = 'mzSbFineEsci'; fineEsci.type = 'button';
-  ui.append(testa, pop, via, aiuto, esci, cam, fine);
-  for (const b of [esci, cam, ancora, fineEsci, fine]) for (const ev of ['pointerdown', 'touchstart']) b.addEventListener(ev, (e) => e.stopPropagation());
+  ui.append(testa, pop, via, aiuto, esci, fine);
+  for (const b of [esci, ancora, fineEsci, fine]) for (const ev of ['pointerdown', 'touchstart']) b.addEventListener(ev, (e) => e.stopPropagation());
   root.append(zona, ui);
   document.body.classList.add('mz-sb');
   const h: HudNeve = {
     zona,
-    onEsci: () => {}, onCamera: () => {}, onAncora: () => {},
-    aggiorna(v, ms, c) {
+    onEsci: () => {}, onAncora: () => {},
+    aggiorna(v, ms) {
       punti.textContent = String(Math.max(0, v.punti));
       ora.textContent = tempo(ms);
       pieno.style.width = `${Math.round(v.barra.v * 100)}%`;
       gradino.textContent = `×${v.molt}`;
       barra.classList.toggle('x3', v.molt === 3);
-      cam.textContent = `📷 ${c.toUpperCase()}`;
     },
     pop(testo, colore = PAL.sabbiaChiara) {
       const d = el('div', '', testo); d.style.color = colore; pop.append(d);
@@ -112,7 +108,6 @@ export function creaHud(root: HTMLElement, dito: boolean, soglie: readonly [numb
     dispose() { zona.remove(); ui.remove(); document.body.classList.remove('mz-sb'); },
   };
   esci.addEventListener('click', () => h.onEsci());
-  cam.addEventListener('click', () => h.onCamera());
   ancora.addEventListener('click', () => h.onAncora());
   fineEsci.addEventListener('click', () => h.onEsci());
   return h;

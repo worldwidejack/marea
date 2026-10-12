@@ -1,8 +1,10 @@
 // Snowboard dell'Isola dell'Adrenalina (docs/ADRENALINA.md §7, passo 3a di #189). Senza server (net=0), con ?adrenalina=1.
-// Telefono 390×844: dalla funivia si scende (chunk a parte, scena a parte), 3-2-1, il dito curva sulla zona dei tocchi, le due camere A e B
-// fotografate negli stessi punti (partenza, slalom, in volo sul trampolino, gola, l'abete caduto al bivio del fuoripista, il sentiero,
-// arrivo) per la scelta di birbasan; la discesa intera col pilota automatico: arrivo, scheda, draw call e triangoli sotto il budget.
+// Telefono 390×844: dalla funivia si scende (chunk a parte, scena a parte), 3-2-1, il dito curva sulla zona dei tocchi, la camera che ti
+// segue (la A, scelta da birbasan) fotografata lungo tutta la montagna (vetta, cresta, slalom, il volo dalla cornice, la pala, la cunetta,
+// il canale, il salto dalla roccia, gli abeti, l'abete caduto al bivio del fuoripista, il sentiero, l'arrivo); la discesa intera col pilota
+// automatico: arrivo, scheda, draw call e triangoli sotto il budget.
 // PC 1280×720: frecce e Spazio, Esc riporta nel mondo davanti al cancello. Screenshot in tests/out/shots/m4_snowboard_*.png.
+import fs from 'node:fs';
 export const timeout = 300000;
 
 export default async function (ctx) {
@@ -57,28 +59,23 @@ export default async function (ctx) {
     assert(!s2.dito, 'il dito resta giù');
   });
 
-  /** I punti delle foto: [nome, s, lat, ticks col pilota automatico prima dello scatto]. */
-  const PUNTI = [['partenza', 8, 0, 20], ['slalom', 300, 0, 40], ['volo', 0, 0, 0], ['gola', 830, 0, 40], ['tronco', 1275, 0, 70], ['sentiero', 1420, 0, 40], ['arrivo', 1560, 0, 40]];
-  for (const cam of ['a', 'b']) {
-    await ctx.test(`telefono: camera ${cam.toUpperCase()} negli stessi punti (scelta di birbasan)`, async () => {
-      await hook(page, 'snowboardCamera', cam);
-      for (const [nome, s, lat, ticks] of PUNTI) {
-        if (nome === 'volo') {
-          // sul primo trampolino col pilota automatico, foto quando è in aria
-          await hook(page, 'snowboardMetti', { s: 580, lat: 0, v: 17 });
-          await hook(page, 'snowboardAuto', 1);
-          await ctx.waitState(page, (st) => st.snowboard.aria && st.snowboard.h > 1.5, 15000);
-        } else {
-          await hook(page, 'snowboardMetti', { s, lat, v: 15 });
-          await hook(page, 'snowboardAuto', 1);
-          await page.waitForTimeout((ticks / 60) * 1000 + 300);
-        }
-        await hook(page, 'snowboardAuto', 0);
-        await misura(page, `${cam}_${nome}`);
-        await ctx.shot(page, `${cam}_${nome}`);
-      }
-    });
-  }
+  // i punti delle foto, dalle zone della pista: [nome, s, ticks col pilota automatico prima dello scatto, aspetta il volo (m sopra la neve)]
+  const PISTA = JSON.parse(fs.readFileSync(new URL('../../packages/content/src/adrenalina/piste/snowboard_verde.json', import.meta.url), 'utf8'));
+  const Z = (id) => PISTA.zone.find((z) => z.id === id).da;
+  const PUNTI = [['vetta', 8, 20], ['cresta', Z('cresta') + 60, 40], ['slalom', Z('slalom') + 80, 40], ['cornice', Z('muro') - 15, 0, 2], ['pala', Z('pala') + 25, 40],
+    ['cunetta', PISTA.rampe[0].s - 25, 0, 2], ['canale', Z('canale') + 60, 40], ['roccia', Z('roccia') + 10, 0, 2.5], ['abeti', Z('abeti') + 40, 50],
+    ['tronco', PISTA.fuoripista.da - 22, 70], ['sentiero', PISTA.fuoripista.da + 125, 40], ['arrivo', PISTA.arrivo - 40, 40]];
+  await ctx.test('telefono: la camera che ti segue lungo tutta la montagna (foto per birbasan)', async () => {
+    for (const [nome, s, ticks, volo] of PUNTI) {
+      await hook(page, 'snowboardMetti', { s, lat: 0, v: 17 });
+      await hook(page, 'snowboardAuto', 1);
+      if (volo) await ctx.waitState(page, (st, h) => st.snowboard.aria && st.snowboard.h > h, 15000, volo);
+      else await page.waitForTimeout((ticks / 60) * 1000 + 300);
+      await hook(page, 'snowboardAuto', 0);
+      await misura(page, nome);
+      await ctx.shot(page, nome);
+    }
+  });
 
   await ctx.test('telefono: la discesa intera col pilota automatico arriva, porte e trick, la scheda d’arrivo', async () => {
     await hook(page, 'snowboardEsci');
@@ -87,7 +84,7 @@ export default async function (ctx) {
     await ctx.waitState(page, (st) => st.snowboard.active && st.snowboard.fase === 'gara', 15000);
     await hook(page, 'snowboardAuto', 6);
     const t0 = Date.now();
-    while (Date.now() - t0 < 120000) {
+    while (Date.now() - t0 < 150000) {
       const s = await sb(page);
       if (s.fase === 'fine') break;
       await misura(page, 'giro');
@@ -95,7 +92,7 @@ export default async function (ctx) {
     }
     const s = await sb(page);
     assert(s.fase === 'fine' && s.arrivato && s.risultato, `non arriva: ${JSON.stringify(s).slice(0, 300)}`);
-    assert(s.porte >= 17 && s.cadute === 0 && s.trick >= 4 && s.punti > 3000, `discesa: porte ${s.porte}, cadute ${s.cadute}, trick ${s.trick}, punti ${s.punti}`);
+    assert(s.porte >= PISTA.porte.length - 1 && s.cadute === 0 && s.trick >= 4 && s.punti > 3000, `discesa: porte ${s.porte}, cadute ${s.cadute}, trick ${s.trick}, punti ${s.punti}`);
     assert(s.eventi.includes('arrivo'), 'niente arrivo');
     assert(await page.isVisible('#mzSbFine'), 'niente scheda d’arrivo');
     numeri.discesa = { ms: s.risultato.detail.ms, punti: s.punti, porte: s.porte, trick: s.trick };
@@ -108,23 +105,20 @@ export default async function (ctx) {
   });
 
   // ---------------- PC ----------------
-  const d = await ctx.open('?test=1&net=0&adrenalina=1&camera=b', { viewport: ctx.B.DESKTOP });
+  const d = await ctx.open('?test=1&net=0&adrenalina=1', { viewport: ctx.B.DESKTOP });
   await ctx.waitReady(d.page, 20000);
-  await ctx.test('PC: dal cancello con E si scende; ← → curvano, Spazio salta, C cambia camera, Esc torna al cancello', async () => {
+  await ctx.test('PC: dal cancello con E si scende; ← → curvano, Spazio salta, Esc torna al cancello', async () => {
     await hook(d.page, 'adrenalinaCarica');
     await hook(d.page, 'adrenalinaCancello');
     await d.page.waitForTimeout(500);
     await d.page.keyboard.down('KeyE'); await d.page.waitForTimeout(80); await d.page.keyboard.up('KeyE');
     await ctx.waitState(d.page, (st) => st.snowboard && st.snowboard.fase === 'gara' && st.snowboard.frames > 20, 15000);
-    assert((await sb(d.page)).camera === 'b', 'camera da ?camera=b');
     const l0 = (await sb(d.page)).lat;
     await d.page.keyboard.down('ArrowRight'); await d.page.waitForTimeout(700); await d.page.keyboard.up('ArrowRight');
     const l1 = (await sb(d.page)).lat;
     assert(l1 > l0 + 0.5, `→ non curva: ${l0} → ${l1}`);
     await d.page.keyboard.down('Space'); await d.page.waitForTimeout(400); await d.page.keyboard.up('Space');
     await ctx.waitState(d.page, (st) => st.snowboard.aria, 2000);
-    await d.page.keyboard.press('KeyC');
-    assert((await sb(d.page)).camera === 'a', 'C non cambia camera');
     await misura(d.page, 'desktop');
     await ctx.shot(d.page, 'desktop');
     await d.page.keyboard.press('Escape');

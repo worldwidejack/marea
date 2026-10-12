@@ -29,6 +29,8 @@ export function neveA(p: PistaNeve, s: number): number {
 }
 /** Si è nel fuoripista (il sentiero nel bosco dopo l'abete caduto). */
 export const fuoripistaA = (p: PistaNeve, s: number): boolean => !!p.def.fuoripista && s >= p.def.fuoripista.da && s < p.def.fuoripista.a;
+/** Curvatura verso il sopra a `s` (1/m: + = conca, − = dosso). */
+export const curvaturaA = (p: PistaNeve, s: number): number => campo(p.n, p.n.kv, s);
 /** Pendenza a `s`: quanto scende la pista per metro (seno dell'angolo; + = in discesa). */
 export const pendenzaA = (p: PistaNeve, s: number): number => -campo(p.n, p.n.ty, s);
 

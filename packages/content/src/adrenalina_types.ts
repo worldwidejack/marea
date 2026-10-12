@@ -32,6 +32,10 @@ export type SnowboardCfg = {
     vNeve: number; frenoNeve: number;
     /** Nel fuoripista la neve alta tiene la velocità sotto `vFuoripista` (stessa forza della neve fresca). */
     vFuoripista: number;
+    /** Sul dosso ci si stacca quando restare attaccati vorrebbe più di `stacco` × la gravità. */
+    stacco: number;
+    /** Atterraggio: oltre `botta` m/s contro la neve è una caduta. */
+    botta: number;
   };
   salto: {
     /** Secondi per caricare tutto il salto (tenendo premuto). */

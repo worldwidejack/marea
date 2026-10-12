@@ -2,10 +2,10 @@
   "nome": "Snowboard",
   "maxSecondi": 180,
   "fisica": {
-    "gravita": 13, "aria": 0.0035, "attrito": 0.15,
+    "gravita": 9.81, "aria": 0.0082, "attrito": 0.15,
     "vmax": 26, "vPartenza": 6, "vRipartenza": 6,
     "latFrazione": 0.45, "latMax": 9, "presaCurva": 6, "frenoCurva": 0.3,
-    "vNeve": 7, "frenoNeve": 1.5, "vFuoripista": 14
+    "vNeve": 7, "frenoNeve": 1.5, "vFuoripista": 16, "stacco": 0.9, "botta": 17
   },
   "salto": { "carica": 0.5, "ollie": 3.5, "ollieCarica": 1.5, "finestra": 0.35, "grande": 0.15, "basso": 0.6, "lungo": 1.2 },
   "trick": {

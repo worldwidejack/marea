@@ -5,7 +5,9 @@
 // - In aria: un gesto (un fronte di `my` o `mx` oltre 0,5) fa un trick (su = mortale avanti, giù = indietro, destra/sinistra = 360),
 //   uno dopo l'altro nello stesso salto (combo). `a` premuto di nuovo in aria = presa, vale finché tieni. Atterrare a metà di un trick
 //   o ancora in presa = caduta.
-// - Caduta (albero, roccia, bosco oltre la neve fresca, atterraggio storto): 2 s fermi, barra a zero, si riparte da lì.
+// - Su un dosso o un bordo (la cornice, la roccia) a velocità ci si stacca da soli: per restare attaccati alla neve servirebbe più
+//   della gravità (v²·curvatura). Atterrare troppo duro (in piano da troppo in alto) è una caduta.
+// - Caduta (albero, roccia, bosco oltre la neve fresca, atterraggio storto o troppo duro): 2 s fermi, barra a zero, si riparte da lì.
 // Coordinate di pista: s (m lungo il centro), lat (m, + = destra); in aria la quota `y` è quella del mondo (la neve sotto scende).
 // Solo + − × ÷ e Math.sqrt (tools/check_static.mjs): il server rigioca gli input (passo 3b).
 import { BARRA, SNOWBOARD } from '@marea/content/adrenalina.ts';
@@ -15,7 +17,7 @@ import type { InputFrame } from '../types.ts';
 import type { MinigameModule, MinigameOpzioni } from './types.ts';
 import { azzeraBarra, moltiplicatore, nuovaBarra, passoBarra, riempiBarra } from '../adrenalina/barra.ts';
 import type { Barra } from '../adrenalina/barra.ts';
-import { altezzaRampa, bordoA, fuoripistaA, neveA, pendenzaA, pistaSnowboard, quotaA, rampaA } from '../adrenalina/pista.ts';
+import { altezzaRampa, bordoA, curvaturaA, fuoripistaA, neveA, pendenzaA, pistaSnowboard, quotaA, rampaA } from '../adrenalina/pista.ts';
 import type { PistaNeve } from '../adrenalina/pista.ts';
 
 export const TRICKS: readonly SnowboardTrickId[] = ['avanti', 'indietro', 'giro_dx', 'giro_sx'];
@@ -95,7 +97,10 @@ function nuova(o: { opzioni?: MinigameOpzioni }): SnowState {
 }
 
 function atterra(s: SnowState, p: PistaNeve, quota: number): void {
+  // la botta: la velocità contro la neve, lungo la sua normale (su un pendio ripido si atterra morbidi, in piano no)
+  const sn = pendenzaA(p, s.s), cs = Math.sqrt(1 - sn * sn), botta = -(s.v * cs * sn + s.vy * cs);
   s.aria = false; s.y = quota; s.vy = 0; s.h = 0;
+  if (botta > F.botta) { cade(s, p, 'botta'); return; }
   if (s.trick >= 0) { cade(s, p, 'storto'); return; }
   if (s.presa) { cade(s, p, 'presa'); return; }
   const molt = moltiplicatore(s.barra, BARRA);
@@ -149,6 +154,12 @@ function step(s: SnowState, f: InputFrame): void {
       s.y = quotaA(p, s.s, s.lat) + r.alto;
       decolla(s, r.salto * k, mio && dopo <= J.grande);
       s.rilRampa = -1;
+    }
+    // il dosso: se per seguire la neve servisse più della gravità, si vola (con la velocità verticale che si aveva)
+    const kv = curvaturaA(p, s.s);
+    if (!s.aria && kv < 0 && s.v * s.v * -kv > C.fisica.gravita * F.stacco && rampaA(p, s.s, s.lat) < 0) {
+      const vy = -s.v * pendenzaA(p, s.s), a0 = s.tenuto;
+      decolla(s, vy, false); s.tenuto = a0;
     }
     if (!s.aria) { s.y = suolo(p, s.s, s.lat); s.h = 0; }
   } else {

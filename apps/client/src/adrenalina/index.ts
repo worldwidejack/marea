@@ -1,6 +1,6 @@
 // Snowboard dell'Isola dell'Adrenalina, la discesa nel client (docs/ADRENALINA.md §7, passo 3a; CONTRACTS §42). Chunk scaricato dalla
 // funivia (game/adrenalina_funivia.ts) quando sali con ?adrenalina=1: la scena a parte (la montagna vista da vicino, `pista3d.ts`), la
-// tavola, la camera A/B (`regia.ts`), i comandi (`comandi.ts`), l'HUD (`hud.ts`). La sim è `@marea/sim/minigames/snowboard.ts`, la stessa
+// tavola, la camera che ti segue come nei video di freeride (`regia.ts`, la A scelta da birbasan), la neve che vola (`neve.ts`), i comandi (`comandi.ts`), l'HUD (`hud.ts`). La sim è `@marea/sim/minigames/snowboard.ts`, la stessa
 // che il server rigiocherà al 3b (medaglie e premio): qui si gioca senza server, a fine discesa la scheda coi punti, ANCORA o ESCI.
 // Giro: 3-2-1 (la sim ferma), la discesa (un tick della sim per tick del gioco), l'arrivo. Il mondo intanto sta fermo (main.ts: adr.active).
 import * as THREE from 'three';
@@ -10,7 +10,7 @@ import type { Look } from '@marea/protocol';
 import { BARRA, SNOWBOARD } from '@marea/content/adrenalina.ts';
 import { pilotaSnowboard, snowboard, TRICKS } from '@marea/sim/minigames/snowboard.ts';
 import type { SnowState, SnowView } from '@marea/sim/minigames/snowboard.ts';
-import { pistaSnowboard } from '@marea/sim/adrenalina/pista.ts';
+import { bordoA, fuoripistaA, pistaSnowboard } from '@marea/sim/adrenalina/pista.ts';
 import { nuovaTerna, punto, terna } from '@marea/sim/corse/nastro.ts';
 import type { Renderer } from '../render/scene.ts';
 import { createLights } from '../render/light.ts';
@@ -21,7 +21,7 @@ import { creaComandi } from './comandi.ts';
 import { creaHud } from './hud.ts';
 import { creaPista3d } from './pista3d.ts';
 import { creaRegia } from './regia.ts';
-import type { CameraId } from './regia.ts';
+import { creaNeve } from './neve.ts';
 import { creaTavola } from './tavola3d.ts';
 
 export type SnowCtx = { renderer: Renderer; root: HTMLElement; look(): Look };
@@ -36,24 +36,16 @@ export type SnowRun = {
 };
 
 const VIA_S = 2.4, AIUTO_S = 7;
-/** Oltre questa distanza (m) la nebbia copre tutto: riquadri e abeti si spengono. */
-const NEBBIA = 300;
-const NOMI_CADUTA: Record<string, string> = { abete: 'CONTRO L’ABETE!', roccia: 'CONTRO LA ROCCIA!', bosco: 'NEL BOSCO!', storto: 'ATTERRAGGIO STORTO!', presa: 'ANCORA IN PRESA!', tronco: 'CONTRO IL TRONCO!' };
+/** Oltre questa distanza (m) gli abeti si spengono (il terreno resta: da lassù si vede fino in valle). */
+const NEBBIA = 420;
+const NOMI_CADUTA: Record<string, string> = { abete: 'CONTRO L’ABETE!', roccia: 'CONTRO LA ROCCIA!', bosco: 'NEL BOSCO!', storto: 'ATTERRAGGIO STORTO!', presa: 'ANCORA IN PRESA!', tronco: 'CONTRO IL TRONCO!', botta: 'ATTERRAGGIO TROPPO DURO!' };
 /** Per i test: la discesa aperta adesso. */
-let corrente: { stato(): Record<string, unknown>; auto(n: number): number; camera(c: CameraId): CameraId; metti(o: Record<string, unknown>): unknown; esci(): void } | null = null;
+let corrente: { stato(): Record<string, unknown>; auto(n: number): number; metti(o: Record<string, unknown>): unknown; esci(): void } | null = null;
 registerStateProvider('snowboard', () => (corrente ? corrente.stato() : { active: false }));
 registerTestHook('snowboardAuto', (n) => corrente?.auto(Number(n ?? 1)) ?? null);
-registerTestHook('snowboardCamera', (c) => corrente?.camera(c === 'b' ? 'b' : 'a') ?? null);
 registerTestHook('snowboardMetti', (o) => (corrente && o && typeof o === 'object' ? corrente.metti(o as Record<string, unknown>) : null));
 registerTestHook('snowboardEsci', () => { corrente?.esci(); return true; });
 
-/** Camera di partenza: `?camera=a|b`, se no l'ultima scelta (localStorage), se no A. */
-function cameraIniziale(): CameraId {
-  const q = new URLSearchParams(location.search).get('camera');
-  if (q === 'a' || q === 'b') return q;
-  try { const s = localStorage.getItem('mz-sb-camera'); if (s === 'a' || s === 'b') return s; } catch { /* niente storage */ }
-  return 'a';
-}
 /** Cielo di montagna a tre bande piatte (ART_BIBLE §7): azzurro, azzurro chiaro, foschia all'orizzonte. */
 function cielo(): THREE.Texture {
   const c = document.createElement('canvas'); c.width = 1; c.height = 32;
@@ -69,24 +61,25 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string; seed?: number 
 
   // ---- la scena ----
   const scene = new THREE.Scene(); scene.name = 'snowboard';
-  scene.userData.near = 0.3;
+  scene.userData.near = 0.5;
   const sfondo = cielo(); scene.background = sfondo;
-  scene.fog = new THREE.Fog(PAL.pietraChiara, 80, NEBBIA);
+  scene.fog = new THREE.Fog(PAL.pietraChiara, 350, 5200); // aria di montagna: limpida vicino, sempre più chiara lontano (la valle, le cime)
   const luci = createLights(), luciSu = new THREE.Group(); luciSu.add(luci.group); scene.add(luciSu);
   // luce di montagna: sole bianco e alto, cielo freddo nelle ombre (la neve resta neve, non rosa)
-  luci.set?.({ elev: 52, azim: 200, color: 0xfff6e8, intensity: 2.3, sky: 0xcfeeff, ground: 0x8fa3b8, hemiI: 1.7, amb: 0x7fe3e0, ambI: 0.12 });
+  luci.set?.({ elev: 48, azim: 200, color: 0xfff6e8, intensity: 2.4, sky: 0xdff4ff, ground: 0xc8d4e0, hemiI: 2.5, amb: 0x7fe3e0, ambI: 0.15 });
   const pista3d = creaPista3d(p); scene.add(pista3d.gruppo);
   const tavola = creaTavola(ctx.look()); scene.add(tavola.gruppo);
   ctx.renderer.setScene(scene);
-  cam0.far = 2400; cam0.near = 0.3; cam0.updateProjectionMatrix();
+  cam0.far = 7000; cam0.near = 0.5; cam0.updateProjectionMatrix();
 
   const hud = creaHud(ctx.root, dito, BARRA.soglie);
   const comandi = creaComandi(hud.zona);
-  const regia = creaRegia(cam0, cameraIniziale());
+  const regia = creaRegia(cam0, p);
+  const neve = creaNeve(); scene.add(neve.gruppo);
 
   let s: SnowState = snowboard.create({ seed: o.seed ?? 1, difficulty: 1, opzioni: { pista } });
   let prima = { s: s.s, lat: s.lat, y: s.y }, fase: 'via' | 'gara' | 'fine' | 'chiuso' = 'via', viaT = 0, gara = 0, visto = 0, auto = 0, cadutoA = 0;
-  let ultimo: ReturnType<typeof snowboard.result> | null = null, frames: InputFrame[] = [], scatto = true, discese = 0;
+  let ultimo: ReturnType<typeof snowboard.result> | null = null, frames: InputFrame[] = [], scatto = true, discese = 0, nuvolaA = false;
   let fine!: (r: ReturnType<typeof snowboard.result> | null) => void;
   const done = new Promise<ReturnType<typeof snowboard.result> | null>((r) => { fine = r; });
 
@@ -94,7 +87,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string; seed?: number 
     s = snowboard.create({ seed: o.seed ?? 1, difficulty: 1, opzioni: { pista } });
     prima = { s: s.s, lat: s.lat, y: s.y }; fase = 'via'; viaT = 0; gara = 0; visto = 0; frames = []; scatto = true;
     hud.fine(null); hud.aiuto(true);
-    pista3d.tronco?.cade(0);
+    pista3d.tronco?.cade(0); neve.pulisci();
   };
   const chiudi = () => {
     if (fase === 'chiuso') return;
@@ -102,18 +95,15 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string; seed?: number 
     comandi.dispose(); hud.dispose();
     ctx.renderer.setScene(null);
     cam0.fov = salva.fov; cam0.near = salva.near; cam0.far = salva.far; cam0.updateProjectionMatrix();
-    scene.remove(pista3d.gruppo); pista3d.dispose(); tavola.dispose(); sfondo.dispose();
+    scene.remove(pista3d.gruppo); pista3d.dispose(); tavola.dispose(); neve.dispose(); sfondo.dispose();
     corrente = null;
     fine(ultimo);
   };
-  const cambiaCamera = (c: CameraId) => { regia.modo = c; scatto = true; try { localStorage.setItem('mz-sb-camera', c); } catch { /* niente storage */ } return c; };
   hud.onEsci = chiudi;
   hud.onAncora = ricomincia;
-  hud.onCamera = () => cambiaCamera(regia.modo === 'a' ? 'b' : 'a');
   const tasti = (e: KeyboardEvent) => {
     if (fase === 'chiuso') { removeEventListener('keydown', tasti); return; }
     if (e.code === 'Escape') chiudi();
-    else if (e.code === 'KeyC' && !e.repeat) hud.onCamera();
     else if (fase === 'fine' && (e.code === 'Enter' || e.code === 'Space') && !e.repeat) ricomincia();
   };
   addEventListener('keydown', tasti);
@@ -127,10 +117,10 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string; seed?: number 
       else if (e.k === 'mancata') hud.pop(`PORTA MANCATA ${e.n}`, PAL.rosso);
       else if (e.k === 'trick') hud.pop(`${e.x!.toUpperCase()} +${e.n}`, PAL.giallo);
       else if (e.k === 'presa') hud.pop(`PRESA +${e.n}`, PAL.giallo);
-      else if (e.k === 'atterra') hud.pop(`ATTERRATO +${e.n}${e.x ? ' ' + e.x : ''}`, PAL.arancio);
+      else if (e.k === 'atterra') { nuvolaA = true; hud.pop(`ATTERRATO +${e.n}${e.x ? ' ' + e.x : ''}`, PAL.arancio); }
       else if (e.k === 'grande') hud.pop('SALTO GRANDE!', PAL.arancio);
       else if (e.k === 'rasente') hud.pop('RASENTE!', PAL.arancio);
-      else if (e.k === 'caduta') { hud.pop(NOMI_CADUTA[e.x ?? ''] ?? 'CADUTO!', PAL.rosso); cadutoA = s.tick; }
+      else if (e.k === 'caduta') { hud.pop(NOMI_CADUTA[e.x ?? ''] ?? 'CADUTO!', PAL.rosso); cadutoA = s.tick; nuvolaA = true; }
       else if (e.k === 'fuoripista') hud.pop('← FUORIPISTA!', PAL.arancio);
       else if (e.k === 'rientro') hud.pop('DI NUOVO IN PISTA', PAL.erbaChiara);
     }
@@ -152,7 +142,8 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string; seed?: number 
   // ---- resa ----
   const T = nuovaTerna(), P3: [number, number, number] = [0, 0, 0];
   const pos = new THREE.Vector3(), avanti = new THREE.Vector3(), destra = new THREE.Vector3(), su = new THREE.Vector3(), fwd = new THREE.Vector3(), x = new THREE.Vector3(), base = new THREE.Matrix4();
-  const fh = new THREE.Vector3(), rh = new THREE.Vector3();
+  const fh = new THREE.Vector3(), rh = new THREE.Vector3(), coda = new THREE.Vector3();
+  const bordo = (q: number) => bordoA(p, q) + (fuoripistaA(p, q) ? -10 : 0); // nel fuoripista tutta neve fresca
   const tronco = p.def.fuoripista;
   function rendi(alpha: number, dt: number, t: number): void {
     const ss = prima.s + (s.s - prima.s) * alpha, lat = prima.lat + (s.lat - prima.lat) * alpha, y = prima.y + (s.y - prima.y) * alpha;
@@ -171,15 +162,20 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string; seed?: number 
       carica: s.aria ? 0 : s.carica, piega: s.aria ? 0 : Math.max(-0.5, Math.min(0.5, (s.vl / v) * 1.4)), trick: s.trick, k: tr ? Math.min(1, s.trickT / tr.durata) : 0,
       presa: s.presa, caduta: s.caduta > 0 ? 1 - s.caduta / SNOWBOARD.caduta : null, aria: s.aria, t,
     });
-    // camera: dietro lungo la pista (in orizzontale)
-    fh.set(T.tx, 0, T.tz).normalize(); rh.set(-fh.z, 0, fh.x); // la destra della pista (guardando +z la destra è −x)
-    regia.segui(pos, fh, rh, dt, scatto); scatto = false;
+    // camera: chi filma ti segue sul pendio
+    regia.segui({ s: ss, lat, y, v: s.v, aria: s.aria }, dt, scatto); scatto = false;
+    // la neve: polvere dalla coda (più in curva e nella neve fresca), la scia, la nuvola quando atterri o cadi
+    fh.set(fwd.x, 0, fwd.z).normalize(); rh.set(-fh.z, 0, fh.x);
+    coda.copy(pos).addScaledVector(fwd, -0.6);
+    const fresca = Math.abs(s.lat) > bordo(ss) ? 0.5 : 0;
+    neve.aggiorna({ coda, avanti: fh, destra: rh, v: s.v, spruzzo: Math.min(1, Math.abs(s.vl) / 5 + fresca + s.carica * 0.2), aTerra: !s.aria && s.caduta <= 0 }, dt);
+    if (nuvolaA) { nuvolaA = false; neve.nuvola(pos, s.caduta > 0 ? 1 : 0.6); }
     pista3d.aggiorna(cam0.position, NEBBIA + 20);
     // il sole segue la tavola (anche in quota: il gruppo delle luci sale e scende con lei)
     luciSu.position.y = Math.round(pos.y); luci.follow?.(pos.x, pos.z);
     // l'abete che cade sulla pista chiusa quando arrivi al bivio
     if (tronco && pista3d.tronco) pista3d.tronco.cade((ss - (tronco.da - 70)) / 22);
-    hud.aggiorna(snowboard.view(s) as SnowView, (gara * 1000) / 60, regia.modo);
+    hud.aggiorna(snowboard.view(s) as SnowView, (gara * 1000) / 60);
   }
 
   const run: SnowRun = {
@@ -208,7 +204,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string; seed?: number 
     stato: () => {
       const v = snowboard.view(s) as SnowView, st = ctx.renderer.stats();
       return {
-        active: fase !== 'chiuso', fase, pista, camera: regia.modo, auto, discese, frames: frames.length,
+        active: fase !== 'chiuso', fase, pista, auto, discese, frames: frames.length,
         s: +v.s.toFixed(1), lat: +v.lat.toFixed(2), v: +v.v.toFixed(1), aria: v.aria, h: +v.h.toFixed(2), punti: v.punti, barra: +v.barra.v.toFixed(2), molt: v.molt,
         porte: v.porte, mancate: v.mancate, cadute: v.cadute, trick: v.trickFatti, salti: v.salti, caduta: v.caduta > 0, ultimaCaduta: cadutoA,
         eventi: v.eventi.map((e) => e.k), done: v.done, arrivato: v.arrivato, risultato: ultimo, scena: pista3d.numeri(), drawCalls: st.drawCalls, triangoli: st.triangles,
@@ -216,7 +212,6 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string; seed?: number 
       };
     },
     auto: (n) => { auto = Math.max(0, Math.min(30, Math.round(n) || 0)); return auto; },
-    camera: cambiaCamera,
     /** Solo prove: mette la tavola a `s` (e `lat`, `v`), salta il 3-2-1; `pausa` ferma la sim (per gli screenshot). */
     metti: (q) => {
       if (typeof q['s'] === 'number') {
