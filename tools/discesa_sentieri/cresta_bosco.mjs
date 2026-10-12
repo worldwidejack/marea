@@ -1,6 +1,6 @@
 // Il primo sentiero della discesa (banco provadiscesa3d.html, #229), sul modello della speciale «Karma» di Finale Ligure: dalla cresta
 // d'erba sopra il mare, con gli strappi in salita da pedalare, i dossi tondi, le discese che buttano nelle paraboliche, due salti; poi
-// giù nel bosco con i tornanti sopraelevati, le radici, i tronchi e le paraboliche di tavole. Si guarda quasi sempre verso il mare
+// giù nel bosco con i tornanti sopraelevati, le radici, i tronchi, le paraboliche di tavole e il salto sul ruscello. Si guarda quasi sempre verso il mare
 // (la direzione 0 = +x, dove sta il fondale dipinto): le curve si compensano.
 export const meta = { id: 'cresta_bosco', nome: 'Cresta e bosco', da: [0, 260, 0], dir: 0, larghezza: 0.9, bordo: 2.6, sassiCresta: 22, sassiBosco: 34, seme: 11 };
 export default function (t) {
@@ -43,6 +43,8 @@ export default function (t) {
   t.curva(-90, 16, { sali: -2, inc: 38, legno: true }); // seconda parabolica di tavole
   t.dritto(14, { sali: -2 }).rampa(0.5, 'tronco');
   t.dritto(36, { sali: -6, dossi: 0.6 });
+  t.dritto(30, { sali: -6 }).ruscello(7);             // il salto sul ruscello: trampolino di terra e il fosso con l'acqua
+  t.dritto(26, { sali: -4 });                         // l'atterraggio
   t.curva(30, 50, { sali: -3 });
   t.dritto(40, { sali: -2 });
 }

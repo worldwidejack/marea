@@ -7,7 +7,8 @@ import { createAvatar } from '../../game/avatar.ts';
 import type { Avatar } from '../../game/avatar.ts';
 import { loaderCorse } from '../veicoli_kit.ts';
 
-export type Ciclista = { avatar: Avatar; aggiorna(dt: number, prese: THREE.Object3D[], pedali: THREE.Object3D[], piega: number): void };
+/** `giu` = quanto si schiaccia sulla bici (m): il bacino scende, mani e piedi restano su manopole e pedali (l'IK piega di più). */
+export type Ciclista = { avatar: Avatar; aggiorna(dt: number, prese: THREE.Object3D[], pedali: THREE.Object3D[], piega: number, giu?: number): void };
 
 /** I piedi stanno 0,34 m da terra (i pedali); il bacino si abbassa di `ACCOVACCIA` m rispetto a in piedi e va un po' indietro. */
 const ACCOVACCIA = 0.2, INDIETRO = 0.16, BUSTO = 0.55;
@@ -69,8 +70,9 @@ export async function creaCiclista(genitore: THREE.Object3D, look: Look): Promis
   const X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1), polo = v3(), pw = v3(), qg = new THREE.Quaternion();
   return {
     avatar,
-    aggiorna(dt, prese, pedali, piega) {
+    aggiorna(dt, prese, pedali, piega, giu = 0) {
       avatar.update(1, dt);
+      avatar.object.position.y -= giu;
       avatar.object.updateMatrixWorld(true);
       // busto in avanti, testa su a guardare il sentiero, il corpo che si piega un filo più della bici in curva
       rot(B.spine, X, -BUSTO); rot(B.head, X, BUSTO * 0.8); rot(B.spine, Z, -piega * 0.25);

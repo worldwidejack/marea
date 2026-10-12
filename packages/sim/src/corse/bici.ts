@@ -1,7 +1,11 @@
 // La mountain bike della discesa (banco provadiscesa3d.html, #229; ADRENALINA.md §7, CORSE.md A6 «Due ruote»). Vive sul nastro del
 // sentiero come i veicoli delle Corse (s lungo il centro, lat a destra, h sopra), ma è un mezzo diverso:
 // - niente motore: spinge la pendenza; si pedala solo piano (sotto `pedaleFinoA`) e pedalare consuma l'energia (`energia`, 0..1), che
-//   torna quando non si pedala; senza energia si pedala piano. Lo scatto è un colpo di pedale: si fa con l'energia carica e la svuota;
+//   torna quando non si pedala; senza energia si pedala piano. Lo scatto è un colpo di pedale: costa `scatto.costo` dell'energia;
+// - il SALTO: tenuto a terra carica (la bici si schiaccia), lasciato stacca (bunny hop: si passano sassi e tronchi; sul labbro di
+//   una rampa si somma al volo); tenuto a lungo in piano alza la ruota davanti (impennata: le radici non frenano);
+// - il ruscello: dopo un trampolino di terra il fosso con l'acqua; ci si cade dentro solo arrivandoci quasi fermi (l'acqua frena e
+//   si esce dall'altra sponda da soli, pedalando o con lo slancio);
 // - le salite (strappi) si fanno pedalando o con lo slancio; le paraboliche (curve sopraelevate) tengono di più: la presa cresce con
 //   la sopraelevazione verso l'interno;
 // - lo sterzo dipende dalla velocità: piano gira stretto (interasse e angolo dello sterzo), forte lo limita la presa laterale, quindi
@@ -40,25 +44,29 @@ export type Bici = {
   /** Secondi da quando è caduto (0 = in sella); energia (0..1); tasto dello scatto tenuto (si scatta quando si preme, non tenendo);
    *  scossa per la camera (0..1, cala da sola); secondi in aria. */
   caduto: number; energia: number; scattoTenuto: boolean; scossa: number; volo: number;
+  /** Il SALTO: tasto tenuto, carica (0..1, la bici schiacciata), secondi tenuto a terra, impennata (la ruota davanti su), stacco del
+   *  prossimo tick (m/s in su, 0 = niente). */
+  saltoTenuto: boolean; carica: number; tenuto: number; impennata: boolean; stacco: number;
   /** Sotto le ruote: sentiero, radici, erba o tavole (le paraboliche di legno). */
   sup: 'sentiero' | 'radici' | 'erba' | 'legno';
   /** Perché è caduto l'ultima volta (per i messaggi e le prove). */
-  perche: '' | 'sasso' | 'muro' | 'atterraggio';
+  perche: '' | 'sasso' | 'muro' | 'atterraggio' | 'ruscello';
   tick: number; fine: number; cadute: number; salti: number;
 };
 
 export function nuovaBici(): Bici {
-  return { s: 2, lat: 0, h: 0, vh: 0, ang: 0, v: 0, st: 0, w: 0, aria: false, caduto: 0, energia: 1, scattoTenuto: false, scossa: 0, volo: 0, sup: 'sentiero', perche: '', tick: 0, fine: 0, cadute: 0, salti: 0 };
+  return { s: 2, lat: 0, h: 0, vh: 0, ang: 0, v: 0, st: 0, w: 0, aria: false, caduto: 0, energia: 1, scattoTenuto: false, scossa: 0, volo: 0, saltoTenuto: false, carica: 0, tenuto: 0, impennata: false, stacco: 0, sup: 'sentiero', perche: '', tick: 0, fine: 0, cadute: 0, salti: 0 };
 }
 
-export type Comandi = { sterzo: number; gas: number; freno: boolean; scatto: boolean };
+export type Comandi = { sterzo: number; gas: number; freno: boolean; scatto: boolean; salto: boolean };
 
 function cadi(b: Bici, perche: Bici['perche']): void {
   b.caduto = DT; b.cadute++; b.perche = perche; b.v = 0; b.w = 0; b.scossa = 1;
 }
 function riparti(b: Bici, S: Sentiero): void {
+  if (b.perche === 'ruscello') for (const r of S.def.ruscelli) if (b.s >= r.s - 1 && b.s <= r.s + r.largo + 1) b.s = r.s + r.largo + 1.5;
   const l = campo(S.n, S.n.l, b.s);
-  b.lat = clamp(b.lat, -l * 0.3, l * 0.3); b.ang = 0; b.h = 0; b.vh = 0; b.aria = false; b.volo = 0; b.caduto = 0; b.st = 0; b.v = BICI.caduta.ripartenza;
+  b.lat = clamp(b.lat, -l * 0.3, l * 0.3); b.ang = 0; b.h = 0; b.vh = 0; b.aria = false; b.volo = 0; b.caduto = 0; b.st = 0; b.v = BICI.caduta.ripartenza; b.carica = 0; b.tenuto = 0; b.impennata = false; b.stacco = 0;
 }
 const dentro = (t: { da: number; a: number }[], s: number) => { for (const x of t) if (s >= x.da && s < x.a) return true; return false; };
 
@@ -76,10 +84,13 @@ export function pedala(S: Sentiero, b: Bici, c: Comandi): void {
   if (!b.aria) {
     // la pendenza lungo la direzione della bici, le resistenze, la pedalata (solo piano), il freno
     const k = cella(n, b.s), ty = n.ty[k.i]! + (n.ty[k.j]! - n.ty[k.i]!) * k.t, ry = n.ry[k.i]! + (n.ry[k.j]! - n.ry[k.i]!) * k.t;
-    let a = -G * (ty * cs + ry * sn) - (b.sup === 'erba' ? B.rotolamentoErba : B.rotolamento) * G - B.aria * b.v * b.v;
-    // sul rilievo (rampa, tronco) si sale e si scende: la gravità lungo la sua pendenza
-    const mr = rilievo(S, b.s, b.lat).m * cs;
+    // nell'acqua del ruscello il letto è piano: niente pendenza del sentiero, e l'acqua frena
+    const R = rilievo(S, b.s, b.lat), acqua = R.ruscello && b.h < R.acqua;
+    let a = (acqua ? 0 : -G * (ty * cs + ry * sn)) - (b.sup === 'erba' ? B.rotolamentoErba : B.rotolamento) * G - B.aria * b.v * b.v;
+    // sul rilievo (rampa, tronco) si sale e si scende: la gravità lungo la sua pendenza (nel fosso del ruscello no: si esce sempre)
+    const mr = R.ruscello ? 0 : R.m * cs;
     if (mr !== 0) a -= (G * mr) / Math.sqrt(1 + mr * mr);
+    if (acqua) { a -= B.ruscello.frena; b.scossa = Math.max(b.scossa, 0.5); }
     // pedalare: piena forza con l'energia, piano senza (in salita non ci si pianta mai); consuma, e torna quando non si pedala
     const E = B.energia, gas = clamp(c.gas, 0, 1);
     if (gas > 0.05 && b.v < B.pedaleFinoA) {
@@ -87,18 +98,23 @@ export function pedala(S: Sentiero, b: Bici, c: Comandi): void {
       b.energia = Math.max(0, b.energia - E.consumo * gas * DT);
     } else b.energia = Math.min(1, b.energia + E.ricarica * DT);
     if (c.freno) a -= B.freno;
-    if (b.sup === 'radici') { a -= B.radici.frena; b.scossa = Math.max(b.scossa, B.radici.scossa * clamp(b.v / 10, 0.3, 1)); }
+    if (b.sup === 'radici' && !b.impennata) { a -= B.radici.frena; b.scossa = Math.max(b.scossa, B.radici.scossa * clamp(b.v / 10, 0.3, 1)); }
     if (b.sup === 'erba') b.scossa = Math.max(b.scossa, B.erba.scossa * clamp(b.v / 10, 0.3, 1));
     b.v = clamp(b.v + a * DT, 0, B.vMax);
-    // lo scatto: quando si preme il tasto, con abbastanza energia; la svuota tutta
-    if (c.scatto && !b.scattoTenuto && b.energia >= B.scatto.energia && b.v < B.scatto.finoA) { b.v += B.scatto.spinta; b.energia = 0; }
+    if (acqua && b.v < B.ruscello.ferma) { cadi(b, 'ruscello'); return; }
+    // lo scatto: quando si preme il tasto, con abbastanza energia; ne costa una parte
+    if (c.scatto && !b.scattoTenuto && b.energia >= B.scatto.energia && b.v < B.scatto.finoA) { b.v += B.scatto.spinta; b.energia = Math.max(0, b.energia - B.scatto.costo); }
+    // il salto: tenuto carica (e a lungo alza la ruota davanti), lasciato stacca con la carica che c'era
+    const SA = B.salto;
+    if (c.salto) { b.tenuto += DT; b.carica = Math.min(1, b.carica + DT / SA.carica); b.impennata = b.tenuto >= SA.impennata; }
+    else if (b.saltoTenuto && b.tenuto > 0) { b.stacco = SA.min + (SA.max - SA.min) * b.carica; b.carica = 0; b.tenuto = 0; b.impennata = false; }
     // sterzo: piano gira stretto, forte lo limita la presa; la parabolica aiuta chi gira verso il suo interno (più basso) e ostacola
     // chi gira verso l'esterno (ry = quanto sale il lato destro: negativo se scende)
     const verso = b.st >= 0 ? 1 : -1, presa = B.presa + clamp(-G * ry * verso, -B.presa * 0.5, G);
     const wMax = presa / Math.max(1, b.v);
     b.w = clamp((b.v * b.st * B.sterzoMax) / B.interasse, -wMax, wMax);
-  } else b.w = b.st * 0.5; // in aria si gira un filo il manubrio
-  b.scattoTenuto = c.scatto;
+  } else { b.w = b.st * 0.5; b.carica = 0; b.tenuto = 0; b.impennata = false; } // in aria si gira un filo il manubrio; niente carica
+  b.scattoTenuto = c.scatto; b.saltoTenuto = c.salto;
   b.ang += b.w * DT;
   // avanti lungo il nastro: chi sta all'interno della curva fa meno strada; la pista gira sotto la bici
   const kap = campo(n, n.k, b.s), ds = (b.v * cs * DT) / Math.max(0.4, 1 - kap * b.lat);
@@ -116,15 +132,25 @@ export function pedala(S: Sentiero, b: Bici, c: Comandi): void {
 
 /** Il rilievo sopra il nastro: quota (m), pendenza lungo il sentiero, e quanta spinta in su resta al decollo (1 = tutta, come dal
  *  labbro di una rampa; poca = la sospensione assorbe, come su un tronco). */
-export type Rilievo = { g: number; m: number; molla: number };
-const RIL: Rilievo = { g: 0, m: 0, molla: 1 };
+export type Rilievo = { g: number; m: number; molla: number; ruscello: boolean; acqua: number };
+const RIL: Rilievo = { g: 0, m: 0, molla: 1, ruscello: false, acqua: 0 };
+const liscio = (t: number) => t * t * (3 - 2 * t), dliscio = (t: number) => 6 * t * (1 - t);
 /** Rampe e tronchi a `s`, `lat` (un oggetto condiviso: si legge subito, non si tiene).
  *  - Rampa alta `alto` m e lunga 3 × alto (il modello cs_d_rampa scalato): profilo ≈ alto·(0,3t + 0,7t²) come il kit, il labbro a `s`
  *    (pendenza finale 1,7·alto/lungo, ~30°), dietro il labbro il vuoto; piano largo ±0,7·alto, poi i fianchi di terra che scendono.
  *  - Tronco: la ruota (raggio 0,35) che ci passa sopra fa una gobba tonda alta `alto`, lunga ±`BICI.tronco.mezzo` m, da bordo a bordo. */
 export function rilievo(S: Sentiero, s: number, lat: number): Rilievo {
-  RIL.g = 0; RIL.m = 0; RIL.molla = 1;
+  RIL.g = 0; RIL.m = 0; RIL.molla = 1; RIL.ruscello = false; RIL.acqua = 0;
   const T = BICI.tronco;
+  // il ruscello: dal labbro del trampolino giù nel fosso (un quinto), il letto con l'acqua, su per l'altra sponda (due quinti)
+  for (const r of S.def.ruscelli) {
+    const u = (s - r.s) / r.largo;
+    if (u <= 0 || u >= 1) continue;
+    let w = 1, dw = 0;
+    if (u < 0.2) { w = liscio(u / 0.2); dw = dliscio(u / 0.2) / 0.2; } else if (u > 0.6) { w = 1 - liscio((u - 0.6) / 0.4); dw = -dliscio((u - 0.6) / 0.4) / 0.4; }
+    RIL.g = -r.profondo * w; RIL.m = (-r.profondo * dw) / r.largo; RIL.ruscello = true; RIL.acqua = -r.profondo * 0.6;
+    return RIL;
+  }
   for (const r of S.def.rampe) {
     if (r.tipo === 'tronco') {
       const u = (s - r.s) / T.mezzo;
@@ -167,6 +193,8 @@ function verticale(S: Sentiero, b: Bici, s0: number): void {
     }
     return;
   }
+  // a terra, lo stacco del salto: in su con quello che dava il terreno (sul labbro della rampa si somma) più la spinta delle gambe
+  if (b.stacco > 0) { b.aria = true; b.vh = Math.max(b.vh, vhSuolo) + b.stacco; b.h = Math.max(suolo, b.h); b.volo = 0; b.stacco = 0; return; }
   // a terra: si vola se, lasciata andare, la bici starebbe sopra il terreno (margine di 1 m/s², così sui dossi piani non frulla)
   const libera = b.vh + (aAria - 1) * DT, spinta = libera > 0 ? libera * molla : libera;
   if (spinta > vhSuolo) { b.aria = true; b.vh = spinta; b.h = Math.max(suolo, b.h + spinta * DT); b.volo = 0; return; } // b.h = dov'era: il labbro
@@ -195,7 +223,7 @@ function ostacoli(S: Sentiero, b: Bici): void {
   while (lo < hi) { const m = (lo + hi) >> 1; if (os[m]!.s < b.s - 2) lo = m + 1; else hi = m; }
   for (let i = lo; i < os.length && os[i]!.s < b.s + 2; i++) {
     const o = os[i]!;
-    if (b.h > o.alto) continue;
+    if (b.h > o.alto * BICI.sasso.sopra) continue; // il sasso è tondo: basta passarne i tre quarti
     const r = o.r * BICI.sasso.base + BICI.sasso.copertone;
     for (const verso of [1, -1]) {
       const ds = b.s + verso * mezzo * cs - o.s, dl = b.lat + verso * mezzo * sn - o.lat;
@@ -220,5 +248,5 @@ export function pilotaBici(S: Sentiero, b: Bici, prudenza = 0.85): Comandi {
   const kap = campo(n, n.k, b.s), angVoluto = clamp((meta - b.lat) * 0.25, -0.35, 0.35);
   const w = kap * b.v + (angVoluto - b.ang) * 2.2;
   const sterzo = b.aria ? clamp(-b.ang * 4, -1, 1) : clamp((w * B.interasse) / (Math.max(1, b.v) * B.sterzoMax), -1, 1);
-  return { sterzo, gas: b.v < vLim - 1 ? 1 : 0, freno: b.v > vLim + 0.3, scatto: b.v < 6 && b.v < vLim - 2 && !b.scattoTenuto };
+  return { sterzo, gas: b.v < vLim - 1 ? 1 : 0, freno: b.v > vLim + 0.3, scatto: b.v < 6 && b.v < vLim - 2 && !b.scattoTenuto, salto: false };
 }

@@ -49,6 +49,7 @@ export function creaScenografia(S: Sentiero, ter: Terreno): Scenografia {
     const inf = ter.info(P3[0], P3[2]);
     if (!inf || inf.fuori < Math.abs(lat) - campo(n, n.l, s) - 0.5 || inf.fuori < margine) return;
     if (inf.fuori < 4 && d.legno.some((t) => inf.s > t.da - 3 && inf.s < t.a + 3)) return; // accanto alle tavole niente: la terra è più giù
+    if (inf.fuori < 16 && d.ruscelli.some((r) => inf.s > r.s - 2 && inf.s < r.s + r.largo + 2)) return; // nel fosso del ruscello niente: la terra è più giù
     metti(nome, inf.s, P3[0], inf.y - 0.05, P3[2], caso() * Math.PI * 2, scala, inclina);
   };
   const zonaA = (s: number) => d.zone.find((z) => s >= z.da && s < z.a)?.tipo ?? 'bosco';
@@ -70,8 +71,8 @@ export function creaScenografia(S: Sentiero, ter: Terreno): Scenografia {
         if (r() < 0.3) fuori('cs_d_felce', s, lato * (l + 0.2 + r() * 2.5), 0.8 + r() * 0.5, 0.1);
         if (r() < 0.12) fuori('cs_d_cespuglio', s, lato * (l + 0.8 + r() * 4), 0.7 + r() * 0.5, 0.3);
         if (r() < 0.2) fuori('cs_d_erba', s, lato * (l + 0.1 + r() * 2), 0.6 + r() * 0.4, 0.1);
-        if (r() < 0.26) { const a = l + bordo + 0.6 + r() * 9; fuori(r() < 0.3 ? 'cs_d_tronco_alto' : r() < 0.5 ? 'cs_d_abete_a' : 'cs_d_abete_b', s, lato * a, 0.8 + r() * 0.45, 1.5, 0.05); }
-        if (r() < 0.11) fuori(r() < 0.3 ? 'cs_d_tronco_alto' : r() < 0.5 ? 'cs_d_abete_a' : 'cs_d_abete_b', s, lato * (l + bordo + 10 + r() * 50), 0.9 + r() * 0.4, 4, 0.05);
+        if (r() < 0.22) { const a = l + bordo + 0.6 + r() * 9; fuori(r() < 0.3 ? 'cs_d_tronco_alto' : r() < 0.5 ? 'cs_d_abete_a' : 'cs_d_abete_b', s, lato * a, 0.8 + r() * 0.45, 1.5, 0.05); }
+        if (r() < 0.085) fuori(r() < 0.3 ? 'cs_d_tronco_alto' : r() < 0.5 ? 'cs_d_abete_a' : 'cs_d_abete_b', s, lato * (l + bordo + 10 + r() * 50), 0.9 + r() * 0.4, 4, 0.05);
         if (r() < 0.04) fuori(r() < 0.5 ? 'cs_d_sasso_a' : 'cs_d_ceppo', s, lato * (l + bordo + r() * 8), 0.8 + r() * 0.6);
       }
     }

@@ -20,7 +20,7 @@ class Tartaruga {
   constructor(meta) {
     this.meta = meta;
     [this.x, this.y, this.z] = meta.da; this.a = (meta.dir ?? 0) * RAD;
-    this.passo = 4; this.punti = []; this.dossi = []; this.segni = { zone: [], lati: [], radici: [], rampe: [], legno: [] };
+    this.passo = 4; this.punti = []; this.dossi = []; this.segni = { zone: [], lati: [], radici: [], rampe: [], legno: [], ruscelli: [] };
     this.zona = null; this.metti();
   }
   metti(su, dosso = 0) { this.punti.push(su ? { p: [this.x, this.y, this.z], su: su.map(r3) } : { p: [this.x, this.y, this.z] }); this.dossi.push(dosso); }
@@ -68,6 +68,13 @@ class Tartaruga {
   }
   /** Rampa qui (il labbro, alta `alto` m e lunga 3 × alto) o tronco (alto `alto` m: la gobba che fa la ruota sopra il tronco). */
   rampa(alto, tipo = 'rampa') { this.segni.rampe.push({ m: this.qui(), alto, tipo }); return this; }
+  /** Il ruscello da saltare qui: un trampolino di terra alto `trampolino` m col labbro qui, poi il fosso lungo `largo` m e profondo
+   *  `profondo` (il tratto dopo dev'essere lungo almeno `largo` + l'atterraggio). */
+  ruscello(largo, o = {}) {
+    this.rampa(o.trampolino ?? 1, 'rampa');
+    this.segni.ruscelli.push({ m: this.qui(), largo, profondo: o.profondo ?? 1.2 });
+    return this;
+  }
   /** Da qui comincia una zona nuova (cresta o bosco) con i suoi lati: `sx`/`dx` = dirupo, bosco o prato. */
   inizia(tipo, sx, dx) {
     this.chiudi();
@@ -96,6 +103,7 @@ function definizione(t) {
   const zone = t.segni.zone.map((z) => ({ tipo: z.tipo, ...T(z) }));
   const rampe = t.segni.rampe.map((r) => ({ s: S(r.m), alto: r.alto, tipo: r.tipo }));
   const radici = t.segni.radici.map(T), legno = t.segni.legno.map(T);
+  const ruscelli = t.segni.ruscelli.map((r) => ({ s: S(r.m), largo: r.largo, profondo: r.profondo }));
   const arrivo = r3(n.len - 8);
   // sassi e ceppi sul sentiero: uno ogni `ogni` m (a caso ±40 %), non a meno di 14 m da una rampa, non nei tornanti, non nei primi 40 m
   const ostacoli = [], caso = rng(m.seme ?? 7);
@@ -111,7 +119,7 @@ function definizione(t) {
   }
   return {
     id: m.id, nome: m.nome, passo: 1, larghezza: m.larghezza, bordo: m.bordo, punti: t.punti, zone,
-    lati: t.segni.lati.map((l) => ({ lato: l.lato, tipo: l.tipo, ...T(l) })), ostacoli, radici, rampe, legno, arrivo,
+    lati: t.segni.lati.map((l) => ({ lato: l.lato, tipo: l.tipo, ...T(l) })), ostacoli, radici, rampe, legno, ruscelli, arrivo,
   };
 }
 

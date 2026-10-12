@@ -2,8 +2,9 @@
 // Vicino è tutto 3D (bici pilotabile con la fisica di @marea/sim/corse/bici.ts, sentiero, sassi, radici, alberi dal kit Blender `cs_d_*`);
 // lontano un video dipinto in loop (fondale.ts) come cielo e orizzonte. Tutto passa dalla stessa passata pixel del gioco (metà
 // risoluzione, palette), così il video e il 3D si fondono.
-// Comandi: telefono joystick = sterzo (in avanti pedali: consuma l'energia), SCATTO (con l'energia carica, la svuota), FRENO; PC A D o ← → sterzo, W o ↑ pedala, S o ↓ o Shift frena,
-// Spazio = scatto. C = camera (occhi col manubrio / dietro bassa), R = ricomincia, T = pilota automatico, M = muto.
+// Comandi: telefono joystick = sterzo (in avanti pedali: consuma l'energia), SALTO (tenuto carica, lasciato stacca; tenuto a lungo in
+// piano = impennata), SCATTO (costa metà energia), FRENO; PC A D o ← → sterzo, W o ↑ pedala, S o ↓ o Shift frena, Spazio (o E) = salto,
+// Q = scatto. C = camera (occhi col manubrio / dietro bassa), R = ricomincia, T = pilota automatico, M = muto.
 // Indirizzo: ?cam=occhi|dietro&auto=1&s=<metri dal via>. Test: window.__discesa = { ready, state(), set({...}), perf() }.
 import * as THREE from 'three';
 import { BICI, SENTIERI } from '@marea/content/corse_discesa.ts';
@@ -68,7 +69,21 @@ creaCiclista(bici3d.corpo, { pelle: 1, capelli: 3, coloreCapelli: 1, vestito: 2,
 stileProva();
 const input = createInput({ canvas, root, cameraYaw: () => 0 });
 const btnA = document.getElementById('btnA'), btnB = document.getElementById('btnB');
-if (btnA) { btnA.textContent = 'SCATTO'; btnA.style.fontSize = '14px'; }
+if (btnA) { btnA.textContent = 'SALTO'; btnA.style.fontSize = '15px'; }
+// lo SCATTO ha il suo bottone, sopra il SALTO (A del pad è il salto, B il freno); da PC è Q
+const btnScatto = document.createElement('div');
+btnScatto.id = 'btnScatto'; btnScatto.textContent = 'SCATTO';
+const scattoCss = `touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;position:absolute;right:calc(max(16px,env(safe-area-inset-right,0px)) + 10px);bottom:calc(env(safe-area-inset-bottom,0px) + 132px);width:64px;height:64px;border-radius:50%;background:rgba(242,163,58,.8);border:3px solid rgba(244,227,193,.7);color:#F4E3C1;font:bold 12px ui-monospace,Menlo,monospace;display:flex;align-items:center;justify-content:center;`;
+btnScatto.style.cssText = scattoCss;
+root.appendChild(btnScatto);
+let scattoDito = false, scattoTasto = false;
+const premi = (on: boolean) => { scattoDito = on; btnScatto.style.cssText = scattoCss + (on ? 'transform:scale(.92);filter:brightness(1.25);' : ''); };
+btnScatto.addEventListener('pointerdown', (e) => { e.preventDefault(); premi(true); try { btnScatto.setPointerCapture(e.pointerId); } catch { /* sintetico */ } });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) btnScatto.addEventListener(ev, () => premi(false));
+btnScatto.addEventListener('contextmenu', (e) => e.preventDefault());
+addEventListener('keydown', (e) => { if (e.code === 'KeyQ') scattoTasto = true; });
+addEventListener('keyup', (e) => { if (e.code === 'KeyQ') scattoTasto = false; });
+addEventListener('blur', () => { scattoTasto = false; premi(false); });
 if (btnB) { btnB.textContent = 'FRENO'; btnB.style.fontSize = '13px'; }
 const hud = document.createElement('div'); hud.className = 'pp-hud'; root.appendChild(hud);
 // la barra dell'energia sotto l'HUD: pedalare la consuma, lo scatto (quando è accesa) la svuota, torna quando non si pedala
@@ -98,7 +113,7 @@ if (via > 0) b.s = via;
 function ricomincia() { b = nuovaBici(); camOk = false; }
 function comandi(): Comandi {
   const f = input.sample();
-  return { sterzo: f.mx, gas: Math.max(0, -f.my), freno: f.b || f.my > 0.5, scatto: f.a };
+  return { sterzo: f.mx, gas: Math.max(0, -f.my), freno: f.b || f.my > 0.5, scatto: scattoDito || scattoTasto, salto: f.a };
 }
 addEventListener('keydown', (e) => {
   if (e.repeat) return;
@@ -134,7 +149,7 @@ function posa(dt: number) {
   // in prima persona le braccia del kit, da fuori il ciclista intero
   const fuori = cam !== 'occhi';
   bici3d.braccia(!fuori || !ciclista);
-  if (ciclista) { ciclista.avatar.object.visible = fuori; if (fuori) { bici3d.group.updateMatrixWorld(true); ciclista.aggiorna(dt, bici3d.prese, bici3d.pedali, piega); } }
+  if (ciclista) { ciclista.avatar.object.visible = fuori; if (fuori) { bici3d.group.updateMatrixWorld(true); ciclista.aggiorna(dt, bici3d.prese, bici3d.pedali, piega, bici3d.giu); } }
 }
 function inquadra(dt: number) {
   const v = b.v, caduto = b.caduto > 0;
@@ -148,7 +163,7 @@ function inquadra(dt: number) {
     camera.position.copy(pos).addScaledVector(fwd, -30).addScaledVector(up, 26).addScaledVector(dx, 10);
     guardo.copy(pos).addScaledVector(fwd, 10);
   } else if (cam === 'occhi') {
-    const p = caduto ? tmp.copy(pos).addScaledVector(up, 0.6).addScaledVector(dx, 0.5) : tmp.copy(pos).addScaledVector(camUp, 1.56).addScaledVector(fwd, -0.22); // la testa di chi scende in piedi sui pedali, mezzo metro dietro il manubrio
+    const p = caduto ? tmp.copy(pos).addScaledVector(up, 0.6).addScaledVector(dx, 0.5) : tmp.copy(pos).addScaledVector(camUp, 1.56 - bici3d.giu).addScaledVector(fwd, -0.22); // la testa di chi scende in piedi sui pedali, mezzo metro dietro il manubrio
     if (camOk) camPos.lerp(p, 1 - Math.exp(-dt * 30)); else camPos.copy(p);
     camera.position.copy(camPos);
     if (sc > 0.001) camera.position.add(new THREE.Vector3(Math.sin(scossaT * 61) * sc, Math.sin(scossaT * 47 + 1) * sc, Math.sin(scossaT * 53 + 2) * sc * 0.5));
@@ -170,7 +185,7 @@ function inquadra(dt: number) {
 }
 
 // ---------- ciclo: sim a 60 Hz fissi, resa a ogni frame ----------
-const DT = 1 / TICK_HZ, NIENTE: Comandi = { sterzo: 0, gas: 0, freno: false, scatto: false };
+const DT = 1 / TICK_HZ, NIENTE: Comandi = { sterzo: 0, gas: 0, freno: false, scatto: false, salto: false };
 let acc = 0, last = performance.now(), frames = 0, ready = false, ultimaCaduta = 0;
 const tempo = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
 function frame(now: number) {
@@ -192,7 +207,7 @@ function frame(now: number) {
   if (b.cadute > ultimaCaduta) { ultimaCaduta = b.cadute; }
   big.style.display = b.caduto > 0 || b.fine ? 'block' : 'none';
   if (b.fine) big.innerHTML = `ARRIVO ${tempo(b.fine / TICK_HZ)}<small>cadute ${b.cadute} · salti ${b.salti} · R per rifare</small>`;
-  else if (b.caduto > 0) big.innerHTML = `CADUTO!<small>${b.perche === 'sasso' ? 'contro un sasso' : b.perche === 'muro' ? 'fuori dal sentiero' : 'atterraggio storto'}</small>`;
+  else if (b.caduto > 0) big.innerHTML = `CADUTO!<small>${b.perche === 'sasso' ? 'contro un sasso' : b.perche === 'muro' ? 'fuori dal sentiero' : b.perche === 'ruscello' ? 'nel ruscello: serve più slancio' : 'atterraggio storto'}</small>`;
   linee.disegna(b.v > 12 && !b.caduto ? Math.min(1, (b.v - 12) / 8) : 0, P.pietraChiara);
   frames++;
   if (!ready && frames > 5) ready = true;
@@ -200,7 +215,7 @@ function frame(now: number) {
 }
 requestAnimationFrame(frame);
 
-const stato = () => ({ s: b.s, lat: b.lat, h: b.h, v: b.v, energia: b.energia, ang: b.ang, aria: b.aria, caduto: b.caduto, cadute: b.cadute, salti: b.salti, fine: b.fine, tick: b.tick, cam, auto, sup: b.sup, video: !!fondale.video && !fondale.video.paused, pezzi: scenografia?.pezzi ?? 0 });
+const stato = () => ({ s: b.s, lat: b.lat, h: b.h, v: b.v, energia: b.energia, carica: b.carica, impennata: b.impennata, perche: b.perche, ang: b.ang, aria: b.aria, caduto: b.caduto, cadute: b.cadute, salti: b.salti, fine: b.fine, tick: b.tick, cam, auto, sup: b.sup, video: !!fondale.video && !fondale.video.paused, pezzi: scenografia?.pezzi ?? 0 });
 (window as unknown as { __discesa: unknown }).__discesa = {
   get ready() { return ready && fondale.pronto(); },
   state: stato,
