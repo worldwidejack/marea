@@ -18,14 +18,15 @@ import type { Regole, Veicolo } from './veicolo.ts';
 
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 
-/** La tasca di un veicolo: l'oggetto (id del catalogo, '' = niente), quante volte si usa ancora, la roulette che gira (s), scudo e
- *  colpo preso (s rimasti), USA premuto il tick prima (si usa allo scatto), da quanto lo tiene (s: serve ai bot). */
-export type Tasca = { ogg: string; cariche: number; roulette: number; scudo: number; colpito: number; premuto: boolean; tenuto: number };
+/** La tasca di un veicolo: l'oggetto (id del catalogo, '' = niente), quante volte si usa ancora, la roulette che gira (s), scudo,
+ *  colpo preso e liana (s rimasti: finché c'è scavalca trappole e colpi), USA premuto il tick prima (si usa allo scatto), da quanto lo tiene (s: serve ai bot). */
+export type Tasca = { ogg: string; cariche: number; roulette: number; scudo: number; colpito: number; scavalca: number; premuto: boolean; tenuto: number };
 /** Una scatola: progresso nel giro, scarto laterale, s prima che ricompaia (0 = c'è). */
 export type Scatola = { prog: number; lat: number; t: number };
-/** Una trappola a terra o un colpo in volo: chi l'ha lanciato, dove, da quanto (s). `bersaglio` = indice del veicolo inseguito (−1 = nessuno). */
+/** Una trappola a terra o un colpo in volo: chi l'ha lanciato, dove, da quanto (s). `bersaglio` = indice del veicolo inseguito (−1 = nessuno);
+ *  `vl` = m/s di lato (la noce di cocco rimbalza tra i bordi). */
 export type Trappola = { ogg: string; da: number; prog: number; lat: number; t: number; p0: number };
-export type Colpo = { ogg: string; da: number; prog: number; lat: number; t: number; v: number; bersaglio: number };
+export type Colpo = { ogg: string; da: number; prog: number; lat: number; t: number; v: number; bersaglio: number; vl: number };
 export type OggettiState = {
   /** Gli id del catalogo che possono uscire su questa pista (base + quelli della zona). */
   pesca: string[];
@@ -75,7 +76,7 @@ function scatoleDi(p: Pista): Scatola[] {
 export function nuoviOggetti(p: Pista, n: number): OggettiState {
   const pesca = CORSE.oggetti.catalogo.filter((o) => o.livello === 'base' || (o.livello === 'zona' && o.zona === p.def.zona)).map((o) => o.id);
   const tasche: Tasca[] = [];
-  for (let i = 0; i < n; i++) tasche.push({ ogg: '', cariche: 0, roulette: 0, scudo: 0, colpito: 0, premuto: false, tenuto: 0 });
+  for (let i = 0; i < n; i++) tasche.push({ ogg: '', cariche: 0, roulette: 0, scudo: 0, colpito: 0, scavalca: 0, premuto: false, tenuto: 0 });
   return { pesca, scatole: scatoleDi(p), tasche, trappole: [], colpi: [], usati: tasche.map(() => 0), presi: tasche.map(() => 0) };
 }
 
@@ -88,9 +89,10 @@ function pesca(o: OggettiState, seed: number, tick: number, i: number, fascia: n
   return o.pesca[o.pesca.length - 1]!;
 }
 
-/** Chi viene preso: lo scudo lo para, sennò gira senza gas e perde velocità, drift e turbo. */
+/** Chi viene preso: con la liana scavalca (l'oggetto sparisce), lo scudo lo para, sennò gira senza gas e perde velocità, drift e turbo. */
 function colpisci(o: OggettiState, ks: Veicolo[], j: number): void {
   const t = o.tasche[j]!, k = ks[j]!, C = CORSE.oggetti.colpito;
+  if (t.scavalca > 0) return;
   if (t.scudo > 0) { t.scudo = 0; return; }
   k.v *= C.velocita; k.drift = 0; k.carica = 0; k.turbo = 0; k.livello = 0;
   k.fermo = Math.max(k.fermo, C.secondi);
@@ -105,17 +107,19 @@ export const VOLO_TRAPPOLA = 0.45;
 /** Usa l'oggetto in tasca del veicolo `i`, dall'altra parte se `indietro` (vedi in testa). `pos` = posizioni in classifica (1…). */
 function usa(o: OggettiState, p: Pista, ks: Veicolo[], i: number, pos: number[], R: Regole, indietro: boolean): void {
   const t = o.tasche[i]!, k = ks[i]!, d = oggettoDef(t.ogg);
-  if (d.effetto === 'turbo') daiTurbo(k, d.secondi!, 3, R.somma);
+  if (d.effetto === 'turbo') { daiTurbo(k, d.secondi!, 3, R.somma); if (d.scavalca) t.scavalca = d.secondi!; }
   else if (d.effetto === 'scudo') t.scudo = d.secondi!;
   else if (d.effetto === 'trappola') {
     const avanti = indietro; // la trappola di serie va dietro: dall'altra parte vola avanti
     o.trappole.push({ ogg: d.id, da: i, prog: k.prog + (avanti ? d.lancio! : -d.dietro!), lat: k.ramo < 0 ? k.lat : 0, t: avanti ? -VOLO_TRAPPOLA : 0, p0: k.prog });
     if (o.trappole.length > CORSE.oggetti.massimiATerra) o.trappole.shift();
   } else {
-    // il colpo a ricerca insegue chi ti sta subito davanti (o dietro); dal primo (o dall'ultimo) posto va dritto
-    const bersaglio = d.effetto === 'ricerca' ? pos.indexOf(pos[i]! + (indietro ? 1 : -1)) : -1;
-    const v = indietro ? Math.max(0, k.v) - d.velocita! : d.velocita! + Math.max(0, k.v);
-    o.colpi.push({ ogg: d.id, da: i, prog: k.prog + (indietro ? -2.5 : 2.5), lat: k.ramo < 0 ? k.lat : 0, t: 0, v, bersaglio });
+    // il colpo a ricerca insegue chi ti sta subito davanti (o dietro); dal primo (o dall'ultimo) posto va dritto. Il masso di serie va indietro.
+    const dietro = d.indietro ? !indietro : indietro;
+    const bersaglio = d.effetto === 'ricerca' ? pos.indexOf(pos[i]! + (dietro ? 1 : -1)) : -1;
+    const v = dietro ? Math.max(0, k.v) - d.velocita! : d.velocita! + Math.max(0, k.v);
+    const vl = d.rimbalzo ? (k.lat > 0 ? -d.rimbalzo : d.rimbalzo) : 0; // la noce di cocco parte verso il lato più lontano
+    o.colpi.push({ ogg: d.id, da: i, prog: k.prog + (dietro ? -2.5 : 2.5), lat: k.ramo < 0 ? k.lat : 0, t: 0, v, bersaglio, vl });
   }
   o.usati[i]!++;
   t.cariche--; t.tenuto = 0;
@@ -136,7 +140,8 @@ function botUsa(o: OggettiState, p: Pista, ks: Veicolo[], i: number): 0 | 1 | 2 
     if (j === i || !colpibile(a)) continue;
     const dp = dprog(p, k.prog, a.prog), fila = Math.abs(a.lat - k.lat) < 1.4;
     if (d.effetto === 'trappola' && dp < -2 && dp > -14) return 1;
-    if (d.effetto === 'dritto' && fila && dp > 3 && dp < 30) return 1;
+    if (d.effetto === 'dritto' && d.indietro) { if (dp < -3 && dp > -20 && Math.abs(a.lat - k.lat) < 3) return 1; continue; } // il masso: a chi segue
+    if (d.effetto === 'dritto' && (fila || d.rimbalzo) && dp > 3 && dp < 30) return 1;
     if (d.effetto === 'dritto' && fila && dp < -3 && dp > -12) return 2;
   }
   return 0;
@@ -169,6 +174,7 @@ export function passoOggetti(o: OggettiState, p: Pista, ks: Veicolo[], usaTu: bo
     t.roulette = Math.max(0, t.roulette - DT);
     t.scudo = Math.max(0, t.scudo - DT);
     t.colpito = Math.max(0, t.colpito - DT);
+    t.scavalca = Math.max(0, t.scavalca - DT);
     const scatto = i === 0 ? usaTu && !t.premuto : false;
     if (i === 0) t.premuto = usaTu;
     if (!t.ogg || t.roulette > 0 || k.fine || k.caduto) continue;
@@ -195,6 +201,8 @@ export function passoOggetti(o: OggettiState, p: Pista, ks: Veicolo[], usaTu: bo
     c.prog += c.v * DT;
     const l = campo(p.n, p.n.l, sDiProg(p, c.prog));
     if (b && b.ramo < 0) c.lat += clamp(b.lat - c.lat, -d.sterza! * DT, d.sterza! * DT);
+    c.lat += c.vl * DT;
+    if (c.lat > l || c.lat < -l) c.vl = c.lat > 0 ? -Math.abs(c.vl) : Math.abs(c.vl); // rimbalza sul bordo
     c.lat = clamp(c.lat, -l, l);
     let finito = c.t > d.vita! || (!p.n.chiuso && (c.prog > p.arrivo || c.prog < -p.def.via));
     if (!finito && b) {

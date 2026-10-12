@@ -49,7 +49,7 @@ export type VistaGara = {
   /** Mostra o nasconde l'interfaccia (HUD, mappa, linee). */
   interfaccia(on: boolean): void;
   /** Il tuo oggetto (gara CON OGGETTI, #250): cosa scrivere sul bottone USA e se si può usare. */
-  readonly ogg: { etichetta: string; pronto: boolean };
+  readonly ogg: { etichetta: string; pronto: boolean; ogg: string };
   readonly gruppo: THREE.Group;
   /** Per i test: quanti veicoli, se l'avatar è seduto, dove sono la camera e il tuo veicolo. */
   info(): { veicoli: number; avatar: boolean; kit: boolean; camera: number[]; padre: string | null; tu: number[] | null; fantasmi: number; nomi: string[] };
@@ -63,7 +63,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
   const fx = creaParticelle(); gruppo.add(fx.mesh);
   const suoni = creaSuoni();
   const ogg3d = creaOggetti3d(o.root); gruppo.add(ogg3d.gruppo);
-  let ogg = { etichetta: '', pronto: false };
+  let ogg = { etichetta: '', pronto: false, ogg: '' };
   const regia = creaRegia(o.camera);
   const linee = creaLinee(o.root), mappa = creaMinimappa(o.root);
   const hud = document.createElement('div'); hud.className = 'pp-hud'; o.root.appendChild(hud);
@@ -134,7 +134,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     meshes = [];
     if (ondaMesh) { gruppo.remove(ondaMesh); ondaMesh.geometry.dispose(); ondaMesh = null; }
     if (p3d) { gruppo.remove(p3d.group); p3d.group.traverse((x) => { const m = x as THREE.Mesh; if (m.isMesh) m.geometry.dispose(); }); p3d = null; }
-    s = null; p = null; fx.svuota(); ogg3d.chiudi(); ogg = { etichetta: '', pronto: false };
+    s = null; p = null; fx.svuota(); ogg3d.chiudi(); ogg = { etichetta: '', pronto: false, ogg: '' };
   }
 
   /** Dove sta il veicolo `i` nel mondo: posizione, avanti (muso), sopra (la pista sotto di lui), destra e moto. */

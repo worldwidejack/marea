@@ -390,7 +390,7 @@ function frame(now: number) {
   while (acc >= DT && n < 6) { if (!pausa && !ruota.visibile()) step(); acc -= DT; n++; }
   if (n === 6) acc = 0;
   aggiornaVeicoli(dt); avatar?.update(1, dt); fx.aggiorna(dt); aggiornaCamera(dt); eventi();
-  const og = ogg3d.aggiorna(s, p, dt, fase === 'gara' ? suoni : null, camera); usa.etichetta(og.etichetta, og.pronto);
+  const og = ogg3d.aggiorna(s, p, dt, fase === 'gara' ? suoni : null, camera); usa.etichetta(og.etichetta, og.pronto, og.ogg);
   const k = s.veicoli[0]!;
   if (fase === 'gara' && s.tick > 0) suoni.motore(k.v, veicoloCorse(k.id).velocita, k.turbo > 0, k.drift !== 0, !k.aria);
   lights.follow?.(vP.x, vP.z);
@@ -411,7 +411,7 @@ const api = {
       s: Math.round(k.s * 10) / 10, lat: Math.round(k.lat * 100) / 100, h: Math.round(k.h * 100) / 100, v: Math.round(k.v * 10) / 10,
       ramo: k.ramo, aria: k.aria, caduto: k.caduto > 0, salti: k.salti, cadute: k.cadute, sup: k.sup,
       onda: v.onda === null ? null : Math.round(v.onda * 10) / 10, ondaDist: Math.round(v.ondaDist * 10) / 10, travolto: k.travolto,
-      oggetti: s.oggetti ? { tasca: s.oggetti.tasche[0]!.ogg, roulette: s.oggetti.tasche[0]!.roulette, usati: s.oggetti.usati, presi: s.oggetti.presi, scatole: s.oggetti.scatole.filter((b) => b.t === 0).length, trappole: s.oggetti.trappole.length, colpi: s.oggetti.colpi.length } : null,
+      oggetti: s.oggetti ? { tasca: s.oggetti.tasche[0]!.ogg, roulette: s.oggetti.tasche[0]!.roulette, usati: s.oggetti.usati, presi: s.oggetti.presi, scatole: s.oggetti.scatole.filter((b) => b.t === 0).length, prossima: Math.min(...s.oggetti.scatole.map((b) => { const d = b.prog - k.prog; return d > 0 ? d : 1e4; })), trappole: s.oggetti.trappole.length, colpi: s.oggetti.colpi.length } : null,
       drift: k.drift, livello: livelloDrift(k.carica), turbo: Math.round(k.turbo * 100) / 100, partenza: k.partenza, regole: s.regole, menu: menuAperto,
       risultato: s.done ? garaCorse.result(s) : null };
   },
@@ -435,6 +435,8 @@ const api = {
     return api.state();
   },
   /** Avanza la gara di `tick` passi subito (pilota automatico), senza aspettare il tempo vero. */
+  /** `tick` passi coi comandi veri (tastiera, dito): per i test dei tasti senza aspettare il tempo vero. */
+  passi: (tick: number) => { for (let i = 0; i < tick && fase === 'gara'; i++) step(); return api.state(); },
   avanti: (tick: number) => { const a = auto; auto = true; for (let i = 0; i < tick && fase === 'gara'; i++) step(); auto = a; regia.st.ok = false; return api.state(); },
   /** Gara con gli oggetti (#250): mette l'oggetto `id` nella tua tasca, roulette già ferma. */
   dai: (id: string) => { const t = s.oggetti?.tasche[0]; if (t) { t.ogg = id; t.cariche = CORSE.oggetti.catalogo.find((x) => x.id === id)?.cariche ?? 1; t.roulette = 0; } return api.state(); },

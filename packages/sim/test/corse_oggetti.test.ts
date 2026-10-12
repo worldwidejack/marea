@@ -105,10 +105,33 @@ test('oggetti (#250): ogni effetto fa quello che deve (turbo, scudo, trappola, c
   const sp = prova('scudo');
   const j = 1, tj = sp.oggetti!.tasche[j]!;
   tj.scudo = 5;
-  sp.oggetti!.colpi.push({ ogg: 'razzo', da: 0, prog: sp.veicoli[j]!.prog - 1, lat: 0, t: 0, v: 30, bersaglio: j });
+  sp.oggetti!.colpi.push({ ogg: 'razzo', da: 0, prog: sp.veicoli[j]!.prog - 1, lat: 0, t: 0, v: 30, bersaglio: j, vl: 0 });
   garaCorse.step(sp, { mx: 0, my: 1, a: false, b: false });
   assert.equal(sp.oggetti!.presi[j], 0);
   assert.equal(tj.scudo, 0, 'lo scudo si consuma');
+  // Giungla (Jack, 12 ott): la noce di cocco rimbalza da un bordo all'altro, il masso di serie rotola indietro (con c avanti),
+  // la liana dà il turbo e intanto i colpi non ti prendono
+  const co = via(nuova('spiaggia_lungomare', true, 3, false)), lats: number[] = []; // da solo: niente bot da colpire
+  for (let i = 0; i < 60; i++) garaCorse.step(co, { mx: 0, my: 1, a: false, b: false });
+  co.oggetti!.scatole.length = 0; Object.assign(co.oggetti!.tasche[0]!, { ogg: 'cocco', cariche: 1, roulette: 0 });
+  garaCorse.step(co, { mx: 0, my: 1, a: false, b: true });
+  for (let i = 0; i < 120 && co.oggetti!.colpi.length; i++) { lats.push(co.oggetti!.colpi[0]!.lat); garaCorse.step(co, { mx: 0, my: 1, a: false, b: false }); }
+  assert.ok(lats.some((l) => l > 2) && lats.some((l) => l < -2), `cocco a zig-zag: ${Math.min(...lats)}…${Math.max(...lats)}`);
+  const ma = prova('masso');
+  assert.ok(ma.oggetti!.colpi[0]!.v < 0 && ma.oggetti!.colpi[0]!.prog < ma.veicoli[0]!.prog, 'masso indietro di serie');
+  const mv = prova('masso', true);
+  assert.ok(mv.oggetti!.colpi.length === 0 || mv.oggetti!.colpi[0]!.v > 0, 'masso avanti dall\'altra parte');
+  const li = prova('liana');
+  assert.ok(li.veicoli[0]!.turbo > 1 && li.oggetti!.tasche[0]!.scavalca > 1, 'liana: turbo e scavalca');
+  li.oggetti!.colpi.push({ ogg: 'razzo', da: 1, prog: li.veicoli[0]!.prog - 1, lat: li.veicoli[0]!.lat, t: 1, v: 30, bersaglio: 0, vl: 0 });
+  garaCorse.step(li, { mx: 0, my: 1, a: false, b: false });
+  assert.equal(li.oggetti!.presi[0], 0, 'con la liana il razzo non ti prende');
+  assert.equal(li.oggetti!.colpi.length, 0, 'e il razzo sparisce');
+});
+
+test('oggetti (#250): quelli della Giungla escono solo sulle piste della Giungla', () => {
+  const g = nuova('giungla_miniera', true, 3, true).oggetti!.pesca, sp = nuova('spiaggia_lungomare', true, 3, true).oggetti!.pesca;
+  for (const id of ['cocco', 'masso', 'liana']) { assert.ok(g.includes(id), `${id} in giungla`); assert.ok(!sp.includes(id), `${id} non in spiaggia`); }
 });
 
 test('oggetti (#250): una gara intera coi bot usa oggetti, è deterministica e il server la rigioca uguale', () => {

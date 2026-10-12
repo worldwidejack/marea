@@ -276,7 +276,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
       const now = performance.now(), dt = Math.min(0.1, (now - ultimo) / 1000); ultimo = now;
       if (!r) { hub.aggiorna(dt); return; }
       vista.aggiorna(r.s, dt, { cam: scelta.cam, effetti: true, auto: r.auto, gasAuto: scelta.gasAuto, fine: r.fase === 'fine', ritirato: r.ritirato, ...(r.amici ? { amici: sala.amici() } : {}) });
-      if (r.s.oggetti) usa.etichetta(vista.ogg.etichetta, vista.ogg.pronto);
+      if (r.s.oggetti) usa.etichetta(vista.ogg.etichetta, vista.ogg.pronto, vista.ogg.ogg);
     },
   };
 

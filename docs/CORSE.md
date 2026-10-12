@@ -85,7 +85,7 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
   - **Più avanti**: nel garage ti scegli la **lineup** di oggetti da portare in gara.
   - **I base di oggi** (numeri in `corse/motore.json` → `oggetti`; look da confermare con la concept). Le scatole stanno in 3 file di 4 per giro, si prendono passandoci sopra e ricompaiono dopo 2,5 s. La roulette gira 1,1 s. Chi è dietro in classifica pesca meglio. USA = bottone col dito, **Q** da tastiera (**R** = dall'altra parte).
   - **Avanti o indietro** (Jack, 12 ott): di serie la buccia cade dietro e i colpi partono avanti. Per lanciarlo **dall'altra parte, senza frenare** (Jack: «uno non deve per forza frenare per sparare»): da PC **R** invece di Q; col dito lo **stick verso dove vuoi lanciare** mentre premi USA (su = avanti, giù = indietro; col dito lo stick sterza e basta, la Y era libera). La casella in alto dice i tasti dell'oggetto che hai. la buccia vola avanti di 22 m, la pallonata va indietro, il razzo insegue chi ti sta subito dietro.
-  - **Look**: la buccia è uno sprite in pixel art preso dalla concept (`corse/sprite_oggetti.ts`). Il fumo del motore ingolfato (o colpito) è fatto di sbuffi tondi e chiari, non di cubetti.
+  - **Look** (concept approvate: `corse_20_oggetti.jpg` «Belli!», `corse_21_scatole.jpg`, `corse_22_giungla_oggetti.jpg`): sprite in pixel art presi dalle concept (buccia, pallonata, oggetti della Giungla) e modelli a fasce per razzo e salvagente; nella casella in alto e sul bottone USA c'è l'icona dell'oggetto. **La scatola cambia con la zona** (Jack, 12 ott, al posto del «?» troppo Mario): Spiaggia = **cassa del relitto** (legno, stella marina, corde), Giungla = **blocco del tempio** (pietra col muschio e il glifo d'oro che brilla). Il fumo del motore ingolfato (o colpito) è fatto di sbuffi tondi e chiari, non di cubetti.
 
     | Oggetto | Che fa | Chi lo pesca di più |
     |---|---|---|
@@ -103,7 +103,15 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
     | Paracadute | salto in avanti che scavalca trappole e colpi | finendo una discesa dell'Adrenalina |
     | Nuvola nera | un fulmine sul primo in classifica | superando la Tempesta |
     | Nano da giardino | trappola che spunta in mezzo alla pista | sistemando casa e giardino nel Borgo |
-  - **Di zona [proposta]**: Spiaggia → granchio (trappola che cammina di lato); Giungla → noce di cocco (colpo che rimbalza sui muri).
+  - **Di zona**: Giungla (Jack, 12 ott, tutti e tre dalla concept `corse_22_giungla_oggetti.jpg`), si pescano solo sulle piste della Giungla:
+
+    | Oggetto | Che fa | Chi lo pesca di più |
+    |---|---|---|
+    | Noce di cocco | colpo che va avanti a zig-zag, rimbalzando da un bordo all'altro (4,5 s) | tutti |
+    | Masso del tempio | rotola **indietro** (dall'altra parte: avanti), largo 6 m: travolge chi ti segue | i primi |
+    | Liana | turbo da 1,5 s e intanto scavalchi trappole e colpi | metà e ultimi |
+
+    Spiaggia: granchio (trappola che cammina di lato) **[proposta]**.
 - **Sblocchi**:
   - **stelle-trofeo**, finite e che non si spendono: aprono zone e piste;
   - **veicoli**: i boss e i traguardi regalano veicoli nuovi, quelli buffi sono anche nascosti;

@@ -76,6 +76,12 @@ export type COggettoDef = {
   dietro?: number; lancio?: number; durata?: number;
   /** colpi: m/s, vita (s), quanto in fretta inseguono di lato (m/s). Trappole e colpi: raggio di presa (m). */
   velocita?: number; vita?: number; sterza?: number; raggio?: number;
+  /** colpo dritto: di serie va indietro (il masso del tempio; con «dall'altra parte» va avanti). */
+  indietro?: boolean;
+  /** colpo dritto: m/s di lato, rimbalza da un bordo all'altro della pista (la noce di cocco). */
+  rimbalzo?: number;
+  /** turbo: per tutti i `secondi` scavalchi trappole e colpi (la liana). */
+  scavalca?: boolean;
 };
 export type COggettiCfg = {
   scatole: { righe: number[]; lat: number[]; raggio: number; ricompare: number; roulette: number };
