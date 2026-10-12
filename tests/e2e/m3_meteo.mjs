@@ -25,7 +25,7 @@ export default async function (ctx) {
     ctx.assert((await ctx.getState(p.page)).impostazioni.meteo === true, 'impostazione non salvata');
   });
   await ctx.test('pioggia di giorno: gocce, più scuro, budget ok', async () => {
-    await p.page.evaluate(async () => { window.__game.test.impostazioni({ cam: 3, ciclo: true, contorni: true }); await window.__game.test.aspettoPronto(); window.__game.test.ciclo(0.2); window.__game.test.goto('borgo'); }); // all'aperto: lotto:N arriva nella stanza della casa (#240), al buio
+    await p.page.evaluate(async () => { window.__game.test.impostazioni({ cam: 3, ciclo: true, contorni: true }); await window.__game.test.aspettoPronto(); window.__game.test.ciclo(0.2); window.__game.test.goto('porto'); }); // all'aperto: lotto:N arriva nella stanza della casa (#240), al buio
     await forza(p.page, 'sereno', 0);
     await ctx.waitState(p.page, (st) => st.meteo === 'sereno', 20000);
     await p.page.waitForTimeout(500);
@@ -87,7 +87,7 @@ export default async function (ctx) {
   await p.close(); // una pagina alla volta: col telefono ancora aperto il PC rallenta troppo
   const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
   await ctx.waitReady(d.page, 20000);
-  await d.page.evaluate(async () => { window.__game.test.impostazioni({ cam: 3, ciclo: true, contorni: true, meteo: true }); await window.__game.test.aspettoPronto(); window.__game.test.ciclo(0.2); window.__game.test.goto('borgo'); }); // all'aperto: lotto:N arriva nella stanza della casa (#240), al buio
+  await d.page.evaluate(async () => { window.__game.test.impostazioni({ cam: 3, ciclo: true, contorni: true, meteo: true }); await window.__game.test.aspettoPronto(); window.__game.test.ciclo(0.2); window.__game.test.goto('porto'); }); // all'aperto: lotto:N arriva nella stanza della casa (#240), al buio
   await ctx.test('desktop: pioggia e nebbia senza errori', async () => {
     await forza(d.page, 'sereno', 0);
     ctx.log('perf desktop sereno', JSON.stringify(await ctx.getPerf(d.page)));

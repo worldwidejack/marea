@@ -89,11 +89,11 @@ export function validateContent(): string[] {
   ];
 }
 
-/** Borgo Marea (#237): una casa per ogni lotto, porta su una cella camminabile del template `borgo`, edificio su una `L`. */
+/** Borgo Marea (#237, #247): una casa per ogni lotto, porta su una cella camminabile del template `porto`, edificio su una `L`. */
 function validateBorgo(): string[] {
-  const errs: string[] = [], lotti = ARCHIPELAGO.islands.filter((i) => i.role === 'lotto').length, t = ISLANDS.find((i) => i.id === 'borgo');
+  const errs: string[] = [], lotti = ARCHIPELAGO.islands.filter((i) => i.role === 'lotto').length, t = ISLANDS.find((i) => i.id === 'porto');
   if (BORGO.case.length !== lotti) errs.push(`borgo: ${BORGO.case.length} case ma ${lotti} lotti`);
-  if (!t) return [...errs, 'borgo: manca il template borgo'];
+  if (!t) return [...errs, 'borgo: manca il template porto'];
   for (const [n, c] of BORGO.case.entries()) {
     if (t.rows[c.at[1]]?.[c.at[0]] !== 'L') errs.push(`borgo: la casa ${n} non sta su una L`);
     if (!'.gdP'.includes(t.rows[c.porta[1]]?.[c.porta[0]] ?? '~')) errs.push(`borgo: la porta della casa ${n} non è camminabile`);
