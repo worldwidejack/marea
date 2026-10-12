@@ -38,6 +38,8 @@ import { firmaLibro, rientra, segnaVisto } from '@marea/sim/economy/rientro.ts';
 import { donaAlFaro, segnaFaro } from '@marea/sim/economy/faro.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
 import '@marea/sim/corse/registra.ts'; // Corse: il server rigioca sul motore v2 (#173)
+import '@marea/sim/adrenalina/registra.ts'; // Adrenalina: le discese dello snowboard (passo 3b)
+import { medagliaDaPosizione, posizioneDiscesa } from '@marea/sim/adrenalina/classifica.ts';
 import { isPackedInputs, replayPartita } from '@marea/sim/replay.ts';
 import { registraDiscesa, registraPartita, registraVisti, riscuotiTraguardo, scegliTitolo } from '@marea/sim/economy/diario.ts';
 import { fitHero } from '@marea/sim/rpg/hero.ts';
@@ -124,7 +126,7 @@ export class Lot extends DurableObject<Env> {
       let body: Record<string, unknown>;
       try { body = (await req.json()) as Record<string, unknown>; } catch { return json({ error: 'Richiesta non valida' }, 400); }
       if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
-      if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now);
+      if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now, owner);
       if (RPG_ACTS.has(act)) {
         const g = lot.dungeon?.pending?.party;
         // spedizione insieme aperta (#118): prima il log della squadra dal DO Spedizioni, poi il lotto riletto (nell'attesa può essere cambiato)
@@ -188,7 +190,7 @@ export class Lot extends DurableObject<Env> {
   }
 
   /** Partita da solo: il seed lo sceglie il server, il punteggio lo ricalcola il server rigiocando gli input. */
-  private solo(lot: LotState, act: 'solo_start' | 'solo_play', body: Record<string, unknown>, now: number): Response {
+  private solo(lot: LotState, act: 'solo_start' | 'solo_play', body: Record<string, unknown>, now: number, owner: string): Response {
     if (act === 'solo_start') {
       const mg = body['minigame'];
       if (typeof mg !== 'string' || !Object.hasOwn(MINIGAMES, mg)) return json({ error: 'Minigioco sconosciuto' }, 400);
@@ -205,10 +207,21 @@ export class Lot extends DurableObject<Env> {
     const inputs = body['inputs'];
     if (!isPackedInputs(inputs, getMinigame(p.minigame).maxTicks)) return json({ error: 'Partita non valida' }, 400);
     const { result: r, raccolta } = replayPartita(p.minigame, p.seed, p.difficulty, inputs, p.opzioni);
-    const out = finishSolo(lot, r.medal, now);
-    const next = registraPartita(tracciaMissioni(out.lot, eventiPartita(r.medal), now), p.minigame, r.medal, raccolta);
+    // le discese dell'Adrenalina (passo 3b): la medaglia è la posizione nella classifica a tempo della pista (oro = batti il record,
+    // argento secondo, bronzo terzo; nessuno davanti = oro). La classifica la passa il Worker; senza, la partita resta aperta.
+    let medal = r.medal, discesa: Record<string, unknown> = {};
+    if (p.minigame === 'snowboard') {
+      const pista = p.opzioni?.['pista'] ?? 'snowboard_verde', cl = body['classifica'] as { pista?: unknown; righe?: unknown } | undefined;
+      if (!cl || cl.pista !== pista || !Array.isArray(cl.righe)) return json({ error: 'Serve la classifica della pista', code: 'classifica', pista }, 409);
+      const righe = (cl.righe as unknown[]).filter((x): x is { chi: string; ms: number } => !!x && typeof (x as { chi?: unknown }).chi === 'string' && typeof (x as { ms?: unknown }).ms === 'number');
+      const arrivato = r.detail['arrivato'] === 1, posizione = arrivato ? posizioneDiscesa(righe, owner, r.detail['finale']!) : 0;
+      medal = arrivato ? medagliaDaPosizione(posizione) : null;
+      discesa = { pista, posizione, classificati: righe.length, seed: p.seed, opzioni: p.opzioni ?? {} };
+    }
+    const out = finishSolo(lot, medal, now);
+    const next = registraPartita(tracciaMissioni(out.lot, eventiPartita(medal), now), p.minigame, medal, raccolta);
     this.save(next);
-    return json({ minigame: p.minigame, score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: next });
+    return json({ minigame: p.minigame, score: r.score, medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: next, ...discesa });
   }
 
   /** Faro comune (#111): versamento (idempotente per id: il coordinatore può ripeterlo dopo un crash) e livelli raggiunti. */

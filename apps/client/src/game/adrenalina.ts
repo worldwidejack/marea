@@ -6,13 +6,14 @@ import { distanzaIsola } from '@marea/sim';
 import { ISLANDS } from '@marea/content';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
+import type { Loader } from '../render/loader.ts';
 import type { Hud } from '../ui/hud.ts';
 import type { Api } from '../net/api.ts';
 import { FLAGS } from '../flags.ts';
 import { registerTestHook } from '../test/testapi.ts';
 import type { Funivia } from './adrenalina_funivia.ts';
 
-export type AdrenalinaOpts = { world: GameWorld; renderer: Renderer; api: Api | null; hud: Hud; root: HTMLElement; getLot(): LotState | null; setLot(l: LotState): void; nome(): string; /** L'isola è aperta (game/temi.ts): firma e casco. */ aperta(): boolean };
+export type AdrenalinaOpts = { world: GameWorld; renderer: Renderer; /** Per l'avatar vero sulla tavola (passo 3b). */ loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; getLot(): LotState | null; setLot(l: LotState): void; nome(): string; /** L'isola è aperta (game/temi.ts): firma e casco. */ aperta(): boolean };
 export type Adrenalina = {
   /** Il cancello della funivia (per la bussola), null se l'isola non c'è. */
   readonly spot: { id: string; nome: string; x: number; z: number } | null;

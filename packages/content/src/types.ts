@@ -151,6 +151,8 @@ export type PescaCfg = {
 // Perle (minigioco universale)
 /** Premio in più di un minigioco rispetto a `balance.solo`, per medaglia (si somma al premio della medaglia). */
 export type PremioExtra = Partial<Record<'oro' | 'argento' | 'bronzo', Partial<Resources>>>;
+/** Snowboard dell'Isola dell'Adrenalina, la parte che serve al giro dei premi (il resto in @marea/content/adrenalina.ts, fuori dal JS iniziale). */
+export type SnowboardMgCfg = { id: 'snowboard'; nome: string; premioExtra?: PremioExtra };
 /** Caccia alle perle (dalla barca ferma su acqua bassa): vista di profilo del fondale, unità = pixel della schermata. */
 export type PerleCfg = {
   id: 'perle';

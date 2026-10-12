@@ -68,6 +68,7 @@ export function punteggioText(mg: string, r: { score: number; detail: Record<str
   const d = r.detail ?? {};
   if (mg === 'regata' && num(d, 'ms') > 0 && num(d, 'boe') >= num(d, 'tot') && num(d, 'tot') > 0) return `${(num(d, 'ms') / 1000).toFixed(1).replace('.', ',')} s`;
   if (mg === 'corse' && num(d, 'ms') > 0 && num(d, 'giri') >= num(d, 'tot') && num(d, 'tot') > 0) return `${tempoCorsa(num(d, 'ms'))} · ${num(d, 'pos')}°`; // Isola delle Corse
+  if (mg === 'snowboard' && num(d, 'finale') > 0) return `${tempoCorsa(num(d, 'finale'))} finale`; // Isola dell'Adrenalina: la classifica è a tempo
   if (mg === 'consegne' && 'consegne' in d) return `${num(d, 'consegne')}/${num(d, 'totale') || 5} pacchi`;
   if ((mg === 'ingorgo' || mg === 'pinguini') && 'risolti' in d) return `${num(d, 'risolti')}/${num(d, 'totale') || 3} · ${num(d, 'mosse')} mosse`;
   return `${r.score.toLocaleString('it-IT')} punti`;

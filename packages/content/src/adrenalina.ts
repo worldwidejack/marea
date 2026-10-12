@@ -27,6 +27,7 @@ export function validateAdrenalina(): string[] {
   if (c.salto.grande > c.salto.finestra) errs.push('snowboard: salto.grande più lungo della finestra');
   for (const [k, t] of Object.entries(c.trick)) if (!pos(t.durata) || !pos(t.punti) || !t.nome) errs.push(`snowboard: trick ${k} non valido`);
   for (const k of ['rasente', 'corpo', 'caduta', 'maxSecondi', 'combo', 'ultimoIstante'] as const) if (!pos(c[k])) errs.push(`snowboard: ${k} non valido`);
+  for (const [k, v] of Object.entries(c.tempo)) if (!pos(v)) errs.push(`snowboard: tempo.${k} non valido`);
   for (const p of Object.values(SNOWBOARD_PISTE)) {
     const e = (m: string) => errs.push(`snowboard ${p.id}: ${m}`);
     if (p.punti.length < 3) e('servono almeno 3 punti');

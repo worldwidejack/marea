@@ -213,7 +213,8 @@ export function creaPista3d(p: PistaNeve): Pista3d {
   parti.push(painted(new THREE.BoxGeometry(2.2, 2, 1.8), PAL.rosso, sulNastro(1, -12.5, 2.2)));
   const arco = (s: number, larga: number, alto: number, colore: string, scacchi: boolean) => {
     for (const lato of [-1, 1]) parti.push(painted(new THREE.BoxGeometry(0.35, alto, 0.35), PAL.legnoScuro, sulNastro(s, lato * larga, alto / 2)));
-    if (!scacchi) { parti.push(painted(new THREE.BoxGeometry(larga * 2, 0.9, 0.1), colore, sulNastro(s, 0, alto - 0.45))); return; }
+    // la partenza: due pali con la bandierina (uno striscione in vetta si vedrebbe da sotto come una riga sullo schermo)
+    if (!scacchi) { for (const lato of [-1, 1]) parti.push(painted(new THREE.BoxGeometry(0.06, 0.8, 1.1), colore, sulNastro(s, lato * larga, alto - 0.5))); return; }
     const nq = Math.round(larga * 2 / 0.9);
     for (let i = 0; i < nq; i++) for (let r = 0; r < 2; r++) parti.push(painted(new THREE.BoxGeometry((larga * 2) / nq, 0.45, 0.1), (i + r) % 2 ? PAL.neroCaldo : PAL.pietraChiara, sulNastro(s, -larga + ((i + 0.5) * larga * 2) / nq, alto - 0.225 - r * 0.45)));
   };
