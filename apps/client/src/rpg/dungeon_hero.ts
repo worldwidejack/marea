@@ -35,7 +35,9 @@ import type { HeroFx } from './hero_fx.ts';
  *  (`oggetto`: pistole, moschetto, vaso del fuoco greco; canna lungo +Y dall'impugnatura, sopra +Z) tenuto a due mani in avanti. */
 export type ArmaInMano = RunWeapon & { modello?: string; colore?: string; oggetto?: () => THREE.Object3D;
   /** L'oggetto è una lama (si brandisce come le spade del kit), non un'arma da fuoco. */
-  lama?: boolean };
+  lama?: boolean;
+  /** Arma a distanza che non è un arco (pistole, moschetto, trombone, vaso): col mouse mostra la linea di mira come l'arco. */
+  distanza?: boolean };
 
 /** Quello del personaggio che si vede addosso nel dungeon (RunHero lo soddisfa): armatura o veste sul corpo e, con arco e frecce, la faretra sulla schiena; l'arma è in mano. */
 export type EquipVista = { arma: { id: string | null }; armatura?: { id: string | null }; frecce?: { id: string } | null };
@@ -131,7 +133,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   equip(o.hero);
 
   // ---- arma: nel pugno, ingrandita perché la punta arrivi vicino alla portata (quel che si vede ≈ dove colpisce) ----
-  let bow = false, arco: Arco | null = null, weapon: THREE.Object3D | null = null, bladeMats: THREE.MeshLambertMaterial[] = [], bladeLen = 0, kind: Kind = 'pugni', mountN = 0;
+  let bow = false, tiro = false, arco: Arco | null = null, weapon: THREE.Object3D | null = null, bladeMats: THREE.MeshLambertMaterial[] = [], bladeLen = 0, kind: Kind = 'pugni', mountN = 0;
   // magia in mano: kind diventa 'magia' (due mani avanti, sfera), l'arma resta montata ma nascosta; `weaponKind` è quello dell'arma
   let weaponKind: Kind = 'pugni', magiaId: string | null = null, rottaOra = false;
   const orbe = createOrbe(o.scene);
@@ -156,7 +158,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
       w.scale.set(s * (b ? 1 : 1.6), s, s * (b ? 1 : 1.6)); len = tip * s; // più spessa: si legge da lontano
     }
     weapon?.removeFromParent();
-    weapon = w; bow = b; bladeMats = mats; bladeLen = len;
+    weapon = w; bow = b; tiro = !!arma.distanza; bladeMats = mats; bladeLen = len;
     arco = b && w ? armaArco(w, o.loader, false, 1.8) : null;
     if (w) o.scene.add(w);
     weaponKind = bow ? 'arco' : arma.oggetto ? (arma.lama ? 'lama' : 'fuoco') : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' ? 'lancia' : 'lama';
@@ -405,7 +407,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   function mira(h: DungeonView['hero'], c: number): void {
     // l'arco teso, o col mouse (miraSempre) l'arco in mano / la magia in mano anche senza tendere
     const arcoPronto = h.anim === 'tende' && !!arco && !!weapon?.visible;
-    MIRA.visible = !!o.mirino && (arcoPronto || (miraSempre && (!!magiaId || (!!arco && !!weapon?.visible))));
+    MIRA.visible = !!o.mirino && (arcoPronto || (miraSempre && (!!magiaId || ((!!arco || tiro) && !!weapon?.visible))));
     if (!MIRA.visible) return;
     const dx = miraDir ? miraDir.x : h.fx, dz = miraDir ? miraDir.z : h.fz, p = avatar.object.position;
     MIRA.position.set(p.x + dx * 0.4, o.floorY + (magiaId ? MAGIA_Y : FRECCIA_Y), p.z + dz * 0.4); // dove nasce il colpo nella sim

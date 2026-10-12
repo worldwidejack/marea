@@ -1,6 +1,6 @@
 // Input della partita a ondate dalla rete e replay deterministico per il server. Il formato degli input è quello del dungeon (RLE a ottavi,
 // o la stringa compatta di encodeDungeon); le azioni dal menu sono [tick, azione] con tick = passi già fatti (come nel dungeon).
-import { decodeDungeon, isPackedDungeon } from '../dungeon/replay.ts';
+import { decodeDungeon, frameOfRiga, isPackedDungeon } from '../dungeon/replay.ts';
 import type { PackedDungeon } from '../dungeon/types.ts';
 import type { TAzione, TAzioni, TOpzioni, TRisultato } from './types.ts';
 import { MAX_TICKS, stepTemplari, templari } from './templari.ts';
@@ -36,8 +36,8 @@ export function replayTemplari(seed: number, opzioni: TOpzioni, inputs: PackedDu
   const s = templari.create({ seed, opzioni });
   let ai = 0;
   const azioniFinoA = (t: number) => { while (ai < azioni.length && azioni[ai]![0] <= t) templari.act(s, azioni[ai++]![1]); };
-  for (const [n, mx, my, b] of inputs) {
-    const f = { mx: mx / 8, my: my / 8, a: (b & 1) !== 0, b: (b & 2) !== 0, c: (b & 4) !== 0, d: (b & 8) !== 0 };
+  for (const r of inputs) {
+    const n = r[0], f = frameOfRiga(r); // compresa la mira (mouse o joystick di mira, riga di 5)
     for (let i = 0; i < n && !s.done; i++) { azioniFinoA(s.tick); if (s.done) break; stepTemplari(s, f); }
     if (s.done) break;
   }

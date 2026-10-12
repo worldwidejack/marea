@@ -310,13 +310,25 @@ export function startRun(ctx: RunCtx, o: {
     const dx = p.x - s.hero.x, dz = p.z - s.hero.z, d = Math.sqrt(dx * dx + dz * dz) || 1;
     return { mx: dx / d, my: dz / d, a: false, b: false, c: false, d: false };
   }
+  let tapT = 0; // tick che restano al colpo assistito di un tocco veloce sul joystick di mira
   /** L'input di adesso (autopilot, test, o tastiera/joystick più i bottoni del chunk). */
   function inputOra(f: InputFrame): DungeonInput {
     const c = controls!.sample();
     if (auto) return dungeon.autopilot(s, auto);
     if (dungeonLink.altare >= 0) return walkToAltare(dungeonLink.altare);
     if (dungeonLink.vai) return walkToCella(dungeonLink.vai);
-    const a = f.a || c.a, m = c.m || (a || s.hero.act === 'tende' || s.hero.act === 'punta' ? puntaMouse() : 0); // la mira solo mentre si preme (e al rilascio dell'arco): il log resta corto; il joystick di mira porta la sua
+    // tocco veloce sul joystick di mira: colpo assistito (senza `m`). La A si tiene finché l'arco è teso del tutto (poi parte), o finché la magia è in mira (poi parte)
+    if (c.tap && (s.hero.incanta || s.hero.arma.kind === 'arco')) tapT = 120;
+    let aTap = false;
+    if (tapT > 0) {
+      tapT--;
+      const act = s.hero.act;
+      if (act === 'tende') aTap = s.hero.carica < 1;
+      else if (act === 'punta') aTap = false;
+      else aTap = act === 'idle' && tapT >= 118; // solo i primi tick: senza frecce o Magicka non si insiste
+      if (act === 'tira' || act === 'lancia') tapT = 0;
+    }
+    const a = f.a || c.a || aTap, m = aTap ? 0 : c.m || (a || s.hero.act === 'tende' || s.hero.act === 'punta' ? puntaMouse() : 0); // la mira solo mentre si preme (e al rilascio dell'arco): il log resta corto; il joystick di mira porta la sua
     return { mx: f.mx, my: f.my, a, b: f.b, c: c.c, d: c.d, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}) };
   }
 
