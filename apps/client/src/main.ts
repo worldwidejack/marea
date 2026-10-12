@@ -22,7 +22,7 @@ import type { EmoteId } from '@marea/protocol';
 import { createEditor } from './ui/editor.ts';
 import { createFeed } from './ui/feed.ts';
 import { createEmotes } from './game/emote.ts';
-import { setTopbarHidden } from './ui/topbar.ts';
+import { setTopbarHidden, topButton } from './ui/topbar.ts';
 import { entraConInvito } from './ui/entra.ts';
 import { createMinigiochi } from './game/minigiochi.ts';
 import { createGuida } from './ui/guida.ts';
@@ -154,6 +154,15 @@ async function boot(): Promise<void> {
   const diario = createDiario({ root, hud, api: me && api.enabled ? api : null, me, world, owners, getLot: () => myLot(), setLot: setMyLot, hidden: () => regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy(),
     pausa: () => !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || !!tavolo?.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!document.querySelector('#mzSheet.on'),
     onOpen: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); } });
+  // Teletrasporto (#264): per ora per tutti, strumento di sviluppo. Il pannello sta in un chunk, caricato al primo tocco.
+  type TeleUi = ReturnType<typeof import('./ui/teletrasporto_ui.ts').createTeletrasportoUi>;
+  let teleUi: TeleUi | null = null;
+  const teleBtn = topButton({ root, id: 'mzTeleBtn', order: 9, label: 'TP', title: 'Teletrasporto sulle isole', onClick: () => {
+    void import('./ui/teletrasporto_ui.ts').then((m) => {
+      teleUi ??= m.createTeletrasportoUi({ root, hud, world, slots: [...new Set([...owners.map((w) => w.slot), world.slot].filter((x): x is number => x !== null))], onClose: () => teleBtn.setOn(false) });
+      if (teleUi.isOpen()) teleUi.close(); else { teleUi.open(); teleBtn.setOn(true); }
+    });
+  } });
   const targhette = createTarghette({ world, camera: renderer.camera, canvas, root, mio: () => { const l = myLot(); return me && l ? { nome: me.nome, titolo: titoloDi(diarioOf(l).titolo) } : null; } });
   // segnalino del navigatore (#144): si fissa toccando la mappa grande; in cima alle mete, ha lui la freccia sullo schermo
   const segno = createSegno();
