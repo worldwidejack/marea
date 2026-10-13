@@ -120,6 +120,7 @@ Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, gioca
 | Metodo e percorso | Corpo → risposta |
 |---|---|
 | `POST /api/lot/decor/move` | `{ id, cell }` → `LotState`: sposta una decorazione della tua isola. Stesse celle di `POST /api/lot/decor` (sabbia `.`/erba `g`, non il leggio del libro degli ospiti `RIENTRO.libro.lotto` né le decorazioni fisse del template); **400** cella non ammessa o rotta, **409** `{ code: 'cella' }` se occupata, **404** id che non c'è. Nella stessa cella: niente da fare — **nuovo** |
+| `POST /api/lot/casa/(compra\|finitura\|scegli\|posa\|sposta\|ruota\|ritira\|baule)` | La casa arredabile (#265): `{ id }` (compra, ruota, ritira), `{ tipo: 'pavimento'\|'carta', id }` (finitura, scegli), `{ id, cell, muro?, rot? }` (posa, sposta), `{ cell? }` (baule: sposta, senza cella gira) → `LotState` |
 | `POST /api/lot/decor/rotate` | `{ id }` → `LotState`: un quarto di giro (`rot` 0 → 1 → 2 → 3 → 0) — **nuovo** |
 | `POST /api/lot/decor/sell` | `{ id }` → `LotState`: la decorazione sparisce e tornano `floor(prezzo × BALANCE.decor.rimborso)` Perle (metà, per difetto), scritte nel libro mastro come entrata — **nuovo** |
 

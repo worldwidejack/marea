@@ -73,7 +73,10 @@ export type BorgoDef = {
   /** Pavimenti e carte da parati: il primo è quello di serie. `motivo` = come si dipinge (render/stanza), `colori` dalla palette. */
   pavimenti: StanzaFinitura[]; carte: StanzaFinitura[];
 };
-export type StanzaFinitura = { id: string; nome: string; motivo: string; colori: string[] };
+/** `perle`: prezzo al negozio dei mobili (#265); assente o 0 = di serie, di tutti. */
+export type StanzaFinitura = { id: string; nome: string; motivo: string; colori: string[]; perle?: number };
+/** Un mobile della casa (#265, mobili.json): `posto` terra (cella del pavimento) o parete (cella di muro), `forma` = render/mobili.ts. */
+export type MobileDef = { id: string; nome: string; perle: number; posto: 'terra' | 'parete'; forma: string; colori: string[] };
 /** `mercante`: esclusivo del Mercante delle Perle al Porto (#63): nell'editor si vede ma si compra solo da lui. */
 export type HatDef = { id: string; nome: string; perle: number; mercante?: boolean };
 export type DecorDef = { id: string; nome: string; perle: number; model: string; mercante?: boolean };

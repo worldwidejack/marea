@@ -26,6 +26,8 @@ import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
 import { build, buyHat, collect, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
 import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
+import { compraFinitura, compraMobile, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
+import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
 import { holdStake, releaseStake } from '@marea/sim/economy/challenge.ts';
@@ -75,7 +77,7 @@ function isRelease(v: unknown): v is Release {
 function eventiAzione(act: string, prima: LotState, dopo: LotState): EventiMissione {
   if (act === 'collect') return eventiRaccolta(prima, dopo);
   if (act === 'build' || act === 'upgrade') return { cantiere: 1 };
-  if (act === 'decor' || act === 'hat' || act === 'barca') return { mercante: 1 };
+  if (act === 'decor' || act === 'hat' || act === 'barca' || act === 'casa_compra' || act === 'casa_finitura') return { mercante: 1 }; // anche il negozio dei mobili (#265)
   return {};
 }
 /** Stato HTTP di un errore economico: richiesta rotta 400, cosa inesistente 404, il resto è un conflitto con lo stato (409). */
@@ -296,6 +298,31 @@ export class Lot extends DurableObject<Env> {
         if (act === 'decor_sell') return sellDecor(lot, id, now).lot;
         if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
         return moveDecor(lot, id, cell, now);
+      }
+      // la casa arredabile (#265, economy/casa.ts): compra (negozio dei mobili), posa, sposta, gira, ritira; finiture; il baule
+      case 'casa_compra': return isId(body['id']) ? compraMobile(lot, body['id'], now) : json({ error: 'Mobile sconosciuto' }, 400);
+      case 'casa_finitura': case 'casa_scegli': {
+        const tipo = body['tipo'], id = body['id'];
+        if ((tipo !== 'pavimento' && tipo !== 'carta') || !isId(id)) return json({ error: 'Finitura non valida' }, 400);
+        return act === 'casa_finitura' ? compraFinitura(lot, tipo, id, now) : scegliFinitura(lot, tipo, id, now);
+      }
+      case 'casa_posa': case 'casa_sposta': {
+        const id = body['id'], cell = body['cell'], muro = body['muro'], rot = body['rot'] ?? 0;
+        if (!isId(id) || !isCell(cell) || (muro !== undefined && muro !== 'n' && muro !== 'o' && muro !== 'e')) return json({ error: 'Posto non valido' }, 400);
+        const p: PostoMobile = muro ? { cell, muro } : { cell };
+        if (act === 'casa_sposta') return spostaMobile(lot, id, p, now);
+        if (typeof rot !== 'number' || !Number.isInteger(rot) || rot < 0 || rot > 3) return json({ error: 'Rotazione non valida (0-3)' }, 400);
+        return posaMobile(lot, id, p, rot, now);
+      }
+      case 'casa_ruota': case 'casa_ritira': {
+        const id = body['id'];
+        if (!isId(id)) return json({ error: 'Manca il mobile' }, 400);
+        return act === 'casa_ruota' ? ruotaMobile(lot, id, now) : ritiraMobile(lot, id, now);
+      }
+      case 'casa_baule': {
+        const cell = body['cell'];
+        if (cell === undefined) return ruotaBaule(lot, now);
+        return isCell(cell) ? spostaBaule(lot, cell, now) : json({ error: 'Cella non valida' }, 400);
       }
       case 'hat': {
         const h = body['hat'];
