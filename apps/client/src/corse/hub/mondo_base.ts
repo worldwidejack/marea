@@ -174,17 +174,3 @@ export function geoTela(t: Tela): THREE.BufferGeometry {
   return g;
 }
 
-/** Nebbia a bande (ART_BIBLE §7: niente gradienti lisci): il fattore della nebbia va a 6 gradini con un dithering 2×2. */
-export function nebbiaABande(m: THREE.Material): void {
-  m.onBeforeCompile = (sh) => {
-    sh.fragmentShader = sh.fragmentShader.replace('#include <fog_fragment>', `
-#ifdef USE_FOG
-  float fogF = smoothstep( fogNear, fogFar, vFogDepth );
-  vec2 fq = mod( floor( gl_FragCoord.xy ), 2.0 );
-  float fb = mod( 2.0 * fq.x + 3.0 * fq.y, 4.0 ) / 4.0 + 0.125;
-  fogF = clamp( floor( fogF * 6.0 + fb ) / 6.0, 0.0, 1.0 );
-  gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogF );
-#endif`);
-  };
-  m.customProgramCacheKey = () => 'marea_nebbia_bande';
-}

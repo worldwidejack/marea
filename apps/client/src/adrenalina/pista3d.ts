@@ -307,7 +307,7 @@ export function creaPista3d(p: PistaNeve): Pista3d {
   punto(n, 0, 0, 0, P3);
   monti.push(painted(new THREE.ConeGeometry(260, 520, 6), PAL.pietra, M(P3[0] - 40, P3[1] - 200, P3[2] + 230)));
   monti.push(painted(new THREE.ConeGeometry(135, 240, 6), PAL.pietraChiara, M(P3[0] - 40, P3[1] - 200 + 260 + 4, P3[2] + 230)));
-  const montiM = new THREE.Mesh(merged(monti), matV); // con la foschia: più lontano, più chiaro (l'aria di montagna)
+  const montiM = new THREE.Mesh(merged(monti), matV);
   montiM.name = 'snowboard_monti'; gruppo.add(montiM);
 
   // riquadri del terreno e degli abeti col loro centro e raggio, per spegnerli oltre la nebbia

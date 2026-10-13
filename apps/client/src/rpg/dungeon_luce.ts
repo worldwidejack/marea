@@ -4,7 +4,7 @@
 // - Nebbia (R, un texel per cella): 0 mai visto, VISTO già visto, da LONTANO a 1 in vista ora (più vicino = più chiaro). La vista si calcola
 //   dal centro della cella dell'eroe (tornando nella stessa cella si vede sempre la stessa cosa) e solo i muri la fermano: le colonne no,
 //   così dietro una colonna non resta un buco nel pavimento. Quando cambia, la nebbia va verso il nuovo valore in un terzo di secondo (lo
-//   shader la riduce a gradini col retino: si vede una dissolvenza a pixel, non un'apparizione).
+//   shader la riduce a gradini netti: si vede una dissolvenza a scatti, non un'apparizione).
 import * as THREE from 'three';
 import { lineOfSight } from '@marea/sim/dungeon/map.ts';
 import type { DMap } from '@marea/sim/dungeon/map.ts';

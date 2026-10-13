@@ -1,10 +1,10 @@
 // Finestra sull'eroe e luce a celle (#208): due ritocchi ai materiali flat (Lambert e Basic, onBeforeCompile) per le scene chiuse
 // (dungeon, arena dei Templari). Niente geometria che cambia mentre cammini: muri e colonne restano sempre della loro altezza.
 // - `taglia`: quello che sta tra la camera e l'eroe, sopra il ginocchio e dentro un cerchio attorno a lui sullo schermo, non si disegna
-//   (bordo a retino 4×4, a pixel); dentro al taglio il retro delle facce diventa un coperchio scuro, così un muro tagliato sembra pieno.
+//   (bordo netto); dentro al taglio il retro delle facce diventa un coperchio scuro, così un muro tagliato sembra pieno.
 //   Il cerchio segue l'eroe in modo continuo: niente fasce per cella che scattano.
-// - `griglia` (solo Lambert): due DataTexture sul piano del pavimento, lette col filtro lineare e ridotte a 4 gradini col retino (niente
-//   sfumature lisce, bordi a pixel): la luce cotta delle torce (RGB, `res` texel per cella) e la nebbia (R, un texel per cella: 0 mai visto,
+// - `griglia` (solo Lambert): due DataTexture sul piano del pavimento, lette col filtro lineare e ridotte a 4 gradini netti (niente
+//   sfumature lisce, niente retino dal 13 ott, #282): la luce cotta delle torce (RGB, `res` texel per cella) e la nebbia (R, un texel per cella: 0 mai visto,
 //   poco = già visto, 1 = in vista). Le pareti le leggono un po' davanti alla faccia, così un muro non prende luce né vista dalla stanza dietro.
 // Un'unica tabella di uniform per scena: `aggiorna` una volta per frame e vale per tutti i materiali ritoccati.
 import * as THREE from 'three';
@@ -77,11 +77,8 @@ uniform float uMzPassoN;
 uniform float uMzFiamma;
 uniform vec3 uMzBuio;
 #endif
-const float MZ_BAYER[16] = float[16]( 0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0 );
-float mzRetino() {
-	ivec2 p = ivec2( mod( floor( gl_FragCoord.xy ), 4.0 ) );
-	return ( MZ_BAYER[ p.y * 4 + p.x ] + 0.5 ) / 16.0;
-}
+// retino spento (#282, Jack 13 ott: niente griglia a pois): sempre a metà, quindi gradini e bordo del taglio netti
+float mzRetino() { return 0.5; }
 // n gradini; il retino copre una fascia larga a del passaggio tra un gradino e l'altro (1 = tutto, 0 = bande nette)
 float mzGradini( float v, float r, float n, float a ) { return clamp( floor( v * n + 0.5 + ( r - 0.5 ) * a ) / n, 0.0, 1.0 ); }
 `;
@@ -103,7 +100,7 @@ const TAGLIO_F = /* glsl */ `
 	}
 	#endif
 `;
-// prima del colore finale: luce cotta delle torce e nebbia, a gradini col retino; il coperchio è un colore pieno
+// prima del colore finale: luce cotta delle torce e nebbia, a gradini netti; il coperchio è un colore pieno
 const LUCE_F = /* glsl */ `
 	#ifdef MZ_GRIGLIA
 	{

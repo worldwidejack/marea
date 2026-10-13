@@ -46,9 +46,8 @@ canvas.style.imageRendering = 'pixelated';
 const scene = new THREE.Scene(); scene.background = new THREE.Color(P.acqua);
 const post = createPost();
 const giorno = STYLES.find((s) => s.id === 'giorno')!;
-// foschia del colore dell'orizzonte del video: il terreno lontano sfuma nel fondale
-post.setStyle({ ...giorno, fog: { col: '#9fc7e0', near: 60, far: 260, max: 0.55 } });
-post.toggles.cielo = false; post.toggles.contorni = true; post.toggles.foschia = true;
+post.setStyle(giorno);
+post.toggles.cielo = false; post.toggles.contorni = true; post.toggles.foschia = false; // niente foschia (#282)
 const camera = new THREE.PerspectiveCamera(75, 1, 0.05, 700);
 const lights = createLights(); scene.add(lights.group);
 

@@ -5,8 +5,8 @@
 // pezzi e regole (mondo_pezzi, mondo_segnaposto), montaggio del kit (mondo_kit), cielo e luce (mondo_cielo).
 import * as THREE from 'three';
 import { loaderCorse } from '../veicoli_kit.ts';
-import { geoTela, nebbiaABande } from './mondo_base.ts';
-import { NEBBIA, creaAtmosfera, texAcqua } from './mondo_cielo.ts';
+import { geoTela } from './mondo_base.ts';
+import { VISTA, creaAtmosfera, texAcqua } from './mondo_cielo.ts';
 import { montaKit, riquadroTele, unisci } from './mondo_kit.ts';
 import { Tele, acquaInTela, costruzioniInTele, stradeInTele, terrenoInTele } from './mondo_mesh.ts';
 import { piazza } from './mondo_pezzi.ts';
@@ -66,7 +66,6 @@ export function creaHub(): MondoHub {
   const matE = new THREE.MeshBasicMaterial({ vertexColors: true });
   const acquaTex = texAcqua();
   const matAcqua = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, map: acquaTex });
-  for (const m of [matPre, matA, matEPre, matE, matAcqua]) nebbiaABande(m);
 
   // riquadri (subito, coi colori pieni): terreno vicino/lontano (riceve le ombre), pezzi vicino/lontano (fanno ombra)
   type Riq = { k: number; x0: number; z0: number; tV: THREE.Mesh; pV: THREE.Mesh; L: THREE.Mesh; O: THREE.Mesh; vicino: boolean };
@@ -139,12 +138,12 @@ export function creaHub(): MondoHub {
       if (atm) { atm.cielo.position.copy(cam.position); atm.cielo.scale.setScalar((cam.far || 900) * 0.9); }
       acquaTex.offset.set((tm * 0.05) % 1, (tm * 0.11) % 1);
       if (ruota) ruota.rotation.z = tm * 0.12;
-      // i riquadri: da vicino interi, da lontano terreno a 4 m e sagome, oltre la nebbia niente
+      // i riquadri: da vicino interi, da lontano terreno a 4 m e sagome, oltre VISTA niente
       const cx = cam.position.x, cz = cam.position.z;
       for (const [, r] of riquadri) {
         const dx = Math.max(r.x0 - cx, 0, cx - r.x0 - RIQ), dz = Math.max(r.z0 - cz, 0, cz - r.z0 - RIQ), d = Math.sqrt(dx * dx + dz * dz);
         r.vicino = d < VICINO + (r.vicino ? 12 : 0);
-        const dentro = d < NEBBIA.lontano + 20;
+        const dentro = d < VISTA;
         r.tV.visible = r.pV.visible = r.O.visible = dentro && r.vicino;
         r.L.visible = dentro && !r.vicino;
       }

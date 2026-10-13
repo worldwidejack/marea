@@ -24,6 +24,7 @@ import { veicoloGeo } from '../veicoli3d.ts';
 import { caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
 import { stileProva } from '../prova/stile.ts';
 import { creaHub } from './mappa.ts';
+import { VISTA } from './mondo_cielo.ts';
 import type { IdPorta, MondoHub, PortaHub } from './mappa.ts';
 import { guida, metti, nuovaAuto, respingi, yawDi } from './guida.ts';
 import type { AutoHub } from './guida.ts';
@@ -190,8 +191,7 @@ export function creaSchermoHub(o: OpzioniHub): Hub {
     c.up.set(0, 1, 0);
     c.lookAt(vP.x + sx * 4, vP.y + (lungo ? 1.4 : 1), vP.z + sz * 4);
     const fov = (tel ? 76 : lungo ? 60 : 64) + (auto.turbo > 0 ? 6 : 0) + Math.max(0, v - 15) * 0.3 + (effetti ? regia.pugno : 0);
-    // oltre la nebbia non si vede niente: il piano lontano finisce lì (meno triangoli da disegnare)
-    const far = scene.fog instanceof THREE.Fog ? Math.min(900, scene.fog.far + 40) : 900;
+    const far = VISTA;
     if (Math.abs(c.fov - fov) > 0.05 || c.near !== 0.3 || c.far !== far) { c.fov = regia.ok ? c.fov + (fov - c.fov) * Math.min(1, dt * 8) : fov; c.near = 0.3; c.far = far; c.updateProjectionMatrix(); }
     regia.ok = true;
   }

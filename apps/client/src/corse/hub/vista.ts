@@ -1,12 +1,12 @@
 // Vista dell'hub delle Corse (solo in sviluppo, `provahubvista.html`): il mondo da una camera libera, per le foto e per misurare
 // il budget senza guidare. Parametri in URL (e in `window.__vista.set`):
 //   ?x&z (punto inquadrato, m) &yaw (gradi: da dove guarda la camera, 0 = da sud) &pitch (gradi) &dist (m) &fov (gradi)
-//   &nebbia=0 → senza nebbia (per le viste dall'alto di tutta l'isola)
+//   &nebbia=0 → tutto in dettaglio e piano lontano a 3 km (per le viste dall'alto di tutta l'isola)
 //   &veicolo=1 → camera da gara: come dietro a un veicolo in (x, z) che va verso `yaw` (0 = nord), 6 m dietro e 2,5 m sopra.
 // `window.__vista = { ready, set(o), numeri() }`: ready = kit montato; numeri() = draw call e triangoli dell'ultimo frame.
 import * as THREE from 'three';
 import { creaHub } from './mappa.ts';
-import { NEBBIA } from './mondo_cielo.ts';
+import { VISTA } from './mondo_cielo.ts';
 
 const q = new URLSearchParams(location.search);
 const n = (k: string, d: number) => (q.has(k) ? +q.get(k)! : d);
@@ -68,8 +68,8 @@ function frame() {
     atm.segui(v.x, v.z);
   }
   hub.aggiorna((performance.now() - t0) / 1000, camera);
-  if (!v.nebbia) { camera.far = 3000; camera.updateProjectionMatrix(); (scene.fog as THREE.Fog).far = 1e5; (scene.fog as THREE.Fog).near = 1e5 - 1; hub.gruppo.traverse((o) => { if (/^hub_(terra|pezzi)_/.test(o.name)) o.visible = true; if (/^hub_lontano_/.test(o.name)) o.visible = false; }); }
-  else { camera.far = 900; camera.updateProjectionMatrix(); (scene.fog as THREE.Fog).far = NEBBIA.lontano; (scene.fog as THREE.Fog).near = NEBBIA.vicino; }
+  if (!v.nebbia) { camera.far = 3000; camera.updateProjectionMatrix(); hub.gruppo.traverse((o) => { if (/^hub_(terra|pezzi)_/.test(o.name)) o.visible = true; if (/^hub_lontano_/.test(o.name)) o.visible = false; }); }
+  else { camera.far = VISTA; camera.updateProjectionMatrix(); }
   gl.info.reset();
   gl.render(scene, camera);
   ultimi = { drawCalls: gl.info.render.calls, triangoli: gl.info.render.triangles };

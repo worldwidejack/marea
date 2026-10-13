@@ -114,7 +114,7 @@ addEventListener('resize', resize); window.visualViewport?.addEventListener('res
 function setLuce(id: StyleId) {
   const st = STYLES.find((x) => x.id === id)!;
   post.setStyle(st); luce = id;
-  post.toggles.contorni = id !== 'gioco'; post.toggles.foschia = id !== 'gioco'; post.toggles.cielo = id !== 'gioco' && !fondale;
+  post.toggles.contorni = id !== 'gioco'; post.toggles.foschia = false; post.toggles.cielo = id !== 'gioco' && !fondale;
 }
 // il fondale dipinto della zona (#258): dietro a tutto, il cielo della passata finale si spegne. `?fondale=0` o tasto F per il cielo di prima
 let conFondale = q.get('fondale') !== '0', fondale: Fondale | null = null;
@@ -273,7 +273,7 @@ function eventi() {
 }
 function aggiornaCamera(dt: number) {
   posa(0, vP, vF, vU, vM);
-  post.toggles.foschia = luce !== 'gioco'; post.toggles.cielo = luce !== 'gioco' && !fondale;
+  post.toggles.cielo = luce !== 'gioco' && !fondale;
   const w = vis[0]!, hop = w.hop > 0 ? 1.52 * (w.hop / 0.26) * (1 - w.hop / 0.26) : 0;
   regia.segui(cam, { pos: vP, fwd: vF, up: vU, moto: vM, k: s.veicoli[0]!, p, onda: s.onda, hop, effetti, dt });
 }

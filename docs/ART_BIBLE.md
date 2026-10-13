@@ -74,6 +74,7 @@ Pelle degli avatar (6 toni, dentro la palette estesa dell'atlas avatar): `#FBE2C
 - Sole: direzionale, colore `#FFD9A3`, da sud-ovest, elevazione ~40°. Cielo: emisferico `#9FD3FF` sopra, `#7A5A3A` sotto. Le ombre tendono al blu-viola grazie all'ambiente, mai grigio neutro.
 - Sfondo cielo: gradiente a bande di 4 colori (nessun gradiente liscio), nuvole piatte a pixel opzionali.
 - Resa a **metà risoluzione** con ingrandimento nearest: è insieme il look pixel e il risparmio di prestazioni. Niente post-processing oltre a questo.
+- **Niente foschia e niente retino a schermo** (Jack, 13 ott 2026, #282: «un'orribile griglia a pois sopra tutto… elimina la foschia definitivamente»). Il lontano si vede pulito fino all'orizzonte; i passaggi di luce (cielo, dungeon) sono a bande nette, mai a puntini. Il dithering resta solo dentro le texture e nei disegni della UI. Le isole a tema chiuse (Giardino) restano nascoste dalla loro nebbia di scena: è gioco, non resa.
 - **Eccezione: l'isola delle Corse è in HD** (hub, menù e gara a risoluzione piena; Jack, 13 ott 2026, #277). Le texture restano nearest; la risoluzione scende da sola sui telefoni lenti. Gli asset 3D delle Corse vanno rifatti per reggere l'HD.
 
 ## 8. Acqua

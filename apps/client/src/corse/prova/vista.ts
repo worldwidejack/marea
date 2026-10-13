@@ -22,7 +22,7 @@ gl.shadowMap.enabled = true; gl.shadowMap.type = THREE.BasicShadowMap;
 canvas.style.imageRendering = 'pixelated';
 const scene = new THREE.Scene(); scene.background = new THREE.Color(P.acquaBassa);
 const post = createPost(); post.setStyle(STYLES.find((x) => x.id === 'giorno')!);
-post.toggles.foschia = q.get('nebbia') === '1'; // dall'alto la foschia del gioco copre tutto
+post.toggles.foschia = false; // niente foschia (#282)
 const camera = new THREE.PerspectiveCamera(v.fov, 1, 0.5, 1500);
 const lights = createLights(); scene.add(lights.group);
 const mare = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshLambertMaterial({ color: P.acqua, flatShading: true }));

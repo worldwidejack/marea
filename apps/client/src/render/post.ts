@@ -4,12 +4,12 @@
 // Contorni dalla profondità inversa (1/z): su un piano è lineare sullo schermo, quindi il laplaciano è zero ovunque tranne su bordi e spigoli.
 //   - vicino molto più lontano del pixel → sagoma: inchiostro dello stile (o il colore stesso più scuro)
 //   - laplaciano negativo piccolo → spigolo convesso: schiarito (o a inchiostro, per la stampa)
-// Palette: ogni pixel va al colore più vicino della palette dello stile, con dithering Bayer 4×4 tra i due più vicini.
+// Palette: ogni pixel va al colore più vicino della palette dello stile. Niente dithering (#282, Jack 13 ott: «ci sono proprio dei pois fermi»).
 import * as THREE from 'three';
 
 /** Quello che la passata prende da uno stile (provapixel/styles.ts lo soddisfa). */
 export type PostLook = {
-  palette: string[] | null; dither: number; grade: { exp: number; sat: number; con: number; tint: string }; paper: number;
+  palette: string[] | null; grade: { exp: number; sat: number; con: number; tint: string }; paper: number;
   ink: { col: string; mix: number; crease: number };
   sky: { top: string; mid: string; hor: string; sun: string; glow: string; sunDir: [number, number, number]; sunSize: number; cloud: string; cloudDark: string;
     /** notte (#56): 0..1 stelle e luna; moonDir = dove sta la luna */ night?: number; moonDir?: [number, number, number];
@@ -37,7 +37,7 @@ uniform vec2 uRes;
 uniform float uNear, uFar, uTime, uOutline, uFog, uSky;
 uniform mat4 uInvProj, uCamWorld;
 uniform vec3 uFogCol, uInk, uInkCol, uTint;
-uniform float uInkMix, uCrease, uFogNear, uFogFar, uFogMax, uPaper, uDither, uExp, uSat, uCon, uSunSize;
+uniform float uInkMix, uCrease, uFogNear, uFogFar, uFogMax, uPaper, uExp, uSat, uCon, uSunSize;
 uniform vec3 uSkyTop, uSkyMid, uSkyHor, uSun, uGlow, uSunDir, uCloud, uCloudDark, uMoonDir, uMoonCol;
 uniform float uNight, uCover;
 uniform vec2 uCloudOff;
@@ -45,12 +45,6 @@ uniform vec3 uPal[${MAXPAL}];
 uniform int uPalN;
 
 float viewZ(vec2 uv) { float d = texture2D(tDepth, uv).x; return -perspectiveDepthToViewZ(d, uNear, uFar); }
-float bayer(vec2 p) {
-  ivec2 i = ivec2(mod(p, 4.0));
-  int k = i.x + i.y * 4;
-  float m[16] = float[16](0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.);
-  return (m[k] + 0.5) / 16.0;
-}
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) {
   vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -59,11 +53,11 @@ float vnoise(vec2 p) {
 vec3 skyCol(vec2 uv, vec2 px) {
   vec4 v = uInvProj * vec4(uv * 2.0 - 1.0, 1.0, 1.0); v /= v.w;
   vec3 dir = normalize((uCamWorld * vec4(normalize(v.xyz), 0.0)).xyz);
-  float e = degrees(asin(clamp(dir.y, -1.0, 1.0))) + (bayer(px) - 0.5) * 1.6; // bordi delle bande a dente di sega
+  float e = degrees(asin(clamp(dir.y, -1.0, 1.0))); // bordi delle bande netti (#282: niente puntini)
   vec3 c = e < 2.5 ? uSkyHor : e < 10.0 ? uSkyMid : uSkyTop;
   if (uSunSize > 0.0) {
     float a = degrees(acos(clamp(dot(dir, normalize(uSunDir)), -1.0, 1.0)));
-    if (a < uSunSize * 2.2 + (bayer(px) - 0.5) * 1.5) c = uGlow;
+    if (a < uSunSize * 2.2) c = uGlow;
     if (a < uSunSize) c = uSun;
   }
   if (uNight > 0.01) {
@@ -74,7 +68,7 @@ vec3 skyCol(vec2 uv, vec2 px) {
     // luna: alone a pixel, poi falce (disco meno un disco spostato)
     vec3 md = normalize(uMoonDir);
     float a = degrees(acos(clamp(dot(dir, md), -1.0, 1.0)));
-    if (a < 3.6 + (bayer(px) - 0.5) * 1.5) c = mix(c, min(c * 1.6 + 0.05, vec3(1.0)), uNight * 0.5);
+    if (a < 3.6) c = mix(c, min(c * 1.6 + 0.05, vec3(1.0)), uNight * 0.5);
     float b = degrees(acos(clamp(dot(dir, normalize(md + vec3(0.02, 0.008, -0.014))), -1.0, 1.0)));
     if (a < 1.6 && b > 1.35) c = mix(c, uMoonCol, uNight);
   }
@@ -107,8 +101,7 @@ void main() {
     if (uFog > 0.5) {
       // fino a uFogMax entro uFogFar, poi piano fino al 100% a 700 m: le sagome lontane restano visibili, pallide
       float f = uFogMax * clamp((z - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0) + (1.0 - uFogMax) * clamp((z - uFogFar) / 500.0, 0.0, 1.0);
-      float b = f * 5.0, fr = fract(b); // 5 bande piene, dithering solo sulle cuciture
-      f = min(1.0, (floor(b) + (fr > 0.75 + 0.25 * bayer(px) ? 1.0 : 0.0)) / 5.0);
+      f = min(1.0, floor(f * 5.0 + 0.5) / 5.0); // 5 bande piene, cuciture nette
       c = mix(c, uFogCol, f);
     }
   }
@@ -119,15 +112,14 @@ void main() {
   vec3 s = clamp(sRGBTransferOETF(vec4(c, 1.0)).rgb, 0.0, 1.0);
   s = clamp((s - 0.5) * uCon + 0.5, 0.0, 1.0);
   if (uPalN > 0) {
-    vec3 b1 = s, b2 = s; float d1 = 1e9, d2 = 1e9;
+    vec3 b1 = s; float d1 = 1e9;
     for (int i = 0; i < ${MAXPAL}; i++) {
       if (i >= uPalN) break;
       vec3 dd = s - uPal[i];
       float e = dot(dd * dd, vec3(2.0, 4.0, 3.0));
-      if (e < d1) { d2 = d1; b2 = b1; d1 = e; b1 = uPal[i]; } else if (e < d2) { d2 = e; b2 = uPal[i]; }
+      if (e < d1) { d1 = e; b1 = uPal[i]; }
     }
-    float r = sqrt(d1) / max(1e-5, sqrt(d1) + sqrt(d2)); // 0 = sul primo, 0,5 = a metà
-    s = bayer(px) < r * uDither ? b2 : b1;
+    s = b1;
   }
   if (uPaper > 0.0) {
     // carta: fibre larghe e grana fine, solo un poco più scura (come inchiostro assorbito)
@@ -151,7 +143,7 @@ export function createPost(): Post {
     // contorno «gioco»: lo stesso colore più scuro e spinto verso il viola (#A64DFF) delle ombre, non nero
     uInk: { value: new THREE.Vector3(0.5, 0.42, 0.62) }, uInkCol: { value: col('#000') }, uInkMix: { value: 0 }, uCrease: { value: 1 },
     uFogCol: { value: col('#E8E1D6') }, uFogNear: { value: 35 }, uFogFar: { value: 200 }, uFogMax: { value: 0.8 },
-    uTint: { value: col('#fff') }, uExp: { value: 1 }, uSat: { value: 1 }, uCon: { value: 1 }, uPaper: { value: 0 }, uDither: { value: 0 },
+    uTint: { value: col('#fff') }, uExp: { value: 1 }, uSat: { value: 1 }, uCon: { value: 1 }, uPaper: { value: 0 },
     uSkyTop: { value: col('#3FB9C9') }, uSkyMid: { value: col('#7FE3E0') }, uSkyHor: { value: col('#E8E1D6') },
     uSun: { value: col('#fff') }, uGlow: { value: col('#fff') }, uSunDir: { value: new THREE.Vector3(0, -1, 0) }, uSunSize: { value: 0 },
     uCloud: { value: col('#F4E3C1') }, uCloudDark: { value: col('#E8E1D6') },
@@ -169,7 +161,7 @@ export function createPost(): Post {
       U.uInkCol.value.set(s.ink.col); U.uInkMix.value = s.ink.mix; U.uCrease.value = s.ink.crease;
       U.uFogCol.value.set(s.fog.col); U.uFogNear.value = s.fog.near; U.uFogFar.value = s.fog.far; U.uFogMax.value = s.fog.max;
       U.uTint.value.set(s.grade.tint); U.uExp.value = s.grade.exp; U.uSat.value = s.grade.sat; U.uCon.value = s.grade.con;
-      U.uPaper.value = s.paper; U.uDither.value = s.dither;
+      U.uPaper.value = s.paper;
       U.uSkyTop.value.set(s.sky.top); U.uSkyMid.value.set(s.sky.mid); U.uSkyHor.value.set(s.sky.hor);
       U.uSun.value.set(s.sky.sun); U.uGlow.value.set(s.sky.glow); U.uSunDir.value.set(...s.sky.sunDir).normalize(); U.uSunSize.value = s.sky.sunSize;
       U.uCloud.value.set(s.sky.cloud); U.uCloudDark.value.set(s.sky.cloudDark);
