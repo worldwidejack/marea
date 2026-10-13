@@ -29,6 +29,8 @@ export type Trappola = { id: string; celle: number[]; leva: P };
 export type Muro = { arma: string; x: number; z: number; wx: number; wz: number; nx: number; nz: number };
 /** Albero (o lampione) su una cella di fuori che tocca il campo: la cella ferma come un cerchio grande come il tronco (`TEMPLARI.alberi`).
  *  `h` = numero fisso della cella (0..1) per altezza e colore. */
+/** Strega o Mercante: il posto dove si parla con loro (cella del campo sul bordo) e da che parte stanno, fuori (`fx, fz`). */
+export type Personaggio = { id: 'mercante' | 'strega'; x: number; z: number; fx: number; fz: number };
 export type Albero = { x: number; z: number; cella: number; tipo: 'cipresso' | 'palma' | 'lampione'; h: number };
 /** Posto della cassa del tesoro (la cella della cassa) e da che parte guarda (via dal muro). */
 export type PostoCassa = { x: number; z: number; fx: number; fz: number };
@@ -50,6 +52,7 @@ export type Arena = {
   dentro: number[];
   trappole: Trappola[];
   alberi: Albero[];
+  personaggi: Personaggio[];
   /** Indice della trappola per cella (-1 = nessuna). */
   trappolaDi: Int8Array;
   /** Per la resa: suolo e tipo di ogni cella (SUOLO, TIPO). */
@@ -66,11 +69,12 @@ export function hashCella(cx: number, cz: number, salt = 0): number {
 /** Alberi e lampioni: solo sulle celle di fuori che toccano il campo (a sud o a est c'è terreno), a nord e a ovest perché la camera guarda
  *  da sud-est (dall'altra parte coprirebbero il campo). Mai più in là: un albero a due celle lasciava davanti un muro invisibile.
  *  Cipressi dietro l'erba del cimitero, palme e lampioni dietro acciottolato, sabbia e terra. */
-function trovaAlberi(w: number, h: number, cell: Uint8Array, suolo: Uint8Array, t: number): Albero[] {
+function trovaAlberi(w: number, h: number, cell: Uint8Array, suolo: Uint8Array, t: number, liberi: { cx: number; cz: number }[]): Albero[] {
   const out: Albero[] = [];
   for (let cz = 0; cz < h; cz++) for (let cx = 0; cx < w; cx++) {
     const i = cz * w + cx;
     if (cell[i] !== C.fuori) continue;
+    if (liberi.some((p) => Math.abs(p.cx - cx) <= 2 && Math.abs(p.cz - cz) <= 2)) continue; // davanti a Strega e Mercante niente alberi: si devono vedere
     const vic = [[cx, cz + 1], [cx + 1, cz]].filter(([x, z]) => x! < w && z! < h && cell[z! * w + x!] !== C.fuori).map(([x, z]) => suolo[z! * w + x!]!);
     if (!vic.length) continue;
     const p = { x: (cx + 0.5) * t, z: (cz + 0.5) * t, cella: i };
@@ -96,6 +100,7 @@ export function parseArena(def: TMappaDef): Arena {
   let spawn = { x: 0, z: 0, fx: 1, fz: 0 }, altSum = { x: 0, z: 0, n: 0 };
   const finestre: Finestra[] = [], porteMap = new Map<string, number[]>(), comparse: Comparsa[] = [], bracieri: P[] = [], altarini: P[] = [];
   const muriC: { arma: string; cx: number; cz: number }[] = [], casseC: { cx: number; cz: number }[] = [];
+  const posti: { id: 'mercante' | 'strega'; cx: number; cz: number }[] = [];
   for (let cz = 0; cz < h; cz++) for (let cx = 0; cx < w; cx++) {
     const ch = rows[cz]![cx] ?? ' ', i = cz * w + cx;
     suolo[i] = SUOLO_DI[ch] ?? SUOLO.niente; tipo[i] = TIPO_DI[ch] ?? TIPO.niente;
@@ -120,6 +125,7 @@ export function parseArena(def: TMappaDef): Arena {
         if (l?.comparsa) { cell[i] = C.terra; comparse.push({ ...ctr(cx, cz), zona: l.comparsa }); break; }
         if (l?.trappola) { cell[i] = C.pavimento; const a = trapMap.get(l.trappola) ?? []; a.push(i); trapMap.set(l.trappola, a); break; }
         if (l?.leva) { cell[i] = C.basso; tipo[i] = TIPO.leva; leve.set(l.leva, ctr(cx, cz)); break; }
+        if (l?.personaggio) { cell[i] = C.terra; posti.push({ id: l.personaggio, cx, cz }); break; }
         throw new Error(`Arena dei Templari: lettera '${ch}' senza legenda (${cx},${cz})`);
       }
     }
@@ -165,7 +171,8 @@ export function parseArena(def: TMappaDef): Arena {
   const a: Arena = {
     w, h, tile: t, cell, opaque, spawn, altare: alt, finestre, finestraDi,
     porte: [...porteMap.entries()].map(([id, celle]) => ({ id, celle })), comparse, bracieri, altarini, muri, casse, dentro: [],
-    trappole, alberi: trovaAlberi(w, h, cell, suolo, t), trappolaDi, suolo, tipo,
+    trappole, alberi: trovaAlberi(w, h, cell, suolo, t, posti), trappolaDi, suolo, tipo,
+    personaggi: posti.map(({ id, cx, cz }) => { const d = N4.find(([dx, dz]) => k(cx + dx, cz + dz) === C.fuori) ?? [0, -1]; return { id, ...ctr(cx, cz), fx: d[0], fz: d[1] }; }),
   };
   // celle dell'eroe all'inizio: a 4 vicini dalla partenza, senza attraversare finestre e porte
   const seen = new Uint8Array(w * h), q = [Math.floor(spawn.z / t) * w + Math.floor(spawn.x / t)];

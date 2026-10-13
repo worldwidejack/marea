@@ -5,7 +5,7 @@
 import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
 import type { TPotere } from '@marea/content/templari.ts';
 import type { TState } from './stato.ts';
-import { ev, secToTicks } from './stato.ts';
+import { ev, secToTicks, slotDi } from './stato.ts';
 import { dai, uccidi } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
 
@@ -15,7 +15,7 @@ export function applica(s: TState, tipo: TPotere): void {
   const k = TEMPLARI.poteri, h = s.eroe;
   switch (tipo) {
     case 'faretra':
-      for (const sl of h.armi) if (sl) { const a = armaDef(sl.id); if (a.tipo !== 'mischia') { sl.colpi = a.colpi ?? 0; sl.riserva = a.riserva ?? 0; } }
+      for (const sl of h.armi) if (sl) { const a = armaDef(sl.id); if (a.tipo !== 'mischia') { const p = slotDi(a, !!sl.pot); sl.colpi = p.colpi; sl.riserva = p.riserva; } }
       h.ricarica = 0;
       break;
     case 'ira': s.poteri.ira = s.tick + secToTicks(k.durata); break;

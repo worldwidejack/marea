@@ -29,18 +29,18 @@
     "bloccato": 20
   },
   "armi": [
-    { "id": "spada", "nome": "Spada arrugginita", "tipo": "mischia", "danno": 250, "tempo": 0.55, "portata": 1.8, "carica": 0.9, "caricaMolt": 1.6, "spinta": 0.3, "aspetto": {"modello": null, "forma": "spada", "colore": "#E8E1D6"} },
-    { "id": "arco", "nome": "Arco", "tipo": "arco", "danno": 450, "tempo": 0.6, "colpi": 20, "riserva": 40, "velocita": 34, "gittata": 26, "prezzo": 0, "prezzoMunizioni": 150, "cassa": 5, "aspetto": {"modello": "arm_arco", "colore": "#8E5A2B"} },
-    { "id": "mazza", "nome": "Mazza ferrata", "tipo": "mischia", "danno": 700, "tempo": 0.8, "portata": 1.9, "carica": 1, "caricaMolt": 1.6, "spinta": 0.9, "prezzo": 750, "cassa": 6, "aspetto": {"modello": "arm_martello", "colore": "#7F7568"} },
-    { "id": "ascia", "nome": "Ascia danese", "tipo": "mischia", "danno": 1000, "tempo": 1, "portata": 2.2, "carica": 1.1, "caricaMolt": 1.6, "spinta": 0.4, "prezzo": 1000, "cassa": 6, "aspetto": {"modello": "arm_ascia", "colore": "#B9AFA3"} },
-    { "id": "pistola", "nome": "Pistola a pietra focaia", "tipo": "fuoco", "danno": 900, "tempo": 0.3, "colpi": 1, "riserva": 30, "ricarica": 1.4, "velocita": 60, "gittata": 22, "prezzo": 1000, "prezzoMunizioni": 500, "cassa": 6, "aspetto": {"modello": null, "forma": "pistola", "colore": "#5A3A1E"} },
-    { "id": "moschetto", "nome": "Moschetto", "tipo": "fuoco", "danno": 2000, "tempo": 0.3, "colpi": 1, "riserva": 24, "ricarica": 2.2, "velocita": 70, "gittata": 34, "trapassa": 2, "prezzo": 1500, "prezzoMunizioni": 750, "cassa": 6, "aspetto": {"modello": null, "forma": "moschetto", "colore": "#5A3A1E"} },
-    { "id": "trombone", "nome": "Trombone", "tipo": "fuoco", "danno": 350, "tempo": 0.3, "colpi": 1, "riserva": 20, "ricarica": 2, "velocita": 45, "gittata": 9, "pallini": 7, "cono": 15, "prezzo": 1500, "prezzoMunizioni": 750, "cassa": 6, "aspetto": {"modello": null, "forma": "trombone", "colore": "#8E5A2B"} },
-    { "id": "arco_lungo", "nome": "Arco lungo", "tipo": "arco", "danno": 1400, "tempo": 0.8, "colpi": 30, "riserva": 60, "velocita": 40, "gittata": 32, "trapassa": 3, "cassa": 8, "aspetto": {"modello": "arm_arco", "colore": "#5A3A1E"} },
-    { "id": "martello", "nome": "Martello da guerra", "tipo": "mischia", "danno": 1600, "tempo": 1.1, "portata": 2, "carica": 1.2, "caricaMolt": 1.8, "spinta": 1.4, "cassa": 8, "aspetto": {"modello": "arm_martello", "colore": "#4A4340"} },
-    { "id": "pistola_doppia", "nome": "Pistola doppia", "tipo": "fuoco", "danno": 1100, "tempo": 0.35, "colpi": 2, "riserva": 40, "ricarica": 1.8, "velocita": 60, "gittata": 22, "cassa": 8, "aspetto": {"modello": null, "forma": "pistola_doppia", "colore": "#5A3A1E"} },
-    { "id": "fuoco_greco", "nome": "Fuoco greco", "tipo": "lancio", "danno": 3000, "tempo": 0.8, "colpi": 6, "riserva": 12, "velocita": 14, "gittata": 14, "area": 3, "fuoco": {"dps": 600, "durata": 3, "raggio": 2.5}, "cassa": 2, "miracolosa": true, "aspetto": {"modello": null, "forma": "vaso", "colore": "#F2A33A"} },
-    { "id": "spada_molay", "nome": "Spada maledetta di de Molay", "tipo": "mischia", "danno": 6000, "tempo": 0.5, "portata": 2.1, "carica": 0.8, "caricaMolt": 1.5, "spinta": 0.5, "scia": {"dps": 800, "durata": 2, "raggio": 1.2}, "cassa": 1, "miracolosa": true, "aspetto": {"modello": "arm_spadone", "colore": "#E8433F"} }
+    { "id": "spada", "nome": "Spada arrugginita", "nomePot": "Spada del Tempio", "tipo": "mischia", "danno": 250, "tempo": 0.55, "portata": 1.8, "carica": 0.9, "caricaMolt": 1.6, "spinta": 0.3, "aspetto": {"modello": null, "forma": "spada", "colore": "#E8E1D6"} },
+    { "id": "arco", "nome": "Arco", "nomePot": "Arco di San Giovanni d’Acri", "tipo": "arco", "danno": 450, "tempo": 0.6, "colpi": 20, "riserva": 40, "velocita": 34, "gittata": 26, "prezzo": 0, "prezzoMunizioni": 150, "cassa": 5, "aspetto": {"modello": "arm_arco", "colore": "#8E5A2B"} },
+    { "id": "mazza", "nome": "Mazza ferrata", "nomePot": "Mazza di Montségur", "tipo": "mischia", "danno": 700, "tempo": 0.8, "portata": 1.9, "carica": 1, "caricaMolt": 1.6, "spinta": 0.9, "prezzo": 750, "cassa": 6, "aspetto": {"modello": "arm_martello", "colore": "#7F7568"} },
+    { "id": "ascia", "nome": "Ascia danese", "nomePot": "Ascia dei Variaghi", "tipo": "mischia", "danno": 1000, "tempo": 1, "portata": 2.2, "carica": 1.1, "caricaMolt": 1.6, "spinta": 0.4, "prezzo": 1000, "cassa": 6, "aspetto": {"modello": "arm_ascia", "colore": "#B9AFA3"} },
+    { "id": "pistola", "nome": "Pistola a pietra focaia", "nomePot": "Pistola del Bucaniere", "tipo": "fuoco", "danno": 900, "tempo": 0.3, "colpi": 1, "riserva": 30, "ricarica": 1.4, "velocita": 60, "gittata": 22, "prezzo": 1000, "prezzoMunizioni": 500, "cassa": 6, "aspetto": {"modello": null, "forma": "pistola", "colore": "#5A3A1E"} },
+    { "id": "moschetto", "nome": "Moschetto", "nomePot": "Moschetto di La Rochelle", "tipo": "fuoco", "danno": 1400, "tempo": 0.3, "colpi": 1, "riserva": 24, "ricarica": 2.2, "velocita": 70, "gittata": 34, "trapassa": 2, "prezzo": 1500, "prezzoMunizioni": 750, "cassa": 6, "aspetto": {"modello": null, "forma": "moschetto", "colore": "#5A3A1E"} },
+    { "id": "trombone", "nome": "Trombone", "nomePot": "Trombone del Kraken", "tipo": "fuoco", "danno": 250, "tempo": 0.3, "colpi": 1, "riserva": 20, "ricarica": 2, "velocita": 45, "gittata": 9, "pallini": 7, "cono": 15, "prezzo": 1500, "prezzoMunizioni": 750, "cassa": 6, "aspetto": {"modello": null, "forma": "trombone", "colore": "#8E5A2B"} },
+    { "id": "arco_lungo", "nome": "Arco lungo", "nomePot": "Arco di Crécy", "tipo": "arco", "danno": 1400, "tempo": 0.8, "colpi": 30, "riserva": 60, "velocita": 40, "gittata": 32, "trapassa": 3, "cassa": 8, "aspetto": {"modello": "arm_arco", "colore": "#5A3A1E"} },
+    { "id": "martello", "nome": "Martello da guerra", "nomePot": "Martello di Carlo Martello", "tipo": "mischia", "danno": 1600, "tempo": 1.1, "portata": 2, "carica": 1.2, "caricaMolt": 1.8, "spinta": 1.4, "cassa": 8, "aspetto": {"modello": "arm_martello", "colore": "#4A4340"} },
+    { "id": "pistola_doppia", "nome": "Pistola doppia", "nomePot": "Gemelle di Tortuga", "tipo": "fuoco", "danno": 1100, "tempo": 0.35, "colpi": 2, "riserva": 40, "ricarica": 1.8, "velocita": 60, "gittata": 22, "cassa": 8, "aspetto": {"modello": null, "forma": "pistola_doppia", "colore": "#5A3A1E"} },
+    { "id": "fuoco_greco", "nome": "Fuoco greco", "nomePot": "Fuoco di Bisanzio", "tipo": "lancio", "danno": 3000, "tempo": 0.8, "colpi": 6, "riserva": 12, "velocita": 14, "gittata": 14, "area": 3, "fuoco": {"dps": 600, "durata": 3, "raggio": 2.5}, "cassa": 2, "miracolosa": true, "aspetto": {"modello": null, "forma": "vaso", "colore": "#F2A33A"} },
+    { "id": "spada_molay", "nome": "Spada maledetta di de Molay", "nomePot": "Spada del Rogo eterno", "tipo": "mischia", "danno": 6000, "tempo": 0.5, "portata": 2.1, "carica": 0.8, "caricaMolt": 1.5, "spinta": 0.5, "scia": {"dps": 800, "durata": 2, "raggio": 1.2}, "cassa": 1, "miracolosa": true, "aspetto": {"modello": "arm_spadone", "colore": "#E8433F"} }
   ],
   "nemici": [
     { "id": "fante", "nome": "Fante crociato", "vitaMolt": 1, "raggio": 0.38, "velocita": {"cammina": 1, "corre": 2.2, "scatta": 3.6}, "danno": 45, "portata": 0.75, "preparazione": 0.55, "recupero": 0.7, "strappa": 1.2, "sorge": 1.4 },
@@ -74,6 +74,22 @@
   "trappole": {
     "rogo": { "nome": "Rogo", "prezzo": 1000, "durata": 25, "ricarica": 60, "boss": 300, "eroe": { "danno": 15, "ogni": 0.5 } },
     "campana": { "nome": "Campana", "prezzo": 1000, "durata": 25, "ricarica": 60, "boss": 500, "eroe": { "danno": 60, "ogni": 1.2 } }
+  },
+  "mercante": {
+    "raggio": 2.6,
+    "potenzia": { "prezzo": 5000, "danno": 2, "dannoMiracolosa": 1.5, "colpi": 1.5, "riserva": 2, "ricarica": 0.75 },
+    "munizioni": { "cassa": 750, "miracolosa": 2000, "potenziata": 2 }
+  },
+  "strega": {
+    "raggio": 2.6, "max": 4, "beve": 1.1,
+    "pozioni": [
+      { "id": "pietra", "nome": "Zuppa di pietra", "descr": "Vita 100 → 200: reggi 4 colpi invece di 2", "prezzo": 2500, "vita": 200 },
+      { "id": "viandante", "nome": "Brodo del viandante", "descr": "Cammini e corri il 20% più veloce, fiato doppio", "prezzo": 2000, "velocita": 1.2, "fiato": 2 },
+      { "id": "lesto", "nome": "Infuso lesto", "descr": "Ricarichi e tendi l’arco il 40% più in fretta", "prezzo": 3000, "ricarica": 0.6 },
+      { "id": "bombardiere", "nome": "Grappa del bombardiere", "descr": "Armi da fuoco, archi e vasi: +30% danno, sparano più svelti", "prezzo": 2000, "danno": 1.3, "tempo": 0.75 },
+      { "id": "risorto", "nome": "Elisir del risorto", "descr": "Quando cadi ti rialzi una volta, ma perdi tutte le pozioni (al massimo 3 per partita)", "prezzo": 1500, "volte": 3, "intoccabile": 3, "spinta": 3 },
+      { "id": "fonte", "nome": "Acqua di fonte santa", "descr": "La vita torna dopo 1,5 secondi invece di 4, e il doppio più in fretta", "prezzo": 2500, "regenDopo": 1.5, "regen": 2 }
+    ]
   },
   "poteri": { "probabilita": 0.025, "maxOndata": 4, "aTerra": 25, "lampeggia": 5, "durata": 30, "raggio": 1.1, "campane": 400, "muratori": 200, "tipi": ["faretra", "ira", "campane", "decima", "muratori"] }
 }

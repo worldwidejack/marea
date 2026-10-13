@@ -15,6 +15,7 @@
 // Comparse degli zombie: 'z' sagrato (sempre attive) · 'y' piazza · 'u' cimitero · 'x' taverna · 'j' spiaggia (legenda `comparsa`: attive
 //   quando la loro zona è aperta). Armi sul muro (legenda `muro`), nella cella davanti: 'R' arco · 'M' mazza · 'X' ascia · 'G' pistola ·
 //   'K' moschetto · 'E' trombone. Trappole (legenda `trappola`): 'J' zona del rogo e 'Q' la sua leva · 'T' zona della campana e 'L' la leva.
+// Personaggi (legenda `personaggio`, il posto dove gli si parla): 'F' la Strega · 'D' il Mercante.
 // La chiesa è alla templare: una rotonda (come il Santo Sepolcro, la Temple Church di Londra, la Vera Cruz di Segovia) col giro di
 // colonne, e a est il presbiterio con l'abside e l'altare maggiore. Attorno il sagrato diviso da muretti in tre parti: ovest verso la
 // piazza del borgo, nord verso il cimitero, sud-est verso la spiaggia e l'accampamento dei pirati.
@@ -185,6 +186,10 @@ for (const [x, z] of finestre) {
   set(best.x, best.z, 'z');
 }
 const comparse = { y: [[9, 36], [15, 48], [24, 33], [30, 54], [8, 58]], u: [[39, 6], [50, 13], [63, 9], [76, 19], [85, 13], [44, 22]], x: [[21, 70], [10, 69]], j: [[34, 81], [50, 82], [63, 81], [77, 82], [90, 80], [92, 62]] };
+// Strega e Mercante (docs/TEMPLARI.md §7b): il posto dove si parla con loro, sul bordo del campo; loro stanno fuori, oltre il bordo
+// ('F' strega: in cima al cimitero, la capanna oltre i cipressi · 'D' mercante: sulla riva della spiaggia, la barca in mare)
+const PERSONAGGI = { F: [61, 3], D: [56, 82] };
+for (const [c, [x, z]] of Object.entries(PERSONAGGI)) { if ('es'.includes(get(x, z)) && get(x, z - 1 + (c === 'D' ? 2 : 0)) === ' ') set(x, z, c); else throw new Error(`${c} non sta sul bordo in ${x},${z}`); }
 for (const [c, l] of Object.entries(comparse)) for (const [x, z] of l) { if ('vews'.includes(get(x, z))) set(x, z, c); else throw new Error(`comparsa ${c} su '${get(x, z)}' in ${x},${z}`); }
 // qualche maceria sul sagrato (ostacoli che spezzano le corse)
 for (const [x, z] of [[33, 33], [34, 52], [60, 30], [72, 33], [76, 50], [52, 56]]) if (fuori(x, z)) set(x, z, 'q');
@@ -223,6 +228,10 @@ for (const [c, porte] of Object.entries(zona)) {
 // ogni finestra si passa dritta: dentro un pavimento, fuori il sagrato
 for (const [x, z] of finestre) if (!QUATTRO.some(([dx, dz]) => !pieno(get(x + dx, z + dz)) && get(x - dx, z - dz) !== ' ' && !pieno(get(x - dx, z - dz)))) errs.push(`la finestra ${x},${z} non si attraversa`);
 if (!aperte(['2', '5']).has('50,82')) errs.push('dal cimitero col cancello 5 non si arriva alla spiaggia');
+// la Strega si raggiunge con la porta del cimitero, il Mercante solo arrivando alla spiaggia
+{ const f = PERSONAGGI.F.join(','), m = PERSONAGGI.D.join(',');
+  if (chiuso.has(f) || !aperte(['2']).has(f)) errs.push('la Strega si deve raggiungere con la porta del cimitero');
+  if (aperte(['1', '2', '3', '6']).has(m) || !aperte(['1', '3', '4']).has(m) || !aperte(['2', '5']).has(m)) errs.push('il Mercante si deve raggiungere solo dalla spiaggia'); }
 // la sacrestia si apre solo con la sua porta
 { const sc = `${SA.x0 + 3},${SA.z0 + 3}`; if (chiuso.has(sc)) errs.push('la sacrestia si raggiunge senza la porta 6'); if (!aperte(['6']).has(sc)) errs.push('con la porta 6 non si entra in sacrestia'); }
 // gli zombie delle comparse 'z' arrivano alla partenza dalle finestre (senza porte aperte)
@@ -239,6 +248,7 @@ const out = {
     'R': { muro: 'arco' }, 'M': { muro: 'mazza' }, 'X': { muro: 'ascia' }, 'G': { muro: 'pistola' }, 'K': { muro: 'moschetto' }, 'E': { muro: 'trombone' },
     'y': { comparsa: 'piazza' }, 'u': { comparsa: 'cimitero' }, 'x': { comparsa: 'taverna' }, 'j': { comparsa: 'spiaggia' },
     'J': { trappola: 'rogo' }, 'Q': { leva: 'rogo' }, 'T': { trappola: 'campana' }, 'L': { leva: 'campana' },
+    'F': { personaggio: 'strega' }, 'D': { personaggio: 'mercante' },
   },
   rows: trimmed,
 };

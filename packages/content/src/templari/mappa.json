@@ -1,8 +1,8 @@
-{"tile":1,"legenda":{"1":{"porta":"portale"},"2":{"porta":"cimitero"},"3":{"porta":"taverna"},"4":{"porta":"spiaggia_taverna"},"5":{"porta":"spiaggia_cimitero"},"6":{"porta":"sacrestia"},"R":{"muro":"arco"},"M":{"muro":"mazza"},"X":{"muro":"ascia"},"G":{"muro":"pistola"},"K":{"muro":"moschetto"},"E":{"muro":"trombone"},"y":{"comparsa":"piazza"},"u":{"comparsa":"cimitero"},"x":{"comparsa":"taverna"},"j":{"comparsa":"spiaggia"},"J":{"trappola":"rogo"},"Q":{"leva":"rogo"},"T":{"trappola":"campana"},"L":{"leva":"campana"}},"rows":[
+{"tile":1,"legenda":{"1":{"porta":"portale"},"2":{"porta":"cimitero"},"3":{"porta":"taverna"},"4":{"porta":"spiaggia_taverna"},"5":{"porta":"spiaggia_cimitero"},"6":{"porta":"sacrestia"},"R":{"muro":"arco"},"M":{"muro":"mazza"},"X":{"muro":"ascia"},"G":{"muro":"pistola"},"K":{"muro":"moschetto"},"E":{"muro":"trombone"},"y":{"comparsa":"piazza"},"u":{"comparsa":"cimitero"},"x":{"comparsa":"taverna"},"j":{"comparsa":"spiaggia"},"J":{"trappola":"rogo"},"Q":{"leva":"rogo"},"T":{"trappola":"campana"},"L":{"leva":"campana"},"F":{"personaggio":"strega"},"D":{"personaggio":"mercante"}},"rows":[
 "",
 "",
 "",
-"                                   meeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeem",
+"                                   meeeeeeeeeeeeeeeeeeeeeeeeeFeeeeeeeeeeeeeeeeeeeeeeeeeem",
 "                                   meeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeem",
 "                                   meeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeehhhhhhhhhheeeeeeeem",
 "                                   meeeueeeeeeeeeeeeeeeeeeeeeeeeeeeeeehhhhhhhhhheeeeeeeem",
@@ -81,6 +81,6 @@
 "          sssssssssssssssssssssssssssssssssssskksssssssssssssssssssssssskksssssssssssssssssssss",
 "          ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssjssss",
 "          ssssssssssssssssssssssssjssssssssssssssssssssssssssssjsssssssssssssssssssssssssssssss",
-"          ssssssssssssssssssssssssssssssssssssssssjssssssssssssssssssssssssssjsssssssssssssssss",
+"          ssssssssssssssssssssssssssssssssssssssssjsssssDssssssssssssssssssssjsssssssssssssssss",
 ""
 ]}

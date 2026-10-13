@@ -149,20 +149,38 @@ export function stepFiamme(s: TState): void {
   }
 }
 
+/** L'eroe è a zero: con l'Elisir del risorto si rialza (vita piena, qualche secondo intoccabile, gli zombie vicini spinti via) e perde tutte
+ *  le pozioni, come in COD; sennò è caduto. */
+function cade(s: TState): void {
+  const h = s.eroe;
+  if (h.pozioni.includes('risorto')) {
+    const p = TEMPLARI.strega.pozioni.find((x) => x.id === 'risorto')!, r = p.spinta ?? 3;
+    h.pozioni = []; h.max = TEMPLARI.eroe.vita; h.vita = h.max; h.quiete = 0; h.intoccabile = s.tick + secToTicks(p.intoccabile ?? 3);
+    for (const z of s.zombie) {
+      if (z.st === 'morto' || z.st === 'sorge') continue;
+      const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
+      if (d < r && d > 1e-6) moveCircle(s.gr.zombie, z, (dx / d) * (r - d), (dz / d) * (r - d), z.def.raggio);
+    }
+    ev(s, { t: 'risorto' });
+    return;
+  }
+  h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' });
+}
+
 /** Danno all'eroe che lo scudo non para (fiamme, trappole): `segnale` = l'evento da mandare (brucia o ferito), null = nessuno. */
 export function ferisciDiretto(s: TState, danno: number, segnale: 'brucia' | 'ferito' | null): void {
   const h = s.eroe;
-  if (s.done) return;
+  if (s.done || s.tick < h.intoccabile) return;
   h.vita -= danno; h.quiete = 0;
   if (segnale === 'brucia') ev(s, { t: 'brucia' });
   if (segnale === 'ferito') { h.hurt = COLPITO_TICKS; ev(s, { t: 'ferito', danno: Math.round(danno), x: r2(h.x), z: r2(h.z) }); }
-  if (h.vita <= 0) { h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' }); }
+  if (h.vita <= 0) cade(s);
 }
 
 /** Colpo sull'eroe da (x, z): lo scudo para (in mano chi è davanti, sulle spalle chi è dietro), sennò vita; a zero è caduto. */
 export function ferisci(s: TState, danno: number, x: number, z: number): void {
   const h = s.eroe;
-  if (s.done) return;
+  if (s.done || s.tick < h.intoccabile) return;
   if (h.scudo) {
     const dx = x - h.x, dz = z - h.z, d = Math.sqrt(dx * dx + dz * dz) || 1, dot = (dx * h.fx + dz * h.fz) / d, c = TEMPLARI.scudo.cono;
     if ((h.inMano && dot >= c) || (!h.inMano && dot <= -c)) {
@@ -174,5 +192,5 @@ export function ferisci(s: TState, danno: number, x: number, z: number): void {
   }
   h.vita -= danno; h.quiete = 0; h.hurt = COLPITO_TICKS;
   ev(s, { t: 'ferito', danno: Math.round(danno), x: r2(x), z: r2(z) });
-  if (h.vita <= 0) { h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' }); }
+  if (h.vita <= 0) cade(s);
 }
