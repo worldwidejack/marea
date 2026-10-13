@@ -28,6 +28,8 @@ import { stileProva } from './prova/stile.ts';
 import type { Amico } from './amici.ts';
 import { creaOggetti3d, giroColpito } from './oggetti3d.ts';
 import { fondalePista } from './fondale_piste.ts';
+import { ICONA, stileKart } from './stile_kart.ts';
+import { TICK_HZ } from '@marea/sim/constants.ts';
 import type { Fondale } from './discesa/fondale.ts';
 
 const COLORI = [P.rosso, P.giallo, P.acquaBassa, P.viola, P.erbaChiara];
@@ -38,6 +40,8 @@ export const tempoGara = (ms: number) => { const t = Math.max(0, ms) / 1000, m =
 
 /** `amici`: gara tra amici (corse/amici.ts): gli amici si disegnano come fantasmi e la posizione è quella tra amici. */
 export type OpzioniVista = { cam: Modo; effetti: boolean; auto: boolean; gasAuto: boolean; fine: boolean; ritirato?: boolean; amici?: Amico[] };
+/** Una riga della classifica d'arrivo (schermata dei risultati, #276). `ms` null = non arrivato; `stimato` = il tempo è una stima (bot ancora in pista). */
+export type RigaArrivo = { nome: string; tu: boolean; ms: number | null; stimato: boolean; pilota: string | null; veicolo: string; look: Look | null };
 export type VistaGara = {
   /** Costruisce la pista e i veicoli per la gara `s` (e comincia a caricare il kit dei veicoli veri). */
   mostra(s: GaraState): void;
@@ -52,13 +56,15 @@ export type VistaGara = {
   interfaccia(on: boolean): void;
   /** Il tuo oggetto (gara CON OGGETTI, #250): cosa scrivere sul bottone USA e se si può usare. */
   readonly ogg: { etichetta: string; pronto: boolean; ogg: string };
+  /** La classifica d'arrivo della gara in corso: tu, i tuoi bot e gli amici (`amici`), in ordine. */
+  classificaFinale(amici?: Amico[]): RigaArrivo[];
   readonly gruppo: THREE.Group;
   /** Per i test: quanti veicoli, se l'avatar è seduto, dove sono la camera e il tuo veicolo. */
   info(): { veicoli: number; avatar: boolean; kit: boolean; camera: number[]; padre: string | null; tu: number[] | null; fantasmi: number; nomi: string[] };
 };
 
 export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveCamera; look: () => Look; onLuce?: (x: number, z: number) => void }): VistaGara {
-  stileProva();
+  stileProva(); stileKart();
   const gruppo = new THREE.Group(); gruppo.name = 'corse_gara';
   const matVeicoli = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const materialeOnda = matOnda();
@@ -67,7 +73,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
   const ogg3d = creaOggetti3d(o.root); gruppo.add(ogg3d.gruppo);
   let ogg = { etichetta: '', pronto: false, ogg: '' };
   const regia = creaRegia(o.camera);
-  const linee = creaLinee(o.root), mappa = creaMinimappa(o.root);
+  const linee = creaLinee(o.root), mappa = creaMinimappa(o.root, true);
   const hud = document.createElement('div'); hud.className = 'pp-hud'; o.root.appendChild(hud);
   const big = document.createElement('div'); big.className = 'pp-big'; big.style.display = 'none'; o.root.appendChild(big);
   const tst = document.createElement('div'); tst.className = 'pp-toast'; tst.style.display = 'none'; o.root.appendChild(tst);
@@ -86,7 +92,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
   let s: GaraState | null = null, p: Pista | null = null, p3d: Pista3d | null = null, fondale: Fondale | null = null;
   let meshes: THREE.Mesh[] = [], ondaMesh: THREE.Mesh | null = null, vis: Vis[] = [];
   let avatar: Avatar | null = null, avatarP: Promise<Avatar | null> | null = null;
-  let contoPrima = 0, viaFlash = 0, tstT = 0;
+  let contoPrima = 0, viaFlash = 0, tstT = 0, uiOn = true;
   /** Gli amici in pista (gara tra amici): veicolo stimato, mesh, avatar (il loro look), cartellino col nome. */
   type Fantasma = { a: Amico; k: Veicolo; mesh: THREE.Mesh; avatar: Avatar | null; tag: HTMLDivElement; visto: boolean; kit: boolean };
   let fantasmi: Fantasma[] = [];
@@ -118,6 +124,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
 
   function mostra(gara: GaraState) {
     chiudiPista();
+    document.body.classList.add('mz-kh'); document.body.classList.remove('mz-kh-fine');
     s = gara; p = pistaCorse(gara.pista); p3d = creaPista3d(p); gruppo.add(p3d.group);
     mappa.pista(p);
     fondale = fondalePista(p.def.id, p.def.zona); if (fondale) gruppo.add(fondale.mesh); // il panorama dipinto dietro (#258)
@@ -234,6 +241,25 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     return { pos: tutti.findIndex((x) => x.tu) + 1, tot: tutti.length, righe: tutti };
   }
 
+  function classificaFinale(amici: Amico[] = []): RigaArrivo[] {
+    const gs = s, pp = p; if (!gs || !pp) return [];
+    const strada = pp.def.tipo === 'fuga' ? pp.arrivo : pp.arrivo * pp.def.giri, ms = (t: number) => Math.round((t / TICK_HZ) * 1000);
+    type R = RigaArrivo & { prog: number };
+    const righe: R[] = gs.veicoli.map((k, i) => {
+      const pilota = i ? PILOTI[(i - 1) % PILOTI.length]! : null;
+      return { nome: pilota ? pilota.replace('cs_p_', '') : 'TU', tu: !i, ms: k.fine ? ms(k.fine) : null, stimato: false, pilota, veicolo: k.id, look: i ? null : o.look(), prog: k.prog };
+    });
+    for (const a of amici) righe.push({ nome: a.nome, tu: false, ms: a.fine !== null && a.fine >= 0 ? a.fine : null, stimato: false, pilota: null, veicolo: a.veicolo, look: a.look, prog: a.q ? a.q[0] : -1e9 });
+    // prima chi è arrivato (per tempo), poi chi è ancora in pista (per strada fatta): i bot hanno un tempo stimato dalla loro andatura
+    righe.sort((x, y) => (x.ms !== null || y.ms !== null ? (x.ms ?? Infinity) - (y.ms ?? Infinity) : y.prog - x.prog));
+    let ultimo = 0;
+    for (const r of righe) {
+      if (r.ms === null && r.pilota && gs.tick > 0 && r.prog > 0) { r.ms = Math.max(ultimo + 100, ms(gs.tick + Math.max(0, strada - r.prog) / (r.prog / gs.tick))); r.stimato = true; }
+      if (r.ms !== null) ultimo = r.ms;
+    }
+    return righe.map(({ prog: _p, ...r }) => r);
+  }
+
   function aggiornaVeicoli(dt: number, o2: OpzioniVista) {
     const gs = s!, pp = p!;
     if (ondaMesh) { // l'onda sta sul nastro principale, al centro, col muso (la cresta) verso l'arrivo
@@ -289,14 +315,20 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
   }
   function aggiornaHud(v: GaraView, dt: number, o2: OpzioniVista) {
     const gs = s!, pp = p!, k = gs.veicoli[0]!;
-    const tipo = pp.def.tipo === 'fuga' ? 'FUGA' : `GIRO ${v.giro}/${v.giri}`;
-    const onda = v.onda === null ? '' : `<div style="${v.ondaDist < 25 ? `background:${P.rosso};color:${P.pietraChiara}` : ''}">ONDA ${v.ondaDist < 0 ? '!!' : Math.round(v.ondaDist) + '<small> m</small>'}</div>`;
     const ta = o2.amici?.length ? posTraAmici(o2.amici, k, v.ms) : null;
     // tra amici coi bot: la posizione tra i miei bot più gli amici davanti; senza bot solo tra amici
     const pos = ta ? (gs.veicoli.length > 1 ? v.posizioni[0]! + ta.pos - 1 : ta.pos) : v.posizioni[0], tot = ta ? gs.veicoli.length + ta.tot - 1 : gs.veicoli.length;
     classifica.style.display = ta ? 'block' : 'none';
     if (ta) classifica.innerHTML = ta.righe.map((x, i) => `<div class="${x.tu ? 'tu' : ''}">${i + 1}° ${x.nome.replace(/[<>&]/g, '')}${x.fine !== null ? ' · ' + tempoGara(x.fine) : ''}</div>`).join('');
-    hud.innerHTML = `<div>${pos}°<small>/${tot}</small></div><div>${tipo}</div><div>${tempoGara(v.ms)}</div><div class="${k.turbo > 0 ? 'turbo' : ''}">${Math.round(Math.abs(k.v) * 3.6)}<small> km/h</small></div>${onda}`;
+    // il look kart (#276, hud_5_sonic_bis.jpg): «2°» in alto a sinistra, giro e tempo al centro, velocità in basso a destra
+    const kmh = Math.round(Math.abs(k.v) * 3.6), pieno = Math.max(0, Math.min(1, Math.abs(k.v) / veicoloCorse(k.id).velocita));
+    const tacche = Array.from({ length: 7 }, (_, i) => `<u class="${i < Math.round(pieno * 7) ? 'on' : ''}${i === 6 ? ' c' : ''}"></u>`).join('');
+    const giro = pp.def.tipo === 'fuga' ? '<span>FUGA</span>' : `<span>GIRO</span><em>${v.giro}/${v.giri}</em>`;
+    const onda = v.onda === null ? '' : `<div class="kh-pill${v.ondaDist < 25 ? ' onda' : ''}"><span>ONDA</span><em>${v.ondaDist < 0 ? '!!' : Math.round(v.ondaDist) + ' m'}</em></div>`;
+    hud.dataset['pos'] = String(pos); hud.dataset['tot'] = String(tot);
+    hud.innerHTML = `<div class="kh-pos"><b>${pos}<sup>°</sup></b></div>`
+      + `<div class="kh-su"><div class="kh-pill giro"><i>${ICONA.bandiera}</i>${giro}</div><div class="kh-pill tempo"><i>${ICONA.cronometro}</i><span>${tempoGara(v.ms)}</span></div>${onda}</div>`
+      + `<div class="kh-vel${k.turbo > 0 ? ' turbo' : ''}"><b>${kmh}</b><small>km/h</small><i class="seg">${tacche}</i></div>`;
     // il semaforo: 3, 2, 1, VIA (coi bip), e com'è andata la partenza
     const conto = Math.ceil(v.via);
     if (conto !== contoPrima) {
@@ -311,16 +343,16 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     }
     viaFlash = Math.max(0, viaFlash - dt);
     tstT -= dt; if (tstT <= 0 && tst.style.display !== 'none') toast(null);
-    if (v.via > 0) {
-      big.style.display = 'block'; big.style.color = conto > 1 ? P.rosso : P.giallo;
-      big.innerHTML = `${conto}<small>${gs.regole.partenza ? (o2.auto ? 'pilota automatico' : 'dai GAS quando compare l\'1') : pp.def.nome}${o2.gasAuto ? ' · il gas è automatico' : ''}</small>`;
-    } else if (viaFlash > 0) { big.style.display = 'block'; big.style.color = P.erbaChiara; big.innerHTML = 'VIA!'; }
-    else if (o2.fine) {
-      big.style.display = 'block'; big.style.color = P.sabbiaChiara;
-      big.innerHTML = o2.ritirato ? 'RITIRATO' : v.finished ? `${pos}° · ${tempoGara(v.ms)}<small>giro migliore ${tempoGara(v.bestMs)} · il server conferma</small>` : 'TEMPO SCADUTO';
-    } else if (k.caduto) { big.style.display = 'block'; big.style.color = P.sabbiaChiara; big.innerHTML = 'CADUTO!<small>si riparte</small>'; }
-    else if (v.onda !== null && v.ondaDist < 0 && v.ondaDist > -(pp.def.inseguitore?.spessore ?? 0)) { big.style.display = 'block'; big.style.color = P.sabbiaChiara; big.innerHTML = 'TRAVOLTO!<small>l\'onda ti ha preso</small>'; }
-    else big.style.display = 'none';
+    const scritta = (t: string, colore: string, sotto = '') => {
+      big.style.display = 'block'; big.style.color = colore; big.classList.toggle('lungo', t.length > 3);
+      big.innerHTML = `${t}${sotto ? `<small>${sotto}</small>` : ''}`;
+    };
+    if (v.via > 0) scritta(String(conto), conto > 1 ? '#ff5a4a' : '#ffd21f', `${gs.regole.partenza ? (o2.auto ? 'pilota automatico' : 'dai GAS quando compare l\'1') : pp.def.nome}${o2.gasAuto ? ' · il gas è automatico' : ''}`);
+    else if (viaFlash > 0) scritta('VIA!', '#7be35a');
+    else if (o2.fine) scritta(o2.ritirato ? 'RITIRATO' : v.finished ? 'ARRIVO!' : 'TEMPO SCADUTO', '#ffffff', o2.ritirato ? '' : v.finished ? `${pos}° · ${tempoGara(v.ms)}` : '');
+    else if (k.caduto) scritta('CADUTO!', '#ffffff', 'si riparte');
+    else if (v.onda !== null && v.ondaDist < 0 && v.ondaDist > -(pp.def.inseguitore?.spessore ?? 0)) scritta('TRAVOLTO!', '#ffffff', 'l\'onda ti ha preso');
+    else { big.style.display = 'none'; big.classList.remove('lungo'); }
     if (p3d) for (const e of p3d.eventi) e.mesh.visible = k.giro + 1 >= e.daGiro !== !!e.sparisce;
     mappa.disegna(gs.veicoli.map((x, i) => {
       terna(nastroDi(pp, x.ramo), x.s, T3);
@@ -350,12 +382,13 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
       const k = gara.veicoli[0]!;
       if (!o2.fine && gara.tick > 0) suoni.motore(k.v, veicoloCorse(k.id).velocita, k.turbo > 0, k.drift !== 0, !k.aria);
       o.onLuce?.(vP.x, vP.z);
-      aggiornaHud(garaCorse.view(gara) as GaraView, dt, o2);
+      if (uiOn) aggiornaHud(garaCorse.view(gara) as GaraView, dt, o2); // sotto i risultati (#276) la gara resta ferma, senza HUD
     },
     get ogg() { return ogg; },
+    classificaFinale,
     cameraSalta() { regia.st.ok = false; },
-    chiudi() { chiudiPista(); suoni.zitto(); for (const e of [hud, big, tst, mappa.el, linee.el, classifica]) e.style.display = 'none'; },
-    interfaccia(on) { ogg3d.interfaccia(on); for (const e of [hud, mappa.el, linee.el]) e.style.display = on ? '' : 'none'; if (!on) { big.style.display = 'none'; tst.style.display = 'none'; classifica.style.display = 'none'; } },
+    chiudi() { chiudiPista(); suoni.zitto(); document.body.classList.remove('mz-kh', 'mz-kh-fine'); for (const e of [hud, big, tst, mappa.el, linee.el, classifica]) e.style.display = 'none'; },
+    interfaccia(on) { uiOn = on; ogg3d.interfaccia(on); for (const e of [hud, mappa.el, linee.el]) e.style.display = on ? '' : 'none'; if (!on) { big.style.display = 'none'; tst.style.display = 'none'; classifica.style.display = 'none'; } },
     info: () => ({ veicoli: meshes.length, avatar: !!avatar?.attached, kit: kitPronto(), camera: o.camera.getWorldPosition(new THREE.Vector3()).toArray().map((x) => Math.round(x * 10) / 10), padre: o.camera.parent?.type ?? null, tu: meshes[0] ? meshes[0].matrix.elements.slice(12, 15).map((x) => Math.round(x * 10) / 10) : null, fantasmi: fantasmi.filter((f) => f.visto).length, nomi: fantasmi.filter((f) => f.tag.style.display === 'block').map((f) => f.a.nome) }),
   };
 }

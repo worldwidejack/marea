@@ -61,7 +61,13 @@ export type SchermoGioco = {
   scegli?(opzioni?: Record<string, string>): Promise<Record<string, string> | null>;
   /** La partita non si apre (server giù): richiude quello che `scegli` ha lasciato su. */
   annulla?(): void;
+  /** La scheda dell'esito la veste il gioco (le Corse, #276: la schermata dei risultati): `el` è #mzEsito, `d` coi bottoni già
+   *  collegati (data-act rigioca / ok). true = l'ha vestita lui. */
+  scheda?(el: HTMLElement, d: SchedaEsito): boolean;
+  /** La partita è chiusa del tutto: scheda dell'esito chiusa, o finita senza scheda (ritirato, partita non salvata). */
+  esitoChiuso?(): void;
 };
+export type SchedaEsito = { medal: Medal; sub: string; premio: Resources | null; note: string | null; again: HTMLButtonElement; ok: HTMLButtonElement };
 /** I giochi a schermo per id del minigioco, scaricati alla prima partita (il JS iniziale ha un tetto, TECH §5). */
 const SCHERMI: Record<string, (root: HTMLElement) => Promise<SchermoGioco>> = {};
 /** Registra un gioco a schermo (dal modulo del minigioco: posto in `spots` più schermata qui). */
@@ -193,7 +199,11 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     return { x: r.left - rr.left + ((v.x + 1) / 2) * r.width, y: r.top - rr.top + ((1 - v.y) / 2) * r.height, on: v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05 };
   };
 
-  function closeEsito(): void { if (!open) return; open = false; esito.classList.remove('on'); removeEventListener('keydown', onKey, true); }
+  function closeEsito(): void {
+    if (!open) return;
+    open = false; esito.classList.remove('on', 'kart'); removeEventListener('keydown', onKey, true);
+    if (esitoSpot) schermi.get(esitoSpot.minigame)?.esitoChiuso?.();
+  }
   const onKey = (e: KeyboardEvent) => {
     if (!open) return;
     if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) { e.preventDefault(); e.stopImmediatePropagation(); closeEsito(); }
@@ -201,6 +211,14 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   };
   function showEsito(s: Spot, medal: Medal, sub: string, premio: Resources | null, note: string | null): void {
     esitoSpot = s; // RIGIOCA (R) rigioca questo, anche se il posto è mobile (pesca)
+    esito.classList.remove('kart'); esito.style.borderColor = '';
+    const again = el('button', 'mz-btn ghost', 'RIGIOCA'); again.dataset['act'] = 'rigioca';
+    const sc = esitoScelte;
+    again.addEventListener('click', () => { closeEsito(); void play(s, sc); });
+    const ok = el('button', 'mz-btn', 'OK'); ok.dataset['act'] = 'ok';
+    ok.addEventListener('click', () => closeEsito());
+    const fine = () => { esito.classList.add('on'); open = true; suona(medal ? `medaglia_${medal}` : 'fine'); addEventListener('keydown', onKey, true); };
+    if (schermi.get(s.minigame)?.scheda?.(esito, { medal, sub, premio, note, again, ok })) { fine(); return; }
     const title = el('h2', '', medal ? MEDAL_TXT[medal]! : SCHERMI[s.minigame] ? 'FINITA' : 'ARRIVATO');
     title.style.color = medal ? MEDAL_C[medal]! : PAL.sabbiaChiara;
     esito.style.borderColor = medal ? MEDAL_C[medal]! : PAL.legnoChiaro;
@@ -212,16 +230,9 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     }
     if (note) body.push(el('div', 'sub', note));
     const r = el('div', 'mz-row');
-    const again = el('button', 'mz-btn ghost', 'RIGIOCA'); again.dataset['act'] = 'rigioca';
-    const sc = esitoScelte;
-    again.addEventListener('click', () => { closeEsito(); void play(s, sc); });
-    const ok = el('button', 'mz-btn', 'OK'); ok.dataset['act'] = 'ok';
-    ok.addEventListener('click', () => closeEsito());
     r.append(again, ok); body.push(r);
     esito.replaceChildren(...body);
-    esito.classList.add('on'); open = true;
-    suona(medal ? `medaglia_${medal}` : 'fine');
-    addEventListener('keydown', onKey, true);
+    fine();
   }
   function fly(premio: Resources): void {
     const from = { x: o.root.clientWidth / 2, y: o.root.clientHeight / 2 };
@@ -262,7 +273,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       } else seed = (Math.random() * 0x7fffffff) >>> 0; // senza link si gioca lo stesso, ma il premio non si salva
       busy = false; // da qui la gara tiene fermo il mondo da sé
       const inputs = schermo ? await schermo.run({ seed, difficulty, ...(opzioni ? { opzioni } : {}), ...(s.posto ? { posto: s.posto } : {}) }) : await runRegata({ challenge: { id: 'solo', minigame: s.minigame, difficulty, seed } });
-      if (!inputs) { o.hud.toast('Ritirato', 1500); return; }
+      if (!inputs) { o.hud.toast('Ritirato', 1500); schermo?.esitoChiuso?.(); return; }
       if (!online) { playedN++; showEsito(s, null, 'Partita di prova', null, 'Con il tuo link personale vinci Legno, Pietra e Perle'); return; }
       busy = true;
       try {
@@ -276,6 +287,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
         o.onLot();
       } catch (e) {
         o.hud.toast(e instanceof ApiError ? e.message : 'Partita non salvata, riprova', 3200);
+        schermo?.esitoChiuso?.();
       }
     } finally { busy = false; }
   }

@@ -1,7 +1,7 @@
 // Corse tra amici (10 ott 2026, CONTRACTS §39): due telefoni in orizzontale (Luca e Mia) su wrangler dev locale. Tutti e due vanno all'Isola
 // delle Corse, alla porta della Spiaggia scelgono «CON GLI AMICI» ed entrano nella stessa sala; Luca preme VIA e partono insieme sulla
 // pista di Luca, coi bot (li sceglie Luca), ognuno al suo posto in griglia dietro ai suoi bot. In gara ognuno vede l'altro come fantasma (veicolo e nome), la classifica è tra
-// amici; il pilota automatico finisce le due gare, il server le rigioca e la scheda dice «N° su 2 tra amici»; poi di nuovo nell'hub.
+// amici; il pilota automatico finisce le due gare, il server le rigioca e i risultati hanno tu, i bot e l'amico; poi di nuovo nell'hub.
 // Screenshot in tests/out/shots/m4_corse_amici_*.png.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -84,9 +84,11 @@ export default async function (ctx) {
       assert(a.corse.sala.amici[0].veicolo === b.corse.veicolo && b.corse.sala.amici[0].veicolo === a.corse.veicolo, `il fantasma non ha il veicolo vero: ${a.corse.sala.amici[0].veicolo}/${b.corse.veicolo}, ${b.corse.sala.amici[0].veicolo}/${a.corse.veicolo}`);
       assert(a.corse.vista.nomi.length + b.corse.vista.nomi.length >= 1, 'chi sta dietro non vede il nome di chi sta davanti');
       assert(await L.isVisible('.pp-amici') && (await L.locator('.pp-amici div').count()) === 2, 'manca la classifica tra amici');
-      assert(/\/6/.test(await L.locator('.pp-hud').first().innerText()), 'la posizione non conta bot e amici (su 6)');
+      assert((await L.locator('.pp-hud').first().getAttribute('data-tot')) === '6', 'la posizione non conta bot e amici (su 6)');
       await ctx.shot(L, 'gara_luca');
       await ctx.shot(M, 'gara_mia');
+      // la casella dell'oggetto piena (look kart, #276): appena il pilota automatico ne prende uno
+      await ctx.waitState(L, (s) => !!(s.corse.oggetti && s.corse.oggetti.tasca), 40000).then(() => ctx.shot(L, 'oggetto_luca'), () => ctx.log('nessun oggetto in tasca in 40 s: niente foto'));
     });
 
     await ctx.test('il pilota automatico finisce le due gare; il server rigioca; la scheda dice la posizione tra amici; di nuovo nell\'hub', async () => {
@@ -98,7 +100,9 @@ export default async function (ctx) {
         assert(r.detail.giri === r.detail.tot, `${nome} non ha finito: ` + JSON.stringify(r.detail));
         assert(r.detail.oggetti > 0, `${nome}: il server non ha rigiocato gli oggetti: ` + JSON.stringify(r.detail));
         const testo = await p.locator('#mzEsito').innerText();
-        assert(/su 2 tra amici/.test(testo), `${nome}: la scheda non dice la posizione tra amici: ${testo.replace(/\s+/g, ' ').slice(0, 160)}`);
+        // risultati (#276): tu, i tuoi 4 bot e l'amico, coi nomi
+        const righe = await p.locator('#mzEsito .kr-riga').count(), altro = nome === 'luca' ? /mia/i : /luca/i;
+        assert(righe === 6 && altro.test(testo) && (await p.locator('#mzEsito .kr-riga.tu').count()) === 1, `${nome}: i risultati non hanno bot e amico (${righe} righe): ${testo.replace(/\s+/g, ' ').slice(0, 160)}`);
         assert(s.corse.hub.aperto && !s.corse.active && !s.corse.sala.aperta, `${nome}: sotto la scheda non c'è l'hub (o la sala è ancora aperta)`);
       }
       await ctx.shot(L, 'esito');
