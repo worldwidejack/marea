@@ -56,6 +56,56 @@
         "Alla Bacheca in piazza ci sono tre missioni nuove ogni giorno. Le fai, torni e premi RISCUOTI. Così si campa.",
         "Le Perle spendile dal Mercante. Ishi è onesto, eh. Per essere un mercante."
       ]
+    },
+    {
+      "id": "nella", "nome": "Zia Nella", "ruolo": "paesano",
+      "look": { "pelle": 1, "capelli": 3, "coloreCapelli": 4, "vestito": 3, "cappello": 0 },
+      "giro": [[58.6, 39.37], [64.23, 37.32]], "velocita": 0.7, "raggio": 3,
+      "battute": [
+        "Questo vicolo l'ho visto crescere. Prima c'era un prato. Prima ancora, un altro prato.",
+        "Le cassette della posta sono tutte rosse. Così il postino non si confonde. Si confonde lo stesso.",
+        "Se ti perdi, segui i lampioni: portano tutti in piazza. O al mare. Comunque da qualche parte."
+      ]
+    },
+    {
+      "id": "tonio", "nome": "Tonio il Pescatore", "ruolo": "paesano",
+      "look": { "pelle": 3, "capelli": 1, "coloreCapelli": 0, "vestito": 2, "cappello": 7 },
+      "giro": [[57.98, 37.92], [53.32, 32.36]], "velocita": 0.9, "raggio": 3,
+      "battute": [
+        "Stamattina ho preso un pesce così. No, più piccolo. Va be', l'ho preso.",
+        "Dal lungomare si vede tutto il mare. Dal mare, invece, si vede tutto il lungomare.",
+        "Le reti le stendo in piazza. Ishi dice che rovinano l'atmosfera. Io dico che l'atmosfera puzza di pesce lo stesso."
+      ]
+    },
+    {
+      "id": "bice", "nome": "Bice", "ruolo": "paesano",
+      "look": { "pelle": 0, "capelli": 6, "coloreCapelli": 2, "vestito": 1, "cappello": 0 },
+      "giro": [[40.49, 23.89], [31.28, 28.18]], "velocita": 1.0, "raggio": 3,
+      "battute": [
+        "Hai visto la fontana dello slargo? L'acqua non finisce mai. Nessuno sa da dove arriva. Meglio non chiedere.",
+        "Io innaffio i vasi davanti a tutte le porte. Anche alla tua. Prego.",
+        "La sera si accendono i festoni nei vicoli. È il momento più bello: tutti fuori, nessuno che lavora."
+      ]
+    },
+    {
+      "id": "gaspare", "nome": "Sor Gaspare", "ruolo": "paesano",
+      "look": { "pelle": 2, "capelli": 0, "coloreCapelli": 3, "vestito": 4, "cappello": 6 },
+      "giro": [[29.54, 43.45], [30.8, 50.6]], "velocita": 0.6, "raggio": 3,
+      "battute": [
+        "Faccio il giro dell'anello tre volte al giorno. Per la salute. E per vedere chi c'è.",
+        "Ai miei tempi le case non avevano il giardino dietro. Avevano il giardino davanti, ed era la strada.",
+        "Le panchine le ho volute io. Le uso io. Se vuoi sederti, mettiti in fila."
+      ]
+    },
+    {
+      "id": "ada_fiori", "nome": "Ada dei Fiori", "ruolo": "paesano",
+      "look": { "pelle": 4, "capelli": 4, "coloreCapelli": 1, "vestito": 0, "cappello": 3 },
+      "giro": [[30.23, 39.86], [24.53, 38.01]], "velocita": 0.8, "raggio": 3,
+      "battute": [
+        "Le siepi attorno alla piazza le poto io, una foglia alla volta. Ci vuole pazienza. E una forbice.",
+        "Gli alberi tra un rione e l'altro fanno ombra d'estate. D'inverno fanno ombra lo stesso, ma nessuno li ringrazia.",
+        "Un giorno aprirà un negozio di mobili, qui nel Borgo. Me l'ha detto un uccellino. Un gabbiano, veramente."
+      ]
     }
   ]
 }

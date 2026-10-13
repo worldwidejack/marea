@@ -20,13 +20,13 @@ type Porta = { slot: number; x: number; z: number; dentro: XZ; retro: XZ; giardi
 
 const RAGGIO = 2.2;
 
-/** Dove sta la porta della casa `slot` nel mondo (m), null se non c'è il Borgo o la casa. `fuori` = metri lungo la via (lo spawn: fuori dal raggio della porta). */
+/** Dove sta la porta della casa `slot` nel mondo (m), null se non c'è il Borgo o la casa. `fuori` = metri fuori dalla porta, sulla via (lo spawn). */
 export function portaDi(world: Pick<GameWorld, 'archipelago'>, slot: number, fuori = 0): { x: number; z: number } | null {
   const arch = world.archipelago, b = arch.places.find((p) => p.role === 'porto'), c = BORGO.case[slot];
   if (!b || !c) return null;
-  // lungo la via, non di traverso (dall'altra parte della via c'è la porta della casa di fronte): perpendicolare a casa → porta
+  // dritto fuori dalla porta (#265: le case sono a schiera, a due celle l'una dall'altra; la porta più vicina resta la tua)
   const dx = c.porta[0] - c.at[0], dz = c.porta[1] - c.at[1], l = Math.hypot(dx, dz) || 1;
-  return { x: (b.origin[0] + c.porta[0] + 0.5) * arch.tile - (dz / l) * fuori, z: (b.origin[1] + c.porta[1] + 0.5) * arch.tile + (dx / l) * fuori };
+  return { x: (b.origin[0] + c.porta[0] + 0.5) * arch.tile + (dx / l) * fuori, z: (b.origin[1] + c.porta[1] + 0.5) * arch.tile + (dz / l) * fuori };
 }
 
 export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; abitanti: readonly { slot: number | null; nome: string; mia: boolean }[] }): Borgo {
@@ -44,14 +44,12 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
   let near: Vicino | null = null, nearWas = '', aWas = false;
   const trova = (): Vicino | null => {
     if (w.mode !== 'walk' || w.frozen || w.race.on) return null;
+    // la porta più vicina entro RAGGIO (le case a schiera hanno le porte a 4 m: i cerchi si toccano)
     const f = w.avatar.state;
-    for (const p of porte) {
-      if (Math.hypot(f.x - p.x, f.z - p.z) < RAGGIO) return { porta: p, esci: false, dove: 'entra' };
-      if (Math.hypot(f.x - p.dentro.x, f.z - p.dentro.z) < RAGGIO) return { porta: p, esci: true, dove: 'esci' };
-      if (Math.hypot(f.x - p.retro.x, f.z - p.retro.z) < RAGGIO) return { porta: p, esci: false, dove: 'retro' };
-      if (Math.hypot(f.x - p.giardino.x, f.z - p.giardino.z) < RAGGIO) return { porta: p, esci: false, dove: 'giardino' };
-    }
-    return null;
+    let best: Vicino | null = null, bd = RAGGIO;
+    const prova = (p: Porta, q: XZ, esci: boolean, dove: Vicino['dove']) => { const d = Math.hypot(f.x - q.x, f.z - q.z); if (d < bd) { bd = d; best = { porta: p, esci, dove }; } };
+    for (const p of porte) { prova(p, p, false, 'entra'); prova(p, p.dentro, true, 'esci'); prova(p, p.retro, false, 'retro'); prova(p, p.giardino, false, 'giardino'); }
+    return best;
   };
   const testo = (v: Vicino) => v.dove === 'retro' ? 'Vai in giardino' : v.dove === 'giardino' ? 'Torna in casa' : v.esci ? 'Esci in città' : v.porta.mia ? 'Entra in casa' : v.porta.nome ? `Casa di ${v.porta.nome}` : 'Casa libera';
   const vai = (v: Vicino) => {

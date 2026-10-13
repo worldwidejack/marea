@@ -17,7 +17,7 @@ import type { Loader } from './loader.ts';
 import { setWaterMap } from './water.ts';
 import { ISLAND, P, PAINT, PROP_KINDS, PROP_MODEL, MODEL_ONLY, M, block, merged, perFondere, buildingGeometry, instanced, modelParts, painted, propGeometry, tex, towerGeometry } from './island_parts.ts';
 import type { Fit, PropKind } from './island_parts.ts';
-import { PAINT_TEMI, SCENA_TEMI, TEMA_GLOW, adrenalinaPronta, corsePronta, TEMA_PROPS, isTema, propTema, propTemaGlow, rocceTema } from './island_temi.ts';
+import { BORGO_PEZZI, PAINT_TEMI, SCENA_TEMI, TEMA_GLOW, adrenalinaPronta, borgoPronta, corsePronta, TEMA_PROPS, isTema, propTema, propTemaGlow, rocceTema } from './island_temi.ts';
 import type { TemaProp } from './island_temi.ts';
 import { LOD_ISTERESI, LOD_M, MINUTI_M, sagomaGeometry } from './island_sagoma.ts';
 import type { SagomaIn } from './island_sagoma.ts';
@@ -33,7 +33,7 @@ const key = (cx: number, cz: number) => cz * 4096 + cx;
 /** Culling per isola: margine attorno al rettangolo (m: palme storte, tetti) e fondo della scatola (m: sotto il pelo dell'acqua, che ondeggia). */
 const CULL_MARGIN = 4, CULL_Y0 = -0.6;
 /** Scenografia minuta (TECH §5): niente ombra (è un secondo passo di disegno e non si nota) e spenta oltre MINUTI_M dalla camera. */
-const MINUTI = new Set(['sasso', 'cespuglio', 'cassa', 'barile', 'lanterna', 'filo_lanterne']);
+const MINUTI = new Set(['sasso', 'cespuglio', 'cassa', 'barile', 'lanterna', 'filo_lanterne', 'cassetta_posta', 'vaso_fiori', 'siepe', 'panchina']);
 
 /** Un'isola della mappa da rendere come gruppo a sé: rettangolo di celle, stile, densità della scenografia. */
 export type IslandArea = { id: string; x0: number; z0: number; w: number; h: number; style?: IslandStyle | null; scenery?: number };
@@ -56,7 +56,7 @@ export async function createIsland(o: {
   /** Cerchi (m) senza scenografia: davanti agli ingressi dei dungeon palme e lanterne coprirebbero la bocca vista dalla camera. */
   libere?: readonly { x: number; z: number; r: number }[];
 }): Promise<Island> {
-  await Promise.all([corsePronta, adrenalinaPronta]); // le decorazioni delle Corse e dell'Adrenalina sono in chunk a parte (TECH §5)
+  await Promise.all([corsePronta, adrenalinaPronta, borgoPronta]); // le decorazioni di Corse, Adrenalina e Borgo sono in chunk a parte (TECH §5)
   const { map, loader } = o;
   const T = map.tile, TOP = ISLAND.TOP;
   const group = new THREE.Group(); group.name = 'island';
@@ -299,6 +299,21 @@ export async function createIsland(o: {
       }
       if (body.length) { const m = new THREE.Mesh(merged(body), propMat); m.castShadow = m.receiveShadow = true; m.name = 'decorazioni_' + tema; vicino.add(m); }
       if (hot.length) { const m = new THREE.Mesh(merged(hot), glowMat); m.name = 'luci_' + tema; vicino.add(m); }
+    }
+    // Borgo Marea (#265): l'arredo tra le case (centinaia di pezzi) in una geometria per area più le luci; i pezzi minuti (vasi, cassette,
+    // siepi, panchine) vanno nella geometria dei sassi e dei cespugli (stesso materiale, niente ombra, spenta da lontano): un draw call in meno
+    if (style === 'porto') {
+      const corpo: THREE.BufferGeometry[] = [], luci: THREE.BufferGeometry[] = [];
+      for (const kind of Object.keys(placed)) {
+        if (!BORGO_PEZZI.has(kind) && kind !== 'albero_tondo') continue;
+        const gg = TEMA_GLOW.has(kind) ? glowGeo(kind) : null;
+        if (MINUTI.has(kind)) fondi(propGeo(kind), propMat, placed[kind]!, false, minuti);
+        else for (const m of placed[kind]!) corpo.push(propGeo(kind).clone().applyMatrix4(m));
+        if (gg) for (const m of placed[kind]!) luci.push(gg.clone().applyMatrix4(m));
+        placed[kind] = [];
+      }
+      if (corpo.length) { const m = new THREE.Mesh(merged(corpo), propMat); m.castShadow = m.receiveShadow = true; m.name = 'arredo_borgo'; vicino.add(m); }
+      if (luci.length) { const m = new THREE.Mesh(merged(luci), glowMat); m.name = 'luci_borgo'; vicino.add(m); }
     }
     for (const kind of Object.keys(placed)) {
       const mats = placed[kind]!, name = PROP_MODEL[kind as PropKind], cast = !MINUTI.has(kind), dest = MINUTI.has(kind) ? minuti : vicino;
