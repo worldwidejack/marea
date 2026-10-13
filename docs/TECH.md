@@ -50,7 +50,7 @@ _I limiti non sono un dictat: si possono alzare quando serve ed è sensato (Jack
 
 | Cosa | Limite |
 |---|---|
-| `app.js` (client) | ≤ 1210 KB minificato, ≤ 364 KB gzip (era 250 fino all'8 ott 2026, 350 fino all'11 ott, 1200/360 fino al 13 ott) |
+| `app.js` (client) | ≤ 1215 KB minificato, ≤ 366 KB gzip (era 250 fino all'8 ott 2026, 350 fino all'11 ott, 1200/360 fino al 13 ott; il negozio dei mobili: +5/+2) |
 | Ogni chunk caricato dopo (`import()`: GDR, minimappa, isole, giochi a schermo, audio) | ≤ 600 KB minificato, ≤ 180 KB gzip; tutti insieme ≤ 3000 KB, ≤ 900 KB gzip |
 | Discese dell'Isola dell'Adrenalina (`apps/client/src/adrenalina/`, scaricato salendo in funivia; niente nel JS iniziale) | come ogni chunk (12 ott 2026: ~50 KB, ~20 gzip); in pista draw call e triangoli come sopra: abeti a riquadri da 100 m spenti oltre 420 m, il terreno si vede tutto fino in valle (12 ott: massimo 51 draw call e 97.000 triangoli a 390×844) |
 

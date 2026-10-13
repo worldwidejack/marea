@@ -43,7 +43,7 @@ export type IslandStyle = 'lotto' | 'porto' | 'laguna' | 'neon' | 'selvaggia' | 
 export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'templari' | 'corse' | 'adrenalina';
 export type IslandSlot = { at: [number, number]; kind: string; rot?: number };
 export type IslandProp = { k: string; at: [number, number]; rot?: number };
-export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna' | 'tema';
+export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna' | 'tema' | 'negozio'; // negozio: il dentro del negozio dei mobili (#265), oltre il mare
 /**
  * Come si sblocca un'isola a tema (#68): Molo della propria isola al livello N, personaggio GDR al livello N, un cappello indosso,
  * una mappa posseduta (`come: 'oro'` = la prima medaglia d'oro in un minigioco da solo la regala), una reliquia trovata (`LotState.reliquie`:
@@ -70,6 +70,9 @@ export type BorgoDef = {
   /** La stanza della casa nel template `lotto` (#240): pavimento [x0, z0, x1, z1) in celle, altezza dei muri in m, porta in fondo (`retro`),
    *  passaggio del giardino (`giardino`) e corridoio d'ingresso sotto il pavimento (#265: colonna x, righe [z0, z1); in fondo si esce in città). */
   stanza: { pavimento: [number, number, number, number]; altezza: number; retro: [number, number]; giardino: [number, number]; corridoio: [number, number, number] };
+  /** Il negozio dei mobili (#265): in città (celle del template porto) e dentro (template `negozio`). */
+  negozio: { at: [number, number]; porta: [number, number]; rot: number };
+  negozioDentro: { pavimento: [number, number, number, number]; corridoio: [number, number, number]; altezza: number; finitura: { pavimento: string; carta: string } };
   /** Pavimenti e carte da parati: il primo è quello di serie. `motivo` = come si dipinge (render/stanza), `colori` dalla palette. */
   pavimenti: StanzaFinitura[]; carte: StanzaFinitura[];
 };
