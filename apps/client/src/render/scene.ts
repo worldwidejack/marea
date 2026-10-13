@@ -23,6 +23,8 @@ export type Renderer = {
   setView(v: View | null): void;
   /** HD (#277, l'isola delle Corse): `k` pixel veri per pixel CSS (al massimo quelli dello schermo); null = la metà pixel di sempre. */
   setNitido?(k: number | null): void;
+  /** Interni del mondo (#265, la stanza della casa): niente cielo né foschia della passata finale, fondo di `colore`; null = all'aperto. */
+  setInterno(colore: string | null): void;
 };
 export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): Renderer {
   const gl = new THREE.WebGLRenderer({ canvas: o.canvas, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: true, stencil: false });
@@ -34,7 +36,7 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
   const scale = pixelScale(o.flags);
   const diorama = createDioramaCamera({ aspect: 1, canvas: o.canvas });
   let frames = 0, fps = 0, frameMs = 0, last = performance.now(), acc = 0, calls = 0, tris = 0;
-  let nitido: number | null = null, w = 1, h = 1, active: THREE.Scene = scene, post: Post | null = null, view: View | null = null;
+  let nitido: number | null = null, w = 1, h = 1, active: THREE.Scene = scene, post: Post | null = null, view: View | null = null, interno = false;
   const camera = diorama.camera, FAR = camera.far;
   const applyView = () => {
     const v = active === scene ? view : null;
@@ -65,6 +67,7 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
       if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
     },
     setPost: (p) => { post = p; post?.setSize(w, h); },
+    setInterno: (c) => { interno = c !== null; scene.background = c !== null ? new THREE.Color(c) : sky.texture; },
     setView: (v) => { view = v; applyView(); },
     setNitido: (k) => { if (k === nitido) return; nitido = k; o.canvas.style.imageRendering = k !== null ? 'auto' : 'pixelated'; resize(); },
     render: (_alpha, t) => {
@@ -72,7 +75,7 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
       for (const c of active.children) (c.userData.preRender as (() => void) | undefined)?.();
       if ((o.canvas.clientWidth || innerWidth) !== cw0 || (o.canvas.clientHeight || innerHeight) !== ch0) resize();
       const t0 = performance.now();
-      if (post) post.render(gl, active, diorama.camera, t, active === scene); else gl.render(active, diorama.camera);
+      if (post) post.render(gl, active, diorama.camera, t, active === scene && !interno); else gl.render(active, diorama.camera);
       const t1 = performance.now();
       calls = post ? post.sceneCalls() + 1 : gl.info.render.calls; tris = post ? post.sceneTris() + 2 : gl.info.render.triangles;
       frameMs = frameMs ? frameMs * 0.9 + (t1 - t0) * 0.1 : t1 - t0; frames++; acc += t1 - last; last = t1;

@@ -1,24 +1,29 @@
-// Borgo Marea (#237, #247): le porte delle case, attorno alla piazza del Porto (un'isola sola). Davanti alla porta di una casa (a piedi) A ti porta dentro: la stanza sta in fondo al
-// giardino di quello slot (template `lotto`, nella fascia oltre il mare che la barca non raggiunge); dalla stanza si esce nel
-// giardino dalla porta sul retro (il varco nel muro) o si torna in città con A accanto al punto d'arrivo.
-// Base: niente scena separata né dissolvenza, è un teletrasporto. Casa di un amico = il suo giardino, in sola lettura come prima.
+// Borgo Marea (#237, #247, #265): le porte delle case attorno alla piazza del Porto. La stanza di una casa sta in fondo al giardino di
+// quello slot (template `lotto`, nella fascia oltre il mare che la barca non raggiunge). Come in Animal Crossing i passaggi si
+// attraversano camminando (#265): contro la porta di casa entri, in fondo al corridoio della stanza esci in città, contro la porta in
+// fondo alla stanza vai in giardino, nel passaggio coperto del giardino torni in casa. A fa lo stesso da vicino. Ogni passaggio è un
+// teletrasporto dietro al velo nero (ui/velo.ts). Casa di un amico = il suo giardino, in sola lettura come prima.
 import { BORGO } from '@marea/content';
 import type { GameWorld } from './world.ts';
 import type { Hud } from '../ui/hud.ts';
+import type { Velo } from '../ui/velo.ts';
 import { el } from '../ui/style.ts';
 import { pixIcon } from '../ui/icons.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
 export type Borgo = {
-  /** Un tick (60 Hz): vicino a una porta il fronte di salita di A entra/esce. true = A è delle porte. */
+  /** Un tick (60 Hz): vicino a una porta il fronte di salita di A entra/esce; camminando dentro un passaggio lo attraversi. true = A è delle porte. */
   tick(a: boolean): boolean;
   update(): void;
 };
 type XZ = { x: number; z: number };
-/** Una casa: porta in città (x, z), punto d'arrivo nella stanza (`dentro`), porta in fondo alla stanza (`retro`) e porta del giardino (`giardino`). */
-type Porta = { slot: number; x: number; z: number; dentro: XZ; retro: XZ; giardino: XZ; nome: string | null; mia: boolean };
+/** Una casa: porta in città (x, z), facciata (`muro`: lì contro si entra), arrivo in cima al corridoio (`dentro`), fondo del corridoio
+ *  (`p`: lì A esce), porta in fondo alla stanza (`retro`), passaggio del giardino (`giardino`), origine del lotto (`o`). */
+type Porta = { slot: number; x: number; z: number; muro: XZ; verso: XZ; dentro: XZ; p: XZ; retro: XZ; giardino: XZ; o: XZ; nome: string | null; mia: boolean };
+type Dove = 'entra' | 'esci' | 'retro' | 'giardino';
 
 const RAGGIO = 2.2;
+const ST = BORGO.stanza, [CX, C0, C1] = ST.corridoio;
 
 /** Dove sta la porta della casa `slot` nel mondo (m), null se non c'è il Borgo o la casa. `fuori` = metri fuori dalla porta, sulla via (lo spawn). */
 export function portaDi(world: Pick<GameWorld, 'archipelago'>, slot: number, fuori = 0): { x: number; z: number } | null {
@@ -29,37 +34,65 @@ export function portaDi(world: Pick<GameWorld, 'archipelago'>, slot: number, fuo
   return { x: (b.origin[0] + c.porta[0] + 0.5) * arch.tile + (dx / l) * fuori, z: (b.origin[1] + c.porta[1] + 0.5) * arch.tile + (dz / l) * fuori };
 }
 
-export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; abitanti: readonly { slot: number | null; nome: string; mia: boolean }[] }): Borgo {
-  const w = o.world, arch = w.archipelago;
+export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; velo: Velo; abitanti: readonly { slot: number | null; nome: string; mia: boolean }[] }): Borgo {
+  const w = o.world, arch = w.archipelago, T = arch.tile;
   const porte: Porta[] = [];
   for (const l of arch.lots) {
-    const p = portaDi(w, l.slot);
-    if (!p) continue;
+    const p = portaDi(w, l.slot), c = BORGO.case[l.slot];
+    if (!p || !c) continue;
     const chi = o.abitanti.find((a) => a.slot === l.slot) ?? null;
-    const cella = (cx: number, cz: number): XZ => ({ x: (l.origin[0] + cx + 0.5) * arch.tile, z: (l.origin[1] + cz + 0.5) * arch.tile });
-    porte.push({ slot: l.slot, ...p, dentro: arch.spawnOf(l.slot), retro: cella(BORGO.stanza.retro[0], BORGO.stanza.retro[1]), giardino: cella(BORGO.stanza.giardino[0], BORGO.stanza.giardino[1]), nome: chi?.nome ?? null, mia: !!chi?.mia });
+    const cella = (cx: number, cz: number): XZ => ({ x: (l.origin[0] + cx + 0.5) * T, z: (l.origin[1] + cz + 0.5) * T });
+    const dx = c.at[0] - c.porta[0], dz = c.at[1] - c.porta[1], n = Math.hypot(dx, dz) || 1, verso = { x: dx / n, z: dz / n };
+    porte.push({
+      slot: l.slot, ...p, verso, muro: { x: p.x + verso.x * 0.9, z: p.z + verso.z * 0.9 }, dentro: cella(CX, C0), p: { x: cella(CX, C1 - 1).x, z: (l.origin[1] + C1 - 0.1) * T },
+      retro: cella(ST.retro[0], ST.retro[1]), giardino: { x: cella(ST.giardino[0], 0).x - T / 2, z: cella(0, ST.giardino[1]).z }, o: { x: l.origin[0] * T, z: l.origin[1] * T }, nome: chi?.nome ?? null, mia: !!chi?.mia,
+    });
   }
   // entra: dalla città nella stanza · esci: dalla stanza in città · retro: dalla stanza al giardino · giardino: dal giardino alla stanza (#240)
-  type Vicino = { porta: Porta; esci: boolean; dove: 'entra' | 'esci' | 'retro' | 'giardino' };
+  type Vicino = { porta: Porta; esci: boolean; dove: Dove };
   let near: Vicino | null = null, nearWas = '', aWas = false;
+  const libero = () => w.mode === 'walk' && !w.frozen && !w.race.on && !o.velo.attivo;
   const trova = (): Vicino | null => {
-    if (w.mode !== 'walk' || w.frozen || w.race.on) return null;
+    if (!libero()) return null;
     // la porta più vicina entro RAGGIO (le case a schiera hanno le porte a 4 m: i cerchi si toccano)
     const f = w.avatar.state;
     let best: Vicino | null = null, bd = RAGGIO;
-    const prova = (p: Porta, q: XZ, esci: boolean, dove: Vicino['dove']) => { const d = Math.hypot(f.x - q.x, f.z - q.z); if (d < bd) { bd = d; best = { porta: p, esci, dove }; } };
-    for (const p of porte) { prova(p, p, false, 'entra'); prova(p, p.dentro, true, 'esci'); prova(p, p.retro, false, 'retro'); prova(p, p.giardino, false, 'giardino'); }
+    const prova = (p: Porta, q: XZ, esci: boolean, dove: Dove) => { const d = Math.hypot(f.x - q.x, f.z - q.z); if (d < bd) { bd = d; best = { porta: p, esci, dove }; } };
+    for (const p of porte) { prova(p, p, false, 'entra'); prova(p, p.p, true, 'esci'); prova(p, p.retro, false, 'retro'); prova(p, p.giardino, false, 'giardino'); }
     return best;
   };
+  /** Passaggio attraversato camminando: contro la facciata di casa, in fondo al corridoio, contro la porta in fondo, nel passaggio del giardino. */
+  const attraversa = (): Vicino | null => {
+    if (!libero()) return null;
+    const f = w.avatar.state, sp = Math.hypot(f.vx, f.vz);
+    if (sp < 0.5) return null;
+    for (const p of porte) {
+      // in città: contro la facciata, camminando verso la casa
+      if (Math.hypot(f.x - p.muro.x, f.z - p.muro.z) < 0.6 && f.vx * p.verso.x + f.vz * p.verso.z > 0.4 * sp) return { porta: p, esci: false, dove: 'entra' };
+      const cx = (f.x - p.o.x) / T, cz = (f.z - p.o.z) / T;
+      // nella stanza: in fondo al corridoio verso sud si esce, contro la porta in fondo verso nord si va in giardino
+      if (Math.abs(cx - CX - 0.5) < 0.9 && cz > C1 - 0.4 && cz < C1 && f.vz > 0) return { porta: p, esci: true, dove: 'esci' };
+      if (Math.abs(cx - ST.retro[0] - 0.5) < 0.45 && cz > ST.retro[1] && cz < ST.retro[1] + 0.3 && f.vz < 0) return { porta: p, esci: false, dove: 'retro' };
+      // in giardino: dentro il passaggio coperto (la bocca guarda a est), verso ovest
+      if (Math.abs(cz - ST.giardino[1] - 0.5) < 0.45 && cx < ST.giardino[0] + 0.05 && cx > ST.giardino[0] - 0.8 && f.vx < 0) return { porta: p, esci: false, dove: 'giardino' };
+    }
+    return null;
+  };
   const testo = (v: Vicino) => v.dove === 'retro' ? 'Vai in giardino' : v.dove === 'giardino' ? 'Torna in casa' : v.esci ? 'Esci in città' : v.porta.mia ? 'Entra in casa' : v.porta.nome ? `Casa di ${v.porta.nome}` : 'Casa libera';
+  const NORD = 0, SUD = Math.PI;
+  const salto = (v: Vicino) => {
+    const p = v.porta;
+    if (v.esci) { w.aPiedi(p.x - p.verso.x * 1, p.z - p.verso.z * 1, Math.atan2(-p.verso.x, p.verso.z)); return; } // un passo fuori dalla porta, di spalle alla casa
+    // dalla porta in fondo si esce davanti al passaggio del giardino (di spalle al passaggio), dal giardino si entra un passo dentro la stanza
+    if (v.dove === 'retro') { w.aPiedi(p.giardino.x + 2.6, p.giardino.z, Math.PI / 2); return; } // a est della bocca del passaggio, guardando a est
+    if (v.dove === 'giardino') { w.aPiedi(p.retro.x, p.retro.z + 2.4, SUD); return; }
+    w.aPiedi(p.dentro.x, p.dentro.z - 0.2, NORD); // in cima al corridoio, guardando la stanza
+  };
   const vai = (v: Vicino) => {
-    if (v.esci) { w.aPiedi(v.porta.x, v.porta.z); return; }
-    // dalla porta in fondo si esce un passo nel giardino (davanti alla sua porta, a sud), dal giardino si entra un passo dentro la stanza
-    if (v.dove === 'retro') { w.aPiedi(v.porta.giardino.x, v.porta.giardino.z + 2.6); return; }
-    if (v.dove === 'giardino') { w.aPiedi(v.porta.retro.x, v.porta.retro.z + 2.6); return; }
-    if (!v.porta.nome) { o.hud.toast('Questa casa non è ancora di nessuno', 2200); return; }
-    w.aPiedi(v.porta.dentro.x, v.porta.dentro.z);
-    o.hud.toast(v.porta.mia ? 'Casa tua: il giardino è oltre la porta in fondo' : `Sei da ${v.porta.nome}: guarda pure, non si tocca`, 2600);
+    if (v.dove === 'entra' && !v.esci && !v.porta.nome) { o.hud.toast('Questa casa non è ancora di nessuno', 2200); return; }
+    void o.velo.passa(() => salto(v)).then((ok) => {
+      if (ok && v.dove === 'entra') o.hud.toast(v.porta.mia ? 'Casa tua: il giardino è oltre la porta in fondo' : `Sei da ${v.porta.nome}: guarda pure, non si tocca`, 2600);
+    });
   };
 
   const btn = el('button', 'mz mz-play mz-libro-btn'); btn.id = 'mzPortaBtn'; btn.type = 'button';
@@ -67,10 +100,14 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
   btn.addEventListener('click', () => { if (near) vai(near); });
   o.root.appendChild(btn);
 
-  registerStateProvider('borgo', () => ({ near: near ? { slot: near.porta.slot, esci: near.esci, dove: near.dove } : null, porte: porte.map((p) => ({ slot: p.slot, x: p.x, z: p.z, nome: p.nome, mia: p.mia })) }));
-  registerTestHook('porta', (slot) => { const p = porte.find((x) => x.slot === Number(slot)); if (!p) return false; vai({ porta: p, esci: false, dove: 'entra' }); return true; });
-  registerTestHook('esciDiCasa', (slot) => { const p = porte.find((x) => x.slot === Number(slot)); if (!p) return false; vai({ porta: p, esci: true, dove: 'esci' }); return true; });
-  registerTestHook('portaRetro', (slot, verso) => { const p = porte.find((x) => x.slot === Number(slot)); if (!p) return false; vai({ porta: p, esci: false, dove: verso === 'stanza' ? 'giardino' : 'retro' }); return true; });
+  // le case libere non si attraversano: contro la facciata non succede niente (lo dice il bottone)
+  let passato = '';
+  registerStateProvider('borgo', () => ({ near: near ? { slot: near.porta.slot, esci: near.esci, dove: near.dove } : null, passato, porte: porte.map((p) => ({ slot: p.slot, x: p.x, z: p.z, nome: p.nome, mia: p.mia, muro: p.muro, verso: p.verso })) }));
+  // test: i passaggi istantanei (senza velo), come prima, e quelli veri col velo (`conVelo`)
+  const hook = (slot: unknown, v: Omit<Vicino, 'porta'>, conVelo: unknown) => { const p = porte.find((x) => x.slot === Number(slot)); if (!p) return false; if (conVelo) vai({ porta: p, ...v }); else salto({ porta: p, ...v }); return true; };
+  registerTestHook('porta', (slot, conVelo) => hook(slot, { esci: false, dove: 'entra' }, conVelo));
+  registerTestHook('esciDiCasa', (slot, conVelo) => hook(slot, { esci: true, dove: 'esci' }, conVelo));
+  registerTestHook('portaRetro', (slot, verso, conVelo) => hook(slot, { esci: false, dove: verso === 'stanza' ? 'giardino' : 'retro' }, conVelo));
 
   return {
     tick(a) {
@@ -80,6 +117,8 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
       if (near && k !== nearWas) o.hud.toast(`${testo(near)}: premi A`, 2000);
       nearWas = k;
       if (near && pressA) { vai(near); return true; }
+      const x = attraversa();
+      if (x && (x.esci || x.dove !== 'entra' || x.porta.nome)) { passato = `${x.porta.slot}:${x.dove}`; vai(x); }
       return !!near;
     },
     update() {

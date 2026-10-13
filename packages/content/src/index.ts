@@ -111,8 +111,12 @@ function validateBorgo(): string[] {
   const lt = ISLANDS.find((i) => i.id === 'lotto'), st = BORGO.stanza, [x0, z0, x1, z1] = st.pavimento;
   if (lt) {
     for (let z = z0; z < z1; z++) for (let x = x0; x < x1; x++) if (!'.LP'.includes(lt.rows[z]?.[x] ?? '~')) errs.push(`borgo: la stanza ha una cella non di pavimento in ${x},${z}`);
-    if (!'.gdP'.includes(lt.rows[st.giardino[1]]?.[st.giardino[0]] ?? '~')) errs.push('borgo: la porta del giardino non è camminabile');
+    // il passaggio del giardino ha la bocca sul lato ovest della cella `giardino` (#265): si cammina dalla cella verso quella a ovest
+    for (const dx of [0, -1]) if (!'.gdP'.includes(lt.rows[st.giardino[1]]?.[st.giardino[0] + dx] ?? '~')) errs.push('borgo: il passaggio del giardino non è camminabile');
     if (st.retro[1] !== z0) errs.push('borgo: la porta sul retro sta nella prima fila della stanza');
+    const [cx, c0, c1] = st.corridoio;
+    if (c0 !== z1 || cx < x0 || cx >= x1) errs.push('borgo: il corridoio parte dal bordo davanti della stanza');
+    for (let z = c0; z < c1; z++) if (!'.P'.includes(lt.rows[z]?.[cx] ?? '~')) errs.push(`borgo: il corridoio ha una cella non camminabile in ${cx},${z}`);
   }
   if (!BORGO.pavimenti.length || !BORGO.carte.length) errs.push('borgo: serve almeno un pavimento e una carta da parati');
   return errs;

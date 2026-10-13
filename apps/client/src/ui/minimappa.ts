@@ -54,7 +54,7 @@ const CSS = `
 #mzMappa .hd button { min-width: 44px; min-height: 44px; background: rgba(46,30,20,.95); border: 2px solid ${P.legnoChiaro}; color: ${P.sabbiaChiara}; font: bold 18px ui-monospace, Menlo, monospace; cursor: pointer; }
 #mzMappa .q { font-size: 12px; font-weight: normal; color: ${P.pietraChiara}; }
 @media (max-width: 699px) { #mzMappa .q { display: none; } }
-#ui.mz-racing #mzMini, body.mz-sotto #mzMini { visibility: hidden; }
+#ui.mz-racing #mzMini, body.mz-sotto #mzMini, body.mz-casa #mzMini { visibility: hidden; } /* mz-casa: in casa e in giardino (#265) */
 `;
 
 type Saved = { viste?: string[] };
