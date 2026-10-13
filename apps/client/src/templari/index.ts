@@ -19,7 +19,8 @@ import { pugni } from '@marea/sim/dungeon/hero.ts';
 import { stepTemplari, templari } from '@marea/sim/templari/templari.ts';
 import type { TState } from '@marea/sim/templari/templari.ts';
 import { daiArma, miraTiro } from '@marea/sim/templari/eroe.ts';
-import { armaIn, nuovoZombie } from '@marea/sim/templari/stato.ts';
+import { armaIn, nuovoZombie, quantiOndata } from '@marea/sim/templari/stato.ts';
+import { vicinoRaggiungibile } from '@marea/sim/templari/raggiungi.ts';
 import { apriPorta } from '@marea/sim/templari/porte.ts';
 import type { TAzioni, TEvento, TView } from '@marea/sim/templari/types.ts';
 import { createHeroActor } from '../rpg/dungeon_hero.ts';
@@ -42,6 +43,8 @@ import { createEffetti } from './effetti.ts';
 import type { Effetti } from './effetti.ts';
 import { oggettoArma } from './armi3d.ts';
 import type { Controlli } from './controlli.ts';
+import { createBanco } from './banco.ts';
+import type { Banco, BancoAzioni } from './banco.ts';
 import type { TemplariCtx, TemplariFine, TemplariRun } from './types.ts';
 
 export { mostraEsito } from './esito.ts';
@@ -80,17 +83,23 @@ function armaVista(id: string): ArmaInMano {
   };
 }
 
-export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boolean }): TemplariRun {
+/** Nomi corti delle armi per il banco di prova. */
+const CORTO: Record<string, string> = { spada: 'Spada', pistola: 'Pistola', pistola_doppia: 'Pistola doppia', spada_molay: 'Spada di Molay', mazza: 'Mazza', ascia: 'Ascia' };
+
+export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boolean; banco?: boolean }): TemplariRun {
   const s: TState = templari.create({ seed: o.seed, opzioni: o.subito ? { subito: true } : {} });
   const frames: DungeonInput[] = [], azioni: TAzioni = [];
   let fase: Fase = 'carica', wait = 0, view: TView = templari.view(s), auto: Rng | null = null, armaOra = view.eroe.arma;
+  let banco: Banco | null = null;
+  /** Banco di prova: immortale, ondate ferme, zombie fermi (velocità di prima per id), rallentatore (un tick ogni 4 frame). */
+  const bk = { immortale: false, ferme: false, fermi: false, lento: false, frame: 0, vel: new Map<number, number>() };
   let sc: Scena | null = null, hero: HeroActor | null = null, zombi: Zombi | null = null, hud: TplHud | null = null, ctl: Controlli | null = null, fx: Effetti | null = null, mouse: Mouse | null = null, mUltima = 0;
   let resolve!: (v: TemplariFine | null) => void;
   const done = new Promise<TemplariFine | null>((r) => (resolve = r));
 
   const pulisci = () => {
     fase = 'finita'; templariLink.state = null; templariLink.prova = null; tensione(0);
-    mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
+    banco?.dispose(); mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
     ctx.renderer.setScene(null);
   };
   const consegna = () => {
@@ -134,7 +143,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       ctx.renderer.setScene(sc.scene);
       ctx.renderer.diorama.setZoom(innerWidth < innerHeight ? 1.3 : 1.05); // al telefono in verticale un po' più largo: si vedono le finestre
       ctx.renderer.diorama.follow(view.eroe.x, 0.9, view.eroe.z); ctx.renderer.diorama.snap?.();
-      hud.grande('✠', PAL.rosso, o.subito ? 'Le ondate stanno per cominciare' : 'Porta il calice sull’altare (AZIONE)', 2600);
+      if (o.banco) banco = createBanco(ctx.root, TEMPLARI.armi.map((a) => [a.id, CORTO[a.id] ?? a.nome]), bancoAzioni());
+      hud.grande('✠', PAL.rosso, o.banco ? 'Stanza di prova' : o.subito ? 'Le ondate stanno per cominciare' : 'Porta il calice sull’altare (AZIONE)', 2600);
       fase = 'gioca';
     } catch (e) {
       console.error('[marea] templari non caricata', e);
@@ -232,7 +242,9 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   let px = NaN, pz = NaN, strada = 0;
   function tickUno(f: InputFrame): void {
     const q = quantizeDungeon(inputOra(f));
+    if (o.banco) bancoPrima();
     frames.push(q); stepTemplari(s, q);
+    if (o.banco && bk.immortale) s.eroe.vita = s.eroe.max;
     for (const e of s.eventi) evento(e);
     const h = s.eroe, d = Number.isNaN(px) ? 0 : Math.sqrt((h.x - px) * (h.x - px) + (h.z - pz) * (h.z - pz));
     px = h.x; pz = h.z;
@@ -244,6 +256,41 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     }
   }
 
+  /** Banco di prova: prima di ogni tick tiene ferme le ondate e gli zombie e rende l'eroe immortale. */
+  function bancoPrima(): void {
+    if (bk.immortale) s.eroe.vita = 1e6;
+    if (bk.ferme) { s.prossima = s.tick + 600; if (s.boss && !s.boss.uscito) s.boss.at = s.tick + 600; }
+    for (const z of s.zombie) {
+      if (bk.fermi && z.vel > 0) { bk.vel.set(z.id, z.vel); z.vel = 0; }
+      else if (!bk.fermi && z.vel === 0 && bk.vel.has(z.id)) { z.vel = bk.vel.get(z.id)!; bk.vel.delete(z.id); }
+    }
+  }
+  function bancoAzioni(): BancoAzioni {
+    const h = s.eroe;
+    return {
+      ondata(n) {
+        s.ondata = n; s.fase = 'combatti'; s.faseT = 0; s.quanti = quantiOndata(n); s.usciti = 0; s.prossima = s.tick + 60; s.boss = null; s.poteri.ondata = 0;
+        hud?.grande(String(n), PAL.rosso, 'Ondata scelta dal banco', 1200);
+        return n;
+      },
+      zombie(tipo) {
+        const p = vicinoRaggiungibile(s, h.x + h.fx * 3.2, h.z + h.fz * 3.2, 3) ?? { x: h.x + h.fx * 3.2, z: h.z + h.fz * 3.2 };
+        const def = TEMPLARI.nemici.find((n) => n.id === tipo);
+        const z = nuovoZombie(s, tipo, p.x, p.z, def?.velocita.cammina ?? 1);
+        z.st = 'insegue'; z.fx = -h.fx; z.fz = -h.fz;
+      },
+      arma(id) { daiArma(s, id); const i = h.armi.findIndex((x) => x?.id === id); if (i >= 0) { h.cur = i; h.inMano = false; } },
+      punti(n) { s.punti += n; hud?.punti(n); },
+      pulisci() { s.zombie = []; s.tiri = []; s.fiamme = []; s.boss = null; },
+      immortale(on) { bk.immortale = on; if (!on) h.vita = Math.min(h.vita, h.max); },
+      ferme(on) { bk.ferme = on; if (!on) s.prossima = s.tick + 30; },
+      fermi(on) { bk.fermi = on; },
+      lento(on) { bk.lento = on; },
+      vicino(on) { ctx.renderer.diorama.setZoom(on ? 0.6 : innerWidth < innerHeight ? 1.3 : 1.05); },
+      extra: [],
+    };
+  }
+
   const run: TemplariRun = {
     get active() { return fase !== 'finita'; },
     step(f) {
@@ -252,6 +299,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       if (templariLink.autopilot > 0 && !auto) auto = createRng(o.seed).fork('autopilot');
       if (templariLink.autopilot === 0) auto = null;
       const n = auto ? templariLink.autopilot : 1;
+      if (bk.lento && bk.frame++ % 4 !== 0) return;
       for (let i = 0; i < n && !s.done; i++) tickUno(f);
       view = templari.view(s);
       if (view.eroe.arma !== armaOra) { armaOra = view.eroe.arma; void hero?.setArma(armaVista(armaOra)); }
