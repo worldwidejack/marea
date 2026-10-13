@@ -94,16 +94,12 @@ for _i, _n in enumerate(P):
 REGIONS['testa_bandito'] = (224, 768, 14, 18)  # viso a colore fisso (cappuccio e fazzoletto), 64 texel/m come `testa`
 REGIONS['pelle_bandito'] = (240, 768, 8, 8)
 REGIONS['lama'] = (248, 768, 16, 16)           # maschera bianca delle lame (mat_lama): il client la tinge col colore del materiale
-# avatar nuovo (#287, sheet di Jack del 13 ott): viso a 128 texel/m (si vede da vicino nelle Corse in HD), pantaloncini, ciabatte
-REGIONS['viso'] = (264, 768, 28, 36)           # proiezione frontale 0,22 × 0,28 m come `testa`, al doppio della risoluzione
-REGIONS['pantaloncini'] = (296, 768, 32, 32)   # teal a colore fisso
-REGIONS['ciabatte'] = (328, 768, 16, 16)
 _grid(['em_fuoco', 'em_cristallo', 'em_neon_rosso', 'em_scala', 'em_vuoto', 'em_spettro', 'em_runa'], 0, 928, 32, 32, 32)
 # Fucina e Mausoleo (modelli 3D dei dungeon, 11 ott 2026): tessere 64x64 (4 m, ripetibili ogni 32) nella zona libera a y 384.
 _grid(['mattoni_fucina', 'basalto_fucina', 'marmo_muro'], 0, 384)
 
 EMISSIVE = {n for n in REGIONS if n.startswith('em_')}
-TINT_MASK = {'testa', 'viso', 'pelle', 'capelli', 'vestito', 'mano', 'cappello', 'lama'}
+TINT_MASK = {'testa', 'pelle', 'capelli', 'vestito', 'mano', 'cappello', 'lama'}
 
 
 # ---------------------------------------------------------------- pittura
@@ -419,29 +415,18 @@ def paint(cv):
             return MASK  # naso asimmetrico: ombra solo a sinistra
         return F.get((e, y), MASK)
     R('testa', testa)
-
-    def viso(x, y, w, h):  # 28x36 (128 texel/m): occhi calmi, sopracciglia, naso appena accennato, sorriso piccolo (sheet #283)
-        e = x if x < 14 else 27 - x  # simmetrico
-        F = {(8, 13): 'legno', (9, 13): 'legno_scuro', (10, 13): 'legno_scuro', (11, 14): 'legno',   # sopracciglia
-             (7, 17): 'legno_scuro', (8, 16): 'nero_caldo', (9, 16): 'nero_caldo', (10, 16): 'nero_caldo', (11, 17): 'legno',  # palpebra
-             (8, 17): 'ombra_calda', (9, 17): 'ombra_calda', (10, 17): 'legno_scuro',                                        # occhio
-             (9, 18): 'legno_scuro',
-             (12, 26): 'legno', (13, 26): 'legno', (11, 25): 'legno',                                                         # sorriso
-             (13, 27): 'pietra'}
-        if (x, y) == (15, 22):
-            return 'pietra'  # naso: ombra solo da un lato
-        return F.get((e, y), MASK)
-    R('viso', viso)
     R('pelle', lambda x, y, w, h: MASK)
     R('mano', lambda x, y, w, h: SKIN[1] if (y == 4 and x % 3 == 0) else MASK)
     R('capelli', lambda x, y, w, h: 'pietra_chiara' if (x + (y // 3)) % 5 == 0 else MASK)
 
-    def vestito(x, y, w, h):  # camicia di lino: trama appena accennata (si tinge col colore scelto)
-        return 'pietra_chiara' if h01(x, y, 80) < 0.08 else MASK
+    def vestito(x, y, w, h):
+        if y % 32 in (0,):
+            return 'pietra_chiara'
+        if x % 32 == 16 and y % 32 < 20:
+            return 'pietra_chiara'  # abbottonatura
+        return MASK
     R('vestito', vestito)
     R('pantaloni', lambda x, y, w, h: 'legno_scuro' if (x % 16 == 0 or h01(x, y, 81) < 0.06) else 'legno')
-    R('pantaloncini', lambda x, y, w, h: 'acqua')  # tinta unita: a 16 texel/m ogni puntino diventa un quadrato di 6 cm
-    R('ciabatte', speckle('ombra_calda', [('legno_scuro', 0.2)], 85))
     R('scarpe', speckle('ombra_calda', [('legno_scuro', 0.15)], 82))
     R('cintura', lambda x, y, w, h: 'ombra_calda' if y % 4 else 'legno_scuro')
 
