@@ -271,7 +271,7 @@ export function verticale(p: Pista, k: Veicolo, V: CVeicoloDef, sPrima: number, 
   if (k.ramo < 0) {
     for (const r of p.def.rampe) {
       if (passa(r.s) && (!r.lat || (k.lat >= r.lat[0] && k.lat <= r.lat[1]))) {
-        k.aria = true; k.vh = Math.max(r.salto, k.v * C.rampa.quota); k.salti++; return;
+        k.aria = true; k.vh = Math.min(r.max ?? Infinity, Math.max(r.salto, k.v * C.rampa.quota)); k.salti++; return;
       }
     }
   }

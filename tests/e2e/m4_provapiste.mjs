@@ -120,6 +120,19 @@ export default async function (ctx) {
       return { st, ramo, aria };
     });
     assert(fine.st.done && fine.ramo > 60 && fine.aria > 20 && fine.st.cadute === 0, JSON.stringify({ ...fine, st: { ...fine.st, risultato: null } }));
+    // il salto del Lungomare (#270): corto (si atterra pochi metri oltre il canale) e sotto la strada le spalle di pietra, non il vuoto
+    const salto = await d.page.evaluate(async () => {
+      const a = window.__provapiste; a.set({ pista: 'spiaggia_lungomare', cam: 'dietro', bot: false, vai: true });
+      await new Promise((r) => setTimeout(r, 300));
+      a.metti(250, 0); let st = a.state(), stacco = null, atterra = null;
+      for (let i = 0; i < 800; i++) { st = a.avanti(1); if (st.aria && stacco === null && st.s > 325) stacco = st.s; if (stacco !== null && !st.aria) { atterra = st.s; break; } }
+      const v = a.state(); a.metti(260, 0); for (let i = 0; i < 400 && a.state().s < 331; i++) a.avanti(1); a.avanti(10); a.set({ pausa: true });
+      return { stacco, atterra, cadute: v.cadute };
+    });
+    assert(salto.stacco && salto.atterra && salto.atterra - salto.stacco < 14 && salto.atterra > 340 && salto.cadute === 0, 'salto del Lungomare: ' + JSON.stringify(salto));
+    await fotogrammi(d.page, 4);
+    await ctx.shot(d.page, 'pc_lungomare_salto');
+    await d.page.evaluate(() => window.__provapiste.set({ pausa: false }));
     await d.page.evaluate(() => window.__provapiste.set({ pista: 'prova_baia', cam: 'alta' }));
     await corri(d.page, 60 * 12);
     await fotogrammi(d.page, 4);

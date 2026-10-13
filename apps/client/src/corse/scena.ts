@@ -47,7 +47,7 @@ const SCENE: Record<string, ConfScena> = {
 export const haScena = (id: string): boolean => id in SCENE;
 
 // ---------- vicinanza alla pista: i campioni di tutti i nastri in una griglia da 16 m ----------
-type Camp = { x: number; y: number; z: number; rx: number; ry: number; rz: number; l: number; fuori: number; vuoto: boolean; s: number; ramo: number; miniera: boolean };
+type Camp = { x: number; y: number; z: number; rx: number; ry: number; rz: number; l: number; fuori: number; vuoto: boolean; s: number; ramo: number; miniera: boolean; pressoVuoto: boolean };
 type Vicino = { c: Camp; d: number; lat: number };
 const CELLA = 16;
 class Vicini {
@@ -98,6 +98,9 @@ class Vicini {
   }
 }
 
+/** Metri prima e dopo un buco in cui il terreno sotto la strada scende già al fondo del canale (#270): la griglia ha celle di 3-6 m e
+ *  le punte di sabbia bucavano l'acqua tra le spalle. Sotto la strada non si vede. */
+const PRESSO = 7;
 function campioni(p: Pista): Vicini {
   const v = new Vicini(), muro = p.def.stile === 'acqua' ? 0.3 : 0.6;
   const metti = (n: Nastro, ramo: number, bordo: number) => {
@@ -105,7 +108,8 @@ function campioni(p: Pista): Vicini {
     for (let i = 0; i < ultimo; i++) {
       const s = i * n.passo;
       v.aggiungi({ x: n.x[i]!, y: n.y[i]!, z: n.z[i]!, rx: n.rx[i]!, ry: n.ry[i]!, rz: n.rz[i]!, l: n.l[i]!, fuori: n.l[i]! + bordo + muro, s, ramo,
-        vuoto: ramo < 0 && superficieA(p, -1, s, 0, 1) === VUOTO, miniera: ramo < 0 && suBinari(p, -1, s, '') });
+        vuoto: ramo < 0 && superficieA(p, -1, s, 0, 1) === VUOTO, miniera: ramo < 0 && suBinari(p, -1, s, ''),
+        pressoVuoto: ramo < 0 && p.def.vuoti.some((x) => !x.lat && s > x.da - PRESSO && s < x.a + PRESSO) });
     }
   };
   metti(p.n, -1, p.def.bordo);
@@ -213,7 +217,7 @@ function terreno(p: Pista, conf: ConfScena): Terreno {
     const n = nat(x, z), q = vicini.vicino(x, z);
     if (!q) return n;
     const { c, d } = q, y = Math.min(quotaStrada(c, q.lat), vicini.stradaMin(x, z, c.fuori + passo));
-    if (c.vuoto && d < c.fuori + 3) return c.y - L > FOSSO + 1 ? c.y - FOSSO - 1.3 : L - 1.5; // il canale (o il fosso in alto) sotto il salto
+    if ((c.vuoto && d < c.fuori + 3) || (c.pressoVuoto && d < c.fuori)) return c.y - L > FOSSO + 1 ? c.y - FOSSO - 1.3 : L - 1.5; // il canale (o il fosso in alto) sotto il salto
     if (c.miniera) return n;                                      // sotto il ponte della miniera il canyon resta giù
     if (acqua) return d < c.fuori + 2 ? L - 2.5 : n;              // la pista d'acqua resta in acqua
     if (d < c.fuori) return y - 0.35;                             // sotto la strada, anche nelle curve sopraelevate
@@ -383,6 +387,7 @@ function piazza(p: Pista, t: Terreno): { pezzi: Pezzo[]; teste: Testa[] } {
   for (let s = 0; s < n.len - 2; s += 2) {
     const k = campo(n, n.k, s), fuori = fuoriA(s);
     if (p.def.tipo === 'fuga' && (s < p.def.via - 20 || s > p.def.via + p.arrivo + 10)) continue;
+    if (p.def.vuoti.some((v) => !v.lat && s > v.da - 3 && s < v.a + 3)) continue; // niente lampioni nel canale sotto il salto (#270)
     for (const lato of [-1, 1]) {
       const at = (off: number) => pt(s, lato * (fuori + off));
       const [cx, , cz] = pt(s, 0);
