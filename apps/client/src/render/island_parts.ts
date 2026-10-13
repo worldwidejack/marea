@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createRng } from '@marea/sim';
 import type { Rng } from '@marea/sim';
 import type { Loader } from './loader.ts';
+import { FLAGS } from '../flags.ts';
 
 export const ISLAND = { TOP: 0.4, BOTTOM: -1.2, STEP: 0.12, STEP_W: 0.6 } as const;
 export const P = {
@@ -28,7 +29,9 @@ export function tex(label: string, seed: string, paint: Painter): THREE.CanvasTe
   return t;
 }
 export const px = (g: CanvasRenderingContext2D, c: string, x: number, y: number, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
-export const speckle = (g: CanvasRenderingContext2D, r: Rng, c: string, n: number, y0: number, y1: number, w = 1, h = 1) => { for (let i = 0; i < n; i++) px(g, c, r.int(0, 31), r.int(y0, y1 - h), w, h); };
+/** Puntini sparsi; di serie (mondo pulito #286, ?pulito=0 = prima) niente: tinta unita, restano le forme grandi (lastre, assi, fasce dei fianchi). */
+const PUNTINI = FLAGS.pulito ? 0 : 1;
+export const speckle = (g: CanvasRenderingContext2D, r: Rng, c: string, n: number, y0: number, y1: number, w = 1, h = 1) => { for (let i = 0; i < Math.round(n * PUNTINI); i++) px(g, c, r.int(0, 31), r.int(y0, y1 - h), w, h); };
 /** Fianco: lista di [colore, righe] dall'alto; tra una fascia e l'altra una riga a scacchi (dithering tra colori adiacenti). */
 export function strata(g: CanvasRenderingContext2D, bands: [string, number][]): void {
   let y = 32;
@@ -58,11 +61,12 @@ export const PAINT: Record<string, Painter> = {
   // Porto: lastre di pietra a file sfalsate (giunti scuri), qualche lastra più chiara; il fianco resta di sabbia (sta sull'isola).
   lastricato: (g, r) => {
     px(g, P.pietra, 0, 0, 32, 32);
-    for (let y = 0; y < 32; y += 8) {
+    const L = FLAGS.pulito ? 16 : 8, W = FLAGS.pulito ? 16 : 12; // pulito (#286): lastre grandi, meno giunti
+    for (let y = 0; y < 32; y += L) {
       px(g, P.pietraScura, 0, y, 32, 1);
-      const off = (y / 8) % 2 ? 6 : 0;
-      for (let x = off; x < 32 + 12; x += 12) px(g, P.pietraScura, x % 32, y, 1, 8);
-      if (r.next() < 0.5) px(g, P.pietraChiara, r.int(1, 20), y + 2, r.int(3, 8), 3);
+      const off = (y / L) % 2 ? W / 2 : 0;
+      for (let x = off; x < 32 + W; x += W) px(g, P.pietraScura, x % 32, y, 1, L);
+      if (!FLAGS.pulito && r.next() < 0.5) px(g, P.pietraChiara, r.int(1, 20), y + 2, r.int(3, 8), 3);
     }
     speckle(g, r, P.pietraChiara, 20, 0, 32); speckle(g, r, P.pietraScura, 12, 0, 32);
     strata(g, [[P.pietra, 3], [P.legnoChiaro, 5], [P.legno, 32]]);

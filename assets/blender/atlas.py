@@ -3,10 +3,13 @@
 # Regole: ART_BIBLE §2 (solo palette) e §3 (16 texel/m, righe 0-511 terreni/edifici, 512-767 prop,
 # 768-895 avatar, 896-1023 emissivi/UI). Unica eccezione: le «maschere di tinta» dell'avatar sono bianche
 # (#FFFFFF) perché il client le moltiplica per il colore scelto (pelle/capelli/vestito): a schermo resta palette.
-import struct, sys, zlib
+import os, struct, sys, zlib
 
 SIZE = 1024
 TPM = 16  # texel per metro (mondo)
+# Atlas «pulito» (#286, prova A/B): MAREA_PULITO (0 = nessuno) moltiplica la densità dei puntini sparsi (sabbia, erba, terra, assi,
+# mattoni, roccia) e lascia le forme grandi. 1 = l'atlas di sempre.
+K = float(os.environ.get('MAREA_PULITO', '1'))
 
 P = {  # ART_BIBLE §2
     'sabbia_chiara': '#F4E3C1', 'sabbia': '#E2B97F', 'legno_chiaro': '#C98A4B', 'legno': '#8E5A2B', 'legno_scuro': '#5A3A1E', 'ombra_calda': '#2E1E14',
@@ -138,7 +141,7 @@ def speckle(base, spots, seed, period=32):
         r = h01(x % period, y % period, seed)
         acc = 0
         for c, p in spots:
-            acc += p
+            acc += p * K
             if r < acc:
                 return c
         return base
@@ -159,9 +162,9 @@ def planks(base, seam, dark, light, plank=4, period=32, vertical=False, seed=3):
         if xx in (2, 17) and y % plank == 1:
             return dark  # chiodi
         r = h01(xx, y % period, seed + row)
-        if r < 0.10:
+        if r < 0.10 * K:
             return dark if (xx + y) % 3 else light
-        if r < 0.16:
+        if r < 0.16 * K:
             return light
         return base
     return f
@@ -178,7 +181,7 @@ def blocks(base, alt, mortar, hi, bw=8, bh=5, seed=5, period=32):
         c = alt if h01(*cell, seed) < 0.35 else base
         if y % bh == 0 and h01(xx, y, seed) < 0.6:
             return hi
-        if h01(x, y, seed + 1) < 0.06:
+        if h01(x, y, seed + 1) < 0.06 * K:
             return mortar
         return c
     return f
@@ -201,9 +204,9 @@ def paint(cv):
         def f(x, y, w, h):
             xx, yy = x % 32, y % 32
             r = h01(xx, yy, seed)
-            if r < 0.07 or (h01(xx, (yy + 1) % 32, seed) < 0.07):
+            if r < 0.07 * K or (h01(xx, (yy + 1) % 32, seed) < 0.07 * K):
                 return dark  # ciuffi a 2 texel verticali
-            if r < 0.12:
+            if r < 0.12 * K:
                 return light
             return base
         return f
@@ -245,7 +248,7 @@ def paint(cv):
             if gap < 2.0 and lato:
                 return 'pietra_scura'
             c = ['pietra_scura', 'pietra', 'pietra_scura', 'pietra', 'pietra_scura', 'pietra_chiara' if not lato else 'pietra'][bi]
-            if h01(xx, yy, seed + 9) < 0.07:
+            if h01(xx, yy, seed + 9) < 0.07 * K:
                 return 'pietra' if c == 'pietra_scura' else 'pietra_scura'
             return c
         return f
