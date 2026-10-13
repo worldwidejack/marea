@@ -1,0 +1,6 @@
+{
+  "_": "Nome da mostrare nella schermata «Dall'ultima volta» (ui/novita.ts) per ogni autore dei commit su main: chiave = nome git (di solito l'utente GitHub) o email. Chi non c'è compare col suo nome git.",
+  "worldwidejack": "Jack",
+  "riccardo99altieri": "Riccardo",
+  "birbasan": "Albi"
+}
