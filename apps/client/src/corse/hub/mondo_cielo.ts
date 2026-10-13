@@ -3,7 +3,7 @@
 // niente nebbia (#282: si vede fino in fondo, VISTA); sole con una shadow map 1024 che segue il veicolo (render/light.ts).
 import * as THREE from 'three';
 import { P } from '../../render/island_parts.ts';
-import { createLights } from '../../render/light.ts';
+import { OMBRA_HD, createLights } from '../../render/light.ts';
 import type { NomeP } from './mondo_base.ts';
 import { h01 } from './mondo_base.ts';
 
@@ -74,7 +74,7 @@ export type Atmosfera = { segui(x: number, z: number): void; cielo: THREE.Mesh; 
 export function creaAtmosfera(scene: THREE.Scene): Atmosfera {
   scene.background = new THREE.Color(P.sabbiaChiara);
   const luci = createLights();
-  luci.sun.shadow.mapSize.set(2048, 2048); // HD (#277): con l'ombra a 1024 si vedono gli scalini
+  luci.sun.shadow.mapSize.set(OMBRA_HD, OMBRA_HD); // HD (#277): con l'ombra a 1024 si vedono gli scalini (al telefono resta 1024: memoria)
   luci.set?.({ elev: SOLE.elev + 8, azim: SOLE.azim, color: 0xffd9a3, intensity: 2.75, sky: 0x9fd3ff, ground: 0x7a5a3a, hemiI: 1.55, amb: P.arancio, ambI: 0.22 });
   luci.group.name = 'hub_luci';
   scene.add(luci.group);
