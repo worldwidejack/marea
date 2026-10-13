@@ -1,6 +1,6 @@
 // Aspetto del mondo scelto nelle impostazioni (#53): camera, ciclo giorno/notte, stampa giapponese, contorni.
 // Con tutto spento qui non si tocca niente: render diretto, luce, cielo e acqua di sempre.
-// - camera ≠ 45°: vista più bassa, camera.far più lungo, passata finale con cielo all'orizzonte e foschia (copre il bordo del mondo)
+// - camera ≠ 45°: vista più bassa, camera.far più lungo, passata finale con cielo all'orizzonte (niente foschia dal 13 ott, #282)
 // - contorni: passata finale con i contorni dalla profondità (il colore stesso più scuro)
 // - stampa: palette giapponese, contorni a inchiostro, grana di carta, acqua a onde (water2.ts) al posto di quella del gioco
 // - ciclo: ogni ~½ s luce, bande del cielo, acqua e foschia dal momento della giornata (ciclo.ts); di notte lanterne e insegne fanno luce (luci.ts, #60)
@@ -19,7 +19,7 @@ import type { Luci } from './luci.ts';
 import type { Water2 } from './water2.ts';
 import { GIORNO, LUNA_DIR, fase, momento } from './ciclo.ts';
 import type { Momento } from './ciclo.ts';
-import { conMeteo, coperturaMeteo, createPioggia, foschiaMeteo, serveFoschia } from './meteo.ts';
+import { conMeteo, coperturaMeteo, createPioggia } from './meteo.ts';
 import type { Pioggia } from './meteo.ts';
 import { meteoAt } from '@marea/sim/meteo.ts';
 import type { MeteoStato } from '@marea/content';
@@ -63,14 +63,14 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
   let pioggia: Pioggia | null = null, postOn = false;
   const tint = new THREE.Color();
   const look = (): PostLook => {
-    const st = imp.stampa, n = m.notte, fo = foschiaMeteo(met.stato, met.k); // cielo, nuvole e foschia col meteo (vis) // di notte la stampa schiarisce un po' la scena buia e la porta sui suoi indaco
+    const st = imp.stampa, n = m.notte; // cielo e nuvole col meteo (vis) // di notte la stampa schiarisce un po' la scena buia e la porta sui suoi indaco
     return {
-      palette: st ? (n >= 0.5 ? PALETTE_STAMPA_NOTTE : PALETTE_STAMPA) : null, dither: st ? 0.08 : 0, paper: st ? 1 : 0,
+      palette: st ? (n >= 0.5 ? PALETTE_STAMPA_NOTTE : PALETTE_STAMPA) : null, paper: st ? 1 : 0,
       grade: st ? { exp: 1.05 + 0.55 * n, sat: 0.8 + 0.15 * n, con: 1.1 + 0.05 * n, tint: mixHex('#fff2dc', '#e4e8ff', n) } : { exp: 1, sat: 1, con: 1, tint: '#ffffff' },
       ink: st ? { col: n >= 0.5 ? '#0d0f1c' : '#1b1d2b', mix: 1, crease: -0.55 } : { col: '#000000', mix: 0, crease: 1 },
       sky: { top: vis.sky3[0], mid: vis.sky3[1], hor: vis.sky3[2], sun: '#ffffff', glow: '#ffffff', sunDir: [0, -1, 0], sunSize: 0, cloud: vis.clouds[0], cloudDark: vis.clouds[1], night: vis.notte, moonDir: LUNA_DIR,
         cover: coperturaMeteo(met.stato, met.k), wind: met.stato === 'vento' ? met.k : met.stato === 'pioggia' ? 0.3 * met.k : 0 },
-      fog: { col: vis.fog, near: fo.near, far: fo.far, max: fo.max },
+      fog: { col: vis.fog, near: 0, far: 1, max: 0 }, // foschia spenta (#282)
     };
   };
   /** Acqua della stampa: colori suoi di notte (invece di scurire quelli del giorno, che finirebbero tutti sullo stesso blu). */
@@ -91,12 +91,11 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
     setMeteo(met.stato === 'pioggia' ? 'pioggia' : met.stato === 'vento' ? 'vento' : 'sereno', met.stato === 'pioggia' || met.stato === 'vento' ? met.k : 0);
     aggiornaPost();
   };
-  /** Passata finale: serve per camera bassa, contorni, stampa, e per la foschia del meteo (nebbia, pioggia) anche con la camera di sempre. */
+  /** Passata finale: serve per camera bassa, contorni e stampa. Foschia mai (#282, Jack 13 ott: «elimina la foschia definitivamente»). */
   const aggiornaPost = (sempre = false) => {
-    const nebbia = imp.meteo && serveFoschia(met.stato, met.k);
-    const need = imp.contorni || imp.stampa || imp.cam > 0 || nebbia;
+    const need = imp.contorni || imp.stampa || imp.cam > 0;
     if (need && !post) post = createPost();
-    if (post) { post.toggles.contorni = imp.contorni; post.toggles.foschia = imp.cam > 0 || nebbia; post.toggles.cielo = imp.cam > 0; post.setStyle(look()); }
+    if (post) { post.toggles.contorni = imp.contorni; post.toggles.foschia = false; post.toggles.cielo = imp.cam > 0; post.setStyle(look()); }
     if (sempre || need !== postOn) { o.renderer.setPost(need ? post : null); postOn = need; }
   };
   const api: Aspetto = {
