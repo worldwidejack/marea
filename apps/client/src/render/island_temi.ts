@@ -15,6 +15,12 @@ export const corsePronta: Promise<void> = import('./island_corse.ts').then((m) =
 // Isola dell'Adrenalina: terreni, roccia e decorazioni in un chunk a parte anche loro (island_adrenalina.ts), aspettato da `createIsland`
 let adrenalina: typeof import('./island_adrenalina.ts') | null = null;
 export const adrenalinaPronta: Promise<void> = import('./island_adrenalina.ts').then((m) => { adrenalina = m; Object.assign(PAINT_TEMI, m.PAINT_ADRENALINA); }, () => {});
+// Borgo Marea (#265): l'arredo tra le case (island_borgo.ts), chunk a parte anche lui, aspettato da `createIsland`
+let borgo: typeof import('./island_borgo.ts') | null = null;
+export const borgoPronta: Promise<void> = import('./island_borgo.ts').then((m) => { borgo = m; }, () => {});
+const BORGO_PROPS = ['lampioncino', 'filo_borgo', 'cassetta_posta', 'vaso_fiori', 'siepe', 'fontana', 'panchina'] as const;
+/** I pezzi del Borgo con una parte accesa (deve stare qui: serve prima che il chunk arrivi). */
+const BORGO_GLOW = new Set<string>(['lampioncino', 'filo_borgo']);
 /** Le decorazioni delle Corse con una parte che brilla (deve stare qui: serve prima che il chunk arrivi). */
 const CORSE_GLOW = new Set<string>(['arco_via', 'torre_corse', 'garage_corse', 'lampione', 'palo_molo', 'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia',
   'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla', 'palazzo_neon', 'palazzo_neon_basso', 'faro']);
@@ -149,7 +155,8 @@ export type TemaProp = 'faro_rovina' | 'relitto' | 'bandiera_pirata' | 'cannone'
   | 'strada' | 'rotatoria' | 'trofeo' | 'statua_trofeo' | 'torre_corse' | 'garage_corse' | 'bancarella' | 'festone' | 'lampione' | 'palo_molo'
   | 'porta_neve' | 'porta_giungla' | 'porta_neon' | 'porta_luna' | 'porta_spiaggia' | 'ruota_panoramica' | 'tendone' | 'tendone_piccolo' | 'tempio_giungla'
   | 'palazzo_neon' | 'palazzo_neon_basso' | 'faro' | 'ombrellone' | 'albero_tondo' | 'albero_giungla' | 'chiazza_neve'
-  | 'funivia_valle' | 'funivia_monte' | 'guardiano' | 'cartello_piste' | 'piattaforma_lancio' | 'porta_slalom' | 'abete'; // Isola dell'Adrenalina
+  | 'funivia_valle' | 'funivia_monte' | 'guardiano' | 'cartello_piste' | 'piattaforma_lancio' | 'porta_slalom' | 'abete' // Isola dell'Adrenalina
+  | typeof BORGO_PROPS[number]; // Borgo Marea
 export const TEMA_PROPS = new Set<string>(['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
   'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello',
   'chiesa_templare', 'casa_rovina', 'tomba', 'croce_pietra', 'tenda', 'relitto_templare', 'scheletro',
@@ -157,9 +164,12 @@ export const TEMA_PROPS = new Set<string>(['faro_rovina', 'relitto', 'bandiera_p
   'strada', 'rotatoria', 'trofeo', 'statua_trofeo', 'torre_corse', 'garage_corse', 'bancarella', 'festone', 'lampione', 'palo_molo',
   'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia', 'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla',
   'palazzo_neon', 'palazzo_neon_basso', 'faro', 'ombrellone', 'albero_tondo', 'albero_giungla', 'chiazza_neve',
-  'funivia_valle', 'funivia_monte', 'guardiano', 'cartello_piste', 'piattaforma_lancio', 'porta_slalom', 'abete']); // Isola dell'Adrenalina
+  'funivia_valle', 'funivia_monte', 'guardiano', 'cartello_piste', 'piattaforma_lancio', 'porta_slalom', 'abete', // Isola dell'Adrenalina
+  ...BORGO_PROPS]); // Borgo Marea
+/** I pezzi del Borgo (#265): sul Porto island.ts li fonde per area. */
+export const BORGO_PEZZI = new Set<string>(BORGO_PROPS);
 /** Decorazioni con una parte che brilla (fuoco, lava, finestre): la seconda geometria va col materiale non illuminato. */
-export const TEMA_GLOW = new Set<string>(['faro_rovina', 'roccia_lavica', 'braciere', 'statua', 'lanterna_pietra', 'abitante', 'chiesa_templare', ...CORSE_GLOW]);
+export const TEMA_GLOW = new Set<string>(['faro_rovina', 'roccia_lavica', 'braciere', 'statua', 'lanterna_pietra', 'abitante', 'chiesa_templare', ...CORSE_GLOW, ...BORGO_GLOW]);
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cyl = (r0: number, r1: number, h: number, s = 6) => new THREE.CylinderGeometry(r0, r1, h, s);
@@ -351,6 +361,8 @@ export function propTema(kind: TemaProp): THREE.BufferGeometry {
     case 'porta_neve': case 'porta_giungla': case 'porta_neon': case 'porta_luna': case 'porta_spiaggia': case 'ruota_panoramica': case 'tendone': case 'tendone_piccolo': case 'tempio_giungla':
     case 'palazzo_neon': case 'palazzo_neon_basso': case 'faro': case 'ombrellone': case 'albero_tondo': case 'albero_giungla': case 'chiazza_neve':
       return corse ? corse.propCorse(kind) : painted(box(0.01, 0.01, 0.01), P.pietra); // (chunk non ancora arrivato: createIsland aspetta corsePronta)
+    case 'lampioncino': case 'filo_borgo': case 'cassetta_posta': case 'vaso_fiori': case 'siepe': case 'fontana': case 'panchina':
+      return borgo ? borgo.propBorgo(kind) : painted(box(0.01, 0.01, 0.01), P.pietra); // (chunk non ancora arrivato: createIsland aspetta borgoPronta)
     case 'lanterna_pietra': {
       parts.push(painted(box(0.8, 0.25, 0.8), P.pietraScura, M(0, 0.12, 0)));
       parts.push(painted(cyl(0.16, 0.2, 0.8, 6), P.pietra, M(0, 0.65, 0)));
@@ -379,6 +391,7 @@ export function propTema(kind: TemaProp): THREE.BufferGeometry {
 /** Parte che brilla (null se la decorazione non ne ha). */
 export function propTemaGlow(kind: TemaProp): THREE.BufferGeometry | null {
   if (CORSE_GLOW.has(kind)) return corse ? corse.propCorseGlow(kind) : null; // Isola delle Corse
+  if (BORGO_GLOW.has(kind)) return borgo ? borgo.propBorgoGlow(kind as typeof BORGO_PROPS[number]) : null; // Borgo Marea
   const parts: THREE.BufferGeometry[] = [];
   if (kind === 'faro_rovina') parts.push(painted(box(0.5, 0.5, 0.5), P.giallo, M(0.1, 7.75, 0)));
   else if (kind === 'braciere') {

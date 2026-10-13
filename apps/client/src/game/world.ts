@@ -105,19 +105,15 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   let slot = o.slot !== undefined ? o.slot : slotFromUrl();
   if (slot !== null && !arch.lots.some((l) => l.slot === slot)) slot = null;
   // Borgo Marea (#237): si nasce davanti alla porta di casa (senza casa: al Porto); la barca sta al molo del Porto, non al giardino
-  const home = (slot !== null ? portaDi({ archipelago: arch }, slot, 3) : null) ?? arch.spawnOf(null), homeBoat = arch.boatOf(null);
+  const home = (slot !== null ? portaDi({ archipelago: arch }, slot, 1) : null) ?? arch.spawnOf(null), homeBoat = arch.boatOf(null);
   const { scene, diorama } = o.renderer;
   const lights = createLights(); scene.add(lights.group);
   const water = createWater({ size: 0 }); water.follow(home.x, home.z); scene.add(water.mesh);
   const island = await createIsland({
     map, loader: o.loader,
-    // il Porto col Borgo attorno (#247) è grande: si disegna in quattro pezzi, così quelli fuori inquadratura si spengono (TECH §5)
-    areas: arch.places.flatMap((p) => {
-      const id = p.island + (p.slot !== null ? '_' + p.slot : ''), base = { style: p.style, scenery: p.scenery };
-      if (p.role !== 'porto') return [{ id, x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, ...base }];
-      const mw = Math.ceil(p.w / 2), mh = Math.ceil(p.h / 2);
-      return [[0, 0], [1, 0], [0, 1], [1, 1]].map(([i, j]) => ({ id, x0: p.origin[0] + i! * mw, z0: p.origin[1] + j! * mh, w: i ? p.w - mw : mw, h: j ? p.h - mh : mh, ...base }));
-    }),
+    // il Porto col Borgo attorno è un pezzo solo: la città a vicoli (#265) sta tutta attorno alla piazza e da lì si vede intera; in quattro
+    // pezzi (#247) ogni geometria fusa costava quattro draw call (TECH §5)
+    areas: arch.places.map((p) => ({ id: p.island + (p.slot !== null ? '_' + p.slot : ''), x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, style: p.style, scenery: p.scenery })),
     props: arch.props, buildings: arch.buildings, paved: arch.paved,
     // davanti agli ingressi dei dungeon niente scenografia (prima la toglieva ingressi.ts dagli InstancedMesh: ora i prop sono fusi)
     libere: [

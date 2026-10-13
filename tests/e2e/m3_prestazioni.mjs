@@ -15,7 +15,7 @@ const PUNTI = [
   ['neon', [['goto', 'neon']]],
   ['selvaggia', [['goto', 'selvaggia']]],
   ...[0, 7, 29].map((i) => [`lotto${i}`, [['goto', `lotto:${i}`]]]), // giardini (#237): primo, uno in mezzo, ultimo
-  ['borgo', [['goto', 'porto'], ['teleport', 213, 273]]], // Borgo Marea (#237, #247): tra le case, sul raggio a ovest della piazza
+  ['borgo', [['goto', 'porto'], ['teleport', 239, 288]]], // Borgo Marea (#237, #247, #265): sull'anello, nel rione a sud-ovest della piazza
   ['adrenalina', [['temiProva', 'tutte'], ['goto', 'adrenalina']]], // Isola dell'Adrenalina (#189): la montagna, con Selvaggia e Ghiacci in vista
   ['adrenalina_chiusa', [['temiProva', null], ['temiVerso', 'adrenalina', 6]]],
   ['templari', [['temiProva', 'tutte'], ['goto', 'templari']]], // aperta (chiusa è nella nebbia come il Giardino: la controlla m3_isole)

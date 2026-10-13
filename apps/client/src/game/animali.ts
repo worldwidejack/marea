@@ -101,6 +101,7 @@ export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canva
       if (!qui(q.x, q.z)) continue;
       const y0 = w.groundY(q.x, q.z);
       if (q.k === 'lanterna') posatoi.push({ x: q.x, y: y0 + 2.0, z: q.z, preso: null });
+      if (q.k === 'lampioncino') posatoi.push({ x: q.x + 0.55 * Math.cos(q.rot), y: y0 + 3.2, z: q.z - 0.55 * Math.sin(q.rot), preso: null }); // Borgo (#265)
       if (q.k === 'torii') for (const lx of [-1.1, -0.35, 0.4, 1.15]) posatoi.push({ x: q.x + lx * Math.cos(q.rot), y: y0 + 3.06, z: q.z - lx * Math.sin(q.rot), preso: null });
     }
     for (const d of docks) {
@@ -116,7 +117,7 @@ export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canva
       stormi.push({ c: { x: molo.x, z: molo.z - 6 }, r: 8, h: 10, dir: 1, posatoi: vicini({ x: molo.x, z: molo.z - 6 }, 18) });
       stormi.push({ c: { x: cx, z: cz }, r: 10, h: 12, dir: -1, posatoi: [] });
     } else stormi.push({ c: { x: p.boat.x, z: p.boat.z - 5 }, r: 7, h: 9 + r.next() * 3, dir: r.next() < 0.5 ? 1 : -1, posatoi: vicini(p.boat, 16) });
-    // gatti: 3 al Porto, 1 su ogni lotto; casa su una cella di molo, giro tra molo e sabbia lì attorno
+    // gatti: 3 al molo del Porto, 1 su ogni lotto; casa su una cella di molo, giro tra molo e sabbia lì attorno
     const nG = p.role === 'porto' ? 3 : p.role === 'lotto' ? 1 : 0;
     const terra = (c: { cx: number; cz: number }) => { const k = tileAt(c.cx, c.cz); return k === 'd' || k === '.'; };
     for (let i = 0; i < nG && docks.length; i++) {
@@ -126,6 +127,13 @@ export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canva
       const [m1, m2] = MANTELLI[(nGatto++ * 5 + p.index) % MANTELLI.length]!;
       const stato = (['dorme', 'siede', 'cammina'] as const)[i % 3]!;
       gatti.push({ x: casa.x + (r.next() - 0.5), z: casa.z + (r.next() - 0.5), h: r.next() * 6.28, casa, area, mantello: [col(m1), col(m2)], stato, fino: r.next() * 12, meta: area[0] ?? casa, passo: 0, seguito: 0, calma: 0 });
+    }
+    // nel Borgo (#265) altri 3 gatti, uno per slargo: sonnecchiano accanto alla fontana e girano tra le panchine
+    if (p.role === 'porto') for (const f of arch.props.filter((q) => q.k === 'fontana' && qui(q.x, q.z)).slice(0, 3)) {
+      const fc = map.worldToCell(f.x, f.z), casa = { x: f.x + 1.9, z: f.z + 0.4 }, area: XZ[] = [];
+      for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) if (Math.hypot(dx, dz) > 1 && terra({ cx: fc.cx + dx, cz: fc.cz + dz })) area.push(centro(fc.cx + dx, fc.cz + dz));
+      const [m1, m2] = MANTELLI[(nGatto++ * 5 + p.index) % MANTELLI.length]!;
+      gatti.push({ x: casa.x, z: casa.z, h: r.next() * 6.28, casa, area, mantello: [col(m1), col(m2)], stato: (['dorme', 'siede', 'cammina'] as const)[nGatto % 3]!, fino: r.next() * 12, meta: area[0] ?? casa, passo: 0, seguito: 0, calma: 0 });
     }
     // granchi: 3 sulla sabbia vicino all'acqua bassa (Porto, lotti, Selvaggia)
     // al Porto la riva è tutto il ferro di cavallo del Borgo (#247): i granchi stanno sulla baia, vicino al molo

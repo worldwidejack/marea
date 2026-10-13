@@ -101,6 +101,8 @@ function validateBorgo(): string[] {
   for (const [n, c] of BORGO.case.entries()) {
     if (t.rows[c.at[1]]?.[c.at[0]] !== 'L') errs.push(`borgo: la casa ${n} non sta su una L`);
     if (!'.gdP'.includes(t.rows[c.porta[1]]?.[c.porta[0]] ?? '~')) errs.push(`borgo: la porta della casa ${n} non è camminabile`);
+    // case a schiera (#265): porte ad almeno due celle (4 m), così uscendo di casa la porta più vicina è la tua (game/borgo.ts)
+    for (const [m, d] of BORGO.case.entries()) if (m > n && Math.hypot(c.porta[0] - d.porta[0], c.porta[1] - d.porta[1]) < 2) errs.push(`borgo: le porte delle case ${n} e ${m} sono troppo vicine`);
   }
   const lt = ISLANDS.find((i) => i.id === 'lotto'), st = BORGO.stanza, [x0, z0, x1, z1] = st.pavimento;
   if (lt) {
