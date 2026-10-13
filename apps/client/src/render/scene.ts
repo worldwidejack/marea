@@ -21,8 +21,8 @@ export type Renderer = {
   setPost(p: Post | null): void;
   /** Camera delle impostazioni: vale solo in superficie (nei dungeon resta la diorama di sempre). null = di serie. */
   setView(v: View | null): void;
-  /** Risoluzione piena dello schermo (true) o la metà pixel di sempre (false): la prova A/B delle Corse (#277). */
-  setNitido?(on: boolean): void;
+  /** HD (#277, l'isola delle Corse): `k` pixel veri per pixel CSS (al massimo quelli dello schermo); null = la metà pixel di sempre. */
+  setNitido?(k: number | null): void;
 };
 export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): Renderer {
   const gl = new THREE.WebGLRenderer({ canvas: o.canvas, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: true, stencil: false });
@@ -34,7 +34,7 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
   const scale = pixelScale(o.flags);
   const diorama = createDioramaCamera({ aspect: 1, canvas: o.canvas });
   let frames = 0, fps = 0, frameMs = 0, last = performance.now(), acc = 0, calls = 0, tris = 0;
-  let nitido = false, w = 1, h = 1, active: THREE.Scene = scene, post: Post | null = null, view: View | null = null;
+  let nitido: number | null = null, w = 1, h = 1, active: THREE.Scene = scene, post: Post | null = null, view: View | null = null;
   const camera = diorama.camera, FAR = camera.far;
   const applyView = () => {
     const v = active === scene ? view : null;
@@ -47,7 +47,7 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
   const resize = () => {
     const cw = o.canvas.clientWidth || innerWidth, ch = o.canvas.clientHeight || innerHeight;
     cw0 = cw; ch0 = ch;
-    const k = nitido ? Math.min(2, devicePixelRatio || 1) : Math.min(1.5, devicePixelRatio || 1) * scale;
+    const k = nitido !== null ? Math.min(nitido, devicePixelRatio || 1) : Math.min(1.5, devicePixelRatio || 1) * scale;
     w = Math.max(1, Math.round(cw * k)); h = Math.max(1, Math.round(ch * k));
     gl.setSize(w, h, false); post?.setSize(w, h);
     diorama.camera.aspect = cw / Math.max(1, ch); diorama.camera.updateProjectionMatrix();
@@ -66,7 +66,7 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
     },
     setPost: (p) => { post = p; post?.setSize(w, h); },
     setView: (v) => { view = v; applyView(); },
-    setNitido: (on) => { if (on === nitido) return; nitido = on; o.canvas.style.imageRendering = on ? 'auto' : 'pixelated'; resize(); },
+    setNitido: (k) => { if (k === nitido) return; nitido = k; o.canvas.style.imageRendering = k !== null ? 'auto' : 'pixelated'; resize(); },
     render: (_alpha, t) => {
       // Hook prima del render per chi deve riallineare qualcosa dopo world.update (es. il sole sul passo della shadow map).
       for (const c of active.children) (c.userData.preRender as (() => void) | undefined)?.();

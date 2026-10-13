@@ -52,11 +52,6 @@ body.mz-gp #mzTrag, body.mz-gp .mz-play { display: none !important; }
 body.mz-gp.mz-dito .mz-gp-gas { display: flex; }
 body.mz-gp.mz-dito #btnA { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 110px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
   width: 82px !important; height: 82px !important; font-size: 15px !important; }
-/* prova A/B della fluidità (#277): due interruttori in alto a destra, sopra la minimappa */
-.mz-gp-ab { position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); top: calc(max(8px, env(safe-area-inset-top)) + 8px); display: none; gap: 6px; z-index: 15; }
-.mz-gp-ab.on { display: flex; }
-.mz-gp-ab button { min-height: 40px; padding: 0 10px; background: rgba(46,30,20,.82); color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.legno}; font: bold 12px ui-monospace, Menlo, monospace; border-radius: 6px; touch-action: manipulation; }
-.mz-gp-ab button.b { border-color: ${PAL.giallo}; color: ${PAL.giallo}; }
 body.mz-gp.mz-dito #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 22px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 128px) !important;
   width: 60px !important; height: 60px !important; font-size: 11px !important; }
 `;
@@ -79,6 +74,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   const scene = new THREE.Scene(); scene.name = 'gran_premio';
   scene.background = o.renderer.sky.texture;
   const luci = createLights(); scene.add(luci.group);
+  luci.sun.shadow.mapSize.set(2048, 2048); // HD (#277): con l'ombra a 1024 sotto i veicoli si vedono gli scalini
   const vista = creaVistaGara({ root: o.root, camera: o.renderer.camera, look: () => o.world.look, onLuce: (x, z) => luci.follow?.(x, z) });
   scene.add(vista.gruppo);
 
@@ -86,21 +82,21 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   const quit = el('button', 'mz-gp-quit', 'Esc · Ritirati') as HTMLButtonElement; quit.type = 'button'; quit.id = 'mzGpEsci';
   for (const ev of ['pointerdown', 'touchstart']) quit.addEventListener(ev, stop);
   o.root.append(quit);
-  // ---- prova A/B (#277): B = fluido come la prova Godot (vista_gara `succo`), e pixel o HD. Tasti B e H; si ricorda la scelta ----
-  const ab = (() => { try { return { succo: true, nitido: false, ...JSON.parse(localStorage.getItem('marea:corse-ab') ?? '{}') as object }; } catch { return { succo: true, nitido: false }; } })() as { succo: boolean; nitido: boolean };
-  const abBox = el('div', 'mz-gp-ab', '');
-  const abSucco = el('button', '', '') as HTMLButtonElement, abNitido = el('button', '', '') as HTMLButtonElement;
-  abSucco.type = abNitido.type = 'button'; abSucco.id = 'mzGpSucco'; abNitido.id = 'mzGpNitido';
-  const abPinta = () => {
-    abSucco.textContent = ab.succo ? 'B · fluido' : 'A · com’era'; abSucco.classList.toggle('b', ab.succo);
-    abNitido.textContent = ab.nitido ? 'HD' : 'PIXEL'; abNitido.classList.toggle('b', ab.nitido);
-    try { localStorage.setItem('marea:corse-ab', JSON.stringify(ab)); } catch { /* storage bloccato */ }
+  // ---- HD (#277): l'isola delle Corse (hub, menù, gara) a risoluzione piena, il resto del mondo resta pixel. Se il telefono non ce
+  // la fa (sotto i 45 fps per più di 2 s) la risoluzione scende di un gradino, fino a 1 pixel vero per pixel CSS; non risale mai. ----
+  const GRADINI = [2, 1.5, 1.2, 1];
+  const hd = { gradino: 0, fps: 60, da: 0 };
+  const hdAccendi = () => { hd.gradino = 0; hd.fps = 60; hd.da = performance.now() + 2500; o.renderer.setNitido?.(pixel ? null : GRADINI[0]!); }; // 2,5 s per caricare
+  const hdControlla = (dt: number) => {
+    if (dt <= 0 || document.hidden || pixel) return;
+    hd.fps += (1 / dt - hd.fps) * 0.05;
+    const now = performance.now();
+    if (hd.fps < 45 && now - hd.da > 2000 && hd.gradino < GRADINI.length - 1 && GRADINI[hd.gradino + 1]! < (devicePixelRatio || 1) + 0.01) {
+      hd.gradino++; hd.da = now; hd.fps = 55; o.renderer.setNitido?.(GRADINI[hd.gradino]!);
+      console.log(`[marea] corse: risoluzione giù a ${GRADINI[hd.gradino]}`);
+    }
   };
-  const abSucc = () => { ab.succo = !ab.succo; abPinta(); vista.cameraSalta(); };
-  const abNit = () => { ab.nitido = !ab.nitido; abPinta(); if (run) o.renderer.setNitido?.(ab.nitido); };
-  abSucco.addEventListener('click', abSucc); abNitido.addEventListener('click', abNit);
-  for (const b of [abSucco, abNitido]) for (const ev of ['pointerdown', 'touchstart']) b.addEventListener(ev, stop);
-  abBox.append(abSucco, abNitido); o.root.append(abBox); abPinta();
+  let pixel = false; // tasto H: di nuovo pixel, per confrontare (prova)
   // ---- GAS (solo col dito): tenuto = gas a fondo; DRIFT tenuto dà gas anche lui (un pollice solo scivola da GAS a DRIFT) ----
   const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const gasBtn = el('button', 'mz-gp-gas', 'GAS') as HTMLButtonElement; gasBtn.type = 'button'; gasBtn.id = 'mzGpGas';
@@ -148,14 +144,14 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   });
   function apriHub(): void {
     hub.apri(scelta.veicolo, 'molo');
-    o.renderer.setScene(hub.scene);
+    o.renderer.setScene(hub.scene); hdAccendi();
     document.body.classList.add('mz-gp'); pulsanti(true); ruota.attiva(true);
     ultimo = performance.now();
   }
   function esciHub(): void {
     if (run) return;
     pannelli.chiudi(); sala.chiudi(); hub.chiudi();
-    o.renderer.setScene(null); o.renderer.diorama.snap?.();
+    o.renderer.setScene(null); o.renderer.diorama.snap?.(); o.renderer.setNitido?.(null);
     document.body.classList.remove('mz-gp'); setTopbarHidden(false); pulsanti(false); ruota.attiva(false);
   }
 
@@ -198,7 +194,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     }
     if (run) {
       if (e.code === 'KeyC' && !e.repeat) { const i = CAMERE.findIndex((c) => c.id === scelta.cam); scelta.cam = CAMERE[(i + 1) % CAMERE.length]!.id; vista.cameraSalta(); }
-      if ((e.code === 'KeyB' || e.code === 'KeyH') && !e.repeat) { if (e.code === 'KeyB') abSucc(); else abNit(); e.preventDefault(); e.stopImmediatePropagation(); }
+      if (e.code === 'KeyH' && !e.repeat) { pixel = !pixel; o.renderer.setNitido?.(pixel ? null : GRADINI[hd.gradino]!); e.preventDefault(); e.stopImmediatePropagation(); }
       return;
     }
     if (pannelli.aperto() && e.code === 'Enter') { e.preventDefault(); pannelli.invio(); }
@@ -239,13 +235,13 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
             run = null;
             vista.chiudi(); usa.mostra(false);
             if (r.amici) sala.chiudi(); // si esce dalla sala: per la rivincita si rientra dalla porta
-            quit.classList.remove('on'); abBox.classList.remove('on'); o.renderer.setNitido?.(false);
+            quit.classList.remove('on');
             const c = o.renderer.camera; c.fov = fov0.fov; c.far = fov0.far; c.near = fov0.near; c.updateProjectionMatrix();
             if (hub.aperto()) { // di nuovo nell'hub, davanti alla porta (la scheda dell'esito arriva sopra)
               hub.messaggio(null); hub.riprendi(portaGara); o.renderer.setScene(hub.scene); ultimo = performance.now();
             } else {
               ruota.attiva(false); document.body.classList.remove('mz-gp'); setTopbarHidden(false); pulsanti(false);
-              o.renderer.setScene(null); o.renderer.diorama.snap?.();
+              o.renderer.setScene(null); o.renderer.diorama.snap?.(); o.renderer.setNitido?.(null);
             }
             last = { ticks: r.frames.length, rows: v?.length ?? 0, result: r.esito ?? garaCorse.result(r.s), cancelled: !v, pista: r.s.pista };
             console.log(`[marea] gran premio ${v ? 'finito' : 'annullato'}: ${r.frames.length} tick, ${v?.length ?? 0} righe`);
@@ -257,7 +253,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
         ruota.attiva(true);
         vista.mostra(s); vista.interfaccia(true); usa.mostra(!!s.oggetti);
         o.renderer.setScene(scene);
-        document.body.classList.add('mz-gp'); pulsanti(true); quit.classList.add('on'); abBox.classList.add('on'); o.renderer.setNitido?.(ab.nitido);
+        document.body.classList.add('mz-gp'); pulsanti(true); quit.classList.add('on'); if (!hub.aperto()) hdAccendi();
         ultimo = performance.now();
       });
     },
@@ -299,13 +295,14 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
       const r = run; if (!r && !hub.aperto()) return;
       setTopbarHidden(true); // main.ts la rimette a posto ogni frame prima di noi
       const now = performance.now(), dt = Math.min(0.1, (now - ultimo) / 1000); ultimo = now;
+      hdControlla(dt);
       if (!r) {
         const pa = palco.attivo();
         if (pa !== suPalco) { suPalco = pa; o.renderer.setScene(pa ? palco.scene : hub.scene); }
         if (pa) palco.aggiorna(dt); else hub.aggiorna(dt);
         return;
       }
-      vista.aggiorna(r.s, dt, { cam: scelta.cam, effetti: true, auto: r.auto, gasAuto: scelta.gasAuto, fine: r.fase === 'fine', ritirato: r.ritirato, succo: ab.succo, alpha: r.fase === 'gara' ? alpha : 1, ...(r.amici ? { amici: sala.amici() } : {}) });
+      vista.aggiorna(r.s, dt, { cam: scelta.cam, effetti: true, auto: r.auto, gasAuto: scelta.gasAuto, fine: r.fase === 'fine', ritirato: r.ritirato, succo: true, alpha: r.fase === 'gara' ? alpha : 1, ...(r.amici ? { amici: sala.amici() } : {}) });
       if (r.s.oggetti) usa.etichetta(vista.ogg.etichetta, vista.ogg.pronto, vista.ogg.ogg);
     },
   };
@@ -315,7 +312,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     if (!r) return { active: false, scelta: pannelli.aperto() === 'piste', garage: pannelli.aperto() === 'garage', hub: hub.info(), last, pista: scelta.pista, veicolo: scelta.veicolo, sala: sala.info() };
     const v = garaCorse.view(r.s) as GaraView, k = r.s.veicoli[0]!;
     const og = r.s.oggetti;
-    return { active: true, ab: { ...ab }, hub: { aperto: hub.aperto() }, amici: r.amici, oggetti: og ? { tasca: og.tasche[0]!.ogg, usati: og.usati[0], presi: og.presi[0], scatole: og.scatole.length, bottone: usa.el.style.display } : null, sala: sala.info(), fase: r.fase, auto: r.auto, pista: r.s.pista, veicolo: k.id, frames: r.frames.length, tick: r.s.tick, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: v.done, v: Math.round(k.v * 10) / 10, drift: k.drift, vista: vista.info(), last };
+    return { active: true, hd: pixel ? null : GRADINI[hd.gradino], hub: { aperto: hub.aperto() }, amici: r.amici, oggetti: og ? { tasca: og.tasche[0]!.ogg, usati: og.usati[0], presi: og.presi[0], scatole: og.scatole.length, bottone: usa.el.style.display } : null, sala: sala.info(), fase: r.fase, auto: r.auto, pista: r.s.pista, veicolo: k.id, frames: r.frames.length, tick: r.s.tick, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: v.done, v: Math.round(k.v * 10) / 10, drift: k.drift, vista: vista.info(), last };
   });
   /** Le gare le corre il pilota automatico (`speed` tick di sim per tick del ciclo, 1-20; 0 = di nuovo a mano). */
   registerTestHook('corseAuto', (speed) => {
