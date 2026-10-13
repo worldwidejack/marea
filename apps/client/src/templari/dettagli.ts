@@ -291,17 +291,10 @@ export function createDettagli(scene: THREE.Scene, a: Arena, o: { centro: { x: n
   istanze(bt.telo.clone(), bott.filter((_, k) => k % 2 === 1), 'tende_mercato_b', new THREE.MeshLambertMaterial({ map: telaB, side: THREE.DoubleSide }));
   istanze(bt.resto, bott, 'botteghe');
   istanze(balcone(), bal, 'balconi');
-  // ---- palme e lampioni sulle celle di fuori a nord e a ovest delle zone (la camera guarda da sud-est: lì non coprono) ----
-  const pal: Posto[] = [], lam2: Posto[] = [];
-  for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
-    if (cellA(cx, cz) !== C.fuori) continue;
-    let vicino: number = SUOLO.niente;
-    for (let k = 1; k <= 2 && !vicino; k++) for (const [x, z] of [[cx, cz + k], [cx + k, cz]] as const) { const s = suoloA(x, z); if (cellA(x, z) !== C.fuori && (s === SUOLO.ciottoli || s === SUOLO.sabbia || s === SUOLO.terra)) { vicino = s; break; } }
-    if (!vicino) continue;
-    const h = cellHash(cx, cz, 91);
-    if (h < 0.09) pal.push({ x: (cx + 0.5) * T, z: (cz + 0.5) * T, ry: h * 60, s: 0.8 + h * 3 });
-    else if (h > 0.95 && vicino !== SUOLO.terra) lam2.push({ x: (cx + 0.5) * T, z: (cz + 0.5) * T, ry: Math.PI });
-  }
+  // ---- palme e lampioni sul bordo delle zone, a nord e a ovest (a.alberi: la camera guarda da sud-est, lì non coprono; la sim li ferma
+  //      grandi come il tronco) ----
+  const pal: Posto[] = a.alberi.filter((x) => x.tipo === 'palma').map((x) => ({ x: x.x, z: x.z, ry: x.h * 60, s: 0.8 + x.h * 2 }));
+  const lam2: Posto[] = a.alberi.filter((x) => x.tipo === 'lampione').map((x) => ({ x: x.x, z: x.z, ry: Math.PI }));
   statico(palma(), pal); statico(lampione(), lam2);
   for (const l of lam2) aloni.push({ p: new THREE.Vector3(l.x - 0.6, 2.3, l.z), c: PAL.arancio, s: 3.2 });
   // la mesh unica degli oggetti fissi

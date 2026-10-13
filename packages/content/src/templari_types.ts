@@ -52,10 +52,13 @@ export type TNemicoDef = {
   strappa: number;
   /** Secondi per uscire da terra quando compare. */
   sorge: number;
-  /** Scudo davanti (coseno del mezzo angolo coperto): i colpi da lì non fanno niente. Morto, lascia lo scudo a terra. */
-  scudo?: number;
+  /** Scudo davanti (coseno del mezzo angolo coperto): i colpi da lì li prende lo scudo, che regge `scudoVita` × la vita dell'ondata e
+   *  poi si spacca (lo zombie resta scoperto). Morto con lo scudo intero, lo lascia a terra. */
+  scudo?: number; scudoVita?: number;
   /** Da quale ondata compare e quanta parte dell'ondata è sua (base + perOndata × (n − da), al massimo max). Senza: il fante, che fa il resto. */
   da?: number; quota?: { base: number; perOndata: number; max: number };
+  /** Al massimo quanti in un'ondata: base + perOndata × (n − da), arrotondato in giù, al massimo max (arrivano piano piano). */
+  maxOndata?: { base: number; perOndata: number; max: number };
   /** Boss (Templare a cavallo, de Molay): esce da solo nelle sue ondate, barra della vita in alto, `punti` in più a chi lo abbatte. */
   boss?: boolean; punti?: number;
   /** Cannoniere: bomba lanciata dove sei (cerchio a terra), da `distanza` m, ogni `ricarica` s; esplode dopo `volo` s. */
@@ -121,6 +124,8 @@ export type TemplariCfg = {
   porte: Record<string, TPortaDef>;
   /** Porte: distanza per comprarle. */
   porta: { raggio: number };
+  /** Raggio (m) con cui fermano l'eroe e gli zombie gli alberi e i lampioni sul bordo del campo: quello del tronco, non la cella intera. */
+  alberi: { cipresso: number; palma: number; lampione: number };
   /** Trappole (id della legenda): prezzo, secondi accese e di ricarica dopo, danno al secondo ai boss (gli altri muoiono), e all'eroe
    *  `danno` ogni `ogni` secondi se ci sta dentro. */
   trappole: Record<string, TTrappolaDef>;

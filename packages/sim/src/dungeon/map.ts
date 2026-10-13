@@ -47,7 +47,8 @@ export type DMap = {
 };
 
 /** Quel che serve a collisioni, vista e distanze: anche griglie che non sono un dungeon (l'arena dei Templari, con le porte che si aprono). */
-export type Griglia = Pick<DMap, 'w' | 'h' | 'tile' | 'solid' | 'opaque'>;
+/** `tondi`: celle piene che fermano come un cerchio al centro (indice della cella → raggio), non come il quadrato intero: i tronchi. */
+export type Griglia = Pick<DMap, 'w' | 'h' | 'tile' | 'solid' | 'opaque'> & { tondi?: ReadonlyMap<number, number> };
 
 const MAPS = new WeakMap<DungeonDef, DMap>();
 
@@ -153,6 +154,14 @@ function resolve(m: Griglia,p: { x: number; z: number }, r: number): void {
   for (let cz = r0; cz <= r1; cz++)
     for (let cx = c0; cx <= c1; cx++) {
       if (!isSolid(m, cx, cz)) continue;
+      const tr = m.tondi && cx >= 0 && cz >= 0 && cx < m.w && cz < m.h ? m.tondi.get(cz * m.w + cx) : undefined;
+      if (tr !== undefined) { // tronco: cerchio contro cerchio
+        const ox = p.x - (cx + 0.5) * t, oz = p.z - (cz + 0.5) * t, d2 = ox * ox + oz * oz, rr = r + tr;
+        if (d2 >= rr * rr) continue;
+        const d = Math.sqrt(d2);
+        if (d > 1e-9) { p.x += (ox / d) * (rr - d); p.z += (oz / d) * (rr - d); } else p.z += rr;
+        continue;
+      }
       const nx = Math.max(cx * t, Math.min((cx + 1) * t, p.x)), nz = Math.max(cz * t, Math.min((cz + 1) * t, p.z));
       const dx = p.x - nx, dz = p.z - nz, d2 = dx * dx + dz * dz;
       if (d2 >= r * r) continue;

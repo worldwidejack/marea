@@ -66,6 +66,8 @@ export type Zombie = {
   modo: ZombieModo; cd: number; dx: number; dz: number; tx: number; tz: number;
   /** La carica ha già preso l'eroe; prossima fiamma della scia (de Molay); dove scappa. */
   preso: boolean; scia: number; fuga: { x: number; z: number } | null;
+  /** Danni che lo scudo davanti regge ancora (0 = niente scudo, o spaccato). */
+  scudo: number;
 };
 /** Tiro di un nemico: bomba del cannoniere (vola a parabola fino a dove eri), palla di fuoco di de Molay (dritta). */
 export type TiroNemico = { id: number; tipo: 'bomba' | 'palla'; x: number; z: number; sx: number; sz: number; tx: number; tz: number; vx: number; vz: number; t: number; dur: number; danno: number; r: number };
@@ -95,6 +97,8 @@ export type TState = {
   ondata: number;
   /** Zombie dell'ondata: quanti in tutto, quanti già usciti, prossima comparsa (tick). */
   quanti: number; usciti: number; prossima: number;
+  /** Quanti ne sono usciti per tipo in questa ondata (i tipi con `maxOndata` arrivano piano piano). */
+  tipiUsciti: Record<string, number>;
   /** Punti dalle assi in questa ondata (hanno un tetto). */
   puntiAssi: number;
   assi: number[];
@@ -130,7 +134,7 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
       prevA: false, prevC: false, prevD: false,
     },
     punti: TEMPLARI.partenza.punti, guadagnati: 0, uccisioni: 0,
-    fase: opzioni.subito ? 'inizio' : 'altare', faseT: 0, ondata: 0, quanti: 0, usciti: 0, prossima: 0, puntiAssi: 0,
+    fase: opzioni.subito ? 'inizio' : 'altare', faseT: 0, ondata: 0, quanti: 0, usciti: 0, prossima: 0, tipiUsciti: {}, puntiAssi: 0,
     assi: arena.finestre.map(() => TEMPLARI.barricate.assi),
     porte: Object.fromEntries(arena.porte.map((p) => [p.id, false])),
     zombie: [], proj: [], fiamme: [], drops: [], tiri: [], boss: null,
@@ -183,6 +187,7 @@ export function nuovoZombie(s: TState, tipo: string, x: number, z: number, vel: 
     id: s.nextId++, tipo, def, x, z, fx: 0, fz: 1, vita: max, max, vel, st: 'sorge', stT: 0, stDur: secToTicks(def.sorge),
     finestra: -1, hurt: 0, best: 1e9, bestT: s.tick, grido: s.tick + secToTicks(2 + s.rng.next() * 6),
     modo: 'mischia', cd: secToTicks(2), dx: 0, dz: 1, tx: 0, tz: 0, preso: false, scia: 0, fuga: null,
+    scudo: def.scudo !== undefined ? Math.round(vitaOndata(s.ondata) * (def.scudoVita ?? 1)) : 0,
   };
   s.zombie.push(zz);
   return zz;

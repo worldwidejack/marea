@@ -51,6 +51,8 @@ export type TEvento =
   | { t: 'esplosione'; x: number; z: number; r: number }
   /** Colpo fermato da uno scudo: quello dello scudato (`zombie`) o il tuo (`eroe`). */
   | { t: 'parato'; chi: 'eroe' | 'zombie'; x: number; z: number }
+  /** Lo scudo di uno scudato si è spaccato: da adesso è scoperto. */
+  | { t: 'scudoSpaccato'; id: number; x: number; z: number }
   | { t: 'scudo'; preso: boolean }
   | { t: 'scudoRotto' }
   | { t: 'compra'; arma: string; munizioni: boolean }
@@ -90,7 +92,9 @@ export type TView = {
     /** Scudo templare: vita, massimo, in mano (sennò sulle spalle). */
     scudo: { vita: number; max: number; inMano: boolean } | null;
   };
-  zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number; boss: boolean }[];
+  zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number; boss: boolean;
+    /** Ha ancora lo scudo davanti (lo scudato finché non si spacca). */
+    scudo: boolean }[];
   /** Tiri dei nemici in volo: bombe (con dove cadono e il raggio, per il cerchio a terra) e palle di fuoco; `k` = 0..1 del volo. */
   tiri: { id: number; tipo: 'bomba' | 'palla'; x: number; z: number; tx: number; tz: number; r: number; k: number }[];
   /** Il boss in campo (barra in alto): `fugge` = soglia della vita a cui scappa (de Molay), 0 = si combatte fino in fondo. */

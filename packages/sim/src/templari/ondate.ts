@@ -19,13 +19,21 @@ export function comparsaVicina(s: TState): Comparsa | null {
   return ok[s.rng.int(0, k - 1)]!.c;
 }
 
-/** Chi esce: ogni nemico con `da` ≤ ondata ha la sua quota (crescente), il fante fa il resto. */
-function tipoNuovo(s: TState): string {
+/** Quanti nemici di questo tipo al massimo nell'ondata n (Infinity = nessun tetto). */
+export function maxInOndata(id: string, n: number): number {
+  const d = nemicoDef(id), m = d.maxOndata;
+  if (!m) return Infinity;
+  if (d.da !== undefined && n < d.da) return 0;
+  return Math.min(m.max, Math.floor(m.base + m.perOndata * (n - (d.da ?? 1))));
+}
+/** Chi esce: ogni nemico con `da` ≤ ondata ha la sua quota (crescente), il fante fa il resto; chi ha già raggiunto il tetto
+ *  dell'ondata (`maxOndata`, lo scudato) lascia il posto al fante. */
+export function tipoNuovo(s: TState): string {
   let r = s.rng.next();
   for (const n of TEMPLARI.nemici) {
     if (n.da === undefined || !n.quota || s.ondata < n.da) continue;
     const q = Math.min(n.quota.max, n.quota.base + n.quota.perOndata * (s.ondata - n.da));
-    if (r < q) return n.id;
+    if (r < q) return (s.tipiUsciti[n.id] ?? 0) < maxInOndata(n.id, s.ondata) ? n.id : 'fante';
     r -= q;
   }
   return 'fante';
@@ -52,7 +60,7 @@ export function bossDi(n: number): { tipo: string; solo: boolean } | null {
 function nuovaOndata(s: TState): void {
   s.ondata++;
   s.fase = 'combatti'; s.faseT = 0;
-  s.quanti = quantiOndata(s.ondata); s.usciti = 0; s.prossima = s.tick + secToTicks(1); s.puntiAssi = 0; s.poteri.ondata = 0;
+  s.quanti = quantiOndata(s.ondata); s.usciti = 0; s.tipiUsciti = {}; s.prossima = s.tick + secToTicks(1); s.puntiAssi = 0; s.poteri.ondata = 0;
   const b = bossDi(s.ondata);
   s.boss = b ? { tipo: b.tipo, at: s.tick + secToTicks(b.solo ? TEMPLARI.boss.attesa : intervalloOndata(s.ondata) * s.quanti * 0.5), uscito: false } : null;
   if (b?.solo) s.quanti = Math.max(1, Math.round(s.quanti * TEMPLARI.boss.quotaFanti));
@@ -77,7 +85,7 @@ export function stepOndate(s: TState): void {
         if (c) {
           const tipo = tipoNuovo(s), v = nemicoDef(tipo).velocita;
           const z = nuovoZombie(s, tipo, c.x, c.z, velocita(s, v.cammina, v.corre, v.scatta));
-          s.usciti++;
+          s.usciti++; s.tipiUsciti[tipo] = (s.tipiUsciti[tipo] ?? 0) + 1;
           ev(s, { t: 'sorge', id: z.id, x: c.x, z: c.z });
         }
         s.prossima = s.tick + secToTicks(intervalloOndata(s.ondata));

@@ -131,7 +131,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     try {
       await ctx.loader.extend('manifest_rpg.json'); // modelli delle armi (kit GDR)
       sc = createScena(s.arena, ctx.renderer.camera);
-      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: { arma: armaVista(view.eroe.arma) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true });
+      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: { arma: armaVista(view.eroe.arma) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true, soloBusto: true });
       zombi = createZombi(sc.scene);
       fx = createEffetti({ scene: sc.scene, arena: s.arena, loader: ctx.loader, root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera });
       if ((fase as Fase) === 'finita') { pulisci(); return; }
@@ -175,6 +175,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'ricarica': suona('martello'); break;
       case 'esplosione': suona('tuono'); break;
       case 'parato': suona('schivato'); break;
+      case 'scudoSpaccato': zombi.colpito(e.id); suona('colpo_critico', vicino(e.x, e.z)); hud.grande('', PAL.sabbiaChiara, 'Scudo spaccato: adesso è scoperto', 1200); break;
       case 'scudo': suona('raccolto'); hud.grande('SCUDO', PAL.sabbiaChiara, 'Sulle spalle para da dietro · SCAMBIA per impugnarlo', 2400); break;
       case 'scudoRotto': suona('colpo_critico'); hud.grande('', PAL.rosso, 'Lo scudo si è spaccato', 1600); break;
       case 'compra': suona('moneta'); break;
@@ -269,7 +270,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     const h = s.eroe;
     return {
       ondata(n) {
-        s.ondata = n; s.fase = 'combatti'; s.faseT = 0; s.quanti = quantiOndata(n); s.usciti = 0; s.prossima = s.tick + 60; s.boss = null; s.poteri.ondata = 0;
+        s.ondata = n; s.fase = 'combatti'; s.faseT = 0; s.quanti = quantiOndata(n); s.usciti = 0; s.tipiUsciti = {}; s.prossima = s.tick + 60; s.boss = null; s.poteri.ondata = 0;
         hud?.grande(String(n), PAL.rosso, 'Ondata scelta dal banco', 1200);
         return n;
       },
@@ -337,6 +338,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (p['scudo']) { s.eroe.scudo = { vita: TEMPLARI.scudo.vita }; s.eroe.inMano = p['scudo'] === 'mano'; }
     if (typeof p['punti'] === 'number') s.punti = p['punti'];
     if (typeof p['dove'] === 'object' && p['dove']) { const d = p['dove'] as { x: number; z: number }; s.eroe.x = d.x; s.eroe.z = d.z; }
+    if (typeof p['faccia'] === 'object' && p['faccia']) { const d = p['faccia'] as { x: number; z: number }, n = Math.sqrt(d.x * d.x + d.z * d.z) || 1; s.eroe.fx = d.x / n; s.eroe.fz = d.z / n; }
     if (Array.isArray(p['porte'])) for (const id of p['porte'] as string[]) { const q = s.arena.porte.find((x) => x.id === id); if (q && !s.porte[id]) { s.punti += TEMPLARI.porte[id]?.prezzo ?? 0; apriPorta(s, q); } }
     if (p['pulisci']) { s.zombie = []; s.tiri = []; s.fiamme = []; s.boss = null; }
     if (p['ferma']) { s.quanti = 1e6; s.usciti = 0; s.prossima = 1e9; } // niente altri zombie dall'ondata in corso (le prove di mira ne vogliono uno solo)

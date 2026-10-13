@@ -50,7 +50,7 @@ export function viewOf(s: TState): TView {
     },
     zombie: s.zombie.map((z) => ({
       id: z.id, tipo: z.tipo, x: r2(z.x), z: r2(z.z), fx: z.fx, fz: z.fz, anim: animZombie(z),
-      t: z.stDur > 0 ? Math.min(1, z.stT / z.stDur) : 0, vita: Math.max(0, z.vita), max: z.max, vel: z.vel, boss: !!z.def.boss,
+      t: z.stDur > 0 ? Math.min(1, z.stT / z.stDur) : 0, vita: Math.max(0, z.vita), max: z.max, vel: z.vel, boss: !!z.def.boss, scudo: z.scudo > 0,
     })),
     tiri: s.tiri.map((b) => ({ id: b.id, tipo: b.tipo, x: r2(b.x), z: r2(b.z), tx: r2(b.tx), tz: r2(b.tz), r: b.r, k: b.dur > 0 ? Math.min(1, b.t / b.dur) : 0 })),
     boss: bossVista(s),
@@ -83,7 +83,7 @@ export function hashOf(s: TState): number {
     v: s.v, seed: s.seed, tick: s.tick, fase: s.fase, ondata: s.ondata, punti: s.punti, guadagnati: s.guadagnati, uccisioni: s.uccisioni,
     eroe: [Math.round(h.x * 100), Math.round(h.z * 100), Math.round(h.vita * 100), h.cur, h.armi.map((x) => (x ? [x.id, x.colpi, x.riserva] : null)), h.scudo ? Math.round(h.scudo.vita) : -1, h.inMano ? 1 : 0],
     cassa: [s.cassa.posto, s.cassa.usi, s.cassa.fase, s.cassa.arma], proj: s.proj.length, fiamme: s.fiamme.length, tiri: s.tiri.length, boss: s.boss,
-    zombie: s.zombie.map((z) => [z.id, z.tipo, Math.round(z.x * 100), Math.round(z.z * 100), Math.round(z.vita), z.st]),
+    zombie: s.zombie.map((z) => [z.id, z.tipo, Math.round(z.x * 100), Math.round(z.z * 100), Math.round(z.vita), z.st, Math.round(z.scudo)]),
     assi: s.assi, porte: s.porte, esito: s.esito,
     trappole: s.trappole.map((t) => [t.fine, t.pronta]), poteri: [s.poteri.ira, s.poteri.decima, s.poteri.ondata], drops: s.drops.map((d) => [d.id, d.tipo]),
   });
