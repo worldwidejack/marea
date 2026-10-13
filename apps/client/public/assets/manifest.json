@@ -1,5 +1,5 @@
 {
- "version": "2026-10-13-61",
+ "version": "2026-10-11-61",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
@@ -725,8 +725,8 @@
   },
   "chr_base": {
    "file": "chr_base.glb",
-   "tris": 1494,
-   "kb": 161.8,
+   "tris": 1309,
+   "kb": 151.2,
    "bounds": {
     "min": [
      -0.27,
@@ -757,8 +757,8 @@
     "mat_cappello",
     "mat_emissivo",
     "mat_vestito",
-    "mat_pelle",
-    "mat_atlas"
+    "mat_atlas",
+    "mat_pelle"
    ],
    "durations": {
     "idle": 2,
