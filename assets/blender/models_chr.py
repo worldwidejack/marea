@@ -43,67 +43,127 @@ def weigh(m, ring, ws):
         m.wmap[key(p)] = ws
 
 
-# ---------------------------------------------------------------- corpo
+# ---------------------------------------------------------------- corpo (#287: sheet di Jack del 13 ott, assets/concept/avatar/)
+def spike(m, base, tip, r, region, n=3, rot=0.0):
+    """Ciocca a punta: piramide a n lati dalla base (dentro la calotta) alla punta, facce verso l'esterno."""
+    d = _vnorm(_vsub(tip, base))
+    u = _vnorm(_vcross(d, (0.0, 1.0, 0.0) if abs(d[1]) < 0.9 else (1.0, 0.0, 0.0)))
+    v = _vcross(d, u)
+    ring = [tuple(base[k] + r * (math.cos(rot + 2 * math.pi * i / n) * u[k] + math.sin(rot + 2 * math.pi * i / n) * v[k]) for k in range(3))
+            for i in range(n)]
+    for i in range(n):
+        a, b = ring[i], ring[(i + 1) % n]
+        mid = tuple((a[k] + b[k]) / 2 - base[k] for k in range(3))
+        nrm = _vcross(_vsub(b, a), _vsub(tip, a))
+        m.poly([a, b, tip] if sum(nrm[k] * mid[k] for k in range(3)) > 0 else [b, a, tip], region)
+
+
+def _vsub(a, b): return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+def _vcross(a, b): return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+def _vnorm(a):
+    l = math.sqrt(a[0] ** 2 + a[1] ** 2 + a[2] ** 2) or 1.0
+    return (a[0] / l, a[1] / l, a[2] / l)
+
+
+def profile_x(m, x0, x1, prof, region, top=True):
+    """Solido estruso lungo x da un profilo (z, y_basso, y_alto) dal tallone alla punta: piede nudo."""
+    for (za, ya0, ya1), (zb, yb0, yb1) in zip(prof, prof[1:]):
+        m.poly([(x0, ya1, za), (x1, ya1, za), (x1, yb1, zb), (x0, yb1, zb)], region)      # sopra
+        m.poly([(x0, ya0, za), (x0, ya1, za), (x0, yb1, zb), (x0, yb0, zb)], region)      # fianco sinistro
+        m.poly([(x1, ya1, za), (x1, ya0, za), (x1, yb0, zb), (x1, yb1, zb)], region)      # fianco destro
+    zt, yt0, yt1 = prof[-1]
+    m.poly([(x1, yt0, zt), (x0, yt0, zt), (x0, yt1, zt), (x1, yt1, zt)], region)          # punta
+    zh, yh0, yh1 = prof[0]
+    m.poly([(x0, yh0, zh), (x1, yh0, zh), (x1, yh1, zh), (x0, yh1, zh)], region)          # tallone
+
+
 def build_body():
     m = Mesh('chr_base')
     J = lambda a, b: [(a, 0.5), (b, 0.5)]
 
-    # --- busto (vestito): fianchi → vita → petto → spalle → base del collo
+    # --- camicia aperta a maniche corte (mat_vestito, tinta scelta), fuori dai pantaloncini. Anelli a 12 con un vertice davanti (a0 = 0):
+    #     il vertice davanti dell'anello delle spalle scende a 1,13 → la V del collo, riempita di pelle.
     m.mat, m.bone = 'mat_vestito', 'Spine'
-    R = [ell(m, 8, 0.155, 0.9, 0.1), ell(m, 8, 0.14, 1.0, 0.095, cz=0.005), ell(m, 8, 0.165, 1.1, 0.108, cz=-0.01),
-         ell(m, 8, 0.185, 1.2, 0.1, cz=0.0), ell(m, 8, 0.15, 1.265, 0.085), ell(m, 8, 0.055, 1.3, 0.05)]
-    m.loft(R, 'vestito')
-    weigh(m, R[0], [('Hips', 1.0)]); weigh(m, R[1], J('Hips', 'Spine'))
-    # --- bacino e cintura (pantaloni, colore fisso)
+    E = lambda rx, y, rz, cz=0.0: ell(m, 12, rx, y, rz, cz=cz, a0=0.0)
+    R = [E(0.162, 0.79, 0.11), E(0.152, 0.88, 0.102), E(0.145, 0.98, 0.098), E(0.16, 1.08, 0.108, cz=-0.008), E(0.17, 1.19, 0.096)]
+    Nk = E(0.062, 1.285, 0.056, cz=0.004)
+    FV = 9  # indice del vertice davanti (270° = −z)
+    R[4][FV] = (0.0, 1.16, -0.104)
+    m.loft(R, 'vestito', bottom='vestito')
+    weigh(m, R[0], [('Hips', 1.0)]); weigh(m, R[1], [('Hips', 1.0)]); weigh(m, R[2], J('Hips', 'Spine'))
+    for i in range(12):  # spalle → collo; ai lati della V la faccia si spezza: metà camicia (bavero), metà pelle (la V)
+        j = (i + 1) % 12
+        if j == FV:
+            m.poly([R[4][j], R[4][i], Nk[i]], 'vestito')
+            m.mat = 'mat_pelle'; m.poly([R[4][j], Nk[i], Nk[j]], 'pelle'); m.mat = 'mat_vestito'
+        elif i == FV:
+            m.poly([R[4][j], R[4][i], Nk[j]], 'vestito')
+            m.mat = 'mat_pelle'; m.poly([R[4][i], Nk[i], Nk[j]], 'pelle'); m.mat = 'mat_vestito'
+        else:
+            m.poly([R[4][j], R[4][i], Nk[i], Nk[j]], 'vestito')
+    for side in (FV - 1, FV + 1):  # baveri: alette rivoltate lungo i bordi della V
+        a, b = R[4][side], R[4][FV]
+        out = (a[0] * 1.15, a[1] + 0.03, a[2] - 0.016)
+        fin(m, a, Nk[side], out, 'vestito')
+    # --- pantaloncini teal (colore fisso): bacino e due gambe larghe fino a sopra il ginocchio
     m.mat, m.bone = 'mat_atlas', 'Hips'
-    P = [ell(m, 8, 0.12, 0.74, 0.08), ell(m, 8, 0.165, 0.8, 0.1), ell(m, 8, 0.158, 0.88, 0.1)]
-    m.loft(P, 'pantaloni', bottom='pantaloni')
-    B = [ell(m, 8, 0.16, 0.875, 0.103), ell(m, 8, 0.16, 0.925, 0.103)]
-    m.loft(B, 'cintura')
-    # --- gambe (pantaloni fino alla caviglia) e scarpe
+    P = [ell(m, 8, 0.12, 0.71, 0.085), ell(m, 8, 0.158, 0.78, 0.102), ell(m, 8, 0.15, 0.86, 0.098)]
+    m.loft(P, 'pantaloncini', bottom='pantaloncini')
     for s, side in ((-1, 'L'), (1, 'R')):
         x = 0.09 * s
         m.bone = f'UpperLeg.{side}'
-        L = [ell(m, 7, 0.045, 0.1, 0.045, cx=x, cz=0.005), ell(m, 7, 0.058, 0.3, 0.06, cx=x, cz=0.012), ell(m, 7, 0.058, 0.46, 0.058, cx=x),
-             ell(m, 7, 0.078, 0.66, 0.078, cx=x), ell(m, 7, 0.088, 0.82, 0.085, cx=x)]
-        m.loft(L, 'pantaloni')
-        weigh(m, L[0], [(f'LowerLeg.{side}', 1.0)]); weigh(m, L[1], [(f'LowerLeg.{side}', 1.0)]); weigh(m, L[2], J(f'UpperLeg.{side}', f'LowerLeg.{side}'))
+        Sh = [ell(m, 7, 0.074, 0.52, 0.074, cx=x * 1.06, cz=-0.004), ell(m, 7, 0.08, 0.64, 0.08, cx=x * 1.02), ell(m, 7, 0.084, 0.76, 0.084, cx=x)]
+        m.loft(Sh, 'pantaloncini', bottom='pantaloncini')
+        weigh(m, Sh[2], J('Hips', f'UpperLeg.{side}'))
+    # --- gambe nude (pelle) dalla caviglia a dentro i pantaloncini, piedi nudi e ciabatte
+    for s, side in ((-1, 'L'), (1, 'R')):
+        x = 0.09 * s
+        m.mat, m.bone = 'mat_pelle', f'UpperLeg.{side}'
+        L = [ell(m, 6, 0.032, 0.1, 0.032, cx=x), ell(m, 6, 0.052, 0.28, 0.056, cx=x, cz=0.012), ell(m, 6, 0.042, 0.41, 0.043, cx=x),
+             ell(m, 6, 0.048, 0.47, 0.05, cx=x, cz=-0.004), ell(m, 6, 0.064, 0.6, 0.064, cx=x)]
+        m.loft(L, 'pelle')
+        for r in L[:3]:
+            weigh(m, r, [(f'LowerLeg.{side}', 1.0)])
+        weigh(m, L[3], J(f'UpperLeg.{side}', f'LowerLeg.{side}'))
         m.bone = f'Foot.{side}'
-        m.box(x - 0.048, 0.0, -0.16, x + 0.048, 0.07, 0.055, 'scarpe', skip=('bottom',))
-        m.box(x - 0.04, 0.07, -0.05, x + 0.04, 0.11, 0.05, 'scarpe', skip=('bottom',))
-    # --- braccia: manica corta (vestito), braccio e mano (pelle)
+        profile_x(m, x - 0.034, x + 0.034, [(0.045, 0.02, 0.07), (0.0, 0.02, 0.1), (-0.055, 0.02, 0.066), (-0.11, 0.02, 0.042), (-0.138, 0.02, 0.034)], 'pelle')
+        m.mat = 'mat_atlas'
+        m.box(x - 0.046, 0.0, -0.155, x + 0.046, 0.02, 0.062, 'ciabatte', skip=('bottom',))
+        m.box(x - 0.037, 0.03, -0.09, x + 0.037, 0.06, -0.072, 'ciabatte', skip=('bottom',))  # fascetta sul collo del piede
+    # --- braccia: manica corta larga (vestito), braccio e mano (pelle)
     for s, side in ((-1, 'L'), (1, 'R')):
         ua, la = f'UpperArm.{side}', f'LowerArm.{side}'
         m.mat, m.bone = 'mat_vestito', ua
-        S = [ell(m, 7, 0.062, 1.08, 0.06, cx=0.208 * s), ell(m, 7, 0.064, 1.2, 0.062, cx=0.198 * s), ell(m, 7, 0.045, 1.28, 0.05, cx=0.18 * s)]
+        S = [ell(m, 7, 0.058, 1.03, 0.056, cx=0.212 * s), ell(m, 7, 0.054, 1.12, 0.055, cx=0.198 * s), ell(m, 7, 0.036, 1.18, 0.042, cx=0.17 * s)]
         m.loft(S, 'vestito', bottom='vestito')
         m.mat = 'mat_pelle'
-        A = [ell(m, 6, 0.03, 0.72, 0.028, cx=0.226 * s), ell(m, 6, 0.036, 0.82, 0.034, cx=0.222 * s), ell(m, 6, 0.04, 0.965, 0.04, cx=0.215 * s),
-             ell(m, 6, 0.046, 1.1, 0.046, cx=0.207 * s)]
+        A = [ell(m, 6, 0.03, 0.72, 0.028, cx=0.226 * s), ell(m, 6, 0.04, 0.85, 0.038, cx=0.222 * s), ell(m, 6, 0.039, 0.965, 0.039, cx=0.215 * s),
+             ell(m, 6, 0.048, 1.08, 0.048, cx=0.209 * s)]
         m.loft(A, 'pelle')
         for r in A[:2]:
             weigh(m, r, [(la, 1.0)])
         weigh(m, A[2], J(ua, la))
         m.bone = la
-        H = [ell(m, 6, 0.024, 0.6, 0.014, cx=0.232 * s), ell(m, 6, 0.036, 0.66, 0.02, cx=0.23 * s), ell(m, 6, 0.03, 0.72, 0.024, cx=0.226 * s)]
+        H = [ell(m, 6, 0.022, 0.6, 0.013, cx=0.232 * s), ell(m, 6, 0.034, 0.66, 0.019, cx=0.23 * s), ell(m, 6, 0.029, 0.72, 0.023, cx=0.226 * s)]
         m.loft(H, 'mano', bottom='mano')
-        m.box(0.226 * s - 0.012, 0.64, -0.045, 0.226 * s + 0.012, 0.69, -0.018, 'mano', skip=('top',))  # pollice
-    # --- collo e testa (viso dipinto: proiezione frontale su 0,22 × 0,28 m = regione `testa` 14×18 → 64 texel/m)
+        m.box(0.226 * s - 0.011, 0.64, -0.043, 0.226 * s + 0.011, 0.69, -0.017, 'mano', skip=('top',))  # pollice
+    # --- collo e testa a faccette (mascella e mento in avanti, nuca tonda); viso dipinto: proiezione frontale su 0,22 × 0,28 m
+    #     = regione `viso` 28×36 → 128 texel/m
     m.mat, m.bone = 'mat_pelle', 'Head'
-    N = [ell(m, 6, 0.045, 1.26, 0.042), ell(m, 6, 0.042, 1.3, 0.04), ell(m, 6, 0.04, 1.37, 0.04, cz=0.01)]
+    N = [ell(m, 6, 0.046, 1.25, 0.043), ell(m, 6, 0.042, 1.3, 0.04), ell(m, 6, 0.04, 1.37, 0.04, cz=0.012)]
     m.loft(N, 'pelle')
     weigh(m, N[0], [('Spine', 1.0)]); weigh(m, N[1], J('Spine', 'Head'))
     hb = dict(uv='head', bbox=(-0.11, 1.32, 0.11, 1.6), alt='pelle')
-    Hd = [ell(m, 8, 0.05, 1.335, 0.05, cz=-0.03), ell(m, 8, 0.082, 1.37, 0.088, cz=-0.005), ell(m, 8, 0.097, 1.43, 0.105),
-          ell(m, 8, 0.1, 1.475, 0.11), ell(m, 8, 0.097, 1.52, 0.11), ell(m, 8, 0.075, 1.575, 0.088)]
-    m.loft(Hd, 'testa', bottom='pelle', **hb)
-    top = (0.0, 1.605, 0.005)
+    Hd = [ell(m, 8, 0.058, 1.335, 0.044, cz=-0.038), ell(m, 8, 0.084, 1.37, 0.086, cz=-0.014), ell(m, 8, 0.09, 1.425, 0.1, cz=-0.002),
+          ell(m, 8, 0.094, 1.475, 0.108, cz=0.004), ell(m, 8, 0.091, 1.525, 0.108, cz=0.006), ell(m, 8, 0.07, 1.578, 0.088, cz=0.008)]
+    m.loft(Hd, 'viso', bottom='pelle', **hb)
+    top = (0.0, 1.603, 0.01)
     for i in range(8):
         j = (i + 1) % 8
         m.poly([Hd[-1][j], Hd[-1][i], top], 'pelle')
     # orecchie
     for s in (-1, 1):
-        m.box(s * 0.1 - 0.012, 1.44, -0.0, s * 0.1 + 0.012, 1.5, 0.035, 'pelle', skip=())
+        m.box(s * 0.089 - 0.007, 1.415, -0.01, s * 0.089 + 0.007, 1.465, 0.016, 'pelle', skip=())
     return m
 
 
@@ -157,14 +217,24 @@ def hair_piece(i):
                   hring(0.05, 0.058, (1.625, 1.618))], (0.0, 1.635, 0.005))
         m.poly([(-0.07, 1.545, -0.103), (0.02, 1.545, -0.113), (-0.025, 1.49, -0.116)], 'capelli')
         m.poly([(-0.02, 1.545, -0.113), (0.07, 1.55, -0.103), (0.04, 1.5, -0.113)], 'capelli')
-    elif style == 'spettinati':  # frangia a zig-zag e ciuffi dritti in cima
-        R = [hring(0.108, 0.119, (1.5, 1.37), jag=0.022), hring(0.113, 0.123, (1.55, 1.48)), hring(0.095, 0.105, (1.6, 1.575)),
-             hring(0.05, 0.058, (1.635, 1.628))]
-        shell(m, R, (0.0, 1.645, 0.005))
-        for k in (7, 0, 1, 2, 3):  # lati e dietro (davanti c'è la frangia a zig-zag)
-            a, b = R[2][k], R[2][(k + 1) % 8]
-            mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2)
-            fin(m, a, b, (mid[0] * 1.2, mid[1] + 0.05, mid[2] * 1.2 + 0.02), 'capelli')
+    elif style == 'spettinati':  # sheet #283: ciocche grosse a punta tutto attorno, frangia a ciuffi sulla fronte
+        R = [hring(0.11, 0.121, (1.52, 1.49, 1.43, 1.37)), hring(0.122, 0.132, (1.57, 1.55, 1.52, 1.49)), hring(0.104, 0.114, (1.62, 1.6)),
+             hring(0.056, 0.064, (1.66, 1.654))]
+        shell(m, R, (0.0, 1.672, 0.006))
+        c = (0.0, 1.5, 0.012)
+        # (azimut: 0 = davanti, 90 = destra di chi guarda; elevazione; lunghezza; raggio della base)
+        for az, el, ln, r in ((0, 72, 0.07, 0.03), (55, 62, 0.075, 0.032), (125, 55, 0.07, 0.034), (180, 58, 0.06, 0.034),
+                              (235, 55, 0.07, 0.034), (305, 62, 0.075, 0.032), (90, 34, 0.055, 0.03), (270, 34, 0.055, 0.03),
+                              (150, 22, 0.05, 0.032), (210, 22, 0.05, 0.032), (180, 5, 0.04, 0.03), (120, 2, 0.045, 0.026),
+                              (240, 2, 0.045, 0.026), (35, 38, 0.055, 0.028), (325, 38, 0.055, 0.028)):
+            ca, sa = math.cos(math.radians(az)), math.sin(math.radians(az))
+            ce, se = math.cos(math.radians(el)), math.sin(math.radians(el))
+            d = (sa * ce, se, -ca * ce)
+            base = (c[0] + d[0] * 0.08, c[1] + d[1] * 0.08, c[2] + d[2] * 0.09)
+            tip = (base[0] + d[0] * ln * 1.45, base[1] + d[1] * ln * 1.45 - (0.03 if el < 30 else 0.0), base[2] + d[2] * ln * 1.45)
+            spike(m, base, tip, r * 2.3, 'capelli', rot=az * 0.05)
+        for x0, x1, tx, ty in ((-0.105, -0.025, -0.08, 1.49), (-0.045, 0.045, -0.01, 1.5), (0.025, 0.105, 0.07, 1.495)):  # frangia a 3 ciocche
+            fin(m, (x0, 1.585, -0.1), (x1, 1.585, -0.108), (tx, ty, -0.122), 'capelli')
     elif style == 'coda':  # tirati indietro, coda alta che scende sulla schiena
         shell(m, [hring(0.106, 0.117, (1.53, 1.4)), hring(0.11, 0.12, (1.56, 1.48)), hring(0.09, 0.1, (1.6, 1.57)),
                   hring(0.05, 0.058, (1.628, 1.62))], (0.0, 1.638, 0.005))
@@ -424,11 +494,11 @@ def _fcurves(act):
 
 # ---------------------------------------------------------------- look per le anteprime (solo Blender: il glb esce già esportato)
 HAT_COLOR = {'paglia': '#E2B97F', 'berretto': '#2478A8', 'pescatore': '#B9AFA3', 'lanterna': '#E8433F', 'neon': '#FF3DA6'}  # come avatar.ts
-DEFAULT_LOOK = {'pelle': '#D9A070', 'capelli': 0, 'coloreCapelli': '#2E1E14', 'vestito': '#3FB9C9', 'cappello': 'paglia'}
-VARIANTS = [
-    {'nome': 'A', 'pelle': '#D9A070', 'capelli': 0, 'coloreCapelli': '#2E1E14', 'vestito': '#3FB9C9', 'cappello': 'paglia'},
-    {'nome': 'B', 'pelle': '#FBE2C8', 'capelli': 2, 'coloreCapelli': '#E8433F', 'vestito': '#F2A33A', 'cappello': 'nessuno'},
-    {'nome': 'C', 'pelle': '#8C5636', 'capelli': 5, 'coloreCapelli': '#2E1E14', 'vestito': '#A64DFF', 'cappello': 'pescatore'},
+DEFAULT_LOOK = {'pelle': '#D9A070', 'capelli': 1, 'coloreCapelli': '#5A3A1E', 'vestito': '#F4E3C1', 'cappello': 'nessuno'}  # = sheet #283
+VARIANTS = [  # i tre look dello sheet (#283): capelli neri a punte e rosso, coda rossa e giallo, biondo corto
+    {'nome': 'A', 'pelle': '#D9A070', 'capelli': 1, 'coloreCapelli': '#2E1E14', 'vestito': '#E8433F', 'cappello': 'nessuno'},
+    {'nome': 'B', 'pelle': '#EFC29B', 'capelli': 2, 'coloreCapelli': '#8E5A2B', 'vestito': '#F2A33A', 'cappello': 'nessuno'},
+    {'nome': 'C', 'pelle': '#D9A070', 'capelli': 0, 'coloreCapelli': '#C98A4B', 'vestito': '#3FB9C9', 'cappello': 'paglia'},
 ]
 # catalogo dei pezzi (primi piani): 8 capelli senza cappello, poi 5 cappelli
 CATALOG = ([{'nome': f'{i} {h}', 'pelle': '#EFC29B', 'capelli': i, 'coloreCapelli': '#5A3A1E', 'vestito': '#8FC35B', 'cappello': 'nessuno'} for i, h in enumerate(HAIR)]
