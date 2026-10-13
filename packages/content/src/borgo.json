@@ -2,6 +2,9 @@
   "nome": "Borgo Marea",
   "_stanza": "La stanza della casa (celle del template lotto): pavimento [x0, z0, x1, z1] escluso x1/z1, porta in fondo verso il giardino, passaggio del giardino verso la stanza, corridoio d'ingresso [x, z0, z1) sotto il pavimento (in fondo si esce in città). Pavimenti e carte da parati: il primo è quello di serie (gratis), gli altri si comprano al negozio dei mobili (`perle`, #265); per aggiungerne uno basta una riga (colori della palette; un `motivo` nuovo va dipinto in game/stanza.ts).",
   "stanza": { "pavimento": [11, 27, 18, 33], "altezza": 3.2, "retro": [14, 27], "giardino": [14, 19], "corridoio": [14, 33, 35] },
+  "_negozio": "Il negozio dei mobili (#265): `negozio` = dove sta in città (celle del template porto, lo scrive tools/borgo_pianta.py), `negozioDentro` = pavimento [x0, z0, x1, z1) e corridoio [x, z0, z1) nel template `negozio`, altezza dei muri, pavimento e carta (id qui sotto).",
+  "negozio": {"at": [48, 25], "porta": [49, 26], "rot": -2.51},
+  "negozioDentro": { "pavimento": [2, 2, 11, 7], "corridoio": [6, 7, 9], "altezza": 3.6, "finitura": { "pavimento": "piastrelle", "carta": "rombi" } },
   "pavimenti": [
     { "id": "piastrelle", "nome": "Piastrelle crema", "motivo": "scacchi", "colori": ["#E8E1D6", "#B9AFA3", "#7F7568"] },
     { "id": "parquet", "nome": "Parquet di noce", "motivo": "listelli", "colori": ["#C98A4B", "#8E5A2B", "#5A3A1E"], "perle": 25 },

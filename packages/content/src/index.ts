@@ -129,6 +129,17 @@ function validateBorgo(): string[] {
     if ((l[0]?.perle ?? 0) !== 0) errs.push(`borgo: il primo dei ${k} è quello di serie, gratis`);
     for (const f of l) if (!(Number.isInteger(f.perle ?? 0) && (f.perle ?? 0) >= 0) || f.colori.length !== 3 || !f.colori.every(hex)) errs.push(`borgo: ${k} ${f.id} non valido`);
   }
+  // il negozio dei mobili (#265): in città su prato o via libera, porta camminabile; dentro pavimento e corridoio camminabili
+  const ng = BORGO.negozio, nd = BORGO.negozioDentro, nt = ISLANDS.find((i) => i.id === 'negozio');
+  if (!'.g'.includes(t.rows[ng.at[1]]?.[ng.at[0]] ?? '~') || !'.gdP'.includes(t.rows[ng.porta[1]]?.[ng.porta[0]] ?? '~')) errs.push('borgo: il negozio dei mobili non sta su una cella libera o la sua porta non è camminabile');
+  if (!nt) errs.push('borgo: manca il template negozio');
+  else {
+    const [a0, b0, a1, b1] = nd.pavimento, [cx, c0, c1] = nd.corridoio;
+    for (let z = b0; z < b1; z++) for (let x = a0; x < a1; x++) if (nt.rows[z]?.[x] !== '.') errs.push(`borgo: il negozio ha una cella non di pavimento in ${x},${z}`);
+    for (let z = c0; z < c1; z++) if (!'.P'.includes(nt.rows[z]?.[cx] ?? '~')) errs.push(`borgo: il corridoio del negozio non è camminabile in ${cx},${z}`);
+    if (c0 !== b1) errs.push('borgo: il corridoio del negozio parte dal bordo davanti');
+  }
+  if (!BORGO.pavimenti.some((f) => f.id === nd.finitura.pavimento) || !BORGO.carte.some((f) => f.id === nd.finitura.carta)) errs.push('borgo: finitura del negozio sconosciuta');
   const ids = new Set<string>();
   for (const m of MOBILI) {
     if (ids.has(m.id)) errs.push(`mobili: id doppio ${m.id}`);

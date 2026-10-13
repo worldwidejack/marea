@@ -133,6 +133,7 @@ export function createDiario(o: { root: HTMLElement; hud: Hud; api: Api | null; 
   const isolaQui = (x: number, z: number): string | null => {
     const p = o.world.archipelago.placeAt(x, z);
     if (!p) return null;
+    if (p.role === 'negozio') return null; // il negozio dei mobili (#265) non è un'isola
     if (p.role !== 'lotto') return p.island;
     if (p.slot === o.world.slot) return null;
     const w = o.owners.find((q) => q.slot === p.slot);

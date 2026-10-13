@@ -7,6 +7,7 @@
   "tile": 2,
   "islands": [
     { "island": "porto", "at": [88, 92], "role": "porto" },
+    { "island": "negozio", "at": [262, 462], "role": "negozio" },
     { "island": "laguna", "at": [170, 113], "role": "laguna" },
     { "island": "neon", "at": [236, 180], "role": "facciata" },
     { "island": "selvaggia", "at": [14, 30], "role": "facciata" },
