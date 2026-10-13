@@ -32,6 +32,7 @@ import { creaUsa } from './oggetti3d.ts';
 import { creaSchermoHub } from './hub/index.ts';
 import type { IdPorta } from './hub/mappa.ts';
 import { CAMERE, PISTE, creaPannelli, leggiScelta, salvaScelta, veicoloPer } from './hub/pannelli.ts';
+import { creaPalco } from './hub/palco.ts';
 import type { Scelta } from './hub/pannelli.ts';
 
 const END_WAIT = 300, END_SKIP = 60, END_AMICI = 60 * 45;
@@ -93,7 +94,10 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   // ---- USA (gare CON OGGETTI, #250): bottone col dito, Q da tastiera; la sim lo usa allo scatto (bit b) ----
   const usa = creaUsa(o.root);
   if (dito) document.body.classList.add('mz-dito');
-  const pannelli = creaPannelli(o.root);
+  // il menù a rulli (#271): dietro i pannelli la pista sorvolata o il veicolo sulla pedana (`palco`), al posto dell'hub
+  const palco = creaPalco({ camera: o.renderer.camera, look: () => o.world.look });
+  const pannelli = creaPannelli(o.root, palco);
+  let suPalco = false;
   const scelta: Scelta = leggiScelta();
   // ---- gara tra amici (10 ott): la sala alla porta della Spiaggia; quando qualcuno preme VIA parte la gara di tutti ----
   const sala = creaSalaAmici({ root: o.root, token: () => FLAGS.token });
@@ -166,7 +170,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     if (e.code === 'Escape') {
       if (document.querySelector('#mzEsito.on')) return;
       if (run) quitRun();
-      else if (pannelli.aperto()) pannelli.chiudi();
+      else if (pannelli.aperto()) { if (!pannelli.indietro()) pannelli.chiudi(); }
       else if (sala.aperta()) { sala.chiudi(); sala.onEsci?.(); }
       else if (hub.aperto()) esciHub();
       else return;
@@ -176,7 +180,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
       if (e.code === 'KeyC' && !e.repeat) { const i = CAMERE.findIndex((c) => c.id === scelta.cam); scelta.cam = CAMERE[(i + 1) % CAMERE.length]!.id; vista.cameraSalta(); }
       return;
     }
-    if (pannelli.aperto() === 'piste' && e.code === 'Enter') { e.preventDefault(); pannelli.via(); }
+    if (pannelli.aperto() && e.code === 'Enter') { e.preventDefault(); pannelli.invio(); }
   };
   addEventListener('keydown', onKey, true);
   /** L'input del mondo (assi mondo, game/input.ts) → schermo: sterzo, gas (in avanti, o sempre), freno, drift.
@@ -227,7 +231,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
             resolve(v);
           },
         };
-        run = r;
+        run = r; suPalco = false;
         if (hub.aperto()) hub.sospendi();
         ruota.attiva(true);
         vista.mostra(s); vista.interfaccia(true); usa.mostra(!!s.oggetti);
@@ -274,7 +278,12 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
       const r = run; if (!r && !hub.aperto()) return;
       setTopbarHidden(true); // main.ts la rimette a posto ogni frame prima di noi
       const now = performance.now(), dt = Math.min(0.1, (now - ultimo) / 1000); ultimo = now;
-      if (!r) { hub.aggiorna(dt); return; }
+      if (!r) {
+        const pa = palco.attivo();
+        if (pa !== suPalco) { suPalco = pa; o.renderer.setScene(pa ? palco.scene : hub.scene); }
+        if (pa) palco.aggiorna(dt); else hub.aggiorna(dt);
+        return;
+      }
       vista.aggiorna(r.s, dt, { cam: scelta.cam, effetti: true, auto: r.auto, gasAuto: scelta.gasAuto, fine: r.fase === 'fine', ritirato: r.ritirato, ...(r.amici ? { amici: sala.amici() } : {}) });
       if (r.s.oggetti) usa.etichetta(vista.ogg.etichetta, vista.ogg.pronto, vista.ogg.ogg);
     },
