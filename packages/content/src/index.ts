@@ -11,6 +11,7 @@ import ingorgo from './minigames/ingorgo.json' with { type: 'json' };
 import decor from './decor.json' with { type: 'json' };
 import archipelago from './archipelago.json' with { type: 'json' };
 import borgo from './borgo.json' with { type: 'json' };
+import mobili from './mobili.json' with { type: 'json' }; // Mobili della casa (#265)
 import scacchi from './scacchi.json' with { type: 'json' };
 import perle from './minigames/perle.json' with { type: 'json' }; // Perle
 import meteo from './meteo.json' with { type: 'json' }; // Meteo (#85)
@@ -22,6 +23,7 @@ import lava from './minigames/lava.json' with { type: 'json' }; // Vulcano
 import corse from './minigames/corse.json' with { type: 'json' }; // Isola delle Corse
 import snowboard from './minigames/snowboard.json' with { type: 'json' }; // Isola dell'Adrenalina
 import type { ArrembaggioCfg, LavaCfg } from './types.ts'; // Tempesta, Vulcano
+import type { MobileDef } from './types.ts'; // Mobili della casa (#265)
 import type { ArchipelagoDef, AvatarDef, BorgoDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, MeteoCfg, PerleCfg, PescaCfg, RegataCfg, ResourceDef, RientroCfg, ScacchiCfg } from './types.ts';
 import type { PinguiniCfg } from './types.ts'; // Ghiacci
 import type { KoiCfg } from './types.ts'; // Giardino
@@ -61,6 +63,7 @@ export const MINIGAMES_CFG: {
 export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;
 export const BORGO = borgo as unknown as BorgoDef; // Borgo Marea (#237): una casa per slot
+export const MOBILI = (mobili as unknown as { mobili: MobileDef[] }).mobili as readonly MobileDef[]; // Mobili della casa (#265)
 export const SCACCHI = scacchi as unknown as ScacchiCfg;
 export const RIENTRO = rientro as unknown as RientroCfg; // Mentre eri via e libro degli ospiti (#86)
 export const METEO = meteo as unknown as MeteoCfg;
@@ -119,5 +122,18 @@ function validateBorgo(): string[] {
     for (let z = c0; z < c1; z++) if (!'.P'.includes(lt.rows[z]?.[cx] ?? '~')) errs.push(`borgo: il corridoio ha una cella non camminabile in ${cx},${z}`);
   }
   if (!BORGO.pavimenti.length || !BORGO.carte.length) errs.push('borgo: serve almeno un pavimento e una carta da parati');
+  // finiture e mobili (#265): id unici, quella di serie gratis, prezzi interi, colori in esadecimale (dalla palette)
+  const hex = (c: string) => /^#[0-9A-F]{6}$/i.test(c);
+  for (const [k, l] of [['pavimenti', BORGO.pavimenti], ['carte', BORGO.carte]] as const) {
+    if (new Set(l.map((f) => f.id)).size !== l.length) errs.push(`borgo: ${k} con id doppi`);
+    if ((l[0]?.perle ?? 0) !== 0) errs.push(`borgo: il primo dei ${k} è quello di serie, gratis`);
+    for (const f of l) if (!(Number.isInteger(f.perle ?? 0) && (f.perle ?? 0) >= 0) || f.colori.length !== 3 || !f.colori.every(hex)) errs.push(`borgo: ${k} ${f.id} non valido`);
+  }
+  const ids = new Set<string>();
+  for (const m of MOBILI) {
+    if (ids.has(m.id)) errs.push(`mobili: id doppio ${m.id}`);
+    ids.add(m.id);
+    if (!/^[a-z_]+$/.test(m.id) || !(Number.isInteger(m.perle) && m.perle > 0) || (m.posto !== 'terra' && m.posto !== 'parete') || !m.colori.length || !m.colori.every(hex)) errs.push(`mobili: ${m.id} non valido`);
+  }
   return errs;
 }

@@ -1,0 +1,8 @@
+{
+  "_nota": "Mobili della casa (#265), stile Animal Crossing: si comprano al negozio dei mobili del Borgo (Perle), finiscono nel magazzino di casa e si posano con ARREDA. `posto` = 'terra' (una cella del pavimento della stanza, si gira di 90°) o 'parete' (una cella di muro: in fondo o ai lati). `forma` = come si disegna (apps/client/src/render/mobili.ts), `colori` dalla palette (ART_BIBLE §2). Per un mobile nuovo basta una riga (e una forma nuova in render/mobili.ts, se serve).",
+  "mobili": [
+    { "id": "comodino_lampada", "nome": "Comodino con lampada", "perle": 20, "posto": "terra", "forma": "comodino_lampada", "colori": ["#C98A4B", "#5A3A1E", "#F5D547"] },
+    { "id": "stereo", "nome": "Stereo", "perle": 30, "posto": "terra", "forma": "stereo", "colori": ["#3FB9C9", "#23201F", "#E8E1D6"] },
+    { "id": "orologio", "nome": "Orologio a parete", "perle": 15, "posto": "parete", "forma": "orologio", "colori": ["#F2A33A", "#E8E1D6", "#23201F"] }
+  ]
+}

@@ -1,12 +1,18 @@
 {
   "nome": "Borgo Marea",
-  "_stanza": "La stanza della casa (celle del template lotto): pavimento [x0, z0, x1, z1] escluso x1/z1, porta in fondo verso il giardino, passaggio del giardino verso la stanza, corridoio d'ingresso [x, z0, z1) sotto il pavimento (in fondo si esce in città). Pavimenti e carte da parati: il primo è quello di serie; per aggiungerne uno basta una riga (colori della palette).",
+  "_stanza": "La stanza della casa (celle del template lotto): pavimento [x0, z0, x1, z1] escluso x1/z1, porta in fondo verso il giardino, passaggio del giardino verso la stanza, corridoio d'ingresso [x, z0, z1) sotto il pavimento (in fondo si esce in città). Pavimenti e carte da parati: il primo è quello di serie (gratis), gli altri si comprano al negozio dei mobili (`perle`, #265); per aggiungerne uno basta una riga (colori della palette; un `motivo` nuovo va dipinto in game/stanza.ts).",
   "stanza": { "pavimento": [11, 27, 18, 33], "altezza": 3.2, "retro": [14, 27], "giardino": [14, 19], "corridoio": [14, 33, 35] },
   "pavimenti": [
-    { "id": "piastrelle", "nome": "Piastrelle crema", "motivo": "scacchi", "colori": ["#E8E1D6", "#B9AFA3", "#7F7568"] }
+    { "id": "piastrelle", "nome": "Piastrelle crema", "motivo": "scacchi", "colori": ["#E8E1D6", "#B9AFA3", "#7F7568"] },
+    { "id": "parquet", "nome": "Parquet di noce", "motivo": "listelli", "colori": ["#C98A4B", "#8E5A2B", "#5A3A1E"], "perle": 25 },
+    { "id": "bambu", "nome": "Stuoia di bambù", "motivo": "stuoia", "colori": ["#E2B97F", "#C98A4B", "#8E5A2B"], "perle": 20 },
+    { "id": "lastre", "nome": "Lastre di pietra", "motivo": "lastre", "colori": ["#B9AFA3", "#7F7568", "#4A4340"], "perle": 30 }
   ],
   "carte": [
-    { "id": "rombi", "nome": "Rombi verdi", "motivo": "rombi", "colori": ["#8FC35B", "#4E9A46", "#E2B97F"] }
+    { "id": "rombi", "nome": "Rombi verdi", "motivo": "rombi", "colori": ["#8FC35B", "#4E9A46", "#E2B97F"] },
+    { "id": "righe", "nome": "Righe marine", "motivo": "righe", "colori": ["#7FE3E0", "#3FB9C9", "#E8E1D6"], "perle": 20 },
+    { "id": "mattoni", "nome": "Muro di pietra", "motivo": "mattoni", "colori": ["#7F7568", "#4A4340", "#B9AFA3"], "perle": 25 },
+    { "id": "perline", "nome": "Perline di legno", "motivo": "perline", "colori": ["#C98A4B", "#8E5A2B", "#5A3A1E"], "perle": 25 }
   ],
   "case": [
     {"at": [61,41], "porta": [59,41]},

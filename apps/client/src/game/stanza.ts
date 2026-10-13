@@ -8,6 +8,8 @@
 import * as THREE from 'three';
 import { BORGO } from '@marea/content';
 import type { StanzaFinitura } from '@marea/content';
+import { finitureScelte } from '@marea/sim';
+import type { LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
@@ -27,6 +29,26 @@ function texture(f: StanzaFinitura): THREE.CanvasTexture {
     px(a, 0, 0, 16, 16);
     for (let y = 0; y < 16; y++) { const d = Math.abs(8 - y); px(b, d, y, 16 - 2 * d, 1); }
     for (let y = 0; y < 16; y++) { const d = Math.abs(8 - y); px(k, d, y); px(k, 15 - d, y); }
+  } else if (f.motivo === 'listelli') { // parquet: listelli orizzontali sfalsati
+    px(a, 0, 0, 16, 16);
+    for (let y = 0; y < 16; y += 4) { px(k, 0, y, 16, 1); px(b, 0, y + 2, 16, 1); const o = (y / 4) % 2 ? 4 : 12; px(k, o, y, 1, 4); px(k, (o + 8) % 16, y, 1, 4); }
+  } else if (f.motivo === 'stuoia') { // stuoia di bambù: canne verticali sottili con le legature
+    px(a, 0, 0, 16, 16);
+    for (let x = 0; x < 16; x += 2) px(x % 4 ? b : a, x, 0, 1, 16);
+    for (let x = 0; x < 16; x += 4) px(k, x, 0, 1, 16);
+    px(k, 0, 5, 16, 1); px(k, 0, 13, 16, 1);
+  } else if (f.motivo === 'lastre') { // lastre di pietra grandi, fughe scure
+    px(a, 0, 0, 16, 16); px(b, 9, 1, 6, 6); px(b, 1, 10, 5, 5);
+    px(k, 0, 0, 16, 1); px(k, 0, 0, 1, 16); px(k, 8, 0, 1, 9); px(k, 0, 8, 16, 1); px(k, 7, 8, 1, 8);
+  } else if (f.motivo === 'righe') { // carta a righe verticali larghe con un filo scuro
+    px(a, 0, 0, 16, 16); px(b, 4, 0, 4, 16); px(b, 12, 0, 4, 16); px(k, 8, 0, 1, 16); px(k, 0, 0, 1, 16);
+  } else if (f.motivo === 'mattoni') { // muro di pietra: blocchi sfalsati con la malta chiara
+    px(a, 0, 0, 16, 16);
+    for (let y = 0; y < 16; y += 4) { px(k, 0, y + 3, 16, 1); const o = (y / 4) % 2 ? 4 : 0; px(k, o, y, 1, 3); px(k, o + 8, y, 1, 3); px(b, o + 1, y, 2, 1); }
+  } else if (f.motivo === 'perline') { // perline di legno: assi verticali con la scanalatura
+    px(a, 0, 0, 16, 16);
+    for (let x = 0; x < 16; x += 4) { px(k, x, 0, 1, 16); px(b, x + 1, 0, 1, 16); }
+    px(k, 6, 4, 1, 1); px(k, 14, 11, 1, 1);
   } else if (f.motivo === 'assi') { // assi di legno per lungo, con le fughe e i chiodi (il corridoio)
     px(a, 0, 0, 16, 16);
     for (let x = 0; x < 16; x += 4) { px(k, x, 0, 1, 16); px(b, x + 1, 0, 1, 16); }
@@ -71,10 +93,11 @@ function passaggio(x: number, y: number, z: number): THREE.BufferGeometry[] {
 
 export type Stanza = { dentro(): number | null };
 
-export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: readonly number[] }): Stanza {
+export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: readonly number[]; lotDi?: (slot: number) => LotState | null }): Stanza {
   const w = o.world, arch = w.archipelago, T = arch.tile, dio = o.renderer.diorama;
   const lw = (X1 - X0) * T, ld = (Z1 - Z0) * T, H = ST.altezza, cw = T, cl = (C1 - C0) * T;
-  const pav = BORGO.pavimenti[0]!, carta = BORGO.carte[0]!;
+  let pav = BORGO.pavimenti[0]!, carta = BORGO.carte[0]!;
+  const pareti: THREE.Mesh[] = [];
   const room = new THREE.Group(); room.name = 'stanza'; room.visible = false;
   // pavimento: la texture si ripete una volta per cella
   const tPav = texture(pav); tPav.repeat.set(X1 - X0, Z1 - Z0);
@@ -90,7 +113,7 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
   const parete = (lung: number, x: number, z: number, ry: number) => {
     const t = texture(carta); t.repeat.set(lung, H);
     const m = new THREE.Mesh(new THREE.BoxGeometry(lung, H, SPESSORE), new THREE.MeshLambertMaterial({ map: t }));
-    m.position.set(x, H / 2, z); m.rotation.y = ry; m.receiveShadow = true; room.add(m);
+    m.position.set(x, H / 2, z); m.rotation.y = ry; m.receiveShadow = true; m.userData['lung'] = lung; room.add(m); pareti.push(m);
   };
   parete(lw + 2 * SPESSORE, X0 * T + lw / 2, Z0 * T - SPESSORE / 2, 0);
   parete(ld, X0 * T - SPESSORE / 2, Z0 * T + ld / 2, Math.PI / 2);
@@ -114,6 +137,19 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
   const buio = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshBasicMaterial({ color: P.neroCaldo }));
   buio.rotation.x = -Math.PI / 2; buio.position.set(X0 * T + lw / 2, -0.6, Z0 * T + ld / 2); room.add(buio);
   w.scene.add(room);
+  // pavimento e carta di chi ci abita (#265: comprati al negozio dei mobili e scelti con ARREDA): si ridipingono quando cambiano
+  const finiture = (slot: number) => {
+    const s = finitureScelte(o.lotDi?.(slot) ?? null);
+    const fp = BORGO.pavimenti.find((f) => f.id === s.pavimento) ?? BORGO.pavimenti[0]!, fc = BORGO.carte.find((f) => f.id === s.carta) ?? BORGO.carte[0]!;
+    if (fp !== pav) {
+      pav = fp; const mt = floor.material as THREE.MeshLambertMaterial; mt.map?.dispose();
+      mt.map = texture(pav); mt.map.repeat.set(X1 - X0, Z1 - Z0); mt.needsUpdate = true;
+    }
+    if (fc !== carta) {
+      carta = fc;
+      for (const m of pareti) { const mt = m.material as THREE.MeshLambertMaterial; mt.map?.dispose(); mt.map = texture(carta); mt.map.repeat.set(m.userData['lung'] as number, H); mt.needsUpdate = true; }
+    }
+  };
 
   // il passaggio coperto del giardino verso la stanza, in ogni giardino abitato (una mesh sola)
   const gx = ST.giardino[0] * T, gz = (ST.giardino[1] + 0.5) * T; // bocca sul lato ovest della cella `giardino`
@@ -171,6 +207,7 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
     document.body.classList.toggle('mz-casa', w.mode === 'walk' && pl?.role === 'lotto'); // minimappa via in casa e in giardino
     room.visible = qui !== null;
     if (qui === null) return;
+    finiture(qui);
     const l = arch.lots.find((q) => q.slot === qui)!;
     room.position.set(l.origin[0] * T, w.groundY((l.origin[0] + (X0 + X1) / 2) * T, (l.origin[1] + (Z0 + Z1) / 2) * T), l.origin[1] * T);
     const via = (n: THREE.Object3D | undefined | null) => { if (n && n.visible) { n.visible = false; nascosti.push(n); } };

@@ -88,6 +88,8 @@ export type Api = {
   decorMove(id: string, cell: Cell): Promise<LotState>;
   decorRotate(id: string): Promise<LotState>;
   decorSell(id: string): Promise<LotState>;
+  /** La casa arredabile (#265): compra (negozio dei mobili), finitura (compra pavimento/carta), scegli, posa, sposta, ruota, ritira, baule. */
+  casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number }): Promise<LotState>;
   /** Tutte le persone dell'arcipelago (me compreso). */
   persone(): Promise<Persona[]>;
   /** Le mie sfide: in gioco (mandate e ricevute) e chiuse degli ultimi 7 giorni, le più recenti prima. */
@@ -265,6 +267,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     decorMove: (id, cell) => post('/api/lot/decor/move', { id, cell }),
     decorRotate: (id) => post('/api/lot/decor/rotate', { id }),
     decorSell: (id) => post('/api/lot/decor/sell', { id }),
+    casa: (azione, body) => post('/api/lot/casa/' + azione, body),
     async persone() {
       const d = await call('GET', '/api/persone');
       const list = Array.isArray(d) ? d : isObj(d) && Array.isArray(d['persone']) ? d['persone'] : [];
