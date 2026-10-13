@@ -82,6 +82,8 @@ if (!fs.existsSync(BLENDER)) die(`Blender non trovato in ${BLENDER} (variabile B
 fs.mkdirSync(path.dirname(ATLAS), { recursive: true });
 const py = spawnSync('python3', ['-c', 'print(1)'], { encoding: 'utf8' }).status === 0;
 if (py) run('python3', [path.join(SRC, 'atlas.py'), ATLAS], 'atlas');
+// mondo pulito (#286): stesso atlas senza puntini, quello di serie del gioco (atlas.png resta per ?pulito=0)
+if (py) { fs.mkdirSync(PUB, { recursive: true }); spawnSync('python3', [path.join(SRC, 'atlas.py'), path.join(PUB, 'atlas_pulito.png')], { stdio: 'inherit', env: { ...process.env, MAREA_PULITO: '0' } }); }
 else run(BLENDER, ['-b', '--python-expr', `import sys; sys.path.insert(0, ${JSON.stringify(SRC)}); import atlas; atlas.build(${JSON.stringify(ATLAS)})`], 'atlas (python di Blender)');
 
 // ---- 2. Blender

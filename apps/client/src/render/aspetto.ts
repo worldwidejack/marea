@@ -2,7 +2,8 @@
 // Con tutto spento qui non si tocca niente: render diretto, luce, cielo e acqua di sempre.
 // - camera ≠ 45°: vista più bassa, camera.far più lungo, passata finale con cielo all'orizzonte (niente foschia dal 13 ott, #282)
 // - contorni: passata finale con i contorni dalla profondità (il colore stesso più scuro)
-// - stampa: palette giapponese, contorni a inchiostro, grana di carta, acqua a onde (water2.ts) al posto di quella del gioco
+// - stampa: palette giapponese, contorni a inchiostro, grana di carta
+// - mare: sempre l'acqua a onde della stampa (water2.ts) al posto di quella di prima (Jack, 13 ott 2026, #286); ?pulito=0 = quella di prima
 // - ciclo: ogni ~½ s luce, bande del cielo, acqua e foschia dal momento della giornata (ciclo.ts); di notte lanterne e insegne fanno luce (luci.ts, #60)
 // - meteo (#85): sopra il momento della giornata, il tempo che fa (sim/meteo.ts dall'orologio): luce, cielo, acqua, foschia, pioggia (meteo.ts)
 import * as THREE from 'three';
@@ -14,6 +15,7 @@ import { setWaterColors, setWaterMeteo, setWaterNight } from './water.ts';
 import { createPost } from './post.ts';
 import type { Post, PostLook } from './post.ts';
 import { createWater2 } from './water2.ts';
+import { FLAGS } from '../flags.ts';
 import { createLuci } from './luci.ts';
 import type { Luci } from './luci.ts';
 import type { Water2 } from './water2.ts';
@@ -110,13 +112,14 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
       imp = { ...s, cam: Math.max(0, Math.min(VISTE.length - 1, Math.round(s.cam) || 0)) };
       o.renderer.setView(imp.cam > 0 ? VISTE[imp.cam]! : null);
       aggiornaPost(true);
-      if (imp.stampa && !water2) {
+      const onde = imp.stampa || FLAGS.pulito; // il mare della stampa di serie (#286)
+      if (onde && !water2) {
         water2 = createWater2(o.map);
         water2.set(1, ACQUA_STAMPA.c, ACQUA_STAMPA.foam, ACQUA_STAMPA.line, [0, 1, 0]);
         o.renderer.scene.add(water2.mesh);
       }
-      if (water2) water2.mesh.visible = imp.stampa;
-      o.water.mesh.visible = !imp.stampa;
+      if (water2) water2.mesh.visible = onde;
+      o.water.mesh.visible = !onde;
       if (!imp.meteo) met = { stato: 'sereno', k: 0 };
       if (imp.meteo && !pioggia) { pioggia = createPioggia(); o.renderer.scene.add(pioggia.object); }
       // spenti: torna esattamente al giorno di sempre (luce, cielo, acqua, niente pioggia né suono di pioggia)

@@ -39,6 +39,7 @@
 - **Isola dei Samurai zombie** (idea di birbasan, 8 ott 2026): un'altra isola a ondate come quella dei Templari (`docs/TEMPLARI.md`), con samurai, ronin e ashigaru zombie. Non sul Giardino, che è già giapponese ma tranquillo: un'isola sua, dopo che i Templari sono piaciuti.
 - Templari: **partita insieme** fino a 4 (come i dungeon, #118: turni del server e replay del log), easter egg con la forma finale di de Molay (da decidere in chat leggera), musica originale vera (oggi sintetizzata).
 - **Adrenalina dopo il primo giro** (idee di birbasan, 10 ott 2026, `docs/ADRENALINA.md`): tuffo dalla scogliera, moto d'acqua (riusa la barca), parapendio, zipline, bungee. Ognuno un modo nuovo di scendere dalla montagna, con la barra Adrenalina e i fantasmi.
+- **Stampa giapponese** (impostazione): «bella ma inutilizzabile nei dungeon e di sera» (Jack, 13 ott 2026). Da rendere leggibile al buio o toglierla; il suo mare è già di serie (#286).
 
 ## Mai
 - Soldi veri per risorse o acceleratori. (Cosmetici a pagamento: solo se un giorno si apre al pubblico, e solo cosmetici.)

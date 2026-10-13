@@ -47,6 +47,7 @@ Pelle degli avatar (6 toni, dentro la palette estesa dell'atlas avatar): `#FBE2C
 - **Densità**: **16 texel per metro** su terreni, edifici, barche e prop. **32 texel/m** su visi, mani e insegne (devono leggersi nel diorama).
 - **Un solo atlas** `atlas.png` 1024×1024 per tutto il mondo: terreni e edifici (righe 0-511), prop (512-767), avatar e vestiti (768-895), emissivi e UI (896-1023). Un materiale → una zona intera in 1-3 draw call.
 - Filtro **nearest**, niente mipmap (se scintilla: nearest-mipmap-nearest), colori sRGB. **Niente** normal map, roughness map, PBR, gradienti lisci, foto.
+- **Mondo pulito** (Jack, 13 ott 2026, #286): niente puntini sparsi di rumore. Terreni e materiali a **tinta unita** con le sole forme grandi (lastre, assi, mattoni, ciottoli, fasce dei fianchi). Il gioco carica `atlas_pulito.png` (stesso `atlas.py` con `MAREA_PULITO=0`) e il terreno delle isole disegna senza `speckle`; `?pulito=0` mostra com'era prima.
 - Le texture dei kit CC0 si **buttano** e si rifà l'UV sull'atlas: è la regola che rende coerente il kitbash di kit diversi.
 - Flat shading (facce piatte), ombre di contatto semplici; **una** shadow map 1024 dal sole, o «blob» sotto avatar e barca sul telefono.
 
@@ -78,7 +79,7 @@ Pelle degli avatar (6 toni, dentro la palette estesa dell'atlas avatar): `#FBE2C
 - **Eccezione: l'isola delle Corse è in HD** (hub, menù e gara a risoluzione piena; Jack, 13 ott 2026, #277). Le texture restano nearest; la risoluzione scende da sola sui telefoni lenti. Gli asset 3D delle Corse vanno rifatti per reggere l'HD.
 
 ## 8. Acqua
-Piano piatto a pixel: texture 2 colori (acqua / acqua bassa) che scorre lenta, con un leggero ondeggiamento dei vertici vicino alle rive; schiuma a pixel bianchi attorno a moli e scogli; scia della barca come sprite piatti che sbiadiscono. Riflessi: no.
+**Di serie il mare della stampa giapponese** (Jack, 13 ott 2026, #286; `render/water2.ts` modo 1): fasce di blu per profondità, righe d'onda chiare e creste di schiuma, schiuma bianca spessa sulla riva. Le righe d'onda si vedono entro 70 m dalla camera; oltre il mare è a tinta unita (lontano si sbriciolerebbero in puntini). Prima (`?pulito=0`): piano piatto a pixel: texture 2 colori (acqua / acqua bassa) che scorre lenta, con un leggero ondeggiamento dei vertici vicino alle rive; schiuma a pixel bianchi attorno a moli e scogli; scia della barca come sprite piatti che sbiadiscono. Riflessi: no.
 
 ## 9. UI
 Font pixel leggibile (Press Start 2P per i titoli, un pixel-sans per il corpo), maiuscole solo nei titoli, testo in italiano. Pannelli con bordo a 2 px e angoli squadrati, colore `#2E1E14` a 90 %, testo `#F4E3C1`. Icone delle risorse a 16×16 texel: Legno (tronco), Pietra (ciottolo), Perle (perla rosa).
