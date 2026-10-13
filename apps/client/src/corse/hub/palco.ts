@@ -29,11 +29,66 @@ export type Palco = {
   /** Il veicolo `id` sulla pedana, davanti al fondale della pista `pista`; `verso` = dove sta sullo schermo (frazione della larghezza,
    *  + = a destra), per lasciare libero il posto dei pannelli. */
   veicolo(id: string, pista: string, verso?: number): void;
+  /** La foto del veicolo per la lista (data URL, a bassa risoluzione: si vede a pixel come il gioco); '' se WebGL non c'è. Fatte una
+   *  volta sola con un renderer a parte, poi buttato. */
+  foto(id: string): Promise<string>;
   /** Spento: niente da disegnare (le piste restano in memoria). */
   spegni(): void;
   /** Camera e pedana: una volta per frame quando è attivo. */
   aggiorna(dt: number): void;
 };
+
+/** La pedana alla Mario Kart: pietra chiara a lastre con l'anello a scacchi bianco e blu e il fianco di pietra. r 1.95 m, alta 0.47. */
+function pedanaGeo(): THREE.BufferGeometry {
+  const pos: number[] = [], col: number[] = [], c = new THREE.Color(), N = 32, R = 1.95, R2 = 1.55, H = 0.12, B = -0.35;
+  const tri = (a: number[], b: number[], d: number[], colore: string) => { pos.push(...a, ...b, ...d); c.set(colore); for (let k = 0; k < 3; k++) col.push(c.r, c.g, c.b); };
+  for (let k = 0; k < N; k++) {
+    const a0 = (k / N) * Math.PI * 2, a1 = ((k + 1) / N) * Math.PI * 2, s0 = Math.sin(a0), c0 = Math.cos(a0), s1 = Math.sin(a1), c1 = Math.cos(a1);
+    const o0 = [R * c0, H, R * s0], o1 = [R * c1, H, R * s1], i0 = [R2 * c0, H, R2 * s0], i1 = [R2 * c1, H, R2 * s1];
+    const m0 = [R2 * 0.55 * c0, H, R2 * 0.55 * s0], m1 = [R2 * 0.55 * c1, H, R2 * 0.55 * s1];
+    const piano = k % 4 < 2 ? P.pietraChiara : '#d9d2c6';
+    tri([0, H, 0], m1, m0, '#cfc8bb'); tri(m0, m1, i1, piano); tri(m0, i1, i0, piano);   // il piano
+    const anello = k % 2 ? P.acquaProfonda : P.pietraChiara;
+    tri(i0, i1, o1, anello); tri(i0, o1, o0, anello);                                                                    // l'anello
+    const b0 = [R * c0, B, R * s0], b1 = [R * c1, B, R * s1], fianco = k % 2 ? P.pietra : P.pietraChiara;
+    tri(o0, o1, b1, fianco); tri(o0, b1, b0, fianco);                                                                    // il fianco
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
+  return g;
+}
+
+/** Le foto dei veicoli: un renderer piccolo a parte, usato per tutte quelle chieste nello stesso momento e poi buttato (sul telefono un
+ *  secondo WebGL acceso pesa). 168×100 px: nella lista si vedono a pixel, come il resto del gioco. */
+const foto = new Map<string, Promise<string>>();
+let coda: { id: string; fatto: (url: string) => void }[] = [];
+function fotoVeicolo(id: string): Promise<string> {
+  let f = foto.get(id);
+  if (!f) {
+    f = new Promise<string>((fatto) => { coda.push({ id, fatto }); if (coda.length === 1) void caricaKit().catch(() => {}).then(() => setTimeout(scatta, 0)); });
+    foto.set(id, f);
+  }
+  return f;
+}
+function scatta(): void {
+  const lista = coda; coda = [];
+  if (!lista.length) return;
+  let gl: THREE.WebGLRenderer | null = null;
+  try { gl = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: true }); } catch { for (const x of lista) x.fatto(''); return; }
+  gl.setPixelRatio(1); gl.setSize(168, 100, false); gl.outputColorSpace = THREE.SRGBColorSpace; gl.setClearColor(0x000000, 0);
+  const scena = new THREE.Scene();
+  scena.add(new THREE.HemisphereLight(0xffffff, 0x88aacc, 1.6));
+  const sole = new THREE.DirectionalLight(0xfff0d8, 2.2); sole.position.set(-6, 10, 6); scena.add(sole);
+  const cam = new THREE.PerspectiveCamera(24, 168 / 100, 0.1, 100); cam.position.set(0, 2.3, 5.6); cam.lookAt(0, 0.45, 0);
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  for (const x of lista) {
+    const m = new THREE.Mesh(veicoloGeo(x.id, P.rosso, P.pietraChiara, null, null, kitPronto()), mat);
+    m.rotation.y = (150 * Math.PI) / 180; scena.add(m);
+    gl.render(scena, cam); x.fatto(gl.domElement.toDataURL('image/png'));
+    scena.remove(m); m.geometry.dispose();
+  }
+  mat.dispose(); gl.dispose(); gl.forceContextLoss();
+}
 
 /** Volo: m/s lungo la pista, quota e anticipo dello sguardo (m), oscillazione di lato (m). */
 const VOLO = { v: 13, alto: 11, avanti: 30, lato: 7 };
@@ -50,13 +105,7 @@ export function creaPalco(o: { camera: THREE.PerspectiveCamera; look: () => Look
   // ---- la pedana del veicolo: un ottagono di legno con l'orlo di pietra, sotto il veicolo che gira ----
   const pedana = new THREE.Group(); pedana.name = 'corse_pedana'; pedana.visible = false; scene.add(pedana);
   const matPiatto = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-  const disco = (r: number, h: number, y: number, colore: string) => {
-    const g = new THREE.CylinderGeometry(r, r, h, 8).toNonIndexed(), c = new THREE.Color(colore), col: number[] = [];
-    for (let i = 0; i < g.attributes['position']!.count; i++) col.push(c.r, c.g, c.b);
-    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    const m = new THREE.Mesh(g, matPiatto); m.position.y = y; m.receiveShadow = true; return m;
-  };
-  pedana.add(disco(1.9, 0.3, -0.15, P.pietraScura), disco(1.7, 0.12, 0.06, P.legno));
+  const piedistallo = new THREE.Mesh(pedanaGeo(), matPiatto); piedistallo.receiveShadow = true; pedana.add(piedistallo);
   const giostra = new THREE.Group(); giostra.position.y = 0.12; pedana.add(giostra);
   const matVeicolo = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   let mezzo: THREE.Mesh | null = null, mezzoId = '', avatar: Avatar | null = null, avatarP: Promise<Avatar | null> | null = null;
@@ -96,6 +145,7 @@ export function creaPalco(o: { camera: THREE.PerspectiveCamera; look: () => Look
 
   return {
     scene,
+    foto: (id) => fotoVeicolo(id),
     attivo: () => modo !== null,
     pista(id) {
       senzaOffset();
@@ -126,9 +176,9 @@ export function creaPalco(o: { camera: THREE.PerspectiveCamera; look: () => Look
         // si guarda verso +x, il centro del panorama (di lato c'è la cucitura dello specchio), quasi in piano; il veicolo sale nella metà
         // alta dello schermo spostando l'inquadratura (sotto c'è il pannello coi numeri: in orizzontale sul telefono è metà schermo)
         // e verso sinistra: a destra c'è la scheda coi numeri
-        const w = Math.round(100 * cam.aspect), su = verso > 0.2 ? 24 : cam.aspect > 1.6 ? 17 : 15, sx = Math.round(-w * verso);
+        const w = Math.round(100 * cam.aspect), su = -3, sx = Math.round(-w * verso);
         if (!cam.view || cam.view.offsetY !== su || cam.view.offsetX !== sx || cam.view.fullWidth !== w) cam.setViewOffset(w, 100, sx, su, w, 100);
-        cam.position.set(-5.2, 1.5, 0); cam.up.set(0, 1, 0); cam.lookAt(0, 0.7, 0); // bassa, da eroe: l'orizzonte dietro il veicolo
+        cam.position.set(-4.9, 1.75, 0); cam.up.set(0, 1, 0); cam.lookAt(0, 0.5, 0); // bassa, da eroe: l'orizzonte dietro il veicolo
         avatar?.update(1, dt);
         luci.follow?.(0, 0);
       }
