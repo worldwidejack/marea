@@ -74,6 +74,7 @@ export function creaAtmosfera(scene: THREE.Scene): Atmosfera {
   scene.background = new THREE.Color(NEBBIA.colore);
   scene.fog = new THREE.Fog(NEBBIA.colore, NEBBIA.vicino, NEBBIA.lontano);
   const luci = createLights();
+  luci.sun.shadow.mapSize.set(2048, 2048); // HD (#277): con l'ombra a 1024 si vedono gli scalini
   luci.set?.({ elev: SOLE.elev + 8, azim: SOLE.azim, color: 0xffd9a3, intensity: 2.75, sky: 0x9fd3ff, ground: 0x7a5a3a, hemiI: 1.55, amb: P.arancio, ambI: 0.22 });
   luci.group.name = 'hub_luci';
   scene.add(luci.group);

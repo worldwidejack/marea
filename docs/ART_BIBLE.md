@@ -73,6 +73,7 @@ Pelle degli avatar (6 toni, dentro la palette estesa dell'atlas avatar): `#FBE2C
 - Sole: direzionale, colore `#FFD9A3`, da sud-ovest, elevazione ~40°. Cielo: emisferico `#9FD3FF` sopra, `#7A5A3A` sotto. Le ombre tendono al blu-viola grazie all'ambiente, mai grigio neutro.
 - Sfondo cielo: gradiente a bande di 4 colori (nessun gradiente liscio), nuvole piatte a pixel opzionali.
 - Resa a **metà risoluzione** con ingrandimento nearest: è insieme il look pixel e il risparmio di prestazioni. Niente post-processing oltre a questo.
+- **Eccezione: l'isola delle Corse è in HD** (hub, menù e gara a risoluzione piena; Jack, 13 ott 2026, #277). Le texture restano nearest; la risoluzione scende da sola sui telefoni lenti. Gli asset 3D delle Corse vanno rifatti per reggere l'HD.
 
 ## 8. Acqua
 Piano piatto a pixel: texture 2 colori (acqua / acqua bassa) che scorre lenta, con un leggero ondeggiamento dei vertici vicino alle rive; schiuma a pixel bianchi attorno a moli e scogli; scia della barca come sprite piatti che sbiadiscono. Riflessi: no.
