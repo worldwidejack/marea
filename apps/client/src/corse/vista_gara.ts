@@ -120,7 +120,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     chiudiPista();
     s = gara; p = pistaCorse(gara.pista); p3d = creaPista3d(p); gruppo.add(p3d.group);
     mappa.pista(p);
-    fondale = fondalePista(p.def.zona); if (fondale) gruppo.add(fondale.mesh); // il panorama dipinto dietro (#258)
+    fondale = fondalePista(p.def.id, p.def.zona); if (fondale) gruppo.add(fondale.mesh); // il panorama dipinto dietro (#258)
     veicoliMesh();
     if (p.def.inseguitore) {
       ondaMesh = new THREE.Mesh(ondaGeo(p.def.larghezza + p.def.bordo + 8), materialeOnda);
