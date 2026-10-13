@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createLoader } from '../render/loader.ts';
 import type { Loader } from '../render/loader.ts';
-import { caricaVeicoliAi } from './veicoli_ai.ts';
+import { aiPronta } from './veicoli_ai.ts';
 
 /** Il modello vero di ogni veicolo della sim (gli id di packages/content/src/corse/motore.json). Chi non c'è resta il segnaposto. */
 export const MODELLO: Record<string, string> = {
@@ -33,6 +33,8 @@ const SEDILE: Record<string, [number, number]> = {
   cs_v_bob: [0.5, 0.1], cs_v_carrello_miniera: [0.55, 0], cs_v_carrello_spesa: [0.4, 0.1], cs_v_vasca: [0.45, 0.2], cs_v_divano: [0.6, 0.15],
   cs_v_ape: [0.65, 0.1], cs_v_struzzo: [1.3, 0.05], cs_v_pizza: [0.5, 0.1], cs_v_papera: [0.85, 0],
 };
+/** Dove si siede il pilota sulle carrozzerie AI (#281) quando non torna con `SEDILE`: [altezza, avanti(−)/indietro(+)] in m, già in scala. */
+const SEDILE_AI: Record<string, [number, number]> = { cs_v_struzzo: [1.55, 0.1] };
 /** Quanto può essere grande il pilota in ogni veicolo: [quanto spunta sopra il sedile al massimo, larghezza massima] in m (sotto un tetto sta nel finestrino). */
 const MAX_PILOTA: Record<string, [number, number]> = {
   cs_v_sportiva: [0.62, 0.95], cs_v_ape: [0.8, 1.0], cs_v_fuoristrada: [1.0, 1.1], cs_v_moto: [1.0, 0.8], cs_v_moto_acqua: [1.1, 0.95],
@@ -102,7 +104,6 @@ export function caricaKit(): Promise<void> {
       const b = geo.boundingBox!;
       kit.set(nome, { geo, alt: b.max.y - b.min.y, lung: b.max.z - b.min.z });
     }
-    await caricaVeicoliAi(); // le carrozzerie fatte con l'AI 3D (#281): pronte insieme al kit
     pronto = true;
   })().catch((e) => { console.warn('[corse] kit dei veicoli non caricato, restano i segnaposto', e); });
   return promessa;
@@ -139,7 +140,7 @@ export function veicoloKit(modello: string, pilota: string | null, senzaPilota: 
   const v = kit.get(modello); if (!v) return null;
   const s = (LUNG[modello] ?? v.lung) / v.lung, [sy, sz] = SEDILE[modello] ?? [0.5, 0.1];
   const body = v.geo.clone().applyMatrix4(new THREE.Matrix4().makeScale(s, s, s));
-  const y = sy * s, z = sz * s;
+  const [y, z] = senzaCarrozzeria && SEDILE_AI[modello] ? SEDILE_AI[modello] : [sy * s, sz * s];
   const a = pilota ? animale(pilota, y, z, modello, s) : null;
   // senza carrozzeria (#281): la disegna il modello AI (veicoli_ai.ts) attaccato dal chiamante, qui resta solo il pilota
   const parti = [senzaCarrozzeria ? null : body, senzaPilota ? null : a ?? segnaposto(y, z)].filter((g): g is THREE.BufferGeometry => !!g);
@@ -159,6 +160,7 @@ export function postoAvatar(id: string, aspetto?: string | null): { seat: { x: n
   const modello = modelloDi(id, aspetto), v = modello ? kit.get(modello) : null;
   const [sy, sz, s] = modello && v ? [...(SEDILE[modello] ?? [0.5, 0.1]), (LUNG[modello] ?? v.lung) / v.lung] as [number, number, number] : [0.3, 0.6, 1];
   const scala = Math.max(0.5, Math.min(1, (modello ? (MAX_PILOTA[modello] ?? [1.3, 1.4])[0] : 1.3) / 1.05));
+  const [y, z] = modello && aiPronta(modello) && SEDILE_AI[modello] ? SEDILE_AI[modello] : [sy * s, sz * s]; // la sella dello struzzo AI (#281)
   // il bacino da seduto sta 0,42 m sopra i piedi dell'avatar e 0,12 sopra la seduta; `attachTo` toglie 0,37 (SEAT_DROP di avatar.ts)
-  return { seat: { x: 0, y: sy * s + 0.37 - 0.3 * scala, z: sz * s }, scala };
+  return { seat: { x: 0, y: y + 0.37 - 0.3 * scala, z }, scala };
 }

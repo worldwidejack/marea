@@ -10,7 +10,7 @@ import { nastroDi, veicoloCorse } from '@marea/sim/corse/pista.ts';
 import type { Pista } from '@marea/sim/corse/pista.ts';
 import type { Veicolo } from '@marea/sim/corse/veicolo.ts';
 import { MODELLO, kitPronto, veicoloKit } from './veicoli_kit.ts';
-import { veicoloAi } from './veicoli_ai.ts';
+import { caricaVeicoloAi, haVeicoloAi, veicoloAi } from './veicoli_ai.ts';
 
 /** Sui binari (#228) il carrello non va di traverso: si piega verso l'interno della curva e, oltre il limite, si alza su due ruote
  *  (si inclina verso fuori). Rollio in radianti (+ = la cima verso destra); `null` per chi non va sui binari. */
@@ -49,11 +49,19 @@ function pilota(parts: THREE.BufferGeometry[], colore: string, casco: string, y:
 }
 
 /** Il veicolo pronto da mettere in scena: se il modello ha la carrozzeria fatta con l'AI 3D (#281, veicoli_ai.ts) la geometria tiene solo il
- *  pilota e la carrozzeria è un figlio della mesh (con la sua texture); sennò è tutta `veicoloGeo`. Stessi argomenti di `veicoloGeo`. */
+ *  pilota e la carrozzeria è un figlio della mesh (con la sua texture); sennò è tutta `veicoloGeo`. Se la carrozzeria AI non è ancora
+ *  scaricata il veicolo nasce col modello del kit e la cambia da solo quando arriva. Stessi argomenti di `veicoloGeo`. */
 export function veicoloMesh(id: string, colore: string, casco: string, aspetto: string | null | undefined, animale: string | null | undefined, avatar: boolean, mat: THREE.Material): THREE.Mesh {
-  const ai = kitPronto() ? veicoloAi(aspetto || MODELLO[id] || null) : null;
+  const modello = aspetto || MODELLO[id] || null, ai = kitPronto() ? veicoloAi(modello) : null;
   const m = new THREE.Mesh(veicoloGeo(id, colore, casco, aspetto, animale, avatar, !!ai), mat);
   if (ai) m.add(ai);
+  else if (kitPronto() && haVeicoloAi(modello)) {
+    void caricaVeicoloAi(modello).then(() => {
+      const arrivata = veicoloAi(modello); if (!arrivata) return;
+      const vecchia = m.geometry; m.geometry = veicoloGeo(id, colore, casco, aspetto, animale, avatar, true); vecchia.dispose();
+      m.add(arrivata);
+    });
+  }
   return m;
 }
 

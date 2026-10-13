@@ -18,7 +18,8 @@ import type { Pista3d } from '../nastro3d.ts';
 import { fondalePista } from '../fondale_piste.ts';
 import type { Fondale } from '../discesa/fondale.ts';
 import { veicoloMesh } from '../veicoli3d.ts';
-import { caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
+import { caricaKit, kitPronto, loaderCorse, modelloDi, postoAvatar } from '../veicoli_kit.ts';
+import { caricaVeicoloAi } from '../veicoli_ai.ts';
 
 export type Palco = {
   readonly scene: THREE.Scene;
@@ -65,7 +66,7 @@ let coda: { id: string; fatto: (url: string) => void }[] = [];
 function fotoVeicolo(id: string): Promise<string> {
   let f = foto.get(id);
   if (!f) {
-    f = new Promise<string>((fatto) => { coda.push({ id, fatto }); if (coda.length === 1) void caricaKit().catch(() => {}).then(() => setTimeout(scatta, 0)); });
+    f = new Promise<string>((fatto) => { coda.push({ id, fatto }); if (coda.length === 1) void caricaKit().catch(() => {}).then(() => Promise.all(coda.map((x) => caricaVeicoloAi(modelloDi(x.id))))).then(() => setTimeout(scatta, 0)); });
     foto.set(id, f);
   }
   return f;
