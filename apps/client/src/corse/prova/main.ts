@@ -120,7 +120,7 @@ function setLuce(id: StyleId) {
 let conFondale = q.get('fondale') !== '0', fondale: Fondale | null = null;
 function montaFondale() {
   if (fondale) scene.remove(fondale.mesh);
-  fondale = conFondale ? fondalePista(p.def.zona) : null;
+  fondale = conFondale ? fondalePista(p.def.id, p.def.zona) : null;
   if (fondale) scene.add(fondale.mesh);
   post.toggles.cielo = luce !== 'gioco' && !fondale;
 }
