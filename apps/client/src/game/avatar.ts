@@ -14,7 +14,7 @@ import { registerStateProvider } from '../test/testapi.ts';
 
 export type Avatar = {
   object: THREE.Object3D; state: AvatarState; prev: AvatarState;
-  step(input: InputFrame, map: GridMap): void; update(alpha: number, dt: number): void; teleport(x: number, z: number): void; visible: boolean;
+  step(input: InputFrame, map: GridMap): void; update(alpha: number, dt: number): void; teleport(x: number, z: number, yaw?: number): void; visible: boolean;
   // ---- aggiunte WP2 (vedi tests/out/richieste/wp2.md) ----
   /** Applica colori e pezzi del look (pelle, capelli, vestito, cappello). */
   setLook(look: Look): void;
@@ -307,7 +307,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
         a.update(dt);
       } else poseRig(dt, speed, shown);
     },
-    teleport(x, z) { state = { ...state, x, z, vx: 0, vz: 0 }; prev = state; snap = true; },
+    teleport(x, z, yaw) { state = { ...state, x, z, vx: 0, vz: 0, ...(yaw !== undefined ? { yaw } : {}) }; prev = state; snap = true; },
     setLook: applyLook,
     setIndossa(i, opt) {
       if (!model) return;

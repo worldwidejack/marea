@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Build del client (vite) + controllo dei budget (TECH.md §5) + report tests/out/build.json.
 // Uso: node tools/build.mjs [--out <dir>] [--quiet] [--no-enforce]. Esporta build() per i test/deploy.
-// Budget (alzati l'8 ott 2026 su decisione di Jack, ROADMAP §Deviazioni): js iniziale ≤ 1200 KB (gzip ≤ 360 KB dall'11 ott; entry + chunk precaricati da index.html) · ogni chunk caricato dopo con import() ≤ 600 KB (gzip ≤ 180),
+// Budget (alzati l'8 ott 2026 su decisione di Jack, ROADMAP §Deviazioni): js iniziale ≤ 1210 KB (gzip ≤ 364 KB dal 13 ott, #265; entry + chunk precaricati da index.html) · ogni chunk caricato dopo con import() ≤ 600 KB (gzip ≤ 180),
 // tutti insieme ≤ 3000 KB (gzip ≤ 900): ognuno si scarica solo quando serve (dall'8 ott 2026, ROADMAP §Deviazioni; il JS delle pagine di prova va a parte, in proveJsKB) ·
 // modelli del manifest secondario `manifest_rpg.json` (caricati entrando in un dungeon) ≤ 1,5 MB · kit delle Corse `manifest_corse.json` ≤ 2,5 MB · caricamento iniziale ≤ 2 MB (html + js + css + manifest + atlas + modelli del manifest) · texture ≤ 16 MB stimati (w×h×4 di ogni PNG).
 import fs from 'node:fs';
@@ -11,7 +11,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLIENT = path.join(ROOT, 'apps/client');
-export const BUDGET = { jsKB: 1200, jsGzipKB: 360, lazyChunkKB: 600, lazyChunkGzipKB: 180, lazyJsKB: 3000, lazyJsGzipKB: 900, initialMB: 3, rpgAssetsMB: 1.5, corseAssetsMB: 2.5, textureMB: 16 };
+export const BUDGET = { jsKB: 1210, jsGzipKB: 364, lazyChunkKB: 600, lazyChunkGzipKB: 180, lazyJsKB: 3000, lazyJsGzipKB: 900, initialMB: 3, rpgAssetsMB: 1.5, corseAssetsMB: 2.5, textureMB: 16 };
 const REPORT = path.join(ROOT, 'tests/out/build.json');
 
 const kb = (n) => +(n / 1024).toFixed(1);

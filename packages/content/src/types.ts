@@ -67,8 +67,9 @@ export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; t
 /** Borgo Marea (#237): la casa `n` = lo slot `n` (= il lotto/giardino `n`). `at` = cella dell'edificio, `porta` = cella della via davanti, entrambe nel template `borgo`. */
 export type BorgoDef = {
   nome: string; case: { at: [number, number]; porta: [number, number] }[];
-  /** La stanza della casa nel template `lotto` (#240): pavimento [x0, z0, x1, z1) in celle, altezza dei muri in m, porta in fondo (`retro`) e porta del giardino. */
-  stanza: { pavimento: [number, number, number, number]; altezza: number; retro: [number, number]; giardino: [number, number] };
+  /** La stanza della casa nel template `lotto` (#240): pavimento [x0, z0, x1, z1) in celle, altezza dei muri in m, porta in fondo (`retro`),
+   *  passaggio del giardino (`giardino`) e corridoio d'ingresso sotto il pavimento (#265: colonna x, righe [z0, z1); in fondo si esce in città). */
+  stanza: { pavimento: [number, number, number, number]; altezza: number; retro: [number, number]; giardino: [number, number]; corridoio: [number, number, number] };
   /** Pavimenti e carte da parati: il primo è quello di serie. `motivo` = come si dipinge (render/stanza), `colori` dalla palette. */
   pavimenti: StanzaFinitura[]; carte: StanzaFinitura[];
 };

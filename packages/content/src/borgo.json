@@ -1,7 +1,7 @@
 {
   "nome": "Borgo Marea",
-  "_stanza": "La stanza della casa (celle del template lotto): pavimento [x0, z0, x1, z1] escluso x1/z1, porta in fondo verso il giardino, porta del giardino verso la stanza. Pavimenti e carte da parati: il primo è quello di serie; per aggiungerne uno basta una riga (colori della palette).",
-  "stanza": { "pavimento": [11, 27, 18, 33], "altezza": 3.2, "retro": [14, 27], "giardino": [14, 19] },
+  "_stanza": "La stanza della casa (celle del template lotto): pavimento [x0, z0, x1, z1] escluso x1/z1, porta in fondo verso il giardino, passaggio del giardino verso la stanza, corridoio d'ingresso [x, z0, z1) sotto il pavimento (in fondo si esce in città). Pavimenti e carte da parati: il primo è quello di serie; per aggiungerne uno basta una riga (colori della palette).",
+  "stanza": { "pavimento": [11, 27, 18, 33], "altezza": 3.2, "retro": [14, 27], "giardino": [14, 19], "corridoio": [14, 33, 35] },
   "pavimenti": [
     { "id": "piastrelle", "nome": "Piastrelle crema", "motivo": "scacchi", "colori": ["#E8E1D6", "#B9AFA3", "#7F7568"] }
   ],
