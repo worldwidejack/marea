@@ -33,14 +33,20 @@ import type { Fondale } from './discesa/fondale.ts';
 const COLORI = [P.rosso, P.giallo, P.acquaBassa, P.viola, P.erbaChiara];
 const CASCHI = [P.pietraChiara, P.neroCaldo, P.neroCaldo, P.neroCaldo, P.neroCaldo];
 /** Quello che serve alla resa per ogni veicolo: saltello del drift, angolo di traverso, e i valori di prima per vedere cosa è cambiato. */
-type Vis = { hop: number; traverso: number; drift: number; lv: number; turbo: number; aria: boolean; vh: number; acro: number; scia: number; urti: number };
+type Vis = { hop: number; traverso: number; drift: number; lv: number; turbo: number; aria: boolean; vh: number; acro: number; scia: number; urti: number; rollio: number; becco: number; vPrima: number };
+/** Dove stava un veicolo al tick prima (per disegnarlo a metà tra due tick, #277). */
+type Posa0 = Pick<Veicolo, 'ramo' | 's' | 'lat' | 'h' | 'hf' | 'hl' | 'mf' | 'ml' | 'caduto'>;
 export const tempoGara = (ms: number) => { const t = Math.max(0, ms) / 1000, m = Math.floor(t / 60), sec = t - m * 60; return `${m}:${sec < 10 ? '0' : ''}${sec.toFixed(1).replace('.', ',')}`; };
 
-/** `amici`: gara tra amici (corse/amici.ts): gli amici si disegnano come fantasmi e la posizione è quella tra amici. */
-export type OpzioniVista = { cam: Modo; effetti: boolean; auto: boolean; gasAuto: boolean; fine: boolean; ritirato?: boolean; amici?: Amico[] };
+/** `amici`: gara tra amici (corse/amici.ts): gli amici si disegnano come fantasmi e la posizione è quella tra amici.
+ *  `succo` (prova A/B #277, la «B»): veicoli disegnati a metà tra due tick (`alpha`, 0-1), camera più pigra con l'obiettivo che si
+ *  allarga con la velocità, veicolo che si piega in curva, beccheggia e vibra, fumo in drift. Come la prova Godot di Jack. */
+export type OpzioniVista = { cam: Modo; effetti: boolean; auto: boolean; gasAuto: boolean; fine: boolean; ritirato?: boolean; amici?: Amico[]; succo?: boolean; alpha?: number };
 export type VistaGara = {
   /** Costruisce la pista e i veicoli per la gara `s` (e comincia a caricare il kit dei veicoli veri). */
   mostra(s: GaraState): void;
+  /** Prima di ogni tick della gara: si ricorda dove stavano i veicoli (per disegnarli a metà tra due tick). */
+  primaDelPasso(s: GaraState): void;
   /** Un frame: posizioni, effetti, camera, suoni, HUD. `dt` in secondi. */
   aggiorna(s: GaraState, dt: number, o: OpzioniVista): void;
   /** Cambia camera, suoni e il resto senza ricostruire. */
@@ -91,6 +97,8 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
   type Fantasma = { a: Amico; k: Veicolo; mesh: THREE.Mesh; avatar: Avatar | null; tag: HTMLDivElement; visto: boolean; kit: boolean };
   let fantasmi: Fantasma[] = [];
   const T3 = nuovaTerna(), M4 = new THREE.Matrix4();
+  let prima: Posa0[] = [], primaTick = -1, tVis = 0;
+  const p0 = new THREE.Vector3(), f0 = new THREE.Vector3(), u0 = new THREE.Vector3(), m0 = new THREE.Vector3();
   const camW = new THREE.Vector3(), posT = new THREE.Vector3(), vF = new THREE.Vector3(), vU = new THREE.Vector3(), vR = new THREE.Vector3(), vP = new THREE.Vector3(), vM = new THREE.Vector3(), tmp = new THREE.Vector3();
 
   function toast(t: string | null, colore: string = P.sabbiaChiara) {
@@ -126,7 +134,8 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
       ondaMesh = new THREE.Mesh(ondaGeo(p.def.larghezza + p.def.bordo + 8), materialeOnda);
       ondaMesh.matrixAutoUpdate = false; ondaMesh.name = 'corse_onda'; ondaMesh.frustumCulled = false; gruppo.add(ondaMesh);
     }
-    vis = gara.veicoli.map((k) => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0, urti: k.urti }));
+    vis = gara.veicoli.map((k) => ({ hop: 0, traverso: 0, drift: 0, lv: 0, turbo: 0, aria: false, vh: 0, acro: 0, scia: 0, urti: k.urti, rollio: 0, becco: 0, vPrima: k.v }));
+    prima = []; primaTick = -1;
     regia.st.ok = false; fx.svuota(); toast(null); contoPrima = 0; viaFlash = 0;
     void caricaKit().then(() => { if (s === gara) veicoliMesh(); }); // i veicoli veri arrivano appena i glb sono scaricati: intanto i segnaposto
   }
@@ -142,7 +151,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
   }
 
   /** Dove sta il veicolo `i` nel mondo: posizione, avanti (muso), sopra (la pista sotto di lui), destra e moto. */
-  function posa(i: number | Veicolo, pos: THREE.Vector3, fwd: THREE.Vector3, up: THREE.Vector3, moto?: THREE.Vector3) {
+  function posa(i: number | Posa0, pos: THREE.Vector3, fwd: THREE.Vector3, up: THREE.Vector3, moto?: THREE.Vector3) {
     const k = typeof i === 'number' ? s!.veicoli[i]! : i, n = nastroDi(p!, k.ramo);
     terna(n, k.s, T3);
     up.set(T3.ux, T3.uy, T3.uz).normalize();
@@ -150,6 +159,16 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     fwd.set(T3.tx * k.hf + T3.rx * k.hl, T3.ty * k.hf + T3.ry * k.hl, T3.tz * k.hf + T3.rz * k.hl).normalize();
     moto?.set(T3.tx * k.mf + T3.rx * k.ml, T3.ty * k.mf + T3.ry * k.ml, T3.tz * k.mf + T3.rz * k.ml).normalize();
     if (k.caduto) pos.addScaledVector(up, -Math.min(6, k.caduto * 8)); // chi è caduto sprofonda
+  }
+  /** Come `posa`, ma con `succo` a metà tra il tick prima e questo (`alpha`): sullo schermo a 120 Hz il veicolo non va più a scatti
+   *  (la gara fa 60 tick al secondo). Si disegna al massimo un tick indietro; dopo un salto di posto (caduta, ramo) niente mezzo. */
+  function posaFluida(i: number, o2: OpzioniVista, pos: THREE.Vector3, fwd: THREE.Vector3, up: THREE.Vector3, moto: THREE.Vector3) {
+    posa(i, pos, fwd, up, moto);
+    const a = o2.alpha ?? 1, k0 = prima[i];
+    if (!o2.succo || !k0 || primaTick !== s!.tick - 1 || a >= 1) return;
+    posa(k0, p0, f0, u0, m0);
+    if (p0.distanceToSquared(pos) > 100) return;
+    pos.lerpVectors(p0, pos, a); fwd.lerpVectors(f0, fwd, a).normalize(); up.lerpVectors(u0, up, a).normalize(); moto.lerpVectors(m0, moto, a).normalize();
   }
   function togliFantasmi() {
     for (const f of fantasmi) { if (f.avatar) { f.avatar.attachTo(null); f.avatar.object.removeFromParent(); } gruppo.remove(f.mesh); f.mesh.geometry.dispose(); f.tag.remove(); }
@@ -243,9 +262,10 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
       M4.makeBasis(vR, vU, vF).setPosition(T3.x, T3.y, T3.z);
       ondaMesh.matrix.copy(M4); ondaMesh.matrixWorldNeedsUpdate = true;
     }
+    tVis += dt;
     for (let i = 0; i < meshes.length; i++) {
       const k = gs.veicoli[i]!, w = vis[i]!;
-      posa(i, vP, vF, vU, vM);
+      posaFluida(i, o2, vP, vF, vU, vM);
       vR.crossVectors(vF, vU).normalize();
       // il saltello quando parte il drift, e il veicolo di traverso (un po' più di quanto dice la sim: si deve vedere)
       if (k.drift && !w.drift) w.hop = 0.001;
@@ -261,6 +281,20 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
         tmp.copy(vU).multiplyScalar(ca).addScaledVector(vR, sa); vU.copy(tmp); vR.crossVectors(vF, vU).normalize();
       }
       if (k.spinta) { const r = -k.spinta * 0.04; tmp.copy(vU).multiplyScalar(Math.cos(r)).addScaledVector(vR, Math.sin(r)); vU.copy(tmp).normalize(); vR.crossVectors(vF, vU).normalize(); } // la botta di un urto: si piega
+      if (o2.succo) { // la «B» (#277): in curva si piega verso fuori, accelerando alza il muso (frenando lo abbassa), il motore vibra
+        const corre = Math.min(1, Math.max(0, k.v) / 30), acc = dt > 0 ? (k.v - w.vPrima) / dt : 0;
+        w.vPrima = k.v;
+        w.rollio += (-k.st * corre * (k.drift ? 0.2 : 0.11) - w.rollio) * (1 - Math.exp(-dt * 8));
+        w.becco += (Math.max(-0.06, Math.min(0.06, acc * 0.004)) - w.becco) * (1 - Math.exp(-dt * 6));
+        const r = w.rollio, b = w.becco;
+        tmp.copy(vU).multiplyScalar(Math.cos(r)).addScaledVector(vR, Math.sin(r)); vU.copy(tmp).normalize(); vR.crossVectors(vF, vU).normalize();
+        tmp.copy(vF).multiplyScalar(Math.cos(b)).addScaledVector(vU, Math.sin(b)); vU.addScaledVector(vF, -Math.sin(b)).normalize(); vF.copy(tmp).normalize(); vR.crossVectors(vF, vU).normalize();
+        if (!k.aria) vP.addScaledVector(vU, 0.035 * Math.sin(tVis * 38 + i * 1.7) * corre);
+        if (k.drift && !k.aria && o2.effetti && Math.random() < dt * 30) { // fumo delle gomme in drift, dalla ruota dietro di fuori
+          tmp.copy(vP).addScaledVector(vF, -0.9).addScaledVector(vR, (k.drift > 0 ? -1 : 1) * 0.7).addScaledVector(vU, 0.2);
+          fx.fumo(tmp, posT.copy(vM).multiplyScalar(Math.max(0, k.v) * 0.25).addScaledVector(vU, 0.9), P.pietraChiara, 0.4, 0.12);
+        }
+      }
       vP.addScaledVector(vU, hop);
       if (k.fermo > 0 && !gc) vP.addScaledVector(vR, (Math.random() - 0.5) * 0.08); // motore ingolfato: trema
       M4.makeBasis(vR, vU, tmp.copy(vF).negate()).setPosition(vP);
@@ -335,15 +369,20 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
   return {
     gruppo, suoni,
     mostra,
+    primaDelPasso(gara) {
+      if (gara !== s) return;
+      prima = gara.veicoli.map((k, i) => { const x = prima[i] ?? ({} as Posa0); x.ramo = k.ramo; x.s = k.s; x.lat = k.lat; x.h = k.h; x.hf = k.hf; x.hl = k.hl; x.mf = k.mf; x.ml = k.ml; x.caduto = k.caduto; return x; });
+      primaTick = gara.tick;
+    },
     aggiorna(gara, dt, o2) {
       if (!s || gara !== s || !p) return;
       aggiornaVeicoli(dt, o2);
       aggiornaFantasmi(dt, o2.amici);
       ogg = ogg3d.aggiorna(gara, p, dt, o2.fine ? null : suoni, o.camera);
       avatar?.update(1, dt); fx.aggiorna(dt);
-      posa(0, vP, vF, vU, vM);
+      posaFluida(0, o2, vP, vF, vU, vM);
       const w = vis[0]!, hop = w.hop > 0 ? 1.52 * (w.hop / 0.26) * (1 - w.hop / 0.26) : 0;
-      regia.segui(o2.cam, { pos: vP, fwd: vF, up: vU, moto: vM, k: gara.veicoli[0]!, p, onda: gara.onda, hop, effetti: o2.effetti, dt });
+      regia.segui(o2.cam, { pos: vP, fwd: vF, up: vU, moto: vM, k: gara.veicoli[0]!, p, onda: gara.onda, hop, effetti: o2.effetti, dt, ...(o2.succo ? { succo: veicoloCorse(gara.veicoli[0]!.id).velocita } : {}) });
       fondale?.segui(o.camera);
       cartellini();
       eventi();
