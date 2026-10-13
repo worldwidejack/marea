@@ -51,6 +51,8 @@ rect(70, 5, 79, 10, 'h');
 // accampamento: tende, falò, cannoni puntati al mare, botti
 for (const [x0, z0] of [[38, 67], [51, 70], [66, 66], [80, 68]]) rect(x0, z0, x0 + 3, z0 + 3, 't');
 set(60, 65, 'b'); set(46, 79, 'k'); set(47, 79, 'k'); set(72, 79, 'k'); set(73, 79, 'k'); set(87, 64, 'k'); set(33, 76, 'q');
+// scogli sparsi sulla sabbia (ostacoli bassi, la resa li fa di roccia: scena.ts)
+for (const [x, z] of [[30, 63], [44, 62], [45, 62], [57, 74], [62, 72], [75, 61], [85, 74], [85, 75], [92, 76], [24, 80], [40, 77], [69, 81], [13, 77], [89, 66]]) { if (get(x, z) !== 's') throw new Error(`scoglio fuori dalla sabbia in ${x},${z}`); set(x, z, 'q'); }
 
 // ——— rotonda e presbiterio ———
 const R = { cx: 46, cz: 42.5, r: 10 };          // rotonda: muro tra 9 e 10 m dal centro
