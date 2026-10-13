@@ -59,7 +59,7 @@ const HUB_BUDGET = (n) => n === 'cs_h_ruota_giro' ? [1, 2000] : HUB_GRANDI.test(
 const DISCESA_LEGGERI = { cs_d_bici_ruota: 450, cs_d_erba: 40, cs_d_fiori: 60, cs_d_felce: 60, cs_d_cespuglio: 120, cs_d_braccia: 900 };
 const DISCESA_BUDGET = (n) => DISCESA_LEGGERI[n] ? [1, DISCESA_LEGGERI[n]] : n.startsWith('cs_d_bici_') ? [1, 1200] : /^cs_d_(abete_|pino_|tronco_alto)/.test(n) ? [1, 500] : [1, 300];
 const BUDGET = (n) => n.startsWith('cs_d_') ? DISCESA_BUDGET(n) : n.startsWith('cs_h_') ? HUB_BUDGET(n) : n === 'cs_manichino_testa' ? [1, 50] : n.startsWith('cs_v_') ? [1, 1800] : n.startsWith('cs_p_') ? [1, 3000] : CORSE_GRANDI.test(n) ? [1, 800] : isCorse(n) ? [1, 300] : n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
-  : n.startsWith('boat_') ? [1, 600] : n.startsWith('chr_') ? [1, 1500] : BOSS.has(n) ? [1, 1200] : n.startsWith('nem_') ? [1, 600]
+  : n.startsWith('boat_') ? [1, 600] : n === 'chr_base' ? [1, 3500] : n.startsWith('chr_') ? [1, 1500] : BOSS.has(n) ? [1, 1200] : n.startsWith('nem_') ? [1, 600]
   : n.startsWith('arm_') ? [1, 80] : n.startsWith('fx_') ? [1, 40] : [1, 800];
 // Tinte di default dell'avatar: le zone pelle/capelli/vestito dell'atlas sono maschere bianche, il colore è il fattore del materiale.
 const TINT = { mat_pelle: '#D9A070', mat_capelli: '#2E1E14', mat_vestito: '#3FB9C9', mat_cappello: '#E2B97F' };
@@ -111,7 +111,15 @@ function externalizeAtlas(buf) {
   const binStart = 20 + jsonLen;
   const bin = binStart < buf.length ? buf.subarray(binStart + 8, binStart + 8 + buf.readUInt32LE(binStart)) : Buffer.alloc(0);
   const drop = new Set();
-  for (const img of json.images || []) { if (img.bufferView !== undefined) drop.add(img.bufferView); delete img.bufferView; img.uri = 'atlas.png'; img.mimeType = 'image/png'; img.name = 'atlas'; }
+  for (const img of json.images || []) {
+    // texture propria di un modello (`chr_…`, l'avatar fatto con l'AI): esce in un file accanto, non diventa l'atlas
+    if (/^chr_/.test(img.name || '') && img.bufferView !== undefined) {
+      const v = json.bufferViews[img.bufferView];
+      fs.writeFileSync(path.join(PUB, `${img.name}.png`), bin.subarray(v.byteOffset || 0, (v.byteOffset || 0) + v.byteLength));
+      drop.add(img.bufferView); delete img.bufferView; img.uri = `${img.name}.png`; img.mimeType = 'image/png'; continue;
+    }
+    if (img.bufferView !== undefined) drop.add(img.bufferView); delete img.bufferView; img.uri = 'atlas.png'; img.mimeType = 'image/png'; img.name = 'atlas';
+  }
   const remap = new Map(); const views = []; const parts = []; let off = 0;
   (json.bufferViews || []).forEach((v, i) => {
     if (drop.has(i)) return;
@@ -141,7 +149,7 @@ for (const file of fs.readdirSync(RAW).filter((f) => f.endsWith('.glb')).sort())
   // client non li tinge: senza, dedup li fonde in uno solo e le tinte si perdono.
   await doc.transform(dedup({ keepUniqueNames: true }), prune(), weld());
   const root = doc.getRoot();
-  for (const s of root.listTextures()) s.setName('atlas');
+  for (const s of root.listTextures()) if (!/^chr_/.test(s.getName())) s.setName('atlas');
   for (const m of root.listMaterials()) {
     m.setDoubleSided(false).setRoughnessFactor(1).setMetallicFactor(0);
     const info = m.getBaseColorTextureInfo();
@@ -186,7 +194,8 @@ for (const file of fs.readdirSync(RAW).filter((f) => f.endsWith('.glb')).sort())
     entry.tint = TINT; entry.materials = root.listMaterials().map((m) => m.getName());
     if (extra.durate) entry.durations = extra.durate;
     entry.parts = root.listNodes().map((n) => n.getName()).filter((n) => /^(capelli|cappello)_/.test(n));
-    for (let i = 0; i < 8; i++) if (!entry.parts.includes(`capelli_${i}`)) errors.push(`${name}: manca il nodo capelli_${i}`);
+    // avatar AI (#287): i capelli sono dentro il corpo, si tingono ma non si cambiano; restano obbligatori i 5 cappelli di partenza
+    for (const h of ['paglia', 'berretto', 'pescatore', 'lanterna', 'neon']) if (!entry.parts.includes(`cappello_${h}`)) errors.push(`${name}: manca il nodo cappello_${h}`);
   }
   models[name] = entry;
 }
