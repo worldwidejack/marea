@@ -374,6 +374,11 @@ async function boot(): Promise<void> {
     });
   }
   registerTestHook('rientroPronto', () => rientro);
+  // «Dall'ultima volta» (#279): chi ha fatto cosa nel codice dalla visita scorsa; dopo la cartolina, quando non c'è altro aperto (chunk ui/novita.ts)
+  const novita = (prova?: { lavori: { t: number; chi: string; titolo: string }[]; ora: number }) => import('./ui/novita.ts').then((m) =>
+    m.apriNovita({ root, chiave: `marea:novita:${me?.id ?? 'ospite'}`, busy: () => panelsBusy() || !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen(), ...(prova ? { prova } : {}) }));
+  if (!FLAGS.test || FLAGS.novita) void rientro.then(() => novita()).catch(() => { /* senza novità si gioca lo stesso */ });
+  registerTestHook('novitaProva', (lavori, ora) => { void novita({ lavori: lavori as { t: number; chi: string; titolo: string }[], ora: Number(ora) }); return true; });
   setReady();
   hud.toast(me ? `Ciao ${me.nome}` : 'MAREA', 2500);
   console.log(`[marea] build ${__BUILD__} · isola ${world.map.id} ${world.map.w}×${world.map.h}`);
