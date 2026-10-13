@@ -3,7 +3,7 @@
 // ?angolo=gradi = da dove si guarda; ?animali=0 = col pilota segnaposto; ?avatar=1 = guida l'avatar MAREA (come nella corsa) al posto degli animali.
 import * as THREE from 'three';
 import { P } from '../../render/island_parts.ts';
-import { veicoloGeo } from '../veicoli3d.ts';
+import { veicoloMesh } from '../veicoli3d.ts';
 import { ASPETTI, PILOTI, caricaKit, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
 import { createAvatar } from '../../game/avatar.ts';
 
@@ -30,7 +30,7 @@ await caricaKit();
 const cols = solo ? 1 : 5, passo = 4.6;
 modelli.forEach((m, i) => {
   const a = animali ? PILOTI[i % PILOTI.length]! : null;
-  const mesh = new THREE.Mesh(veicoloGeo('kart', P.rosso, P.pietraChiara, m, a, avatar), mat);
+  const mesh = veicoloMesh('kart', P.rosso, P.pietraChiara, m, a, avatar, mat);
   mesh.position.set((i % cols - (cols - 1) / 2) * passo, 0, Math.floor(i / cols) * 5.4 - (solo ? 0 : 5.4));
   mesh.rotation.y = angolo; scene.add(mesh); if (giro) giranti.push(mesh);
   if (avatar) void (async () => {

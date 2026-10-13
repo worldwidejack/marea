@@ -20,7 +20,7 @@ import { creaPista3d } from './nastro3d.ts';
 import type { Pista3d } from './nastro3d.ts';
 import { matOnda, ondaGeo } from './onda3d.ts';
 import { creaSuoni } from './suoni.ts';
-import { veicoloGeo } from './veicoli3d.ts';
+import { veicoloMesh } from './veicoli3d.ts';
 import { PILOTI, caricaKit, kitPronto, loaderCorse, postoAvatar } from './veicoli_kit.ts';
 import { creaRegia } from './prova/camera.ts';
 import type { Modo } from './prova/camera.ts';
@@ -117,7 +117,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     for (const m of meshes) { gruppo.remove(m); m.geometry.dispose(); }
     const kit = kitPronto();
     meshes = s.veicoli.map((k, i) => {
-      const m = new THREE.Mesh(veicoloGeo(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!, null, i ? PILOTI[(i - 1) % PILOTI.length]! : null, !i && kit), matVeicoli);
+      const m = veicoloMesh(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!, null, i ? PILOTI[(i - 1) % PILOTI.length]! : null, !i && kit, matVeicoli);
       m.castShadow = true; m.matrixAutoUpdate = false; m.name = i ? `corse_bot_${i}` : 'corse_tu'; gruppo.add(m);
       return m;
     });
@@ -175,7 +175,7 @@ export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveC
     fantasmi = [];
   }
   function meshFantasma(f: { a: Amico; k: Veicolo }): THREE.Mesh {
-    const kit = kitPronto(), m = new THREE.Mesh(veicoloGeo(f.k.id, COLORI[(f.a.i + 1) % COLORI.length]!, P.pietraChiara, null, null, kit), matVeicoli);
+    const kit = kitPronto(), m = veicoloMesh(f.k.id, COLORI[(f.a.i + 1) % COLORI.length]!, P.pietraChiara, null, null, kit, matVeicoli);
     m.castShadow = true; m.matrixAutoUpdate = false; m.name = `corse_amico_${f.a.i}`; gruppo.add(m);
     return m;
   }

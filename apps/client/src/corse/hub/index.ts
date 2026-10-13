@@ -20,7 +20,7 @@ import { createAvatar } from '../../game/avatar.ts';
 import type { Avatar } from '../../game/avatar.ts';
 import { creaLinee, creaParticelle, emettiVeicolo } from '../effetti.ts';
 import { creaSuoni } from '../suoni.ts';
-import { veicoloGeo } from '../veicoli3d.ts';
+import { veicoloMesh as meshVeicolo } from '../veicoli3d.ts';
 import { caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
 import { stileProva } from '../prova/stile.ts';
 import { creaHub } from './mappa.ts';
@@ -124,7 +124,7 @@ export function creaSchermoHub(o: OpzioniHub): Hub {
   function veicoloMesh() {
     if (mesh) { if (avatar) { avatar.attachTo(null); avatar.object.removeFromParent(); } scene.remove(mesh); mesh.geometry.dispose(); }
     const kit = kitPronto();
-    mesh = new THREE.Mesh(veicoloGeo(auto.id, P.rosso, P.pietraChiara, null, null, avatarOn && kit), matVeicoli);
+    mesh = meshVeicolo(auto.id, P.rosso, P.pietraChiara, null, null, avatarOn && kit, matVeicoli);
     mesh.castShadow = true; mesh.matrixAutoUpdate = false; mesh.name = 'hub_tu'; mesh.frustumCulled = false; scene.add(mesh);
     if (avatarOn && kit) void siediAvatar(mesh, auto.id);
   }

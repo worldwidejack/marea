@@ -17,7 +17,7 @@ import { creaPista3d } from '../nastro3d.ts';
 import type { Pista3d } from '../nastro3d.ts';
 import { fondalePista } from '../fondale_piste.ts';
 import type { Fondale } from '../discesa/fondale.ts';
-import { veicoloGeo } from '../veicoli3d.ts';
+import { veicoloMesh } from '../veicoli3d.ts';
 import { caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
 
 export type Palco = {
@@ -82,7 +82,7 @@ function scatta(): void {
   const cam = new THREE.PerspectiveCamera(24, 168 / 100, 0.1, 100); cam.position.set(0, 2.3, 5.6); cam.lookAt(0, 0.45, 0);
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   for (const x of lista) {
-    const m = new THREE.Mesh(veicoloGeo(x.id, P.rosso, P.pietraChiara, null, null, kitPronto()), mat);
+    const m = veicoloMesh(x.id, P.rosso, P.pietraChiara, null, null, kitPronto(), mat);
     m.rotation.y = (150 * Math.PI) / 180; scena.add(m);
     gl.render(scena, cam); x.fatto(gl.domElement.toDataURL('image/png'));
     scena.remove(m); m.geometry.dispose();
@@ -114,7 +114,7 @@ export function creaPalco(o: { camera: THREE.PerspectiveCamera; look: () => Look
     if (mezzo) { giostra.remove(mezzo); mezzo.geometry.dispose(); }
     if (avatar) { avatar.attachTo(null); avatar.object.removeFromParent(); avatar.visible = false; }
     const kit = kitPronto();
-    mezzo = new THREE.Mesh(veicoloGeo(id, P.rosso, P.pietraChiara, null, null, kit), matVeicolo);
+    mezzo = veicoloMesh(id, P.rosso, P.pietraChiara, null, null, kit, matVeicolo);
     mezzo.castShadow = true; mezzo.name = 'corse_palco_' + id; mezzoId = id; giostra.add(mezzo);
     if (!kit) { void caricaKit().then(() => { if (mezzoId === id && modo === 'veicolo') metti(id); }); return; }
     const m = mezzo;

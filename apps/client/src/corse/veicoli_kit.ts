@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { createLoader } from '../render/loader.ts';
 import type { Loader } from '../render/loader.ts';
+import { caricaVeicoliAi } from './veicoli_ai.ts';
 
 /** Il modello vero di ogni veicolo della sim (gli id di packages/content/src/corse/motore.json). Chi non c'è resta il segnaposto. */
 export const MODELLO: Record<string, string> = {
@@ -101,6 +102,7 @@ export function caricaKit(): Promise<void> {
       const b = geo.boundingBox!;
       kit.set(nome, { geo, alt: b.max.y - b.min.y, lung: b.max.z - b.min.z });
     }
+    await caricaVeicoliAi(); // le carrozzerie fatte con l'AI 3D (#281): pronte insieme al kit
     pronto = true;
   })().catch((e) => { console.warn('[corse] kit dei veicoli non caricato, restano i segnaposto', e); });
   return promessa;
@@ -133,16 +135,20 @@ export type VeicoloKit = { geo: THREE.BufferGeometry; occhi: [number, number] };
 
 /** Il veicolo vero: `modello` (cs_v_…), il pilota animale se c'è (`pilota`, cs_p_…) o quello segnaposto (`segnaposto` lo disegna il chiamante
  *  con altezza e posizione della seduta). null se il kit non c'è: si usa il segnaposto intero. */
-export function veicoloKit(modello: string, pilota: string | null, senzaPilota: boolean, segnaposto: (y: number, z: number) => THREE.BufferGeometry): VeicoloKit | null {
+export function veicoloKit(modello: string, pilota: string | null, senzaPilota: boolean, segnaposto: (y: number, z: number) => THREE.BufferGeometry, senzaCarrozzeria = false): VeicoloKit | null {
   const v = kit.get(modello); if (!v) return null;
   const s = (LUNG[modello] ?? v.lung) / v.lung, [sy, sz] = SEDILE[modello] ?? [0.5, 0.1];
   const body = v.geo.clone().applyMatrix4(new THREE.Matrix4().makeScale(s, s, s));
   const y = sy * s, z = sz * s;
   const a = pilota ? animale(pilota, y, z, modello, s) : null;
-  const geo = senzaPilota ? body : mergeGeometries([body, a ?? segnaposto(y, z)])!;
+  // senza carrozzeria (#281): la disegna il modello AI (veicoli_ai.ts) attaccato dal chiamante, qui resta solo il pilota
+  const parti = [senzaCarrozzeria ? null : body, senzaPilota ? null : a ?? segnaposto(y, z)].filter((g): g is THREE.BufferGeometry => !!g);
+  const geo = parti.length > 1 ? mergeGeometries(parti)! : parti[0] ?? vuota();
   const spunta = pilota && !senzaPilota ? Math.min(ANCA[pilota]?.[1] ?? 1, (MAX_PILOTA[modello] ?? [1.3, 1.4])[0]) : 0.8;
   return { geo, occhi: [y + spunta - 0.1, 0.42 - z] };
 }
+
+const vuota = (): THREE.BufferGeometry => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([], 3)); return g; };
 
 /** Il modello che si disegna per un veicolo della sim (o per l'aspetto scelto). */
 export const modelloDi = (id: string, aspetto?: string | null): string | null => aspetto || MODELLO[id] || null;

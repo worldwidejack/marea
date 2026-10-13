@@ -96,7 +96,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
       console.log(`[marea] corse: risoluzione giù a ${GRADINI[hd.gradino]}`);
     }
   };
-  let pixel = false; // tasto H: di nuovo pixel, per confrontare (prova)
+  let pixel = true; // #281 (Jack, 13 ott sera): le Corse tornano pixel come il resto del mondo; tasto H = HD, per confrontare
   // ---- GAS (solo col dito): tenuto = gas a fondo; DRIFT tenuto dà gas anche lui (un pollice solo scivola da GAS a DRIFT) ----
   const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const gasBtn = el('button', 'mz-gp-gas', 'GAS') as HTMLButtonElement; gasBtn.type = 'button'; gasBtn.id = 'mzGpGas';

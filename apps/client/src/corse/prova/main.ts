@@ -32,7 +32,7 @@ import { creaPista3d } from '../nastro3d.ts';
 import type { Pista3d } from '../nastro3d.ts';
 import { matOnda, ondaGeo } from '../onda3d.ts';
 import { creaSuoni } from '../suoni.ts';
-import { quotaBinari, rollioBinari, veicoloGeo } from '../veicoli3d.ts';
+import { quotaBinari, rollioBinari, veicoloMesh } from '../veicoli3d.ts';
 import { ASPETTI, PILOTI, caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
 import { avvisoRuota } from '../avviso_ruota.ts';
 import { creaOggetti3d, creaUsa, giroColpito } from '../oggetti3d.ts';
@@ -139,7 +139,7 @@ let vis: Vis[] = [];
 function veicoliMesh() {
   for (const m of meshes) { scene.remove(m); m.geometry.dispose(); }
   meshes = s.veicoli.map((k, i) => {
-    const m = new THREE.Mesh(veicoloGeo(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!, aspetto, animali && i ? PILOTI[(i - 1) % PILOTI.length]! : null, !i && avatarOn && kitPronto()), matVeicoli);
+    const m = veicoloMesh(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!, aspetto, animali && i ? PILOTI[(i - 1) % PILOTI.length]! : null, !i && avatarOn && kitPronto(), matVeicoli);
     m.castShadow = true; m.matrixAutoUpdate = false; m.name = i ? `corse_bot_${i}` : 'corse_tu'; scene.add(m);
     return m;
   });
