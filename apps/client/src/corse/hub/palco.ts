@@ -26,8 +26,9 @@ export type Palco = {
   attivo(): boolean;
   /** Il volo sopra la pista `id`. */
   pista(id: string): void;
-  /** Il veicolo `id` sulla pedana, davanti al fondale della pista `pista`. */
-  veicolo(id: string, pista: string): void;
+  /** Il veicolo `id` sulla pedana, davanti al fondale della pista `pista`; `verso` = dove sta sullo schermo (frazione della larghezza,
+   *  + = a destra), per lasciare libero il posto dei pannelli. */
+  veicolo(id: string, pista: string, verso?: number): void;
   /** Spento: niente da disegnare (le piste restano in memoria). */
   spegni(): void;
   /** Camera e pedana: una volta per frame quando è attivo. */
@@ -43,7 +44,7 @@ export function creaPalco(o: { camera: THREE.PerspectiveCamera; look: () => Look
   const luci = createLights(); scene.add(luci.group);
   const piste = new Map<string, { p: Pista; p3d: Pista3d }>();
   let modo: 'pista' | 'veicolo' | null = null, ora: { p: Pista; p3d: Pista3d } | null = null, fondale: Fondale | null = null;
-  let s = 0, t = 0;
+  let s = 0, t = 0, verso = -0.17;
   const A: [number, number, number] = [0, 0, 0], B: [number, number, number] = [0, 0, 0];
 
   // ---- la pedana del veicolo: un ottagono di legno con l'orlo di pietra, sotto il veicolo che gira ----
@@ -55,7 +56,7 @@ export function creaPalco(o: { camera: THREE.PerspectiveCamera; look: () => Look
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     const m = new THREE.Mesh(g, matPiatto); m.position.y = y; m.receiveShadow = true; return m;
   };
-  pedana.add(disco(2.5, 0.5, -0.25, P.pietraScura), disco(2.2, 0.12, 0.06, P.legno));
+  pedana.add(disco(1.9, 0.3, -0.15, P.pietraScura), disco(1.7, 0.12, 0.06, P.legno));
   const giostra = new THREE.Group(); giostra.position.y = 0.12; pedana.add(giostra);
   const matVeicolo = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   let mezzo: THREE.Mesh | null = null, mezzoId = '', avatar: Avatar | null = null, avatarP: Promise<Avatar | null> | null = null;
@@ -102,7 +103,8 @@ export function creaPalco(o: { camera: THREE.PerspectiveCamera; look: () => Look
       if (ora !== x) { if (ora) ora.p3d.group.visible = false; ora = x; x.p3d.group.visible = true; s = x.p.def.via ?? 0; t = 0; }
       pedana.visible = false; modo = 'pista'; sfondo(id);
     },
-    veicolo(id, pista) {
+    veicolo(id, pista, v = -0.17) {
+      verso = v;
       if (ora) { ora.p3d.group.visible = false; ora = null; }
       pedana.visible = true; modo = 'veicolo'; sfondo(pista);
       if (id !== mezzoId || !mezzo) metti(id);
@@ -123,11 +125,10 @@ export function creaPalco(o: { camera: THREE.PerspectiveCamera; look: () => Look
         giostra.rotation.y += dt * 0.6;
         // si guarda verso +x, il centro del panorama (di lato c'è la cucitura dello specchio), quasi in piano; il veicolo sale nella metà
         // alta dello schermo spostando l'inquadratura (sotto c'è il pannello coi numeri: in orizzontale sul telefono è metà schermo)
-        const su = cam.aspect > 1.6 ? 30 : 24;
-        if (!cam.view || cam.view.offsetY !== su || cam.view.fullWidth !== Math.round(100 * cam.aspect)) {
-          const w = Math.round(100 * cam.aspect); cam.setViewOffset(w, 100, 0, su, w, 100);
-        }
-        cam.position.set(-5.6, 1.2, 0); cam.up.set(0, 1, 0); cam.lookAt(0, 0.75, 0); // bassa, da eroe: l'orizzonte dietro il veicolo
+        // e verso sinistra: a destra c'è la scheda coi numeri
+        const w = Math.round(100 * cam.aspect), su = verso > 0.2 ? 24 : cam.aspect > 1.6 ? 17 : 15, sx = Math.round(-w * verso);
+        if (!cam.view || cam.view.offsetY !== su || cam.view.offsetX !== sx || cam.view.fullWidth !== w) cam.setViewOffset(w, 100, sx, su, w, 100);
+        cam.position.set(-5.2, 1.5, 0); cam.up.set(0, 1, 0); cam.lookAt(0, 0.7, 0); // bassa, da eroe: l'orizzonte dietro il veicolo
         avatar?.update(1, dt);
         luci.follow?.(0, 0);
       }
