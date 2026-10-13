@@ -103,6 +103,10 @@ function validateBorgo(): string[] {
     if (!'.gdP'.includes(t.rows[c.porta[1]]?.[c.porta[0]] ?? '~')) errs.push(`borgo: la porta della casa ${n} non è camminabile`);
     // case a schiera (#265): porte ad almeno due celle (4 m), così uscendo di casa la porta più vicina è la tua (game/borgo.ts)
     for (const [m, d] of BORGO.case.entries()) if (m > n && Math.hypot(c.porta[0] - d.porta[0], c.porta[1] - d.porta[1]) < 2) errs.push(`borgo: le porte delle case ${n} e ${m} sono troppo vicine`);
+    // si nasce 2,5 m fuori dalla porta (world.ts): su una cella camminabile e lontano dalle altre porte (fuori dal raggio di 2,2 m del bottone)
+    const l = Math.hypot(c.porta[0] - c.at[0], c.porta[1] - c.at[1]) || 1, sx = c.porta[0] + 0.5 + ((c.porta[0] - c.at[0]) / l) * 1.25, sz = c.porta[1] + 0.5 + ((c.porta[1] - c.at[1]) / l) * 1.25;
+    if (!'.gdP'.includes(t.rows[Math.floor(sz)]?.[Math.floor(sx)] ?? '~')) errs.push(`borgo: davanti alla casa ${n} si nasce su una cella non camminabile`);
+    for (const [m, d] of BORGO.case.entries()) if (m !== n && Math.hypot(sx - d.porta[0] - 0.5, sz - d.porta[1] - 0.5) < 1.2) errs.push(`borgo: davanti alla casa ${n} si nasce sulla porta della casa ${m}`);
   }
   const lt = ISLANDS.find((i) => i.id === 'lotto'), st = BORGO.stanza, [x0, z0, x1, z1] = st.pavimento;
   if (lt) {
