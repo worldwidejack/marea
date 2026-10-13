@@ -60,7 +60,7 @@
     {
       "id": "nella", "nome": "Zia Nella", "ruolo": "paesano",
       "look": { "pelle": 1, "capelli": 3, "coloreCapelli": 4, "vestito": 3, "cappello": 0 },
-      "giro": [[58.6, 39.37], [64.23, 37.32]], "velocita": 0.7, "raggio": 3,
+      "giro": [[50.84, 30.91], [53.37, 25.47]], "velocita": 0.7, "raggio": 3,
       "battute": [
         "Questo vicolo l'ho visto crescere. Prima c'era un prato. Prima ancora, un altro prato.",
         "Le cassette della posta sono tutte rosse. Così il postino non si confonde. Si confonde lo stesso.",
@@ -70,7 +70,7 @@
     {
       "id": "tonio", "nome": "Tonio il Pescatore", "ruolo": "paesano",
       "look": { "pelle": 3, "capelli": 1, "coloreCapelli": 0, "vestito": 2, "cappello": 7 },
-      "giro": [[57.98, 37.92], [53.32, 32.36]], "velocita": 0.9, "raggio": 3,
+      "giro": [[63.37, 35.29], [56.84, 27.51]], "velocita": 0.9, "raggio": 3,
       "battute": [
         "Stamattina ho preso un pesce così. No, più piccolo. Va be', l'ho preso.",
         "Dal lungomare si vede tutto il mare. Dal mare, invece, si vede tutto il lungomare.",
@@ -90,7 +90,7 @@
     {
       "id": "gaspare", "nome": "Sor Gaspare", "ruolo": "paesano",
       "look": { "pelle": 2, "capelli": 0, "coloreCapelli": 3, "vestito": 4, "cappello": 6 },
-      "giro": [[29.54, 43.45], [30.8, 50.6]], "velocita": 0.6, "raggio": 3,
+      "giro": [[23.55, 43.04], [25.32, 53.04]], "velocita": 0.6, "raggio": 3,
       "battute": [
         "Faccio il giro dell'anello tre volte al giorno. Per la salute. E per vedere chi c'è.",
         "Ai miei tempi le case non avevano il giardino dietro. Avevano il giardino davanti, ed era la strada.",

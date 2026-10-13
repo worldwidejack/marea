@@ -28,10 +28,16 @@ export default async function (ctx) {
   const t = await ctx.open(`?test=1&net=0&serie=1&slot=${SLOT}`, { viewport: ctx.B.IPHONE });
   await ctx.waitReady(t.page, 30000);
 
-  await ctx.test('telefono: si nasce davanti alla porta di casa, ed è la porta più vicina', async () => {
-    await ctx.waitState(t.page, (s, slot) => s.borgo && s.borgo.near && s.borgo.near.slot === slot, 10000, SLOT);
-    const s = await ctx.getState(t.page);
-    assert(s.borgo.near.dove === 'entra' && s.borgo.porte.length === borgo.case.length, 'porta: ' + JSON.stringify(s.borgo.near));
+  await ctx.test('telefono: si nasce davanti alla porta di casa (fuori dal raggio del bottone), ed è la porta più vicina', async () => {
+    await ctx.waitState(t.page, (s) => s.borgo && s.borgo.porte.length > 0, 10000);
+    let s = await ctx.getState(t.page);
+    const mia = s.borgo.porte.find((p) => p.slot === SLOT), d = (p) => Math.hypot(s.avatar.x - p.x, s.avatar.z - p.z);
+    assert(s.borgo.near === null, 'allo spawn il bottone della porta copre la guida: ' + JSON.stringify(s.borgo.near));
+    assert(s.borgo.porte.every((p) => p.slot === SLOT || d(p) > d(mia)) && d(mia) < 3, 'la porta più vicina non è la tua: ' + d(mia).toFixed(2));
+    await hook(t.page, 'teleport', (s.avatar.x + mia.x) / 2, (s.avatar.z + mia.z) / 2);
+    await ctx.waitState(t.page, (q, slot) => q.borgo.near && q.borgo.near.slot === slot && q.borgo.near.dove === 'entra', 5000, SLOT);
+    s = await ctx.getState(t.page);
+    assert(s.borgo.porte.length === borgo.case.length, 'porte: ' + s.borgo.porte.length);
     await t.page.waitForTimeout(600);
     await ctx.shot(t.page, 'telefono_davanti_a_casa');
   });

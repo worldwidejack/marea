@@ -161,9 +161,9 @@ def libero(x, z):
     if not all(max(abs(hx - x), abs(hz - z)) >= 2 for (hx, hz), _, _ in case): return False
     if any(math.hypot(x + 0.5 - px, z + 0.5 - pz) < r + 1.2 for px, pz, r in POSTI): return False
     return all(abs(s['at'][0] - x) >= 4 or abs(s['at'][1] - z) >= 4 for s in slots)
-def fuori(h, p):  # dove si nasce uscendo di casa: un passo fuori dalla porta, sulla via (borgo.ts portaDi)
+def fuori(h, p):  # dove si nasce: 2,5 m fuori dalla porta, sulla via, appena oltre il raggio del bottone (borgo.ts portaDi, world.ts)
     dx, dz = p[0] - h[0], p[1] - h[1]; l = math.hypot(dx, dz)
-    return (p[0] + dx / l * 0.5, p[1] + dz / l * 0.5)
+    return (p[0] + dx / l * 1.25, p[1] + dz / l * 1.25)
 def porte_ok(h, p):  # porte ad almeno due celle l'una dall'altra; uscendo di casa la porta più vicina è la tua
     if p not in paved or get(*p) not in '.P' or p == h: return False
     return all(math.dist(p, p2) >= 2 and math.dist(fuori(h, p), p2) > math.dist(fuori(h, p), p) + 0.6 for h2, p2, _ in case)
@@ -268,9 +268,10 @@ for x, z in semi:
         ox, oz = x + 0.5 + rnd.uniform(-1.1, 1.1), z + 0.5 + rnd.uniform(-1.1, 1.1)
         if posto_libero(ox, oz, 0.7): metti('albero_tondo', ox, oz, rnd.uniform(0, 6.28), 0.9)
 
-# ——— paesani: un giro avanti e indietro lungo un pezzo d'anello o un vicolo (celle del template, centro cella) ———
+# ——— paesani: un giro avanti e indietro lungo un pezzo di lungomare o un vicolo degli slarghi (celle del template, centro cella) ———
 giri = {}
-tratti = [(VICOLI[0], 'vicolo'), (40, ANELLO), (115, LUNGO), (190, ANELLO), (VICOLI[4], 'vicolo')]
+# mai sull'anello: lì ci sono le porte delle prime 15 case (chi gioca da più tempo), e con un paesano accanto allo spawn PARLA copre la guida (#267)
+tratti = [(SLARGHI[0], 'vicolo'), (40, LUNGO), (115, LUNGO), (190, LUNGO), (SLARGHI[1], 'vicolo')]
 for nome, (a, dove) in zip(PAESANI, tratti):
     if dove == 'vicolo':
         dx, dz = verso(a)

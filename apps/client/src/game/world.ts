@@ -104,8 +104,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   const map = arch.map;
   let slot = o.slot !== undefined ? o.slot : slotFromUrl();
   if (slot !== null && !arch.lots.some((l) => l.slot === slot)) slot = null;
-  // Borgo Marea (#237): si nasce davanti alla porta di casa (senza casa: al Porto); la barca sta al molo del Porto, non al giardino
-  const home = (slot !== null ? portaDi({ archipelago: arch }, slot, 1) : null) ?? arch.spawnOf(null), homeBoat = arch.boatOf(null);
+  // Borgo Marea (#237): si nasce davanti alla porta di casa, appena fuori dal raggio del bottone (la guida resta in vista, #267; senza casa: al Porto); la barca sta al molo del Porto, non al giardino
+  const home = (slot !== null ? portaDi({ archipelago: arch }, slot, 2.5) : null) ?? arch.spawnOf(null), homeBoat = arch.boatOf(null);
   const { scene, diorama } = o.renderer;
   const lights = createLights(); scene.add(lights.group);
   const water = createWater({ size: 0 }); water.follow(home.x, home.z); scene.add(water.mesh);
