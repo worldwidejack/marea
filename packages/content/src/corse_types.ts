@@ -48,7 +48,7 @@ export type CVeicoloDef = {
   drift: number;
   /** Peso negli urti tra veicoli: chi pesa di più sposta di più. */
   peso: number;
-  /** Il difetto o pregio comico dei veicoli buffi (A6), mostrato nella scelta. */
+  /** La frase del veicolo nel rullo della scelta (#271): il difetto o pregio comico dei buffi (A6), una battuta per gli altri. */
   buffo?: string;
   /** Buffi: sterzo che tira da solo da una parte (−1..1, + = destra), come la ruota storta del carrello. */
   tira?: number;

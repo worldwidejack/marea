@@ -125,7 +125,8 @@ export default async function (ctx) {
     const n = await tp.locator('#mzGarage [data-veicolo]').count();
     assert(n >= 6, `veicoli nel garage: ${n}`);
     await foto(tp, 'telefono_4_garage');
-    await tp.locator('#mzGarage [data-veicolo="auto"]').click();
+    await tp.locator('#mzGarage [data-veicolo="auto"]').click(); // nel rullo (#271): si scorre fino all'auto, poi PRENDI
+    await tp.locator('#mzGarageOk').click();
     s = await hs(tp);
     assert(s.veicolo === 'auto' && !s.pannello && !s.fermo, `veicolo ${s.veicolo}, pannello ${s.pannello}`);
     const mem = JSON.parse(await tp.evaluate(() => localStorage.getItem('mz-corse-scelta')));
@@ -169,8 +170,13 @@ export default async function (ctx) {
     await sleep(200);
     const box = await tp.locator('#mzGpIntro .box').boundingBox();
     assert(box && box.y >= 0 && box.y + box.height <= 390, 'la scelta esce dal telefono: ' + JSON.stringify(box));
-    assert(await tp.isVisible('#mzGpIntro [data-id="auto"]'), 'il veicolo del garage non è nella scelta');
+    assert(await tp.isVisible('#mzGpIntro [data-id="spiaggia_baia"]'), 'nel rullo delle piste manca la Baia');
     await foto(tp, 'telefono_6_porta_spiaggia');
+    await tp.locator('#mzGpAvanti').click(); // menù a rulli (#271): poi il veicolo
+    assert(await tp.isVisible('#mzGpIntro [data-id="auto"]'), 'il veicolo del garage non è nella scelta');
+    const tc = await tp.locator('#mzGpIntro .stat .tacche').count();
+    assert(tc === 4, `statistiche nel rullo: ${tc}`);
+    await sleep(800); await foto(tp, 'telefono_6b_rullo_veicoli');
     await tp.locator('#mzGpVia').click();
     await tp.waitForFunction(() => window.__provahub.state().gara !== null, null, { timeout: 10000 });
     s = await hs(tp);
