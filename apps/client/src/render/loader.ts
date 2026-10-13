@@ -16,6 +16,18 @@ export type Loader = {
 };
 export class MissingAsset extends Error { override name = 'MissingAsset'; }
 
+/** Le glb puntano tutte allo stesso `atlas.png`, ma GLTFLoader fa una texture nuova per ogni file: sulla GPU erano una copia da 4 MB per
+ *  modello (13 tra hub e gara delle Corse) e l'iPhone senza memoria ricaricava la pagina dopo VIA. Una texture sola per immagine e
+ *  campionamento, condivisa da tutti i caricatori (mondo e Corse). Nessuno le butta: restano finché c'è la pagina. */
+const condivise = new Map<string, THREE.Texture>();
+function condividi(t: THREE.Texture, uri: string): THREE.Texture {
+  const k = `${uri}|${t.wrapS}|${t.wrapT}|${t.flipY}|${t.channel}`;
+  const c = condivise.get(k);
+  if (c) return c;
+  condivise.set(k, t);
+  return t;
+}
+
 /** Texture pixel art: nearest, niente mipmap, sRGB. */
 export function pixelTexture(t: THREE.Texture): THREE.Texture {
   t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
@@ -39,16 +51,23 @@ export async function createLoader(o: { base: string }): Promise<Loader> {
   const gltf = new GLTFLoader(manager);
   const models = new Map<string, Promise<{ scene: THREE.Group; clips: THREE.AnimationClip[] }>>();
   const textures = new Map<string, Promise<THREE.Texture>>();
-  const fix = (root: THREE.Object3D) => root.traverse((n) => {
-    const mesh = n as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    mesh.castShadow = true; mesh.receiveShadow = true;
-    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
-      const mm = m as THREE.MeshStandardMaterial;
-      if (mm.map) pixelTexture(mm.map);
-      if (mm.emissiveMap) pixelTexture(mm.emissiveMap);
-    }
-  });
+  const fix = (g: { scene: THREE.Group; parser: { json: { textures?: { source?: number }[]; images?: { uri?: string }[] }; associations: Map<unknown, { textures?: number }> } }) => {
+    const uriDi = (t: THREE.Texture) => {
+      const i = g.parser.associations.get(t)?.textures, src = i === undefined ? undefined : g.parser.json.textures?.[i]?.source;
+      return src === undefined ? undefined : g.parser.json.images?.[src]?.uri;
+    };
+    const una = (t: THREE.Texture) => { const u = uriDi(t); return u ? condividi(t, u) : t; };
+    g.scene.traverse((n) => {
+      const mesh = n as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        const mm = m as THREE.MeshStandardMaterial;
+        if (mm.map) { const t = una(mm.map); if (t === mm.map) pixelTexture(t); else mm.map = t; }
+        if (mm.emissiveMap) { const t = una(mm.emissiveMap); if (t === mm.emissiveMap) pixelTexture(t); else mm.emissiveMap = t; }
+      }
+    });
+  };
   const extended = new Map<string, Promise<void>>();
   const api: Loader = {
     manifest,
@@ -71,7 +90,7 @@ export async function createLoader(o: { base: string }): Promise<Loader> {
       let p = models.get(name);
       if (!p) {
         p = gltf.loadAsync(o.base + entry.file)
-          .then((g) => { fix(g.scene); return { scene: g.scene, clips: g.animations }; })
+          .then((g) => { fix(g); return { scene: g.scene, clips: g.animations }; })
           .catch((e: unknown) => { models.delete(name); throw new MissingAsset(`[marea] modello ${name} (${entry.file}) non caricato: ${String((e as Error)?.message ?? e)}`); });
         models.set(name, p);
       }
