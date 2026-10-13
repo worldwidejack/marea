@@ -238,8 +238,8 @@ export type CPistaDef = {
   vuoti: CTrattoDef[];
   /** Dove manca il muro: lato −1 sinistra, 1 destra, 0 tutti e due (si può cadere di sotto). */
   senzaMuro: (CTrattoDef & { lato: -1 | 0 | 1 })[];
-  /** Rampe: a `s` m lanciano in aria con almeno `salto` m/s. */
-  rampe: { s: number; salto: number; lat?: [number, number] }[];
+  /** Rampe: a `s` m lanciano in aria con almeno `salto` m/s (e al massimo `max` m/s: il salto non si allunga oltre col turbo, #270). */
+  rampe: { s: number; salto: number; max?: number; lat?: [number, number] }[];
   /** Tappeti del turbo: da `s` per `lungo` m. */
   turbo: { s: number; lungo: number; lat: [number, number] }[];
   rami: CRamoDef[];
