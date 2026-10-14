@@ -1,4 +1,5 @@
-// Danni e punti: colpo dell'eroe su uno zombie (+10, all'uccisione +60 o +100 in mischia; lo scudato para quello che gli arriva davanti),
+// Danni e punti: colpo dell'eroe su uno zombie (+10, all'uccisione +60 o +100 in mischia; lo scudo dello scudato prende quello che gli
+// arriva davanti finché non si spacca),
 // esplosioni e fiamme, colpo di uno zombie sull'eroe (lo scudo templare para: in mano davanti, sulle spalle dietro; a zero sei caduto).
 // Chi muore può lasciare un power-up (docs/TEMPLARI.md §9); con Ira di Dio ogni colpo uccide (boss esclusi), con la Decima punti doppi.
 import { TEMPLARI } from '@marea/content/templari.ts';
@@ -31,21 +32,27 @@ export function rendi(s: TState, n: number): void { s.punti += n; ev(s, { t: 'pu
 export type Colpo = { danno: number; mischia: boolean; caricato: boolean; dirX: number; dirZ: number; spinta: number; scudo?: boolean };
 export type Esito = 'no' | 'parato' | 'colpito' | 'ucciso';
 
-/** Lo scudato para un colpo che gli arriva davanti (chi colpisce sta nel suo cono). */
+/** Lo scudato para un colpo che gli arriva davanti (chi colpisce sta nel suo cono), finché lo scudo regge. */
 export function parato(z: Zombie, dirX: number, dirZ: number): boolean {
   const c = z.def.scudo;
-  return c !== undefined && -(dirX * z.fx + dirZ * z.fz) >= c;
+  return c !== undefined && z.scudo > 0 && -(dirX * z.fx + dirZ * z.fz) >= c;
 }
 
 /** Colpo su uno zombie: scudo, danno, spinta, punti, morte. */
 export function colpisci(s: TState, z: Zombie, c: Colpo): Esito {
   if (z.st === 'morto' || z.st === 'sorge' || z.st === 'fugge') return 'no';
+  // lo scudo prende il colpo intero (niente danno passa) e si consuma; con Ira di Dio si spacca subito e il colpo passa
+  const ira = s.tick < s.poteri.ira && !z.def.boss;
   if (c.scudo !== false && parato(z, c.dirX, c.dirZ)) {
-    ev(s, { t: 'parato', chi: 'zombie', x: r2(z.x), z: r2(z.z) });
-    if (c.spinta > 0) moveCircle(s.gr.zombie, z, c.dirX * c.spinta * 0.5, c.dirZ * c.spinta * 0.5, z.def.raggio);
-    return 'parato';
+    z.scudo = ira ? 0 : Math.max(0, z.scudo - c.danno);
+    if (z.scudo <= 0) { ev(s, { t: 'scudoSpaccato', id: z.id, x: r2(z.x), z: r2(z.z) }); dai(s, TEMPLARI.punti.colpo, 'colpo'); }
+    else ev(s, { t: 'parato', chi: 'zombie', x: r2(z.x), z: r2(z.z) });
+    if (!ira) {
+      if (c.spinta > 0) moveCircle(s.gr.zombie, z, c.dirX * c.spinta * 0.5, c.dirZ * c.spinta * 0.5, z.def.raggio);
+      return 'parato';
+    }
   }
-  const danno = s.tick < s.poteri.ira && !z.def.boss ? Math.max(c.danno, z.vita) : c.danno;
+  const danno = ira ? Math.max(c.danno, z.vita) : c.danno;
   const d = Math.min(z.vita, danno);
   z.vita -= danno;
   z.hurt = COLPITO_TICKS;
@@ -98,8 +105,8 @@ export function uccidi(s: TState, z: Zombie, potere = true): void {
   s.uccisioni++;
   ev(s, { t: 'morte', id: z.id, tipo: z.tipo, x: r2(z.x), z: r2(z.z) });
   if (potere) lasciaPotere(s, z.x, z.z, !!z.def.boss);
-  // lo scudato lascia lo scudo a terra
-  if (z.def.scudo !== undefined) {
+  // lo scudato lascia lo scudo a terra, se non gliel'hai spaccato
+  if (z.def.scudo !== undefined && z.scudo > 0) {
     const scudi = s.drops.filter((d) => d.tipo === 'scudo' && d.fine > s.tick);
     if (scudi.length > 2) s.drops = s.drops.filter((d) => d !== scudi[0]);
     s.drops.push({ id: s.nextId++, tipo: 'scudo', x: z.x, z: z.z, fine: s.tick + secToTicks(TEMPLARI.scudo.aTerra) });
@@ -142,20 +149,38 @@ export function stepFiamme(s: TState): void {
   }
 }
 
+/** L'eroe è a zero: con l'Elisir del risorto si rialza (vita piena, qualche secondo intoccabile, gli zombie vicini spinti via) e perde tutte
+ *  le pozioni, come in COD; sennò è caduto. */
+function cade(s: TState): void {
+  const h = s.eroe;
+  if (h.pozioni.includes('risorto')) {
+    const p = TEMPLARI.strega.pozioni.find((x) => x.id === 'risorto')!, r = p.spinta ?? 3;
+    h.pozioni = []; h.max = TEMPLARI.eroe.vita; h.vita = h.max; h.quiete = 0; h.intoccabile = s.tick + secToTicks(p.intoccabile ?? 3);
+    for (const z of s.zombie) {
+      if (z.st === 'morto' || z.st === 'sorge') continue;
+      const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
+      if (d < r && d > 1e-6) moveCircle(s.gr.zombie, z, (dx / d) * (r - d), (dz / d) * (r - d), z.def.raggio);
+    }
+    ev(s, { t: 'risorto' });
+    return;
+  }
+  h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' });
+}
+
 /** Danno all'eroe che lo scudo non para (fiamme, trappole): `segnale` = l'evento da mandare (brucia o ferito), null = nessuno. */
 export function ferisciDiretto(s: TState, danno: number, segnale: 'brucia' | 'ferito' | null): void {
   const h = s.eroe;
-  if (s.done) return;
+  if (s.done || s.tick < h.intoccabile) return;
   h.vita -= danno; h.quiete = 0;
   if (segnale === 'brucia') ev(s, { t: 'brucia' });
   if (segnale === 'ferito') { h.hurt = COLPITO_TICKS; ev(s, { t: 'ferito', danno: Math.round(danno), x: r2(h.x), z: r2(h.z) }); }
-  if (h.vita <= 0) { h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' }); }
+  if (h.vita <= 0) cade(s);
 }
 
 /** Colpo sull'eroe da (x, z): lo scudo para (in mano chi è davanti, sulle spalle chi è dietro), sennò vita; a zero è caduto. */
 export function ferisci(s: TState, danno: number, x: number, z: number): void {
   const h = s.eroe;
-  if (s.done) return;
+  if (s.done || s.tick < h.intoccabile) return;
   if (h.scudo) {
     const dx = x - h.x, dz = z - h.z, d = Math.sqrt(dx * dx + dz * dz) || 1, dot = (dx * h.fx + dz * h.fz) / d, c = TEMPLARI.scudo.cono;
     if ((h.inMano && dot >= c) || (!h.inMano && dot <= -c)) {
@@ -167,5 +192,5 @@ export function ferisci(s: TState, danno: number, x: number, z: number): void {
   }
   h.vita -= danno; h.quiete = 0; h.hurt = COLPITO_TICKS;
   ev(s, { t: 'ferito', danno: Math.round(danno), x: r2(x), z: r2(z) });
-  if (h.vita <= 0) { h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' }); }
+  if (h.vita <= 0) cade(s);
 }

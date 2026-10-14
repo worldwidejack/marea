@@ -99,13 +99,20 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
     snap: () => { cur.copy(target); vx.v = vy.v = vz.v = 0; place(); },
     setView: (p, fov, d) => { pitch = p; dist = d; aim(); fov0 = fov; if (!lock) { camera.fov = fov; camera.updateProjectionMatrix(); } place(); },
     blocca: (v) => {
-      lock = v;
-      if (v) lockOff.set(Math.sin(v.yaw) * Math.cos(v.pitch), Math.sin(v.pitch), Math.cos(v.yaw) * Math.cos(v.pitch));
-      api.yaw = v ? v.yaw : yaw;
-      camera.fov = v ? v.fov : fov0; camera.updateProjectionMatrix(); place();
+      lock = v ? { ...v } : null; // copia: in modalità foto la gira orbit(), e l'oggetto di chi chiama non cambia
+      if (lock) lockOff.set(Math.sin(lock.yaw) * Math.cos(lock.pitch), Math.sin(lock.pitch), Math.cos(lock.yaw) * Math.cos(lock.pitch));
+      api.yaw = lock ? lock.yaw : yaw;
+      camera.fov = lock ? lock.fov : fov0; camera.updateProjectionMatrix(); place();
     },
-    orbit: (y, p) => { yaw = y; pitch = Math.min(Math.PI / 2 - 0.05, Math.max(0.05, p)); if (!lock) api.yaw = yaw; aim(); place(); },
-    get pitch() { return pitch; },
+    orbit: (y, p) => {
+      const pp = Math.min(Math.PI / 2 - 0.05, Math.max(0.05, p));
+      if (lock) { // dentro un interno la modalità foto gira l'inquadratura bloccata; yaw e pitch dell'overworld restano quelli di prima
+        lock.yaw = y; lock.pitch = pp; api.yaw = y;
+        lockOff.set(Math.sin(y) * Math.cos(pp), Math.sin(pp), Math.cos(y) * Math.cos(pp));
+      } else { yaw = y; pitch = pp; api.yaw = yaw; aim(); }
+      place();
+    },
+    get pitch() { return lock ? lock.pitch : pitch; },
     setZoom: (z) => { zoomTarget = clamp(z); zoom = zoomTarget; vzoom.v = 0; api.zoom = zoom; place(); },
     update: (dt) => {
       if (!(dt > 0)) return;

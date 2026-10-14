@@ -297,6 +297,27 @@ export default async function (ctx) {
       assert(sameLook((await st(bruno)).wp2_avatar.look, b0), 'Annulla non ripristina');
     });
 
+    await ctx.test('editor: modifica del nome del personaggio e SALVA (#301)', async () => {
+      await anna.page.evaluate(() => window.__game.test.openEditor());
+      await waitOpen(anna, true);
+      const input = anna.page.locator('#mzEditor [data-nav="avatar-nome"]');
+      assert(await input.isVisible(), 'campo nome non visibile');
+      assert((await input.inputValue()) === 'Anna', 'nome iniziale in input non corretto: ' + (await input.inputValue()));
+      await input.fill('X');
+      assert(await nav(anna, 'salva').isDisabled(), 'Salva non disabilitato con nome di 1 lettera');
+      await input.fill('Annarella');
+      assert(!(await nav(anna, 'salva').isDisabled()), 'Salva disabilitato con nome valido');
+      const [resp] = await Promise.all([
+        anna.page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/nome', { timeout: 10000 }),
+        nav(anna, 'salva').click(),
+      ]);
+      assert(resp.status() === 200, 'POST /api/nome fallita: ' + resp.status());
+      await waitOpen(anna, false);
+      const me = (await get('/api/me', 'tokA')).body;
+      assert(me.nome === 'Annarella', '/api/me non ha il nuovo nome: ' + me.nome);
+      await post('/api/nome', 'tokA', { nome: 'Anna' });
+    });
+
     await ctx.test('nessun errore in console (a parte il 409 atteso di «Compra»)', async () => {
       for (const pg of pages) {
         const expected = pg.consoleErrors.filter((e) => /status of 409/.test(e));

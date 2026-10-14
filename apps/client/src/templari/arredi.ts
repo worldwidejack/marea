@@ -178,19 +178,21 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
   ]));
   const asteM = new THREE.Mesh(asteGeo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })); asteM.name = 'aste'; scene.add(asteM); disp.push(asteGeo, asteM.material as THREE.Material);
 
-  // ---- cimitero: cipressi fuori dai muri (nord, ovest, est) e i teschi davanti all'ossario ----
-  const cip: THREE.Matrix4[] = [], cipCol: string[] = [];
-  // solo a nord e a ovest dell'erba: la camera guarda da sud-est, a sud e a est coprirebbero il cimitero
-  const erbaVicina = (cx: number, cz: number) => { for (let k = 1; k <= 2; k++) for (const [x, z] of [[cx, cz + k], [cx + k, cz]] as const) if (x < W && z < H && a.suolo[z * W + x] === SUOLO.erba) return true; return false; };
-  for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
-    if (cellA(cx, cz) !== C.fuori || !erbaVicina(cx, cz) || (cx + cz * 2) % 3 !== 0) continue;
-    const h = 4.5 + 2.5 * cellHash(cx, cz, 41);
-    cip.push(mat((cx + 0.5) * T, 0, (cz + 0.5) * T, 0, 0.75 + 0.2 * cellHash(cx, cz, 42), h, 0.75 + 0.2 * cellHash(cx, cz, 42)));
+  // ---- cimitero: cipressi sul bordo dell'erba (nord e ovest, a.alberi: la sim li ferma grandi come il tronco) e i teschi davanti all'ossario ----
+  const cip: THREE.Matrix4[] = [], cipCol: string[] = [], tronchi: THREE.Matrix4[] = [];
+  for (const al of a.alberi) {
+    if (al.tipo !== 'cipresso') continue;
+    const cx = Math.floor(al.x / T), cz = Math.floor(al.z / T), h = 4.5 + 2.5 * al.h, r = 0.5 + 0.12 * cellHash(cx, cz, 42);
+    cip.push(mat(al.x, 0.45, al.z, 0, r, h - 0.45, r)); // chioma stretta e alta, come i cipressi veri
+    tronchi.push(mat(al.x, 0, al.z, 0));
     cipCol.push(cellHash(cx, cz, 43) < 0.5 ? PAL.bosco : P.boscoOmbra);
   }
   const cipGeo = new THREE.ConeGeometry(1, 1, 6); cipGeo.translate(0, 0.5, 0);
   const cipresso = istanze(cipGeo, new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), cip.length, 'cipressi');
   cip.forEach((m, n) => { cipresso.setMatrixAt(n, m); cipresso.setColorAt(n, col.set(cipCol[n]!)); });
+  const troncoGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.6, 5); troncoGeo.translate(0, 0.3, 0);
+  const tronco = istanze(troncoGeo, new THREE.MeshLambertMaterial({ color: PAL.legnoScuro, flatShading: true }), tronchi.length, 'cipressi_tronchi');
+  tronchi.forEach((m, n) => tronco.setMatrixAt(n, m));
   // ---- spiaggia: il mare a sud, la nave in secca a est, bandiera nera, griglia del boucan, insegna della taverna ----
   const sabbia = [...Array(W * H).keys()].filter((i) => a.suolo[i] === SUOLO.sabbia);
   const mareT = mareTex(); disp.push(mareT);

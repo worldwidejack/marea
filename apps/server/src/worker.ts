@@ -10,7 +10,7 @@ import { indossaDa, indossaValida, stessoIndossa } from '@marea/sim/rpg/indossa.
 import type { Env, Persona } from './env.ts';
 import { autentica } from './auth.ts';
 import { nowFor } from './clock.ts';
-import { elencoPersone, entraConInvito, esistePersona, salvaLook, segnaAccesso } from './db.ts';
+import { elencoPersone, entraConInvito, esistePersona, salvaLook, salvaNome, segnaAccesso } from './db.ts';
 import { toFeedItem } from './feed.ts';
 import type { FeedRow } from './feed.ts';
 import { rottePortoAmici, segnaRecordDa } from './porto_amici.ts';
@@ -90,6 +90,14 @@ async function avvisaZona(env: Env, persona: string, look: LookSalvato): Promise
   try {
     const r = await env.ZONE.get(env.ZONE.idFromName('porto')).fetch('https://zone/look', {
       method: 'POST', headers: { 'x-persona': persona, 'content-type': 'application/json' }, body: JSON.stringify(look),
+    });
+    await r.body?.cancel();
+  } catch { /* la zona si aggiorna alla prossima connessione */ }
+}
+async function avvisaZonaNome(env: Env, persona: string, nome: string): Promise<void> {
+  try {
+    const r = await env.ZONE.get(env.ZONE.idFromName('porto')).fetch('https://zone/nome', {
+      method: 'POST', headers: { 'x-persona': persona, 'content-type': 'application/json' }, body: JSON.stringify({ nome }),
     });
     await r.body?.cancel();
   } catch { /* la zona si aggiorna alla prossima connessione */ }
@@ -251,6 +259,16 @@ export default {
         await salvaLook(env, p.id, salvato);
         await avvisaZona(env, p.id, salvato);
         return json({ ok: true });
+      }
+      if (path === '/api/nome' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const nome = typeof body['nome'] === 'string' ? body['nome'].replace(/[\p{C}<>]/gu, '').trim().replace(/\s+/g, ' ') : '';
+        if (nome.length < 2 || nome.length > 16) return json({ error: 'Scrivi un nome da 2 a 16 lettere' }, 400);
+        await salvaNome(env, p.id, nome);
+        p.nome = nome;
+        await avvisaZonaNome(env, p.id, nome);
+        return json({ ok: true, nome });
       }
       if (path === '/api/look/hat' && req.method === 'POST') {
         const body = await corpo();

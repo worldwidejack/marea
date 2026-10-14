@@ -1,5 +1,6 @@
 // Input della partita a ondate dalla rete e replay deterministico per il server. Il formato degli input è quello del dungeon (RLE a ottavi,
 // o la stringa compatta di encodeDungeon); le azioni dal menu sono [tick, azione] con tick = passi già fatti (come nel dungeon).
+import { TEMPLARI } from '@marea/content/templari.ts';
 import { decodeDungeon, frameOfRiga, isPackedDungeon } from '../dungeon/replay.ts';
 import type { PackedDungeon } from '../dungeon/types.ts';
 import type { TAzione, TAzioni, TOpzioni, TRisultato } from './types.ts';
@@ -11,10 +12,16 @@ export function inputsTemplari(raw: unknown): PackedDungeon | null {
   return isPackedDungeon(v, MAX_TICKS) ? v : null;
 }
 
-const MAX_AZIONI = 16;
+/** Uscire e gli acquisti dal Mercante e dalla Strega (una partita lunga ne fa qualche decina). */
+const MAX_AZIONI = 400;
 function parseAzione(v: unknown): TAzione | null {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
-  return (v as Record<string, unknown>)['t'] === 'esci' ? { t: 'esci' } : null;
+  const o = v as Record<string, unknown>;
+  if (o['t'] === 'esci') return { t: 'esci' };
+  if (o['t'] !== 'compra') return null;
+  if (o['da'] === 'mercante' && (o['cosa'] === 'potenzia' || o['cosa'] === 'munizioni') && (o['slot'] === 0 || o['slot'] === 1)) return { t: 'compra', da: 'mercante', cosa: o['cosa'], slot: o['slot'] };
+  if (o['da'] === 'strega') { const p = TEMPLARI.strega.pozioni.find((x) => x.id === o['cosa']); if (p) return { t: 'compra', da: 'strega', cosa: p.id }; }
+  return null;
 }
 /** Azioni dalla rete: [[tick, azione], …] con tick non decrescenti; null se non valide. */
 export function parseTAzioni(v: unknown): TAzioni | null {

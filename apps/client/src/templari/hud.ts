@@ -22,6 +22,8 @@ const CSS = `
 #mzTpl .pot { position: absolute; left: ${LEFT}; top: calc(${TOP} + 122px); display: flex; gap: 6px; }
 #mzTpl .pot span { padding: 2px 6px; background: rgba(35,32,31,.85); border: 2px solid currentColor; font-size: 12px; font-weight: bold; }
 #mzTpl .pot span.lamp { animation: mzTplLamp .5s steps(2) infinite; }
+#mzTpl .poz { position: absolute; left: ${LEFT}; top: calc(${TOP} + 146px); display: flex; gap: 4px; flex-wrap: wrap; max-width: 220px; }
+#mzTpl .poz span { padding: 1px 4px; background: rgba(35,32,31,.85); border: 1px solid currentColor; font-size: 10px; font-weight: bold; }
 @keyframes mzTplLamp { 50% { opacity: .2; } }
 #mzTpl .vign { position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 0 10px rgba(232,67,63,.55), inset 0 0 0 22px rgba(232,67,63,.3), inset 0 0 0 40px rgba(232,67,63,.14); }
 #mzTpl .boss { position: absolute; left: 50%; top: calc(${TOP} + 34px); transform: translateX(-50%); width: min(360px, calc(100% - 140px)); display: none; text-align: center; }
@@ -54,7 +56,10 @@ export type TplHud = {
 
 const NOMI_FASE = { altare: 'Porta il calice all’altare', inizio: 'La terra trema…', pausa: 'Respira: arriva la prossima ondata', combatti: '' } as const;
 
-export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string, munizioni: (id: string) => boolean): TplHud {
+/** Sigla e colore delle pozioni della Strega sotto la vita. */
+const POZ: Record<string, [string, string]> = { pietra: ['PIETRA', PAL.pietraChiara], viandante: ['VIANDANTE', PAL.erba], lesto: ['LESTO', PAL.acqua], bombardiere: ['GRAPPA', PAL.arancio], risorto: ['RISORTO', PAL.rosaNeon], fonte: ['FONTE', PAL.acquaBassa] };
+
+export function createTplHud(root: HTMLElement, nomeArma: (id: string, pot?: boolean) => string, munizioni: (id: string) => boolean): TplHud {
   injectUiStyle();
   if (!document.getElementById('mz-tpl-style')) { const st = document.createElement('style'); st.id = 'mz-tpl-style'; st.textContent = CSS; document.head.appendChild(st); }
   const box = el('div', 'mz'); box.id = 'mzTpl';
@@ -66,10 +71,10 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string
   const boss = el('div', 'boss'), bossN = el('b'), bossBar = el('div', 'bar'), bossI = el('i'), bossF = el('em');
   bossBar.append(bossI, bossF); boss.append(bossN, bossBar);
   big.append(bigB, bigS);
-  const pot = el('div', 'pot');
-  box.append(vign, ond, pti, arma, vita, pot, msg, boss, big);
+  const pot = el('div', 'pot'), poz = el('div', 'poz');
+  box.append(vign, ond, pti, arma, vita, pot, poz, msg, boss, big);
   root.append(box);
-  let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1, pot: '' };
+  let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1, pot: '', poz: '' };
 
   return {
     set(v) {
@@ -82,11 +87,21 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string
       if (v.eroe.punti !== shown.pti) { shown.pti = v.eroe.punti; pti.firstChild!.textContent = String(v.eroe.punti); }
       const inMano = v.eroe.scudo?.inMano, a = v.eroe.armi[v.eroe.cur], altra = v.eroe.armi.find((x, i) => i !== v.eroe.cur && x);
       const colpi = !inMano && a && (a.colpi > 0 || a.riserva > 0 || munizioni(a.id)) ? ` ${a.colpi} | ${a.riserva}` : '';
-      const nome = inMano ? 'Scudo templare' : a ? nomeArma(a.id) : '';
+      const nome = inMano ? 'Scudo templare' : a ? nomeArma(a.id, a.pot) : '';
       const sc = v.eroe.scudo ? ` · scudo ${Math.ceil((v.eroe.scudo.vita / v.eroe.scudo.max) * 100)}%` : '';
       const ric = v.eroe.ricarica > 0 ? ' · ricarica…' : '';
       const aTxt = `${nome}|${colpi}|${altra?.id ?? ''}|${sc}|${ric}`;
-      if (aTxt !== shown.arma) { shown.arma = aTxt; arma.replaceChildren(el('span', '', nome), el('b', '', colpi), el('em', '', `${ric}${altra && !inMano ? ` · ${nomeArma(altra.id)}` : ''}${sc}`)); }
+      if (aTxt !== shown.arma) {
+        shown.arma = aTxt;
+        const n = el('span', '', (a?.pot && !inMano ? '✦ ' : '') + nome); if (a?.pot && !inMano) n.style.color = PAL.giallo;
+        arma.replaceChildren(n, el('b', '', colpi), el('em', '', `${ric}${altra && !inMano ? ` · ${nomeArma(altra.id, altra.pot)}` : ''}${sc}`));
+      }
+      // pozioni della Strega bevute
+      const pk2 = v.eroe.pozioni.join(',') + (v.eroe.intoccabile ? '!' : '');
+      if (pk2 !== shown.poz) {
+        shown.poz = pk2;
+        poz.replaceChildren(...v.eroe.pozioni.map((id) => { const [t, c] = POZ[id] ?? [id, PAL.sabbiaChiara]; const x = el('span', '', t); x.style.color = c; return x; }));
+      }
       const fr = Math.max(0, Math.min(1, v.eroe.vita / v.eroe.max));
       if (Math.abs(fr - shown.vita) > 0.01) { shown.vita = fr; vitaI.style.width = `${Math.round(fr * 100)}%`; }
       // bordo rosso: a gradini, più forte quando la vita è bassa e appena colpito

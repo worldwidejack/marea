@@ -50,11 +50,12 @@ _I limiti non sono un dictat: si possono alzare quando serve ed è sensato (Jack
 
 | Cosa | Limite |
 |---|---|
-| `app.js` (client) | ≤ 1215 KB minificato, ≤ 366 KB gzip (era 250 fino all'8 ott 2026, 350 fino all'11 ott, 1200/360 fino al 13 ott; il negozio dei mobili: +5/+2) |
+| `app.js` (client) | ≤ 1240 KB minificato, ≤ 376 KB gzip (era 250 fino all'8 ott 2026, 350 fino all'11 ott, 1200/360 fino al 13 ott, 1215/366 fino al 14 ott; il catalogo dei mobili: +25/+10) |
 | Ogni chunk caricato dopo (`import()`: GDR, minimappa, isole, giochi a schermo, audio) | ≤ 600 KB minificato, ≤ 180 KB gzip; tutti insieme ≤ 3000 KB, ≤ 900 KB gzip |
 | Discese dell'Isola dell'Adrenalina (`apps/client/src/adrenalina/`, scaricato salendo in funivia; niente nel JS iniziale) | come ogni chunk (12 ott 2026: ~50 KB, ~20 gzip); in pista draw call e triangoli come sopra: abeti a riquadri da 100 m spenti oltre 420 m, il terreno si vede tutto fino in valle (12 ott: massimo 51 draw call e 97.000 triangoli a 390×844) |
 
 | Caricamento iniziale (html + js + atlas + modelli della prima isola) | ≤ 3 MB (era 2) |
+| Modelli dei mobili della casa (`manifest_mobili.json`, `mob_<id>`, scaricato solo da chi mostra un mobile; ≤ 600 triangoli l'uno) | ≤ 3 MB (#304, `docs/MOBILI.md`) |
 | Kit delle zone dell'Isola delle Corse (`manifest_corse.json`, scaricato aprendo una pista vestita) | ≤ 2,5 MB (era 0,6: Spiaggia e porto 0,2 MB + 20 veicoli e piloti 1,4 MB, deviazione del 9 ott 2026) |
 | Draw call per frame | ≤ 100 |
 | Triangoli a schermo | ≤ 200.000 (150.000 fino al Borgo Marea, #237; 180.000 fino alla città attorno al Porto, #247: si torna giù con case più leggere) |

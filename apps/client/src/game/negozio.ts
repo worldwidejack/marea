@@ -6,8 +6,8 @@
 // mobile va nel magazzino di casa (ARREDA), pavimento e carta si mettono subito. Prezzi e righe: mobili.json e borgo.json.
 // Tutto questo sta in un chunk (main.ts lo scarica subito dopo l'avvio, TECH §5): la bottega compare un attimo dopo il mondo.
 import * as THREE from 'three';
-import { BORGO, MOBILI } from '@marea/content';
-import type { StanzaFinitura } from '@marea/content';
+import { BORGO, MOBILI, MOBILI_CATEGORIE } from '@marea/content';
+import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { casaDi, possiedeFinitura } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
@@ -28,7 +28,7 @@ import type { Pianta } from './interno.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
 export type Negozio = { tick(a: boolean): boolean; update(dt: number): void; readonly dentro: boolean };
-type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta'; id: string; nome: string; perle: number; x: number; z: number; fx: number; fz: number };
+type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'catalogo'; id: string; nome: string; perle: number; x: number; z: number; fx: number; fz: number };
 
 const ND = BORGO.negozioDentro, [X0, Z0, X1, Z1] = ND.pavimento, [CX, C0, C1] = ND.corridoio;
 const PIANTA: Pianta = { pavimento: ND.pavimento, corridoio: ND.corridoio, altezza: ND.altezza, retro: null };
@@ -39,6 +39,9 @@ const CSS = `
 #mzNegozioBar .t { padding: 4px 10px; background: rgba(46,30,20,.93); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 14px ui-monospace, Menlo, monospace; text-align: center; }
 #mzNegozio .prezzo { margin: 8px 0; color: ${PAL.sabbia}; font-size: 15px; }
 #mzNegozio .prezzo b { color: ${PAL.giallo}; }
+#mzNegozio .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+#mzNegozio .chips button { min-height: 36px; padding: 0 10px; background: ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.legnoChiaro}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; }
+#mzNegozio .chips button.on { background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border-color: ${PAL.neroCaldo}; }
 `;
 
 /** La bottega vista da fuori (davanti verso +Z): muri chiari, tetto rosso, vetrina, porta, tenda a strisce, insegna (a parte, con la scritta). */
@@ -90,7 +93,8 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   w.scene.add(dentroG);
   const pezzi: Pezzo[] = [], parti: THREE.BufferGeometry[] = [];
   const cella = (cx: number, cz: number) => ({ x: (cx + 0.5) * T, z: (cz + 0.5) * T });
-  const terra = MOBILI.filter((m) => m.posto === 'terra'), parete = MOBILI.filter((m) => m.posto === 'parete');
+  // in mostra solo i mobili con `vetrina` (le pedane sono 3); tutti gli altri si sfogliano dal catalogo sul banco
+  const terra = MOBILI.filter((m) => m.vetrina && m.posto === 'terra'), parete = MOBILI.filter((m) => m.vetrina && m.posto === 'parete');
   const carte = BORGO.carte.filter((f) => (f.perle ?? 0) > 0), pavimenti = BORGO.pavimenti.filter((f) => (f.perle ?? 0) > 0);
   // in fondo al muro: carte da parati in vendita e i mobili da parete; davanti, una fila di pedane coi mobili a terra; sotto, i campioni di pavimento
   [...carte.map((f) => ({ f, m: null })), ...parete.map((m) => ({ f: null, m }))].forEach((q, i) => {
@@ -101,14 +105,14 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       parti.push(painted(new THREE.BoxGeometry(1.4, 1.8, 0.06), P.legnoScuro, M(x, 1.2, z + 0.01)));
       pezzi.push({ kind: 'carta', id: q.f.id, nome: q.f.nome, perle: q.f.perle ?? 0, x, z, fx: x, fz: z + 1.6 });
     } else if (q.m) {
-      const g = mobileGeo(q.m.forma, q.m.colori); g.translate(x, -0.4, z); parti.push(g);
+      const g = mobileGeo(q.m.forma, q.m.colori, q.m); g.translate(x, -0.4, z); parti.push(g);
       pezzi.push({ kind: 'mobile', id: q.m.id, nome: q.m.nome, perle: q.m.perle, x, z, fx: x, fz: z + 1.6 });
     }
   });
   terra.forEach((m, i) => {
     const c = cella(X0 + 1 + i * 2, Z0 + 2);
     parti.push(painted(new THREE.CylinderGeometry(0.95, 1.05, 0.2, 8), P.pietra, M(c.x, 0.1, c.z)));
-    const g = mobileGeo(m.forma, m.colori); g.translate(c.x, 0.2, c.z); parti.push(g);
+    const g = mobileGeo(m.forma, m.colori, m); g.translate(c.x, 0.2, c.z); parti.push(g);
     pezzi.push({ kind: 'mobile', id: m.id, nome: m.nome, perle: m.perle, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.5 });
   });
   pavimenti.forEach((f, i) => {
@@ -120,6 +124,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   const bc = cella(X1 - 1, Z0 + 2);
   parti.push(painted(new THREE.BoxGeometry(1.4, 1.0, 3.0), P.legno, M(bc.x - 0.4, 0.5, bc.z + 0.6)), painted(new THREE.BoxGeometry(1.5, 0.1, 3.1), P.legnoChiaro, M(bc.x - 0.4, 1.05, bc.z + 0.6)));
   parti.push(painted(new THREE.BoxGeometry(0.5, 0.35, 0.4), P.arancio, M(bc.x - 0.4, 1.28, bc.z)), painted(new THREE.BoxGeometry(0.3, 0.08, 0.2), P.neroCaldo, M(bc.x - 0.4, 1.48, bc.z)));
+  pezzi.push({ kind: 'catalogo', id: 'catalogo', nome: 'Catalogo di tutti i mobili', perle: 0, x: bc.x - 0.4, z: bc.z + 0.6, fx: bc.x - 1.9, fz: bc.z + 0.6 }); // davanti al banco
   const mob = new THREE.Mesh(merged(parti), vc); mob.castShadow = mob.receiveShadow = true; dentroG.add(mob);
   let ciro: Avatar | null = null;
   const ciroPos = { x: ox + bc.x + 0.6, z: oz + bc.z + 0.6 };
@@ -158,7 +163,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   o.root.append(btn, bar, sheet);
   for (const e of [btn, bar, sheet]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   type Vicino = { kind: 'porta' } | { kind: 'esci' } | { kind: 'pezzo'; p: Pezzo };
-  let near: Vicino | null = null, aperto: Pezzo | null = null, busy = false, aWas = false, nota = '', comprati = 0;
+  let near: Vicino | null = null, aperto: Pezzo | null = null, busy = false, aWas = false, nota = '', comprati = 0, cat = MOBILI_CATEGORIE[0]?.id ?? '', sel: string | null = null;
   const libero = () => w.mode === 'walk' && !w.frozen && !w.race.on && !o.velo.attivo;
   const trova = (): Vicino | null => {
     if (!libero()) return null;
@@ -171,11 +176,19 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     for (const p of pezzi) { const d = Math.hypot(f.x - ox - p.fx, f.z - oz - p.fz); if (d < bd) { bd = d; best = p; } }
     return best ? { kind: 'pezzo', p: best } : null;
   };
-  const chiudi = () => { aperto = null; nota = ''; sheet.classList.remove('on'); sheet.replaceChildren(); };
-  const gia = (p: Pezzo): boolean => p.kind !== 'mobile' && possiedeFinitura(o.getLot(), p.kind, p.id);
+  const chiudi = () => { aperto = null; sel = null; nota = ''; sheet.classList.remove('on'); sheet.replaceChildren(); };
+  const gia = (p: Pezzo): boolean => p.kind !== 'mobile' && p.kind !== 'catalogo' && possiedeFinitura(o.getLot(), p.kind, p.id);
+  /** Le descrizioni dei mobili (mobili_testi.json): si scaricano alla prima scheda, non pesano sull'avvio. */
+  let testi: Record<string, string> | null = null;
+  const caricaTesti = () => { if (!testi) { testi = {}; void import('@marea/content/mobili_testi.json', { with: { type: 'json' } }).then((m) => { testi = (m.default as { testi: Record<string, string> }).testi; ridisegna(); }).catch(() => {}); } };
+  const ridisegna = () => { if (aperto?.kind === 'catalogo') catalogo(); else if (aperto) scheda(aperto); };
+  const celleDi = (m: MobileDef): number => m.posto === 'parete' ? 1 : (m.celle?.[0] ?? 1) * (m.celle?.[1] ?? 1);
+  const dove = (m: MobileDef): string => m.posto === 'parete' ? 'Si appende al muro' : celleDi(m) > 1 ? `Per terra: occupa ${celleDi(m)} celle` : 'Per terra: occupa una cella';
+  const pezzoDi = (m: MobileDef): Pezzo => ({ kind: 'mobile', id: m.id, nome: m.nome, perle: m.perle, x: 0, z: 0, fx: 0, fz: 0 });
   function scheda(p: Pezzo): void {
-    aperto = p;
-    const l = o.getLot(), perle = l?.resources.perle ?? 0;
+    if (p.kind === 'catalogo') { catalogo(); return; }
+    aperto = p; caricaTesti();
+    const l = o.getLot(), perle = l?.resources.perle ?? 0, m = p.kind === 'mobile' ? MOBILI.find((x) => x.id === p.id) ?? null : null;
     const testa = el('div', 'mz-row'); testa.style.alignItems = 'center';
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudi);
     const t = el('b', '', p.nome); t.style.flex = '1'; t.style.color = PAL.giallo; testa.append(t, x);
@@ -186,21 +199,65 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     b.append(el('span', '', g ? 'Ce l’hai già' : !o.api ? 'Serve il collegamento' : 'COMPRA'), el('b', '', g ? '✓' : `${p.perle}`));
     b.disabled = g || busy || !o.api;
     b.addEventListener('click', () => void compra(p));
-    const corpo: Node[] = [testa, prezzo, b];
+    const corpo: Node[] = [testa];
+    if (m && testi?.[m.id]) corpo.push(el('div', 'prezzo', testi[m.id]!));
+    if (m) corpo.push(el('div', 'prezzo', dove(m)));
+    corpo.push(prezzo, b);
     if (nota) corpo.push(el('div', 'prezzo', nota));
+    sheet.replaceChildren(...corpo); sheet.classList.add('on');
+  }
+  /** Il catalogo del banco: tutti i mobili, per categoria (mobili.json `categorie`); toccandone uno si legge la descrizione e si compra. */
+  function catalogo(): void {
+    aperto = pezzi.find((q) => q.kind === 'catalogo') ?? aperto; caricaTesti();
+    const l = o.getLot(), perle = l?.resources.perle ?? 0, mag = casaDi(l).magazzino ?? {};
+    const testa = el('div', 'mz-row'); testa.style.alignItems = 'center';
+    const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudi);
+    const m = sel ? MOBILI.find((q) => q.id === sel) ?? null : null;
+    const t = el('b', '', m ? m.nome : 'CATALOGO'); t.style.flex = '1'; t.style.color = PAL.giallo; testa.append(t, x);
+    const corpo: Node[] = [testa];
+    if (m) {
+      const ind = el('button', 'mz-btn', ''); ind.type = 'button'; ind.dataset['act'] = 'indietro'; ind.append(el('span', '', '‹ Torna al catalogo'), el('b', '', ''));
+      ind.addEventListener('click', () => { sel = null; nota = ''; catalogo(); });
+      const prezzo = el('div', 'prezzo'); prezzo.append(el('span', '', `${dove(m)}. Prezzo `), el('b', '', `${m.perle} Perle`), el('span', '', ` · ne hai ${perle}`));
+      const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'compra';
+      b.append(el('span', '', !o.api ? 'Serve il collegamento' : 'COMPRA'), el('b', '', `${m.perle}`));
+      b.disabled = busy || !o.api;
+      b.addEventListener('click', () => void compra(pezzoDi(m)));
+      corpo.push(ind);
+      if (testi?.[m.id]) corpo.push(el('div', 'prezzo', testi[m.id]!));
+      corpo.push(prezzo);
+      if (mag[m.id]) corpo.push(el('div', 'prezzo', `Ne hai già ${mag[m.id]} nel magazzino.`));
+      corpo.push(b);
+      if (nota) corpo.push(el('div', 'prezzo', nota));
+    } else {
+      const chips = el('div', 'chips');
+      for (const c of MOBILI_CATEGORIE) {
+        const n = MOBILI.filter((q) => q.categoria === c.id).length; if (!n) continue;
+        const bt = el('button', c.id === cat ? 'on' : '', `${c.nome} ${n}`); bt.type = 'button'; bt.dataset['cat'] = c.id;
+        bt.addEventListener('click', () => { cat = c.id; catalogo(); });
+        chips.append(bt);
+      }
+      corpo.push(chips);
+      for (const q of MOBILI.filter((r) => r.categoria === cat)) {
+        const r = el('button', 'mz-btn', ''); r.type = 'button'; r.dataset['mobile'] = q.id;
+        r.append(el('span', '', q.nome), el('b', '', `${q.perle}`));
+        r.addEventListener('click', () => { sel = q.id; nota = ''; catalogo(); });
+        corpo.push(r);
+      }
+    }
     sheet.replaceChildren(...corpo); sheet.classList.add('on');
   }
   async function compra(p: Pezzo): Promise<void> {
     const l = o.getLot();
-    if (busy || !o.api || !l || gia(p)) return;
-    if (l.resources.perle < p.perle) { nota = `Ti mancano ${p.perle - l.resources.perle} Perle: le vinci ai minigiochi e alla Bacheca.`; scheda(p); return; }
-    busy = true; scheda(p);
+    if (busy || !o.api || !l || p.kind === 'catalogo' || gia(p)) return;
+    if (l.resources.perle < p.perle) { nota = `Ti mancano ${p.perle - l.resources.perle} Perle: le vinci ai minigiochi e alla Bacheca.`; ridisegna(); return; }
+    busy = true; ridisegna();
     try {
       const next = await (p.kind === 'mobile' ? o.api.casa('compra', { id: p.id }) : o.api.casa('finitura', { tipo: p.kind, id: p.id }));
       o.setLot(next); comprati++;
-      chiudi();
+      if (aperto?.kind === 'catalogo') { nota = ''; ridisegna(); } else chiudi(); // dal catalogo si resta, per comprarne altri
       o.hud.toast(p.kind === 'mobile' ? `${p.nome}: è nel magazzino, arreda da casa tua` : `${p.nome}: messo in casa tua`, 2600);
-    } catch (e) { nota = e instanceof ApiError ? e.message : 'Qualcosa non va, riprova'; scheda(p); } finally { busy = false; }
+    } catch (e) { nota = e instanceof ApiError ? e.message : 'Qualcosa non va, riprova'; ridisegna(); } finally { busy = false; }
   }
   const vai = (v: Vicino) => {
     if (v.kind === 'porta') passa(entraDentro, () => o.hud.toast('Il negozio dei mobili: avvicinati a un pezzo e premi A', 2600));
@@ -240,7 +297,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
         if (near?.kind === 'porta') btn.replaceChildren(pixIcon('casa', 24), el('span', '', 'NEGOZIO DEI MOBILI'), el('small', '', 'A'));
         if (near?.kind === 'esci') btn.replaceChildren(pixIcon('casa', 24), el('span', '', 'ESCI'), el('small', '', 'A'));
         bar.classList.toggle('on', near?.kind === 'pezzo');
-        if (near?.kind === 'pezzo') bar.replaceChildren(el('div', 't', `${near.p.nome} · ${near.p.perle} Perle · A per guardarlo`));
+        if (near?.kind === 'pezzo') bar.replaceChildren(el('div', 't', near.p.kind === 'catalogo' ? 'Catalogo di tutti i mobili · A per sfogliarlo' : `${near.p.nome} · ${near.p.perle} Perle · A per guardarlo`));
       }
       if (ciro && dentro) { ciro.setPose({ x: ciroPos.x, z: ciroPos.z, yaw: -Math.PI / 2, anim: 'idle' }); ciro.update(1, 1 / 60); }
     },

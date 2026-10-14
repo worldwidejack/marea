@@ -209,7 +209,7 @@ async function boot(): Promise<void> {
   registerTestHook('openTavolo', () => openTavolo());
   // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-8, G = ruota, #90). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
   const link = `${location.origin}/?t=${encodeURIComponent(FLAGS.token)}`; // per entrare come sé da un altro dispositivo (editor: COPIA / MANDA)
-  const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, barca: world, onSaved: () => hud.toast('Look salvato'), onBarca: () => hud.toast('Barca salvata'), onLot: refreshMyLot }) : null;
+  const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, barca: world, onSaved: () => hud.toast('Look salvato'), onNome: (n) => hud.toast(`Nome salvato: ${n}`), onBarca: () => hud.toast('Barca salvata'), onLot: refreshMyLot }) : null;
   // impostazioni (#53): camera, ciclo giorno/notte, meteo (#85), stampa, contorni; di serie (#59) ciclo, camera 22° e contorni, per chiunque (anche senza link)
   // la resa delle impostazioni (passata finale, acqua stampa, ciclo) si scarica solo se qualcosa è acceso: con tutto spento zero byte in più
   let aspetto: Aspetto | null = null, aspettoLoad: Promise<void> | null = null, voglio: Impostazioni | null = null;
@@ -378,7 +378,7 @@ async function boot(): Promise<void> {
     const ciSono = () => { if (document.visibilityState === 'visible') void api.presenza().catch(() => { /* riprova al prossimo giro */ }); };
     rientro = api.rientro().then(async (r) => {
       myView?.set(r.lot);
-      if (r.riepilogo && (!FLAGS.test || FLAGS.rientro)) await libri.cartolina(r.riepilogo, r.novita, myView ? () => { void myView.collectAll().then((g) => { if (g.legno + g.pietra + g.perle > 0) hud.toast(`Raccolto: ${[g.legno && `+${g.legno} Legno`, g.pietra && `+${g.pietra} Pietra`, g.perle && `+${g.perle} Perle`].filter(Boolean).join(', ')}`, 2600); }); } : null);
+      if (r.riepilogo && (!FLAGS.test || FLAGS.rientro) && !FLAGS.banco) await libri.cartolina(r.riepilogo, r.novita, myView ? () => { void myView.collectAll().then((g) => { if (g.legno + g.pietra + g.perle > 0) hud.toast(`Raccolto: ${[g.legno && `+${g.legno} Legno`, g.pietra && `+${g.pietra} Pietra`, g.perle && `+${g.perle} Perle`].filter(Boolean).join(', ')}`, 2600); }); } : null);
     }).catch(() => { /* senza rientro si gioca lo stesso */ }).finally(() => {
       setInterval(ciSono, RIENTRO.presenzaSecondi * 1000);
       document.addEventListener('visibilitychange', ciSono);
@@ -388,7 +388,7 @@ async function boot(): Promise<void> {
   // «Dall'ultima volta» (#279): chi ha fatto cosa nel codice dalla visita scorsa; dopo la cartolina, quando non c'è altro aperto (chunk ui/novita.ts)
   const novita = (prova?: { lavori: { t: number; chi: string; titolo: string }[]; ora: number }) => import('./ui/novita.ts').then((m) =>
     m.apriNovita({ root, chiave: `marea:novita:${me?.id ?? 'ospite'}`, busy: () => panelsBusy() || !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen(), ...(prova ? { prova } : {}) }));
-  if (!FLAGS.test || FLAGS.novita) void rientro.then(() => novita()).catch(() => { /* senza novità si gioca lo stesso */ });
+  if ((!FLAGS.test || FLAGS.novita) && !FLAGS.banco) void rientro.then(() => novita()).catch(() => { /* senza novità si gioca lo stesso */ });
   registerTestHook('novitaProva', (lavori, ora) => { void novita({ lavori: lavori as { t: number; chi: string; titolo: string }[], ora: Number(ora) }); return true; });
   setReady();
   hud.toast(me ? `Ciao ${me.nome}` : 'MAREA', 2500);

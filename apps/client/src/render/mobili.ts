@@ -3,6 +3,7 @@
 // Convenzione: pivot a terra al centro della cella, davanti verso +Z (verso la camera, che in casa guarda da sud). Quelli a parete hanno
 // il retro a z = 0 (appoggiato al muro) e sporgono verso +Z. Il baule è il Forziere (edificio): più ricco a ogni livello.
 import * as THREE from 'three';
+import type { MobileDef } from '@marea/content';
 import { M, P, merged, painted } from './island_parts.ts';
 
 type G = THREE.BufferGeometry;
@@ -11,8 +12,22 @@ export const unisci = (g: G[]): G => merged(g);
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cyl = (r0: number, r1: number, h: number, n = 8) => new THREE.CylinderGeometry(r0, r1, h, n);
 
-/** Geometria di un mobile per `forma` (mobili.json); forma sconosciuta = una cassa di legno (si vede che manca). */
-export function mobileGeo(forma: string, colori: readonly string[]): G {
+/** Segnaposto di un mobile senza disegno né modello: una scatola grande quanto il suo ingombro (`celle`, `altezza`) coi colori della riga,
+ *  col pivot al centro dell'ingombro; il davanti (+Z) ha una targhetta del terzo colore, a parete è una tavola appesa. Quello che serve
+ *  finché il modello Blender non c'è, e che dice già quanto spazio prenderà. */
+function scatola(def: Pick<MobileDef, 'posto' | 'celle' | 'altezza'>, colori: readonly string[]): G {
+  const [a = P.legno, b = P.legnoScuro, c = P.giallo] = colori, g: G[] = [];
+  if (def.posto === 'parete') {
+    g.push(painted(box(1.3, 1.1, 0.14), a, M(0, 1.9, 0.07)), painted(box(1.0, 0.8, 0.06), b, M(0, 1.9, 0.17)), painted(box(0.5, 0.12, 0.05), c, M(0, 1.9, 0.22)));
+    return merged(g);
+  }
+  const [w, d] = def.celle ?? [1, 1], W = w * 2 * 0.86, D = d * 2 * 0.86, H = def.altezza ?? 1;
+  g.push(painted(box(W, H, D), a, M(0, H / 2, 0)), painted(box(W + 0.08, 0.1, D + 0.08), b, M(0, H, 0)), painted(box(Math.min(0.9, W * 0.5), Math.min(0.4, H * 0.4), 0.06), c, M(0, H * 0.55, D / 2 + 0.02)));
+  return merged(g);
+}
+
+/** Geometria di un mobile per `forma` (mobili.json); senza forma (o forma sconosciuta) la scatola di ripiego della riga (`def`). */
+export function mobileGeo(forma: string | undefined, colori: readonly string[], def: Pick<MobileDef, 'posto' | 'celle' | 'altezza'> = { posto: 'terra' }): G {
   const [a = P.legno, b = P.legnoScuro, c = P.giallo] = colori, g: G[] = [];
   switch (forma) {
     case 'comodino_lampada': {
@@ -45,7 +60,7 @@ export function mobileGeo(forma: string, colori: readonly string[]): G {
       g.push(painted(box(0.05, 0.4, 0.04), a, M(0, 1.5, 0.05)), painted(cyl(0.11, 0.11, 0.05, 8), c, M(0, 1.28, 0.07, Math.PI / 2, 0, 0)));
       break;
     }
-    default: g.push(painted(box(1.0, 0.8, 0.8), P.legno, M(0, 0.4, 0)), painted(box(1.04, 0.1, 0.84), P.legnoScuro, M(0, 0.4, 0)));
+    default: return scatola(def, colori);
   }
   // quelli a terra un po' più grossi della realtà (una cella è 2 m, la camera di casa è alta): si leggono come in Animal Crossing
   return forma === 'orologio' ? merged(g) : merged(g).scale(1.4, 1.4, 1.4);

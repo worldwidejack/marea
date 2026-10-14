@@ -17,6 +17,8 @@ import { unisci } from './armi3d.ts';
 import type { Pezzo } from './armi3d.ts';
 import { createArredi } from './arredi.ts';
 import { createDettagli } from './dettagli.ts';
+import { createAccampamento } from './accampamento.ts';
+import { createBanchetto } from './banchetto.ts';
 import { createFinestra } from '../render/finestra.ts';
 
 export type Scena = {
@@ -107,14 +109,19 @@ function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasText
         if (cx > 0 && mare(i - 1)) { px(PAL.acquaBassa, x0 + 1, y0, 1, PX); px(PAL.acqua, x0, y0, 1, PX); }
         if (cx + 1 < W && mare(i + 1)) { px(PAL.acquaBassa, x0 + PX - 2, y0, 1, PX); px(PAL.acqua, x0 + PX - 1, y0, 1, PX); }
         break;
-      case SUOLO.assi: // assito della taverna: tavole lungo x, fughe scure, giunte sfalsate
-        for (let r = 0; r < 4 * K; r++) {
-          const c = cellHash(cx >> 1, cz * 8 + r, 9);
-          px(c < 0.5 ? PAL.legno : c < 0.8 ? PAL.legnoScuro : PAL.legnoChiaro, x0, y0 + r * 2, PX, 2);
-          px(PAL.ombraCalda, x0, y0 + r * 2 + 1, PX, 1);
-          if (hh(r + 80) < 0.3) px(PAL.ombraCalda, x0 + Math.floor(hh(r + 84) * PX), y0 + r * 2, 1, 2);
+      case SUOLO.assi: { // assito: tavole larghe 25 cm lungo x, tutte dello stesso legno, fughe appena più scure, giunte rade e qualche nodo
+        // (13 ott 2026: prima erano tavole da 12 cm in tre colori con le fughe nere, a righe fitte che davano fastidio)
+        const n = PX / 4;
+        for (let r = 0; r < n; r++) {
+          const y = y0 + r * 4, tavola = cz * n + r;
+          px(PAL.legno, x0, y, PX, 3);
+          px(PAL.legnoScuro, x0, y + 3, PX, 1);
+          // giunta di testa: una tavola su tre, dove finisce (ogni 3 m, sfalsata)
+          if ((cx + tavola * 7) % 3 === 0 && cellHash(tavola, cx, 82) < 0.7) px(PAL.legnoScuro, x0 + (tavola % 4) * 3, y, 1, 3);
+          if (cellHash(cx, tavola, 83) < 0.12) px(PAL.legnoScuro, x0 + 2 + Math.floor(cellHash(cx, tavola, 84) * (PX - 4)), y + 1, 2, 1); // nodo
         }
         break;
+      }
       default: { // pietra: lastre da 2 m con le fughe scure, crepe, qualche lastra rotta
         const lastra = (Math.floor(cx / 2) + Math.floor(cz / 2)) % 2 === 0;
         px(lastra ? PAL.pietraScura : PAL.roccia, x0, y0, PX, PX);
@@ -263,18 +270,10 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   // nebbia a distanza (alla PS1): il buio oltre le zone si perde, il primo piano resta pulito
   scene.fog = new THREE.Fog(PAL.neroCaldo, 36, 85);
 
-  // ---- tende dei pirati: una piramide di tela per tenda (rossa o grezza, a strisce di colore per tenda) ----
+  // ---- tende dei pirati, scogli e relitti della spiaggia (accampamento.ts) e la sala del banchetto nella taverna (banchetto.ts) ----
   const tende = gruppi(a, TIPO.tenda);
-  const tendaGeo = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1); tendaGeo.rotateY(Math.PI / 4); tendaGeo.translate(0, 0.5, 0);
-  const tendaMat = lambert({ color: 0xffffff });
-  const tenda = new THREE.InstancedMesh(tendaGeo, tendaMat, Math.max(1, tende.length)); tenda.name = 'tende'; tenda.frustumCulled = false;
-  tende.forEach((g, n) => {
-    const xs = g.map((i) => i % W), zs = g.map((i) => Math.floor(i / W));
-    const x0 = Math.min(...xs), x1 = Math.max(...xs) + 1, z0 = Math.min(...zs), z1 = Math.max(...zs) + 1;
-    tenda.setMatrixAt(n, m4.compose(v(((x0 + x1) / 2) * T, 0, ((z0 + z1) / 2) * T), qq.identity(), v((x1 - x0) * T * 1.05, 2.8, (z1 - z0) * T * 1.05)));
-    tenda.setColorAt(n, col.set([PAL.rosso, PAL.sabbiaChiara, PAL.legnoChiaro, PAL.pietra][n % 4]!));
-  });
-  scene.add(tenda); disp.push(tendaGeo, tendaMat);
+  const accampamento = createAccampamento(scene, a, tende);
+  const banchetto = createBanchetto(scene, a);
 
   // ---- cose basse: tutto in due InstancedMesh (box e cilindri) coi colori per istanza ----
   type Ist = { x: number; y?: number; z: number; sx: number; sy: number; sz: number; c: string; rx?: number; ry?: number; rz?: number };
@@ -286,7 +285,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
     if (altareCells.has(i) || daAltri.has(i)) continue;
     const p = ctr(i), cx = i % W, cz = Math.floor(i / W), h = cellHash(cx, cz, 21);
     switch (a.tipo[i]) {
-      case TIPO.stallo: scatole.push({ x: p.x, z: p.z, sx: 1, sy: 0.9, sz: 0.9, c: PAL.legnoScuro }); break;
+      case TIPO.stallo: if (a.suolo[i] !== SUOLO.assi) scatole.push({ x: p.x, z: p.z, sx: 1, sy: 0.9, sz: 0.9, c: PAL.legnoScuro }); break; // sull'assito è la tavolata (banchetto.ts)
       case TIPO.muretto: scatole.push({ x: p.x, z: p.z, sx: 1.02, sy: 0.75 + 0.25 * h, sz: 1.02, c: h < 0.5 ? PAL.pietraScura : h < 0.85 ? PAL.roccia : PAL.pietra }); break;
       case TIPO.tomba: {
         // la tomba sono due celle (testa a nord): il tipo lo decide la testa. Lastra con croce e spada incise (cavalieri), croce di pietra,
@@ -363,11 +362,17 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   const scatola = new THREE.InstancedMesh(scatolaGeo, coseMat, Math.max(1, scatole.length)); scatola.name = 'cose'; scatola.frustumCulled = false; posa(scatola, scatole);
   const tubo = new THREE.InstancedMesh(tuboGeo, coseMat, Math.max(1, tubi.length)); tubo.name = 'botti'; tubo.frustumCulled = false; posa(tubo, tubi);
   scene.add(scatola, tubo); disp.push(scatolaGeo, tuboGeo, coseMat);
-  // macerie: due sassi per cella
+  // macerie: due sassi per cella; sulla sabbia sono scogli (roccia scura, larghi e bassi, levigati dal mare)
   const sassoGeo = new THREE.DodecahedronGeometry(0.55, 0), sassoMat = lambert({ color: PAL.pietra });
   const sasso = new THREE.InstancedMesh(sassoGeo, sassoMat, Math.max(1, sassi.length * 2)); sasso.name = 'macerie'; sasso.frustumCulled = false;
   sassi.forEach((i, n) => {
-    const p = ctr(i), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(cellHash(i, 1, 1) * 3, cellHash(i, 2, 2) * 3, 0));
+    const p = ctr(i), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(cellHash(i, 1, 1) * 3, cellHash(i, 2, 2) * 3, 0)), scoglio = a.suolo[i] === SUOLO.sabbia;
+    if (scoglio) {
+      sasso.setMatrixAt(n * 2, m4.compose(v(p.x - 0.1, 0.22, p.z - 0.05), q, v(1.45, 0.75, 1.3)));
+      sasso.setMatrixAt(n * 2 + 1, m4.compose(v(p.x + 0.38, 0.12, p.z + 0.3), q.clone().invert(), v(0.75, 0.45, 0.7)));
+      sasso.setColorAt(n * 2, col.set(cellHash(i, 5, 5) < 0.6 ? PAL.pietraScura : PAL.pietra)); sasso.setColorAt(n * 2 + 1, col.set(PAL.pietraScura));
+      return;
+    }
     sasso.setMatrixAt(n * 2, m4.compose(v(p.x - 0.15, 0.3, p.z), q, v(1.1, 0.8, 1)));
     sasso.setMatrixAt(n * 2 + 1, m4.compose(v(p.x + 0.25, 0.2, p.z + 0.2), q.clone().invert(), v(0.6, 0.5, 0.7)));
     sasso.setColorAt(n * 2, col.set(PAL.pietra)); sasso.setColorAt(n * 2 + 1, col.set(PAL.pietraScura));
@@ -491,7 +496,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
     update(hx, hz, t, assi, trappole) {
       fin.aggiorna(camera, hx, 1, hz);
       lanterna.position.set(hx, 2.4, hz);
-      arredi.update(t); dettagli.update(t);
+      arredi.update(t); dettagli.update(t); accampamento.update(t); banchetto.update(t);
       luna.target.position.set(hx, 0, hz); luna.position.set(hx - 30, 50, hz - 20);
       const key = assi.join(',');
       if (key !== assiOra) {
@@ -541,6 +546,6 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
     setPorte(aperte) { for (const [id, l] of porte) for (const o of l) o.visible = !aperte[id]; },
     setCalice(v) { caliceAlt.visible = v; },
     stats: () => ({ muri: muri.length, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats(), ...dettagli.stats() }),
-    dispose() { arredi.dispose(); dettagli.dispose(); fin.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
+    dispose() { arredi.dispose(); dettagli.dispose(); accampamento.dispose(); banchetto.dispose(); fin.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
   };
 }

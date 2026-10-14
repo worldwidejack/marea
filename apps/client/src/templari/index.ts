@@ -19,9 +19,10 @@ import { pugni } from '@marea/sim/dungeon/hero.ts';
 import { stepTemplari, templari } from '@marea/sim/templari/templari.ts';
 import type { TState } from '@marea/sim/templari/templari.ts';
 import { daiArma, miraTiro } from '@marea/sim/templari/eroe.ts';
-import { armaIn, nuovoZombie } from '@marea/sim/templari/stato.ts';
+import { armaIn, nuovoZombie, quantiOndata } from '@marea/sim/templari/stato.ts';
+import { vicinoRaggiungibile } from '@marea/sim/templari/raggiungi.ts';
 import { apriPorta } from '@marea/sim/templari/porte.ts';
-import type { TAzioni, TEvento, TView } from '@marea/sim/templari/types.ts';
+import type { TAzione, TAzioni, TEvento, TView } from '@marea/sim/templari/types.ts';
 import { createHeroActor } from '../rpg/dungeon_hero.ts';
 import { createMouse } from '../rpg/dungeon_mouse.ts';
 import type { Mouse } from '../rpg/dungeon_mouse.ts';
@@ -42,6 +43,13 @@ import { createEffetti } from './effetti.ts';
 import type { Effetti } from './effetti.ts';
 import { oggettoArma } from './armi3d.ts';
 import type { Controlli } from './controlli.ts';
+import { createPersonaggi } from './personaggi.ts';
+import type { Personaggi } from './personaggi.ts';
+import { createBottegaUi } from './bottega_ui.ts';
+import type { BottegaUi } from './bottega_ui.ts';
+import { offerteMercante, offerteStrega } from '@marea/sim/templari/bottega.ts';
+import { createBanco } from './banco.ts';
+import type { Banco, BancoAzioni } from './banco.ts';
 import type { TemplariCtx, TemplariFine, TemplariRun } from './types.ts';
 
 export { mostraEsito } from './esito.ts';
@@ -69,28 +77,42 @@ const POTERI: Record<string, [string, string, string]> = {
 };
 
 /** L'arma della sim come la vuole l'attore dell'eroe (modello del kit, colore della lama, portata per la scia; pistole, moschetto e vaso
- *  fatti qui). Con lo scudo in mano niente arma (lo scudo lo disegna effetti.ts). */
-function armaVista(id: string): ArmaInMano {
+ *  fatti qui). Con lo scudo in mano niente arma (lo scudo lo disegna effetti.ts). Potenziata dal Mercante: la lama d'oro. */
+function armaVista(id: string, pot = false): ArmaInMano {
   const base = pugni();
   if (id === 'scudo') return { ...base, id: null };
   const a = armaDef(id), forma = a.aspetto.forma;
   return {
     ...base, id: null, kind: a.tipo === 'arco' ? 'arco' : 'mischia', danno: a.danno, tempo: a.tempo, portata: a.portata ?? base.portata, distanza: a.tipo === 'fuoco' || a.tipo === 'lancio',
-    ...(forma ? { oggetto: () => oggettoArma(forma), lama: a.tipo === 'mischia' } : a.aspetto.modello ? { modello: a.aspetto.modello } : {}), colore: a.aspetto.colore,
+    ...(forma ? { oggetto: () => oggettoArma(forma), lama: a.tipo === 'mischia' } : a.aspetto.modello ? { modello: a.aspetto.modello } : {}), colore: pot ? PAL.giallo : a.aspetto.colore,
   };
 }
+/** Nome dell'arma come lo dice l'HUD (potenziata: quello nuovo). */
+const nomeArma = (id: string, pot?: boolean): string => (pot ? armaDef(id).nomePot : armaDef(id).nome);
+/** Chiave dell'arma in mano (cambia anche quando la potenzi). */
+const chiaveArma = (v: TView): string => v.eroe.arma + (v.eroe.arma !== 'scudo' && v.eroe.armi[v.eroe.cur]?.pot ? '+' : '');
+/** Nome e colore delle pozioni bevute (scritta grande e HUD). */
+const POZIONI: Record<string, [string, string]> = { pietra: ['ZUPPA DI PIETRA', PAL.pietraChiara], viandante: ['BRODO DEL VIANDANTE', PAL.erba], lesto: ['INFUSO LESTO', PAL.acqua], bombardiere: ['GRAPPA DEL BOMBARDIERE', PAL.arancio], risorto: ['ELISIR DEL RISORTO', PAL.rosaNeon], fonte: ['ACQUA DI FONTE SANTA', PAL.acquaBassa] };
 
-export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boolean }): TemplariRun {
+/** Nomi corti delle armi per il banco di prova. */
+const CORTO: Record<string, string> = { spada: 'Spada', pistola: 'Pistola', pistola_doppia: 'Pistola doppia', spada_molay: 'Spada di Molay', mazza: 'Mazza', ascia: 'Ascia' };
+
+export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boolean; banco?: boolean }): TemplariRun {
   const s: TState = templari.create({ seed: o.seed, opzioni: o.subito ? { subito: true } : {} });
   const frames: DungeonInput[] = [], azioni: TAzioni = [];
-  let fase: Fase = 'carica', wait = 0, view: TView = templari.view(s), auto: Rng | null = null, armaOra = view.eroe.arma;
+  let fase: Fase = 'carica', wait = 0, view: TView = templari.view(s), auto: Rng | null = null, armaOra = chiaveArma(view);
+  let banco: Banco | null = null, pers: Personaggi | null = null, bott: BottegaUi | null = null;
+  /** AZIONE premuto in questo frame (fronte): vicino al Mercante o alla Strega apre il loro menù. */
+  let azionePrima = false, azioneGiu = false;
+  /** Banco di prova: immortale, ondate ferme, zombie fermi (velocità di prima per id), rallentatore (un tick ogni 4 frame). */
+  const bk = { immortale: false, ferme: false, fermi: false, lento: false, frame: 0, vel: new Map<number, number>() };
   let sc: Scena | null = null, hero: HeroActor | null = null, zombi: Zombi | null = null, hud: TplHud | null = null, ctl: Controlli | null = null, fx: Effetti | null = null, mouse: Mouse | null = null, mUltima = 0;
   let resolve!: (v: TemplariFine | null) => void;
   const done = new Promise<TemplariFine | null>((r) => (resolve = r));
 
   const pulisci = () => {
     fase = 'finita'; templariLink.state = null; templariLink.prova = null; tensione(0);
-    mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
+    banco?.dispose(); bott?.dispose(); pers?.dispose(); mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
     ctx.renderer.setScene(null);
   };
   const consegna = () => {
@@ -122,11 +144,13 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     try {
       await ctx.loader.extend('manifest_rpg.json'); // modelli delle armi (kit GDR)
       sc = createScena(s.arena, ctx.renderer.camera);
-      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: { arma: armaVista(view.eroe.arma) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true });
+      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: { arma: armaVista(view.eroe.arma, chiaveArma(view).endsWith('+')) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true, soloBusto: true });
       zombi = createZombi(sc.scene);
       fx = createEffetti({ scene: sc.scene, arena: s.arena, loader: ctx.loader, root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera });
       if ((fase as Fase) === 'finita') { pulisci(); return; }
-      hud = createTplHud(ctx.root, (id) => armaDef(id).nome, (id) => armaDef(id).tipo !== 'mischia');
+      hud = createTplHud(ctx.root, nomeArma, (id) => armaDef(id).tipo !== 'mischia');
+      pers = createPersonaggi(sc.scene, s.arena);
+      bott = createBottegaUi(ctx.root, compraDalMenu);
       ctl = createControlli({ root: ctx.root, canvas: ctx.canvas, yaw: () => ctx.renderer.diorama.yaw, onEsci: esci });
       mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: 0 });
       hero.tick(view.posa); zombi.tick(view); fx.tick(view);
@@ -134,7 +158,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       ctx.renderer.setScene(sc.scene);
       ctx.renderer.diorama.setZoom(innerWidth < innerHeight ? 1.3 : 1.05); // al telefono in verticale un po' più largo: si vedono le finestre
       ctx.renderer.diorama.follow(view.eroe.x, 0.9, view.eroe.z); ctx.renderer.diorama.snap?.();
-      hud.grande('✠', PAL.rosso, o.subito ? 'Le ondate stanno per cominciare' : 'Porta il calice sull’altare (AZIONE)', 2600);
+      if (o.banco) banco = createBanco(ctx.root, TEMPLARI.armi.map((a) => [a.id, CORTO[a.id] ?? a.nome]), bancoAzioni());
+      hud.grande('✠', PAL.rosso, o.banco ? 'Stanza di prova' : o.subito ? 'Le ondate stanno per cominciare' : 'Porta il calice sull’altare (AZIONE)', 2600);
       fase = 'gioca';
     } catch (e) {
       console.error('[marea] templari non caricata', e);
@@ -165,9 +190,13 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'ricarica': suona('martello'); break;
       case 'esplosione': suona('tuono'); break;
       case 'parato': suona('schivato'); break;
+      case 'scudoSpaccato': zombi.colpito(e.id); suona('colpo_critico', vicino(e.x, e.z)); hud.grande('', PAL.sabbiaChiara, 'Scudo spaccato: adesso è scoperto', 1200); break;
       case 'scudo': suona('raccolto'); hud.grande('SCUDO', PAL.sabbiaChiara, 'Sulle spalle para da dietro · SCAMBIA per impugnarlo', 2400); break;
       case 'scudoRotto': suona('colpo_critico'); hud.grande('', PAL.rosso, 'Lo scudo si è spaccato', 1600); break;
       case 'compra': suona('moneta'); break;
+      case 'potenziata': suona('medaglia_oro'); suona('tpl_potere_preso', 1); hud.grande('✦', PAL.giallo, `Il Mercante ha potenziato l’arma: ${e.nome}`, 2600); break;
+      case 'pozione': { const [nome, colore] = POZIONI[e.id] ?? ['', PAL.giallo]; suona('pozione'); hud.grande(nome, colore, TEMPLARI.strega.pozioni.find((p) => p.id === e.id)?.descr ?? '', 2400); break; }
+      case 'risorto': suona('altare'); suona('tpl_campana', 1); hud.grande('TI RIALZI', PAL.rosaNeon, 'L’Elisir del risorto ti rimette in piedi (le pozioni sono finite)', 2800); break;
       case 'porta': sc?.setPorte(s.porte); suona('tpl_porta'); hud.grande('', PAL.giallo, `Si apre: ${TEMPLARI.porte[e.id]?.nome ?? e.id}`, 2000); break;
       case 'trappola':
         if (e.fase === 'accesa') { suona(e.id === 'rogo' ? 'tpl_rogo' : 'tpl_campana', 1); hud.grande('', PAL.arancio, e.id === 'rogo' ? 'Il rogo di de Molay brucia la navata' : 'La campana grande si stacca e oscilla', 2200); }
@@ -210,6 +239,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   /** L'input di adesso: autopilota (test), o tastiera/joystick + bottoni del chunk. */
   function inputOra(f: InputFrame): DungeonInput {
     const c = ctl!.sample();
+    azioneGiu = azioneGiu || (c.d && !azionePrima); azionePrima = c.d;
     if (auto) return templari.autopilot(s, auto);
     let a = f.a || c.a, m = 0;
     let mx = f.mx, my = f.my;
@@ -232,7 +262,9 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   let px = NaN, pz = NaN, strada = 0;
   function tickUno(f: InputFrame): void {
     const q = quantizeDungeon(inputOra(f));
+    if (o.banco) bancoPrima();
     frames.push(q); stepTemplari(s, q);
+    if (o.banco && bk.immortale) s.eroe.vita = s.eroe.max;
     for (const e of s.eventi) evento(e);
     const h = s.eroe, d = Number.isNaN(px) ? 0 : Math.sqrt((h.x - px) * (h.x - px) + (h.z - pz) * (h.z - pz));
     px = h.x; pz = h.z;
@@ -244,6 +276,58 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     }
   }
 
+  /** Un acquisto dal menù del Mercante o della Strega: la sim lo prova (vicino, punti, si può) e, se vale, lo registra per il server. */
+  function compraDalMenu(a: TAzione): void {
+    if (fase !== 'gioca') return;
+    const ev = templari.act(s, a);
+    if (!ev) { suona('vuoto'); return; }
+    azioni.push([frames.length, a]);
+    for (const e of ev) evento(e);
+    view = templari.view(s);
+  }
+  /** Banco di prova: prima di ogni tick tiene ferme le ondate e gli zombie e rende l'eroe immortale. */
+  function bancoPrima(): void {
+    if (bk.immortale) s.eroe.vita = 1e6;
+    if (bk.ferme) { s.prossima = s.tick + 600; if (s.boss && !s.boss.uscito) s.boss.at = s.tick + 600; }
+    for (const z of s.zombie) {
+      if (bk.fermi && z.vel > 0) { bk.vel.set(z.id, z.vel); z.vel = 0; }
+      else if (!bk.fermi && z.vel === 0 && bk.vel.has(z.id)) { z.vel = bk.vel.get(z.id)!; bk.vel.delete(z.id); }
+    }
+  }
+  function bancoAzioni(): BancoAzioni {
+    const h = s.eroe;
+    return {
+      ondata(n) {
+        s.ondata = n; s.fase = 'combatti'; s.faseT = 0; s.quanti = quantiOndata(n); s.usciti = 0; s.tipiUsciti = {}; s.prossima = s.tick + 60; s.boss = null; s.poteri.ondata = 0;
+        hud?.grande(String(n), PAL.rosso, 'Ondata scelta dal banco', 1200);
+        return n;
+      },
+      zombie(tipo) {
+        const p = vicinoRaggiungibile(s, h.x + h.fx * 3.2, h.z + h.fz * 3.2, 3) ?? { x: h.x + h.fx * 3.2, z: h.z + h.fz * 3.2 };
+        const def = TEMPLARI.nemici.find((n) => n.id === tipo);
+        const z = nuovoZombie(s, tipo, p.x, p.z, def?.velocita.cammina ?? 1);
+        z.st = 'insegue'; z.fx = -h.fx; z.fz = -h.fz;
+      },
+      arma(id) { daiArma(s, id); const i = h.armi.findIndex((x) => x?.id === id); if (i >= 0) { h.cur = i; h.inMano = false; } },
+      punti(n) { s.punti += n; hud?.punti(n); },
+      pulisci() { s.zombie = []; s.tiri = []; s.fiamme = []; s.boss = null; },
+      immortale(on) { bk.immortale = on; if (!on) h.vita = Math.min(h.vita, h.max); },
+      ferme(on) { bk.ferme = on; if (!on) s.prossima = s.tick + 30; },
+      fermi(on) { bk.fermi = on; },
+      lento(on) { bk.lento = on; },
+      vicino(on) { ctx.renderer.diorama.setZoom(on ? 0.6 : innerWidth < innerHeight ? 1.3 : 1.05); },
+      extra: [
+        { titolo: 'Vai da', voci: (['mercante', 'strega'] as const).map((id): [string, () => void] => [id === 'mercante' ? 'Mercante' : 'Strega', () => {
+          const p = s.arena.personaggi.find((x) => x.id === id);
+          if (!p) return;
+          for (const q of s.arena.porte) if (!s.porte[q.id]) { s.punti += TEMPLARI.porte[q.id]?.prezzo ?? 0; apriPorta(s, q); }
+          sc?.setPorte(s.porte);
+          h.x = p.x - p.fx * 1.2; h.z = p.z - p.fz * 1.2; h.fx = p.fx; h.fz = p.fz;
+        }]) },
+      ],
+    };
+  }
+
   const run: TemplariRun = {
     get active() { return fase !== 'finita'; },
     step(f) {
@@ -252,9 +336,14 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       if (templariLink.autopilot > 0 && !auto) auto = createRng(o.seed).fork('autopilot');
       if (templariLink.autopilot === 0) auto = null;
       const n = auto ? templariLink.autopilot : 1;
+      if (bk.lento && bk.frame++ % 4 !== 0) return;
       for (let i = 0; i < n && !s.done; i++) tickUno(f);
       view = templari.view(s);
-      if (view.eroe.arma !== armaOra) { armaOra = view.eroe.arma; void hero?.setArma(armaVista(armaOra)); }
+      if (chiaveArma(view) !== armaOra) { armaOra = chiaveArma(view); void hero?.setArma(armaVista(view.eroe.arma, armaOra.endsWith('+'))); }
+      // AZIONE vicino al Mercante o alla Strega: il loro menù
+      const chi = view.prompt?.cosa === 'mercante' || view.prompt?.cosa === 'strega' ? view.prompt.cosa : null;
+      if (azioneGiu && chi && bott?.aperta !== chi) { bott?.apri(chi); suona('apri'); }
+      azioneGiu = false;
       hero!.tick(view.posa); zombi!.tick(view); fx!.tick(view);
       // linea di mira: dove punta il dito (joystick) o il cursore con un'arma a distanza in mano; sennò, con l'arco teso, verso chi prenderà la freccia
       const tipo = miraArma(), vm = ctl.miraDir() ?? (tipo && !ctl.paused ? mouse?.verso(s.eroe.x, s.eroe.z) ?? null : null);
@@ -274,6 +363,10 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       sc.update(p.x, p.z, t, s.assi, view.trappole);
       hud.set(view);
       ctl.setPrompt(fase === 'gioca' ? view.prompt : null);
+      // Mercante e Strega: si muovono, e il loro menù resta aperto finché sei lì
+      const chi = fase === 'gioca' && (view.prompt?.cosa === 'mercante' || view.prompt?.cosa === 'strega') ? view.prompt.cosa : null;
+      pers?.update(t, chi);
+      if (bott?.aperta) { if (bott.aperta !== chi) bott.chiudi(); else bott.aggiorna(chi === 'mercante' ? offerteMercante(s) : offerteStrega(s), s.punti); }
       ctl.setMira(fase === 'gioca' && miraArma() !== null);
       ctl.setScambia(fase === 'gioca' && view.eroe.armi.filter(Boolean).length + (view.eroe.scudo ? 1 : 0) > 1);
     },
@@ -289,6 +382,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (p['scudo']) { s.eroe.scudo = { vita: TEMPLARI.scudo.vita }; s.eroe.inMano = p['scudo'] === 'mano'; }
     if (typeof p['punti'] === 'number') s.punti = p['punti'];
     if (typeof p['dove'] === 'object' && p['dove']) { const d = p['dove'] as { x: number; z: number }; s.eroe.x = d.x; s.eroe.z = d.z; }
+    if (typeof p['faccia'] === 'object' && p['faccia']) { const d = p['faccia'] as { x: number; z: number }, n = Math.sqrt(d.x * d.x + d.z * d.z) || 1; s.eroe.fx = d.x / n; s.eroe.fz = d.z / n; }
     if (Array.isArray(p['porte'])) for (const id of p['porte'] as string[]) { const q = s.arena.porte.find((x) => x.id === id); if (q && !s.porte[id]) { s.punti += TEMPLARI.porte[id]?.prezzo ?? 0; apriPorta(s, q); } }
     if (p['pulisci']) { s.zombie = []; s.tiri = []; s.fiamme = []; s.boss = null; }
     if (p['ferma']) { s.quanti = 1e6; s.usciti = 0; s.prossima = 1e9; } // niente altri zombie dall'ondata in corso (le prove di mira ne vogliono uno solo)

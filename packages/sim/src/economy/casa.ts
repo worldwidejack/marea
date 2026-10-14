@@ -27,7 +27,17 @@ export type CasaState = {
 };
 export type Finitura = 'pavimento' | 'carta';
 /** Dove va un mobile: cella del pavimento, più il muro se è da parete. */
-export type PostoMobile = { cell: [number, number]; muro?: Muro };
+export type PostoMobile = { cell: [number, number]; muro?: Muro; rot?: number };
+/** Le celle del pavimento che occupa un mobile a terra: `cell` è l'ancora, il resto dell'ingombro (`celle` [larghezza, profondità]) va
+ *  verso +x e +z e gira con `rot` (quarti di giro, come ry = rot·90° della vista: (x,z) → (z,−x)). Interi, niente trigonometria. */
+export function celleMobile(m: Pick<MobileDef, 'posto' | 'celle'>, cell: readonly [number, number], rot = 0): [number, number][] {
+  const [w, d] = m.posto === 'terra' ? m.celle ?? [1, 1] : [1, 1], out: [number, number][] = [];
+  for (let j = 0; j < d; j++) for (let i = 0; i < w; i++) {
+    const [dx, dz] = rot === 1 ? [j, -i] : rot === 2 ? [-i, -j] : rot === 3 ? [-j, i] : [i, j];
+    out.push([cell[0] + dx, cell[1] + dz]);
+  }
+  return out;
+}
 
 const ST = BORGO.stanza, [X0, Z0, X1, Z1] = ST.pavimento, [CX] = ST.corridoio;
 /** La cella del pavimento dove sbuca il corridoio e quella davanti alla porta in fondo: passaggi, niente mobili a terra. */
@@ -55,14 +65,21 @@ export const baule = (lot: LotState): PlacedBuilding | null => lot.buildings.fin
 export function postoMobileError(lot: LotState, m: MobileDef, p: PostoMobile, senza: string | null = null): { code: 'posizione' | 'cella'; msg: string } | null {
   const c = p.cell, arredi = (casaDi(lot).arredi ?? []).filter((a) => a.id !== senza);
   if (!Array.isArray(c) || !Number.isInteger(c[0]) || !Number.isInteger(c[1]) || !inStanza(c)) return { code: 'posizione', msg: 'Fuori dalla stanza' };
+  const mie = celleMobile(m, c, p.rot ?? 0);
+  if (!mie.every((q) => inStanza(q))) return { code: 'posizione', msg: 'Non ci sta: esce dalla stanza' };
   if (m.posto === 'parete') {
     const ok = p.muro === 'n' ? c[1] === Z0 && c[0] !== ST.retro[0] : p.muro === 'o' ? c[0] === X0 : p.muro === 'e' ? c[0] === X1 - 1 : false;
     if (!ok) return { code: 'posizione', msg: 'Questo si appende a un muro' };
     return arredi.some((a) => a.muro === p.muro && same(a.cell, c)) ? { code: 'cella', msg: 'Su questo muro c’è già qualcosa' } : null;
   }
   if (p.muro) return { code: 'posizione', msg: 'Questo va per terra' };
-  if (PASSAGGI.some((q) => same(q, c))) return { code: 'posizione', msg: 'Qui si passa: lascia libero' };
-  if (arredi.some((a) => !a.muro && same(a.cell, c)) || lot.buildings.some((b) => same(b.cell, c)) || lot.decor.some((d) => same(d.cell, c))) return { code: 'cella', msg: 'Cella occupata' };
+  if (mie.some((q) => PASSAGGI.some((r) => same(r, q)))) return { code: 'posizione', msg: 'Qui si passa: lascia libero' };
+  const occupate = (q: readonly [number, number]) => arredi.some((a) => {
+    if (a.muro) return false;
+    const d = mobile(a.mobile);
+    return d ? celleMobile(d, a.cell, a.rot ?? 0).some((r) => same(r, q)) : same(a.cell, q);
+  }) || lot.buildings.some((b) => same(b.cell, q)) || lot.decor.some((d) => same(d.cell, q));
+  if (mie.some(occupate)) return { code: 'cella', msg: 'Cella occupata' };
   return null;
 }
 
@@ -110,7 +127,7 @@ export function posaMobile(lot0: LotState, id: string, p: PostoMobile, rot: numb
   if (!m) throw new EconomyError('sconosciuto', 'Mobile sconosciuto');
   if (!((c.magazzino ?? {})[id]! > 0)) throw new EconomyError('requisito', 'Non ce l’hai nel magazzino');
   if (!Number.isInteger(rot) || rot < 0 || rot > 3) throw new EconomyError('posizione', 'Rotazione non valida (0-3)');
-  controlla(lot, m, p);
+  controlla(lot, m, { ...p, rot });
   const arredi = c.arredi ?? [], a: PlacedMobile = { id: `${id}-${nextN(arredi)}`, mobile: id, cell: [p.cell[0], p.cell[1]] };
   if (m.posto === 'parete') a.muro = p.muro!; else if (rot) a.rot = rot;
   const mag = { ...c.magazzino }; mag[id] = mag[id]! - 1; if (!mag[id]) delete mag[id];
@@ -120,7 +137,7 @@ export function posaMobile(lot0: LotState, id: string, p: PostoMobile, rot: numb
 export function spostaMobile(lot0: LotState, id: string, p: PostoMobile, nowMs: number): LotState {
   const lot = advance(lot0, nowMs), a = trova(lot, id), m = mobile(a.mobile);
   if (!m) throw new EconomyError('sconosciuto', 'Mobile sconosciuto');
-  controlla(lot, m, p, id);
+  controlla(lot, m, { ...p, rot: a.rot ?? 0 }, id);
   const c = casaDi(lot);
   return conCasa(lot, { ...c, arredi: (c.arredi ?? []).map((x) => {
     if (x.id !== id) return x;
@@ -133,7 +150,8 @@ export function spostaMobile(lot0: LotState, id: string, p: PostoMobile, nowMs: 
 export function ruotaMobile(lot0: LotState, id: string, nowMs: number): LotState {
   const lot = advance(lot0, nowMs), a = trova(lot, id);
   if (a.muro) throw new EconomyError('posizione', 'Quelli a parete non si girano');
-  const c = casaDi(lot);
+  const c = casaDi(lot), m = mobile(a.mobile);
+  if (m) controlla(lot, m, { cell: a.cell, rot: ((a.rot ?? 0) + 1) % 4 }, id); // girato, un mobile lungo deve starci ancora
   return conCasa(lot, { ...c, arredi: (c.arredi ?? []).map((x) => {
     if (x.id !== id) return x;
     const rot = ((x.rot ?? 0) + 1) % 4, y: PlacedMobile = { id: x.id, mobile: x.mobile, cell: x.cell };
@@ -152,7 +170,7 @@ export function spostaBaule(lot0: LotState, cell: [number, number], nowMs: numbe
   const lot = advance(lot0, nowMs), b = baule(lot);
   if (!b) throw new EconomyError('sconosciuto', 'Il baule non c’è ancora: costruisci il Forziere');
   if (same(b.cell, cell)) return lot;
-  controlla({ ...lot, buildings: lot.buildings.filter((x) => x.id !== b.id) }, { id: 'baule', nome: 'Baule', perle: 1, posto: 'terra', forma: 'baule', colori: ['#8E5A2B'] }, { cell });
+  controlla({ ...lot, buildings: lot.buildings.filter((x) => x.id !== b.id) }, { id: 'baule', nome: 'Baule', categoria: 'contenitori', perle: 1, posto: 'terra', forma: 'baule', colori: ['#8E5A2B'] }, { cell });
   return { ...lot, version: lot.version + 1, buildings: lot.buildings.map((x) => (x.id === b.id ? { ...x, cell: [cell[0], cell[1]] } : x)) };
 }
 /** Gira il baule di 90°. */

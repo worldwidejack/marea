@@ -1,6 +1,6 @@
 // Stato della partita a ondate e sua creazione. Tutto il resto (passo, vista, risultato) lavora su questo.
 import { TEMPLARI, TEMPLARI_MAPPA, armaDef, nemicoDef } from '@marea/content/templari.ts';
-import type { TArmaDef, TNemicoDef, TPotere } from '@marea/content/templari.ts';
+import type { TArmaDef, TNemicoDef, TPotere, TPozione } from '@marea/content/templari.ts';
 import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
 import { TICK_HZ } from '../constants.ts';
@@ -25,9 +25,10 @@ export const COLPISCE_TICKS = Math.round(0.15 * HZ);
 /** Durata della caduta di uno zombie morto prima di sparire. */
 export const MORTO_TICKS = Math.round(1.2 * HZ);
 
-export type Slot = { id: string; colpi: number; riserva: number };
-/** Mischia: press → carica → swing · arco: tende → tira · fuoco: spara · fuoco greco: lancia · scudo in mano: spallata. */
-export type EroeAct = 'idle' | 'press' | 'carica' | 'swing' | 'tende' | 'tira' | 'spara' | 'lancia' | 'spallata';
+/** `pot`: potenziata dal Mercante. */
+export type Slot = { id: string; colpi: number; riserva: number; pot?: boolean };
+/** Mischia: press → carica → swing · arco: tende → tira · fuoco: spara · fuoco greco: lancia · scudo in mano: spallata · beve una pozione. */
+export type EroeAct = 'idle' | 'press' | 'carica' | 'swing' | 'tende' | 'tira' | 'spara' | 'lancia' | 'spallata' | 'beve';
 export type Eroe = {
   x: number; z: number; fx: number; fz: number;
   vita: number; max: number;
@@ -45,6 +46,8 @@ export type Eroe = {
   /** Scudo templare (null = non ce l'hai) e se è in mano (sennò sulle spalle). */
   scudo: { vita: number } | null; inMano: boolean;
   prevA: boolean; prevC: boolean; prevD: boolean;
+  /** Pozioni della Strega che hai bevuto (al massimo TEMPLARI.strega.max), elisir del risorto comprati, intoccabile fino al tick. */
+  pozioni: TPozione[]; elisir: number; intoccabile: number;
 };
 /** `carica` = il cavaliere lanciato in linea retta; `fugge` = de Molay a metà vita che scappa ridendo. */
 export type ZombieSt = 'sorge' | 'insegue' | 'strappa' | 'prepara' | 'colpisce' | 'recupera' | 'carica' | 'fugge' | 'morto';
@@ -66,6 +69,8 @@ export type Zombie = {
   modo: ZombieModo; cd: number; dx: number; dz: number; tx: number; tz: number;
   /** La carica ha già preso l'eroe; prossima fiamma della scia (de Molay); dove scappa. */
   preso: boolean; scia: number; fuga: { x: number; z: number } | null;
+  /** Danni che lo scudo davanti regge ancora (0 = niente scudo, o spaccato). */
+  scudo: number;
 };
 /** Tiro di un nemico: bomba del cannoniere (vola a parabola fino a dove eri), palla di fuoco di de Molay (dritta). */
 export type TiroNemico = { id: number; tipo: 'bomba' | 'palla'; x: number; z: number; sx: number; sz: number; tx: number; tz: number; vx: number; vz: number; t: number; dur: number; danno: number; r: number };
@@ -95,6 +100,8 @@ export type TState = {
   ondata: number;
   /** Zombie dell'ondata: quanti in tutto, quanti già usciti, prossima comparsa (tick). */
   quanti: number; usciti: number; prossima: number;
+  /** Quanti ne sono usciti per tipo in questa ondata (i tipi con `maxOndata` arrivano piano piano). */
+  tipiUsciti: Record<string, number>;
   /** Punti dalle assi in questa ondata (hanno un tetto). */
   puntiAssi: number;
   assi: number[];
@@ -113,8 +120,41 @@ export type TState = {
   eventi: TEvento[];
 };
 
-export function slotDi(a: TArmaDef): Slot { return { id: a.id, colpi: a.colpi ?? 0, riserva: a.riserva ?? 0 }; }
-export const armaIn = (s: TState): TArmaDef => armaDef(s.eroe.armi[s.eroe.cur]?.id ?? TEMPLARI.partenza.arma);
+export function slotDi(a: TArmaDef, pot = false): Slot {
+  const p = pot ? potenziata(a) : a;
+  return { id: a.id, colpi: p.colpi ?? 0, riserva: p.riserva ?? 0, ...(pot ? { pot: true } : {}) };
+}
+/** L'arma potenziata dal Mercante: danno × (le miracolose meno), caricatore e riserva più grandi, ricarica più svelta, nome nuovo. */
+const POT = new Map<string, TArmaDef>();
+export function potenziata(a: TArmaDef): TArmaDef {
+  let p = POT.get(a.id);
+  if (!p) {
+    const k = TEMPLARI.mercante.potenzia;
+    p = { ...a, nome: a.nomePot, danno: a.danno * (a.miracolosa ? k.dannoMiracolosa : k.danno),
+      ...(a.colpi !== undefined ? { colpi: Math.ceil(a.colpi * k.colpi) } : {}), ...(a.riserva !== undefined ? { riserva: Math.ceil(a.riserva * k.riserva) } : {}),
+      ...(a.ricarica !== undefined ? { ricarica: a.ricarica * k.ricarica } : {}) };
+    POT.set(a.id, p);
+  }
+  return p;
+}
+export const haPozione = (s: TState, id: TPozione): boolean => s.eroe.pozioni.includes(id);
+export const pozioneDef = (id: TPozione) => TEMPLARI.strega.pozioni.find((p) => p.id === id)!;
+/** L'arma di uno slot come la usi adesso: potenziata se lo è, poi le pozioni (Infuso lesto: ricarica e arco; Grappa: armi a distanza). */
+export function armaDi(s: TState, sl: Slot | null): TArmaDef {
+  const base = armaDef(sl?.id ?? TEMPLARI.partenza.arma), a = sl?.pot ? potenziata(base) : base;
+  const lesto = haPozione(s, 'lesto'), bomb = haPozione(s, 'bombardiere') && a.tipo !== 'mischia';
+  if (!lesto && !bomb) return a;
+  const l = pozioneDef('lesto').ricarica ?? 1, b = pozioneDef('bombardiere');
+  return {
+    ...a,
+    danno: a.danno * (bomb ? b.danno ?? 1 : 1),
+    tempo: a.tempo * (bomb ? b.tempo ?? 1 : 1) * (lesto && a.tipo === 'arco' ? l : 1),
+    ...(a.ricarica !== undefined ? { ricarica: a.ricarica * (lesto ? l : 1) } : {}),
+  };
+}
+export const armaIn = (s: TState): TArmaDef => armaDi(s, s.eroe.armi[s.eroe.cur] ?? null);
+/** Fiato pieno (il Brodo del viandante lo raddoppia). */
+export const fiatoMax = (s: TState): number => TEMPLARI.eroe.fiato * (haPozione(s, 'viandante') ? pozioneDef('viandante').fiato ?? 1 : 1);
 export const slotIn = (s: TState): Slot | null => s.eroe.armi[s.eroe.cur] ?? null;
 export const ev = (s: TState, e: TEvento): void => { s.eventi.push(e); };
 
@@ -127,10 +167,10 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
       x: sp.x, z: sp.z, fx: sp.fx, fz: sp.fz, vita: c.vita, max: c.vita, quiete: 9999, fiato: c.fiato, corre: false, moving: false,
       act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
       armi: [slotDi(armaDef(TEMPLARI.partenza.arma)), null], cur: 0, hurt: 0, riparaT: -999, cd: 0, ricarica: 0, ricaricaDur: 1, scudo: null, inMano: false,
-      prevA: false, prevC: false, prevD: false,
+      prevA: false, prevC: false, prevD: false, pozioni: [], elisir: 0, intoccabile: 0,
     },
     punti: TEMPLARI.partenza.punti, guadagnati: 0, uccisioni: 0,
-    fase: opzioni.subito ? 'inizio' : 'altare', faseT: 0, ondata: 0, quanti: 0, usciti: 0, prossima: 0, puntiAssi: 0,
+    fase: opzioni.subito ? 'inizio' : 'altare', faseT: 0, ondata: 0, quanti: 0, usciti: 0, prossima: 0, tipiUsciti: {}, puntiAssi: 0,
     assi: arena.finestre.map(() => TEMPLARI.barricate.assi),
     porte: Object.fromEntries(arena.porte.map((p) => [p.id, false])),
     zombie: [], proj: [], fiamme: [], drops: [], tiri: [], boss: null,
@@ -183,6 +223,7 @@ export function nuovoZombie(s: TState, tipo: string, x: number, z: number, vel: 
     id: s.nextId++, tipo, def, x, z, fx: 0, fz: 1, vita: max, max, vel, st: 'sorge', stT: 0, stDur: secToTicks(def.sorge),
     finestra: -1, hurt: 0, best: 1e9, bestT: s.tick, grido: s.tick + secToTicks(2 + s.rng.next() * 6),
     modo: 'mischia', cd: secToTicks(2), dx: 0, dz: 1, tx: 0, tz: 0, preso: false, scia: 0, fuga: null,
+    scudo: def.scudo !== undefined ? Math.round(vitaOndata(s.ondata) * (def.scudoVita ?? 1)) : 0,
   };
   s.zombie.push(zz);
   return zz;

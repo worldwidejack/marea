@@ -295,7 +295,8 @@ export default async function (ctx) {
     await ctx.test('gioco: porta della Spiaggia → scelta → gara (pilota automatico, il server la rigioca) → esito → di nuovo nell\'hub davanti alla porta', async () => {
       const before = (await st()).lot.resources;
       await hook('corseHubVai', 'spiaggia');
-      await ctx.waitState(page, (s) => s.corse.scelta === true, 5000);
+      // la scelta apre il palco, che carica l'avatar e fotografa i veicoli col pilota al volante: su GitHub (SwiftShader) servono più di 5 s
+      await ctx.waitState(page, (s) => s.corse.scelta === true, 30000);
       await sleep(300);
       await foto(page, 'gioco_2_scelta');
       await hook('corseAuto', 12);

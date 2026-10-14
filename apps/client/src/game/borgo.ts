@@ -1,7 +1,8 @@
 // Borgo Marea (#237, #247, #265): le porte delle case attorno alla piazza del Porto. La stanza di una casa sta in fondo al giardino di
-// quello slot (template `lotto`, nella fascia oltre il mare che la barca non raggiunge). Come in Animal Crossing i passaggi si
-// attraversano camminando (#265): contro la porta di casa entri, in fondo al corridoio della stanza esci in città, contro la porta in
-// fondo alla stanza vai in giardino, nel passaggio coperto del giardino torni in casa. A fa lo stesso da vicino. Ogni passaggio è un
+// quello slot (template `lotto`, nella fascia oltre il mare che la barca non raggiunge). Dalla città si entra in casa solo con A davanti
+// alla porta (camminarci contro non fa niente: si entrava per sbaglio); gli altri passaggi restano a piedi (#265): in fondo al corridoio
+// della stanza esci in città, contro la porta in fondo alla stanza vai in giardino, nel passaggio coperto del giardino torni in casa.
+// A fa lo stesso da vicino. Ogni passaggio è un
 // teletrasporto dietro al velo nero (ui/velo.ts). Casa di un amico = il suo giardino, in sola lettura come prima.
 import { BORGO } from '@marea/content';
 import type { GameWorld } from './world.ts';
@@ -67,8 +68,7 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
     const f = w.avatar.state, sp = Math.hypot(f.vx, f.vz);
     if (sp < 0.5) return null;
     for (const p of porte) {
-      // in città: contro la facciata, camminando verso la casa
-      if (Math.hypot(f.x - p.muro.x, f.z - p.muro.z) < 0.6 && f.vx * p.verso.x + f.vz * p.verso.z > 0.4 * sp) return { porta: p, esci: false, dove: 'entra' };
+      // in città la porta di casa NON si attraversa camminando (si rischiava di entrare per sbaglio): si entra solo con A
       const cx = (f.x - p.o.x) / T, cz = (f.z - p.o.z) / T;
       // nella stanza: in fondo al corridoio verso sud si esce, contro la porta in fondo verso nord si va in giardino
       if (Math.abs(cx - CX - 0.5) < 0.9 && cz > C1 - 0.4 && cz < C1 && f.vz > 0) return { porta: p, esci: true, dove: 'esci' };

@@ -1,8 +1,41 @@
 {
-  "_nota": "Mobili della casa (#265), stile Animal Crossing: si comprano al negozio dei mobili del Borgo (Perle), finiscono nel magazzino di casa e si posano con ARREDA. `posto` = 'terra' (una cella del pavimento della stanza, si gira di 90°) o 'parete' (una cella di muro: in fondo o ai lati). `forma` = come si disegna (apps/client/src/render/mobili.ts), `colori` dalla palette (ART_BIBLE §2). Per un mobile nuovo basta una riga (e una forma nuova in render/mobili.ts, se serve).",
+  "_nota": "Mobili della casa (#265), stile Animal Crossing: si comprano al negozio dei mobili del Borgo (Perle), finiscono nel magazzino di casa e si posano con ARREDA. `categoria` = una di `categorie` (le schede del catalogo). `posto` = 'terra' (celle del pavimento della stanza, si gira di 90°) o 'parete' (una cella di muro: in fondo o ai lati). `celle` = ingombro a terra [larghezza, profondità] in celle da 2 m (assente = [1,1]; a parete sempre 1). `colori` dalla palette (ART_BIBLE §2): servono al segnaposto. `altezza` (m, assente = 1) serve solo al segnaposto. `forma` = disegno procedurale in apps/client/src/render/mobili.ts (assente = scatola con i `colori`). `vetrina: true` = sta anche in mostra sulle pedane del negozio (max 3 a terra, ci sono solo 3 pedane). Il modello 3D vero è `mob_<id>` (assets/blender/models_mobili.py → manifest_mobili.json): appena esiste, il gioco usa quello. Descrizione che si legge nel gioco: mobili_testi.json (stesso id). Come si aggiunge un mobile: docs/MOBILI.md.",
+  "categorie": [
+    { "id": "dormire", "nome": "Letti e riposo" },
+    { "id": "sedersi", "nome": "Sedie e divani" },
+    { "id": "tavoli", "nome": "Tavoli e scrivanie" },
+    { "id": "contenitori", "nome": "Armadi e scaffali" },
+    { "id": "luci", "nome": "Luci" },
+    { "id": "tecnologia", "nome": "Musica e tecnologia" },
+    { "id": "piante", "nome": "Piante" },
+    { "id": "decorazioni", "nome": "Decorazioni" },
+    { "id": "cucina", "nome": "Cucina" },
+    { "id": "bagno", "nome": "Bagno" },
+    { "id": "giochi", "nome": "Svago e giochi" }
+  ],
   "mobili": [
-    { "id": "comodino_lampada", "nome": "Comodino con lampada", "perle": 20, "posto": "terra", "forma": "comodino_lampada", "colori": ["#C98A4B", "#5A3A1E", "#F5D547"] },
-    { "id": "stereo", "nome": "Stereo", "perle": 30, "posto": "terra", "forma": "stereo", "colori": ["#3FB9C9", "#23201F", "#E8E1D6"] },
-    { "id": "orologio", "nome": "Orologio a parete", "perle": 15, "posto": "parete", "forma": "orologio", "colori": ["#F2A33A", "#E8E1D6", "#23201F"] }
+    { "id": "comodino_lampada", "nome": "Comodino con lampada", "categoria": "dormire", "perle": 20, "posto": "terra", "forma": "comodino_lampada", "colori": ["#C98A4B", "#5A3A1E", "#F5D547"], "vetrina": true },
+    { "id": "stereo", "nome": "Stereo", "categoria": "tecnologia", "perle": 30, "posto": "terra", "forma": "stereo", "colori": ["#3FB9C9", "#23201F", "#E8E1D6"], "vetrina": true },
+    { "id": "orologio", "nome": "Orologio a parete", "categoria": "decorazioni", "perle": 15, "posto": "parete", "forma": "orologio", "colori": ["#F2A33A", "#E8E1D6", "#23201F"], "vetrina": true },
+    { "id": "cabina_telefonica_rossa_smontata", "nome": "Cabina telefonica rossa smontata", "categoria": "decorazioni", "perle": 140, "posto": "terra", "celle": [2, 1], "altezza": 2.3, "colori": ["#E8433F", "#23201F", "#F5D547"] },
+    { "id": "divano_gonfiabile_a_forma_di_coccodrillo", "nome": "Divano gonfiabile a forma di coccodrillo", "categoria": "sedersi", "perle": 70, "posto": "terra", "altezza": 0.8, "colori": ["#8FC35B", "#2C6B3F", "#F5D547"] },
+    { "id": "trono_di_plastica_dorata", "nome": "Trono di plastica dorata", "categoria": "sedersi", "perle": 65, "posto": "terra", "altezza": 1.5, "colori": ["#F5D547", "#F2A33A", "#23201F"] },
+    { "id": "amaca_da_interno_con_supporto_in_bambu", "nome": "Amaca da interno con supporto in bambù", "categoria": "dormire", "perle": 50, "posto": "terra", "altezza": 1.3, "colori": ["#C98A4B", "#F4E3C1", "#5A3A1E"] },
+    { "id": "flipper_anni_90", "nome": "Flipper anni ’90", "categoria": "giochi", "perle": 110, "posto": "terra", "altezza": 1.8, "colori": ["#23201F", "#E8433F", "#F5D547"] },
+    { "id": "cabina_fototessera", "nome": "Cabina fototessera", "categoria": "tecnologia", "perle": 120, "posto": "terra", "altezza": 2.1, "colori": ["#E8E1D6", "#23201F", "#3DF5FF"] },
+    { "id": "albero_di_natale_a_luglio", "nome": "Albero di Natale a luglio", "categoria": "decorazioni", "perle": 75, "posto": "terra", "altezza": 2.0, "colori": ["#2C6B3F", "#E8433F", "#F5D547"] },
+    { "id": "letto_ad_acqua", "nome": "Letto ad acqua", "categoria": "dormire", "perle": 85, "posto": "terra", "altezza": 1.0, "colori": ["#3FB9C9", "#5A3A1E", "#E8E1D6"] },
+    { "id": "scultura_astratta_in_fil_di_ferro", "nome": "Scultura astratta in fil di ferro", "categoria": "decorazioni", "perle": 45, "posto": "terra", "altezza": 1.7, "colori": ["#7F7568", "#23201F", "#E8433F"] },
+    { "id": "cassapanca_da_pirata", "nome": "Cassapanca da pirata", "categoria": "contenitori", "perle": 55, "posto": "terra", "altezza": 0.8, "colori": ["#5A3A1E", "#4A4340", "#F5D547"] },
+    { "id": "manichino_da_sartoria_con_cappello_da_cowboy", "nome": "Manichino da sartoria con cappello da cowboy", "categoria": "decorazioni", "perle": 50, "posto": "terra", "altezza": 1.7, "colori": ["#F4E3C1", "#5A3A1E", "#8E5A2B"] },
+    { "id": "frigorifero_anni_50_smaltato", "nome": "Frigorifero anni ’50 smaltato", "categoria": "cucina", "perle": 120, "posto": "terra", "altezza": 1.5, "colori": ["#3FB9C9", "#E8E1D6", "#F5D547"] },
+    { "id": "divano_in_pelle_vintage", "nome": "Divano in pelle vintage", "categoria": "sedersi", "perle": 85, "posto": "terra", "altezza": 0.85, "colori": ["#8E5A2B", "#5A3A1E", "#C98A4B"] },
+    { "id": "poltrona_a_sacco", "nome": "Poltrona a sacco", "categoria": "sedersi", "perle": 40, "posto": "terra", "altezza": 0.75, "colori": ["#F2A33A", "#E8433F", "#A64DFF"] },
+    { "id": "cabinato_da_sala_giochi_polveroso", "nome": "Cabinato da sala giochi polveroso", "categoria": "giochi", "perle": 130, "posto": "terra", "altezza": 1.75, "colori": ["#23201F", "#E8433F", "#F5D547"] },
+    { "id": "letto_a_castello_in_ferro", "nome": "Letto a castello in ferro", "categoria": "dormire", "perle": 95, "posto": "terra", "altezza": 1.85, "colori": ["#4A4340", "#E8E1D6", "#2478A8"] },
+    { "id": "armadio_in_quercia", "nome": "Armadio in quercia", "categoria": "contenitori", "perle": 110, "posto": "terra", "altezza": 2.0, "colori": ["#5A3A1E", "#8E5A2B", "#F5D547"] },
+    { "id": "statua_di_procione_in_ceramica", "nome": "Statua di procione in ceramica", "categoria": "decorazioni", "perle": 45, "posto": "terra", "altezza": 0.7, "colori": ["#B9AFA3", "#23201F", "#E8E1D6"] },
+    { "id": "libreria_asimmetrica", "nome": "Libreria asimmetrica", "categoria": "contenitori", "perle": 75, "posto": "terra", "altezza": 1.8, "colori": ["#C98A4B", "#23201F", "#E8433F"] },
+    { "id": "pianta_di_monstera_enorme", "nome": "Pianta di Monstera enorme", "categoria": "piante", "perle": 60, "posto": "terra", "altezza": 1.9, "colori": ["#2C6B3F", "#E2B97F", "#8FC35B"] }
   ]
 }

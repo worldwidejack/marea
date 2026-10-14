@@ -18,7 +18,7 @@ import type { GaraState, GaraView } from '@marea/sim/corse/gara.ts';
 import type { SchermoGioco } from '../game/minigiochi.ts';
 import type { GameWorld } from '../game/world.ts';
 import type { Renderer } from '../render/scene.ts';
-import { createLights } from '../render/light.ts';
+import { OMBRA_HD, createLights } from '../render/light.ts';
 import { suona } from '../audio/ponte.ts';
 import { PAL, el } from '../ui/style.ts';
 import { setTopbarHidden } from '../ui/topbar.ts';
@@ -36,6 +36,7 @@ import { creaPalco } from './hub/palco.ts';
 import type { Scelta } from './hub/pannelli.ts';
 
 const END_WAIT = 300, END_SKIP = 60, END_AMICI = 60 * 45;
+const TELEFONO = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
 const CSS = `
 body.mz-gp #compass, body.mz-gp #mzTop, body.mz-gp #mzGuida, body.mz-gp #mzGuidaPtr, body.mz-gp .mz-bar, body.mz-gp .mz-work, body.mz-gp .mz-labels,
@@ -74,7 +75,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   const scene = new THREE.Scene(); scene.name = 'gran_premio';
   scene.background = o.renderer.sky.texture;
   const luci = createLights(); scene.add(luci.group);
-  luci.sun.shadow.mapSize.set(2048, 2048); // HD (#277): con l'ombra a 1024 sotto i veicoli si vedono gli scalini
+  luci.sun.shadow.mapSize.set(OMBRA_HD, OMBRA_HD); // HD (#277): con l'ombra a 1024 sotto i veicoli si vedono gli scalini (al telefono resta 1024: memoria)
   const vista = creaVistaGara({ root: o.root, camera: o.renderer.camera, look: () => o.world.look, onLuce: (x, z) => luci.follow?.(x, z) });
   scene.add(vista.gruppo);
 
@@ -84,7 +85,8 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   o.root.append(quit);
   // ---- HD (#277): l'isola delle Corse (hub, menù, gara) a risoluzione piena, il resto del mondo resta pixel. Se il telefono non ce
   // la fa (sotto i 45 fps per più di 2 s) la risoluzione scende di un gradino, fino a 1 pixel vero per pixel CSS; non risale mai. ----
-  const GRADINI = [2, 1.5, 1.2, 1];
+  // Al telefono si parte da 1,5: a 2 con un iPhone a 3× la tela e i buffer della passata pesano il doppio, e la memoria non basta.
+  const GRADINI = TELEFONO ? [1.5, 1.2, 1] : [2, 1.5, 1.2, 1];
   const hd = { gradino: 0, fps: 60, da: 0 };
   const hdAccendi = () => { hd.gradino = 0; hd.fps = 60; hd.da = performance.now() + 2500; o.renderer.setNitido?.(pixel ? null : GRADINI[0]!); }; // 2,5 s per caricare
   const hdControlla = (dt: number) => {

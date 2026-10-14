@@ -15,6 +15,7 @@ import { stepTrappole } from './porte.ts';
 import { stepPoteri } from './poteri.ts';
 import { resultOf, viewOf } from './vista.ts';
 import { autopilota } from './autopilota.ts';
+import { compra } from './bottega.ts';
 
 export type { TState } from './stato.ts';
 export const MAX_TICKS = TEMPLARI.maxMinuti * 60 * HZ;
@@ -38,6 +39,7 @@ export function stepTemplari(s: TState, inp: TInput): void {
 function act(s: TState, a: TAzione): TEvento[] | null {
   if (s.done || !a || typeof a !== 'object') return null;
   if (a.t === 'esci') { s.done = true; s.esito = 'uscito'; return []; }
+  if (a.t === 'compra') return compra(s, a);
   return null;
 }
 
