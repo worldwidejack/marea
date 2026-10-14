@@ -7,7 +7,7 @@
 // La guida (#170): drift col saltello e 3 livelli di scintille (blu, arancio, viola), turbo alla partenza, acrobazie, scia, turbo
 // che si sommano; fiammate, linee di velocità, scossa, FOV e suoni. Ogni regola ha il suo interruttore A/B nel pannello «prove».
 // Fughe con l'onda: l'indicatore ONDA in alto dice a quanti metri ti sta dietro (rosso sotto i 25).
-// Interruttori: P pista, V veicolo, B bot, T pilota automatico, N ricomincia, 7 oggetti (Q usa, R dall'altra parte), L luce, 1-6 le regole A/B; C camera e ⚙ opzioni (camera
+// Interruttori: P pista, V veicolo (tutti quelli della famiglia della pista, #281), B bot, T pilota automatico, N ricomincia, 7 oggetti (Q usa, R dall'altra parte), L luce, 1-6 le regole A/B; C camera e ⚙ opzioni (camera
 // dietro / alta / cofano, suoni). La pista intera è la minimappa nell'angolo. Indirizzo: ?pista=…&veicolo=…&cam=…&bot=0&auto=1
 // e le regole (?scia=0…). Test: window.__provapiste.ready / .perf() / .state() / .set({...}) / .avanti(tick).
 import * as THREE from 'three';
@@ -32,7 +32,8 @@ import { creaPista3d } from '../nastro3d.ts';
 import type { Pista3d } from '../nastro3d.ts';
 import { matOnda, ondaGeo } from '../onda3d.ts';
 import { creaSuoni } from '../suoni.ts';
-import { quotaBinari, rollioBinari, veicoloGeo } from '../veicoli3d.ts';
+import { quotaBinari, rollioBinari, veicoloMesh } from '../veicoli3d.ts';
+import { infoPezzi } from '../veicoli_ai.ts';
 import { ASPETTI, PILOTI, caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
 import { avvisoRuota } from '../avviso_ruota.ts';
 import { creaOggetti3d, creaUsa, giroColpito } from '../oggetti3d.ts';
@@ -139,7 +140,7 @@ let vis: Vis[] = [];
 function veicoliMesh() {
   for (const m of meshes) { scene.remove(m); m.geometry.dispose(); }
   meshes = s.veicoli.map((k, i) => {
-    const m = new THREE.Mesh(veicoloGeo(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!, aspetto, animali && i ? PILOTI[(i - 1) % PILOTI.length]! : null, !i && avatarOn && kitPronto()), matVeicoli);
+    const m = veicoloMesh(k.id, COLORI[i % COLORI.length]!, CASCHI[i % CASCHI.length]!, aspetto, animali && i ? PILOTI[(i - 1) % PILOTI.length]! : null, !i && avatarOn && kitPronto(), matVeicoli);
     m.castShadow = true; m.matrixAutoUpdate = false; m.name = i ? `corse_bot_${i}` : 'corse_tu'; scene.add(m);
     return m;
   });
@@ -304,7 +305,6 @@ const ROWS: Riga[] = [
   ['P', 'pista', () => p.def.nome, () => { opz['pista'] = PISTE[(PISTE.indexOf(opz['pista']!) + 1) % PISTE.length]!; opz['veicolo'] = ''; nuovaGara(true); }],
   ['V', 'veicolo', () => CORSE.veicoli.find((v) => v.id === opz['veicolo'])?.nome ?? '', () => { const l = famigliaVeicoli(); opz['veicolo'] = l[(l.findIndex((v) => v.id === opz['veicolo']) + 1) % l.length]!.id; nuovaGara(false); }],
   ['B', 'bot', () => (opz['bot'] === '0' ? 'no' : 'sì'), () => { opz['bot'] = opz['bot'] === '0' ? '1' : '0'; nuovaGara(false); }],
-  ['S', 'aspetto', () => (aspetto ? aspetto.replace('cs_v_', '').replace('_', ' ') : 'del veicolo'), () => { aspetto = aspetto ? (ASPETTI[ASPETTI.indexOf(aspetto as never) + 1] ?? '') : ASPETTI[0]; veicoliMesh(); }],
   ['A', 'animali piloti', () => (animali ? 'sì' : 'no'), () => { animali = !animali; veicoliMesh(); }, () => animali],
   ['T', 'pilota automatico', () => (auto ? 'sì' : 'no'), () => { auto = !auto; }],
   ['N', 'ricomincia', () => '', () => nuovaGara(false)],
@@ -423,7 +423,7 @@ const api = {
   perf: () => ({ drawCalls: post.sceneCalls() + 1, triangles: post.sceneTris() + 2, fps: Math.round(perf.fps * 10) / 10, w: gl.domElement.width, h: gl.domElement.height, scintille: fx.mesh.count }),
   state: () => {
     const k = s.veicoli[0]!, v = garaCorse.view(s) as GaraView;
-    return { kit: kitPronto(), avatar: !!avatar?.attached, aspetto, animali, pista: p.def.id, veicolo: k.id, fase, cam, auto, bot: s.veicoli.length - 1, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: s.done, via: v.via,
+    return { kit: kitPronto(), avatar: !!avatar?.attached, pezzi: infoPezzi(meshes[0]), aspetto, animali, pista: p.def.id, veicolo: k.id, fase, cam, auto, bot: s.veicoli.length - 1, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: s.done, via: v.via,
       s: Math.round(k.s * 10) / 10, lat: Math.round(k.lat * 100) / 100, h: Math.round(k.h * 100) / 100, v: Math.round(k.v * 10) / 10,
       ramo: k.ramo, aria: k.aria, caduto: k.caduto > 0, salti: k.salti, cadute: k.cadute, sup: k.sup,
       onda: v.onda === null ? null : Math.round(v.onda * 10) / 10, ondaDist: Math.round(v.ondaDist * 10) / 10, travolto: k.travolto,
