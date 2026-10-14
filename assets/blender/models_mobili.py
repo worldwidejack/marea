@@ -255,7 +255,7 @@ def mob_letto_ad_acqua():
     # Telaio perimetrale massiccio
     m.cbox(0.0, -cd * 0.05, cw, cd * 0.88, 0.0, 0.44, 'p_legno_scuro', top='p_legno_scuro')
     # Materasso ad acqua turchese lucido
-    m.cbox(0.0, -cd * 0.05, cw * 0.88, cd * 0.78, 0.38, 0.52, 'p_acqua', top='acqua')
+    m.cbox(0.0, -cd * 0.05, cw * 0.88, cd * 0.78, 0.38, 0.52, 'p_acqua', top='p_acqua')
     # Increspatura/onda della pozza fredda
     m.cbox(0.0, -cd * 0.12, cw * 0.68, cd * 0.32, 0.52, 0.54, 'p_acqua_bassa', top='p_acqua_bassa')
     # Due cuscini morbidi contro la testiera
