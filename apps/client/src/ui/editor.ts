@@ -27,6 +27,8 @@ export type EditorOpts = {
   /** La tua barca nel mondo (#107): anteprima dal vivo dei colori e del nome. Senza, la sezione Barca non c'è. */
   barca?: { setBarca(b: BarcaLook): void };
   onSaved?(l: Look): void;
+  /** Nome salvato (#301). */
+  onNome?(n: string): void;
   /** Barca salvata (#107). */
   onBarca?(b: BarcaLook): void;
   /** Dopo un acquisto (cappello a Perle) il lotto cambia: chi ascolta aggiorna la vista del lotto. */
@@ -84,11 +86,36 @@ export function createEditor(o: EditorOpts): Editor {
 
   let open = false, busy = false, gen = 0, keysOn = false;
   let draft = clampLook(o.me.look);
+  let draftNome = o.me.nome;
   let lot: LotState | null = o.me.lotto;
   let note: Note = null;
   let linkVisibile = false; // la copia non è riuscita: il link in un campo da selezionare a mano
   let lotFresco = false; // il lotto chiesto all'apertura è arrivato (o la richiesta è fallita): da qui il foglio non si ridisegna da solo
   let firmaLot = ''; // cosa del lotto mostrava l'ultimo render
+
+  const pulitoNome = (s: string): string => s.replace(/[\p{C}<>]/gu, '').trim().replace(/\s+/g, ' ');
+  const nomeOk = (): boolean => { const p = pulitoNome(draftNome); return p.length >= 2 && p.length <= 16; };
+
+  const nomeRow = el('div', 'mz-ed-row');
+  const nomeLbl = el('div', 'mz-ed-lbl');
+  nomeLbl.append(el('span', '', 'Il tuo nome'), el('span', 'v', 'max 16'));
+  const nomeInput = document.createElement('input');
+  nomeInput.className = 'mz-ed-nome';
+  nomeInput.type = 'text';
+  nomeInput.maxLength = 16;
+  nomeInput.placeholder = 'Il tuo nome';
+  nomeInput.setAttribute('autocomplete', 'nickname');
+  nomeInput.spellcheck = false;
+  nomeInput.dataset['nav'] = 'avatar-nome';
+  nomeInput.setAttribute('aria-label', 'Il tuo nome');
+  nomeInput.value = draftNome;
+  nomeInput.addEventListener('input', () => {
+    draftNome = nomeInput.value;
+    note = null;
+    const salvaBtn = sheet.querySelector<HTMLButtonElement>('[data-nav="salva"]');
+    if (salvaBtn) salvaBtn.disabled = busy || !hatOk() || (!!sez && !sez.ok()) || !nomeOk();
+  });
+  nomeRow.append(nomeLbl, nomeInput);
 
   const perle =(): number | null => (lot ? lot.resources.perle : null);
   /** Quello che il foglio mostra del lotto: Perle e cose possedute (cappelli, colori della barca). */
@@ -133,11 +160,25 @@ export function createEditor(o: EditorOpts): Editor {
   }
   async function salva(): Promise<void> {
     if (busy || !hatOk() || (sez && !sez.ok())) return;
-    const l = { ...draft }, lookNuovo = !same(l, clampLook(o.me.look)), barcaNuova = !!sez?.changed();
-    if (!lookNuovo && !barcaNuova) { close(); return; } // niente da salvare: niente POST
+    const pulito = pulitoNome(draftNome);
+    if (!nomeOk()) {
+      note = { text: 'Scrivi un nome da 2 a 16 lettere', bad: true };
+      render();
+      nomeInput.focus();
+      return;
+    }
+    const l = { ...draft }, lookNuovo = !same(l, clampLook(o.me.look)), barcaNuova = !!sez?.changed(), nomeNuovo = pulito !== o.me.nome;
+    if (!lookNuovo && !barcaNuova && !nomeNuovo) { close(); return; } // niente da salvare: niente POST
     const g = gen;
     busy = true; note = null; render();
     try {
+      if (nomeNuovo) {
+        const res = await api.nome(pulito);
+        o.me.nome = res.nome;
+        draftNome = res.nome;
+        nomeInput.value = res.nome;
+        o.onNome?.(res.nome);
+      }
       if (lookNuovo) {
         await api.look(l);
         o.me.look = { ...o.me.look, ...l }; // anche se nel frattempo il pannello è stato chiuso: il server l'ha salvato (titolo e barca restano)
@@ -182,7 +223,7 @@ export function createEditor(o: EditorOpts): Editor {
     const active = document.activeElement as HTMLElement | null;
     const inside = !!active && sheet.contains(active);
     const items = navItems();
-    if (active?.dataset['nav'] === 'barca-nome') { // nel nome si scrive: passano tutti i tasti (anche C), tranne Esc, Invio e le frecce su/giù
+    if (active?.dataset['nav'] === 'barca-nome' || active?.dataset['nav'] === 'avatar-nome') { // nel nome si scrive: passano tutti i tasti (anche C), tranne Esc, Invio e le frecce su/giù
       if (e.key === 'Escape') { e.preventDefault(); if (!e.repeat && !busy) close(); return; }
       if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const i = items.indexOf(active); items[Math.max(0, Math.min(items.length - 1, i + (e.key === 'ArrowUp' ? -1 : 1)))]?.focus(); }
       return;
@@ -316,14 +357,17 @@ export function createEditor(o: EditorOpts): Editor {
     const body = el('div'); body.dataset['panel'] = 'editor';
     if (busy) body.setAttribute('aria-busy', 'true');
     for (const r of ROWS) body.appendChild(rowEl(r));
+    if (document.activeElement !== nomeInput) nomeInput.value = draftNome;
+    body.appendChild(nomeRow);
     if (sez) body.appendChild(sez.node);
     if (o.link) body.appendChild(linkEl(o.link));
     const act = el('div', 'mz-ed-act');
     if (!note && !hatOk()) act.appendChild(el('div', 'mz-note', HATS[draft.cappello]?.mercante ? 'Cappello del Mercante: si compra al Porto' : 'Cappello non tuo: compralo per salvare'));
     else if (!note && sez && !sez.ok()) act.appendChild(el('div', 'mz-note', 'Colore della barca del Mercante: si compra al Porto'));
+    else if (!note && !nomeOk()) act.appendChild(el('div', 'mz-note bad', 'Scrivi un nome da 2 a 16 lettere'));
     if (note && !note.hat) act.appendChild(el('div', 'mz-note ' + (note.bad ? 'bad' : 'ok'), note.text));
     const row = el('div', 'mz-row');
-    row.append(button('ghost', 'annulla', 'ANNULLA', [], false, () => close()), button('green', 'salva', 'SALVA', [], !hatOk() || (!!sez && !sez.ok()), () => void salva()));
+    row.append(button('ghost', 'annulla', 'ANNULLA', [], false, () => close()), button('green', 'salva', 'SALVA', [], !hatOk() || (!!sez && !sez.ok()) || !nomeOk(), () => void salva()));
     act.appendChild(row);
     body.appendChild(act);
     sheet.replaceChildren(head, body);
@@ -340,6 +384,8 @@ export function createEditor(o: EditorOpts): Editor {
     if (open) return;
     open = true; busy = false; note = null; linkVisibile = false; lotFresco = false; gen++;
     draft = clampLook(o.me.look);
+    draftNome = o.me.nome;
+    nomeInput.value = o.me.nome;
     sez?.reset();
     sheet.classList.add('on'); btn.setOn(true);
     keys(true);
@@ -361,12 +407,14 @@ export function createEditor(o: EditorOpts): Editor {
     if (a && sheet.contains(a)) a.blur();
     sheet.classList.remove('on'); btn.setOn(false);
     draft = clampLook(o.me.look);
+    draftNome = o.me.nome;
+    nomeInput.value = o.me.nome;
     o.avatar.setLook({ ...o.me.look });
     sez?.reset();
     o.onClose?.();
   }
   function toggle(): void { if (open) close(); else show(); }
 
-  registerStateProvider('editor', () => ({ open, draft: { ...draft }, saved: { ...clampLook(o.me.look) }, owned: owned(), perle: perle(), busy, note: note?.text ?? null, linkVisibile, lotFresco, barca: sez?.state() ?? null }));
+  registerStateProvider('editor', () => ({ open, draft: { ...draft }, draftNome, saved: { ...clampLook(o.me.look) }, savedNome: o.me.nome, owned: owned(), perle: perle(), busy, note: note?.text ?? null, linkVisibile, lotFresco, barca: sez?.state() ?? null }));
   return { open: show, close, toggle, isOpen: () => open };
 }

@@ -157,6 +157,11 @@ Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, gioca
 
 Niente migrazioni: classifica e input stanno nel SQLite del DO `Sfide` (tabella `discese`, accanto al tabellone del Porto).
 
+### Aggiunta Cambio nome personaggio (#301, 14 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/nome` | `{ nome: string }` → `{ ok: true, nome: string }`: nome da 2 a 16 caratteri ripulito dal server. Aggiorna `persone.nome` in D1 e avvisa la Zone (`POST https://zone/nome`), che aggiorna `Peer.nome` nel prossimo snap. 400 se non valido — **nuovo** |
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32, `a` 0/1 e `b` 0/1/2: **2 = `b` con `c`** («dall'altra parte», `InputFrame.c` facoltativo; nelle Corse l'oggetto va al contrario, #250). Le partite di prima (solo 0/1) restano valide; il server controlla la forma con `isPackedInputs`. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 

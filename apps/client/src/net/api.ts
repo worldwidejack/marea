@@ -149,6 +149,8 @@ export type Api = {
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;
+  /** Cambia il nome del personaggio (POST /api/nome, #301). 400 se non è tra 2 e 16 caratteri. Aggiorna anche la presenza (gli altri lo vedono). */
+  nome(n: string): Promise<{ ok: boolean; nome: string }>;
   /** Compra un cappello a Perle, una volta (POST /api/look/hat con l'id di avatar.json). 409 con `manca` senza Perle. */
   buyHat(id: string): Promise<LotState>;
   /** La tua barca (#107): colori e nome (POST /api/barca), il server ripulisce il nome e controlla i colori esclusivi. Risponde con la barca salvata. */
@@ -400,6 +402,11 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     },
     diarioTitolo: (id) => post('/api/diario/titolo', { id }),
     async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
+    async nome(n) {
+      const d = await call('POST', '/api/nome', { nome: n });
+      if (!isObj(d) || typeof d['nome'] !== 'string') throw new ApiError(500, 'Risposta del server non valida');
+      return { ok: true, nome: d['nome'] as string };
+    },
     buyHat: (id) => post('/api/look/hat', { cappello: id }),
     async barca(b) {
       const d = await call('POST', '/api/barca', { scafo: b.scafo, vela: b.vela, nome: b.nome });

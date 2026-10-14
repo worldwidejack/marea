@@ -18,6 +18,10 @@ export async function esistePersona(env: Env, id: string): Promise<boolean> {
 export async function salvaLook(env: Env, id: string, look: LookSalvato): Promise<void> {
   await env.DB.prepare('UPDATE persone SET look = ?2 WHERE id = ?1').bind(id, JSON.stringify(look)).run();
 }
+/** Nome del personaggio in D1 (#301). */
+export async function salvaNome(env: Env, id: string, nome: string): Promise<void> {
+  await env.DB.prepare('UPDATE persone SET nome = ?2 WHERE id = ?1').bind(id, nome).run();
+}
 /** Tutti gli abitanti dell'arcipelago (per scegliere chi sfidare e sapere di chi è ogni lotto). */
 export async function elencoPersone(env: Env): Promise<{ id: string; nome: string; slot: number | null; look: string }[]> {
   const r = await env.DB.prepare('SELECT id, nome, slot, look FROM persone ORDER BY slot IS NULL, slot, creato').all<{ id: string; nome: string; slot: number | null; look: string }>();
