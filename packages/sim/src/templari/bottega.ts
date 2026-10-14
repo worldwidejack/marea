@@ -40,11 +40,11 @@ export function offerteMercante(s: TState): TOfferta[] {
     const a = armaDef(sl.id);
     out.push(sl.pot
       ? { da: 'mercante', cosa: 'potenzia', slot, nome: `Potenzia: ${a.nomePot}`, descr: 'Già potenziata', prezzo: k.prezzo, puoi: false }
-      : { da: 'mercante', cosa: 'potenzia', slot, nome: `Potenzia: ${a.nome}`, descr: `Diventa «${a.nomePot}»: danno ×${a.miracolosa ? k.dannoMiracolosa : k.danno}${a.tipo === 'mischia' ? '' : `, caricatore e munizioni in più, ricarica più svelta`}`, prezzo: k.prezzo, puoi: s.punti >= k.prezzo });
+      : { da: 'mercante', cosa: 'potenzia', slot, nome: `Potenzia: ${a.nome}`, descr: `Diventa «${a.nomePot}»: danno ×${a.miracolosa ? k.dannoMiracolosa : k.danno}${a.tipo === 'mischia' ? '' : `, caricatore e munizioni in più, ricarica più svelta`}`, prezzo: k.prezzo, puoi: s.eroe.punti >= k.prezzo });
     const pm = prezzoMunizioni(sl);
     if (pm !== null) {
       const nome = sl.pot ? a.nomePot : a.nome, pieno = piena(sl);
-      out.push({ da: 'mercante', cosa: 'munizioni', slot, nome: `Munizioni: ${nome}`, descr: pieno ? 'Sono già piene' : 'Caricatore e riserva pieni', prezzo: pm, puoi: !pieno && s.punti >= pm });
+      out.push({ da: 'mercante', cosa: 'munizioni', slot, nome: `Munizioni: ${nome}`, descr: pieno ? 'Sono già piene' : 'Caricatore e riserva pieni', prezzo: pm, puoi: !pieno && s.eroe.punti >= pm });
     }
   });
   return out;
@@ -56,7 +56,7 @@ export function offerteStrega(s: TState): TOfferta[] {
   return TEMPLARI.strega.pozioni.map((p): TOfferta => {
     const gia = haPozione(s, p.id), finita = p.volte !== undefined && h.elisir >= p.volte, piene = !gia && h.pozioni.length >= max;
     const perche = gia ? 'Già bevuta' : finita ? 'Finita per questa partita' : piene ? `Ne hai già ${max}` : null;
-    return { da: 'strega', cosa: p.id, nome: p.nome, descr: perche ?? p.descr, prezzo: p.prezzo, puoi: !perche && s.punti >= p.prezzo, ...(gia ? { presa: true } : {}) };
+    return { da: 'strega', cosa: p.id, nome: p.nome, descr: perche ?? p.descr, prezzo: p.prezzo, puoi: !perche && s.eroe.punti >= p.prezzo, ...(gia ? { presa: true } : {}) };
   });
 }
 

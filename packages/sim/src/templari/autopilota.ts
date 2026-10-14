@@ -111,12 +111,12 @@ export function autopilota(s: TState, _rng: Rng): TInput {
     const ad = armaDef(m.arma);
     if (!ad.prezzo && h.armi.every(Boolean)) continue; // l'arco gratis non al posto di un'arma comprata
     const meglio = Math.max(0, ...h.armi.map((x) => (x ? armaDef(x.id).prezzo ?? 0 : 0)));
-    if (h.armi.some((x) => x?.id === m.arma) || s.punti < (ad.prezzo ?? 0) + (ad.prezzo ? 200 : 0) || ((ad.prezzo ?? 0) > 0 && (ad.prezzo ?? 0) <= meglio)) continue;
+    if (h.armi.some((x) => x?.id === m.arma) || s.eroe.punti < (ad.prezzo ?? 0) + (ad.prezzo ? 200 : 0) || ((ad.prezzo ?? 0) > 0 && (ad.prezzo ?? 0) <= meglio)) continue;
     return vicino(s, m.x, m.z, 1.0) ? tocca(s) : verso(s, m.x, m.z);
   }
   // la cassa del tesoro quando avanza qualcosa (o l'arma uscita da prendere)
   const c = s.cassa, pc = s.arena.casse[c.posto];
-  if (pc && ((c.fase === 'chiusa' && s.punti >= TEMPLARI.cassa.prezzo + 600) || c.fase === 'pronta')) return vicino(s, pc.x, pc.z, TEMPLARI.cassa.raggio - 0.4) ? tocca(s) : verso(s, pc.x, pc.z);
+  if (pc && ((c.fase === 'chiusa' && s.eroe.punti >= TEMPLARI.cassa.prezzo + 600) || c.fase === 'pronta')) return vicino(s, pc.x, pc.z, TEMPLARI.cassa.raggio - 0.4) ? tocca(s) : verso(s, pc.x, pc.z);
   if (finestraVicina(s) >= 0) return { ...FERMO, d: true };
   let fi = -1, fa = Infinity;
   s.arena.finestre.forEach((f, i) => { const n = s.assi[i] ?? 0; if (n < TEMPLARI.barricate.assi && n < fa && raggiungePunto(s, f.dentro.x, f.dentro.z)) { fa = n; fi = i; } });
