@@ -74,8 +74,8 @@ export type TNemicoDef = {
 export type TOndateCfg = {
   /** Vita degli zombie all'ondata n: base + perOndata × (n − 1) fino a `finoA`, poi × molt a ondata. */
   vita: { base: number; perOndata: number; finoA: number; molt: number };
-  /** Zombie nell'ondata n: base + lin × (n − 1) + quad × (n − 1)², arrotondato, al massimo `max`. */
-  quanti: { base: number; lin: number; quad: number; max: number };
+  /** Zombie nell'ondata n: base + lin × (n − 1) + quad × (n − 1)², arrotondato, al massimo `max`; insieme × (1 + perEroe × (eroi − 1)). */
+  quanti: { base: number; lin: number; quad: number; max: number; perEroe: number };
   /** Quanti al massimo insieme sulla mappa. */
   insieme: number;
   /** Secondi tra due comparse: base + perOndata × (n − 1), almeno `min`. */

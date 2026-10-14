@@ -7,8 +7,10 @@ import { packDungeon, quantizeDungeon } from '../src/dungeon/replay.ts';
 import type { DungeonInput } from '../src/dungeon/types.ts';
 import { stepTemplariInsieme, templari } from '../src/templari/templari.ts';
 import type { TState } from '../src/templari/templari.ts';
-import { replayTemplariInsieme } from '../src/templari/replay.ts';
-import { nuovoZombie, usa } from '../src/templari/stato.ts';
+import { parseTAzioniInsieme, replayTemplariInsieme } from '../src/templari/replay.ts';
+import { nuovoZombie, quantiOndata, usa } from '../src/templari/stato.ts';
+import { apriPorta } from '../src/templari/porte.ts';
+import { TEMPLARI } from '@marea/content/templari.ts';
 import { ferisci } from '../src/templari/colpi.ts';
 import type { TEventoDi } from '../src/templari/types.ts';
 
@@ -109,4 +111,43 @@ test('insieme: il premio di chi esce prima conta le ondate fino a quando è usci
   assert.equal(tutto.hash, templari.result(s).hash);
   assert.ok(mio.superate <= tutto.superate, `${mio.superate} > ${tutto.superate}`);
   assert.equal(mio.hash, tutto.hash, 'la partita è la stessa');
+});
+
+test('insieme: più eroi, più zombie a ondata (perEroe a testa in più)', () => {
+  const q = TEMPLARI.ondate.quanti;
+  assert.equal(quantiOndata(1), q.base);
+  assert.equal(quantiOndata(1, 2), Math.round(q.base * (1 + q.perEroe)));
+  assert.equal(quantiOndata(1, 4), Math.round(q.base * (1 + 3 * q.perEroe)));
+  const s = templari.create({ seed: 6, opzioni: { subito: true, eroi: 3 } });
+  while (s.ondata < 1) stepTemplariInsieme(s, [FERMO, FERMO, FERMO]);
+  assert.equal(s.quanti, quantiOndata(1, 3));
+});
+
+test('insieme: chi compra dalla Strega beve lui, coi punti della squadra; cadendo perde le pozioni', () => {
+  const s = templari.create({ seed: 9, opzioni: { subito: true, eroi: 2 } });
+  const p = s.arena.personaggi.find((x) => x.id === 'strega')!, b = s.eroi[1]!;
+  for (const q of s.arena.porte) { s.punti += TEMPLARI.porte[q.id]?.prezzo ?? 0; apriPorta(s, q); }
+  s.punti = 100000;
+  const a = { t: 'compra', da: 'strega', cosa: 'pietra' } as const;
+  assert.equal(templari.act(s, a, 1), null, 'lontano dalla Strega non si compra');
+  b.x = p.x - p.fx * 1.2; b.z = p.z - p.fz * 1.2;
+  assert.ok(templari.act(s, a, 1), 'vicino sì');
+  assert.deepEqual(b.pozioni, ['pietra']); assert.deepEqual(s.eroi[0]!.pozioni, []);
+  assert.ok(s.punti < 100000, 'i punti sono della squadra');
+  s.eroi[0]!.vita = s.eroi[0]!.max = 1e6;
+  usa(s, 1); ferisci(s, 1e6, b.x + 1, b.z);
+  assert.equal(b.giu, true); assert.deepEqual(b.pozioni, [], 'a terra le pozioni finiscono (come in COD)');
+  assert.equal(templari.act(s, a, 1), null, 'a terra non si compra');
+});
+
+test('insieme: gli acquisti di ciascuno arrivano dalla rete come [tick, eroe, azione] e si scartano se storti', () => {
+  const a = { t: 'compra', da: 'mercante', cosa: 'munizioni', slot: 0 };
+  assert.deepEqual(parseTAzioniInsieme([[30, 1, a]], 2), [[30, 1, a]]);
+  assert.equal(parseTAzioniInsieme([[30, 2, a]], 2), null, 'eroe che non c’è');
+  assert.equal(parseTAzioniInsieme([[30, 0, { t: 'esci' }]], 2), null, 'insieme si esce col server, non con un’azione');
+  assert.equal(parseTAzioniInsieme([[30, 0, a], [10, 1, a]], 2), null, 'tick all’indietro');
+  // il replay le applica all'eroe giusto: lo stesso log con e senza un acquisto impossibile dà la stessa partita
+  const { frames } = giocaInsieme(13, 2, 600);
+  const log = frames.map((f) => packDungeon(f));
+  assert.equal(replayTemplariInsieme(13, log, [null, null], 0, [[60, 1, a as never]]).hash, replayTemplariInsieme(13, log, [null, null], 0).hash);
 });

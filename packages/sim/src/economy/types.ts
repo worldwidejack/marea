@@ -90,9 +90,10 @@ export type LotState = {
   /** La casa arredabile (#265, economy/casa.ts): magazzino dei mobili, mobili posati, pavimenti e carte. Assente = stanza vuota di serie. */
   casa?: CasaState;
 };
-/** Partita a ondate aperta dal server (seed e opzioni da rigiocare), premio del giorno e migliori risultati. */
+/** Partita a ondate aperta dal server (seed e opzioni da rigiocare), premio del giorno e migliori risultati. `party` = insieme: la partita
+ *  `run` del DO TemplariInsieme, dove questo giocatore è l'eroe `idx` (l'esito viene dal log della squadra). */
 export type TemplariLotto = {
-  pending: { seed: number; subito: boolean; startMs: number } | null;
+  pending: { seed: number; subito: boolean; startMs: number; party?: { run: string; idx: number } } | null;
   giorno: number; preso: Resources;
   record: number; partite: number;
 };

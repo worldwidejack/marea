@@ -48,7 +48,7 @@ Zombie e punti di comparsa si accendono zona per zona: finché una porta è chiu
 - Si parte con la **spada arrugginita** e **500 punti**, all'altare.
 - **Ondate infinite**: in ogni ondata compare un numero fisso di zombie, mai più di **18** insieme; ucciso l'ultimo, **10 secondi** di respiro (jingle, «Ondata 4») e poi la prossima. Gli zombie diventano più resistenti a ogni ondata (sotto) e più veloci: alle prime camminano, dalla 4ª qualcuno corre, dalla 8ª molti scattano.
 - **Vita** 100, si rigenera dopo 4 s senza colpi. Un fante toglie 45: tre colpi di fila e sei a terra.
-- **Morte** = fine: «SEI CADUTO ALL'ONDATA N», la scheda col premio (lo conferma il server) e sei di nuovo davanti alla chiesa. Riprovi o vai via.
+- **Morte** = fine (da solo; insieme si resta a terra fino all'ondata dopo, §10b): «SEI CADUTO ALL'ONDATA N», la scheda col premio (lo conferma il server) e sei di nuovo davanti alla chiesa. Riprovi o vai via.
 - **Alba**: dopo **60 minuti** la partita finisce da sola («È L'ALBA»): sei sopravvissuto, vale l'ondata a cui sei arrivato.
 - **Punti**: +10 a colpo a segno, +60 a uccisione, +100 se l'uccisione è in mischia; +10 ad asse rimessa su una finestra (fino a 200 per ondata). Si azzerano a ogni partita: le risorse di MAREA non c'entrano, arrivano solo col premio finale.
 
@@ -58,6 +58,7 @@ Zombie e punti di comparsa si accendono zona per zona: finché una porta è chiu
 |---|---|---|
 | 1 · 2 · 3 · 4 · 5 | 6 · 9 · 11 · 14 · 17 | 2,0 s, poi −0,08 s a ondata (minimo 0,5) |
 | n | 6 + 2,6·(n−1) + 0,06·(n−1)², al massimo 80 | |
+| insieme (§10b) | × (1 + 0,5 · (giocatori − 1)): in 2 una volta e mezza, in 4 due volte e mezza | |
 
 ## 5. Controlli
 - **Mira** (passo 9): niente attacco automatico, colpisci solo quando premi. Il joystick (o WASD) appena sfiorato ti gira sul posto senza muoverti; da PC, se non cammini, l'eroe guarda il puntatore del mouse e il clic attacca lì. La spada colpisce davanti a te; archi e armi da fuoco senza mira vera aiutano solo dentro un cono stretto (~35°) davanti: fuori dal cono il colpo va dritto dove guardi. **Mira vera** (12 ott 2026, #244, la stessa del dungeon: arco e magie): con arco, pistole, moschetto, trombone o fuoco greco in mano **il colpo va esattamente dove punta il cursore** (anche mentre cammini, anche fuori dal cono, anche se c'è uno zombie più vicino); il cursore diventa un mirino e davanti all'eroe c'è la linea di mira. L'arco teso segue il cursore e la freccia parte dove punta al rilascio. Il vaso del fuoco greco cade sul primo zombie lungo la mira, sennò a 3/5 della gittata. Senza mouse né joystick di mira vale la mira assistita di prima. **Arco**: tieni premuto per tendere (più tendi, più fa male), lascia per tirare. **Pistole e moschetto**: un tocco = un colpo, a caricatore vuoto ricaricano da sole (le munizioni si comprano sul muro). **Fuoco greco**: un tocco lancia il vaso dove guardi.
@@ -137,6 +138,16 @@ Lo calcola il **server** rigiocando la partita (come i dungeon): per ogni **onda
 
 Il **record** (ondata più alta) resta nel lotto e si vede nella scheda finale.
 
+## 10b. Insieme (14 ott 2026)
+Fino a **4 amici nella stessa chiesa**, come COD in cooperativa. Alla porta, accanto a ENTRA, c'è **GIOCA INSIEME**: chi lo preme entra nella sala; con almeno 2 chiunque dice **SI PARTE** e si entra tutti, con le ondate già partite.
+- **Ognuno ha il suo eroe** (il suo avatar, le sue armi, il suo scudo, le sue pozioni); sopra la testa degli altri il nome e la vita. Gli zombie vanno verso l'eroe in piedi più vicino ed escono a turno vicino a ognuno.
+- **Punti in comune** (scelta di birbasan, 14 ott): una cassa sola per la squadra, chiunque uccide la riempie e chiunque compra (porte, armi, cassa, Mercante, Strega) spende da lì.
+- **Più zombie** (scelta di birbasan, come COD): ogni giocatore in più aggiunge metà degli zombie dell'ondata (tabella del §4). La vita degli zombie non cambia.
+- **Chi cade resta a terra** (niente rianimazione per ora) e **si rialza all'inizio dell'ondata dopo**, in chiesa, con la vita piena e le sue armi ma **senza pozioni** (come in COD). L'Elisir del risorto ti rialza subito come da solo. La partita finisce quando **non resta nessuno in piedi** («SIETE CADUTI»), all'alba, o quando escono tutti.
+- **Niente pausa**: il menu non ferma la partita (il tuo eroe sta fermo). Uscire dal menu lascia gli altri a combattere.
+- **Premio**: ognuno prende quello delle ondate superate **fino a quando era dentro** (chi esce prima prende per le ondate che ha visto), col solito tetto del giorno.
+- Sotto: PROTOCOL §9; la sim ha più eroi (`opzioni.eroi`), il server tiene il log dei turni e lo rigioca per ciascuno.
+
 ## 11. Audio (priorità alta)
 Atmosfera alla COD Zombies con suoni **nostri, sintetizzati** (motore di `apps/client/src/audio/`, zero file, mai niente copiato da COD). Fatto al passo 8:
 - **Versi** (più piano se lontani): «Deus vult!» gridato da una gola morta (tre sillabe con le vocali vere: formanti su un dente di sega ruvido), il rantolo lungo che trema, l'urlo stridulo di chi scatta, la terra che si apre quando escono.
@@ -148,7 +159,6 @@ Atmosfera alla COD Zombies con suoni **nostri, sintetizzati** (motore di `apps/c
 
 ## 12. Da decidere (non bloccano)
 - **Easter egg** (spezzare la maledizione, il tesoro, il Graal) e **forma finale di de Molay**: in una chat leggera prima del passo 9.
-- Partita insieme (fino a 4, come i dungeon): BACKLOG.
 
 ## 13. Come funziona sotto (per chi programma)
 Una partita è una **sim deterministica** come il dungeon (`packages/sim/src/templari/`, stessa regola: niente funzioni trascendenti): il server sceglie il seed (`POST /api/templari/start`), il client gioca e registra un input per tick, a fine partita (`POST /api/templari/finish`) il DO del lotto rigioca gli input e paga il premio dell'ondata che ne esce. Lo stato (seed in sospeso, premio del giorno, record) sta nel `LotState` (niente migrazioni D1). Nel client tutto vive in un **chunk** a parte (`apps/client/src/templari/`), scaricato solo entrando. Dettagli e interfacce: `CONTRACTS.md` (sezione Templari).

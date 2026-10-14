@@ -74,7 +74,7 @@ function nuovaOndata(s: TState): void {
   if (s.eroi.length > 1) rialza(s);
   s.ondata++;
   s.fase = 'combatti'; s.faseT = 0;
-  s.quanti = quantiOndata(s.ondata); s.usciti = 0; s.tipiUsciti = {}; s.prossima = s.tick + secToTicks(1); s.puntiAssi = 0; s.poteri.ondata = 0;
+  s.quanti = quantiOndata(s.ondata, s.eroi.length); s.usciti = 0; s.tipiUsciti = {}; s.prossima = s.tick + secToTicks(1); s.puntiAssi = 0; s.poteri.ondata = 0;
   const b = bossDi(s.ondata);
   s.boss = b ? { tipo: b.tipo, at: s.tick + secToTicks(b.solo ? TEMPLARI.boss.attesa : intervalloOndata(s.ondata) * s.quanti * 0.5), uscito: false } : null;
   if (b?.solo) s.quanti = Math.max(1, Math.round(s.quanti * TEMPLARI.boss.quotaFanti));

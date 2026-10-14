@@ -238,10 +238,11 @@ export function vitaOndata(n: number): number {
   for (let i = v.finoA; i < k; i++) x *= v.molt;
   return Math.round(x);
 }
-/** Zombie dell'ondata n. */
-export function quantiOndata(n: number): number {
+/** Zombie dell'ondata n (insieme ne escono di più: perEroe a testa in più). */
+export function quantiOndata(n: number, eroi = 1): number {
   const q = TEMPLARI.ondate.quanti, k = Math.max(1, n) - 1;
-  return Math.min(q.max, Math.round(q.base + q.lin * k + q.quad * k * k));
+  const solo = Math.min(q.max, Math.round(q.base + q.lin * k + q.quad * k * k));
+  return eroi > 1 ? Math.round(solo * (1 + q.perEroe * (eroi - 1))) : solo;
 }
 /** Secondi tra due comparse all'ondata n. */
 export function intervalloOndata(n: number): number {

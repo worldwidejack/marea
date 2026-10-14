@@ -33,6 +33,12 @@ export function premioOndate(superate: number): Resources {
   return { legno: p.perOndata.legno * n, pietra: p.perOndata.pietra * n, perle: p.perOndata.perle * n };
 }
 
+/** Insieme: il DO TemplariInsieme apre la partita della squadra nel lotto di ciascuno (seed comune, io = idx). */
+export function startTemplariInsieme(lot: LotState, seed: number, nowMs: number, run: string, idx: number): LotState {
+  const t = templariOf(lot, nowMs);
+  return { ...lot, version: lot.version + 1, templari: { ...t, pending: { seed: seed >>> 0, subito: true, startMs: nowMs, party: { run, idx } } } };
+}
+
 /** Il server apre una partita (una sola aperta: la nuova sostituisce la vecchia, che non paga niente). */
 export function startTemplari(lot: LotState, seed: number, nowMs: number, subito = false): LotState {
   const t = templariOf(lot, nowMs);

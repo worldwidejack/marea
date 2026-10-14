@@ -38,6 +38,10 @@ const CSS = `
 #mzTpl .big.num b { font-size: 92px; letter-spacing: -4px; }
 #mzTpl .big span { display: block; margin-top: 10px; font-size: 15px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 2px 2px 0 ${PAL.neroCaldo}; }
 #mzTpl .msg { position: absolute; left: 50%; top: calc(${TOP} + 8px); transform: translateX(-50%); max-width: calc(100% - 200px); text-align: center; font-size: 14px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 2px 2px 0 ${PAL.neroCaldo}; }
+#mzTpl .amico { position: absolute; left: 0; top: 0; display: none; text-align: center; font-size: 12px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; white-space: nowrap; }
+#mzTpl .amico i { display: block; width: 44px; height: 5px; margin: 2px auto 0; background: ${PAL.ombraCalda}; border: 1px solid ${PAL.neroCaldo}; }
+#mzTpl .amico i b { display: block; height: 100%; background: ${PAL.erbaChiara}; }
+#mzTpl .amico.giu { color: ${PAL.rosso}; }
 @media (max-width: 699px) { #mzTpl .big.num b { font-size: 72px; } #mzTpl .ond b { font-size: 36px; } #mzTpl .msg { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 190px); max-width: calc(100% - 24px); } #mzTpl .big b { font-size: 24px; } }
 /* come nel dungeon (rpg/dungeon_hud.ts): l'interfaccia di superficie sparisce (main.ts mette body.mz-sotto anche qui) */
 body.mz-sotto #compass, body.mz-sotto #mzTop, body.mz-sotto #mzGuida, body.mz-sotto #mzGuidaPtr, body.mz-sotto .mz-bar, body.mz-sotto .mz-work,
@@ -51,6 +55,8 @@ export type TplHud = {
   /** Scritta grande al centro per `ms` (0 = finché non la si toglie). */
   grande(testo: string, colore: string, sub?: string, ms?: number): void;
   togliGrande(): void;
+  /** Insieme: nome e vita sopra la testa dei compagni (px della pagina; `giu` = a terra fino all'ondata dopo). */
+  compagni(list: { x: number; y: number; nome: string; frac: number; giu: boolean }[]): void;
   dispose(): void;
 };
 
@@ -74,6 +80,7 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string, pot?: boo
   const pot = el('div', 'pot'), poz = el('div', 'poz');
   box.append(vign, ond, pti, arma, vita, pot, poz, msg, boss, big);
   root.append(box);
+  const amici: HTMLElement[] = [];
   let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1, pot: '', poz: '' };
 
   return {
@@ -137,6 +144,18 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string, pot?: boo
       bigT = ms > 0 ? setTimeout(() => big.classList.remove('on'), ms) : null;
     },
     togliGrande() { big.classList.remove('on'); },
+    compagni(list) {
+      list.forEach((c, i) => {
+        let e = amici[i];
+        if (!e) { e = el('div', 'amico'); e.append(el('span'), el('i')); e.lastChild!.appendChild(el('b')); box.appendChild(e); amici.push(e); }
+        const testo = c.giu ? `${c.nome} · a terra` : c.nome;
+        if (e.firstChild!.textContent !== testo) e.firstChild!.textContent = testo;
+        e.classList.toggle('giu', c.giu);
+        (e.lastChild!.firstChild as HTMLElement).style.width = `${Math.max(0, Math.round(c.frac * 10)) * 10}%`;
+        e.style.transform = `translate(${Math.round(c.x)}px, ${Math.round(c.y)}px) translate(-50%, -100%)`; e.style.display = 'block';
+      });
+      for (let i = list.length; i < amici.length; i++) amici[i]!.style.display = 'none';
+    },
     dispose() { if (bigT) clearTimeout(bigT); box.remove(); },
   };
 }

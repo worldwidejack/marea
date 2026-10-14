@@ -18,7 +18,7 @@
   "altare": { "raggio": 4 },
   "ondate": {
     "vita": { "base": 150, "perOndata": 100, "finoA": 9, "molt": 1.1 },
-    "quanti": { "base": 6, "lin": 2.6, "quad": 0.06, "max": 80 },
+    "quanti": { "base": 6, "lin": 2.6, "quad": 0.06, "max": 80, "perEroe": 0.5 },
     "insieme": 18,
     "intervallo": { "base": 2, "perOndata": -0.08, "min": 0.5 },
     "pausa": 10,

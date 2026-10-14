@@ -8,6 +8,12 @@
 // l'indice d'angolo del cursore (DungeonInput.m) mentre premi (e al rilascio dell'arco); dal telefono al posto di A c'è il joystick di mira
 // (arco: tieni per tendere, lascia per tirare; le armi da fuoco e il vaso partono al rilascio, un tocco veloce spara come prima, assistito).
 // Autopilota dei test (templariLink.autopilot o ?autopilot=1): gli input li dà la sim, registrati uguali.
+// Insieme (PROTOCOL §9, `o.rete`): la sim ha un eroe per membro della sala (opzioni.eroi, io = il mio). Il mio input va al server una volta per
+// turno (SQ_TICKS tick: joystick dell'ultimo tick, bottoni di qualunque tick del turno, mira se c'è), solo se cambia; la sim avanza SOLO coi
+// turni del server (stessi input per tutti = stessa partita), con un cuscinetto contro i ritardi e una corsa per recuperare. Gli acquisti dal
+// Mercante e dalla Strega vanno al server e si fanno quando tornano nel turno. Niente pausa (il menu non ferma niente, l'eroe sta fermo).
+// Compagni: il loro avatar (look e arma), nome e vita sopra la testa; chi cade resta a terra fino all'ondata dopo. Fine (tutti giù, alba, o
+// Esci): `done` risolve { insieme: true }, l'esito lo calcola il server dal log della squadra.
 import * as THREE from 'three';
 import type { InputFrame } from '@marea/sim';
 import { createRng } from '@marea/sim';
@@ -16,13 +22,15 @@ import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
 import { encodeDungeon, packDungeon, quantizeDungeon } from '@marea/sim/dungeon/replay.ts';
 import type { DungeonInput } from '@marea/sim/dungeon/types.ts';
 import { pugni } from '@marea/sim/dungeon/hero.ts';
-import { stepTemplari, templari } from '@marea/sim/templari/templari.ts';
+import { stepTemplari, stepTemplariInsieme, templari } from '@marea/sim/templari/templari.ts';
 import type { TState } from '@marea/sim/templari/templari.ts';
 import { daiArma, miraTiro } from '@marea/sim/templari/eroe.ts';
-import { armaIn, nuovoZombie, quantiOndata } from '@marea/sim/templari/stato.ts';
+import { armaIn, nuovoZombie, quantiOndata, usa } from '@marea/sim/templari/stato.ts';
 import { vicinoRaggiungibile } from '@marea/sim/templari/raggiungi.ts';
 import { apriPorta } from '@marea/sim/templari/porte.ts';
-import type { TAzione, TAzioni, TEvento, TView } from '@marea/sim/templari/types.ts';
+import type { TAzione, TAzioni, TEvento, TEventoDi, TInput, TView } from '@marea/sim/templari/types.ts';
+import { SQ_TICKS } from '@marea/protocol/templari_insieme.ts';
+import type { SqInput } from '@marea/protocol/templari_insieme.ts';
 import { createHeroActor } from '../rpg/dungeon_hero.ts';
 import { createMouse } from '../rpg/dungeon_mouse.ts';
 import type { Mouse } from '../rpg/dungeon_mouse.ts';
@@ -50,16 +58,25 @@ import type { BottegaUi } from './bottega_ui.ts';
 import { offerteMercante, offerteStrega } from '@marea/sim/templari/bottega.ts';
 import { createBanco } from './banco.ts';
 import type { Banco, BancoAzioni } from './banco.ts';
-import type { TemplariCtx, TemplariFine, TemplariRun } from './types.ts';
+import type { TemplariCtx, TemplariFine, TemplariRete, TemplariRun } from './types.ts';
 
 export { mostraEsito } from './esito.ts';
 
 type Fase = 'carica' | 'gioca' | 'fine' | 'finita';
 const FINE_TICK = 200; // scritta finale prima di consegnare (A la salta dopo un attimo)
+/** Insieme: tick di turni da avere in coda prima di ripartire dopo un vuoto; oltre RECUPERO si corre, oltre SVELTO due tick per frame. */
+const CUSCINETTO = SQ_TICKS * 2, SVELTO = SQ_TICKS * 4, RECUPERO = SQ_TICKS * 20;
+/** Eventi che riguardano un eroe solo: insieme si mostrano (scritte, suoni, lampi) solo a chi è successo. */
+const PERSONALI = new Set<TEvento['t']>(['fendente', 'mancato', 'ferito', 'vuoto', 'ricarica', 'parato', 'scudo', 'scudoRotto', 'compra', 'potenziata', 'pozione', 'risorto', 'brucia', 'caduto', 'rialzato', 'sparo']);
+const BIT = (f: TInput): number => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0);
+/** Un input del turno del server come lo legge la sim. */
+const frameDi = (x: SqInput): TInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
 const FINE: Record<string, [string, string, string]> = {
   morto: ['SEI CADUTO', PAL.rosso, 'Deus vult…'],
   alba: ['È L’ALBA', PAL.giallo, 'I morti tornano sotto terra. Sei sopravvissuto.'],
   uscito: ['SEI USCITO', PAL.sabbiaChiara, 'La chiesa ti aspetta.'],
+  /** insieme: caduti tutti */
+  tutti: ['SIETE CADUTI', PAL.rosso, 'Tutti a terra. Deus vult…'],
 };
 
 /** Il suono dell'arma che spara (docs/TEMPLARI.md §11). */
@@ -97,45 +114,58 @@ const POZIONI: Record<string, [string, string]> = { pietra: ['ZUPPA DI PIETRA', 
 /** Nomi corti delle armi per il banco di prova. */
 const CORTO: Record<string, string> = { spada: 'Spada', pistola: 'Pistola', pistola_doppia: 'Pistola doppia', spada_molay: 'Spada di Molay', mazza: 'Mazza', ascia: 'Ascia' };
 
-export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boolean; banco?: boolean }): TemplariRun {
-  const s: TState = templari.create({ seed: o.seed, opzioni: o.subito ? { subito: true } : {} });
+export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boolean; banco?: boolean; rete?: TemplariRete }): TemplariRun {
+  const rete = o.rete ?? null, io = rete?.io ?? 0;
+  const s: TState = templari.create({ seed: o.seed, opzioni: rete ? { subito: true, eroi: rete.membri.length } : o.subito ? { subito: true } : {} });
+  // insieme: tra un tick e l'altro s.eroe è il mio (la sim lo cambia solo dentro il tick), così tutto il client sotto guarda il mio eroe
+  if (rete) usa(s, io);
+  const vista = (): TView => templari.view(s, io);
   const frames: DungeonInput[] = [], azioni: TAzioni = [];
-  let fase: Fase = 'carica', wait = 0, view: TView = templari.view(s), auto: Rng | null = null, armaOra = chiaveArma(view);
+  let fase: Fase = 'carica', wait = 0, view: TView = vista(), auto: Rng | null = null, armaOra = chiaveArma(view);
+  /** Insieme: i compagni (attore, arma in mano, uscito); la finestra del turno; l'ultimo input mandato; turno a metà; firme dello stato. */
+  const amici = rete ? rete.membri.map((m, i) => ({ i, nome: m.nome, look: m.look, actor: null as HeroActor | null, arma: '', fuori: false, giu: false })).filter((a) => a.i !== io) : [];
+  const win = { mx: 0, my: 0, bits: 0, m: 0, n: 0 };
+  let mandato = '', inTurno = 0, attesa = true, rotto = false, ioGiu = false;
+  const firme: Record<number, number> = {};
   let banco: Banco | null = null, pers: Personaggi | null = null, bott: BottegaUi | null = null;
   /** AZIONE premuto in questo frame (fronte): vicino al Mercante o alla Strega apre il loro menù. */
   let azionePrima = false, azioneGiu = false;
   /** Banco di prova: immortale, ondate ferme, zombie fermi (velocità di prima per id), rallentatore (un tick ogni 4 frame). */
   const bk = { immortale: false, ferme: false, fermi: false, lento: false, frame: 0, vel: new Map<number, number>() };
   let sc: Scena | null = null, hero: HeroActor | null = null, zombi: Zombi | null = null, hud: TplHud | null = null, ctl: Controlli | null = null, fx: Effetti | null = null, mouse: Mouse | null = null, mUltima = 0;
-  let resolve!: (v: TemplariFine | null) => void;
-  const done = new Promise<TemplariFine | null>((r) => (resolve = r));
+  let resolve!: (v: TemplariFine | { insieme: true } | null) => void;
+  const done = new Promise<TemplariFine | { insieme: true } | null>((r) => (resolve = r));
 
   const pulisci = () => {
     fase = 'finita'; templariLink.state = null; templariLink.prova = null; tensione(0);
     banco?.dispose(); bott?.dispose(); pers?.dispose(); mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
+    for (const a of amici) a.actor?.dispose();
     ctx.renderer.setScene(null);
   };
   const consegna = () => {
     if (fase === 'finita') return;
+    if (rete) { rete.manda({ t: 'esco' }); pulisci(); console.log(`[marea] templari insieme finita: ${s.tick} tick, ondata ${s.ondata}`); resolve({ insieme: true }); return; }
     const out: TemplariFine = { inputs: encodeDungeon(packDungeon(frames)), hash: templari.result(s).hash, azioni: azioni.map(([t, a]) => [t, a]), result: templari.result(s) };
     pulisci();
     console.log(`[marea] templari finita: ${frames.length} tick, ondata ${s.ondata}, ${s.uccisioni} uccisioni`);
     resolve(out);
   };
-  const abort = () => { if (fase === 'finita') return; pulisci(); resolve(null); };
+  const abort = () => { if (fase === 'finita') return; if (rete) { rete.manda({ t: 'esco' }); pulisci(); resolve({ insieme: true }); return; } pulisci(); resolve(null); };
   const versoFine = () => {
     if (fase !== 'gioca') return;
     fase = 'fine'; wait = FINE_TICK; ctl?.hide();
-    const [t, c, sub] = FINE[s.esito ?? 'uscito'] ?? FINE['uscito']!;
+    const [t, c, sub] = FINE[rete && s.esito === 'morto' ? 'tutti' : s.esito ?? 'uscito'] ?? FINE['uscito']!;
     hud?.grande(t, c, `Ondata ${Math.max(1, s.ondata)} · ${sub}`, 0);
     suona(s.esito === 'morto' ? 'tpl_caduto' : s.esito === 'alba' ? 'tpl_ondata_fine' : 'fine');
   };
   const esci = () => {
     if (fase !== 'gioca') return;
+    // insieme: esco io, gli altri continuano (il server mi mette in `via` nel turno dopo)
+    if (rete) { fase = 'fine'; wait = 1; return; }
     const ev = templari.act(s, { t: 'esci' });
     if (!ev) return;
     azioni.push([frames.length, { t: 'esci' }]);
-    view = templari.view(s);
+    view = vista();
     versoFine();
   };
 
@@ -144,22 +174,30 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     try {
       await ctx.loader.extend('manifest_rpg.json'); // modelli delle armi (kit GDR)
       sc = createScena(s.arena, ctx.renderer.camera);
-      hero = await createHeroActor({ loader: ctx.loader, look: ctx.world.look, hero: { arma: armaVista(view.eroe.arma, chiaveArma(view).endsWith('+')) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true, soloBusto: true });
+      hero = await createHeroActor({ loader: ctx.loader, look: rete?.membri[io]?.look ?? ctx.world.look, hero: { arma: armaVista(view.eroe.arma, chiaveArma(view).endsWith('+')) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true, soloBusto: true });
       zombi = createZombi(sc.scene);
       fx = createEffetti({ scene: sc.scene, arena: s.arena, loader: ctx.loader, root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera });
       if ((fase as Fase) === 'finita') { pulisci(); return; }
       hud = createTplHud(ctx.root, nomeArma, (id) => armaDef(id).tipo !== 'mischia');
       pers = createPersonaggi(sc.scene, s.arena);
       bott = createBottegaUi(ctx.root, compraDalMenu);
-      ctl = createControlli({ root: ctx.root, canvas: ctx.canvas, yaw: () => ctx.renderer.diorama.yaw, onEsci: esci });
+      ctl = createControlli({ root: ctx.root, canvas: ctx.canvas, yaw: () => ctx.renderer.diorama.yaw, onEsci: esci, insieme: !!rete });
+      for (const a of amici) {
+        const c = view.compagni.find((x) => x.i === a.i);
+        if (!c) continue;
+        a.arma = c.arma;
+        a.actor = await createHeroActor({ loader: ctx.loader, look: a.look, hero: { arma: armaVista(c.arma) }, scene: sc.scene, floorY: 0, x: c.posa.x, z: c.posa.z, soloBusto: true });
+        a.actor.tick(c.posa);
+      }
       mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: 0 });
       hero.tick(view.posa); zombi.tick(view); fx.tick(view);
       sc.setPorte(s.porte); sc.setCalice(s.fase !== 'altare');
       ctx.renderer.setScene(sc.scene);
       ctx.renderer.diorama.setZoom(innerWidth < innerHeight ? 1.3 : 1.05); // al telefono in verticale un po' più largo: si vedono le finestre
       ctx.renderer.diorama.follow(view.eroe.x, 0.9, view.eroe.z); ctx.renderer.diorama.snap?.();
-      if (o.banco) banco = createBanco(ctx.root, TEMPLARI.armi.map((a) => [a.id, CORTO[a.id] ?? a.nome]), bancoAzioni());
-      hud.grande('✠', PAL.rosso, o.banco ? 'Stanza di prova' : o.subito ? 'Le ondate stanno per cominciare' : 'Porta il calice sull’altare (AZIONE)', 2600);
+      if (o.banco && !rete) banco = createBanco(ctx.root, TEMPLARI.armi.map((a) => [a.id, CORTO[a.id] ?? a.nome]), bancoAzioni());
+      hud.grande('✠', PAL.rosso, rete ? `Insieme: ${rete.membri.map((m) => m.nome).join(', ')}` : o.banco ? 'Stanza di prova' : o.subito ? 'Le ondate stanno per cominciare' : 'Porta il calice sull’altare (AZIONE)', 2600);
+      if (rete) rete.manda({ t: 'carico' });
       fase = 'gioca';
     } catch (e) {
       console.error('[marea] templari non caricata', e);
@@ -170,8 +208,19 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
 
   /** Volume di un verso con la distanza dall'eroe (1 vicino … 0 oltre ~22 m). */
   const vicino = (x: number, z: number) => Math.max(0, 1 - Math.sqrt((x - s.eroe.x) * (x - s.eroe.x) + (z - s.eroe.z) * (z - s.eroe.z)) / 22);
-  const evento = (e: TEvento) => {
+  const nomeDi = (i: number) => rete?.membri[i]?.nome ?? 'Un compagno';
+  const evento = (e: TEventoDi) => {
     if (!hud || !zombi || !hero) return;
+    // insieme: di quello che succede agli altri solo cadute e rialzate (il resto lo vedi sui loro avatar) e i loro spari, più piano
+    if (rete && e.e !== undefined && e.e !== io && PERSONALI.has(e.t)) {
+      if (e.t === 'caduto') { suona('tpl_caduto', 0.5); hud.grande('', PAL.rosso, `${nomeDi(e.e)} è a terra: si rialza all’ondata dopo`, 2600); }
+      else if (e.t === 'rialzato') hud.grande('', PAL.erbaChiara, `${nomeDi(e.e)} è di nuovo in piedi`, 2000);
+      else if (e.t === 'risorto') hud.grande('', PAL.rosaNeon, `${nomeDi(e.e)} si rialza con l’Elisir`, 2000);
+      else if (e.t === 'sparo') { const h = s.eroi[e.e]; suona(SPARO[e.arma] ?? 'tpl_pistola', h ? vicino(h.x, h.z) : 0.4); }
+      return;
+    }
+    if (rete && e.e === io && e.t === 'caduto') { ioGiu = true; suona('tpl_caduto'); hud.grande('SEI A TERRA', PAL.rosso, 'Ti rialzi all’ondata dopo, se gli altri resistono', 3200); return; }
+    if (rete && e.e === io && e.t === 'rialzato') { ioGiu = false; suona('altare'); hud.grande('IN PIEDI', PAL.erbaChiara, 'Nuova ondata: sei di nuovo in partita', 2400); return; }
     fx?.evento(e);
     switch (e.t) {
       case 'grido': { const z = s.zombie.find((x) => x.id === e.id); if (z) suona(e.tipo === 'deus' ? 'tpl_deus' : e.tipo === 'urlo' ? 'tpl_urlo' : 'tpl_rantolo', vicino(z.x, z.z)); break; }
@@ -241,6 +290,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     const c = ctl!.sample();
     azioneGiu = azioneGiu || (c.d && !azionePrima); azionePrima = c.d;
     if (auto) return templari.autopilot(s, auto);
+    // insieme non ci si ferma: in pausa, a terra o col menù del Mercante aperto l'eroe sta fermo
+    if (rete && (ctl!.paused || ioGiu || bott?.aperta)) return { mx: 0, my: 0, a: false, b: false, c: false, d: false };
     let a = f.a || c.a, m = 0;
     let mx = f.mx, my = f.my;
     const h = s.eroe, tipo = miraArma();
@@ -265,6 +316,10 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (o.banco) bancoPrima();
     frames.push(q); stepTemplari(s, q);
     if (o.banco && bk.immortale) s.eroe.vita = s.eroe.max;
+    dopoPasso();
+  }
+  /** Dopo un passo della sim: eventi, passi sotto i piedi del mio eroe, tensione della musica. */
+  function dopoPasso(): void {
     for (const e of s.eventi) evento(e);
     const h = s.eroe, d = Number.isNaN(px) ? 0 : Math.sqrt((h.x - px) * (h.x - px) + (h.z - pz) * (h.z - pz));
     px = h.x; pz = h.z;
@@ -279,11 +334,13 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   /** Un acquisto dal menù del Mercante o della Strega: la sim lo prova (vicino, punti, si può) e, se vale, lo registra per il server. */
   function compraDalMenu(a: TAzione): void {
     if (fase !== 'gioca') return;
+    // insieme: al server, che lo mette nel turno dopo (la sim lo fa lì, per tutti)
+    if (rete) { rete.manda({ t: 'az', a }); return; }
     const ev = templari.act(s, a);
     if (!ev) { suona('vuoto'); return; }
     azioni.push([frames.length, a]);
     for (const e of ev) evento(e);
-    view = templari.view(s);
+    view = vista();
   }
   /** Banco di prova: prima di ogni tick tiene ferme le ondate e gli zombie e rende l'eroe immortale. */
   function bancoPrima(): void {
@@ -328,51 +385,117 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     };
   }
 
+  // ---- insieme ----
+  /** Un frame: il mio input nella finestra del turno (al server se è cambiato), poi i tick dei turni arrivati. */
+  function stepInsieme(f: InputFrame): void {
+    const r = rete!;
+    if (templariLink.autopilot > 0 && !auto) auto = createRng(o.seed + io).fork('autopilot');
+    if (templariLink.autopilot === 0) auto = null;
+    if (fase === 'gioca' && !s.done) {
+      const q = quantizeDungeon(inputOra(f));
+      win.mx = q.mx; win.my = q.my; win.bits |= BIT(q); if (q.m) win.m = q.m;
+      if (++win.n >= SQ_TICKS) {
+        const mx = Math.round(win.mx * 8) || 0, my = Math.round(win.my * 8) || 0;
+        const x: SqInput = win.m ? [mx, my, win.bits, win.m] : [mx, my, win.bits], k = x.join(',');
+        if (k !== mandato) { mandato = k; r.manda({ t: 'in', f: x }); }
+        win.bits = 0; win.m = 0; win.n = 0;
+      }
+    }
+    if (r.chiusa && !rotto && fase === 'gioca') { rotto = true; ctx.hud.toast('Connessione con la squadra persa', 3000); consegna(); return; }
+    // quanti tick giocare adesso: niente se il cuscinetto si è svuotato (finché non si riempie), di più se si resta indietro
+    const pronti = r.turni.length * SQ_TICKS - inTurno;
+    if (pronti <= 0) { attesa = true; return; }
+    if (attesa && pronti < CUSCINETTO) return;
+    attesa = false;
+    const n = pronti > RECUPERO ? pronti - CUSCINETTO : pronti > SVELTO ? 2 : 1;
+    for (let k = 0; k < n && !s.done; k++) tickRete(n > 2);
+    dopoTick();
+  }
+  /** Un tick del turno in testa: al primo tick chi esce e gli acquisti (come li ha messi il server), poi il passo di tutti. */
+  function tickRete(muto: boolean): void {
+    const r = rete!, t = r.turni[0]!;
+    if (inTurno === 0) {
+      for (const i of t.via ?? []) templari.act(s, { t: 'ritira', eroe: i });
+      for (const [i, a] of t.az ?? []) { const ev = templari.act(s, a, i); if (ev && i === io && !muto) for (const e of ev) evento(e); }
+    }
+    stepTemplariInsieme(s, t.f.map(frameDi));
+    usa(s, io);
+    if (s.tick % 300 === 0) firme[s.tick] = templari.result(s).hash; // test: ogni 5 s lo stato di tutti, uguale per ogni giocatore
+    if (!muto) dopoPasso();
+    if (++inTurno >= SQ_TICKS) { r.turni.shift(); inTurno = 0; }
+  }
+  /** Compagni: posa e arma dalla vista, a terra o usciti (spariscono con un avviso). */
+  function tickAmici(): void {
+    for (const a of amici) {
+      const c = view.compagni.find((x) => x.i === a.i);
+      if (!c || !a.actor) continue;
+      if (c.fuori) { if (!a.fuori) { a.fuori = true; a.actor.avatar.object.visible = false; hud?.grande('', PAL.sabbiaChiara, `${a.nome} è uscito dalla chiesa`, 2200); } continue; }
+      if (c.arma !== a.arma) { a.arma = c.arma; void a.actor.setArma(armaVista(c.arma)); }
+      a.giu = c.giu;
+      a.actor.tick(c.posa);
+    }
+  }
+
   const run: TemplariRun = {
     get active() { return fase !== 'finita'; },
     step(f) {
       if (fase === 'fine') { if (--wait <= 0 || (wait < FINE_TICK - 60 && f.a)) consegna(); return; }
+      if (rete) { if (fase === 'gioca' && ctl) stepInsieme(f); return; }
       if (fase !== 'gioca' || !ctl || ctl.paused) return;
       if (templariLink.autopilot > 0 && !auto) auto = createRng(o.seed).fork('autopilot');
       if (templariLink.autopilot === 0) auto = null;
       const n = auto ? templariLink.autopilot : 1;
       if (bk.lento && bk.frame++ % 4 !== 0) return;
       for (let i = 0; i < n && !s.done; i++) tickUno(f);
-      view = templari.view(s);
-      if (chiaveArma(view) !== armaOra) { armaOra = chiaveArma(view); void hero?.setArma(armaVista(view.eroe.arma, armaOra.endsWith('+'))); }
-      // AZIONE vicino al Mercante o alla Strega: il loro menù
-      const chi = view.prompt?.cosa === 'mercante' || view.prompt?.cosa === 'strega' ? view.prompt.cosa : null;
-      if (azioneGiu && chi && bott?.aperta !== chi) { bott?.apri(chi); suona('apri'); }
-      azioneGiu = false;
-      hero!.tick(view.posa); zombi!.tick(view); fx!.tick(view);
-      // linea di mira: dove punta il dito (joystick) o il cursore con un'arma a distanza in mano; sennò, con l'arco teso, verso chi prenderà la freccia
-      const tipo = miraArma(), vm = ctl.miraDir() ?? (tipo && !ctl.paused ? mouse?.verso(s.eroe.x, s.eroe.z) ?? null : null);
-      ctx.canvas.style.cursor = tipo && mouse?.attivo ? 'crosshair' : '';
-      const t0 = !vm && s.eroe.act === 'tende' ? miraTiro(s, armaDef(view.eroe.arma === 'scudo' ? 'spada' : view.eroe.arma).gittata ?? 20) : null;
-      if (vm) hero!.mira({ x: vm.x, z: vm.z }, true);
-      else if (t0) { const dx = t0.x - s.eroe.x, dz = t0.z - s.eroe.z, d = Math.sqrt(dx * dx + dz * dz) || 1; hero!.mira({ x: dx / d, z: dz / d }); } else hero!.mira(null);
-      if (s.done) versoFine();
+      dopoTick();
     },
-    update(alpha, dt, t) {
-      if (!sc || !hero || !zombi || !hud || !ctl || fase === 'finita' || fase === 'carica') return;
-      hero.update(alpha, dt);
-      zombi.update(alpha, dt, t);
-      fx?.update(alpha, dt, t, hero.avatar.object, view);
-      const p = hero.avatar.object.position;
-      ctx.renderer.diorama.follow(p.x, 0.9, p.z); ctx.renderer.diorama.update(dt);
-      sc.update(p.x, p.z, t, s.assi, view.trappole);
-      hud.set(view);
-      ctl.setPrompt(fase === 'gioca' ? view.prompt : null);
-      // Mercante e Strega: si muovono, e il loro menù resta aperto finché sei lì
-      const chi = fase === 'gioca' && (view.prompt?.cosa === 'mercante' || view.prompt?.cosa === 'strega') ? view.prompt.cosa : null;
-      pers?.update(t, chi);
-      if (bott?.aperta) { if (bott.aperta !== chi) bott.chiudi(); else bott.aggiorna(chi === 'mercante' ? offerteMercante(s) : offerteStrega(s), s.punti); }
-      ctl.setMira(fase === 'gioca' && miraArma() !== null);
-      ctl.setScambia(fase === 'gioca' && view.eroe.armi.filter(Boolean).length + (view.eroe.scudo ? 1 : 0) > 1);
-    },
+    update(alpha, dt, t) { aggiorna(alpha, dt, t); },
     abort,
     done,
   };
+
+  /** Dopo i tick di un frame: vista, arma in mano, menù del Mercante e della Strega, attori, mira; in fondo la fine. */
+  function dopoTick(): void {
+    if (!ctl) return;
+    view = vista();
+    if (chiaveArma(view) !== armaOra) { armaOra = chiaveArma(view); void hero?.setArma(armaVista(view.eroe.arma, armaOra.endsWith('+'))); }
+    // AZIONE vicino al Mercante o alla Strega: il loro menù
+    const chi = view.prompt?.cosa === 'mercante' || view.prompt?.cosa === 'strega' ? view.prompt.cosa : null;
+    if (azioneGiu && chi && bott?.aperta !== chi) { bott?.apri(chi); suona('apri'); }
+    azioneGiu = false;
+    hero!.tick(view.posa); zombi!.tick(view); fx!.tick(view);
+    // linea di mira: dove punta il dito (joystick) o il cursore con un'arma a distanza in mano; sennò, con l'arco teso, verso chi prenderà la freccia
+    const tipo = miraArma(), vm = ctl.miraDir() ?? (tipo && !ctl.paused ? mouse?.verso(s.eroe.x, s.eroe.z) ?? null : null);
+    ctx.canvas.style.cursor = tipo && mouse?.attivo ? 'crosshair' : '';
+    const t0 = !vm && s.eroe.act === 'tende' ? miraTiro(s, armaDef(view.eroe.arma === 'scudo' ? 'spada' : view.eroe.arma).gittata ?? 20) : null;
+    if (vm) hero!.mira({ x: vm.x, z: vm.z }, true);
+    else if (t0) { const dx = t0.x - s.eroe.x, dz = t0.z - s.eroe.z, d = Math.sqrt(dx * dx + dz * dz) || 1; hero!.mira({ x: dx / d, z: dz / d }); } else hero!.mira(null);
+    tickAmici();
+    if (s.done) versoFine();
+  }
+  function aggiorna(alpha: number, dt: number, t: number): void {
+    if (!sc || !hero || !zombi || !hud || !ctl || fase === 'finita' || fase === 'carica') return;
+    hero.update(alpha, dt);
+    for (const a of amici) if (a.actor && !a.fuori) a.actor.update(alpha, dt);
+    if (rete) hud.compagni(amici.flatMap((a) => {
+      if (!a.actor || a.fuori) return [];
+      const c = view.compagni.find((x) => x.i === a.i), hp = a.actor.head(), [x, y] = schermo3(hp.x, hp.y + 0.35, hp.z);
+      return [{ x, y, nome: a.nome, frac: c ? c.vita / Math.max(1, c.max) : 0, giu: a.giu }];
+    }));
+    zombi.update(alpha, dt, t);
+    fx?.update(alpha, dt, t, hero.avatar.object, view);
+    const p = hero.avatar.object.position;
+    ctx.renderer.diorama.follow(p.x, 0.9, p.z); ctx.renderer.diorama.update(dt);
+    sc.update(p.x, p.z, t, s.assi, view.trappole);
+    hud.set(view);
+    ctl.setPrompt(fase === 'gioca' ? view.prompt : null);
+    // Mercante e Strega: si muovono, e il loro menù resta aperto finché sei lì
+    const chi = fase === 'gioca' && (view.prompt?.cosa === 'mercante' || view.prompt?.cosa === 'strega') ? view.prompt.cosa : null;
+    pers?.update(t, chi);
+    if (bott?.aperta) { if (bott.aperta !== chi) bott.chiudi(); else bott.aggiorna(chi === 'mercante' ? offerteMercante(s) : offerteStrega(s), s.punti); }
+    ctl.setMira(fase === 'gioca' && miraArma() !== null);
+    ctl.setScambia(fase === 'gioca' && view.eroe.armi.filter(Boolean).length + (view.eroe.scudo ? 1 : 0) > 1);
+  }
 
   // test (hook templariProva): armi da capo (`armi`), arma, scudo (in mano), punti, uno zombie davanti fermo, porte aperte, eroe spostato
   // (`dove`), power-up davanti o sotto i piedi, trappola accesa, campo pulito, vita; solo per guardare la resa, senza server
@@ -396,16 +519,17 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       const z = nuovoZombie(s, p['zombie'], s.eroe.x + s.eroe.fx * dist - s.eroe.fz * lato, s.eroe.z + s.eroe.fz * dist + s.eroe.fx * lato, 0);
       z.st = 'insegue'; z.fx = -s.eroe.fx; z.fz = -s.eroe.fz;
     }
-    view = templari.view(s);
+    view = vista();
     return { arma: view.eroe.arma, scudo: view.eroe.scudo, zombie: view.zombie.length };
   };
   const pos = new THREE.Vector3(), pr = new THREE.Vector3();
   /** Dove cade sullo schermo (px della pagina) un punto del pavimento: per i test, che mirano col mouse e col dito. */
-  const schermo = (x: number, z: number): [number, number] => {
+  const schermo = (x: number, z: number): [number, number] => schermo3(x, 1.2, z);
+  function schermo3(x: number, y: number, z: number): [number, number] {
     const r = ctx.canvas.getBoundingClientRect();
-    pr.set(x, 1.2, z).project(ctx.renderer.camera);
+    pr.set(x, y, z).project(ctx.renderer.camera);
     return [Math.round(r.left + ((pr.x + 1) / 2) * r.width), Math.round(r.top + ((1 - pr.y) / 2) * r.height)];
-  };
+  }
   /** Dove si mette l'eroe per aprire la cassa (la cella davanti al posto di adesso): per i test. */
   const cassaDavanti = () => { const c = s.arena.casse[s.cassa.posto]; return c ? { x: c.x + c.fx, z: c.z + c.fz } : null; };
   templariLink.state = () => ({
@@ -414,6 +538,10 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: mUltima, act: s.eroe.act, mouse: mouse?.attivo ?? false, faccia: [s.eroe.fx, s.eroe.fz], yaw: ctx.renderer.diorama.yaw, eroeSchermo: schermo(s.eroe.x, s.eroe.z), zombiePos: s.zombie.filter((z) => z.st !== 'morto').slice(0, 6).map((z) => ({ x: z.x, z: z.z, schermo: schermo(z.x, z.z) })),
     scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: TEMPLARI.ondate.insieme,
+    insieme: rete ? {
+      io, eroi: s.eroi.length, turni: rete.turni.length, giu: ioGiu, firme: { ...firme },
+      compagni: view.compagni.map((c) => ({ i: c.i, x: c.posa.x, z: c.posa.z, vita: c.vita, giu: c.giu, fuori: c.fuori, visibile: !!amici.find((a) => a.i === c.i)?.actor?.avatar.object.visible })),
+    } : null,
   });
   return run;
 }

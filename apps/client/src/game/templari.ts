@@ -6,6 +6,9 @@
 // Il calice (§2; dal 10/10 non apre più niente, l'isola è libera e la porta fa entrare con le ondate già partite): sull'Isola della Tempesta, sotto il faro, lo scheletro di fra' Guillaume col calice in grembo (luccica, un fascio di luce
 // lo segnala da lontano): A vicino lo prende (POST /api/templari/reliquia → nel lotto, la nebbia rossa si dirada) e si legge il biglietto,
 // che si può rileggere dopo. Senza link personale il calice resta finché non ricarichi.
+// Insieme (PROTOCOL §9): davanti alla porta GIOCA INSIEME apre la sala (WebSocket /ws/templari, DO TemplariInsieme); con almeno 2 chiunque dice
+// SI PARTE → il server apre la partita nel lotto di ciascuno → `parte` → il chunk gioca coi turni del server → a fine partita
+// POST /api/templari/finish senza input (il server rigioca il log della squadra) → scheda dell'esito. Allontanarsi dalla porta = fuori dalla sala.
 import * as THREE from 'three';
 import type { InputFrame, LotState } from '@marea/sim';
 import { ISLANDS } from '@marea/content';
@@ -22,7 +25,9 @@ import { topButton } from '../ui/topbar.ts';
 import { FLAGS } from '../flags.ts';
 import { temaAperta } from './temi.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-import type { TemplariRun } from '../templari/types.ts';
+import type { TemplariRete, TemplariRun } from '../templari/types.ts';
+import { parseTiServer } from '@marea/protocol/templari_insieme.ts';
+import type { TiClientMsg, TiMembro, TiServerMsg } from '@marea/protocol/templari_insieme.ts';
 
 export type Templari = {
   /** La porta della chiesa (per la bussola), null se l'isola non c'è. */
@@ -43,12 +48,23 @@ export type Templari = {
 
 
 const NEAR_M = 4;
+/** Sala: chi si allontana più di così dalla porta della chiesa esce dalla sala. */
+const LONTANO_M = NEAR_M + 3;
+const CSS = `#mzTemplariInsieme { top: calc(60% + 66px); background: ${PAL.erbaChiara}; }
+body.mz-sotto #mzTemplariInsieme, body.mz-sotto #mzTemplariSala { display: none; }
+.mz-tpl-sala { position: absolute; left: 50%; top: max(64px, calc(env(safe-area-inset-top) + 56px)); transform: translateX(-50%); width: min(320px, calc(100% - 32px)); padding: 12px 14px 14px; background: rgba(46,30,20,.96); border: 3px solid ${PAL.rosso}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; z-index: 24; text-align: center; }
+.mz-tpl-sala b { display: block; font-size: 18px; }
+.mz-tpl-sala .chi { margin: 6px 0 2px; font-weight: bold; font-size: 16px; color: ${PAL.erbaChiara}; }
+.mz-tpl-sala .sub { color: ${PAL.sabbia}; font-size: 13px; margin: 2px 0 6px; }
+.mz-tpl-sala .mz-btn { justify-content: center; }
+.mz-tpl-sala .mz-btn.via { background: ${PAL.rosso}; color: ${PAL.sabbiaChiara}; }`;
 /** Stato condiviso col chunk (test): autopilota (tick per frame) e vista corrente per state().templari. */
 /** `prova`: solo test, mette nella partita un'arma, lo scudo, punti o uno zombie davanti (la partita così non si rigioca uguale: solo senza server). */
 export const templariLink: { autopilot: number; state: (() => Record<string, unknown>) | null; prova: ((o: Record<string, unknown>) => unknown) | null } = { autopilot: FLAGS.autopilot ? 4 : 0, state: null, prova: null };
 
 export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; canvas: HTMLCanvasElement; getLot(): LotState | null; setLot(l: LotState): void }): Templari {
   injectUiStyle();
+  if (!document.getElementById('mz-templari-style')) { const st = document.createElement('style'); st.id = 'mz-templari-style'; st.textContent = CSS; document.head.appendChild(st); }
   const arch = o.world.archipelago, place = arch.places.find((p) => p.island === 'templari') ?? null;
   const def = ISLANDS.find((i) => i.id === 'templari'), chiesa = def?.props?.find((p) => p.k === 'chiesa_templare');
   const spot = place && chiesa ? {
@@ -105,6 +121,95 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   for (const ev of ['pointerdown', 'touchstart']) btn.addEventListener(ev, (x) => x.stopPropagation());
   btn.addEventListener('click', () => { void entra(true); });
   o.root.append(btn);
+
+  // ---- insieme: GIOCA INSIEME davanti alla porta, la sala, SI PARTE ----
+  const btnIns = el('button', 'mz mz-play'); btnIns.id = 'mzTemplariInsieme'; btnIns.type = 'button';
+  btnIns.style.color = PAL.ombraCalda;
+  btnIns.replaceChildren(el('span', '', '⚔ GIOCA INSIEME'));
+  for (const ev of ['pointerdown', 'touchstart']) btnIns.addEventListener(ev, (x) => x.stopPropagation());
+  btnIns.addEventListener('click', () => { apriSala(); });
+  o.root.append(btnIns);
+  type Sala = { ws: WebSocket; box: HTMLElement; chi: HTMLElement; sub: HTMLElement; via: HTMLButtonElement; membri: TiMembro[]; rete: TemplariRete | null; chiusa: boolean };
+  /** La sala in cui sei (riquadro alla porta, poi il WebSocket della partita insieme). */
+  let sala: Sala | null = null, insieme = 0;
+
+  /** GIOCA INSIEME: entri nella sala alla porta della chiesa; quando ci sono almeno 2, chiunque dice SI PARTE. */
+  function apriSala(): void {
+    if (sala || busy || run) return;
+    if (!o.api || !FLAGS.token) { o.hud.toast('Per giocare insieme serve il tuo link personale', 3000); return; }
+    let ws: WebSocket;
+    try {
+      const u = new URL('/ws/templari', location.href);
+      u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('t', FLAGS.token);
+      ws = new WebSocket(u.toString());
+    } catch { o.hud.toast('La sala non risponde, riprova', 2500); return; }
+    const box = el('div', 'mz mz-tpl-sala'); box.id = 'mzTemplariSala';
+    const chi = el('div', 'chi', '…'), sub = el('div', 'sub', 'Mi collego…');
+    const via = el('button', 'mz-btn via', 'SI PARTE') as HTMLButtonElement; via.type = 'button'; via.dataset['act'] = 'via'; via.disabled = true;
+    const esci = el('button', 'mz-btn ghost', 'Esci dalla sala'); esci.type = 'button'; esci.dataset['act'] = 'esci';
+    box.append(el('b', '', '✠ Insieme nella chiesa'), chi, sub, via, esci);
+    for (const ev of ['pointerdown', 'touchstart']) box.addEventListener(ev, (x) => x.stopPropagation());
+    o.root.append(box);
+    const sq: Sala = { ws, box, chi, sub, via, membri: [], rete: null, chiusa: false };
+    sala = sq; btnIns.classList.remove('on');
+    via.addEventListener('click', () => {
+      if (sq.membri.length < 2 || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ t: 'via' } satisfies TiClientMsg)); via.disabled = true; sub.textContent = 'Si entra…';
+    });
+    esci.addEventListener('click', () => chiudiSala());
+    ws.onmessage = (ev) => {
+      const m = parseTiServer(String(ev.data));
+      if (!m) return;
+      if (m.t === 'T') { sq.rete?.turni.push(m); return; }
+      if (m.t === 'sala') { sq.membri = m.membri; disegnaSala(sq, m.max); return; }
+      if (m.t === 'errore') { o.hud.toast(m.msg, 3000); if (!sq.rete) { sub.textContent = m.msg; via.disabled = sq.membri.length < 2; } return; }
+      if (m.t === 'parte') void entraInsieme(sq, m);
+    };
+    ws.onclose = () => { sq.chiusa = true; if (sala === sq && !sq.rete) { o.hud.toast('La sala si è sciolta', 2000); chiudiSala(); } };
+  }
+  function disegnaSala(sq: Sala, max: number): void {
+    const n = sq.membri.length;
+    sq.chi.textContent = sq.membri.map((x) => x.nome).join(' · ');
+    sq.sub.textContent = n < 2 ? 'Aspetta i compagni: devono premere GIOCA INSIEME anche loro, qui alla porta' : `${n} su ${max}: chiunque può dire SI PARTE`;
+    sq.via.disabled = n < 2; sq.via.textContent = n < 2 ? 'SI PARTE' : `SI PARTE (${n})`;
+  }
+  function chiudiSala(): void {
+    const sq = sala;
+    if (!sq) return;
+    sala = null; sq.box.remove();
+    try { if (sq.ws.readyState === WebSocket.OPEN) sq.ws.send(JSON.stringify({ t: 'esco' } satisfies TiClientMsg)); sq.ws.close(1000, 'ciao'); } catch { /* già chiusa */ }
+  }
+  /** Il server ha aperto la partita per tutta la sala: si entra. A fine partita l'esito lo calcola il server dal log della squadra. */
+  async function entraInsieme(sq: Sala, m: Extract<TiServerMsg, { t: 'parte' }>): Promise<void> {
+    if (busy || run || !o.api) { chiudiSala(); return; }
+    const api = o.api, zoom0 = o.renderer.diorama.zoom;
+    sq.box.remove();
+    busy = true; btn.classList.remove('on'); btnIns.classList.remove('on'); lastErr = null;
+    sq.rete = {
+      io: m.io, membri: m.membri, turni: [],
+      manda: (x) => { if (sq.ws.readyState === WebSocket.OPEN) sq.ws.send(JSON.stringify(x)); },
+      get chiusa() { return sq.chiusa; },
+    };
+    try {
+      o.hud.toast('Si entra insieme nella chiesa…', 1800);
+      const mod = await import('../templari/index.ts');
+      run = mod.startTemplari({ world: o.world, renderer: o.renderer, loader: o.loader, hud: o.hud, root: o.root, canvas: o.canvas }, { seed: m.seed, subito: true, rete: sq.rete });
+      entrate++; insieme++; busy = false;
+      await run.done;
+      run = null; busy = true;
+      fuori(zoom0); chiudiSala();
+      try {
+        const r = await api.templariFinish('', 0, []);
+        finite++; lastResult = { ...r.result, premio: r.premio, tetto: r.tetto, record: r.record, insieme: true };
+        o.setLot(r.lot);
+        await mod.mostraEsito(o.root, { result: r.result, premio: r.premio, tetto: r.tetto, record: r.record });
+      } catch (e) { fail(e, 'Partita non salvata, riprova'); }
+    } catch (e) {
+      console.error('[marea] templari insieme', e); fail(e, 'Qualcosa è andato storto nella chiesa');
+      if (run) { run.abort(); run = null; }
+      fuori(zoom0); chiudiSala();
+    } finally { busy = false; }
+  }
   // prove (?templari=1): subito nelle ondate, senza reliquia e senza barca; ⛪ a piedi davanti alla porta della chiesa
   if (FLAGS.templari) topButton({ root: o.root, id: 'mzTemplariProva', order: 9, label: '⚔', title: 'Templari: ondate subito (prova)', onClick: () => { void entra(true); } });
   if (FLAGS.templari) topButton({ root: o.root, id: 'mzTemplariVai', order: 9, label: '⛪', title: 'Templari: vai all’isola, davanti alla chiesa (prova)', onClick: () => { vaiChiesa(); } });
@@ -119,7 +224,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   let entrate = 0, finite = 0, lastErr: string | null = null, lastResult: unknown = null;
 
   async function entra(subito: boolean): Promise<void> {
-    if (busy || run || o.world.race.on) return;
+    if (busy || run || o.world.race.on || sala) return;
     busy = true; btn.classList.remove('on'); lastErr = null;
     const zoom0 = o.renderer.diorama.zoom, api = o.api && FLAGS.token && !FLAGS.banco ? o.api : null;
     try {
@@ -136,7 +241,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       const done = await run.done;
       run = null; busy = true;
       fuori(zoom0);
-      if (!done || FLAGS.banco) return; // stanza di prova: niente scheda, si rientra subito (tick)
+      if (!done || 'insieme' in done || FLAGS.banco) return; // stanza di prova: niente scheda, si rientra subito (tick)
       if (!api) { await mod.mostraEsito(o.root, { result: done.result, premio: null }); return; }
       try {
         const r = await api.templariFinish(done.inputs, done.hash, done.azioni);
@@ -167,9 +272,12 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
 
   registerStateProvider('templari', () => (run && templariLink.state
     ? { ...templariLink.state(), busy, entrate, finite, lastErr, lastResult }
-    : { active: false, busy, entrate, finite, lastErr, lastResult, near, aperta: aperta(), spot }));
+    : { active: false, busy, entrate, finite, lastErr, lastResult, near, aperta: aperta(), spot, insieme, sala: sala ? { membri: sala.membri.map((x) => x.nome), dentro: !!sala.rete, chiusa: sala.chiusa } : null }));
   /** Test: dentro subito (come il bottone ⚔), da ovunque. */
   registerTestHook('templariEntra', (subito) => { if (busy || run) return false; void entra(subito !== false); return true; });
+  /** Test: GIOCA INSIEME (entra nella sala anche lontano dalla porta) e SI PARTE. */
+  registerTestHook('templariSala', () => { if (busy || run || sala) return false; apriSala(); return !!sala; });
+  registerTestHook('templariSiParte', () => { if (!sala || sala.membri.length < 2) return false; sala.via.click(); return true; });
   registerTestHook('templariProva', (o) => (templariLink.prova && o && typeof o === 'object' ? templariLink.prova(o as Record<string, unknown>) : null));
   registerTestHook('templariAutopilot', (on, speed) => { templariLink.autopilot = on ? Math.max(1, Math.min(30, Math.round(Number(speed ?? 4)) || 4)) : 0; return templariLink.autopilot; });
   /** Test: a piedi davanti alla porta della chiesa. */
@@ -199,6 +307,8 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       if (busy || run || !spot) { near = false; return; }
       const f = o.world.avatar.state;
       near = o.world.mode === 'walk' && !o.world.race.on && aperta() && Math.hypot(f.x - spot.x, f.z - spot.z) < NEAR_M;
+      if (sala && !sala.rete && !FLAGS.test && (o.world.mode !== 'walk' || Math.hypot(f.x - spot.x, f.z - spot.z) > LONTANO_M)) { chiudiSala(); o.hud.toast('Troppo lontano dalla porta: fuori dalla sala', 2500); }
+      if (sala) { nearWas = near; return; }
       if (near && !nearWas) o.hud.toast('La chiesa dei Templari: premi A o tocca ENTRA', 2500);
       nearWas = near;
       if (near && pressA) void entra(true);
@@ -206,7 +316,8 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
     step(f) { run?.step(f); },
     update(alpha, dt, t) {
       if (run) { run.update(alpha, dt, t); return; }
-      btn.classList.toggle('on', near && !busy);
+      btn.classList.toggle('on', near && !busy && !sala);
+      btnIns.classList.toggle('on', near && !busy && !sala && !!o.api && !!FLAGS.token && !FLAGS.banco);
       const mio = haCalice();
       btnR.classList.toggle('on', nearR && !busyR);
       const testo = mio ? '📜 LEGGI IL BIGLIETTO' : '✠ PRENDI IL CALICE';
