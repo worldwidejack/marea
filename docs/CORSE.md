@@ -179,7 +179,20 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
   - Si vede e si sente: fiammate dal tubo, FOV che si allarga con un colpo quando parte il turbo, linee di velocità col turbo e nella scia, scossa negli atterraggi, suoni sintetizzati (motore, sgommata, «ding» per livello, turbo, semaforo).
 - **Numeri** in `packages/content/src/corse/motore.json`:
   - 2 famiglie (Ruote, Acqua);
-  - 6 veicoli: kart, auto sportiva, carrello della spesa, moto d'acqua, gommone, vasca da bagno;
+  - 6 veicoli: kart, auto sportiva, carrello della spesa, moto d'acqua, gommone, vasca da bagno; dal 14 ott 2026 (#281) anche gli altri 8 modelli AI sono veicoli veri:
+
+    | Veicolo | Famiglia | Velocità m/s | Scatto m/s² | Sterzo | Presa / in drift | Drift | Peso | Il buffo |
+    |---|---|---|---|---|---|---|---|---|
+    | Fuoristrada | ruote | 19,5 | 12 | 2,0 | 11 / 3,2 | 1,25 | 1,7 | sabbia, prato e fango quasi come strada |
+    | Moto da cross | ruote | 21 | 16 | 2,6 | 8 / 2,8 | 1,45 | 0,6 | negli urti vola via |
+    | Bob | ruote | 20,5 | 11 | 1,9 | 5 / 2,2 | 1,55 | 1,1 | scivola sempre; sul ghiaccio ×1,15 |
+    | Divano a motore | ruote | 18 | 10 | 1,8 | 8 / 3 | 1,2 | 2,4 | il più pesante, nessuno lo sposta |
+    | Ape | ruote | 18,5 | 16 | 2,4 | 9 / 3 | 1,3 | 0,9 | tira un filo a sinistra |
+    | Struzzo | ruote | 20 | 19 | 2,7 | 7 / 2,6 | 1,4 | 0,8 | scatto record, il prato lo rallenta poco |
+    | Fetta di pizza | ruote | 20,5 | 13 | 2,3 | 4,5 / 1,8 | 1,65 | 0,7 | scivola tantissimo |
+    | Papera di gomma | acqua | 18 | 14 | 2,4 | 5 / 2,2 | 1,35 | 0,5 | la più leggera: rimbalza lontano |
+
+    Prima stima a occhio sul kart (la guida va provata da Jack). Il gommone resta senza modello AI (segnaposto).
   - le superfici, per famiglia;
   - i bot.
 

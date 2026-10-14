@@ -11,6 +11,9 @@ import { aiPronta } from './veicoli_ai.ts';
 /** Il modello vero di ogni veicolo della sim (gli id di packages/content/src/corse/motore.json). Chi non c'è resta il segnaposto. */
 export const MODELLO: Record<string, string> = {
   kart: 'cs_v_kart', auto: 'cs_v_sportiva', carrello: 'cs_v_carrello_spesa', moto_acqua: 'cs_v_moto_acqua', vasca: 'cs_v_vasca',
+  // gli altri 8 modelli AI diventati veicoli veri (#281, Jack 14 ott: «rendili veicoli veri»)
+  fuoristrada: 'cs_v_fuoristrada', moto: 'cs_v_moto', bob: 'cs_v_bob', divano: 'cs_v_divano', ape: 'cs_v_ape', struzzo: 'cs_v_struzzo',
+  pizza: 'cs_v_pizza', papera: 'cs_v_papera',
   // i tre carrelli della Giungla (#228) hanno per ora lo stesso modello: quelli veri della concept arrivano con la tappa dei veicoli
   carrello_miniera: 'cs_v_carrello_miniera', carrello_corsa: 'cs_v_carrello_miniera', carrello_corazzato: 'cs_v_carrello_miniera',
 };
