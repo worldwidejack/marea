@@ -8,7 +8,8 @@ import type { Arena } from '@marea/sim/templari/mappa.ts';
 import { PAL } from '../ui/style.ts';
 import { M, merged, painted } from '../render/island_parts.ts';
 
-export type Personaggi = { update(t: number, vicino: 'mercante' | 'strega' | null): void; dispose(): void };
+/** `setSvegli`: col fuoco spento (§9b) la Strega dorme (calderone freddo, niente luce né occhi verdi) e la nave del Mercante sta al largo. */
+export type Personaggi = { update(t: number, vicino: 'mercante' | 'strega' | null): void; setSvegli(strega: boolean, mercante: boolean): void; dispose(): void };
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cil = (r0: number, r1: number, h: number, n = 6) => new THREE.CylinderGeometry(r0, r1, h, n);
@@ -44,7 +45,7 @@ export function createPersonaggi(scene: THREE.Scene, a: Arena): Personaggi {
 
   // ---- Mercante: la cocca ormeggiata, la tenda, il banco con le merci, la lanterna, la passerella ----
   const mer = radice('mercante');
-  let barca: THREE.Group | null = null, mano: THREE.Mesh | null = null;
+  let barca: THREE.Group | null = null, mano: THREE.Mesh | null = null, passerella: THREE.Mesh | null = null;
   if (mer) {
     // la camera guarda da sud-est: la barca sta tra lei e il campo, quindi piccola, bassa e senza tende sopra il Mercante
     barca = new THREE.Group(); barca.position.set(0.6, 0, 4.4); barca.scale.setScalar(0.8); mer.add(barca);
@@ -74,12 +75,12 @@ export function createPersonaggi(scene: THREE.Scene, a: Arena): Personaggi {
     mano = mesh([painted(cil(0.06, 0.06, 0.55, 5), PAL.rosso, M(0, -0.25, 0)), painted(box(0.12, 0.14, 0.1), PELLE, M(0, -0.55, 0))]);
     mano.position.set(-0.4, 2.05, -0.38); barca.add(mano);
     // passerella dalla sabbia al ponte
-    mer.add(mesh([painted(box(0.8, 0.07, 2.6), PAL.legno, M(0.1, 0.32, 2.1, -0.2, 0, 0)), ...[1.0, 1.8, 2.6].map((z) => painted(box(0.85, 0.05, 0.07), PAL.legnoScuro, M(0.1, 0.12 + z * 0.2, z, -0.2, 0, 0)))]));
+    mer.add(passerella = mesh([painted(box(0.8, 0.07, 2.6), PAL.legno, M(0.1, 0.32, 2.1, -0.2, 0, 0)), ...[1.0, 1.8, 2.6].map((z) => painted(box(0.85, 0.05, 0.07), PAL.legnoScuro, M(0.1, 0.12 + z * 0.2, z, -0.2, 0, 0)))]));
   }
 
   // ---- Strega: staccionata sul bordo, il calderone sul fuoco, lei col mestolo, la capanna con gli scaffali ----
   const str = radice('strega');
-  let mestolo: THREE.Group | null = null, brodo: THREE.Mesh | null = null, testa: THREE.Group | null = null, luceS: THREE.PointLight | null = null;
+  let mestolo: THREE.Group | null = null, brodo: THREE.Mesh | null = null, testa: THREE.Group | null = null, luceS: THREE.PointLight | null = null, fuocoS: THREE.Mesh | null = null;
   const bolle: THREE.Mesh[] = [];
   if (str) {
     str.add(mesh([
@@ -104,7 +105,7 @@ export function createPersonaggi(scene: THREE.Scene, a: Arena): Personaggi {
     ]));
     // il brodo verde che brilla, il fuoco sotto, la luce verde
     brodo = mesh([painted(cil(0.48, 0.48, 0.04, 8), PAL.erbaChiara, M(0, 0.84, 1.6))], acceso); str.add(brodo);
-    str.add(mesh([painted(new THREE.ConeGeometry(0.22, 0.4, 5), PAL.arancio, M(-0.15, 0.2, 1.5)), painted(new THREE.ConeGeometry(0.16, 0.32, 5), PAL.giallo, M(0.18, 0.17, 1.7))], acceso));
+    str.add(fuocoS = mesh([painted(new THREE.ConeGeometry(0.22, 0.4, 5), PAL.arancio, M(-0.15, 0.2, 1.5)), painted(new THREE.ConeGeometry(0.16, 0.32, 5), PAL.giallo, M(0.18, 0.17, 1.7))], acceso));
     for (let k = 0; k < 4; k++) { const b = mesh([painted(new THREE.IcosahedronGeometry(0.07, 0), PAL.erbaChiara)], acceso); b.position.set(0, 0.9, 1.6); str.add(b); bolle.push(b); }
     luceS = new THREE.PointLight(PAL.erbaChiara, 10, 9, 1.6); luceS.position.set(0, 1.6, 1.4); str.add(luceS);
     // il mestolo (gira nel calderone) e la testa (guarda te quando sei vicino)
@@ -115,9 +116,18 @@ export function createPersonaggi(scene: THREE.Scene, a: Arena): Personaggi {
   }
 
   const steps = (v: number, n: number) => Math.floor(v * n) / n;
+  let sveglia = true, attraccata = true;
   return {
+    setSvegli(s, m) {
+      sveglia = s; attraccata = m;
+      for (const o of [brodo, fuocoS, testa, ...bolle]) if (o) o.visible = s;
+      if (luceS) luceS.visible = s;
+      if (passerella) passerella.visible = m;
+      if (barca) { barca.position.x = m ? 0.6 : 3.5; barca.position.z = m ? 4.4 : 13; barca.visible = true; }
+    },
     update(t, vicino) {
-      if (barca) { barca.rotation.z = 0.03 * Math.sin(t * 0.9); barca.position.y = 0.06 * Math.sin(t * 1.3); } // la barca dondola
+      if (barca) { barca.rotation.z = 0.03 * Math.sin(t * 0.9); barca.position.y = 0.06 * Math.sin(t * 1.3) - (attraccata ? 0 : 0.3); } // la barca dondola (al largo un po' più giù)
+      if (!sveglia && testa) testa.rotation.x = 0.4;
       if (mano) { const su = vicino === 'mercante' ? 2.6 + 0.3 * Math.sin(t * 8) : 0.2; mano.rotation.x += (su - mano.rotation.x) * 0.15; }
       if (mestolo) mestolo.rotation.y = steps((t * 0.5) % 1, 8) * Math.PI * 2; // gira a scatti
       if (brodo) { const k = 0.85 + 0.15 * Math.sin(t * 5); brodo.scale.set(k, 1, k); }

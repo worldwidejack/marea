@@ -91,13 +91,21 @@ export type TEvento =
   | { t: 'superPronto' }
   | { t: 'super'; tipo: TSuperDef['id']; x: number; z: number; da: { x: number; z: number } }
   /** Una cannonata della Bordata arriva. */
-  | { t: 'cannonata'; x: number; z: number; r: number };
+  | { t: 'cannonata'; x: number; z: number; r: number }
+  /** Fuochi (§9b): uno acceso, tutti e tre accesi; un pezzo della campana preso (quanti su quanti), la campana montata; si comincia a
+   *  lavorare (AZIONE tenuto su un fuoco o sulla campana: `cosa` = `fuoco:<id>` o `monta`). */
+  | { t: 'fuoco'; id: string }
+  | { t: 'fuochiTutti' }
+  | { t: 'pezzo'; id: string; presi: number; tutti: number }
+  | { t: 'campana' }
+  | { t: 'lavoro'; cosa: string };
 
 /** Un evento della sim; insieme `e` = l'eroe a cui è successo (o che l'ha fatto). */
 export type TEventoDi = TEvento & { e?: number };
 
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
-export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola' | 'mercante' | 'strega'; testo: string; prezzo: number; puoi: boolean } | null;
+/** `k` = lavoro in corso (AZIONE tenuto su un fuoco o sulla campana), 0..1. */
+export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola' | 'mercante' | 'strega' | 'fuoco' | 'pezzo' | 'monta'; testo: string; prezzo: number; puoi: boolean; k?: number } | null;
 
 export type TView = {
   tick: number; fase: TFase;
@@ -131,6 +139,10 @@ export type TView = {
   proiettili: { id: number; tipo: 'freccia' | 'palla' | 'vaso'; x: number; z: number; vx: number; vz: number }[];
   /** Fiamme a terra; `frecce` = la Pioggia di frecce dell'Arciere (stesso danno al secondo, si disegna a frecce). */
   fiamme: { id: number; x: number; z: number; r: number; resta: number; frecce?: boolean }[];
+  /** Fuochi da accendere (§9b) e pezzi della campana ancora a terra (dove stanno in questa partita); la campana montata. */
+  fuochi: { id: string; x: number; z: number; acceso: boolean }[];
+  pezzi: { id: string; x: number; z: number; preso: boolean }[];
+  campana: boolean;
   /** Cannonate della Bordata in volo: dove cadono, raggio, `k` = 0..1 del volo. */
   cannonate: { id: number; x: number; z: number; r: number; k: number }[];
   /** Cose a terra da prendere (lo scudo dello scudato, i power-up), con i secondi che restano. */

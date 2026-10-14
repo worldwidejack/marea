@@ -11,6 +11,7 @@ import type { TAzione, TEvento, TOfferta } from './types.ts';
 import type { Slot, TState } from './stato.ts';
 import { ev, haPozione, pozioneDef, potenziata, secToTicks, slotDi, vitaBase } from './stato.ts';
 import { spendi } from './colpi.ts';
+import { acceso } from './fuochi.ts';
 
 /** Sei abbastanza vicino al Mercante o alla Strega per parlarci. */
 export function vicinoA(s: TState, chi: 'mercante' | 'strega'): boolean {
@@ -61,7 +62,7 @@ export function offerteStrega(s: TState): TOfferta[] {
 
 /** Un acquisto dal menù (TAzione «compra»): vale solo vicino a chi vende, coi punti e se si può. Ritorna gli eventi, null se non vale. */
 export function compra(s: TState, a: Extract<TAzione, { t: 'compra' }>): TEvento[] | null {
-  if (!vicinoA(s, a.da)) return null;
+  if (!vicinoA(s, a.da) || !acceso(s, a.da)) return null; // la Strega dorme e la nave è al largo finché il loro fuoco è spento
   const n0 = s.eventi.length, h = s.eroe;
   if (a.da === 'mercante') {
     const sl = h.armi[a.slot];

@@ -73,6 +73,9 @@ function vista(s: TState): TView {
     boss: bossVista(s),
     proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: r2(p.x), z: r2(p.z), vx: p.vx, vz: p.vz })),
     fiamme: s.fiamme.map((f) => ({ id: f.id, x: r2(f.x), z: r2(f.z), r: f.r, resta: Math.max(0, (f.fine - s.tick) / 60), ...(f.frecce ? { frecce: true } : {}) })),
+    fuochi: s.arena.fuochi.map((f) => ({ id: f.id, x: f.x, z: f.z, acceso: !!s.fuochi[f.id] })),
+    pezzi: Object.entries(s.pezzi).flatMap(([id, st]) => { const q = s.arena.pezzi.find((x) => x.id === id)?.posti[st.posto]; return q ? [{ id, x: q.x, z: q.z, preso: st.preso }] : []; }),
+    campana: s.campana,
     cannonate: s.cannonate.map((c) => ({ id: c.id, x: r2(c.x), z: r2(c.z), r: c.r, k: Math.min(1, (s.tick - c.inizio) / Math.max(1, c.fine - c.inizio)) })),
     drops: s.drops.map((d) => ({ id: d.id, tipo: d.tipo, x: r2(d.x), z: r2(d.z), resta: Math.max(0, (d.fine - s.tick) / 60) })),
     poteri: { ira: Math.max(0, (s.poteri.ira - s.tick) / 60), decima: Math.max(0, (s.poteri.decima - s.tick) / 60) },
@@ -110,6 +113,7 @@ export function hashOf(s: TState): number {
     zombie: s.zombie.map((z) => [z.id, z.tipo, Math.round(z.x * 100), Math.round(z.z * 100), Math.round(z.vita), z.st, Math.round(z.scudo)]),
     assi: s.assi, porte: s.porte, esito: s.esito,
     trappole: s.trappole.map((t) => [t.fine, t.pronta]), poteri: [s.poteri.ira, s.poteri.decima, s.poteri.ondata], drops: s.drops.map((d) => [d.id, d.tipo]),
+    fuochi: s.fuochi, pezzi: s.pezzi, campana: s.campana,
     // gli eroi del menù (le partite senza menù hanno lo stesso hash di prima)
     ...(s.eroi.some((h) => h.classe) ? { classi: s.eroi.map((h) => [h.classe, Math.round(h.superK * 1000)]), cannonate: s.cannonate.length } : {}),
   });

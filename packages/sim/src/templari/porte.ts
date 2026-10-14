@@ -8,6 +8,7 @@ import type { Porta } from './mappa.ts';
 import type { TState } from './stato.ts';
 import { ev, inPiedi, secToTicks, usa } from './stato.ts';
 import { danneggia, ferisciDiretto, spendi, uccidi } from './colpi.ts';
+import { acceso } from './fuochi.ts';
 
 export const portaDef = (id: string): TPortaDef => TEMPLARI.porte[id] ?? { nome: id, prezzo: 0, zona: id };
 export const trappolaDef = (id: string): TTrappolaDef => TEMPLARI.trappole[id]!;
@@ -50,13 +51,15 @@ export function levaVicina(s: TState): number {
   s.arena.trappole.forEach((t, i) => { const d = (t.leva.x - h.x) * (t.leva.x - h.x) + (t.leva.z - h.z) * (t.leva.z - h.z); if (d <= bd) { bd = d; best = i; } });
   return best;
 }
+/** La trappola si può accendere: il rogo col fuoco del coro acceso, la campana montata (§9b). */
+export const trappolaUsabile = (s: TState, id: string): boolean => (id === 'rogo' ? acceso(s, 'rogo') : id === 'campana' ? s.campana : true);
 export const trappolaAccesa = (s: TState, i: number): boolean => s.tick < (s.trappole[i]?.fine ?? 0);
 export const trappolaPronta = (s: TState, i: number): boolean => s.tick >= (s.trappole[i]?.pronta ?? 0);
 
 /** AZIONE alla leva: paga e accende (se è pronta). */
 export function accendiTrappola(s: TState, i: number): boolean {
   const t = s.arena.trappole[i], st = s.trappole[i];
-  if (!t || !st || !trappolaPronta(s, i)) return false;
+  if (!t || !st || !trappolaPronta(s, i) || !trappolaUsabile(s, t.id)) return false;
   const d = trappolaDef(t.id);
   if (!spendi(s, d.prezzo)) return false;
   st.fine = s.tick + secToTicks(d.durata); st.pronta = st.fine + secToTicks(d.ricarica); st.colpo = s.tick;

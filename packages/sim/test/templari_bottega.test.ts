@@ -19,6 +19,7 @@ const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false }
 const passi = (s: TState, n: number, inp: Partial<DungeonInput> = {}) => { for (let i = 0; i < n && !s.done; i++) stepTemplari(s, { ...F, ...inp }); };
 function partita(punti = 50000): TState {
   const s = templari.create({ seed: 3, opzioni: { subito: true } });
+  for (const k in s.fuochi) s.fuochi[k] = true; // i fuochi accesi (§9b): Strega, Mercante e rogo funzionano
   s.fase = 'combatti'; s.ondata = 8; s.quanti = 0; s.usciti = 0; s.prossima = 1e9;
   s.punti = punti;
   return s;
