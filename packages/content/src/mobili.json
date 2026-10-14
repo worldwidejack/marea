@@ -26,6 +26,16 @@
     { "id": "albero_di_natale_a_luglio", "nome": "Albero di Natale a luglio", "categoria": "decorazioni", "perle": 75, "posto": "terra", "altezza": 2.0, "colori": ["#2C6B3F", "#E8433F", "#F5D547"] },
     { "id": "letto_ad_acqua", "nome": "Letto ad acqua", "categoria": "dormire", "perle": 85, "posto": "terra", "altezza": 1.0, "colori": ["#3FB9C9", "#5A3A1E", "#E8E1D6"] },
     { "id": "scultura_astratta_in_fil_di_ferro", "nome": "Scultura astratta in fil di ferro", "categoria": "decorazioni", "perle": 45, "posto": "terra", "altezza": 1.7, "colori": ["#7F7568", "#23201F", "#E8433F"] },
-    { "id": "cassapanca_da_pirata", "nome": "Cassapanca da pirata", "categoria": "contenitori", "perle": 55, "posto": "terra", "altezza": 0.8, "colori": ["#5A3A1E", "#4A4340", "#F5D547"] }
+    { "id": "cassapanca_da_pirata", "nome": "Cassapanca da pirata", "categoria": "contenitori", "perle": 55, "posto": "terra", "altezza": 0.8, "colori": ["#5A3A1E", "#4A4340", "#F5D547"] },
+    { "id": "manichino_da_sartoria_con_cappello_da_cowboy", "nome": "Manichino da sartoria con cappello da cowboy", "categoria": "decorazioni", "perle": 50, "posto": "terra", "altezza": 1.7, "colori": ["#F4E3C1", "#5A3A1E", "#8E5A2B"] },
+    { "id": "frigorifero_anni_50_smaltato", "nome": "Frigorifero anni ’50 smaltato", "categoria": "cucina", "perle": 120, "posto": "terra", "altezza": 1.5, "colori": ["#3FB9C9", "#E8E1D6", "#F5D547"] },
+    { "id": "divano_in_pelle_vintage", "nome": "Divano in pelle vintage", "categoria": "sedersi", "perle": 85, "posto": "terra", "altezza": 0.85, "colori": ["#8E5A2B", "#5A3A1E", "#C98A4B"] },
+    { "id": "poltrona_a_sacco", "nome": "Poltrona a sacco", "categoria": "sedersi", "perle": 40, "posto": "terra", "altezza": 0.75, "colori": ["#F2A33A", "#E8433F", "#A64DFF"] },
+    { "id": "cabinato_da_sala_giochi_polveroso", "nome": "Cabinato da sala giochi polveroso", "categoria": "giochi", "perle": 130, "posto": "terra", "altezza": 1.75, "colori": ["#23201F", "#E8433F", "#F5D547"] },
+    { "id": "letto_a_castello_in_ferro", "nome": "Letto a castello in ferro", "categoria": "dormire", "perle": 95, "posto": "terra", "altezza": 1.85, "colori": ["#4A4340", "#E8E1D6", "#2478A8"] },
+    { "id": "armadio_in_quercia", "nome": "Armadio in quercia", "categoria": "contenitori", "perle": 110, "posto": "terra", "altezza": 2.0, "colori": ["#5A3A1E", "#8E5A2B", "#F5D547"] },
+    { "id": "statua_di_procione_in_ceramica", "nome": "Statua di procione in ceramica", "categoria": "decorazioni", "perle": 45, "posto": "terra", "altezza": 0.7, "colori": ["#B9AFA3", "#23201F", "#E8E1D6"] },
+    { "id": "libreria_asimmetrica", "nome": "Libreria asimmetrica", "categoria": "contenitori", "perle": 75, "posto": "terra", "altezza": 1.8, "colori": ["#C98A4B", "#23201F", "#E8433F"] },
+    { "id": "pianta_di_monstera_enorme", "nome": "Pianta di Monstera enorme", "categoria": "piante", "perle": 60, "posto": "terra", "altezza": 1.9, "colori": ["#2C6B3F", "#E2B97F", "#8FC35B"] }
   ]
 }
