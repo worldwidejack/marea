@@ -5,7 +5,7 @@
 // - le teste dei manichini si girano verso la camera quando passa.
 // Screenshot di gara (telefono) e dall'alto (provascena.html) in tests/out/shots/m4_corse_scena_*. Numeri in tests/out/m4_corse_scena.json.
 export const timeout = 300000;
-const MAX_DC = 100, MAX_TRI = 150000;
+const MAX_DC = 100, MAX_TRI = 180000; // come il mondo (TECH §5): coi veicoli AI 3D (#281, ~6.000 triangoli l’uno) al telefono si arriva a ~160.000
 const PISTE = ['spiaggia_lungomare', 'spiaggia_baia', 'spiaggia_porto', 'spiaggia_fuga', 'giungla_miniera'];
 const DALL_ALTO = { spiaggia_lungomare: 'dist=230&pitch=50&yaw=200', spiaggia_baia: 'dist=380&pitch=60&yaw=200', spiaggia_porto: 'dist=330&pitch=60&yaw=200', spiaggia_fuga: 'dist=700&pitch=55&yaw=200', giungla_miniera: 'dist=260&pitch=50&yaw=200' };
 

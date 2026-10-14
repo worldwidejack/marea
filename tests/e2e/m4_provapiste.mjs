@@ -11,7 +11,7 @@
 // Screenshot da telefono (camera dietro e cofano) e da PC (giro della morte, drift viola, baia, porto, onda) in tests/out/shots/m4_provapiste_*.
 // Numeri in tests/out/m4_provapiste.json.
 export const timeout = 300000;
-const MAX_DC = 100, MAX_TRI = 150000;
+const MAX_DC = 100, MAX_TRI = 180000; // come il mondo (TECH §5): coi veicoli AI 3D (#281, ~6.000 triangoli l’uno) al telefono si arriva a ~160.000
 
 export default async function (ctx) {
   const { assert } = ctx;
