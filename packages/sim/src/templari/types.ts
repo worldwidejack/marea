@@ -3,7 +3,7 @@
 // Math.sin/cos/atan2/hypot/pow/… e niente `**`, solo + − × ÷ e Math.sqrt. Lo controlla tools/check_static.mjs.
 import type { DungeonInput, DungeonView } from '../dungeon/types.ts';
 import type { Rng } from '../rng.ts';
-import type { TPotere } from '@marea/content/templari.ts';
+import type { TPotere, TPozione } from '@marea/content/templari.ts';
 
 /** Input di un tick: mx, my in assi mondo; a = attacca (tieni = carica il giro), b = corri, c = scambia arma, d = AZIONE (posa la
  *  reliquia, ripara la finestra tenendo premuto, compra). Stesso formato e stessa compressione del dungeon (quantizeDungeon, packDungeon,
@@ -17,8 +17,14 @@ export type TEsito = 'morto' | 'alba' | 'uscito';
 /** Opzioni della partita, decise all'apertura (il server le tiene e le rigioca): `subito` = ondate già partite (bottone ⚔ delle prove). */
 export type TOpzioni = { subito?: boolean };
 
-/** Azioni dal menu, tra due tick (registrate col tick come nel dungeon). */
-export type TAzione = { t: 'esci' };
+/** Azioni dal menu, tra due tick (registrate col tick come nel dungeon): uscire, comprare dal Mercante (potenziare o ricaricare l'arma
+ *  dello slot) o dalla Strega (una pozione). */
+export type TAzione = { t: 'esci' }
+  | { t: 'compra'; da: 'mercante'; cosa: 'potenzia' | 'munizioni'; slot: number }
+  | { t: 'compra'; da: 'strega'; cosa: TPozione };
+/** Una voce del menù del Mercante o della Strega (bottega.ts): l'azione da mandare, cosa dire, il prezzo e se si può (`descr` dice perché no). */
+export type TOfferta = ({ da: 'mercante'; cosa: 'potenzia' | 'munizioni'; slot: number } | { da: 'strega'; cosa: TPozione; presa?: boolean })
+  & { nome: string; descr: string; prezzo: number; puoi: boolean };
 export type TAzioni = [number, TAzione][];
 
 export type TZombieAnim = 'sorge' | 'cammina' | 'corre' | 'strappa' | 'prepara' | 'lancia' | 'colpisce' | 'recupera' | 'carica' | 'fugge' | 'morto';
@@ -51,9 +57,15 @@ export type TEvento =
   | { t: 'esplosione'; x: number; z: number; r: number }
   /** Colpo fermato da uno scudo: quello dello scudato (`zombie`) o il tuo (`eroe`). */
   | { t: 'parato'; chi: 'eroe' | 'zombie'; x: number; z: number }
+  /** Lo scudo di uno scudato si è spaccato: da adesso è scoperto. */
+  | { t: 'scudoSpaccato'; id: number; x: number; z: number }
   | { t: 'scudo'; preso: boolean }
   | { t: 'scudoRotto' }
   | { t: 'compra'; arma: string; munizioni: boolean }
+  /** Il Mercante ha potenziato l'arma (`nome` = quello nuovo); la Strega ti ha dato una pozione; l'Elisir ti ha rialzato. */
+  | { t: 'potenziata'; arma: string; nome: string }
+  | { t: 'pozione'; id: TPozione }
+  | { t: 'risorto' }
   /** Cassa del tesoro: si apre (gira), esce un'arma, esce il teschio (la cassa ride e se ne va), ricompare altrove. */
   | { t: 'cassa'; fase: 'gira' | 'arma' | 'teschio' | 'vola' | 'qui' | 'presa'; arma?: string }
   /** Arriva un boss (il corno del cavaliere, de Molay in fiamme); il cavaliere si lancia; de Molay ride e scappa, poi sparisce. */
@@ -71,7 +83,7 @@ export type TEvento =
   | { t: 'potere'; tipo: TPotere; preso: boolean; x: number; z: number };
 
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
-export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola'; testo: string; prezzo: number; puoi: boolean } | null;
+export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola' | 'mercante' | 'strega'; testo: string; prezzo: number; puoi: boolean } | null;
 
 export type TView = {
   tick: number; fase: TFase;
@@ -84,13 +96,17 @@ export type TView = {
     x: number; z: number; vita: number; max: number; fiato: number; punti: number;
     /** Ferito da poco (0..1, per il bordo rosso dello schermo). */
     ferita: number;
-    arma: string; armi: ({ id: string; colpi: number; riserva: number } | null)[]; cur: number;
+    arma: string; armi: ({ id: string; colpi: number; riserva: number; pot?: boolean } | null)[]; cur: number;
+    /** Pozioni della Strega che hai bevuto; intoccabile (l'Elisir ti ha appena rialzato). */
+    pozioni: TPozione[]; intoccabile: boolean;
     /** Ricarica in corso (0..1, 0 = no). */
     ricarica: number;
     /** Scudo templare: vita, massimo, in mano (sennò sulle spalle). */
     scudo: { vita: number; max: number; inMano: boolean } | null;
   };
-  zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number; boss: boolean }[];
+  zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number; boss: boolean;
+    /** Ha ancora lo scudo davanti (lo scudato finché non si spacca). */
+    scudo: boolean }[];
   /** Tiri dei nemici in volo: bombe (con dove cadono e il raggio, per il cerchio a terra) e palle di fuoco; `k` = 0..1 del volo. */
   tiri: { id: number; tipo: 'bomba' | 'palla'; x: number; z: number; tx: number; tz: number; r: number; k: number }[];
   /** Il boss in campo (barra in alto): `fugge` = soglia della vita a cui scappa (de Molay), 0 = si combatte fino in fondo. */

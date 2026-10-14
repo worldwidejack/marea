@@ -54,11 +54,17 @@ const KIT = {
 type KitId = keyof typeof KIT;
 const KIT_DI: Record<string, KitId> = { fante: 'templare', scudato: 'templare', cavaliere: 'templare', pirata: 'pirata', cannoniere: 'pirata', molay: 'molay' };
 const SCALA: Record<string, number> = { molay: 1.3, cavaliere: 1.1 };
-/** Parti in più: geometria, a quale osso, chi le ha. */
-type Extra = { geo: () => THREE.BufferGeometry; osso: 'testa' | 'manoS' | 'manoD' | 'busto'; tipi: string[]; acceso?: boolean };
+/** Parti in più: geometria, a quale osso, chi le ha. `dritto`: sta nel pugno ma dritta col corpo (lo scudo: in piedi, la croce davanti),
+ *  non girata con l'avambraccio. `se`: solo se la vista lo dice (lo scudo dello scudato finché non si spacca). */
+type Extra = { geo: () => THREE.BufferGeometry; osso: 'testa' | 'manoS' | 'manoD' | 'busto'; tipi: string[]; acceso?: boolean; dritto?: boolean; se?: (v: ZV) => boolean };
 const EXTRA: Record<string, Extra> = {
   elmo: { osso: 'testa', tipi: ['scudato', 'cavaliere'], geo: () => merged([painted(pri(0.17, 0.17, 0.3, 8), MAGLIA, M(0, 0.17, 0)), painted(pri(0.18, 0.18, 0.04, 8), PAL.roccia, M(0, 0.32, 0)), painted(box(0.24, 0.025, 0.04), PAL.neroCaldo, M(0, 0.2, -0.16)), painted(box(0.03, 0.12, 0.04), CROCE, M(0, 0.1, -0.16))]) },
-  scudo: { osso: 'manoS', tipi: ['scudato', 'cavaliere'], geo: () => merged([painted(pri(0.3, 0.06, 0.72, 6), TELA, M(0, -0.18, -0.12, Math.PI / 2, 0, 0, 1, 1, 0.15)), painted(box(0.06, 0.03, 0.5), CROCE, M(0, -0.2, -0.17)), painted(box(0.38, 0.03, 0.06), CROCE, M(0, -0.2, -0.05))]) },
+  // scudo a goccia come quello dell'eroe (armi3d.ts): largo in alto, la punta in basso, la croce rossa davanti (−Z); il pivot è il pugno
+  scudo: { osso: 'manoS', tipi: ['scudato', 'cavaliere'], dritto: true, se: (v) => v.tipo !== 'scudato' || v.scudo, geo: () => merged([
+    painted(pri(0.3, 0.05, 0.74, 6), TELA, M(0, 0.04, -0.1, 0, 0, 0, 1, 1, 0.16)),
+    painted(pri(0.33, 0.07, 0.78, 6), MAGLIA, M(0, 0.04, -0.07, 0, 0, 0, 1, 1, 0.1)), // bordo di ferro
+    painted(box(0.07, 0.56, 0.03), CROCE, M(0, 0.07, -0.16)), painted(box(0.4, 0.07, 0.03), CROCE, M(0, 0.2, -0.16)),
+  ]) },
   lancia: { osso: 'manoD', tipi: ['cavaliere'], geo: () => merged([painted(pri(0.03, 0.04, 3.0, 5), PAL.legno, M(0, -0.32, -1.1, Math.PI / 2, 0, 0)), painted(new THREE.ConeGeometry(0.06, 0.3, 4), PAL.pietraChiara, M(0, -0.32, -2.7, -Math.PI / 2, 0, 0)), painted(box(0.3, 0.2, 0.02), TELA, M(0, -0.2, -2.3))]) },
   tricorno: { osso: 'testa', tipi: ['pirata'], geo: () => merged([painted(pri(0.26, 0.26, 0.05, 3), PAL.neroCaldo, M(0, 0.3, 0, 0, Math.PI, 0)), painted(pri(0.13, 0.15, 0.13, 6), PAL.neroCaldo, M(0, 0.36, 0)), painted(box(0.05, 0.05, 0.02), PAL.pietraChiara, M(0, 0.36, -0.15)), painted(pri(0.15, 0.15, 0.05, 6), PAL.rosso, M(0, 0.25, 0))]) },
   cappello: { osso: 'testa', tipi: ['cannoniere'], geo: () => merged([painted(pri(0.34, 0.34, 0.04, 8), PAL.neroCaldo, M(0, 0.3, 0)), painted(pri(0.15, 0.17, 0.2, 6), PAL.neroCaldo, M(0, 0.4, 0)), painted(box(0.3, 0.04, 0.05), PAL.rosso, M(0.1, 0.34, 0.1, 0, 0.5, 0))]) },
@@ -146,7 +152,7 @@ export function createZombi(scene: THREE.Scene): Zombi {
   blobs.frustumCulled = false; blobs.renderOrder = 1; blobs.name = 'zombie_ombre'; scene.add(blobs);
   const luceMolay = new THREE.PointLight(PAL.arancio, 0, 9, 1.6); scene.add(luceMolay);
   const zs = new Map<number, Z>();
-  const m4 = new THREE.Matrix4(), v3 = new THREE.Vector3(), q = new THREE.Quaternion(), s3 = new THREE.Vector3(1, 1, 1), c = new THREE.Color();
+  const m4 = new THREE.Matrix4(), v3 = new THREE.Vector3(), q = new THREE.Quaternion(), qd = new THREE.Quaternion(), m4v = new THREE.Vector3(), s3 = new THREE.Vector3(1, 1, 1), c = new THREE.Color();
   const BIANCO = new THREE.Color(2.2, 2.1, 1.9), ROSSO = new THREE.Color(1.8, 0.5, 0.45);
 
   function pose(z: Z, t: number, dt: number): void {
@@ -204,8 +210,8 @@ export function createZombi(scene: THREE.Scene): Zombi {
         break;
       }
     }
-    // lo scudato tiene lo scudo davanti al petto (avambraccio sinistro piegato)
-    if (z.v.tipo === 'scudato' && v.anim !== 'morto' && v.anim !== 'sorge') { r.spalla[0]!.rotation.x = 0.9; r.gomito[0]!.rotation.x = 0.7; r.spalla[0]!.rotation.z = 0.5; }
+    // lo scudato tiene lo scudo davanti al petto (braccio sinistro avanti, avambraccio piegato verso il centro); spaccato, barcolla come gli altri
+    if (z.v.tipo === 'scudato' && z.v.scudo && v.anim !== 'morto' && v.anim !== 'sorge') { r.spalla[0]!.rotation.set(1.05, 0, -0.25); r.gomito[0]!.rotation.set(0.35, 0, 0); }
   }
   /** Il Templare a cavallo: il cavallo cammina, si impenna (prepara), galoppa (carica); il cavaliere seduto con la lancia in resta. */
   function posaCavaliere(z: Z, t: number): void {
@@ -275,9 +281,16 @@ export function createZombi(scene: THREE.Scene): Zombi {
         put(km['testa']!, i, r.testa, c, 1); put(km['busto']!, i, r.busto, c, 1); put(km['falda']!, i, r.anca, c, 1);
         for (let s = 0; s < 2; s++) { put(km['braccio']!, i * 2 + s, r.spalla[s]!, c, 1); put(km['avambraccio']!, i * 2 + s, r.gomito[s]!, c, 1); put(km['coscia']!, i * 2 + s, r.coscia[s]!, c, 1); put(km['stinco']!, i * 2 + s, r.ginocchio[s]!, c, 1); }
         for (const [e, def] of Object.entries(EXTRA)) {
-          if (!def.tipi.includes(z.v.tipo)) continue;
+          if (!def.tipi.includes(z.v.tipo) || (def.se && !def.se(z.v))) continue;
           const j = ne.get(e) ?? 0; ne.set(e, j + 1);
           const o = def.osso === 'testa' ? r.testa : def.osso === 'busto' ? r.busto : def.osso === 'manoS' ? r.gomito[0]! : r.gomito[1]!;
+          if (def.dritto) { // nel pugno (fine dell'avambraccio), girato come tutto il corpo
+            v3.set(0, -0.31, 0).applyMatrix4(o.matrixWorld);
+            r.root.getWorldQuaternion(qd);
+            v3.add(m4v.set(0.12 * sc, 0, -0.04 * sc).applyQuaternion(qd)); // un po' verso il centro del petto: copre il busto
+            const x = extraMesh(e); x.setMatrixAt(j, m4.compose(v3, qd, s3.setScalar(sc))); x.setColorAt(j, c);
+            continue;
+          }
           const fiamma = def.acceso ? 0.85 + 0.35 * (((Math.floor(t * 10) + j) * 0.618) % 1) : 1;
           put(extraMesh(e), j, o, def.acceso ? c.set(1, 1, 1) : c, fiamma);
           if (def.acceso) c.copy(z.tinta);

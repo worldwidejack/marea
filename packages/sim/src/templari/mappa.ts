@@ -4,6 +4,7 @@
 // Fuori dalla chiesa le zone (piazza, cimitero, taverna, spiaggia) si aprono con le porte: case e tende sono muri, muretti, tombe e
 // carretti ostacoli bassi. Per la resa ogni cella ha anche il suolo (`suolo`) e cos'è (`tipo`).
 import type { TMappaDef } from '@marea/content/templari.ts';
+import { TEMPLARI } from '@marea/content/templari.ts';
 import type { Griglia } from '../dungeon/map.ts';
 
 /** Codici di cella. */
@@ -26,6 +27,11 @@ export type Comparsa = { x: number; z: number; zona: string };
 export type Trappola = { id: string; celle: number[]; leva: P };
 /** Arma sul muro: la cella davanti (dove si compra) e il muro accanto col disegno a gesso (`n` = verso dal muro alla cella). */
 export type Muro = { arma: string; x: number; z: number; wx: number; wz: number; nx: number; nz: number };
+/** Albero (o lampione) su una cella di fuori che tocca il campo: la cella ferma come un cerchio grande come il tronco (`TEMPLARI.alberi`).
+ *  `h` = numero fisso della cella (0..1) per altezza e colore. */
+/** Strega o Mercante: il posto dove si parla con loro (cella del campo sul bordo) e da che parte stanno, fuori (`fx, fz`). */
+export type Personaggio = { id: 'mercante' | 'strega'; x: number; z: number; fx: number; fz: number };
+export type Albero = { x: number; z: number; cella: number; tipo: 'cipresso' | 'palma' | 'lampione'; h: number };
 /** Posto della cassa del tesoro (la cella della cassa) e da che parte guarda (via dal muro). */
 export type PostoCassa = { x: number; z: number; fx: number; fz: number };
 export type Arena = {
@@ -45,6 +51,8 @@ export type Arena = {
   /** Celle calpestabili dall'eroe all'inizio (per i test e l'autopilota). */
   dentro: number[];
   trappole: Trappola[];
+  alberi: Albero[];
+  personaggi: Personaggio[];
   /** Indice della trappola per cella (-1 = nessuna). */
   trappolaDi: Int8Array;
   /** Per la resa: suolo e tipo di ogni cella (SUOLO, TIPO). */
@@ -52,6 +60,33 @@ export type Arena = {
 };
 
 const CACHE = new WeakMap<TMappaDef, Arena>();
+/** Numero fisso 0..1 di una cella (come cellHash del client): dove vanno gli alberi è uguale per tutti. */
+export function hashCella(cx: number, cz: number, salt = 0): number {
+  let h = (cx * 374761393 + cz * 668265263 + salt * 2246822519) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+/** Alberi e lampioni: solo sulle celle di fuori che toccano il campo (a sud o a est c'è terreno), a nord e a ovest perché la camera guarda
+ *  da sud-est (dall'altra parte coprirebbero il campo). Mai più in là: un albero a due celle lasciava davanti un muro invisibile.
+ *  Cipressi dietro l'erba del cimitero, palme e lampioni dietro acciottolato, sabbia e terra. */
+function trovaAlberi(w: number, h: number, cell: Uint8Array, suolo: Uint8Array, t: number, liberi: { cx: number; cz: number }[]): Albero[] {
+  const out: Albero[] = [];
+  for (let cz = 0; cz < h; cz++) for (let cx = 0; cx < w; cx++) {
+    const i = cz * w + cx;
+    if (cell[i] !== C.fuori) continue;
+    if (liberi.some((p) => Math.abs(p.cx - cx) <= 2 && Math.abs(p.cz - cz) <= 2)) continue; // davanti a Strega e Mercante niente alberi: si devono vedere
+    const vic = [[cx, cz + 1], [cx + 1, cz]].filter(([x, z]) => x! < w && z! < h && cell[z! * w + x!] !== C.fuori).map(([x, z]) => suolo[z! * w + x!]!);
+    if (!vic.length) continue;
+    const p = { x: (cx + 0.5) * t, z: (cz + 0.5) * t, cella: i };
+    if (vic.includes(SUOLO.erba)) { if ((cx + cz * 2) % 3 === 0) out.push({ ...p, tipo: 'cipresso', h: hashCella(cx, cz, 41) }); continue; }
+    const s = vic.find((x) => x === SUOLO.ciottoli || x === SUOLO.sabbia || x === SUOLO.terra);
+    if (s === undefined) continue;
+    const k = hashCella(cx, cz, 91);
+    if (k < 0.12) out.push({ ...p, tipo: 'palma', h: k });
+    else if (k > 0.95 && s !== SUOLO.terra) out.push({ ...p, tipo: 'lampione', h: k });
+  }
+  return out;
+}
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 
 export function parseArena(def: TMappaDef): Arena {
@@ -65,6 +100,7 @@ export function parseArena(def: TMappaDef): Arena {
   let spawn = { x: 0, z: 0, fx: 1, fz: 0 }, altSum = { x: 0, z: 0, n: 0 };
   const finestre: Finestra[] = [], porteMap = new Map<string, number[]>(), comparse: Comparsa[] = [], bracieri: P[] = [], altarini: P[] = [];
   const muriC: { arma: string; cx: number; cz: number }[] = [], casseC: { cx: number; cz: number }[] = [];
+  const posti: { id: 'mercante' | 'strega'; cx: number; cz: number }[] = [];
   for (let cz = 0; cz < h; cz++) for (let cx = 0; cx < w; cx++) {
     const ch = rows[cz]![cx] ?? ' ', i = cz * w + cx;
     suolo[i] = SUOLO_DI[ch] ?? SUOLO.niente; tipo[i] = TIPO_DI[ch] ?? TIPO.niente;
@@ -89,6 +125,7 @@ export function parseArena(def: TMappaDef): Arena {
         if (l?.comparsa) { cell[i] = C.terra; comparse.push({ ...ctr(cx, cz), zona: l.comparsa }); break; }
         if (l?.trappola) { cell[i] = C.pavimento; const a = trapMap.get(l.trappola) ?? []; a.push(i); trapMap.set(l.trappola, a); break; }
         if (l?.leva) { cell[i] = C.basso; tipo[i] = TIPO.leva; leve.set(l.leva, ctr(cx, cz)); break; }
+        if (l?.personaggio) { cell[i] = C.terra; posti.push({ id: l.personaggio, cx, cz }); break; }
         throw new Error(`Arena dei Templari: lettera '${ch}' senza legenda (${cx},${cz})`);
       }
     }
@@ -134,7 +171,8 @@ export function parseArena(def: TMappaDef): Arena {
   const a: Arena = {
     w, h, tile: t, cell, opaque, spawn, altare: alt, finestre, finestraDi,
     porte: [...porteMap.entries()].map(([id, celle]) => ({ id, celle })), comparse, bracieri, altarini, muri, casse, dentro: [],
-    trappole, trappolaDi, suolo, tipo,
+    trappole, alberi: trovaAlberi(w, h, cell, suolo, t, posti), trappolaDi, suolo, tipo,
+    personaggi: posti.map(({ id, cx, cz }) => { const d = N4.find(([dx, dz]) => k(cx + dx, cz + dz) === C.fuori) ?? [0, -1]; return { id, ...ctr(cx, cz), fx: d[0], fz: d[1] }; }),
   };
   // celle dell'eroe all'inizio: a 4 vicini dalla partenza, senza attraversare finestre e porte
   const seen = new Uint8Array(w * h), q = [Math.floor(spawn.z / t) * w + Math.floor(spawn.x / t)];
@@ -166,8 +204,10 @@ export function creaGriglie(a: Arena): Griglie {
     zombie[i] = pieno || k === C.finestra ? 1 : 0;
     percorso[i] = pieno ? 1 : 0;
   }
-  const g = (solid: Uint8Array): Griglia => ({ w: a.w, h: a.h, tile: a.tile, solid, opaque: a.opaque });
-  return { eroe: g(eroe), zombie: g(zombie), percorso: g(percorso) };
+  // i tronchi fermano eroe e zombie solo quanto sono grossi; il flow field li tiene pieni (nessuno ci passa attraverso)
+  const tondi = new Map(a.alberi.map((x) => [x.cella, TEMPLARI.alberi[x.tipo]] as const));
+  const g = (solid: Uint8Array, tonde = false): Griglia => ({ w: a.w, h: a.h, tile: a.tile, solid, opaque: a.opaque, ...(tonde ? { tondi } : {}) });
+  return { eroe: g(eroe, true), zombie: g(zombie, true), percorso: g(percorso) };
 }
 
 /** Assi di una finestra cambiate: la cella ferma gli zombie solo se ne resta almeno una. */

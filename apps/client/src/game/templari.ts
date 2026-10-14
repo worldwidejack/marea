@@ -121,22 +121,22 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   async function entra(subito: boolean): Promise<void> {
     if (busy || run || o.world.race.on) return;
     busy = true; btn.classList.remove('on'); lastErr = null;
-    const zoom0 = o.renderer.diorama.zoom, api = o.api && FLAGS.token ? o.api : null;
+    const zoom0 = o.renderer.diorama.zoom, api = o.api && FLAGS.token && !FLAGS.banco ? o.api : null;
     try {
       let seed: number;
       if (api) {
         try { const st = await api.templariStart(subito); seed = st.seed; o.setLot(st.lot); } catch (e) { fail(e, 'Niente connessione, riprova tra poco'); return; }
       } else {
         seed = (Math.random() * 2 ** 31) >>> 0;
-        o.hud.toast('Senza il tuo link personale si gioca senza premio', 3000);
+        if (!FLAGS.banco) o.hud.toast('Senza il tuo link personale si gioca senza premio', 3000);
       }
       const mod = await import('../templari/index.ts');
-      run = mod.startTemplari({ world: o.world, renderer: o.renderer, loader: o.loader, hud: o.hud, root: o.root, canvas: o.canvas }, { seed, subito });
+      run = mod.startTemplari({ world: o.world, renderer: o.renderer, loader: o.loader, hud: o.hud, root: o.root, canvas: o.canvas }, { seed, subito, banco: FLAGS.banco });
       entrate++; busy = false;
       const done = await run.done;
       run = null; busy = true;
       fuori(zoom0);
-      if (!done) return;
+      if (!done || FLAGS.banco) return; // stanza di prova: niente scheda, si rientra subito (tick)
       if (!api) { await mod.mostraEsito(o.root, { result: done.result, premio: null }); return; }
       try {
         const r = await api.templariFinish(done.inputs, done.hash, done.azioni);
@@ -194,6 +194,8 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
         nearRWas = nearR;
         if (nearR && pressA) { void usaRelitto(); return; }
       } else nearR = false;
+      // stanza di prova (?templari=banco): dentro la chiesa appena il mondo c'è, e di nuovo dentro quando esci
+      if (FLAGS.banco && !busy && !run) { void entra(true); return; }
       if (busy || run || !spot) { near = false; return; }
       const f = o.world.avatar.state;
       near = o.world.mode === 'walk' && !o.world.race.on && aperta() && Math.hypot(f.x - spot.x, f.z - spot.z) < NEAR_M;

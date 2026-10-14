@@ -52,5 +52,9 @@ export function validateTemplari(): string[] {
   if (!(c.poteri.probabilita > 0 && c.poteri.probabilita < 1) || !c.poteri.tipi.length) errs.push('templari: power-up non validi');
   if (!all.includes('C')) errs.push('templari: la mappa non ha posti per la cassa');
   if (!c.armi.some((a) => (a.cassa ?? 0) > 0)) errs.push('templari: la cassa non ha armi');
+  for (const a of c.armi) if (!a.nomePot) errs.push(`templari: l'arma ${a.id} non ha il nome da potenziata`);
+  for (const p of ['mercante', 'strega'] as const) if (all.split(Object.entries(TEMPLARI_MAPPA.legenda).find(([, l]) => l.personaggio === p)?.[0] ?? '§').length !== 2) errs.push(`templari: la mappa vuole un posto per ${p}`);
+  if (!pos(c.mercante.potenzia.prezzo) || !(c.mercante.potenzia.danno > 1)) errs.push('templari: potenziamento del Mercante non valido');
+  if (!(c.strega.max >= 1) || new Set(c.strega.pozioni.map((p) => p.id)).size !== c.strega.pozioni.length || c.strega.pozioni.some((p) => !pos(p.prezzo))) errs.push('templari: pozioni della Strega non valide');
   return errs;
 }
