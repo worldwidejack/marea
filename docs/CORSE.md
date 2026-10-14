@@ -2,6 +2,7 @@
 
 > Parte del GDD: vale come `docs/GDD.md`, e dove si contraddicono si aggiornano tutti e due.
 > I numeri del Gran Premio di oggi stanno in `packages/content/src/minigames/corse.json`.
+> **14 ott 2026** (`VISIONE.md` §4): l'Isola dell'Adrenalina probabilmente si unisce a questa, che diventa un hub di competizioni e di movimento (kart, snowboard, mountain bike, poi altri mezzi, forse volanti).
 > Jack, 9 ott 2026, issue madre #155. L'intervista del 9 ott ha deciso la **Parte A**, cioè l'isola completa: è la bibbia, e vince sulla Parte B. La **Parte B** è il Gran Premio online oggi (fetta 1), che resta finché il circuito della Spiaggia non lo sostituisce.
 > **[proposta]** = idea di Claude da confermare con la concept art o giocando. **[da decidere]** = la scelta spetta a Jack.
 

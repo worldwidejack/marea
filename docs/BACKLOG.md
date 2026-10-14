@@ -1,6 +1,15 @@
 # MAREA — Backlog (idee parcheggiate, zero sensi di colpa)
 
 > Ogni idea nuova → una riga qui. Entra in una milestone solo tramite `ROADMAP.md`. Niente deroghe alla V1.
+> Dal 14 ott 2026 la direzione del gioco sta in `docs/VISIONE.md` (un'isola intera per ogni format): un'idea qui sotto che è un minigioco piccolo e isolato va prima legata a un'isola-format.
+
+## Dalla revisione di Jack (14 ott 2026, `VISIONE.md`)
+- **Partenza nuova**: solo la casa → risorse o monete → compri la prima barca → salpi → colonizzi altre isole.
+- **City builder a esagoni** sulle isole colonizzate.
+- **Shooter MAREA**: un'isola sua, con spunti da battle royale, tactical e war sandbox, in forma originale.
+- **Corse come hub del movimento**: oltre a kart, snowboard e mountain bike, altri mezzi e forse cose che volano.
+- **Visite con permessi**, ed eventuali attacchi o interazioni competitive tra isole (prima stava tra i «Mai»).
+- **Oggetti e equipaggiamento che passano da un'isola all'altra**, con una lore comune.
 
 ## Dopo dicembre 2026
 - Corse, gara tra amici: **urti e oggetti anche tra amici** (Jack, 12 ott 2026: «tanto comunque bisognerà implementare gli oggetti tra amici»). Oggi gli amici sono fantasmi: serve una soluzione di rete (l'urto o il colpo li decide chi colpisce e li manda agli altri). Prima gli urti veri coi bot.
@@ -43,4 +52,4 @@
 
 ## Mai
 - Soldi veri per risorse o acceleratori. (Cosmetici a pagamento: solo se un giorno si apre al pubblico, e solo cosmetici.)
-- Attacchi alle isole altrui.
+- ~~Attacchi alle isole altrui~~: dal 14 ott 2026 è un'idea da valutare (permessi, interazioni competitive; `VISIONE.md` §2), non più un «mai».
