@@ -39,7 +39,7 @@ export function caricaVeicoloAi(modello: string | null | undefined): Promise<voi
       const vuote: THREE.Object3D[] = [];
       g.scene.traverse((o) => { if (o.userData['tipo'] === 'ruota') vuote.push(o); });
       for (const o of vuote) { // le ruote tonde vere al posto di quelle dell'AI (tolte da veicolo_ai_pezzi)
-        const u = o.userData as { r: number; w: number; cerchio: string }, me = new THREE.Mesh(ruotaGeo(u.r, u.w, u.cerchio), matRuote);
+        const u = o.userData as { r: number; w: number; cerchio: string; gomma?: string }, me = new THREE.Mesh(ruotaGeo(u.r, u.w, u.cerchio, u.gomma === 'tasselli'), matRuote);
         me.castShadow = true; me.name = 'ruota_tonda';
         me.scale.setScalar(1 / (o.parent?.scale.x || 1)); // il nodo del modello è scalato (quantizzato): la ruota è in metri
         o.add(me);
@@ -53,18 +53,28 @@ export function caricaVeicoloAi(modello: string | null | undefined): Promise<voi
 
 const matRuote = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
 const geoRuote = new Map<string, THREE.BufferGeometry>();
-/** Ruota tonda in metri sull'asse X: gomma coi tasselli (da dietro si vedono scorrere), cerchione del colore `cerchio` della palette con
- *  tre razze scure sui due lati (di fianco si vede girare). */
-function ruotaGeo(r: number, w: number, cerchio: string): THREE.BufferGeometry {
-  const k = `${r}|${w}|${cerchio}`;
+/** Ruota tonda in metri sull'asse X, cerchione del colore `cerchio` della palette con tre razze scure sui due lati (di fianco si vede
+ *  girare). Gomma (Jack 14 ott): `tasselli` = da fuoristrada, tasselli grossi che sporgono; se no liscia da strada con righine sottili
+ *  (sportiva, moto, kart…). In tutte e due da dietro si vede scorrere il battistrada. */
+function ruotaGeo(r: number, w: number, cerchio: string, tasselli: boolean): THREE.BufferGeometry {
+  const k = `${r}|${w}|${cerchio}|${tasselli}`;
   let g = geoRuote.get(k);
   if (g) return g;
   const parts: THREE.BufferGeometry[] = [], asse = (x = 0, rx = 0) => M(x, 0, 0, rx, 0, Math.PI / 2);
-  parts.push(painted(new THREE.CylinderGeometry(r * 0.92, r * 0.92, w, 16), P.roccia, asse()));
-  const N = 12, alto = r * 0.14, lungo = ((2 * Math.PI * r) / N) * 0.55;
-  for (let i = 0; i < N; i++) {
-    const a = (i / N) * Math.PI * 2, rr = r - alto / 2;
-    parts.push(painted(new THREE.BoxGeometry(w * 1.02, alto, lungo), P.neroCaldo, M(0, Math.cos(a) * rr, Math.sin(a) * rr, a)));
+  if (tasselli) {
+    parts.push(painted(new THREE.CylinderGeometry(r * 0.92, r * 0.92, w, 16), P.roccia, asse()));
+    const N = 12, alto = r * 0.14, lungo = ((2 * Math.PI * r) / N) * 0.55;
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2, rr = r - alto / 2;
+      parts.push(painted(new THREE.BoxGeometry(w * 1.02, alto, lungo), P.neroCaldo, M(0, Math.cos(a) * rr, Math.sin(a) * rr, a)));
+    }
+  } else {
+    parts.push(painted(new THREE.CylinderGeometry(r, r, w, 20), P.roccia, asse()));
+    const N = 20, alto = r * 0.03, lungo = r * 0.04;
+    for (let i = 0; i < N; i++) { // righine di traverso, appena fuori dalla gomma, più corte della larghezza
+      const a = (i / N) * Math.PI * 2, rr = r + alto / 2 - 0.004;
+      parts.push(painted(new THREE.BoxGeometry(w * 0.7, alto, lungo), P.neroCaldo, M(0, Math.cos(a) * rr, Math.sin(a) * rr, a)));
+    }
   }
   parts.push(painted(new THREE.CylinderGeometry(r * 0.56, r * 0.56, w + 0.02, 10), (P as Record<string, string>)[cerchio] ?? P.pietra, asse()));
   for (const lato of [-1, 1]) {
