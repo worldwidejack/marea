@@ -50,7 +50,8 @@ export type Controlli = {
 };
 
 
-export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; onEsci(): void }): Controlli {
+/** `insieme`: la pausa non ferma la partita (gli altri continuano), il menu lo dice. */
+export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; onEsci(): void; insieme?: boolean }): Controlli {
   if (!document.getElementById('mz-tpl-ctl-style')) { const st = document.createElement('style'); st.id = 'mz-tpl-ctl-style'; st.textContent = CSS; document.head.appendChild(st); }
   const stop = (e: Event) => e.stopPropagation();
   // AZIONE: tenuto (ripara) o tocco breve (latch: anche più corto di un tick arriva alla sim). Dal telefono vero non partiva (10/10):
@@ -82,7 +83,8 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   const pBtn = el('button', 'mz-tpl-tb'); pBtn.type = 'button'; pBtn.id = 'mzTplPausaBtn'; pBtn.title = 'Pausa (Esc)'; pBtn.setAttribute('aria-label', 'Pausa'); pBtn.append(pz);
   top.append(pBtn);
   const menu = el('div', 'mz mz-tpl-menu'); menu.id = 'mzTplPausa';
-  const titolo = el('b', '', 'PAUSA'), sub = el('div', 'sub', 'Le ondate aspettano.');
+  const PAUSA = o.insieme ? 'Gli altri combattono: il tuo eroe sta fermo.' : 'Le ondate aspettano.';
+  const titolo = el('b', '', 'PAUSA'), sub = el('div', 'sub', PAUSA);
   const riprendi = el('button', 'mz-btn green', 'RIPRENDI'); riprendi.type = 'button'; riprendi.dataset['act'] = 'riprendi';
   const esci = el('button', 'mz-btn ghost', 'ESCI DALLA PARTITA'); esci.type = 'button'; esci.dataset['act'] = 'esci';
   menu.append(titolo, sub, riprendi, esci);
@@ -92,12 +94,12 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   o.root.append(az, perche, sc, stick.el, top, menu);
   const setPausa = (on: boolean) => {
     pausa = on; chiedi = false; menu.classList.toggle('on', on); if (on) stick.cancel();
-    titolo.textContent = 'PAUSA'; sub.textContent = 'Le ondate aspettano.'; esci.textContent = 'ESCI DALLA PARTITA'; riprendi.style.display = '';
+    titolo.textContent = 'PAUSA'; sub.textContent = PAUSA; esci.textContent = 'ESCI DALLA PARTITA'; riprendi.style.display = '';
   };
   pBtn.addEventListener('click', () => setPausa(!pausa));
   riprendi.addEventListener('click', () => setPausa(false));
   esci.addEventListener('click', () => {
-    if (!chiedi) { chiedi = true; titolo.textContent = 'USCIRE?'; sub.textContent = 'Contano le ondate superate fin qui.'; esci.textContent = 'SÌ, ESCI'; return; }
+    if (!chiedi) { chiedi = true; titolo.textContent = 'USCIRE?'; sub.textContent = o.insieme ? 'Gli altri restano. Contano le ondate superate fin qui.' : 'Contano le ondate superate fin qui.'; esci.textContent = 'SÌ, ESCI'; return; }
     setPausa(false); o.onEsci();
   });
   const keys = new Set<string>();

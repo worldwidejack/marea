@@ -6,7 +6,7 @@ import { TEMPLARI } from '@marea/content/templari.ts';
 import type { TFiamma, TPotere } from '@marea/content/templari.ts';
 import { moveCircle } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
-import { COLPITO_TICKS, ev, secToTicks } from './stato.ts';
+import { COLPITO_TICKS, ev, inPiedi, secToTicks, usa } from './stato.ts';
 import { vicinoRaggiungibile } from './raggiungi.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -132,14 +132,15 @@ export function accendi(s: TState, x: number, z: number, f: TFiamma, nemico = fa
 export function stepFiamme(s: TState): void {
   if (!s.fiamme.length) return;
   s.fiamme = s.fiamme.filter((f) => f.fine > s.tick);
-  const h = s.eroe;
   for (const f of s.fiamme) {
     if (!f.nemico) continue;
-    // le fiamme di de Molay bruciano l'eroe (niente scudo, niente rigenerazione mentre ci sei dentro)
-    const dx = h.x - f.x, dz = h.z - f.z, rr = f.r + TEMPLARI.eroe.raggio;
-    if (dx * dx + dz * dz > rr * rr || s.done) continue;
-    ferisciDiretto(s, f.dps / 60, s.tick % 30 === 0 ? 'brucia' : null);
-    if (s.done) return;
+    // le fiamme di de Molay bruciano gli eroi (niente scudo, niente rigenerazione mentre ci sei dentro)
+    for (const i of inPiedi(s)) {
+      const h = s.eroi[i]!, dx = h.x - f.x, dz = h.z - f.z, rr = f.r + TEMPLARI.eroe.raggio;
+      if (dx * dx + dz * dz > rr * rr || s.done) continue;
+      usa(s, i); ferisciDiretto(s, f.dps / 60, s.tick % 30 === 0 ? 'brucia' : null);
+      if (s.done) return;
+    }
   }
   for (const f of s.fiamme) for (const z of s.zombie) {
     if (f.nemico || z.st === 'morto' || z.st === 'sorge' || z.st === 'fugge') continue;
@@ -150,7 +151,8 @@ export function stepFiamme(s: TState): void {
 }
 
 /** L'eroe è a zero: con l'Elisir del risorto si rialza (vita piena, qualche secondo intoccabile, gli zombie vicini spinti via) e perde tutte
- *  le pozioni, come in COD; sennò è caduto. */
+ *  le pozioni, come in COD; sennò è caduto: da solo la partita finisce, insieme resta giù (perde le pozioni, si rialza all'ondata dopo) e
+ *  finisce solo se non resta nessuno in piedi. */
 function cade(s: TState): void {
   const h = s.eroe;
   if (h.pozioni.includes('risorto')) {
@@ -164,13 +166,17 @@ function cade(s: TState): void {
     ev(s, { t: 'risorto' });
     return;
   }
-  h.vita = 0; s.done = true; s.esito = 'morto'; ev(s, { t: 'caduto' });
+  h.vita = 0; ev(s, { t: 'caduto' });
+  if (s.eroi.length === 1) { s.done = true; s.esito = 'morto'; return; }
+  h.giu = true; h.pozioni = []; h.max = TEMPLARI.eroe.vita;
+  h.act = 'idle'; h.actT = 0; h.carica = 0; h.ricarica = 0; h.moving = false; h.corre = false; h.hurt = 0;
+  if (!inPiedi(s).length) { s.done = true; s.esito = 'morto'; }
 }
 
 /** Danno all'eroe che lo scudo non para (fiamme, trappole): `segnale` = l'evento da mandare (brucia o ferito), null = nessuno. */
 export function ferisciDiretto(s: TState, danno: number, segnale: 'brucia' | 'ferito' | null): void {
   const h = s.eroe;
-  if (s.done || s.tick < h.intoccabile) return;
+  if (s.done || h.giu || h.fuori || s.tick < h.intoccabile) return;
   h.vita -= danno; h.quiete = 0;
   if (segnale === 'brucia') ev(s, { t: 'brucia' });
   if (segnale === 'ferito') { h.hurt = COLPITO_TICKS; ev(s, { t: 'ferito', danno: Math.round(danno), x: r2(h.x), z: r2(h.z) }); }
@@ -180,7 +186,7 @@ export function ferisciDiretto(s: TState, danno: number, segnale: 'brucia' | 'fe
 /** Colpo sull'eroe da (x, z): lo scudo para (in mano chi è davanti, sulle spalle chi è dietro), sennò vita; a zero è caduto. */
 export function ferisci(s: TState, danno: number, x: number, z: number): void {
   const h = s.eroe;
-  if (s.done || s.tick < h.intoccabile) return;
+  if (s.done || h.giu || h.fuori || s.tick < h.intoccabile) return;
   if (h.scudo) {
     const dx = x - h.x, dz = z - h.z, d = Math.sqrt(dx * dx + dz * dz) || 1, dot = (dx * h.fx + dz * h.fz) / d, c = TEMPLARI.scudo.cono;
     if ((h.inMano && dot >= c) || (!h.inMano && dot <= -c)) {

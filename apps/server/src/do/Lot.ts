@@ -14,7 +14,7 @@
 // Dungeon insieme (#118): /dungeon_party_start arriva dal DO Spedizioni; con pending.party il lotto chiede il log della squadra (POST /log) e lo rigioca.
 // Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_save {inputs, hash} · /dungeon_finish {inputs, hash}.
 // Isola dei Templari (lot_templari.ts): POST /templari_start {subito?} · /templari_finish {inputs, azioni, hash} (replay e premio delle ondate) ·
-// /templari_reliquia (il calice della Tempesta).
+// /templari_reliquia (il calice della Tempesta) · /templari_party_start (solo dal DO TemplariInsieme; il finish insieme rigioca il suo log).
 // Isola dell'Adrenalina (docs/ADRENALINA.md §2): POST /adrenalina_liberatoria {} → {lot, nuova} (la firma al cancello della funivia, una volta sola).
 // Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
@@ -139,7 +139,15 @@ export class Lot extends DurableObject<Env> {
         return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
       }
       if (act === 'faro_dona' || act === 'faro_livelli') return this.faro(lot, act, body, now);
-      if (TEMPLARI_ACTS.has(act)) return templariRoute(lot, act, body, now, (l) => this.save(l));
+      if (TEMPLARI_ACTS.has(act)) {
+        // partita insieme aperta: prima il log della squadra dal DO TemplariInsieme, poi il lotto riletto (nell'attesa può essere cambiato)
+        const g = lot.templari?.pending?.party;
+        if (g && act === 'templari_finish') {
+          const gruppo = await this.logTemplari(g);
+          return templariRoute(this.load(owner, now), act, { ...body, gruppo }, now, (l) => this.save(l));
+        }
+        return templariRoute(lot, act, body, now, (l) => this.save(l));
+      }
       if (act === 'adrenalina_liberatoria') { const r = firmaLiberatoria(lot); if (r.nuova) this.save(r.lot); return json({ lot: r.lot, nuova: r.nuova }); }
       if (act === 'rientro') {
         const out = rientra(Array.isArray(body['faro']) ? segnaFaro(lot, body['faro']) : lot, now);
@@ -182,6 +190,16 @@ export class Lot extends DurableObject<Env> {
   }
 
   /** Log della spedizione insieme (DO Spedizioni: da adesso questo eroe è fuori); null se non si trova più. */
+  /** Templari insieme: il log della partita dal DO TemplariInsieme (l'eroe idx è fuori da adesso). null se non c'è più. */
+  private async logTemplari(g: { run: string; idx: number }): Promise<unknown> {
+    try {
+      const r = await this.env.TEMPLARI_INSIEME.get(this.env.TEMPLARI_INSIEME.idFromName('templari')).fetch(new Request('https://templari/log', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ run: g.run, idx: g.idx }),
+      }));
+      return r.ok ? await r.json() : null;
+    } catch (e) { console.warn('[marea] log dei Templari insieme non letto', e); return null; }
+  }
+
   private async logGruppo(g: { run: string; idx: number }): Promise<unknown> {
     try {
       const r = await this.env.SPEDIZIONI.get(this.env.SPEDIZIONI.idFromName('spedizioni')).fetch(new Request('https://spedizioni/log', {

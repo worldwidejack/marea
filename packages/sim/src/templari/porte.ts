@@ -6,7 +6,7 @@ import type { TPortaDef, TTrappolaDef } from '@marea/content/templari.ts';
 import { cellOf } from '../dungeon/map.ts';
 import type { Porta } from './mappa.ts';
 import type { TState } from './stato.ts';
-import { ev, secToTicks } from './stato.ts';
+import { ev, inPiedi, secToTicks, usa } from './stato.ts';
 import { danneggia, ferisciDiretto, spendi, uccidi } from './colpi.ts';
 
 export const portaDef = (id: string): TPortaDef => TEMPLARI.porte[id] ?? { nome: id, prezzo: 0, zona: id };
@@ -65,7 +65,7 @@ export function accendiTrappola(s: TState, i: number): boolean {
 }
 
 export function stepTrappole(s: TState): void {
-  const a = s.arena, h = s.eroe;
+  const a = s.arena;
   a.trappole.forEach((t, i) => {
     const st = s.trappole[i]!;
     if (st.fine > 0 && s.tick === st.fine) ev(s, { t: 'trappola', id: t.id, fase: 'spenta' });
@@ -77,9 +77,15 @@ export function stepTrappole(s: TState): void {
       if (z.def.boss) danneggia(s, z, d.boss / 60, 0);
       else uccidi(s, z); // le uccisioni delle trappole non danno punti (come in COD)
     }
-    if (a.trappolaDi[cellOf(s.gr.percorso, h.x, h.z)] === i && s.tick >= st.colpo) {
-      st.colpo = s.tick + secToTicks(d.eroe.ogni);
-      ferisciDiretto(s, d.eroe.danno, t.id === 'rogo' ? 'brucia' : 'ferito');
+    // chi ci sta dentro si fa male (insieme: ognuno, allo stesso ritmo)
+    if (s.tick < st.colpo) return;
+    let preso = false;
+    for (const k of inPiedi(s)) {
+      const h = s.eroi[k]!;
+      if (a.trappolaDi[cellOf(s.gr.percorso, h.x, h.z)] !== i) continue;
+      usa(s, k); ferisciDiretto(s, d.eroe.danno, t.id === 'rogo' ? 'brucia' : 'ferito'); preso = true;
+      if (s.done) break;
     }
+    if (preso) st.colpo = s.tick + secToTicks(d.eroe.ogni);
   });
 }

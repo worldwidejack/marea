@@ -14,12 +14,15 @@ export type TInput = DungeonInput;
 export type TFase = 'altare' | 'inizio' | 'combatti' | 'pausa';
 /** morto = caduto · alba = 60 minuti passati, sopravvissuto · uscito = lasciata dalla pausa (vale come cadere: contano le ondate superate). */
 export type TEsito = 'morto' | 'alba' | 'uscito';
-/** Opzioni della partita, decise all'apertura (il server le tiene e le rigioca): `subito` = ondate già partite (bottone ⚔ delle prove). */
-export type TOpzioni = { subito?: boolean };
+/** Opzioni della partita, decise all'apertura (il server le tiene e le rigioca): `subito` = ondate già partite (la porta della chiesa e il
+ *  bottone ⚔ delle prove); `eroi` = insieme, quanti giocatori (2-4; mancante = da solo). */
+export type TOpzioni = { subito?: boolean; eroi?: number };
 
-/** Azioni dal menu, tra due tick (registrate col tick come nel dungeon): uscire, comprare dal Mercante (potenziare o ricaricare l'arma
+/** Azioni dal menu, tra due tick (registrate col tick come nel dungeon): uscire (da solo finisce la partita;
+ *  insieme `ritira` = l'eroe `eroe` esce e gli altri continuano), comprare dal Mercante (potenziare o ricaricare l'arma
  *  dello slot) o dalla Strega (una pozione). */
 export type TAzione = { t: 'esci' }
+  | { t: 'ritira'; eroe: number }
   | { t: 'compra'; da: 'mercante'; cosa: 'potenzia' | 'munizioni'; slot: number }
   | { t: 'compra'; da: 'strega'; cosa: TPozione };
 /** Una voce del menù del Mercante o della Strega (bottega.ts): l'azione da mandare, cosa dire, il prezzo e se si può (`descr` dice perché no). */
@@ -48,6 +51,8 @@ export type TEvento =
   | { t: 'fendente'; caricato: boolean }
   | { t: 'mancato' }
   | { t: 'caduto' }
+  /** Insieme: l'eroe caduto si rialza all'inizio dell'ondata dopo. */
+  | { t: 'rialzato' }
   | { t: 'alba' }
   | { t: 'scambia'; arma: string }
   /** Colpo di un'arma a distanza (sparo, freccia, vaso lanciato) e caricatore vuoto o ricarica. */
@@ -81,6 +86,9 @@ export type TEvento =
   | { t: 'trappola'; id: string; fase: 'accesa' | 'spenta' | 'pronta' }
   /** Power-up uscito da terra (`preso` false) o preso. */
   | { t: 'potere'; tipo: TPotere; preso: boolean; x: number; z: number };
+
+/** Un evento della sim; insieme `e` = l'eroe a cui è successo (o che l'ha fatto). */
+export type TEventoDi = TEvento & { e?: number };
 
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
 export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola' | 'mercante' | 'strega'; testo: string; prezzo: number; puoi: boolean } | null;
@@ -128,7 +136,10 @@ export type TView = {
   /** Zombie ancora da far uscire in questa ondata più quelli vivi. */
   restano: number;
   uccisioni: number;
-  eventi: TEvento[];
+  eventi: TEventoDi[];
+  /** Insieme: io = il mio eroe (quello di `posa` ed `eroe`); compagni = gli altri, con la posa per l'attore, caduto o uscito. */
+  io: number;
+  compagni: { i: number; posa: DungeonView['hero']; arma: string; vita: number; max: number; giu: boolean; fuori: boolean }[];
 };
 
 export type TRisultato = {
@@ -143,9 +154,13 @@ export type TModulo<S> = {
   id: 'templari'; version: number; maxTicks: number;
   create(o: { seed: number; opzioni?: TOpzioni }): S;
   step(s: S, input: TInput): void;
-  act(s: S, a: TAzione): TEvento[] | null;
+  /** Insieme: un input per eroe (nell'ordine della squadra). */
+  stepInsieme(s: S, inputs: readonly TInput[]): void;
+  /** Azione dal menu dell'eroe `io` (di serie 0). */
+  act(s: S, a: TAzione, io?: number): TEvento[] | null;
   result(s: S): TRisultato;
-  view(s: S): TView;
+  /** La vista per l'eroe `io` (di serie 0). */
+  view(s: S, io?: number): TView;
   /** Pilota automatico per i test: posa la reliquia, ripara, combatte. */
   autopilot(s: S, rng: Rng): TInput;
 };

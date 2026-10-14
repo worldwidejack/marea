@@ -5,10 +5,10 @@ import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
 import { TICK_HZ } from '../constants.ts';
 import type { SwingStyle } from '../dungeon/swing.ts';
-import { bfs, cellOf } from '../dungeon/map.ts';
+import { bfs, cellOf, moveCircle } from '../dungeon/map.ts';
 import { creaGriglie, parseArena } from './mappa.ts';
 import type { Arena, Griglie } from './mappa.ts';
-import type { TEsito, TEvento, TFase, TOpzioni, TZombieAnim } from './types.ts';
+import type { TEsito, TEvento, TEventoDi, TFase, TOpzioni, TZombieAnim } from './types.ts';
 
 export const HZ = TICK_HZ;
 export const secToTicks = (sec: number): number => Math.max(1, Math.round(sec * HZ));
@@ -48,6 +48,8 @@ export type Eroe = {
   prevA: boolean; prevC: boolean; prevD: boolean;
   /** Pozioni della Strega che hai bevuto (al massimo TEMPLARI.strega.max), elisir del risorto comprati, intoccabile fino al tick. */
   pozioni: TPozione[]; elisir: number; intoccabile: number;
+  /** Insieme: caduto (si rialza all'ondata dopo) e uscito dalla partita (non torna). Da solo cadere chiude la partita. */
+  giu: boolean; fuori: boolean;
 };
 /** `carica` = il cavaliere lanciato in linea retta; `fugge` = de Molay a metà vita che scappa ridendo. */
 export type ZombieSt = 'sorge' | 'insegue' | 'strappa' | 'prepara' | 'colpisce' | 'recupera' | 'carica' | 'fugge' | 'morto';
@@ -88,13 +90,17 @@ export type Drop = { id: number; tipo: 'scudo' | TPotere; x: number; z: number; 
 /** Trappola: accesa fino al tick `fine`, di nuovo pronta dal tick `pronta`, prossimo colpo all'eroe se ci sta dentro. */
 export type StatoTrappola = { fine: number; pronta: number; colpo: number };
 export type CassaFase = 'chiusa' | 'gira' | 'pronta' | 'teschio' | 'vola';
-export type Cassa = { posto: number; usi: number; max: number; fase: CassaFase; inizio: number; fine: number; arma: string | null };
+/** `chi` = l'eroe che l'ha aperta (insieme: l'arma esce tra quelle che non ha lui). */
+export type Cassa = { posto: number; usi: number; max: number; fase: CassaFase; inizio: number; fine: number; arma: string | null; chi?: number };
 
 export type TState = {
   v: 1; seed: number; tick: number; opzioni: TOpzioni;
   arena: Arena; gr: Griglie;
   rng: Rng;
+  /** L'eroe di turno: quello che si muove, colpisce, compra (s.eroi[s.chi]); gli zombie lo puntano uno alla volta (usa()). */
   eroe: Eroe;
+  /** Tutti gli eroi (insieme: uno per giocatore, nell'ordine della squadra; da solo uno). Punti, cassa e porte sono della squadra. */
+  eroi: Eroe[]; chi: number;
   punti: number; guadagnati: number; uccisioni: number;
   fase: TFase; faseT: number;
   ondata: number;
@@ -112,12 +118,14 @@ export type TState = {
   boss: { tipo: string; at: number; uscito: boolean } | null;
   cassa: Cassa;
   trappole: StatoTrappola[];
+  /** Insieme: il flow field degli zombie ha come origine queste celle (gli eroi in piedi); da solo si usa flowCell. */
+  flowCelle: number[];
   /** Power-up: Ira di Dio e Decima accese fino al tick, quanti ne sono usciti in questa ondata, l'ultimo uscito. */
   poteri: { ira: number; decima: number; ondata: number; ultimo: string };
   nextId: number;
   flow: Int32Array; flowCell: number; flowTick: number;
   done: boolean; esito: TEsito | null;
-  eventi: TEvento[];
+  eventi: TEventoDi[];
 };
 
 export function slotDi(a: TArmaDef, pot = false): Slot {
@@ -156,19 +164,42 @@ export const armaIn = (s: TState): TArmaDef => armaDi(s, s.eroe.armi[s.eroe.cur]
 /** Fiato pieno (il Brodo del viandante lo raddoppia). */
 export const fiatoMax = (s: TState): number => TEMPLARI.eroe.fiato * (haPozione(s, 'viandante') ? pozioneDef('viandante').fiato ?? 1 : 1);
 export const slotIn = (s: TState): Slot | null => s.eroe.armi[s.eroe.cur] ?? null;
-export const ev = (s: TState, e: TEvento): void => { s.eventi.push(e); };
+/** Un evento; insieme porta `e` = l'eroe di turno (il client mostra a ciascuno solo i suoi colpi presi, la sua caduta…). */
+export const ev = (s: TState, e: TEvento): void => { s.eventi.push(s.eroi.length > 1 ? { ...e, e: s.chi } : e); };
+/** L'eroe i diventa quello di turno. */
+export function usa(s: TState, i: number): void { s.chi = i; s.eroe = s.eroi[i]!; }
+/** Gli eroi ancora in partita e in piedi (indici). */
+export function inPiedi(s: TState): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < s.eroi.length; i++) { const h = s.eroi[i]!; if (!h.giu && !h.fuori) out.push(i); }
+  return out;
+}
+/** Insieme: quanti eroi al massimo. */
+export const MAX_EROI = 4;
+
+function nuovoEroe(x: number, z: number, fx: number, fz: number): Eroe {
+  const c = TEMPLARI.eroe;
+  return {
+    x, z, fx, fz, vita: c.vita, max: c.vita, quiete: 9999, fiato: c.fiato, corre: false, moving: false,
+    act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
+    armi: [slotDi(armaDef(TEMPLARI.partenza.arma)), null], cur: 0, hurt: 0, riparaT: -999, cd: 0, ricarica: 0, ricaricaDur: 1, scudo: null, inMano: false,
+    prevA: false, prevC: false, prevD: false, pozioni: [], elisir: 0, intoccabile: 0, giu: false, fuori: false,
+  };
+}
+/** Insieme: dove compare (o si rialza) l'eroe i: accanto alla partenza, a giro, senza finire nei muri. */
+export function posaEroe(s: TState, h: Eroe, i: number): void {
+  const sp = s.arena.spawn, k = [[0, 0], [1.3, 0], [-1.3, 0], [0, 1.3]][i % MAX_EROI]!;
+  h.x = sp.x; h.z = sp.z; h.fx = sp.fx; h.fz = sp.fz;
+  if (k[0] || k[1]) moveCircle(s.gr.eroe, h, k[0]!, k[1]!, TEMPLARI.eroe.raggio);
+}
 
 export function createState(seed: number, opzioni: TOpzioni = {}): TState {
-  const arena = parseArena(TEMPLARI_MAPPA), gr = creaGriglie(arena), c = TEMPLARI.eroe;
-  const sp = arena.spawn;
+  const arena = parseArena(TEMPLARI_MAPPA), gr = creaGriglie(arena);
+  const sp = arena.spawn, n = Math.max(1, Math.min(MAX_EROI, Math.floor(opzioni.eroi ?? 1)));
+  const eroe = nuovoEroe(sp.x, sp.z, sp.fx, sp.fz);
   const s: TState = {
-    v: 1, seed: seed >>> 0, tick: 0, opzioni: { ...(opzioni.subito ? { subito: true } : {}) }, arena, gr, rng: createRng(seed >>> 0),
-    eroe: {
-      x: sp.x, z: sp.z, fx: sp.fx, fz: sp.fz, vita: c.vita, max: c.vita, quiete: 9999, fiato: c.fiato, corre: false, moving: false,
-      act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
-      armi: [slotDi(armaDef(TEMPLARI.partenza.arma)), null], cur: 0, hurt: 0, riparaT: -999, cd: 0, ricarica: 0, ricaricaDur: 1, scudo: null, inMano: false,
-      prevA: false, prevC: false, prevD: false, pozioni: [], elisir: 0, intoccabile: 0,
-    },
+    v: 1, seed: seed >>> 0, tick: 0, opzioni: { ...(opzioni.subito ? { subito: true } : {}), ...(n > 1 ? { eroi: n } : {}) }, arena, gr, rng: createRng(seed >>> 0),
+    eroe, eroi: [eroe], chi: 0,
     punti: TEMPLARI.partenza.punti, guadagnati: 0, uccisioni: 0,
     fase: opzioni.subito ? 'inizio' : 'altare', faseT: 0, ondata: 0, quanti: 0, usciti: 0, prossima: 0, tipiUsciti: {}, puntiAssi: 0,
     assi: arena.finestre.map(() => TEMPLARI.barricate.assi),
@@ -178,9 +209,10 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
     trappole: arena.trappole.map(() => ({ fine: 0, pronta: 0, colpo: 0 })),
     poteri: { ira: 0, decima: 0, ondata: 0, ultimo: '' },
     nextId: 1,
-    flow: new Int32Array(arena.w * arena.h), flowCell: -1, flowTick: -999,
+    flow: new Int32Array(arena.w * arena.h), flowCell: -1, flowTick: -999, flowCelle: [],
     done: false, esito: null, eventi: [],
   };
+  for (let i = 1; i < n; i++) { const h = nuovoEroe(sp.x, sp.z, sp.fx, sp.fz); s.eroi.push(h); posaEroe(s, h, i); }
   s.cassa.max = s.rng.int(TEMPLARI.cassa.usiMin, TEMPLARI.cassa.usiMax);
   s.flowCell = cellOf(gr.percorso, s.eroe.x, s.eroe.z);
   bfs(gr.percorso, s.flowCell, s.flow);
@@ -206,10 +238,11 @@ export function vitaOndata(n: number): number {
   for (let i = v.finoA; i < k; i++) x *= v.molt;
   return Math.round(x);
 }
-/** Zombie dell'ondata n. */
-export function quantiOndata(n: number): number {
+/** Zombie dell'ondata n (insieme ne escono di più: perEroe a testa in più). */
+export function quantiOndata(n: number, eroi = 1): number {
   const q = TEMPLARI.ondate.quanti, k = Math.max(1, n) - 1;
-  return Math.min(q.max, Math.round(q.base + q.lin * k + q.quad * k * k));
+  const solo = Math.min(q.max, Math.round(q.base + q.lin * k + q.quad * k * k));
+  return eroi > 1 ? Math.round(solo * (1 + q.perEroe * (eroi - 1))) : solo;
 }
 /** Secondi tra due comparse all'ondata n. */
 export function intervalloOndata(n: number): number {
