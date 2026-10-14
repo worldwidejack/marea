@@ -17,9 +17,19 @@ for (const modello of process.argv.slice(2)) {
   if (!spec) throw new Error(`${modello}: non c'è in veicoli_ai_pezzi.json`);
   const file = new URL(`../apps/client/public/assets/veicoli_ai/${modello}.glb`, import.meta.url);
   const doc = await io.read(file.pathname);
+  const staccati = doc.getRoot().listNodes().filter((n) => n.getExtras()['tipo']); // dopo quantize stanno accanto al mesh, non sotto
+  if (staccati.length) { // pezzi già staccati: si aggiornano solo le misure delle ruote (extras), la geometria resta
+    for (const w of spec.ruote ?? []) {
+      const n = staccati.find((c) => c.getName() === w.nome);
+      if (!n) throw new Error(`${modello}: manca ${w.nome}`);
+      n.setExtras({ ...n.getExtras(), r: w.r, w: w.w, davanti: !!w.davanti, cerchio: w.cerchio ?? 'pietra', gomma: w.gomma ?? 'strada' });
+    }
+    await io.write(file.pathname, doc);
+    console.log(`${modello}: già staccato, aggiornate le ruote (${(fs.statSync(file).size / 1024).toFixed(0)} KB)`);
+    continue;
+  }
   await doc.transform(dequantize());
   const nodo = doc.getRoot().listNodes().find((n) => n.getMesh());
-  if (nodo.listChildren().length) throw new Error(`${modello}: i pezzi sono già staccati`);
   const prim = nodo.getMesh().listPrimitives()[0];
   const T = nodo.getTranslation(), S = nodo.getScale()[0]; // scala uniforme, niente rotazione (veicolo_ai_leggero)
   const pos = prim.getAttribute('POSITION'), uv = prim.getAttribute('TEXCOORD_0'), idx = prim.getIndices();
@@ -30,7 +40,7 @@ for (const modello of process.argv.slice(2)) {
     ...(spec.ruote ?? []).map((w) => ({ ...w, perno: w.c, vuoto: true, prende: (m) => {
       const [ay, az] = w.togli ?? [w.r, w.r], dy = m[1] - w.c[1], dz = m[2] - w.c[2];
       return w.x[0] <= m[0] && m[0] <= w.x[1] && (w.rin ?? 0) ** 2 <= dy * dy + dz * dz && (dy / ay) ** 2 + (dz / az) ** 2 <= 1;
-    }, extras: { tipo: 'ruota', r: w.r, w: w.w, davanti: !!w.davanti, cerchio: w.cerchio ?? 'pietra' } })),
+    }, extras: { tipo: 'ruota', r: w.r, w: w.w, davanti: !!w.davanti, cerchio: w.cerchio ?? 'pietra', gomma: w.gomma ?? 'strada' } })),
     ...(spec.gambe ?? []).map((g) => ({ ...g, prende: (m) => dentro(g.box, m), extras: { tipo: 'gamba', fase: g.fase ?? 0 } })),
   ];
   const resto = [], tri = pezzi.map(() => []);
