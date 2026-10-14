@@ -32,17 +32,37 @@ export default async function (ctx) {
     await ctx.waitState(p.page, (s, slot) => s.borgo && s.borgo.porte.some((q) => q.slot === slot), 10000, SLOT); // si nasce 2,5 m fuori dalla porta (#267)
     await ctx.waitState(p.page, (s) => s.mappa && s.mappa.mini, 15000).catch(() => {});
 
-    await ctx.test(`${nome}: contro la porta di casa si entra (velo), camera fissa sopra l'ingresso, niente minimappa`, async () => {
+    await ctx.test(`${nome}: camminando contro la porta di casa NON si entra; con A sì (velo), camera fissa sopra l'ingresso, niente minimappa`, async () => {
       const s = await st(p.page), porta = s.borgo.porte.find((q) => q.slot === SLOT);
       await p.page.evaluate(([x, z]) => window.__game.test.teleport(x, z), [porta.x, porta.z]);
-      await cammina(p.page, frecce(Math.PI / 4, porta.verso.x, porta.verso.z), (q, slot) => q.stanza.dentro === slot, 15000, SLOT);
+      // si cammina contro la facciata per qualche secondo: resta in città
+      for (const k of frecce(Math.PI / 4, porta.verso.x, porta.verso.z)) await p.page.keyboard.down(k);
+      await p.page.waitForTimeout(2500);
+      for (const k of frecce(Math.PI / 4, porta.verso.x, porta.verso.z)) await p.page.keyboard.up(k);
+      let q = await st(p.page);
+      assert(q.stanza.dentro === null && q.velo.passaggi === 0, 'entrato camminando: ' + JSON.stringify({ stanza: q.stanza.dentro, velo: q.velo }));
+      await p.page.evaluate(([x, z]) => window.__game.test.teleport(x, z), [porta.x, porta.z]); // camminando può scivolare lungo il muro: si torna sulla porta
+      await ctx.waitState(p.page, (r, slot) => r.borgo.near && r.borgo.near.slot === slot && r.borgo.near.dove === 'entra', 5000, SLOT);
+      await p.page.keyboard.press('KeyE');
+      await ctx.waitState(p.page, (r, slot) => r.stanza.dentro === slot, 15000, SLOT);
       await fine(p.page);
-      const q = await st(p.page);
+      q = await st(p.page);
       assert(q.velo.passaggi >= 1, 'nessun velo: ' + JSON.stringify(q.velo));
       assert(q.stanza.camera && Math.abs(q.stanza.camera.yaw) < 1e-6, 'camera: ' + JSON.stringify(q.stanza.camera));
       assert(!q.stanza.mini && !q.mappa.mini, 'minimappa in casa: ' + JSON.stringify({ stanza: q.stanza.mini, mappa: q.mappa.mini }));
       await p.page.waitForTimeout(500);
       await ctx.shot(p.page, `${nome}_stanza`);
+    });
+
+    await ctx.test(`${nome}: in casa la modalità foto gira l'inquadratura e la riporta com'era`, async () => {
+      const yaw0 = (await st(p.page)).stanza.camera.yaw;
+      await p.page.evaluate(() => window.__game.test.foto('apri'));
+      await p.page.evaluate(() => window.__game.test.foto('gira', 0.5, 0));
+      let q = await st(p.page);
+      assert(Math.abs(q.stanza.camera.yaw - (yaw0 + 0.5)) < 1e-6, 'la camera in casa non gira: ' + JSON.stringify(q.stanza.camera));
+      await p.page.evaluate(() => window.__game.test.foto('chiudi'));
+      q = await st(p.page);
+      assert(Math.abs(q.stanza.camera.yaw - yaw0) < 1e-6, 'camera non tornata com\'era: ' + JSON.stringify(q.stanza.camera));
     });
 
     await ctx.test(`${nome}: contro la porta in fondo si va in giardino; nel passaggio coperto si torna in casa`, async () => {
@@ -67,6 +87,7 @@ export default async function (ctx) {
       const q = await st(p.page), porta = q.borgo.porte.find((x) => x.slot === SLOT);
       assert(Math.hypot(q.avatar.x - porta.x, q.avatar.z - porta.z) < 2.2, 'non sei davanti a casa: ' + JSON.stringify(q.avatar));
       assert(q.stanza.camera === null, 'camera ancora fissa');
+      assert(Math.abs(q.foto.yaw - Math.PI / 4) < 1e-6, 'la camera dell\'overworld si è spostata: yaw ' + q.foto.yaw);
       await p.page.waitForTimeout(500);
       await ctx.shot(p.page, `${nome}_ritorno`);
       ctx.noErrors(p, nome);
