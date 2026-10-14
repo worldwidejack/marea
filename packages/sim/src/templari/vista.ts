@@ -63,6 +63,7 @@ function vista(s: TState): TView {
       ricarica: h.ricarica > 0 ? 1 - h.ricarica / Math.max(1, h.ricaricaDur) : 0,
       pozioni: [...h.pozioni], intoccabile: s.tick < h.intoccabile,
       scudo: h.scudo ? { vita: h.scudo.vita, max: TEMPLARI.scudo.vita, inMano: h.inMano } : null,
+      classe: h.classe, super: h.superK,
     },
     zombie: s.zombie.map((z) => ({
       id: z.id, tipo: z.tipo, x: r2(z.x), z: r2(z.z), fx: z.fx, fz: z.fz, anim: animZombie(z),
@@ -71,7 +72,8 @@ function vista(s: TState): TView {
     tiri: s.tiri.map((b) => ({ id: b.id, tipo: b.tipo, x: r2(b.x), z: r2(b.z), tx: r2(b.tx), tz: r2(b.tz), r: b.r, k: b.dur > 0 ? Math.min(1, b.t / b.dur) : 0 })),
     boss: bossVista(s),
     proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: r2(p.x), z: r2(p.z), vx: p.vx, vz: p.vz })),
-    fiamme: s.fiamme.map((f) => ({ id: f.id, x: r2(f.x), z: r2(f.z), r: f.r, resta: Math.max(0, (f.fine - s.tick) / 60) })),
+    fiamme: s.fiamme.map((f) => ({ id: f.id, x: r2(f.x), z: r2(f.z), r: f.r, resta: Math.max(0, (f.fine - s.tick) / 60), ...(f.frecce ? { frecce: true } : {}) })),
+    cannonate: s.cannonate.map((c) => ({ id: c.id, x: r2(c.x), z: r2(c.z), r: c.r, k: Math.min(1, (s.tick - c.inizio) / Math.max(1, c.fine - c.inizio)) })),
     drops: s.drops.map((d) => ({ id: d.id, tipo: d.tipo, x: r2(d.x), z: r2(d.z), resta: Math.max(0, (d.fine - s.tick) / 60) })),
     poteri: { ira: Math.max(0, (s.poteri.ira - s.tick) / 60), decima: Math.max(0, (s.poteri.decima - s.tick) / 60) },
     trappole: s.arena.trappole.map((t, i) => {
@@ -87,7 +89,7 @@ function vista(s: TState): TView {
     eventi: s.eventi,
     io: s.chi,
     compagni: s.eroi.flatMap((x, i) => (i === s.chi ? [] : [{
-      i, posa: posaDi(s, x), arma: x.inMano ? 'scudo' : x.armi[x.cur]?.id ?? TEMPLARI.partenza.arma, vita: x.vita, max: x.max, giu: x.giu, fuori: x.fuori,
+      i, posa: posaDi(s, x), arma: x.inMano ? 'scudo' : x.armi[x.cur]?.id ?? TEMPLARI.partenza.arma, vita: x.vita, max: x.max, giu: x.giu, fuori: x.fuori, classe: x.classe,
     }])),
   };
 }
@@ -108,6 +110,8 @@ export function hashOf(s: TState): number {
     zombie: s.zombie.map((z) => [z.id, z.tipo, Math.round(z.x * 100), Math.round(z.z * 100), Math.round(z.vita), z.st, Math.round(z.scudo)]),
     assi: s.assi, porte: s.porte, esito: s.esito,
     trappole: s.trappole.map((t) => [t.fine, t.pronta]), poteri: [s.poteri.ira, s.poteri.decima, s.poteri.ondata], drops: s.drops.map((d) => [d.id, d.tipo]),
+    // gli eroi del menù (le partite senza menù hanno lo stesso hash di prima)
+    ...(s.eroi.some((h) => h.classe) ? { classi: s.eroi.map((h) => [h.classe, Math.round(h.superK * 1000)]), cannonate: s.cannonate.length } : {}),
   });
 }
 

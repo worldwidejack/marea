@@ -91,5 +91,19 @@
       { "id": "fonte", "nome": "Acqua di fonte santa", "descr": "La vita torna dopo 1,5 secondi invece di 4, e il doppio più in fretta", "prezzo": 2500, "regenDopo": 1.5, "regen": 2 }
     ]
   },
+  "eroi": [
+    { "id": "crociato", "nome": "Il Crociato", "titolo": "Spade, mazze e asce", "descr": "Un templare che non è diventato zombie. Regge più colpi, colpisce più forte da vicino e parte con lo scudo sulle spalle.",
+      "armi": ["spada", null], "scudo": true, "vita": 150, "velocita": 0.94, "danno": { "mischia": 1.25 },
+      "barre": { "vita": 5, "forza": 4, "velocita": 2, "mira": 2 },
+      "super": { "id": "giudizio", "nome": "Giudizio", "descr": "Pianta la spada a terra: chi ti sta attorno vola via, e quasi sempre resta giù.", "uccisioni": 18, "danno": 1.5, "raggio": 4, "spinta": 2.5, "intoccabile": 1.2 } },
+    { "id": "bucaniera", "nome": "La Bucaniera", "titolo": "Pistole e moschetti", "descr": "Pirata di Tortuga, la più svelta dell'isola. Ricarica in un lampo e le sue palle fanno più male.",
+      "armi": ["pistola", "spada"], "vita": 100, "velocita": 1.12, "danno": { "fuoco": 1.25 }, "ricarica": 0.65,
+      "barre": { "vita": 3, "forza": 3, "velocita": 5, "mira": 4 },
+      "super": { "id": "bordata", "nome": "Bordata", "descr": "Dalla nave arrivano tre cannonate dove miri.", "uccisioni": 18, "danno": 1.2, "raggio": 2.6, "colpi": 3, "passo": 2.2, "gittata": 14, "primo": 0.6, "ogni": 0.3 } },
+    { "id": "arciere", "nome": "L'Arciere", "titolo": "Archi", "descr": "Arciere gallese con l'arco già in mano. Tende più in fretta e le sue frecce fanno più male.",
+      "armi": ["arco", "spada"], "vita": 100, "velocita": 1.04, "danno": { "arco": 1.3 }, "tende": 0.7,
+      "barre": { "vita": 3, "forza": 3, "velocita": 3, "mira": 5 },
+      "super": { "id": "pioggia", "nome": "Pioggia di frecce", "descr": "Per quattro secondi piovono frecce dove miri: chi ci passa sotto cade.", "uccisioni": 18, "danno": 0.9, "raggio": 3.2, "durata": 4, "gittata": 14 } }
+  ],
   "poteri": { "probabilita": 0.025, "maxOndata": 4, "aTerra": 25, "lampeggia": 5, "durata": 30, "raggio": 1.1, "campane": 400, "muratori": 200, "tipi": ["faretra", "ira", "campane", "decima", "muratori"] }
 }

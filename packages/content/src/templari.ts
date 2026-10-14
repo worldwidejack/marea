@@ -2,7 +2,7 @@
 // non la importa, la carica solo il chunk delle ondate (apps/client/src/templari/**). Formule in @marea/sim/templari.
 import cfg from './templari/templari.json' with { type: 'json' };
 import mappa from './templari/mappa.json' with { type: 'json' };
-import type { TArmaDef, TMappaDef, TNemicoDef, TemplariCfg } from './templari_types.ts';
+import type { TArmaDef, TClasse, TEroeDef, TMappaDef, TNemicoDef, TemplariCfg } from './templari_types.ts';
 
 export type * from './templari_types.ts';
 
@@ -14,6 +14,11 @@ export function armaDef(id: string): TArmaDef {
   if (!a) throw new Error(`Arma sconosciuta: ${id}`);
   return a;
 }
+/** L'eroe del menù d'ingresso; null se l'id non c'è (allora si gioca senza eroe, come prima del menù). */
+export function eroeDef(id: string | null | undefined): TEroeDef | null {
+  return (id && TEMPLARI.eroi.find((x) => x.id === id)) || null;
+}
+export const CLASSI: readonly TClasse[] = TEMPLARI.eroi.map((e) => e.id);
 export function nemicoDef(id: string): TNemicoDef {
   const n = TEMPLARI.nemici.find((x) => x.id === id);
   if (!n) throw new Error(`Nemico sconosciuto: ${id}`);
@@ -56,5 +61,12 @@ export function validateTemplari(): string[] {
   for (const p of ['mercante', 'strega'] as const) if (all.split(Object.entries(TEMPLARI_MAPPA.legenda).find(([, l]) => l.personaggio === p)?.[0] ?? '§').length !== 2) errs.push(`templari: la mappa vuole un posto per ${p}`);
   if (!pos(c.mercante.potenzia.prezzo) || !(c.mercante.potenzia.danno > 1)) errs.push('templari: potenziamento del Mercante non valido');
   if (!(c.strega.max >= 1) || new Set(c.strega.pozioni.map((p) => p.id)).size !== c.strega.pozioni.length || c.strega.pozioni.some((p) => !pos(p.prezzo))) errs.push('templari: pozioni della Strega non valide');
+  if (!c.eroi.length) errs.push('templari: nessun eroe nel menù');
+  for (const e of c.eroi) {
+    for (const a of e.armi) if (a !== null && !c.armi.some((x) => x.id === a)) errs.push(`templari: l'eroe ${e.id} parte con l'arma ${a} sconosciuta`);
+    if (!e.armi[0] || !pos(e.vita) || !pos(e.velocita)) errs.push(`templari: eroe ${e.id} non valido`);
+    if (!pos(e.super.uccisioni) || !pos(e.super.danno) || !pos(e.super.raggio)) errs.push(`templari: super dell'eroe ${e.id} non valido`);
+    for (const k of ['vita', 'forza', 'velocita', 'mira'] as const) if (!(e.barre[k] >= 1 && e.barre[k] <= 5)) errs.push(`templari: barra ${k} dell'eroe ${e.id} fuori da 1..5`);
+  }
   return errs;
 }

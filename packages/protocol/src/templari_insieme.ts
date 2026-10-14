@@ -4,6 +4,7 @@
 // SQ_TICKS tick della sim); ogni client fa girare la stessa partita con gli stessi turni; il server tiene il log e a fine partita il DO del
 // lotto di ciascuno la rigioca (replayTemplariInsieme) e paga le ondate superate. Della sim solo `import type` (bundle iniziale).
 import type { TAzione } from '@marea/sim/templari/types.ts';
+import type { TClasse } from '@marea/content/templari.ts';
 import type { Look } from './messages.ts';
 import { isSqInput } from './squadra.ts';
 import type { SqInput } from './squadra.ts';
@@ -12,7 +13,9 @@ export { SQ_TICKS, SQ_TURNO_MS } from './squadra.ts';
 export type { SqInput } from './squadra.ts';
 /** Al massimo 4 nella stessa partita (MAX_EROI della sim). */
 export const TI_MAX = 4;
-export type TiMembro = { id: string; nome: string; look: Look };
+/** `classe`: l'eroe del menù d'ingresso (id di templari.json `eroi`; assente = senza). Si sceglie prima di entrare in sala e va
+ *  nell'indirizzo del WebSocket (`?classe=`). */
+export type TiMembro = { id: string; nome: string; look: Look; classe?: TClasse };
 
 export type TiClientMsg =
   /** Si parte (chiunque in sala, con almeno 2 persone). */

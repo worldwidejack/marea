@@ -1,6 +1,6 @@
 // Stato della partita a ondate e sua creazione. Tutto il resto (passo, vista, risultato) lavora su questo.
-import { TEMPLARI, TEMPLARI_MAPPA, armaDef, nemicoDef } from '@marea/content/templari.ts';
-import type { TArmaDef, TNemicoDef, TPotere, TPozione } from '@marea/content/templari.ts';
+import { TEMPLARI, TEMPLARI_MAPPA, armaDef, eroeDef, nemicoDef } from '@marea/content/templari.ts';
+import type { TArmaDef, TClasse, TEroeDef, TNemicoDef, TPotere, TPozione } from '@marea/content/templari.ts';
 import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
 import { TICK_HZ } from '../constants.ts';
@@ -45,7 +45,9 @@ export type Eroe = {
   cd: number; ricarica: number; ricaricaDur: number;
   /** Scudo templare (null = non ce l'hai) e se è in mano (sennò sulle spalle). */
   scudo: { vita: number } | null; inMano: boolean;
-  prevA: boolean; prevC: boolean; prevD: boolean;
+  prevA: boolean; prevC: boolean; prevD: boolean; prevE: boolean;
+  /** L'eroe del menù d'ingresso (null = senza: spada e vita 100) e la carica del super (0..1, sale a ogni uccisione). */
+  classe: TClasse | null; superK: number;
   /** Pozioni della Strega che hai bevuto (al massimo TEMPLARI.strega.max), elisir del risorto comprati, intoccabile fino al tick. */
   pozioni: TPozione[]; elisir: number; intoccabile: number;
   /** Insieme: caduto (si rialza all'ondata dopo) e uscito dalla partita (non torna). Da solo cadere chiude la partita. */
@@ -79,12 +81,18 @@ export type TiroNemico = { id: number; tipo: 'bomba' | 'palla'; x: number; z: nu
 
 /** Proiettile dell'eroe: freccia, palla (pistole, moschetto, pallini del trombone), vaso del fuoco greco (esplode dove arriva). */
 export type Proj = { id: number; tipo: 'freccia' | 'palla' | 'vaso'; arma: string; x: number; z: number; vx: number; vz: number; danno: number;
+  /** L'eroe che l'ha tirato (le uccisioni caricano il suo super). */
+  chi: number;
   /** Tick di volo che restano, nemici che può ancora trapassare, già colpiti. */
   vita: number; trapassa: number; colpiti: number[] };
 /** Fiamme a terra (fuoco greco, scia della spada di de Molay): bruciano gli zombie dentro. */
 export type Fiamma = { id: number; x: number; z: number; r: number; dps: number; fine: number;
   /** Fiamme di de Molay: bruciano l'eroe, non gli zombie. */
-  nemico?: boolean };
+  nemico?: boolean;
+  /** La Pioggia di frecce dell'Arciere: brucia come le fiamme (solo zombie), si disegna a frecce. */
+  frecce?: boolean };
+/** Cannonata della Bordata: cade in (x, z) al tick `fine`, partita al tick `inizio`. */
+export type Cannonata = { id: number; x: number; z: number; r: number; danno: number; inizio: number; fine: number };
 /** Cose a terra: lo scudo dello scudato (si prende con AZIONE) e i power-up (si prendono passandoci sopra). */
 export type Drop = { id: number; tipo: 'scudo' | TPotere; x: number; z: number; fine: number };
 /** Trappola: accesa fino al tick `fine`, di nuovo pronta dal tick `pronta`, prossimo colpo all'eroe se ci sta dentro. */
@@ -113,7 +121,7 @@ export type TState = {
   assi: number[];
   porte: Record<string, boolean>;
   zombie: Zombie[];
-  proj: Proj[]; fiamme: Fiamma[]; drops: Drop[]; tiri: TiroNemico[];
+  proj: Proj[]; fiamme: Fiamma[]; drops: Drop[]; tiri: TiroNemico[]; cannonate: Cannonata[];
   /** Boss dell'ondata: chi, quando esce, se è già uscito. */
   boss: { tipo: string; at: number; uscito: boolean } | null;
   cassa: Cassa;
@@ -151,15 +159,21 @@ export const pozioneDef = (id: TPozione) => TEMPLARI.strega.pozioni.find((p) => 
 export function armaDi(s: TState, sl: Slot | null): TArmaDef {
   const base = armaDef(sl?.id ?? TEMPLARI.partenza.arma), a = sl?.pot ? potenziata(base) : base;
   const lesto = haPozione(s, 'lesto'), bomb = haPozione(s, 'bombardiere') && a.tipo !== 'mischia';
-  if (!lesto && !bomb) return a;
+  // l'eroe del menù: più danno con le sue armi, la Bucaniera ricarica prima, l'Arciere tende prima
+  const cl = classeDi(s.eroe), kd = cl?.danno[a.tipo] ?? 1, kr = a.tipo === 'fuoco' ? cl?.ricarica ?? 1 : 1, kt = a.tipo === 'arco' ? cl?.tende ?? 1 : 1;
+  if (!lesto && !bomb && kd === 1 && kr === 1 && kt === 1) return a;
   const l = pozioneDef('lesto').ricarica ?? 1, b = pozioneDef('bombardiere');
   return {
     ...a,
-    danno: a.danno * (bomb ? b.danno ?? 1 : 1),
-    tempo: a.tempo * (bomb ? b.tempo ?? 1 : 1) * (lesto && a.tipo === 'arco' ? l : 1),
-    ...(a.ricarica !== undefined ? { ricarica: a.ricarica * (lesto ? l : 1) } : {}),
+    danno: a.danno * (bomb ? b.danno ?? 1 : 1) * kd,
+    tempo: a.tempo * (bomb ? b.tempo ?? 1 : 1) * (lesto && a.tipo === 'arco' ? l : 1) * kt,
+    ...(a.ricarica !== undefined ? { ricarica: a.ricarica * (lesto ? l : 1) * kr } : {}),
   };
 }
+/** L'eroe del menù di `h` (null = senza). */
+export const classeDi = (h: Eroe): TEroeDef | null => eroeDef(h.classe);
+/** Vita massima senza pozioni: quella dell'eroe del menù (il Crociato ne ha di più). */
+export const vitaBase = (h: Eroe): number => classeDi(h)?.vita ?? TEMPLARI.eroe.vita;
 export const armaIn = (s: TState): TArmaDef => armaDi(s, s.eroe.armi[s.eroe.cur] ?? null);
 /** Fiato pieno (il Brodo del viandante lo raddoppia). */
 export const fiatoMax = (s: TState): number => TEMPLARI.eroe.fiato * (haPozione(s, 'viandante') ? pozioneDef('viandante').fiato ?? 1 : 1);
@@ -177,13 +191,16 @@ export function inPiedi(s: TState): number[] {
 /** Insieme: quanti eroi al massimo. */
 export const MAX_EROI = 4;
 
-function nuovoEroe(x: number, z: number, fx: number, fz: number): Eroe {
-  const c = TEMPLARI.eroe;
+/** Un eroe alla partenza: senza eroe del menù spada, vita 100 e niente scudo; con l'eroe le sue armi, la sua vita e (il Crociato) lo scudo. */
+function nuovoEroe(x: number, z: number, fx: number, fz: number, classe: TClasse | null): Eroe {
+  const c = TEMPLARI.eroe, cl = eroeDef(classe), vita = cl?.vita ?? c.vita;
+  const armi = cl ? cl.armi.map((id) => (id ? slotDi(armaDef(id)) : null)) : [slotDi(armaDef(TEMPLARI.partenza.arma)), null];
   return {
-    x, z, fx, fz, vita: c.vita, max: c.vita, quiete: 9999, fiato: c.fiato, corre: false, moving: false,
+    x, z, fx, fz, vita, max: vita, quiete: 9999, fiato: c.fiato, corre: false, moving: false,
     act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
-    armi: [slotDi(armaDef(TEMPLARI.partenza.arma)), null], cur: 0, hurt: 0, riparaT: -999, cd: 0, ricarica: 0, ricaricaDur: 1, scudo: null, inMano: false,
-    prevA: false, prevC: false, prevD: false, pozioni: [], elisir: 0, intoccabile: 0, giu: false, fuori: false,
+    armi, cur: 0, hurt: 0, riparaT: -999, cd: 0, ricarica: 0, ricaricaDur: 1, scudo: cl?.scudo ? { vita: TEMPLARI.scudo.vita } : null, inMano: false,
+    prevA: false, prevC: false, prevD: false, prevE: false, pozioni: [], elisir: 0, intoccabile: 0, giu: false, fuori: false,
+    classe: cl ? cl.id : null, superK: 0,
   };
 }
 /** Insieme: dove compare (o si rialza) l'eroe i: accanto alla partenza, a giro, senza finire nei muri. */
@@ -196,15 +213,17 @@ export function posaEroe(s: TState, h: Eroe, i: number): void {
 export function createState(seed: number, opzioni: TOpzioni = {}): TState {
   const arena = parseArena(TEMPLARI_MAPPA), gr = creaGriglie(arena);
   const sp = arena.spawn, n = Math.max(1, Math.min(MAX_EROI, Math.floor(opzioni.eroi ?? 1)));
-  const eroe = nuovoEroe(sp.x, sp.z, sp.fx, sp.fz);
+  // l'eroe del menù di ciascuno (sconosciuto = senza): solo quelli che ci sono, così la partita senza menù resta quella di prima
+  const classi = Array.from({ length: n }, (_, i) => eroeDef(opzioni.classi?.[i])?.id ?? null);
+  const eroe = nuovoEroe(sp.x, sp.z, sp.fx, sp.fz, classi[0]!);
   const s: TState = {
-    v: 1, seed: seed >>> 0, tick: 0, opzioni: { ...(opzioni.subito ? { subito: true } : {}), ...(n > 1 ? { eroi: n } : {}) }, arena, gr, rng: createRng(seed >>> 0),
+    v: 1, seed: seed >>> 0, tick: 0, opzioni: { ...(opzioni.subito ? { subito: true } : {}), ...(n > 1 ? { eroi: n } : {}), ...(classi.some(Boolean) ? { classi } : {}) }, arena, gr, rng: createRng(seed >>> 0),
     eroe, eroi: [eroe], chi: 0,
     punti: TEMPLARI.partenza.punti, guadagnati: 0, uccisioni: 0,
     fase: opzioni.subito ? 'inizio' : 'altare', faseT: 0, ondata: 0, quanti: 0, usciti: 0, prossima: 0, tipiUsciti: {}, puntiAssi: 0,
     assi: arena.finestre.map(() => TEMPLARI.barricate.assi),
     porte: Object.fromEntries(arena.porte.map((p) => [p.id, false])),
-    zombie: [], proj: [], fiamme: [], drops: [], tiri: [], boss: null,
+    zombie: [], proj: [], fiamme: [], drops: [], tiri: [], cannonate: [], boss: null,
     cassa: { posto: postoIniziale(arena), usi: 0, max: TEMPLARI.cassa.usiMax, fase: 'chiusa', inizio: 0, fine: 0, arma: null },
     trappole: arena.trappole.map(() => ({ fine: 0, pronta: 0, colpo: 0 })),
     poteri: { ira: 0, decima: 0, ondata: 0, ultimo: '' },
@@ -212,7 +231,7 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
     flow: new Int32Array(arena.w * arena.h), flowCell: -1, flowTick: -999, flowCelle: [],
     done: false, esito: null, eventi: [],
   };
-  for (let i = 1; i < n; i++) { const h = nuovoEroe(sp.x, sp.z, sp.fx, sp.fz); s.eroi.push(h); posaEroe(s, h, i); }
+  for (let i = 1; i < n; i++) { const h = nuovoEroe(sp.x, sp.z, sp.fx, sp.fz, classi[i]!); s.eroi.push(h); posaEroe(s, h, i); }
   s.cassa.max = s.rng.int(TEMPLARI.cassa.usiMin, TEMPLARI.cassa.usiMax);
   s.flowCell = cellOf(gr.percorso, s.eroe.x, s.eroe.z);
   bfs(gr.percorso, s.flowCell, s.flow);

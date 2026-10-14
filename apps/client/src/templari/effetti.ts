@@ -19,6 +19,8 @@ export type Effetti = {
   dispose(): void;
 };
 
+/** L'anello del Giudizio: più spesso di quello delle esplosioni. */
+function anelloGeoSuper(): THREE.BufferGeometry { const g = new THREE.RingGeometry(0.72, 1, 24); g.rotateX(-Math.PI / 2); return g; }
 const steps = (v: number, n: number) => Math.floor(Math.max(0, Math.min(1, v)) * n) / n;
 const NOMI_CASSA = ['Arco', 'Moschetto', 'Trombone', 'Martello da guerra', 'Arco lungo', 'Pistola doppia', 'Ascia danese', 'Fuoco greco', 'Mazza ferrata'];
 
@@ -42,11 +44,19 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
   const cerchioGeo = new THREE.RingGeometry(0.9, 1, 20); cerchioGeo.rotateX(-Math.PI / 2);
   const cerchi = inst(cerchioGeo, new THREE.MeshBasicMaterial({ color: PAL.rosso, side: THREE.DoubleSide }), 12, 'cerchi_bomba');
   let tiriV: TView['tiri'] = [];
+  // ---- il super degli eroi: frecce che piovono (Pioggia), palle di cannone che cadono col cerchio (Bordata), l'onda d'oro (Giudizio) ----
+  const pioggia = inst(new THREE.BoxGeometry(0.05, 0.75, 0.05).translate(0, 0.375, 0), new THREE.MeshLambertMaterial({ color: PAL.legnoChiaro, flatShading: true }), 60, 'pioggia');
+  const cannone = inst(new THREE.IcosahedronGeometry(0.28, 0), new THREE.MeshLambertMaterial({ color: PAL.neroCaldo, flatShading: true }), 6, 'palle_cannone');
+  const cerchioPioggia = inst(cerchioGeo, new THREE.MeshBasicMaterial({ color: PAL.giallo, side: THREE.DoubleSide }), 4, 'cerchi_pioggia');
+  const onda = new THREE.Mesh(anelloGeoSuper(), new THREE.MeshBasicMaterial({ color: PAL.giallo, side: THREE.DoubleSide })); onda.visible = false; onda.name = 'giudizio'; disp.push(onda.geometry, onda.material as THREE.Material);
+  let ondaT = -1, ondaR = 4, cannonateV: TView['cannonate'] = [];
+  const pioggiaV: { id: number; x: number; z: number; r: number; resta: number }[] = [];
   const proj = new Map<number, P>();
   // ---- fiamme: 6 coni per macchia, accesi (niente luce: colori pieni) ----
   const FPF = 6;
   const fiammeIm = inst(new THREE.ConeGeometry(0.22, 0.7, 5).translate(0, 0.35, 0), new THREE.MeshBasicMaterial({ color: 0xffffff }), 16 * FPF, 'fiamme');
   const fiamme = new Map<number, { x: number; z: number; r: number; resta: number }>();
+  root.add(onda);
   const luceFuoco = new THREE.PointLight(PAL.arancio, 0, 9, 1.6); luceFuoco.position.y = 1.4; root.add(luceFuoco);
   const COL_F = [new THREE.Color(PAL.arancio), new THREE.Color(PAL.giallo), new THREE.Color(PAL.rosso)];
   // ---- esplosioni e lampi ----
@@ -111,8 +121,9 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
         if (c) { c.px = c.x; c.pz = c.z; c.x = p.x; c.z = p.z; } else proj.set(p.id, { tipo: p.tipo, px: p.x, pz: p.z, x: p.x, z: p.z, vx: p.vx, vz: p.vz, nato: performance.now() });
       }
       for (const id of [...proj.keys()]) if (!seen.has(id)) proj.delete(id);
-      fiamme.clear(); for (const f of v.fiamme) fiamme.set(f.id, f);
-      tiriV = v.tiri;
+      fiamme.clear(); pioggiaV.length = 0;
+      for (const f of v.fiamme) { if (f.frecce) pioggiaV.push(f); else fiamme.set(f.id, f); }
+      tiriV = v.tiri; cannonateV = v.cannonate;
       const ds = new Set<number>();
       for (const d of v.drops) {
         ds.add(d.id);
@@ -126,7 +137,8 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
       if (posto !== cassaPosto) { cassaPosto = posto; cas.obj.position.set(v.cassa.x, 0, v.cassa.z); cas.obj.rotation.y = Math.atan2(-v.cassa.fx, -v.cassa.fz); }
     },
     evento(e) {
-      if (e.t === 'esplosione') { const a = anelli.find((x) => x.t < 0) ?? anelli[0]!; a.t = 0; a.r = e.r; a.m.position.set(e.x, 0.08, e.z); a.m.visible = true; }
+      if (e.t === 'esplosione' || e.t === 'cannonata') { const a = anelli.find((x) => x.t < 0) ?? anelli[0]!; a.t = 0; a.r = e.r; a.m.position.set(e.x, 0.08, e.z); a.m.visible = true; }
+      if (e.t === 'super' && e.tipo === 'giudizio') { ondaT = 0; ondaR = 4; onda.position.set(e.x, 0.1, e.z); onda.visible = true; }
       if (e.t === 'sparo' && armaDef(e.arma).tipo === 'fuoco') { lampoT = 0.07; lampo.userData['x'] = e.x; lampo.userData['z'] = e.z; }
     },
     update(alpha, dt, t, eroe, v) {
@@ -148,8 +160,31 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
           if (nc < 12) cerchi.setMatrixAt(nc++, m4.compose(v3.set(b.tx, 0.06, b.tz), q.identity(), s3.setScalar(b.r * (0.4 + 0.6 * steps(b.k, 4)))));
         } else if (nfu < 8) palleFuoco.setMatrixAt(nfu++, m4.compose(v3.set(b.x, 1.2, b.z), q.setFromEuler(new THREE.Euler(t * 9, t * 6, 0)), s3.setScalar(0.8 + 0.3 * ((Math.floor(t * 12) * 0.618) % 1))));
       }
-      bombe.count = nb; palleFuoco.count = nfu; cerchi.count = nc;
-      for (const im of [frecce, palle, vasi, bombe, palleFuoco, cerchi]) { im.visible = im.count > 0; im.instanceMatrix.needsUpdate = true; }
+      // le cannonate della Bordata: cadono dall'alto (dal mare, un po' di traverso) sul loro cerchio rosso
+      let nk = 0;
+      for (const c of cannonateV) {
+        const u = steps(c.k, 12);
+        if (nk < 6) cannone.setMatrixAt(nk++, m4.compose(v3.set(c.x + 6 * (1 - u), 0.3 + 11 * (1 - u * u), c.z + 4 * (1 - u)), q.setFromEuler(new THREE.Euler(t * 7, t * 4, 0)), s3.set(1, 1, 1)));
+        if (nc < 12) cerchi.setMatrixAt(nc++, m4.compose(v3.set(c.x, 0.06, c.z), q.identity(), s3.setScalar(c.r * (0.4 + 0.6 * steps(c.k, 4)))));
+      }
+      // la Pioggia di frecce: il cerchio giallo e le frecce che cadono a ondate (15 per cerchio), conficcate un attimo a terra
+      let na = 0, ncp = 0;
+      for (const f of pioggiaV) {
+        if (ncp < 4) cerchioPioggia.setMatrixAt(ncp++, m4.compose(v3.set(f.x, 0.07, f.z), q.identity(), s3.setScalar(f.r)));
+        for (let k = 0; k < 15 && na < 60; k++) {
+          const a = k * 2.39996 + f.id, rr = f.r * Math.sqrt(((k * 0.618 + f.id * 0.13) % 1)), ph = (t * 1.6 + k * 0.37) % 1;
+          const y = ph < 0.7 ? 7 * (1 - ph / 0.7) : 0; // cade in 0,44 s, poi resta piantata
+          pioggia.setMatrixAt(na++, m4.compose(v3.set(f.x + Math.cos(a) * rr, y - 0.15, f.z + Math.sin(a) * rr), q.setFromEuler(new THREE.Euler(Math.PI, 0, 0.12)), s3.set(1, 1, 1)));
+        }
+      }
+      bombe.count = nb; palleFuoco.count = nfu; cerchi.count = nc; cannone.count = nk; pioggia.count = na; cerchioPioggia.count = ncp;
+      for (const im of [frecce, palle, vasi, bombe, palleFuoco, cerchi, cannone, pioggia, cerchioPioggia]) { im.visible = im.count > 0; im.instanceMatrix.needsUpdate = true; }
+      // l'onda d'oro del Giudizio: si allarga a gradini fino al raggio in 0,5 s
+      if (ondaT >= 0) {
+        ondaT += dt;
+        onda.scale.setScalar(Math.max(0.2, ondaR * steps(ondaT / 0.45, 6)));
+        if (ondaT > 0.55) { ondaT = -1; onda.visible = false; }
+      }
       // fiamme: coni che tremano a scatti (10 al secondo), colori pieni
       const st = Math.floor(t * 10);
       let n = 0, vicina: { x: number; z: number } | null = null, vd = Infinity;

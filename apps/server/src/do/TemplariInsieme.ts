@@ -14,6 +14,8 @@ import { parseTAzioniInsieme } from '@marea/sim/templari/replay.ts';
 import type { TAzioniInsieme } from '@marea/sim/templari/replay.ts';
 import type { TAzione } from '@marea/sim/templari/types.ts';
 import type { Look } from '@marea/protocol';
+import { eroeDef } from '@marea/content/templari.ts';
+import type { TClasse } from '@marea/content/templari.ts';
 import { SQ_TICKS, SQ_TURNO_MS, TI_MAX, parseTiClient } from '@marea/protocol/templari_insieme.ts';
 import type { SqInput, TiMembro, TiServerMsg } from '@marea/protocol/templari_insieme.ts';
 import type { Env } from '../env.ts';
@@ -28,7 +30,8 @@ const MAX_MSG_PER_S = 40;
 /** Acquisti in coda per eroe (nel turno dopo); oltre si scartano. */
 const MAX_AZ = 4;
 
-type Conn = { ws: WebSocket; id: string; nome: string; look: Look; run: Run | null; s: number; n: number };
+/** `classe`: l'eroe scelto nel menù prima di entrare in sala (null = senza). */
+type Conn = { ws: WebSocket; id: string; nome: string; look: Look; classe: TClasse | null; run: Run | null; s: number; n: number };
 type Membro = { m: TiMembro; conn: Conn | null; last: SqInput; coda: SqInput[]; az: TAzione[]; fuori: boolean; uscita: number | null; annuncia: boolean; carico: boolean; log: PackedDungeon };
 type Run = { id: string; seed: number; membri: Membro[]; turno: number; creato: number; t0: number; fine: number; salvato: number; azioni: TAzioniInsieme };
 
@@ -54,7 +57,7 @@ export class TemplariInsieme extends DurableObject<Env> {
     // la stessa persona in un'altra scheda: quella vecchia esce
     for (const o of [...this.sala]) if (o.id === id) { this.via(o); try { o.ws.close(1000, 'altra scheda'); } catch { /* chiusa */ } }
     if (this.sala.length >= TI_MAX) { this.send(server, { t: 'errore', msg: `La sala è piena (${TI_MAX})` }); server.close(1013, 'piena'); return fatto; }
-    const c: Conn = { ws: server, id, nome, look, run: null, s: 0, n: 0 };
+    const c: Conn = { ws: server, id, nome, look, classe: eroeDef(url.searchParams.get('classe'))?.id ?? null, run: null, s: 0, n: 0 };
     server.addEventListener('message', (ev) => this.onMessage(c, ev.data));
     server.addEventListener('close', () => this.via(c));
     server.addEventListener('error', () => this.via(c));
@@ -64,7 +67,7 @@ export class TemplariInsieme extends DurableObject<Env> {
   }
 
   private send(ws: WebSocket, m: TiServerMsg): void { try { ws.send(JSON.stringify(m)); } catch { /* chiusa */ } }
-  private membro(c: Conn): TiMembro { return { id: c.id, nome: c.nome, look: c.look }; }
+  private membro(c: Conn): TiMembro { return { id: c.id, nome: c.nome, look: c.look, ...(c.classe ? { classe: c.classe } : {}) }; }
   private annuncia(): void {
     const s = JSON.stringify({ t: 'sala', membri: this.sala.map((c) => this.membro(c)), max: TI_MAX } satisfies TiServerMsg);
     for (const c of this.sala) { try { c.ws.send(s); } catch { /* chiusa */ } }
@@ -193,7 +196,7 @@ export class TemplariInsieme extends DurableObject<Env> {
   /** Il log fin qui; chi è appena uscito (non ancora in un turno) esce al tick del prossimo turno. */
   private logOf(r: Run): LogTemplari {
     const tick = r.turno * SQ_TICKS;
-    return { seed: r.seed, inputs: r.membri.map((m) => encodeDungeon(m.log)), uscite: r.membri.map((m) => m.uscita ?? (m.annuncia ? tick : null)), azioni: r.azioni };
+    return { seed: r.seed, inputs: r.membri.map((m) => encodeDungeon(m.log)), uscite: r.membri.map((m) => m.uscita ?? (m.annuncia ? tick : null)), azioni: r.azioni, classi: r.membri.map((m) => m.m.classe ?? null) };
   }
   private async persisti(r: Run): Promise<void> {
     try {

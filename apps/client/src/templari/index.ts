@@ -49,7 +49,10 @@ import type { TplHud } from './hud.ts';
 import { createControlli } from './controlli.ts';
 import { createEffetti } from './effetti.ts';
 import type { Effetti } from './effetti.ts';
-import { oggettoArma } from './armi3d.ts';
+import { armaVista } from './armi3d.ts';
+import { TESTA_TEMPLARI, corpoTemplari } from '../rpg/vestito_templari.ts';
+import { salvaEroe } from './scelta.ts';
+import type { TClasse } from '@marea/content/templari.ts';
 import type { Controlli } from './controlli.ts';
 import { createPersonaggi } from './personaggi.ts';
 import type { Personaggi } from './personaggi.ts';
@@ -61,13 +64,14 @@ import type { Banco, BancoAzioni } from './banco.ts';
 import type { TemplariCtx, TemplariFine, TemplariRete, TemplariRun } from './types.ts';
 
 export { mostraEsito } from './esito.ts';
+export { apriScelta, eroeSalvato } from './scelta.ts';
 
 type Fase = 'carica' | 'gioca' | 'fine' | 'finita';
 const FINE_TICK = 200; // scritta finale prima di consegnare (A la salta dopo un attimo)
 /** Insieme: tick di turni da avere in coda prima di ripartire dopo un vuoto; oltre RECUPERO si corre, oltre SVELTO due tick per frame. */
 const CUSCINETTO = SQ_TICKS * 2, SVELTO = SQ_TICKS * 4, RECUPERO = SQ_TICKS * 20;
 /** Eventi che riguardano un eroe solo: insieme si mostrano (scritte, suoni, lampi) solo a chi è successo. */
-const PERSONALI = new Set<TEvento['t']>(['fendente', 'mancato', 'ferito', 'vuoto', 'ricarica', 'parato', 'scudo', 'scudoRotto', 'compra', 'potenziata', 'pozione', 'risorto', 'brucia', 'caduto', 'rialzato', 'sparo']);
+const PERSONALI = new Set<TEvento['t']>(['fendente', 'mancato', 'ferito', 'vuoto', 'ricarica', 'parato', 'scudo', 'scudoRotto', 'compra', 'potenziata', 'pozione', 'risorto', 'brucia', 'caduto', 'rialzato', 'sparo', 'superPronto']);
 const BIT = (f: TInput): number => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0);
 /** Un input del turno del server come lo legge la sim. */
 const frameDi = (x: SqInput): TInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
@@ -93,17 +97,6 @@ const POTERI: Record<string, [string, string, string]> = {
   muratori: ['MURATORI', 'Tutte le finestre sbarrate di nuovo', PAL.sabbiaChiara],
 };
 
-/** L'arma della sim come la vuole l'attore dell'eroe (modello del kit, colore della lama, portata per la scia; pistole, moschetto e vaso
- *  fatti qui). Con lo scudo in mano niente arma (lo scudo lo disegna effetti.ts). Potenziata dal Mercante: la lama d'oro. */
-function armaVista(id: string, pot = false): ArmaInMano {
-  const base = pugni();
-  if (id === 'scudo') return { ...base, id: null };
-  const a = armaDef(id), forma = a.aspetto.forma;
-  return {
-    ...base, id: null, kind: a.tipo === 'arco' ? 'arco' : 'mischia', danno: a.danno, tempo: a.tempo, portata: a.portata ?? base.portata, distanza: a.tipo === 'fuoco' || a.tipo === 'lancio',
-    ...(forma ? { oggetto: () => oggettoArma(forma), lama: a.tipo === 'mischia' } : a.aspetto.modello ? { modello: a.aspetto.modello } : {}), colore: pot ? PAL.giallo : a.aspetto.colore,
-  };
-}
 /** Nome dell'arma come lo dice l'HUD (potenziata: quello nuovo). */
 const nomeArma = (id: string, pot?: boolean): string => (pot ? armaDef(id).nomePot : armaDef(id).nome);
 /** Chiave dell'arma in mano (cambia anche quando la potenzi). */
@@ -111,12 +104,21 @@ const chiaveArma = (v: TView): string => v.eroe.arma + (v.eroe.arma !== 'scudo' 
 /** Nome e colore delle pozioni bevute (scritta grande e HUD). */
 const POZIONI: Record<string, [string, string]> = { pietra: ['ZUPPA DI PIETRA', PAL.pietraChiara], viandante: ['BRODO DEL VIANDANTE', PAL.erba], lesto: ['INFUSO LESTO', PAL.acqua], bombardiere: ['GRAPPA DEL BOMBARDIERE', PAL.arancio], risorto: ['ELISIR DEL RISORTO', PAL.rosaNeon], fonte: ['ACQUA DI FONTE SANTA', PAL.acquaBassa] };
 
+/** Il vestito dell'eroe del menù sull'avatar (niente = com'è). */
+const vestito = (c: TClasse | null) => (c ? { armatura: { id: corpoTemplari(c) } } : {});
+/** L'icona dell'eroe sul bottone SUPER. */
+const ICONA_SUPER: Record<string, string> = { crociato: '⚔', bucaniera: '💣', arciere: '🏹' };
+/** Il super appena usato: la scritta. */
+const SUPER_TESTO: Record<string, [string, string]> = { giudizio: ['GIUDIZIO', 'Deus vult!'], bordata: ['BORDATA', 'Fuoco dalla nave!'], pioggia: ['PIOGGIA DI FRECCE', 'Il cielo si oscura'] };
+
 /** Nomi corti delle armi per il banco di prova. */
 const CORTO: Record<string, string> = { spada: 'Spada', pistola: 'Pistola', pistola_doppia: 'Pistola doppia', spada_molay: 'Spada di Molay', mazza: 'Mazza', ascia: 'Ascia' };
 
-export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boolean; banco?: boolean; rete?: TemplariRete }): TemplariRun {
+/** `classe`: l'eroe del menù d'ingresso (da solo); insieme quello di ciascuno sta nei membri della sala. */
+export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boolean; banco?: boolean; rete?: TemplariRete; classe?: TClasse | null }): TemplariRun {
   const rete = o.rete ?? null, io = rete?.io ?? 0;
-  const s: TState = templari.create({ seed: o.seed, opzioni: rete ? { subito: true, eroi: rete.membri.length } : o.subito ? { subito: true } : {} });
+  const classi = rete ? rete.membri.map((m) => m.classe ?? null) : [o.classe ?? null];
+  const s: TState = templari.create({ seed: o.seed, opzioni: { ...(rete || o.subito ? { subito: true } : {}), ...(rete ? { eroi: rete.membri.length } : {}), ...(classi.some(Boolean) ? { classi } : {}) } });
   // insieme: tra un tick e l'altro s.eroe è il mio (la sim lo cambia solo dentro il tick), così tutto il client sotto guarda il mio eroe
   if (rete) usa(s, io);
   const vista = (): TView => templari.view(s, io);
@@ -174,7 +176,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     try {
       await ctx.loader.extend('manifest_rpg.json'); // modelli delle armi (kit GDR)
       sc = createScena(s.arena, ctx.renderer.camera);
-      hero = await createHeroActor({ loader: ctx.loader, look: rete?.membri[io]?.look ?? ctx.world.look, hero: { arma: armaVista(view.eroe.arma, chiaveArma(view).endsWith('+')) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true, soloBusto: true });
+      hero = await createHeroActor({ loader: ctx.loader, look: rete?.membri[io]?.look ?? ctx.world.look, hero: { arma: armaVista(view.eroe.arma, chiaveArma(view).endsWith('+')), ...vestito(view.eroe.classe) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true, soloBusto: true });
+      hero.avatar.setCappello(view.eroe.classe ? TESTA_TEMPLARI[view.eroe.classe] ?? null : null);
       zombi = createZombi(sc.scene);
       fx = createEffetti({ scene: sc.scene, arena: s.arena, loader: ctx.loader, root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera });
       if ((fase as Fase) === 'finita') { pulisci(); return; }
@@ -186,7 +189,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
         const c = view.compagni.find((x) => x.i === a.i);
         if (!c) continue;
         a.arma = c.arma;
-        a.actor = await createHeroActor({ loader: ctx.loader, look: a.look, hero: { arma: armaVista(c.arma) }, scene: sc.scene, floorY: 0, x: c.posa.x, z: c.posa.z, soloBusto: true });
+        a.actor = await createHeroActor({ loader: ctx.loader, look: a.look, hero: { arma: armaVista(c.arma), ...vestito(c.classe) }, scene: sc.scene, floorY: 0, x: c.posa.x, z: c.posa.z, soloBusto: true });
+        a.actor.avatar.setCappello(c.classe ? TESTA_TEMPLARI[c.classe] ?? null : null);
         a.actor.tick(c.posa);
       }
       mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: 0 });
@@ -267,6 +271,9 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'risata': suona('tpl_risata', 1); hud.grande('', PAL.arancio, 'De Molay ride e scappa: non è ancora il suo momento', 3000); break;
       case 'scompare': hud.grande('', PAL.giallo, 'De Molay è sparito nella notte', 2200); break;
       case 'bomba': suona('lancio'); break;
+      case 'superPronto': suona('medaglia_oro'); hud.grande('SUPER PRONTO', PAL.giallo, 'Tocca SUPER (o R) quando sono tanti', 2200); break;
+      case 'super': { const [nome, sub] = SUPER_TESTO[e.tipo] ?? ['SUPER', '']; suona(e.tipo === 'pioggia' ? 'tpl_freccia' : e.tipo === 'bordata' ? 'tpl_moschetto' : 'colpo_critico', 1); if (e.tipo === 'giudizio') suona('tuono', 0.8); hud.grande(nome, PAL.giallo, sub, 1800); break; }
+      case 'cannonata': suona('tuono', vicino(e.x, e.z)); break;
       case 'brucia': suona('sfrigola'); break;
       case 'cassa':
         if (e.fase === 'gira') { suona('apri'); suona('tpl_cassa'); }
@@ -306,8 +313,10 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     // da PC, fermo: guarda il puntatore (il punto sotto il mouse)
     const v = mouse && Math.abs(mx) < 0.05 && Math.abs(my) < 0.05 ? mouse.verso(h.x, h.z) : null;
     if (v) { mx = v.x * 0.25; my = v.z * 0.25; }
+    // SUPER: col mouse va dove punta il cursore
+    if (c.e && !m && mouse?.attivo) m = mouse.verso(h.x, h.z)?.m ?? 0;
     mUltima = m;
-    return { mx, my, a, b: f.b, c: c.c, d: c.d, ...(m ? { m } : {}) };
+    return { mx, my, a, b: f.b, c: c.c, d: c.d, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}) };
   }
   // passi sul suolo sotto i piedi (ogni ~1 m, 1,5 m di corsa) e la tensione della musica (boss in campo, tanti zombie vicini)
   let px = NaN, pz = NaN, strada = 0;
@@ -374,6 +383,9 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       lento(on) { bk.lento = on; },
       vicino(on) { ctx.renderer.diorama.setZoom(on ? 0.6 : innerWidth < innerHeight ? 1.3 : 1.05); },
       extra: [
+        // l'eroe del menù: si ricomincia con quello (la stanza di prova rientra da sola), e il super pieno subito
+        { titolo: 'Eroe (si ricomincia)', voci: TEMPLARI.eroi.map((e): [string, () => void] => [e.nome.replace(/^(Il|La|L’|L')\s*/, ''), () => { salvaEroe(e.id); esci(); }]) },
+        { titolo: 'Super', voci: [['Carica pieno', () => { if (h.classe) { h.superK = 1; hud?.grande('SUPER PRONTO', PAL.giallo, 'Dal banco', 1200); } }]] },
         { titolo: 'Vai da', voci: (['mercante', 'strega'] as const).map((id): [string, () => void] => [id === 'mercante' ? 'Mercante' : 'Strega', () => {
           const p = s.arena.personaggi.find((x) => x.id === id);
           if (!p) return;
@@ -495,6 +507,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (bott?.aperta) { if (bott.aperta !== chi) bott.chiudi(); else bott.aggiorna(chi === 'mercante' ? offerteMercante(s) : offerteStrega(s), s.punti); }
     ctl.setMira(fase === 'gioca' && miraArma() !== null);
     ctl.setScambia(fase === 'gioca' && view.eroe.armi.filter(Boolean).length + (view.eroe.scudo ? 1 : 0) > 1);
+    ctl.setSuper(fase === 'gioca' && view.eroe.classe ? view.eroe.super : null, view.eroe.classe ? ICONA_SUPER[view.eroe.classe] : undefined);
   }
 
   // test (hook templariProva): armi da capo (`armi`), arma, scudo (in mano), punti, uno zombie davanti fermo, porte aperte, eroe spostato
@@ -510,6 +523,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (p['pulisci']) { s.zombie = []; s.tiri = []; s.fiamme = []; s.boss = null; }
     if (p['ferma']) { s.quanti = 1e6; s.usciti = 0; s.prossima = 1e9; } // niente altri zombie dall'ondata in corso (le prove di mira ne vogliono uno solo)
     if (typeof p['vita'] === 'number') { s.eroe.vita = s.eroe.max = p['vita']; }
+    if (p['super']) s.eroe.superK = 1;
+    if (typeof p['ondata'] === 'number') s.ondata = p['ondata']; // la vita degli zombie che escono adesso (le prove di mira la vogliono bassa)
     if (typeof p['potere'] === 'string') s.drops.push({ id: s.nextId++, tipo: p['potere'] as 'ira', x: s.eroe.x + s.eroe.fx * 2.5, z: s.eroe.z + s.eroe.fz * 2.5, fine: s.tick + 60 * 25 });
     if (typeof p['potereQui'] === 'string') s.drops.push({ id: s.nextId++, tipo: p['potereQui'] as 'ira', x: s.eroe.x, z: s.eroe.z, fine: s.tick + 60 * 25 });
     if (typeof p['trappola'] === 'string') { const i = s.arena.trappole.findIndex((x) => x.id === p['trappola']); const st = s.trappole[i]; if (st) { st.fine = s.tick + 600; st.pronta = st.fine + 600; } }
@@ -534,7 +549,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   const cassaDavanti = () => { const c = s.arena.casse[s.cassa.posto]; return c ? { x: c.x + c.fx, z: c.z + c.fz } : null; };
   templariLink.state = () => ({
     active: fase !== 'finita', fase, sim: view.fase, tick: view.tick, ondata: view.ondata, restano: view.restano, done: view.done, esito: view.esito,
-    eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma }, zombie: view.zombie.length,
+    eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma, classe: view.eroe.classe, super: view.eroe.super, vestito: hero?.avatar.indossaStato()?.corpo ?? null }, zombie: view.zombie.length,
     uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: mUltima, act: s.eroe.act, mouse: mouse?.attivo ?? false, faccia: [s.eroe.fx, s.eroe.fz], yaw: ctx.renderer.diorama.yaw, eroeSchermo: schermo(s.eroe.x, s.eroe.z), zombiePos: s.zombie.filter((z) => z.st !== 'morto').slice(0, 6).map((z) => ({ x: z.x, z: z.z, schermo: schermo(z.x, z.z) })),
     scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: TEMPLARI.ondate.insieme,

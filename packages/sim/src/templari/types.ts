@@ -3,7 +3,7 @@
 // Math.sin/cos/atan2/hypot/pow/… e niente `**`, solo + − × ÷ e Math.sqrt. Lo controlla tools/check_static.mjs.
 import type { DungeonInput, DungeonView } from '../dungeon/types.ts';
 import type { Rng } from '../rng.ts';
-import type { TPotere, TPozione } from '@marea/content/templari.ts';
+import type { TClasse, TPotere, TPozione, TSuperDef } from '@marea/content/templari.ts';
 
 /** Input di un tick: mx, my in assi mondo; a = attacca (tieni = carica il giro), b = corri, c = scambia arma, d = AZIONE (posa la
  *  reliquia, ripara la finestra tenendo premuto, compra). Stesso formato e stessa compressione del dungeon (quantizeDungeon, packDungeon,
@@ -15,8 +15,9 @@ export type TFase = 'altare' | 'inizio' | 'combatti' | 'pausa';
 /** morto = caduto · alba = 60 minuti passati, sopravvissuto · uscito = lasciata dalla pausa (vale come cadere: contano le ondate superate). */
 export type TEsito = 'morto' | 'alba' | 'uscito';
 /** Opzioni della partita, decise all'apertura (il server le tiene e le rigioca): `subito` = ondate già partite (la porta della chiesa e il
- *  bottone ⚔ delle prove); `eroi` = insieme, quanti giocatori (2-4; mancante = da solo). */
-export type TOpzioni = { subito?: boolean; eroi?: number };
+ *  bottone ⚔ delle prove); `eroi` = insieme, quanti giocatori (2-4; mancante = da solo); `classi` = l'eroe scelto nel menù d'ingresso da
+ *  ciascuno, nell'ordine della squadra (mancante o sconosciuto = senza eroe: spada, vita 100, come prima del menù). */
+export type TOpzioni = { subito?: boolean; eroi?: number; classi?: (TClasse | null)[] };
 
 /** Azioni dal menu, tra due tick (registrate col tick come nel dungeon): uscire (da solo finisce la partita;
  *  insieme `ritira` = l'eroe `eroe` esce e gli altri continuano), comprare dal Mercante (potenziare o ricaricare l'arma
@@ -85,7 +86,12 @@ export type TEvento =
   /** Trappola accesa (leva), spenta (finiti i secondi), di nuovo pronta. */
   | { t: 'trappola'; id: string; fase: 'accesa' | 'spenta' | 'pronta' }
   /** Power-up uscito da terra (`preso` false) o preso. */
-  | { t: 'potere'; tipo: TPotere; preso: boolean; x: number; z: number };
+  | { t: 'potere'; tipo: TPotere; preso: boolean; x: number; z: number }
+  /** Il super è carico (si può usare) · usato: dove (Giudizio: l'eroe; Bordata e Pioggia: il bersaglio) e da dove. */
+  | { t: 'superPronto' }
+  | { t: 'super'; tipo: TSuperDef['id']; x: number; z: number; da: { x: number; z: number } }
+  /** Una cannonata della Bordata arriva. */
+  | { t: 'cannonata'; x: number; z: number; r: number };
 
 /** Un evento della sim; insieme `e` = l'eroe a cui è successo (o che l'ha fatto). */
 export type TEventoDi = TEvento & { e?: number };
@@ -111,6 +117,8 @@ export type TView = {
     ricarica: number;
     /** Scudo templare: vita, massimo, in mano (sennò sulle spalle). */
     scudo: { vita: number; max: number; inMano: boolean } | null;
+    /** L'eroe del menù (null = senza) e la carica del super (0..1: a 1 si può usare). */
+    classe: TClasse | null; super: number;
   };
   zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number; boss: boolean;
     /** Ha ancora lo scudo davanti (lo scudato finché non si spacca). */
@@ -121,7 +129,10 @@ export type TView = {
   boss: { id: number; tipo: string; nome: string; vita: number; max: number; fugge: number } | null;
   finestre: { x: number; z: number; assi: number; max: number }[];
   proiettili: { id: number; tipo: 'freccia' | 'palla' | 'vaso'; x: number; z: number; vx: number; vz: number }[];
-  fiamme: { id: number; x: number; z: number; r: number; resta: number }[];
+  /** Fiamme a terra; `frecce` = la Pioggia di frecce dell'Arciere (stesso danno al secondo, si disegna a frecce). */
+  fiamme: { id: number; x: number; z: number; r: number; resta: number; frecce?: boolean }[];
+  /** Cannonate della Bordata in volo: dove cadono, raggio, `k` = 0..1 del volo. */
+  cannonate: { id: number; x: number; z: number; r: number; k: number }[];
   /** Cose a terra da prendere (lo scudo dello scudato, i power-up), con i secondi che restano. */
   drops: { id: number; tipo: 'scudo' | TPotere; x: number; z: number; resta: number }[];
   /** Power-up a tempo: secondi che restano (0 = spento). */
@@ -139,7 +150,7 @@ export type TView = {
   eventi: TEventoDi[];
   /** Insieme: io = il mio eroe (quello di `posa` ed `eroe`); compagni = gli altri, con la posa per l'attore, caduto o uscito. */
   io: number;
-  compagni: { i: number; posa: DungeonView['hero']; arma: string; vita: number; max: number; giu: boolean; fuori: boolean }[];
+  compagni: { i: number; posa: DungeonView['hero']; arma: string; vita: number; max: number; giu: boolean; fuori: boolean; classe: TClasse | null }[];
 };
 
 export type TRisultato = {

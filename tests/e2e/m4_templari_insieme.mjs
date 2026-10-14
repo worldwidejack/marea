@@ -55,12 +55,22 @@ export default async function (ctx) {
     await ctx.shot(A, '1_porta_1280');
 
     await ctx.test('sala: tutte e due premono GIOCA INSIEME (da sole non si parte), poi SI PARTE', async () => {
+      // prima l'eroe: Ada l'Arciere, Bea la Bucaniera (il menù dice IN SALA)
+      const eroe = async (p, id) => {
+        await p.waitForSelector('#mzTplScelta.on', { timeout: 30000 });
+        await p.locator(`#mzTplScelta [data-eroe=${id}]`).click();
+        await ctx.waitState(p, (s, id) => s.templariScelta?.eroe === id, 10000, id);
+        await p.locator('#mzTplScelta [data-act=via]').click();
+      };
       await A.locator('#mzTemplariInsieme').click();
+      await eroe(A, 'arciere');
       await ctx.waitState(A, (s) => s.templari.sala && s.templari.sala.membri.length === 1, 10000);
       assert(await A.locator('#mzTemplariSala [data-act="via"]').isDisabled(), 'da sola non si parte');
       await B.locator('#mzTemplariInsieme').click();
+      await eroe(B, 'bucaniera');
       for (const p of [A, B]) await ctx.waitState(p, (s) => s.templari.sala && s.templari.sala.membri.length === 2, 10000);
       await ctx.shot(A, '2_sala_1280'); await ctx.shot(B, '2_sala_390');
+      assert(/Arciere/.test(await A.textContent('#mzTemplariSala')) && /Bucaniera/.test(await A.textContent('#mzTemplariSala')), 'la sala non dice gli eroi: ' + await A.textContent('#mzTemplariSala'));
       await A.locator('#mzTemplariSala [data-act="via"]').click();
       for (const [p, P, nome] of [[A, PA, 'Ada'], [B, PB, 'Bea']]) {
         try { await ctx.waitState(p, (s) => s.templari.active && s.templari.fase === 'gioca' && s.templari.insieme && s.templari.insieme.eroi === 2, 60000); } catch (e) {
@@ -76,6 +86,7 @@ export default async function (ctx) {
         const t = (await st(p)).templari;
         assert(t.insieme.compagni.length === 1 && t.insieme.compagni[0].visibile && t.insieme.compagni[0].vita > 0, 'compagno: ' + JSON.stringify(t.insieme.compagni));
       }
+      assert((await st(A)).templari.eroe.classe === 'arciere' && (await st(B)).templari.eroe.classe === 'bucaniera', 'gli eroi della sala non sono arrivati in partita');
       // Ada si muove (pilota automatico): Bea la vede spostarsi
       const da = (await st(B)).templari.insieme.compagni[0];
       await hook(A, 'templariAutopilot', true, 1);

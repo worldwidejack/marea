@@ -224,12 +224,13 @@ Partita a ondate in 2-4 nella stessa chiesa, come i dungeon insieme (§7): **Web
 { t: 'esco' }                                // esco dalla sala o dalla partita (gli altri continuano)
 
 // server → client
-{ t: 'sala', membri: { id, nome, look }[], max }                 // la sala alla porta, a ogni cambio
+{ t: 'sala', membri: { id, nome, look, classe? }[], max }        // la sala alla porta, a ogni cambio (classe = l'eroe del menù, TEMPLARI.md §4b)
 { t: 'parte', run, seed, io, membri }                            // si entra; io = il mio indice
 { t: 'T', n, f: SqInput[], via?: eroe[], az?: [eroe, TAzione][] } // turno n: un input per eroe; prima del primo tick chi esce (`ritira`) e gli acquisti
 { t: 'errore', msg }                                             // sala piena, da soli, non si parte…
 ```
+- **Eroe** (14 ott 2026): si sceglie nel menù prima di aprire il socket e va nell'indirizzo, `/ws/templari?t=<token>&classe=<crociato|bucaniera|arciere>` (sconosciuto = senza); il DO lo mette nel membro e nel log (`classi`), la partita lo usa (`opzioni.classi`).
 - **Sala**: aprire il socket = entrare (al massimo 4, il 5° riceve `errore` e chiusura 1013); la stessa persona da un'altra scheda sostituisce la vecchia. Il client chiude da solo se ci si allontana dalla porta.
 - **Partenza**: con `via` il DO sceglie seed e id e per ogni membro chiama il DO del suo lotto (`POST /templari_party_start {seed, run, idx}` → `pending = { seed, subito: true, party: { run, idx } }`, mai esposta dal Worker). Partita con `opzioni.eroi` = quanti sono, ondate subito.
 - **Turni**: come §7 (50 ms, 3 tick, coda di 4, 40 messaggi/s; al massimo 4 acquisti in coda per eroe, controllati con `parseTAzioniInsieme`). Chi chiude o esce va in `via` nel turno dopo. Il DO non simula niente: la partita finisce quando escono tutti o all'alba (60 minuti di turni).
-- **Fine**: il client chiude il socket e chiama `POST /api/templari/finish` senza input: il DO del lotto, vedendo `pending.party`, chiede il log al DO TemplariInsieme (`POST /log {run, idx}` → `{seed, inputs: string[] (encodeDungeon), uscite: (tick | null)[], azioni: [tick, eroe, TAzione][]}`; da quel momento l'eroe idx è fuori), lo rigioca con `replayTemplariInsieme` e paga le ondate superate **fino a quando è uscito lui** (stessa risposta della partita da solo). Log salvati nello storage del DO (ogni 10 s e alla fine, tenuti un giorno). Senza log la partita si chiude senza premio (409 `code: 'gruppo'`).
+- **Fine**: il client chiude il socket e chiama `POST /api/templari/finish` senza input: il DO del lotto, vedendo `pending.party`, chiede il log al DO TemplariInsieme (`POST /log {run, idx}` → `{seed, inputs: string[] (encodeDungeon), uscite: (tick | null)[], azioni: [tick, eroe, TAzione][], classi?: (classe | null)[]}`; da quel momento l'eroe idx è fuori), lo rigioca con `replayTemplariInsieme` e paga le ondate superate **fino a quando è uscito lui** (stessa risposta della partita da solo). Log salvati nello storage del DO (ogni 10 s e alla fine, tenuti un giorno). Senza log la partita si chiude senza premio (409 `code: 'gruppo'`).

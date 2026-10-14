@@ -18,6 +18,9 @@ export type Avatar = {
   // ---- aggiunte WP2 (vedi tests/out/richieste/wp2.md) ----
   /** Applica colori e pezzi del look (pelle, capelli, vestito, cappello). */
   setLook(look: Look): void;
+  /** Un copricapo al posto del cappello del look (gli eroi dei Templari: elmo, tricorno, cappuccio); null = di nuovo quello del look.
+   *  Solo col modello glTF. */
+  setCappello(id: string | null): void;
   /** Gesto delle emote (#90): saltello `hop` (m) e giro `spin` (rad) del corpo, sopra la posa del frame. (0, 0) = fermo. */
   gesto(hop: number, spin: number): void;
   /** Siede l'avatar dentro `parent` (es. barca) con il bacino sul punto `seat` (locale a parent). `null` = scende e torna nel genitore di prima. */
@@ -93,8 +96,16 @@ const HATS: Record<string, (string | number)[][]> = {
   palombaro: [[0.32, 0.34, 0.32, 0, 0.03, 0, '#F2A33A'], [0.2, 0.06, 0.2, 0, 0.225, 0, '#F2A33A'], [0.17, 0.15, 0.012, 0, 0.02, -0.164, '#7FE3E0'], [0.2, 0.025, 0.02, 0, 0.105, -0.165, '#C98A4B'], [0.2, 0.025, 0.02, 0, -0.065, -0.165, '#C98A4B'],
     [0.025, 0.12, 0.12, -0.17, 0.03, 0, '#7FE3E0'], [0.025, 0.12, 0.12, 0.17, 0.03, 0, '#7FE3E0'], [0.36, 0.05, 0.36, 0, -0.16, 0, '#C98A4B']],
   // Isola dell'Adrenalina (docs/ADRENALINA.md §2): casco arancione con la striscia bianca e la visiera scura, si compra a Perle dall'editor
+  // solo per gli eroi dei Templari (rpg/vestito_templari.ts), non nell'editor: l'elmo chiuso del Crociato e il cappuccio dell'Arciere
+  elmo_templare: [[0.27, 0.3, 0.29, 0, 0.03, 0, '#B9AFA3'], [0.24, 0.03, 0.26, 0, 0.195, 0, '#7F7568'], [0.2, 0.028, 0.012, 0, 0.06, -0.149, '#23201F'],
+    [0.035, 0.15, 0.012, 0, -0.03, -0.149, '#7F7568'], [0.012, 0.012, 0.012, -0.05, -0.06, -0.149, '#23201F'], [0.012, 0.012, 0.012, 0.05, -0.06, -0.149, '#23201F'],
+    [0.012, 0.012, 0.012, -0.05, -0.03, -0.149, '#23201F'], [0.012, 0.012, 0.012, 0.05, -0.03, -0.149, '#23201F'], [0.29, 0.035, 0.3, 0, -0.105, 0, '#7F7568'], [0.03, 0.06, 0.012, 0, 0.14, -0.149, '#E8433F'], [0.08, 0.025, 0.012, 0, 0.145, -0.149, '#E8433F']],
+  cappuccio_arciere: [[0.27, 0.09, 0.29, 0, 0.155, 0.01, '#2C6B3F'], [0.03, 0.24, 0.27, -0.135, 0.03, 0.02, '#2C6B3F'], [0.03, 0.24, 0.27, 0.135, 0.03, 0.02, '#2C6B3F'],
+    [0.27, 0.3, 0.04, 0, 0.0, 0.14, '#2C6B3F'], [0.27, 0.035, 0.03, 0, 0.12, -0.13, '#4E9A46'], [0.09, 0.08, 0.12, 0, 0.17, 0.17, '#2C6B3F'], [0.05, 0.06, 0.08, 0, 0.13, 0.25, '#2C6B3F'], [0.03, 0.09, 0.012, 0.09, 0.2, 0.06, '#F2A33A']],
   casco: [[0.25, 0.1, 0.27, 0, 0.17, 0, '#F2A33A'], [0.19, 0.05, 0.21, 0, 0.24, 0, '#F2A33A'], [0.04, 0.15, 0.28, 0, 0.19, 0, '#E8E1D6'], [0.23, 0.04, 0.03, 0, 0.13, -0.14, '#23201F'], [0.26, 0.07, 0.14, 0, 0.1, 0.05, '#F2A33A']],
 };
+/** Copricapi solo per gli eroi dei Templari (setCappello), non nella lista dell'editor. */
+const SOLO_EROI = ['elmo_templare', 'cappuccio_arciere'];
 /** Cappelli senza nodo nel modello: si costruiscono a box e si appendono all'osso della testa (centro testa = origine, come headBoxes). */
 function hatOnHead(id: string): THREE.Mesh | null {
   const h = HATS[id];
@@ -162,7 +173,7 @@ function buildRig(look: Look): Rig {
 }
 
 // ---------- modello glTF ----------
-type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void; rest: Map<string, THREE.Matrix4> };
+type ModelRig = { root: THREE.Object3D; anim: Animator; setLook(look: Look): void; setCappello(id: string | null): void; rest: Map<string, THREE.Matrix4> };
 /** Il loader clona con Object3D.clone: gli SkinnedMesh restano legati alle ossa dell'originale. Le ricolleghiamo per nome (idempotente). */
 function rebindSkins(root: THREE.Object3D): void {
   root.traverse((n) => {
@@ -201,15 +212,17 @@ async function loadModel(loader: Loader): Promise<ModelRig> {
     const pos = ref.geometry.getAttribute('position') as THREE.BufferAttribute, sk = ref as THREE.SkinnedMesh, q = new THREE.Vector3(), bb = new THREE.Box3();
     for (let i = 0; i < pos.count; i++) { q.fromBufferAttribute(pos, i); if (sk.isSkinnedMesh) sk.applyBoneTransform(i, q); bb.expandByPoint(q.applyMatrix4(ref.matrixWorld)); }
     const k = (bb.max.x - bb.min.x) / 0.34, c = bb.getCenter(new THREE.Vector3());
-    for (const h of AVATAR.cappelli) {
-      if (scene.getObjectByName('cappello_' + h.id)) continue;
-      const m = hatOnHead(h.id); if (!m) continue;
+    for (const id of [...AVATAR.cappelli.map((h) => h.id), ...SOLO_EROI]) {
+      if (scene.getObjectByName('cappello_' + id)) continue;
+      const m = hatOnHead(id); if (!m) continue;
       m.position.set(c.x, bb.max.y - 0.23 * k, c.z); m.scale.setScalar(k); m.updateMatrixWorld(true);
-      head.attach(m); extra.set(h.id, m);
+      head.attach(m); extra.set(id, m);
     }
   }
+  let forzato: string | null = null, ultimo: Look | null = null;
   const setLook = (look: Look) => {
-    const k = lookColors(look);
+    ultimo = look;
+    const k = { ...lookColors(look), ...(forzato ? { hat: forzato } : {}) };
     for (const [id, m] of extra) m.visible = id === k.hat;
     for (const m of groups.pelle) m.color.set(k.skin);
     for (const m of groups.capelli) m.color.set(k.hair);
@@ -220,7 +233,8 @@ async function loadModel(loader: Loader): Promise<ModelRig> {
       if (n.name.startsWith('cappello_')) n.visible = n.name === `cappello_${k.hat}`;
     });
   };
-  return { root: scene, anim: createAnimator(scene, clips), setLook, rest };
+  const setCappello = (id: string | null) => { forzato = id; if (ultimo) setLook(ultimo); };
+  return { root: scene, anim: createAnimator(scene, clips), setLook, setCappello, rest };
 }
 
 /** Dove guarda davvero l'oggetto in assi mondo [x, z] (per i test). */
@@ -309,6 +323,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
     },
     teleport(x, z, yaw) { state = { ...state, x, z, vx: 0, vz: 0, ...(yaw !== undefined ? { yaw } : {}) }; prev = state; snap = true; },
     setLook: applyLook,
+    setCappello(id) { model?.setCappello(id); },
     setIndossa(i, opt) {
       if (!model) return;
       indossa = vuoto(i) ? undefined : i;

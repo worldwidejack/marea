@@ -53,7 +53,7 @@ export type DungeonSave = { ok: boolean; salvato: { bottino: Record<string, numb
 export type DungeonFinish = { result: RunResult; tenuto: Record<string, number>; monete: number; livelliSu: number; lot: LotState };
 
 /** Isola dei Templari (docs/TEMPLARI.md): partita a ondate aperta dal server (seed) e chiusa col replay (premio delle ondate superate, tetto del giorno). */
-export type TemplariStart = { seed: number; subito: boolean; lot: LotState };
+export type TemplariStart = { seed: number; subito: boolean; classe?: string | null; lot: LotState };
 export type TemplariFinish = { result: TRisultato; premio: Resources; pieno: Resources; tetto: boolean; record: boolean; lot: LotState };
 
 /** Rientro (#86, POST /api/rientro): riepilogo dell'assenza (null se mancavi da poco o è il primo ingresso), novità non lette del feed. */
@@ -114,7 +114,8 @@ export type Api = {
   /** SALVA sulla lanterna: input e azioni fin lì, il server li rigioca e tiene il bottino al sicuro anche se la scheda si chiude. */
   dungeonSave(inputs: PackedDungeon | string, hash: number, azioni?: DungeonAzioni): Promise<DungeonSave>;
   // ---- Isola dei Templari ----
-  templariStart(subito?: boolean): Promise<TemplariStart>;
+  /** `classe` = l'eroe del menù d'ingresso (il server lo tiene e lo rigioca). */
+  templariStart(subito?: boolean, classe?: string): Promise<TemplariStart>;
   /** `inputs` compressi con `encodeDungeon` (o array RLE): il server rigioca e paga. */
   templariFinish(inputs: PackedDungeon | string, hash: number, azioni?: TAzioni): Promise<TemplariFinish>;
   /** Il calice dei Templari dallo scheletro della Tempesta (docs/TEMPLARI.md §2): nel lotto, la nebbia rossa si dirada. */
@@ -349,10 +350,10 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       const sv = isObj(d['salvato']) ? d['salvato'] : null;
       return { ok: !!d['ok'], salvato: sv ? { bottino: isObj(sv['bottino']) ? (sv['bottino'] as Record<string, number>) : {}, monete: typeof sv['monete'] === 'number' ? sv['monete'] : 0 } : null, ticks: typeof d['ticks'] === 'number' ? d['ticks'] : 0 };
     },
-    async templariStart(subito) {
-      const d = await call('POST', '/api/templari/start', subito ? { subito: true } : {});
+    async templariStart(subito, classe) {
+      const d = await call('POST', '/api/templari/start', { ...(subito ? { subito: true } : {}), ...(classe ? { classe } : {}) });
       if (!isObj(d) || typeof d['seed'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');
-      return { seed: d['seed'], subito: !!d['subito'], lot: asLot(d['lot']) };
+      return { seed: d['seed'], subito: !!d['subito'], classe: typeof d['classe'] === 'string' ? d['classe'] : null, lot: asLot(d['lot']) };
     },
     async templariReliquia() {
       const d = await call('POST', '/api/templari/reliquia', {});
