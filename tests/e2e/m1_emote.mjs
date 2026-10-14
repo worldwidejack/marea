@@ -89,19 +89,25 @@ export default async function (ctx) {
 
     let seenAt = 0;
     await ctx.test('Bruno vede il fumetto sopra Anna entro 1,5 s, sulla sua testa', async () => {
-      // polling a intervallo (non a requestAnimationFrame: la scheda di Bruno è dietro); il ritardo vero lo dice l'età del fumetto
-      await bruno.page.waitForFunction(() => !!document.querySelector('.mz-emote[data-who="anna"][data-emote="saluto"]'), null, { timeout: LAT + 1000, polling: 30 });
-      seenAt = Date.now();
-      const born = await bruno.page.evaluate(() => Date.now() - 1000 * (window.__game.state().emotes.shown.find((x) => x.who === 'anna')?.age ?? 0));
-      ctx.log(`Bruno lo trova dopo ${seenAt - pressAt} ms (fumetto nato ${born - pressAt} ms dopo la pressione)`);
-      // il requisito è sull'arrivo (età del fumetto, orologio di Bruno); la scheda di Bruno è dietro e Chrome rallenta il polling (~1 s): margine di 1 s sul ritrovamento
-      assert(born - pressAt < LAT && seenAt - pressAt < LAT + 1000, `Bruno lo vede dopo ${seenAt - pressAt} ms (nato dopo ${Math.round(born - pressAt)} ms)`);
-      await bruno.page.bringToFront(); await sleep(150);
-      const g = await bruno.page.evaluate(() => {
-        const e = document.querySelector('.mz-emote[data-who="anna"]'), r = e.getBoundingClientRect(), c = document.getElementById('gl').getBoundingClientRect();
+      // la scheda di Bruno va davanti prima di cercare: da dietro Chrome rallenta il polling (~1 s) e su GitHub, dopo lo screenshot di Anna,
+      // il fumetto (2,5 s) si trovava a ~2,3 s e spariva prima di misurarlo. Il ritardo vero lo dice comunque l'età del fumetto.
+      await bruno.page.bringToFront();
+      // posizione e stile si leggono nell'istante in cui il fumetto c'è (scheda davanti: proiezione fresca), non dopo: con la grafica
+      // software si trova anche a ~2,3 s e a 2,5 s se ne va
+      const preso = await bruno.page.waitForFunction(() => {
+        const e = document.querySelector('.mz-emote[data-who="anna"][data-emote="saluto"]');
+        if (!e) return null;
+        const r = e.getBoundingClientRect(), c = document.getElementById('gl').getBoundingClientRect();
+        if (!r.width) return null;
         const s = window.__game.state().emotes.shown.find((x) => x.who === 'anna');
         return { bx: r.left + r.width / 2, bottom: r.bottom, w: r.width, h: r.height, vis: getComputedStyle(e).visibility, c: { l: c.left, t: c.top, w: c.width, h: c.height }, s };
-      });
+      }, null, { timeout: LAT + 1000, polling: 30 });
+      seenAt = Date.now();
+      const g = await preso.jsonValue();
+      const born = await bruno.page.evaluate(() => Date.now() - 1000 * (window.__game.state().emotes.shown.find((x) => x.who === 'anna')?.age ?? 0));
+      ctx.log(`Bruno lo trova dopo ${seenAt - pressAt} ms (fumetto nato ${born - pressAt} ms dopo la pressione)`);
+      // il requisito è sull'arrivo (età del fumetto, orologio di Bruno); margine di 1 s sul ritrovamento (con la grafica software il fumetto si disegna tardi)
+      assert(born - pressAt < LAT && seenAt - pressAt < LAT + 1000, `Bruno lo vede dopo ${seenAt - pressAt} ms (nato dopo ${Math.round(born - pressAt)} ms)`);
       ctx.log('fumetto su Bruno: ' + JSON.stringify(g));
       assert(g.s && g.s.on && g.vis === 'visible', 'fumetto nascosto');
       // la punta della coda (bordo basso + 10 px) sta sulla proiezione dell'ancora sopra la testa di Anna
