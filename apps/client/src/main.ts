@@ -209,7 +209,7 @@ async function boot(): Promise<void> {
   registerTestHook('openTavolo', () => openTavolo());
   // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-8, G = ruota, #90). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
   const link = `${location.origin}/?t=${encodeURIComponent(FLAGS.token)}`; // per entrare come sé da un altro dispositivo (editor: COPIA / MANDA)
-  const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, barca: world, onSaved: () => hud.toast('Look salvato'), onBarca: () => hud.toast('Barca salvata'), onLot: refreshMyLot }) : null;
+  const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, barca: world, onSaved: () => hud.toast('Look salvato'), onNome: (n) => hud.toast(`Nome salvato: ${n}`), onBarca: () => hud.toast('Barca salvata'), onLot: refreshMyLot }) : null;
   // impostazioni (#53): camera, ciclo giorno/notte, meteo (#85), stampa, contorni; di serie (#59) ciclo, camera 22° e contorni, per chiunque (anche senza link)
   // la resa delle impostazioni (passata finale, acqua stampa, ciclo) si scarica solo se qualcosa è acceso: con tutto spento zero byte in più
   let aspetto: Aspetto | null = null, aspettoLoad: Promise<void> | null = null, voglio: Impostazioni | null = null;
