@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { BORGO, MOBILI } from '@marea/content';
 import type { MobileDef } from '@marea/content';
-import { baule, casaDi, finitureScelte, inStanza, possiedeFinitura, postoMobileError } from '@marea/sim';
+import { baule, casaDi, celleMobile, finitureScelte, inStanza, possiedeFinitura, postoMobileError } from '@marea/sim';
 import type { LotState, Muro, PlacedMobile, PostoMobile } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { LotView } from './lot.ts';
@@ -23,7 +23,7 @@ type Vicino = { kind: 'mobile'; a: PlacedMobile; def: MobileDef } | { kind: 'bau
 
 const ST = BORGO.stanza, [X0, Z0, X1, Z1] = ST.pavimento;
 const OK = '#B6FF3D', NO = '#FF5C3D'; // verde e rosso neon della sagoma (ART_BIBLE §2), come SPOSTA in giardino
-const BAULE: MobileDef = { id: 'baule', nome: 'Baule', perle: 1, posto: 'terra', forma: 'baule', colori: [PAL.legno] };
+const BAULE: MobileDef = { id: 'baule', nome: 'Baule', categoria: 'contenitori', perle: 1, posto: 'terra', forma: 'baule', colori: [PAL.legno] };
 const CSS = `
 #mzArredaBtn { position: absolute; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + 60px); transform: translateX(-50%); display: none; min-height: 44px; padding: 0 16px; background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; z-index: 15; cursor: pointer; }
 #mzArredaBtn.on { display: block; }
@@ -37,10 +37,10 @@ const CSS = `
 #mzArreda .vuoto { color: ${PAL.sabbia}; font-size: 14px; }
 `;
 
-/** Cornice (4 listelli) w×w nel piano XZ, alta `s`: la sagoma per terra. */
-function cornice(w: number, s: number): THREE.BufferGeometry[] {
-  const t = 0.14, h = w / 2;
-  return [[0, -h, w, t], [0, h, w, t], [-h, 0, t, w], [h, 0, t, w]].map(([x, z, a, b]) => { const g = new THREE.BoxGeometry(a!, s, b!); g.translate(x!, s / 2, z!); return g; });
+/** Cornice (4 listelli) w×d nel piano XZ, alta `s`: la sagoma per terra (w e d = ingombro del mobile). */
+function cornice(w: number, d: number, s: number): THREE.BufferGeometry[] {
+  const t = 0.14, hw = w / 2, hd = d / 2;
+  return [[0, -hd, w, t], [0, hd, w, t], [-hw, 0, t, d], [hw, 0, t, d]].map(([x, z, a, b]) => { const g = new THREE.BoxGeometry(a!, s, b!); g.translate(x!, s / 2, z!); return g; });
 }
 
 export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud; api: Api | null; lotto: LotView | null; slot: number | null; stanza: Stanza; apriBaule?: () => void }): Arreda {
@@ -55,8 +55,8 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
   // sagoma: per terra una cornice, a parete una cornice in piedi; più l'anteprima del mobile
   const matOk = new THREE.MeshBasicMaterial({ color: OK }), matNo = new THREE.MeshBasicMaterial({ color: NO });
   const sagoma = new THREE.Group(); sagoma.name = 'arreda_sagoma'; sagoma.visible = false; w.scene.add(sagoma);
-  const fTerra = new THREE.Group(); for (const g of cornice(1.9, 0.08)) fTerra.add(new THREE.Mesh(g, matOk));
-  const fMuro = new THREE.Group(); for (const g of cornice(1.5, 0.08)) fMuro.add(new THREE.Mesh(g, matOk)); fMuro.rotation.x = -Math.PI / 2; fMuro.position.set(0, 2.1, 0.06);
+  const fTerra = new THREE.Group(); let fTerraKey = '';
+  const fMuro = new THREE.Group(); for (const g of cornice(1.5, 1.5, 0.08)) fMuro.add(new THREE.Mesh(g, matOk)); fMuro.rotation.x = -Math.PI / 2; fMuro.position.set(0, 2.1, 0.06);
   sagoma.add(fTerra, fMuro);
   const anteprima = new THREE.Group(); sagoma.add(anteprima);
   let mobiliMod: typeof import('../render/mobili.ts') | null = null;
@@ -80,7 +80,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
   };
   const problema = (l: LotState, m: Modo, p: PostoMobile): string | null => {
     if (m.kind === 'baule') { const b = baule(l); if (!b) return 'Niente baule'; const e = postoMobileError({ ...l, buildings: l.buildings.filter((x) => x.id !== b.id) }, BAULE, { cell: p.cell }); return e && !(b.cell[0] === p.cell[0] && b.cell[1] === p.cell[1]) ? e.msg : null; }
-    const e = postoMobileError(l, m.mobile, p, m.kind === 'sposta' ? m.id : null);
+    const e = postoMobileError(l, m.mobile, { ...p, rot: m.rot }, m.kind === 'sposta' ? m.id : null);
     return e ? e.msg : null;
   };
 
@@ -158,7 +158,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     const terra = davanti(false), b = baule(l);
     if (b && b.cell[0] === terra.cell[0] && b.cell[1] === terra.cell[1] && inStanza(b.cell)) return { kind: 'baule' };
     const arr = casaDi(l).arredi ?? [];
-    const a0 = arr.find((x) => !x.muro && x.cell[0] === terra.cell[0] && x.cell[1] === terra.cell[1]);
+    const a0 = arr.find((x) => { const d = def(x.mobile); return !x.muro && !!d && celleMobile(d, x.cell, x.rot ?? 0).some((q) => q[0] === terra.cell[0] && q[1] === terra.cell[1]); }); // anche una cella qualsiasi di un mobile lungo
     if (a0 && def(a0.mobile)) return { kind: 'mobile', a: a0, def: def(a0.mobile)! };
     const m = davanti(true), a = w.avatar.state, p = postoArredo(m, T), vicinoMuro = Math.hypot(a.x - ox - p.x, a.z - oz - p.z) < 2.6;
     const a1 = vicinoMuro ? arr.find((x) => x.muro === m.muro && x.cell[0] === m.cell[0] && x.cell[1] === m.cell[1]) : null;
@@ -215,15 +215,22 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
       disegna();
       if (!modo || !target || !mia()) { sagoma.visible = false; return; }
       const parete = !!target.muro, rot = modo.kind === 'baule' ? casaDi(lot()).bauleRot ?? 0 : modo.rot;
-      const p = postoArredo({ cell: target.cell, ...(target.muro ? { muro: target.muro } : {}), rot }, T);
+      const celle = modo.kind === 'baule' ? [1, 1] as [number, number] : modo.mobile.celle ?? [1, 1];
+      const p = postoArredo({ cell: target.cell, ...(target.muro ? { muro: target.muro } : {}), rot }, T, celle);
+      const fk = celle.join('x');
+      if (fk !== fTerraKey) { fTerraKey = fk; fTerra.clear(); for (const g of cornice(celle[0] * T - 0.1, celle[1] * T - 0.1, 0.08)) fTerra.add(new THREE.Mesh(g, matOk)); }
       sagoma.visible = true; fTerra.visible = !parete; fMuro.visible = parete;
       sagoma.position.set(ox + p.x, w.groundY(ox + (X0 + 1) * T, oz + (Z0 + 1) * T) + 0.03, oz + p.z); sagoma.rotation.y = p.ry;
       for (const g of [fTerra, fMuro]) for (const c of g.children) (c as THREE.Mesh).material = ok ? matOk : matNo;
       const key = `${modo.kind === 'baule' ? 'baule' : modo.mobile.id}:${mobiliMod ? 1 : 0}`;
       if (key !== prevKey && mobiliMod) {
         prevKey = key; anteprima.clear();
-        const geo = modo.kind === 'baule' ? mobiliMod.bauleGeo(baule(lot()!)?.level ?? 1) : mobiliMod.mobileGeo(modo.mobile.forma, modo.mobile.colori);
+        const geo = modo.kind === 'baule' ? mobiliMod.bauleGeo(baule(lot()!)?.level ?? 1) : mobiliMod.mobileGeo(modo.mobile.forma, modo.mobile.colori, modo.mobile);
         anteprima.add(new THREE.Mesh(geo, vc));
+        if (modo.kind !== 'baule') { // se il mobile ha il suo modello 3D, l'anteprima è quello
+          const k = key, id = modo.mobile.id;
+          void import('../render/mobili_modelli.ts').then(async (mm) => { const ps = await mm.modelloMobile(id); if (ps && prevKey === k) { anteprima.clear(); anteprima.add(mm.gruppoModello(ps)); } }).catch(() => {});
+        }
       }
     },
   };

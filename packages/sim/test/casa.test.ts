@@ -19,8 +19,8 @@ function ricco(perle: number): LotState {
 }
 const terra = MOBILI.find((m) => m.posto === 'terra')!, parete = MOBILI.find((m) => m.posto === 'parete')!;
 
-test('catalogo: tre mobili, almeno uno a terra e uno a parete; finiture di serie gratis', () => {
-  assert.equal(MOBILI.length, 3);
+test('catalogo: almeno tre mobili, almeno uno a terra e uno a parete; finiture di serie gratis', () => {
+  assert.ok(MOBILI.length >= 3);
   assert.ok(terra && parete);
   assert.equal(BORGO.pavimenti[0]!.perle ?? 0, 0);
   assert.equal(BORGO.carte[0]!.perle ?? 0, 0);

@@ -52,7 +52,7 @@ export default async function (ctx) {
       while (!x.done) { const f = quantize(regata.autopilot(x, rng)); frames.push(f); regata.step(x, f); }
       return post('/api/solo/play', { inputs: packInputs(frames) }, tok);
     };
-    for (let i = 0; i < 6 && (await get('/api/lot')).body.resources.perle < stereo.perle + carta.perle; i++) assert((await playSolo('tokL')).status === 200, 'regata');
+    for (let i = 0; i < 6 && (await get('/api/lot')).body.resources.perle < stereo.perle + carta.perle + mobili.find((m) => m.id === 'orologio').perle; i++) assert((await playSolo('tokL')).status === 200, 'regata');
 
     const open = async (viewport, tok = 'tokL') => {
       const pg = await ctx.B.openPage(ctx.browser, `${BASE}/?t=${tok}&test=1`, { viewport });
@@ -107,6 +107,29 @@ export default async function (ctx) {
       assert(lot.casa.magazzino.stereo === 1, 'magazzino: ' + JSON.stringify(lot.casa));
       assert(lot.casa.carta === carta.id && lot.casa.finiture.includes(carta.id), 'carta: ' + JSON.stringify(lot.casa));
       assert(lot.resources.perle === p0 - stereo.perle - carta.perle, `Perle ${lot.resources.perle} invece di ${p0 - stereo.perle - carta.perle}`);
+    });
+
+    await ctx.test('PC: al banco il catalogo sfoglia tutti i mobili per categoria, con descrizione; lo si compra da lì (#304)', async () => {
+      const V = globalThis.__pc, cat = (await V.st()).negozio.pezzi.find((p) => p.kind === 'catalogo');
+      assert(cat, 'manca il catalogo sul banco');
+      const testi = read('mobili_testi.json').testi, orologio = mobili.find((m) => m.id === 'orologio');
+      await V.hook('teleport', cat.x, cat.z);
+      await ctx.waitState(V.page, (s) => s.negozio.near === 'catalogo', 5000);
+      await V.page.keyboard.press('KeyE');
+      await ctx.waitState(V.page, (s) => s.negozio.aperto === 'catalogo', 3000);
+      await V.page.locator(`#mzNegozio [data-cat="${orologio.categoria}"]`).click();
+      await V.page.locator(`#mzNegozio [data-mobile="${orologio.id}"]`).click();
+      await V.page.waitForFunction((t) => document.querySelector('#mzNegozio')?.textContent?.includes(t), testi[orologio.id].slice(0, 20), { timeout: 5000 });
+      await ctx.shot(V.page, 'pc_catalogo');
+      assert((await V.page.locator('#mzNegozio [data-act="compra"]').count()) === 1, 'senza bottone COMPRA');
+      await V.page.locator('#mzNegozio [data-act="indietro"]').click();
+      assert((await V.page.locator(`#mzNegozio [data-mobile="${orologio.id}"]`).count()) === 1, 'tornando indietro la lista non c’è');
+      const n = (await get('/api/lot')).body.casa.magazzino?.orologio ?? 0;
+      await V.page.locator(`#mzNegozio [data-mobile="${orologio.id}"]`).click();
+      await V.page.locator('#mzNegozio [data-act="compra"]').click();
+      await ctx.waitState(V.page, (s, k) => s.negozio.comprati >= k, 8000, 3);
+      assert((await get('/api/lot')).body.casa.magazzino.orologio === n + 1, 'l’orologio comprato dal catalogo non è nel magazzino');
+      assert((await V.st()).negozio.aperto === 'catalogo', 'dal catalogo la scheda resta aperta');
     });
 
     await ctx.test('PC: in fondo al corridoio si esce in città; a casa ARREDA posa lo Stereo comprato', async () => {

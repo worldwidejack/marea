@@ -1,0 +1,8 @@
+{
+  "_nota": "Le descrizioni dei mobili che si leggono nel gioco (negozio e ARREDA): id → una o due frasi in italiano, col tono del gioco (ironico, concreto, mai più di ~140 caratteri). Un id per ogni mobile di mobili.json. Il file si carica solo dai pezzi del gioco che lo usano (negozio, ARREDA): non pesa sull'avvio.",
+  "testi": {
+    "comodino_lampada": "Due cassetti che non chiudono bene e una lampada che fa la luce giusta per non alzarsi mai.",
+    "stereo": "Suona solo la stessa cassetta, ma la suona forte. I vicini lo sanno.",
+    "orologio": "Segna l'ora con grande sicurezza. Non è quella giusta, ma lui non lo sa."
+  }
+}
