@@ -124,6 +124,9 @@ export function sigillo(stile?: string): THREE.Object3D {
   return m;
 }
 
+/** I blocchi di terreno (render/island.ts: erba, sabbia, riva, lastricato, scogliera, molo, pali; anche delle isole a tema): non sono scenografia. */
+const TERRENO = /^(erba|sabbia|sabbia_bordo|lastricato|riva|scogliera|molo|pali)$|_(erba|sabbia|riva)$/;
+
 /** La scenografia casuale (palme, sassi) non sa degli ingressi: quella entro 6 m si toglie, se no copre la bocca vista dalla camera.
  *  Ritorna quante istanze ha tolto. TODO: farlo in render/island.ts bloccando le celle come per edifici e prop (chiesto in
  *  tests/out/richieste/r-scena.md). */
@@ -132,7 +135,7 @@ export function togliScenografia(scene: THREE.Object3D, spots: readonly { x: num
   let n = 0;
   scene.traverse((o) => {
     const im = o as THREE.InstancedMesh;
-    if (!im.isInstancedMesh || /^mod_|cemento|boa|regata|ingresso/.test(im.name)) return;
+    if (!im.isInstancedMesh || /^mod_|cemento|boa|regata|ingresso/.test(im.name) || TERRENO.test(im.name)) return;
     let hit = false;
     for (let i = 0; i < im.count; i++) {
       im.getMatrixAt(i, m4); p.setFromMatrixPosition(m4).applyMatrix4(im.matrixWorld);
