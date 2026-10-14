@@ -61,6 +61,9 @@ export function validateTemplari(): string[] {
   for (const p of ['mercante', 'strega'] as const) if (all.split(Object.entries(TEMPLARI_MAPPA.legenda).find(([, l]) => l.personaggio === p)?.[0] ?? '§').length !== 2) errs.push(`templari: la mappa vuole un posto per ${p}`);
   if (!pos(c.mercante.potenzia.prezzo) || !(c.mercante.potenzia.danno > 1)) errs.push('templari: potenziamento del Mercante non valido');
   if (!(c.strega.max >= 1) || new Set(c.strega.pozioni.map((p) => p.id)).size !== c.strega.pozioni.length || c.strega.pozioni.some((p) => !pos(p.prezzo))) errs.push('templari: pozioni della Strega non valide');
+  for (const [id, f] of Object.entries(c.fuochi.lista)) if (!all.includes(Object.entries(TEMPLARI_MAPPA.legenda).find(([, l]) => l.fuoco === id)?.[0] ?? '§') || !f.nome) errs.push(`templari: il fuoco ${id} non è nella mappa`);
+  for (const id of Object.keys(c.campana.pezzi)) if (!Object.entries(TEMPLARI_MAPPA.legenda).some(([k, l]) => l.pezzo === id && all.includes(k))) errs.push(`templari: il pezzo ${id} della campana non ha posti nella mappa`);
+  if (!pos(c.fuochi.accendi) || !pos(c.campana.monta)) errs.push('templari: fuochi o campana senza tempi');
   if (!c.eroi.length) errs.push('templari: nessun eroe nel menù');
   for (const e of c.eroi) {
     for (const a of e.armi) if (a !== null && !c.armi.some((x) => x.id === a)) errs.push(`templari: l'eroe ${e.id} parte con l'arma ${a} sconosciuta`);

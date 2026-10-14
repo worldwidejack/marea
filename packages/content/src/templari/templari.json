@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "maxMinuti": 60,
   "partenza": { "punti": 500, "arma": "spada" },
   "eroe": {
@@ -91,6 +91,12 @@
       { "id": "fonte", "nome": "Acqua di fonte santa", "descr": "La vita torna dopo 1,5 secondi invece di 4, e il doppio più in fretta", "prezzo": 2500, "regenDopo": 1.5, "regen": 2 }
     ]
   },
+  "fuochi": { "accendi": 1.5, "raggio": 1.7, "tutti": 1000, "lista": {
+    "coro": { "nome": "Il fuoco del coro", "apre": "rogo", "dice": "La passatoia del rogo si scalda: la leva funziona" },
+    "cimitero": { "nome": "Il fuoco del cimitero", "apre": "strega", "dice": "La Strega si sveglia: la sua capanna è aperta" },
+    "spiaggia": { "nome": "Il falò dei pirati", "apre": "mercante", "dice": "La nave del Mercante vede il fuoco e attracca" }
+  } },
+  "campana": { "pezzi": { "corda": "La corda", "battaglio": "Il battaglio", "perno": "Il perno" }, "raggio": 1.3, "monta": 2 },
   "eroi": [
     { "id": "crociato", "nome": "Il Crociato", "titolo": "Spade, mazze e asce", "descr": "Un templare che non è diventato zombie. Regge più colpi, colpisce più forte da vicino e parte con lo scudo sulle spalle.",
       "armi": ["spada", null], "scudo": true, "vita": 150, "velocita": 0.94, "danno": { "mischia": 1.25 },

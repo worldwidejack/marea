@@ -48,6 +48,8 @@ export type Eroe = {
   prevA: boolean; prevC: boolean; prevD: boolean; prevE: boolean;
   /** L'eroe del menù d'ingresso (null = senza: spada e vita 100) e la carica del super (0..1, sale a ogni uccisione). */
   classe: TClasse | null; superK: number;
+  /** AZIONE tenuto su un fuoco da accendere o sulla campana da montare: cosa (`fuoco:<id>`, `monta`, '' = niente) e da quanti tick. */
+  lavoro: string; lavoroT: number;
   /** Pozioni della Strega che hai bevuto (al massimo TEMPLARI.strega.max), elisir del risorto comprati, intoccabile fino al tick. */
   pozioni: TPozione[]; elisir: number; intoccabile: number;
   /** Insieme: caduto (si rialza all'ondata dopo) e uscito dalla partita (non torna). Da solo cadere chiude la partita. */
@@ -126,6 +128,8 @@ export type TState = {
   boss: { tipo: string; at: number; uscito: boolean } | null;
   cassa: Cassa;
   trappole: StatoTrappola[];
+  /** Fuochi accesi (id → acceso), pezzi della campana (in quale dei suoi posti sta, se l'ha preso la squadra) e la campana montata. */
+  fuochi: Record<string, boolean>; pezzi: Record<string, { posto: number; preso: boolean }>; campana: boolean;
   /** Insieme: il flow field degli zombie ha come origine queste celle (gli eroi in piedi); da solo si usa flowCell. */
   flowCelle: number[];
   /** Power-up: Ira di Dio e Decima accese fino al tick, quanti ne sono usciti in questa ondata, l'ultimo uscito. */
@@ -200,7 +204,7 @@ function nuovoEroe(x: number, z: number, fx: number, fz: number, classe: TClasse
     act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
     armi, cur: 0, hurt: 0, riparaT: -999, cd: 0, ricarica: 0, ricaricaDur: 1, scudo: cl?.scudo ? { vita: TEMPLARI.scudo.vita } : null, inMano: false,
     prevA: false, prevC: false, prevD: false, prevE: false, pozioni: [], elisir: 0, intoccabile: 0, giu: false, fuori: false,
-    classe: cl ? cl.id : null, superK: 0,
+    classe: cl ? cl.id : null, superK: 0, lavoro: '', lavoroT: 0,
   };
 }
 /** Insieme: dove compare (o si rialza) l'eroe i: accanto alla partenza, a giro, senza finire nei muri. */
@@ -226,6 +230,7 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
     zombie: [], proj: [], fiamme: [], drops: [], tiri: [], cannonate: [], boss: null,
     cassa: { posto: postoIniziale(arena), usi: 0, max: TEMPLARI.cassa.usiMax, fase: 'chiusa', inizio: 0, fine: 0, arma: null },
     trappole: arena.trappole.map(() => ({ fine: 0, pronta: 0, colpo: 0 })),
+    fuochi: Object.fromEntries(arena.fuochi.map((f) => [f.id, false])), pezzi: postiPezzi(arena, seed), campana: false,
     poteri: { ira: 0, decima: 0, ondata: 0, ultimo: '' },
     nextId: 1,
     flow: new Int32Array(arena.w * arena.h), flowCell: -1, flowTick: -999, flowCelle: [],
@@ -237,6 +242,14 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
   bfs(gr.percorso, s.flowCell, s.flow);
   s.flowTick = 0;
   return s;
+}
+
+/** Dove stanno i pezzi della campana in questa partita: uno dei loro posti, scelto dal seed (con un rng a parte, che non tocca quello della
+ *  partita). */
+function postiPezzi(a: Arena, seed: number): TState['pezzi'] {
+  const r = createRng((seed ^ 0x6a09e667) >>> 0), out: TState['pezzi'] = {};
+  for (const p of a.pezzi) out[p.id] = { posto: r.int(0, p.posti.length - 1), preso: false };
+  return out;
 }
 
 /** La cassa comincia nel primo dei suoi posti che si raggiunge dalla chiesa (a porte chiuse). */

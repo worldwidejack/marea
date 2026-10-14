@@ -29,6 +29,8 @@ export type Scena = {
   setPorte(aperte: Record<string, boolean>): void;
   /** Il calice dei Templari sull'altare (dopo che l'hai posato; nelle prove ⚔ c'è già). */
   setCalice(visibile: boolean): void;
+  /** La campana montata sull'incastellatura (sennò sta a terra, sdraiata accanto: §9b). */
+  setCampana(montata: boolean): void;
   stats(): { muri: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number; sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number };
   dispose(): void;
 };
@@ -279,7 +281,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   type Ist = { x: number; y?: number; z: number; sx: number; sy: number; sz: number; c: string; rx?: number; ry?: number; rz?: number };
   const scatole: Ist[] = [], tubi: Ist[] = [];
   const altareCells = new Set(bassi.filter((i) => a.tipo[i] === TIPO.altare));
-  const daAltri = new Set([...a.bracieri, ...a.altarini, ...a.casse].map((b) => Math.floor(b.z / T) * W + Math.floor(b.x / T))); // li disegna chi li conosce
+  const daAltri = new Set([...a.bracieri, ...a.altarini, ...a.casse, ...a.fuochi].map((b) => Math.floor(b.z / T) * W + Math.floor(b.x / T))); // li disegna chi li conosce
   const sassi: number[] = [];
   for (const i of bassi) {
     if (altareCells.has(i) || daAltri.has(i)) continue;
@@ -337,12 +339,22 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   });
   const campanaT = a.trappole.find((t) => t.id === 'campana');
   const campana = new THREE.Group(); campana.name = 'campana';
+  // la campana a terra (finché la squadra non la monta, §9b): solo il bronzo, sdraiata sul fianco accanto all'incastellatura
+  const terra = new THREE.Group(); terra.name = 'campana_a_terra'; terra.visible = false;
+  let montata = true;
   if (campanaT) {
     const xs = campanaT.celle.map((i) => i % W), zs = campanaT.celle.map((i) => Math.floor(i / W));
     const x0 = Math.min(...xs) - 0.4, x1 = Math.max(...xs) + 1.4, zc = ((Math.min(...zs) + Math.max(...zs) + 1) / 2) * T, xc = ((x0 + x1) / 2) * T;
     for (const x of [x0, x1]) scatole.push({ x: x * T, z: zc, sx: 0.4, sy: 5.6, sz: 0.4, c: PAL.legnoScuro }, { x: x * T, z: zc, sx: 1.4, sy: 0.4, sz: 1.4, c: PAL.pietraScura });
     scatole.push({ x: xc, y: 5.4, z: zc, sx: (x1 - x0) * T + 0.6, sy: 0.4, sz: 0.5, c: PAL.legno });
     campana.position.set(xc, 5.3, zc);
+    const gt = unisci([
+      { g: new THREE.CylinderGeometry(0.4, 0.95, 1.5, 8), c: PAL.arancio, y: 0 },
+      { g: new THREE.CylinderGeometry(1.0, 1.0, 0.14, 8), c: PAL.legnoChiaro, y: -0.75 },
+    ] satisfies Pezzo[]);
+    const mt = new THREE.Mesh(gt, lambert({ vertexColors: true })); terra.add(mt); disp.push(gt, mt.material as THREE.Material);
+    terra.position.set(xc + 1.8, 0.85, zc + 0.6); terra.rotation.set(0.2, 0.5, Math.PI / 2 + 0.12);
+    scene.add(terra);
     const g = unisci([
       { g: new THREE.BoxGeometry(0.1, 2.4, 0.1), c: PAL.roccia, y: -1.2 },
       { g: new THREE.CylinderGeometry(0.4, 0.95, 1.5, 8), c: PAL.arancio, y: -3.1 },
@@ -541,10 +553,16 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
       const ct = a.trappole.findIndex((x) => x.id === 'campana');
       const accesa = ct >= 0 && (trappole[ct]?.accesa ?? 0) > 0;
       const ts = Math.floor(t * 12) / 12;
-      campana.rotation.x = accesa ? Math.sin(ts * 2.8) * 1.2 : Math.sin(ts * 0.8) * 0.04;
+      if (montata) campana.rotation.x = accesa ? Math.sin(ts * 2.8) * 1.2 : Math.sin(ts * 0.8) * 0.04;
     },
     setPorte(aperte) { for (const [id, l] of porte) for (const o of l) o.visible = !aperte[id]; },
     setCalice(v) { caliceAlt.visible = v; },
+    setCampana(m) {
+      if (m === montata) return;
+      montata = m;
+      campana.visible = m; terra.visible = !m;
+      if (m) campana.rotation.set(0, 0, 0);
+    },
     stats: () => ({ muri: muri.length, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats(), ...dettagli.stats() }),
     dispose() { arredi.dispose(); dettagli.dispose(); accampamento.dispose(); banchetto.dispose(); fin.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
   };

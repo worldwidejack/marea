@@ -22,7 +22,8 @@ import { setFinestra } from './mappa.ts';
 import type { Muro } from './mappa.ts';
 import { ruota, tira } from './proiettili.ts';
 import { usaCassa, vicinoCassa } from './cassa.ts';
-import { accendiTrappola, apriPorta, levaVicina, portaDef, portaVicina, trappolaAccesa, trappolaDef, trappolaPronta } from './porte.ts';
+import { accendiTrappola, apriPorta, levaVicina, portaDef, portaVicina, trappolaAccesa, trappolaDef, trappolaPronta, trappolaUsabile } from './porte.ts';
+import { acceso, fuocoPer, fuocoVicino, lavora, lavoroK, pezziPresi, pezziTutti, pezzoVicino, prendiPezzo } from './fuochi.ts';
 
 const vivi = (s: TState): Zombie[] => s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge');
 const ANIM_TIRO = Math.round(0.25 * 60), ANIM_LANCIO = Math.round(0.35 * 60);
@@ -230,7 +231,13 @@ export function prompt(s: TState): TPrompt {
     if (c.fase === 'pronta' && c.arma) return { cosa: 'prendi', testo: `Prendi: ${armaDef(c.arma).nome}`, prezzo: 0, puoi: true };
   }
   if (dropVicino(s) >= 0 && (!s.eroe.scudo || s.eroe.scudo.vita < TEMPLARI.scudo.vita)) return { cosa: 'scudo', testo: 'Prendi lo scudo templare', prezzo: 0, puoi: true };
+  // i pezzi della campana e i fuochi da accendere (§9b)
+  const pz = pezzoVicino(s);
+  if (pz) return { cosa: 'pezzo', testo: `Prendi: ${(TEMPLARI.campana.pezzi[pz] ?? pz).toLowerCase()} della campana`, prezzo: 0, puoi: true };
+  const fu = fuocoVicino(s);
+  if (fu) return { cosa: 'fuoco', testo: `Accendi: ${(TEMPLARI.fuochi.lista[fu]?.nome ?? fu).toLowerCase()}`, prezzo: 0, puoi: true, k: s.eroe.lavoro === 'fuoco:' + fu ? lavoroK(s) : 0 };
   const chi = chiVicino(s);
+  if (chi && !acceso(s, chi)) return { cosa: chi, testo: chi === 'mercante' ? `La nave è al largo: ${fuocoPer('mercante')?.nome.toLowerCase() ?? 'accendi il fuoco'}` : `La Strega dorme: ${fuocoPer('strega')?.nome.toLowerCase() ?? 'accendi il fuoco'}`, prezzo: 0, puoi: false };
   if (chi) return { cosa: chi, testo: chi === 'mercante' ? 'Il Mercante' : 'La Strega', prezzo: 0, puoi: true };
   const m = muroVicino(s), o = m ? offerta(s, m) : null;
   if (m && o) {
@@ -243,7 +250,11 @@ export function prompt(s: TState): TPrompt {
   if (p) { const d = portaDef(p.id); return { cosa: 'porta', testo: d.nome, prezzo: d.prezzo, puoi: s.punti >= d.prezzo }; }
   const l = levaVicina(s);
   if (l >= 0) {
-    const d = trappolaDef(s.arena.trappole[l]!.id);
+    const id = s.arena.trappole[l]!.id, d = trappolaDef(id);
+    if (id === 'campana' && !s.campana) return pezziTutti(s)
+      ? { cosa: 'monta', testo: 'Monta la campana', prezzo: 0, puoi: true, k: s.eroe.lavoro === 'monta' ? lavoroK(s) : 0 }
+      : { cosa: 'monta', testo: `La campana è a terra: pezzi ${pezziPresi(s)}/${Object.keys(s.pezzi).length}`, prezzo: 0, puoi: false };
+    if (!trappolaUsabile(s, id)) return { cosa: 'trappola', testo: `${d.nome}: ${fuocoPer('rogo')?.nome.toLowerCase() ?? 'accendi il fuoco'} è spento`, prezzo: 0, puoi: false };
     if (trappolaAccesa(s, l)) return { cosa: 'trappola', testo: `${d.nome}: in funzione`, prezzo: 0, puoi: false };
     if (!trappolaPronta(s, l)) return { cosa: 'trappola', testo: `${d.nome}: si ricarica`, prezzo: 0, puoi: false };
     return { cosa: 'trappola', testo: d.nome, prezzo: d.prezzo, puoi: s.punti >= d.prezzo };
@@ -262,6 +273,14 @@ function azione(s: TState, dDown: boolean, dHeld: boolean): void {
     if (presa) daiArma(s, presa);
     return;
   }
+  // fuochi e campana (§9b): un pezzo si prende con un tocco; un fuoco si accende e la campana si monta tenendo AZIONE
+  const pz = pezzoVicino(s);
+  if (dDown && pz) { prendiPezzo(s, pz); return; }
+  const fu = fuocoVicino(s), l0 = levaVicina(s);
+  const monta = !s.campana && pezziTutti(s) && l0 >= 0 && s.arena.trappole[l0]!.id === 'campana';
+  const lavoro = !dHeld ? '' : fu ? 'fuoco:' + fu : monta ? 'monta' : '';
+  lavora(s, lavoro);
+  if (lavoro) return;
   const di = dropVicino(s);
   if (dDown && di >= 0 && (!h.scudo || h.scudo.vita < TEMPLARI.scudo.vita)) {
     h.scudo = { vita: TEMPLARI.scudo.vita };
