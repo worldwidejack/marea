@@ -726,7 +726,7 @@
   "chr_base": {
    "file": "chr_base.glb",
    "tris": 3216,
-   "kb": 309.5,
+   "kb": 178.8,
    "bounds": {
     "min": [
      -0.26,

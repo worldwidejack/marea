@@ -177,8 +177,10 @@ def _corpo():
     for f, c in zip(bm.faces, classi):
         f.material_index = idx[c]
     bm.to_mesh(me); bm.free()
+    # normali morbide nel file: così i vertici tra facce vicine con la stessa UV restano uno solo (con le facce piatte erano ~8.900,
+    # 6 volte il chr_base di prima, e ogni paesano del Porto li rifà a ogni frame). L'aspetto piatto lo dà il client (flatShading).
     for p in me.polygons:
-        p.use_smooth = False
+        p.use_smooth = True
     for n in list(bpy.data.images):
         if n is not img and n.users == 0:
             bpy.data.images.remove(n)
