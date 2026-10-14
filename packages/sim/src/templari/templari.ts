@@ -15,6 +15,7 @@ import { stepFiamme } from './colpi.ts';
 import { stepCassa } from './cassa.ts';
 import { stepTrappole } from './porte.ts';
 import { stepPoteri } from './poteri.ts';
+import { stepSuper } from './super.ts';
 import { resultOf, viewOf } from './vista.ts';
 import { autopilota } from './autopilota.ts';
 import { compra } from './bottega.ts';
@@ -38,6 +39,7 @@ export function stepTemplariInsieme(s: TState, inps: readonly TInput[]): void {
   // per il resto del tick l'eroe di riferimento è il primo in piedi (gli zombie scelgono il loro bersaglio da soli)
   usa(s, inPiedi(s)[0] ?? 0);
   if (!s.done) stepProiettili(s);
+  if (!s.done) stepSuper(s);
   if (!s.done) stepFiamme(s);
   if (!s.done) stepZombi(s);
   if (!s.done) stepTrappole(s);

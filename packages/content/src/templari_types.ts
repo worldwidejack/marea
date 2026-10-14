@@ -39,6 +39,30 @@ export type TArmaDef = {
   aspetto: { modello: string | null; colore: string; forma?: string };
 };
 export type TFiamma = { dps: number; durata: number; raggio: number };
+export type TArmaTipo = TArmaDef['tipo'];
+
+/** Gli eroi del menù d'ingresso (docs/TEMPLARI.md §4b): il tuo avatar con uno dei tre vestiti. */
+export type TClasse = 'crociato' | 'bucaniera' | 'arciere';
+/** Il super: si carica uccidendo (`uccisioni` dell'eroe), si usa col bottone SUPER. `danno` = × la vita degli zombie dell'ondata
+ *  (Giudizio e Bordata: a colpo; Pioggia: al secondo). Giudizio: tutto attorno a te entro `raggio`, spinge di `spinta` m, `intoccabile` s.
+ *  Bordata: `colpi` cannonate in fila lungo la mira, `passo` m l'una dall'altra, la prima dopo `primo` s e poi ogni `ogni` s; il bersaglio
+ *  è il primo zombie lungo la mira entro `gittata` (sennò 3/5 della gittata). Pioggia: un cerchio di `raggio` per `durata` s, stesso bersaglio. */
+export type TSuperDef = {
+  id: 'giudizio' | 'bordata' | 'pioggia'; nome: string; descr: string; uccisioni: number; danno: number; raggio: number;
+  spinta?: number; intoccabile?: number; colpi?: number; passo?: number; gittata?: number; primo?: number; ogni?: number; durata?: number;
+};
+export type TEroeDef = {
+  id: TClasse; nome: string; titolo: string; descr: string;
+  /** Le due armi di partenza (null = slot vuoto); `scudo` = parte con lo scudo templare sulle spalle. */
+  armi: [string, string | null]; scudo?: boolean;
+  /** Vita massima e velocità (× camminata e corsa). */
+  vita: number; velocita: number;
+  /** Danno × per tipo d'arma; ricarica delle armi da fuoco ×; tempo per tendere l'arco ×. */
+  danno: Partial<Record<TArmaTipo, number>>; ricarica?: number; tende?: number;
+  /** Le tacche (1..5) del menù: solo da vedere. */
+  barre: { vita: number; forza: number; velocita: number; mira: number };
+  super: TSuperDef;
+};
 
 export type TNemicoDef = {
   id: string; nome: string;
@@ -149,6 +173,8 @@ export type TemplariCfg = {
   mercante: { raggio: number; potenzia: { prezzo: number; danno: number; dannoMiracolosa: number; colpi: number; riserva: number; ricarica: number }; munizioni: { cassa: number; miracolosa: number; potenziata: number } };
   /** Strega (nella capanna oltre il cimitero): pozioni da bere, al massimo `max` insieme; `beve` = secondi per berla (non si attacca). */
   strega: { raggio: number; max: number; beve: number; pozioni: TPozioneDef[] };
+  /** Gli eroi del menù d'ingresso (il primo è quello di serie). */
+  eroi: TEroeDef[];
   poteri: { probabilita: number; maxOndata: number; aTerra: number; lampeggia: number; durata: number; raggio: number; campane: number; muratori: number; tipi: TPotere[] };
   /** Premio per ondata superata (fino a `maxOndate`) e tetto del giorno UTC. */
   premio: { perOndata: TRisorse; maxOndate: number; tetto: TRisorse };

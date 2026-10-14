@@ -17,15 +17,17 @@ export default async function (ctx) {
   const SERVER = path.join(ctx.ROOT, 'apps/server');
   const persist = path.join(ctx.OUT, `m4tpl-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  // wrangler col node di adesso (come m4_templari_insieme_server): `npx` su Windows non parte (si chiama npx.cmd)
+  const WRANGLER = path.join(ctx.ROOT, 'node_modules/wrangler/bin/wrangler.js');
+  const wr = (...a) => execFileSync(process.execPath, [WRANGLER, ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 90000 }).toString();
   const sim = async (f) => import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src', f)).href);
   const { createRng } = await sim('rng.ts');
   const { templari, stepTemplari } = await sim('templari/templari.ts');
   const { encodeDungeon, packDungeon, quantizeDungeon } = await sim('dungeon/replay.ts');
   const { TEMPLARI } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/templari.ts')).href);
   /** Una partita col pilota (fino a `ticks`): input come li manda il client. */
-  const gioca = (seed, subito, ticks, esci = false) => {
-    const s = templari.create({ seed, opzioni: subito ? { subito: true } : {} }), rng = createRng(seed).fork('autopilot'), frames = [];
+  const gioca = (seed, subito, ticks, esci = false, classe = null) => {
+    const s = templari.create({ seed, opzioni: { ...(subito ? { subito: true } : {}), ...(classe ? { classi: [classe] } : {}) } }), rng = createRng(seed).fork('autopilot'), frames = [];
     while (!s.done && s.tick < ticks) { const f = quantizeDungeon(templari.autopilot(s, rng)); frames.push(f); stepTemplari(s, f); }
     if (esci && !s.done) templari.act(s, { t: 'esci' }); // come fa il client: l'uscita dal menu entra nello stato (e nell'hash)
     return { s, frames, inputs: encodeDungeon(packDungeon(frames)), r: templari.result(s) };
@@ -37,8 +39,8 @@ export default async function (ctx) {
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
     wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command', "INSERT INTO persone (id, nome, token, slot) VALUES ('ada', 'Ada', 'tokA', 0);");
     const port = await freePort(), inspector = await freePort();
-    dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', ctx.distDir, '--persist-to', persist, '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    dev = spawn(process.execPath, [WRANGLER, 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
+      '--assets', ctx.distDir, '--persist-to', persist, '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: process.platform !== 'win32', stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const base = `http://127.0.0.1:${port}`;
     let up = false;
@@ -77,6 +79,16 @@ export default async function (ctx) {
       assert(again.status === 409, 'la stessa partita si chiude due volte: ' + again.status);
     });
 
+    await ctx.test('l’eroe del menù: start lo tiene, finish rigioca con lui (stesso hash); un eroe inventato non si tiene', async () => {
+      const st = (await post('/api/templari/start', { subito: true, classe: 'bucaniera' })).body;
+      assert(st.classe === 'bucaniera' && st.lot.templari.pending.classe === 'bucaniera', 'classe non tenuta: ' + JSON.stringify(st.lot.templari.pending));
+      const g = gioca(st.seed, true, 60 * 60 * 2, false, 'bucaniera');
+      const r = await post('/api/templari/finish', { inputs: g.inputs, azioni: [], hash: g.r.hash });
+      assert(r.status === 200 && r.body.result.hash === g.r.hash && r.body.result.uccisioni === g.r.uccisioni, 'replay con l’eroe diverso: ' + JSON.stringify(r.body.result));
+      const falso = (await post('/api/templari/start', { subito: true, classe: 'drago' })).body;
+      assert(falso.classe === null && falso.lot.templari.pending.classe === undefined, 'eroe inventato tenuto: ' + JSON.stringify(falso.lot.templari.pending));
+    });
+
     await ctx.test('tetto del giorno: oltre, si gioca per il record', async () => {
       let preso = 0, tetto = false;
       for (let k = 0; k < 8 && !tetto; k++) {
@@ -101,7 +113,9 @@ export default async function (ctx) {
       assert(!/\[marea\] (lot error|errore)/.test(log), 'errori nel log:\n' + log.split('\n').filter((l) => /\[marea\]/.test(l)).slice(0, 5).join('\n'));
     });
   } finally {
-    if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
-    fs.rmSync(persist, { recursive: true, force: true });
+    if (dev && process.platform === 'win32') { try { execFileSync('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* già finito */ } }
+    else if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    await sleep(300);
+    try { fs.rmSync(persist, { recursive: true, force: true }); } catch { /* file ancora aperti su Windows */ }
   }
 }

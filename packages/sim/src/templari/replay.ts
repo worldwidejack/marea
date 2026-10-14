@@ -1,6 +1,7 @@
 // Input della partita a ondate dalla rete e replay deterministico per il server. Il formato degli input è quello del dungeon (RLE a ottavi,
 // o la stringa compatta di encodeDungeon); le azioni dal menu sono [tick, azione] con tick = passi già fatti (come nel dungeon).
-import { TEMPLARI } from '@marea/content/templari.ts';
+import { TEMPLARI, eroeDef } from '@marea/content/templari.ts';
+import type { TClasse } from '@marea/content/templari.ts';
 import { decodeDungeon, frameOfRiga, isPackedDungeon } from '../dungeon/replay.ts';
 import type { PackedDungeon } from '../dungeon/types.ts';
 import type { TAzione, TAzioni, TInput, TOpzioni, TRisultato } from './types.ts';
@@ -53,6 +54,11 @@ export function replayTemplari(seed: number, opzioni: TOpzioni, inputs: PackedDu
   return templari.result(s);
 }
 
+/** Gli eroi del menù della squadra dalla rete (uno per eroe; sconosciuto o mancante = senza). */
+export function parseClassi(v: unknown, eroi: number): (TClasse | null)[] {
+  return Array.from({ length: eroi }, (_, i) => (Array.isArray(v) ? eroeDef(typeof v[i] === 'string' ? v[i] : null)?.id ?? null : null));
+}
+
 /** Insieme: azioni dal menu della squadra [[tick, eroe, azione], …] (solo acquisti: chi esce è in `uscite`); null se non valide. */
 export type TAzioniInsieme = [number, number, TAzione][];
 export function parseTAzioniInsieme(v: unknown, eroi: number): TAzioniInsieme | null {
@@ -72,9 +78,9 @@ export function parseTAzioniInsieme(v: unknown, eroi: number): TAzioniInsieme | 
 /** Insieme: il log della squadra (un PackedDungeon per eroe, tutti lunghi uguale: i turni del server), le azioni dal menu di ciascuno e il
  *  tick a cui ognuno è uscito (null = mai). Rigioca fino alla fine della partita o del log; il risultato è quello della squadra, con le
  *  ondate superate da `io` (quelle fino a quando è uscito lui: chi esce prima prende per le ondate che ha visto). */
-export function replayTemplariInsieme(seed: number, inputs: readonly PackedDungeon[], uscite: readonly (number | null)[], io: number, azioni: TAzioniInsieme = []): TRisultato {
+export function replayTemplariInsieme(seed: number, inputs: readonly PackedDungeon[], uscite: readonly (number | null)[], io: number, azioni: TAzioniInsieme = [], classi: readonly (TClasse | null)[] = []): TRisultato {
   const n = inputs.length;
-  const s = templari.create({ seed, opzioni: { subito: true, eroi: n } });
+  const s = templari.create({ seed, opzioni: { subito: true, eroi: n, ...(classi.some(Boolean) ? { classi: [...classi] } : {}) } });
   const riga = inputs.map(() => 0), resto = inputs.map((p) => p[0]?.[0] ?? 0);
   const FERMO: TInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
   const frame = (k: number): TInput => { const r = inputs[k]![riga[k]!]; return r ? frameOfRiga(r) : FERMO; };

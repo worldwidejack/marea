@@ -6,7 +6,7 @@ import { TEMPLARI } from '@marea/content/templari.ts';
 import type { TFiamma, TPotere } from '@marea/content/templari.ts';
 import { moveCircle } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
-import { COLPITO_TICKS, ev, inPiedi, secToTicks, usa } from './stato.ts';
+import { COLPITO_TICKS, classeDi, ev, inPiedi, secToTicks, usa, vitaBase } from './stato.ts';
 import { vicinoRaggiungibile } from './raggiungi.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -28,8 +28,17 @@ export function spendi(s: TState, n: number): boolean {
 /** Punti restituiti (il teschio della cassa): non contano tra quelli guadagnati. */
 export function rendi(s: TState, n: number): void { s.punti += n; ev(s, { t: 'punti', n, perche: 'spesa' }); }
 
-/** `dirX, dirZ`: verso in cui va il colpo (dal colpitore allo zombie); `scudo` false = passa lo scudo (fiamme). */
-export type Colpo = { danno: number; mischia: boolean; caricato: boolean; dirX: number; dirZ: number; spinta: number; scudo?: boolean };
+/** `dirX, dirZ`: verso in cui va il colpo (dal colpitore allo zombie); `scudo` false = passa lo scudo (fiamme); `super` = colpo del
+ *  super (non lo ricarica). */
+export type Colpo = { danno: number; mischia: boolean; caricato: boolean; dirX: number; dirZ: number; spinta: number; scudo?: boolean; super?: boolean };
+
+/** Un'uccisione dell'eroe di turno (super.ts): un passo di carica del suo super; a pieno lo dice una volta. */
+export function caricaSuper(s: TState): void {
+  const h = s.eroe, cl = classeDi(h);
+  if (!cl || h.superK >= 1) return;
+  h.superK = Math.min(1, h.superK + 1 / cl.super.uccisioni);
+  if (h.superK >= 1) ev(s, { t: 'superPronto' });
+}
 export type Esito = 'no' | 'parato' | 'colpito' | 'ucciso';
 
 /** Lo scudato para un colpo che gli arriva davanti (chi colpisce sta nel suo cono), finché lo scudo regge. */
@@ -67,6 +76,7 @@ export function colpisci(s: TState, z: Zombie, c: Colpo): Esito {
   if (c.spinta > 0 && !uccide) moveCircle(s.gr.zombie, z, c.dirX * c.spinta, c.dirZ * c.spinta, z.def.raggio);
   if (!uccide) { dai(s, TEMPLARI.punti.colpo, 'colpo'); return 'colpito'; }
   uccidi(s, z);
+  if (!c.super) caricaSuper(s);
   dai(s, (c.mischia ? TEMPLARI.punti.mischia : TEMPLARI.punti.uccisione) + (z.def.punti ?? 0), c.mischia ? 'mischia' : 'uccisione');
   return 'ucciso';
 }
@@ -157,7 +167,7 @@ function cade(s: TState): void {
   const h = s.eroe;
   if (h.pozioni.includes('risorto')) {
     const p = TEMPLARI.strega.pozioni.find((x) => x.id === 'risorto')!, r = p.spinta ?? 3;
-    h.pozioni = []; h.max = TEMPLARI.eroe.vita; h.vita = h.max; h.quiete = 0; h.intoccabile = s.tick + secToTicks(p.intoccabile ?? 3);
+    h.pozioni = []; h.max = vitaBase(h); h.vita = h.max; h.quiete = 0; h.intoccabile = s.tick + secToTicks(p.intoccabile ?? 3);
     for (const z of s.zombie) {
       if (z.st === 'morto' || z.st === 'sorge') continue;
       const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
@@ -168,7 +178,7 @@ function cade(s: TState): void {
   }
   h.vita = 0; ev(s, { t: 'caduto' });
   if (s.eroi.length === 1) { s.done = true; s.esito = 'morto'; return; }
-  h.giu = true; h.pozioni = []; h.max = TEMPLARI.eroe.vita;
+  h.giu = true; h.pozioni = []; h.max = vitaBase(h);
   h.act = 'idle'; h.actT = 0; h.carica = 0; h.ricarica = 0; h.moving = false; h.corre = false; h.hurt = 0;
   if (!inPiedi(s).length) { s.done = true; s.esito = 'morto'; }
 }

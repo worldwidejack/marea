@@ -93,7 +93,8 @@ export type LotState = {
 /** Partita a ondate aperta dal server (seed e opzioni da rigiocare), premio del giorno e migliori risultati. `party` = insieme: la partita
  *  `run` del DO TemplariInsieme, dove questo giocatore è l'eroe `idx` (l'esito viene dal log della squadra). */
 export type TemplariLotto = {
-  pending: { seed: number; subito: boolean; startMs: number; party?: { run: string; idx: number } } | null;
+  /** `classe`: l'eroe scelto nel menù d'ingresso (assente = senza eroe, come prima del menù); insieme gli eroi stanno nel log della squadra. */
+  pending: { seed: number; subito: boolean; startMs: number; classe?: string; party?: { run: string; idx: number } } | null;
   giorno: number; preso: Resources;
   record: number; partite: number;
 };

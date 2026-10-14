@@ -14,7 +14,8 @@ import { COLPI, GIRO_TEMPO } from '../dungeon/tuning.ts';
 import { sweepTo, swept } from '../dungeon/swing.ts';
 import type { TInput, TPrompt } from './types.ts';
 import type { Slot, TState, Zombie } from './stato.ts';
-import { HOLD_TICKS, armaDi, armaIn, ev, fiatoMax, haPozione, pozioneDef, secToTicks, slotDi, slotIn } from './stato.ts';
+import { HOLD_TICKS, armaDi, armaIn, classeDi, ev, fiatoMax, haPozione, pozioneDef, secToTicks, slotDi, slotIn } from './stato.ts';
+import { usaSuper } from './super.ts';
 import { chiVicino, prezzoMunizioni } from './bottega.ts';
 import { accendi, colpisci, dai, spendi } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
@@ -313,11 +314,12 @@ export function stepEroe(s: TState, inp: TInput): void {
   if (h.hurt > 0) h.hurt--;
   if (h.cd > 0) h.cd--;
   if (h.ricarica > 0 && --h.ricarica === 0) fineRicarica(s);
-  const aDown = inp.a && !h.prevA, cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD;
-  h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d;
+  const aDown = inp.a && !h.prevA, cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD, eDown = !!inp.e && !h.prevE;
+  h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d; h.prevE = !!inp.e;
   const dir = aimDir(inp.m);
   azione(s, dDown, inp.d);
   if (cDown) scambia(s);
+  if (eDown) { usaSuper(s, dir); if (s.done) return; }
   const a = armaIn(s), sl = slotIn(s);
   // attacco
   h.actT++;
@@ -371,7 +373,7 @@ export function stepEroe(s: TState, inp: TInput): void {
   const fm = fiatoMax(s);
   if (h.corre) h.fiato = Math.max(0, h.fiato - DT);
   else h.fiato = Math.min(fm, h.fiato + (fm / c.fiatoPieno) * DT * (h.moving ? 0.5 : 1));
-  let v = (h.corre ? c.corsa : c.camminata) * (haPozione(s, 'viandante') ? pozioneDef('viandante').velocita ?? 1 : 1);
+  let v = (h.corre ? c.corsa : c.camminata) * (haPozione(s, 'viandante') ? pozioneDef('viandante').velocita ?? 1 : 1) * (classeDi(h)?.velocita ?? 1);
   if (lento) v *= c.mentreAttacca;
   if (h.inMano) v *= TEMPLARI.scudo.lentezza;
   if (h.moving) {

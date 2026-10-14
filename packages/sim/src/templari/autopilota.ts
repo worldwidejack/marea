@@ -1,7 +1,7 @@
 // Pilota automatico per i test (e ?autopilot=1): prende l'arco sull'altare laterale e posa la reliquia; in combattimento attacca come
 // AUTO (autoA) e va incontro allo zombie più vicino dentro la chiesa; nei momenti tranquilli raccoglie lo scudo, compra le armi sul muro
 // che si può permettere e ripara le finestre; prende i power-up a terra. Cammina lungo le distanze BFS della griglia dell'eroe (aggira
-// colonne e stalli) e solo dove arriva: le porte non le compra, le zone chiuse non le cerca.
+// colonne e stalli) e solo dove arriva: le porte non le compra, le zone chiuse non le cerca. Col super carico lo usa in mezzo alla folla.
 import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
 import type { Rng } from '../rng.ts';
 import { bfs, cellCenter, cellOf, stepDown } from '../dungeon/map.ts';
@@ -45,6 +45,8 @@ const tocca = (s: TState): TInput => ({ ...FERMO, d: s.tick % 2 === 0 });
 export function autopilota(s: TState, _rng: Rng): TInput {
   const h = s.eroe;
   if (s.done) return FERMO;
+  // il super carico: appena ce ne sono almeno tre a meno di 6 m
+  if (h.superK >= 1 && !h.prevE && s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge' && sq(z.x - h.x) + sq(z.z - h.z) < 36).length >= 3) return { ...FERMO, e: true };
   if (s.fase === 'altare') {
     const arco = s.arena.muri.find((m) => m.arma === 'arco');
     if (arco && !h.armi.some((x) => x?.id === 'arco')) return vicino(s, arco.x, arco.z, 1.0) ? tocca(s) : verso(s, arco.x, arco.z);

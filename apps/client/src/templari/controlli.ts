@@ -1,6 +1,7 @@
 // Controlli delle ondate oltre a joystick, A (attacca) e B (corri) di game/input.ts: AZIONE (dice cosa fa e quanto costa: posa la reliquia,
-// ripara tenendolo premuto, compra), SCAMBIA (le due armi), PAUSA in alto a destra con RIPRENDI · MIRA AUTO/A MANO · ESCI. Tastiera: F =
-// AZIONE (tenuto), Q = scambia, Esc = pausa; clic sinistro tenuto sul canvas = A. Con la pausa (o la domanda «Uscire?») la partita è ferma.
+// ripara tenendolo premuto, compra), SCAMBIA (le due armi), SUPER (l'eroe del menù: l'anello si riempie uccidendo, pieno brilla), PAUSA in
+// alto a destra con RIPRENDI · MIRA AUTO/A MANO · ESCI. Tastiera: F = AZIONE (tenuto), Q = scambia, R = super, Esc = pausa; clic sinistro
+// tenuto sul canvas = A. Con la pausa (o la domanda «Uscire?») la partita è ferma.
 // Niente attacco automatico: attacchi solo quando premi. Telefono, con un'arma a distanza in mano: al posto di A compare il joystick di mira
 // (rpg/mira_stick.ts, `setMira`): trascini = punti, lasci = tira; l'indice di mira arriva in `sample().mira`.
 import type { TPrompt } from '@marea/sim/templari/types.ts';
@@ -17,6 +18,14 @@ const CSS = `
 .mz-tpl-perche { position: absolute; right: ${RIGHT}; bottom: calc(${SAFE} + 258px); max-width: calc(100% - 32px); padding: 4px 8px; background: rgba(46,30,20,.9); color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.rosso}; font: bold 13px ui-monospace, Menlo, monospace; z-index: 16; pointer-events: none; display: none; }
 .mz-tpl-perche.on { display: block; }.mz-tpl-sc { position: absolute; right: calc(${RIGHT} + 96px); bottom: calc(${SAFE} + 122px); width: 56px; height: 56px; border-radius: 50%; display: none; align-items: center; justify-content: center; background: rgba(46,30,20,.8); border: 3px solid rgba(244,227,193,.7); color: ${PAL.sabbiaChiara}; font: bold 12px ui-monospace, Menlo, monospace; z-index: 13; touch-action: none; }
 .mz-tpl-sc.on { display: flex; }
+.mz-tpl-su { --k: 0; position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(${SAFE} + 214px); width: 68px; height: 68px; border-radius: 50%; display: none; align-items: center; justify-content: center; flex-direction: column;
+  background: conic-gradient(${PAL.giallo} calc(var(--k) * 1turn), rgba(46,30,20,.85) 0); border: 3px solid ${PAL.neroCaldo}; color: ${PAL.sabbiaChiara}; font: bold 11px ui-monospace, Menlo, monospace; z-index: 13; touch-action: none; -webkit-user-select: none; user-select: none; }
+.mz-tpl-su.on { display: flex; }
+.mz-tpl-su > span { position: absolute; inset: 6px; border-radius: 50%; background: rgba(46,30,20,.92); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.mz-tpl-su b { font-size: 20px; }
+.mz-tpl-su.pronto { box-shadow: 0 0 0 3px ${PAL.giallo}, 0 0 18px ${PAL.giallo}; animation: mzTplSu .8s steps(2) infinite; }
+.mz-tpl-su.pronto > span { background: ${PAL.rosso}; color: #fff; }
+@keyframes mzTplSu { 50% { transform: scale(1.08); } }
 .mz-tpl-top { position: absolute; right: ${RIGHT}; top: ${TOP}; z-index: 14; display: flex; gap: 8px; }
 .mz-tpl-tb { min-height: 44px; min-width: 44px; padding: 0 10px; display: flex; align-items: center; justify-content: center; gap: 6px; background: ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.legnoChiaro}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; font: bold 14px ui-monospace, Menlo, monospace; cursor: pointer; }
 .mz-tpl-tb .pz { display: flex; gap: 4px; } .mz-tpl-tb .pz i { display: block; width: 5px; height: 16px; background: ${PAL.sabbiaChiara}; box-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
@@ -35,7 +44,9 @@ const CSS = `
 
 export type Controlli = {
   /** Un campione per tick: A in più (clic tenuto), SCAMBIA (fronte), AZIONE (tenuto o appena toccato) e il joystick di mira (il dito). */
-  sample(): { a: boolean; c: boolean; d: boolean; mira: MiraCampione };
+  sample(): { a: boolean; c: boolean; d: boolean; e: boolean; mira: MiraCampione };
+  /** Il bottone SUPER: carica 0..1 (1 = pronto, brilla), null = niente super (senza eroe del menù). `icona` = quella dell'eroe. */
+  setSuper(k: number | null, icona?: string): void;
   readonly paused: boolean;
   /** Telefono, arma a distanza in mano: al posto di A il joystick di mira. */
   setMira(on: boolean): void;
@@ -60,7 +71,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   const az = el('div', 'mz mz-tpl-az'); az.id = 'mzTplAzione'; az.setAttribute('role', 'button');
   const perche = el('div', 'mz mz-tpl-perche'); perche.id = 'mzTplPerche';
   const azHeld = new Set<string>();
-  let dLatch = false, cLatch = false, mouseA = false, ora: TPrompt = null, percheT: ReturnType<typeof setTimeout> | null = null;
+  let dLatch = false, cLatch = false, mouseA = false, mouseLatch = false, ora: TPrompt = null, percheT: ReturnType<typeof setTimeout> | null = null;
   const nega = () => {
     if (!ora || ora.puoi) return;
     perche.textContent = ora.cosa === 'ripara' ? 'Uno zombie la sta strappando' : ora.cosa === 'trappola' ? ora.testo : `Servono ${ora.prezzo} punti`;
@@ -75,6 +86,12 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   az.addEventListener('touchstart', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); for (const t of e.changedTouches) azGiu(`t${t.identifier}`); }, { passive: false });
   for (const ev of ['touchend', 'touchcancel']) az.addEventListener(ev, (e) => { for (const t of (e as TouchEvent).changedTouches) azSu(`t${t.identifier}`); });
   const sc = el('div', 'mz mz-tpl-sc', 'SCAMBIA'); sc.id = 'mzTplScambia'; sc.setAttribute('role', 'button');
+  // SUPER: un tocco (latch, come SCAMBIA)
+  let eLatch = false;
+  const su = el('div', 'mz mz-tpl-su'); su.id = 'mzTplSuper'; su.setAttribute('role', 'button'); su.title = 'Super (R)';
+  const suIn = el('span'); su.append(suIn);
+  su.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); eLatch = true; });
+  su.addEventListener('touchstart', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); eLatch = true; }, { passive: false });
   sc.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); cLatch = true; });
   sc.addEventListener('touchstart', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); cLatch = true; }, { passive: false });
   // pausa e menu
@@ -90,8 +107,8 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   menu.append(titolo, sub, riprendi, esci);
   let pausa = false, chiedi = false;
   const stick = createMiraStick({ id: 'mzTplMira', yaw: o.yaw, blocked: () => pausa });
-  for (const e of [az, sc, top, menu]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, stop);
-  o.root.append(az, perche, sc, stick.el, top, menu);
+  for (const e of [az, sc, su, top, menu]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, stop);
+  o.root.append(az, perche, sc, su, stick.el, top, menu);
   const setPausa = (on: boolean) => {
     pausa = on; chiedi = false; menu.classList.toggle('on', on); if (on) stick.cancel();
     titolo.textContent = 'PAUSA'; sub.textContent = PAUSA; esci.textContent = 'ESCI DALLA PARTITA'; riprendi.style.display = '';
@@ -105,13 +122,14 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   const keys = new Set<string>();
   const kd = (e: KeyboardEvent) => {
     if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) setPausa(!pausa); return; }
-    if (e.code === 'KeyF' || e.code === 'KeyQ') {
-      e.preventDefault(); e.stopImmediatePropagation(); // F e Q sono del gioco (fuori aprono il feed e niente)
-      if (!e.repeat) { keys.add(e.code); if (e.code === 'KeyQ') cLatch = true; else dLatch = true; }
+    if (e.code === 'KeyF' || e.code === 'KeyQ' || e.code === 'KeyR') {
+      e.preventDefault(); e.stopImmediatePropagation(); // F, Q e R sono del gioco (fuori aprono il feed e niente)
+      if (!e.repeat) { keys.add(e.code); if (e.code === 'KeyQ') cLatch = true; else if (e.code === 'KeyR') eLatch = true; else dLatch = true; }
     }
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
-  const md = (e: PointerEvent) => { if (e.button === 0 && e.pointerType === 'mouse') mouseA = true; };
+  // un clic più corto di un fotogramma (PC lenti) arriva lo stesso alla sim: almeno un tick premuto
+  const md = (e: PointerEvent) => { if (e.button === 0 && e.pointerType === 'mouse') { mouseA = true; mouseLatch = true; } };
   const mu = (e: PointerEvent) => { if (e.button === 0) mouseA = false; };
   const blur = () => { keys.clear(); mouseA = false; azHeld.clear(); stick.cancel(); };
   addEventListener('keydown', kd, true); addEventListener('keyup', ku, true);
@@ -119,9 +137,19 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   let promptKey = '';
   return {
     sample() {
-      const out = { a: mouseA, c: cLatch, d: dLatch || azHeld.size > 0 || keys.has('KeyF'), mira: stick.sample() };
-      cLatch = false; dLatch = false;
+      const out = { a: mouseA || mouseLatch, c: cLatch, d: dLatch || azHeld.size > 0 || keys.has('KeyF'), e: eLatch, mira: stick.sample() };
+      cLatch = false; dLatch = false; eLatch = false; mouseLatch = false;
       return out;
+    },
+    setSuper(k, icona) {
+      su.classList.toggle('on', k !== null);
+      if (k === null) return;
+      const q = Math.round(k * 40) / 40, chiave = `${q}|${icona ?? ''}`;
+      if (su.dataset['k'] === chiave) return;
+      su.dataset['k'] = chiave;
+      su.style.setProperty('--k', String(q));
+      su.classList.toggle('pronto', k >= 1);
+      suIn.replaceChildren(el('b', '', icona ?? '✠'), el('small', '', k >= 1 ? 'SUPER' : `${Math.floor(k * 100)}%`));
     },
     get paused() { return pausa; },
     setMira(on) { o.root.classList.toggle('mz-tpl-aimon', stick.setOn(on)); },
@@ -137,13 +165,13 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
       az.replaceChildren(el('span', '', p.testo.toUpperCase()), ...(p.prezzo > 0 ? [el('small', '', String(p.prezzo))] : []), ...(dito ? [] : [el('small', 'tasto', 'F')]));
     },
     setScambia(on) { sc.classList.toggle('on', on); },
-    hide() { az.classList.remove('on'); perche.classList.remove('on'); sc.classList.remove('on'); stick.setOn(false); o.root.classList.remove('mz-tpl-aimon'); top.style.display = 'none'; setPausa(false); },
+    hide() { az.classList.remove('on'); perche.classList.remove('on'); sc.classList.remove('on'); su.classList.remove('on'); stick.setOn(false); o.root.classList.remove('mz-tpl-aimon'); top.style.display = 'none'; setPausa(false); },
     dispose() {
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);
       stick.dispose(); o.root.classList.remove('mz-tpl-aimon');
       if (percheT) clearTimeout(percheT);
-      az.remove(); perche.remove(); sc.remove(); top.remove(); menu.remove();
+      az.remove(); perche.remove(); sc.remove(); su.remove(); top.remove(); menu.remove();
     },
   };
 }

@@ -442,7 +442,7 @@ export default {
       if (path === '/api/templari/start' && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
-        return lotReq(env, p.id, now, 'templari_start', { subito: body['subito'] });
+        return lotReq(env, p.id, now, 'templari_start', { subito: body['subito'], classe: typeof body['classe'] === 'string' ? body['classe'].slice(0, 24) : undefined });
       }
       if (path === '/api/templari/reliquia' && req.method === 'POST') return lotReq(env, p.id, now, 'templari_reliquia', {});
       // Isola dell'Adrenalina (docs/ADRENALINA.md §2): la liberatoria firmata al cancello della funivia

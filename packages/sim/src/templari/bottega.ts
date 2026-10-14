@@ -9,7 +9,7 @@ import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
 import type { TPozione } from '@marea/content/templari.ts';
 import type { TAzione, TEvento, TOfferta } from './types.ts';
 import type { Slot, TState } from './stato.ts';
-import { ev, haPozione, pozioneDef, potenziata, secToTicks, slotDi } from './stato.ts';
+import { ev, haPozione, pozioneDef, potenziata, secToTicks, slotDi, vitaBase } from './stato.ts';
 import { spendi } from './colpi.ts';
 
 /** Sei abbastanza vicino al Mercante o alla Strega per parlarci. */
@@ -87,7 +87,7 @@ export function compra(s: TState, a: Extract<TAzione, { t: 'compra' }>): TEvento
 function bevi(s: TState, id: TPozione): void {
   const h = s.eroe, p = pozioneDef(id);
   h.pozioni.push(id);
-  if (p.vita) { h.vita += p.vita - h.max; h.max = p.vita; }
+  if (p.vita) { const m = vitaBase(h) + p.vita - TEMPLARI.eroe.vita; h.vita += m - h.max; h.max = m; } // la Zuppa: +100 sulla vita dell'eroe
   if (p.volte !== undefined) h.elisir++;
   h.act = 'beve'; h.actT = 0; h.actDur = secToTicks(TEMPLARI.strega.beve); h.ricarica = 0; h.carica = 0;
   ev(s, { t: 'pozione', id });
