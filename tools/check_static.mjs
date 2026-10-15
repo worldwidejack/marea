@@ -52,6 +52,10 @@ for (const f of files) {
   if (r.startsWith('apps/client/src/') && !r.startsWith('apps/client/src/adrenalina/')) {
     for (const m of code.matchAll(/^\s*import\s+(?!type\b)[^'"]*from\s*['"](@marea\/content\/adrenalina[^'"]*|@marea\/sim\/adrenalina\/[^'"]*|@marea\/sim\/minigames\/snowboard[^'"]*)['"]/gm)) errs.push(`${r}: import statico di ${m[1]} fuori da apps/client/src/adrenalina/ (finirebbe nel bundle iniziale: usa import() dinamico)`);
   }
+  // chunk dello sparatutto (docs/SPARO.md): dati e sim solo in apps/client/src/sparo/** (il resto solo `import type` o import())
+  if (r.startsWith('apps/client/src/') && !r.startsWith('apps/client/src/sparo/')) {
+    for (const m of code.matchAll(/^\s*import\s+(?!type\b)[^'"]*from\s*['"](@marea\/content\/sparo[^'"]*|@marea\/sim\/sparo\/[^'"]*)['"]/gm)) errs.push(`${r}: import statico di ${m[1]} fuori da apps/client/src/sparo/ (finirebbe nel bundle iniziale: usa import() dinamico)`);
+  }
   if (isSim && /\bconsole\s*\.\s*(log|debug|info)\s*\(/.test(code)) errs.push(`${r}: console.log in packages/sim (la sim non stampa; i log stanno nel client/server)`);
   if (!r.startsWith('apps/client/') && (/\b(?:from|import)\s*\(?\s*['"]three(?:\/[^'"]*)?['"]/.test(code) || /\bimport\s*\(\s*['"]three/.test(code))) errs.push(`${r}: import di three fuori da apps/client`);
   const nLines = fs.readFileSync(f, 'utf8').split('\n').length;
