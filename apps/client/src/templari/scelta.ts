@@ -319,7 +319,8 @@ export function apriScelta(ctx: TemplariCtx, o: { look: Look; insieme?: boolean 
       for (const [k, f] of fiamme.entries()) { const s = 0.8 + 0.35 * Math.abs(Math.sin(Math.floor(t * 8) * 1.7 + k)); f.scale.set(s, s, s); }
       // inquadratura: in orizzontale l'eroe al centro tra carte e pannello; in verticale in alto, sopra carte e pannello
       const vert = innerHeight > innerWidth * 1.05;
-      if (vert) { cam.position.set(0, 1.5, 7.8); cam.lookAt(0, 0.1, 0); } // l'eroe tra il 12 % e il 55 % dell'altezza, sopra le carte else { cam.position.set(0, 1.5, 5.2); cam.lookAt(0, 0.95, 0); }
+      if (vert) { cam.position.set(0, 1.5, 7.8); cam.lookAt(0, 0.1, 0); } // l'eroe tra il 12 % e il 55 % dell'altezza, sopra le carte
+      else { cam.position.set(0, 1.5, 5.2); cam.lookAt(0, 0.95, 0); }
     },
   };
 }
