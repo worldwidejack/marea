@@ -1,20 +1,25 @@
 // Banco di prova delle piste (provapiste.html, motore v2 dell'Isola delle Corse, docs/CORSE.md A11). Per ogni pista:
 // - la pagina si apre senza errori;
 // - il pilota automatico corre la gara fino in fondo, senza cadute;
-// - draw call ≤ 100 e triangoli ≤ 150.000 a 390×844.
+// - draw call ≤ 100 e triangoli ≤ 150.000 a 390×844;
+// - il terreno non spunta sopra la strada (curve sopraelevate, #258).
 // Sulla pista folle si controlla che il giro della morte si faccia a testa in giù, che ci sia il salto e che si prenda la scorciatoia.
 // Poi la Spiaggia e porto: il porto è misto (ruote e barche, ognuno nella sua corsia) e nella fuga l'onda raggiunge chi va piano.
 // La guida (#170): partenza razzo del pilota automatico, drift da tastiera con le scintille (blu → viola), menù opzioni con le camere
 // (dietro, alta, cofano), minimappa, interruttori delle regole.
+// Gli oggetti (#250): scatole, casella in alto, Q, bot che li usano.
 // Screenshot da telefono (camera dietro e cofano) e da PC (giro della morte, drift viola, baia, porto, onda) in tests/out/shots/m4_provapiste_*.
 // Numeri in tests/out/m4_provapiste.json.
 export const timeout = 300000;
-const MAX_DC = 100, MAX_TRI = 150000;
+const MAX_DC = 100, MAX_TRI = 180000; // come il mondo (TECH §5): coi veicoli AI 3D (#281, ~6.000 triangoli l’uno) al telefono si arriva a ~160.000
 
 export default async function (ctx) {
   const { assert } = ctx;
   const numeri = {};
+  // una pagina sola alla volta: ognuna fa girare il 3D, e senza scheda grafica (CI) cinque pagine aperte fanno scadere il caricamento della
+  // sesta e intasano il browser per le suite dopo (deploy di #253 fermo, 12 ott 2026)
   const apri = async (q, o = {}) => {
+    for (const x of ctx._pages.splice(0)) await x.close().catch(() => {});
     const p = await ctx.open('provapiste.html?ruota=0&' + q, o);
     await p.page.waitForFunction(() => window.__provapiste && window.__provapiste.ready === true, null, { timeout: 30000 });
     return p;
@@ -22,15 +27,18 @@ export default async function (ctx) {
   const corri = (page, tick) => page.evaluate((t) => { const a = window.__provapiste; a.set({ auto: true, vai: true }); let st = a.state(); for (let i = 0; i < t && !st.done; i += 60) st = a.avanti(60); return st; }, tick);
   const fotogrammi = (page, n = 3) => page.evaluate((k) => new Promise((r) => { let i = 0; const f = () => (++i >= k ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
 
-  const p = await apri('pista=prova_anello');
+  const p = await apri('pista=spiaggia_lungomare');
   const piste = await p.page.evaluate(() => window.__provapiste.piste);
-  assert(piste.length >= 8, `piste: ${piste}`);
+  assert(piste.length === 4 && !piste.some((id) => id.startsWith('prova_') || id === 'spiaggia_fuga'), `piste del banco (solo le definitive, Fuga fuori dal gioco): ${piste}`);
   for (const id of piste) {
     await ctx.test(`telefono: ${id} — il pilota automatico arriva in fondo senza cadute, draw call e triangoli nel budget`, async () => {
       await p.page.evaluate((x) => window.__provapiste.set({ pista: x, cam: 'dietro', bot: true }), id);
       let st = await corri(p.page, 60 * 8);
       await fotogrammi(p.page);
       const perf = await p.page.evaluate(() => window.__provapiste.perf());
+      // il terreno non spunta mai sopra la strada, nemmeno nelle curve sopraelevate (#258: prima il kart «entrava nel terreno»)
+      const sp = await p.page.evaluate(() => globalThis.__corseScena?.pista === window.__provapiste.state().pista ? globalThis.__corseScena.sporge : null);
+      assert(sp && sp.m <= 0.05, `${id}: il terreno spunta ${sp?.m?.toFixed(2)} m sopra la strada a s ${sp?.s}, lat ${sp?.lat}`);
       await ctx.shot(p.page, `${id}_dietro`);
       st = await corri(p.page, 60 * 240);
       assert(st.done && st.risultato && st.risultato.detail.giri === st.risultato.detail.tot, `${id}: ${JSON.stringify(st)}`);
@@ -112,6 +120,19 @@ export default async function (ctx) {
       return { st, ramo, aria };
     });
     assert(fine.st.done && fine.ramo > 60 && fine.aria > 20 && fine.st.cadute === 0, JSON.stringify({ ...fine, st: { ...fine.st, risultato: null } }));
+    // il salto del Lungomare (#270): corto (si atterra pochi metri oltre il canale) e sotto la strada le spalle di pietra, non il vuoto
+    const salto = await d.page.evaluate(async () => {
+      const a = window.__provapiste; a.set({ pista: 'spiaggia_lungomare', cam: 'dietro', bot: false, vai: true });
+      await new Promise((r) => setTimeout(r, 300));
+      a.metti(250, 0); let st = a.state(), stacco = null, atterra = null;
+      for (let i = 0; i < 800; i++) { st = a.avanti(1); if (st.aria && stacco === null && st.s > 325) stacco = st.s; if (stacco !== null && !st.aria) { atterra = st.s; break; } }
+      const v = a.state(); a.metti(260, 0); for (let i = 0; i < 400 && a.state().s < 331; i++) a.avanti(1); a.avanti(10); a.set({ pausa: true });
+      return { stacco, atterra, cadute: v.cadute };
+    });
+    assert(salto.stacco && salto.atterra && salto.atterra - salto.stacco < 14 && salto.atterra > 340 && salto.cadute === 0, 'salto del Lungomare: ' + JSON.stringify(salto));
+    await fotogrammi(d.page, 4);
+    await ctx.shot(d.page, 'pc_lungomare_salto');
+    await d.page.evaluate(() => window.__provapiste.set({ pausa: false }));
     await d.page.evaluate(() => window.__provapiste.set({ pista: 'prova_baia', cam: 'alta' }));
     await corri(d.page, 60 * 12);
     await fotogrammi(d.page, 4);
@@ -156,6 +177,100 @@ export default async function (ctx) {
     await fotogrammi(d.page, 3);
     await ctx.shot(d.page, 'pc_fuga_travolto');
     ctx.noErrors(d, 'provapiste fuga');
+  });
+  await ctx.test('PC: con gli oggetti (#250) ci sono le scatole, la roulette si ferma sulla casella in alto, Q usa l\'oggetto, i bot li usano; budget', async () => {
+    const d = await apri('pista=spiaggia_lungomare&bot=1&oggetti=1', { viewport: ctx.B.DESKTOP });
+    const pronto = await d.page.evaluate(() => {
+      const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'dietro' });
+      let st = a.state();
+      for (let i = 0; i < 60 * 120 && !st.done && !(st.oggetti.tasca && st.oggetti.roulette === 0); i++) st = a.avanti(1);
+      a.set({ auto: false });
+      return st;
+    });
+    assert(pronto.oggetti && pronto.oggetti.tasca && pronto.oggetti.scatole > 0, JSON.stringify(pronto.oggetti));
+    await fotogrammi(d.page, 3);
+    const casella = await d.page.evaluate(() => { const e = document.querySelector('.pp-ogg'); return e && getComputedStyle(e).display !== 'none' ? e.textContent : null; });
+    assert(casella && casella.length > 2, `casella dell'oggetto: ${casella}`);
+    await ctx.shot(d.page, 'pc_oggetto_pronto');
+    // la cassa del relitto (la scatola della Spiaggia): fino a quando la prossima fila è a 12-30 m davanti
+    await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true }); let st = a.state(); for (let i = 0; i < 60 * 60 && !(st.oggetti.prossima > 12 && st.oggetti.prossima < 30); i++) st = a.avanti(1); a.set({ pausa: true, auto: false }); });
+    await fotogrammi(d.page, 4);
+    await ctx.shot(d.page, 'pc_spiaggia_scatole');
+    await d.page.evaluate(() => window.__provapiste.set({ pausa: false }));
+    const prima = await d.page.evaluate(() => { const a = window.__provapiste; a.dai('turbo'); return a.state().oggetti.usati[0]; });
+    // Q tenuto e due passi coi comandi veri (non il tempo vero: sotto carico i fotogrammi non arrivano)
+    await d.page.evaluate(() => window.__provapiste.set({ pausa: true }));
+    await d.page.keyboard.down('KeyQ');
+    const dopo = await d.page.evaluate(() => window.__provapiste.passi(2));
+    await d.page.keyboard.up('KeyQ');
+    assert(dopo.oggetti.usati[0] === prima + 1, `Q non usa l'oggetto: ${prima} → ${dopo.oggetti.usati[0]} ${JSON.stringify({ ...dopo.oggetti, done: dopo.done, tick: dopo.tick })}`);
+    // R = dall'altra parte, senza frenare (Jack, 12 ott): la buccia vola avanti e atterra davanti (sprite a forma di banana)
+    const casR = await d.page.evaluate(() => { const a = window.__provapiste; a.passi(1); a.dai('buccia'); return a.state(); }); // un passo con Q lasciato: si usa allo scatto
+    await fotogrammi(d.page, 2);
+    const testoR = await d.page.evaluate(() => document.querySelector('.pp-ogg')?.textContent ?? '');
+    assert(/R avanti/.test(testoR), `casella della buccia senza R: ${testoR}`);
+    await d.page.keyboard.down('KeyR');
+    const conR = await d.page.evaluate(() => window.__provapiste.passi(2));
+    await d.page.keyboard.up('KeyR');
+    assert(conR.oggetti.trappole >= 1 && conR.v > 5, `R: la buccia va avanti senza frenare (${conR.v} m/s): ${JSON.stringify(conR.oggetti)}`);
+    assert(conR.oggetti.usati[0] === casR.oggetti.usati[0] + 1, `R non usa l'oggetto: ${casR.oggetti.usati[0]} → ${conR.oggetti.usati[0]}`);
+    const av = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true }); a.dai('buccia'); const st = a.usa(true); a.avanti(10); a.set({ pausa: true }); return st; });
+    assert(av.oggetti.trappole >= 1, `buccia lanciata avanti: ${JSON.stringify(av.oggetti)}`);
+    await fotogrammi(d.page, 4);
+    await ctx.shot(d.page, 'pc_buccia_avanti');
+    // il salvagente (3D a spicchi), la pallonata (sprite che rotola) e il razzo a ricerca (3D a fasce con l'occhio), dalla concept
+    for (const [ogg, cam, passi] of [['palla', 'dietro', 6], ['razzo', 'dietro', 2]]) {
+      await d.page.evaluate(([o, c, n]) => { const a = window.__provapiste; a.set({ pausa: false, cam: c }); a.dai('scudo'); a.usa(); a.dai(o); a.usa(); a.avanti(n); a.set({ pausa: true }); }, [ogg, cam, passi]);
+      await fotogrammi(d.page, 4);
+      await ctx.shot(d.page, `pc_${ogg}_scudo`);
+    }
+    await d.page.evaluate(() => window.__provapiste.set({ cam: 'dietro' }));
+    // chi viene colpito gira e fuma (fumo a sbuffi tondi, non cubetti)
+    const colpito = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ pausa: false }); let st = a.state(); const p0 = st.oggetti.presi[0]; for (let i = 0; i < 60 * 90 && st.oggetti.presi[0] === p0 && !st.done; i++) st = a.avanti(1); a.avanti(6); a.set({ pausa: true }); return st; });
+    await fotogrammi(d.page, 30);
+    if (colpito.oggetti.presi[0] > 0) await ctx.shot(d.page, 'pc_colpito_fumo');
+    await d.page.evaluate(() => window.__provapiste.set({ pausa: false }));
+    const fine = await corri(d.page, 60 * 240);
+    const perf = await d.page.evaluate(() => window.__provapiste.perf());
+    assert(fine.done && fine.oggetti.usati.slice(1).some((n) => n > 0), `i bot non usano gli oggetti: ${JSON.stringify(fine.oggetti)}`);
+    assert(perf.drawCalls <= MAX_DC, `${perf.drawCalls} draw call`);
+    numeri['oggetti'] = { usati: fine.oggetti.usati, presi: fine.oggetti.presi, drawCalls: perf.drawCalls };
+    ctx.log(`oggetti: usati ${fine.oggetti.usati} · presi ${fine.oggetti.presi} · ${perf.drawCalls} draw call`);
+    ctx.noErrors(d, 'provapiste oggetti');
+  });
+  await ctx.test('PC: la Giungla con gli oggetti (#250): blocco del tempio come scatola, noce di cocco, masso e liana in pista; budget', async () => {
+    const d = await apri('pista=giungla_miniera&bot=1&oggetti=1', { viewport: ctx.B.DESKTOP });
+    // fino a quando la prossima fila di scatole è a 12-30 m davanti
+    const st = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'dietro' }); let st = a.state(); for (let i = 0; i < 60 * 60 && !(st.oggetti.prossima > 12 && st.oggetti.prossima < 30); i++) st = a.avanti(1); a.set({ pausa: true }); return st; });
+    assert(st.oggetti && st.oggetti.scatole > 0, JSON.stringify(st.oggetti));
+    await fotogrammi(d.page, 4);
+    await ctx.shot(d.page, 'pc_giungla_scatole');
+    for (const [ogg, passi] of [['cocco', 8], ['masso', 2], ['liana', 4]]) {
+      const dopo = await d.page.evaluate(([o, n]) => { const a = window.__provapiste; a.set({ pausa: false }); a.avanti(60); a.dai(o); const u = a.usa(); a.avanti(n); a.set({ pausa: true }); return u; }, [ogg, passi]);
+      assert(dopo.oggetti.usati[0] > 0, `${ogg} non usato: ${JSON.stringify(dopo.oggetti)}`);
+      await fotogrammi(d.page, 4);
+      await ctx.shot(d.page, `pc_giungla_${ogg}`);
+    }
+    const perf = await d.page.evaluate(() => window.__provapiste.perf());
+    assert(perf.drawCalls <= MAX_DC, `${perf.drawCalls} draw call`);
+    numeri['oggetti_giungla'] = { drawCalls: perf.drawCalls };
+    ctx.noErrors(d, 'provapiste oggetti giungla');
+  });
+  await ctx.test('PC: urti tra veicoli (#255): affiancati si rimbalza (scintille, scossa, il kart si piega), tamponati si rallenta', async () => {
+    const d = await apri('pista=spiaggia_lungomare&bot=1', { viewport: ctx.B.DESKTOP });
+    await d.page.evaluate(() => { const a = window.__provapiste; a.set({ auto: true, vai: true, cam: 'dietro' }); a.avanti(60 * 4); a.set({ pausa: true }); });
+    await fotogrammi(d.page, 30); // la camera raggiunge il kart (in headless i fotogrammi arrivano solo quando li si chiede)
+    const di = await d.page.evaluate(() => { const a = window.__provapiste; a.affianca(1); return a.avanti(2); }); // in pausa: gli effetti girano, la gara no
+    assert(di.urti >= 1 && Math.abs(di.spinta) > 1, `urto di fianco: ${JSON.stringify({ urti: di.urti, spinta: di.spinta, botta: di.botta })}`);
+    await fotogrammi(d.page, 2);
+    const sc = await d.page.evaluate(() => window.__provapiste.perf().scintille);
+    assert(sc >= 8, `poche scintille dopo l'urto: ${sc}`);
+    ctx.log(`urto: ${sc} scintille`);
+    await ctx.shot(d.page, 'pc_urto_fianco');
+    const ta = await d.page.evaluate(() => { const a = window.__provapiste; a.set({ pausa: false }); a.avanti(60); const v0 = a.state().v; a.affianca(2, true); const st = a.avanti(2); a.set({ pausa: true }); return { v0, v: st.v, urti: st.urti }; });
+    assert(ta.v < ta.v0 - 1, `tamponando si rallenta: ${ta.v0} → ${ta.v}`);
+    numeri['urti'] = { fianco: di.spinta, tampona: [ta.v0, ta.v] };
+    ctx.noErrors(d, 'provapiste urti');
   });
   ctx.writeOut('m4_provapiste.json', numeri);
 }

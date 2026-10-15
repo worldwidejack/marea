@@ -6,6 +6,8 @@
 //   sotto la pista (nei giri della morte il sopra è quello del veicolo);
 // - cofano (Jack: «molto più dentro la macchina, solo il cofano e la strada»): negli occhi del pilota, guarda dove punta il muso.
 // FOV che si allarga con la velocità e col turbo (col colpo `pugno` quando parte), scossa negli atterraggi, tremolio con l'onda vicina.
+// Con `succo` (prova A/B #277, la «B», come la prova Godot di Jack): dietro e alta seguono più pigre (accelerando il veicolo si
+// allontana, frenando si avvicina) e l'obiettivo si allarga molto di più con la velocità (fino a +10°, +7° col turbo).
 import * as THREE from 'three';
 import { nuovaTerna, terna } from '@marea/sim/corse/nastro.ts';
 import { nastroDi } from '@marea/sim/corse/pista.ts';
@@ -15,15 +17,15 @@ import { occhio } from '../veicoli3d.ts';
 
 export type Modo = 'dietro' | 'alta' | 'cofano';
 /** Il tuo veicolo nel mondo (posizione, muso, sopra, moto), la pista, il fronte dell'onda e il saltello del drift (m). */
-export type Inquadra = { pos: THREE.Vector3; fwd: THREE.Vector3; up: THREE.Vector3; moto: THREE.Vector3; k: Veicolo; p: Pista; onda: number; hop: number; effetti: boolean; dt: number };
+export type Inquadra = { pos: THREE.Vector3; fwd: THREE.Vector3; up: THREE.Vector3; moto: THREE.Vector3; k: Veicolo; p: Pista; onda: number; hop: number; effetti: boolean; dt: number; succo?: number };
 
 export function creaRegia(camera: THREE.PerspectiveCamera) {
   const camF = new THREE.Vector3(1, 0, 0), camU = new THREE.Vector3(0, 1, 0), camP = new THREE.Vector3(), camPos = new THREE.Vector3(), // camPos: la posizione nostra (nel gioco il mondo rimette la camera ogni frame)
      tmp = new THREE.Vector3(), dx = new THREE.Vector3(), dir = new THREE.Vector3(0, 0, 1), voluto = new THREE.Vector3(), T3 = nuovaTerna();
   /** ok = false: la prossima inquadratura salta subito al posto giusto (cambio di camera o di gara). */
   const st = { ok: false, pugno: 0, scossa: 0 };
-  const lente = (fov: number, near: number, dt: number) => {
-    if (Math.abs(camera.fov - fov) > 0.05 || camera.near !== near || camera.far !== 900) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 8); camera.near = near; camera.far = 900; camera.updateProjectionMatrix(); }
+  const lente = (fov: number, near: number, dt: number, rapida = 8) => {
+    if (Math.abs(camera.fov - fov) > 0.05 || camera.near !== near || camera.far !== 900) { camera.fov += (fov - camera.fov) * Math.min(1, dt * rapida); camera.near = near; camera.far = 900; camera.updateProjectionMatrix(); }
   };
   function segui(modo: Modo, q: Inquadra): void {
     const { k, p, dt } = q, tel = camera.aspect < 0.8, lungo = camera.aspect > 1.8, v = Math.max(0, k.v); // lungo = telefono in orizzontale (844×390)
@@ -36,7 +38,8 @@ export function creaRegia(camera: THREE.PerspectiveCamera) {
       if (scossa > 0.005) camera.position.addScaledVector(camU, (Math.random() - 0.5) * scossa * 0.5);
       camera.up.copy(camU);
       camera.lookAt(tmp.copy(camera.position).addScaledVector(q.fwd, 10).addScaledVector(camU, tel ? -2.1 : -1.3)); // sul telefono più giù: il muso deve stare sopra i comandi
-      lente((tel ? 84 : 72) + (k.turbo > 0 ? 6 : 0) + Math.max(0, v - 15) * 0.4 + pugno, 0.08, dt);
+      if (q.succo) lente((tel ? 80 : 68) + Math.min(1, v / q.succo) * 12 + (k.turbo > 0 ? 8 : 0) + pugno, 0.08, dt, 5);
+      else lente((tel ? 84 : 72) + (k.turbo > 0 ? 6 : 0) + Math.max(0, v - 15) * 0.4 + pugno, 0.08, dt);
       st.ok = true;
       return;
     }
@@ -62,13 +65,19 @@ export function creaRegia(camera: THREE.PerspectiveCamera) {
     if (tremo > 0) camP.addScaledVector(camU, Math.sin(performance.now() * 0.06) * 0.14 * tremo);
     if (modo === 'dietro') tmp.copy(q.up); else tmp.set(T3.ux, T3.uy, T3.uz).normalize();
     camU.lerp(tmp, st.ok ? 1 - Math.exp(-dt * 10) : 1).normalize();
-    if (st.ok) camPos.lerp(camP, 1 - Math.exp(-dt * 20)); else camPos.copy(camP);
+    if (st.ok) camPos.lerp(camP, 1 - Math.exp(-dt * (q.succo ? 11 : 20))); else camPos.copy(camP);
+    if (q.succo && modo === 'dietro') { // pigra sì, ma mai sotto la pista (giri della morte)
+      const sopra = (camPos.x - T3.x) * T3.ux + (camPos.y - T3.y) * T3.uy + (camPos.z - T3.z) * T3.uz;
+      if (sopra < alt * 0.6) camPos.addScaledVector(tmp.set(T3.ux, T3.uy, T3.uz), alt * 0.6 - sopra);
+    }
     camera.position.copy(camPos);
     if (scossa > 0.005) camera.position.addScaledVector(camU, (Math.random() - 0.5) * scossa).addScaledVector(dx.set(T3.rx, T3.ry, T3.rz), (Math.random() - 0.5) * scossa);
     camera.up.copy(camU);
     camF.copy(q.fwd).multiplyScalar(0.4).addScaledVector(q.moto, 0.6).normalize();
     camera.lookAt(tmp.copy(q.pos).addScaledVector(camF, 4).addScaledVector(q.up, base[2]!));
-    lente((tel ? 78 : lungo ? 58 : 64) + (k.turbo > 0 ? 6 : 0) + Math.max(0, v - 15) * 0.3 + pugno, 0.3, dt);
+    const fov0 = tel ? 78 : lungo ? 58 : 64;
+    if (q.succo) lente(fov0 - 3 + Math.min(1, v / q.succo) * 10 + (k.turbo > 0 ? 7 : 0) + pugno, 0.3, dt, 5);
+    else lente(fov0 + (k.turbo > 0 ? 6 : 0) + Math.max(0, v - 15) * 0.3 + pugno, 0.3, dt);
     st.ok = true;
   }
   return { st, segui };

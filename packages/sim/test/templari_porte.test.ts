@@ -20,6 +20,7 @@ const passi = (s: TState, n: number) => { for (let i = 0; i < n && !s.done; i++)
 const azione = (s: TState) => { stepTemplari(s, { ...F, d: true }); stepTemplari(s, F); };
 function arena(seed = 1, ondata = 1): TState {
   const s = templari.create({ seed, opzioni: { subito: true } });
+  for (const k in s.fuochi) s.fuochi[k] = true; // i fuochi accesi (§9b): Strega, Mercante e rogo funzionano
   s.fase = 'combatti'; s.ondata = ondata; s.quanti = 0; s.usciti = 0; s.prossima = 1e9;
   s.eroe.vita = s.eroe.max = 1e6; // i test non devono morire per sbaglio
   return s;

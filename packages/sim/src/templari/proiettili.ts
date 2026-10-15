@@ -6,6 +6,7 @@ import type { TArmaDef } from '@marea/content/templari.ts';
 import { DT } from '../constants.ts';
 import { isOpaque } from '../dungeon/map.ts';
 import type { Proj, TState, Zombie } from './stato.ts';
+import { usa } from './stato.ts';
 import { colpisci, esplodi } from './colpi.ts';
 
 const MARGINE = 0.15;
@@ -22,7 +23,7 @@ export function tira(s: TState, a: TArmaDef, fx: number, fz: number, danno: numb
   const tipo: Proj['tipo'] = a.tipo === 'arco' ? 'freccia' : a.tipo === 'lancio' ? 'vaso' : 'palla';
   s.proj.push({
     id: s.nextId++, tipo, arma: a.id, x: h.x + fx * 0.45, z: h.z + fz * 0.45, vx: fx * v, vz: fz * v, danno,
-    vita: Math.max(1, Math.round((fino / v) * 60)), trapassa: a.trapassa ?? 0, colpiti: [],
+    vita: Math.max(1, Math.round((fino / v) * 60)), trapassa: a.trapassa ?? 0, colpiti: [], chi: s.chi,
   });
 }
 
@@ -33,8 +34,10 @@ function scoppia(s: TState, p: Proj): void {
 
 export function stepProiettili(s: TState): void {
   if (!s.proj.length) return;
-  const keep: Proj[] = [], g = s.gr.percorso;
+  const keep: Proj[] = [], g = s.gr.percorso, prima = s.chi;
   for (const p of s.proj) {
+    // le uccisioni caricano il super di chi ha tirato (insieme: il suo eroe; da solo è sempre lo 0)
+    if (s.chi !== p.chi && s.eroi[p.chi]) usa(s, p.chi);
     p.vita--;
     const sx = p.vx * DT, sz = p.vz * DT, n = Math.max(1, Math.ceil(Math.sqrt(sx * sx + sz * sz) / 0.4));
     let fine = false;
@@ -54,9 +57,10 @@ export function stepProiettili(s: TState): void {
       p.colpiti.push(primo.id);
       if (e === 'parato' || p.trapassa-- <= 0) { fine = true; break; }
     }
-    if (s.done) return;
+    if (s.done) { usa(s, prima); return; }
     if (!fine && p.vita <= 0) { if (p.tipo === 'vaso') scoppia(s, p); fine = true; }
     if (!fine) keep.push(p);
   }
   s.proj = keep;
+  if (s.chi !== prima) usa(s, prima);
 }

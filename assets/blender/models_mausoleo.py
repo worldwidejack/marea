@@ -1,6 +1,6 @@
 # Mausoleo Cinetico (Epopea della Regata, dungeon 4 — Riccardo, 9 ott 2026): ingresso sull'arco nord-ovest dell'anello della Laguna, kit
 # del dungeon, la chiave di carica, il sarcofago della Regina e i nemici (Chierico a Ingranaggi, Sentinella dell'Egida, Guardia d'Onore,
-# il Custode dell'Egida). SCRITTO SUL PC DI RICCARDO SENZA BLENDER: MAI ESEGUITO. Lo lancia il Claude di Jack:
+# il Custode dell'Egida). Scritto sul PC di Riccardo senza Blender, poi eseguito e rifinito l'11 ott 2026 sul fisso. Si lancia con:
 #   npm run assets prop_ingresso_mausoleo dng_mausoleo_pavimento dng_mausoleo_muro dng_mausoleo_muro_basso dng_mausoleo_colonna dng_mausoleo_leva dng_mausoleo_sarcofago nem_chierico nem_sentinella nem_guardia nem_custode_egida
 # poi lo sistema se qualcosa non torna e guarda il foglio dei contatti (tests/out/rpg_contact.png).
 # I nomi sono quelli che cerca il codice: prop_ingresso_<stile> (game/ingressi.ts), dng_mausoleo_pavimento/muro/muro_basso e
@@ -15,9 +15,9 @@
 # `mat_emissivo`.
 # Convenzioni come models_drenaggio.py: x destra, y su, davanti −Z, 1 unità = 1 m, pivot a terra al centro; dng_* moduli ≤ 60 triangoli
 # (pavimento da 0 a −0,3, muri da 0 a 2,4, bassi 0,6), colonna, chiave e sarcofago 50-200; nem_* ≤ 600 (il Custode, boss, ≤ 1.200); solo
-# colori della palette e regioni dell'atlas che esistono già (i campioni piatti `p_<colore>`). Il marmo a scacchi del pavimento nel
-# segnaposto è a pixel; qui sono quattro quadri di pietra sul marmo chiaro con le righe d'ottone: se serve, una regione `marmo_mausoleo`
-# si aggiunge in atlas.py nelle zone libere, senza spostare le altre.
+# colori della palette e regioni dell'atlas che esistono già (i campioni piatti `p_<colore>`). I conci di marmo dei muri e del
+# tempietto sono la regione `marmo_muro` (aggiunta in atlas.py, zona libera a y 384); il pavimento resta geometria: quattro quadri di
+# pietra sul marmo chiaro con le righe d'ottone.
 # Triangoli contati in Python con un bpy finto (Mesh.tris): ingresso 174, pavimento 18, muro 26, muro basso 10, colonna 190, chiave 74,
 # sarcofago 56, chierico 314, sentinella 176, guardia 170, Custode 438.
 import math
@@ -56,7 +56,7 @@ def prop_ingresso_mausoleo():
     cupola con la lanterna d'acqua in cima e i due canali d'acqua ai lati (≤ 200 triangoli)."""
     m = Mesh('prop_ingresso_mausoleo')
     m.cbox(0, 0.2, 3.6, 3.0, 0, 0.3, 'p_pietra', skip=('bottom',))                                   # gradino
-    m.cbox(0, 0.3, 3.0, 2.4, 0.3, 2.5, 'p_pietra_chiara', skip=('bottom',))                          # il tempietto
+    m.cbox(0, 0.3, 3.0, 2.4, 0.3, 2.5, 'marmo_muro', skip=('bottom',))                          # il tempietto
     m.cbox(0, 0.3, 3.3, 2.7, 2.5, 2.7, 'p_giallo', skip=('bottom',))                                 # cornice d'ottone
     m.loft([m.ring(8, 1.3, 2.7, cz=0.3), m.ring(8, 0.9, 3.4, cz=0.3)], 'p_pietra_chiara', top='p_pietra_chiara')  # cupola
     m.prism(6, 0.32, 0.32, 3.4, 3.9, 'p_giallo', top='p_giallo', cz=0.3)                             # lanterna
@@ -88,7 +88,7 @@ def dng_mausoleo_pavimento():
 
 
 def _muro(m, H):
-    m.box(-1, 0, -1, 1, H, 1, 'p_pietra_chiara', top='p_pietra', skip=('bottom',))
+    m.box(-1, 0, -1, 1, H, 1, 'marmo_muro', top='p_pietra', skip=('bottom',))
     if H > 1:  # fascia d'ottone e il canale dell'acqua alla base
         m.box(-1.02, 1.4, -1.02, 1.02, 1.6, 1.02, 'p_giallo', skip=('bottom', 'top'))
         m.box(-1.01, 0.62, -1.01, 1.01, 0.8, 1.01, 'p_acqua', skip=('bottom', 'top'))

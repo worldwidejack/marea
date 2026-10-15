@@ -30,6 +30,7 @@ Il **sistema dei fantasmi** è uno solo per le due isole: lo scrive chi arriva p
   - poi ti fa salire **solo col casco in testa**. Senza casco: «Senza casco qui non sale nessuno.»
   - Il **casco** è un cappello nuovo, il tredicesimo di GDD §4: si compra a **35 Perle** dall'editor come la Lanterna (lo vende anche il Mercante, ma non è un suo esclusivo), arancione con la striscia bianca e la visiera scura. Prezzo e aspetto si possono ancora cambiare. Lo sblocco è un tipo nuovo, `funivia`: firma più cappello, ma niente cacciata come al Vulcano.
 - **Per le prove** (`?adrenalina=1` nell'indirizzo): liberatoria già firmata, casco non richiesto, e un bottone 🚡 nella barra in alto che porta subito al cancello della funivia. Il premio resta quello vero.
+- **Dal passo 3b** (12 ott 2026) con firma e casco al cancello si sale in funivia e si scende con lo snowboard: aperto a tutti.
 
 ## 3. L'isola
 Un picco solo, da guardare dalla barca come un cartello: «qui si scende».
@@ -56,9 +57,10 @@ Un pollice basta; sul PC tastiera.
 
 | | Telefono | PC |
 |---|---|---|
-| Curvare | trascini a destra e a sinistra | A/D o frecce |
-| Saltare (snowboard) | lasci il dito sul trampolino | lasci Spazio |
-| Trick in aria | un gesto col dito (su, giù, giro) | frecce in aria |
+| Curvare | trascini a destra e a sinistra (da dove hai toccato) | A/D o frecce |
+| Saltare (snowboard) | tieni il dito giù (ti accucci e carichi), lo alzi sul bordo del trampolino | tieni e lasci Spazio |
+| Trick in aria | un colpo veloce col dito: su = mortale avanti, giù = indietro, di lato = 360 | frecce in aria |
+| Presa (snowboard) | in aria tieni il dito fermo; lo alzi prima di toccare terra | Spazio tenuto in aria |
 | Scatto (bici) | tocco | Spazio |
 | Paracadute | tocco = apri | Spazio |
 
@@ -74,13 +76,27 @@ Il marchio dell'isola, uguale in tutti i giochi. **[scelta provvisoria]** sui nu
 ### Snowboard (le piste della neve, dalla vetta)
 Trascini per curvare tra le **porte** (bandierine a coppie), lasci sul **trampolino** per saltare, in aria un gesto = **trick**. Atterrare dritto chiude il trick; atterrare storto è una caduta. Punti: porte passate, salti, trick (più trick nello stesso salto valgono di più), tutto per la barra. Una porta saltata toglie punti, non ferma la discesa. È il primo gioco che si fa (passo 3): se non diverte ci si ferma e si corregge prima degli altri.
 
+Deciso da birbasan il 12 ott 2026 (bozza del passo 3, fatto al **3a**):
+- **Guida arcade** (Cool Boarders, SSX): niente gas, spinge la pendenza; la velocità di lato è pronta; una curva larga tiene la velocità, una stretta frena (è il modo di controllarla). Fuori dal bordo la **neve fresca** rallenta; oltre, tra gli alberi (o contro la roccia nella gola) si cade. Contro un albero cadi solo se ci vai proprio addosso; passarci **rasente** riempie la barra.
+- **Salto**: tieni premuto e ti accucci (carichi); lasci e salti. Sul trampolino conta quando lasci: proprio sul bordo è il **salto grande** (riempie la barra); se non lasci voli lo stesso, ma basso.
+- **Trick**: quattro gesti (mortale avanti, indietro, 360 a destra e a sinistra), uno dopo l'altro nello stesso salto (**combo**: ogni trick in più vale il 50 % in più del primo). La **presa**: in aria tieni premuto senza muovere il dito (PC: Spazio); vale punti finché tieni. Toccare terra ancora in presa o a metà di un trick = atterraggio storto, una caduta. Chiudere all'ultimo istante riempie la barra.
+- **Pista verde, una discesa vera da una montagna** (birbasan, 12 ott: «deve essere molto più realistico, è una discesa da una montagna»; rifatta guardando i video di freeride su YouTube: la follow cam *one take* di Powder Mountain, i Raw Files GoPro di Travis Rice e Sage Kotsenburg, il Natural Selection Tour). ~1,9 km, **~760 m di dislivello**, pendenze da 15° a 38° (il freeride facile è 25-30°), ~108 s col pilota automatico, 11 porte, 3 salti costruiti più i salti naturali. Dalla vetta: la **cresta** (a sinistra il vuoto sulla valle), la **pista battuta con lo slalom** (8 porte), la **cornice** da cui ci si butta nel **muro** (35-38°), la **pala** di neve fresca a conca con due cunette di vento da saltare e rocce che affiorano, il **canale** stretto tra le pareti, il **salto dalla roccia**, il **limite del bosco** (sopra solo neve e rocce, sotto gli abeti), gli abeti radi, il trampolino battuto, il bosco col **fuoripista** (un abete cade di traverso sulla pista battuta; si gira a sinistra in un sentiero di neve alta tra gli alberi, abeti a filo da rasentare, due in mezzo da scansare; si rientra e si arriva sotto lo striscione a scacchi). Il bosco vero, coi sentieri di terra, resta alla bici (passo 5). Sotto, la valle col lago gelato e i boschi; attorno, cime innevate velate dalla foschia.
+- **Salti naturali e botta**: su un dosso o un bordo (la cornice, la roccia) a velocità ci si stacca da soli, come nella realtà (restare attaccati vorrebbe più della gravità: v² × curvatura). Su un pendio ripido si atterra morbidi; in piano da troppo in alto (oltre 17 m/s contro la neve, lungo la sua normale) è una caduta («atterraggio troppo duro»).
+- **La neve che si muove**: la scia della tavola e la polvere che si alza dalla coda (di più in curva e nella neve fresca), la nuvola quando atterri o cadi.
+- **Numeri** (`snowboard.json`, `barra.json`; prima ipotesi, si fissano giocando): gravità 9,81 m/s² (vera), aria 0,0082 (in discesa ripida ~22 m/s, 80 km/h), velocità massima 26 m/s, neve fresca 7 m/s, fuoripista 16 m/s, stacco 0,9 × g, botta 17 m/s; porta +100, porta mancata −150, salto 40 punti per metro d'altezza, mortale 400, 360 250, presa 250 al secondo (minimo 0,2 s); barra: rasente +10 %, palo della porta +8 %, salto grande +20 %, salto lungo (oltre 1,2 s) +12 %, ultimo istante +15 %, cala dell'8 % al secondo dopo 3 s senza rischi; ×2 da metà, ×3 piena.
+- **Camera: la A** (scelta da birbasan il 12 ott), fatta come una follow cam: chi filma scende sul pendio 10 m dietro di te, la camera 2 m sopra la sua neve, guarda giù verso di te e oltre; l'orizzonte resta dritto, nei salti si alza un po' con te, più vai forte più si apre l'inquadratura. La B (dall'alto) è stata tolta.
+
 ### Bici downhill (le piste del bosco)
 Stessi comandi; il tocco è lo **scatto** (un colpo di pedale, poi qualche istante per ricaricare). Sentieri stretti tra gli abeti, radici, passerelle, salti sui dossi. Qui il fantasma conta più che altrove: è una gara contro il tempo dell'amico, con i punti del rischio sopra.
+
+**Banco di prova** `provadiscesa3d.html` (#229, 11 ott 2026; mappa del codice in `CONTRACTS.md` §41). Jack: «un video come sfondo in lontananza, il resto restano modelli». Vicino è tutto 3D: bici pilotabile (pendenza che spinge, sterzo che dipende dalla velocità, piega in curva, salti, scossoni sulle radici, sassi da schivare, cadute da 2 s), sentiero dalla cresta sul mare al bosco di abeti, pezzi del kit Blender `cs_d_*`. Lontano un panorama dipinto (ChatGPT) animato in loop (Kling, 15 crediti) su una sfera che segue la camera. Due camere: occhi col manubrio e dietro bassa col ciclista. Tutto passa dalla stessa passata pixel del gioco. Numeri in `packages/content/src/corse/discesa/bici.json` **[prima ipotesi]**.
 
 ### Lancio dalla vetta (dalla piattaforma sul bordo)
 Ti butti: **caduta libera** negli **anelli** sospesi (trascini per centrarli), il terreno sale. **Tocco = apri il paracadute**: più tardi lo apri, più punti; **troppo tardi** = atterraggio buffo sul prato o in mare sotto le scogliere, pochi punti, non si muore. Sotto il paracadute guidi verso il **bersaglio** d'atterraggio. La **wingsuit** è la pista nera: volo rasente alle rocce in un canyon, la barra si riempie quanto più stai basso.
 
 ## 8. I fantasmi degli amici
+> **Fatto per lo snowboard al passo 3b** (birbasan, 12 ott 2026): scendi contro il fantasma di chi ha il **miglior tempo** sulla pista (la sua discesa rigiocata coi suoi input, semitrasparente, coi suoi colori e il nome sopra; in alto il distacco in secondi). Classifica e input sul server (DO `Sfide`, tabella `discese`). Restano da fare: scegliere il fantasma di un amico al cartello, e le Corse sullo stesso sistema.
+
 - Nessun bot. In pista corri contro la **replica trasparente** del record di un amico su quella pista: è il suo log di input rigiocato nella sim (lo stesso log che il server già usa per controllare il punteggio).
 - Di serie il fantasma è quello del **migliore** del gruppo su quella pista; al cartello si può scegliere un amico.
 - I record per pista stanno sul server (come il Tabellone dei record del Porto, GDD §5), con gli input del migliore di ciascuno.
@@ -88,11 +104,12 @@ Ti butti: **caduta libera** negli **anelli** sospesi (trascini per centrarli), i
 
 ## 9. Premio e sblocchi
 - Ogni discesa paga a medaglie come gli altri minigiochi delle isole a tema: `balance.solo` più un **oro in più** (`premioExtra`), con lo stesso tetto di partite premiate al giorno. **[scelta provvisoria]**: +15 Pietra all'oro.
-- **Medaglie** **[scelta provvisoria]**: in frazione del punteggio del pilota di riferimento sulla stessa pista (come Arrembaggio e Fuga dalla lava). I numeri veri si fissano al passo 3 giocando.
+- **Medaglie col fantasma del record** (birbasan, 12 ott 2026, passo 3b; al posto della frazione del pilota automatico): la classifica di ogni pista è a **tempo finale** (il miglior tempo di ciascuno del gruppo). Se batti il fantasma del primo è **oro**, secondo **argento**, terzo **bronzo**, più giù niente. Se non c'è nessuno davanti (la prima discesa della pista) sei primo: **oro**.
+- **Tempo con abbuoni** (come SSX): tempo finale = tempo della discesa − abbuoni + penalità. Porte, salti, trick e presa fanno punti (per la barra Adrenalina) e i punti diventano secondi di abbuono (**1 s ogni 1.000 punti**); una **porta mancata +2 s**; una caduta costa già i suoi 2 s. All'arrivo: tempo, abbuoni, tempo finale, posto in classifica, medaglia, premio.
 - **Sblocchi delle piste**: una medaglia d'**argento** su una pista apre quella del colore dopo dello stesso gioco **[scelta provvisoria]**.
 
 ## 10. Camera
-Da scegliere al **passo 3** con due screenshot A/B sulla pista verde dello snowboard:
+Scelta il 12 ott 2026: la **A**, come una follow cam dei video di freeride (§7). Era da scegliere tra:
 - **A**: alle spalle, bassa e veloce (più adrenalina);
 - **B**: dall'alto in diagonale come *Lonely Mountains* (più MAREA, più leggibile sul telefono).
 
@@ -105,7 +122,7 @@ Suoni nostri e sintetizzati (motore di `apps/client/src/audio/`, zero file), al 
 - **Dopo il primo giro** (`BACKLOG.md`): tuffo dalla scogliera, moto d'acqua (riusa la barca), parapendio, zipline, bungee.
 
 ## 13. Come funziona sotto (per chi programma)
-- **Un modulo per gioco** in `packages/sim/src/minigames/` (`snowboard.ts`, `downhill.ts`, `lancio.ts`), registrato in `registry.ts` come gli altri: il server paga dal solito giro dei minigiochi (`/api/solo/start`, `/api/solo/play`), rigiocando gli input. Le regole di `packages/sim` valgono tutte (niente trascendenti, `trig.ts`).
+- **Un modulo per gioco** in `packages/sim/src/minigames/` (`snowboard.ts`, `downhill.ts`, `lancio.ts`), registrato come gli altri (al 3b, come le Corse con un `registra.ts` che importa solo il server: il registro finisce nel JS iniziale): il server paga dal solito giro dei minigiochi (`/api/solo/start`, `/api/solo/play`), rigiocando gli input. Le regole di `packages/sim` valgono tutte (niente trascendenti, `trig.ts`).
 - **Piste in content**, non nel seed: `packages/content/src/adrenalina/piste/<gioco>_<colore>.json` (tracciato, porte, salti, anelli, ostacoli). La sim le legge; il seed cambia solo i dettagli.
 - **Barra Adrenalina** come pezzo comune ai tre moduli (stessa logica, stessi numeri da content).
 - **Scena a parte** nel client in un **chunk** suo caricato all'ingresso della funivia, con la sua riga nel budget di `TECH.md` §5.
@@ -115,8 +132,10 @@ Suoni nostri e sintetizzati (motore di `apps/client/src/audio/`, zero file), al 
 ## 14. Piano di lavoro (issue madre #189, una PR per passo, ognuna online)
 1. **Documenti**: questo file, GDD §3 §6 §14, ROADMAP §Deviazioni, BACKLOG. **Ok di Jack** (fatto, 10 ott 2026).
 2. **Isola** (fatto, 10 ott 2026): la montagna (vetta innevata, bosco, scogliere), molo, funivia con le cabine che vanno su e giù, posizione a nord-ovest, lucchetto; il casco e il cancello con la liberatoria; `?adrenalina=1`. Le piste ancora no: con firma e casco il guardiano dice che aprono a giorni.
-3. **Snowboard completo**: pista verde, barra Adrenalina, cadute, medaglie e premio dal server, telefono 390×844. Qui si sceglie la camera. Se non diverte ci si ferma.
-4. **Fantasmi degli amici**: record per pista sul server, il fantasma in pista.
+3. **Snowboard completo**, diviso in due PR (bozza del 12 ott 2026):
+   - **3a** (fatto, 12 ott 2026): la pista verde col fuoripista, la tavola, la barra Adrenalina, le cadute, la scena a parte e la camera A/B, solo con `?adrenalina=1` (alla funivia, firma e casco già a posto, si scende). Serve a vedere se diverte; se no ci si ferma e si corregge.
+   - **3b** (fatto, 12 ott 2026): medaglie col fantasma del record e classifica a tempo con abbuoni (§9, birbasan), premio dal server (`balance.solo` + 15 Pietra all'oro), il viaggio in funivia fino alla vetta, il cartello delle piste in vetta (blu, rossa, nera, bici e lancio col lucchetto), il cartello delle regole e 3-2-1, il tuo avatar vero col casco sulla tavola, la scheda d'arrivo con «Ancora», «In vetta», «Al molo»; aperto a tutti con firma e casco.
+4. **Fantasmi degli amici**: record per pista sul server, il fantasma in pista. *Per lo snowboard fatto col 3b (il fantasma del primo); restano la scelta di un amico al cartello e le Corse.*
 5. **Bici downhill**.
 6. **Lancio dalla vetta** (paracadute; la wingsuit come pista nera).
 7. **Piste blu, rossa e nera** per i tre giochi e sblocchi a medaglie.

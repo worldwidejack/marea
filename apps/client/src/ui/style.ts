@@ -117,6 +117,8 @@ const CSS = `
 .mz-ed-miss.bad { color: ${P.arancio}; }
 .mz-ed-merc { color: ${P.giallo}; font-size: 12px; }
 .mz-ed-url { width: 100%; box-sizing: border-box; min-height: 44px; margin-top: 6px; padding: 0 8px; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; font: bold 13px ui-monospace, Menlo, monospace; -webkit-user-select: text; user-select: text; }
+.mz-ed-nome { width: 100%; box-sizing: border-box; min-height: 44px; padding: 0 8px; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; -webkit-user-select: text; user-select: text; }
+.mz-ed-nome::placeholder { color: ${P.pietraScura}; }
 `;
 
 let injected = false;

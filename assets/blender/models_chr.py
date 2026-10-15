@@ -1,3 +1,5 @@
+# Dal #287 il `chr_base` del gioco è quello fatto con l'AI (models_chr_ai.py, che da qui prende cappelli, clip e look):
+# questo è il corpo procedurale di prima, che resta come riferimento.
 # Personaggio base: umano a 6 teste, 1,6 m, stile PS1 / FF IX. Davanti −Z, piedi a y = 0, origine ai piedi al centro.
 # Nodi (tutti SkinnedMesh sullo stesso scheletro, figli di `chr_base_rig`):
 #   chr_base            corpo: mat_pelle, mat_vestito (maschere bianche tinte dal client), mat_atlas (pantaloni, scarpe, cintura)

@@ -12,7 +12,7 @@ export function diMateriale(m: MaterialDef): string {
   const n = m.id === 'ossa' ? 'ossa' : m.nome.toLowerCase();
   return /^[aeiou]/.test(n) ? `d'${n}` : `di ${n}`;
 }
-const NOMI_ARMATURA: Partial<Record<string, string>> = { legno: 'Vesti di tela', bronzo: 'Corazza di bronzo' };
+const NOMI_ARMATURA: Partial<Record<string, string>> = { legno: 'Armatura di legno', bronzo: 'Corazza di bronzo' };
 /** Le armi pesanti costano metà materiale in più (arrotondato su). */
 const costoArma = (t: WeaponTypeDef, m: MaterialDef): number => (t.classe === 'pesante' ? Math.ceil(m.arma.quanti * 1.5) : m.arma.quanti);
 const traitsOf = (t: Traits | undefined): Traits => (t ? JSON.parse(JSON.stringify(t)) as Traits : {});

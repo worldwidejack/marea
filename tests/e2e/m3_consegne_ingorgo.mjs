@@ -1,6 +1,6 @@
 // Minigiochi universali: Consegne (in barca, dal molo al molo indicato) e Ingorgo (puzzle a schermo stile Rush Hour). Server locale pulito.
-// API: il server rigioca gli input dell'autopilota e paga l'oro (Consegne partite da un lotto: il molo è il primo input), input rotti 400.
-// Browser PC (Luca, lotto 0): sul molo del lotto compaiono CONSEGNE e INGORGO (non accanto alla barca né allo spawn), nella bussola solo
+// API: il server rigioca gli input dell'autopilota e paga l'oro (Consegne partite dai Templari: il molo è il primo input, #247), input rotti 400.
+// Browser PC (Luca, casa 0): al Porto compaiono CONSEGNE e INGORGO (non accanto alla barca né allo spawn), Ingorgo anche nel giardino; nella bussola solo
 // quelli del Porto; Consegne dal molo: conto alla rovescia, rotta a puntini, meta con bandiera, HUD; l'autopilota consegna tutto, il server premia.
 // Telefono (Mia, 390×844): Ingorgo al Porto, la griglia sta nello schermo, una barca si trascina davvero, RICOMINCIA, Esc ritira;
 // l'autopilota risolve i tre ingorghi e il server premia. HUD delle Consegne leggibile sul telefono.
@@ -47,14 +47,14 @@ export default async function (ctx) {
       return { frames, local: m.result(s) };
     };
 
-    await ctx.test('API: Consegne da un lotto (molo = primo input) e Ingorgo, il server rigioca l\'autopilota e paga l\'oro', async () => {
-      const moli = sim.consegneMoli(), lotto = moli.findIndex((m) => m.id === 'lotto:2');
+    await ctx.test('API: Consegne dal molo dei Templari (molo = primo input) e Ingorgo, il server rigioca l\'autopilota e paga l\'oro', async () => {
+      const moli = sim.consegneMoli(), lotto = moli.findIndex((m) => m.id === 'templari');
       const st = await post('/api/solo/start', 'tokU', { minigame: 'consegne' });
       assert(st.status === 200 && st.body.minigame === 'consegne', `start consegne: ${st.status} ${JSON.stringify(st.body).slice(0, 200)}`);
       const a = autoplay('consegne', st.body.seed, st.body.difficulty, sim.startFrame(lotto));
       const r = await post('/api/solo/play', 'tokU', { inputs: sim.packInputs(a.frames) });
       assert(r.status === 200 && r.body.medal === 'oro', `play consegne: ${r.status} ${JSON.stringify(r.body).slice(0, 300)}`);
-      assert(r.body.detail.partenza === lotto && r.body.detail.consegne === 5 && r.body.score === a.local.score, 'detail: ' + JSON.stringify(r.body.detail));
+      assert(lotto > 0 && r.body.detail.partenza === lotto && r.body.detail.consegne === 4 && r.body.score === a.local.score, 'detail: ' + JSON.stringify(r.body.detail));
       assert(r.body.premiata && JSON.stringify(r.body.premio) === JSON.stringify(balance.solo.premi.oro), 'premio: ' + JSON.stringify(r.body.premio));
       ctx.log(`consegne: ${a.frames.length} tick, ${sim.packInputs(a.frames).length} righe, ${JSON.stringify(sim.packInputs(a.frames)).length} byte`);
       const s2 = await post('/api/solo/start', 'tokU', { minigame: 'ingorgo' });
@@ -87,39 +87,40 @@ export default async function (ctx) {
     const st = () => ctx.getState(page);
     const hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
-    await ctx.test('PC: Consegne e Ingorgo su ogni molo (Porto e lotti); nella bussola solo quelli del Porto', async () => {
+    await ctx.test('PC: Consegne al Porto, Ingorgo al Porto e nei giardini (#237); nella bussola solo quelli del Porto', async () => {
       const s = await st(), ids = s.minigiochi.spots.map((x) => x.id);
-      for (const id of ['consegne:porto', 'ingorgo:porto', 'consegne:lotto:0', 'ingorgo:lotto:0', 'consegne:lotto:7', 'ingorgo:lotto:7']) assert(ids.includes(id), `manca ${id}: ${ids.join(',')}`);
+      for (const id of ['consegne:porto', 'ingorgo:porto', 'ingorgo:lotto:0', 'ingorgo:lotto:7']) assert(ids.includes(id), `manca ${id}: ${ids.join(',')}`);
+      assert(!ids.some((id) => id.startsWith('consegne:lotto')), 'Consegne in un giardino senza molo: ' + ids.join(','));
       assert(ids.indexOf('regata') === 0, 'la Regata deve restare il primo posto (guida)');
       const rows = await page.evaluate(() => [...document.querySelectorAll('#compass [data-id]')].map((r) => r.dataset.id));
       assert(rows.includes('consegne:porto') && rows.includes('ingorgo:porto'), 'bussola: ' + rows.join(','));
       assert(!rows.some((r) => /lotto:/.test(r ?? '')), 'nella bussola ci sono i posti dei lotti: ' + rows.join(','));
     });
 
-    await ctx.test('PC: allo spawn e accanto alla barca del lotto A resta «sali in barca»; sul posto compare GIOCA · CONSEGNE', async () => {
-      await hook('goto', 'lotto:0');
+    await ctx.test('PC: allo spawn e accanto alla barca del Porto A resta «sali in barca»; sul posto compare GIOCA · CONSEGNE', async () => {
+      await hook('goto', 'porto');
       for (const k of ['spawn', 'dock']) {
         await page.evaluate((k) => { const d = window.__game.state().island[k]; window.__game.test.teleport(d.x, d.z); }, k);
         await page.waitForTimeout(250);
         const near = (await st()).minigiochi.near;
         assert(!/^(consegne|ingorgo)/.test(near ?? ''), `al punto ${k} si è vicini a ${near}`);
       }
-      const spot = (await st()).minigiochi.spots.find((x) => x.id === 'consegne:lotto:0');
+      const spot = (await st()).minigiochi.spots.find((x) => x.id === 'consegne:porto');
       await hook('teleport', spot.x, spot.z);
-      await ctx.waitState(page, (q) => q.minigiochi.near === 'consegne:lotto:0', 5000);
+      await ctx.waitState(page, (q) => q.minigiochi.near === 'consegne:porto', 5000);
       await page.waitForSelector('#mzPlay.on', { timeout: 3000 });
       assert(/CONSEGNE/.test(await page.$eval('#mzPlay', (e) => e.textContent)), 'bottone senza CONSEGNE');
       await page.waitForTimeout(400);
     });
     await ctx.shot(page, 'pc_1_molo');
 
-    await ctx.test('PC: GIOCA → in barca dal molo del lotto, conto alla rovescia con la meta, poi HUD, rotta a puntini e boa con la bandiera', async () => {
+    await ctx.test('PC: GIOCA → in barca dal molo del Porto, conto alla rovescia con la meta, poi HUD, rotta a puntini e boa con la bandiera', async () => {
       await page.click('#mzPlay');
       await ctx.waitState(page, (q) => q.consegne?.active && q.consegne.phase === 'countdown', 15000);
       const s = await st();
       assert(s.mode === 'boat' && s.consegne.dest, 'non in barca o senza meta: ' + JSON.stringify(s.consegne));
-      const lot0 = sim.consegneMoli().find((m) => m.id === 'lotto:0');
-      assert(Math.hypot(s.consegne.boat.x - lot0.x, s.consegne.boat.z - lot0.z) < 1, 'la barca non parte dal molo del lotto 0');
+      const lot0 = sim.consegneMoli().find((m) => m.id === 'porto');
+      assert(Math.hypot(s.consegne.boat.x - lot0.x, s.consegne.boat.z - lot0.z) < 1, 'la barca non parte dal molo del Porto');
       assert(/Pacco per/.test(await page.$eval('#mzConsegneBig', (e) => e.textContent)), 'conto alla rovescia senza meta');
       await ctx.shot(page, 'pc_2_via');
       await ctx.waitState(page, (q) => q.consegne.phase === 'race', 30000); // il conto alla rovescia su GitHub (2-4 fps) dura di più
@@ -149,16 +150,16 @@ export default async function (ctx) {
       await ctx.waitState(page, (q) => q.minigiochi.open === true, 90000);
       const s = await st(), r = s.minigiochi.last;
       ctx.log(`consegne: ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
-      assert(r.medal === 'oro' && r.premiata && r.detail.consegne === 5, 'esito: ' + JSON.stringify(r));
+      assert(r.medal === 'oro' && r.premiata && r.detail.consegne === 4, 'esito: ' + JSON.stringify(r));
       for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] === before[k] + balance.solo.premi.oro[k], k);
-      assert(/5\/5 pacchi/.test(await page.locator('#mzEsito').innerText()), 'la scheda non dice 5/5 pacchi');
+      assert(/4\/4 pacchi/.test(await page.locator('#mzEsito').innerText()), 'la scheda non dice 4/4 pacchi');
       assert(s.mode === 'walk' && !s.consegne.active, 'dopo la partita: ' + s.mode);
       await ctx.shot(page, 'pc_4_esito');
       await page.locator('#mzEsito [data-act="ok"]').click();
       assert(!(await page.$('#mzConsegne.on')), 'HUD rimasto acceso');
     });
 
-    await ctx.test('PC: Ingorgo sul molo del lotto; Esc ritira', async () => {
+    await ctx.test('PC: Ingorgo nel giardino; Esc ritira', async () => {
       const spot = (await st()).minigiochi.spots.find((x) => x.id === 'ingorgo:lotto:0');
       await hook('teleport', spot.x, spot.z);
       await ctx.waitState(page, (q) => q.minigiochi.near === 'ingorgo:lotto:0', 5000);

@@ -4,7 +4,28 @@
 import * as THREE from 'three';
 import { M, P, merged, painted } from '../render/island_parts.ts';
 import { kartGeo } from '../render/island_corse.ts';
+import { limiteCurva } from '@marea/sim/corse/binari.ts';
+import { campo } from '@marea/sim/corse/nastro.ts';
+import { nastroDi, veicoloCorse } from '@marea/sim/corse/pista.ts';
+import type { Pista } from '@marea/sim/corse/pista.ts';
+import type { Veicolo } from '@marea/sim/corse/veicolo.ts';
 import { MODELLO, kitPronto, veicoloKit } from './veicoli_kit.ts';
+import { caricaVeicoloAi, haVeicoloAi, veicoloAi } from './veicoli_ai.ts';
+
+/** Sui binari (#228) il carrello non va di traverso: si piega verso l'interno della curva e, oltre il limite, si alza su due ruote
+ *  (si inclina verso fuori). Rollio in radianti (+ = la cima verso destra); `null` per chi non va sui binari. */
+export function rollioBinari(p: Pista, k: Veicolo): number | null {
+  if (!k.agg) return null; // anche i veicoli a ruote agganciati alle rotaie (piste ibride)
+  if (k.aria || k.caduto) return k.piega * 0.15;
+  const n = nastroDi(p, k.ramo), lato = campo(n, n.k, k.s) > 0 ? 1 : -1, quota = quotaBinari(p, k);
+  return k.piega * 0.2 - (quota > 1 ? lato * Math.min(0.45, (quota - 1) * 0.9) : 0);
+}
+/** Sulle rotaie: la spinta di lato in curva rispetto al limite (sopra 1 su due ruote, che frena); 0 fuori. */
+export function quotaBinari(p: Pista, k: Veicolo): number {
+  if (!k.agg || k.aria || k.caduto) return 0;
+  const n = nastroDi(p, k.ramo), kap = campo(n, n.k, k.s), lato = kap > 0 ? 1 : -1;
+  return (k.v * k.v * Math.abs(kap)) / limiteCurva(veicoloCorse(k.id), 1, k.piega * lato);
+}
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cyl = (r0: number, r1: number, h: number, n = 8) => new THREE.CylinderGeometry(r0, r1, h, n);
@@ -27,16 +48,34 @@ function pilota(parts: THREE.BufferGeometry[], colore: string, casco: string, y:
   parts.push(painted(box(0.4, 0.14, 0.06), P.neroCaldo, M(0, y + 0.77, z - 0.33)));
 }
 
+/** Il veicolo pronto da mettere in scena: se il modello ha la carrozzeria fatta con l'AI 3D (#281, veicoli_ai.ts) la geometria tiene solo il
+ *  pilota e la carrozzeria è un figlio della mesh (con la sua texture); sennò è tutta `veicoloGeo`. Se la carrozzeria AI non è ancora
+ *  scaricata il veicolo nasce col modello del kit e la cambia da solo quando arriva. Stessi argomenti di `veicoloGeo`. */
+export function veicoloMesh(id: string, colore: string, casco: string, aspetto: string | null | undefined, animale: string | null | undefined, avatar: boolean, mat: THREE.Material): THREE.Mesh {
+  const modello = aspetto || MODELLO[id] || null, ai = kitPronto() ? veicoloAi(modello) : null;
+  const m = new THREE.Mesh(veicoloGeo(id, colore, casco, aspetto, animale, avatar, !!ai), mat);
+  if (ai) m.add(ai);
+  else if (kitPronto() && haVeicoloAi(modello)) {
+    void caricaVeicoloAi(modello).then(() => {
+      const arrivata = veicoloAi(modello); if (!arrivata) return;
+      const vecchia = m.geometry; m.geometry = veicoloGeo(id, colore, casco, aspetto, animale, avatar, true); vecchia.dispose();
+      m.add(arrivata);
+    });
+  }
+  return m;
+}
+
 /** `aspetto` = un modello del kit (cs_v_…) al posto di quello del veicolo; `animale` = il pilota animale (cs_p_…) al posto del segnaposto.
  *  Finché il kit non è caricato (o per i veicoli senza modello) si disegnano i segnaposto grigi di sempre. */
-export function veicoloGeo(id: string, colore: string, casco: string, aspetto?: string | null, animale?: string | null, avatar = false): THREE.BufferGeometry {
+export function veicoloGeo(id: string, colore: string, casco: string, aspetto?: string | null, animale?: string | null, avatar = false, senzaCarrozzeria = false): THREE.BufferGeometry {
   senzaPilota = avatar;
-  try { return veicoloGeo2(id, colore, casco, aspetto, animale, avatar); } finally { senzaPilota = false; }
+  try { return veicoloGeo2(id, colore, casco, aspetto, animale, avatar, senzaCarrozzeria); } finally { senzaPilota = false; }
 }
-function veicoloGeo2(id: string, colore: string, casco: string, aspetto: string | null | undefined, animale: string | null | undefined, avatar: boolean): THREE.BufferGeometry {
+/** `senzaCarrozzeria` (#281): solo il pilota, perché la carrozzeria è il modello AI (veicoli_ai.ts) attaccato dal chiamante. */
+function veicoloGeo2(id: string, colore: string, casco: string, aspetto: string | null | undefined, animale: string | null | undefined, avatar: boolean, senzaCarrozzeria: boolean): THREE.BufferGeometry {
   const modello = aspetto || MODELLO[id];
   if (modello && kitPronto()) {
-    const k = veicoloKit(modello, animale ?? null, avatar, (y, z) => { const p: THREE.BufferGeometry[] = []; pilota(p, colore, casco, y, z); return merged(p); });
+    const k = veicoloKit(modello, animale ?? null, avatar, (y, z) => { const p: THREE.BufferGeometry[] = []; pilota(p, colore, casco, y, z); return merged(p); }, senzaCarrozzeria);
     if (k) { if (!animale) OCCHI.set(id, k.occhi); return k.geo; } // la camera cofano guarda dagli occhi del giocatore, non dei bot
   }
   const parts: THREE.BufferGeometry[] = [];

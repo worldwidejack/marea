@@ -1,0 +1,52 @@
+{
+  "nome": "Borgo Marea",
+  "_stanza": "La stanza della casa (celle del template lotto): pavimento [x0, z0, x1, z1] escluso x1/z1, porta in fondo verso il giardino, passaggio del giardino verso la stanza, corridoio d'ingresso [x, z0, z1) sotto il pavimento (in fondo si esce in città). Pavimenti e carte da parati: il primo è quello di serie (gratis), gli altri si comprano al negozio dei mobili (`perle`, #265); per aggiungerne uno basta una riga (colori della palette; un `motivo` nuovo va dipinto in game/stanza.ts).",
+  "stanza": { "pavimento": [11, 27, 18, 33], "altezza": 3.2, "retro": [14, 27], "giardino": [14, 19], "corridoio": [14, 33, 35] },
+  "_negozio": "Il negozio dei mobili (#265): `negozio` = dove sta in città (celle del template porto, lo scrive tools/borgo_pianta.py), `negozioDentro` = pavimento [x0, z0, x1, z1) e corridoio [x, z0, z1) nel template `negozio`, altezza dei muri, pavimento e carta (id qui sotto).",
+  "negozio": {"at": [48, 25], "porta": [49, 26], "rot": -2.51},
+  "negozioDentro": { "pavimento": [2, 2, 11, 7], "corridoio": [6, 7, 9], "altezza": 3.6, "finitura": { "pavimento": "piastrelle", "carta": "rombi" } },
+  "pavimenti": [
+    { "id": "piastrelle", "nome": "Piastrelle crema", "motivo": "scacchi", "colori": ["#E8E1D6", "#B9AFA3", "#7F7568"] },
+    { "id": "parquet", "nome": "Parquet di noce", "motivo": "listelli", "colori": ["#C98A4B", "#8E5A2B", "#5A3A1E"], "perle": 25 },
+    { "id": "bambu", "nome": "Stuoia di bambù", "motivo": "stuoia", "colori": ["#E2B97F", "#C98A4B", "#8E5A2B"], "perle": 20 },
+    { "id": "lastre", "nome": "Lastre di pietra", "motivo": "lastre", "colori": ["#B9AFA3", "#7F7568", "#4A4340"], "perle": 30 }
+  ],
+  "carte": [
+    { "id": "rombi", "nome": "Rombi verdi", "motivo": "rombi", "colori": ["#8FC35B", "#4E9A46", "#E2B97F"] },
+    { "id": "righe", "nome": "Righe marine", "motivo": "righe", "colori": ["#7FE3E0", "#3FB9C9", "#E8E1D6"], "perle": 20 },
+    { "id": "mattoni", "nome": "Muro di pietra", "motivo": "mattoni", "colori": ["#7F7568", "#4A4340", "#B9AFA3"], "perle": 25 },
+    { "id": "perline", "nome": "Perline di legno", "motivo": "perline", "colori": ["#C98A4B", "#8E5A2B", "#5A3A1E"], "perle": 25 }
+  ],
+  "case": [
+    {"at": [61,41], "porta": [59,41]},
+    {"at": [60,39], "porta": [59,39]},
+    {"at": [59,37], "porta": [58,37]},
+    {"at": [42,27], "porta": [42,29]},
+    {"at": [40,28], "porta": [40,29]},
+    {"at": [36,29], "porta": [37,30]},
+    {"at": [34,30], "porta": [35,31]},
+    {"at": [32,32], "porta": [33,33]},
+    {"at": [27,47], "porta": [29,47]},
+    {"at": [28,49], "porta": [29,49]},
+    {"at": [29,52], "porta": [30,51]},
+    {"at": [31,54], "porta": [32,54]},
+    {"at": [63,45], "porta": [65,45]},
+    {"at": [63,43], "porta": [65,43]},
+    {"at": [63,41], "porta": [64,41]},
+    {"at": [62,39], "porta": [64,39]},
+    {"at": [61,36], "porta": [63,35]},
+    {"at": [60,34], "porta": [62,33]},
+    {"at": [59,32], "porta": [60,31]},
+    {"at": [43,25], "porta": [43,23]},
+    {"at": [40,25], "porta": [40,24]},
+    {"at": [38,26], "porta": [37,25]},
+    {"at": [34,28], "porta": [33,27]},
+    {"at": [31,30], "porta": [30,29]},
+    {"at": [25,47], "porta": [24,47]},
+    {"at": [26,49], "porta": [24,49]},
+    {"at": [26,51], "porta": [25,51]},
+    {"at": [27,53], "porta": [26,54]},
+    {"at": [29,55], "porta": [27,56]},
+    {"at": [30,57], "porta": [29,58]}
+  ]
+}

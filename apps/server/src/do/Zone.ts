@@ -65,6 +65,7 @@ export class Zone extends DurableObject<Env> {
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
     if (req.method === 'POST' && url.pathname === '/look') return this.nuovoLook(req);
+    if (req.method === 'POST' && url.pathname === '/nome') return this.nuovoNome(req);
     if (req.headers.get('upgrade') !== 'websocket') return new Response('WebSocket atteso', { status: 426 });
     const id = url.searchParams.get('id') ?? '', nome = url.searchParams.get('nome') ?? 'Ospite', look = url.searchParams.get('look') ?? '{}';
     if (!id) return new Response('Manca la persona', { status: 400 });
@@ -104,6 +105,28 @@ export class Zone extends DurableObject<Env> {
       if (!a || a.gone) continue;
       const { titolo: _via, barca: _b, indossa: _i, ...resto } = a.peer; // titolo (#87), barca (#107) e indossa (#190) arrivano sempre insieme al look: assenti = tolti
       a.peer = { ...resto, look, ...(titolo ? { titolo } : {}), ...barca, ...(indossa ? { indossa } : {}) };
+      try { ws.serializeAttachment(a); any = true; } catch { /* socket già finito */ }
+    }
+    if (any) { this.dirty.add(id); this.schedule(); }
+    return new Response(null, { status: 204 });
+  }
+
+  /** Nome salvato dal Worker (già validato lì). Aggiorna il peer e lo manda nel prossimo snap (#301). */
+  private async nuovoNome(req: Request): Promise<Response> {
+    const id = req.headers.get('x-persona') ?? '';
+    let nome = '';
+    try {
+      const raw: unknown = await req.json();
+      if (raw && typeof raw === 'object' && typeof (raw as Record<string, unknown>)['nome'] === 'string') {
+        nome = ((raw as Record<string, unknown>)['nome'] as string).trim();
+      }
+    } catch { /* corpo rotto */ }
+    if (!id || !nome) return new Response(null, { status: 400 });
+    let any = false;
+    for (const ws of this.ctx.getWebSockets(id)) {
+      const a = this.att(ws);
+      if (!a || a.gone) continue;
+      a.peer = { ...a.peer, nome };
       try { ws.serializeAttachment(a); any = true; } catch { /* socket già finito */ }
     }
     if (any) { this.dirty.add(id); this.schedule(); }

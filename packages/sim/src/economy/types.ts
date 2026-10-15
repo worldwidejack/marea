@@ -2,6 +2,7 @@ import type { Resources } from '@marea/content';
 import type { DungeonLotState, HeroState } from '../rpg/types.ts';
 export type { Resources };
 
+import type { CasaState } from './casa.ts';
 export type PlacedBuilding = { id: string; building: string; level: number; cell: [number, number]; buffer: number; lastMs: number };
 /** Decorazione posata. `rot` = quarti di giro (0-3) attorno all'asse verticale; assente = 0 (#108). */
 export type PlacedDecor = { id: string; decor: string; cell: [number, number]; rot?: number };
@@ -86,10 +87,14 @@ export type LotState = {
   reliquie?: string[];
   /** Liberatorie firmate (Isola dell'Adrenalina, docs/ADRENALINA.md §2): con il cappello giusto aprono le isole con sblocco `funivia`. Assente = []. */
   liberatorie?: string[];
+  /** La casa arredabile (#265, economy/casa.ts): magazzino dei mobili, mobili posati, pavimenti e carte. Assente = stanza vuota di serie. */
+  casa?: CasaState;
 };
-/** Partita a ondate aperta dal server (seed e opzioni da rigiocare), premio del giorno e migliori risultati. */
+/** Partita a ondate aperta dal server (seed e opzioni da rigiocare), premio del giorno e migliori risultati. `party` = insieme: la partita
+ *  `run` del DO TemplariInsieme, dove questo giocatore è l'eroe `idx` (l'esito viene dal log della squadra). */
 export type TemplariLotto = {
-  pending: { seed: number; subito: boolean; startMs: number } | null;
+  /** `classe`: l'eroe scelto nel menù d'ingresso (assente = senza eroe, come prima del menù); insieme gli eroi stanno nel log della squadra. */
+  pending: { seed: number; subito: boolean; startMs: number; classe?: string; party?: { run: string; idx: number } } | null;
   giorno: number; preso: Resources;
   record: number; partite: number;
 };

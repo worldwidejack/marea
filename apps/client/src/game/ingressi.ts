@@ -47,9 +47,9 @@ export type Ingressi = {
  * Il test e2e m2_dungeon controlla che coincida con DUNGEONS: se un dungeon si sposta, aggiornare anche qui.
  */
 export const INGRESSI = [
-  { id: 'grotta', nome: 'Grotta della Marea', island: 'porto', at: [32, 7], stile: 'grotta', difficolta: 1 },
+  { id: 'grotta', nome: 'Grotta della Marea', island: 'porto', at: [54, 35], stile: 'grotta', difficolta: 1 },
   { id: 'cripta', nome: 'Cripta delle Ossa', island: 'selvaggia', at: [18, 12], stile: 'cripta', difficolta: 2 },
-  { id: 'vuoto', nome: 'Portale del Vuoto', island: 'neon', at: [20, 13], stile: 'vuoto', difficolta: 6 },
+  { id: 'vuoto', nome: 'Portale del Vuoto', island: 'porto', at: [22, 36], stile: 'vuoto', difficolta: 8, richiede: 'unico_anello_onda' },
   { id: 'drenaggio', nome: 'Impianto di Drenaggio', island: 'laguna', at: [18, 45], stile: 'drenaggio', difficolta: 3 },
   { id: 'archivio', nome: 'Archivio Navigazionale', island: 'laguna', at: [47, 36], stile: 'archivio', difficolta: 4, richiede: 'drenaggio' },
   { id: 'fucina', nome: 'Fucina a Pressione', island: 'laguna', at: [26, 5], stile: 'fucina', difficolta: 5, richiede: 'archivio' },
@@ -101,8 +101,17 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
   });
   type Spot = (typeof spots)[number];
   const next = () => nextDungeon(o.getLot()?.hero?.completati ?? []);
-  /** Porta sigillata per me adesso: il dungeon di prima non è tra i completati. */
-  const sigillato = (s: Spot): boolean => { const r = richiesto(s.id); return !!r && !(o.getLot()?.hero?.completati ?? []).includes(r); };
+  /** Requisito soddisfatto per me adesso (dungeon completato o oggetto posseduto o equipaggiato). */
+  const haRequisito = (r: string): boolean => {
+    const h = o.getLot()?.hero;
+    if (r.startsWith('unico_') || r.startsWith('item:')) {
+      const it = r.startsWith('item:') ? r.slice(5) : r;
+      return (h?.inv?.[it] ?? 0) > 0 || h?.equip?.anello1 === it || h?.equip?.anello2 === it;
+    }
+    return (h?.completati ?? []).includes(r);
+  };
+  /** Porta sigillata o cancello sbarrato per me adesso. */
+  const sigillato = (s: Spot): boolean => { const r = richiesto(s.id); return !!r && !haRequisito(r); };
   const nomeDi = (id: string | null) => INGRESSI.find((d) => d.id === id)?.nome ?? '';
 
   // ---- nel mondo: portale + cartello ----
@@ -263,7 +272,12 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
   async function enter(s: Spot, daTest?: 'ingresso' | 'lanterna'): Promise<void> {
     if (busy || run || o.world.race.on || daBox) return;
     if (!o.api && FLAGS.test && !FLAGS.net) { await provaOffline(s); return; }
-    if (sigillato(s)) { lastErr = `Sigillato: prima completa ${nomeDi(richiesto(s.id))}`; o.hud.toast(lastErr, 3200); return; }
+    if (sigillato(s)) {
+      const r = richiesto(s.id);
+      lastErr = r === 'unico_anello_onda' ? "Il cancello è sbarrato: serve l'Anello dell'Onda della Regina" : `Sigillato: prima completa ${nomeDi(r)}`;
+      o.hud.toast(lastErr, 3200);
+      return;
+    }
     const api = o.api;
     if (!api) { o.hud.toast('Per scendere serve il tuo link personale', 3000); return; }
     const lan = o.getLot()?.hero?.lanterne?.[s.id];
@@ -373,7 +387,14 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       if (!aPiedi) { near = null; vicini = 0; return; }
       near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < NEAR_M) ?? null;
       vicini = near ? viciniA(near) : 0;
-      if (near && near !== nearWas) o.hud.toast(sigillato(near) ? `${near.nome}: sigillato. Prima completa ${nomeDi(richiesto(near.id))}` : vicini ? `${near.nome}: ENTRA da solo o AFFRONTA INSIEME` : `${near.nome}: premi A o tocca ENTRA`, 2500);
+      if (near && near !== nearWas) {
+        if (sigillato(near)) {
+          const r = richiesto(near.id);
+          o.hud.toast(r === 'unico_anello_onda' ? `${near.nome}: cancello sbarrato. Serve l'Anello dell'Onda (Mausoleo Cinetico)` : `${near.nome}: sigillato. Prima completa ${nomeDi(r)}`, 2500);
+        } else {
+          o.hud.toast(vicini ? `${near.nome}: ENTRA da solo o AFFRONTA INSIEME` : `${near.nome}: premi A o tocca ENTRA`, 2500);
+        }
+      }
       nearWas = near;
       if (near && pressA && !squadra) void enter(near);
     },
@@ -385,7 +406,10 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       const chiusa = !!near && sigillato(near), bsig = `${near?.id}|${chiusa}`;
       if (show && near && btn.dataset['spot'] !== bsig) {
         btn.dataset['spot'] = bsig;
-        btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', chiusa ? `SIGILLATO · ${near.nome.toUpperCase()}` : `ENTRA · ${near.nome.toUpperCase()}`), el('small', '', chiusa ? `prima: ${nomeDi(richiesto(near.id))}` : 'A'));
+        const r = richiesto(near.id), cancello = r === 'unico_anello_onda';
+        const txt = chiusa ? (cancello ? `CANCELLO CHIUSO · ${near.nome.toUpperCase()}` : `SIGILLATO · ${near.nome.toUpperCase()}`) : `ENTRA · ${near.nome.toUpperCase()}`;
+        const sub = chiusa ? (cancello ? "serve: Anello dell'Onda" : `prima: ${nomeDi(r)}`) : 'A';
+        btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', txt), el('small', '', sub));
       }
       btn.classList.toggle('on', show); btn.classList.toggle('sig', chiusa);
       const showSq = show && vicini > 0 && !chiusa, sig = `${near?.id}|${vicini}`;
@@ -398,7 +422,8 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
           const c = sigillato(m.s);
           if (c !== m.chiuso) {
             m.chiuso = c; m.sig.visible = c;
-            m.label.set('bubble', [pixIcon(m.s.icon, 16), el('span', '', c ? `${m.s.nome.toUpperCase()} · SIGILLATO` : m.s.nome.toUpperCase())], c ? 'dng-sig' : 'dng');
+            const r = richiesto(m.s.id), tag = c ? (r === 'unico_anello_onda' ? ' · CANCELLO CHIUSO' : ' · SIGILLATO') : '';
+            m.label.set('bubble', [pixIcon(m.s.icon, 16), el('span', '', `${m.s.nome.toUpperCase()}${tag}`)], c ? 'dng-sig' : 'dng');
             m.label.el.classList.add('dng'); m.label.el.classList.toggle('sig', c); // set() rifà le classi
           }
         }

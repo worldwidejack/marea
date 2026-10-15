@@ -22,6 +22,11 @@ const CSS = `
 #mzTpl .pot { position: absolute; left: ${LEFT}; top: calc(${TOP} + 122px); display: flex; gap: 6px; }
 #mzTpl .pot span { padding: 2px 6px; background: rgba(35,32,31,.85); border: 2px solid currentColor; font-size: 12px; font-weight: bold; }
 #mzTpl .pot span.lamp { animation: mzTplLamp .5s steps(2) infinite; }
+#mzTpl .poz { position: absolute; left: ${LEFT}; top: calc(${TOP} + 150px); display: flex; gap: 4px; flex-wrap: wrap; max-width: 220px; }
+#mzTpl .isola { position: absolute; left: ${LEFT}; top: calc(${TOP} + 124px); display: flex; gap: 6px; font-size: 11px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
+#mzTpl .isola span { padding: 1px 5px; background: rgba(35,32,31,.75); border: 1px solid ${PAL.pietra}; }
+#mzTpl .isola span.ok { border-color: ${PAL.giallo}; color: ${PAL.giallo}; }
+#mzTpl .poz span { padding: 1px 4px; background: rgba(35,32,31,.85); border: 1px solid currentColor; font-size: 10px; font-weight: bold; }
 @keyframes mzTplLamp { 50% { opacity: .2; } }
 #mzTpl .vign { position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 0 10px rgba(232,67,63,.55), inset 0 0 0 22px rgba(232,67,63,.3), inset 0 0 0 40px rgba(232,67,63,.14); }
 #mzTpl .boss { position: absolute; left: 50%; top: calc(${TOP} + 34px); transform: translateX(-50%); width: min(360px, calc(100% - 140px)); display: none; text-align: center; }
@@ -36,6 +41,10 @@ const CSS = `
 #mzTpl .big.num b { font-size: 92px; letter-spacing: -4px; }
 #mzTpl .big span { display: block; margin-top: 10px; font-size: 15px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 2px 2px 0 ${PAL.neroCaldo}; }
 #mzTpl .msg { position: absolute; left: 50%; top: calc(${TOP} + 8px); transform: translateX(-50%); max-width: calc(100% - 200px); text-align: center; font-size: 14px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 2px 2px 0 ${PAL.neroCaldo}; }
+#mzTpl .amico { position: absolute; left: 0; top: 0; display: none; text-align: center; font-size: 12px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; white-space: nowrap; }
+#mzTpl .amico i { display: block; width: 44px; height: 5px; margin: 2px auto 0; background: ${PAL.ombraCalda}; border: 1px solid ${PAL.neroCaldo}; }
+#mzTpl .amico i b { display: block; height: 100%; background: ${PAL.erbaChiara}; }
+#mzTpl .amico.giu { color: ${PAL.rosso}; }
 @media (max-width: 699px) { #mzTpl .big.num b { font-size: 72px; } #mzTpl .ond b { font-size: 36px; } #mzTpl .msg { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 190px); max-width: calc(100% - 24px); } #mzTpl .big b { font-size: 24px; } }
 /* come nel dungeon (rpg/dungeon_hud.ts): l'interfaccia di superficie sparisce (main.ts mette body.mz-sotto anche qui) */
 body.mz-sotto #compass, body.mz-sotto #mzTop, body.mz-sotto #mzGuida, body.mz-sotto #mzGuidaPtr, body.mz-sotto .mz-bar, body.mz-sotto .mz-work,
@@ -49,12 +58,17 @@ export type TplHud = {
   /** Scritta grande al centro per `ms` (0 = finché non la si toglie). */
   grande(testo: string, colore: string, sub?: string, ms?: number): void;
   togliGrande(): void;
+  /** Insieme: nome e vita sopra la testa dei compagni (px della pagina; `giu` = a terra fino all'ondata dopo). */
+  compagni(list: { x: number; y: number; nome: string; frac: number; giu: boolean }[]): void;
   dispose(): void;
 };
 
 const NOMI_FASE = { altare: 'Porta il calice all’altare', inizio: 'La terra trema…', pausa: 'Respira: arriva la prossima ondata', combatti: '' } as const;
 
-export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string, munizioni: (id: string) => boolean): TplHud {
+/** Sigla e colore delle pozioni della Strega sotto la vita. */
+const POZ: Record<string, [string, string]> = { pietra: ['PIETRA', PAL.pietraChiara], viandante: ['VIANDANTE', PAL.erba], lesto: ['LESTO', PAL.acqua], bombardiere: ['GRAPPA', PAL.arancio], risorto: ['RISORTO', PAL.rosaNeon], fonte: ['FONTE', PAL.acquaBassa] };
+
+export function createTplHud(root: HTMLElement, nomeArma: (id: string, pot?: boolean) => string, munizioni: (id: string) => boolean): TplHud {
   injectUiStyle();
   if (!document.getElementById('mz-tpl-style')) { const st = document.createElement('style'); st.id = 'mz-tpl-style'; st.textContent = CSS; document.head.appendChild(st); }
   const box = el('div', 'mz'); box.id = 'mzTpl';
@@ -66,10 +80,11 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string
   const boss = el('div', 'boss'), bossN = el('b'), bossBar = el('div', 'bar'), bossI = el('i'), bossF = el('em');
   bossBar.append(bossI, bossF); boss.append(bossN, bossBar);
   big.append(bigB, bigS);
-  const pot = el('div', 'pot');
-  box.append(vign, ond, pti, arma, vita, pot, msg, boss, big);
+  const pot = el('div', 'pot'), poz = el('div', 'poz'), isola = el('div', 'isola');
+  box.append(vign, ond, pti, arma, vita, pot, isola, poz, msg, boss, big);
   root.append(box);
-  let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1, pot: '' };
+  const amici: HTMLElement[] = [];
+  let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1, pot: '', poz: '', isola: '' };
 
   return {
     set(v) {
@@ -82,11 +97,30 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string
       if (v.eroe.punti !== shown.pti) { shown.pti = v.eroe.punti; pti.firstChild!.textContent = String(v.eroe.punti); }
       const inMano = v.eroe.scudo?.inMano, a = v.eroe.armi[v.eroe.cur], altra = v.eroe.armi.find((x, i) => i !== v.eroe.cur && x);
       const colpi = !inMano && a && (a.colpi > 0 || a.riserva > 0 || munizioni(a.id)) ? ` ${a.colpi} | ${a.riserva}` : '';
-      const nome = inMano ? 'Scudo templare' : a ? nomeArma(a.id) : '';
+      const nome = inMano ? 'Scudo templare' : a ? nomeArma(a.id, a.pot) : '';
       const sc = v.eroe.scudo ? ` · scudo ${Math.ceil((v.eroe.scudo.vita / v.eroe.scudo.max) * 100)}%` : '';
       const ric = v.eroe.ricarica > 0 ? ' · ricarica…' : '';
       const aTxt = `${nome}|${colpi}|${altra?.id ?? ''}|${sc}|${ric}`;
-      if (aTxt !== shown.arma) { shown.arma = aTxt; arma.replaceChildren(el('span', '', nome), el('b', '', colpi), el('em', '', `${ric}${altra && !inMano ? ` · ${nomeArma(altra.id)}` : ''}${sc}`)); }
+      if (aTxt !== shown.arma) {
+        shown.arma = aTxt;
+        const n = el('span', '', (a?.pot && !inMano ? '✦ ' : '') + nome); if (a?.pot && !inMano) n.style.color = PAL.giallo;
+        arma.replaceChildren(n, el('b', '', colpi), el('em', '', `${ric}${altra && !inMano ? ` · ${nomeArma(altra.id, altra.pot)}` : ''}${sc}`));
+      }
+      // l'isola (§9b): fuochi accesi e pezzi della campana (montata: un segno solo)
+      const accesi = v.fuochi.filter((f) => f.acceso).length, presi = v.pezzi.filter((x) => x.preso).length;
+      const ik = `${accesi}/${v.fuochi.length}|${presi}/${v.pezzi.length}|${v.campana}`;
+      if (ik !== shown.isola) {
+        shown.isola = ik;
+        const f = el('span', accesi === v.fuochi.length ? 'ok' : '', `🔥 ${accesi}/${v.fuochi.length}`);
+        const c = el('span', v.campana ? 'ok' : '', v.campana ? '🔔 montata' : `🔔 ${presi}/${v.pezzi.length}`);
+        isola.replaceChildren(f, c);
+      }
+      // pozioni della Strega bevute
+      const pk2 = v.eroe.pozioni.join(',') + (v.eroe.intoccabile ? '!' : '');
+      if (pk2 !== shown.poz) {
+        shown.poz = pk2;
+        poz.replaceChildren(...v.eroe.pozioni.map((id) => { const [t, c] = POZ[id] ?? [id, PAL.sabbiaChiara]; const x = el('span', '', t); x.style.color = c; return x; }));
+      }
       const fr = Math.max(0, Math.min(1, v.eroe.vita / v.eroe.max));
       if (Math.abs(fr - shown.vita) > 0.01) { shown.vita = fr; vitaI.style.width = `${Math.round(fr * 100)}%`; }
       // bordo rosso: a gradini, più forte quando la vita è bassa e appena colpito
@@ -122,6 +156,18 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string) => string
       bigT = ms > 0 ? setTimeout(() => big.classList.remove('on'), ms) : null;
     },
     togliGrande() { big.classList.remove('on'); },
+    compagni(list) {
+      list.forEach((c, i) => {
+        let e = amici[i];
+        if (!e) { e = el('div', 'amico'); e.append(el('span'), el('i')); e.lastChild!.appendChild(el('b')); box.appendChild(e); amici.push(e); }
+        const testo = c.giu ? `${c.nome} · a terra` : c.nome;
+        if (e.firstChild!.textContent !== testo) e.firstChild!.textContent = testo;
+        e.classList.toggle('giu', c.giu);
+        (e.lastChild!.firstChild as HTMLElement).style.width = `${Math.max(0, Math.round(c.frac * 10)) * 10}%`;
+        e.style.transform = `translate(${Math.round(c.x)}px, ${Math.round(c.y)}px) translate(-50%, -100%)`; e.style.display = 'block';
+      });
+      for (let i = list.length; i < amici.length; i++) amici[i]!.style.display = 'none';
+    },
     dispose() { if (bigT) clearTimeout(bigT); box.remove(); },
   };
 }

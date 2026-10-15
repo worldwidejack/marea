@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { BARCA_DI_SERIE, barcaDi, barcheSovrapposte, canBoard, composeArchipelago, correnteBordo, landingSpot, NO_INPUT, ormeggioLibero, yawOrmeggio } from '@marea/sim';
 import type { Archipelago, ArchPlace, BoatState, GridMap, InputFrame, Posa } from '@marea/sim';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
+import { portaDi } from './borgo.ts';
 import type { BarcaLook, Indossa, Look, LookSalvato, Peer } from '@marea/protocol';
 import type { Flags } from '../flags.ts';
 import type { Renderer } from '../render/scene.ts';
@@ -67,6 +68,12 @@ export type GameWorld = {
   reimbarca(): boolean;
   /** A piedi sull'isola `id` (es. 'templari'), con la barca ormeggiata al suo molo: per i bottoni delle prove. null se non c'è. */
   vai(id: string): ArchPlace | null;
+  /** A piedi in (x, z), la barca resta dov'è (porte del Borgo, #237); `yaw` = verso dove guardi (0 = nord). */
+  aPiedi(x: number, z: number, yaw?: number): void;
+  /** Chiamata dopo il cull di ogni frame, prima del render: chi deve nascondere qualcosa (la stanza della casa, #240). */
+  dopoCull: (() => void) | null;
+  /** Dove guarda la camera invece che su di te (#265, la stanza della casa: inquadratura fissa sopra l'ingresso). null = ti segue. */
+  camFissa: ((x: number, z: number) => { x: number; z: number } | null) | null;
   /** La tua barca (#107): colori e nome; setBarca la ridipinge (anteprima dell'editor, dopo il salvataggio). */
   readonly barca: BarcaLook;
   setBarca(b: BarcaLook): void;
@@ -99,12 +106,15 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   const map = arch.map;
   let slot = o.slot !== undefined ? o.slot : slotFromUrl();
   if (slot !== null && !arch.lots.some((l) => l.slot === slot)) slot = null;
-  const home = arch.spawnOf(slot), homeBoat = arch.boatOf(slot);
+  // Borgo Marea (#237): si nasce davanti alla porta di casa, appena fuori dal raggio del bottone (la guida resta in vista, #267; senza casa: al Porto); la barca sta al molo del Porto, non al giardino
+  const home = (slot !== null ? portaDi({ archipelago: arch }, slot, 2.5) : null) ?? arch.spawnOf(null), homeBoat = arch.boatOf(null);
   const { scene, diorama } = o.renderer;
   const lights = createLights(); scene.add(lights.group);
   const water = createWater({ size: 0 }); water.follow(home.x, home.z); scene.add(water.mesh);
   const island = await createIsland({
     map, loader: o.loader,
+    // il Porto col Borgo attorno è un pezzo solo: la città a vicoli (#265) sta tutta attorno alla piazza e da lì si vede intera; in quattro
+    // pezzi (#247) ogni geometria fusa costava quattro draw call (TECH §5)
     areas: arch.places.map((p) => ({ id: p.island + (p.slot !== null ? '_' + p.slot : ''), x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, style: p.style, scenery: p.scenery })),
     props: arch.props, buildings: arch.buildings, paved: arch.paved,
     // davanti agli ingressi dei dungeon niente scenografia (prima la toglieva ingressi.ts dagli InstancedMesh: ora i prop sono fusi)
@@ -118,10 +128,15 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   scene.add(island.group);
   // prima di ogni render: si disegnano solo le isole nell'inquadratura, da lontano la sagoma (render/island.ts, TECH §5);
   // gli edifici dei lotti (game/lot.ts, gruppi «lot_*» nella scena) stanno nella loro isola: fuori inquadratura o oltre LOD_M non si disegnano
+  let dopoCull: (() => void) | null = null, camFissa: ((x: number, z: number) => { x: number; z: number } | null) | null = null;
   const lotti = { box: new Map<THREE.Object3D, THREE.Box3>(), frame: 0 }, fr = new THREE.Frustum(), pv = new THREE.Matrix4();
   island.group.userData.preRender = () => {
     const cam = o.renderer.camera;
     island.cull?.(cam);
+    // Borgo Marea (#237): dei giardini si disegna solo quello dove sei (stanno vicini, oltre il mare: dall'alto se ne vedrebbero tre o quattro)
+    { const qui = arch.placeAt(avatar.state.x, avatar.state.z), mio = qui?.role === 'lotto' ? 'vista_lotto_' + qui.slot : '';
+      for (const g of island.group.children) if (g.name.startsWith('vista_lotto_') && g.name !== mio) g.visible = false; }
+    dopoCull?.(); // la stanza della casa (#240): dentro si nasconde il resto
     const rifai = lotti.frame++ % 30 === 0; // gli edifici cambiano di rado: la scatola si rifà ogni mezzo secondo
     fr.setFromProjectionMatrix(pv.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     for (const g of scene.children) {
@@ -174,11 +189,15 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   // ---- flotta (#6, #107): la barca di ogni altro, al timone dove naviga o ormeggiata al molo della sua isola
   const abitanti = new Map((o.abitanti ?? []).filter((a) => a.id !== o.meId).map((a) => [a.id, a] as const));
   const ormeggioDi = new Map<string, Posa>();
-  for (const a of abitanti.values()) {
-    if (a.slot === null || !arch.lots.some((l) => l.slot === a.slot)) continue;
-    const b = arch.boatOf(a.slot);
-    ormeggioDi.set(a.id, { x: b.x, z: b.z, yaw: yawOrmeggio(b.x, b.z, map) });
-  }
+  // #237: i giardini non hanno più un molo raggiungibile: le barche degli altri stanno ormeggiate attorno al molo del Porto,
+  // ognuna nel primo posto libero (la B del Porto è della tua). Se attorno al molo non c'è più posto, si vedono solo quando navigano.
+  { const b0 = arch.boatOf(null), presi: Posa[] = [{ x: b0.x, z: b0.z, yaw: yawOrmeggio(b0.x, b0.z, map) }];
+    for (const a of abitanti.values()) {
+      if (a.slot === null) continue;
+      const p = ormeggioLibero(map, b0.x, b0.z, presi);
+      if (!p) break;
+      presi.push(p); ormeggioDi.set(a.id, p);
+    } }
   const flotta = new Map<string, BarcaAltrui>();
   const creaBarca = async (id: string, f: BarcaAltrui, look: Look, barca: BarcaLook) => {
     f.loading = true;
@@ -252,7 +271,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   // Isole a tema (#68) e bordo del mondo (#5): dopo il passo della barca la corrente al bordo e le barriere delle isole chiuse
   let vincoloBarca: GameWorld['vincoloBarca'] = null, bordoToast = 0;
   const dopoBarca = () => {
-    const c = correnteBordo(boat.state, map);
+    const c = correnteBordo(boat.state, map, ARCHIPELAGO.mare);
     if (c.attiva) { Object.assign(boat.state, c.s); if (performance.now() > bordoToast) { bordoToast = performance.now() + 8000; o.hud.toast('La corrente ti riporta verso le isole', 2500); } }
     const v = vincoloBarca?.(boat.prev, boat.state); if (v) Object.assign(boat.state, v);
   };
@@ -291,9 +310,18 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     get frozen() { return frozen; },
     set frozen(v: boolean) { frozen = v; },
     get look() { return look; },
+    get dopoCull() { return dopoCull; },
+    set dopoCull(f) { dopoCull = f; },
+    get camFissa() { return camFissa; },
+    set camFissa(f) { camFissa = f; },
     get vincoloBarca() { return vincoloBarca; },
     set vincoloBarca(f) { vincoloBarca = f; },
     vai(id) { return racing ? null : goto(id); },
+    aPiedi(x, z, yaw) {
+      if (racing) return;
+      mode = 'walk'; boat.setDriver(null); avatar.visible = true; avatar.teleport(x, z, yaw);
+      diorama.follow(x, 0.5, z); diorama.snap?.(); water.follow(x, z);
+    },
     reimbarca() {
       if (mode !== 'walk' || racing) return false;
       moor(boat.state.x, boat.state.z); // prua verso il largo
@@ -332,7 +360,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       updateRemotes(dt, t); liberaOrmeggio(dt);
       const f = mode === 'walk' ? avatar.object.position : boat.object.position;
       focus = { x: f.x, z: f.z };
-      diorama.follow(f.x, 0.5, f.z); diorama.update(dt);
+      const cf = camFissa?.(f.x, f.z) ?? null;
+      diorama.follow(cf?.x ?? f.x, 0.5, cf?.z ?? f.z); diorama.update(dt);
       lights.sun.position.set(f.x - 30, 40, f.z + 20); lights.sun.target.position.set(f.x, 0, f.z);
       water.follow(f.x, f.z);
     },

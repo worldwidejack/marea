@@ -25,6 +25,7 @@ import { creaSchermoHub } from './index.ts';
 import type { IdPorta } from './mappa.ts';
 import { creaPilota } from './guida.ts';
 import { creaPannelli, leggiScelta, salvaScelta } from './pannelli.ts';
+import { creaPalco } from './palco.ts';
 
 const q = new URLSearchParams(location.search);
 const LOOK0: Look = { pelle: 1, capelli: 3, coloreCapelli: 1, vestito: 2, cappello: 0 };
@@ -58,7 +59,8 @@ if (btnB) { btnB.textContent = 'FRENO'; btnB.style.fontSize = '13px'; }
 const ruota = avvisoRuota(root);
 
 // ---------- l'hub ----------
-const pannelli = creaPannelli(root);
+const palco = creaPalco({ camera, look: () => look });
+const pannelli = creaPannelli(root, palco);
 const hub = creaSchermoHub({
   root, camera, look: () => look, pannelli, avatar: q.get('avatar') !== '0',
   porta: (p) => {
@@ -117,8 +119,8 @@ function step() {
 // ---------- tasti ----------
 addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.repeat) return;
-  if (e.code === 'Escape') { if (gara) { gara.s.done = true; gara.fine = 999; } else if (pannelli.aperto()) pannelli.chiudi(); else hub.messaggio('Esc nel gioco = di nuovo nell\'arcipelago'); return; }
-  if (e.code === 'Enter' && pannelli.aperto() === 'piste') { pannelli.via(); return; }
+  if (e.code === 'Escape') { if (gara) { gara.s.done = true; gara.fine = 999; } else if (pannelli.aperto()) { if (!pannelli.indietro()) pannelli.chiudi(); } else hub.messaggio('Esc nel gioco = di nuovo nell\'arcipelago'); return; }
+  if (e.code === 'Enter' && pannelli.aperto()) { pannelli.invio(); return; }
   if (e.code === 'KeyT') { auto = !auto; if (auto) rotta(); hub.messaggio(`pilota automatico ${auto ? 'sì' : 'no'}`, 1.2); }
   if (e.code === 'KeyG') { scelta.gasAuto = !scelta.gasAuto; salvaScelta(scelta); hub.messaggio(`gas ${scelta.gasAuto ? 'automatico' : 'in mano'}`, 1.2); }
 });
@@ -134,6 +136,9 @@ function frame(now: number) {
   if (gara) {
     vista.aggiorna(gara.s, dt, { cam: scelta.cam, effetti: hub.effetti, auto, gasAuto: scelta.gasAuto, fine: gara.s.done, ritirato: gara.fine >= 999 });
     post.render(gl, gScene, camera, time);
+  } else if (palco.attivo()) { // il menù a rulli (#271): la pista sorvolata o il veicolo sulla pedana
+    palco.aggiorna(dt);
+    post.render(gl, palco.scene, camera, time, false); // come nel gioco: niente cielo della passata sopra il fondale dipinto
   } else {
     hub.aggiorna(dt);
     post.render(gl, hub.scene, camera, time);

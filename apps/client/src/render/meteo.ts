@@ -44,14 +44,6 @@ export function conMeteo(m: Momento, stato: MeteoStato, k: number): Momento {
   };
 }
 
-/** Foschia della passata finale (quella di sempre: da 35 a 200 m, fino all'80%): la nebbia la porta a pochi metri, la pioggia un po'. */
-export function foschiaMeteo(stato: MeteoStato, k: number): { near: number; far: number; max: number } {
-  const f = stato === 'nebbia' ? { near: 8, far: 70, max: 0.84 } : stato === 'pioggia' ? { near: 16, far: 120, max: 0.8 } : null;
-  if (!f || k <= 0) return { near: 35, far: 200, max: 0.8 };
-  return { near: 35 + (f.near - 35) * k, far: 200 + (f.far - 200) * k, max: 0.8 + (f.max - 0.8) * k };
-}
-/** La nebbia ha bisogno della passata finale anche con la camera di sempre. */
-export const serveFoschia = (stato: MeteoStato, k: number): boolean => (stato === 'nebbia' || stato === 'pioggia') && k > 0;
 export const coperturaMeteo = (stato: MeteoStato, k: number): number => (stato === 'sereno' ? 0 : PESI[stato].copertura * k);
 
 /** Gocce al massimo (a k = 1). Sono trattini da 2 vertici: pochi KB di attributi, una draw call. */

@@ -4,7 +4,7 @@
 import { ATTRS, PERKS, RPG, SKILLS, spellDef } from '@marea/content/rpg.ts';
 import type { AttrId, ModKey, SkillId, Traits } from '@marea/content/rpg.ts';
 import { ITEMS, itemDef, hasItem, materialOf, weaponTypeOf } from './items.ts';
-import type { HeroState, ItemDef, RunArmor, RunArrows, RunHero, RunPotion, RunSpell, RunWeapon } from './types.ts';
+import type { HeroState, ItemDef, RunArmor, RunArrows, RunHero, RunPerk, RunPotion, RunSpell, RunWeapon } from './types.ts';
 
 export type Mods = Partial<Record<ModKey, number>>;
 const r2 = (x: number): number => Math.round(x * 100) / 100;
@@ -35,7 +35,8 @@ const mod = (m: Mods, k: ModKey): number => m[k] ?? 0;
 export function maxOf(h: HeroState, m: Mods): Record<AttrId, number> {
   const b = RPG.attributi;
   const out = { vita: 0, magicka: 0, stamina: 0 };
-  for (const a of ATTRS) out[a] = Math.max(1, Math.round(b.base[a] + (h.punti[a] ?? 0) * b.perLivello + mod(m, a)));
+  // magickaPct (Riserva): % sul totale della Magicka, oltre ai punti e ai bonus piatti
+  for (const a of ATTRS) out[a] = Math.max(1, Math.round((b.base[a] + (h.punti[a] ?? 0) * b.perLivello + mod(m, a)) * (a === 'magicka' ? 1 + mod(m, 'magickaPct') : 1)));
   return out;
 }
 export function caricoMaxOf(h: HeroState, m: Mods = modsOf(h)): number {
@@ -58,14 +59,16 @@ function armorOf(h: HeroState, m: Mods, staminaMax: number): RunArmor & { legger
   const out = { id: it?.id ?? null, difesa: Math.max(0, mod(m, 'difesa')), malus: 0, vsMagia: 1, vsTaglio: 1, vsContundente: 1, moneteSuColpito: 0, terrore: 0, velocitaMolt: 1, leggera: true };
   if (it && it.kind === 'armatura') {
     const mat = materialOf(it)?.armatura;
-    out.difesa += it.difesa ?? 0;
+    out.difesa += (it.difesa ?? 0) + (it.forgia ? mod(m, 'difesaForgiata') : 0); // Corazzaio: solo le armature forgiate
+    // Cinghie su misura: l'armatura forgiata pesa meno addosso a te (movimento e soglia «leggera»)
+    const peso = it.forgia ? it.peso * Math.max(0, 1 + mod(m, 'pesoForgiato')) : it.peso;
     // il peso oltre `liberi` rallenta; la Stamina sopra la base lo attenua (a 200 di Stamina pesa la metà), i perk anche
-    const raw = Math.max(0, it.peso - (A.liberi ?? 0)) * A.malusPerPeso * (RPG.attributi.base.stamina / Math.max(1, staminaMax)) * Math.max(0, 1 + mod(m, 'malusArmatura'));
+    const raw = Math.max(0, peso - (A.liberi ?? 0)) * A.malusPerPeso * (RPG.attributi.base.stamina / Math.max(1, staminaMax)) * Math.max(0, 1 + mod(m, 'malusArmatura'));
     out.malus = r2(clamp(raw, 0, A.malusMax));
-    out.velocitaMolt = it.peso < 0 ? r2(1 - it.peso * A.malusPerPeso) : 1;
+    out.velocitaMolt = peso < 0 ? r2(1 - peso * A.malusPerPeso) : 1;
     out.vsMagia = mat?.vsMagia ?? 1; out.vsTaglio = mat?.vsTaglio ?? 1; out.vsContundente = mat?.vsContundente ?? 1;
     out.moneteSuColpito = mat?.moneteSuColpito ?? 0; out.terrore = mat?.terrore ?? 0;
-    out.leggera = it.peso <= (A.leggera ?? 12);
+    out.leggera = peso <= (A.leggera ?? 12);
     if (it.traits?.barriera) (out as RunArmor).barriera = { ...it.traits.barriera }; // Armatura del Moto Perpetuo
   }
   out.vsMagia = r2(out.vsMagia * clamp(1 - mod(m, 'resistMagia'), 0.1, 1));
@@ -89,8 +92,8 @@ function weaponOf(h: HeroState, m: Mods, leggera: boolean): RunWeapon {
     const k = 1 + mod(m, pesante ? 'dannoPesanti' : 'dannoLeggere') + leggeraBonus + skillBonus(h, skill, dannoPerLv());
     const vel = (it.velocita ?? 1) * (1 + mod(m, pesante ? 'velocitaPesanti' : 'velocitaLeggere'));
     const w: RunWeapon = {
-      id: it.id, kind: 'mischia', skill, classe: it.classe ?? null, danno: r2((it.danno ?? 0) * k), tempo: r2(1 / Math.max(0.05, vel)),
-      portata: it.portata ?? 1.5, carica: r2((t?.carica ?? 1) * caricaK), caricaMolt: t?.caricaMolt ?? 2, gittata: 0, traits: { ...(it.traits ?? {}) },
+      id: it.id, kind: 'mischia', skill, classe: it.classe ?? null, danno: r2(((it.danno ?? 0) + (it.forgia ? mod(m, 'dannoForgiato') / Math.max(0.05, it.velocita ?? 1) : 0)) * k), tempo: r2(1 / Math.max(0.05, vel)), // Armaiolo: +15 danni AL SECONDO alle armi forgiate (a colpo: 15 / colpi al secondo)
+      portata: it.portata ?? 1.5, carica: r2((t?.carica ?? 1) * caricaK), caricaMolt: t?.caricaMolt ?? 2, gittata: 0, traits: { ...(it.traits ?? {}), ...(pesante && mod(m, 'penetraPesanti') > 0 ? { penetra: Math.max(it.traits?.penetra ?? 0, mod(m, 'penetraPesanti')) } : {}) }, // Spaccaossa
     };
     if (it.traits?.fragile) w.usura = h.usura[it.id] ?? 0;
     return w;
@@ -103,7 +106,7 @@ function arrowsOf(h: HeroState, m: Mods): RunArrows | null {
   const it = equipped(h, 'frecce');
   if (!it || it.kind !== 'frecce') return null;
   const k = 1 + mod(m, 'dannoArco') + skillBonus(h, 'arceria', dannoPerLv());
-  const traits: Traits = { ...(it.traits ?? {}) };
+  const traits: Traits = { ...(it.traits ?? {}), ...(mod(m, 'frecceTrapassano') > 0 ? { trapassa: true } : {}) }; // Frecce perforanti
   return { id: it.id, n: h.inv[it.id] ?? 0, danno: r2((it.danno ?? 0) * k), gittata: it.gittata ?? 0, gravita: it.gravita ?? materialOf(it)?.frecce.gravita ?? 9.8, traits };
 }
 
@@ -115,9 +118,13 @@ function spellsOf(h: HeroState, m: Mods): RunSpell[] {
     const dist = s.scuola === 'distruzione';
     const costo = Math.max(1, Math.round(s.costo * clamp(1 + mod(m, dist ? 'costoDistruzione' : 'costoEvocazione'), 0.2, 3)));
     const k = 1 + mod(m, 'dannoDistruzione') + skillBonus(h, 'distruzione', dannoPerLv());
+    const mole = dist && mod(m, 'raggioMagia') > 0 ? 1 + mod(m, 'raggioMagia') : 0; // Grandi Magie
     out.push({
-      id: s.id, scuola: s.scuola, costo, ricarica: s.ricarica, danno: dist ? r2((s.danno ?? 0) * k) : 0, velocita: s.velocita ?? 0, raggio: s.raggio ?? 0,
+      ...(mole ? { mole } : {}), ...(s.elemento ? { elemento: s.elemento } : {}),
+      id: s.id, scuola: s.scuola, costo, ricarica: s.ricarica, danno: dist ? r2((s.danno ?? 0) * k) : 0, velocita: s.velocita ?? 0, raggio: r2((s.raggio ?? 0) * (mole || 1)),
       sanguina: s.sanguina ?? 0, evoca: s.evoca ?? null, durata: s.evoca ? r2((s.durata ?? 0) * (1 + mod(m, 'durataEvocazione'))) : 0,
+      ...(s.forma ? { forma: s.forma } : {}), ...(s.gittata ? { gittata: s.gittata } : {}), ...(s.larghezza ? { larghezza: s.larghezza } : {}),
+      ...(s.volo ? { volo: s.volo } : {}), ...(s.rallenta ? { rallenta: { ...s.rallenta } } : {}),
     });
   }
   return out;
@@ -137,9 +144,35 @@ function potionsOf(h: HeroState, m: Mods): RunPotion[] {
     if (it.kind !== 'pozione') continue;
     const cura: Partial<Record<AttrId, number>> = {};
     for (const [a, v] of Object.entries(it.cura ?? {})) cura[a as AttrId] = Math.round((v ?? 0) * k);
-    out.push({ id, n, cura, buff: it.buff ? { mod: it.buff.mod, valore: r2(it.buff.valore * k), secondi: it.buff.secondi } : null });
+    out.push({ id, n, cura, buff: it.buff ? { mod: it.buff.mod, valore: r2(it.buff.valore * k), secondi: r2(it.buff.secondi * (1 + mod(m, 'durataPozioni'))) } : null });
   }
   return out;
+}
+
+/** Effetti dei perk che servono dentro il dungeon (undefined = nessuno). */
+function perkOf(h: HeroState, m: Mods): RunPerk | undefined {
+  const p: RunPerk = {};
+  const P = (k: ModKey): number => mod(m, k);
+  if (P('sanguinaCaricato') > 0) p.sanguina = clamp(P('sanguinaCaricato'), 0, 1);
+  if (P('paralisiCaricato') > 0) p.paralisi = clamp(P('paralisiCaricato'), 0, 1);
+  if (P('caricaMassima') > 0) p.massima = P('caricaMassima');
+  if (P('automira') > 0) p.automira = Math.min(RPG.perk?.automira.length ?? 2, Math.round(P('automira')));
+  if (P('arcoMobile') > 0) p.arcoMobile = true;
+  if (P('scarica') > 0) p.scarica = true;
+  const perenne = P('evocazionePerenne') > 0;
+  if (P('dannoAlleati') > 0 || P('vitaAlleati') > 0 || P('banchetto') > 0 || P('richiamoDoppio') > 0 || perenne) {
+    p.alleati = { danno: 1 + P('dannoAlleati'), vita: 1 + P('vitaAlleati'), perenne, max: P('richiamoDoppio') > 0 ? 2 : 1, banchetto: P('banchetto') };
+  }
+  if (P('avvelena') > 0) p.veleno = clamp(P('avvelena'), 0, 1);
+  if (P('lamaAria') > 0) p.aria = true;
+  if (P('terremoto') > 0) p.terremoto = true;
+  if (P('risparmioFrecce') > 0) p.risparmio = clamp(P('risparmioFrecce'), 0, 1);
+  if (P('scaricaPiu') > 0) p.pioggia = true;
+  if (P('combustione') > 0) p.combustione = true;
+  if (P('catena') > 0) p.catena = true;
+  if (P('medicoCampo') > 0) p.campo = true;
+  if (perenne && h.evocato) p.evocato = h.evocato;
+  return Object.keys(p).length ? p : undefined;
 }
 
 /** RunHero: camminata, corsa, arma.tempo e arma.carica SENZA il malus dell'armatura e senza velocitaMolt: li applica la sim del dungeon da `armatura`. */
@@ -161,6 +194,7 @@ export function buildRunHero(h: HeroState): RunHero {
   const skill = {} as Record<SkillId, number>;
   for (const s of SKILLS) skill[s] = h.skill[s]?.lv ?? RPG.livelli.skillIniziale;
   // Anello dell'Onda della Regina: l'Eco della Marea c'è o non c'è (due anelli uguali non si sommano)
+  const perk = perkOf(h, m);
   const eco = [equipped(h, 'anello1'), equipped(h, 'anello2')].find((it) => it?.traits?.eco)?.traits?.eco;
   return {
     ...(eco ? { eco: { ...eco } } : {}),
@@ -170,6 +204,7 @@ export function buildRunHero(h: HeroState): RunHero {
     arma: weaponOf(h, m, leggera), frecce: arrowsOf(h, m), armatura,
     magie, magia: mi >= 0 ? mi : null, ...(mi >= 0 && h.equip.mano === 'magia' ? { manoMagia: true } : {}), pozioni, pozione: pi >= 0 ? pi : null,
     skill, carico: carriedOf(h), caricoMax: caricoMaxOf(h, m), pesi: { ...PESI },
+    ...(perk ? { perk } : {}),
   };
 }
 

@@ -1,5 +1,5 @@
 {
- "version": "2026-10-10-91",
+ "version": "2026-10-11-111",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
@@ -241,6 +241,346 @@
     ]
    }
   },
+  "cs_d_abete_a": {
+   "file": "cs_d_abete_a.glb",
+   "tris": 440,
+   "kb": 20.8,
+   "bounds": {
+    "min": [
+     -2.65,
+     -0.1,
+     -2.48
+    ],
+    "max": [
+     2.8,
+     12,
+     2.09
+    ]
+   }
+  },
+  "cs_d_abete_b": {
+   "file": "cs_d_abete_b.glb",
+   "tris": 472,
+   "kb": 22.3,
+   "bounds": {
+    "min": [
+     -2.23,
+     -0.1,
+     -2.35
+    ],
+    "max": [
+     2.28,
+     14,
+     2.43
+    ]
+   }
+  },
+  "cs_d_bici_ruota": {
+   "file": "cs_d_bici_ruota.glb",
+   "tris": 380,
+   "kb": 15.4,
+   "bounds": {
+    "min": [
+     -0.05,
+     -0.34,
+     -0.34
+    ],
+    "max": [
+     0.05,
+     0.34,
+     0.34
+    ]
+   }
+  },
+  "cs_d_bici_sterzo": {
+   "file": "cs_d_bici_sterzo.glb",
+   "tris": 700,
+   "kb": 26.2,
+   "bounds": {
+    "min": [
+     -0.4,
+     -0.04,
+     -0.11
+    ],
+    "max": [
+     0.4,
+     0.81,
+     0.1
+    ]
+   }
+  },
+  "cs_d_bici_telaio": {
+   "file": "cs_d_bici_telaio.glb",
+   "tris": 766,
+   "kb": 28.7,
+   "bounds": {
+    "min": [
+     -0.19,
+     0.17,
+     -0.41
+    ],
+    "max": [
+     0.19,
+     0.98,
+     0.68
+    ]
+   }
+  },
+  "cs_d_braccia": {
+   "file": "cs_d_braccia.glb",
+   "tris": 516,
+   "kb": 19.9,
+   "bounds": {
+    "min": [
+     -0.48,
+     -0.03,
+     -0.05
+    ],
+    "max": [
+     0.48,
+     0.37,
+     0.42
+    ]
+   }
+  },
+  "cs_d_cartello": {
+   "file": "cs_d_cartello.glb",
+   "tris": 150,
+   "kb": 7.4,
+   "bounds": {
+    "min": [
+     -0.24,
+     -0.06,
+     -0.19
+    ],
+    "max": [
+     0.56,
+     1.6,
+     0.23
+    ]
+   }
+  },
+  "cs_d_ceppo": {
+   "file": "cs_d_ceppo.glb",
+   "tris": 236,
+   "kb": 10.1,
+   "bounds": {
+    "min": [
+     -0.58,
+     -0.13,
+     -0.51
+    ],
+    "max": [
+     0.58,
+     0.45,
+     0.61
+    ]
+   }
+  },
+  "cs_d_cespuglio": {
+   "file": "cs_d_cespuglio.glb",
+   "tris": 120,
+   "kb": 6.3,
+   "bounds": {
+    "min": [
+     -0.93,
+     0.11,
+     -0.61
+    ],
+    "max": [
+     0.87,
+     1,
+     0.7
+    ]
+   }
+  },
+  "cs_d_erba": {
+   "file": "cs_d_erba.glb",
+   "tris": 36,
+   "kb": 3.3,
+   "bounds": {
+    "min": [
+     -0.47,
+     0,
+     -0.49
+    ],
+    "max": [
+     0.43,
+     0.82,
+     0.34
+    ]
+   }
+  },
+  "cs_d_felce": {
+   "file": "cs_d_felce.glb",
+   "tris": 60,
+   "kb": 4.6,
+   "bounds": {
+    "min": [
+     -0.96,
+     0.18,
+     -0.86
+    ],
+    "max": [
+     0.99,
+     0.64,
+     0.98
+    ]
+   }
+  },
+  "cs_d_fiori": {
+   "file": "cs_d_fiori.glb",
+   "tris": 58,
+   "kb": 4,
+   "bounds": {
+    "min": [
+     -0.32,
+     0,
+     -0.28
+    ],
+    "max": [
+     0.33,
+     0.6,
+     0.28
+    ]
+   }
+  },
+  "cs_d_masso": {
+   "file": "cs_d_masso.glb",
+   "tris": 214,
+   "kb": 9.7,
+   "bounds": {
+    "min": [
+     -1.81,
+     -0.15,
+     -1.6
+    ],
+    "max": [
+     1.9,
+     2.1,
+     1.29
+    ]
+   }
+  },
+  "cs_d_pino_cresta": {
+   "file": "cs_d_pino_cresta.glb",
+   "tris": 404,
+   "kb": 17.8,
+   "bounds": {
+    "min": [
+     -0.4,
+     -0.15,
+     -1.47
+    ],
+    "max": [
+     4.76,
+     7.25,
+     1.32
+    ]
+   }
+  },
+  "cs_d_radici": {
+   "file": "cs_d_radici.glb",
+   "tris": 177,
+   "kb": 8.6,
+   "bounds": {
+    "min": [
+     -1.85,
+     -0.07,
+     -0.55
+    ],
+    "max": [
+     1.9,
+     0.12,
+     0.95
+    ]
+   }
+  },
+  "cs_d_rampa": {
+   "file": "cs_d_rampa.glb",
+   "tris": 163,
+   "kb": 7.5,
+   "bounds": {
+    "min": [
+     -1.5,
+     -0.06,
+     -1.58
+    ],
+    "max": [
+     1.5,
+     1.03,
+     1.5
+    ]
+   }
+  },
+  "cs_d_sasso_a": {
+   "file": "cs_d_sasso_a.glb",
+   "tris": 69,
+   "kb": 4,
+   "bounds": {
+    "min": [
+     -0.5,
+     -0.06,
+     -0.45
+    ],
+    "max": [
+     0.48,
+     0.62,
+     0.44
+    ]
+   }
+  },
+  "cs_d_sasso_b": {
+   "file": "cs_d_sasso_b.glb",
+   "tris": 105,
+   "kb": 5.4,
+   "bounds": {
+    "min": [
+     -0.62,
+     -0.06,
+     -0.55
+    ],
+    "max": [
+     0.82,
+     0.48,
+     0.56
+    ]
+   }
+  },
+  "cs_d_tronco": {
+   "file": "cs_d_tronco.glb",
+   "tris": 202,
+   "kb": 8.8,
+   "bounds": {
+    "min": [
+     -2.51,
+     -0.04,
+     -0.61
+    ],
+    "max": [
+     2.51,
+     0.77,
+     0.63
+    ]
+   }
+  },
+  "cs_d_tronco_alto": {
+   "file": "cs_d_tronco_alto.glb",
+   "tris": 364,
+   "kb": 16.2,
+   "bounds": {
+    "min": [
+     -2.41,
+     -0.1,
+     -2
+    ],
+    "max": [
+     2.82,
+     12.55,
+     2.02
+    ]
+   }
+  },
   "cs_faro": {
    "file": "cs_faro.glb",
    "tris": 356,
@@ -255,6 +595,91 @@
      4.85,
      13.9,
      3.6
+    ]
+   }
+  },
+  "cs_g_cascata": {
+   "file": "cs_g_cascata.glb",
+   "tris": 184,
+   "kb": 7.8,
+   "bounds": {
+    "min": [
+     -4.75,
+     0,
+     -1.42
+    ],
+    "max": [
+     4.75,
+     12.95,
+     1.2
+    ]
+   }
+  },
+  "cs_g_felce": {
+   "file": "cs_g_felce.glb",
+   "tris": 35,
+   "kb": 2.8,
+   "bounds": {
+    "min": [
+     -1.68,
+     0.1,
+     -1.7
+    ],
+    "max": [
+     1.62,
+     1,
+     1.58
+    ]
+   }
+  },
+  "cs_g_ingresso": {
+   "file": "cs_g_ingresso.glb",
+   "tris": 160,
+   "kb": 8.4,
+   "bounds": {
+    "min": [
+     -6.6,
+     -0.06,
+     -1.05
+    ],
+    "max": [
+     6.6,
+     7.82,
+     0.35
+    ]
+   }
+  },
+  "cs_g_tempio_galleria": {
+   "file": "cs_g_tempio_galleria.glb",
+   "tris": 688,
+   "kb": 29,
+   "bounds": {
+    "min": [
+     -7,
+     0,
+     -9
+    ],
+    "max": [
+     7.15,
+     12.75,
+     8.5
+    ]
+   }
+  },
+  "cs_g_torcia": {
+   "file": "cs_g_torcia.glb",
+   "tris": 100,
+   "kb": 6.2,
+   "bounds": {
+    "min": [
+     -0.31,
+     0,
+     -0.36
+    ],
+    "max": [
+     0.31,
+     3.12,
+     0.36
     ]
    }
   },

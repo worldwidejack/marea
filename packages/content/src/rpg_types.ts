@@ -80,12 +80,27 @@ export type ModKey =
   | 'vita' | 'magicka' | 'stamina' | 'regenVita' | 'regenMagicka' | 'regenStamina'
   | 'dannoLeggere' | 'dannoPesanti' | 'dannoArco' | 'dannoDistruzione' | 'velocitaLeggere' | 'velocitaPesanti' | 'tensioneArco'
   | 'caricaVeloce' | 'costoDistruzione' | 'costoEvocazione' | 'durataEvocazione' | 'difesa' | 'malusArmatura' | 'peso'
-  | 'velocitaCorsa' | 'staminaCorsa' | 'dannoConArmaturaLeggera' | 'materialiForgia' | 'potenzaPozioni' | 'resistMagia';
+  | 'velocitaCorsa' | 'staminaCorsa' | 'dannoConArmaturaLeggera' | 'materialiForgia' | 'potenzaPozioni' | 'resistMagia'
+  // perk dell'albero (11 ott 2026): effetti nel dungeon (sim/dungeon) e sulle cose forgiate (sim/rpg/derived)
+  | 'sanguinaCaricato' | 'paralisiCaricato' | 'caricaMassima' | 'automira' | 'arcoMobile' | 'scarica' | 'raggioMagia'
+  | 'dannoAlleati' | 'vitaAlleati' | 'magickaPct' | 'evocazionePerenne' | 'difesaForgiata' | 'dannoForgiato' | 'pesoForgiato'
+  // seconda tornata (11 ott 2026): avvelenamento, Lama d'aria, Spaccaossa, Terremoto, frecce perforanti, Faretra, Pioggia di frecce, Combustione,
+  // Catena di fulmini, Doppio richiamo, Banchetto, Medico da campo, Doppia dose, Pozioni durature, Capolavoro
+  | 'avvelena' | 'lamaAria' | 'penetraPesanti' | 'terremoto' | 'frecceTrapassano' | 'risparmioFrecce' | 'scaricaPiu' | 'combustione' | 'catena'
+  | 'richiamoDoppio' | 'banchetto' | 'medicoCampo' | 'doppiaDose' | 'durataPozioni' | 'forgiaDoppia';
 
 export type SpellDef = {
   id: string; nome: string; scuola: 'distruzione' | 'evocazione'; costo: number; ricarica: number; descr: string;
   /** Distruzione: proiettile. */
   danno?: number; velocita?: number; raggio?: number; sanguina?: number;
+  /** Elemento della magia d'attacco (perk Combustione sul fuoco, Catena di fulmini sull'elettricità). */
+  elemento?: 'fuoco' | 'elettricita';
+  /** Distruzione, la forma: `proiettile` (default: mira e parte al rilascio), `raggio` (continuo: finché tieni A; `costo` e `danno` sono al secondo,
+   *  `gittata` e `larghezza` in m) o `bomba` (lenta: scoppia dove atterra, `raggio` m di danno ad area; atterra al massimo a `gittata` m, in `volo` s). */
+  forma?: 'proiettile' | 'raggio' | 'bomba';
+  gittata?: number; larghezza?: number; volo?: number;
+  /** Elettriche: chi è colpito va a `molt` della velocità (anche dei colpi) per `secondi` s; il boss a metà effetto. */
+  rallenta?: { molt: number; secondi: number };
   /** Evocazione: alleato (id di enemies.json) per `durata` s. */
   evoca?: string; durata?: number;
 };
@@ -247,6 +262,30 @@ export type DungeonTesti = {
   letture?: { id: string; tipo: 'libro' | 'incisione'; at: [number, number]; titolo: string; righe: string[]; dopo?: 'capo' }[];
 };
 
+export type RpgPerkBalance = {
+  /** Taglio Critico: il nemico perde `pctVitaAlSecondo` della vita massima al secondo per `secondi` s e va al `1 − rallenta` della velocità (movimento e colpi); i boss perdono × `moltBoss`. */
+  sanguinamento: { pctVitaAlSecondo: number; secondi: number; rallenta: number; moltBoss: number };
+  /** Colpo fatale: il nemico paralizzato non fa niente per `secondi` s (i boss sono immuni). */
+  paralisi: { secondi: number };
+  /** Carica massima: sui boss il danno è un caricato normale × `moltBoss`; sugli altri è letale. */
+  caricaMassima: { moltBoss: number };
+  /** Automira (livello 1) e Automira plus (livello 2): la freccia sterza verso il nemico più vicino entro il cono (coseno) a `k` della differenza di direzione a ogni tick, fino a `gittata` m. */
+  automira: { cos: number; k: number; gittata: number }[];
+  /** Scarica: ogni `ricarica` s, `frecce` frecce a piena tensione, una ogni `ogni` s. */
+  scarica: { ricarica: number; frecce: number; ogni: number; pioggia: { ricarica: number; frecce: number } };
+  /** Lame avvelenate: il colpo normale avvelena `dps` al secondo per `secondi` s. */
+  veleno: { dps: number; secondi: number };
+  /** Lama d'aria: il caricato lancia una lama che trapassa: `frazione` del danno del caricato, `gittata` m a `velocita` m/s. */
+  lamaAria: { frazione: number; gittata: number; velocita: number };
+  /** Terremoto: il caricato a segno scuote il terreno entro `raggio` m: `frazione` del danno e `spinta` m in più (i boss non si spostano). */
+  terremoto: { raggio: number; frazione: number; spinta: number };
+  /** Combustione: una magia di fuoco lascia a terra una chiazza (almeno `raggio` m) per `secondi` s che brucia i nemici per `frazione` del danno della magia al secondo. */
+  combustione: { raggio: number; secondi: number; frazione: number };
+  /** Catena di fulmini: l'elettricità salta al nemico più vicino entro `raggio` m con `frazione` del danno. */
+  catena: { raggio: number; frazione: number };
+  /** Medico da campo: la pozione che bevi cura anche i compagni di squadra entro `raggio` m. */
+  medicoCampo: { raggio: number };
+};
 export type RpgBalance = {
   attributi: { base: Record<AttrId, number>; perLivello: number; regen: Record<AttrId, number> };
   livelli: { skillIniziale: number; skillMax: number; xpSkill: { base: number; perLivello: number }; xpPersonaggio: { base: number; perLivello: number } };
@@ -267,6 +306,8 @@ export type RpgBalance = {
   xp: Record<string, number>;
   /** Xp di combattimento: danno utile (mai oltre la vita che restava al nemico) × questo, per abilità. Evocazione = danno della tua evocazione. */
   xpDanno?: Partial<Record<SkillId, number>>;
+  /** Numeri degli effetti dei perk (docs/RPG.md §3): quanto e per quanto tempo. I perk in sé stanno in perks.json (probabilità, livelli). */
+  perk?: RpgPerkBalance;
   forziere: number[];
   bottega: Record<string, number>;
   /** Contrabbandiere del Porto (accanto alla Grotta): ogni giorno un oggetto per categoria di `banco`, venduto a valore × `vendita`;

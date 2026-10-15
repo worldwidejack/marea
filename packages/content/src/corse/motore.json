@@ -6,12 +6,30 @@
   "rampa": { "quota": 0.45 },
   "tappetoTurbo": 1.0,
   "veicolo": { "raggio": 0.9, "frenata": 26, "folle": 5, "sterzoPieno": 7, "retro": 7, "retroAccelerazione": 12, "retroSterzoPieno": 2.5 },
+  "urti": { "_nota": "Urti tra veicoli (#255, Jack 12 ott: urti veri coi bot). Impulso coi pesi dei veicoli: rimbalzo 0..1; chi si tocca di fianco riceve almeno spintaMin m/s di lato (al massimo spintaMax), che si smorza a smorza 1/s. Chi tampona rallenta, chi è tamponato prende una spinta.", "rimbalzo": 0.55, "spintaMin": 3.5, "spintaMax": 9, "smorza": 4.5 },
   "sterzo": { "normale": 0.85, "lineare": 0.35, "rampa": 6, "ritorno": 10, "alto": 0.45, "da": 8 },
   "drift": { "velocitaMin": 9, "autoSecondi": 0, "autoSterzo": 0.85, "tieniSterzo": 0.3, "pronto": 0.35, "carica": [0.55, 1.15, 1.9], "stringi": 0.5, "giro": 0.5, "tieni": [0.75, 0.5], "spinta": [0.55, 1.0, 1.6], "turbo": 0.3, "turboAccelerazione": 30 },
   "turbo": { "max": 3 },
   "partenza": { "secondi": 3, "finestra": 0.9, "razzo": 0.4, "turbo": [0.7, 1.4], "ingolfato": 0.8 },
   "acrobazia": { "turbo": 0.8 },
   "scia": { "metri": [2, 12], "lato": 1.6, "velocitaMin": 12, "secondi": 1.2, "turbo": 1.0 },
+  "oggetti": {
+    "_nota": "Oggetti alla Mario Kart (#250, docs/CORSE.md A7), solo nelle gare CON OGGETTI (opzione oggetti = '1'). USA «dall'altra parte» (tasto R, col dito lo stick verso l'altra parte: senza frenare) = la buccia vola avanti di `lancio` m, i colpi vanno al contrario. indietro = colpo dritto che di serie va indietro (masso); rimbalzo = m/s di lato, rimbalza tra i bordi (cocco); scavalca = finché dura il turbo trappole e colpi non ti prendono (liana). scatole: file sulla principale a `righe` (frazioni del giro dal via), una scatola per ogni frazione `lat` della mezza carreggiata; si prendono entro `raggio` m, ricompaiono dopo `ricompare` s, la roulette gira `roulette` s. colpito: chi viene preso gira per `secondi` s senza gas e scende a × `velocita`. pesi = [primi, metà, ultimi] della classifica: chi è dietro pesca meglio. livello: base (ovunque), zona (solo sulle piste della `zona`), sblocco (si guadagna in un'altra isola, `sblocco` = id dell'isola: non ancora attivi).",
+    "scatole": { "righe": [0.14, 0.47, 0.78], "lat": [-0.62, -0.21, 0.21, 0.62], "raggio": 1.7, "ricompare": 2.5, "roulette": 1.1 },
+    "colpito": { "secondi": 1.1, "velocita": 0.3 },
+    "massimiATerra": 10,
+    "catalogo": [
+      { "id": "turbo", "nome": "Lattina-razzo", "livello": "base", "effetto": "turbo", "secondi": 1.4, "cariche": 1, "pesi": [2, 3, 3] },
+      { "id": "tris", "nome": "Tris di lattine", "livello": "base", "effetto": "turbo", "secondi": 1.1, "cariche": 3, "pesi": [0, 1, 3] },
+      { "id": "buccia", "nome": "Buccia", "livello": "base", "effetto": "trappola", "dietro": 2.6, "lancio": 22, "raggio": 1.3, "durata": 60, "cariche": 1, "pesi": [5, 3, 1] },
+      { "id": "palla", "nome": "Pallonata", "livello": "base", "effetto": "dritto", "velocita": 36, "vita": 3, "raggio": 1.6, "cariche": 1, "pesi": [3, 3, 2] },
+      { "id": "razzo", "nome": "Razzo a ricerca", "livello": "base", "effetto": "ricerca", "velocita": 31, "vita": 9, "raggio": 1.6, "sterza": 7, "cariche": 1, "pesi": [0, 2, 3] },
+      { "id": "scudo", "nome": "Salvagente", "livello": "base", "effetto": "scudo", "secondi": 8, "cariche": 1, "pesi": [3, 2, 1] },
+      { "id": "cocco", "nome": "Noce di cocco", "livello": "zona", "zona": "giungla", "effetto": "dritto", "velocita": 30, "vita": 4.5, "raggio": 1.5, "rimbalzo": 9, "cariche": 1, "pesi": [3, 3, 2] },
+      { "id": "masso", "nome": "Masso del tempio", "livello": "zona", "zona": "giungla", "effetto": "dritto", "indietro": true, "velocita": 32, "vita": 4, "raggio": 3, "cariche": 1, "pesi": [4, 2, 1] },
+      { "id": "liana", "nome": "Liana", "livello": "zona", "zona": "giungla", "effetto": "turbo", "secondi": 1.5, "scavalca": true, "cariche": 1, "pesi": [0, 2, 3] }
+    ]
+  },
   "bot": {
     "bravura": [0.975, 0.955, 0.935, 0.915],
     "corsia": 0.45,
@@ -19,8 +37,8 @@
     "sterzo": 2.6,
     "prudenza": { "metri": 24, "curva": 1.1, "freno": 0.35 },
     "elastico": { "davanti": 0.0004, "davantiMax": 0.06, "dietro": 0.0003, "dietroMax": 0.05 },
-    "veicoli": { "ruote": ["kart", "auto", "kart", "auto"], "acqua": ["moto_acqua", "moto_acqua", "gommone", "moto_acqua"] },
-    "bravuraFamiglia": { "ruote": 1, "acqua": 0.97 }
+    "veicoli": { "ruote": ["kart", "auto", "kart", "auto"], "acqua": ["moto_acqua", "moto_acqua", "gommone", "moto_acqua"], "binari": ["carrello_miniera", "carrello_corsa", "carrello_corazzato", "carrello_miniera"] },
+    "bravuraFamiglia": { "ruote": 1, "acqua": 0.97, "binari": 1 }
   },
   "maxSeconds": 240,
   "scoreBase": 30000,
@@ -31,17 +49,41 @@
       "onde": { "salto": 0.2, "max": 6 },
       "atterraggioTurbo": { "secondi": 0.6, "allineato": 0.35 },
       "sterzoAlto": 0
+    },
+    "binari": {
+      "id": "binari", "nome": "Binari", "pendenza": 1, "casa": "rotaia", "sterzoAlto": 0,
+      "binari": { "presa": 11, "piega": 1.35, "frenaBilico": 40, "carica": 0.72, "scarica": 0.35, "salto": 6, "cambio": 7, "attrito": 0.6, "piegaAgganciati": 4 }
     }
   },
   "veicoli": [
-    { "id": "kart", "nome": "Kart", "famiglia": "ruote", "velocita": 20, "accelerazione": 14, "sterzo": 2.25, "presa": 10, "presaDrift": 3.5, "drift": 1.35, "peso": 1 },
-    { "id": "auto", "nome": "Auto sportiva", "famiglia": "ruote", "velocita": 21.5, "accelerazione": 12, "sterzo": 2.0, "presa": 9, "presaDrift": 3, "drift": 1.3, "peso": 1.4 },
+    { "id": "kart", "nome": "Kart", "famiglia": "ruote", "velocita": 20, "accelerazione": 14, "sterzo": 2.25, "presa": 10, "presaDrift": 3.5, "drift": 1.35, "peso": 1, "buffo": "Il classico della Spiaggia: fa tutto bene, niente di troppo." },
+    { "id": "auto", "nome": "Auto sportiva", "famiglia": "ruote", "velocita": 21.5, "accelerazione": 12, "sterzo": 2.0, "presa": 9, "presaDrift": 3, "drift": 1.3, "peso": 1.4, "buffo": "La più veloce sul dritto. In curva va convinta." },
     {
       "id": "carrello", "nome": "Carrello della spesa", "famiglia": "ruote", "velocita": 18.5, "accelerazione": 18, "sterzo": 2.8, "presa": 6, "presaDrift": 2.5, "drift": 1.5, "peso": 0.6,
       "buffo": "Ha la ruota storta: tira sempre un po' a destra.", "tira": 0.1
     },
-    { "id": "moto_acqua", "nome": "Moto d'acqua", "famiglia": "acqua", "velocita": 19.5, "accelerazione": 13, "sterzo": 2.5, "presa": 4.5, "presaDrift": 2, "drift": 1.3, "peso": 0.9 },
-    { "id": "gommone", "nome": "Gommone", "famiglia": "acqua", "velocita": 18.5, "accelerazione": 15, "sterzo": 2.2, "presa": 6, "presaDrift": 2.5, "drift": 1.25, "peso": 1.2 },
+    { "id": "fuoristrada", "nome": "Fuoristrada", "famiglia": "ruote", "velocita": 19.5, "accelerazione": 12, "sterzo": 2.0, "presa": 11, "presaDrift": 3.2, "drift": 1.25, "peso": 1.7,
+      "buffo": "Sabbia, prato, fango: per lui è tutta strada.",
+      "effetti": {
+        "sabbia": { "velocita": 0.95, "presa": 0.9, "accelerazione": 0.95 },
+        "erba": { "velocita": 0.9, "presa": 0.9, "accelerazione": 0.95 },
+        "fango": { "velocita": 0.9, "presa": 0.85, "accelerazione": 0.9 }
+      }
+    },
+    { "id": "moto", "nome": "Moto da cross", "famiglia": "ruote", "velocita": 21, "accelerazione": 16, "sterzo": 2.6, "presa": 8, "presaDrift": 2.8, "drift": 1.45, "peso": 0.6, "buffo": "Stretta e nervosa: passa dove gli altri non passano. A ogni botta vola via." },
+    { "id": "bob", "nome": "Bob", "famiglia": "ruote", "velocita": 20.5, "accelerazione": 11, "sterzo": 1.9, "presa": 5, "presaDrift": 2.2, "drift": 1.55, "peso": 1.1,
+      "buffo": "Un bob da neve sull'asfalto: scivola sempre, ma in derapata è un sogno. Sul ghiaccio è a casa.",
+      "effetti": { "ghiaccio": { "velocita": 1.15, "presa": 0.9, "accelerazione": 1 } }
+    },
+    { "id": "divano", "nome": "Divano a motore", "famiglia": "ruote", "velocita": 18, "accelerazione": 10, "sterzo": 1.8, "presa": 8, "presaDrift": 3, "drift": 1.2, "peso": 2.4, "buffo": "Lento e comodissimo. Chi lo tampona rimbalza indietro." },
+    { "id": "ape", "nome": "Ape", "famiglia": "ruote", "velocita": 18.5, "accelerazione": 16, "sterzo": 2.4, "presa": 9, "presaDrift": 3, "drift": 1.3, "peso": 0.9, "buffo": "Tre ruote e un motorino: parte a razzo, poi si siede.", "tira": -0.05 },
+    { "id": "struzzo", "nome": "Struzzo", "famiglia": "ruote", "velocita": 20, "accelerazione": 19, "sterzo": 2.7, "presa": 7, "presaDrift": 2.6, "drift": 1.4, "peso": 0.8,
+      "buffo": "Corre a zampe: lo scatto da fermo non lo batte nessuno, e il prato non lo spaventa.",
+      "effetti": { "erba": { "velocita": 0.85, "presa": 0.85, "accelerazione": 0.95 } }
+    },
+    { "id": "pizza", "nome": "Fetta di pizza", "famiglia": "ruote", "velocita": 20.5, "accelerazione": 13, "sterzo": 2.3, "presa": 4.5, "presaDrift": 1.8, "drift": 1.65, "peso": 0.7, "buffo": "Unta: scivola tantissimo. Chi sa derapare non la lascia più." },
+    { "id": "moto_acqua", "nome": "Moto d'acqua", "famiglia": "acqua", "velocita": 19.5, "accelerazione": 13, "sterzo": 2.5, "presa": 4.5, "presaDrift": 2, "drift": 1.3, "peso": 0.9, "buffo": "Nervosa, rumorosa, sempre col muso per aria." },
+    { "id": "gommone", "nome": "Gommone", "famiglia": "acqua", "velocita": 18.5, "accelerazione": 15, "sterzo": 2.2, "presa": 6, "presaDrift": 2.5, "drift": 1.25, "peso": 1.2, "buffo": "Parte svelto e perdona gli errori. Odora di crema solare." },
     {
       "id": "vasca", "nome": "Vasca da bagno", "famiglia": "acqua", "velocita": 17, "accelerazione": 11, "sterzo": 2.1, "presa": 3.5, "presaDrift": 1.8, "drift": 1.2, "peso": 1.5,
       "buffo": "Ha le zampe: sulla terra rallenta molto meno delle altre barche.",
@@ -51,27 +93,34 @@
         "sabbia": { "velocita": 0.7, "presa": 1, "accelerazione": 0.8 },
         "erba": { "velocita": 0.65, "presa": 1, "accelerazione": 0.8 }
       }
-    }
+    },
+    { "id": "papera", "nome": "Papera di gomma", "famiglia": "acqua", "velocita": 18, "accelerazione": 14, "sterzo": 2.4, "presa": 5, "presaDrift": 2.2, "drift": 1.35, "peso": 0.5, "buffo": "Di gomma: a ogni botta rimbalza lontano, ma non affonda mai." },
+    { "id": "carrello_miniera", "nome": "Carrello da miniera", "famiglia": "binari", "velocita": 17, "accelerazione": 10, "sterzo": 4, "presa": 8, "presaDrift": 8, "drift": 1, "peso": 1.2, "presaCurva": 1, "buffo": "Ha visto cose, in fondo alla miniera. Non ne parla." },
+    { "id": "carrello_corsa", "nome": "Carrello da corsa", "famiglia": "binari", "velocita": 18.2, "accelerazione": 11, "sterzo": 4.5, "presa": 8, "presaDrift": 8, "drift": 1, "peso": 1, "presaCurva": 0.9, "buffo": "Il più svelto a piegarsi in curva, se non hai paura." },
+    { "id": "carrello_corazzato", "nome": "Carrello corazzato", "famiglia": "binari", "velocita": 16.4, "accelerazione": 8, "sterzo": 3.5, "presa": 8, "presaDrift": 8, "drift": 1, "peso": 2, "presaCurva": 1.12, "buffo": "Pesa come una cassaforte: lento a partire, ma non lo sposta nessuno." }
   ],
   "superfici": {
-    "asfalto": { "id": "asfalto", "nome": "Asfalto", "per": { "ruote": { "velocita": 1, "presa": 1, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.5, "accelerazione": 0.5 } } },
-    "legno": { "id": "legno", "nome": "Molo", "per": { "ruote": { "velocita": 1, "presa": 0.95, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.5, "accelerazione": 0.5 } } },
-    "erba": { "id": "erba", "nome": "Prato", "per": { "ruote": { "velocita": 0.55, "presa": 0.7, "accelerazione": 0.8 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 } } },
-    "sabbia": { "id": "sabbia", "nome": "Sabbia", "per": { "ruote": { "velocita": 0.72, "presa": 0.6, "accelerazione": 0.8 }, "acqua": { "velocita": 0.35, "presa": 1, "accelerazione": 0.5 } } },
-    "container": { "id": "container", "nome": "Tetto di container", "per": { "ruote": { "velocita": 1, "presa": 0.55, "accelerazione": 0.9 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 } } },
-    "ghiaccio": { "id": "ghiaccio", "nome": "Ghiaccio", "per": { "ruote": { "velocita": 1.05, "presa": 0.25, "accelerazione": 0.7 }, "acqua": { "velocita": 0.5, "presa": 0.5, "accelerazione": 0.5 } } },
+    "asfalto": { "id": "asfalto", "nome": "Asfalto", "per": { "ruote": { "velocita": 1, "presa": 1, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.5, "accelerazione": 0.5 }, "binari": { "velocita": 1, "presa": 1, "accelerazione": 1 } } },
+    "legno": { "id": "legno", "nome": "Molo", "per": { "ruote": { "velocita": 1, "presa": 0.95, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.5, "accelerazione": 0.5 }, "binari": { "velocita": 1, "presa": 1, "accelerazione": 1 } } },
+    "erba": { "id": "erba", "nome": "Prato", "per": { "ruote": { "velocita": 0.55, "presa": 0.7, "accelerazione": 0.8 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 }, "binari": { "velocita": 0.9, "presa": 1, "accelerazione": 0.9 } } },
+    "terra": { "id": "terra", "nome": "Sterrato", "per": { "ruote": { "velocita": 1, "presa": 0.9, "accelerazione": 1 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 }, "binari": { "velocita": 1, "presa": 1, "accelerazione": 1 } } },
+    "fango": { "id": "fango", "nome": "Fango", "per": { "ruote": { "velocita": 0.7, "presa": 0.6, "accelerazione": 0.7 }, "acqua": { "velocita": 0.4, "presa": 1, "accelerazione": 0.5 }, "binari": { "velocita": 0.85, "presa": 1, "accelerazione": 0.85 } } },
+    "sabbia": { "id": "sabbia", "nome": "Sabbia", "per": { "ruote": { "velocita": 0.72, "presa": 0.6, "accelerazione": 0.8 }, "acqua": { "velocita": 0.35, "presa": 1, "accelerazione": 0.5 }, "binari": { "velocita": 0.85, "presa": 1, "accelerazione": 0.85 } } },
+    "container": { "id": "container", "nome": "Tetto di container", "per": { "ruote": { "velocita": 1, "presa": 0.55, "accelerazione": 0.9 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 }, "binari": { "velocita": 1, "presa": 1, "accelerazione": 1 } } },
+    "ghiaccio": { "id": "ghiaccio", "nome": "Ghiaccio", "per": { "ruote": { "velocita": 1.05, "presa": 0.25, "accelerazione": 0.7 }, "acqua": { "velocita": 0.5, "presa": 0.5, "accelerazione": 0.5 }, "binari": { "velocita": 1.05, "presa": 1, "accelerazione": 1 } } },
     "acqua": {
       "id": "acqua", "nome": "Acqua", "acqua": true, "onde": { "passo": 16 },
-      "per": { "ruote": { "velocita": 0.4, "presa": 0.5, "accelerazione": 0.5 }, "acqua": { "velocita": 1, "presa": 1, "accelerazione": 1 } }
+      "per": { "ruote": { "velocita": 0.4, "presa": 0.5, "accelerazione": 0.5 }, "acqua": { "velocita": 1, "presa": 1, "accelerazione": 1 }, "binari": { "velocita": 0.7, "presa": 1, "accelerazione": 0.7 } }
     },
     "acquaBassa": {
       "id": "acquaBassa", "nome": "Acqua bassa", "acqua": true,
-      "per": { "ruote": { "velocita": 0.7, "presa": 0.6, "accelerazione": 0.7 }, "acqua": { "velocita": 0.85, "presa": 1, "accelerazione": 0.9 } }
+      "per": { "ruote": { "velocita": 0.7, "presa": 0.6, "accelerazione": 0.7 }, "acqua": { "velocita": 0.85, "presa": 1, "accelerazione": 0.9 }, "binari": { "velocita": 0.85, "presa": 1, "accelerazione": 0.85 } }
     },
     "corrente": {
       "id": "corrente", "nome": "Corrente", "acqua": true, "onde": { "passo": 11 }, "spinta": [4, 0],
-      "per": { "ruote": { "velocita": 0.4, "presa": 0.5, "accelerazione": 0.5 }, "acqua": { "velocita": 1.08, "presa": 0.9, "accelerazione": 1 } }
-    }
+      "per": { "ruote": { "velocita": 0.4, "presa": 0.5, "accelerazione": 0.5 }, "acqua": { "velocita": 1.08, "presa": 0.9, "accelerazione": 1 }, "binari": { "velocita": 0.75, "presa": 1, "accelerazione": 0.75 } }
+    },
+    "rotaia": { "id": "rotaia", "nome": "Rotaie", "per": { "ruote": { "velocita": 0.6, "presa": 0.7, "accelerazione": 0.7 }, "acqua": { "velocita": 0.3, "presa": 1.2, "accelerazione": 0.5 }, "binari": { "velocita": 1, "presa": 1, "accelerazione": 1 } } }
   },
-  "_nota": "Motore v2 dell'Isola delle Corse (docs/CORSE.md A11). La pista è un nastro 3D e i veicoli vivono in coordinate di pista (avanzamento, scarto laterale, altezza). gravita in m/s² (arcade: più forte del vero, salti brevi e secchi). giroVelocitaMin = sotto questa velocità nei tratti aderenti (giri della morte) si cade. caduta: sotto quota m si è caduti, dopo secondi si riparte da terra con ripartenza × velocità massima. atterraggio: oltre duro m/s di velocità verticale si perde velocità (× perdita). rampa.quota = parte della velocità che va in salto. tappetoTurbo = s di turbo dei tappeti. veicolo = come il Gran Premio (minigames/corse.json). sterzo (#170): normale = quanto sterza fuori dal drift (× sterzo del veicolo), lineare = risposta del joystick al centro (uscita = x × (lineare + (1 − lineare) × |x|)), rampa e ritorno = quanto in fretta lo sterzo arriva e torna (1/s, niente scatti da tastiera), alto = sterzo tolto alla velocità massima (da `da` m/s in su; in drift no: il drift serve a stringere). drift: carica = secondi per i 3 livelli (blu, arancio, viola), stringi = carica più in fretta stringendo, giro = quanto gira il veicolo in drift (× sterzo × drift del veicolo), tieni = [base, ± sterzo]: lo sterzo stringe o allarga il drift tra base − x e base + x, spinta = secondi di turbo per livello, pronto = secondi dopo il bottone per scegliere il lato, autoSecondi 0 = solo col bottone. turbo.max = tetto dei turbo sommati (alla Crash Team Racing). partenza: conto alla rovescia in secondi; tieni DRIFT premuto da meno di finestra s al VIA = turbo (razzo se da meno di razzo s), da prima = motore ingolfato per ingolfato s. acrobazia.turbo = s di turbo se premi DRIFT in aria. scia = dietro un avversario tra metri[0] e metri[1], entro lato m, sopra velocitaMin, per secondi: turbo s. bot: bravura = frazione della velocità massima, corsia = quanto si allargano, sguardo = m davanti [fissi, × velocità], prudenza = tolgono gas prima delle curve strette, elastico = come il Gran Premio, veicoli = i veicoli dei bot per famiglia. famiglie: pendenza = quanto conta la salita, onde = salto sulle creste (× velocità, max m/s), atterraggioTurbo = turbo se atterri dritto. veicoli: velocita m/s, accelerazione m/s², sterzo rad/s, presa e presaDrift 1/s, drift = sterzo in più in derapata, peso negli urti, tira = sterzo che tira da solo, effetti = superfici dove il veicolo va diverso dalla famiglia. superfici: per famiglia i moltiplicatori di velocità massima, presa e accelerazione; onde = una cresta ogni passo m; spinta = corrente [lungo, di lato] m/s²."
+  "_nota": "Motore v2 dell'Isola delle Corse (docs/CORSE.md A11). La pista è un nastro 3D e i veicoli vivono in coordinate di pista (avanzamento, scarto laterale, altezza). gravita in m/s² (arcade: più forte del vero, salti brevi e secchi). giroVelocitaMin = sotto questa velocità nei tratti aderenti (giri della morte) si cade. caduta: sotto quota m si è caduti, dopo secondi si riparte da terra con ripartenza × velocità massima. atterraggio: oltre duro m/s di velocità verticale si perde velocità (× perdita). rampa.quota = parte della velocità che va in salto. tappetoTurbo = s di turbo dei tappeti. veicolo = come il Gran Premio (minigames/corse.json). sterzo (#170): normale = quanto sterza fuori dal drift (× sterzo del veicolo), lineare = risposta del joystick al centro (uscita = x × (lineare + (1 − lineare) × |x|)), rampa e ritorno = quanto in fretta lo sterzo arriva e torna (1/s, niente scatti da tastiera), alto = sterzo tolto alla velocità massima (da `da` m/s in su; in drift no: il drift serve a stringere). drift: carica = secondi per i 3 livelli (blu, arancio, viola), stringi = carica più in fretta stringendo, giro = quanto gira il veicolo in drift (× sterzo × drift del veicolo), tieni = [base, ± sterzo]: lo sterzo stringe o allarga il drift tra base − x e base + x, spinta = secondi di turbo per livello, pronto = secondi dopo il bottone per scegliere il lato, autoSecondi 0 = solo col bottone. turbo.max = tetto dei turbo sommati (alla Crash Team Racing). partenza: conto alla rovescia in secondi; tieni DRIFT premuto da meno di finestra s al VIA = turbo (razzo se da meno di razzo s), da prima = motore ingolfato per ingolfato s. acrobazia.turbo = s di turbo se premi DRIFT in aria. scia = dietro un avversario tra metri[0] e metri[1], entro lato m, sopra velocitaMin, per secondi: turbo s. bot: bravura = frazione della velocità massima, corsia = quanto si allargano, sguardo = m davanti [fissi, × velocità], prudenza = tolgono gas prima delle curve strette, elastico = come il Gran Premio, veicoli = i veicoli dei bot per famiglia. famiglie: pendenza = quanto conta la salita, onde = salto sulle creste (× velocità, max m/s), atterraggioTurbo = turbo se atterri dritto. veicoli: velocita m/s, accelerazione m/s², sterzo rad/s, presa e presaDrift 1/s, drift = sterzo in più in derapata, peso negli urti, tira = sterzo che tira da solo, effetti = superfici dove il veicolo va diverso dalla famiglia. superfici: per famiglia i moltiplicatori di velocità massima, presa e accelerazione; onde = una cresta ogni passo m; spinta = corrente [lungo, di lato] m/s². Binari (#228): il carrello sta su una rotaia (le rotaie sono in `binari` della pista). binari.presa = spinta di lato (m/s², v² × curvatura) che tiene senza piegarsi; piega = quanto la alza piegandosi verso l'interno (×); sopra il limite si va su due ruote e si frena da soli (frenaBilico m/s² per ogni volta il limite in più); in curva non si cade (si cade solo dove manca la rotaia); carica = sopra questa frazione del limite, piegati, si carica il turbo a 3 livelli come il drift; scarica = sotto questa frazione (uscendo dalla curva) parte il turbo; salto = m/s in su col bottone DRIFT, cambio = m/s di lato verso la rotaia scelta in aria; attrito = 1/s che frena la velocità oltre il massimo della leva (la discesa spinge, ma non all'infinito). Veicoli dei binari: velocita = massimo della leva (GAS) in piano, sterzo = quanto in fretta ci si piega (1/s), presaCurva = × binari.presa."
 }

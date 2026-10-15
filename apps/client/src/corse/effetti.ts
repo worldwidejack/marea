@@ -1,5 +1,6 @@
 // Effetti della guida del motore v2 (#170): le scintille del drift (dalle ruote dietro, blu → arancio → viola come Mario Kart 8
-// Deluxe), le fiammate del turbo, il fumo del motore ingolfato (cubetti, un solo InstancedMesh come nel Gran Premio), le linee di
+// Deluxe), le fiammate del turbo (cubetti, un solo InstancedMesh come nel Gran Premio), il fumo del motore ingolfato (sbuffi tondi che
+// salgono e si gonfiano: Jack, 12 ott, «non può essere cubico il fumo»; un secondo InstancedMesh figlio del primo), le linee di
 // velocità a schermo (solo col turbo e nella scia: legate a un momento del gioco, non alla velocità) e la minimappa nell'angolo.
 import * as THREE from 'three';
 import { P } from '../render/island_parts.ts';
@@ -13,6 +14,8 @@ export type Particelle = {
   mesh: THREE.InstancedMesh;
   /** `n` cubetti in `pos`, con la velocità `vel` (m/s) più uno sparpaglio di `sparpaglio` m/s; vivono `vita` s. */
   emetti(pos: THREE.Vector3, vel: THREE.Vector3, colore: string, n: number, sparpaglio: number, vita: number, gravita?: number, grande?: number): void;
+  /** Uno sbuffo di fumo in `pos` che va con `vel` (m/s), cresce da `grande` a 2,5 × e vive `vita` s. */
+  fumo(pos: THREE.Vector3, vel: THREE.Vector3, colore: string, vita: number, grande: number): void;
   aggiorna(dt: number): void;
   svuota(): void;
 };
@@ -22,8 +25,18 @@ export function creaParticelle(): Particelle {
   mesh.name = 'corse_scintille'; mesh.frustumCulled = false; mesh.count = 0;
   const parts: { x: number; y: number; z: number; vx: number; vy: number; vz: number; t: number; g: number; s: number; c: string }[] = [];
   const m4 = new THREE.Matrix4(), cc = new THREE.Color(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pv = new THREE.Vector3();
+  // il fumo: icosaedri sfaccettati (tondi ma low poly, flat shading con la luce della scena), figli del mesh delle scintille
+  const MAXF = 60;
+  const sbuffi = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.5, 1), new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x6a6460, flatShading: true }) /* ombre leggere: fumo, non sassi */, MAXF);
+  sbuffi.name = 'corse_fumo'; sbuffi.frustumCulled = false; sbuffi.count = 0; mesh.add(sbuffi);
+  const fumi: { x: number; y: number; z: number; vx: number; vy: number; vz: number; t: number; vita: number; s: number; c: string; r: number }[] = [];
+  const asse = new THREE.Vector3(0.3, 1, 0.2).normalize();
   return {
     mesh,
+    fumo(pos, vel, colore, vita, grande) {
+      if (fumi.length >= MAXF) fumi.shift();
+      fumi.push({ x: pos.x, y: pos.y, z: pos.z, vx: vel.x + (Math.random() - 0.5) * 0.6, vy: vel.y, vz: vel.z + (Math.random() - 0.5) * 0.6, t: 0, vita: vita * (0.8 + Math.random() * 0.4), s: grande, c: colore, r: Math.random() * 6 });
+    },
     emetti(pos, vel, colore, n, sparpaglio, vita, gravita = 9, grande = 1) {
       for (let j = 0; j < n && parts.length < MAX; j++) {
         parts.push({
@@ -46,8 +59,22 @@ export function creaParticelle(): Particelle {
         mesh.setMatrixAt(n, m4); mesh.setColorAt(n, cc.set(p.c)); n++;
       }
       mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      n = 0;
+      for (let i = fumi.length - 1; i >= 0; i--) {
+        const f = fumi[i]!; f.t += dt;
+        if (f.t >= f.vita) { fumi.splice(i, 1); continue; }
+        f.x += f.vx * dt; f.y += f.vy * dt; f.z += f.vz * dt; f.vx *= 1 - dt; f.vz *= 1 - dt; // rallenta e sale
+      }
+      for (const f of fumi) {
+        const u = f.t / f.vita, s = f.s * (1 + 1.5 * u) * Math.min(1, (1 - u) * 4); // si gonfia, poi sparisce in fretta
+        q.setFromAxisAngle(asse, f.r + f.t * 0.8);
+        m4.compose(pv.set(f.x, f.y, f.z), q, sc.set(s, s * 0.85, s));
+        sbuffi.setMatrixAt(n, m4); sbuffi.setColorAt(n, cc.set(f.c)); n++;
+      }
+      q.identity();
+      sbuffi.count = n; sbuffi.instanceMatrix.needsUpdate = true; if (sbuffi.instanceColor) sbuffi.instanceColor.needsUpdate = true;
     },
-    svuota() { parts.length = 0; mesh.count = 0; },
+    svuota() { parts.length = 0; mesh.count = 0; fumi.length = 0; sbuffi.count = 0; },
   };
 }
 
@@ -72,7 +99,10 @@ export function emettiVeicolo(fx: Particelle, k: Veicolo, scia: boolean, v: numb
     fx.emetti(A, B, P.arancio, 2, 0.8, 0.16, 0, 1.6);
     fx.emetti(A, B, k.livello >= 1 && k.livello <= 3 ? COLORE_LIVELLO[k.livello]! : P.rosso, 1, 0.8, 0.2, 0, 1.3);
   }
-  if (k.fermo > 0) { A.copy(pos).addScaledVector(fwd, -1).addScaledVector(up, 0.5); fx.emetti(A, B.set(0, 1.5, 0), P.pietra, 1, 0.6, 0.6, -2, 2.2); }
+  if (k.fermo > 0 && Math.random() < 0.3) { // motore ingolfato (o colpito): sbuffi dal motore, un po' indietro
+    A.copy(pos).addScaledVector(fwd, -1).addScaledVector(up, 0.6);
+    fx.fumo(A, B.copy(moto).multiplyScalar(v * 0.5).addScaledVector(up, 1.6).addScaledVector(fwd, -0.8), Math.random() < 0.6 ? P.pietraChiara : P.sabbiaChiara, 0.9, 0.38);
+  }
   if (scia) {
     for (const lato of [-1, 1]) {
       A.copy(pos).addScaledVector(dx, lato * (1.1 + Math.random() * 0.6)).addScaledVector(up, 0.4 + Math.random()).addScaledVector(fwd, 2 + Math.random() * 3);
@@ -151,4 +181,16 @@ export function creaMinimappa(root: HTMLElement): { pista(p: Pista): void; diseg
       }
     },
   };
+}
+
+const VU = new THREE.Vector3(), PU = new THREE.Vector3();
+/** L'urto con un altro veicolo (#255): scintille e uno sbuffo sul fianco che ha preso la botta (opposto alla spinta), più forti se la botta è forte. */
+export function urtoVeicolo(fx: Particelle, k: Veicolo, pos: THREE.Vector3, up: THREE.Vector3, dx: THREE.Vector3, moto: THREE.Vector3): void {
+  const lato = k.spinta > 0 ? -1 : 1, forte = Math.min(1, k.botta / 10);
+  PU.copy(pos).addScaledVector(dx, lato * 0.9).addScaledVector(up, 0.6);
+  VU.copy(moto).multiplyScalar(Math.max(0, k.v) * 0.6).addScaledVector(dx, lato * 3).addScaledVector(up, 2);
+  fx.emetti(PU, VU, P.giallo, 8 + Math.round(forte * 8), 3.5, 0.5, 12, 0.9);
+  fx.emetti(PU, VU, P.arancio, 4 + Math.round(forte * 4), 2.5, 0.45, 12, 0.9);
+  VU.multiplyScalar(0.3);
+  fx.fumo(PU, VU, P.pietraChiara, 0.6, 0.8 + forte);
 }

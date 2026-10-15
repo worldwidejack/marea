@@ -23,6 +23,7 @@ import { stepAnello, stepAstrolabio } from './astrolabio.ts';
 import { stepForgiatore } from './forgiatore.ts';
 import { stepCustode } from './custode.ts';
 import { brucia, scia } from './fuoco.ts';
+import { passoNemico, sanguina } from './perk.ts';
 import {
   ALLEATO_SEGUE, BOSS_AREA_DANNO, BOSS_AREA_OGNI, BOSS_AREA_PREP, BOSS_AREA_RAGGIO, COLPISCE_TICKS, COS_CONO_NEMICO, COS_SCAFANDRO, DISTANZA_TIRATORI,
   BOMBA_LONTANO, BOMBA_VICINO, FLOW_OGNI, MAGIA_Y, RAGGIO_ALLARME, RAGGIO_ATTIVO, TOLLERANZA_NEMICO, VISTA_DORMENDO,
@@ -365,7 +366,7 @@ function stepAlly(s: DungeonState, e: Enemy): void {
       if (t && !alto(s, t)) {
         const ox = t.x - e.x, oz = t.z - e.z;
         const reach = def.portata + def.raggio + t.def.raggio + TOLLERANZA_NEMICO;
-        if (ox * ox + oz * oz <= reach * reach) hitEnemy(s, t, { danno: def.danno, traits: {}, magico: false, skill: null, caricato: false, dirX: e.fx, dirZ: e.fz, daAlleato: true, ox: e.x, oz: e.z });
+        if (ox * ox + oz * oz <= reach * reach) hitEnemy(s, t, { danno: def.danno * (e.dannoM ?? 1), traits: {}, magico: false, skill: null, caricato: false, dirX: e.fx, dirZ: e.fz, daAlleato: true, ox: e.x, oz: e.z });
       }
       setState(e, 'recupera', secToTicks(def.recupero));
     }
@@ -421,7 +422,8 @@ export function stepEnemies(s: DungeonState): void {
       if (t < 0) continue;
       s.cur = t;
       // il padrone è uscito o caduto: l'evocazione sparisce con lui
-      if (e.alleato && s.done) { e.st = 'morto'; ev(s, { t: 'morte', id: e.id, tipo: e.tipo }); continue; }
+      // (il Patto di sangue la tiene: resta lì, ferma, e il padrone la ritrova alla spedizione dopo)
+      if (e.alleato && s.done) { if (e.scade !== Number.MAX_SAFE_INTEGER) { e.st = 'morto'; ev(s, { t: 'morte', id: e.id, tipo: e.tipo }); } continue; }
     }
     const h = s.hero, dx = h.x - e.x, dz = h.z - e.z;
     if (!e.alleato && dx * dx + dz * dz > RAGGIO_ATTIVO * RAGGIO_ATTIVO) continue;
@@ -433,6 +435,13 @@ export function stepEnemies(s: DungeonState): void {
       if (e.vita <= 0) { kill(s, e); continue; }
       s.cur = t;
     }
+    if (e.emorr !== undefined) { // Taglio Critico: sanguina in percentuale della vita massima (a chi l'ha colpito per ultimo)
+      if (multi) s.cur = e.ultimo ?? t;
+      const morto = sanguina(s, e);
+      if (morto) { kill(s, e); continue; }
+      s.cur = t;
+    }
+    if (!passoNemico(s, e)) { if (vivo(e)) act.push(e); continue; } // paralizzato o rallentato
     if (e.alleato) stepAlly(s, e); else stepFoe(s, e);
     if (e.def.scia) scia(s, e); // Fornace Semovente
     if (finita(s)) { s.cur = prima; return; }

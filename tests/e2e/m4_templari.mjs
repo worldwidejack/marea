@@ -9,6 +9,13 @@ export const timeout = 240000;
 export default async function (ctx) {
   const { assert } = ctx;
   const tpl = (st) => st.templari ?? {};
+  /** Aspetta e, se cade, dice cosa c'era in campo (le prove di mira dipendono da dove sta lo zombie). */
+  const attendi = async (pg, fn, ms, cosa) => {
+    try { await ctx.waitState(pg, fn, ms); } catch (e) {
+      const s = tpl(await ctx.getState(pg));
+      throw new Error(`${cosa}: ${JSON.stringify({ sim: s.sim, ondata: s.ondata, eroe: s.eroe, faccia: s.faccia, zombiePos: s.zombiePos, zombie: s.zombie, uccisioni: s.uccisioni, mira: s.mira, armi: s.armi, act: s.act })}`);
+    }
+  };
 
   // ---------------- telefono ----------------
   const p = await ctx.open('?test=1&net=0&templari=1');
@@ -20,9 +27,27 @@ export default async function (ctx) {
     assert(tpl(st).aperta === true && tpl(st).active === false, `templari: ${JSON.stringify(tpl(st))}`);
     assert(st.temi.isole.some((i) => i.id === 'templari' && i.aperta), 'isola dei Templari non aperta con ?templari=1');
   });
-  await ctx.test('telefono: dentro la chiesa, la scena si disegna e parte l’ondata 1', async () => {
+  await ctx.test('telefono: SCEGLI L’EROE — tre carte, l’avatar vestito sulla pedana, le barre; si cambia e si parte', async () => {
     await page.click('#mzTemplariProva');
+    await page.waitForSelector('#mzTplScelta.on', { timeout: 30000 });
+    assert((await page.locator('#mzTplScelta .carta').count()) === 3, 'non ci sono tre eroi');
+    for (const id of ['bucaniera', 'arciere', 'crociato']) {
+      await page.tap(`#mzTplScelta [data-eroe=${id}]`);
+      await ctx.waitState(page, (st, id) => st.templariScelta?.eroe === id && st.templariScelta.pronto && st.templariScelta.vestito === 'tpl_' + id, 20000, id)
+        .catch(async (e) => { throw new Error(`${id}: ${JSON.stringify((await ctx.getState(page)).templariScelta)} ${e.message}`); });
+      assert((await page.textContent('#mzTplScelta .nome')).length > 3, 'pannello senza nome');
+      await page.waitForTimeout(300);
+      await ctx.shot(page, `scelta_${id}`);
+    }
+    assert(!(await page.isVisible('#joystick')), 'il joystick si vede sopra il menù');
+    await page.tap('#mzTplScelta [data-act=via]');
+  });
+  await ctx.test('telefono: dentro la chiesa, la scena si disegna e parte l’ondata 1', async () => {
     await ctx.waitState(page, (st) => st.templari.active && st.templari.fase === 'gioca', 30000);
+    const e0 = (await ctx.getState(page)).templari.eroe;
+    assert(e0.classe === 'crociato' && e0.vita === 150, `eroe: ${JSON.stringify(e0)}`);
+    await ctx.waitState(page, (st) => st.templari.eroe.vestito === 'tpl_crociato', 15000);
+    assert(await page.isVisible('#mzTplSuper'), 'bottone SUPER assente');
     const st = await ctx.getState(page);
     // le assi disegnate sono quelle della sim; il tetto copre il primo disegno della chiesa, che appena dopo «gioca» blocca la pagina
     // 5-6 s su SwiftShader in locale (di più su GitHub): misurato il 9/10 (#171), prima era 5 s e cadeva se il test arrivava prima del blocco
@@ -32,6 +57,15 @@ export default async function (ctx) {
     assert(!(await page.isVisible('#mzTop')), 'la barra in alto della superficie è ancora visibile');
     await ctx.waitState(page, (s) => s.templari.ondata === 1, 20000);
     await ctx.shot(page, 'ondata1');
+  });
+  await ctx.test('telefono: il super — carico brilla, un tocco su SUPER e il Giudizio butta giù chi sta attorno', async () => {
+    const prova = (o) => page.evaluate((o) => window.__game.test.templariProva(o), o);
+    await prova({ pulisci: true, vita: 1e6, super: true, zombie: 'fante', dist: 1.6 });
+    await page.waitForSelector('#mzTplSuper.pronto', { timeout: 5000 });
+    const u0 = (await ctx.getState(page)).templari.uccisioni;
+    await page.tap('#mzTplSuper');
+    await ctx.waitState(page, (s, u0) => s.templari.uccisioni > u0 && s.templari.eroe.super < 1, 5000, u0);
+    await ctx.shot(page, 'super_giudizio');
   });
   await ctx.test('telefono: gli zombie escono, strappano le assi; col pilota si superano ondate', async () => {
     // vita alta (hook di prova, senza server): il pilota a volte muore già all'ondata 2 e poi le armi non si provano più (#171)
@@ -89,6 +123,53 @@ export default async function (ctx) {
     ctx.log('armi', JSON.stringify(st.templari.armi), 'cassa', JSON.stringify(st.templari.cassa), 'punti', st.templari.eroe.punti);
     assert(st.templari.eroe.punti < 2000, `la cassa non ha preso i punti: ${st.templari.eroe.punti}`); // 950, più qualche uccisione
   });
+  await ctx.test('telefono: joystick di mira — arco e pistola al rilascio sul bersaglio puntato, un tocco veloce spara assistito; A sparisce', async () => {
+    const prova = (o) => page.evaluate((o) => window.__game.test.templariProva(o), o);
+    /** Mette l'arma, l'eroe nel coro (pavimento libero per 4 m in ogni direzione) e i due zombie; dice dove sta il lontano. */
+    const duePosti = async (arma) => {
+      await prova({ pulisci: true, ferma: true, vita: 1e6, armi: [arma], dove: { x: 63.5, z: 42.5 }, ondata: 1 }); // zombie dell'ondata 1: un colpo li butta giù, anche se il pilota è arrivato più avanti
+      await page.waitForTimeout(300);
+      await prova({ zombie: 'fante', dist: 2.5, lato: 0 });
+      await prova({ zombie: 'fante', dist: 5, lato: 2.8 });
+      await attendi(page, (s) => s.templari.zombiePos.length === 2, 5000, 'zombie non comparsi');
+      const st = (await ctx.getState(page)).templari, d = (z) => Math.hypot(z.x - st.eroe.x, z.z - st.eroe.z);
+      const [vicino, lontano] = [...st.zombiePos].sort((a, b) => d(a) - d(b));
+      const dx = lontano.x - st.eroe.x, dz = lontano.z - st.eroe.z, n = d(lontano), y = st.yaw, vx = dx / n, vz = dz / n;
+      return { lontano, dito: { sx: vx * Math.cos(y) - vz * Math.sin(y), sy: vx * Math.sin(y) + vz * Math.cos(y) } };
+    };
+    /** Cade il lontano, resta il vicino (che nel frattempo si è avvicinato). */
+    const restaIlVicino = async () => {
+      await attendi(page, (s) => s.templari.zombiePos.length === 1, 6000, 'nessuno dei due è caduto');
+      const st = (await ctx.getState(page)).templari, z = st.zombiePos[0], dist = Math.hypot(z.x - st.eroe.x, z.z - st.eroe.z);
+      assert(dist < 3.4, `è caduto il vicino, non quello puntato: resta uno a ${dist.toFixed(1)} m`);
+    };
+    const dito = (o) => page.evaluate(async ({ sx, sy, tieni }) => {
+      const a = document.querySelector('#mzTplMira'), r = a.getBoundingClientRect(), cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+      const ev = (tipo, x, y) => a.dispatchEvent(new PointerEvent(tipo, { pointerId: 9, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y, bubbles: true, cancelable: true }));
+      const dorme = (ms) => new Promise((ok) => setTimeout(ok, ms));
+      ev('pointerdown', cx, cy); await dorme(40);
+      if (tieni) { ev('pointermove', cx + sx * 30, cy + sy * 30); await dorme(tieni); }
+      ev('pointerup', cx + (tieni ? sx * 30 : 0), cy + (tieni ? sy * 30 : 0));
+    }, o);
+    // arco: il dito tiene teso e punta il lontano, lascia → la freccia parte lì
+    let v = await duePosti('arco');
+    await page.waitForSelector('#mzTplMira.on', { timeout: 8000 });
+    assert(!(await page.isVisible('#btnA')), 'il bottone A è ancora visibile con il joystick di mira');
+    await dito({ ...v.dito, tieni: 700 });
+    await restaIlVicino();
+    // pistola: parte al rilascio, non al primo tocco
+    v = await duePosti('pistola');
+    await dito({ ...v.dito, tieni: 400 });
+    await restaIlVicino();
+    // un tocco veloce senza trascinare: colpo assistito, prende il più vicino
+    await duePosti('pistola');
+    await dito({ sx: 0, sy: 0, tieni: 0 });
+    await attendi(page, (s) => s.templari.zombiePos.length === 1, 6000, 'il tocco non ha sparato');
+    const st = (await ctx.getState(page)).templari, z = st.zombiePos[0];
+    assert(Math.hypot(z.x - st.eroe.x, z.z - st.eroe.z) > 3.2, 'il tocco assistito doveva prendere il più vicino');
+    await ctx.shot(page, 'joystick_mira');
+    ctx.noErrors(p, 'telefono');
+  });
   await ctx.test('telefono: pausa ferma tutto, ESCI → scheda dell’esito senza premio → di nuovo nel mondo', async () => {
     const st0 = await ctx.getState(page);
     if (!st0.templari.done) {
@@ -133,7 +214,7 @@ export default async function (ctx) {
   await ctx.waitReady(d.page, 20000);
   const pc = d.page;
   await ctx.test('PC: dall’altare (non subito), F posa la reliquia, Esc apre la pausa, A MANO resta salvata', async () => {
-    await pc.evaluate(() => window.__game.test.templariEntra(false));
+    await pc.evaluate(() => window.__game.test.templariEntra(false, 'arciere'));
     await ctx.waitState(pc, (st) => st.templari.active && st.templari.fase === 'gioca', 30000);
     let st = await ctx.getState(pc);
     assert(st.templari.sim === 'altare' && st.templari.prompt === 'reliquia', `all'inizio: ${st.templari.sim}, prompt ${st.templari.prompt}`);
@@ -155,6 +236,40 @@ export default async function (ctx) {
     assert(f1[0] * f2[0] + f1[1] * f2[1] < -0.5, `l'eroe non segue il mouse: ${JSON.stringify([f1, f2])}`);
     await ctx.waitState(pc, (s) => s.templari.ondata === 1, 15000);
     await ctx.shot(pc, 'pc_ondata1');
+  });
+  await ctx.test('PC: mira col mouse — pistola e arco tirano sul bersaglio sotto il cursore, non sul più vicino; il cursore è un mirino', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    /** Mette l'arma, l'eroe nel coro (pavimento libero per 4 m in ogni direzione) e i due zombie; dice dove sta il lontano. */
+    const duePosti = async (arma) => {
+      await prova({ pulisci: true, ferma: true, vita: 1e6, armi: [arma], dove: { x: 63.5, z: 42.5 }, ondata: 1 }); // zombie dell'ondata 1: un colpo li butta giù, anche se il pilota è arrivato più avanti
+      await pc.waitForTimeout(300);
+      await prova({ zombie: 'fante', dist: 2.5, lato: 0 });
+      await prova({ zombie: 'fante', dist: 5, lato: 2.8 });
+      await attendi(pc, (s) => s.templari.zombiePos.length === 2, 5000, 'zombie non comparsi');
+      const st = (await ctx.getState(pc)).templari, d = (z) => Math.hypot(z.x - st.eroe.x, z.z - st.eroe.z);
+      const [vicino, lontano] = [...st.zombiePos].sort((a, b) => d(a) - d(b));
+      const dx = lontano.x - st.eroe.x, dz = lontano.z - st.eroe.z, n = d(lontano), y = st.yaw, vx = dx / n, vz = dz / n;
+      return { lontano, dito: { sx: vx * Math.cos(y) - vz * Math.sin(y), sy: vx * Math.sin(y) + vz * Math.cos(y) } };
+    };
+    /** Cade il lontano, resta il vicino (che nel frattempo si è avvicinato). */
+    const restaIlVicino = async () => {
+      await attendi(pc, (s) => s.templari.zombiePos.length === 1, 6000, 'nessuno dei due è caduto');
+      const st = (await ctx.getState(pc)).templari, z = st.zombiePos[0], dist = Math.hypot(z.x - st.eroe.x, z.z - st.eroe.z);
+      assert(dist < 3.4, `è caduto il vicino, non quello puntato: resta uno a ${dist.toFixed(1)} m`);
+    };
+    for (const arma of ['pistola', 'arco']) {
+      const v = await duePosti(arma);
+      await pc.mouse.move(v.lontano.schermo[0], v.lontano.schermo[1]); await pc.waitForTimeout(150);
+      await pc.mouse.down(); await pc.waitForTimeout(arma === 'arco' ? 700 : 80);
+      const m = (await ctx.getState(pc)).templari.mira;
+      await pc.mouse.up();
+      assert(arma === 'pistola' || m > 0, `l'indice di mira non viaggia: ${m}`);
+      await restaIlVicino();
+      assert((await pc.evaluate(() => document.querySelector('canvas').style.cursor)) === 'crosshair', 'il cursore non è un mirino');
+      ctx.log(arma, 'col mouse: caduto il bersaglio puntato, non il più vicino');
+    }
+    await ctx.shot(pc, 'pc_mira_mouse');
+    ctx.noErrors(d, 'PC');
   });
   await ctx.test('PC: si vedono moschetto, scudato, scudo in mano e fuoco greco (hook di prova, solo resa)', async () => {
     const r = await pc.evaluate(() => window.__game.test.templariProva({ arma: 'moschetto', zombie: 'scudato', scudo: 'spalle' }));
@@ -199,9 +314,24 @@ export default async function (ctx) {
     const perf = await ctx.getPerf(pc);
     ctx.log('perf in piazza', JSON.stringify(perf), JSON.stringify((await ctx.getState(pc)).templari.scena));
     assert(perf.drawCalls <= 100, `draw call in piazza ${perf.drawCalls} > 100`);
+    // il rogo è spento finché non si accende il fuoco del coro (§9b): la leva lo dice; F tenuto 1,5 s sul braciere lo accende
+    await prova({ dove: { x: 63.5, z: 45.5 }, punti: 3000 });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'trappola', 5000);
+    await pc.waitForFunction(() => /SPENTO/.test(document.querySelector('#mzTplAzione.on')?.textContent ?? ''), null, { timeout: 5000 })
+      .catch(async () => { throw new Error('la leva del rogo non dice che il fuoco è spento: ' + await pc.textContent('#mzTplAzione')); });
+    await prova({ fuoco: 'coro' });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'fuoco', 5000);
+    await ctx.shot(pc, 'pc_fuoco_spento');
+    await pc.keyboard.down('KeyF'); await pc.waitForTimeout(800);
+    await pc.waitForFunction(() => !!document.querySelector('#mzTplAzione .lav'), null, { timeout: 3000 }).catch(() => { throw new Error('niente barra mentre si accende'); });
+    await ctx.waitState(pc, (st) => st.templari.isola.fuochi.includes('coro'), 6000);
+    await pc.keyboard.up('KeyF');
+    await pc.waitForTimeout(500);
+    await ctx.shot(pc, 'pc_fuoco_acceso');
     // la leva del rogo, accanto agli stalli del presbiterio
     await prova({ dove: { x: 63.5, z: 45.5 }, punti: 3000 });
     await ctx.waitState(pc, (st) => st.templari.prompt === 'trappola', 5000);
+    await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
     await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
     await ctx.waitState(pc, (st) => (st.templari.trappole?.find((t) => t.id === 'rogo')?.accesa ?? 0) > 20, 5000);
     await pc.waitForTimeout(400);
@@ -214,6 +344,38 @@ export default async function (ctx) {
     await ctx.waitState(pc, (st) => (st.templari.poteri?.ira ?? 0) > 25, 5000);
     assert(await pc.isVisible('#mzTpl .pot span'), 'Ira di Dio non si vede nel HUD');
     await ctx.shot(pc, 'pc_ira');
+    ctx.noErrors(d, 'PC');
+  });
+  await ctx.test('PC: la campana — a terra, i tre pezzi sparsi (F li prende), F tenuto alla leva la monta e si appende', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    await prova({ pulisci: true, ferma: true, vita: 1e6, porte: ['portale', 'cimitero', 'taverna', 'spiaggia_taverna', 'sacrestia'] });
+    // a terra (la foto dal passaggio) e la leva dice quanti pezzi mancano
+    await prova({ dove: { x: 57.5, z: 33.5 } });
+    await pc.waitForTimeout(600);
+    await ctx.shot(pc, 'pc_campana_terra');
+    await prova({ dove: { x: 59.5, z: 39.5 } });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'monta', 5000);
+    await pc.waitForFunction(() => /0\/3/.test(document.querySelector('#mzTplAzione.on')?.textContent ?? ''), null, { timeout: 5000 })
+      .catch(async () => { throw new Error('la leva non conta i pezzi: ' + await pc.textContent('#mzTplAzione')); });
+    for (const id of ['corda', 'battaglio', 'perno']) {
+      await prova({ pezzo: id });
+      await ctx.waitState(pc, (st) => st.templari.prompt === 'pezzo', 5000);
+      if (id === 'corda') { await pc.waitForTimeout(300); await ctx.shot(pc, 'pc_pezzo'); }
+      // prima un tick con AZIONE lasciata (il salto della prova arriva mentre la scena nuova blocca la pagina: due pressioni attaccate sono una)
+      await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+      await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
+      await ctx.waitState(pc, (st, id) => st.templari.isola.pezzi.includes(id), 5000, id)
+        .catch(async () => { const t = (await ctx.getState(pc)).templari; throw new Error(`${id} non preso: ${JSON.stringify({ isola: t.isola, prompt: t.prompt, eroe: t.eroe, pausa: t.pausa, act: t.act, mouse: t.mouse })}`); });
+    }
+    await prova({ dove: { x: 59.5, z: 39.5 } });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'monta', 5000);
+    await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+    await pc.keyboard.down('KeyF');
+    await ctx.waitState(pc, (st) => st.templari.isola.campana === true, 6000);
+    await pc.keyboard.up('KeyF');
+    await prova({ dove: { x: 57.5, z: 33.5 } });
+    await pc.waitForTimeout(600);
+    await ctx.shot(pc, 'pc_campana_montata');
     ctx.noErrors(d, 'PC');
   });
   await ctx.test('PC: ambientazione — rotonda col tamburo e le croci, cimitero coi cipressi, borgo, spiaggia col mare e la nave', async () => {

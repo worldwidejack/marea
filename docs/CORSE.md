@@ -67,7 +67,7 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
 | **Ruote** | kart, auto sportive, fuoristrada, camion | come il Gran Premio di oggi: drift che carica il turbo |
 | **Due ruote** | moto, scooter, bici | si piegano in curva, sterzo che dipende dalla velocità, l'impennata dà la spinta |
 | **Acqua** | moto d'acqua, hovercraft, gommone | scivolano sempre, saltano sulle onde, il salto dà il turbo, la corrente spinge |
-| **Scivoli e binari** | kart da miniera, scivolo d'acqua, bob, slitta | niente gas: spinge la gravità. Ti pieghi per stare in traiettoria e prendere le curve alte; sui binari scegli i bivi |
+| **Scivoli e binari** | kart da miniera, scivolo d'acqua, bob, slitta | spinge la gravità, il GAS è una leva che spinge in piano. Ti pieghi per prendere le curve; sui binari salti da una rotaia all'altra e scegli i bivi. **Binari fatti** (#228, banco di prova): vedi A11 |
 
 **Veicoli buffi**, uno o più per famiglia, ciascuno con **un pregio o un difetto comico** **[proposta]**:
 - **Oggetti di casa**: il carrello della spesa ha la ruota storta e tira da una parte; la vasca da bagno galleggia, quindi va bene nelle piste miste; il divano a motore è pesante e nessuno lo sposta; il tosaerba non rallenta sull'erba.
@@ -77,7 +77,42 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
 
 ## A7. Avversari, oggetti, sblocchi
 - **Avversari**: bot (gli animali piloti) più i **fantasmi degli amici**, cioè la loro gara migliore rigiocata in pista. Funziona anche se giocate a orari diversi e non costa niente. Niente gare dal vivo per ora **[da decidere più avanti]**.
-- **Oggetti**: **solo in alcune gare**. Ci sono gare con oggetti e gare di guida pura. Quali sono è **[da decidere]**.
+- **Urti** (Jack, 12 ott, #255): coi bot (e tra bot) gli urti sono veri: chi tampona rallenta e chi è tamponato prende una spinta, di fianco si rimbalza di lato, il veicolo più pesante sposta di più. Si sentono: scintille e sbuffo sul fianco, il veicolo si piega, suono di lamiera e scossa della camera. Numeri in `corse/motore.json` → `urti`. Con gli amici (fantasmi) ancora no: arriverà insieme agli oggetti tra amici (BACKLOG).
+- **Oggetti** (Jack, 12 ott 2026, #250): alla Mario Kart, **in tre livelli**:
+  - **base**: universali, ci sono in tutte le zone;
+  - **di zona**: ogni zona ne aggiunge qualcuno suo, in più;
+  - **sbloccabili**: si guadagnano giocando a MAREA in un'altra isola (es. «solo chi batte i Templari trova il Fuoco greco»).
+  - **Dove**: lo sceglie chi parte. Alla porta e nella sala degli amici c'è «🎁 CON OGGETTI / GUIDA PURA» (di serie guida pura). Gli amici sono fantasmi, quindi gli oggetti colpiscono solo i bot.
+  - **Più avanti**: nel garage ti scegli la **lineup** di oggetti da portare in gara.
+  - **I base di oggi** (numeri in `corse/motore.json` → `oggetti`; look da confermare con la concept). Le scatole stanno in 3 file di 4 per giro, si prendono passandoci sopra e ricompaiono dopo 2,5 s. La roulette gira 1,1 s. Chi è dietro in classifica pesca meglio. USA = bottone col dito, **Q** da tastiera (**R** = dall'altra parte).
+  - **Avanti o indietro** (Jack, 12 ott): di serie la buccia cade dietro e i colpi partono avanti. Per lanciarlo **dall'altra parte, senza frenare** (Jack: «uno non deve per forza frenare per sparare»): da PC **R** invece di Q; col dito lo **stick verso dove vuoi lanciare** mentre premi USA (su = avanti, giù = indietro; col dito lo stick sterza e basta, la Y era libera). La casella in alto dice i tasti dell'oggetto che hai. la buccia vola avanti di 22 m, la pallonata va indietro, il razzo insegue chi ti sta subito dietro.
+  - **Look** (concept approvate: `corse_20_oggetti.jpg` «Belli!», `corse_21_scatole.jpg`, `corse_22_giungla_oggetti.jpg`): sprite in pixel art presi dalle concept (buccia, pallonata, oggetti della Giungla) e modelli a fasce per razzo e salvagente; nella casella in alto e sul bottone USA c'è l'icona dell'oggetto. **La scatola cambia con la zona** (Jack, 12 ott, al posto del «?» troppo Mario): Spiaggia = **cassa del relitto** (legno, stella marina, corde), Giungla = **blocco del tempio** (pietra col muschio e il glifo d'oro che brilla). Il fumo del motore ingolfato (o colpito) è fatto di sbuffi tondi e chiari, non di cubetti.
+
+    | Oggetto | Che fa | Chi lo pesca di più |
+    |---|---|---|
+    | Lattina-razzo | turbo 1,4 s | tutti, un po' di più chi è dietro |
+    | Tris di lattine | 3 turbo da 1,1 s | gli ultimi |
+    | Buccia | trappola dietro di te: chi ci passa gira 1,1 s e scende al 30 % | i primi |
+    | Pallonata | colpo dritto nella tua corsia (3 s) | tutti |
+    | Razzo a ricerca | insegue chi ti sta subito davanti e lo prende sempre (dal 1° posto va dritto) | metà e ultimi |
+    | Salvagente | scudo per 8 s: para un colpo | i primi |
+  - **Sbloccabili [proposta, da confermare]**: sulla carta. Il codice arriva con stelle e sblocchi (A12 punto 6). Il catalogo ha già `livello: sblocco` + `sblocco: <isola>`; finché lo sblocco non c'è, quegli oggetti non escono.
+
+    | Oggetto | Che fa | Si sblocca |
+    |---|---|---|
+    | Fuoco greco | chiazza di fuoco larga dietro di te | battendo l'isola dei Templari |
+    | Paracadute | salto in avanti che scavalca trappole e colpi | finendo una discesa dell'Adrenalina |
+    | Nuvola nera | un fulmine sul primo in classifica | superando la Tempesta |
+    | Nano da giardino | trappola che spunta in mezzo alla pista | sistemando casa e giardino nel Borgo |
+  - **Di zona**: Giungla (Jack, 12 ott, tutti e tre dalla concept `corse_22_giungla_oggetti.jpg`), si pescano solo sulle piste della Giungla:
+
+    | Oggetto | Che fa | Chi lo pesca di più |
+    |---|---|---|
+    | Noce di cocco | colpo che va avanti a zig-zag, rimbalzando da un bordo all'altro (4,5 s) | tutti |
+    | Masso del tempio | rotola **indietro** (dall'altra parte: avanti), largo 6 m: travolge chi ti segue | i primi |
+    | Liana | turbo da 1,5 s e intanto scavalchi trappole e colpi | metà e ultimi |
+
+    Spiaggia: granchio (trappola che cammina di lato) **[proposta]**.
 - **Sblocchi**:
   - **stelle-trofeo**, finite e che non si spendono: aprono zone e piste;
   - **veicoli**: i boss e i traguardi regalano veicoli nuovi, quelli buffi sono anche nascosti;
@@ -99,6 +134,12 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
   - **Hub**: tutte e due le immagini. `corse_01_hub` è la mappa dell'isola con le zone intorno; `corse_13_hub_arrivo` è il paese dei piloti al molo (garage, podio, statua del manichino col trofeo).
   - **Il metro di qualità è la Giungla** (`corse_08_giungla_miniera`): ogni zona deve arrivare a quel livello.
   - In gioco il 3D sarà più semplice delle illustrazioni: si prendono colori, densità, atmosfera e soggetti.
+- **Concept della Giungla** (11 ott 2026, #228, foglio `_FOGLIO_concept_giungla.jpg`): Jack le ha approvate tutte.
+  - Piste: `corse_08_giungla_miniera` (Miniera del tempio), `corse_15_giungla_rapide` (tronchi sulle rapide, cascate come salti, manichini sul ponte di corda), `corse_16_giungla_cross` (fango, tronchi e radici come salti, scalinata del tempio, ponte sul torrente), `corse_17_giungla_tempio` (fuga in carrello, la testa di pietra rotola dietro, colonne che cadono, luce dell'uscita davanti).
+  - Veicoli (`corse_18_giungla_veicoli`), **tutti e 10 nel gioco**: carrello classico, carrello da corsa con alettone, carrello corazzato (le tre guide dei binari), moto da cross, scooter, tronco, gommone, e tre buffi: mezza noce di cocco sui binari, carriola a motore, testa d'idolo su ruote.
+  - Animali piloti (`corse_19_giungla_piloti`): tucano, bradipo, giaguaro, rana freccia, tapiro, camaleonte.
+- **Fondale dipinto e terreno** (12 ott 2026, #258): dietro le piste della Spiaggia c'è un panorama dipinto (`apps/client/public/assets/corse/fondale_spiaggia.jpg`, da ChatGPT, scelto da Jack tra cinque: dipinto nitido, passato dalla palette a mezza risoluzione come il resto, niente HD), sulla sfera del fondale della discesa (`corse/fondale_piste.ts`). Ogni pista avrà il suo (#272: `fondalePista(pista, zona)`, la zona fa da riserva): la Miniera ha i pilastri coi ponti e le cascate (`fondale_giungla_miniera.jpg`), il tempio col volto di pietra è per il Tempio che crolla. Il terreno attorno alle piste ha macchie larghe di colore (una per cella) e luce morbida: il disegno dei triangoli non si vede più (`?erba=vecchia` sul banco per il confronto).
+- **Veicoli con l'AI 3D** (13 ott 2026, #281): la carrozzeria è un modello con texture fatto dall'AI, il pilota resta quello del kit. Catena, un veicolo alla volta: (1) ChatGPT disegna il veicolo isolato su fondo bianco, vista di tre quarti, nello stile della reference scelta da Jack (`assets/concept/corse/hd/`); (2) Higgsfield `sam_3_3d` lo trasforma in un glb con texture (1 credito; Meshy costa 30, Tripo 9); (3) in Blender: **prima saldare i vertici** (il modello arriva spezzato lungo le cuciture della texture: alleggerito senza saldare si apre in crepe), girare col muso verso −Z, scalare alla lunghezza di `LUNG`, ruote a terra, alleggerire a ~9.000 triangoli, texture JPEG; (4) `node tools/veicolo_ai_leggero.mjs` (texture 512, via le normali a faccette così i vertici si saldano, coordinate quantizzate: ~150 KB) → `public/assets/veicoli_ai/<modello>.glb` e il nome in `VEICOLI_AI`. Si scaricano uno alla volta quando un veicolo li chiede: il veicolo nasce col modello del kit e cambia carrozzeria appena arriva. Se la sella non torna con `SEDILE`, `SEDILE_AI` in veicoli_kit (lo struzzo). `?veicoli=kit` per il confronto. **Fatti tutti e 14** i veicoli del kit (13 ott notte, 14 crediti: il fuoristrada è fallito una volta, rifatto; il tentativo fallito non si paga); la vasca senza ruote (galleggia), il carrello della miniera ridotto a 2,1 m (è quadrato), lo struzzo a 2 m. Le case con lo stesso metodo vengono storte da vicino: per l'ambientazione no. **Ruote e gambe che si muovono** (14 ott, Jack: «non possono essere modelli fermi che slittano»): le ruote dell'AI non sono tonde (girando entrano nel parafango), quindi `node tools/veicolo_ai_pezzi.mjs <modello>` le toglie dal glb insieme agli avanzi (zone `via`) e lascia un nodo vuoto dove `veicoli_ai.ts` monta una ruota tonda della palette (gomma coi tasselli, cerchione con 3 razze) che gira con la strada fatta e, davanti, sterza in curva; le gambe dello struzzo si staccano col perno all'anca e vanno col passo. Misure in `tools/veicoli_ai_pezzi.json`. Fatti: fuoristrada, moto, struzzo; restano kart, sportiva, carrello della spesa, carrello da miniera, Ape, divano, pizza.
 - **Asset misti**:
   - **piste e ambienti** da Blender via codice, con un kit per zona (`assets/blender/models_corse_<zona>.py`, sull'atlas come gli altri);
   - **veicoli buffi e animali** con l'AI 3D, poi ridotti allo stile PS1: pochi poligoni, palette, atlas.
@@ -138,7 +179,20 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
   - Si vede e si sente: fiammate dal tubo, FOV che si allarga con un colpo quando parte il turbo, linee di velocità col turbo e nella scia, scossa negli atterraggi, suoni sintetizzati (motore, sgommata, «ding» per livello, turbo, semaforo).
 - **Numeri** in `packages/content/src/corse/motore.json`:
   - 2 famiglie (Ruote, Acqua);
-  - 6 veicoli: kart, auto sportiva, carrello della spesa, moto d'acqua, gommone, vasca da bagno;
+  - 6 veicoli: kart, auto sportiva, carrello della spesa, moto d'acqua, gommone, vasca da bagno; dal 14 ott 2026 (#281) anche gli altri 8 modelli AI sono veicoli veri:
+
+    | Veicolo | Famiglia | Velocità m/s | Scatto m/s² | Sterzo | Presa / in drift | Drift | Peso | Il buffo |
+    |---|---|---|---|---|---|---|---|---|
+    | Fuoristrada | ruote | 19,5 | 12 | 2,0 | 11 / 3,2 | 1,25 | 1,7 | sabbia, prato e fango quasi come strada |
+    | Moto da cross | ruote | 21 | 16 | 2,6 | 8 / 2,8 | 1,45 | 0,6 | negli urti vola via |
+    | Bob | ruote | 20,5 | 11 | 1,9 | 5 / 2,2 | 1,55 | 1,1 | scivola sempre; sul ghiaccio ×1,15 |
+    | Divano a motore | ruote | 18 | 10 | 1,8 | 8 / 3 | 1,2 | 2,4 | il più pesante, nessuno lo sposta |
+    | Ape | ruote | 18,5 | 16 | 2,4 | 9 / 3 | 1,3 | 0,9 | tira un filo a sinistra |
+    | Struzzo | ruote | 20 | 19 | 2,7 | 7 / 2,6 | 1,4 | 0,8 | scatto record, il prato lo rallenta poco |
+    | Fetta di pizza | ruote | 20,5 | 13 | 2,3 | 4,5 / 1,8 | 1,65 | 0,7 | scivola tantissimo |
+    | Papera di gomma | acqua | 18 | 14 | 2,4 | 5 / 2,2 | 1,35 | 0,5 | la più leggera: rimbalza lontano |
+
+    Prima stima a occhio sul kart (la guida va provata da Jack). Il gommone resta senza modello AI (segnaposto).
   - le superfici, per famiglia;
   - i bot.
 
@@ -155,6 +209,17 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
   - Il molo di legno e il canale d'acqua stanno affiancati nella stessa carreggiata larga: ognuno parte e guida nella sua corsia, e fuori dalla sua rallenta molto (barca sul legno ×0,3, ruote nell'acqua ×0,4).
   - I bot si alternano tra le famiglie (ruote, barca, ruote, barca) e partono nella corsia della loro.
   - Ogni famiglia ha la sua scorciatoia: un ramo con `famiglie: [...]` lo prendono solo quelle (anche i bot); le altre lo ignorano.
+- **Binari** (#228, 11 ott 2026, sul banco di prova; numeri in `motore.json`, famiglia `binari`). I carrelli da miniera stanno sempre su una rotaia (la pista ha 3 rotaie, `binari` della pista):
+  - **leva e pendenza**: il GAS spinge fino alla velocità del carrello in piano, la discesa spinge oltre (frenata dall'`attrito` oltre quel massimo), il FRENO frena; niente retromarcia, in salita senza spinta si torna indietro;
+  - **curve**: conta la spinta di lato (velocità² × curvatura). Fino a 11 m/s² tiene; **piegarsi verso l'interno** (lo sterzo) alza il limite del 35 %, piegarsi fuori lo abbassa. Sopra il limite il carrello va **su due ruote** e frena da solo (40 m/s² per ogni volta il limite in più): **in curva non si cade mai** (Jack, 11 ott: «in base a cosa si deraglia? non ci sono buchi»). Piegarsi vale ~0,8 s a giro sulla Miniera e carica il turbo; frenare non serve;
+  - **turbo della piega**: piegati verso l'interno sopra il 72 % del limite si carica il turbo a 3 livelli come il drift (scintille blu, arancio, viola); parte raddrizzandosi o uscendo dalla curva;
+  - **SALTO** (il bottone del drift): in aria lo sterzo sceglie la rotaia accanto. Serve a cambiare binario, prendere i bivi (rami con le loro rotaie: entra chi passa sulla rotaia giusta) e saltare le rotaie rotte; si atterra sempre sulla rotaia scelta (niente cadute «tra due rotaie»). Le acrobazie restano per i salti dalle rampe;
+  - 3 carrelli: **da miniera** (17 m/s, medio), **da corsa** (18,2 m/s, tiene meno in curva), **corazzato** (16,4 m/s, lento a partire, tiene di più, pesa il doppio). Per ora hanno tutti il modello del carrello del kit;
+  - col pilota automatico (si piega, stacca il gas solo se è molto oltre il limite) sulla pista di prova dei carrelli `prova_binari` (la prima Miniera, tutta a binari); chi tiene solo il gas arriva molto dopo (cade alla rotaia rotta);
+  - **piste ibride** (dopo la prova di Jack dell'11 ott: «una gara intera sui binari è noiosa», «non si capisce quando saltare né perché vinci o perdi»): ogni veicolo corre col suo motore e nei tratti `agganci` della pista (la miniera) e sui rami a binari **si aggancia alla rotaia più vicina** e guida come un carrello (numeri della famiglia Binari, piega a `piegaAgganciati`); all'uscita si sgancia. Agganciandosi o sganciandosi il drift in corso dà il suo turbo;
+  - **si cade solo dove manca la rotaia** (la rotaia rotta, il tunnel, la rotaia che cede): finirci sopra senza aver saltato = deragli, anche a tutta velocità (niente «rimbalzo» sopra i buchi corti); la scritta dice «ROTAIA ROTTA! SALTA O CAMBIA ROTAIA». Cadere costa ~3 s;
+  - **avviso prima**: ~28 m prima di ogni rotaia rotta, bivio o rotaia che cede c'è un portale con una luce per rotaia (freccia verde = libera, X rossa = finisce, freccia gialla = da lì parte il bivio); nel tunnel due luci rosse basse 18 m prima del buco; le traversine prima di un buco sono a strisce gialle e nere; frecce del turbo anche sulle rotaie e nel tunnel; su due ruote scintille gialle dalla ruota di fuori (rosse quando si esagera e si frena forte); entrando «BINARI! SALTA PER CAMBIARE» e il bottone diventa SALTO;
+  - **la scelta pesa**: il bivio rischioso (tunnel con la rotaia rotta da saltare) vale ~1-1,3 s a giro; i bot lo prendono uno sì e uno no. Chi nella miniera tiene solo il gas cade 4 volte nei buchi: 89 s contro 75.
 - **Scorciatoie che convengono**: un ramo può avere i suoi tappeti del turbo (all'imbocco). Tagliare una chicane da sola non basta: i metri risparmiati sono pochi, così la scorciatoia vale se ha il turbo o se salta un giro largo.
 - **L'inseguitore** (l'onda della Fuga): un fronte che parte dietro la griglia e avanza da solo (`v0` che sale di `accel` fino a `vmax`), più veloce se ti stacchi oltre `distMax` (così non scappi: ti sta sempre dietro, ma lontano se guidi bene). Chi viene preso prende un colpo (velocità × `colpo`, una volta sola) e va a `rallenta` × il massimo finché il corpo dell'onda (`spessore` m) gli passa sopra; poi è dietro l'onda e riparte. Tocca anche i bot: i ritardatari vengono presi. Deterministico: solo + − × ÷, il replay del server coincide.
 - **Superfici**: nuova `container` (tetto di lamiera: ruote veloci ma con poca presa), per l'evento dei container del Porto.
@@ -164,10 +229,17 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
 
 | Pista | Tipo · famiglia | Lunghezza · tempo del pilota automatico | Cosa c'è | Evento firma |
 |---|---|---|---|---|
-| **Lungomare** `spiaggia_lungomare` | circuito, 3 giri · ruote | 661 m · 90 s (kart) | rettilineo sul mare, tornante sopraelevato intorno al faro in salita, dosso, salto sul canale di scolo, tappeto del turbo, curve del paese | dal 3° giro l'**onda** copre mezza strada del rettilineo del mare (acqua bassa: rallenta, si passa dall'altra parte) |
+| **Lungomare** `spiaggia_lungomare` | circuito, 3 giri · ruote | 661 m · 90 s (kart) | rettilineo sul mare, tornante sopraelevato intorno al faro in salita, dosso, salto corto sul canale di scolo (6 m, spinta al massimo 8 m/s, #270), tappeto del turbo, curve del paese | dal 3° giro l'**onda** copre mezza strada del rettilineo del mare (acqua bassa: rallenta, si passa dall'altra parte) |
 | **Baia** `spiaggia_baia` | circuito, 3 giri · acqua | 771 m · 100 s (moto d'acqua) | onde su tutta la baia, turbo al via, tratto di corrente, canale stretto tra gli scogli, curva lunga con la secca, onda gigante (rampa) | dal 2° giro sale la **marea** e la secca diventa acqua (la curva si taglia) |
-| **Porto** `spiaggia_porto` | circuito misto, 3 giri · ruote + acqua | 740 m · 95 s (kart), 100 s (moto d'acqua) | molo e canale affiancati, divisorio a righe gialle e nere, grande giro intorno al magazzino con la passerella (ruote) e il canale tra i container (barche), un tappeto del turbo per corsia | dal 2° giro le gru calano i **container** sul molo: i tetti di lamiera scivolano |
+| **Porto** `spiaggia_porto` | circuito misto, 3 giri · ruote + acqua | 715 m · 90 s (kart), 102 s (moto d'acqua) | molo e canale affiancati, divisorio a righe gialle e nere, gradino intorno al magazzino (due curve a 90°), due gobbe con la scorciatoia dritta (#258: prima passavano sopra la pista): la passerella (ruote) sulla banchina delle gru, il canale tra i container (barche) sul rettilineo di ritorno; un tappeto del turbo per corsia | dal 2° giro le gru calano i **container** sul molo: i tetti di lamiera scivolano |
 | **Fuga dall'onda** `spiaggia_fuga` | fuga A→B · ruote | 1.366 m (corsa 1.258) · 61 s (kart) | discesa dalla scogliera al faro, 100 m di rettilineo prima del via, curve ampie e due sopraelevate, il salto dove la ringhiera è crollata | l'**onda gigante** insegue (inseguitore); il kart del pilota automatico non viene mai preso, il carrello sì |
+
+- **Giungla e templi** (banco di prova):
+
+| Pista | Tipo · famiglia | Lunghezza · tempo del pilota automatico | Cosa c'è | Evento firma |
+|---|---|---|---|---|
+| **Miniera del tempio** `giungla_miniera` | circuito **ibrido**, 2 giri · ruote, agganciati nella miniera | 801 m (miniera 244 m) · 72 s kart, 69 s auto, 81 s carrello della spesa | sterrato della giungla con la esse da drift e il curvone sopraelevato; l'imbuto e il portale di legno: ci si aggancia a 3 rotaie sul ponte di legno sopra il canyon col fiume (frecce del turbo a sinistra, curva in discesa da piegarsi), il bivio del tunnel nella bocca del tempio (dalla rotaia di destra, turbo, rotaia rotta da saltare: ~1-1,3 s a giro) o il giro largo, il ponte crollato (manca la rotaia di mezzo), l'uscita; il salto sopra la cascata e il rettilineo in salita lungo il fiume. Vestita: canyon, 4 cascate, tempio con la galleria, torce, giungla | dal 2° giro sul ponte dopo il bivio cede la rotaia di sinistra (il portale prima la segna rossa da quel giro) |
+| Prova carrelli `prova_binari` | circuito, 2 giri · binari (banco) | 785 m · 80 s (carrello da miniera) | la prima Miniera tutta a binari: base per il Tempio che crolla | come sopra |
 
   La scorciatoia sulla sabbia del Lungomare, pensata all'inizio, è stata tolta: tagliare una chicane faceva perdere 0,6-2,7 s invece di farne guadagnare.
 - **Scenografia** (#176, 9 ott 2026; mappa del codice in `CONTRACTS.md` §34). Le 4 piste della Spiaggia sono vestite col kit Blender della zona (31 pezzi in `models_corse_spiaggia.py`):
@@ -191,12 +263,21 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
    - 4b. Vestire la zona: kit Blender e scenografia delle 4 piste con i manichini (**fatto**, 9 ott 2026, #176); restano veicoli buffi e granchio campione, musica e suoni.
    - 4c. Il Lungomare al posto del Gran Premio (**fatto**, 10 ott 2026, #173): lo schermo delle Corse nel gioco gira sul motore v2 con scelta di pista e veicolo (le 4 piste), `garaCorse` sul server (`corse/registra.ts`), avatar al volante, telefono in orizzontale. Il vecchio Gran Premio (`minigames/corse.ts`) non è più collegato al gioco. Restano: record per pista (oggi un solo record `corse` per tutte), i veicoli veri nella sim (oggi 5 su 14).
 5. Hub alla Diddy Kong Racing (#185, in corso dal 10 ott 2026): mondo a parte, guida libera, porta della Spiaggia, garage, le altre porte chiuse; l'isola nell'arcipelago rifatta come ingresso.
-6. Fantasmi, stelle e sblocchi, premi per MAREA.
-7. Zone 2-6 con la stessa catena di montaggio.
+6. Fantasmi, stelle e sblocchi, premi per MAREA. Qui entrano anche gli **oggetti sbloccabili** dalle altre isole (A7).
+6a. **Menù di scelta alla Mario Kart** (#271, 13 ott 2026). Il look l'ha scelto Jack tra quattro schermate fatte con ChatGPT: la 1, alla Mario Kart 8 (`assets/concept/corse/menu_scelta_veicolo_mariokart.jpg`), rifatta fedele. La UI marrone e gialla del resto di MAREA non è un modello (mai approvata). Alla porta due passi. Prima la pista: dietro la pista vera sorvolata piano; a sinistra la lista delle piste col tracciato; a destra il pannello col nome, il tracciato grande e due righe. Poi il veicolo: gira con l'avatar al volante su una pedana di pietra con l'anello a scacchi bianco e blu; a sinistra la colonna azzurra con le foto dei veicoli (fatte dai modelli 3D); a destra il pannello a vetro blu col nome in fascia, la frase del veicolo (`buffo` in `motore.json`, ora per tutti) e 4 barre colorate con l'icona (velocità, scatto, sterzo, peso; i carrelli dei binari si confrontano tra loro). Il VIA è giallo e enorme; oggetti, gas e camera stanno in basso. La lista scorre su e giù (rotella, dito, frecce o W S); la scelta ha la cornice gialla che brilla, le altre sono trasparenti. Il garage dell'hub è la stessa lista con tutti i veicoli. Carattere Titan One (`public/assets/fonts`, OFL).
+6b. **Oggetti** (#250, 12 ott 2026): i 6 base nella sim (`sim/corse/oggetti.ts`, rigiocati dal server), scatole e colpi in pista, casella e bottone USA, scelta CON OGGETTI / GUIDA PURA alla porta e nella sala, interruttore 7 sul banco (`provapiste.html?oggetti=1`). Restano: concept del look degli oggetti, oggetti di zona, sbloccabili, lineup nel garage.
+7. Zone 2-6 con la stessa catena di montaggio. **Zona 2 = Giungla e templi** (scelta di Jack, 11 ott 2026, #228; prima di stelle, boss e musica della Spiaggia):
+   - 7a. Concept art (**fatto**, 11 ott 2026).
+   - 7b. Famiglia Scivoli e binari + Miniera del tempio grezza sul banco di prova (**fatto**, 11 ott 2026; regole in A11 «Binari»). **Bocciata da Jack** come gara intera sui binari (guida noiosa, non si capisce quando saltare né perché si vince o si perde, niente look giungla): resta come pista di prova `prova_binari`.
+   - **Intervista dell'11 ott notte**: i binari diventano un **tratto** (piste ibride: il veicolo si aggancia); una sola pista tutta in carrello, **il Tempio che crolla in stile Subway Surfers** (cambio rotaia secco + salto + piega, la testa di pietra dietro come la guardia; veicoli: i 3 carrelli e la noce di cocco); ogni scelta deve pesare e si deve vedere prima; **prima il look**: mai più far giudicare la guida su una pista grigia.
+   - 7c. **Miniera ibrida e vestita** (**fatto**, 11 ott 2026, #228): aggancio ai binari, segnali, kit Giungla (`cs_g_*`) e scenografia (canyon, cascate, tempio sul tunnel). Da far provare a Jack.
+   - 7d. Tempio che crolla tutto in carrello, stile Subway Surfers (prima un'immagine da far scegliere a Jack).
+   - 7e. Famiglia Due ruote (una sola, condivisa con la discesa in bici) + Sentiero del cross; Rapide.
+   - 7f. Veicoli e animali in 3D.
+   - 7g. Porta della Giungla aperta nell'hub, piste nel gioco e nella gara tra amici.
 
 ## A13. Da decidere
 - Lore e cattivo.
-- In quali gare ci sono gli oggetti.
 - Sfide extra in pista.
 - I boss animali delle zone 2-6.
 - Quante stelle apre ogni porta.

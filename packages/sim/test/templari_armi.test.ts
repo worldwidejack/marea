@@ -136,13 +136,14 @@ test('scudo: in mano para davanti, sulle spalle para dietro, a zero si spacca', 
   assert.equal(h.scudo, null); assert.equal(h.inMano, false);
 });
 
-test('scudato: para i colpi da davanti, da dietro si ferisce; morto lascia lo scudo, AZIONE lo prende', () => {
+test('scudato: lo scudo prende i colpi da davanti, da dietro si ferisce; morto lascia lo scudo, AZIONE lo prende', () => {
   const s = arena();
   const h = s.eroe;
-  const z = zombie(s, h.x - 1.6, h.z, 'scudato'); z.vita = 5000; z.max = 5000;
+  const z = zombie(s, h.x - 1.6, h.z, 'scudato'); z.vita = 5000; z.max = 5000; z.scudo = 5000;
   z.fx = 1; z.fz = 0; h.fx = -1; h.fz = 0; // si guardano
   passi(s, 1, { a: true }); passi(s, 50);
   assert.equal(z.vita, 5000, 'il colpo da davanti è passato');
+  assert.equal(z.scudo, 5000 - armaDef('spada').danno, 'lo scudo non ha preso il colpo');
   z.fx = -1; // girato di spalle
   z.vita = 100;
   passi(s, 1, { a: true }); passi(s, 50);

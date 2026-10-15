@@ -37,6 +37,8 @@ export type HeroState = {
   completati?: string[];
   /** Per dungeon: la lanterna da cui sei uscito l'ultima volta (azione `esci`): alla discesa dopo puoi ripartire da lì. Assente = nessuna. */
   lanterne?: Record<string, number>;
+  /** Patto di sangue (perk): la creatura evocata ancora viva (id del nemico evocato), che ti segue di dungeon in dungeon e sull'isola. Assente = nessuna. */
+  evocato?: string;
 };
 
 /** Voce del catalogo (generata dalla sim: tipo × materiale + oggetti scritti a mano). La UI la usa per nome, peso, descrizione e statistiche. */
@@ -100,7 +102,33 @@ export type RunArmor = {
   /** Armatura del Moto Perpetuo (Mausoleo): la Barriera Cinetica (Traits.barriera). Assente con ogni altra armatura. */
   barriera?: NonNullable<Traits['barriera']>;
 };
-export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione'; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number };
+export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione'; elemento?: 'fuoco' | 'elettricita'; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number;
+  /** Forma e dettagli (SpellDef): assenti = proiettile. Raggio: `costo` e `danno` sono al secondo. */
+  forma?: 'proiettile' | 'raggio' | 'bomba'; gittata?: number; larghezza?: number; volo?: number; rallenta?: { molt: number; secondi: number };
+  /** Grandi Magie: la magia è più grande di questo fattore (raggio dello scoppio già moltiplicato); assente = 1. */
+  mole?: number };
+/** Effetti dei perk che la sim del dungeon deve conoscere (gli altri sono già numeri dentro RunHero). Assente o campo assente = non c'è. */
+export type RunPerk = {
+  /** Taglio Critico / Colpo fatale: probabilità (0..1) che un attacco caricato faccia sanguinare / paralizzi. */
+  sanguina?: number; paralisi?: number;
+  /** Carica massima: secondi di carica per il colpo letale. */
+  massima?: number;
+  /** Automira: 1 leggera, 2 forte (indice in RPG.perk.automira + 1). */
+  automira?: number;
+  /** Arciere Mobile: con l'arco in tensione cammini a velocità piena. Scarica: la raffica di frecce con E. */
+  arcoMobile?: boolean; scarica?: boolean;
+  /** Evocazioni: moltiplicatori di danno e vita degli alleati; `perenne` = durano finché non muoiono (Patto di sangue); `max` = quanti insieme
+   *  (2 col Doppio richiamo); `banchetto` = frazione del danno degli alleati che ti cura. */
+  alleati?: { danno: number; vita: number; perenne: boolean; max: number; banchetto: number };
+  /** Lame avvelenate: probabilità che il colpo normale di un'arma leggera avveleni. Lama d'aria, Terremoto: il caricato fa anche questo. */
+  veleno?: number; aria?: boolean; terremoto?: boolean;
+  /** Faretra infinita: probabilità di non consumare la freccia. Pioggia di frecce: la Scarica diventa più lunga e più frequente. */
+  risparmio?: number; pioggia?: boolean;
+  /** Combustione (magie di fuoco lasciano fuoco), Catena di fulmini (l'elettricità salta), Medico da campo (pozioni anche ai compagni). */
+  combustione?: boolean; catena?: boolean; campo?: boolean;
+  /** Patto di sangue: la creatura (id nemico evocato) che parte con te dall'ingresso. */
+  evocato?: string;
+};
 export type RunPotion = { id: string; n: number; cura: Partial<Record<AttrId, number>>; buff: { mod: string; valore: number; secondi: number } | null };
 /** camminata, corsa, arma.tempo e arma.carica sono SENZA il malus dell'armatura e senza velocitaMolt: li applica la sim del dungeon da `armatura` (R-rpg). */
 export type RunHero = {
@@ -122,6 +150,8 @@ export type RunHero = {
   /** Pozione rapida (tasto D): indice in `pozioni` o null. */
   pozione: number | null;
   skill: Record<SkillId, number>;
+  /** Perk con effetti nella sim del dungeon (rpg/derived.ts); assente = nessuno. */
+  perk?: RunPerk;
   carico: number; caricoMax: number;
   /** Peso di ogni oggetto che si può raccogliere nel dungeon (id → kg), per il limite dello zaino. */
   pesi: Record<string, number>;
@@ -153,6 +183,8 @@ export type RunResult = {
   capo?: boolean;
   /** Uscito da questa lanterna (azione `esci`, dungeon v5): la discesa dopo può ripartire da lì. */
   lanterna?: number | null;
+  /** Patto di sangue (dungeon v9): la creatura evocata ancora viva a fine spedizione (id nemico), null = non c'è più. Assente senza il perk. */
+  evocato?: string | null;
   /** Equipaggiamento a fine spedizione, se il dungeon sapeva com'era all'entrata (dungeon v5): il server lo rimette sul personaggio. */
   equip?: Partial<Record<EquipSlot, string>>;
   /** Buttati via dallo zaino portato da casa (dungeon v5; quelli raccolti nel dungeon escono già da `bottino`). */

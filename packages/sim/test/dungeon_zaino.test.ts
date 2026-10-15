@@ -103,6 +103,20 @@ test('zaino: le pozioni raccolte si bevono dopo quelle di casa (escono dal botti
   assert.equal(s.bottino['pozione_vita_minore'], undefined);
 });
 
+test('zaino: Bevi dal menu beve una pozione senza averla assegnata al tasto rapido (v9)', () => {
+  const s = partenza();
+  assert.ok(dungeon.act(s, { t: 'equip', slot: 'pozione', item: null }));
+  assert.equal(s.hero.pozioni, 0);
+  s.hero.vita = 10;
+  assert.equal(dungeon.act(s, { t: 'bevi', item: 'nonesiste' }), null);
+  assert.ok(dungeon.act(s, { t: 'bevi', item: 'pozione_vita_minore' }));
+  assert.ok(s.hero.vita > 10, 'cura');
+  assert.deepEqual(s.usati, { pozione_vita_minore: 1 });
+  assert.equal(heroNow(s)!.inv['pozione_vita_minore'], 1);
+  assert.ok(dungeon.act(s, { t: 'bevi', item: 'pozione_vita_minore' }));
+  assert.equal(dungeon.act(s, { t: 'bevi', item: 'pozione_vita_minore' }), null, 'finite');
+});
+
 test('zaino: le azioni si rigiocano col log (stesso hash del client); forma controllata, azioni impossibili ignorate', () => {
   const h = newHero(), rh = buildRunHero(h), seed = 12;
   const s = dungeon.create({ seed, dungeon: 'grotta', hero: rh, stato: h });

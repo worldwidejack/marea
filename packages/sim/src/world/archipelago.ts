@@ -98,7 +98,7 @@ export function composeArchipelago(def: ArchipelagoDef, islands: readonly Island
     for (const pr of isl.props ?? []) props.push({ k: pr.k, x: (ox + pr.at[0] + 0.5) * tile, z: (oz + pr.at[1] + 0.5) * tile, rot: pr.rot ?? 0, island: isl.id });
     for (const r of isl.paved ?? []) paved.push([ox + r[0], oz + r[1], ox + r[2], oz + r[3]]);
     if (e.role === 'lotto' && e.slot !== undefined) lots.push({ slot: e.slot, origin: [ox, oz], template: isl.id });
-    if (e.role === 'porto') {
+    if (e.role === 'porto') { // le case del Borgo (#237, #247) sono edifici del Porto come gli altri
       porto = place;
       for (const s of isl.slots ?? []) {
         const c = toWorld(ox + s.at[0], oz + s.at[1]);

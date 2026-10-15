@@ -9,7 +9,8 @@
     { "id": "koi", "nome": "Carpe koi" },
     { "id": "arrembaggio", "nome": "Arrembaggio" },
     { "id": "lava", "nome": "Fuga dalla lava" },
-    { "id": "corse", "nome": "Gran Premio" }
+    { "id": "corse", "nome": "Gran Premio" },
+    { "id": "snowboard", "nome": "Snowboard" }
   ],
   "perle": [
     { "id": "bianca", "nome": "Perla bianca", "battuta": "La più comune. Ma pur sempre una perla." },

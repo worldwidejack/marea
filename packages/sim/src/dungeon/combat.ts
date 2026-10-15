@@ -10,7 +10,7 @@ import { grigliaDi, schermato } from './muove.ts';
 import { spingi } from './vento.ts';
 import { scarica } from './custode.ts';
 import { barriera } from './unici.ts';
-import { COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
+import { BOSS_RALLENTA, COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 
@@ -32,10 +32,24 @@ export type HitSrc = {
   ox?: number; oz?: number;
   /** Colpo di lama dell'eroe (non frecce, magie, lame d'acqua, onde): lo scudo della Sentinella lo respinge (Mausoleo). */
   mischia?: boolean;
+  /** Carica massima (perk): il colpo è letale; sui boss fa RPG.perk.caricaMassima.moltBoss volte il danno del caricato. */
+  letale?: boolean;
+  /** Magie elettriche: il nemico colpito va a `molt` della velocità per `secondi` s. */
+  rallenta?: { molt: number; secondi: number };
 };
+
+/** Elettriche: il nemico cammina e attacca a `molt` della velocità per `secondi` s. Stessa macchina del Taglio Critico (perk.ts: lentoT, lentoMolt,
+ *  lentoAcc); se è già rallentato vale il più forte e il più lungo. I boss prendono metà dell'effetto. */
+export function rallentaNemico(s: DungeonState, e: Enemy, R: { molt: number; secondi: number }): void {
+  if (e.st === 'morto' || e.alleato || e.vita <= 0) return;
+  const molt = e.def.boss ? 1 - (1 - R.molt) * BOSS_RALLENTA : R.molt, fine = s.tick + secToTicks(R.secondi);
+  if (e.lentoT !== undefined && e.lentoT > s.tick) { e.lentoMolt = Math.min(e.lentoMolt ?? 1, molt); e.lentoT = Math.max(e.lentoT, fine); }
+  else { e.lentoT = fine; e.lentoMolt = molt; e.lentoAcc = 0; }
+}
 
 /** Danno di un colpo su un nemico (prima di applicarlo). */
 export function dannoSu(e: Enemy, src: HitSrc): number {
+  if (src.letale) return e.def.boss ? src.danno * (RPG.perk?.caricaMassima.moltBoss ?? 2) : Math.max(DANNO_MIN, e.vita + 1);
   const bonus = src.traits.bonusVs?.[e.def.kind] ?? 1;
   let d = src.danno * bonus;
   if (src.magico) d *= 1 - (e.def.resistMagia ?? 0);
@@ -69,7 +83,7 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
       return 0;
     } else if (k <= RETRO_SCAFANDRO) retro = sc.retro;
   }
-  const d = dannoSu(e, src) * retro * (e.spento && e.def.forgiatore ? e.def.forgiatore.vulnerabile : 1);
+  const d = dannoSu(e, src) * (src.letale ? 1 : retro) * (e.spento && e.def.forgiatore ? e.def.forgiatore.vulnerabile : 1);
   const utile = Math.min(d, Math.max(0, e.vita)); // il danno oltre la vita rimasta non dà xp: un colpo enorme su un nemico debole vale quanto due piccoli
   e.vita -= d;
   e.hurt = COLPITO_TICKS;
@@ -81,8 +95,13 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
     // arco d'oro: monete a ogni colpo (probabilità)
     const mc = src.traits.moneteColpo ?? 0;
     if (mc > 0 && s.rng.next() < mc) { const n = s.rng.int(MONETE_COLPO[0], MONETE_COLPO[1]); s.monete += n; ev(s, { t: 'monete', n }); }
-  } else add(s.xp, 'evocazione', utile * (RPG.xpDanno?.evocazione ?? 1)); // l'evocazione colpisce col padrone di turno
+  } else {
+    add(s.xp, 'evocazione', utile * (RPG.xpDanno?.evocazione ?? 1)); // l'evocazione colpisce col padrone di turno
+    const b = s.runHero.perk?.alleati?.banchetto; // Banchetto: una parte del danno dell'alleato cura il padrone
+    if (b && !s.done) s.hero.vita = Math.min(s.runHero.max.vita, s.hero.vita + utile * b);
+  }
   if (src.traits.sanguina) { e.bleed = Math.max(e.bleed, src.traits.sanguina); e.bleedT = SANGUINA_TICKS; }
+  if (src.rallenta) rallentaNemico(s, e, src.rallenta);
   e.dropRaro = !!src.traits.dropRaro;
   e.dropMolt = src.traits.dropMolt ?? 1;
   // sbilancia o attacco caricato: interrompe la preparazione dei non-boss e spinge
@@ -106,7 +125,7 @@ export function wake(s: DungeonState, e: Enemy): void {
 }
 
 export function kill(s: DungeonState, e: Enemy): void {
-  e.vita = 0; e.st = 'morto'; e.stT = 0; e.bleed = 0; e.bleedT = 0;
+  e.vita = 0; e.st = 'morto'; e.stT = 0; e.bleed = 0; e.bleedT = 0; e.emorr = undefined; e.paralisi = undefined;
   ev(s, { t: 'morte', id: e.id, tipo: e.tipo });
   if (e.alleato) return;
   add(s.uccisi, e.tipo, 1);

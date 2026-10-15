@@ -10,7 +10,7 @@ function wearing(slot: keyof HeroState['equip'], id: string, h: HeroState = newH
   return { ...h, inv: { ...h.inv, [id]: (h.inv[id] ?? 0) + 1 }, equip: { ...h.equip, [slot]: id } };
 }
 
-test('rpg eroe: nasce da RPG.partenza con katana, vesti di tela, pozione rapida e Fiammata', () => {
+test('rpg eroe: nasce da RPG.partenza con katana, armatura di legno, pozione rapida e Fiammata', () => {
   const h = newHero();
   assert.equal(h.livello, 1);
   assert.equal(h.skill.alchimia.lv, RPG.livelli.skillIniziale);
@@ -19,7 +19,7 @@ test('rpg eroe: nasce da RPG.partenza con katana, vesti di tela, pozione rapida 
   assert.equal(r.arma.id, 'katana_legno');
   assert.equal(r.arma.kind, 'mischia');
   assert.equal(r.armatura.id, 'armatura_legno');
-  assert.equal(r.armatura.malus, 0, 'le vesti di tela non rallentano');
+  assert.equal(r.armatura.malus, 0, 'le armatura di legno non rallentano');
   assert.equal(r.magie[r.magia!]?.id, 'fiammata');
   assert.equal(r.pozioni[r.pozione!]?.id, 'pozione_vita_minore');
   assert.equal(r.frecce?.n, 20);

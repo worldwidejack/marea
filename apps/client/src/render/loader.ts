@@ -2,6 +2,7 @@
 // Senza manifest o con un modello mancante il gioco gira con i segnaposto: chi chiama controlla has(name) prima di load(name).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { FLAGS } from '../flags.ts';
 export type Manifest = { version: string; atlas: string; models: Record<string, { file: string; tris?: number; clips?: string[]; bounds?: unknown }> };
 export type Loader = {
   manifest: Manifest;
@@ -14,6 +15,18 @@ export type Loader = {
   extend(file: string): Promise<void>;
 };
 export class MissingAsset extends Error { override name = 'MissingAsset'; }
+
+/** Le glb puntano tutte allo stesso `atlas.png`, ma GLTFLoader fa una texture nuova per ogni file: sulla GPU erano una copia da 4 MB per
+ *  modello (13 tra hub e gara delle Corse) e l'iPhone senza memoria ricaricava la pagina dopo VIA. Una texture sola per immagine e
+ *  campionamento, condivisa da tutti i caricatori (mondo e Corse). Nessuno le butta: restano finché c'è la pagina. */
+const condivise = new Map<string, THREE.Texture>();
+function condividi(t: THREE.Texture, uri: string): THREE.Texture {
+  const k = `${uri}|${t.wrapS}|${t.wrapT}|${t.flipY}|${t.channel}`;
+  const c = condivise.get(k);
+  if (c) return c;
+  condivise.set(k, t);
+  return t;
+}
 
 /** Texture pixel art: nearest, niente mipmap, sRGB. */
 export function pixelTexture(t: THREE.Texture): THREE.Texture {
@@ -31,19 +44,30 @@ export async function createLoader(o: { base: string }): Promise<Loader> {
       manifest = { version: String(j.version ?? '0'), atlas: String(j.atlas ?? ''), models: j.models && typeof j.models === 'object' ? j.models : {} };
     } else console.warn(`[marea] manifest.json assente (${r.status}): uso i segnaposto`);
   } catch { console.warn('[marea] manifest.json non leggibile: uso i segnaposto'); }
-  const gltf = new GLTFLoader();
+  // mondo pulito (#286): di serie l'atlas senza puntini (?pulito=0 = quello di prima), per le glb e per chi chiede la texture
+  const atlante = (n: string) => (FLAGS.pulito && n === 'atlas.png' ? 'atlas_pulito.png' : n);
+  const manager = new THREE.LoadingManager();
+  if (FLAGS.pulito) manager.setURLModifier((u) => u.replace(/(^|\/)atlas\.png$/, '$1atlas_pulito.png'));
+  const gltf = new GLTFLoader(manager);
   const models = new Map<string, Promise<{ scene: THREE.Group; clips: THREE.AnimationClip[] }>>();
   const textures = new Map<string, Promise<THREE.Texture>>();
-  const fix = (root: THREE.Object3D) => root.traverse((n) => {
-    const mesh = n as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    mesh.castShadow = true; mesh.receiveShadow = true;
-    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
-      const mm = m as THREE.MeshStandardMaterial;
-      if (mm.map) pixelTexture(mm.map);
-      if (mm.emissiveMap) pixelTexture(mm.emissiveMap);
-    }
-  });
+  const fix = (g: { scene: THREE.Group; parser: { json: { textures?: { source?: number }[]; images?: { uri?: string }[] }; associations: Map<unknown, { textures?: number }> } }) => {
+    const uriDi = (t: THREE.Texture) => {
+      const i = g.parser.associations.get(t)?.textures, src = i === undefined ? undefined : g.parser.json.textures?.[i]?.source;
+      return src === undefined ? undefined : g.parser.json.images?.[src]?.uri;
+    };
+    const una = (t: THREE.Texture) => { const u = uriDi(t); return u ? condividi(t, u) : t; };
+    g.scene.traverse((n) => {
+      const mesh = n as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        const mm = m as THREE.MeshStandardMaterial;
+        if (mm.map) { const t = una(mm.map); if (t === mm.map) pixelTexture(t); else mm.map = t; }
+        if (mm.emissiveMap) { const t = una(mm.emissiveMap); if (t === mm.emissiveMap) pixelTexture(t); else mm.emissiveMap = t; }
+      }
+    });
+  };
   const extended = new Map<string, Promise<void>>();
   const api: Loader = {
     manifest,
@@ -66,7 +90,7 @@ export async function createLoader(o: { base: string }): Promise<Loader> {
       let p = models.get(name);
       if (!p) {
         p = gltf.loadAsync(o.base + entry.file)
-          .then((g) => { fix(g.scene); return { scene: g.scene, clips: g.animations }; })
+          .then((g) => { fix(g); return { scene: g.scene, clips: g.animations }; })
           .catch((e: unknown) => { models.delete(name); throw new MissingAsset(`[marea] modello ${name} (${entry.file}) non caricato: ${String((e as Error)?.message ?? e)}`); });
         models.set(name, p);
       }
@@ -75,7 +99,7 @@ export async function createLoader(o: { base: string }): Promise<Loader> {
     texture(name) {
       let p = textures.get(name);
       if (!p) {
-        p = new THREE.TextureLoader().loadAsync(o.base + name).then(pixelTexture)
+        p = new THREE.TextureLoader().loadAsync(o.base + atlante(name)).then(pixelTexture)
           .catch((e: unknown) => { textures.delete(name); throw new MissingAsset(`[marea] texture ${name} non caricata: ${String((e as Error)?.message ?? e)}`); });
         textures.set(name, p);
       }

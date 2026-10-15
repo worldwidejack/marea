@@ -8,6 +8,8 @@ export type Env = {
   SPEDIZIONI: DurableObjectNamespace;
   /** Corse tra amici (PROTOCOL §8): la sala e la gara a fantasmi, un'istanza sola (idFromName('garaamici')). */
   GARA_AMICI: DurableObjectNamespace;
+  /** Templari insieme (PROTOCOL §9): la sala alla porta della chiesa e le partite in tempo reale, un'istanza sola (idFromName('templari')). */
+  TEMPLARI_INSIEME: DurableObjectNamespace;
   /** Solo in `wrangler dev` locale (`--var TEST_CLOCK:1`): abilita l'header X-Test-Now-Offset. Mai in produzione. */
   TEST_CLOCK?: string;
 };

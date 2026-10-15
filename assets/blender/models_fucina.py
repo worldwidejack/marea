@@ -1,6 +1,5 @@
 # Fucina a Pressione (Epopea della Regata, dungeon 3 — Riccardo, 9 ott 2026): ingresso sull'arco nord dell'anello della Laguna, kit del
-# dungeon e i nemici del Collettivo Rottamautomi. SCRITTO SUL PC DI RICCARDO SENZA BLENDER: non è mai stato eseguito. Lo lancia il
-# Claude di Jack:
+# dungeon e i nemici del Collettivo Rottamautomi. Scritto sul PC di Riccardo senza Blender, poi eseguito e rifinito l'11 ott 2026 sul fisso. Si lancia con:
 #   npm run assets prop_ingresso_fucina dng_fucina_pavimento dng_fucina_muro dng_fucina_muro_basso dng_fucina_colonna dng_fucina_leva nem_scintilla nem_fornace nem_palombaro nem_forgiatore
 # poi lo sistema se qualcosa non torna e guarda il foglio dei contatti (tests/out/rpg_contact.png).
 # I nomi sono quelli che cerca il codice: prop_ingresso_<stile> (game/ingressi.ts), dng_fucina_pavimento/muro/muro_basso e
@@ -14,12 +13,11 @@
 # Convenzioni come models_drenaggio.py: x destra, y su, davanti −Z, 1 unità = 1 m, pivot a terra al centro; dng_* moduli ≤ 60 triangoli
 # (pavimento da 0 a −0,3, muri da 0 a 2,4, bassi 0,6), pressa e leva 50-200; nem_* ≤ 600 (il Mastro Forgiatore, boss, ≤ 1.200); solo
 # colori della palette e regioni dell'atlas che esistono già (`roccia` e i campioni piatti `p_<colore>`). I mattoni refrattari dei muri
-# nel segnaposto sono a pixel; qui sono legno scuro piatto con la fascia d'ottone: se serve, una regione `mattoni_fucina` si aggiunge in
-# atlas.py nelle zone libere, senza spostare le altre.
+# (`mattoni_fucina`) e le lastre di basalto del pavimento (`basalto_fucina`) sono regioni aggiunte in atlas.py (zona libera a y 384).
 import math
 from lib import Mesh, Xf
 
-PAV, MURO, CIMA, EM = 'roccia', 'p_legno_scuro', 'p_nero_caldo', 'mat_emissivo'
+PAV, MURO, CIMA, EM = 'basalto_fucina', 'mattoni_fucina', 'p_nero_caldo', 'mat_emissivo'  # regioni aggiunte in atlas.py (11 ott 2026)
 
 
 def _obj(m, **info):

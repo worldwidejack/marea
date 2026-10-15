@@ -47,7 +47,7 @@ export const TITOLO_MAX = 20;
 
 type IsolaJson = { id: string; nome: string };
 type ArchJson = { islands: { island: string; role: string }[] };
-/** Le isole da visitare: tutte quelle dell'arcipelago che non sono lotti (Porto, Laguna, facciate, isole a tema), una volta sola. */
+/** Le isole da visitare: tutte quelle dell'arcipelago che non sono lotti, Borgo o pontili (Porto, Laguna, facciate, isole a tema), una volta sola. */
 export const ISOLE_DIARIO: readonly DiarioIsola[] = (() => {
   const out: DiarioIsola[] = [];
   for (const p of (archipelago as unknown as ArchJson).islands) {

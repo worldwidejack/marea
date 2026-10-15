@@ -7,7 +7,7 @@ import type { DungeonAzione, DungeonEvent, DungeonInput, DungeonModule } from '.
 import { NO_DUNGEON_INPUT } from './types.ts';
 import { conEroe, createParty, createState, finita } from './state.ts';
 import type { DungeonState, EroeDef } from './state.ts';
-import { stepHero } from './hero.ts';
+import { beviNow, stepHero } from './hero.ts';
 import { stepEnemies } from './enemies.ts';
 import { stepProjectiles } from './projectiles.ts';
 import { pickup } from './loot.ts';
@@ -71,7 +71,13 @@ export const dungeon: DungeonModule<DungeonState> = {
   // (insieme, #118: più eroi nella stessa partita; da solo non cambia niente, la versione resta 5)
   // v6: magia in mano come un'arma (equip.mano: la A la lancia, il tasto C alterna arma e magia e non lancia più) e mira col mouse (DungeonInput.m, log v2)
   // v7: un unico a dungeon sicuro dal boss (loot.json) e magie quasi senza attesa (spells.json: il limite è la Magicka); la sim non cambia, cambiano i numeri
-  id: 'dungeon', version: 7, maxTicks: MAX_TICKS,
+  // v8: la magia in mano si mira come l'arco: la A (o il joystick di mira) tenuta punta, la magia parte al rilascio; niente più rilancio da tenuta
+  // (azione `bevi` dallo zaino: qualsiasi pozione, non solo la rapida; i replay esistenti non cambiano, senza cambiare versione)
+  // v9: perk dell'albero (Taglio Critico, Colpo fatale, Carica massima, Automira, Arciere Mobile, Scarica con il tasto E = DungeonInput.e, Grandi
+  // Magie, evocazioni potenziate e Patto di sangue, e la seconda tornata); log v3 con il bit del tasto E
+  // v10: magie di fuoco ed elettricità differenziate (il fuoco brucia di più, l'elettricità rallenta), Fuoco/Elettricità continua (raggio che si tiene
+  // con la A, costa Magicka al secondo) e Bomba di fuoco/elettrica (lenta, scoppia dove atterra); libri nelle mappe della Grotta, Cripta, Drenaggio, Fucina
+  id: 'dungeon', version: 10, maxTicks: MAX_TICKS,
   create: ({ seed, dungeon: id, hero, stato, partenza }) => createState(dungeonDef(id), seed, hero, { stato: stato ?? null, partenza: partenza ?? null }),
   step(s, input) { stepParty(s, [input]); },
   act(s, a) {
@@ -79,6 +85,7 @@ export const dungeon: DungeonModule<DungeonState> = {
     switch (a.t) {
       case 'equip': return equipNow(s, a.slot, a.item);
       case 'butta': return buttaNow(s, a.item, a.n);
+      case 'bevi': return beviNow(s, a.item);
       case 'salva': return salvaQui(s);
       case 'esci': return esciQui(s);
       // insieme: il giocatore se n'è andato, per lui la spedizione finisce senza esito (gli altri continuano)

@@ -14,7 +14,7 @@
 // Dungeon insieme (#118): /dungeon_party_start arriva dal DO Spedizioni; con pending.party il lotto chiede il log della squadra (POST /log) e lo rigioca.
 // Mondo Sotterraneo (lot_rpg.ts): POST /rpg {azione} · /dungeon_start {dungeon} · /dungeon_save {inputs, hash} · /dungeon_finish {inputs, hash}.
 // Isola dei Templari (lot_templari.ts): POST /templari_start {subito?} · /templari_finish {inputs, azioni, hash} (replay e premio delle ondate) ·
-// /templari_reliquia (il calice della Tempesta).
+// /templari_reliquia (il calice della Tempesta) · /templari_party_start (solo dal DO TemplariInsieme; il finish insieme rigioca il suo log).
 // Isola dell'Adrenalina (docs/ADRENALINA.md §2): POST /adrenalina_liberatoria {} → {lot, nuova} (la firma al cancello della funivia, una volta sola).
 // Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
@@ -26,6 +26,8 @@ import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
 import { build, buyHat, collect, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
 import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
+import { compraFinitura, compraMobile, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
+import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
 import { holdStake, releaseStake } from '@marea/sim/economy/challenge.ts';
@@ -38,9 +40,11 @@ import { firmaLibro, rientra, segnaVisto } from '@marea/sim/economy/rientro.ts';
 import { donaAlFaro, segnaFaro } from '@marea/sim/economy/faro.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
 import '@marea/sim/corse/registra.ts'; // Corse: il server rigioca sul motore v2 (#173)
+import '@marea/sim/adrenalina/registra.ts'; // Adrenalina: le discese dello snowboard (passo 3b)
+import { medagliaDaPosizione, posizioneDiscesa } from '@marea/sim/adrenalina/classifica.ts';
 import { isPackedInputs, replayPartita } from '@marea/sim/replay.ts';
 import { registraDiscesa, registraPartita, registraVisti, riscuotiTraguardo, scegliTitolo } from '@marea/sim/economy/diario.ts';
-import { fitHero } from '@marea/sim/rpg/hero.ts';
+import { fitHero, newHero } from '@marea/sim/rpg/hero.ts';
 import { chiudiScaduta } from '@marea/sim/dungeon/settle.ts';
 import type { EconomyErrorCode, LotState, Resources } from '@marea/sim/economy/types.ts';
 import { nowFromHeader } from '../clock.ts';
@@ -73,7 +77,7 @@ function isRelease(v: unknown): v is Release {
 function eventiAzione(act: string, prima: LotState, dopo: LotState): EventiMissione {
   if (act === 'collect') return eventiRaccolta(prima, dopo);
   if (act === 'build' || act === 'upgrade') return { cantiere: 1 };
-  if (act === 'decor' || act === 'hat' || act === 'barca') return { mercante: 1 };
+  if (act === 'decor' || act === 'hat' || act === 'barca' || act === 'casa_compra' || act === 'casa_finitura') return { mercante: 1 }; // anche il negozio dei mobili (#265)
   return {};
 }
 /** Stato HTTP di un errore economico: richiesta rotta 400, cosa inesistente 404, il resto è un conflitto con lo stato (409). */
@@ -124,7 +128,7 @@ export class Lot extends DurableObject<Env> {
       let body: Record<string, unknown>;
       try { body = (await req.json()) as Record<string, unknown>; } catch { return json({ error: 'Richiesta non valida' }, 400); }
       if (!body || typeof body !== 'object') return json({ error: 'Richiesta non valida' }, 400);
-      if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now);
+      if (act === 'solo_start' || act === 'solo_play') return this.solo(lot, act, body, now, owner);
       if (RPG_ACTS.has(act)) {
         const g = lot.dungeon?.pending?.party;
         // spedizione insieme aperta (#118): prima il log della squadra dal DO Spedizioni, poi il lotto riletto (nell'attesa può essere cambiato)
@@ -135,7 +139,27 @@ export class Lot extends DurableObject<Env> {
         return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
       }
       if (act === 'faro_dona' || act === 'faro_livelli') return this.faro(lot, act, body, now);
-      if (TEMPLARI_ACTS.has(act)) return templariRoute(lot, act, body, now, (l) => this.save(l));
+      if (TEMPLARI_ACTS.has(act)) {
+        // partita insieme aperta: prima il log della squadra dal DO TemplariInsieme, poi il lotto riletto (nell'attesa può essere cambiato)
+        const g = lot.templari?.pending?.party;
+        if (g && act === 'templari_finish') {
+          const gruppo = await this.logTemplari(g);
+          return templariRoute(this.load(owner, now), act, { ...body, gruppo }, now, (l) => this.save(l));
+        }
+        return templariRoute(lot, act, body, now, (l) => this.save(l));
+      }
+      if (act === 'test_inv') {
+        const item = body['item'], q = typeof body['q'] === 'number' ? body['q'] : 1;
+        if (typeof item === 'string') {
+          const hero = lot.hero ? { ...lot.hero } : newHero();
+          const inv = { ...(hero.inv ?? {}) };
+          inv[item] = (inv[item] ?? 0) + q;
+          const next: LotState = { ...lot, hero: { ...hero, inv } };
+          this.save(next);
+          return json(next);
+        }
+        return json({ error: 'Manca item' }, 400);
+      }
       if (act === 'adrenalina_liberatoria') { const r = firmaLiberatoria(lot); if (r.nuova) this.save(r.lot); return json({ lot: r.lot, nuova: r.nuova }); }
       if (act === 'rientro') {
         const out = rientra(Array.isArray(body['faro']) ? segnaFaro(lot, body['faro']) : lot, now);
@@ -178,6 +202,16 @@ export class Lot extends DurableObject<Env> {
   }
 
   /** Log della spedizione insieme (DO Spedizioni: da adesso questo eroe è fuori); null se non si trova più. */
+  /** Templari insieme: il log della partita dal DO TemplariInsieme (l'eroe idx è fuori da adesso). null se non c'è più. */
+  private async logTemplari(g: { run: string; idx: number }): Promise<unknown> {
+    try {
+      const r = await this.env.TEMPLARI_INSIEME.get(this.env.TEMPLARI_INSIEME.idFromName('templari')).fetch(new Request('https://templari/log', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ run: g.run, idx: g.idx }),
+      }));
+      return r.ok ? await r.json() : null;
+    } catch (e) { console.warn('[marea] log dei Templari insieme non letto', e); return null; }
+  }
+
   private async logGruppo(g: { run: string; idx: number }): Promise<unknown> {
     try {
       const r = await this.env.SPEDIZIONI.get(this.env.SPEDIZIONI.idFromName('spedizioni')).fetch(new Request('https://spedizioni/log', {
@@ -188,7 +222,7 @@ export class Lot extends DurableObject<Env> {
   }
 
   /** Partita da solo: il seed lo sceglie il server, il punteggio lo ricalcola il server rigiocando gli input. */
-  private solo(lot: LotState, act: 'solo_start' | 'solo_play', body: Record<string, unknown>, now: number): Response {
+  private solo(lot: LotState, act: 'solo_start' | 'solo_play', body: Record<string, unknown>, now: number, owner: string): Response {
     if (act === 'solo_start') {
       const mg = body['minigame'];
       if (typeof mg !== 'string' || !Object.hasOwn(MINIGAMES, mg)) return json({ error: 'Minigioco sconosciuto' }, 400);
@@ -205,10 +239,21 @@ export class Lot extends DurableObject<Env> {
     const inputs = body['inputs'];
     if (!isPackedInputs(inputs, getMinigame(p.minigame).maxTicks)) return json({ error: 'Partita non valida' }, 400);
     const { result: r, raccolta } = replayPartita(p.minigame, p.seed, p.difficulty, inputs, p.opzioni);
-    const out = finishSolo(lot, r.medal, now);
-    const next = registraPartita(tracciaMissioni(out.lot, eventiPartita(r.medal), now), p.minigame, r.medal, raccolta);
+    // le discese dell'Adrenalina (passo 3b): la medaglia è la posizione nella classifica a tempo della pista (oro = batti il record,
+    // argento secondo, bronzo terzo; nessuno davanti = oro). La classifica la passa il Worker; senza, la partita resta aperta.
+    let medal = r.medal, discesa: Record<string, unknown> = {};
+    if (p.minigame === 'snowboard') {
+      const pista = p.opzioni?.['pista'] ?? 'snowboard_verde', cl = body['classifica'] as { pista?: unknown; righe?: unknown } | undefined;
+      if (!cl || cl.pista !== pista || !Array.isArray(cl.righe)) return json({ error: 'Serve la classifica della pista', code: 'classifica', pista }, 409);
+      const righe = (cl.righe as unknown[]).filter((x): x is { chi: string; ms: number } => !!x && typeof (x as { chi?: unknown }).chi === 'string' && typeof (x as { ms?: unknown }).ms === 'number');
+      const arrivato = r.detail['arrivato'] === 1, posizione = arrivato ? posizioneDiscesa(righe, owner, r.detail['finale']!) : 0;
+      medal = arrivato ? medagliaDaPosizione(posizione) : null;
+      discesa = { pista, posizione, classificati: righe.length, seed: p.seed, opzioni: p.opzioni ?? {} };
+    }
+    const out = finishSolo(lot, medal, now);
+    const next = registraPartita(tracciaMissioni(out.lot, eventiPartita(medal), now), p.minigame, medal, raccolta);
     this.save(next);
-    return json({ minigame: p.minigame, score: r.score, medal: r.medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: next });
+    return json({ minigame: p.minigame, score: r.score, medal, detail: r.detail, premio: out.premio, premiata: out.premiata, lot: next, ...discesa });
   }
 
   /** Faro comune (#111): versamento (idempotente per id: il coordinatore può ripeterlo dopo un crash) e livelli raggiunti. */
@@ -283,6 +328,31 @@ export class Lot extends DurableObject<Env> {
         if (act === 'decor_sell') return sellDecor(lot, id, now).lot;
         if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
         return moveDecor(lot, id, cell, now);
+      }
+      // la casa arredabile (#265, economy/casa.ts): compra (negozio dei mobili), posa, sposta, gira, ritira; finiture; il baule
+      case 'casa_compra': return isId(body['id']) ? compraMobile(lot, body['id'], now) : json({ error: 'Mobile sconosciuto' }, 400);
+      case 'casa_finitura': case 'casa_scegli': {
+        const tipo = body['tipo'], id = body['id'];
+        if ((tipo !== 'pavimento' && tipo !== 'carta') || !isId(id)) return json({ error: 'Finitura non valida' }, 400);
+        return act === 'casa_finitura' ? compraFinitura(lot, tipo, id, now) : scegliFinitura(lot, tipo, id, now);
+      }
+      case 'casa_posa': case 'casa_sposta': {
+        const id = body['id'], cell = body['cell'], muro = body['muro'], rot = body['rot'] ?? 0;
+        if (!isId(id) || !isCell(cell) || (muro !== undefined && muro !== 'n' && muro !== 'o' && muro !== 'e')) return json({ error: 'Posto non valido' }, 400);
+        const p: PostoMobile = muro ? { cell, muro } : { cell };
+        if (act === 'casa_sposta') return spostaMobile(lot, id, p, now);
+        if (typeof rot !== 'number' || !Number.isInteger(rot) || rot < 0 || rot > 3) return json({ error: 'Rotazione non valida (0-3)' }, 400);
+        return posaMobile(lot, id, p, rot, now);
+      }
+      case 'casa_ruota': case 'casa_ritira': {
+        const id = body['id'];
+        if (!isId(id)) return json({ error: 'Manca il mobile' }, 400);
+        return act === 'casa_ruota' ? ruotaMobile(lot, id, now) : ritiraMobile(lot, id, now);
+      }
+      case 'casa_baule': {
+        const cell = body['cell'];
+        if (cell === undefined) return ruotaBaule(lot, now);
+        return isCell(cell) ? spostaBaule(lot, cell, now) : json({ error: 'Cella non valida' }, 400);
       }
       case 'hat': {
         const h = body['hat'];

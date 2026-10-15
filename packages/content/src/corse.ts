@@ -10,15 +10,24 @@ import spiaggiaLungomare from './corse/piste/spiaggia_lungomare.json' with { typ
 import spiaggiaBaia from './corse/piste/spiaggia_baia.json' with { type: 'json' };
 import spiaggiaPorto from './corse/piste/spiaggia_porto.json' with { type: 'json' };
 import spiaggiaFuga from './corse/piste/spiaggia_fuga.json' with { type: 'json' };
-import type { CPistaDef, CorseMotoreCfg } from './corse_types.ts';
+import provaBinari from './corse/piste/prova_binari.json' with { type: 'json' };
+import giunglaMiniera from './corse/piste/giungla_miniera.json' with { type: 'json' };
+import type { COggettoDef, CPistaDef, CorseMotoreCfg } from './corse_types.ts';
 
 export type * from './corse_types.ts';
 
 export const CORSE = motore as unknown as CorseMotoreCfg;
 /** Le piste per id, nell'ordine del banco di prova. */
 export const CORSE_PISTE: Record<string, CPistaDef> = Object.fromEntries(
-  ([provaAnello, provaFolle, provaBaia, provaFuga, spiaggiaLungomare, spiaggiaBaia, spiaggiaPorto, spiaggiaFuga] as unknown as CPistaDef[]).map((p) => [p.id, p]),
+  ([provaAnello, provaFolle, provaBaia, provaFuga, provaBinari, spiaggiaLungomare, spiaggiaBaia, spiaggiaPorto, spiaggiaFuga, giunglaMiniera] as unknown as CPistaDef[]).map((p) => [p.id, p]),
 );
+/** Piste tolte dal gioco ma tenute per i test e il banco da indirizzo: la Fuga dall'onda (Jack, 12 ott 2026, #258: «più un concept da
+ *  giungla», tornerà lì). */
+export const CORSE_FUORI_GIOCO: readonly string[] = ['spiaggia_fuga'];
+/** Le piste del banco di prova (#258): solo le definitive delle zone. Le `prova_*` e quelle fuori gioco si aprono solo da indirizzo. */
+export const CORSE_PISTE_BANCO: string[] = Object.keys(CORSE_PISTE).filter((id) => !id.startsWith('prova_') && !CORSE_FUORI_GIOCO.includes(id));
+/** Le piste della Spiaggia che il gioco offre (porta della zona e gara tra amici). */
+export const CORSE_PISTE_SPIAGGIA: string[] = CORSE_PISTE_BANCO.filter((id) => id.startsWith('spiaggia_'));
 
 /** Controlli dei dati (in italiano): veicoli e superfici conosciuti, piste coerenti (griglia, tratti dentro la pista, rami). */
 export function validateCorse(): string[] {
@@ -34,6 +43,22 @@ export function validateCorse(): string[] {
   for (const [f, ids] of Object.entries(c.bot.veicoli)) for (const id of ids) {
     const v = c.veicoli.find((x) => x.id === id);
     if (!v || v.famiglia !== f) errs.push(`corse: veicolo dei bot ${id} non è della famiglia ${f}`);
+  }
+  // oggetti (#250): ogni effetto ha i suoi numeri, i pesi sono tre, ogni zona e isola nominata esiste
+  const O = c.oggetti, ids = new Set<string>();
+  if (!O.scatole.righe.length || !O.scatole.lat.length || !pos(O.scatole.raggio) || !pos(O.scatole.ricompare) || !pos(O.scatole.roulette)) errs.push('corse: scatole degli oggetti non valide');
+  if (!pos(O.colpito.secondi) || !(O.colpito.velocita >= 0 && O.colpito.velocita < 1)) errs.push('corse: colpito degli oggetti non valido');
+  const servono: Record<string, readonly (keyof COggettoDef)[]> = { turbo: ['secondi'], scudo: ['secondi'], trappola: ['dietro', 'lancio', 'durata', 'raggio'], dritto: ['velocita', 'vita', 'raggio'], ricerca: ['velocita', 'vita', 'raggio', 'sterza'] };
+  for (const o of O.catalogo) {
+    const d = `oggetto ${o.id}`;
+    if (ids.has(o.id)) errs.push(`corse: ${d} doppio`);
+    ids.add(o.id);
+    const req = servono[o.effetto];
+    if (!req) { errs.push(`corse: ${d} con un effetto sconosciuto (${o.effetto})`); continue; }
+    for (const k of req) if (!pos(o[k])) errs.push(`corse: ${d} senza ${k}`);
+    if (!(o.cariche >= 1) || o.pesi.length !== 3 || o.pesi.some((w) => !(w >= 0))) errs.push(`corse: ${d} con cariche o pesi non validi`);
+    if (o.livello === 'zona' && !Object.values(CORSE_PISTE).some((p) => p.zona === o.zona)) errs.push(`corse: ${d} di una zona senza piste (${o.zona})`);
+    if (o.livello === 'sblocco' && !o.sblocco) errs.push(`corse: ${d} da sbloccare senza l'isola che lo sblocca`);
   }
   for (const s of Object.values(c.superfici)) for (const f of famiglie) if (!s.per[f as keyof typeof s.per]) errs.push(`corse: superficie ${s.id} senza effetto per ${f}`);
   const sup = (id: string, dove: string) => { if (id !== 'vuoto' && !c.superfici[id]) errs.push(`corse: ${dove}: superficie sconosciuta ${id}`); };
@@ -62,6 +87,18 @@ export function validateCorse(): string[] {
     for (const e of p.eventi) { sup(e.superficie, `${d}, evento ${e.tipo}`); if (!(e.daGiro >= 1)) errs.push(`corse: ${d}: evento ${e.tipo} senza giro di partenza`); }
     for (const r of p.rami) { sup(r.superficie, `${d}, ramo ${r.id}`); if (r.punti.length < 2) errs.push(`corse: ${d}: ramo ${r.id} con meno di 2 punti`); }
     if (!pos(p.larghezza) || !(p.bordo >= 0) || !(p.muro > 0 && p.muro <= 1)) errs.push(`corse: ${d}: larghezza, bordo o muro non validi`);
+    // binari (#228): chi corre sui binari ha le rotaie, dentro la carreggiata e in ordine da sinistra a destra
+    const rotaie = (b: number[] | undefined, l: number, dove: string) => {
+      if (!b?.length) { errs.push(`corse: ${dove}: pista a binari senza rotaie`); return; }
+      for (let i = 0; i < b.length; i++) if (Math.abs(b[i]!) > l || (i > 0 && !(b[i]! > b[i - 1]!))) errs.push(`corse: ${dove}: rotaie fuori dalla carreggiata o non in ordine`);
+    };
+    if (fams.includes('binari')) {
+      rotaie(p.binari, p.larghezza, d);
+      for (const r of p.rami) rotaie(r.binari ?? [0], r.larghezza, `${d}, ramo ${r.id}`);
+    } else if (p.agganci?.length) { // piste ibride: le rotaie della principale servono nei tratti agganciati, i rami a binari hanno le loro
+      rotaie(p.binari, p.larghezza, d);
+      for (const r of p.rami) if (r.binari) rotaie(r.binari, r.larghezza, `${d}, ramo ${r.id}`);
+    } else if (p.binari) errs.push(`corse: ${d}: rotaie su una pista senza binari`);
   }
   return errs;
 }

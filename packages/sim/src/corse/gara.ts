@@ -2,6 +2,8 @@
 // È un MinigameModule come gli altri. Per ora lo usa solo il banco di prova (provapiste.html); il server lo rigiocherà quando il
 // circuito della Spiaggia prenderà il posto del Gran Premio. Opzioni: pista, veicolo (della famiglia della pista), bot ('0' = da solo),
 // e le regole (#170, '0' = spenta, di serie accese): sterzo (curva, rampa e velocità), partenza (turbo al semaforo), acrobazie, scia, somma.
+// Gli oggetti alla Mario Kart (#250, oggetti.ts) invece sono di serie spenti: oggetti = '1' (gara CON OGGETTI); USA = il bottone b,
+// con `c` (E da tastiera, stick verso l'altra parte col dito) l'oggetto va al contrario, senza frenare.
 // La gara parte col conto alla rovescia (tick negativi fino al VIA): i tempi contano dal VIA.
 // Medaglia = posizione all'arrivo (da solo: oro se arrivi). Punteggio = scoreBase − centesimi.
 // Piste miste (il porto): più famiglie sulla stessa pista, ognuna nella sua corsia; i bot sono misti. Fughe con l'inseguitore (l'onda).
@@ -13,9 +15,12 @@ import type { Rng } from '../rng.ts';
 import type { InputFrame } from '../types.ts';
 import type { Difficulty, Medal, MinigameModule, MinigameOpzioni, MinigameResult } from '../minigames/types.ts';
 import { campo, svoltaTra } from './nastro.ts';
-import { effetto, nastroDi, pistaCorse, superficieA, veicoloCorse } from './pista.ts';
+import { VUOTO, effetto, nastroDi, pistaCorse, rotaieDi, suBinari, superficieA, veicoloCorse } from './pista.ts';
 import type { Pista } from './pista.ts';
-import { daiTurbo, muovi, nuovoVeicolo, urti } from './veicolo.ts';
+import { guida, limiteCurva, rotaiaVicina } from './binari.ts';
+import { nuoviOggetti, passoOggetti } from './oggetti.ts';
+import type { OggettiState } from './oggetti.ts';
+import { daiTurbo, nuovoVeicolo, urti } from './veicolo.ts';
 import type { Regole, Veicolo } from './veicolo.ts';
 
 const MAX_TICKS = CORSE.maxSeconds * TICK_HZ;
@@ -38,6 +43,8 @@ export type GaraState = {
   corsie: { base: number; fase: number }[];
   /** Fughe con l'inseguitore: dov'è il suo fronte (m dal via). Senza inseguitore resta 0. */
   onda: number;
+  /** Gli oggetti (gara CON OGGETTI), `null` = guida pura. */
+  oggetti: OggettiState | null;
   done: boolean; timeUp: boolean;
 };
 export type GaraView = {
@@ -47,6 +54,8 @@ export type GaraView = {
   giro: number; giri: number;
   /** L'inseguitore: dov'è (m dal via, `null` = non c'è) e quanto sei lontano da lui (m, negativo = ti ha preso). */
   onda: number | null; ondaDist: number;
+  /** Scatole, tasche, trappole e colpi (gara CON OGGETTI), `null` = guida pura. */
+  oggetti: OggettiState | null;
   ms: number; maxMs: number; giroMs: number; bestMs: number;
   /** Secondi al VIA (0 = partiti). */
   via: number;
@@ -65,6 +74,7 @@ export function opzioniGara(v: unknown): MinigameOpzioni {
   const veicolo = typeof o['veicolo'] === 'string' && adatti.some((x) => x.id === o['veicolo']) ? o['veicolo'] : adatti[0]!.id;
   const out: MinigameOpzioni = { pista, veicolo, bot: o['bot'] === '0' ? '0' : '1' };
   for (const r of REGOLE) out[r] = o[r] === '0' ? '0' : '1';
+  if (o['oggetti'] === '1') out['oggetti'] = '1'; // di serie spenti: le gare di prima restano identiche
   // gara tra amici: il tuo posto tra gli amici, 0 = il primo (senza bot davanti a tutti, coi bot subito dietro di loro; manca = in fondo, come da solo)
   if (typeof o['posto'] === 'string' && /^[0-7]$/.test(o['posto'])) out['posto'] = o['posto'];
   return out;
@@ -139,6 +149,43 @@ export function pilota(p: Pista, k: Veicolo, corsia: number, latFissa: number | 
   return { sterzo, gas, curva };
 }
 
+/** Chi guida da solo sui binari (#228): stacca il gas prima delle curve (oltre 1,2 × `prudenza` × il limite, piegato), si piega verso l'interno,
+ *  salta per cambiare rotaia (verso l'imbocco di un bivio che conviene o lontano da una rotaia rotta) e salta i buchi.
+ *  `osa` = prende i bivi rischiosi delle piste ibride (rami a binari aperti a tutti): i bot uno sì e uno no. */
+export function pilotaBinari(p: Pista, k: Veicolo, prudenza: number, bot: boolean, osa = true): { sterzo: number; gas: number; salto: boolean } {
+  const V = veicoloCorse(k.id), n = nastroDi(p, k.ramo), rot = rotaieDi(p, k.ramo);
+  const fino = (m: number) => (n.chiuso ? (k.s + m) % n.len : Math.min(n.len, k.s + m));
+  // la curva più stretta nei prossimi metri (quanti ne servono per frenare) dice la velocità giusta
+  let kmax = 0;
+  for (let d = 0; d <= 8 + Math.max(0, k.v) * 1.1; d += 2) kmax = Math.max(kmax, Math.abs(campo(n, n.k, fino(d))));
+  const vGiusta = kmax > 1e-4 ? Math.sqrt((limiteCurva(V, 1, 1) * prudenza) / kmax) : 1e9;
+  // in curva non si cade: oltre la velocità giusta stacca solo il gas (su due ruote si frena già da soli), e solo se è molto oltre
+  const gas = k.v > vGiusta * 1.2 ? 0 : 1;
+  const kq = campo(n, n.k, fino(3));
+  let sterzo = Math.abs(kq) > 0.006 ? (kq > 0 ? 1 : -1) : 0;
+  // la rotaia dove andare: l'imbocco di un bivio che conviene (i bot solo quelli della loro famiglia), poi una rotaia senza buchi davanti
+  // chi non prende un bivio a binari che ha davanti si sposta dalla sua rotaia (sennò ci entrerebbe)
+  let voluta = k.rot, evita = -1;
+  if (k.ramo < 0) for (const r of p.rami) {
+    let d = r.def.da - k.s;
+    if (p.n.chiuso && d < 0) d += p.n.len;
+    if (!(d > 0 && d < 60)) continue;
+    const f = r.def.famiglie, prende = r.def.scorciatoia && (r.def.binari && !f ? osa : bot ? !!f && f.includes(V.famiglia) : !f || f.includes(V.famiglia));
+    if (prende) { voluta = rotaiaVicina(rot, r.latIngresso); evita = -1; break; }
+    if (r.def.binari) evita = rotaiaVicina(rot, r.latIngresso);
+  }
+  if (evita >= 0 && voluta === evita) voluta = evita > 0 ? evita - 1 : evita + 1;
+  const rotta = (i: number) => { for (let d = 2; d <= 10 + Math.max(0, k.v) * 1.2; d += 1.5) if (superficieA(p, k.ramo, fino(d), rot[i]!, k.giro + 1) === VUOTO) return d; return 0; };
+  const qui = rotta(voluta);
+  if (qui) { let meglio = -1; for (let i = 0; i < rot.length; i++) if (!rotta(i) && (meglio < 0 || Math.abs(i - k.rot) < Math.abs(meglio - k.rot))) meglio = i; if (meglio >= 0) voluta = meglio; }
+  if (k.aria) return { sterzo: voluta > (k.rot0 >= 0 ? k.rot0 : k.rot) ? 1 : voluta < (k.rot0 >= 0 ? k.rot0 : k.rot) ? -1 : 0, gas, salto: false };
+  if (voluta !== k.rot && k.v > 4) return { sterzo: voluta > k.rot ? 1 : -1, gas, salto: k.tenuto < 0 };
+  // un buco su tutte le rotaie: salta all'ultimo (il salto dura mezzo secondo)
+  const buco = rotta(k.rot);
+  if (buco && buco < 2 + k.v * 0.12) return { sterzo: 0, gas: 1, salto: k.tenuto < 0 };
+  return { sterzo, gas, salto: false };
+}
+
 /** Dove punta chi guida da solo, se ha un motivo per non stare al centro: l'imbocco di una scorciatoia della sua famiglia (i bot solo
  *  quelle che nominano la loro famiglia), la corsia della sua famiglia (piste miste) e, per il pilota automatico, una corsia veloce
  *  dove la superficie davanti rallenta (la secca nella baia, la pozzanghera, la sabbia dentro le curve). `null` = nessuno. */
@@ -159,9 +206,20 @@ export function latObiettivo(p: Pista, k: Veicolo, bot: boolean): number | null 
   return null;
 }
 
-/** Il pilota automatico (prove e test): segue il centro (o l'imbocco delle scorciatoie), drift nelle curve lunghe. `pigro` = metà gas, niente drift. */
-export function pilotaGara(s: GaraState, pigro = false): InputFrame {
+/** Il pilota automatico (prove e test): segue il centro (o l'imbocco delle scorciatoie), drift nelle curve lunghe. `pigro` = metà gas, niente drift.
+ *  Con gli oggetti li usa appena la roulette si ferma (un colpo di USA ogni mezzo secondo). */
+export function pilotaGara(s: GaraState, pigro = false, osa = true): InputFrame {
+  const f = guidaAuto(s, pigro, osa), t = s.oggetti?.tasche[0];
+  if (t?.ogg && t.roulette === 0 && s.tick % Math.round(TICK_HZ / 2) === 0) f.b = true;
+  return f;
+}
+function guidaAuto(s: GaraState, pigro: boolean, osa: boolean): InputFrame {
   const p = pistaCorse(s.pista), k = s.veicoli[0]!;
+  if (suBinari(p, k.ramo, k.s, veicoloCorse(k.id).famiglia) && s.tick > 0) {
+    if (k.aria && !pigro && s.regole.acrobazie && k.acro === 0 && !k.caduto) return { mx: 0, my: 1, a: k.tenuto < 0, b: false }; // salti dalle rampe: acrobazia
+    const a = pilotaBinari(p, k, pigro ? 0.7 : 0.95, false, osa), giu = (x: number) => (s.regole.sterzo ? senzaCurva(x) : x);
+    return { mx: giu(a.sterzo), my: pigro ? Math.min(a.gas, 0.55) : a.gas, a: a.salto, b: false };
+  }
   // al semaforo dà gas a metà della finestra del razzo; in aria (fuori dal drift) fa l'acrobazia appena stacca
   if (s.tick <= 0) return { mx: 0, my: !pigro && s.regole.partenza && -s.tick <= Math.round(CORSE.partenza.razzo * 0.5 * TICK_HZ) ? 1 : 0, a: false, b: false };
   const lat = latObiettivo(p, k, false);
@@ -220,8 +278,12 @@ export const garaCorse: MinigameModule<GaraState> = {
       const f = fams[i % fams.length]!, lista = CORSE.bot.veicoli[f], c = C?.[f];
       veicoli.push(nuovoVeicolo(p, lista[Math.floor(i / fams.length) % lista.length]!, G[i]![0], c !== undefined ? c + (G[i]![1] < 0 ? -1.4 : 1.4) : G[i]![1]));
     }
+    // sui binari si parte sopra una rotaia
+    if (fams.includes('binari')) { const rot = rotaieDi(p, -1); for (const k of veicoli) { k.rot = rotaiaVicina(rot, k.lat); k.lat = rot[k.rot]!; } }
+    for (const k of veicoli) k.agg = suBinari(p, k.ramo, k.s, veicoloCorse(k.id).famiglia);
     const corsie = veicoli.slice(1).map(() => ({ base: (rng.next() * 2 - 1) * CORSE.bot.corsia, fase: rng.next() }));
-    return { seed, difficulty, pista: o['pista']!, tick: -VIA, regole: regoleDa(o), veicoli, pesi: veicoli.map((k) => veicoloCorse(k.id).peso), corsie, onda: p.def.inseguitore?.parte ?? 0, done: false, timeUp: false };
+    const oggetti = o['oggetti'] === '1' ? nuoviOggetti(p, veicoli.length) : null;
+    return { seed, difficulty, pista: o['pista']!, tick: -VIA, regole: regoleDa(o), veicoli, pesi: veicoli.map((k) => veicoloCorse(k.id).peso), corsie, onda: p.def.inseguitore?.parte ?? 0, oggetti, done: false, timeUp: false };
   },
   step(s, f) {
     if (s.done) return;
@@ -239,15 +301,24 @@ export const garaCorse: MinigameModule<GaraState> = {
       for (const k of s.veicoli) if (!k.fine && !k.travolto && k.prog <= s.onda) { k.travolto = 1; k.v *= O.colpo; }
     }
     const dentro = (k: Veicolo) => (O && !k.fine && k.prog <= s.onda && k.prog > s.onda - O.spessore ? O.rallenta : 1);
-    muovi(p, me, veicoloCorse(me.id), sterzo, clamp(f.my, -1, 1), f.a, dentro(me), me.giro + 1, R);
+    guida(p, me, veicoloCorse(me.id), sterzo, clamp(f.my, -1, 1), f.a, dentro(me), me.giro + 1, R);
     // i bot: puntano la loro corsia, frenano prima delle curve strette, l'elastico li tiene vicini a te
     for (let i = 1; i < s.veicoli.length; i++) {
       const k = s.veicoli[i]!, c = s.corsie[i - 1]!;
+      const V = veicoloCorse(k.id);
+      if (suBinari(p, k.ramo, k.s, V.famiglia)) { // sui binari: più prudenti di te, tanto più quanto sono indietro nella griglia
+        const b = pilotaBinari(p, k, 0.9 - 0.03 * (i - 1), true, i % 2 === 1), diff = k.prog - me.prog;
+        const el = diff > 0 ? 1 - Math.min(E.davantiMax, diff * E.davanti) : 1 + Math.min(E.dietroMax, -diff * E.dietro);
+        k.tenuto = b.salto ? (k.tenuto >= 0 ? k.tenuto + DT : 0) : -1;
+        guida(p, k, V, b.sterzo, k.fine ? 0.5 : b.gas, b.salto, B.bravura[i - 1]! * B.bravuraFamiglia[V.famiglia] * el * dentro(k), k.giro + 1, R);
+        continue;
+      }
       const corsia = clamp(c.base + 0.3 * triangolo(k.prog / 280 + c.fase), -0.8, 0.8), lat = latObiettivo(p, k, true);
       const a = lat !== null ? pilota(p, k, 0, lat + c.base * 1.2) : pilota(p, k, corsia), diff = k.prog - me.prog;
       const el = diff > 0 ? 1 - Math.min(E.davantiMax, diff * E.davanti) : 1 + Math.min(E.dietroMax, -diff * E.dietro);
-      muovi(p, k, veicoloCorse(k.id), a.sterzo, k.fine ? 0.5 : a.gas, false, B.bravura[i - 1]! * B.bravuraFamiglia[veicoloCorse(k.id).famiglia] * el * dentro(k), k.giro + 1, R);
+      guida(p, k, V, a.sterzo, k.fine ? 0.5 : a.gas, false, B.bravura[i - 1]! * B.bravuraFamiglia[V.famiglia] * el * dentro(k), k.giro + 1, R);
     }
+    if (s.oggetti) passoOggetti(s.oggetti, p, s.veicoli, f.b, !!f.c, () => posizioni(s), s.seed, s.tick, R);
     if (R.scia) scia(s, p);
     urti(p, s.veicoli, s.pesi);
     for (const k of s.veicoli) dopo(s, p, k);
@@ -258,7 +329,9 @@ export const garaCorse: MinigameModule<GaraState> = {
     const p = pistaCorse(s.pista), me = s.veicoli[0]!, fin = me.fine > 0, ms = tickMs(garaTicks(s, me)), pos = posizioni(s)[0]!;
     const medal: Medal = fin ? (pos === 1 ? 'oro' : pos === 2 ? 'argento' : pos === 3 ? 'bronzo' : null) : null;
     const score = fin ? Math.max(1000, CORSE.scoreBase - Math.floor(ms / 10)) : Math.floor(Math.max(0, me.prog) / 10);
-    return { done: s.done, score, medal, detail: { ms, pos, giri: Math.min(me.giro, p.def.giri), tot: p.def.giri, giro: tickMs(me.best), salti: me.salti, cadute: me.cadute, travolti: me.travolto } };
+    const detail: Record<string, number> = { ms, pos, giri: Math.min(me.giro, p.def.giri), tot: p.def.giri, giro: tickMs(me.best), salti: me.salti, cadute: me.cadute, travolti: me.travolto };
+    if (s.oggetti) { detail['oggetti'] = s.oggetti.usati[0]!; detail['colpito'] = s.oggetti.presi[0]!; }
+    return { done: s.done, score, medal, detail };
   },
   autopilot(s: GaraState, _rng: Rng): InputFrame {
     return pilotaGara(s);
@@ -267,7 +340,7 @@ export const garaCorse: MinigameModule<GaraState> = {
     const p = pistaCorse(s.pista), me = s.veicoli[0]!;
     return {
       pista: s.pista, veicoli: s.veicoli, posizioni: posizioni(s), giro: Math.min(p.def.giri, me.giro + 1), giri: p.def.giri,
-      onda: p.def.inseguitore ? s.onda : null, ondaDist: p.def.inseguitore ? me.prog - s.onda : 0,
+      onda: p.def.inseguitore ? s.onda : null, ondaDist: p.def.inseguitore ? me.prog - s.onda : 0, oggetti: s.oggetti,
       ms: tickMs(garaTicks(s, me)), maxMs: CORSE.maxSeconds * 1000,
       giroMs: me.fine ? 0 : tickMs(Math.max(0, s.tick - Math.max(1, me.giroTick))), bestMs: tickMs(me.best),
       done: s.done, finished: me.fine > 0, timeUp: s.timeUp, tick: s.tick, via: s.tick < 0 ? -s.tick / TICK_HZ : 0,

@@ -37,17 +37,21 @@ export default async function (ctx) {
     }
   });
 
+  const WIN = process.platform === 'win32';
   const persist = path.join(ctx.OUT, `m2dungeon-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, shell: WIN }).toString();
   let dev = null, log = '';
   try {
     fs.rmSync(persist, { recursive: true, force: true });
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
-    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command', "INSERT INTO persone (id, nome, token, slot) VALUES ('ada', 'Ada', 'tokA', 0), ('bea', 'Bea', 'tokB', 1);");
+    const sql = path.join(persist, 'persone.sql');
+    fs.mkdirSync(persist, { recursive: true });
+    fs.writeFileSync(sql, "INSERT INTO persone (id, nome, token, slot) VALUES ('ada', 'Ada', 'tokA', 0), ('bea', 'Bea', 'tokB', 1);\n");
+    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--file', sql);
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', ctx.distDir, '--persist-to', persist, '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', ctx.distDir, '--persist-to', persist, '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: !WIN, shell: WIN, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const base = `http://127.0.0.1:${port}`;
     let up = false;
@@ -87,9 +91,9 @@ export default async function (ctx) {
     });
     await ctx.shot(page, '1_ingresso_1280');
 
-    await ctx.test('Archivio, Fucina e Mausoleo (Epopea 2, 3 e 4): porte sigillate finché non completi il dungeon di prima (niente ENTRA né AFFRONTA INSIEME); il server rifiuta', async () => {
+    await ctx.test('Archivio, Fucina, Mausoleo e Vuoto: porte sigillate e cancello finché mancano i requisiti (niente ENTRA né AFFRONTA INSIEME); il server rifiuta', async () => {
       const s = await st();
-      assert(s.ingressi.sigillati.includes('archivio') && s.ingressi.sigillati.includes('fucina') && s.ingressi.sigillati.includes('mausoleo') && !s.ingressi.sigillati.includes('drenaggio'), 'sigillati: ' + JSON.stringify(s.ingressi.sigillati));
+      assert(s.ingressi.sigillati.includes('archivio') && s.ingressi.sigillati.includes('fucina') && s.ingressi.sigillati.includes('mausoleo') && s.ingressi.sigillati.includes('vuoto') && !s.ingressi.sigillati.includes('drenaggio'), 'sigillati: ' + JSON.stringify(s.ingressi.sigillati));
       const a = s.ingressi.spots.find((x) => x.id === 'archivio');
       await hook('teleport', a.x, a.z + 3); await sleep(900);
       await ctx.waitState(page, (s) => s.ingressi.near === 'archivio', 5000);
@@ -106,6 +110,8 @@ export default async function (ctx) {
       assert(!r3.ok && /Archivio/.test((await r3.json()).error ?? ''), 'la Fucina si apre senza l’Archivio');
       const r4 = await fetch(base + '/api/dungeon/start', { method: 'POST', headers: { 'x-token': 'tokA', 'content-type': 'application/json' }, body: JSON.stringify({ dungeon: 'mausoleo' }) });
       assert(!r4.ok && /Fucina/.test((await r4.json()).error ?? ''), 'il Mausoleo si apre senza la Fucina');
+      const rv = await fetch(base + '/api/dungeon/start', { method: 'POST', headers: { 'x-token': 'tokA', 'content-type': 'application/json' }, body: JSON.stringify({ dungeon: 'vuoto' }) });
+      assert(!rv.ok && /cancello|sbarrato|Anello/i.test((await rv.json()).error ?? ''), 'il Portale del Vuoto si apre senza l’Anello dell’Onda');
     });
 
     await ctx.test('Cripta: si entra, scena e HUD, Q prende la magia in mano e la A la lancia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
@@ -181,7 +187,19 @@ export default async function (ctx) {
       await hook('dungeonAutopilot', false);
     });
 
-    await ctx.test('Vuoto: si entra e si vede; uscita con Esc', async () => {
+    await ctx.test('Vuoto: sbarrato finché manca l’Anello dell’Onda; con l’anello si apre il cancello, si entra e si vede; uscita con Esc', async () => {
+      // senza anello non entra (il cancello sbarrato lo blocca)
+      await hook('enterDungeon', 'vuoto');
+      await ctx.waitState(page, (s) => /cancello|sbarrato|Anello/i.test(s.ingressi.lastErr ?? ''), 3000);
+      assert(!(await st()).dungeon.active, 'entrato nel vuoto senza anello');
+      // con l'Anello dell'Onda (boss del Mausoleo) il cancello si apre
+      const invRes = await (await fetch(base + '/api/test/inv', {
+        method: 'POST',
+        headers: { 'x-token': 'tokA', 'content-type': 'application/json' },
+        body: JSON.stringify({ item: 'unico_anello_onda' }),
+      })).json();
+      await hook('setLot', invRes);
+      await ctx.waitState(page, (s) => !s.ingressi.sigillati.includes('vuoto'), 3000);
       await hook('enterDungeon', 'vuoto');
       await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await sleep(1200); await samplePerf();
@@ -202,6 +220,13 @@ export default async function (ctx) {
       assert(d0.testi?.titolo, 'drenaggio: scritta col nome ' + JSON.stringify(d0.testi));
       await sleep(1200); await samplePerf();
       await ctx.shot(page, '4b_drenaggio_1280');
+      // lore obbligatoria: l’altoparlante dell’ingresso ferma il tempo del dungeon per dare tempo di leggere
+      await ctx.waitState(page, (s) => s.dungeon.testi?.voce === 'ingresso', 5000);
+      assert((await st()).dungeon.testi?.ferma, 'con la voce obbligatoria il dungeon è fermo');
+      const tkIngresso = (await st()).dungeon.tick;
+      await sleep(300);
+      await page.locator('#mzDngVoce').click(); // tocco per chiudere e riprendere subito
+      await ctx.waitState(page, (s) => s.dungeon.testi?.voce === null, 3000);
       // si cammina dritti fino alla valvola 1 (sala delle pompe) e si preme il suo bottone: niente autopilota, che con l'eroe di partenza
       // arrivava alla valvola solo qualche volta su dieci (dipende dai nemici e dal seed); a piedi ci arriva sempre (sim: 60 seed su 60)
       const v1 = parseDungeon(DUNGEONS.find((d) => d.id === 'drenaggio')).valvole.find((v) => v.n === 1);
@@ -369,15 +394,19 @@ export default async function (ctx) {
       await tp.waitForSelector('#mzDngEntra.on', { timeout: 5000 });
     });
     await ctx.shot(tp, '1_ingresso_390');
-    await ctx.test('telefono: dentro la Grotta i 4 bottoni (A B C D), l\'HUD, Zaino e Pausa non si sovrappongono, ≥ 56 px', async () => {
+    await ctx.test('telefono: dentro la Grotta i 4 bottoni (A o la mira, B C D), l\'HUD, Zaino e Pausa non si sovrappongono, ≥ 56 px', async () => {
       await thook('dungeonAutopilot', true, 1);
       await tp.locator('#mzDngEntra').click();
       await ctx.waitState(tp, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await ctx.waitState(tp, (s) => s.dungeon.vivi < s.dungeon.nemici || ['attacca', 'carica'].includes(s.dungeon.hero.anim), 90000);
-      const rects = await tp.evaluate(() => Object.fromEntries(['btnA', 'btnB', 'btnC', 'btnD', 'joystick', 'mzDngHud', 'mzDngZaino', 'mzDngPausaBtn'].map((id) => { const r = document.getElementById(id)?.getBoundingClientRect(); return [id, r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null]; })));
+      // con arco o magia in mano (dipende dal bottino, cioè dal caso) al posto della A c'è il joystick di mira (#210): si controlla quello
+      const rects = await tp.evaluate(() => {
+        const mira = !!document.querySelector('.mz-dng-aimon'), a = mira ? 'mzDngMira' : 'btnA';
+        return Object.fromEntries([a, 'btnB', 'btnC', 'btnD', 'joystick', 'mzDngHud', 'mzDngZaino', 'mzDngPausaBtn'].map((id) => { const r = document.getElementById(id)?.getBoundingClientRect(); return [id, r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null]; }));
+      });
       const ids = Object.keys(rects);
       for (const id of ids) assert(rects[id], `manca #${id}`);
-      for (const id of ['btnA', 'btnB', 'btnC', 'btnD']) assert(rects[id].w >= 56 && rects[id].h >= 56, `#${id} troppo piccolo: ${JSON.stringify(rects[id])}`);
+      for (const id of [ids[0], 'btnB', 'btnC', 'btnD']) assert(rects[id].w >= 56 && rects[id].h >= 56, `#${id} troppo piccolo: ${JSON.stringify(rects[id])}`);
       const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
       for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) assert(!hit(rects[ids[i]], rects[ids[j]]), `#${ids[i]} copre #${ids[j]}: ${JSON.stringify([rects[ids[i]], rects[ids[j]]])}`);
       for (const id of ids) { const r = rects[id]; assert(r.x >= 0 && r.y >= 0 && r.x + r.w <= 390 && r.y + r.h <= 844, `#${id} fuori schermo`); }
@@ -409,8 +438,12 @@ export default async function (ctx) {
     await ctx.shot(tp, '5_esito_390');
     await ctx.test('nessun errore per Bea', async () => { ctx.noErrors(T, 'Bea'); });
   } finally {
-    if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
-    fs.rmSync(persist, { recursive: true, force: true });
+    if (dev) {
+      if (WIN) { try { execFileSync('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* già chiuso */ } }
+      else { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    }
+    await sleep(WIN ? 1500 : 500);
+    try { fs.rmSync(persist, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); } catch { /* ok su windows se persist è ancora aperto */ }
     if (/dungeon hash diverso/.test(log)) console.log('    [m2_dungeon] il server ha registrato un hash diverso:\n' + log.split('\n').filter((l) => /hash diverso/.test(l)).join('\n'));
   }
 }

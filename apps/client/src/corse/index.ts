@@ -18,7 +18,7 @@ import type { GaraState, GaraView } from '@marea/sim/corse/gara.ts';
 import type { SchermoGioco } from '../game/minigiochi.ts';
 import type { GameWorld } from '../game/world.ts';
 import type { Renderer } from '../render/scene.ts';
-import { createLights } from '../render/light.ts';
+import { OMBRA_HD, createLights } from '../render/light.ts';
 import { suona } from '../audio/ponte.ts';
 import { PAL, el } from '../ui/style.ts';
 import { setTopbarHidden } from '../ui/topbar.ts';
@@ -28,12 +28,15 @@ import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { avvisoRuota } from './avviso_ruota.ts';
 import { creaSalaAmici } from './amici.ts';
 import { creaVistaGara } from './vista_gara.ts';
+import { creaUsa } from './oggetti3d.ts';
 import { creaSchermoHub } from './hub/index.ts';
 import type { IdPorta } from './hub/mappa.ts';
 import { CAMERE, PISTE, creaPannelli, leggiScelta, salvaScelta, veicoloPer } from './hub/pannelli.ts';
+import { creaPalco } from './hub/palco.ts';
 import type { Scelta } from './hub/pannelli.ts';
 
 const END_WAIT = 300, END_SKIP = 60, END_AMICI = 60 * 45;
+const TELEFONO = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
 const CSS = `
 body.mz-gp #compass, body.mz-gp #mzTop, body.mz-gp #mzGuida, body.mz-gp #mzGuidaPtr, body.mz-gp .mz-bar, body.mz-gp .mz-work, body.mz-gp .mz-labels,
@@ -72,6 +75,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   const scene = new THREE.Scene(); scene.name = 'gran_premio';
   scene.background = o.renderer.sky.texture;
   const luci = createLights(); scene.add(luci.group);
+  luci.sun.shadow.mapSize.set(OMBRA_HD, OMBRA_HD); // HD (#277): con l'ombra a 1024 sotto i veicoli si vedono gli scalini (al telefono resta 1024: memoria)
   const vista = creaVistaGara({ root: o.root, camera: o.renderer.camera, look: () => o.world.look, onLuce: (x, z) => luci.follow?.(x, z) });
   scene.add(vista.gruppo);
 
@@ -79,6 +83,22 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   const quit = el('button', 'mz-gp-quit', 'Esc · Ritirati') as HTMLButtonElement; quit.type = 'button'; quit.id = 'mzGpEsci';
   for (const ev of ['pointerdown', 'touchstart']) quit.addEventListener(ev, stop);
   o.root.append(quit);
+  // ---- HD (#277): l'isola delle Corse (hub, menù, gara) a risoluzione piena, il resto del mondo resta pixel. Se il telefono non ce
+  // la fa (sotto i 45 fps per più di 2 s) la risoluzione scende di un gradino, fino a 1 pixel vero per pixel CSS; non risale mai. ----
+  // Al telefono si parte da 1,5: a 2 con un iPhone a 3× la tela e i buffer della passata pesano il doppio, e la memoria non basta.
+  const GRADINI = TELEFONO ? [1.5, 1.2, 1] : [2, 1.5, 1.2, 1];
+  const hd = { gradino: 0, fps: 60, da: 0 };
+  const hdAccendi = () => { hd.gradino = 0; hd.fps = 60; hd.da = performance.now() + 2500; o.renderer.setNitido?.(pixel ? null : GRADINI[0]!); }; // 2,5 s per caricare
+  const hdControlla = (dt: number) => {
+    if (dt <= 0 || document.hidden || pixel) return;
+    hd.fps += (1 / dt - hd.fps) * 0.05;
+    const now = performance.now();
+    if (hd.fps < 45 && now - hd.da > 2000 && hd.gradino < GRADINI.length - 1 && GRADINI[hd.gradino + 1]! < (devicePixelRatio || 1) + 0.01) {
+      hd.gradino++; hd.da = now; hd.fps = 55; o.renderer.setNitido?.(GRADINI[hd.gradino]!);
+      console.log(`[marea] corse: risoluzione giù a ${GRADINI[hd.gradino]}`);
+    }
+  };
+  let pixel = true; // #281 (Jack, 13 ott sera): le Corse tornano pixel come il resto del mondo; tasto H = HD, per confrontare
   // ---- GAS (solo col dito): tenuto = gas a fondo; DRIFT tenuto dà gas anche lui (un pollice solo scivola da GAS a DRIFT) ----
   const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const gasBtn = el('button', 'mz-gp-gas', 'GAS') as HTMLButtonElement; gasBtn.type = 'button'; gasBtn.id = 'mzGpGas';
@@ -89,15 +109,20 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   for (const ev of ['pointerup', 'pointercancel']) { gasBtn.addEventListener(ev, gasSu as EventListener); addEventListener(ev, gasSu as EventListener); }
   for (const ev of ['touchstart', 'touchmove', 'contextmenu']) gasBtn.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
   o.root.append(gasBtn);
+  // ---- USA (gare CON OGGETTI, #250): bottone col dito, Q da tastiera; la sim lo usa allo scatto (bit b) ----
+  const usa = creaUsa(o.root);
   if (dito) document.body.classList.add('mz-dito');
-  const pannelli = creaPannelli(o.root);
+  // il menù a rulli (#271): dietro i pannelli la pista sorvolata o il veicolo sulla pedana (`palco`), al posto dell'hub
+  const palco = creaPalco({ camera: o.renderer.camera, look: () => o.world.look });
+  const pannelli = creaPannelli(o.root, palco);
+  let suPalco = false;
   const scelta: Scelta = leggiScelta();
   // ---- gara tra amici (10 ott): la sala alla porta della Spiaggia; quando qualcuno preme VIA parte la gara di tutti ----
   const sala = creaSalaAmici({ root: o.root, token: () => FLAGS.token });
   sala.onEsci = () => { if (hub.aperto() && !run) hub.riprendi(portaGara); };
   sala.onParte = (pt) => {
     if (run || !o.gioca) return;
-    const opz = opzioniGara({ pista: pt.pista, veicolo: veicoloPer({ ...scelta, pista: pt.pista }), bot: pt.bot ? '1' : '0', posto: String(pt.io) });
+    const opz = opzioniGara({ pista: pt.pista, veicolo: veicoloPer({ ...scelta, pista: pt.pista }), bot: pt.bot ? '1' : '0', oggetti: pt.oggetti ? '1' : '0', posto: String(pt.io) });
     hub.messaggio('Si parte…', 30);
     void o.gioca(opz).finally(() => { if (hub.aperto() && !run && hub.info().fermo) { sala.chiudi(); hub.riprendi(portaGara); } });
   };
@@ -121,14 +146,14 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   });
   function apriHub(): void {
     hub.apri(scelta.veicolo, 'molo');
-    o.renderer.setScene(hub.scene);
+    o.renderer.setScene(hub.scene); hdAccendi();
     document.body.classList.add('mz-gp'); pulsanti(true); ruota.attiva(true);
     ultimo = performance.now();
   }
   function esciHub(): void {
     if (run) return;
     pannelli.chiudi(); sala.chiudi(); hub.chiudi();
-    o.renderer.setScene(null); o.renderer.diorama.snap?.();
+    o.renderer.setScene(null); o.renderer.diorama.snap?.(); o.renderer.setNitido?.(null);
     document.body.classList.remove('mz-gp'); setTopbarHidden(false); pulsanti(false); ruota.attiva(false);
   }
 
@@ -163,7 +188,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     if (e.code === 'Escape') {
       if (document.querySelector('#mzEsito.on')) return;
       if (run) quitRun();
-      else if (pannelli.aperto()) pannelli.chiudi();
+      else if (pannelli.aperto()) { if (!pannelli.indietro()) pannelli.chiudi(); }
       else if (sala.aperta()) { sala.chiudi(); sala.onEsci?.(); }
       else if (hub.aperto()) esciHub();
       else return;
@@ -171,9 +196,10 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     }
     if (run) {
       if (e.code === 'KeyC' && !e.repeat) { const i = CAMERE.findIndex((c) => c.id === scelta.cam); scelta.cam = CAMERE[(i + 1) % CAMERE.length]!.id; vista.cameraSalta(); }
+      if (e.code === 'KeyH' && !e.repeat) { pixel = !pixel; o.renderer.setNitido?.(pixel ? null : GRADINI[hd.gradino]!); e.preventDefault(); e.stopImmediatePropagation(); }
       return;
     }
-    if (pannelli.aperto() === 'piste' && e.code === 'Enter') { e.preventDefault(); pannelli.via(); }
+    if (pannelli.aperto() && e.code === 'Enter') { e.preventDefault(); pannelli.invio(); }
   };
   addEventListener('keydown', onKey, true);
   /** L'input del mondo (assi mondo, game/input.ts) → schermo: sterzo, gas (in avanti, o sempre), freno, drift.
@@ -182,9 +208,11 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     const yaw = o.renderer.diorama.yaw, rx = Math.cos(yaw), rz = -Math.sin(yaw), fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     const sx = rx * f.mx + rz * f.my, sy = -(fx * f.mx + fz * f.my); // sy > 0 = giù
     const mx = Math.max(-1, Math.min(1, sx / 0.7));
-    if (dito) return { mx, my: f.b ? -1 : scelta.gasAuto || gasGiu.size > 0 || f.a ? 1 : 0, a: f.a, b: false };
+    // USA: Q o il bottone; dall'altra parte (c) con R o, col dito, lo stick verso l'altra parte: senza frenare (#250)
+    const b = !!run?.s.oggetti && usa.giu(), c = b && usa.contrario(run!.s.oggetti!.tasche[0]!.ogg, sy, sx);
+    if (dito) return { mx, my: f.b ? -1 : scelta.gasAuto || gasGiu.size > 0 || f.a ? 1 : 0, a: f.a, b, c };
     const freno = f.b || sy > 0.5, gas = Math.max(0, Math.min(1, -sy / 0.6));
-    return { mx, my: freno ? -1 : scelta.gasAuto ? 1 : gas, a: f.a, b: false };
+    return { mx, my: freno ? -1 : scelta.gasAuto ? 1 : gas, a: f.a, b, c };
   };
   const pulsanti = (on: boolean) => {
     const a = document.getElementById('btnA'), b = document.getElementById('btnB');
@@ -207,7 +235,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
           finish(v) {
             if (run !== r) return;
             run = null;
-            vista.chiudi();
+            vista.chiudi(); usa.mostra(false);
             if (r.amici) sala.chiudi(); // si esce dalla sala: per la rivincita si rientra dalla porta
             quit.classList.remove('on');
             const c = o.renderer.camera; c.fov = fov0.fov; c.far = fov0.far; c.near = fov0.near; c.updateProjectionMatrix();
@@ -215,19 +243,19 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
               hub.messaggio(null); hub.riprendi(portaGara); o.renderer.setScene(hub.scene); ultimo = performance.now();
             } else {
               ruota.attiva(false); document.body.classList.remove('mz-gp'); setTopbarHidden(false); pulsanti(false);
-              o.renderer.setScene(null); o.renderer.diorama.snap?.();
+              o.renderer.setScene(null); o.renderer.diorama.snap?.(); o.renderer.setNitido?.(null);
             }
             last = { ticks: r.frames.length, rows: v?.length ?? 0, result: r.esito ?? garaCorse.result(r.s), cancelled: !v, pista: r.s.pista };
             console.log(`[marea] gran premio ${v ? 'finito' : 'annullato'}: ${r.frames.length} tick, ${v?.length ?? 0} righe`);
             resolve(v);
           },
         };
-        run = r;
+        run = r; suPalco = false;
         if (hub.aperto()) hub.sospendi();
         ruota.attiva(true);
-        vista.mostra(s); vista.interfaccia(true);
+        vista.mostra(s); vista.interfaccia(true); usa.mostra(!!s.oggetti);
         o.renderer.setScene(scene);
-        document.body.classList.add('mz-gp'); pulsanti(true); quit.classList.add('on');
+        document.body.classList.add('mz-gp'); pulsanti(true); quit.classList.add('on'); if (!hub.aperto()) hdAccendi();
         ultimo = performance.now();
       });
     },
@@ -245,7 +273,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
       if (r.fase === 'gara') {
         for (let i = 0; i < r.speed && r.fase === 'gara'; i++) {
           const frame = quantize(r.auto ? pilotaGara(r.s) : comandi(f)); // quantizzato come nel replay del server
-          r.frames.push(frame); garaCorse.step(r.s, frame);
+          r.frames.push(frame); vista.primaDelPasso(r.s); garaCorse.step(r.s, frame);
           if (r.amici) sala.manda(r.s.veicoli[0]!);
           if (r.s.done) {
             r.fase = 'fine'; r.wait = r.amici ? END_AMICI : END_WAIT; r.esito = garaCorse.result(r.s); vista.suoni.zitto();
@@ -265,12 +293,19 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
         r.finish(packInputs(r.frames));
       }
     },
-    update() {
+    update(_t, alpha = 1) {
       const r = run; if (!r && !hub.aperto()) return;
       setTopbarHidden(true); // main.ts la rimette a posto ogni frame prima di noi
       const now = performance.now(), dt = Math.min(0.1, (now - ultimo) / 1000); ultimo = now;
-      if (!r) { hub.aggiorna(dt); return; }
-      vista.aggiorna(r.s, dt, { cam: scelta.cam, effetti: true, auto: r.auto, gasAuto: scelta.gasAuto, fine: r.fase === 'fine', ritirato: r.ritirato, ...(r.amici ? { amici: sala.amici() } : {}) });
+      hdControlla(dt);
+      if (!r) {
+        const pa = palco.attivo();
+        if (pa !== suPalco) { suPalco = pa; o.renderer.setScene(pa ? palco.scene : hub.scene); }
+        if (pa) palco.aggiorna(dt); else hub.aggiorna(dt);
+        return;
+      }
+      vista.aggiorna(r.s, dt, { cam: scelta.cam, effetti: true, auto: r.auto, gasAuto: scelta.gasAuto, fine: r.fase === 'fine', ritirato: r.ritirato, succo: true, alpha: r.fase === 'gara' ? alpha : 1, ...(r.amici ? { amici: sala.amici() } : {}) });
+      if (r.s.oggetti) usa.etichetta(vista.ogg.etichetta, vista.ogg.pronto, vista.ogg.ogg);
     },
   };
 
@@ -278,7 +313,8 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     const r = run;
     if (!r) return { active: false, scelta: pannelli.aperto() === 'piste', garage: pannelli.aperto() === 'garage', hub: hub.info(), last, pista: scelta.pista, veicolo: scelta.veicolo, sala: sala.info() };
     const v = garaCorse.view(r.s) as GaraView, k = r.s.veicoli[0]!;
-    return { active: true, hub: { aperto: hub.aperto() }, amici: r.amici, sala: sala.info(), fase: r.fase, auto: r.auto, pista: r.s.pista, veicolo: k.id, frames: r.frames.length, tick: r.s.tick, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: v.done, v: Math.round(k.v * 10) / 10, drift: k.drift, vista: vista.info(), last };
+    const og = r.s.oggetti;
+    return { active: true, hd: pixel ? null : GRADINI[hd.gradino], hub: { aperto: hub.aperto() }, amici: r.amici, oggetti: og ? { tasca: og.tasche[0]!.ogg, usati: og.usati[0], presi: og.presi[0], scatole: og.scatole.length, bottone: usa.el.style.display } : null, sala: sala.info(), fase: r.fase, auto: r.auto, pista: r.s.pista, veicolo: k.id, frames: r.frames.length, tick: r.s.tick, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: v.done, v: Math.round(k.v * 10) / 10, drift: k.drift, vista: vista.info(), last };
   });
   /** Le gare le corre il pilota automatico (`speed` tick di sim per tick del ciclo, 1-20; 0 = di nuovo a mano). */
   registerTestHook('corseAuto', (speed) => {
@@ -293,6 +329,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     if (x.veicolo) scelta.veicolo = x.veicolo;
     if (x.cam) scelta.cam = x.cam;
     if (x.gasAuto !== undefined) scelta.gasAuto = !!x.gasAuto;
+    if (x.oggetti !== undefined) scelta.oggetti = !!x.oggetti;
     salvaScelta(scelta);
     return { ...scelta };
   });

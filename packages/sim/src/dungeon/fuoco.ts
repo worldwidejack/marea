@@ -2,10 +2,11 @@
 // fuoco a terra (scia della Fornace Semovente, pozze di magma del Mastro Forgiatore), la bruciatura dell'eroe e le cascate d'acqua che la
 // spengono (e spengono le Scintille-Vapore). Tutto uguale per tutti gli eroi (sim deterministica, niente funzioni trascendenti); negli
 // altri dungeon le liste sono vuote e qui non succede niente.
+import { RPG } from '@marea/content/rpg.ts';
 import { DT } from '../constants.ts';
 import type { DungeonState, Enemy } from './state.ts';
-import { conEroe, ev, finita, inGioco, secToTicks } from './state.ts';
-import { caduto, kill } from './combat.ts';
+import { add, conEroe, ev, finita, inGioco, secToTicks } from './state.ts';
+import { caduto, kill, wake } from './combat.ts';
 import { cellOf } from './map.ts';
 import type { DMap } from './map.ts';
 import { AVVISO_LAVA, BRUCIA_NUMERO, FUOCHI_MAX, GETTO_RAGGIO, HZ } from './tuning.ts';
@@ -57,6 +58,15 @@ export function fuocoA(s: DungeonState, x: number, z: number, r: number, durata:
   if (s.fuochi.length > FUOCHI_MAX) s.fuochi.shift();
 }
 
+/** Combustione (perk): chiazza di fuoco dell'eroe di turno in (x, z): brucia i nemici (`dps` al secondo) per `durata` s, l'eroe non la sente. */
+export function fuocoAmico(s: DungeonState, x: number, z: number, r: number, durata: number, dps: number): void {
+  const c = cellOf(s.map, x, z);
+  if (c < 0 || s.map.solid[c]) return;
+  const t = secToTicks(durata);
+  s.fuochi.push({ id: s.nextId++, x, z, r, fine: s.tick + t, durata: t, dps, secondi: 0, amico: true, da: s.cur });
+  if (s.fuochi.length > FUOCHI_MAX) s.fuochi.shift();
+}
+
 /** Fornace Semovente: camminando lascia dietro di sé una chiazza di fuoco ogni `scia.ogni` s (da ferma no). */
 export function scia(s: DungeonState, e: Enemy): void {
   const sc = e.def.scia;
@@ -82,6 +92,7 @@ export function stepFuoco(s: DungeonState): void {
       const v = lavaSu(s, h.x, h.z);
       if (v) brucia(s, v.dps, v.secondi);
       for (const f of s.fuochi) {
+        if (f.amico) continue;
         const dx = h.x - f.x, dz = h.z - f.z, rr = f.r + r * 0.5;
         if (dx * dx + dz * dz <= rr * rr) brucia(s, f.dps, f.secondi);
       }
@@ -89,11 +100,32 @@ export function stepFuoco(s: DungeonState): void {
     });
     if (finita(s)) return;
   }
+  if (s.fuochi.some((f) => f.amico)) ardeNemici(s);
   if (!s.map.getti.length) return;
   for (const e of s.enemies) {
     if (e.st === 'morto' || e.alleato || !e.def.acqua || !inGetto(s, e.x, e.z, e.def.raggio * 0.5)) continue;
     e.vita -= e.def.acqua.danno * DT;
     if (e.vita <= 0) conEroe(s, s.eroi.length > 1 ? e.ultimo ?? 0 : 0, () => kill(s, e));
+  }
+}
+
+/** Le chiazze della Combustione bruciano i nemici che ci stanno dentro: il danno (e l'xp di Distruzione) va a chi le ha accese. */
+function ardeNemici(s: DungeonState): void {
+  for (const f of s.fuochi) {
+    if (!f.amico) continue;
+    for (const e of s.enemies) {
+      if (e.alleato || e.st === 'morto') continue;
+      const dx = e.x - f.x, dz = e.z - f.z, rr = f.r + e.def.raggio;
+      if (dx * dx + dz * dz > rr * rr) continue;
+      const d = f.dps * DT, utile = Math.min(d, Math.max(0, e.vita));
+      e.vita -= d;
+      conEroe(s, f.da ?? 0, () => {
+        s.danniFatti += d;
+        add(s.xp, 'distruzione', utile * (RPG.xpDanno?.distruzione ?? 1));
+        if (e.vita <= 0) kill(s, e);
+      });
+      if (e.vita > 0 && !e.aggro) wake(s, e);
+    }
   }
 }
 

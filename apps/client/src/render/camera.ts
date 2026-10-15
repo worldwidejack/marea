@@ -18,6 +18,9 @@ export type DioramaCamera = {
   orbit?(yaw: number, pitch: number): void;
   /** Inclinazione attuale (rad). */
   readonly pitch?: number;
+  /** Interni (#265, la stanza della casa): inquadratura fissa (yaw e pitch in rad, distanza in m, FOV in °) che ignora zoom, rotella,
+   *  pizzico e vista delle impostazioni finché non si passa null; con null torna esattamente com'era. */
+  blocca?(v: { yaw: number; pitch: number; dist: number; fov: number } | null): void;
 };
 export const CAM = { PITCH: Math.PI / 4, YAW: Math.PI / 4, FOV: 30, DIST: 28, ZMIN: 0.6, ZMAX: 2.2, SMOOTH: 0.22, ZOOM_SMOOTH: 0.12 } as const;
 const clamp = (z: number) => Math.min(CAM.ZMAX, Math.max(CAM.ZMIN, z));
@@ -45,31 +48,45 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
   const aim = () => off.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
   aim();
 
+  let lock: { yaw: number; pitch: number; dist: number; fov: number } | null = null, fov0 = camera.fov;
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
+    if (lock) return;
     // deltaY continuo (trackpad) o a scatti (rotella): zoom esponenziale, così ogni tacca pesa uguale a ogni livello.
     const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
     zoomTarget = clamp(zoomTarget * Math.exp(Math.max(-60, Math.min(60, dy)) * (e.ctrlKey ? 0.01 : 0.0022)));
   };
-  let pinch = 0;
-  const onTouchStart = (e: TouchEvent) => { if (e.touches.length !== 2) pinch = 0; };
+  // Pizzico: conta solo se ENTRAMBE le dita sono nate sul canvas (targetTouches) e il secondo non cade nella zona dei controlli (in basso a
+  // destra: mira, bottoni). `touches` include anche le dita sui controlli, e col joystick volante sotto un dito miri con l'altro: niente zoom a caso.
+  let pinch = 0, nopinch = false;
+  const inControlli = (t: Touch) => {
+    const r = o.canvas.getBoundingClientRect();
+    return t.clientX > r.left + r.width * 0.5 && t.clientY > r.top + r.height * 0.4;
+  };
+  const onTouchStart = (e: TouchEvent) => {
+    pinch = 0;
+    if (e.touches.length === 1) nopinch = false;
+    if (e.touches.length !== e.targetTouches.length) nopinch = true; // un dito è finito su un controllo: niente pizzico finché non lo molli
+    if (e.touches.length > 1) for (const t of e.changedTouches) if (inControlli(t)) nopinch = true;
+  };
   const onTouchMove = (e: TouchEvent) => {
-    if (e.touches.length !== 2) { pinch = 0; return; }
-    const t0 = e.touches[0]!, t1 = e.touches[1]!;
+    if (lock || nopinch || e.touches.length !== 2 || e.targetTouches.length !== 2) { pinch = 0; return; }
+    const t0 = e.targetTouches[0]!, t1 = e.targetTouches[1]!;
     const d = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
     if (pinch > 0 && d > 0) zoomTarget = clamp(zoomTarget * (pinch / d));
     pinch = d;
   };
-  const onTouchEnd = () => { pinch = 0; };
+  const onTouchEnd = (e: TouchEvent) => { pinch = 0; if (e.touches.length === 0) nopinch = false; };
   o.canvas.addEventListener('wheel', onWheel, { passive: false });
   o.canvas.addEventListener('touchstart', onTouchStart, { passive: true });
   o.canvas.addEventListener('touchmove', onTouchMove, { passive: true });
   o.canvas.addEventListener('touchend', onTouchEnd);
   o.canvas.addEventListener('touchcancel', onTouchEnd);
 
+  const lockOff = new THREE.Vector3();
   const place = () => {
-    const d = dist * zoom;
-    camera.position.set(cur.x + off.x * d, cur.y + off.y * d, cur.z + off.z * d);
+    const d = lock ? lock.dist : dist * zoom, o = lock ? lockOff : off;
+    camera.position.set(cur.x + o.x * d, cur.y + o.y * d, cur.z + o.z * d);
     camera.lookAt(cur);
   };
   // Orientamento fisso: lo impostiamo una volta, poi si muove solo la posizione (niente micro-rotazioni da lookAt).
@@ -80,9 +97,22 @@ export function createDioramaCamera(o: { aspect: number; canvas: HTMLCanvasEleme
       if (first || cur.distanceToSquared(target) > 30 * 30) { api.snap!(); first = false; }
     },
     snap: () => { cur.copy(target); vx.v = vy.v = vz.v = 0; place(); },
-    setView: (p, fov, d) => { pitch = p; dist = d; aim(); camera.fov = fov; camera.updateProjectionMatrix(); place(); },
-    orbit: (y, p) => { yaw = y; pitch = Math.min(Math.PI / 2 - 0.05, Math.max(0.05, p)); api.yaw = yaw; aim(); place(); },
-    get pitch() { return pitch; },
+    setView: (p, fov, d) => { pitch = p; dist = d; aim(); fov0 = fov; if (!lock) { camera.fov = fov; camera.updateProjectionMatrix(); } place(); },
+    blocca: (v) => {
+      lock = v ? { ...v } : null; // copia: in modalità foto la gira orbit(), e l'oggetto di chi chiama non cambia
+      if (lock) lockOff.set(Math.sin(lock.yaw) * Math.cos(lock.pitch), Math.sin(lock.pitch), Math.cos(lock.yaw) * Math.cos(lock.pitch));
+      api.yaw = lock ? lock.yaw : yaw;
+      camera.fov = lock ? lock.fov : fov0; camera.updateProjectionMatrix(); place();
+    },
+    orbit: (y, p) => {
+      const pp = Math.min(Math.PI / 2 - 0.05, Math.max(0.05, p));
+      if (lock) { // dentro un interno la modalità foto gira l'inquadratura bloccata; yaw e pitch dell'overworld restano quelli di prima
+        lock.yaw = y; lock.pitch = pp; api.yaw = y;
+        lockOff.set(Math.sin(y) * Math.cos(pp), Math.sin(pp), Math.cos(y) * Math.cos(pp));
+      } else { yaw = y; pitch = pp; api.yaw = yaw; aim(); }
+      place();
+    },
+    get pitch() { return lock ? lock.pitch : pitch; },
     setZoom: (z) => { zoomTarget = clamp(z); zoom = zoomTarget; vzoom.v = 0; api.zoom = zoom; place(); },
     update: (dt) => {
       if (!(dt > 0)) return;

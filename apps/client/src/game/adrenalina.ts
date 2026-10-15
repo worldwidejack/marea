@@ -1,24 +1,28 @@
 // Isola dell'Adrenalina nel mondo (docs/ADRENALINA.md §2-3), la parte che sta nel bundle iniziale: dove sta il cancello della funivia (per la
 // bussola) e il caricamento del resto quando ti avvicini all'isola (con ?adrenalina=1 subito). La funivia vera (cavi, cabine, cancello,
 // liberatoria, il bottone 🚡 delle prove) è il chunk game/adrenalina_funivia.ts: il JS iniziale ha un tetto (TECH §5).
-import type { LotState } from '@marea/sim';
+import type { InputFrame, LotState } from '@marea/sim';
 import { distanzaIsola } from '@marea/sim';
 import { ISLANDS } from '@marea/content';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
+import type { Loader } from '../render/loader.ts';
 import type { Hud } from '../ui/hud.ts';
 import type { Api } from '../net/api.ts';
 import { FLAGS } from '../flags.ts';
 import { registerTestHook } from '../test/testapi.ts';
 import type { Funivia } from './adrenalina_funivia.ts';
 
-export type AdrenalinaOpts = { world: GameWorld; renderer: Renderer; api: Api | null; hud: Hud; root: HTMLElement; getLot(): LotState | null; setLot(l: LotState): void; nome(): string; /** L'isola è aperta (game/temi.ts): firma e casco. */ aperta(): boolean };
+export type AdrenalinaOpts = { world: GameWorld; renderer: Renderer; /** Per l'avatar vero sulla tavola (passo 3b). */ loader: Loader; api: Api | null; hud: Hud; root: HTMLElement; getLot(): LotState | null; setLot(l: LotState): void; nome(): string; /** L'isola è aperta (game/temi.ts): firma e casco. */ aperta(): boolean };
 export type Adrenalina = {
   /** Il cancello della funivia (per la bussola), null se l'isola non c'è. */
   readonly spot: { id: string; nome: string; x: number; z: number } | null;
   /** Un tick fuori dai minigiochi: vicino al cancello il fronte di A apre la liberatoria o prova a salire. */
   tick(a: boolean): void;
-  update(dt: number, t: number): void;
+  update(dt: number, t: number, alpha?: number): void;
+  /** Lo snowboard è aperto (passo 3a): main.ts gli passa i tick e i frame al posto del mondo. */
+  readonly active: boolean;
+  step(f: InputFrame): void;
   /** La liberatoria è aperta: il mondo sta fermo. */
   isBusy(): boolean;
 };
@@ -39,9 +43,12 @@ export function createAdrenalina(o: AdrenalinaOpts): Adrenalina {
   registerTestHook('adrenalinaCarica', () => carica().then(() => !!fun));
   return {
     spot,
+    get active() { return !!fun?.active; },
+    step: (f) => fun?.step(f),
     isBusy: () => !!fun?.isBusy(),
     tick: (a) => fun?.tick(a),
-    update(_dt, t) {
+    update(dt, t, alpha = 1) {
+      if (fun?.active) { fun.updateRun(alpha, dt, t); return; }
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
       if (!load && place && distanzaIsola(place, arch.tile, f.x, f.z).d < CARICA_M) void carica();
       fun?.update(t);

@@ -4,7 +4,7 @@
 import { TEMPLARI, nemicoDef } from '@marea/content/templari.ts';
 import type { Comparsa } from './mappa.ts';
 import type { TState } from './stato.ts';
-import { ev, intervalloOndata, nuovoZombie, quantiOndata, secToTicks } from './stato.ts';
+import { ev, inPiedi, intervalloOndata, nuovoZombie, posaEroe, quantiOndata, secToTicks, usa } from './stato.ts';
 import { zonaAperta } from './porte.ts';
 
 /** Comparse attive: il sagrato sempre, le zone quando una loro porta è aperta. */
@@ -12,6 +12,8 @@ export const attive = (s: TState): Comparsa[] => s.arena.comparse.filter((c) => 
 
 /** Una comparsa tra le più vicine all'eroe (a caso dal seed), lontana almeno 6 m da lui; null se non ce n'è. */
 export function comparsaVicina(s: TState): Comparsa | null {
+  // insieme: a turno vicino a ognuno degli eroi in piedi (da solo è sempre lui)
+  if (s.eroi.length > 1) { const p = inPiedi(s); if (p.length) usa(s, p[s.usciti % p.length]!); }
   const h = s.eroe;
   const ok = attive(s).map((c) => ({ c, d: (c.x - h.x) * (c.x - h.x) + (c.z - h.z) * (c.z - h.z) })).filter((x) => x.d >= 36).sort((a, b) => a.d - b.d);
   if (!ok.length) return null;
@@ -19,13 +21,21 @@ export function comparsaVicina(s: TState): Comparsa | null {
   return ok[s.rng.int(0, k - 1)]!.c;
 }
 
-/** Chi esce: ogni nemico con `da` ≤ ondata ha la sua quota (crescente), il fante fa il resto. */
-function tipoNuovo(s: TState): string {
+/** Quanti nemici di questo tipo al massimo nell'ondata n (Infinity = nessun tetto). */
+export function maxInOndata(id: string, n: number): number {
+  const d = nemicoDef(id), m = d.maxOndata;
+  if (!m) return Infinity;
+  if (d.da !== undefined && n < d.da) return 0;
+  return Math.min(m.max, Math.floor(m.base + m.perOndata * (n - (d.da ?? 1))));
+}
+/** Chi esce: ogni nemico con `da` ≤ ondata ha la sua quota (crescente), il fante fa il resto; chi ha già raggiunto il tetto
+ *  dell'ondata (`maxOndata`, lo scudato) lascia il posto al fante. */
+export function tipoNuovo(s: TState): string {
   let r = s.rng.next();
   for (const n of TEMPLARI.nemici) {
     if (n.da === undefined || !n.quota || s.ondata < n.da) continue;
     const q = Math.min(n.quota.max, n.quota.base + n.quota.perOndata * (s.ondata - n.da));
-    if (r < q) return n.id;
+    if (r < q) return (s.tipiUsciti[n.id] ?? 0) < maxInOndata(n.id, s.ondata) ? n.id : 'fante';
     r -= q;
   }
   return 'fante';
@@ -49,10 +59,22 @@ export function bossDi(n: number): { tipo: string; solo: boolean } | null {
   return null;
 }
 
+/** Insieme: chi era caduto si rialza in chiesa, con la vita piena e le sue armi. */
+function rialza(s: TState): void {
+  for (let i = 0; i < s.eroi.length; i++) {
+    const h = s.eroi[i]!;
+    if (!h.giu || h.fuori) continue;
+    h.giu = false; h.vita = h.max; h.quiete = 9999; h.fiato = TEMPLARI.eroe.fiato; h.act = 'idle'; h.actT = 0;
+    posaEroe(s, h, i);
+    usa(s, i); ev(s, { t: 'rialzato' });
+  }
+}
+
 function nuovaOndata(s: TState): void {
+  if (s.eroi.length > 1) rialza(s);
   s.ondata++;
   s.fase = 'combatti'; s.faseT = 0;
-  s.quanti = quantiOndata(s.ondata); s.usciti = 0; s.prossima = s.tick + secToTicks(1); s.puntiAssi = 0; s.poteri.ondata = 0;
+  s.quanti = quantiOndata(s.ondata, s.eroi.length); s.usciti = 0; s.tipiUsciti = {}; s.prossima = s.tick + secToTicks(1); s.puntiAssi = 0; s.poteri.ondata = 0;
   const b = bossDi(s.ondata);
   s.boss = b ? { tipo: b.tipo, at: s.tick + secToTicks(b.solo ? TEMPLARI.boss.attesa : intervalloOndata(s.ondata) * s.quanti * 0.5), uscito: false } : null;
   if (b?.solo) s.quanti = Math.max(1, Math.round(s.quanti * TEMPLARI.boss.quotaFanti));
@@ -77,7 +99,7 @@ export function stepOndate(s: TState): void {
         if (c) {
           const tipo = tipoNuovo(s), v = nemicoDef(tipo).velocita;
           const z = nuovoZombie(s, tipo, c.x, c.z, velocita(s, v.cammina, v.corre, v.scatta));
-          s.usciti++;
+          s.usciti++; s.tipiUsciti[tipo] = (s.tipiUsciti[tipo] ?? 0) + 1;
           ev(s, { t: 'sorge', id: z.id, x: c.x, z: c.z });
         }
         s.prossima = s.tick + secToTicks(intervalloOndata(s.ondata));

@@ -103,11 +103,11 @@ test('Adrenalina: si sbarca sempre (niente barriera), ma la funivia vuole la lib
   assert.match(LIBERATORIA, /ossa rotte, orgoglio ferito e Perle perse/);
 });
 
-/** Barca che punta dritta verso il molo dell'isola partendo da 120 m, a tutta forza: dove arriva. */
+/** Barca che punta dritta verso il molo dell'isola partendo da 80 m (a 100 m dalle Ghiacci c'è il Borgo, #247), a tutta forza: dove arriva. */
 function rotta(p: ArchPlace, aperta: boolean): { minD: number; last: BoatState; respinte: number } {
   const dir = { x: p.spawn.x - (p.origin[0] + p.w / 2) * T, z: p.spawn.z - (p.origin[1] + p.h / 2) * T };
   const n = Math.hypot(dir.x, dir.z); dir.x /= n; dir.z /= n;
-  let b = newBoat(p.boat.x + dir.x * 120, p.boat.z + dir.z * 120);
+  let b = newBoat(p.boat.x + dir.x * 80, p.boat.z + dir.z * 80);
   let minD = Infinity, respinte = 0;
   for (let i = 0; i < 60 * 40; i++) {
     const f: InputFrame = { mx: (p.boat.x - b.x) / Math.max(1, Math.hypot(p.boat.x - b.x, p.boat.z - b.z)), my: (p.boat.z - b.z) / Math.max(1, Math.hypot(p.boat.x - b.x, p.boat.z - b.z)), a: true, b: false };
@@ -159,21 +159,21 @@ test('mappa del Giardino: la prima medaglia d’oro da solo la regala, una volta
 });
 
 test('corrente al bordo (#5): dentro la mappa niente, al bordo riporta indietro, fuori non si esce', () => {
-  const W = M.w * T, H = M.h * T;
+  const MARE = ARCHIPELAGO.mare!, W = MARE[0] * T, H = MARE[1] * T;
   const mezzo = newBoat(W / 2, H / 2);
-  const r0 = correnteBordo(mezzo, M);
+  const r0 = correnteBordo(mezzo, M, MARE);
   assert.equal(r0.attiva, false); assert.equal(r0.s, mezzo, 'stesso oggetto: nessun effetto');
-  // anche a ridosso di ogni isola (spawn delle barche) la corrente non c'è
-  for (const p of arch.places) assert.equal(correnteBordo(newBoat(p.boat.x, p.boat.z), M).attiva, false, `${p.island}: corrente sul molo`);
-  const bordo = correnteBordo(newBoat(W - 3, H / 2), M);
+  // anche a ridosso di ogni isola (spawn delle barche) la corrente non c'è (giardini e negozio dei mobili, #265, stanno oltre il mare)
+  for (const p of arch.places) if (p.role !== 'lotto' && p.role !== 'negozio') assert.equal(correnteBordo(newBoat(p.boat.x, p.boat.z), M, MARE).attiva, false, `${p.island}: corrente sul molo`);
+  const bordo = correnteBordo(newBoat(W - 3, H / 2), M, MARE);
   assert.ok(bordo.attiva && bordo.s.x < W - 3, 'al bordo est spinge a ovest');
-  assert.ok(correnteBordo(newBoat(H / 2, 2), M).s.z > 2, 'al bordo nord spinge a sud');
+  assert.ok(correnteBordo(newBoat(H / 2, 2), M, MARE).s.z > 2, 'al bordo nord spinge a sud');
   // a tutta forza verso fuori per 60 s: non esce mai e si ferma dentro la fascia
   for (const [mx, my, x0, z0] of [[1, 0, W - 60, H - 160], [-1, 0, 60, H / 2], [0, -1, W / 2, 60], [0, 1, W / 2 - 40, H - 60]] as const) {
     let b = newBoat(x0, z0);
     let fuori = 0;
     for (let i = 0; i < 3600; i++) {
-      b = correnteBordo(stepBoat(b, { mx, my, a: true, b: false }, M), M).s;
+      b = correnteBordo(stepBoat(b, { mx, my, a: true, b: false }, M), M, MARE).s;
       if (b.x < 0 || b.z < 0 || b.x > W || b.z > H) fuori++;
     }
     assert.equal(fuori, 0, `uscita dalla mappa (${mx},${my})`);

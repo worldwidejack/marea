@@ -1,8 +1,21 @@
 // Tipi dei dati dell'Isola delle Corse, motore v2 (docs/CORSE.md A11). Numeri in corse/motore.json, piste in corse/piste/*.json
 // (generate da tools/corse_piste.mjs). Le formule stanno in @marea/sim/corse/*.
 
-/** Famiglie di veicoli (A6): ognuna ha una guida sua. Per ora ci sono Ruote e Acqua; Due ruote e Scivoli arrivano con le loro zone. */
-export type CFamigliaId = 'ruote' | 'acqua';
+/** Famiglie di veicoli (A6): ognuna ha una guida sua. Ci sono Ruote, Acqua e Binari (i carrelli da miniera della Giungla, #228);
+ *  Due ruote arriva con la sua pista. */
+export type CFamigliaId = 'ruote' | 'acqua' | 'binari';
+
+/** La guida sui binari (#228): il carrello sta sempre su una rotaia, la pendenza spinge forte, il GAS è la leva che spinge in piano.
+ *  Nelle curve conta la spinta di lato (v² × curvatura): sopra `presa` m/s² il carrello va su due ruote e frena da solo (`frenaBilico`
+ *  m/s² per ogni volta il limite in più); in curva non si cade mai, si cade solo dove manca la rotaia. Piegarsi verso l'interno (lo sterzo) alza il limite di `piega` (×); piegati al limite (sopra `carica` × il limite) si carica
+ *  il turbo a 3 livelli come il drift, e si scarica uscendo dalla curva. DRIFT = salto: in aria lo sterzo sceglie la rotaia accanto
+ *  (`cambio` m/s di lato) e ci si atterra sempre: si cade solo dove manca la rotaia. */
+export type CBinariDef = {
+  presa: number; piega: number; frenaBilico: number; carica: number; scarica: number;
+  salto: number; cambio: number; attrito: number;
+  /** Piste ibride: quanto in fretta si piegano (1/s) i veicoli delle altre famiglie agganciati alle rotaie (i carrelli usano il loro `sterzo`). */
+  piegaAgganciati: number;
+};
 
 export type CFamigliaDef = {
   id: CFamigliaId; nome: string;
@@ -16,6 +29,8 @@ export type CFamigliaDef = {
   atterraggioTurbo?: { secondi: number; allineato: number };
   /** Sterzo tolto a tutta velocità per questa famiglia (al posto di `sterzo.alto`): le barche scivolano già, ne perdono meno (#170). */
   sterzoAlto?: number;
+  /** Solo binari: la guida sulle rotaie. */
+  binari?: CBinariDef;
 };
 
 /** Un veicolo: famiglia e numeri di guida (come le guide morbida / media / nervosa del Gran Premio). */
@@ -33,12 +48,47 @@ export type CVeicoloDef = {
   drift: number;
   /** Peso negli urti tra veicoli: chi pesa di più sposta di più. */
   peso: number;
-  /** Il difetto o pregio comico dei veicoli buffi (A6), mostrato nella scelta. */
+  /** La frase del veicolo nel rullo della scelta (#271): il difetto o pregio comico dei buffi (A6), una battuta per gli altri. */
   buffo?: string;
   /** Buffi: sterzo che tira da solo da una parte (−1..1, + = destra), come la ruota storta del carrello. */
   tira?: number;
   /** Buffi: superfici dove va diverso dalla sua famiglia (es. la vasca da bagno sulla sabbia). */
   effetti?: Record<string, CEffetto>;
+  /** Binari: quanto tiene in curva (× `binari.presa` della famiglia). */
+  presaCurva?: number;
+};
+
+/** Che cosa fa un oggetto (il codice sta in @marea/sim/corse/oggetti.ts): turbo, trappola lasciata dietro, colpo dritto, colpo che
+ *  insegue chi sta davanti, scudo. Gli oggetti di zona e quelli da sbloccare riusano questi effetti con numeri e look loro. */
+export type COggettoEffetto = 'turbo' | 'trappola' | 'dritto' | 'ricerca' | 'scudo';
+/** Un oggetto del catalogo. `livello`: base (in tutte le zone), zona (solo sulle piste di `zona`), sblocco (si guadagna battendo
+ *  l'isola `sblocco`: per ora non esce). `pesi` = [primi, metà, ultimi] della classifica. I numeri che non servono all'effetto mancano. */
+export type COggettoDef = {
+  id: string; nome: string;
+  livello: 'base' | 'zona' | 'sblocco';
+  zona?: string; sblocco?: string;
+  effetto: COggettoEffetto;
+  cariche: number;
+  pesi: [number, number, number];
+  /** turbo e scudo: s. */
+  secondi?: number;
+  /** trappola: m dietro chi la lascia, m davanti dove atterra se lanciata avanti (USA col freno), durata a terra (s). */
+  dietro?: number; lancio?: number; durata?: number;
+  /** colpi: m/s, vita (s), quanto in fretta inseguono di lato (m/s). Trappole e colpi: raggio di presa (m). */
+  velocita?: number; vita?: number; sterza?: number; raggio?: number;
+  /** colpo dritto: di serie va indietro (il masso del tempio; con «dall'altra parte» va avanti). */
+  indietro?: boolean;
+  /** colpo dritto: m/s di lato, rimbalza da un bordo all'altro della pista (la noce di cocco). */
+  rimbalzo?: number;
+  /** turbo: per tutti i `secondi` scavalchi trappole e colpi (la liana). */
+  scavalca?: boolean;
+};
+export type COggettiCfg = {
+  scatole: { righe: number[]; lat: number[]; raggio: number; ricompare: number; roulette: number };
+  colpito: { secondi: number; velocita: number };
+  /** Trappole a terra al massimo (le più vecchie spariscono). */
+  massimiATerra: number;
+  catalogo: COggettoDef[];
 };
 
 /** Effetto di una superficie su una famiglia: moltiplicatori di velocità massima, presa e accelerazione. */
@@ -70,6 +120,9 @@ export type CorseMotoreCfg = {
   tappetoTurbo: number;
   /** `retro` = velocità massima in retromarcia (m/s), `retroAccelerazione` (m/s²), `retroSterzoPieno` = sopra questi m/s lo sterzo in retro è pieno. */
   veicolo: { raggio: number; frenata: number; folle: number; sterzoPieno: number; retro: number; retroAccelerazione: number; retroSterzoPieno: number };
+  /** Urti tra veicoli (#255): quanto rimbalzano (0 = si attaccano, 1 = elastico), spinta di lato minima e massima (m/s) quando ci si
+   *  tocca di fianco, quanto in fretta la spinta si smorza (1/s). */
+  urti: { rimbalzo: number; spintaMin: number; spintaMax: number; smorza: number };
   /** Sterzo del giocatore (#170): curva del joystick, rampa da tastiera, meno sterzo ad alta velocità. */
   sterzo: { normale: number; lineare: number; rampa: number; ritorno: number; alto: number; da: number };
   /** Drift a 3 livelli: `carica` = secondi per livello, `spinta` = secondi di turbo per livello. */
@@ -85,6 +138,8 @@ export type CorseMotoreCfg = {
   acrobazia: { turbo: number };
   /** Scia: distanza [min, max] m dietro, scarto laterale massimo m, velocità minima m/s, secondi per caricarla, turbo s. */
   scia: { metri: [number, number]; lato: number; velocitaMin: number; secondi: number; turbo: number };
+  /** Oggetti alla Mario Kart (#250): scatole, colpi, catalogo. Solo nelle gare CON OGGETTI. */
+  oggetti: COggettiCfg;
   bot: {
     bravura: number[];
     corsia: number;
@@ -126,6 +181,8 @@ export type CRamoDef = {
   scorciatoia?: boolean;
   /** Piste miste: le famiglie che la prendono (anche i bot). Senza, la prende solo il pilota automatico, di qualsiasi famiglia. */
   famiglie?: CFamigliaId[];
+  /** Piste a binari: le rotaie del ramo (di serie una sola al centro, [0]): un ramo a binari è un bivio. */
+  binari?: number[];
 };
 
 /** L'inseguitore deterministico delle fughe (l'onda gigante): un fronte che avanza lungo la pista e travolge chi prende.
@@ -173,19 +230,24 @@ export type CPistaDef = {
   /** Mezza carreggiata di serie (m), bordo oltre la carreggiata prima del muro (m), rimbalzo sul muro (× velocità). */
   larghezza: number; bordo: number; muro: number;
   superficie: string; bordoTipo: string;
-  /** Come si disegna il bordo: muretto di gomme (strada) o boe (acqua). */
-  stile: 'strada' | 'acqua';
+  /** Come si disegna il bordo: muretto di gomme (strada), boe (acqua) o rotaie sulle traversine, senza muro (binari). */
+  stile: 'strada' | 'acqua' | 'binari';
   punti: CPuntoDef[];
   superfici: (CTrattoDef & { tipo: string })[];
-  /** Buchi: niente pista per tutta la larghezza (si salta o si cade). */
+  /** Buchi: niente pista per tutta la larghezza (si salta o si cade); con `lat` solo in quella fascia (una rotaia rotta). */
   vuoti: CTrattoDef[];
   /** Dove manca il muro: lato −1 sinistra, 1 destra, 0 tutti e due (si può cadere di sotto). */
   senzaMuro: (CTrattoDef & { lato: -1 | 0 | 1 })[];
-  /** Rampe: a `s` m lanciano in aria con almeno `salto` m/s. */
-  rampe: { s: number; salto: number; lat?: [number, number] }[];
+  /** Rampe: a `s` m lanciano in aria con almeno `salto` m/s (e al massimo `max` m/s: il salto non si allunga oltre col turbo, #270). */
+  rampe: { s: number; salto: number; max?: number; lat?: [number, number] }[];
   /** Tappeti del turbo: da `s` per `lungo` m. */
   turbo: { s: number; lungo: number; lat: [number, number] }[];
   rami: CRamoDef[];
+  /** Piste a binari: scarti laterali (m, + = destra) delle rotaie della principale. I rami hanno le loro (di serie una al centro). */
+  binari?: number[];
+  /** Piste ibride (#228): i tratti della principale dove ogni veicolo si aggancia alle rotaie `binari` (la miniera) e guida come un
+   *  carrello; fuori si sgancia e torna alla sua guida. Anche i rami con `binari` sono agganciati. */
+  agganci?: CTrattoDef[];
   /** [metri dal via (negativi = dietro), scarto laterale] dei bot e, ultimo, il tuo. */
   griglia: [number, number][];
   eventi: CEventoDef[];

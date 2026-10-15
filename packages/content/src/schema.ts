@@ -87,7 +87,8 @@ export const PROP_TEMI = ['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone'
   'arco_via', 'tribuna', 'gomme', 'kart_fermo', 'bandierina', // Isola delle Corse
   'strada', 'rotatoria', 'trofeo', 'statua_trofeo', 'torre_corse', 'garage_corse', 'bancarella', 'festone', 'lampione', 'palo_molo',
   'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia', 'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla',
-  'palazzo_neon', 'palazzo_neon_basso', 'faro', 'ombrellone', 'albero_tondo', 'albero_giungla', 'chiazza_neve'] as const;
+  'palazzo_neon', 'palazzo_neon_basso', 'faro', 'ombrellone', 'albero_tondo', 'albero_giungla', 'chiazza_neve',
+  'lampioncino', 'filo_borgo', 'cassetta_posta', 'vaso_fiori', 'siepe', 'fontana', 'panchina'] as const; // Borgo Marea (#265)
 const PROP_KINDS = new Set(['torii', 'lanterna', 'insegna_neon', 'palma', 'cassa', 'barile', 'sasso', 'cespuglio', 'filo_lanterne', 'fac_neon', 'fac_selvaggia', ...PROP_TEMI]);
 /** Campi facoltativi di un'isola: stile, densità della scenografia, slot (su celle L) e decorazioni fisse (dentro la mappa). */
 function validateIslandExtras(isl: IslandDef, w: number): string[] {
@@ -131,7 +132,7 @@ export function validateArchipelago(a: ArchipelagoDef, islands: IslandDef[]): st
     const def = islands.find((d) => d.id === e.island);
     const tag = `arcipelago[${i}] ${e.island}`;
     if (!def) { errs.push(`${tag}: isola inesistente`); continue; }
-    if (!['porto', 'lotto', 'facciata', 'laguna', 'tema'].includes(e.role)) errs.push(`${tag}: ruolo sconosciuto ${e.role}`);
+    if (!['porto', 'lotto', 'facciata', 'laguna', 'tema', 'negozio'].includes(e.role)) errs.push(`${tag}: ruolo sconosciuto ${e.role}`);
     const w = def.rows[0]?.length ?? 0, h = def.rows.length;
     const [x0, z0] = e.at;
     if (!Number.isInteger(x0) || !Number.isInteger(z0)) errs.push(`${tag}: posizione non intera`);

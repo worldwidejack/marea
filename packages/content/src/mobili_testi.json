@@ -1,0 +1,28 @@
+{
+  "_nota": "Le descrizioni dei mobili che si leggono nel gioco (negozio e ARREDA): id → una o due frasi in italiano, col tono del gioco (ironico, concreto, mai più di ~140 caratteri). Un id per ogni mobile di mobili.json. Il file si carica solo dai pezzi del gioco che lo usano (negozio, ARREDA): non pesa sull'avvio.",
+  "testi": {
+    "comodino_lampada": "Due cassetti che non chiudono bene e una lampada che fa la luce giusta per non alzarsi mai.",
+    "stereo": "Suona solo la stessa cassetta, ma la suona forte. I vicini lo sanno.",
+    "orologio": "Segna l'ora con grande sicurezza. Non è quella giusta, ma lui non lo sa.",
+    "cabina_telefonica_rossa_smontata": "Ha ancora il gettone incastrato e un numero sbagliato scritto col pennarello. Occupa due slot, ma dà un tono internazionale al salotto.",
+    "divano_gonfiabile_a_forma_di_coccodrillo": "Comodissimo finché non decidi di usarlo come scivolo per i PNG in visita.",
+    "trono_di_plastica_dorata": "Scricchiola, si graffia, ma quando ci siedi sembri il sovrano incontrastato del condominio.",
+    "amaca_da_interno_con_supporto_in_bambu": "Perfetta per rilassarsi, tranne quando dimentichi che sotto c’è il distributore di bibite.",
+    "flipper_anni_90": "Le palette sono mezze rotte e il punteggio massimo è ancora “ASS”. Nessuno sa chi sia ASS, ma è un record.",
+    "cabina_fototessera": "Scatta foto brutte con luci al neon. I PNG ci entrano sempre in due e rovinano lo scatto.",
+    "albero_di_natale_a_luglio": "Con le luci ancora accese e un calendario dell’Avvento scaduto. Nessuno ha il coraggio di smontarlo.",
+    "letto_ad_acqua": "D’estate è un paradiso, d’inverno è una pozza fredda che ti giudica mentre giochi.",
+    "scultura_astratta_in_fil_di_ferro": "Dovrebbe rappresentare l’ansia. O un gabbiano. Dipende dall’angolazione e da quante partite hai perso.",
+    "cassapanca_da_pirata": "Dentro ci sono solo calzini spaiati e una mappa che porta al divano.",
+    "manichino_da_sartoria_con_cappello_da_cowboy": "Non parla, ma se lo giri verso il letto la notte non dormi sereno.",
+    "frigorifero_anni_50_smaltato": "Ronza come un vecchio modellino di auto. Dentro c’è solo una lattina e mezzo barattolo di maionese scaduta.",
+    "divano_in_pelle_vintage": "Marrone, logoro al punto giusto, perfetto per sprofondare nei pensieri.",
+    "poltrona_a_sacco": "Esteticamente orrenda ma talmente comoda che se ti ci siedi non ti alzi più.",
+    "cabinato_da_sala_giochi_polveroso": "Mette nostalgia solo a guardarlo, con il joystick un po' allentato e lo schermo vecchio stile.",
+    "letto_a_castello_in_ferro": "Ottimo se ospiti qualcuno ma non vuoi che occupi troppo spazio vitale.",
+    "armadio_in_quercia": "Pesante come un macigno, impossibile da spostare senza tirare giù tutti i santi del calendario.",
+    "statua_di_procione_in_ceramica": "Ti fissa con un'espressione inquietante da strozzino che vuole i suoi soldi.",
+    "libreria_asimmetrica": "Molto di design, ma totalmente inutile se devi farci stare dei libri in verticale.",
+    "pianta_di_monstera_enorme": "È molto grande e probabilmente è finta, visto che non la innaffi mai."
+  }
+}

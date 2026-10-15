@@ -1,7 +1,7 @@
 [
   { "id": "legno", "nome": "Legno", "colore": "#C98A4B", "costo": "risorsa:legno", "banco": 1,
     "arma": { "danno": 0.5, "velocita": 1.0, "peso": 0.6, "quanti": 20, "descr": "Danni ridicoli: roba per iniziare." },
-    "armatura": { "difesa": 5, "peso": 2, "quanti": 15, "descr": "Vesti di tela: difesa bassissima, nessun malus." },
+    "armatura": { "difesa": 5, "peso": 2, "quanti": 15, "descr": "Armatura di legno: difesa bassissima, nessun malus." },
     "arco": { "danno": 6, "tensione": 0.6, "gittata": 14, "peso": 1.5, "quanti": 15, "descr": "Arco corto: si tende subito, tira vicino." },
     "frecce": { "danno": 3, "gittata": 0, "gravita": 20, "quanti": 5, "n": 10, "descr": "Di legno: parabola ripidissima." } },
   { "id": "bronzo", "nome": "Bronzo", "colore": "#F2A33A", "costo": "lingotto_bronzo", "banco": 1,

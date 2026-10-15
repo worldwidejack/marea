@@ -9,7 +9,7 @@ export const timeout = 90000;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const BUDGET = { drawCalls: 100, triangles: 150000 };
+const BUDGET = { drawCalls: 100, triangles: 200000 }; // 150k → 180k col Borgo Marea (#237), → 200k con la città attorno al Porto (#247, ROADMAP §Deviazioni)
 
 export default async function (ctx) {
   const { assert } = ctx;

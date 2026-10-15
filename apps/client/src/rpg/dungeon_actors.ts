@@ -71,7 +71,7 @@ const ARCIERI = new Set(ENEMIES.filter((d) => d.comportamento === 'arciere' && !
 /** Archivio: chi vola e quanto sta alto quando vola alto (quando scende sta a BASSO). */
 const VOLA = new Set(ENEMIES.filter((d) => d.muove === 'vola').map((d) => d.id));
 const ALTO: Record<string, number> = { nem_aerostato: 1.7, nem_astrolabio: 1.2, nem_anello: 1.4 }, BASSO = 0.35, SU_GRATA = 1.0;
-const AZZURRO = new THREE.Color(PAL.acquaBassa), NERO = new THREE.Color(0, 0, 0), ORO = new THREE.Color(PAL.giallo);
+const FUOCO = new THREE.Color(PAL.arancio), AZZURRO = new THREE.Color(PAL.acquaBassa), NERO = new THREE.Color(0, 0, 0), ORO = new THREE.Color(PAL.giallo);
 /** Impugnatura dell'arco (spazio della radice del nemico, −Z avanti): a riposo nella mano sinistra lungo il fianco; in mira davanti
  *  all'altezza delle spalle, col corpo girato di fianco (la sinistra verso il bersaglio). */
 const ARCO_GIU = new THREE.Vector3(-0.38, 0.85, -0.06), ARCO_SU = new THREE.Vector3(-0.04, 1.28, -0.62), FIANCO = -0.9, ALLUNGO = 0.45;
@@ -80,7 +80,7 @@ const YA = new THREE.Vector3(0, 1, 0);
 export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors {
   const root = new THREE.Group(); root.name = 'attori'; o.scene.scene.add(root);
   const enemies = new Map<number, Enemy>();
-  const proj = new Map<number, { obj: THREE.Object3D; px: number; py: number; pz: number; x: number; y: number; z: number; vy: number; tipo: string }>();
+  const proj = new Map<number, { obj: THREE.Object3D; px: number; py: number; pz: number; x: number; y: number; z: number; vy: number; tipo: string; bomba: boolean }>();
   const loot = new Map<number, { obj: THREE.Group; state: string }>();
   const fy = o.scene.floorY;
   let ultima: DungeonView | null = null;
@@ -130,12 +130,18 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
     };
     return object(o.loader, name, () => boxes(fb[name]!));
   }
-  function projObj(tipo: string): Promise<THREE.Object3D> {
+  function projObj(tipo: string, el?: 'fuoco' | 'elettricita', bomba = false): Promise<THREE.Object3D> {
     if (tipo === 'freccia' || tipo === 'freccia_nemica') return frecciaInVolo(o.loader, tipo === 'freccia_nemica');
     if (tipo === 'arpione_nemico') return Promise.resolve(boxes([[0.06, 0.06, 0.9, 0, 0, 0.15, PAL.legno], [0.16, 0.16, 0.28, 0, 0, -0.42, PAL.pietraChiara], [0.3, 0.05, 0.05, 0, 0, -0.3, PAL.pietra]]));
     if (tipo === 'vento_nemico') return Promise.resolve(boxes([[0.7, 0.08, 0.3, 0, 0, 0, PAL.sabbiaChiara], [0.5, 0.06, 0.22, 0, 0, 0.22, PAL.acquaBassa], [0.3, 0.05, 0.15, 0, 0, 0.42, PAL.acqua]], true));
     if (tipo === 'lama_nemica' || tipo === 'lama') return Promise.resolve(boxes([[0.9, 0.06, 0.18, 0, 0, 0, PAL.acquaBassa], [0.6, 0.04, 0.1, 0, 0, 0.12, PAL.acqua], [0.3, 0.03, 0.06, 0, 0, 0.24, PAL.sabbiaChiara]], true));
     if (tipo === 'acqua_nemica') return Promise.resolve(boxes([[0.32, 0.32, 0.5, 0, 0, 0, PAL.acquaBassa], [0.2, 0.2, 0.5, 0, 0, 0.22, PAL.acqua], [0.12, 0.12, 0.3, 0, 0, 0.5, PAL.sabbiaChiara]], true));
+    // bombe: una palla grossa che ruota (rossa e arancio, o gialla e azzurra), tonda come il low-poly consente
+    if (tipo === 'magia' && bomba) return Promise.resolve(boxes(el === 'elettricita'
+      ? [[0.5, 0.5, 0.5, 0, 0, 0, PAL.giallo], [0.36, 0.36, 0.64, 0, 0, 0, PAL.acquaBassa], [0.64, 0.36, 0.36, 0, 0, 0, PAL.acquaBassa]]
+      : [[0.5, 0.5, 0.5, 0, 0, 0, PAL.rosso], [0.36, 0.36, 0.64, 0, 0, 0, PAL.arancio], [0.64, 0.36, 0.36, 0, 0, 0, PAL.giallo]], true));
+    // proiettile elettrico: un lampo lungo e sottile, giallo col cuore azzurro
+    if (tipo === 'magia' && el === 'elettricita') return Promise.resolve(boxes([[0.16, 0.16, 1.0, 0, 0, 0, PAL.giallo], [0.08, 0.08, 1.3, 0, 0, 0, PAL.acquaBassa], [0.34, 0.06, 0.4, 0, 0, 0.1, PAL.giallo]], true));
     if (tipo === 'magia') return object(o.loader, 'fx_fiammata', () => boxes([[0.35, 0.35, 0.6, 0, 0, 0, PAL.arancio]], true)).then((f) => { for (const m of materialsOf(f)) { m.emissive.set(PAL.arancio); m.emissiveIntensity = 0.8; } return f; });
     return Promise.resolve(boxes([[0.35, 0.35, 0.35, 0, 0, 0, '#8A5CFF'], [0.18, 0.18, 0.5, 0, 0, 0.2, PAL.rosaNeon]], true));
   }
@@ -158,13 +164,14 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         let r = proj.get(p.id);
         if (!r) {
           const holder = new THREE.Group(); root.add(holder);
-          r = { obj: holder, px: p.x, py: p.y, pz: p.z, x: p.x, y: p.y, z: p.z, vy: 0, tipo: p.tipo };
-          void projObj(p.tipo).then((m) => holder.add(m));
+          if (p.mole) holder.scale.setScalar(p.mole); // Grandi Magie
+          r = { obj: holder, px: p.x, py: p.y, pz: p.z, x: p.x, y: p.y, z: p.z, vy: 0, tipo: p.tipo, bomba: !!p.bomba };
+          void projObj(p.tipo, p.el, !!p.bomba).then((m) => holder.add(m));
           proj.set(p.id, r);
         }
         r.vy = (p.y - r.y) * 60; r.px = r.x; r.py = r.y; r.pz = r.z; r.x = p.x; r.y = p.y; r.z = p.z;
         const d = v3.set(p.vx, r.vy, p.vz); if (d.lengthSq() > 1e-6) d.normalize(); else d.set(0, 0, -1);
-        r.obj.quaternion.setFromUnitVectors(r.tipo.startsWith('freccia') ? s3.set(0, 1, 0) : s3.set(0, 0, -1), d);
+        if (!r.bomba) r.obj.quaternion.setFromUnitVectors(r.tipo.startsWith('freccia') ? s3.set(0, 1, 0) : s3.set(0, 0, -1), d);
       }
       for (const [id, r] of proj) if (!ps.has(id)) { r.obj.removeFromParent(); proj.delete(id); }
       const ls = new Set<number>();
@@ -238,6 +245,9 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
           e.giri.forEach((g, k) => { g.visible = !diviso; const sp = g.children[0]; if (sp) sp.rotation.y = Math.floor(t * (6 + k * 3)) * (Math.PI / 8) * (k % 2 ? -1 : 1) * (n.anim === 'recupera' ? 0 : 1); });
         }
         if (n.schermo) { glowC = AZZURRO; glow = Math.floor(t * 4) % 2 ? 0.55 : 0.25; }
+        // magie: rallentato dall'elettricità = azzurro a scatti lenti; brucia (fuoco, sanguinamento) = arancio che sfarfalla
+        if (n.lento && !glowC) { glowC = AZZURRO; glow = Math.floor(t * 3 + e.id) % 2 ? 0.5 : 0.2; }
+        else if (n.sanguina && !glowC) { glowC = FUOCO; glow = Math.floor(t * 7 + e.id) % 2 ? 0.4 : 0.1; }
         // Fucina: la Scintilla guizza a scatti; il Mastro spento trema e la sua fornace è nera (il lampo dei colpi resta)
         if (n.model === 'nem_scintilla' && !dead) { b.position.y += 0.08 * (Math.floor(t * 7 + e.id) % 3); b.rotation.y = Math.floor(t * 9 + e.id) * 0.7; }
         if (n.spento) { b.position.x = 0.04 * (Math.floor(t * 16) % 2 ? 1 : -1); glowC = NERO; glow = 0; }
@@ -267,7 +277,10 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         if (!dead) blob(x, z, (n.boss ? 2.2 : 1.1) * (n.model === 'nem_ragno' ? 1.6 : 1));
       }
       blobs.count = nb; blobs.instanceMatrix.needsUpdate = true;
-      for (const r of proj.values()) r.obj.position.set(r.px + (r.x - r.px) * alpha, r.py + (r.y - r.py) * alpha, r.pz + (r.z - r.pz) * alpha);
+      for (const r of proj.values()) {
+        r.obj.position.set(r.px + (r.x - r.px) * alpha, r.py + (r.y - r.py) * alpha, r.pz + (r.z - r.pz) * alpha);
+        if (r.bomba) r.obj.rotation.set(Math.floor(t * 8) * 0.6, Math.floor(t * 6) * 0.8, 0); // gira a scatti
+      }
       for (const l of loot.values()) l.obj.visible = o.scene.light(l.obj.position.x, l.obj.position.z) > 0;
     },
     hit(id) { const e = enemies.get(id); if (e) e.flashT = 0.12; },

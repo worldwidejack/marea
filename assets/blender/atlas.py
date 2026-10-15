@@ -3,10 +3,13 @@
 # Regole: ART_BIBLE §2 (solo palette) e §3 (16 texel/m, righe 0-511 terreni/edifici, 512-767 prop,
 # 768-895 avatar, 896-1023 emissivi/UI). Unica eccezione: le «maschere di tinta» dell'avatar sono bianche
 # (#FFFFFF) perché il client le moltiplica per il colore scelto (pelle/capelli/vestito): a schermo resta palette.
-import struct, sys, zlib
+import os, struct, sys, zlib
 
 SIZE = 1024
 TPM = 16  # texel per metro (mondo)
+# Atlas «pulito» (#286, prova A/B): MAREA_PULITO (0 = nessuno) moltiplica la densità dei puntini sparsi (sabbia, erba, terra, assi,
+# mattoni, roccia) e lascia le forme grandi. 1 = l'atlas di sempre.
+K = float(os.environ.get('MAREA_PULITO', '1'))
 
 P = {  # ART_BIBLE §2
     'sabbia_chiara': '#F4E3C1', 'sabbia': '#E2B97F', 'legno_chiaro': '#C98A4B', 'legno': '#8E5A2B', 'legno_scuro': '#5A3A1E', 'ombra_calda': '#2E1E14',
@@ -92,6 +95,8 @@ REGIONS['testa_bandito'] = (224, 768, 14, 18)  # viso a colore fisso (cappuccio 
 REGIONS['pelle_bandito'] = (240, 768, 8, 8)
 REGIONS['lama'] = (248, 768, 16, 16)           # maschera bianca delle lame (mat_lama): il client la tinge col colore del materiale
 _grid(['em_fuoco', 'em_cristallo', 'em_neon_rosso', 'em_scala', 'em_vuoto', 'em_spettro', 'em_runa'], 0, 928, 32, 32, 32)
+# Fucina e Mausoleo (modelli 3D dei dungeon, 11 ott 2026): tessere 64x64 (4 m, ripetibili ogni 32) nella zona libera a y 384.
+_grid(['mattoni_fucina', 'basalto_fucina', 'marmo_muro'], 0, 384)
 
 EMISSIVE = {n for n in REGIONS if n.startswith('em_')}
 TINT_MASK = {'testa', 'pelle', 'capelli', 'vestito', 'mano', 'cappello', 'lama'}
@@ -136,7 +141,7 @@ def speckle(base, spots, seed, period=32):
         r = h01(x % period, y % period, seed)
         acc = 0
         for c, p in spots:
-            acc += p
+            acc += p * K
             if r < acc:
                 return c
         return base
@@ -157,9 +162,9 @@ def planks(base, seam, dark, light, plank=4, period=32, vertical=False, seed=3):
         if xx in (2, 17) and y % plank == 1:
             return dark  # chiodi
         r = h01(xx, y % period, seed + row)
-        if r < 0.10:
+        if r < 0.10 * K:
             return dark if (xx + y) % 3 else light
-        if r < 0.16:
+        if r < 0.16 * K:
             return light
         return base
     return f
@@ -176,7 +181,7 @@ def blocks(base, alt, mortar, hi, bw=8, bh=5, seed=5, period=32):
         c = alt if h01(*cell, seed) < 0.35 else base
         if y % bh == 0 and h01(xx, y, seed) < 0.6:
             return hi
-        if h01(x, y, seed + 1) < 0.06:
+        if h01(x, y, seed + 1) < 0.06 * K:
             return mortar
         return c
     return f
@@ -199,9 +204,9 @@ def paint(cv):
         def f(x, y, w, h):
             xx, yy = x % 32, y % 32
             r = h01(xx, yy, seed)
-            if r < 0.07 or (h01(xx, (yy + 1) % 32, seed) < 0.07):
+            if r < 0.07 * K or (h01(xx, (yy + 1) % 32, seed) < 0.07 * K):
                 return dark  # ciuffi a 2 texel verticali
-            if r < 0.12:
+            if r < 0.12 * K:
                 return light
             return base
         return f
@@ -243,7 +248,7 @@ def paint(cv):
             if gap < 2.0 and lato:
                 return 'pietra_scura'
             c = ['pietra_scura', 'pietra', 'pietra_scura', 'pietra', 'pietra_scura', 'pietra_chiara' if not lato else 'pietra'][bi]
-            if h01(xx, yy, seed + 9) < 0.07:
+            if h01(xx, yy, seed + 9) < 0.07 * K:
                 return 'pietra' if c == 'pietra_scura' else 'pietra_scura'
             return c
         return f
@@ -837,6 +842,33 @@ def paint_rpg(cv):
             return 'ciano_neon'
         return 'nero_caldo'
     R('em_runa', em_runa)
+
+    # --- Fucina: mattoni refrattari anneriti dalla fuliggine, lastre di basalto con le braci cadute; Mausoleo: conci di marmo
+    mattoni = blocks('legno_scuro', 'legno', 'ombra_calda', 'legno', bw=8, bh=4, seed=231)
+
+    def mattoni_fucina(x, y, w, h):
+        c = mattoni(x, y, w, h)
+        if c != 'ombra_calda' and h01(x % 32, y % 32, 232) < 0.14:
+            return 'nero_caldo'  # fuliggine
+        return c
+    R('mattoni_fucina', mattoni_fucina)
+
+    def basalto_fucina(x, y, w, h):
+        xx, yy = x % 32, y % 32
+        if xx % 16 == 0 or yy % 16 == 0:
+            return 'nero_caldo'
+        if yy % 16 == 1 and h01(xx, yy, 233) < 0.5:
+            return 'pietra_scura'  # spigolo di luce
+        r = h01(xx, yy, 234)
+        if r < 0.005:
+            return 'arancio'  # brace caduta
+        if r < 0.14:
+            return 'nero_caldo'
+        if r < 0.20:
+            return 'pietra_scura'
+        return 'roccia'
+    R('basalto_fucina', basalto_fucina)
+    R('marmo_muro', blocks('pietra_chiara', 'pietra', 'pietra_scura', 'sabbia_chiara', bw=16, bh=8, seed=235))
 
 
 def paint_corse(cv):

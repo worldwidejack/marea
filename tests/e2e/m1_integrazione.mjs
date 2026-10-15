@@ -36,12 +36,12 @@ export default async function (ctx) {
     ctx.log(`Bea: slot ${me.slot}, build segheria → ${cell}`);
 
     const pa = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`); pages.push(pa);
-    await ctx.test('Ada entra dal link e nasce sulla sua isola (slot 2)', async () => {
+    await ctx.test('Ada entra dal link e nasce nel Borgo davanti alla casa 2 (#237)', async () => {
       await ctx.waitReady(pa.page, 20000);
       const s = await ctx.getState(pa.page);
       ctx.log(`arch ${JSON.stringify(s.arch)} · avatar (${s.avatar.x.toFixed(1)}, ${s.avatar.z.toFixed(1)})`);
       ctx.assert(s.arch && s.arch.slot === 2, 'slot sbagliato: ' + JSON.stringify(s.arch));
-      ctx.assert(s.arch.place && String(JSON.stringify(s.arch.place)).includes('lotto'), 'non è su un lotto: ' + JSON.stringify(s.arch.place));
+      ctx.assert(s.arch.place === 'porto', 'non è nel Borgo (al Porto): ' + JSON.stringify(s.arch.place));
     });
     await ctx.test('barra risorse e lotto pronti, bussola verso Porto', async () => {
       await ctx.waitState(pa.page, (s) => s.lot && s.lot.ready === true, 15000);

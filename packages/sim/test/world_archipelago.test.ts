@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ARCHIPELAGO, BALANCE, ISLANDS, island, validateContent } from '@marea/content';
+import { ARCHIPELAGO, BALANCE, BORGO, ISLANDS, island, validateContent } from '@marea/content';
 import { composeArchipelago } from '../src/world/archipelago.ts';
 import type { Archipelago } from '../src/world/archipelago.ts';
 import { parseIsland } from '../src/world/grid.ts';
@@ -44,8 +44,12 @@ test('arcipelago: contenuti validi e composizione deterministica', () => {
   assert.equal(ISLANDS[0]!.id, 'prova', 'prova resta la prima isola (regata e test)');
 });
 
-test('arcipelago: 8 lotti (slot 0-7), un Porto, una laguna, due facciate', () => {
-  assert.deepEqual(arch.lots.map((l) => l.slot), [0, 1, 2, 3, 4, 5, 6, 7]);
+test('arcipelago: 30 lotti (giardini delle case, #237), un Porto col Borgo attorno, una laguna, due facciate', () => {
+  assert.deepEqual(arch.lots.map((l) => l.slot), Array.from({ length: 30 }, (_, i) => i));
+  const porto = arch.places.find((p) => p.role === 'porto')!;
+  for (const [n, c] of BORGO.case.entries()) assert.ok(arch.buildings.some((b) => b.island === 'porto' && b.cell[0] === porto.origin[0] + c.at[0] && b.cell[1] === porto.origin[1] + c.at[1]), `la casa ${n} non è un edificio del Porto (#247)`);
+  const mareH = ARCHIPELAGO.mare![1];
+  assert.ok(arch.places.filter((p) => p.role === 'lotto').every((p) => p.origin[1] > mareH), 'i giardini stanno oltre il mare navigabile');
   assert.ok(arch.lots.every((l) => l.template === 'lotto'));
   assert.equal(arch.places.filter((p) => p.role === 'porto').length, 1);
   assert.ok(arch.laguna);
@@ -84,7 +88,8 @@ test('arcipelago: spawn a terra, barche in acqua, dal molo si sale e si scende',
     const spot = landingSpot(newBoat(b.x, b.z), M);
     assert.ok(spot && M.isDock(spot.x, spot.z), `lotto ${slot}: nessun molo accanto alla barca`);
     assert.ok(canBoard(newAvatar(spot.x, spot.z), newBoat(b.x, b.z), M), `lotto ${slot}: dal molo non si sale`);
-    // dallo spawn si arriva a piedi al molo
+    // dallo spawn si arriva a piedi al molo (nei giardini no: la stanza della casa è un isolotto a parte, si passa dalle porte, #240)
+    if (slot !== null) continue;
     const d = bfs(M, cellOf(s), (x, z) => WALK.has(M.at(x, z)));
     const c = cellOf(spot);
     assert.ok(d[c.cz * M.w + c.cx]! >= 0, `lotto ${slot}: dallo spawn non si arriva al molo`);
@@ -94,23 +99,20 @@ test('arcipelago: spawn a terra, barche in acqua, dal molo si sale e si scende',
   assert.deepEqual(arch.spawnOf(42), arch.spawnOf(null), 'slot inesistente → Porto');
 });
 
-test('arcipelago: ogni lotto, la laguna e le facciate si raggiungono in barca dal Porto (al massimo ~40 s per i lotti: casa, Porto e Regata vicini)', () => {
+test('arcipelago: la laguna, le facciate e le isole a tema si raggiungono in barca dal Porto (i giardini no: ci si arriva dalla porta di casa, #237)', () => {
   const from = cellOf(arch.boatOf(null));
   const d = bfs(M, from, (x, z) => NAV.has(M.at(x, z)));
   const vmax = BALANCE.barca.maxSpeed;
   const times: string[] = [];
   for (const p of arch.places) {
-    if (p.role === 'porto') continue;
+    if (p.role === 'porto' || p.role === 'lotto') continue;
     const c = cellOf(p.boat), cells = d[c.cz * M.w + c.cx]!;
     assert.ok(cells >= 0, `${p.island}${p.slot !== null ? ' ' + p.slot : ''}: irraggiungibile in barca dal Porto`);
     // percorso a 4 vicini: la barca taglia in diagonale, stima ~0,8 della lunghezza Manhattan-locale
     const s = (cells * M.tile * 0.8) / vmax;
-    if (p.role === 'lotto') {
-      times.push(`${p.slot}:${Math.round(s)}s`);
-      assert.ok(s <= 40, `lotto ${p.slot}: ${Math.round(s)} s di barca dal Porto (attesi al massimo 40 s)`);
-    }
+    times.push(`${p.island}:${Math.round(s)}s`);
   }
-  console.log('[marea] barca Porto → lotti (stima a 9 m/s):', times.join(' '));
+  console.log('[marea] barca Porto → isole (stima a 9 m/s):', times.join(' '));
 });
 
 test('arcipelago: ogni cella L del template è una L nel mondo (lotCellToWorld)', () => {

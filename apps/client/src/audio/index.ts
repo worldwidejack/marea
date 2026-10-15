@@ -142,7 +142,7 @@ export function createAudio(): Audio {
         : e.t === 'pozione' ? 'pozione' : e.t === 'magia' ? 'magia' : e.t === 'altare' || e.t === 'risveglio' ? 'altare'
         : e.t === 'senzaMagicka' || e.t === 'senzaFrecce' || e.t === 'rotto' || e.t === 'pieno' ? 'vuoto'
         : e.t === 'valvola' ? 'martello' : e.t === 'asciutto' ? 'goccia' : e.t === 'geyser' ? 'sfrigola' : e.t === 'rallentato' ? 'plop' // Drenaggio
-        : e.t === 'timone' ? 'martello' : e.t === 'bomba' ? 'cannone' : e.t === 'arpionato' ? 'lancio' : e.t === 'raffica' ? 'raffica' // Archivio
+        : e.t === 'timone' ? 'martello' : e.t === 'bomba' || e.t === 'scoppio' ? 'cannone' : e.t === 'arpionato' ? 'lancio' : e.t === 'raffica' ? 'raffica' // Archivio
         : e.t === 'raggio' ? 'tuono' : e.t === 'parato' ? 'schivato' : e.t === 'anelli' ? 'apri'
         : e.t === 'bruciato' ? 'sfrigola' : e.t === 'estinto' || e.t === 'spento' ? 'goccia' : e.t === 'carica' ? 'tuono' : e.t === 'magma' ? 'cannone' : e.t === 'riacceso' ? 'magia' // Fucina
         : e.t === 'lancetta' || e.t === 'sfondato' ? 'martello' : e.t === 'tic' ? 'click' : e.t === 'rintocco' ? 'tpl_campana' : e.t === 'fase' ? 'tuono' // Mausoleo

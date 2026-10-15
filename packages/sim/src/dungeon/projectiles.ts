@@ -7,6 +7,8 @@ import { hitEnemy, hitHero } from './combat.ts';
 import { isOpaque } from './map.ts';
 import { ALTEZZA_BERSAGLIO, HZ } from './tuning.ts';
 import { spingi } from './vento.ts';
+import { effettiMagia, guidaFreccia } from './perk.ts';
+import { scoppio } from './magie.ts';
 
 const MARGINE = 0.15;
 
@@ -14,7 +16,7 @@ function explode(s: DungeonState, p: Proj): void {
   for (const e of s.enemies) {
     if (e.alleato || e.st === 'morto') continue;
     const dx = e.x - p.x, dz = e.z - p.z, r = p.raggio + e.def.raggio;
-    if (dx * dx + dz * dz <= r * r) hitEnemy(s, e, { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p) });
+    if (dx * dx + dz * dz <= r * r) hitEnemy(s, e, { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p), ...(p.rallenta ? { rallenta: p.rallenta } : {}) });
   }
 }
 /** Da dove arriva un proiettile (per lo scafandro del Golem-Palombaro): un metro indietro lungo il volo. */
@@ -28,13 +30,14 @@ function hitFoes(s: DungeonState, p: Proj): boolean {
   let first: Enemy | null = null, fd = Infinity;
   for (const e of s.enemies) {
     if (e.alleato || e.st === 'morto' || p.colpiti.includes(e.id)) continue;
-    const dx = e.x - p.x, dz = e.z - p.z, r = e.def.raggio + MARGINE, d2 = dx * dx + dz * dz;
+    const dx = e.x - p.x, dz = e.z - p.z, r = e.def.raggio + MARGINE * (p.mole ?? 1), d2 = dx * dx + dz * dz; // Grandi Magie: contatto più largo
     if (d2 <= r * r && d2 < fd) { fd = d2; first = e; }
   }
   if (!first) return false;
   if (p.magico) {
     if (p.raggio > 0) explode(s, p);
-    else hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p) });
+    else hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p), ...(p.rallenta ? { rallenta: p.rallenta } : {}) });
+    if (p.elemento) effettiMagia(s, p, first); // Combustione, Catena di fulmini
     return true;
   }
   const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
@@ -66,7 +69,14 @@ function muovi(s: DungeonState): void {
   for (const p of s.proj) {
     if (multi && !p.dalNemico) s.cur = p.da ?? 0;
     p.life--;
+    if (p.guida) guidaFreccia(s, p); // Automira
     p.vy -= p.g * DT;
+    if (p.bomba) { // Bomba: vola in alto sopra muri e nemici e scoppia dove atterra (magie.ts)
+      p.x += p.vx * DT; p.y += p.vy * DT; p.z += p.vz * DT;
+      if (p.life > 0 && p.y > 0) keep.push(p);
+      else { p.y = 0; scoppio(s, p); if (finita(s)) return; }
+      continue;
+    }
     const sx = p.vx * DT, sy = p.vy * DT, sz = p.vz * DT;
     // sotto-passi da 0,4 m: niente tunnel attraverso nemici e muri sottili
     const n = Math.max(1, Math.ceil(Math.sqrt(sx * sx + sz * sz) / 0.4));

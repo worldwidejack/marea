@@ -7,7 +7,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ISLANDS, building as buildingDef } from '@marea/content';
-import { advance, bufferParams, decorCellError, decorRimborso, parseIsland, storageCap } from '@marea/sim';
+import { advance, bufferParams, casaDi, decorCellError, decorRimborso, inStanza, parseIsland, storageCap } from '@marea/sim';
+import { createArrediVista } from './arredi_vista.ts';
 import type { GridMap, LotState, PlacedBuilding, PlacedDecor, Resources } from '@marea/sim';
 import type { Loader } from '../render/loader.ts';
 import type { Hud } from '../ui/hud.ts';
@@ -109,6 +110,7 @@ export function createLotView(o: LotViewOptions): LotView {
   // sagoma di SPOSTA (#108): cornice spessa verde/rossa sulla cella scelta, la decorazione ci si sposta sopra finché non confermi o annulli
   const sagoma = new THREE.Mesh(frameGeo(1.9, 0.24, 0.08), mat(SAGOMA_OK)); sagoma.visible = false; sagoma.name = 'lot_sagoma'; group.add(sagoma);
   const drawn = new Map<string, Drawn>();
+  const arredi = createArrediVista({ group, origin: o.origin, tile: T, groundY: gy });
   // decorazioni (#63, comprate dal Mercante): il codice dei segnaposto si scarica solo quando un'isola ne ha una
   const decorDrawn = new Map<string, { holder: THREE.Group; model: string; key: string }>();
   let decorMod: Promise<typeof import('../render/decor.ts')> | null = null;
@@ -128,6 +130,12 @@ export function createLotView(o: LotViewOptions): LotView {
 
   // ---- modelli: bld_<id>_l<livello> → _l1 → segnaposto; cantiere: bld_cantiere → segnaposto ----
   async function makeObject(b: PlacedBuilding): Promise<{ obj: THREE.Object3D; name: string }> {
+    // il Forziere in casa è il baule (#265): un mobile vero, girato come vuoi (davanti verso +Z, la camera di casa guarda da sud)
+    if (b.building === 'forziere' && b.level >= 1 && inStanza(b.cell)) {
+      const m = await import('../render/mobili.ts'), obj = new THREE.Mesh(m.bauleGeo(b.level), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+      obj.castShadow = obj.receiveShadow = true; obj.userData['baule'] = true;
+      return { obj, name: 'baule' };
+    }
     const def = buildingDef(b.building);
     const names = b.level < 1 ? ['bld_cantiere', 'bld_cantiere_l1'] : [`${def.model}_l${b.level}`, `${def.model}_l1`];
     for (const n of names) if (o.loader.has(n)) { try { return { obj: (await o.loader.load(n)).scene, name: n }; } catch { /* file rotto: prova il prossimo */ } }
@@ -137,7 +145,7 @@ export function createLotView(o: LotViewOptions): LotView {
     const tok = ++d.tok;
     const { obj, name } = await makeObject(b);
     if (tok !== d.tok || disposed) return;
-    obj.rotation.y = FACING;
+    obj.rotation.y = obj.userData['baule'] ? ((casaDi(lot).bauleRot ?? 0) * Math.PI) / 2 : FACING;
     d.holder.clear(); d.holder.add(obj); d.model = name;
     const bb = new THREE.Box3().setFromObject(obj);
     d.height = Number.isFinite(bb.max.y) ? Math.max(1, bb.max.y) : 2.2;
@@ -156,7 +164,8 @@ export function createLotView(o: LotViewOptions): LotView {
         d = { holder, key: '', model: '', height: 2.2, tok: 0, label: S.labels.add(() => { if (!ro) void collect(id); }) };
         drawn.set(b.id, d);
       }
-      const key = `${b.building}:${b.level}`;
+      const key = `${b.building}:${b.level}` + (b.building === 'forziere' && inStanza(b.cell) ? `:casa:${casaDi(lot).bauleRot ?? 0}` : '');
+      const p = world(b.cell); d.holder.position.set(p.x, p.y, p.z); // il baule si sposta (#265)
       if (d.key !== key) { d.key = key; void loadInto(d, b); }
     }
     for (const [id, d] of drawn) if (!seen.has(id)) { group.remove(d.holder); d.label.remove(); drawn.delete(id); }
@@ -171,6 +180,7 @@ export function createLotView(o: LotViewOptions): LotView {
       void decorMod.then((m) => m.decorObject(dc.decor, o.loader)).then(({ obj, model }) => { if (!disposed && decorDrawn.get(dc.id) === rec) { holder.add(obj); rec.model = model; } }).catch(() => { /* senza decorazione si gioca lo stesso */ });
     }
     for (const [id, d] of decorDrawn) if (!seenD.has(id)) { group.remove(d.holder); decorDrawn.delete(id); }
+    arredi.sync(lot); // i mobili di casa (#265)
     const free = ro ? [] : freeSlots(), m = new THREE.Matrix4();
     free.forEach((c, i) => { const p = world(c); slotsMesh.setMatrixAt(i, m.makeTranslation(p.x, p.y + 0.02, p.z)); });
     slotsMesh.count = free.length; slotsMesh.instanceMatrix.needsUpdate = true;
@@ -524,7 +534,7 @@ export function createLotView(o: LotViewOptions): LotView {
       placeLabels(focus);
     },
     dispose() {
-      disposed = true; unState(); closePanel();
+      disposed = true; unState(); closePanel(); arredi.dispose();
       for (const d of drawn.values()) d.label.remove();
       nearLabel?.remove();
       for (const sl of slotLabels.values()) sl.label.remove();

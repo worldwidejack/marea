@@ -44,7 +44,7 @@ export function renderBag(v: View, out: HTMLElement): void {
   out.appendChild(grid);
 
   // magia in mano (v6): si sceglie come un'arma, occupa le mani e si lancia con la A; di nuovo sulla magia in mano rimette l'arma
-  out.appendChild(sec('Magia in mano', inMano(v) ? 'la A la lancia · C alterna' : 'tocca per impugnarla · C alterna'));
+  out.appendChild(sec('Magia in mano', inMano(v) ? 'tieni A per mirare, lascia per lanciare (i raggi restano accesi finché tieni) · C alterna' : 'tocca per impugnarla · C alterna'));
   if (!h.magie.length) out.appendChild(el('div', 'mz-rp-empty', 'Nessuna magia: leggi un libro.'));
   else {
     const chips = el('div', 'mz-rp-chips');
@@ -62,7 +62,7 @@ export function renderBag(v: View, out: HTMLElement): void {
     }
     out.appendChild(chips);
     const cur = h.equip.magia ? SPELLS.find((x) => x.id === h.equip.magia) : undefined;
-    if (cur) out.appendChild(el('div', 'mz-rp-cmp', `${cur.descr} Costa ${cur.costo} Magicka.`));
+    if (cur) out.appendChild(el('div', 'mz-rp-cmp', `${cur.descr} Costa ${cur.costo} Magicka${cur.forma === 'raggio' ? ' al secondo' : ''}.`));
   }
 
   out.appendChild(sec('Zaino', `${fmtKg(d.carico)} / ${fmtKg(d.caricoMax)}`));
@@ -89,6 +89,12 @@ function detail(v: View, it: ItemDef, eq: SlotOggetto[]): HTMLElement {
   box.appendChild(el('p', '', it.descr));
   for (const l of statLines(it)) box.appendChild(el('p', 'mz-rp-cmp', l));
   const equip = (slot: SlotOggetto, item: string | null, msg: string) => v.act({ t: 'equip', slot, item }, () => msg);
+  if (it.kind === 'pozione' && v.bevi) {
+    const bevi = v.bevi;
+    const b = button(`bevi:${it.id}`, 'Bevi', 'subito', 'green', v.busy, () => bevi(it.id, it.nome));
+    b.dataset['act'] = 'bevi';
+    box.appendChild(b);
+  }
   const slot = SLOT_OF[it.kind];
   if (slot) {
     const on = eq.includes(slot);

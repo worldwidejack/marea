@@ -3,7 +3,8 @@ import { getMinigame } from './minigames/registry.ts';
 import type { Difficulty, MinigameOpzioni, MinigameResult } from './minigames/types.ts';
 import type { InputFrame } from './types.ts';
 
-/** [[ticks, mx, my, a, b], ...] con mx, my quantizzati a 1/32 e a, b come 0/1. */
+/** [[ticks, mx, my, a, b], ...] con mx, my quantizzati a 1/32, a come 0/1 e b come 0/1/2 (2 = b con `c`, «dall'altra parte», #250:
+ *  le partite di prima restano valide). */
 export type PackedInputs = [number, number, number, number, number][];
 
 const q = (v: number): number => Math.round(Math.max(-1, Math.min(1, v)) * 32);
@@ -11,7 +12,7 @@ const q = (v: number): number => Math.round(Math.max(-1, Math.min(1, v)) * 32);
 export function packInputs(frames: readonly InputFrame[]): PackedInputs {
   const out: PackedInputs = [];
   for (const f of frames) {
-    const row: [number, number, number, number, number] = [1, q(f.mx), q(f.my), f.a ? 1 : 0, f.b ? 1 : 0];
+    const row: [number, number, number, number, number] = [1, q(f.mx), q(f.my), f.a ? 1 : 0, f.b ? (f.c ? 2 : 1) : 0];
     const last = out[out.length - 1];
     if (last && last[1] === row[1] && last[2] === row[2] && last[3] === row[3] && last[4] === row[4]) last[0]++;
     else out.push(row);
@@ -19,14 +20,14 @@ export function packInputs(frames: readonly InputFrame[]): PackedInputs {
   return out;
 }
 
-/** Controllo di forma per un input log che arriva dalla rete: righe [ticks ≥ 1, mx, my ∈ [−32, 32], a, b ∈ {0, 1}], al massimo `maxTicks` tick in tutto. */
+/** Controllo di forma per un input log che arriva dalla rete: righe [ticks ≥ 1, mx, my ∈ [−32, 32], a ∈ {0, 1}, b ∈ {0, 1, 2}], al massimo `maxTicks` tick in tutto. */
 export function isPackedInputs(v: unknown, maxTicks: number): v is PackedInputs {
   if (!Array.isArray(v) || v.length > maxTicks) return false;
   let ticks = 0;
   for (const r of v) {
     if (!Array.isArray(r) || r.length !== 5 || !r.every((n) => Number.isInteger(n))) return false;
     const [n, mx, my, a, b] = r as number[];
-    if (n! < 1 || Math.abs(mx!) > 32 || Math.abs(my!) > 32 || (a !== 0 && a !== 1) || (b !== 0 && b !== 1)) return false;
+    if (n! < 1 || Math.abs(mx!) > 32 || Math.abs(my!) > 32 || (a !== 0 && a !== 1) || (b !== 0 && b !== 1 && b !== 2)) return false;
     ticks += n!;
     if (ticks > maxTicks) return false;
   }
@@ -35,13 +36,13 @@ export function isPackedInputs(v: unknown, maxTicks: number): v is PackedInputs 
 
 export function unpackInputs(p: PackedInputs): InputFrame[] {
   const out: InputFrame[] = [];
-  for (const [n, mx, my, a, b] of p) for (let i = 0; i < n; i++) out.push({ mx: mx / 32, my: my / 32, a: a === 1, b: b === 1 });
+  for (const [n, mx, my, a, b] of p) for (let i = 0; i < n; i++) out.push(b === 2 ? { mx: mx / 32, my: my / 32, a: a === 1, b: true, c: true } : { mx: mx / 32, my: my / 32, a: a === 1, b: b === 1 });
   return out;
 }
 
 /** Quantizza come farà il replay: il client DEVE usare questo per giocare, così il punteggio coincide. */
 export function quantize(f: InputFrame): InputFrame {
-  return { mx: q(f.mx) / 32, my: q(f.my) / 32, a: f.a, b: f.b };
+  return f.b && f.c ? { mx: q(f.mx) / 32, my: q(f.my) / 32, a: f.a, b: true, c: true } : { mx: q(f.mx) / 32, my: q(f.my) / 32, a: f.a, b: f.b };
 }
 
 export function replay(id: string, seed: number, difficulty: Difficulty, packed: PackedInputs, opzioni?: MinigameOpzioni): MinigameResult {

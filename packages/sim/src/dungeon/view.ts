@@ -16,7 +16,10 @@ import { alto, schermato } from './muove.ts';
 import { inGetto, statoLava } from './fuoco.ts';
 import { lancettaDir } from './onde.ts';
 import { varchiDi } from './custode.ts';
+import { RPG } from '@marea/content/rpg.ts';
+import { secToTicks } from './state.ts';
 import { HZ } from './tuning.ts';
+import { paralizzato, rallentato, sanguinante, scaricaDi } from './perk.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const r3 = (v: number): number => Math.round(v * 1000) / 1000;
@@ -36,6 +39,7 @@ export function heroAnim(s: DungeonState): { anim: HeroAnim; t: number } {
     case 'tende': return { anim: 'tende', t: h.carica };
     case 'tira': return { anim: 'tira', t: ph };
     case 'lancia': return { anim: 'lancia', t: ph };
+    case 'punta': if (h.canale > 0) return { anim: 'lancia', t: 0.5 }; break; // il raggio acceso tiene la posa di lancio
     case 'beve': return { anim: 'beve', t: ph };
     default:
   }
@@ -59,7 +63,7 @@ export function viewOf(s: DungeonState): DungeonView {
       x: h.x, z: h.z, fx: h.fx, fz: h.fz, anim: ha.anim, t: ha.t, carica: h.act === 'carica' || h.act === 'tende' ? h.carica : 0,
       ...(ha.anim === 'attacca' ? { stile: h.stile } : {}),
       vita: h.vita, magicka: h.magicka, stamina: h.stamina, max: { ...rh.max },
-      ricaricaMagia: h.cdMagia / HZ, frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0, arma: h.arma.id, rallentato: h.lento > 0,
+      ...canaleVista(s), ricaricaMagia: h.cdMagia / HZ, ...perkVista(s), frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0, arma: h.arma.id, rallentato: h.lento > 0,
       ...inMano(s),
       ...(s.correnti.length ? { vento: !s.done && nelVento(s), riparo: !s.done && alRiparo(s) } : {}), ...(h.spT > 0 ? { spinto: true } : {}),
       ...(fucina(s) ? { brucia: h.brucia > 0, bagnato: !s.done && inGetto(s, h.x, h.z) } : {}),
@@ -67,9 +71,9 @@ export function viewOf(s: DungeonState): DungeonView {
     },
     nemici: s.enemies.map((e) => {
       const a = enemyAnim(e);
-      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0, boss: !!e.def.boss, ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e) };
+      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0 || sanguinante(s, e), boss: !!e.def.boss, ...(paralizzato(s, e) ? { paralizzato: true, stordito: true } : {}), ...(rallentato(s, e) ? { lento: true } : {}), ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e) };
     }),
-    proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz })),
+    proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz, ...(p.mole ? { mole: p.mole } : {}), ...(p.elemento ? { el: p.elemento } : {}), ...(p.bomba ? { bomba: p.bomba, r: r2(p.raggio) } : {}) })),
     bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: parte(s, l).vuoto })),
     uscita: { x: s.map.exit.x, z: s.map.exit.z },
     vicinoUscita: vicinoUscita(s),
@@ -84,7 +88,7 @@ export function viewOf(s: DungeonState): DungeonView {
     vicinoTimone: !s.done && s.map.timoni.length > 0 && timoneVicino(s) >= 0,
     geyser: s.geyser.map((g) => ({ id: g.id, x: g.x, z: g.z, r: g.r, getto: g.t > g.avviso, t: g.t > g.avviso ? Math.min(1, (g.t - g.avviso) / g.getto) : Math.min(1, g.t / g.avviso), ...(g.spinta !== undefined ? { bomba: true } : {}), ...(g.magma ? { magma: true } : {}) })),
     lave: s.map.lave.map((v) => ({ n: v.n, ...statoLava(s, v) })),
-    fuochi: s.fuochi.map((f) => ({ id: f.id, x: f.x, z: f.z, r: f.r, t: Math.max(0, Math.min(1, 1 - (f.fine - s.tick) / f.durata)) })),
+    fuochi: s.fuochi.map((f) => ({ id: f.id, x: f.x, z: f.z, r: f.r, t: Math.max(0, Math.min(1, 1 - (f.fine - s.tick) / f.durata)), ...(f.amico ? { amico: true } : {}) })),
     lancette: s.map.lancette.map((l) => { const [dx, dz] = lancettaDir(l, s.tick); return { n: l.n, x: l.x, z: l.z, dx, dz, lunga: l.lunga, largo: l.largo, giro: l.giro }; }),
     onde: s.onde.map((o) => ({ id: o.id, x: o.x, z: o.z, r: o.r, max: o.max, spessore: o.spessore, varchi: o.varchi.map(([x, z]): [number, number] => [x, z]), barriera: !!o.barriera })),
     ...(s.map.sarcofago ? { sarcofago: { x: s.map.sarcofago.x, z: s.map.sarcofago.z, aperto: s.enemies.some((e) => e.capo && e.st === 'morto') } } : {}),
@@ -142,6 +146,18 @@ function mausoleo(s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][numb
   }
   return o;
 }
+/** Perk Scarica (secondi di ricarica) e Carica massima (progresso verso il colpo letale): niente chiavi senza il perk. */
+function perkVista(s: DungeonState): { scarica?: number; massima?: number } {
+  const P = s.runHero.perk, h = s.hero, o: { scarica?: number; massima?: number } = {};
+  if (P?.scarica) o.scarica = r2(1 - h.cdScarica / secToTicks(scaricaDi(s).ricarica));
+  if (P?.massima) o.massima = r3(h.massimaP);
+  return o;
+}
+/** Il raggio acceso dell'eroe di turno (niente chiave se è spento). */
+function canaleVista(s: DungeonState): { canale?: { len: number; el?: 'fuoco' | 'elettricita' } } {
+  const h = s.hero;
+  return h.canale > 0 ? { canale: { len: r2(h.canaleLen), ...(h.canaleEl ? { el: h.canaleEl } : {}) } } : {};
+}
 /** La magia in mano all'eroe di turno (niente chiave con l'arma in mano). */
 function inMano(s: DungeonState): { magia?: string } {
   const m = magiaInMano(s);
@@ -167,7 +183,7 @@ function compagni(s: DungeonState): CompagnoView[] {
       return {
         i, x: h.x, z: h.z, fx: h.fx, fz: h.fz, anim: ha.anim, t: ha.t, carica: h.act === 'carica' || h.act === 'tende' ? h.carica : 0,
         ...(ha.anim === 'attacca' ? { stile: h.stile } : {}),
-        vita: h.vita, max: s.runHero.max.vita, arma: h.arma.id, ...inMano(s), protetto: h.protetto > 0, done: s.done, outcome: s.outcome,
+        vita: h.vita, max: s.runHero.max.vita, arma: h.arma.id, ...inMano(s), ...canaleVista(s), protetto: h.protetto > 0, done: s.done, outcome: s.outcome,
       };
     }));
   }
@@ -220,6 +236,8 @@ export function resultOf(s: DungeonState): RunResult {
     salvato: s.salvato ? { bottino: { ...s.salvato.bottino }, monete: s.salvato.monete } : null, cadute: s.cadute,
     capo: s.enemies.some((e) => e.capo && e.st === 'morto'),
     ...(s.uscitaLanterna >= 0 ? { lanterna: s.uscitaLanterna } : {}),
+    // Patto di sangue: la creatura evocata ancora viva (se non sei morto), per la spedizione dopo
+    ...(s.runHero.perk?.alleati?.perenne ? { evocato: s.outcome === 'morto' ? null : s.enemies.filter((e) => e.alleato && e.st !== 'morto' && (e.padrone ?? 0) === s.cur).at(-1)?.tipo ?? null } : {}),
     ...(s.stato ? { equip: { ...s.equip } } : {}),
     ...(Object.keys(s.buttati).length ? { buttati: { ...s.buttati } } : {}),
     hash: hashOf(s),
