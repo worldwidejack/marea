@@ -36,6 +36,18 @@
     { "id": "armadio_in_quercia", "nome": "Armadio in quercia", "categoria": "contenitori", "perle": 110, "posto": "terra", "altezza": 2.0, "colori": ["#5A3A1E", "#8E5A2B", "#F5D547"] },
     { "id": "statua_di_procione_in_ceramica", "nome": "Statua di procione in ceramica", "categoria": "decorazioni", "perle": 45, "posto": "terra", "altezza": 0.7, "colori": ["#B9AFA3", "#23201F", "#E8E1D6"] },
     { "id": "libreria_asimmetrica", "nome": "Libreria asimmetrica", "categoria": "contenitori", "perle": 75, "posto": "terra", "altezza": 1.8, "colori": ["#C98A4B", "#23201F", "#E8433F"] },
-    { "id": "pianta_di_monstera_enorme", "nome": "Pianta di Monstera enorme", "categoria": "piante", "perle": 60, "posto": "terra", "altezza": 1.9, "colori": ["#2C6B3F", "#E2B97F", "#8FC35B"] }
+    { "id": "pianta_di_monstera_enorme", "nome": "Pianta di Monstera enorme", "categoria": "piante", "perle": 60, "posto": "terra", "altezza": 1.9, "colori": ["#2C6B3F", "#E2B97F", "#8FC35B"] },
+    { "id": "caminetto_in_mattoni_finiti", "nome": "Caminetto in mattoni finiti", "categoria": "decorazioni", "perle": 85, "posto": "terra", "altezza": 1.4, "colori": ["#E8433F", "#4A4340", "#F2A33A"] },
+    { "id": "distributore_di_bibite", "nome": "Distributore di bibite", "categoria": "cucina", "perle": 90, "posto": "terra", "altezza": 1.9, "colori": ["#E8433F", "#23201F", "#3FB9C9"] },
+    { "id": "vasca_da_bagno_con_piedini", "nome": "Vasca da bagno con piedini", "categoria": "bagno", "perle": 75, "posto": "terra", "altezza": 0.75, "colori": ["#E8E1D6", "#F5D547", "#3FB9C9"] },
+    { "id": "sacco_da_boxe", "nome": "Sacco da boxe", "categoria": "giochi", "perle": 45, "posto": "terra", "altezza": 2.0, "colori": ["#E8433F", "#4A4340", "#E8E1D6"] },
+    { "id": "pianoforte_a_coda", "nome": "Pianoforte a coda", "categoria": "tecnologia", "perle": 180, "posto": "terra", "altezza": 1.3, "colori": ["#23201F", "#E8E1D6", "#F5D547"] },
+    { "id": "tenda_da_campeggio", "nome": "Tenda da campeggio", "categoria": "dormire", "perle": 60, "posto": "terra", "altezza": 1.3, "colori": ["#3FB9C9", "#2478A8", "#F5D547"] },
+    { "id": "divano_a_due_posti_in_tessuto", "nome": "Divano a due posti in tessuto", "categoria": "sedersi", "perle": 65, "posto": "terra", "altezza": 0.8, "colori": ["#B9AFA3", "#7F7568", "#5A3A1E"] },
+    { "id": "sedia_in_legno_massello", "nome": "Sedia in legno massello", "categoria": "sedersi", "perle": 25, "posto": "terra", "altezza": 0.95, "colori": ["#8E5A2B", "#5A3A1E", "#E8E1D6"] },
+    { "id": "mobile_tv_basso", "nome": "Mobile TV basso", "categoria": "contenitori", "perle": 45, "posto": "terra", "altezza": 0.5, "colori": ["#C98A4B", "#5A3A1E", "#23201F"] },
+    { "id": "libreria_componibile_svedese", "nome": "Libreria componibile svedese", "categoria": "contenitori", "perle": 40, "posto": "terra", "altezza": 1.8, "colori": ["#E8E1D6", "#B9AFA3", "#E8433F"] },
+    { "id": "tappeto_rettangolare_a_tinta_unita", "nome": "Tappeto rettangolare a tinta unita", "categoria": "decorazioni", "perle": 30, "posto": "terra", "altezza": 0.05, "colori": ["#E8433F", "#F4E3C1", "#7F7568"] },
+    { "id": "letto_singolo_con_materasso_a_molle", "nome": "Letto singolo con materasso a molle", "categoria": "dormire", "perle": 50, "posto": "terra", "altezza": 0.8, "colori": ["#8E5A2B", "#E8E1D6", "#3FB9C9"] }
   ]
 }
