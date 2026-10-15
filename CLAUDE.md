@@ -4,7 +4,7 @@
 
 **Chi ci lavora**: Jack (il progetto è suo, decide il gusto) e i suoi amici, **ognuno col proprio Claude/Codex, tutti in parallelo e su tutto il codice**. Nessuno di loro è per forza un programmatore: decidi tu il come, chiedi alla persona solo il cosa (gusto, priorità), con scelte A/B e screenshot, mai domande aperte.
 
-**Dove sta cosa**: come si lavora in gruppo `docs/CONTRIBUIRE.md` · design `docs/GDD.md` (vince su tutto) · look `docs/ART_BIBLE.md` · architettura e regole di codice `docs/TECH.md` · messaggi `docs/PROTOCOL.md` · tappe e deviazioni `docs/ROADMAP.md` · interfacce tra pacchetti e mappa del codice `docs/CONTRACTS.md` · idee parcheggiate `docs/BACKLOG.md` · lavori da fare: **GitHub Issues** del repo.
+**Dove sta cosa**: come si lavora in gruppo `docs/CONTRIBUIRE.md` · design `docs/GDD.md` (vince su tutto) · dove va il gioco `docs/VISIONE.md` (Jack, 14 ott 2026: leggila prima di un lavoro nuovo) · look `docs/ART_BIBLE.md` · architettura e regole di codice `docs/TECH.md` · messaggi `docs/PROTOCOL.md` · tappe e deviazioni `docs/ROADMAP.md` · interfacce tra pacchetti e mappa del codice `docs/CONTRACTS.md` · idee parcheggiate `docs/BACKLOG.md` · lavori da fare: **GitHub Issues** del repo.
 
 **Online**: https://marea.stanza-idee.workers.dev · repo privato `worldwidejack/marea`.
 
