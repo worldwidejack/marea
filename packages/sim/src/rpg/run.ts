@@ -23,10 +23,16 @@ export function startDungeon(lot0: LotState, dungeon: string, seed: number, nowM
   // finché R-dungeon non ha scritto dungeons.json la lista è vuota: allora va bene qualunque id
   if (DUNGEONS.length > 0 && !DUNGEONS.some((d) => d.id === dungeon)) throw new EconomyError('sconosciuto', 'Dungeon sconosciuto');
   const hero = heroOf(lot);
-  // porta sigillata (Epopea della Regata): si entra solo dopo aver completato il dungeon di prima
+  // porta sigillata (Epopea) o cancello sbarrato (Portale del Vuoto): dungeon di prima o anello/oggetto richiesto
   const req = DUNGEONS.find((d) => d.id === dungeon)?.richiede;
-  if (req && !(hero.completati ?? []).includes(req)) {
-    throw new EconomyError('requisito', `La porta è sigillata: prima completa ${DUNGEONS.find((d) => d.id === req)?.nome ?? req}`);
+  if (req) {
+    if (req === 'unico_anello_onda' || req.startsWith('unico_') || req.startsWith('item:')) {
+      const it = req.replace('item:', '');
+      const has = (hero.inv?.[it] ?? 0) > 0 || hero.equip?.anello1 === it || hero.equip?.anello2 === it;
+      if (!has) throw new EconomyError('requisito', "Il cancello è sbarrato: serve l'Anello dell'Onda della Regina");
+    } else if (!(hero.completati ?? []).includes(req)) {
+      throw new EconomyError('requisito', `La porta è sigillata: prima completa ${DUNGEONS.find((d) => d.id === req)?.nome ?? req}`);
+    }
   }
   const l = hero.lanterne?.[dungeon];
   const partenza = o.lanterna && typeof l === 'number' && Number.isInteger(l) && l >= 0 ? l : null;
