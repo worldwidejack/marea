@@ -85,14 +85,14 @@ test('de Molay: fiamme dove passa che bruciano, a metà vita ride e scappa, poi 
   const m = zombie(s, 'molay', -2.5, 0);
   passi(s, 70);
   assert.ok(s.fiamme.some((f) => f.nemico), 'nessuna fiamma di de Molay');
-  const p0 = s.punti;
+  const p0 = s.eroe.punti;
   colpisci(s, m, { danno: m.max * 0.8, mischia: true, caricato: false, dirX: -1, dirZ: 0, spinta: 0 });
   assert.equal(m.st, 'fugge');
   assert.equal(m.vita, m.max * 0.5);
   assert.equal(colpisci(s, m, { danno: 1e9, mischia: true, caricato: false, dirX: -1, dirZ: 0, spinta: 0 }), 'no', 'mentre scappa prende colpi');
   passi(s, 6.2 * 60);
   assert.equal(m.st, 'morto');
-  assert.ok(s.punti >= p0 + (nemicoDef('molay').punti ?? 0), `punti ${s.punti - p0}`);
+  assert.ok(s.eroe.punti >= p0 + (nemicoDef('molay').punti ?? 0), `punti ${s.eroe.punti - p0}`);
   assert.equal(s.uccisioni, 0, 'de Molay non muore: non conta come uccisione');
 });
 

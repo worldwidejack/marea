@@ -58,8 +58,8 @@ export type TplHud = {
   /** Scritta grande al centro per `ms` (0 = finché non la si toglie). */
   grande(testo: string, colore: string, sub?: string, ms?: number): void;
   togliGrande(): void;
-  /** Insieme: nome e vita sopra la testa dei compagni (px della pagina; `giu` = a terra fino all'ondata dopo). */
-  compagni(list: { x: number; y: number; nome: string; frac: number; giu: boolean }[]): void;
+  /** Insieme: nome, punti e vita sopra la testa dei compagni (px della pagina; `giu` = a terra fino all'ondata dopo). */
+  compagni(list: { x: number; y: number; nome: string; frac: number; giu: boolean; punti: number }[]): void;
   dispose(): void;
 };
 
@@ -160,7 +160,7 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string, pot?: boo
       list.forEach((c, i) => {
         let e = amici[i];
         if (!e) { e = el('div', 'amico'); e.append(el('span'), el('i')); e.lastChild!.appendChild(el('b')); box.appendChild(e); amici.push(e); }
-        const testo = c.giu ? `${c.nome} · a terra` : c.nome;
+        const testo = c.giu ? `${c.nome} · a terra` : `${c.nome} · ${c.punti}`;
         if (e.firstChild!.textContent !== testo) e.firstChild!.textContent = testo;
         e.classList.toggle('giu', c.giu);
         (e.lastChild!.firstChild as HTMLElement).style.width = `${Math.max(0, Math.round(c.frac * 10)) * 10}%`;

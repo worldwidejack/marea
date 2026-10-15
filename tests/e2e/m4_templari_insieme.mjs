@@ -1,6 +1,7 @@
 // Templari insieme (PROTOCOL.md §9): due persone vere (Ada al PC, Bea al telefono) su wrangler dev locale. Alla porta della chiesa compare
 // GIOCA INSIEME; tutte e due entrano nella sala, SI PARTE, ed entrano nella stessa partita a ondate: i turni arrivano, ognuna vede l'altra
-// (avatar, nome e vita sopra la testa), le firme dello stato ogni 5 s sono uguali per tutte e due (stessa partita). Il menu non ferma la
+// (avatar, nome e vita sopra la testa), le firme dello stato ogni 5 s sono uguali per tutte e due (stessa partita); Bea perde la linea e si
+// ricollega da sola (#326) senza che la partita cambi. Il menu non ferma la
 // partita. Ada esce dal menu: per Bea è uscita, il server chiude la partita di Ada dal log della squadra; poi esce anche Bea. Nei lotti
 // nessuna partita aperta e una partita in più. Screenshot in tests/out/shots/m4_templari_insieme_*.png.
 import fs from 'node:fs';
@@ -101,6 +102,19 @@ export default async function (ctx) {
       const comuni = Object.keys(fa).filter((k) => k in fb);
       assert(comuni.length >= 2, 'firme in comune: ' + comuni.join(','));
       for (const k of comuni) assert(fa[k] === fb[k], `tick ${k}: Ada ${fa[k]} ≠ Bea ${fb[k]}`);
+    });
+
+    await ctx.test('Bea perde la linea: si ricollega da sola, recupera i turni e la partita resta la stessa', async () => {
+      await hook(B, 'templariAutopilot', true, 1); // in due si resiste di più mentre si aspetta
+      assert(await hook(B, 'templariStacca'), 'la socket di Bea non si chiude');
+      await ctx.waitState(B, (s) => s.templari.insieme.ricollega === true || s.templari.insieme.giri >= 1, 5000);
+      await ctx.waitState(B, (s) => s.templari.insieme.giri >= 1 && !s.templari.insieme.ricollega, 20000);
+      // la partita va avanti per tutte e due, e le firme dopo il ricollegamento (coi turni recuperati) coincidono ancora
+      const dopo = String(Math.ceil(((await st(B)).templari.tick + 1) / 300) * 300);
+      for (const p of [A, B]) await ctx.waitState(p, (s, k) => s.templari.insieme?.firme?.[k] !== undefined, 30000, dopo);
+      const fa = (await st(A)).templari.insieme.firme, fb = (await st(B)).templari.insieme.firme;
+      for (const k of Object.keys(fa).filter((x) => x in fb)) assert(fa[k] === fb[k], `dopo il ricollegamento, tick ${k}: Ada ${fa[k]} ≠ Bea ${fb[k]}`);
+      await hook(B, 'templariAutopilot', false);
     });
 
     await ctx.test('Ada esce dal menu (la partita non si ferma): per Bea è uscita, il server chiude la partita di Ada', async () => {

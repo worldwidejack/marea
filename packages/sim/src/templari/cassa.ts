@@ -28,6 +28,9 @@ function pesca(s: TState): string {
   return pool[pool.length - 1]?.id ?? TEMPLARI.armi[1]!.id;
 }
 
+/** Insieme l'arma uscita è di chi ha aperto la cassa (l'ha pagata lui); da solo sempre tua. */
+export const cassaMia = (s: TState): boolean => s.eroi.length === 1 || s.cassa.chi === undefined || s.cassa.chi === s.chi;
+
 /** AZIONE vicino alla cassa: la apre (se hai i punti) o prende l'arma uscita. Ritorna l'arma presa (da dare all'eroe), o null. */
 export function usaCassa(s: TState): string | null {
   const c = s.cassa, k = TEMPLARI.cassa;
@@ -38,7 +41,7 @@ export function usaCassa(s: TState): string | null {
     ev(s, { t: 'cassa', fase: 'gira' });
     return null;
   }
-  if (c.fase === 'pronta' && c.arma) {
+  if (c.fase === 'pronta' && c.arma && cassaMia(s)) {
     const a = c.arma;
     c.fase = 'chiusa'; c.arma = null;
     ev(s, { t: 'cassa', fase: 'presa', arma: a });
@@ -55,7 +58,10 @@ export function stepCassa(s: TState): void {
       c.usi++;
       if (c.usi >= c.max && postiAperti(s).length > 1) {
         c.fase = 'teschio'; c.inizio = s.tick; c.fine = s.tick + secToTicks(3);
+        const prima = s.chi;
+        if (s.eroi.length > 1 && c.chi !== undefined && s.eroi[c.chi]) usa(s, c.chi); // i punti tornano a chi l'ha aperta
         rendi(s, k.prezzo);
+        usa(s, prima);
         ev(s, { t: 'cassa', fase: 'teschio' });
       } else {
         if (s.eroi.length > 1 && c.chi !== undefined && s.eroi[c.chi]) usa(s, c.chi); // l'arma esce tra quelle che non ha chi l'ha aperta

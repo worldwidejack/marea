@@ -8,10 +8,12 @@ import type { DungeonInput } from '../src/dungeon/types.ts';
 import { stepTemplariInsieme, templari } from '../src/templari/templari.ts';
 import type { TState } from '../src/templari/templari.ts';
 import { parseTAzioniInsieme, replayTemplariInsieme } from '../src/templari/replay.ts';
-import { nuovoZombie, quantiOndata, usa } from '../src/templari/stato.ts';
+import { nuovoZombie, pozioneDef, quantiOndata, usa } from '../src/templari/stato.ts';
 import { apriPorta } from '../src/templari/porte.ts';
 import { TEMPLARI } from '@marea/content/templari.ts';
-import { ferisci } from '../src/templari/colpi.ts';
+import { colpisci, ferisci } from '../src/templari/colpi.ts';
+import { applica } from '../src/templari/poteri.ts';
+import { usaCassa } from '../src/templari/cassa.ts';
 import type { TEventoDi } from '../src/templari/types.ts';
 
 const FERMO: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
@@ -123,18 +125,21 @@ test('insieme: più eroi, più zombie a ondata (perEroe a testa in più)', () =>
   assert.equal(s.quanti, quantiOndata(1, 3));
 });
 
-test('insieme: chi compra dalla Strega beve lui, coi punti della squadra; cadendo perde le pozioni', () => {
+test('insieme: chi compra dalla Strega beve lui e paga lui coi suoi punti; cadendo perde le pozioni', () => {
   const s = templari.create({ seed: 9, opzioni: { subito: true, eroi: 2 } });
   for (const k in s.fuochi) s.fuochi[k] = true; // i fuochi accesi (§9b): Strega, Mercante e rogo funzionano
   const p = s.arena.personaggi.find((x) => x.id === 'strega')!, b = s.eroi[1]!;
-  for (const q of s.arena.porte) { s.punti += TEMPLARI.porte[q.id]?.prezzo ?? 0; apriPorta(s, q); }
-  s.punti = 100000;
+  for (const q of s.arena.porte) { s.eroe.punti += TEMPLARI.porte[q.id]?.prezzo ?? 0; apriPorta(s, q); }
+  s.eroi[0]!.punti = 100000; b.punti = 100000;
   const a = { t: 'compra', da: 'strega', cosa: 'pietra' } as const;
   assert.equal(templari.act(s, a, 1), null, 'lontano dalla Strega non si compra');
   b.x = p.x - p.fx * 1.2; b.z = p.z - p.fz * 1.2;
   assert.ok(templari.act(s, a, 1), 'vicino sì');
   assert.deepEqual(b.pozioni, ['pietra']); assert.deepEqual(s.eroi[0]!.pozioni, []);
-  assert.ok(s.punti < 100000, 'i punti sono della squadra');
+  assert.equal(b.punti, 100000 - pozioneDef('pietra').prezzo, 'paga chi compra');
+  assert.equal(s.eroi[0]!.punti, 100000, 'l’altro non paga niente');
+  b.punti = 10;
+  assert.equal(templari.act(s, { t: 'compra', da: 'strega', cosa: 'viandante' }, 1), null, 'senza i suoi punti non compra, anche se il compagno ne ha');
   s.eroi[0]!.vita = s.eroi[0]!.max = 1e6;
   usa(s, 1); ferisci(s, 1e6, b.x + 1, b.z);
   assert.equal(b.giu, true); assert.deepEqual(b.pozioni, [], 'a terra le pozioni finiscono (come in COD)');
@@ -151,4 +156,30 @@ test('insieme: gli acquisti di ciascuno arrivano dalla rete come [tick, eroe, az
   const { frames } = giocaInsieme(13, 2, 600);
   const log = frames.map((f) => packDungeon(f));
   assert.equal(replayTemplariInsieme(13, log, [null, null], 0, [[60, 1, a as never]]).hash, replayTemplariInsieme(13, log, [null, null], 0).hash);
+});
+
+test('insieme: ognuno ha i suoi punti: guadagna chi colpisce, la cassa è di chi la apre, Campane e Muratori a testa', () => {
+  const s = templari.create({ seed: 12, opzioni: { subito: true, eroi: 2 } });
+  const [a, b] = [s.eroi[0]!, s.eroi[1]!];
+  assert.equal(a.punti, TEMPLARI.partenza.punti); assert.equal(b.punti, TEMPLARI.partenza.punti);
+  // b uccide uno zombie: i punti vanno a b
+  usa(s, 1);
+  const z = nuovoZombie(s, 'fante', b.x + 1, b.z, 1); z.st = 'insegue';
+  colpisci(s, z, { danno: 1e6, mischia: true, caricato: false, dirX: 1, dirZ: 0, spinta: 0 });
+  assert.equal(b.punti, TEMPLARI.partenza.punti + TEMPLARI.punti.mischia, 'a chi uccide');
+  assert.equal(a.punti, TEMPLARI.partenza.punti, 'non a chi guarda');
+  // Campane a martello prese da a: +400 a testa
+  usa(s, 0); const pa = a.punti, pb = b.punti;
+  applica(s, 'campane');
+  assert.equal(a.punti, pa + TEMPLARI.poteri.campane); assert.equal(b.punti, pb + TEMPLARI.poteri.campane);
+  assert.equal(s.chi, 0, 'dopo i punti a testa l’eroe di turno è lo stesso');
+  // la cassa: la apre a, l'arma la può prendere solo lui
+  const c = s.cassa, pc = s.arena.casse[c.posto]!;
+  a.punti = TEMPLARI.cassa.prezzo; b.punti = 0;
+  a.x = b.x = pc.x - pc.fx * 0.9; a.z = b.z = pc.z - pc.fz * 0.9;
+  usa(s, 0); usaCassa(s);
+  assert.equal(c.fase, 'gira'); assert.equal(a.punti, 0, 'paga chi apre');
+  c.fase = 'pronta'; c.arma = 'ascia';
+  usa(s, 1); assert.equal(usaCassa(s), null, 'l’arma della cassa di un altro non si prende');
+  usa(s, 0); assert.equal(usaCassa(s), 'ascia', 'chi l’ha aperta sì');
 });
