@@ -172,7 +172,7 @@ export async function registraOffline(modo: MusicaModo, secs: number): Promise<{
   if (tpl) mu.tensione(0.8);
   for (let t = 0; t < secs; t += 0.05) amb.aggiorna({ terra: dng ? 1 : gara ? 0.1 : 0.4, inBarca: gara, velocita: gara ? 0.8 : 0, notte, dungeon: dng, raffica: gara && t > 4 && t < 6 ? 0.6 : 0 }, t);
   // scaletta: passi, barca, monete in fila, martello, medaglia, pannelli, boa, emote
-  const at = (t: number, id: SuonoId, k = 0) => { if (t < secs) SUONI[id](mt, t, k); };
+  const at = (t: number, id: SuonoId, k = 0) => { if (t < secs && modo !== 'inno') SUONI[id](mt, t, k); }; // l'inno: solo la musica
   const passo: SuonoId = dng ? 'passo_dungeon' : notte ? 'passo_erba' : 'passo_sabbia';
   for (let i = 0; i < 8; i++) at(0.3 + i * 0.33, passo);
   at(3, 'barca_su'); for (let i = 0; i < 6; i++) at(4 + i * 0.06, 'moneta', i / 7);

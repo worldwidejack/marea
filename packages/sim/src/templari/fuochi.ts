@@ -7,6 +7,7 @@ import { TEMPLARI } from '@marea/content/templari.ts';
 import type { TState } from './stato.ts';
 import { ev, secToTicks } from './stato.ts';
 import { daiTutti, lasciaPotere } from './colpi.ts';
+import { trovaTeschio } from './segreti.ts';
 
 const d2 = (ax: number, az: number, bx: number, bz: number): number => (ax - bx) * (ax - bx) + (az - bz) * (az - bz);
 
@@ -50,16 +51,18 @@ export function prendiPezzo(s: TState, id: string): void {
   ev(s, { t: 'pezzo', id, presi: pezziPresi(s), tutti: Object.keys(s.pezzi).length });
 }
 
-/** AZIONE tenuto su un lavoro (accendere il fuoco `fuoco:<id>`, montare la campana `monta`): conta i tick, a tempo pieno lo fa. `cosa` ''
- *  = niente sotto le mani (si ricomincia da zero). */
+/** Secondi di AZIONE tenuto per un lavoro. */
+const durata = (cosa: string): number => (cosa === 'monta' ? TEMPLARI.campana.monta : cosa.startsWith('teschio:') ? TEMPLARI.teschi.tieni : TEMPLARI.fuochi.accendi);
+/** AZIONE tenuto su un lavoro (accendere il fuoco `fuoco:<id>`, montare la campana `monta`, prendere un teschio dei segreti
+ *  `teschio:<id>`, §9c): conta i tick, a tempo pieno lo fa. `cosa` '' = niente sotto le mani (si ricomincia da zero). */
 export function lavora(s: TState, cosa: string): void {
   const h = s.eroe;
   if (!cosa) { h.lavoro = ''; h.lavoroT = 0; return; }
   if (h.lavoro !== cosa) { h.lavoro = cosa; h.lavoroT = 0; ev(s, { t: 'lavoro', cosa }); }
   h.lavoroT++;
-  const serve = secToTicks(cosa === 'monta' ? TEMPLARI.campana.monta : TEMPLARI.fuochi.accendi);
-  if (h.lavoroT < serve) return;
+  if (h.lavoroT < secToTicks(durata(cosa))) return;
   h.lavoro = ''; h.lavoroT = 0;
+  if (cosa.startsWith('teschio:')) { trovaTeschio(s, cosa.slice('teschio:'.length)); return; }
   if (cosa === 'monta') {
     if (s.campana || !pezziTutti(s)) return;
     s.campana = true;
@@ -81,5 +84,5 @@ export function lavora(s: TState, cosa: string): void {
 export function lavoroK(s: TState): number {
   const h = s.eroe;
   if (!h.lavoro) return 0;
-  return Math.min(1, h.lavoroT / secToTicks(h.lavoro === 'monta' ? TEMPLARI.campana.monta : TEMPLARI.fuochi.accendi));
+  return Math.min(1, h.lavoroT / secToTicks(durata(h.lavoro)));
 }

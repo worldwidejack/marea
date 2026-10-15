@@ -9,6 +9,7 @@ import { lineOfSight } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
 import { classeDi, ev, secToTicks, usa, vitaOndata } from './stato.ts';
 import { colpisci } from './colpi.ts';
+import { colpoMuro } from './segreti.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 const vivi = (s: TState): Zombie[] => s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge');
@@ -48,6 +49,7 @@ export function usaSuper(s: TState, dir: readonly [number, number] | null): bool
   h.superK = 0;
   if (d.id === 'giudizio') {
     ev(s, { t: 'super', tipo: d.id, x: r2(h.x), z: r2(h.z), da: { x: r2(h.x), z: r2(h.z) } });
+    colpoMuro(s, h.x, h.z, d.raggio, true);
     for (const z of vivi(s)) {
       const dx = z.x - h.x, dz = z.z - h.z, dd = Math.sqrt(dx * dx + dz * dz);
       if (dd > d.raggio + z.def.raggio) continue;
@@ -81,6 +83,7 @@ export function stepSuper(s: TState): void {
   for (const c of s.cannonate) {
     if (c.fine > s.tick) { resto.push(c); continue; }
     ev(s, { t: 'cannonata', x: r2(c.x), z: r2(c.z), r: c.r });
+    colpoMuro(s, c.x, c.z, c.r, true);
     if (c.chi !== undefined && c.chi !== s.chi && s.eroi[c.chi]) usa(s, c.chi); // i punti a chi ha chiamato la Bordata
     for (const z of vivi(s)) {
       const dx = z.x - c.x, dz = z.z - c.z, dd = Math.sqrt(dx * dx + dz * dz);

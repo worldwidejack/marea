@@ -4,7 +4,7 @@
 // zombie in scena; AZIONE compare vicino a una finestra rotta; la pausa ferma la partita, ESCI → scheda dell'esito («senza link niente
 // premio») → di nuovo nel mondo. PC 1280×720: Esc apre la pausa, F posa la reliquia sull'altare (ondate dall'altare, non subito), la mira
 // A MANO resta salvata. Screenshot in tests/out/shots/m4_templari_*.png.
-export const timeout = 240000;
+export const timeout = 330000;
 
 export default async function (ctx) {
   const { assert } = ctx;
@@ -394,6 +394,92 @@ export default async function (ctx) {
     await prova({ dove: { x: 57.5, z: 33.5 } });
     await pc.waitForTimeout(600);
     await ctx.shot(pc, 'pc_campana_montata');
+    ctx.noErrors(d, 'PC');
+  });
+  await ctx.test('PC: i segreti — il muro crepato regge al colpo normale e crolla al colpo caricato; giù nella cripta (buia, nel budget)', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    await pc.evaluate(() => window.__game.test.setZoom(0.75));
+    await prova({ pulisci: true, ferma: true, vita: 1e6, armi: ['spada'], alMuro: true });
+    await pc.waitForTimeout(700);
+    await ctx.shot(pc, 'pc_segreti_crepa');
+    await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+    await pc.keyboard.down('Space'); await pc.waitForTimeout(120); await pc.keyboard.up('Space');
+    await ctx.waitState(pc, (st) => st.templari.act === 'swing', 8000);
+    await ctx.waitState(pc, (st) => st.templari.act === 'idle', 8000); // a colpo finito (premere durante un fendente non conta)
+    assert((await ctx.getState(pc)).templari.segreti.muro === false, 'il muro crolla con un colpo normale');
+    // il colpo caricato: Spazio tenuto fino alla carica piena (contano i tick della partita, non i secondi: in prova il gioco va a pochi fps)
+    await prova({ alMuro: true });
+    await pc.keyboard.down('Space');
+    await ctx.waitState(pc, (st) => st.templari.act === 'carica', 8000);
+    const t0 = (await ctx.getState(pc)).templari.tick;
+    await ctx.waitState(pc, (st, t0) => st.templari.tick >= t0 + 70, 20000, t0);
+    await pc.keyboard.up('Space');
+    await ctx.waitState(pc, (st) => st.templari.segreti.muro === true && st.templari.segreti.disegno?.rotto === true, 8000)
+      .catch(async () => { const t = (await ctx.getState(pc)).templari; throw new Error(`il colpo caricato non rompe il muro: ${JSON.stringify({ seg: t.segreti, eroe: t.eroe, act: t.act, faccia: t.faccia })}`); });
+    await prova({ dove: { x: 43.5, z: 36.5 } });
+    await pc.waitForTimeout(700);
+    await ctx.shot(pc, 'pc_segreti_muro_rotto');
+    await prova({ cripta: true, anime: 3 });
+    await ctx.waitState(pc, (st) => st.templari.segreti.dentro === true, 5000);
+    await pc.waitForTimeout(900);
+    await ctx.shot(pc, 'pc_cripta');
+    const perf = await ctx.getPerf(pc);
+    assert(perf.drawCalls <= 100, `draw call nella cripta ${perf.drawCalls} > 100`);
+    ctx.noErrors(d, 'PC');
+  });
+  await ctx.test('PC: le anime nella cripta liberano la Lancia di Longino, F la prende dall’altare', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    await prova({ pulisci: true, ferma: true, ondata: 1, anime: 4, altareCripta: true });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'lancia', 5000);
+    await pc.waitForFunction(() => [...document.querySelectorAll('#mzTplAzione')].some((e) => /4\/5/.test(e.textContent ?? '')), null, { timeout: 5000 })
+      .catch(async () => { throw new Error('l’altare non conta le anime: ' + await pc.textContent('#mzTplAzione')); });
+    await ctx.shot(pc, 'pc_altare_sigillato');
+    // l'ultima anima: uno zombie davanti, nella cripta, colpito finché non muore
+    await prova({ cripta: true, zombie: 'fante', dist: 1.5 });
+    for (let k = 0; k < 8 && (await ctx.getState(pc)).templari.segreti.anime < 5; k++) {
+      await ctx.waitState(pc, (st) => st.templari.act === 'idle', 8000);
+      await pc.keyboard.down('Space'); await pc.waitForTimeout(120); await pc.keyboard.up('Space');
+      await ctx.waitState(pc, (st) => st.templari.act !== 'idle' || st.templari.segreti.anime >= 5, 8000);
+    }
+    await ctx.waitState(pc, (st) => st.templari.segreti.anime >= 5 && st.templari.segreti.disegno?.libera === true, 5000);
+    await prova({ altareCripta: true });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'lancia', 5000);
+    await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+    await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
+    await ctx.waitState(pc, (st) => st.templari.eroe.arma === 'lancia', 5000);
+    await pc.waitForTimeout(700);
+    await ctx.shot(pc, 'pc_lancia');
+    ctx.noErrors(d, 'PC');
+  });
+  await ctx.test('PC: le campanelle nell’ordine scritto in taverna danno una pozione; i tre teschi fanno partire la canzone', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    await prova({ pulisci: true, ferma: true, indizio: true });
+    await pc.waitForTimeout(900);
+    await ctx.shot(pc, 'pc_indizio');
+    const st0 = (await ctx.getState(pc)).templari, ordine = st0.segreti.ordine, poz0 = st0.eroe.pozioni.length;
+    assert(ordine.length === 4 && st0.segreti.disegno.indizio === ordine.join(), `indizio: ${JSON.stringify(st0.segreti)}`);
+    for (const [k, id] of ordine.entries()) {
+      await prova({ campanella: id });
+      await ctx.waitState(pc, (st) => st.templari.prompt === 'campanella', 5000);
+      if (k === 0) { await pc.waitForTimeout(500); await ctx.shot(pc, 'pc_campanella'); }
+      await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+      await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
+      await ctx.waitState(pc, (st, n) => st.templari.segreti.giuste === n || st.templari.segreti.campane, 5000, k + 1);
+    }
+    await ctx.waitState(pc, (st, n) => st.templari.segreti.campane === true && st.templari.eroe.pozioni.length === n + 1, 5000, poz0);
+    for (const [k, t] of st0.segreti.teschi.entries()) {
+      await prova({ pulisci: true, teschio: t.id });
+      await ctx.waitState(pc, (st) => st.templari.prompt === 'teschio', 5000);
+      if (k === 0) { await pc.waitForTimeout(500); await ctx.shot(pc, 'pc_teschio'); }
+      await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+      await pc.keyboard.down('KeyF');
+      await ctx.waitState(pc, (st, id) => st.templari.segreti.teschi.find((x) => x.id === id)?.preso, 6000, t.id);
+      await pc.keyboard.up('KeyF');
+    }
+    await ctx.waitState(pc, (st) => st.templari.segreti.inno === true, 5000);
+    await pc.waitForTimeout(400);
+    await ctx.shot(pc, 'pc_canzone');
+    await pc.evaluate(() => window.__game.test.setZoom(1.05));
     ctx.noErrors(d, 'PC');
   });
   await ctx.test('PC: ambientazione — rotonda col tamburo e le croci, cimitero coi cipressi, borgo, spiaggia col mare e la nave', async () => {

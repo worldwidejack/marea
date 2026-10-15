@@ -31,6 +31,9 @@ export type TArmaDef = {
   trapassa?: number;
   /** Lancio: raggio dell'esplosione (m) e fiamme che restano a terra (danno al secondo, secondi, raggio). Mischia: `scia` = fiamme dove passa la lama. */
   area?: number; fuoco?: TFiamma; scia?: TFiamma;
+  /** Mischia a punta (la Lancia di Longino, §9c): colpisce in un affondo stretto tutti quelli in fila fino alla portata; caricata ti porta
+   *  avanti di `affondo` m. `cura` = vita che ti ridà ogni zombie che uccide. */
+  affondo?: number; cura?: number;
   /** Sul muro (wall buy): prezzo dell'arma e delle munizioni (assente = solo dalla cassa). */
   prezzo?: number; prezzoMunizioni?: number;
   /** Peso nella cassa del tesoro (assente = mai dalla cassa); `miracolosa` = rara, la cassa la annuncia. */
@@ -178,6 +181,13 @@ export type TemplariCfg = {
   /** La campana da montare: i pezzi (id → nome), ognuno in uno dei suoi posti della mappa scelto dalla partita; si prendono con AZIONE
    *  entro `raggio` m; alla leva della campana, con tutti i pezzi, AZIONE tenuto `monta` s la monta (e la trappola funziona). */
   campana: { pezzi: Record<string, string>; raggio: number; monta: number };
+  /** Segreti (docs/TEMPLARI.md §9c). La cripta: `anime` = zombie da uccidere dentro per liberare l'arma `arma` sull'altare (AZIONE entro
+   *  `raggio` m); `polvere` = secondi tra due sbuffi del muro crepato colpito piano (l'indizio). */
+  cripta: { anime: number; raggio: number; arma: string; polvere: number };
+  /** Le campanelle da suonare nell'ordine scritto sul muro (id → nome), AZIONE entro `raggio` m. */
+  campanelle: { raggio: number; lista: Record<string, string> };
+  /** I teschi della canzone segreta: AZIONE tenuto `tieni` s entro `raggio` m. */
+  teschi: { tieni: number; raggio: number };
   /** Gli eroi del menù d'ingresso (il primo è quello di serie). */
   eroi: TEroeDef[];
   poteri: { probabilita: number; maxOndata: number; aTerra: number; lampeggia: number; durata: number; raggio: number; campane: number; muratori: number; tipi: TPotere[] };
@@ -192,7 +202,9 @@ export type TPotere = 'faretra' | 'ira' | 'campane' | 'decima' | 'muratori';
 
 /** Legenda della mappa dell'arena oltre ai caratteri fissi (tools/templari_mappa.mjs): porte, armi sul muro, comparse delle zone (`comparsa`
  *  = zona), celle delle trappole e loro leve. */
-export type TLegenda = { porta?: string; muro?: string; comparsa?: string; trappola?: string; leva?: string; personaggio?: 'mercante' | 'strega'; fuoco?: string; pezzo?: string };
+export type TLegenda = { porta?: string; muro?: string; comparsa?: string; trappola?: string; leva?: string; personaggio?: 'mercante' | 'strega'; fuoco?: string; pezzo?: string;
+  /** Segreti (§9c): il muro crepato, la scala e l'altare della cripta; una campanella (id); il muro con l'ordine delle campane; un teschio (id). */
+  cripta?: 'muro' | 'scala' | 'altare'; campanella?: string; indizio?: string; teschio?: string };
 /** Un fuoco da accendere (docs/TEMPLARI.md §9b): il nome e cosa accende (`rogo` = la trappola del rogo funziona, `strega` = la Strega
  *  vende, `mercante` = la nave del Mercante attracca). */
 export type TFuocoDef = { nome: string; apre: 'rogo' | 'strega' | 'mercante'; dice: string };

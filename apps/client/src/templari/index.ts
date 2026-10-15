@@ -35,7 +35,7 @@ import { createHeroActor } from '../rpg/dungeon_hero.ts';
 import { createMouse } from '../rpg/dungeon_mouse.ts';
 import type { Mouse } from '../rpg/dungeon_mouse.ts';
 import type { ArmaInMano, HeroActor } from '../rpg/dungeon_hero.ts';
-import { suona, tensione } from '../audio/ponte.ts';
+import { INNO_SECONDI, musica, suona, tensione } from '../audio/ponte.ts';
 import type { SuonoId } from '../audio/ponte.ts';
 import { SUOLO } from '@marea/sim/templari/mappa.ts';
 import { PAL } from '../ui/style.ts';
@@ -62,6 +62,9 @@ import { offerteMercante, offerteStrega } from '@marea/sim/templari/bottega.ts';
 import { createBanco } from './banco.ts';
 import { createFuochi3d } from './fuochi3d.ts';
 import type { Fuochi3d } from './fuochi3d.ts';
+import { createSegreti3d } from './segreti3d.ts';
+import type { Segreti3d } from './segreti3d.ts';
+import { rompiMuro } from '@marea/sim/templari/segreti.ts';
 import { postoPezzo } from '@marea/sim/templari/fuochi.ts';
 import type { Banco, BancoAzioni } from './banco.ts';
 import type { TemplariCtx, TemplariFine, TemplariRete, TemplariRun } from './types.ts';
@@ -115,7 +118,7 @@ const ICONA_SUPER: Record<string, string> = { crociato: '⚔', bucaniera: '💣'
 const SUPER_TESTO: Record<string, [string, string]> = { giudizio: ['GIUDIZIO', 'Deus vult!'], bordata: ['BORDATA', 'Fuoco dalla nave!'], pioggia: ['PIOGGIA DI FRECCE', 'Il cielo si oscura'] };
 
 /** Nomi corti delle armi per il banco di prova. */
-const CORTO: Record<string, string> = { spada: 'Spada', pistola: 'Pistola', pistola_doppia: 'Pistola doppia', spada_molay: 'Spada di Molay', mazza: 'Mazza', ascia: 'Ascia' };
+const CORTO: Record<string, string> = { lancia: 'Lancia', spada: 'Spada', pistola: 'Pistola', pistola_doppia: 'Pistola doppia', spada_molay: 'Spada di Molay', mazza: 'Mazza', ascia: 'Ascia' };
 
 /** `classe`: l'eroe del menù d'ingresso (da solo); insieme quello di ciascuno sta nei membri della sala. */
 export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boolean; banco?: boolean; rete?: TemplariRete; classe?: TClasse | null }): TemplariRun {
@@ -133,6 +136,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   let mandato = '', inTurno = 0, attesa = true, rotto = false, ioGiu = false, ricollega = false, giri = 0;
   const firme: Record<number, number> = {};
   let banco: Banco | null = null, pers: Personaggi | null = null, bott: BottegaUi | null = null, fuo: Fuochi3d | null = null, isolaOra = '';
+  /** I segreti (§9c): la resa, il muro già rotto in scena, il dono delle campane (la scritta della pozione lo dice), la canzone che suona. */
+  let seg: Segreti3d | null = null, muroOra = false, dono = false, inno: ReturnType<typeof setTimeout> | null = null, innoPartito = false;
   /** AZIONE premuto in questo frame (fronte): vicino al Mercante o alla Strega apre il loro menù. */
   let azionePrima = false, azioneGiu = false;
   /** Banco di prova: immortale, ondate ferme, zombie fermi (velocità di prima per id), rallentatore (un tick ogni 4 frame). */
@@ -143,7 +148,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
 
   const pulisci = () => {
     fase = 'finita'; templariLink.state = null; templariLink.prova = null; tensione(0);
-    banco?.dispose(); bott?.dispose(); pers?.dispose(); fuo?.dispose(); mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
+    if (inno) { clearTimeout(inno); inno = null; musica.set('auto'); } // la canzone segreta finisce con la partita
+    seg?.dispose(); banco?.dispose(); bott?.dispose(); pers?.dispose(); fuo?.dispose(); mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
     for (const a of amici) a.actor?.dispose();
     ctx.renderer.setScene(null);
   };
@@ -187,6 +193,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       hud = createTplHud(ctx.root, nomeArma, (id) => armaDef(id).tipo !== 'mischia');
       pers = createPersonaggi(sc.scene, s.arena);
       fuo = createFuochi3d(sc.scene, s.arena);
+      seg = createSegreti3d(sc.scene, s.arena);
       bott = createBottegaUi(ctx.root, compraDalMenu);
       ctl = createControlli({ root: ctx.root, canvas: ctx.canvas, yaw: () => ctx.renderer.diorama.yaw, onEsci: esci, insieme: !!rete });
       for (const a of amici) {
@@ -252,7 +259,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'scudoRotto': suona('colpo_critico'); hud.grande('', PAL.rosso, 'Lo scudo si è spaccato', 1600); break;
       case 'compra': suona('moneta'); break;
       case 'potenziata': suona('medaglia_oro'); suona('tpl_potere_preso', 1); hud.grande('✦', PAL.giallo, `Il Mercante ha potenziato l’arma: ${e.nome}`, 2600); break;
-      case 'pozione': { const [nome, colore] = POZIONI[e.id] ?? ['', PAL.giallo]; suona('pozione'); hud.grande(nome, colore, TEMPLARI.strega.pozioni.find((p) => p.id === e.id)?.descr ?? '', 2400); break; }
+      case 'pozione': { const [nome, colore] = POZIONI[e.id] ?? ['', PAL.giallo]; suona('pozione'); hud.grande(nome, colore, (dono ? 'Dono delle campane · ' : '') + (TEMPLARI.strega.pozioni.find((p) => p.id === e.id)?.descr ?? ''), dono ? 3600 : 2400); dono = false; break; }
       case 'risorto': suona('altare'); suona('tpl_campana', 1); hud.grande('TI RIALZI', PAL.rosaNeon, 'L’Elisir del risorto ti rimette in piedi (le pozioni sono finite)', 2800); break;
       case 'porta': sc?.setPorte(s.porte); suona('tpl_porta'); hud.grande('', PAL.giallo, `Si apre: ${TEMPLARI.porte[e.id]?.nome ?? e.id}`, 2000); break;
       case 'trappola':
@@ -278,7 +285,38 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       case 'superPronto': suona('medaglia_oro'); hud.grande('SUPER PRONTO', PAL.giallo, 'Tocca SUPER (o R) quando sono tanti', 2200); break;
       case 'super': { const [nome, sub] = SUPER_TESTO[e.tipo] ?? ['SUPER', '']; suona(e.tipo === 'pioggia' ? 'tpl_freccia' : e.tipo === 'bordata' ? 'tpl_moschetto' : 'colpo_critico', 1); if (e.tipo === 'giudizio') suona('tuono', 0.8); hud.grande(nome, PAL.giallo, sub, 1800); break; }
       case 'cannonata': suona('tuono', vicino(e.x, e.z)); break;
-      case 'lavoro': suona(e.cosa === 'monta' ? 'martello' : 'sfrigola', 0.6); break;
+      case 'lavoro': suona(e.cosa === 'monta' ? 'martello' : e.cosa.startsWith('teschio:') ? 'goccia' : 'sfrigola', 0.6); break;
+      // i segreti (§9c)
+      case 'cripta':
+        if (e.fase === 'polvere') { suona('colpo_dato'); suona('schivato'); hud.grande('', PAL.pietraChiara, 'La pietra suona vuota… ci vuole un colpo più forte', 2000); }
+        else if (e.fase === 'muro') { suona('tpl_crollo'); hud.grande('IL MURO CROLLA', PAL.pietraChiara, 'Dietro, una scala scende nel buio', 3200); }
+        else if (e.fase === 'libera') { suona('altare'); suona('medaglia_oro'); hud.grande('LA LANCIA DI LONGINO', PAL.giallo, 'Le anime hanno spezzato le catene: prendila dall’altare', 3400); }
+        else if (rete && e.e !== undefined && e.e !== io) hud.grande('', PAL.giallo, `${nomeDi(e.e)} ha preso la Lancia di Longino`, 2200);
+        else { suona('raccolto'); hud.grande('✦', PAL.giallo, 'Lancia di Longino: trapassa chi è in fila, ogni uccisione ti cura', 3000); }
+        break;
+      case 'scala':
+        if (e.id !== undefined) break; // uno zombie: zombi.ts lo mette subito di là
+        if (rete && e.e !== undefined && e.e !== io) { amici.find((a) => a.i === e.e)?.actor?.avatar.teleport(e.x, e.z); break; }
+        hero.avatar.teleport(e.x, e.z); ctx.renderer.diorama.follow(e.x, 0.9, e.z); ctx.renderer.diorama.snap?.();
+        suona('passo_pietra'); suona('tpl_porta', 0.3);
+        hud.grande('', e.giu ? PAL.viola : PAL.sabbiaChiara, e.giu ? 'La cripta dei Templari' : 'Di nuovo in chiesa', 1800);
+        break;
+      case 'anima': suona('tpl_anima', e.n / e.tutte); hud.grande('', PAL.acquaBassa, `Un’anima all’altare: ${e.n}/${e.tutte}`, 1400); break;
+      case 'campanella': {
+        const c = s.arena.campanelle.find((x) => x.id === e.id), k = Math.max(0, s.arena.campanelle.findIndex((x) => x.id === e.id)) / Math.max(1, s.arena.campanelle.length - 1);
+        suona('tpl_campanella', k);
+        if (!e.giusta) { suona('tpl_stona', c ? vicino(c.x, c.z) : 1); hud.grande('', PAL.rosso, 'Stona: si ricomincia dalla prima', 1800); }
+        else if (e.n < e.tutte) hud.grande('', PAL.giallo, `🔔 ${e.n}/${e.tutte}`, 1200);
+        break;
+      }
+      case 'campaneGiuste': dono = true; suona('medaglia_oro'); suona('tpl_campana', 0.6); hud.grande('LE CAMPANE', PAL.giallo, 'Il suono giusto: una pozione in dono a ognuno', 3000); break;
+      case 'teschio': suona('tpl_teschio'); hud.grande('☠', PAL.pietraChiara, e.n < e.tutti ? `${e.n}/${e.tutti}` : 'Tutti e tre…', 2200); break;
+      case 'canzone':
+        // la canzone segreta: l'inno dei crociati (audio/inno.ts), poi la musica di prima
+        innoPartito = true; musica.set('inno'); hud.grande('♫', PAL.giallo, 'Inno dei crociati', 3600);
+        if (inno) clearTimeout(inno);
+        inno = setTimeout(() => { inno = null; musica.set('auto'); }, INNO_SECONDI * 1000);
+        break;
       case 'fuoco': { const f = TEMPLARI.fuochi.lista[e.id]; suona('tpl_rogo'); suona('medaglia_bronzo'); hud.grande(f?.nome.toUpperCase() ?? 'FUOCO', PAL.arancio, f?.dice ?? '', 2800); break; }
       case 'fuochiTutti': suona('medaglia_oro'); suona('tpl_campana', 1); hud.grande('L’ISOLA BRUCIA', PAL.giallo, `Tutti i fuochi accesi: +${TEMPLARI.fuochi.tutti} punti e un dono`, 3200); break;
       case 'pezzo': suona('raccolto'); hud.grande(`${e.presi}/${e.tutti}`, PAL.giallo, e.presi < e.tutti ? `${TEMPLARI.campana.pezzi[e.id] ?? e.id} della campana: ne mancano ${e.tutti - e.presi}` : 'Tutti i pezzi: monta la campana alla sua leva', 2600); break;
@@ -369,6 +407,9 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       else if (!bk.fermi && z.vel === 0 && bk.vel.has(z.id)) { z.vel = bk.vel.get(z.id)!; bk.vel.delete(z.id); }
     }
   }
+  /** Banco e prove: tutte le porte aperte (coi punti che servono) e l'eroe in (x, z), girato verso (fx, fz). */
+  function tutteAperte(): void { for (const p of s.arena.porte) if (!s.porte[p.id]) { s.eroe.punti += TEMPLARI.porte[p.id]?.prezzo ?? 0; apriPorta(s, p); } sc?.setPorte(s.porte); }
+  function vai(x: number, z: number, fx = 0, fz = 0): void { s.eroe.x = x; s.eroe.z = z; if (fx || fz) { s.eroe.fx = fx; s.eroe.fz = fz; } hero?.avatar.teleport(x, z); }
   function bancoAzioni(): BancoAzioni {
     const h = s.eroe;
     return {
@@ -398,6 +439,17 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
           ['Accendi i fuochi', () => { for (const k in s.fuochi) s.fuochi[k] = true; }],
           ['Pezzi della campana', () => { for (const k in s.pezzi) s.pezzi[k]!.preso = true; }],
           ['Vai a un pezzo', () => { const id = Object.keys(s.pezzi).find((k) => !s.pezzi[k]!.preso); const q = id ? postoPezzo(s, id) : null; if (q) { for (const p of s.arena.porte) if (!s.porte[p.id]) { s.eroe.punti += TEMPLARI.porte[p.id]?.prezzo ?? 0; apriPorta(s, p); } sc?.setPorte(s.porte); h.x = q.x; h.z = q.z + 1; } }],
+        ] },
+        // i segreti (§9c): rompere il muro, scendere, le anime, l'altare; l'indizio e le campanelle; i teschi, la canzone
+        { titolo: 'Segreti', voci: [
+          ['Rompi il muro', () => rompiMuro(s)],
+          ['Nella cripta', () => { const c = s.arena.cripta; if (!c) return; rompiMuro(s); vai(c.giu.x, c.giu.z, c.giu.fx, c.giu.fz); }],
+          ['Anime 4/5', () => { rompiMuro(s); s.segreti.anime = Math.max(s.segreti.anime, TEMPLARI.cripta.anime - 1); }],
+          ['All’altare', () => { const c = s.arena.cripta; if (!c) return; rompiMuro(s); vai(c.altare.x + 1.3, c.altare.z, -1, 0); }],
+          ['Indizio', () => { const q = s.arena.indizio; if (!q) return; tutteAperte(); vai(q.x + q.nx * 1.5, q.z + q.nz * 1.5, -q.nx, -q.nz); }],
+          ['Prossima campanella', () => { const c = s.arena.campanelle.find((x) => x.id === s.segreti.ordine[s.segreti.giuste]); if (!c) return; tutteAperte(); vai(c.x + 1, c.z + 0.2, -1, 0); }],
+          ['Prossimo teschio', () => { const t = s.arena.teschi.find((x) => !s.segreti.teschi[x.id]); if (!t) return; tutteAperte(); vai(t.x, t.z + 0.4); }],
+          ['Canzone', () => { for (const k in s.segreti.teschi) s.segreti.teschi[k] = true; evento({ t: 'canzone' }); }],
         ] },
         { titolo: 'Super', voci: [['Carica pieno', () => { if (h.classe) { h.superK = 1; hud?.grande('SUPER PRONTO', PAL.giallo, 'Dal banco', 1200); } }]] },
         { titolo: 'Vai da', voci: (['mercante', 'strega'] as const).map((id): [string, () => void] => [id === 'mercante' ? 'Mercante' : 'Strega', () => {
@@ -492,7 +544,10 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     const chi = view.prompt?.cosa === 'mercante' || view.prompt?.cosa === 'strega' ? view.prompt.cosa : null;
     if (azioneGiu && chi && view.prompt?.puoi && bott?.aperta !== chi) { bott?.apri(chi); suona('apri'); }
     azioneGiu = false;
-    hero!.tick(view.posa); zombi!.tick(view); fx!.tick(view); fuo?.tick(view);
+    hero!.tick(view.posa); zombi!.tick(view); fx!.tick(view); fuo?.tick(view); seg?.tick(view);
+    // i segreti (§9c): il muro rotto sparisce dalla scena, nella cripta è buio
+    if (view.segreti.muro !== muroOra) { muroOra = view.segreti.muro; sc?.setMuroRotto(muroOra); }
+    sc?.setCripta(view.segreti.dentro);
     // l'isola (§9b): Strega sveglia e nave attraccata coi loro fuochi, la campana montata
     const io2 = view.fuochi.map((f) => +f.acceso).join('') + +view.campana;
     if (io2 !== isolaOra) {
@@ -529,7 +584,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     // Mercante e Strega: si muovono, e il loro menù resta aperto finché sei lì
     const chi = fase === 'gioca' && (view.prompt?.cosa === 'mercante' || view.prompt?.cosa === 'strega') ? view.prompt.cosa : null;
     pers?.update(t, chi);
-    fuo?.update(t);
+    fuo?.update(t); seg?.update(t, dt);
     if (bott?.aperta) {
       // le offerte e i punti sono i tuoi (insieme dopo un tick l'eroe di turno può essere un altro)
       if (bott.aperta !== chi) bott.chiudi();
@@ -561,6 +616,16 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (typeof p['fuoco'] === 'string') { const f = s.arena.fuochi.find((x) => x.id === p['fuoco']); if (f) { const g = s.gr.eroe, cx = Math.floor(f.x), cz = Math.floor(f.z), d = [[0, -1], [0, 1], [-1, 0], [1, 0]].find(([dx, dz]) => !g.solid[(cz + dz!) * g.w + cx + dx!]) ?? [0, -1]; s.eroe.x = cx + d[0]! + 0.5; s.eroe.z = cz + d[1]! + 0.5; } }
     if (typeof p['ondata'] === 'number') s.ondata = p['ondata']; // la vita degli zombie che escono adesso (le prove di mira la vogliono bassa)
     if (typeof p['potere'] === 'string') s.drops.push({ id: s.nextId++, tipo: p['potere'] as 'ira', x: s.eroe.x + s.eroe.fx * 2.5, z: s.eroe.z + s.eroe.fz * 2.5, fine: s.tick + 60 * 25 });
+    // i segreti (§9c): muro rotto, eroe davanti al muro, nella cripta, all'altare, all'indizio, a una campanella, a un teschio; anime raccolte
+    const cr = s.arena.cripta;
+    if (p['muro']) rompiMuro(s);
+    if (p['alMuro'] && cr) vai(cr.su.x, cr.su.z, -cr.su.fx, -cr.su.fz);
+    if (p['cripta'] && cr) { rompiMuro(s); vai(cr.giu.x, cr.giu.z, cr.giu.fx, cr.giu.fz); }
+    if (p['altareCripta'] && cr) { rompiMuro(s); vai(cr.altare.x + 1.3, cr.altare.z, -1, 0); }
+    if (typeof p['anime'] === 'number') s.segreti.anime = p['anime'];
+    if (p['indizio'] && s.arena.indizio) { const q = s.arena.indizio; tutteAperte(); vai(q.x + q.nx * 1.6, q.z + q.nz * 1.6, -q.nx, -q.nz); }
+    if (typeof p['campanella'] === 'string') { const c = s.arena.campanelle.find((x) => x.id === p['campanella']); if (c) { tutteAperte(); vai(c.x + 1, c.z + 0.2, -1, 0); } }
+    if (typeof p['teschio'] === 'string') { const t = s.arena.teschi.find((x) => x.id === p['teschio']); if (t) { tutteAperte(); vai(t.x, t.z + 0.4); } }
     if (typeof p['potereQui'] === 'string') s.drops.push({ id: s.nextId++, tipo: p['potereQui'] as 'ira', x: s.eroe.x, z: s.eroe.z, fine: s.tick + 60 * 25 });
     if (typeof p['trappola'] === 'string') { const i = s.arena.trappole.findIndex((x) => x.id === p['trappola']); const st = s.trappole[i]; if (st) { st.fine = s.tick + 600; st.pronta = st.fine + 600; } }
     if (p['porte'] || p['dove']) sc?.setPorte(s.porte);
@@ -584,8 +649,9 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   const cassaDavanti = () => { const c = s.arena.casse[s.cassa.posto]; return c ? { x: c.x + c.fx, z: c.z + c.fz } : null; };
   templariLink.state = () => ({
     active: fase !== 'finita', fase, sim: view.fase, tick: view.tick, ondata: view.ondata, restano: view.restano, done: view.done, esito: view.esito,
+    segreti: { ...view.segreti, disegno: seg?.stats() ?? null, inno: innoPartito },
     isola: { fuochi: view.fuochi.filter((f) => f.acceso).map((f) => f.id), pezzi: view.pezzi.filter((x) => x.preso).map((x) => x.id), campana: view.campana, disegno: fuo?.stats() ?? null, azioneTenuta: s.eroe.prevD },
-    eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma, classe: view.eroe.classe, super: view.eroe.super, vestito: hero?.avatar.indossaStato()?.corpo ?? null }, zombie: view.zombie.length,
+    eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma, pozioni: view.eroe.pozioni, classe: view.eroe.classe, super: view.eroe.super, vestito: hero?.avatar.indossaStato()?.corpo ?? null }, zombie: view.zombie.length,
     uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: mUltima, act: s.eroe.act, mouse: mouse?.attivo ?? false, faccia: [s.eroe.fx, s.eroe.fz], yaw: ctx.renderer.diorama.yaw, eroeSchermo: schermo(s.eroe.x, s.eroe.z), zombiePos: s.zombie.filter((z) => z.st !== 'morto').slice(0, 6).map((z) => ({ x: z.x, z: z.z, schermo: schermo(z.x, z.z) })),
     scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: TEMPLARI.ondate.insieme,

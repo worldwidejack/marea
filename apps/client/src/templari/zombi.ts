@@ -247,7 +247,9 @@ export function createZombi(scene: THREE.Scene): Zombi {
           z = { id: n.id, rig: rig(), cav: n.tipo === 'cavaliere' ? cavalloRig() : null, px: n.x, pz: n.z, x: n.x, z: n.z, v: n, fase: n.id, flash: 0, mortoT: 0, yaw: Math.atan2(-n.fx, -n.fz), tinta };
           zs.set(n.id, z);
         }
-        z.px = z.x; z.pz = z.z; z.x = n.x; z.z = n.z; z.v = n;
+        // un salto lungo (la scala della cripta, §9c) non si disegna come una corsa: lo zombie è subito di là
+        const salto = (n.x - z.x) * (n.x - z.x) + (n.z - z.z) * (n.z - z.z) > 16;
+        z.px = salto ? n.x : z.x; z.pz = salto ? n.z : z.z; z.x = n.x; z.z = n.z; z.v = n;
       }
       for (const id of [...zs.keys()]) if (!seen.has(id)) zs.delete(id);
     },

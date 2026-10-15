@@ -8,12 +8,13 @@
 // tutti gli eroi in piedi; bombe, palle di fuoco e spinte valgono per chiunque ci sia sotto.
 import { TEMPLARI } from '@marea/content/templari.ts';
 import { DT } from '../constants.ts';
-import { bfs, cellCenter, cellOf, isOpaque, lineOfSight, moveCircle, stepDown } from '../dungeon/map.ts';
+import { cellCenter, cellOf, isOpaque, lineOfSight, moveCircle, stepDown } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
 import { COLPISCE_TICKS, COS_CONO_NEMICO, FLOW_OGNI, MORTO_TICKS, TOLLERANZA, ev, inPiedi, secToTicks, usa } from './stato.ts';
 import { accendi, daiTutti, ferisci } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
 import { attive, comparsaVicina } from './ondate.ts';
+import { colpoMuro, flusso, scalaZombie } from './segreti.ts';
 
 function aggiornaFlow(s: TState): void {
   if (s.tick - s.flowTick < FLOW_OGNI) return;
@@ -23,14 +24,14 @@ function aggiornaFlow(s: TState): void {
     s.flowTick = s.tick;
     if (!celle.length || (celle.length === s.flowCelle.length && celle.every((c, k) => c === s.flowCelle[k]))) return;
     s.flowCelle = celle;
-    bfs(s.gr.percorso, celle, s.flow);
+    flusso(s, celle);
     return;
   }
   const c = cellOf(s.gr.percorso, s.eroe.x, s.eroe.z);
   s.flowTick = s.tick;
   if (c === s.flowCell || c < 0) return;
   s.flowCell = c;
-  bfs(s.gr.percorso, c, s.flow);
+  flusso(s, c);
 }
 
 function setSt(z: Zombie, st: Zombie['st'], dur = 0): void { z.st = st; z.stT = 0; z.stDur = dur; }
@@ -41,6 +42,7 @@ function insegui(s: TState, z: Zombie, v = z.vel): void {
   const dx0 = h.x - z.x, dz0 = h.z - z.z, d0 = Math.sqrt(dx0 * dx0 + dz0 * dz0);
   let tx = h.x, tz = h.z;
   const qui = cellOf(s.gr.percorso, z.x, z.z);
+  if (scalaZombie(s, z, qui)) return; // la scala della cripta (§9c): da un capo all'altro
   if (!(d0 < 3 && lineOfSight(s.gr.percorso, z.x, z.z, h.x, h.z))) {
     const nx = stepDown(s.gr.percorso, s.flow, qui);
     if (nx >= 0 && nx !== qui) {
@@ -243,6 +245,7 @@ function stepTiri(s: TState): void {
       b.x = b.sx + (b.tx - b.sx) * k; b.z = b.sz + (b.tz - b.sz) * k;
       if (k < 1) { keep.push(b); continue; }
       ev(s, { t: 'esplosione', x: Math.round(b.x * 100) / 100, z: Math.round(b.z * 100) / 100, r: b.r });
+      colpoMuro(s, b.x, b.z, b.r, true); // anche le bombe dei cannonieri rompono il muro della cripta
       sotto(s, b.x, b.z, b.r, () => ferisci(s, b.danno, b.x, b.z));
       if (s.done) return;
       continue;

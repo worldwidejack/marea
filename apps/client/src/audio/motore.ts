@@ -10,6 +10,8 @@ export type Tono = {
   a?: number; lp?: number; q?: number; vib?: { f: number; d: number }; bus?: AudioNode; pan?: number;
   /** passa-banda (Hz) al posto del passa-basso: una formante, per le vocali dei versi (Q da `q`, di serie 6) */
   bp?: number;
+  /** tenuto (organo, coro, ottoni dell'inno): resta a `vol` fino a `dur − rel`, poi si spegne in `rel` secondi */
+  rel?: number;
 };
 export type Soffio = { tipo?: BiquadFilterType; f: number; f2?: number; q?: number; t?: number; dur: number; vol: number; a?: number; bus?: AudioNode; pan?: number };
 export type Motore = {
@@ -62,9 +64,10 @@ export function createMotore(ctx: BaseAudioContext): Motore {
     const p = ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); p.connect(bus); return p;
   };
   /** inviluppo: 0 → vol in `a` secondi, poi giù esponenziale fino a `dur` */
-  const inviluppo = (g: GainNode, t: number, a: number, dur: number, vol: number) => {
+  const inviluppo = (g: GainNode, t: number, a: number, dur: number, vol: number, rel?: number) => {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(Math.max(0.0002, vol), t + a);
+    if (rel !== undefined && dur - rel > a + 0.01) g.gain.setValueAtTime(Math.max(0.0002, vol), t + dur - rel);
     g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(a + 0.01, dur));
   };
   const m: Motore = {
@@ -83,7 +86,7 @@ export function createMotore(ctx: BaseAudioContext): Motore {
       let src: AudioNode = osc;
       if (o.bp) { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = o.bp; f.Q.value = o.q ?? 6; osc.connect(f); src = f; }
       else if (o.lp) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; f.Q.value = o.q ?? 0.7; osc.connect(f); src = f; }
-      inviluppo(g, t, a, o.dur, o.vol);
+      inviluppo(g, t, a, o.dur, o.vol, o.rel);
       src.connect(g); g.connect(uscita(o.bus ?? effetti, o.pan));
       osc.start(t); osc.stop(t + o.dur + 0.05);
       osc.onended = () => g.disconnect();

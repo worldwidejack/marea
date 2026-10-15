@@ -98,14 +98,25 @@ export type TEvento =
   | { t: 'fuochiTutti' }
   | { t: 'pezzo'; id: string; presi: number; tutti: number }
   | { t: 'campana' }
-  | { t: 'lavoro'; cosa: string };
+  | { t: 'lavoro'; cosa: string }
+  /** Segreti (§9c). La cripta: il muro crepato colpito piano fa polvere, colpito forte si rompe; l'altare si libera (le anime sono tutte) e
+   *  la Lancia è presa. La scala: uno zombie (`id`) o l'eroe (senza id: `giu` = scende nella cripta) passa da un capo all'altro e arriva in
+   *  (x, z). Un'anima dalla cripta all'altare (n su tutte). Una campanella suonata (giusta o no: si ricomincia), tutte giuste; un teschio
+   *  trovato (n su tutti), la canzone. */
+  | { t: 'cripta'; fase: 'polvere' | 'muro' | 'libera' | 'presa' }
+  | { t: 'scala'; id?: number; giu?: boolean; x: number; z: number }
+  | { t: 'anima'; x: number; z: number; n: number; tutte: number }
+  | { t: 'campanella'; id: string; giusta: boolean; n: number; tutte: number }
+  | { t: 'campaneGiuste' }
+  | { t: 'teschio'; id: string; n: number; tutti: number }
+  | { t: 'canzone' };
 
 /** Un evento della sim; insieme `e` = l'eroe a cui è successo (o che l'ha fatto). */
 export type TEventoDi = TEvento & { e?: number };
 
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
 /** `k` = lavoro in corso (AZIONE tenuto su un fuoco o sulla campana), 0..1. */
-export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola' | 'mercante' | 'strega' | 'fuoco' | 'pezzo' | 'monta'; testo: string; prezzo: number; puoi: boolean; k?: number } | null;
+export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola' | 'mercante' | 'strega' | 'fuoco' | 'pezzo' | 'monta' | 'lancia' | 'campanella' | 'teschio'; testo: string; prezzo: number; puoi: boolean; k?: number } | null;
 
 export type TView = {
   tick: number; fase: TFase;
@@ -143,6 +154,9 @@ export type TView = {
   fuochi: { id: string; x: number; z: number; acceso: boolean }[];
   pezzi: { id: string; x: number; z: number; preso: boolean }[];
   campana: boolean;
+  /** Segreti (§9c): muro della cripta rotto, anime all'altare (su `tutte`), sono io nella cripta (buio); l'ordine delle campanelle di questa
+   *  partita (scritto sul muro), quante giuste di fila, suonate tutte; i teschi (dove sono e se sono trovati). */
+  segreti: { muro: boolean; anime: number; tutte: number; dentro: boolean; ordine: string[]; giuste: number; campane: boolean; teschi: { id: string; x: number; z: number; preso: boolean }[] };
   /** Cannonate della Bordata in volo: dove cadono, raggio, `k` = 0..1 del volo. */
   cannonate: { id: number; x: number; z: number; r: number; k: number }[];
   /** Cose a terra da prendere (lo scudo dello scudato, i power-up), con i secondi che restano. */
