@@ -74,7 +74,7 @@ const FINE_TICK = 200; // scritta finale prima di consegnare (A la salta dopo un
 /** Insieme: tick di turni da avere in coda prima di ripartire dopo un vuoto; oltre RECUPERO si corre, oltre SVELTO due tick per frame. */
 const CUSCINETTO = SQ_TICKS * 2, SVELTO = SQ_TICKS * 4, RECUPERO = SQ_TICKS * 20;
 /** Eventi che riguardano un eroe solo: insieme si mostrano (scritte, suoni, lampi) solo a chi è successo. */
-const PERSONALI = new Set<TEvento['t']>(['fendente', 'mancato', 'ferito', 'vuoto', 'ricarica', 'parato', 'scudo', 'scudoRotto', 'compra', 'potenziata', 'pozione', 'risorto', 'brucia', 'caduto', 'rialzato', 'sparo', 'superPronto']);
+const PERSONALI = new Set<TEvento['t']>(['punti', 'fendente', 'mancato', 'ferito', 'vuoto', 'ricarica', 'parato', 'scudo', 'scudoRotto', 'compra', 'potenziata', 'pozione', 'risorto', 'brucia', 'caduto', 'rialzato', 'sparo', 'superPronto']);
 const BIT = (f: TInput): number => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0);
 /** Un input del turno del server come lo legge la sim. */
 const frameDi = (x: SqInput): TInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
@@ -384,7 +384,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
         z.st = 'insegue'; z.fx = -h.fx; z.fz = -h.fz;
       },
       arma(id) { daiArma(s, id); const i = h.armi.findIndex((x) => x?.id === id); if (i >= 0) { h.cur = i; h.inMano = false; } },
-      punti(n) { s.punti += n; hud?.punti(n); },
+      punti(n) { s.eroe.punti += n; hud?.punti(n); },
       pulisci() { s.zombie = []; s.tiri = []; s.fiamme = []; s.boss = null; },
       immortale(on) { bk.immortale = on; if (!on) h.vita = Math.min(h.vita, h.max); },
       ferme(on) { bk.ferme = on; if (!on) s.prossima = s.tick + 30; },
@@ -397,13 +397,13 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
         { titolo: 'Isola', voci: [
           ['Accendi i fuochi', () => { for (const k in s.fuochi) s.fuochi[k] = true; }],
           ['Pezzi della campana', () => { for (const k in s.pezzi) s.pezzi[k]!.preso = true; }],
-          ['Vai a un pezzo', () => { const id = Object.keys(s.pezzi).find((k) => !s.pezzi[k]!.preso); const q = id ? postoPezzo(s, id) : null; if (q) { for (const p of s.arena.porte) if (!s.porte[p.id]) { s.punti += TEMPLARI.porte[p.id]?.prezzo ?? 0; apriPorta(s, p); } sc?.setPorte(s.porte); h.x = q.x; h.z = q.z + 1; } }],
+          ['Vai a un pezzo', () => { const id = Object.keys(s.pezzi).find((k) => !s.pezzi[k]!.preso); const q = id ? postoPezzo(s, id) : null; if (q) { for (const p of s.arena.porte) if (!s.porte[p.id]) { s.eroe.punti += TEMPLARI.porte[p.id]?.prezzo ?? 0; apriPorta(s, p); } sc?.setPorte(s.porte); h.x = q.x; h.z = q.z + 1; } }],
         ] },
         { titolo: 'Super', voci: [['Carica pieno', () => { if (h.classe) { h.superK = 1; hud?.grande('SUPER PRONTO', PAL.giallo, 'Dal banco', 1200); } }]] },
         { titolo: 'Vai da', voci: (['mercante', 'strega'] as const).map((id): [string, () => void] => [id === 'mercante' ? 'Mercante' : 'Strega', () => {
           const p = s.arena.personaggi.find((x) => x.id === id);
           if (!p) return;
-          for (const q of s.arena.porte) if (!s.porte[q.id]) { s.punti += TEMPLARI.porte[q.id]?.prezzo ?? 0; apriPorta(s, q); }
+          for (const q of s.arena.porte) if (!s.porte[q.id]) { s.eroe.punti += TEMPLARI.porte[q.id]?.prezzo ?? 0; apriPorta(s, q); }
           sc?.setPorte(s.porte);
           h.x = p.x - p.fx * 1.2; h.z = p.z - p.fz * 1.2; h.fx = p.fx; h.fz = p.fz;
         }]) },
@@ -517,7 +517,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (rete) hud.compagni(amici.flatMap((a) => {
       if (!a.actor || a.fuori) return [];
       const c = view.compagni.find((x) => x.i === a.i), hp = a.actor.head(), [x, y] = schermo3(hp.x, hp.y + 0.35, hp.z);
-      return [{ x, y, nome: a.nome, frac: c ? c.vita / Math.max(1, c.max) : 0, giu: a.giu }];
+      return [{ x, y, nome: a.nome, frac: c ? c.vita / Math.max(1, c.max) : 0, giu: a.giu, punti: c?.punti ?? 0 }];
     }));
     zombi.update(alpha, dt, t);
     fx?.update(alpha, dt, t, hero.avatar.object, view);
@@ -530,7 +530,11 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     const chi = fase === 'gioca' && (view.prompt?.cosa === 'mercante' || view.prompt?.cosa === 'strega') ? view.prompt.cosa : null;
     pers?.update(t, chi);
     fuo?.update(t);
-    if (bott?.aperta) { if (bott.aperta !== chi) bott.chiudi(); else bott.aggiorna(chi === 'mercante' ? offerteMercante(s) : offerteStrega(s), s.punti); }
+    if (bott?.aperta) {
+      // le offerte e i punti sono i tuoi (insieme dopo un tick l'eroe di turno può essere un altro)
+      if (bott.aperta !== chi) bott.chiudi();
+      else { const prima = s.chi; usa(s, io); bott.aggiorna(chi === 'mercante' ? offerteMercante(s) : offerteStrega(s), s.eroe.punti); usa(s, prima); }
+    }
     ctl.setMira(fase === 'gioca' && miraArma() !== null);
     ctl.setScambia(fase === 'gioca' && view.eroe.armi.filter(Boolean).length + (view.eroe.scudo ? 1 : 0) > 1);
     ctl.setSuper(fase === 'gioca' && view.eroe.classe ? view.eroe.super : null, view.eroe.classe ? ICONA_SUPER[view.eroe.classe] : undefined);
@@ -542,10 +546,10 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     if (Array.isArray(p['armi'])) { s.eroe.armi = s.eroe.armi.map(() => null); s.eroe.cur = 0; for (const id of p['armi'] as string[]) daiArma(s, id); }
     if (typeof p['arma'] === 'string') daiArma(s, p['arma']);
     if (p['scudo']) { s.eroe.scudo = { vita: TEMPLARI.scudo.vita }; s.eroe.inMano = p['scudo'] === 'mano'; }
-    if (typeof p['punti'] === 'number') s.punti = p['punti'];
+    if (typeof p['punti'] === 'number') s.eroe.punti = p['punti'];
     if (typeof p['dove'] === 'object' && p['dove']) { const d = p['dove'] as { x: number; z: number }; s.eroe.x = d.x; s.eroe.z = d.z; }
     if (typeof p['faccia'] === 'object' && p['faccia']) { const d = p['faccia'] as { x: number; z: number }, n = Math.sqrt(d.x * d.x + d.z * d.z) || 1; s.eroe.fx = d.x / n; s.eroe.fz = d.z / n; }
-    if (Array.isArray(p['porte'])) for (const id of p['porte'] as string[]) { const q = s.arena.porte.find((x) => x.id === id); if (q && !s.porte[id]) { s.punti += TEMPLARI.porte[id]?.prezzo ?? 0; apriPorta(s, q); } }
+    if (Array.isArray(p['porte'])) for (const id of p['porte'] as string[]) { const q = s.arena.porte.find((x) => x.id === id); if (q && !s.porte[id]) { s.eroe.punti += TEMPLARI.porte[id]?.prezzo ?? 0; apriPorta(s, q); } }
     if (p['pulisci']) { s.zombie = []; s.tiri = []; s.fiamme = []; s.boss = null; }
     if (p['ferma']) { s.quanti = 1e6; s.usciti = 0; s.prossima = 1e9; } // niente altri zombie dall'ondata in corso (le prove di mira ne vogliono uno solo)
     if (typeof p['vita'] === 'number') { s.eroe.vita = s.eroe.max = p['vita']; }

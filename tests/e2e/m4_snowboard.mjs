@@ -148,14 +148,19 @@ export default async function (ctx) {
     await d.page.click('#mzSbPiste [data-pista="snowboard_verde"]');
     await ctx.waitState(d.page, (st) => st.snowboard && st.snowboard.fase === 'gara' && st.snowboard.frames > 20, 25000);
     const l0 = (await sb(d.page)).lat;
-    // si aspettano i passi della sim, non il tempo: su GitHub (SwiftShader, pochi fotogrammi al secondo) 0,7 s sono meno tick
+    // si aspettano i passi della sim, non il tempo: su GitHub (SwiftShader) a 1280×720 la pista si disegna a meno di un fotogramma al
+    // secondo e il gioco fa al massimo 5 passi per fotogramma: in 15 s ne passavano ~20, e la curva ne vuole ~22 (lat 0 → 0,46)
     await d.page.keyboard.down('ArrowRight');
-    await ctx.waitState(d.page, (st, l) => st.snowboard.lat > l + 0.5, 15000, l0).catch(() => {});
+    await ctx.waitState(d.page, (st, l) => st.snowboard.lat > l + 0.5, 60000, l0).catch(() => {});
     await d.page.keyboard.up('ArrowRight');
     const l1 = (await sb(d.page)).lat;
     assert(l1 > l0 + 0.5, `→ non curva: ${l0} → ${l1}`);
-    await d.page.keyboard.down('Space'); await d.page.waitForTimeout(400); await d.page.keyboard.up('Space');
-    await ctx.waitState(d.page, (st) => st.snowboard.aria, 2000);
+    // Spazio tenuto per 20 passi della sim (non 400 ms: vedi sopra), lasciato = salto
+    const f0 = (await sb(d.page)).frames;
+    await d.page.keyboard.down('Space');
+    await ctx.waitState(d.page, (st, f) => st.snowboard.frames >= f + 20, 60000, f0).catch(() => {});
+    await d.page.keyboard.up('Space');
+    await ctx.waitState(d.page, (st) => st.snowboard.aria, 60000);
     await misura(d.page, 'desktop');
     await ctx.shot(d.page, 'desktop');
     await d.page.keyboard.press('Escape');

@@ -21,7 +21,7 @@ function partita(punti = 50000): TState {
   const s = templari.create({ seed: 3, opzioni: { subito: true } });
   for (const k in s.fuochi) s.fuochi[k] = true; // i fuochi accesi (§9b): Strega, Mercante e rogo funzionano
   s.fase = 'combatti'; s.ondata = 8; s.quanti = 0; s.usciti = 0; s.prossima = 1e9;
-  s.punti = punti;
+  s.eroe.punti = punti;
   return s;
 }
 /** L'eroe davanti al Mercante o alla Strega (le porte per arrivarci non contano: si sposta). */
@@ -52,13 +52,13 @@ test('Mercante: lontano non vende; potenzia l\'arma (5000), danno ×2, caricator
   da(s, 'mercante');
   const ev = templari.act(s, mercante('potenzia', slot));
   assert.ok(ev?.some((e) => e.t === 'potenziata' && e.nome === armaDef('moschetto').nomePot), JSON.stringify(ev));
-  assert.equal(s.punti, 50000 - 5000);
+  assert.equal(s.eroe.punti, 50000 - 5000);
   assert.equal(armaIn(s).danno, prima * 2);
   assert.equal(s.eroe.armi[slot]!.riserva, slotDi(armaDef('moschetto'), true).riserva);
   assert.ok(s.eroe.armi[slot]!.riserva > armaDef('moschetto').riserva!);
   assert.equal(templari.view(s).eroe.armi[slot]!.pot, true);
   assert.equal(templari.act(s, mercante('potenzia', slot)), null, 'potenziata due volte');
-  assert.equal(s.punti, 45000);
+  assert.equal(s.eroe.punti, 45000);
   // senza punti niente
   const p = partita(4999); da(p, 'mercante');
   assert.equal(templari.act(p, mercante('potenzia', 0)), null);
@@ -95,7 +95,7 @@ test('Strega: la Zuppa di pietra porta la vita a 200, si beve (niente attacchi p
   const ev = templari.act(s, strega('pietra'));
   assert.ok(ev?.some((e) => e.t === 'pozione' && e.id === 'pietra'));
   assert.equal(s.eroe.max, 200); assert.equal(s.eroe.vita, 200);
-  assert.equal(s.punti, 50000 - 2500);
+  assert.equal(s.eroe.punti, 50000 - 2500);
   assert.equal(templari.view(s).posa.anim, 'beve');
   passi(s, 2, { a: true }); passi(s, 1);
   assert.equal(s.eroe.act, 'beve', 'ha attaccato mentre beveva');

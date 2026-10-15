@@ -7,6 +7,7 @@ import type { PackedDungeon } from '../dungeon/types.ts';
 import type { TAzione, TAzioni, TInput, TOpzioni, TRisultato } from './types.ts';
 import { MAX_TICKS, stepTemplari, stepTemplariInsieme, templari } from './templari.ts';
 import { superate } from './vista.ts';
+import { usa } from './stato.ts';
 
 /** Input come array RLE o stringa base64 di encodeDungeon; null se non validi. */
 export function inputsTemplari(raw: unknown): PackedDungeon | null {
@@ -96,6 +97,7 @@ export function replayTemplariInsieme(seed: number, inputs: readonly PackedDunge
     stepTemplariInsieme(s, inputs.map((_, k) => frame(k)));
     for (let k = 0; k < n; k++) { if (--resto[k]! <= 0) { riga[k]!++; resto[k] = inputs[k]![riga[k]!]?.[0] ?? 0; } }
   }
+  usa(s, io); // i punti nel risultato sono i suoi
   const r = templari.result(s);
   return mie === null ? r : { ...r, superate: Math.min(r.superate, mie) };
 }

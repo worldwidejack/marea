@@ -6,7 +6,7 @@ import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
 import type { TPotere } from '@marea/content/templari.ts';
 import type { TState } from './stato.ts';
 import { ev, inPiedi, secToTicks, slotDi, usa } from './stato.ts';
-import { dai, uccidi } from './colpi.ts';
+import { daiTutti, uccidi } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -22,12 +22,12 @@ export function applica(s: TState, tipo: TPotere): void {
     case 'decima': s.poteri.decima = s.tick + secToTicks(k.durata); break;
     case 'campane':
       for (const z of s.zombie) if (z.st !== 'morto' && z.st !== 'fugge' && !z.def.boss) uccidi(s, z, false);
-      dai(s, k.campane, 'potere');
+      daiTutti(s, k.campane, 'potere');
       break;
     case 'muratori':
       s.arena.finestre.forEach((_, i) => { s.assi[i] = TEMPLARI.barricate.assi; setFinestra(s.arena, s.gr, i, TEMPLARI.barricate.assi); });
       for (const z of s.zombie) if (z.st === 'strappa') { z.finestra = -1; z.st = 'insegue'; z.stT = 0; z.stDur = 0; }
-      dai(s, k.muratori, 'potere');
+      daiTutti(s, k.muratori, 'potere');
   }
 }
 
