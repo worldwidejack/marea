@@ -77,7 +77,12 @@ export default async function (ctx) {
     await page.waitForTimeout(600);
     await page.click('#mzFunivia');
     await ctx.waitState(page, (st) => st.adrenalina.salite === 1, 5000);
-    assert(/Le piste aprono a giorni/.test((await adr(page)).ultimo), `guardiano: ${(await adr(page)).ultimo}`);
+    assert(/In vetta trovi le piste/.test((await adr(page)).ultimo), `guardiano: ${(await adr(page)).ultimo}`);
+    // passo 3b: col casco si sale e parte lo snowboard (aperto a tutti, senza ?adrenalina=1): si esce e si torna al cancello
+    await ctx.waitState(page, (st) => st.snowboard && st.snowboard.active, 15000);
+    await hook(page, 'snowboardEsci');
+    await ctx.waitState(page, (st) => !st.snowboard.active && !st.adrenalina.snowboard, 5000);
+    await page.waitForTimeout(600);
     await ctx.shot(page, 'casco');
     await budget(page, 'iphone_cancello');
     ctx.noErrors(p, 'telefono');

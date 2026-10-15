@@ -3,7 +3,7 @@
 // di aperture deciso dal seed esce il teschio: la cassa ride, ti rende i punti e sparisce, per ricomparire in un altro dei suoi posti.
 import { TEMPLARI } from '@marea/content/templari.ts';
 import type { TState } from './stato.ts';
-import { ev, secToTicks } from './stato.ts';
+import { ev, secToTicks, usa } from './stato.ts';
 import { rendi, spendi } from './colpi.ts';
 import { raggiungePunto } from './raggiungi.ts';
 
@@ -34,6 +34,7 @@ export function usaCassa(s: TState): string | null {
   if (c.fase === 'chiusa') {
     if (!spendi(s, k.prezzo)) return null;
     c.fase = 'gira'; c.inizio = s.tick; c.fine = s.tick + secToTicks(k.gira);
+    if (s.eroi.length > 1) c.chi = s.chi;
     ev(s, { t: 'cassa', fase: 'gira' });
     return null;
   }
@@ -57,6 +58,7 @@ export function stepCassa(s: TState): void {
         rendi(s, k.prezzo);
         ev(s, { t: 'cassa', fase: 'teschio' });
       } else {
+        if (s.eroi.length > 1 && c.chi !== undefined && s.eroi[c.chi]) usa(s, c.chi); // l'arma esce tra quelle che non ha chi l'ha aperta
         c.fase = 'pronta'; c.arma = pesca(s); c.inizio = s.tick; c.fine = s.tick + secToTicks(k.pronta);
         ev(s, { t: 'cassa', fase: 'arma', arma: c.arma });
       }

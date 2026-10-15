@@ -64,7 +64,10 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
+      # storia di main: la build ne fa /novita.json, la schermata «Dall'ultima volta» (#279)
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 300
       - uses: actions/setup-node@v4
         with:
           node-version: 26

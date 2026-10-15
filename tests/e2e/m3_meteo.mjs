@@ -1,6 +1,6 @@
 // Meteo (#85): coi test parte spento ('spento' in state().meteo); acceso segue l'orologio (uno dei 5 stati) e dai test si forza.
-// Pioggia: gocce disegnate, scena più scura, dentro il budget (≤ 100 draw call) anche di notte; nebbia: passata finale accesa anche
-// con la camera di sempre (45°, senza contorni); spegnere torna a 'spento' senza gocce. Screenshot telefono e PC.
+// Pioggia: gocce disegnate, scena più scura, dentro il budget (≤ 100 draw call) anche di notte; nebbia: niente foschia (#282), con la
+// camera di sempre la passata finale resta spenta; spegnere torna a 'spento' senza gocce. Screenshot telefono e PC.
 export const timeout = 360000; // su GitHub il gioco gira a 2-4 fps
 const STATI = ['sereno', 'nuvoloso', 'pioggia', 'nebbia', 'vento'];
 export default async function (ctx) {
@@ -25,7 +25,7 @@ export default async function (ctx) {
     ctx.assert((await ctx.getState(p.page)).impostazioni.meteo === true, 'impostazione non salvata');
   });
   await ctx.test('pioggia di giorno: gocce, più scuro, budget ok', async () => {
-    await p.page.evaluate(async () => { window.__game.test.impostazioni({ cam: 3, ciclo: true, contorni: true }); await window.__game.test.aspettoPronto(); window.__game.test.ciclo(0.2); window.__game.test.goto('borgo'); }); // all'aperto: lotto:N arriva nella stanza della casa (#240), al buio
+    await p.page.evaluate(async () => { window.__game.test.impostazioni({ cam: 3, ciclo: true, contorni: true }); await window.__game.test.aspettoPronto(); window.__game.test.ciclo(0.2); window.__game.test.goto('porto'); }); // all'aperto: lotto:N arriva nella stanza della casa (#240), al buio
     await forza(p.page, 'sereno', 0);
     await ctx.waitState(p.page, (st) => st.meteo === 'sereno', 20000);
     await p.page.waitForTimeout(500);
@@ -68,10 +68,11 @@ export default async function (ctx) {
     await ctx.shot(p.page, 'iphone_vento');
     ctx.noErrors(p, 'stati');
   });
-  await ctx.test('nebbia con la camera di sempre (45°, senza contorni): passata finale accesa, poi spenta col sereno', async () => {
+  await ctx.test('nebbia con la camera di sempre (45°, senza contorni): niente foschia, la passata finale resta spenta (#282)', async () => {
     await p.page.evaluate(() => window.__game.test.impostazioni({ cam: 0, ciclo: false, contorni: false }));
     await forza(p.page, 'nebbia');
-    await ctx.waitState(p.page, (st) => st.aspetto.post === true, 20000);
+    await ctx.waitState(p.page, (st) => st.meteo === 'nebbia', 20000);
+    ctx.assert((await ctx.getState(p.page)).aspetto.post === false, 'la nebbia accende ancora la passata finale (foschia)');
     await ctx.shot(p.page, 'iphone_nebbia_45');
     await forza(p.page, 'sereno', 0);
     await ctx.waitState(p.page, (st) => st.meteo === 'sereno' && st.aspetto.post === false, 20000);
@@ -87,7 +88,7 @@ export default async function (ctx) {
   await p.close(); // una pagina alla volta: col telefono ancora aperto il PC rallenta troppo
   const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
   await ctx.waitReady(d.page, 20000);
-  await d.page.evaluate(async () => { window.__game.test.impostazioni({ cam: 3, ciclo: true, contorni: true, meteo: true }); await window.__game.test.aspettoPronto(); window.__game.test.ciclo(0.2); window.__game.test.goto('borgo'); }); // all'aperto: lotto:N arriva nella stanza della casa (#240), al buio
+  await d.page.evaluate(async () => { window.__game.test.impostazioni({ cam: 3, ciclo: true, contorni: true, meteo: true }); await window.__game.test.aspettoPronto(); window.__game.test.ciclo(0.2); window.__game.test.goto('porto'); }); // all'aperto: lotto:N arriva nella stanza della casa (#240), al buio
   await ctx.test('desktop: pioggia e nebbia senza errori', async () => {
     await forza(d.page, 'sereno', 0);
     ctx.log('perf desktop sereno', JSON.stringify(await ctx.getPerf(d.page)));

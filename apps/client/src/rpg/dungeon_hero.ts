@@ -113,6 +113,9 @@ function mixPose(o: Pose, a: Pose, b: Pose, k: number): Pose {
 export async function createHeroActor(o: { loader: Loader; look: Look; hero: { arma: ArmaInMano } & Omit<EquipVista, 'arma'>; scene: THREE.Scene; floorY: number; x: number; z: number;
   /** Eroe di questo client: mentre tende si vede la linea di mira (i compagni no). */
   mirino?: boolean;
+  /** Colpi e carica muovono solo dalla vita in su (Templari): il giro del corpo lo fa la schiena, niente gambe piegate né corpo abbassato,
+   *  così sotto restano la camminata o il fermo della clip. */
+  soloBusto?: boolean;
 }): Promise<HeroActor> {
   const avatar = await createAvatar({ loader: o.loader, look: o.look, x: o.x, z: o.z });
   avatar.setGround(() => o.floorY);
@@ -213,7 +216,8 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   function guard(p: Pose): void {
     Object.assign(p, { yaw: 0, twist: 0, lean: 0, crouch: 0, headUp: 0, headYaw: 0, wR: 0, wL: 0, punta: null, wA: 0 });
     switch (kind) {
-      case 'lama': p.wR = 1; p.fR.set(0.27, 0.97, -0.2); p.dir.set(0.12, 0.62, -0.78).normalize(); p.piatto.set(1, 0, 0); p.wA = 1; break;
+      // piatto −X: il filo dei modelli (−X del glb: l'ascia) guarda avanti e in basso, verso il nemico; con +X guardava indietro, verso di sé
+      case 'lama': p.wR = 1; p.fR.set(0.27, 0.97, -0.2); p.dir.set(0.12, 0.62, -0.78).normalize(); p.piatto.set(-1, 0, 0); p.wA = 1; break;
       case 'lancia': p.wR = 1; p.fR.set(0.24, 1.0, -0.04); p.dir.set(0, 0.32, -1).normalize(); p.piatto.set(0, 1, 0); p.wA = 1; p.wL = 1; p.fL.copy(p.fR).addScaledVector(p.dir, 0.42); break;
       case 'pugni': p.wR = p.wL = 1; p.fR.set(0.15, 1.27, -0.25); p.fL.set(-0.15, 1.3, -0.22); break;
       case 'magia': p.wR = p.wL = 1; p.fR.set(0.15, 1.22, -0.4); p.fL.set(-0.15, 1.22, -0.4); break; // mani a coppa davanti al petto, la sfera in mezzo
@@ -332,7 +336,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
   // ---- stato ----
   let cur: DungeonView['hero'] | null = null, key = '', prevT = 0, curT = 0, prevC = 0, curC = 0, pieno = false;
   let px = o.x, pz = o.z, speed = 0, flashT = 0, fullT = 0, deadT = 0, clock = 0, blendT = 1;
-  const target = newPose(), from = newPose(), final = newPose();
+  const target = newPose(), from = newPose(), final = newPose(), girata = newPose();
   const wrist = v3(), fdir = v3(), def0 = v3(), want = v3(), piatto = v3(), xA = v3(), headP = v3(), m3 = new THREE.Matrix4();
   const POLE_R = v3(0.35, -1, 0.45), POLE_L = v3(-0.35, -1, 0.45), wpR = v3(), wpL = v3();
 
@@ -363,17 +367,23 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     if (dead) deadT += dt; else deadT = 0;
     const kd = stepQ(Math.min(1, deadT / 0.3), 3); // a terra a scatti (3 gradini in 0,3 s)
     const shake = cur?.anim === 'carica' && pieno ? 0.014 : 0, sk = Math.floor(clock * 30);
-    inner.rotation.set(-1.45 * kd, -p.yaw, 0);
-    inner.position.set(shake * Math.sin(sk * 12.9898), 0.15 * kd - 0.1 * p.crouch, shake * Math.sin(sk * 78.233));
+    const busto = !!o.soloBusto && !dead;
+    inner.rotation.set(-1.45 * kd, busto ? 0 : -p.yaw, 0);
+    inner.position.set(shake * Math.sin(sk * 12.9898), 0.15 * kd - (busto ? 0 : 0.1 * p.crouch), shake * Math.sin(sk * 78.233));
     avatar.object.updateMatrixWorld(true);
-    rot(B.spine, Y, -p.twist); rot(B.spine, X, -p.lean);
+    rot(B.spine, Y, -p.twist - (busto ? p.yaw : 0)); rot(B.spine, X, -p.lean - (busto ? 0.12 * p.crouch : 0)); // chino un po' al posto delle ginocchia
     rot(B.head, Y, -p.headYaw); rot(B.head, X, p.headUp);
-    // gambe piegate e un po' aperte
-    const k = p.crouch;
+    // gambe piegate e un po' aperte (non con soloBusto: le gambe sono della clip)
+    const k = busto ? 0 : p.crouch;
     rot(B.thighR, X, 0.55 * k); rot(B.thighL, X, 0.55 * k); rot(B.shinR, X, -1.0 * k); rot(B.shinL, X, -1.0 * k);
     rot(B.thighR, Z, 0.14 * k); rot(B.thighL, Z, -0.14 * k);
     avatar.object.updateMatrixWorld(true);
-    // braccia sul pugno voluto
+    // braccia sul pugno voluto (soloBusto: il corpo non gira, quindi pugni e arma si girano qui dello stesso yaw che fa la schiena)
+    if (busto && Math.abs(p.yaw) > 1e-4) {
+      const a = -p.yaw;
+      p = copyPose(girata, p);
+      p.fR.applyAxisAngle(Y, a); p.fL.applyAxisAngle(Y, a); p.dir.applyAxisAngle(Y, a); p.piatto.applyAxisAngle(Y, a); p.punta?.applyAxisAngle(Y, a);
+    }
     inner.getWorldQuaternion(qr);
     ik(B.armR, B.foreR, wpR.copy(p.fR).applyMatrix4(inner.matrixWorld), tmp.copy(POLE_R).applyQuaternion(qr), p.wR);
     ik(B.armL, B.foreL, wpL.copy(p.fL).applyMatrix4(inner.matrixWorld), tmp.copy(POLE_L).applyQuaternion(qr), p.wL);

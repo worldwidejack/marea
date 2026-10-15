@@ -2,6 +2,9 @@
 // trombone, vaso del fuoco greco, scudo templare (bianco con la croce patente rossa), cassa del tesoro col lucchetto. Low-poly, colori della
 // palette per faccia. Le armi hanno l'impugnatura all'origine, la canna lungo +Y e il sopra verso +Z (come vuole rpg/dungeon_hero.ts).
 import * as THREE from 'three';
+import { armaDef } from '@marea/content/templari.ts';
+import { pugni } from '@marea/sim/dungeon/hero.ts';
+import type { ArmaInMano } from '../rpg/dungeon_hero.ts';
 import { PAL } from '../ui/style.ts';
 
 type B = [w: number, h: number, d: number, x: number, y: number, z: number, c: string];
@@ -135,4 +138,16 @@ export function gesso(arma: string): THREE.CanvasTexture {
   const t = new THREE.CanvasTexture(cv);
   t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace;
   return t;
+}
+
+/** L'arma della sim come la vuole l'attore dell'eroe (modello del kit, colore della lama, portata per la scia; pistole, moschetto e vaso
+ *  fatti qui). Con lo scudo in mano niente arma (lo scudo lo disegna effetti.ts). Potenziata dal Mercante: la lama d'oro. */
+export function armaVista(id: string, pot = false): ArmaInMano {
+  const base = pugni();
+  if (id === 'scudo') return { ...base, id: null };
+  const a = armaDef(id), forma = a.aspetto.forma;
+  return {
+    ...base, id: null, kind: a.tipo === 'arco' ? 'arco' : 'mischia', danno: a.danno, tempo: a.tempo, portata: a.portata ?? base.portata, distanza: a.tipo === 'fuoco' || a.tipo === 'lancio',
+    ...(forma ? { oggetto: () => oggettoArma(forma), lama: a.tipo === 'mischia' } : a.aspetto.modello ? { modello: a.aspetto.modello } : {}), colore: pot ? PAL.giallo : a.aspetto.colore,
+  };
 }

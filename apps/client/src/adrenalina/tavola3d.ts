@@ -2,6 +2,8 @@
 // arancio con la striscia bianca, di traverso sulla tavola. Pose: piegato in curva, accucciato quando carica, la mano alla tavola nella
 // presa, il giro intero nei trick (mortale avanti/indietro, 360), la caduta buffa (rotola, resta lungo disteso, si rialza).
 // Assi del gruppo: x = destra, y = su, z = avanti (lo orienta index.ts lungo la pista).
+// Passo 3b: sopra la tavola va il tuo avatar MAREA vero (`monta`): l'omino a box resta finché l'avatar non è caricato, e per i fantasmi
+// (semitrasparenti, coi colori di chi ha il record).
 import * as THREE from 'three';
 import { AVATAR } from '@marea/content';
 import type { Look } from '@marea/protocol';
@@ -12,15 +14,18 @@ export type Tavola = {
   gruppo: THREE.Group;
   /** Posa del frame: `carica` 0-1, `piega` (rad, + = a destra), trick (−1 = nessuno) con avanzamento 0-1, presa, caduta (0-1 dall'inizio, null = in piedi). */
   posa(o: { carica: number; piega: number; trick: number; k: number; presa: boolean; caduta: number | null; aria: boolean; t: number }): void;
+  /** Mette sulla tavola un avatar vero (il suo `object`, di traverso, piedi sulla tavola) al posto dell'omino a box. */
+  monta(avatar: THREE.Object3D): void;
   dispose(): void;
 };
 
 const ANCA = 0.78;
 
-export function creaTavola(look: Look): Tavola {
+export function creaTavola(look: Look, o: { fantasma?: boolean } = {}): Tavola {
   const pelle = AVATAR.pelle[look.pelle] ?? AVATAR.pelle[0]!, giacca = AVATAR.vestiti[look.vestito] ?? PAL.acqua;
-  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-  const mesh = (g: THREE.BufferGeometry, nome: string) => { const m = new THREE.Mesh(g, mat); m.name = nome; m.castShadow = true; return m; };
+  // il fantasma: semitrasparente, senza ombra
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, ...(o.fantasma ? { transparent: true, opacity: 0.55, depthWrite: false } : {}) });
+  const mesh = (g: THREE.BufferGeometry, nome: string) => { const m = new THREE.Mesh(g, mat); m.name = nome; m.castShadow = !o.fantasma; return m; };
 
   const gruppo = new THREE.Group(); gruppo.name = 'snowboard_tavola';
   // perno dei trick e della caduta: all'altezza della pancia
@@ -70,10 +75,20 @@ export function creaTavola(look: Look): Tavola {
   };
   const braccia = [braccio(0.23), braccio(-0.23)];
 
+  let avatar: THREE.Object3D | null = null;
   return {
     gruppo,
+    monta(a) {
+      avatar = a; anca.visible = false; dentro.add(a);
+    },
     posa(o) {
       const giu = o.carica * 0.22 + (o.presa ? 0.3 : 0) + (o.aria ? 0.08 : 0);
+      // l'avatar vero: di traverso (guarda verso +x: il suo davanti è −z), si abbassa schiacciando un po' le gambe, nella presa si piega
+      if (avatar) {
+        avatar.position.set(0, 0.06, 0); avatar.rotation.order = 'YXZ'; avatar.rotation.set(0, -Math.PI / 2, 0); // prima di traverso, poi il piegarsi sul suo asse
+        avatar.scale.set(1, 1 - giu * 0.55, 1);
+        avatar.rotation.x = o.presa ? -0.55 : -(0.08 + o.carica * 0.15); // si piega in avanti (il suo davanti è −z)
+      }
       anca.position.y = ANCA - giu;
       for (const g of gambe) g.scale.y = (ANCA - giu) / ANCA;
       // il busto si gira verso valle (+z), come chi scende davvero: da dietro si leggono spalle e casco

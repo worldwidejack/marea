@@ -10,6 +10,7 @@ import { daRiscuotere, diarioOf, isolaValida, progresso, registraDiscesa, regist
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { MINIGAMES, getMinigame } from '../src/minigames/registry.ts';
+import '../src/adrenalina/registra.ts'; // lo snowboard è nel registro solo dal lato server (come lo vede il DO del lotto)
 import { createRng } from '../src/rng.ts';
 import { packInputs, quantize, replay, replayPartita } from '../src/replay.ts';
 import type { InputFrame } from '../src/types.ts';

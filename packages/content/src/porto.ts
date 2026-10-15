@@ -6,8 +6,8 @@ import missioni from './missioni.json' with { type: 'json' };
 import type { Resources } from './types.ts';
 
 export type PortoLook = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
-/** Una persona del Porto: `giro` = punti da percorrere avanti e indietro (uno solo = ferma), `velocita` in m/s, `raggio` = da quanto vicino si parla. */
-export type PersonaPorto = { id: string; nome: string; ruolo: 'mercante' | 'contrabbandiere' | 'guida'; look: PortoLook; giro: [number, number][]; velocita: number; raggio: number; battute: string[] };
+/** Una persona del Porto (`paesano`: abitanti del Borgo, il loro giro lo scrive tools/borgo_pianta.py): `giro` = punti da percorrere avanti e indietro (uno solo = ferma), `velocita` in m/s, `raggio` = da quanto vicino si parla. */
+export type PersonaPorto = { id: string; nome: string; ruolo: 'mercante' | 'contrabbandiere' | 'guida' | 'paesano'; look: PortoLook; giro: [number, number][]; velocita: number; raggio: number; battute: string[] };
 /** Banco del Mercante o Bacheca: dove sta il prop (`at`, `rot`) e dove si mette chi gioca per usarlo (`fronte`, entro `raggio` m). */
 export type PortoPosto = { nome: string; cartello: string; at: [number, number]; rot: number; fronte: [number, number]; raggio: number };
 /** `contrabbando`: banco del Contrabbandiere accanto alla Grotta (GDR: monete, merce in rpg/balance.json `contrabbando`). */

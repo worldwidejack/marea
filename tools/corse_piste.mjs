@@ -79,10 +79,11 @@ export class Tartaruga {
     }
     return this;
   }
-  /** Salto: rampa qui, poi `lungo` m di vuoto (la pista continua dritta, `scende` m più in basso all'atterraggio). */
+  /** Salto: rampa qui, poi `lungo` m di vuoto (la pista continua dritta, `scende` m più in basso all'atterraggio). `max` = tetto della
+   *  spinta in m/s (senza, col turbo si vola molto più lontano). */
   salto(lungo, o = {}) {
     const p0 = this.qui();
-    this.tratti.rampe.push({ m: p0, salto: o.salto ?? 8 });
+    this.tratti.rampe.push({ m: p0, salto: o.salto ?? 8, ...(o.max ? { max: o.max } : {}) });
     this.tratti.vuoti.push({ da: { i: p0.i, o: 2 }, a: { i: p0.i, o: 2 + lungo } });
     return this.dritto(lungo + 8, { sali: -(o.scende ?? 0) });
   }
@@ -159,7 +160,7 @@ function definizione(t) {
     superfici: t.tratti.superfici.map(sup),
     vuoti: t.tratti.vuoti.map((x) => ({ da: S(x.da), a: S(x.a), ...lat(x.lat) })),
     senzaMuro: t.tratti.senzaMuro.map((x) => ({ da: S(x.da), a: S(x.a), lato: x.lato })),
-    rampe: t.tratti.rampe.map((x) => ({ s: S(x.m), salto: x.salto })),
+    rampe: t.tratti.rampe.map((x) => ({ s: S(x.m), salto: x.salto, ...(x.max ? { max: x.max } : {}) })),
     turbo: t.tratti.turbo.map((x) => ({ s: S(x.m), lungo: x.lungo, lat: x.lat })),
     rami,
     griglia: m.griglia ?? [[-5, -2.5], [-5, 2.5], [-11, -2.5], [-11, 2.5], [-17, 0]],

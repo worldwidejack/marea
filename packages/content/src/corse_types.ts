@@ -48,7 +48,7 @@ export type CVeicoloDef = {
   drift: number;
   /** Peso negli urti tra veicoli: chi pesa di più sposta di più. */
   peso: number;
-  /** Il difetto o pregio comico dei veicoli buffi (A6), mostrato nella scelta. */
+  /** La frase del veicolo nel rullo della scelta (#271): il difetto o pregio comico dei buffi (A6), una battuta per gli altri. */
   buffo?: string;
   /** Buffi: sterzo che tira da solo da una parte (−1..1, + = destra), come la ruota storta del carrello. */
   tira?: number;
@@ -56,6 +56,39 @@ export type CVeicoloDef = {
   effetti?: Record<string, CEffetto>;
   /** Binari: quanto tiene in curva (× `binari.presa` della famiglia). */
   presaCurva?: number;
+};
+
+/** Che cosa fa un oggetto (il codice sta in @marea/sim/corse/oggetti.ts): turbo, trappola lasciata dietro, colpo dritto, colpo che
+ *  insegue chi sta davanti, scudo. Gli oggetti di zona e quelli da sbloccare riusano questi effetti con numeri e look loro. */
+export type COggettoEffetto = 'turbo' | 'trappola' | 'dritto' | 'ricerca' | 'scudo';
+/** Un oggetto del catalogo. `livello`: base (in tutte le zone), zona (solo sulle piste di `zona`), sblocco (si guadagna battendo
+ *  l'isola `sblocco`: per ora non esce). `pesi` = [primi, metà, ultimi] della classifica. I numeri che non servono all'effetto mancano. */
+export type COggettoDef = {
+  id: string; nome: string;
+  livello: 'base' | 'zona' | 'sblocco';
+  zona?: string; sblocco?: string;
+  effetto: COggettoEffetto;
+  cariche: number;
+  pesi: [number, number, number];
+  /** turbo e scudo: s. */
+  secondi?: number;
+  /** trappola: m dietro chi la lascia, m davanti dove atterra se lanciata avanti (USA col freno), durata a terra (s). */
+  dietro?: number; lancio?: number; durata?: number;
+  /** colpi: m/s, vita (s), quanto in fretta inseguono di lato (m/s). Trappole e colpi: raggio di presa (m). */
+  velocita?: number; vita?: number; sterza?: number; raggio?: number;
+  /** colpo dritto: di serie va indietro (il masso del tempio; con «dall'altra parte» va avanti). */
+  indietro?: boolean;
+  /** colpo dritto: m/s di lato, rimbalza da un bordo all'altro della pista (la noce di cocco). */
+  rimbalzo?: number;
+  /** turbo: per tutti i `secondi` scavalchi trappole e colpi (la liana). */
+  scavalca?: boolean;
+};
+export type COggettiCfg = {
+  scatole: { righe: number[]; lat: number[]; raggio: number; ricompare: number; roulette: number };
+  colpito: { secondi: number; velocita: number };
+  /** Trappole a terra al massimo (le più vecchie spariscono). */
+  massimiATerra: number;
+  catalogo: COggettoDef[];
 };
 
 /** Effetto di una superficie su una famiglia: moltiplicatori di velocità massima, presa e accelerazione. */
@@ -87,6 +120,9 @@ export type CorseMotoreCfg = {
   tappetoTurbo: number;
   /** `retro` = velocità massima in retromarcia (m/s), `retroAccelerazione` (m/s²), `retroSterzoPieno` = sopra questi m/s lo sterzo in retro è pieno. */
   veicolo: { raggio: number; frenata: number; folle: number; sterzoPieno: number; retro: number; retroAccelerazione: number; retroSterzoPieno: number };
+  /** Urti tra veicoli (#255): quanto rimbalzano (0 = si attaccano, 1 = elastico), spinta di lato minima e massima (m/s) quando ci si
+   *  tocca di fianco, quanto in fretta la spinta si smorza (1/s). */
+  urti: { rimbalzo: number; spintaMin: number; spintaMax: number; smorza: number };
   /** Sterzo del giocatore (#170): curva del joystick, rampa da tastiera, meno sterzo ad alta velocità. */
   sterzo: { normale: number; lineare: number; rampa: number; ritorno: number; alto: number; da: number };
   /** Drift a 3 livelli: `carica` = secondi per livello, `spinta` = secondi di turbo per livello. */
@@ -102,6 +138,8 @@ export type CorseMotoreCfg = {
   acrobazia: { turbo: number };
   /** Scia: distanza [min, max] m dietro, scarto laterale massimo m, velocità minima m/s, secondi per caricarla, turbo s. */
   scia: { metri: [number, number]; lato: number; velocitaMin: number; secondi: number; turbo: number };
+  /** Oggetti alla Mario Kart (#250): scatole, colpi, catalogo. Solo nelle gare CON OGGETTI. */
+  oggetti: COggettiCfg;
   bot: {
     bravura: number[];
     corsia: number;
@@ -200,8 +238,8 @@ export type CPistaDef = {
   vuoti: CTrattoDef[];
   /** Dove manca il muro: lato −1 sinistra, 1 destra, 0 tutti e due (si può cadere di sotto). */
   senzaMuro: (CTrattoDef & { lato: -1 | 0 | 1 })[];
-  /** Rampe: a `s` m lanciano in aria con almeno `salto` m/s. */
-  rampe: { s: number; salto: number; lat?: [number, number] }[];
+  /** Rampe: a `s` m lanciano in aria con almeno `salto` m/s (e al massimo `max` m/s: il salto non si allunga oltre col turbo, #270). */
+  rampe: { s: number; salto: number; max?: number; lat?: [number, number] }[];
   /** Tappeti del turbo: da `s` per `lungo` m. */
   turbo: { s: number; lungo: number; lat: [number, number] }[];
   rami: CRamoDef[];

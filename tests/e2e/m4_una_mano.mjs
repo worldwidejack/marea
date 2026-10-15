@@ -121,7 +121,7 @@ export default async function (ctx) {
     const z1 = await zoom(); await touch('touchEnd', []); await waitTicks(2);
     ctx.log('joystick + bottone A', z1);
     assert(Math.abs(z1 - 1) < 0.01, `il dito sul bottone ha zoomato: ${z1}`);
-    const X = [60, 300], Y = [160, 300];
+    const X = [60, 360], Y = [160, 360]; // canvas libero: a y 268-312 c'è il bottone TP della colonna a sinistra (#264)
     await touch('touchStart', [X]); await touch('touchStart', [X, Y]); await waitTicks(2);
     for (let i = 1; i <= 6; i++) await touch('touchMove', [[X[0] - i * 10, X[1]], [Y[0] + i * 10, Y[1]]]);
     const z2 = await zoom(); await touch('touchEnd', []);

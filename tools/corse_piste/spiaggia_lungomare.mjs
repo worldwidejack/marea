@@ -22,8 +22,8 @@ export default function (t) {
   t.dritto(16, { sali: 2.5 }).dritto(16, { sali: -2.5 }); // il dosso
   t.curva(-60, 38, { sali: -3 });
   t.dritto(15, { sali: -3 });
-  t.salto(10, { salto: 8 });                       // il canale di scolo della spiaggia
-  t.dritto(10);
+  t.salto(6, { salto: 7, max: 8 });               // il canale di scolo della spiaggia: corto, e col turbo non si vola via (#270)
+  t.dritto(14);                                    // (stessa pianta di prima: il canale è 4 m più stretto)
   t.turbo(t.qui(), [-3, 3], 6);
   t.dritto(20);
   t.curva(110, 32);

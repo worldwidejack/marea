@@ -10,6 +10,10 @@ import { BARRA, SNOWBOARD, SNOWBOARD_PISTE, validateAdrenalina } from '@marea/co
 import { azzeraBarra, moltiplicatore, nuovaBarra, passoBarra, riempiBarra } from '../src/adrenalina/barra.ts';
 import { bordoA, pistaSnowboard, quotaA } from '../src/adrenalina/pista.ts';
 import { pilotaSnowboard, snowboard } from '../src/minigames/snowboard.ts';
+import { medagliaDaPosizione, migliora, posizioneDiscesa } from '../src/adrenalina/classifica.ts';
+import { MINIGAMES } from '../src/minigames/registry.ts';
+import '../src/adrenalina/registra.ts';
+import { replay, packInputs } from '../src/replay.ts';
 import type { SnowState } from '../src/minigames/snowboard.ts';
 import { hashJson } from '../src/hash.ts';
 import { quantize } from '../src/replay.ts';
@@ -66,7 +70,12 @@ test('snowboard: il pilota automatico scende la verde in ~105 s, tutte le porte,
   assert.ok(r.detail['trick']! >= 5 && r.detail['combo']! >= 2, JSON.stringify(r.detail));
   const pigro = nuova();
   passi(pigro, snowboard.maxTicks, (x) => pilotaSnowboard(x, true));
-  assert.ok(snowboard.result(pigro).score < r.score / 1.5, `senza trick ${snowboard.result(pigro).score} contro ${r.score}`);
+  // la classifica è a tempo con abbuoni: i trick fanno scendere il tempo finale (lo score è più alto)
+  const rp = snowboard.result(pigro);
+  assert.equal(rp.detail['ms'], r.detail['ms']);
+  assert.ok(r.detail['finale']! < rp.detail['finale']! - 4000 && r.score > rp.score, `finale ${r.detail['finale']} contro ${rp.detail['finale']} senza trick`);
+  assert.equal(r.detail['finale'], r.detail['ms']! - r.detail['abbuono']! + r.detail['penalita']!);
+  assert.equal(r.score, SNOWBOARD.tempo.scoreBase - Math.round(r.detail['finale']! / 10));
 });
 
 test('snowboard: stessi input, stessa discesa (il server la rigiocherà)', () => {
@@ -200,4 +209,24 @@ test('snowboard: dalla cornice e dalla roccia si vola da soli; atterrare in pian
   s.aria = true; s.y += 25; s.vy = 0;
   passi(s, 200, F());
   assert.equal(s.cadute, 1); assert.equal(s.perche, 'botta');
+});
+
+test('snowboard: la classifica a tempo dà le medaglie (batti il record = oro, secondo argento, terzo bronzo; il primo prende l’oro)', () => {
+  const cl = [{ chi: 'ada', ms: 90_000 }, { chi: 'bea', ms: 95_000 }, { chi: 'ciro', ms: 100_000 }];
+  assert.equal(medagliaDaPosizione(posizioneDiscesa([], 'io', 120_000)), 'oro', 'nessuno davanti: oro');
+  assert.equal(medagliaDaPosizione(posizioneDiscesa(cl, 'io', 89_000)), 'oro');
+  assert.equal(medagliaDaPosizione(posizioneDiscesa(cl, 'io', 92_000)), 'argento');
+  assert.equal(medagliaDaPosizione(posizioneDiscesa(cl, 'io', 97_000)), 'bronzo');
+  assert.equal(medagliaDaPosizione(posizioneDiscesa(cl, 'io', 101_000)), null);
+  // il proprio vecchio tempo non conta: ada che fa peggio del suo record ma meglio di tutti gli altri resta prima
+  assert.equal(posizioneDiscesa(cl, 'ada', 93_000), 1);
+  assert.equal(migliora(cl, 'ada', 93_000), false); assert.equal(migliora(cl, 'ada', 80_000), true); assert.equal(migliora(cl, 'nuovo', 200_000), true);
+});
+
+test('snowboard: nel registro del server (registra.ts) la partita si rigioca uguale', () => {
+  assert.ok(MINIGAMES['snowboard']);
+  const s = nuova(), log: InputFrame[] = [];
+  passi(s, snowboard.maxTicks, (x) => { const f = quantize(pilotaSnowboard(x)); log.push(f); return f; });
+  const r = replay('snowboard', 3, 1, packInputs(log), { pista: 'snowboard_verde' });
+  assert.deepEqual(r, snowboard.result(s));
 });

@@ -1,5 +1,5 @@
 // Consegne in barca (GDD §6, minigioco universale): il corriere del molo ti dà un pacco per un altro molo dell'arcipelago (Porto, Laguna,
-// lotti), scelto dal seed; lo porti in barca prima che scada il tempo, poi lì c'è il pacco dopo. Il tempo avanzato passa al pacco
+// facciate, isole a tema), scelto dal seed; lo porti in barca prima che scada il tempo, poi lì c'è il pacco dopo. Il tempo avanzato passa al pacco
 // successivo (come un taxi arcade), le cassette che galleggiano lungo la rotta danno secondi in più. Si gioca sull'arcipelago vero, con
 // la stessa barca e le stesse collisioni del mondo (stepBoat). Numeri in content (minigames/consegne.json).
 // Il molo di partenza è il PRIMO input della partita: startFrame(molo) (mx = (molo + 1) / 32, esatto dopo la quantizzazione); il primo
@@ -23,7 +23,7 @@ const R2 = CFG.raggio * CFG.raggio;
 const CR2 = CFG.cassette.raggio * CFG.cassette.raggio;
 const NO: InputFrame = { mx: 0, my: 0, a: false, b: false };
 
-/** Un molo dell'arcipelago: `id` = 'porto', 'laguna' o 'lotto:N'; (x, z) = la B, dove si ormeggia (coordinate mondo, m). */
+/** Un molo dell'arcipelago: `id` = 'porto', 'laguna' o l'id dell'isola (facciate e isole a tema); (x, z) = la B, dove si ormeggia (coordinate mondo, m). */
 export type Molo = { id: string; nome: string; island: string; slot: number | null; x: number; z: number };
 export type Cassa = { x: number; z: number; presa: boolean };
 export type ConsegneState = {
@@ -80,9 +80,12 @@ export function consegneMappa(): GridMap {
 export function consegneMoli(): Molo[] {
   if (MOLI) return MOLI;
   consegneMappa();
-  let k = 0; // i Pontili (#237) dove prima c'erano le isole personali: molo:0, molo:1, …
-  MOLI = ARCH!.places.filter((p) => CFG.moli.includes(p.role)).map((p) => ({
-    id: p.role === 'molo' ? `molo:${k++}` : p.role, nome: p.role === 'molo' ? `Pontile ${k}` : p.nome.split(' ')[0]!,
+  // Porto, Laguna, facciate e isole a tema (#247: al posto dei pontili). Delle isole a tema solo quelle senza barriera: le altre
+  // da chiuse non si raggiungono, e la partita (rigiocata dal server) non sa cosa hai aperto tu.
+  const moli = ARCH!.places.filter((p) => CFG.moli.includes(p.role) && (p.role !== 'tema' || (p.tema?.barriera ?? 0) <= 0));
+  MOLI = moli.map((p) => ({
+    id: p.role === 'porto' || p.role === 'laguna' ? p.role : p.island,
+    nome: p.role === 'porto' || p.role === 'laguna' ? p.nome.split(' ')[0]! : p.nome.replace(/^(Isola|Distretto) (d(ella|elle|ei|el|egli|i) |dell')?/, ''),
     island: p.island, slot: p.slot, x: p.boat.x, z: p.boat.z,
   }));
   return MOLI;

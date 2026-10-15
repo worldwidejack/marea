@@ -16,6 +16,9 @@ const CSS = `
 .mz-badge { position: absolute; top: -9px; right: -9px; min-width: 20px; height: 20px; padding: 0 5px; display: none; align-items: center; justify-content: center; background: ${P.rosso}; color: ${P.sabbiaChiara}; border: 2px solid ${P.neroCaldo}; font-size: 12px; font-weight: bold; line-height: 1; }
 .mz-badge.on { display: flex; }
 @media (max-width: 699px) { #mzTop { top: calc(max(8px, env(safe-area-inset-top)) + 52px); right: auto; left: 8px; flex-direction: column; } }
+/* telefoni bassi (Android 360×740): il quinto bottone (TP, #264) si mette accanto al quarto invece che sotto, così la colonna non scende su
+   guida e PESCA (#267); in alto accanto alla colonna c'è il chip del cantiere */
+@media (max-width: 699px) and (max-height: 799px) { #mzTeleBtn { position: absolute; left: 52px; top: 156px; } }
 `;
 
 let styled = false;

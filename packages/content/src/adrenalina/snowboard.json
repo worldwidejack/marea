@@ -18,6 +18,7 @@
   "combo": 0.5,
   "ultimoIstante": 0.2,
   "punti": { "porta": 100, "portaMancata": 150, "saltoMetro": 40 },
+  "tempo": { "puntiAlSecondo": 1000, "portaMancata": 2, "scoreBase": 1000000 },
   "rasente": 0.9,
   "corpo": 0.35,
   "caduta": 2

@@ -10,15 +10,17 @@ import { indossaDa, indossaValida, stessoIndossa } from '@marea/sim/rpg/indossa.
 import type { Env, Persona } from './env.ts';
 import { autentica } from './auth.ts';
 import { nowFor } from './clock.ts';
-import { elencoPersone, entraConInvito, esistePersona, salvaLook, segnaAccesso } from './db.ts';
+import { elencoPersone, entraConInvito, esistePersona, salvaLook, salvaNome, segnaAccesso } from './db.ts';
 import { toFeedItem } from './feed.ts';
 import type { FeedRow } from './feed.ts';
 import { rottePortoAmici, segnaRecordDa } from './porto_amici.ts';
+import { giocaSolo, rotteAdrenalina } from './adrenalina.ts';
 export { Zone } from './do/Zone.ts';
 export { Lot } from './do/Lot.ts';
 export { Sfide } from './do/Sfide.ts';
 export { Spedizioni } from './do/Spedizioni.ts';
 export { GaraAmici } from './do/GaraAmici.ts';
+export { TemplariInsieme } from './do/TemplariInsieme.ts';
 
 const MAX_BODY = 4096;
 /** Input log dei minigiochi da solo: una Regata da 120 s sta sotto i 100 KB (7.200 righe al massimo); le Consegne durano fino a
@@ -89,6 +91,14 @@ async function avvisaZona(env: Env, persona: string, look: LookSalvato): Promise
   try {
     const r = await env.ZONE.get(env.ZONE.idFromName('porto')).fetch('https://zone/look', {
       method: 'POST', headers: { 'x-persona': persona, 'content-type': 'application/json' }, body: JSON.stringify(look),
+    });
+    await r.body?.cancel();
+  } catch { /* la zona si aggiorna alla prossima connessione */ }
+}
+async function avvisaZonaNome(env: Env, persona: string, nome: string): Promise<void> {
+  try {
+    const r = await env.ZONE.get(env.ZONE.idFromName('porto')).fetch('https://zone/nome', {
+      method: 'POST', headers: { 'x-persona': persona, 'content-type': 'application/json' }, body: JSON.stringify({ nome }),
     });
     await r.body?.cancel();
   } catch { /* la zona si aggiorna alla prossima connessione */ }
@@ -182,6 +192,15 @@ export default {
         target.searchParams.set('id', p.id); target.searchParams.set('nome', p.nome); target.searchParams.set('look', p.look); target.searchParams.set('dungeon', sq[1]!); target.searchParams.delete('t');
         return env.SPEDIZIONI.get(env.SPEDIZIONI.idFromName('spedizioni')).fetch(new Request(target.toString(), req));
       }
+      // Templari insieme (PROTOCOL §9): la sala alla porta della chiesa e la partita in tempo reale nel DO TemplariInsieme
+      if (path === '/ws/templari') {
+        if (req.headers.get('upgrade') !== 'websocket') return json({ error: 'Serve un WebSocket' }, 426);
+        const p = await autentica(req, env);
+        if (!p) return wsRifiuta('token', NO_TOKEN);
+        const target = new URL(req.url);
+        target.searchParams.set('id', p.id); target.searchParams.set('nome', p.nome); target.searchParams.set('look', p.look); target.searchParams.delete('t');
+        return env.TEMPLARI_INSIEME.get(env.TEMPLARI_INSIEME.idFromName('templari')).fetch(new Request(target.toString(), req));
+      }
       // corse tra amici (PROTOCOL §8): una sala sola nel DO GaraAmici, gara a fantasmi in tempo reale
       if (path === '/ws/gara') {
         if (req.headers.get('upgrade') !== 'websocket') return json({ error: 'Serve un WebSocket' }, 426);
@@ -251,6 +270,16 @@ export default {
         await avvisaZona(env, p.id, salvato);
         return json({ ok: true });
       }
+      if (path === '/api/nome' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const nome = typeof body['nome'] === 'string' ? body['nome'].replace(/[\p{C}<>]/gu, '').trim().replace(/\s+/g, ' ') : '';
+        if (nome.length < 2 || nome.length > 16) return json({ error: 'Scrivi un nome da 2 a 16 lettere' }, 400);
+        await salvaNome(env, p.id, nome);
+        p.nome = nome;
+        await avvisaZonaNome(env, p.id, nome);
+        return json({ ok: true, nome });
+      }
       if (path === '/api/look/hat' && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
@@ -294,6 +323,14 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, 'decor_' + (dec[1] ?? ''), { id: body['id'], cell: body['cell'] });
       }
+      // la casa arredabile (#265): negozio dei mobili e ARREDA (solo la propria casa: il DO è quello della persona)
+      const casa = path.match(/^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|baule)$/);
+      if (casa && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const { id, tipo, cell, muro, rot } = body;
+        return lotReq(env, p.id, now, 'casa_' + (casa[1] ?? ''), { id, tipo, cell, muro, rot });
+      }
       // minigiochi da solo (senza posta): il DO del lotto apre la partita e la premia
       if (path === '/api/solo/start' && req.method === 'POST') {
         const body = await corpo();
@@ -303,8 +340,10 @@ export default {
       if (path === '/api/solo/play' && req.method === 'POST') {
         const body = await corpo(MAX_PLAY_BODY);
         if (body instanceof Response) return body;
-        // il punteggio vero (dal replay) va anche al tabellone dei record del Porto (#110)
-        return segnaRecordDa(await lotReq(env, p.id, now, 'solo_play', { inputs: body['inputs'] }), (q, b) => sfideReq(env, p.id, now, q, b));
+        // il punteggio vero (dal replay) va anche al tabellone dei record del Porto (#110); le discese dell'Adrenalina passano dalla
+        // classifica a tempo (adrenalina.ts: medaglia dalla posizione, la discesa migliore diventa il fantasma)
+        const sfide = (q: string, b?: unknown) => sfideReq(env, p.id, now, q, b);
+        return segnaRecordDa(await giocaSolo(body, (b) => lotReq(env, p.id, now, 'solo_play', b), sfide), sfide);
       }
       // Bacheca del Porto (#64): le missioni di oggi le calcola anche il client dal lotto; qui solo RISCUOTI (il DO verifica e paga)
       if (path === '/api/missioni/riscuoti' && req.method === 'POST') {
@@ -330,6 +369,8 @@ export default {
         const d = (await r.json()) as { riepilogo: unknown; lot: unknown };
         return json({ riepilogo: d.riepilogo, novita, lot: d.lot, now });
       }
+      const ad = await rotteAdrenalina(path, url, req, env, (q, b) => sfideReq(env, p.id, now, q, b));
+      if (ad) return ad;
       const pa = await rottePortoAmici(path, req, env, (q, b) => sfideReq(env, p.id, now, q, b), corpo);
       if (pa) return pa;
       if (path === '/api/presenza' && req.method === 'POST') return lotReq(env, p.id, now, 'visto', {});
@@ -397,11 +438,18 @@ export default {
         if (body instanceof Response) return body;
         return sincIndossa(env, p, await lotReq(env, p.id, now, path.endsWith('save') ? 'dungeon_save' : 'dungeon_finish', { inputs: body['inputs'], azioni: body['azioni'], hash: body['hash'] }));
       }
+      if (path === '/api/test/inv' && req.method === 'POST') {
+        const u = new URL(req.url);
+        if (u.hostname !== '127.0.0.1' && u.hostname !== 'localhost') return json({ error: 'Vietato' }, 403);
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'test_inv', body);
+      }
       // Isola dei Templari (docs/TEMPLARI.md): apre la partita a ondate (seed dal DO) e la chiude (il DO rigioca e paga le ondate superate)
       if (path === '/api/templari/start' && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
-        return lotReq(env, p.id, now, 'templari_start', { subito: body['subito'] });
+        return lotReq(env, p.id, now, 'templari_start', { subito: body['subito'], classe: typeof body['classe'] === 'string' ? body['classe'].slice(0, 24) : undefined });
       }
       if (path === '/api/templari/reliquia' && req.method === 'POST') return lotReq(env, p.id, now, 'templari_reliquia', {});
       // Isola dell'Adrenalina (docs/ADRENALINA.md §2): la liberatoria firmata al cancello della funivia

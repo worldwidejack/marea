@@ -36,7 +36,7 @@ test('templari: vita e numero degli zombie come COD', () => {
   assert.equal(vitaOndata(9), 950);
   assert.ok(Math.abs(vitaOndata(10) - 1045) <= 1);
   assert.ok(vitaOndata(20) > 2600 && vitaOndata(20) < 2800);
-  assert.deepEqual([1, 2, 3, 4, 5].map(quantiOndata), [6, 9, 11, 14, 17]);
+  assert.deepEqual([1, 2, 3, 4, 5].map((n) => quantiOndata(n)), [6, 9, 11, 14, 17]);
   assert.ok(quantiOndata(200) <= TEMPLARI.ondate.quanti.max);
 });
 

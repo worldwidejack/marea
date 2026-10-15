@@ -5,7 +5,7 @@
 import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
 import type { TPotere } from '@marea/content/templari.ts';
 import type { TState } from './stato.ts';
-import { ev, secToTicks } from './stato.ts';
+import { ev, inPiedi, secToTicks, slotDi, usa } from './stato.ts';
 import { dai, uccidi } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
 
@@ -15,7 +15,7 @@ export function applica(s: TState, tipo: TPotere): void {
   const k = TEMPLARI.poteri, h = s.eroe;
   switch (tipo) {
     case 'faretra':
-      for (const sl of h.armi) if (sl) { const a = armaDef(sl.id); if (a.tipo !== 'mischia') { sl.colpi = a.colpi ?? 0; sl.riserva = a.riserva ?? 0; } }
+      for (const sl of h.armi) if (sl) { const a = armaDef(sl.id); if (a.tipo !== 'mischia') { const p = slotDi(a, !!sl.pot); sl.colpi = p.colpi; sl.riserva = p.riserva; } }
       h.ricarica = 0;
       break;
     case 'ira': s.poteri.ira = s.tick + secToTicks(k.durata); break;
@@ -31,16 +31,20 @@ export function applica(s: TState, tipo: TPotere): void {
   }
 }
 
-/** I power-up a terra che l'eroe tocca. */
+/** I power-up a terra che un eroe tocca (la Faretra riempie le armi di chi la prende; gli altri valgono per tutti). */
 export function stepPoteri(s: TState): void {
   if (!s.drops.length) return;
-  const h = s.eroe, r = TEMPLARI.poteri.raggio + TEMPLARI.eroe.raggio;
-  for (let i = 0; i < s.drops.length; i++) {
-    const d = s.drops[i]!;
-    if (d.tipo === 'scudo' || d.fine <= s.tick) continue;
-    if ((d.x - h.x) * (d.x - h.x) + (d.z - h.z) * (d.z - h.z) > r * r) continue;
-    s.drops.splice(i--, 1);
-    ev(s, { t: 'potere', tipo: d.tipo, preso: true, x: r2(d.x), z: r2(d.z) });
-    applica(s, d.tipo);
+  const r = TEMPLARI.poteri.raggio + TEMPLARI.eroe.raggio;
+  for (const k of inPiedi(s)) {
+    const h = s.eroi[k]!;
+    for (let i = 0; i < s.drops.length; i++) {
+      const d = s.drops[i]!;
+      if (d.tipo === 'scudo' || d.fine <= s.tick) continue;
+      if ((d.x - h.x) * (d.x - h.x) + (d.z - h.z) * (d.z - h.z) > r * r) continue;
+      s.drops.splice(i--, 1);
+      usa(s, k);
+      ev(s, { t: 'potere', tipo: d.tipo, preso: true, x: r2(d.x), z: r2(d.z) });
+      applica(s, d.tipo);
+    }
   }
 }

@@ -111,8 +111,13 @@ export default async function (ctx) {
       await sleep(400);
       const box = await page.locator('#mzGpIntro .box').boundingBox();
       assert(box && box.x >= 0 && box.x + box.width <= 844 && box.y >= 0 && box.y + box.height <= 390, 'la scelta esce dal telefono: ' + JSON.stringify(box));
+      await ctx.shot(page, 'telefono_2_scelta_pista');
+      await page.locator('#mzGpAvanti').click(); // menù a rulli (#271): pista, poi veicolo
       assert(await page.isVisible('#mzGpVia'), 'il bottone VIA non si vede');
       await page.locator('#mzGpIntro [data-id="auto"]').click();
+      const box2 = await page.locator('#mzGpIntro .box').boundingBox();
+      assert(box2 && box2.y >= 0 && box2.y + box2.height <= 390, 'il rullo dei veicoli esce dal telefono: ' + JSON.stringify(box2));
+      await sleep(600);
       await ctx.shot(page, 'telefono_2_scelta');
       await page.locator('#mzGpVia').click();
       await ctx.waitState(page, (s) => s.corse.active && s.corse.veicolo === 'auto' && s.corse.pista === 'spiaggia_lungomare', 20000);
@@ -195,6 +200,8 @@ export default async function (ctx) {
       await ctx.waitState(dp, (s) => s.corse && s.corse.hub && s.corse.hub.aperto === true, 20000);
       await dhook('corseHubVai', 'spiaggia');
       await ctx.waitState(dp, (s) => s.corse && s.corse.scelta === true, 20000);
+      await dp.keyboard.press('Enter'); // menù a rulli (#271): il primo Invio passa ai veicoli, il secondo parte
+      await sleep(300);
       await dp.keyboard.press('Enter');
       await ctx.waitState(dp, (s) => s.corse.active && s.corse.tick !== undefined, 20000);
       await dp.keyboard.down('ArrowUp');

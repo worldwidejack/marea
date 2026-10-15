@@ -3,7 +3,7 @@
 // Math.sin/cos/atan2/hypot/pow/… e niente `**`, solo + − × ÷ e Math.sqrt. Lo controlla tools/check_static.mjs.
 import type { DungeonInput, DungeonView } from '../dungeon/types.ts';
 import type { Rng } from '../rng.ts';
-import type { TPotere } from '@marea/content/templari.ts';
+import type { TClasse, TPotere, TPozione, TSuperDef } from '@marea/content/templari.ts';
 
 /** Input di un tick: mx, my in assi mondo; a = attacca (tieni = carica il giro), b = corri, c = scambia arma, d = AZIONE (posa la
  *  reliquia, ripara la finestra tenendo premuto, compra). Stesso formato e stessa compressione del dungeon (quantizeDungeon, packDungeon,
@@ -14,11 +14,21 @@ export type TInput = DungeonInput;
 export type TFase = 'altare' | 'inizio' | 'combatti' | 'pausa';
 /** morto = caduto · alba = 60 minuti passati, sopravvissuto · uscito = lasciata dalla pausa (vale come cadere: contano le ondate superate). */
 export type TEsito = 'morto' | 'alba' | 'uscito';
-/** Opzioni della partita, decise all'apertura (il server le tiene e le rigioca): `subito` = ondate già partite (bottone ⚔ delle prove). */
-export type TOpzioni = { subito?: boolean };
+/** Opzioni della partita, decise all'apertura (il server le tiene e le rigioca): `subito` = ondate già partite (la porta della chiesa e il
+ *  bottone ⚔ delle prove); `eroi` = insieme, quanti giocatori (2-4; mancante = da solo); `classi` = l'eroe scelto nel menù d'ingresso da
+ *  ciascuno, nell'ordine della squadra (mancante o sconosciuto = senza eroe: spada, vita 100, come prima del menù). */
+export type TOpzioni = { subito?: boolean; eroi?: number; classi?: (TClasse | null)[] };
 
-/** Azioni dal menu, tra due tick (registrate col tick come nel dungeon). */
-export type TAzione = { t: 'esci' };
+/** Azioni dal menu, tra due tick (registrate col tick come nel dungeon): uscire (da solo finisce la partita;
+ *  insieme `ritira` = l'eroe `eroe` esce e gli altri continuano), comprare dal Mercante (potenziare o ricaricare l'arma
+ *  dello slot) o dalla Strega (una pozione). */
+export type TAzione = { t: 'esci' }
+  | { t: 'ritira'; eroe: number }
+  | { t: 'compra'; da: 'mercante'; cosa: 'potenzia' | 'munizioni'; slot: number }
+  | { t: 'compra'; da: 'strega'; cosa: TPozione };
+/** Una voce del menù del Mercante o della Strega (bottega.ts): l'azione da mandare, cosa dire, il prezzo e se si può (`descr` dice perché no). */
+export type TOfferta = ({ da: 'mercante'; cosa: 'potenzia' | 'munizioni'; slot: number } | { da: 'strega'; cosa: TPozione; presa?: boolean })
+  & { nome: string; descr: string; prezzo: number; puoi: boolean };
 export type TAzioni = [number, TAzione][];
 
 export type TZombieAnim = 'sorge' | 'cammina' | 'corre' | 'strappa' | 'prepara' | 'lancia' | 'colpisce' | 'recupera' | 'carica' | 'fugge' | 'morto';
@@ -42,6 +52,8 @@ export type TEvento =
   | { t: 'fendente'; caricato: boolean }
   | { t: 'mancato' }
   | { t: 'caduto' }
+  /** Insieme: l'eroe caduto si rialza all'inizio dell'ondata dopo. */
+  | { t: 'rialzato' }
   | { t: 'alba' }
   | { t: 'scambia'; arma: string }
   /** Colpo di un'arma a distanza (sparo, freccia, vaso lanciato) e caricatore vuoto o ricarica. */
@@ -51,9 +63,15 @@ export type TEvento =
   | { t: 'esplosione'; x: number; z: number; r: number }
   /** Colpo fermato da uno scudo: quello dello scudato (`zombie`) o il tuo (`eroe`). */
   | { t: 'parato'; chi: 'eroe' | 'zombie'; x: number; z: number }
+  /** Lo scudo di uno scudato si è spaccato: da adesso è scoperto. */
+  | { t: 'scudoSpaccato'; id: number; x: number; z: number }
   | { t: 'scudo'; preso: boolean }
   | { t: 'scudoRotto' }
   | { t: 'compra'; arma: string; munizioni: boolean }
+  /** Il Mercante ha potenziato l'arma (`nome` = quello nuovo); la Strega ti ha dato una pozione; l'Elisir ti ha rialzato. */
+  | { t: 'potenziata'; arma: string; nome: string }
+  | { t: 'pozione'; id: TPozione }
+  | { t: 'risorto' }
   /** Cassa del tesoro: si apre (gira), esce un'arma, esce il teschio (la cassa ride e se ne va), ricompare altrove. */
   | { t: 'cassa'; fase: 'gira' | 'arma' | 'teschio' | 'vola' | 'qui' | 'presa'; arma?: string }
   /** Arriva un boss (il corno del cavaliere, de Molay in fiamme); il cavaliere si lancia; de Molay ride e scappa, poi sparisce. */
@@ -68,10 +86,26 @@ export type TEvento =
   /** Trappola accesa (leva), spenta (finiti i secondi), di nuovo pronta. */
   | { t: 'trappola'; id: string; fase: 'accesa' | 'spenta' | 'pronta' }
   /** Power-up uscito da terra (`preso` false) o preso. */
-  | { t: 'potere'; tipo: TPotere; preso: boolean; x: number; z: number };
+  | { t: 'potere'; tipo: TPotere; preso: boolean; x: number; z: number }
+  /** Il super è carico (si può usare) · usato: dove (Giudizio: l'eroe; Bordata e Pioggia: il bersaglio) e da dove. */
+  | { t: 'superPronto' }
+  | { t: 'super'; tipo: TSuperDef['id']; x: number; z: number; da: { x: number; z: number } }
+  /** Una cannonata della Bordata arriva. */
+  | { t: 'cannonata'; x: number; z: number; r: number }
+  /** Fuochi (§9b): uno acceso, tutti e tre accesi; un pezzo della campana preso (quanti su quanti), la campana montata; si comincia a
+   *  lavorare (AZIONE tenuto su un fuoco o sulla campana: `cosa` = `fuoco:<id>` o `monta`). */
+  | { t: 'fuoco'; id: string }
+  | { t: 'fuochiTutti' }
+  | { t: 'pezzo'; id: string; presi: number; tutti: number }
+  | { t: 'campana' }
+  | { t: 'lavoro'; cosa: string };
+
+/** Un evento della sim; insieme `e` = l'eroe a cui è successo (o che l'ha fatto). */
+export type TEventoDi = TEvento & { e?: number };
 
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
-export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola'; testo: string; prezzo: number; puoi: boolean } | null;
+/** `k` = lavoro in corso (AZIONE tenuto su un fuoco o sulla campana), 0..1. */
+export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola' | 'mercante' | 'strega' | 'fuoco' | 'pezzo' | 'monta'; testo: string; prezzo: number; puoi: boolean; k?: number } | null;
 
 export type TView = {
   tick: number; fase: TFase;
@@ -84,20 +118,33 @@ export type TView = {
     x: number; z: number; vita: number; max: number; fiato: number; punti: number;
     /** Ferito da poco (0..1, per il bordo rosso dello schermo). */
     ferita: number;
-    arma: string; armi: ({ id: string; colpi: number; riserva: number } | null)[]; cur: number;
+    arma: string; armi: ({ id: string; colpi: number; riserva: number; pot?: boolean } | null)[]; cur: number;
+    /** Pozioni della Strega che hai bevuto; intoccabile (l'Elisir ti ha appena rialzato). */
+    pozioni: TPozione[]; intoccabile: boolean;
     /** Ricarica in corso (0..1, 0 = no). */
     ricarica: number;
     /** Scudo templare: vita, massimo, in mano (sennò sulle spalle). */
     scudo: { vita: number; max: number; inMano: boolean } | null;
+    /** L'eroe del menù (null = senza) e la carica del super (0..1: a 1 si può usare). */
+    classe: TClasse | null; super: number;
   };
-  zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number; boss: boolean }[];
+  zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number; boss: boolean;
+    /** Ha ancora lo scudo davanti (lo scudato finché non si spacca). */
+    scudo: boolean }[];
   /** Tiri dei nemici in volo: bombe (con dove cadono e il raggio, per il cerchio a terra) e palle di fuoco; `k` = 0..1 del volo. */
   tiri: { id: number; tipo: 'bomba' | 'palla'; x: number; z: number; tx: number; tz: number; r: number; k: number }[];
   /** Il boss in campo (barra in alto): `fugge` = soglia della vita a cui scappa (de Molay), 0 = si combatte fino in fondo. */
   boss: { id: number; tipo: string; nome: string; vita: number; max: number; fugge: number } | null;
   finestre: { x: number; z: number; assi: number; max: number }[];
   proiettili: { id: number; tipo: 'freccia' | 'palla' | 'vaso'; x: number; z: number; vx: number; vz: number }[];
-  fiamme: { id: number; x: number; z: number; r: number; resta: number }[];
+  /** Fiamme a terra; `frecce` = la Pioggia di frecce dell'Arciere (stesso danno al secondo, si disegna a frecce). */
+  fiamme: { id: number; x: number; z: number; r: number; resta: number; frecce?: boolean }[];
+  /** Fuochi da accendere (§9b) e pezzi della campana ancora a terra (dove stanno in questa partita); la campana montata. */
+  fuochi: { id: string; x: number; z: number; acceso: boolean }[];
+  pezzi: { id: string; x: number; z: number; preso: boolean }[];
+  campana: boolean;
+  /** Cannonate della Bordata in volo: dove cadono, raggio, `k` = 0..1 del volo. */
+  cannonate: { id: number; x: number; z: number; r: number; k: number }[];
   /** Cose a terra da prendere (lo scudo dello scudato, i power-up), con i secondi che restano. */
   drops: { id: number; tipo: 'scudo' | TPotere; x: number; z: number; resta: number }[];
   /** Power-up a tempo: secondi che restano (0 = spento). */
@@ -112,7 +159,10 @@ export type TView = {
   /** Zombie ancora da far uscire in questa ondata più quelli vivi. */
   restano: number;
   uccisioni: number;
-  eventi: TEvento[];
+  eventi: TEventoDi[];
+  /** Insieme: io = il mio eroe (quello di `posa` ed `eroe`); compagni = gli altri, con la posa per l'attore, caduto o uscito. */
+  io: number;
+  compagni: { i: number; posa: DungeonView['hero']; arma: string; vita: number; max: number; giu: boolean; fuori: boolean; classe: TClasse | null }[];
 };
 
 export type TRisultato = {
@@ -127,9 +177,13 @@ export type TModulo<S> = {
   id: 'templari'; version: number; maxTicks: number;
   create(o: { seed: number; opzioni?: TOpzioni }): S;
   step(s: S, input: TInput): void;
-  act(s: S, a: TAzione): TEvento[] | null;
+  /** Insieme: un input per eroe (nell'ordine della squadra). */
+  stepInsieme(s: S, inputs: readonly TInput[]): void;
+  /** Azione dal menu dell'eroe `io` (di serie 0). */
+  act(s: S, a: TAzione, io?: number): TEvento[] | null;
   result(s: S): TRisultato;
-  view(s: S): TView;
+  /** La vista per l'eroe `io` (di serie 0). */
+  view(s: S, io?: number): TView;
   /** Pilota automatico per i test: posa la reliquia, ripara, combatte. */
   autopilot(s: S, rng: Rng): TInput;
 };

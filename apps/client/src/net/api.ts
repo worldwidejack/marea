@@ -24,7 +24,11 @@ export type PlayResult = { score: number; medal: Medal; detail: Record<string, n
 export type SoloStart = { minigame: string; seed: number; difficulty: number; /** Opzioni normalizzate dal server (es. { mare } della pesca). */ opzioni: Record<string, string>; lot: LotState };
 /** Esito di una partita da solo (POST /api/solo/play): medaglia ricalcolata dal server, premio (zero oltre il tetto del giorno), lotto aggiornato. */
 export type SoloResult = { score: number; medal: Medal; detail: Record<string, number>; premio: Resources; premiata: boolean; lot: LotState;
-  /** Tabellone del Porto (#110): la partita è il migliore di oggi / di sempre tra gli amici. */ record?: { oggi: boolean; sempre: boolean } | null };
+  /** Tabellone del Porto (#110): la partita è il migliore di oggi / di sempre tra gli amici. */ record?: { oggi: boolean; sempre: boolean } | null;
+  /** Discese dell'Adrenalina (3b): posto nella classifica a tempo (0 = non arrivato), quanti c'erano, se è il tuo miglior tempo e il record. */
+  posizione?: number; classificati?: number; discesa?: { migliorato: boolean; record?: boolean } | null };
+/** Il fantasma del record di una pista dell'Adrenalina (3b): input da rigiocare, chi (nome e look), tempo finale. */
+export type Fantasma = { chi: string; nome: string; ms: number; seed: number; opzioni: Record<string, string>; inputs: PackedInputs; look: Look | null };
 
 /** Tabellone dei record (#110, GET /api/record): per minigioco il migliore di oggi e di sempre tra gli amici. */
 export type RecordVista = { chi: string; nome: string; score: number; medal: Medal; detail: Record<string, number>; quando: number };
@@ -49,7 +53,7 @@ export type DungeonSave = { ok: boolean; salvato: { bottino: Record<string, numb
 export type DungeonFinish = { result: RunResult; tenuto: Record<string, number>; monete: number; livelliSu: number; lot: LotState };
 
 /** Isola dei Templari (docs/TEMPLARI.md): partita a ondate aperta dal server (seed) e chiusa col replay (premio delle ondate superate, tetto del giorno). */
-export type TemplariStart = { seed: number; subito: boolean; lot: LotState };
+export type TemplariStart = { seed: number; subito: boolean; classe?: string | null; lot: LotState };
 export type TemplariFinish = { result: TRisultato; premio: Resources; pieno: Resources; tetto: boolean; record: boolean; lot: LotState };
 
 /** Rientro (#86, POST /api/rientro): riepilogo dell'assenza (null se mancavi da poco o è il primo ingresso), novità non lette del feed. */
@@ -84,6 +88,8 @@ export type Api = {
   decorMove(id: string, cell: Cell): Promise<LotState>;
   decorRotate(id: string): Promise<LotState>;
   decorSell(id: string): Promise<LotState>;
+  /** La casa arredabile (#265): compra (negozio dei mobili), finitura (compra pavimento/carta), scegli, posa, sposta, ruota, ritira, baule. */
+  casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number }): Promise<LotState>;
   /** Tutte le persone dell'arcipelago (me compreso). */
   persone(): Promise<Persona[]>;
   /** Le mie sfide: in gioco (mandate e ricevute) e chiuse degli ultimi 7 giorni, le più recenti prima. */
@@ -97,7 +103,7 @@ export type Api = {
   /** Minigiochi da solo (senza posta): apre una partita col seed del server; `opzioni` = parametri della partita (es. il mare della pesca). */
   soloStart(minigame: string, opzioni?: Record<string, string>): Promise<SoloStart>;
   /** Consegna gli input della partita da solo: il server la rigioca e premia la medaglia. */
-  soloPlay(inputs: PackedInputs): Promise<SoloResult>;
+  soloPlay(inputs: PackedInputs, discesa?: { minigame: string; pista: string }): Promise<SoloResult>;
   // ---- Mondo Sotterraneo (CONTRACTS §15) ----
   /** Azione del personaggio (livello, perk, equip, forgia, alchimia, forziere, serra…): risponde col lotto aggiornato. */
   rpg(a: RpgAction): Promise<LotState>;
@@ -108,13 +114,16 @@ export type Api = {
   /** SALVA sulla lanterna: input e azioni fin lì, il server li rigioca e tiene il bottino al sicuro anche se la scheda si chiude. */
   dungeonSave(inputs: PackedDungeon | string, hash: number, azioni?: DungeonAzioni): Promise<DungeonSave>;
   // ---- Isola dei Templari ----
-  templariStart(subito?: boolean): Promise<TemplariStart>;
+  /** `classe` = l'eroe del menù d'ingresso (il server lo tiene e lo rigioca). */
+  templariStart(subito?: boolean, classe?: string): Promise<TemplariStart>;
   /** `inputs` compressi con `encodeDungeon` (o array RLE): il server rigioca e paga. */
   templariFinish(inputs: PackedDungeon | string, hash: number, azioni?: TAzioni): Promise<TemplariFinish>;
   /** Il calice dei Templari dallo scheletro della Tempesta (docs/TEMPLARI.md §2): nel lotto, la nebbia rossa si dirada. */
   templariReliquia(): Promise<{ lot: LotState; nuova: boolean }>;
   /** Isola dell'Adrenalina: firma la liberatoria al cancello della funivia (una volta sola, resta nel lotto). */
   adrenalinaLiberatoria(): Promise<{ lot: LotState; nuova: boolean }>;
+  /** Il fantasma del record della pista (null = nessuno ha ancora fatto la discesa). */
+  adrenalinaFantasma(pista: string): Promise<Fantasma | null>;
   // ---- Porto (#64) ----
   /** RISCUOTI una missione compiuta della Bacheca (indice 0-2 di oggi): il server verifica, paga e risponde col lotto. */
   riscuoti(i: number): Promise<{ premio: Resources; lot: LotState }>;
@@ -141,6 +150,8 @@ export type Api = {
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a Perle e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;
+  /** Cambia il nome del personaggio (POST /api/nome, #301). 400 se non è tra 2 e 16 caratteri. Aggiorna anche la presenza (gli altri lo vedono). */
+  nome(n: string): Promise<{ ok: boolean; nome: string }>;
   /** Compra un cappello a Perle, una volta (POST /api/look/hat con l'id di avatar.json). 409 con `manca` senza Perle. */
   buyHat(id: string): Promise<LotState>;
   /** La tua barca (#107): colori e nome (POST /api/barca), il server ripulisce il nome e controlla i colori esclusivi. Risponde con la barca salvata. */
@@ -259,6 +270,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     decorMove: (id, cell) => post('/api/lot/decor/move', { id, cell }),
     decorRotate: (id) => post('/api/lot/decor/rotate', { id }),
     decorSell: (id) => post('/api/lot/decor/sell', { id }),
+    casa: (azione, body) => post('/api/lot/casa/' + azione, body),
     async persone() {
       const d = await call('GET', '/api/persone');
       const list = Array.isArray(d) ? d : isObj(d) && Array.isArray(d['persone']) ? d['persone'] : [];
@@ -288,12 +300,14 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       if (isObj(d['opzioni'])) for (const [k, v] of Object.entries(d['opzioni'])) if (typeof v === 'string') opz[k] = v;
       return { minigame: String(d['minigame'] ?? minigame), seed: d['seed'], difficulty: typeof d['difficulty'] === 'number' ? d['difficulty'] : 2, opzioni: opz, lot: asLot(d['lot']) };
     },
-    async soloPlay(inputs) {
-      const d = await call('POST', '/api/solo/play', { inputs });
+    async soloPlay(inputs, discesa) {
+      const d = await call('POST', '/api/solo/play', discesa ? { inputs, ...discesa } : { inputs });
       if (!isObj(d) || typeof d['score'] !== 'number' || !isObj(d['premio'])) throw new ApiError(500, 'Risposta del server non valida');
       const medal = d['medal'] === 'oro' || d['medal'] === 'argento' || d['medal'] === 'bronzo' ? d['medal'] : null;
       const rec = isObj(d['record']) ? { oggi: !!d['record']['oggi'], sempre: !!d['record']['sempre'] } : null;
-      return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, premio: d['premio'] as Resources, premiata: !!d['premiata'], lot: asLot(d['lot']), record: rec };
+      const dis = isObj(d['discesa']) ? { migliorato: !!d['discesa']['migliorato'], record: !!d['discesa']['record'] } : null;
+      return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, premio: d['premio'] as Resources, premiata: !!d['premiata'], lot: asLot(d['lot']), record: rec,
+        ...(typeof d['posizione'] === 'number' ? { posizione: d['posizione'], classificati: typeof d['classificati'] === 'number' ? d['classificati'] : 0, discesa: dis } : {}) };
     },
     async record() {
       const d = await call('GET', '/api/record');
@@ -336,15 +350,22 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       const sv = isObj(d['salvato']) ? d['salvato'] : null;
       return { ok: !!d['ok'], salvato: sv ? { bottino: isObj(sv['bottino']) ? (sv['bottino'] as Record<string, number>) : {}, monete: typeof sv['monete'] === 'number' ? sv['monete'] : 0 } : null, ticks: typeof d['ticks'] === 'number' ? d['ticks'] : 0 };
     },
-    async templariStart(subito) {
-      const d = await call('POST', '/api/templari/start', subito ? { subito: true } : {});
+    async templariStart(subito, classe) {
+      const d = await call('POST', '/api/templari/start', { ...(subito ? { subito: true } : {}), ...(classe ? { classe } : {}) });
       if (!isObj(d) || typeof d['seed'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');
-      return { seed: d['seed'], subito: !!d['subito'], lot: asLot(d['lot']) };
+      return { seed: d['seed'], subito: !!d['subito'], classe: typeof d['classe'] === 'string' ? d['classe'] : null, lot: asLot(d['lot']) };
     },
     async templariReliquia() {
       const d = await call('POST', '/api/templari/reliquia', {});
       if (!isObj(d)) throw new ApiError(500, 'Risposta del server non valida');
       return { lot: asLot(d['lot']), nuova: d['nuova'] === true };
+    },
+    async adrenalinaFantasma(pista) {
+      const d = await call('GET', '/api/adrenalina/fantasma?pista=' + encodeURIComponent(pista));
+      const f = isObj(d) && isObj(d['fantasma']) ? d['fantasma'] : null;
+      if (!f || typeof f['chi'] !== 'string' || typeof f['ms'] !== 'number' || !Array.isArray(f['inputs'])) return null;
+      return { chi: f['chi'], nome: typeof f['nome'] === 'string' ? f['nome'] : 'Qualcuno', ms: f['ms'], seed: Number(f['seed']) || 0,
+        opzioni: isObj(f['opzioni']) ? (f['opzioni'] as Record<string, string>) : {}, inputs: f['inputs'] as PackedInputs, look: isObj(f['look']) ? (f['look'] as unknown as Look) : null };
     },
     async adrenalinaLiberatoria() {
       const d = await call('POST', '/api/adrenalina/liberatoria', {});
@@ -382,6 +403,11 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     },
     diarioTitolo: (id) => post('/api/diario/titolo', { id }),
     async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
+    async nome(n) {
+      const d = await call('POST', '/api/nome', { nome: n });
+      if (!isObj(d) || typeof d['nome'] !== 'string') throw new ApiError(500, 'Risposta del server non valida');
+      return { ok: true, nome: d['nome'] as string };
+    },
     buyHat: (id) => post('/api/look/hat', { cappello: id }),
     async barca(b) {
       const d = await call('POST', '/api/barca', { scafo: b.scafo, vela: b.vela, nome: b.nome });

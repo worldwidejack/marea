@@ -63,14 +63,17 @@ export default async function (ctx) {
       await ctx.shot(L, 'sala');
     });
 
-    await ctx.test('VIA di Luca coi bot: partono tutti e due sulla Baia coi loro 4 bot, ai loro posti; ognuno vede l\'altro', async () => {
+    await ctx.test('VIA di Luca coi bot e con gli oggetti (#250): partono tutti e due sulla Baia coi loro 4 bot, ai loro posti; ognuno vede l\'altro', async () => {
       await L.locator('#mzGpSala [data-id="bot_si"]').click();
       await L.locator('#mzGpSala [data-id="bot_si"].on').waitFor({ timeout: 4000 });
+      await L.locator('#mzGpSala [data-id="ogg_si"]').click();
+      await L.locator('#mzGpSala [data-id="ogg_si"].on').waitFor({ timeout: 4000 });
       await L.locator('#mzGpSalaVia').click();
       for (const p of [L, M]) await ctx.waitState(p, (s) => s.corse.active === true && s.corse.amici === true, 20000);
       const [sl, sm] = [await st(L), await st(M)];
       assert(sl.corse.pista === 'spiaggia_baia' && sm.corse.pista === 'spiaggia_baia', `piste ${sl.corse.pista} ${sm.corse.pista}`);
       assert(sl.corse.vista.veicoli === 5 && sm.corse.vista.veicoli === 5, `mancano i bot: ${sl.corse.vista.veicoli} ${sm.corse.vista.veicoli}`);
+      assert(sl.corse.oggetti && sm.corse.oggetti && sl.corse.oggetti.scatole > 0, `gara senza oggetti: ${JSON.stringify(sl.corse.oggetti)} ${JSON.stringify(sm.corse.oggetti)}`);
       // il gas è sul bottone: una gara a mano per un attimo, poi il pilota automatico
       for (const p of [L, M]) await hook(p, 'corseAuto', 3);
       for (const p of [L, M]) await ctx.waitState(p, (s) => s.corse.tick > 60 && s.corse.vista.fantasmi === 1 && s.corse.sala.amici[0].prog !== null, 40000);
@@ -93,6 +96,7 @@ export default async function (ctx) {
         const s = await st(p), r = s.minigiochi.last;
         ctx.log(`${nome}: ${r.medal} · ${JSON.stringify(r.detail)}`);
         assert(r.detail.giri === r.detail.tot, `${nome} non ha finito: ` + JSON.stringify(r.detail));
+        assert(r.detail.oggetti > 0, `${nome}: il server non ha rigiocato gli oggetti: ` + JSON.stringify(r.detail));
         const testo = await p.locator('#mzEsito').innerText();
         assert(/su 2 tra amici/.test(testo), `${nome}: la scheda non dice la posizione tra amici: ${testo.replace(/\s+/g, ' ').slice(0, 160)}`);
         assert(s.corse.hub.aperto && !s.corse.active && !s.corse.sala.aperta, `${nome}: sotto la scheda non c'è l'hub (o la sala è ancora aperta)`);

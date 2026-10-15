@@ -2,7 +2,7 @@
 // Vincoli (TECH §5): drawCalls ≤ 100, triangoli ≤ 150.000. FPS e memoria JS solo riportati (Chrome headless usa SwiftShader: gli fps non dicono nulla di un telefono vero).
 // Uscita: tests/out/perf.json
 export const timeout = 90000;
-const MAX_DRAW = 100, MAX_TRIS = 150000, SECONDS = 20, MAX_HEAP_MB = 400;
+const MAX_DRAW = 100, MAX_TRIS = 200000 /* TECH §5: 180k col Borgo (#237), 200k con la città attorno al Porto (#247) */, SECONDS = 20, MAX_HEAP_MB = 400;
 // Copione: ogni secondo `t` una lista di azioni. Frecce a piedi per 8 s, poi barca (hook setMode: la salita reale richiede A vicino al molo, la copre boot.mjs).
 const KEYS = ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'];
 const BOAT_KEYS = ['ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'ArrowUp']; // in barca: cambia rotta ogni secondo

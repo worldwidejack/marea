@@ -47,7 +47,7 @@ const SCENE: Record<string, ConfScena> = {
 export const haScena = (id: string): boolean => id in SCENE;
 
 // ---------- vicinanza alla pista: i campioni di tutti i nastri in una griglia da 16 m ----------
-type Camp = { x: number; y: number; z: number; rx: number; rz: number; l: number; fuori: number; vuoto: boolean; s: number; ramo: number; miniera: boolean };
+type Camp = { x: number; y: number; z: number; rx: number; ry: number; rz: number; l: number; fuori: number; vuoto: boolean; s: number; ramo: number; miniera: boolean; pressoVuoto: boolean };
 type Vicino = { c: Camp; d: number; lat: number };
 const CELLA = 16;
 class Vicini {
@@ -67,6 +67,23 @@ class Vicini {
     for (const c of this.mine) { const d2 = (x - c.x) ** 2 + (z - c.z) ** 2; if (d2 < bd) { bd = d2; ok = true; } }
     return ok ? { d: Math.sqrt(bd) } : null;
   }
+  /** La quota più bassa della strada sopra (x, z) tra i campioni entro `r` m che ci passano sopra col bordo (le curve che cambiano
+   *  pendenza in pochi metri: una cella della griglia non deve prendere la quota del pezzo alto, #258). */
+  raggioLungo = 4;
+  stradaMin(x: number, z: number, r: number): number {
+    const i0 = Math.floor((x - r) / CELLA), i1 = Math.floor((x + r) / CELLA), j0 = Math.floor((z - r) / CELLA), j1 = Math.floor((z + r) / CELLA);
+    let m = Infinity;
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+      const a = this.b.get(this.chiave(i, j)); if (!a) continue;
+      for (const c of a) {
+        const dx = x - c.x, dz = z - c.z; if (dx * dx + dz * dz > r * r) continue;
+        const rl = Math.hypot(c.rx, c.rz) || 1, lat = (dx * c.rx + dz * c.rz) / rl;
+        const lungo = Math.abs(dx * c.rz - dz * c.rx) / rl; // quanto il punto sta avanti o indietro rispetto al campione
+        if (Math.abs(lat) <= c.fuori + 1 && lungo <= this.raggioLungo) m = Math.min(m, quotaStrada(c, lat));
+      }
+    }
+    return m;
+  }
   /** Il campione più vicino entro `r` m (in pianta). */
   vicino(x: number, z: number, r = 48): Vicino | null {
     const i0 = Math.floor((x - r) / CELLA), i1 = Math.floor((x + r) / CELLA), j0 = Math.floor((z - r) / CELLA), j1 = Math.floor((z + r) / CELLA);
@@ -81,14 +98,18 @@ class Vicini {
   }
 }
 
+/** Metri prima e dopo un buco in cui il terreno sotto la strada scende già al fondo del canale (#270): la griglia ha celle di 3-6 m e
+ *  le punte di sabbia bucavano l'acqua tra le spalle. Sotto la strada non si vede. */
+const PRESSO = 7;
 function campioni(p: Pista): Vicini {
   const v = new Vicini(), muro = p.def.stile === 'acqua' ? 0.3 : 0.6;
   const metti = (n: Nastro, ramo: number, bordo: number) => {
     const ultimo = n.chiuso ? n.n : n.n;
     for (let i = 0; i < ultimo; i++) {
       const s = i * n.passo;
-      v.aggiungi({ x: n.x[i]!, y: n.y[i]!, z: n.z[i]!, rx: n.rx[i]!, rz: n.rz[i]!, l: n.l[i]!, fuori: n.l[i]! + bordo + muro, s, ramo,
-        vuoto: ramo < 0 && superficieA(p, -1, s, 0, 1) === VUOTO, miniera: ramo < 0 && suBinari(p, -1, s, '') });
+      v.aggiungi({ x: n.x[i]!, y: n.y[i]!, z: n.z[i]!, rx: n.rx[i]!, ry: n.ry[i]!, rz: n.rz[i]!, l: n.l[i]!, fuori: n.l[i]! + bordo + muro, s, ramo,
+        vuoto: ramo < 0 && superficieA(p, -1, s, 0, 1) === VUOTO, miniera: ramo < 0 && suBinari(p, -1, s, ''),
+        pressoVuoto: ramo < 0 && p.def.vuoti.some((x) => !x.lat && s > x.da - PRESSO && s < x.a + PRESSO) });
     }
   };
   metti(p.n, -1, p.def.bordo);
@@ -97,6 +118,11 @@ function campioni(p: Pista): Vicini {
 }
 
 // ---------- quote ----------
+/** La quota della strada a `lat` m a destra del campione (le curve sopraelevate pendono: il bordo interno sta fino a 2 m sotto il
+ *  centro, #258), con `lat` fermato al bordo esterno del muro. */
+const quotaStrada = (c: Camp, lat: number) => c.y + Math.max(-c.fuori, Math.min(c.fuori, lat)) * c.ry / (Math.hypot(c.rx, c.rz) || 1);
+/** Sopra un buco da saltare lontano dal mare: il fosso con l'acqua a questa distanza sotto la strada (#258). */
+const FOSSO = 2.2;
 const liscio = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const h01 = (x: number, y: number, s = 0) => {
   let n = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s, 1274126177)) >>> 0;
@@ -136,6 +162,8 @@ type Terreno = {
   nat(x: number, z: number): number;
   vicini: Vicini; conf: ConfScena; dentroGiro(x: number, z: number): boolean;
   bordo: { x0: number; x1: number; z0: number; z1: number };
+  /** Il lato delle celle della griglia (m). */
+  passo: number;
 };
 
 function terreno(p: Pista, conf: ConfScena): Terreno {
@@ -145,6 +173,8 @@ function terreno(p: Pista, conf: ConfScena): Terreno {
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
   for (const c of vicini.tutti) { x0 = Math.min(x0, c.x); x1 = Math.max(x1, c.x); z0 = Math.min(z0, c.z); z1 = Math.max(z1, c.z); }
   const M = 80; x0 -= M; x1 += M; z0 -= M; z1 += M;
+  const passo = Math.max(3, Math.sqrt(((x1 - x0) * (z1 - z0)) / 11000));
+  vicini.raggioLungo = passo + 1;
   const collina = (x: number, z: number, d: number) => 0.4 + Math.min(16, d * 0.1) * (0.5 + rumore(x, z, 45, 7)) + 0.6 * rumore(x, z, 13, 8);
   const nat = (x: number, z: number): number => {
     // bordo del mondo: il terreno scende in mare (così da lontano è un'isola)
@@ -186,17 +216,18 @@ function terreno(p: Pista, conf: ConfScena): Terreno {
   const alt = (x: number, z: number): number => {
     const n = nat(x, z), q = vicini.vicino(x, z);
     if (!q) return n;
-    const { c, d } = q;
-    if (c.vuoto && d < c.fuori + 3) return L - 1.5;               // il canale sotto il salto
+    const { c, d } = q, y = Math.min(quotaStrada(c, q.lat), vicini.stradaMin(x, z, c.fuori + passo));
+    if ((c.vuoto && d < c.fuori + 3) || (c.pressoVuoto && d < c.fuori)) return c.y - L > FOSSO + 1 ? c.y - FOSSO - 1.3 : L - 1.5; // il canale (o il fosso in alto) sotto il salto
     if (c.miniera) return n;                                      // sotto il ponte della miniera il canyon resta giù
     if (acqua) return d < c.fuori + 2 ? L - 2.5 : n;              // la pista d'acqua resta in acqua
-    if (d < c.fuori) return c.y - 0.35;                           // sotto la strada
+    if (d < c.fuori) return y - 0.35;                             // sotto la strada, anche nelle curve sopraelevate
     if (conf.porto) return d < c.fuori + DARSENA ? L - 1.5 : n;   // il molo corre sull'acqua della darsena, poi la banchina
-    const e = d - c.fuori, R = 5 + Math.abs(c.y - 0.1 - n) * (n < L ? 0.7 : 1.3);
-    const piano = conf.porto && n > L ? 0 : (n < L ? 1.2 : 2.5);  // un marciapiede piatto prima di raccordarsi
-    return c.y - 0.12 + (n - (c.y - 0.12)) * liscio(piano, piano + R, e);
+    // un marciapiede piatto prima di raccordarsi, appena sotto il bordo: la griglia (3-6 m) non deve far spuntare il raccordo sulla strada
+    const e = d - c.fuori, y0 = y - 0.2, R = 5 + Math.abs(y0 - n) * (n < L ? 0.7 : 1.3);
+    const piano = conf.porto && n > L ? 0 : (n < L ? 1.2 : Math.max(2.5, passo * 1.2));
+    return y0 + (n - y0) * liscio(piano, piano + R, e);
   };
-  return { alt, nat, vicini, conf, dentroGiro, bordo: { x0, x1, z0, z1 } };
+  return { alt, nat, vicini, conf, dentroGiro, bordo: { x0, x1, z0, z1 }, passo };
 }
 
 // ---------- la griglia del terreno, a riquadri ----------
@@ -205,9 +236,14 @@ const RIQ = 160;
 const LONTANO = 90;
 /** Porto: metri d'acqua tra il bordo del molo e la banchina. */
 const DARSENA = 7;
-type Tela = { pos: number[]; col: number[] };
+type Tela = { pos: number[]; col: number[]; nor: number[] };
+/** Prova A/B dell'erba (#258): `?erba=vecchia` = un colore a caso per triangolo e luce piatta per triangolo (si vedeva il disegno della
+ *  griglia); di serie macchie larghe, un colore per cella (i due triangoli uguali) e luce morbida (la passata pixel la divide a bande). */
+const ERBA_VECCHIA = typeof location !== 'undefined' && new URLSearchParams(location.search).get('erba') === 'vecchia';
+/** Le macchie: rumore morbido largo ~18 m più un filo di grana per cella, 0..1. */
+const macchia = (x: number, z: number, i: number, j: number) => Math.min(0.999, Math.max(0, rumore(x, z, 18, 5) * 0.85 + 0.15 * h01(i, j, 9) + (rumore(x, z, 7, 6) - 0.5) * 0.35));
 function coloreTerra(t: Terreno, cx: number, cz: number, h: number, pend: number, i: number, j: number): string | null {
-  const L = t.conf.livello, q = t.vicini.vicino(cx, cz, 12), dith = h01(i, j, 5);
+  const L = t.conf.livello, q = t.vicini.vicino(cx, cz, 12), dith = ERBA_VECCHIA ? h01(i, j, 5) : macchia(cx, cz, i, j);
   if (t.conf.giungla) {
     if (q && !q.c.miniera && q.d < q.c.fuori + 2.2 && h > L + 1) return dith < 0.6 ? P.legno : P.legnoScuro;                // lo sterrato oltre il bordo
     if (h < L + 0.5) return dith < 0.6 ? P.pietra : P.pietraScura;                                                          // i sassi del fiume
@@ -217,7 +253,7 @@ function coloreTerra(t: Terreno, cx: number, cz: number, h: number, pend: number
   }
   if (q && q.d < q.c.fuori + 2.2 && h > L + 0.3 && !t.conf.porto) return dith < 0.5 ? P.pietraChiara : P.pietra; // marciapiede
   if (pend > 0.9) return dith < 0.6 ? P.pietraScura : P.roccia;
-  if (t.conf.porto && h > L + 0.2 && pend < 0.25) return (i + j) % 2 ? P.pietra : P.pietraChiara;              // banchine
+  if (t.conf.porto && h > L + 0.2 && pend < 0.25) return (ERBA_VECCHIA ? (i + j) % 2 : dith < 0.5) ? P.pietra : P.pietraChiara; // banchine
   if (h < L + 0.15) return dith < 0.7 ? P.sabbia : P.legnoChiaro;                                              // bagnasciuga
   if (h < L + 1.6 && pend < 0.5) return dith < 0.8 ? P.sabbia : P.sabbiaChiara;                                // spiaggia
   if (pend > 0.55) return dith < 0.5 ? P.pietra : P.pietraScura;
@@ -225,13 +261,20 @@ function coloreTerra(t: Terreno, cx: number, cz: number, h: number, pend: number
   return dith < 0.85 ? P.erba : P.erbaScura;
 }
 
-function griglia(t: Terreno): Map<number, Tela> {
+function griglia(t: Terreno): { tele: Map<number, Tela>; quota: (x: number, z: number) => number } {
   const { x0, x1, z0, z1 } = t.bordo, L = t.conf.livello;
-  const area = (x1 - x0) * (z1 - z0), passo = Math.max(3, Math.sqrt(area / 11000));
+  const passo = t.passo;
   const ni = Math.ceil((x1 - x0) / passo), nj = Math.ceil((z1 - z0) / passo);
   const H = new Float32Array((ni + 1) * (nj + 1));
   for (let j = 0; j <= nj; j++) for (let i = 0; i <= ni; i++) H[j * (ni + 1) + i] = t.alt(x0 + i * passo, z0 + j * passo);
   const tele = new Map<number, Tela>(), c = new THREE.Color();
+  /** La normale liscia in un vertice della griglia (differenze centrali): la luce scorre sulle colline invece di spezzarsi a triangoli. */
+  const normale = (x: number, z: number): [number, number, number] => {
+    const i = Math.round((x - x0) / passo), j = Math.round((z - z0) / passo), h = (ii: number, jj: number) => H[Math.min(nj, Math.max(0, jj)) * (ni + 1) + Math.min(ni, Math.max(0, ii))]!;
+    const nx = -(h(i + 1, j) - h(i - 1, j)) / (2 * passo), nz = -(h(i, j + 1) - h(i, j - 1)) / (2 * passo), l = Math.sqrt(nx * nx + 1 + nz * nz);
+    return [nx / l, 1 / l, nz / l];
+  };
+  let cella: string | null = null; // il colore della cella (erba nuova): uguale per i suoi due triangoli
   const tri = (a: number[], b: number[], d: number[], ii: number, jj: number) => {
     if (a[1]! < L - 0.25 && b[1]! < L - 0.25 && d[1]! < L - 0.25) return; // sott'acqua: lo copre il mare
     const cx = (a[0]! + b[0]! + d[0]!) / 3, cz = (a[2]! + b[2]! + d[2]!) / 3, cy = (a[1]! + b[1]! + d[1]!) / 3;
@@ -239,18 +282,48 @@ function griglia(t: Terreno): Map<number, Tela> {
     if (q && q.d < q.c.l + 0.5 && !q.c.vuoto && t.conf.livello < -1) return; // sotto la carreggiata non si vede
     if (t.conf.mareA && !t.vicini.vicino(cx, cz, LONTANO)) return;
     const pend = (Math.max(a[1]!, b[1]!, d[1]!) - Math.min(a[1]!, b[1]!, d[1]!)) / passo;
-    const col = coloreTerra(t, cx, cz, cy, pend, ii, jj); if (!col) return;
+    const col = ERBA_VECCHIA ? coloreTerra(t, cx, cz, cy, pend, ii, jj) : cella; if (!col) return;
     const k = Math.floor((cx - x0) / RIQ) * 1000 + Math.floor((cz - z0) / RIQ);
-    let tl = tele.get(k); if (!tl) tele.set(k, (tl = { pos: [], col: [] }));
+    let tl = tele.get(k); if (!tl) tele.set(k, (tl = { pos: [], col: [], nor: [] }));
     tl.pos.push(...a, ...b, ...d); c.set(col);
+    if (!ERBA_VECCHIA) for (const p of [a, b, d]) tl.nor.push(...normale(p[0]!, p[2]!));
     for (let r = 0; r < 3; r++) tl.col.push(c.r, c.g, c.b);
   };
   for (let j = 0; j < nj; j++) for (let i = 0; i < ni; i++) {
     const v = (ii: number, jj: number) => [x0 + ii * passo, H[jj * (ni + 1) + ii]!, z0 + jj * passo];
     const a = v(i, j), b = v(i + 1, j), d = v(i, j + 1), e = v(i + 1, j + 1);
+    if (!ERBA_VECCHIA) {
+      const ys = [a[1]!, b[1]!, d[1]!, e[1]!], cx = x0 + (i + 0.5) * passo, cz = z0 + (j + 0.5) * passo;
+      cella = coloreTerra(t, cx, cz, (ys[0]! + ys[1]! + ys[2]! + ys[3]!) / 4, (Math.max(...ys) - Math.min(...ys)) / passo, i, j);
+    }
     if ((i + j) % 2) { tri(a, d, b, i * 2, j); tri(b, d, e, i * 2 + 1, j); } else { tri(a, d, e, i * 2, j); tri(a, e, b, i * 2 + 1, j); }
   }
-  return tele;
+  /** La quota del terreno disegnato in (x, z): gli stessi due triangoli per cella della mesh (per il controllo dei bordi, #258). */
+  const quota = (x: number, z: number): number => {
+    const fi = (x - x0) / passo, fj = (z - z0) / passo, i = Math.min(ni - 1, Math.max(0, Math.floor(fi))), j = Math.min(nj - 1, Math.max(0, Math.floor(fj)));
+    const u = fi - i, w = fj - j, h = (ii: number, jj: number) => H[jj * (ni + 1) + ii]!;
+    const a = h(i, j), b = h(i + 1, j), d = h(i, j + 1), e = h(i + 1, j + 1);
+    if ((i + j) % 2) return u + w <= 1 ? a + (b - a) * u + (d - a) * w : e + (d - e) * (1 - u) + (b - e) * (1 - w);
+    return w >= u ? a + (e - d) * u + (d - a) * w : a + (b - a) * u + (e - b) * w;
+  };
+  return { tele, quota };
+}
+
+/** Di quanto (m) il terreno spunta sopra la strada, al peggio: campioni ogni metro, sulla carreggiata e sul bordo fino al muro. Deve
+ *  restare ≤ 0 (sennò nelle curve il veicolo «entra nel terreno», #258). Fuori: buchi, rotaie della miniera, piste d'acqua. */
+function sporgenza(p: Pista, quota: (x: number, z: number) => number): { m: number; s: number; lat: number } {
+  const peggio = { m: -Infinity, s: 0, lat: 0 }, q3: [number, number, number] = [0, 0, 0], n = p.n;
+  if (p.def.stile === 'acqua') return { m: 0, s: 0, lat: 0 };
+  for (let s = 0; s < n.len; s += 1) {
+    if (superficieA(p, -1, s, 0, 1) === VUOTO || suBinari(p, -1, s, '')) continue;
+    const l = campo(n, n.l, s) + p.def.bordo;
+    for (const f of [-1, -0.75, -0.5, 0, 0.5, 0.75, 1]) {
+      punto(n, s, f * l, 0, q3);
+      const m = quota(q3[0], q3[2]) - q3[1];
+      if (m > peggio.m) Object.assign(peggio, { m, s, lat: f * l });
+    }
+  }
+  return peggio;
 }
 
 // ---------- i pezzi ----------
@@ -314,6 +387,7 @@ function piazza(p: Pista, t: Terreno): { pezzi: Pezzo[]; teste: Testa[] } {
   for (let s = 0; s < n.len - 2; s += 2) {
     const k = campo(n, n.k, s), fuori = fuoriA(s);
     if (p.def.tipo === 'fuga' && (s < p.def.via - 20 || s > p.def.via + p.arrivo + 10)) continue;
+    if (p.def.vuoti.some((v) => !v.lat && s > v.da - 3 && s < v.a + 3)) continue; // niente lampioni nel canale sotto il salto (#270)
     for (const lato of [-1, 1]) {
       const at = (off: number) => pt(s, lato * (fuori + off));
       const [cx, , cz] = pt(s, 0);
@@ -556,13 +630,15 @@ export function creaScena(p: Pista): Scena | null {
   const conf = SCENE[p.def.id]; if (!conf) return null;
   const gruppo = new THREE.Group(); gruppo.name = 'corse_scena';
   const t = terreno(p, conf);
-  const matTerra = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const matTerra = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: ERBA_VECCHIA });
   let triangoli = 0;
-  for (const [k, tl] of griglia(t)) {
+  const gr = griglia(t);
+  for (const [k, tl] of gr.tele) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(tl.pos, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(tl.col, 3));
-    g.computeVertexNormals(); g.computeBoundingSphere();
+    if (tl.nor.length) g.setAttribute('normal', new THREE.Float32BufferAttribute(tl.nor, 3)); else g.computeVertexNormals();
+    g.computeBoundingSphere();
     const m = new THREE.Mesh(g, matTerra); m.name = 'corse_terra_' + k; m.receiveShadow = true;
     gruppo.add(m); triangoli += tl.pos.length / 9;
   }
@@ -572,6 +648,8 @@ export function creaScena(p: Pista): Scena | null {
     mare.rotation.x = -Math.PI / 2; mare.position.set((t.bordo.x0 + t.bordo.x1) / 2, conf.livello, (t.bordo.z0 + t.bordo.z1) / 2);
     mare.receiveShadow = true; mare.name = 'corse_mare'; gruppo.add(mare);
   }
+  const fossi = fossiDAcqua(p, conf);
+  if (fossi) { gruppo.add(fossi); triangoli += fossi.geometry.attributes.position!.count / 3; }
   const { pezzi, teste } = piazza(p, t);
   const pronta = (async () => {
     const l = await loader();
@@ -609,8 +687,34 @@ export function creaScena(p: Pista): Scena | null {
   pronta.catch((e: unknown) => console.warn('[corse] scenografia non caricata:', e));
   // aggancio per i test e le foto: cosa c'è e quanto pesa
   const modelli: Record<string, number> = {}; for (const x of pezzi) modelli[x.m] = (modelli[x.m] ?? 0) + 1;
-  (globalThis as { __corseScena?: unknown }).__corseScena = { pista: p.def.id, pronta, gruppo, pezzi: pezzi.length, teste: teste.length, modelli };
+  (globalThis as { __corseScena?: unknown }).__corseScena = { pista: p.def.id, pronta, gruppo, pezzi: pezzi.length, teste: teste.length, modelli, sporge: sporgenza(p, gr.quota) };
   return { gruppo, pronta };
+}
+
+/** I buchi da saltare lontani dal mare (la scogliera della fuga, il salto della giungla): sotto c'è un fosso con l'acqua a FOSSO m sotto
+ *  la strada, invece di una fessura buia fino al livello del mare (#258). Una striscia che segue la curva del buco, larga quanto il canale. */
+function fossiDAcqua(p: Pista, conf: ConfScena): THREE.Mesh | null {
+  const pos: number[] = [], q3: [number, number, number] = [0, 0, 0], L = conf.livello, n = p.n;
+  const muro = 0.6, largo = p.def.bordo + muro + 3;
+  for (const v of p.def.vuoti) {
+    if (v.lat) continue; // i buchi di una corsia sola (le rotaie rotte della miniera) stanno sopra il canyon
+    let y = Infinity;
+    for (let s = v.da; s <= v.a; s += 1) y = Math.min(y, campo(n, n.y, s));
+    if (!(y - L > FOSSO + 1)) continue; // vicino al mare c'è già il canale
+    y -= FOSSO;
+    const passi = Math.max(2, Math.ceil((v.a - v.da + 6) / 2));
+    for (let i = 0; i < passi; i++) {
+      const s0 = v.da - 3 + ((v.a - v.da + 6) * i) / passi, s1 = v.da - 3 + ((v.a - v.da + 6) * (i + 1)) / passi;
+      const bordo = (s: number, lato: number): number[] => { const l = campo(n, n.l, s) + largo; punto(n, s, lato * l, 0, q3); return [q3[0], y, q3[2]]; };
+      const a0 = bordo(s0, -1), b0 = bordo(s0, 1), a1 = bordo(s1, -1), b1 = bordo(s1, 1);
+      pos.push(...a0, ...b0, ...a1, ...b0, ...b1, ...a1);
+    }
+  }
+  if (!pos.length) return null;
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: conf.giungla ? P.acquaBassa : P.acqua, flatShading: true, side: THREE.DoubleSide }));
+  m.name = 'corse_fossi'; m.receiveShadow = true;
+  return m;
 }
 
 /** Le teste dei manichini: guardano la pista e si girano verso la camera quando passa vicino, a scatti (4 volte al secondo). */

@@ -5,10 +5,19 @@ import type { GameWorld } from '../game/world.ts';
 import type { Renderer } from '../render/scene.ts';
 import type { Loader } from '../render/loader.ts';
 import type { Hud } from '../ui/hud.ts';
+import type { TiClientMsg, TiMembro, TiServerMsg } from '@marea/protocol/templari_insieme.ts';
 
 export type TemplariCtx = { world: GameWorld; renderer: Renderer; loader: Loader; hud: Hud; root: HTMLElement; canvas: HTMLCanvasElement };
 /** Fine partita: input compressi (encodeDungeon), hash della sim del client, azioni dal menu, risultato del client (per giocare senza server). */
 export type TemplariFine = { inputs: string; hash: number; azioni: TAzioni; result: TRisultato };
+/** Templari insieme (PROTOCOL §9): il WebSocket della sala visto dalla partita. `turni` = turni arrivati e non ancora giocati (la partita
+ *  li consuma dalla testa); `chiusa` = connessione persa. */
+export type TemplariRete = {
+  io: number; membri: TiMembro[];
+  turni: Extract<TiServerMsg, { t: 'T' }>[];
+  manda(m: TiClientMsg): void;
+  readonly chiusa: boolean;
+};
 export type TemplariRun = {
   readonly active: boolean;
   /** Un tick (60 Hz) con l'input base (joystick, A, B); AZIONE, SCAMBIA e la pausa li legge il chunk dai suoi bottoni e tasti. */
@@ -16,7 +25,8 @@ export type TemplariRun = {
   update(alpha: number, dt: number, t: number): void;
   /** Via senza consegnare (errore di caricamento): `done` risolve null. */
   abort(): void;
-  readonly done: Promise<TemplariFine | null>;
+  /** Insieme sempre `{ insieme: true }`: l'esito lo calcola il server dal log della squadra (anche uscendo a metà). */
+  readonly done: Promise<TemplariFine | { insieme: true } | null>;
 };
 /** Scheda dell'esito: il risultato (del server, o del client senza link) e il premio (null = senza server). */
 export type EsitoVista = { result: TRisultato; premio: Resources | null; tetto?: boolean; record?: boolean };

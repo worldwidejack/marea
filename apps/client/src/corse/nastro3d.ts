@@ -11,7 +11,7 @@
 // faccia (i giri della morte si vedono anche da sotto).
 import * as THREE from 'three';
 import { CORSE } from '@marea/content/corse.ts';
-import { campo, punto } from '@marea/sim/corse/nastro.ts';
+import { campo, dove, punto } from '@marea/sim/corse/nastro.ts';
 import type { Nastro } from '@marea/sim/corse/nastro.ts';
 import { VUOTO, muroA, nelTratto, rotaieDi, superficieA } from '@marea/sim/corse/pista.ts';
 import { rotaiaVicina } from '@marea/sim/corse/binari.ts';
@@ -51,7 +51,7 @@ const pt = (n: Nastro, s: number, lat: number, h: number): V3 => punto(n, s, lat
 /** Prova A/B di Jack (#176): il muretto delle piste della Spiaggia di pietra chiara come nella concept invece che a gomme rosse e
  *  bianche. Si accende con `?muro=pietra` nell'indirizzo del banco. */
 const muroDiPietra = (id: string) => id.startsWith('spiaggia_') && typeof location !== 'undefined' && new URLSearchParams(location.search).get('muro') === 'pietra';
-const ALTO_MURO = 0.9, SPESSO = 0.5, CORDOLO = 0.7;
+const ALTO_MURO = 0.9, SPESSO = 0.5, CORDOLO = 0.7, RAMPA = 0.8;
 
 /** Dove va un pezzo a (s, lat) sulle piste a binari: niente (un buco già dal primo giro), `crollo` (un tratto che crolla con un evento
  *  firma: sta a parte e sparisce dal suo giro) o la tela di sempre. */
@@ -111,9 +111,11 @@ function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number, croll
       const supB = superficieA(p, ramo, sm, lato * (lm + bordo / 2), 1);
       const a0 = lato * l0, a1 = lato * l1, b0 = lato * (l0 + bordo), b1 = lato * (l1 + bordo);
       if (bordo > 0) t.quad(pt(n, s0, a0, 0), pt(n, s0, b0, 0), pt(n, s1, a1, 0), pt(n, s1, b1, 0), binari && d.stile !== 'binari' ? P.legnoScuro : coloreDi(supB));
-      if (!acqua && curva) t.quad(pt(n, s0, a0, 0.03), pt(n, s0, a0 + lato * CORDOLO, 0.03), pt(n, s1, a1, 0.03), pt(n, s1, a1 + lato * CORDOLO, 0.03), giungla ? ((i >> 1) % 2 ? P.pietra : P.pietraChiara) : (i >> 1) % 2 ? P.rosso : P.pietraChiara);
+      const cc = pt(n, sm, lato * (lm + CORDOLO / 2), 0);
+      if (!acqua && curva && !(p.rami.length && sullAltro(p, ramo, sm, cc[0], cc[1], cc[2]))) t.quad(pt(n, s0, a0, 0.03), pt(n, s0, a0 + lato * CORDOLO, 0.03), pt(n, s1, a1, 0.03), pt(n, s1, a1 + lato * CORDOLO, 0.03), giungla ? ((i >> 1) % 2 ? P.pietra : P.pietraChiara) : (i >> 1) % 2 ? P.rosso : P.pietraChiara);
       // muretto di gomme: faccia verso la pista, cima, faccia di fuori
-      if (!acqua && !binari && muroA(p, ramo, sm, lato)) {
+      const mm = pt(n, sm, lato * (lm + bordo), 0);
+      if (!acqua && !binari && muroA(p, ramo, sm, lato) && !(p.rami.length && sullAltro(p, ramo, sm, mm[0], mm[1], mm[2]))) {
         // giungla: una staccionata di tronchi; spiaggia: gomme rosse e bianche (o pietra chiara, prova A/B)
         const c = giungla ? ((i >> 1) % 3 ? P.legno : P.legnoChiaro) : pietra ? ((i >> 1) % 3 ? P.sabbia : P.sabbiaChiara) : (i >> 1) % 2 ? P.rosso : P.pietraChiara, e0 = b0 + lato * SPESSO, e1 = b1 + lato * SPESSO;
         t.quad(pt(n, s0, b0, 0), pt(n, s0, b0, ALTO_MURO), pt(n, s1, b1, 0), pt(n, s1, b1, ALTO_MURO), c);
@@ -122,6 +124,17 @@ function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number, croll
       }
     }
   }
+}
+
+/** Il punto (x, y, z) sta sulla carreggiata (bordo compreso) di un altro nastro? Ai bivi delle scorciatoie i muri di un nastro non si
+ *  disegnano sulla strada dell'altro: sennò si incrociano a X in mezzo alla pista (#258). Per la sim i muri restano dove sono. */
+function sullAltro(p: Pista, ramo: number, s: number, x: number, y: number, z: number): boolean {
+  const dentro = (n: Nastro, l: number[], bordo: number) => {
+    const w = dove(n, x, y, z, -1);
+    return (n.chiuso || (w.s > 0.5 && w.s < n.len - 0.5)) && Math.abs(w.lat) < campo(n, l, w.s) + bordo - 0.05 && Math.abs(w.h) < 2;
+  };
+  if (ramo >= 0) return dentro(p.n, p.n.l, p.def.bordo);
+  return p.rami.some((r) => s > r.def.da - 10 && s < r.def.a + 10 && dentro(r.n, r.n.l, r.def.bordo));
 }
 
 /** Sotto i binari (#228) niente scogliera: pali di legno ogni 6 m sotto i due bordi, giù fino all'acqua (il ponte tra le cascate). */
@@ -138,9 +151,28 @@ function pali(t: Tela, p: Pista): void {
   }
 }
 
+/** Le spalle dei buchi da saltare (#270): un muro di pietra a ciascuna testa del buco, largo quanto la strada col bordo (più i 3 m del
+ *  canale di lato), giù fino a sotto il fondo del canale. Senza, la strada dopo il salto era un foglio sospeso sopra l'acqua. Le rotaie
+ *  rotte di una corsia sola (la miniera) no: lì sotto c'è il canyon. */
+function spalle(t: Tela, p: Pista): void {
+  const n = p.n, fuori = p.def.bordo + SPESSO + 3;
+  for (const v of p.def.vuoti) {
+    if (v.lat) continue;
+    for (const s of [v.da, v.a]) {
+      const l = campo(n, n.l, s) + fuori, h = 0;
+      const a = pt(n, s, -l, h), b = pt(n, s, l, h), giu = Math.min(a[1], b[1]) - 4;
+      for (let j = 0; j < 4; j++) { // a fasce, scure e chiare come la scogliera
+        const f0 = -l + (2 * l * j) / 4, f1 = -l + (2 * l * (j + 1)) / 4, u = pt(n, s, f0, h), w = pt(n, s, f1, h);
+        t.quad(u, w, [u[0], giu, u[2]], [w[0], giu, w[2]], j % 2 ? P.pietraScura : P.roccia);
+      }
+    }
+  }
+}
+
 /** Scogliera sotto i tratti alti della principale (non nei giri della morte né nei buchi): dal bordo giù fino al mare. */
 function scogliera(t: Tela, p: Pista): void {
   pali(t, p);
+  spalle(t, p);
   if (p.def.stile === 'binari') return;
   const n = p.n, ultimo = n.chiuso ? n.n : n.n - 1, fuori = p.def.bordo + (p.def.stile === 'acqua' ? 0 : SPESSO);
   for (let i = 0; i < ultimo; i++) {
@@ -160,10 +192,13 @@ function segni(t: Tela, p: Pista): void {
   for (const r of d.rampe) {
     const lr = campo(n, n.l, r.s);
     for (let k = 0; k < 4; k++) {
-      const a = r.s - 4 + k, b = a + 1, ha = (0.8 * k) / 4, hb = (0.8 * (k + 1)) / 4;
+      const a = r.s - 4 + k, b = a + 1, ha = (RAMPA * k) / 4, hb = (RAMPA * (k + 1)) / 4;
       t.quad(pt(n, a, -lr, ha), pt(n, a, lr, ha), pt(n, b, -lr, hb), pt(n, b, lr, hb), k % 2 ? P.neroCaldo : P.giallo);
     }
-    t.quad(pt(n, r.s, -lr, 0.8), pt(n, r.s, lr, 0.8), pt(n, r.s, -lr, 0), pt(n, r.s, lr, 0), P.neroCaldo);
+    // se subito dopo c'è il buco, la rampa arriva in piano fino al bordo (prima: scalino nero, 2 m di strada e poi il vuoto, #270)
+    const buco = d.vuoti.find((v) => !v.lat && v.da >= r.s && v.da - r.s <= 3), fine = buco ? buco.da : r.s;
+    if (fine > r.s) t.quad(pt(n, r.s, -lr, RAMPA), pt(n, r.s, lr, RAMPA), pt(n, fine, -lr, RAMPA), pt(n, fine, lr, RAMPA), P.giallo);
+    t.quad(pt(n, fine, -lr, RAMPA), pt(n, fine, lr, RAMPA), pt(n, fine, -lr, 0), pt(n, fine, lr, 0), P.neroCaldo);
   }
   // i tappeti del turbo, anche sui rami (il tunnel della miniera): frecce gialle e arancio
   for (const [nn, lista] of [[n, d.turbo], ...p.rami.map((r) => [r.n, r.def.turbo ?? []] as const)] as const) for (const tp of lista) {
