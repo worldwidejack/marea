@@ -177,6 +177,7 @@ Fino a **4 amici nella stessa chiesa**, come COD in cooperativa. Alla porta, acc
 - **Più zombie** (scelta di birbasan, come COD): ogni giocatore in più aggiunge metà degli zombie dell'ondata (tabella del §4). La vita degli zombie non cambia.
 - **Chi cade resta a terra** (niente rianimazione per ora) e **si rialza all'inizio dell'ondata dopo**, in chiesa, con la vita piena e le sue armi ma **senza pozioni** (come in COD). L'Elisir del risorto ti rialza subito come da solo. La partita finisce quando **non resta nessuno in piedi** («SIETE CADUTI»), all'alba, o quando escono tutti.
 - **Niente pausa**: il menu non ferma la partita (il tuo eroe sta fermo). Uscire dal menu lascia gli altri a combattere.
+- **Linea persa** (15 ott 2026, #326; prima la partita si chiudeva con «Connessione con la squadra persa», anche a ogni aggiornamento del server): il tuo eroe sta fermo, il gioco dice «Linea persa: mi ricollego alla squadra…» e ci riprova da solo per 40 s; tornato, recupera i turni persi e continua («Di nuovo insieme»). Se si riavvia il server (a ogni aggiornamento del gioco) la partita riparte da sola dove era, per tutti.
 - **Premio**: ognuno prende quello delle ondate superate **fino a quando era dentro** (chi esce prima prende per le ondate che ha visto), col solito tetto del giorno.
 - Sotto: PROTOCOL §9; la sim ha più eroi (`opzioni.eroi`), il server tiene il log dei turni e lo rigioca per ciascuno.
 

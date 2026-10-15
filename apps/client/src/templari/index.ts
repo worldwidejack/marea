@@ -130,7 +130,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   /** Insieme: i compagni (attore, arma in mano, uscito); la finestra del turno; l'ultimo input mandato; turno a metà; firme dello stato. */
   const amici = rete ? rete.membri.map((m, i) => ({ i, nome: m.nome, look: m.look, actor: null as HeroActor | null, arma: '', fuori: false, giu: false })).filter((a) => a.i !== io) : [];
   const win = { mx: 0, my: 0, bits: 0, m: 0, n: 0 };
-  let mandato = '', inTurno = 0, attesa = true, rotto = false, ioGiu = false;
+  let mandato = '', inTurno = 0, attesa = true, rotto = false, ioGiu = false, ricollega = false, giri = 0;
   const firme: Record<number, number> = {};
   let banco: Banco | null = null, pers: Personaggi | null = null, bott: BottegaUi | null = null, fuo: Fuochi3d | null = null, isolaOra = '';
   /** AZIONE premuto in questo frame (fronte): vicino al Mercante o alla Strega apre il loro menù. */
@@ -427,7 +427,10 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
         win.bits = 0; win.m = 0; win.n = 0;
       }
     }
-    if (r.chiusa && !rotto && fase === 'gioca') { rotto = true; ctx.hud.toast('Connessione con la squadra persa', 3000); consegna(); return; }
+    // linea persa: la partita aspetta (niente turni) finché non si ricollega; poi l'input si rimanda
+    if (r.ricollega !== ricollega) { ricollega = r.ricollega; if (ricollega && fase === 'gioca') hud?.grande('', PAL.giallo, 'Linea persa: mi ricollego alla squadra…', 0); }
+    if (r.giri !== giri) { giri = r.giri; mandato = ''; if (fase === 'gioca') hud?.grande('', PAL.erbaChiara, 'Di nuovo insieme', 1800); }
+    if (r.chiusa && !rotto && fase === 'gioca') { rotto = true; hud?.togliGrande(); ctx.hud.toast('Connessione con la squadra persa', 3000); consegna(); return; }
     // quanti tick giocare adesso: niente se il cuscinetto si è svuotato (finché non si riempie), di più se si resta indietro
     const pronti = r.turni.length * SQ_TICKS - inTurno;
     if (pronti <= 0) { attesa = true; return; }
@@ -583,7 +586,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: TEMPLARI.ondate.insieme,
     insieme: rete ? {
-      io, eroi: s.eroi.length, turni: rete.turni.length, giu: ioGiu, firme: { ...firme },
+      io, eroi: s.eroi.length, turni: rete.turni.length, giu: ioGiu, firme: { ...firme }, ricollega: rete.ricollega, giri: rete.giri,
       compagni: view.compagni.map((c) => ({ i: c.i, x: c.posa.x, z: c.posa.z, vita: c.vita, giu: c.giu, fuori: c.fuori, visibile: !!amici.find((a) => a.i === c.i)?.actor?.avatar.object.visible })),
     } : null,
   });
