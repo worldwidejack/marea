@@ -126,17 +126,7 @@ export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas
   let ora: { v: Voce; n: number; t: number; fine: number } | null = null;
   const coda: Voce[] = [];
   const chiudiVoce = () => { ora = null; voce.classList.remove('on'); };
-  const avanzaVoce = () => {
-    if (!ora) return;
-    if (ora.n < ora.v.testo.length) {
-      ora.n = ora.v.testo.length;
-      testo.textContent = ora.v.testo;
-      ora.fine = Math.max(ora.fine, ora.t + 4.5);
-    } else {
-      chiudiVoce();
-    }
-  };
-  voce.addEventListener('click', avanzaVoce);
+  voce.addEventListener('click', chiudiVoce);
   const parla = (v: Voce) => {
     viste.add(id(v.id)); scrivi(K_VISTE, viste);
     voce.classList.toggle('capo', !!v.capo);
@@ -197,8 +187,7 @@ export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas
   const kd = (e: KeyboardEvent) => {
     if (aperta && (e.code === 'Escape' || (e.code === 'KeyL' && !e.repeat))) { e.preventDefault(); e.stopImmediatePropagation(); chiudiLettura(); return; }
     if (ora) {
-      if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); chiudiVoce(); return; }
-      if (['Space', 'Enter', 'KeyE'].includes(e.code) && !e.repeat) { e.preventDefault(); e.stopImmediatePropagation(); avanzaVoce(); return; }
+      if (['Space', 'Enter', 'KeyE'].includes(e.code) && !e.repeat) { e.preventDefault(); e.stopImmediatePropagation(); chiudiVoce(); return; }
     }
     if (aperta || ora) return; // da solo il dungeon è fermo, insieme l'eroe sta fermo: gli altri tasti non servono
     if (e.code === 'KeyL' && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); if (!e.repeat) tasto = true; }
