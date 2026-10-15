@@ -41,9 +41,9 @@ SLARGHI = [65, 162]              # tra un rione e l'altro: slargo con la fontana
 NEGOZIO = (79, 19.5)             # il negozio dei mobili (#265): angolo e raggio, dietro il primo slargo, con la porta verso la fontana
 CASE = 30
 FARO = (250, 21)                 # angolo e raggio del Grande Faro: in punta al braccio a sud-ovest, sulla bocca della baia
-# posti fissi della piazza (celle del template): lì niente case né arredo. Grotta (game/ingressi.ts), Mercante, Bacheca, Furetto (gente.json),
+# posti fissi della piazza (celle del template): lì niente case né arredo. Grotta e Portale del Vuoto (game/ingressi.ts), Mercante, Bacheca, Furetto (gente.json),
 # Tabellone (porto_amici.json), Consegne e Ingorgo (minigames/*.json)
-POSTI = [(54, 35, 3.5), (40, 43.4, 2), (48, 43.6, 2), (53.2, 38.4, 2), (35.6, 46.2, 2), (40, 56, 2.5), (48, 56, 2.5)]
+POSTI = [(54, 35, 3.5), (22, 36, 3.5), (40, 43.4, 2), (48, 43.6, 2), (53.2, 38.4, 2), (35.6, 46.2, 2), (40, 56, 2.5), (48, 56, 2.5)]
 PAESANI = ['nella', 'tonio', 'bice', 'gaspare', 'ada_fiori']   # gente.json: il loro `giro` lo scrive lo script (lungo l'anello e i vicoli)
 rnd = random.Random(265)
 

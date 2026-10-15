@@ -345,7 +345,7 @@ export function startRun(ctx: RunCtx, o: {
     if (dungeonLink.autopilot > 0 && !auto) auto = createRng(o.seed + io).fork('autopilot');
     if (dungeonLink.autopilot === 0) auto = null;
     if (phase === 'play' && !s.done) {
-      const fermo = !!controls?.paused || isPanelOpen() || !!testi?.aperta;
+      const fermo = !!controls?.paused || isPanelOpen() || !!testi?.ferma;
       const q = quantizeDungeon(fermo && !auto ? { ...NO_DUNGEON_INPUT } : inputOra(f));
       win.mx = q.mx; win.my = q.my; win.bits |= bitsOf(q); if (q.m) win.m = q.m;
       if (++win.n >= SQ_TICKS) {
@@ -394,7 +394,7 @@ export function startRun(ctx: RunCtx, o: {
         return;
       }
       if (phase === 'end') { if (--wait <= 0 || (wait < END_WAIT - 40 && f.a)) finish(); return; }
-      if (phase !== 'play' || !controls || controls.paused || isPanelOpen() || testi?.aperta) return;
+      if (phase !== 'play' || !controls || controls.paused || isPanelOpen() || testi?.ferma) return;
       if (dungeonLink.autopilot > 0 && !auto) auto = createRng(o.seed).fork('autopilot');
       if (dungeonLink.autopilot === 0) auto = null;
       const n = auto ? dungeonLink.autopilot : dungeonLink.altare >= 0 || dungeonLink.vai ? 8 : 1;
