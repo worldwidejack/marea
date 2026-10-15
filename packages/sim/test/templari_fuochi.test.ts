@@ -16,7 +16,7 @@ const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false }
 const passi = (s: TState, n: number, inp: Partial<DungeonInput> = {}) => { for (let i = 0; i < n && !s.done; i++) stepTemplari(s, { ...F, ...inp }); };
 function partita(seed = 3): TState {
   const s = templari.create({ seed, opzioni: { subito: true } });
-  s.fase = 'combatti'; s.ondata = 5; s.quanti = 0; s.usciti = 0; s.prossima = 1e9; s.punti = 50000;
+  s.fase = 'combatti'; s.ondata = 5; s.quanti = 0; s.usciti = 0; s.prossima = 1e9; s.eroe.punti = 50000;
   s.eroe.vita = s.eroe.max = 1e6;
   return s;
 }
@@ -82,12 +82,12 @@ test('tutti e tre i fuochi: punti e un power-up', () => {
   const s = partita();
   s.fuochi['coro'] = true; s.fuochi['cimitero'] = true;
   for (const q of s.arena.porte) apriPorta(s, q); // fino alla spiaggia (il power-up cade dove si arriva)
-  const f = fuoco(s, 'spiaggia'), p0 = s.punti, d0 = s.drops.length;
+  const f = fuoco(s, 'spiaggia'), p0 = s.eroe.punti, d0 = s.drops.length;
   accanto(s, f.x, f.z);
   let tutti = false, potere = false;
   for (let k = 0; k < tick(1.6); k++) { passi(s, 1, { d: true }); tutti ||= s.eventi.some((e) => e.t === 'fuochiTutti'); potere ||= s.eventi.some((e) => e.t === 'potere' && !e.preso); }
   assert.ok(tutti && potere, JSON.stringify({ tutti, potere }));
-  assert.ok(s.punti >= p0 + TEMPLARI.fuochi.tutti);
+  assert.ok(s.eroe.punti >= p0 + TEMPLARI.fuochi.tutti);
   assert.equal(s.drops.length, d0 + 1, 'il power-up non è rimasto a terra');
 });
 

@@ -7,7 +7,7 @@
 import type { TSuperDef } from '@marea/content/templari.ts';
 import { lineOfSight } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
-import { classeDi, ev, secToTicks, vitaOndata } from './stato.ts';
+import { classeDi, ev, secToTicks, usa, vitaOndata } from './stato.ts';
 import { colpisci } from './colpi.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -62,14 +62,14 @@ export function usaSuper(s: TState, dir: readonly [number, number] | null): bool
   ev(s, { t: 'super', tipo: d.id, x: r2(b.x), z: r2(b.z), da: { x: r2(h.x), z: r2(h.z) } });
   if (d.id === 'pioggia') {
     if (s.fiamme.length >= 14) s.fiamme.shift();
-    s.fiamme.push({ id: s.nextId++, x: b.x, z: b.z, r: d.raggio, dps: danno, fine: s.tick + secToTicks(d.durata ?? 4), frecce: true });
+    s.fiamme.push({ id: s.nextId++, x: b.x, z: b.z, r: d.raggio, dps: danno, fine: s.tick + secToTicks(d.durata ?? 4), frecce: true, ...(s.eroi.length > 1 ? { chi: s.chi } : {}) });
     return true;
   }
   // bordata: le cannonate in fila lungo la mira, centrate sul bersaglio
   const n = d.colpi ?? 3, passo = d.passo ?? 2;
   for (let i = 0; i < n; i++) {
     const k = (i - (n - 1) / 2) * passo;
-    s.cannonate.push({ id: s.nextId++, x: b.x + b.fx * k, z: b.z + b.fz * k, r: d.raggio, danno, inizio: s.tick, fine: s.tick + secToTicks((d.primo ?? 0.5) + i * (d.ogni ?? 0.3)) });
+    s.cannonate.push({ id: s.nextId++, x: b.x + b.fx * k, z: b.z + b.fz * k, r: d.raggio, danno, inizio: s.tick, fine: s.tick + secToTicks((d.primo ?? 0.5) + i * (d.ogni ?? 0.3)), ...(s.eroi.length > 1 ? { chi: s.chi } : {}) });
   }
   return true;
 }
@@ -77,16 +77,18 @@ export function usaSuper(s: TState, dir: readonly [number, number] | null): bool
 /** Le cannonate che arrivano in questo tick: colpo a chi sta nel raggio (lo scudo non para), niente carica del super. */
 export function stepSuper(s: TState): void {
   if (!s.cannonate.length) return;
-  const resto = [];
+  const resto = [], prima = s.chi;
   for (const c of s.cannonate) {
     if (c.fine > s.tick) { resto.push(c); continue; }
     ev(s, { t: 'cannonata', x: r2(c.x), z: r2(c.z), r: c.r });
+    if (c.chi !== undefined && c.chi !== s.chi && s.eroi[c.chi]) usa(s, c.chi); // i punti a chi ha chiamato la Bordata
     for (const z of vivi(s)) {
       const dx = z.x - c.x, dz = z.z - c.z, dd = Math.sqrt(dx * dx + dz * dz);
       if (dd > c.r + z.def.raggio) continue;
       colpisci(s, z, { danno: c.danno, mischia: false, caricato: false, dirX: dd > 1e-6 ? dx / dd : 0, dirZ: dd > 1e-6 ? dz / dd : 1, spinta: 1, scudo: false, super: true });
-      if (s.done) return;
+      if (s.done) { if (s.chi !== prima) usa(s, prima); return; }
     }
   }
   s.cannonate = resto;
+  if (s.chi !== prima) usa(s, prima);
 }

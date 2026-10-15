@@ -13,20 +13,27 @@ const r2 = (v: number): number => Math.round(v * 100) / 100;
 /** Fiamme a terra insieme al massimo (le più vecchie si spengono). */
 const MAX_FIAMME = 14;
 
+/** Punti all'eroe di turno (insieme: chi ha colpito, riparato, preso il power-up). */
 export function dai(s: TState, n: number, perche: 'colpo' | 'uccisione' | 'mischia' | 'asse' | 'potere'): void {
   if (n <= 0) return;
   if (s.tick < s.poteri.decima) n *= 2;
-  s.punti += n; s.guadagnati += n;
+  s.eroe.punti += n; s.guadagnati += n;
   ev(s, { t: 'punti', n, perche });
 }
-/** Spende punti; false (e niente spesa) se non bastano. */
+/** Punti a ogni eroe ancora in partita (Campane a martello, Muratori, tutti i fuochi accesi, de Molay che scappa): come in COD, a testa. */
+export function daiTutti(s: TState, n: number, perche: 'uccisione' | 'potere'): void {
+  const prima = s.chi;
+  for (let i = 0; i < s.eroi.length; i++) if (!s.eroi[i]!.fuori) { usa(s, i); dai(s, n, perche); }
+  usa(s, prima);
+}
+/** Spende i punti dell'eroe di turno; false (e niente spesa) se non bastano. */
 export function spendi(s: TState, n: number): boolean {
-  if (s.punti < n) return false;
-  if (n > 0) { s.punti -= n; ev(s, { t: 'punti', n: -n, perche: 'spesa' }); }
+  if (s.eroe.punti < n) return false;
+  if (n > 0) { s.eroe.punti -= n; ev(s, { t: 'punti', n: -n, perche: 'spesa' }); }
   return true;
 }
 /** Punti restituiti (il teschio della cassa): non contano tra quelli guadagnati. */
-export function rendi(s: TState, n: number): void { s.punti += n; ev(s, { t: 'punti', n, perche: 'spesa' }); }
+export function rendi(s: TState, n: number): void { s.eroe.punti += n; ev(s, { t: 'punti', n, perche: 'spesa' }); }
 
 /** `dirX, dirZ`: verso in cui va il colpo (dal colpitore allo zombie); `scudo` false = passa lo scudo (fiamme); `super` = colpo del
  *  super (non lo ricarica). */
@@ -136,7 +143,7 @@ export function esplodi(s: TState, x: number, z: number, r: number, danno: numbe
 }
 export function accendi(s: TState, x: number, z: number, f: TFiamma, nemico = false): void {
   if (s.fiamme.length >= MAX_FIAMME) s.fiamme.shift();
-  s.fiamme.push({ id: s.nextId++, x, z, r: f.raggio, dps: f.dps, fine: s.tick + secToTicks(f.durata), ...(nemico ? { nemico: true } : {}) });
+  s.fiamme.push({ id: s.nextId++, x, z, r: f.raggio, dps: f.dps, fine: s.tick + secToTicks(f.durata), ...(nemico ? { nemico: true } : s.eroi.length > 1 ? { chi: s.chi } : {}) });
 }
 /** Le fiamme bruciano chi c'è dentro (passano lo scudo); chi muore così dà i punti dell'uccisione. */
 export function stepFiamme(s: TState): void {
@@ -152,12 +159,15 @@ export function stepFiamme(s: TState): void {
       if (s.done) return;
     }
   }
+  const prima = s.chi;
   for (const f of s.fiamme) for (const z of s.zombie) {
     if (f.nemico || z.st === 'morto' || z.st === 'sorge' || z.st === 'fugge') continue;
     const dx = z.x - f.x, dz = z.z - f.z, rr = f.r + z.def.raggio;
     if (dx * dx + dz * dz > rr * rr) continue;
+    if (f.chi !== undefined && f.chi !== s.chi && s.eroi[f.chi]) usa(s, f.chi); // i punti a chi ha acceso il fuoco
     danneggia(s, z, f.dps / 60, TEMPLARI.punti.uccisione + (z.def.punti ?? 0));
   }
+  if (s.chi !== prima) usa(s, prima);
 }
 
 /** L'eroe è a zero: con l'Elisir del risorto si rialza (vita piena, qualche secondo intoccabile, gli zombie vicini spinti via) e perde tutte

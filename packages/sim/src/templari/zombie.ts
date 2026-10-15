@@ -11,7 +11,7 @@ import { DT } from '../constants.ts';
 import { bfs, cellCenter, cellOf, isOpaque, lineOfSight, moveCircle, stepDown } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
 import { COLPISCE_TICKS, COS_CONO_NEMICO, FLOW_OGNI, MORTO_TICKS, TOLLERANZA, ev, inPiedi, secToTicks, usa } from './stato.ts';
-import { accendi, dai, ferisci } from './colpi.ts';
+import { accendi, daiTutti, ferisci } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
 import { attive, comparsaVicina } from './ondate.ts';
 
@@ -153,7 +153,7 @@ function fuggi(s: TState, z: Zombie): void {
   if (dx * dx + dz * dz <= 1 || z.stT >= secToTicks(6)) {
     z.st = 'morto'; z.stT = MORTO_TICKS; z.vita = 0;
     ev(s, { t: 'scompare', id: z.id, tipo: z.tipo });
-    dai(s, z.def.punti ?? 0, 'uccisione');
+    daiTutti(s, z.def.punti ?? 0, 'uccisione');
   }
 }
 

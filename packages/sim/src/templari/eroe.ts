@@ -21,7 +21,7 @@ import { accendi, colpisci, dai, spendi } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
 import type { Muro } from './mappa.ts';
 import { ruota, tira } from './proiettili.ts';
-import { usaCassa, vicinoCassa } from './cassa.ts';
+import { cassaMia, usaCassa, vicinoCassa } from './cassa.ts';
 import { accendiTrappola, apriPorta, levaVicina, portaDef, portaVicina, trappolaAccesa, trappolaDef, trappolaPronta, trappolaUsabile } from './porte.ts';
 import { acceso, fuocoPer, fuocoVicino, lavora, lavoroK, pezziPresi, pezziTutti, pezzoVicino, prendiPezzo } from './fuochi.ts';
 
@@ -227,8 +227,8 @@ export function prompt(s: TState): TPrompt {
   if (s.fase === 'altare' && vicinoAltare(s)) return { cosa: 'reliquia', testo: 'Posa il calice', prezzo: 0, puoi: true };
   if (vicinoCassa(s)) {
     const c = s.cassa;
-    if (c.fase === 'chiusa') return { cosa: 'cassa', testo: 'Cassa del tesoro', prezzo: TEMPLARI.cassa.prezzo, puoi: s.punti >= TEMPLARI.cassa.prezzo };
-    if (c.fase === 'pronta' && c.arma) return { cosa: 'prendi', testo: `Prendi: ${armaDef(c.arma).nome}`, prezzo: 0, puoi: true };
+    if (c.fase === 'chiusa') return { cosa: 'cassa', testo: 'Cassa del tesoro', prezzo: TEMPLARI.cassa.prezzo, puoi: s.eroe.punti >= TEMPLARI.cassa.prezzo };
+    if (c.fase === 'pronta' && c.arma && cassaMia(s)) return { cosa: 'prendi', testo: `Prendi: ${armaDef(c.arma).nome}`, prezzo: 0, puoi: true };
   }
   if (dropVicino(s) >= 0 && (!s.eroe.scudo || s.eroe.scudo.vita < TEMPLARI.scudo.vita)) return { cosa: 'scudo', testo: 'Prendi lo scudo templare', prezzo: 0, puoi: true };
   // i pezzi della campana e i fuochi da accendere (§9b)
@@ -242,12 +242,12 @@ export function prompt(s: TState): TPrompt {
   const m = muroVicino(s), o = m ? offerta(s, m) : null;
   if (m && o) {
     const a = armaDef(m.arma);
-    return { cosa: o.munizioni ? 'munizioni' : 'compra', testo: o.munizioni ? `Munizioni: ${a.nome}` : o.prezzo ? a.nome : `Prendi: ${a.nome}`, prezzo: o.prezzo, puoi: s.punti >= o.prezzo };
+    return { cosa: o.munizioni ? 'munizioni' : 'compra', testo: o.munizioni ? `Munizioni: ${a.nome}` : o.prezzo ? a.nome : `Prendi: ${a.nome}`, prezzo: o.prezzo, puoi: s.eroe.punti >= o.prezzo };
   }
   const f = finestraVicina(s);
   if (f >= 0) return { cosa: 'ripara', testo: 'Ripara la finestra', prezzo: 0, puoi: !strappata(s, f) };
   const p = portaVicina(s);
-  if (p) { const d = portaDef(p.id); return { cosa: 'porta', testo: d.nome, prezzo: d.prezzo, puoi: s.punti >= d.prezzo }; }
+  if (p) { const d = portaDef(p.id); return { cosa: 'porta', testo: d.nome, prezzo: d.prezzo, puoi: s.eroe.punti >= d.prezzo }; }
   const l = levaVicina(s);
   if (l >= 0) {
     const id = s.arena.trappole[l]!.id, d = trappolaDef(id);
@@ -257,7 +257,7 @@ export function prompt(s: TState): TPrompt {
     if (!trappolaUsabile(s, id)) return { cosa: 'trappola', testo: `${d.nome}: ${fuocoPer('rogo')?.nome.toLowerCase() ?? 'accendi il fuoco'} è spento`, prezzo: 0, puoi: false };
     if (trappolaAccesa(s, l)) return { cosa: 'trappola', testo: `${d.nome}: in funzione`, prezzo: 0, puoi: false };
     if (!trappolaPronta(s, l)) return { cosa: 'trappola', testo: `${d.nome}: si ricarica`, prezzo: 0, puoi: false };
-    return { cosa: 'trappola', testo: d.nome, prezzo: d.prezzo, puoi: s.punti >= d.prezzo };
+    return { cosa: 'trappola', testo: d.nome, prezzo: d.prezzo, puoi: s.eroe.punti >= d.prezzo };
   }
   return null;
 }
@@ -268,7 +268,7 @@ function azione(s: TState, dDown: boolean, dHeld: boolean): void {
     if (dDown) { s.fase = 'inizio'; s.faseT = 0; ev(s, { t: 'reliquia' }); }
     return;
   }
-  if (dDown && vicinoCassa(s) && (s.cassa.fase === 'chiusa' || s.cassa.fase === 'pronta')) {
+  if (dDown && vicinoCassa(s) && (s.cassa.fase === 'chiusa' || (s.cassa.fase === 'pronta' && cassaMia(s)))) {
     const presa = usaCassa(s);
     if (presa) daiArma(s, presa);
     return;
@@ -313,8 +313,8 @@ function azione(s: TState, dDown: boolean, dHeld: boolean): void {
   s.assi[f] = n;
   setFinestra(s.arena, s.gr, f, n);
   ev(s, { t: 'asse', finestra: f, assi: n, da: 'eroe' });
-  const p = Math.min(TEMPLARI.punti.asse, Math.max(0, TEMPLARI.punti.assiMaxOndata - s.puntiAssi));
-  if (p > 0) { s.puntiAssi += p; dai(s, p, 'asse'); }
+  const p = Math.min(TEMPLARI.punti.asse, Math.max(0, TEMPLARI.punti.assiMaxOndata - h.puntiAssi));
+  if (p > 0) { h.puntiAssi += p; dai(s, p, 'asse'); }
 }
 
 /** SCAMBIA: arma 1 → arma 2 → scudo in mano → arma 1 (solo quello che hai). */
