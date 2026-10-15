@@ -61,7 +61,7 @@ test('in allerta corre a un riparo da cui non lo vedi, poi esce a sparare', () =
   s.g.x = 9; s.g.z = 29; // in campo aperto a ovest della gru
   b.x = 22; b.z = 29.5; b.ux = s.g.x; b.uz = s.g.z; b.vistoT = s.tick; b.stato = 'allerta'; b.allertaT = 0; b.timer = 0;
   const stati = new Set<string>();
-  for (let i = 0; i < 8 * TICK_HZ; i++) { passo(s, fermo(s)); stati.add(b.stato); if (b.stato === 'copertura' && b.timer > 0) break; }
+  for (let i = 0; i < 8 * TICK_HZ; i++) { passo(s, fermo(s)); stati.add(b.stato); if ((b.stato as string) === 'copertura' && b.timer > 0) break; }
   assert.equal(b.stato, 'copertura', [...stati].join(' → '));
   const c = cellCenter(m, b.meta), r = ripari(m).find((x) => x.cella === b.meta)!;
   assert.ok(!vede(m, s.g.x, occhi(s.g), s.g.z, c.x, r.alto ? 1.5 : 0.95, c.z), 'dal tuo occhio la sua testa non si vede');
