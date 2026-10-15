@@ -1,6 +1,7 @@
 # MAREA — Isola dell'Adrenalina (GDD dell'isola)
 
 > Parte del GDD (`GDD.md` §3, §6 e §14 rimandano qui; vale come il GDD). Isola a tema **per tutti**, proposta da **birbasan** il 10 ott 2026; issue madre #189. Non è un'isola personale: entra con l'**ok di Jack** (10 ott 2026). Nasce da una bozza di decisioni presa in chat; le scelte che la bozza non diceva le ha prese Claude e sono segnate **[scelta provvisoria]**.
+> **14 ott 2026** (`VISIONE.md` §4): l'Adrenalina probabilmente si unisce all'Isola delle Corse. Finché Jack non conferma, le discese restano qui; il lavoro nuovo va pensato per poter traslocare nell'hub delle Corse.
 > Numeri: andranno in `packages/content/src/adrenalina/` e in `packages/content/src/minigames/<gioco>.json` (uno per gioco). Le tabelle qui sono la **prima ipotesi**; cambiarli = aggiornare qui e una riga in `ROADMAP.md` §Deviazioni.
 
 ## 0. In tre righe
