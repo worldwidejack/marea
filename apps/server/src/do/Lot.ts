@@ -44,7 +44,7 @@ import '@marea/sim/adrenalina/registra.ts'; // Adrenalina: le discese dello snow
 import { medagliaDaPosizione, posizioneDiscesa } from '@marea/sim/adrenalina/classifica.ts';
 import { isPackedInputs, replayPartita } from '@marea/sim/replay.ts';
 import { registraDiscesa, registraPartita, registraVisti, riscuotiTraguardo, scegliTitolo } from '@marea/sim/economy/diario.ts';
-import { fitHero } from '@marea/sim/rpg/hero.ts';
+import { fitHero, newHero } from '@marea/sim/rpg/hero.ts';
 import { chiudiScaduta } from '@marea/sim/dungeon/settle.ts';
 import type { EconomyErrorCode, LotState, Resources } from '@marea/sim/economy/types.ts';
 import { nowFromHeader } from '../clock.ts';
@@ -147,6 +147,18 @@ export class Lot extends DurableObject<Env> {
           return templariRoute(this.load(owner, now), act, { ...body, gruppo }, now, (l) => this.save(l));
         }
         return templariRoute(lot, act, body, now, (l) => this.save(l));
+      }
+      if (act === 'test_inv') {
+        const item = body['item'], q = typeof body['q'] === 'number' ? body['q'] : 1;
+        if (typeof item === 'string') {
+          const hero = lot.hero ? { ...lot.hero } : newHero();
+          const inv = { ...(hero.inv ?? {}) };
+          inv[item] = (inv[item] ?? 0) + q;
+          const next: LotState = { ...lot, hero: { ...hero, inv } };
+          this.save(next);
+          return json(next);
+        }
+        return json({ error: 'Manca item' }, 400);
       }
       if (act === 'adrenalina_liberatoria') { const r = firmaLiberatoria(lot); if (r.nuova) this.save(r.lot); return json({ lot: r.lot, nuova: r.nuova }); }
       if (act === 'rientro') {

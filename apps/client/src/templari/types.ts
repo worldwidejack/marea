@@ -11,12 +11,15 @@ export type TemplariCtx = { world: GameWorld; renderer: Renderer; loader: Loader
 /** Fine partita: input compressi (encodeDungeon), hash della sim del client, azioni dal menu, risultato del client (per giocare senza server). */
 export type TemplariFine = { inputs: string; hash: number; azioni: TAzioni; result: TRisultato };
 /** Templari insieme (PROTOCOL §9): il WebSocket della sala visto dalla partita. `turni` = turni arrivati e non ancora giocati (la partita
- *  li consuma dalla testa); `chiusa` = connessione persa. */
+ *  li consuma dalla testa); `chiusa` = connessione persa per sempre; `ricollega` = linea persa, si sta ricollegando; `giri` = quante volte
+ *  si è ricollegata (a ogni giro l'input va rimandato). */
 export type TemplariRete = {
   io: number; membri: TiMembro[];
   turni: Extract<TiServerMsg, { t: 'T' }>[];
   manda(m: TiClientMsg): void;
   readonly chiusa: boolean;
+  readonly ricollega: boolean;
+  readonly giri: number;
 };
 export type TemplariRun = {
   readonly active: boolean;

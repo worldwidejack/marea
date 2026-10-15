@@ -110,8 +110,44 @@ function tempietto(): THREE.Object3D {
   return g;
 }
 
+/** Cancello sbarrato del Portale del Vuoto: sbarre di ferro battuto, serratura con castone dorato a forma d'onda marina e stele runica accanto. */
+function cancelloVuoto(): THREE.Object3D {
+  const cil = (r: number, h: number, n = 6) => new THREE.CylinderGeometry(r, r, h, n);
+  const z = -0.55;
+  const parts: THREE.BufferGeometry[] = [
+    // telaio esterno del cancello in ferro scuro battuto
+    painted(new THREE.BoxGeometry(1.9, 0.12, 0.08), PAL.neroCaldo, M(0, 0.25, z)),
+    painted(new THREE.BoxGeometry(1.9, 0.1, 0.08), PAL.neroCaldo, M(0, 1.25, z)),
+    painted(new THREE.BoxGeometry(1.9, 0.12, 0.08), PAL.neroCaldo, M(0, 2.25, z)),
+    painted(new THREE.BoxGeometry(0.12, 2.3, 0.1), PAL.neroCaldo, M(-0.9, 1.25, z)),
+    painted(new THREE.BoxGeometry(0.12, 2.3, 0.1), PAL.neroCaldo, M(0.9, 1.25, z)),
+  ];
+  const sbarreX = [-0.65, -0.42, -0.2, 0, 0.2, 0.42, 0.65];
+  for (const bx of sbarreX) {
+    parts.push(painted(cil(0.035, 2.1, 6), PAL.roccia, M(bx, 1.25, z)));
+    parts.push(painted(new THREE.ConeGeometry(0.065, 0.22, 4), PAL.neroCaldo, M(bx, 2.36, z)));
+  }
+  // grande serratura circolare al centro con incavo dorato per l'anello dell'onda
+  parts.push(painted(cil(0.32, 0.12, 10), PAL.neroCaldo, M(0, 1.25, z - 0.04, Math.PI / 2)));
+  parts.push(painted(cil(0.24, 0.14, 10), PAL.giallo, M(0, 1.25, z - 0.05, Math.PI / 2)));
+  // stele di pietra a lato con targa che accoglie il sigillo
+  parts.push(painted(new THREE.BoxGeometry(0.45, 1.1, 0.45), PAL.pietraScura, M(1.35, 0.55, z - 0.2)));
+  parts.push(painted(new THREE.BoxGeometry(0.32, 0.4, 0.06), PAL.pietraChiara, M(1.35, 0.75, z - 0.44)));
+  const g = new THREE.Group(); g.name = 'sigillo_cancello';
+  g.add(new THREE.Mesh(merged(parts), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+  // gemme d'onda marina luminescenti: richiamo visivo dell'Anello dell'Onda
+  const gemme = [
+    painted(cil(0.14, 0.16, 8), PAL.acquaBassa, M(0, 1.25, z - 0.07, Math.PI / 2)),
+    painted(new THREE.BoxGeometry(0.16, 0.04, 0.05), PAL.pietraChiara, M(0, 1.26, z - 0.16, 0, 0, 0.4)),
+    painted(new THREE.IcosahedronGeometry(0.08, 0), PAL.acquaBassa, M(1.35, 0.75, z - 0.48)),
+  ];
+  g.add(new THREE.Mesh(merged(gemme), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, emissive: PAL.acquaBassa, emissiveIntensity: 0.65 })));
+  return g;
+}
+
 /** Porta sigillata: due sbarre di ferro incrociate davanti alla bocca e il sigillo rosso a forma d'onda (si nasconde quando si apre). */
 export function sigillo(stile?: string): THREE.Object3D {
+  if (stile === 'vuoto') return cancelloVuoto();
   const z = stile === 'archivio' ? -1.25 : stile === 'fucina' ? -1.18 : stile === 'mausoleo' ? -1.08 : stile === 'drenaggio' ? -0.82 : -0.75;
   const y = stile === 'archivio' || stile === 'drenaggio' ? 1.25 : stile === 'fucina' ? 0.9 : stile === 'mausoleo' ? 1.05 : 1.2;
   const geo = merged([

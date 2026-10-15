@@ -6,6 +6,9 @@ import { DUNGEONS, ENEMIES, LOOT } from '@marea/content/rpg.ts';
 import { parseIsland } from '../src/world/grid.ts';
 import { parseDungeon } from '../src/dungeon/map.ts';
 import { hasItem } from '../src/rpg/items.ts';
+import { startDungeon } from '../src/rpg/run.ts';
+import { newHero } from '../src/rpg/hero.ts';
+import type { LotState } from '../src/economy/types.ts';
 
 test('dungeon: sette mappe (grotta, cripta, vuoto, drenaggio, archivio, fucina, mausoleo) con stile, tile 2 e dimensioni da gioco', () => {
   assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto', 'drenaggio', 'archivio', 'fucina', 'mausoleo']);
@@ -72,8 +75,9 @@ test('dungeon: nemici, tabelle e libri esistono; i boss stanno in fondo (Cripta 
 
 test('dungeon: ingressi su celle calpestabili delle isole giuste, raggiungibili a piedi dalla P', () => {
   // la Grotta (la più facile) al Porto, il posto più facile da trovare; la Cripta sull'Isola Selvaggia (scambiate il 7 ott 2026);
+  // il Portale del Vuoto al Borgo Marea in un posto marginale (costa ovest);
   // il Drenaggio a terra sull'anello della Laguna, vicino al molo, l'Archivio più avanti sull'arco est, la Fucina sull'arco nord, il Mausoleo sull'arco nord-ovest (Epopea della Regata)
-  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'neon', drenaggio: 'laguna', archivio: 'laguna', fucina: 'laguna', mausoleo: 'laguna' };
+  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'porto', drenaggio: 'laguna', archivio: 'laguna', fucina: 'laguna', mausoleo: 'laguna' };
   for (const d of DUNGEONS) {
     assert.equal(d.ingresso.island, dove[d.id]);
     const def = ISLANDS.find((i) => i.id === d.ingresso.island)!;
@@ -113,4 +117,24 @@ test('dungeon: difficoltà invisibili tutte diverse (Grotta la più facile), un 
     const dist = Math.abs(c.cx - m.exit.cx) + Math.abs(c.cz - m.exit.cz);
     assert.ok(dist >= 20, `${d.id}: capo troppo vicino all'uscita (${dist})`);
   }
+});
+
+test('dungeon: Portale del Vuoto è il più difficile (difficoltà 8), boss più forte del Mausoleo, richiede Anello dell Onda', () => {
+  const vuoto = DUNGEONS.find((d) => d.id === 'vuoto')!;
+  const mausoleo = DUNGEONS.find((d) => d.id === 'mausoleo')!;
+  assert.equal(vuoto.difficolta, 8);
+  assert.ok(vuoto.difficolta > mausoleo.difficolta);
+  assert.equal(vuoto.richiede, 'unico_anello_onda');
+
+  const bossVuoto = ENEMIES.find((e) => e.id === 'custode')!;
+  const bossMausoleo = ENEMIES.find((e) => e.id === 'custode_egida')!;
+  assert.ok(bossVuoto.vita > bossMausoleo.vita, `boss vuoto HP (${bossVuoto.vita}) > boss mausoleo HP (${bossMausoleo.vita})`);
+  assert.ok(bossVuoto.danno > bossMausoleo.danno, `boss vuoto danno (${bossVuoto.danno}) > boss mausoleo danno (${bossMausoleo.danno})`);
+
+  const lotSenza = { buildings: [], decor: [], solo: { giocate: 0, vittorie: 0, record: {} }, hero: newHero() } as unknown as LotState;
+  assert.throws(() => startDungeon(lotSenza, 'vuoto', 1, 1000), /cancello|sbarrato|Anello/i);
+
+  const lotCon = { buildings: [], decor: [], solo: { giocate: 0, vittorie: 0, record: {} }, hero: { ...newHero(), inv: { unico_anello_onda: 1 } } } as unknown as LotState;
+  const aperta = startDungeon(lotCon, 'vuoto', 1, 1000);
+  assert.equal(aperta.dungeon?.pending?.dungeon, 'vuoto');
 });

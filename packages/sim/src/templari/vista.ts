@@ -57,7 +57,7 @@ function vista(s: TState): TView {
   return {
     tick: s.tick, fase: s.fase, ondata: s.ondata, faseS: faseS(s), done: s.done, esito: s.esito, posa,
     eroe: {
-      x: r2(h.x), z: r2(h.z), vita: h.vita, max: h.max, fiato: h.fiato / fiatoMax(s), punti: s.punti,
+      x: r2(h.x), z: r2(h.z), vita: h.vita, max: h.max, fiato: h.fiato / fiatoMax(s), punti: h.punti,
       ferita: h.quiete < 90 ? 1 - h.quiete / 90 : 0,
       arma: h.inMano ? 'scudo' : a?.id ?? TEMPLARI.partenza.arma, armi: h.armi.map((x) => (x ? { ...x } : null)), cur: h.cur,
       ricarica: h.ricarica > 0 ? 1 - h.ricarica / Math.max(1, h.ricaricaDur) : 0,
@@ -92,7 +92,7 @@ function vista(s: TState): TView {
     eventi: s.eventi,
     io: s.chi,
     compagni: s.eroi.flatMap((x, i) => (i === s.chi ? [] : [{
-      i, posa: posaDi(s, x), arma: x.inMano ? 'scudo' : x.armi[x.cur]?.id ?? TEMPLARI.partenza.arma, vita: x.vita, max: x.max, giu: x.giu, fuori: x.fuori, classe: x.classe,
+      i, posa: posaDi(s, x), arma: x.inMano ? 'scudo' : x.armi[x.cur]?.id ?? TEMPLARI.partenza.arma, vita: x.vita, max: x.max, giu: x.giu, fuori: x.fuori, classe: x.classe, punti: x.punti,
     }])),
   };
 }
@@ -106,7 +106,7 @@ const firmaEroe = (h: Eroe) => [Math.round(h.x * 100), Math.round(h.z * 100), Ma
 
 export function hashOf(s: TState): number {
   return hashJson({
-    v: s.v, seed: s.seed, tick: s.tick, fase: s.fase, ondata: s.ondata, punti: s.punti, guadagnati: s.guadagnati, uccisioni: s.uccisioni,
+    v: s.v, seed: s.seed, tick: s.tick, fase: s.fase, ondata: s.ondata, punti: s.eroi.length > 1 ? s.eroi.map((h) => h.punti) : s.eroi[0]!.punti, guadagnati: s.guadagnati, uccisioni: s.uccisioni,
     eroe: firmaEroe(s.eroi[0]!),
     ...(s.eroi.length > 1 ? { eroi: s.eroi.map((h) => [...firmaEroe(h), h.giu ? 1 : 0, h.fuori ? 1 : 0]) } : {}),
     cassa: [s.cassa.posto, s.cassa.usi, s.cassa.fase, s.cassa.arma], proj: s.proj.length, fiamme: s.fiamme.length, tiri: s.tiri.length, boss: s.boss,
@@ -122,6 +122,6 @@ export function hashOf(s: TState): number {
 export function resultOf(s: TState): TRisultato {
   return {
     done: s.done, esito: s.esito, ticks: s.tick, ondata: s.ondata, superate: superate(s),
-    uccisioni: s.uccisioni, punti: s.punti, guadagnati: s.guadagnati, hash: hashOf(s),
+    uccisioni: s.uccisioni, punti: s.eroe.punti, guadagnati: s.guadagnati, hash: hashOf(s),
   };
 }

@@ -10,8 +10,8 @@ export default async function (ctx) {
   const { assert } = ctx;
   const tpl = (st) => st.templari ?? {};
   /** Aspetta e, se cade, dice cosa c'era in campo (le prove di mira dipendono da dove sta lo zombie). */
-  const attendi = async (pg, fn, ms, cosa) => {
-    try { await ctx.waitState(pg, fn, ms); } catch (e) {
+  const attendi = async (pg, fn, ms, cosa, arg = null) => {
+    try { await ctx.waitState(pg, fn, ms, arg); } catch (e) {
       const s = tpl(await ctx.getState(pg));
       throw new Error(`${cosa}: ${JSON.stringify({ sim: s.sim, ondata: s.ondata, eroe: s.eroe, faccia: s.faccia, zombiePos: s.zombiePos, zombie: s.zombie, uccisioni: s.uccisioni, mira: s.mira, armi: s.armi, act: s.act })}`);
     }
@@ -137,36 +137,54 @@ export default async function (ctx) {
       const dx = lontano.x - st.eroe.x, dz = lontano.z - st.eroe.z, n = d(lontano), y = st.yaw, vx = dx / n, vz = dz / n;
       return { lontano, dito: { sx: vx * Math.cos(y) - vz * Math.sin(y), sy: vx * Math.sin(y) + vz * Math.cos(y) } };
     };
-    /** Cade il lontano, resta il vicino (che nel frattempo si è avvicinato). */
-    const restaIlVicino = async () => {
-      await attendi(page, (s) => s.templari.zombiePos.length === 1, 6000, 'nessuno dei due è caduto');
-      const st = (await ctx.getState(page)).templari, z = st.zombiePos[0], dist = Math.hypot(z.x - st.eroe.x, z.z - st.eroe.z);
-      assert(dist < 3.4, `è caduto il vicino, non quello puntato: resta uno a ${dist.toFixed(1)} m`);
+    /** Cade il lontano, resta il vicino (che nel frattempo si è avvicinato). Si contano le uccisioni invece degli zombie in campo: a
+     *  macchina lenta (la suite intera su GitHub) dall'ondata può entrarne un altro, lontano, e il conto in campo non torna. */
+    const restaIlVicino = async (u0) => {
+      await attendi(page, (s, u) => s.templari.uccisioni > u, 6000, 'nessuno dei due è caduto', u0);
+      const st = (await ctx.getState(page)).templari, d = st.zombiePos.map((z) => Math.hypot(z.x - st.eroe.x, z.z - st.eroe.z));
+      assert(d.some((x) => x < 3.4), `è caduto il vicino, non quello puntato: restano a ${d.map((x) => x.toFixed(1)).join(', ')} m`);
     };
+    /** Il dito sul joystick di mira. Tenendo, punta lo zombie più lontano tra i due vicini all'eroe e lo segue mentre cammina (a macchina
+     *  lenta tra il calcolo della mira e il rilascio lo zombie si sposta abbastanza da far mancare la freccia). */
     const dito = (o) => page.evaluate(async ({ sx, sy, tieni }) => {
       const a = document.querySelector('#mzTplMira'), r = a.getBoundingClientRect(), cx = r.x + r.width / 2, cy = r.y + r.height / 2;
       const ev = (tipo, x, y) => a.dispatchEvent(new PointerEvent(tipo, { pointerId: 9, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y, bubbles: true, cancelable: true }));
       const dorme = (ms) => new Promise((ok) => setTimeout(ok, ms));
+      const verso = () => {
+        const st = window.__game.state(), t = st.templari, e = t.eroe, d = (z) => Math.hypot(z.x - e.x, z.z - e.z);
+        const z = t.zombiePos.filter((q) => d(q) < 8).sort((p, q) => d(q) - d(p))[0];
+        if (!z) return;
+        const n = d(z) || 1, vx = (z.x - e.x) / n, vz = (z.z - e.z) / n, y = t.yaw;
+        sx = vx * Math.cos(y) - vz * Math.sin(y); sy = vx * Math.sin(y) + vz * Math.cos(y);
+      };
       ev('pointerdown', cx, cy); await dorme(40);
-      if (tieni) { ev('pointermove', cx + sx * 30, cy + sy * 30); await dorme(tieni); }
+      if (tieni) {
+        const fine = performance.now() + tieni;
+        do { verso(); ev('pointermove', cx + sx * 30, cy + sy * 30); await dorme(50); } while (performance.now() < fine);
+        verso();
+      }
       ev('pointerup', cx + (tieni ? sx * 30 : 0), cy + (tieni ? sy * 30 : 0));
     }, o);
+    const uccisioni = async () => (await ctx.getState(page)).templari.uccisioni;
     // arco: il dito tiene teso e punta il lontano, lascia → la freccia parte lì
     let v = await duePosti('arco');
     await page.waitForSelector('#mzTplMira.on', { timeout: 8000 });
     assert(!(await page.isVisible('#btnA')), 'il bottone A è ancora visibile con il joystick di mira');
+    let u0 = await uccisioni();
     await dito({ ...v.dito, tieni: 700 });
-    await restaIlVicino();
+    await restaIlVicino(u0);
     // pistola: parte al rilascio, non al primo tocco
     v = await duePosti('pistola');
+    u0 = await uccisioni();
     await dito({ ...v.dito, tieni: 400 });
-    await restaIlVicino();
+    await restaIlVicino(u0);
     // un tocco veloce senza trascinare: colpo assistito, prende il più vicino
     await duePosti('pistola');
+    u0 = await uccisioni();
     await dito({ sx: 0, sy: 0, tieni: 0 });
-    await attendi(page, (s) => s.templari.zombiePos.length === 1, 6000, 'il tocco non ha sparato');
-    const st = (await ctx.getState(page)).templari, z = st.zombiePos[0];
-    assert(Math.hypot(z.x - st.eroe.x, z.z - st.eroe.z) > 3.2, 'il tocco assistito doveva prendere il più vicino');
+    await attendi(page, (s, u) => s.templari.uccisioni > u, 6000, 'il tocco non ha sparato', u0);
+    const st = (await ctx.getState(page)).templari, d = st.zombiePos.map((z) => Math.hypot(z.x - st.eroe.x, z.z - st.eroe.z));
+    assert(d.every((x) => x > 3.2), `il tocco assistito doveva prendere il più vicino: restano a ${d.map((x) => x.toFixed(1)).join(', ')} m`);
     await ctx.shot(page, 'joystick_mira');
     ctx.noErrors(p, 'telefono');
   });

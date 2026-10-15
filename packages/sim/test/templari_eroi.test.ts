@@ -70,7 +70,7 @@ test('il Crociato regge un colpo in più; la Zuppa di pietra gli dà +100 sulla 
   const z = partita('crociato');
   for (const k in z.fuochi) z.fuochi[k] = true;
   const p = z.arena.personaggi.find((x) => x.id === 'strega')!;
-  z.eroe.x = p.x - p.fx * 0.6; z.eroe.z = p.z - p.fz * 0.6; z.punti = 10000;
+  z.eroe.x = p.x - p.fx * 0.6; z.eroe.z = p.z - p.fz * 0.6; z.eroe.punti = 10000;
   templari.act(z, { t: 'compra', da: 'strega', cosa: 'pietra' });
   assert.equal(z.eroe.max, eroeDef('crociato')!.vita + 100);
 });

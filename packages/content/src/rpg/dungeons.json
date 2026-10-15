@@ -66,7 +66,7 @@
     "                 #############              ",
     "                                            "
    ]},
-  {"id":"vuoto","nome":"Portale del Vuoto","descr":"Piattaforme sospese nel nulla oltre il portale del Distretto Neon: spettri, golem di cristallo e il Custode. Vetro, meteorite, oggetti unici.","stile":"vuoto","difficolta":6,"tile":2,"legenda":{"p":{"nemico":"spettro"},"g":{"nemico":"golem"},"X":{"nemico":"custode","capo":true},"c":{"forziere":"comune_vuoto"},"R":{"forziere":"raro_vuoto"},"w":{"libro":"libro_lupo_spettrale"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"neon","at":[20,13]},
+  {"id":"vuoto","nome":"Portale del Vuoto","descr":"Piattaforme sospese nel nulla oltre il portale del Borgo Marea: spettri, golem di cristallo e il Custode. Vetro, meteorite, oggetti unici.","stile":"vuoto","difficolta":8,"richiede":"unico_anello_onda","tile":2,"legenda":{"p":{"nemico":"spettro"},"g":{"nemico":"golem"},"X":{"nemico":"custode","capo":true},"c":{"forziere":"comune_vuoto"},"R":{"forziere":"raro_vuoto"},"w":{"libro":"libro_lupo_spettrale"},"t":{"luce":true},"o":{"colonna":true},"A":{"altare":true}},"ingresso":{"island":"porto","at":[22,36]},
    "rows": [
     "                                                ",
     "    .....         ###############               ",

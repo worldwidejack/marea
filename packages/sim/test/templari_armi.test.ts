@@ -79,21 +79,21 @@ test('armi sul muro: compra coi punti, poi munizioni a metà prezzo; senza punti
   const s = arena();
   const m = s.arena.muri.find((x) => x.arma === 'mazza')!, prezzo = armaDef('mazza').prezzo!;
   vai(s, m.x, m.z);
-  s.punti = prezzo - 1;
+  s.eroe.punti = prezzo - 1;
   passi(s, 1, { d: true }); passi(s, 1);
   assert.ok(!s.eroe.armi.some((x) => x?.id === 'mazza'), 'comprata senza punti');
-  s.punti = prezzo + 10;
+  s.eroe.punti = prezzo + 10;
   passi(s, 1, { d: true }); passi(s, 1);
   assert.ok(s.eroe.armi.some((x) => x?.id === 'mazza'), 'mazza non comprata');
-  assert.equal(s.punti, 10);
+  assert.equal(s.eroe.punti, 10);
   // l'arco sull'altare laterale è gratis, le frecce costano
   const r = s.arena.muri.find((x) => x.arma === 'arco')!;
   vai(s, r.x, r.z); passi(s, 1, { d: true }); passi(s, 1);
   const sl = s.eroe.armi.find((x) => x?.id === 'arco')!;
   assert.ok(sl, 'arco non preso');
-  sl.colpi = 0; s.punti = 1000;
+  sl.colpi = 0; s.eroe.punti = 1000;
   passi(s, 1, { d: true }); passi(s, 1);
-  assert.equal(s.punti, 1000 - armaDef('arco').prezzoMunizioni!);
+  assert.equal(s.eroe.punti, 1000 - armaDef('arco').prezzoMunizioni!);
   assert.deepEqual(s.eroe.armi.find((x) => x?.id === 'arco'), slotDi(armaDef('arco')), 'frecce non ricaricate');
 });
 
@@ -101,7 +101,7 @@ test('cassa del tesoro: gira, esce un\'arma che non hai, la prendi; al teschio i
   const s = arena(3);
   const c = s.cassa, p = s.arena.casse[c.posto]!, k = TEMPLARI.cassa;
   vai(s, p.x + p.fx * 1.2, p.z + p.fz * 1.2);
-  s.punti = 10 * k.prezzo;
+  s.eroe.punti = 10 * k.prezzo;
   c.max = 2;
   passi(s, 1, { d: true }); passi(s, 1);
   assert.equal(c.fase, 'gira');
@@ -111,11 +111,11 @@ test('cassa del tesoro: gira, esce un\'arma che non hai, la prendi; al teschio i
   assert.ok(arma && arma !== 'spada' && (armaDef(arma).cassa ?? 0) > 0, `arma: ${arma}`);
   passi(s, 1, { d: true }); passi(s, 1);
   assert.ok(s.eroe.armi.some((x) => x?.id === arma), 'arma della cassa non presa');
-  const punti = s.punti, posto = c.posto;
+  const punti = s.eroe.punti, posto = c.posto;
   passi(s, 1, { d: true }); passi(s, 1);
   passi(s, Math.round(k.gira * 60) + 2);
   assert.equal(c.fase, 'teschio');
-  assert.equal(s.punti, punti, 'il teschio non ha reso i punti');
+  assert.equal(s.eroe.punti, punti, 'il teschio non ha reso i punti');
   passi(s, Math.round((3 + k.vola) * 60) + 4);
   assert.equal(c.fase, 'chiusa');
   assert.notEqual(c.posto, posto, 'la cassa non si è spostata');
