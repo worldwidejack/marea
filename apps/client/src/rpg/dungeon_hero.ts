@@ -37,7 +37,9 @@ export type ArmaInMano = RunWeapon & { modello?: string; colore?: string; oggett
   /** L'oggetto è una lama (si brandisce come le spade del kit), non un'arma da fuoco. */
   lama?: boolean;
   /** Arma a distanza che non è un arco (pistole, moschetto, trombone, vaso): col mouse mostra la linea di mira come l'arco. */
-  distanza?: boolean };
+  distanza?: boolean;
+  /** Arma ad asta senza oggetto del kit del GDR (la Lancia di Longino dei Templari): si tiene e si spinge come la lancia. */
+  asta?: boolean };
 
 /** Quello del personaggio che si vede addosso nel dungeon (RunHero lo soddisfa): armatura o veste sul corpo e, con arco e frecce, la faretra sulla schiena; l'arma è in mano. */
 export type EquipVista = { arma: { id: string | null }; armatura?: { id: string | null }; frecce?: { id: string } | null };
@@ -164,7 +166,7 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     weapon = w; bow = b; tiro = !!arma.distanza; bladeMats = mats; bladeLen = len;
     arco = b && w ? armaArco(w, o.loader, false, 1.8) : null;
     if (w) o.scene.add(w);
-    weaponKind = bow ? 'arco' : arma.oggetto ? (arma.lama ? 'lama' : 'fuoco') : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' ? 'lancia' : 'lama';
+    weaponKind = bow ? 'arco' : arma.oggetto ? (arma.lama ? 'lama' : 'fuoco') : !weapon || arma.kind === 'pugni' ? 'pugni' : def?.tipo === 'lancia' || arma.asta ? 'lancia' : 'lama';
     rottaOra = false; kind = weaponKind;
     fx.dispose(); fx = fxFor(kind === 'pugni' ? pugni().portata : arma.portata);
     applyMano();

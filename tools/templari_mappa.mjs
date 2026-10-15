@@ -199,14 +199,14 @@ set(SCALA[0], SCALA[1], 'H');
 const CREPA = [40, 35];
 if (get(...CREPA) !== '#') throw new Error(`il muro crepato non è su un muro (${get(...CREPA)})`);
 set(CREPA[0], CREPA[1], 'Z');
-// campanelle: una per zona, su un palo (croce in chiesa, teschio al cimitero, ancora alla spiaggia, luna in piazza); l'indizio in sacrestia
-const CAMPANELLE = { 7: [51, 37], 8: [67, 14], 9: [48, 65], 0: [21, 43] };
+// campanelle: una per zona, su un palo (croce in chiesa, teschio al cimitero, ancora alla spiaggia, luna in piazza); l'indizio in taverna
+const CAMPANELLE = { 7: [41, 48], 8: [67, 14], 9: [48, 65], 0: [21, 43] }; // croce: nella rotonda, accanto alla tomba di un cavaliere (non dal coro: lì le draw call sono al limite)
 for (const [c, [x, z]] of Object.entries(CAMPANELLE)) { if ('.,vesw'.includes(get(x, z))) set(x, z, c); else throw new Error(`campanella ${c} su '${get(x, z)}' in ${x},${z}`); }
-const INDIZIO = [57, 55];
-if (get(...INDIZIO) !== 'w' || get(INDIZIO[0] - 1, INDIZIO[1]) !== '#') throw new Error("l'indizio delle campane vuole l'assito con un muro a ovest");
+const INDIZIO = [19, 61]; // sul muro nord della taverna, dentro (la camera lo vede dritto; lontano dal coro, dove le draw call sono al limite)
+if (get(...INDIZIO) !== 'w' || get(INDIZIO[0], INDIZIO[1] - 1) !== '#') throw new Error("l'indizio delle campane vuole l'assito con un muro a nord");
 set(INDIZIO[0], INDIZIO[1], 'B');
-// teschi (nascosti, come gli orsacchiotti): dietro l'altare maggiore, nell'angolo della taverna, dietro l'ossario
-const TESCHI = { i: [72, 41], l: [7, 72], '!': [75, 4] };
+// teschi (nascosti, come gli orsacchiotti): dietro una casa della piazza, nell'angolo della taverna, dietro l'ossario
+const TESCHI = { i: [17, 25], l: [7, 72], '!': [75, 4] };
 for (const [c, [x, z]] of Object.entries(TESCHI)) { if ('.,vesw'.includes(get(x, z))) set(x, z, c); else throw new Error(`teschio ${c} su '${get(x, z)}' in ${x},${z}`); }
 
 // ——— partenza davanti all'altare; comparse: sagrato fuori dalle finestre, e nelle zone ———
@@ -294,7 +294,7 @@ rows.forEach((r, z) => [...r].forEach((c, x) => { if (c === 'z' && !daZombie.has
   }));
   for (const [c, [x, z]] of Object.entries(CAMPANELLE)) if (!QUATTRO.some(([dx, dz]) => tutte.has(x + dx + ',' + (z + dz)))) errs.push(`la campanella ${c} in ${x},${z} non si raggiunge`);
   for (const [c, [x, z]] of Object.entries(TESCHI)) if (!tutte.has(x + ',' + z)) errs.push(`il teschio ${c} in ${x},${z} non si raggiunge`);
-  if (!aperte(['6']).has(INDIZIO.join(','))) errs.push("l'indizio delle campane non si raggiunge dalla sacrestia"); }
+  if (!aperte(['1', '3']).has(INDIZIO.join(','))) errs.push("l'indizio delle campane non si raggiunge dalla taverna"); }
 if (errs.length) { console.error(errs.slice(0, 20).join('\n')); process.exit(1); }
 
 // righe senza spazi in coda (il parser tratta il fuori come spazio)
@@ -311,7 +311,7 @@ const out = {
     'c': { pezzo: 'corda' }, 'd': { pezzo: 'battaglio' }, 'f': { pezzo: 'perno' },
     'Z': { cripta: 'muro' }, 'H': { cripta: 'scala' }, 'P': { cripta: 'altare' }, 'n': { comparsa: 'cripta' },
     '7': { campanella: 'croce' }, '8': { campanella: 'teschio' }, '9': { campanella: 'ancora' }, '0': { campanella: 'luna' },
-    'B': { indizio: 'campane' }, 'i': { teschio: 'abside' }, 'l': { teschio: 'taverna' }, '!': { teschio: 'ossario' },
+    'B': { indizio: 'campane' }, 'i': { teschio: 'piazza' }, 'l': { teschio: 'taverna' }, '!': { teschio: 'ossario' },
   },
   rows: trimmed,
 };

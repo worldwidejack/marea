@@ -7,6 +7,7 @@
 // scheduler mette in coda le note di ~0,3 s in avanti sull'orologio dell'audio (programma), così il tempo non balla.
 import type { MusicaModo } from './ponte.ts';
 import { hz } from './motore.ts';
+import { creaInno } from './inno.ts';
 import type { Motore, Onda } from './motore.ts';
 
 type Stile = {
@@ -19,7 +20,7 @@ type Stile = {
   /** campana a morto ogni N battute (nota MIDI e N) */
   campana?: { n: number; ogni: number };
 };
-const STILI: Record<Exclude<MusicaModo, 'silenzio'>, Stile> = {
+const STILI: Record<Exclude<MusicaModo, 'silenzio' | 'inno'>, Stile> = {
   giorno: {
     bpm: 76, swing: 0.16, barre: 2, pad: 0.03,
     accordi: [[50, 54, 57, 61], [47, 50, 54, 57], [55, 59, 62, 66], [52, 57, 59, 64]], bassi: [38, 35, 43, 45],
@@ -64,6 +65,8 @@ export function createMusica(mt: Motore): Musica {
   let modo: MusicaModo = 'silenzio', st: Stile | null = null, step = 0, tNext = 0;
   let layer: GainNode | null = null, mel: GainNode | null = null;
   let frase: (number | null)[] = [], idx = 3, tens = 0;
+  /** La canzone segreta dei Templari (inno.ts): una partitura fissa al posto della musica generativa. */
+  let inno: ReturnType<typeof creaInno> | null = null;
 
   /** Una frase di 2 battute (16 crome): passi brevi sulla scala, più note sui tempi forti, qualche pausa. */
   const nuovaFrase = (s: Stile): (number | null)[] => {
@@ -137,8 +140,13 @@ export function createMusica(mt: Motore): Musica {
       modo = m;
       // dissolvenza: lo strato vecchio scende in 1,5 s (le sue note già in coda finiscono lì), il nuovo sale in 2 s
       if (layer) { const old = layer, oldMel = mel; old.gain.setTargetAtTime(0, t, 0.5); if (typeof setTimeout === 'function') setTimeout(() => { old.disconnect(); oldMel?.disconnect(); }, 4000); }
-      st = m === 'silenzio' ? null : STILI[m];
-      layer = null; mel = null;
+      st = m === 'silenzio' || m === 'inno' ? null : STILI[m];
+      layer = null; mel = null; inno = null;
+      if (m === 'inno') {
+        layer = ctx.createGain(); layer.gain.setValueAtTime(0.0001, t); layer.gain.linearRampToValueAtTime(1, t + 0.8); layer.connect(mt.duck);
+        inno = creaInno(mt, layer, t + 0.6);
+        return;
+      }
       if (!st) return;
       layer = ctx.createGain(); layer.gain.setValueAtTime(0.0001, t); layer.gain.linearRampToValueAtTime(1, t + 2); layer.connect(mt.duck);
       mel = ctx.createGain(); mel.connect(layer); mel.connect(eco);
@@ -147,6 +155,7 @@ export function createMusica(mt: Motore): Musica {
     },
     tensione(k) { tens = Math.max(0, Math.min(1, k)); },
     programma(fino) {
+      if (inno) { inno.programma(fino); return; }
       if (!st) return;
       const sd = 60 / st.bpm / 2;
       if (tNext < ctx.currentTime - 0.05) tNext = ctx.currentTime + 0.05; // la scheda era in pausa: si riparte, niente raffica di note

@@ -166,7 +166,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
       // AZIONE da tenere premuto (accendere un fuoco, montare la campana): la barra si riempie
       const bar = el('i', 'lav'); bar.style.width = `${Math.round((p.k ?? 0) * 100)}%`;
       const lav = p.k ? [bar] : [];
-      az.replaceChildren(el('span', '', p.testo.toUpperCase()), ...(p.prezzo > 0 ? [el('small', '', String(p.prezzo))] : []), ...(dito ? [] : [el('small', 'tasto', p.cosa === 'fuoco' || p.cosa === 'monta' ? 'tieni F' : 'F')]), ...lav);
+      az.replaceChildren(el('span', '', p.testo.toUpperCase()), ...(p.prezzo > 0 ? [el('small', '', String(p.prezzo))] : []), ...(dito ? [] : [el('small', 'tasto', p.cosa === 'fuoco' || p.cosa === 'monta' || p.cosa === 'teschio' ? 'tieni F' : 'F')]), ...lav);
     },
     setScambia(on) { sc.classList.toggle('on', on); },
     hide() { az.classList.remove('on'); perche.classList.remove('on'); sc.classList.remove('on'); su.classList.remove('on'); stick.setOn(false); o.root.classList.remove('mz-tpl-aimon'); top.style.display = 'none'; setPausa(false); },

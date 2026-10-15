@@ -3,7 +3,7 @@
 //   il Giudizio); i colpi leggeri fanno solo polvere (l'indizio). Dietro una scala scende nella cripta: il muro rotto e la scala in fondo
 //   alla cripta sono i due capi della stessa scala (mappa.ts `Cripta`), la sim ci porta eroi e zombie e il flow field li tiene vicini.
 //   Sull'altare la Lancia di Longino: si libera con le anime di `cripta.anime` zombie uccisi DENTRO la cripta, poi AZIONE la prende.
-// - Le campanelle: sparse per l'isola, si suonano con AZIONE nell'ordine scritto sul muro della sacrestia (l'ordine lo sceglie il seed, con
+// - Le campanelle: sparse per l'isola, si suonano con AZIONE nell'ordine scritto sul muro della taverna (l'ordine lo sceglie il seed, con
 //   un rng a parte). Sbagli = si ricomincia; tutte giuste = una pozione che non hai, gratis, a ognuno della squadra. Una volta per partita.
 // - I teschi: nascosti; AZIONE tenuto su ognuno (come i fuochi, fuochi.ts `lavora`); al terzo parte la canzone segreta (solo client).
 // Tutto della squadra (insieme valgono per tutti), tutto deterministico: il server rigioca uguale.
