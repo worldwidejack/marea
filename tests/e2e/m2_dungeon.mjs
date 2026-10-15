@@ -192,6 +192,11 @@ export default async function (ctx) {
       await hook('enterDungeon', 'vuoto');
       await ctx.waitState(page, (s) => /cancello|sbarrato|Anello/i.test(s.ingressi.lastErr ?? ''), 3000);
       assert(!(await st()).dungeon.active, 'entrato nel vuoto senza anello');
+      // parla con Tonio il Pescatore prima di aprire: parla della leggenda del cancello sigillato
+      await hook('portoApri', 'tonio');
+      await ctx.waitState(page, (s) => s.porto.open === 'parla' && s.porto.ui?.persona === 'tonio', 3000);
+      assert(!((await st()).porto.ui?.cancelloAperto), 'cancello già aperto per il pescatore');
+      await hook('portoChiudi');
       // con l'Anello dell'Onda (boss del Mausoleo) il cancello si apre
       const invRes = await (await fetch(base + '/api/test/inv', {
         method: 'POST',
@@ -200,6 +205,12 @@ export default async function (ctx) {
       })).json();
       await hook('setLot', invRes);
       await ctx.waitState(page, (s) => !s.ingressi.sigillati.includes('vuoto'), 3000);
+      // parla di nuovo con Tonio il Pescatore: ora il cancello è aperto e il dialogo cambia!
+      await hook('portoApri', 'tonio');
+      await ctx.waitState(page, (s) => s.porto.open === 'parla' && s.porto.ui?.persona === 'tonio' && s.porto.ui?.cancelloAperto, 3000);
+      const battutaTonio = (await st()).porto.ui?.battuta ?? '';
+      assert(/spalancato|saraghi|corrente gelida/i.test(battutaTonio), 'battuta dopo apertura non corretta: ' + battutaTonio);
+      await hook('portoChiudi');
       await hook('enterDungeon', 'vuoto');
       await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await sleep(1200); await samplePerf();

@@ -73,8 +73,14 @@
       "giro": [[63.37, 35.29], [56.84, 27.51]], "velocita": 0.9, "raggio": 3,
       "battute": [
         "Stamattina ho preso un pesce così. No, più piccolo. Va be', l'ho preso.",
-        "Dal lungomare si vede tutto il mare. Dal mare, invece, si vede tutto il lungomare.",
-        "Le reti le stendo in piazza. Ishi dice che rovinano l'atmosfera. Io dico che l'atmosfera puzza di pesce lo stesso."
+        "Hai visto quel vecchio cancello di ferro a nord-ovest del Borgo, dietro gli alberi? Dicono che custodisca il Portale del Vuoto.",
+        "La leggenda narra che la serratura ad onda si apra solo a chi porta l'Anello dell'Onda della Regina... quello custodito nel Mausoleo Cinetico.",
+        "Se mai riuscirai ad aprirlo, preparati al peggio: dicono che oltre quel portale ci siano le creature più temibili di tutte le isole."
+      ],
+      "battuteAperto": [
+        "Per tutti i saraghi! Il cancello del Vuoto è spalancato! Sento una corrente gelida fin quaggiù sul lungomare.",
+        "Chiunque abbia spezzato il sigillo con l'Anello dell'Onda ha un fegato d'acciaio: oltre quel portale gli spettri e il Custode non perdonano.",
+        "Le reti le stendo lo stesso in piazza. Vuoto o non Vuoto, la gente del Borgo il pesce lo vuole fresco!"
       ]
     },
     {
