@@ -4,7 +4,7 @@
 // - l'interruttore dell'aspetto (S) e quello degli animali (A) cambiano i veicoli e restano nel budget di draw call e triangoli.
 // Screenshot in tests/out/shots/m4_corse_veicoli_*.
 export const timeout = 240000;
-const MAX_DC = 100, MAX_TRI = 150000;
+const MAX_DC = 100, MAX_TRI = 180000; // come il mondo (TECH §5): coi veicoli AI 3D (#281, ~6.000 triangoli l’uno) al telefono si arriva a ~160.000
 
 export default async function (ctx) {
   const { assert } = ctx;

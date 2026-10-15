@@ -53,7 +53,7 @@ type Fase = 'funivia' | 'cartello' | 'regole' | 'via' | 'gara' | 'invio' | 'fine
 
 const VIA_S = 2.4, AIUTO_S = 7;
 /** Oltre questa distanza (m) gli abeti si spengono (il terreno resta: da lassù si vede fino in valle). */
-const NEBBIA = 420;
+const LONTANO = 420;
 const NOMI_CADUTA: Record<string, string> = { abete: 'CONTRO L’ABETE!', roccia: 'CONTRO LA ROCCIA!', bosco: 'NEL BOSCO!', storto: 'ATTERRAGGIO STORTO!', presa: 'ANCORA IN PRESA!', tronco: 'CONTRO IL TRONCO!', botta: 'ATTERRAGGIO TROPPO DURO!' };
 const RISORSE: Record<string, string> = { legno: 'Legno', pietra: 'Pietra', perle: 'Perle' };
 const CASCO = AVATAR.cappelli.findIndex((h) => h.id === 'casco');
@@ -68,7 +68,7 @@ registerTestHook('snowboardPista', (id) => corrente?.pista(String(id ?? 'snowboa
 registerTestHook('snowboardFantasmaProva', () => corrente?.fantasmaProva() ?? null);
 registerTestHook('snowboardEsci', () => { corrente?.esci(); return true; });
 
-/** Cielo di montagna a tre bande piatte (ART_BIBLE §7): azzurro, azzurro chiaro, foschia all'orizzonte. */
+/** Cielo di montagna a tre bande piatte (ART_BIBLE §7): azzurro, azzurro chiaro, chiaro all'orizzonte. */
 function cielo(): THREE.Texture {
   const c = document.createElement('canvas'); c.width = 1; c.height = 32;
   const g = c.getContext('2d')!;
@@ -107,7 +107,6 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
   const scene = new THREE.Scene(); scene.name = 'snowboard';
   scene.userData.near = 0.5;
   const sfondo = cielo(); scene.background = sfondo;
-  scene.fog = new THREE.Fog(PAL.pietraChiara, 350, 5200); // aria di montagna: limpida vicino, sempre più chiara lontano (la valle, le cime)
   const luci = createLights(), luciSu = new THREE.Group(); luciSu.add(luci.group); scene.add(luciSu);
   // luce di montagna: sole bianco e alto, cielo freddo nelle ombre (la neve resta neve, non rosa)
   luci.set?.({ elev: 48, azim: 200, color: 0xfff6e8, intensity: 2.4, sky: 0xdff4ff, ground: 0xc8d4e0, hemiI: 2.5, amb: 0x7fe3e0, ambI: 0.15 });
@@ -260,7 +259,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
     const fresca = Math.abs(s.lat) > bordo(ss) ? 0.5 : 0;
     neve.aggiorna({ coda, avanti: fh, destra: rh, v: s.v, spruzzo: Math.min(1, Math.abs(s.vl) / 5 + fresca + s.carica * 0.2), aTerra: fase === 'gara' && !s.aria && s.caduta <= 0 }, dt);
     if (nuvolaA) { nuvolaA = false; neve.nuvola(pos, s.caduta > 0 ? 1 : 0.6); }
-    pista3d.aggiorna(cam0.position, NEBBIA + 20);
+    pista3d.aggiorna(cam0.position, LONTANO + 20);
     luciSu.position.y = Math.round(pos.y); luci.follow?.(pos.x, pos.z); // il sole segue la tavola, anche in quota
     const fp = p.def.fuoripista;
     if (fp && pista3d.tronco) pista3d.tronco.cade((ss - (fp.da - 70)) / 22); // l'abete che cade sulla pista chiusa

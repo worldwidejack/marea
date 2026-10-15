@@ -43,7 +43,7 @@ export type IslandStyle = 'lotto' | 'porto' | 'laguna' | 'neon' | 'selvaggia' | 
 export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'templari' | 'corse' | 'adrenalina';
 export type IslandSlot = { at: [number, number]; kind: string; rot?: number };
 export type IslandProp = { k: string; at: [number, number]; rot?: number };
-export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna' | 'tema';
+export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna' | 'tema' | 'negozio'; // negozio: il dentro del negozio dei mobili (#265), oltre il mare
 /**
  * Come si sblocca un'isola a tema (#68): Molo della propria isola al livello N, personaggio GDR al livello N, un cappello indosso,
  * una mappa posseduta (`come: 'oro'` = la prima medaglia d'oro in un minigioco da solo la regala), una reliquia trovata (`LotState.reliquie`:
@@ -67,12 +67,22 @@ export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; t
 /** Borgo Marea (#237): la casa `n` = lo slot `n` (= il lotto/giardino `n`). `at` = cella dell'edificio, `porta` = cella della via davanti, entrambe nel template `borgo`. */
 export type BorgoDef = {
   nome: string; case: { at: [number, number]; porta: [number, number] }[];
-  /** La stanza della casa nel template `lotto` (#240): pavimento [x0, z0, x1, z1) in celle, altezza dei muri in m, porta in fondo (`retro`) e porta del giardino. */
-  stanza: { pavimento: [number, number, number, number]; altezza: number; retro: [number, number]; giardino: [number, number] };
+  /** La stanza della casa nel template `lotto` (#240): pavimento [x0, z0, x1, z1) in celle, altezza dei muri in m, porta in fondo (`retro`),
+   *  passaggio del giardino (`giardino`) e corridoio d'ingresso sotto il pavimento (#265: colonna x, righe [z0, z1); in fondo si esce in città). */
+  stanza: { pavimento: [number, number, number, number]; altezza: number; retro: [number, number]; giardino: [number, number]; corridoio: [number, number, number] };
+  /** Il negozio dei mobili (#265): in città (celle del template porto) e dentro (template `negozio`). */
+  negozio: { at: [number, number]; porta: [number, number]; rot: number };
+  negozioDentro: { pavimento: [number, number, number, number]; corridoio: [number, number, number]; altezza: number; finitura: { pavimento: string; carta: string } };
   /** Pavimenti e carte da parati: il primo è quello di serie. `motivo` = come si dipinge (render/stanza), `colori` dalla palette. */
   pavimenti: StanzaFinitura[]; carte: StanzaFinitura[];
 };
-export type StanzaFinitura = { id: string; nome: string; motivo: string; colori: string[] };
+/** `perle`: prezzo al negozio dei mobili (#265); assente o 0 = di serie, di tutti. */
+export type StanzaFinitura = { id: string; nome: string; motivo: string; colori: string[]; perle?: number };
+/** Un mobile della casa (#265, mobili.json): `posto` terra (celle del pavimento) o parete (una cella di muro), `forma` = render/mobili.ts (assente: scatola di ripiego).
+ * `categoria` = una di MOBILI_CATEGORIE (catalogo del negozio); `celle` = ingombro a terra [larghezza, profondità] in celle (default [1,1], a parete sempre 1);
+ * `altezza` (m) serve solo alla scatola di ripiego; `vetrina` = sta anche in mostra sulle pedane del negozio (max 3 a terra). Il modello 3D è `mob_<id>` in manifest_mobili.json.
+ * Nome e descrizione del gioco: `nome` qui, descrizione in mobili_testi.json (caricata solo da negozio e ARREDA, non pesa sull'avvio). */
+export type MobileDef = { id: string; nome: string; categoria: string; perle: number; posto: 'terra' | 'parete'; forma?: string; colori: string[]; celle?: [number, number]; altezza?: number; vetrina?: boolean };
 /** `mercante`: esclusivo del Mercante delle Perle al Porto (#63): nell'editor si vede ma si compra solo da lui. */
 export type HatDef = { id: string; nome: string; perle: number; mercante?: boolean };
 export type DecorDef = { id: string; nome: string; perle: number; model: string; mercante?: boolean };

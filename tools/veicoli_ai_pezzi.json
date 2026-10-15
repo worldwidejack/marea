@@ -1,0 +1,385 @@
+{
+  "_nota": "Pezzi che si muovono dei veicoli AI (#281, Jack 14 ott: «non possono essere modelli fermi che slittano»). Coordinate in metri come nel gioco (muso verso −Z, y in su). ruote: le ruote dell'AI non sono tonde (girando entrano nel parafango, «sparisce un pezzo ad ogni giro»), quindi si TOLGONO dal modello e il gioco ci monta una ruota tonda vera (veicoli_ai.ts): c = centro, r = raggio, w = larghezza della ruota nuova, togli = [mezza altezza, mezza lunghezza] dell'ovale di triangoli tolti (di serie r), x = da dove a dove si toglie, rin = foro che resta al modello (il mozzo, dove entrano forcella e forcellone), davanti = sterza, cerchio = colore della palette del cerchione, gomma = «tasselli» (da fuoristrada) o di serie «strada» (liscia con righine, Jack 14 ott). gambe: i triangoli dentro box [x0,x1,y0,y1,z0,z1] diventano un pezzo col perno all'anca. escludi: box che restano sempre alla carrozzeria. via: box che si tolgono sempre (gli avanzi scuri della gomma AI, più alta della ruota tonda: Jack «una forma strana sopra le ruote che resta ferma»). Uso: node tools/veicolo_ai_pezzi.mjs cs_v_moto (se le ruote sono già staccate aggiorna solo le loro misure)",
+  "cs_v_fuoristrada": {
+    "ruote": [
+      {
+        "nome": "ruota_ad",
+        "c": [1.01, 0.5, -1.21],
+        "r": 0.5,
+        "w": 0.6,
+        "togli": [0.53, 0.46],
+        "x": [0.69, 1.34],
+        "davanti": true,
+        "cerchio": "arancio",
+        "gomma": "tasselli"
+      },
+      {
+        "nome": "ruota_as",
+        "c": [-1.01, 0.5, -1.21],
+        "r": 0.5,
+        "w": 0.6,
+        "togli": [0.53, 0.46],
+        "x": [-1.34, -0.69],
+        "davanti": true,
+        "cerchio": "arancio",
+        "gomma": "tasselli"
+      },
+      {
+        "nome": "ruota_pd",
+        "c": [1.01, 0.53, 0.84],
+        "r": 0.53,
+        "w": 0.6,
+        "togli": [0.55, 0.56],
+        "x": [0.69, 1.34],
+        "cerchio": "arancio",
+        "gomma": "tasselli"
+      },
+      {
+        "nome": "ruota_ps",
+        "c": [-1.01, 0.53, 0.84],
+        "r": 0.53,
+        "w": 0.6,
+        "togli": [0.55, 0.56],
+        "x": [-1.34, -0.69],
+        "cerchio": "arancio",
+        "gomma": "tasselli"
+      }
+    ],
+    "via": [
+      [0.78, 1.4, 0, 1.13, -1.75, -0.65],
+      [-1.4, -0.78, 0, 1.13, -1.75, -0.65],
+      [0.78, 1.4, 0, 1.13, 0.25, 1.45],
+      [-1.4, -0.78, 0, 1.13, 0.25, 1.45]
+    ]
+  },
+  "cs_v_moto": {
+    "ruote": [
+      {
+        "nome": "ruota_a",
+        "c": [0, 0.47, -0.8],
+        "r": 0.47,
+        "w": 0.2,
+        "togli": [0.47, 0.46],
+        "rin": 0.14,
+        "x": [-0.21, 0.21],
+        "davanti": true,
+        "cerchio": "pietra"
+      },
+      {
+        "nome": "ruota_p",
+        "c": [0, 0.49, 0.775],
+        "r": 0.49,
+        "w": 0.27,
+        "togli": [0.5, 0.49],
+        "rin": 0.14,
+        "x": [-0.27, 0.27],
+        "cerchio": "pietra"
+      }
+    ],
+    "escludi": [
+      [-0.27, 0.27, 0.4, 0.66, 0.28, 0.72]
+    ],
+    "via": [
+      [-0.3, 0.3, -0.1, 0.12, -1.4, 1.4]
+    ]
+  },
+  "cs_v_struzzo": {
+    "gambe": [
+      {
+        "nome": "gamba_s",
+        "perno": [-0.18, 1.0, 0.05],
+        "box": [-0.6, 0.0, -0.1, 1.0, -1, 1]
+      },
+      {
+        "nome": "gamba_d",
+        "perno": [0.18, 1.0, 0.05],
+        "box": [0.0, 0.6, -0.1, 1.0, -1, 1],
+        "fase": 0.5
+      }
+    ]
+  },
+  "cs_v_kart": {
+    "ruote": [
+      {
+        "nome": "ruota_ad",
+        "c": [0.7, 0.35, -0.77],
+        "r": 0.32,
+        "w": 0.39,
+        "togli": [0.34, 0.34],
+        "x": [0.48, 0.92],
+        "davanti": true,
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_as",
+        "c": [-0.72, 0.35, -0.77],
+        "r": 0.32,
+        "w": 0.39,
+        "togli": [0.34, 0.34],
+        "x": [-0.95, -0.49],
+        "davanti": true,
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_pd",
+        "c": [0.71, 0.39, 0.56],
+        "r": 0.39,
+        "w": 0.47,
+        "togli": [0.41, 0.38],
+        "x": [0.45, 0.97],
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_ps",
+        "c": [-0.71, 0.39, 0.56],
+        "r": 0.39,
+        "w": 0.47,
+        "togli": [0.41, 0.38],
+        "x": [-0.99, -0.44],
+        "cerchio": "pietraChiara"
+      }
+    ]
+  },
+  "cs_v_sportiva": {
+    "ruote": [
+      {
+        "nome": "ruota_ad",
+        "c": [0.93, 0.5, -0.76],
+        "r": 0.46,
+        "w": 0.46,
+        "togli": [0.49, 0.45],
+        "x": [0.68, 1.19],
+        "davanti": true,
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_as",
+        "c": [-0.95, 0.5, -0.76],
+        "r": 0.46,
+        "w": 0.46,
+        "togli": [0.49, 0.45],
+        "x": [-1.22, -0.68],
+        "davanti": true,
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_pd",
+        "c": [0.92, 0.53, 0.93],
+        "r": 0.47,
+        "w": 0.51,
+        "togli": [0.5, 0.47],
+        "x": [0.64, 1.19],
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_ps",
+        "c": [-0.92, 0.53, 0.93],
+        "r": 0.47,
+        "w": 0.51,
+        "togli": [0.5, 0.47],
+        "x": [-1.21, -0.63],
+        "cerchio": "pietraChiara"
+      }
+    ]
+  },
+  "cs_v_ape": {
+    "ruote": [
+      {
+        "nome": "ruota_a",
+        "c": [0.0, 0.34, -1.02],
+        "r": 0.3,
+        "w": 0.34,
+        "togli": [0.33, 0.3],
+        "x": [-0.2, 0.2],
+        "davanti": true,
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_pd",
+        "c": [0.75, 0.33, 0.83],
+        "r": 0.32,
+        "w": 0.32,
+        "togli": [0.35, 0.34],
+        "x": [0.56, 0.94],
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_ps",
+        "c": [-0.75, 0.33, 0.83],
+        "r": 0.32,
+        "w": 0.32,
+        "togli": [0.35, 0.34],
+        "x": [-0.94, -0.56],
+        "cerchio": "pietraChiara"
+      }
+    ]
+  },
+  "cs_v_divano": {
+    "ruote": [
+      {
+        "nome": "ruota_ad",
+        "c": [1.13, 0.45, -1.12],
+        "r": 0.44,
+        "w": 0.48,
+        "togli": [0.47, 0.4],
+        "x": [0.86, 1.4],
+        "davanti": true,
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_as",
+        "c": [-1.12, 0.45, -1.12],
+        "r": 0.44,
+        "w": 0.48,
+        "togli": [0.47, 0.4],
+        "x": [-1.39, -0.85],
+        "davanti": true,
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_pd",
+        "c": [1.18, 0.46, 0.76],
+        "r": 0.44,
+        "w": 0.49,
+        "togli": [0.47, 0.45],
+        "x": [0.9, 1.46],
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_ps",
+        "c": [-1.19, 0.46, 0.76],
+        "r": 0.44,
+        "w": 0.49,
+        "togli": [0.47, 0.45],
+        "x": [-1.46, -0.92],
+        "cerchio": "pietraChiara"
+      }
+    ]
+  },
+  "cs_v_pizza": {
+    "ruote": [
+      {
+        "nome": "ruota_ad",
+        "c": [0.78, 0.38, -0.69],
+        "r": 0.38,
+        "w": 0.44,
+        "togli": [0.41, 0.37],
+        "x": [0.53, 1.03],
+        "davanti": true,
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_as",
+        "c": [-0.94, 0.49, -0.57],
+        "r": 0.39,
+        "w": 0.41,
+        "togli": [0.42, 0.38],
+        "x": [-1.18, -0.71],
+        "davanti": true,
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_pd",
+        "c": [0.94, 0.5, 0.77],
+        "r": 0.42,
+        "w": 0.46,
+        "togli": [0.45, 0.49],
+        "x": [0.68, 1.2],
+        "cerchio": "pietraChiara"
+      },
+      {
+        "nome": "ruota_ps",
+        "c": [-0.93, 0.54, 0.71],
+        "r": 0.41,
+        "w": 0.49,
+        "togli": [0.44, 0.45],
+        "x": [-1.21, -0.66],
+        "cerchio": "pietraChiara"
+      }
+    ]
+  },
+  "cs_v_carrello_spesa": {
+    "ruote": [
+      {
+        "nome": "ruota_ad",
+        "c": [0.56, 0.23, -0.86],
+        "r": 0.23,
+        "w": 0.23,
+        "togli": [0.26, 0.26],
+        "x": [0.41, 0.7],
+        "davanti": true,
+        "cerchio": "pietra"
+      },
+      {
+        "nome": "ruota_as",
+        "c": [-0.56, 0.23, -0.86],
+        "r": 0.23,
+        "w": 0.23,
+        "togli": [0.26, 0.26],
+        "x": [-0.7, -0.42],
+        "davanti": true,
+        "cerchio": "pietra"
+      },
+      {
+        "nome": "ruota_pd",
+        "c": [0.56, 0.24, 0.21],
+        "r": 0.23,
+        "w": 0.23,
+        "togli": [0.27, 0.26],
+        "x": [0.41, 0.7],
+        "cerchio": "pietra"
+      },
+      {
+        "nome": "ruota_ps",
+        "c": [-0.56, 0.24, 0.21],
+        "r": 0.23,
+        "w": 0.23,
+        "togli": [0.27, 0.26],
+        "x": [-0.7, -0.41],
+        "cerchio": "pietra"
+      }
+    ]
+  },
+  "cs_v_carrello_miniera": {
+    "ruote": [
+      {
+        "nome": "ruota_ad",
+        "c": [0.78, 0.34, -0.66],
+        "r": 0.34,
+        "w": 0.29,
+        "togli": [0.37, 0.34],
+        "x": [0.6, 0.96],
+        "davanti": true,
+        "cerchio": "pietra"
+      },
+      {
+        "nome": "ruota_as",
+        "c": [-0.79, 0.34, -0.66],
+        "r": 0.34,
+        "w": 0.29,
+        "togli": [0.37, 0.34],
+        "x": [-0.96, -0.61],
+        "davanti": true,
+        "cerchio": "pietra"
+      },
+      {
+        "nome": "ruota_pd",
+        "c": [0.78, 0.34, 0.66],
+        "r": 0.34,
+        "w": 0.29,
+        "togli": [0.38, 0.34],
+        "x": [0.6, 0.96],
+        "cerchio": "pietra"
+      },
+      {
+        "nome": "ruota_ps",
+        "c": [-0.79, 0.34, 0.66],
+        "r": 0.34,
+        "w": 0.29,
+        "togli": [0.38, 0.34],
+        "x": [-0.96, -0.61],
+        "cerchio": "pietra"
+      }
+    ]
+  }
+}

@@ -62,6 +62,26 @@
       "id": "carrello", "nome": "Carrello della spesa", "famiglia": "ruote", "velocita": 18.5, "accelerazione": 18, "sterzo": 2.8, "presa": 6, "presaDrift": 2.5, "drift": 1.5, "peso": 0.6,
       "buffo": "Ha la ruota storta: tira sempre un po' a destra.", "tira": 0.1
     },
+    { "id": "fuoristrada", "nome": "Fuoristrada", "famiglia": "ruote", "velocita": 19.5, "accelerazione": 12, "sterzo": 2.0, "presa": 11, "presaDrift": 3.2, "drift": 1.25, "peso": 1.7,
+      "buffo": "Sabbia, prato, fango: per lui è tutta strada.",
+      "effetti": {
+        "sabbia": { "velocita": 0.95, "presa": 0.9, "accelerazione": 0.95 },
+        "erba": { "velocita": 0.9, "presa": 0.9, "accelerazione": 0.95 },
+        "fango": { "velocita": 0.9, "presa": 0.85, "accelerazione": 0.9 }
+      }
+    },
+    { "id": "moto", "nome": "Moto da cross", "famiglia": "ruote", "velocita": 21, "accelerazione": 16, "sterzo": 2.6, "presa": 8, "presaDrift": 2.8, "drift": 1.45, "peso": 0.6, "buffo": "Stretta e nervosa: passa dove gli altri non passano. A ogni botta vola via." },
+    { "id": "bob", "nome": "Bob", "famiglia": "ruote", "velocita": 20.5, "accelerazione": 11, "sterzo": 1.9, "presa": 5, "presaDrift": 2.2, "drift": 1.55, "peso": 1.1,
+      "buffo": "Un bob da neve sull'asfalto: scivola sempre, ma in derapata è un sogno. Sul ghiaccio è a casa.",
+      "effetti": { "ghiaccio": { "velocita": 1.15, "presa": 0.9, "accelerazione": 1 } }
+    },
+    { "id": "divano", "nome": "Divano a motore", "famiglia": "ruote", "velocita": 18, "accelerazione": 10, "sterzo": 1.8, "presa": 8, "presaDrift": 3, "drift": 1.2, "peso": 2.4, "buffo": "Lento e comodissimo. Chi lo tampona rimbalza indietro." },
+    { "id": "ape", "nome": "Ape", "famiglia": "ruote", "velocita": 18.5, "accelerazione": 16, "sterzo": 2.4, "presa": 9, "presaDrift": 3, "drift": 1.3, "peso": 0.9, "buffo": "Tre ruote e un motorino: parte a razzo, poi si siede.", "tira": -0.05 },
+    { "id": "struzzo", "nome": "Struzzo", "famiglia": "ruote", "velocita": 20, "accelerazione": 19, "sterzo": 2.7, "presa": 7, "presaDrift": 2.6, "drift": 1.4, "peso": 0.8,
+      "buffo": "Corre a zampe: lo scatto da fermo non lo batte nessuno, e il prato non lo spaventa.",
+      "effetti": { "erba": { "velocita": 0.85, "presa": 0.85, "accelerazione": 0.95 } }
+    },
+    { "id": "pizza", "nome": "Fetta di pizza", "famiglia": "ruote", "velocita": 20.5, "accelerazione": 13, "sterzo": 2.3, "presa": 4.5, "presaDrift": 1.8, "drift": 1.65, "peso": 0.7, "buffo": "Unta: scivola tantissimo. Chi sa derapare non la lascia più." },
     { "id": "moto_acqua", "nome": "Moto d'acqua", "famiglia": "acqua", "velocita": 19.5, "accelerazione": 13, "sterzo": 2.5, "presa": 4.5, "presaDrift": 2, "drift": 1.3, "peso": 0.9, "buffo": "Nervosa, rumorosa, sempre col muso per aria." },
     { "id": "gommone", "nome": "Gommone", "famiglia": "acqua", "velocita": 18.5, "accelerazione": 15, "sterzo": 2.2, "presa": 6, "presaDrift": 2.5, "drift": 1.25, "peso": 1.2, "buffo": "Parte svelto e perdona gli errori. Odora di crema solare." },
     {
@@ -74,6 +94,7 @@
         "erba": { "velocita": 0.65, "presa": 1, "accelerazione": 0.8 }
       }
     },
+    { "id": "papera", "nome": "Papera di gomma", "famiglia": "acqua", "velocita": 18, "accelerazione": 14, "sterzo": 2.4, "presa": 5, "presaDrift": 2.2, "drift": 1.35, "peso": 0.5, "buffo": "Di gomma: a ogni botta rimbalza lontano, ma non affonda mai." },
     { "id": "carrello_miniera", "nome": "Carrello da miniera", "famiglia": "binari", "velocita": 17, "accelerazione": 10, "sterzo": 4, "presa": 8, "presaDrift": 8, "drift": 1, "peso": 1.2, "presaCurva": 1, "buffo": "Ha visto cose, in fondo alla miniera. Non ne parla." },
     { "id": "carrello_corsa", "nome": "Carrello da corsa", "famiglia": "binari", "velocita": 18.2, "accelerazione": 11, "sterzo": 4.5, "presa": 8, "presaDrift": 8, "drift": 1, "peso": 1, "presaCurva": 0.9, "buffo": "Il più svelto a piegarsi in curva, se non hai paura." },
     { "id": "carrello_corazzato", "nome": "Carrello corazzato", "famiglia": "binari", "velocita": 16.4, "accelerazione": 8, "sterzo": 3.5, "presa": 8, "presaDrift": 8, "drift": 1, "peso": 2, "presaCurva": 1.12, "buffo": "Pesa come una cassaforte: lento a partire, ma non lo sposta nessuno." }

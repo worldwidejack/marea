@@ -38,11 +38,12 @@ RIONI = [20, 115, 210]           # tre rioni di case a schiera (centro, gradi), 
 RIONE = 22
 VICOLI = [20, 115, 210, 65, 162, 345, 245]   # vicoli (una cella) dall'anello al lungomare: in mezzo ai rioni, agli slarghi e ai capi
 SLARGHI = [65, 162]              # tra un rione e l'altro: slargo con la fontana
+NEGOZIO = (79, 19.5)             # il negozio dei mobili (#265): angolo e raggio, dietro il primo slargo, con la porta verso la fontana
 CASE = 30
 FARO = (250, 21)                 # angolo e raggio del Grande Faro: in punta al braccio a sud-ovest, sulla bocca della baia
-# posti fissi della piazza (celle del template): lì niente case né arredo. Grotta (game/ingressi.ts), Mercante, Bacheca, Furetto (gente.json),
+# posti fissi della piazza (celle del template): lì niente case né arredo. Grotta e Portale del Vuoto (game/ingressi.ts), Mercante, Bacheca, Furetto (gente.json),
 # Tabellone (porto_amici.json), Consegne e Ingorgo (minigames/*.json)
-POSTI = [(54, 35, 3.5), (40, 43.4, 2), (48, 43.6, 2), (53.2, 38.4, 2), (35.6, 46.2, 2), (40, 56, 2.5), (48, 56, 2.5)]
+POSTI = [(54, 35, 3.5), (22, 36, 3.5), (40, 43.4, 2), (48, 43.6, 2), (53.2, 38.4, 2), (35.6, 46.2, 2), (40, 56, 2.5), (48, 56, 2.5)]
 PAESANI = ['nella', 'tonio', 'bice', 'gaspare', 'ada_fiori']   # gente.json: il loro `giro` lo scrive lo script (lungo l'anello e i vicoli)
 rnd = random.Random(265)
 
@@ -131,6 +132,17 @@ for a in SLARGHI:
             if math.hypot(x - sx, z - sz) < 2.3: via(x, z)
     slarghi.append((a, sx, sz))
 
+# il negozio dei mobili (#265): un edificio 2×2 celle, la porta verso la fontana del primo slargo e un vialetto fino allo slargo
+dxn, dzn = verso(NEGOZIO[0])
+neg = (round(C[0] + NEGOZIO[1] * dxn), round(C[1] + NEGOZIO[1] * dzn))
+_, s0x, s0z = slarghi[0]
+vx, vz = s0x - neg[0], s0z - neg[1]; vl = math.hypot(vx, vz); vx, vz = vx / vl, vz / vl
+neg_porta = (round(neg[0] + vx * 1.6), round(neg[1] + vz * 1.6))
+for k in range(0, int(vl) + 1):
+    via(round(neg_porta[0] + vx * k), round(neg_porta[1] + vz * k))
+if get(*neg) != 'g': sys.exit(f'il negozio cade su {get(*neg)!r} in {neg}')
+negozio = {'at': list(neg), 'porta': list(neg_porta), 'rot': round(math.atan2(-vx, -vz), 2)}
+
 # gli edifici della piazza che stanno sopra una via nuova se ne vanno
 def impronta(x, z): return [(x + dx, z + dz) for dx in (-1, 0, 1) for dz in (-1, 0, 1)]
 slots = []
@@ -160,6 +172,7 @@ def libero(x, z):
     if any(get(cx, cz) in '~,rd' for cx, cz in impronta(x, z)): return False
     if not all(max(abs(hx - x), abs(hz - z)) >= 2 for (hx, hz), _, _ in case): return False
     if any(math.hypot(x + 0.5 - px, z + 0.5 - pz) < r + 1.2 for px, pz, r in POSTI): return False
+    if math.hypot(x - neg[0], z - neg[1]) < 3.5: return False
     return all(abs(s['at'][0] - x) >= 4 or abs(s['at'][1] - z) >= 4 for s in slots)
 def fuori(h, p):  # dove si nasce: 2,5 m fuori dalla porta, sulla via, appena oltre il raggio del bottone (borgo.ts portaDi, world.ts)
     dx, dz = p[0] - h[0], p[1] - h[1]; l = math.hypot(dx, dz)
@@ -205,7 +218,7 @@ for c in (faro, fronte):
 arredo = []
 occupati = [(h[0], h[1], 1.2) for h, _, _ in case] + [(p[0], p[1], 0.9) for _, p, _ in case] + [(s['at'][0], s['at'][1], 2.2) for s in slots[:1]]
 occupati += [(s['at'][0], s['at'][1], 1.6) for s in slots if s['kind'].startswith('casa') and list(s['at']) not in [list(h) for h, _, _ in case]]
-occupati += [(faro[0], faro[1], 3.0), (fronte[0], fronte[1], 1.5)] + POSTI
+occupati += [(faro[0], faro[1], 3.0), (fronte[0], fronte[1], 1.5)] + POSTI + [(neg[0] + 0.5, neg[1] + 0.5, 2.4), (neg_porta[0] + 0.5, neg_porta[1] + 0.5, 1.0)]
 for p in PIAZZA['props']: occupati.append((p['at'][0] + SPOSTA[0], p['at'][1] + SPOSTA[1], 1.0))
 def posto_libero(x, z, r=0.8):
     return all(math.hypot(x - ox, z - oz) >= r + orr for ox, oz, orr in occupati) and get(int(x), int(z)) in '.g'
@@ -333,6 +346,7 @@ blocchi = [blocco_porto() if bid(b) == 'porto' else b for b in blocchi if bid(b)
 scrivi(CONTENT / 'islands.json', '[\n' + ',\n'.join(blocchi) + '\n]\n')
 
 bj = leggi(CONTENT / 'borgo.json').replace('\r\n', '\n')
+bj = re.sub(r'"negozio": \{[^{}]*\}', lambda m: '"negozio": ' + json.dumps(negozio, separators=(', ', ': ')), bj) # (#265: dove sta in città; il dentro è `negozioDentro`, a mano)
 casej = ',\n'.join(f'    {{"at": [{h[0]},{h[1]}], "porta": [{p[0]},{p[1]}]}}' for h, p, _ in case)
 bj = re.sub(r'"case": \[.*?\n  \]', lambda m: '"case": [\n' + casej + '\n  ]', bj, flags=re.S)
 scrivi(CONTENT / 'borgo.json', bj)

@@ -7,6 +7,8 @@ export type TRisorse = { legno: number; pietra: number; perle: number };
  *  lancio (il fuoco greco: un vaso che esplode dove cade e lascia le fiamme). */
 export type TArmaDef = {
   id: string; nome: string; tipo: 'mischia' | 'arco' | 'fuoco' | 'lancio';
+  /** Nome dopo il potenziamento del Mercante. */
+  nomePot: string;
   /** Danno di un colpo (arco: a corda tesa; fuoco: per pallino). */
   danno: number;
   /** Mischia: secondi per un fendente. Arco: secondi per tendere al massimo. Fuoco: secondi tra due colpi dello stesso caricatore. */
@@ -37,6 +39,30 @@ export type TArmaDef = {
   aspetto: { modello: string | null; colore: string; forma?: string };
 };
 export type TFiamma = { dps: number; durata: number; raggio: number };
+export type TArmaTipo = TArmaDef['tipo'];
+
+/** Gli eroi del menù d'ingresso (docs/TEMPLARI.md §4b): il tuo avatar con uno dei tre vestiti. */
+export type TClasse = 'crociato' | 'bucaniera' | 'arciere';
+/** Il super: si carica uccidendo (`uccisioni` dell'eroe), si usa col bottone SUPER. `danno` = × la vita degli zombie dell'ondata
+ *  (Giudizio e Bordata: a colpo; Pioggia: al secondo). Giudizio: tutto attorno a te entro `raggio`, spinge di `spinta` m, `intoccabile` s.
+ *  Bordata: `colpi` cannonate in fila lungo la mira, `passo` m l'una dall'altra, la prima dopo `primo` s e poi ogni `ogni` s; il bersaglio
+ *  è il primo zombie lungo la mira entro `gittata` (sennò 3/5 della gittata). Pioggia: un cerchio di `raggio` per `durata` s, stesso bersaglio. */
+export type TSuperDef = {
+  id: 'giudizio' | 'bordata' | 'pioggia'; nome: string; descr: string; uccisioni: number; danno: number; raggio: number;
+  spinta?: number; intoccabile?: number; colpi?: number; passo?: number; gittata?: number; primo?: number; ogni?: number; durata?: number;
+};
+export type TEroeDef = {
+  id: TClasse; nome: string; titolo: string; descr: string;
+  /** Le due armi di partenza (null = slot vuoto); `scudo` = parte con lo scudo templare sulle spalle. */
+  armi: [string, string | null]; scudo?: boolean;
+  /** Vita massima e velocità (× camminata e corsa). */
+  vita: number; velocita: number;
+  /** Danno × per tipo d'arma; ricarica delle armi da fuoco ×; tempo per tendere l'arco ×. */
+  danno: Partial<Record<TArmaTipo, number>>; ricarica?: number; tende?: number;
+  /** Le tacche (1..5) del menù: solo da vedere. */
+  barre: { vita: number; forza: number; velocita: number; mira: number };
+  super: TSuperDef;
+};
 
 export type TNemicoDef = {
   id: string; nome: string;
@@ -52,10 +78,13 @@ export type TNemicoDef = {
   strappa: number;
   /** Secondi per uscire da terra quando compare. */
   sorge: number;
-  /** Scudo davanti (coseno del mezzo angolo coperto): i colpi da lì non fanno niente. Morto, lascia lo scudo a terra. */
-  scudo?: number;
+  /** Scudo davanti (coseno del mezzo angolo coperto): i colpi da lì li prende lo scudo, che regge `scudoVita` × la vita dell'ondata e
+   *  poi si spacca (lo zombie resta scoperto). Morto con lo scudo intero, lo lascia a terra. */
+  scudo?: number; scudoVita?: number;
   /** Da quale ondata compare e quanta parte dell'ondata è sua (base + perOndata × (n − da), al massimo max). Senza: il fante, che fa il resto. */
   da?: number; quota?: { base: number; perOndata: number; max: number };
+  /** Al massimo quanti in un'ondata: base + perOndata × (n − da), arrotondato in giù, al massimo max (arrivano piano piano). */
+  maxOndata?: { base: number; perOndata: number; max: number };
   /** Boss (Templare a cavallo, de Molay): esce da solo nelle sue ondate, barra della vita in alto, `punti` in più a chi lo abbatte. */
   boss?: boolean; punti?: number;
   /** Cannoniere: bomba lanciata dove sei (cerchio a terra), da `distanza` m, ogni `ricarica` s; esplode dopo `volo` s. */
@@ -69,8 +98,8 @@ export type TNemicoDef = {
 export type TOndateCfg = {
   /** Vita degli zombie all'ondata n: base + perOndata × (n − 1) fino a `finoA`, poi × molt a ondata. */
   vita: { base: number; perOndata: number; finoA: number; molt: number };
-  /** Zombie nell'ondata n: base + lin × (n − 1) + quad × (n − 1)², arrotondato, al massimo `max`. */
-  quanti: { base: number; lin: number; quad: number; max: number };
+  /** Zombie nell'ondata n: base + lin × (n − 1) + quad × (n − 1)², arrotondato, al massimo `max`; insieme × (1 + perEroe × (eroi − 1)). */
+  quanti: { base: number; lin: number; quad: number; max: number; perEroe: number };
   /** Quanti al massimo insieme sulla mappa. */
   insieme: number;
   /** Secondi tra due comparse: base + perOndata × (n − 1), almeno `min`. */
@@ -86,6 +115,17 @@ export type TOndateCfg = {
   bloccato: number;
 };
 
+/** Pozione della Strega (docs/TEMPLARI.md §7b): ogni campo che c'è è il suo effetto. */
+export type TPozioneDef = {
+  id: TPozione; nome: string; descr: string; prezzo: number;
+  /** Vita massima nuova. */ vita?: number;
+  /** Velocità e fiato × questo. */ velocita?: number; fiato?: number;
+  /** Ricarica e tensione dell'arco × questo. */ ricarica?: number;
+  /** Armi a distanza: danno × e tempo tra due colpi ×. */ danno?: number; tempo?: number;
+  /** Elisir: quante volte si compra in una partita, secondi da intoccabile quando ti rialzi, metri a cui spinge via gli zombie. */ volte?: number; intoccabile?: number; spinta?: number;
+  /** Rigenerazione: dopo quanti secondi riparte e × quanto più veloce. */ regenDopo?: number; regen?: number;
+};
+export type TPozione = 'pietra' | 'viandante' | 'lesto' | 'bombardiere' | 'risorto' | 'fonte';
 export type TemplariCfg = {
   version: number;
   maxMinuti: number;
@@ -121,11 +161,25 @@ export type TemplariCfg = {
   porte: Record<string, TPortaDef>;
   /** Porte: distanza per comprarle. */
   porta: { raggio: number };
+  /** Raggio (m) con cui fermano l'eroe e gli zombie gli alberi e i lampioni sul bordo del campo: quello del tronco, non la cella intera. */
+  alberi: { cipresso: number; palma: number; lampione: number };
   /** Trappole (id della legenda): prezzo, secondi accese e di ricarica dopo, danno al secondo ai boss (gli altri muoiono), e all'eroe
    *  `danno` ogni `ogni` secondi se ci sta dentro. */
   trappole: Record<string, TTrappolaDef>;
   /** Power-up: probabilità a uccisione, al massimo per ondata (i boss ne lasciano sempre uno), secondi a terra e di lampeggio, durata di
    *  Ira di Dio e Decima, distanza per prenderli, punti di Campane a martello e Muratori, tipi che possono uscire. */
+  /** Mercante (sulla barca alla spiaggia): potenzia l'arma (moltiplicatori; le miracolose hanno `dannoMiracolosa`) e vende munizioni
+   *  per tutte le armi (prezzo del muro; della cassa `cassa`, miracolose `miracolosa`; arma potenziata × `potenziata`). */
+  mercante: { raggio: number; potenzia: { prezzo: number; danno: number; dannoMiracolosa: number; colpi: number; riserva: number; ricarica: number }; munizioni: { cassa: number; miracolosa: number; potenziata: number } };
+  /** Strega (nella capanna oltre il cimitero): pozioni da bere, al massimo `max` insieme; `beve` = secondi per berla (non si attacca). */
+  strega: { raggio: number; max: number; beve: number; pozioni: TPozioneDef[] };
+  /** Fuochi da accendere (AZIONE tenuto `accendi` s entro `raggio` m); tutti accesi: `tutti` punti e un power-up. */
+  fuochi: { accendi: number; raggio: number; tutti: number; lista: Record<string, TFuocoDef> };
+  /** La campana da montare: i pezzi (id → nome), ognuno in uno dei suoi posti della mappa scelto dalla partita; si prendono con AZIONE
+   *  entro `raggio` m; alla leva della campana, con tutti i pezzi, AZIONE tenuto `monta` s la monta (e la trappola funziona). */
+  campana: { pezzi: Record<string, string>; raggio: number; monta: number };
+  /** Gli eroi del menù d'ingresso (il primo è quello di serie). */
+  eroi: TEroeDef[];
   poteri: { probabilita: number; maxOndata: number; aTerra: number; lampeggia: number; durata: number; raggio: number; campane: number; muratori: number; tipi: TPotere[] };
   /** Premio per ondata superata (fino a `maxOndate`) e tetto del giorno UTC. */
   premio: { perOndata: TRisorse; maxOndate: number; tetto: TRisorse };
@@ -138,5 +192,8 @@ export type TPotere = 'faretra' | 'ira' | 'campane' | 'decima' | 'muratori';
 
 /** Legenda della mappa dell'arena oltre ai caratteri fissi (tools/templari_mappa.mjs): porte, armi sul muro, comparse delle zone (`comparsa`
  *  = zona), celle delle trappole e loro leve. */
-export type TLegenda = { porta?: string; muro?: string; comparsa?: string; trappola?: string; leva?: string };
+export type TLegenda = { porta?: string; muro?: string; comparsa?: string; trappola?: string; leva?: string; personaggio?: 'mercante' | 'strega'; fuoco?: string; pezzo?: string };
+/** Un fuoco da accendere (docs/TEMPLARI.md §9b): il nome e cosa accende (`rogo` = la trappola del rogo funziona, `strega` = la Strega
+ *  vende, `mercante` = la nave del Mercante attracca). */
+export type TFuocoDef = { nome: string; apre: 'rogo' | 'strega' | 'mercante'; dice: string };
 export type TMappaDef = { tile: number; legenda: Record<string, TLegenda>; rows: string[] };

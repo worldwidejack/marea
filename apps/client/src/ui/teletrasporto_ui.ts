@@ -25,7 +25,7 @@ export function createTeletrasportoUi(ctx: TeletrasportoCtx) {
   const chiave = (p: ArchPlace) => (p.role === 'lotto' ? `lotto:${p.slot}` : p.island);
   const ordine = (p: ArchPlace) => (p.role === 'porto' ? 0 : p.role === 'lotto' ? 2 : 1);
   const posti = () => ctx.world.archipelago.places
-    .filter((p) => p.role !== 'lotto' || (p.slot !== null && ctx.slots.includes(p.slot)))
+    .filter((p) => p.role !== 'negozio' && (p.role !== 'lotto' || (p.slot !== null && ctx.slots.includes(p.slot)))) // il negozio dei mobili (#265) si raggiunge dalla porta
     .sort((a, b) => ordine(a) - ordine(b) || a.index - b.index);
   const close = () => { box.classList.remove('on'); ctx.onClose(); };
   const draw = () => {

@@ -42,7 +42,7 @@ export type Minigiochi = {
   /** Un tick (60 Hz): vicino a un posto, il fronte di salita di A fa partire la partita. `f` = l'input intero (giochi in barca). */
   tick(a: boolean, f?: InputFrame): void;
   /** Ogni frame: boa, cartello, bottone. */
-  update(t: number): void;
+  update(t: number, alpha?: number): void;
   /** Scheda dell'esito aperta o partita che sta partendo: il mondo sta fermo. */
   isBusy(): boolean;
   /** Partite finite in questa sessione (per la guida). */
@@ -55,7 +55,9 @@ const NEAR_M = 16;
  *  mentre è aperto) e `update` (ogni frame). */
 export type SchermoGioco = {
   run(o: { seed: number; difficulty: number; opzioni?: Record<string, string>; posto?: string }): Promise<PackedInputs | null>; isOpen(): boolean; esito?(detail: Record<string, unknown>): string;
-  step?(f: InputFrame): void; update?(t: number): void;
+  step?(f: InputFrame): void;
+  /** Ogni frame; `alpha` = quanto manca al prossimo tick (0-1): per disegnare a metà tra due tick (le Corse, #277). */
+  update?(t: number, alpha: number): void;
   /** Prima che il server apra la partita: sceglie le `opzioni`. null = ci ripensa, o il gioco resta aperto da sé e le partite le fa
    *  partire lui (le Corse, #185: si apre l'hub, le gare partono dalle sue porte con `gioca` → `play(spot, scelte)`). */
   scegli?(opzioni?: Record<string, string>): Promise<Record<string, string> | null>;
@@ -334,13 +336,13 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       pesca.tick(); // Pesca (#66)
       perle.tick(); // Perle
     },
-    update(t) {
+    update(t, alpha = 1) {
       const show = !!near && !busy && !open && !o.world.race.on && !schermoAperto();
       if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', near.tasto?.nome ?? 'A')); }
       btn.classList.toggle('on', show);
       pesca.update(); // Pesca (#66)
       perle.update(); // Perle
-      for (const g of schermi.values()) g.update?.(t);
+      for (const g of schermi.values()) g.update?.(t, alpha);
       const me = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
       for (const m of marks) {
         if (m.s.boa) { m.holder.position.y = 0.1 * Math.sin(t * 2); m.holder.rotation.y = t * 0.5; }

@@ -18,6 +18,7 @@ import type { Loader } from '../render/loader.ts';
 import { boxPart, parts } from './dungeon_kit.ts';
 import type { Part } from './dungeon_kit.ts';
 import { palColor } from './items_ui.ts';
+import { costumeTemplari } from './vestito_templari.ts';
 
 export type Vestito = {
   /** Cambia quello che si vede. `schiena`: l'arma sta sulla schiena (overworld); falso = è in mano (dungeon) e resta solo la faretra. L'ultima chiamata vince. */
@@ -30,18 +31,18 @@ export type Vestito = {
 };
 
 // ---------- ossa e pezzi ----------
-type Osso = 'Hips' | 'Spine' | 'UpperArm.L' | 'UpperArm.R' | 'LowerArm.L' | 'LowerArm.R' | 'UpperLeg.L' | 'UpperLeg.R' | 'LowerLeg.L' | 'LowerLeg.R';
+export type Osso = 'Hips' | 'Spine' | 'UpperArm.L' | 'UpperArm.R' | 'LowerArm.L' | 'LowerArm.R' | 'UpperLeg.L' | 'UpperLeg.R' | 'LowerLeg.L' | 'LowerLeg.R';
 const OSSA: readonly Osso[] = ['Hips', 'Spine', 'UpperArm.L', 'UpperArm.R', 'LowerArm.L', 'LowerArm.R', 'UpperLeg.L', 'UpperLeg.R', 'LowerLeg.L', 'LowerLeg.R'];
-type V3 = [number, number, number];
+export type V3 = [number, number, number];
 /** b = base (il colore del materiale), d = scuro, l = chiaro, t = finitura. */
-type Tinta = 'b' | 'd' | 'l' | 't';
-type Hue = Record<Tinta, string>;
+export type Tinta = 'b' | 'd' | 'l' | 't';
+export type Hue = Record<Tinta, string>;
 /** Una scatola: osso, dimensioni, centro, tinta, rotazione (Euler XYZ, rad) attorno al suo centro. */
-type Pz = { o: Osso; s: V3; at: V3; c: Tinta; r?: V3 };
-const lato = (b: 'UpperArm' | 'LowerArm' | 'UpperLeg' | 'LowerLeg', sx: number): Osso => `${b}.${sx > 0 ? 'R' : 'L'}` as Osso;
-const SX = [-1, 1] as const;
+export type Pz = { o: Osso; s: V3; at: V3; c: Tinta; r?: V3 };
+export const lato = (b: 'UpperArm' | 'LowerArm' | 'UpperLeg' | 'LowerLeg', sx: number): Osso => `${b}.${sx > 0 ? 'R' : 'L'}` as Osso;
+export const SX = [-1, 1] as const;
 /** Pezzo sull'avambraccio a quota `y`: nel modello l'avambraccio parte dal gomito (±0,215; 0,965) e scende aprendosi di 16° e andando un po' avanti. */
-const avamb = (s: number, y: number, w: number, h: number, d: number, c: Tinta): Pz => {
+export const avamb = (s: number, y: number, w: number, h: number, d: number, c: Tinta): Pz => {
   const k = 0.965 - y;
   return { o: lato('LowerArm', s), s: [w, h, d], at: [s * (0.215 + 0.28 * k), y, -0.17 * k], c, r: [0.17, 0, s * 0.273] };
 };
@@ -326,7 +327,9 @@ export function creaVestito(o: { loader: Loader; root: THREE.Object3D; rest: Rea
     if (chiave === fOpt) return;
     fOpt = chiave; corpo = null;
     corpoGeo?.dispose(); corpoGeo = null;
-    if (id && hasItem(id)) {
+    const cost = id ? costumeTemplari(id) : null;
+    if (cost) { corpoGeo = scatole(cost.pezzi, cost.hue, []); corpo = id!; } // i vestiti degli eroi dei Templari (non sono oggetti del GDR)
+    else if (id && hasItem(id)) {
       const it = itemDef(id), f = it.kind === 'veste' ? { f: 'veste' as Forma } : FORMA[it.materiale ?? ''] ?? { f: 'piastre' as Forma };
       corpoGeo = scatole(pezziArmatura(f.f, f.o ?? {}), hueDi(id, it.materiale, it.colore), []); corpo = id;
     }

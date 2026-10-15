@@ -91,6 +91,21 @@ export default async function (ctx) {
       } else ctx.warn('template lotto', 'islands.json senza `lotto`: celle non validate (fallback)');
     });
 
+    await ctx.test('/api/nome: cambia il nome della persona e aggiorna /api/me e /api/persone (#301)', async () => {
+      const rCorto = await post('/api/nome', 'tokA', { nome: 'A' });
+      assert(rCorto.status === 400 && /lettere/i.test(rCorto.body.error), 'nome troppo corto non rifiutato: ' + JSON.stringify(rCorto.body));
+      const rLungo = await post('/api/nome', 'tokA', { nome: 'UnNomeCheSuperaSediciCaratteri' });
+      assert(rLungo.status === 400 && /lettere/i.test(rLungo.body.error), 'nome troppo lungo non rifiutato: ' + JSON.stringify(rLungo.body));
+      const rOk = await post('/api/nome', 'tokA', { nome: 'Annina' });
+      assert(rOk.status === 200 && rOk.body.nome === 'Annina', 'cambio nome non riuscito: ' + JSON.stringify(rOk.body));
+      const me = (await get('/api/me', 'tokA')).body;
+      assert(me.nome === 'Annina', '/api/me non aggiornato: ' + me.nome);
+      const pp = (await get('/api/persone', 'tokA')).body;
+      assert(pp.find((p) => p.id === 'anna')?.nome === 'Annina', '/api/persone non aggiornato');
+      // Ripristina per i test successivi
+      await post('/api/nome', 'tokA', { nome: 'Anna' });
+    });
+
     const L = cellsOf('L');
     const slot = (i) => L[i] ?? [2 + i, 2];
     await ctx.test('celle: edifici solo su L libere, decorazioni solo su sabbia/erba (altrimenti 400), occupata 409', async () => {

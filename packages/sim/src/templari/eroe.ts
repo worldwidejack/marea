@@ -14,13 +14,16 @@ import { COLPI, GIRO_TEMPO } from '../dungeon/tuning.ts';
 import { sweepTo, swept } from '../dungeon/swing.ts';
 import type { TInput, TPrompt } from './types.ts';
 import type { Slot, TState, Zombie } from './stato.ts';
-import { HOLD_TICKS, armaIn, ev, secToTicks, slotDi, slotIn } from './stato.ts';
+import { HOLD_TICKS, armaDi, armaIn, classeDi, ev, fiatoMax, haPozione, pozioneDef, secToTicks, slotDi, slotIn } from './stato.ts';
+import { usaSuper } from './super.ts';
+import { chiVicino, prezzoMunizioni } from './bottega.ts';
 import { accendi, colpisci, dai, spendi } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
 import type { Muro } from './mappa.ts';
 import { ruota, tira } from './proiettili.ts';
 import { usaCassa, vicinoCassa } from './cassa.ts';
-import { accendiTrappola, apriPorta, levaVicina, portaDef, portaVicina, trappolaAccesa, trappolaDef, trappolaPronta } from './porte.ts';
+import { accendiTrappola, apriPorta, levaVicina, portaDef, portaVicina, trappolaAccesa, trappolaDef, trappolaPronta, trappolaUsabile } from './porte.ts';
+import { acceso, fuocoPer, fuocoVicino, lavora, lavoroK, pezziPresi, pezziTutti, pezzoVicino, prendiPezzo } from './fuochi.ts';
 
 const vivi = (s: TState): Zombie[] => s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge');
 const ANIM_TIRO = Math.round(0.25 * 60), ANIM_LANCIO = Math.round(0.35 * 60);
@@ -137,7 +140,7 @@ function ricarica(s: TState, a: TArmaDef, sl: Slot): void {
 function fineRicarica(s: TState): void {
   const sl = slotIn(s);
   if (!sl) return;
-  const a = armaDef(sl.id), n = Math.min(sl.riserva, (a.colpi ?? 0) - sl.colpi);
+  const a = armaDi(s, sl), n = Math.min(sl.riserva, (a.colpi ?? 0) - sl.colpi);
   if (n > 0) { sl.colpi += n; sl.riserva -= n; }
 }
 /** Un colpo a distanza: freccia (tensione `k`), palla, ventaglio di pallini, vaso. */
@@ -166,11 +169,11 @@ function spallata(s: TState): void {
   }
 }
 
-/** Un'arma nuova: se ce l'hai già ricarica tutto; sennò nello slot libero, o al posto di quella in mano. */
+/** Un'arma nuova: se ce l'hai già ricarica tutto (resta potenziata, se lo era); sennò nello slot libero, o al posto di quella in mano. */
 export function daiArma(s: TState, id: string): void {
   const h = s.eroe, a = armaDef(id);
   const gia = h.armi.findIndex((x) => x?.id === id);
-  if (gia >= 0) { h.armi[gia] = slotDi(a); return; }
+  if (gia >= 0) { h.armi[gia] = slotDi(a, !!h.armi[gia]!.pot); return; }
   const libero = h.armi.findIndex((x) => x === null);
   const i = libero >= 0 ? libero : h.cur;
   h.armi[i] = slotDi(a); h.cur = i; h.inMano = false;
@@ -207,13 +210,15 @@ function dropVicino(s: TState): number {
   const h = s.eroe;
   return s.drops.findIndex((d) => d.tipo === 'scudo' && d.fine > s.tick && (d.x - h.x) * (d.x - h.x) + (d.z - h.z) * (d.z - h.z) <= 2.25);
 }
-/** Cosa fa l'arma sul muro per te: comprarla, ricaricarla (e quanto), o niente (null = ce l'hai già, piena o senza munizioni). */
+/** Cosa fa l'arma sul muro per te: comprarla, ricaricarla (e quanto: potenziata costa di più), o niente (null = ce l'hai già, piena o
+ *  senza munizioni). */
 function offerta(s: TState, m: Muro): { munizioni: boolean; prezzo: number } | null {
   const a = armaDef(m.arma), sl = s.eroe.armi.find((x) => x?.id === m.arma);
   if (!sl) return { munizioni: false, prezzo: a.prezzo ?? 0 };
   if (a.tipo === 'mischia' || a.prezzoMunizioni === undefined) return null;
-  if (sl.colpi >= (a.colpi ?? 0) && sl.riserva >= (a.riserva ?? 0)) return null;
-  return { munizioni: true, prezzo: a.prezzoMunizioni };
+  const p = slotDi(a, !!sl.pot);
+  if (sl.colpi >= p.colpi && sl.riserva >= p.riserva) return null;
+  return { munizioni: true, prezzo: prezzoMunizioni(sl) ?? a.prezzoMunizioni };
 }
 
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
@@ -226,6 +231,14 @@ export function prompt(s: TState): TPrompt {
     if (c.fase === 'pronta' && c.arma) return { cosa: 'prendi', testo: `Prendi: ${armaDef(c.arma).nome}`, prezzo: 0, puoi: true };
   }
   if (dropVicino(s) >= 0 && (!s.eroe.scudo || s.eroe.scudo.vita < TEMPLARI.scudo.vita)) return { cosa: 'scudo', testo: 'Prendi lo scudo templare', prezzo: 0, puoi: true };
+  // i pezzi della campana e i fuochi da accendere (§9b)
+  const pz = pezzoVicino(s);
+  if (pz) return { cosa: 'pezzo', testo: `Prendi: ${(TEMPLARI.campana.pezzi[pz] ?? pz).toLowerCase()} della campana`, prezzo: 0, puoi: true };
+  const fu = fuocoVicino(s);
+  if (fu) return { cosa: 'fuoco', testo: `Accendi: ${(TEMPLARI.fuochi.lista[fu]?.nome ?? fu).toLowerCase()}`, prezzo: 0, puoi: true, k: s.eroe.lavoro === 'fuoco:' + fu ? lavoroK(s) : 0 };
+  const chi = chiVicino(s);
+  if (chi && !acceso(s, chi)) return { cosa: chi, testo: chi === 'mercante' ? `La nave è al largo: ${fuocoPer('mercante')?.nome.toLowerCase() ?? 'accendi il fuoco'}` : `La Strega dorme: ${fuocoPer('strega')?.nome.toLowerCase() ?? 'accendi il fuoco'}`, prezzo: 0, puoi: false };
+  if (chi) return { cosa: chi, testo: chi === 'mercante' ? 'Il Mercante' : 'La Strega', prezzo: 0, puoi: true };
   const m = muroVicino(s), o = m ? offerta(s, m) : null;
   if (m && o) {
     const a = armaDef(m.arma);
@@ -237,7 +250,11 @@ export function prompt(s: TState): TPrompt {
   if (p) { const d = portaDef(p.id); return { cosa: 'porta', testo: d.nome, prezzo: d.prezzo, puoi: s.punti >= d.prezzo }; }
   const l = levaVicina(s);
   if (l >= 0) {
-    const d = trappolaDef(s.arena.trappole[l]!.id);
+    const id = s.arena.trappole[l]!.id, d = trappolaDef(id);
+    if (id === 'campana' && !s.campana) return pezziTutti(s)
+      ? { cosa: 'monta', testo: 'Monta la campana', prezzo: 0, puoi: true, k: s.eroe.lavoro === 'monta' ? lavoroK(s) : 0 }
+      : { cosa: 'monta', testo: `La campana è a terra: pezzi ${pezziPresi(s)}/${Object.keys(s.pezzi).length}`, prezzo: 0, puoi: false };
+    if (!trappolaUsabile(s, id)) return { cosa: 'trappola', testo: `${d.nome}: ${fuocoPer('rogo')?.nome.toLowerCase() ?? 'accendi il fuoco'} è spento`, prezzo: 0, puoi: false };
     if (trappolaAccesa(s, l)) return { cosa: 'trappola', testo: `${d.nome}: in funzione`, prezzo: 0, puoi: false };
     if (!trappolaPronta(s, l)) return { cosa: 'trappola', testo: `${d.nome}: si ricarica`, prezzo: 0, puoi: false };
     return { cosa: 'trappola', testo: d.nome, prezzo: d.prezzo, puoi: s.punti >= d.prezzo };
@@ -256,6 +273,14 @@ function azione(s: TState, dDown: boolean, dHeld: boolean): void {
     if (presa) daiArma(s, presa);
     return;
   }
+  // fuochi e campana (§9b): un pezzo si prende con un tocco; un fuoco si accende e la campana si monta tenendo AZIONE
+  const pz = pezzoVicino(s);
+  if (dDown && pz) { prendiPezzo(s, pz); return; }
+  const fu = fuocoVicino(s), l0 = levaVicina(s);
+  const monta = !s.campana && pezziTutti(s) && l0 >= 0 && s.arena.trappole[l0]!.id === 'campana';
+  const lavoro = !dHeld ? '' : fu ? 'fuoco:' + fu : monta ? 'monta' : '';
+  lavora(s, lavoro);
+  if (lavoro) return;
   const di = dropVicino(s);
   if (dDown && di >= 0 && (!h.scudo || h.scudo.vita < TEMPLARI.scudo.vita)) {
     h.scudo = { vita: TEMPLARI.scudo.vita };
@@ -308,11 +333,12 @@ export function stepEroe(s: TState, inp: TInput): void {
   if (h.hurt > 0) h.hurt--;
   if (h.cd > 0) h.cd--;
   if (h.ricarica > 0 && --h.ricarica === 0) fineRicarica(s);
-  const aDown = inp.a && !h.prevA, cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD;
-  h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d;
+  const aDown = inp.a && !h.prevA, cDown = inp.c && !h.prevC, dDown = inp.d && !h.prevD, eDown = !!inp.e && !h.prevE;
+  h.prevA = inp.a; h.prevC = inp.c; h.prevD = inp.d; h.prevE = !!inp.e;
   const dir = aimDir(inp.m);
   azione(s, dDown, inp.d);
   if (cDown) scambia(s);
+  if (eDown) { usaSuper(s, dir); if (s.done) return; }
   const a = armaIn(s), sl = slotIn(s);
   // attacco
   h.actT++;
@@ -336,7 +362,7 @@ export function stepEroe(s: TState, inp: TInput): void {
       if (!inp.a) inizia(s, a, h.carica >= 1);
       break;
     case 'swing':
-      if (!h.colpito) spazza(s, armaDef(h.armi[h.cur]!.id));
+      if (!h.colpito) spazza(s, a);
       if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; }
       break;
     case 'tende':
@@ -363,9 +389,10 @@ export function stepEroe(s: TState, inp: TInput): void {
   h.moving = mag > GIRA_SUL_POSTO;
   const lento = h.act !== 'idle';
   h.corre = h.moving && (inp.b || mag > 0.92) && !lento && !h.inMano && h.fiato > 0;
+  const fm = fiatoMax(s);
   if (h.corre) h.fiato = Math.max(0, h.fiato - DT);
-  else h.fiato = Math.min(c.fiato, h.fiato + (c.fiato / c.fiatoPieno) * DT * (h.moving ? 0.5 : 1));
-  let v = h.corre ? c.corsa : c.camminata;
+  else h.fiato = Math.min(fm, h.fiato + (fm / c.fiatoPieno) * DT * (h.moving ? 0.5 : 1));
+  let v = (h.corre ? c.corsa : c.camminata) * (haPozione(s, 'viandante') ? pozioneDef('viandante').velocita ?? 1 : 1) * (classeDi(h)?.velocita ?? 1);
   if (lento) v *= c.mentreAttacca;
   if (h.inMano) v *= TEMPLARI.scudo.lentezza;
   if (h.moving) {
@@ -380,7 +407,8 @@ export function stepEroe(s: TState, inp: TInput): void {
     const d = Math.sqrt(d2), k = (rr - d) / d;
     moveCircle(s.gr.eroe, h, dx * k * 0.5, dz * k * 0.5, c.raggio);
   }
-  // rigenerazione dopo qualche secondo senza colpi
+  // rigenerazione dopo qualche secondo senza colpi (l'Acqua di fonte santa: prima e più svelta)
   h.quiete++;
-  if (h.quiete >= secToTicks(c.regenDopo)) h.vita = Math.min(h.max, h.vita + c.regen * DT);
+  const fonte = haPozione(s, 'fonte') ? pozioneDef('fonte') : null;
+  if (h.quiete >= secToTicks(fonte?.regenDopo ?? c.regenDopo)) h.vita = Math.min(h.max, h.vita + c.regen * (fonte?.regen ?? 1) * DT);
 }

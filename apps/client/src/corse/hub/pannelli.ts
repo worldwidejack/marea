@@ -58,7 +58,7 @@ const DESCR: Record<string, string> = {
   spiaggia_baia: 'Tutta in acqua: onde, corrente e uno stretto tra gli scogli. Dal 2° giro sale la marea e la secca si taglia.',
   spiaggia_porto: 'Molo e canale affiancati: ruote da una parte, barche dall’altra. Dal 2° giro le gru calano i container.',
 };
-const ICONA: Record<string, string> = { kart: '🏎️', auto: '🚗', carrello: '🛒', moto_acqua: '🚤', gommone: '🛟', vasca: '🛁', carrello_miniera: '⛏️', carrello_corsa: '🏁', carrello_corazzato: '🛡️' };
+const ICONA: Record<string, string> = { kart: '🏎️', auto: '🚗', carrello: '🛒', moto_acqua: '🚤', gommone: '🛟', vasca: '🛁', fuoristrada: '🚙', moto: '🏍️', bob: '🛷', divano: '🛋️', ape: '🛺', struzzo: '🦤', pizza: '🍕', papera: '🦆', carrello_miniera: '⛏️', carrello_corsa: '🏁', carrello_corazzato: '🛡️' };
 const giriDi = (id: string) => { const d = CORSE_PISTE[id]!; return d.tipo === 'fuga' ? 'FUGA' : `${d.giri} GIRI`; };
 const famDi = (id: string) => famiglieDi(CORSE_PISTE[id]!).map((f) => CORSE.famiglie[f].nome).join(' + ');
 /** Il tracciato visto dall'alto, bianco col bordo scuro. */

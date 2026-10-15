@@ -76,7 +76,7 @@ export default async function (ctx) {
     ctx.assert(a.ambiente.onde > 0, 'le onde non respirano');
   });
   await ctx.test('nelle ondate dei Templari: la loro musica, lo stacco d’ondata e i versi; fuori torna quella di prima', async () => {
-    await hook(p, 'templariEntra', true);
+    await hook(p, 'templariEntra', true, 'crociato');
     await ctx.waitState(p.page, (st) => st.templari?.active === true && st.templari.fase === 'gioca', 30000);
     await waitAudio(p, (a) => a.musica === 'templari', 8000);
     await waitAudio(p, (a) => a.visti.includes('tpl_ondata'), 15000);

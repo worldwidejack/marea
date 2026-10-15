@@ -14,7 +14,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 export const timeout = 600000;
-const MAX_DC = 100, MAX_TRI = 150000;
+const MAX_DC = 100, MAX_TRI = 180000; // come il mondo (TECH §5): coi veicoli AI 3D (#281, ~6.000 triangoli l’uno) al telefono si arriva a ~160.000
 const LAND = { width: 844, height: 390, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
 const SPOT = 'corse:corse';
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
@@ -295,7 +295,8 @@ export default async function (ctx) {
     await ctx.test('gioco: porta della Spiaggia → scelta → gara (pilota automatico, il server la rigioca) → esito → di nuovo nell\'hub davanti alla porta', async () => {
       const before = (await st()).lot.resources;
       await hook('corseHubVai', 'spiaggia');
-      await ctx.waitState(page, (s) => s.corse.scelta === true, 5000);
+      // la scelta apre il palco, che carica l'avatar e fotografa i veicoli col pilota al volante: su GitHub (SwiftShader) servono più di 5 s
+      await ctx.waitState(page, (s) => s.corse.scelta === true, 30000);
       await sleep(300);
       await foto(page, 'gioco_2_scelta');
       await hook('corseAuto', 12);

@@ -1,15 +1,16 @@
 // Il cielo e la luce dell'hub delle Corse (#185): tardo pomeriggio caldo come `corse_13_hub_arrivo`. Cielo a bande di palette
 // (niente gradienti lisci) con il sole basso a est-sud-est, l'alone giallo-arancio dalla sua parte e nuvole piatte a pixel;
-// nebbia di distanza a bande (vedi `nebbiaABande`); sole con una shadow map 1024 che segue il veicolo (render/light.ts).
+// niente nebbia (#282: si vede fino in fondo, VISTA); sole con una shadow map 1024 che segue il veicolo (render/light.ts).
 import * as THREE from 'three';
 import { P } from '../../render/island_parts.ts';
-import { createLights } from '../../render/light.ts';
+import { OMBRA_HD, createLights } from '../../render/light.ts';
 import type { NomeP } from './mondo_base.ts';
 import { h01 } from './mondo_base.ts';
 
 /** Il sole: azimut come render/light.ts (gradi: 0 = nord, 90 = est), elevazione bassa del tardo pomeriggio. */
 export const SOLE = { azim: 112, elev: 26 } as const;
-export const NEBBIA = { colore: P.sabbiaChiara, vicino: 140, lontano: 420 } as const;
+/** Fin dove si disegna (m): oltre l'isola (576 m di lato) c'è solo il mare aperto, che arriva a 2,4 km. */
+export const VISTA = 900;
 const dirSole = (): THREE.Vector3 => {
   const el = (SOLE.elev * Math.PI) / 180, az = (SOLE.azim * Math.PI) / 180;
   return new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).normalize();
@@ -30,8 +31,8 @@ function voltaCielo(): THREE.BufferGeometry {
     for (let i = 0; i < N; i++) {
       const a0 = (i / N) * Math.PI * 2, a1 = ((i + 1) / N) * Math.PI * 2, am = (a0 + a1) / 2;
       let d = Math.abs(am - azSole) % (Math.PI * 2); if (d > Math.PI) d = Math.PI * 2 - d;
-      // verso il sole il colore caldo; al confine un spicchio sì e uno no (dithering a spicchi)
-      const caldo = d < 0.45 || (d < 0.75 && (i + fi) % 2 === 0);
+      // verso il sole il colore caldo, confine netto (#282: niente spicchi alternati)
+      const caldo = d < 0.6;
       C.set(P[caldo ? vic : lon]);
       const q = [pt(e0, a0), pt(e0, a1), pt(e1, a1), pt(e1, a0)];
       for (const k of [0, 2, 1, 0, 3, 2]) { pos.push(...q[k]!); col.push(C.r, C.g, C.b); }
@@ -71,9 +72,9 @@ function voltaCielo(): THREE.BufferGeometry {
 
 export type Atmosfera = { segui(x: number, z: number): void; cielo: THREE.Mesh; luci: THREE.Group };
 export function creaAtmosfera(scene: THREE.Scene): Atmosfera {
-  scene.background = new THREE.Color(NEBBIA.colore);
-  scene.fog = new THREE.Fog(NEBBIA.colore, NEBBIA.vicino, NEBBIA.lontano);
+  scene.background = new THREE.Color(P.sabbiaChiara);
   const luci = createLights();
+  luci.sun.shadow.mapSize.set(OMBRA_HD, OMBRA_HD); // HD (#277): con l'ombra a 1024 si vedono gli scalini (al telefono resta 1024: memoria)
   luci.set?.({ elev: SOLE.elev + 8, azim: SOLE.azim, color: 0xffd9a3, intensity: 2.75, sky: 0x9fd3ff, ground: 0x7a5a3a, hemiI: 1.55, amb: P.arancio, ambI: 0.22 });
   luci.group.name = 'hub_luci';
   scene.add(luci.group);

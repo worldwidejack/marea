@@ -64,8 +64,10 @@ void main() {
     // stampa: campo d'onde che scorre; linee di livello chiare, creste ricciute di schiuma dove il campo è alto
     float w = vnoise(q * vec2(0.11, 0.17) + vec2(t * 0.05, t * 0.02)) * 0.65 + vnoise(q * 0.33 + vec2(-t * 0.04, t * 0.03)) * 0.35;
     float l = fract(w * 6.0);
-    if (l < 0.09 && dd > 2.0) c = uLine;
-    if (w > 0.68 && l > 0.9 && dd > 2.0) c = uFoam; // cresta: solo il filo alto dell'onda
+    // lontano le righe diventano più fini di un pixel e si sbriciolano in puntini (#286): oltre 70 m il mare è a tinta unita
+    bool vicino = length(vW.xz - cameraPosition.xz) < 70.0;
+    if (vicino && l < 0.09 && dd > 2.0) c = uLine;
+    if (vicino && w > 0.68 && l > 0.9 && dd > 2.0) c = uFoam; // cresta: solo il filo alto dell'onda
     float shore = 1.1 + 0.45 * sin(t * 1.3 + vnoise(q * 0.5) * 6.0);
     if (dd < shore) c = uFoam;
     float ring = 1.8 + fract(t * 0.18) * 2.6;
@@ -100,7 +102,7 @@ void main() {
     float al = dot(normalize(toP), normalize(uMoonDir.xz)), far = clamp(length(toP) / 70.0, 0.0, 1.0);
     if (al > 0.99965 - 0.0012 * far && hash(floor(q * 4.0) + floor(t * 3.0)) > 0.6) c = mix(c, uFoam, uNight);
     float st = hash(floor(q * 1.5) + 17.0);
-    if (st > 0.9965 && fract(t * 0.6 + st * 13.0) > 0.3) c = mix(c, uFoam, uNight * 0.85);
+    if (length(toP) < 70.0 && st > 0.9965 && fract(t * 0.6 + st * 13.0) > 0.3) c = mix(c, uFoam, uNight * 0.85); // stelle riflesse solo vicino (#286)
   }
   gl_FragColor = vec4(c, 1.0); // uTint: il ciclo giorno/notte scurisce l'acqua (non è illuminata)
   #include <colorspace_fragment>
@@ -117,8 +119,8 @@ export function createWater2(map: GridMap): Water2 {
     uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(0, 0, -1) },
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U });
-  // 1,6 km di lato a 64 quadrati: la foschia copre il bordo; la griglia serve solo a non avere triangoli enormi
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1600, 8, 8).rotateX(-Math.PI / 2), mat);
+  // 4 km di lato: senza foschia (#282) il bordo non deve vedersi fino al piano lontano (900 m); la griglia evita triangoli enormi
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000, 16, 16).rotateX(-Math.PI / 2), mat);
   mesh.name = 'acqua_stile'; mesh.frustumCulled = false; mesh.receiveShadow = false;
   return {
     mesh,

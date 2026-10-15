@@ -1,6 +1,6 @@
 // Meteo (#85): coi test parte spento ('spento' in state().meteo); acceso segue l'orologio (uno dei 5 stati) e dai test si forza.
-// Pioggia: gocce disegnate, scena più scura, dentro il budget (≤ 100 draw call) anche di notte; nebbia: passata finale accesa anche
-// con la camera di sempre (45°, senza contorni); spegnere torna a 'spento' senza gocce. Screenshot telefono e PC.
+// Pioggia: gocce disegnate, scena più scura, dentro il budget (≤ 100 draw call) anche di notte; nebbia: niente foschia (#282), con la
+// camera di sempre la passata finale resta spenta; spegnere torna a 'spento' senza gocce. Screenshot telefono e PC.
 export const timeout = 360000; // su GitHub il gioco gira a 2-4 fps
 const STATI = ['sereno', 'nuvoloso', 'pioggia', 'nebbia', 'vento'];
 export default async function (ctx) {
@@ -68,10 +68,11 @@ export default async function (ctx) {
     await ctx.shot(p.page, 'iphone_vento');
     ctx.noErrors(p, 'stati');
   });
-  await ctx.test('nebbia con la camera di sempre (45°, senza contorni): passata finale accesa, poi spenta col sereno', async () => {
+  await ctx.test('nebbia con la camera di sempre (45°, senza contorni): niente foschia, la passata finale resta spenta (#282)', async () => {
     await p.page.evaluate(() => window.__game.test.impostazioni({ cam: 0, ciclo: false, contorni: false }));
     await forza(p.page, 'nebbia');
-    await ctx.waitState(p.page, (st) => st.aspetto.post === true, 20000);
+    await ctx.waitState(p.page, (st) => st.meteo === 'nebbia', 20000);
+    ctx.assert((await ctx.getState(p.page)).aspetto.post === false, 'la nebbia accende ancora la passata finale (foschia)');
     await ctx.shot(p.page, 'iphone_nebbia_45');
     await forza(p.page, 'sereno', 0);
     await ctx.waitState(p.page, (st) => st.meteo === 'sereno' && st.aspetto.post === false, 20000);

@@ -9,6 +9,10 @@ const DIR = new THREE.Vector3(-Math.cos(SUN.elevation) * Math.SQRT1_2, Math.sin(
 export type SunSet = { elev: number; azim: number; color: THREE.ColorRepresentation; intensity: number; sky: THREE.ColorRepresentation; ground: THREE.ColorRepresentation; hemiI: number; amb: THREE.ColorRepresentation; ambI: number };
 export type Lights = { group: THREE.Group; update(t: number): void; sun: THREE.DirectionalLight; follow?(x: number, z: number): void; set?(s: SunSet): void };
 
+/** Il lato della shadow map in HD (Corse, #277): 2048 al PC; al telefono 1024, perché ognuna da 2048 pesa ~32 MB sulla GPU e con hub e
+ *  gara accese insieme l'iPhone finiva la memoria e ricaricava la pagina dopo VIA. */
+export const OMBRA_HD = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? 1024 : 2048;
+
 export function createLights(): Lights {
   const group = new THREE.Group();
   group.name = 'lights';

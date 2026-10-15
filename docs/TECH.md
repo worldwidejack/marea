@@ -50,14 +50,15 @@ _I limiti non sono un dictat: si possono alzare quando serve ed è sensato (Jack
 
 | Cosa | Limite |
 |---|---|
-| `app.js` (client) | ≤ 1200 KB minificato, ≤ 360 KB gzip (era 250 fino all'8 ott 2026, 350 fino all'11 ott) |
+| `app.js` (client) | ≤ 1240 KB minificato, ≤ 376 KB gzip (era 250 fino all'8 ott 2026, 350 fino all'11 ott, 1200/360 fino al 13 ott, 1215/366 fino al 14 ott; il catalogo dei mobili: +25/+10) |
 | Ogni chunk caricato dopo (`import()`: GDR, minimappa, isole, giochi a schermo, audio) | ≤ 600 KB minificato, ≤ 180 KB gzip; tutti insieme ≤ 3000 KB, ≤ 900 KB gzip |
 | Discese dell'Isola dell'Adrenalina (`apps/client/src/adrenalina/`, scaricato salendo in funivia; niente nel JS iniziale) | come ogni chunk (12 ott 2026: ~50 KB, ~20 gzip); in pista draw call e triangoli come sopra: abeti a riquadri da 100 m spenti oltre 420 m, il terreno si vede tutto fino in valle (12 ott: massimo 51 draw call e 97.000 triangoli a 390×844) |
 
 | Caricamento iniziale (html + js + atlas + modelli della prima isola) | ≤ 3 MB (era 2) |
+| Modelli dei mobili della casa (`manifest_mobili.json`, `mob_<id>`, scaricato solo da chi mostra un mobile; ≤ 600 triangoli l'uno) | ≤ 3 MB (#304, `docs/MOBILI.md`) |
 | Kit delle zone dell'Isola delle Corse (`manifest_corse.json`, scaricato aprendo una pista vestita) | ≤ 2,5 MB (era 0,6: Spiaggia e porto 0,2 MB + 20 veicoli e piloti 1,4 MB, deviazione del 9 ott 2026) |
 | Draw call per frame | ≤ 100 |
-| Triangoli a schermo | ≤ 200.000 (150.000 fino al Borgo Marea, #237; 180.000 fino alla città attorno al Porto, #247: si torna giù con case più leggere) |
+| Triangoli a schermo | ≤ 200.000 (150.000 fino al Borgo Marea, #237; 180.000 fino alla città attorno al Porto, #247: si torna giù con case più leggere; Corse 180.000 dai veicoli AI 3D, #281) |
 | Texture in VRAM | ≤ 16 MB |
 | Shadow map | 1 × 1024² (o blob) |
 | FPS | 60 su iPhone 12+, ≥ 45 su Android medio, mai < 30 |
@@ -97,7 +98,7 @@ Ogni partita di minigioco invia al DO `Lot` il **seed** e l'**input log** (uno `
 - `npm run deploy` → build → `wrangler d1 migrations apply DB --remote` → `wrangler deploy` (cwd `apps/server`) → poll di `/version.json` finché `build` coincide → 2 min di `wrangler tail` a campione.
 - `npm run assets` → Blender headless (`tools/export_gltf.py`) + `gltf-transform` (dedup, prune, weld, quantize; **niente Draco**) → `apps/client/public/assets/` + `manifest.json`. Gli export sono **committati**: il client si costruisce senza Blender.
 - `npm test` → `tests/run.mjs all`: `static` (check_static), `types` (tsc per pacchetto), `sim` (node --test), `boot look perf net` (Playwright su Chrome di sistema, viewport iPhone emulato), `contact` (ffmpeg).
-- Flag URL: `?fps=1` overlay prestazioni · `?test=1` `window.__game` con hook mutanti e salvataggio in memoria · `?seed=N` · `?nosound=1` niente audio (il chunk `audio/` non si scarica; coi test si parte comunque muti) · `?quality=low|high` · `?net=0` offline · `?autopilot=1` · `?sfide=1` riaccende Tavolo con posta e feed (spenti dalla Sessione 5) · `?rientro=1` coi test fa comparire la cartolina «Mentre eri via» · `?serie=1` coi test usa le impostazioni di serie (senza, `?test=1` parte con tutto spento) · `?gara=amici` apre subito l'hub delle Corse con la sala della gara tra amici (link da mandare agli amici: `?t=<token>&gara=amici`, #204).
+- Flag URL: `?fps=1` overlay prestazioni · `?test=1` `window.__game` con hook mutanti e salvataggio in memoria · `?seed=N` · `?nosound=1` niente audio (il chunk `audio/` non si scarica; coi test si parte comunque muti) · `?quality=low|high` · `?net=0` offline · `?autopilot=1` · `?sfide=1` riaccende Tavolo con posta e feed (spenti dalla Sessione 5) · `?rientro=1` coi test fa comparire la cartolina «Mentre eri via» · `?novita=1` coi test fa comparire la schermata «Dall'ultima volta» (#279: lavori su main dalla visita scorsa, da `/novita.json` che la build scrive dal git log) · `?serie=1` coi test usa le impostazioni di serie (senza, `?test=1` parte con tutto spento) · `?gara=amici` apre subito l'hub delle Corse con la sala della gara tra amici (link da mandare agli amici: `?t=<token>&gara=amici`, #204).
 
 ## 10. Portabilità verso un motore
 `packages/sim` non conosce Three né il DOM; `packages/content` è JSON; gli asset sono glTF; questo documento e il GDD non citano API di Three. Le **fixture d'oro** (`packages/sim/test/fixtures/*.json`: seed + input log → hash e punteggio attesi) sono il criterio di parità: un porting è «fatto» quando le passa tutte.

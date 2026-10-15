@@ -120,6 +120,7 @@ Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, gioca
 | Metodo e percorso | Corpo → risposta |
 |---|---|
 | `POST /api/lot/decor/move` | `{ id, cell }` → `LotState`: sposta una decorazione della tua isola. Stesse celle di `POST /api/lot/decor` (sabbia `.`/erba `g`, non il leggio del libro degli ospiti `RIENTRO.libro.lotto` né le decorazioni fisse del template); **400** cella non ammessa o rotta, **409** `{ code: 'cella' }` se occupata, **404** id che non c'è. Nella stessa cella: niente da fare — **nuovo** |
+| `POST /api/lot/casa/(compra\|finitura\|scegli\|posa\|sposta\|ruota\|ritira\|baule)` | La casa arredabile (#265): `{ id }` (compra, ruota, ritira), `{ tipo: 'pavimento'\|'carta', id }` (finitura, scegli), `{ id, cell, muro?, rot? }` (posa, sposta), `{ cell? }` (baule: sposta, senza cella gira) → `LotState` |
 | `POST /api/lot/decor/rotate` | `{ id }` → `LotState`: un quarto di giro (`rot` 0 → 1 → 2 → 3 → 0) — **nuovo** |
 | `POST /api/lot/decor/sell` | `{ id }` → `LotState`: la decorazione sparisce e tornano `floor(prezzo × BALANCE.decor.rimborso)` Perle (metà, per difetto), scritte nel libro mastro come entrata — **nuovo** |
 
@@ -155,6 +156,11 @@ Nuovo campo facoltativo di `LotState`: `diario?: { pesci, perle, medaglie, gioca
 | `GET /api/adrenalina/fantasma?pista=` | → `{ pista, fantasma: { chi, nome, look, ms, quando, seed, opzioni, inputs: PackedInputs } \| null }`: la discesa del primo, da rigiocare nella sim; 400 se la pista non esiste — **nuovo** |
 
 Niente migrazioni: classifica e input stanno nel SQLite del DO `Sfide` (tabella `discese`, accanto al tabellone del Porto).
+
+### Aggiunta Cambio nome personaggio (#301, 14 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/nome` | `{ nome: string }` → `{ ok: true, nome: string }`: nome da 2 a 16 caratteri ripulito dal server. Aggiorna `persone.nome` in D1 e avvisa la Zone (`POST https://zone/nome`), che aggiorna `Peer.nome` nel prossimo snap. 400 se non valido — **nuovo** |
 
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32, `a` 0/1 e `b` 0/1/2: **2 = `b` con `c`** («dall'altra parte», `InputFrame.c` facoltativo; nelle Corse l'oggetto va al contrario, #250). Le partite di prima (solo 0/1) restano valide; il server controlla la forma con `isPackedInputs`. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
@@ -206,3 +212,25 @@ Gara in tempo reale tra amici, a fantasmi (niente urti tra amici): **WebSocket**
 - **In gara**: ognuno corre la sua sim locale col seed comune, coi suoi 4 bot se `bot` (11 ott, #199: i bot sono di ognuno, come da solo; gli amici partono dietro ai bot, il posto `io` dopo di loro); `p` va agli altri corridori col suo indice (al massimo 25 `p` al secondo per socket, gli altri si scartano). `fine` va agli altri; un secondo `fine` è ignorato. Chi è arrivato resta collegato e riceve ancora `p` e `fine` degli altri finché la gara è in corso. Chi esce senza aver finito conta come `fine` −1 per gli altri; chi esce dopo il suo arrivo no (l'arrivo resta). Quando tutti hanno finito (arrivati o ritirati) la gara si chiude: sala con `gara: null`. Rete di sicurezza: una gara aperta da più di 8 minuti si chiude da sola.
 - **Esito**: il server della gara non dà premi né rigioca niente; ognuno chiude la sua corsa come una partita da solo (rigiocata dal DO del suo lotto).
 - **Abusi**: messaggi oltre 512 caratteri o non validi si scartano; 10 non validi di fila → chiusura 1003. Al massimo 40 messaggi al secondo (oltre ai `p`).
+
+## 9. Templari insieme (10-14 ott 2026)
+Partita a ondate in 2-4 nella stessa chiesa, come i dungeon insieme (§7): **WebSocket** `/ws/templari?t=<token>` → DO `TemplariInsieme` (una sala sola alla porta della chiesa, `idFromName('templari')`, socket normali senza ibernazione). Tipi e parser in `packages/protocol/src/templari_insieme.ts` (`TiClientMsg`, `TiServerMsg`, `TiMembro`, `parseTiClient`, `parseTiServer`, `TI_MAX` = 4; `SQ_TURNO_MS` e `SQ_TICKS` di `squadra.ts`). `PROTOCOL_VERSION` resta 1 (canale nuovo).
+```ts
+// client → server
+{ t: 'via' }                                 // SI PARTE: chiunque in sala, con almeno 2
+{ t: 'carico' }                              // chiesa caricata: il primo turno parte quando l'hanno detto tutti (o dopo 20 s)
+{ t: 'in', f: [mx8, my8, bit, mira?] }       // come §7; bit = a|b<<1|c<<2|d<<3|e<<4
+{ t: 'az', a: TAzione }                      // solo acquisti dal Mercante o dalla Strega (`compra`): va nel prossimo turno
+{ t: 'esco' }                                // esco dalla sala o dalla partita (gli altri continuano)
+
+// server → client
+{ t: 'sala', membri: { id, nome, look, classe? }[], max }        // la sala alla porta, a ogni cambio (classe = l'eroe del menù, TEMPLARI.md §4b)
+{ t: 'parte', run, seed, io, membri }                            // si entra; io = il mio indice
+{ t: 'T', n, f: SqInput[], via?: eroe[], az?: [eroe, TAzione][] } // turno n: un input per eroe; prima del primo tick chi esce (`ritira`) e gli acquisti
+{ t: 'errore', msg }                                             // sala piena, da soli, non si parte…
+```
+- **Eroe** (14 ott 2026): si sceglie nel menù prima di aprire il socket e va nell'indirizzo, `/ws/templari?t=<token>&classe=<crociato|bucaniera|arciere>` (sconosciuto = senza); il DO lo mette nel membro e nel log (`classi`), la partita lo usa (`opzioni.classi`).
+- **Sala**: aprire il socket = entrare (al massimo 4, il 5° riceve `errore` e chiusura 1013); la stessa persona da un'altra scheda sostituisce la vecchia. Il client chiude da solo se ci si allontana dalla porta.
+- **Partenza**: con `via` il DO sceglie seed e id e per ogni membro chiama il DO del suo lotto (`POST /templari_party_start {seed, run, idx}` → `pending = { seed, subito: true, party: { run, idx } }`, mai esposta dal Worker). Partita con `opzioni.eroi` = quanti sono, ondate subito.
+- **Turni**: come §7 (50 ms, 3 tick, coda di 4, 40 messaggi/s; al massimo 4 acquisti in coda per eroe, controllati con `parseTAzioniInsieme`). Chi chiude o esce va in `via` nel turno dopo. Il DO non simula niente: la partita finisce quando escono tutti o all'alba (60 minuti di turni).
+- **Fine**: il client chiude il socket e chiama `POST /api/templari/finish` senza input: il DO del lotto, vedendo `pending.party`, chiede il log al DO TemplariInsieme (`POST /log {run, idx}` → `{seed, inputs: string[] (encodeDungeon), uscite: (tick | null)[], azioni: [tick, eroe, TAzione][], classi?: (classe | null)[]}`; da quel momento l'eroe idx è fuori), lo rigioca con `replayTemplariInsieme` e paga le ondate superate **fino a quando è uscito lui** (stessa risposta della partita da solo). Log salvati nello storage del DO (ogni 10 s e alla fine, tenuti un giorno). Senza log la partita si chiude senza premio (409 `code: 'gruppo'`).

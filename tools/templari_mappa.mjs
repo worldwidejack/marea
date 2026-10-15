@@ -15,6 +15,10 @@
 // Comparse degli zombie: 'z' sagrato (sempre attive) · 'y' piazza · 'u' cimitero · 'x' taverna · 'j' spiaggia (legenda `comparsa`: attive
 //   quando la loro zona è aperta). Armi sul muro (legenda `muro`), nella cella davanti: 'R' arco · 'M' mazza · 'X' ascia · 'G' pistola ·
 //   'K' moschetto · 'E' trombone. Trappole (legenda `trappola`): 'J' zona del rogo e 'Q' la sua leva · 'T' zona della campana e 'L' la leva.
+// Personaggi (legenda `personaggio`, il posto dove gli si parla): 'F' la Strega · 'D' il Mercante.
+// Fuochi da accendere (legenda `fuoco`, docs/TEMPLARI.md §9b): 'I' coro (il rogo) · 'O' cimitero (la Strega) · 'U' spiaggia (il falò dei
+//   pirati: la nave del Mercante). Pezzi della campana (legenda `pezzo`, posti possibili: la partita ne sceglie uno per pezzo): 'c' la
+//   corda · 'd' il battaglio · 'f' il perno.
 // La chiesa è alla templare: una rotonda (come il Santo Sepolcro, la Temple Church di Londra, la Vera Cruz di Segovia) col giro di
 // colonne, e a est il presbiterio con l'abside e l'altare maggiore. Attorno il sagrato diviso da muretti in tre parti: ovest verso la
 // piazza del borgo, nord verso il cimitero, sud-est verso la spiaggia e l'accampamento dei pirati.
@@ -49,7 +53,9 @@ for (let z = 7; z <= 21; z += 4) for (let x = 41; x <= 84; x += 3) if (!(x > 68 
 rect(70, 5, 79, 10, 'h');
 // accampamento: tende, falò, cannoni puntati al mare, botti
 for (const [x0, z0] of [[38, 67], [51, 70], [66, 66], [80, 68]]) rect(x0, z0, x0 + 3, z0 + 3, 't');
-set(60, 65, 'b'); set(46, 79, 'k'); set(47, 79, 'k'); set(72, 79, 'k'); set(73, 79, 'k'); set(87, 64, 'k'); set(33, 76, 'q');
+set(60, 65, 'U'); set(46, 79, 'k'); set(47, 79, 'k'); set(72, 79, 'k'); set(73, 79, 'k'); set(87, 64, 'k'); set(33, 76, 'q');
+// scogli sparsi sulla sabbia (ostacoli bassi, la resa li fa di roccia: scena.ts)
+for (const [x, z] of [[30, 63], [44, 62], [45, 62], [57, 74], [62, 72], [75, 61], [85, 74], [85, 75], [92, 76], [24, 80], [40, 77], [69, 81], [13, 77], [89, 66]]) { if (get(x, z) !== 's') throw new Error(`scoglio fuori dalla sabbia in ${x},${z}`); set(x, z, 'q'); }
 
 // ——— rotonda e presbiterio ———
 const R = { cx: 46, cz: 42.5, r: 10 };          // rotonda: muro tra 9 e 10 m dal centro
@@ -168,6 +174,12 @@ set(63, 46, 'Q');
 for (let x = 54; x <= 61; x++) for (let z = 29; z <= 34; z++) if (get(x, z) === ',') set(x, z, 'T');
 set(59, 38, 'L');
 
+// ——— fuochi da accendere (il terzo è il falò dei pirati, sopra) e posti dei pezzi della campana, uno per zona ———
+set(66, 46, 'I');                     // coro: accanto agli stalli a sud, a due passi dalla partenza
+set(64, 5, 'O');                      // cimitero: in cima, accanto alla capanna della Strega
+const PEZZI = { c: [[64, 54], [12, 69], [70, 64]], d: [[52, 22], [28, 45], [40, 72]], f: [[82, 78], [17, 34], [80, 25]] };
+for (const [c, l] of Object.entries(PEZZI)) for (const [x, z] of l) { if (',vews'.includes(get(x, z))) set(x, z, c); else throw new Error(`pezzo ${c} su '${get(x, z)}' in ${x},${z}`); }
+
 // ——— partenza davanti all'altare; comparse: sagrato fuori dalle finestre, e nelle zone ———
 set(66, 42, 'S');
 const fuori = (x, z) => get(x, z) === ',';
@@ -185,13 +197,17 @@ for (const [x, z] of finestre) {
   set(best.x, best.z, 'z');
 }
 const comparse = { y: [[9, 36], [15, 48], [24, 33], [30, 54], [8, 58]], u: [[39, 6], [50, 13], [63, 9], [76, 19], [85, 13], [44, 22]], x: [[21, 70], [10, 69]], j: [[34, 81], [50, 82], [63, 81], [77, 82], [90, 80], [92, 62]] };
+// Strega e Mercante (docs/TEMPLARI.md §7b): il posto dove si parla con loro, sul bordo del campo; loro stanno fuori, oltre il bordo
+// ('F' strega: in cima al cimitero, la capanna oltre i cipressi · 'D' mercante: sulla riva della spiaggia, la barca in mare)
+const PERSONAGGI = { F: [61, 3], D: [56, 82] };
+for (const [c, [x, z]] of Object.entries(PERSONAGGI)) { if ('es'.includes(get(x, z)) && get(x, z - 1 + (c === 'D' ? 2 : 0)) === ' ') set(x, z, c); else throw new Error(`${c} non sta sul bordo in ${x},${z}`); }
 for (const [c, l] of Object.entries(comparse)) for (const [x, z] of l) { if ('vews'.includes(get(x, z))) set(x, z, c); else throw new Error(`comparsa ${c} su '${get(x, z)}' in ${x},${z}`); }
 // qualche maceria sul sagrato (ostacoli che spezzano le corse)
 for (const [x, z] of [[33, 33], [34, 52], [60, 30], [72, 33], [76, 50], [52, 56]]) if (fuori(x, z)) set(x, z, 'q');
 
 // ——— controlli: zone collegate dalle porte giuste, comparse raggiungibili, l'eroe chiuso in chiesa all'inizio ———
 const PORTE = '123456';
-const pieno = (c) => ' #ohtmApbrqkgaCWNVY'.includes(c);
+const pieno = (c) => ' #ohtmApbrqkgaCWNVYIOU'.includes(c);
 function bfs(sx, sz, solido) {
   const seen = new Set([sx + ',' + sz]), q = [[sx, sz]];
   while (q.length) {
@@ -223,6 +239,14 @@ for (const [c, porte] of Object.entries(zona)) {
 // ogni finestra si passa dritta: dentro un pavimento, fuori il sagrato
 for (const [x, z] of finestre) if (!QUATTRO.some(([dx, dz]) => !pieno(get(x + dx, z + dz)) && get(x - dx, z - dz) !== ' ' && !pieno(get(x - dx, z - dz)))) errs.push(`la finestra ${x},${z} non si attraversa`);
 if (!aperte(['2', '5']).has('50,82')) errs.push('dal cimitero col cancello 5 non si arriva alla spiaggia');
+// la Strega si raggiunge con la porta del cimitero, il Mercante solo arrivando alla spiaggia
+{ const f = PERSONAGGI.F.join(','), m = PERSONAGGI.D.join(',');
+  if (chiuso.has(f) || !aperte(['2']).has(f)) errs.push('la Strega si deve raggiungere con la porta del cimitero');
+  if (aperte(['1', '2', '3', '6']).has(m) || !aperte(['1', '3', '4']).has(m) || !aperte(['2', '5']).has(m)) errs.push('il Mercante si deve raggiungere solo dalla spiaggia'); }
+// i pezzi della campana e i fuochi si raggiungono con tutte le porte aperte (un fuoco: dalla cella accanto)
+{ const tutte = aperte(PORTE.split(''));
+  for (const [c, l] of Object.entries(PEZZI)) for (const [x, z] of l) if (!tutte.has(x + ',' + z)) errs.push(`il pezzo ${c} in ${x},${z} non si raggiunge`);
+  rows.forEach((r, z) => [...r].forEach((c, x) => { if ('IOU'.includes(c) && !QUATTRO.some(([dx, dz]) => tutte.has(x + dx + ',' + (z + dz)))) errs.push(`il fuoco ${c} in ${x},${z} non si raggiunge`); })); }
 // la sacrestia si apre solo con la sua porta
 { const sc = `${SA.x0 + 3},${SA.z0 + 3}`; if (chiuso.has(sc)) errs.push('la sacrestia si raggiunge senza la porta 6'); if (!aperte(['6']).has(sc)) errs.push('con la porta 6 non si entra in sacrestia'); }
 // gli zombie delle comparse 'z' arrivano alla partenza dalle finestre (senza porte aperte)
@@ -239,6 +263,9 @@ const out = {
     'R': { muro: 'arco' }, 'M': { muro: 'mazza' }, 'X': { muro: 'ascia' }, 'G': { muro: 'pistola' }, 'K': { muro: 'moschetto' }, 'E': { muro: 'trombone' },
     'y': { comparsa: 'piazza' }, 'u': { comparsa: 'cimitero' }, 'x': { comparsa: 'taverna' }, 'j': { comparsa: 'spiaggia' },
     'J': { trappola: 'rogo' }, 'Q': { leva: 'rogo' }, 'T': { trappola: 'campana' }, 'L': { leva: 'campana' },
+    'F': { personaggio: 'strega' }, 'D': { personaggio: 'mercante' },
+    'I': { fuoco: 'coro' }, 'O': { fuoco: 'cimitero' }, 'U': { fuoco: 'spiaggia' },
+    'c': { pezzo: 'corda' }, 'd': { pezzo: 'battaglio' }, 'f': { pezzo: 'perno' },
   },
   rows: trimmed,
 };

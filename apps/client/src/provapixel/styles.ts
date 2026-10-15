@@ -1,5 +1,5 @@
 // Prova stili (#50): ogni stile cambia acqua, scogli e fiori sulle rive, luce, cielo, foschia, contorni e la palette finale.
-// Le palette sono in sRGB: la passata finale (post.ts) porta ogni pixel al colore più vicino, con dithering ordinato tra i due più vicini.
+// Le palette sono in sRGB: la passata finale (post.ts) porta ogni pixel al colore più vicino (senza dithering dal 13 ott, #282).
 // «gioco» = com'è il gioco oggi (niente palette, acqua e luce del gioco): serve da confronto.
 import { PALETTE_STAMPA } from '../render/aspetto.ts';
 
@@ -7,7 +7,7 @@ export type StyleId = 'gioco' | 'stampa' | 'tramonto' | 'giorno';
 export type Style = {
   id: StyleId; nome: string;
   /** null = nessuna rimappatura (colori del gioco). */
-  palette: string[] | null; dither: number;
+  palette: string[] | null;
   /** prima della palette: esposizione, saturazione, contrasto, tinta moltiplicata */
   grade: { exp: number; sat: number; con: number; tint: string };
   paper: number;
@@ -31,7 +31,7 @@ const SUNSET = ['#1a1424', '#2b1d3a', '#4a2c5a', '#7a3b6b', '#b3546b', '#e07a5f'
 
 export const STYLES: Style[] = [
   {
-    id: 'gioco', nome: 'gioco', palette: null, dither: 0, grade: { exp: 1, sat: 1, con: 1, tint: '#ffffff' }, paper: 0,
+    id: 'gioco', nome: 'gioco', palette: null, grade: { exp: 1, sat: 1, con: 1, tint: '#ffffff' }, paper: 0,
     ink: { col: '#000000', mix: 0, crease: 1 },
     light: { sun: '#FFD9A3', sunI: 2.7, elev: 40, azim: 225, sky: '#9FD3FF', ground: '#7A5A3A', hemiI: 1.9, amb: '#A64DFF', ambI: 0.18 },
     sky: { top: '#3FB9C9', mid: '#7FE3E0', hor: '#E8E1D6', sun: '#F5D547', glow: '#F4E3C1', sunDir: [0, -1, 0], sunSize: 0, cloud: '#F4E3C1', cloudDark: '#E8E1D6' },
@@ -40,7 +40,7 @@ export const STYLES: Style[] = [
     rocks: { n: 0, cols: [] }, flowers: { n: 0, cols: [], grass: '#4E9A46', tufts: 0 },
   },
   {
-    id: 'stampa', nome: 'stampa giapponese', palette: UKIYO, dither: 0.08, grade: { exp: 1.05, sat: 0.8, con: 1.1, tint: '#fff2dc' }, paper: 1,
+    id: 'stampa', nome: 'stampa giapponese', palette: UKIYO, grade: { exp: 1.05, sat: 0.8, con: 1.1, tint: '#fff2dc' }, paper: 1,
     ink: { col: '#1b1d2b', mix: 1, crease: -0.55 },
     light: { sun: '#fff4e0', sunI: 1.6, elev: 55, azim: 225, sky: '#f2ead6', ground: '#a8774a', hemiI: 2.6, amb: '#f2ead6', ambI: 0.25 },
     sky: { top: '#e3d5b4', mid: '#f2ead6', hor: '#f2ead6', sun: '#c8402e', glow: '#e9a23b', sunDir: [-0.62, 0.32, -0.72], sunSize: 4.5, cloud: '#f2ead6', cloudDark: '#9cc0d8' },
@@ -49,7 +49,7 @@ export const STYLES: Style[] = [
     rocks: { n: 1, cols: ['#3a3a44', '#55534f', '#6b6a66'] }, flowers: { n: 0.15, cols: ['#c8402e', '#f2ead6'], grass: '#3d5a3a', tufts: 0.6 },
   },
   {
-    id: 'tramonto', nome: 'tramonto', palette: SUNSET, dither: 0.3, grade: { exp: 1.12, sat: 1.08, con: 1.05, tint: '#fff2e4' }, paper: 0,
+    id: 'tramonto', nome: 'tramonto', palette: SUNSET, grade: { exp: 1.12, sat: 1.08, con: 1.05, tint: '#fff2e4' }, paper: 0,
     ink: { col: '#2b1d3a', mix: 0.55, crease: 0.5 },
     light: { sun: '#ffd0a0', sunI: 2.7, elev: 26, azim: 255, sky: '#c9a0e0', ground: '#8a6a50', hemiI: 1.7, amb: '#7a3b6b', ambI: 0.22 },
     sky: { top: '#4a2c5a', mid: '#b3546b', hor: '#f2a65a', sun: '#fff1c1', glow: '#f7d08a', sunDir: [-0.62, 0.1, -0.78], sunSize: 3.2, cloud: '#e07a5f', cloudDark: '#7a3b6b' },
@@ -58,7 +58,7 @@ export const STYLES: Style[] = [
     rocks: { n: 1.2, cols: ['#4a2c5a', '#6b5f6e', '#8a5a3c'] }, flowers: { n: 0.7, cols: ['#e07a5f', '#f7d08a', '#fff1c1', '#b3546b'], grass: '#6a8f3f', tufts: 0.8 },
   },
   {
-    id: 'giorno', nome: 'giorno', palette: ENDESGA, dither: 0.22, grade: { exp: 1.14, sat: 1.05, con: 1.05, tint: '#fffaf2' }, paper: 0,
+    id: 'giorno', nome: 'giorno', palette: ENDESGA, grade: { exp: 1.14, sat: 1.05, con: 1.05, tint: '#fffaf2' }, paper: 0,
     ink: { col: '#262b44', mix: 0.5, crease: 0.6 },
     light: { sun: '#fff1d0', sunI: 2.9, elev: 48, azim: 210, sky: '#a8dcff', ground: '#8a6a4a', hemiI: 1.8, amb: '#5a6988', ambI: 0.2 },
     sky: { top: '#0099db', mid: '#2ce8f5', hor: '#c0cbdc', sun: '#fee761', glow: '#ffffff', sunDir: [-0.55, 0.25, -0.8], sunSize: 0, cloud: '#ffffff', cloudDark: '#c0cbdc' },

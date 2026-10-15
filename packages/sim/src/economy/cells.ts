@@ -1,6 +1,6 @@
 // Celle del lotto (CONTRACTS §11): tutte le isole personali usano il template `lotto` di islands.json. Le celle di LotState sono locali
 // al template ([cx, cz] dall'angolo in alto a sinistra). Edifici solo su celle `L` libere; decorazioni su sabbia/erba libere; il Molo sul `d`.
-import { ISLANDS, RIENTRO } from '@marea/content';
+import { BORGO, ISLANDS, RIENTRO } from '@marea/content';
 import type { LotState } from './types.ts';
 
 /** Basta la griglia ASCII: vanno bene sia un IslandDef sia un GridMap. */
@@ -23,6 +23,15 @@ export function tileAt(t: LotTemplate, cx: number, cz: number): string {
   return t.rows[cz]?.[cx] ?? '~';
 }
 
+/** La cella è sul pavimento della stanza della casa (#240): lì vanno i mobili (#265, economy/casa.ts), non le decorazioni del giardino. */
+export const inStanza = (c: readonly [number, number]): boolean => { const [x0, z0, x1, z1] = BORGO.stanza.pavimento; return c[0] >= x0 && c[0] < x1 && c[1] >= z0 && c[1] < z1; };
+/** Il corridoio d'ingresso sotto la stanza (#265). */
+export const inCorridoio = (c: readonly [number, number]): boolean => { const [x, z0, z1] = BORGO.stanza.corridoio; return c[0] === x && c[1] >= z0 && c[1] < z1; };
+/** Il passaggio coperto del giardino verso la stanza (#265): la cella `stanza.giardino` e quella a ovest (la bocca guarda a est). */
+const inPassaggio = (c: readonly [number, number]): boolean => { const [x, z] = BORGO.stanza.giardino; return c[1] === z && (c[0] === x || c[0] === x - 1); };
+/** Casa (stanza, corridoio, passaggio del giardino) del template `lotto` vero: niente decorazioni, il Forziere sì (solo nella stanza). */
+const inCasa = (t: LotTemplate | null, c: readonly [number, number]): boolean => !!t && isLotto(t) && (inStanza(c) || inCorridoio(c) || inPassaggio(c));
+
 /** Tile su cui si possono mettere le decorazioni: camminabili ma non slot edificio (`L`), non molo (`d`), non spawn (`P`). */
 export const DECOR_TILES: ReadonlySet<string> = new Set(['.', 'g']);
 
@@ -40,6 +49,8 @@ export function buildCellError(lot: LotState, cell: readonly [number, number], t
   if (t && tileAt(t, cell[0], cell[1]) !== 'L') return { code: 'posizione', msg: 'Qui non si può costruire: scegli uno spazio edificio' };
   return occupied(lot, cell) ? OCCUPATA : null;
 }
+/** Il Forziere (il baule, #265) sta su una `L` o su una cella qualunque del pavimento della stanza (lo sposti come un mobile). */
+const posticino = (t: LotTemplate, b: { building: string; cell: [number, number] }): boolean => tileAt(t, b.cell[0], b.cell[1]) === 'L' || (b.building === 'forziere' && isLotto(t) && inStanza(b.cell));
 
 /**
  * Celle del template `lotto` già prese da cose fisse (#108): il leggio del libro degli ospiti (RIENTRO.libro.lotto) e le decorazioni
@@ -60,6 +71,7 @@ export function riservate(t: LotTemplate | null): readonly (readonly [number, nu
 export function decorCellError(lot: LotState, cell: readonly [number, number], t: LotTemplate | null): CellProblem | null {
   if (t && !DECOR_TILES.has(tileAt(t, cell[0], cell[1]))) return { code: 'posizione', msg: 'Qui non si può mettere una decorazione' };
   if (riservate(t).some((c) => same(c, cell))) return { code: 'posizione', msg: 'Qui c’è già qualcosa dell’isola' };
+  if (inCasa(t, cell)) return { code: 'posizione', msg: 'In casa vanno i mobili: usa ARREDA' };
   return occupied(lot, cell) ? OCCUPATA : null;
 }
 
@@ -84,10 +96,10 @@ export function fitToTemplate(lot: LotState, t: LotTemplate | null): LotState {
   const dock = dockCell(t);
   const taken: [number, number][] = [];
   const isTaken = (c: readonly [number, number]) => taken.some((x) => same(x, c));
-  const fits = (b: { building: string; cell: [number, number] }) => (b.building === 'molo' ? same(b.cell, dock) : tileAt(t, b.cell[0], b.cell[1]) === 'L');
+  const fits = (b: { building: string; cell: [number, number] }) => (b.building === 'molo' ? same(b.cell, dock) : posticino(t, b));
   // 1) restano dove sono gli edifici già in regola (il primo che occupa una cella la tiene)
   const keep = lot.buildings.map((b) => { const ok = fits(b) && !isTaken(b.cell); if (ok) taken.push(b.cell); return ok; });
-  const keepDecor = lot.decor.map((d) => { const ok = DECOR_TILES.has(tileAt(t, d.cell[0], d.cell[1])) && !isTaken(d.cell); if (ok) taken.push(d.cell); return ok; });
+  const keepDecor = lot.decor.map((d) => { const ok = DECOR_TILES.has(tileAt(t, d.cell[0], d.cell[1])) && !inCasa(t, d.cell) && !isTaken(d.cell); if (ok) taken.push(d.cell); return ok; });
   if (keep.every(Boolean) && keepDecor.every(Boolean)) return lot;
   // 2) gli altri vanno nella prima cella giusta libera (se non ce n'è, restano dove sono)
   const slots = cellsOf(t, 'L');
@@ -98,7 +110,7 @@ export function fitToTemplate(lot: LotState, t: LotTemplate | null): LotState {
     taken.push(free);
     return { ...b, cell: free };
   });
-  const spots = [...cellsOf(t, '.'), ...cellsOf(t, 'g')];
+  const spots = [...cellsOf(t, '.'), ...cellsOf(t, 'g')].filter((c) => !inCasa(t, c));
   const decor = lot.decor.map((d, i) => {
     if (keepDecor[i]) return d;
     const free = spots.find((c) => !isTaken(c));
