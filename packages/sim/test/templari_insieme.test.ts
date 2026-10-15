@@ -125,6 +125,7 @@ test('insieme: più eroi, più zombie a ondata (perEroe a testa in più)', () =>
 
 test('insieme: chi compra dalla Strega beve lui, coi punti della squadra; cadendo perde le pozioni', () => {
   const s = templari.create({ seed: 9, opzioni: { subito: true, eroi: 2 } });
+  for (const k in s.fuochi) s.fuochi[k] = true; // i fuochi accesi (§9b): Strega, Mercante e rogo funzionano
   const p = s.arena.personaggi.find((x) => x.id === 'strega')!, b = s.eroi[1]!;
   for (const q of s.arena.porte) { s.punti += TEMPLARI.porte[q.id]?.prezzo ?? 0; apriPorta(s, q); }
   s.punti = 100000;

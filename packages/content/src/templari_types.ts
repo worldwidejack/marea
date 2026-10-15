@@ -173,6 +173,11 @@ export type TemplariCfg = {
   mercante: { raggio: number; potenzia: { prezzo: number; danno: number; dannoMiracolosa: number; colpi: number; riserva: number; ricarica: number }; munizioni: { cassa: number; miracolosa: number; potenziata: number } };
   /** Strega (nella capanna oltre il cimitero): pozioni da bere, al massimo `max` insieme; `beve` = secondi per berla (non si attacca). */
   strega: { raggio: number; max: number; beve: number; pozioni: TPozioneDef[] };
+  /** Fuochi da accendere (AZIONE tenuto `accendi` s entro `raggio` m); tutti accesi: `tutti` punti e un power-up. */
+  fuochi: { accendi: number; raggio: number; tutti: number; lista: Record<string, TFuocoDef> };
+  /** La campana da montare: i pezzi (id → nome), ognuno in uno dei suoi posti della mappa scelto dalla partita; si prendono con AZIONE
+   *  entro `raggio` m; alla leva della campana, con tutti i pezzi, AZIONE tenuto `monta` s la monta (e la trappola funziona). */
+  campana: { pezzi: Record<string, string>; raggio: number; monta: number };
   /** Gli eroi del menù d'ingresso (il primo è quello di serie). */
   eroi: TEroeDef[];
   poteri: { probabilita: number; maxOndata: number; aTerra: number; lampeggia: number; durata: number; raggio: number; campane: number; muratori: number; tipi: TPotere[] };
@@ -187,5 +192,8 @@ export type TPotere = 'faretra' | 'ira' | 'campane' | 'decima' | 'muratori';
 
 /** Legenda della mappa dell'arena oltre ai caratteri fissi (tools/templari_mappa.mjs): porte, armi sul muro, comparse delle zone (`comparsa`
  *  = zona), celle delle trappole e loro leve. */
-export type TLegenda = { porta?: string; muro?: string; comparsa?: string; trappola?: string; leva?: string; personaggio?: 'mercante' | 'strega' };
+export type TLegenda = { porta?: string; muro?: string; comparsa?: string; trappola?: string; leva?: string; personaggio?: 'mercante' | 'strega'; fuoco?: string; pezzo?: string };
+/** Un fuoco da accendere (docs/TEMPLARI.md §9b): il nome e cosa accende (`rogo` = la trappola del rogo funziona, `strega` = la Strega
+ *  vende, `mercante` = la nave del Mercante attracca). */
+export type TFuocoDef = { nome: string; apre: 'rogo' | 'strega' | 'mercante'; dice: string };
 export type TMappaDef = { tile: number; legenda: Record<string, TLegenda>; rows: string[] };

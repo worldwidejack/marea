@@ -22,7 +22,10 @@ const CSS = `
 #mzTpl .pot { position: absolute; left: ${LEFT}; top: calc(${TOP} + 122px); display: flex; gap: 6px; }
 #mzTpl .pot span { padding: 2px 6px; background: rgba(35,32,31,.85); border: 2px solid currentColor; font-size: 12px; font-weight: bold; }
 #mzTpl .pot span.lamp { animation: mzTplLamp .5s steps(2) infinite; }
-#mzTpl .poz { position: absolute; left: ${LEFT}; top: calc(${TOP} + 146px); display: flex; gap: 4px; flex-wrap: wrap; max-width: 220px; }
+#mzTpl .poz { position: absolute; left: ${LEFT}; top: calc(${TOP} + 150px); display: flex; gap: 4px; flex-wrap: wrap; max-width: 220px; }
+#mzTpl .isola { position: absolute; left: ${LEFT}; top: calc(${TOP} + 124px); display: flex; gap: 6px; font-size: 11px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
+#mzTpl .isola span { padding: 1px 5px; background: rgba(35,32,31,.75); border: 1px solid ${PAL.pietra}; }
+#mzTpl .isola span.ok { border-color: ${PAL.giallo}; color: ${PAL.giallo}; }
 #mzTpl .poz span { padding: 1px 4px; background: rgba(35,32,31,.85); border: 1px solid currentColor; font-size: 10px; font-weight: bold; }
 @keyframes mzTplLamp { 50% { opacity: .2; } }
 #mzTpl .vign { position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 0 10px rgba(232,67,63,.55), inset 0 0 0 22px rgba(232,67,63,.3), inset 0 0 0 40px rgba(232,67,63,.14); }
@@ -77,11 +80,11 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string, pot?: boo
   const boss = el('div', 'boss'), bossN = el('b'), bossBar = el('div', 'bar'), bossI = el('i'), bossF = el('em');
   bossBar.append(bossI, bossF); boss.append(bossN, bossBar);
   big.append(bigB, bigS);
-  const pot = el('div', 'pot'), poz = el('div', 'poz');
-  box.append(vign, ond, pti, arma, vita, pot, poz, msg, boss, big);
+  const pot = el('div', 'pot'), poz = el('div', 'poz'), isola = el('div', 'isola');
+  box.append(vign, ond, pti, arma, vita, pot, isola, poz, msg, boss, big);
   root.append(box);
   const amici: HTMLElement[] = [];
-  let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1, pot: '', poz: '' };
+  let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1, pot: '', poz: '', isola: '' };
 
   return {
     set(v) {
@@ -102,6 +105,15 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string, pot?: boo
         shown.arma = aTxt;
         const n = el('span', '', (a?.pot && !inMano ? '✦ ' : '') + nome); if (a?.pot && !inMano) n.style.color = PAL.giallo;
         arma.replaceChildren(n, el('b', '', colpi), el('em', '', `${ric}${altra && !inMano ? ` · ${nomeArma(altra.id, altra.pot)}` : ''}${sc}`));
+      }
+      // l'isola (§9b): fuochi accesi e pezzi della campana (montata: un segno solo)
+      const accesi = v.fuochi.filter((f) => f.acceso).length, presi = v.pezzi.filter((x) => x.preso).length;
+      const ik = `${accesi}/${v.fuochi.length}|${presi}/${v.pezzi.length}|${v.campana}`;
+      if (ik !== shown.isola) {
+        shown.isola = ik;
+        const f = el('span', accesi === v.fuochi.length ? 'ok' : '', `🔥 ${accesi}/${v.fuochi.length}`);
+        const c = el('span', v.campana ? 'ok' : '', v.campana ? '🔔 montata' : `🔔 ${presi}/${v.pezzi.length}`);
+        isola.replaceChildren(f, c);
       }
       // pozioni della Strega bevute
       const pk2 = v.eroe.pozioni.join(',') + (v.eroe.intoccabile ? '!' : '');

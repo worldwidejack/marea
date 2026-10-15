@@ -14,6 +14,7 @@ const CSS = `
 .mz-tpl-az { position: absolute; right: ${RIGHT}; bottom: calc(${SAFE} + 196px); min-width: 150px; min-height: 54px; padding: 0 14px; display: none; align-items: center; justify-content: center; gap: 8px; background: ${PAL.giallo}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; z-index: 16; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 .mz-tpl-az.on { display: flex; } .mz-tpl-az.giu { transform: translateY(3px); box-shadow: 0 2px 0 ${PAL.neroCaldo}; } .mz-tpl-az.no { background: ${PAL.pietra}; }
 .mz-tpl-az small { font-size: 12px; opacity: .75; } .mz-tpl-az .tasto { opacity: .55; }
+.mz-tpl-az .lav { position: absolute; left: 0; bottom: 0; height: 6px; background: ${PAL.rosso}; }
 .mz-tpl-az.nega { animation: mzTplNo .3s steps(4); } @keyframes mzTplNo { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 .mz-tpl-perche { position: absolute; right: ${RIGHT}; bottom: calc(${SAFE} + 258px); max-width: calc(100% - 32px); padding: 4px 8px; background: rgba(46,30,20,.9); color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.rosso}; font: bold 13px ui-monospace, Menlo, monospace; z-index: 16; pointer-events: none; display: none; }
 .mz-tpl-perche.on { display: block; }.mz-tpl-sc { position: absolute; right: calc(${RIGHT} + 96px); bottom: calc(${SAFE} + 122px); width: 56px; height: 56px; border-radius: 50%; display: none; align-items: center; justify-content: center; background: rgba(46,30,20,.8); border: 3px solid rgba(244,227,193,.7); color: ${PAL.sabbiaChiara}; font: bold 12px ui-monospace, Menlo, monospace; z-index: 13; touch-action: none; }
@@ -156,13 +157,16 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
     miraDir() { return stick.dir(); },
     setPrompt(p) {
       ora = p;
-      const k = p ? `${p.cosa}|${p.testo}|${p.prezzo}|${p.puoi}` : '';
+      const k = p ? `${p.cosa}|${p.testo}|${p.prezzo}|${p.puoi}|${Math.round((p.k ?? 0) * 20)}` : '';
       if (k === promptKey) return;
       promptKey = k;
       az.classList.toggle('on', !!p);
       if (!p) return;
       az.classList.toggle('no', !p.puoi);
-      az.replaceChildren(el('span', '', p.testo.toUpperCase()), ...(p.prezzo > 0 ? [el('small', '', String(p.prezzo))] : []), ...(dito ? [] : [el('small', 'tasto', 'F')]));
+      // AZIONE da tenere premuto (accendere un fuoco, montare la campana): la barra si riempie
+      const bar = el('i', 'lav'); bar.style.width = `${Math.round((p.k ?? 0) * 100)}%`;
+      const lav = p.k ? [bar] : [];
+      az.replaceChildren(el('span', '', p.testo.toUpperCase()), ...(p.prezzo > 0 ? [el('small', '', String(p.prezzo))] : []), ...(dito ? [] : [el('small', 'tasto', p.cosa === 'fuoco' || p.cosa === 'monta' ? 'tieni F' : 'F')]), ...lav);
     },
     setScambia(on) { sc.classList.toggle('on', on); },
     hide() { az.classList.remove('on'); perche.classList.remove('on'); sc.classList.remove('on'); su.classList.remove('on'); stick.setOn(false); o.root.classList.remove('mz-tpl-aimon'); top.style.display = 'none'; setPausa(false); },

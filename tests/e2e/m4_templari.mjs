@@ -314,9 +314,24 @@ export default async function (ctx) {
     const perf = await ctx.getPerf(pc);
     ctx.log('perf in piazza', JSON.stringify(perf), JSON.stringify((await ctx.getState(pc)).templari.scena));
     assert(perf.drawCalls <= 100, `draw call in piazza ${perf.drawCalls} > 100`);
+    // il rogo è spento finché non si accende il fuoco del coro (§9b): la leva lo dice; F tenuto 1,5 s sul braciere lo accende
+    await prova({ dove: { x: 63.5, z: 45.5 }, punti: 3000 });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'trappola', 5000);
+    await pc.waitForFunction(() => /SPENTO/.test(document.querySelector('#mzTplAzione.on')?.textContent ?? ''), null, { timeout: 5000 })
+      .catch(async () => { throw new Error('la leva del rogo non dice che il fuoco è spento: ' + await pc.textContent('#mzTplAzione')); });
+    await prova({ fuoco: 'coro' });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'fuoco', 5000);
+    await ctx.shot(pc, 'pc_fuoco_spento');
+    await pc.keyboard.down('KeyF'); await pc.waitForTimeout(800);
+    await pc.waitForFunction(() => !!document.querySelector('#mzTplAzione .lav'), null, { timeout: 3000 }).catch(() => { throw new Error('niente barra mentre si accende'); });
+    await ctx.waitState(pc, (st) => st.templari.isola.fuochi.includes('coro'), 6000);
+    await pc.keyboard.up('KeyF');
+    await pc.waitForTimeout(500);
+    await ctx.shot(pc, 'pc_fuoco_acceso');
     // la leva del rogo, accanto agli stalli del presbiterio
     await prova({ dove: { x: 63.5, z: 45.5 }, punti: 3000 });
     await ctx.waitState(pc, (st) => st.templari.prompt === 'trappola', 5000);
+    await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
     await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
     await ctx.waitState(pc, (st) => (st.templari.trappole?.find((t) => t.id === 'rogo')?.accesa ?? 0) > 20, 5000);
     await pc.waitForTimeout(400);
@@ -329,6 +344,38 @@ export default async function (ctx) {
     await ctx.waitState(pc, (st) => (st.templari.poteri?.ira ?? 0) > 25, 5000);
     assert(await pc.isVisible('#mzTpl .pot span'), 'Ira di Dio non si vede nel HUD');
     await ctx.shot(pc, 'pc_ira');
+    ctx.noErrors(d, 'PC');
+  });
+  await ctx.test('PC: la campana — a terra, i tre pezzi sparsi (F li prende), F tenuto alla leva la monta e si appende', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    await prova({ pulisci: true, ferma: true, vita: 1e6, porte: ['portale', 'cimitero', 'taverna', 'spiaggia_taverna', 'sacrestia'] });
+    // a terra (la foto dal passaggio) e la leva dice quanti pezzi mancano
+    await prova({ dove: { x: 57.5, z: 33.5 } });
+    await pc.waitForTimeout(600);
+    await ctx.shot(pc, 'pc_campana_terra');
+    await prova({ dove: { x: 59.5, z: 39.5 } });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'monta', 5000);
+    await pc.waitForFunction(() => /0\/3/.test(document.querySelector('#mzTplAzione.on')?.textContent ?? ''), null, { timeout: 5000 })
+      .catch(async () => { throw new Error('la leva non conta i pezzi: ' + await pc.textContent('#mzTplAzione')); });
+    for (const id of ['corda', 'battaglio', 'perno']) {
+      await prova({ pezzo: id });
+      await ctx.waitState(pc, (st) => st.templari.prompt === 'pezzo', 5000);
+      if (id === 'corda') { await pc.waitForTimeout(300); await ctx.shot(pc, 'pc_pezzo'); }
+      // prima un tick con AZIONE lasciata (il salto della prova arriva mentre la scena nuova blocca la pagina: due pressioni attaccate sono una)
+      await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+      await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
+      await ctx.waitState(pc, (st, id) => st.templari.isola.pezzi.includes(id), 5000, id)
+        .catch(async () => { const t = (await ctx.getState(pc)).templari; throw new Error(`${id} non preso: ${JSON.stringify({ isola: t.isola, prompt: t.prompt, eroe: t.eroe, pausa: t.pausa, act: t.act, mouse: t.mouse })}`); });
+    }
+    await prova({ dove: { x: 59.5, z: 39.5 } });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'monta', 5000);
+    await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+    await pc.keyboard.down('KeyF');
+    await ctx.waitState(pc, (st) => st.templari.isola.campana === true, 6000);
+    await pc.keyboard.up('KeyF');
+    await prova({ dove: { x: 57.5, z: 33.5 } });
+    await pc.waitForTimeout(600);
+    await ctx.shot(pc, 'pc_campana_montata');
     ctx.noErrors(d, 'PC');
   });
   await ctx.test('PC: ambientazione — rotonda col tamburo e le croci, cimitero coi cipressi, borgo, spiaggia col mare e la nave', async () => {
