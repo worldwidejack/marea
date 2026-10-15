@@ -202,6 +202,14 @@ export default async function (ctx) {
       assert(d0.testi?.titolo, 'drenaggio: scritta col nome ' + JSON.stringify(d0.testi));
       await sleep(1200); await samplePerf();
       await ctx.shot(page, '4b_drenaggio_1280');
+      // lore obbligatoria: l’altoparlante dell’ingresso ferma il tempo del dungeon per dare tempo di leggere
+      await ctx.waitState(page, (s) => s.dungeon.testi?.voce === 'ingresso', 5000);
+      assert((await st()).dungeon.testi?.ferma, 'con la voce obbligatoria il dungeon è fermo');
+      const tkIngresso = (await st()).dungeon.tick;
+      await sleep(300);
+      assert((await st()).dungeon.tick === tkIngresso, 'mentre parla la voce il tempo non avanza');
+      await page.locator('#mzDngVoce').click(); // tocco per chiudere e riprendere subito
+      await ctx.waitState(page, (s) => s.dungeon.testi?.voce === null, 3000);
       // si cammina dritti fino alla valvola 1 (sala delle pompe) e si preme il suo bottone: niente autopilota, che con l'eroe di partenza
       // arrivava alla valvola solo qualche volta su dieci (dipende dai nemici e dal seed); a piedi ci arriva sempre (sim: 60 seed su 60)
       const v1 = parseDungeon(DUNGEONS.find((d) => d.id === 'drenaggio')).valvole.find((v) => v.n === 1);
