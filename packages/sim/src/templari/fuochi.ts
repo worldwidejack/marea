@@ -6,7 +6,7 @@
 import { TEMPLARI } from '@marea/content/templari.ts';
 import type { TState } from './stato.ts';
 import { ev, secToTicks } from './stato.ts';
-import { dai, lasciaPotere } from './colpi.ts';
+import { daiTutti, lasciaPotere } from './colpi.ts';
 
 const d2 = (ax: number, az: number, bx: number, bz: number): number => (ax - bx) * (ax - bx) + (az - bz) * (az - bz);
 
@@ -73,7 +73,7 @@ export function lavora(s: TState, cosa: string): void {
   if (Object.values(s.fuochi).every(Boolean)) {
     // tutta l'isola accesa: punti e un power-up a due passi da chi ha acceso l'ultimo (non sotto i piedi: si deve vedere)
     ev(s, { t: 'fuochiTutti' });
-    dai(s, TEMPLARI.fuochi.tutti, 'potere');
+    daiTutti(s, TEMPLARI.fuochi.tutti, 'potere');
     lasciaPotere(s, h.x - h.fx * 2.5, h.z - h.fz * 2.5, true);
   }
 }

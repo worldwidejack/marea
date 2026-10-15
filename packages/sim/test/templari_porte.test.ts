@@ -53,10 +53,10 @@ test('porte: AZIONE con i punti apre la porta, la zona si accende; senza punti n
   assert.equal(v0.prompt?.puoi, false); // 500 punti non bastano
   azione(s);
   assert.equal(s.porte['portale'], false);
-  s.punti = 2000;
+  s.eroe.punti = 2000;
   azione(s);
   assert.equal(s.porte['portale'], true);
-  assert.equal(s.punti, 2000 - TEMPLARI.porte['portale']!.prezzo);
+  assert.equal(s.eroe.punti, 2000 - TEMPLARI.porte['portale']!.prezzo);
   assert.ok(templari.view(s).porte.find((p) => p.id === 'portale')?.aperta);
   assert.deepEqual(zone(s), ['fuori', 'piazza']);
   // in piazza ci si arriva, al cimitero e alla spiaggia no
@@ -68,20 +68,20 @@ test('porte: AZIONE con i punti apre la porta, la zona si accende; senza punti n
 
 test('zone: taverna dalla piazza, spiaggia dalla taverna o dal cimitero col cancello', () => {
   const s = arena();
-  s.punti = 1e6;
+  s.eroe.punti = 1e6;
   for (const id of ['portale', 'taverna', 'spiaggia_taverna']) { davanti(s, id); azione(s); assert.equal(s.porte[id], true, id); }
   assert.deepEqual(zone(s), ['fuori', 'piazza', 'spiaggia', 'taverna']);
   const j = s.arena.comparse.find((c) => c.zona === 'spiaggia')!;
   assert.ok(raggiungePunto(s, j.x, j.z));
   const t = arena();
-  t.punti = 1e6;
+  t.eroe.punti = 1e6;
   for (const id of ['cimitero', 'spiaggia_cimitero']) { davanti(t, id); azione(t); assert.equal(t.porte[id], true, id); }
   assert.deepEqual(zone(t), ['cimitero', 'fuori', 'spiaggia']);
 });
 
 test('ondate con la piazza aperta: gli zombie escono anche dalla piazza quando sei lì', () => {
   const s = arena(3, 2);
-  s.punti = 1e6;
+  s.eroe.punti = 1e6;
   davanti(s, 'portale'); azione(s);
   const y = s.arena.comparse.filter((c) => c.zona === 'piazza');
   s.eroe.x = y[0]!.x + 7; s.eroe.z = y[0]!.z;
@@ -102,17 +102,17 @@ test('rogo: la leva accende la brace; chi ci passa muore senza punti, il boss pe
   const libera = [1, -1, g.w, -g.w].map((k) => lc + k).find((i) => !g.solid[i])!;
   Object.assign(s.eroe, centro(s, libera));
   assert.equal(templari.view(s).prompt?.cosa, 'trappola');
-  s.punti = 1500;
+  s.eroe.punti = 1500;
   azione(s);
-  assert.equal(s.punti, 1500 - d.prezzo);
+  assert.equal(s.eroe.punti, 1500 - d.prezzo);
   assert.ok(templari.view(s).trappole.find((x) => x.id === 'rogo')!.accesa > 24);
   const p = centro(s, t.celle[2]!), q = centro(s, t.celle[5]!);
   const fante = zombie(s, 'fante', p.x, p.z), cav = zombie(s, 'cavaliere', q.x, q.z);
-  const punti = s.punti, morti = s.uccisioni;
+  const punti = s.eroe.punti, morti = s.uccisioni;
   passi(s, 2);
   assert.equal(fante.st, 'morto');
   assert.equal(s.uccisioni, morti + 1);
-  assert.equal(s.punti, punti);
+  assert.equal(s.eroe.punti, punti);
   assert.ok(cav.st !== 'morto' && cav.vita < cav.max);
   // l'eroe sulla brace si fa male
   const v0 = s.eroe.vita;
@@ -123,10 +123,10 @@ test('rogo: la leva accende la brace; chi ci passa muore senza punti, il boss pe
   passi(s, 60 * d.durata);
   assert.equal(templari.view(s).trappole.find((x) => x.id === 'rogo')!.accesa, 0);
   Object.assign(s.eroe, centro(s, libera));
-  s.punti = 5000;
+  s.eroe.punti = 5000;
   assert.equal(templari.view(s).prompt?.puoi, false);
   azione(s);
-  assert.equal(s.punti, 5000);
+  assert.equal(s.eroe.punti, 5000);
   passi(s, 60 * d.ricarica);
   assert.equal(templari.view(s).prompt?.puoi, true);
 });
@@ -184,24 +184,24 @@ test('power-up: Faretra piena, Ira di Dio, Campane a martello, Decima, Muratori'
   const k = arena();
   const tre = [zombie(k, 'fante', k.eroe.x + 4, k.eroe.z), zombie(k, 'pirata', k.eroe.x - 4, k.eroe.z), zombie(k, 'fante', k.eroe.x, k.eroe.z + 3)];
   const boss = zombie(k, 'cavaliere', k.eroe.x + 6, k.eroe.z + 2);
-  const p0 = k.punti;
+  const p0 = k.eroe.punti;
   prendi(k, 'campane');
   assert.ok(tre.every((x) => x.st === 'morto'));
   assert.notEqual(boss.st, 'morto');
-  assert.equal(k.punti, p0 + TEMPLARI.poteri.campane);
+  assert.equal(k.eroe.punti, p0 + TEMPLARI.poteri.campane);
   // decima: punti doppi per 30 s
   const d = arena();
   prendi(d, 'decima');
-  const q0 = d.punti;
+  const q0 = d.eroe.punti;
   dai(d, 10, 'colpo');
-  assert.equal(d.punti, q0 + 20);
+  assert.equal(d.eroe.punti, q0 + 20);
   // muratori: tutte le finestre rifatte, +200
   const m = arena();
   m.assi = m.assi.map(() => 0);
-  const r0 = m.punti;
+  const r0 = m.eroe.punti;
   prendi(m, 'muratori');
   assert.ok(m.assi.every((n) => n === TEMPLARI.barricate.assi));
-  assert.equal(m.punti, r0 + TEMPLARI.poteri.muratori);
+  assert.equal(m.eroe.punti, r0 + TEMPLARI.poteri.muratori);
   assert.ok(nemicoDef('fante'));
 });
 

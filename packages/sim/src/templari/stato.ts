@@ -54,6 +54,9 @@ export type Eroe = {
   pozioni: TPozione[]; elisir: number; intoccabile: number;
   /** Insieme: caduto (si rialza all'ondata dopo) e uscito dalla partita (non torna). Da solo cadere chiude la partita. */
   giu: boolean; fuori: boolean;
+  /** I punti dell'eroe (insieme ognuno ha i suoi: guadagna chi colpisce, spende chi compra) e quelli dalle assi in questa ondata (hanno un
+   *  tetto). */
+  punti: number; puntiAssi: number;
 };
 /** `carica` = il cavaliere lanciato in linea retta; `fugge` = de Molay a metà vita che scappa ridendo. */
 export type ZombieSt = 'sorge' | 'insegue' | 'strappa' | 'prepara' | 'colpisce' | 'recupera' | 'carica' | 'fugge' | 'morto';
@@ -89,12 +92,16 @@ export type Proj = { id: number; tipo: 'freccia' | 'palla' | 'vaso'; arma: strin
   vita: number; trapassa: number; colpiti: number[] };
 /** Fiamme a terra (fuoco greco, scia della spada di de Molay): bruciano gli zombie dentro. */
 export type Fiamma = { id: number; x: number; z: number; r: number; dps: number; fine: number;
+  /** Insieme: l'eroe che l'ha accesa (prende i punti di chi ci muore). */
+  chi?: number;
   /** Fiamme di de Molay: bruciano l'eroe, non gli zombie. */
   nemico?: boolean;
   /** La Pioggia di frecce dell'Arciere: brucia come le fiamme (solo zombie), si disegna a frecce. */
   frecce?: boolean };
 /** Cannonata della Bordata: cade in (x, z) al tick `fine`, partita al tick `inizio`. */
-export type Cannonata = { id: number; x: number; z: number; r: number; danno: number; inizio: number; fine: number };
+export type Cannonata = { id: number; x: number; z: number; r: number; danno: number; inizio: number; fine: number;
+  /** Insieme: l'eroe che l'ha chiamata (prende i punti). */
+  chi?: number };
 /** Cose a terra: lo scudo dello scudato (si prende con AZIONE) e i power-up (si prendono passandoci sopra). */
 export type Drop = { id: number; tipo: 'scudo' | TPotere; x: number; z: number; fine: number };
 /** Trappola: accesa fino al tick `fine`, di nuovo pronta dal tick `pronta`, prossimo colpo all'eroe se ci sta dentro. */
@@ -109,17 +116,17 @@ export type TState = {
   rng: Rng;
   /** L'eroe di turno: quello che si muove, colpisce, compra (s.eroi[s.chi]); gli zombie lo puntano uno alla volta (usa()). */
   eroe: Eroe;
-  /** Tutti gli eroi (insieme: uno per giocatore, nell'ordine della squadra; da solo uno). Punti, cassa e porte sono della squadra. */
+  /** Tutti gli eroi (insieme: uno per giocatore, nell'ordine della squadra; da solo uno). Ognuno ha i suoi punti (Eroe.punti); porte
+   *  aperte, fuochi e campana valgono per tutti. */
   eroi: Eroe[]; chi: number;
-  punti: number; guadagnati: number; uccisioni: number;
+  /** Punti guadagnati e uccisioni di tutta la squadra. */
+  guadagnati: number; uccisioni: number;
   fase: TFase; faseT: number;
   ondata: number;
   /** Zombie dell'ondata: quanti in tutto, quanti già usciti, prossima comparsa (tick). */
   quanti: number; usciti: number; prossima: number;
   /** Quanti ne sono usciti per tipo in questa ondata (i tipi con `maxOndata` arrivano piano piano). */
   tipiUsciti: Record<string, number>;
-  /** Punti dalle assi in questa ondata (hanno un tetto). */
-  puntiAssi: number;
   assi: number[];
   porte: Record<string, boolean>;
   zombie: Zombie[];
@@ -204,7 +211,7 @@ function nuovoEroe(x: number, z: number, fx: number, fz: number, classe: TClasse
     act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
     armi, cur: 0, hurt: 0, riparaT: -999, cd: 0, ricarica: 0, ricaricaDur: 1, scudo: cl?.scudo ? { vita: TEMPLARI.scudo.vita } : null, inMano: false,
     prevA: false, prevC: false, prevD: false, prevE: false, pozioni: [], elisir: 0, intoccabile: 0, giu: false, fuori: false,
-    classe: cl ? cl.id : null, superK: 0, lavoro: '', lavoroT: 0,
+    classe: cl ? cl.id : null, superK: 0, lavoro: '', lavoroT: 0, punti: TEMPLARI.partenza.punti, puntiAssi: 0,
   };
 }
 /** Insieme: dove compare (o si rialza) l'eroe i: accanto alla partenza, a giro, senza finire nei muri. */
@@ -223,8 +230,8 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
   const s: TState = {
     v: 1, seed: seed >>> 0, tick: 0, opzioni: { ...(opzioni.subito ? { subito: true } : {}), ...(n > 1 ? { eroi: n } : {}), ...(classi.some(Boolean) ? { classi } : {}) }, arena, gr, rng: createRng(seed >>> 0),
     eroe, eroi: [eroe], chi: 0,
-    punti: TEMPLARI.partenza.punti, guadagnati: 0, uccisioni: 0,
-    fase: opzioni.subito ? 'inizio' : 'altare', faseT: 0, ondata: 0, quanti: 0, usciti: 0, prossima: 0, tipiUsciti: {}, puntiAssi: 0,
+    guadagnati: 0, uccisioni: 0,
+    fase: opzioni.subito ? 'inizio' : 'altare', faseT: 0, ondata: 0, quanti: 0, usciti: 0, prossima: 0, tipiUsciti: {},
     assi: arena.finestre.map(() => TEMPLARI.barricate.assi),
     porte: Object.fromEntries(arena.porte.map((p) => [p.id, false])),
     zombie: [], proj: [], fiamme: [], drops: [], tiri: [], cannonate: [], boss: null,

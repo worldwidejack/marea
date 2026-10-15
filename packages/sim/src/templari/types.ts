@@ -162,7 +162,7 @@ export type TView = {
   eventi: TEventoDi[];
   /** Insieme: io = il mio eroe (quello di `posa` ed `eroe`); compagni = gli altri, con la posa per l'attore, caduto o uscito. */
   io: number;
-  compagni: { i: number; posa: DungeonView['hero']; arma: string; vita: number; max: number; giu: boolean; fuori: boolean; classe: TClasse | null }[];
+  compagni: { i: number; posa: DungeonView['hero']; arma: string; vita: number; max: number; giu: boolean; fuori: boolean; classe: TClasse | null; punti: number }[];
 };
 
 export type TRisultato = {

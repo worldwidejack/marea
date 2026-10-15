@@ -1,6 +1,7 @@
 # MAREA — Game Design Document (fonte di verità)
 
 > Dove questo file contraddice gli altri documenti, vince questo. Si aggiorna solo tramite l'orchestratore; le idee nuove vanno in `BACKLOG.md`.
+> **Dove va il gioco: `docs/VISIONE.md`** (revisione di Jack, 14 ott 2026, #323). Questo file descrive il gioco com'è; per il lavoro nuovo vince VISIONE, e quando un suo punto si fa si riscrive qui la sezione.
 > Versione 1.0 · 29 set 2026 · titolo di lavoro **MAREA** (si può cambiare).
 
 ## 0. In tre righe
