@@ -47,6 +47,8 @@ export type SOggettoDef = {
   colore?: 'blu' | 'rosso' | 'verde';
 };
 export type SPunto = { x: number; z: number; yaw: number };
+/** Una sentinella: dove parte, verso dove guarda, il giro di pattuglia ([x, z], vuoto = sta ferma e si guarda intorno). */
+export type SSentinella = SPunto & { giro: number[][] };
 export type SCerchio = { x: number; z: number; r: number };
 
 /** Il piazzale: `larga` × `lunga` m di banchina (x, z), poi `acqua` m di mare verso +z; celle da `cella` m. */
@@ -56,9 +58,36 @@ export type SMappaDef = {
   oggetti: SOggettoDef[];
   /** Bersagli fermi del poligono (Tappa A). */
   bersagli: SPunto[];
+  /** Le sentinelle della Missione 0 e dove arrivano i rinforzi. */
+  nemici: SSentinella[]; rinforzi: SPunto[];
   /** La gru da sabotare (Missione 0) e la barca con la zona d'uscita sulla banchina. */
   gru: SCerchio;
   barca: { x: number; z: number; rot: 0 | 90; uscita: SCerchio };
+};
+
+/** I nemici (Tappa B). Angoli in gradi, tempi in secondi, distanze in metri; [min, max] = a caso nell'intervallo. */
+export type SNemiciCfg = {
+  vita: number;
+  /** L'arma (per il suono e la portata, dall'elenco `armi`), il danno a colpo e il moltiplicatore alla testa. */
+  arma: string; danno: number; testa: number;
+  /** Raffiche: secondi tra un colpo e l'altro, colpi per raffica, pausa tra due raffiche. */
+  cadenza: number; raffica: number[]; pausa: number[];
+  /** Vista: cono (gradi, tutto l'angolo) e distanza; più vicino di `vicino` ti sente anche alle spalle. */
+  vista: { angolo: number; distanza: number; vicino: number };
+  /** Sentono gli spari fino a `udito` m; chi ti vede chiama i compagni entro `chiama` m. */
+  udito: number; chiama: number;
+  /** Secondi tra quando ti vedono e il primo colpo. */
+  reazione: number[];
+  /** Errore della mira (gradi): parte da `inizio` e scende a `fine` in `secondi` che ti seguono; in più se si muovono o se corri. */
+  errore: { inizio: number; fine: number; secondi: number; muovendo: number; bersaglioVeloce: number };
+  /** Velocità al passo e di corsa (m/s), quanto in fretta si girano (rad/s). */
+  passo: number; corsa: number; gira: number;
+  /** Coperture tra `min` e `max` m da te; dentro e fuori (a sparare) per tot secondi. */
+  copertura: { min: number; max: number; dentro: number[]; fuori: number[] };
+  /** Chi aggira cerca un punto tra `min` e `max` m da te, ad almeno `angolo` gradi dagli altri. */
+  aggira: { min: number; max: number; angolo: number };
+  /** Secondi senza vederti prima di venirti a cercare, e di ricerca prima di tornare di ronda. */
+  dimentica: number; cerca: number;
 };
 
 export type SparoCfg = {
@@ -67,6 +96,9 @@ export type SparoCfg = {
   armi: SArmaDef[];
   /** Bersagli del poligono: vita e secondi prima di rialzarsi. */
   bersagli: { vita: number; rinasce: number };
+  nemici: SNemiciCfg;
+  /** Missione 0: secondi da tenere premuto AZIONE alla gru, secondi a terra prima della schermata, tempi delle medaglie (s). */
+  missione: { sabota: number; caduto: number; medaglie: { oro: number; argento: number } };
   mappa: SMappaDef;
   /** Misure dei pezzi (m): container [x, z, alto per piano] con rot 0; cassa e barriera [x, z, alto]; gru: base [x, z, alto], gambe
    *  [x, z, alto] ai quattro angoli a ±`gruPasso` dal centro. */

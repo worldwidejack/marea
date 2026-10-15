@@ -36,6 +36,19 @@
     }
   ],
   "bersagli": { "vita": 100, "rinasce": 3 },
+  "nemici": {
+    "vita": 100, "arma": "mitra", "danno": 8, "testa": 1.5,
+    "cadenza": 0.11, "raffica": [3, 6], "pausa": [0.55, 1.2],
+    "vista": { "angolo": 130, "distanza": 40, "vicino": 4.5 },
+    "udito": 22, "chiama": 14,
+    "reazione": [0.35, 0.7],
+    "errore": { "inizio": 7, "fine": 1.8, "secondi": 2.2, "muovendo": 2.5, "bersaglioVeloce": 1.6 },
+    "passo": 1.7, "corsa": 3.8, "gira": 5,
+    "copertura": { "min": 7, "max": 26, "dentro": [1.2, 2.6], "fuori": [1.1, 2.2] },
+    "aggira": { "min": 7, "max": 14, "angolo": 65 },
+    "dimentica": 6, "cerca": 9
+  },
+  "missione": { "sabota": 3, "caduto": 2, "medaglie": { "oro": 120, "argento": 200 } },
   "mappa": {
     "larga": 42, "lunga": 44, "acqua": 8, "cella": 0.5,
     "spawn": { "x": 5, "z": 5.5, "yaw": -2.356 },
@@ -90,6 +103,19 @@
       { "x": 8, "z": 38.5, "yaw": 3.14 },
       { "x": 34.5, "z": 17.5, "yaw": 1.9 },
       { "x": 21, "z": 40, "yaw": 0 }
+    ],
+    "nemici": [
+      { "x": 4.4, "z": 12, "yaw": 3.14, "giro": [[4.4, 19], [15.8, 19], [15.8, 7], [4.4, 9]] },
+      { "x": 30, "z": 5.5, "yaw": 1.57, "giro": [[24, 5.5], [36.5, 5.5]] },
+      { "x": 17, "z": 22, "yaw": -1.57, "giro": [[17, 22], [25.5, 22], [25.5, 28.5], [17, 28.5]] },
+      { "x": 37.6, "z": 20, "yaw": 0, "giro": [[37.6, 8], [37.6, 40]] },
+      { "x": 20, "z": 40.1, "yaw": 1.57, "giro": [[7, 40.1], [35, 40.1]] },
+      { "x": 21, "z": 42, "yaw": 0, "giro": [] }
+    ],
+    "rinforzi": [
+      { "x": 37.5, "z": 42.5, "yaw": 0.6 },
+      { "x": 37.5, "z": 4.5, "yaw": 2.4 },
+      { "x": 4.5, "z": 42.5, "yaw": -0.6 }
     ],
     "gru": { "x": 21, "z": 24, "r": 2.0 },
     "barca": { "x": 21, "z": 47.5, "rot": 90, "uscita": { "x": 21, "z": 43, "r": 2.4 } }

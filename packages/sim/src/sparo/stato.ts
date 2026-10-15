@@ -43,11 +43,25 @@ export type SGiocatore = SAttore & {
   /** Per la medaglia e i test. */
   sparati: number; aSegno: number; teste: number; uccisi: number; dannoPreso: number;
 };
+/** fermo = sentinella che si guarda intorno; pattuglia = fa il giro; allerta = ti ha notato, si gira (reazione); copertura = corre al
+ *  riparo e ci resta; sporge = esce a sparare; aggira = va a prenderti di lato; cerca = va dove ti ha visto l'ultima volta. */
+export type SStatoBot = 'fermo' | 'pattuglia' | 'allerta' | 'copertura' | 'sporge' | 'aggira' | 'cerca';
 export type SBot = SAttore & {
   id: number;
-  /** bersaglio = fermo, si rialza dopo `SPARO.bersagli.rinasce` s (poligono). */
-  tipo: 'bersaglio';
+  /** bersaglio = fermo, si rialza dopo `SPARO.bersagli.rinasce` s (poligono); nemico = Missione 0. */
+  tipo: 'bersaglio' | 'nemico';
   casa: SPunto;
+  stato: SStatoBot;
+  /** Indice del giro di pattuglia in `mappa.nemici` (−1 = rinforzo), tappa del giro a cui va. */
+  via: number; tappa: number; rinforzo: boolean;
+  /** Ti vede adesso; tick dell'ultima volta; dove ti ha visto o sentito l'ultima volta. */
+  vede: boolean; vistoT: number; ux: number; uz: number;
+  /** Primo colpo non prima di `allertaT`; la mira si stringe da `tracciaT`; colpi rimasti nella raffica e tick del prossimo. */
+  allertaT: number; tracciaT: number; raffica: number; prossimo: number;
+  /** Cella dove va (−1 = nessuna), cella da cui si sporge (−1 = la stessa), tick del prossimo cambio di stato. */
+  meta: number; sbircia: number; timer: number;
+  /** È quello che ti aggira; il riparo scelto è alto (ci sta in piedi) o basso (si accuccia). */
+  fianco: boolean; riparoAlto: boolean;
 };
 /** Dove si è fermato un colpo (un pallino): `scatola` = indice in SMappa.scatole se ha preso una scatola (−1 altrimenti), `chi` = chi ha preso
  *  (−2 = nessuno). */
@@ -59,11 +73,17 @@ export type SEvento =
   | { t: 'ucciso'; chi: number; da: number; testa: boolean }
   | { t: 'rialza'; chi: number }
   | { t: 'ricarica'; arma: number } | { t: 'carico'; arma: number } | { t: 'vuoto' } | { t: 'cambio'; arma: number }
-  | { t: 'salto' } | { t: 'atterra'; forte: number };
+  | { t: 'salto' } | { t: 'atterra'; forte: number }
+  | { t: 'allerta'; chi: number }
+  | { t: 'obiettivo'; i: number } | { t: 'rinforzi' } | { t: 'sabotata' }
+  | { t: 'fine'; esito: 'vinta' | 'persa'; medaglia: SMedaglia };
 
-export type SModo = 'poligono';
+export type SMedaglia = '' | 'oro' | 'argento' | 'bronzo';
+/** Missione 0: obiettivo 0 = elimina le sentinelle, 1 = sabota la gru (tick tenuti), 2 = raggiungi la barca, 3 = fatto. */
+export type SMissione = { obiettivo: number; sabota: number; inizio: number; fine: number; esito: '' | 'vinta' | 'persa'; medaglia: SMedaglia; rinforzi: boolean };
+export type SModo = 'poligono' | 'missione';
 export type SOpzioni = { modo?: SModo; immortale?: boolean };
-export type SState = { tick: number; caso: number; modo: SModo; immortale: boolean; g: SGiocatore; bot: SBot[]; ev: SEvento[] };
+export type SState = { tick: number; caso: number; modo: SModo; immortale: boolean; g: SGiocatore; bot: SBot[]; ev: SEvento[]; missione: SMissione | null };
 
 /** Numero a caso in [0, 1) dallo stato (mulberry32: solo interi a 32 bit, uguale su ogni motore). */
 export function caso(s: { caso: number }): number {
@@ -87,8 +107,21 @@ export function nuovaPartita(seme: number, opz: SOpzioni = {}): SState {
     pronto: 0, ricarica: 0, estrae: 0, mira: false, corre: false, rinculoSu: 0, rinculoLato: 0, dispersione: 0, grilletto: false, saltoPrima: false, ultimoSparo: -9999,
     sparati: 0, aSegno: 0, teste: 0, uccisi: 0, dannoPreso: 0,
   };
-  const bot: SBot[] = M.bersagli.map((p, id) => ({ ...attore(p, SPARO.bersagli.vita), id, tipo: 'bersaglio' as const, casa: p }));
-  return { tick: 0, caso: (seme >>> 0) || 1, modo: opz.modo ?? 'poligono', immortale: !!opz.immortale, g, bot, ev: [] };
+  const modo = opz.modo ?? 'poligono';
+  const bot: SBot[] = modo === 'poligono'
+    ? M.bersagli.map((p, id) => nuovoBot(p, id, 'bersaglio', -1, SPARO.bersagli.vita))
+    : M.nemici.map((p, id) => nuovoBot(p, id, 'nemico', id, SPARO.nemici.vita));
+  const missione: SMissione | null = modo === 'missione' ? { obiettivo: 0, sabota: 0, inizio: 0, fine: 0, esito: '', medaglia: '', rinforzi: false } : null;
+  return { tick: 0, caso: (seme >>> 0) || 1, modo, immortale: !!opz.immortale, g, bot, ev: [], missione };
+}
+
+export function nuovoBot(p: SPunto, id: number, tipo: SBot['tipo'], via: number, vita: number): SBot {
+  const giro = via >= 0 ? SPARO.mappa.nemici[via]?.giro ?? [] : [];
+  return {
+    ...attore(p, vita), id, tipo, casa: p, stato: tipo === 'bersaglio' || giro.length === 0 ? 'fermo' : 'pattuglia',
+    via, tappa: 0, rinforzo: false, vede: false, vistoT: -9999, ux: p.x, uz: p.z,
+    allertaT: 0, tracciaT: 0, raffica: 0, prossimo: 0, meta: -1, sbircia: -1, timer: 0, fianco: false, riparoAlto: false,
+  };
 }
 
 /** Altezza degli occhi e del collo (dove finisce il cilindro del corpo) di un attore. */

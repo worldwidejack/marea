@@ -63,7 +63,7 @@ export function ferisci(s: SState, chi: number, da: number, danno: number, testa
   if (chi < 0) s.g.dannoPreso += giu;
   s.ev.push({ t: 'colpito', chi, da, danno: giu, testa, x, y, z });
   if (a.vita <= 0) {
-    a.vita = 0; a.morto = s.tick;
+    a.vita = 0; a.morto = s.tick || 1; // 0 vuol dire in piedi
     s.ev.push({ t: 'ucciso', chi, da, testa });
     if (da < 0) s.g.uccisi++;
   }
@@ -85,8 +85,8 @@ export function spara(s: SState, m: SMappa, chi: number, arma: SArmaDef, ox: num
       const h = toccaCorpo(a, ox, oy, oz, dx, dy, dz, best);
       if (h) { best = h.t; quale = k; testa = h.testa; }
     };
-    if (chi >= 0) prova(-1);
-    for (let k = 0; k < s.bot.length; k++) prova(k);
+    // i nemici non si colpiscono tra loro (niente fuoco amico): un loro colpo cerca solo te
+    if (chi >= 0) prova(-1); else for (let k = 0; k < s.bot.length; k++) prova(k);
     if (quale !== -2) {
       const x = ox + dx * best, y = oy + dy * best, z = oz + dz * best;
       ferisci(s, quale, chi, arma.danno * (testa ? arma.testa : 1) * caloPortata(arma, best), testa, x, y, z);
