@@ -91,9 +91,9 @@ export default async function (ctx) {
     });
     await ctx.shot(page, '1_ingresso_1280');
 
-    await ctx.test('Archivio, Fucina, Mausoleo e Vuoto: porte sigillate e cancello finché mancano i requisiti (niente ENTRA né AFFRONTA INSIEME); il server rifiuta', async () => {
+    await ctx.test('Archivio, Fucina, Mausoleo, Vuoto e Diga: porte sigillate e cancello finché mancano i requisiti (niente ENTRA né AFFRONTA INSIEME); il server rifiuta', async () => {
       const s = await st();
-      assert(s.ingressi.sigillati.includes('archivio') && s.ingressi.sigillati.includes('fucina') && s.ingressi.sigillati.includes('mausoleo') && s.ingressi.sigillati.includes('vuoto') && !s.ingressi.sigillati.includes('drenaggio'), 'sigillati: ' + JSON.stringify(s.ingressi.sigillati));
+      assert(s.ingressi.sigillati.includes('archivio') && s.ingressi.sigillati.includes('fucina') && s.ingressi.sigillati.includes('mausoleo') && s.ingressi.sigillati.includes('vuoto') && s.ingressi.sigillati.includes('diga') && !s.ingressi.sigillati.includes('drenaggio'), 'sigillati: ' + JSON.stringify(s.ingressi.sigillati));
       const a = s.ingressi.spots.find((x) => x.id === 'archivio');
       await hook('teleport', a.x, a.z + 3); await sleep(900);
       await ctx.waitState(page, (s) => s.ingressi.near === 'archivio', 5000);
@@ -112,6 +112,8 @@ export default async function (ctx) {
       assert(!r4.ok && /Fucina/.test((await r4.json()).error ?? ''), 'il Mausoleo si apre senza la Fucina');
       const rv = await fetch(base + '/api/dungeon/start', { method: 'POST', headers: { 'x-token': 'tokA', 'content-type': 'application/json' }, body: JSON.stringify({ dungeon: 'vuoto' }) });
       assert(!rv.ok && /cancello|sbarrato|Anello/i.test((await rv.json()).error ?? ''), 'il Portale del Vuoto si apre senza l’Anello dell’Onda');
+      const rd = await fetch(base + '/api/dungeon/start', { method: 'POST', headers: { 'x-token': 'tokA', 'content-type': 'application/json' }, body: JSON.stringify({ dungeon: 'diga' }) });
+      assert(!rd.ok && /Portale del Vuoto/.test((await rd.json()).error ?? ''), 'la Diga dei Disertori si apre senza il Portale del Vuoto');
     });
 
     await ctx.test('Cripta: si entra, scena e HUD, Q prende la magia in mano e la A la lancia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {

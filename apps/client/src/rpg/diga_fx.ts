@@ -112,7 +112,11 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
   const scoppioMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, emissive: PAL.arancio, emissiveIntensity: 0.5, transparent: true, opacity: 0.85 });
   const bombe = new Map<number, { g: THREE.Group; ring: THREE.Mesh; disc: THREE.Mesh; cade: THREE.Mesh; scoppio: THREE.Mesh; cannone: boolean }>();
   // il Capitano: lo scudo della salva, la catena sulla schiena, il fuoco fatuo sulla vela
-  const scudo = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 2.6, 10, 1, true, -0.8, 1.6), new THREE.MeshBasicMaterial({ color: PAL.giallo, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }));
+  const scudo = new THREE.Mesh(merged([
+    painted(new THREE.CylinderGeometry(1.7, 1.7, 2.6, 10, 1, true, -0.8, 1.6), PAL.giallo),
+    ...[-0.8, 0, 0.8].map((a) => painted(box(0.1, 2.7, 0.1), PAL.sabbiaChiara, M(Math.sin(a) * 1.72, 0, Math.cos(a) * 1.72))), // le costole dello scudo
+    painted(new THREE.TorusGeometry(1.72, 0.06, 3, 12, 1.6), PAL.sabbiaChiara, M(0, 1.3, 0, Math.PI / 2, 0, Math.PI / 2 - 0.8)),
+  ]), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }));
   scudo.visible = false; scudo.renderOrder = 3; root.add(scudo);
   const catena = new THREE.Mesh(merged([0, 1, 2, 3].map((k) => painted(new THREE.TorusGeometry(0.18, 0.05, 4, 8), PAL.giallo, M(0, 1.6 + k * 0.28, 0, 0, k % 2 ? Math.PI / 2 : 0, 0)))),
     new THREE.MeshBasicMaterial({ vertexColors: true }));
@@ -129,9 +133,10 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
     const x0 = Math.min(...xs) * T, x1 = (Math.max(...xs) + 1) * T, z1 = (Math.max(...zs) + 1) * T;
     const c = document.createElement('canvas'); c.width = 16; c.height = 16;
     const g = c.getContext('2d')!;
-    px(g, PAL.acqua, 0, 0, 16, 16);
-    for (const [x, y, w] of [[1, 2, 5], [9, 4, 4], [4, 8, 6], [12, 11, 3], [0, 13, 4], [7, 14, 5]] as const) px(g, PAL.acquaBassa, x, y, w, 1);
-    for (const [x, y] of [[3, 5], [13, 1], [10, 9]] as const) px(g, PAL.giallo, x, y, 2, 1); // il sole sull'acqua
+    px(g, PAL.acquaProfonda, 0, 0, 16, 16);
+    for (const [x, y, w] of [[1, 2, 5], [9, 4, 4], [4, 8, 6], [12, 11, 3], [0, 13, 4], [7, 14, 5]] as const) px(g, PAL.acqua, x, y, w, 1);
+    for (const [x, y] of [[3, 5], [13, 1], [10, 9]] as const) px(g, PAL.arancio, x, y, 2, 1); // il sole che sorge sull'acqua
+    px(g, PAL.giallo, 6, 11, 1, 1);
     const tx = new THREE.CanvasTexture(c); tx.magFilter = tx.minFilter = THREE.NearestFilter; tx.generateMipmaps = false; tx.colorSpace = THREE.SRGBColorSpace;
     tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(8, 6);
     const w = x1 - x0 + 40, h = 40;
@@ -264,7 +269,7 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
       const k = v.nemici.find((n) => n.tipo === 'capitano_vaelen' && n.anim !== 'morto');
       const kv = !!k && lit(k.x, k.z), yaw = k ? Math.atan2(-k.fx, -k.fz) : 0;
       scudo.visible = kv && !!k?.scudo;
-      if (k && scudo.visible) { scudo.position.set(k.x, fy + 1.3, k.z); scudo.rotation.y = yaw + Math.PI; (scudo.material as THREE.MeshBasicMaterial).opacity = Math.floor(t * 6) % 2 ? 0.45 : 0.3; }
+      if (k && scudo.visible) { scudo.position.set(k.x, fy + 1.3, k.z); scudo.rotation.y = yaw + Math.PI; (scudo.material as THREE.MeshBasicMaterial).opacity = Math.floor(t * 6) % 2 ? 0.7 : 0.5; }
       catenaOn = kv && (k?.attacco === 'incastrato' || k?.attacco === 'detriti');
       catena.visible = catenaOn && Math.floor(t * 5) % 3 !== 0; // lampeggia: colpisci qui
       if (k && catenaOn) { catena.position.set(k.x - k.fx * 1.0, fy, k.z - k.fz * 1.0); catena.rotation.y = Math.floor(t * 4) * 0.4; }

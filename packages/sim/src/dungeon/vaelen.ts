@@ -127,8 +127,7 @@ function corre(s: DungeonState, e: Enemy): void {
       return;
     }
   }
-  if (fatto < passo * 0.5) ev(s, { t: 'urto', x: r2(e.x), z: r2(e.z) }); // contro il muro (o l'acqua)
-  riposa(s, e);
+  riposa(s, e); // contro il muro, l'acqua o a fine corsa: si ferma e riprende fiato
 }
 
 /** Fine dell'attacco: pausa della fase (il momento per colpirlo). */

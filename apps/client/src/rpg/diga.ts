@@ -135,9 +135,10 @@ const FORME: Record<string, () => Forma> = {
   // polvere da sparo tra gli artigli
   nem_albatros: () => ({
     corpo: merged([
-      painted(box(0.45, 0.4, 1.0), PAL.neroCaldo, M(0, 0.55, 0)), // il corpo
+      painted(box(0.45, 0.4, 1.0), PAL.roccia, M(0, 0.55, 0)), painted(box(0.47, 0.1, 0.9), PAL.neroCaldo, M(0, 0.78, 0.02)), // il corpo, la pece che cola sulla schiena
       painted(box(0.3, 0.3, 0.32), PAL.roccia, M(0, 0.7, -0.6)), painted(box(0.1, 0.1, 0.5), PAL.pietraChiara, M(0, 0.66, -0.98)), // testa e becco d'osso
-      painted(box(1.6, 0.06, 0.45), PAL.neroCaldo, M(-0.95, 0.66, 0, 0, 0, 0.18)), painted(box(1.6, 0.06, 0.45), PAL.neroCaldo, M(0.95, 0.66, 0, 0, 0, -0.18)), // ali
+      painted(box(1.6, 0.06, 0.45), PAL.roccia, M(-0.95, 0.66, 0, 0, 0, 0.18)), painted(box(1.6, 0.06, 0.45), PAL.roccia, M(0.95, 0.66, 0, 0, 0, -0.18)), // ali
+      painted(box(1.5, 0.07, 0.12), PAL.neroCaldo, M(-0.95, 0.67, 0.2, 0, 0, 0.18)), painted(box(1.5, 0.07, 0.12), PAL.neroCaldo, M(0.95, 0.67, 0.2, 0, 0, -0.18)), // le penne impeciate
       ...[-1, 1].flatMap((s) => [0.6, 1.1, 1.55].map((x) => painted(box(0.06, 0.08, 0.5), PAL.pietraChiara, M(s * x, 0.7 + (s > 0 ? -0.11 : 0.11) * (x - 0.6), 0.08)))), // le ossa delle ali
       painted(box(0.36, 0.05, 0.4), PAL.roccia, M(0, 0.6, 0.62, -0.3, 0, 0)), // la coda
       painted(cil(0.2, 0.2, 0.36, 8), PAL.rosso, M(0, 0.2, 0.05, 0, 0, Math.PI / 2)), // il barilotto rosso
