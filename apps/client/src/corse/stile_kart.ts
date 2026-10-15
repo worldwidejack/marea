@@ -116,6 +116,8 @@ body.mz-gp #btnB { right: calc(max(0px, env(safe-area-inset-right)) + 220 * var(
   font-size: max(11px, calc(26 * var(--u))) !important; background: radial-gradient(circle at 45% 35%, #3f7fe0, #1d4fb0 50%, var(--navy)) !important; border: max(3px, calc(5 * var(--u))) solid #8fd8ff !important; box-shadow: 0 0 calc(16 * var(--u)) rgba(95,200,255,.75); }
 body.mz-gp #btnA i, body.mz-gp #btnB i { width: 42%; height: 42%; }
 body.mz-kh.mz-kh-fine #joystick, body.mz-kh.mz-kh-fine #btnA, body.mz-kh.mz-kh-fine #btnB, body.mz-kh.mz-kh-fine .mz-gp-gas, body.mz-kh.mz-kh-fine .pp-usa, body.mz-kh.mz-kh-fine .mz-gp-quit { display: none !important; }
+/* i toast del mondo (es. «Hai trovato la mappa…») scendono in basso al centro, sopra la gara ferma: in alto coprirebbero il «1°» */
+body.mz-kh.mz-kh-fine #toast { top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 300 * var(--u)) !important; max-width: 30vw !important; }
 
 /* ---- risultati: titolo in alto a sinistra, «1°» enorme con l'alloro, classifica a barre inclinate a destra, premi e bottoni sotto ---- */
 .mz-esito.kart { position: absolute; inset: 0; left: 0; top: 0; transform: none; width: auto; padding: 0; background: none; border: none !important; box-shadow: none; text-align: left; color: #fff; z-index: 22; }
