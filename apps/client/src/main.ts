@@ -263,6 +263,7 @@ async function boot(): Promise<void> {
   registerTestHook('openFeed', () => openFeed());
   registerTestHook('openHero', () => { if (!eroe || panelsBusy()) return false; eroe.open(); return true; });
   registerTestHook('emote', (id) => emotes.play(String(id) as EmoteId));
+  registerTestHook('setLot', (l) => { if (l && typeof l === 'object') { setMyLot(l as LotState); return true; } return false; });
   // guida «Primi passi»: costruire → barca → minigioco → costruire col premio, poi le cose nuove: parla al Porto, pesca o perle, mappa, un'isola
   // nuova. Senza isola propria niente Segheria né costruisci. I primi quattro restano in testa e in quest'ordine: il vecchio progresso salvato
   // (un numero) vale per loro (ui/guida.ts). I passi si contano anche fuori ordine.
