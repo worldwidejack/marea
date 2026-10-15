@@ -49,7 +49,8 @@ export function validateTemplari(): string[] {
   for (const l of Object.values(TEMPLARI_MAPPA.legenda)) {
     if (l.porta && !c.porte[l.porta]) errs.push(`templari: la porta ${l.porta} non ha prezzo (templari.json porte)`);
     if ((l.trappola || l.leva) && !c.trappole[(l.trappola ?? l.leva)!]) errs.push(`templari: la trappola ${l.trappola ?? l.leva} non è in templari.json`);
-    if (l.comparsa && !Object.values(c.porte).some((p) => p.zona === l.comparsa)) errs.push(`templari: nessuna porta apre la zona ${l.comparsa}`);
+    if (l.comparsa && l.comparsa !== 'cripta' && !Object.values(c.porte).some((p) => p.zona === l.comparsa)) errs.push(`templari: nessuna porta apre la zona ${l.comparsa}`);
+    if (l.campanella && !c.campanelle.lista[l.campanella]) errs.push(`templari: la campanella ${l.campanella} non è in templari.json`);
     if (l.trappola && !Object.entries(TEMPLARI_MAPPA.legenda).some(([k, x]) => x.leva === l.trappola && all.includes(k))) errs.push(`templari: la trappola ${l.trappola} non ha la leva`);
   }
   for (const [id, p] of Object.entries(c.porte)) if (!pos(p.prezzo)) errs.push(`templari: porta ${id} senza prezzo`);
@@ -64,6 +65,16 @@ export function validateTemplari(): string[] {
   for (const [id, f] of Object.entries(c.fuochi.lista)) if (!all.includes(Object.entries(TEMPLARI_MAPPA.legenda).find(([, l]) => l.fuoco === id)?.[0] ?? '§') || !f.nome) errs.push(`templari: il fuoco ${id} non è nella mappa`);
   for (const id of Object.keys(c.campana.pezzi)) if (!Object.entries(TEMPLARI_MAPPA.legenda).some(([k, l]) => l.pezzo === id && all.includes(k))) errs.push(`templari: il pezzo ${id} della campana non ha posti nella mappa`);
   if (!pos(c.fuochi.accendi) || !pos(c.campana.monta)) errs.push('templari: fuochi o campana senza tempi');
+  // segreti (§9c): muro, scala e altare della cripta una volta sola, l'arma dell'altare, almeno due campanelle tutte nella mappa, i teschi
+  const leg = Object.entries(TEMPLARI_MAPPA.legenda), quante = (f: (l: (typeof leg)[number][1]) => boolean) => leg.filter(([, l]) => f(l)).reduce((n, [k]) => n + all.split(k).length - 1, 0);
+  for (const pezzo of ['muro', 'scala'] as const) if (quante((l) => l.cripta === pezzo) !== 1) errs.push(`templari: la cripta vuole un ${pezzo} (uno solo)`);
+  if (!quante((l) => l.cripta === 'altare')) errs.push("templari: la cripta non ha l'altare");
+  if (!c.armi.some((a) => a.id === c.cripta.arma) || !(c.cripta.anime >= 1)) errs.push("templari: l'arma della cripta non è valida");
+  const camp = Object.keys(c.campanelle.lista);
+  if (camp.length < 2 || camp.some((id) => !quante((l) => l.campanella === id))) errs.push('templari: le campanelle vogliono almeno due posti, tutti nella mappa');
+  if (quante((l) => !!l.indizio) !== 1) errs.push("templari: la mappa vuole un muro con l'ordine delle campane");
+  if (!quante((l) => !!l.teschio) || !pos(c.teschi.tieni)) errs.push('templari: i teschi della canzone non sono validi');
+  for (const a of c.armi) if (a.affondo !== undefined && a.tipo !== 'mischia') errs.push(`templari: l'arma ${a.id} ha l'affondo ma non è da mischia`);
   if (!c.eroi.length) errs.push('templari: nessun eroe nel menù');
   for (const e of c.eroi) {
     for (const a of e.armi) if (a !== null && !c.armi.some((x) => x.id === a)) errs.push(`templari: l'eroe ${e.id} parte con l'arma ${a} sconosciuta`);

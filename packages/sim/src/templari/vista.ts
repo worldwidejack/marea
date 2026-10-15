@@ -8,6 +8,7 @@ import { animZombie, fiatoMax, usa } from './stato.ts';
 import { faseS } from './ondate.ts';
 import { prompt } from './eroe.ts';
 import { faseCassa } from './cassa.ts';
+import { inCripta, segretiToccati } from './segreti.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 
@@ -76,6 +77,10 @@ function vista(s: TState): TView {
     fuochi: s.arena.fuochi.map((f) => ({ id: f.id, x: f.x, z: f.z, acceso: !!s.fuochi[f.id] })),
     pezzi: Object.entries(s.pezzi).flatMap(([id, st]) => { const q = s.arena.pezzi.find((x) => x.id === id)?.posti[st.posto]; return q ? [{ id, x: q.x, z: q.z, preso: st.preso }] : []; }),
     campana: s.campana,
+    segreti: {
+      muro: s.segreti.muro, anime: s.segreti.anime, tutte: TEMPLARI.cripta.anime, dentro: inCripta(s, h.x, h.z), ordine: [...s.segreti.ordine], giuste: s.segreti.giuste, campane: s.segreti.campane,
+      teschi: s.arena.teschi.map((t) => ({ id: t.id, x: t.x, z: t.z, preso: !!s.segreti.teschi[t.id] })),
+    },
     cannonate: s.cannonate.map((c) => ({ id: c.id, x: r2(c.x), z: r2(c.z), r: c.r, k: Math.min(1, (s.tick - c.inizio) / Math.max(1, c.fine - c.inizio)) })),
     drops: s.drops.map((d) => ({ id: d.id, tipo: d.tipo, x: r2(d.x), z: r2(d.z), resta: Math.max(0, (d.fine - s.tick) / 60) })),
     poteri: { ira: Math.max(0, (s.poteri.ira - s.tick) / 60), decima: Math.max(0, (s.poteri.decima - s.tick) / 60) },
@@ -114,6 +119,8 @@ export function hashOf(s: TState): number {
     assi: s.assi, porte: s.porte, esito: s.esito,
     trappole: s.trappole.map((t) => [t.fine, t.pronta]), poteri: [s.poteri.ira, s.poteri.decima, s.poteri.ondata], drops: s.drops.map((d) => [d.id, d.tipo]),
     fuochi: s.fuochi, pezzi: s.pezzi, campana: s.campana,
+    // i segreti (§9c), solo se qualcuno li ha toccati: le partite di prima hanno lo stesso hash
+    ...(segretiToccati(s) ? { segreti: [s.segreti.muro, s.segreti.anime, s.segreti.giuste, s.segreti.campane, s.segreti.teschi] } : {}),
     // gli eroi del menù (le partite senza menù hanno lo stesso hash di prima)
     ...(s.eroi.some((h) => h.classe) ? { classi: s.eroi.map((h) => [h.classe, Math.round(h.superK * 1000)]), cannonate: s.cannonate.length } : {}),
   });

@@ -84,8 +84,8 @@ export function compra(s: TState, a: Extract<TAzione, { t: 'compra' }>): TEvento
   return s.eventi.slice(n0);
 }
 
-/** La pozione bevuta: l'effetto parte subito (la vita in più della Zuppa di pietra si aggiunge), l'eroe beve per un attimo e non attacca. */
-function bevi(s: TState, id: TPozione): void {
+/** La pozione bevuta (comprata, o il premio delle campanelle: segreti.ts): l'effetto parte subito (la vita in più della Zuppa di pietra si aggiunge), l'eroe beve per un attimo e non attacca. */
+export function bevi(s: TState, id: TPozione): void {
   const h = s.eroe, p = pozioneDef(id);
   h.pozioni.push(id);
   if (p.vita) { const m = vitaBase(h) + p.vita - TEMPLARI.eroe.vita; h.vita += m - h.max; h.max = m; } // la Zuppa: +100 sulla vita dell'eroe

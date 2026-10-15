@@ -24,6 +24,7 @@ import { ruota, tira } from './proiettili.ts';
 import { cassaMia, usaCassa, vicinoCassa } from './cassa.ts';
 import { accendiTrappola, apriPorta, levaVicina, portaDef, portaVicina, trappolaAccesa, trappolaDef, trappolaPronta, trappolaUsabile } from './porte.ts';
 import { acceso, fuocoPer, fuocoVicino, lavora, lavoroK, pezziPresi, pezziTutti, pezzoVicino, prendiPezzo } from './fuochi.ts';
+import { campanellaVicina, criptaLibera, fendenteMuro, haLancia, nomeLancia, scalaEroe, suonaCampanella, teschioVicino, vicinoAltareCripta } from './segreti.ts';
 
 const vivi = (s: TState): Zombie[] => s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge');
 const ANIM_TIRO = Math.round(0.25 * 60), ANIM_LANCIO = Math.round(0.35 * 60);
@@ -104,7 +105,7 @@ export function autoA(s: TState): boolean {
 function inizia(s: TState, a: TArmaDef, caricato: boolean): void {
   const h = s.eroe, portata = a.portata ?? 1.5;
   guarda(s, mira(s, portata * 1.5));
-  h.stile = caricato ? 'giro' : 'fendente';
+  h.stile = a.affondo !== undefined ? 'affondo' : caricato ? 'giro' : 'fendente'; // la Lancia (§9c): sempre di punta
   h.act = 'swing'; h.actT = 0; h.actDur = secToTicks(a.tempo * (caricato ? GIRO_TEMPO : 1));
   h.caricato = caricato; h.colpiti = []; h.colpito = false; h.carica = 0;
   ev(s, { t: 'fendente', caricato });
@@ -121,12 +122,13 @@ function spazza(s: TState, a: TArmaDef): void {
       if (sweepTo(h.stile, h.fx, h.fz, dx, dz, z.def.raggio, d <= z.def.raggio + TEMPLARI.eroe.raggio) > fatto) continue;
       h.colpiti.push(z.id);
       const dirX = d > 1e-6 ? dx / d : h.fx, dirZ = d > 1e-6 ? dz / d : h.fz;
-      colpisci(s, z, { danno, mischia: true, caricato: h.caricato, dirX, dirZ, spinta: (a.spinta ?? 0) * (h.caricato ? 2 : 1) });
+      colpisci(s, z, { danno, mischia: true, caricato: h.caricato, dirX, dirZ, spinta: (a.spinta ?? 0) * (h.caricato ? 2 : 1), ...(a.cura ? { cura: a.cura } : {}) });
     }
   }
   if (k >= 1 && !h.colpito) {
     h.colpito = true;
     if (a.scia) accendi(s, h.x + h.fx * 1.4, h.z + h.fz * 1.4, a.scia); // la spada di de Molay: fiamme dove passa
+    fendenteMuro(s, a.portata ?? 1.5, h.caricato, h.stile === 'giro'); // il muro crepato della cripta (§9c)
     if (!h.colpiti.length) ev(s, { t: 'mancato' });
   }
 }
@@ -236,6 +238,14 @@ export function prompt(s: TState): TPrompt {
   if (pz) return { cosa: 'pezzo', testo: `Prendi: ${(TEMPLARI.campana.pezzi[pz] ?? pz).toLowerCase()} della campana`, prezzo: 0, puoi: true };
   const fu = fuocoVicino(s);
   if (fu) return { cosa: 'fuoco', testo: `Accendi: ${(TEMPLARI.fuochi.lista[fu]?.nome ?? fu).toLowerCase()}`, prezzo: 0, puoi: true, k: s.eroe.lavoro === 'fuoco:' + fu ? lavoroK(s) : 0 };
+  // i segreti (§9c): un teschio (AZIONE tenuto), una campanella, l'altare della cripta
+  const te = teschioVicino(s);
+  if (te) return { cosa: 'teschio', testo: 'Un teschio…', prezzo: 0, puoi: true, k: s.eroe.lavoro === 'teschio:' + te ? lavoroK(s) : 0 };
+  const cv = campanellaVicina(s);
+  if (cv) return { cosa: 'campanella', testo: s.segreti.campane ? 'La campanella tace' : 'Suona: ' + (TEMPLARI.campanelle.lista[cv] ?? cv).toLowerCase(), prezzo: 0, puoi: !s.segreti.campane };
+  if (vicinoAltareCripta(s) && !haLancia(s)) return criptaLibera(s)
+    ? { cosa: 'lancia', testo: `Prendi: ${nomeLancia()}`, prezzo: 0, puoi: true }
+    : { cosa: 'lancia', testo: `L'altare è sigillato: anime ${s.segreti.anime}/${TEMPLARI.cripta.anime}`, prezzo: 0, puoi: false };
   const chi = chiVicino(s);
   if (chi && !acceso(s, chi)) return { cosa: chi, testo: chi === 'mercante' ? `La nave è al largo: ${fuocoPer('mercante')?.nome.toLowerCase() ?? 'accendi il fuoco'}` : `La Strega dorme: ${fuocoPer('strega')?.nome.toLowerCase() ?? 'accendi il fuoco'}`, prezzo: 0, puoi: false };
   if (chi) return { cosa: chi, testo: chi === 'mercante' ? 'Il Mercante' : 'La Strega', prezzo: 0, puoi: true };
@@ -276,11 +286,15 @@ function azione(s: TState, dDown: boolean, dHeld: boolean): void {
   // fuochi e campana (§9b): un pezzo si prende con un tocco; un fuoco si accende e la campana si monta tenendo AZIONE
   const pz = pezzoVicino(s);
   if (dDown && pz) { prendiPezzo(s, pz); return; }
-  const fu = fuocoVicino(s), l0 = levaVicina(s);
+  const fu = fuocoVicino(s), te = teschioVicino(s), l0 = levaVicina(s);
   const monta = !s.campana && pezziTutti(s) && l0 >= 0 && s.arena.trappole[l0]!.id === 'campana';
-  const lavoro = !dHeld ? '' : fu ? 'fuoco:' + fu : monta ? 'monta' : '';
+  const lavoro = !dHeld ? '' : fu ? 'fuoco:' + fu : te ? 'teschio:' + te : monta ? 'monta' : '';
   lavora(s, lavoro);
   if (lavoro) return;
+  // i segreti (§9c): una campanella si suona con un tocco; all'altare della cripta, liberato, si prende la Lancia
+  const cv = campanellaVicina(s);
+  if (dDown && cv) { suonaCampanella(s, cv); return; }
+  if (dDown && vicinoAltareCripta(s) && criptaLibera(s) && !haLancia(s)) { daiArma(s, TEMPLARI.cripta.arma); ev(s, { t: 'cripta', fase: 'presa' }); return; }
   const di = dropVicino(s);
   if (dDown && di >= 0 && (!h.scudo || h.scudo.vita < TEMPLARI.scudo.vita)) {
     h.scudo = { vita: TEMPLARI.scudo.vita };
@@ -362,6 +376,8 @@ export function stepEroe(s: TState, inp: TInput): void {
       if (!inp.a) inizia(s, a, h.carica >= 1);
       break;
     case 'swing':
+      // la Lancia caricata: l'affondo ti porta avanti mentre la punta spazza (chi trova sulla strada lo prende)
+      if (a.affondo && h.caricato && h.actT >= h.actDur * 0.15 && h.actT < h.actDur * 0.5) moveCircle(s.gr.eroe, h, h.fx * (a.affondo / (h.actDur * 0.35)), h.fz * (a.affondo / (h.actDur * 0.35)), c.raggio);
       if (!h.colpito) spazza(s, a);
       if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; }
       break;
@@ -407,6 +423,8 @@ export function stepEroe(s: TState, inp: TInput): void {
     const d = Math.sqrt(d2), k = (rr - d) / d;
     moveCircle(s.gr.eroe, h, dx * k * 0.5, dz * k * 0.5, c.raggio);
   }
+  // la scala della cripta (§9c): entrando in un capo arrivi all'altro
+  scalaEroe(s);
   // rigenerazione dopo qualche secondo senza colpi (l'Acqua di fonte santa: prima e più svelta)
   h.quiete++;
   const fonte = haPozione(s, 'fonte') ? pozioneDef('fonte') : null;
