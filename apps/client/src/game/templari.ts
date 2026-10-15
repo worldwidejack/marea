@@ -29,8 +29,8 @@ import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import type { TemplariRete, TemplariRun } from '../templari/types.ts';
 import type { Scelta } from '../templari/scelta.ts';
 import type { TClasse } from '@marea/content/templari.ts';
-import { parseTiServer } from '@marea/protocol/templari_insieme.ts';
-import type { TiClientMsg, TiMembro, TiServerMsg } from '@marea/protocol/templari_insieme.ts';
+import { TI_STORIA, parseTiServer } from '@marea/protocol/templari_insieme.ts';
+import type { TiClientMsg, TiMembro, TiServerMsg, TiTurno } from '@marea/protocol/templari_insieme.ts';
 
 export type Templari = {
   /** La porta della chiesa (per la bussola), null se l'isola non c'è. */
@@ -134,9 +134,17 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   for (const ev of ['pointerdown', 'touchstart']) btnIns.addEventListener(ev, (x) => x.stopPropagation());
   btnIns.addEventListener('click', () => { void giocaInsieme(); });
   o.root.append(btnIns);
-  type Sala = { ws: WebSocket; box: HTMLElement; chi: HTMLElement; sub: HTMLElement; via: HTMLButtonElement; membri: TiMembro[]; rete: TemplariRete | null; chiusa: boolean };
+  /** `url`: l'indirizzo della sala (token, eroe); in partita `run` e `io`, `prossimo` = il primo turno non ancora arrivato, `storia` = gli
+   *  ultimi turni arrivati (per la ripresa), `ricollega` = linea persa e si sta ricollegando (da `dal`), `giri` = ricollegamenti riusciti,
+   *  `finita` = la partita è finita qui (niente più ricollegamenti). */
+  type Sala = {
+    ws: WebSocket; url: string; box: HTMLElement; chi: HTMLElement; sub: HTMLElement; via: HTMLButtonElement; membri: TiMembro[]; rete: TemplariRete | null; chiusa: boolean;
+    run: string | null; io: number; prossimo: number; storia: TiTurno[]; ricollega: boolean; dal: number; giri: number; finita: boolean;
+  };
   /** La sala in cui sei (riquadro alla porta, poi il WebSocket della partita insieme). */
   let sala: Sala | null = null, insieme = 0;
+  /** Linea persa in partita (o il server che si riavvia a un deploy): si riprova ogni RICOLLEGA_OGNI_MS fino a RICOLLEGA_MAX_MS. */
+  const RICOLLEGA_OGNI_MS = 1500, RICOLLEGA_MAX_MS = 40_000;
 
   /** GIOCA INSIEME: prima l'eroe (il menù), poi entri nella sala alla porta della chiesa; quando ci sono almeno 2, chiunque dice SI PARTE. */
   async function giocaInsieme(): Promise<void> {
@@ -153,12 +161,13 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   function apriSala(classe: TClasse | null): void {
     if (sala || busy || run) return;
     if (!o.api || !FLAGS.token) { o.hud.toast('Per giocare insieme serve il tuo link personale', 3000); return; }
-    let ws: WebSocket;
+    let ws: WebSocket, url: string;
     try {
       const u = new URL('/ws/templari', location.href);
       u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('t', FLAGS.token);
       if (classe) u.searchParams.set('classe', classe);
-      ws = new WebSocket(u.toString());
+      url = u.toString();
+      ws = new WebSocket(url);
     } catch { o.hud.toast('La sala non risponde, riprova', 2500); return; }
     const box = el('div', 'mz mz-tpl-sala'); box.id = 'mzTemplariSala';
     const chi = el('div', 'chi', '…'), sub = el('div', 'sub', 'Mi collego…');
@@ -167,22 +176,59 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
     box.append(el('b', '', '✠ Insieme nella chiesa'), chi, sub, via, esci);
     for (const ev of ['pointerdown', 'touchstart']) box.addEventListener(ev, (x) => x.stopPropagation());
     o.root.append(box);
-    const sq: Sala = { ws, box, chi, sub, via, membri: [], rete: null, chiusa: false };
+    const sq: Sala = { ws, url, box, chi, sub, via, membri: [], rete: null, chiusa: false, run: null, io: 0, prossimo: 0, storia: [], ricollega: false, dal: 0, giri: 0, finita: false };
     sala = sq; btnIns.classList.remove('on');
     via.addEventListener('click', () => {
       if (sq.membri.length < 2 || ws.readyState !== WebSocket.OPEN) return;
       ws.send(JSON.stringify({ t: 'via' } satisfies TiClientMsg)); via.disabled = true; sub.textContent = 'Si entra…';
     });
     esci.addEventListener('click', () => chiudiSala());
+    ascolta(sq, ws);
+  }
+  /** I messaggi della socket della sala (anche di quella nuova dopo un ricollegamento; quelle vecchie non contano più). */
+  function ascolta(sq: Sala, ws: WebSocket): void {
     ws.onmessage = (ev) => {
+      if (sq.ws !== ws) return;
       const m = parseTiServer(String(ev.data));
       if (!m) return;
-      if (m.t === 'T') { sq.rete?.turni.push(m); return; }
+      if (m.t === 'T') {
+        if (m.n < sq.prossimo) return; // già arrivato (dopo una ripresa)
+        sq.prossimo = m.n + 1;
+        sq.storia.push(m); if (sq.storia.length > TI_STORIA) sq.storia.splice(0, sq.storia.length - TI_STORIA);
+        sq.rete?.turni.push(m);
+        return;
+      }
+      if (m.t === 'ripresa') {
+        // il server ha i turni fino a m.n escluso: gli rimando quelli che ho da lì in poi (dopo un suo riavvio gli mancano)
+        try { ws.send(JSON.stringify({ t: 'storia', turni: sq.storia.filter((t) => t.n >= m.n) } satisfies TiClientMsg)); } catch { /* chiusa */ }
+        if (sq.ricollega) { sq.ricollega = false; sq.giri++; }
+        return;
+      }
       if (m.t === 'sala') { sq.membri = m.membri; disegnaSala(sq, m.max); return; }
-      if (m.t === 'errore') { o.hud.toast(m.msg, 3000); if (!sq.rete) { sub.textContent = m.msg; via.disabled = sq.membri.length < 2; } return; }
-      if (m.t === 'parte') void entraInsieme(sq, m);
+      if (m.t === 'errore') { o.hud.toast(m.msg, 3000); if (!sq.rete) { sq.sub.textContent = m.msg; sq.via.disabled = sq.membri.length < 2; } return; }
+      if (m.t === 'parte') { sq.run = m.run; sq.io = m.io; sq.prossimo = 0; sq.storia = []; void entraInsieme(sq, m); }
     };
-    ws.onclose = () => { sq.chiusa = true; if (sala === sq && !sq.rete) { o.hud.toast('La sala si è sciolta', 2000); chiudiSala(); } };
+    ws.onclose = (ev) => {
+      if (sq.ws !== ws) return;
+      // in partita, se non l'ha chiusa il server apposta (1000: alba, fine, fuori), ci si ricollega
+      if (sq.rete && sq.run && !sq.finita && ev.code !== 1000) { ricollegati(sq); return; }
+      sq.ricollega = false; sq.chiusa = true;
+      if (sala === sq && !sq.rete) { o.hud.toast('La sala si è sciolta', 2000); chiudiSala(); }
+    };
+  }
+  /** Linea persa in partita: una socket nuova con la partita (`run`, `idx`) e il primo turno che manca (`n`); il server riprende da lì. */
+  function ricollegati(sq: Sala): void {
+    if (!sq.ricollega) { sq.ricollega = true; sq.dal = Date.now(); console.warn('[marea] templari insieme: linea persa, mi ricollego'); }
+    if (Date.now() - sq.dal > RICOLLEGA_MAX_MS) { sq.ricollega = false; sq.chiusa = true; return; }
+    setTimeout(() => {
+      if (sq.finita || sq.chiusa || !sq.run) return;
+      const u = new URL(sq.url);
+      u.searchParams.set('run', sq.run); u.searchParams.set('idx', String(sq.io)); u.searchParams.set('n', String(sq.prossimo));
+      let ws: WebSocket;
+      try { ws = new WebSocket(u.toString()); } catch { ricollegati(sq); return; }
+      sq.ws = ws;
+      ascolta(sq, ws);
+    }, RICOLLEGA_OGNI_MS);
   }
   function disegnaSala(sq: Sala, max: number): void {
     const n = sq.membri.length;
@@ -193,7 +239,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   function chiudiSala(): void {
     const sq = sala;
     if (!sq) return;
-    sala = null; sq.box.remove();
+    sala = null; sq.box.remove(); sq.finita = true;
     try { if (sq.ws.readyState === WebSocket.OPEN) sq.ws.send(JSON.stringify({ t: 'esco' } satisfies TiClientMsg)); sq.ws.close(1000, 'ciao'); } catch { /* già chiusa */ }
   }
   /** Il server ha aperto la partita per tutta la sala: si entra. A fine partita l'esito lo calcola il server dal log della squadra. */
@@ -206,6 +252,8 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
       io: m.io, membri: m.membri, turni: [],
       manda: (x) => { if (sq.ws.readyState === WebSocket.OPEN) sq.ws.send(JSON.stringify(x)); },
       get chiusa() { return sq.chiusa; },
+      get ricollega() { return sq.ricollega; },
+      get giri() { return sq.giri; },
     };
     try {
       o.hud.toast('Si entra insieme nella chiesa…', 1800);
@@ -300,11 +348,13 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
 
   registerStateProvider('templari', () => (run && templariLink.state
     ? { ...templariLink.state(), busy, entrate, finite, lastErr, lastResult }
-    : { active: false, busy, entrate, finite, lastErr, lastResult, near, aperta: aperta(), spot, insieme, sala: sala ? { membri: sala.membri.map((x) => x.nome), dentro: !!sala.rete, chiusa: sala.chiusa } : null }));
+    : { active: false, busy, entrate, finite, lastErr, lastResult, near, aperta: aperta(), spot, insieme, sala: sala ? { membri: sala.membri.map((x) => x.nome), dentro: !!sala.rete, chiusa: sala.chiusa, ricollega: sala.ricollega, giri: sala.giri, prossimo: sala.prossimo } : null }));
   /** Test: dentro subito (come il bottone ⚔), da ovunque; `eroe` = senza menù, con quell'eroe. */
   registerTestHook('templariEntra', (subito, eroe) => { if (busy || run) return false; void entra(subito !== false, typeof eroe === 'string' ? eroe as TClasse : undefined); return true; });
   /** Test: GIOCA INSIEME (entra nella sala anche lontano dalla porta, `eroe` = senza menù) e SI PARTE. */
   registerTestHook('templariSala', (eroe) => { if (busy || run || sala) return false; apriSala(typeof eroe === 'string' ? eroe as TClasse : null); return !!sala; });
+  /** Test: la linea cade (socket chiusa come da una rete persa, non dal server): la partita si deve ricollegare da sola. */
+  registerTestHook('templariStacca', () => { if (!sala?.rete) return false; try { sala.ws.close(4000, 'prova'); } catch { /* già chiusa */ } return true; });
   registerTestHook('templariSiParte', () => { if (!sala || sala.membri.length < 2) return false; sala.via.click(); return true; });
   registerTestHook('templariProva', (o) => (templariLink.prova && o && typeof o === 'object' ? templariLink.prova(o as Record<string, unknown>) : null));
   registerTestHook('templariAutopilot', (on, speed) => { templariLink.autopilot = on ? Math.max(1, Math.min(30, Math.round(Number(speed ?? 4)) || 4)) : 0; return templariLink.autopilot; });
