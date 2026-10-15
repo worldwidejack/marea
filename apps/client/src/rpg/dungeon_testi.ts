@@ -22,8 +22,12 @@ export type DungeonTestiUi = {
   update(hero: { x: number; z: number }, play: boolean, dt: number): void;
   /** Una lettura è aperta: da solo il dungeon non avanza. */
   readonly aperta: boolean;
+  /** Una voce è attiva: da solo il dungeon non avanza. */
+  readonly inVoce: boolean;
+  /** Una voce o lettura di lore è a schermo: il dungeon è fermo. */
+  readonly ferma: boolean;
   /** Per i test: cosa c'è a schermo e cosa è già stato visto/letto. */
-  stato(): { titolo: boolean; voce: string | null; vicino: string | null; aperta: string | null; viste: string[]; lette: string[]; tenuto: number };
+  stato(): { titolo: boolean; voce: string | null; vicino: string | null; aperta: string | null; ferma: boolean; viste: string[]; lette: string[]; tenuto: number };
   hide(): void;
   dispose(): void;
 };
@@ -127,9 +131,15 @@ export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas
     viste.add(id(v.id)); scrivi(K_VISTE, viste);
     voce.classList.toggle('capo', !!v.capo);
     chi.innerHTML = v.capo ? '' : horn(P.acquaBassa); // SVG statico
-    chi.append(v.chi, el('small', '', matchMedia('(pointer: coarse)').matches ? 'tocca per chiudere' : 'clic per chiudere'));
+    const hint = o.insieme
+      ? (matchMedia('(pointer: coarse)').matches ? 'tocca per continuare' : 'clic per continuare')
+      : (matchMedia('(pointer: coarse)').matches ? 'tempo fermo · tocca' : 'tempo fermo · clic o Spazio');
+    chi.append(v.chi, el('small', '', hint));
     testo.textContent = ''; voce.classList.add('on');
-    ora = { v, n: 0, t: 0, fine: 1.5 + v.testo.length / 25 + 2.5 }; // si scrive in ~testo/25 s, poi resta il tempo di leggerla
+    const parole = v.testo.split(/\s+/).length;
+    const typing = v.testo.length / 28;
+    const lettura = Math.max(4.5, parole / 2.5);
+    ora = { v, n: 0, t: 0, fine: 1.0 + typing + lettura };
     suona('altoparlante');
   };
 
@@ -176,7 +186,10 @@ export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas
   leggi.addEventListener('contextmenu', (e) => e.preventDefault());
   const kd = (e: KeyboardEvent) => {
     if (aperta && (e.code === 'Escape' || (e.code === 'KeyL' && !e.repeat))) { e.preventDefault(); e.stopImmediatePropagation(); chiudiLettura(); return; }
-    if (aperta) return; // da solo il dungeon è fermo, insieme l'eroe sta fermo: gli altri tasti non servono
+    if (ora) {
+      if (['Space', 'Enter', 'KeyE'].includes(e.code) && !e.repeat) { e.preventDefault(); e.stopImmediatePropagation(); chiudiVoce(); return; }
+    }
+    if (aperta || ora) return; // da solo il dungeon è fermo, insieme l'eroe sta fermo: gli altri tasti non servono
     if (e.code === 'KeyL' && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); if (!e.repeat) tasto = true; }
   };
   const ku = (e: KeyboardEvent) => { if (e.code === 'KeyL') tasto = false; };
@@ -194,6 +207,8 @@ export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas
 
   return {
     get aperta() { return aperta !== null; },
+    get inVoce() { return ora !== null; },
+    get ferma() { return aperta !== null || ora !== null; },
     update(hero, play, dt) {
       if (fermo) return;
       // voci: zona nuova (mai sentita) → in coda; parlano dopo la scritta grande, una alla volta
@@ -204,7 +219,7 @@ export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas
       }
       if (ora && !aperta) {
         ora.t += dt;
-        const n = Math.min(ora.v.testo.length, Math.floor(ora.t * 25 / 2) * 2); // due lettere alla volta
+        const n = Math.min(ora.v.testo.length, Math.floor(ora.t * 28 / 2) * 2); // due lettere alla volta
         if (n !== ora.n) { ora.n = n; testo.textContent = ora.v.testo.slice(0, n); }
         if (ora.t >= ora.fine) chiudiVoce();
       }
@@ -235,7 +250,7 @@ export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas
       fill.style.width = `${Math.min(10, Math.floor((tenuto / TIENI) * 10)) * 10}%`;
       if (vicino && tenuto >= TIENI) apri(vicino.l);
     },
-    stato: () => ({ titolo: titolo.classList.contains('on'), voce: ora?.v.id ?? null, vicino: vicino?.l.id ?? null, aperta: aperta?.id ?? null,
+    stato: () => ({ titolo: titolo.classList.contains('on'), voce: ora?.v.id ?? null, vicino: vicino?.l.id ?? null, aperta: aperta?.id ?? null, ferma: aperta !== null || ora !== null,
       viste: [...viste].filter((x) => x.startsWith(def.id + ':')), lette: [...lette].filter((x) => x.startsWith(def.id + ':')), tenuto }),
     hide() { fermo = true; chiudiLettura(); chiudiVoce(); leggi.classList.remove('on'); segni.replaceChildren(); },
     dispose() {

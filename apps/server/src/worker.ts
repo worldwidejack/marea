@@ -438,6 +438,13 @@ export default {
         if (body instanceof Response) return body;
         return sincIndossa(env, p, await lotReq(env, p.id, now, path.endsWith('save') ? 'dungeon_save' : 'dungeon_finish', { inputs: body['inputs'], azioni: body['azioni'], hash: body['hash'] }));
       }
+      if (path === '/api/test/inv' && req.method === 'POST') {
+        const u = new URL(req.url);
+        if (u.hostname !== '127.0.0.1' && u.hostname !== 'localhost') return json({ error: 'Vietato' }, 403);
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'test_inv', body);
+      }
       // Isola dei Templari (docs/TEMPLARI.md): apre la partita a ondate (seed dal DO) e la chiude (il DO rigioca e paga le ondate superate)
       if (path === '/api/templari/start' && req.method === 'POST') {
         const body = await corpo();
