@@ -76,7 +76,7 @@ function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasText
   // attorno alla cripta (§9c) niente bosco: sotto terra è tutto nero
   let bx0 = W, bx1 = -1, bz0 = H, bz1 = -1;
   if (a.cripta) for (let i = 0; i < W * H; i++) if (a.cripta.dentro[i]) { const x = i % W, z = (i - x) / W; bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); bz0 = Math.min(bz0, z); bz1 = Math.max(bz1, z); }
-  const sottoterra = (cx: number, cz: number) => cx >= bx0 - 6 && cx <= bx1 + 6 && cz >= bz0 - 6 && cz <= bz1 + 6;
+  const sottoterra = (cx: number, cz: number) => cx >= bx0 - 6 && cx <= bx1 + 9 && cz >= bz0 - 6 && cz <= bz1 + 6;
   for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
     const i = cz * W + cx, x0 = cx * PX, y0 = cz * PX, hh = (s: number) => cellHash(cx, cz, s);
     const su = a.cell[i] === C.fuori ? SUOLO.niente : a.suolo[i]!;

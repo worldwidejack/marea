@@ -173,16 +173,16 @@ export function createSegreti3d(scene: THREE.Scene, a: Arena): Segreti3d {
   // l'indizio: l'ordine sul muro della taverna (si disegna quando la partita lo dice)
   let indizio: THREE.Mesh | null = null, indizioOra = '';
   if (a.indizio) {
-    const ig = new THREE.PlaneGeometry(1.7, 1.5); disp.push(ig);
+    const ig = new THREE.PlaneGeometry(1.6, 1.95); disp.push(ig);
     indizio = new THREE.Mesh(ig, new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.5 })); disp.push(indizio.material as THREE.Material);
-    indizio.name = 'indizio'; indizio.position.set(a.indizio.wx + a.indizio.nx * 0.52, 1.35, a.indizio.wz + a.indizio.nz * 0.52); indizio.rotation.y = Math.atan2(a.indizio.nx, a.indizio.nz);
+    indizio.name = 'indizio'; indizio.position.set(a.indizio.wx + a.indizio.nx * 0.52, 1.15, a.indizio.wz + a.indizio.nz * 0.52); indizio.rotation.y = Math.atan2(a.indizio.nx, a.indizio.nz);
     indizio.visible = false; root.add(indizio);
   }
   const scriviIndizio = (ordine: string[]) => {
     if (!indizio) return;
-    const t = tex(36, 32, (px) => {
+    const t = tex(26, 32, (px) => {
       // vernice rossa colata: numero romano e simbolo, una riga per campanella
-      ordine.forEach((id, k) => { const y = 1 + k * 8, w = romano(px, k + 1, 7, y, PAL.rosso); simbolo(px, id, Math.max(19, 9 + w + 3), y, PAL.rosso); if ((k * 7) % 3 === 0) px(PAL.rosso, 8, y + 7, 1, 1); });
+      ordine.forEach((id, k) => { const y = 1 + k * 8, w = romano(px, k + 1, 2, y, PAL.rosso); simbolo(px, id, Math.max(15, 2 + w + 3), y, PAL.rosso); if ((k * 7) % 3 === 0) px(PAL.rosso, 3, y + 7, 1, 1); });
     });
     const m = indizio.material as THREE.MeshBasicMaterial; // vernice che si legge anche al buio
     m.map?.dispose(); m.map = t; m.needsUpdate = true; indizio.visible = true;
