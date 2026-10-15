@@ -48,6 +48,16 @@
     { "id": "mobile_tv_basso", "nome": "Mobile TV basso", "categoria": "contenitori", "perle": 45, "posto": "terra", "altezza": 0.5, "colori": ["#C98A4B", "#5A3A1E", "#23201F"] },
     { "id": "libreria_componibile_svedese", "nome": "Libreria componibile svedese", "categoria": "contenitori", "perle": 40, "posto": "terra", "altezza": 1.8, "colori": ["#E8E1D6", "#B9AFA3", "#E8433F"] },
     { "id": "tappeto_rettangolare_a_tinta_unita", "nome": "Tappeto rettangolare a tinta unita", "categoria": "decorazioni", "perle": 30, "posto": "terra", "altezza": 0.05, "colori": ["#E8433F", "#F4E3C1", "#7F7568"] },
-    { "id": "letto_singolo_con_materasso_a_molle", "nome": "Letto singolo con materasso a molle", "categoria": "dormire", "perle": 50, "posto": "terra", "altezza": 0.8, "colori": ["#8E5A2B", "#E8E1D6", "#3FB9C9"] }
+    { "id": "letto_singolo_con_materasso_a_molle", "nome": "Letto singolo con materasso a molle", "categoria": "dormire", "perle": 50, "posto": "terra", "altezza": 0.8, "colori": ["#8E5A2B", "#E8E1D6", "#3FB9C9"] },
+    { "id": "lume_a_olio_mezzo_vuoto", "nome": "Lume a olio mezzo vuoto", "categoria": "luci", "perle": 20, "posto": "terra", "altezza": 0.55, "colori": ["#7F7568", "#23201F", "#F2A33A"] },
+    { "id": "lampada_lava_con_liquido_scolorito", "nome": "Lampada lava con liquido scolorito", "categoria": "luci", "perle": 30, "posto": "terra", "altezza": 0.6, "colori": ["#A64DFF", "#B9AFA3", "#F2A33A"] },
+    { "id": "sfera_di_cristallo_con_neve_e_castello", "nome": "Sfera di cristallo con neve e castello", "categoria": "decorazioni", "perle": 25, "posto": "terra", "altezza": 0.45, "colori": ["#E8E1D6", "#5A3A1E", "#2478A8"] },
+    { "id": "robot_giocattolo_con_occhi_led", "nome": "Robot giocattolo con occhi LED", "categoria": "giochi", "perle": 30, "posto": "terra", "altezza": 0.5, "colori": ["#3FB9C9", "#23201F", "#E8433F"] },
+    { "id": "lampada_a_forma_di_fungo", "nome": "Lampada a forma di fungo", "categoria": "luci", "perle": 20, "posto": "terra", "altezza": 0.45, "colori": ["#E8433F", "#F4E3C1", "#F5D547"] },
+    { "id": "teschio_con_candela_sciolta", "nome": "Teschio con candela sciolta", "categoria": "luci", "perle": 25, "posto": "terra", "altezza": 0.45, "colori": ["#E8E1D6", "#F4E3C1", "#F2A33A"] },
+    { "id": "radiosveglia_rotante", "nome": "Radiosveglia rotante", "categoria": "tecnologia", "perle": 35, "posto": "terra", "altezza": 0.35, "colori": ["#23201F", "#7F7568", "#E8433F"] },
+    { "id": "ventilatore_usb_a_forma_di_cactus", "nome": "Ventilatore USB a forma di cactus", "categoria": "tecnologia", "perle": 25, "posto": "terra", "altezza": 0.45, "colori": ["#8FC35B", "#F2A33A", "#F5D547"] },
+    { "id": "barattolo_di_lucciole_finte", "nome": "Barattolo di lucciole finte", "categoria": "luci", "perle": 25, "posto": "terra", "altezza": 0.4, "colori": ["#3FB9C9", "#7F7568", "#F5D547"] },
+    { "id": "orologio_da_tavolo_a_forma_di_gatto", "nome": "Orologio da tavolo a forma di gatto", "categoria": "decorazioni", "perle": 35, "posto": "terra", "altezza": 0.55, "colori": ["#23201F", "#E8E1D6", "#F5D547"] }
   ]
 }

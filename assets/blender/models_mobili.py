@@ -1011,6 +1011,305 @@ def mob_letto_singolo_con_materasso_a_molle():
     return _obj(m, footprint=[W, D])
 
 
+def mob_lume_a_olio_mezzo_vuoto():
+    """Lume a olio d'ottone e vetro mezzo vuoto: serbatoio trasparente con combustibile a metà, ghiera con stoppino e tubo in vetro rastremato."""
+    m = Mesh('mob_lume_a_olio_mezzo_vuoto')
+    W, D = ingombro((1, 1))
+    # Base circolare in metallo sagomata
+    m.prism(8, 0.20, 0.17, 0.0, 0.04, 'metallo', top='metallo')
+    m.prism(8, 0.17, 0.13, 0.04, 0.08, 'metallo', top='metallo')
+    m.prism(8, 0.13, 0.14, 0.08, 0.12, 'metallo', top='metallo')
+    # Manico ad ansa in metallo sul lato (+X) per sollevarlo
+    beam(m, (0.13, 0.08, 0.0), (0.24, 0.08, 0.0), 0.03, 0.03, 'metallo')
+    beam(m, (0.24, 0.08, 0.0), (0.24, 0.24, 0.0), 0.03, 0.03, 'metallo')
+    beam(m, (0.24, 0.24, 0.0), (0.14, 0.24, 0.0), 0.03, 0.03, 'metallo', end='metallo')
+    # Serbatoio in vetro trasparente
+    m.prism(8, 0.18, 0.18, 0.12, 0.26, 'vetro', top='metallo')
+    # DETTAGLIO: livello del liquido a metà del serbatoio («mezzo vuoto»)
+    m.prism(8, 0.165, 0.165, 0.125, 0.19, 'p_arancio', top='p_arancio')
+    # Ghiera porta-stoppino d'ottone con rotellina laterale
+    m.prism(8, 0.11, 0.09, 0.26, 0.31, 'oro', top='oro')
+    m.box(0.09, 0.27, -0.02, 0.14, 0.29, 0.02, 'oro', top='oro')
+    # Stoppino annerito con fiammella
+    beam(m, (0.0, 0.31, 0.0), (0.0, 0.34, 0.0), 0.02, 0.02, 'p_nero_caldo')
+    m.cone(6, 0.025, 0.33, 0.38, 'em_fuoco')
+    # Tubo/camino in vetro trasparente svasato e rastremato in alto
+    m.prism(8, 0.09, 0.12, 0.31, 0.40, 'vetro')
+    m.prism(8, 0.12, 0.07, 0.40, 0.52, 'vetro')
+    m.prism(8, 0.07, 0.08, 0.52, 0.55, 'vetro', top='p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_lampada_lava_con_liquido_scolorito():
+    """Lampada lava vintage con fusto conico in metallo, ampolla di liquido violaceo scolorito e bolle di cera ambrata a mezz'aria."""
+    m = Mesh('mob_lampada_lava_con_liquido_scolorito')
+    W, D = ingombro((1, 1))
+    # Base svasata in metallo
+    m.prism(8, 0.18, 0.13, 0.0, 0.16, 'metallo', top='metallo')
+    # Ampolla in vetro con liquido violaceo sbiadito
+    m.prism(8, 0.13, 0.15, 0.16, 0.34, 'p_viola', top='p_viola')
+    m.prism(8, 0.15, 0.10, 0.34, 0.50, 'p_viola', top='p_viola')
+    # Coperchio a cono superiore in metallo
+    m.prism(8, 0.105, 0.05, 0.50, 0.60, 'metallo', top='metallo')
+    # DETTAGLIO: bolle di cera ambrate e lentissime («le bolle salgono lentissime»)
+    m.prism(6, 0.10, 0.08, 0.16, 0.22, 'p_arancio', top='p_arancio', cz=0.01)
+    m.prism(6, 0.05, 0.055, 0.28, 0.35, 'em_neon_ambra', top='em_neon_ambra', cx=-0.03, cz=-0.02)
+    m.cone(6, 0.045, 0.41, 0.48, 'em_neon_ambra', cx=0.02, cz=0.01)
+    # Filo nero con interruttore a navicella sul retro a terra
+    beam(m, (0.0, 0.02, 0.12), (0.08, 0.0, 0.24), 0.015, 0.015, 'p_nero_caldo')
+    m.box(0.06, 0.0, 0.24, 0.10, 0.025, 0.30, 'p_nero_caldo', top='p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_sfera_di_cristallo_con_neve_e_castello():
+    """Sfera di cristallo con neve: basamento in legno tornito, cupola di vetro e castello fantasy con torrette coniche blu e neve."""
+    m = Mesh('mob_sfera_di_cristallo_con_neve_e_castello')
+    W, D = ingombro((1, 1))
+    # Piedistallo circolare in legno scuro a gradini
+    m.prism(8, 0.23, 0.21, 0.0, 0.05, 'p_legno_scuro', top='p_legno_scuro')
+    m.prism(8, 0.21, 0.19, 0.05, 0.10, 'p_legno_scuro', top='p_legno_scuro')
+    # Targhetta dorata sul davanti (−Z)
+    m.box(-0.06, 0.02, -0.215, 0.06, 0.07, -0.205, 'oro')
+    # Strato di neve interna sul fondo
+    m.prism(8, 0.17, 0.17, 0.10, 0.13, 'p_pietra_chiara', top='p_pietra_chiara')
+    # DETTAGLIO: castello in miniatura al centro con tetti blu e fiocchi di neve
+    m.cbox(0.0, 0.0, 0.10, 0.08, 0.13, 0.23, 'p_pietra', top='p_pietra')
+    m.box(-0.02, 0.13, -0.045, 0.02, 0.18, -0.038, 'p_nero_caldo')
+    # Torretta sinistra
+    m.prism(6, 0.03, 0.03, 0.13, 0.25, 'p_pietra', cx=-0.06, cz=0.0)
+    m.cone(6, 0.04, 0.25, 0.31, 'p_acqua_profonda', cx=-0.06, cz=0.0)
+    # Torretta destra
+    m.prism(6, 0.03, 0.03, 0.13, 0.25, 'p_pietra', cx=0.06, cz=0.0)
+    m.cone(6, 0.04, 0.25, 0.31, 'p_acqua_profonda', cx=0.06, cz=0.0)
+    # Maschio centrale più alto con tetto a cono
+    m.prism(6, 0.04, 0.04, 0.23, 0.30, 'p_pietra', cx=0.0, cz=0.0)
+    m.cone(6, 0.05, 0.30, 0.37, 'p_acqua_profonda', cx=0.0, cz=0.0)
+    # Neve in cima al tetto centrale e fiocchi sparsi
+    m.cone(6, 0.025, 0.35, 0.38, 'p_pietra_chiara', cx=0.0, cz=0.0)
+    m.cbox(-0.08, -0.06, 0.02, 0.02, 0.19, 0.21, 'p_pietra_chiara', top='p_pietra_chiara')
+    m.cbox(0.07, 0.05, 0.02, 0.02, 0.22, 0.24, 'p_pietra_chiara', top='p_pietra_chiara')
+    m.cbox(-0.04, 0.07, 0.015, 0.015, 0.28, 0.295, 'p_pietra_chiara', top='p_pietra_chiara')
+    # Cupola in vetro sfaccettata
+    m.prism(8, 0.18, 0.21, 0.10, 0.22, 'vetro')
+    m.prism(8, 0.21, 0.19, 0.22, 0.34, 'vetro')
+    m.prism(8, 0.19, 0.11, 0.34, 0.43, 'vetro', top='vetro')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_robot_giocattolo_con_occhi_led():
+    """Robot giocattolo di latta vintage azzurra con occhi LED rossi luminosi, chiavetta di carica a farfalla e antenna a molla."""
+    m = Mesh('mob_robot_giocattolo_con_occhi_led')
+    W, D = ingombro((1, 1))
+    # Piedoni di latta azzurra a terra
+    m.cbox(-0.09, 0.0, 0.08, 0.14, 0.0, 0.05, 'p_acqua', top='p_acqua')
+    m.cbox(0.09, 0.0, 0.08, 0.14, 0.0, 0.05, 'p_acqua', top='p_acqua')
+    # Gambe a fisarmonica in metallo
+    m.cbox(-0.09, 0.0, 0.05, 0.05, 0.05, 0.14, 'ferro')
+    m.cbox(0.09, 0.0, 0.05, 0.05, 0.05, 0.14, 'ferro')
+    # Tronco squadrato di latta azzurra con pannello strumenti sul petto (−Z)
+    m.cbox(0.0, 0.0, 0.24, 0.16, 0.14, 0.32, 'p_acqua', top='p_acqua')
+    m.box(-0.08, 0.18, -0.085, 0.08, 0.28, -0.078, 'p_pietra_chiara')
+    m.box(-0.05, 0.22, -0.09, -0.02, 0.25, -0.082, 'p_rosso')
+    m.box(0.01, 0.22, -0.09, 0.05, 0.25, -0.082, 'p_giallo')
+    # Braccia snodate con pinze
+    m.box(-0.16, 0.20, -0.03, -0.12, 0.30, 0.03, 'ferro')
+    m.box(-0.17, 0.15, -0.04, -0.12, 0.20, 0.02, 'p_giallo')
+    m.box(0.12, 0.20, -0.03, 0.16, 0.30, 0.03, 'ferro')
+    m.box(0.12, 0.15, -0.04, 0.17, 0.20, 0.02, 'p_giallo')
+    # DETTAGLIO: chiavetta di ricarica dorata a farfalla sul fianco destro (+X)
+    m.box(0.12, 0.22, -0.015, 0.18, 0.24, 0.015, 'oro')
+    m.box(0.18, 0.19, -0.04, 0.19, 0.27, 0.04, 'oro', top='oro')
+    # Collo
+    m.prism(6, 0.04, 0.04, 0.32, 0.35, 'ferro')
+    # Testa cubica di latta con fessura per la bocca
+    m.cbox(0.0, 0.0, 0.18, 0.15, 0.35, 0.48, 'p_acqua', top='p_acqua')
+    m.box(-0.05, 0.37, -0.078, 0.05, 0.39, -0.073, 'p_nero_caldo')
+    # DETTAGLIO: due occhi LED rossi accesi che ti fissano («occhi LED inquietanti»)
+    m.box(-0.07, 0.41, -0.085, -0.02, 0.46, -0.074, 'em_neon_rosso', top='em_neon_rosso')
+    m.box(0.02, 0.41, -0.085, 0.07, 0.46, -0.074, 'em_neon_rosso', top='em_neon_rosso')
+    # Orecchie a vite e antenna con bulbo giallo
+    m.box(-0.11, 0.40, -0.02, -0.09, 0.43, 0.02, 'ferro')
+    m.box(0.09, 0.40, -0.02, 0.11, 0.43, 0.02, 'ferro')
+    beam(m, (0.0, 0.48, 0.0), (0.0, 0.54, 0.0), 0.015, 0.015, 'ferro')
+    m.prism(6, 0.025, 0.025, 0.54, 0.58, 'p_giallo', top='p_giallo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_lampada_a_forma_di_fungo():
+    """Lampada a forma di fungo con cappello a cupola rosso acceso, grandi pois gialli e stelo avorio con interruttore a levetta."""
+    m = Mesh('mob_lampada_a_forma_di_fungo')
+    W, D = ingombro((1, 1))
+    # Base d'appoggio svasata in plastica avorio
+    m.prism(8, 0.16, 0.14, 0.0, 0.03, 'p_sabbia_chiara', top='p_sabbia_chiara')
+    # Stelo del fungo rastremato al centro e svasato in alto
+    m.prism(8, 0.10, 0.075, 0.03, 0.18, 'p_sabbia_chiara')
+    m.prism(8, 0.075, 0.13, 0.18, 0.25, 'p_sabbia_chiara')
+    # DETTAGLIO: levetta metallica dell'interruttore sul basamento davanti (−Z)
+    beam(m, (0.0, 0.03, -0.11), (0.0, 0.06, -0.13), 0.01, 0.01, 'metallo')
+    m.prism(6, 0.015, 0.015, 0.06, 0.075, 'p_rosso', top='p_rosso', cz=-0.13)
+    # Parte inferiore della cappella: diffusore luminoso («fa luce»)
+    m.prism(8, 0.13, 0.28, 0.23, 0.27, 'em_neon_ambra', bottom='em_neon_ambra')
+    # Cappella a fungo bombata in rosso acceso
+    m.prism(8, 0.28, 0.26, 0.27, 0.34, 'p_rosso')
+    m.prism(8, 0.26, 0.18, 0.34, 0.40, 'p_rosso')
+    m.prism(8, 0.18, 0.08, 0.40, 0.44, 'p_rosso', top='p_rosso')
+    # DETTAGLIO: 5 pois gialli a contrasto sulle falde della cappella
+    m.box(-0.035, 0.31, -0.275, 0.035, 0.37, -0.265, 'p_giallo')
+    m.box(-0.275, 0.31, -0.035, -0.265, 0.37, 0.035, 'p_giallo')
+    m.box(0.265, 0.31, -0.035, 0.275, 0.37, 0.035, 'p_giallo')
+    m.box(-0.035, 0.31, 0.265, 0.035, 0.37, 0.275, 'p_giallo')
+    m.cbox(0.04, -0.04, 0.07, 0.07, 0.44, 0.445, 'p_giallo', top='p_giallo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_teschio_con_candela_sciolta():
+    """Teschio gotico in pietra chiara da scrivania, con candela in cera sciolta accesa in cima e colature dense lungo le orbite."""
+    m = Mesh('mob_teschio_con_candela_sciolta')
+    W, D = ingombro((1, 1))
+    # Mandibola inferiore d'appoggio
+    m.cbox(0.0, -0.01, 0.15, 0.14, 0.0, 0.05, 'p_pietra_chiara', top='p_pietra_chiara')
+    # Denti anteriori con fessura orizzontale
+    m.box(-0.05, 0.04, -0.09, 0.05, 0.08, -0.075, 'p_pietra_chiara')
+    m.box(-0.04, 0.055, -0.092, 0.04, 0.065, -0.088, 'p_nero_caldo')
+    # Zigomi e arcata mascellare
+    m.cbox(0.0, 0.0, 0.18, 0.16, 0.06, 0.13, 'p_pietra_chiara', top='p_pietra_chiara')
+    # Cavità nasale e orbite oculari nere sul davanti (−Z)
+    m.box(-0.015, 0.09, -0.088, 0.015, 0.12, -0.082, 'p_nero_caldo')
+    m.box(-0.07, 0.13, -0.092, -0.02, 0.19, -0.082, 'p_nero_caldo')
+    m.box(0.02, 0.13, -0.092, 0.07, 0.19, -0.082, 'p_nero_caldo')
+    # Scatola cranica
+    m.cbox(0.0, 0.02, 0.20, 0.20, 0.12, 0.23, 'p_pietra_chiara', top='p_pietra_chiara')
+    m.prism(8, 0.10, 0.07, 0.23, 0.27, 'p_pietra_chiara', top='p_pietra_chiara', cz=0.02)
+    # Candela piantata sulla sommità del cranio
+    m.prism(6, 0.035, 0.03, 0.27, 0.40, 'p_sabbia_chiara', top='p_sabbia_chiara', cz=0.02)
+    beam(m, (0.0, 0.40, 0.02), (0.0, 0.43, 0.02), 0.01, 0.01, 'p_nero_caldo')
+    m.cone(6, 0.02, 0.42, 0.48, 'em_fuoco', cx=0.0, cz=0.02)
+    # DETTAGLIO: colature perenni di cera sciolta che scendono dal cranio («la cera cola perennemente»)
+    m.box(-0.02, 0.19, -0.086, 0.02, 0.27, -0.078, 'p_sabbia_chiara')
+    m.box(-0.09, 0.08, -0.02, -0.078, 0.25, 0.02, 'p_sabbia_chiara')
+    m.cbox(-0.09, 0.0, 0.04, 0.04, 0.0, 0.03, 'p_sabbia_chiara', top='p_sabbia_chiara')
+    m.box(0.078, 0.10, -0.01, 0.088, 0.24, 0.03, 'p_sabbia_chiara')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_radiosveglia_rotante():
+    """Radiosveglia da comodino con display LED frontale, tasto snooze e proiettore laser rotante inclinato verso l'alto."""
+    m = Mesh('mob_radiosveglia_rotante')
+    W, D = ingombro((1, 1))
+    # Scocca principale nera compatta
+    m.cbox(0.0, 0.0, 0.30, 0.20, 0.0, 0.12, 'p_nero_caldo', top='p_nero_caldo')
+    # Gommini d'appoggio ai quattro angoli
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            m.cbox(sx * 0.12, sz * 0.07, 0.03, 0.03, 0.0, 0.01, 'p_pietra_scura')
+    # Display digitale sul frontale (−Z) con cornice nera e numeri rossi
+    m.box(-0.12, 0.025, -0.104, 0.04, 0.095, -0.10, 'p_nero_caldo')
+    m.box(-0.10, 0.04, -0.106, -0.07, 0.08, -0.103, 'em_neon_rosso')
+    m.box(-0.05, 0.04, -0.106, -0.02, 0.08, -0.103, 'em_neon_rosso')
+    m.box(-0.01, 0.05, -0.106, -0.005, 0.07, -0.103, 'em_neon_rosso')
+    m.box(0.005, 0.04, -0.106, 0.035, 0.08, -0.103, 'em_neon_rosso')
+    # Tasto grande SNOOZE sulla plancia superiore
+    m.cbox(-0.04, -0.03, 0.10, 0.04, 0.12, 0.135, 'p_pietra_scura', top='p_pietra_scura')
+    # Fessure altoparlante radio sul retro della plancia
+    for sz in (0.03, 0.06):
+        m.cbox(-0.04, sz, 0.08, 0.015, 0.12, 0.125, 'p_pietra_scura')
+    # DETTAGLIO: torretta cilindrica del proiettore rotante orientata verso il soffitto («proietta l'ora sul soffitto»)
+    m.cbox(0.09, 0.0, 0.07, 0.08, 0.12, 0.16, 'p_nero_caldo')
+    m.prism(8, 0.04, 0.04, 0.15, 0.25, 'p_pietra_scura', top='p_pietra_scura', cx=0.09, cz=0.0)
+    m.prism(8, 0.032, 0.032, 0.25, 0.27, 'em_neon_rosso', top='em_neon_rosso', cx=0.09, cz=0.0)
+    return _obj(m, footprint=[W, D])
+
+
+def mob_ventilatore_usb_a_forma_di_cactus():
+    """Ventilatore USB a forma di cactus: vasetto di terracotta, corpo spinoso verde con pale gialle incastonate al centro e cavo USB."""
+    m = Mesh('mob_ventilatore_usb_a_forma_di_cactus')
+    W, D = ingombro((1, 1))
+    # Vasetto di terracotta svasato
+    m.prism(8, 0.13, 0.17, 0.0, 0.14, 'p_arancio', bottom='p_arancio')
+    m.prism(8, 0.18, 0.18, 0.14, 0.17, 'p_arancio', top='p_legno_scuro')
+    # Fusto del cactus verde a prismi
+    m.prism(8, 0.07, 0.07, 0.17, 0.38, 'p_erba', top='p_erba')
+    # Braccio sinistro del cactus (−X)
+    beam(m, (-0.05, 0.24, 0.0), (-0.13, 0.24, 0.0), 0.04, 0.04, 'p_erba')
+    beam(m, (-0.13, 0.24, 0.0), (-0.13, 0.33, 0.0), 0.04, 0.04, 'p_erba', end='p_erba')
+    # Braccio destro del cactus (+X)
+    beam(m, (0.05, 0.28, 0.0), (0.12, 0.28, 0.0), 0.04, 0.04, 'p_erba')
+    beam(m, (0.12, 0.28, 0.0), (0.12, 0.35, 0.0), 0.04, 0.04, 'p_erba', end='p_erba')
+    # Fiorellino decorativo rosso e giallo in cima
+    m.prism(6, 0.025, 0.035, 0.38, 0.41, 'p_rosso', top='p_giallo')
+    # DETTAGLIO: gabbietta rotonda con le pale del ventilatore sul davanti (−Z)
+    m.prism(8, 0.075, 0.075, 0.22, 0.32, 'p_pietra_chiara', cz=-0.04)
+    m.prism(6, 0.02, 0.02, 0.25, 0.29, 'p_nero_caldo', top='p_nero_caldo', cz=-0.045)
+    # Pale della ventola a stella gialla
+    m.box(-0.05, 0.26, -0.05, -0.015, 0.28, -0.042, 'p_giallo')
+    m.box(0.015, 0.26, -0.05, 0.05, 0.28, -0.042, 'p_giallo')
+    m.box(-0.01, 0.285, -0.05, 0.01, 0.315, -0.042, 'p_giallo')
+    m.box(-0.01, 0.225, -0.05, 0.01, 0.255, -0.042, 'p_giallo')
+    # DETTAGLIO: cavo USB che esce dal retro del vasetto con spinotto a terra
+    beam(m, (0.0, 0.08, 0.14), (0.06, 0.0, 0.22), 0.012, 0.012, 'p_nero_caldo')
+    m.box(0.04, 0.0, 0.22, 0.08, 0.018, 0.27, 'metallo', top='metallo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_barattolo_di_lucciole_finte():
+    """Barattolo di vetro con coperchio metallico forato, cordino di iuta e lucine LED che brillano come lucciole all'interno."""
+    m = Mesh('mob_barattolo_di_lucciole_finte')
+    W, D = ingombro((1, 1))
+    # Fondo e pareti cilindriche del barattolo in vetro
+    m.prism(8, 0.15, 0.17, 0.0, 0.03, 'vetro', bottom='vetro')
+    m.prism(8, 0.17, 0.17, 0.03, 0.24, 'vetro')
+    m.prism(8, 0.17, 0.12, 0.24, 0.28, 'vetro')
+    # Coperchio a vite in latta zigrinata con fori di sfiato
+    m.prism(8, 0.13, 0.13, 0.28, 0.32, 'p_pietra_scura', top='p_pietra_scura')
+    # DETTAGLIO: cordino di iuta attorno al collo con cartellino in carta
+    m.prism(8, 0.135, 0.135, 0.26, 0.28, 'corda')
+    m.box(0.09, 0.17, -0.08, 0.14, 0.25, -0.075, 'carta')
+    # DETTAGLIO: filo di rame con 5 LED luminosi sospesi all'interno («non sono lucciole, sono LED»)
+    beam(m, (0.0, 0.03, 0.0), (-0.05, 0.10, 0.03), 0.008, 0.008, 'oro')
+    beam(m, (-0.05, 0.10, 0.03), (0.04, 0.15, -0.02), 0.008, 0.008, 'oro')
+    beam(m, (0.04, 0.15, -0.02), (-0.02, 0.21, 0.02), 0.008, 0.008, 'oro')
+    # Micro cubetti LED emissivi ambra e verde lime
+    m.cbox(-0.05, 0.03, 0.025, 0.025, 0.09, 0.115, 'em_neon_ambra', top='em_neon_ambra')
+    m.cbox(0.04, -0.02, 0.025, 0.025, 0.14, 0.165, 'em_neon_verde', top='em_neon_verde')
+    m.cbox(-0.02, 0.02, 0.025, 0.025, 0.20, 0.225, 'em_neon_ambra', top='em_neon_ambra')
+    m.cbox(0.05, 0.04, 0.025, 0.025, 0.06, 0.085, 'em_neon_ambra', top='em_neon_ambra')
+    m.cbox(-0.04, -0.04, 0.025, 0.025, 0.16, 0.185, 'em_neon_verde', top='em_neon_verde')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_orologio_da_tavolo_a_forma_di_gatto():
+    """Orologio stile Kit-Cat Klock nero con papillon, quadrante sul pancino, occhi gialli mobili e coda a pendolo laterale."""
+    m = Mesh('mob_orologio_da_tavolo_a_forma_di_gatto')
+    W, D = ingombro((1, 1))
+    # Piedistallo ovale nero d'appoggio a terra
+    m.prism(8, 0.15, 0.13, 0.0, 0.03, 'p_nero_caldo', top='p_nero_caldo')
+    # Corpo affusolato nero del gatto
+    m.cbox(0.0, 0.0, 0.18, 0.14, 0.03, 0.28, 'p_nero_caldo', top='p_nero_caldo')
+    # Quadrante orologio rotondo sul pancino (−Z) con lancette nere
+    m.prism(8, 0.07, 0.07, 0.09, 0.21, 'p_pietra_chiara', top='p_pietra_chiara', cz=-0.07)
+    m.box(-0.004, 0.15, -0.078, 0.025, 0.16, -0.072, 'p_nero_caldo')
+    m.box(-0.004, 0.15, -0.078, 0.004, 0.195, -0.072, 'p_nero_caldo')
+    # Papillon bianco ed elegante con nodo rosso sotto al mento
+    m.box(-0.06, 0.25, -0.08, -0.01, 0.29, -0.068, 'p_pietra_chiara')
+    m.box(0.01, 0.25, -0.08, 0.06, 0.29, -0.068, 'p_pietra_chiara')
+    m.box(-0.015, 0.26, -0.085, 0.015, 0.28, -0.068, 'p_rosso')
+    # Testa rotonda con orecchie a punta
+    m.prism(8, 0.11, 0.11, 0.29, 0.44, 'p_nero_caldo', top='p_nero_caldo')
+    m.cone(4, 0.035, 0.44, 0.50, 'p_nero_caldo', cx=-0.07, cz=0.0)
+    m.cone(4, 0.035, 0.44, 0.50, 'p_nero_caldo', cx=0.07, cz=0.0)
+    # Nasino e baffi
+    m.box(-0.012, 0.35, -0.115, 0.012, 0.365, -0.108, 'p_rosso')
+    # DETTAGLIO: grandi occhi gialli che ti seguono («gli occhi ti seguono»)
+    m.box(-0.07, 0.38, -0.112, -0.02, 0.42, -0.108, 'p_giallo')
+    m.box(-0.05, 0.39, -0.115, -0.03, 0.41, -0.111, 'p_nero_caldo')
+    m.box(0.02, 0.38, -0.112, 0.07, 0.42, -0.108, 'p_giallo')
+    m.box(0.04, 0.39, -0.115, 0.06, 0.41, -0.111, 'p_nero_caldo')
+    # DETTAGLIO: coda a pendolo inclinata di lato come se oscillasse («la coda si muove a ogni secondo»)
+    beam(m, (0.0, 0.06, 0.06), (-0.10, 0.01, 0.06), 0.025, 0.025, 'p_nero_caldo')
+    beam(m, (-0.10, 0.01, 0.06), (-0.14, 0.08, 0.06), 0.025, 0.025, 'p_nero_caldo', end='p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
 MODELS = {
     f.__name__: f
     for f in (
@@ -1047,5 +1346,15 @@ MODELS = {
         mob_libreria_componibile_svedese,
         mob_tappeto_rettangolare_a_tinta_unita,
         mob_letto_singolo_con_materasso_a_molle,
+        mob_lume_a_olio_mezzo_vuoto,
+        mob_lampada_lava_con_liquido_scolorito,
+        mob_sfera_di_cristallo_con_neve_e_castello,
+        mob_robot_giocattolo_con_occhi_led,
+        mob_lampada_a_forma_di_fungo,
+        mob_teschio_con_candela_sciolta,
+        mob_radiosveglia_rotante,
+        mob_ventilatore_usb_a_forma_di_cactus,
+        mob_barattolo_di_lucciole_finte,
+        mob_orologio_da_tavolo_a_forma_di_gatto,
     )
 }
