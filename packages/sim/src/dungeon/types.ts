@@ -79,7 +79,7 @@ export type DungeonEvent = (
   | { t: 'raffica' }
   | { t: 'raggio'; x: number; z: number }
   /** Colpo parato: dagli anelli dell'Astrolabio (senza `perche`), dallo scafandro del Golem-Palombaro, dalla fornace del Mastro acceso. */
-  | { t: 'parato'; x: number; z: number; perche?: 'scafandro' | 'fornace' | 'scudo' | 'cuore' }
+  | { t: 'parato'; x: number; z: number; perche?: 'scafandro' | 'fornace' | 'scudo' | 'cuore' | 'catene' }
   | { t: 'anelli' }
   /** Fucina: prendi fuoco · una cascata ti spegne · il Mastro Forgiatore spento da una cascata (prende danni) · si riaccende · parte la
    *  sua carica · una palla di magma che cade. */
@@ -118,6 +118,16 @@ export type DungeonEvent = (
   /** Una bomba è atterrata e scoppia (raggio in m, elemento). */
   | { t: 'scoppio'; x: number; z: number; r: number; el?: 'fuoco' | 'elettricita' }
   | { t: 'caricaMassima' }
+  /** Diga dei Disertori: i rottami acuminati ti tagliano · un pilone fracassato dalla carica del Capitano · il Fuciliere spara · una
+   *  cannonata della salva cade · la lancia del Capitano resta incastrata nelle assi. Vento in Poppa: una carica di Brezza in più (`n`
+   *  pronte) · l'onda d'urto marina del caricato. */
+  | { t: 'rottami'; x: number; z: number }
+  | { t: 'pilone'; x: number; z: number }
+  | { t: 'sparo'; x: number; z: number }
+  | { t: 'cannonata'; x: number; z: number }
+  | { t: 'incastrato' }
+  | { t: 'brezza'; n: number }
+  | { t: 'poppa'; x: number; z: number }
 ) & { eroe?: number };
 
 export type DungeonView = {
@@ -154,7 +164,7 @@ export type DungeonView = {
     /** Mausoleo, gli unici addosso: carica della Barriera Cinetica (0..1, 1 = pronta); il contatore dell'arma (pressione del Fendiflutti,
      *  ritmo della Grande Lancetta con `tic` = secondi al prossimo tic, colpi dell'Arco Carillon). */
     barriera?: number;
-    carico?: { tipo: 'pressione' | 'ritmo' | 'molla'; n: number; max: number; tic?: number };
+    carico?: { tipo: 'pressione' | 'ritmo' | 'molla' | 'brezza'; n: number; max: number; tic?: number };
   };
   nemici: { id: number; tipo: string; model: string; x: number; z: number; fx: number; fz: number; anim: EnemyAnim; t: number; vita: number; max: number; alleato: boolean; sanguina: boolean; boss: boolean;
     /** Capo del dungeon (ucciso lui, il dungeon è completato): il client gli mette la corona sopra. */
@@ -169,13 +179,20 @@ export type DungeonView = {
      *  corso e, per il raggio, il punto dove arriva (linea d'avviso in `prepara`, raggio in `colpisce`). */
     alto?: boolean; grata?: boolean; molla?: boolean; schermo?: boolean;
     /** Fucina, il Mastro Forgiatore: attacco in corso (per la carica `mira` = dove arriva, solo durante l'avviso) e spento dalla cascata. */
-    attacco?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio'; mira?: [number, number]; spento?: boolean;
+    attacco?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio'
+      | 'affondo' | 'spazzata' | 'salva' | 'incastrato' | 'detriti' | 'sbilanciato' | 'fucile' | 'schiacciata'; mira?: [number, number]; spento?: boolean;
     /** Mausoleo: potenziato da un Chierico, scudo sfondato (Sentinella), stordito dal Rintocco; il Custode: fase (0 acqua, 1 vapore, 2 moto)
      *  e, nella terza, colpi presi verso la scarica (`cariche` su `colpi`). `mira`: per la cura chi ripara, per lo scatto dove ricompare. */
     potenziato?: boolean; rotto?: boolean; stordito?: boolean; fase?: number; cariche?: number; colpi?: number;
     /** Il Custode che prepara l'ondata: i suoi varchi (versori), per disegnarli prima che parta. */
-    varchi?: [number, number][] }[];
-  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica'; x: number; y: number; z: number; vx: number; vz: number;
+    varchi?: [number, number][];
+    /** Diga: la corsia del colpo dritto che sta preparando (la schiacciata della Guardia, l'affondo e la carica del Capitano): dal nemico fino
+     *  a (x, z), larga `largo` m per lato. Il Fuciliere: la linea di mira (`mira`) è bloccata (`fisso`, gialla). Il Capitano: lo scudo
+     *  della salva davanti (`scudo`); la fase sta in `fase` (0 la Guardia del Passo, 1 l'Ultima Marea). */
+    corsia?: [number, number, number]; fisso?: boolean; scudo?: boolean;
+    /** Diga, la Guardia della Paratia: ha perso il portello (`rotto` resta solo mentre barcolla). */
+    senza?: boolean }[];
+  proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica' | 'palla_nemica'; x: number; y: number; z: number; vx: number; vz: number;
     /** Grandi Magie: la magia è più grande di questo fattore (assente = 1). */
     mole?: number;
     /** Magie: elemento; bomba: dove atterra (x, z) e raggio dello scoppio in m (il client disegna il cerchio a terra). */
@@ -193,7 +210,7 @@ export type DungeonView = {
   acque: { n: number; livello: number }[];
   valvole: { x: number; z: number; n: number; aperta: boolean }[];
   vicinoValvola: boolean;
-  geyser: { id: number; x: number; z: number; r: number; getto: boolean; t: number; bomba?: boolean; magma?: boolean }[];
+  geyser: { id: number; x: number; z: number; r: number; getto: boolean; t: number; bomba?: boolean; magma?: boolean; cannone?: boolean }[];
   /** Archivio (negli altri dungeon liste vuote): correnti d'aria (direzione, stato e fase 0..1 nello stato), timoni (fermi o no), A qui
    *  ferma una corrente. */
   venti: { n: number; dx: number; dz: number; stato: 'calma' | 'avviso' | 'soffia' | 'ferma'; t: number }[];
@@ -209,6 +226,8 @@ export type DungeonView = {
   lancette: { n: number; x: number; z: number; dx: number; dz: number; lunga: number; largo: number; giro: number }[];
   onde: { id: number; x: number; z: number; r: number; max: number; spessore: number; varchi: [number, number][]; barriera: boolean }[];
   sarcofago?: { x: number; z: number; aperto: boolean };
+  /** Diga dei Disertori (negli altri dungeon lista vuota): i piloni dell'arena, interi o fracassati dalla carica del Capitano. */
+  piloni: { x: number; z: number; rotto: boolean }[];
   /** Bottino e monete al sicuro all'ultimo altare (null = nessun altare toccato). */
   salvato: { bottino: Record<string, number>; monete: number } | null;
   zaino: { peso: number; max: number; monete: number; bottino: Record<string, number> };

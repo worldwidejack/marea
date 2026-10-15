@@ -1,8 +1,9 @@
 // Segnaposto degli ingressi dei dungeon (game/ingressi.ts) quando manca il modello prop_ingresso_<stile> nel manifest: arco di pietra,
 // per l'Impianto di Drenaggio un casotto di lamiera, per l'Archivio Navigazionale un osservatorio con la cupola d'ottone e la banderuola,
 // per la Fucina a Pressione un altoforno di mattoni con la bocca accesa e il camino, per il Mausoleo Cinetico un tempietto di marmo bianco
-// con la cupola, l'orologio sopra la porta e i canali d'acqua (una o due draw call ciascuno). Porta sigillata (Epopea della
-// Regata): sbarre incrociate e sigillo rosso davanti alla bocca. Bundle iniziale: piccolo.
+// con la cupola, l'orologio sopra la porta e i canali d'acqua, per la Diga dei Disertori la prua del galeone incastrata tra le rocce nere
+// (una o due draw call ciascuno). Porta sigillata (Epopea della Regata, la Diga): sbarre incrociate e sigillo rosso davanti alla bocca.
+// Bundle iniziale: piccolo.
 import * as THREE from 'three';
 import { PAL } from '../ui/style.ts';
 import { M, merged, painted } from '../render/island_parts.ts';
@@ -13,6 +14,7 @@ export function placeholder(stile?: string): THREE.Object3D {
   if (stile === 'archivio') return osservatorio();
   if (stile === 'fucina') return altoforno();
   if (stile === 'mausoleo') return tempietto();
+  if (stile === 'diga') return prua();
   const g = new THREE.Group(), stone = new THREE.MeshLambertMaterial({ color: '#4A4340', flatShading: true }), dark = new THREE.MeshLambertMaterial({ color: '#23201F' });
   for (const sx of [-1.3, 1.3]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.6, 1.2), stone); p.position.set(sx, 1.3, 0); g.add(p); }
   const top = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.7, 1.2), stone); top.position.y = 2.9; g.add(top);
@@ -110,6 +112,39 @@ function tempietto(): THREE.Object3D {
   return g;
 }
 
+/** La Diga dei Disertori, finché manca prop_ingresso_diga: la prua della «Stella del Mattino» incastrata di traverso tra due pareti di roccia
+ *  nera nella Gola del Dente; lo squarcio nello scafo è la bocca (verso −Z), sopra il bompresso spezzato e la polena senza volto che stringe
+ *  una culla; sotto la polena dondola la lanterna azzurra (come la ricetta Blender). */
+function prua(): THREE.Object3D {
+  const parti: THREE.BufferGeometry[] = [
+    painted(new THREE.BoxGeometry(1.2, 3.6, 2.6), PAL.roccia, M(-2.5, 1.8, 0.4, 0, 0.2, 0.06)), painted(new THREE.BoxGeometry(1.0, 2.6, 1.6), PAL.neroCaldo, M(-2.9, 3.2, 0.8, 0.1, 0, 0.15)), // la roccia a sinistra
+    painted(new THREE.BoxGeometry(1.3, 4.2, 2.4), PAL.neroCaldo, M(2.5, 2.1, 0.5, 0, -0.15, -0.05)), painted(new THREE.BoxGeometry(0.9, 2.0, 1.4), PAL.roccia, M(2.8, 4.3, 0.7, -0.1, 0, -0.12)), // e a destra
+  ];
+  // lo scafo: la prua che sale di traverso, fasciame scuro a strisce
+  const scafo = [
+    painted(new THREE.BoxGeometry(3.4, 1.0, 2.6), PAL.legnoScuro, M(0, 0.5, 0.5)), painted(new THREE.BoxGeometry(3.0, 1.0, 2.4), PAL.legno, M(0, 1.5, 0.45)),
+    painted(new THREE.BoxGeometry(2.5, 1.0, 2.1), PAL.legnoScuro, M(0, 2.5, 0.4)), painted(new THREE.BoxGeometry(1.8, 0.7, 1.7), PAL.legno, M(0, 3.35, 0.35)),
+    painted(new THREE.BoxGeometry(3.5, 0.12, 2.7), PAL.neroCaldo, M(0, 1.0, 0.5)), painted(new THREE.BoxGeometry(2.6, 0.12, 2.2), PAL.neroCaldo, M(0, 3.0, 0.4)), // catrame tra le tavole
+  ];
+  const sg = merged(scafo); sg.applyMatrix4(M(0, 0, 0, 0, 0.35, 0.05)); // di traverso
+  parti.push(sg,
+    painted(new THREE.BoxGeometry(1.5, 1.7, 0.2), PAL.neroCaldo, M(-0.2, 0.9, -0.9, 0, 0.35, 0)), // lo squarcio nello scafo: la bocca
+    painted(new THREE.BoxGeometry(0.2, 0.2, 2.6), PAL.legno, M(0.3, 3.4, -1.6, -0.5, 0.35, 0)), // il bompresso spezzato
+    painted(new THREE.CylinderGeometry(0.22, 0.3, 1.2, 6), PAL.legnoChiaro, M(0.15, 2.8, -1.45, -0.4, 0.35, 0)), // la polena: il corpo
+    painted(new THREE.BoxGeometry(0.34, 0.34, 0.32), PAL.legnoChiaro, M(0.2, 3.45, -1.7)), // la testa senza volto
+    painted(new THREE.BoxGeometry(0.5, 0.22, 0.32), PAL.legno, M(0.1, 2.75, -1.85, 0, 0.35, 0)), painted(new THREE.BoxGeometry(0.42, 0.06, 0.26), PAL.sabbia, M(0.1, 2.87, -1.85, 0, 0.35, 0)), // la culla
+    painted(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 4), PAL.roccia, M(0.05, 2.3, -1.95)), // la catenella della lanterna
+    painted(new THREE.BoxGeometry(0.32, 0.08, 0.32), PAL.roccia, M(0.05, 1.98, -1.95)), painted(new THREE.BoxGeometry(0.32, 0.08, 0.32), PAL.roccia, M(0.05, 1.56, -1.95)), // la lanterna, telaio
+    painted(new THREE.BoxGeometry(0.8, 0.12, 0.12), PAL.legnoScuro, M(-1.2, 0.08, -1.5, 0, 0.6, 0)), painted(new THREE.BoxGeometry(0.6, 0.1, 0.1), PAL.legno, M(1.3, 0.06, -1.3, 0, -0.4, 0)), // tavole a terra
+  );
+  const g = new THREE.Group(); g.name = 'ingresso_diga';
+  g.add(new THREE.Mesh(merged(parti), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+  // la lanterna azzurra brilla da sé (si vede anche di notte, nella tempesta): seconda draw call
+  g.add(new THREE.Mesh(merged([painted(new THREE.BoxGeometry(0.26, 0.36, 0.26), PAL.acquaBassa, M(0.05, 1.77, -1.95))]),
+    new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, emissive: PAL.acquaBassa, emissiveIntensity: 0.9 })));
+  return g;
+}
+
 /** Cancello sbarrato del Portale del Vuoto: sbarre di ferro battuto, serratura con castone dorato a forma d'onda marina e stele runica accanto. */
 function cancelloVuoto(): THREE.Object3D {
   const cil = (r: number, h: number, n = 6) => new THREE.CylinderGeometry(r, r, h, n);
@@ -148,8 +183,8 @@ function cancelloVuoto(): THREE.Object3D {
 /** Porta sigillata: due sbarre di ferro incrociate davanti alla bocca e il sigillo rosso a forma d'onda (si nasconde quando si apre). */
 export function sigillo(stile?: string): THREE.Object3D {
   if (stile === 'vuoto') return cancelloVuoto();
-  const z = stile === 'archivio' ? -1.25 : stile === 'fucina' ? -1.18 : stile === 'mausoleo' ? -1.08 : stile === 'drenaggio' ? -0.82 : -0.75;
-  const y = stile === 'archivio' || stile === 'drenaggio' ? 1.25 : stile === 'fucina' ? 0.9 : stile === 'mausoleo' ? 1.05 : 1.2;
+  const z = stile === 'archivio' ? -1.25 : stile === 'fucina' ? -1.18 : stile === 'mausoleo' ? -1.08 : stile === 'drenaggio' ? -0.82 : stile === 'diga' ? -1.15 : -0.75;
+  const y = stile === 'archivio' || stile === 'drenaggio' ? 1.25 : stile === 'fucina' ? 0.9 : stile === 'mausoleo' ? 1.05 : stile === 'diga' ? 0.95 : 1.2;
   const geo = merged([
     painted(new THREE.BoxGeometry(2.4, 0.16, 0.1), PAL.roccia, M(0, y, z, 0, 0, Math.PI / 4)),
     painted(new THREE.BoxGeometry(2.4, 0.16, 0.1), PAL.roccia, M(0, y, z, 0, 0, -Math.PI / 4)),

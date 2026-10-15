@@ -10,6 +10,7 @@ import { grigliaDi, schermato } from './muove.ts';
 import { spingi } from './vento.ts';
 import { scarica } from './custode.ts';
 import { barriera } from './unici.ts';
+import { chino, sbilancia, scudoSu } from './vaelen.ts';
 import { BOSS_RALLENTA, COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -36,6 +37,9 @@ export type HitSrc = {
   letale?: boolean;
   /** Magie elettriche: il nemico colpito va a `molt` della velocità per `secondi` s. */
   rallenta?: { molt: number; secondi: number };
+  /** Vento in Poppa (l'onda d'urto del caricato con la Brezza piena): sfonda ogni scudo (Sentinella, Guardia della Paratia, la salva del
+   *  Capitano) e passa lo scafandro del Palombaro come un colpo normale. */
+  sfonda?: boolean;
 };
 
 /** Elettriche: il nemico cammina e attacca a `molt` della velocità per `secondi` s. Stessa macchina del Taglio Critico (perk.ts: lentoT, lentoMolt,
@@ -67,15 +71,27 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   // Mausoleo: il Custode che cambia cuore non prende danni
   if (e.def.custode && e.modo === 'cambio') { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'cuore' }); return 0; }
   let retro = 1;
+  // Diga, il Capitano Vaelen: mentre spezza le catene non prende danni; lo scudo della salva para da davanti (un caricato da davanti o
+  // l'onda d'urto del Vento in Poppa lo sfondano e la salva finisce); chino sulla lancia, alle spalle la catena prende di più
+  const V = e.def.vaelen;
+  if (V && e.modo === 'cambio') { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'catene' }); return 0; }
+  if (V && src.ox !== undefined && src.oz !== undefined && (scudoSu(e) || chino(e))) {
+    const ax = src.ox - e.x, az = src.oz - e.z, l = Math.sqrt(ax * ax + az * az), k = l > 1e-6 ? (ax * e.fx + az * e.fz) / l : 0;
+    if (scudoSu(e) && k >= V.salva.scudo) {
+      if ((src.caricato && src.mischia) || src.sfonda) sbilancia(s, e);
+      else { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'scudo' }); return 0; }
+    } else if (chino(e) && k <= RETRO_SCAFANDRO) retro = V.spazzata.retro;
+  }
   // lo scafandro del Golem-Palombaro e lo scudo della Sentinella dell'Egida (finché non è sfondato) parano da davanti
   const scudo = e.def.scudo && !(e.rotto !== undefined && e.rotto > s.tick) ? e.def.scudo : undefined, sc = e.def.scafandro ?? scudo;
   if (sc && src.ox !== undefined && src.oz !== undefined) {
     const ax = src.ox - e.x, az = src.oz - e.z, l = Math.sqrt(ax * ax + az * az), k = l > 1e-6 ? (ax * e.fx + az * e.fz) / l : 0;
-    if (k >= sc.cono && scudo && src.caricato && src.mischia) {
-      // il caricato sfonda lo scudo: la Sentinella barcolla, senza scudo, e il colpo passa
-      e.rotto = s.tick + secToTicks(scudo.rotto); e.st = 'recupera'; e.stT = 0; e.stDur = secToTicks(scudo.rotto); e.area = false; e.tiro = false; e.comboN = 0;
+    if (k >= sc.cono && scudo && ((src.caricato && src.mischia) || src.sfonda)) {
+      // il caricato sfonda lo scudo: la Sentinella barcolla, senza scudo, e il colpo passa (il portello della Guardia della Paratia va in
+      // frantumi per sempre)
+      e.rotto = scudo.perso ? Number.MAX_SAFE_INTEGER : s.tick + secToTicks(scudo.rotto); e.st = 'recupera'; e.stT = 0; e.stDur = secToTicks(scudo.rotto); e.area = false; e.tiro = false; e.comboN = 0;
       ev(s, { t: 'sfondato', x: r2(e.x), z: r2(e.z) });
-    } else if (k >= sc.cono) {
+    } else if (k >= sc.cono && !src.sfonda) {
       ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: scudo ? 'scudo' : 'scafandro' });
       // lo scudo a energia cinetica respinge chi lo colpisce di lama
       if (scudo && src.mischia && !src.daAlleato && l > 1e-6) spingi(s, ax / l, az / l, scudo.spinta, 0.25);

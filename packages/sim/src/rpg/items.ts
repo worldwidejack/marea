@@ -57,6 +57,7 @@ function fromRaw(r: ItemDefRaw, byId: Map<string, ItemDef>): ItemDef {
   else if (!base) it.colore = MATERIALS.find((m) => m.costo === r.id)?.colore ?? it.colore;
   if (r.danno !== undefined) it.danno = r.danno;
   if (r.velocita !== undefined) it.velocita = r.velocita;
+  if (r.portata !== undefined) it.portata = r.portata;
   if (r.difesa !== undefined) it.difesa = r.difesa;
   if (r.traits) it.traits = { ...(it.traits ?? {}), ...traitsOf(r.traits) };
   if (r.mods) it.mods = { ...r.mods };

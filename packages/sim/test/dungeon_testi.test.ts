@@ -68,6 +68,18 @@ test('testi: il Mausoleo ha sottotitolo, 4 voci (la voce della Regina e il Custo
   assert.ok(/Regata/.test(t.letture!.find((l) => l.id === 'diario')!.righe.join(' ')), 'il diario della prima Regata finisce qui');
 });
 
+test('testi: la Diga ha sottotitolo, 4 voci (l’eco della nave, l’ultima col Capitano) e 2 letture: l’editto della Corona e il diario di bordo', () => {
+  const t = dungeonDef('diga').testi;
+  assert.ok(t?.sottotitolo);
+  assert.ok(t.sottotitolo.includes('Stella del Mattino'));
+  assert.deepEqual(t.voci?.map((v) => v.id), ['falla', 'batteria', 'infermeria', 'timone']);
+  assert.deepEqual(t.voci?.filter((v) => v.capo).map((v) => v.id), ['timone'], 'parla il Capitano solo davanti al suo ponte');
+  assert.deepEqual(t.letture?.map((l) => `${l.id}:${l.tipo}`), ['editto:incisione', 'diario:libro']);
+  const diario = t.letture!.find((l) => l.id === 'diario')!.righe.join(' ');
+  assert.ok(/pirati/.test(diario) && /Vaelen/.test(diario) && /Trenta uomini/.test(diario));
+  assert.ok(/Gola del Dente/.test(t.letture!.find((l) => l.id === 'editto')!.righe.join(' ')));
+});
+
 test('testi: poche voci e corte, zone dentro la mappa sul pavimento, id unici', () => {
   for (const d of DUNGEONS) {
     const t = d.testi;

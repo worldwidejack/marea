@@ -10,8 +10,8 @@ import { startDungeon } from '../src/rpg/run.ts';
 import { newHero } from '../src/rpg/hero.ts';
 import type { LotState } from '../src/economy/types.ts';
 
-test('dungeon: sette mappe (grotta, cripta, vuoto, drenaggio, archivio, fucina, mausoleo) con stile, tile 2 e dimensioni da gioco', () => {
-  assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto', 'drenaggio', 'archivio', 'fucina', 'mausoleo']);
+test('dungeon: otto mappe (grotta, cripta, vuoto, drenaggio, archivio, fucina, mausoleo, diga) con stile, tile 2 e dimensioni da gioco', () => {
+  assert.deepEqual(DUNGEONS.map((d) => d.id), ['grotta', 'cripta', 'vuoto', 'drenaggio', 'archivio', 'fucina', 'mausoleo', 'diga']);
   for (const d of DUNGEONS) {
     assert.equal(d.tile, 2);
     assert.equal(d.stile, d.id);
@@ -76,8 +76,9 @@ test('dungeon: nemici, tabelle e libri esistono; i boss stanno in fondo (Cripta 
 test('dungeon: ingressi su celle calpestabili delle isole giuste, raggiungibili a piedi dalla P', () => {
   // la Grotta (la più facile) al Porto, il posto più facile da trovare; la Cripta sull'Isola Selvaggia (scambiate il 7 ott 2026);
   // il Portale del Vuoto al Borgo Marea in un posto marginale (costa ovest);
-  // il Drenaggio a terra sull'anello della Laguna, vicino al molo, l'Archivio più avanti sull'arco est, la Fucina sull'arco nord, il Mausoleo sull'arco nord-ovest (Epopea della Regata)
-  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'porto', drenaggio: 'laguna', archivio: 'laguna', fucina: 'laguna', mausoleo: 'laguna' };
+  // il Drenaggio a terra sull'anello della Laguna, vicino al molo, l'Archivio più avanti sull'arco est, la Fucina sull'arco nord, il Mausoleo sull'arco nord-ovest (Epopea della Regata);
+  // la Diga dei Disertori nella gola tra le creste di roccia dell'Isola della Tempesta, l'isola dei pirati
+  const dove: Record<string, string> = { grotta: 'porto', cripta: 'selvaggia', vuoto: 'porto', drenaggio: 'laguna', archivio: 'laguna', fucina: 'laguna', mausoleo: 'laguna', diga: 'tempesta' };
   for (const d of DUNGEONS) {
     assert.equal(d.ingresso.island, dove[d.id]);
     const def = ISLANDS.find((i) => i.id === d.ingresso.island)!;
@@ -119,11 +120,14 @@ test('dungeon: difficoltà invisibili tutte diverse (Grotta la più facile), un 
   }
 });
 
-test('dungeon: Portale del Vuoto è il più difficile (difficoltà 8), boss più forte del Mausoleo, richiede Anello dell Onda', () => {
+test('dungeon: Portale del Vuoto (difficoltà 8) più difficile del Mausoleo, boss più forte, richiede Anello dell Onda; la Diga dei Disertori (9) ancora di più', () => {
   const vuoto = DUNGEONS.find((d) => d.id === 'vuoto')!;
   const mausoleo = DUNGEONS.find((d) => d.id === 'mausoleo')!;
   assert.equal(vuoto.difficolta, 8);
   assert.ok(vuoto.difficolta > mausoleo.difficolta);
+  const diga = DUNGEONS.find((d) => d.id === 'diga')!;
+  assert.equal(diga.difficolta, Math.max(...DUNGEONS.map((d) => d.difficolta)), 'la Diga è la più difficile del gioco');
+  assert.equal(diga.richiede, 'vuoto');
   assert.equal(vuoto.richiede, 'unico_anello_onda');
 
   const bossVuoto = ENEMIES.find((e) => e.id === 'custode')!;
