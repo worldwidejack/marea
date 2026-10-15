@@ -1,7 +1,7 @@
 ## Cosa cambia
 <!-- 1-3 righe, per chi gioca: cosa si vede o si può fare di nuovo -->
 
-Chiude #
+Closes #
 
 ## Come l'ho verificato
 - [ ] `node tests/run.mjs static types sim boot` verde
