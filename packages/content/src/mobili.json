@@ -58,6 +58,25 @@
     { "id": "radiosveglia_rotante", "nome": "Radiosveglia rotante", "categoria": "tecnologia", "perle": 35, "posto": "terra", "altezza": 0.35, "colori": ["#23201F", "#7F7568", "#E8433F"] },
     { "id": "ventilatore_usb_a_forma_di_cactus", "nome": "Ventilatore USB a forma di cactus", "categoria": "tecnologia", "perle": 25, "posto": "terra", "altezza": 0.45, "colori": ["#8FC35B", "#F2A33A", "#F5D547"] },
     { "id": "barattolo_di_lucciole_finte", "nome": "Barattolo di lucciole finte", "categoria": "luci", "perle": 25, "posto": "terra", "altezza": 0.4, "colori": ["#3FB9C9", "#7F7568", "#F5D547"] },
-    { "id": "orologio_da_tavolo_a_forma_di_gatto", "nome": "Orologio da tavolo a forma di gatto", "categoria": "decorazioni", "perle": 35, "posto": "terra", "altezza": 0.55, "colori": ["#23201F", "#E8E1D6", "#F5D547"] }
+    { "id": "orologio_da_tavolo_a_forma_di_gatto", "nome": "Orologio da tavolo a forma di gatto", "categoria": "decorazioni", "perle": 35, "posto": "terra", "altezza": 0.55, "colori": ["#23201F", "#E8E1D6", "#F5D547"] },
+    { "id": "tavolo_da_biliardo", "nome": "Tavolo da biliardo", "categoria": "tavoli", "perle": 140, "posto": "terra", "celle": [2, 1], "altezza": 0.85, "colori": ["#2C6B3F", "#5A3A1E", "#F5D547"] },
+    { "id": "tavolo_kotatsu", "nome": "Tavolo Kotatsu", "categoria": "tavoli", "perle": 55, "posto": "terra", "altezza": 0.45, "colori": ["#C98A4B", "#E8433F", "#F5D547"] },
+    { "id": "sgabello_da_pianoforte", "nome": "Sgabello da pianoforte", "categoria": "tavoli", "perle": 25, "posto": "terra", "altezza": 0.55, "colori": ["#23201F", "#5A3A1E", "#F5D547"] },
+    { "id": "botte_di_rovere_in_verticale", "nome": "Botte di rovere in verticale", "categoria": "tavoli", "perle": 40, "posto": "terra", "altezza": 0.95, "colori": ["#8E5A2B", "#4A4340", "#F5D547"] },
+    { "id": "pila_di_vecchi_pneumatici", "nome": "Pila di vecchi pneumatici", "categoria": "tavoli", "perle": 35, "posto": "terra", "altezza": 0.65, "colori": ["#23201F", "#3FB9C9", "#E8E1D6"] },
+    { "id": "tavolo_da_pranzo_quadrato_in_legno", "nome": "Tavolo da pranzo quadrato in legno", "categoria": "tavoli", "perle": 45, "posto": "terra", "altezza": 0.78, "colori": ["#8E5A2B", "#5A3A1E", "#E8E1D6"] },
+    { "id": "scrivania_semplice", "nome": "Scrivania semplice", "categoria": "tavoli", "perle": 50, "posto": "terra", "altezza": 0.75, "colori": ["#C98A4B", "#4A4340", "#23201F"] },
+    { "id": "tavolino_da_salotto_basso", "nome": "Tavolino da salotto basso", "categoria": "tavoli", "perle": 30, "posto": "terra", "altezza": 0.45, "colori": ["#5A3A1E", "#8E5A2B", "#23201F"] },
+    { "id": "comodino_in_laminato", "nome": "Comodino in laminato", "categoria": "tavoli", "perle": 25, "posto": "terra", "altezza": 0.6, "colori": ["#E8E1D6", "#B9AFA3", "#E8433F"] },
+    { "id": "piano_di_marmo_su_due_cavalletti", "nome": "Piano di marmo su due cavalletti", "categoria": "tavoli", "perle": 80, "posto": "terra", "altezza": 0.76, "colori": ["#E8E1D6", "#8E5A2B", "#E8433F"] },
+    { "id": "tavolo_da_stiro_pieghevole", "nome": "Tavolo da stiro pieghevole", "categoria": "tavoli", "perle": 35, "posto": "terra", "altezza": 0.85, "colori": ["#3FB9C9", "#7F7568", "#8FC35B"] },
+    { "id": "tavolino_da_caffe_in_vetro", "nome": "Tavolino da caffè in vetro", "categoria": "tavoli", "perle": 45, "posto": "terra", "altezza": 0.45, "colori": ["#3FB9C9", "#23201F", "#F5D547"] },
+    { "id": "scatolone_di_cartone_rovesciato", "nome": "Scatolone di cartone rovesciato", "categoria": "tavoli", "perle": 15, "posto": "terra", "altezza": 0.6, "colori": ["#E2B97F", "#8E5A2B", "#E8433F"] },
+    { "id": "scrivania_direzionale_in_noce", "nome": "Scrivania direzionale in noce", "categoria": "tavoli", "perle": 120, "posto": "terra", "altezza": 0.78, "colori": ["#5A3A1E", "#8E5A2B", "#23201F"] },
+    { "id": "comodino_scassato", "nome": "Comodino scassato", "categoria": "tavoli", "perle": 20, "posto": "terra", "altezza": 0.65, "colori": ["#C98A4B", "#5A3A1E", "#7F7568"] },
+    { "id": "isola_da_cucina_in_marmo", "nome": "Isola da cucina in marmo", "categoria": "tavoli", "perle": 140, "posto": "terra", "altezza": 0.9, "colori": ["#E8E1D6", "#4A4340", "#7F7568"] },
+    { "id": "cattedra_scolastica", "nome": "Cattedra scolastica", "categoria": "tavoli", "perle": 60, "posto": "terra", "altezza": 0.78, "colori": ["#2C6B3F", "#C98A4B", "#7F7568"] },
+    { "id": "bancone_da_bar_in_mogano", "nome": "Bancone da bar in mogano", "categoria": "tavoli", "perle": 130, "posto": "terra", "altezza": 1.1, "colori": ["#5A3A1E", "#8E5A2B", "#F5D547"] },
+    { "id": "cassettiera_anni_70", "nome": "Cassettiera anni '70", "categoria": "tavoli", "perle": 55, "posto": "terra", "altezza": 0.85, "colori": ["#F2A33A", "#8E5A2B", "#A64DFF"] }
   ]
 }
