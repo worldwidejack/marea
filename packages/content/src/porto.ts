@@ -7,7 +7,7 @@ import type { Resources } from './types.ts';
 
 export type PortoLook = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
 /** Una persona del Porto (`paesano`: abitanti del Borgo, il loro giro lo scrive tools/borgo_pianta.py): `giro` = punti da percorrere avanti e indietro (uno solo = ferma), `velocita` in m/s, `raggio` = da quanto vicino si parla. */
-export type PersonaPorto = { id: string; nome: string; ruolo: 'mercante' | 'contrabbandiere' | 'guida' | 'paesano'; look: PortoLook; giro: [number, number][]; velocita: number; raggio: number; battute: string[] };
+export type PersonaPorto = { id: string; nome: string; ruolo: 'mercante' | 'contrabbandiere' | 'guida' | 'paesano'; look: PortoLook; giro: [number, number][]; velocita: number; raggio: number; battute: string[]; battuteAperto?: string[] };
 /** Banco del Mercante o Bacheca: dove sta il prop (`at`, `rot`) e dove si mette chi gioca per usarlo (`fronte`, entro `raggio` m). */
 export type PortoPosto = { nome: string; cartello: string; at: [number, number]; rot: number; fronte: [number, number]; raggio: number };
 /** `contrabbando`: banco del Contrabbandiere accanto alla Grotta (GDR: monete, merce in rpg/balance.json `contrabbando`). */
@@ -30,6 +30,7 @@ export function validatePorto(): string[] {
     if (ids.has(p.id)) errs.push(`gente: id duplicato ${p.id}`);
     ids.add(p.id);
     if (!p.battute.length) errs.push(`gente ${p.id}: nessuna battuta`);
+    if (p.battuteAperto && !p.battuteAperto.length) errs.push(`gente ${p.id}: battuteAperto vuote`);
     if (!p.giro.length) errs.push(`gente ${p.id}: giro vuoto`);
     if (p.giro.length > 1 && !(p.velocita > 0)) errs.push(`gente ${p.id}: giro senza velocità`);
   }

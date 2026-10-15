@@ -422,6 +422,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
           const c = sigillato(m.s);
           if (c !== m.chiuso) {
             m.chiuso = c; m.sig.visible = c;
+            if (!c && m.s.id === 'vuoto') { try { localStorage.setItem('marea:cancello_vuoto_aperto', '1'); } catch {} }
             const r = richiesto(m.s.id), tag = c ? (r === 'unico_anello_onda' ? ' · CANCELLO CHIUSO' : ' · SIGILLATO') : '';
             m.label.set('bubble', [pixIcon(m.s.icon, 16), el('span', '', `${m.s.nome.toUpperCase()}${tag}`)], c ? 'dng-sig' : 'dng');
             m.label.el.classList.add('dng'); m.label.el.classList.toggle('sig', c); // set() rifà le classi
