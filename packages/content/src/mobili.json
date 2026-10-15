@@ -48,6 +48,16 @@
     { "id": "mobile_tv_basso", "nome": "Mobile TV basso", "categoria": "contenitori", "perle": 45, "posto": "terra", "altezza": 0.5, "colori": ["#C98A4B", "#5A3A1E", "#23201F"] },
     { "id": "libreria_componibile_svedese", "nome": "Libreria componibile svedese", "categoria": "contenitori", "perle": 40, "posto": "terra", "altezza": 1.8, "colori": ["#E8E1D6", "#B9AFA3", "#E8433F"] },
     { "id": "tappeto_rettangolare_a_tinta_unita", "nome": "Tappeto rettangolare a tinta unita", "categoria": "decorazioni", "perle": 30, "posto": "terra", "altezza": 0.05, "colori": ["#E8433F", "#F4E3C1", "#7F7568"] },
-    { "id": "letto_singolo_con_materasso_a_molle", "nome": "Letto singolo con materasso a molle", "categoria": "dormire", "perle": 50, "posto": "terra", "altezza": 0.8, "colori": ["#8E5A2B", "#E8E1D6", "#3FB9C9"] }
+    { "id": "letto_singolo_con_materasso_a_molle", "nome": "Letto singolo con materasso a molle", "categoria": "dormire", "perle": 50, "posto": "terra", "altezza": 0.8, "colori": ["#8E5A2B", "#E8E1D6", "#3FB9C9"] },
+    { "id": "tazza_con_scritta_miglior_vicino_del_mondo", "nome": "Tazza con scritta \"Miglior vicino del mondo\"", "categoria": "cucina", "perle": 15, "posto": "terra", "altezza": 0.35, "colori": ["#E8E1D6", "#23201F", "#F5D547"] },
+    { "id": "macchina_fotografica_polaroid_scarica", "nome": "Macchina fotografica Polaroid scarica", "categoria": "tecnologia", "perle": 30, "posto": "terra", "altezza": 0.3, "colori": ["#23201F", "#E8E1D6", "#3FB9C9"] },
+    { "id": "cubo_luminoso_viola", "nome": "Cubo luminoso viola", "categoria": "luci", "perle": 40, "posto": "terra", "altezza": 0.45, "colori": ["#A64DFF", "#23201F", "#F5D547"] },
+    { "id": "console_portatile_a_doppio_schermo", "nome": "Console portatile a doppio schermo", "categoria": "giochi", "perle": 35, "posto": "terra", "altezza": 0.3, "colori": ["#B9AFA3", "#23201F", "#3FB9C9"] },
+    { "id": "tazza_di_caffe_fumante", "nome": "Tazza di caffè fumante", "categoria": "cucina", "perle": 15, "posto": "terra", "altezza": 0.4, "colori": ["#E8433F", "#5A3A1E", "#E8E1D6"] },
+    { "id": "sveglia_digitale_a_led_rossi", "nome": "Sveglia digitale a led rossi", "categoria": "tecnologia", "perle": 25, "posto": "terra", "altezza": 0.25, "colori": ["#23201F", "#E8433F", "#B9AFA3"] },
+    { "id": "lampada_da_scrivania_a_braccio", "nome": "Lampada da scrivania a braccio", "categoria": "luci", "perle": 35, "posto": "terra", "altezza": 0.7, "colori": ["#E8E1D6", "#23201F", "#F5D547"] },
+    { "id": "boccia_con_pesce_rosso", "nome": "Boccia con pesce rosso", "categoria": "decorazioni", "perle": 30, "posto": "terra", "altezza": 0.4, "colori": ["#3FB9C9", "#F2A33A", "#F4E3C1"] },
+    { "id": "piantina_grassa_in_vaso", "nome": "Piantina grassa in vaso", "categoria": "piante", "perle": 20, "posto": "terra", "altezza": 0.35, "colori": ["#F2A33A", "#8FC35B", "#5A3A1E"] },
+    { "id": "macchina_da_scrivere_vintage", "nome": "Macchina da scrivere vintage", "categoria": "tecnologia", "perle": 45, "posto": "terra", "altezza": 0.3, "colori": ["#23201F", "#E8E1D6", "#E8433F"] }
   ]
 }
