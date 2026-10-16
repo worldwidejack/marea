@@ -110,4 +110,61 @@ infinita il peso degli zombie facili cala piano (il base fino a 1/10, il cono fi
 - **Bloons TD 6**: soldi a ogni nemico colpito, round scritti a mano, difficoltà che cambia i prezzi.
 
 ## 3. Cosa prendiamo per il banco
-(si completa con la sim e lo strumento di bilanciamento: profilo `marea`, i 6 livelli, la Sopravvivenza e le bande.)
+**Regole e numeri: quelli di PvZ.** Il profilo `marea` per ora non cambia niente (`"marea": {}` in `difesa.json`): la prima prova deve
+divertire come l'originale; la taratura nostra arriva dopo il giro con gli amici, con lo strumento qui sotto.
+
+| PvZ | Da noi (id) | Nome e aspetto |
+|---|---|---|
+| Sparapiselli · Girasole · Ciliegia · Noce · Patata · Gelido | `sparatore` · `produttore` · `bomba` · `muro` · `mina` · `gelo` | li dà la pelle (lo stile scelto) |
+| Zombie base · bandiera · cono · saltatore · secchio | `base` · `bandiera` · `cono` · `saltatore` · `secchio` | idem |
+| Sole · tosaerba | valuta · tosaerba | idem |
+
+**I 6 livelli** (una novità per livello, come 1-1 → 1-8 senza il bowling):
+| Livello | Corsie | Novità | Ondate | Nemici |
+|---|---|---|---|---|
+| 1 Il primo giorno | 1 | sparatore (tutorial: si parte con 150, niente arriva finché non pianti) | 4 | base |
+| 2 Arriva il raccolto | 3 | produttore (prima ondata dopo 50 s) | 6 | base |
+| 3 Il botto | 3 | bomba | 8 | + cono |
+| 4 Tutto il campo | 5 | muro | 10 | base, cono |
+| 5 Chi salta | 5 | mina | 10 | + saltatore |
+| 6 La grande ondata | 5 | gelo | 20 (2 bandiere) | + secchio |
+
+**Sopravvivenza**: 5 corsie, tutte le carte, si parte con 150, ondate infinite col budget della Sopravvivenza; il record sono le ondate.
+
+**Bilanciamento** (`node tools/difesa_bilancio.mjs --semi 200`, 16 ott, profilo marea = pvz). Tre giocatori finti: il **bravo** pianta al
+posto giusto e raccoglie subito; il **medio** ragiona ogni ~1 s e sbaglia casella una volta su 7; il **distratto** reagisce ogni ~2 s, perde
+il 30 % delle monete, mette i difensori un po' a caso e non usa mine.
+| Livello | Bravo vince | Medio vince | Distratto vince | Durata | Tosaerba (distratto) |
+|---|---|---|---|---|---|
+| 1 | 100 % | 100 % | 100 % | 1,3 min | 0 |
+| 2 | 100 % | 100 % | 100 % | 2,5 min | 0 |
+| 3 | 100 % | 100 % | 89 % | 2,7 min | 0,4 |
+| 4 | 100 % | 100 % | 71 % | 3,6 min | 1,2 |
+| 5 | 100 % | 99,5 % | 61 % | 3,7 min | 1,8 |
+| 6 | 100 % | 98,5 % | 37 % | 6,5 min | 2,0 |
+| Sopravvivenza | 41 ondate | 39 ondate | 25 ondate | 9-13 min | — |
+
+La curva è quella giusta (i primi due livelli non si perdono, poi sale); il medio vince quasi sempre: è PvZ, facile per chi gioca. Da
+decidere con Jack dopo la prova degli amici se indurire gli ultimi livelli (strumento pronto: si cambia un numero in `profili.marea`, si
+rilancia, si guarda la tabella).
+
+## 4. Come si gioca (banco)
+- **Toccare la carta, poi la casella** (o trascinare la carta sulla casella); la carta si scurisce mentre si ricarica, si spegne se non
+  bastano le monete. **Toccare le monete** per raccoglierle (anche mentre cadono); la pala toglie un difensore (senza rimborso).
+- PC: mouse; tasti 1-6 carte, E pala, Spazio pausa, F veloce ×2, T pilota automatico, M muto, R ricomincia, Esc annulla.
+- Telefono in **orizzontale** (in verticale «GIRA IL TELEFONO» e il gioco si ferma); la pagina in secondo piano mette in pausa.
+- Pannello «⚙ prove»: STILE (le pelli), numeri PvZ/MAREA, raccolta automatica delle monete, pilota automatico (bravo, medio,
+  distratto), velocità, suoni, livelli tutti aperti, ricomincia, scegli il livello.
+- Medaglia a fine livello: oro senza tosaerba usati, argento con uno, bronzo con di più. Livelli sbloccati, medaglie e record restano
+  nel telefono (localStorage).
+- Indirizzo: `provadifesa.html?livello=1..6|s&stile=<pelle>&profilo=pvz|marea&auto=bravo&veloce=2&raccolta=1&seme=N`.
+
+## 5. Regole per chi ci lavora
+- La sim sta in `packages/sim/src/difesa/` ed è pura come il resto (`check_static`): il caso è un intero nello stato (mulberry32), tempi
+  in tick, solo + − × ÷. Il pilota automatico (`bot.ts`) ha il suo caso e non cambia la partita.
+- I numeri stanno solo in `packages/content/src/difesa.json`: `profili.pvz` è l'originale (non si tocca: lo controllano i test
+  «riproduce PvZ»), le nostre modifiche vanno in `profili.marea`. Dopo una modifica: `node tools/difesa_bilancio.mjs` e la tabella del §3.
+- La grafica è una **pelle** (`apps/client/src/difesa/skin.ts`): fondale con gli angoli del campo, atlas di sprite coi piedi e l'altezza in
+  caselle, nomi, colori della UI. Le pelli vere le fa `tools/difesa_sprite.py` dalle immagini di Codex e stanno in
+  `apps/client/public/assets/difesa/<id>/` (budget a parte nella build: `difesaAssetsMB`). Il movimento è animazione da codice.
+- Test: `node --test packages/sim/test/difesa.test.ts` (sim) e `node tests/run.mjs m4_provadifesa` (banco).
