@@ -89,8 +89,13 @@ export function itemIcon(kind: ItemKind, color: string, px = 24): HTMLCanvasElem
   return c;
 }
 export const iconOf = (it: ItemDef, px = 24): HTMLCanvasElement => itemIcon(it.kind, it.colore, px);
-/** Colore di una magia (icona, sfera nelle mani, linea di mira): le evocazioni viola, le elettriche gialle, il resto fuoco. */
-export const coloreMagia = (id: string, scuola: string): string => (scuola === 'evocazione' ? PAL.viola : SPELLS.find((s) => s.id === id)?.elemento === 'elettricita' ? PAL.giallo : PAL.arancio);
+/** Colore di una magia (icona, sfera nelle mani, linea di mira): cura verde, furia arancio, evocazioni viola, elettriche gialle, il resto fuoco. */
+export const coloreMagia = (id: string, scuola: string): string => {
+  const el = SPELLS.find((s) => s.id === id)?.elemento;
+  if (el === 'cura') return PAL.erba;
+  if (el === 'furia') return PAL.arancio;
+  return scuola === 'evocazione' ? PAL.viola : el === 'elettricita' ? PAL.giallo : PAL.arancio;
+};
 
 // ---------- pezzi DOM ----------
 export function sec(title: string, right?: string): HTMLElement {

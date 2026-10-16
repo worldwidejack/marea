@@ -33,6 +33,10 @@
   { "id": "libro_lupo_spettrale", "nome": "Libro: Lupo spettrale", "kind": "libro", "peso": 1, "colore": "#3DF5FF", "insegna": "lupo_spettrale", "descr": "Insegna Lupo spettrale." },
   { "id": "libro_scheletro_evocato", "nome": "Libro: Scheletro evocato", "kind": "libro", "peso": 1, "colore": "#E8E1D6", "insegna": "scheletro_evocato", "descr": "Insegna Scheletro evocato." },
   { "id": "libro_golem_evocato", "nome": "Libro: Golem evocato", "kind": "libro", "peso": 1, "colore": "#A64DFF", "insegna": "golem_evocato", "descr": "Insegna Golem evocato." },
+  { "id": "libro_cura_flusso", "nome": "Libro: Cura a flusso", "kind": "libro", "peso": 1, "colore": "#8FC35B", "insegna": "cura_flusso", "descr": "Insegna Cura a flusso." },
+  { "id": "libro_cura_bomba", "nome": "Libro: Cura a bomba", "kind": "libro", "peso": 1, "colore": "#8FC35B", "insegna": "cura_bomba", "descr": "Insegna Cura a bomba." },
+  { "id": "libro_furia_flusso", "nome": "Libro: Furia a flusso", "kind": "libro", "peso": 1, "colore": "#F2A33A", "insegna": "furia_flusso", "descr": "Insegna Furia a flusso." },
+  { "id": "libro_furia_bomba", "nome": "Libro: Furia a bomba", "kind": "libro", "peso": 1, "colore": "#F2A33A", "insegna": "furia_bomba", "descr": "Insegna Furia a bomba." },
 
   { "id": "anello_vita_debole", "nome": "Anello della Vita Debole", "kind": "anello", "peso": 0.1, "colore": "#E8433F", "mods": { "vita": 20 }, "descr": "+20 Vita." },
   { "id": "anello_vita", "nome": "Anello della Vita", "kind": "anello", "peso": 0.1, "colore": "#E8433F", "mods": { "vita": 50 }, "descr": "+50 Vita." },

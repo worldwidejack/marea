@@ -13,7 +13,7 @@
 
 ## Format piaciuti a Jack, parcheggiati (16 ott 2026, brainstorming del prossimo format)
 - **Isola dello sport**: calcio, basket, golf (idea già nata nel gruppo).
-- **Difesa del Porto** alla Plants vs Zombies (la Difesa scelta il 9 ott): i pirati maledetti arrivano dal mare per corsie, la marea sposta il campo.
+- ~~**Difesa del Porto** alla Plants vs Zombies~~ → ripresa da Jack il 16 ott (#358): banco `provadifesa.html`, `docs/DIFESA.md`. L'idea della marea che sposta il campo resta una variante da provare dopo.
 - **Carte della Marea** alla Pokémon TCG Pocket / Clash Royale: carte di tutto MAREA, bustine vinte negli altri format, sfide ai capitani.
 - **Cucina del Porto** alla Overcooked: livelli da 3 minuti, una cucina per isola, ingredienti dagli altri format; in 4 il caos.
 

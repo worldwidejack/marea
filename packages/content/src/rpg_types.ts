@@ -95,18 +95,22 @@ export type ModKey =
   | 'avvelena' | 'lamaAria' | 'penetraPesanti' | 'terremoto' | 'frecceTrapassano' | 'risparmioFrecce' | 'scaricaPiu' | 'combustione' | 'catena'
   | 'richiamoDoppio' | 'banchetto' | 'medicoCampo' | 'doppiaDose' | 'durataPozioni' | 'forgiaDoppia';
 
+export type SpellElement = 'fuoco' | 'elettricita' | 'cura' | 'furia';
 export type SpellDef = {
   id: string; nome: string; scuola: 'distruzione' | 'evocazione'; costo: number; ricarica: number; descr: string;
   /** Distruzione: proiettile. */
   danno?: number; velocita?: number; raggio?: number; sanguina?: number;
-  /** Elemento della magia d'attacco (perk Combustione sul fuoco, Catena di fulmini sull'elettricità). */
-  elemento?: 'fuoco' | 'elettricita';
+  /** Elemento della magia (perk Combustione sul fuoco, Catena di fulmini sull'elettricità; cura e furia per il supporto). */
+  elemento?: SpellElement;
   /** Distruzione, la forma: `proiettile` (default: mira e parte al rilascio), `raggio` (continuo: finché tieni A; `costo` e `danno` sono al secondo,
    *  `gittata` e `larghezza` in m) o `bomba` (lenta: scoppia dove atterra, `raggio` m di danno ad area; atterra al massimo a `gittata` m, in `volo` s). */
   forma?: 'proiettile' | 'raggio' | 'bomba';
   gittata?: number; larghezza?: number; volo?: number;
   /** Elettriche: chi è colpito va a `molt` della velocità (anche dei colpi) per `secondi` s; il boss a metà effetto. */
   rallenta?: { molt: number; secondi: number };
+  /** Supporto (Step 1 Arena): cura alleati/evocazioni (al secondo se raggio, a scoppio se bomba) o dà Furia (+danno e +velocità). */
+  cura?: number;
+  furia?: { danno: number; velocita: number; secondi: number };
   /** Evocazione: alleato (id di enemies.json) per `durata` s. */
   evoca?: string; durata?: number;
 };
@@ -324,6 +328,12 @@ export type RpgPerkBalance = {
   /** Medico da campo: la pozione che bevi cura anche i compagni di squadra entro `raggio` m. */
   medicoCampo: { raggio: number };
 };
+export type RpgArenaBalance = {
+  attributi: Record<AttrId, number>;
+  dannoMolt: number;
+  dannoMax: number;
+  caricaMassimaMolt: number;
+};
 export type RpgBalance = {
   attributi: { base: Record<AttrId, number>; perLivello: number; regen: Record<AttrId, number> };
   livelli: { skillIniziale: number; skillMax: number; xpSkill: { base: number; perLivello: number }; xpPersonaggio: { base: number; perLivello: number } };
@@ -341,6 +351,8 @@ export type RpgBalance = {
     /** Dungeon insieme (#118): al massimo `max` eroi; la vita dei nemici cresce di `vitaPerCompagno` (frazione) per ogni eroe oltre il primo. */
     gruppo?: { max: number; vitaPerCompagno: number };
   };
+  /** Arena PvP (docs/ARENA.md Step 1): statistiche di base normalizzate (100/100/100), scala e tetto ai danni tra giocatori (niente one-shot). */
+  arena?: RpgArenaBalance;
   xp: Record<string, number>;
   /** Xp di combattimento: danno utile (mai oltre la vita che restava al nemico) × questo, per abilità. Evocazione = danno della tua evocazione. */
   xpDanno?: Partial<Record<SkillId, number>>;

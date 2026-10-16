@@ -178,7 +178,7 @@ function perkVista(s: DungeonState): { scarica?: number; massima?: number } {
   return o;
 }
 /** Il raggio acceso dell'eroe di turno (niente chiave se è spento). */
-function canaleVista(s: DungeonState): { canale?: { len: number; el?: 'fuoco' | 'elettricita' } } {
+function canaleVista(s: DungeonState): { canale?: { len: number; el?: import('@marea/content/rpg.ts').SpellElement } } {
   const h = s.hero;
   return h.canale > 0 ? { canale: { len: r2(h.canaleLen), ...(h.canaleEl ? { el: h.canaleEl } : {}) } } : {};
 }

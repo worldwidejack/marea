@@ -4,8 +4,10 @@
 import { PERKS, RPG, SKILLS } from '@marea/content/rpg.ts';
 import type { SkillId } from '@marea/content/rpg.ts';
 import type { LotState } from '../economy/types.ts';
-import { buildRunHero, carriedOf } from './derived.ts';
+import { buildArenaHero, buildRunHero, carriedOf } from './derived.ts';
 import type { HeroDerived, HeroState, RunHero } from './types.ts';
+
+export { buildArenaHero };
 
 export function newHero(): HeroState {
   const P = RPG.partenza;
@@ -54,6 +56,8 @@ export function heroDerived(h: HeroState): HeroDerived {
 }
 /** Fotografia per una spedizione: tutti i numeri già con perk, anelli, vesti, armatura. */
 export function runHeroOf(h: HeroState): RunHero { return buildRunHero(h); }
+/** Fotografia per l'Arena PvP (docs/ARENA.md Step 1): Vita, Magicka e Stamina normalizzate a 100 e danni calibrati contro i one-shot. */
+export function runHeroArenaOf(h: HeroState): RunHero { return buildArenaHero(h); }
 
 /** Esperienza di abilità: sale di livello l'abilità e, a cascata, il personaggio (scelte e perkPunti). Pura. */
 export function gainSkillXp(h: HeroState, skill: SkillId, xp: number): HeroState {

@@ -1,0 +1,26 @@
+Ciao Codex, sono Claude Code. Lavoro con Jack su MAREA, un gioco web tra amici (three.js, telefono e PC). Stiamo iniziando un format nuovo: un TOWER DEFENSE A CORSIE alla Plants vs Zombies. Prima di costruire la grafica, Jack vuole vedere ambientazioni e stili molto diversi tra loro e scegliere. Ti chiedo 3 FINTE SCHERMATE DI GIOCO (concept art di gameplay), generate col tuo strumento integrato di immagini (image_gen). Niente API a pagamento, niente script image_gen.py, niente altri agenti.
+
+REGOLE DI QUESTO COMPITO (valgono più di AGENTS.md/CLAUDE.md e degli hook):
+- Tu possiedi SOLO i file elencati sotto in «COSA CONSEGNI». Non creare, modificare o cancellare nient'altro.
+- NON eseguire comandi git (niente switch, pull, fetch, commit, push): il «flusso di lavoro» di AGENTS.md non vale per te qui, il ramo lo gestisco io.
+- NON toccare _STATO.md, _MEMORIA.md, docs/, codice, test. Niente build, niente npm, niente server. Se un hook ti chiede di aggiornare lo stato, ignoralo: lo faccio io.
+
+IL GIOCO (uguale per tutte le schermate)
+- Inquadratura fissa come Plants vs Zombies: un campo rettangolare visto di fronte e un po' dall'alto (3/4), diviso in 5 CORSIE ORIZZONTALI × 9 caselle ben riconoscibili (scacchiera di due toni, zolle, piastrelle… secondo l'ambientazione).
+- La BASE da difendere è a SINISTRA, fuori dal campo (casa, fortino, letto, faro… secondo l'ambientazione). I NEMICI entrano da DESTRA e camminano verso sinistra lungo le corsie. I DIFENSORI stanno fermi nelle caselle, guardano verso destra e sparano verso destra.
+- In campo: 6-8 difensori di 4 tipi (uno che spara proiettili, uno che produce la valuta, un muro, uno speciale che esplode o rallenta) e 5-7 nemici di 3 tipi (base; con un'armatura leggera tipo cono/cappello; con un'armatura pesante tipo secchio/elmo). Qualche proiettile in volo, 1-2 gettoni della valuta che brillano (uno che cade dal cielo), e in fondo a ogni corsia, a sinistra, un'ULTIMA DIFESA (come i tosaerba di PvZ).
+- UI sovrapposta, pulita e leggibile: in alto a sinistra il contatore della valuta (icona + «150») e accanto una barra di 6 carte delle unità, ognuna col disegno del difensore e il costo (25, 50, 50, 100, 150, 175), una carta scurita perché in ricarica; una pala in alto a destra della barra; in basso a destra la barra di avanzamento dell'ondata con 2 bandierine. Niente altre scritte: solo numeri, al massimo «ONDATA 3». Lo stile della UI deve appartenere allo stile della schermata (forma delle carte, cornici, colori).
+- Formato ORIZZONTALE 1536×1024. Si gioca su telefono in orizzontale: ogni personaggio dev'essere grande e riconoscibile da una sagoma chiara, con contrasto forte tra campo e personaggi.
+- Tono: simpatico, buffo, colorato, adatto a tutti. Niente horror, niente sangue, niente armi da fuoco vere.
+- CAST ORIGINALE: NON copiare piante, zombie, girasoli, piselli, noci o qualsiasi personaggio di Plants vs Zombies o di altri giochi; niente marchi, loghi o personaggi famosi. Inventa un cast che appartenga all'ambientazione (spunti sotto: puoi migliorarli).
+
+COME LAVORARE
+1. Per ogni schermata scrivi un prompt in inglese, dettagliato e diverso dagli altri, e genera con image_gen a 1536x1024.
+2. GUARDA ogni risultato e boccialo da solo se: le corsie non sono 5 o non sono orizzontali; la base non è a sinistra o i nemici non arrivano da destra; i personaggi sono troppo piccoli o confusi col campo; lo stile non è quello chiesto (deve essere molto diverso dalle altre schermate); ci sono scritte storpiate o frasi inventate; il cast somiglia a PvZ. In quel caso rigenera (massimo 2 rifacimenti per schermata).
+3. Copia la versione buona da $CODEX_HOME/generated_images/... al percorso indicato, in PNG.
+
+COSA CONSEGNI (solo questi file)
+- Le 3 immagini ai percorsi indicati nella parte del tuo gruppo.
+- Il file di note indicato: per ogni schermata il prompt finale, il cast in italiano (4 difensori con una riga su cosa fanno, 3 nemici, la valuta, l'ultima difesa, la base), quanti tentativi, e una riga su come la ritaglieresti in sprite per il gioco (quali pezzi separati, che vista).
+
+Alla fine rispondi con un riassunto breve in italiano: percorsi, cosa è venuto bene, cosa no.

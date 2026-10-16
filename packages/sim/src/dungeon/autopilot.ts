@@ -154,7 +154,7 @@ function fight(s: DungeonState, m: Mem, e: Enemy, o: Out): void {
   const corta = sp?.forma === 'raggio' || sp?.forma === 'bomba', gittata = sp?.gittata ?? 5;
   if (h.act === 'punta') { o.mx = u.x * 0.2; o.my = u.z * 0.2; if (sp?.forma === 'raggio' && d < gittata + 0.5 && vede) o.a = true; return; }
   const lancia = !!sp && h.act === 'idle' && h.cdMagia === 0 && h.magicka >= sp.costo && vede && d < (corta ? gittata : 14) && !(acceso && sp.scuola === 'distruzione')
-    && (sp.scuola === 'distruzione' || !s.enemies.some((x) => x.alleato && x.st !== 'morto' && (x.padrone ?? 0) === s.cur));
+    && (sp.scuola === 'distruzione' || (sp.evoca ? !s.enemies.some((x) => x.alleato && x.st !== 'morto' && (x.padrone ?? 0) === s.cur) : false));
   if (lancia && !m.prevC && !m.prevA) { o.c = !h.incanta; o.a = true; o.mx = u.x * 0.2; o.my = u.z * 0.2; return; }
   if (!lancia && h.incanta && h.act === 'idle' && !m.prevC) o.c = true;
   // Mausoleo, il Custode: l'ondata si prende nel varco, lo scatto si schiva, mentre cambia cuore non si colpisce

@@ -3,7 +3,7 @@
 // (hero, runHero, bottino, monete, done, outcome, … elencati in PER_EROE) sono accessori verso l'eroe di turno `eroi[cur]`: le funzioni della
 // sim lavorano sull'eroe di turno come quando era uno solo, il passo (dungeon.ts) li scorre tutti. Da solo cur resta 0 e tutto va come prima.
 import { RPG, enemyDef } from '@marea/content/rpg.ts';
-import type { DungeonDef, EnemyDef, Traits } from '@marea/content/rpg.ts';
+import type { DungeonDef, EnemyDef, SpellElement, Traits } from '@marea/content/rpg.ts';
 import type { EquipSlot, HeroState, RunHero, RunOutcome, RunWeapon } from '../rpg/types.ts';
 import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
@@ -51,8 +51,8 @@ export type HeroRt = {
   /** Perk (v9). Scarica: tick di ricarica rimasti, frecce ancora da tirare nella raffica e tick al prossimo tiro. Carica massima: progresso 0..1
    *  verso il colpo letale mentre tieni il colpo, e se il colpo che sta partendo è quello letale. */
   cdScarica: number; raffica: number; raffT: number; massimaP: number; massimo: boolean;
-  /** Magia a raggio (Fuoco/Elettricità continua, magie.ts): tick da quando è accesa (0 = spenta), metri liberi davanti all'eroe, elemento. */
-  canale: number; canaleLen: number; canaleEl?: 'fuoco' | 'elettricita';
+  /** Magia a raggio (Fuoco/Elettricità continua, Cura/Furia a flusso, magie.ts): tick da quando è accesa (0 = spenta), metri liberi davanti all'eroe, elemento. */
+  canale: number; canaleLen: number; canaleEl?: SpellElement;
   /** Diga dei Disertori: tick fino a cui i rottami non lo riprendono; Vento in Poppa dell'Albero della «Stella del Mattino» (unici.ts):
    *  cariche di Brezza, metri corsi verso la prossima, e se il colpo in corso è quello che le ha consumate (l'onda d'urto). */
   rottT: number; brezza: number; brezzaM: number; poppa: boolean;
@@ -93,10 +93,10 @@ export type Enemy = {
    *  La Fornace Semovente: dove ha lasciato l'ultima chiazza di fuoco e quando. */
   spento?: boolean; corsa?: number; presi?: number[];
   sciaX?: number; sciaZ?: number; sciaT?: number;
-  /** Mausoleo: potenziato da un Chierico fino al tick `potT` (danno × `potM`); scudo della Sentinella sfondato fino al tick `rotto`;
+  /** Mausoleo: potenziato da un Chierico (o Furia) fino al tick `potT` (danno × `potM`, velocità × `potV`); scudo della Sentinella sfondato fino al tick `rotto`;
    *  stordito dal Rintocco fino al tick `stordito`; colpi della combinazione già dati (Guardia d'Onore) e se l'ultimo attacco era in
    *  mischia. Il Custode (custode.ts): fase (0 acqua, 1 vapore, 2 moto) e colpi presi verso la scarica della Barriera. */
-  potT?: number; potM?: number; rotto?: number; stordito?: number; comboN?: number; mischia?: boolean; fase?: number; colpiB?: number;
+  potT?: number; potM?: number; potV?: number; rotto?: number; stordito?: number; comboN?: number; mischia?: boolean; fase?: number; colpiB?: number;
   /** Diga, il Capitano Vaelen (vaelen.ts): il pilone (indice in map.piloni) contro cui finirà la carica in corso, -1 = un muro. Le corsie dei
    *  colpi dritti (la schiacciata della Guardia, gli affondi e la carica di Vaelen, la linea del Fuciliere) stanno in `mira`. */
   pilone?: number;
@@ -119,10 +119,11 @@ export type Proj = {
   tira?: number; tiraT?: number;
   /** Magie: fattore di Grandi Magie (assente = 1). Frecce: livello dell'Automira (assente = 0). */
   mole?: number; guida?: number;
-  /** Magie: elemento (Combustione, Catena di fulmini). */
-  elemento?: 'fuoco' | 'elettricita';
-  /** Bomba (magie.ts): dove atterra (x, z); vola sopra muri e nemici e scoppia a terra. Elettriche: rallenta chi colpisce. */
+  /** Magie: elemento (Combustione, Catena di fulmini, Cura, Furia). */
+  elemento?: SpellElement;
+  /** Bomba (magie.ts): dove atterra (x, z); vola sopra muri e nemici e scoppia a terra. Elettriche: rallenta chi colpisce. Supporto: cura o furia. */
   bomba?: [number, number]; rallenta?: { molt: number; secondi: number };
+  cura?: number; furia?: { danno: number; velocita: number; secondi: number };
 };
 /** Drenaggio: un bacino allagato. `aperta` = la sua valvola è girata; `scolo` = tick che mancano all'asciutto (livello = scolo / SCOLO). */
 export type Bacino = { n: number; aperta: boolean; scolo: number };

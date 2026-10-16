@@ -1,0 +1,80 @@
+# G1 — Concept difesa a corsie
+
+Generate con image_gen integrato, senza API esterne, script di generazione o altri agenti. Tutte le immagini sono state guardate: 5 corsie orizzontali × 9 caselle, 7 difensori, 6 nemici, base a sinistra e 5 ultime difese. UI con sei carte, numeri leggibili, una carta oscurata e due bandierine. Sono concept, non sprite già pronti.
+
+## 01 — Orto cartoon
+File: `assets/concept/difesa/esplorazione_01.png`
+Tentativi: **1**, nessun rifacimento.
+Cast:
+- **Carota a rondelle**: spara dischi di carota verso destra.
+- **Zucca a manovella**: produce semi d’oro.
+- **Cavolo corazzato**: muro di foglie che assorbe gli attacchi.
+- **Peperoncino a miccia**: esplode nella corsia.
+- Nemici: lumaca lilla semplice; lumaca teal con ghianda; scarabeo blu con vasetto di latta.
+- Valuta: semi d’oro.
+- Ultima difesa: annaffiatoio verde su molla, uno per corsia.
+- Base: casetta degli attrezzi a sinistra.
+Verifica visiva: contorni spessi, colori pieni e sagome molto leggibili. Il tema vegetale resta volutamente vicino al riferimento di genere; carota meccanica, zucca a manovella e insetti danno un cast proprio. Semi abbastanza ovali da poter sembrare monete: nel gioco andrebbe accentuata la forma a seme.
+Sprite: separare i quattro difensori, tre nemici e relativi copricapi, rondella, seme, annaffiatoio e molla, casetta, due zolle e UI; mantenere vista frontale rialzata a 3/4 e orientamento destra/sinistra.
+
+### Prompt finale (inglese)
+```text
+Use case: stylized-concept. Deliver one finished fake gameplay screenshot, exactly 1536x1024 landscape (3:2), full bleed. Original family-friendly lane tower defense, instantly legible on a landscape phone. Fixed elevated frontal three-quarter camera, no rotation of the board: FIVE horizontal lanes running LEFT TO RIGHT, NINE columns, exactly 45 clearly distinguishable checkerboard cells. All five rows fully visible. Board occupies x=280..1410 y=265..900, horizontal row boundaries, slight depth visible on objects. Base OUTSIDE board on LEFT. Enemies enter from RIGHT and face LEFT. Stationary defenders face and shoot RIGHT. Make units large, strong clear silhouettes, contrasting against ground. Seven defenders: row1 column2 shooter, row2 column1 currency producer and column4 wall, row3 column3 shooter, row4 column2 special and column4 wall, row5 column1 currency producer. Six enemies: row1 column8 basic, row2 column7 light armor, row3 column9 heavy armor, row4 column8 basic, row5 column7 light armor and column9 heavy armor. Exactly one emergency last-defense device just left of EACH of the five rows, five total. Some projectiles traveling right, two glowing currency tokens, one visibly falling from above.
+Clean integrated UI across top: currency icon + exact number "150" at upper left, then SIX unit cards with distinct defender portraits (four main types plus two variations) and exact costs left to right "25", "50", "50", "100", "150", "175". One card darkened for cooldown. Shovel icon at right end of bar. Bottom right: small wave progress bar with TWO flag markers. No words, no title, no labels, no watermark, no other text besides these numbers. Original cast only, no franchise characters, no sunflower, pea shooter, walnut, zombie or other Plants vs Zombies character designs. No realistic guns, blood or horror. Make a cohesive playable-looking screenshot rather than a poster or sheet of concepts.
+SCENE 01: backyard vegetable garden between two simple wooden fences, alternating rich brown soil and muted green turf tiles. A charming tool shed at far left is the base, with visible door and little terracotta roof. Sunny playful Saturday morning.
+STYLE: hand-drawn 2D TV cartoon with very THICK BLACK OUTLINES, vivid solid saturated colors, hard-edged cel shadows, no gradients, no 3D rendering. Warm orange and lime characters over darker restrained ground. Polished bold expressive shapes.
+Original defenders: a horizontal carrot gadget on two tiny wooden supports launching orange carrot SLICES, its point aimed RIGHT and no tubular pea-like mouth; a squat ribbed pumpkin with a crank hatch that drops golden seeds, not a flower; a huge layered cabbage with angular folded leaves and determined eyes as a wall, not a nut; an upright red chili with a comic fuse as explosive special. Enemies: silly pale lavender snail with spiral shell; teal snail wearing an acorn cap as light armor; squat blue beetle wearing a dented tin flowerpot as heavy helmet. All enemy eyes and heads point LEFT. Currency is shiny gold seeds, not suns. Five spring-mounted green watering cans are the emergency devices. UI cards have thick ink outlines and cream paper centers, seed icon counter, small garden shovel. Keep all nine columns and five rows unmistakable and uncluttered.
+```
+
+## 02 — Spiaggia low-poly pixel
+File: `assets/concept/difesa/esplorazione_02.png`
+Tentativi: **1**, nessun rifacimento.
+Cast:
+- **Castello tirasabbia**: lancia palline di sabbia dalla torretta.
+- **Conchiglia perliera**: genera perle.
+- **Secchiello barricata**: muro con manico corallo.
+- **Anguria a miccia**: speciale esplosivo.
+- Nemici: granchio corallo; granchio con tappo di bottiglia; paguro con guscio di lattina.
+- Valuta: perle crema.
+- Ultima difesa: paletta corallo su molla, una per corsia.
+- Base: capanna di legno con teli corallo.
+Verifica visiva: poligoni piatti e pixel grandi ben distinti dal cartoon; campo leggibile e mare sulla destra. I granchi semplici risultano più frontali di quelli corazzati: per gli sprite rendere inequivocabile la marcia verso sinistra. Le palline di sabbia sono piuttosto chiare e somigliano alle perle; differenziarle nel gioco. La pixelatura è generata, non una pipeline PS1 verificata.
+Sprite: separare castello e torretta, conchiglia e perla, secchiello, anguria, tre nemici con armature, proiettile, paletta e molla, capanna, sabbia chiara/scura e UI; vista ortografica rialzata a 3/4, esportazione nearest con griglia pixel coerente.
+
+### Prompt finale (inglese)
+```text
+Use case: stylized-concept. Deliver one finished fake gameplay screenshot, exactly 1536x1024 landscape (3:2), full bleed. Original family-friendly lane tower defense, instantly legible on a landscape phone. Fixed elevated frontal three-quarter camera, no rotation of the board: FIVE horizontal lanes running LEFT TO RIGHT, NINE columns, exactly 45 clearly distinguishable checkerboard cells. All five rows fully visible. Board occupies x=280..1410 y=265..900, horizontal row boundaries, slight depth visible on objects. Base OUTSIDE board on LEFT. Enemies enter from RIGHT and face LEFT. Stationary defenders face and shoot RIGHT. Make units large, strong clear silhouettes, contrasting against ground. Seven defenders: row1 column2 shooter, row2 column1 currency producer and column4 wall, row3 column3 shooter, row4 column2 special and column4 wall, row5 column1 currency producer. Six enemies: row1 column8 basic, row2 column7 light armor, row3 column9 heavy armor, row4 column8 basic, row5 column7 light armor and column9 heavy armor. Exactly one emergency last-defense device just left of EACH of the five rows, five total. Some projectiles traveling right, two glowing currency tokens, one visibly falling from above.
+Clean integrated UI across top: currency icon + exact number "150" at upper left, then SIX unit cards with distinct defender portraits (four main types plus two variations) and exact costs left to right "25", "50", "50", "100", "150", "175". One card darkened for cooldown. Shovel icon at right end of bar. Bottom right: small wave progress bar with TWO flag markers. No words, no title, no labels, no watermark, no other text besides these numbers. Original cast only, no franchise characters, no sunflower, pea shooter, walnut, zombie or other Plants vs Zombies character designs. No realistic guns, blood or horror. Make a cohesive playable-looking screenshot rather than a poster or sheet of concepts.
+SCENE 02: tropical island beach, a wooden hut with coral fabric awnings outside the board at far LEFT. Alternating pale sand and ochre sand cells. A narrow teal surf strip runs vertically outside the RIGHT edge of the battlefield; crabs emerge from water at the right and move LEFT. Tiny distant palms and warm beach props frame the board without obstructing its grid.
+STYLE: authentic chunky low-resolution PS1-era LOW-POLY 3D videogame screenshot, rendered as if at 384x256 and upscaled exactly 4x nearest-neighbor to 1536x1024. Very visible crisp square pixels on EVERYTHING including UI and silhouettes, angular faceted meshes, FLAT SHADING, limited warm palette of sand, teal, coral and cream. NO smooth gradients, NO antialiasing, NO glossy modern 3D, NO thick black cartoon ink outlines, NO photographic textures. Orthographic elevated frontal camera with lanes parallel to horizontal screen edge, like a low-poly diorama gameplay board. Keep clear unit silhouettes and all units crisp.
+Defenders: squat crenellated sandcastle with small square turret aperture on RIGHT firing irregular sand balls; open chunky cream-and-pink clam that produces pearl currency; inverted turquoise beach bucket with coral handle as wall, no face needed; triangular watermelon-shaped explosive with little wooden fuse on top, red flesh and angular green rind. These four types dominate the playable board. Seven defenders in the stated layout.
+Enemies: angular coral crab walking LEFT with eyes and raised claws directed left; darker red crab wearing a ridged bottle cap as light helmet; purple hermit crab wearing an unbranded crumpled tin can as heavy shell. Six enemies in stated layout. No lettering on any can or prop.
+Currency: two bright cream pearls, one falling with short pixel sparkles. Emergency defense: FIVE spring-loaded coral beach spades pointing right, each beside its own row at the LEFT edge. UI: chunky wood-and-shell frames, coarse pixel-art portraits and highly legible pixel numerals; pearl counter 150, six costs 25 50 50 100 150 175, darkened fifth card, beach shovel icon. Two coral flag markers on a teal wave-progress bar bottom right. Layout must contain exactly five rows and nine columns, no extra border tiles counted as board cells.
+```
+
+## 03 — Cucina claymation
+File: `assets/concept/difesa/esplorazione_03.png`
+Tentativi: **1**, nessun rifacimento.
+Cast:
+- **Tostapane coraggioso**: lancia fette di toast verso destra.
+- **Zolletta dispensiera**: produce cubetti di zucchero.
+- **Pentola scudo**: muro robusto; nell’immagine è dritta e chiusa col coperchio.
+- **Popcorn a miccia**: esplode spargendo chicchi.
+- Nemici: formica semplice; formica con protezione arancione; scarafaggio buffo con scolapasta.
+- Valuta: zollette di zucchero luminose.
+- Ultima difesa: mattarello su molla, uno per corsia, da liberare e far rotolare.
+- Base: grande barattolo dei biscotti con biscotto in rilievo.
+Verifica visiva: argilla modellata, bordi morbidi e luce calda ben riusciti, sfondo notturno e piano nitido. Le impronte sono più sottili della richiesta. La pentola non è rovesciata e il tappo della formica sembra un berretto a coste; correggere questi due dettagli se si sceglie il concept. Il tostapane conserva la fessura superiore pur sparando lateralmente.
+Sprite: separare corpi, occhi, coperchio/manici e copricapi, toast, zollette, popcorn, mattarello e supporto, barattolo, piastrelle e UI; stessa vista frontale rialzata a 3/4, ombre su layer separato e luce coerente.
+
+### Prompt finale (inglese)
+```text
+Use case: stylized-concept. Deliver one finished fake gameplay screenshot, exactly 1536x1024 landscape (3:2), full bleed. Original family-friendly lane tower defense, instantly legible on a landscape phone. Fixed elevated frontal three-quarter camera, no rotation of the board: FIVE horizontal lanes running LEFT TO RIGHT, NINE columns, exactly 45 clearly distinguishable checkerboard cells. All five rows fully visible. Board occupies x=280..1410 y=265..900, horizontal row boundaries, slight depth visible on objects. Base OUTSIDE board on LEFT. Enemies enter from RIGHT and face LEFT. Stationary defenders face and shoot RIGHT. Make units large, strong clear silhouettes, contrasting against ground. Seven defenders: row1 column2 shooter, row2 column1 currency producer and column4 wall, row3 column3 shooter, row4 column2 special and column4 wall, row5 column1 currency producer. Six enemies: row1 column8 basic, row2 column7 light armor, row3 column9 heavy armor, row4 column8 basic, row5 column7 light armor and column9 heavy armor. Exactly one emergency last-defense device just left of EACH of the five rows, five total. Some projectiles traveling right, two glowing currency tokens, one visibly falling from above.
+Clean integrated UI across top: currency icon + exact number "150" at upper left, then SIX unit cards with distinct defender portraits (four main types plus two variations) and exact costs left to right "25", "50", "50", "100", "150", "175". One card darkened for cooldown. Shovel icon at right end of bar. Bottom right: small wave progress bar with TWO flag markers. No words, no title, no labels, no watermark, no other text besides these numbers. Original cast only, no franchise characters, no sunflower, pea shooter, walnut, zombie or other Plants vs Zombies character designs. No realistic guns, blood or horror. Make a cohesive playable-looking screenshot rather than a poster or sheet of concepts.
+SCENE 03: a kitchen countertop at NIGHT. The base is a large handmade biscuit jar at far LEFT outside the board, with a round lid and a cookie-shaped embossed decoration, NO lettering. Board consists of exactly five horizontal rows by nine columns of alternating muted dusty-blue and warm ivory ceramic countertop tiles, each cell clear. Background: dim navy kitchen backsplash, out-of-focus utensil silhouettes and a little warm practical lamp, no busy clutter.
+STYLE: tactile handmade PLASTICINE / CLAYMATION stop-motion miniature photographed on a real set. Every object including the UI is sculpted soft clay, visible thumbprints, little dents, rolled edges, subtle seams, charming imperfect shapes. Warm amber studio lamp from left, soft physical contact shadows, cool night background. Shallow depth of field ONLY on distant backdrop; the ENTIRE gameplay board and all characters and UI remain in clear focus. NO flat cartoon ink outlines, NO pixel art, NO polished plastic or metallic photorealism.
+Defenders: a squat coral-red clay toaster on stubby feet, eyes on side, its RIGHT-facing slot launching a golden toast slice horizontally RIGHT; a friendly chunky sugar cube with a tiny wooden scoop producing smaller glowing sugar cubes (not a flower); an inverted mustard-yellow cooking pot with two chunky handles and stubborn brows as a defensive wall; a round purple paper popcorn cup sculpted from clay with puffed kernels and a small sparking fuse, explosive special. Seven units in the prescribed cells, facing RIGHT, show two toast projectiles in flight.
+Enemies: friendly blue-black ant with bulbous segmented body and expressive eyes, clearly in SIDE PROFILE HEAD AT LEFT AND ABDOMEN AT RIGHT; same ant wearing an orange bottle-cap helmet; goofy plum cockroach with a chunky pale colander as heavy armor. Six enemies in prescribed cells, every enemy has its head on the LEFT side, walking toward biscuit jar. Funny, never scary.
+Currency: sugar cubes with warm glints, one falling from above with a short trail. Emergency devices: five little wooden rolling pins on simple spring stands, one immediately left of each lane, ready to roll RIGHT.
+UI hand-sculpted clay cream card frames on a warm brown clay bar: sugar cube icon and "150", six large miniature unit portraits with clearly molded dark numerals costs "25", "50", "50", "100", "150", "175", fifth card darkened. Small garden-shovel icon sculpted in clay at right of bar. Bottom right a recessed clay wave bar and exactly two little orange triangular flags on sticks. No labels or extra writing. Strong separation between bright food defenders and muted tile floor. All five horizontal lanes and nine columns countable.
+```

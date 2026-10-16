@@ -3,7 +3,7 @@
 // trascendenti non sono garantite identiche bit a bit tra motori. In packages/sim/src/dungeon/** sono VIETATI Math.sin/cos/tan/asin/acos/
 // atan/atan2/hypot/pow/exp/log/cbrt e l'operatore **: solo + − × ÷, Math.sqrt (arrotondata correttamente ovunque), floor/round/min/max/abs.
 // Le direzioni sono versori (fx, fz), non angoli. Lo controlla tools/check_static.mjs.
-import type { AttrId } from '@marea/content/rpg.ts';
+import type { AttrId, SpellElement } from '@marea/content/rpg.ts';
 import type { EquipSlot, HeroState, RunHero, RunOutcome, RunResult } from '../rpg/types.ts';
 import type { Rng } from '../rng.ts';
 import type { SwingStyle } from './swing.ts';
@@ -116,7 +116,7 @@ export type DungeonEvent = (
   | { t: 'terremoto'; x: number; z: number }
   | { t: 'catena'; da: [number, number]; a: [number, number] }
   /** Una bomba è atterrata e scoppia (raggio in m, elemento). */
-  | { t: 'scoppio'; x: number; z: number; r: number; el?: 'fuoco' | 'elettricita' }
+  | { t: 'scoppio'; x: number; z: number; r: number; el?: SpellElement }
   | { t: 'caricaMassima' }
   /** Diga dei Disertori: i rottami acuminati ti tagliano · un pilone fracassato dalla carica del Capitano · il Fuciliere spara · una
    *  cannonata della salva cade · la lancia del Capitano resta incastrata nelle assi. Vento in Poppa: una carica di Brezza in più (`n`
@@ -156,7 +156,7 @@ export type DungeonView = {
     /** Rallentato dal Tubo-strisciante (Drenaggio). */
     rallentato?: boolean;
     /** Magia a raggio accesa: lunghezza in m davanti all'eroe (già accorciata dal primo muro) ed elemento. */
-    canale?: { len: number; el?: 'fuoco' | 'elettricita' };
+    canale?: { len: number; el?: SpellElement };
     /** Archivio: nel vento che soffia (e ti sposta), al riparo dietro uno scaffale, spinto da fuori (arpione, raffica, bomba). */
     vento?: boolean; riparo?: boolean; spinto?: boolean;
     /** Fucina: brucia (fuoco addosso), sotto una cascata d'acqua. */
@@ -196,7 +196,7 @@ export type DungeonView = {
     /** Grandi Magie: la magia è più grande di questo fattore (assente = 1). */
     mole?: number;
     /** Magie: elemento; bomba: dove atterra (x, z) e raggio dello scoppio in m (il client disegna il cerchio a terra). */
-    el?: 'fuoco' | 'elettricita'; bomba?: [number, number]; r?: number }[];
+    el?: SpellElement; bomba?: [number, number]; r?: number }[];
   bottini: { id: number; x: number; z: number; tipo: 'cadavere' | 'forziere' | 'libro'; vuoto: boolean }[];
   uscita: { x: number; z: number };
   vicinoUscita: boolean;
@@ -242,7 +242,7 @@ export type DungeonView = {
 /** Un compagno visto da me: posa per l'avatar, vita per la barra, finito (uscito, caduto, andato via) = non si disegna più. */
 export type CompagnoView = {
   i: number; x: number; z: number; fx: number; fz: number; anim: HeroAnim; t: number; carica: number; stile?: SwingStyle;
-  vita: number; max: number; arma: string | null; magia?: string; canale?: { len: number; el?: 'fuoco' | 'elettricita' }; protetto: boolean; done: boolean; outcome: RunOutcome | null;
+  vita: number; max: number; arma: string | null; magia?: string; canale?: { len: number; el?: SpellElement }; protetto: boolean; done: boolean; outcome: RunOutcome | null;
 };
 
 /** Il modulo della spedizione da solo. Insieme (#118): createParty / stepParty / actParty di dungeon.ts; act, result, view e autopilot
