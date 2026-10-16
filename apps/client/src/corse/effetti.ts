@@ -143,8 +143,9 @@ export function creaLinee(root: HTMLElement): { disegna(forza: number, colore: s
 }
 
 /** La minimappa nell'angolo (come #mzGpMappa del Gran Premio): la pista vista dall'alto, Nord in alto, e un quadratino per veicolo. */
-export function creaMinimappa(root: HTMLElement): { pista(p: Pista): void; disegna(punti: { x: number; z: number; colore: string; tu: boolean }[]): void; el: HTMLCanvasElement } {
-  const W = 112, H = 86, el = document.createElement('canvas');
+/** `kart` (#276): il look delle schermate di gara, grande e liscio (pista bianca spessa, pallini col bordo bianco) dentro il pannello a vetro. */
+export function creaMinimappa(root: HTMLElement, kart = false): { pista(p: Pista): void; disegna(punti: { x: number; z: number; colore: string; tu: boolean }[]): void; el: HTMLCanvasElement } {
+  const W = kart ? 444 : 112, H = kart ? 310 : 86, M = kart ? 44 : 12, el = document.createElement('canvas');
   el.width = W; el.height = H; el.id = 'ppMappa'; el.className = 'pp-mappa';
   root.appendChild(el);
   const g = el.getContext('2d');
@@ -156,26 +157,40 @@ export function creaMinimappa(root: HTMLElement): { pista(p: Pista): void; diseg
       const linee = [p.n, ...p.rami.map((r) => r.n)];
       let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
       for (const n of linee) for (let i = 0; i < n.n; i++) { x0 = Math.min(x0, n.x[i]!); x1 = Math.max(x1, n.x[i]!); z0 = Math.min(z0, n.z[i]!); z1 = Math.max(z1, n.z[i]!); }
-      const k = Math.min((W - 12) / Math.max(1, x1 - x0), (H - 12) / Math.max(1, z1 - z0));
+      const k = Math.min((W - M) / Math.max(1, x1 - x0), (H - M) / Math.max(1, z1 - z0));
       const ox = (W - (x1 - x0) * k) / 2, oz = (H - (z1 - z0) * k) / 2;
       mx = (x) => ox + (x - x0) * k; mz = (z) => oz + (z - z0) * k;
       g.clearRect(0, 0, W, H);
-      linee.forEach((n, j) => {
-        g.strokeStyle = j ? P.sabbia : P.pietraChiara; g.lineWidth = j ? 2 : 3; g.beginPath();
+      const traccia = (n: (typeof linee)[number]) => {
+        g.beginPath();
         for (let i = 0; i < n.n; i += 2) { if (i) g.lineTo(mx(n.x[i]!), mz(n.z[i]!)); else g.moveTo(mx(n.x[i]!), mz(n.z[i]!)); }
         if (n.chiuso) g.closePath();
         g.stroke();
-      });
+      };
+      if (kart) {
+        g.lineJoin = g.lineCap = 'round';
+        g.strokeStyle = 'rgba(18,48,110,.45)'; g.lineWidth = 22; linee.forEach(traccia);
+        linee.forEach((n, j) => { g.strokeStyle = j ? 'rgba(255,255,255,.75)' : '#ffffff'; g.lineWidth = j ? 9 : 14; traccia(n); });
+      } else linee.forEach((n, j) => { g.strokeStyle = j ? P.sabbia : P.pietraChiara; g.lineWidth = j ? 2 : 3; traccia(n); });
       // il traguardo
       const v = p.n, iv = Math.round(p.def.via / v.passo) % v.n;
-      g.fillStyle = P.giallo; g.fillRect(Math.round(mx(v.x[iv]!)) - 2, Math.round(mz(v.z[iv]!)) - 2, 4, 4);
+      if (kart) {
+        const cx = mx(v.x[iv]!), cz = mz(v.z[iv]!);
+        for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) { g.fillStyle = (a + b) % 2 ? '#12306e' : '#ffffff'; g.fillRect(cx - 9 + a * 6, cz - 9 + b * 6, 6, 6); }
+      } else { g.fillStyle = P.giallo; g.fillRect(Math.round(mx(v.x[iv]!)) - 2, Math.round(mz(v.z[iv]!)) - 2, 4, 4); }
       fondo = g.getImageData(0, 0, W, H);
     },
     disegna(punti) {
       if (!g || !fondo) return;
       g.putImageData(fondo, 0, 0);
       for (let i = punti.length - 1; i >= 0; i--) {
-        const q = punti[i]!, r = q.tu ? 3 : 2;
+        const q = punti[i]!;
+        if (kart) {
+          g.beginPath(); g.arc(mx(q.x), mz(q.z), q.tu ? 16 : 11, 0, Math.PI * 2);
+          g.fillStyle = q.tu ? '#e8433f' : q.colore; g.fill(); g.lineWidth = q.tu ? 5 : 4; g.strokeStyle = '#ffffff'; g.stroke();
+          continue;
+        }
+        const r = q.tu ? 3 : 2;
         g.fillStyle = q.tu ? P.neroCaldo : q.colore; g.fillRect(Math.round(mx(q.x)) - r - (q.tu ? 1 : 0), Math.round(mz(q.z)) - r - (q.tu ? 1 : 0), r * 2 + (q.tu ? 2 : 0), r * 2 + (q.tu ? 2 : 0));
         if (q.tu) { g.fillStyle = q.colore; g.fillRect(Math.round(mx(q.x)) - r, Math.round(mz(q.z)) - r, r * 2, r * 2); }
       }

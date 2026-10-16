@@ -155,7 +155,10 @@ export default async function (ctx) {
       assert(r.detail.giri === r.detail.tot && r.detail.pos >= 1 && r.detail.pos <= 5, 'esito: ' + JSON.stringify(r));
       if (r.premiata) for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] >= before[k] + r.premio[k], `${k} non pagato`);
       const txt = await page.locator('#mzEsito').innerText();
-      assert(/° su 5/.test(txt) && /giro migliore/.test(txt), 'scheda: ' + txt);
+      // la schermata dei risultati (#276): titolo, 5 righe (tu e 4 bot), la tua in giallo, il giro migliore
+      const righe = await page.locator('#mzEsito .kr-riga').count(), mia = await page.locator('#mzEsito .kr-riga.tu .n').innerText();
+      assert(/RISULTATI/.test(txt) && /giro migliore/i.test(txt) && righe === 5 && Number(mia) === r.detail.pos, `risultati: ${righe} righe, tu ${mia}° (server ${r.detail.pos}°) · ${txt.replace(/\s+/g, ' ').slice(0, 200)}`);
+      assert(s.corse.risultati === true, 'sotto i risultati la gara non è rimasta ferma all\'arrivo');
       await sleep(300);
       await ctx.shot(page, 'telefono_5_esito');
       await hook('corseAuto', 0);

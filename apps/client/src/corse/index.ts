@@ -7,7 +7,7 @@
 // (SchermoGioco con step/update, come Consegne): minigiochi gli passa un input per tick e il mondo intanto sta fermo (hub compreso).
 // La resa della gara è `vista_gara.ts`: veicoli veri, animali piloti, l'avatar MAREA al volante.
 // Comandi (gara e hub): da PC A/D o frecce sterzano, W/↑ gas (o «gas automatico»), S/↓ frena, Spazio DRIFT. Col dito (10 ott, Riccardo)
-// lo stick sterza e basta: GAS grande nell'angolo, DRIFT accanto (tiene anche il gas), FRENO sopra. Partenza razzo: tieni il gas
+// lo stick sterza e basta: GAS grande nell'angolo, DRIFT sopra (tiene anche il gas), FRENO accanto (#276). Partenza razzo: tieni il gas
 // quando compare l'1. Telefono: in orizzontale (avviso «ruota il telefono»).
 import * as THREE from 'three';
 import { CORSE_PISTE } from '@marea/content/corse.ts';
@@ -28,6 +28,9 @@ import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { avvisoRuota } from './avviso_ruota.ts';
 import { creaSalaAmici } from './amici.ts';
 import { creaVistaGara } from './vista_gara.ts';
+import type { RigaArrivo } from './vista_gara.ts';
+import { ICONA, stileKart } from './stile_kart.ts';
+import { vestiRisultati } from './risultati.ts';
 import { creaUsa } from './oggetti3d.ts';
 import { creaSchermoHub } from './hub/index.ts';
 import type { IdPorta } from './hub/mappa.ts';
@@ -51,10 +54,7 @@ body.mz-gp #mzTrag, body.mz-gp .mz-play { display: none !important; }
   font: bold 20px ui-monospace, Menlo, monospace; z-index: 14; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .mz-gp-gas.giu { transform: scale(.92); filter: brightness(1.25); }
 body.mz-gp.mz-dito .mz-gp-gas { display: flex; }
-body.mz-gp.mz-dito #btnA { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 110px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
-  width: 82px !important; height: 82px !important; font-size: 15px !important; }
-body.mz-gp.mz-dito #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + 22px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 128px) !important;
-  width: 60px !important; height: 60px !important; font-size: 11px !important; }
+/* DRIFT e FRENO col dito: posti e look in stile_kart.ts (#276, sopra il GAS come nella reference) */
 `;
 
 type Fase = 'gara' | 'fine';
@@ -68,6 +68,7 @@ type Run = {
 /** `gioca(opzioni)` (da minigiochi.ts): fa partire una gara dall'hub, con le opzioni scelte alla porta (server, replay, premio come sempre). */
 export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: GameWorld; gioca?: (opzioni: Record<string, string>) => Promise<void> }): SchermoGioco {
   if (!document.getElementById('mz-gp-style')) { const st = document.createElement('style'); st.id = 'mz-gp-style'; st.textContent = CSS; document.head.appendChild(st); }
+  stileKart();
   const stop = (e: Event) => e.stopPropagation();
   const ruota = avvisoRuota(o.root, false);
 
@@ -101,7 +102,8 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   let pixel = true; // #281 (Jack, 13 ott sera): le Corse tornano pixel come il resto del mondo; tasto H = HD, per confrontare
   // ---- GAS (solo col dito): tenuto = gas a fondo; DRIFT tenuto dà gas anche lui (un pollice solo scivola da GAS a DRIFT) ----
   const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-  const gasBtn = el('button', 'mz-gp-gas', 'GAS') as HTMLButtonElement; gasBtn.type = 'button'; gasBtn.id = 'mzGpGas';
+  const gasBtn = el('button', 'mz-gp-gas') as HTMLButtonElement; gasBtn.type = 'button'; gasBtn.id = 'mzGpGas';
+  gasBtn.innerHTML = `<i>${ICONA.gas}</i><span>GAS</span>`; // look kart (#276): frecce e scritta, il giallo lo dà stile_kart
   const gasGiu = new Set<number>();
   const gasPinta = () => gasBtn.classList.toggle('giu', gasGiu.size > 0);
   gasBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); gasGiu.add(e.pointerId); try { gasBtn.setPointerCapture(e.pointerId); } catch { /* sintetico */ } gasPinta(); });
@@ -124,7 +126,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     if (run || !o.gioca) return;
     const opz = opzioniGara({ pista: pt.pista, veicolo: veicoloPer({ ...scelta, pista: pt.pista }), bot: pt.bot ? '1' : '0', oggetti: pt.oggetti ? '1' : '0', posto: String(pt.io) });
     hub.messaggio('Si parte…', 30);
-    void o.gioca(opz).finally(() => { if (hub.aperto() && !run && hub.info().fermo) { sala.chiudi(); hub.riprendi(portaGara); } });
+    void o.gioca(opz).finally(() => { if (hub.aperto() && !run && !arrivo && hub.info().fermo) { sala.chiudi(); hub.riprendi(portaGara); } });
   };
 
   // ---- l'hub (#185): l'isola aperta che si gira col veicolo; dalla porta della Spiaggia partono le gare ----
@@ -138,7 +140,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
         if (opz['amici']) { sala.apri(opz['pista']!, scelta.veicolo); return; } // la sala: la gara la fa partire `onParte`
         hub.messaggio('Si parte…', 30);
         // la partita: minigiochi apre la gara sul server e chiama `run`; se non parte (server giù) `annulla` rimette l'hub
-        void o.gioca(opz).finally(() => { if (hub.aperto() && !run && hub.info().fermo) hub.riprendi(p.id); });
+        void o.gioca(opz).finally(() => { if (hub.aperto() && !run && !arrivo && hub.info().fermo) hub.riprendi(p.id); });
       });
     },
     veicolo: (id) => { scelta.veicolo = id; salvaScelta(scelta); },
@@ -170,6 +172,20 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
 
   // ---- partita ----
   let run: Run | null = null, autoSpeed = FLAGS.autopilot ? 4 : 0;
+  /** Gara finita, risultati aperti (#276): la gara resta ferma all'arrivo sotto la schermata; si smonta quando la scheda si chiude. */
+  let arrivo: { righe: RigaArrivo[]; giro: number | null; s: GaraState; auto: boolean } | null = null;
+  /** Smonta la gara finita: via pista e veicoli, la camera com'era, di nuovo nell'hub davanti alla porta (o nel mondo). */
+  function smonta(): void {
+    arrivo = null;
+    vista.chiudi();
+    const c = o.renderer.camera; c.fov = fov0.fov; c.far = fov0.far; c.near = fov0.near; c.updateProjectionMatrix();
+    if (hub.aperto()) { // di nuovo nell'hub, davanti alla porta
+      hub.messaggio(null); hub.riprendi(portaGara); o.renderer.setScene(hub.scene); ultimo = performance.now();
+    } else {
+      ruota.attiva(false); document.body.classList.remove('mz-gp'); setTopbarHidden(false); pulsanti(false);
+      o.renderer.setScene(null); o.renderer.diorama.snap?.(); o.renderer.setNitido?.(null);
+    }
+  }
   let last: { ticks: number; rows: number; result: unknown; cancelled: boolean; pista: string } | null = null;
   let btnA: string | null = null, btnB: string | null = null;
   /** La riga dell'esito di una gara tra amici («2° su 3 tra amici»), letta una volta da `esito`. */
@@ -216,7 +232,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   };
   const pulsanti = (on: boolean) => {
     const a = document.getElementById('btnA'), b = document.getElementById('btnB');
-    if (on) { if (a) { btnA ??= a.textContent; a.textContent = 'DRIFT'; a.style.fontSize = '17px'; } if (b) { btnB ??= b.textContent; b.textContent = 'FRENO'; b.style.fontSize = '13px'; } }
+    if (on) { if (a) { btnA ??= a.textContent; a.innerHTML = `<i>${ICONA.drift}</i><span>DRIFT</span>`; a.style.fontSize = '17px'; } if (b) { btnB ??= b.textContent; b.innerHTML = `<i>${ICONA.freno}</i><span>FRENO</span>`; b.style.fontSize = '13px'; } }
     else {
       gasGiu.clear(); gasPinta(); if (a && btnA !== null) { a.textContent = btnA; a.style.fontSize = ''; } if (b && btnB !== null) { b.textContent = btnB; b.style.fontSize = ''; } btnA = btnB = null; }
   };
@@ -235,16 +251,13 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
           finish(v) {
             if (run !== r) return;
             run = null;
-            vista.chiudi(); usa.mostra(false);
+            usa.mostra(false); quit.classList.remove('on');
+            const righe = vista.classificaFinale(r.amici ? sala.amici() : []);
             if (r.amici) sala.chiudi(); // si esce dalla sala: per la rivincita si rientra dalla porta
-            quit.classList.remove('on');
-            const c = o.renderer.camera; c.fov = fov0.fov; c.far = fov0.far; c.near = fov0.near; c.updateProjectionMatrix();
-            if (hub.aperto()) { // di nuovo nell'hub, davanti alla porta (la scheda dell'esito arriva sopra)
-              hub.messaggio(null); hub.riprendi(portaGara); o.renderer.setScene(hub.scene); ultimo = performance.now();
-            } else {
-              ruota.attiva(false); document.body.classList.remove('mz-gp'); setTopbarHidden(false); pulsanti(false);
-              o.renderer.setScene(null); o.renderer.diorama.snap?.(); o.renderer.setNitido?.(null);
-            }
+            if (v && !r.ritirato) { // arrivati: la gara resta ferma sotto i risultati, si smonta con `esitoChiuso`
+              arrivo = { s: r.s, auto: r.auto, righe, giro: CORSE_PISTE[r.s.pista]?.tipo === 'fuga' ? null : Number(r.esito?.detail['giro'] ?? 0) || null };
+              vista.interfaccia(false); document.body.classList.add('mz-kh-fine');
+            } else smonta();
             last = { ticks: r.frames.length, rows: v?.length ?? 0, result: r.esito ?? garaCorse.result(r.s), cancelled: !v, pista: r.s.pista };
             console.log(`[marea] gran premio ${v ? 'finito' : 'annullato'}: ${r.frames.length} tick, ${v?.length ?? 0} righe`);
             resolve(v);
@@ -260,6 +273,13 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
       });
     },
     isOpen: () => !!run || !!pannelli.aperto() || sala.aperta() || hub.aperto(),
+    // la schermata dei risultati (#276) al posto della scheda marrone: classifica d'arrivo, premi e i bottoni della scheda
+    scheda(el, d) {
+      if (!arrivo) return false;
+      vestiRisultati(el, { righe: arrivo.righe, giroMigliore: arrivo.giro, premio: d.premio, nota: d.note, again: d.again, ok: d.ok });
+      return true;
+    },
+    esitoChiuso() { if (arrivo) smonta(); },
     esito: (d) => {
       const n = (k: string) => (typeof d[k] === 'number' ? (d[k] as number) : 0);
       const amici = ultimaAmici; ultimaAmici = null;
@@ -294,10 +314,11 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
       }
     },
     update(_t, alpha = 1) {
-      const r = run; if (!r && !hub.aperto()) return;
+      const r = run; if (!r && !hub.aperto() && !arrivo) return;
       setTopbarHidden(true); // main.ts la rimette a posto ogni frame prima di noi
       const now = performance.now(), dt = Math.min(0.1, (now - ultimo) / 1000); ultimo = now;
       hdControlla(dt);
+      if (!r && arrivo) { vista.aggiorna(arrivo.s, dt, { cam: scelta.cam, effetti: true, auto: arrivo.auto, gasAuto: scelta.gasAuto, fine: true, succo: true, alpha: 1 }); return; } // la camera resta sul kart all'arrivo
       if (!r) {
         const pa = palco.attivo();
         if (pa !== suPalco) { suPalco = pa; o.renderer.setScene(pa ? palco.scene : hub.scene); }
@@ -311,7 +332,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
 
   registerStateProvider('corse', () => {
     const r = run;
-    if (!r) return { active: false, scelta: pannelli.aperto() === 'piste', garage: pannelli.aperto() === 'garage', hub: hub.info(), last, pista: scelta.pista, veicolo: scelta.veicolo, sala: sala.info() };
+    if (!r) return { active: false, risultati: !!arrivo, scelta: pannelli.aperto() === 'piste', garage: pannelli.aperto() === 'garage', hub: hub.info(), last, pista: scelta.pista, veicolo: scelta.veicolo, sala: sala.info() };
     const v = garaCorse.view(r.s) as GaraView, k = r.s.veicoli[0]!;
     const og = r.s.oggetti;
     return { active: true, hd: pixel ? null : GRADINI[hd.gradino], hub: { aperto: hub.aperto() }, amici: r.amici, oggetti: og ? { tasca: og.tasche[0]!.ogg, usati: og.usati[0], presi: og.presi[0], scatole: og.scatole.length, bottone: usa.el.style.display } : null, sala: sala.info(), fase: r.fase, auto: r.auto, pista: r.s.pista, veicolo: k.id, frames: r.frames.length, tick: r.s.tick, giro: v.giro, pos: v.posizioni[0], ms: v.ms, done: v.done, v: Math.round(k.v * 10) / 10, drift: k.drift, vista: vista.info(), last };

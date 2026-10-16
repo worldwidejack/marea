@@ -42,6 +42,7 @@ const CSS = `.pp-ogg { position: absolute; top: calc(max(8px, env(safe-area-inse
 .pp-ogg small { font-size: 11px; color: ${P.sabbia}; margin-left: 6px; }
 .pp-ogg img, .pp-usa img { image-rendering: pixelated; display: block; }
 .pp-ogg img { display: inline-block; vertical-align: middle; margin: -6px 8px -6px -2px; }
+.pp-ogg .ic { font-style: normal; } .pp-ogg .tag, .pp-ogg .n { display: none; }
 .pp-usa { flex-direction: column; gap: 2px; }
 .pp-ogg.gira { color: ${P.sabbia}; }
 .pp-usa { position: absolute; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 118px); bottom: calc(env(safe-area-inset-bottom, 0px) + 112px); width: 72px; height: 72px; border-radius: 50%;
@@ -154,19 +155,25 @@ export function creaOggetti3d(root: HTMLElement): Oggetti3d {
     Q.setFromRotationMatrix(M).multiply(Q2.setFromAxisAngle(V.set(0, 1, 0), giro));
     return M.compose(V.set(P3[0], P3[1], P3[2]), Q, S.setScalar(scala));
   }
+  /** La casella: icona, nome (nel look kart si vede solo l'icona grande), cariche, targhetta (USA col dito, Q da tastiera) e il suggerimento. */
   function casellaHtml(o: OggettiState) {
     const tu = o.tasche[0]!;
-    if (!mostra || (!tu.ogg && tu.scudo <= 0)) { casella.style.display = 'none'; return; }
+    if (!mostra) { casella.style.display = 'none'; return; }
     casella.style.display = 'block';
+    const kart = document.body.classList.contains('mz-kh'), tag = `<b class="tag">${dito ? 'USA' : 'Q'}</b>`;
     let html: string;
-    if (tu.roulette > 0) { // la roulette: nomi a giro, sempre più lenti
+    if (!tu.ogg && tu.scudo <= 0) { // tasca vuota: nel look kart la casella resta (vuota), come in Mario Kart; prima spariva
+      if (!kart) { casella.style.display = 'none'; return; }
+      html = '<i class="ic"></i>'; casella.className = 'pp-ogg vuota';
+    } else if (tu.roulette > 0) { // la roulette: nomi a giro, sempre più lenti
       const ids = o.pesca, i = Math.floor(t * (6 + tu.roulette * 10)) % ids.length;
-      html = `${img(ids[i]!, 26)}${NOMI[ids[i]!]!}`; casella.className = 'pp-ogg gira'; casella.style.borderColor = P.legnoChiaro;
+      html = `<i class="ic">${img(ids[i]!, 26)}</i><span class="nm">${NOMI[ids[i]!]!}</span>${kart ? tag : ''}`; casella.className = 'pp-ogg gira'; casella.style.borderColor = P.legnoChiaro;
     } else if (tu.ogg) {
       const d = oggettoDef(tu.ogg);
       const parti = d.effetto === 'turbo' || d.effetto === 'scudo' ? '' : dietroDiSerie(tu.ogg) ? (dito ? 'stick ↑ avanti' : 'Q dietro · R avanti') : dito ? 'stick ↓ indietro' : 'Q avanti · R indietro';
-      html = `${img(tu.ogg, 26)}${NOMI[tu.ogg]}${tu.cariche > 1 ? ` ×${tu.cariche}` : ''}${parti || !dito ? `<small>${parti || 'Q'}</small>` : ''}`; casella.className = 'pp-ogg'; casella.style.borderColor = COLORE[d.effetto]!;
-    } else { html = `${img('scudo', 26)}SALVAGENTE <small>${Math.ceil(tu.scudo)} s</small>`; casella.className = 'pp-ogg'; casella.style.borderColor = COLORE.scudo!; }
+      html = `<i class="ic">${img(tu.ogg, 26)}</i><span class="nm">${NOMI[tu.ogg]}${tu.cariche > 1 ? ` ×${tu.cariche}` : ''}</span>${kart && tu.cariche > 1 ? `<b class="n">×${tu.cariche}</b>` : ''}${kart ? tag : ''}${parti || (!dito && !kart) ? `<small>${parti || 'Q'}</small>` : ''}`;
+      casella.className = 'pp-ogg'; casella.style.borderColor = COLORE[d.effetto]!;
+    } else { html = `<i class="ic">${img('scudo', 26)}</i><span class="nm">SALVAGENTE </span>${kart ? `<b class="n">${Math.ceil(tu.scudo)}</b>` : `<small>${Math.ceil(tu.scudo)} s</small>`}`; casella.className = 'pp-ogg'; casella.style.borderColor = COLORE.scudo!; }
     if (html !== ultimo) { casella.innerHTML = html; ultimo = html; }
   }
 
