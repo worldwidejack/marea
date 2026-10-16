@@ -59,7 +59,7 @@ _I limiti non sono un dictat: si possono alzare quando serve ed è sensato (Jack
 | Kit delle zone dell'Isola delle Corse (`manifest_corse.json`, scaricato aprendo una pista vestita) | ≤ 2,5 MB (era 0,6: Spiaggia e porto 0,2 MB + 20 veicoli e piloti 1,4 MB, deviazione del 9 ott 2026) |
 | Draw call per frame | ≤ 100 |
 | Triangoli a schermo | ≤ 200.000 (150.000 fino al Borgo Marea, #237; 180.000 fino alla città attorno al Porto, #247: si torna giù con case più leggere; Corse 180.000 dai veicoli AI 3D, #281) |
-| Texture in VRAM | ≤ 16 MB |
+| Texture in VRAM | ≤ 16 MB (eccezione: le ondate dei Templari col dipinto, ~100 MB da PC e ~25 MB al telefono, `TEMPLARI.md` §3b) |
 | Shadow map | 1 × 1024² (o blob) |
 | FPS | 60 su iPhone 12+, ≥ 45 su Android medio, mai < 30 |
 Il `perf` test legge `window.__game.perf()` (draw call, triangoli, fps) durante 20 s di navigazione.
