@@ -1,0 +1,17 @@
+
+IL TUO GRUPPO: G1 (schermate 01, 02, 03). File di note: assets/concept/difesa/codex/NOTE-g1.md
+
+01 → assets/concept/difesa/esplorazione_01.png
+AMBIENTAZIONE: l'orto dietro casa. Base: la casetta degli attrezzi. Campo: zolle di terra e erba a scacchi tra due staccionate.
+Difensori: ortaggi e attrezzi dell'orto (es. una carota-cannone che spara rondelle, una zucca che fa cadere semi d'oro, un cavolo enorme come muro, un peperoncino che esplode). Nemici: lumache e insetti (lumaca semplice; lumaca con un ditale/ghianda in testa; scarabeo con un vasetto di latta come elmo). Valuta: semi d'oro. Ultima difesa: un annaffiatoio a molla.
+STILE: cartoon 2D a CONTORNI NERI SPESSI, colori pieni e saturi, ombre a campitura, alla serie animata del sabato mattina. È l'opzione più vicina al look di PvZ, ma col cast nuovo.
+
+02 → assets/concept/difesa/esplorazione_02.png
+AMBIENTAZIONE: la spiaggia di un'isola. Base: una capanna di legno coi teli. Campo: sabbia a scacchi chiaro/scuro con la riga del bagnasciuga in fondo a destra, da dove arrivano i nemici dall'acqua.
+Difensori: castelli di sabbia con la torretta che spara palline di sabbia, una conchiglia che fa perle, un secchiello rovesciato come muro, un'anguria che esplode. Nemici: granchi (granchio semplice; con un tappo di bottiglia in testa; paguro con un guscio di lattina). Valuta: perle. Ultima difesa: una paletta da spiaggia a molla.
+STILE: 3D LOW-POLY A PIXEL GROSSI come un gioco PS1 renderizzato a bassa risoluzione: poligoni piatti con flat shading, palette limitata e calda (sabbia, teal, corallo, crema), pixel visibili e nitidi, niente texture fotografiche, niente sfumature lisce. È lo stile del resto del mondo di MAREA.
+
+03 → assets/concept/difesa/esplorazione_03.png
+AMBIENTAZIONE: il bancone di una cucina di notte. Base: il barattolo dei biscotti. Campo: piastrelle a scacchi del piano di lavoro.
+Difensori: cibi e utensili coraggiosi (un tostapane che spara toast, una zolletta di zucchero che produce zollette, una pentola rovesciata come muro, un peperoncino o un popcorn che scoppia). Nemici: formiche e cibo ribelle (formica semplice; formica con un tappo di bottiglia come elmo; scarafaggio buffo con uno scolapasta in testa). Valuta: zollette di zucchero. Ultima difesa: un mattarello che rotola.
+STILE: PLASTILINA / CLAYMATION da stop-motion: tutto modellato in plastilina, impronte delle dita visibili, bordi morbidi, luce calda da set fotografico, piccola profondità di campo.

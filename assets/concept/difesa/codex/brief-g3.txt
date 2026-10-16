@@ -1,0 +1,17 @@
+
+IL TUO GRUPPO: G3 (schermate 07, 08, 09). File di note: assets/concept/difesa/codex/NOTE-g3.md
+
+07 → assets/concept/difesa/esplorazione_07.png
+AMBIENTAZIONE: una sala giochi anni '90 di notte. Base: un cabinato arcade acceso. Campo: moquette fluorescente a scacchi.
+Difensori: macchine della sala giochi (un robottino che spara laser, una gettoniera che fa gettoni, un joystick gigante come muro, una pallina da flipper che esplode). Nemici: virus e glitch (blob glitch semplice; virus con un caschetto di pixel; virus corazzato a cubi). Valuta: gettoni. Ultima difesa: un robot aspirapolvere.
+STILE: PIXEL ART 16 BIT come un gioco SNES: pixel nitidi e grandi, palette limitata neon (magenta, ciano, giallo su blu notte), contorni a pixel, nessuna sfumatura liscia, dithering solo dove serve.
+
+08 → assets/concept/difesa/esplorazione_08.png
+AMBIENTAZIONE: il cortile di un tempio nella giungla. Base: la porta del tempio con due statue. Campo: lastre di pietra a scacchi con l'erba tra le fughe, liane ai lati.
+Difensori: statuette e totem (un totem che spara dardi, un idolo d'oro che fa gemme, uno scudo di pietra scolpita come muro, una noce di cocco che esplode). Nemici: scheletri buffi e simpatici (scheletrino semplice; scheletro con mezzo cocco in testa; scheletro con un'armatura di pietra). Valuta: gemme verdi. Ultima difesa: un masso rotondo che rotola.
+STILE: 3D CARTOON da film d'animazione: render 3D morbido, materiali lisci e saturi, luce calda del sole tra le foglie, personaggi tondi ed espressivi (qualità da cinema d'animazione ma con un design originale).
+
+09 → assets/concept/difesa/esplorazione_09.png
+AMBIENTAZIONE: un villaggio al polo. Base: un igloo. Campo: neve e lastre di ghiaccio a scacchi.
+Difensori: pupazzi e cose del polo (un pupazzo di neve che lancia palle di neve, un pinguino che fa cristalli, un blocco di ghiaccio come muro, una palla di neve gigante che esplode). Nemici: piccoli yeti pelosi (yeti semplice; yeti con un paraorecchie; yeti con un'armatura di ghiaccio). Valuta: cristalli di ghiaccio. Ultima difesa: una slitta.
+STILE: VOXEL: tutto fatto di cubetti come in MagicaVoxel, colori pastello freddi con accenti caldi, luce morbida e ombre leggere, aspetto da diorama giocattolo.

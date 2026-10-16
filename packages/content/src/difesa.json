@@ -1,0 +1,67 @@
+{
+  "campo": {
+    "corsie": 5,
+    "colonne": 9,
+    "ingresso": 9.55,
+    "ingressoCaso": 0.45,
+    "bandieraIndietro": 0.5,
+    "visibile": 9.0,
+    "tosaerba": -0.3,
+    "casa": -0.75
+  },
+  "profili": {
+    "pvz": {
+      "economia": {
+        "iniziale": 50,
+        "inizialeTutorial": 150,
+        "cielo": { "primo": [4.25, 7], "base": 4.25, "passo": 0.1, "max": 9.5, "caso": 2.75, "valore": 25, "cade": 0.67 },
+        "aTerra": 7.5
+      },
+      "unita": {
+        "sparatore": { "costo": 100, "ricarica": 7.5, "vita": 300, "tipo": "tiro", "danno": 20, "cadenza": 1.5, "cadenzaCaso": 0.15, "colpoVel": 4.16, "gelo": false },
+        "produttore": { "costo": 50, "ricarica": 7.5, "vita": 300, "tipo": "produce", "primo": [3, 12.5], "ogni": [23.5, 25], "valore": 25 },
+        "bomba": { "costo": 150, "ricarica": 50, "ricaricaInizio": 35, "vita": 300, "tipo": "bomba", "miccia": 1.0, "danno": 1800, "corsie": 1, "caselle": 1.5 },
+        "muro": { "costo": 50, "ricarica": 30, "ricaricaInizio": 20, "vita": 4000, "tipo": "muro" },
+        "mina": { "costo": 25, "ricarica": 30, "ricaricaInizio": 20, "vita": 300, "tipo": "mina", "arma": 15, "danno": 1800, "caselle": 0.9 },
+        "gelo": { "costo": 175, "ricarica": 7.5, "vita": 300, "tipo": "tiro", "danno": 20, "cadenza": 1.5, "cadenzaCaso": 0.15, "colpoVel": 4.16, "gelo": true }
+      },
+      "nemici": {
+        "base": { "vita": 270, "armatura": 0, "passo": [0.135, 0.188], "punti": 1, "peso": 4000, "dallOndata": 1 },
+        "bandiera": { "vita": 270, "armatura": 0, "passo": [0.264, 0.264], "punti": 1, "peso": 0, "dallOndata": 1 },
+        "cono": { "vita": 270, "armatura": 370, "passo": [0.135, 0.188], "punti": 2, "peso": 4000, "dallOndata": 1 },
+        "saltatore": { "vita": 500, "armatura": 0, "passo": [0.135, 0.188], "corsa": [0.388, 0.4], "salto": 1.0, "punti": 2, "peso": 2000, "dallOndata": 5 },
+        "secchio": { "vita": 270, "armatura": 1100, "passo": [0.135, 0.188], "punti": 4, "peso": 3000, "dallOndata": 1 }
+      },
+      "morso": 100,
+      "testa": { "soglia": 0.3333, "dopo": 1.0 },
+      "gelo": { "durata": 10, "passo": 0.5, "morso": 0.5 },
+      "ondate": {
+        "prima": 18,
+        "tra": [25, 31],
+        "anticipo": { "dopo": 4, "soglia": [0.5, 0.65], "conto": 2 },
+        "bandiera": { "ogni": 10, "molt": 2.5, "baseMax": 8, "avviso": 7.5 },
+        "budget": { "diviso": 3, "piu": 1 },
+        "sopravvivenza": { "molt": 2, "diviso": 5, "piu": 1 }
+      },
+      "pieta": [0.01, 0.5],
+      "tosaerba": { "vel": 3.3 }
+    },
+    "marea": {}
+  },
+  "livelli": [
+    { "id": 1, "nome": "Il primo giorno", "corsie": [2], "carte": ["sparatore"], "nuova": "sparatore", "ondate": 4, "nemici": ["base"], "intro": null, "tutorial": true, "primaOndata": 18 },
+    { "id": 2, "nome": "Arriva il raccolto", "corsie": [1, 2, 3], "carte": ["sparatore", "produttore"], "nuova": "produttore", "ondate": 6, "nemici": ["base"], "intro": null, "tutorial": false, "primaOndata": 50 },
+    { "id": 3, "nome": "Il botto", "corsie": [1, 2, 3], "carte": ["sparatore", "produttore", "bomba"], "nuova": "bomba", "ondate": 8, "nemici": ["base", "cono"], "intro": "cono", "tutorial": false, "primaOndata": 18 },
+    { "id": 4, "nome": "Tutto il campo", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro"], "nuova": "muro", "ondate": 10, "nemici": ["base", "cono"], "intro": null, "tutorial": false, "primaOndata": 18 },
+    { "id": 5, "nome": "Chi salta", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina"], "nuova": "mina", "ondate": 10, "nemici": ["base", "cono", "saltatore"], "intro": "saltatore", "tutorial": false, "primaOndata": 18 },
+    { "id": 6, "nome": "La grande ondata", "corsie": [0, 1, 2, 3, 4], "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo"], "nuova": "gelo", "ondate": 20, "nemici": ["base", "cono", "saltatore", "secchio"], "intro": "secchio", "tutorial": false, "primaOndata": 18 }
+  ],
+  "sopravvivenza": {
+    "nome": "Sopravvivenza",
+    "corsie": [0, 1, 2, 3, 4],
+    "carte": ["sparatore", "produttore", "bomba", "muro", "mina", "gelo"],
+    "nemici": ["base", "cono", "saltatore", "secchio"],
+    "primaOndata": 18,
+    "iniziale": 150
+  }
+}

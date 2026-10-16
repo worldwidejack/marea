@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#1d1a22" />
+<link rel="icon" href="data:," />
+<title>MAREA · difesa (banco di prova)</title>
+<style>
+  @font-face { font-family: 'MzTitan'; src: url('/assets/fonts/titan-one-latin.woff2') format('woff2'); font-display: swap; }
+  html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; margin: 0; height: 100%; background: #1d1a22; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  #tela { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #ui { position: fixed; inset: 0; pointer-events: none; font-family: 'MzTitan', 'Arial Rounded MT Bold', system-ui, sans-serif; }
+  #ui > * { pointer-events: auto; }
+</style>
+</head>
+<body>
+<canvas id="tela"></canvas>
+<div id="ui"></div>
+<script type="module" src="/src/difesa/main.ts"></script>
+</body>
+</html>
