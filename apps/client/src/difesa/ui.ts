@@ -71,6 +71,10 @@ const CSS = `
   .df-valuta { min-width: 52px; } .df-valuta b { font-size: 18px; } .df-valuta canvas { width: 24px; height: 24px; }
   .df-pala { width: 44px; font-size: 24px; } .df-b { min-width: 40px; height: 40px; font-size: 18px; }
   .df-onda .df-pista { width: 120px; } .df-onda { font-size: 12px; }
+  .df-pan { padding: 10px 14px; max-height: 94vh; } .df-pan h1 { font-size: 30px; margin: 0; } .df-pan p { font-size: 14px; margin: 2px 0; }
+  .df-livelli { grid-template-columns: repeat(6, minmax(64px, 1fr)); gap: 6px; margin: 8px 0; }
+  .df-liv { padding: 6px 3px 5px; } .df-liv b { font-size: 22px; } .df-liv span { font-size: 11px; } .df-liv canvas { width: 28px; height: 28px; }
+  .df-grosso { padding: 8px 18px; font-size: 18px; margin-top: 2px; } .df-premio canvas { width: 56px; height: 56px; } .df-premio { padding: 6px 12px; margin: 4px; }
 }`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', html = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
