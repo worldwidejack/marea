@@ -90,8 +90,6 @@ export function itemDef(id: string): ItemDef {
   if (!it) throw new Error(`Oggetto sconosciuto: ${id}`);
   return it;
 }
-/** Peso di un oggetto (0 se sconosciuto). */
-export function pesoOf(id: string): number { return BY_ID.get(id)?.peso ?? 0; }
 /** Materiale di un oggetto generato o di un unico (via la sua base). */
 export function materialOf(it: ItemDef): MaterialDef | undefined { return it.materiale ? MATERIALS.find((m) => m.id === it.materiale) : undefined; }
 /** Tipo d'arma (anche degli unici). */

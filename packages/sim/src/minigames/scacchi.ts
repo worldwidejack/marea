@@ -37,9 +37,6 @@ export function toFen(b: Board): string {
   return rows.join('/');
 }
 
-/** Nome della casella: 0 → 'a8'. */
-export const sqName = (sq: number) => 'abcdefgh'[sq % 8]! + String(8 - Math.floor(sq / 8));
-
 /** La casella `sq` è attaccata da un pezzo del colore `byWhite`? */
 export function attacked(b: Board, sq: number, byWhite: boolean): boolean {
   const r = Math.floor(sq / 8), f = sq % 8;

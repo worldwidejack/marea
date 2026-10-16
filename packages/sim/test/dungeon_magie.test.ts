@@ -35,7 +35,6 @@ function passi(s: DungeonState, n: number, f = inp(), fermi: Enemy[] = []): Dung
   }
   return ev;
 }
-const danni = (ev: DungeonState['eventi'], id: number): number => ev.reduce((t, x) => t + (x.t === 'colpo' && x.su === 'nemico' && x.id === id ? x.danno : 0), 0);
 const dps = (e: Enemy): number => 100000 - e.vita;
 
 test('magie: nomi nuovi, sei magie d’attacco, ogni magia ha il suo libro e ogni libro sta nel mondo', () => {

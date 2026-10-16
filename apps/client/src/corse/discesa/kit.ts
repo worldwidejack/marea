@@ -40,4 +40,3 @@ export function caricaPezzi(nomi: readonly string[]): Promise<void> {
   })().catch((e) => { console.warn('[discesa] pezzi non caricati', e); }));
 }
 export const pezzo = (nome: string): THREE.BufferGeometry | null => geos.get(nome) ?? null;
-export const pezziPronti = (): number => geos.size;

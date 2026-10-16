@@ -70,12 +70,6 @@ export const SCACCHI = scacchi as unknown as ScacchiCfg;
 export const RIENTRO = rientro as unknown as RientroCfg; // Mentre eri via e libro degli ospiti (#86)
 export const METEO = meteo as unknown as MeteoCfg;
 
-export function decorDef(id: string): DecorDef {
-  const d = DECOR.find((x) => x.id === id);
-  if (!d) throw new Error(`Decorazione sconosciuta: ${id}`);
-  return d;
-}
-
 export function building(id: string): BuildingDef {
   const b = BUILDINGS.find((x) => x.id === id);
   if (!b) throw new Error(`Edificio sconosciuto: ${id}`);

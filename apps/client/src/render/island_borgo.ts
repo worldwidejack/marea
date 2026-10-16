@@ -10,8 +10,6 @@ type G = THREE.BufferGeometry;
 export type BorgoProp = 'lampioncino' | 'filo_borgo' | 'cassetta_posta' | 'vaso_fiori' | 'siepe' | 'fontana' | 'panchina';
 /** Pezzi con una parte accesa (lanterna, lampadine): la seconda geometria va col materiale non illuminato. */
 export const BORGO_GLOW = new Set<string>(['lampioncino', 'filo_borgo']);
-/** Pezzi minuti: niente ombra e spenti da lontano (island.ts, MINUTI). */
-export const BORGO_MINUTI = new Set<string>(['cassetta_posta', 'vaso_fiori', 'siepe', 'panchina']);
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cyl = (r0: number, r1: number, h: number, n = 6) => new THREE.CylinderGeometry(r0, r1, h, n);

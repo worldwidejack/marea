@@ -29,7 +29,6 @@ export function createEffetti(o: { scene: THREE.Scene; arena: Arena; loader: Loa
   const root = new THREE.Group(); root.name = 'effetti'; scene.add(root);
   const disp: { dispose(): void }[] = [];
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v3 = new THREE.Vector3(), s3 = new THREE.Vector3(), up = new THREE.Vector3(0, 0, -1);
-  const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
   const inst = (geo: THREE.BufferGeometry, mat: THREE.Material, n: number, nome: string) => {
     const im = new THREE.InstancedMesh(geo, mat, n); im.name = nome; im.count = 0; im.frustumCulled = false; root.add(im); disp.push(geo, mat); return im;
   };

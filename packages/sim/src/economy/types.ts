@@ -130,7 +130,6 @@ export type Challenge = {
 };
 
 export const ZERO: Resources = { legno: 0, pietra: 0, perle: 0 };
-export const RES_KEYS = ['legno', 'pietra', 'perle'] as const;
 export const add = (a: Resources, b: Resources): Resources => ({ legno: a.legno + b.legno, pietra: a.pietra + b.pietra, perle: a.perle + b.perle });
 export const sub = (a: Resources, b: Resources): Resources => ({ legno: a.legno - b.legno, pietra: a.pietra - b.pietra, perle: a.perle - b.perle });
 export const scale = (a: Resources, k: number): Resources => ({ legno: Math.floor(a.legno * k), pietra: Math.floor(a.pietra * k), perle: Math.floor(a.perle * k) });

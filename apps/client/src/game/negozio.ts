@@ -30,7 +30,7 @@ import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 export type Negozio = { tick(a: boolean): boolean; update(dt: number): void; readonly dentro: boolean };
 type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'catalogo'; id: string; nome: string; perle: number; x: number; z: number; fx: number; fz: number };
 
-const ND = BORGO.negozioDentro, [X0, Z0, X1, Z1] = ND.pavimento, [CX, C0, C1] = ND.corridoio;
+const ND = BORGO.negozioDentro, [X0, Z0, X1] = ND.pavimento, [CX, C0, C1] = ND.corridoio;
 const PIANTA: Pianta = { pavimento: ND.pavimento, corridoio: ND.corridoio, altezza: ND.altezza, retro: null };
 const RAGGIO = 2.2, VICINO = 1.7;
 const CSS = `

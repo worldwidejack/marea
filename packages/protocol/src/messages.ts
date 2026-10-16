@@ -35,9 +35,6 @@ export type ServerMsg =
   | { t: 'emote'; now: number; id: EmoteId; from: string }
   | { t: 'error'; now: number; code: ErrorCode; msg: string };
 
-/** Codici di chiusura WebSocket usati dal server (PROTOCOL.md §3). */
-export const CLOSE = { ALTRO_DISPOSITIVO: 4000, TROPPO_GRANDE: 1009, ZONA_PIENA: 1013, TOKEN_O_VERSIONE: 1008, NON_VALIDO: 1003 } as const;
-
 export const MAX_MSG_BYTES = 2048;
 /** Messaggi del server (lato client): un `welcome` o uno `snap` con tutto il gruppo supera presto i 2 KB (#107: look, titolo e barca per peer). */
 export const MAX_SERVER_MSG_BYTES = 65536;

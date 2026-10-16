@@ -2,7 +2,7 @@
 // Archivio: l'arpione del Drone Idro-Ragno, se prende, tira l'eroe verso chi l'ha lanciato (vento.ts, spinta da fuori).
 import { DT } from '../constants.ts';
 import type { DungeonState, Enemy, Proj } from './state.ts';
-import { add, ev, finita, inGioco } from './state.ts';
+import { ev, finita, inGioco } from './state.ts';
 import { hitEnemy, hitHero } from './combat.ts';
 import { isOpaque } from './map.ts';
 import { ALTEZZA_BERSAGLIO, HZ } from './tuning.ts';

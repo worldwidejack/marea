@@ -2,7 +2,7 @@
 // non la importa, la carica solo il chunk delle ondate (apps/client/src/templari/**). Formule in @marea/sim/templari.
 import cfg from './templari/templari.json' with { type: 'json' };
 import mappa from './templari/mappa.json' with { type: 'json' };
-import type { TArmaDef, TClasse, TEroeDef, TMappaDef, TNemicoDef, TemplariCfg } from './templari_types.ts';
+import type { TArmaDef, TEroeDef, TMappaDef, TNemicoDef, TemplariCfg } from './templari_types.ts';
 
 export type * from './templari_types.ts';
 
@@ -18,7 +18,6 @@ export function armaDef(id: string): TArmaDef {
 export function eroeDef(id: string | null | undefined): TEroeDef | null {
   return (id && TEMPLARI.eroi.find((x) => x.id === id)) || null;
 }
-export const CLASSI: readonly TClasse[] = TEMPLARI.eroi.map((e) => e.id);
 export function nemicoDef(id: string): TNemicoDef {
   const n = TEMPLARI.nemici.find((x) => x.id === id);
   if (!n) throw new Error(`Nemico sconosciuto: ${id}`);

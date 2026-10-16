@@ -17,7 +17,6 @@ import { inGetto, statoLava } from './fuoco.ts';
 import { lancettaDir } from './onde.ts';
 import { varchiDi } from './custode.ts';
 import { scudoSu } from './vaelen.ts';
-import { RPG } from '@marea/content/rpg.ts';
 import { secToTicks } from './state.ts';
 import { HZ } from './tuning.ts';
 import { paralizzato, rallentato, sanguinante, scaricaDi } from './perk.ts';
