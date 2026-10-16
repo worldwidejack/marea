@@ -19,7 +19,7 @@ import { apriValvola, valvolaVicina } from './acque.ts';
 import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts';
 import { canale, fermaCanale, lanciaBomba } from './magie.ts';
-import { caricaBarriera, eco, fineColpo, inizioColpo, molla, moltRitmo, stepUnici, stordisci } from './unici.ts';
+import { caricaBarriera, caricaBrezza, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
 import { curaCompagni, lamaAria, scaricaDi, statiCaricato, terremoto, veleno } from './perk.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
@@ -75,6 +75,7 @@ function startSwing(s: DungeonState, caricato: boolean): void {
   h.caricato = caricato; h.colpiti = []; h.colpito = false; h.carica = 0;
   h.massimo = caricato && h.massimo; h.massimaP = 0; // Carica massima: il colpo che parte è quello letale solo se la carica era arrivata in fondo
   inizioColpo(s, caricato); // Mausoleo: lame del Fendiflutti, ritmo della Grande Lancetta
+  inizioPoppa(s, caricato); // Diga: il Vento in Poppa dell'Albero della «Stella del Mattino»
   if (caricato && s.runHero.perk?.aria) lamaAria(s); // Lama d'aria
 }
 
@@ -85,7 +86,7 @@ function sweepSwing(s: DungeonState): void {
   const k = swept(h.stile, h.actT / h.actDur), fatto = k * COLPI[h.stile].arco;
   if (k > 0) {
     const mod = a.classe === 'pesante' ? 'dannoPesanti' : 'dannoLeggere';
-    const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod)) * moltRitmo(s);
+    const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod)) * moltRitmo(s) * (h.poppa ? 1 + (a.traits.poppa?.danno ?? 0) : 1);
     for (const e of ostili(s)) {
       if (h.colpiti.includes(e.id) || alto(s, e)) continue; // chi vola alto: la lama gli passa sotto
       const dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
@@ -94,7 +95,8 @@ function sweepSwing(s: DungeonState): void {
       h.colpiti.push(e.id);
       // spinta e direzione del colpo: dove va la lama (nel giro, via dall'eroe)
       const dirX = h.stile === 'giro' && d > 1e-6 ? dx / d : h.fx, dirZ = h.stile === 'giro' && d > 1e-6 ? dz / d : h.fz;
-      const preso = hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}) });
+      const preso = hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}), ...(h.poppa ? { sfonda: true } : {}) });
+      if (h.poppa) spintaPoppa(s, e, dirX, dirZ); // Vento in Poppa: l'onda d'urto respinge (anche chi ha parato)
       if (preso > 0 && rh.perk) { if (h.caricato) statiCaricato(s, e); else veleno(s, e); } // Taglio Critico (sanguina e rallenta), Colpo fatale (paralizza); Lame avvelenate sui colpi normali
       // Mausoleo: il Rintocco stordisce, l'Eco della Marea fa l'onda attorno a chi hai preso
       if (preso > 0) { stordisci(s, e); if (rh.eco) eco(s, e, danno); }
@@ -295,7 +297,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       break;
     case 'press':
       if (!inp.a) startSwing(s, false);
-      else if (h.actT >= HOLD_TICKS) { h.act = 'carica'; h.actT = 0; h.actDur = secToTicks(a.carica * (1 + malusDi(s)) / (1 + buff(s, 'caricaVeloce'))); h.carica = 0; }
+      else if (h.actT >= HOLD_TICKS) { h.act = 'carica'; h.actT = 0; h.actDur = secToTicks((a.carica * (1 + malusDi(s)) * moltCaricaPoppa(s)) / (1 + buff(s, 'caricaVeloce'))); h.carica = 0; }
       break;
     case 'carica':
       h.carica = Math.min(1, h.actT / h.actDur);
@@ -308,7 +310,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       break;
     case 'swing':
       if (!h.colpito) sweepSwing(s);
-      if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; fineColpo(s); }
+      if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; h.poppa = false; fineColpo(s); }
       break;
     case 'tende': {
       h.carica = Math.min(1, h.actT / h.actDur);
@@ -346,11 +348,13 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   if (lento) v *= rh.mentreCarichi;
   if (h.lento > 0) v *= h.lentoMolt; // Tubo-strisciante
   v *= (1 - malusDi(s)) * rh.armatura.velocitaMolt;
+  const x0 = h.x, z0 = h.z;
   if (h.moving) {
     moveCircle(s.map, h, mx * v * DT, my * v * DT, rh.raggio);
     if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia' && !arcoLibero && h.canale === 0 && !(dir && (h.act === 'tende' || h.act === 'punta'))) { h.fx = mx / mag; h.fz = my / mag; }
   }
   caricaBarriera(s); // Mausoleo: l'Armatura del Moto Perpetuo si carica camminando
+  caricaBrezza(s, x0, z0); // Diga: correndo la vela dell'Albero della «Stella del Mattino» si gonfia
   // i nemici sono solidi: l'eroe non li attraversa
   for (const e of s.enemies) {
     if (e.st === 'morto' || e.alleato || e.def.muove === 'vola') continue; // chi vola passa sopra

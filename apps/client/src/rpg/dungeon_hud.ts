@@ -75,15 +75,16 @@ body.mz-sotto .mz-labels, body.mz-sotto #mzPlay, body.mz-sotto #mzEmoteRow, body
 .mz-dng-big.on { display: block; }
 .mz-dng-big small { display: block; margin-top: 6px; font-size: 14px; color: ${P.sabbia}; }
 `;
-/** Il contatore dell'arma unica (Mausoleo): pressione del Fendiflutti, ritmo della Grande Lancetta, molle dell'Arco Carillon. */
-const CARICO = { pressione: 'PRESS.', ritmo: 'RITMO', molla: 'MOLLE' } as const;
+/** Il contatore dell'arma unica (Mausoleo): pressione del Fendiflutti, ritmo della Grande Lancetta, molle dell'Arco Carillon; la Brezza
+ *  dell'Albero della «Stella del Mattino» (Diga). */
+const CARICO = { pressione: 'PRESS.', ritmo: 'RITMO', molla: 'MOLLE', brezza: 'BREZZA' } as const;
 const nome = (id: string) => (hasItem(id) ? itemDef(id).nome : id);
 const fmt = (s: number) => { const m = Math.floor(s / 60); return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
 
 /** `stile` del dungeon: nella Fucina la valvola è la chiusa e l'acqua che scende è la Colata che si raffredda; nel Mausoleo è la chiave di
  *  carica e quello che scende è il cancello del Santuario. */
 export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasElement; camera: THREE.Camera; hero: RunHero; stile?: string }): DungeonHud {
-  const fucina = o.stile === 'fucina', mausoleo = o.stile === 'mausoleo';
+  const fucina = o.stile === 'fucina', mausoleo = o.stile === 'mausoleo', diga = o.stile === 'diga';
   if (!document.getElementById('mz-dng-hud-style')) { const st = document.createElement('style'); st.id = 'mz-dng-hud-style'; st.textContent = CSS; document.head.appendChild(st); }
   const box = el('div', 'mz mz-dng-hud'); box.id = 'mzDngHud';
   const mkBar = (k: string, c: string) => {
@@ -142,7 +143,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         kids.push(it(null, fmt(left), left < 60 ? 'warn' : ''));
         // gli unici della Regina: la Barriera Cinetica e il contatore dell'arma
         if (bar !== undefined) kids.push(it(itemIcon('armatura', P.acquaBassa, 16), bar >= 1 ? 'PRONTA' : `${Math.floor(bar * 100)}%`, bar >= 1 ? 'ok' : ''));
-        if (car) kids.push(it(itemIcon(car.tipo === 'molla' ? 'arco' : 'arma', car.tipo === 'ritmo' ? P.giallo : car.tipo === 'molla' ? P.arancio : P.acqua, 16), `${CARICO[car.tipo]} ${car.n}/${car.max}`, car.n === 0 && car.tipo !== 'ritmo' ? 'warn' : car.n >= car.max && car.tipo === 'ritmo' ? 'ok' : ''));
+        if (car) kids.push(it(itemIcon(car.tipo === 'molla' ? 'arco' : 'arma', car.tipo === 'ritmo' ? P.giallo : car.tipo === 'molla' ? P.arancio : P.acqua, 16), `${CARICO[car.tipo]} ${car.n}/${car.max}`, car.n === 0 && car.tipo !== 'ritmo' && car.tipo !== 'brezza' ? 'warn' : car.n >= car.max && (car.tipo === 'ritmo' || car.tipo === 'brezza') ? 'ok' : ''));
         row2.replaceChildren(...kids);
         // l'HUD può diventare più alto (gli unici aggiungono una riga): la voce del dungeon (dungeon_testi.ts) si mette sotto
         o.root.style.setProperty('--mz-dng-hud-h', `${box.offsetHeight}px`);
@@ -194,17 +195,19 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'libro': say(`Hai imparato: ${nome(e.item).replace(/^Libro: /, '')}`, 2600); break;
         case 'evocato': say('Un alleato combatte per te', 1800); break;
         case 'risveglio': say('Ti risvegli alla lanterna: perso solo il bottino raccolto dopo', 3200); break;
-        case 'valvola': say(fucina ? 'Chiusa aperta: l’acqua raffredda la Colata Maestra…' : mausoleo ? 'Chiave caricata: il cancello del Santuario scende…' : 'Valvola girata: l’acqua scende…', 2200); break;
-        case 'asciutto': say(fucina ? 'La Colata è fredda: adesso si passa' : mausoleo ? 'Il cancello è aperto: il Santuario ti aspetta' : 'Svuotato: adesso si passa', 2200); break;
+        case 'valvola': say(fucina ? 'Chiusa aperta: l’acqua raffredda la Colata Maestra…' : mausoleo ? 'Chiave caricata: il cancello del Santuario scende…' : diga ? (e.n === 5 ? 'Ruota girata: il ponte mobile si abbassa…' : 'Ruota girata: le paratie si aprono, l’acqua scende…') : 'Valvola girata: l’acqua scende…', 2200); break;
+        case 'asciutto': say(fucina ? 'La Colata è fredda: adesso si passa' : mausoleo ? 'Il cancello è aperto: il Santuario ti aspetta' : diga ? (e.n === 5 ? 'Il ponte è giù: la via breve per la stiva' : 'Prosciugato: adesso si passa') : 'Svuotato: adesso si passa', 2200); break;
         case 'rallentato': say('La fanghiglia ti rallenta', 1600); break;
-        case 'timone': say('Timone girato: il vento si ferma', 2400); break;
+        case 'timone': say(diga ? 'Ruota girata: la risacca si ferma' : 'Timone girato: il vento si ferma', 2400); break;
         case 'arpionato': say('Arpionato! Il drone ti tira a sé', 1600); break;
         case 'urto': say('Sbattuto contro il muro', 1400); break;
         case 'parato': say(e.perche === 'scafandro' ? 'Lo scafandro para: colpiscilo alle valvole sulla schiena' : e.perche === 'fornace' ? 'Il fuoco lo protegge: fallo caricare dentro una cascata'
-          : e.perche === 'scudo' ? 'Lo scudo para e ti respinge: un colpo caricato lo sfonda, o prendila alle spalle' : e.perche === 'cuore' ? 'Cambia cuore: adesso non lo scalfisci' : 'Gli anelli lo proteggono: rompili!', 2200); break;
-        case 'sfondato': say('Scudo sfondato: colpiscila adesso!', 1800); break;
+          : e.perche === 'scudo' ? (diga ? 'Lo scudo para: un colpo caricato lo sfonda, o prendilo alle spalle' : 'Lo scudo para e ti respinge: un colpo caricato lo sfonda, o prendila alle spalle') : e.perche === 'cuore' ? 'Cambia cuore: adesso non lo scalfisci'
+          : e.perche === 'catene' ? 'Spezza le catene: adesso non lo scalfisci' : 'Gli anelli lo proteggono: rompili!', 2200); break;
+        case 'sfondato': say(diga ? 'Scudo in frantumi: colpisci adesso!' : 'Scudo sfondato: colpiscila adesso!', 1800); break;
         case 'lancetta': say('Travolto dalla lancetta', 1200); break;
-        case 'fase': this.flash(e.n === 1 ? 'SECONDO CUORE' : 'TERZO CUORE', e.n === 1 ? P.pietraChiara : P.giallo, e.n === 1 ? 'il vapore: guarda dove ricompare' : 'il moto: ogni cinque colpi la Barriera scarica', 2200); break;
+        case 'fase': if (diga) { this.flash('L’ULTIMA MAREA', P.acquaBassa, 'il Capitano spezza le catene: riparati dietro i piloni', 2400); break; }
+          this.flash(e.n === 1 ? 'SECONDO CUORE' : 'TERZO CUORE', e.n === 1 ? P.pietraChiara : P.giallo, e.n === 1 ? 'il vapore: guarda dove ricompare' : 'il moto: ogni cinque colpi la Barriera scarica', 2200); break;
         case 'sarcofago': this.flash('IL SARCOFAGO SI APRE', P.acquaBassa, 'il Custode dell’Egida è caduto', 2600); break;
         case 'barriera': say('La Barriera annulla il colpo', 1400); break;
         case 'barrieraPronta': say('Barriera carica', 1000); break;
@@ -215,6 +218,11 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         case 'estinto': say('L’acqua ti spegne', 1400); break;
         case 'spento': say('La fornace si spegne: colpiscilo adesso!', 2600); break;
         case 'riacceso': say('Il Mastro si riaccende', 1800); break;
+        // Diga dei Disertori
+        case 'rottami': say('Rottami acuminati!', 1000); break;
+        case 'pilone': say('Il pilone va in pezzi: il Capitano è stordito, colpiscilo!', 2600); break;
+        case 'incastrato': say('La lancia è incastrata: colpiscilo alla catena, alle spalle', 2200); break;
+        case 'brezza': if (e.n >= 3) say('Vento in Poppa: il prossimo caricato è un’onda d’urto', 1800); break;
         default:
       }
     },

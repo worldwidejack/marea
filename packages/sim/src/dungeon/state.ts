@@ -53,6 +53,9 @@ export type HeroRt = {
   cdScarica: number; raffica: number; raffT: number; massimaP: number; massimo: boolean;
   /** Magia a raggio (Fuoco/Elettricità continua, magie.ts): tick da quando è accesa (0 = spenta), metri liberi davanti all'eroe, elemento. */
   canale: number; canaleLen: number; canaleEl?: 'fuoco' | 'elettricita';
+  /** Diga dei Disertori: tick fino a cui i rottami non lo riprendono; Vento in Poppa dell'Albero della «Stella del Mattino» (unici.ts):
+   *  cariche di Brezza, metri corsi verso la prossima, e se il colpo in corso è quello che le ha consumate (l'onda d'urto). */
+  rottT: number; brezza: number; brezzaM: number; poppa: boolean;
 };
 export type EnemyState = 'dorme' | 'veglia' | 'insegue' | 'prepara' | 'colpisce' | 'recupera' | 'scappa' | 'morto';
 export type Enemy = {
@@ -80,7 +83,8 @@ export type Enemy = {
   molla?: boolean;
   /** Archivio, l'Astrolabio (astrolabio.ts): attacco in corso, direzione e lunghezza del raggio, salve già tirate, anelli staccati.
    *  Gli anelli: id del loro Astrolabio e versore della loro posizione attorno a lui. */
-  modo?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio';
+  modo?: 'rosa' | 'raffica' | 'raggio' | 'carica' | 'magma' | 'zoccolo' | 'cura' | 'ondata' | 'fendenti' | 'scatto' | 'geyser' | 'colpo' | 'cambio'
+    | 'affondo' | 'spazzata' | 'salva' | 'incastrato' | 'detriti' | 'sbilanciato' | 'fucile' | 'schiacciata';
   mira?: { dx: number; dz: number; len: number };
   salve?: number;
   diviso?: boolean;
@@ -93,13 +97,16 @@ export type Enemy = {
    *  stordito dal Rintocco fino al tick `stordito`; colpi della combinazione già dati (Guardia d'Onore) e se l'ultimo attacco era in
    *  mischia. Il Custode (custode.ts): fase (0 acqua, 1 vapore, 2 moto) e colpi presi verso la scarica della Barriera. */
   potT?: number; potM?: number; rotto?: number; stordito?: number; comboN?: number; mischia?: boolean; fase?: number; colpiB?: number;
+  /** Diga, il Capitano Vaelen (vaelen.ts): il pilone (indice in map.piloni) contro cui finirà la carica in corso, -1 = un muro. Le corsie dei
+   *  colpi dritti (la schiacciata della Guardia, gli affondi e la carica di Vaelen, la linea del Fuciliere) stanno in `mira`. */
+  pilone?: number;
   /** Perk dell'eroe (v9). Taglio Critico: sanguina fino al tick `emorr` (% della vita massima al secondo `emorrPct`), rallentato fino al tick
    *  `lentoT` (`lentoAcc` accumula i tick: va al passo di `lentoMolt` tick su 1). Colpo fatale: paralizzato fino al tick `paralisi`.
    *  Evocazioni: danno × `dannoM`. Fuori dall'hash. */
   emorr?: number; emorrPct?: number; lentoT?: number; lentoMolt?: number; lentoAcc?: number; paralisi?: number; dannoM?: number;
 };
 /** Mausoleo: `lama` = lama d'acqua del Fendiflutti (dell'eroe, trapassa), `lama_nemica` = quella della Guardia d'Onore e del Custode. */
-export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica';
+export type ProjKind = 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica' | 'palla_nemica';
 export type Proj = {
   id: number; tipo: ProjKind; x: number; y: number; z: number; vx: number; vy: number; vz: number; g: number;
   danno: number; life: number;
@@ -124,7 +131,9 @@ export type Geyser = { id: number; x: number; z: number; r: number; t: number; a
   /** Archivio: è una bomba a pressione dell'Aerostato-Spia, che spinge via di `spinta` m chi prende. */
   spinta?: number;
   /** Fucina: è una palla di magma del Mastro Forgiatore; dove cade lascia una pozza che brucia (fuoco.ts). */
-  magma?: { durata: number; raggio: number; dps: number; secondi: number } };
+  magma?: { durata: number; raggio: number; dps: number; secondi: number };
+  /** Diga: è una cannonata della salva del Capitano Vaelen. */
+  cannone?: true };
 /** Archivio: una corrente d'aria (le celle e i numeri stanno in map.venti); `ferma` = il suo timone è girato. */
 export type Corrente = { n: number; ferma: boolean };
 /** Fucina: chiazza di fuoco a terra (scia della Fornace Semovente, pozza di magma) fino al tick `fine`: chi ci sta dentro brucia. */
@@ -192,6 +201,8 @@ export type DungeonState = EroeRt & {
   fuochi: Fuoco[];
   /** Mausoleo (mausoleo.ts): onde d'acqua in corsa (uguali per tutti). Negli altri dungeon vuote. */
   onde: Onda[];
+  /** Diga dei Disertori (diga.ts): i piloni dell'arena già fracassati (uguali per tutti, indice in map.piloni). Negli altri dungeon vuoti. */
+  piloni: boolean[];
 };
 
 /** Accessori dei campi dell'eroe di turno (prototipo comune a tutti gli stati). */
@@ -268,13 +279,14 @@ export function moltVita(n: number): number {
 export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDef[], partenza: number | null = null): DungeonState {
   if (eroi.length < 1) throw new Error('Spedizione senza eroi');
   // con l'acqua le celle dei bacini diventano calpestabili quando si svuotano: ogni partita ha la sua copia di `solid`
-  const base = parseDungeon(def), map: DMap = base.bacini.length ? { ...base, solid: base.solid.slice() } : base;
+  // la Diga: i piloni fracassati diventano pavimento, quindi anche `opaque` è della partita
+  const base = parseDungeon(def), map: DMap = base.bacini.length || base.piloni.length ? { ...base, solid: base.solid.slice(), ...(base.piloni.length ? { opaque: base.opaque.slice() } : {}) } : base;
   const rng = createRng(seed);
   const s = Object.create(PROTO) as DungeonState;
   Object.assign(s, {
     v: 1, seed, dungeon: def.id, def, map, tick: 0, anim: 'fermo',
     enemies: [], proj: [], loot: [], nextId: 1, bacini: map.bacini.map((b) => ({ n: b.n, aperta: false, scolo: 0 })), geyser: [],
-    correnti: map.venti.map((v) => ({ n: v.n, ferma: false })), griglie: {}, flowAlt: {}, fuochi: [], onde: [],
+    correnti: map.venti.map((v) => ({ n: v.n, ferma: false })), griglie: {}, flowAlt: {}, fuochi: [], onde: [], piloni: map.piloni.map(() => false),
     flow: new Int32Array(map.w * map.h), flowTick: -999, flowCell: -1, flowKey: '', rng, eventi: [],
     eroi: eroi.map(({ hero, stato }): EroeRt => ({
       hero: {
@@ -288,6 +300,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
         cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0,
         barr: 0, pressione: hero.arma.traits.lame?.cariche ?? 0, ultimoAttacco: -1e6, ritmo: 0, tic: -1, rintocco: false, molla: hero.arma.traits.carillon?.colpi ?? 0, mollaT: 0, ecoT: -1e6, lancT: [],
         prevA: false, prevC: false, prevD: false, prevE: false, cdScarica: 0, raffica: 0, raffT: 0, massimaP: 0, massimo: false, canale: 0, canaleLen: 0,
+        rottT: 0, brezza: 0, brezzaM: 0, poppa: false,
       },
       runHero: hero, done: false, outcome: null,
       bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0,

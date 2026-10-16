@@ -5,6 +5,8 @@
 // - La Grande Lancetta: al tic una stellina d'oro sopra la testa; il Rintocco è un anello d'oro che si allarga.
 // - Perk dell'albero: Terremoto (anello di sabbia che si allarga), Catena di fulmini (lampi gialli ai due capi del salto), Combustione (le chiazze
 //   di fuoco dell'eroe, che brucia i nemici: ciuffi di fiamma a gradini come quelli della Fucina).
+// - L'Albero della «Stella del Mattino» (dalla Diga dei Disertori): tre nastri azzurri sopra la spalla che si accendono uno per carica di
+//   Brezza (pieni sventolano); l'onda d'urto del Vento in Poppa è un anello azzurro largo che si allarga.
 import * as THREE from 'three';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
 import { M, merged, painted } from '../render/island_parts.ts';
@@ -13,7 +15,7 @@ import { PAL } from '../ui/style.ts';
 export type UniciFx = {
   tick(v: DungeonView): void;
   update(hero: { x: number; z: number }, v: DungeonView): void;
-  counts(): { tacche: number; piena: boolean; onde: number };
+  counts(): { tacche: number; piena: boolean; onde: number; brezza: number };
   dispose(): void;
 };
 
@@ -44,7 +46,12 @@ export function createUniciFx(scene: THREE.Scene, floorY: number): UniciFx {
   const stella = new THREE.Group(); stella.visible = false; root.add(stella);
   const oro = new THREE.MeshBasicMaterial({ color: PAL.giallo });
   for (const [w, h] of [[0.36, 0.08], [0.08, 0.36]] as const) stella.add(new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.08), oro));
-  let ticT = -1, nAcc = 0;
+  let ticT = -1, nAcc = 0, nBrezza = 0;
+  // Vento in Poppa: tre nastri azzurri sopra la spalla destra (accesi = cariche di Brezza)
+  const nastroOn = new THREE.MeshBasicMaterial({ color: PAL.acquaBassa }), nastroOff = new THREE.MeshBasicMaterial({ color: PAL.acquaProfonda, transparent: true, opacity: 0.5 });
+  const nastri = new THREE.Group(); nastri.visible = false; root.add(nastri);
+  const nastroGeo = new THREE.BoxGeometry(0.08, 0.42, 0.03); nastroGeo.translate(0, -0.21, 0);
+  for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(nastroGeo, nastroOff); m.position.set((k - 1) * 0.16, 0, 0); nastri.add(m); }
   // Combustione: chiazze di fuoco dell'eroe (come quelle della Fucina: ciuffi di fiamma che tremano a scatti e calano quando stanno per spegnersi)
   const MAXF = 48;
   const fiammaGeo = merged([
@@ -62,6 +69,7 @@ export function createUniciFx(scene: THREE.Scene, floorY: number): UniciFx {
         if (e.t === 'barriera') onda(e.x, e.z, PAL.acquaBassa, 2.6, 0.4);
         else if (e.t === 'eco') onda(e.x, e.z, PAL.acqua, 2.5, 0.35);
         else if (e.t === 'rintocco') onda(e.x, e.z, PAL.giallo, 3, 0.45);
+        else if (e.t === 'poppa') { onda(e.x, e.z, PAL.acquaBassa, 4.5, 0.45); onda(e.x, e.z, PAL.sabbiaChiara, 3, 0.3); }
         else if (e.t === 'tic') ticT = performance.now() / 1000;
         else if (e.t === 'terremoto') onda(e.x, e.z, PAL.sabbia, 4.5, 0.5);
         else if (e.t === 'catena') { onda(e.da[0], e.da[1], PAL.giallo, 1.3, 0.25); onda(e.a[0], e.a[1], PAL.giallo, 1.6, 0.3); }
@@ -90,10 +98,18 @@ export function createUniciFx(scene: THREE.Scene, floorY: number): UniciFx {
         fiamme.setMatrixAt(nF++, m4.compose(p3.set(f.x, floorY + 0.02, f.z), q4.setFromAxisAngle(YA, Math.floor(now * 6 + f.id) * 0.9), s3.set(k, k * h, k)));
       }
       fiamme.count = nF; fiamme.instanceMatrix.needsUpdate = true;
+      // Vento in Poppa: i nastri sopra la spalla, accesi quante cariche di Brezza; pieni sventolano a scatti
+      const br = v.hero.carico?.tipo === 'brezza' ? v.hero.carico : null;
+      nastri.visible = !!br && v.hero.anim !== 'morto';
+      nBrezza = br ? br.n : 0;
+      if (br) {
+        nastri.position.set(hero.x, floorY + 2.35, hero.z); nastri.rotation.y = Math.PI / 4; // di fronte alla camera (da sud-est)
+        nastri.children.forEach((c, k) => { const m = c as THREE.Mesh; m.material = k < br.n ? nastroOn : nastroOff; m.rotation.z = br.n >= br.max ? 0.35 * ((Math.floor(now * 8) + k) % 3 - 1) : 0; });
+      }
       stella.visible = now - ticT < 0.16;
       if (stella.visible) { stella.position.set(hero.x, floorY + 2.3, hero.z); stella.rotation.set(0, Math.PI / 4, Math.PI / 4); }
     },
-    counts: () => ({ tacche: nAcc, piena: nAcc === TACCHE && anello.visible, onde: onde.filter((o) => o.m.visible).length }),
-    dispose() { root.removeFromParent(); ringGeo.dispose(); fiammaGeo.dispose(); fiammaMat.dispose(); fiamme.dispose(); for (const m of tacche) m.geometry.dispose(); },
+    counts: () => ({ tacche: nAcc, piena: nAcc === TACCHE && anello.visible, onde: onde.filter((o) => o.m.visible).length, brezza: nastri.visible ? nBrezza : -1 }),
+    dispose() { root.removeFromParent(); ringGeo.dispose(); nastroGeo.dispose(); fiammaGeo.dispose(); fiammaMat.dispose(); fiamme.dispose(); for (const m of tacche) m.geometry.dispose(); },
   };
 }

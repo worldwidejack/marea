@@ -10,7 +10,8 @@
 // Ogni stile ha il suo kit (dng_<stile>_*); se mancano i modelli, segnaposto in codice: Drenaggio (rpg/drenaggio.ts: acqua dei bacini che
 // scende a gradini con la valvola, `setAcque`), Archivio (rpg/archivio.ts: scaffali al posto delle colonne, rastrelliere a grata sulle celle
 // `grata`), Fucina (rpg/fucina.ts: presse a vapore, la Colata Maestra è un bacino di lava), Mausoleo (rpg/mausoleo.ts: colonne di marmo con
-// l'ingranaggio, il cancello del Santuario è un bacino di sbarre). Per un dungeon nuovo: una riga in STYLE e, se serve, un kit in codice.
+// l'ingranaggio, il cancello del Santuario è un bacino di sbarre), Diga (rpg/diga.ts: tavolato e fasciame della nave, cannoni sugli affusti al
+// posto delle colonne, mare scuro nei bacini). Per un dungeon nuovo: una riga in STYLE e, se serve, un kit in codice.
 import * as THREE from 'three';
 import { dungeonDef } from '@marea/content/rpg.ts';
 import type { DungeonDef } from '@marea/content/rpg.ts';
@@ -28,6 +29,7 @@ import { kitDrenaggio } from './drenaggio.ts';
 import { kitArchivio } from './archivio.ts';
 import { kitFucina } from './fucina.ts';
 import { kitMausoleo } from './mausoleo.ts';
+import { kitDiga } from './diga.ts';
 
 export type DungeonScene = {
   scene: THREE.Scene; map: DMap; def: DungeonDef; floorY: number;
@@ -58,6 +60,7 @@ const STYLE: Record<string, Stile> = {
   archivio: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.giallo, hemi: [PAL.sabbia, PAL.ombraCalda, 1.25], coperchio: PAL.ombraCalda },
   fucina: { floor: PAL.roccia, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.arancio, hemi: [PAL.legno, PAL.neroCaldo, 1.3], coperchio: PAL.neroCaldo },
   mausoleo: { floor: PAL.pietraChiara, wall: PAL.pietra, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.pietraChiara, PAL.abisso, 0.9], coperchio: PAL.ombraCalda },
+  diga: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.acquaProfonda, PAL.ombraCalda, 1.25], coperchio: PAL.ombraCalda },
 };
 /** Finestra sull'eroe: raggio (m) e quota sotto cui non si taglia (sopra il muretto basso da 0,6 m). */
 const FIN = { raggio: 1.7, altezza: 0.68 } as const;
@@ -90,7 +93,7 @@ export async function createDungeonScene(loader: Loader, id: string, camera: THR
       floors.push(i);
       if (isCol(cx, cz)) cols.push(i);
       if (def.legenda[c]?.luce) lightsAt.push(i);
-      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && def.stile !== 'fucina' && def.stile !== 'mausoleo' && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
+      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && def.stile !== 'fucina' && def.stile !== 'mausoleo' && def.stile !== 'diga' && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
     } else if (c === '#') {
       let touches = false;
       for (let dz = -1; dz <= 1 && !touches; dz++) for (let dx = -1; dx <= 1; dx++) if (isFloor(cx + dx, cz + dz)) { touches = true; break; }
@@ -104,7 +107,7 @@ export async function createDungeonScene(loader: Loader, id: string, camera: THR
   const k = def.stile;
   const [pFloor, pWall, pLow, pCol, pTorch, pExit, pBones] = await Promise.all([
     parts(loader, `dng_${k}_pavimento`), parts(loader, `dng_${k}_muro`), parts(loader, `dng_${k}_muro_basso`),
-    parts(loader, k === 'vuoto' ? 'dng_cristallo' : k === 'fucina' || k === 'mausoleo' ? `dng_${k}_colonna` : 'dng_colonna'), parts(loader, 'dng_torcia'), parts(loader, 'dng_scala'), parts(loader, 'dng_ossa'),
+    parts(loader, k === 'vuoto' ? 'dng_cristallo' : k === 'fucina' || k === 'mausoleo' || k === 'diga' ? `dng_${k}_colonna` : 'dng_colonna'), parts(loader, 'dng_torcia'), parts(loader, 'dng_scala'), parts(loader, 'dng_ossa'),
   ]);
 
   // ---- sorgenti di luce: torce sul muro accanto alla cella «luce» (meglio nord/ovest, che restano alti), altrimenti un braciere a terra ----
@@ -152,13 +155,14 @@ export async function createDungeonScene(loader: Loader, id: string, camera: THR
   const PIENO: Ritocco = { taglia: true, griglia: true }, TERRA: Ritocco = { griglia: true };
   // scala, altari e bracieri sono bassi: la finestra non li tocca
   const ACCESO: Ritocco = { taglia: true, griglia: true, minimo: 'acceso' }, SEMPRE: Ritocco = { griglia: true, minimo: 'sempre' }, BASSO: Ritocco = { griglia: true, minimo: 'acceso' };
-  // segnaposto in codice finché non ci sono i modelli dng_drenaggio_* / dng_archivio_* / dng_fucina_* / dng_mausoleo_*
-  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : k === 'fucina' ? kitFucina(st.top) : k === 'mausoleo' ? kitMausoleo(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
-  makeBatch(pFloor ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, rot), 'pavimento', TERRA);
+  // segnaposto in codice finché non ci sono i modelli dng_drenaggio_* / dng_archivio_* / dng_fucina_* / dng_mausoleo_* / dng_diga_*
+  const dk = k === 'drenaggio' ? kitDrenaggio(st.top) : k === 'archivio' ? kitArchivio(st.top) : k === 'fucina' ? kitFucina(st.top) : k === 'mausoleo' ? kitMausoleo(st.top) : k === 'diga' ? kitDiga(st.top) : null, ak = k === 'archivio' ? kitArchivio(st.top) : null;
+  // la Diga: il tavolato della nave corre tutto nello stesso verso (girato di mezzo giro sì, di un quarto no)
+  makeBatch(pFloor ?? dk?.pavimento ?? [boxPart(T, 0.3, T, -0.3 + st.top, st.floor)], floors, mats(floors, k === 'diga' ? (i) => rot(i) & 2 : rot), 'pavimento', TERRA);
   makeBatch(pWall ?? dk?.muro ?? [boxPart(T, 2.4, T, 0, st.wall)], highWalls, mats(highWalls, rot), 'muro', PIENO);
   makeBatch(pLow ?? dk?.muro_basso ?? [boxPart(T, 0.6, T, 0, st.wall)], lowWalls, mats(lowWalls, rot), 'muro_basso', PIENO);
-  // Fucina e Mausoleo cercano la loro colonna (dng_<stile>_colonna) prima del segnaposto; Drenaggio e Archivio le hanno solo in codice
-  makeBatch((k === 'fucina' || k === 'mausoleo' ? pCol ?? dk?.colonna : dk ? dk.colonna : pCol) ?? [boxPart(0.9, 2.4, 0.9, 0, st.wall)], cols, mats(cols, rot), 'colonna', PIENO);
+  // Fucina, Mausoleo e Diga cercano la loro colonna (dng_<stile>_colonna) prima del segnaposto; Drenaggio e Archivio le hanno solo in codice
+  makeBatch((k === 'fucina' || k === 'mausoleo' || k === 'diga' ? pCol ?? dk?.colonna : dk ? dk.colonna : pCol) ?? [boxPart(0.9, 2.4, 0.9, 0, st.wall)], cols, mats(cols, rot), 'colonna', PIENO);
   // acqua dei bacini: un batch per bacino, scala in altezza = livello a gradini (0 = asciutto, non si disegna)
   const acque = map.bacini.map((b) => {
     const base = b.celle.map((i) => place(i % W, Math.floor(i / W), rot(i)).multiply(new THREE.Matrix4().makeTranslation(0, st.top, 0)));
