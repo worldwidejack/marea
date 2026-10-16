@@ -33,7 +33,7 @@ export const ISLANDS: readonly IslandDef[]            // islands.json: mappe ASC
 export const AVATAR: AvatarDef                        // avatar.json: pelle[], capelli[], coloriCapelli[], vestiti[], cappelli[]
 export const BALANCE: BalanceDef                      // balance.json: partenza, bufferOre, medaglie→perle, wager, sfideGratis…
 export const MINIGAMES_CFG: Record<string, unknown>   // minigames/<id>.json (WP3 ne definisce il tipo per gioco)
-export const DECOR: readonly DecorDef[]               // decor.json: { id, nome, perle, model, mercante? } (le decorazioni si pagano in Perle, `placeDecor` usa `decorDef(id).perle`; `mercante` = esclusiva del Mercante, #63)
+export const DECOR: readonly DecorDef[]               // decor.json: { id, nome, perle, model, mercante? } (le decorazioni si pagano in Perle, `placeDecor` legge il prezzo da `DECOR`; `mercante` = esclusiva del Mercante, #63)
 // AVATAR.cappelli[i] = { id, nome, perle, mercante? } (indici stabili: si aggiunge in fondo) · AVATAR.nomiColoriCapelli?: string[] (#3)
 // entry separata @marea/content/porto.ts (#63-#65): GENTE (gente.json: posti del Mercante e della Bacheca, persone, battute), MISSIONI (missioni.json), MISSIONE_TIPI, validatePorto()
 export function validateContent(): string[]           // [] se tutto ok, altrimenti errori in italiano
@@ -488,7 +488,7 @@ Design in `docs/CORSE.md` A9 e A11 («Scenografia»). Solo resa: la sim e il gio
 - **Pipeline** `tools/build_assets.mjs`: i `cs_*` vanno in `public/assets/manifest_corse.json` (stesso formato degli altri manifest), fuori da quello principale. Budget: case, gru, faro, tribuna e archi ≤ 800 tri, gli altri ≤ 300, la testa ≤ 50. Si costruiscono da soli: `node tools/build_assets.mjs cs_casa_a cs_faro …`.
 - **Client** `apps/client/src/corse/scena.ts`:
   - `creaScena(p: Pista) → { gruppo, pronta } | null` (null se la pista non ha una scena). La chiama `creaPista3d` (`nastro3d.ts`), che la mette nel suo gruppo e la espone in `Pista3d.scena` (la promessa si risolve con `{ pezzi, teste, triangoli }` quando il kit è montato). I `bounds` della pista restano quelli del nastro.
-  - `SCENE[id]`: `livello` del mare, `costa` (spezzata, mare a sinistra), `mareA` (fughe), `isola` (baia), `porto`, tratti `paese`, `faro` (s, lat). `haScena(id)`.
+  - `SCENE[id]`: `livello` del mare, `costa` (spezzata, mare a sinistra), `mareA` (fughe), `isola` (baia), `porto`, tratti `paese`, `faro` (s, lat).
   - Terreno a griglia (≤ 11.000 celle) per riquadri da 160 m, colori della palette per triangolo; pezzi fusi per riquadro in 2 mesh (atlas, emissivo); teste dei manichini in un `InstancedMesh` (`corse_teste`) che le gira verso la camera da `onBeforeRender` (a scatti, 4 volte al secondo; l'ombra non conta).
   - Il kit si scarica col loader del gioco (`manifest.json` + `extend('manifest_corse.json')`) solo la prima volta che si apre una pista vestita.
   - Aggancio di debug: `globalThis.__corseScena = { pista, pronta, gruppo, pezzi, teste, modelli }` (`modelli` = quanti pezzi per modello).

@@ -65,7 +65,7 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
   const ctr = (i: number) => ({ x: ((i % W) + 0.5) * T, z: (Math.floor(i / W) + 0.5) * T });
   const cellA = (cx: number, cz: number) => (cx < 0 || cz < 0 || cx >= W || cz >= H ? C.fuori : a.cell[cz * W + cx]!);
   const disp: { dispose(): void }[] = [];
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s = new THREE.Vector3(), col = new THREE.Color();
+  const q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s = new THREE.Vector3(), col = new THREE.Color();
   const mat = (x: number, y: number, z: number, ry: number, sx = 1, sy = 1, sz = 1, rx = 0, rz = 0) => new THREE.Matrix4().compose(v.set(x, y, z), q.setFromEuler(e.set(rx, ry, rz)), s.set(sx, sy, sz));
   const istanze = (geo: THREE.BufferGeometry, m: THREE.Material, n: number, nome: string) => {
     const im = new THREE.InstancedMesh(geo, m, Math.max(1, n)); im.name = nome; im.frustumCulled = false; im.count = n; scene.add(im); disp.push(geo, m); return im;

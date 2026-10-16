@@ -6,7 +6,7 @@ import { guarda, rng, rumore } from './mondo_base.ts';
 import type { NomeP } from './mondo_base.ts';
 import { conchiglia, festone, giostra, insegna, lampioneNeon, nuvola, teschio } from './mondo_costruzioni.ts';
 import { Tele, fiore } from './mondo_mesh.ts';
-import { AIUOLA, CAPO, CASCATA, LUNA, MARE, MESA, MONTE, NEON, PONTILE, PONTILE_Y, RAMPE, ROT, STAGNO, dentroPontile, distCosta } from './mondo_terreno.ts';
+import { AIUOLA, CAPO, CASCATA, LUNA, MARE, MESA, MONTE, NEON, PONTILE_Y, RAMPE, ROT, STAGNO, dentroPontile, distCosta } from './mondo_terreno.ts';
 import type { Terreno } from './mondo_terreno.ts';
 
 /** Un pezzo del kit: nome nel manifest (con le alternative se manca), posa, scala. `y` = quota della base. */
@@ -30,10 +30,6 @@ const NOMI: Record<IdPorta, string> = {
   spiaggia: 'Spiaggia e porto', ghiaccio: 'Ghiaccio e neve', giungla: 'Giungla e templi', neon: 'Città al neon', lunapark: 'Luna park', fondale: 'Fondale e cielo',
 };
 const IDS: IdPorta[] = ['spiaggia', 'ghiaccio', 'giungla', 'neon', 'lunapark', 'fondale'];
-/** Colori delle porte (segnaposto) e delle insegne. */
-const COLORE_PORTA: Record<IdPorta, [NomeP, NomeP]> = {
-  spiaggia: ['giallo', 'acqua'], ghiaccio: ['acquaBassa', 'pietraChiara'], giungla: ['erba', 'bosco'], neon: ['rosaNeon', 'violaNeon'], lunapark: ['rosso', 'giallo'], fondale: ['acquaProfonda', 'rosaNeon'],
-};
 const MANI_PIEDI = ['cs_manichino_rosso', 'cs_manichino_blu'], MANI_SEDUTI = ['cs_manichino_giallo', 'cs_manichino_verde'];
 const OMBR = ['cs_ombrellone_rosso', 'cs_ombrellone_blu', 'cs_ombrellone_giallo'], CASE = ['cs_casa_a', 'cs_casa_b', 'cs_casa_c'];
 

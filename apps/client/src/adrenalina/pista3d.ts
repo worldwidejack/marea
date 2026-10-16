@@ -136,7 +136,7 @@ export function creaPista3d(p: PistaNeve): Pista3d {
   ]);
   const triAbete = abete.attributes.position!.count / 3;
   const perRiquadro = new Map<number, THREE.Matrix4[]>();
-  const mat4 = new THREE.Matrix4(), q = new THREE.Quaternion(), su = new THREE.Vector3(0, 1, 0);
+  const q = new THREE.Quaternion(), su = new THREE.Vector3(0, 1, 0);
   const piantaIn = (s: number, x: number, y: number, z: number, scala: number, giro: number) => {
     const k = Math.floor(s / RIQUADRO);
     const l = perRiquadro.get(k) ?? []; perRiquadro.set(k, l);

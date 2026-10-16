@@ -165,10 +165,4 @@ export function buyHat(lot0: LotState, hatId: string, nowMs: number): LotState {
   return { ...lot, version: lot.version + 1, posseduti: [...(lot.posseduti ?? []), hatId] };
 }
 
-/** Prossimo livello di un edificio piazzato (costo e secondi), o null se è al massimo. Utile alla UI. */
-export function nextLevel(b: PlacedBuilding): { cost: Resources; seconds: number } | null {
-  const lvl = building(b.building).levels[b.level];
-  return lvl ? { cost: lvl.cost, seconds: lvl.seconds } : null;
-}
-
 export { BALANCE };

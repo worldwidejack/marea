@@ -44,7 +44,6 @@ const SCENE: Record<string, ConfScena> = {
   spiaggia_fuga: { livello: -1.2, mareA: -1, paese: [[0, 140], [1230, 1366]], faro: [1350, 26] },
   giungla_miniera: { livello: 0, giungla: true },
 };
-export const haScena = (id: string): boolean => id in SCENE;
 
 // ---------- vicinanza alla pista: i campioni di tutti i nastri in una griglia da 16 m ----------
 type Camp = { x: number; y: number; z: number; rx: number; ry: number; rz: number; l: number; fuori: number; vuoto: boolean; s: number; ramo: number; miniera: boolean; pressoVuoto: boolean };
