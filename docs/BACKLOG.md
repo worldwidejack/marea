@@ -6,10 +6,16 @@
 ## Dalla revisione di Jack (14 ott 2026, `VISIONE.md`)
 - **Partenza nuova**: solo la casa → risorse o monete → compri la prima barca → salpi → colonizzi altre isole.
 - **City builder a esagoni** sulle isole colonizzate.
-- **Shooter MAREA**: un'isola sua, con spunti da battle royale, tactical e war sandbox, in forma originale.
+- ~~**Shooter MAREA**~~: dal 16 ott 2026 è lo sparatutto a missioni (`docs/SPARO.md`).
 - **Corse come hub del movimento**: oltre a kart, snowboard e mountain bike, altri mezzi e forse cose che volano.
 - **Visite con permessi**, ed eventuali attacchi o interazioni competitive tra isole (prima stava tra i «Mai»).
 - **Oggetti e equipaggiamento che passano da un'isola all'altra**, con una lore comune.
+
+## Format piaciuti a Jack, parcheggiati (16 ott 2026, brainstorming del prossimo format)
+- **Isola dello sport**: calcio, basket, golf (idea già nata nel gruppo).
+- **Difesa del Porto** alla Plants vs Zombies (la Difesa scelta il 9 ott): i pirati maledetti arrivano dal mare per corsie, la marea sposta il campo.
+- **Carte della Marea** alla Pokémon TCG Pocket / Clash Royale: carte di tutto MAREA, bustine vinte negli altri format, sfide ai capitani.
+- **Cucina del Porto** alla Overcooked: livelli da 3 minuti, una cucina per isola, ingredienti dagli altri format; in 4 il caos.
 
 ## Dopo dicembre 2026
 - Corse, gara tra amici: **urti e oggetti anche tra amici** (Jack, 12 ott 2026: «tanto comunque bisognerà implementare gli oggetti tra amici»). Oggi gli amici sono fantasmi: serve una soluzione di rete (l'urto o il colpo li decide chi colpisce e li manda agli altri). Prima gli urti veri coi bot.

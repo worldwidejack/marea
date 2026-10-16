@@ -13,6 +13,10 @@ const DAY = 86_400_000, T0 = 20_000 * DAY + 3_600_000; // un'ora dopo la mezzano
 test('porto: gente e missioni validi (un mercante, tipi che il server sa contare, abbastanza gruppi)', () => {
   assert.deepEqual(validatePorto(), []);
   assert.ok(GENTE.gente.length >= 3 && GENTE.gente.every((p) => p.battute.length >= 2));
+  const tonio = GENTE.gente.find((p) => p.id === 'tonio')!;
+  assert.ok(tonio && tonio.battute.some((b) => /cancello/i.test(b) && /vuoto/i.test(b)));
+  assert.ok(tonio.battute.some((b) => /onda/i.test(b) && /mausoleo/i.test(b)));
+  assert.ok(tonio.battuteAperto && tonio.battuteAperto.some((b) => /spalancato/i.test(b) || /aperto/i.test(b)));
 });
 
 test('missioni: stesse per stesso giorno e persona, cambiano tra persone e giorni; mai due dello stesso gruppo', () => {

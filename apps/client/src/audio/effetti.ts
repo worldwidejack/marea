@@ -260,6 +260,22 @@ export const SUONI: Record<SuonoId, Ricetta> = {
     m.tono({ f: 55, onda: 'sine', t, dur: 3, vol: 0.09, a: 0.4 }); m.tono({ f: 58.3, onda: 'sine', t, dur: 3, vol: 0.06, a: 0.4 });
     for (const [dt, v] of [[0, 0.2], [0.22, 0.13], [0.9, 0.16], [1.13, 0.1], [2.0, 0.11], [2.25, 0.06]] as const) m.tono({ f: 62, f2: 40, onda: 'sine', t: t + dt, dur: 0.2, vol: v });
   },
+  // ---- i segreti (docs/TEMPLARI.md §9c) ----
+  // una campanella sul palo: ognuna la sua nota (k = quale, 0..1), così nell'ordine giusto fanno una frase
+  tpl_campanella: (m, t, k) => { const n = [79, 83, 86, 91][Math.round(k * 3)] ?? 86; campana(m, t, hz(n) * vari(0.004), 0.09, 1.6); campana(m, t + 0.02, hz(n + 12), 0.025, 0.6); },
+  // stonata: due campanelle a un semitono che litigano e un tonfo (si ricomincia)
+  tpl_stona: (m, t) => { campana(m, t, hz(78), 0.06, 0.9); campana(m, t + 0.03, hz(79), 0.06, 0.9); m.tono({ f: 90, f2: 45, onda: 'sine', t: t + 0.05, dur: 0.3, vol: 0.12 }); },
+  // un'anima che vola all'altare della cripta: un soffio che sale e un filo di voce
+  tpl_anima: (m, t, k) => {
+    m.soffio({ f: 500, f2: 2800, q: 2.5, t, dur: 0.9, vol: 0.05 + 0.03 * k, a: 0.25 });
+    m.tono({ f: 520 * vari(0.03), f2: 1040, onda: 'sine', t: t + 0.1, dur: 0.9, vol: 0.035, a: 0.3, vib: { f: 6, d: 0.02 } });
+  },
+  // il muro crepato che crolla: lo schianto, il rombo lungo e i sassi che rotolano giù per la scala
+  tpl_crollo: (m, t) => {
+    m.tono({ f: 70, f2: 30, onda: 'sine', t, dur: 0.6, vol: 0.22 });
+    m.soffio({ tipo: 'lowpass', f: 1600, f2: 180, t, dur: 1.6, vol: 0.22, a: 0.01 });
+    for (let i = 0; i < 10; i++) m.soffio({ f: 1400 * vari(0.4), q: 3, t: t + 0.25 + i * 0.11 * vari(0.3), dur: 0.04, vol: 0.06 * (1 - i / 12) });
+  },
   // ---- lore nei dungeon: l'altoparlante gracchia e fa din-don; la pagina che si gira ----
   altoparlante: (m, t) => { for (const dt of [0, 0.07, 0.15]) m.soffio({ f: 2400 * vari(0.2), q: 0.7, t: t + dt, dur: 0.05, vol: 0.06, a: 0.005 }); m.tono({ f: 660, onda: 'square', t: t + 0.22, dur: 0.16, vol: 0.05, lp: 1600 }); m.tono({ f: 495, onda: 'square', t: t + 0.4, dur: 0.24, vol: 0.05, lp: 1600 }); },
   pagina: (m, t) => { m.soffio({ f: 3200 * vari(0.15), f2: 1400, q: 0.8, t, dur: 0.16, vol: 0.08, a: 0.02 }); m.soffio({ f: 1800, q: 1.2, t: t + 0.12, dur: 0.06, vol: 0.04 }); },

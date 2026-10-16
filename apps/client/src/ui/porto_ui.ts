@@ -6,7 +6,7 @@
 import { GENTE } from '@marea/content/porto.ts';
 import type { PersonaPorto } from '@marea/content/porto.ts';
 import { finoAlCambio, missioniOf } from '@marea/sim/economy/missioni.ts';
-import type { Resources } from '@marea/sim';
+import type { LotState, Resources } from '@marea/sim';
 import { barcaDi } from '@marea/sim';
 import { ApiError } from '../net/api.ts';
 import type { PortoCtx } from '../game/porto.ts';
@@ -71,6 +71,23 @@ const STYLE = `
 .mz-dlg .mz-btn { width: auto; min-width: 140px; margin: 0; justify-content: center; }
 @media (min-width: 700px) { .mz-dlg { left: 50%; right: auto; width: 540px; transform: translateX(-50%); bottom: 32px; } }
 `;
+
+export function cancelloVuotoAperto(lot: LotState | null): boolean {
+  const h = lot?.hero;
+  if (h) {
+    if ((h.inv?.['unico_anello_onda'] ?? 0) > 0) return true;
+    if (h.equip?.anello1 === 'unico_anello_onda' || h.equip?.anello2 === 'unico_anello_onda') return true;
+    if ((h.completati ?? []).includes('vuoto')) return true;
+    if ((h.lanterne?.['vuoto'] ?? -1) >= 0) return true;
+  }
+  try { if (localStorage.getItem('marea:cancello_vuoto_aperto') === '1') return true; } catch { /* pazienza */ }
+  return false;
+}
+
+export function battuteDi(p: PersonaPorto, lot: LotState | null): string[] {
+  if (p.battuteAperto?.length && cancelloVuotoAperto(lot)) return p.battuteAperto;
+  return p.battute;
+}
 
 export function createPortoUi(ctx: PortoCtx): PortoUi {
   injectUiStyle();
@@ -192,6 +209,7 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     const g = gen;
     if (ctx.api?.enabled) ctx.api.lot().then((l) => { ctx.setLot(l); if (g === gen) render(); }, () => { /* restano quelli noti */ });
   }
+
   function parla(p: PersonaPorto): void {
     close(true);
     kind = 'parla'; gen++; persona = p; riga = 0;
@@ -199,17 +217,19 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
   }
   function renderDlg(): void {
     if (kind !== 'parla' || !persona) return;
+    const lines = battuteDi(persona, ctx.getLot());
     const who = el('div', 'who'); who.append(pixIcon('parla', 16), el('span', '', persona.nome));
-    const last = riga >= persona.battute.length - 1;
+    const last = riga >= lines.length - 1;
     const b = el('button', 'mz-btn' + (last ? ' green' : ''), last ? 'CIAO' : 'AVANTI ›'); b.type = 'button'; b.dataset['act'] = last ? 'ciao' : 'avanti';
     b.addEventListener('click', () => avanti());
-    const ft = el('div', 'ft'); ft.append(el('span', 'n', `${riga + 1}/${persona.battute.length}`), b);
+    const ft = el('div', 'ft'); ft.append(el('span', 'n', `${riga + 1}/${lines.length}`), b);
     dlg.dataset['persona'] = persona.id;
-    dlg.replaceChildren(who, el('p', '', persona.battute[riga] ?? ''), ft);
+    dlg.replaceChildren(who, el('p', '', lines[riga] ?? ''), ft);
   }
   function avanti(): void {
     if (kind !== 'parla' || !persona) return;
-    if (riga >= persona.battute.length - 1) { close(); return; }
+    const lines = battuteDi(persona, ctx.getLot());
+    if (riga >= lines.length - 1) { close(); return; }
     riga++; renderDlg();
   }
   function close(silent = false): void {
@@ -230,6 +250,6 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     mercante: () => openSheet('mercante'),
     bacheca: () => openSheet('bacheca'),
     parla, avanti, close: () => close(), isOpen: () => kind !== null,
-    state: () => ({ kind, tab: merc.tab, prova: merc.prova, provaBarca: merc.provaBarca, note: merc.note?.text ?? bach.note?.text ?? null, busy: merc.busy || bach.busy, persona: persona?.id ?? null, riga, riscosse: bach.riscosse }),
+    state: () => ({ kind, tab: merc.tab, prova: merc.prova, provaBarca: merc.provaBarca, note: merc.note?.text ?? bach.note?.text ?? null, busy: merc.busy || bach.busy, persona: persona?.id ?? null, riga, battuta: persona ? (battuteDi(persona, ctx.getLot())[riga] ?? null) : null, cancelloAperto: cancelloVuotoAperto(ctx.getLot()), riscosse: bach.riscosse }),
   };
 }

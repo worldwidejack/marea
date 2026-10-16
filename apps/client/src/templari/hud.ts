@@ -106,14 +106,16 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string, pot?: boo
         const n = el('span', '', (a?.pot && !inMano ? '✦ ' : '') + nome); if (a?.pot && !inMano) n.style.color = PAL.giallo;
         arma.replaceChildren(n, el('b', '', colpi), el('em', '', `${ric}${altra && !inMano ? ` · ${nomeArma(altra.id, altra.pot)}` : ''}${sc}`));
       }
-      // l'isola (§9b): fuochi accesi e pezzi della campana (montata: un segno solo)
-      const accesi = v.fuochi.filter((f) => f.acceso).length, presi = v.pezzi.filter((x) => x.preso).length;
-      const ik = `${accesi}/${v.fuochi.length}|${presi}/${v.pezzi.length}|${v.campana}`;
+      // l'isola (§9b): fuochi accesi e pezzi della campana (montata: un segno solo); i segreti (§9c) solo quando ci sei sopra: le anime
+      // nella cripta finché l'altare è sigillato, i teschi dopo il primo
+      const accesi = v.fuochi.filter((f) => f.acceso).length, presi = v.pezzi.filter((x) => x.preso).length, g = v.segreti;
+      const teschi = g.teschi.filter((t) => t.preso).length, anime = g.dentro && g.anime < g.tutte ? `✝ anime ${g.anime}/${g.tutte}` : '';
+      const ik = `${accesi}/${v.fuochi.length}|${presi}/${v.pezzi.length}|${v.campana}|${anime}|${teschi}`;
       if (ik !== shown.isola) {
         shown.isola = ik;
         const f = el('span', accesi === v.fuochi.length ? 'ok' : '', `🔥 ${accesi}/${v.fuochi.length}`);
         const c = el('span', v.campana ? 'ok' : '', v.campana ? '🔔 montata' : `🔔 ${presi}/${v.pezzi.length}`);
-        isola.replaceChildren(f, c);
+        isola.replaceChildren(f, c, ...(anime ? [el('span', '', anime)] : []), ...(teschi ? [el('span', teschi === g.teschi.length ? 'ok' : '', `☠ ${teschi}/${g.teschi.length}`)] : []));
       }
       // pozioni della Strega bevute
       const pk2 = v.eroe.pozioni.join(',') + (v.eroe.intoccabile ? '!' : '');

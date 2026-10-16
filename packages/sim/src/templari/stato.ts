@@ -7,6 +7,7 @@ import { TICK_HZ } from '../constants.ts';
 import type { SwingStyle } from '../dungeon/swing.ts';
 import { bfs, cellOf, moveCircle } from '../dungeon/map.ts';
 import { creaGriglie, parseArena } from './mappa.ts';
+import { segretiNuovi } from './segreti.ts';
 import type { Arena, Griglie } from './mappa.ts';
 import type { TEsito, TEvento, TEventoDi, TFase, TOpzioni, TZombieAnim } from './types.ts';
 
@@ -137,6 +138,9 @@ export type TState = {
   trappole: StatoTrappola[];
   /** Fuochi accesi (id → acceso), pezzi della campana (in quale dei suoi posti sta, se l'ha preso la squadra) e la campana montata. */
   fuochi: Record<string, boolean>; pezzi: Record<string, { posto: number; preso: boolean }>; campana: boolean;
+  /** Segreti (§9c, segreti.ts): il muro della cripta rotto, le anime portate all'altare, l'ultimo sbuffo di polvere (tick); l'ordine delle
+   *  campanelle di questa partita, quante giuste di fila, suonate tutte; i teschi trovati. Della squadra. */
+  segreti: { muro: boolean; anime: number; polvere: number; ordine: string[]; giuste: number; campane: boolean; teschi: Record<string, boolean> };
   /** Insieme: il flow field degli zombie ha come origine queste celle (gli eroi in piedi); da solo si usa flowCell. */
   flowCelle: number[];
   /** Power-up: Ira di Dio e Decima accese fino al tick, quanti ne sono usciti in questa ondata, l'ultimo uscito. */
@@ -237,7 +241,7 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
     zombie: [], proj: [], fiamme: [], drops: [], tiri: [], cannonate: [], boss: null,
     cassa: { posto: postoIniziale(arena), usi: 0, max: TEMPLARI.cassa.usiMax, fase: 'chiusa', inizio: 0, fine: 0, arma: null },
     trappole: arena.trappole.map(() => ({ fine: 0, pronta: 0, colpo: 0 })),
-    fuochi: Object.fromEntries(arena.fuochi.map((f) => [f.id, false])), pezzi: postiPezzi(arena, seed), campana: false,
+    fuochi: Object.fromEntries(arena.fuochi.map((f) => [f.id, false])), pezzi: postiPezzi(arena, seed), campana: false, segreti: segretiNuovi(arena, seed),
     poteri: { ira: 0, decima: 0, ondata: 0, ultimo: '' },
     nextId: 1,
     flow: new Int32Array(arena.w * arena.h), flowCell: -1, flowTick: -999, flowCelle: [],

@@ -31,6 +31,10 @@ export type Scena = {
   setCalice(visibile: boolean): void;
   /** La campana montata sull'incastellatura (sennò sta a terra, sdraiata accanto: §9b). */
   setCampana(montata: boolean): void;
+  /** Il muro crepato della cripta è rotto (§9c): il suo pezzo di muro sparisce (l'arco e la scala li disegna segreti3d.ts). */
+  setMuroRotto(rotto: boolean): void;
+  /** L'eroe è nella cripta: luna, cielo e ambiente quasi spenti, restano la lanterna, le torce e l'altare. */
+  setCripta(dentro: boolean): void;
   stats(): { muri: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number; sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number };
   dispose(): void;
 };
@@ -69,12 +73,17 @@ function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasText
     for (const [dx, dz] of N4) { const nx = cx + dx, nz = cz + dz, j = nz * W + nx; if (nx >= 0 && nz >= 0 && nx < W && nz < H && !acqua[j] && puo(j)) { acqua[j] = 1; qa.push(j); } }
   }
   const mare = (i: number) => acqua[i] === 1;
+  // attorno alla cripta (§9c) niente bosco: sotto terra è tutto nero
+  let bx0 = W, bx1 = -1, bz0 = H, bz1 = -1;
+  if (a.cripta) for (let i = 0; i < W * H; i++) if (a.cripta.dentro[i]) { const x = i % W, z = (i - x) / W; bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); bz0 = Math.min(bz0, z); bz1 = Math.max(bz1, z); }
+  const sottoterra = (cx: number, cz: number) => cx >= bx0 - 6 && cx <= bx1 + 9 && cz >= bz0 - 6 && cz <= bz1 + 6;
   for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
     const i = cz * W + cx, x0 = cx * PX, y0 = cz * PX, hh = (s: number) => cellHash(cx, cz, s);
     const su = a.cell[i] === C.fuori ? SUOLO.niente : a.suolo[i]!;
     switch (su) {
       case SUOLO.niente: {
         const dd = d[i]!;
+        if (sottoterra(cx, cz)) { px(PAL.neroCaldo, x0, y0, PX, PX); break; }
         if (mare(i)) { // oltre la spiaggia: il mare
           px(PAL.abisso, x0, y0, PX, PX);
           if (hh(3) < 0.5) px(PAL.acquaProfonda, x0 + Math.floor(hh(4) * 5), y0 + Math.floor(hh(5) * PX), 3, 1);
@@ -306,6 +315,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
       }
       case TIPO.leva: break; // sotto, con le trappole
       case TIPO.sarcofago: case TIPO.armadio: break; // in dettagli.ts
+      case TIPO.campanella: case TIPO.altareCripta: break; // in segreti3d.ts
       case TIPO.cosa: break; // sotto, a gruppi
       default: sassi.push(i);
     }
@@ -502,7 +512,10 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   fin.applica(scene, { taglia: true }, (m) => m === floor);
   const qi = new THREE.Quaternion();
 
-  let assiOra = '', poolT = -1, leveOra = '';
+  let assiOra = '', poolT = -1, leveOra = '', criptaOra = false;
+  const nCrepa = a.cripta ? muri.indexOf(a.cripta.muro.cella) : -1, mCrepa = new THREE.Matrix4();
+  if (nCrepa >= 0) muro.getMatrixAt(nCrepa, mCrepa);
+  const LUCI = { hemi: hemi.intensity, amb: amb.intensity, luna: luna.intensity, lanterna: lanterna.intensity, dist: lanterna.distance };
   return {
     scene,
     update(hx, hz, t, assi, trappole) {
@@ -557,6 +570,13 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
     },
     setPorte(aperte) { for (const [id, l] of porte) for (const o of l) o.visible = !aperte[id]; },
     setCalice(v) { caliceAlt.visible = v; },
+    setMuroRotto(r) { if (nCrepa < 0) return; muro.setMatrixAt(nCrepa, r ? ZERO : mCrepa); muro.instanceMatrix.needsUpdate = true; },
+    setCripta(d) {
+      if (d === criptaOra) return;
+      criptaOra = d;
+      hemi.intensity = d ? 0.1 : LUCI.hemi; amb.intensity = d ? 0.05 : LUCI.amb; luna.intensity = d ? 0 : LUCI.luna;
+      lanterna.intensity = d ? 11 : LUCI.lanterna; lanterna.distance = d ? 11 : LUCI.dist;
+    },
     setCampana(m) {
       if (m === montata) return;
       montata = m;

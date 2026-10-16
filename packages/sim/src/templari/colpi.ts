@@ -8,6 +8,7 @@ import { moveCircle } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
 import { COLPITO_TICKS, classeDi, ev, inPiedi, secToTicks, usa, vitaBase } from './stato.ts';
 import { vicinoRaggiungibile } from './raggiungi.ts';
+import { anima, colpoMuro } from './segreti.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 /** Fiamme a terra insieme al massimo (le più vecchie si spengono). */
@@ -37,7 +38,9 @@ export function rendi(s: TState, n: number): void { s.eroe.punti += n; ev(s, { t
 
 /** `dirX, dirZ`: verso in cui va il colpo (dal colpitore allo zombie); `scudo` false = passa lo scudo (fiamme); `super` = colpo del
  *  super (non lo ricarica). */
-export type Colpo = { danno: number; mischia: boolean; caricato: boolean; dirX: number; dirZ: number; spinta: number; scudo?: boolean; super?: boolean };
+export type Colpo = { danno: number; mischia: boolean; caricato: boolean; dirX: number; dirZ: number; spinta: number; scudo?: boolean; super?: boolean;
+  /** Vita che torna all'eroe se lo uccide (la Lancia di Longino). */
+  cura?: number };
 
 /** Un'uccisione dell'eroe di turno (super.ts): un passo di carica del suo super; a pieno lo dice una volta. */
 export function caricaSuper(s: TState): void {
@@ -83,6 +86,7 @@ export function colpisci(s: TState, z: Zombie, c: Colpo): Esito {
   if (c.spinta > 0 && !uccide) moveCircle(s.gr.zombie, z, c.dirX * c.spinta, c.dirZ * c.spinta, z.def.raggio);
   if (!uccide) { dai(s, TEMPLARI.punti.colpo, 'colpo'); return 'colpito'; }
   uccidi(s, z);
+  if (c.cura) s.eroe.vita = Math.min(s.eroe.max, s.eroe.vita + c.cura);
   if (!c.super) caricaSuper(s);
   dai(s, (c.mischia ? TEMPLARI.punti.mischia : TEMPLARI.punti.uccisione) + (z.def.punti ?? 0), c.mischia ? 'mischia' : 'uccisione');
   return 'ucciso';
@@ -121,6 +125,7 @@ export function uccidi(s: TState, z: Zombie, potere = true): void {
   z.vita = 0; z.st = 'morto'; z.stT = 0; z.finestra = -1;
   s.uccisioni++;
   ev(s, { t: 'morte', id: z.id, tipo: z.tipo, x: r2(z.x), z: r2(z.z) });
+  anima(s, z); // nella cripta l'anima va all'altare (§9c)
   if (potere) lasciaPotere(s, z.x, z.z, !!z.def.boss);
   // lo scudato lascia lo scudo a terra, se non gliel'hai spaccato
   if (z.def.scudo !== undefined && z.scudo > 0) {
@@ -133,6 +138,7 @@ export function uccidi(s: TState, z: Zombie, potere = true): void {
 /** Esplosione in (x, z): danno a chi sta nel raggio (lo scudato para se la guarda), poi le fiamme a terra. */
 export function esplodi(s: TState, x: number, z: number, r: number, danno: number, fuoco?: TFiamma): void {
   ev(s, { t: 'esplosione', x: r2(x), z: r2(z), r });
+  colpoMuro(s, x, z, r, true); // il muro crepato della cripta (§9c)
   for (const zz of s.zombie) {
     if (zz.st === 'morto' || zz.st === 'sorge') continue;
     const dx = zz.x - x, dz = zz.z - z, d = Math.sqrt(dx * dx + dz * dz);

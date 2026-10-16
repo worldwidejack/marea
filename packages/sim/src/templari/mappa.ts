@@ -12,7 +12,9 @@ export const C = { fuori: 0, pavimento: 1, muro: 2, colonna: 3, basso: 4, finest
 /** Suolo delle celle (solo per la resa): pietre della chiesa, terra del sagrato, acciottolato, erba, sabbia, assito. */
 export const SUOLO = { niente: 0, pietra: 1, terra: 2, ciottoli: 3, erba: 4, sabbia: 5, assi: 6 } as const;
 /** Cos'è una cella piena (solo per la resa). */
-export const TIPO = { niente: 0, chiesa: 1, casa: 2, tenda: 3, colonna: 4, stallo: 5, maceria: 6, muretto: 7, tomba: 8, cosa: 9, braciere: 10, altare: 11, altarino: 12, cassa: 13, leva: 14, tramezzo: 15, sarcofago: 16, armadio: 17, fuoco: 18 } as const;
+export const TIPO = { niente: 0, chiesa: 1, casa: 2, tenda: 3, colonna: 4, stallo: 5, maceria: 6, muretto: 7, tomba: 8, cosa: 9, braciere: 10, altare: 11, altarino: 12, cassa: 13, leva: 14, tramezzo: 15, sarcofago: 16, armadio: 17, fuoco: 18,
+  /** Segreti (§9c): una campanella sul palo, il muro crepato, l'altare della cripta, la scala della cripta. */
+  campanella: 19, crepa: 20, altareCripta: 21, scala: 22 } as const;
 const SUOLO_DI: Record<string, number> = { '.': SUOLO.pietra, ',': SUOLO.terra, v: SUOLO.ciottoli, e: SUOLO.erba, s: SUOLO.sabbia, w: SUOLO.assi };
 const TIPO_DI: Record<string, number> = { N: TIPO.tramezzo, V: TIPO.sarcofago, Y: TIPO.armadio, '#': TIPO.chiesa, h: TIPO.casa, t: TIPO.tenda, o: TIPO.colonna, p: TIPO.stallo, r: TIPO.maceria, q: TIPO.maceria, m: TIPO.muretto, g: TIPO.tomba, k: TIPO.cosa, b: TIPO.braciere, A: TIPO.altare, a: TIPO.altarino, C: TIPO.cassa };
 
@@ -34,6 +36,12 @@ export type Personaggio = { id: 'mercante' | 'strega'; x: number; z: number; fx:
 /** Un fuoco da accendere (il braciere grande, cella piena) e i posti possibili di un pezzo della campana. */
 export type Fuoco = { id: string; x: number; z: number };
 export type PostiPezzo = { id: string; posti: P[] };
+/** La cripta sotto la chiesa (docs/TEMPLARI.md §9c): il muro crepato della rotonda e la scala in fondo alla cripta sono i due capi della
+ *  stessa scala (la sim porta eroi e zombie dall'uno all'altro). `su` = la cella di chiesa davanti al muro (ci arrivi tornando su), `giu` =
+ *  quella della cripta davanti alla scala (ci arrivi scendendo), col verso in cui guardi arrivando; `dentro` = le celle della cripta. */
+export type Cripta = { muro: P & { cella: number }; su: P & { fx: number; fz: number }; scala: P & { cella: number }; giu: P & { fx: number; fz: number }; altare: P; dentro: Uint8Array };
+/** Una campanella o un teschio dei segreti: id e cella. */
+export type Segreto = { id: string; x: number; z: number };
 export type Albero = { x: number; z: number; cella: number; tipo: 'cipresso' | 'palma' | 'lampione'; h: number };
 /** Posto della cassa del tesoro (la cella della cassa) e da che parte guarda (via dal muro). */
 export type PostoCassa = { x: number; z: number; fx: number; fz: number };
@@ -58,6 +66,8 @@ export type Arena = {
   personaggi: Personaggio[];
   /** Fuochi da accendere e posti dei pezzi della campana (docs/TEMPLARI.md §9b). */
   fuochi: Fuoco[]; pezzi: PostiPezzo[];
+  /** Segreti (§9c): la cripta, le campanelle, il muro con l'ordine delle campane (come un'arma sul muro: la cella davanti e il muro), i teschi. */
+  cripta: Cripta | null; campanelle: Segreto[]; indizio: Omit<Muro, 'arma'> | null; teschi: Segreto[];
   /** Indice della trappola per cella (-1 = nessuna). */
   trappolaDi: Int8Array;
   /** Per la resa: suolo e tipo di ogni cella (SUOLO, TIPO). */
@@ -107,6 +117,8 @@ export function parseArena(def: TMappaDef): Arena {
   const muriC: { arma: string; cx: number; cz: number }[] = [], casseC: { cx: number; cz: number }[] = [];
   const posti: { id: 'mercante' | 'strega'; cx: number; cz: number }[] = [];
   const fuochi: Fuoco[] = [], pezziMap = new Map<string, P[]>();
+  const campanelle: Segreto[] = [], teschi: Segreto[] = [], cr = { muro: -1, scala: -1, altare: [] as P[] };
+  let indizioC: { cx: number; cz: number } | null = null;
   for (let cz = 0; cz < h; cz++) for (let cx = 0; cx < w; cx++) {
     const ch = rows[cz]![cx] ?? ' ', i = cz * w + cx;
     suolo[i] = SUOLO_DI[ch] ?? SUOLO.niente; tipo[i] = TIPO_DI[ch] ?? TIPO.niente;
@@ -134,6 +146,12 @@ export function parseArena(def: TMappaDef): Arena {
         if (l?.personaggio) { cell[i] = C.terra; posti.push({ id: l.personaggio, cx, cz }); break; }
         if (l?.fuoco) { cell[i] = C.basso; tipo[i] = TIPO.fuoco; fuochi.push({ id: l.fuoco, ...ctr(cx, cz) }); break; }
         if (l?.pezzo) { cell[i] = C.terra; const a = pezziMap.get(l.pezzo) ?? []; a.push(ctr(cx, cz)); pezziMap.set(l.pezzo, a); break; }
+        if (l?.cripta === 'muro') { cell[i] = C.muro; opaque[i] = 1; tipo[i] = TIPO.crepa; cr.muro = i; break; }
+        if (l?.cripta === 'scala') { cell[i] = C.pavimento; tipo[i] = TIPO.scala; cr.scala = i; break; }
+        if (l?.cripta === 'altare') { cell[i] = C.basso; tipo[i] = TIPO.altareCripta; cr.altare.push(ctr(cx, cz)); break; }
+        if (l?.campanella) { cell[i] = C.basso; tipo[i] = TIPO.campanella; campanelle.push({ id: l.campanella, ...ctr(cx, cz) }); break; }
+        if (l?.indizio) { cell[i] = C.pavimento; indizioC = { cx, cz }; break; }
+        if (l?.teschio) { cell[i] = C.pavimento; teschi.push({ id: l.teschio, ...ctr(cx, cz) }); break; }
         throw new Error(`Arena dei Templari: lettera '${ch}' senza legenda (${cx},${cz})`);
       }
     }
@@ -172,6 +190,33 @@ export function parseArena(def: TMappaDef): Arena {
     const d = N4.find(([dx, dz]) => k(cx + dx, cz + dz) === C.muro) ?? [0, -1];
     return { ...ctr(cx, cz), fx: -d[0], fz: -d[1] };
   });
+  /** La cripta: i due capi della scala con la cella davanti (la prima libera dei 4 vicini) e le celle della cripta (dalla scala in giù). */
+  function cripta(): Cripta | null {
+    if (cr.muro < 0 || cr.scala < 0) return null;
+    const capo = (i: number) => {
+      const cx = i % w, cz = (i - cx) / w, d = N4.find(([dx, dz]) => { const c = k(cx + dx, cz + dz); return c === C.pavimento || c === C.terra; }) ?? [1, 0];
+      return { cella: i, ...ctr(cx, cz), davanti: { ...ctr(cx + d[0], cz + d[1]), fx: d[0], fz: d[1] } };
+    };
+    const m = capo(cr.muro), sc = capo(cr.scala), dentro = new Uint8Array(w * h);
+    const q = [Math.floor(sc.davanti.z / t) * w + Math.floor(sc.davanti.x / t)];
+    dentro[q[0]!] = 1;
+    while (q.length) {
+      const i = q.pop()!, cx = i % w, cz = (i - cx) / w;
+      for (const [dx, dz] of N4) {
+        const nx = cx + dx, nz = cz + dz, j = nz * w + nx, c = k(nx, nz);
+        if (dentro[j] || (c !== C.pavimento && c !== C.terra)) continue;
+        dentro[j] = 1; q.push(j);
+      }
+    }
+    const n = Math.max(1, cr.altare.length), alt = cr.altare.reduce((s, p) => ({ x: s.x + p.x / n, z: s.z + p.z / n }), { x: 0, z: 0 });
+    return { muro: { cella: m.cella, x: m.x, z: m.z }, su: m.davanti, scala: { cella: sc.cella, x: sc.x, z: sc.z }, giu: sc.davanti, altare: alt, dentro };
+  }
+  /** Il muro con l'ordine delle campane: la cella davanti e il muro accanto (come le armi sul muro). */
+  function indizio(): Omit<Muro, 'arma'> | null {
+    if (!indizioC) return null;
+    const { cx, cz } = indizioC, d = N4.find(([dx, dz]) => k(cx + dx, cz + dz) === C.muro) ?? [0, -1], c = ctr(cx, cz), wc = ctr(cx + d[0], cz + d[1]);
+    return { ...c, wx: wc.x, wz: wc.z, nx: -d[0], nz: -d[1] };
+  }
   // l'eroe guarda verso l'altare
   const alt = { x: altSum.x / altSum.n, z: altSum.z / altSum.n };
   const dx = alt.x - spawn.x, dz = alt.z - spawn.z, dd = Math.sqrt(dx * dx + dz * dz) || 1;
@@ -181,6 +226,7 @@ export function parseArena(def: TMappaDef): Arena {
     porte: [...porteMap.entries()].map(([id, celle]) => ({ id, celle })), comparse, bracieri, altarini, muri, casse, dentro: [],
     trappole, alberi: trovaAlberi(w, h, cell, suolo, t, posti), trappolaDi, suolo, tipo,
     fuochi, pezzi: [...pezziMap.entries()].map(([id, p]) => ({ id, posti: p })),
+    cripta: cripta(), campanelle, teschi, indizio: indizio(),
     personaggi: posti.map(({ id, cx, cz }) => { const d = N4.find(([dx, dz]) => k(cx + dx, cz + dz) === C.fuori) ?? [0, -1]; return { id, ...ctr(cx, cz), fx: d[0], fz: d[1] }; }),
   };
   // celle dell'eroe all'inizio: a 4 vicini dalla partenza, senza attraversare finestre e porte

@@ -1,0 +1,131 @@
+{
+  "versione": 1,
+  "giocatore": {
+    "vita": 100,
+    "rigenera": { "attesa": 4, "alSecondo": 40 },
+    "passo": 4.6, "corsa": 6.6, "accucciato": 2.3, "inMira": 0.62,
+    "accelera": 48, "frena": 34, "inAria": 0.3,
+    "salto": 6.6, "gravita": 20,
+    "raggio": 0.32, "occhi": 1.6, "occhiGiu": 1.05, "gradino": 0.55,
+    "testa": 0.15, "corpo": 0.3
+  },
+  "armi": [
+    {
+      "id": "pistola", "nome": "PISTOLA", "danno": 30, "testa": 2, "pallini": 1, "cadenza": 0.14, "auto": false,
+      "caricatore": 12, "riserva": 96, "ricarica": 1.25, "ricaricaUno": false,
+      "dispersione": { "fianco": 1.4, "mira": 0.25, "muovi": 1.2, "aria": 4, "colpo": 0.6, "cala": 8 },
+      "rinculo": { "su": 1.6, "lato": 0.5, "recupero": 14 },
+      "portata": { "piena": 18, "zero": 40, "minimo": 0.6 },
+      "zoom": 72, "velocita": 1.0, "estrai": 0.35
+    },
+    {
+      "id": "mitra", "nome": "MITRA", "danno": 24, "testa": 2, "pallini": 1, "cadenza": 0.085, "auto": true,
+      "caricatore": 30, "riserva": 180, "ricarica": 1.9, "ricaricaUno": false,
+      "dispersione": { "fianco": 2.6, "mira": 0.45, "muovi": 1.6, "aria": 5, "colpo": 0.35, "cala": 6 },
+      "rinculo": { "su": 0.75, "lato": 0.45, "recupero": 9 },
+      "portata": { "piena": 22, "zero": 45, "minimo": 0.55 },
+      "zoom": 64, "velocita": 0.95, "estrai": 0.45
+    },
+    {
+      "id": "pompa", "nome": "POMPA", "danno": 13, "testa": 1.5, "pallini": 9, "cadenza": 0.8, "auto": false,
+      "caricatore": 6, "riserva": 36, "ricarica": 0.5, "ricaricaUno": true,
+      "dispersione": { "fianco": 5.5, "mira": 4.2, "muovi": 0.5, "aria": 2, "colpo": 0, "cala": 10 },
+      "rinculo": { "su": 4.5, "lato": 1.2, "recupero": 18 },
+      "portata": { "piena": 7, "zero": 16, "minimo": 0.15 },
+      "zoom": 78, "velocita": 0.92, "estrai": 0.5
+    }
+  ],
+  "bersagli": { "vita": 100, "rinasce": 3 },
+  "nemici": {
+    "vita": 100, "arma": "mitra", "danno": 8, "testa": 1.5,
+    "cadenza": 0.11, "raffica": [3, 6], "pausa": [0.55, 1.2],
+    "vista": { "angolo": 130, "distanza": 40, "vicino": 4.5 },
+    "udito": 22, "chiama": 14,
+    "reazione": [0.35, 0.7],
+    "errore": { "inizio": 7, "fine": 1.8, "secondi": 2.2, "muovendo": 2.5, "bersaglioVeloce": 1.6 },
+    "passo": 1.7, "corsa": 3.8, "gira": 5,
+    "copertura": { "min": 7, "max": 26, "dentro": [1.2, 2.6], "fuori": [1.1, 2.2] },
+    "aggira": { "min": 7, "max": 14, "angolo": 65 },
+    "dimentica": 6, "cerca": 9
+  },
+  "missione": { "sabota": 3, "caduto": 2, "medaglie": { "oro": 120, "argento": 200 } },
+  "mappa": {
+    "larga": 42, "lunga": 44, "acqua": 8, "cella": 0.5,
+    "spawn": { "x": 5, "z": 5.5, "yaw": -2.356 },
+    "oggetti": [
+      { "tipo": "container", "x": 3, "z": 1.3, "rot": 90, "piani": 2, "colore": "blu" },
+      { "tipo": "container", "x": 9, "z": 1.3, "rot": 90, "piani": 2, "colore": "rosso" },
+      { "tipo": "container", "x": 15, "z": 1.3, "rot": 90, "piani": 2, "colore": "verde" },
+      { "tipo": "container", "x": 21, "z": 1.3, "rot": 90, "piani": 2, "colore": "blu" },
+      { "tipo": "container", "x": 27, "z": 1.3, "rot": 90, "piani": 2, "colore": "rosso" },
+      { "tipo": "container", "x": 33, "z": 1.3, "rot": 90, "piani": 2, "colore": "verde" },
+      { "tipo": "container", "x": 39, "z": 1.3, "rot": 90, "piani": 2, "colore": "blu" },
+      { "tipo": "container", "x": 1.3, "z": 5.6, "rot": 0, "piani": 2, "colore": "verde" },
+      { "tipo": "container", "x": 1.3, "z": 11.6, "rot": 0, "piani": 2, "colore": "rosso" },
+      { "tipo": "container", "x": 1.3, "z": 17.6, "rot": 0, "piani": 2, "colore": "blu" },
+      { "tipo": "container", "x": 1.3, "z": 23.6, "rot": 0, "piani": 2, "colore": "verde" },
+      { "tipo": "container", "x": 1.3, "z": 29.6, "rot": 0, "piani": 2, "colore": "rosso" },
+      { "tipo": "container", "x": 1.3, "z": 35.6, "rot": 0, "piani": 2, "colore": "blu" },
+      { "tipo": "container", "x": 1.3, "z": 41, "rot": 0, "piani": 2, "colore": "verde" },
+      { "tipo": "container", "x": 40.7, "z": 5.6, "rot": 0, "piani": 2, "colore": "rosso" },
+      { "tipo": "container", "x": 40.7, "z": 11.6, "rot": 0, "piani": 2, "colore": "blu" },
+      { "tipo": "container", "x": 40.7, "z": 17.6, "rot": 0, "piani": 2, "colore": "verde" },
+      { "tipo": "container", "x": 40.7, "z": 23.6, "rot": 0, "piani": 2, "colore": "rosso" },
+      { "tipo": "container", "x": 40.7, "z": 29.6, "rot": 0, "piani": 2, "colore": "blu" },
+      { "tipo": "container", "x": 40.7, "z": 35.6, "rot": 0, "piani": 2, "colore": "verde" },
+      { "tipo": "container", "x": 40.7, "z": 41, "rot": 0, "piani": 2, "colore": "rosso" },
+      { "tipo": "container", "x": 10, "z": 12, "rot": 0, "piani": 1, "colore": "rosso" },
+      { "tipo": "container", "x": 21, "z": 10, "rot": 90, "piani": 2, "colore": "blu" },
+      { "tipo": "container", "x": 32, "z": 13, "rot": 0, "piani": 1, "colore": "verde" },
+      { "tipo": "container", "x": 9, "z": 23, "rot": 90, "piani": 1, "colore": "verde" },
+      { "tipo": "container", "x": 33, "z": 23, "rot": 0, "piani": 2, "colore": "rosso" },
+      { "tipo": "container", "x": 11, "z": 34, "rot": 0, "piani": 1, "colore": "blu" },
+      { "tipo": "container", "x": 21, "z": 34, "rot": 90, "piani": 1, "colore": "rosso" },
+      { "tipo": "container", "x": 31, "z": 35, "rot": 0, "piani": 1, "colore": "verde" },
+      { "tipo": "gru", "x": 21, "z": 24, "rot": 0, "colore": "rosso" },
+      { "tipo": "cassa", "x": 14.5, "z": 12 },
+      { "tipo": "cassa", "x": 27, "z": 17.5 },
+      { "tipo": "cassa", "x": 15.5, "z": 28.5 },
+      { "tipo": "cassa", "x": 27, "z": 29 },
+      { "tipo": "cassa", "x": 5.5, "z": 30 },
+      { "tipo": "cassa", "x": 36, "z": 30.5 },
+      { "tipo": "cassa", "x": 24.5, "z": 39 },
+      { "tipo": "cassa", "x": 6, "z": 16 },
+      { "tipo": "barriera", "x": 12, "z": 41, "rot": 0 },
+      { "tipo": "barriera", "x": 30, "z": 41, "rot": 0 },
+      { "tipo": "barriera", "x": 16.5, "z": 19.5, "rot": 90 },
+      { "tipo": "barriera", "x": 35.5, "z": 6.5, "rot": 0 }
+    ],
+    "bersagli": [
+      { "x": 21, "z": 16.5, "yaw": 3.14 },
+      { "x": 14.5, "z": 27.2, "yaw": 2.6 },
+      { "x": 27, "z": 30.3, "yaw": 2.4 },
+      { "x": 8, "z": 38.5, "yaw": 3.14 },
+      { "x": 34.5, "z": 17.5, "yaw": 1.9 },
+      { "x": 21, "z": 40, "yaw": 0 }
+    ],
+    "nemici": [
+      { "x": 4.4, "z": 12, "yaw": 3.14, "giro": [[4.4, 19], [15.8, 19], [15.8, 7], [4.4, 9]] },
+      { "x": 30, "z": 5.5, "yaw": 1.57, "giro": [[24, 5.5], [36.5, 5.5]] },
+      { "x": 17, "z": 22, "yaw": -1.57, "giro": [[17, 22], [25.5, 22], [25.5, 28.5], [17, 28.5]] },
+      { "x": 37.6, "z": 20, "yaw": 0, "giro": [[37.6, 8], [37.6, 40]] },
+      { "x": 20, "z": 40.1, "yaw": 1.57, "giro": [[7, 40.1], [35, 40.1]] },
+      { "x": 21, "z": 42, "yaw": 0, "giro": [] }
+    ],
+    "rinforzi": [
+      { "x": 37.5, "z": 42.5, "yaw": 0.6 },
+      { "x": 37.5, "z": 4.5, "yaw": 2.4 },
+      { "x": 4.5, "z": 42.5, "yaw": -0.6 }
+    ],
+    "gru": { "x": 21, "z": 24, "r": 2.0 },
+    "barca": { "x": 21, "z": 47.5, "rot": 90, "uscita": { "x": 21, "z": 43, "r": 2.4 } }
+  },
+  "dimensioni": {
+    "container": [2.6, 6.0, 2.6],
+    "cassa": [1.2, 1.2, 0.9],
+    "barriera": [2.0, 0.6, 1.0],
+    "gruBase": [5.2, 5.2, 0.5],
+    "gruGamba": [0.6, 0.6, 7.0],
+    "gruPasso": 2.2
+  }
+}

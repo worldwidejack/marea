@@ -19,6 +19,12 @@
 // Fuochi da accendere (legenda `fuoco`, docs/TEMPLARI.md §9b): 'I' coro (il rogo) · 'O' cimitero (la Strega) · 'U' spiaggia (il falò dei
 //   pirati: la nave del Mercante). Pezzi della campana (legenda `pezzo`, posti possibili: la partita ne sceglie uno per pezzo): 'c' la
 //   corda · 'd' il battaglio · 'f' il perno.
+// Segreti (docs/TEMPLARI.md §9c, legenda `cripta`, `campanella`, `indizio`, `teschio`): 'Z' il muro crepato della rotonda (si rompe con un
+//   colpo pesante) · 'H' la scala della cripta (in cima si torna in chiesa) · 'P' l'altare della Lancia · 'n' comparse della cripta (dai
+//   sarcofagi, attive col muro rotto) · '7' '8' '9' '0' le campanelle (croce, teschio, ancora, luna) · 'B' il muro con l'ordine delle
+//   campane (la cella davanti) · 'i' 'l' '!' i teschi della canzone segreta.
+// La cripta sta nell'angolo nord-ovest, staccata da tutto: il muro rotto e la scala sono due capi della stessa scala (la sim porta eroi e
+// zombie dall'uno all'altro), così sotto la chiesa c'è posto senza toccare il resto della mappa.
 // La chiesa è alla templare: una rotonda (come il Santo Sepolcro, la Temple Church di Londra, la Vera Cruz di Segovia) col giro di
 // colonne, e a est il presbiterio con l'abside e l'altare maggiore. Attorno il sagrato diviso da muretti in tre parti: ovest verso la
 // piazza del borgo, nord verso il cimitero, sud-est verso la spiaggia e l'accampamento dei pirati.
@@ -117,8 +123,8 @@ for (const deg of [60, 120, 240, 300]) {
 }
 // bracieri: al centro della rotonda (dove nel Santo Sepolcro c'è l'edicola) e ai lati dell'arco del presbiterio
 for (const [x, z] of [[46, 42], [57, 40], [57, 44]]) set(x, z, 'b');
-// macerie del tetto crollato (ostacoli dentro)
-for (const [x, z] of [[41, 36], [42, 36], [49, 48], [50, 48], [50, 47], [38, 45], [60, 44], [61, 44]]) if (get(x, z) === '.') set(x, z, 'r');
+// macerie del tetto crollato (ostacoli dentro; davanti al muro crepato no, §9c)
+for (const [x, z] of [[42, 36], [49, 48], [50, 48], [50, 47], [38, 45], [60, 44], [61, 44]]) if (get(x, z) === '.') set(x, z, 'r');
 
 // ——— finestre sbarrate (gli zombie entrano da qui) ———
 const sulMuro = (x, z) => get(x, z) === '#';
@@ -180,6 +186,29 @@ set(64, 5, 'O');                      // cimitero: in cima, accanto alla capanna
 const PEZZI = { c: [[64, 54], [12, 69], [70, 64]], d: [[52, 22], [28, 45], [40, 72]], f: [[82, 78], [17, 34], [80, 25]] };
 for (const [c, l] of Object.entries(PEZZI)) for (const [x, z] of l) { if (',vews'.includes(get(x, z))) set(x, z, c); else throw new Error(`pezzo ${c} su '${get(x, z)}' in ${x},${z}`); }
 
+// ——— segreti (§9c): la cripta, il muro crepato, le campanelle col loro indizio, i teschi ———
+// cripta: una sala buia a colonne, quattro sarcofagi per lato (gli zombie escono da lì davanti), l'altare della Lancia a ovest, la scala a est
+const CR = { x0: 3, x1: 25, z0: 2, z1: 14 };
+rect(CR.x0, CR.z0, CR.x1, CR.z1, '#'); rect(CR.x0 + 1, CR.z0 + 1, CR.x1 - 1, CR.z1 - 1, '.');
+for (const x of [8, 12, 16, 20]) { for (const z of [CR.z0 + 1, CR.z0 + 2, CR.z1 - 2, CR.z1 - 1]) set(x, z, 'V'); set(x, CR.z0 + 3, 'n'); set(x, CR.z1 - 3, 'n'); }
+for (const x of [10, 14, 18]) { set(x, 6, 'o'); set(x, 10, 'o'); }
+for (const z of [7, 8, 9]) set(5, z, 'P');
+const SCALA = [CR.x1, 8];
+set(SCALA[0], SCALA[1], 'H');
+// il muro crepato: nel muro nord-ovest della rotonda, accanto all'ascia (dietro c'è la scala che scende)
+const CREPA = [40, 35];
+if (get(...CREPA) !== '#') throw new Error(`il muro crepato non è su un muro (${get(...CREPA)})`);
+set(CREPA[0], CREPA[1], 'Z');
+// campanelle: una per zona, su un palo (croce in chiesa, teschio al cimitero, ancora alla spiaggia, luna in piazza); l'indizio in taverna
+const CAMPANELLE = { 7: [41, 48], 8: [67, 14], 9: [48, 65], 0: [21, 43] }; // croce: nella rotonda, accanto alla tomba di un cavaliere (non dal coro: lì le draw call sono al limite)
+for (const [c, [x, z]] of Object.entries(CAMPANELLE)) { if ('.,vesw'.includes(get(x, z))) set(x, z, c); else throw new Error(`campanella ${c} su '${get(x, z)}' in ${x},${z}`); }
+const INDIZIO = [19, 61]; // sul muro nord della taverna, dentro (la camera lo vede dritto; lontano dal coro, dove le draw call sono al limite)
+if (get(...INDIZIO) !== 'w' || get(INDIZIO[0], INDIZIO[1] - 1) !== '#') throw new Error("l'indizio delle campane vuole l'assito con un muro a nord");
+set(INDIZIO[0], INDIZIO[1], 'B');
+// teschi (nascosti, come gli orsacchiotti): dietro una casa della piazza, nell'angolo della taverna, dietro l'ossario
+const TESCHI = { i: [17, 25], l: [7, 72], '!': [75, 4] };
+for (const [c, [x, z]] of Object.entries(TESCHI)) { if ('.,vesw'.includes(get(x, z))) set(x, z, c); else throw new Error(`teschio ${c} su '${get(x, z)}' in ${x},${z}`); }
+
 // ——— partenza davanti all'altare; comparse: sagrato fuori dalle finestre, e nelle zone ———
 set(66, 42, 'S');
 const fuori = (x, z) => get(x, z) === ',';
@@ -207,7 +236,7 @@ for (const [x, z] of [[33, 33], [34, 52], [60, 30], [72, 33], [76, 50], [52, 56]
 
 // ——— controlli: zone collegate dalle porte giuste, comparse raggiungibili, l'eroe chiuso in chiesa all'inizio ———
 const PORTE = '123456';
-const pieno = (c) => ' #ohtmApbrqkgaCWNVYIOU'.includes(c);
+const pieno = (c) => ' #ohtmApbrqkgaCWNVYIOUZP7890'.includes(c);
 function bfs(sx, sz, solido) {
   const seen = new Set([sx + ',' + sz]), q = [[sx, sz]];
   while (q.length) {
@@ -252,6 +281,20 @@ if (!aperte(['2', '5']).has('50,82')) errs.push('dal cimitero col cancello 5 non
 // gli zombie delle comparse 'z' arrivano alla partenza dalle finestre (senza porte aperte)
 const daZombie = bfs(sx, sz, (c) => (pieno(c) && c !== 'W') || PORTE.includes(c));
 rows.forEach((r, z) => [...r].forEach((c, x) => { if (c === 'z' && !daZombie.has(x + ',' + z)) errs.push(`comparsa ${x},${z} non arriva alla chiesa`); }));
+// segreti (§9c): il muro crepato tocca solo la chiesa (rotto non apre una strada fuori), la cripta è staccata da tutto e dalla scala si
+// arriva ai sarcofagi e all'altare; campanelle, indizio e teschi si raggiungono con le porte aperte
+{ const tutte = aperte(PORTE.split(''));
+  for (const [dx, dz] of QUATTRO) { const c = get(CREPA[0] + dx, CREPA[1] + dz); if (c !== '#' && c !== '.' && c !== 'X') errs.push(`il muro crepato tocca '${c}' in ${CREPA[0] + dx},${CREPA[1] + dz}`); }
+  for (const [dx, dz] of QUATTRO) { const k = CREPA[0] + dx + ',' + (CREPA[1] + dz); if (get(CREPA[0] + dx, CREPA[1] + dz) !== '#' && !chiuso.has(k)) errs.push(`davanti al muro crepato la cella ${k} non si raggiunge dalla chiesa`); }
+  const giu = bfs(SCALA[0] - 1, SCALA[1], pieno);
+  if (giu.has(sx + ',' + sz) || tutte.has(`${SCALA[0] - 1},${SCALA[1]}`)) errs.push('la cripta deve essere staccata dal resto');
+  rows.forEach((r, z) => [...r].forEach((c, x) => {
+    if (c === 'n' && !giu.has(x + ',' + z)) errs.push(`la comparsa della cripta in ${x},${z} non si raggiunge dalla scala`);
+    if (c === 'P' && !QUATTRO.some(([dx, dz]) => giu.has(x + dx + ',' + (z + dz)))) errs.push(`l'altare della cripta in ${x},${z} non si raggiunge`);
+  }));
+  for (const [c, [x, z]] of Object.entries(CAMPANELLE)) if (!QUATTRO.some(([dx, dz]) => tutte.has(x + dx + ',' + (z + dz)))) errs.push(`la campanella ${c} in ${x},${z} non si raggiunge`);
+  for (const [c, [x, z]] of Object.entries(TESCHI)) if (!tutte.has(x + ',' + z)) errs.push(`il teschio ${c} in ${x},${z} non si raggiunge`);
+  if (!aperte(['1', '3']).has(INDIZIO.join(','))) errs.push("l'indizio delle campane non si raggiunge dalla taverna"); }
 if (errs.length) { console.error(errs.slice(0, 20).join('\n')); process.exit(1); }
 
 // righe senza spazi in coda (il parser tratta il fuori come spazio)
@@ -266,6 +309,9 @@ const out = {
     'F': { personaggio: 'strega' }, 'D': { personaggio: 'mercante' },
     'I': { fuoco: 'coro' }, 'O': { fuoco: 'cimitero' }, 'U': { fuoco: 'spiaggia' },
     'c': { pezzo: 'corda' }, 'd': { pezzo: 'battaglio' }, 'f': { pezzo: 'perno' },
+    'Z': { cripta: 'muro' }, 'H': { cripta: 'scala' }, 'P': { cripta: 'altare' }, 'n': { comparsa: 'cripta' },
+    '7': { campanella: 'croce' }, '8': { campanella: 'teschio' }, '9': { campanella: 'ancora' }, '0': { campanella: 'luna' },
+    'B': { indizio: 'campane' }, 'i': { teschio: 'piazza' }, 'l': { teschio: 'taverna' }, '!': { teschio: 'ossario' },
   },
   rows: trimmed,
 };

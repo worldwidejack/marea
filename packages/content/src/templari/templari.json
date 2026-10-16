@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "maxMinuti": 60,
   "partenza": { "punti": 500, "arma": "spada" },
   "eroe": {
@@ -40,7 +40,8 @@
     { "id": "martello", "nome": "Martello da guerra", "nomePot": "Martello di Carlo Martello", "tipo": "mischia", "danno": 1600, "tempo": 1.1, "portata": 2, "carica": 1.2, "caricaMolt": 1.8, "spinta": 1.4, "cassa": 8, "aspetto": {"modello": "arm_martello", "colore": "#4A4340"} },
     { "id": "pistola_doppia", "nome": "Pistola doppia", "nomePot": "Gemelle di Tortuga", "tipo": "fuoco", "danno": 1100, "tempo": 0.35, "colpi": 2, "riserva": 40, "ricarica": 1.8, "velocita": 60, "gittata": 22, "cassa": 8, "aspetto": {"modello": null, "forma": "pistola_doppia", "colore": "#5A3A1E"} },
     { "id": "fuoco_greco", "nome": "Fuoco greco", "nomePot": "Fuoco di Bisanzio", "tipo": "lancio", "danno": 3000, "tempo": 0.8, "colpi": 6, "riserva": 12, "velocita": 14, "gittata": 14, "area": 3, "fuoco": {"dps": 600, "durata": 3, "raggio": 2.5}, "cassa": 2, "miracolosa": true, "aspetto": {"modello": null, "forma": "vaso", "colore": "#F2A33A"} },
-    { "id": "spada_molay", "nome": "Spada maledetta di de Molay", "nomePot": "Spada del Rogo eterno", "tipo": "mischia", "danno": 6000, "tempo": 0.5, "portata": 2.1, "carica": 0.8, "caricaMolt": 1.5, "spinta": 0.5, "scia": {"dps": 800, "durata": 2, "raggio": 1.2}, "cassa": 1, "miracolosa": true, "aspetto": {"modello": "arm_spadone", "colore": "#E8433F"} }
+    { "id": "spada_molay", "nome": "Spada maledetta di de Molay", "nomePot": "Spada del Rogo eterno", "tipo": "mischia", "danno": 6000, "tempo": 0.5, "portata": 2.1, "carica": 0.8, "caricaMolt": 1.5, "spinta": 0.5, "scia": {"dps": 800, "durata": 2, "raggio": 1.2}, "cassa": 1, "miracolosa": true, "aspetto": {"modello": "arm_spadone", "colore": "#E8433F"} },
+    { "id": "lancia", "nome": "Lancia di Longino", "nomePot": "Lancia del Destino", "tipo": "mischia", "danno": 5000, "tempo": 0.6, "portata": 3.5, "carica": 0.8, "caricaMolt": 1.5, "spinta": 0.4, "affondo": 3, "cura": 10, "miracolosa": true, "aspetto": {"modello": "arm_lancia", "colore": "#F5D547"} }
   ],
   "nemici": [
     { "id": "fante", "nome": "Fante crociato", "vitaMolt": 1, "raggio": 0.38, "velocita": {"cammina": 1, "corre": 2.2, "scatta": 3.6}, "danno": 45, "portata": 0.75, "preparazione": 0.55, "recupero": 0.7, "strappa": 1.2, "sorge": 1.4 },
@@ -96,6 +97,9 @@
     "cimitero": { "nome": "Il fuoco del cimitero", "apre": "strega", "dice": "La Strega si sveglia: la sua capanna è aperta" },
     "spiaggia": { "nome": "Il falò dei pirati", "apre": "mercante", "dice": "La nave del Mercante vede il fuoco e attracca" }
   } },
+  "cripta": { "anime": 5, "raggio": 1.8, "arma": "lancia", "polvere": 1.2 },
+  "campanelle": { "raggio": 1.7, "lista": { "croce": "La campanella della croce", "teschio": "La campanella del teschio", "ancora": "La campanella dell'ancora", "luna": "La campanella della luna" } },
+  "teschi": { "tieni": 1.5, "raggio": 1.3 },
   "campana": { "pezzi": { "corda": "La corda", "battaglio": "Il battaglio", "perno": "Il perno" }, "raggio": 1.3, "monta": 2 },
   "eroi": [
     { "id": "crociato", "nome": "Il Crociato", "titolo": "Spade, mazze e asce", "descr": "Un templare che non è diventato zombie. Regge più colpi, colpisce più forte da vicino e parte con lo scudo sulle spalle.",

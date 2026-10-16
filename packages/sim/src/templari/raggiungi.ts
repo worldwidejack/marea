@@ -1,4 +1,4 @@
-// Dove arriva l'eroe con le porte aperte adesso (power-up a terra, posti della cassa, autopilota): distanze BFS sulla griglia dell'eroe
+// Dove arriva l'eroe con le porte aperte adesso (e la cripta, col muro rotto) (power-up a terra, posti della cassa, autopilota): distanze BFS sulla griglia dell'eroe
 // dalla partenza, in cache finché non si apre un'altra porta (dipendono solo dalle porte: le finestre per l'eroe sono sempre chiuse).
 import { bfs, cellOf } from '../dungeon/map.ts';
 import type { TState } from './stato.ts';
@@ -7,11 +7,14 @@ const CACHE = new WeakMap<TState, { n: number; d: Int32Array }>();
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 
 export function raggiungibili(s: TState): Int32Array {
-  let n = 0;
+  let n = s.segreti.muro ? 1000 : 0;
   for (const k in s.porte) if (s.porte[k]) n++;
   const c = CACHE.get(s);
   if (c && c.n === n) return c.d;
-  const d = bfs(s.gr.eroe, cellOf(s.gr.eroe, s.arena.spawn.x, s.arena.spawn.z));
+  // col muro rotto anche la cripta (§9c): ci si arriva dalla scala
+  const cr = s.arena.cripta, da = [cellOf(s.gr.eroe, s.arena.spawn.x, s.arena.spawn.z)];
+  if (cr && s.segreti.muro) da.push(cellOf(s.gr.eroe, cr.giu.x, cr.giu.z));
+  const d = bfs(s.gr.eroe, da);
   CACHE.set(s, { n, d });
   return d;
 }

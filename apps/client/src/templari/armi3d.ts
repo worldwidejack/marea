@@ -149,5 +149,6 @@ export function armaVista(id: string, pot = false): ArmaInMano {
   return {
     ...base, id: null, kind: a.tipo === 'arco' ? 'arco' : 'mischia', danno: a.danno, tempo: a.tempo, portata: a.portata ?? base.portata, distanza: a.tipo === 'fuoco' || a.tipo === 'lancio',
     ...(forma ? { oggetto: () => oggettoArma(forma), lama: a.tipo === 'mischia' } : a.aspetto.modello ? { modello: a.aspetto.modello } : {}), colore: pot ? PAL.giallo : a.aspetto.colore,
+    ...(a.affondo !== undefined ? { asta: true } : {}), // la Lancia di Longino (§9c): in mano come la lancia
   };
 }
