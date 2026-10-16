@@ -47,7 +47,7 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | **Adrenalina** | sport estremi e discese | probabilmente **dentro le Corse** (§4) | snowboard sulla sua isola | `ADRENALINA.md` |
 | **Templari** | sopravvivenza a ondate, zombie | Isola dei Templari | ondate, eroi, fino a 4 insieme | `TEMPLARI.md` |
 | **Dungeon** | fantasy-avventura classico | da decidere | Mondo Sotterraneo sotto le isole | `RPG.md` |
-| **Shooter** (futuro) | spunti da battle royale, tactical e war sandbox, in forma originale MAREA | nessuna ancora | niente | da scrivere |
+| **Sparatutto a missioni** | missioni alla COD / GoldenEye 64, prima e terza persona; da soli prima, deathmatch tra amici come bonus (Jack, 16 ott) | da decidere | banco `provasparo.html`: poligono nel piazzale dei container | `SPARO.md` |
 
 **Le isole si parlano** tra loro con:
 - **lore condivisa**;
@@ -79,6 +79,6 @@ Prima di rifare da zero una cosa, guarda se una di queste ce l'ha già.
 - la partenza nuova (casa → barca → colonie) e cosa ne è del giardino;
 - risorse, estrattori e valuta del Mercante;
 - l'unione di Adrenalina e Corse;
-- lo shooter;
+- lo sparatutto: **deciso** il 16 ott (missioni alla COD, camera prima/terza, `SPARO.md`); restano ambientazione e isola;
 - permessi e attacchi alle isole degli amici;
 - dove vive il Dungeon.
