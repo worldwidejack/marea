@@ -181,7 +181,7 @@ Il bonus è sulla velocità (il tetto del deposito resta quello dell'edificio) e
 
 Punteggio («più alto vince»): Consegne = 1000 a pacco + 10 a secondo avanzato + 5 a cassetta; Ingorgo = 1000 a ingorgo + fino a 100 per quanto ti avvicini alla soluzione più corta + 5 a secondo avanzato se li risolvi tutti.
 3. **Puzzle leggero** (2027) — tubi o tessere da ruotare con i moduli dell'isola.
-4. **Battaglia carte/unità in tempo reale** (2027) — richiede avversario live o bot, netcode a bassa latenza, bilanciamento: si fa dopo il collaudo di dicembre.
+4. **Battaglia carte/unità in tempo reale** (2027) — richiede avversario live o bot, netcode a bassa latenza, bilanciamento: si fa più avanti.
 
 **Minigiochi universali** (§3): si giocano ovunque, non hanno un posto fisso.
 - **Pesca dalla barca** (#66) — in barca **ferma** su acqua profonda, ad almeno 10 m dalla riva, compare **PESCA** (tasto P; la A resta l'acceleratore). 60 s: tocchi per lanciare, aspetti (il galleggiante a volte trema per finta: chi tira troppo presto spaventa il pesce), quando va sotto hai una finestra per tirare (0,9 / 0,7 / 0,55 s per difficoltà 1/2/3), poi il **recupero**: una barra va avanti e indietro e tocchi quando è nel verde; 2 tocchi fuori zona tollerati, al terzo scappa. Il tempo parte al primo tocco (prima il cartello delle regole coi pesci del mare). Il **mare** viene dall'isola più vicina (entro 40 m: Acque del Porto, Laguna; altrove Mare aperto) e decide quali pesci abboccano; rarità e punti sono uguali in ogni mare. Medaglie in punti: **oro 12, argento 8, bronzo 4** (il pilota di riferimento ne fa 13-37, ~22 di media; ~12 pesci al minuto).
@@ -241,7 +241,7 @@ Mondo alla GTA: né coop né guerra. Nessuno attacca o modifica le isole altrui.
 ## 9. Onboarding «Primi passi» (anticipato in M1, 30 set 2026; allungato l'8 ott 2026)
 Una scheda con un passo alla volta e una freccia gialla sulla meta (sopra la cosa se è in vista, sul bordo dello schermo se è fuori): **1** costruisci la Segheria (il cartello «Costruisci» evidenziato apre già la conferma) → **2** sali in barca → **3** vai alla Regata e gioca → **4** costruisci col premio → **5** fai due chiacchiere con la Gente del Porto → **6** pesca o tuffati dalla barca (minigiochi universali) → **7** guarda la mappa (il cerchio lampeggia) → **8** scopri un'isola a tema. Senza isola propria niente 1 e 4. Un passo fatto vale anche fuori ordine; SALTA salta il passo, × chiude la guida (si riaccende dalle Impostazioni). Testi corti e ironici. Sugli slot liberi dell'isola c'è sempre un cartello «Costruisci». Niente tutorial a testo lungo.
 
-## 10. Tagli espliciti V1 (fino a dicembre 2026)
+## 10. Tagli espliciti V1
 Fuori: battaglia unità, bot, puzzle, chat testuale, interni degli edifici, ciclo giorno/notte, commercio tra giocatori, apertura al pubblico, app installabile (PWA solo se gratis in tempo), musica originale, storia. Entrano dopo, uno alla volta, e solo dal `BACKLOG.md`.
 
 ## 11. Numeri
