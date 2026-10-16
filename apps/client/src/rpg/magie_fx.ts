@@ -16,10 +16,12 @@ export type MagieFx = {
   dispose(): void;
 };
 
-type El = 'fuoco' | 'elettricita' | undefined;
-const COL: Record<'fuoco' | 'elettricita', readonly string[]> = {
+type El = 'fuoco' | 'elettricita' | 'cura' | 'furia' | undefined;
+const COL: Record<'fuoco' | 'elettricita' | 'cura' | 'furia', readonly string[]> = {
   fuoco: [PAL.arancio, PAL.giallo, PAL.rosso, PAL.arancio],
   elettricita: [PAL.giallo, PAL.acquaBassa, PAL.giallo, PAL.sabbiaChiara],
+  cura: [PAL.erba, PAL.erbaChiara, PAL.acquaBassa, PAL.erba],
+  furia: [PAL.arancio, PAL.rosaNeon, PAL.giallo, PAL.rosso],
 };
 const steps = (v: number, n: number) => Math.floor(Math.max(0, Math.min(1, v)) * n) / n;
 /** Numero «casuale» stabile (0..1) per un intero: il tremolio si ridisegna a scatti, non a ogni frame. */
@@ -64,8 +66,8 @@ export function createMagieFx(scene: THREE.Scene, floorY: number): MagieFx {
     const y = floorY + MAGIA_Y - 0.05, x0 = x + fx * 0.45, z0 = z + fz * 0.45;
     const L = Math.max(0.3, len - 0.45);
     r.g.visible = true;
-    if (e === 'fuoco') {
-      // fiamma a pezzi: cubi che si ingrossano verso la punta, sfalsati di lato e in alto a ogni scatto, colori a rotazione (arancio, giallo, rosso)
+    if (e === 'fuoco' || e === 'cura' || e === 'furia') {
+      // fiamma/flusso a pezzi: cubi che si ingrossano verso la punta, sfalsati di lato e in alto a ogni scatto, colori a rotazione
       for (let i = 0; i < r.segs.length; i++) {
         const m = r.segs[i]!;
         if (i >= SEG_FUOCO) { m.visible = false; continue; }
@@ -124,7 +126,7 @@ export function createMagieFx(scene: THREE.Scene, floorY: number): MagieFx {
         s.t0 = now; s.r = Math.max(0.8, e.r); s.el = e.el; s.viva = true;
         s.g.position.set(e.x, floorY + 0.08, e.z);
         const col = COL[e.el ?? 'fuoco'];
-        s.onda.material = mat(col[0]!, 0.9); s.lampo.material = mat(e.el === 'elettricita' ? PAL.acquaBassa : PAL.arancio, 0.5);
+        s.onda.material = mat(col[0]!, 0.9); s.lampo.material = mat(e.el === 'elettricita' ? PAL.acquaBassa : e.el === 'cura' ? PAL.erbaChiara : PAL.arancio, 0.5);
         s.pezzi.forEach((p, i) => { p.material = mat(col[(i + 2) % col.length]!); });
       }
     },
@@ -133,7 +135,7 @@ export function createMagieFx(scene: THREE.Scene, floorY: number): MagieFx {
       // raggi: il tuo e quelli dei compagni
       nRaggi = 0;
       const usati = new Set<number>();
-      const accendi = (k: number, x: number, z: number, fx: number, fz: number, c: { len: number; el?: 'fuoco' | 'elettricita' } | undefined): void => {
+      const accendi = (k: number, x: number, z: number, fx: number, fz: number, c: { len: number; el?: El } | undefined): void => {
         if (!c) return;
         usati.add(k); nRaggi++;
         disegna(raggio(k), x, z, fx, fz, c.len, c.el, t, k);

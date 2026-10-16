@@ -1,5 +1,5 @@
 // Tipi del personaggio GDR (docs/RPG.md, CONTRACTS §15). Interfaccia fissa tra sim/rpg, sim/dungeon, server e client.
-import type { AttrId, EnemyKind, ItemKind, MaterialId, SkillId, Traits, WeaponClass, WeaponTypeId } from '@marea/content/rpg.ts';
+import type { AttrId, EnemyKind, ItemKind, MaterialId, SkillId, SpellElement, Traits, WeaponClass, WeaponTypeId } from '@marea/content/rpg.ts';
 import type { DungeonAzioni } from '../dungeon/types.ts';
 
 /** `mano` (dungeon v6): cosa tengono le mani. Assente = l'arma; 'magia' = la magia preparata (`magia`), che la A lancia al posto dell'arma.
@@ -102,9 +102,11 @@ export type RunArmor = {
   /** Armatura del Moto Perpetuo (Mausoleo): la Barriera Cinetica (Traits.barriera). Assente con ogni altra armatura. */
   barriera?: NonNullable<Traits['barriera']>;
 };
-export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione'; elemento?: 'fuoco' | 'elettricita'; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number;
+export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione'; elemento?: SpellElement; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number;
   /** Forma e dettagli (SpellDef): assenti = proiettile. Raggio: `costo` e `danno` sono al secondo. */
   forma?: 'proiettile' | 'raggio' | 'bomba'; gittata?: number; larghezza?: number; volo?: number; rallenta?: { molt: number; secondi: number };
+  /** Supporto (Step 1 Arena): cura alleati/evocazioni o dà Furia (+danno e +velocità). */
+  cura?: number; furia?: { danno: number; velocita: number; secondi: number };
   /** Grandi Magie: la magia è più grande di questo fattore (raggio dello scoppio già moltiplicato); assente = 1. */
   mole?: number };
 /** Effetti dei perk che la sim del dungeon deve conoscere (gli altri sono già numeri dentro RunHero). Assente o campo assente = non c'è. */
@@ -136,6 +138,8 @@ export type RunHero = {
   max: Record<AttrId, number>;
   regen: Record<AttrId, number>;
   camminata: number; corsa: number; staminaCorsa: number; mentreCarichi: number; raggio: number;
+  /** Arena PvP (docs/ARENA.md Step 1): statistiche di base normalizzate a 100/100/100 e danni PvP scalati senza one-shot. */
+  arena?: boolean;
   /** Anello dell'Onda della Regina al dito (Mausoleo): l'Eco della Marea (Traits.eco; due anelli non si sommano). Assente senza. */
   eco?: NonNullable<Traits['eco']>;
   arma: RunWeapon;

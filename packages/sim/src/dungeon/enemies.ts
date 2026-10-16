@@ -42,8 +42,10 @@ export const fisso = (e: Enemy): boolean => e.def.comportamento === 'torretta' |
 const vola = (e: Enemy): boolean => e.def.muove === 'vola';
 /** Funzione (non confronto diretto): lo stato può cambiare dentro stepFoe/stepAlly. */
 const vivo = (e: Enemy): boolean => e.st !== 'morto';
-/** Potenziato da un Chierico (Mausoleo): moltiplicatore del danno dei suoi colpi (1 se no). */
+/** Potenziato da un Chierico (Mausoleo) o da Furia: moltiplicatore del danno dei suoi colpi (1 se no). */
 const potenza = (s: DungeonState, e: Enemy): number => (e.potT !== undefined && e.potT > s.tick ? e.potM ?? 1 : 1);
+/** Potenziato da Furia: moltiplicatore di velocità di movimento e d'azione dell'alleato (1 se no). */
+const velAlleato = (s: DungeonState, e: Enemy): number => (e.potT !== undefined && e.potT > s.tick ? e.potV ?? 1 : 1);
 /** Danno di un colpo del nemico in mischia. */
 const dannoDi = (s: DungeonState, e: Enemy): number => e.def.danno * potenza(s, e);
 /** Si gira piano (scafandro del Golem-Palombaro, scudo della Sentinella): rad/s, o null se si gira di colpo. */
@@ -420,26 +422,27 @@ function stepAlly(s: DungeonState, e: Enemy): void {
     }
     e.bersaglio = t ? t.id : -1;
   }
+  const kv = velAlleato(s, e);
   if (e.st === 'prepara') {
     if (e.stT >= e.stDur) {
       if (t && !alto(s, t)) {
         const ox = t.x - e.x, oz = t.z - e.z;
         const reach = def.portata + def.raggio + t.def.raggio + TOLLERANZA_NEMICO;
-        if (ox * ox + oz * oz <= reach * reach) hitEnemy(s, t, { danno: def.danno * (e.dannoM ?? 1), traits: {}, magico: false, skill: null, caricato: false, dirX: e.fx, dirZ: e.fz, daAlleato: true, ox: e.x, oz: e.z });
+        if (ox * ox + oz * oz <= reach * reach) hitEnemy(s, t, { danno: def.danno * (e.dannoM ?? 1) * potenza(s, e), traits: {}, magico: false, skill: null, caricato: false, dirX: e.fx, dirZ: e.fz, daAlleato: true, ox: e.x, oz: e.z });
       }
-      setState(e, 'recupera', secToTicks(def.recupero));
+      setState(e, 'recupera', secToTicks(def.recupero / kv));
     }
     return;
   }
   if (e.st === 'recupera') { if (e.stT >= e.stDur) setState(e, 'insegue', 0); return; }
   if (t) {
     const ox = t.x - e.x, oz = t.z - e.z, od = Math.sqrt(ox * ox + oz * oz);
-    if (od <= def.portata + def.raggio + t.def.raggio) { e.fx = ox / od; e.fz = oz / od; setState(e, 'prepara', secToTicks(def.preparazione)); return; }
-    moveToward(s, e, t.x, t.z, def.velocita);
+    if (od <= def.portata + def.raggio + t.def.raggio) { e.fx = ox / od; e.fz = oz / od; setState(e, 'prepara', secToTicks(def.preparazione / kv)); return; }
+    moveToward(s, e, t.x, t.z, def.velocita * kv);
     return;
   }
   const hx = h.x - e.x, hz = h.z - e.z;
-  if (hx * hx + hz * hz > ALLEATO_SEGUE * ALLEATO_SEGUE) chase(s, e, def.velocita, 1);
+  if (hx * hx + hz * hz > ALLEATO_SEGUE * ALLEATO_SEGUE) chase(s, e, def.velocita * kv, 1);
 }
 
 /** Separa i nemici tra loro e dagli eroi (cerchi solidi). */

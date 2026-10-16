@@ -1,8 +1,9 @@
 // Danni: eroe → nemico (arma × tratti − armatura), nemico → eroe (difesa/(difesa+k) e moltiplicatori per tipo), morte e bottino.
 import { RPG } from '@marea/content/rpg.ts';
 import type { SkillId, Traits } from '@marea/content/rpg.ts';
+import type { RunArmor } from '../rpg/types.ts';
 import type { DungeonState, Enemy } from './state.ts';
-import { add, ev, nuovoBottino, secToTicks } from './state.ts';
+import { add, conEroe, ev, nuovoBottino, secToTicks } from './state.ts';
 import { rollLoot } from './loot.ts';
 import { moveCircle } from './map.ts';
 import { risveglio } from './altari.ts';
@@ -15,10 +16,16 @@ import { BOSS_RALLENTA, COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO,
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 
-/** Somma dei buff attivi per una chiave (pozioni). */
+const DANNO_MODS = new Set(['dannoLeggere', 'dannoPesanti', 'dannoArco', 'dannoDistruzione']);
+const VEL_MODS = new Set(['velocitaLeggere', 'velocitaPesanti', 'tensioneArco', 'velocitaCorsa', 'caricaVeloce']);
+
+/** Somma dei buff attivi per una chiave (pozioni e Furia). */
 export function buff(s: DungeonState, mod: string): number {
   let v = 0;
-  for (const b of s.hero.buffs) if (b.mod === mod) v += b.valore;
+  const isDanno = DANNO_MODS.has(mod), isVel = VEL_MODS.has(mod);
+  for (const b of s.hero.buffs) {
+    if (b.mod === mod || (isDanno && b.mod === 'furiaDanno') || (isVel && b.mod === 'furiaVel')) v += b.valore;
+  }
   return v;
 }
 
@@ -166,7 +173,8 @@ export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: numbe
   const k = RPG.armatura?.k ?? 100;
   const tipo = kind === 'magia' ? a.vsMagia : kind === 'contundente' ? a.vsContundente : a.vsTaglio;
   const resist = kind === 'magia' ? Math.min(0.9, buff(s, 'resistMagia')) : 0;
-  const d = Math.max(DANNO_MIN, danno * (1 - difesa / (difesa + k)) * tipo * (1 - resist));
+  const raw = Math.max(DANNO_MIN, danno * (1 - difesa / (difesa + k)) * tipo * (1 - resist));
+  const d = s.runHero.arena ? Math.min(RPG.arena?.dannoMax ?? 92, raw) : raw;
   h.vita -= d;
   h.hurt = COLPITO_TICKS;
   s.danniPresi += d;
@@ -178,6 +186,39 @@ export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: numbe
   }
   if (h.vita <= 0) caduto(s);
   return true;
+}
+
+/** Danno calibrato PvP (Arena, docs/ARENA.md): tiene conto dell'armatura del difensore (con `penetra`), resistenze e Carica massima,
+ *  ed è limitato a `RPG.arena.dannoMax` (< 100) così nessun singolo colpo può mai fare one-shot a chi ha 100 di Vita. */
+export function dannoPvp(difensore: RunArmor, src: HitSrc, difBuff = 0, resBuff = 0): number {
+  const k = RPG.armatura?.k ?? 100;
+  const difesa = Math.max(0, (difensore.difesa + difBuff) * (1 - (src.traits.penetra ?? 0)));
+  const kind: HurtKind = src.magico ? 'magia' : src.traits.sbilancia ? 'contundente' : 'taglio';
+  const tipo = kind === 'magia' ? difensore.vsMagia : kind === 'contundente' ? difensore.vsContundente : difensore.vsTaglio;
+  const resist = kind === 'magia' ? Math.min(0.9, resBuff) : 0;
+  const letaleMolt = src.letale ? RPG.arena?.caricaMassimaMolt ?? 1.35 : 1;
+  const d = src.danno * letaleMolt * (1 - difesa / (difesa + k)) * tipo * (1 - resist);
+  const dMax = RPG.arena?.dannoMax ?? 92;
+  return r2(Math.min(dMax, Math.max(DANNO_MIN, d)));
+}
+
+/** Applica un colpo PvP all'eroe `bersaglioIdx` (Arena): rispetta protezione e Barriera Cinetica, e non può mai uccidere in un colpo chi ha 100 di Vita. */
+export function hitHeroPvp(s: DungeonState, bersaglioIdx: number, src: HitSrc): number {
+  const b = s.eroi[bersaglioIdx];
+  if (!b || b.done || b.hero.protetto > 0) return 0;
+  return conEroe(s, bersaglioIdx, () => {
+    const h = s.hero, a = s.runHero.armatura;
+    if (a.barriera && barriera(s)) return 0;
+    h.ritmo = 0;
+    const d = dannoPvp(a, src, buff(s, 'difesa'), buff(s, 'resistMagia'));
+    h.vita -= d;
+    h.hurt = COLPITO_TICKS;
+    s.danniPresi += d;
+    ev(s, { t: 'colpo', x: r2(h.x), z: r2(h.z), danno: Math.round(d), su: 'eroe', ...(src.caricato ? { caricato: true } : {}) });
+    if (src.rallenta) { h.lento = Math.max(h.lento, secToTicks(src.rallenta.secondi)); h.lentoMolt = Math.min(h.lento > 0 ? h.lentoMolt : 1, src.rallenta.molt); }
+    if (h.vita <= 0) caduto(s);
+    return d;
+  });
 }
 
 /** L'eroe di turno è a terra: si risveglia all'ultimo altare salvato, se no la spedizione finisce (morto). */
