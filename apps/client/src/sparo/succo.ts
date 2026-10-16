@@ -33,7 +33,7 @@ export function creaSucco(scene: THREE.Scene): Succo {
   const tex = stella();
   const lampoS = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, alphaTest: 0.5 }));
   lampoS.visible = false; scene.add(lampoS);
-  const luce = new THREE.PointLight(0xffd36a, 0, 9, 2); scene.add(luce);
+  const luce = new THREE.PointLight(0xffd36a, 0, 4.5, 2); scene.add(luce); // corta: più larga, sul cemento diventava una macchia beige
   let lampoT = 0;
 
   // lampetti sugli impatti (la lamiera che sputa scintille si vede anche da lontano)
@@ -97,7 +97,7 @@ export function creaSucco(scene: THREE.Scene): Succo {
       lampoS.scale.setScalar((0.32 + Math.random() * 0.12) * k);
       lampoS.material.rotation = Math.random() * Math.PI;
       lampoS.visible = true; lampoT = 0.045;
-      luce.position.copy(p).addScaledVector(dir, 0.3); luce.intensity = 7;
+      luce.position.copy(p).addScaledVector(dir, 0.3); luce.intensity = 4;
       // niente fumo alla bocca: i punti così vicini alla camera diventano quadrati bianchi enormi
     },
     scia(a, b) {
