@@ -3,7 +3,7 @@
 # Paese dei piloti (garage, statua, podio, torre, trofeo, bancarelle, festoni…), molo, porte delle zone, vegetazione e i quartieri
 # che si vedono da lontano (tempio, ruota panoramica, tendone, palazzi al neon, coralli, igloo). Tutto sull'atlas, colori della palette,
 # pivot a terra al centro, davanti −Z, metri veri. Eccezioni: `cs_h_ruota_giro` ha il pivot sul mozzo (asse Z, il client la fa girare;
-# il mozzo di `cs_h_ruota_base` sta a y = RUOTA_Y) e `cs_h_pontile` / `cs_h_palo_luce` hanno lo zero al piano delle tavole.
+# il mozzo di `cs_h_ruota_base` sta a y = RUOTA_Y) e `cs_h_palo_luce` ha lo zero al piano delle tavole.
 import math
 from lib import Mesh, Xf, beam, face, _sub, _dot, _cross, _norm
 from corse_kit import sfera, corpo_y
@@ -443,17 +443,6 @@ def cs_h_bancarella():
     return _obj(m)
 
 
-def cs_h_festone():
-    """Festone: palo nel pivot e secondo palo 8 m verso +X, corda con 14 bandierine colorate."""
-    m = Mesh('cs_h_festone')
-    for x in (0.0, 8.0):
-        m.prism(6, 0.2, 0.2, 0, 0.3, 'p_pietra_scura', top='p_pietra', cx=x)
-        beam(m, (x, 0.3, 0), (x, 4.6, 0), 0.13, 0.13, 'p_legno_scuro')
-        sfera(m, x, 4.7, 0, 0.12, reg='p_giallo', n=5, rings=2)
-    bandierine(m, (0, 4.4, 0), (8.0, 4.4, 0), 14, sag=0.9, h=0.6)
-    return _obj(m)
-
-
 def cs_h_bandiera():
     """Pennone con la bandiera a scacchi mossa dal vento (6,5 m)."""
     m = Mesh('cs_h_bandiera')
@@ -567,23 +556,6 @@ def cs_h_lampione():
 
 
 # ------------------------------------------------------------------ molo
-def cs_h_pontile():
-    """Modulo di pontile: 4 m (X) x 8 m (Z) di tavole su pali; piano delle tavole a quota 0, i pali scendono in acqua fino a −3 m."""
-    m = Mesh('cs_h_pontile')
-    for i in range(10):
-        z0 = -4.0 + i * 0.8
-        j0, j1 = 0.12 * (0.5 - (i * 7 % 5) / 5), 0.12 * (0.5 - (i * 3 % 5) / 5)
-        m.box(-2.0 + j0, -0.14, z0 + 0.03, 2.0 + j1, 0.0, z0 + 0.77, 'tavole', top='tavole', skip=('bottom',))
-    for x in (-1.6, 1.6):
-        beam(m, (x, -0.24, -4.0), (x, -0.24, 4.0), 0.22, 0.2, 'p_legno_scuro')
-    for x in (-1.95, 1.95):
-        for z in (-3.6, 0.0, 3.6):
-            m.prism(6, 0.2, 0.2, -3.0, 0.3, 'p_legno_scuro', top='taglio', cx=x, cz=z)
-        for za, zb in ((-3.6, 0.0), (0.0, 3.6)):
-            beam(m, (x, -0.35, za), (x, -2.2, zb), 0.12, 0.12, 'p_legno_scuro')
-    return _obj(m)
-
-
 def cs_h_palo_luce():
     """Palo del pontile con la lanterna accesa (zero al piano delle tavole, scende 2,5 m in acqua)."""
     m = Mesh('cs_h_palo_luce')
@@ -1340,9 +1312,9 @@ def cs_h_igloo():
 
 
 MODELS = {f.__name__: f for f in (
-    cs_h_garage, cs_h_statua, cs_h_podio, cs_h_torre, cs_h_trofeo, cs_h_bancarella, cs_h_festone, cs_h_bandiera, cs_h_staccionata,
+    cs_h_garage, cs_h_statua, cs_h_podio, cs_h_torre, cs_h_trofeo, cs_h_bancarella, cs_h_bandiera, cs_h_staccionata,
     cs_h_cartello, cs_h_coni, cs_h_gomme, cs_h_casse, cs_h_lampione,
-    cs_h_pontile, cs_h_palo_luce, cs_h_salvagente,
+    cs_h_palo_luce, cs_h_salvagente,
     cs_h_porta_spiaggia, cs_h_porta_ghiaccio, cs_h_porta_giungla, cs_h_porta_neon, cs_h_porta_lunapark, cs_h_porta_fondale, cs_h_sbarra,
     cs_h_palma, cs_h_albero, cs_h_pino_neve, cs_h_albero_giungla, cs_h_cespuglio, cs_h_roccia_a, cs_h_roccia_b,
     cs_h_tempio, cs_h_rovina, cs_h_ruota_base, cs_h_ruota_giro, cs_h_tendone, cs_h_palazzo_a, cs_h_palazzo_b, cs_h_corallo, cs_h_igloo)}
