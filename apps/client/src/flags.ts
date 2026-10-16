@@ -1,5 +1,5 @@
 // Flag dall'URL, congelati all'avvio. Contratto: docs/TECH.md §9.
-export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; sfide: boolean; invito: string; serie: boolean; rientro: boolean; novita: boolean; templari: boolean; banco: boolean; gara: boolean; pulito: boolean; adrenalina: boolean; dipinto: string };
+export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; sfide: boolean; invito: string; serie: boolean; rientro: boolean; novita: boolean; templari: boolean; banco: boolean; gara: boolean; pulito: boolean; adrenalina: boolean; dipinto: 'si' | 'no' | 'prova' };
 function read(): Flags {
   const q = new URLSearchParams(location.search);
   const on = (k: string) => q.get(k) === '1' || q.get(k) === 'true';
@@ -21,7 +21,9 @@ function read(): Flags {
     templari: on('templari') || q.get('templari') === 'banco', // Isola dei Templari per le prove: isola aperta, altare senza reliquia, bottone ⚔ per entrare subito nelle ondate
     banco: q.get('templari') === 'banco', // stanza di prova dei Templari: dentro la chiesa appena si apre, col banco (zombie, armi, ondata, punti), senza server
     pulito: q.get('pulito') !== '0', // mondo pulito (#286): texture senza puntini e mare della stampa; ?pulito=0 = com'era prima
-    dipinto: q.get('dipinto') === 'isola' ? 'isola' : on('dipinto') ? 'chiesa' : '', // prova «chiesa dipinta» dei Templari (templari/dipinto.ts): ?dipinto=1 la chiesa, ?dipinto=isola tutta l'isola; solo in locale
+    // isola dei Templari dipinta (templari/dipinto.ts): ?dipinto=0 i blocchi di prima, ?dipinto=prova i tasti P/L/K e window.__dipinto; coi test
+    // (?test=1) spenta se non si chiede ?dipinto=1: su SwiftShader lo shader del dipinto rallenta tanto da far scadere le prove a tempo
+    dipinto: q.get('dipinto') === '0' ? 'no' : q.get('dipinto') === 'prova' ? 'prova' : q.get('dipinto') === '1' || !on('test') ? 'si' : 'no',
     adrenalina: on('adrenalina'), // Isola dell'Adrenalina per le prove: liberatoria già firmata, casco non richiesto, bottone 🚡 per andare al cancello
   };
 }
