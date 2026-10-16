@@ -17,7 +17,7 @@
 - **Carte della Marea** alla Pokémon TCG Pocket / Clash Royale: carte di tutto MAREA, bustine vinte negli altri format, sfide ai capitani.
 - **Cucina del Porto** alla Overcooked: livelli da 3 minuti, una cucina per isola, ingredienti dagli altri format; in 4 il caos.
 
-## Dopo dicembre 2026
+## Più avanti
 - Corse, gara tra amici: **urti e oggetti anche tra amici** (Jack, 12 ott 2026: «tanto comunque bisognerà implementare gli oggetti tra amici»). Oggi gli amici sono fantasmi: serve una soluzione di rete (l'urto o il colpo li decide chi colpisce e li manda agli altri). Prima gli urti veri coi bot.
 - Battaglia carte/unità in tempo reale (Clash Royale-like): netcode a bassa latenza, bot, bilanciamento. Unica ragione per il piano Paid di Cloudflare.
 - Puzzle leggero con i moduli dell'isola (tubi/tessere).
@@ -36,7 +36,7 @@
 - Missioni della Bacheca con «visita un'isola» o «fai un giro in barca»: servirebbe una prova lato server della posizione (oggi la posizione è del client).
 - ~~Barche per giocatore~~ fatto l'8 ott 2026 (#6, #107): la barca di ognuno al molo della sua isola, la tua si scansa se uno scafo la tocca. Resta: la barca degli amici a piedi lontano da casa si vede a casa, non dove l'hanno lasciata (servirebbe la posizione della barca nel `pos`).
 - Caricamento a due tempi dei modelli: all'avvio solo L1 e ciò che serve al proprio lotto; L2/L3, Porto e facciate dopo (oggi 1,53 MB iniziali su 2).
-- Bordo del mondo: la barca può uscire dalla mappa (mare infinito). Un muro morbido o una corrente che riporta indietro.
+- ~~Bordo del mondo~~ fatto (#5): una corrente morbida riporta la barca verso le isole (GDD §3, CONTRACTS).
 - Test `m1_isola`: usare l'orologio di test di M1-server (`X-Test-Now-Offset` con `--var TEST_CLOCK:1`) invece di aspettare 3 minuti veri.
 - ~~Runner dei test: processi wrangler orfani dopo un timeout~~ fatto l'8 ott 2026 (#8).
 - ~~Regata sulla laguna~~ fatto in Fetta 2 (v3).
