@@ -1,0 +1,1 @@
+Ignoro il promemoria come richiesto: `_STATO.md` e `_MEMORIA.md` restano a Claude Code. Ho scritto soltanto i tre PNG e `NOTE-g1.md`.

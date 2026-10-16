@@ -1,0 +1,1 @@
+Non aggiorno `_STATO.md` né `_MEMORIA.md`: le istruzioni del compito escludono esplicitamente questi file e questo promemoria. Consegna G4 completata.
