@@ -1,0 +1,17 @@
+
+IL TUO GRUPPO: G2 (schermate 04, 05, 06). File di note: assets/concept/difesa/codex/NOTE-g2.md
+
+04 → assets/concept/difesa/esplorazione_04.png
+AMBIENTAZIONE: una cameretta di notte. Base: il letto con la coperta. Campo: un tappeto a quadri sul pavimento, la luce della luna dalla finestra.
+Difensori: giocattoli (un robot a molla che spara palline, una lampada notturna che fa cadere stelline, un orsetto di peluche come muro, un tamburo o una trottola che esplode di coriandoli). Nemici: mostriciattoli sotto il letto (pelosetto d'ombra; mostro con un calzino in testa; mostro con un elmo di cartone di scatola). Valuta: stelline luminose. Ultima difesa: un'automobilina a carica.
+STILE: LIBRO ILLUSTRATO / CARTA RITAGLIATA: collage di carte colorate tagliate a mano, texture della carta visibile, piccole ombre tra gli strati, palette notturna blu e viola con accenti caldi gialli.
+
+05 → assets/concept/difesa/esplorazione_05.png
+AMBIENTAZIONE: il fondale marino vicino a una barriera corallina. Base: una grotta con un'àncora. Campo: sabbia del fondale a scacchi con raggi di luce dall'alto.
+Difensori: abitanti della barriera (un anemone che spara bolle, una vongola che fa perle, una stella marina gigante come muro, un riccio di mare che esplode). Nemici: meduse e spazzatura animata (medusa semplice; medusa con una lattina in testa; pesce palla con un elmo da palombaro). Valuta: perle. Ultima difesa: una tartaruga che parte a tutta velocità.
+STILE: VETTORIALE PIATTO (flat design moderno): forme geometriche pulite, NIENTE contorni, ombre piatte a un tono, palette fresca turchese/corallo/giallo, come un'illustrazione per un'app di qualità.
+
+06 → assets/concept/difesa/esplorazione_06.png
+AMBIENTAZIONE: un porto maledetto al tramonto. Base: il faro. Campo: banchina di assi di legno a scacchi chiari/scuri; a destra il mare da cui salgono i nemici.
+Difensori: la gente del porto e i suoi attrezzi (un cannoncino su ruote, una lanterna che fa monete, una botte come muro, una rete o un'àncora che blocca/esplode). Nemici: pirati fantasma buffi (fantasmino semplice; fantasma col tricorno; fantasma con l'elmo da palombaro arrugginito). Valuta: dobloni d'oro. Ultima difesa: un carretto di reti che corre.
+STILE: DIPINTO A MANO: illustrazione pittorica digitale con pennellate visibili, luce calda delle lanterne contro il cielo arancio-viola, atmosfera da fiaba e non da horror.

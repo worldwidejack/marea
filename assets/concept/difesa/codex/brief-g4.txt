@@ -1,0 +1,14 @@
+
+IL TUO GRUPPO: G4 (una sola schermata, la 10). File di note: assets/concept/difesa/codex/NOTE-g4.md
+
+10 → assets/concept/difesa/esplorazione_10.png
+È il confronto diretto con la 02 (spiaggia in pixel art 2D, che esiste già: NON toccarla). Stessa ambientazione e stesso cast della 02,
+ma nello STILE VERO DI MAREA, quello dell'immagine allegata (concept delle Corse approvata da Jack): mondo 3D LOW-POLY renderizzato a bassa
+risoluzione e ingrandito a PIXEL GROSSI e nitidi, poligoni piatti con flat shading, colori pieni e saturi (mare turchese, sabbia calda,
+bianchi puliti), luce di mezzogiorno, ombre semplici, personaggi low-poly a pixel come i piloti dell'immagine. NON pixel art 2D disegnata a
+mano: deve sembrare uno screenshot di un gioco 3D in stile PS1/N64 moderno, come il riferimento.
+AMBIENTAZIONE: la spiaggia di un'isola. Base: una capanna di legno coi teli. Campo: sabbia a scacchi chiaro/scuro con la riga del
+bagnasciuga in fondo a destra, da dove arrivano i nemici dall'acqua.
+Difensori: castelli di sabbia con la torretta che spara palline di sabbia, una conchiglia che fa perle, un secchiello rovesciato come muro,
+un'anguria che esplode. Nemici: granchi (granchio semplice; con un tappo di bottiglia in testa; paguro con un guscio di lattina).
+Valuta: perle. Ultima difesa: una paletta da spiaggia a molla.
