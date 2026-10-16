@@ -3,7 +3,7 @@
 // manda in frantumi per sempre, la schiacciata sulla corsia), il Fuciliere d'Acquafonda (la linea che segue e poi si blocca, il balzo),
 // l'Albatros di Pece (sgancia e poi atterra), il Capitano Vaelen (affondi, spazzata e lancia incastrata con la catena alle spalle; le
 // catene spezzate, la carica che fracassa i piloni, la salva con lo scudo), l'Albero della «Stella del Mattino» (Vento in Poppa), la porta
-// sigillata dal Portale del Vuoto, il replay.
+// aperta fin dall'inizio, il replay.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DUNGEONS, ENEMIES, dungeonDef, enemyDef } from '@marea/content/rpg.ts';
@@ -38,7 +38,7 @@ const centro = (cx: number, cz: number) => ({ x: (cx + 0.5) * 2, z: (cz + 0.5) *
 const colpo = (s: DungeonState): void => { run(s, 1, inp({ a: true })); run(s, 1); };
 const dati = (ev: DungeonState['eventi'], su: 'eroe' | 'nemico') => ev.filter((e): e is Extract<typeof e, { t: 'colpo' }> => e.t === 'colpo' && e.su === su).map((e) => e.danno);
 const DIGA = ['guardiano_paratia', 'fuciliere_acquafonda', 'albatros_pece', 'capitano_vaelen'];
-/** Eroe da fine gioco (ha fatto il Portale del Vuoto): spadone di meteorite, piastre, pozioni grandi. */
+/** Eroe da fine gioco: spadone di meteorite, piastre, pozioni grandi. */
 const leggenda = () => heroBase({
   livello: 30, max: { vita: 320, magicka: 150, stamina: 200 },
   arma: { id: 'spadone_meteorite', kind: 'mischia', skill: 'armiPesanti', classe: 'pesante', danno: 46, tempo: 1.25, portata: 2.2, carica: 1.5, caricaMolt: 3, gittata: 0, traits: { penetra: 0.5 } },
@@ -46,9 +46,9 @@ const leggenda = () => heroBase({
   pozioni: [{ id: 'pozione_vita_grande', n: 8, cura: { vita: 180 }, buff: null }],
 });
 
-test('diga: ruote, risacca, rottami, piloni e lanterne; sull’Isola della Tempesta, sigillata dal Portale del Vuoto, la più difficile; il capo è Vaelen', () => {
+test('diga: ruote, risacca, rottami, piloni e lanterne; sull’Isola della Tempesta, aperta a tutti, la più difficile; il capo è Vaelen', () => {
   const d = dungeonDef('diga'), m = parseDungeon(d);
-  assert.deepEqual([d.stile, d.difficolta, d.richiede, d.ingresso.island], ['diga', 9, 'vuoto', 'tempesta']);
+  assert.deepEqual([d.stile, d.difficolta, d.richiede, d.ingresso.island], ['diga', 9, undefined, 'tempesta']);
   assert.ok(DUNGEONS.every((x) => x.id === 'diga' || x.difficolta < d.difficolta), 'la più difficile del gioco');
   assert.deepEqual(m.bacini.map((b) => b.n), [1, 2, 5, 6], 'la sentina, l’infermeria, il ponte mobile e i canali di scolo dell’arena');
   assert.deepEqual(m.valvole.map((v) => v.n).sort(), [1, 2, 5], 'le ruote che prosciugano (e quella del ponte)');
@@ -367,10 +367,9 @@ test('diga: l’Albero della «Stella del Mattino» — affondo lungo; correndo 
   assert.equal(u.hero.brezza, 0, 'consumata');
 });
 
-test('diga: porta sigillata — senza il Portale del Vuoto completato non si entra, dopo sì', () => {
+test('diga: aperta fin dall’inizio — un eroe appena nato ci entra (nessun dungeon completato, nessun anello)', () => {
   const lot = newLot('p', 0, null), h = heroOf(lot);
-  assert.throws(() => startDungeon({ ...lot, hero: { ...h, completati: ['drenaggio', 'archivio', 'fucina', 'mausoleo'] } }, 'diga', 1, 1000), /sigillata/);
-  const aperto = startDungeon({ ...lot, hero: { ...h, completati: ['mausoleo', 'vuoto'] } }, 'diga', 1, 1000);
+  const aperto = startDungeon({ ...lot, hero: { ...h, completati: [] } }, 'diga', 1, 1000);
   assert.equal(aperto.dungeon?.pending?.dungeon, 'diga');
 });
 

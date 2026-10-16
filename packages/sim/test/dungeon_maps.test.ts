@@ -127,7 +127,7 @@ test('dungeon: Portale del Vuoto (difficoltà 8) più difficile del Mausoleo, bo
   assert.ok(vuoto.difficolta > mausoleo.difficolta);
   const diga = DUNGEONS.find((d) => d.id === 'diga')!;
   assert.equal(diga.difficolta, Math.max(...DUNGEONS.map((d) => d.difficolta)), 'la Diga è la più difficile del gioco');
-  assert.equal(diga.richiede, 'vuoto');
+  assert.equal(diga.richiede, undefined, 'la Diga è aperta fin dall’inizio');
   assert.equal(vuoto.richiede, 'unico_anello_onda');
 
   const bossVuoto = ENEMIES.find((e) => e.id === 'custode')!;
