@@ -15,7 +15,7 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | Giorno/notte | **sì**, ma spegnibile | c'è già l'interruttore nelle Impostazioni (#54) |
 | Meteo | **da rifare**: niente nebbia globale fissa. **Nuvole che si muovono sulla mappa** e decidono il meteo del posto dove sono (piove sotto la nuvola, non ovunque) | uno stato solo per tutto il mondo, dall'orologio (`meteo.json`, GDD §3) |
 | Tutorial «Primi passi» | **sì, ma facoltativo**: non parte da solo, lo accende chi lo vuole | parte da solo al primo ingresso, si chiude con × (GDD §9, `ui/guida.ts`) |
-| Minimappa e mappa grande | **da ripensare**: **nord sempre in alto**; **zoom a più scatti**; **icone degli spot**; le isole non sbloccate **non si vedono proprio** (niente nebbia sopra) | la minimappa gira con la camera; le isole chiuse stanno sotto la nebbia col lucchetto (`ui/minimappa.ts`) |
+| Minimappa e mappa grande | **da ripensare**: **nord sempre in alto**; **zoom a più scatti**; **icone degli spot**; le isole non sbloccate **non si vedono proprio** (niente nebbia sopra) | **fatto** (#360, 16 ott): carta nautica alla Wind Waker scelta da Jack; nord in alto, + / − a 3 scatti sul cerchio, ZOOM a 3 scatti sulla carta, icone per categoria con legenda, isole non scoperte o chiuse non disegnate (`ui/minimappa.ts`, `ui/carta.ts`) |
 
 ## 2. Progressione, economia, isole personali (punti 35-55 della revisione)
 - **L'isola personale «nel nulla» convince poco.** Oggi è il giardino dietro la casa del Borgo, fuori dal mare (#237).
