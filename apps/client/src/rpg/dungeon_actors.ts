@@ -133,16 +133,20 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
     };
     return object(o.loader, name, () => boxes(fb[name]!));
   }
-  function projObj(tipo: string, el?: 'fuoco' | 'elettricita', bomba = false): Promise<THREE.Object3D> {
+  function projObj(tipo: string, el?: 'fuoco' | 'elettricita' | 'cura' | 'furia', bomba = false): Promise<THREE.Object3D> {
     if (tipo === 'freccia' || tipo === 'freccia_nemica') return frecciaInVolo(o.loader, tipo === 'freccia_nemica');
     if (tipo === 'arpione_nemico') return Promise.resolve(boxes([[0.06, 0.06, 0.9, 0, 0, 0.15, PAL.legno], [0.16, 0.16, 0.28, 0, 0, -0.42, PAL.pietraChiara], [0.3, 0.05, 0.05, 0, 0, -0.3, PAL.pietra]]));
     if (tipo === 'vento_nemico') return Promise.resolve(boxes([[0.7, 0.08, 0.3, 0, 0, 0, PAL.sabbiaChiara], [0.5, 0.06, 0.22, 0, 0, 0.22, PAL.acquaBassa], [0.3, 0.05, 0.15, 0, 0, 0.42, PAL.acqua]], true));
     if (tipo === 'lama_nemica' || tipo === 'lama') return Promise.resolve(boxes([[0.9, 0.06, 0.18, 0, 0, 0, PAL.acquaBassa], [0.6, 0.04, 0.1, 0, 0, 0.12, PAL.acqua], [0.3, 0.03, 0.06, 0, 0, 0.24, PAL.sabbiaChiara]], true));
     if (tipo === 'palla_nemica') return Promise.resolve(boxes([[0.2, 0.2, 0.2, 0, 0, 0, PAL.neroCaldo], [0.07, 0.07, 0.9, 0, 0, 0.5, PAL.sabbiaChiara], [0.12, 0.12, 0.3, 0, 0, 0.2, PAL.pietra]], true)); // palla di moschetto con la scia
     if (tipo === 'acqua_nemica') return Promise.resolve(boxes([[0.32, 0.32, 0.5, 0, 0, 0, PAL.acquaBassa], [0.2, 0.2, 0.5, 0, 0, 0.22, PAL.acqua], [0.12, 0.12, 0.3, 0, 0, 0.5, PAL.sabbiaChiara]], true));
-    // bombe: una palla grossa che ruota (rossa e arancio, o gialla e azzurra), tonda come il low-poly consente
+    // bombe: una palla grossa che ruota (rossa e arancio, gialla e azzurra, verde per la cura, arancio/rosa per la furia), tonda come il low-poly consente
     if (tipo === 'magia' && bomba) return Promise.resolve(boxes(el === 'elettricita'
       ? [[0.5, 0.5, 0.5, 0, 0, 0, PAL.giallo], [0.36, 0.36, 0.64, 0, 0, 0, PAL.acquaBassa], [0.64, 0.36, 0.36, 0, 0, 0, PAL.acquaBassa]]
+      : el === 'cura'
+      ? [[0.5, 0.5, 0.5, 0, 0, 0, PAL.erba], [0.36, 0.36, 0.64, 0, 0, 0, PAL.erbaChiara], [0.64, 0.36, 0.36, 0, 0, 0, PAL.acquaBassa]]
+      : el === 'furia'
+      ? [[0.5, 0.5, 0.5, 0, 0, 0, PAL.arancio], [0.36, 0.36, 0.64, 0, 0, 0, PAL.rosaNeon], [0.64, 0.36, 0.36, 0, 0, 0, PAL.giallo]]
       : [[0.5, 0.5, 0.5, 0, 0, 0, PAL.rosso], [0.36, 0.36, 0.64, 0, 0, 0, PAL.arancio], [0.64, 0.36, 0.36, 0, 0, 0, PAL.giallo]], true));
     // proiettile elettrico: un lampo lungo e sottile, giallo col cuore azzurro
     if (tipo === 'magia' && el === 'elettricita') return Promise.resolve(boxes([[0.16, 0.16, 1.0, 0, 0, 0, PAL.giallo], [0.08, 0.08, 1.3, 0, 0, 0, PAL.acquaBassa], [0.34, 0.06, 0.4, 0, 0, 0.1, PAL.giallo]], true));

@@ -52,7 +52,7 @@ export function rebuild(s: DungeonState): void {
   const st = s.stato;
   if (!st) return;
   const h = s.hero, old = s.runHero;
-  const rh = buildRunHero({ ...st, inv: invNow(s), equip: s.equip, usura: { ...st.usura, ...s.usura } });
+  const rh = buildRunHero({ ...st, inv: invNow(s), equip: s.equip, usura: { ...st.usura, ...s.usura } }, { arena: old.arena });
   s.runHero = { ...rh, carico: old.carico, pesi: old.pesi };
   h.vita = Math.min(h.vita, rh.max.vita); h.magicka = Math.min(h.magicka, rh.max.magicka); h.stamina = Math.min(h.stamina, rh.max.stamina);
   const cambia = h.arma.id !== rh.arma.id || h.arma.kind !== rh.arma.kind, manoPrima = h.incanta;

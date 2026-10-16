@@ -18,7 +18,7 @@ import { consuma, rebuild } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts';
 import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts';
-import { canale, fermaCanale, lanciaBomba } from './magie.ts';
+import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
 import { caricaBarriera, caricaBrezza, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
 import { curaCompagni, lamaAria, scaricaDi, statiCaricato, terremoto, veleno } from './perk.ts';
 
@@ -51,7 +51,7 @@ export function aim(s: DungeonState, range: number, cosMin: number, fallback: nu
   }
   return best ?? near;
 }
-function faceTo(s: DungeonState, e: Enemy | null): void {
+function faceTo(s: DungeonState, e: { x: number; z: number } | null): void {
   if (!e) return;
   const h = s.hero, dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
   if (d > 1e-6) { h.fx = dx / d; h.fz = dz / d; }
@@ -179,8 +179,9 @@ function cast(s: DungeonState, dir: Mira): void {
     add(s.xp, 'evocazione', sp.costo * (RPG.xp.evocazioneLancio ?? 0));
     return;
   }
-  if (sp.forma === 'bomba') { // lenta, in alto: atterra sul nemico che hai davanti e scoppia (magie.ts)
-    if (!dir) faceTo(s, aim(s, sp.gittata ?? MAGIA_GITTATA, COS_BOMBA, 0, true));
+  if (sp.forma === 'bomba') { // lenta, in alto: atterra sul nemico (o alleato, se di supporto) che hai davanti e scoppia (magie.ts)
+    const g = sp.gittata ?? MAGIA_GITTATA;
+    if (!dir) faceTo(s, isSupporto(sp) ? aimAlleato(s, g, COS_BOMBA, g * 0.5) : aim(s, g, COS_BOMBA, 0, true));
     lanciaBomba(s, sp);
     return;
   }
@@ -324,8 +325,9 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       faceDir(s, dir); // col mouse l'eroe segue il cursore finché si mira
       const sp = magiaPronta(s);
       if (sp?.forma === 'raggio') {
-        // raggio continuo: finché tieni A resta acceso (costa Magicka al secondo) e si aggancia al nemico davanti; rilasci o finisci la Magicka e si spegne
-        if (inp.a && !dir) faceTo(s, aim(s, sp.gittata ?? 5, COS_RAGGIO, (sp.gittata ?? 5) * 0.5, true));
+        // raggio continuo: finché tieni A resta acceso (costa Magicka al secondo) e si aggancia al nemico (o alleato, se di supporto) davanti; rilasci o finisci la Magicka e si spegne
+        const g = sp.gittata ?? 5;
+        if (inp.a && !dir) faceTo(s, isSupporto(sp) ? aimAlleato(s, g, COS_RAGGIO, g * 0.5) : aim(s, g, COS_RAGGIO, g * 0.5, true));
         if (!inp.a || !canale(s, sp)) { fermaCanale(s, sp); h.act = 'idle'; h.actT = 0; }
       } else if (!inp.a) { h.act = 'idle'; h.actT = 0; cast(s, dir); }
       break;
@@ -343,7 +345,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   const arcoLibero = !!rh.perk?.arcoMobile && h.act === 'tende';
   const lento = !arcoLibero && h.act !== 'idle' && h.act !== 'tira' && h.act !== 'lancia';
   h.running = h.moving && inp.b && !lento && !arcoLibero && h.stamina > 0;
-  let v = h.running ? rh.corsa * (1 + buff(s, 'velocitaCorsa')) : rh.camminata;
+  let v = h.running ? rh.corsa * (1 + buff(s, 'velocitaCorsa')) : rh.camminata * (1 + buff(s, 'furiaVel'));
   if (h.running) h.stamina = Math.max(0, h.stamina - rh.staminaCorsa * DT);
   if (lento) v *= rh.mentreCarichi;
   if (h.lento > 0) v *= h.lentoMolt; // Tubo-strisciante
