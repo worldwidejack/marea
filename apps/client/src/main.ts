@@ -139,7 +139,7 @@ async function boot(): Promise<void> {
   // Porto tra amici (#110 #111): Tabellone dei record in piazza e Faro comune sullo scoglio; pannelli scaricati alla prima apertura
   const amici = createPortoAmici({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot, notte: () => aspetto?.momento === 'notte' });
   targets.splice(targets.findIndex((t) => t.id === 'bacheca') + 1, 0, ...amici.spots.map((sp): CompassTarget => ({ id: sp.id, label: sp.id === 'record' ? 'Record' : 'Faro', icon: sp.id, x: sp.x, z: sp.z, sezione: 'porto' })));
-  // Isole a tema (#68): sblocchi, barriere in mare, il Vulcano che caccia; in bussola appena scoperte (minimappa), col lucchetto in mappa finché chiuse
+  // Isole a tema (#68): sblocchi, barriere in mare, il Vulcano che caccia; in bussola appena scoperte (minimappa), invisibili in mappa finché chiuse
   const temi = createTemi({ world, hud, loader, root, camera: renderer.camera, canvas, getLot: () => myLot(), notte: () => aspetto?.momento === 'notte' });
   if (tpl.spot) targets.push({ id: 'templari', label: 'Chiesa', icon: 'templari', x: tpl.spot.x, z: tpl.spot.z, show: () => FLAGS.templari || temi.aperta('templari'), sezione: 'isole' });
   // Isola dell'Adrenalina (docs/ADRENALINA.md): la funivia e il cancello con la liberatoria; ?adrenalina=1 per le prove
@@ -180,7 +180,7 @@ async function boot(): Promise<void> {
   targets.unshift(segno.target);
   // mete: comprimibile, caselle per scegliere, sezioni Porto e Isole; con una sola accesa anche la freccia sullo schermo (nascosta quando c'è sopra un pannello)
   const compass = createCompass({ root, targets, sezioni: SEZIONI, camera: renderer.camera, canvas, groundY: world.groundY, hidden: () => coperto() });
-  // minimappa (#62): cerchio con l'arcipelago attorno a te, M o un tocco aprono la mappa intera; isole non visitate nella nebbia.
+  // minimappa (#62, #360): cerchio col nord in alto e l'arcipelago attorno a te, M o un tocco aprono la mappa intera; zoom a scatti; isole non visitate o chiuse invisibili.
   // Si scarica subito dopo l'avvio (import a parte): il JS iniziale ha un tetto (TECH §5), il cerchio arriva un attimo dopo il mondo.
   const places = arch.places.filter((p) => p.role !== 'lotto' && p.role !== 'negozio').map((p) => ({ /* i giardini (#237) stanno fuori dalla mappa del mare */ id: `${p.role}:${p.index}`, nome: p.role === 'lotto' ? (p.slot === world.slot ? 'Casa' : '') : p.nome, x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, sempre: p.role === 'porto' || (p.role === 'lotto' && p.slot === world.slot), ...(p.tema ? { chiusa: () => !temi.aperta(p.island) } : {}) }));
   let mappa: Minimappa | null = null;
@@ -253,6 +253,7 @@ async function boot(): Promise<void> {
     if (e.code === 'KeyC') { if (editor?.isOpen()) editor.close(); else openEditor(); return; }
     if (e.code === 'KeyF') { if (feed?.isOpen()) feed.close(); else openFeed(); return; }
     if (e.code === 'KeyM') { if (!panelsBusy()) mappa?.toggle(); return; }
+    const zoom = e.key === '+' || e.key === '=' || e.code === 'NumpadAdd' ? 1 : e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract' ? -1 : 0; if (zoom && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) { if (!panelsBusy()) mappa?.zoom(zoom); return; } // + e −: zoom a scatti della minimappa (#360); `key`: vale anche la tastiera italiana
     if (e.code === 'KeyJ') { if (diario.isOpen()) diario.close(); else if (!panelsBusy()) { editor?.close(); feed?.close(); eroe?.close(); diario.open(); } return; } // Diario del capitano (#87)
     if (e.code === 'KeyI') { if (eroe?.isOpen()) eroe.close(); else if (eroe && !panelsBusy()) { editor?.close(); feed?.close(); eroe.open(); } return; }
     if (e.code === 'KeyG') { if (emotes.wheelOpen) emotes.closeWheel(); else if (!panelsBusy() && !editor?.isOpen() && !feed?.isOpen()) emotes.toggleWheel(); return; }
@@ -292,8 +293,8 @@ async function boot(): Promise<void> {
       return p && dist(p, qui()) < 80 ? { x: p.x, y: world.groundY(p.x, p.z) + 2.4, z: p.z } : { x: portoAt.x, y: 3, z: portoAt.z };
     } },
     { id: 'universale', titolo: 'Pesca o tuffati', come: 'Barca ferma in mare aperto: PESCA. Su acqua bassa vicino a riva: TUFFATI.', done: () => !!document.querySelector('#mzPescaGioco.on, #mzPerleGioco.on'), target: () => (world.mode === 'walk' ? barcaTarget() : null) },
-    { id: 'mappa', titolo: 'Guarda la mappa', come: 'Tocca il cerchio della mappa (o M). La nebbia copre dove non sei mai stato.', done: () => !!mappa?.isOpen(), target: () => null },
-    ...(temi.isole.length ? [{ id: 'isola', titolo: 'Scopri un\'isola nuova', come: 'Segui la freccia nella nebbia. Certe isole non ti fanno entrare: è carattere.', done: () => temi.isole.some(isolaVista), target: () => {
+    { id: 'mappa', titolo: 'Guarda la mappa', come: 'Tocca il cerchio della mappa (o M). Le isole compaiono quando ci passi vicino in barca.', done: () => !!mappa?.isOpen(), target: () => null },
+    ...(temi.isole.length ? [{ id: 'isola', titolo: 'Scopri un\'isola nuova', come: 'Segui la freccia in mare aperto. Certe isole non ti fanno entrare: è carattere.', done: () => temi.isole.some(isolaVista), target: () => {
       const p = piuVicino(temi.isole.filter((x) => !isolaVista(x)).map((x) => x.spawn));
       return p ? { x: p.x, y: 3, z: p.z } : null;
     } }] : []),
@@ -361,7 +362,7 @@ async function boot(): Promise<void> {
     compass.update(focus, renderer.diorama.yaw, t);
     const arrivato = segno.update(focus); // segnalino raggiunto: si toglie da solo
     if (arrivato) hud.toast(`Sei arrivato${arrivato.nome ? ` · ${arrivato.nome}` : ''}`, 2200);
-    mappa?.update({ x: focus.x, z: focus.z, yaw: focus.yaw }, renderer.diorama.yaw, world.net.peers());
+    mappa?.update({ x: focus.x, z: focus.z, yaw: focus.yaw }, world.net.peers());
     aspetto?.update(Date.now(), t, focus);
     renderer.render(acc / DT, t);
     hud.setPerf(renderer.stats());

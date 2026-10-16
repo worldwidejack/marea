@@ -399,6 +399,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   };
   registerTestHook('teleport', (x, z) => avatar.teleport(Number(x), Number(z)));
   registerTestHook('setZoom', (z) => diorama.setZoom(Number(z)));
+  /** Test (#360, minimappa col nord fisso): gira la camera attorno a te (yaw in rad; senza valore la legge e basta). */
+  registerTestHook('camYaw', (y) => { if (y !== undefined && y !== null) diorama.orbit?.(Number(y), diorama.pitch ?? Math.PI / 4); return diorama.yaw; });
   registerTestHook('peerIndossa', (id) => remotes.get(String(id))?.avatar.indossaStato() ?? null);
   registerTestHook('setEquip', (e) => setEquip(e as Record<string, string> | undefined)); // con ?test=1 e senza login (col login lo riallinea main.ts al personaggio vero)
   registerTestHook('setMode', (m) => { if (m === 'boat') { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; } else { mode = 'walk'; boat.setDriver(null); avatar.visible = true; avatar.teleport(spawnAt.x, spawnAt.z); } });

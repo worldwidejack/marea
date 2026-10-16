@@ -139,3 +139,7 @@ export function pixIcon(id: PixId, px = 16): HTMLSpanElement {
 export function drawPix(g: CanvasRenderingContext2D, id: PixId, x: number, y: number, s: number): void {
   PIX[id].forEach((row, yy) => { for (let xx = 0; xx < row.length; xx++) { const c = COL[row[xx] ?? '.']; if (c) { g.fillStyle = c; g.fillRect(x + xx * s, y + yy * s, s, s); } } });
 }
+/** I colori di un'icona di luogo cella per cella (8 righe × 8, null = vuota): la mappa ci disegna attorno il contorno. */
+export function pixCelle(id: PixId): (string | null)[][] {
+  return PIX[id].map((row) => Array.from({ length: 8 }, (_, x) => COL[row[x] ?? '.'] ?? null));
+}
