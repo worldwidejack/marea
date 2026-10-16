@@ -40,6 +40,9 @@ import { SUOLO } from '@marea/sim/templari/mappa.ts';
 import { PAL } from '../ui/style.ts';
 import { templariLink } from '../game/templari.ts';
 import { createScena } from './scena.ts';
+import { createDipinto } from './dipinto.ts';
+import type { Dipinto } from './dipinto.ts';
+import { FLAGS } from '../flags.ts';
 import type { Scena } from './scena.ts';
 import { createZombi } from './zombi.ts';
 import type { Zombi } from './zombi.ts';
@@ -141,6 +144,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   let azionePrima = false, azioneGiu = false;
   /** Banco di prova: immortale, ondate ferme, zombie fermi (velocità di prima per id), rallentatore (un tick ogni 4 frame). */
   const bk = { immortale: false, ferme: false, fermi: false, lento: false, frame: 0, vel: new Map<number, number>() };
+  let dip: Dipinto | null = null, dipTasti: ((e: KeyboardEvent) => void) | null = null;
   let sc: Scena | null = null, hero: HeroActor | null = null, zombi: Zombi | null = null, hud: TplHud | null = null, ctl: Controlli | null = null, fx: Effetti | null = null, mouse: Mouse | null = null, mUltima = 0;
   let resolve!: (v: TemplariFine | { insieme: true } | null) => void;
   const done = new Promise<TemplariFine | { insieme: true } | null>((r) => (resolve = r));
@@ -148,6 +152,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   const pulisci = () => {
     fase = 'finita'; templariLink.state = null; templariLink.prova = null; tensione(0);
     if (inno) { clearTimeout(inno); inno = null; musica.set('auto'); } // la canzone segreta finisce con la partita
+    if (dipTasti) removeEventListener('keydown', dipTasti);
+    dip?.dispose();
     seg?.dispose(); banco?.dispose(); bott?.dispose(); pers?.dispose(); fuo?.dispose(); mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
     for (const a of amici) a.actor?.dispose();
     ctx.renderer.setScene(null);
@@ -184,6 +190,19 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     try {
       await ctx.loader.extend('manifest_rpg.json'); // modelli delle armi (kit GDR)
       sc = createScena(s.arena, ctx.renderer.camera);
+      if (FLAGS.dipinto) { // prova «chiesa dipinta» (solo in locale): foto con __dipinto.foto(), dipinto_chiesa.png accanto alla pagina, P e O
+        const scena = sc, zona = FLAGS.dipinto === 'isola' ? 'isola' : 'chiesa', d = createDipinto({ scene: sc.scene, gl: ctx.renderer.gl, arena: s.arena, zona, setTaglia: (on) => scena.setTaglia(on) });
+        dip = d; (window as unknown as { __dipinto?: Dipinto }).__dipinto = d;
+        void d.carica(`dipinto_${zona}.png`).catch(() => console.info(`[marea] dipinto: niente dipinto_${zona}.png, c’è solo la foto`));
+        let acceso = true, pal = false, ombre = true, cupo = 1;
+        dipTasti = (e) => {
+          if (e.code === 'KeyP') { acceso = !acceso; d.setAcceso(acceso); ctx.hud.toast(acceso ? 'Dipinto acceso' : 'Dipinto spento', 900); }
+          if (e.code === 'KeyL') { ombre = !ombre; d.setOmbre(ombre); ctx.hud.toast(ombre ? 'Ombre della luna' : 'Niente ombre', 900); }
+          if (e.code === 'KeyK') { cupo = (cupo + 1) % 3; d.setCupo(cupo); ctx.hud.toast(['Luce del gioco', 'Cupo', 'Molto cupo'][cupo]!, 900); }
+          if (e.code === 'KeyO') { pal = !pal; d.setPalette(pal); ctx.hud.toast(pal ? 'Solo colori della palette' : 'Colori del dipinto', 900); }
+        };
+        addEventListener('keydown', dipTasti);
+      }
       hero = await createHeroActor({ loader: ctx.loader, look: rete?.membri[io]?.look ?? ctx.world.look, hero: { arma: armaVista(view.eroe.arma, chiaveArma(view).endsWith('+')), ...vestito(view.eroe.classe) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true, soloBusto: true });
       hero.avatar.setCappello(view.eroe.classe ? TESTA_TEMPLARI[view.eroe.classe] ?? null : null);
       zombi = createZombi(sc.scene);
