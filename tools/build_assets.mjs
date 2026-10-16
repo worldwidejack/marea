@@ -273,7 +273,7 @@ if (!noPreview) {
     [...L('segheria', 3), ...L('cava', 3)],
     [...L('magazzino', 3), ...L('casa', 3)],
     [...L('tavolo', 3), ...L('faro', 2)],
-    ['bld_cantiere', 'prop_deposito', 'mod_molo', 'prop_molo_l2', 'prop_molo_l3', 'prop_filo_lanterne'],
+    ['bld_cantiere', 'mod_molo', 'prop_filo_lanterne', null, null, null],
     ['bld_porto_casa_a', 'bld_porto_casa_b', 'bld_porto_casa_c', 'bld_porto_tavolo', 'prop_boa', 'prop_boa_next'],
     ['fac_neon', 'fac_selvaggia', 'prop_torii', 'prop_lanterna', null, null],
   ];

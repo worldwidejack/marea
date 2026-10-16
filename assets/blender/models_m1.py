@@ -604,59 +604,6 @@ def bld_cantiere():
     return _obj(m, **FP(2, 2))
 
 
-def prop_deposito():
-    """Cassa aperta piena di tronchi e pietre: il deposito dell'edificio è pieno, tocca raccogliere."""
-    m = Mesh('prop_deposito')
-    s = 0.32
-    m.box(-s, 0, -s, s, 0.4, s, 'cassa', skip=('bottom', 'top'))
-    face(m, [(-s, 0.3, -s), (s, 0.3, -s), (s, 0.3, s), (-s, 0.3, s)], 'legno_scuro', (0, 1, 0))
-    for x in (-s, s):
-        beam(m, (x, 0.38, -s), (x, 0.38, s), 0.05, 0.05, 'legno_scuro', end='legno_scuro')
-    for i, (x, y, r) in enumerate(((-0.14, 0.4, 0.09), (0.05, 0.4, 0.09), (-0.05, 0.54, 0.085))):
-        log(m, (x, y, -0.4 + 0.05 * i), (x, y, 0.36 - 0.04 * i), r)
-    for i, (x, z, r) in enumerate(((0.2, -0.12, 0.1), (0.22, 0.14, 0.09))):
-        m.cone(5, r, 0.35, 0.35 + r * 1.5, 'roccia', cx=x, cz=z, a0=h01(i, 4, 7) * 3)
-    return _obj(m)
-
-
-# ------------------------------------------------------------------ MOLO (prop da appoggiare sul mod_molo)
-MOLO_Y = 0.5  # piano del tavolato di mod_molo: i prop del molo hanno già questa quota
-
-
-def _bitta(m, x, z, reg='legno_scuro', top='taglio', r=0.09):
-    m.prism(6, r, r, MOLO_Y, MOLO_Y + 0.3, reg, cx=x, cz=z)
-    m.prism(6, r * 1.35, r * 1.2, MOLO_Y + 0.3, MOLO_Y + 0.38, reg, top=top, cx=x, cz=z)
-
-
-def prop_molo_l2():
-    m = Mesh('prop_molo_l2')
-    _bitta(m, -0.8, -0.82)
-    _bitta(m, 0.8, -0.82)
-    m.prism(8, 0.17, 0.17, MOLO_Y, MOLO_Y + 0.08, 'corda', top='corda', cx=-0.45, cz=-0.7)
-    beam(m, (-0.8, MOLO_Y + 0.25, -0.82), (-0.5, MOLO_Y + 0.05, -0.72), 0.03, 0.03, 'corda', n=3)
-    # lampione con lanterna
-    beam(m, (0.82, MOLO_Y, 0.8), (0.82, MOLO_Y + 1.7, 0.8), 0.08, 0.08, 'legno_scuro', end='legno_scuro')
-    beam(m, (0.82, MOLO_Y + 1.62, 0.8), (0.82, MOLO_Y + 1.62, 0.45), 0.06, 0.06, 'legno_scuro', end='legno_scuro')
-    lantern_lite(m, 0.82, MOLO_Y + 1.35, 0.5, r=0.13, h=0.28)
-    return _obj(m, **FP(2, 2))
-
-
-def prop_molo_l3():
-    m = Mesh('prop_molo_l3')
-    for x in (-0.8, 0.8):
-        _bitta(m, x, -0.82, reg='pietra_p', top='pietra_liscia', r=0.11)
-    # due lampioni laccati con fune di bandierine tra i due
-    for x in (-0.82, 0.82):
-        m.prism(4, 0.06, 0.05, MOLO_Y, MOLO_Y + 1.8, 'legno_lacca', cx=x, cz=0.82)
-        beam(m, (x, MOLO_Y + 1.72, 0.82), (x * 0.72, MOLO_Y + 1.72, 0.82), 0.05, 0.05, 'nero_lacca', end='nero_lacca')
-        lantern_lite(m, x * 0.72, MOLO_Y + 1.45, 0.82, r=0.13, h=0.28, n=5)
-    for a, b in (((-0.82, 1.78), (0.0, 1.55)), ((0.0, 1.55), (0.82, 1.78))):
-        face(m, [(a[0], MOLO_Y + a[1], 0.82), (b[0], MOLO_Y + b[1], 0.82), (b[0], MOLO_Y + b[1] - 0.12, 0.82), (a[0], MOLO_Y + a[1] - 0.12, 0.82)], 'fune_bandierine', (0, 0, -1), uv='fit')
-        face(m, [(a[0], MOLO_Y + a[1], 0.82), (b[0], MOLO_Y + b[1], 0.82), (b[0], MOLO_Y + b[1] - 0.12, 0.82), (a[0], MOLO_Y + a[1] - 0.12, 0.82)], 'fune_bandierine', (0, 0, 1), uv='fit')
-    m.prism(8, 0.18, 0.18, MOLO_Y, MOLO_Y + 0.1, 'corda', top='corda', cx=0.4, cz=-0.7)
-    return _obj(m, **FP(2, 2))
-
-
 # ------------------------------------------------------------------ PORTO
 def bld_porto_casa_a():
     """Bottega a due piani (2×2 m): banco aperto sul davanti con noren blu, insegna verticale, balcone di carta."""
@@ -890,6 +837,6 @@ def fac_selvaggia():
 MODELS = {f.__name__: f for f in (
     bld_segheria_l2, bld_segheria_l3, bld_cava_l2, bld_cava_l3, bld_magazzino_l2, bld_magazzino_l3,
     bld_casa_l2, bld_casa_l3, bld_tavolo_l2, bld_tavolo_l3, bld_faro_l2,
-    bld_cantiere, prop_deposito, prop_molo_l2, prop_molo_l3,
+    bld_cantiere,
     bld_porto_casa_a, bld_porto_casa_b, bld_porto_casa_c, bld_porto_tavolo,
     prop_boa, prop_boa_next, prop_filo_lanterne, fac_neon, fac_selvaggia)}
