@@ -26,7 +26,7 @@ Piaciuti e parcheggiati in `BACKLOG.md`: Isola dello sport, Difesa del Porto, Ca
 |---|---|---|
 | **A** | sparo e camere: il poligono coi 6 bersagli, 3 armi, prima e terza persona, succo, suoni (PC) | fatto (16 ott) |
 | **B** | 6 nemici col cervello (pattuglia, allerta, copertura, aggiramento, ricerca) e la **Missione 0 · Il piazzale** | fatto (16 ott) |
-| **C** | il telefono in orizzontale a due pollici, mira assistita, sparo automatico | fatto (16 ott) |
+| **C** | il telefono in orizzontale a due pollici, mira assistita, sparo automatico; comandi rifatti come COD Mobile (#377) | fatto (16-17 ott) |
 | poi | intervista, concept art, Missione 1 vera, isola nell'arcipelago, deathmatch tra amici | da fare |
 
 ## 3. Come si gioca (Tappa A)
@@ -59,12 +59,20 @@ Piaciuti e parcheggiati in `BACKLOG.md`: Isola dello sport, Difesa del Porto, Ca
   testa). Niente fuoco amico.
 - **Persi di vista** per 6 s vengono a cercarti dove ti hanno visto; dopo 9 s di ricerca tornano di ronda.
 
-## 3c. Dal telefono (Tappa C)
-In orizzontale (in verticale compare «GIRA IL TELEFONO» e la partita si ferma). Pollice sinistro: il joystick nasce dove appoggi il dito
-(spinto in fondo in avanti = corri). Pollice destro: trascini sulla metà destra per mirare; SPARA (si trascina anche lui), MIRA, RICARICA,
-SALTA, GIÙ, ARMA, e AZIONE quando sei alla gru. **Mira assistita** (la mira si attacca un filo al nemico vicino al mirino quando ti muovi o
-trascini) e **sparo automatico** (spara da solo quando il mirino è su un nemico in vista), tutte e due accese di serie e spegnibili dal
-pannello «⚙ prove». Munizioni in basso al centro.
+## 3c. Dal telefono (Tappa C, comandi rifatti come COD Mobile il 17 ott, #377)
+In orizzontale (in verticale compare «GIRA IL TELEFONO» e la partita si ferma). Lo schema è quello della **modalità Avanzata di COD
+Mobile**, perché il primo giro faceva «o mirare o sparare» (MIRA si teneva premuto sullo stesso pollice di SPARA).
+- **Pollice sinistro**: joystick fermo in basso a sinistra, si sposta dove appoggi il dito. Spinto in fondo in avanti = corri; portato
+  oltre, fino al **lucchetto CORSA**, la corsa resta anche lasciando il dito (si sblocca toccando di nuovo il joystick). Sopra il joystick
+  lo **SPARA sinistro**: spara e basta, così il pollice destro resta libero per mirare.
+- **Pollice destro**: trascini ovunque sulla metà destra per mirare. Lo **SPARA destro** è fisso e ci si trascina sopra per mirare mentre
+  spari. **Spara e mira** (lo «ADS fire»): tenere SPARA mette anche in mira con pistola e mitra; il pompa spara dal fianco. **MIRA** si
+  accende e si spegne a tocco (resta). Anche MIRA, SALTA e GIÙ si trascinano per mirare. RICARICA, ARMA (la prossima), AZIONE alla gru.
+- **Aiuti**, accesi di serie e spegnibili dal pannello «⚙ prove» (con «spara e mira»): **mira assistita** (la mira si attacca un filo al
+  nemico vicino al mirino quando ti muovi o trascini, e rallenta del 35% quando il mirino ci passa sopra) e **sparo automatico** (spara da
+  solo quando il mirino è su un nemico in vista).
+- Ogni dito sa a cosa appartiene da quando tocca, e lo seguono gli ascoltatori della finestra: il dito che trascina su SPARA non si perde
+  se esce dal bottone. Munizioni in basso al centro.
 
 ## 4. Il piazzale (Missione 0)
 42 × 44 m di banchina, il mare a sud. Muro di container impilati su tre lati, nove container dentro (alcuni a due piani), la gru rossa

@@ -5,8 +5,9 @@
 // - Missione 0: il pilota automatico (immortale) elimina le sentinelle, sabota la gru coi rinforzi in arrivo e raggiunge la barca;
 //   la schermata finale mostra la medaglia e RIGIOCA ricomincia;
 // - da PC: 2 e 3 cambiano arma, R ricarica, V passa in terza persona, H in HD;
-// - dal telefono: i bottoni a tocco ci sono e non si coprono; trascinare a destra gira la visuale; lo sparo automatico spara quando il
-//   mirino è su un nemico.
+// - dal telefono: i bottoni a tocco ci sono e non si coprono; trascinare a destra gira la visuale; più dita insieme (CDP): SPARA destro
+//   trascinato spara, mette in mira e gira; SPARA sinistro + mira a destra; joystick + SPARA; MIRA a tocco; lucchetto della corsa;
+//   lo sparo automatico spara quando il mirino è su un nemico.
 // Screenshot in tests/out/shots/m4_provasparo_*, numeri in tests/out/m4_provasparo.json.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -82,6 +83,53 @@ export default async function (ctx) {
         });
         assert(spari > 0, `sparo automatico: ${spari} colpi`);
         await ctx.shot(p.page, 'telefono_tocco');
+        assert(p.errors.length === 0, p.errors.join('\n'));
+      });
+      await ctx.test('telefono: più dita insieme come in COD Mobile — spari e miri con un pollice, SPARA sinistro, MIRA a tocco, lucchetto della corsa', async () => {
+        const pg = p.page, cdp = await pg.context().newCDPSession(pg), dita = new Map();
+        const punti = () => [...dita.entries()].map(([id, [x, y]]) => ({ x, y, id, radiusX: 8, radiusY: 8, force: 1 }));
+        const giu = async (id, [x, y]) => { dita.set(id, [x, y]); await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: punti() }); };
+        const muovi = async (id, dx, dy, passi = 8) => { const [x0, y0] = dita.get(id); for (let i = 1; i <= passi; i++) { dita.set(id, [x0 + (dx * i) / passi, y0 + (dy * i) / passi]); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: punti() }); } };
+        const su = async (id) => { dita.delete(id); await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: punti() }); };
+        // la sim va a scatti col Chrome dei test: si aspettano i tick, non i millisecondi
+        const tick = (n) => pg.evaluate((k) => new Promise((r) => { const t = window.__sparo.state().tick + k; const f = () => (window.__sparo.state().tick >= t ? r() : requestAnimationFrame(f)); f(); }), n);
+        const st = () => pg.evaluate(() => window.__sparo.state());
+        const bot = (testo, k = 0) => pg.evaluate(([t, i]) => { const r = [...document.querySelectorAll('.st-b')].filter((e) => e.textContent === t)[i].getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, [testo, k]);
+        await pg.evaluate(() => window.__sparo.set({ modo: 'poligono' }));
+        await pg.evaluate(() => window.__sparo.set({ pausa: false, cam: 'prima', assistita: false, automatico: false, x: 21, z: 20.5, yaw: 0, pitch: 0 }));
+        await pg.evaluate(() => { window.__sparo.partita().g.arma = 2; });
+        await tick(10);
+        // un pollice solo sullo SPARA destro: spara, mette in mira (mitra) e trascinando gira
+        let a = await st();
+        const dx = await bot('SPARA', 0);
+        await giu(1, dx); await tick(6); await muovi(1, -80, 0); await tick(6);
+        let b = await st(); await su(1); await tick(4);
+        assert(b.sparati - a.sparati >= 2 && b.mira && b.yaw > a.yaw + 0.15, `SPARA destro trascinato: ${b.sparati - a.sparati} colpi, mira ${b.mira}, yaw ${a.yaw} → ${b.yaw}`);
+        assert(!(await st()).mira, 'lasciato SPARA si esce dalla mira');
+        // SPARA sinistro + pollice destro che trascina sulla zona di mira, insieme
+        a = await st();
+        await giu(2, await bot('SPARA', 1)); await giu(3, [560, 120]); await tick(4); await muovi(3, 80, 0); await tick(6);
+        b = await st(); await su(3); await su(2); await tick(4);
+        assert(b.sparati - a.sparati >= 2 && b.yaw < a.yaw - 0.15, `SPARA sinistro + mira a destra: ${b.sparati - a.sparati} colpi, yaw ${a.yaw} → ${b.yaw}`);
+        // joystick avanti mentre si spara col destro: ci si muove
+        a = await st();
+        await giu(4, [110, 290]); await muovi(4, 0, -40, 4); await giu(5, dx); await tick(20);
+        b = await st(); await su(5); await su(4); await tick(4);
+        assert(Math.hypot(b.x - a.x, b.z - a.z) > 0.5 && b.sparati > a.sparati, `joystick + SPARA: spostato ${Math.hypot(b.x - a.x, b.z - a.z)}, colpi ${b.sparati - a.sparati}`);
+        // MIRA a tocco: resta accesa, al secondo tocco si spegne
+        const m = await bot('MIRA');
+        await giu(6, m); await tick(2); await su(6); await tick(4); const m1 = (await st()).mira;
+        await giu(6, m); await tick(2); await su(6); await tick(4); const m2 = (await st()).mira;
+        assert(m1 && !m2, `MIRA a tocco: ${m1} poi ${m2}`);
+        // lucchetto: oltre il joystick verso l'alto si blocca la corsa, che resta lasciando; toccare il joystick la sblocca
+        await pg.evaluate(() => window.__sparo.set({ x: 21, z: 38, yaw: 0, pitch: 0 }));
+        const corsa = () => pg.evaluate(() => [window.__sparo.partita().g.corre, document.querySelector('.st-joy').classList.contains('blocco')]);
+        await giu(7, [110, 300]); await muovi(7, 0, -110); await su(7); await tick(10);
+        const c1 = await corsa();
+        await giu(8, [110, 300]); await su(8); await tick(6);
+        const c2 = await corsa();
+        assert(c1[0] && c1[1] && !c2[0] && !c2[1], `lucchetto della corsa: lasciato ${c1}, ritoccato ${c2}`);
+        await pg.evaluate(() => window.__sparo.set({ modo: 'missione', assistita: true, automatico: true }));
         assert(p.errors.length === 0, p.errors.join('\n'));
       });
     }
