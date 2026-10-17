@@ -89,7 +89,11 @@ export type LotState = {
   liberatorie?: string[];
   /** La casa arredabile (#265, economy/casa.ts): magazzino dei mobili, mobili posati, pavimenti e carte. Assente = stanza vuota di serie. */
   casa?: CasaState;
+  /** Arena PvP (docs/ARENA.md, arena/premio.ts): duello aperto, monete prese oggi (giorno UTC), partite vinte, perse e pari. Assente = mai giocato. */
+  arena?: ArenaLotto;
 };
+/** Il duello aperto dal DO Arena (`run`, questo giocatore è l'eroe `idx`), monete del premio prese oggi e statistiche. */
+export type ArenaLotto = { pending: { run: string; idx: number; startMs: number } | null; giorno: number; preso: number; vinte: number; perse: number; pari: number };
 /** Partita a ondate aperta dal server (seed e opzioni da rigiocare), premio del giorno e migliori risultati. `party` = insieme: la partita
  *  `run` del DO TemplariInsieme, dove questo giocatore è l'eroe `idx` (l'esito viene dal log della squadra). */
 export type TemplariLotto = {

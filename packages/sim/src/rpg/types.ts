@@ -39,7 +39,16 @@ export type HeroState = {
   lanterne?: Record<string, number>;
   /** Patto di sangue (perk): la creatura evocata ancora viva (id del nemico evocato), che ti segue di dungeon in dungeon e sull'isola. Assente = nessuna. */
   evocato?: string;
+  /** Arena (docs/ARENA.md): il set del duello, scelto all'ingresso del colosseo. Non tocca `equip` né lo zaino (in Arena non si consuma
+   *  niente). Assente = quello di partenza fatto da `equip` (rpg/arena.ts, loadoutDi). */
+  arena?: ArenaLoadout;
 };
+
+/** Uno slot rapido dell'Arena: un'arma o un arco dello zaino (con l'arco, `frecce` = il tipo di freccia; assente = ARENA.frecceBase), o una
+ *  magia conosciuta. */
+export type ArenaSlot = { arma: string; frecce?: string } | { magia: string };
+/** Il set del duello (docs/ARENA.md §2): vestizione, ARENA.slot slot rapidi (null = vuoto), ARENA.pozioni pozioni rapide (null = nessuna). */
+export type ArenaLoadout = { corpo?: string; anello1?: string; anello2?: string; slot: (ArenaSlot | null)[]; pozioni: (string | null)[] };
 
 /** Voce del catalogo (generata dalla sim: tipo × materiale + oggetti scritti a mano). La UI la usa per nome, peso, descrizione e statistiche. */
 export type ItemDef = {
@@ -211,7 +220,9 @@ export type RpgAction =
   | { t: 'butta'; item: string; n: number }
   | { t: 'serra' }
   /** Contrabbandiere del Porto: compra la merce di oggi o gli vendi roba dello zaino (monete). */
-  | { t: 'contrabbando'; op: 'compra' | 'vendi'; item: string; n: number };
+  | { t: 'contrabbando'; op: 'compra' | 'vendi'; item: string; n: number }
+  /** Arena: salva il set del duello (controllato con erroreLoadout di rpg/arena.ts). */
+  | { t: 'arena'; loadout: ArenaLoadout };
 
 /** Spedizione aperta dal server (dentro LotState.dungeon). */
 /** `salvataggio`: input fino all'ultimo altare (encodeDungeon), verificati dal server con POST /api/dungeon/save. Se la spedizione non

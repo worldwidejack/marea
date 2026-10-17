@@ -21,6 +21,7 @@ import { alto } from './muove.ts';
 import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
 import { caricaBarriera, caricaBrezza, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
 import { curaCompagni, lamaAria, scaricaDi, statiCaricato, terremoto, veleno } from './perk.ts';
+import { aimEroi, colpisciEroe, eroiNemici, evocazioneNemica, ostile, separaEroi } from './pvp.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
@@ -29,16 +30,18 @@ export function pugni(): RunWeapon {
   return { id: null, kind: 'pugni', skill: 'armiLeggere', classe: null, danno: p.danno, tempo: p.tempo, portata: p.portata, carica: p.carica, caricaMolt: p.caricaMolt, gittata: 0, traits: {} };
 }
 
-const ostili = (s: DungeonState): Enemy[] => s.enemies.filter((e) => !e.alleato && e.st !== 'morto');
+/** I bersagli dell'eroe di turno: i nemici vivi e, in Arena, le evocazioni avversarie (gli eroi avversari a parte: pvp.ts). */
+const ostili = (s: DungeonState): Enemy[] => s.enemies.filter((e) => ostile(s, e));
 export const malusDi = (s: DungeonState): number => Math.max(0, Math.min(0.95, s.runHero.armatura.malus - buff(s, 'malusArmatura')));
 export function vicinoUscita(s: DungeonState): boolean {
+  if (s.pvp) return false; // in Arena non si esce dalla scala
   const dx = s.map.exit.x - s.hero.x, dz = s.map.exit.z - s.hero.z;
   return dx * dx + dz * dz <= RAGGIO_USCITA * RAGGIO_USCITA;
 }
 
 /** Mira assistita: nemico più vicino entro `range` nel cono (coseno `cosMin`) davanti, altrimenti il più vicino entro `fallback`.
  *  In mischia (`vista` false) non conta chi vola alto (Archivio): la lama non ci arriva. */
-export function aim(s: DungeonState, range: number, cosMin: number, fallback: number, vista: boolean): Enemy | null {
+export function aim(s: DungeonState, range: number, cosMin: number, fallback: number, vista: boolean): { x: number; z: number } | null {
   const h = s.hero;
   let best: Enemy | null = null, bd = Infinity, near: Enemy | null = null, nd = Infinity;
   for (const e of ostili(s)) {
@@ -48,6 +51,13 @@ export function aim(s: DungeonState, range: number, cosMin: number, fallback: nu
     const dot = d > 1e-6 ? (dx * h.fx + dz * h.fz) / d : 1;
     if (reach <= range && dot >= cosMin && d < bd) { bd = d; best = e; }
     if (reach <= fallback && d < nd) { nd = d; near = e; }
+  }
+  // Arena: anche gli eroi avversari (vince il più vicino tra tutti)
+  if (s.pvp) {
+    const p = aimEroi(s, range, cosMin, fallback, vista);
+    if (p.best && p.best.d < bd) return p.best;
+    if (best) return best;
+    if (p.near && p.near.d < nd) return p.near;
   }
   return best ?? near;
 }
@@ -100,6 +110,16 @@ function sweepSwing(s: DungeonState): void {
       if (preso > 0 && rh.perk) { if (h.caricato) statiCaricato(s, e); else veleno(s, e); } // Taglio Critico (sanguina e rallenta), Colpo fatale (paralizza); Lame avvelenate sui colpi normali
       // Mausoleo: il Rintocco stordisce, l'Eco della Marea fa l'onda attorno a chi hai preso
       if (preso > 0) { stordisci(s, e); if (rh.eco) eco(s, e, danno); }
+    }
+    // Arena: la lama prende anche gli avversari (una volta per swing: in `colpiti` come -1 - indice)
+    for (const j of eroiNemici(s)) {
+      if (h.colpiti.includes(-1 - j)) continue;
+      const o = s.eroi[j]!, r = o.runHero.raggio, dx = o.hero.x - h.x, dz = o.hero.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
+      if (d > a.portata + r) continue;
+      if (sweepTo(h.stile, h.fx, h.fz, dx, dz, r, d <= r + rh.raggio) > fatto) continue;
+      h.colpiti.push(-1 - j);
+      const dirX = h.stile === 'giro' && d > 1e-6 ? dx / d : h.fx, dirZ = h.stile === 'giro' && d > 1e-6 ? dz / d : h.fz;
+      colpisciEroe(s, j, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}) });
     }
   }
   if (k < 1) return;
@@ -237,7 +257,7 @@ export function beviNow(s: DungeonState, id: string): DungeonEvent[] | null {
   return [{ t: 'pozione', id }];
 }
 
-function applyPotion(s: DungeonState, p: RunPotion): void {
+export function applyPotion(s: DungeonState, p: RunPotion): void {
   const h = s.hero, rh = s.runHero;
   consuma(s, p.id, s.usati);
   if (p.cura.vita) { h.vita = Math.min(rh.max.vita, h.vita + p.cura.vita); curaCompagni(s, p.cura.vita); } // Medico da campo
@@ -359,12 +379,13 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   caricaBrezza(s, x0, z0); // Diga: correndo la vela dell'Albero della «Stella del Mattino» si gonfia
   // i nemici sono solidi: l'eroe non li attraversa
   for (const e of s.enemies) {
-    if (e.st === 'morto' || e.alleato || e.def.muove === 'vola') continue; // chi vola passa sopra
+    if (e.st === 'morto' || (e.alleato && !evocazioneNemica(s, e)) || e.def.muove === 'vola') continue; // chi vola passa sopra
     const dx = h.x - e.x, dz = h.z - e.z, d2 = dx * dx + dz * dz, rr = rh.raggio + e.def.raggio;
     if (d2 >= rr * rr || d2 < 1e-12) continue;
     const d = Math.sqrt(d2), k = (rr - d) / d;
     moveCircle(s.map, h, dx * k, dz * k, rh.raggio);
   }
+  separaEroi(s); // Arena: nemmeno l'avversario si attraversa
   // rigenerazione (la stamina non torna mentre corri o tendi un arco che la consuma)
   h.vita = Math.min(rh.max.vita, h.vita + (rh.regen.vita + buff(s, 'regenVita')) * DT);
   h.magicka = Math.min(rh.max.magicka, h.magicka + (rh.regen.magicka + buff(s, 'regenMagicka')) * DT);

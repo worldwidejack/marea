@@ -10,6 +10,7 @@ import { buff, hitEnemy } from './combat.ts';
 import type { HitSrc } from './combat.ts';
 import { isOpaque, lineOfSight } from './map.ts';
 import { effettiMagia } from './perk.ts';
+import { amica, colpisciEroe, compagno, eroiNelCerchio, eroiNemici, ostile } from './pvp.ts';
 import { BOMBA_G, BOMBA_LATO, BOMBA_VUOTO, CANALE_EFFETTI, CANALE_OGNI, HZ, MAGIA_Y } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -28,9 +29,9 @@ export function aimAlleato(s: DungeonState, range: number, cosMin: number, fallb
     if (reach <= range && dot >= cosMin && d < bd) { bd = d; best = { x: tx, z: tz }; }
     if (reach <= fallback && d < nd) { nd = d; near = { x: tx, z: tz }; }
   };
-  for (const e of s.enemies) if (e.alleato && e.st !== 'morto') valuta(e.x, e.z, e.def.raggio);
+  for (const e of s.enemies) if (amica(s, e)) valuta(e.x, e.z, e.def.raggio);
   for (let i = 0; i < s.eroi.length; i++) {
-    if (i === s.cur || s.eroi[i]!.done) continue;
+    if (i === s.cur || s.eroi[i]!.done || !compagno(s, i)) continue; // in Arena solo la propria squadra
     valuta(s.eroi[i]!.hero.x, s.eroi[i]!.hero.z, s.eroi[i]!.runHero.raggio);
   }
   return best ?? near;
@@ -97,18 +98,20 @@ function colpiRaggio(s: DungeonState, sp: RunSpell, effetti: boolean): void {
     // Raggio di supporto (Cura a flusso, Furia a flusso): concentrato su un singolo bersaglio alleato o evocazione davanti a te
     let bestE: Enemy | null = null, bestH = -1, bd = Infinity;
     for (const e of s.enemies) {
-      if (!e.alleato || e.st === 'morto') continue;
+      if (!amica(s, e)) continue;
       const dx = e.x - h.x, dz = e.z - h.z, lungo = dx * h.fx + dz * h.fz;
       if (lungo < -0.2 || lungo > len + e.def.raggio || Math.abs(dx * h.fz - dz * h.fx) > w + e.def.raggio) continue;
       if (lungo < bd) { bd = lungo; bestE = e; bestH = -1; }
     }
     for (let i = 0; i < s.eroi.length; i++) {
-      if (i === s.cur || s.eroi[i]!.done) continue;
+      if (i === s.cur || s.eroi[i]!.done || !compagno(s, i)) continue;
       const th = s.eroi[i]!.hero, raggio = s.eroi[i]!.runHero.raggio;
       const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * h.fx + dz * h.fz;
       if (lungo < -0.2 || lungo > len + raggio || Math.abs(dx * h.fz - dz * h.fx) > w + raggio) continue;
       if (lungo < bd) { bd = lungo; bestE = null; bestH = i; }
     }
+    // Arena: senza un compagno o un'evocazione davanti, Cura e Furia a flusso vanno su chi le lancia
+    if (!bestE && bestH < 0 && s.pvp) bestH = s.cur;
     const dtStep = CANALE_OGNI / HZ;
     if (bestE) {
       if (sp.cura) {
@@ -139,12 +142,18 @@ function colpiRaggio(s: DungeonState, sp: RunSpell, effetti: boolean): void {
   const danno = sp.danno * (1 + buff(s, 'dannoDistruzione')) * (CANALE_OGNI / HZ);
   let primo: Enemy | null = null, pd = Infinity;
   for (const e of s.enemies.slice()) {
-    if (e.alleato || e.st === 'morto') continue;
+    if (!ostile(s, e)) continue;
     const dx = e.x - h.x, dz = e.z - h.z, lungo = dx * h.fx + dz * h.fz;
     if (lungo < -0.2 || lungo > len + e.def.raggio) continue;
     if (Math.abs(dx * h.fz - dz * h.fx) > w + e.def.raggio) continue;
     hitEnemy(s, e, colpoMagia(s, sp, danno, h.x, h.z));
     if (lungo < pd) { pd = lungo; primo = e; }
+  }
+  // Arena: il raggio brucia anche gli avversari nel corridoio
+  for (const j of eroiNemici(s)) {
+    const o = s.eroi[j]!, r = o.runHero.raggio, dx = o.hero.x - h.x, dz = o.hero.z - h.z, lungo = dx * h.fx + dz * h.fz;
+    if (lungo < -0.2 || lungo > len + r || Math.abs(dx * h.fz - dz * h.fx) > w + r) continue;
+    colpisciEroe(s, j, colpoMagia(s, sp, danno, h.x, h.z));
   }
   // perk di elemento (Combustione, Catena di fulmini): una volta al secondo sul primo preso, con il danno di un secondo di raggio
   if (effetti && primo && (sp.elemento === 'fuoco' || sp.elemento === 'elettricita')) {
@@ -167,20 +176,29 @@ export function lanciaBomba(s: DungeonState, sp: RunSpell): void {
   const h = s.hero, max = sp.gittata ?? 9, supp = isSupporto(sp);
   let d = max * BOMBA_VUOTO, vicino = Infinity;
   for (const e of s.enemies) {
-    if (e.st === 'morto' || e.alleato !== supp) continue;
+    if (supp ? !amica(s, e) : !ostile(s, e)) continue;
     const dx = e.x - h.x, dz = e.z - h.z, lungo = dx * h.fx + dz * h.fz;
     if (lungo < (supp ? 0.2 : 0.8) || lungo > max || Math.abs(dx * h.fz - dz * h.fx) > BOMBA_LATO + e.def.raggio) continue;
     if (lungo < vicino) { vicino = lungo; d = lungo; }
   }
+  // Arena: le bombe d'attacco puntano anche l'avversario davanti
+  for (const j of eroiNemici(s)) {
+    if (supp) break;
+    const th = s.eroi[j]!.hero, raggio = s.eroi[j]!.runHero.raggio;
+    const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * h.fx + dz * h.fz;
+    if (lungo < 0.8 || lungo > max || Math.abs(dx * h.fz - dz * h.fx) > BOMBA_LATO + raggio) continue;
+    if (lungo < vicino) { vicino = lungo; d = lungo; }
+  }
   if (supp) {
     for (let i = 0; i < s.eroi.length; i++) {
-      if (i === s.cur || s.eroi[i]!.done) continue;
+      if (i === s.cur || s.eroi[i]!.done || !compagno(s, i)) continue;
       const th = s.eroi[i]!.hero, raggio = s.eroi[i]!.runHero.raggio;
       const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * h.fx + dz * h.fz;
       if (lungo < 0.2 || lungo > max || Math.abs(dx * h.fz - dz * h.fx) > BOMBA_LATO + raggio) continue;
       if (lungo < vicino) { vicino = lungo; d = lungo; }
     }
     add(s.xp, 'evocazione', sp.costo * (RPG.xp.evocazioneLancio ?? 0));
+    if (s.pvp && vicino === Infinity) d = 0.4; // Arena: senza compagni davanti la Cura e la Furia a bomba cadono ai tuoi piedi
   }
   d = Math.min(d, libera(s, h.fx, h.fz, max));
   const N = Math.max(8, Math.round((sp.volo ?? 1.1) * HZ)), T = N * DT, y0 = MAGIA_Y;
@@ -200,7 +218,7 @@ export function scoppio(s: DungeonState, p: Proj): void {
   ev(s, { t: 'scoppio', x: r2(p.x), z: r2(p.z), r: r2(p.raggio), ...(p.elemento ? { el: p.elemento } : {}) });
   if (p.cura || p.furia) {
     for (const e of s.enemies) {
-      if (!e.alleato || e.st === 'morto') continue;
+      if (!amica(s, e)) continue;
       const dx = e.x - p.x, dz = e.z - p.z, r = p.raggio + e.def.raggio;
       if (dx * dx + dz * dz > r * r) continue;
       if (p.cura) {
@@ -213,7 +231,7 @@ export function scoppio(s: DungeonState, p: Proj): void {
     }
     for (let i = 0; i < s.eroi.length; i++) {
       const tr = s.eroi[i]!;
-      if (tr.done) continue;
+      if (tr.done || !compagno(s, i)) continue; // in Arena l'avversario no
       const dx = tr.hero.x - p.x, dz = tr.hero.z - p.z, r = p.raggio + tr.runHero.raggio;
       if (dx * dx + dz * dz > r * r) continue;
       if (p.cura) {
@@ -227,15 +245,14 @@ export function scoppio(s: DungeonState, p: Proj): void {
     return;
   }
   let primo: Enemy | null = null, pd = Infinity;
+  const src = { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione' as const, caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ox: p.x, oz: p.z, ...(p.rallenta ? { rallenta: p.rallenta } : {}) };
   for (const e of s.enemies.slice()) {
-    if (e.alleato || e.st === 'morto') continue;
+    if (!ostile(s, e)) continue;
     const dx = e.x - p.x, dz = e.z - p.z, r = p.raggio + e.def.raggio, d2 = dx * dx + dz * dz;
     if (d2 > r * r) continue;
-    hitEnemy(s, e, {
-      danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ox: p.x, oz: p.z,
-      ...(p.rallenta ? { rallenta: p.rallenta } : {}),
-    });
+    hitEnemy(s, e, src);
     if (d2 < pd) { pd = d2; primo = e; }
   }
+  for (const j of eroiNelCerchio(s, p.x, p.z, p.raggio)) colpisciEroe(s, j, src); // Arena: anche gli avversari nel cerchio
   if (primo && (p.elemento === 'fuoco' || p.elemento === 'elettricita')) effettiMagia(s, { elemento: p.elemento, raggio: p.raggio, danno: p.danno }, primo);
 }

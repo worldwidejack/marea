@@ -12,6 +12,7 @@ import { caricoMaxOf, carriedOf, modsOf } from './derived.ts';
 import { gainSkillXp, heroOf } from './hero.ts';
 import { hasItem, itemDef } from './items.ts';
 import { inVendita, offertaLosca, prezzoLosco } from './contrabbando.ts';
+import { erroreLoadout, pulisciLoadout } from './arena.ts';
 import type { EquipSlot, HeroState, ItemDef, RpgAction } from './types.ts';
 
 export { parseRpgAction } from './parse.ts';
@@ -195,6 +196,13 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       break;
     }
     case 'serra': ({ hero: h, forziere, lot } = serra(lot, h)); break;
+    case 'arena': {
+      // il set del duello (docs/ARENA.md §2): solo quello che hai, nello zaino o nel Forziere; non tocca l'equipaggiamento dei dungeon
+      const why = erroreLoadout(h, a.loadout, (id) => available(lot, h, id));
+      if (why) throw err('equip', why);
+      h = { ...h, arena: pulisciLoadout(h, a.loadout, (id) => available(lot, h, id)) };
+      break;
+    }
     case 'contrabbando': {
       // al Porto: si compra nello zaino, si vende dallo zaino (quello che hai addosso no)
       const it = needItem(a.item);
