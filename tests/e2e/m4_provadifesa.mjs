@@ -6,7 +6,9 @@
 // - si raccoglie una moneta toccandola (la valuta sale di 25);
 // - il pilota automatico vince il livello 1 e il livello 5; la schermata di vittoria ha il nuovo difensore e AVANTI;
 // - chi non difende perde il livello 3: «HANNO SFONDATO!» e RIPROVA ricomincia;
-// - col telefono in verticale compare «GIRA IL TELEFONO».
+// - col telefono in verticale compare «GIRA IL TELEFONO»;
+// - di serie si carica la pelle dell'orto (#379: fotogrammi di Codex, fondale, suoni) e non quella di riserva; chi aveva salvato la
+//   segnaposto passa all'orto; ?stile=segnaposto la apre ancora.
 // Screenshot in tests/out/shots/m4_provadifesa_*, numeri in tests/out/m4_provadifesa.json.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,6 +40,34 @@ export default async function (ctx) {
     const liv = await box(p.page, '.df-liv');
     assert(liv.length === 6, `livelli: ${liv.length}`);
     await ctx.shot(p.page, 'pc_menu');
+  });
+
+  await ctx.test("pc: di serie la pelle dell'orto, con i fotogrammi e i suoni", async () => {
+    const st = await stato(p.page);
+    assert(st.stile === 'orto' && st.pelle === 'orto', `pelle caricata: ${st.stile} / ${st.pelle} · fallite ${p.failed.join(' | ')}`);
+    const pl = await p.page.evaluate(() => window.__difesa.pelle());
+    for (const k of ['sparatore', 'produttore', 'bomba', 'muro', 'mina', 'gelo', 'tosaerba', 'base', 'cono', 'secchio', 'secchioNudo', 'bandiera', 'saltatore', 'colpo', 'moneta', 'armaturaCono', 'armaturaSecchio']) assert(pl.sprite[k], `manca lo sprite ${k}`);
+    assert(pl.sprite.base.cammina >= 4 && pl.sprite.base.mangia >= 3 && pl.sprite.base.ko === 1, `lumaca: ${JSON.stringify(pl.sprite.base)}`);
+    assert(pl.sprite.sparatore.spara >= 1 && pl.sprite.sparatore.carica >= 1, `carota: ${JSON.stringify(pl.sprite.sparatore)}`);
+    assert(pl.sprite.secchio.cammina >= 4, `scarabeo col vasetto: ${JSON.stringify(pl.sprite.secchio)}`);
+    numeri.clip = Object.fromEntries(Object.entries(pl.sprite).map(([k, v]) => [k, Object.values(v).reduce((a, b) => a + b, 0)]));
+    // i suoni da file partono al primo tocco (regola dei browser)
+    await p.page.mouse.click(5, 5);
+    await p.page.waitForFunction(() => window.__difesa.state().suoni >= 19, null, { timeout: 20000 }).catch(() => {});
+    const sn = (await stato(p.page)).suoni;
+    numeri.suoni = sn;
+    assert(sn >= 19, `suoni da file pronti: ${sn}`);
+  });
+
+  await ctx.test('chi aveva salvato la pelle segnaposto passa all\'orto; ?stile=segnaposto la apre ancora', async () => {
+    await p.page.evaluate(() => { localStorage.setItem('marea.difesa', JSON.stringify({ stile: 'segnaposto', sbloccati: 2 })); });
+    await p.page.reload();
+    await p.page.waitForFunction(() => window.__difesa && window.__difesa.ready === true, null, { timeout: 60000 });
+    let st = await stato(p.page);
+    assert(st.pelle === 'orto', `dopo la migrazione: ${st.pelle}`);
+    p = await apri('?stile=segnaposto&livello=1&prova=1', PC);
+    st = await stato(p.page);
+    assert(st.pelle === 'segnaposto' && p.errors.length === 0, `segnaposto: ${st.pelle} · ${p.errors.join(' | ')}`);
   });
 
   for (const [nome, vp] of [['telefono', TEL], ['pc', PC]]) {

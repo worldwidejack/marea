@@ -1,0 +1,19 @@
+
+LA TUA CARTELLA: assets/concept/difesa/orto/cavalletta/
+CAVALLETTA (nemica: corre, salta il primo difensore, poi cammina; guarda verso SINISTRA) — base: cavalletta/corre_1.png
+Fai nell'ordine scritto (i primi sono i più importanti).
+ Corsa (ciclo di 4 insieme alla base, sempre coi piedi a terra: è una corsetta veloce sulle zampe, non a saltelli):
+ 1. cavalletta/corre_2.png — zampe posteriori che spingono distese, anteriori avanti, corpo inclinato in avanti.
+ 2. cavalletta/corre_3.png — zampe a metà che si incrociano, corpo un filo più su.
+ 3. cavalletta/corre_4.png — l'altra falcata (al contrario del 2).
+ Salto (il gioco la alza da solo: nel fotogramma il corpo resta alla stessa altezza della base, non spostarlo in alto):
+ 4. cavalletta/salta_1.png — lo slancio: zampe posteriori tese al massimo, corpo allungato in diagonale, bocca aperta «yahoo».
+ 5. cavalletta/salta_2.png — in volo: zampe raccolte, alucce aperte, faccia spavalda.
+ Morso e KO:
+ 6. cavalletta/mangia_1.png — morde: testa protesa in avanti, bocca spalancata.
+ 7. cavalletta/mangia_2.png — morso chiuso, guance piene.
+ 8. cavalletta/mangia_3.png — mastica con gli occhi chiusi e due briciole verdi.
+ 9. cavalletta/ko.png — stordita: occhi a spirale, antenne afflosciate, zampe molli, ancora in piedi.
+ Camminata dopo il salto (STANCA): modifiche dei fotogrammi della corsa con lo stesso numero: stessa posa, ma faccia stanca con la
+ lingua fuori e una goccia di sudore.
+ 10. cavalletta/cammina_1.png (da corre_1)  11. cammina_2.png (da corre_2)  12. cammina_3.png (da corre_3)  13. cammina_4.png (da corre_4)

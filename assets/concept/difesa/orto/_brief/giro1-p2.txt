@@ -1,0 +1,15 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/scarabeo/ · assets/concept/difesa/orto/cavalletta/ · assets/concept/difesa/orto/annaffiatoio/
+
+1) assets/concept/difesa/orto/scarabeo/cammina_1.png — SCARABEO (nemico corazzato): lo scarabeo blu tozzo del concept (terza e quinta
+   riga, ultima colonna) ma SENZA il vasetto di latta in testa (il vasetto lo aggiungiamo dopo come modifica di ogni fotogramma):
+   testa con le antennine ben visibile, sei zampette, espressione imbronciata. Guarda e cammina verso SINISTRA. È la prima posa del
+   ciclo di camminata: zampe in posizione normale.
+2) assets/concept/difesa/orto/cavalletta/corre_1.png — CAVALLETTA (nemica NUOVA, non c'è nel concept: corre, SALTA il primo
+   difensore che trova e poi cammina): una cavalletta buffa e spavalda, zampe posteriori lunghe e piegate pronte allo scatto, occhi
+   grandi, sorrisetto da bulletta. Stessa famiglia della lumaca e dello scarabeo del concept (insetti dell'orto un po' prepotenti) e
+   stesso tratto. Colori che si staccano bene dal prato verde scuro del concept (es. verde lime chiaro con la pancia gialla).
+   Guarda e corre verso SINISTRA. È la prima posa del ciclo di corsa. Un po' più alta della lumaca del concept.
+3) assets/concept/difesa/orto/annaffiatoio/fermo.png — ANNAFFIATOIO A MOLLA (l'ultima difesa di ogni corsia: quando un nemico arriva
+   in fondo scatta e lava via tutta la corsia): l'annaffiatoio verde sulla molla sopra la tavoletta di legno, come nella colonna a
+   sinistra del campo del concept. Fermo. Il beccuccio guarda a DESTRA (verso i nemici).

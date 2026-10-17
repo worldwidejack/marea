@@ -1,0 +1,28 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/scarabeo/ · assets/concept/difesa/orto/scarabeo_vasetto/ · assets/concept/difesa/orto/mina_b/ ·
+assets/concept/difesa/orto/botto/
+
+A) SCARABEO (nemico, guarda e cammina verso SINISTRA) — base: scarabeo/cammina_1.png (zampe in posizione normale)
+ 1. scarabeo/cammina_2.png — passo a treppiede: zampe anteriore e posteriore di sinistra + centrale di destra AVANTI, le altre
+    indietro; il corpo scende appena (~6 px).
+ 2. scarabeo/cammina_3.png — zampe di nuovo a metà, corpo un filo più su.
+ 3. scarabeo/cammina_4.png — l'altro treppiede avanti (al contrario del 2), corpo che scende appena.
+ 4. scarabeo/mangia_1.png — MORDE: testa protesa in avanti, mandibole/bocca spalancate.
+ 5. scarabeo/mangia_2.png — morso chiuso, guance piene.
+ 6. scarabeo/mangia_3.png — mastica con gli occhi chiusi e due briciole verdi.
+ 7. scarabeo/ko.png — STORDITO: occhi a spirale, antenne afflosciate, zampette molli, ancora in piedi.
+B) SCARABEO COL VASETTO (armatura pesante). Ogni file è una modifica del file con lo STESSO NOME in scarabeo/: aggiungi SOLO il
+   VASETTO DI LATTA ammaccato calzato in testa come un elmo (come quello dello scarabeo del concept e del foglio
+   assets/concept/difesa/orto/oggetti/foglio.png se c'è), sempre nella stessa posizione rispetto alla testa.
+ 8. scarabeo_vasetto/cammina_1.png  9. cammina_2.png  10. cammina_3.png  11. cammina_4.png
+ 12. scarabeo_vasetto/mangia_1.png  13. mangia_2.png  14. mangia_3.png
+C) RICCIO DI CASTAGNA MINA (difensore, guarda a DESTRA) — base: mina_b/armata.png
+ 15. mina_b/sotto.png — SEPOLTO: si vede solo la punta delle spine che spunta dal mucchietto di terra, occhi chiusi addormentati.
+ 16. mina_b/spunta.png — mezzo fuori dalla terra, occhi che si aprono.
+ 17. mina_b/lampo.png — come la base ma con le punte delle spine rosse e luminose, piccoli raggi attorno (pronto a scoppiare).
+D) BOTTO (lo scoppio del peperoncino e della mina, NON è un personaggio): 3 fotogrammi 1024×1024 su fondo trasparente, nuvola
+   centrata nel quadrato (qui niente piedi a y942: centro al centro), stile del concept, SENZA SCRITTE né lettere:
+ 18. botto/scoppia_1.png — il lampo: stella di luce giallo-bianca a punte, piccola (~40 % del quadrato).
+ 19. botto/scoppia_2.png — la nuvola dello scoppio grande (~85 % del quadrato): fuoco arancio e rosso col cuore giallo, contorno nero
+     spesso, zolle di terra che volano.
+ 20. botto/scoppia_3.png — il fumo che se ne va: sbuffi grigio-marroni che si aprono (~85 %), qualche scintilla.

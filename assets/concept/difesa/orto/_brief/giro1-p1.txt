@@ -1,0 +1,12 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/zucca/ · assets/concept/difesa/orto/peperoncino/ · assets/concept/difesa/orto/cavolo/
+Tre difensori che ci sono già nel concept: ridisegnali UGUALI, uno per immagine, guardano a DESTRA.
+
+1) assets/concept/difesa/orto/zucca/fermo.png — ZUCCA A MANOVELLA (fa cadere i semi d'oro, la valuta del gioco): la zucca arancione
+   tozza a spicchi con la manovella di legno in cima e lo sportellino, faccia felice con le guance (nel concept: seconda riga e quinta
+   riga, prima colonna). Posa ferma, sorridente.
+2) assets/concept/difesa/orto/peperoncino/fermo.png — PEPERONCINO A MICCIA (esplode e spazza le corsie vicine): il peperoncino rosso
+   in piedi con la miccia in testa e una piccola scintilla, sopracciglia arrabbiate (nel concept: quarta riga, seconda colonna).
+   Posa ferma, pronta.
+3) assets/concept/difesa/orto/cavolo/fermo.png — CAVOLO CORAZZATO (il muro: si fa mangiare a lungo): il grosso cavolo verde a foglie
+   spesse e piegate con gli occhi decisi (nel concept: seconda e quarta riga, colonna centrale). Intero, senza morsi.

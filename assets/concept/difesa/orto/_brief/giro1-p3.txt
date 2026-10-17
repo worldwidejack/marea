@@ -1,0 +1,22 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/mina_a/ · assets/concept/difesa/orto/mina_b/ · assets/concept/difesa/orto/gelo_a/ ·
+assets/concept/difesa/orto/gelo_b/
+Le immagini allegate sono DUE: la prima è il concept (lo stile), la seconda è la CAROTA CANNONE già fatta (carota_fermo.png).
+Sono 4 difensori NUOVI che nel concept non ci sono: devono sembrare dello stesso cartone animato della carota, della zucca e del
+cavolo (stesso tratto, stessi colori pieni, occhi dello stesso tipo). Jack sceglierà tra A e B: falli belli e diversi tra loro.
+Guardano tutti a DESTRA.
+
+1) assets/concept/difesa/orto/mina_a/armata.png — RAVANELLO MINA (costa poco: sta sotto terra, si arma e scoppia sotto il primo
+   nemico che lo calpesta): un ravanello rosso tondo con le foglie verdi in testa, mezzo spuntato da un mucchietto di terra marrone,
+   occhi furbi e un ghigno, una lucina rossa d'allarme tra le foglie. Posa: ARMATO e pronto.
+2) assets/concept/difesa/orto/mina_b/armata.png — RICCIO DI CASTAGNA MINA (stesso ruolo): un riccio di castagna verde e spinoso,
+   mezzo spuntato da un mucchietto di terra marrone, occhi furbi tra le spine e una castagna lucida che si vede in mezzo. Posa: ARMATO
+   e pronto.
+3) assets/concept/difesa/orto/gelo_a/fermo.png — CAROTA GELATA (spara rondelle di ghiaccio che rallentano i nemici): è una MODIFICA
+   della seconda immagine allegata. Rifalla IDENTICA (stessa forma, stesso cavalletto, stessa posa, stessa scala e stessa posizione
+   nel quadrato 1024, piedi a y≈942) ma GHIACCIATA: carota azzurro-ghiaccio con riflessi bianchi, cristalli di brina sulla punta e sul
+   corpo, foglie azzurro-verde pallido con la brina. Il cavalletto resta di legno com'è. Non è un personaggio nuovo: è la stessa
+   carota gelata.
+4) assets/concept/difesa/orto/gelo_b/fermo.png — CETRIOLO GHIACCIATO (stesso ruolo): un cetriolo verde scuro con la buccia a
+   puntini, sdraiato su un cavalletto di legno come quello della carota, la punta è la bocca del cannone, brina e cristalli di
+   ghiaccio sopra, occhi decisi.

@@ -32,7 +32,8 @@ export function inquadra(p: Pelle, W: number, H: number, sopra: number, sotto: n
   const [cw] = casella(p, 2.5);
   const x0 = Math.min(p.campo.tl[0], p.campo.bl[0]) - cw * 1.25, x1 = Math.max(p.campo.tr[0], p.campo.br[0]) + cw * 0.9;
   const y0 = Math.min(p.campo.tl[1], p.campo.tr[1]) - cw * 0.55, y1 = Math.max(p.campo.bl[1], p.campo.br[1]) + cw * 0.12;
-  const scala = Math.min(W / (x1 - x0), (H - sopra - sotto) / (y1 - y0));
+  // mai negativa né zero: una finestra che parte nascosta o minuscola darebbe il campo nero e raggi negativi nei disegni
+  const scala = Math.max(0.05, Math.min(W / (x1 - x0), (H - sopra - sotto) / (y1 - y0)));
   const ox = (W - (x1 - x0) * scala) / 2 - x0 * scala;
   const oy = sopra + (H - sopra - sotto - (y1 - y0) * scala) / 2 - y0 * scala;
   return { scala, ox, oy, W, H };
