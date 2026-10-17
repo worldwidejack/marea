@@ -131,6 +131,23 @@ export default async function (ctx) {
         const b = await page.locator(sel).boundingBox();
         assert(b && b.x >= 0 && b.y >= 0 && b.x + b.width <= 844 && b.y + b.height <= 390, `${nome} fuori dallo schermo: ${JSON.stringify(b)}`);
       }
+      // un dito vero sullo stick (non wp2_inject): sotto il centro c'è lo stick e trascinarlo lo sposta. Il 16 ott l'HUD a tutto
+      // schermo (#276) lo copriva e in gara non si sterzava più
+      const sotto = await page.evaluate(() => {
+        const r = document.getElementById('joystick').getBoundingClientRect();
+        const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return { r: [r.left, r.top, r.width, r.height], chi: e ? `${e.tagName}#${e.id}.${String(e.className)}` : null };
+      });
+      assert(/#(joystick|stick)\./.test(sotto.chi || ''), 'sopra lo stick c\'è un altro elemento: ' + sotto.chi);
+      {
+        const cdp = await page.context().newCDPSession(page); const [x, y, w, h] = sotto.r, cx = x + w / 2, cy = y + h / 2;
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy, id: 1 }] });
+        for (let i = 1; i <= 5; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx + i * 8, y: cy, id: 1 }] }); await sleep(30); }
+        const tr = await page.evaluate(() => document.getElementById('stick').style.transform);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await cdp.detach();
+        assert(/translate\((?!0px)/.test(tr), 'il dito trascina ma lo stick non si muove: ' + tr);
+      }
       assert((await hook('corseGas', true)) === true, 'il gas non è sul bottone');
       // gas a tutta e dritto: lo stick in avanti da solo non dà più gas (in assi mondo, camera a 45°, l'avanti è (−0,707, −0,707))
       await hook('wp2_inject', { mx: -0.707, my: -0.707, a: false });
