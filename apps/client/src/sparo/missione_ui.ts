@@ -78,7 +78,7 @@ export function creaMissioneUi(root: HTMLElement): MissioneUi {
       pan.innerHTML = `<div class="t">MISSIONE 0</div><div class="g">IL PIAZZALE</div>
         <div class="o"><b>1</b> · Elimina le 6 sentinelle<br><b>2</b> · Sabota la gru: ${telefono ? 'tieni AZIONE' : 'tieni E'} per 3 secondi<br><b>3</b> · Raggiungi la barca</div>
         <div class="via">${telefono ? 'TOCCA PER INIZIARE' : 'CLICCA PER INIZIARE'}</div>
-        <div class="k">${telefono ? 'joystick a sinistra · trascina a destra per mirare · SPARA (o spara da solo quando miri un nemico)' : 'WASD muovi · mouse mira · clic spara · destro mira · R ricarica · Spazio salta · C accucciato · Shift corri · 1 2 3 armi<br>V prima/terza persona · H pixel/HD · Esc pausa'}</div>`;
+        <div class="k">${telefono ? 'joystick a sinistra (in fondo = corri, fino al lucchetto = corsa bloccata) · trascina a destra per mirare<br>SPARA a destra (ci trascini sopra per mirare) o a sinistra · MIRA a tocco · spara da solo quando miri un nemico' : 'WASD muovi · mouse mira · clic spara · destro mira · R ricarica · Spazio salta · C accucciato · Shift corri · 1 2 3 armi<br>V prima/terza persona · H pixel/HD · Esc pausa'}</div>`;
       pan.classList.add('on');
     },
     fine(f) {
