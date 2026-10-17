@@ -51,6 +51,7 @@ import { nowFromHeader } from '../clock.ts';
 import type { Env } from '../env.ts';
 import { RPG_ACTS, SERVE_GRUPPO, json, rpgRoute } from './lot_rpg.ts';
 import { TEMPLARI_ACTS, templariRoute } from './lot_templari.ts';
+import { ARENA_ACTS, arenaRoute } from './lot_arena.ts';
 import { firmaLiberatoria } from '@marea/sim/adrenalina/liberatoria.ts';
 
 const isCell = (v: unknown): v is [number, number] => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= 0 && n < 256);
@@ -139,6 +140,7 @@ export class Lot extends DurableObject<Env> {
         return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
       }
       if (act === 'faro_dona' || act === 'faro_livelli') return this.faro(lot, act, body, now);
+      if (ARENA_ACTS.has(act)) return arenaRoute(lot, act, body, now, (l) => this.save(l)); // solo dal DO Arena
       if (TEMPLARI_ACTS.has(act)) {
         // partita insieme aperta: prima il log della squadra dal DO TemplariInsieme, poi il lotto riletto (nell'attesa può essere cambiato)
         const g = lot.templari?.pending?.party;

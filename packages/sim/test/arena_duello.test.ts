@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { ARENA, validateArena } from '@marea/content/arena.ts';
 import { RPG } from '@marea/content/rpg.ts';
 import { newLot } from '../src/economy/actions.ts';
+import type { LotState } from '../src/economy/types.ts';
 import { heroOf, newHero, runHeroOf } from '../src/rpg/hero.ts';
 import { applyRpgAction, parseRpgAction } from '../src/rpg/actions.ts';
 import { buildArenaEroe, erroreLoadout, loadoutDi, possiedeZaino, pulisciLoadout } from '../src/rpg/arena.ts';
@@ -274,16 +275,16 @@ describe('Arena — il duello al meglio di 3', () => {
 
 describe('Arena — premio', () => {
   it('monete per la partita vinta o persa, entro il tetto del giorno; il duello sbagliato non paga', () => {
-    let lot = { ...newLot('a', 0), hero: newHero() };
-    const m0 = lot.hero.monete, P = ARENA.premio;
+    let lot: LotState = { ...newLot('a', 0), hero: newHero() };
+    const m0 = lot.hero!.monete, P = ARENA.premio;
     let preso = 0;
     for (let k = 0; k < 10; k++) {
       lot = startArena(lot, 'r' + k, 0, 1000);
       const f = finishArena(lot, 'r' + k, 'vinta', 2000);
-      preso += f.premio; lot = f.lot as typeof lot;
+      preso += f.premio; lot = f.lot;
     }
     assert.equal(preso, P.tetto);
-    assert.equal(lot.hero.monete, m0 + P.tetto);
+    assert.equal(lot.hero!.monete, m0 + P.tetto);
     assert.equal(arenaOf(lot, 2000).vinte, 10);
     // il giorno dopo si riparte
     lot = startArena(lot, 'x', 1, 86_400_000 + 5);

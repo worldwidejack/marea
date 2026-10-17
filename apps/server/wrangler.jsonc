@@ -22,11 +22,13 @@
       { "name": "SFIDE", "class_name": "Sfide" },
       { "name": "SPEDIZIONI", "class_name": "Spedizioni" },
       { "name": "GARA_AMICI", "class_name": "GaraAmici" },
-      { "name": "TEMPLARI_INSIEME", "class_name": "TemplariInsieme" }
+      { "name": "TEMPLARI_INSIEME", "class_name": "TemplariInsieme" },
+      { "name": "ARENA", "class_name": "Arena" }
     ]
   },
   // v2 (M1): Sfide = coordinatore unico delle sfide con posta (una sola istanza, idFromName('tavolo')).
   // v3 (#118): Spedizioni = squadre e dungeon insieme (una sola istanza, idFromName('spedizioni')).
   // v4 (corse tra amici): GaraAmici = sala e gara a fantasmi in tempo reale (una sola istanza, idFromName('garaamici')).
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Zone", "Lot"] }, { "tag": "v2", "new_sqlite_classes": ["Sfide"] }, { "tag": "v3", "new_sqlite_classes": ["Spedizioni"] }, { "tag": "v4", "new_sqlite_classes": ["GaraAmici"] }, { "tag": "v5", "new_sqlite_classes": ["TemplariInsieme"] }]
+  // v6 (Arena PvP, #373): Arena = coda, sale con codice e duelli 1v1 (una sola istanza, idFromName('arena')).
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Zone", "Lot"] }, { "tag": "v2", "new_sqlite_classes": ["Sfide"] }, { "tag": "v3", "new_sqlite_classes": ["Spedizioni"] }, { "tag": "v4", "new_sqlite_classes": ["GaraAmici"] }, { "tag": "v5", "new_sqlite_classes": ["TemplariInsieme"] }, { "tag": "v6", "new_sqlite_classes": ["Arena"] }]
 }
