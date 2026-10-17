@@ -2,8 +2,7 @@
 // con l'arcipelago attorno a te e il nord sempre in alto: gira solo la freccia (te). Zoom a scatti: rotella sul cerchio, + e − da
 // tastiera, bottoni + e −. Toccandolo o con M si apre la mappa intera: nord in alto, zoom a scatti (rotella sul punto, + e −, pizzico,
 // bottoni), trascinando la sposti; ci sono te, gli amici, le mete con le loro icone (se due si coprono resta la più importante, l'altra
-// compare avvicinando lo zoom) e i nomi delle isole. Quanti scatti, dove stanno i bottoni e com'è un'icona dipende dalla variante
-// (ui/mappa_stile.ts: 1 di serie, 2 con ?mappa=2, da far scegliere a Jack).
+// compare avvicinando lo zoom) e i nomi delle isole. Scatti, bottoni e icone: ui/mappa_stile.ts (scelti da Jack il 17 ott 2026).
 // Le isole non ancora scoperte (ci passi vicino in barca; le scoperte restano su questo dispositivo, localStorage) e le isole a tema
 // chiuse (#68: Tempesta, Ghiacci, Vulcano, Giardino, Adrenalina) non si vedono proprio: al loro posto il mare. Porto e la tua isola si
 // vedono da subito. Disegno su <canvas> a pixel con la palette: la base ha un pixel per cella della mappa.
@@ -12,8 +11,8 @@
 import type { GridMap, Tile } from '@marea/sim';
 import { drawPix, pixIcon } from './icons.ts';
 import type { PixId } from './icons.ts';
-import { DENSITA_MAX, GLIFO, MAPPA_CSS, TIPO_ORDINE, VARIANTI, freccia, punto, rotella, scattoVicino, scritta, scritte, sfoltisci, spriteMeta, tipoDi, zoomTasto } from './mappa_stile.ts';
-import type { Disegnata, Variante } from './mappa_stile.ts';
+import { DENSITA_MAX, GLIFO, MAPPA_CSS, RAGGI, SCATTI, TIPO_ORDINE, freccia, punto, rotella, scattoVicino, scritta, scritte, sfoltisci, spriteMeta, tipoDi, zoomTasto } from './mappa_stile.ts';
+import type { Disegnata } from './mappa_stile.ts';
 import type { Segno } from './segno.ts';
 import { PAL } from './style.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
@@ -65,13 +64,12 @@ export function createMinimappa(o: {
   if (!document.getElementById('mz-mini-style')) { const st = document.createElement('style'); st.id = 'mz-mini-style'; st.textContent = MAPPA_CSS; document.head.appendChild(st); }
   const { map } = o, T = map.tile, W = map.w, H = map.h;
   const saved = load();
-  let V: Variante = VARIANTI[new URLSearchParams(location.search).get('mappa') === '2' ? '2' : '1'];
   const viste = new Set(saved.viste ?? []);
   for (const p of o.places) if (p.sempre) viste.add(p.id);
   /** Scatti: `zm` nei raggi della minimappa (0 = il più vicino), `zg` nella mappa grande (0 = l'arcipelago intero; al telefono si apre a metà). */
-  const scattoGrande = (t: number) => Math.round(Math.max(0, Math.min(1, t)) * (V.scatti - 1)), tGrande = () => zg / (V.scatti - 1);
-  let zm = scattoVicino(V.raggi, saved.raggio ?? 100), zg = scattoGrande(saved.zoom ?? (stretto() ? 0.5 : 0));
-  const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ viste: [...viste], raggio: V.raggi[zm], zoom: tGrande() })); } catch { /* storage bloccato: vale fino a fine sessione */ } };
+  const scattoGrande = (t: number) => Math.round(Math.max(0, Math.min(1, t)) * (SCATTI - 1)), tGrande = () => zg / (SCATTI - 1);
+  let zm = scattoVicino(RAGGI, saved.raggio ?? 100), zg = scattoGrande(saved.zoom ?? (stretto() ? 0.5 : 0));
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ viste: [...viste], raggio: RAGGI[zm], zoom: tGrande() })); } catch { /* storage bloccato: vale fino a fine sessione */ } };
   const coperta = (p: MappaPlace) => !viste.has(p.id), chiusa = (p: MappaPlace) => !!p.chiusa?.(), nascosta = (p: MappaPlace) => coperta(p) || chiusa(p);
   const firmaChiuse = () => o.places.filter(chiusa).map((p) => p.id).join(','); let chiuseFirma = firmaChiuse();
   /** Dove va il nome di un'isola (celle): in mezzo e subito sotto la sua terra, non sotto il mare del suo riquadro. */
@@ -131,13 +129,7 @@ export function createMinimappa(o: {
   ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
   x.addEventListener('click', () => close()); togli.addEventListener('click', () => { o.segno?.set(null); drawBig(); });
   o.root.appendChild(ov);
-  /** Dove stanno i bottoni dello zoom: dipende dalla variante (si può cambiare da test, `mappaVariante`). */
-  const piazzaBottoni = () => {
-    mz.className = `mz ${V.bottoni}`; // A: + sopra e − sotto; B (in riga al contrario): − a sinistra e + a destra
-    zb.replaceChildren(...(V.bottoni === 'sopra' ? [gMeno, gPiu] : [gPiu, gMeno]));
-    if (V.bottoni === 'sopra') hd.insertBefore(zb, x); else fr.appendChild(zb);
-  };
-  piazzaBottoni();
+  zb.append(gPiu, gMeno); fr.appendChild(zb); // + sopra e − sotto, in basso a destra nella mappa
 
   // ——— vista della mappa grande: centro (celle) e scatto; pixel della tela per cella = adatta × ingrandimento ———
   // f = il punto voluto al centro, senza i limiti dei bordi: all'apertura sei tu, poi quello che porti al centro trascinando o con rotella e
@@ -161,7 +153,7 @@ export function createMinimappa(o: {
   };
   /** Uno scatto: con un punto della tela (rotella, pizzico) quel punto resta sotto il dito; senza (tasti, bottoni) si va verso il punto voluto. */
   function zoomGrande(i: number, ax?: number, ay?: number): void {
-    const n = Math.max(0, Math.min(V.scatti - 1, i));
+    const n = Math.max(0, Math.min(SCATTI - 1, i));
     if (n === zg) return;
     if (ax === undefined || ay === undefined) { zg = n; vx = fx; vz = fz; tieniDentro(); }
     else {
@@ -173,7 +165,7 @@ export function createMinimappa(o: {
     save(); if (open) drawBig();
   }
   function zoomMini(passi: number): void {
-    const n = Math.max(0, Math.min(V.raggi.length - 1, zm - passi));
+    const n = Math.max(0, Math.min(RAGGI.length - 1, zm - passi));
     if (n === zm) return;
     zm = n; save(); drawMini(last);
   }
@@ -224,8 +216,8 @@ export function createMinimappa(o: {
 
   /** Lato in pixel della tela di una cella delle icone delle mete e del segnalino, nella mappa grande. */
   const cellaIcona = () => Math.round((stretto() ? 2 : 3) * dprOf()), cellaSegno = () => Math.round((stretto() ? 3 : 4) * dprOf());
-  /** Il segnalino agganciato a una meta sta sopra la sua icona (o il suo cartellino), libero con la punta sul punto. */
-  const puntaSegno = (s: { x: number; z: number; su?: string }) => { const p = aSchermo(s.x, s.z); return { x: p.x, y: p.y - (s.su ? (V.icone === 'cartello' ? 14 : 5) * cellaIcona() : 0) }; };
+  /** Il segnalino agganciato a una meta sta sopra la sua icona, libero con la punta sul punto. */
+  const puntaSegno = (s: { x: number; z: number; su?: string }) => { const p = aSchermo(s.x, s.z); return { x: p.x, y: p.y - (s.su ? 5 * cellaIcona() : 0) }; };
   /** Le icone disegnate l'ultima volta nella mappa grande (le sole che si possono toccare) e nella minimappa. */
   let disegnate: Disegnata<MappaTarget>[] = [], disegnateMini: Disegnata<MappaTarget>[] = [];
   /** Tocco fermo sulla mappa (px CSS dello schermo): sul segnalino lo togli, sull'icona di una meta il segnalino si aggancia a lei, altrove lo metti lì. */
@@ -278,15 +270,15 @@ export function createMinimappa(o: {
   };
   const spento = (b: HTMLButtonElement, v: boolean) => { if (b.disabled !== v) b.disabled = v; };
   /** Ai due capi degli scatti il bottone si spegne. */
-  const bottoniZoom = () => { spento(gPiu, zg >= V.scatti - 1); spento(gMeno, zg <= 0); spento(mPiu, zm <= 0); spento(mMeno, zm >= V.raggi.length - 1); };
+  const bottoniZoom = () => { spento(gPiu, zg >= SCATTI - 1); spento(gMeno, zg <= 0); spento(mPiu, zm <= 0); spento(mMeno, zm >= RAGGI.length - 1); };
   /** Mete visibili come icone (sprite e scatola sulla tela) attorno ai punti dati da `dove`; quelle fuori da `dentro` si scartano. */
-  const candidate = (cella: number, cartello: boolean, dove: (t: MappaTarget) => { x: number; y: number } | null): Disegnata<MappaTarget>[] => {
+  const candidate = (cella: number, dove: (t: MappaTarget) => { x: number; y: number } | null): Disegnata<MappaTarget>[] => {
     const out: Disegnata<MappaTarget>[] = [];
     for (const t of o.targets) {
       if (!metaVisibile(t)) continue;
       const p = dove(t);
       if (!p) continue;
-      const tipo = tipoDi(t), sp = spriteMeta(t.icon!, cella, cartello, tipo), x0 = Math.round(p.x - sp.ax), y0 = Math.round(p.y - sp.ay);
+      const tipo = tipoDi(t), sp = spriteMeta(t.icon!, cella), x0 = Math.round(p.x - sp.ax), y0 = Math.round(p.y - sp.ay);
       out.push({ t, tipo, sp, x0, y0, x1: x0 + sp.c.width, y1: y0 + sp.c.height });
     }
     return out;
@@ -305,8 +297,8 @@ export function createMinimappa(o: {
       for (let i = 2; i < n; i++) punto(g, io.x + ((punta.x - io.x) * i) / n, io.y + ((punta.y - io.y) * i) / n, Math.round(4 * d), P.giallo);
     }
     const cella = cellaIcona();
-    const inVista = candidate(cella, V.icone === 'cartello', (t) => aSchermo(t.x, t.z)).filter((c) => c.x1 > 0 && c.x0 < cw && c.y1 > 0 && c.y0 < ch);
-    disegnate = zg === V.scatti - 1 ? inVista.sort((a, b) => TIPO_ORDINE[b.tipo] - TIPO_ORDINE[a.tipo]) : sfoltisci(inVista, cella); // allo zoom più vicino tutte (le più importanti sopra)
+    const inVista = candidate(cella, (t) => aSchermo(t.x, t.z)).filter((c) => c.x1 > 0 && c.x0 < cw && c.y1 > 0 && c.y0 < ch);
+    disegnate = zg === SCATTI - 1 ? inVista.sort((a, b) => TIPO_ORDINE[b.tipo] - TIPO_ORDINE[a.tipo]) : sfoltisci(inVista, cella); // allo zoom più vicino tutte (le più importanti sopra)
     for (const c of disegnate) g.drawImage(c.sp.c, c.x0, c.y0);
     if (punta) { const s = cellaSegno(); drawPix(g, 'segno', Math.round(punta.x - 4 * s), Math.round(punta.y - 8 * s), s); }
     paintPie(); bottoniZoom();
@@ -317,14 +309,14 @@ export function createMinimappa(o: {
   function drawMini(me: Pose): void {
     const d = dprOf(), R = Math.max(16, Math.round(mc.clientWidth * d) || 96);
     if (mc.width !== R) mc.width = mc.height = R;
-    const s = R / ((2 * V.raggi[zm]!) / T); // pixel per cella
+    const s = R / ((2 * RAGGI[zm]!) / T); // pixel per cella
     mg.setTransform(1, 0, 0, 1, 0, 0); mg.imageSmoothingEnabled = false;
     mg.fillStyle = MARE; mg.fillRect(0, 0, R, R);
     mg.drawImage(base, Math.round(R / 2 - (me.x / T) * s), Math.round(R / 2 - (me.z / T) * s), W * s, H * s); // nord in alto: il mondo non gira
     const toMini = (wx: number, wz: number) => ({ x: R / 2 + ((wx - me.x) / T) * s, y: R / 2 + ((wz - me.z) / T) * s });
     const cella = Math.max(1, Math.round((stretto() ? 1.5 : 2) * d)), meta = 5 * cella;
     const sulBordo = (p: { x: number; y: number }) => { const dd = Math.hypot(p.x - R / 2, p.y - R / 2), maxD = R / 2 - meta - 1, k = dd > maxD ? maxD / dd : 1; return { x: R / 2 + (p.x - R / 2) * k, y: R / 2 + (p.y - R / 2) * k }; }; // fuori dal cerchio: sul bordo, verso la meta
-    disegnateMini = sfoltisci(candidate(cella, false, (t) => sulBordo(toMini(t.x, t.z))), 0);
+    disegnateMini = sfoltisci(candidate(cella, (t) => sulBordo(toMini(t.x, t.z))), 0);
     for (const c of disegnateMini) mg.drawImage(c.sp.c, c.x0, c.y0);
     const sg = o.segno?.get();
     if (sg) { const p = sulBordo(toMini(sg.x, sg.z)); drawPix(mg, 'segno', Math.round(p.x - 4 * cella), Math.round(p.y - 8 * cella), cella); } // sopra le mete; lontano: sul bordo
@@ -336,22 +328,15 @@ export function createMinimappa(o: {
   let nextScopri = 0, nextMini = 0;
   registerStateProvider('mappa', () => ({
     open, viste: [...viste], coperte: o.places.filter(coperta).map((p) => p.id), chiuse: o.places.filter(chiusa).map((p) => p.id), nascoste: nascosteIds(),
-    mini: mini.style.visibility !== 'hidden' && getComputedStyle(mini).visibility !== 'hidden', variante: V.id,
+    mini: mini.style.visibility !== 'hidden' && getComputedStyle(mini).visibility !== 'hidden',
     nord: 0, freccia: last.yaw, // la minimappa non gira mai (nord in alto): gira solo la freccia, con te
-    zoomMini: { i: zm, n: V.raggi.length, raggio: V.raggi[zm] }, zoomMappa: { i: zg, n: V.scatti, x: Math.round((kk() / adatta()) * 100) / 100, centro: { x: vx * T, z: vz * T } },
+    zoomMini: { i: zm, n: RAGGI.length, raggio: RAGGI[zm] }, zoomMappa: { i: zg, n: SCATTI, x: Math.round((kk() / adatta()) * 100) / 100, centro: { x: vx * T, z: vz * T } },
     icone: disegnate.map((c) => c.t.id), iconeMini: disegnateMini.map((c) => c.t.id),
   }));
   /** Test (#144): dove sta sullo schermo (px CSS) il punto (x, z) del mondo nella mappa grande aperta (per toccarlo), con lo zoom di adesso. */
   registerTestHook('mappaSchermo', (wx, wz) => { const r = bc.getBoundingClientRect(), sc = scala(), p = aSchermo(Number(wx), Number(wz)); return { x: r.left + p.x / sc, y: r.top + p.y / sc }; });
   registerTestHook('mappa', (v) => { if (v === 'apri') show(); else if (v === 'chiudi') close(); else toggle(); return open; });
   registerTestHook('mappaScopri', (id) => { if (typeof id === 'string') viste.add(id); else for (const p of o.places) viste.add(p.id); save(); paintBase(); if (open) drawBig(); });
-  /** Test e foto A/B (#360): cambia variante senza ricaricare. */
-  registerTestHook('mappaVariante', (v) => {
-    const raggio = V.raggi[zm]!, t = tGrande();
-    V = VARIANTI[String(v) === '2' ? '2' : '1']; zm = scattoVicino(V.raggi, raggio); zg = scattoGrande(t);
-    piazzaBottoni(); vx = fx; vz = fz; tieniDentro(); drawMini(last); if (open) drawBig(); bottoniZoom();
-    return V.id;
-  });
   /** Test (#360): pixel di terra (non mare) dell'isola `id` nella base e, se la mappa grande è aperta, sulla sua tela. 0 = non si vede. */
   registerTestHook('mappaTerra', (id) => {
     const p = o.places.find((q) => q.id === id);

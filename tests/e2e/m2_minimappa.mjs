@@ -4,7 +4,7 @@
 // non si vedono proprio (solo mare) finché non ci passi vicino; le isole a tema chiuse restano invisibili anche scoperte.
 // Segnalino del navigatore (#144): un tocco sulla mappa lo mette (sull'icona di una meta si aggancia a lei), METE e freccia ti ci portano,
 // resta dopo il ricaricamento, si toglie con × in METE, con TOGLI o da solo quando ci arrivi.
-// Foto delle due varianti (#360, mappaVariante '1' | '2') al telefono e al PC: V1_* e V2_* in tests/out/shots.
+// Foto della mappa al telefono e al PC (#360): foto_* in tests/out/shots.
 export const timeout = 300000;
 export default async function (ctx) {
   const { assert } = ctx;
@@ -37,7 +37,6 @@ export default async function (ctx) {
     await p.page.waitForTimeout(600);
     const st = await mappa(p.page);
     assert(st && st.mini, `minimappa non visibile: ${JSON.stringify(st)}`);
-    assert(st.variante === '1', `variante di serie: ${st.variante}`);
     assert(st.viste.some((v) => v.startsWith('porto')), `Porto non scoperto: ${JSON.stringify(st.viste)}`);
     assert(st.coperte.length > 0 && st.coperte.every((id) => st.nascoste.includes(id)), `isole da scoprire: ${JSON.stringify(st)}`);
     const laguna = st.coperte.find((id) => id.startsWith('laguna')), t = await hook(p.page, 'mappaTerra', laguna);
@@ -208,32 +207,26 @@ export default async function (ctx) {
     await ctx.waitState(p.page, (s) => s.segno === null, 4000);
     ctx.noErrors(p, 'segnalino');
   });
-  // Foto delle varianti 1 e 2 (#360): stessa posa (Porto, isole scoperte, le 5 a tema chiuse), minimappa, mappa di serie, mappa intera e Porto da vicino
-  const fotoAB = async (P, dove) => {
+  // Foto della mappa scelta da Jack (#360): stessa posa (Porto, isole scoperte, le 5 a tema chiuse), minimappa, mappa di serie, mappa intera e Porto da vicino
+  const foto = async (P, dove) => {
     await hook(P.page, 'goto', 'porto'); await hook(P.page, 'mappaScopri');
     await P.page.waitForTimeout(3000); // passano gli avvisi dei test di prima («Sei arrivato»)
-    for (const v of ['1', '2']) {
-      const V = 'V' + v;
-      assert((await hook(P.page, 'mappaVariante', v)) === v, `variante ${v}`);
-      await P.page.waitForTimeout(400);
-      await ctx.shot(P.page, `${V}_${dove}_mini`);
-      await hook(P.page, 'mappa', 'apri'); await P.page.waitForTimeout(300);
-      const z = (await mappa(P.page)).zoomMappa, serie = dove === 'iphone' ? Math.round((z.n - 1) / 2) : 0; // come si apre la prima volta
-      while ((await mappa(P.page)).zoomMappa.i !== serie) { await P.page.keyboard.press((await mappa(P.page)).zoomMappa.i < serie ? '+' : '-'); await P.page.waitForTimeout(100); }
-      await hook(P.page, 'mappa', 'chiudi'); await hook(P.page, 'mappa', 'apri'); await P.page.waitForTimeout(300); // riaperta: centrata su di te
-      await ctx.shot(P.page, `${V}_${dove}_mappa`);
-      while ((await mappa(P.page)).zoomMappa.i > 0) { await P.page.keyboard.press('-'); await P.page.waitForTimeout(100); }
-      await ctx.shot(P.page, `${V}_${dove}_mappa_tutta`);
-      await hook(P.page, 'mappa', 'chiudi'); await hook(P.page, 'mappa', 'apri'); // si riapre centrata su di te
-      while ((await mappa(P.page)).zoomMappa.i < z.n - 1) { await P.page.keyboard.press('+'); await P.page.waitForTimeout(100); }
-      await P.page.waitForTimeout(200);
-      await ctx.shot(P.page, `${V}_${dove}_mappa_porto`);
-      while ((await mappa(P.page)).zoomMappa.i > 0) { await P.page.keyboard.press('-'); await P.page.waitForTimeout(100); }
-      await hook(P.page, 'mappa', 'chiudi');
-    }
-    await hook(P.page, 'mappaVariante', '1');
+    await ctx.shot(P.page, `foto_${dove}_mini`);
+    await hook(P.page, 'mappa', 'apri'); await P.page.waitForTimeout(300);
+    const z = (await mappa(P.page)).zoomMappa, serie = dove === 'iphone' ? Math.round((z.n - 1) / 2) : 0; // come si apre la prima volta
+    while ((await mappa(P.page)).zoomMappa.i !== serie) { await P.page.keyboard.press((await mappa(P.page)).zoomMappa.i < serie ? '+' : '-'); await P.page.waitForTimeout(100); }
+    await hook(P.page, 'mappa', 'chiudi'); await hook(P.page, 'mappa', 'apri'); await P.page.waitForTimeout(300); // riaperta: centrata su di te
+    await ctx.shot(P.page, `foto_${dove}_mappa`);
+    while ((await mappa(P.page)).zoomMappa.i > 0) { await P.page.keyboard.press('-'); await P.page.waitForTimeout(100); }
+    await ctx.shot(P.page, `foto_${dove}_mappa_tutta`);
+    await hook(P.page, 'mappa', 'chiudi'); await hook(P.page, 'mappa', 'apri'); // si riapre centrata su di te
+    while ((await mappa(P.page)).zoomMappa.i < z.n - 1) { await P.page.keyboard.press('+'); await P.page.waitForTimeout(100); }
+    await P.page.waitForTimeout(200);
+    await ctx.shot(P.page, `foto_${dove}_mappa_porto`);
+    while ((await mappa(P.page)).zoomMappa.i > 0) { await P.page.keyboard.press('-'); await P.page.waitForTimeout(100); }
+    await hook(P.page, 'mappa', 'chiudi');
   };
-  await ctx.test('foto delle varianti 1 e 2 al telefono', async () => { await fotoAB(p, 'iphone'); ctx.noErrors(p, 'foto varianti telefono'); });
+  await ctx.test('foto della mappa al telefono', async () => { await foto(p, 'iphone'); ctx.noErrors(p, 'foto telefono'); });
 
   const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
   await pronta(d.page);
@@ -267,5 +260,5 @@ export default async function (ctx) {
     assert(perf.drawCalls <= 100, `draw call ${perf.drawCalls}`);
     ctx.noErrors(d, 'desktop');
   });
-  await ctx.test('foto delle varianti 1 e 2 al PC', async () => { await fotoAB(d, 'desktop'); ctx.noErrors(d, 'foto varianti PC'); });
+  await ctx.test('foto della mappa al PC', async () => { await foto(d, 'desktop'); ctx.noErrors(d, 'foto PC'); });
 }

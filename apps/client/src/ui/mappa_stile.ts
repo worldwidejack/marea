@@ -1,41 +1,27 @@
-// Stile della minimappa e della mappa grande (#360): le due varianti da far scegliere a Jack (1 di serie, 2 con ?mappa=2; numeri e non
-// lettere: le lettere A-E sono i 5 look da ChatGPT) e i disegni a pixel delle mete. 1: icone col contorno nero, 3 scatti di zoom, bottoni + e − accanto al cerchio e in basso a destra nella mappa.
-// 2: cartellini col bordo del colore del tipo (rosso Porto, giallo giochi, verde isole, viola dungeon) e la punta sulla meta, 5 scatti,
-// bottoni sul cerchio e in alto vicino alla ×. Nella minimappa le icone sono sempre col contorno nero (è la più leggibile da piccola).
-// Tutto in palette (ART_BIBLE §2); le icone si disegnano una volta in una tela piccola e poi si copiano.
+// Stile della minimappa e della mappa grande (#360). Scelto da Jack il 17 ott 2026 fra due varianti (foglio in assets/concept/mappa/):
+// icone delle mete col contorno nero, 3 scatti di zoom, bottoni + e − accanto al cerchio e in basso a destra nella mappa (l'altra aveva
+// cartellini colorati per tipo, 5 scatti e i bottoni sul cerchio). Tutto in palette (ART_BIBLE §2); le icone si disegnano una volta in una
+// tela piccola e poi si copiano.
 import { pixCelle } from './icons.ts';
 import type { PixId } from './icons.ts';
 import { PAL } from './style.ts';
 
 const P = PAL;
-export type VarianteId = '1' | '2';
-export type Variante = {
-  id: VarianteId;
-  /** Minimappa: metri dal centro al bordo del cerchio, uno per scatto (dal più vicino al più lontano). */
-  raggi: readonly number[];
-  /** Mappa grande: quanti scatti dall'arcipelago intero al più vicino (DENSITA_MAX), in mezzo a passi uguali (ogni scatto moltiplica uguale). */
-  scatti: number;
-  /** Mete nella mappa grande: icona col contorno (1) o cartellino col bordo del colore del tipo (2). */
-  icone: 'contorno' | 'cartello';
-  /** Bottoni dello zoom: accanto al cerchio e in basso a destra nella mappa (1) o sul cerchio e in alto vicino alla × (2). */
-  bottoni: 'lato' | 'sopra';
-};
-export const VARIANTI: Record<VarianteId, Variante> = {
-  1: { id: '1', raggi: [50, 100, 200], scatti: 3, icone: 'contorno', bottoni: 'lato' },
-  2: { id: '2', raggi: [40, 60, 100, 150, 220], scatti: 5, icone: 'cartello', bottoni: 'sopra' },
-};
+/** Minimappa: metri dal centro al bordo del cerchio, uno per scatto (dal più vicino al più lontano); di serie 100. */
+export const RAGGI: readonly number[] = [50, 100, 200];
+/** Mappa grande: scatti dall'arcipelago intero al più vicino (DENSITA_MAX), in mezzo a passi uguali (ogni scatto moltiplica uguale). */
+export const SCATTI = 3;
 /** Mappa grande allo scatto più vicino: px CSS per cella (2 m), uguale su telefono e PC (lì le mete del Porto non si coprono più). */
 export const DENSITA_MAX = 8;
-/** Scatto più vicino a un raggio (salvato o dell'altra variante). */
+/** Scatto più vicino a un raggio salvato. */
 export const scattoVicino = (scatti: readonly number[], v: number): number => {
   let best = 0;
   for (let i = 1; i < scatti.length; i++) if (Math.abs(Math.log(scatti[i]! / v)) < Math.abs(Math.log(scatti[best]! / v))) best = i;
   return best;
 };
 
-/** Tipo di meta: colore del cartellino (2) e precedenza quando due icone si coprono. */
+/** Tipo di meta: decide chi vince quando due icone si coprono. */
 export type Tipo = 'porto' | 'isola' | 'dungeon' | 'gioco' | 'servizio';
-const TIPO_COL: Record<Tipo, string> = { porto: P.rosso, servizio: P.rosso, isola: P.erbaScura, dungeon: P.viola, gioco: P.giallo };
 /** Vince il Porto, poi le isole, il dungeon, i giochi e per ultimi i servizi del Porto (si vedono avvicinando lo zoom). */
 export const TIPO_ORDINE: Record<Tipo, number> = { porto: 0, isola: 1, dungeon: 2, gioco: 3, servizio: 4 };
 const SERVIZI = new Set(['casa', 'mercante', 'bacheca', 'contrabbando', 'record', 'faro']);
@@ -47,7 +33,7 @@ export function tipoDi(t: { id: string; group?: string }): Tipo {
   return SERVIZI.has(t.id) ? 'servizio' : 'gioco';
 }
 
-/** Icona pronta: tela e punto della tela che va sopra la meta (centro per il contorno, punta per il cartellino). */
+/** Icona pronta: tela e punto della tela che va sopra la meta (il centro). */
 export type Sprite = { c: HTMLCanvasElement; ax: number; ay: number };
 const cache = new Map<string, Sprite>();
 const tela = (w: number, h: number) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
@@ -65,27 +51,11 @@ function conContorno(g: CanvasRenderingContext2D, id: PixId, ox: number, oy: num
   for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const c = m[y]![x]; if (c) { g.fillStyle = c; g.fillRect(ox + (x + 1) * s, oy + (y + 1) * s, s, s); } }
 }
 
-/**
- * Sprite di una meta, celle da `s` pixel della tela. `cartello` = cartellino 12×12 col bordo del colore del tipo, ombra e punta di 2 celle
- * sotto (la punta sta sulla meta); altrimenti l'icona col contorno nero, 10×10, centrata sulla meta.
- */
-export function spriteMeta(id: PixId, s: number, cartello: boolean, tipo: Tipo): Sprite {
-  const key = `${id}|${s}|${cartello ? tipo : '-'}`;
+/** Sprite di una meta: l'icona col contorno nero, 10×10 celle da `s` pixel della tela, centrata sulla meta. */
+export function spriteMeta(id: PixId, s: number): Sprite {
+  const key = `${id}|${s}`;
   let sp = cache.get(key);
-  if (sp) return sp;
-  if (!cartello) {
-    const c = tela(10 * s, 10 * s);
-    conContorno(c.getContext('2d')!, id, 0, 0, s, P.neroCaldo);
-    sp = { c, ax: 5 * s, ay: 5 * s };
-  } else {
-    const c = tela(13 * s, 14 * s), g = c.getContext('2d')!, col = TIPO_COL[tipo];
-    g.fillStyle = P.neroCaldo; g.fillRect(s, s, 12 * s, 12 * s); g.fillRect(5 * s, 13 * s, 3 * s, s); // ombra del cartellino e della punta
-    g.fillStyle = col; g.fillRect(0, 0, 12 * s, 12 * s); g.fillRect(4 * s, 12 * s, 4 * s, s); g.fillRect(5 * s, 13 * s, 2 * s, s);
-    g.fillStyle = P.sabbiaChiara; g.fillRect(s, s, 10 * s, 10 * s);
-    conContorno(g, id, s, s, s, P.neroCaldo);
-    sp = { c, ax: 6 * s, ay: 14 * s };
-  }
-  cache.set(key, sp);
+  if (!sp) { const c = tela(10 * s, 10 * s); conContorno(c.getContext('2d')!, id, 0, 0, s, P.neroCaldo); sp = { c, ax: 5 * s, ay: 5 * s }; cache.set(key, sp); }
   return sp;
 }
 
@@ -150,7 +120,7 @@ export function sfoltisci<T>(cand: Disegnata<T>[], m: number): Disegnata<T>[] {
 }
 
 const BTN = `background: rgba(46,30,20,.95); border: 2px solid ${P.legnoChiaro}; color: ${P.sabbiaChiara}; box-shadow: 0 3px 0 ${P.neroCaldo}; cursor: pointer;`;
-/** Cerchio, bottoni dello zoom e mappa grande (le due varianti: classi `lato` e `sopra`, bottoni nella cornice o in testa). */
+/** Cerchio, bottoni dello zoom (accanto al cerchio, verso il centro dello schermo) e mappa grande (bottoni in basso a destra). */
 export const MAPPA_CSS = `
 #mzMini { position: absolute; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 136px); /* sopra il bottone A (84 px a 36 px dal fondo) */ width: 148px; height: 148px; z-index: 13; cursor: pointer; padding: 0; border: none; background: none; }
 #mzMini canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; border-radius: 50%; border: 3px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; box-sizing: border-box; background: ${P.abisso}; }
@@ -158,17 +128,13 @@ export const MAPPA_CSS = `
 #mzMini:focus { outline: none; } #mzMini:focus-visible canvas { border-color: ${P.giallo}; }
 #mzMini.qui canvas { animation: mzMiniQui 1s steps(2, jump-none) infinite; }
 @keyframes mzMiniQui { from { border-color: ${P.giallo}; } to { border-color: ${P.legnoChiaro}; } }
-#mzMiniZoom { position: absolute; z-index: 13; display: flex; flex-direction: column; gap: 6px; }
+#mzMiniZoom { position: absolute; right: 168px; bottom: calc(env(safe-area-inset-bottom, 0px) + 171px); z-index: 13; display: flex; flex-direction: column; gap: 6px; }
 #mzMiniZoom button { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; border-radius: 50%; ${BTN} }
 #mzMiniZoom button:disabled { opacity: .4; cursor: default; }
 #mzMiniZoom button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
-#mzMiniZoom.lato { right: 168px; bottom: calc(env(safe-area-inset-bottom, 0px) + 171px); } /* A: accanto al cerchio, verso il centro */
-#mzMiniZoom.sopra { right: 6px; width: 160px; bottom: calc(env(safe-area-inset-bottom, 0px) + 130px); flex-direction: row-reverse; justify-content: space-between; pointer-events: none; } /* B: sul cerchio, − a sinistra e + a destra */
-#mzMiniZoom.sopra button { pointer-events: auto; width: 32px; height: 32px; }
 @media (max-width: 699px) {
   #mzMini { width: 92px; height: 92px; bottom: auto; top: calc(max(8px, env(safe-area-inset-top)) + 58px); }
-  #mzMiniZoom.lato { right: 110px; bottom: auto; top: calc(max(8px, env(safe-area-inset-top)) + 65px); }
-  #mzMiniZoom.sopra { right: 6px; width: 104px; bottom: auto; top: calc(max(8px, env(safe-area-inset-top)) + 122px); }
+  #mzMiniZoom { right: 110px; bottom: auto; top: calc(max(8px, env(safe-area-inset-top)) + 65px); }
 }
 #mzMappa { position: absolute; inset: 0; z-index: 30; display: none; flex-direction: column; align-items: stretch; gap: 8px; background: rgba(22,63,115,.9); padding: max(10px, env(safe-area-inset-top)) 12px max(10px, env(safe-area-inset-bottom)); box-sizing: border-box; }
 #mzMappa.on { display: flex; }
@@ -180,10 +146,9 @@ export const MAPPA_CSS = `
 #mzMappa .pie button:active { transform: translateY(2px); }
 #mzMappa .hd { flex: none; display: flex; align-items: center; justify-content: center; gap: 10px; color: ${P.sabbiaChiara}; font: bold 16px ui-monospace, Menlo, monospace; }
 #mzMappa .hd > button, #mzMappa .zoom button { min-width: 44px; min-height: 44px; padding: 0; display: grid; place-items: center; ${BTN} box-shadow: none; font: bold 18px ui-monospace, Menlo, monospace; }
-#mzMappa .zoom { display: flex; gap: 8px; }
+#mzMappa .zoom { position: absolute; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
 #mzMappa .zoom button:disabled { opacity: .4; cursor: default; }
-#mzMappa .fr .zoom { position: absolute; right: 10px; bottom: 10px; flex-direction: column; } /* A: in basso a destra nella mappa */
-#mzMappa .fr .zoom button { box-shadow: 0 3px 0 ${P.neroCaldo}; }
+#mzMappa .zoom button { box-shadow: 0 3px 0 ${P.neroCaldo}; }
 #mzMappa .q { font-size: 12px; font-weight: normal; color: ${P.pietraChiara}; }
 @media (max-width: 699px) { #mzMappa .q { display: none; } }
 #ui.mz-racing #mzMini, body.mz-sotto #mzMini, body.mz-casa #mzMini, #ui.mz-racing #mzMiniZoom, body.mz-sotto #mzMiniZoom, body.mz-casa #mzMiniZoom { visibility: hidden; } /* mz-casa: in casa e in giardino (#265) */
