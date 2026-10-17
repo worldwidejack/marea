@@ -83,7 +83,6 @@ body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-rig
 .mz-ar-attesa { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); padding: 8px 14px; background: rgba(46,30,20,.95); border: 2px solid ${P.arancio}; box-shadow: 0 3px 0 ${P.neroCaldo}; font-weight: bold; font-size: 15px; z-index: 17; display: none; pointer-events: none !important; text-align: center; max-width: calc(100% - 32px); }
 .mz-ar-attesa.on { display: block; }
 `;
-const ROUND = { ko: 'KO', tempo: 'TEMPO', pari: 'PARI' } as const;
 
 /** Icona di uno slot: l'arma (o l'arco) o la magia in mano in quella RunHero; null = slot vuoto. */
 function iconaSlot(rh: RunHero | null, px: number): Node | null {
@@ -157,6 +156,7 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
   for (const e of [menuBtn, menu, ask, fine]) stop(e);
   o.root.append(top, barra, menuBtn, menu, ask, big, att, fine);
   const stick = createMiraStick({ id: 'mzArenaMira', yaw: o.yaw, blocked: () => pausa || chiedi });
+  stop(stick.el); o.root.append(stick.el);
   const setPausa = (on: boolean) => { pausa = on; menu.classList.toggle('on', on); if (on) stick.cancel(); };
   const setChiedi = (on: boolean) => { chiedi = on; ask.classList.toggle('on', on); if (on) { setPausa(false); stick.cancel(); } };
   menuBtn.addEventListener('click', () => { if (!chiedi) setPausa(!pausa); });
@@ -258,4 +258,3 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
   };
 }
 const testoPremio = (p: { monete: number; tetto: boolean }) => (p.monete > 0 ? `+${p.monete} monete${p.tetto ? ' (tetto di oggi)' : ''}` : p.tetto ? 'Tetto di oggi raggiunto: niente monete' : 'Niente monete stavolta');
-export { ROUND };

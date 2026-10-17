@@ -68,6 +68,7 @@ type Phase = 'loading' | 'play' | 'end' | 'over';
 export const arenaLink = { auto: false };
 const CUSCINETTO = 2 * SQ_TICKS, SVELTO = 4 * SQ_TICKS, RECUPERO = 30 * SQ_TICKS;
 const END_WAIT = 90; // tick di scritta finale prima della scheda
+const CAM_VERSO = 5;
 const bitsOf = (f: DungeonInput) => (f.a ? 1 : 0) | (f.b ? 2 : 0) | (f.c ? 4 : 0) | (f.d ? 8 : 0) | (f.e ? 16 : 0);
 const frameOf = (x: SqInput): DungeonInput => ({ mx: x[0] / 8, my: x[1] / 8, a: (x[2] & 1) !== 0, b: (x[2] & 2) !== 0, c: (x[2] & 4) !== 0, d: (x[2] & 8) !== 0, ...((x[2] & 16) !== 0 ? { e: true } : {}), ...(x[3] ? { m: x[3] } : {}) });
 
@@ -119,7 +120,7 @@ export function startArenaRun(ctx: RunCtx, o: { seed: number; eroi: [ArenaDuella
       mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: sc.floorY });
       tickAttori();
       ctx.renderer.setScene(sc.scene);
-      ctx.renderer.diorama.setZoom(ctx.canvas.clientHeight > ctx.canvas.clientWidth * 1.2 ? 1.45 : 1.15); // un po' più larghi che nei dungeon: l'avversario si deve vedere
+      ctx.renderer.diorama.setZoom(ctx.canvas.clientHeight > ctx.canvas.clientWidth * 1.2 ? 1.9 : 1.3); // più larghi che nei dungeon: l'avversario si deve vedere
       ctx.renderer.diorama.follow(v.hero.x, sc.floorY + 0.9, v.hero.z); ctx.renderer.diorama.snap?.();
       if (rete) rete.manda({ t: 'carico' });
       phase = 'play';
@@ -280,6 +281,7 @@ export function startArenaRun(ctx: RunCtx, o: { seed: number; eroi: [ArenaDuella
       if (rete) stepRete(f);
       else if (!ahud.paused) tickSolo(f);
       if ((phase as Phase) === 'over') return;
+      if (d.fase === 'finita' && phase === 'play') toEnd(); // anche la resa (un'azione: il suo evento non passa da stepDuello)
       tickAttori();
       // conto alla rovescia: il numero grande (cambia una volta al secondo)
       const conta = d.fase === 'conta' ? view.secondi : -1;
@@ -291,8 +293,13 @@ export function startArenaRun(ctx: RunCtx, o: { seed: number; eroi: [ArenaDuella
     update(alpha, dt, t) {
       if (!sc || !me || !lei || !actors || !hud || !ahud || phase === 'over' || phase === 'loading') return;
       me.update(alpha, dt); lei.update(alpha, dt);
-      const p = me.avatar.object.position;
-      ctx.renderer.diorama.follow(p.x, sc.floorY + 0.9, p.z); ctx.renderer.diorama.update(dt);
+      const p = me.avatar.object.position, q = lei.avatar.object.position;
+      // la camera guarda un po' verso l'avversario (al massimo CAM_VERSO m): tutti e due in vista finché si è vicini
+      let ox = (q.x - p.x) * 0.35, oz = (q.z - p.z) * 0.35;
+      const ol = Math.sqrt(ox * ox + oz * oz);
+      if (ol > CAM_VERSO) { ox *= CAM_VERSO / ol; oz *= CAM_VERSO / ol; }
+      if (!lei.avatar.object.visible) { ox = 0; oz = 0; }
+      ctx.renderer.diorama.follow(p.x + ox, sc.floorY + 0.9, p.z + oz); ctx.renderer.diorama.update(dt);
       sc.update(p.x, p.z, t);
       actors.update(alpha, dt, t, { x: p.x, z: p.z });
       gfx?.update(t, { x: p.x, z: p.z }, view.dungeon);

@@ -13,7 +13,7 @@ import { buildArenaEroe, erroreLoadout, loadoutDi, pulisciLoadout, slotArma, slo
 import type { Possiede } from '@marea/sim/rpg/arena.ts';
 import { newHero } from '@marea/sim/rpg/hero.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
-import type { ArenaLoadout, ArenaSlot, HeroState } from '@marea/sim/rpg/types.ts';
+import type { ArenaLoadout, HeroState } from '@marea/sim/rpg/types.ts';
 import { parseArServer } from '@marea/protocol/arena.ts';
 import type { ArClientMsg, ArServerMsg, ArTurno } from '@marea/protocol/arena.ts';
 import type { Api } from '../net/api.ts';
@@ -63,7 +63,7 @@ const CSS = `
 .mz-col .err { color: ${P.rosso}; font-weight: bold; font-size: 13px; min-height: 18px; margin-top: 6px; }
 .mz-col .gioca { padding: 8px 12px 12px; border-top: 2px solid ${P.legnoChiaro}; }
 .mz-col .gioca .mz-btn { justify-content: center; margin-top: 6px; min-height: 50px; }
-.mz-col .gioca .mz-btn.coda { background: ${P.giallo}; }
+.mz-col .gioca .mz-btn.coda:not(:disabled) { background: ${P.giallo}; }
 .mz-col .gioca .due { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .mz-col .attesa { text-align: center; font-weight: bold; font-size: 15px; color: ${P.giallo}; min-height: 20px; }
 .mz-col .attesa .codice { display: block; font-size: 34px; letter-spacing: .25em; color: ${P.sabbiaChiara}; margin: 4px 0; }
@@ -71,6 +71,9 @@ const CSS = `
 .mz-col .codiceIn input { flex: 1; min-width: 0; min-height: 48px; padding: 0 10px; background: ${P.neroCaldo}; color: ${P.sabbiaChiara}; border: 2px solid ${P.legnoChiaro}; font: bold 22px ui-monospace, Menlo, monospace; letter-spacing: .2em; text-transform: uppercase; }
 .mz-col .codiceIn .mz-btn { width: auto; margin-top: 0; }
 `;
+
+/** L'avversario dell'allenamento: un look fisso (indici di avatar.json). */
+const GLADIATORE: Look = { pelle: 3, capelli: 2, coloreCapelli: 1, vestito: 2, cappello: 0 };
 
 type Voce = { id: string; nome: string; ico: () => Node; nota?: string };
 type Scelta = { tipo: 'corpo' } | { tipo: 'anello1' } | { tipo: 'anello2' } | { tipo: 'slot'; n: number } | { tipo: 'frecce'; n: number } | { tipo: 'pozione'; n: number };
@@ -145,7 +148,7 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
   }
 
   function disegna(): void {
-    const h = eroe(), a = c.getLot()?.arena, kids: Node[] = [];
+    const a = c.getLot()?.arena, kids: Node[] = [];
     const oggi = a && a.giorno === Math.floor(Date.now() / 86_400_000) ? a.preso : 0;
     kids.push(el('div', 'stat', online() ? `Vinte ${a?.vinte ?? 0} · perse ${a?.perse ?? 0} · pari ${a?.pari ?? 0} · premio di oggi ${oggi}/${ARENA.premio.tetto} monete` : 'Senza link personale: solo allenamento'));
     kids.push(el('div', 'stat', 'In Arena tutti hanno 100 di Vita, Magicka e Stamina; niente si consuma o si perde.'));
@@ -176,7 +179,6 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     const pz = el('div', 'riga d');
     set.pozioni.forEach((p, n) => pz.append(cella(p ? '' : 'vuota', p ? icoOgg(p) : null, p ? nomeOgg(p) : 'Nessuna', 'una a round', String(5 + n), { tipo: 'pozione', n })));
     kids.push(pz, listaPer((sc) => sc.tipo === 'pozione'), err);
-    void h;
     corpo.replaceChildren(...kids);
     disegnaGioca();
   }
@@ -306,16 +308,15 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     disegnaGioca();
   }
 
-  /** Allenamento: contro l'avversario automatico, un'altra copia del tuo set (o quello di partenza se il tuo non va). */
+  /** Allenamento: contro l'avversario automatico, con una copia del tuo set. */
   async function allena(): Promise<void> {
     if (sess || run) return;
     const why = await salva();
     if (why) { err.textContent = why; return; }
     const h = eroe(), mio = buildArenaEroe(h, pulisciLoadout(h, set, ha()));
-    const bot = newHero(); bot.inv = { ...bot.inv, spadone_ferro: 1, armatura_ferro: 1, arco_ferro: 1, frecce_ferro: 20, pozione_vita: 1 };
-    const botSet: ArenaLoadout = { corpo: 'armatura_ferro', slot: [{ arma: 'spadone_ferro' }, { arma: 'arco_ferro', frecce: 'frecce_ferro' }, { magia: 'fiammata' }, null], pozioni: ['pozione_vita', null] };
     chiudiPannello();
-    gioca2((Date.now() >>> 0) % 1_000_000, [{ nome: c.nome() || 'Tu', look: c.look(), eroe: mio }, { nome: 'Gladiatore', look: { pelle: 3, capelli: 2, coloreCapelli: 1, vestito: 2, cappello: 0 }, eroe: buildArenaEroe(bot, botSet) }], 0, null);
+    // il Gladiatore ha lo stesso set (un duello alla pari: si allena la mano, non l'equipaggiamento)
+    gioca2((Date.now() >>> 0) % 1_000_000, [{ nome: c.nome() || 'Tu', look: c.look(), eroe: mio }, { nome: 'Gladiatore', look: GLADIATORE, eroe: mio }], 0, null);
   }
 
   function gioca2(seed: number, eroi: [ArenaDuellante, ArenaDuellante], io: number, rete: ArenaRete | null): void {

@@ -105,7 +105,7 @@ export function createArena(o: { world: GameWorld; renderer: Renderer; loader: L
     },
     step(f) { col?.step(f); },
     update(alpha, dt, t) {
-      if (col?.active) { col.update(alpha, dt, t); return; }
+      if (col?.active) { btn.classList.remove('on'); col.update(alpha, dt, t); return; }
       btn.classList.toggle('on', near && !col?.aperto);
       if (spot && label) {
         const y = o.world.groundY(spot.x, spot.z) + 9.5;

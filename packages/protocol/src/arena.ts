@@ -14,8 +14,6 @@ import type { SqInput } from './squadra.ts';
 
 export { SQ_TICKS, SQ_TURNO_MS } from './squadra.ts';
 export type { SqInput } from './squadra.ts';
-/** Turni che il client tiene (un duello lungo: 5 round pieni ≈ 8 minuti): per il replay locale e i test. */
-export const AR_STORIA = 12_000;
 export type ArMembro = { id: string; nome: string };
 /** Un duellante: chi è, come si veste, e la fotografia del suo set (le RunHero degli slot e le pozioni). */
 export type ArEroe = ArMembro & { look: Look; eroe: ArenaEroe };

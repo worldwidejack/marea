@@ -62,7 +62,7 @@ const STYLE: Record<string, Stile> = {
   mausoleo: { floor: PAL.pietraChiara, wall: PAL.pietra, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.pietraChiara, PAL.abisso, 0.9], coperchio: PAL.ombraCalda },
   diga: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.acquaProfonda, PAL.ombraCalda, 1.25], coperchio: PAL.ombraCalda },
   // Arena (docs/ARENA.md): il colosseo, sabbia dell'arena e pietra chiara, tutto illuminato (niente nebbia), muretti bassi al posto delle grate
-  colosseo: { floor: PAL.sabbia, wall: PAL.pietraChiara, top: 0.05, lantern: PAL.giallo, hemi: [PAL.sabbiaChiara, PAL.ombraCalda, 1.7], coperchio: PAL.ombraCalda },
+  colosseo: { floor: PAL.sabbia, wall: PAL.pietraChiara, top: 0.05, lantern: PAL.sabbiaChiara, hemi: [PAL.sabbiaChiara, PAL.pietraScura, 2.1], coperchio: PAL.ombraCalda },
 };
 /** Finestra sull'eroe: raggio (m) e quota sotto cui non si taglia (sopra il muretto basso da 0,6 m). */
 const FIN = { raggio: 1.7, altezza: 0.68 } as const;
@@ -124,10 +124,10 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
       const [dx, dz] = side, pos = center(cx, cz).add(new THREE.Vector3(dx * T / 2, 0, dz * T / 2));
       torchMats.push(new THREE.Matrix4().compose(pos, new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(dx, dz)), new THREE.Vector3(1, 1, 1)));
       torchCells.push(i);
-      sorgenti.push({ x: pos.x - dx * 0.5, z: pos.z - dz * 0.5, c: PAL.arancio, ...LUCI.torcia });
+      sorgenti.push({ x: pos.x - dx * 0.5, z: pos.z - dz * 0.5, c: arena ? PAL.sabbiaChiara : PAL.arancio, ...LUCI.torcia });
     } else {
       braziers.push(center(cx, cz)); brazCells.push(i);
-      sorgenti.push({ x: (cx + 0.5) * T, z: (cz + 0.5) * T, c: PAL.arancio, ...LUCI.braciere });
+      sorgenti.push({ x: (cx + 0.5) * T, z: (cz + 0.5) * T, c: arena ? PAL.sabbiaChiara : PAL.arancio, ...LUCI.braciere });
     }
   }
   if (!arena) sorgenti.push({ x: map.exit.x, z: map.exit.z, c: PAL.giallo, ...LUCI.scala }); // nel colosseo la scala non c'è
@@ -200,7 +200,7 @@ export async function createDungeonScene(loader: Loader, id: string | DungeonDef
   const hemi = new THREE.HemisphereLight(st.hemi[0], st.hemi[1], st.hemi[2]);
   const amb = new THREE.AmbientLight(PAL.viola, 0.12);
   const dir = new THREE.DirectionalLight(PAL.sabbia, 0.55); dir.position.set(14, 30, 18); scene.add(dir, dir.target);
-  const lantern = new THREE.PointLight(st.lantern, 14, 9, 1.6); lantern.position.set(0, 2.4, 0);
+  const lantern = new THREE.PointLight(st.lantern, arena ? 5 : 14, 9, 1.6); lantern.position.set(0, 2.4, 0); // nel colosseo è giorno: la lanterna quasi non serve
   const altarLight = new THREE.PointLight(PAL.acquaBassa, 0, 10, 1.6);
   scene.add(hemi, amb, lantern, altarLight);
 

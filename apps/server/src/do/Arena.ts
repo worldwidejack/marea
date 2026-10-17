@@ -262,7 +262,7 @@ export class Arena extends DurableObject<Env> {
       return;
     }
     if (me.conn && me.conn !== c) { const old = me.conn; old.run = null; try { old.ws.close(1000, 'altra scheda'); } catch { /* chiusa */ } }
-    me.conn = c; me.staccato = 0; me.carico = true; me.coda = []; me.last = FERMO;
+    me.conn = c; me.staccato = 0; me.carico = true; me.coda = []; // `last` resta: il client riprende con lo stesso input (lo rimanda solo se cambia)
     c.run = r; c.dove = 'duello';
     console.log(`[marea] arena: ${me.m.nome} si ricollega al turno ${n} (server ${r.turni.length})`);
     this.send(c.ws, { t: 'ripresa', n: r.turni.length });
