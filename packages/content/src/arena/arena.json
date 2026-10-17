@@ -6,7 +6,7 @@
   "pozioni": 2,
   "premio": { "vinta": 30, "persa": 10, "tetto": 150 },
   "rete": { "staccatoSecondi": 20, "caricoSecondi": 20, "codice": 4 },
-  "isola": { "island": "arena", "ingresso": [21, 19] },
+  "isola": { "island": "arena", "ingresso": [17, 22] },
   "mappa": {
     "id": "colosseo", "nome": "Colosseo dell'Arena", "descr": "Arena del duello: chiusa e simmetrica, colonne e muretti per coprirsi", "stile": "colosseo", "tile": 2, "difficolta": 0,
     "rows": [
@@ -27,7 +27,7 @@
       "#####################"
     ],
     "legenda": { "C": { "colonna": true }, "m": { "grata": true }, "L": { "luce": true } },
-    "ingresso": { "island": "arena", "at": [21, 19] },
+    "ingresso": { "island": "arena", "at": [17, 22] },
     "spawn": [[3, 7, 1, 0], [17, 7, -1, 0]]
   }
 }

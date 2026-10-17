@@ -1,5 +1,6 @@
 // Vista per il client (DungeonView), risultato (RunResult) e hash dello stato riassunto a fine partita. Vista e risultato sono quelli
 // dell'eroe di turno (`s.cur`); insieme la vista ha anche i compagni.
+import { evocazioneNemica } from './pvp.ts';
 import type { RunResult } from '../rpg/types.ts';
 import { hashJson } from '../hash.ts';
 import type { CompagnoView, DungeonView, EnemyAnim, HeroAnim } from './types.ts';
@@ -71,7 +72,7 @@ export function viewOf(s: DungeonState): DungeonView {
     },
     nemici: s.enemies.map((e) => {
       const a = enemyAnim(e);
-      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0 || sanguinante(s, e), boss: !!e.def.boss, ...(paralizzato(s, e) ? { paralizzato: true, stordito: true } : {}), ...(rallentato(s, e) ? { lento: true } : {}), ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e), ...diga(s, e) };
+      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0 || sanguinante(s, e), boss: !!e.def.boss, ...(paralizzato(s, e) ? { paralizzato: true, stordito: true } : {}), ...(rallentato(s, e) ? { lento: true } : {}), ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e), ...diga(s, e), ...(evocazioneNemica(s, e) ? { avversario: true } : {}) };
     }),
     proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz, ...(p.mole ? { mole: p.mole } : {}), ...(p.elemento ? { el: p.elemento } : {}), ...(p.bomba ? { bomba: p.bomba, r: r2(p.raggio) } : {}) })),
     bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: parte(s, l).vuoto })),

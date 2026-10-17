@@ -33,7 +33,8 @@ const dataTex = (data: Uint8Array, w: number, h: number, f: THREE.PixelFormat) =
   return t;
 };
 
-export function createLuce(map: DMap, o: { isFloor(cx: number, cz: number): boolean; muro(cx: number, cz: number): boolean; sorgenti: Sorgente[] }): LuceDungeon {
+/** `tutto`: niente nebbia, si vede tutta la mappa (il colosseo dell'Arena: nel duello l'avversario si vede sempre). */
+export function createLuce(map: DMap, o: { isFloor(cx: number, cz: number): boolean; muro(cx: number, cz: number): boolean; sorgenti: Sorgente[]; tutto?: boolean }): LuceDungeon {
   const W = map.w, H = map.h, T = map.tile, N = W * H;
 
   // ---- luce cotta ----
@@ -84,6 +85,12 @@ export function createLuce(map: DMap, o: { isFloor(cx: number, cz: number): bool
     luce, nebbia,
     get viste() { return viste; },
     vista(hc) {
+      if (o.tutto) { // Arena: tutto in vista, una volta sola
+        if (!primo) return;
+        for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) { const i = cz * W + cx; if (o.isFloor(cx, cz) || o.muro(cx, cz)) { tgt[i] = 1; seen[i] = 1; viste++; } }
+        primo = false; cur.set(tgt); for (let i = 0; i < N; i++) dNebbia[i] = Math.round(cur[i]! * 255); nebbia.needsUpdate = true;
+        return;
+      }
       const hcx = hc % W, hcz = (hc - hcx) / W, hx = (hcx + 0.5) * T, hz = (hcz + 0.5) * T, R = Math.ceil(R_VISTA / T);
       for (let i = 0; i < N; i++) tgt[i] = seen[i] ? VISTO : 0;
       for (let cz = Math.max(0, hcz - R); cz <= Math.min(H - 1, hcz + R); cz++) for (let cx = Math.max(0, hcx - R); cx <= Math.min(W - 1, hcx + R); cx++) {

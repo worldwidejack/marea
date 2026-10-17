@@ -78,12 +78,13 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
   return errs;
 }
 
-const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia', 'tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'corse', 'adrenalina']);
+const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia', 'tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'corse', 'adrenalina', 'arena']);
 /** Decorazioni delle isole a tema (#68): segnaposto procedurali in apps/client/src/render/island_temi.ts. */
 export const PROP_TEMI = ['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
   'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello',
   'chiesa_templare', 'casa_rovina', 'tomba', 'croce_pietra', 'tenda', 'relitto_templare', 'scheletro',
   'funivia_valle', 'funivia_monte', 'guardiano', 'cartello_piste', 'piattaforma_lancio', 'porta_slalom', 'abete', // Isola dell'Adrenalina
+  'colosseo', 'stendardo', // Isola dell'Arena
   'arco_via', 'tribuna', 'gomme', 'kart_fermo', 'bandierina', // Isola delle Corse
   'strada', 'rotatoria', 'trofeo', 'statua_trofeo', 'torre_corse', 'garage_corse', 'bancarella', 'festone', 'lampione', 'palo_molo',
   'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia', 'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla',
