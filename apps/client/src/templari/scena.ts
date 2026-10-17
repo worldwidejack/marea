@@ -35,6 +35,8 @@ export type Scena = {
   setMuroRotto(rotto: boolean): void;
   /** L'eroe è nella cripta: luna, cielo e ambiente quasi spenti, restano la lanterna, le torce e l'altare. */
   setCripta(dentro: boolean): void;
+  /** Finestra sull'eroe accesa o spenta (la foto della chiesa dipinta, dipinto.ts, la spegne). */
+  setTaglia(on: boolean): void;
   stats(): { muri: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number; sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number };
   dispose(): void;
 };
@@ -488,7 +490,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   const hemi = new THREE.HemisphereLight(PAL.acquaProfonda, PAL.ombraCalda, 0.9);
   const amb = new THREE.AmbientLight(PAL.viola, 0.18);
   const luna = new THREE.DirectionalLight(PAL.pietraChiara, 0.75); luna.position.set(-30, 50, -20);
-  const lanterna = new THREE.PointLight(PAL.arancio, 7, 9, 1.5);
+  const lanterna = new THREE.PointLight(PAL.arancio, 7, 9, 1.5); lanterna.name = 'lanterna';
   const candele = new THREE.PointLight(PAL.giallo, 7, 9, 1.6); candele.position.set(a.altare.x - 1.6, 3.2, a.altare.z);
   // bracieri: al centro della rotonda e all'arco del presbiterio (celle 'b' della mappa; uno sulla spiaggia, il falò dei pirati)
   const bracieri = a.bracieri;
@@ -570,6 +572,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
     },
     setPorte(aperte) { for (const [id, l] of porte) for (const o of l) o.visible = !aperte[id]; },
     setCalice(v) { caliceAlt.visible = v; },
+    setTaglia(on) { fin.setTaglia(on); },
     setMuroRotto(r) { if (nCrepa < 0) return; muro.setMatrixAt(nCrepa, r ? ZERO : mCrepa); muro.instanceMatrix.needsUpdate = true; },
     setCripta(d) {
       if (d === criptaOra) return;

@@ -3,7 +3,7 @@
 // zombie escono dal sagrato, strappano le assi ed entrano; col pilota si superano ondate e si fanno punti; draw call nel budget con gli
 // zombie in scena; AZIONE compare vicino a una finestra rotta; la pausa ferma la partita, ESCI → scheda dell'esito («senza link niente
 // premio») → di nuovo nel mondo. PC 1280×720: Esc apre la pausa, F posa la reliquia sull'altare (ondate dall'altare, non subito), la mira
-// A MANO resta salvata. Screenshot in tests/out/shots/m4_templari_*.png.
+// A MANO resta salvata. L’isola è dipinta (dipinto piccolo al telefono, ombre cotte). Screenshot in tests/out/shots/m4_templari_*.png.
 export const timeout = 330000;
 
 export default async function (ctx) {
@@ -498,5 +498,22 @@ export default async function (ctx) {
       assert(perf.drawCalls <= 100, `draw call ${nome} ${perf.drawCalls} > 100`);
     }
     ctx.noErrors(d, 'PC');
+  });
+
+  // ---------------- l'isola dipinta (TEMPLARI §3b) ----------------
+  // a parte e nella stanza di prova: coi test il dipinto è spento (su SwiftShader il suo shader rallenta le prove a tempo), qui lo si chiede
+  await p.close(); await d.close(); // due pagine di SwiftShader accese rallentano il caricamento del dipinto oltre il minuto
+  const dp = await ctx.open('?test=1&net=0&templari=banco&dipinto=1');
+  await ctx.test('telefono: l’isola è dipinta — dipinto piccolo caricato, ombre cotte per le luci ferme, cupo 1, draw call di prima', async () => {
+    await ctx.waitState(dp.page, (s) => s.templari?.dipinto?.caricato === true, 60000);
+    const d = (await ctx.getState(dp.page)).templari.dipinto;
+    assert(d.acceso && d.ombre && d.cupo === 1, `dipinto: ${JSON.stringify(d)}`);
+    assert(d.w === 2025 && d.h === 1535, `al telefono la profondità va a metà (2025×1535): ${d.w}×${d.h}`);
+    assert(d.luci >= 8, `luci con l'ombra: ${d.luci}`);
+    await dp.page.waitForTimeout(1500);
+    await ctx.shot(dp.page, 'dipinto');
+    const perf = await ctx.getPerf(dp.page);
+    assert(perf.drawCalls <= 100, `draw call ${perf.drawCalls} > 100`);
+    ctx.noErrors(dp, 'dipinto');
   });
 }
