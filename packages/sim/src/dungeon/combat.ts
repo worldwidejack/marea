@@ -12,6 +12,7 @@ import { spingi } from './vento.ts';
 import { scarica } from './custode.ts';
 import { barriera } from './unici.ts';
 import { chino, sbilancia, scudoSu } from './vaelen.ts';
+import { evocazioneNemica } from './pvp.ts';
 import { BOSS_RALLENTA, COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -70,7 +71,7 @@ export function dannoSu(e: Enemy, src: HitSrc): number {
 
 /** Applica un colpo dell'eroe (o di un alleato) a un nemico: danno, sanguinamento, spinta, aggro, morte. Ritorna il danno. */
 export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
-  if (e.st === 'morto' || e.alleato) return 0;
+  if (e.st === 'morto' || (e.alleato && !evocazioneNemica(s, e))) return 0; // in Arena anche le evocazioni avversarie
   // Archivio: l'Astrolabio con gli anelli-scudo ancora interi non prende danni
   if (e.def.astrolabio && schermato(s, e)) { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z) }); return 0; }
   // Fucina: il Mastro Forgiatore acceso non prende danni; lo scafandro del Golem-Palombaro para da davanti, da dietro (le valvole) fa di più

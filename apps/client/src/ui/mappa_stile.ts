@@ -39,7 +39,7 @@ const TIPO_COL: Record<Tipo, string> = { porto: P.rosso, servizio: P.rosso, isol
 /** Vince il Porto, poi le isole, il dungeon, i giochi e per ultimi i servizi del Porto (si vedono avvicinando lo zoom). */
 export const TIPO_ORDINE: Record<Tipo, number> = { porto: 0, isola: 1, dungeon: 2, gioco: 3, servizio: 4 };
 const SERVIZI = new Set(['casa', 'mercante', 'bacheca', 'contrabbando', 'record', 'faro']);
-const ISOLE = new Set(['templari', 'funivia', 'relitto_templare']);
+const ISOLE = new Set(['templari', 'funivia', 'relitto_templare', 'arena']);
 export function tipoDi(t: { id: string; group?: string }): Tipo {
   if (t.id === 'porto') return 'porto';
   if (t.group === 'dungeon') return 'dungeon';

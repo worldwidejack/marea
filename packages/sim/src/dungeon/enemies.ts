@@ -18,6 +18,7 @@ import type { EnemyDef } from '@marea/content/rpg.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { conEroe, ev, finita, inGioco, secToTicks } from './state.ts';
 import { hitEnemy, hitHero, kill, wake } from './combat.ts';
+import { colpisciEroe, eroiNemici, ostile } from './pvp.ts';
 import { bfs, cellCenter, cellOf, lineOfSight, moveCircle, stepDown } from './map.ts';
 import { geyserDa, rallenta } from './acque.ts';
 import { bombaDa, spingi } from './vento.ts';
@@ -407,38 +408,49 @@ function stepFoe(s: DungeonState, e: Enemy): void {
   }
 }
 
-/** Alleato: attacca il nemico ostile più vicino che vede, altrimenti segue l'eroe. Sparisce allo scadere. */
+/** Alleato: attacca il nemico ostile più vicino che vede, altrimenti segue l'eroe. Sparisce allo scadere. In Arena attacca anche l'eroe
+ *  avversario e le sue evocazioni (bersaglio -2 - indice dell'eroe). */
 function stepAlly(s: DungeonState, e: Enemy): void {
   const h = s.hero, def = e.def;
   if (s.tick >= e.scade) { e.st = 'morto'; ev(s, { t: 'morte', id: e.id, tipo: e.tipo }); return; }
   e.stT++;
-  let t = e.bersaglio >= 0 ? s.enemies.find((o) => o.id === e.bersaglio && o.st !== 'morto') : undefined;
-  if (!t) {
+  const eroeDi = (b: number): number => (b <= -2 && s.pvp ? -2 - b : -1);
+  let t = e.bersaglio >= 0 ? s.enemies.find((o) => o.id === e.bersaglio && ostile(s, o)) : undefined;
+  let tj = eroeDi(e.bersaglio);
+  if (tj >= 0 && s.eroi[tj]!.done) tj = -1;
+  if (!t && tj < 0) {
     let bd = Infinity;
     for (const o of s.enemies) {
-      if (o.alleato || o.st === 'morto' || alto(s, o)) continue; // chi vola alto non lo prende
+      if (!ostile(s, o) || alto(s, o)) continue; // chi vola alto non lo prende
       const ox = o.x - e.x, oz = o.z - e.z, od = ox * ox + oz * oz;
       if (od < bd && od <= def.vista * def.vista && lineOfSight(s.map, e.x, e.z, o.x, o.z)) { bd = od; t = o; }
     }
-    e.bersaglio = t ? t.id : -1;
+    for (const j of eroiNemici(s)) {
+      const o = s.eroi[j]!.hero, ox = o.x - e.x, oz = o.z - e.z, od = ox * ox + oz * oz;
+      if (od < bd && od <= def.vista * def.vista && lineOfSight(s.map, e.x, e.z, o.x, o.z)) { bd = od; t = undefined; tj = j; }
+    }
+    e.bersaglio = t ? t.id : tj >= 0 ? -2 - tj : -1;
   }
+  // il bersaglio come punto e raggio (un nemico, un'evocazione avversaria o l'eroe avversario)
+  const b = t ? { x: t.x, z: t.z, r: t.def.raggio } : tj >= 0 ? { x: s.eroi[tj]!.hero.x, z: s.eroi[tj]!.hero.z, r: s.eroi[tj]!.runHero.raggio } : null;
   const kv = velAlleato(s, e);
   if (e.st === 'prepara') {
     if (e.stT >= e.stDur) {
-      if (t && !alto(s, t)) {
-        const ox = t.x - e.x, oz = t.z - e.z;
-        const reach = def.portata + def.raggio + t.def.raggio + TOLLERANZA_NEMICO;
-        if (ox * ox + oz * oz <= reach * reach) hitEnemy(s, t, { danno: def.danno * (e.dannoM ?? 1) * potenza(s, e), traits: {}, magico: false, skill: null, caricato: false, dirX: e.fx, dirZ: e.fz, daAlleato: true, ox: e.x, oz: e.z });
+      if (b && !(t && alto(s, t))) {
+        const ox = b.x - e.x, oz = b.z - e.z;
+        const reach = def.portata + def.raggio + b.r + TOLLERANZA_NEMICO;
+        const src = { danno: def.danno * (e.dannoM ?? 1) * potenza(s, e), traits: {}, magico: false, skill: null, caricato: false, dirX: e.fx, dirZ: e.fz, daAlleato: true, ox: e.x, oz: e.z };
+        if (ox * ox + oz * oz <= reach * reach) { if (t) hitEnemy(s, t, src); else colpisciEroe(s, tj, src); }
       }
       setState(e, 'recupera', secToTicks(def.recupero / kv));
     }
     return;
   }
   if (e.st === 'recupera') { if (e.stT >= e.stDur) setState(e, 'insegue', 0); return; }
-  if (t) {
-    const ox = t.x - e.x, oz = t.z - e.z, od = Math.sqrt(ox * ox + oz * oz);
-    if (od <= def.portata + def.raggio + t.def.raggio) { e.fx = ox / od; e.fz = oz / od; setState(e, 'prepara', secToTicks(def.preparazione / kv)); return; }
-    moveToward(s, e, t.x, t.z, def.velocita * kv);
+  if (b) {
+    const ox = b.x - e.x, oz = b.z - e.z, od = Math.sqrt(ox * ox + oz * oz);
+    if (od <= def.portata + def.raggio + b.r) { if (od > 1e-6) { e.fx = ox / od; e.fz = oz / od; } setState(e, 'prepara', secToTicks(def.preparazione / kv)); return; }
+    moveToward(s, e, b.x, b.z, def.velocita * kv);
     return;
   }
   const hx = h.x - e.x, hz = h.z - e.z;

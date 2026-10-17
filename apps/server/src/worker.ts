@@ -21,6 +21,7 @@ export { Sfide } from './do/Sfide.ts';
 export { Spedizioni } from './do/Spedizioni.ts';
 export { GaraAmici } from './do/GaraAmici.ts';
 export { TemplariInsieme } from './do/TemplariInsieme.ts';
+export { Arena } from './do/Arena.ts';
 
 const MAX_BODY = 4096;
 /** Input log dei minigiochi da solo: una Regata da 120 s sta sotto i 100 KB (7.200 righe al massimo); le Consegne durano fino a
@@ -192,23 +193,18 @@ export default {
         target.searchParams.set('id', p.id); target.searchParams.set('nome', p.nome); target.searchParams.set('look', p.look); target.searchParams.set('dungeon', sq[1]!); target.searchParams.delete('t');
         return env.SPEDIZIONI.get(env.SPEDIZIONI.idFromName('spedizioni')).fetch(new Request(target.toString(), req));
       }
-      // Templari insieme (PROTOCOL §9): la sala alla porta della chiesa e la partita in tempo reale nel DO TemplariInsieme
-      if (path === '/ws/templari') {
+      // sale in tempo reale con un DO solo: Templari insieme (PROTOCOL §9, la porta della chiesa), corse tra amici (§8, gara a fantasmi),
+      // Arena (§10, coda veloce, sale con codice e duelli 1v1)
+      const sala = path === '/ws/templari' ? env.TEMPLARI_INSIEME.get(env.TEMPLARI_INSIEME.idFromName('templari'))
+        : path === '/ws/gara' ? env.GARA_AMICI.get(env.GARA_AMICI.idFromName('garaamici'))
+        : path === '/ws/arena' ? env.ARENA.get(env.ARENA.idFromName('arena')) : null;
+      if (sala) {
         if (req.headers.get('upgrade') !== 'websocket') return json({ error: 'Serve un WebSocket' }, 426);
         const p = await autentica(req, env);
         if (!p) return wsRifiuta('token', NO_TOKEN);
         const target = new URL(req.url);
         target.searchParams.set('id', p.id); target.searchParams.set('nome', p.nome); target.searchParams.set('look', p.look); target.searchParams.delete('t');
-        return env.TEMPLARI_INSIEME.get(env.TEMPLARI_INSIEME.idFromName('templari')).fetch(new Request(target.toString(), req));
-      }
-      // corse tra amici (PROTOCOL §8): una sala sola nel DO GaraAmici, gara a fantasmi in tempo reale
-      if (path === '/ws/gara') {
-        if (req.headers.get('upgrade') !== 'websocket') return json({ error: 'Serve un WebSocket' }, 426);
-        const p = await autentica(req, env);
-        if (!p) return wsRifiuta('token', NO_TOKEN);
-        const target = new URL(req.url);
-        target.searchParams.set('id', p.id); target.searchParams.set('nome', p.nome); target.searchParams.set('look', p.look); target.searchParams.delete('t');
-        return env.GARA_AMICI.get(env.GARA_AMICI.idFromName('garaamici')).fetch(new Request(target.toString(), req));
+        return sala.fetch(new Request(target.toString(), req));
       }
 
       // app installabile (PWA): il manifest porta dentro il link personale, così l'icona sul telefono entra come sé

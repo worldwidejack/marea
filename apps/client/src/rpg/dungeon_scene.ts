@@ -61,6 +61,8 @@ const STYLE: Record<string, Stile> = {
   fucina: { floor: PAL.roccia, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.arancio, hemi: [PAL.legno, PAL.neroCaldo, 1.3], coperchio: PAL.neroCaldo },
   mausoleo: { floor: PAL.pietraChiara, wall: PAL.pietra, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.pietraChiara, PAL.abisso, 0.9], coperchio: PAL.ombraCalda },
   diga: { floor: PAL.legno, wall: PAL.legnoScuro, top: 0.05, lantern: PAL.acquaBassa, hemi: [PAL.acquaProfonda, PAL.ombraCalda, 1.25], coperchio: PAL.ombraCalda },
+  // Arena (docs/ARENA.md): il colosseo, sabbia dell'arena e pietra chiara, tutto illuminato (niente nebbia), muretti bassi al posto delle grate
+  colosseo: { floor: PAL.sabbia, wall: PAL.pietraChiara, top: 0.05, lantern: PAL.sabbiaChiara, hemi: [PAL.sabbiaChiara, PAL.pietraScura, 2.1], coperchio: PAL.ombraCalda },
 };
 /** Finestra sull'eroe: raggio (m) e quota sotto cui non si taglia (sopra il muretto basso da 0,6 m). */
 const FIN = { raggio: 1.7, altezza: 0.68 } as const;
@@ -72,10 +74,12 @@ type Batch = { meshes: THREE.InstancedMesh[]; base: THREE.Matrix4[]; shown: bool
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 const tmp = new THREE.Matrix4(), sc = new THREE.Matrix4();
 
-export async function createDungeonScene(loader: Loader, id: string, camera: THREE.Camera): Promise<DungeonScene> {
-  const def = dungeonDef(id), map = parseDungeon(def), T = map.tile, W = map.w, H = map.h;
+/** `id`: un dungeon di dungeons.json, o direttamente la sua DungeonDef (il colosseo dell'Arena, che sta in arena.json). */
+export async function createDungeonScene(loader: Loader, id: string | DungeonDef, camera: THREE.Camera): Promise<DungeonScene> {
+  const def = typeof id === 'string' ? dungeonDef(id) : id, map = parseDungeon(def), T = map.tile, W = map.w, H = map.h;
+  const arena = def.stile === 'colosseo';
   const st = STYLE[def.stile] ?? STYLE['grotta']!;
-  const scene = new THREE.Scene(); scene.name = 'dungeon_' + id; scene.userData.near = 4; // render/scene.ts: piano vicino
+  const scene = new THREE.Scene(); scene.name = 'dungeon_' + def.id; scene.userData.near = 4; // render/scene.ts: piano vicino
   scene.background = new THREE.Color(PAL.neroCaldo);
   const group = new THREE.Group(); group.name = 'kit'; scene.add(group);
   const ch = (cx: number, cz: number): string => def.rows[cz]?.[cx] ?? ' ';
@@ -93,7 +97,7 @@ export async function createDungeonScene(loader: Loader, id: string, camera: THR
       floors.push(i);
       if (isCol(cx, cz)) cols.push(i);
       if (def.legenda[c]?.luce) lightsAt.push(i);
-      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && def.stile !== 'fucina' && def.stile !== 'mausoleo' && def.stile !== 'diga' && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
+      if (c === '.' && def.stile !== 'vuoto' && def.stile !== 'archivio' && def.stile !== 'fucina' && def.stile !== 'mausoleo' && def.stile !== 'diga' && !arena && cellHash(cx, cz, 7) < 0.035 && Math.abs(cx - map.exit.cx) + Math.abs(cz - map.exit.cz) > 3) bones.push(i);
     } else if (c === '#') {
       let touches = false;
       for (let dz = -1; dz <= 1 && !touches; dz++) for (let dx = -1; dx <= 1; dx++) if (isFloor(cx + dx, cz + dz)) { touches = true; break; }
@@ -120,17 +124,17 @@ export async function createDungeonScene(loader: Loader, id: string, camera: THR
       const [dx, dz] = side, pos = center(cx, cz).add(new THREE.Vector3(dx * T / 2, 0, dz * T / 2));
       torchMats.push(new THREE.Matrix4().compose(pos, new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(dx, dz)), new THREE.Vector3(1, 1, 1)));
       torchCells.push(i);
-      sorgenti.push({ x: pos.x - dx * 0.5, z: pos.z - dz * 0.5, c: PAL.arancio, ...LUCI.torcia });
+      sorgenti.push({ x: pos.x - dx * 0.5, z: pos.z - dz * 0.5, c: arena ? PAL.sabbiaChiara : PAL.arancio, ...LUCI.torcia });
     } else {
       braziers.push(center(cx, cz)); brazCells.push(i);
-      sorgenti.push({ x: (cx + 0.5) * T, z: (cz + 0.5) * T, c: PAL.arancio, ...LUCI.braciere });
+      sorgenti.push({ x: (cx + 0.5) * T, z: (cz + 0.5) * T, c: arena ? PAL.sabbiaChiara : PAL.arancio, ...LUCI.braciere });
     }
   }
-  sorgenti.push({ x: map.exit.x, z: map.exit.z, c: PAL.giallo, ...LUCI.scala });
+  if (!arena) sorgenti.push({ x: map.exit.x, z: map.exit.z, c: PAL.giallo, ...LUCI.scala }); // nel colosseo la scala non c'è
   for (const a of map.altari) sorgenti.push({ x: a.x, z: a.z, c: PAL.acquaBassa, ...LUCI.altare });
 
   // ---- luce cotta e nebbia, finestra sull'eroe ----
-  const luce = createLuce(map, { isFloor, muro: (cx, cz) => cx >= 0 && cz >= 0 && cx < W && cz < H && muro[cz * W + cx] === 1, sorgenti });
+  const luce = createLuce(map, { isFloor, muro: (cx, cz) => cx >= 0 && cz >= 0 && cx < W && cz < H && muro[cz * W + cx] === 1, sorgenti, tutto: arena });
   const fin: Finestra = createFinestra({ raggio: FIN.raggio, altezza: st.top + FIN.altezza, coperchio: st.coperchio, griglia: { luce: luce.luce, nebbia: luce.nebbia, w: W, h: H, tile: T, res: RES, buio: PAL.neroCaldo } });
 
   const makeBatch = (ps: Part[], cells: number[], base: THREE.Matrix4[], name: string, rit: Ritocco, show = true): Batch => {
@@ -171,7 +175,8 @@ export async function createDungeonScene(loader: Loader, id: string, camera: THR
   makeBatch(pBones ?? [boxPart(0.6, 0.12, 0.3, 0, PAL.pietraChiara)], bones, mats(bones, (i) => cellHash(i, 0, 9) * 4), 'ossa', TERRA);
   // Archivio: rastrelliere a grata, girate lungo il lato lungo della grata (orizzontale o verticale)
   const grate = map.grate, rotGrata = (i: number) => (map.grata[i - 1] || map.grata[i + 1] ? 0 : 1);
-  makeBatch(ak?.grata ?? [boxPart(T * 0.9, 2, 0.15, 0, PAL.roccia)], grate, mats(grate, rotGrata), 'grata', PIENO);
+  // Arena: le celle `grata` sono muretti bassi di pietra (si tira sopra, non si passa)
+  makeBatch(ak?.grata ?? (arena ? [boxPart(T, 0.9, T * 0.7, 0, PAL.pietra), boxPart(T, 0.12, T * 0.8, 0.9, PAL.pietraChiara)] : [boxPart(T * 0.9, 2, 0.15, 0, PAL.roccia)]), grate, mats(grate, rotGrata), 'grata', PIENO);
   // torce e bracieri: una volta visti restano accesi anche nel buio (sono i punti di riferimento)
   makeBatch(pTorch ?? [boxPart(0.2, 0.5, 0.2, 1.5, PAL.arancio, true)], torchCells, torchMats, 'torcia', ACCESO);
   makeBatch([boxPart(0.7, 0.55, 0.7, 0, PAL.roccia), boxPart(0.42, 0.3, 0.42, 0.55, PAL.arancio, true), boxPart(0.22, 0.25, 0.22, 0.85, PAL.giallo, true)],
@@ -181,7 +186,7 @@ export async function createDungeonScene(loader: Loader, id: string, camera: THR
   const exitCell = map.exit.cz * W + map.exit.cx;
   const sdx = Math.round((map.spawn.x - map.exit.x) / T), sdz = Math.round((map.spawn.z - map.exit.z) / T);
   const exitM = new THREE.Matrix4().compose(center(map.exit.cx, map.exit.cz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(-sdx, -sdz)), new THREE.Vector3(1, 1, 1));
-  makeBatch(pExit ?? [boxPart(1.4, 0.4, 1.8, 0, PAL.legno), boxPart(1.4, 0.4, 1.2, 0.4, PAL.legno), boxPart(1.4, 0.4, 0.6, 0.8, PAL.legnoChiaro)], [exitCell], [exitM], 'scala', SEMPRE);
+  if (!arena) makeBatch(pExit ?? [boxPart(1.4, 0.4, 1.8, 0, PAL.legno), boxPart(1.4, 0.4, 1.2, 0.4, PAL.legno), boxPart(1.4, 0.4, 0.6, 0.8, PAL.legnoChiaro)], [exitCell], [exitM], 'scala', SEMPRE);
 
   // ---- altari di salvataggio: piedistallo di pietra e cristallo (spento abisso; acceso, l'ultimo toccato, acqua bassa luminosa) ----
   // segnaposto fatto di box finché non c'è un modello dng_altare; si vedono sempre, come la scala: sono i punti sicuri del dungeon
@@ -195,7 +200,7 @@ export async function createDungeonScene(loader: Loader, id: string, camera: THR
   const hemi = new THREE.HemisphereLight(st.hemi[0], st.hemi[1], st.hemi[2]);
   const amb = new THREE.AmbientLight(PAL.viola, 0.12);
   const dir = new THREE.DirectionalLight(PAL.sabbia, 0.55); dir.position.set(14, 30, 18); scene.add(dir, dir.target);
-  const lantern = new THREE.PointLight(st.lantern, 14, 9, 1.6); lantern.position.set(0, 2.4, 0);
+  const lantern = new THREE.PointLight(st.lantern, arena ? 5 : 14, 9, 1.6); lantern.position.set(0, 2.4, 0); // nel colosseo è giorno: la lanterna quasi non serve
   const altarLight = new THREE.PointLight(PAL.acquaBassa, 0, 10, 1.6);
   scene.add(hemi, amb, lantern, altarLight);
 
