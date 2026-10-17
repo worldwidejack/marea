@@ -204,6 +204,8 @@ export type DungeonState = EroeRt & {
   onde: Onda[];
   /** Diga dei Disertori (diga.ts): i piloni dell'arena già fracassati (uguali per tutti, indice in map.piloni). Negli altri dungeon vuoti. */
   piloni: boolean[];
+  /** Arena PvP (pvp.ts, docs/ARENA.md): la squadra di ogni eroe; quelli di squadre diverse si colpiscono. Assente nei dungeon. Fuori dall'hash. */
+  pvp?: { squadre: number[] };
 };
 
 /** Accessori dei campi dell'eroe di turno (prototipo comune a tutti gli stati). */

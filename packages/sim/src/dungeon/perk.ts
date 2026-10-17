@@ -9,6 +9,7 @@ import { buff, hitEnemy } from './combat.ts';
 import { moveCircle } from './map.ts';
 import { alto, grigliaDi } from './muove.ts';
 import { fuocoAmico } from './fuoco.ts';
+import { compagno, ostile } from './pvp.ts';
 import { FRECCIA_Y } from './tuning.ts';
 
 /** Un attacco caricato a segno su `e`: tira i dadi di Taglio Critico (sanguina e rallenta) e Colpo fatale (paralizza). I boss non si
@@ -134,7 +135,7 @@ export function curaCompagni(s: DungeonState, vita: number): void {
   if (!R || !s.runHero.perk?.campo || vita <= 0 || s.eroi.length < 2) return;
   const h = s.hero, io = s.cur;
   for (const i of inGioco(s)) {
-    if (i === io) continue;
+    if (i === io || !compagno(s, i)) continue; // in Arena non l'avversario
     conEroe(s, i, () => {
       const c = s.hero, dx = c.x - h.x, dz = c.z - h.z;
       if (dx * dx + dz * dz <= R.raggio * R.raggio) c.vita = Math.min(s.runHero.max.vita, c.vita + vita);
@@ -151,7 +152,7 @@ export function effettiMagia(s: DungeonState, p: Pick<Proj, 'elemento' | 'raggio
   if (p.elemento === 'elettricita' && P.catena) {
     let best: Enemy | null = null, bd = B.catena.raggio * B.catena.raggio;
     for (const o of s.enemies) {
-      if (o === e || o.alleato || o.st === 'morto' || alto(s, o)) continue;
+      if (o === e || !ostile(s, o) || alto(s, o)) continue;
       const dx = o.x - e.x, dz = o.z - e.z, d2 = dx * dx + dz * dz;
       if (d2 < bd) { bd = d2; best = o; }
     }

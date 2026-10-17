@@ -191,7 +191,9 @@ export type DungeonView = {
      *  della salva davanti (`scudo`); la fase sta in `fase` (0 la Guardia del Passo, 1 l'Ultima Marea). */
     corsia?: [number, number, number]; fisso?: boolean; scudo?: boolean;
     /** Diga, la Guardia della Paratia: ha perso il portello (`rotto` resta solo mentre barcolla). */
-    senza?: boolean }[];
+    senza?: boolean;
+    /** Arena: evocazione dell'avversario di chi guarda (il client la tinge di rosso, non di viola). */
+    avversario?: boolean }[];
   proiettili: { id: number; tipo: 'freccia' | 'magia' | 'freccia_nemica' | 'magia_nemica' | 'acqua_nemica' | 'arpione_nemico' | 'vento_nemico' | 'lama' | 'lama_nemica' | 'palla_nemica'; x: number; y: number; z: number; vx: number; vz: number;
     /** Grandi Magie: la magia è più grande di questo fattore (assente = 1). */
     mole?: number;

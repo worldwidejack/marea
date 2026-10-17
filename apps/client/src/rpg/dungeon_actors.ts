@@ -114,7 +114,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
       body.add(m);
       if (n.model === 'nem_astrolabio') for (const g of giriAstrolabio()) { m.add(g); e.giri.push(g); } // anelli che girano (anche sul modello vero)
       e.mats = materialsOf(m);
-      if (n.alleato) for (const x of e.mats) { x.color.lerp(NEON, 0.6); x.transparent = true; x.opacity = 0.85; }
+      if (n.alleato) for (const x of e.mats) { x.color.lerp(n.avversario ? RED : NEON, 0.6); x.transparent = true; x.opacity = 0.85; } // Arena: quelle dell'avversario rosse
       e.base = e.mats.map((x) => x.emissive.clone());
       const box = new THREE.Box3().setFromObject(m); e.height = (box.max.y - box.min.y) * (n.boss ? 1.2 : 1) + 0.3;
       e.ready = true;
@@ -280,7 +280,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         if (n.spento !== e.spento) { e.spento = !!n.spento; for (const m of e.mats) if (/_brace$|emissiv/.test(m.name)) m.color.setScalar(e.spento ? 0.22 : 1); }
         e.mats.forEach((m, i) => {
           if (glowC) m.emissive.copy(glowC).multiplyScalar(glow); else m.emissive.copy(e.base[i]!);
-          if (n.alleato) m.emissive.lerp(NEON, 0.35);
+          if (n.alleato) m.emissive.lerp(n.avversario ? RED : NEON, 0.35);
           const op = (n.alleato ? 0.85 : 1) * fade * (n.attacco === 'scatto' && n.anim === 'prepara' ? 0.35 : 1); // nella nebbia sbiadisce
           if (op < 1 !== m.transparent) { m.transparent = op < 1; m.needsUpdate = true; }
           m.opacity = op;
@@ -300,7 +300,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
       for (const e of enemies.values()) {
         const n = e.v;
         if (!e.root.visible || n.anim === 'morto' || (n.vita >= n.max && !n.capo) || !e.ready) continue;
-        out.push({ id: e.id, pos: e.root.position.clone().setY(fy + e.height + e.alt), frac: n.vita / n.max, ally: n.alleato, boss: n.boss, capo: !!n.capo });
+        out.push({ id: e.id, pos: e.root.position.clone().setY(fy + e.height + e.alt), frac: n.vita / n.max, ally: n.alleato && !n.avversario, boss: n.boss, capo: !!n.capo });
       }
       return out;
     },

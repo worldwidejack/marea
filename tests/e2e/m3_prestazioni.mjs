@@ -18,6 +18,7 @@ const PUNTI = [
   ['borgo', [['goto', 'porto'], ['teleport', 239, 288]]], // Borgo Marea (#237, #247, #265): sull'anello, nel rione a sud-ovest della piazza
   ['adrenalina', [['temiProva', 'tutte'], ['goto', 'adrenalina']]], // Isola dell'Adrenalina (#189): la montagna, con Selvaggia e Ghiacci in vista
   ['adrenalina_chiusa', [['temiProva', null], ['temiVerso', 'adrenalina', 6]]],
+  ['arena', [['goto', 'arena']]], // Isola dell'Arena (#373): il colosseo, con Templari e Vulcano in vista
   ['templari', [['temiProva', 'tutte'], ['goto', 'templari']]], // aperta (chiusa è nella nebbia come il Giardino: la controlla m3_isole)
   ...['tempesta', 'ghiacci', 'vulcano', 'giardino'].flatMap((id) => [
     [id, [['temiProva', 'tutte'], ['goto', id]]],

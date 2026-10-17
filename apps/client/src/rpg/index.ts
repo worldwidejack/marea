@@ -2,3 +2,5 @@
 export { startRun, showResult } from './dungeon_run.ts';
 export { openHero, openBuilding, openContrabbando, closePanels, isPanelOpen } from './panels.ts';
 export type { RunCtx, PanelCtx, DungeonRun, BuildingKind } from './types.ts';
+export { createColosseo } from './arena_menu.ts';
+export type { Colosseo, ColosseoCtx } from './arena_menu.ts';
