@@ -73,7 +73,7 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 | Faro | +50 % produzione per 2 h dopo una vittoria (1 attivo) | 120/120 · 400/400 | 30 min · 3 h |
 | Tavolo delle Sfide | Wager max 50 → 150 → 400; sfide gratis/giorno 3 → 5 → 8 | 40/10 · 180/100 · 500/350 | 5 min · 1 h · 6 h |
 | Decorazioni (20, 8 esclusive) | Solo estetica, sulla sabbia/erba del lotto; si comprano dal Mercante delle Perle; sulla tua isola si spostano, si girano di 90° e si **rivendono a metà prezzo** (per difetto, `balance.json` `decor.rimborso` 0,5) | 5-45 Perle | istantanee |
-| Mobili della casa (#265, `mobili.json`: per ora 3) | In casa tua: si comprano al negozio dei mobili del Borgo, vanno nel magazzino, con ARREDA si posano davanti a te (a terra, si girano di 90°; o sul muro che guardi), si spostano e si rimettono via. Comodino con lampada 20, Stereo 30, Orologio a parete 15 | 15-30 Perle | istantanei |
+| Mobili della casa (#265, #384, `mobili.json`: tutto il catalogo) | In casa tua: si comprano al negozio dei mobili del Borgo, **ma solo quelli in vetrina**: ogni giorno (mezzanotte di Roma, uguale per tutti) il mobiliere espone 6 mobili a terra e fino a 3 a parete pescati a caso da tutto il catalogo (un mobile nuovo entra da solo nel pool). Vanno nel magazzino, con ARREDA si posano davanti a te (a terra, si girano di 90°; o sul muro che guardi), si spostano e si rimettono via | 15-180 Perle | istantanei |
 | Pavimenti e carte da parati (#265, `borgo.json`) | Quello di serie gratis; gli altri si comprano una volta al negozio dei mobili e si scelgono con ARREDA. Parquet 25, Stuoia di bambù 20, Lastre di pietra 30; Righe marine 20, Muro di pietra 25, Perline di legno 25 | 20-30 Perle | istantanei |
 
 **Regole**

@@ -3,24 +3,16 @@
 // Puro e deterministico: il banco di oggi dipende solo dal giorno (cambia a mezzanotte di Roma), così client e server lo calcolano uguale.
 import { RECIPES, RPG } from '@marea/content/rpg.ts';
 import { createRng } from '../rng.ts';
+import { giornoRoma } from '../economy/giorno.ts';
 import { hasItem, itemDef } from './items.ts';
 
-const HOUR = 3_600_000, DAY = 24 * HOUR;
 const C = RPG.contrabbando;
 
 export type CategoriaLosca = keyof typeof C.banco;
 export const CATEGORIE_LOSCHE: readonly CategoriaLosca[] = ['arma', 'armatura', 'materiale', 'ingrediente'];
 
-/** Ore avanti rispetto a UTC a Roma: 2 dall'ultima domenica di marzo all'ultima di ottobre (all'1:00 UTC), se no 1. */
-function oreRoma(ms: number): number {
-  const y = new Date(ms).getUTCFullYear();
-  const ultimaDomenica = (m: number): number => { const fine = new Date(Date.UTC(y, m + 1, 0)); return Date.UTC(y, m, fine.getUTCDate() - fine.getUTCDay(), 1); };
-  return ms >= ultimaDomenica(2) && ms < ultimaDomenica(9) ? 2 : 1;
-}
-/** Giorno del calendario italiano (cambia a mezzanotte di Roma). */
-export const giornoRoma = (ms: number): number => Math.floor((ms + oreRoma(ms) * HOUR) / DAY);
-/** Millisecondi alla prossima mezzanotte di Roma (merce nuova). */
-export const finoAMezzanotte = (ms: number): number => (giornoRoma(ms) + 1) * DAY - oreRoma(ms) * HOUR - ms;
+// il giorno di Roma sta in economy/giorno.ts (lo usa anche la vetrina dei mobili, che il client può importare); qui resta raggiungibile come prima
+export { finoAMezzanotte, giornoRoma } from '../economy/giorno.ts';
 
 /** Il banco di una categoria rimescolato per il giro `c` (un giro = tanti giorni quanti oggetti: in un giro esce tutto una volta). */
 function giro(cat: CategoriaLosca, c: number): string[] {

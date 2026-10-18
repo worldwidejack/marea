@@ -80,9 +80,9 @@ export type BorgoDef = {
 export type StanzaFinitura = { id: string; nome: string; motivo: string; colori: string[]; perle?: number };
 /** Un mobile della casa (#265, mobili.json): `posto` terra (celle del pavimento) o parete (una cella di muro), `forma` = render/mobili.ts (assente: scatola di ripiego).
  * `categoria` = una di MOBILI_CATEGORIE (catalogo del negozio); `celle` = ingombro a terra [larghezza, profondità] in celle (default [1,1], a parete sempre 1);
- * `altezza` (m) serve solo alla scatola di ripiego; `vetrina` = sta anche in mostra sulle pedane del negozio (max 3 a terra). Il modello 3D è `mob_<id>` in manifest_mobili.json.
+ * `altezza` (m) serve solo alla scatola di ripiego. Ogni mobile può finire nella vetrina del giorno (economy/vetrina.ts). Il modello 3D è `mob_<id>` in manifest_mobili.json.
  * Nome e descrizione del gioco: `nome` qui, descrizione in mobili_testi.json (caricata solo da negozio e ARREDA, non pesa sull'avvio). */
-export type MobileDef = { id: string; nome: string; categoria: string; perle: number; posto: 'terra' | 'parete'; forma?: string; colori: string[]; celle?: [number, number]; altezza?: number; vetrina?: boolean };
+export type MobileDef = { id: string; nome: string; categoria: string; perle: number; posto: 'terra' | 'parete'; forma?: string; colori: string[]; celle?: [number, number]; altezza?: number };
 /** `mercante`: esclusivo del Mercante delle Perle al Porto (#63): nell'editor si vede ma si compra solo da lui. */
 export type HatDef = { id: string; nome: string; perle: number; mercante?: boolean };
 export type DecorDef = { id: string; nome: string; perle: number; model: string; mercante?: boolean };
