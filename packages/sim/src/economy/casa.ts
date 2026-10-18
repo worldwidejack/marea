@@ -8,6 +8,7 @@ import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { advance } from './advance.ts';
 import { pay } from './actions.ts';
 import { inStanza } from './cells.ts';
+import { inVetrina } from './vetrina.ts';
 import { EconomyError, ZERO } from './types.ts';
 import type { LotState, PlacedBuilding } from './types.ts';
 
@@ -106,6 +107,12 @@ export function compraMobile(lot0: LotState, id: string, nowMs: number): LotStat
   const lot = pay(advance(lot0, nowMs), { ...ZERO, perle: m.perle }), c = casaDi(lot), mag = { ...(c.magazzino ?? {}) };
   mag[id] = (mag[id] ?? 0) + 1;
   return conCasa(lot, { ...c, magazzino: mag });
+}
+/** Compra un mobile della vetrina di oggi (#384): il negozio vende solo quello che espone, il resto torna un altro giorno. */
+export function compraMobileDelGiorno(lot0: LotState, id: string, nowMs: number): LotState {
+  if (!mobile(id)) throw new EconomyError('sconosciuto', 'Mobile sconosciuto');
+  if (!inVetrina(nowMs, id)) throw new EconomyError('requisito', 'Oggi non è in vendita: la vetrina cambia ogni giorno a mezzanotte');
+  return compraMobile(lot0, id, nowMs);
 }
 /** Compra un pavimento o una carta da parati (una volta sola) e lo mette subito. */
 export function compraFinitura(lot0: LotState, tipo: Finitura, id: string, nowMs: number): LotState {

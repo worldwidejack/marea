@@ -75,7 +75,6 @@ test('catalogo: id unici, categorie vere, 1-3 celle, un testo per ogni mobile e 
   const testi = JSON.parse(readFileSync(new URL('../../content/src/mobili_testi.json', import.meta.url), 'utf8')).testi as Record<string, string>;
   for (const m of veri) assert.ok(typeof testi[m.id] === 'string' && testi[m.id]!.length >= 20 && testi[m.id]!.length <= 200, `${m.id}: descrizione mancante o fuori misura (20-200 caratteri)`);
   for (const k of Object.keys(testi)) assert.ok(veri.some((m) => m.id === k), `mobili_testi.json: «${k}» non è un mobile`);
-  assert.ok(veri.filter((m) => m.vetrina && m.posto === 'terra').length <= 3);
 });
 
 test('validateContent: il catalogo (finti compresi) non produce errori sui mobili', () => {

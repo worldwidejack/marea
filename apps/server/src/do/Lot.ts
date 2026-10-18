@@ -26,7 +26,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
 import { build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
 import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
-import { compraFinitura, compraMobile, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
+import { compraFinitura, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
@@ -338,7 +338,7 @@ export class Lot extends DurableObject<Env> {
         return moveDecor(lot, id, cell, now);
       }
       // la casa arredabile (#265, economy/casa.ts): compra (negozio dei mobili), posa, sposta, gira, ritira; finiture; il baule
-      case 'casa_compra': return isId(body['id']) ? compraMobile(lot, body['id'], now) : json({ error: 'Mobile sconosciuto' }, 400);
+      case 'casa_compra': return isId(body['id']) ? compraMobileDelGiorno(lot, body['id'], now) : json({ error: 'Mobile sconosciuto' }, 400);
       case 'casa_finitura': case 'casa_scegli': {
         const tipo = body['tipo'], id = body['id'];
         if ((tipo !== 'pavimento' && tipo !== 'carta') || !isId(id)) return json({ error: 'Finitura non valida' }, 400);

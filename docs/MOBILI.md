@@ -28,7 +28,7 @@ Mai scrivere a mano `.glb` né `manifest_mobili.json`. Il segnaposto è una scat
 - `celle`: ingombro a terra `[larghezza, profondità]` in **celle da 2 m**, 1-3 per lato. Assente = `[1,1]`. A parete sempre 1×1 (non scriverlo). La stanza è 7×6 celle: un mobile da 3 celle è un evento.
 - `altezza`: metri, solo per la scatola-segnaposto (assente = 1). Mettila vera: aiuta a capire la scena prima del modello.
 - `colori`: 1-3 esadecimali **della palette** (ART_BIBLE §2; `#C98A4B` legno chiaro, `#8E5A2B` legno, `#5A3A1E` legno scuro, `#E8E1D6` pietra chiara, `#B9AFA3` pietra, `#7F7568` pietra scura, `#4A4340` roccia, `#23201F` nero caldo, `#E8433F` rosso, `#F2A33A` arancio, `#F5D547` giallo, `#8FC35B` erba, `#2C6B3F` bosco, `#3FB9C9` acqua, `#2478A8` acqua profonda, `#A64DFF` viola, `#F4E3C1` sabbia chiara, `#E2B97F` sabbia). Il primo è il corpo, il secondo il bordo/ripiano, il terzo l'accento.
-- `vetrina`: **non metterlo** (le pedane del negozio sono 3, già prese; tutti gli altri si trovano nel catalogo del banco).
+- `vetrina`: **non esiste più** (#384): non serve scegliere quali mobili stanno in mostra. Ogni mobile entra da solo nella vetrina del giorno (§7).
 - `forma`: **non metterlo** (è il vecchio disegno in codice dei primi 3 mobili).
 
 ## 3. La descrizione in `mobili_testi.json`
@@ -61,5 +61,16 @@ guardare le anteprime in `assets/export/preview` e il gioco con `?test=1` (ARRED
 ## 6. Come funziona (per chi deve toccare il codice)
 
 - Regole di posa: `packages/sim/src/economy/casa.ts` (`celleMobile`: le celle occupate, l'ancora è la cella d'angolo e l'ingombro va verso +x/+z, girando a quarti di giro). Server e client usano le stesse funzioni.
-- Vista in casa: `game/arredi_vista.ts` (un mobile con modello è una mesh a parte con texture atlas; gli altri, scatole fuse in una mesh sola). Anteprima e sagoma: `game/arreda.ts`. Negozio: `game/negozio.ts` (3 mobili in vetrina sulle pedane, tutto il resto nel **catalogo sul banco**, per categoria).
+- Vista in casa: `game/arredi_vista.ts` (un mobile con modello è una mesh a parte con texture atlas; gli altri, scatole fuse in una mesh sola). Anteprima e sagoma: `game/arreda.ts`. Negozio: `game/negozio.ts` (i mobili della vetrina del giorno sulle pedane e al muro; il banco del mobiliere dice cosa c'è oggi e quando cambia).
 - Caricamento modelli: `render/mobili_modelli.ts` (`manifest_mobili.json`, mai nel JS iniziale; budget ≤ 3 MB, `tools/build.mjs`).
+
+## 7. La vetrina del giorno (#384)
+
+Il negozio **vende solo quello che espone**. Ogni giorno (mezzanotte di Roma, `economy/giorno.ts`) la sim sceglie quali mobili mettere in mostra: `vetrinaDelGiorno(giorno)` in `packages/sim/src/economy/vetrina.ts`, uguale per tutti i giocatori, calcolata da client (cosa disegnare) e server (cosa si può comprare: `compraMobileDelGiorno`, errore 409 «Oggi non è in vendita»).
+
+- **Il pool è tutto `mobili.json`**: aggiungere un mobile (righe, testo, ricetta) basta, non c'è niente da registrare. Per ogni mobile il giorno e l'id danno un punteggio casuale (`createRng`); in vetrina vanno i migliori. Aggiungere un mobile cambia la vetrina di oggi solo se vince lui; gli altri restano dove sono.
+- **Quanti**: `"vetrina": { "terra": 6, "parete": 3 }` in testa a `mobili.json` (le pedane del negozio e i posti al muro dopo le carte da parati). Per esporne di più va ingrandito il negozio dentro (`borgo.json negozioDentro`, template `negozio` in `islands.json`).
+- **Mobili da più celle** (es. il tavolo da biliardo 2×1) possono uscire: sulla pedana stanno in piccolo, la scheda dice la misura vera.
+- **Con il modello 3D** (`mob_<id>` nel manifest) il negozio mostra quello, se no la forma o la scatola.
+- Pavimenti e carte da parati non cambiano: sono sempre in vendita.
+- Test: `packages/sim/test/vetrina.test.ts`; e2e `m3_negozio`.

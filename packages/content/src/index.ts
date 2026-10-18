@@ -64,6 +64,8 @@ export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;
 export const BORGO = borgo as unknown as BorgoDef; // Borgo Marea (#237): una casa per slot
 export const MOBILI = (mobili as unknown as { mobili: MobileDef[] }).mobili as readonly MobileDef[]; // Mobili della casa (#265)
+/** Quanti mobili espone il negozio ogni giorno: a terra (pedane) e a parete (muro). Il pool è tutto mobili.json (economy/vetrina.ts). */
+export const MOBILI_VETRINA = (mobili as unknown as { vetrina: { terra: number; parete: number } }).vetrina;
 /** Le categorie del catalogo del negozio dei mobili (ordine = ordine delle schede). Un mobile ha esattamente una di queste in `categoria`. */
 export const MOBILI_CATEGORIE = (mobili as unknown as { categorie: { id: string; nome: string }[] }).categorie as readonly { id: string; nome: string }[];
 export const SCACCHI = scacchi as unknown as ScacchiCfg;
@@ -143,9 +145,9 @@ function validateBorgo(): string[] {
     if (!/^[a-z][a-z0-9_]*$/.test(m.id) || !(Number.isInteger(m.perle) && m.perle > 0) || (m.posto !== 'terra' && m.posto !== 'parete') || !m.colori.length || !m.colori.every(hex)) errs.push(`mobili: ${m.id} non valido`);
     if (!MOBILI_CATEGORIE.some((c) => c.id === m.categoria)) errs.push(`mobili: ${m.id} ha una categoria sconosciuta (${m.categoria})`);
     if (m.celle && (m.celle.length !== 2 || !m.celle.every((n) => Number.isInteger(n) && n >= 1 && n <= 3) || (m.posto === 'parete' && (m.celle[0] !== 1 || m.celle[1] !== 1)))) errs.push(`mobili: ${m.id} ha un ingombro non valido (celle 1-3, a parete solo [1,1])`);
-    if (m.vetrina && m.celle && (m.celle[0] !== 1 || m.celle[1] !== 1)) errs.push(`mobili: ${m.id} è troppo grande per le pedane della vetrina (solo 1 cella)`);
     if (m.altezza !== undefined && !(m.altezza > 0 && m.altezza <= 3)) errs.push(`mobili: ${m.id} ha un'altezza non valida (0-3 m)`);
   }
-  if (MOBILI.filter((m) => m.vetrina && m.posto === 'terra').length > 3) errs.push('mobili: in vetrina a terra ce ne stanno al massimo 3 (le pedane del negozio)');
+  const vt = MOBILI_VETRINA;
+  if (!Number.isInteger(vt.terra) || !Number.isInteger(vt.parete) || vt.terra < 0 || vt.parete < 0 || vt.terra > 12 || vt.parete > 12) errs.push('mobili: la vetrina del giorno vuole posti interi (0-12) a terra e a parete');
   return errs;
 }
