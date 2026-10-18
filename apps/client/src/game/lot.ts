@@ -147,7 +147,8 @@ export function createLotView(o: LotViewOptions): LotView {
     const tok = ++d.tok;
     const { obj, name } = await makeObject(b);
     if (tok !== d.tok || disposed) return;
-    obj.rotation.y = obj.userData['baule'] ? ((casaDi(lot).bauleRot ?? 0) * Math.PI) / 2 : FACING + ((b.rot ?? 0) * Math.PI) / 2;
+    const curRot = lot?.buildings.find((x) => x.id === b.id)?.rot ?? b.rot ?? 0;
+    obj.rotation.y = obj.userData['baule'] ? ((casaDi(lot).bauleRot ?? 0) * Math.PI) / 2 : FACING + (curRot * Math.PI) / 2;
     d.holder.clear(); d.holder.add(obj); d.model = name;
     const bb = new THREE.Box3().setFromObject(obj);
     d.height = Number.isFinite(bb.max.y) ? Math.max(1, bb.max.y) : 2.2;
@@ -166,12 +167,17 @@ export function createLotView(o: LotViewOptions): LotView {
         d = { holder, key: '', model: '', height: 2.2, tok: 0, label: S.labels.add(() => { if (!ro) void collect(id); }) };
         drawn.set(b.id, d);
       }
-      const key = `${b.building}:${b.level}:${b.rot ?? 0}` + (b.building === 'forziere' && inStanza(b.cell) ? `:casa:${casaDi(lot).bauleRot ?? 0}` : '');
+      d.holder.visible = true;
+      const key = `${b.building}:${b.level}` + (b.building === 'forziere' && inStanza(b.cell) ? `:casa:${casaDi(lot).bauleRot ?? 0}` : '');
       const p = world(b.cell); d.holder.position.set(p.x, p.y, p.z); // il baule si sposta (#265)
       if (d.holder.children[0] && !d.holder.children[0].userData['baule']) d.holder.children[0].rotation.y = FACING + ((b.rot ?? 0) * Math.PI) / 2;
       if (d.key !== key) { d.key = key; void loadInto(d, b); }
     }
-    for (const [id, d] of drawn) if (!seen.has(id)) { group.remove(d.holder); d.label.remove(); drawn.delete(id); }
+    const stowedSet = new Set((lot.magazzinoEdifici ?? []).map((s) => s.id));
+    for (const [id, d] of drawn) if (!seen.has(id)) {
+      if (stowedSet.has(id)) { d.holder.visible = false; d.label.place(0, 0, false, false); }
+      else { group.remove(d.holder); d.label.remove(); drawn.delete(id); }
+    }
     const seenD = new Set<string>();
     for (const dc of lot.decor) {
       seenD.add(dc.id);
@@ -247,7 +253,8 @@ export function createLotView(o: LotViewOptions): LotView {
   }
 
   // ---- stato dal server ----
-  function setLot(l: LotState): void { lot = l; view = advance(l, Math.max(l.nowMs, now())); sync(); refreshUi(true); }
+  let setSeq = 0;
+  function setLot(l: LotState): void { setSeq++; poll = 0; lot = l; view = advance(l, Math.max(l.nowMs, now())); sync(); refreshUi(true); }
   function fail(e: unknown): string {
     const msg = e instanceof ApiError ? (e.manca ? `${e.message}: ${mancaText(e.manca)}` : e.message) : 'Qualcosa non va, riprova';
     lastError = msg;
@@ -256,10 +263,11 @@ export function createLotView(o: LotViewOptions): LotView {
   }
   function refresh(): Promise<void> {
     if (inflight) return inflight;
-    if (!o.api.enabled || (ro && !o.owner)) return Promise.resolve();
+    if (!o.api.enabled || (ro && !o.owner) || document.body.classList.contains('mz-edit-mode')) return Promise.resolve();
     poll = 0;
+    const seq = setSeq;
     inflight = o.api.lot(ro ? o.owner : undefined)
-      .then((l) => { refreshes++; if (!disposed) setLot(l); lastError = null; })
+      .then((l) => { refreshes++; if (!disposed && seq === setSeq && !document.body.classList.contains('mz-edit-mode') && (!lot || l.version >= lot.version)) setLot(l); lastError = null; })
       .catch((e: unknown) => { fail(e); })
       .finally(() => { inflight = null; });
     return inflight;

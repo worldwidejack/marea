@@ -27,7 +27,7 @@ const CSS = `
   user-select: none;
 }
 #mzModificaIsolaBtn.on { display: flex; }
-body.mz-edit-mode #compass, body.mz-edit-mode #mzCompass, body.mz-edit-mode #mzTouch, body.mz-edit-mode #mzBtnA, body.mz-edit-mode #mzBtnB, body.mz-edit-mode #mzMini, body.mz-edit-mode #mzTop, body.mz-edit-mode #mzBar, body.mz-edit-mode #mzWork, body.mz-edit-mode #mzGuida, body.mz-edit-mode #toast, body.mz-edit-mode .mz-label, body.mz-edit-mode .mz-cartello {
+body.mz-edit-mode #ui > :not(#mzModificaOverlay):not(#toast) {
   display: none !important;
 }
 #mzModificaOverlay {
@@ -69,12 +69,15 @@ body.mz-edit-mode #compass, body.mz-edit-mode #mzCompass, body.mz-edit-mode #mzT
   padding: 0 12px;
   border: 2px solid ${PAL.neroCaldo};
   box-shadow: 0 3px 0 ${PAL.neroCaldo};
-  font: bold 14px ui-monospace, Menlo, monospace;
+  font: bold 13px ui-monospace, Menlo, monospace;
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   user-select: none;
+  white-space: nowrap;
+  touch-action: manipulation;
 }
 .mz-mod-btn.riponi-tutto {
   background: ${PAL.legnoScuro};
@@ -89,44 +92,44 @@ body.mz-edit-mode #compass, body.mz-edit-mode #mzCompass, body.mz-edit-mode #mzT
   background: ${SAGOMA_OK};
   color: ${PAL.neroCaldo};
 }
-@media (max-width: 600px) {
-  #mzModificaTitle {
-    display: none;
-  }
-  .mz-mod-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .mz-mod-btn {
-    padding: 0 8px;
-    font-size: 13px;
-  }
+.mz-mod-btn.gira {
+  background: ${PAL.giallo};
+  color: ${PAL.neroCaldo};
+}
+.mz-mod-btn.riponi {
+  background: ${PAL.arancio};
+  color: ${PAL.neroCaldo};
 }
 #mzModificaSelBar {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 125px;
+  bottom: 112px;
   display: none;
   align-items: center;
-  gap: 10px;
-  background: rgba(31, 22, 16, 0.95);
+  gap: 8px;
+  background: rgba(31, 22, 16, 0.96);
   border: 2px solid ${PAL.giallo};
-  padding: 8px 14px;
+  padding: 6px 12px;
   box-shadow: 0 4px 0 ${PAL.neroCaldo};
   pointer-events: auto;
   z-index: 26;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
 }
 #mzModificaSelBar.on { display: flex; }
 #mzModificaSelNome {
   color: ${PAL.sabbiaChiara};
-  font: bold 14px ui-monospace, Menlo, monospace;
+  font: bold 13px ui-monospace, Menlo, monospace;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 54vw;
 }
 #mzModificaTray {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 115px;
+  height: 104px;
   background: rgba(25, 17, 12, 0.96);
   border-top: 3px solid ${PAL.legnoScuro};
   padding: 6px 10px max(6px, env(safe-area-inset-bottom));
@@ -139,9 +142,15 @@ body.mz-edit-mode #compass, body.mz-edit-mode #mzCompass, body.mz-edit-mode #mzT
 }
 #mzModificaTrayHeader {
   color: ${PAL.giallo};
-  font: bold 12px ui-monospace, Menlo, monospace;
+  font: bold 11px ui-monospace, Menlo, monospace;
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+#mzModificaTrayHint {
+  color: ${PAL.sabbia};
+  font-weight: normal;
+  font-size: 11px;
 }
 #mzModificaTrayCards {
   display: flex;
@@ -152,8 +161,8 @@ body.mz-edit-mode #compass, body.mz-edit-mode #mzCompass, body.mz-edit-mode #mzT
   padding-bottom: 2px;
 }
 .mz-tray-card {
-  min-width: 90px;
-  height: 70px;
+  min-width: 82px;
+  height: 62px;
   background: ${PAL.legnoScuro};
   border: 2px solid ${PAL.legnoChiaro};
   color: ${PAL.sabbiaChiara};
@@ -163,6 +172,7 @@ body.mz-edit-mode #compass, body.mz-edit-mode #mzCompass, body.mz-edit-mode #mzT
   justify-content: center;
   cursor: pointer;
   user-select: none;
+  touch-action: none;
   padding: 4px 6px;
   box-sizing: border-box;
   text-align: center;
@@ -173,6 +183,7 @@ body.mz-edit-mode #compass, body.mz-edit-mode #mzCompass, body.mz-edit-mode #mzT
 .mz-tray-card.selected {
   border-color: ${SAGOMA_OK};
   background: #473020;
+  box-shadow: 0 0 0 2px ${SAGOMA_OK};
 }
 .mz-tray-card .level {
   font-size: 11px;
@@ -180,11 +191,61 @@ body.mz-edit-mode #compass, body.mz-edit-mode #mzCompass, body.mz-edit-mode #mzT
 }
 .mz-tray-vuoto {
   color: ${PAL.sabbia};
-  font: italic 13px ui-monospace, Menlo, monospace;
+  font: italic 12px ui-monospace, Menlo, monospace;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+}
+@media (max-width: 600px) {
+  #mzModificaTitle {
+    display: none;
+  }
+  .mz-mod-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .mz-mod-btn {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  #mzModificaSelBar {
+    bottom: 106px;
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  #mzModificaTray {
+    height: 100px;
+  }
+}
+@media (max-height: 500px) {
+  #mzModificaTopBar {
+    top: max(4px, env(safe-area-inset-top));
+  }
+  #mzModificaTitle {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  .mz-mod-btn {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  #mzModificaTray {
+    height: 82px;
+    padding: 4px 10px max(4px, env(safe-area-inset-bottom));
+    gap: 2px;
+  }
+  .mz-tray-card {
+    height: 50px;
+    min-width: 78px;
+    font-size: 11px;
+  }
+  #mzModificaSelBar {
+    bottom: 86px;
+    padding: 4px 10px;
+  }
 }
 `;
 
@@ -195,13 +256,13 @@ export type ModificaUiCallbacks = {
   onSalva: () => void;
   onGira: () => void;
   onRiponi: () => void;
-  onSelectTrayItem: (id: string) => void;
+  onSelectTrayItem: (id: string, e: PointerEvent) => void;
 };
 
 export type ModificaUi = {
   setButtonVisible(show: boolean): void;
   setOverlayVisible(show: boolean): void;
-  updateSelection(b: PlacedBuilding | null): void;
+  updateSelection(b: PlacedBuilding | null, stored?: StoredBuilding | null): void;
   updateTray(mag: readonly StoredBuilding[], selectedId: string | null): void;
   dispose(): void;
 };
@@ -265,7 +326,9 @@ export function createModificaIsolaUi(root: HTMLElement, cb: ModificaUiCallbacks
   tray.id = 'mzModificaTray';
   const trayHeader = el('div', '', '');
   trayHeader.id = 'mzModificaTrayHeader';
-  trayHeader.append(el('span', '', 'MAGAZZINO COSTRUZIONI'));
+  const trayHint = el('span', '', 'Tocca un edificio per spostarlo');
+  trayHint.id = 'mzModificaTrayHint';
+  trayHeader.append(el('span', '', 'MAGAZZINO COSTRUZIONI'), trayHint);
   const trayCards = el('div', '');
   trayCards.id = 'mzModificaTrayCards';
   tray.append(trayHeader, trayCards);
@@ -279,19 +342,30 @@ export function createModificaIsolaUi(root: HTMLElement, cb: ModificaUiCallbacks
       overlay.classList.toggle('on', show);
       document.body.classList.toggle('mz-edit-mode', show);
     },
-    updateSelection(b: PlacedBuilding | null) {
+    updateSelection(b: PlacedBuilding | null, stored: StoredBuilding | null = null) {
       if (b && b.building !== 'molo') {
         const def = buildingDef(b.building);
-        selNome.textContent = `${def.nome} (Liv. ${b.level})${b.rot ? ` · rot ${b.rot * 90}°` : ''}`;
+        selNome.textContent = `${def.nome} (Liv. ${b.level})${b.rot ? ` · ${b.rot * 90}°` : ''}`;
+        btnGira.style.display = '';
+        btnRiponi.style.display = '';
         selBar.classList.add('on');
+        trayHint.textContent = 'Trascina o tocca una cella libera';
+      } else if (stored) {
+        const def = buildingDef(stored.building);
+        selNome.textContent = `Piazza ${def.nome} (Liv. ${stored.level}) · tocca l'isola`;
+        btnGira.style.display = 'none';
+        btnRiponi.style.display = 'none';
+        selBar.classList.add('on');
+        trayHint.textContent = 'Tocca una cella sull’isola per piazzare';
       } else {
         selBar.classList.remove('on');
+        trayHint.textContent = 'Tocca un edificio per spostarlo';
       }
     },
     updateTray(mag: readonly StoredBuilding[], selectedId: string | null) {
       trayCards.replaceChildren();
       if (!mag.length) {
-        trayCards.appendChild(el('div', 'mz-tray-vuoto', 'Nessuna costruzione in magazzino.'));
+        trayCards.appendChild(el('div', 'mz-tray-vuoto', 'Magazzino vuoto — trascina qui un edificio per riporlo'));
         return;
       }
       for (const b of mag) {
@@ -304,7 +378,7 @@ export function createModificaIsolaUi(root: HTMLElement, cb: ModificaUiCallbacks
         );
         card.addEventListener('pointerdown', (e) => {
           e.stopPropagation();
-          cb.onSelectTrayItem(b.id);
+          cb.onSelectTrayItem(b.id, e);
         });
         trayCards.appendChild(card);
       }
