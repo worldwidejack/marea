@@ -69,6 +69,9 @@ export default async function (ctx) {
       const failStow = await post('/api/lot/building/stow', { id: segId });
       assert.equal(failStow.status, 409);
 
+      // Avanza l'orologio di test per completare il cantiere della segheria
+      await fetch(BASE + '/api/lot', { headers: { ...hdr('tokL'), 'x-test-now-offset': '120000' } });
+
       // Layout atomico: scambia posizione o imposta rotazione
       const layRes = await post('/api/lot/building/layout', {
         placed: [
@@ -116,25 +119,81 @@ export default async function (ctx) {
       ctx.noErrors(V.pg, 'pc');
     });
 
-    await ctx.test('Telefono 390×844: UI adatta a schermo mobile con bottoni comodi', async () => {
+    await ctx.test('Telefono verticale (390×844) e orizzontale (844×390): isola intera visibile, joystick nascosto e tocco fluido', async () => {
       const W = await open(ctx.B.IPHONE);
       await W.hook('portaRetro', 0, 'retro');
       await W.page.waitForTimeout(600);
 
+      // Prima di entrare in modifica, su touch il joystick e i bottoni A/B esistono
       await W.page.waitForSelector('#mzModificaIsolaBtn.on', { timeout: 10000 });
       await W.page.click('#mzModificaIsolaBtn');
       await ctx.waitState(W.page, (s) => s.modificaIsola && s.modificaIsola.active, 8000);
       await W.page.waitForTimeout(400);
 
-      // Screenshot da telefono
-      await ctx.shot(W.page, 'telefono');
+      // Verifica che joystick e pulsanti azione siano spariti in modalità modifica
+      const controlliVisibili = await W.page.evaluate(() => {
+        const ids = ['#joystick', '#btnA', '#btnB', '#compass', '#mzBar', '#mzTop', '#mzPlay'];
+        return ids.filter((sel) => {
+          const el = document.querySelector(sel);
+          return el && el.offsetParent !== null;
+        });
+      });
+      assert.equal(controlliVisibili.length, 0, 'Controlli ancora visibili in modifica: ' + JSON.stringify(controlliVisibili));
 
-      // Bottoni >= 44px
-      const piccoli = await W.page.evaluate(() => [...document.querySelectorAll('#mzModificaTopBar button, #mzModificaSelBar button')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 20), w: Math.round(r.width), h: Math.round(r.height), ok: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight }; }).filter((b) => b.h < 44 || !b.ok));
-      assert(!piccoli.length, 'bottoni piccoli o fuori: ' + JSON.stringify(piccoli));
+      // Verifica che tutti gli edifici dell'isola (incluso il molo a sud-ovest e la segheria) siano ben dentro lo schermo 390×844
+      const posVert = await W.page.evaluate(() => {
+        const st = window.__game.state();
+        return st.modificaIsola.buildings.map((b) => {
+          const p = window.__game.test.lotScreen(b.id);
+          return { id: b.id, building: b.building, x: Math.round(p?.x ?? -1), y: Math.round(p?.y ?? -1), on: !!p?.on };
+        });
+      });
+      for (const b of posVert) {
+        assert(b.on && b.x >= 12 && b.x <= 378 && b.y >= 54 && b.y <= 735, `Verticale: edificio ${b.building} fuori inquadratura: ${JSON.stringify(b)}`);
+      }
 
-      // Chiudi con annulla
-      await W.page.click('#mzModificaTopBar .mz-mod-btn.annulla');
+      // Tocca direttamente la segheria sullo schermo per selezionarla
+      const segPos = posVert.find((b) => b.building === 'segheria');
+      assert(segPos, 'Segheria presente su schermo verticale');
+      await W.page.mouse.click(segPos.x, segPos.y);
+      await ctx.waitState(W.page, (s, id) => s.modificaIsola?.selectedId === id, 5000, segPos.id);
+      await W.page.waitForSelector('#mzModificaSelBar.on', { timeout: 5000 });
+
+      await ctx.shot(W.page, 'telefono_verticale');
+
+      // Bottoni >= 44px in verticale
+      const piccoliV = await W.page.evaluate(() => [...document.querySelectorAll('#mzModificaTopBar button, #mzModificaSelBar button')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 20), w: Math.round(r.width), h: Math.round(r.height), ok: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight }; }).filter((b) => b.h < 44 || !b.ok));
+      assert(!piccoliV.length, 'bottoni piccoli o fuori in verticale: ' + JSON.stringify(piccoliV));
+
+      // Riponi la segheria nel magazzino col bottone RIPONI e verifica che compaia nel cassetto
+      await W.page.click('#mzModificaSelBar .mz-mod-btn.riponi');
+      await ctx.waitState(W.page, (s) => s.modificaIsola?.magazzinoCount === 1, 5000);
+
+      // Tocca la card nel magazzino e poi rimettila sull'isola
+      await W.page.click('.mz-tray-card');
+      await ctx.waitState(W.page, (s, id) => s.modificaIsola?.selectedFromMagazzino === id, 5000, segPos.id);
+      await W.page.mouse.click(segPos.x, segPos.y);
+      await ctx.waitState(W.page, (s, id) => s.modificaIsola?.magazzinoCount === 0 && s.modificaIsola?.selectedId === id, 5000, segPos.id);
+
+      // Ruota il telefono in orizzontale (844×390) e verifica che la telecamera si adatti subito inquadrando tutta l'isola
+      await W.page.setViewportSize({ width: 844, height: 390 });
+      await W.page.waitForTimeout(500);
+
+      const posOriz = await W.page.evaluate(() => {
+        const st = window.__game.state();
+        return st.modificaIsola.buildings.map((b) => {
+          const p = window.__game.test.lotScreen(b.id);
+          return { id: b.id, building: b.building, x: Math.round(p?.x ?? -1), y: Math.round(p?.y ?? -1), on: !!p?.on };
+        });
+      });
+      for (const b of posOriz) {
+        assert(b.on && b.x >= 16 && b.x <= 828 && b.y >= 46 && b.y <= 306, `Orizzontale: edificio ${b.building} fuori inquadratura: ${JSON.stringify(b)}`);
+      }
+
+      await ctx.shot(W.page, 'telefono_orizzontale');
+
+      // Salva da mobile e verifica che il layout resti stabile
+      await W.page.click('#mzModificaTopBar .mz-mod-btn.salva');
       await ctx.waitState(W.page, (s) => s.modificaIsola && !s.modificaIsola.active, 8000);
       ctx.noErrors(W.pg, 'telefono');
     });
