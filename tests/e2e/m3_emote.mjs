@@ -1,8 +1,7 @@
 // Emote da 4 a 8 + ruota rapida (#90). PC (1280×720, senza rete): G apre la ruota attorno al cursore, 8 spicchi che non coprono
 // l'avatar; 1-8 con la ruota aperta; G tenuto + mouse + rilascio; G premuto + clic; Esc chiude. Le emote nuove fanno un saltello/giro.
-// Telefono (390×844, senza rete): tocco breve su #mzEmoteBtn → riga di sempre (4) + «altre» → ruota a tocchi; tocco lungo → ruota,
-// trascina e rilascia sullo spicchio. Rete (wrangler, due browser): Bruno vede la emote nuova di Anna e il suo gesto.
-// Screenshot: ruota aperta sul PC e sul telefono.
+// Telefono (390×844, senza rete): dal #417 la faccina non è più nell'HUD, si controlla solo che non si veda. Rete (wrangler, due browser): Bruno vede la emote nuova di Anna e il suo gesto.
+// Screenshot: ruota aperta sul PC.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
@@ -106,63 +105,13 @@ export default async function (ctx) {
   await pc.close(); ctx._pages.splice(ctx._pages.indexOf(pc), 1);
 
   // ---------------- telefono ----------------
+  // #417: la faccina non è più nell'HUD (scelta del gruppo); la ruota resta da tastiera sul PC (sopra).
   const ph = await ctx.open('?test=1&net=0');
   await ctx.waitReady(ph.page, 30000);
   const T = ph.page;
-  const cdp = await T.context().newCDPSession(T);
-  const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
-  const btnC = () => T.$eval('#mzEmoteBtn', (b) => { const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-
-  await ctx.test('telefono: tocco breve → riga di 4 + «altre»; «altre» apre la ruota, tocco su «cuore»', async () => {
+  await ctx.test('telefono: niente faccina in vista (#417)', async () => {
     assert((await ctx.getState(T)).emotes.coarse === true, 'iPhone senza pointer: coarse');
-    await T.tap('#mzEmoteBtn');
-    await T.waitForSelector('#mzEmoteRow.on', { timeout: 2000 });
-    const picks = await T.$$eval('#mzEmoteRow.on .mz-emote-pick', (bs) => bs.map((b) => b.dataset.emote));
-    assert(picks.join() === 'saluto,esulta,ride,no', 'riga: ' + picks);
-    const more = await T.$eval('#mzEmoteRow.on .mz-emote-more', (b) => { const r = b.getBoundingClientRect(); return { r: r.right, w: r.width }; });
-    assert(more.w >= 44 && more.r <= 390, 'bottone «altre» ' + JSON.stringify(more));
-    await T.tap('#mzEmoteRow .mz-emote-more');
-    await ctx.waitState(T, (x) => x.emotes.wheel.open && !x.emotes.row, 2000);
-    const g = await geometry(T);
-    ctx.log('ruota telefono ' + JSON.stringify(g.wheel));
-    checkWheel(ctx, g, 'telefono');
-    await ctx.shot(T, 'ruota_390');
-    const c = await tileAt(T, 'cuore');
-    await T.touchscreen.tap(c.x, c.y);
-    await bubble(T, 'me', 'cuore');
-    await ctx.waitState(T, (x) => !x.emotes.wheel.open, 1000);
-    await ctx.shot(T, 'cuore_390');
-  });
-
-  await ctx.test('telefono: tocco lungo su #mzEmoteBtn → ruota; trascina su «applauso» e rilascia', async () => {
-    await ready(ctx, T);
-    const b = await btnC();
-    await touch('touchStart', b.x, b.y);
-    await ctx.waitState(T, (x) => x.emotes.wheel.open && x.emotes.wheel.held && x.emotes.wheel.via === 'tocco', 2000);
-    checkWheel(ctx, await geometry(T), 'tocco lungo');
-    await ctx.shot(T, 'ruota_tocco_lungo_390');
-    const a = await tileAt(T, 'applauso');
-    for (let i = 1; i <= 6; i++) await touch('touchMove', b.x + ((a.x - b.x) * i) / 6, b.y + ((a.y - b.y) * i) / 6);
-    await ctx.waitState(T, (x) => x.emotes.wheel.sel === 4, 2000);
-    await touch('touchEnd');
-    await bubble(T, 'me', 'applauso');
-    await ctx.waitState(T, (x) => !x.emotes.wheel.open, 1000);
-    await T.waitForTimeout(300);
-    assert(!(await ctx.getState(T)).emotes.row, 'il tocco lungo ha aperto anche la riga');
-  });
-
-  await ctx.test('telefono: tocco lungo senza trascinare → la ruota resta aperta; tocco fuori la chiude', async () => {
-    await ready(ctx, T);
-    const b = await btnC();
-    await touch('touchStart', b.x, b.y);
-    await ctx.waitState(T, (x) => x.emotes.wheel.open && x.emotes.wheel.held, 2000);
-    await touch('touchEnd');
-    await ctx.waitState(T, (x) => x.emotes.wheel.open && !x.emotes.wheel.held, 1000);
-    await T.waitForTimeout(300);
-    assert((await ctx.getState(T)).emotes.wheel.open && !(await ctx.getState(T)).emotes.row, 'ruota chiusa o riga aperta dopo il rilascio');
-    await T.touchscreen.tap(380, 600);
-    await ctx.waitState(T, (x) => !x.emotes.wheel.open, 1000);
-    assert((await ctx.getState(T)).emotes.last.id === 'applauso', 'il tocco fuori ha mandato una emote');
+    assert(await T.$('#mzEmoteBtn') && !(await T.isVisible('#mzEmoteBtn')), 'la faccina è ancora in vista');
     ctx.noErrors(ph, 'telefono');
   });
   await ph.close(); ctx._pages.splice(ctx._pages.indexOf(ph), 1);

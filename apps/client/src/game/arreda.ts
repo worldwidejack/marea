@@ -17,7 +17,7 @@ import { PAL, el } from '../ui/style.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { postoArredo } from './arredi_vista.ts';
 
-export type Arreda = { tick(a: boolean, b: boolean): boolean; update(): void };
+export type Arreda = { tick(a: boolean, b: boolean): boolean; update(): void; /** POSA o SPOSTA in corso: B serve (chiude). */ attivo(): boolean };
 type Modo = { kind: 'posa'; mobile: MobileDef; rot: number } | { kind: 'sposta'; id: string; mobile: MobileDef; rot: number } | { kind: 'baule' };
 type Vicino = { kind: 'mobile'; a: PlacedMobile; def: MobileDef } | { kind: 'baule' };
 
@@ -215,6 +215,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
   registerTestHook('arredaPosa', (id) => { const d = def(String(id)); if (!mia() || !d) return false; inizia({ kind: 'posa', mobile: d, rot: 0 }); return true; });
 
   return {
+    attivo: () => !!modo,
     tick(a, b) {
       const pa = a && !aWas, pb = b && !bWas; aWas = a; bWas = b;
       if (!mia()) { if (modo) fine(); if (aperto) chiudi(); vicino = null; return false; }

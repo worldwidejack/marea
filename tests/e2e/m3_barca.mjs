@@ -155,7 +155,8 @@ export default async function (ctx) {
     if (await mp.locator('#mzGuida [data-act="chiudi"]').isVisible().catch(() => false)) await mp.locator('#mzGuida [data-act="chiudi"]').click();
 
     await ctx.test('telefono: l’editor ha la sezione Barca (anteprima, scafo, vela, nome) dentro lo schermo', async () => {
-      await mp.locator('#mzEditorBtn').click();
+      await mp.locator('#mzAvatarBtn').click();
+      await mp.locator('#mzAvatarMenu [data-voce="aspetto"]').click();
       await ctx.waitState(mp, (s) => s.editor.open && s.editor.barca, 10000);
       await mp.locator('#mzEditor [data-panel="barca"]').scrollIntoViewIfNeeded();
       const box = await mp.locator('#mzEditor [data-panel="barca"]').boundingBox();

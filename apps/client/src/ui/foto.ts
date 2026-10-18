@@ -56,7 +56,7 @@ export function createFoto(o: Omit<FotoCtx, 'onClose'> & { hud: Hud;
     void load().then((u) => { if (o.puo()) u.open(); else btn.setOn(false); }).catch(() => { btn.setOn(false); });
   };
   const close = () => { ui?.close(); btn.setOn(false); };
-  const btn = topButton({ root: o.root, id: 'mzFotoBtn', order: 6, label: '', title: 'Foto (O)', onClick: () => (ui?.isOpen() ? close() : open()) });
+  const btn = topButton({ root: o.root, id: 'mzFotoBtn', order: 6, label: '', title: 'Foto (O)', nascosto: true, onClick: () => (ui?.isOpen() ? close() : open()) });
   btn.el.insertBefore(cameraIcon(28), btn.el.firstChild);
   registerStateProvider('foto', () => ({ caricata: !!ui, ...(ui ? ui.stato() : { aperta: false, anteprima: false, visibili: [] as string[] }) }));
   registerTestHook('foto', async (azione, ...n) => {

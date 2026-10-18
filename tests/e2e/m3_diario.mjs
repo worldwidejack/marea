@@ -106,11 +106,11 @@ export default async function (ctx) {
     await hook('animali', false); // gli avvistamenti li decide il test (gli animali veri ne segnerebbero da soli)
     const st = () => ctx.getState(page);
 
-    await ctx.test('telefono: bottone col libro con il numerino dei traguardi da riscuotere; J/tocco apre l\'album sui Pesci', async () => {
+    await ctx.test('telefono: il libro non è più in vista (#417), il numerino resta nello stato; J apre l\'album sui Pesci', async () => {
       const s = await st();
       assert(s.diario.badge >= 2, 'badge: ' + s.diario.badge);
-      assert(await page.locator('#mzDiarioBtn .mz-badge.on').count() === 1, 'numerino non visibile');
-      await page.locator('#mzDiarioBtn').click();
+      assert(!(await page.locator('#mzDiarioBtn').isVisible()), 'il bottone del libro è ancora in vista');
+      await page.keyboard.press('KeyJ');
       await ctx.waitState(page, (s) => s.diario.open && s.diario.ui && s.diario.ui.tab === 'pesci', 15000);
       const box = await page.locator('#mzDiario').boundingBox();
       assert(box && box.x >= 0 && box.x + box.width <= 390 && box.y >= 0 && box.y + box.height <= 844, 'il diario esce dal telefono: ' + JSON.stringify(box));

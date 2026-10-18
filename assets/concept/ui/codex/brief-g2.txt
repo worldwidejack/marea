@@ -1,0 +1,7 @@
+IL TUO GRUPPO: G2. Percorsi: assets/concept/ui/hud_3_nautico.png e assets/concept/ui/hud_4_brawl.png. Note: assets/concept/ui/codex/NOTE-g2.md.
+
+SCHERMATA 3 — «Diario di bordo nautico» (assets/concept/ui/hud_3_nautico.png)
+Linguaggio visivo nautico alla Zelda The Wind Waker / Sea of Thieves: pergamena chiara e legno chiaro levigato, ottone, corde e nodi come cornici, minimappa come una bussola d'ottone con la rosa dei venti, le monete come dobloni, carattere da carta nautica disegnato a mano ma leggibile, inchiostro blu scuro e rosso. Avventuroso e caldo, MAI marrone scuro e cupo come la UI vecchia.
+
+SCHERMATA 4 — «Arena colorata» (assets/concept/ui/hud_4_brawl.png)
+Linguaggio visivo delle UI da telefono alla Brawl Stars / Clash Royale: bottoni spessi e gommosi con contorno nero grosso e ombra solida sotto, colori saturi (blu elettrico, giallo, verde lime, rosa), carattere grassissimo con contorno nero, numeri che sembrano saltare fuori, icone 3D cartoon lucide, bottoni che sembrano da premere. Energico e giocoso.

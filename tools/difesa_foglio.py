@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """MAREA — foglio di confronto della Difesa (#358): immagini numerate con la didascalia sotto, in colonne, da guardare anche sul telefono.
 
-Uso:  python3 tools/difesa_foglio.py <out.jpg> [--colonne 2] [--larga 960] <immagine>=<didascalia> ...
+Uso:  python3 tools/difesa_foglio.py <out.jpg> [--colonne 2] [--larga 960] [--numero-sotto] <immagine>=<didascalia> ...
+      --numero-sotto mette il tondo col numero accanto alla didascalia invece che sull'immagine (quando l'angolo in alto a sinistra va visto, es. un HUD).
       il numero del riquadro è la posizione nell'elenco (1, 2, 3…); la didascalia può avere « · » per andare a capo.
 """
 import os
@@ -17,11 +18,13 @@ def font(px):
 
 
 def main(argv):
-    out, colonne, larga, voci = argv[0], 2, 960, []
+    out, colonne, larga, voci, sotto = argv[0], 2, 960, [], False
     i = 1
     while i < len(argv):
         if argv[i] == '--colonne':
             colonne = int(argv[i + 1]); i += 2; continue
+        if argv[i] == '--numero-sotto':
+            sotto = True; i += 1; continue
         if argv[i] == '--larga':
             larga = int(argv[i + 1]); i += 2; continue
         f, _, testo = argv[i].partition('=')
@@ -42,16 +45,18 @@ def main(argv):
         x = GAP + (n % colonne) * (larga + GAP)
         y = GAP + (n // colonne) * (alta + TESTO + GAP)
         foglio.paste(im, (x, y))
-        # numero grande in un tondo giallo in alto a sinistra
-        r = 44
-        d.ellipse((x + 12, y + 12, x + 12 + 2 * r, y + 12 + 2 * r), fill=(255, 214, 64), outline=(20, 20, 20), width=4)
+        # numero grande in un tondo giallo: in alto a sinistra sull'immagine, o accanto alla didascalia
+        r = 38 if sotto else 44
+        cx, cy = (x + 4, y + im.height + 8) if sotto else (x + 12, y + 12)
+        d.ellipse((cx, cy, cx + 2 * r, cy + 2 * r), fill=(255, 214, 64), outline=(20, 20, 20), width=4)
         num = str(n + 1)
         bw = d.textlength(num, font=fn)
-        d.text((x + 12 + r - bw / 2, y + 12 + r - 32), num, font=fn, fill=(20, 20, 20))
+        d.text((cx + r - bw / 2, cy + r - 32), num, font=fn, fill=(20, 20, 20))
+        tx = x + 4 + (2 * r + 14 if sotto else 0)
         righe_t = [t.strip() for t in testo.split(' · ')]
-        d.text((x + 4, y + im.height + 10), righe_t[0], font=ft, fill=(255, 255, 255))
+        d.text((tx, y + im.height + 10), righe_t[0], font=ft, fill=(255, 255, 255))
         if len(righe_t) > 1:
-            d.text((x + 4, y + im.height + 50), ' · '.join(righe_t[1:]), font=fs, fill=(200, 200, 210))
+            d.text((tx, y + im.height + 50), ' · '.join(righe_t[1:]), font=fs, fill=(200, 200, 210))
     foglio.save(out, quality=88)
     print(f'{out}: {W}×{H}, {len(imgs)} riquadri')
 

@@ -378,7 +378,7 @@ export function createEditor(o: EditorOpts): Editor {
   }
 
   // ---------- apri / chiudi ----------
-  const btn = topButton({ root, id: 'mzEditorBtn', order: 2, label: '', title: 'Il tuo avatar (C)', onClick: () => toggle() });
+  const btn = topButton({ root, id: 'mzEditorBtn', order: 2, label: '', title: 'Il tuo avatar (C)', nascosto: true, onClick: () => toggle() });
   btn.el.prepend(headIcon(24));
   function show(): void {
     if (open) return;

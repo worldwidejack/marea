@@ -37,6 +37,8 @@ import { createPorto } from './game/porto.ts';
 import { createPortoAmici } from './game/porto_amici.ts';
 import { createImpostazioni } from './ui/impostazioni.ts';
 import { createFoto } from './ui/foto.ts';
+import { createHudAllegro } from './ui/hud_allegro.ts';
+import type { HudAllegro } from './ui/hud_allegro.ts';
 import { createDiario } from './game/diario.ts';
 import { createTarghette } from './game/targhette.ts';
 import { diarioOf, titoloDi } from '@marea/sim/economy/diario.ts';
@@ -135,6 +137,19 @@ async function boot(): Promise<void> {
   const tpl = createTemplari({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot });
   /** Nel dungeon, nella chiesa dei Templari o nel duello dell'Arena: il mondo di superficie sta fermo e la sua interfaccia sparisce. */
   const sotto = () => ingressi.active || tpl.active || !!ar?.active;
+  /** La scritta sotto A (#417): il primo bottone di posto acceso, nell'ordine in cui main passa A ai moduli; se no, la barca. */
+  const AZIONI: readonly (readonly [string, string])[] = [['mzPortaBtn', 'Entra'], ['mzNegozioBtn', 'Entra'], ['mzPortoBtn', 'Guarda'], ['mzLibroBtn', 'Leggi'], ['mzAmiciBtn', 'Guarda'],
+    ['mzPlay', 'Gioca'], ['mzDngEntra', 'Entra'], ['mzTemplariEntra', 'Entra'], ['mzFunivia', 'Sali'], ['mzArenaEntra', 'Entra'], ['mzDifesaEntra', 'Entra']];
+  const VERBI: Record<string, string> = { PARLA: 'Parla', GIOCA: 'Gioca', FIRMA: 'Firma', ESCI: 'Esci', ENTRA: 'Entra', TORNA: 'Entra', VAI: 'Entra' };
+  const azioneA = (): string | null => {
+    for (const [id, base] of AZIONI) {
+      const b = document.getElementById(id);
+      if (!b?.classList.contains('on')) continue;
+      const parola = (b.textContent ?? '').trim().split(/[\s·]+/)[0]?.toUpperCase() ?? '';
+      return VERBI[parola] ?? base;
+    }
+    return world.mode === 'walk' && canBoard(world.avatar.state, world.boat.state, world.map) ? 'Sali' : null;
+  };
   // Porto (#63-#65): Mercante delle Perle, Bacheca delle missioni, Gente del Porto; i pannelli si scaricano alla prima apertura
   const porto = createPorto({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot });
   // nella sezione del Porto subito dopo la piazza: Mercante e Bacheca prima dei minigiochi
@@ -226,7 +241,8 @@ async function boot(): Promise<void> {
   registerTestHook('casaStato', (slot, patch) => { const lv = isole.find((i) => i.slot === Number(slot))?.view, s = lv?.state(); if (!lv || !s) return false; lv.set({ ...s, casa: { ...(s.casa ?? {}), ...(patch as object) } }); return true; });
   // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-8, G = ruota, #90). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
   const link = `${location.origin}/?t=${encodeURIComponent(FLAGS.token)}`; // per entrare come sé da un altro dispositivo (editor: COPIA / MANDA)
-  const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, barca: world, onSaved: () => hud.toast('Look salvato'), onNome: (n) => hud.toast(`Nome salvato: ${n}`), onBarca: () => hud.toast('Barca salvata'), onLot: refreshMyLot }) : null;
+  let allegro: HudAllegro | null = null; // HUD «Allegro» (#417): bottone AVATAR, bandierina delle mete, «X è online»; nasce dopo i bottoni dei moduli
+  const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => { world.setLook(l); allegro?.setLook(l); } }, barca: world, onSaved: () => hud.toast('Look salvato'), onNome: (n) => hud.toast(`Nome salvato: ${n}`), onBarca: () => hud.toast('Barca salvata'), onLot: refreshMyLot }) : null;
   // impostazioni (#53): camera, ciclo giorno/notte, meteo (#361), stampa, contorni; di serie (#59) ciclo, camera 22° e contorni, per chiunque (anche senza link)
   // la resa delle impostazioni (passata finale, acqua stampa, ciclo) si scarica solo se qualcosa è acceso: con tutto spento zero byte in più
   let aspetto: Aspetto | null = null, aspettoLoad: Promise<void> | null = null, voglio: Impostazioni | null = null;
@@ -347,6 +363,7 @@ async function boot(): Promise<void> {
     puo: () => !(regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy()),
     prima: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); libri.close(); diario.close(); mappa?.close(); impostazioni.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); },
   });
+  allegro = createHudAllegro({ root, net: world.net, loader, look: me?.look ?? null, nome: me?.nome ?? '' });
   const FERMO = { mx: 0, my: 0, a: false, b: false }; // in modalità foto l'avatar sta fermo (il mondo no)
   // Decorazioni libere (#108): vicino a una decorazione della tua isola, a piedi, A apre la sua scheda (in SPOSTA conferma)
   const mioLotto = lots.find((lv) => !lv.readonly) ?? null;
@@ -375,6 +392,12 @@ async function boot(): Promise<void> {
     regata.update(acc / DT, dt, t);
     { const ev = myLot()?.hero?.evocato ?? null; if (ev && !evocato && !evocatoCarico) { evocatoCarico = true; void import('./rpg/evocato.ts').then((mod) => { evocato = mod.createEvocato({ world, loader }); }).catch(() => { evocatoCarico = false; }); } try { evocato?.update(dt, t, ev, world.mode === 'walk' && !sotto() && !regata.active); } catch (e) { console.warn('[marea] evocato', e); evocato?.dispose(); evocato = null; } } // solo resa: se qualcosa va storto si spegne, il gioco continua
     emotes.update(dt); setTopbarHidden(regata.active || sotto());
+    { // #417: nel mondo B non serve (solo POSA/SPOSTA dell'arredamento); sotto A la scritta di cosa fa adesso
+      const nelMondo = !regata.active && !giochi.isBusy() && !sotto() && !adr.active && !document.body.classList.contains('mz-gp');
+      input.setB(!nelMondo || !!arreda?.attivo());
+      input.setAzione(nelMondo && !world.frozen ? azioneA() : null);
+      allegro?.update();
+    }
     giochi.update(t, acc / DT); if (!sotto()) { porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); amici.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); libri.update(world.mode === 'walk' ? world.avatar.state : world.boat.state); borgo.update(); arreda?.update(); modificaIsola?.update(dt); negozio?.update(dt); } guideStep = guida.current(); guida.update(t);
     if (!sotto()) temi.update(dt, t); // Isole a tema (#68)
     if (document.querySelector('#mzSheet.on')) { if (tavolo?.isOpen()) tavolo.close(); editor?.close(); feed?.close(); porto.close(); amici.close(); libri.close(); diario.close(); } // aperto un edificio: gli altri pannelli lasciano il posto

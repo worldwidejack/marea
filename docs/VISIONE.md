@@ -15,6 +15,7 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | Giorno/notte | **sì**, ma spegnibile | c'è già l'interruttore nelle Impostazioni (#54) |
 | Meteo | **da rifare**: niente nebbia globale fissa. **Nuvole che si muovono sulla mappa** e decidono il meteo del posto dove sono (piove sotto la nuvola, non ovunque) | uno stato solo per tutto il mondo, dall'orologio (`meteo.json`, GDD §3) |
 | Tutorial «Primi passi» | **fatto** (18 ott 2026): **facoltativo**, non parte da solo, lo accende chi lo vuole | si accende dalla riga «Guida Primi passi» delle Impostazioni; al primo ingresso solo un toast che lo dice (GDD §9, `ui/guida.ts`) |
+| HUD del mondo | **fatto** (19 ott 2026, #417): deciso col gruppo quali bottoni tenere, poi lo stile «Allegro» (alla Super Mario) | monete, campanella con «X è online», AVATAR col menù a tutto schermo, ingranaggio, viaggio rapido, minimappa con bandierina delle mete, A con la scritta dell'azione, B solo dove serve (`ui/stile_allegro.ts`, `ui/hud_allegro.ts`, GDD §3) |
 | Minimappa e mappa grande | **fatto** (16 ott 2026, #360): **nord sempre in alto**; **zoom a più scatti**; **icone degli spot**; le isole non sbloccate **non si vedono proprio** (niente nebbia sopra) | nord in alto, zoom a scatti, icone delle mete, isole chiuse invisibili (`ui/minimappa.ts`, GDD §3); tra due varianti Jack ha scelto (17 ott) icone col contorno nero, 3 scatti, bottoni accanto al cerchio |
 
 ## 2. Progressione, economia, isole personali (punti 35-55 della revisione)

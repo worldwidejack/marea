@@ -34,7 +34,7 @@ export function createEroe(o: PanelCtx): Eroe {
   let m: Chunk | null = null, loading: Promise<Chunk> | null = null;
   const load = (): Promise<Chunk> => (loading ??= import('../rpg/index.ts').then((x) => (m = x), (e: unknown) => { loading = null; o.hud.toast('Connessione lenta: riprova', 2500); throw e; }));
   const run = (f: (c: Chunk) => void): void => { if (m) f(m); else void load().then(f, () => {}); };
-  const btn = topButton({ root: o.root, id: 'mzHeroBtn', order: 4, label: '', title: 'Personaggio (I)', onClick: () => { if (btn.el.classList.contains('on')) e.close(); else e.open(); } });
+  const btn = topButton({ root: o.root, id: 'mzHeroBtn', order: 4, label: '', title: 'Personaggio (I)', nascosto: true, onClick: () => { if (btn.el.classList.contains('on')) e.close(); else e.open(); } });
   btn.el.insertBefore(shieldIcon(), btn.el.firstChild);
   const cv = btn.el.querySelector('canvas');
   if (cv) cv.style.width = cv.style.height = '24px';
