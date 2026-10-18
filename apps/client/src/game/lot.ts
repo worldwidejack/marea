@@ -503,6 +503,8 @@ export function createLotView(o: LotViewOptions): LotView {
   const onCancel = () => { down = null; };
   o.canvas?.addEventListener('pointerdown', onDown); o.canvas?.addEventListener('pointermove', onMove);
   addEventListener('pointerup', onUp); addEventListener('pointercancel', onCancel);
+  const onKey = (e: KeyboardEvent) => { if (e.code === 'Escape' && panel && S.owner === me) { e.preventDefault(); closePanel(); } };
+  addEventListener('keydown', onKey);
   const onVis = () => { if (!document.hidden) void refresh(); };
   document.addEventListener('visibilitychange', onVis);
 
@@ -601,6 +603,7 @@ export function createLotView(o: LotViewOptions): LotView {
       drawn.clear(); o.scene.remove(group);
       o.canvas?.removeEventListener('pointerdown', onDown); o.canvas?.removeEventListener('pointermove', onMove);
       removeEventListener('pointerup', onUp); removeEventListener('pointercancel', onCancel);
+      removeEventListener('keydown', onKey);
       document.removeEventListener('visibilitychange', onVis);
       if (!ro) { o.hud.setResources?.(null); o.hud.setWork?.(null); }
     },
