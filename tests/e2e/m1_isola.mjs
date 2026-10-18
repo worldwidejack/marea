@@ -209,9 +209,6 @@ export default async function (ctx) {
     await ctx.shot(page, 'ti_mancano');
 
     await ctx.test('sposta edificio (#382): tocco SPOSTA, sagoma, CONFERMA sposta l’edificio', async () => {
-      if (await page.$('#mzSheet button[data-act="chiudi"]')) await page.click('#mzSheet button[data-act="chiudi"]');
-      else await page.keyboard.press('Escape');
-      await ctx.waitState(page, (s) => !s.lot.panel, 5000);
       await hook('lotTap', seg.id);
       await ctx.waitState(page, (s) => s.lot.panel && s.lot.panel.kind === 'edificio', 5000);
       await page.click('#mzSheet button[data-act="sposta"]');
