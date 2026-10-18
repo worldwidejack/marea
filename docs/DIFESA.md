@@ -165,8 +165,12 @@ rilancia, si guarda la tabella).
 - I numeri stanno solo in `packages/content/src/difesa.json`: `profili.pvz` è l'originale (non si tocca: lo controllano i test
   «riproduce PvZ»), le nostre modifiche vanno in `profili.marea`. Dopo una modifica: `node tools/difesa_bilancio.mjs` e la tabella del §3.
 - La grafica è una **pelle** (`apps/client/src/difesa/skin.ts`): fondale con gli angoli del campo, atlas di sprite coi piedi e l'altezza in
-  caselle, nomi, colori della UI. Le pelli vere le fa `tools/difesa_sprite.py` dalle immagini di Codex e stanno in
-  `apps/client/public/assets/difesa/<id>/` (budget a parte nella build: `difesaAssetsMB`). Il movimento è animazione da codice.
+  caselle, nomi, colori della UI, suoni. Di serie **«L'orto»** (#379, stile 1 del foglio: cartoon a contorni spessi): carota, carota gelata,
+  zucca, peperoncino, cavolo, ravanello contro lumaca, lumaca con la ghianda, scarabeo col vasetto, cavalletta e la lumaca capobanda con la
+  bandierina; annaffiatoi a molla al posto dei tosaerba. **Animazione a fotogrammi** generati uno per uno da Codex (ogni fotogramma è una
+  modifica della posa base, poi stessa scala e allineamento: `tools/difesa_pelle.py` dal manifest `assets/concept/difesa/orto/manifest.json`),
+  19 suoni ElevenLabs. Le pelli stanno in `apps/client/public/assets/difesa/<id>/` (budget a parte nella build: `difesaAssetsMB`; l'orto
+  1,2 MB su 4). La pelle segnaposto da codice resta con `?stile=segnaposto`.
 - Test: `node --test packages/sim/test/difesa.test.ts` (sim) e `node tests/run.mjs m4_provadifesa` (banco).
 
 ## 6. L'isola della Difesa (18 ott 2026, #395)

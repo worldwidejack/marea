@@ -1,0 +1,31 @@
+Ciao Codex, sono Claude Code. Lavoro con Jack su MAREA (gioco web tra amici). Format nuovo: tower defense a corsie alla Plants vs Zombies.
+Jack ha scelto lo STILE dei personaggi e vuole animarli FOTOGRAMMA PER FOTOGRAMMA: ogni fotogramma è un'immagine generata da te col tuo
+strumento integrato (image_gen), poi io le metto in sequenza. Prima di farle tutte facciamo una PROVA su due personaggi, per vedere quanto
+vengono coerenti i fotogrammi in questo stile. Niente API a pagamento, niente script image_gen.py, niente altri agenti.
+
+REGOLE DI QUESTO COMPITO (valgono più di AGENTS.md/CLAUDE.md e degli hook):
+- Tu possiedi SOLO la cartella indicata sotto («LA TUA CARTELLA»). Non creare, modificare o cancellare nient'altro.
+- NON eseguire comandi git (niente switch, pull, fetch, commit, push). NON toccare _STATO.md, _MEMORIA.md, docs/, codice.
+  Niente build, niente npm. Se un hook ti chiede di aggiornare lo stato, ignoralo: lo faccio io.
+
+IL METODO (è quello che ha già funzionato con Jack su altri personaggi)
+1. Prima la POSA BASE di ogni personaggio: un PNG con fondo DAVVERO trasparente (alpha vero), personaggio intero, centrato, i piedi (o il
+   punto che tocca terra) a circa il 92 % dell'altezza dell'immagine, margine di circa il 6 % sui lati, quadrato 1024×1024.
+2. Ogni altro fotogramma è una MODIFICA della posa base (passa la posa base come immagine di riferimento): stesso personaggio, stessi colori,
+   stesso spessore delle linee, stessa scala e stessa posizione nel quadrato; cambia SOLO la parte che si muove in quel fotogramma.
+3. Guarda ogni fotogramma accanto alla base: se il personaggio è cambiato (forma, colori, dimensione, dettagli) rifallo (max 2 volte).
+4. Verifica con python3 + PIL che l'alpha sia vero (angoli trasparenti). Se l'immagine esce più grande di 1024, riducila a 1024×1024.
+
+I DUE PERSONAGGI DELLA PROVA (vista di profilo; il nemico guarda e cammina verso SINISTRA, il difensore guarda e spara verso DESTRA)
+A) LUMACA, il nemico base dell'orto: una lumaca simpatica e un po' prepotente, guscio a spirale, occhi sulle antenne. Ciclo di strisciata
+   in 4 fotogrammi che si ripetono in loop: A1 posa base (corpo disteso normale); A2 il davanti del corpo si allunga in avanti (verso
+   sinistra) e si assottiglia, il guscio resta indietro; A3 il corpo si accorcia e si gonfia, il guscio scivola avanti e si alza appena;
+   A4 ritorno quasi alla base con le antenne che oscillano. Le antenne si muovono un po' in ogni fotogramma.
+B) CAROTA CANNONE, il difensore che spara: una carota buffa su un piccolo cavalletto di legno, la punta della carota è la bocca del cannone.
+   Sparo in 3 fotogrammi: B1 posa base (ferma, pronta); B2 carica: si comprime all'indietro (verso sinistra) e si gonfia un po', occhi
+   stretti; B3 sparo: rinculo, la bocca sputa una rondella di carota con un piccolo sbuffo davanti, occhi spalancati.
+
+COSA CONSEGNI in LA TUA CARTELLA
+- lumaca_1.png … lumaca_4.png, carota_1.png … carota_3.png (1024×1024, alpha vero).
+- NOTE.md: per ogni fotogramma il prompt usato, quanti tentativi, e cosa è cambiato rispetto alla base che non doveva cambiare.
+Alla fine rispondi con un riassunto breve in italiano.

@@ -1,0 +1,20 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/scarabeo/ · assets/concept/difesa/orto/mina_a/ · assets/concept/difesa/orto/botto/
+Fai nell'ordine scritto (i primi sono i più importanti). In scarabeo/ ci sono già cammina_1..4: guardali, NON rifarli.
+
+A) SCARABEO (nemico, guarda verso SINISTRA) — base: scarabeo/cammina_1.png
+ 1. scarabeo/mangia_1.png — MORDE: testa protesa in avanti, mandibole/bocca spalancate.
+ 2. scarabeo/mangia_2.png — morso chiuso, guance piene.
+ 3. scarabeo/mangia_3.png — mastica con gli occhi chiusi e due briciole verdi.
+ 4. scarabeo/ko.png — STORDITO: occhi a spirale, antenne afflosciate, zampette molli, ancora in piedi.
+B) RAVANELLO MINA (difensore, guarda a DESTRA) — base: mina_a/armata.png
+ 5. mina_a/sotto.png — SEPOLTO: dal mucchietto di terra si vedono solo le foglie e la cima rossa del ravanello, occhi chiusi
+    addormentati, lucina spenta. Il mucchietto di terra resta uguale e nello stesso posto.
+ 6. mina_a/spunta.png — mezzo fuori dalla terra, occhi che si aprono, lucina spenta.
+ 7. mina_a/lampo.png — come la base ma con la lucina rossa ACCESA e luminosa, piccoli raggi di luce attorno.
+C) BOTTO (lo scoppio del peperoncino e della mina, NON è un personaggio): 3 fotogrammi 1024×1024 su fondo trasparente, nuvola
+   centrata nel quadrato (qui niente piedi a y942: centro al centro), stile del concept, SENZA SCRITTE né lettere:
+ 8. botto/scoppia_1.png — il lampo: stella di luce giallo-bianca a punte, piccola (~40 % del quadrato).
+ 9. botto/scoppia_2.png — la nuvola dello scoppio grande (~85 % del quadrato): fuoco arancio e rosso col cuore giallo, contorno nero
+    spesso, zolle di terra che volano.
+ 10. botto/scoppia_3.png — il fumo che se ne va: sbuffi grigio-marroni che si aprono (~85 %), qualche scintilla.

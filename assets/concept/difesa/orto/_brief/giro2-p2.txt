@@ -1,0 +1,22 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/lumaca/ · assets/concept/difesa/orto/lumaca_ghianda/ · assets/concept/difesa/orto/capobanda/
+Sono nemici: guardano e strisciano verso SINISTRA. In lumaca/ ci sono già i 4 fotogrammi della strisciata (cammina_1 = posa base,
+cammina_2/3/4): guardali, NON rifarli.
+
+A) LUMACA — base: lumaca/cammina_1.png
+ 1. lumaca/mangia_1.png — MORDE: la testa si allunga in avanti verso sinistra con la bocca spalancata (denti piccoli e buffi), il
+    guscio resta dov'è.
+ 2. lumaca/mangia_2.png — CHIUDE il morso: bocca chiusa che mastica, guance piene, occhi soddisfatti.
+ 3. lumaca/mangia_3.png — MASTICA: testa un po' indietro, bocca che rumina con due briciole verdi di foglia, occhi chiusi beati.
+ 4. lumaca/ko.png — STORDITA (sta per sparire): occhi a spirale, antenne afflosciate, lingua fuori, ancora dritta sul suo piede.
+B) LUMACA CON LA GHIANDA (nemico con l'armatura leggera). Ogni file è una modifica del file con lo STESSO NOME in lumaca/: aggiungi
+   SOLO il CAPPELLO DI GHIANDA del foglio assets/concept/difesa/orto/oggetti/foglio.png (riga 2, primo oggetto: cappello
+   marrone a scaglie col picciolo) calzato come un elmetto in cima al GUSCIO, sempre nella stessa posizione e misura rispetto al
+   guscio (abbastanza grande da leggersi bene, come la ghianda della lumaca del concept). La lumaca resta LILLA identica (non teal).
+ 5. lumaca_ghianda/cammina_1.png  6. cammina_2.png  7. cammina_3.png  8. cammina_4.png
+ 9. lumaca_ghianda/mangia_1.png  10. mangia_2.png  11. mangia_3.png
+C) LUMACA CAPOBANDA (arriva con le ondate enormi). Ogni file è una modifica del file con lo STESSO NOME in lumaca/: aggiungi SOLO una
+   bandierina rossa triangolare su un bastoncino di legno sottile piantato in cima al guscio, la bandierina sventola all'indietro
+   (verso DESTRA) e cambia un poco la piega a ogni fotogramma.
+ 12. capobanda/cammina_1.png  13. cammina_2.png  14. cammina_3.png  15. cammina_4.png
+ 16. capobanda/mangia_1.png  17. mangia_2.png  18. mangia_3.png  19. capobanda/ko.png (la bandierina floscia)
