@@ -2,16 +2,16 @@
 // si compra solo quello che è esposto; i mobili aggiunti al catalogo entrano da soli nel pool.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MOBILI, MOBILI_VETRINA } from '@marea/content';
-import type { MobileDef } from '@marea/content';
+import { BORGO, MOBILI, MOBILI_VETRINA } from '@marea/content';
+import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
-import { compraMobileDelGiorno } from '../src/economy/casa.ts';
+import { compraFinituraDelGiorno, compraMobileDelGiorno } from '../src/economy/casa.ts';
 import { lotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
 import { finoAMezzanotte, giornoRoma } from '../src/economy/giorno.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
-import { inVetrina, vetrinaDelGiorno, vetrinaOra } from '../src/economy/vetrina.ts';
+import { inVetrina, inVetrinaFinitura, vetrinaDelGiorno, vetrinaOra } from '../src/economy/vetrina.ts';
 
 const DAY = 86_400_000, HOUR = 3_600_000;
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
@@ -95,4 +95,46 @@ test('compraMobileDelGiorno: si compra solo quello esposto oggi; il resto è «r
   assert.equal((() => { try { compraMobileDelGiorno(lot, esposto, domani); return true; } catch { return false; } })(), inVetrina(domani, esposto));
   // senza Perle l'errore è quello solito
   assert.throws(() => compraMobileDelGiorno(ricco(0), esposto, T0), isErr('risorse'));
+});
+
+test('carte da parati e pavimenti: ogni giorno una scelta a pagamento, uguale per tutti, diversa da un giorno all’altro; i nuovi entrano da soli', () => {
+  const pagano = (l: readonly StanzaFinitura[]) => new Set(l.filter((f) => (f.perle ?? 0) > 0).map((f) => f.id));
+  const carte = pagano(BORGO.carte), pav = pagano(BORGO.pavimenti), visteC = new Set<string>(), visteP = new Set<string>();
+  let uguali = 0;
+  for (let g = 0; g < 90; g++) {
+    const v = vetrinaDelGiorno(giornoRoma(T0) + g), w = vetrinaDelGiorno(giornoRoma(T0) + g + 1);
+    assert.equal(v.carte.length, Math.min(MOBILI_VETRINA.carte, carte.size));
+    assert.equal(v.pavimenti.length, Math.min(MOBILI_VETRINA.pavimenti, pav.size));
+    assert.equal(new Set(v.carte).size, v.carte.length);
+    for (const id of v.carte) { assert.ok(carte.has(id), `${id} non è una carta a pagamento`); visteC.add(id); }
+    for (const id of v.pavimenti) { assert.ok(pav.has(id), `${id} non è un pavimento a pagamento`); visteP.add(id); }
+    if (JSON.stringify(v.carte) === JSON.stringify(w.carte) && JSON.stringify(v.pavimenti) === JSON.stringify(w.pavimenti)) uguali++;
+  }
+  assert.equal(uguali, 0, 'due giorni di fila con le stesse carte e gli stessi pavimenti');
+  assert.ok(visteC.size >= Math.min(carte.size, 20) && visteP.size >= Math.min(pav.size, 20), `in 90 giorni sono passate ${visteC.size} carte e ${visteP.size} pavimenti`);
+  // uno nuovo nel catalogo entra da solo nel pool
+  const NUOVA: StanzaFinitura = { id: 'carta_prova_vetrina', nome: 'Prova', motivo: 'righe', colori: ['#E8E1D6', '#B9AFA3', '#7F7568'], perle: 20 };
+  (BORGO.carte as StanzaFinitura[]).push(NUOVA);
+  try {
+    const uscita = Array.from({ length: 60 }, (_, g) => vetrinaDelGiorno(giornoRoma(T0) + g).carte).filter((c) => c.includes(NUOVA.id)).length;
+    assert.ok(uscita >= 1 && uscita <= 40, `la carta nuova è uscita ${uscita} volte in 60 giorni`);
+  } finally { (BORGO.carte as StanzaFinitura[]).pop(); }
+});
+
+test('compraFinituraDelGiorno: si compra solo la carta o il pavimento esposto oggi; quello che hai già è «unico»; l’id sconosciuto «sconosciuto»', () => {
+  const v = vetrinaOra(T0), lot = ricco(2000);
+  const carta = v.carte[0]!, pavimento = v.pavimenti[0]!;
+  const fuoriC = BORGO.carte.find((f) => (f.perle ?? 0) > 0 && !v.carte.includes(f.id))!, fuoriP = BORGO.pavimenti.find((f) => (f.perle ?? 0) > 0 && !v.pavimenti.includes(f.id))!;
+  let l1 = compraFinituraDelGiorno(lot, 'carta', carta, T0);
+  assert.equal(l1.casa?.carta, carta);
+  l1 = compraFinituraDelGiorno(l1, 'pavimento', pavimento, T0);
+  assert.equal(l1.casa?.pavimento, pavimento);
+  assert.equal(checkInvariant([l1]), null);
+  assert.throws(() => compraFinituraDelGiorno(lot, 'carta', fuoriC.id, T0), isErr('requisito'));
+  assert.throws(() => compraFinituraDelGiorno(lot, 'pavimento', fuoriP.id, T0), isErr('requisito'));
+  assert.throws(() => compraFinituraDelGiorno(l1, 'carta', carta, T0), isErr('unico'), 'già tua');
+  assert.throws(() => compraFinituraDelGiorno(lot, 'carta', BORGO.carte[0]!.id, T0), isErr('unico'), 'quella di serie è di tutti');
+  assert.throws(() => compraFinituraDelGiorno(lot, 'carta', 'inesistente', T0), isErr('sconosciuto'));
+  assert.ok(inVetrinaFinitura(T0, 'carta', carta) && !inVetrinaFinitura(T0, 'carta', fuoriC.id));
+  assert.throws(() => compraFinituraDelGiorno(ricco(0), 'carta', carta, T0), isErr('risorse'));
 });

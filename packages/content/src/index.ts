@@ -65,7 +65,7 @@ export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;
 export const BORGO = borgo as unknown as BorgoDef; // Borgo Marea (#237): una casa per slot
 export const MOBILI = (mobili as unknown as { mobili: MobileDef[] }).mobili as readonly MobileDef[]; // Mobili della casa (#265)
 /** Quanti mobili espone il negozio ogni giorno: a terra (pedane) e a parete (muro). Il pool è tutto mobili.json (economy/vetrina.ts). */
-export const MOBILI_VETRINA = (mobili as unknown as { vetrina: { terra: number; parete: number } }).vetrina;
+export const MOBILI_VETRINA = (mobili as unknown as { vetrina: { terra: number; parete: number; carte: number; pavimenti: number } }).vetrina;
 /** Le categorie del catalogo del negozio dei mobili (ordine = ordine delle schede). Un mobile ha esattamente una di queste in `categoria`. */
 export const MOBILI_CATEGORIE = (mobili as unknown as { categorie: { id: string; nome: string }[] }).categorie as readonly { id: string; nome: string }[];
 export const SCACCHI = scacchi as unknown as ScacchiCfg;
@@ -169,7 +169,9 @@ function validateBorgo(): string[] {
     if (m.celle && (m.celle.length !== 2 || !m.celle.every((n) => Number.isInteger(n) && n >= 1 && n <= 3) || (m.posto === 'parete' && (m.celle[0] !== 1 || m.celle[1] !== 1)))) errs.push(`mobili: ${m.id} ha un ingombro non valido (celle 1-3, a parete solo [1,1])`);
     if (m.altezza !== undefined && !(m.altezza > 0 && m.altezza <= 3)) errs.push(`mobili: ${m.id} ha un'altezza non valida (0-3 m)`);
   }
-  const vt = MOBILI_VETRINA;
-  if (!Number.isInteger(vt.terra) || !Number.isInteger(vt.parete) || vt.terra < 0 || vt.parete < 0 || vt.terra > 12 || vt.parete > 12) errs.push('mobili: la vetrina del giorno vuole posti interi (0-12) a terra e a parete');
+  // la vetrina del giorno: i posti del negozio sono una cella sì e una no lungo il pavimento (game/negozio.ts); carte e mobili a parete dividono il muro
+  const vt = MOBILI_VETRINA, posti = Math.floor((nd.pavimento[2] - nd.pavimento[0] - 1) / 2);
+  if (![vt.terra, vt.parete, vt.carte, vt.pavimenti].every((n) => Number.isInteger(n) && n >= 0)) errs.push('mobili: la vetrina del giorno vuole posti interi (0 o più)');
+  else if (vt.terra > posti || vt.pavimenti > posti || vt.parete + vt.carte > posti) errs.push(`mobili: nel negozio ci sono ${posti} posti per fila: a terra ${vt.terra}, pavimenti ${vt.pavimenti}, al muro parete ${vt.parete} + carte ${vt.carte}`);
   return errs;
 }

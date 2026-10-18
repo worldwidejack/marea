@@ -100,26 +100,11 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   w.scene.add(dentroG);
   const pezzi: Pezzo[] = [], pezziFissi: Pezzo[] = [], pezziGiorno: Pezzo[] = [], parti: THREE.BufferGeometry[] = [];
   const cella = (cx: number, cz: number) => ({ x: (cx + 0.5) * T, z: (cz + 0.5) * T });
-  const carte = BORGO.carte.filter((f) => (f.perle ?? 0) > 0), pavimenti = BORGO.pavimenti.filter((f) => (f.perle ?? 0) > 0);
-  // sempre in vendita (non cambiano col giorno): le carte da parati appese in fondo, i campioni di pavimento per terra, le pedane vuote.
-  // Al muro le carte non si prendono tutti i posti: ai mobili a parete della vetrina ne restano sempre MOBILI_VETRINA.parete
-  const mostrate = carte.slice(0, Math.max(0, POSTI - MOBILI_VETRINA.parete));
-  mostrate.forEach((f, i) => {
-    const c = cella(posto(i), Z0), x = c.x, z = Z0 * T;
-    const t = texture(f); t.repeat.set(1.2, 1.6);
-    const pan = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.6), new THREE.MeshLambertMaterial({ map: t })); pan.position.set(x, 1.2, z + 0.08); dentroG.add(pan); // davanti alla cornice
-    parti.push(painted(new THREE.BoxGeometry(1.4, 1.8, 0.06), P.legnoScuro, M(x, 1.2, z + 0.01)));
-    pezziFissi.push({ kind: 'carta', id: f.id, nome: f.nome, perle: f.perle ?? 0, x, z, fx: x, fz: z + 1.6 });
-  });
+  // fisse: le pedane (vuote o piene) e il bancone; tutto quello che si vende cambia col giorno (monta)
   for (let i = 0; i < Math.min(MOBILI_VETRINA.terra, POSTI); i++) {
     const c = cella(posto(i), Z0 + 2);
     parti.push(painted(new THREE.CylinderGeometry(0.95, 1.05, 0.2, 8), P.pietra, M(c.x, 0.1, c.z)));
   }
-  pavimenti.slice(0, POSTI).forEach((f, i) => {
-    const c = cella(posto(i), Z0 + 4), t = texture(f); t.repeat.set(1, 1);
-    const tile = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 1.6), new THREE.MeshLambertMaterial({ map: t })); tile.position.set(c.x, 0.06, c.z); tile.receiveShadow = true; dentroG.add(tile);
-    pezziFissi.push({ kind: 'pavimento', id: f.id, nome: f.nome, perle: f.perle ?? 0, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.4 });
-  });
   // il bancone nell'ultima cella a destra, col registratore di cassa; dietro il mobiliere
   const bc = cella(X1 - 1, Z0 + 2);
   parti.push(painted(new THREE.BoxGeometry(1.4, 1.0, 3.0), P.legno, M(bc.x - 0.4, 0.5, bc.z + 0.6)), painted(new THREE.BoxGeometry(1.5, 0.1, 3.1), P.legnoChiaro, M(bc.x - 0.4, 1.05, bc.z + 0.6)));
@@ -127,12 +112,16 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   pezziFissi.push({ kind: 'banco', id: 'banco', nome: 'Il mobiliere', perle: 0, x: bc.x - 0.4, z: bc.z + 0.6, fx: bc.x - 1.9, fz: bc.z + 0.6 }); // davanti al banco
   const fisso = new THREE.Mesh(merged(parti), vc); fisso.castShadow = fisso.receiveShadow = true; dentroG.add(fisso);
 
-  // i mobili del giorno: sulle pedane quelli a terra, sul muro (dopo le carte da parati) quelli a parete. Si rifanno quando cambia il giorno e
-  // quando arrivano i modelli 3D (Blender, `mob_<id>`): finché non ci sono, la scatola o la forma procedurale di render/mobili.ts.
+  // la merce del giorno (#384, #393): sulle pedane i mobili a terra, al muro in cornice le carte da parati e (dopo) i mobili a parete, per terra i
+  // campioni di pavimento. Si rifà quando cambia il giorno e quando arrivano i modelli 3D (Blender, `mob_<id>`): finché non ci sono, la scatola o la
+  // forma procedurale di render/mobili.ts.
   const giornoG = new THREE.Group(); giornoG.name = 'negozio_giorno'; dentroG.add(giornoG);
   let giornoMostrato = 0, token = 0, modelli: typeof import('../render/mobili_modelli.ts') | null = null;
   const monta = (g: number, vivi: ReadonlyMap<string, Part[]>) => {
-    for (const c of giornoG.children.slice()) { giornoG.remove(c); if (c instanceof THREE.Mesh) c.geometry.dispose(); } // le geometrie dei modelli sono in cache: vivono nei gruppi, non qui
+    for (const c of giornoG.children.slice()) { // le geometrie dei modelli sono in cache: vivono nei gruppi, non qui; le texture dei campioni sì (si ridipingono)
+      giornoG.remove(c);
+      if (c instanceof THREE.Mesh) { c.geometry.dispose(); if (c.userData['campione']) { const m = c.material as THREE.MeshLambertMaterial; m.map?.dispose(); m.dispose(); } }
+    }
     pezziGiorno.length = 0;
     const v = vetrinaDelGiorno(g), geo: THREE.BufferGeometry[] = [];
     const metti = (m: MobileDef, x: number, y: number, z: number) => {
@@ -148,9 +137,23 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       metti(m, c.x, 0.2, c.z);
       pezziGiorno.push({ kind: 'mobile', id: m.id, nome: m.nome, perle: m.perle, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.5 });
     });
-    v.parete.slice(0, Math.max(0, POSTI - mostrate.length)).forEach((id, j) => {
+    // al muro: prima le carte da parati appese in cornice, poi i mobili a parete
+    const carte = v.carte.flatMap((id) => BORGO.carte.find((f) => f.id === id) ?? []).slice(0, POSTI);
+    carte.forEach((f, i) => {
+      const c = cella(posto(i), Z0), x = c.x, z = Z0 * T;
+      const t = texture(f); t.repeat.set(1.2, 1.6);
+      const pan = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.6), new THREE.MeshLambertMaterial({ map: t })); pan.position.set(x, 1.2, z + 0.08); pan.userData['campione'] = true; giornoG.add(pan); // davanti alla cornice
+      geo.push(painted(new THREE.BoxGeometry(1.4, 1.8, 0.06), P.legnoScuro, M(x, 1.2, z + 0.01)));
+      pezziGiorno.push({ kind: 'carta', id: f.id, nome: f.nome, perle: f.perle ?? 0, x, z, fx: x, fz: z + 1.6 });
+    });
+    v.pavimenti.flatMap((id) => BORGO.pavimenti.find((f) => f.id === id) ?? []).slice(0, POSTI).forEach((f, i) => {
+      const c = cella(posto(i), Z0 + 4), t = texture(f); t.repeat.set(1, 1);
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 1.6), new THREE.MeshLambertMaterial({ map: t })); tile.position.set(c.x, 0.06, c.z); tile.receiveShadow = true; tile.userData['campione'] = true; giornoG.add(tile);
+      pezziGiorno.push({ kind: 'pavimento', id: f.id, nome: f.nome, perle: f.perle ?? 0, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.4 });
+    });
+    v.parete.slice(0, Math.max(0, POSTI - carte.length)).forEach((id, j) => {
       const m = def(id); if (!m) return;
-      const c = cella(posto(mostrate.length + j), Z0), z = Z0 * T;
+      const c = cella(posto(carte.length + j), Z0), z = Z0 * T;
       metti(m, c.x, 0, z);
       pezziGiorno.push({ kind: 'mobile', id: m.id, nome: m.nome, perle: m.perle, x: c.x, z, fx: c.x, fz: z + 1.6 });
     });
@@ -242,9 +245,9 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   };
   /** Il banco: cosa c'è in vetrina oggi e fra quanto cambia. */
   function banco(): void {
-    const v = vetrinaDelGiorno(giornoRoma(adesso())), n = v.terra.length + v.parete.length;
+    const v = vetrinaDelGiorno(giornoRoma(adesso())), n = v.terra.length + v.parete.length + v.carte.length + v.pavimenti.length;
     const corpo: Node[] = [testata('IL MOBILIERE')];
-    corpo.push(el('div', 'prezzo', n ? `Oggi in vetrina ci sono ${n} mobili, sulle pedane e al muro. Vendo solo quelli: gli altri tornano un altro giorno.` : 'Oggi la vetrina è vuota.'));
+    corpo.push(el('div', 'prezzo', n ? `Oggi in vetrina: ${v.terra.length + v.parete.length} mobili, ${v.carte.length} carte da parati e ${v.pavimenti.length} pavimenti. Vendo solo quelli: gli altri tornano un altro giorno.` : 'Oggi la vetrina è vuota.'));
     corpo.push(el('div', 'prezzo', `Merce nuova fra ${fmtDur(finoAMezzanotte(adesso()) / 1000)}.`));
     // gli ampliamenti della casa (#386): uno alla volta, costano tanto; per non sbagliare dal telefono si conferma con un secondo tocco
     const l = o.getLot(), liv = livelloCasa(casaDi(l)), prossimo = prossimoAmpliamento(liv);

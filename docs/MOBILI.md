@@ -72,5 +72,5 @@ Il negozio **vende solo quello che espone**. Ogni giorno (mezzanotte di Roma, `e
 - **Quanti**: `"vetrina": { "terra": 6, "parete": 3 }` in testa a `mobili.json` (le pedane del negozio e i posti al muro dopo le carte da parati). Per esporne di più va ingrandito il negozio dentro (`borgo.json negozioDentro`, template `negozio` in `islands.json`).
 - **Mobili da più celle** (es. il tavolo da biliardo 2×1) possono uscire: sulla pedana stanno in piccolo, la scheda dice la misura vera.
 - **Con il modello 3D** (`mob_<id>` nel manifest) il negozio mostra quello, se no la forma o la scatola.
-- Pavimenti e carte da parati non cambiano: sono sempre in vendita.
+- **Anche le carte da parati e i pavimenti a pagamento di `borgo.json` ruotano** (#393): `vetrinaDelGiorno(giorno).carte` e `.pavimenti`, capienze `carte` e `pavimenti` accanto a `terra` e `parete`; una nuova riga di `borgo.json` con `perle` entra da sola. Le carte stanno al muro prima dei mobili a parete (insieme non più di 6 posti), i pavimenti sono campioni per terra. Quelli di serie (gratis) sono di tutti e non si vendono. Lato server: `compraFinituraDelGiorno` (fuori vetrina 409 «Oggi non è in vendita»; quello che hai già resta «Ce l'hai già»; l'id sconosciuto 404).
 - Test: `packages/sim/test/vetrina.test.ts`; e2e `m3_negozio`.
