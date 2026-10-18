@@ -2130,6 +2130,244 @@ def mob_quadro_con_paesaggio_sereno():
     return _obj(m, footprint=[W, D])
 
 
+def mob_ventaglio_gigante_decorativo():
+    """Grande ventaglio orientale da parete aperto a semicerchio: stecche in bambu, tela rossa, accento oro e polvere sopra."""
+    m = Mesh('mob_ventaglio_gigante_decorativo')
+    W, D = ingombro((1, 1))
+    cy = 1.55
+    m.cbox(0.0, -0.04, 0.12, 0.08, cy - 0.05, cy + 0.05, 'oro', top='oro')
+    beam(m, (0.0, cy - 0.05, -0.04), (0.0, cy - 0.28, -0.04), 0.04, 0.04, 'p_giallo', end='p_giallo')
+    angoli = (-70, -50, -30, -10, 10, 30, 50, 70)
+    r_stecca = 0.72
+    for deg in angoli:
+        rad = math.radians(deg)
+        tx = math.sin(rad) * r_stecca
+        ty = cy + math.cos(rad) * r_stecca
+        beam(m, (0.0, cy, -0.03), (tx, ty, -0.03), 0.03, 0.03, 'bambu', end='bambu')
+    r_in = 0.28
+    r_out = 0.68
+    settori = (-70, -50, -30, -10, 10, 30, 50, 70)
+    for a0, a1 in zip(settori, settori[1:]):
+        rad0, rad1 = math.radians(a0), math.radians(a1)
+        p0 = (math.sin(rad0) * r_in, cy + math.cos(rad0) * r_in, -0.04)
+        p1 = (math.sin(rad1) * r_in, cy + math.cos(rad1) * r_in, -0.04)
+        p2 = (math.sin(rad1) * r_out, cy + math.cos(rad1) * r_out, -0.04)
+        p3 = (math.sin(rad0) * r_out, cy + math.cos(rad0) * r_out, -0.04)
+        m.poly([p0, p1, p2, p3], 'p_rosso')
+        amid = math.radians((a0 + a1) / 2)
+        pm_in = (math.sin(amid) * (r_in + 0.05), cy + math.cos(amid) * (r_in + 0.05), -0.06)
+        pm_out = (math.sin(amid) * (r_out - 0.05), cy + math.cos(amid) * (r_out - 0.05), -0.06)
+        beam(m, pm_in, pm_out, 0.02, 0.02, 'p_arancio', end='p_arancio')
+    m.prism(6, 0.12, 0.12, cy + 0.22, cy + 0.26, 'oro', top='oro', cx=0.0, cz=-0.05)
+    for a0, a1 in zip(settori, settori[1:]):
+        rad0, rad1 = math.radians(a0), math.radians(a1)
+        p_a = (math.sin(rad0) * r_out, cy + math.cos(rad0) * r_out, -0.04)
+        p_b = (math.sin(rad1) * r_out, cy + math.cos(rad1) * r_out, -0.04)
+        beam(m, p_a, p_b, 0.035, 0.02, 'p_pietra_chiara', end='p_pietra_chiara')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_specchio_a_forma_di_cuore_con_cornice_dorata():
+    """Specchio a parete a forma di cuore con spessa cornice dorata, superficie riflettente e nastro rosso."""
+    m = Mesh('mob_specchio_a_forma_di_cuore_con_cornice_dorata')
+    W, D = ingombro((1, 1))
+    for sx in (-0.22, 0.22):
+        m.prism(8, 0.26, 0.26, 1.95, 2.03, 'oro', top='oro', bottom='oro', cx=sx, cz=-0.04)
+        m.prism(8, 0.2, 0.2, 1.96, 2.04, 'p_pietra_chiara', top='p_pietra_chiara', cx=sx, cz=-0.05)
+    m.box(-0.35, 1.72, -0.08, 0.35, 1.98, 0.0, 'oro')
+    m.box(-0.28, 1.73, -0.09, 0.28, 1.97, -0.01, 'p_pietra_chiara', skip=('back',))
+    beam(m, (-0.35, 1.75, -0.04), (0.0, 1.48, -0.04), 0.1, 0.08, 'oro', end='oro')
+    beam(m, (0.35, 1.75, -0.04), (0.0, 1.48, -0.04), 0.1, 0.08, 'oro', end='oro')
+    face(m, [(-0.26, 1.74, -0.05), (0.26, 1.74, -0.05), (0.0, 1.54, -0.05)], 'p_pietra_chiara', (0, 0, -1))
+    m.cbox(0.0, -0.05, 0.14, 0.06, 2.2, 2.28, 'p_rosso', top='p_rosso')
+    beam(m, (-0.1, 2.16, -0.05), (0.1, 2.26, -0.05), 0.05, 0.05, 'p_rosso', end='p_rosso')
+    beam(m, (0.1, 2.16, -0.05), (-0.1, 2.26, -0.05), 0.05, 0.05, 'p_rosso', end='p_rosso')
+    beam(m, (-0.08, 1.95, -0.06), (0.05, 1.78, -0.06), 0.015, 0.015, 'p_nero_caldo')
+    beam(m, (0.05, 1.78, -0.06), (0.12, 1.72, -0.06), 0.012, 0.012, 'p_nero_caldo')
+    m.box(0.06, 1.82, -0.07, 0.18, 1.94, -0.06, 'p_giallo', skip=('back',))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_orologio_a_cucu_in_legno():
+    """Orologio a cucu della Foresta Nera: casetta in legno, tetto spiovente, pesi a pigna e uccellino scattato fuori."""
+    m = Mesh('mob_orologio_a_cucu_in_legno')
+    W, D = ingombro((1, 1))
+    m.box(-0.22, 1.62, -0.22, 0.22, 2.12, 0.0, 'p_legno_scuro', skip=('back',))
+    m.box(-0.25, 1.58, -0.24, 0.25, 1.63, 0.0, 'p_legno', skip=('back',))
+    roof_y = 2.32
+    beam(m, (-0.28, 2.08, -0.12), (0.0, roof_y, -0.12), 0.1, 0.28, 'tavole_scure', end='tavole_scure')
+    beam(m, (0.28, 2.08, -0.12), (0.0, roof_y, -0.12), 0.1, 0.28, 'tavole_scure', end='tavole_scure')
+    m.prism(8, 0.12, 0.12, 1.74, 1.84, 'p_pietra_chiara', top='p_pietra_chiara', cx=0.0, cz=-0.23)
+    m.box(-0.015, 1.79, -0.25, 0.015, 1.89, -0.23, 'p_nero_caldo', skip=('back',))
+    m.box(-0.015, 1.78, -0.25, 0.06, 1.81, -0.23, 'p_nero_caldo', skip=('back',))
+    for sx in (-0.08, 0.08):
+        beam(m, (sx, 1.58, -0.11), (sx, 1.34, -0.11), 0.015, 0.015, 'oro', end='oro')
+        m.prism(6, 0.035, 0.01, 1.22, 1.34, 'oro', top='oro', bottom='oro', cx=sx, cz=-0.11)
+    beam(m, (0.0, 1.58, -0.06), (0.0, 1.28, -0.06), 0.02, 0.02, 'p_legno')
+    m.prism(6, 0.06, 0.06, 1.22, 1.3, 'oro', top='oro', cx=0.0, cz=-0.06)
+    m.box(-0.06, 1.95, -0.23, 0.06, 2.08, -0.21, 'p_nero_caldo', skip=('back',))
+    m.box(-0.11, 1.95, -0.24, -0.06, 2.08, -0.22, 'p_legno', skip=('back',))
+    beam(m, (0.0, 2.0, -0.21), (0.0, 2.01, -0.32), 0.02, 0.02, 'metallo')
+    m.cbox(0.0, -0.34, 0.07, 0.08, 1.98, 2.05, 'p_giallo', top='p_giallo')
+    m.cone(4, 0.025, 2.0, 2.03, 'p_arancio', cx=0.0, cz=-0.38)
+    return _obj(m, footprint=[W, D])
+
+
+def mob_poster_di_mostro_tascabile():
+    """Poster su carta lucida a parete con il dragone verde iconico, nastro adesivo e angolo arricciato."""
+    m = Mesh('mob_poster_di_mostro_tascabile')
+    W, D = ingombro((1, 1))
+    m.box(-0.38, 1.5, -0.015, 0.38, 2.42, 0.0, 'carta', skip=('back',))
+    m.box(-0.4, 2.36, -0.022, -0.32, 2.44, -0.014, 'p_sabbia_chiara', skip=('back',))
+    m.box(0.32, 2.36, -0.022, 0.4, 2.44, -0.014, 'p_sabbia_chiara', skip=('back',))
+    m.box(-0.4, 1.48, -0.022, -0.32, 1.56, -0.014, 'p_sabbia_chiara', skip=('back',))
+    m.box(-0.34, 1.54, -0.02, 0.34, 2.38, -0.015, 'p_pietra_chiara', skip=('back',))
+    m.cbox(0.0, -0.024, 0.28, 0.01, 1.82, 2.12, 'p_erba', top='p_erba', skip=('back',))
+    m.cbox(0.0, -0.026, 0.18, 0.01, 2.08, 2.24, 'p_erba', top='p_erba', skip=('back',))
+    m.box(-0.28, 1.95, -0.025, -0.12, 2.22, -0.018, 'p_bosco', skip=('back',))
+    m.box(0.12, 1.95, -0.025, 0.28, 2.22, -0.018, 'p_bosco', skip=('back',))
+    m.cbox(0.0, -0.028, 0.14, 0.01, 1.84, 2.0, 'p_sabbia_chiara', top='p_sabbia_chiara', skip=('back',))
+    beam(m, (0.08, 2.14, -0.028), (0.24, 2.18, -0.028), 0.05, 0.04, 'p_rosso', end='p_giallo')
+    face(m, [(0.26, 1.5, 0.0), (0.38, 1.62, 0.0), (0.32, 1.58, -0.06)], 'carta', (0, 0, -1))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_condizionatore_d_aria():
+    """Unita split interna di condizionatore bianco da parete, griglia, aletta aperta e stalattiti di ghiaccio."""
+    m = Mesh('mob_condizionatore_d_aria')
+    W, D = ingombro((1, 1))
+    m.box(-0.58, 2.18, -0.32, 0.58, 2.58, 0.0, 'p_pietra_chiara', skip=('back',))
+    m.box(-0.54, 2.56, -0.28, 0.54, 2.6, -0.04, 'p_pietra_scura', top='p_pietra_scura')
+    m.box(-0.52, 2.2, -0.28, 0.52, 2.26, -0.06, 'p_nero_caldo', skip=('top', 'back'))
+    beam(m, (-0.52, 2.21, -0.26), (0.52, 2.21, -0.26), 0.08, 0.02, 'p_pietra_chiara', end='p_pietra_chiara')
+    m.cbox(0.38, -0.325, 0.12, 0.01, 2.34, 2.44, 'em_neon_ciano', top='em_neon_ciano', skip=('back',))
+    m.cbox(0.48, -0.325, 0.025, 0.01, 2.36, 2.385, 'p_verde_neon', top='p_verde_neon', skip=('back',))
+    for x in (-0.42, -0.22, 0.0, 0.18):
+        m.cone(4, 0.03, 2.2, 2.06, 'cristallo', cx=x, cz=-0.26)
+    return _obj(m, footprint=[W, D])
+
+
+def mob_mensola_con_action_figures():
+    """Mensola da parete in legno con staffe in ferro e tre action figures di plastica esposte con basetta."""
+    m = Mesh('mob_mensola_con_action_figures')
+    W, D = ingombro((1, 1))
+    m.box(-0.62, 1.78, -0.3, 0.62, 1.84, 0.0, 'p_legno_chiaro', top='p_legno_chiaro', skip=('back',))
+    for sx in (-0.44, 0.44):
+        beam(m, (sx, 1.78, 0.0), (sx, 1.54, 0.0), 0.04, 0.04, 'p_nero_caldo', end='p_nero_caldo')
+        beam(m, (sx, 1.78, -0.26), (sx, 1.78, 0.0), 0.04, 0.04, 'p_nero_caldo', end='p_nero_caldo')
+        beam(m, (sx, 1.56, -0.02), (sx, 1.78, -0.24), 0.03, 0.03, 'p_nero_caldo', end='p_nero_caldo')
+    m.prism(6, 0.05, 0.05, 1.84, 1.86, 'p_nero_caldo', top='p_nero_caldo', cx=-0.36, cz=-0.16)
+    m.cbox(-0.36, -0.16, 0.09, 0.06, 1.86, 2.02, 'p_rosso', top='p_rosso')
+    m.cbox(-0.36, -0.16, 0.07, 0.07, 2.02, 2.1, 'p_giallo', top='p_giallo')
+    m.box(-0.41, 1.88, -0.13, -0.31, 2.04, -0.11, 'p_acqua_profonda', skip=('front',))
+    m.prism(6, 0.055, 0.055, 1.84, 1.86, 'p_nero_caldo', top='p_nero_caldo', cx=0.0, cz=-0.16)
+    m.cbox(0.0, -0.16, 0.1, 0.07, 1.86, 2.04, 'p_bosco', top='p_bosco')
+    m.cbox(0.0, -0.16, 0.07, 0.07, 2.04, 2.12, 'p_nero_caldo', top='oro')
+    m.box(-0.08, 1.98, -0.17, 0.08, 2.06, -0.15, 'oro')
+    m.prism(6, 0.05, 0.05, 1.84, 1.86, 'p_nero_caldo', top='p_nero_caldo', cx=0.36, cz=-0.16)
+    m.cbox(0.36, -0.16, 0.08, 0.06, 1.86, 2.0, 'p_viola', top='p_viola')
+    m.cone(4, 0.06, 2.0, 2.14, 'p_viola', cx=0.36, cz=-0.16)
+    m.box(0.46, 1.84, -0.24, 0.58, 2.08, -0.1, 'carta', top='p_arancio', skip=('back',))
+    m.box(0.48, 1.86, -0.25, 0.56, 1.94, -0.23, 'p_giallo', skip=('back',))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_gagliardetto_calcistico_biancorosso():
+    """Gagliardetto calcistico biancorosso a punta: asta dorata, cordone di sospensione, strisce bicolore e frange."""
+    m = Mesh('mob_gagliardetto_calcistico_biancorosso')
+    W, D = ingombro((1, 1))
+    beam(m, (-0.28, 2.22, -0.04), (0.28, 2.22, -0.04), 0.03, 0.03, 'oro', end='oro')
+    for sx in (-0.3, 0.3):
+        m.prism(6, 0.028, 0.028, 2.205, 2.235, 'oro', top='oro', cx=sx, cz=-0.04)
+    beam(m, (-0.26, 2.23, -0.03), (0.0, 2.42, -0.03), 0.015, 0.015, 'fune_bandierine')
+    beam(m, (0.26, 2.23, -0.03), (0.0, 2.42, -0.03), 0.015, 0.015, 'fune_bandierine')
+    m.cbox(0.0, -0.03, 0.03, 0.03, 2.41, 2.44, 'ferro', top='ferro')
+    strisce = ((-0.25, -0.15, 'p_rosso'), (-0.15, -0.05, 'p_pietra_chiara'),
+               (-0.05, 0.05, 'p_rosso'), (0.05, 0.15, 'p_pietra_chiara'), (0.15, 0.25, 'p_rosso'))
+    for x0, x1, col in strisce:
+        m.box(x0, 1.85, -0.03, x1, 2.21, -0.01, col, skip=('back',))
+    face(m, [(-0.25, 1.85, -0.02), (0.0, 1.85, -0.02), (0.0, 1.52, -0.02)], 'p_rosso', (0, 0, -1))
+    face(m, [(0.0, 1.85, -0.02), (0.25, 1.85, -0.02), (0.0, 1.52, -0.02)], 'p_pietra_chiara', (0, 0, -1))
+    beam(m, (-0.26, 1.86, -0.025), (0.0, 1.51, -0.025), 0.03, 0.02, 'oro', end='oro')
+    beam(m, (0.26, 1.86, -0.025), (0.0, 1.51, -0.025), 0.03, 0.02, 'oro', end='oro')
+    m.cone(4, 0.03, 1.51, 1.42, 'oro', cx=0.0, cz=-0.025)
+    beam(m, (-0.24, 2.18, -0.035), (-0.08, 2.22, -0.035), 0.03, 0.015, 'p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_insegna_al_neon_open():
+    """Insegna luminosa al neon da parete 'OPEN': telaio nero, ovale ciano neon e scritta in rosa neon brillante."""
+    m = Mesh('mob_insegna_al_neon_open')
+    W, D = ingombro((1, 1))
+    m.box(-0.48, 1.76, -0.03, 0.48, 2.24, 0.0, 'p_nero_caldo', skip=('back',))
+    m.box(0.38, 1.62, -0.08, 0.54, 1.8, -0.01, 'ferro', top='ferro')
+    pts = [(-0.42, 1.86), (-0.42, 2.14), (-0.2, 2.26), (0.2, 2.26),
+           (0.42, 2.14), (0.42, 1.86), (0.2, 1.74), (-0.2, 1.74)]
+    for p0, p1 in zip(pts, pts[1:] + [pts[0]]):
+        beam(m, (p0[0], p0[1], -0.05), (p1[0], p1[1], -0.05), 0.03, 0.03, 'em_neon_ciano', end='em_neon_ciano')
+    m.box(-0.34, 1.88, -0.065, -0.2, 2.12, -0.045, 'em_neon_rosa')
+    m.box(-0.3, 1.93, -0.07, -0.24, 2.07, -0.04, 'p_nero_caldo')
+    m.box(-0.16, 1.88, -0.065, -0.12, 2.12, -0.045, 'em_neon_rosa')
+    m.box(-0.12, 2.0, -0.065, -0.04, 2.12, -0.045, 'em_neon_rosa')
+    m.box(-0.1, 2.03, -0.07, -0.06, 2.09, -0.04, 'p_nero_caldo')
+    m.box(0.01, 1.88, -0.065, 0.05, 2.12, -0.045, 'em_neon_rosa')
+    for y in (1.88, 1.98, 2.08):
+        m.box(0.05, y, -0.065, 0.13, y + 0.04, -0.045, 'em_neon_rosa')
+    m.box(0.18, 1.88, -0.065, 0.22, 2.12, -0.045, 'em_neon_rosa')
+    m.box(0.28, 1.88, -0.065, 0.32, 2.12, -0.045, 'em_neon_rosa')
+    beam(m, (0.2, 2.1, -0.055), (0.3, 1.9, -0.055), 0.035, 0.03, 'em_neon_rosa')
+    m.cbox(0.46, -0.085, 0.04, 0.01, 1.74, 1.78, 'em_neon_rosso', top='em_neon_rosso')
+    beam(m, (0.46, 1.62, -0.04), (0.46, 1.25, -0.02), 0.02, 0.02, 'p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_quadro_notte_stellata():
+    """Grande quadro a parete: cornice in legno dorato modanata, cielo blu con vortici, luna crescente e cipresso."""
+    m = Mesh('mob_quadro_notte_stellata')
+    W, D = ingombro((1, 1))
+    beam(m, (-0.6, 1.62, -0.04), (0.6, 1.62, -0.04), 0.09, 0.09, 'oro', end='oro')
+    beam(m, (-0.6, 2.38, -0.04), (0.6, 2.38, -0.04), 0.09, 0.09, 'oro', end='oro')
+    beam(m, (-0.56, 1.62, -0.04), (-0.56, 2.38, -0.04), 0.09, 0.09, 'oro', end='oro')
+    beam(m, (0.56, 1.62, -0.04), (0.56, 2.38, -0.04), 0.09, 0.09, 'oro', end='oro')
+    m.box(-0.52, 1.66, -0.03, 0.52, 2.34, 0.0, 'p_acqua_profonda', skip=('back',))
+    m.box(-0.52, 1.66, -0.035, 0.52, 1.82, -0.028, 'p_bosco', skip=('back',))
+    m.cone(4, 0.12, 1.68, 2.22, 'p_nero_caldo', cx=-0.34, cz=-0.04)
+    m.cone(4, 0.08, 1.84, 2.3, 'p_bosco', cx=-0.34, cz=-0.042)
+    m.prism(6, 0.09, 0.09, 2.12, 2.28, 'p_giallo', top='p_giallo', cx=0.34, cz=-0.038)
+    m.prism(6, 0.07, 0.07, 2.14, 2.26, 'p_acqua_profonda', top='p_acqua_profonda', cx=0.31, cz=-0.04)
+    for sx, sy in [(-0.1, 2.18), (0.1, 2.12), (0.24, 2.24), (-0.02, 1.98), (0.28, 1.94)]:
+        m.cbox(sx, -0.038, 0.04, 0.01, sy - 0.02, sy + 0.02, 'p_giallo', top='p_giallo', skip=('back',))
+    beam(m, (-0.2, 2.04, -0.036), (0.18, 2.08, -0.036), 0.035, 0.025, 'p_acqua')
+    m.cbox(0.0, -0.065, 0.22, 0.01, 1.6, 1.64, 'oro', top='oro', skip=('back',))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_spada_bastarda_incrociata_con_scudo():
+    """Panoplia da parete medievale: scudo araldico in ferro e oro con spada bastarda incrociata e cartellino della fiera."""
+    m = Mesh('mob_spada_bastarda_incrociata_con_scudo')
+    W, D = ingombro((1, 1))
+    m.box(-0.35, 1.6, -0.04, 0.35, 2.25, 0.0, 'p_legno_scuro', skip=('back',))
+    p_punta = (-0.42, 1.48, -0.05)
+    p_guardia = (0.24, 2.14, -0.05)
+    beam(m, p_punta, p_guardia, 0.06, 0.02, 'lama', end='lama')
+    p_g0 = (0.24 - 0.12, 2.14 + 0.12, -0.05)
+    p_g1 = (0.24 + 0.12, 2.14 - 0.12, -0.05)
+    beam(m, p_g0, p_g1, 0.04, 0.03, 'oro', end='oro')
+    p_pomolo = (0.38, 2.28, -0.05)
+    beam(m, p_guardia, p_pomolo, 0.035, 0.03, 'cuoio', end='cuoio')
+    m.prism(6, 0.035, 0.035, 2.26, 2.31, 'oro', top='oro', cx=p_pomolo[0], cz=p_pomolo[2])
+    m.box(-0.28, 1.82, -0.11, 0.28, 2.18, -0.06, 'ferro', skip=('back',))
+    face(m, [(-0.28, 1.82, -0.1), (0.28, 1.82, -0.1), (0.0, 1.54, -0.1)], 'ferro', (0, 0, -1))
+    beam(m, (-0.28, 2.18, -0.11), (0.28, 2.18, -0.11), 0.04, 0.04, 'oro', end='oro')
+    beam(m, (-0.28, 1.82, -0.11), (0.0, 1.54, -0.11), 0.04, 0.04, 'oro', end='oro')
+    beam(m, (0.28, 1.82, -0.11), (0.0, 1.54, -0.11), 0.04, 0.04, 'oro', end='oro')
+    m.cbox(0.0, -0.115, 0.34, 0.01, 1.94, 2.02, 'p_rosso', top='p_rosso', skip=('back',))
+    m.cbox(0.0, -0.115, 0.08, 0.01, 1.76, 2.14, 'p_rosso', top='p_rosso', skip=('back',))
+    beam(m, (0.26, 2.12, -0.05), (0.28, 2.04, -0.06), 0.01, 0.01, 'fune_bandierine')
+    m.box(0.24, 1.96, -0.07, 0.32, 2.04, -0.06, 'carta', skip=('back',))
+    return _obj(m, footprint=[W, D])
+
+
 MODELS = {
     f.__name__: f
     for f in (
@@ -2206,6 +2444,16 @@ MODELS = {
         mob_mensola_singola_in_legno,
         mob_appendiabiti_da_ingresso_in_legno,
         mob_quadro_con_paesaggio_sereno,
+        mob_ventaglio_gigante_decorativo,
+        mob_specchio_a_forma_di_cuore_con_cornice_dorata,
+        mob_orologio_a_cucu_in_legno,
+        mob_poster_di_mostro_tascabile,
+        mob_condizionatore_d_aria,
+        mob_mensola_con_action_figures,
+        mob_gagliardetto_calcistico_biancorosso,
+        mob_insegna_al_neon_open,
+        mob_quadro_notte_stellata,
+        mob_spada_bastarda_incrociata_con_scudo,
     )
 }
 
