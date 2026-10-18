@@ -81,7 +81,7 @@ Jack l'ha provata: «bella ma non c'è niente da fare». Primo passo della rispo
 - **Il menù** (`apps/client/src/templari/scelta.ts`): una cripta a lume di candela con gli stendardi, la pedana di pietra con l'anello bianco e nero e la croce rossa, l'eroe che gira piano; a sinistra le tre carte, a destra il pannello (nome, frase, barre, super, armi di partenza), sotto il bottone giallo **DEUS VULT** (insieme: **IN SALA**). Frecce, A D o W S, joystick = cambia; Invio/Spazio = parte; Esc o ✕ = di nuovo fuori. L'ultimo eroe resta (localStorage `mz-templari-eroe`). Al telefono in verticale l'eroe sta in alto, sotto carte, pannello e bottone.
 - **Server**: l'eroe va con `POST /api/templari/start {subito, classe}` e resta nel lotto (`pending.classe`); a fine partita il server rigioca con lui. Insieme si sceglie prima di entrare in sala (`/ws/templari?classe=`), la sala lo dice accanto al nome e il log della squadra lo porta (`classi`).
 - **Stanza di prova**: niente menù, l'ultimo eroe scelto; nel banco «Eroe (si ricomincia)» e «Super: carica pieno».
-- **Prossimi passi** (scelte del 14 ott): ~~accendere l'isola, costruire la campana coi pezzi~~ (fatto: §9b), ~~segreti (stanza dietro il muro con l'arma da guadagnare uccidendo 5 zombie lì dentro, campane in ordine, canzone dei 3 teschi)~~ (fatto: §9c), missioni durante le ondate, la forgia della spada di de Molay, la missione finale e la fuga in nave; tra le partite vestiti nuovi e trofei sul lotto.
+- **Prossimi passi** (scelte del 14 ott): ~~accendere l'isola, costruire la campana coi pezzi~~ (fatto: §9b), ~~segreti (stanza dietro il muro con l'arma da guadagnare uccidendo 5 zombie lì dentro, campane in ordine, canzone dei 3 teschi)~~ (fatto: §9c), la forgia della spada di de Molay (§12b, scelta il 18 ott), missioni durante le ondate, la missione finale e la fuga in nave; tra le partite vestiti nuovi e trofei sul lotto. Il **secondo giro** (18 ott: bilanciamento, spiaggia, catacombe, indizi, nemici nuovi, forgia) è nel §12b.
 
 ## 5. Controlli
 - **Mira** (passo 9): niente attacco automatico, colpisci solo quando premi. Il joystick (o WASD) appena sfiorato ti gira sul posto senza muoverti; da PC, se non cammini, l'eroe guarda il puntatore del mouse e il clic attacca lì. La spada colpisce davanti a te; archi e armi da fuoco senza mira vera aiutano solo dentro un cono stretto (~35°) davanti: fuori dal cono il colpo va dritto dove guardi. **Mira vera** (12 ott 2026, #244, la stessa del dungeon: arco e magie): con arco, pistole, moschetto, trombone o fuoco greco in mano **il colpo va esattamente dove punta il cursore** (anche mentre cammini, anche fuori dal cono, anche se c'è uno zombie più vicino); il cursore diventa un mirino e davanti all'eroe c'è la linea di mira. L'arco teso segue il cursore e la freccia parte dove punta al rilascio. Il vaso del fuoco greco cade sul primo zombie lungo la mira, sennò a 3/5 della gittata. Senza mouse né joystick di mira vale la mira assistita di prima. **Arco**: tieni premuto per tendere (più tendi, più fa male), lascia per tirare. **Pistole e moschetto**: un tocco = un colpo, a caricatore vuoto ricaricano da sole (le munizioni si comprano sul muro). **Fuoco greco**: un tocco lancia il vaso dove guardi.
@@ -110,7 +110,7 @@ Due armi alla volta (come COD): una nuova prende il posto di quella in mano. Le 
 
 - **Bilanciamento** (13 ott 2026, alla Black Ops, test `templari_bilancio`): più un'arma costa, più a lungo uccide con un colpo (spada 2, muro da 750-1000 tra la 5 e la 10, muro da 1500 e cassa tra la 10 e la 16, miracolose oltre la 20). Moschetto (prima 2000, un colpo fino alla 17) e trombone (prima 7 × 350, fino alla 19) erano troppo forti per 1500 punti.
 - **Ricarica**: da sola quando il caricatore è vuoto (A col caricatore vuoto la fa partire). Le armi da fuoco tirano anche fuori dalle finestre, agli zombie che strappano le assi.
-- **Cassa del tesoro templare** (= mystery box): **950** punti, gira 4 s e tira fuori un'arma a caso da prendere entro 10 s (tutte tranne la spada e quelle che hai già; pesi in `templari.json`: le miracolose rare, la spada di de Molay rarissima). Ogni 4-8 aperture esce il **teschio** (la leggenda del teschio dei Templari): la cassa ride, ti rende i punti e sparisce, per ricomparire in un altro dei suoi posti (per ora due nella chiesa; con le porte anche piazza, cimitero, accampamento). Un fascio di luce gialla la fa trovare.
+- **Cassa del tesoro templare** (= mystery box; dal secondo giro solo il fuoco greco tra le miracolose, §12b): **950** punti, gira 4 s e tira fuori un'arma a caso da prendere entro 10 s (tutte tranne la spada e quelle che hai già; pesi in `templari.json`: le miracolose rare, la spada di de Molay rarissima). Ogni 4-8 aperture esce il **teschio** (la leggenda del teschio dei Templari): la cassa ride, ti rende i punti e sparisce, per ricomparire in un altro dei suoi posti (per ora due nella chiesa; con le porte anche piazza, cimitero, accampamento). Un fascio di luce gialla la fa trovare.
 
 ## 7. Scudo templare
 Cade dal **templare scudato** quando muore (resta a terra 20 s: A per prenderlo). Lo porti **sulle spalle**: blocca i colpi da dietro. Con **SCUDO** lo **impugni** al posto dell'arma: blocca i colpi da davanti, cammini piano e con A dai una spallata (poco danno, li respinge). Regge **1500** danni, poi si spacca; se ne prende un altro dallo scudato successivo.
@@ -218,6 +218,57 @@ Atmosfera alla COD Zombies con suoni **nostri, sintetizzati** (motore di `apps/c
 
 ## 12. Da decidere (non bloccano)
 - **Easter egg** (spezzare la maledizione, il tesoro, il Graal) e **forma finale di de Molay**: in una chat leggera prima del passo 9.
+
+## 12b. Il secondo giro: più chiara, più stretta, più varia (18 ott 2026, scelte di birbasan)
+Dopo il recap di tutte le cose dell'isola, birbasan ha detto cosa tenere e cosa cambiare. **Restano come sono**: la storia e l'arrivo (§1-2), gli eroi (§4b), lo scudo (§7), i boss (§8), il premio (§10); in squadra niente rianimazione (§10b). Il resto cambia così; i numeri sono la **prima ipotesi** e quelli non detti da birbasan sono **[scelta provvisoria]**. Ogni passo è una PR a sé (issue madre del secondo giro).
+
+**I problemi che ha visto**: l'isola è dispersiva e non si capisce cosa fare (la cripta c'è da tre giorni, ma lui non lo sapeva: è la prova); la strada per la spiaggia è lunga e la spiaggia è tutta aperta, basta girare in tondo e non si muore; i nemici normali sembrano sempre gli stessi; dalla cassa escono armi che rompono la partita.
+
+**1. Bilanciamento, cassa e chi cade**
+- **Più zombie insieme, che crescono con le ondate** (come COD): oggi sono al massimo 18 in campo dalla prima ondata. Diventano **10 all'ondata 1, +1 a ondata, fino a 24** dalla 15ª **[scelta provvisoria]**; in squadra il tetto sale come il numero (§10b). Prima di alzarlo: draw call e fotogrammi al telefono col coro pieno e un boss (§9c: il coro è già al limite).
+- **Cassa del tesoro**: l'unica miracolosa che può uscire è il **fuoco greco**, e più di rado (peso 2 → 1: circa 1 apertura su 60 invece di 1 su 30). La **spada di de Molay** esce dalla cassa: si ha solo forgiandola (punto 7). La Lancia di Longino resta solo nella cripta (§9c), com'è già.
+- **Danni proporzionati all'ondata**: nessuna arma deve far finire la partita da sola. Le miracolose non uccidono più con un colpo per 20 ondate: il loro danno segue la vita dell'ondata, come i super (§4b): fuoco greco **0,6 ×** la vita dell'ondata nell'area più le fiamme (due vasi per un fante), spada di de Molay **1 ×**, Lancia **0,8 ×** **[scelta provvisoria]**, così servono a ogni ondata senza cancellarla. Le altre armi restano nella tabella del §6, ma si ricontrolla col test `templari_bilancio` che dall'ondata 5 in su nessuna basti da sola.
+- **In squadra chi cade perde anche le armi**: si rialza all'ondata dopo con la vita piena e **l'arma di partenza del suo eroe** (Crociato spada e scudo, Bucaniera pistola e spada, Arciere arco e spada), senza pozioni, senza scudo dello scudato e senza armi comprate o trovate. La Lancia si riprende all'altare con altre 5 anime; la spada di de Molay si rifà alla fucina col solo rituale (i pezzi restano) **[scelta provvisoria]**.
+
+**2. La spiaggia più vicina e più stretta**
+- La strada fino all'accampamento si accorcia: meno spiaggia vuota tra la taverna (o il cimitero) e il Mercante.
+- L'accampamento non è più una piazza aperta dove si gira in tondo: palizzate, tende, botti, cannoni, rocce e la nave in secca fanno **passaggi stretti e vicoli ciechi**; il bagnasciuga dove si va a correre si chiude con gli scogli. Si può ancora scappare, ma bisogna scegliere da che parte.
+- **Il dipinto** (§3b) va rifatto quando l'isola cambia forma: si rifà **una volta sola**, dopo il punto 3 (le catacombe toccano la stessa zona). Gli script sono fuori dal repo, sul computer di birbasan.
+
+**3. Le catacombe**
+- La cripta (§9c) diventa l'ingresso di un **piano sotto**: dal suo lato nord parte un **tunnel stretto** di pietra e ossa che si divide in due. Un ramo sbuca nell'**ossario del cimitero**, l'altro in una **grotta sotto l'accampamento**, a due passi dal Mercante: è la **scorciatoia per la spiaggia**.
+- Le catacombe si aprono col muro rotto (come oggi la cripta); le due uscite hanno una **grata** da pagare (**1250**) **[scelta provvisoria]**, così si può anche arrivarci dall'altra parte.
+- Nei tunnel non si gira in tondo: sono corridoi da una persona con le nicchie dei morti, e gli zombie escono anche dalle nicchie. Sotto la luna non c'è (come nella cripta): lanterna, torce e quello che brucia.
+- In una sala delle catacombe c'è la **fucina dei Templari** (punto 7).
+- Draw call: chi è sotto vede solo il sotto (come la cripta oggi).
+
+**4. Gli indizi: sangue e scheletri** (scelta di birbasan)
+Gli easter egg restano segreti, ma qualcosa sull'isola deve dirti che si possono fare. Due modi, collegati a catena (uno ti porta al prossimo):
+- **Scritte col sangue** su muri e pavimenti, brevi e in italiano, vicino a quello che serve: sul muro crepato («SOTTO DORMONO I FRATI · COLPISCI FORTE»), sull'ordine delle campanelle in taverna, accanto ai teschi, alla fucina.
+- **Scheletri con un biglietto** (come fra' Guillaume col calice): cacciatori di tesori e pirati morti a metà dell'impresa. **AZIONE** apre il biglietto, che si rilegge dalla pausa. Il primo è **all'ingresso della chiesa** e spiega cosa si fa sull'isola (sopravvivere, accendere i fuochi, montare la campana) e dove guardare per il resto; gli altri stanno accanto a ogni segreto (cripta, campanelle, teschi, catacombe, forgia) e mandano al passo dopo.
+- Anche le cose normali si capiscono meglio: i fuochi spenti e i pezzi della campana li segna la bussola, e il primo scheletro li nomina.
+
+**5. I fantasmi** (idea di birbasan)
+- Un **numero fisso** sull'isola per tutta la partita (**3**, **5** in squadra **[scelta provvisoria]**), dall'ondata 1: la probabilità di incontrarne uno è sempre la stessa, non cresce con le ondate e non contano per finire l'ondata.
+- **Trapassano tutto** (muri, porte, assi, case) e **girano a caso** per la mappa: possono spuntare da qualsiasi parte, anche dove le porte sono chiuse.
+- **Di base non attaccano.** Se **ci passi attraverso** si arrabbiano: diventano rossi, urlano e **ti puntano** (velocità 3 m/s, colpo 30, sempre attraverso i muri) finché uno dei due non muore.
+- **Si uccidono con qualsiasi arma** (vita × 0,8 la vita dell'ondata, 100 punti **[scelta provvisoria]**). Ucciso uno, dopo 20 s ne torna un altro da un punto a caso, per tenere fisso il numero.
+- Look: monaci e crociati pallidi, mezzi trasparenti, azzurri; un lamento lungo quando sono vicini.
+
+**6. Il monaco, l'alfiere, il lebbroso** (tutti e tre scelti da birbasan; dati in `templari.json` come gli altri nemici)
+
+| Nemico | Da quale ondata | Vita (× l'ondata) | Cosa fa **[scelta provvisoria]** |
+|---|---|---|---|
+| **Monaco guaritore** | 7 | ×0,8 | saio nero e incensiere; resta a 5 m dietro gli altri e ogni 2 s cura del 10% gli zombie entro 4 m (fumo verde): va ucciso per primo |
+| **Lebbroso** | 8 | ×1,3 | gonfio, bendato, lento (0,8 m/s); quando muore, o quando ti arriva addosso, scoppia in una nube di 2,5 m che fa 20 al secondo per 3 s (anche agli zombie): va ucciso da lontano |
+| **Alfiere** | 11 | ×1,5 | porta lo stendardo Beauceant; gli zombie entro 5 m camminano ×1,3 e picchiano ×1,25 finché lui è vivo; morto, lo stendardo cade e si spegne |
+
+**7. La forgia della spada di de Molay** (scelta di birbasan, alla Origins)
+- **Tre pezzi**: l'**elsa**, che cade dal **Templare a cavallo** quando muore; la **lama spezzata**, che lascia **de Molay quando scappa** (ondata 10); il **pomo col rubino**, che si trova in giro sull'isola (uno di tre posti, dal seed, come i pezzi della campana §9b) **[il pomo: scelta provvisoria]**. Sono della squadra.
+- **La fucina** nelle catacombe: AZIONE coi tre pezzi li mette sull'incudine e la fucina si accende. Poi **la lama si tempra**: **10 zombie uccisi nel fuoco della fucina** (dentro 3 m) mentre brucia; ogni anima fa salire la tempra («🔥 tempra N/10»). Finito, AZIONE prende la **spada maledetta di de Molay** (un pezzo per ciascuno in squadra, come la Lancia).
+- Prima dell'ondata 10 non si può: è la ricompensa di chi arriva lontano.
+
+**Ordine dei passi**: 1 bilanciamento → 2 spiaggia → 3 catacombe (e il dipinto rifatto) → 4 indizi → 5 fantasmi → 6 monaco, lebbroso, alfiere → 7 forgia. Gli indizi vengono dopo le catacombe perché devono parlare anche di loro; la forgia per ultima perché sta nelle catacombe e usa i biglietti.
 
 ## 13. Come funziona sotto (per chi programma)
 Una partita è una **sim deterministica** come il dungeon (`packages/sim/src/templari/`, stessa regola: niente funzioni trascendenti): il server sceglie il seed (`POST /api/templari/start`), il client gioca e registra un input per tick, a fine partita (`POST /api/templari/finish`) il DO del lotto rigioca gli input e paga il premio dell'ondata che ne esce. Lo stato (seed in sospeso, premio del giorno, record) sta nel `LotState` (niente migrazioni D1). Nel client tutto vive in un **chunk** a parte (`apps/client/src/templari/`), scaricato solo entrando. Dettagli e interfacce: `CONTRACTS.md` (sezione Templari).
