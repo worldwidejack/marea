@@ -55,7 +55,6 @@ const VIA_S = 2.4, AIUTO_S = 7;
 /** Oltre questa distanza (m) gli abeti si spengono (il terreno resta: da lassù si vede fino in valle). */
 const LONTANO = 420;
 const NOMI_CADUTA: Record<string, string> = { abete: 'CONTRO L’ABETE!', roccia: 'CONTRO LA ROCCIA!', bosco: 'NEL BOSCO!', storto: 'ATTERRAGGIO STORTO!', presa: 'ANCORA IN PRESA!', tronco: 'CONTRO IL TRONCO!', botta: 'ATTERRAGGIO TROPPO DURO!' };
-const RISORSE: Record<string, string> = { legno: 'Legno', pietra: 'Pietra', perle: 'Perle' };
 const CASCO = AVATAR.cappelli.findIndex((h) => h.id === 'casco');
 const PANNELLI = ['mzSbPiste', 'mzSbRegole', 'mzSbFine'];
 /** Per i test: la discesa aperta adesso. */
@@ -178,8 +177,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
         const r = await ctx.server.play(packInputs(frames), pista);
         ctx.setLot(r.lot);
         a.medal = r.medal; a.posizione = r.posizione || null; a.classificati = r.classificati ?? null; a.nuovoRecord = !!r.discesa?.record;
-        const premio = Object.entries(r.premio).filter(([, n]) => (n ?? 0) > 0).map(([k, n]) => `+${n} ${RISORSE[k] ?? k}`).join(' · ');
-        a.premio = premio ? `Premio: ${premio}` : null;
+        a.premio = r.premio > 0 ? `Premio: +${r.premio} monete` : null;
         if (!r.premiata) a.nota = 'Partite premiate di oggi finite: questa vale per la classifica';
       } catch (e) {
         errore = String((e as Error)?.message ?? e);

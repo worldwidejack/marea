@@ -232,10 +232,10 @@ export default async function (ctx) {
       assert(a1.escrow.legno === 0 && b1.escrow.legno === 0, 'escrow non vuoto');
       assert(Math.abs(a1.resources.legno - (a0.resources.legno + a0.escrow.legno - STAKE)) <= 2, `Anna doveva perdere la posta: ${a0.resources.legno}+${a0.escrow.legno} → ${a1.resources.legno}`);
       assert(Math.abs(b1.resources.legno - (b0.resources.legno + STAKE)) <= 2, `Bruno doveva vincere la posta: ${b0.resources.legno} → ${b1.resources.legno}`);
-      // la barra delle risorse segue l'esito subito (non al poll dei 30 s): Perle del server entro 6 s, col pannello ancora aperto
-      const barPerle = () => bruno.page.evaluate(() => Number(document.querySelector('.mz-chip[data-res="perle"] b')?.textContent ?? -1));
-      await bruno.page.waitForFunction((n) => Number(document.querySelector('.mz-chip[data-res="perle"] b')?.textContent ?? -1) === n, b1.resources.perle, { timeout: 6000 })
-        .catch(async () => assert(false, `barra Perle di Bruno ${await barPerle()}, server ${b1.resources.perle}`));
+      // il lotto del client segue l'esito subito (non al poll dei 30 s): Perle del server entro 6 s, col pannello ancora aperto (le sfide pagano
+      // ancora le Perle di prima, che non hanno più un contatore nell'HUD: #414)
+      await ctx.waitState(bruno.page, (st, n) => st.lot.resources.perle === n, 6000, b1.resources.perle)
+        .catch(async () => assert(false, `Perle di Bruno nel client ${(await ctx.getState(bruno.page)).lot.resources.perle}, server ${b1.resources.perle}`));
       await closeTavolo(bruno);
     });
 

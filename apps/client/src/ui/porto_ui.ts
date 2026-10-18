@@ -1,4 +1,4 @@
-// Pannelli del Porto (#63-#65), chunk caricato con import() alla prima apertura da game/porto.ts: Mercante delle Perle (corpo in
+// Pannelli del Porto (#63-#65), chunk caricato con import() alla prima apertura da game/porto.ts: Mercante del Porto (corpo in
 // porto_mercante.ts), Bacheca delle missioni (tre al giorno, calcolate con @marea/sim/economy/missioni.ts dal lotto, RISCUOTI sul server)
 // e le battute della Gente del Porto (scheda in basso, AVANTI). Un pannello alla volta; tastiera in capture su window solo a pannello
 // aperto con stopPropagation (mai keyup), come l'editor: Esc chiude, frecce tra i bottoni, sinistra/destra cambiano scheda, E/Spazio/Invio
@@ -6,12 +6,12 @@
 import { GENTE } from '@marea/content/porto.ts';
 import type { PersonaPorto } from '@marea/content/porto.ts';
 import { finoAlCambio, missioniOf } from '@marea/sim/economy/missioni.ts';
-import type { LotState, Resources } from '@marea/sim';
+import type { LotState } from '@marea/sim';
 import { barcaDi } from '@marea/sim';
 import { ApiError } from '../net/api.ts';
 import type { PortoCtx } from '../game/porto.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
-import { RES_IDS, pixIcon, resIcon } from './icons.ts';
+import { pixIcon, resIcon } from './icons.ts';
 import { flyResources, tickTimers, timerSpan } from './sheet.ts';
 import { TABS, mercanteBody } from './porto_mercante.ts';
 import type { MercanteState } from './porto_mercante.ts';
@@ -30,7 +30,7 @@ const P = PAL;
 const STYLE = `
 .mz-sheet.mz-pt { box-sizing: border-box; }
 .mz-pt .mz-head { gap: 10px; }
-.mz-pt-perle { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; min-height: 32px; padding: 0 8px; border: 2px solid ${P.legno}; font-weight: bold; white-space: nowrap; }
+.mz-pt-monete { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; min-height: 32px; padding: 0 8px; border: 2px solid ${P.legno}; font-weight: bold; white-space: nowrap; }
 .mz-pt-say { margin: 0 0 8px; color: ${P.sabbia}; font-size: 14px; line-height: 1.35; }
 .mz-pt-say b { color: ${P.giallo}; }
 .mz-pt-tabs { display: flex; gap: 6px; margin-bottom: 4px; }
@@ -129,8 +129,8 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
   function head(title: string, icon: 'mercante' | 'bacheca'): HTMLElement {
     const h = el('div', 'mz-head'), t = el('div', 'mz-title'); t.style.display = 'flex'; t.style.alignItems = 'center'; t.style.gap = '6px';
     t.append(pixIcon(icon, 24), el('span', '', title));
-    const lot = ctx.getLot(), pc = el('span', 'mz-pt-perle'); pc.title = 'Le tue Perle'; pc.dataset['perle'] = String(lot?.resources.perle ?? '');
-    pc.append(resIcon('perle', 16), lot ? String(lot.resources.perle) : '…');
+    const lot = ctx.getLot(), pc = el('span', 'mz-pt-monete'); pc.title = 'Le tue monete'; pc.dataset['monete'] = String(lot?.monete ?? '');
+    pc.append(resIcon('monete', 16), lot ? String(lot.monete) : '…');
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.title = 'Chiudi (Esc)'; x.setAttribute('aria-label', 'Chiudi'); x.dataset['act'] = 'chiudi';
     x.addEventListener('click', () => close());
     h.append(t, pc, x);
@@ -147,7 +147,7 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
       const c = el('div', 'mz-pt-card' + (m.riscossa ? ' fatta' : '')); c.dataset['missione'] = String(m.i); c.dataset['tipo'] = m.tipo;
       const bar = el('div', 'mz-pt-bar'), fill = el('i'); fill.style.width = `${Math.round((100 * m.fatto) / m.n)}%`; bar.appendChild(fill);
       const pz = el('div', 'pz');
-      for (const id of RES_IDS) if (m.premio[id] > 0) { const s = el('span'); s.append(resIcon(id, 16), `+${m.premio[id]}`); pz.appendChild(s); }
+      if (m.premio > 0) { const s = el('span'); s.append(resIcon('monete', 16), `+${m.premio}`); pz.appendChild(s); }
       const b = el('button', 'mz-pt-act' + (m.compiuta && !m.riscossa ? ' green' : ''), m.riscossa ? 'RISCOSSA' : m.compiuta ? 'RISCUOTI' : 'IN CORSO');
       b.type = 'button'; b.dataset['act'] = 'riscuoti'; b.disabled = !m.compiuta || m.riscossa || bach.busy;
       b.addEventListener('click', () => void riscuoti(m.i, b));
@@ -191,9 +191,9 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     bach.busy = false;
     if (g === gen) render();
   }
-  function fly(from: HTMLElement, premio: Resources): void {
+  function fly(from: HTMLElement, premio: number): void {
     const r = from.getBoundingClientRect(), rr = ctx.root.getBoundingClientRect(), p = { x: r.left - rr.left + r.width / 2, y: r.top - rr.top + r.height / 2 };
-    for (const id of RES_IDS) if (premio[id] > 0) flyResources(ctx.root, p, ctx.hud.resAnchor?.(id) ?? null, id, premio[id], () => ctx.hud.bump?.(id));
+    if (premio > 0) flyResources(ctx.root, p, ctx.hud.resAnchor?.('monete') ?? null, 'monete', premio, () => ctx.hud.bump?.('monete'));
   }
 
   // ---------- apri / chiudi ----------
@@ -205,7 +205,7 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     sheet.scrollTop = 0;
     items()[0]?.focus({ preventScroll: true });
     timer = window.setInterval(() => tickTimers(sheet, ctx.api?.serverNow() ?? Date.now()), 1000);
-    // contatori e Perle freschi dal server (le missioni contano anche quello che hai fatto altrove)
+    // contatori e monete freschi dal server (le missioni contano anche quello che hai fatto altrove)
     const g = gen;
     if (ctx.api?.enabled) ctx.api.lot().then((l) => { ctx.setLot(l); if (g === gen) render(); }, () => { /* restano quelli noti */ });
   }

@@ -14,7 +14,7 @@ import type { InputFrame } from '../src/types.ts';
 import { newLot } from '../src/economy/actions.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
 import { finishSolo, soloPrize, startSolo } from '../src/economy/rewards.ts';
-import { add } from '../src/economy/types.ts';
+import { checkMonete } from '../src/economy/monete.ts';
 import { composeArchipelago } from '../src/world/archipelago.ts';
 
 const C = MINIGAMES_CFG.perle;
@@ -126,15 +126,17 @@ test('perle: si tuffa dalla barca ferma su acqua bassa, lontano dai moli; non su
   assert.equal(perleQui(arch, 2, 2, 0).perche, 'acqua', 'in mare aperto si pesca, non ci si tuffa');
 });
 
-test('perle: premio della medaglia da balance.solo, più le Perle extra dell\'oro (premioExtra); il libro mastro resta in pari', () => {
-  const extra = C.premioExtra?.oro?.perle ?? 0;
-  assert.ok(extra > 0, 'premioExtra.oro.perle');
-  assert.deepEqual(soloPrize('oro', 'perle'), { ...BALANCE.solo.premi.oro, perle: BALANCE.solo.premi.oro.perle + extra });
-  assert.deepEqual(soloPrize('argento', 'perle'), BALANCE.solo.premi.argento);
-  assert.deepEqual(soloPrize('oro', 'regata'), BALANCE.solo.premi.oro);
+test('perle: premio della medaglia da balance.solo, più le monete extra dell\'oro (premioExtra); il libro mastro resta in pari', () => {
+  const extra = C.premioExtra?.oro ?? 0;
+  assert.ok(extra > 0, 'premioExtra.oro');
+  assert.equal(soloPrize('oro', 'perle'), BALANCE.solo.premi.oro + extra);
+  assert.equal(soloPrize('argento', 'perle'), BALANCE.solo.premi.argento);
+  assert.equal(soloPrize('oro', 'regata'), BALANCE.solo.premi.oro);
   const T0 = 20_000 * 86_400_000 + 3_600_000, l0 = newLot('ada', T0);
   const out = finishSolo(startSolo(l0, 'perle', 7, T0), 'oro', T0 + 61_000);
-  assert.deepEqual(out.premio, soloPrize('oro', 'perle'));
-  assert.deepEqual(out.lot.resources, add(l0.resources, out.premio));
+  assert.equal(out.premio, soloPrize('oro', 'perle'));
+  assert.equal(out.lot.monete, l0.monete + out.premio);
+  assert.deepEqual(out.lot.resources, l0.resources);
   assert.equal(checkInvariant([out.lot]), null);
+  assert.equal(checkMonete([out.lot]), null);
 });

@@ -32,7 +32,7 @@ export type Funivia = {
 /** La liberatoria (docs/ADRENALINA.md §2): stesso testo di @marea/sim LIBERATORIA, qui per non portare la sim nel bundle. */
 const TESTO = [
   'Il sottoscritto sale sulla montagna di sua spontanea volontà, con le gambe sue e il casco in testa.',
-  'Il parco declina ogni responsabilità per ossa rotte, orgoglio ferito e Perle perse.',
+  'Il parco declina ogni responsabilità per ossa rotte, orgoglio ferito e monete perse.',
   'Si impegna a non piangere davanti agli amici e a non dare la colpa alla neve.',
 ];
 const CSS = `
@@ -120,7 +120,7 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
   let firmaQui = false, busy = false, near = false, nearWas = false, aWas = false, firme = 0, rifiuti = 0, salite = 0, ultimo = '';
   const firmata = () => FLAGS.adrenalina || firmaQui || (o.getLot()?.liberatorie ?? []).includes('adrenalina');
   const casco = () => FLAGS.adrenalina || AVATAR.cappelli[o.world.look.cappello]?.id === 'casco';
-  const prezzo = AVATAR.cappelli.find((h) => h.id === 'casco')?.perle ?? 0;
+  const prezzo = AVATAR.cappelli.find((h) => h.id === 'casco')?.monete ?? 0;
   const dice = (testo: string, ms = 3600) => { ultimo = testo; o.hud.toast(testo, ms); };
   const aperta = () => carta.classList.contains('on');
   function chiudi(): void { carta.classList.remove('on'); nearWas = true; }
@@ -128,7 +128,7 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
   function usa(): void {
     if (busy) return;
     if (!firmata()) { firmaRiga.textContent = `Firmato: ${o.nome() || 'il viaggiatore'}`; carta.classList.add('on'); return; }
-    if (!casco()) { rifiuti++; dice(`Il guardiano: «Senza casco qui non sale nessuno.» Il Casco costa ${prezzo} Perle: lo compri dal tuo avatar (bottone in alto) o dal Mercante al Porto`, 4800); return; }
+    if (!casco()) { rifiuti++; dice(`Il guardiano: «Senza casco qui non sale nessuno.» Il Casco costa ${prezzo} monete: lo compri dal tuo avatar (bottone in alto) o dal Mercante al Porto`, 4800); return; }
     salite++;
     suona('medaglia_bronzo');
     dice('Il guardiano: «Casco in testa, firma fatta: sali. In vetta trovi le piste.»', 2600);
@@ -145,7 +145,7 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
       suona('medaglia_argento');
       carta.classList.remove('on');
       if (!api) o.hud.toast('Senza il tuo link personale la firma vale solo per questa visita', 3000);
-      setTimeout(() => dice(casco() ? 'Il guardiano: «Bene. Casco in testa, si sale.»' : `Il guardiano: «Bene. Adesso il casco: senza, qui non sale nessuno.» (${prezzo} Perle, dal tuo avatar)`, 4400), api ? 0 : 3100);
+      setTimeout(() => dice(casco() ? 'Il guardiano: «Bene. Casco in testa, si sale.»' : `Il guardiano: «Bene. Adesso il casco: senza, qui non sale nessuno.» (${prezzo} monete, dal tuo avatar)`, 4400), api ? 0 : 3100);
     } catch (e) {
       dice(e instanceof ApiError ? e.message : 'La penna non scrive: riprova', 3200);
     } finally { busy = false; }

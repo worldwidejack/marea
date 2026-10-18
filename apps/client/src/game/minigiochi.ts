@@ -10,7 +10,7 @@
 // Alla fine una scheda con l'esito, il premio che vola nella barra e RIGIOCA.
 import * as THREE from 'three';
 import { MINIGAMES_CFG, SCACCHI } from '@marea/content';
-import type { ArchPlace, Medal, Resources } from '@marea/sim';
+import type { ArchPlace, Medal } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Loader } from '../render/loader.ts';
 import type { Renderer } from '../render/scene.ts'; // Isola delle Corse
@@ -19,7 +19,7 @@ import type { Api, SoloResult } from '../net/api.ts';
 import { ApiError } from '../net/api.ts';
 import { runRegata } from './regata.ts';
 import { PAL, el, injectUiStyle } from '../ui/style.ts';
-import { RES_IDS, pixIcon, resIcon } from '../ui/icons.ts';
+import { pixIcon, resIcon } from '../ui/icons.ts';
 import type { PixId } from '../ui/icons.ts';
 import type { Scacchi } from '../ui/scacchi.ts';
 import type { InputFrame, PackedInputs } from '@marea/sim';
@@ -69,7 +69,7 @@ export type SchermoGioco = {
   /** La partita è chiusa del tutto: scheda dell'esito chiusa, o finita senza scheda (ritirato, partita non salvata). */
   esitoChiuso?(): void;
 };
-export type SchedaEsito = { medal: Medal; sub: string; premio: Resources | null; note: string | null; again: HTMLButtonElement; ok: HTMLButtonElement };
+export type SchedaEsito = { medal: Medal; sub: string; /** Monete vinte (#414), null = senza premio. */ premio: number | null; note: string | null; again: HTMLButtonElement; ok: HTMLButtonElement };
 /** I giochi a schermo per id del minigioco, scaricati alla prima partita (il JS iniziale ha un tetto, TECH §5). */
 const SCHERMI: Record<string, (root: HTMLElement) => Promise<SchermoGioco>> = {};
 /** Registra un gioco a schermo (dal modulo del minigioco: posto in `spots` più schermata qui). */
@@ -211,7 +211,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     if (['Enter', 'Space', 'Escape', 'KeyE'].includes(e.code)) { e.preventDefault(); e.stopImmediatePropagation(); closeEsito(); }
     else if (e.code === 'KeyR') { e.preventDefault(); e.stopImmediatePropagation(); const s = esitoSpot ?? spots.find((x) => x.id === last?.spot) ?? spots[0]; const sc = esitoScelte; closeEsito(); if (s) void play(s, sc); }
   };
-  function showEsito(s: Spot, medal: Medal, sub: string, premio: Resources | null, note: string | null): void {
+  function showEsito(s: Spot, medal: Medal, sub: string, premio: number | null, note: string | null): void {
     esitoSpot = s; // RIGIOCA (R) rigioca questo, anche se il posto è mobile (pesca)
     esito.classList.remove('kart'); esito.style.borderColor = '';
     const again = el('button', 'mz-btn ghost', 'RIGIOCA'); again.dataset['act'] = 'rigioca';
@@ -227,7 +227,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     const body: Node[] = [title, el('div', 'sub', sub)];
     if (premio) {
       const row = el('div', 'premio');
-      for (const id of RES_IDS) if (premio[id] > 0) { const c = el('span'); c.append(resIcon(id, 24), el('b', '', `+${premio[id]}`)); row.appendChild(c); }
+      if (premio > 0) { const c = el('span'); c.append(resIcon('monete', 24), el('b', '', `+${premio} monete`)); row.appendChild(c); }
       if (row.childElementCount) body.push(row);
     }
     if (note) body.push(el('div', 'sub', note));
@@ -236,9 +236,9 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     esito.replaceChildren(...body);
     fine();
   }
-  function fly(premio: Resources): void {
+  function fly(premio: number): void {
     const from = { x: o.root.clientWidth / 2, y: o.root.clientHeight / 2 };
-    for (const id of RES_IDS) if (premio[id] > 0) flyResources(o.root, from, o.hud.resAnchor?.(id) ?? null, id, premio[id], () => o.hud.bump?.(id));
+    if (premio > 0) flyResources(o.root, from, o.hud.resAnchor?.('monete') ?? null, 'monete', premio, () => o.hud.bump?.('monete'));
   }
 
   /** `scelte` = opzioni già scelte dal gioco a schermo (le Corse: alla porta dell'hub, o RIGIOCA): niente `scegli`, e il gioco può
@@ -276,7 +276,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       busy = false; // da qui la gara tiene fermo il mondo da sé
       const inputs = schermo ? await schermo.run({ seed, difficulty, ...(opzioni ? { opzioni } : {}), ...(s.posto ? { posto: s.posto } : {}) }) : await runRegata({ challenge: { id: 'solo', minigame: s.minigame, difficulty, seed } });
       if (!inputs) { o.hud.toast('Ritirato', 1500); schermo?.esitoChiuso?.(); return; }
-      if (!online) { playedN++; showEsito(s, null, 'Partita di prova', null, 'Con il tuo link personale vinci Legno, Pietra e Perle'); return; }
+      if (!online) { playedN++; showEsito(s, null, 'Partita di prova', null, 'Con il tuo link personale vinci monete'); return; }
       busy = true;
       try {
         const r = await o.api!.soloPlay(inputs);

@@ -2,8 +2,7 @@
 // titolo RISULTATI in alto a sinistra, la tua posizione enorme con l'alloro, la classifica a barre inclinate con le facce e i tempi,
 // il giro migliore, sotto le ricompense e RIGIOCA / AVANTI. Si disegna dentro la scheda dell'esito dei minigiochi (#mzEsito, coi
 // suoi bottoni: R, Invio ed Esc restano quelli), sopra la gara ferma all'arrivo. Lo stile è in `stile_kart.ts`.
-import type { Resources } from '@marea/sim';
-import { RES_IDS, RES_NOME, resIcon } from '../ui/icons.ts';
+import { resIcon } from '../ui/icons.ts';
 import { ICONA, stileKart } from './stile_kart.ts';
 import { ritratto } from './ritratti.ts';
 import type { RigaArrivo } from './vista_gara.ts';
@@ -12,7 +11,8 @@ export type DatiRisultati = {
   righe: RigaArrivo[];
   /** Il tuo giro migliore (ms), null nelle fughe (niente giri). */
   giroMigliore: number | null;
-  premio: Resources | null; nota: string | null;
+  /** Monete vinte (#414); null = nessun premio. */
+  premio: number | null; nota: string | null;
   /** I bottoni della scheda (data-act rigioca / ok): qui si rivestono e si mettono al loro posto. */
   again: HTMLButtonElement; ok: HTMLButtonElement;
 };
@@ -44,11 +44,11 @@ export function vestiRisultati(el: HTMLElement, d: DatiRisultati): void {
   });
   // le ricompense: icona, +N e il nome (le icone a pixel vogliono un lato multiplo di 8)
   const celle = el.querySelector('.celle')!, u = Math.min(innerHeight, innerWidth * 0.5625) / 941, lato = Math.max(16, Math.round((64 * u) / 8) * 8);
-  const voci = d.premio ? RES_IDS.filter((id) => d.premio![id] > 0) : [];
-  for (const id of voci) {
+  const voci = d.premio && d.premio > 0 ? [d.premio] : [];
+  for (const n of voci) {
     const c = document.createElement('div'); c.className = 'cella';
-    const t = document.createElement('span'); t.innerHTML = `<b>+${d.premio![id]}</b><small>${RES_NOME[id]}</small>`;
-    c.append(resIcon(id, lato), t); celle.appendChild(c);
+    const t = document.createElement('span'); t.innerHTML = `<b>+${n}</b><small>monete</small>`;
+    c.append(resIcon('monete', lato), t); celle.appendChild(c);
   }
   if (!voci.length) { const n = document.createElement('div'); n.className = 'nota'; n.textContent = d.nota ?? 'Nessuna ricompensa questa volta'; celle.replaceWith(n); }
   else if (d.nota) { const n = document.createElement('div'); n.className = 'nota'; n.textContent = d.nota; el.querySelector('.kr-premi')!.appendChild(n); }

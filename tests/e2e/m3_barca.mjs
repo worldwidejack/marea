@@ -64,22 +64,24 @@ export default async function (ctx) {
       assert(lots.find((x) => x.id === 'mia')?.look.barca?.scafo === 'mare', '/api/lots senza barca');
     });
 
-    await ctx.test('API: un colore esclusivo si compra una volta (409 senza Perle, gratis o già tuo)', async () => {
+    await ctx.test('API: un colore esclusivo si compra una volta (409 senza monete, gratis o già tuo)', async () => {
       assert((await post('/api/barca/colore', 'tokL', { id: 'boh' })).status === 400, 'sconosciuto');
       assert((await post('/api/barca/colore', 'tokL', { id: 'rosso' })).status === 409, 'gratis');
       const no = await post('/api/barca/colore', 'tokL', { id: nero.id });
-      assert(no.status === 409 && no.body.manca?.perle > 0, 'senza Perle: ' + JSON.stringify(no));
+      assert(no.status === 409 && no.body.manca?.monete > 0, 'senza monete: ' + JSON.stringify(no));
       for (let i = 0; i < 3; i++) { const r = await regataSolo('tokL'); assert(r.status === 200, 'regata: ' + r.status); }
-      const p0 = (await get('/api/lot', 'tokL')).body.resources.perle;
-      assert(p0 >= nero.perle + corsaro.perle, 'Perle per il test: ' + p0);
+      // le Regate da sole non sempre bastano (10 premiate al giorno): il resto dalla rotta di prova (#414)
+      { const m = (await get('/api/lot', 'tokL')).body.monete, serve = nero.monete + corsaro.monete; if (m < serve) assert((await post('/api/test/monete', 'tokL', { n: serve - m })).status === 200, 'monete di prova'); }
+      const p0 = (await get('/api/lot', 'tokL')).body.monete;
+      assert(p0 >= nero.monete + corsaro.monete, 'monete per il test: ' + p0);
       const si = await post('/api/barca/colore', 'tokL', { id: nero.id });
-      assert(si.status === 200 && si.body.resources.perle === p0 - nero.perle && si.body.posseduti.includes('barca:' + nero.id), 'compra: ' + JSON.stringify(si.body).slice(0, 200));
+      assert(si.status === 200 && si.body.monete === p0 - nero.monete && si.body.posseduti.includes('barca:' + nero.id), 'compra: ' + JSON.stringify(si.body).slice(0, 200));
       const due = await post('/api/barca/colore', 'tokL', { id: nero.id });
       assert(due.status === 409 && /Hai già/.test(due.body.error), 'due volte: ' + JSON.stringify(due));
-      assert((await get('/api/lot', 'tokL')).body.resources.perle === p0 - nero.perle, 'pagato due volte');
+      assert((await get('/api/lot', 'tokL')).body.monete === p0 - nero.monete, 'pagato due volte');
       assert((await post('/api/barca', 'tokL', { scafo: nero.id, vela: nero.id })).status === 200, 'dopo l’acquisto lo scafo nero si salva');
       assert((await post('/api/barca', 'tokL', { scafo: 'legno', vela: 'nessuna' })).status === 200, 'di nuovo di serie');
-      ctx.log(`Perle di Luca: ${p0} → ${p0 - nero.perle}`);
+      ctx.log(`monete di Luca: ${p0} → ${p0 - nero.monete}`);
     });
 
     // ---------- PC (Luca) ----------
@@ -103,9 +105,9 @@ export default async function (ctx) {
       assert(txt.includes(corsaro.nome) && /ESCLUSIVA/.test(txt), 'scheda barca: ' + txt.slice(0, 300));
       await lp.locator(`#mzPortoPanel [data-item="${corsaro.id}"] [data-act="prova"]`).click();
       await ctx.waitState(lp, (s, id) => s.barche.mia.barca.scafo === id, 5000, corsaro.id);
-      const p0 = (await lst()).lot.resources.perle;
+      const p0 = (await lst()).lot.monete;
       await lp.locator(`#mzPortoPanel [data-item="${corsaro.id}"] [data-act="compra"]`).click();
-      await ctx.waitState(lp, (s, want) => s.lot.resources.perle === want, 15000, p0 - corsaro.perle);
+      await ctx.waitState(lp, (s, want) => s.lot.monete === want, 15000, p0 - corsaro.monete);
       await lp.locator(`#mzPortoPanel [data-item="${corsaro.id}"] [data-act="scafo"]`).click();
       await ctx.waitState(lp, (s) => /scafo ridipinto/.test(s.porto.ui.note ?? ''), 15000);
       await sleep(300);

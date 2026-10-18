@@ -27,7 +27,6 @@ export type HeroState = {
   /** Equipaggiato: id oggetto (o magia per 'magia'). Un oggetto equipaggiato resta anche contato in `inv`. */
   equip: Partial<Record<EquipSlot, string>>;
   magie: string[];
-  monete: number;
   /** Armi fragili (vetro): colpi già dati con la copia in uso, per id. */
   usura: Record<string, number>;
   /** Spedizioni fatte / morti (statistiche). */

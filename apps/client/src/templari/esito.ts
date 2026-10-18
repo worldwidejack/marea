@@ -32,11 +32,11 @@ export function mostraEsito(root: HTMLElement, v: EsitoVista): Promise<void> {
   const secs = Math.round(r.ticks / 60);
   box.append(h, el('div', 'ond', String(Math.max(1, r.ondata))), el('div', 'sub', `ondata raggiunta · ${r.uccisioni} templari abbattuti · ${r.punti} punti · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`));
   box.append(el('div', 'sec', `PREMIO · ${r.superate} ${r.superate === 1 ? 'ondata superata' : 'ondate superate'}`));
-  if (!v.premio) box.append(el('div', 'nota', 'Senza il tuo link personale non c’è premio'));
-  else if (v.premio.legno + v.premio.pietra + v.premio.perle === 0) box.append(el('div', 'nota', v.tetto ? 'Per oggi hai preso tutto il premio dell’isola: domani si ricomincia' : r.superate ? 'Niente stavolta' : 'Supera almeno un’ondata per portare a casa qualcosa'));
+  if (v.premio === null) box.append(el('div', 'nota', 'Senza il tuo link personale non c’è premio'));
+  else if (v.premio === 0) box.append(el('div', 'nota', v.tetto ? 'Per oggi hai preso tutto il premio dell’isola: domani si ricomincia' : r.superate ? 'Niente stavolta' : 'Supera almeno un’ondata per portare a casa qualcosa'));
   else {
     const pr = el('div', 'pr');
-    for (const k of ['legno', 'pietra', 'perle'] as const) if (v.premio[k] > 0) { const s = el('span'); s.append(resIcon(k, 18), el('b', '', `+${v.premio[k]}`)); pr.append(s); }
+    const s = el('span'); s.append(resIcon('monete', 18), el('b', '', `+${v.premio} monete`)); pr.append(s);
     box.append(pr);
     if (v.tetto) box.append(el('div', 'nota', 'Hai raggiunto il tetto di oggi: il resto domani'));
   }

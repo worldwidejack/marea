@@ -34,7 +34,7 @@ export type TraguardoSe = {
   /** `edifici`: edifici da costruire tutti (livello ≥ 1). */
   ids?: string[];
 };
-export type TraguardoDef = { id: string; nome: string; testo: string; titolo: string; perle: number; se: TraguardoSe };
+export type TraguardoDef = { id: string; nome: string; testo: string; titolo: string; monete: number; se: TraguardoSe };
 
 /** Cosa sa contare il server (Lot DO): un tipo fuori da qui non si potrebbe mai compiere. */
 export const TRAGUARDO_TIPI = ['pesci', 'specie', 'rarita', 'perle', 'perla', 'tipiPerle', 'medaglie', 'giocati', 'partite', 'edificio', 'edifici', 'animali', 'isole', 'amici', 'dungeon'] as const;
@@ -81,7 +81,7 @@ export function validateDiario(): string[] {
     if (!t.titolo || t.titolo.length > TITOLO_MAX) errs.push(`${dove}: titolo vuoto o più lungo di ${TITOLO_MAX}`);
     if (titoli.has(t.titolo)) errs.push(`${dove}: titolo ripetuto ${t.titolo}`);
     titoli.add(t.titolo);
-    if (!Number.isInteger(t.perle) || t.perle < 1 || t.perle > 50) errs.push(`${dove}: premio in Perle fuori da 1-50`);
+    if (!Number.isInteger(t.monete) || t.monete < 1 || t.monete > 150) errs.push(`${dove}: premio in monete fuori da 1-150`);
     const conTutti = ['specie', 'tipiPerle', 'medaglie', 'giocati', 'animali', 'isole', 'amici'].includes(se.tipo);
     const senzaN = se.tipo === 'edificio' || se.tipo === 'edifici' || (se.tipo === 'tipiPerle' && se.tutti);
     if (se.tutti && !conTutti) errs.push(`${dove}: «tutti» non vale per ${se.tipo}`);

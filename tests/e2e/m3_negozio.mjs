@@ -1,7 +1,7 @@
-// Il negozio dei mobili (#265) sul server locale (wrangler dev, TEST_CLOCK:1): Luca vince Perle con le Regate (API, autopilot); nel
+// Il negozio dei mobili (#265) sul server locale (wrangler dev, TEST_CLOCK:1): Luca vince monete con le Regate (API, autopilot); nel
 // browser cammina contro la porta della bottega sullo slargo ed entra (velo, camera fissa, niente minimappa); davanti a un mobile in vetrina (quella
 // di oggi, #384) A apre la scheda, COMPRA → è nel magazzino (server); una carta da parati comprata si mette subito; il banco dice cosa c’è oggi e il
-// server rifiuta un mobile non esposto; in fondo al corridoio esce in città; a casa ARREDA posa il mobile. Senza Perle la scheda dice quante ne mancano e non chiama il server. Telefono 390×844: bottone e scheda dentro
+// server rifiuta un mobile non esposto; in fondo al corridoio esce in città; a casa ARREDA posa il mobile. Senza monete la scheda dice quante ne mancano e non chiama il server. Telefono 390×844: bottone e scheda dentro
 // lo schermo, ≥ 44 px. Screenshot: la bottega in città, il negozio da dentro (PC e telefono), la scheda.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -28,7 +28,7 @@ export default async function (ctx) {
   const { vetrinaOra } = await sim('economy/vetrina.ts');
   const oggi = vetrinaOra(Date.now()), def = (id) => mobili.find((m) => m.id === id);
   // il negozio vende solo la vetrina di oggi (#384): il mobile di prova è il più economico a terra 1×1 tra gli esposti, l’altro è uno a parete esposto
-  const stereo = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.perle - b.perle)[0], orologio = def(oggi.parete[0]), carta = borgo.carte.find((f) => f.id === oggi.carte[0]); // anche le carte da parati sono quelle di oggi (#393)
+  const stereo = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.monete - b.monete)[0], orologio = def(oggi.parete[0]), carta = borgo.carte.find((f) => f.id === oggi.carte[0]); // anche le carte da parati sono quelle di oggi (#393)
   assert(stereo && orologio, 'la vetrina di oggi non ha un mobile a terra 1×1 e uno a parete');
   const [X0, Z0] = borgo.stanza.pavimento, ORIG = arch.islands.find((i) => i.role === 'lotto' && i.slot === 0).at;
   const mondo = (cx, cz) => ({ x: (ORIG[0] + cx) * 2, z: (ORIG[1] + cz) * 2 });
@@ -56,7 +56,9 @@ export default async function (ctx) {
       while (!x.done) { const f = quantize(regata.autopilot(x, rng)); frames.push(f); regata.step(x, f); }
       return post('/api/solo/play', { inputs: packInputs(frames) }, tok);
     };
-    for (let i = 0; i < 6 && (await get('/api/lot')).body.resources.perle < stereo.perle + carta.perle + orologio.perle; i++) assert((await playSolo('tokL')).status === 200, 'regata');
+    for (let i = 0; i < 4 && (await get('/api/lot')).body.monete < stereo.monete + carta.monete + orologio.monete; i++) assert((await playSolo('tokL')).status === 200, 'regata');
+    // le Regate da sole non sempre bastano (10 premiate al giorno): il resto dalla rotta di prova (#414)
+    { const m = (await get('/api/lot')).body.monete, serve = stereo.monete + carta.monete + orologio.monete; if (m < serve) assert((await post('/api/test/monete', { n: serve - m })).status === 200, 'monete di prova'); }
 
     const open = async (viewport, tok = 'tokL') => {
       const pg = await ctx.B.openPage(ctx.browser, `${BASE}/?t=${tok}&test=1`, { viewport });
@@ -96,7 +98,7 @@ export default async function (ctx) {
     });
 
     await ctx.test('PC: davanti al mobile in vetrina A apre la scheda; COMPRA → nel magazzino; la carta da parati si mette subito', async () => {
-      const V = globalThis.__pc, p0 = (await get('/api/lot')).body.resources.perle;
+      const V = globalThis.__pc, p0 = (await get('/api/lot')).body.monete;
       for (const id of [stereo.id, carta.id]) {
         const pz = (await V.st()).negozio.pezzi.find((p) => p.id === id);
         await V.hook('teleport', pz.x, pz.z);
@@ -110,7 +112,7 @@ export default async function (ctx) {
       const lot = (await get('/api/lot')).body;
       assert(lot.casa.magazzino[stereo.id] === 1, 'magazzino: ' + JSON.stringify(lot.casa));
       assert(lot.casa.carta === carta.id && lot.casa.finiture.includes(carta.id), 'carta: ' + JSON.stringify(lot.casa));
-      assert(lot.resources.perle === p0 - stereo.perle - carta.perle, `Perle ${lot.resources.perle} invece di ${p0 - stereo.perle - carta.perle}`);
+      assert(lot.monete === p0 - stereo.monete - carta.monete, `monete ${lot.monete} invece di ${p0 - stereo.monete - carta.monete}`);
     });
 
     await ctx.test('PC: il banco dice cosa c’è oggi; i pezzi in negozio sono la vetrina della sim; un mobile non esposto il server lo rifiuta (#384)', async () => {
@@ -134,7 +136,7 @@ export default async function (ctx) {
       const r = await post('/api/lot/casa/compra', { id: fuori.id });
       assert(r.status === 409 && r.body.code === 'requisito', 'fuori vetrina: ' + r.status + ' ' + JSON.stringify(r.body));
       const dopo = (await get('/api/lot')).body;
-      assert(JSON.stringify(dopo.casa) === JSON.stringify(prima.casa) && dopo.resources.perle === prima.resources.perle, 'il rifiuto ha cambiato qualcosa');
+      assert(JSON.stringify(dopo.casa) === JSON.stringify(prima.casa) && dopo.monete === prima.monete, 'il rifiuto ha cambiato qualcosa');
       assert((await post('/api/lot/casa/compra', { id: 'trono' })).status === 404, 'mobile sconosciuto');
     });
 
@@ -155,7 +157,7 @@ export default async function (ctx) {
       ctx.noErrors(V.pg, 'pc');
     });
 
-    await ctx.test('telefono 390×844: senza Perle la scheda dice quante ne mancano (niente chiamate); bottoni ≥ 44 px dentro lo schermo', async () => {
+    await ctx.test('telefono 390×844: senza monete la scheda dice quante ne mancano (niente chiamate); bottoni ≥ 44 px dentro lo schermo', async () => {
       const V = await open(ctx.B.IPHONE, 'tokA');
       await V.hook('negozio');
       await ctx.waitState(V.page, (s) => s.negozio.dentro, 8000);
@@ -166,11 +168,11 @@ export default async function (ctx) {
       await ctx.shot(V.page, 'telefono_negozio');
       await V.page.locator('#btnA').tap();
       await ctx.waitState(V.page, (s, id) => s.negozio.aperto === id, 3000, caro.id);
-      const perle = (await get('/api/lot', 'tokA')).body.resources.perle;
+      const perle = (await get('/api/lot', 'tokA')).body.monete;
       await V.page.locator('#mzNegozio [data-act="compra"]').tap();
       await V.page.waitForTimeout(500);
       const txt = await V.page.locator('#mzNegozio').innerText();
-      if (perle < caro.perle) assert(/mancano/.test(txt), 'senza Perle: ' + txt);
+      if (perle < caro.monete) assert(/mancano/.test(txt), 'senza monete: ' + txt);
       const piccoli = await V.page.evaluate(() => [...document.querySelectorAll('#mzNegozio button')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 20), w: Math.round(r.width), h: Math.round(r.height), fuori: r.left < 0 || r.right > innerWidth || r.bottom > innerHeight }; }).filter((r) => r.w < 44 || r.h < 44 || r.fuori));
       assert(!piccoli.length, 'bottoni piccoli o fuori: ' + JSON.stringify(piccoli));
       await ctx.shot(V.page, 'telefono_scheda');

@@ -6,15 +6,17 @@ import { MISSIONI } from '@marea/content/porto.ts';
 import type { MissioneTipoDef } from '@marea/content/porto.ts';
 import { createRng } from '../rng.ts';
 import { advance } from './advance.ts';
-import { EconomyError, ZERO, add } from './types.ts';
-import type { LotState, MissioniState, Resources } from './types.ts';
+import { guadagna } from './monete.ts';
+import { EconomyError } from './types.ts';
+import type { LotState, MissioniState } from './types.ts';
 
 const DAY = 86_400_000;
 export const giornoDi = (nowMs: number): number => Math.floor(nowMs / DAY);
 /** Millisecondi alla mezzanotte UTC (quando arrivano le missioni nuove). */
 export const finoAlCambio = (nowMs: number): number => (giornoDi(nowMs) + 1) * DAY - nowMs;
 
-export type Missione = { i: number; tipo: string; testo: string; n: number; premio: Resources };
+/** `premio` = monete (#414). */
+export type Missione = { i: number; tipo: string; testo: string; n: number; premio: number };
 export type MissioneStato = Missione & { fatto: number; compiuta: boolean; riscossa: boolean };
 /** Eventi contati dal server: tipo di missione → quanto aggiungere. */
 export type EventiMissione = Partial<Record<string, number>>;
@@ -33,7 +35,7 @@ export function missioniDelGiorno(owner: string, day: number): Missione[] {
     gruppi.add(g);
     const passi = Math.floor((t.n[1] - t.n[0]) / t.passo);
     const n = t.n[0] + rng.int(0, passi) * t.passo;
-    out.push({ i: out.length, tipo: t.tipo, testo: t.testo.replace('{n}', String(n)), n, premio: { ...ZERO, ...t.premio } });
+    out.push({ i: out.length, tipo: t.tipo, testo: t.testo.replace('{n}', String(n)), n, premio: t.monete });
   }
   return out;
 }
@@ -79,8 +81,8 @@ export function eventiRaccolta(prima: LotState, dopo: LotState): EventiMissione 
   return { legno: dopo.ledger.generated.legno - prima.ledger.generated.legno, pietra: dopo.ledger.generated.pietra - prima.ledger.generated.pietra };
 }
 
-/** RISCUOTI: missione compiuta e non ancora riscossa → premio nel lotto (e nel libro mastro). */
-export function riscuotiMissione(lot0: LotState, i: number, nowMs: number): { lot: LotState; premio: Resources; missione: MissioneStato } {
+/** RISCUOTI: missione compiuta e non ancora riscossa → monete nel lotto (e nel libro mastro). */
+export function riscuotiMissione(lot0: LotState, i: number, nowMs: number): { lot: LotState; premio: number; missione: MissioneStato } {
   const { list } = missioniOf(lot0, nowMs);
   const m = list.find((x) => x.i === i);
   if (!m) throw new EconomyError('sconosciuto', 'Missione sconosciuta');
@@ -90,12 +92,6 @@ export function riscuotiMissione(lot0: LotState, i: number, nowMs: number): { lo
   return {
     premio: m.premio,
     missione: { ...m, riscossa: true },
-    lot: {
-      ...lot,
-      version: lot.version + 1,
-      resources: add(lot.resources, m.premio),
-      ledger: { ...lot.ledger, generated: add(lot.ledger.generated, m.premio) },
-      missioni: { day: s.day, prog: s.prog, riscosse: [...s.riscosse, i] },
-    },
+    lot: guadagna({ ...lot, version: lot.version + 1, missioni: { day: s.day, prog: s.prog, riscosse: [...s.riscosse, i] } }, m.premio),
   };
 }

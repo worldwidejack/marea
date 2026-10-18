@@ -5,6 +5,7 @@
 // (gli slot con un oggetto perso tornano a quello di prima) e uscendo da una lanterna la si ricorda per la discesa dopo (hero.lanterne).
 import { DUNGEONS, RPG, SKILLS } from '@marea/content/rpg.ts';
 import { advance } from '../economy/advance.ts';
+import { guadagna } from '../economy/monete.ts';
 import { EconomyError } from '../economy/types.ts';
 import type { LotState } from '../economy/types.ts';
 import { equipError, fixEquip, removeFrom, stow } from './bag.ts';
@@ -91,7 +92,7 @@ export function finishDungeon(lot0: LotState, r: RunResult, nowMs: number): Dung
     const x = r.xp?.[s];
     if (typeof x === 'number' && x > 0) h = gainSkillXp(h, s, x * kx);
   }
-  h = { ...h, monete: h.monete + monete, discese: h.discese + 1, morti: h.morti + (r.outcome === 'morto' ? 1 : 0) + cleanCount(r.cadute) };
+  h = { ...h, discese: h.discese + 1, morti: h.morti + (r.outcome === 'morto' ? 1 : 0) + cleanCount(r.cadute) };
   // capo ucciso = dungeon completato (anche se poi sei morto: scelta di Riccardo, 7 ott 2026)
   const id = lot.dungeon.pending.dungeon;
   if (r.capo === true && !(h.completati ?? []).includes(id)) h = { ...h, completati: [...(h.completati ?? []), id] };
@@ -102,6 +103,6 @@ export function finishDungeon(lot0: LotState, r: RunResult, nowMs: number): Dung
   }
   // uscito da una lanterna: la discesa dopo può ripartire da lì
   if (salvo && typeof r.lanterna === 'number' && Number.isInteger(r.lanterna) && r.lanterna >= 0 && r.lanterna < 64) h = { ...h, lanterne: { ...(h.lanterne ?? {}), [id]: r.lanterna } };
-  const out: LotState = { ...state, version: lot.version + 1, hero: h, dungeon: { pending: null } };
+  const out: LotState = guadagna({ ...state, version: lot.version + 1, hero: h, dungeon: { pending: null } }, monete); // nel portafoglio del lotto (#414)
   return { lot: out, tenuto, monete, livelliSu: h.livello - livello0 };
 }

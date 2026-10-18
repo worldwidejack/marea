@@ -45,7 +45,7 @@ export function renderContrabbando(v: View, out: HTMLElement, battuta: string): 
     const r = el('div', 'mz-row');
     for (const n of cat === 'arma' || cat === 'armatura' ? [1] : [1, 5]) {
       const tot = prezzo * n, pesa = it.peso * n > libero + 1e-9;
-      const b = button(`losco:${id}:${n}`, `Compra ${n}`, pesa ? 'zaino pieno' : `${tot} monete`, n === 1 ? 'green' : 'ghost', v.busy || h.monete < tot || pesa,
+      const b = button(`losco:${id}:${n}`, `Compra ${n}`, pesa ? 'zaino pieno' : `${tot} monete`, n === 1 ? 'green' : 'ghost', v.busy || v.lot.monete < tot || pesa,
         () => v.act({ t: 'contrabbando', op: 'compra', item: id, n }, () => `Comprato: ${n} × ${it.nome} (nello zaino)`));
       b.dataset['act'] = 'losco-compra';
       r.appendChild(b);

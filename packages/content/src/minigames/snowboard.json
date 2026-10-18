@@ -2,5 +2,5 @@
   "id": "snowboard",
   "nome": "Snowboard",
   "_nota": "Isola dell'Adrenalina (docs/ADRENALINA.md §7, §9): la discesa la gestisce @marea/content/adrenalina.ts; qui solo quello che serve al giro dei premi. Medaglia dalla classifica a tempo (il fantasma del record): oro = primo, argento = secondo, bronzo = terzo.",
-  "premioExtra": { "oro": { "pietra": 15 } }
+  "premioExtra": { "oro": 4 }
 }

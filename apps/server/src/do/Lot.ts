@@ -29,6 +29,8 @@ import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
 import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
+import { convertiMonete } from '@marea/sim/economy/cambio.ts';
+import { guadagna } from '@marea/sim/economy/monete.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
 import { holdStake, releaseStake } from '@marea/sim/economy/challenge.ts';
 import type { Release } from '@marea/sim/economy/challenge.ts';
@@ -91,11 +93,11 @@ export class Lot extends DurableObject<Env> {
     super(ctx, env);
     ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS stato (k INTEGER PRIMARY KEY, json TEXT NOT NULL)');
   }
+  /** Il personaggio di prova di Riccardo (#401): sempre almeno 100.000 monete. */
   private checkGemmeRiccc(owner: string, lot: LotState, nome?: string): LotState {
     const o = owner.toLowerCase(), isRiccc = o === 'riccc' || o.startsWith('riccc-') || o === 'riccardo' || (typeof nome === 'string' && nome.toLowerCase() === 'riccc');
-    if (!isRiccc || lot.resources.perle >= 100_000) return lot;
-    const extra = 100_000 - lot.resources.perle;
-    return { ...lot, resources: { ...lot.resources, perle: 100_000 }, ledger: { ...lot.ledger, generated: { ...lot.ledger.generated, perle: lot.ledger.generated.perle + extra } } };
+    if (!isRiccc || lot.monete >= 100_000) return lot;
+    return guadagna(lot, 100_000 - lot.monete);
   }
   private load(owner: string, now: number, nome?: string): LotState {
     const row = this.ctx.storage.sql.exec<{ json: string }>('SELECT json FROM stato WHERE k = 1').toArray()[0];
@@ -105,9 +107,10 @@ export class Lot extends DurableObject<Env> {
       return lot;
     }
     const lot = JSON.parse(row.json) as LotState;
+    // salvataggi di prima delle monete (#414): risorse, edifici spenti e monete del personaggio diventano monete, una volta sola;
     // lotti nati prima del template `lotto` (celle arbitrarie): Molo sul molo, edifici sugli slot L; poi resta com'è
     // e personaggi con abilità o perk che non esistono più (Navigazione): via, i perk tornano punti
-    const fit = this.checkGemmeRiccc(owner, fitHero(fitToTemplate(lot, defaultTemplate())), nome);
+    const fit = this.checkGemmeRiccc(owner, fitHero(fitToTemplate(convertiMonete(lot), defaultTemplate())), nome);
     // spedizione abbandonata da un pezzo con un altare toccato: si chiude tenendo il bottino dell'altare
     const chiusa = chiudiScaduta(fit, now);
     if (chiusa) { this.save(chiusa.lot); return chiusa.lot; }
@@ -169,6 +172,13 @@ export class Lot extends DurableObject<Env> {
           return json(next);
         }
         return json({ error: 'Manca item' }, 400);
+      }
+      if (act === 'test_monete') { // solo dalla rotta di prova del Worker (wrangler dev locale con TEST_CLOCK)
+        const n = body['n'];
+        if (typeof n !== 'number' || !Number.isInteger(n) || n < 1 || n > 1_000_000) return json({ error: 'Quante monete?' }, 400);
+        const next = guadagna(lot, n);
+        this.save(next);
+        return json(next);
       }
       if (act === 'adrenalina_liberatoria') { const r = firmaLiberatoria(lot); if (r.nuova) this.save(r.lot); return json({ lot: r.lot, nuova: r.nuova }); }
       if (act === 'rientro') {
@@ -366,7 +376,7 @@ export class Lot extends DurableObject<Env> {
         if (!d) return json({ error: 'Decorazione sconosciuta' }, 400);
         if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
         if (typeof rot !== 'number' || !Number.isInteger(rot) || rot < 0 || rot > 3) return json({ error: 'Rotazione non valida (0-3)' }, 400);
-        return placeDecor(lot, d.id, cell, rot, now, d.perle);
+        return placeDecor(lot, d.id, cell, rot, now, d.monete);
       }
       case 'decor_move': case 'decor_rotate': case 'decor_sell': {
         const id = body['id'], cell = body['cell'];

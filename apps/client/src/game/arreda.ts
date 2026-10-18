@@ -23,7 +23,7 @@ type Vicino = { kind: 'mobile'; a: PlacedMobile; def: MobileDef } | { kind: 'bau
 
 const [X0, Z0] = BORGO.stanza.pavimento; // la stanza di serie: solo per la quota del pavimento (le stanze vere dipendono dal livello della casa, #386)
 const OK = '#B6FF3D', NO = '#FF5C3D'; // verde e rosso neon della sagoma (ART_BIBLE §2), come SPOSTA in giardino
-const BAULE: MobileDef = { id: 'baule', nome: 'Baule', categoria: 'contenitori', perle: 1, posto: 'terra', forma: 'baule', colori: [PAL.legno] };
+const BAULE: MobileDef = { id: 'baule', nome: 'Baule', categoria: 'contenitori', monete: 1, posto: 'terra', forma: 'baule', colori: [PAL.legno] };
 const CSS = `
 #mzArredaBtn { position: absolute; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + 60px); transform: translateX(-50%); display: none; min-height: 44px; padding: 0 16px; background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; z-index: 15; cursor: pointer; }
 #mzArredaBtn.on { display: block; }

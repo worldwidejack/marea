@@ -186,24 +186,24 @@ export type DecorCtx = {
   onConferma(): void; onAnnulla(): void; onClose(): void;
 };
 export const decorNome = (id: string): string => DECOR.find((d) => d.id === id)?.nome ?? id;
-const perleNode = (n: number) => { const c = el('span', 'mz-cost'); c.append(resIcon('perle', 16), el('span', '', `+${n}`)); return c; };
+const moneteNode = (n: number) => { const c = el('span', 'mz-cost'); c.append(resIcon('monete', 16), el('span', '', `+${n}`)); return c; };
 
-/** Scheda di una decorazione della tua isola: SPOSTA, RUOTA (90° a tocco), RIVENDI (con conferma, metà delle Perle). */
+/** Scheda di una decorazione della tua isola: SPOSTA, RUOTA (90° a tocco), RIVENDI (con conferma, metà del prezzo in monete). */
 export function decorPanel(ctx: DecorCtx, d: PlacedDecor, conferma: boolean): Panel {
   const nome = decorNome(d.decor), back = decorRimborso(d.decor);
   const body = el('div'); body.dataset['panel'] = conferma ? 'decor-vendi' : 'decor'; body.dataset['id'] = d.id;
   body.appendChild(head(nome, '', ctx.onClose));
   if (conferma) {
-    body.appendChild(el('div', 'mz-info', `Rivendere ${nome}? Tornano ${back} Perle (metà del prezzo) e sparisce dall’isola.`));
+    body.appendChild(el('div', 'mz-info', `Rivendere ${nome}? Tornano ${back} monete (metà del prezzo) e sparisce dall’isola.`));
     const row = el('div', 'mz-row');
-    row.append(btn('ghost', 'indietro', 'INDIETRO', [], ctx.busy, () => ctx.onChiediVendi(false)), btn('', 'vendi', 'RIVENDI', [perleNode(back)], ctx.busy, ctx.onVendi));
+    row.append(btn('ghost', 'indietro', 'INDIETRO', [], ctx.busy, () => ctx.onChiediVendi(false)), btn('', 'vendi', 'RIVENDI', [moneteNode(back)], ctx.busy, ctx.onVendi));
     body.appendChild(row);
     return { body, sig: sigOf(body) };
   }
   const row = el('div', 'mz-row');
   row.append(btn('', 'sposta', 'SPOSTA', [], ctx.busy, ctx.onSposta), btn('', 'ruota', 'RUOTA ↻', [], ctx.busy, ctx.onRuota));
   body.appendChild(row);
-  body.appendChild(btn('ghost', 'rivendi', 'RIVENDI', [perleNode(back)], ctx.busy, () => ctx.onChiediVendi(true)));
+  body.appendChild(btn('ghost', 'rivendi', 'RIVENDI', [moneteNode(back)], ctx.busy, () => ctx.onChiediVendi(true)));
   return { body, sig: sigOf(body) };
 }
 

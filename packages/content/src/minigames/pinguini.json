@@ -18,7 +18,7 @@
   "pausaSecondi": 1.4,
   "autopilotaSecondi": 0.6,
   "medaglie": { "oro": 3, "argento": 2, "bronzo": 1 },
-  "premioExtra": { "oro": { "pietra": 6 } },
+  "premioExtra": { "oro": 2 },
   "_nota": "Pinguini sul ghiaccio (Isola dei Ghiacci, vicino agli igloo; solo a isola aperta). Lastra lato×lato: trascini un pinguino in una direzione e scivola finché non sbatte contro un iceberg, un altro pinguino o il bordo; se passa sopra una buca di pesca ci si tuffa (ed esce dal ghiaccio). Tutti i pinguini nelle buche = livello risolto. Tre livelli in maxSeconds, scelti dal seed tra `livelli` (generati con node tools/pinguini_livelli.mjs), fasce per difficoltà 1/2/3 (partite); ogni fascia: mosse della soluzione più corta [min, max], pinguini, buche e iceberg [min, max]. Medaglie = livelli risolti. posto = cella locale [x, z] dell'isola. premioExtra = risorse in più rispetto a balance.solo (solo questo minigioco).",
   "livelli": {
     "a": [

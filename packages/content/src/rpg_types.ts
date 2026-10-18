@@ -344,7 +344,8 @@ export type RpgBalance = {
   /** R-rpg, facoltativi: arma quando non ne hai una; quanto ogni livello di abilità sopra skillIniziale alza danno (armi e magie) e potenza delle pozioni. */
   pugni?: { danno: number; velocita: number; portata: number; carica: number; caricaMolt: number };
   abilita?: { dannoPerLivello: number; potenzaPerLivello: number };
-  partenza: { inv: Record<string, number>; equip: Record<string, string>; magie: string[]; monete: number };
+  /** Zaino, equipaggiamento e magie di chi comincia (le monete di partenza stanno nel lotto: balance.json `monete.partenza`, #414). */
+  partenza: { inv: Record<string, number>; equip: Record<string, string>; magie: string[] };
   /** altare.protezione: secondi senza danni dopo il risveglio all'altare (i nemici non ti uccidono appena riapri gli occhi). */
   dungeon: {
     maxMinuti: number; morte: { bottino: number; xp: number }; altare: { protezione: number };

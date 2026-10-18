@@ -1,10 +1,12 @@
-// Icone a pixel (ART_BIBLE §9): risorse (Legno, Pietra, Perle) e luoghi/azioni (casa, Porto, Regata, Scacchi, pesca, martello, ingresso dei dungeon, bussola delle mete). 8×8 celle → SVG nitido a qualsiasi scala.
+// Icone a pixel (ART_BIBLE §9): la valuta (monete, #414), le risorse di prima (Legno, Pietra, Perle: solo il codice spento) e luoghi/azioni (casa, Porto, Regata, Scacchi, pesca, martello, ingresso dei dungeon, bussola delle mete). 8×8 celle → SVG nitido a qualsiasi scala.
 import type { Resources } from '@marea/sim';
 import { PAL } from './style.ts';
 
-export type ResId = keyof Resources;
-export const RES_IDS: readonly ResId[] = ['legno', 'pietra', 'perle'];
-export const RES_NOME: Record<ResId, string> = { legno: 'Legno', pietra: 'Pietra', perle: 'Perle' };
+/** `monete` = la valuta del gioco (#414); legno, pietra, perle = le risorse di prima, solo per il codice spento (giardino, sfide, Faro comune). */
+export type ResId = keyof Resources | 'monete';
+/** Le risorse di prima, nell'ordine di sempre (le usa solo il codice spento). */
+export const RES_IDS: readonly (keyof Resources)[] = ['legno', 'pietra', 'perle'];
+export const RES_NOME: Record<ResId, string> = { monete: 'monete', legno: 'Legno', pietra: 'Pietra', perle: 'Perle' };
 
 const COL: Record<string, string> = {
   a: PAL.legnoChiaro, b: PAL.legno, c: PAL.legnoScuro, s: PAL.sabbia,
@@ -13,6 +15,16 @@ const COL: Record<string, string> = {
   C: PAL.acquaBassa, O: PAL.arancio, E: PAL.erbaScura,
 };
 const ART: Record<ResId, string[]> = {
+  monete: [
+    '..YYYY..',
+    '.YwwYYO.',
+    'YwYYYYOO',
+    'YwYOOYOO',
+    'YYYOOYOO',
+    'YYYYYYOO',
+    '.YYYYOO.',
+    '..OOOO..',
+  ],
   legno: [
     '........',
     '.cccccc.',

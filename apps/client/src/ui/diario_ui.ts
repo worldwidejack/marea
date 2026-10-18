@@ -9,7 +9,7 @@ import type { PescaPesce, PescaRarita } from '@marea/content';
 import { DIARIO, ISOLE_DIARIO, TRAGUARDI } from '@marea/content/diario.ts';
 import { diarioOf, titoloDi, traguardiOf } from '@marea/sim/economy/diario.ts';
 import type { TraguardoStato } from '@marea/sim/economy/diario.ts';
-import type { DiarioState, LotState, Resources } from '@marea/sim';
+import type { DiarioState, LotState } from '@marea/sim';
 import { ApiError } from '../net/api.ts';
 import type { DiarioCtx, DiarioTab } from '../game/diario.ts';
 import { DIARIO_TABS, libroIcon } from '../game/diario.ts';
@@ -254,7 +254,7 @@ export function createDiarioUi(ctx: DiarioCtx) {
     for (const t of list) {
       const c = el('div', 'mz-dia-card' + (t.riscosso ? ' riscosso' : t.compiuto ? ' fatto' : '')); c.dataset['traguardo'] = t.id;
       const hd = el('div', 'hd'); hd.append(artCanvas(STELLA, 2, t.compiuto ? {} : { ombra: true }), el('b', '', t.nome));
-      const pz = el('span', 'pz'); pz.append(resIcon('perle', 16), `+${t.perle}`); hd.appendChild(pz);
+      const pz = el('span', 'pz'); pz.append(resIcon('monete', 16), `+${t.monete}`); hd.appendChild(pz);
       const bar = el('div', 'mz-dia-bar'), fill = el('i'); fill.style.width = `${Math.round((100 * t.fatto) / t.n)}%`; bar.appendChild(fill);
       const uso = d.titolo === t.id;
       const tl = el('div', 'tl' + (uso ? ' uso' : ''), uso ? `Titolo «${t.titolo}» · in uso` : `Titolo: «${t.titolo}»`);
@@ -333,9 +333,9 @@ export function createDiarioUi(ctx: DiarioCtx) {
     note.busy = false;
     if (g === gen) render();
   }
-  function fly(from: HTMLElement, premio: Resources): void {
+  function fly(from: HTMLElement, premio: number): void {
     const r = from.getBoundingClientRect(), rr = ctx.root.getBoundingClientRect(), p = { x: r.left - rr.left + r.width / 2, y: r.top - rr.top + r.height / 2 };
-    if (premio.perle > 0) flyResources(ctx.root, p, ctx.hud.resAnchor?.('perle') ?? null, 'perle', premio.perle, () => ctx.hud.bump?.('perle'));
+    if (premio > 0) flyResources(ctx.root, p, ctx.hud.resAnchor?.('monete') ?? null, 'monete', premio, () => ctx.hud.bump?.('monete'));
   }
 
   function apri(t?: DiarioTab): void {

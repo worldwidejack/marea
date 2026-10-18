@@ -7,7 +7,8 @@ import { mancaText } from '../net/api.ts';
 import type { Me, Persona, PlayResult } from '../net/api.ts';
 import { el } from './style.ts';
 import { RES_IDS, RES_NOME, resIcon } from './icons.ts';
-import type { ResId } from './icons.ts';
+/** Le sfide con posta (spente) usano le risorse di prima. */
+type ResId = 'legno' | 'pietra' | 'perle';
 import { costNodes } from './lotpanels.ts';
 import { timerSpan } from './sheet.ts';
 import type { Note, View } from './tavolo.ts';

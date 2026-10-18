@@ -121,11 +121,11 @@ function validateBorgo(): string[] {
     // gli ampliamenti della casa (#386): ogni stanza cresce senza perdere celle e sta sul pavimento del template; il piano terra tiene il bordo davanti e il corridoio
     const att = new Map<string, readonly number[]>([['terra', st.pavimento]]), idl = new Set<string>();
     for (const [n, l] of BORGO.casa.livelli.entries()) {
-      const r = l.pavimento, prima = att.get(l.stanza), k = l.costo;
+      const r = l.pavimento, prima = att.get(l.stanza);
       if (idl.has(l.id)) errs.push(`borgo: casa.livelli ${l.id} doppio`);
       idl.add(l.id);
       if (!['terra', 'cantina', 'piano'].includes(l.stanza)) errs.push(`borgo: casa.livelli[${n}] ha una stanza sconosciuta (${l.stanza})`);
-      if (![k.legno, k.pietra, k.perle].every((v) => Number.isInteger(v) && v > 0) || k.legno > 1500 || k.pietra > 1500) errs.push(`borgo: casa.livelli[${n}] ha un costo non valido (interi > 0, Legno e Pietra fino a 1500)`);
+      if (!(Number.isInteger(l.monete) && l.monete > 0)) errs.push(`borgo: casa.livelli[${n}] ha un prezzo non valido (monete, intero > 0)`);
       if (prima && (r[0] > prima[0]! || r[1] > prima[1]! || r[2] < prima[2]! || r[3] < prima[3]! || r.every((v, i) => v === prima[i]))) errs.push(`borgo: casa.livelli[${n}] deve contenere e superare la stanza di prima`);
       for (let z = r[1]; z < r[3]; z++) for (let x = r[0]; x < r[2]; x++) if (!'.LP'.includes(lt.rows[z]?.[x] ?? '~')) errs.push(`borgo: casa.livelli[${n}] ha una cella non di pavimento in ${x},${z}`);
       if (l.stanza === 'terra' && (r[3] !== z1 || r[0] > cx || r[2] <= cx)) errs.push(`borgo: casa.livelli[${n}]: il piano terra tiene il bordo davanti e il corridoio`);
@@ -146,8 +146,8 @@ function validateBorgo(): string[] {
   const hex = (c: string) => /^#[0-9A-F]{6}$/i.test(c);
   for (const [k, l] of [['pavimenti', BORGO.pavimenti], ['carte', BORGO.carte]] as const) {
     if (new Set(l.map((f) => f.id)).size !== l.length) errs.push(`borgo: ${k} con id doppi`);
-    if ((l[0]?.perle ?? 0) !== 0) errs.push(`borgo: il primo dei ${k} è quello di serie, gratis`);
-    for (const f of l) if (!(Number.isInteger(f.perle ?? 0) && (f.perle ?? 0) >= 0) || f.colori.length !== 3 || !f.colori.every(hex)) errs.push(`borgo: ${k} ${f.id} non valido`);
+    if ((l[0]?.monete ?? 0) !== 0) errs.push(`borgo: il primo dei ${k} è quello di serie, gratis`);
+    for (const f of l) if (!(Number.isInteger(f.monete ?? 0) && (f.monete ?? 0) >= 0) || f.colori.length !== 3 || !f.colori.every(hex)) errs.push(`borgo: ${k} ${f.id} non valido`);
   }
   // il negozio dei mobili (#265): in città su prato o via libera, porta camminabile; dentro pavimento e corridoio camminabili
   const ng = BORGO.negozio, nd = BORGO.negozioDentro, nt = ISLANDS.find((i) => i.id === 'negozio');
@@ -164,7 +164,7 @@ function validateBorgo(): string[] {
   for (const m of MOBILI) {
     if (ids.has(m.id)) errs.push(`mobili: id doppio ${m.id}`);
     ids.add(m.id);
-    if (!/^[a-z][a-z0-9_]*$/.test(m.id) || !(Number.isInteger(m.perle) && m.perle > 0) || (m.posto !== 'terra' && m.posto !== 'parete') || !m.colori.length || !m.colori.every(hex)) errs.push(`mobili: ${m.id} non valido`);
+    if (!/^[a-z][a-z0-9_]*$/.test(m.id) || !(Number.isInteger(m.monete) && m.monete > 0) || (m.posto !== 'terra' && m.posto !== 'parete') || !m.colori.length || !m.colori.every(hex)) errs.push(`mobili: ${m.id} non valido`);
     if (!MOBILI_CATEGORIE.some((c) => c.id === m.categoria)) errs.push(`mobili: ${m.id} ha una categoria sconosciuta (${m.categoria})`);
     if (m.celle && (m.celle.length !== 2 || !m.celle.every((n) => Number.isInteger(n) && n >= 1 && n <= 3) || (m.posto === 'parete' && (m.celle[0] !== 1 || m.celle[1] !== 1)))) errs.push(`mobili: ${m.id} ha un ingombro non valido (celle 1-3, a parete solo [1,1])`);
     if (m.altezza !== undefined && !(m.altezza > 0 && m.altezza <= 3)) errs.push(`mobili: ${m.id} ha un'altezza non valida (0-3 m)`);

@@ -4,13 +4,13 @@
 // mobiliere dietro al bancone, i mobili del giorno sulle pedane e sul muro, i campioni di carta da parati appesi al muro e quelli di pavimento per terra.
 // I mobili in mostra cambiano ogni giorno (mezzanotte di Roma, sim `vetrinaDelGiorno`, #384): uguali per tutti, pescati da tutto mobili.json,
 // e si compra solo quello che è esposto (lo controlla anche il server). Il banco del mobiliere dice cosa c'è oggi e quando cambia.
-// Si entra camminando contro la porta (o A), si esce in fondo al corridoio; davanti a un pezzo A apre la scheda: COMPRA (Perle) → il
+// Si entra camminando contro la porta (o A), si esce in fondo al corridoio; davanti a un pezzo A apre la scheda: COMPRA (monete) → il
 // mobile va nel magazzino di casa (ARREDA), pavimento e carta si mettono subito. Prezzi e righe: mobili.json e borgo.json.
 // Tutto questo sta in un chunk (main.ts lo scarica subito dopo l'avvio, TECH §5): la bottega compare un attimo dopo il mondo.
 import * as THREE from 'three';
 import { BORGO, MOBILI, MOBILI_VETRINA } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
-import { MAX_LIVELLO_CASA, casaDi, finoAMezzanotte, giornoRoma, livelloCasa, possiedeFinitura, prossimoAmpliamento, storageCap, vetrinaDelGiorno } from '@marea/sim';
+import { MAX_LIVELLO_CASA, casaDi, finoAMezzanotte, giornoRoma, livelloCasa, possiedeFinitura, prossimoAmpliamento, vetrinaDelGiorno } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
@@ -32,7 +32,7 @@ import type { Pianta } from './interno.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
 export type Negozio = { tick(a: boolean): boolean; update(dt: number): void; readonly dentro: boolean };
-type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'banco'; id: string; nome: string; perle: number; x: number; z: number; fx: number; fz: number };
+type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'banco'; id: string; nome: string; monete: number; x: number; z: number; fx: number; fz: number };
 
 const ND = BORGO.negozioDentro, [X0, Z0, X1] = ND.pavimento, [CX, C0, C1] = ND.corridoio;
 const PIANTA: Pianta = { pavimento: ND.pavimento, corridoio: ND.corridoio, altezza: ND.altezza, retro: null };
@@ -109,7 +109,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   const bc = cella(X1 - 1, Z0 + 2);
   parti.push(painted(new THREE.BoxGeometry(1.4, 1.0, 3.0), P.legno, M(bc.x - 0.4, 0.5, bc.z + 0.6)), painted(new THREE.BoxGeometry(1.5, 0.1, 3.1), P.legnoChiaro, M(bc.x - 0.4, 1.05, bc.z + 0.6)));
   parti.push(painted(new THREE.BoxGeometry(0.5, 0.35, 0.4), P.arancio, M(bc.x - 0.4, 1.28, bc.z)), painted(new THREE.BoxGeometry(0.3, 0.08, 0.2), P.neroCaldo, M(bc.x - 0.4, 1.48, bc.z)));
-  pezziFissi.push({ kind: 'banco', id: 'banco', nome: 'Il mobiliere', perle: 0, x: bc.x - 0.4, z: bc.z + 0.6, fx: bc.x - 1.9, fz: bc.z + 0.6 }); // davanti al banco
+  pezziFissi.push({ kind: 'banco', id: 'banco', nome: 'Il mobiliere', monete: 0, x: bc.x - 0.4, z: bc.z + 0.6, fx: bc.x - 1.9, fz: bc.z + 0.6 }); // davanti al banco
   const fisso = new THREE.Mesh(merged(parti), vc); fisso.castShadow = fisso.receiveShadow = true; dentroG.add(fisso);
 
   // la merce del giorno (#384, #393): sulle pedane i mobili a terra, al muro in cornice le carte da parati e (dopo) i mobili a parete, per terra i
@@ -135,7 +135,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       const m = def(id); if (!m) return;
       const c = cella(posto(i), Z0 + 2);
       metti(m, c.x, 0.2, c.z);
-      pezziGiorno.push({ kind: 'mobile', id: m.id, nome: m.nome, perle: m.perle, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.5 });
+      pezziGiorno.push({ kind: 'mobile', id: m.id, nome: m.nome, monete: m.monete, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.5 });
     });
     // al muro: prima le carte da parati appese in cornice, poi i mobili a parete
     const carte = v.carte.flatMap((id) => BORGO.carte.find((f) => f.id === id) ?? []).slice(0, POSTI);
@@ -144,18 +144,18 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       const t = texture(f); t.repeat.set(1.2, 1.6);
       const pan = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.6), new THREE.MeshLambertMaterial({ map: t })); pan.position.set(x, 1.2, z + 0.08); pan.userData['campione'] = true; giornoG.add(pan); // davanti alla cornice
       geo.push(painted(new THREE.BoxGeometry(1.4, 1.8, 0.06), P.legnoScuro, M(x, 1.2, z + 0.01)));
-      pezziGiorno.push({ kind: 'carta', id: f.id, nome: f.nome, perle: f.perle ?? 0, x, z, fx: x, fz: z + 1.6 });
+      pezziGiorno.push({ kind: 'carta', id: f.id, nome: f.nome, monete: f.monete ?? 0, x, z, fx: x, fz: z + 1.6 });
     });
     v.pavimenti.flatMap((id) => BORGO.pavimenti.find((f) => f.id === id) ?? []).slice(0, POSTI).forEach((f, i) => {
       const c = cella(posto(i), Z0 + 4), t = texture(f); t.repeat.set(1, 1);
       const tile = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 1.6), new THREE.MeshLambertMaterial({ map: t })); tile.position.set(c.x, 0.06, c.z); tile.receiveShadow = true; tile.userData['campione'] = true; giornoG.add(tile);
-      pezziGiorno.push({ kind: 'pavimento', id: f.id, nome: f.nome, perle: f.perle ?? 0, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.4 });
+      pezziGiorno.push({ kind: 'pavimento', id: f.id, nome: f.nome, monete: f.monete ?? 0, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.4 });
     });
     v.parete.slice(0, Math.max(0, POSTI - carte.length)).forEach((id, j) => {
       const m = def(id); if (!m) return;
       const c = cella(posto(carte.length + j), Z0), z = Z0 * T;
       metti(m, c.x, 0, z);
-      pezziGiorno.push({ kind: 'mobile', id: m.id, nome: m.nome, perle: m.perle, x: c.x, z, fx: c.x, fz: z + 1.6 });
+      pezziGiorno.push({ kind: 'mobile', id: m.id, nome: m.nome, monete: m.monete, x: c.x, z, fx: c.x, fz: z + 1.6 });
     });
     if (geo.length) { const mesh = new THREE.Mesh(merged(geo), vc); mesh.castShadow = mesh.receiveShadow = true; giornoG.add(mesh); }
     pezzi.length = 0; pezzi.push(...pezziFissi, ...pezziGiorno);
@@ -256,10 +256,9 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     else {
       corpo.push(el('div', 'prezzo', `Ampliamento ${liv + 1} di ${MAX_LIVELLO_CASA}: `), el('div', 'prezzo', prossimo.desc));
       corpo[corpo.length - 2]!.appendChild(el('b', '', prossimo.nome));
-      const tetto = storageCap(l), r = l.resources, k = prossimo.costo;
-      const riga = (nome: string, serve: number, ho: number) => { const d = el('div', 'prezzo'); d.append(el('span', '', `${nome} `), el('b', '', String(serve)), el('span', ho >= serve ? 'ok' : 'manca', ho >= serve ? ` · ne hai ${ho} ✓` : ` · ti mancano ${serve - ho}`)); return d; };
-      corpo.push(riga('Legno', k.legno, r.legno), riga('Pietra', k.pietra, r.pietra), riga('Perle', k.perle, r.perle));
-      if (k.legno > tetto || k.pietra > tetto) corpo.push(el('div', 'prezzo', `Il tuo Magazzino contiene al massimo ${tetto} per risorsa: ti serve un Magazzino più grande.`));
+      const serve = prossimo.monete, ho = l.monete;
+      const d = el('div', 'prezzo'); d.append(el('span', '', 'Prezzo '), el('b', '', `${serve} monete`), el('span', ho >= serve ? 'ok' : 'manca', ho >= serve ? ` · ne hai ${ho} ✓` : ` · ti mancano ${serve - ho}`));
+      corpo.push(d);
       const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'amplia';
       b.append(el('span', '', !o.api ? 'Serve il collegamento' : conferma ? 'SICURO? TOCCA ANCORA' : 'AMPLIA'), el('b', '', conferma ? '✓' : ''));
       b.disabled = busy || !o.api;
@@ -272,8 +271,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   async function amplia(da: number): Promise<void> {
     const l = o.getLot(), prossimo = prossimoAmpliamento(da);
     if (busy || !o.api || !l || !prossimo) return;
-    const k = prossimo.costo, r = l.resources;
-    if (r.legno < k.legno || r.pietra < k.pietra || r.perle < k.perle) { conferma = false; nota = 'Non hai ancora abbastanza: ' + [r.legno < k.legno ? `Legno (${k.legno - r.legno} in più)` : '', r.pietra < k.pietra ? `Pietra (${k.pietra - r.pietra} in più)` : '', r.perle < k.perle ? `Perle (${k.perle - r.perle} in più)` : ''].filter(Boolean).join(', ') + '.'; banco(); return; }
+    if (l.monete < prossimo.monete) { conferma = false; nota = `Non hai ancora abbastanza: ti mancano ${prossimo.monete - l.monete} monete.`; banco(); return; }
     if (!conferma) { conferma = true; nota = ''; banco(); clearTimeout(confermaT); confermaT = window.setTimeout(() => { if (conferma && aperto?.kind === 'banco') { conferma = false; banco(); } }, 4000); return; }
     clearTimeout(confermaT); conferma = false; busy = true; banco();
     try {
@@ -284,12 +282,12 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   function scheda(p: Pezzo): void {
     aperto = p; caricaTesti();
     if (p.kind === 'banco') { banco(); return; }
-    const l = o.getLot(), perle = l?.resources.perle ?? 0, m = p.kind === 'mobile' ? MOBILI.find((x) => x.id === p.id) ?? null : null;
+    const l = o.getLot(), monete = l?.monete ?? 0, m = p.kind === 'mobile' ? MOBILI.find((x) => x.id === p.id) ?? null : null;
     const tipo = p.kind === 'mobile' ? 'Mobile: va nel magazzino di casa, lo posi con ARREDA' : p.kind === 'pavimento' ? 'Pavimento: si mette subito in casa tua' : 'Carta da parati: si mette subito in casa tua';
-    const prezzo = el('div', 'prezzo'); prezzo.append(el('span', '', `${tipo}. Prezzo `), el('b', '', `${p.perle} Perle`), el('span', '', ` · ne hai ${perle}`));
+    const prezzo = el('div', 'prezzo'); prezzo.append(el('span', '', `${tipo}. Prezzo `), el('b', '', `${p.monete} monete`), el('span', '', ` · ne hai ${monete}`));
     const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'compra';
     const g = gia(p);
-    b.append(el('span', '', g ? 'Ce l’hai già' : !o.api ? 'Serve il collegamento' : 'COMPRA'), el('b', '', g ? '✓' : `${p.perle}`));
+    b.append(el('span', '', g ? 'Ce l’hai già' : !o.api ? 'Serve il collegamento' : 'COMPRA'), el('b', '', g ? '✓' : `${p.monete}`));
     b.disabled = g || busy || !o.api;
     b.addEventListener('click', () => void compra(p));
     const corpo: Node[] = [testata(p.nome)];
@@ -305,7 +303,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   async function compra(p: Pezzo): Promise<void> {
     const l = o.getLot();
     if (busy || !o.api || !l || p.kind === 'banco' || gia(p)) return;
-    if (l.resources.perle < p.perle) { nota = `Ti mancano ${p.perle - l.resources.perle} Perle: le vinci ai minigiochi e alla Bacheca.`; ridisegna(); return; }
+    if (l.monete < p.monete) { nota = `Ti mancano ${p.monete - l.monete} monete: le vinci ai minigiochi, ai Templari, nell'Arena e nei dungeon.`; ridisegna(); return; }
     busy = true; ridisegna();
     try {
       const next = await (p.kind === 'mobile' ? o.api.casa('compra', { id: p.id }) : o.api.casa('finitura', { tipo: p.kind, id: p.id }));
@@ -324,7 +322,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   registerStateProvider('negozio', () => ({
     dentro, aperto: aperto?.id ?? null, ampliati, conferma, livello: livelloCasa(casaDi(o.getLot())), near: near ? (near.kind === 'pezzo' ? near.p.id : near.kind) : null, comprati, giorno: giornoMostrato,
     vetrina: vetrinaDelGiorno(giornoMostrato),
-    pezzi: pezzi.map((p) => ({ kind: p.kind, id: p.id, perle: p.perle, x: ox + p.fx, z: oz + p.fz })), porta: { x: px, z: pz, muro, verso }, uscita: { x: ox + (CX + 0.5) * T, z: oz + (C0 + 0.5) * T },
+    pezzi: pezzi.map((p) => ({ kind: p.kind, id: p.id, monete: p.monete, x: ox + p.fx, z: oz + p.fz })), porta: { x: px, z: pz, muro, verso }, uscita: { x: ox + (CX + 0.5) * T, z: oz + (C0 + 0.5) * T },
     magazzino: casaDi(o.getLot()).magazzino ?? {},
   }));
   registerTestHook('negozio', (conVelo) => { if (conVelo) passa(entraDentro); else entraDentro(); return true; });
@@ -360,7 +358,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
         if (near?.kind === 'porta') btn.replaceChildren(pixIcon('casa', 24), el('span', '', 'NEGOZIO DEI MOBILI'), el('small', '', 'A'));
         if (near?.kind === 'esci') btn.replaceChildren(pixIcon('casa', 24), el('span', '', 'ESCI'), el('small', '', 'A'));
         bar.classList.toggle('on', near?.kind === 'pezzo');
-        if (near?.kind === 'pezzo') bar.replaceChildren(el('div', 't', near.p.kind === 'banco' ? 'Il mobiliere · A per parlargli' : `${near.p.nome} · ${near.p.perle} Perle · A per guardarlo`));
+        if (near?.kind === 'pezzo') bar.replaceChildren(el('div', 't', near.p.kind === 'banco' ? 'Il mobiliere · A per parlargli' : `${near.p.nome} · ${near.p.monete} monete · A per guardarlo`));
       }
       if (ciro && dentro) { ciro.setPose({ x: ciroPos.x, z: ciroPos.z, yaw: -Math.PI / 2, anim: 'idle' }); ciro.update(1, 1 / 60); }
     },

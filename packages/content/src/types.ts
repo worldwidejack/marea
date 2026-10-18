@@ -1,4 +1,6 @@
 // Tipi dei contenuti data-driven (packages/content). Solo dati: niente logica di gioco.
+/** Le risorse di prima (Legno, Pietra, Perle): dal 18 ott 2026 (#414) la valuta è una sola, le **monete** (`LotState.monete`). Restano solo per
+ *  il codice spento (edifici del giardino, Faro comune, sfide con posta) e per convertire i vecchi salvataggi (`BALANCE.monete.cambio`). */
 export type Resources = { legno: number; pietra: number; perle: number };
 export type ResourceId = keyof Resources;
 
@@ -66,7 +68,7 @@ export type ArchipelagoIsland = { island: string; at: [number, number]; role: Ar
 export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; tile: number; mare?: [number, number]; islands: ArchipelagoIsland[] };
 /** Una scala della casa (#386): sta sulla cella `cell` della stanza `stanza` (da quando la casa è al livello `da`), si prende camminandoci sopra e porta nella stanza `a`, alla cella `arrivo`. */
 export type CasaScala = { stanza: 'terra' | 'cantina' | 'piano'; verso: 'giu' | 'su'; cell: [number, number]; a: 'terra' | 'cantina' | 'piano'; arrivo: [number, number]; da: number };
-export type CasaLivello = { id: string; nome: string; desc: string; stanza: 'terra' | 'cantina' | 'piano'; pavimento: [number, number, number, number]; costo: { legno: number; pietra: number; perle: number } };
+export type CasaLivello = { id: string; nome: string; desc: string; stanza: 'terra' | 'cantina' | 'piano'; pavimento: [number, number, number, number]; monete: number };
 /** Borgo Marea (#237): la casa `n` = lo slot `n` (= il lotto/giardino `n`). `at` = cella dell'edificio, `porta` = cella della via davanti, entrambe nel template `borgo`. */
 export type BorgoDef = {
   nome: string; case: { at: [number, number]; porta: [number, number] }[];
@@ -74,8 +76,8 @@ export type BorgoDef = {
    *  passaggio del giardino (`giardino`) e corridoio d'ingresso sotto il pavimento (#265: colonna x, righe [z0, z1); in fondo si esce in città). */
   stanza: { pavimento: [number, number, number, number]; altezza: number; retro: [number, number]; giardino: [number, number]; corridoio: [number, number, number] };
   /** Gli ampliamenti della casa (#386), uno alla volta e in ordine (livello 1 = il primo): `stanza` = quale stanza cambia ('terra' = quella di sempre,
-   *  poi 'cantina' e 'piano'), `pavimento` = il suo nuovo rettangolo [x0, z0, x1, z1) (contiene quello di prima), `costo` = Legno, Pietra e Perle
-   *  (Legno e Pietra non oltre 1500, il tetto del Magazzino L3, se no non si pagano mai). Il rettangolo sta tutto dentro la pianta del template `lotto`. */
+   *  poi 'cantina' e 'piano'), `pavimento` = il suo nuovo rettangolo [x0, z0, x1, z1) (contiene quello di prima), `monete` = il prezzo.
+   *  Il rettangolo sta tutto dentro la pianta del template `lotto`. */
   casa: { livelli: CasaLivello[]; scale: CasaScala[] };
   /** Il negozio dei mobili (#265): in città (celle del template porto) e dentro (template `negozio`). */
   negozio: { at: [number, number]; porta: [number, number]; rot: number };
@@ -83,18 +85,18 @@ export type BorgoDef = {
   /** Pavimenti e carte da parati: il primo è quello di serie. `motivo` = come si dipinge (render/stanza), `colori` dalla palette. */
   pavimenti: StanzaFinitura[]; carte: StanzaFinitura[];
 };
-/** `perle`: prezzo al negozio dei mobili (#265); assente o 0 = di serie, di tutti. */
-export type StanzaFinitura = { id: string; nome: string; motivo?: string; colori: string[]; perle?: number };
+/** `monete`: prezzo al negozio dei mobili (#265); assente o 0 = di serie, di tutti. */
+export type StanzaFinitura = { id: string; nome: string; motivo?: string; colori: string[]; monete?: number };
 /** Un mobile della casa (#265, mobili.json): `posto` terra (celle del pavimento) o parete (una cella di muro), `forma` = render/mobili.ts (assente: scatola di ripiego).
  * `categoria` = una di MOBILI_CATEGORIE (catalogo del negozio); `celle` = ingombro a terra [larghezza, profondità] in celle (default [1,1], a parete sempre 1);
  * `altezza` (m) serve solo alla scatola di ripiego. Ogni mobile può finire nella vetrina del giorno (economy/vetrina.ts). Il modello 3D è `mob_<id>` in manifest_mobili.json.
  * Nome e descrizione del gioco: `nome` qui, descrizione in mobili_testi.json (caricata solo da negozio e ARREDA, non pesa sull'avvio). */
-export type MobileDef = { id: string; nome: string; categoria: string; perle: number; posto: 'terra' | 'parete'; forma?: string; colori: string[]; celle?: [number, number]; altezza?: number };
-/** `mercante`: esclusivo del Mercante delle Perle al Porto (#63): nell'editor si vede ma si compra solo da lui. */
-export type HatDef = { id: string; nome: string; perle: number; mercante?: boolean };
-export type DecorDef = { id: string; nome: string; perle: number; model: string; mercante?: boolean };
-/** Colore della barca (#107): per lo scafo e per la vela; `perle` > 0 = esclusivo del Mercante delle Perle (si compra una volta, vale per tutti e due). */
-export type BarcaColore = { id: string; nome: string; hex: string; perle: number; mercante?: boolean };
+export type MobileDef = { id: string; nome: string; categoria: string; monete: number; posto: 'terra' | 'parete'; forma?: string; colori: string[]; celle?: [number, number]; altezza?: number };
+/** `monete`: prezzo (0 = gratis, di tutti). `mercante`: esclusivo del Mercante del Porto (#63): nell'editor si vede ma si compra solo da lui. */
+export type HatDef = { id: string; nome: string; monete: number; mercante?: boolean };
+export type DecorDef = { id: string; nome: string; monete: number; model: string; mercante?: boolean };
+/** Colore della barca (#107): per lo scafo e per la vela; `monete` > 0 = esclusivo del Mercante del Porto (si compra una volta, vale per tutti e due). */
+export type BarcaColore = { id: string; nome: string; hex: string; monete: number; mercante?: boolean };
 /** La tua barca (#107): colori (id stabili, si aggiunge in fondo), scafo e vela di serie (`vela` 'nessuna' = la barca a remi di prima), nome lungo al massimo `nomeMax`. */
 export type BarcaDef = { nomeMax: number; scafo: string; vela: string; colori: BarcaColore[] };
 export type AvatarDef = {
@@ -110,13 +112,17 @@ export type AvatarDef = {
   emote: string[];
 };
 export type BalanceDef = {
+  /** La valuta (#414): monete di chi comincia, e il cambio fisso dei vecchi salvataggi (monete per 1 Perla, 1 Legno, 1 Pietra; il totale si arrotonda giù). */
+  monete: { partenza: number; cambio: Resources };
+  /** Risorse vecchie di un lotto nuovo: servono solo al codice spento (edifici del giardino), non si vedono più. */
   partenza: Resources;
   capBase: number;
   bufferOre: number;
+  /** Sfide con posta (spente, GDD §7): Perle per medaglia (risorse vecchie). */
   perleMedaglia: { oro: number; argento: number; bronzo: number; sconfitta: number };
-  /** Minigiochi da solo (senza posta): premio per medaglia ('nessuna' = arrivato senza medaglia) e quante partite al giorno sono premiate. */
-  solo: { premi: { oro: Resources; argento: Resources; bronzo: Resources; nessuna: Resources }; premiateAlGiorno: number };
-  /** Decorazioni (#108): quota del prezzo in Perle che torna rivendendole (per difetto). */
+  /** Minigiochi da solo (senza posta): monete per medaglia ('nessuna' = arrivato senza medaglia) e quante partite al giorno sono premiate. */
+  solo: { premi: { oro: number; argento: number; bronzo: number; nessuna: number }; premiateAlGiorno: number };
+  /** Decorazioni (#108): quota del prezzo che torna rivendendole (per difetto). */
   decor: { rimborso: number };
   wager: { min: number; colpoDiCoda: { sogliaRisorse: number; moltiplicatore: number }; scadenzaOre: number; costoExtraPerle: number };
   avatar: { camminata: number; corsa: number; sogliaCorsa: number; raggio: number };
@@ -166,8 +172,8 @@ export type PescaCfg = {
   mareVicinoM: number;
 };
 // Perle (minigioco universale)
-/** Premio in più di un minigioco rispetto a `balance.solo`, per medaglia (si somma al premio della medaglia). */
-export type PremioExtra = Partial<Record<'oro' | 'argento' | 'bronzo', Partial<Resources>>>;
+/** Monete in più di un minigioco rispetto a `balance.solo`, per medaglia (si sommano al premio della medaglia). */
+export type PremioExtra = Partial<Record<'oro' | 'argento' | 'bronzo', number>>;
 /** Snowboard dell'Isola dell'Adrenalina, la parte che serve al giro dei premi (il resto in @marea/content/adrenalina.ts, fuori dal JS iniziale). */
 export type SnowboardMgCfg = { id: 'snowboard'; nome: string; premioExtra?: PremioExtra };
 /** Caccia alle perle (dalla barca ferma su acqua bassa): vista di profilo del fondale, unità = pixel della schermata. */

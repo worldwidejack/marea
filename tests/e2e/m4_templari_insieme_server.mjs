@@ -135,7 +135,7 @@ export default async function (ctx) {
       assert(ra.body.result.hash === r.hash, `hash diverso: server ${ra.body.result.hash}, client ${r.hash}`);
       assert(ra.body.result.superate === r.superate, `ondate: server ${ra.body.result.superate}, client ${r.superate}`);
       const sup = Math.min(TEMPLARI.premio.maxOndate, r.superate), pp = TEMPLARI.premio.perOndata;
-      assert(ra.body.premio.legno === pp.legno * sup, 'premio di ada: ' + JSON.stringify(ra.body.premio));
+      assert(ra.body.premio === pp * sup, 'premio di ada: ' + JSON.stringify(ra.body.premio));
       assert(ra.body.lot.templari.pending === null, 'partita di ada ancora aperta');
       const rb = await post('tok_bea', '/api/templari/finish', {});
       assert(rb.status === 200, 'finish bea: ' + rb.status + ' ' + JSON.stringify(rb.body).slice(0, 200));

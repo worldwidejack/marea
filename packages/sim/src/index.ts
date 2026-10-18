@@ -9,6 +9,7 @@ export * from './world/boat.ts';
 export * from './world/temi.ts';
 export * from './world/casa_mappa.ts'; // La mappa di chi cammina nelle case: ampliamenti sbloccati (#386)
 export * from './economy/types.ts';
+export * from './economy/monete.ts'; // la valuta (#414)
 export * from './economy/advance.ts';
 export * from './economy/actions.ts';
 export * from './economy/ledger.ts';

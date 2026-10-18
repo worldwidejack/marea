@@ -57,14 +57,14 @@ export default async function (ctx) {
     const post = async (p, t, b) => { const r = await fetch(base + p, { method: 'POST', headers: hdr(t), body: typeof b === 'string' ? b : JSON.stringify(b ?? {}) }); return { status: r.status, body: await r.json() }; };
     const rpg = (t, azione) => post('/api/rpg', t, { azione });
     const lot = async (t) => (await get('/api/lot', t)).body;
-    const P = RPG.partenza;
+    const P = RPG.partenza, PARTENZA = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/balance.json'), 'utf8')).monete.partenza; // le monete stanno nel lotto (#414)
 
     await ctx.test('personaggio nuovo: /api/lot senza hero (= newHero), la prima azione lo scrive con la dotazione di partenza', async () => {
       const l = await lot('tokA');
       assert(l.hero === undefined || same(l.hero, newHero()), 'hero iniziale: ' + String(JSON.stringify(l.hero)).slice(0, 200));
       const r = await rpg('tokA', { t: 'equip', slot: 'arma', item: 'arco_legno' });
       assert(r.status === 200 && r.body.hero?.equip?.arma === 'arco_legno', 'equip arco: ' + r.status + ' ' + JSON.stringify(r.body).slice(0, 200));
-      assert(same(sorted(r.body.hero.inv), sorted(P.inv)) && r.body.hero.monete === P.monete, 'dotazione: ' + JSON.stringify(r.body.hero.inv));
+      assert(same(sorted(r.body.hero.inv), sorted(P.inv)) && r.body.monete === PARTENZA && !('monete' in r.body.hero), 'dotazione: ' + JSON.stringify(r.body.hero.inv));
       const back = await rpg('tokA', { t: 'equip', slot: 'arma', item: 'katana_legno' });
       assert(back.status === 200 && back.body.hero.equip.arma === 'katana_legno' && back.body.version > r.body.version, 'equip katana');
       const me = (await get('/api/me', 'tokA')).body;
@@ -99,12 +99,12 @@ export default async function (ctx) {
       assert(l0.buildings.find((x) => x.building === 'banco')?.level === 1, 'Banco non finito col clock di test');
       const prezzo = RPG.bottega.lingotto_bronzo;
       const c = await rpg('tokA', { t: 'compra', item: 'lingotto_bronzo', n: 1 });
-      assert(c.status === 200 && c.body.hero.inv.lingotto_bronzo === 1 && c.body.hero.monete === P.monete - prezzo, 'compra: ' + JSON.stringify(c.body.hero ?? c.body).slice(0, 200));
+      assert(c.status === 200 && c.body.hero.inv.lingotto_bronzo === 1 && c.body.monete === PARTENZA - prezzo, 'compra: ' + JSON.stringify(c.body.hero ?? c.body).slice(0, 200));
       const f = await rpg('tokA', { t: 'forgia', item: 'nunchaku_legno' });
       assert(f.status === 200 && f.body.hero.inv.nunchaku_legno === 1, 'forgia: ' + f.status + ' ' + JSON.stringify(f.body).slice(0, 200));
-      assert(f.body.resources.legno < c.body.resources.legno, `forgia senza Legno: ${c.body.resources.legno} → ${f.body.resources.legno}`);
+      assert(f.body.monete < c.body.monete, `il Legno della forgia si paga in monete: ${c.body.monete} → ${f.body.monete}`);
       assert(f.body.hero.skill.forgiatura.xp > c.body.hero.skill.forgiatura.xp || f.body.hero.skill.forgiatura.lv > c.body.hero.skill.forgiatura.lv, 'forgia senza xp');
-      if (P.monete - prezzo < prezzo) {
+      if (f.body.monete < prezzo) {
         const poor = await rpg('tokA', { t: 'compra', item: 'lingotto_bronzo', n: 1 });
         assert(poor.status === 409 && poor.body.code === 'risorse', 'compra senza monete: ' + JSON.stringify(poor));
       }
@@ -152,7 +152,7 @@ export default async function (ctx) {
       const want = finishDungeon(before, expect, before.nowMs);
       assert(same(sorted(r.body.tenuto), sorted(want.tenuto)) && r.body.monete === want.monete && r.body.livelliSu === want.livelliSu, 'tenuto/monete diversi da finishDungeon: ' + JSON.stringify(r.body.tenuto));
       assert(same(sorted(r.body.lot.hero.inv), sorted(want.lot.hero.inv)), 'zaino diverso: ' + JSON.stringify(r.body.lot.hero.inv));
-      assert(r.body.lot.hero.monete === before.hero.monete + r.body.monete && r.body.lot.hero.discese === (before.hero.discese ?? 0) + 1, 'monete/discese');
+      assert(r.body.lot.monete === before.monete + r.body.monete && r.body.lot.hero.discese === (before.hero.discese ?? 0) + 1, 'monete/discese');
       if (res.outcome === 'uscito') for (const [id, n] of Object.entries(r.body.tenuto)) assert(n > 0 && n <= res.bottino[id], `tenuto ${id} ${n} > ${res.bottino[id]}`);
       assert(r.body.lot.dungeon?.pending === null, 'la spedizione resta aperta');
       const again = await post('/api/dungeon/finish', 'tokA', { inputs, hash: live.hash });

@@ -25,7 +25,7 @@ function richLot(owner: string, t: number, tavolo = 1, faro = 0): LotState {
   const bs = [...l.buildings];
   if (tavolo) bs.push({ id: 'tavolo-2', building: 'tavolo', level: tavolo, cell: cell(0), buffer: 0, lastMs: t });
   if (faro) bs.push({ id: 'faro-3', building: 'faro', level: faro, cell: cell(1), buffer: 0, lastMs: t });
-  return { ...l, buildings: bs, resources: rich, ledger: { generated: rich, spent: { ...ZERO } } };
+  return { ...l, buildings: bs, monete: 100, resources: rich, ledger: { generated: rich, spent: { ...ZERO }, monete: { generated: 100, spent: 0 } } };
 }
 
 test('segheria: costruisci, aspetta, raccogli; invariante ok', () => {
@@ -96,12 +96,12 @@ test('errori in italiano: risorse (con manca), unico, cella, requisito, livello 
   assert.throws(() => upgrade(max, 'segheria-2', H), isErr('livello'));
 });
 
-test('decorazioni: costano Perle, cella libera', () => {
+test('decorazioni: costano monete, cella libera', () => {
   let lot = richLot('a', 0, 0);
   lot = placeDecor(lot, 'lanterna', grass(0), 0, 0, 5, m);
-  assert.equal(lot.resources.perle, 95);
+  assert.equal(lot.monete, 95);
   assert.throws(() => placeDecor(lot, 'lanterna', grass(0), 0, 0, 5, m), isErr('cella'));
-  assert.throws(() => placeDecor({ ...lot, resources: { ...lot.resources, perle: 1 } }, 'torii', grass(1), 0, 0, 5, m), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.perle === 4);
+  assert.throws(() => placeDecor({ ...lot, monete: 1 }, 'torii', grass(1), 0, 0, 5, m), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.monete === 4);
   assert.equal(checkInvariant([lot]), null);
 });
 
