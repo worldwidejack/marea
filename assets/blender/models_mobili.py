@@ -15,7 +15,7 @@
 # - Il nome della ricetta è IDENTICO all'id del mobile con prefisso: id `cabina_telefonica` → `def mob_cabina_telefonica()`.
 # - Ogni ricetta ritorna `_obj(m, footprint=[larghezza_m, profondita_m])` (l'ingombro a terra, in metri: celle × 2).
 import math
-from lib import Mesh, Xf, beam
+from lib import Mesh, Xf, beam, face
 
 
 def ingombro(celle=(1, 1)):
@@ -1784,6 +1784,352 @@ def mob_cassettiera_anni_70():
     return _obj(m, footprint=[W, D])
 
 
+def mob_lavagna_in_sughero():
+    """Lavagna in sughero a parete: cornice in legno, pannello in sughero con foglietto della spesa, post-it colorati e puntine."""
+    m = Mesh('mob_lavagna_in_sughero')
+    W, D = ingombro((1, 1))
+    # Cornice in legno scuro a parete (z da -0.05 a 0.0)
+    m.box(-0.60, 1.50, -0.05, 0.60, 2.30, 0.0, 'p_legno_scuro', skip=('back',))
+    # Pannello centrale in sughero
+    m.box(-0.55, 1.55, -0.04, 0.55, 2.25, -0.01, 'p_sabbia', skip=('back',))
+    # Lista della spesa lunga a sinistra
+    m.box(-0.46, 1.62, -0.043, -0.28, 2.08, -0.04, 'p_pietra_chiara', skip=('back',))
+    for i in range(5):
+        m.box(-0.43, 2.00 - i * 0.08, -0.044, -0.31, 2.02 - i * 0.08, -0.043, 'p_nero_caldo', skip=('back',))
+    m.box(-0.38, 2.05, -0.05, -0.36, 2.07, -0.043, 'p_rosso', skip=('back',))
+    # Post-it colorati sparsi
+    m.box(-0.18, 1.88, -0.044, -0.06, 2.00, -0.04, 'p_giallo', skip=('back',))
+    m.box(-0.13, 1.97, -0.05, -0.11, 1.99, -0.044, 'p_acqua', skip=('back',))
+    m.box(0.04, 1.68, -0.044, 0.16, 1.80, -0.04, 'p_arancio', skip=('back',))
+    m.box(0.09, 1.77, -0.05, 0.11, 1.79, -0.044, 'p_erba', skip=('back',))
+    m.box(0.22, 1.90, -0.044, 0.34, 2.02, -0.04, 'p_rosa_neon', skip=('back',))
+    m.box(0.27, 1.99, -0.05, 0.29, 2.01, -0.044, 'p_giallo', skip=('back',))
+    m.box(0.06, 2.02, -0.044, 0.18, 2.14, -0.04, 'p_ciano_neon', skip=('back',))
+    m.box(0.11, 2.11, -0.05, 0.13, 2.13, -0.044, 'p_rosso', skip=('back',))
+    m.box(0.30, 1.58, -0.045, 0.46, 1.72, -0.04, 'carta', skip=('back',))
+    # Due gancetti neri di fissaggio in alto
+    m.box(-0.40, 2.30, -0.02, -0.36, 2.34, 0.0, 'p_nero_caldo', skip=('back',))
+    m.box(0.36, 2.30, -0.02, 0.40, 2.34, 0.0, 'p_nero_caldo', skip=('back',))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_specchio_ovale_con_cornice_d_oro():
+    """Specchio ovale a parete con cornice d'oro, fregi barocchi in testa e riflesso pulito sul vetro."""
+    m = Mesh('mob_specchio_ovale_con_cornice_d_oro')
+    W, D = ingombro((1, 1))
+    cx, cy = 0.0, 1.95
+    n = 12
+    rx_out, ry_out = 0.42, 0.58
+    rx_in, ry_in = 0.33, 0.49
+    # Cornice d'oro a n lati: bordo esterno ed interno
+    for i in range(n):
+        a0 = 2 * math.pi * i / n
+        a1 = 2 * math.pi * (i + 1) / n
+        c0, s0 = math.cos(a0), math.sin(a0)
+        c1, s1 = math.cos(a1), math.sin(a1)
+        # Faccia frontale della cornice
+        pts_front = [
+            (cx + c0 * rx_out, cy + s0 * ry_out, -0.04),
+            (cx + c1 * rx_out, cy + s1 * ry_out, -0.04),
+            (cx + c1 * rx_in, cy + s1 * ry_in, -0.04),
+            (cx + c0 * rx_in, cy + s0 * ry_in, -0.04),
+        ]
+        face(m, pts_front, 'oro', (0, 0, -1))
+        # Bordo esterno verso il muro
+        pts_side = [
+            (cx + c0 * rx_out, cy + s0 * ry_out, 0.0),
+            (cx + c1 * rx_out, cy + s1 * ry_out, 0.0),
+            (cx + c1 * rx_out, cy + s1 * ry_out, -0.04),
+            (cx + c0 * rx_out, cy + s0 * ry_out, -0.04),
+        ]
+        n_side = (c0 + c1, s0 + s1, 0)
+        face(m, pts_side, 'p_giallo', n_side)
+    # Specchio interno in vetro
+    glass_pts = [(cx + math.cos(2 * math.pi * i / n) * rx_in, cy + math.sin(2 * math.pi * i / n) * ry_in, -0.02) for i in range(n)]
+    face(m, glass_pts, 'vetro', (0, 0, -1))
+    # Fregio barocco in cima
+    m.box(-0.09, cy + 0.54, -0.05, 0.09, cy + 0.65, -0.01, 'oro', top='oro')
+    m.box(-0.04, cy + 0.65, -0.045, 0.04, cy + 0.72, -0.01, 'oro', top='oro')
+    m.box(-0.06, cy - 0.63, -0.045, 0.06, cy - 0.55, -0.01, 'oro', bottom='oro')
+    # Riflesso lucido sul vetro (due fasci diagonali)
+    beam(m, (-0.18, cy - 0.15, -0.025), (0.14, cy + 0.25, -0.025), 0.035, 0.005, 'p_pietra_chiara', end='p_pietra_chiara')
+    beam(m, (-0.10, cy - 0.25, -0.025), (0.05, cy - 0.07, -0.025), 0.020, 0.005, 'p_pietra_chiara', end='p_pietra_chiara')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_testa_di_t_rex_in_plastica():
+    """Testa di T-Rex in plastica a parete: scudo in legno, testa verde con fauci aperte, denti aguzzi e targhetta premio."""
+    m = Mesh('mob_testa_di_t_rex_in_plastica')
+    W, D = ingombro((1, 1))
+    # Scudo trofeo in legno sagomato
+    m.box(-0.24, 1.62, -0.04, 0.24, 2.20, 0.0, 'p_legno_scuro', skip=('back',))
+    m.box(-0.19, 1.58, -0.035, 0.19, 2.24, 0.0, 'p_legno', skip=('back',))
+    # Base/collo del T-Rex che esce dalla parete
+    m.box(-0.16, 1.82, -0.16, 0.16, 2.12, -0.04, 'p_erba', top='p_erba')
+    # Cranio superiore verde
+    m.box(-0.14, 1.90, -0.44, 0.14, 2.16, -0.16, 'p_erba', top='p_erba')
+    # Muso anteriore affusolato
+    m.box(-0.10, 1.90, -0.48, 0.10, 2.10, -0.44, 'p_erba')
+    # Arcate sopraccigliari e creste
+    m.box(-0.15, 2.14, -0.32, -0.07, 2.20, -0.20, 'p_erba_scura', top='p_erba_scura')
+    m.box(0.07, 2.14, -0.32, 0.15, 2.20, -0.20, 'p_erba_scura', top='p_erba_scura')
+    # Occhietti finti da sala giochi
+    m.box(-0.155, 2.02, -0.28, -0.135, 2.10, -0.22, 'p_giallo')
+    m.box(-0.158, 2.04, -0.26, -0.152, 2.08, -0.24, 'p_nero_caldo')
+    m.box(0.135, 2.02, -0.28, 0.155, 2.10, -0.22, 'p_giallo')
+    m.box(0.152, 2.04, -0.26, 0.158, 2.08, -0.24, 'p_nero_caldo')
+    # Mascella inferiore aperta
+    m.box(-0.11, 1.74, -0.42, 0.11, 1.84, -0.16, 'p_erba', bottom='p_erba')
+    # Bocca rossa interna
+    m.box(-0.10, 1.84, -0.40, 0.10, 1.90, -0.18, 'p_rosso')
+    # Denti aguzzi superiori e inferiori
+    for i in range(4):
+        z_tooth = -0.42 + i * 0.07
+        m.box(-0.11, 1.87, z_tooth, -0.095, 1.92, z_tooth + 0.035, 'p_pietra_chiara')
+        m.box(0.095, 1.87, z_tooth, 0.11, 1.92, z_tooth + 0.035, 'p_pietra_chiara')
+        m.box(-0.09, 1.82, z_tooth + 0.02, -0.075, 1.86, z_tooth + 0.05, 'p_pietra_chiara')
+        m.box(0.075, 1.82, z_tooth + 0.02, 0.09, 1.86, z_tooth + 0.05, 'p_pietra_chiara')
+    # Targhetta dorata da sala giochi
+    m.box(-0.14, 1.63, -0.05, 0.14, 1.71, -0.038, 'p_giallo', skip=('back',))
+    m.box(-0.04, 1.65, -0.052, 0.04, 1.69, -0.05, 'p_rosso', skip=('back',))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_telecamera_di_sicurezza_a_circuito_chiuso():
+    """Telecamera di sicurezza a circuito chiuso a parete: staffa nera, corpo bianco con visiera, obiettivo scuro e LED rosso spia."""
+    m = Mesh('mob_telecamera_di_sicurezza_a_circuito_chiuso')
+    W, D = ingombro((1, 1))
+    # Piastra di montaggio al muro
+    m.box(-0.10, 2.25, -0.03, 0.10, 2.45, 0.0, 'p_nero_caldo', skip=('back',))
+    # Braccio snodato metallico
+    m.box(-0.04, 2.32, -0.13, 0.04, 2.38, -0.03, 'p_pietra_scura')
+    m.prism(6, 0.045, 0.045, 2.29, 2.41, 'p_nero_caldo', cx=0, cz=-0.13)
+    m.box(-0.03, 2.26, -0.20, 0.03, 2.34, -0.13, 'p_pietra_scura')
+    # Corpo telecamera squadrato bianco
+    m.box(-0.09, 2.14, -0.38, 0.09, 2.30, -0.18, 'p_pietra_chiara', top='p_pietra_chiara', bottom='p_pietra_chiara')
+    # Visiera tettuccio parasole grigia
+    m.box(-0.10, 2.30, -0.42, 0.10, 2.33, -0.17, 'p_pietra', top='p_pietra')
+    # Frontale nero e obiettivo lente
+    m.box(-0.08, 2.15, -0.39, 0.08, 2.29, -0.38, 'p_nero_caldo', skip=('back',))
+    m.prism(6, 0.045, 0.045, 2.18, 2.26, 'p_abisso', top='vetro', cx=0, cz=-0.395)
+    # LED rosso acceso ("finto occhio del Grande Fratello")
+    m.box(-0.015, 2.265, -0.405, 0.015, 2.29, -0.39, 'p_rosso_neon')
+    # Cavo penzolante dal retro al muro
+    beam(m, (0.05, 2.20, -0.18), (0.07, 2.10, -0.10), 0.018, 0.018, 'p_nero_caldo', end='p_nero_caldo')
+    beam(m, (0.07, 2.10, -0.10), (0.04, 2.06, -0.01), 0.018, 0.018, 'p_nero_caldo', end='p_nero_caldo')
+    # Adesivo giallo di avviso sul lato
+    m.box(0.091, 2.19, -0.30, 0.093, 2.25, -0.22, 'p_giallo', skip=('back',))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_diploma_incorniciato():
+    """Diploma incorniciato a parete: cornice in legno scuro con filetto oro, testo accademico e sigillo in ceralacca con nastrini."""
+    m = Mesh('mob_diploma_incorniciato')
+    W, D = ingombro((1, 1))
+    # Cornice in legno scuro
+    m.box(-0.36, 1.68, -0.04, 0.36, 2.22, 0.0, 'p_legno_scuro', skip=('back',))
+    # Filetto interno in oro
+    m.box(-0.33, 1.71, -0.038, 0.33, 2.19, -0.02, 'oro', skip=('back',))
+    # Pergamena del diploma
+    m.box(-0.31, 1.73, -0.035, 0.31, 2.17, -0.01, 'carta', skip=('back',))
+    # Lastra di vetro protettiva
+    m.box(-0.31, 1.73, -0.036, 0.31, 2.17, -0.035, 'vetro', skip=('back',))
+    # Intestazione e righe calligrafiche del diploma
+    m.box(-0.20, 2.09, -0.037, 0.20, 2.12, -0.035, 'p_nero_caldo', skip=('back',))
+    for y in (2.02, 1.95, 1.88, 1.81):
+        m.box(-0.24, y, -0.037, 0.16, y + 0.018, -0.035, 'p_pietra_scura', skip=('back',))
+    # Sigillo di ceralacca rosso con nastri accademici
+    m.prism(8, 0.04, 0.04, 1.75, 1.83, 'p_rosso', top='p_rosso', cx=0.18, cz=-0.038)
+    beam(m, (0.17, 1.76, -0.039), (0.15, 1.69, -0.037), 0.018, 0.005, 'p_rosso', end='p_rosso')
+    beam(m, (0.19, 1.76, -0.039), (0.21, 1.68, -0.037), 0.018, 0.005, 'p_rosso', end='p_rosso')
+    # Gancio metallico in cima
+    m.box(-0.04, 2.22, -0.015, 0.04, 2.26, 0.0, 'metallo', skip=('back',))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_chitarra_elettrica_appesa():
+    """Chitarra elettrica appesa al muro: supporto a parete, corpo rosso asimmetrico, manico, pickup, plettro e corde scordate."""
+    m = Mesh('mob_chitarra_elettrica_appesa')
+    W, D = ingombro((1, 1))
+    # Supporto a parete per chitarra
+    m.box(-0.06, 2.44, -0.025, 0.06, 2.52, 0.0, 'p_nero_caldo', skip=('back',))
+    m.box(-0.05, 2.46, -0.14, -0.03, 2.50, -0.025, 'p_nero_caldo')
+    m.box(0.03, 2.46, -0.14, 0.05, 2.50, -0.025, 'p_nero_caldo')
+    # Paletta con meccaniche
+    m.box(-0.045, 2.38, -0.13, 0.045, 2.54, -0.10, 'p_legno_chiaro', top='p_legno_chiaro')
+    for i in range(3):
+        y_peg = 2.40 + i * 0.05
+        m.box(-0.065, y_peg, -0.12, -0.045, y_peg + 0.025, -0.11, 'metallo')
+        m.box(0.045, y_peg, -0.12, 0.065, y_peg + 0.025, -0.11, 'metallo')
+    # Manico e tastiera
+    m.box(-0.025, 1.82, -0.12, 0.025, 2.38, -0.09, 'p_legno_chiaro')
+    m.box(-0.025, 1.82, -0.125, 0.025, 2.38, -0.12, 'p_legno_scuro', skip=('back',))
+    for y in (1.94, 2.06, 2.18, 2.30):
+        m.box(-0.006, y, -0.127, 0.006, y + 0.012, -0.125, 'p_pietra_chiara')
+    # Corpo sagomato rosso
+    m.box(-0.16, 1.35, -0.14, 0.16, 1.78, -0.08, 'p_rosso', top='p_rosso', bottom='p_rosso')
+    m.box(-0.18, 1.75, -0.14, -0.07, 1.94, -0.08, 'p_rosso', top='p_rosso')
+    m.box(0.07, 1.75, -0.14, 0.16, 1.86, -0.08, 'p_rosso', top='p_rosso')
+    m.box(-0.13, 1.30, -0.14, 0.13, 1.35, -0.08, 'p_rosso', bottom='p_rosso')
+    # Battipenna bianco
+    m.box(-0.10, 1.48, -0.145, 0.08, 1.80, -0.14, 'p_pietra_chiara', skip=('back',))
+    # Pickup e ponte
+    for y in (1.68, 1.60, 1.52):
+        m.box(-0.03, y, -0.15, 0.03, y + 0.04, -0.142, 'p_nero_caldo')
+    m.box(-0.04, 1.40, -0.15, 0.04, 1.46, -0.142, 'metallo')
+    m.box(0.06, 1.42, -0.155, 0.09, 1.46, -0.145, 'p_giallo')
+    # Corde tese e corde scordate
+    beam(m, (-0.015, 1.43, -0.15), (-0.015, 2.45, -0.125), 0.005, 0.005, 'metallo')
+    beam(m, (0.015, 1.43, -0.15), (0.015, 2.45, -0.125), 0.005, 0.005, 'metallo')
+    beam(m, (-0.03, 2.48, -0.12), (-0.08, 2.56, -0.15), 0.005, 0.005, 'metallo')
+    beam(m, (0.03, 2.48, -0.12), (0.09, 2.40, -0.16), 0.005, 0.005, 'metallo')
+    # Plettro giallo infilato sotto le corde
+    m.box(-0.015, 2.08, -0.133, 0.015, 2.12, -0.126, 'p_giallo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_orologio_da_parete_analogico():
+    """Orologio da parete analogico: cornice bianca circolare, quadrante bianco con 12 tacche, lancette nere e secondi rossi."""
+    m = Mesh('mob_orologio_da_parete_analogico')
+    W, D = ingombro((1, 1))
+    cx, cy = 0.0, 1.95
+    n = 12
+    r_out, r_in = 0.28, 0.23
+    # Cornice circolare bianca
+    for i in range(n):
+        a0 = 2 * math.pi * i / n
+        a1 = 2 * math.pi * (i + 1) / n
+        c0, s0 = math.cos(a0), math.sin(a0)
+        c1, s1 = math.cos(a1), math.sin(a1)
+        # Faccia frontale
+        pts_front = [
+            (cx + c0 * r_out, cy + s0 * r_out, -0.06),
+            (cx + c1 * r_out, cy + s1 * r_out, -0.06),
+            (cx + c1 * r_in, cy + s1 * r_in, -0.06),
+            (cx + c0 * r_in, cy + s0 * r_in, -0.06),
+        ]
+        face(m, pts_front, 'p_pietra_chiara', (0, 0, -1))
+        # Bordo esterno
+        pts_side = [
+            (cx + c0 * r_out, cy + s0 * r_out, 0.0),
+            (cx + c1 * r_out, cy + s1 * r_out, 0.0),
+            (cx + c1 * r_out, cy + s1 * r_out, -0.06),
+            (cx + c0 * r_out, cy + s0 * r_out, -0.06),
+        ]
+        face(m, pts_side, 'p_pietra_chiara', (c0 + c1, s0 + s1, 0))
+    # Quadrante interno bianco
+    dial_pts = [(cx + math.cos(2 * math.pi * i / n) * r_in, cy + math.sin(2 * math.pi * i / n) * r_in, -0.04) for i in range(n)]
+    face(m, dial_pts, 'p_pietra_chiara', (0, 0, -1))
+    # 12 tacche delle ore nere
+    for i in range(12):
+        ang = 2 * math.pi * i / 12
+        tx = cx + math.sin(ang) * 0.18
+        ty = cy + math.cos(ang) * 0.18
+        m.box(tx - 0.008, ty - 0.008, -0.045, tx + 0.008, ty + 0.008, -0.04, 'p_nero_caldo', skip=('back',))
+    # Lancette nere (ore a ore 10, minuti a ore 2)
+    beam(m, (cx, cy, -0.047), (cx - 0.07, cy + 0.05, -0.047), 0.016, 0.006, 'p_nero_caldo')
+    beam(m, (cx, cy, -0.049), (cx + 0.08, cy + 0.11, -0.049), 0.012, 0.006, 'p_nero_caldo')
+    # Lancetta rossa dei secondi a ore 6
+    beam(m, (cx, cy, -0.051), (cx, cy - 0.14, -0.051), 0.005, 0.005, 'p_rosso')
+    # Perno centrale
+    m.box(cx - 0.015, cy - 0.015, -0.055, cx + 0.015, cy + 0.015, -0.04, 'p_nero_caldo')
+    # Vetro protettivo
+    glass_pts = [(cx + math.cos(2 * math.pi * i / n) * r_in, cy + math.sin(2 * math.pi * i / n) * r_in, -0.062) for i in range(n)]
+    face(m, glass_pts, 'vetro', (0, 0, -1))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_specchio_rettangolare_semplice():
+    """Specchio rettangolare semplice: cornice minimal in pietra scura, lastra di vetro con clip metalliche e pettine sul bordo."""
+    m = Mesh('mob_specchio_rettangolare_semplice')
+    W, D = ingombro((1, 1))
+    # Bordo / cornice minimal
+    m.box(-0.29, 1.51, -0.03, 0.29, 2.39, 0.0, 'p_pietra_scura', skip=('back',))
+    # Lastra di vetro a specchio
+    m.box(-0.27, 1.53, -0.026, 0.27, 2.37, -0.005, 'vetro', skip=('back',))
+    # 4 clip metalliche di supporto
+    for sx in (-0.29, 0.26):
+        for sy in (1.51, 2.36):
+            m.box(sx, sy, -0.035, sx + 0.03, sy + 0.03, -0.02, 'metallo')
+    # Riflesso lucido a lama di luce
+    beam(m, (-0.18, 1.70, -0.028), (0.14, 2.22, -0.028), 0.035, 0.005, 'p_pietra_chiara', end='p_pietra_chiara')
+    beam(m, (-0.10, 1.62, -0.028), (0.05, 1.88, -0.028), 0.020, 0.005, 'p_pietra_chiara', end='p_pietra_chiara')
+    # Pettine nero appoggiato sul bordo
+    m.box(0.06, 1.52, -0.045, 0.20, 1.56, -0.028, 'p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_mensola_singola_in_legno():
+    """Mensola singola in legno a parete: ripiano in legno chiaro su staffe in ferro a squadra, con vasetto di succulenta e libri."""
+    m = Mesh('mob_mensola_singola_in_legno')
+    W, D = ingombro((1, 1))
+    # Ripiano in legno chiaro
+    m.box(-0.55, 1.80, -0.25, 0.55, 1.84, 0.0, 'p_legno_chiaro', top='tavole', bottom='p_legno_chiaro', skip=('back',))
+    # Due staffe in ferro a squadra
+    for sx in (-0.38, 0.38):
+        m.box(sx - 0.02, 1.76, -0.23, sx + 0.02, 1.80, 0.0, 'ferro', skip=('top', 'back'))
+        m.box(sx - 0.02, 1.56, -0.03, sx + 0.02, 1.80, 0.0, 'ferro', skip=('back',))
+        beam(m, (sx, 1.58, -0.02), (sx, 1.78, -0.21), 0.03, 0.03, 'ferro', end='ferro')
+    # Vasetto in terracotta con pianta succulenta a destra
+    m.prism(6, 0.07, 0.09, 1.84, 1.96, 'p_arancio', top='terra', cx=0.30, cz=-0.12)
+    m.prism(6, 0.09, 0.03, 1.96, 2.06, 'p_bosco', top='p_erba_chiara', cx=0.30, cz=-0.12)
+    # Due libri a sinistra
+    m.box(-0.35, 1.84, -0.18, -0.31, 2.06, -0.06, 'p_rosso', top='p_rosso')
+    m.box(-0.30, 1.84, -0.18, -0.26, 2.01, -0.06, 'p_acqua', top='p_acqua')
+    # Cristallo decorativo al centro
+    m.prism(5, 0.04, 0.01, 1.84, 1.91, 'p_pietra_chiara', top='p_pietra_chiara', cx=-0.05, cz=-0.14)
+    return _obj(m, footprint=[W, D])
+
+
+def mob_appendiabiti_da_ingresso_in_legno():
+    """Appendiabiti da ingresso in legno a parete: asse in legno, tre ganci dritti in ferro con berretto rosso e sciarpa appesi."""
+    m = Mesh('mob_appendiabiti_da_ingresso_in_legno')
+    W, D = ingombro((1, 1))
+    # Asse in legno orizzontale
+    m.box(-0.50, 1.88, -0.04, 0.50, 2.04, 0.0, 'p_legno', top='p_legno_scuro', bottom='p_legno_scuro', skip=('back',))
+    m.box(-0.46, 1.94, -0.045, -0.42, 1.98, -0.04, 'metallo')
+    m.box(0.42, 1.94, -0.045, 0.46, 1.98, -0.04, 'metallo')
+    # Tre ganci dritti in ferro
+    for gx in (-0.28, 0.0, 0.28):
+        m.box(gx - 0.025, 1.91, -0.045, gx + 0.025, 2.01, -0.04, 'p_nero_caldo')
+        m.box(gx - 0.015, 1.94, -0.15, gx + 0.015, 1.98, -0.045, 'p_nero_caldo')
+        m.box(gx - 0.015, 1.98, -0.15, gx + 0.015, 2.05, -0.12, 'p_nero_caldo', top='p_nero_caldo')
+    # Berretto rosso sul gancio sinistro
+    m.prism(6, 0.11, 0.08, 1.88, 2.06, 'p_rosso', top='p_rosso', cx=-0.28, cz=-0.16)
+    m.prism(6, 0.16, 0.16, 1.86, 1.89, 'p_rosso', bottom='p_rosso', cx=-0.28, cz=-0.16)
+    m.prism(6, 0.115, 0.115, 1.89, 1.93, 'p_nero_caldo', cx=-0.28, cz=-0.16)
+    # Sciarpa blu appesa al gancio centrale
+    m.box(-0.04, 1.62, -0.14, 0.04, 1.96, -0.11, 'tessuto_blu')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_quadro_con_paesaggio_sereno():
+    """Quadro con paesaggio sereno: cornice in legno chiaro, tela a olio con collinetta verde, cielo, alberello e cordicella al muro."""
+    m = Mesh('mob_quadro_con_paesaggio_sereno')
+    W, D = ingombro((1, 1))
+    # Cornice in legno chiaro
+    m.box(-0.47, 1.65, -0.05, 0.47, 2.31, 0.0, 'p_legno_chiaro', top='p_legno', bottom='p_legno', skip=('back',))
+    # Cielo azzurro sereno
+    m.box(-0.425, 1.92, -0.038, 0.425, 2.265, -0.01, 'p_acqua_bassa', skip=('back',))
+    # Nuvola bianca soffice
+    m.box(-0.25, 2.12, -0.041, -0.05, 2.20, -0.038, 'p_pietra_chiara', skip=('back',))
+    m.box(-0.20, 2.20, -0.041, -0.10, 2.24, -0.038, 'p_pietra_chiara', skip=('back',))
+    # Sole nell'angolo in alto a destra
+    m.prism(6, 0.04, 0.04, 2.15, 2.23, 'p_giallo', top='p_giallo', cx=0.30, cz=-0.04)
+    # Collinetta verde in primo piano e collinette di sfondo
+    m.box(-0.425, 1.695, -0.039, 0.425, 1.92, -0.01, 'p_erba', skip=('back',))
+    m.box(-0.425, 1.92, -0.039, -0.05, 2.04, -0.01, 'p_erba_chiara', skip=('back',))
+    m.box(0.08, 1.92, -0.039, 0.425, 1.98, -0.01, 'p_bosco', skip=('back',))
+    # Alberello solitario sulla collina
+    m.box(-0.26, 2.04, -0.042, -0.24, 2.11, -0.039, 'p_legno_scuro')
+    m.prism(6, 0.035, 0.035, 2.11, 2.21, 'p_bosco', top='p_bosco', cx=-0.25, cz=-0.042)
+    # Chiodo e cordicella dorata per appenderlo
+    m.box(-0.015, 2.37, -0.03, 0.015, 2.40, -0.01, 'metallo', skip=('back',))
+    beam(m, (0.0, 2.38, -0.025), (-0.20, 2.31, -0.035), 0.01, 0.005, 'p_giallo')
+    beam(m, (0.0, 2.38, -0.025), (0.20, 2.31, -0.035), 0.01, 0.005, 'p_giallo')
+    return _obj(m, footprint=[W, D])
+
+
 MODELS = {
     f.__name__: f
     for f in (
@@ -1849,6 +2195,17 @@ MODELS = {
         mob_cattedra_scolastica,
         mob_bancone_da_bar_in_mogano,
         mob_cassettiera_anni_70,
+        mob_lavagna_in_sughero,
+        mob_specchio_ovale_con_cornice_d_oro,
+        mob_testa_di_t_rex_in_plastica,
+        mob_telecamera_di_sicurezza_a_circuito_chiuso,
+        mob_diploma_incorniciato,
+        mob_chitarra_elettrica_appesa,
+        mob_orologio_da_parete_analogico,
+        mob_specchio_rettangolare_semplice,
+        mob_mensola_singola_in_legno,
+        mob_appendiabiti_da_ingresso_in_legno,
+        mob_quadro_con_paesaggio_sereno,
     )
 }
 
