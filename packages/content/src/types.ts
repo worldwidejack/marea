@@ -64,6 +64,8 @@ export type ArchipelagoIsland = { island: string; at: [number, number]; role: Ar
 /** Il mondo continuo (CONTRACTS §11): isole di islands.json posate su una griglia w×h di celle da `tile` m; il resto è acqua profonda. */
 /** `mare` = [w, h] in celle della parte navigabile (dall'angolo in alto a sinistra): oltre stanno i giardini delle case (#237), la barca non ci va. */
 export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; tile: number; mare?: [number, number]; islands: ArchipelagoIsland[] };
+/** Una scala della casa (#386): sta sulla cella `cell` della stanza `stanza` (da quando la casa è al livello `da`), si prende camminandoci sopra e porta nella stanza `a`, alla cella `arrivo`. */
+export type CasaScala = { stanza: 'terra' | 'cantina' | 'piano'; verso: 'giu' | 'su'; cell: [number, number]; a: 'terra' | 'cantina' | 'piano'; arrivo: [number, number]; da: number };
 export type CasaLivello = { id: string; nome: string; desc: string; stanza: 'terra' | 'cantina' | 'piano'; pavimento: [number, number, number, number]; costo: { legno: number; pietra: number; perle: number } };
 /** Borgo Marea (#237): la casa `n` = lo slot `n` (= il lotto/giardino `n`). `at` = cella dell'edificio, `porta` = cella della via davanti, entrambe nel template `borgo`. */
 export type BorgoDef = {
@@ -74,7 +76,7 @@ export type BorgoDef = {
   /** Gli ampliamenti della casa (#386), uno alla volta e in ordine (livello 1 = il primo): `stanza` = quale stanza cambia ('terra' = quella di sempre,
    *  poi 'cantina' e 'piano'), `pavimento` = il suo nuovo rettangolo [x0, z0, x1, z1) (contiene quello di prima), `costo` = Legno, Pietra e Perle
    *  (Legno e Pietra non oltre 1500, il tetto del Magazzino L3, se no non si pagano mai). Il rettangolo sta tutto dentro la pianta del template `lotto`. */
-  casa: { livelli: CasaLivello[] };
+  casa: { livelli: CasaLivello[]; scale: CasaScala[] };
   /** Il negozio dei mobili (#265): in città (celle del template porto) e dentro (template `negozio`). */
   negozio: { at: [number, number]; porta: [number, number]; rot: number };
   negozioDentro: { pavimento: [number, number, number, number]; corridoio: [number, number, number]; altezza: number; finitura: { pavimento: string; carta: string } };

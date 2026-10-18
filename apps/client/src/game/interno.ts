@@ -49,21 +49,23 @@ export function porta(x: number, y: number, z: number, ry = 0): THREE.BufferGeom
 }
 
 /** Pianta di un interno, in celle del suo template: pavimento [x0, z0, x1, z1), corridoio [cx, c0, c1), altezza dei muri (m), porta in fondo (colonna, o null). */
-export type Pianta = { pavimento: readonly [number, number, number, number]; corridoio: readonly [number, number, number]; altezza: number; retro: number | null };
+export type Pianta = { pavimento: readonly [number, number, number, number]; corridoio: readonly [number, number, number] | null; altezza: number; retro: number | null };
 
 /** La stanza «da plastico» in coordinate locali del template: pavimento e carta si cambiano con `rifinisci`. */
 export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, carta: StanzaFinitura): { group: THREE.Group; rifinisci(pav: StanzaFinitura, carta: StanzaFinitura): void } {
-  const [X0, Z0, X1, Z1] = p.pavimento, [CX, C0, C1] = p.corridoio, H = p.altezza;
+  const [X0, Z0, X1, Z1] = p.pavimento, [CX, C0, C1] = p.corridoio ?? [0, Z1, Z1], H = p.altezza; // senza corridoio (cantina, secondo piano, #386) il bordo davanti è intero
   const lw = (X1 - X0) * T, ld = (Z1 - Z0) * T, cw = T, cl = (C1 - C0) * T;
   const group = new THREE.Group();
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(lw, ld), new THREE.MeshLambertMaterial());
   floor.rotation.x = -Math.PI / 2; floor.position.set(X0 * T + lw / 2, 0.02, Z0 * T + ld / 2); floor.receiveShadow = true;
   group.add(floor);
   // corridoio: assi di legno, un po' più in basso del pavimento (un gradino)
-  const tAssi = texture(ASSI); tAssi.repeat.set(1, cl / 2);
-  const corr = new THREE.Mesh(new THREE.PlaneGeometry(cw, cl), new THREE.MeshLambertMaterial({ map: tAssi }));
-  corr.rotation.x = -Math.PI / 2; corr.position.set((CX + 0.5) * T, -0.08, C0 * T + cl / 2); corr.receiveShadow = true;
-  group.add(corr);
+  if (p.corridoio) {
+    const tAssi = texture(ASSI); tAssi.repeat.set(1, cl / 2);
+    const corr = new THREE.Mesh(new THREE.PlaneGeometry(cw, cl), new THREE.MeshLambertMaterial({ map: tAssi }));
+    corr.rotation.x = -Math.PI / 2; corr.position.set((CX + 0.5) * T, -0.08, C0 * T + cl / 2); corr.receiveShadow = true;
+    group.add(corr);
+  }
   // pareti: in fondo e ai lati (davanti aperta), carta da parati una volta per metro
   const pareti: THREE.Mesh[] = [];
   const parete = (lung: number, x: number, z: number, ry: number) => {
@@ -80,12 +82,16 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
     painted(new THREE.BoxGeometry(0.12, 0.25, ld), P.legnoScuro, M(X0 * T + 0.06, 0.12, Z0 * T + ld / 2)),
     painted(new THREE.BoxGeometry(0.12, 0.25, ld), P.legnoScuro, M(X1 * T - 0.06, 0.12, Z0 * T + ld / 2)),
     ...(p.retro !== null ? porta((p.retro + 0.5) * T, 0, Z0 * T + 0.05) : []),
-    // bordo del pavimento a sinistra e a destra del corridoio (pietra scura, mezzo metro: si vede il «taglio»)
-    painted(new THREE.BoxGeometry(xa - X0 * T + SPESSORE, 0.55, 0.3), P.roccia, M((X0 * T - SPESSORE + xa) / 2, -0.25, zf + 0.15)),
-    painted(new THREE.BoxGeometry(X1 * T + SPESSORE - xb, 0.55, 0.3), P.roccia, M((xb + X1 * T + SPESSORE) / 2, -0.25, zf + 0.15)),
-    // i fianchi del corridoio: muretti bassi di legno che finiscono nel buio, e la soglia in cima
-    ...[xa - 0.1, xb + 0.1].map((x) => painted(new THREE.BoxGeometry(0.2, 0.7, cl), P.legnoScuro, M(x, 0.27, C0 * T + cl / 2))),
-    painted(new THREE.BoxGeometry(cw, 0.08, 0.2), P.legnoScuro, M((CX + 0.5) * T, -0.02, C0 * T + 0.1)),
+    ...(p.corridoio ? [
+      // bordo del pavimento a sinistra e a destra del corridoio (pietra scura, mezzo metro: si vede il «taglio»)
+      painted(new THREE.BoxGeometry(xa - X0 * T + SPESSORE, 0.55, 0.3), P.roccia, M((X0 * T - SPESSORE + xa) / 2, -0.25, zf + 0.15)),
+      painted(new THREE.BoxGeometry(X1 * T + SPESSORE - xb, 0.55, 0.3), P.roccia, M((xb + X1 * T + SPESSORE) / 2, -0.25, zf + 0.15)),
+      // i fianchi del corridoio: muretti bassi di legno che finiscono nel buio, e la soglia in cima
+      ...[xa - 0.1, xb + 0.1].map((x) => painted(new THREE.BoxGeometry(0.2, 0.7, cl), P.legnoScuro, M(x, 0.27, C0 * T + cl / 2))),
+      painted(new THREE.BoxGeometry(cw, 0.08, 0.2), P.legnoScuro, M((CX + 0.5) * T, -0.02, C0 * T + 0.1)),
+    ] : [
+      painted(new THREE.BoxGeometry(lw + 2 * SPESSORE, 0.55, 0.3), P.roccia, M(X0 * T + lw / 2, -0.25, zf + 0.15)), // il bordo davanti, tutto intero
+    ]),
   ];
   group.add(new THREE.Mesh(merged(parti), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
   const buio = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshBasicMaterial({ color: P.neroCaldo }));
@@ -110,7 +116,7 @@ export function createInquadratura(o: { world: GameWorld; renderer: Renderer }):
   const w = o.world, T = w.archipelago.tile, dio = o.renderer.diorama;
   let distanza = 20, mezzaVista = 99, aspetto = 0;
   const misura = (p: Pianta) => {
-    const [X0, Z0, X1, Z1] = p.pavimento, lw = (X1 - X0) * T, ld = (Z1 - Z0) * T, cl = (p.corridoio[2] - p.corridoio[1]) * T;
+    const [X0, Z0, X1, Z1] = p.pavimento, lw = (X1 - X0) * T, ld = (Z1 - Z0) * T, cl = p.corridoio ? (p.corridoio[2] - p.corridoio[1]) * T : 0;
     const a = dio.camera.aspect, t = Math.tan((VISTA.fov * Math.PI) / 360);
     aspetto = a;
     const alto = (ld + cl) * Math.sin(VISTA.pitch) + p.altezza * Math.cos(VISTA.pitch) + 1; // quanto è alta la stanza vista dalla camera (m)
@@ -122,7 +128,7 @@ export function createInquadratura(o: { world: GameWorld; renderer: Renderer }):
   return {
     get distanza() { return distanza; },
     entra(ox, oz, p) {
-      const [X0, Z0, X1, Z1] = p.pavimento, lw = (X1 - X0) * T, ld = (Z1 - Z0) * T, cl = (p.corridoio[2] - p.corridoio[1]) * T;
+      const [X0, Z0, X1, Z1] = p.pavimento, lw = (X1 - X0) * T, ld = (Z1 - Z0) * T, cl = p.corridoio ? (p.corridoio[2] - p.corridoio[1]) * T : 0;
       o.renderer.setInterno(P.neroCaldo);
       const centroZ = Z0 * T + (ld + cl) / 2 - 1.5, xMin = ox + X0 * T - 1, xMax = ox + X1 * T + 1;
       w.camFissa = (x) => {

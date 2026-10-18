@@ -7,7 +7,7 @@ import { newLot } from '../src/economy/actions.ts';
 import { ampliaCasa, compraMobile, livelloLotto, posaMobile, postoMobileError } from '../src/economy/casa.ts';
 import { decorCellError, fitToTemplate, inStanza, lotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
-import { LIVELLI_CASA, MAX_LIVELLO_CASA, PIANTE_MAX, livelloCasa, prossimoAmpliamento, stanzaAt, stanzaTerra, stanzeDi } from '../src/economy/stanze.ts';
+import { LIVELLI_CASA, MAX_LIVELLO_CASA, PIANTE_MAX, livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzaTerra, stanzeDi } from '../src/economy/stanze.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { composeArchipelago } from '../src/world/archipelago.ts';
@@ -129,4 +129,47 @@ test('la collisione: a livello 0 l’eroe urta il muro della stanza piccola; con
   // la casa del vicino è un'altra cosa: ha il suo livello
   assert.equal(maschera.at(l1.origin[0] + nuovo[0], l1.origin[1] + nuovo[1] + 1), 'r');
   assert.equal(maschera.at(l0.origin[0] + nuovo[0], l0.origin[1] + nuovo[1] + 1), '.');
+});
+
+test('cantina e secondo piano: ci sono solo dal livello giusto; si posa dentro la loro stanza; le scale restano libere; le scale vanno e vengono', () => {
+  const lc = LIVELLI_CASA.findIndex((l) => l.stanza === 'cantina') + 1, lp = LIVELLI_CASA.findIndex((l) => l.stanza === 'piano') + 1;
+  assert.ok(lc >= 4 && lp > lc + 1, 'la cantina e poi il piano: dopo le stanze più grandi');
+  assert.deepEqual(stanzeDi(lc - 1).map((s) => s.id), ['terra']);
+  assert.deepEqual(stanzeDi(lc).map((s) => s.id), ['terra', 'cantina']);
+  assert.deepEqual(stanzeDi(MAX_LIVELLO_CASA).map((s) => s.id), ['terra', 'cantina', 'piano']);
+  const cantina = stanzeDi(lc).find((s) => s.id === 'cantina')!.pavimento, dentro: [number, number] = [cantina[0] + 1, cantina[1]];
+  let lot = compraMobile(compraMobile(ricco(), terra.id, 0), parete.id, 0);
+  assert.throws(() => posaMobile(lot, terra.id, { cell: dentro }, 0, 0), isErr('posizione'), 'prima del livello la cantina non c’è');
+  lot = su(lot, lc);
+  lot = posaMobile(lot, terra.id, { cell: dentro }, 0, 0);
+  lot = posaMobile(lot, parete.id, { cell: [cantina[0] + 2, cantina[1]], muro: 'n' }, 0, 0);
+  assert.equal(stanzaAt(lc, lot.casa!.arredi![0]!.cell)?.id, 'cantina');
+  // le scale: due, una per piano; su quella cella non si posa; un mobile lungo non deve coprirle
+  const scale = scaleDi(lc);
+  assert.equal(scale.length, 2);
+  assert.deepEqual(scale.map((s) => s.verso).sort(), ['giu', 'su']);
+  for (const s of scale) {
+    assert.ok(stanzaAt(lc, s.cell)?.id === s.stanza && stanzaAt(lc, s.arrivo)?.id === s.a, 'scala e arrivo dentro le stanze');
+    assert.throws(() => posaMobile(compraMobile(lot, terra.id, 0), terra.id, { cell: s.cell }, 0, 0), isErr('posizione'), `sulla scala ${s.stanza}`);
+  }
+  assert.equal(scaleDi(lc - 1).length, 0);
+  assert.equal(scaleDi(MAX_LIVELLO_CASA).length, 4, 'con il secondo piano ci sono tutte e quattro');
+  // ampliando la cantina il mobile a muro si riappende al suo muro nord (la cantina cresce verso nord)
+  lot = su(lot, 1);
+  const cantina2 = stanzeDi(lc + 1).find((s) => s.id === 'cantina')!.pavimento;
+  assert.equal(lot.casa!.arredi!.find((a) => a.muro === 'n')!.cell[1], cantina2[1]);
+  assert.equal(checkInvariant([lot]), null);
+});
+
+test('la collisione chiude anche cantina e secondo piano finché non si sbloccano', () => {
+  const arch = composeArchipelago(ARCHIPELAGO, ISLANDS), l0 = arch.lots[0]!, livelli = new Map<number, number>();
+  const maschera = mascheraCase(arch.map, arch.lots, (s) => livelli.get(s) ?? 0);
+  const lc = LIVELLI_CASA.findIndex((l) => l.stanza === 'cantina') + 1, c = LIVELLI_CASA[lc - 1]!.pavimento;
+  const x = l0.origin[0] + c[0] + 1, z = l0.origin[1] + c[1] + 1;
+  assert.equal(arch.map.at(x, z), '.', 'nel mondo il pavimento della cantina c’è');
+  assert.equal(maschera.at(x, z), 'r', 'chiusa a livello 0');
+  livelli.set(l0.slot, lc);
+  assert.equal(maschera.at(x, z), '.', 'aperta dal livello della cantina');
+  const lastra = stanzeDi(MAX_LIVELLO_CASA).find((s) => s.id === 'piano')!.pavimento;
+  assert.equal(maschera.at(l0.origin[0] + lastra[0], l0.origin[1] + lastra[1]), 'r', 'il secondo piano è ancora chiuso');
 });

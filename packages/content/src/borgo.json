@@ -5,7 +5,17 @@
   "casa": { "livelli": [
     { "id": "stanza1", "nome": "Stanza più grande", "desc": "La stanza passa da 7×6 a 9×7 celle: più posto per i mobili.", "stanza": "terra", "pavimento": [10, 26, 19, 33], "costo": { "legno": 300, "pietra": 150, "perle": 150 } },
     { "id": "stanza2", "nome": "Stanza ancora più grande", "desc": "La stanza passa a 11×7 celle.", "stanza": "terra", "pavimento": [9, 26, 20, 33], "costo": { "legno": 500, "pietra": 300, "perle": 300 } },
-    { "id": "stanza3", "nome": "La stanza più grande", "desc": "La stanza passa a 13×7 celle: un salone.", "stanza": "terra", "pavimento": [8, 26, 21, 33], "costo": { "legno": 800, "pietra": 500, "perle": 500 } }
+    { "id": "stanza3", "nome": "La stanza più grande", "desc": "La stanza passa a 13×7 celle: un salone.", "stanza": "terra", "pavimento": [8, 26, 21, 33], "costo": { "legno": 800, "pietra": 500, "perle": 500 } },
+    { "id": "cantina1", "nome": "Scala e cantina", "desc": "In casa una scala scende in una cantina di pietra (5×4 celle).", "stanza": "cantina", "pavimento": [5, 38, 10, 42], "costo": { "legno": 1000, "pietra": 700, "perle": 700 } },
+    { "id": "cantina2", "nome": "Cantina grande", "desc": "La cantina passa a 11×6 celle.", "stanza": "cantina", "pavimento": [2, 37, 13, 43], "costo": { "legno": 1200, "pietra": 900, "perle": 900 } },
+    { "id": "piano1", "nome": "Secondo piano", "desc": "Un'altra scala sale a un secondo piano (5×4 celle).", "stanza": "piano", "pavimento": [20, 38, 25, 42], "costo": { "legno": 1400, "pietra": 1000, "perle": 1200 } },
+    { "id": "piano2", "nome": "Secondo piano grande", "desc": "Il secondo piano passa a 11×6 celle.", "stanza": "piano", "pavimento": [17, 37, 28, 43], "costo": { "legno": 1500, "pietra": 1200, "perle": 1600 } }
+  ],
+  "scale": [
+    { "stanza": "terra", "verso": "giu", "cell": [12, 32], "a": "cantina", "arrivo": [7, 40], "da": 4 },
+    { "stanza": "cantina", "verso": "su", "cell": [7, 41], "a": "terra", "arrivo": [12, 31], "da": 4 },
+    { "stanza": "terra", "verso": "su", "cell": [16, 32], "a": "piano", "arrivo": [22, 40], "da": 6 },
+    { "stanza": "piano", "verso": "giu", "cell": [22, 41], "a": "terra", "arrivo": [16, 31], "da": 6 }
   ] },
   "negozio": {"at": [48, 25], "porta": [49, 26], "rot": -2.51},
   "negozioDentro": { "pavimento": [2, 2, 16, 7], "corridoio": [8, 7, 9], "altezza": 3.6, "finitura": { "pavimento": "piastrelle", "carta": "rombi" } },

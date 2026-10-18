@@ -215,10 +215,10 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.lot.panel && s.lot.panel.kind === 'sposta_edificio', 5000);
       const targetCell = slotB;
       await hook('lotTap', targetCell);
-      await ctx.waitState(page, (s) => s.lot.sagoma && s.lot.sagoma.cell[0] === targetCell[0] && s.lot.sagoma.cell[1] === targetCell[1], 5000);
+      await ctx.waitState(page, (s, t) => s.lot.sagoma && s.lot.sagoma.cell[0] === t[0] && s.lot.sagoma.cell[1] === t[1], 5000, targetCell); // la funzione gira nella pagina: le variabili del test si passano come argomento
       await ctx.shot(page, 'sposta_edificio');
       await page.click('#mzSheet button[data-act="conferma"]');
-      await ctx.waitState(page, (s) => s.lot.buildings.some((b) => b.id === seg.id && b.cell[0] === targetCell[0] && b.cell[1] === targetCell[1]), 8000);
+      await ctx.waitState(page, (s, t) => s.lot.buildings.some((b) => b.id === t.id && b.cell[0] === t.cell[0] && b.cell[1] === t.cell[1]), 8000, { id: seg.id, cell: targetCell });
       const after = (await st()).buildings.find((b) => b.id === seg.id);
       ctx.assert(after.cell[0] === targetCell[0] && after.cell[1] === targetCell[1], 'cella non aggiornata dopo sposta: ' + JSON.stringify(after));
     });

@@ -3,7 +3,7 @@
 // la pianta MASSIMA di ogni stanza è già nelle sue righe (islands.json), il livello sblocca un pezzo alla volta (rettangoli sempre annidati: il
 // nuovo contiene il vecchio). Puro: lo usano il DO (valida le pose), la sim (celle del giardino) e il client (disegno, collisioni).
 import { BORGO } from '@marea/content';
-import type { CasaLivello } from '@marea/content';
+import type { CasaLivello, CasaScala } from '@marea/content';
 
 /** Rettangolo di celle [x0, z0, x1, z1): x1 e z1 esclusi. */
 export type Rect = readonly [number, number, number, number];
@@ -18,6 +18,10 @@ export const MAX_LIVELLO_CASA = LIVELLI_CASA.length;
 export const livelloCasa = (casa: { livello?: number } | null | undefined): number => Math.max(0, Math.min(MAX_LIVELLO_CASA, Math.floor(casa?.livello ?? 0)));
 /** L'ampliamento che porta la casa dal livello dato al successivo; null = già al massimo. */
 export const prossimoAmpliamento = (livello: number): CasaLivello | null => LIVELLI_CASA[Math.max(0, Math.floor(livello))] ?? null;
+
+/** Le scale della casa (borgo.json `casa.scale`) e quelle che ci sono a un livello. */
+export const SCALE_CASA: readonly CasaScala[] = BORGO.casa.scale;
+export const scaleDi = (livello: number): readonly CasaScala[] => SCALE_CASA.filter((s) => livello >= s.da);
 
 const dentro = (r: Rect, c: readonly [number, number]): boolean => c[0] >= r[0] && c[0] < r[2] && c[1] >= r[1] && c[1] < r[3];
 const cache = new Map<number, readonly Stanza[]>();

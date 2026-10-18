@@ -131,6 +131,15 @@ function validateBorgo(): string[] {
       if (l.stanza === 'terra' && (r[3] !== z1 || r[0] > cx || r[2] <= cx)) errs.push(`borgo: casa.livelli[${n}]: il piano terra tiene il bordo davanti e il corridoio`);
       att.set(l.stanza, r);
     }
+    // le scale (#386): ognuna sta in una stanza che a quel livello c'è e porta in una cella dell'altra stanza, anch'essa già c'è
+    const rettA = (id: string, liv: number): readonly number[] | null => { let r: readonly number[] | null = id === 'terra' ? st.pavimento : null; for (const l of BORGO.casa.livelli.slice(0, liv)) if (l.stanza === id) r = l.pavimento; return r; };
+    const dentroR = (r: readonly number[] | null, c: readonly number[]) => !!r && c[0]! >= r[0]! && c[0]! < r[2]! && c[1]! >= r[1]! && c[1]! < r[3]!;
+    for (const [n, s] of BORGO.casa.scale.entries()) {
+      if (!dentroR(rettA(s.stanza, s.da), s.cell)) errs.push(`borgo: casa.scale[${n}] sta fuori dalla stanza ${s.stanza} al livello ${s.da}`);
+      if (!dentroR(rettA(s.a, s.da), s.arrivo)) errs.push(`borgo: casa.scale[${n}] arriva fuori dalla stanza ${s.a} al livello ${s.da}`);
+      if (s.verso !== 'giu' && s.verso !== 'su') errs.push(`borgo: casa.scale[${n}] ha un verso sconosciuto`);
+      if (!BORGO.casa.livelli.some((l, i) => i + 1 === s.da && l.stanza !== 'terra')) errs.push(`borgo: casa.scale[${n}]: il livello ${s.da} non apre una stanza nuova`);
+    }
   }
   if (!BORGO.pavimenti.length || !BORGO.carte.length) errs.push('borgo: serve almeno un pavimento e una carta da parati');
   // finiture e mobili (#265): id unici, quella di serie gratis, prezzi interi, colori in esadecimale (dalla palette)
