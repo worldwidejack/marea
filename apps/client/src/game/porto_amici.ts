@@ -2,6 +2,8 @@
 // palette, un mesh) e il Faro comune sullo scoglio a nord-est (modelli bld_faro_l1/l2: cresce coi livelli; al livello 0 è spento,
 // finestre e lanterna scure; dal livello 1 si accende e di notte un fascio gira dalla lanterna, più lungo e largo a ogni livello). Cartelli RECORD / FARO, bottone quando ci sei vicino
 // (A / E / Spazio). I pannelli stanno in ui/porto_amici_ui.ts, scaricato con import() alla prima apertura (tetto del JS, TECH §5).
+// Faro comune spento per ora (VISIONE §2, #111): senza ?faro=1 (FLAGS.faro) del faro resta solo il modello sulla riva, scenografia col suo
+// livello vero; niente cartello, bottone, pannello, meta in bussola. Il codice resta tutto: si riaccende con la flag.
 import * as THREE from 'three';
 import { PORTO_AMICI } from '@marea/content/porto_amici.ts';
 import type { PortoPosto } from '@marea/content/porto.ts';
@@ -16,10 +18,11 @@ import { pixIcon } from '../ui/icons.ts';
 import { createLabelLayer, LABEL_NEAR_M } from '../ui/sheet.ts';
 import type { PortoAmiciUi } from '../ui/porto_amici_ui.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { FLAGS } from '../flags.ts';
 
 export type AmiciKind = 'record' | 'faro';
 export type PortoAmici = {
-  /** Tabellone e Faro in coordinate mondo (dove si mette chi gioca: per la bussola). */
+  /** Tabellone e Faro (solo con FLAGS.faro) in coordinate mondo (dove si mette chi gioca: per la bussola). */
   readonly spots: readonly { id: AmiciKind; nome: string; x: number; z: number }[];
   /** Un tick (60 Hz): vicino a un posto, il fronte di salita di A apre il pannello. true = A è di questi posti. */
   tick(a: boolean): boolean;
@@ -81,13 +84,17 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
   let ui: PortoAmiciUi | null = null, loading: Promise<PortoAmiciUi | null> | null = null, near: AmiciKind | null = null, nearWas: AmiciKind | null = null, aWas = false, closedAt = 0;
   let faro: FaroVista | null = null;
 
-  const posti = (['record', 'faro'] as const).map((id) => {
+  const luoghi = (['record', 'faro'] as const).map((id) => {
     const posto: PortoPosto = id === 'record' ? PORTO_AMICI.tabellone : PORTO_AMICI.faro, w = at(posto.at), f = at(posto.fronte);
-    const label = layer.add(() => { if (Math.hypot(me().x - f.x, me().z - f.z) < TAP_M) void open(id); else o.hud.toast(`${posto.nome}: al Porto`, 2200); });
-    label.set('bubble', [pixIcon(id, 16), el('span', '', posto.cartello)], 'spot'); label.el.classList.add('spot'); label.el.dataset['amici'] = id;
-    return { id, posto, x: w.x, z: w.z, y: o.world.groundY(w.x, w.z), fx: f.x, fz: f.z, label };
+    return { id, posto, x: w.x, z: w.z, y: o.world.groundY(w.x, w.z), fx: f.x, fz: f.z };
   });
-  const tab = posti[0]!, fp = posti[1]!;
+  const tab = luoghi[0]!, fp = luoghi[1]!;
+  /** I posti dove si va (cartello, bottone, bussola): il faro solo se acceso (FLAGS.faro); il suo modello si vede comunque. */
+  const posti = luoghi.filter((s) => s.id !== 'faro' || FLAGS.faro).map((s) => {
+    const label = layer.add(() => { if (Math.hypot(me().x - s.fx, me().z - s.fz) < TAP_M) void open(s.id); else o.hud.toast(`${s.posto.nome}: al Porto`, 2200); });
+    label.set('bubble', [pixIcon(s.id, 16), el('span', '', s.posto.cartello)], 'spot'); label.el.classList.add('spot'); label.el.dataset['amici'] = s.id;
+    return { ...s, label };
+  });
 
   // ---- tabellone: un mesh ----
   const tabMesh = new THREE.Mesh(tabelloneGeometry().applyMatrix4(M(tab.x, tab.y, tab.z, 0, tab.posto.rot, 0)), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
@@ -151,7 +158,7 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
     return loading;
   }
   async function open(id: AmiciKind): Promise<boolean> {
-    if (ui?.isOpen() || o.world.race.on || performance.now() - closedAt < 350) return false;
+    if (ui?.isOpen() || o.world.race.on || performance.now() - closedAt < 350 || (id === 'faro' && !FLAGS.faro)) return false;
     const u = await loadUi();
     if (!u || u.isOpen()) return false;
     btn.classList.remove('on');
@@ -174,7 +181,7 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
   registerStateProvider('portoAmici', () => ({
     near, open: ui?.isOpen() ? ui.kind : null, ui: ui?.state() ?? null,
     posti: posti.map((s) => ({ id: s.id, x: s.x, z: s.z, fronte: { x: s.fx, z: s.fz } })),
-    faro: { livello, modello: modelloOn,  scala: CRESCITA[Math.max(0, livello)]?.scala ?? 1, acceso, fascio: fascio.visible, luci: luci.length, dati: faro },
+    faro: { attivo: FLAGS.faro, at: { x: fp.x, z: fp.z }, fronte: { x: fp.fx, z: fp.fz }, livello, modello: modelloOn,  scala: CRESCITA[Math.max(0, livello)]?.scala ?? 1, acceso, fascio: fascio.visible, luci: luci.length, dati: faro },
   }));
   registerTestHook('amiciApri', (id) => open(String(id) === 'faro' ? 'faro' : 'record'));
   registerTestHook('amiciChiudi', () => { ui?.close(); return true; });

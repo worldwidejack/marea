@@ -1,0 +1,28 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/fondale/ · assets/concept/difesa/orto/oggetti/ · assets/concept/difesa/orto/ui/
+Qui non fai personaggi: fai la scena e i pezzi dell'interfaccia. Le regole delle «pose base» valgono solo dove scrivo «fondo
+trasparente». Sempre lo stile del concept allegato.
+
+1) assets/concept/difesa/orto/fondale/centro.png — 1536×1024, SENZA trasparenza. È una MODIFICA del concept: lo stesso orto, la stessa
+   inquadratura, la stessa casetta degli attrezzi a sinistra, la stessa staccionata, lo stesso campo di 5 corsie × 9 caselle a scacchi
+   di terra e prato NELLA STESSA POSIZIONE E MISURA del concept (la griglia deve combaciare col concept), ma SENZA personaggi, SENZA
+   proiettili e semi, SENZA gli annaffiatoi a molla e SENZA interfaccia. Dove c'era la barra delle carte in alto metti la staccionata,
+   i cespugli e il cielo; dove c'era la barra delle ondate in basso a destra metti prato e staccionata. Caselle tutte vuote e pulite.
+2) assets/concept/difesa/orto/fondale/sinistra.png e assets/concept/difesa/orto/fondale/destra.png — 1024×1024 l'una, senza
+   trasparenza: il PROSEGUIMENTO della stessa scena oltre i bordi di centro.png (sui telefoni larghi si vede più giardino ai lati).
+   sinistra = quello che c'è a sinistra della casetta (altro giardino, vialetto di pietre, vasi, rastrello e attrezzi, cespugli): il
+   suo bordo DESTRO deve continuare il bordo SINISTRO di centro.png (stesso prato, stessa altezza di staccionata, erba e cielo).
+   destra = quello che c'è oltre il bordo destro (prato, cespugli, fiori, la staccionata con un cancelletto aperto da cui arrivano gli
+   insetti): il suo bordo SINISTRO continua il bordo DESTRO di centro.png. In queste due niente campo a scacchi: solo il contorno.
+   Usa centro.png come riferimento per l'altezza dell'orizzonte e della staccionata.
+3) assets/concept/difesa/orto/oggetti/foglio.png — 1536×1024, fondo DAVVERO trasparente: 6 oggetti separati e ben distanziati su una
+   griglia di 3 colonne × 2 righe, ognuno al centro della sua cella, niente che sconfina nella cella vicina, niente ombre:
+   riga 1: RONDELLA DI CAROTA (il proiettile: un disco di carota arancione con gli anelli, visto di 3/4) · RONDELLA GELATA (uguale ma
+   azzurro-ghiaccio con la brina) · SEME D'ORO (la valuta: un seme dorato lucido a goccia allungata, con un luccichio a stellina);
+   riga 2: CAPPELLO DI GHIANDA (quello che porta in testa la lumaca nel concept, da solo) · VASETTO DI LATTA ammaccato (quello che porta
+   in testa lo scarabeo nel concept, da solo) · PALETTA DA GIARDINO (come l'icona della pala del concept).
+4) assets/concept/difesa/orto/ui/legno.png — 1536×1024, fondo DAVVERO trasparente, due pezzi VUOTI e ben separati:
+   in alto il PANNELLO DI LEGNO della barra delle carte del concept, senza carte, senza numeri e senza icone: tavola di legno marrone a
+   doghe orizzontali con il bordo scuro spesso e gli angoli arrotondati, larga e bassa (circa 5:1), larga quasi tutta l'immagine;
+   in basso un CARTELLO DA MENÙ: tavola di legno quasi quadrata (circa 4:3) con la cornice di legno spessa e il centro di carta color
+   crema VUOTO, niente scritte.

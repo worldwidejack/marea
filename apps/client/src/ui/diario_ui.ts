@@ -2,6 +2,7 @@
 // di ogni specie, quante volte), Perle, Animali avvistati, Medaglie (la migliore per minigioco), Isole visitate (la forma vera dell'isola,
 // un pixel per cella), Traguardi (progresso, RISCUOTI sul server, titolo sotto il nome). Caselle grigie con «?» per quello che manca,
 // contatore «3/12» su ogni linguetta. Si può sfogliare anche il diario di un amico (sola lettura, dal suo lotto).
+// Traguardi e titoli spenti per ora (VISIONE §2): senza ?traguardi=1 la linguetta non c'è (DIARIO_TABS) e in testata niente titolo.
 // Un pollice: linguette e caselle ≥ 44 px. Tastiera in capture solo a pannello aperto: Esc/J chiude, ←/→ linguette, ↑/↓ tra i bottoni.
 import { MINIGAMES_CFG } from '@marea/content';
 import type { PescaPesce, PescaRarita } from '@marea/content';
@@ -18,6 +19,7 @@ import { flyResources } from './sheet.ts';
 import { pesceCanvas } from './pesci_sprite.ts';
 import { ANIMALI_ART, ISOLA, MEDAGLIA, MED_COL, PERLE_ART, STELLA, ZAMPA, artCanvas, isolaCanvas, medagliaCanvas } from './diario_disegni.ts';
 import { suona } from '../audio/ponte.ts';
+import { FLAGS } from '../flags.ts';
 
 const P = PAL;
 const CFG = MINIGAMES_CFG.pesca;
@@ -35,7 +37,7 @@ const STYLE = `
 .mz-dia-chi { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 6px; padding-bottom: 2px; }
 .mz-dia-chi button { flex: none; min-width: 56px; min-height: 40px; padding: 0 10px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; }
 .mz-dia-chi button[aria-pressed="true"] { border-color: ${P.giallo}; color: ${P.giallo}; }
-.mz-dia-tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 6px; }
+.mz-dia-tabs { display: grid; grid-template-columns: repeat(var(--n, 6), 1fr); gap: 4px; margin-bottom: 6px; }
 .mz-dia-tab { position: relative; min-height: 50px; padding: 3px 0 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbia}; font: bold 11px ui-monospace, Menlo, monospace; cursor: pointer; }
 .mz-dia-tab[aria-pressed="true"] { background: ${P.arancio}; color: ${P.neroCaldo}; border-color: ${P.neroCaldo}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
 .mz-dia-tab i { position: absolute; top: -7px; right: -5px; min-width: 16px; height: 16px; padding: 0 3px; background: ${P.rosso}; color: ${P.sabbiaChiara}; border: 2px solid ${P.neroCaldo}; font: bold 10px/16px ui-monospace, Menlo, monospace; font-style: normal; }
@@ -140,8 +142,7 @@ export function createDiarioUi(ctx: DiarioCtx) {
     const nome = chi ? ctx.owners.find((w) => w.id === chi)?.nome ?? chi : ctx.me?.nome ?? 'Ospite';
     const ct = el('div', 'chi-t'); ct.dataset['chi'] = chi ?? 'io';
     ct.append(el('span', '', chi ? `di ${nome}` : 'capitano ' + nome));
-    const tit = titoloDi(d.titolo);
-    ct.appendChild(el('b', '', tit ? `«${tit}»` : 'senza titolo'));
+    if (FLAGS.traguardi) { const tit = titoloDi(d.titolo); ct.appendChild(el('b', '', tit ? `«${tit}»` : 'senza titolo')); }
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.title = 'Chiudi (Esc, J)'; x.setAttribute('aria-label', 'Chiudi'); x.dataset['act'] = 'chiudi';
     x.addEventListener('click', () => close());
     h.append(t, ct, x);
@@ -161,7 +162,7 @@ export function createDiarioUi(ctx: DiarioCtx) {
     return r;
   }
   function tabs(c: Record<DiarioTab, Conta>, pronti: number): HTMLElement {
-    const r = el('div', 'mz-dia-tabs'); r.setAttribute('role', 'tablist');
+    const r = el('div', 'mz-dia-tabs'); r.setAttribute('role', 'tablist'); r.style.setProperty('--n', String(DIARIO_TABS.length));
     const icone: Record<DiarioTab, () => HTMLElement> = {
       pesci: () => pixIcon('pesca', 20), perle: () => pixIcon('perle', 20), animali: () => artCanvas(ZAMPA, 2.5),
       medaglie: () => artCanvas(MEDAGLIA, 2.5, { col: { m: P.giallo } }), isole: () => artCanvas(ISOLA, 2.5), traguardi: () => artCanvas(STELLA, 2.5),
@@ -338,7 +339,7 @@ export function createDiarioUi(ctx: DiarioCtx) {
   }
 
   function apri(t?: DiarioTab): void {
-    if (t) { tab = t; sel = null; }
+    if (t && DIARIO_TABS.includes(t)) { tab = t; sel = null; }
     if (open) { render(); return; }
     open = true; gen++; note.testo = null; note.busy = false;
     if (!meId) chi = null;

@@ -1,0 +1,30 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/carota/ · gelo_a/ · gelo_b/ · zucca/ · peperoncino/ · cavolo/ (tutte dentro
+assets/concept/difesa/orto/). Sono difensori: guardano e sparano verso DESTRA.
+
+A) CAROTA CANNONE — base: carota/fermo.png (c'è già anche carota/carica.png: guardala, è il fotogramma di carica giusto)
+ 1. carota/sparo.png — SPARO: rinculo, il corpo della carota scivola rigido verso SINISTRA di ~35 px (stessa lunghezza e altezza
+    della base, MAI rimpicciolito), il cavalletto resta fermo identico, occhi spalancati, davanti alla bocca del cannone un piccolo
+    sbuffo color crema. NIENTE rondella/proiettile (il proiettile lo disegna il gioco).
+ 2. carota/chiusi.png — come la base ma con gli OCCHI CHIUSI (battito di ciglia). Tutto il resto identico.
+B) CAROTA GELATA — base: gelo_a/fermo.png. Usa anche carota/carica.png e il tuo carota/sparo.png come riferimento del MOVIMENTO.
+ 3. gelo_a/carica.png — lo stesso movimento di carota/carica.png (si comprime all'indietro e si gonfia appena, occhi stretti).
+ 4. gelo_a/sparo.png — lo stesso movimento di carota/sparo.png, con lo sbuffo azzurro-ghiaccio (niente proiettile).
+ 5. gelo_a/chiusi.png — come la base ma con gli occhi chiusi.
+C) CETRIOLO GHIACCIATO — base: gelo_b/fermo.png. Stessi tre fotogrammi del punto B, stessi riferimenti di movimento:
+ 6. gelo_b/carica.png  7. gelo_b/sparo.png (sbuffo azzurro-ghiaccio, niente proiettile)  8. gelo_b/chiusi.png
+D) ZUCCA A MANOVELLA — base: zucca/fermo.png
+ 9. zucca/manovella_1.png — la manovella in cima ruotata di un quarto di giro, guance gonfie per lo sforzo, occhi strizzati.
+ 10. zucca/manovella_2.png — la manovella ruotata di mezzo giro (dall'altra parte), lo sportellino che comincia ad aprirsi.
+ 11. zucca/seme.png — sportellino aperto, un SEME D'ORO lucido che salta fuori verso l'alto, faccia felice a bocca aperta.
+ 12. zucca/chiusi.png — come la base ma con gli occhi chiusi.
+E) PEPERONCINO A MICCIA — base: peperoncino/fermo.png
+ 13. peperoncino/gonfio.png — il corpo gonfio (~10 % più grosso, sempre coi piedi a terra), guance gonfie, occhi strizzati, miccia
+     più corta con una scintilla più grande.
+ 14. peperoncino/rovente.png — ancora più gonfio (~18 %), rosso-arancio acceso che brilla, sbuffi di vapore dalla testa, occhi
+     sgranati, miccia quasi finita con una scintilla grande.
+F) CAVOLO CORAZZATO — base: cavolo/fermo.png
+ 15. cavolo/rosicchiato.png — qualche morso sulle foglie del lato DESTRO (quello verso i nemici), sopracciglia preoccupate.
+ 16. cavolo/mezzo.png — mangiucchiato forte: grossi morsi sul lato destro, foglie strappate, faccia stanca e preoccupata (un occhio
+     socchiuso). Stessa misura e posizione della base (i morsi tolgono pezzi, non spostano il cavolo).
+ 17. cavolo/chiusi.png — come la base ma con gli occhi chiusi.

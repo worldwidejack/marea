@@ -5,6 +5,8 @@
 // spinti a ogni lotto e bonus di produzione applicato dal server (uguale alla sim). Telefono 390×844 (Luca): faro spento al livello 0,
 // pannello del tabellone, faro cresciuto e acceso al livello 1, pannello del faro e VERSA 50. PC (Mia): E apre tabellone e faro, di notte
 // il fascio gira. Alla fine il giorno dopo «oggi» si svuota e «sempre» resta. Screenshot di tutto.
+// Il Faro comune è spento per ora (VISIONE §2): queste prove lo riaccendono con ?faro=1; l'ultima entra senza e controlla che del faro
+// resti solo il modello (niente cartello, bottone, meta in bussola, pannello).
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -90,8 +92,8 @@ export default async function (ctx) {
     });
 
     // ---- telefono (Luca) ----
-    const open = async (t, viewport, extra = '') => {
-      const pg = await ctx.B.openPage(ctx.browser, `${B}/?t=${t}&test=1${extra}`, { viewport });
+    const open = async (t, viewport, extra = '', faro = true) => {
+      const pg = await ctx.B.openPage(ctx.browser, `${B}/?t=${t}&test=1${faro ? '&faro=1' : ''}${extra}`, { viewport });
       pages.push(pg); ctx._pages.push(pg);
       await pg.page.route('**/api/**', (route) => { const rq = route.request(); return route.continue({ headers: { ...rq.headers(), 'x-test-now-offset': String(OFF) } }); });
       await ctx.waitReady(pg.page, 60000);
@@ -265,6 +267,24 @@ export default async function (ctx) {
       await ctx.shot(dp, 'desktop_faro_notte');
       await dh('ciclo', null);
       ctx.noErrors(D, 'PC');
+    });
+
+    await ctx.test('senza ?faro=1: del Faro comune resta il modello acceso; niente cartello, bottone, meta in bussola né pannello', async () => {
+      const S = await open('tokL', ctx.B.IPHONE, '', false), sp = S.page;
+      const s0 = await ctx.getState(sp);
+      assert(s0.portoAmici.faro.attivo === false && s0.portoAmici.posti.every((p) => p.id !== 'faro') && s0.portoAmici.posti.some((p) => p.id === 'record'), 'posti: ' + JSON.stringify(s0.portoAmici.posti));
+      await ctx.waitState(sp, (s) => s.portoAmici.faro.livello === 1 && s.portoAmici.faro.modello === 'bld_faro_l1' && s.portoAmici.faro.acceso, 15000); // il modello resta, col livello vero
+      assert(await sp.locator('[data-amici="faro"]').count() === 0 && await sp.locator('[data-amici="record"]').count() === 1, 'cartelli');
+      const mete = await sp.evaluate(() => [...document.querySelectorAll('#compass [data-id]')].map((r) => r.dataset.id));
+      assert(!mete.includes('faro') && mete.includes('record'), 'bussola: ' + mete.join(','));
+      assert(await sp.evaluate(() => window.__game.test.amiciApri('faro')) === false, 'il pannello del faro si apre ancora');
+      const f = s0.portoAmici.faro.fronte;
+      await sp.evaluate(([x, z]) => window.__game.test.teleport(x, z), [f.x, f.z]);
+      await sp.waitForTimeout(1500);
+      const s1 = await ctx.getState(sp);
+      assert(s1.portoAmici.near === null && s1.portoAmici.open === null && !(await sp.locator('#mzAmiciBtn.on').count()), 'vicino al faro: ' + JSON.stringify({ near: s1.portoAmici.near, open: s1.portoAmici.open }));
+      await ctx.shot(sp, 'iphone_faro_spento');
+      ctx.noErrors(S, 'senza faro');
     });
 
     await ctx.test('API: il giorno dopo «oggi» è vuoto, «sempre» resta', async () => {

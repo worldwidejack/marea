@@ -60,7 +60,7 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 teste, 1,6 m), pochi poligoni, viso e vestiti dipinti a pixel. Personalizzazione V1: tono della pelle (6), capelli (8 tagli × 6 colori), vestito (6 colori), cappello (13: 3 gratis, 4 a Perle anche dall'editor (il quarto è il **Casco**, 35 Perle, dal 10 ott 2026: senza, la funivia dell'Adrenalina non ti fa salire), 6 **esclusivi del Mercante delle Perle** al Porto; colori dei capelli con nomi da capelli: nero corvino, castano scuro, castano, biondo miele, rosso fuoco, biondo platino). Emote (4) al posto della chat. Animazioni: idle, camminata, corsa, seduto (in barca), remata/timone.
 
 ## 5. Economia
-**Risorse**: **Legno** e **Pietra** (prodotte dall'isola, servono a costruire) e **Perle** (da minigiochi, wager, missioni della Bacheca e **traguardi del Diario**: sbloccano cappelli e decorazioni esclusive; non si producono, non si comprano).
+**Risorse**: **Legno** e **Pietra** (prodotte dall'isola, servono a costruire) e **Perle** (da minigiochi, wager, missioni della Bacheca e **traguardi del Diario**, spenti per ora: sbloccano cappelli e decorazioni esclusive; non si producono, non si comprano).
 
 | Edificio | Cosa fa | Costo L1 · L2 · L3 (Legno/Pietra) | Tempo L1 · L2 · L3 |
 |---|---|---|---|
@@ -134,9 +134,10 @@ Colori della barca (#107, `avatar.json` `barca`): gratis Legno (di serie), Tela,
 
 - **Gente del Porto** (`gente.json`): Maestro Ishi (il Mercante), Gigi il Mozzo (sul viale: barca, Laguna, dungeon), Capitan Remo (passeggia in piazza: isole a tema, mappa, Tempesta), Nonna Pina (al molo: produzione, Bacheca, Mercante). Vicino premi A (o tocca il nome): 3 battute ironiche che spiegano il gioco ai nuovi.
 
-### Diario del capitano e traguardi (#87, 8 ott 2026)
-- **Diario** (libro in alto, tasto **J**): album a pagine con caselle grigie e «?» per quello che manca e il contatore «3/12». **Pesci** (ogni specie con la sagoma a pixel e quante volte), **Perle** (bianca, conchiglia, rosa, nera), **Animali** avvistati (gabbiano, gatto, granchio, pesce saltatore, delfino, lucciola: si segnano passandoci vicino), **Medaglie** (la migliore per minigioco e le partite), **Isole** visitate (Porto, Laguna, facciate, isole a tema e le isole degli amici), **Traguardi**. Si sfoglia anche il diario di un amico (sola lettura). Cataloghi in `diario.json`.
-- **Traguardi** (`traguardi.json`, 23): compiuto → **RISCUOTI** (una volta, il server verifica e paga) → il suo **titolo** si può mettere sotto il nome, sopra la testa (lo vedono gli amici). Avviso breve quando se ne compie uno, numerino sul libro.
+### Diario del capitano (#87, 8 ott 2026) · traguardi e titoli spenti (18 ott 2026)
+- **Diario** (libro in alto, tasto **J**): album a pagine con caselle grigie e «?» per quello che manca e il contatore «3/12». **Pesci** (ogni specie con la sagoma a pixel e quante volte), **Perle** (bianca, conchiglia, rosa, nera), **Animali** avvistati (gabbiano, gatto, granchio, pesce saltatore, delfino, lucciola: si segnano passandoci vicino), **Medaglie** (la migliore per minigioco e le partite), **Isole** visitate (Porto, Laguna, facciate, isole a tema e le isole degli amici). Si sfoglia anche il diario di un amico (sola lettura). Cataloghi in `diario.json`.
+- **Traguardi e titoli: spenti per ora** (VISIONE §2, 18 ott 2026). Nel Diario non c'è la pagina dei Traguardi, sul libro niente numerino, niente avviso «traguardo compiuto», in testata e sopra le teste solo il nome (niente titolo). Il codice resta: il server continua a contarli nel lotto (e tiene i titoli già scelti, che nessuno vede), così riaccesi ritrovano tutto; `?traguardi=1` li riaccende per le prove e per i loro test.
+- Com'erano accesi (`traguardi.json`, 23): compiuto → **RISCUOTI** (una volta, il server verifica e paga) → il suo **titolo** si può mettere sotto il nome, sopra la testa (lo vedono gli amici). Avviso breve quando se ne compie uno, numerino sul libro.
 
 | Traguardo | Premio (Perle) | Titolo |
 |---|---|---|
@@ -150,8 +151,9 @@ Colori della barca (#107, `avatar.json` `barca`): gratis Legno (di serie), Tela,
 | Tutte le isole · un amico · tutti gli amici | 15 · 5 · 15 | Esploratore · Buon vicino · Ospite d'onore |
 | 1 spedizione · 10 spedizioni nel Mondo Sotterraneo | 10 · 25 | Speleologo · Avventuriero |
 
-### Porto tra amici: Tabellone dei record e Faro comune (#110 #111, 8 ott 2026)
+### Porto tra amici: Tabellone dei record e Faro comune (#110 #111, 8 ott 2026) · Faro comune spento (18 ott 2026)
 - **Tabellone dei record** (prato a ovest della piazza, accanto al Mercante): per ogni minigioco da solo il **migliore di oggi** (giorno UTC) e il **migliore di sempre** tra gli amici, con nome, punteggio (tempo per la Regata, pacchi per le Consegne, ingorghi/livelli e mosse per Ingorgo e Pinguini, altrimenti punti) e medaglia. Lo scrive il server quando rigioca la partita; a pari punteggio resta chi c'era. Chi perde il record di sempre lo legge nella campanella («Luca ha battuto il tuo record alla Pesca»).
+- **Faro comune: spento per ora** (VISIONE §2, 18 ott 2026). Sullo scoglio resta il **modello del Grande Faro** (scenografia), col livello che ha raggiunto; niente cartello, bottone, pannello per versare, meta in bussola o in minimappa. Il codice resta: il bonus dei livelli già raggiunti continua a valere sul server, `?faro=1` lo riaccende per le prove e per i suoi test. Com'era acceso:
 - **Faro comune** (sullo scoglio a nord-est del Porto, accanto alla Grotta della Marea): un progetto di tutti. Vicino al faro (A) si versano **50 / 200 / TUTTO** Legno o Pietra dal proprio Magazzino (escono come una spesa; mai oltre quello che manca al faro completo); il pannello mostra le barre verso il prossimo livello e chi ha versato di più. A ogni livello il faro cresce (spento al livello 0, poi acceso, più alto, di notte un fascio che gira più lungo) e dà **a tutti** un bonus di produzione; una riga nella campanella di tutti quando sale. Numeri in `porto_amici.json`:
 
 | Livello | Legno totale | Pietra totale | Segherie e Cave |
@@ -241,8 +243,9 @@ Mondo alla GTA: né coop né guerra. Nessuno attacca o modifica le isole altrui.
 
 **Libro degli ospiti** (#86): vicino al molo di ogni isola c'è un leggio col libro. Sull'isola di un amico **FIRMA** lascia il tuo nome e uno degli 8 saluti delle emote, **una volta al giorno** per isola; lui lo vede nella campanella («Marco è passato sulla tua isola») e nella cartolina «Mentre eri via». Sulla tua isola il libro mostra le ultime **20** firme (ne tiene **50**).
 
-## 9. Onboarding «Primi passi» (anticipato in M1, 30 set 2026; allungato l'8 ott 2026)
-Una scheda con un passo alla volta e una freccia gialla sulla meta (sopra la cosa se è in vista, sul bordo dello schermo se è fuori): **1** costruisci la Segheria (il cartello «Costruisci» evidenziato apre già la conferma) → **2** sali in barca → **3** vai alla Regata e gioca → **4** costruisci col premio → **5** fai due chiacchiere con la Gente del Porto → **6** pesca o tuffati dalla barca (minigiochi universali) → **7** guarda la mappa (il cerchio lampeggia) → **8** scopri un'isola a tema. Senza isola propria niente 1 e 4. Un passo fatto vale anche fuori ordine; SALTA salta il passo, × chiude la guida (si riaccende dalle Impostazioni). Testi corti e ironici. Sugli slot liberi dell'isola c'è sempre un cartello «Costruisci». Niente tutorial a testo lungo.
+## 9. Onboarding «Primi passi» (anticipato in M1, 30 set 2026; allungato l'8 ott 2026; facoltativo dal 18 ott 2026)
+**Facoltativo** (VISIONE §1): la guida **non parte da sola**. La accende chi la vuole dalla riga **«Guida Primi passi»**, la prima delle Impostazioni (ingranaggio in alto),; al primissimo ingresso il saluto («Ciao Luca!») lo dice in un toast di 7 s e se ne va da sé. A guida spenta i passi si contano lo stesso: se la accendi dopo, quello che hai già fatto vale. Chi l'aveva prima di questa modifica riparte spento, col suo progresso.
+Una scheda con un passo alla volta e una freccia gialla sulla meta (sopra la cosa se è in vista, sul bordo dello schermo se è fuori): **1** costruisci la Segheria (il cartello «Costruisci» evidenziato apre già la conferma) → **2** sali in barca → **3** vai alla Regata e gioca → **4** costruisci col premio → **5** fai due chiacchiere con la Gente del Porto → **6** pesca o tuffati dalla barca (minigiochi universali) → **7** guarda la mappa (il cerchio lampeggia) → **8** scopri un'isola a tema. Senza isola propria niente 1 e 4. Un passo fatto vale anche fuori ordine; SALTA salta il passo, × la spegne (si riaccende dalle Impostazioni). Testi corti e ironici. Sugli slot liberi dell'isola c'è sempre un cartello «Costruisci». Niente tutorial a testo lungo.
 
 ## 10. Tagli espliciti V1
 Fuori: battaglia unità, bot, puzzle, chat testuale, interni degli edifici, ciclo giorno/notte, commercio tra giocatori, apertura al pubblico, app installabile (PWA solo se gratis in tempo), musica originale, storia. Entrano dopo, uno alla volta, e solo dal `BACKLOG.md`.

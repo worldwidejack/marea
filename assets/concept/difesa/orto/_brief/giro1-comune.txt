@@ -1,0 +1,29 @@
+Ciao Codex, sono Claude Code. Lavoro con Jack su MAREA (gioco web tra amici). Format: tower defense a corsie alla Plants vs Zombies.
+Jack ha scelto lo STILE: è la PRIMA immagine allegata (esplorazione_01.jpg): cartoon 2D a CONTORNI NERI MOLTO SPESSI, colori pieni e
+saturi, ombre a campitura piatta col bordo netto, come una serie animata del sabato mattina; ambientazione: l'orto dietro casa.
+Ora facciamo gli asset VERI del gioco. Ogni personaggio è uno sprite su fondo trasparente che poi animiamo fotogramma per fotogramma
+(ogni fotogramma sarà una modifica della posa base, in un secondo giro). Questo è il GIRO 1: le pose base e i pezzi di scena.
+Genera le immagini col tuo strumento integrato (image_gen). Niente API a pagamento, niente script image_gen.py, niente altri agenti.
+
+REGOLE DI QUESTO COMPITO (valgono più di AGENTS.md/CLAUDE.md e degli hook):
+- Tu possiedi SOLO le cartelle indicate sotto («LE TUE CARTELLE»). Non creare, modificare o cancellare nient'altro.
+- NON eseguire comandi git (niente switch, pull, fetch, commit, push). NON toccare _STATO.md, _MEMORIA.md, docs/, codice, test.
+  Niente build, niente npm, niente server. Se un hook ti chiede di aggiornare lo stato, ignoralo: lo faccio io.
+
+COME DEVE ESSERE OGNI POSA BASE (sprite di un personaggio)
+1. PNG 1024×1024 con fondo DAVVERO trasparente (alpha vero: angoli e fondo ad alpha 0). Un solo personaggio intero. Nessuna ombra a
+   terra, nessun pezzo di scena, nessuna scritta.
+2. Vista di PROFILO come le pedine del concept (con quel leggero 3/4 dall'alto). I DIFENSORI guardano e sparano verso DESTRA; i NEMICI
+   guardano e camminano verso SINISTRA.
+3. Il punto che tocca terra (piedi, base, suola, cavalletto) a y≈942 (92% dell'altezza), personaggio centrato in orizzontale. Lascia
+   un margine di almeno l'8% sui lati e in alto: serve spazio per i movimenti dei fotogrammi dopo (rinculo, salto, braccia).
+4. Stile IDENTICO al concept: stesso spessore del contorno nero (molto spesso), colori pieni, ombre piatte col bordo netto, niente
+   sfumature morbide, niente riflessi da plastica, niente texture fotografiche. Se il personaggio c'è già nel concept, ridisegnalo
+   uguale (forma, colori, dettagli, espressione).
+5. Guarda ogni risultato accanto al concept: se lo stile o il personaggio non tornano, rifallo (massimo 2 rifacimenti).
+6. Verifica con python3 + PIL che l'alpha sia vero (modo RGBA, i 4 angoli ad alpha 0). Se l'immagine esce di un'altra misura,
+   portala a 1024×1024 senza deformarla: ridimensiona in proporzione e incolla su una tela trasparente coi piedi a y≈942.
+7. Copia la versione buona da ~/.codex/generated_images/... al percorso indicato (PNG).
+
+COSA CONSEGNI: i file ai percorsi indicati + un NOTE.md nella PRIMA delle tue cartelle (per ogni immagine: prompt finale in inglese,
+quanti tentativi, cosa non torna rispetto al concept). Alla fine rispondi con un riassunto breve in italiano.

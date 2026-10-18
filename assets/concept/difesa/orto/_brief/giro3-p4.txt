@@ -1,0 +1,19 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/gelo_a/ · assets/concept/difesa/orto/annaffiatoio/ · assets/concept/difesa/orto/capobanda/
+Fai nell'ordine scritto (i primi sono i più importanti).
+
+A) CAROTA GELATA (difensore, spara a DESTRA) — base: gelo_a/fermo.png. Come riferimento del MOVIMENTO usa i fotogrammi della carota
+   arancione già fatti: carota/carica.png e carota/sparo.png (stesso movimento, stessa misura).
+ 1. gelo_a/carica.png — si comprime all'indietro e si gonfia appena, occhi stretti (come carota/carica.png).
+ 2. gelo_a/sparo.png — rinculo come carota/sparo.png, con uno sbuffo azzurro-ghiaccio davanti alla bocca. NIENTE proiettile.
+ 3. gelo_a/chiusi.png — come la base ma con gli occhi chiusi.
+B) ANNAFFIATOIO A MOLLA — base: annaffiatoio/fermo.png (il beccuccio guarda a DESTRA)
+ 4. annaffiatoio/scatta_1.png — SCATTA: la molla allungata, l'annaffiatoio inclinato in avanti verso destra che spruzza un getto
+    d'acqua forte e dritto verso destra (il getto può arrivare al bordo destro del quadrato).
+ 5. annaffiatoio/scatta_2.png — come il 4 ma con la molla un po' più compressa e gli spruzzi d'acqua diversi (per farlo vibrare).
+C) LUMACA CAPOBANDA (nemico, guarda a SINISTRA; arriva con le ondate enormi). Ogni file è una modifica del file con lo STESSO NOME
+   in lumaca/ (ci sono già tutti): aggiungi SOLO una bandierina rossa triangolare su un bastoncino di legno sottile piantato in
+   cima al guscio, la bandierina sventola all'indietro (verso DESTRA) e cambia un poco la piega a ogni fotogramma. La lumaca resta
+   identica.
+ 6. capobanda/cammina_1.png  7. cammina_2.png  8. cammina_3.png  9. cammina_4.png
+ 10. capobanda/mangia_1.png  11. mangia_2.png  12. mangia_3.png  13. capobanda/ko.png (la bandierina floscia)
