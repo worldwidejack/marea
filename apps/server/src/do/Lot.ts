@@ -26,7 +26,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
 import { build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
 import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
-import { ampliaCasa, compraFinitura, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
+import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
@@ -342,7 +342,7 @@ export class Lot extends DurableObject<Env> {
       case 'casa_finitura': case 'casa_scegli': {
         const tipo = body['tipo'], id = body['id'];
         if ((tipo !== 'pavimento' && tipo !== 'carta') || !isId(id)) return json({ error: 'Finitura non valida' }, 400);
-        return act === 'casa_finitura' ? compraFinitura(lot, tipo, id, now) : scegliFinitura(lot, tipo, id, now);
+        return act === 'casa_finitura' ? compraFinituraDelGiorno(lot, tipo, id, now) : scegliFinitura(lot, tipo, id, now);
       }
       case 'casa_posa': case 'casa_sposta': {
         const id = body['id'], cell = body['cell'], muro = body['muro'], rot = body['rot'] ?? 0;

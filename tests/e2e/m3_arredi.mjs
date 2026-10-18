@@ -33,7 +33,7 @@ export default async function (ctx) {
   const terre = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.perle - b.perle);
   const comodino = terre[0], stereo = terre[1], orologio = def(oggi.parete[0]);
   assert(comodino && stereo && orologio, 'la vetrina di oggi non ha due mobili a terra 1×1 e uno a parete');
-  const pav = borgo.pavimenti[1], carta = borgo.carte[1];
+  const pav = borgo.pavimenti.find((f) => f.id === oggi.pavimenti[0]), carta = borgo.carte.find((f) => f.id === oggi.carte[0]); // il negozio vende solo carte e pavimenti di oggi (#393)
   const serve = comodino.perle + stereo.perle + orologio.perle + pav.perle + carta.perle;
 
   let dev = null, log = '';

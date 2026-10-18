@@ -9,7 +9,7 @@ import { advance } from './advance.ts';
 import { pay } from './actions.ts';
 import { livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzeDi } from './stanze.ts';
 import type { Stanza } from './stanze.ts';
-import { inVetrina } from './vetrina.ts';
+import { inVetrina, inVetrinaFinitura } from './vetrina.ts';
 import { EconomyError, ZERO } from './types.ts';
 import type { LotState, PlacedBuilding } from './types.ts';
 
@@ -140,6 +140,13 @@ export function ampliaCasa(lot0: LotState, da: number, nowMs: number): LotState 
   const pagato = pay(lot, { legno: next.costo.legno, pietra: next.costo.pietra, perle: next.costo.perle }), c = casaDi(pagato);
   const vecchie = stanzeDi(liv), nuove = stanzeDi(liv + 1);
   return conCasa(pagato, { ...c, livello: liv + 1, arredi: (c.arredi ?? []).map((a) => riancora(a, vecchie, nuove)) });
+}
+/** Compra la carta o il pavimento della vetrina di oggi (#393): come i mobili, il negozio vende solo quello che espone. Quello che hai già resta «unico». */
+export function compraFinituraDelGiorno(lot0: LotState, tipo: Finitura, id: string, nowMs: number): LotState {
+  if (!finitura(tipo, id)) throw new EconomyError('sconosciuto', tipo === 'pavimento' ? 'Pavimento sconosciuto' : 'Carta da parati sconosciuta');
+  if (possiedeFinitura(lot0, tipo, id)) throw new EconomyError('unico', 'Ce l’hai già');
+  if (!inVetrinaFinitura(nowMs, tipo, id)) throw new EconomyError('requisito', 'Oggi non è in vendita: la vetrina cambia ogni giorno a mezzanotte');
+  return compraFinitura(lot0, tipo, id, nowMs);
 }
 /** Compra un pavimento o una carta da parati (una volta sola) e lo mette subito. */
 export function compraFinitura(lot0: LotState, tipo: Finitura, id: string, nowMs: number): LotState {

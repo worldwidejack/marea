@@ -28,7 +28,7 @@ export default async function (ctx) {
   const { vetrinaOra } = await sim('economy/vetrina.ts');
   const oggi = vetrinaOra(Date.now()), def = (id) => mobili.find((m) => m.id === id);
   // il negozio vende solo la vetrina di oggi (#384): il mobile di prova è il più economico a terra 1×1 tra gli esposti, l’altro è uno a parete esposto
-  const stereo = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.perle - b.perle)[0], orologio = def(oggi.parete[0]), carta = borgo.carte.find((f) => (f.perle ?? 0) > 0);
+  const stereo = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.perle - b.perle)[0], orologio = def(oggi.parete[0]), carta = borgo.carte.find((f) => f.id === oggi.carte[0]); // anche le carte da parati sono quelle di oggi (#393)
   assert(stereo && orologio, 'la vetrina di oggi non ha un mobile a terra 1×1 e uno a parete');
   const [X0, Z0] = borgo.stanza.pavimento, ORIG = arch.islands.find((i) => i.role === 'lotto' && i.slot === 0).at;
   const mondo = (cx, cz) => ({ x: (ORIG[0] + cx) * 2, z: (ORIG[1] + cz) * 2 });
@@ -119,6 +119,10 @@ export default async function (ctx) {
       assert(JSON.stringify(s0.negozio.vetrina) === JSON.stringify(oggi), 'la vetrina del client non è quella della sim: ' + JSON.stringify(s0.negozio.vetrina));
       const esposti = s0.negozio.pezzi.filter((p) => p.kind === 'mobile').map((p) => p.id).sort();
       assert(JSON.stringify(esposti) === JSON.stringify([...oggi.terra, ...oggi.parete].sort()), 'pezzi in negozio: ' + esposti.join(','));
+      for (const [kind, ids] of [['carta', oggi.carte], ['pavimento', oggi.pavimenti]]) {
+        const visti = s0.negozio.pezzi.filter((p) => p.kind === kind).map((p) => p.id).sort();
+        assert(JSON.stringify(visti) === JSON.stringify([...ids].sort()), `${kind} in negozio: ${visti.join(',')} invece di ${ids.join(',')}`);
+      }
       await V.hook('teleport', banco.x, banco.z);
       await ctx.waitState(V.page, (s) => s.negozio.near === 'banco', 5000);
       await V.page.keyboard.press('KeyE');
@@ -188,6 +192,13 @@ export default async function (ctx) {
       await ctx.shot(V.page, 'pc_domani');
       const ieri = oggi.terra.find((id) => !domani.terra.includes(id)), r = await fetch(BASE + '/api/lot/casa/compra', { method: 'POST', headers: { ...hdr('tokL'), 'x-test-now-offset': String(off) }, body: JSON.stringify({ id: ieri }) });
       assert(r.status === 409, 'un mobile di ieri non più esposto: ' + r.status);
+      // anche carte e pavimenti: quelli di domani sono in negozio, una carta di oggi che domani non c’è si rifiuta
+      for (const [kind, ids] of [['carta', domani.carte], ['pavimento', domani.pavimenti]]) {
+        const visti = (await V.st()).negozio.pezzi.filter((p) => p.kind === kind).map((p) => p.id).sort();
+        assert(JSON.stringify(visti) === JSON.stringify([...ids].sort()), `${kind} dopo mezzanotte: ${visti.join(',')}`);
+      }
+      const cIeri = oggi.carte.find((id) => !domani.carte.includes(id)), rc = await fetch(BASE + '/api/lot/casa/finitura', { method: 'POST', headers: { ...hdr('tokL'), 'x-test-now-offset': String(off) }, body: JSON.stringify({ tipo: 'carta', id: cIeri }) });
+      assert(rc.status === 409, 'una carta di ieri non più esposta: ' + rc.status);
     });
   } finally {
     for (const p of pages) await p.close().catch(() => {});
