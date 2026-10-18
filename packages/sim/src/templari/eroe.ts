@@ -24,7 +24,7 @@ import { ruota, tira } from './proiettili.ts';
 import { cassaMia, usaCassa, vicinoCassa } from './cassa.ts';
 import { accendiTrappola, apriPorta, levaVicina, portaDef, portaVicina, trappolaAccesa, trappolaDef, trappolaPronta, trappolaUsabile } from './porte.ts';
 import { acceso, fuocoPer, fuocoVicino, lavora, lavoroK, pezziPresi, pezziTutti, pezzoVicino, prendiPezzo } from './fuochi.ts';
-import { campanellaVicina, criptaLibera, fendenteMuro, haLancia, nomeLancia, scalaEroe, suonaCampanella, teschioVicino, vicinoAltareCripta } from './segreti.ts';
+import { campanellaVicina, fendenteMuro, haLancia, lanciaLibera, nomeLancia, scalaEroe, suonaCampanella, teschioVicino, vicinoAltareCripta } from './segreti.ts';
 
 const vivi = (s: TState): Zombie[] => s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge');
 const ANIM_TIRO = Math.round(0.25 * 60), ANIM_LANCIO = Math.round(0.35 * 60);
@@ -243,9 +243,9 @@ export function prompt(s: TState): TPrompt {
   if (te) return { cosa: 'teschio', testo: 'Un teschio…', prezzo: 0, puoi: true, k: s.eroe.lavoro === 'teschio:' + te ? lavoroK(s) : 0 };
   const cv = campanellaVicina(s);
   if (cv) return { cosa: 'campanella', testo: s.segreti.campane ? 'La campanella tace' : 'Suona: ' + (TEMPLARI.campanelle.lista[cv] ?? cv).toLowerCase(), prezzo: 0, puoi: !s.segreti.campane };
-  if (vicinoAltareCripta(s) && !haLancia(s)) return criptaLibera(s)
+  if (vicinoAltareCripta(s) && !haLancia(s)) return lanciaLibera(s)
     ? { cosa: 'lancia', testo: `Prendi: ${nomeLancia()}`, prezzo: 0, puoi: true }
-    : { cosa: 'lancia', testo: `L'altare è sigillato: anime ${s.segreti.anime}/${TEMPLARI.cripta.anime}`, prezzo: 0, puoi: false };
+    : { cosa: 'lancia', testo: `L'altare è sigillato: anime ${s.segreti.anime}/${s.eroe.sigillo}`, prezzo: 0, puoi: false };
   const chi = chiVicino(s);
   if (chi && !acceso(s, chi)) return { cosa: chi, testo: chi === 'mercante' ? `La nave è al largo: ${fuocoPer('mercante')?.nome.toLowerCase() ?? 'accendi il fuoco'}` : `La Strega dorme: ${fuocoPer('strega')?.nome.toLowerCase() ?? 'accendi il fuoco'}`, prezzo: 0, puoi: false };
   if (chi) return { cosa: chi, testo: chi === 'mercante' ? 'Il Mercante' : 'La Strega', prezzo: 0, puoi: true };
@@ -294,7 +294,7 @@ function azione(s: TState, dDown: boolean, dHeld: boolean): void {
   // i segreti (§9c): una campanella si suona con un tocco; all'altare della cripta, liberato, si prende la Lancia
   const cv = campanellaVicina(s);
   if (dDown && cv) { suonaCampanella(s, cv); return; }
-  if (dDown && vicinoAltareCripta(s) && criptaLibera(s) && !haLancia(s)) { daiArma(s, TEMPLARI.cripta.arma); ev(s, { t: 'cripta', fase: 'presa' }); return; }
+  if (dDown && vicinoAltareCripta(s) && lanciaLibera(s) && !haLancia(s)) { daiArma(s, TEMPLARI.cripta.arma); ev(s, { t: 'cripta', fase: 'presa' }); return; }
   const di = dropVicino(s);
   if (dDown && di >= 0 && (!h.scudo || h.scudo.vita < TEMPLARI.scudo.vita)) {
     h.scudo = { vita: TEMPLARI.scudo.vita };

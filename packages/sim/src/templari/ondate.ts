@@ -1,10 +1,10 @@
 // Regista delle ondate (docs/TEMPLARI.md §4): reliquia sull'altare → presentazione → ondata 1; in ogni ondata un numero fisso di zombie,
-// mai più di `insieme` vivi, uno ogni `intervallo` secondi dalle comparse attive più vicine all'eroe; ucciso l'ultimo, pausa, poi la prossima.
-// Chi corre e chi scatta lo decide il seed, con più corridori a ogni ondata.
+// mai più di `insieme` vivi (cresce con le ondate, §12b), uno ogni `intervallo` secondi dalle comparse attive più vicine all'eroe; ucciso
+// l'ultimo, pausa, poi la prossima. Chi corre e chi scatta lo decide il seed, con più corridori a ogni ondata.
 import { TEMPLARI, nemicoDef } from '@marea/content/templari.ts';
 import type { Comparsa } from './mappa.ts';
 import type { TState } from './stato.ts';
-import { ev, inPiedi, intervalloOndata, nuovoZombie, posaEroe, quantiOndata, secToTicks, usa } from './stato.ts';
+import { armiDiPartenza, ev, inPiedi, insiemeOndata, intervalloOndata, nuovoZombie, posaEroe, quantiOndata, secToTicks, usa } from './stato.ts';
 import { zonaAperta } from './porte.ts';
 
 /** Comparse attive: il sagrato sempre, le zone quando una loro porta è aperta. */
@@ -59,11 +59,14 @@ export function bossDi(n: number): { tipo: string; solo: boolean } | null {
   return null;
 }
 
-/** Insieme: chi era caduto si rialza in chiesa, con la vita piena e le sue armi. */
+/** Insieme: chi era caduto si rialza in chiesa, con la vita piena e l'arma di partenza del suo eroe (§12b: le armi comprate o trovate, lo
+ *  scudo raccolto e le pozioni le ha perse cadendo). */
 function rialza(s: TState): void {
   for (let i = 0; i < s.eroi.length; i++) {
     const h = s.eroi[i]!;
     if (!h.giu || h.fuori) continue;
+    const p = armiDiPartenza(h.classe);
+    h.armi = p.armi; h.scudo = p.scudo; h.cur = 0; h.inMano = false; h.cd = 0; h.ricarica = 0;
     h.giu = false; h.vita = h.max; h.quiete = 9999; h.fiato = TEMPLARI.eroe.fiato; h.act = 'idle'; h.actT = 0;
     posaEroe(s, h, i);
     usa(s, i); ev(s, { t: 'rialzato' });
@@ -95,7 +98,7 @@ export function stepOndate(s: TState): void {
       return;
     case 'combatti': {
       const vivi = s.zombie.filter((z) => z.st !== 'morto').length;
-      if (s.usciti < s.quanti && vivi < o.insieme && s.tick >= s.prossima) {
+      if (s.usciti < s.quanti && vivi < insiemeOndata(s.ondata, s.eroi.length) && s.tick >= s.prossima) {
         const c = comparsaVicina(s);
         if (c) {
           const tipo = tipoNuovo(s), v = nemicoDef(tipo).velocita;

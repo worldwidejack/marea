@@ -78,7 +78,7 @@ function vista(s: TState): TView {
     pezzi: Object.entries(s.pezzi).flatMap(([id, st]) => { const q = s.arena.pezzi.find((x) => x.id === id)?.posti[st.posto]; return q ? [{ id, x: q.x, z: q.z, preso: st.preso }] : []; }),
     campana: s.campana,
     segreti: {
-      muro: s.segreti.muro, anime: s.segreti.anime, tutte: TEMPLARI.cripta.anime, dentro: inCripta(s, h.x, h.z), ordine: [...s.segreti.ordine], giuste: s.segreti.giuste, campane: s.segreti.campane,
+      muro: s.segreti.muro, anime: s.segreti.anime, tutte: h.sigillo, dentro: inCripta(s, h.x, h.z), ordine: [...s.segreti.ordine], giuste: s.segreti.giuste, campane: s.segreti.campane,
       teschi: s.arena.teschi.map((t) => ({ id: t.id, x: t.x, z: t.z, preso: !!s.segreti.teschi[t.id] })),
     },
     cannonate: s.cannonate.map((c) => ({ id: c.id, x: r2(c.x), z: r2(c.z), r: c.r, k: Math.min(1, (s.tick - c.inizio) / Math.max(1, c.fine - c.inizio)) })),

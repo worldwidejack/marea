@@ -32,7 +32,6 @@ export function segretiToccati(s: TState): boolean {
 }
 
 // ---------------- la cripta ----------------
-export const criptaLibera = (s: TState): boolean => s.segreti.anime >= TEMPLARI.cripta.anime;
 /** Il punto (x, z) sta nella cripta. */
 export function inCripta(s: TState, x: number, z: number): boolean {
   const c = s.arena.cripta, i = cellOf(s.gr.percorso, x, z);
@@ -103,12 +102,15 @@ export function scalaEroe(s: TState): void {
   h.x = dove.x; h.z = dove.z; h.fx = dove.fx; h.fz = dove.fz;
   ev(s, { t: 'scala', giu: dove === c.giu, x: dove.x, z: dove.z });
 }
-/** Uno zombie è morto (colpi.ts `uccidi`): se era nella cripta e l'altare è ancora sigillato, la sua anima va all'altare. */
+/** L'altare è libero per l'eroe di turno: le anime della squadra bastano per il suo sigillo (5, e 5 in più per ogni Lancia persa cadendo). */
+export const lanciaLibera = (s: TState): boolean => s.segreti.anime >= s.eroe.sigillo;
+/** Uno zombie è morto (colpi.ts `uccidi`): se era nella cripta e l'altare è ancora sigillato per qualcuno, la sua anima va all'altare. */
 export function anima(s: TState, z: Zombie): void {
-  if (!s.segreti.muro || criptaLibera(s) || !inCripta(s, z.x, z.z)) return;
-  s.segreti.anime++;
-  ev(s, { t: 'anima', x: r2(z.x), z: r2(z.z), n: s.segreti.anime, tutte: TEMPLARI.cripta.anime });
-  if (criptaLibera(s)) ev(s, { t: 'cripta', fase: 'libera' });
+  const g = s.segreti, attesa = s.eroi.filter((h) => !h.fuori && g.anime < h.sigillo).map((h) => h.sigillo);
+  if (!g.muro || !attesa.length || !inCripta(s, z.x, z.z)) return;
+  g.anime++;
+  ev(s, { t: 'anima', x: r2(z.x), z: r2(z.z), n: g.anime, tutte: Math.min(...attesa) });
+  if (attesa.includes(g.anime)) ev(s, { t: 'cripta', fase: 'libera' });
 }
 /** L'eroe di turno è all'altare della cripta. */
 export function vicinoAltareCripta(s: TState): boolean {

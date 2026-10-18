@@ -12,6 +12,7 @@ import { nuovoZombie, pozioneDef, quantiOndata, usa } from '../src/templari/stat
 import { apriPorta } from '../src/templari/porte.ts';
 import { TEMPLARI } from '@marea/content/templari.ts';
 import { colpisci, ferisci } from '../src/templari/colpi.ts';
+import { daiArma } from '../src/templari/eroe.ts';
 import { applica } from '../src/templari/poteri.ts';
 import { usaCassa } from '../src/templari/cassa.ts';
 import type { TEventoDi } from '../src/templari/types.ts';
@@ -67,7 +68,9 @@ test('insieme: due piloti superano ondate, il replay della squadra dà lo stesso
 test('insieme: chi cade si rialza all’ondata dopo; finisce quando cadono tutti', () => {
   const s = templari.create({ seed: 3, opzioni: { subito: true, eroi: 2 } });
   s.eroi[0]!.vita = s.eroi[0]!.max = 1e6;
-  usa(s, 1); ferisci(s, 1e6, s.eroe.x + 1, s.eroe.z);
+  // con un'arma comprata e lo scudo di uno scudato: cadendo li perde (§12b)
+  usa(s, 1); daiArma(s, 'mazza'); s.eroe.scudo = { vita: 400 }; s.eroe.inMano = true;
+  ferisci(s, 1e6, s.eroe.x - s.eroe.fx, s.eroe.z - s.eroe.fz);
   assert.equal(s.eroi[1]!.giu, true); assert.equal(s.done, false, 'uno è ancora in piedi');
   assert.equal(templari.view(s, 1).posa.anim, 'morto');
   assert.equal(templari.view(s, 1).prompt, null);
@@ -76,6 +79,8 @@ test('insieme: chi cade si rialza all’ondata dopo; finisce quando cadono tutti
   while (s.ondata < 1 && !s.done) { stepTemplariInsieme(s, [FERMO, FERMO]); eventi.push(...s.eventi); }
   assert.ok(eventi.some((e) => e.t === 'rialzato' && e.e === 1), 'nessun rialzato');
   assert.equal(s.eroi[1]!.giu, false); assert.equal(s.eroi[1]!.vita, s.eroi[1]!.max);
+  assert.deepEqual(s.eroi[1]!.armi.map((x) => x?.id ?? null), [TEMPLARI.partenza.arma, null], 'si rialza con le armi di prima');
+  assert.equal(s.eroi[1]!.scudo, null, 'si rialza con lo scudo dello scudato');
   // cadono tutti e due: fine
   usa(s, 1); ferisci(s, 1e6, 0, 0);
   usa(s, 0); s.eroe.vita = 1; ferisci(s, 10, 0, 0);
@@ -144,6 +149,19 @@ test('insieme: chi compra dalla Strega beve lui e paga lui coi suoi punti; caden
   usa(s, 1); ferisci(s, 1e6, b.x + 1, b.z);
   assert.equal(b.giu, true); assert.deepEqual(b.pozioni, [], 'a terra le pozioni finiscono (come in COD)');
   assert.equal(templari.act(s, a, 1), null, 'a terra non si compra');
+});
+
+test('insieme: chi cade si rialza con l’arma di partenza del suo eroe (§12b): il Crociato con la spada e lo scudo nuovo, niente potenziamenti', () => {
+  const s = templari.create({ seed: 5, opzioni: { subito: true, eroi: 2, classi: ['bucaniera', 'crociato'] } }), b = s.eroi[1]!;
+  s.eroi[0]!.vita = s.eroi[0]!.max = 1e6;
+  usa(s, 1); daiArma(s, 'ascia'); b.armi[0]!.pot = true; b.scudo!.vita = 100; b.superK = 0.5;
+  ferisci(s, 1e6, b.x + b.fx, b.z + b.fz);
+  assert.equal(b.giu, true);
+  while (b.giu && !s.done) stepTemplariInsieme(s, [FERMO, FERMO]);
+  assert.deepEqual(b.armi.map((x) => (x ? [x.id, !!x.pot] : null)), [['spada', false], null]);
+  assert.equal(b.scudo?.vita, TEMPLARI.scudo.vita);
+  assert.equal(b.superK, 0.5, 'il super caricato resta');
+  assert.deepEqual(s.eroi[0]!.armi.map((x) => x?.id ?? null), ['pistola', 'spada'], 'la Bucaniera in piedi ha perso le armi');
 });
 
 test('insieme: gli acquisti di ciascuno arrivano dalla rete come [tick, eroe, azione] e si scartano se storti', () => {

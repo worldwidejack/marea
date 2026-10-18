@@ -6,7 +6,7 @@ import type { TArmaDef } from '@marea/content/templari.ts';
 import { DT } from '../constants.ts';
 import { isOpaque } from '../dungeon/map.ts';
 import type { Proj, TState, Zombie } from './stato.ts';
-import { usa } from './stato.ts';
+import { aOndata, usa } from './stato.ts';
 import { colpisci, esplodi } from './colpi.ts';
 
 const MARGINE = 0.15;
@@ -28,7 +28,7 @@ export function tira(s: TState, a: TArmaDef, fx: number, fz: number, danno: numb
 }
 
 function scoppia(s: TState, p: Proj): void {
-  const a = armaDef(p.arma);
+  const a = aOndata(s, armaDef(p.arma)); // le fiamme del fuoco greco seguono la vita dell'ondata (§12b)
   esplodi(s, p.x, p.z, a.area ?? 2, p.danno, a.fuoco);
 }
 
