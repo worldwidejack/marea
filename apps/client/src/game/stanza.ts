@@ -18,7 +18,7 @@ import { registerStateProvider } from '../test/testapi.ts';
 import { NASCOSTI_DENTRO, costruisciStanza, createInquadratura } from './interno.ts';
 import type { Pianta } from './interno.ts';
 
-const ST = BORGO.stanza, [X0, Z0, X1, Z1] = ST.pavimento, [, , C1] = ST.corridoio; // la stanza di serie: la quota del pavimento
+const ST = BORGO.stanza, [, , C1] = ST.corridoio;
 const STANZE_MAX = PIANTE_MAX; // le stanze più grandi che la casa avrà mai: per capire in quale sei
 /** La pianta di una stanza a un livello di casa (#386): gli ampliamenti la ingrandiscono. Il piano terra tiene il corridoio e la porta in fondo; cantina e secondo piano no. */
 const piantaDi = (livello: number, id: StanzaId = 'terra'): Pianta => {
