@@ -19,6 +19,7 @@
     { "island": "corse", "at": [208, 13], "role": "tema", "tema": { "sblocco": { "tipo": "libera" }, "barriera": 0 } },
     { "island": "adrenalina", "at": [64, 10], "role": "tema", "tema": { "sblocco": { "tipo": "funivia", "cappello": "casco", "liberatoria": "adrenalina" }, "barriera": 0 } },
     { "island": "arena", "at": [238, 256], "role": "tema", "tema": { "sblocco": { "tipo": "libera" }, "barriera": 0 } },
+    { "island": "difesa", "at": [34, 138], "role": "tema", "tema": { "sblocco": { "tipo": "libera" }, "barriera": 0 } },
     { "island": "lotto", "at": [8, 330], "role": "lotto", "slot": 0 },
     { "island": "lotto", "at": [50, 330], "role": "lotto", "slot": 1 },
     { "island": "lotto", "at": [92, 330], "role": "lotto", "slot": 2 },

@@ -30,6 +30,7 @@ import type { Guida, GuidaStep } from './ui/guida.ts';
 import { createIngressi } from './game/ingressi.ts';
 import { createTemplari } from './game/templari.ts';
 import type { ArenaIsola } from './game/arena.ts';
+import type { DifesaIsola } from './game/difesa.ts';
 import { createAdrenalina } from './game/adrenalina.ts';
 import { createEroe } from './ui/eroe.ts';
 import { createPorto } from './game/porto.ts';
@@ -151,6 +152,10 @@ async function boot(): Promise<void> {
   // (chunk a parte, TECH §5: il portone compare un attimo dopo il mondo; la meta in bussola c'è subito)
   let ar: ArenaIsola | null = null;
   void import('./game/arena.ts').then((m) => { ar = m.createArena({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot, nome: () => me?.nome ?? '' }); }).catch((e: unknown) => { console.warn('[marea] arena non caricata', e); });
+  // Isola della Difesa (docs/DIFESA.md §6): il cancello dell'orto apre il gioco sopra il mondo (chunk a parte); ?difesa=1 per le prove
+  let dif: DifesaIsola | null = null;
+  void import('./game/difesa.ts').then((m) => { dif = m.createDifesa({ world, renderer, hud, root, canvas }); }).catch((e: unknown) => { console.warn('[marea] difesa non caricata', e); });
+  { const pa = arch.places.find((p) => p.island === 'difesa'), c = ISLANDS.find((i) => i.id === 'difesa')?.props?.find((p) => p.k === 'orto_campo'); if (pa && c) targets.push({ id: 'difesa', label: 'Orto', icon: 'difesa', x: (pa.origin[0] + c.at[0] - 6.3) * arch.tile, z: (pa.origin[1] + c.at[1]) * arch.tile, sezione: 'isole' }); } // = ingressoOrto() di game/difesa.ts
   { const pa = arch.places.find((p) => p.island === 'arena'), col = ISLANDS.find((i) => i.id === 'arena')?.props?.find((p) => p.k === 'colosseo'); if (pa && col) targets.push({ id: 'arena', label: 'Colosseo', icon: 'arena', x: (pa.origin[0] + col.at[0] + 0.5) * arch.tile, z: (pa.origin[1] + col.at[1] + 7) * arch.tile, sezione: 'isole' }); }
   // lo scheletro col calice sotto il faro della Tempesta: in bussola finché il calice non è tuo (e la Tempesta è aperta)
   if (tpl.relitto) targets.push({ id: 'relitto_templare', label: 'Relitto', icon: 'templari', x: tpl.relitto.x, z: tpl.relitto.z, show: () => !tpl.calice() && temi.aperta('tempesta'), sezione: 'isole' });
@@ -254,8 +259,8 @@ async function boot(): Promise<void> {
   let evocato: Evocato | null = null, evocatoCarico = false;
   const EMOTES = AVATAR.emote as EmoteId[];
   /** Pannelli aperti che non sono il foglio delle isole (#mzSheet): lì sotto le decorazioni non rispondono ad A. */
-  const panelsBusyNoSheet = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || !!eroe?.isOpen();
-  const panelsBusy = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy();
+  const panelsBusyNoSheet = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || !!eroe?.isOpen();
+  const panelsBusy = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy();
   const openEditor = () => { if (!editor || panelsBusy()) return false; feed?.close(); editor.open(); return true; };
   const openFeed = () => { if (!feed || panelsBusy()) return false; editor?.close(); feed.open(); return true; };
   // Un solo listener in bubble: i pannelli aperti fermano il keydown in capture, quindi qui arrivano solo i tasti «liberi».
@@ -312,7 +317,7 @@ async function boot(): Promise<void> {
     } }] : []),
   ];
   /** Gara, minigioco, dungeon o un pannello aperto: le frecce sullo schermo (guida, mete) si tolgono. */
-  const coperto = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!eroe?.isOpen();
+  const coperto = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen();
   const META_DEL_PASSO: Record<string, string> = { segheria: 'casa', costruisci: 'casa', parla: 'porto' };
   const guida = createGuida({
     root, camera: renderer.camera, canvas, steps, vecchi: (hasLot ? 2 : 0) + 1 + (reg ? 1 : 0), storeKey: `marea:guida:${me?.id ?? 'ospite'}`,
@@ -334,7 +339,7 @@ async function boot(): Promise<void> {
   };
   const foto = createFoto({
     root, hud, canvas, diorama: renderer.diorama, rendi: () => renderer.render(acc / DT, t), posto: () => postoDi(qui()),
-    puo: () => !(regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy()),
+    puo: () => !(regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy()),
     prima: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); libri.close(); diario.close(); mappa?.close(); impostazioni.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); },
   });
   const FERMO = { mx: 0, my: 0, a: false, b: false }; // in modalità foto l'avatar sta fermo (il mondo no)
@@ -347,6 +352,7 @@ async function boot(): Promise<void> {
   };
   let last = performance.now(), acc = 0, t = 0, eqN = 0;
   const frame = (now: number) => {
+    if (dif?.aperta) { last = now; requestAnimationFrame(frame); return; } // il gioco della Difesa è aperto sopra: il mondo sta fermo e non si disegna
     const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now; acc += dt; t += dt; // il primo rAF può avere un orario prima di performance.now() qui sopra
     let steps = 0;
     while (acc >= DT && steps < 5) {
@@ -355,12 +361,12 @@ async function boot(): Promise<void> {
       if (tpl.active) { tpl.step(f); acc -= DT; steps++; continue; } // nella chiesa dei Templari idem
       if (adr.active) { adr.step(f); acc -= DT; steps++; continue; } // sulla pista dello snowboard idem
       if (ar?.active) { ar.step(f); acc -= DT; steps++; continue; } // nel duello dell'Arena idem
-      if (regata.active) regata.step(f); else { const aR = arreda?.tick(f.a, f.b) ?? false, aB0 = borgo.tick(f.a && !aR) || aR, aB = (negozio?.tick(f.a && !aB0) ?? false) || aB0, aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); ar?.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
-      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!eroe?.isOpen() || foto.isOpen() || !!modificaIsola?.active) && !regata.active;
+      if (regata.active) regata.step(f); else { const aR = arreda?.tick(f.a, f.b) ?? false, aB0 = borgo.tick(f.a && !aR) || aR, aB = (negozio?.tick(f.a && !aB0) ?? false) || aB0, aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); ar?.tick(f.a); dif?.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
+      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen() || foto.isOpen() || !!modificaIsola?.active) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
-    if (ingressi.active) ingressi.update(acc / DT, dt, t); else if (tpl.active) tpl.update(acc / DT, dt, t); else if (adr.active) adr.update(dt, t, acc / DT); else if (ar?.active) ar.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); tpl.update(acc / DT, dt, t); adr.update(dt, t); ar?.update(acc / DT, dt, t); animali?.update(dt, t); } // Animali (#67)
+    if (ingressi.active) ingressi.update(acc / DT, dt, t); else if (tpl.active) tpl.update(acc / DT, dt, t); else if (adr.active) adr.update(dt, t, acc / DT); else if (ar?.active) ar.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); tpl.update(acc / DT, dt, t); adr.update(dt, t); ar?.update(acc / DT, dt, t); dif?.update(); animali?.update(dt, t); } // Animali (#67)
     regata.update(acc / DT, dt, t);
     { const ev = myLot()?.hero?.evocato ?? null; if (ev && !evocato && !evocatoCarico) { evocatoCarico = true; void import('./rpg/evocato.ts').then((mod) => { evocato = mod.createEvocato({ world, loader }); }).catch(() => { evocatoCarico = false; }); } try { evocato?.update(dt, t, ev, world.mode === 'walk' && !sotto() && !regata.active); } catch (e) { console.warn('[marea] evocato', e); evocato?.dispose(); evocato = null; } } // solo resa: se qualcosa va storto si spegne, il gioco continua
     emotes.update(dt); setTopbarHidden(regata.active || sotto());

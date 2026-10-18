@@ -17,6 +17,7 @@ const DURATE = {
   m4_una_mano: 32, // #143: ~19 s in locale × 1,6
   m4_corse_amici_server: 25, // corse tra amici: ~9 s in locale (wrangler compreso) × 1,6 + avvio
   m4_arena: 115, m4_arena_server: 85, // Arena (#373): ~72 s e ~53 s in locale × 1,6
+  m4_difesa_isola: 70, // Isola della Difesa (#395): ~40 s in locale × 1,6
 };
 const [i, n] = process.argv.slice(2).map(Number);
 if (!Number.isInteger(i) || !Number.isInteger(n) || n < 1 || i < 0 || i >= n) { console.error('uso: node tests/shard.mjs <i> <n>'); process.exit(2); }
