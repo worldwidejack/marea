@@ -1,0 +1,28 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/cavalletta/ · assets/concept/difesa/orto/mina_a/ · assets/concept/difesa/orto/annaffiatoio/
+
+A) CAVALLETTA (nemica: corre, salta il primo difensore, poi cammina; guarda verso SINISTRA) — base: cavalletta/corre_1.png
+ Corsa (ciclo di 4, sempre coi piedi a terra: è una corsetta veloce sulle zampe, non a saltelli):
+ 1. cavalletta/corre_2.png — zampe posteriori che spingono distese, anteriori avanti, corpo inclinato in avanti.
+ 2. cavalletta/corre_3.png — zampe a metà che si incrociano, corpo un filo più su.
+ 3. cavalletta/corre_4.png — l'altra falcata (al contrario del 2).
+ Salto (il gioco la alza da solo: nel fotogramma il corpo resta alla stessa altezza della base, non spostarlo in alto):
+ 4. cavalletta/salta_1.png — lo slancio: zampe posteriori tese al massimo, corpo allungato in diagonale, bocca aperta «yahoo».
+ 5. cavalletta/salta_2.png — in volo: zampe raccolte, alucce aperte, faccia spavalda.
+ Morso e KO:
+ 6. cavalletta/mangia_1.png — morde: testa protesa in avanti, bocca spalancata.
+ 7. cavalletta/mangia_2.png — morso chiuso, guance piene.
+ 8. cavalletta/mangia_3.png — mastica con gli occhi chiusi e due briciole verdi.
+ 9. cavalletta/ko.png — stordita: occhi a spirale, antenne afflosciate, zampe molli, ancora in piedi.
+ Camminata dopo il salto (STANCA): modifiche dei fotogrammi della corsa con lo stesso numero: stessa posa, ma faccia stanca con la
+ lingua fuori e una goccia di sudore.
+ 10. cavalletta/cammina_1.png (da corre_1)  11. cammina_2.png (da corre_2)  12. cammina_3.png (da corre_3)  13. cammina_4.png (da corre_4)
+B) RAVANELLO MINA (difensore, guarda a DESTRA) — base: mina_a/armata.png
+ 14. mina_a/sotto.png — SEPOLTO: dal mucchietto di terra si vedono solo le foglie e la cima rossa del ravanello, occhi chiusi
+     addormentati, lucina spenta.
+ 15. mina_a/spunta.png — mezzo fuori dalla terra, occhi che si aprono, lucina spenta.
+ 16. mina_a/lampo.png — come la base ma con la lucina rossa ACCESA e luminosa, piccoli raggi di luce attorno.
+C) ANNAFFIATOIO A MOLLA — base: annaffiatoio/fermo.png (il beccuccio guarda a DESTRA)
+ 17. annaffiatoio/scatta_1.png — SCATTA: la molla allungata, l'annaffiatoio inclinato in avanti verso destra che spruzza un getto
+     d'acqua forte e dritto verso destra (il getto può arrivare al bordo destro del quadrato).
+ 18. annaffiatoio/scatta_2.png — come il 17 ma con la molla un po' più compressa e gli spruzzi d'acqua diversi (per farlo vibrare).

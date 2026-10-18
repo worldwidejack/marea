@@ -1,0 +1,19 @@
+
+LE TUE CARTELLE: assets/concept/difesa/orto/zucca/ · assets/concept/difesa/orto/peperoncino/ · assets/concept/difesa/orto/cavolo/
+Difensori: guardano verso DESTRA. Fai nell'ordine scritto (i primi sono i più importanti).
+
+A) ZUCCA A MANOVELLA — base: zucca/fermo.png
+ 1. zucca/manovella_1.png — la manovella in cima ruotata di un quarto di giro, guance gonfie per lo sforzo, occhi strizzati.
+ 2. zucca/manovella_2.png — la manovella ruotata di mezzo giro (dall'altra parte), lo sportellino che comincia ad aprirsi.
+ 3. zucca/seme.png — sportellino aperto, un SEME D'ORO lucido che salta fuori verso l'alto, faccia felice a bocca aperta.
+B) PEPERONCINO A MICCIA — base: peperoncino/fermo.png
+ 4. peperoncino/gonfio.png — il corpo gonfio (~10 % più grosso, sempre coi piedi a terra), guance gonfie, occhi strizzati, miccia
+    più corta con una scintilla più grande.
+ 5. peperoncino/rovente.png — ancora più gonfio (~18 %), rosso-arancio acceso che brilla, sbuffi di vapore dalla testa, occhi
+    sgranati, miccia quasi finita con una scintilla grande.
+C) CAVOLO CORAZZATO — base: cavolo/fermo.png
+ 6. cavolo/rosicchiato.png — qualche morso sulle foglie del lato DESTRO (quello verso i nemici), sopracciglia preoccupate.
+ 7. cavolo/mezzo.png — mangiucchiato forte: grossi morsi sul lato destro, foglie strappate, faccia stanca e preoccupata (un occhio
+    socchiuso). Stessa misura e posizione della base (i morsi tolgono pezzi, non spostano il cavolo).
+D) OCCHI CHIUSI (battito di ciglia: come la base, solo gli occhi chiusi, tutto il resto identico)
+ 8. zucca/chiusi.png  9. cavolo/chiusi.png

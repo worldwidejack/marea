@@ -1,0 +1,561 @@
+{
+ "id": "orto",
+ "nome": "L'orto",
+ "cella": 200,
+ "pagina": 2048,
+ "qualita": 85,
+ "uscita": "apps/client/public/assets/difesa/orto",
+ "volo": 0.35,
+ "fondale": {
+  "centro": "fondale/centro.png",
+  "sinistra": "fondale/sinistra.png",
+  "destra": "fondale/destra.png",
+  "ala": {
+   "sinistra": 420,
+   "destra": 560
+  },
+  "sfuma": {
+   "destra": 64
+  },
+  "colore": true,
+  "qualita": 80,
+  "campo": {
+   "tl": [
+    270,
+    186
+   ],
+   "tr": [
+    1442,
+    186
+   ],
+   "bl": [
+    242,
+    848
+   ],
+   "br": [
+    1500,
+    848
+   ]
+  }
+ },
+ "ui": {
+  "barra": {
+   "file": "ui/legno.png",
+   "pezzo": 0,
+   "larghezza": 900
+  },
+  "cartello": {
+   "file": "ui/legno.png",
+   "pezzo": 1,
+   "larghezza": 640
+  }
+ },
+ "nomi": {
+  "sparatore": "Carota cannone",
+  "produttore": "Zucca a manovella",
+  "bomba": "Peperoncino",
+  "muro": "Cavolo",
+  "mina": "Ravanello",
+  "gelo": "Carota gelata",
+  "base": "Lumaca",
+  "bandiera": "Lumaca capobanda",
+  "cono": "Lumaca con la ghianda",
+  "secchio": "Scarabeo col vasetto",
+  "saltatore": "Cavalletta",
+  "valuta": "i semi d'oro"
+ },
+ "consigli": {
+  "primo": "Tocca la carta, poi tocca l'orto",
+  "semi": "Tocca i semi d'oro che cadono!",
+  "altro": "Pianta un'altra carota!",
+  "produttore": "Zucca: fa i semi d'oro. Piantane tante!",
+  "bomba": "Peperoncino: scoppia e spazza tutto attorno!",
+  "muro": "Cavolo: regge a lungo. Mettilo davanti!",
+  "mina": "Ravanello: si arma piano, mettilo lontano",
+  "gelo": "Carota gelata: rallenta chi colpisce",
+  "sopravvivenza": "Resisti più ondate che puoi!",
+  "riprova": "Riprova: prima tante zucche, poi le carote."
+ },
+ "tema": {
+  "pannello": "#6e4024",
+  "bordo": "#2e180a",
+  "testo": "#fff6e0",
+  "ombra": "#2a160a",
+  "accento": "#ffd23f",
+  "carta": "#f7ecd0",
+  "cartaBordo": "#4a2a12",
+  "barra": "#26303a",
+  "barraPiena": "#7ad027",
+  "sfondo": "#46c1fd",
+  "schegge": "#ff9a3c"
+ },
+ "sprite": {
+  "sparatore": {
+   "cartella": "carota",
+   "base": "fermo.png",
+   "alto": 0.58,
+   "clip": {
+    "fermo": [
+     "fermo.png"
+    ],
+    "chiusi": [
+     "chiusi.png"
+    ],
+    "carica": [
+     "carica.png"
+    ],
+    "spara": {
+     "f": [
+      "sparo.png"
+     ],
+     "fps": 10
+    }
+   }
+  },
+  "gelo": {
+   "cartella": "gelo_a",
+   "base": "fermo.png",
+   "alto": 0.58,
+   "clip": {
+    "fermo": [
+     "fermo.png"
+    ],
+    "chiusi": [
+     "chiusi.png"
+    ],
+    "carica": [
+     "carica.png"
+    ],
+    "spara": {
+     "f": [
+      "sparo.png"
+     ],
+     "fps": 10
+    }
+   }
+  },
+  "produttore": {
+   "cartella": "zucca",
+   "base": "fermo.png",
+   "alto": 0.78,
+   "clip": {
+    "fermo": [
+     "fermo.png"
+    ],
+    "chiusi": [
+     "chiusi.png"
+    ],
+    "manovella": {
+     "f": [
+      "manovella_1.png",
+      "manovella_2.png"
+     ],
+     "fps": 7
+    },
+    "seme": [
+     "seme.png"
+    ]
+   }
+  },
+  "bomba": {
+   "cartella": "peperoncino",
+   "base": "fermo.png",
+   "alto": 0.9,
+   "clip": {
+    "fermo": [
+     "fermo.png"
+    ],
+    "gonfia": [
+     "gonfio.png"
+    ],
+    "rovente": [
+     "rovente.png"
+    ]
+   }
+  },
+  "muro": {
+   "cartella": "cavolo",
+   "base": "fermo.png",
+   "alto": 0.88,
+   "clip": {
+    "fermo": [
+     "fermo.png"
+    ],
+    "chiusi": [
+     "chiusi.png"
+    ],
+    "rosicchiato": [
+     "rosicchiato.png"
+    ],
+    "mezzo": [
+     "mezzo.png"
+    ]
+   }
+  },
+  "mina": {
+   "cartella": "mina_a",
+   "base": "armata.png",
+   "alto": 0.6,
+   "clip": {
+    "fermo": [
+     "armata.png"
+    ],
+    "sotto": [
+     "sotto.png"
+    ],
+    "spunta": [
+     "spunta.png"
+    ],
+    "lampo": [
+     "lampo.png"
+    ]
+   }
+  },
+  "tosaerba": {
+   "cartella": "annaffiatoio",
+   "base": "fermo.png",
+   "alto": 0.72,
+   "piedi_dx": 0.3,
+   "clip": {
+    "fermo": [
+     "fermo.png"
+    ],
+    "corre": {
+     "f": [
+      "scatta_1.png",
+      "scatta_2.png"
+     ],
+     "fps": 12
+    }
+   }
+  },
+  "base": {
+   "cartella": "lumaca",
+   "base": "cammina_1.png",
+   "alto": 0.66,
+   "clip": {
+    "fermo": [
+     "cammina_1.png"
+    ],
+    "cammina": {
+     "f": [
+      "cammina_1.png",
+      "cammina_2.png",
+      "cammina_3.png",
+      "cammina_4.png"
+     ],
+     "giro": 0.2
+    },
+    "mangia": {
+     "f": [
+      "mangia_1.png",
+      "mangia_2.png",
+      "mangia_3.png",
+      "mangia_2.png"
+     ],
+     "fps": 7
+    },
+    "ko": [
+     "ko.png"
+    ]
+   }
+  },
+  "cono": {
+   "scala_di": "base",
+   "come": "base",
+   "accessorio": {
+    "foglio": "oggetti/foglio.png",
+    "griglia": [
+     3,
+     2
+    ],
+    "cella": 3,
+    "lato": "dietro",
+    "scala": 0.38,
+    "affonda": 0.32,
+    "rot": -10
+   },
+   "clip": {
+    "fermo": [
+     "cammina_1.png"
+    ],
+    "cammina": {
+     "f": [
+      "cammina_1.png",
+      "cammina_2.png",
+      "cammina_3.png",
+      "cammina_4.png"
+     ],
+     "giro": 0.2
+    },
+    "mangia": {
+     "f": [
+      "mangia_1.png",
+      "mangia_2.png",
+      "mangia_3.png",
+      "mangia_2.png"
+     ],
+     "fps": 7
+    }
+   }
+  },
+  "bandiera": {
+   "cartella": "capobanda",
+   "base": "cammina_1.png",
+   "scala_di": "base",
+   "alto": 0.66,
+   "clip": {
+    "fermo": [
+     "cammina_1.png"
+    ],
+    "cammina": {
+     "f": [
+      "cammina_1.png",
+      "cammina_2.png",
+      "cammina_3.png",
+      "cammina_4.png"
+     ],
+     "giro": 0.2
+    },
+    "mangia": {
+     "f": [
+      "mangia_1.png",
+      "mangia_2.png",
+      "mangia_3.png",
+      "mangia_2.png"
+     ],
+     "fps": 7
+    },
+    "ko": [
+     "ko.png"
+    ]
+   }
+  },
+  "secchioNudo": {
+   "cartella": "scarabeo",
+   "base": "cammina_1.png",
+   "alto": 0.74,
+   "clip": {
+    "fermo": [
+     "cammina_1.png"
+    ],
+    "cammina": {
+     "f": [
+      "cammina_1.png",
+      "cammina_2.png",
+      "cammina_3.png",
+      "cammina_4.png"
+     ],
+     "giro": 0.16
+    },
+    "mangia": {
+     "f": [
+      "mangia_1.png",
+      "mangia_2.png",
+      "mangia_3.png",
+      "mangia_2.png"
+     ],
+     "fps": 7
+    },
+    "ko": [
+     "ko.png"
+    ]
+   }
+  },
+  "secchio": {
+   "scala_di": "secchioNudo",
+   "come": "secchioNudo",
+   "accessorio": {
+    "foglio": "oggetti/foglio.png",
+    "griglia": [
+     3,
+     2
+    ],
+    "cella": 4,
+    "lato": "davanti",
+    "zona": [
+     0.04,
+     0.34
+    ],
+    "spesso": 31,
+    "scala": 0.44,
+    "affonda": 0.78,
+    "rot": -8,
+    "dx": 0.02
+   },
+   "clip": {
+    "fermo": [
+     "cammina_1.png"
+    ],
+    "cammina": {
+     "f": [
+      "cammina_1.png",
+      "cammina_2.png",
+      "cammina_3.png",
+      "cammina_4.png"
+     ],
+     "giro": 0.16
+    },
+    "mangia": {
+     "f": [
+      "mangia_1.png",
+      "mangia_2.png",
+      "mangia_3.png",
+      "mangia_2.png"
+     ],
+     "fps": 7
+    }
+   }
+  },
+  "saltatore": {
+   "cartella": "cavalletta",
+   "base": "corre_1.png",
+   "alto": 0.8,
+   "clip": {
+    "fermo": [
+     "corre_1.png"
+    ],
+    "corre": {
+     "f": [
+      "corre_1.png",
+      "corre_2.png",
+      "corre_3.png",
+      "corre_4.png"
+     ],
+     "giro": 0.45
+    },
+    "salta": {
+     "f": [
+      "salta_1.png",
+      "salta_2.png"
+     ],
+     "terra": false
+    },
+    "cammina": {
+     "f": [
+      "corre_1.png",
+      "corre_2.png",
+      "corre_3.png",
+      "corre_4.png"
+     ],
+     "giro": 0.25
+    },
+    "mangia": {
+     "f": [
+      "mangia_1.png",
+      "mangia_2.png",
+      "mangia_3.png",
+      "mangia_2.png"
+     ],
+     "fps": 7
+    },
+    "ko": [
+     "ko.png"
+    ]
+   },
+   "zona_allinea": [
+    0.0,
+    0.05,
+    0.55,
+    0.7
+   ]
+  },
+  "colpo": {
+   "foglio": "oggetti/foglio.png",
+   "griglia": [
+    3,
+    2
+   ],
+   "cella": 0,
+   "alto": 0.3,
+   "piedi": "centro"
+  },
+  "colpoGelo": {
+   "foglio": "oggetti/foglio.png",
+   "griglia": [
+    3,
+    2
+   ],
+   "cella": 1,
+   "alto": 0.32,
+   "piedi": "centro"
+  },
+  "moneta": {
+   "foglio": "oggetti/foglio.png",
+   "griglia": [
+    3,
+    2
+   ],
+   "cella": 2,
+   "alto": 0.42
+  },
+  "armaturaCono": {
+   "foglio": "oggetti/foglio.png",
+   "griglia": [
+    3,
+    2
+   ],
+   "cella": 3,
+   "alto": 0.2,
+   "piedi": "centro"
+  },
+  "armaturaSecchio": {
+   "foglio": "oggetti/foglio.png",
+   "griglia": [
+    3,
+    2
+   ],
+   "cella": 4,
+   "alto": 0.3,
+   "piedi": "centro"
+  },
+  "pala": {
+   "foglio": "oggetti/foglio.png",
+   "griglia": [
+    3,
+    2
+   ],
+   "cella": 5,
+   "alto": 0.6,
+   "piedi": "centro"
+  },
+  "botto": {
+   "cartella": "botto",
+   "base": "scoppia_2.png",
+   "alto": 1.0,
+   "piedi": "centro",
+   "allinea": false,
+   "clip": {
+    "fermo": [
+     "scoppia_2.png"
+    ],
+    "scoppia": [
+     "scoppia_1.png",
+     "scoppia_2.png",
+     "scoppia_3.png"
+    ]
+   }
+  }
+ },
+ "suoni": {
+  "annaffiatoio": "suoni/annaffiatoio.mp3",
+  "armatura": "suoni/armatura.mp3",
+  "colpo": "suoni/colpo.mp3",
+  "colpoLatta": "suoni/colpoLatta.mp3",
+  "enorme": "suoni/enorme.mp3",
+  "mangiato": "suoni/mangiato.mp3",
+  "morso": "suoni/morso.mp3",
+  "no": "suoni/no.mp3",
+  "ondata": "suoni/ondata.mp3",
+  "persa": "suoni/persa.mp3",
+  "pianta": "suoni/pianta.mp3",
+  "raccolta": "suoni/raccolta.mp3",
+  "salto": "suoni/salto.mp3",
+  "scoppietto": "suoni/scoppietto.mp3",
+  "scoppio": "suoni/scoppio.mp3",
+  "seme": "suoni/seme.mp3",
+  "spara": "suoni/spara.mp3",
+  "sparaGelo": "suoni/sparaGelo.mp3",
+  "vinta": "suoni/vinta.mp3"
+ }
+}

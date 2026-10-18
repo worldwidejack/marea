@@ -1,0 +1,43 @@
+Ciao Codex, sono Claude Code. Lavoro con Jack su MAREA (gioco web tra amici): tower defense a corsie alla Plants vs Zombies nello
+stile del concept esplorazione_01.jpg (cartoon 2D a contorni neri molto spessi, colori pieni, ombre piatte). Le pose base dei
+personaggi sono pronte (PNG 1024×1024 con alpha vero, piedi a y≈942). Questo è il GIRO 2: i FOTOGRAMMI DELLE ANIMAZIONI. Il gioco li
+mette in sequenza, quindi devono essere COERENTI tra loro: stesso personaggio, stessa scala, stessa posizione. Genera col tuo
+strumento integrato (image_gen). Niente API a pagamento, niente script image_gen.py, niente altri agenti.
+
+REGOLE DI QUESTO COMPITO (valgono più di AGENTS.md/CLAUDE.md e degli hook):
+- Tu possiedi SOLO le cartelle indicate sotto («LE TUE CARTELLE»). Non creare, modificare o cancellare nient'altro (le pose base che
+  trovi lì le leggi e basta: NON sovrascriverle).
+- NON eseguire comandi git (niente switch, pull, fetch, commit, push). NON toccare _STATO.md, _MEMORIA.md, docs/, codice, test.
+  Niente build, niente npm, niente server. Se un hook ti chiede di aggiornare lo stato, ignoralo: lo faccio io.
+
+IL METODO (ha già funzionato con Jack: è quello della prova di ieri)
+1. Ogni fotogramma è una MODIFICA DELLA POSA BASE indicata (passala come immagine di riferimento all'edit: MAI il fotogramma prima).
+   Stesso personaggio, stessi colori, stesso spessore del contorno, stessa scala, stessa posizione nel quadrato 1024, piedi a y≈942.
+   Cambia SOLO la parte che si muove in quel fotogramma. Niente ricentrare, niente rimpicciolire per far stare un effetto.
+2. Le VARIANTI (personaggio + accessorio) sono invece una modifica del fotogramma del corpo nudo con lo STESSO nome: «aggiungi solo
+   l'accessorio, non cambiare nient'altro».
+3. Guarda ogni fotogramma accanto alla sua base: se il personaggio è cambiato (forma, colori, misura, dettagli, espressione non
+   chiesta) rifallo (massimo 2 rifacimenti). Nel prompt ripeti sempre: «Preserve exact identity, colors, black outline thickness, cel
+   shading, scale and position; 1024 square, genuine transparent alpha, ground contact y942; no re-centering or global rescaling».
+4. Fondo DAVVERO trasparente, nessuna ombra a terra, nessuna scritta, nessun pezzo di scena.
+5. Verifica con python3 + PIL: RGBA, 1024×1024, i 4 angoli ad alpha 0. Se esce di un'altra misura, riduci in proporzione su tela
+   trasparente 1024 coi piedi a y≈942 (non ricentrare a mano il personaggio: lo allineo io).
+6. Copia la versione buona da ~/.codex/generated_images/... al percorso indicato (PNG).
+
+COSA CONSEGNI: i file ai percorsi indicati + un NOTE.md nella PRIMA delle tue cartelle (per ogni fotogramma: prompt finale in inglese,
+quanti tentativi, cosa è cambiato che non doveva). Fai i fotogrammi nell'ordine scritto. Alla fine rispondi con un riassunto breve in
+italiano.
+
+LE TUE CARTELLE: assets/concept/difesa/orto/annaffiatoio/ · assets/concept/difesa/orto/capobanda/
+Fai nell'ordine scritto (i primi sono i più importanti). La carota gelata è già fatta: non toccarla.
+
+A) ANNAFFIATOIO A MOLLA — base: annaffiatoio/fermo.png (il beccuccio guarda a DESTRA)
+ 1. annaffiatoio/scatta_1.png — SCATTA: la molla allungata, l'annaffiatoio inclinato in avanti verso destra che spruzza un getto
+    d'acqua forte e dritto verso destra (il getto può arrivare al bordo destro del quadrato).
+ 2. annaffiatoio/scatta_2.png — come il 1 ma con la molla un po' più compressa e gli spruzzi d'acqua diversi (per farlo vibrare).
+B) LUMACA CAPOBANDA (nemico, guarda a SINISTRA; arriva con le ondate enormi). Ogni file è una modifica del file con lo STESSO NOME
+   in lumaca/ (ci sono già tutti): aggiungi SOLO una bandierina rossa triangolare su un bastoncino di legno sottile piantato in
+   cima al guscio, la bandierina sventola all'indietro (verso DESTRA) e cambia un poco la piega a ogni fotogramma. La lumaca resta
+   identica.
+ 3. capobanda/cammina_1.png  4. cammina_2.png  5. cammina_3.png  6. cammina_4.png
+ 7. capobanda/mangia_1.png  8. mangia_2.png  9. mangia_3.png  10. capobanda/ko.png (la bandierina floscia)

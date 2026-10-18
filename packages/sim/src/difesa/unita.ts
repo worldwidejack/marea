@@ -38,8 +38,8 @@ export function pala(s: DState, corsia: number, col: number): void {
   s.ev.push({ e: 'pala', tipo: u.tipo, corsia, col });
 }
 
-/** C'è un nemico da colpire nella corsia, davanti al difensore (o addosso) e già nel campo? */
-function bersaglio(s: DState, u: DUnita): boolean {
+/** C'è un nemico da colpire nella corsia, davanti al difensore (o addosso) e già nel campo? (La usa anche la resa per la posa di carica.) */
+export function haBersaglio(s: DState, u: DUnita): boolean {
   for (const e of s.nemici) if (e.corsia === u.corsia && vivo(e) && e.x >= u.col && e.x <= DIFESA.campo.visibile && e.salto !== 1) return true;
   return false;
 }
@@ -56,7 +56,7 @@ export function passoUnita(s: DState): void {
     if (d.tipo === 'tiro') {
       if (u.t > s.tick) continue;
       u.t = s.tick + tick((d.cadenza ?? 1.5) - caso(s) * (d.cadenzaCaso ?? 0));
-      if (!bersaglio(s, u)) continue;
+      if (!haBersaglio(s, u)) continue;
       const x = u.col + 0.8;
       s.colpi.push({ id: s.nid++, corsia: u.corsia, x, danno: d.danno ?? 20, gelo: !!d.gelo, vel: (d.colpoVel ?? 4) / tick(1) });
       s.ev.push({ e: 'spara', id: u.id, corsia: u.corsia, x, gelo: !!d.gelo });
