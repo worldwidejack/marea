@@ -8,7 +8,7 @@ import { moveCircle } from '../dungeon/map.ts';
 import type { TState, Zombie } from './stato.ts';
 import { COLPITO_TICKS, classeDi, ev, inPiedi, secToTicks, usa, vitaBase } from './stato.ts';
 import { vicinoRaggiungibile } from './raggiungi.ts';
-import { anima, colpoMuro } from './segreti.ts';
+import { anima, colpoMuro, haLancia } from './segreti.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 /** Fiamme a terra insieme al massimo (le più vecchie si spengono). */
@@ -177,8 +177,8 @@ export function stepFiamme(s: TState): void {
 }
 
 /** L'eroe è a zero: con l'Elisir del risorto si rialza (vita piena, qualche secondo intoccabile, gli zombie vicini spinti via) e perde tutte
- *  le pozioni, come in COD; sennò è caduto: da solo la partita finisce, insieme resta giù (perde le pozioni, si rialza all'ondata dopo) e
- *  finisce solo se non resta nessuno in piedi. */
+ *  le pozioni, come in COD; sennò è caduto: da solo la partita finisce, insieme resta giù (perde le pozioni e le armi, si rialza all'ondata
+ *  dopo con quella di partenza) e finisce solo se non resta nessuno in piedi. */
 function cade(s: TState): void {
   const h = s.eroe;
   if (h.pozioni.includes('risorto')) {
@@ -194,6 +194,8 @@ function cade(s: TState): void {
   }
   h.vita = 0; ev(s, { t: 'caduto' });
   if (s.eroi.length === 1) { s.done = true; s.esito = 'morto'; return; }
+  // §12b: si rialza con l'arma di partenza (ondate.ts `rialza`); la Lancia persa torna all'altare dopo altre anime
+  if (haLancia(s)) h.sigillo = Math.max(s.segreti.anime, h.sigillo) + TEMPLARI.cripta.anime;
   h.giu = true; h.pozioni = []; h.max = vitaBase(h);
   h.act = 'idle'; h.actT = 0; h.carica = 0; h.ricarica = 0; h.moving = false; h.corre = false; h.hurt = 0;
   if (!inPiedi(s).length) { s.done = true; s.esito = 'morto'; }

@@ -8,7 +8,7 @@ import { TEMPLARI } from '@marea/content/templari.ts';
 import { stepTemplari, stepTemplariInsieme, templari } from '../src/templari/templari.ts';
 import type { TState } from '../src/templari/templari.ts';
 import { apriPorta } from '../src/templari/porte.ts';
-import { esplodi, uccidi } from '../src/templari/colpi.ts';
+import { esplodi, ferisci, uccidi } from '../src/templari/colpi.ts';
 import { daiArma } from '../src/templari/eroe.ts';
 import { nuovoZombie, usa } from '../src/templari/stato.ts';
 import { inCripta, rompiMuro, suonaCampanella } from '../src/templari/segreti.ts';
@@ -137,13 +137,17 @@ test('le anime: 5 zombie uccisi nella cripta liberano la Lancia (quelli di fuori
   assert.equal(s.segreti.anime, TEMPLARI.cripta.anime, 'le anime contano ancora dopo');
 });
 
-test('la Lancia: un affondo prende tutti quelli in fila, ogni uccisione ridà vita; caricata ti porta avanti', () => {
+test('la Lancia: un affondo prende tutti quelli in fila (0,8 × la vita: al secondo muoiono), ogni uccisione ridà vita; caricata ti porta avanti', () => {
   const s = partita(), h = s.eroe;
   daiArma(s, 'lancia');
   h.x = 46.5; h.z = 38.5; h.fx = 1; h.fz = 0; h.max = 100; h.vita = 40; h.quiete = 0;
   for (const dx of [1.1, 2.1, 3.2]) { const z = nuovoZombie(s, 'fante', h.x + dx, h.z, 0); z.st = 'insegue'; }
+  h.intoccabile = s.tick + tick(5); // tra i due affondi il primo della fila colpisce: qui si guarda solo la vita che torna
+  const primo = colpo(s, false);
+  assert.equal(primo.filter((e) => e.t === 'colpo').length, 3, 'l\'affondo non trapassa la fila');
+  assert.equal(primo.filter((e) => e.t === 'morte').length, 0, 'un affondo solo basta (§12b: 0,8 × la vita dell\'ondata)');
   const ev = colpo(s, false);
-  assert.equal(ev.filter((e) => e.t === 'morte').length, 3, 'l\'affondo non trapassa la fila');
+  assert.equal(ev.filter((e) => e.t === 'morte').length, 3, 'al secondo affondo non muoiono tutti');
   assert.equal(Math.round(h.vita), 40 + 3 * (TEMPLARI.armi.find((a) => a.id === 'lancia')!.cura ?? 0));
   const x0 = h.x;
   colpo(s, true);
@@ -181,6 +185,28 @@ test('insieme: le campanelle danno una pozione a ognuno, e anche il secondo pren
   stepTemplariInsieme(s, [F, { ...F, d: true }]);
   assert.ok(s.eroi.every((h) => h.armi.some((x) => x?.id === 'lancia')), 'la Lancia l\'ha presa uno solo');
   usa(s, 0);
+});
+
+test('insieme: chi cade perde la Lancia (§12b) e all\'altare servono altre 5 anime per riprenderla', () => {
+  const s = templari.create({ seed: 7, opzioni: { subito: true, eroi: 2 } }), c = cr(s), b = s.eroi[1]!, n = TEMPLARI.cripta.anime;
+  rompiMuro(s); s.segreti.anime = n;
+  s.eroi[0]!.vita = s.eroi[0]!.max = 1e6;
+  usa(s, 1); daiArma(s, 'lancia');
+  ferisci(s, 1e6, b.x + 1, b.z);
+  assert.equal(b.giu, true);
+  while (b.giu && !s.done) stepTemplariInsieme(s, [F, F]);
+  assert.ok(!b.armi.some((x) => x?.id === 'lancia'), 'si è rialzato con la Lancia');
+  b.x = c.altare.x + 1.2; b.z = c.altare.z;
+  let p = templari.view(s, 1).prompt;
+  assert.ok(p?.cosa === 'lancia' && !p.puoi && p.testo.includes(`${n}/${2 * n}`), JSON.stringify(p));
+  s.eventi = [];
+  for (let k = 0; k < n; k++) uccidi(s, nuovoZombie(s, 'fante', c.giu.x - 2 - k, c.giu.z, 0));
+  assert.equal(s.segreti.anime, 2 * n, 'le anime non contano più per chi aspetta la sua Lancia');
+  assert.ok(s.eventi.some((e) => e.t === 'cripta' && e.fase === 'libera'));
+  p = templari.view(s, 1).prompt;
+  assert.ok(p?.cosa === 'lancia' && p.puoi, JSON.stringify(p));
+  stepTemplariInsieme(s, [F, { ...F, d: true }]);
+  assert.ok(b.armi.some((x) => x?.id === 'lancia'), 'non l\'ha ripresa');
 });
 
 test('i teschi: AZIONE tenuto su ognuno; al terzo la canzone (una volta)', () => {

@@ -9,8 +9,9 @@ export type TArmaDef = {
   id: string; nome: string; tipo: 'mischia' | 'arco' | 'fuoco' | 'lancio';
   /** Nome dopo il potenziamento del Mercante. */
   nomePot: string;
-  /** Danno di un colpo (arco: a corda tesa; fuoco: per pallino). */
-  danno: number;
+  /** Danno di un colpo (arco: a corda tesa; fuoco: per pallino). Con `ondata` è × la vita degli zombie dell'ondata, come i super (le
+   *  miracolose, §12b), e così anche il `dps` delle sue fiamme (`fuoco`, `scia`). */
+  danno: number; ondata?: boolean;
   /** Mischia: secondi per un fendente. Arco: secondi per tendere al massimo. Fuoco: secondi tra due colpi dello stesso caricatore. */
   tempo: number;
   /** Mischia: portata in m. */
@@ -103,8 +104,8 @@ export type TOndateCfg = {
   vita: { base: number; perOndata: number; finoA: number; molt: number };
   /** Zombie nell'ondata n: base + lin × (n − 1) + quad × (n − 1)², arrotondato, al massimo `max`; insieme × (1 + perEroe × (eroi − 1)). */
   quanti: { base: number; lin: number; quad: number; max: number; perEroe: number };
-  /** Quanti al massimo insieme sulla mappa. */
-  insieme: number;
+  /** Quanti al massimo insieme sulla mappa all'ondata n: base + perOndata × (n − 1), al massimo `max`; in squadra × come `quanti`. */
+  insieme: { base: number; perOndata: number; max: number };
   /** Secondi tra due comparse: base + perOndata × (n − 1), almeno `min`. */
   intervallo: { base: number; perOndata: number; min: number };
   /** Secondi di respiro tra un'ondata e l'altra, e di presentazione della prima. */

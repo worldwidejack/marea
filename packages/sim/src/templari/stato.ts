@@ -55,6 +55,9 @@ export type Eroe = {
   pozioni: TPozione[]; elisir: number; intoccabile: number;
   /** Insieme: caduto (si rialza all'ondata dopo) e uscito dalla partita (non torna). Da solo cadere chiude la partita. */
   giu: boolean; fuori: boolean;
+  /** Anime all'altare della cripta (della squadra, `segreti.anime`) che servono perché la Lancia sia di nuovo sua: `cripta.anime`, e altre
+   *  `cripta.anime` ogni volta che la perde cadendo (§12b). */
+  sigillo: number;
   /** I punti dell'eroe (insieme ognuno ha i suoi: guadagna chi colpisce, spende chi compra) e quelli dalle assi in questa ondata (hanno un
    *  tetto). */
   punti: number; puntiAssi: number;
@@ -170,9 +173,15 @@ export function potenziata(a: TArmaDef): TArmaDef {
 }
 export const haPozione = (s: TState, id: TPozione): boolean => s.eroe.pozioni.includes(id);
 export const pozioneDef = (id: TPozione) => TEMPLARI.strega.pozioni.find((p) => p.id === id)!;
+/** Le miracolose (`ondata`, §12b): danno e fiamme × la vita degli zombie dell'ondata, come i super; le altre armi come sono. */
+export function aOndata(s: TState, a: TArmaDef): TArmaDef {
+  if (!a.ondata) return a;
+  const v = vitaOndata(s.ondata);
+  return { ...a, danno: a.danno * v, ...(a.fuoco ? { fuoco: { ...a.fuoco, dps: a.fuoco.dps * v } } : {}), ...(a.scia ? { scia: { ...a.scia, dps: a.scia.dps * v } } : {}) };
+}
 /** L'arma di uno slot come la usi adesso: potenziata se lo è, poi le pozioni (Infuso lesto: ricarica e arco; Grappa: armi a distanza). */
 export function armaDi(s: TState, sl: Slot | null): TArmaDef {
-  const base = armaDef(sl?.id ?? TEMPLARI.partenza.arma), a = sl?.pot ? potenziata(base) : base;
+  const base = armaDef(sl?.id ?? TEMPLARI.partenza.arma), a = aOndata(s, sl?.pot ? potenziata(base) : base);
   const lesto = haPozione(s, 'lesto'), bomb = haPozione(s, 'bombardiere') && a.tipo !== 'mischia';
   // l'eroe del menù: più danno con le sue armi, la Bucaniera ricarica prima, l'Arciere tende prima
   const cl = classeDi(s.eroe), kd = cl?.danno[a.tipo] ?? 1, kr = a.tipo === 'fuoco' ? cl?.ricarica ?? 1 : 1, kt = a.tipo === 'arco' ? cl?.tende ?? 1 : 1;
@@ -206,15 +215,23 @@ export function inPiedi(s: TState): number[] {
 /** Insieme: quanti eroi al massimo. */
 export const MAX_EROI = 4;
 
+/** Le armi e lo scudo di partenza: senza eroe del menù la spada e niente scudo; con l'eroe le sue armi e (il Crociato) lo scudo. Anche
+ *  quelle con cui si rialza in squadra chi è caduto (§12b). */
+export function armiDiPartenza(classe: TClasse | null): { armi: (Slot | null)[]; scudo: { vita: number } | null } {
+  const cl = eroeDef(classe);
+  return {
+    armi: cl ? cl.armi.map((id) => (id ? slotDi(armaDef(id)) : null)) : [slotDi(armaDef(TEMPLARI.partenza.arma)), null],
+    scudo: cl?.scudo ? { vita: TEMPLARI.scudo.vita } : null,
+  };
+}
 /** Un eroe alla partenza: senza eroe del menù spada, vita 100 e niente scudo; con l'eroe le sue armi, la sua vita e (il Crociato) lo scudo. */
 function nuovoEroe(x: number, z: number, fx: number, fz: number, classe: TClasse | null): Eroe {
-  const c = TEMPLARI.eroe, cl = eroeDef(classe), vita = cl?.vita ?? c.vita;
-  const armi = cl ? cl.armi.map((id) => (id ? slotDi(armaDef(id)) : null)) : [slotDi(armaDef(TEMPLARI.partenza.arma)), null];
+  const c = TEMPLARI.eroe, cl = eroeDef(classe), vita = cl?.vita ?? c.vita, { armi, scudo } = armiDiPartenza(classe);
   return {
     x, z, fx, fz, vita, max: vita, quiete: 9999, fiato: c.fiato, corre: false, moving: false,
     act: 'idle', actT: 0, actDur: 0, caricato: false, stile: 'fendente', colpiti: [], colpito: false, carica: 0,
-    armi, cur: 0, hurt: 0, riparaT: -999, cd: 0, ricarica: 0, ricaricaDur: 1, scudo: cl?.scudo ? { vita: TEMPLARI.scudo.vita } : null, inMano: false,
-    prevA: false, prevC: false, prevD: false, prevE: false, pozioni: [], elisir: 0, intoccabile: 0, giu: false, fuori: false,
+    armi, cur: 0, hurt: 0, riparaT: -999, cd: 0, ricarica: 0, ricaricaDur: 1, scudo, inMano: false,
+    prevA: false, prevC: false, prevD: false, prevE: false, pozioni: [], elisir: 0, intoccabile: 0, giu: false, fuori: false, sigillo: TEMPLARI.cripta.anime,
     classe: cl ? cl.id : null, superK: 0, lavoro: '', lavoroT: 0, punti: TEMPLARI.partenza.punti, puntiAssi: 0,
   };
 }
@@ -285,6 +302,13 @@ export function vitaOndata(n: number): number {
 export function quantiOndata(n: number, eroi = 1): number {
   const q = TEMPLARI.ondate.quanti, k = Math.max(1, n) - 1;
   const solo = Math.min(q.max, Math.round(q.base + q.lin * k + q.quad * k * k));
+  return eroi > 1 ? Math.round(solo * (1 + q.perEroe * (eroi - 1))) : solo;
+}
+/** Quanti zombie al massimo insieme sulla mappa all'ondata n (§12b: 10 alla prima, +1 a ondata, fino a 24); insieme il tetto sale come il
+ *  numero (perEroe a testa in più). */
+export function insiemeOndata(n: number, eroi = 1): number {
+  const k = TEMPLARI.ondate.insieme, q = TEMPLARI.ondate.quanti;
+  const solo = Math.min(k.max, k.base + k.perOndata * (Math.max(1, n) - 1));
   return eroi > 1 ? Math.round(solo * (1 + q.perEroe * (eroi - 1))) : solo;
 }
 /** Secondi tra due comparse all'ondata n. */

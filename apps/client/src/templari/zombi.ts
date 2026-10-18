@@ -11,7 +11,8 @@ import { PAL } from '../ui/style.ts';
 import { M, merged, painted } from '../render/island_parts.ts';
 
 type ZV = TView['zombie'][number];
-const MAX = 32;
+/** Zombie disegnati al massimo per kit: in squadra da 4 dalla 15ª ondata ce ne sono fino a 60 insieme (§12b), più quelli che cadono. */
+const MAX = 64;
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const pri = (r0: number, r1: number, h: number, s = 5) => new THREE.CylinderGeometry(r0, r1, h, s);
 const PELLE = PAL.pietra, CHIAZZA = PAL.erbaScura, MAGLIA = PAL.pietraScura, TELA = PAL.sabbiaChiara, CROCE = PAL.rosso;

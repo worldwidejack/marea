@@ -36,7 +36,7 @@ export function validateTemplari(): string[] {
   }
   for (const n of c.nemici) if (!pos(n.vitaMolt) || !pos(n.raggio) || !pos(n.danno) || !pos(n.velocita.cammina)) errs.push(`templari: nemico ${n.id} non valido`);
   if (!c.nemici.some((n) => n.id === 'fante')) errs.push('templari: manca il fante crociato');
-  if (!(c.ondate.insieme >= 1 && c.ondate.quanti.base >= 1)) errs.push('templari: ondate vuote');
+  if (!(c.ondate.insieme.base >= 1 && c.ondate.insieme.max >= c.ondate.insieme.base && c.ondate.quanti.base >= 1)) errs.push('templari: ondate vuote');
   const rows = TEMPLARI_MAPPA.rows, all = rows.join('');
   for (const [ch, cosa] of [['S', 'la partenza'], ['A', "l'altare"], ['z', 'le comparse'], ['W', 'le finestre']] as const) if (!all.includes(ch)) errs.push(`templari: la mappa non ha ${cosa}`);
   if (all.split('S').length !== 2) errs.push('templari: la mappa vuole una sola partenza');

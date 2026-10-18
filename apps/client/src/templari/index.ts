@@ -24,7 +24,7 @@ import type { DungeonInput } from '@marea/sim/dungeon/types.ts';
 import { stepTemplari, stepTemplariInsieme, templari } from '@marea/sim/templari/templari.ts';
 import type { TState } from '@marea/sim/templari/templari.ts';
 import { daiArma, miraTiro } from '@marea/sim/templari/eroe.ts';
-import { armaIn, nuovoZombie, quantiOndata, usa } from '@marea/sim/templari/stato.ts';
+import { armaIn, insiemeOndata, nuovoZombie, quantiOndata, usa } from '@marea/sim/templari/stato.ts';
 import { vicinoRaggiungibile } from '@marea/sim/templari/raggiungi.ts';
 import { apriPorta } from '@marea/sim/templari/porte.ts';
 import type { TAzione, TAzioni, TEvento, TEventoDi, TInput, TView } from '@marea/sim/templari/types.ts';
@@ -677,7 +677,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma, pozioni: view.eroe.pozioni, classe: view.eroe.classe, super: view.eroe.super, vestito: hero?.avatar.indossaStato()?.corpo ?? null }, zombie: view.zombie.length,
     uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: mUltima, act: s.eroe.act, mouse: mouse?.attivo ?? false, faccia: [s.eroe.fx, s.eroe.fz], yaw: ctx.renderer.diorama.yaw, eroeSchermo: schermo(s.eroe.x, s.eroe.z), zombiePos: s.zombie.filter((z) => z.st !== 'morto').slice(0, 6).map((z) => ({ x: z.x, z: z.z, schermo: schermo(z.x, z.z) })),
     scena: sc?.stats() ?? null, dipinto: dip?.info() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
-    max: TEMPLARI.ondate.insieme,
+    max: insiemeOndata(s.ondata, s.eroi.length),
     insieme: rete ? {
       io, eroi: s.eroi.length, turni: rete.turni.length, giu: ioGiu, firme: { ...firme }, ricollega: rete.ricollega, giri: rete.giri,
       compagni: view.compagni.map((c) => ({ i: c.i, x: c.posa.x, z: c.posa.z, vita: c.vita, giu: c.giu, fuori: c.fuori, visibile: !!amici.find((a) => a.i === c.i)?.actor?.avatar.object.visible })),
