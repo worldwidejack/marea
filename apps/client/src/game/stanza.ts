@@ -7,8 +7,8 @@
 // Pavimenti e carte da parati vengono da borgo.json (il primo è quello di serie); `motivo` dice come si dipinge la texture.
 import * as THREE from 'three';
 import { BORGO } from '@marea/content';
-import { finitureScelte } from '@marea/sim';
-import type { LotState } from '@marea/sim';
+import { PIANTE_MAX, finitureScelte, livelloCasa, mascheraCase, stanzaTerra } from '@marea/sim';
+import type { GridMap, LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
@@ -16,8 +16,18 @@ import { registerStateProvider } from '../test/testapi.ts';
 import { NASCOSTI_DENTRO, costruisciStanza, createInquadratura } from './interno.ts';
 import type { Pianta } from './interno.ts';
 
-const ST = BORGO.stanza, [X0, Z0, X1, Z1] = ST.pavimento, [, , C1] = ST.corridoio;
-const PIANTA: Pianta = { pavimento: ST.pavimento, corridoio: ST.corridoio, altezza: ST.altezza, retro: ST.retro[0] };
+const ST = BORGO.stanza, [X0, Z0, X1, Z1] = ST.pavimento, [, , C1] = ST.corridoio; // la stanza di serie: la quota del pavimento
+const MAX = PIANTE_MAX.find((s) => s.id === 'terra')!.pavimento; // la stanza più grande che avrà mai: per capire se sei in casa
+/** La pianta del piano terra a un livello di casa (#386): gli ampliamenti la ingrandiscono, il bordo davanti e il corridoio restano dove sono. */
+const piantaDi = (livello: number): Pianta => ({ pavimento: stanzaTerra(livello).pavimento, corridoio: ST.corridoio, altezza: ST.altezza, retro: ST.retro[0] });
+/** Libera geometrie, materiali e texture di un gruppo che non serve più (la stanza si rifà quando la casa cresce). */
+function libera(g: THREE.Object3D): void {
+  g.traverse((n) => {
+    if (!(n instanceof THREE.Mesh)) return;
+    n.geometry.dispose();
+    for (const m of Array.isArray(n.material) ? n.material : [n.material]) { (m as THREE.MeshLambertMaterial).map?.dispose(); m.dispose(); }
+  });
+}
 
 /** Il passaggio coperto del giardino (#265): tettoia di legno su quattro pali con l'interno buio, con la bocca in (x, z) rivolta a est
  *  (verso la camera, che sta a sud-est: si vede il buio dentro); ci si cammina dentro verso ovest e si torna in casa. Coordinate mondo. */
@@ -40,10 +50,19 @@ export type Stanza = { dentro(): number | null };
 export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: readonly number[]; lotDi?: (slot: number) => LotState | null }): Stanza {
   const w = o.world, arch = w.archipelago, T = arch.tile, dio = o.renderer.diorama;
   let pav = BORGO.pavimenti[0]!, carta = BORGO.carte[0]!;
-  const { group: room, rifinisci } = costruisciStanza(T, PIANTA, pav, carta);
-  room.name = 'stanza'; room.visible = false;
+  // la stanza è quella del livello di casa di chi ci abita (#386): si rifà quando cambia
+  let room!: THREE.Group, rifinisci!: (p: typeof pav, c: typeof carta) => void, costruitaPer = -1;
+  const livelloDi = (slot: number): number => livelloCasa(o.lotDi?.(slot)?.casa);
+  const costruisci = (livello: number) => {
+    if (room) { w.scene.remove(room); libera(room); }
+    const r = costruisciStanza(T, piantaDi(livello), pav, carta);
+    room = r.group; rifinisci = r.rifinisci; room.name = 'stanza'; room.visible = false; w.scene.add(room); costruitaPer = livello;
+  };
+  costruisci(0);
   const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-  w.scene.add(room);
+  // chi cammina in casa urta i muri della stanza del suo livello, non il bordo del pavimento massimo del template
+  let mascherata: GridMap | null = null;
+  w.maschera = (m) => (mascherata ??= mascheraCase(m, arch.lots, livelloDi));
   // pavimento e carta di chi ci abita (#265: comprati al negozio dei mobili e scelti con ARREDA): si ridipingono quando cambiano
   const finiture = (slot: number) => {
     const s = finitureScelte(o.lotDi?.(slot) ?? null);
@@ -68,9 +87,9 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
     const a = w.avatar.state, p = arch.placeAt(a.x, a.z);
     if (!p || p.role !== 'lotto' || p.slot === null) return null;
     const cx = a.x / T - p.origin[0], cz = a.z / T - p.origin[1];
-    return cx >= X0 - 1 && cx < X1 + 1 && cz >= Z0 - 1 && cz < C1 + 0.5 ? p.slot : null;
+    return cx >= MAX[0] - 1 && cx < MAX[2] + 1 && cz >= MAX[1] - 1 && cz < C1 + 0.5 ? p.slot : null;
   };
-  const entra = (slot: number) => { const l = arch.lots.find((q) => q.slot === slot)!; inq.entra(l.origin[0] * T, l.origin[1] * T, PIANTA); };
+  const entra = (slot: number) => { const l = arch.lots.find((q) => q.slot === slot)!; inq.entra(l.origin[0] * T, l.origin[1] * T, piantaDi(livelloDi(slot))); };
   const esce = () => inq.esce();
   // dopo il cull di ogni frame (world.ts): dentro la stanza si nasconde il resto di quel giardino, il mare, i leggii, animali e pioggia
   w.dopoCull = () => {
@@ -78,6 +97,7 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
     nascosti.length = 0;
     const prima = qui;
     qui = dentroDi();
+    if (qui !== null && livelloDi(qui) !== costruitaPer) { costruisci(livelloDi(qui)); if (qui === prima) entra(qui); } // la casa è cresciuta: stanza nuova e camera nuova
     if (qui !== prima) { if (qui !== null) entra(qui); else esce(); }
     const pl = arch.placeAt(w.avatar.state.x, w.avatar.state.z);
     document.body.classList.toggle('mz-casa', w.mode === 'walk' && (pl?.role === 'lotto' || pl?.role === 'negozio')); // minimappa via in casa, in giardino e nel negozio
@@ -89,9 +109,9 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
     const via = (n: THREE.Object3D | undefined | null) => { if (n && n.visible) { n.visible = false; nascosti.push(n); } };
     via(w.scene.getObjectByName('vista_lotto_' + qui)); via(w.water.mesh); via(w.scene.getObjectByName('libri_ospiti')); via(w.scene.getObjectByName('passaggi_giardino'));
     for (const n of NASCOSTI_DENTRO) via(w.scene.getObjectByName(n));
-    const zMuro = (l.origin[1] + Z0) * T, v = new THREE.Vector3();
+    const zMuro = (l.origin[1] + stanzaTerra(livelloDi(qui)).pavimento[1]) * T, v = new THREE.Vector3();
     for (const g of w.scene.children) if (g.name.startsWith('lot_')) for (const c of g.children) { c.getWorldPosition(v); if (v.z < zMuro) via(c); }
   };
-  registerStateProvider('stanza', () => ({ dentro: qui, pavimento: pav.id, carta: carta.id, camera: qui !== null ? { yaw: dio.yaw, dist: +inq.distanza.toFixed(1) } : null, mini: !document.body.classList.contains('mz-casa') }));
+  registerStateProvider('stanza', () => ({ dentro: qui, livello: costruitaPer, pianta: piantaDi(Math.max(0, costruitaPer)).pavimento, pavimento: pav.id, carta: carta.id, camera: qui !== null ? { yaw: dio.yaw, dist: +inq.distanza.toFixed(1) } : null, mini: !document.body.classList.contains('mz-casa') }));
   return { dentro: () => qui };
 }

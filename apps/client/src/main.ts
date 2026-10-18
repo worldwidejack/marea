@@ -1,5 +1,5 @@
 // Avvio del client: renderer, mondo, ciclo a 60 Hz con interpolazione, test API. Unico modulo con side effect.
-import { DT, barcaDi, canBoard } from '@marea/sim';
+import { DT, barcaDi, canBoard, livelloCasa } from '@marea/sim';
 import { FLAGS } from './flags.ts';
 import { preparaInstallazione } from './installa.ts';
 import { createRenderer } from './render/scene.ts';
@@ -156,8 +156,9 @@ async function boot(): Promise<void> {
   for (const p of temi.isole) targets.push({ id: 'tema:' + p.island, label: p.nome.replace(/^Isola (della |delle |dei |del )?/, ''), icon: p.island as PixId, x: p.spawn.x, z: p.spawn.z, show: () => mappa?.vista(`${p.role}:${p.index}`) ?? false, sezione: 'isole' });
   // Libro degli ospiti e «Mentre eri via» (#86): leggio vicino al molo di ogni isola abitata; la cartolina al rientro (dopo i primi passi)
   const velo = createVelo({ root, mondo: world }); // dissolvenza dei passaggi città → stanza → giardino (#265)
-  const borgo = createBorgo({ world, hud, root, velo, abitanti: [...owners.filter((w) => w.id !== me?.id).map((w) => ({ slot: w.slot, nome: w.nome, mia: false })), ...(world.slot !== null ? [{ slot: world.slot, nome: me?.nome ?? 'Tu', mia: true }] : [])] }); // porte delle case (#237)
-  const stanza = createStanza({ world, renderer, slots: [...new Set([...owners.map((w) => w.slot), world.slot].filter((x): x is number => x !== null))], lotDi: (s) => isole.find((i) => i.slot === s)?.view.state() ?? null }); // la stanza della casa (#240), con pavimento e carta di chi ci abita (#265)
+  const lotDi = (s: number) => isole.find((i) => i.slot === s)?.view.state() ?? null; // lo stato del lotto di quello slot (pavimento, carta e livello della casa)
+  const borgo = createBorgo({ world, hud, root, velo, livelloDi: (s) => livelloCasa(lotDi(s)?.casa), abitanti: [...owners.filter((w) => w.id !== me?.id).map((w) => ({ slot: w.slot, nome: w.nome, mia: false })), ...(world.slot !== null ? [{ slot: world.slot, nome: me?.nome ?? 'Tu', mia: true }] : [])] }); // porte delle case (#237)
+  const stanza = createStanza({ world, renderer, slots: [...new Set([...owners.map((w) => w.slot), world.slot].filter((x): x is number => x !== null))], lotDi }); // la stanza della casa (#240), con pavimento e carta di chi ci abita (#265)
   const libri = createLibri({ world, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, isole, onFirma: (e) => emotes.play(e) });
   const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;
   // ARREDA (#265): in casa tua magazzino, mobili da posare davanti a te, pavimenti e carte; il baule si apre con A

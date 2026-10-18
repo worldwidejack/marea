@@ -1,6 +1,7 @@
 // Celle del lotto (CONTRACTS §11): tutte le isole personali usano il template `lotto` di islands.json. Le celle di LotState sono locali
 // al template ([cx, cz] dall'angolo in alto a sinistra). Edifici solo su celle `L` libere; decorazioni su sabbia/erba libere; il Molo sul `d`.
 import { BORGO, ISLANDS, RIENTRO } from '@marea/content';
+import { inPianteMax } from './stanze.ts';
 import type { LotState } from './types.ts';
 
 /** Basta la griglia ASCII: vanno bene sia un IslandDef sia un GridMap. */
@@ -23,8 +24,9 @@ export function tileAt(t: LotTemplate, cx: number, cz: number): string {
   return t.rows[cz]?.[cx] ?? '~';
 }
 
-/** La cella è sul pavimento della stanza della casa (#240): lì vanno i mobili (#265, economy/casa.ts), non le decorazioni del giardino. */
-export const inStanza = (c: readonly [number, number]): boolean => { const [x0, z0, x1, z1] = BORGO.stanza.pavimento; return c[0] >= x0 && c[0] < x1 && c[1] >= z0 && c[1] < z1; };
+/** La cella è sul pavimento di una stanza della casa (#240), alla pianta massima degli ampliamenti (#386, economy/stanze.ts): lì vanno i mobili
+ *  (#265, economy/casa.ts), non le decorazioni del giardino. Per sapere se la stanza è già sbloccata: `stanzaAt(livello, cella)`. */
+export const inStanza = (c: readonly [number, number]): boolean => inPianteMax(c);
 /** Il corridoio d'ingresso sotto la stanza (#265). */
 export const inCorridoio = (c: readonly [number, number]): boolean => { const [x, z0, z1] = BORGO.stanza.corridoio; return c[0] === x && c[1] >= z0 && c[1] < z1; };
 /** Il passaggio coperto del giardino verso la stanza (#265): la cella `stanza.giardino` e quella a ovest (la bocca guarda a est). */

@@ -7,6 +7,7 @@ export * from './world/archipelago.ts';
 export * from './world/avatar.ts';
 export * from './world/boat.ts';
 export * from './world/temi.ts';
+export * from './world/casa_mappa.ts'; // La mappa di chi cammina nelle case: ampliamenti sbloccati (#386)
 export * from './economy/types.ts';
 export * from './economy/advance.ts';
 export * from './economy/actions.ts';
@@ -32,6 +33,7 @@ export * from './economy/rientro.ts'; // Mentre eri via e libro degli ospiti (#8
 export * from './meteo.ts'; // Meteo (#85)
 export * from './economy/barca.ts'; // La tua barca (#107)
 export * from './economy/casa.ts'; // La casa arredabile (#265)
+export * from './economy/stanze.ts'; // Le stanze della casa e gli ampliamenti (#386)
 export * from './economy/giorno.ts'; // Il giorno di Roma (vetrina dei mobili, contrabbandiere)
 export * from './economy/vetrina.ts'; // La vetrina del giorno del negozio dei mobili (#384)
 export * from './adrenalina/liberatoria.ts'; // Isola dell'Adrenalina

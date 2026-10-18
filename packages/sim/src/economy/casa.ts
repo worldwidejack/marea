@@ -7,7 +7,8 @@ import { BORGO, MOBILI } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { advance } from './advance.ts';
 import { pay } from './actions.ts';
-import { inStanza } from './cells.ts';
+import { livelloCasa, prossimoAmpliamento, stanzaAt, stanzeDi } from './stanze.ts';
+import type { Stanza } from './stanze.ts';
 import { inVetrina } from './vetrina.ts';
 import { EconomyError, ZERO } from './types.ts';
 import type { LotState, PlacedBuilding } from './types.ts';
@@ -25,6 +26,8 @@ export type CasaState = {
   pavimento?: string; carta?: string;
   /** Quarti di giro del baule (Forziere) in casa. */
   bauleRot?: number;
+  /** Gli ampliamenti fatti dal mobiliere (#386, economy/stanze.ts): 0..max. Assente = 0, la stanza di sempre. */
+  livello?: number;
 };
 export type Finitura = 'pavimento' | 'carta';
 /** Dove va un mobile: cella del pavimento, più il muro se è da parete. */
@@ -40,9 +43,11 @@ export function celleMobile(m: Pick<MobileDef, 'posto' | 'celle'>, cell: readonl
   return out;
 }
 
-const ST = BORGO.stanza, [X0, Z0, X1, Z1] = ST.pavimento, [CX] = ST.corridoio;
-/** La cella del pavimento dove sbuca il corridoio e quella davanti alla porta in fondo: passaggi, niente mobili a terra. */
-const PASSAGGI: readonly (readonly [number, number])[] = [[CX, Z1 - 1], [ST.retro[0], ST.retro[1]]];
+const [CX] = BORGO.stanza.corridoio;
+/** Le celle di una stanza dove si passa (niente mobili a terra): dove sbuca il corridoio e quella davanti alla porta in fondo. */
+const passaggi = (s: Stanza): readonly (readonly [number, number])[] => [...(s.id === 'terra' ? [[CX, s.pavimento[3] - 1] as const] : []), ...(s.retro ? [s.retro] : [])];
+/** Il livello della casa di un lotto. */
+export const livelloLotto = (lot: LotState | null | undefined): number => livelloCasa(lot?.casa);
 
 export const mobile = (id: string): MobileDef | null => MOBILI.find((m) => m.id === id) ?? null;
 export const finitura = (tipo: Finitura, id: string): StanzaFinitura | null => (tipo === 'pavimento' ? BORGO.pavimenti : BORGO.carte).find((f) => f.id === id) ?? null;
@@ -65,16 +70,18 @@ export const baule = (lot: LotState): PlacedBuilding | null => lot.buildings.fin
 /** Perché un mobile non può stare lì (null = va bene). `senza` = id di un mobile da non contare (quello che sposti). */
 export function postoMobileError(lot: LotState, m: MobileDef, p: PostoMobile, senza: string | null = null): { code: 'posizione' | 'cella'; msg: string } | null {
   const c = p.cell, arredi = (casaDi(lot).arredi ?? []).filter((a) => a.id !== senza);
-  if (!Array.isArray(c) || !Number.isInteger(c[0]) || !Number.isInteger(c[1]) || !inStanza(c)) return { code: 'posizione', msg: 'Fuori dalla stanza' };
+  const liv = livelloLotto(lot), stanza = Array.isArray(c) && Number.isInteger(c[0]) && Number.isInteger(c[1]) ? stanzaAt(liv, c) : null;
+  if (!stanza) return { code: 'posizione', msg: 'Fuori dalla stanza' };
   const mie = celleMobile(m, c, p.rot ?? 0);
-  if (!mie.every((q) => inStanza(q))) return { code: 'posizione', msg: 'Non ci sta: esce dalla stanza' };
+  if (!mie.every((q) => stanzaAt(liv, q)?.id === stanza.id)) return { code: 'posizione', msg: 'Non ci sta: esce dalla stanza' };
+  const [X0, Z0, X1] = stanza.pavimento;
   if (m.posto === 'parete') {
-    const ok = p.muro === 'n' ? c[1] === Z0 && c[0] !== ST.retro[0] : p.muro === 'o' ? c[0] === X0 : p.muro === 'e' ? c[0] === X1 - 1 : false;
+    const ok = p.muro === 'n' ? c[1] === Z0 && !(stanza.retro && c[0] === stanza.retro[0]) : p.muro === 'o' ? c[0] === X0 : p.muro === 'e' ? c[0] === X1 - 1 : false;
     if (!ok) return { code: 'posizione', msg: 'Questo si appende a un muro' };
     return arredi.some((a) => a.muro === p.muro && same(a.cell, c)) ? { code: 'cella', msg: 'Su questo muro c’è già qualcosa' } : null;
   }
   if (p.muro) return { code: 'posizione', msg: 'Questo va per terra' };
-  if (mie.some((q) => PASSAGGI.some((r) => same(r, q)))) return { code: 'posizione', msg: 'Qui si passa: lascia libero' };
+  if (mie.some((q) => passaggi(stanza).some((r) => same(r, q)))) return { code: 'posizione', msg: 'Qui si passa: lascia libero' };
   const occupate = (q: readonly [number, number]) => arredi.some((a) => {
     if (a.muro) return false;
     const d = mobile(a.mobile);
@@ -113,6 +120,26 @@ export function compraMobileDelGiorno(lot0: LotState, id: string, nowMs: number)
   if (!mobile(id)) throw new EconomyError('sconosciuto', 'Mobile sconosciuto');
   if (!inVetrina(nowMs, id)) throw new EconomyError('requisito', 'Oggi non è in vendita: la vetrina cambia ogni giorno a mezzanotte');
   return compraMobile(lot0, id, nowMs);
+}
+/** I mobili a muro vanno col muro: se la stanza cresce, quelli sul muro che si sposta si riappendono al muro nuovo (stessa posizione di lato). */
+function riancora(a: PlacedMobile, vecchie: readonly Stanza[], nuove: readonly Stanza[]): PlacedMobile {
+  if (!a.muro) return a;
+  const v = vecchie.find((s) => a.cell[0] >= s.pavimento[0] && a.cell[0] < s.pavimento[2] && a.cell[1] >= s.pavimento[1] && a.cell[1] < s.pavimento[3]);
+  const n = v && nuove.find((s) => s.id === v.id);
+  if (!v || !n) return a;
+  const [x0, z0, x1] = n.pavimento;
+  return { ...a, cell: a.muro === 'n' ? [a.cell[0], z0] : a.muro === 'o' ? [x0, a.cell[1]] : [x1 - 1, a.cell[1]] };
+}
+/** Il mobiliere ingrandisce la casa di un livello (#386): costa Legno, Pietra e Perle (borgo.json `casa.livelli`). `da` = il livello che il giocatore
+ *  vede adesso: se nel frattempo è cambiato (doppio tocco, altro dispositivo) niente si paga due volte. */
+export function ampliaCasa(lot0: LotState, da: number, nowMs: number): LotState {
+  const lot = advance(lot0, nowMs), liv = livelloLotto(lot);
+  if (da !== liv) throw new EconomyError('livello', 'La casa è già cambiata: guarda com’è adesso');
+  const next = prossimoAmpliamento(liv);
+  if (!next) throw new EconomyError('livello', 'La casa è già grande al massimo');
+  const pagato = pay(lot, { legno: next.costo.legno, pietra: next.costo.pietra, perle: next.costo.perle }), c = casaDi(pagato);
+  const vecchie = stanzeDi(liv), nuove = stanzeDi(liv + 1);
+  return conCasa(pagato, { ...c, livello: liv + 1, arredi: (c.arredi ?? []).map((a) => riancora(a, vecchie, nuove)) });
 }
 /** Compra un pavimento o una carta da parati (una volta sola) e lo mette subito. */
 export function compraFinitura(lot0: LotState, tipo: Finitura, id: string, nowMs: number): LotState {

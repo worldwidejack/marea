@@ -72,6 +72,8 @@ export type GameWorld = {
   aPiedi(x: number, z: number, yaw?: number): void;
   /** Chiamata dopo il cull di ogni frame, prima del render: chi deve nascondere qualcosa (la stanza della casa, #240). */
   dopoCull: (() => void) | null;
+  /** La mappa di chi cammina nelle case (#386): chiude le celle delle stanze non ancora sbloccate dagli ampliamenti. La imposta game/stanza.ts; null = la mappa com'è. */
+  maschera: ((m: GridMap) => GridMap) | null;
   /** Dove guarda la camera invece che su di te (#265, la stanza della casa: inquadratura fissa sopra l'ingresso). null = ti segue. */
   camFissa: ((x: number, z: number) => { x: number; z: number } | null) | null;
   /** La tua barca (#107): colori e nome; setBarca la ridipinge (anteprima dell'editor, dopo il salvataggio). */
@@ -128,6 +130,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   scene.add(island.group);
   // prima di ogni render: si disegnano solo le isole nell'inquadratura, da lontano la sagoma (render/island.ts, TECH §5);
   // gli edifici dei lotti (game/lot.ts, gruppi «lot_*» nella scena) stanno nella loro isola: fuori inquadratura o oltre LOD_M non si disegnano
+  let maschera: ((m: GridMap) => GridMap) | null = null;
   let dopoCull: (() => void) | null = null, camFissa: ((x: number, z: number) => { x: number; z: number } | null) | null = null;
   const lotti = { box: new Map<THREE.Object3D, THREE.Box3>(), frame: 0 }, fr = new THREE.Frustum(), pv = new THREE.Matrix4();
   island.group.userData.preRender = () => {
@@ -312,6 +315,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     get look() { return look; },
     get dopoCull() { return dopoCull; },
     set dopoCull(f) { dopoCull = f; },
+    get maschera() { return maschera; },
+    set maschera(f) { maschera = f; },
     get camFissa() { return camFissa; },
     set camFissa(f) { camFissa = f; },
     get vincoloBarca() { return vincoloBarca; },
@@ -344,7 +349,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       if (racing) {
         // niente: la barca l'ha già posata race.set
       } else if (mode === 'walk') {
-        avatar.step(input, map);
+        avatar.step(input, maschera ? maschera(map) : map);
         boat.step(NO_INPUT, map);
         if (pressA && canBoard(avatar.state, boat.state, map)) { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; o.hud.toast('Sei in barca: A per accelerare, joystick per virare'); }
       } else {

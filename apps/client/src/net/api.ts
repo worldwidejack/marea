@@ -90,8 +90,8 @@ export type Api = {
   decorMove(id: string, cell: Cell): Promise<LotState>;
   decorRotate(id: string): Promise<LotState>;
   decorSell(id: string): Promise<LotState>;
-  /** La casa arredabile (#265): compra (negozio dei mobili), finitura (compra pavimento/carta), scegli, posa, sposta, ruota, ritira, baule. */
-  casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number }): Promise<LotState>;
+  /** La casa arredabile (#265): compra (negozio dei mobili), finitura (compra pavimento/carta), scegli, posa, sposta, ruota, ritira, baule, amplia (#386: il mobiliere ingrandisce la casa, `da` = il livello che vedi). */
+  casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule' | 'amplia', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number; da?: number }): Promise<LotState>;
   /** Tutte le persone dell'arcipelago (me compreso). */
   persone(): Promise<Persona[]>;
   /** Le mie sfide: in gioco (mandate e ricevute) e chiuse degli ultimi 7 giorni, le più recenti prima. */
