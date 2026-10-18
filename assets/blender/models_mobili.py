@@ -2368,6 +2368,253 @@ def mob_spada_bastarda_incrociata_con_scudo():
     return _obj(m, footprint=[W, D])
 
 
+def mob_targa_stradale_via_rossi():
+    """Targa stradale blu 'Via Rossi' rubata (parete): targa metallica leggermente storta, bordo bianco, simbolo di vicolo cieco e fori dei bulloni forzati."""
+    m = Mesh('mob_targa_stradale_via_rossi')
+    W, D = ingombro((1, 1))
+    m.push(Xf(r=(0, 0, 2.5)))
+    m.box(-0.46, 1.85, -0.03, 0.46, 2.18, 0.0, 'p_acqua_profonda', top='p_acqua_profonda', skip=('back',))
+    for sx in (-0.45, 0.43):
+        m.box(sx, 1.86, -0.035, sx + 0.02, 2.17, -0.03, 'p_pietra_chiara', skip=('back',))
+    for sy in (1.86, 2.15):
+        m.box(-0.45, sy, -0.035, 0.45, sy + 0.02, -0.03, 'p_pietra_chiara', skip=('back',))
+    m.box(-0.34, 1.98, -0.036, -0.16, 2.06, -0.03, 'p_pietra_chiara', skip=('back',))
+    m.box(-0.10, 1.98, -0.036, 0.16, 2.06, -0.03, 'p_pietra_chiara', skip=('back',))
+    m.box(0.24, 1.92, -0.038, 0.38, 2.10, -0.03, 'p_nero_caldo', skip=('back',))
+    m.box(0.295, 1.94, -0.042, 0.325, 2.05, -0.038, 'p_pietra_chiara', skip=('back',))
+    m.box(0.265, 2.04, -0.044, 0.355, 2.08, -0.038, 'p_rosso', skip=('back',))
+    for bx in (-0.42, 0.42):
+        for by in (1.89, 2.14):
+            m.box(bx - 0.015, by - 0.015, -0.04, bx + 0.015, by + 0.015, -0.03, 'ferro', skip=('back',))
+    m.box(0.40, 2.12, -0.042, 0.46, 2.18, -0.028, 'ferro', skip=('back',))
+    m.pop()
+    return _obj(m, footprint=[W, D])
+
+
+def mob_orologio_da_stazione_con_doppio_quadrante():
+    """Orologio da stazione con doppio quadrante a sbalzo (parete): staffa in ferro battuto, cassa cilindrica con due orari diversi sui due lati."""
+    m = Mesh('mob_orologio_da_stazione_con_doppio_quadrante')
+    W, D = ingombro((1, 1))
+    m.box(-0.06, 1.7, -0.03, 0.06, 2.3, 0.0, 'ferro', skip=('back',))
+    beam(m, (0.0, 2.2, -0.02), (0.0, 2.2, -0.38), 0.04, 0.04, 'ferro', end='ferro')
+    beam(m, (0.0, 1.8, -0.02), (0.0, 2.2, -0.32), 0.03, 0.03, 'ferro')
+    beam(m, (0.0, 2.2, -0.38), (0.0, 2.08, -0.38), 0.04, 0.04, 'ferro', end='ferro')
+    cz = -0.38
+    m.box(-0.09, 1.82, cz - 0.22, 0.09, 2.08, cz + 0.22, 'p_nero_caldo', top='p_nero_caldo')
+    m.box(-0.09, 1.76, cz - 0.16, 0.09, 2.14, cz + 0.16, 'p_nero_caldo', top='p_nero_caldo')
+    for sx in (-1, 1):
+        x_face = sx * 0.095
+        m.box(x_face - 0.005 if sx < 0 else x_face, 1.85, cz - 0.18, x_face if sx < 0 else x_face + 0.005, 2.05, cz + 0.18, 'p_pietra_chiara')
+        m.box(x_face - 0.005 if sx < 0 else x_face, 1.80, cz - 0.13, x_face if sx < 0 else x_face + 0.005, 2.10, cz + 0.13, 'p_pietra_chiara')
+        m.box(x_face - 0.012 if sx < 0 else x_face, 1.935, cz - 0.015, x_face if sx < 0 else x_face + 0.012, 1.965, cz + 0.015, 'ferro')
+    m.box(-0.11, 1.95, cz - 0.08, -0.095, 2.04, cz - 0.06, 'p_nero_caldo')
+    m.box(-0.11, 1.95, cz + 0.06, -0.095, 2.03, cz + 0.08, 'p_nero_caldo')
+    m.box(-0.112, 1.87, cz - 0.01, -0.095, 1.95, cz + 0.01, 'p_rosso')
+    m.box(0.095, 1.84, cz - 0.015, 0.11, 1.95, cz + 0.015, 'p_nero_caldo')
+    m.box(0.095, 1.82, cz + 0.01, 0.11, 1.95, cz + 0.03, 'p_nero_caldo')
+    m.box(0.095, 1.95, cz - 0.01, 0.112, 2.05, cz + 0.01, 'p_rosso')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_poster_di_un_film_inesistente():
+    """Poster di un film inesistente (parete): sfondo scuro con eroe solitario, enorme esplosione arancione, data sbagliata e nastro adesivo agli angoli."""
+    m = Mesh('mob_poster_di_un_film_inesistente')
+    W, D = ingombro((1, 1))
+    m.box(-0.35, 1.45, -0.015, 0.35, 2.45, 0.0, 'carta', top='carta', skip=('back',))
+    m.box(-0.33, 1.47, -0.018, 0.33, 2.43, -0.015, 'p_acqua_profonda', skip=('back',))
+    m.cbox(0.0, -0.021, 0.42, 0.005, 1.95, 2.25, 'p_arancio', skip=('back',))
+    m.cbox(0.0, -0.024, 0.26, 0.005, 2.02, 2.18, 'p_giallo', skip=('back',))
+    m.cbox(0.0, -0.027, 0.12, 0.005, 2.06, 2.14, 'p_pietra_chiara', skip=('back',))
+    m.box(-0.06, 1.62, -0.025, 0.06, 1.92, -0.018, 'p_nero_caldo', skip=('back',))
+    m.box(-0.04, 1.92, -0.025, 0.04, 1.99, -0.018, 'p_nero_caldo', skip=('back',))
+    m.box(-0.05, 1.52, -0.025, -0.01, 1.62, -0.018, 'p_nero_caldo', skip=('back',))
+    m.box(0.01, 1.52, -0.025, 0.05, 1.62, -0.018, 'p_nero_caldo', skip=('back',))
+    m.box(-0.28, 2.30, -0.022, 0.28, 2.38, -0.018, 'p_giallo', skip=('back',))
+    m.box(-0.24, 1.50, -0.022, 0.24, 1.55, -0.018, 'p_rosso', skip=('back',))
+    m.box(-0.16, 1.51, -0.025, 0.16, 1.54, -0.021, 'p_pietra_chiara', skip=('back',))
+    for sx in (-0.32, 0.26):
+        for sy in (1.46, 2.40):
+            m.box(sx, sy, -0.025, sx + 0.06, sy + 0.03, -0.014, 'p_sabbia_chiara', skip=('back',))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_cornice_con_foto_di_un_pesce_rosso():
+    """Cornice con foto di un pesce rosso (parete): quadro in legno con chiodo e filo, foto del pesce rosso che ti giudica con l'occhio spalancato."""
+    m = Mesh('mob_cornice_con_foto_di_un_pesce_rosso')
+    W, D = ingombro((1, 1))
+    m.box(-0.015, 2.22, -0.025, 0.015, 2.24, 0.0, 'ferro', skip=('back',))
+    beam(m, (0.0, 2.23, -0.02), (-0.22, 2.08, -0.02), 0.012, 0.012, 'p_nero_caldo')
+    beam(m, (0.0, 2.23, -0.02), (0.22, 2.08, -0.02), 0.012, 0.012, 'p_nero_caldo')
+    m.cbox(0.0, -0.02, 0.54, 0.04, 1.66, 2.10, 'p_legno', top='p_legno', skip=('back',))
+    m.cbox(0.0, -0.024, 0.44, 0.035, 1.72, 2.04, 'p_pietra_chiara', skip=('back',))
+    m.cbox(0.0, -0.026, 0.36, 0.03, 1.76, 2.00, 'p_acqua_bassa', skip=('back',))
+    m.cbox(0.02, -0.030, 0.18, 0.02, 1.84, 1.93, 'p_arancio', skip=('back',))
+    m.box(0.11, 1.82, -0.030, 0.16, 1.95, -0.025, 'p_giallo', skip=('back',))
+    m.box(0.01, 1.93, -0.030, 0.06, 1.97, -0.025, 'p_giallo', skip=('back',))
+    beam(m, (-0.04, 1.88, -0.030), (-0.04, 1.88, -0.033), 0.06, 0.06, 'p_pietra_chiara', end='p_pietra_chiara', n=6)
+    beam(m, (-0.045, 1.88, -0.032), (-0.045, 1.88, -0.035), 0.03, 0.03, 'p_nero_caldo', end='p_nero_caldo', n=6)
+    m.box(-0.12, 1.76, -0.029, -0.08, 1.85, -0.025, 'p_erba', skip=('back',))
+    beam(m, (-0.08, 1.95, -0.028), (-0.08, 1.95, -0.030), 0.024, 0.024, 'vetro', end='vetro', n=6)
+    return _obj(m, footprint=[W, D])
+
+
+def mob_mensola_con_barattoli_di_conserve():
+    """Mensola con barattoli di conserve (parete): ripiano in legno su staffe in ferro, tre barattoli normali e uno col liquido verde misterioso che si muove."""
+    m = Mesh('mob_mensola_con_barattoli_di_conserve')
+    W, D = ingombro((1, 1))
+    for sx in (-0.36, 0.36):
+        m.box(sx - 0.02, 1.55, -0.03, sx + 0.02, 1.80, 0.0, 'ferro', skip=('back',))
+        m.box(sx - 0.02, 1.78, -0.22, sx + 0.02, 1.80, 0.0, 'ferro', skip=('back',))
+        beam(m, (sx, 1.57, -0.02), (sx, 1.78, -0.20), 0.025, 0.025, 'ferro')
+    m.cbox(0.0, -0.125, 1.05, 0.25, 1.80, 1.84, 'p_legno_chiaro', top='p_legno')
+    m.prism(6, 0.07, 0.07, 1.84, 2.02, 'vetro', bottom='p_rosso', cx=-0.35, cz=-0.12)
+    m.prism(6, 0.06, 0.06, 1.85, 1.99, 'p_rosso', top='p_rosso', cx=-0.35, cz=-0.12)
+    m.prism(6, 0.075, 0.08, 2.01, 2.04, 'tessuto_rosso', top='tessuto_rosso', cx=-0.35, cz=-0.12)
+    m.prism(6, 0.065, 0.065, 1.84, 2.05, 'vetro', bottom='p_giallo', cx=-0.12, cz=-0.13)
+    m.prism(6, 0.055, 0.055, 1.85, 2.01, 'p_giallo', top='p_giallo', cx=-0.12, cz=-0.13)
+    m.prism(6, 0.068, 0.068, 2.04, 2.06, 'ferro', top='ferro', cx=-0.12, cz=-0.13)
+    m.prism(6, 0.075, 0.075, 1.84, 2.08, 'vetro', bottom='p_bosco', cx=0.13, cz=-0.12)
+    m.prism(6, 0.065, 0.065, 1.85, 2.02, 'p_verde_neon', top='p_verde_neon', cx=0.13, cz=-0.12)
+    m.box(0.11, 1.90, -0.14, 0.16, 2.04, -0.10, 'p_bosco', top='p_bosco')
+    m.prism(5, 0.02, 0.02, 2.02, 2.06, 'p_erba_chiara', top='p_verde_neon', cx=0.14, cz=-0.11)
+    m.prism(6, 0.078, 0.078, 2.07, 2.10, 'p_nero_caldo', top='p_nero_caldo', cx=0.13, cz=-0.12)
+    m.prism(6, 0.06, 0.06, 1.84, 1.98, 'vetro', bottom='p_viola', cx=0.34, cz=-0.12)
+    m.prism(6, 0.05, 0.05, 1.85, 1.95, 'p_viola', top='p_viola', cx=0.34, cz=-0.12)
+    m.prism(6, 0.062, 0.062, 1.97, 2.00, 'p_sabbia', top='p_sabbia', cx=0.34, cz=-0.12)
+    return _obj(m, footprint=[W, D])
+
+
+def mob_arazzo_con_paesaggio_montano():
+    """Arazzo con paesaggio montano (parete): asta in legno con pomelli d'oro, tessuto intessuto con tramonto, baita e cervo, angolo sollevato con crepa e segreto."""
+    m = Mesh('mob_arazzo_con_paesaggio_montano')
+    W, D = ingombro((1, 1))
+    beam(m, (0.0, 2.45, -0.03), (-0.48, 2.28, -0.03), 0.015, 0.015, 'corda')
+    beam(m, (0.0, 2.45, -0.03), (0.48, 2.28, -0.03), 0.015, 0.015, 'corda')
+    m.box(-0.54, 2.26, -0.04, 0.54, 2.30, -0.02, 'p_legno_scuro', top='p_legno_scuro')
+    for sx in (-0.56, 0.54):
+        m.box(sx, 2.25, -0.045, sx + 0.02, 2.31, -0.015, 'oro', top='oro')
+    m.box(-0.47, 2.05, -0.025, 0.47, 2.25, -0.01, 'p_arancio', skip=('back',))
+    m.box(-0.35, 2.12, -0.028, 0.35, 2.22, -0.024, 'p_giallo', skip=('back',))
+    m.box(-0.47, 1.78, -0.025, 0.47, 2.05, -0.01, 'p_pietra_scura', skip=('back',))
+    for mx in (-0.28, 0.05, 0.32):
+        m.box(mx - 0.08, 1.95, -0.028, mx + 0.08, 2.05, -0.024, 'p_pietra_chiara', skip=('back',))
+        m.box(mx - 0.04, 2.05, -0.028, mx + 0.04, 2.12, -0.024, 'p_pietra_chiara', skip=('back',))
+    m.box(-0.47, 1.48, -0.025, 0.47, 1.78, -0.01, 'p_bosco', skip=('back',))
+    m.box(-0.30, 1.54, -0.030, -0.16, 1.66, -0.024, 'p_legno', skip=('back',))
+    m.box(-0.32, 1.66, -0.032, -0.14, 1.72, -0.024, 'p_rosso', skip=('back',))
+    m.box(0.18, 1.54, -0.029, 0.28, 1.68, -0.024, 'p_legno_scuro', skip=('back',))
+    m.box(0.24, 1.68, -0.030, 0.30, 1.75, -0.024, 'p_legno_scuro', skip=('back',))
+    m.box(0.26, 1.75, -0.032, 0.32, 1.80, -0.024, 'p_giallo', skip=('back',))
+    m.box(-0.47, 1.40, -0.025, 0.30, 1.48, -0.01, 'p_sabbia', skip=('back',))
+    m.box(0.30, 1.40, -0.005, 0.47, 1.52, 0.0, 'p_pietra_chiara', skip=('back',))
+    m.box(0.35, 1.43, -0.008, 0.38, 1.50, -0.002, 'p_nero_caldo', skip=('back',))
+    m.box(0.40, 1.44, -0.012, 0.43, 1.48, -0.003, 'oro', skip=('back',))
+    m.box(0.30, 1.48, -0.05, 0.47, 1.54, -0.025, 'p_sabbia', top='p_bosco')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_bersaglio_da_freccette_storto():
+    """Bersaglio da freccette storto (parete): bersaglio inclinato con mobiletto in legno, vuoto al centro, con tre freccette conficcate nel muro accanto."""
+    m = Mesh('mob_bersaglio_da_freccette_storto')
+    W, D = ingombro((1, 1))
+    m.push(Xf(t=(-0.12, 1.90, 0.0), r=(0, 0, -11.0)))
+    m.box(-0.31, -0.32, -0.04, 0.31, 0.32, 0.0, 'p_legno_scuro', skip=('back',))
+    m.box(-0.46, -0.30, -0.05, -0.31, 0.30, -0.01, 'p_legno', skip=('back',))
+    m.box(0.31, -0.30, -0.05, 0.46, 0.30, -0.01, 'p_legno', skip=('back',))
+    beam(m, (0.0, 0.0, -0.02), (0.0, 0.0, -0.05), 0.50, 0.50, 'p_nero_caldo', end='p_nero_caldo', n=8)
+    beam(m, (0.0, 0.0, -0.048), (0.0, 0.0, -0.052), 0.44, 0.44, 'p_pietra_chiara', end='p_pietra_chiara', n=8)
+    beam(m, (0.0, 0.0, -0.050), (0.0, 0.0, -0.054), 0.32, 0.32, 'p_rosso', end='p_rosso', n=8)
+    beam(m, (0.0, 0.0, -0.052), (0.0, 0.0, -0.056), 0.22, 0.22, 'p_erba', end='p_erba', n=8)
+    beam(m, (0.0, 0.0, -0.054), (0.0, 0.0, -0.058), 0.08, 0.08, 'p_erba', end='p_erba', n=6)
+    beam(m, (0.0, 0.0, -0.056), (0.0, 0.0, -0.060), 0.04, 0.04, 'p_rosso', end='p_rosso', n=6)
+    m.pop()
+    beam(m, (0.32, 2.08, 0.0), (0.35, 2.09, -0.16), 0.012, 0.012, 'ferro')
+    m.box(0.33, 2.07, -0.22, 0.37, 2.11, -0.16, 'p_rosso')
+    beam(m, (0.38, 1.86, 0.0), (0.42, 1.83, -0.17), 0.012, 0.012, 'ferro')
+    m.box(0.40, 1.81, -0.23, 0.44, 1.85, -0.17, 'p_giallo')
+    beam(m, (0.28, 1.65, 0.0), (0.30, 1.67, -0.15), 0.012, 0.012, 'ferro')
+    m.box(0.29, 1.65, -0.21, 0.32, 1.69, -0.15, 'p_rosso')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_tabellone_da_biliardo_con_gessetti():
+    """Tabellone da biliardo con gessetti (parete): segnapunti in mogano con aste in ottone, dischetti scorrevoli, lavagnetta coi punti e tre cubetti di gesso blu."""
+    m = Mesh('mob_tabellone_da_biliardo_con_gessetti')
+    W, D = ingombro((1, 1))
+    m.box(-0.44, 1.65, -0.04, 0.44, 2.27, 0.0, 'p_legno_scuro', top='p_legno_scuro', skip=('back',))
+    for sx in (-0.21, 0.21):
+        m.box(sx - 0.18, 1.73, -0.045, sx + 0.18, 2.19, -0.02, 'p_roccia', skip=('back',))
+    for y in (1.85, 2.05):
+        beam(m, (-0.38, y, -0.045), (0.38, y, -0.045), 0.014, 0.014, 'oro', end='oro')
+    for i, x in enumerate((-0.34, -0.28, -0.22, 0.16, 0.22, 0.28, 0.34)):
+        col = 'p_pietra_chiara' if i < 3 else 'p_rosso'
+        m.box(x - 0.015, 1.83, -0.06, x + 0.015, 1.87, -0.03, col)
+    for i, x in enumerate((-0.32, -0.26, 0.12, 0.18, 0.24, 0.30)):
+        col = 'p_pietra_chiara' if i < 2 else 'p_rosso'
+        m.box(x - 0.015, 2.03, -0.06, x + 0.015, 2.07, -0.03, col)
+    m.box(-0.32, 2.10, -0.048, -0.18, 2.16, -0.042, 'p_pietra_chiara', skip=('back',))
+    m.box(0.12, 2.10, -0.048, 0.26, 2.16, -0.042, 'p_pietra_chiara', skip=('back',))
+    m.box(-0.41, 1.65, -0.10, 0.41, 1.69, -0.02, 'p_legno', top='p_legno_chiaro')
+    for gx in (-0.18, 0.02, 0.22):
+        m.box(gx - 0.022, 1.69, -0.088, gx + 0.022, 1.735, -0.042, 'p_acqua_profonda', top='p_acqua')
+        m.box(gx - 0.024, 1.69, -0.090, gx + 0.024, 1.705, -0.040, 'p_pietra_chiara')
+        beam(m, (gx, 1.734, -0.065), (gx, 1.737, -0.065), 0.02, 0.02, 'p_pietra_chiara', end='p_pietra_chiara', n=6)
+    return _obj(m, footprint=[W, D])
+
+
+def mob_insegna_vietato_lingresso_ai_venditori():
+    """Insegna 'Vietato l'ingresso ai venditori' (parete): targa smaltata con bordo e cerchio di divieto rosso, sagoma del venditore con valigetta, e volantino promozionale incastrato."""
+    m = Mesh('mob_insegna_vietato_lingresso_ai_venditori')
+    W, D = ingombro((1, 1))
+    m.box(-0.36, 1.75, -0.025, 0.36, 2.21, 0.0, 'p_pietra_chiara', top='p_pietra_chiara', skip=('back',))
+    for sx in (-0.35, 0.33):
+        m.box(sx, 1.76, -0.03, sx + 0.02, 2.20, -0.025, 'p_rosso', skip=('back',))
+    for sy in (1.76, 2.18):
+        m.box(-0.35, sy, -0.03, 0.35, sy + 0.02, -0.025, 'p_rosso', skip=('back',))
+    beam(m, (-0.17, 1.98, -0.026), (-0.17, 1.98, -0.032), 0.24, 0.24, 'p_rosso', end='p_rosso', n=8)
+    beam(m, (-0.17, 1.98, -0.031), (-0.17, 1.98, -0.035), 0.18, 0.18, 'p_pietra_chiara', end='p_pietra_chiara', n=8)
+    beam(m, (-0.23, 1.92, -0.037), (-0.11, 2.04, -0.037), 0.025, 0.025, 'p_rosso')
+    m.box(-0.19, 1.92, -0.036, -0.15, 2.03, -0.034, 'p_nero_caldo', skip=('back',))
+    m.box(-0.18, 2.03, -0.036, -0.16, 2.07, -0.034, 'p_nero_caldo', skip=('back',))
+    m.box(-0.23, 1.89, -0.036, -0.19, 1.94, -0.034, 'p_nero_caldo', skip=('back',))
+    m.box(0.01, 2.08, -0.03, 0.31, 2.13, -0.025, 'p_nero_caldo', skip=('back',))
+    m.box(0.01, 1.99, -0.03, 0.28, 2.04, -0.025, 'p_nero_caldo', skip=('back',))
+    m.box(0.01, 1.90, -0.03, 0.32, 1.95, -0.025, 'p_rosso', skip=('back',))
+    for vx in (-0.33, 0.33):
+        for vy in (1.78, 2.18):
+            m.box(vx - 0.012, vy - 0.012, -0.032, vx + 0.012, vy + 0.012, -0.025, 'ferro', skip=('back',))
+    m.box(0.24, 2.12, -0.04, 0.39, 2.27, -0.022, 'p_giallo', skip=('back',))
+    m.box(0.26, 2.15, -0.042, 0.37, 2.24, -0.039, 'p_arancio', skip=('back',))
+    return _obj(m, footprint=[W, D])
+
+
+def mob_stendardo_medievale_con_stemma_inventato():
+    """Stendardo medievale con stemma inventato (parete): drappo viola a due punte su lancia in ferro, scudo con leone rampante giallo che suona un liuto."""
+    m = Mesh('mob_stendardo_medievale_con_stemma_inventato')
+    W, D = ingombro((1, 1))
+    m.box(-0.47, 2.435, -0.045, 0.47, 2.465, -0.015, 'ferro', top='ferro')
+    beam(m, (-0.47, 2.45, -0.03), (-0.54, 2.45, -0.03), 0.05, 0.02, 'ferro', end='ferro')
+    beam(m, (0.47, 2.45, -0.03), (0.52, 2.45, -0.03), 0.035, 0.035, 'ferro', end='ferro')
+    for px in (-0.34, -0.12, 0.12, 0.34):
+        m.box(px - 0.025, 2.39, -0.035, px + 0.025, 2.44, -0.025, 'oro')
+    m.box(-0.40, 1.50, -0.025, 0.40, 2.39, -0.01, 'p_viola', skip=('back',))
+    m.box(-0.40, 1.25, -0.025, -0.15, 1.50, -0.01, 'p_viola', skip=('back',))
+    m.box(0.15, 1.25, -0.025, 0.40, 1.50, -0.01, 'p_viola', skip=('back',))
+    for bx in (-0.39, 0.37):
+        m.box(bx, 1.50, -0.028, bx + 0.02, 2.38, -0.025, 'p_giallo', skip=('back',))
+    m.box(-0.21, 1.70, -0.035, 0.21, 2.20, -0.025, 'p_giallo', skip=('back',))
+    m.box(-0.19, 1.72, -0.038, 0.19, 2.18, -0.032, 'p_rosso', skip=('back',))
+    m.box(-0.08, 1.82, -0.042, 0.06, 2.02, -0.036, 'p_giallo', skip=('back',))
+    m.box(-0.06, 2.02, -0.042, 0.04, 2.12, -0.036, 'p_giallo', skip=('back',))
+    m.box(-0.12, 1.74, -0.042, -0.05, 1.84, -0.036, 'p_giallo', skip=('back',))
+    m.box(0.03, 1.74, -0.042, 0.09, 1.84, -0.036, 'p_giallo', skip=('back',))
+    m.box(0.05, 2.06, -0.042, 0.12, 2.14, -0.036, 'p_giallo', skip=('back',))
+    m.box(-0.14, 1.84, -0.040, -0.08, 1.98, -0.036, 'p_giallo', skip=('back',))
+    beam(m, (0.01, 1.92, -0.038), (0.01, 1.92, -0.044), 0.08, 0.10, 'p_legno', end='p_legno_chiaro', n=6)
+    beam(m, (0.01, 1.95, -0.044), (0.07, 2.06, -0.044), 0.018, 0.018, 'p_legno_scuro')
+    return _obj(m, footprint=[W, D])
+
+
 MODELS = {
     f.__name__: f
     for f in (
@@ -2454,6 +2701,16 @@ MODELS = {
         mob_insegna_al_neon_open,
         mob_quadro_notte_stellata,
         mob_spada_bastarda_incrociata_con_scudo,
+        mob_targa_stradale_via_rossi,
+        mob_orologio_da_stazione_con_doppio_quadrante,
+        mob_poster_di_un_film_inesistente,
+        mob_cornice_con_foto_di_un_pesce_rosso,
+        mob_mensola_con_barattoli_di_conserve,
+        mob_arazzo_con_paesaggio_montano,
+        mob_bersaglio_da_freccette_storto,
+        mob_tabellone_da_biliardo_con_gessetti,
+        mob_insegna_vietato_lingresso_ai_venditori,
+        mob_stendardo_medievale_con_stemma_inventato,
     )
 }
 
