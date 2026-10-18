@@ -15,6 +15,9 @@ export const corsePronta: Promise<void> = import('./island_corse.ts').then((m) =
 // Isola dell'Adrenalina: terreni, roccia e decorazioni in un chunk a parte anche loro (island_adrenalina.ts), aspettato da `createIsland`
 let adrenalina: typeof import('./island_adrenalina.ts') | null = null;
 export const adrenalinaPronta: Promise<void> = import('./island_adrenalina.ts').then((m) => { adrenalina = m; Object.assign(PAINT_TEMI, m.PAINT_ADRENALINA); }, () => {});
+// Isola dell'Arena (docs/ARENA.md): terreni e colosseo in un chunk a parte (island_arena.ts), aspettato da `createIsland`
+let arena: typeof import('./island_arena.ts') | null = null;
+export const arenaPronta: Promise<void> = import('./island_arena.ts').then((m) => { arena = m; Object.assign(PAINT_TEMI, m.PAINT_ARENA); }, () => {});
 // Borgo Marea (#265): l'arredo tra le case (island_borgo.ts), chunk a parte anche lui, aspettato da `createIsland`
 let borgo: typeof import('./island_borgo.ts') | null = null;
 export const borgoPronta: Promise<void> = import('./island_borgo.ts').then((m) => { borgo = m; }, () => {});
@@ -25,7 +28,7 @@ const BORGO_GLOW = new Set<string>(['lampioncino', 'filo_borgo']);
 const CORSE_GLOW = new Set<string>(['arco_via', 'torre_corse', 'garage_corse', 'lampione', 'palo_molo', 'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia',
   'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla', 'palazzo_neon', 'palazzo_neon_basso', 'faro']);
 
-export const TEMI: readonly TemaStyle[] = ['tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'corse', 'adrenalina'];
+export const TEMI: readonly TemaStyle[] = ['tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'corse', 'adrenalina', 'arena'];
 export const isTema = (s: string | null | undefined): s is TemaStyle => !!s && (TEMI as readonly string[]).includes(s);
 
 // ——— terreni: sabbia (spiaggia), erba (interno), riva (scalino verso l'acqua) ———
@@ -79,6 +82,7 @@ const ROCCIA: Record<TemaStyle, (top: boolean, y: number, h: number, r: Rng) => 
   templari: (top, y, h, r) => (top ? { c: r.next() < 0.5 ? P.pietraScura : P.roccia } : { c: y < 0.3 ? P.neroCaldo : Math.floor(y / 1.1) % 2 ? P.pietraScura : P.roccia }),
   corse: (top, y, h, r) => (top ? { c: r.next() < 0.75 ? P.pietraChiara : P.sabbiaChiara } : { c: y < 0.6 ? P.pietraScura : h - y < 1.2 || (y > 2.6 && r.next() < 0.72) ? P.pietraChiara : Math.floor(y / 1.3) % 2 ? P.pietra : P.pietraScura }), // montagna innevata del quartiere Neve
   adrenalina: (top, y, h, r) => (adrenalina ? adrenalina.rocciaAdrenalina(top, y, h, r) : { c: P.roccia }), // chunk a parte
+  arena: (top, y, h, r) => (arena ? arena.rocciaArena(top, y, h, r) : { c: P.pietra }), // chunk a parte
 };
 /** Quota della cima per distanza dalla riva della montagna `d` (1 = colonna sul bordo). */
 const ALTEZZA: Record<TemaStyle, (d: number, r: Rng) => number> = {
@@ -89,6 +93,7 @@ const ALTEZZA: Record<TemaStyle, (d: number, r: Rng) => number> = {
   templari: (d, r) => 0.8 + d * 0.8 + r.next() * 0.5,
   corse: (d, r) => 0.9 + d * 1.55 + r.next() * 0.6,
   adrenalina: (d, r) => (adrenalina ? adrenalina.altezzaAdrenalina(d, r) : 1 + d),
+  arena: (d, r) => (arena ? arena.altezzaArena(d, r) : 1 + d),
 };
 
 /**
@@ -156,6 +161,7 @@ export type TemaProp = 'faro_rovina' | 'relitto' | 'bandiera_pirata' | 'cannone'
   | 'porta_neve' | 'porta_giungla' | 'porta_neon' | 'porta_luna' | 'porta_spiaggia' | 'ruota_panoramica' | 'tendone' | 'tendone_piccolo' | 'tempio_giungla'
   | 'palazzo_neon' | 'palazzo_neon_basso' | 'faro' | 'ombrellone' | 'albero_tondo' | 'albero_giungla' | 'chiazza_neve'
   | 'funivia_valle' | 'funivia_monte' | 'guardiano' | 'cartello_piste' | 'piattaforma_lancio' | 'porta_slalom' | 'abete' // Isola dell'Adrenalina
+  | 'colosseo' | 'stendardo' // Isola dell'Arena
   | typeof BORGO_PROPS[number]; // Borgo Marea
 export const TEMA_PROPS = new Set<string>(['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
   'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello',
@@ -165,6 +171,7 @@ export const TEMA_PROPS = new Set<string>(['faro_rovina', 'relitto', 'bandiera_p
   'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia', 'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla',
   'palazzo_neon', 'palazzo_neon_basso', 'faro', 'ombrellone', 'albero_tondo', 'albero_giungla', 'chiazza_neve',
   'funivia_valle', 'funivia_monte', 'guardiano', 'cartello_piste', 'piattaforma_lancio', 'porta_slalom', 'abete', // Isola dell'Adrenalina
+  'colosseo', 'stendardo', // Isola dell'Arena
   ...BORGO_PROPS]); // Borgo Marea
 /** I pezzi del Borgo (#265): sul Porto island.ts li fonde per area. */
 export const BORGO_PEZZI = new Set<string>(BORGO_PROPS);
@@ -361,6 +368,7 @@ export function propTema(kind: TemaProp): THREE.BufferGeometry {
     case 'porta_neve': case 'porta_giungla': case 'porta_neon': case 'porta_luna': case 'porta_spiaggia': case 'ruota_panoramica': case 'tendone': case 'tendone_piccolo': case 'tempio_giungla':
     case 'palazzo_neon': case 'palazzo_neon_basso': case 'faro': case 'ombrellone': case 'albero_tondo': case 'albero_giungla': case 'chiazza_neve':
       return corse ? corse.propCorse(kind) : painted(box(0.01, 0.01, 0.01), P.pietra); // (chunk non ancora arrivato: createIsland aspetta corsePronta)
+    case 'colosseo': case 'stendardo': return arena ? arena.propArena(kind) : painted(box(0.01, 0.01, 0.01), P.pietra); // (chunk non ancora arrivato: createIsland aspetta arenaPronta)
     case 'lampioncino': case 'filo_borgo': case 'cassetta_posta': case 'vaso_fiori': case 'siepe': case 'fontana': case 'panchina':
       return borgo ? borgo.propBorgo(kind) : painted(box(0.01, 0.01, 0.01), P.pietra); // (chunk non ancora arrivato: createIsland aspetta borgoPronta)
     case 'lanterna_pietra': {
@@ -422,4 +430,5 @@ export const SCENA_TEMI: Record<TemaStyle, { sabbia: [string, number][]; erba: [
   templari: { sabbia: [['sasso', 0.05]], erba: [['albero_secco', 0.035], ['sasso', 0.08], ['cespuglio', 0.05]] },
   corse: { sabbia: [['sasso', 0.03]], erba: [['albero_tondo', 0.05], ['cespuglio', 0.06]] }, // l'isola nel json ha scenery 0: alberi e cespugli sono decorazioni fisse
   adrenalina: { sabbia: [['sasso', 0.02]], erba: [['abete', 0.07], ['pino_neve', 0.012], ['sasso', 0.02]] }, // il bosco attorno alla montagna (rado: triangoli, TECH §5)
+  arena: { sabbia: [['sasso', 0.02], ['palma', 0.012]], erba: [['cespuglio', 0.03]] }, // il prato attorno al colosseo resta libero
 };

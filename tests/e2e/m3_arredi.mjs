@@ -27,8 +27,13 @@ export default async function (ctx) {
   const mobili = read('mobili.json').mobili, borgo = read('borgo.json'), arch = read('archipelago.json');
   const [X0, Z0, X1, Z1] = borgo.stanza.pavimento, ORIG = arch.islands.find((i) => i.role === 'lotto' && i.slot === 0).at;
   const mondo = (cx, cz) => ({ x: (ORIG[0] + cx) * 2, z: (ORIG[1] + cz) * 2 }); // celle (anche frazionarie) del lotto 0 → m
-  const comodino = mobili.find((m) => m.id === 'comodino_lampada'), stereo = mobili.find((m) => m.id === 'stereo'), orologio = mobili.find((m) => m.id === 'orologio');
-  const pav = borgo.pavimenti[1], carta = borgo.carte[1];
+  // il negozio vende solo la vetrina di oggi (#384): due mobili 1×1 a terra (i più economici) e uno a parete, tra quelli esposti oggi
+  const { vetrinaOra } = await sim('economy/vetrina.ts');
+  const oggi = vetrinaOra(Date.now()), def = (id) => mobili.find((m) => m.id === id);
+  const terre = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.perle - b.perle);
+  const comodino = terre[0], stereo = terre[1], orologio = def(oggi.parete[0]);
+  assert(comodino && stereo && orologio, 'la vetrina di oggi non ha due mobili a terra 1×1 e uno a parete');
+  const pav = borgo.pavimenti.find((f) => f.id === oggi.pavimenti[0]), carta = borgo.carte.find((f) => f.id === oggi.carte[0]); // il negozio vende solo carte e pavimenti di oggi (#393)
   const serve = comodino.perle + stereo.perle + orologio.perle + pav.perle + carta.perle;
 
   let dev = null, log = '';
@@ -71,7 +76,7 @@ export default async function (ctx) {
       assert((await post('/api/lot/casa/posa', { id: comodino.id, cell: [borgo.stanza.corridoio[0], Z1 - 1] })).status === 400, 'sullo sbocco del corridoio');
       assert((await post('/api/lot/casa/posa', { id: orologio.id, cell: [X0 + 1, Z0 + 2], muro: 'n' })).status === 400, 'orologio non sul muro');
       assert((await post('/api/lot/casa/posa', { id: comodino.id, cell: 'x' })).status === 400, 'cella rotta');
-      assert((await post('/api/lot/casa/ruota', { id: 'comodino_lampada-9' })).status === 404, 'id sconosciuto');
+      assert((await post('/api/lot/casa/ruota', { id: comodino.id + '-9' })).status === 404, 'id sconosciuto');
       const dopo = (await get('/api/lot')).body;
       assert(JSON.stringify(dopo.casa) === JSON.stringify(lot.casa), 'le richieste rifiutate hanno cambiato la casa');
     });
@@ -129,7 +134,7 @@ export default async function (ctx) {
       await V.page.locator('#mzArreda button', { hasText: 'Gira' }).click();
       await ctx.waitState(V.page, (q, id) => q.arreda.arredi.find((a) => a.id === id)?.rot === 1, 8000, id);
       await V.page.locator('#mzArreda button', { hasText: 'Metti via' }).click();
-      await ctx.waitState(V.page, (q) => q.arreda.arredi.length === 1 && q.arreda.magazzino.comodino_lampada === 1, 8000);
+      await ctx.waitState(V.page, (q, id) => q.arreda.arredi.length === 1 && q.arreda.magazzino[id] === 1, 8000, comodino.id);
       ctx.noErrors(V.pg, 'pc');
     });
 
@@ -139,7 +144,8 @@ export default async function (ctx) {
       await ctx.shot(V.page, 'telefono_stanza_arredata');
       await V.page.locator('#mzArredaBtn').tap();
       await ctx.waitState(V.page, (q) => q.arreda.aperto, 3000);
-      const piccoli = await V.page.evaluate(() => [...document.querySelectorAll('#mzArreda button, #mzArredaBtn')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 24), w: Math.round(r.width), h: Math.round(r.height), fuori: r.left < 0 || r.right > innerWidth || r.bottom > innerHeight }; }).filter((r) => r.w < 44 || r.h < 44 || r.fuori));
+      // il pannello può scorrere (dal #389 ogni finitura ha la sua descrizione): un bottone sotto il bordo dello schermo va bene se sta dentro un contenitore che scorre
+      const piccoli = await V.page.evaluate(() => { const scorre = (b) => { for (let e = b.parentElement; e; e = e.parentElement) { if (/(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight) return true; } return false; }; return [...document.querySelectorAll('#mzArreda button, #mzArredaBtn')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 24), w: Math.round(r.width), h: Math.round(r.height), fuori: r.left < 0 || r.right > innerWidth || (r.bottom > innerHeight && !scorre(b)) }; }).filter((r) => r.w < 44 || r.h < 44 || r.fuori); });
       assert(!piccoli.length, 'bottoni piccoli o fuori: ' + JSON.stringify(piccoli));
       await ctx.shot(V.page, 'telefono_arreda');
       ctx.noErrors(V.pg, 'telefono');

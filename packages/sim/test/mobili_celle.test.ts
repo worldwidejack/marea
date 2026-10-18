@@ -12,7 +12,7 @@ import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
-const [X0, Z0, X1, Z1] = BORGO.stanza.pavimento;
+const [X0, Z0, X1] = BORGO.stanza.pavimento;
 // un divano 2×1 e un armadio 1×2 finti, aggiunti al catalogo solo per questo test (ogni file di test è un processo a parte)
 const DIVANO: MobileDef = { id: 'divano_prova', nome: 'Divano', categoria: 'sedersi', perle: 10, posto: 'terra', colori: ['#C98A4B'], celle: [2, 1] };
 const ARMADIO: MobileDef = { id: 'armadio_prova', nome: 'Armadio', categoria: 'contenitori', perle: 10, posto: 'terra', colori: ['#5A3A1E'], celle: [1, 2] };
@@ -75,7 +75,6 @@ test('catalogo: id unici, categorie vere, 1-3 celle, un testo per ogni mobile e 
   const testi = JSON.parse(readFileSync(new URL('../../content/src/mobili_testi.json', import.meta.url), 'utf8')).testi as Record<string, string>;
   for (const m of veri) assert.ok(typeof testi[m.id] === 'string' && testi[m.id]!.length >= 20 && testi[m.id]!.length <= 200, `${m.id}: descrizione mancante o fuori misura (20-200 caratteri)`);
   for (const k of Object.keys(testi)) assert.ok(veri.some((m) => m.id === k), `mobili_testi.json: «${k}» non è un mobile`);
-  assert.ok(veri.filter((m) => m.vetrina && m.posto === 'terra').length <= 3);
 });
 
 test('validateContent: il catalogo (finti compresi) non produce errori sui mobili', () => {

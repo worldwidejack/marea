@@ -44,6 +44,10 @@ export type Traits = {
   /** Arco Carillon (Carica a molla): non si tende, ogni tocco tira subito a tensione piena; tiene `colpi` colpi e ne ricarica uno ogni
    *  `ricarica` s (anche mentre tiri); le frecce cadono con la gravità × `gravita`. */
   carillon?: { colpi: number; ricarica: number; gravita: number };
+  /** Diga dei Disertori, l'Albero della «Stella del Mattino» (Vento in Poppa): correndo la vela si gonfia, una carica di Brezza ogni
+   *  `metri` m corsi (al massimo `cariche`). Piene, il prossimo attacco caricato si carica in `carica` del tempo, le consuma e libera
+   *  un'onda d'urto marina: danno + `danno` (frazione), chi prendi vola via di `spinta` m (i capi no) e ogni scudo nel giro si sfonda. */
+  poppa?: { metri: number; cariche: number; carica: number; danno: number; spinta: number };
 };
 
 export type MaterialDef = {
@@ -67,6 +71,8 @@ export type ItemDefRaw = {
   id: string; nome: string; kind: ItemKind; peso: number; descr: string;
   /** Per arma/arco/frecce/armatura uniche: base da cui partire + ritocchi. */
   base?: string; danno?: number; velocita?: number; difesa?: number; traits?: Traits;
+  /** Armi da mischia uniche: portata in m al posto di quella del tipo (l'Albero della «Stella del Mattino» arriva più lontano). */
+  portata?: number;
   /** Anelli e vesti: modificatori piatti. */
   mods?: Partial<Record<ModKey, number>>;
   /** Pozioni. */
@@ -89,18 +95,22 @@ export type ModKey =
   | 'avvelena' | 'lamaAria' | 'penetraPesanti' | 'terremoto' | 'frecceTrapassano' | 'risparmioFrecce' | 'scaricaPiu' | 'combustione' | 'catena'
   | 'richiamoDoppio' | 'banchetto' | 'medicoCampo' | 'doppiaDose' | 'durataPozioni' | 'forgiaDoppia';
 
+export type SpellElement = 'fuoco' | 'elettricita' | 'cura' | 'furia';
 export type SpellDef = {
   id: string; nome: string; scuola: 'distruzione' | 'evocazione'; costo: number; ricarica: number; descr: string;
   /** Distruzione: proiettile. */
   danno?: number; velocita?: number; raggio?: number; sanguina?: number;
-  /** Elemento della magia d'attacco (perk Combustione sul fuoco, Catena di fulmini sull'elettricità). */
-  elemento?: 'fuoco' | 'elettricita';
+  /** Elemento della magia (perk Combustione sul fuoco, Catena di fulmini sull'elettricità; cura e furia per il supporto). */
+  elemento?: SpellElement;
   /** Distruzione, la forma: `proiettile` (default: mira e parte al rilascio), `raggio` (continuo: finché tieni A; `costo` e `danno` sono al secondo,
    *  `gittata` e `larghezza` in m) o `bomba` (lenta: scoppia dove atterra, `raggio` m di danno ad area; atterra al massimo a `gittata` m, in `volo` s). */
   forma?: 'proiettile' | 'raggio' | 'bomba';
   gittata?: number; larghezza?: number; volo?: number;
   /** Elettriche: chi è colpito va a `molt` della velocità (anche dei colpi) per `secondi` s; il boss a metà effetto. */
   rallenta?: { molt: number; secondi: number };
+  /** Supporto (Step 1 Arena): cura alleati/evocazioni (al secondo se raggio, a scoppio se bomba) o dà Furia (+danno e +velocità). */
+  cura?: number;
+  furia?: { danno: number; velocita: number; secondi: number };
   /** Evocazione: alleato (id di enemies.json) per `durata` s. */
   evoca?: string; durata?: number;
 };
@@ -115,7 +125,7 @@ export type EnemyDef = {
    *  Archivio: `bombardiere` (Aerostato-Spia) sta a qualche metro dall'eroe e sgancia `bomba`; `astrolabio` è il capo con `astrolabio`;
    *  `anello` sono gli anelli-scudo che il capo stacca a metà vita (non hanno IA: girano attorno a lui).
    *  Fucina: `forgiatore` è il capo con `forgiatore`. */
-  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta' | 'bombardiere' | 'astrolabio' | 'anello' | 'forgiatore' | 'chierico' | 'custode';
+  comportamento: 'mischia' | 'arciere' | 'mago' | 'torretta' | 'bombardiere' | 'astrolabio' | 'anello' | 'forgiatore' | 'chierico' | 'custode' | 'fuciliere' | 'vaelen';
   /** Dove si muove (Archivio). `grate`: anche sulle grate (Drone Idro-Ragno), dove l'eroe non sale. `vola`: sopra acqua, grate e vuoto,
    *  non sopra muri e scaffali; il vento non lo sposta e in mischia lo prendi solo quando scende (prepara, colpisce, recupera).
    *  `asciutto` (Fucina, il Mastro Forgiatore): camminando gira attorno alle cascate d'acqua (`getto`), non ci entra mai da sé. */
@@ -149,7 +159,9 @@ export type EnemyDef = {
   /** Mausoleo, la Sentinella dell'Egida: scudo torre a energia cinetica. Da davanti (coseno oltre `cono`) para tutto e, se è un colpo di
    *  lama, respinge l'eroe di `spinta` m; un attacco CARICATO da davanti lo sfonda: la Sentinella barcolla `rotto` s senza scudo. Da
    *  dietro × `retro`. Si gira piano (`gira` rad/s) come il Golem-Palombaro. */
-  scudo?: { cono: number; retro: number; gira: number; spinta: number; rotto: number };
+  scudo?: { cono: number; retro: number; gira: number; spinta: number; rotto: number;
+    /** Diga, la Guardia della Paratia: sfondato, il portello va in frantumi per sempre (barcolla `rotto` s e resta senza scudo). */
+    perso?: boolean };
   /** Il suo colpo in mischia a segno spinge l'eroe di tanti metri (il colpo di scudo della Sentinella). */
   spinge?: number;
   /** Mausoleo, la Guardia d'Onore: ogni attacco in mischia è una combinazione di `colpi` fendenti, i successivi preparati in `prep` s. */
@@ -170,6 +182,30 @@ export type EnemyDef = {
     scatto: { avviso: number; dietro: number; raggio: number; danno: number };
     geyser: { n: number; distanza: number; raggio: number; danno: number; avviso: number; getto: number; prep: number };
     barriera: { colpi: number; raggio: number; danno: number; spinta: number; velocita: number };
+  };
+  /** Diga dei Disertori, la Guardia della Paratia: il colpo in mischia è una schiacciata d'ancora su una corsia davanti a sé, lunga `lungo`
+   *  m e larga `largo` m per lato, decisa quando comincia a prepararla (rettangolo rosso a terra): alla fine la prende chi ci sta dentro. */
+  schiacciata?: { lungo: number; largo: number };
+  /** Diga, il Fuciliere d'Acquafonda (`fuciliere`): tiene `distanza` m; quando ti vede entro `gittata` m si inginocchia e mira per `mira`
+   *  s (la linea rossa ti segue); negli ultimi `blocca` s la linea si ferma e lampeggia gialla, poi spara una palla (`danno`, `velocita`
+   *  m/s) lungo la linea, balza indietro di `balzo` m e ricarica per `ricarica` s. Da vicino usa la baionetta (danno e portata del nemico). */
+  fucile?: { mira: number; blocca: number; danno: number; velocita: number; gittata: number; ricarica: number; balzo: number; distanza: number };
+  /** Il capo della Diga (docs/RPG.md §2g): il Capitano Vaelen, due fasi (sotto `soglia` della vita spezza le catene: per `cambio` s è
+   *  intoccabile). Gira il ciclo della fase (`cicli`) con `pausa` s dopo ogni attacco. `affondo`: `n` affondi di fila, ognuno su una corsia
+   *  lunga `lungo` m e larga `largo` m per lato (avviso `avviso` s, danno × `danno`; muri e piloni la fermano). `spazzata`: il colpo ad area
+   *  (`area`), poi la lancia resta incastrata nelle assi per `incastrato` s: alle spalle la catena prende × `retro`. `carica` (seconda fase):
+   *  freccia larga `largo` m per lato per `avviso` s (ti segue, gli ultimi `blocca` s si ferma: dietro un pilone ci finisce contro), poi corre dritto a `velocita` m/s fino al primo muro (al massimo `gittata` m): chi
+   *  travolge prende danno × `danno` e vola via di `spinta` m; se finisce contro un pilone lo fracassa e resta stordito `stordito` s (alle
+   *  spalle × `retro` anche lì). `salva`: pianta la lancia, fermo per `durata` s con lo scudo davanti (coseno `scudo`: un caricato da davanti
+   *  lo sfonda, barcolla `rotto` s e la salva finisce); `ondate` ondate di `n` cannonate, una ogni `ogni` s: cerchio di `raggio` m per
+   *  `caduta` s, poi `danno` (la prima dove sei, le altre attorno a `sparpaglia` m). */
+  vaelen?: {
+    soglia: number; cambio: number; pausa: number[];
+    cicli: ('affondo' | 'spazzata' | 'carica' | 'salva')[][];
+    affondo: { n: number; lungo: number; largo: number; avviso: number; danno: number };
+    spazzata: { incastrato: number; retro: number };
+    carica: { avviso: number; blocca: number; velocita: number; gittata: number; largo: number; danno: number; spinta: number; stordito: number };
+    salva: { durata: number; ondate: number; ogni: number; n: number; raggio: number; caduta: number; danno: number; sparpaglia: number; scudo: number; rotto: number };
   };
   /** Il suo colpo in mischia rallenta l'eroe: velocità × `molt` per `secondi` (Tubo-strisciante). */
   rallenta?: { molt: number; secondi: number };
@@ -212,7 +248,7 @@ export type LootTable = { id: string; monete: [number, number]; voci: LootEntry[
 
 /** Mappa ASCII, una cella = `tile` m: '#' muro, '.' pavimento, '<' scala d'uscita (anche lo spawn, accanto), ' ' vuoto. Ogni altra lettera la spiega `legenda` (sopra c'è pavimento). */
 export type DungeonDef = {
-  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio' | 'archivio' | 'fucina' | 'mausoleo'; tile: number;
+  id: string; nome: string; descr: string; stile: 'grotta' | 'cripta' | 'vuoto' | 'drenaggio' | 'archivio' | 'fucina' | 'mausoleo' | 'diga' | 'colosseo'; tile: number;
   /** Porta sigillata (Epopea della Regata): si entra solo dopo aver completato questo dungeon (`HeroState.completati`). */
   richiede?: string;
   /** Archivio: correnti d'aria. Le celle della corrente n (legenda `vento: n`) spingono chi ci cammina verso `dir` (n = −z, s = +z,
@@ -227,6 +263,8 @@ export type DungeonDef = {
    *  segno è il verso), angolo di partenza `fase` rad (0 = verso +x, poi verso +z). Chi sta sulla lancetta (entro `largo` m) prende `danno`
    *  e vola avanti di `spinta` m; per `pausa` s quella lancetta non lo riprende. Gli automi conoscono il ritmo: a loro non fa niente. */
   lancette?: { n: number; at: [number, number]; lunga: number; giro: number; fase: number; largo: number; danno: number; spinta: number; pausa: number }[];
+  /** Diga dei Disertori: i rottami acuminati (legenda `rottami`, pavimento): chi ci sta sopra prende `danno` (taglio) ogni `ogni` s. */
+  rottami?: { danno: number; ogni: number };
   /** Difficoltà, invisibile al giocatore: la bussola punta solo al dungeon più facile non ancora completato (docs/RPG.md §2). */
   difficolta: number;
   rows: string[];
@@ -243,8 +281,12 @@ export type DungeonDef = {
    *  `valvola: n`); `getto` cascata d'acqua di raffreddamento (pavimento): spegne chi brucia e il Mastro Forgiatore.
    *  Mausoleo: `cancello: n` il cancello del Santuario, un bacino come `acqua: n` (sbarre: ci si vede attraverso; con `asciutti` la
    *  lanterna lo trova già aperto); `carica: n` la chiave di carica che lo apre (come `valvola: n`); `sarcofago` il sarcofago della Regina
-   *  (non ci si cammina, ci si vede sopra): ucciso il capo si apre e il bottino del capo compare lì davanti. */
-  legenda: Record<string, { nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[]; lava?: number; colata?: number; chiusa?: number; getto?: boolean; cancello?: number; carica?: number; sarcofago?: boolean }>;
+   *  (non ci si cammina, ci si vede sopra): ucciso il capo si apre e il bottino del capo compare lì davanti.
+   *  Diga dei Disertori: `ruota: n` Ruota di Sentina (sul pavimento, A accanto): svuota il bacino n o ferma la corrente n (quello che c'è
+   *  col suo numero); `risacca: n` cella della corrente di risacca n (come `vento: n`: le correnti stanno in `venti`); `rottami` rottami
+   *  acuminati (pavimento, fanno male: `rottami` del dungeon); `ponte: n` il ponte mobile alzato sopra l'acqua, un bacino come `acqua: n`
+   *  (la ruota lo abbassa); `pilone` bitta di legno: solida come una colonna, ma la carica del capo la fracassa. */
+  legenda: Record<string, { nemico?: string; capo?: boolean; forziere?: string; libro?: string; luce?: boolean; colonna?: boolean; altare?: boolean; asciutti?: number[]; acqua?: number; valvola?: number; vento?: number; timone?: number; grata?: boolean; ferme?: number[]; lava?: number; colata?: number; chiusa?: number; getto?: boolean; cancello?: number; carica?: number; sarcofago?: boolean; ruota?: number; risacca?: number; rottami?: boolean; ponte?: number; pilone?: boolean }>;
   /** Dove sta l'ingresso nel mondo: cella di un'isola di islands.json (il modello è `prop_ingresso_<stile>`). */
   ingresso: { island: string; at: [number, number] };
   /** Lore dentro il dungeon (docs/RPG.md §2c): solo testo per il client, la sim non lo vede. */
@@ -286,6 +328,12 @@ export type RpgPerkBalance = {
   /** Medico da campo: la pozione che bevi cura anche i compagni di squadra entro `raggio` m. */
   medicoCampo: { raggio: number };
 };
+export type RpgArenaBalance = {
+  attributi: Record<AttrId, number>;
+  dannoMolt: number;
+  dannoMax: number;
+  caricaMassimaMolt: number;
+};
 export type RpgBalance = {
   attributi: { base: Record<AttrId, number>; perLivello: number; regen: Record<AttrId, number> };
   livelli: { skillIniziale: number; skillMax: number; xpSkill: { base: number; perLivello: number }; xpPersonaggio: { base: number; perLivello: number } };
@@ -303,6 +351,8 @@ export type RpgBalance = {
     /** Dungeon insieme (#118): al massimo `max` eroi; la vita dei nemici cresce di `vitaPerCompagno` (frazione) per ogni eroe oltre il primo. */
     gruppo?: { max: number; vitaPerCompagno: number };
   };
+  /** Arena PvP (docs/ARENA.md Step 1): statistiche di base normalizzate (100/100/100), scala e tetto ai danni tra giocatori (niente one-shot). */
+  arena?: RpgArenaBalance;
   xp: Record<string, number>;
   /** Xp di combattimento: danno utile (mai oltre la vita che restava al nemico) × questo, per abilità. Evocazione = danno della tua evocazione. */
   xpDanno?: Partial<Record<SkillId, number>>;

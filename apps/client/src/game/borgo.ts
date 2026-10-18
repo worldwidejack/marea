@@ -5,6 +5,7 @@
 // A fa lo stesso da vicino. Ogni passaggio è un
 // teletrasporto dietro al velo nero (ui/velo.ts). Casa di un amico = il suo giardino, in sola lettura come prima.
 import { BORGO } from '@marea/content';
+import { stanzaTerra } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Hud } from '../ui/hud.ts';
 import type { Velo } from '../ui/velo.ts';
@@ -35,9 +36,11 @@ export function portaDi(world: Pick<GameWorld, 'archipelago'>, slot: number, fuo
   return { x: (b.origin[0] + c.porta[0] + 0.5) * arch.tile + (dx / l) * fuori, z: (b.origin[1] + c.porta[1] + 0.5) * arch.tile + (dz / l) * fuori };
 }
 
-export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; velo: Velo; abitanti: readonly { slot: number | null; nome: string; mia: boolean }[] }): Borgo {
+export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; velo: Velo; abitanti: readonly { slot: number | null; nome: string; mia: boolean }[]; /** Il livello della casa di quel lotto (#386): la porta in fondo sta sul muro della stanza ingrandita. */ livelloDi?: (slot: number) => number }): Borgo {
   const w = o.world, arch = w.archipelago, T = arch.tile;
   const porte: Porta[] = [];
+  /** La riga della porta in fondo alla stanza di quella casa (il muro a nord si sposta con gli ampliamenti). */
+  const retroZ = (slot: number): number => stanzaTerra(o.livelloDi?.(slot) ?? 0).pavimento[1];
   for (const l of arch.lots) {
     const p = portaDi(w, l.slot), c = BORGO.case[l.slot];
     if (!p || !c) continue;
@@ -46,7 +49,7 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
     const dx = c.at[0] - c.porta[0], dz = c.at[1] - c.porta[1], n = Math.hypot(dx, dz) || 1, verso = { x: dx / n, z: dz / n };
     porte.push({
       slot: l.slot, ...p, verso, muro: { x: p.x + verso.x * 0.9, z: p.z + verso.z * 0.9 }, dentro: cella(CX, C0), p: { x: cella(CX, C1 - 1).x, z: (l.origin[1] + C1 - 0.1) * T },
-      retro: cella(ST.retro[0], ST.retro[1]), giardino: { x: cella(ST.giardino[0], 0).x - T / 2, z: cella(0, ST.giardino[1]).z }, o: { x: l.origin[0] * T, z: l.origin[1] * T }, nome: chi?.nome ?? null, mia: !!chi?.mia,
+      get retro() { return cella(ST.retro[0], retroZ(l.slot)); }, giardino: { x: cella(ST.giardino[0], 0).x - T / 2, z: cella(0, ST.giardino[1]).z }, o: { x: l.origin[0] * T, z: l.origin[1] * T }, nome: chi?.nome ?? null, mia: !!chi?.mia,
     });
   }
   // entra: dalla città nella stanza · esci: dalla stanza in città · retro: dalla stanza al giardino · giardino: dal giardino alla stanza (#240)
@@ -72,7 +75,8 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
       const cx = (f.x - p.o.x) / T, cz = (f.z - p.o.z) / T;
       // nella stanza: in fondo al corridoio verso sud si esce, contro la porta in fondo verso nord si va in giardino
       if (Math.abs(cx - CX - 0.5) < 0.9 && cz > C1 - 0.4 && cz < C1 && f.vz > 0) return { porta: p, esci: true, dove: 'esci' };
-      if (Math.abs(cx - ST.retro[0] - 0.5) < 0.45 && cz > ST.retro[1] && cz < ST.retro[1] + 0.3 && f.vz < 0) return { porta: p, esci: false, dove: 'retro' };
+      const rz = retroZ(p.slot);
+      if (Math.abs(cx - ST.retro[0] - 0.5) < 0.45 && cz > rz && cz < rz + 0.3 && f.vz < 0) return { porta: p, esci: false, dove: 'retro' };
       // in giardino: dentro il passaggio coperto (la bocca guarda a est), verso ovest
       if (Math.abs(cz - ST.giardino[1] - 0.5) < 0.45 && cx < ST.giardino[0] + 0.05 && cx > ST.giardino[0] - 0.8 && f.vx < 0) return { porta: p, esci: false, dove: 'giardino' };
     }

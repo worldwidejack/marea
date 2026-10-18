@@ -15,7 +15,7 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | Giorno/notte | **sì**, ma spegnibile | c'è già l'interruttore nelle Impostazioni (#54) |
 | Meteo | **da rifare**: niente nebbia globale fissa. **Nuvole che si muovono sulla mappa** e decidono il meteo del posto dove sono (piove sotto la nuvola, non ovunque) | uno stato solo per tutto il mondo, dall'orologio (`meteo.json`, GDD §3) |
 | Tutorial «Primi passi» | **sì, ma facoltativo**: non parte da solo, lo accende chi lo vuole | parte da solo al primo ingresso, si chiude con × (GDD §9, `ui/guida.ts`) |
-| Minimappa e mappa grande | **da ripensare**: **nord sempre in alto**; **zoom a più scatti**; **icone degli spot**; le isole non sbloccate **non si vedono proprio** (niente nebbia sopra) | la minimappa gira con la camera; le isole chiuse stanno sotto la nebbia col lucchetto (`ui/minimappa.ts`) |
+| Minimappa e mappa grande | **fatto** (16 ott 2026, #360): **nord sempre in alto**; **zoom a più scatti**; **icone degli spot**; le isole non sbloccate **non si vedono proprio** (niente nebbia sopra) | nord in alto, zoom a scatti, icone delle mete, isole chiuse invisibili (`ui/minimappa.ts`, GDD §3); tra due varianti Jack ha scelto (17 ott) icone col contorno nero, 3 scatti, bottoni accanto al cerchio |
 
 ## 2. Progressione, economia, isole personali (punti 35-55 della revisione)
 - **L'isola personale «nel nulla» convince poco.** Oggi è il giardino dietro la casa del Borgo, fuori dal mare (#237).
@@ -48,6 +48,7 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | **Templari** | sopravvivenza a ondate, zombie | Isola dei Templari | ondate, eroi, fino a 4 insieme | `TEMPLARI.md` |
 | **Dungeon** | fantasy-avventura classico | da decidere | Mondo Sotterraneo sotto le isole | `RPG.md` |
 | **Sparatutto a missioni** | missioni alla COD / GoldenEye 64, prima e terza persona; da soli prima, deathmatch tra amici come bonus (Jack, 16 ott) | da decidere | banco `provasparo.html`: poligono nel piazzale dei container | `SPARO.md` |
+| **Difesa a corsie** | Plants vs Zombies, con più mondi ognuno con ambientazione e stile suoi (Jack, 16 ott) | da decidere | banco `provadifesa.html`: 6 livelli + Sopravvivenza coi numeri di PvZ | `DIFESA.md` |
 
 **Le isole si parlano** tra loro con:
 - **lore condivisa**;
@@ -68,7 +69,7 @@ Prima di rifare da zero una cosa, guarda se una di queste ce l'ha già.
 
 ## 6. Cosa si può fare subito e cosa va chiesto
 **Chiari, si possono aprire come issue:**
-1. Minimappa e mappa grande: nord in alto, zoom a scatti, icone degli spot, isole chiuse invisibili.
+1. ~~Minimappa e mappa grande: nord in alto, zoom a scatti, icone degli spot, isole chiuse invisibili.~~ Fatto (#360).
 2. Tutorial che non parte da solo.
 3. Libro degli ospiti con messaggi scritti.
 4. Faro comune e traguardi/titoli spenti.

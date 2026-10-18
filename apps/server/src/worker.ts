@@ -21,6 +21,7 @@ export { Sfide } from './do/Sfide.ts';
 export { Spedizioni } from './do/Spedizioni.ts';
 export { GaraAmici } from './do/GaraAmici.ts';
 export { TemplariInsieme } from './do/TemplariInsieme.ts';
+export { Arena } from './do/Arena.ts';
 
 const MAX_BODY = 4096;
 /** Input log dei minigiochi da solo: una Regata da 120 s sta sotto i 100 KB (7.200 righe al massimo); le Consegne durano fino a
@@ -192,23 +193,18 @@ export default {
         target.searchParams.set('id', p.id); target.searchParams.set('nome', p.nome); target.searchParams.set('look', p.look); target.searchParams.set('dungeon', sq[1]!); target.searchParams.delete('t');
         return env.SPEDIZIONI.get(env.SPEDIZIONI.idFromName('spedizioni')).fetch(new Request(target.toString(), req));
       }
-      // Templari insieme (PROTOCOL §9): la sala alla porta della chiesa e la partita in tempo reale nel DO TemplariInsieme
-      if (path === '/ws/templari') {
+      // sale in tempo reale con un DO solo: Templari insieme (PROTOCOL §9, la porta della chiesa), corse tra amici (§8, gara a fantasmi),
+      // Arena (§10, coda veloce, sale con codice e duelli 1v1)
+      const sala = path === '/ws/templari' ? env.TEMPLARI_INSIEME.get(env.TEMPLARI_INSIEME.idFromName('templari'))
+        : path === '/ws/gara' ? env.GARA_AMICI.get(env.GARA_AMICI.idFromName('garaamici'))
+        : path === '/ws/arena' ? env.ARENA.get(env.ARENA.idFromName('arena')) : null;
+      if (sala) {
         if (req.headers.get('upgrade') !== 'websocket') return json({ error: 'Serve un WebSocket' }, 426);
         const p = await autentica(req, env);
         if (!p) return wsRifiuta('token', NO_TOKEN);
         const target = new URL(req.url);
         target.searchParams.set('id', p.id); target.searchParams.set('nome', p.nome); target.searchParams.set('look', p.look); target.searchParams.delete('t');
-        return env.TEMPLARI_INSIEME.get(env.TEMPLARI_INSIEME.idFromName('templari')).fetch(new Request(target.toString(), req));
-      }
-      // corse tra amici (PROTOCOL §8): una sala sola nel DO GaraAmici, gara a fantasmi in tempo reale
-      if (path === '/ws/gara') {
-        if (req.headers.get('upgrade') !== 'websocket') return json({ error: 'Serve un WebSocket' }, 426);
-        const p = await autentica(req, env);
-        if (!p) return wsRifiuta('token', NO_TOKEN);
-        const target = new URL(req.url);
-        target.searchParams.set('id', p.id); target.searchParams.set('nome', p.nome); target.searchParams.set('look', p.look); target.searchParams.delete('t');
-        return env.GARA_AMICI.get(env.GARA_AMICI.idFromName('garaamici')).fetch(new Request(target.toString(), req));
+        return sala.fetch(new Request(target.toString(), req));
       }
 
       // app installabile (PWA): il manifest porta dentro il link personale, così l'icona sul telefono entra come sé
@@ -316,6 +312,13 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, azione[1] ?? '', body);
       }
+      // edifici liberi (#382): sposta (solo la propria isola: il DO è quello della persona)
+      const bld = path.match(/^\/api\/lot\/(?:building\/move|move)$/);
+      if (bld && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'building_move', { id: body['id'], cell: body['cell'] });
+      }
       // decorazioni libere (#108): sposta, ruota, rivendi (solo le proprie: il DO è quello della persona)
       const dec = path.match(/^\/api\/lot\/decor\/(move|rotate|sell)$/);
       if (dec && req.method === 'POST') {
@@ -324,12 +327,12 @@ export default {
         return lotReq(env, p.id, now, 'decor_' + (dec[1] ?? ''), { id: body['id'], cell: body['cell'] });
       }
       // la casa arredabile (#265): negozio dei mobili e ARREDA (solo la propria casa: il DO è quello della persona)
-      const casa = path.match(/^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|baule)$/);
+      const casa = path.match(/^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|baule|amplia)$/);
       if (casa && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
-        const { id, tipo, cell, muro, rot } = body;
-        return lotReq(env, p.id, now, 'casa_' + (casa[1] ?? ''), { id, tipo, cell, muro, rot });
+        const { id, tipo, cell, muro, rot, da } = body;
+        return lotReq(env, p.id, now, 'casa_' + (casa[1] ?? ''), { id, tipo, cell, muro, rot, da });
       }
       // minigiochi da solo (senza posta): il DO del lotto apre la partita e la premia
       if (path === '/api/solo/start' && req.method === 'POST') {

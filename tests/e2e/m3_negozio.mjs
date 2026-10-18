@@ -1,7 +1,7 @@
 // Il negozio dei mobili (#265) sul server locale (wrangler dev, TEST_CLOCK:1): Luca vince Perle con le Regate (API, autopilot); nel
-// browser cammina contro la porta della bottega sullo slargo ed entra (velo, camera fissa, niente minimappa); davanti allo Stereo A apre
-// la scheda, COMPRA → è nel magazzino (server); una carta da parati comprata si mette subito; in fondo al corridoio esce in città; a casa
-// ARREDA posa lo Stereo. Senza Perle la scheda dice quante ne mancano e non chiama il server. Telefono 390×844: bottone e scheda dentro
+// browser cammina contro la porta della bottega sullo slargo ed entra (velo, camera fissa, niente minimappa); davanti a un mobile in vetrina (quella
+// di oggi, #384) A apre la scheda, COMPRA → è nel magazzino (server); una carta da parati comprata si mette subito; il banco dice cosa c’è oggi e il
+// server rifiuta un mobile non esposto; in fondo al corridoio esce in città; a casa ARREDA posa il mobile. Senza Perle la scheda dice quante ne mancano e non chiama il server. Telefono 390×844: bottone e scheda dentro
 // lo schermo, ≥ 44 px. Screenshot: la bottega in città, il negozio da dentro (PC e telefono), la scheda.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -25,7 +25,11 @@ export default async function (ctx) {
   const { createRng } = await sim('rng.ts');
   const read = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
   const mobili = read('mobili.json').mobili, borgo = read('borgo.json'), arch = read('archipelago.json');
-  const stereo = mobili.find((m) => m.id === 'stereo'), carta = borgo.carte.find((f) => (f.perle ?? 0) > 0);
+  const { vetrinaOra } = await sim('economy/vetrina.ts');
+  const oggi = vetrinaOra(Date.now()), def = (id) => mobili.find((m) => m.id === id);
+  // il negozio vende solo la vetrina di oggi (#384): il mobile di prova è il più economico a terra 1×1 tra gli esposti, l’altro è uno a parete esposto
+  const stereo = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.perle - b.perle)[0], orologio = def(oggi.parete[0]), carta = borgo.carte.find((f) => f.id === oggi.carte[0]); // anche le carte da parati sono quelle di oggi (#393)
+  assert(stereo && orologio, 'la vetrina di oggi non ha un mobile a terra 1×1 e uno a parete');
   const [X0, Z0] = borgo.stanza.pavimento, ORIG = arch.islands.find((i) => i.role === 'lotto' && i.slot === 0).at;
   const mondo = (cx, cz) => ({ x: (ORIG[0] + cx) * 2, z: (ORIG[1] + cz) * 2 });
 
@@ -52,7 +56,7 @@ export default async function (ctx) {
       while (!x.done) { const f = quantize(regata.autopilot(x, rng)); frames.push(f); regata.step(x, f); }
       return post('/api/solo/play', { inputs: packInputs(frames) }, tok);
     };
-    for (let i = 0; i < 6 && (await get('/api/lot')).body.resources.perle < stereo.perle + carta.perle + mobili.find((m) => m.id === 'orologio').perle; i++) assert((await playSolo('tokL')).status === 200, 'regata');
+    for (let i = 0; i < 6 && (await get('/api/lot')).body.resources.perle < stereo.perle + carta.perle + orologio.perle; i++) assert((await playSolo('tokL')).status === 200, 'regata');
 
     const open = async (viewport, tok = 'tokL') => {
       const pg = await ctx.B.openPage(ctx.browser, `${BASE}/?t=${tok}&test=1`, { viewport });
@@ -91,7 +95,7 @@ export default async function (ctx) {
       await ctx.shot(V.page, 'pc_negozio');
     });
 
-    await ctx.test('PC: davanti allo Stereo A apre la scheda; COMPRA → nel magazzino; la carta da parati si mette subito', async () => {
+    await ctx.test('PC: davanti al mobile in vetrina A apre la scheda; COMPRA → nel magazzino; la carta da parati si mette subito', async () => {
       const V = globalThis.__pc, p0 = (await get('/api/lot')).body.resources.perle;
       for (const id of [stereo.id, carta.id]) {
         const pz = (await V.st()).negozio.pezzi.find((p) => p.id === id);
@@ -104,35 +108,37 @@ export default async function (ctx) {
         await ctx.waitState(V.page, (s, n) => s.negozio.comprati === n, 8000, id === stereo.id ? 1 : 2);
       }
       const lot = (await get('/api/lot')).body;
-      assert(lot.casa.magazzino.stereo === 1, 'magazzino: ' + JSON.stringify(lot.casa));
+      assert(lot.casa.magazzino[stereo.id] === 1, 'magazzino: ' + JSON.stringify(lot.casa));
       assert(lot.casa.carta === carta.id && lot.casa.finiture.includes(carta.id), 'carta: ' + JSON.stringify(lot.casa));
       assert(lot.resources.perle === p0 - stereo.perle - carta.perle, `Perle ${lot.resources.perle} invece di ${p0 - stereo.perle - carta.perle}`);
     });
 
-    await ctx.test('PC: al banco il catalogo sfoglia tutti i mobili per categoria, con descrizione; lo si compra da lì (#304)', async () => {
-      const V = globalThis.__pc, cat = (await V.st()).negozio.pezzi.find((p) => p.kind === 'catalogo');
-      assert(cat, 'manca il catalogo sul banco');
-      const testi = read('mobili_testi.json').testi, orologio = mobili.find((m) => m.id === 'orologio');
-      await V.hook('teleport', cat.x, cat.z);
-      await ctx.waitState(V.page, (s) => s.negozio.near === 'catalogo', 5000);
+    await ctx.test('PC: il banco dice cosa c’è oggi; i pezzi in negozio sono la vetrina della sim; un mobile non esposto il server lo rifiuta (#384)', async () => {
+      const V = globalThis.__pc, s0 = await V.st(), banco = s0.negozio.pezzi.find((p) => p.kind === 'banco');
+      assert(banco, 'manca il banco del mobiliere');
+      assert(JSON.stringify(s0.negozio.vetrina) === JSON.stringify(oggi), 'la vetrina del client non è quella della sim: ' + JSON.stringify(s0.negozio.vetrina));
+      const esposti = s0.negozio.pezzi.filter((p) => p.kind === 'mobile').map((p) => p.id).sort();
+      assert(JSON.stringify(esposti) === JSON.stringify([...oggi.terra, ...oggi.parete].sort()), 'pezzi in negozio: ' + esposti.join(','));
+      for (const [kind, ids] of [['carta', oggi.carte], ['pavimento', oggi.pavimenti]]) {
+        const visti = s0.negozio.pezzi.filter((p) => p.kind === kind).map((p) => p.id).sort();
+        assert(JSON.stringify(visti) === JSON.stringify([...ids].sort()), `${kind} in negozio: ${visti.join(',')} invece di ${ids.join(',')}`);
+      }
+      await V.hook('teleport', banco.x, banco.z);
+      await ctx.waitState(V.page, (s) => s.negozio.near === 'banco', 5000);
       await V.page.keyboard.press('KeyE');
-      await ctx.waitState(V.page, (s) => s.negozio.aperto === 'catalogo', 3000);
-      await V.page.locator(`#mzNegozio [data-cat="${orologio.categoria}"]`).click();
-      await V.page.locator(`#mzNegozio [data-mobile="${orologio.id}"]`).click();
-      await V.page.waitForFunction((t) => document.querySelector('#mzNegozio')?.textContent?.includes(t), testi[orologio.id].slice(0, 20), { timeout: 5000 });
-      await ctx.shot(V.page, 'pc_catalogo');
-      assert((await V.page.locator('#mzNegozio [data-act="compra"]').count()) === 1, 'senza bottone COMPRA');
-      await V.page.locator('#mzNegozio [data-act="indietro"]').click();
-      assert((await V.page.locator(`#mzNegozio [data-mobile="${orologio.id}"]`).count()) === 1, 'tornando indietro la lista non c’è');
-      const n = (await get('/api/lot')).body.casa.magazzino?.orologio ?? 0;
-      await V.page.locator(`#mzNegozio [data-mobile="${orologio.id}"]`).click();
-      await V.page.locator('#mzNegozio [data-act="compra"]').click();
-      await ctx.waitState(V.page, (s, k) => s.negozio.comprati >= k, 8000, 3);
-      assert((await get('/api/lot')).body.casa.magazzino.orologio === n + 1, 'l’orologio comprato dal catalogo non è nel magazzino');
-      assert((await V.st()).negozio.aperto === 'catalogo', 'dal catalogo la scheda resta aperta');
+      await ctx.waitState(V.page, (s) => s.negozio.aperto === 'banco', 3000);
+      await V.page.waitForFunction(() => document.querySelector('#mzNegozio')?.textContent?.includes('Merce nuova'), null, { timeout: 5000 });
+      await ctx.shot(V.page, 'pc_banco');
+      // fuori vetrina il server rifiuta (409, requisito) e non cambia niente; l’id sconosciuto resta 404
+      const fuori = mobili.find((m) => m.posto === 'terra' && !oggi.terra.includes(m.id)), prima = (await get('/api/lot')).body;
+      const r = await post('/api/lot/casa/compra', { id: fuori.id });
+      assert(r.status === 409 && r.body.code === 'requisito', 'fuori vetrina: ' + r.status + ' ' + JSON.stringify(r.body));
+      const dopo = (await get('/api/lot')).body;
+      assert(JSON.stringify(dopo.casa) === JSON.stringify(prima.casa) && dopo.resources.perle === prima.resources.perle, 'il rifiuto ha cambiato qualcosa');
+      assert((await post('/api/lot/casa/compra', { id: 'trono' })).status === 404, 'mobile sconosciuto');
     });
 
-    await ctx.test('PC: in fondo al corridoio si esce in città; a casa ARREDA posa lo Stereo comprato', async () => {
+    await ctx.test('PC: in fondo al corridoio si esce in città; a casa ARREDA posa il mobile comprato', async () => {
       const V = globalThis.__pc, u = (await V.st()).negozio.uscita;
       await V.hook('teleport', u.x, u.z);
       await cammina(V.page, ['ArrowDown'], (s) => !s.negozio.dentro && s.arch.place === 'porto', 20000);
@@ -145,7 +151,7 @@ export default async function (ctx) {
       await V.page.keyboard.down('ArrowUp'); await sleep(90); await V.page.keyboard.up('ArrowUp');
       await ctx.waitState(V.page, (s) => s.arreda.ok, 3000);
       await V.page.keyboard.press('KeyE');
-      await ctx.waitState(V.page, (s) => s.arreda.arredi.some((a) => a.mobile === 'stereo'), 8000);
+      await ctx.waitState(V.page, (s, id) => s.arreda.arredi.some((a) => a.mobile === id), 8000, stereo.id);
       ctx.noErrors(V.pg, 'pc');
     });
 
@@ -169,6 +175,30 @@ export default async function (ctx) {
       assert(!piccoli.length, 'bottoni piccoli o fuori: ' + JSON.stringify(piccoli));
       await ctx.shot(V.page, 'telefono_scheda');
       ctx.noErrors(V.pg, 'telefono');
+    });
+
+    // per ultimo: sposta l'orologio del server (e del lotto di Luca) in avanti
+    await ctx.test('a mezzanotte la vetrina cambia: il client rimonta i pezzi del giorno nuovo e il server rifiuta quelli di ieri (#384)', async () => {
+      const V = globalThis.__pc, { finoAMezzanotte } = await sim('economy/giorno.ts');
+      const off = finoAMezzanotte(Date.now()) + 3_600_000, domani = vetrinaOra(Date.now() + off);
+      assert(JSON.stringify(domani) !== JSON.stringify(oggi), 'la vetrina di domani è uguale a quella di oggi');
+      await V.page.setExtraHTTPHeaders({ 'x-test-now-offset': String(off) });
+      await ctx.waitState(V.page, (s, v) => JSON.stringify(s.negozio.vetrina) === v, 45000, JSON.stringify(domani));
+      const s1 = await V.st(), esposti = s1.negozio.pezzi.filter((p) => p.kind === 'mobile').map((p) => p.id).sort();
+      assert(JSON.stringify(esposti) === JSON.stringify([...domani.terra, ...domani.parete].sort()), 'pezzi dopo mezzanotte: ' + esposti.join(','));
+      await V.hook('negozio');
+      await ctx.waitState(V.page, (s) => s.negozio.dentro, 10000);
+      await V.page.waitForTimeout(1200);
+      await ctx.shot(V.page, 'pc_domani');
+      const ieri = oggi.terra.find((id) => !domani.terra.includes(id)), r = await fetch(BASE + '/api/lot/casa/compra', { method: 'POST', headers: { ...hdr('tokL'), 'x-test-now-offset': String(off) }, body: JSON.stringify({ id: ieri }) });
+      assert(r.status === 409, 'un mobile di ieri non più esposto: ' + r.status);
+      // anche carte e pavimenti: quelli di domani sono in negozio, una carta di oggi che domani non c’è si rifiuta
+      for (const [kind, ids] of [['carta', domani.carte], ['pavimento', domani.pavimenti]]) {
+        const visti = (await V.st()).negozio.pezzi.filter((p) => p.kind === kind).map((p) => p.id).sort();
+        assert(JSON.stringify(visti) === JSON.stringify([...ids].sort()), `${kind} dopo mezzanotte: ${visti.join(',')}`);
+      }
+      const cIeri = oggi.carte.find((id) => !domani.carte.includes(id)), rc = await fetch(BASE + '/api/lot/casa/finitura', { method: 'POST', headers: { ...hdr('tokL'), 'x-test-now-offset': String(off) }, body: JSON.stringify({ tipo: 'carta', id: cIeri }) });
+      assert(rc.status === 409, 'una carta di ieri non più esposta: ' + rc.status);
     });
   } finally {
     for (const p of pages) await p.close().catch(() => {});

@@ -48,8 +48,8 @@ const isRpg = (n) => /^(dng_|nem_|arm_|fx_)/.test(n) || n === 'prop_sacco';
 const isCorse = (n) => n.startsWith('cs_');
 const isMobili = (n) => n.startsWith('mob_');
 const CLIPS = ['idle', 'walk', 'run', 'sit', 'row'];
-const DNG_MODULE = /^dng_(grotta|cripta|vuoto|drenaggio|archivio|fucina|mausoleo)_(pavimento|muro|muro_basso)$/;
-const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno', 'nem_astrolabio', 'nem_forgiatore', 'nem_custode_egida']);
+const DNG_MODULE = /^dng_(grotta|cripta|vuoto|drenaggio|archivio|fucina|mausoleo|diga)_(pavimento|muro|muro_basso)$/;
+const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno', 'nem_astrolabio', 'nem_forgiatore', 'nem_custode_egida', 'nem_vaelen']);
 // Corse: edifici, gru, faro e arco di roccia come gli edifici; prop e manichini come i prop (le teste sotto il minimo dei prop).
 const CORSE_GRANDI = /^cs_(casa_|gru_|faro|tribuna|arco_|g_tempio|g_cascata)/;
 // Corse (#178, Jack 9 ott: sull'isola si può andare oltre il budget del resto): veicoli fino a 1800 triangoli, animali piloti fino a 3000.
@@ -273,7 +273,7 @@ if (!noPreview) {
     [...L('segheria', 3), ...L('cava', 3)],
     [...L('magazzino', 3), ...L('casa', 3)],
     [...L('tavolo', 3), ...L('faro', 2)],
-    ['bld_cantiere', 'prop_deposito', 'mod_molo', 'prop_molo_l2', 'prop_molo_l3', 'prop_filo_lanterne'],
+    ['bld_cantiere', 'mod_molo', 'prop_filo_lanterne', null, null, null],
     ['bld_porto_casa_a', 'bld_porto_casa_b', 'bld_porto_casa_c', 'bld_porto_tavolo', 'prop_boa', 'prop_boa_next'],
     ['fac_neon', 'fac_selvaggia', 'prop_torii', 'prop_lanterna', null, null],
   ];

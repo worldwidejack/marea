@@ -21,7 +21,6 @@ import type { Rng } from '@marea/sim';
 import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
 import { encodeDungeon, packDungeon, quantizeDungeon } from '@marea/sim/dungeon/replay.ts';
 import type { DungeonInput } from '@marea/sim/dungeon/types.ts';
-import { pugni } from '@marea/sim/dungeon/hero.ts';
 import { stepTemplari, stepTemplariInsieme, templari } from '@marea/sim/templari/templari.ts';
 import type { TState } from '@marea/sim/templari/templari.ts';
 import { daiArma, miraTiro } from '@marea/sim/templari/eroe.ts';
@@ -34,13 +33,16 @@ import type { SqInput } from '@marea/protocol/templari_insieme.ts';
 import { createHeroActor } from '../rpg/dungeon_hero.ts';
 import { createMouse } from '../rpg/dungeon_mouse.ts';
 import type { Mouse } from '../rpg/dungeon_mouse.ts';
-import type { ArmaInMano, HeroActor } from '../rpg/dungeon_hero.ts';
+import type { HeroActor } from '../rpg/dungeon_hero.ts';
 import { INNO_SECONDI, musica, suona, tensione } from '../audio/ponte.ts';
 import type { SuonoId } from '../audio/ponte.ts';
 import { SUOLO } from '@marea/sim/templari/mappa.ts';
 import { PAL } from '../ui/style.ts';
 import { templariLink } from '../game/templari.ts';
 import { createScena } from './scena.ts';
+import { LEGGERO, createDipinto } from './dipinto.ts';
+import type { Dipinto } from './dipinto.ts';
+import { FLAGS } from '../flags.ts';
 import type { Scena } from './scena.ts';
 import { createZombi } from './zombi.ts';
 import type { Zombi } from './zombi.ts';
@@ -142,6 +144,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   let azionePrima = false, azioneGiu = false;
   /** Banco di prova: immortale, ondate ferme, zombie fermi (velocità di prima per id), rallentatore (un tick ogni 4 frame). */
   const bk = { immortale: false, ferme: false, fermi: false, lento: false, frame: 0, vel: new Map<number, number>() };
+  let dip: Dipinto | null = null, dipTasti: ((e: KeyboardEvent) => void) | null = null;
   let sc: Scena | null = null, hero: HeroActor | null = null, zombi: Zombi | null = null, hud: TplHud | null = null, ctl: Controlli | null = null, fx: Effetti | null = null, mouse: Mouse | null = null, mUltima = 0;
   let resolve!: (v: TemplariFine | { insieme: true } | null) => void;
   const done = new Promise<TemplariFine | { insieme: true } | null>((r) => (resolve = r));
@@ -149,6 +152,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   const pulisci = () => {
     fase = 'finita'; templariLink.state = null; templariLink.prova = null; tensione(0);
     if (inno) { clearTimeout(inno); inno = null; musica.set('auto'); } // la canzone segreta finisce con la partita
+    if (dipTasti) removeEventListener('keydown', dipTasti);
+    dip?.dispose();
     seg?.dispose(); banco?.dispose(); bott?.dispose(); pers?.dispose(); fuo?.dispose(); mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
     for (const a of amici) a.actor?.dispose();
     ctx.renderer.setScene(null);
@@ -185,6 +190,18 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     try {
       await ctx.loader.extend('manifest_rpg.json'); // modelli delle armi (kit GDR)
       sc = createScena(s.arena, ctx.renderer.camera);
+      // l'isola dipinta (dipinto.ts): prima di eroe e zombie, così si dipingono solo i pezzi fermi; il dipinto si carica più sotto
+      if (FLAGS.dipinto !== 'no') { const scena = sc; dip = createDipinto({ scene: sc.scene, gl: ctx.renderer.gl, arena: s.arena, setTaglia: (on) => scena.setTaglia(on) }); }
+      if (dip && FLAGS.dipinto === 'prova') { // prove: window.__dipinto (foto, vista…) e i tasti P (dipinto), L (ombre), K (cupo)
+        const d = dip; (window as unknown as { __dipinto?: Dipinto }).__dipinto = d;
+        let acceso = true, ombre = true, cupo = 1;
+        dipTasti = (e) => {
+          if (e.code === 'KeyP') { acceso = !acceso; d.setAcceso(acceso); ctx.hud.toast(acceso ? 'Dipinto acceso' : 'Dipinto spento', 900); }
+          if (e.code === 'KeyL') { ombre = !ombre; d.setOmbre(ombre); ctx.hud.toast(ombre ? 'Ombre accese' : 'Niente ombre', 900); }
+          if (e.code === 'KeyK') { cupo = (cupo + 1) % 3; d.setCupo(cupo); ctx.hud.toast(['Luce del gioco', 'Cupo', 'Molto cupo'][cupo]!, 900); }
+        };
+        addEventListener('keydown', dipTasti);
+      }
       hero = await createHeroActor({ loader: ctx.loader, look: rete?.membri[io]?.look ?? ctx.world.look, hero: { arma: armaVista(view.eroe.arma, chiaveArma(view).endsWith('+')), ...vestito(view.eroe.classe) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true, soloBusto: true });
       hero.avatar.setCappello(view.eroe.classe ? TESTA_TEMPLARI[view.eroe.classe] ?? null : null);
       zombi = createZombi(sc.scene);
@@ -207,6 +224,12 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: 0 });
       hero.tick(view.posa); zombi.tick(view); fx.tick(view);
       sc.setPorte(s.porte); sc.setCalice(s.fase !== 'altare');
+      // il dipinto (e le ombre, cotte con tutte le luci già in scena): si aspetta al massimo 5 s, poi si entra e arriva quando arriva
+      if (dip) {
+        const pronto = dip.carica(`/assets/templari/dipinto_isola${LEGGERO ? '_m' : ''}.webp`).catch((e: unknown) => console.warn('[marea] dipinto non caricato', e));
+        await Promise.race([pronto, new Promise((r) => setTimeout(r, 5000))]);
+        if ((fase as Fase) === 'finita') { pulisci(); return; }
+      }
       ctx.renderer.setScene(sc.scene);
       ctx.renderer.diorama.setZoom(innerWidth < innerHeight ? 1.3 : 1.05); // al telefono in verticale un po' più largo: si vedono le finestre
       ctx.renderer.diorama.follow(view.eroe.x, 0.9, view.eroe.z); ctx.renderer.diorama.snap?.();
@@ -653,7 +676,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     isola: { fuochi: view.fuochi.filter((f) => f.acceso).map((f) => f.id), pezzi: view.pezzi.filter((x) => x.preso).map((x) => x.id), campana: view.campana, disegno: fuo?.stats() ?? null, azioneTenuta: s.eroe.prevD },
     eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma, pozioni: view.eroe.pozioni, classe: view.eroe.classe, super: view.eroe.super, vestito: hero?.avatar.indossaStato()?.corpo ?? null }, zombie: view.zombie.length,
     uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: mUltima, act: s.eroe.act, mouse: mouse?.attivo ?? false, faccia: [s.eroe.fx, s.eroe.fz], yaw: ctx.renderer.diorama.yaw, eroeSchermo: schermo(s.eroe.x, s.eroe.z), zombiePos: s.zombie.filter((z) => z.st !== 'morto').slice(0, 6).map((z) => ({ x: z.x, z: z.z, schermo: schermo(z.x, z.z) })),
-    scena: sc?.stats() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
+    scena: sc?.stats() ?? null, dipinto: dip?.info() ?? null, attori: zombi?.counts() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: TEMPLARI.ondate.insieme,
     insieme: rete ? {
       io, eroi: s.eroi.length, turni: rete.turni.length, giu: ioGiu, firme: { ...firme }, ricollega: rete.ricollega, giri: rete.giri,

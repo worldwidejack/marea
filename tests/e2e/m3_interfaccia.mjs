@@ -15,7 +15,7 @@ const ANDROID = { width: 360, height: 740, deviceScaleFactor: 2, isMobile: true,
 
 /** Elementi fissi dell'interfaccia (selettori → nome leggibile). Ognuno conta solo se si vede. */
 const FISSI = [
-  ['#mzBar > *', 'risorsa'], ['#mzWork', 'cantiere'], ['#mzTop > *', 'bottone in alto'], ['#compass > *', 'bussola'], ['#mzMini', 'minimappa'],
+  ['#mzBar > *', 'risorsa'], ['#mzWork', 'cantiere'], ['#mzTop > *', 'bottone in alto'], ['#compass > *', 'bussola'], ['#mzMini', 'minimappa'], ['#mzMiniZoom > *', 'zoom minimappa'],
   ['#mzGuida', 'guida'], ['#btnA', 'A'], ['#btnB', 'B'], ['#joystick', 'joystick'], ['#mzPlay', 'GIOCA'], ['#mzPortoBtn', 'Porto'], ['#mzAmiciBtn', 'Record e Faro'], ['#mzPesca', 'PESCA'], ['#mzPerle', 'TUFFATI'],
 ];
 
@@ -108,7 +108,7 @@ export default async function (ctx) {
         const righe = await P.page.evaluate(() => [...document.querySelectorAll('#compass .mz-mete-row')].filter((r) => r.style.display !== 'none').map((r) => r.dataset.id ?? 'sez:' + r.dataset.sez));
         ctx.log(`${nome}: righe chiuse ${righe.join(', ')}`);
         assert(righe.length <= 6 && righe.includes('sez:porto') && righe.includes('sez:isole') && !righe.includes('mercante'), 'righe: ' + righe.join(','));
-        await controlla(P, `${nome}_isola`, ['risorsa', 'bussola', 'minimappa', 'guida', 'bottone in alto', ...(touch ? ['A', 'B', 'joystick'] : [])]);
+        await controlla(P, `${nome}_isola`, ['risorsa', 'bussola', 'minimappa', 'zoom minimappa', 'guida', 'bottone in alto', ...(touch ? ['A', 'B', 'joystick'] : [])]);
         await apriSezione(P, 'porto');
         await P.page.waitForFunction(() => document.querySelector('#compass [data-id="mercante"]')?.style.display === 'flex', null, { timeout: 5000 });
         const aperte = await P.page.evaluate(() => { const l = document.querySelector('#compass .mz-mete-list'); return { righe: [...l.querySelectorAll('.mz-mete-row')].filter((r) => r.style.display !== 'none').map((r) => r.dataset.id ?? 'sez:' + r.dataset.sez), scorre: l.scrollHeight > l.clientHeight + 2 }; });

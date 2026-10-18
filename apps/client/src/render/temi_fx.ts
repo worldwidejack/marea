@@ -142,7 +142,7 @@ function ghiacci(p: ArchPlace, map: GridMap, aperta: () => boolean, notte: () =>
   // aurora: tre tende a bande appena oltre la riva nord, basse (la camera guarda in giù: il cielo non entra mai nell'inquadratura,
   // così la tenda si vede sopra le scogliere di ghiaccio, contro il mare scuro), a scacchi
   const tex = scacchi(420, 40);
-  const cxI = (p.origin[0] + p.w / 2) * T, tende: THREE.BufferGeometry[] = [], x0 = p.origin[0] * T - 10, x1 = (p.origin[0] + p.w) * T + 40, zN = p.origin[1] * T - 2;
+  const tende: THREE.BufferGeometry[] = [], x0 = p.origin[0] * T - 10, x1 = (p.origin[0] + p.w) * T + 40, zN = p.origin[1] * T - 2;
   for (let k = 0; k < 3; k++) {
     const g = new THREE.PlaneGeometry(x1 - x0, 14, 32, 3).toNonIndexed(), pos = g.attributes.position!, col = new Float32Array(pos.count * 3), c = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {

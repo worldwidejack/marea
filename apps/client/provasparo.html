@@ -7,11 +7,11 @@
 <link rel="icon" href="data:," />
 <title>MAREA · sparatutto (banco di prova)</title>
 <style>
-  html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; margin: 0; height: 100%; background: #23201f; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+  html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; margin: 0; height: 100%; background: #23201f; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
   #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
   #ui { position: fixed; inset: 0; pointer-events: none; }
   #ui > * { pointer-events: auto; }
-  #ui > .sp-hud, #ui > .sp-inv { pointer-events: none; }
+  #ui > .sp-hud, #ui > .sp-inv, #ui > .sm-mark, #ui > .sm-sab, #ui > .sm-dan, #ui > .sm-pan { pointer-events: none; } /* scritte e segnalini non rubano il dito */
 </style>
 </head>
 <body>

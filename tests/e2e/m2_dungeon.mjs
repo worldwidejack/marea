@@ -91,9 +91,9 @@ export default async function (ctx) {
     });
     await ctx.shot(page, '1_ingresso_1280');
 
-    await ctx.test('Archivio, Fucina, Mausoleo e Vuoto: porte sigillate e cancello finché mancano i requisiti (niente ENTRA né AFFRONTA INSIEME); il server rifiuta', async () => {
+    await ctx.test('Archivio, Fucina, Mausoleo e Vuoto: porte sigillate e cancello finché mancano i requisiti (niente ENTRA né AFFRONTA INSIEME); il server rifiuta; la Diga è aperta', async () => {
       const s = await st();
-      assert(s.ingressi.sigillati.includes('archivio') && s.ingressi.sigillati.includes('fucina') && s.ingressi.sigillati.includes('mausoleo') && s.ingressi.sigillati.includes('vuoto') && !s.ingressi.sigillati.includes('drenaggio'), 'sigillati: ' + JSON.stringify(s.ingressi.sigillati));
+      assert(s.ingressi.sigillati.includes('archivio') && s.ingressi.sigillati.includes('fucina') && s.ingressi.sigillati.includes('mausoleo') && s.ingressi.sigillati.includes('vuoto') && !s.ingressi.sigillati.includes('diga') && !s.ingressi.sigillati.includes('drenaggio'), 'sigillati: ' + JSON.stringify(s.ingressi.sigillati));
       const a = s.ingressi.spots.find((x) => x.id === 'archivio');
       await hook('teleport', a.x, a.z + 3); await sleep(900);
       await ctx.waitState(page, (s) => s.ingressi.near === 'archivio', 5000);

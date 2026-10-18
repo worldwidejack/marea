@@ -25,6 +25,9 @@ body.mz-gp.mz-dito .mz-gp-gas, body.mz-gp #btnA, body.mz-gp #btnB, .mz-esito.kar
 
 /* ---- HUD: contenitore a tutto schermo, i pezzi messi dove stanno nell'immagine ---- */
 body.mz-kh .pp-hud { inset: 0; left: 0; top: 0; transform: none; display: block; gap: 0; color: #fff; font-size: calc(34 * var(--u)); }
+/* a tutto schermo ma mai bersaglio del dito: sennò copre lo stick e in gara non si sterza (17 ott, prova con gli amici).
+   !important perché «#ui > *» (index.html) rimette pointer-events: auto a ogni figlio di #ui e vince per specificità */
+body.mz-kh .pp-hud, body.mz-kh .pp-hud *, body.mz-kh .pp-big, body.mz-kh .pp-toast, body.mz-kh .pp-amici, body.mz-kh .pp-tag, body.mz-kh .pp-mappa { pointer-events: none !important; }
 body.mz-kh .pp-hud div { padding: 0; background: none; border: none; }
 body.mz-kh .pp-hud svg { display: block; width: 100%; height: 100%; }
 /* la posizione: «2°» giallo enorme col contorno blu notte, su una targa blu inclinata con la coda a scacchi */

@@ -1,5 +1,6 @@
 // Vista per il client (DungeonView), risultato (RunResult) e hash dello stato riassunto a fine partita. Vista e risultato sono quelli
 // dell'eroe di turno (`s.cur`); insieme la vista ha anche i compagni.
+import { evocazioneNemica } from './pvp.ts';
 import type { RunResult } from '../rpg/types.ts';
 import { hashJson } from '../hash.ts';
 import type { CompagnoView, DungeonView, EnemyAnim, HeroAnim } from './types.ts';
@@ -16,7 +17,7 @@ import { alto, schermato } from './muove.ts';
 import { inGetto, statoLava } from './fuoco.ts';
 import { lancettaDir } from './onde.ts';
 import { varchiDi } from './custode.ts';
-import { RPG } from '@marea/content/rpg.ts';
+import { scudoSu } from './vaelen.ts';
 import { secToTicks } from './state.ts';
 import { HZ } from './tuning.ts';
 import { paralizzato, rallentato, sanguinante, scaricaDi } from './perk.ts';
@@ -71,7 +72,7 @@ export function viewOf(s: DungeonState): DungeonView {
     },
     nemici: s.enemies.map((e) => {
       const a = enemyAnim(e);
-      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0 || sanguinante(s, e), boss: !!e.def.boss, ...(paralizzato(s, e) ? { paralizzato: true, stordito: true } : {}), ...(rallentato(s, e) ? { lento: true } : {}), ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e) };
+      return { id: e.id, tipo: e.tipo, model: e.def.model, x: e.x, z: e.z, fx: e.fx, fz: e.fz, anim: a.anim, t: a.t, vita: Math.max(0, e.vita), max: e.max, alleato: e.alleato, sanguina: e.bleedT > 0 || sanguinante(s, e), boss: !!e.def.boss, ...(paralizzato(s, e) ? { paralizzato: true, stordito: true } : {}), ...(rallentato(s, e) ? { lento: true } : {}), ...(e.capo ? { capo: true } : {}), ...(e.st === 'prepara' && e.area ? { area: areaRaggio(e.def) } : {}), ...(e.st === 'prepara' && e.tiro ? { tiro: true } : {}), ...archivio(s, e), ...mausoleo(s, e), ...diga(s, e), ...(evocazioneNemica(s, e) ? { avversario: true } : {}) };
     }),
     proiettili: s.proj.map((p) => ({ id: p.id, tipo: p.tipo, x: p.x, y: p.y, z: p.z, vx: p.vx, vz: p.vz, ...(p.mole ? { mole: p.mole } : {}), ...(p.elemento ? { el: p.elemento } : {}), ...(p.bomba ? { bomba: p.bomba, r: r2(p.raggio) } : {}) })),
     bottini: s.loot.map((l) => ({ id: l.id, x: l.x, z: l.z, tipo: l.tipo, vuoto: parte(s, l).vuoto })),
@@ -86,11 +87,12 @@ export function viewOf(s: DungeonState): DungeonView {
     venti: s.map.venti.map((v) => ({ n: v.n, dx: v.dx, dz: v.dz, ...statoVento(s, v) })),
     timoni: s.map.timoni.map((t) => ({ x: t.x, z: t.z, n: t.n, fermo: !!s.correnti.find((c) => c.n === t.n)?.ferma })),
     vicinoTimone: !s.done && s.map.timoni.length > 0 && timoneVicino(s) >= 0,
-    geyser: s.geyser.map((g) => ({ id: g.id, x: g.x, z: g.z, r: g.r, getto: g.t > g.avviso, t: g.t > g.avviso ? Math.min(1, (g.t - g.avviso) / g.getto) : Math.min(1, g.t / g.avviso), ...(g.spinta !== undefined ? { bomba: true } : {}), ...(g.magma ? { magma: true } : {}) })),
+    geyser: s.geyser.map((g) => ({ id: g.id, x: g.x, z: g.z, r: g.r, getto: g.t > g.avviso, t: g.t > g.avviso ? Math.min(1, (g.t - g.avviso) / g.getto) : Math.min(1, g.t / g.avviso), ...(g.spinta !== undefined ? { bomba: true } : {}), ...(g.magma ? { magma: true } : {}), ...(g.cannone ? { cannone: true } : {}) })),
     lave: s.map.lave.map((v) => ({ n: v.n, ...statoLava(s, v) })),
     fuochi: s.fuochi.map((f) => ({ id: f.id, x: f.x, z: f.z, r: f.r, t: Math.max(0, Math.min(1, 1 - (f.fine - s.tick) / f.durata)), ...(f.amico ? { amico: true } : {}) })),
     lancette: s.map.lancette.map((l) => { const [dx, dz] = lancettaDir(l, s.tick); return { n: l.n, x: l.x, z: l.z, dx, dz, lunga: l.lunga, largo: l.largo, giro: l.giro }; }),
     onde: s.onde.map((o) => ({ id: o.id, x: o.x, z: o.z, r: o.r, max: o.max, spessore: o.spessore, varchi: o.varchi.map(([x, z]): [number, number] => [x, z]), barriera: !!o.barriera })),
+    piloni: s.map.piloni.map((p, k) => ({ x: p.x, z: p.z, rotto: !!s.piloni[k] })),
     ...(s.map.sarcofago ? { sarcofago: { x: s.map.sarcofago.x, z: s.map.sarcofago.z, aperto: s.enemies.some((e) => e.capo && e.st === 'morto') } } : {}),
     zaino: { peso: r2(pesoZaino(s)), max: rh.caricoMax, monete: s.monete, bottino: { ...s.bottino } },
     eventi: s.eventi,
@@ -130,7 +132,7 @@ const mausoleoMappa = (s: DungeonState): boolean => s.map.lancette.length > 0 ||
 function mausoleo(s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][number]> {
   const d = e.def, o: Partial<DungeonView['nemici'][number]> = {};
   if (e.potT !== undefined && e.potT > s.tick && e.st !== 'morto') o.potenziato = true;
-  if (e.rotto !== undefined && e.rotto > s.tick) o.rotto = true;
+  if (e.rotto !== undefined && e.rotto > s.tick && !(d.scudo?.perso && e.st !== 'recupera')) o.rotto = true; // il portello perso: barcolla solo all'inizio
   if (e.stordito !== undefined && e.stordito > s.tick) o.stordito = true;
   if (d.cura && e.modo === 'cura' && e.st === 'prepara') {
     o.attacco = 'cura';
@@ -146,6 +148,29 @@ function mausoleo(s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][numb
   }
   return o;
 }
+/** Diga dei Disertori: la Guardia della Paratia (la corsia della schiacciata, il portello perso), il Fuciliere (la linea di mira, gialla
+ *  quando si blocca), il Capitano Vaelen (fase, attacco in corso, la corsia dell'affondo o la freccia della carica, lo scudo della salva). */
+function diga(s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][number]> {
+  const d = e.def, o: Partial<DungeonView['nemici'][number]> = {}, m = e.mira;
+  const fine = (largo: number): [number, number, number] => [r2(e.x + m!.dx * m!.len), r2(e.z + m!.dz * m!.len), largo];
+  if (d.schiacciata) {
+    if (e.st === 'prepara' && e.modo === 'schiacciata' && m) { o.attacco = 'schiacciata'; o.corsia = fine(d.schiacciata.largo); }
+    if (d.scudo?.perso && e.rotto !== undefined) o.senza = true;
+  }
+  if (d.fucile && e.modo === 'fucile' && e.st === 'prepara' && m) {
+    o.attacco = 'fucile'; o.mira = [r2(e.x + m.dx * m.len), r2(e.z + m.dz * m.len)];
+    if (e.stT >= e.stDur - secToTicks(d.fucile.blocca)) o.fisso = true;
+  }
+  const V = d.vaelen;
+  if (V) {
+    o.fase = e.fase ?? 0;
+    if (e.modo && (e.st === 'prepara' || e.st === 'colpisce' || e.st === 'recupera')) o.attacco = e.modo;
+    if (m && e.st === 'prepara' && (e.modo === 'affondo' || e.modo === 'carica')) o.corsia = fine(e.modo === 'affondo' ? V.affondo.largo : V.carica.largo);
+    if (e.modo === 'carica' && e.st === 'prepara' && e.stT >= e.stDur - secToTicks(V.carica.blocca)) o.fisso = true; // la freccia non ti segue più
+    if (scudoSu(e)) o.scudo = true;
+  }
+  return o;
+}
 /** Perk Scarica (secondi di ricarica) e Carica massima (progresso verso il colpo letale): niente chiavi senza il perk. */
 function perkVista(s: DungeonState): { scarica?: number; massima?: number } {
   const P = s.runHero.perk, h = s.hero, o: { scarica?: number; massima?: number } = {};
@@ -154,7 +179,7 @@ function perkVista(s: DungeonState): { scarica?: number; massima?: number } {
   return o;
 }
 /** Il raggio acceso dell'eroe di turno (niente chiave se è spento). */
-function canaleVista(s: DungeonState): { canale?: { len: number; el?: 'fuoco' | 'elettricita' } } {
+function canaleVista(s: DungeonState): { canale?: { len: number; el?: import('@marea/content/rpg.ts').SpellElement } } {
   const h = s.hero;
   return h.canale > 0 ? { canale: { len: r2(h.canaleLen), ...(h.canaleEl ? { el: h.canaleEl } : {}) } } : {};
 }
@@ -170,6 +195,7 @@ function unici(s: DungeonState): Partial<DungeonView['hero']> {
   if (t.lame) o.carico = { tipo: 'pressione', n: s.tick - h.ultimoAttacco >= Math.round(t.lame.ricarica * HZ) ? t.lame.cariche : h.pressione, max: t.lame.cariche };
   else if (t.ritmo) o.carico = { tipo: 'ritmo', n: h.ritmo, max: t.ritmo.colpi, ...(h.tic >= s.tick ? { tic: r2((h.tic - s.tick) / HZ) } : {}) };
   else if (t.carillon) o.carico = { tipo: 'molla', n: h.molla, max: t.carillon.colpi };
+  else if (t.poppa) o.carico = { tipo: 'brezza', n: h.brezza, max: t.poppa.cariche };
   return o;
 }
 
@@ -210,6 +236,8 @@ function acqueHash(s: DungeonState): Record<string, unknown> {
   // Fucina: chiazze di fuoco, chi brucia, il Mastro spento
   if (fucina(s)) o['fucina'] = [s.fuochi.map((f) => [f.id, f.fine]), s.eroi.map((r) => r.hero.brucia), s.enemies.filter((e) => e.spento).map((e) => e.id)];
   // Mausoleo: onde in corsa, fasi del Custode, barriere e contatori degli unici
+  // Diga: piloni fracassati, rottami e Brezza degli eroi
+  if (s.map.piloni.length || s.def.rottami) o['diga'] = [s.piloni.map((b) => (b ? 1 : 0)), s.eroi.map((r) => [r.hero.rottT, r.hero.brezza, r3(r.hero.brezzaM)])];
   if (mausoleoMappa(s)) o['mausoleo'] = [s.onde.map((x) => [x.id, r3(x.r), x.colpiti.length]), s.enemies.filter((e) => e.fase || e.colpiB).map((e) => [e.id, e.fase ?? 0, e.colpiB ?? 0]), s.eroi.map((r) => [r3(r.hero.barr), r.hero.pressione, r.hero.ritmo, r.hero.molla])];
   return o;
 }
@@ -225,6 +253,8 @@ function parteHash(s: DungeonState): Record<string, unknown> {
     // v5: zaino ed equipaggiamento cambiati dal menu, lanterna di partenza e di uscita
     zaino: [s.stato ? Object.keys(s.equip).sort().map((k) => [k, s.equip[k as keyof typeof s.equip]]) : null, roundBag(s.buttati), roundBag(s.rotti), s.hero.arma.id],
     lanterne: [s.partenza, s.uscitaLanterna],
+    // Vento in Poppa (l'Albero della «Stella del Mattino»): la Brezza, solo con quell'arma in mano (l'hash degli altri resta quello di sempre)
+    ...(h.arma.traits.poppa ? { brezza: [h.brezza, r3(h.brezzaM)] } : {}),
   };
 }
 

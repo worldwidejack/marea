@@ -18,7 +18,7 @@ import { chiaveObj, colori, coperchio, farfalla, sarcofagoObj } from './mausoleo
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cil = (r0: number, r1: number, h: number, s = 8) => new THREE.CylinderGeometry(r0, r1, h, s);
 const steps = (v: number, n: number) => Math.floor(Math.max(0, Math.min(1, v)) * n) / n;
-const SEG = 48, MAXO = 6, ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
+const SEG = 48, MAXO = 6;
 const CUORE = [PAL.acqua, PAL.pietraChiara, PAL.giallo] as const;
 
 export type MausoleoFx = {

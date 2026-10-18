@@ -110,21 +110,30 @@ function arrowsOf(h: HeroState, m: Mods): RunArrows | null {
   return { id: it.id, n: h.inv[it.id] ?? 0, danno: r2((it.danno ?? 0) * k), gittata: it.gittata ?? 0, gravita: it.gravita ?? materialOf(it)?.frecce.gravita ?? 9.8, traits };
 }
 
-function spellsOf(h: HeroState, m: Mods): RunSpell[] {
+function hasEvocazionePerk(h: HeroState): boolean {
+  for (const id of h.perk) if (PERK_BY_ID.get(id)?.skill === 'evocazione') return true;
+  return false;
+}
+
+function spellsOf(h: HeroState, m: Mods, maxMagicka: number): RunSpell[] {
   const out: RunSpell[] = [];
+  const evPerk = hasEvocazionePerk(h);
   for (const id of h.magie) {
     let s;
     try { s = spellDef(id); } catch { continue; }
     const dist = s.scuola === 'distruzione';
-    const costo = Math.max(1, Math.round(s.costo * clamp(1 + mod(m, dist ? 'costoDistruzione' : 'costoEvocazione'), 0.2, 3)));
+    const rawCosto = Math.max(1, Math.round(s.costo * clamp(1 + mod(m, dist ? 'costoDistruzione' : 'costoEvocazione'), 0.2, 3)));
+    // Con almeno un perk di Evocazione le evocazioni più costose si possono sempre lanciare consumando anche tutta la Magicka disponibile
+    const costo = s.evoca && evPerk ? Math.min(rawCosto, Math.max(1, maxMagicka)) : rawCosto;
     const k = 1 + mod(m, 'dannoDistruzione') + skillBonus(h, 'distruzione', dannoPerLv());
-    const mole = dist && mod(m, 'raggioMagia') > 0 ? 1 + mod(m, 'raggioMagia') : 0; // Grandi Magie
+    const mole = mod(m, 'raggioMagia') > 0 ? 1 + mod(m, 'raggioMagia') : 0; // Grandi Magie
     out.push({
-      ...(mole ? { mole } : {}), ...(s.elemento ? { elemento: s.elemento } : {}),
-      id: s.id, scuola: s.scuola, costo, ricarica: s.ricarica, danno: dist ? r2((s.danno ?? 0) * k) : 0, velocita: s.velocita ?? 0, raggio: r2((s.raggio ?? 0) * (mole || 1)),
+      ...(mole && (dist || s.cura || s.furia) ? { mole } : {}), ...(s.elemento ? { elemento: s.elemento } : {}),
+      id: s.id, scuola: s.scuola, costo, ricarica: s.ricarica, danno: dist ? r2((s.danno ?? 0) * k) : 0, velocita: s.velocita ?? 0, raggio: r2((s.raggio ?? 0) * ((dist || s.cura || s.furia ? mole : 0) || 1)),
       sanguina: s.sanguina ?? 0, evoca: s.evoca ?? null, durata: s.evoca ? r2((s.durata ?? 0) * (1 + mod(m, 'durataEvocazione'))) : 0,
       ...(s.forma ? { forma: s.forma } : {}), ...(s.gittata ? { gittata: s.gittata } : {}), ...(s.larghezza ? { larghezza: s.larghezza } : {}),
       ...(s.volo ? { volo: s.volo } : {}), ...(s.rallenta ? { rallenta: { ...s.rallenta } } : {}),
+      ...(s.cura ? { cura: s.cura } : {}), ...(s.furia ? { furia: { ...s.furia } } : {}),
     });
   }
   return out;
@@ -175,10 +184,13 @@ function perkOf(h: HeroState, m: Mods): RunPerk | undefined {
   return Object.keys(p).length ? p : undefined;
 }
 
-/** RunHero: camminata, corsa, arma.tempo e arma.carica SENZA il malus dell'armatura e senza velocitaMolt: li applica la sim del dungeon da `armatura`. */
-export function buildRunHero(h: HeroState): RunHero {
+/** RunHero: camminata, corsa, arma.tempo e arma.carica SENZA il malus dell'armatura e senza velocitaMolt: li applica la sim del dungeon da `armatura`.
+ *  `o.arena`: normalizza Vita, Magicka e Stamina a 100 di base (docs/ARENA.md Step 1) e scala i danni tra giocatori evitando i one-shot. */
+export function buildRunHero(h: HeroState, o?: { arena?: boolean }): RunHero {
+  const arena = !!o?.arena;
+  const A = RPG.arena ?? { attributi: { vita: 100, magicka: 100, stamina: 100 }, dannoMolt: 0.45, dannoMax: 92, caricaMassimaMolt: 1.35 };
   const m = modsOf(h);
-  const max = maxOf(h, m);
+  const max = arena ? { ...A.attributi } : maxOf(h, m);
   const R = RPG.attributi.regen;
   const regen = {
     vita: r2(R.vita * Math.max(0, 1 + mod(m, 'regenVita'))),
@@ -187,7 +199,15 @@ export function buildRunHero(h: HeroState): RunHero {
   };
   const { leggera, ...armatura } = armorOf(h, m, max.stamina);
   const mv = RPG.movimento;
-  const magie = spellsOf(h, m);
+  const kd = arena ? A.dannoMolt : 1;
+  const capDanno = (d: number): number => arena ? Math.min(A.dannoMax, r2(d * kd)) : d;
+  const w0 = weaponOf(h, m, leggera);
+  // In Arena né un colpo normale né un caricato devono mai superare dannoMax (92 su 100 di vita): ci si può avvicinare ma mai one-shot
+  const wDanno = arena ? Math.min(capDanno(w0.danno), r2(A.dannoMax / Math.max(1, w0.caricaMolt))) : w0.danno;
+  const arma: RunWeapon = arena ? { ...w0, danno: wDanno } : w0;
+  const f0 = arrowsOf(h, m);
+  const frecce: RunArrows | null = f0 && arena ? { ...f0, danno: capDanno(f0.danno) } : f0;
+  const magie = spellsOf(h, m, max.magicka).map((s) => arena && s.danno > 0 ? { ...s, danno: capDanno(s.danno) } : s);
   const pozioni = potionsOf(h, m);
   const mi = h.equip.magia ? magie.findIndex((s) => s.id === h.equip.magia) : -1;
   const pi = h.equip.pozione ? pozioni.findIndex((p) => p.id === h.equip.pozione) : -1;
@@ -197,16 +217,20 @@ export function buildRunHero(h: HeroState): RunHero {
   const perk = perkOf(h, m);
   const eco = [equipped(h, 'anello1'), equipped(h, 'anello2')].find((it) => it?.traits?.eco)?.traits?.eco;
   return {
+    ...(arena ? { arena: true } : {}),
     ...(eco ? { eco: { ...eco } } : {}),
     livello: h.livello, max, regen,
     camminata: mv.camminata, corsa: r2(mv.corsa * (1 + mod(m, 'velocitaCorsa'))),
     staminaCorsa: r2(mv.staminaCorsa * clamp(1 + mod(m, 'staminaCorsa'), 0.1, 3)), mentreCarichi: mv.mentreCarichi, raggio: mv.raggio,
-    arma: weaponOf(h, m, leggera), frecce: arrowsOf(h, m), armatura,
+    arma, frecce, armatura,
     magie, magia: mi >= 0 ? mi : null, ...(mi >= 0 && h.equip.mano === 'magia' ? { manoMagia: true } : {}), pozioni, pozione: pi >= 0 ? pi : null,
     skill, carico: carriedOf(h), caricoMax: caricoMaxOf(h, m), pesi: { ...PESI },
     ...(perk ? { perk } : {}),
   };
 }
+
+/** Fotografia del personaggio normalizzata per l'Arena PvP (100/100/100 e danni calibrati contro i one-shot). */
+export function buildArenaHero(h: HeroState): RunHero { return buildRunHero(h, { arena: true }); }
 
 /** Capienza del Forziere (kg) dal livello dell'edificio (0 = non costruito). */
 export function forziereCap(level: number): number { return level >= 1 ? RPG.forziere[Math.min(level, RPG.forziere.length) - 1] ?? 0 : 0; }

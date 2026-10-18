@@ -40,7 +40,7 @@ export type IslandDef = {
 };
 export type IslandStyle = 'lotto' | 'porto' | 'laguna' | 'neon' | 'selvaggia' | TemaStyle;
 /** Isole a tema (#68, GDD §3): stile della resa = id del tema. */
-export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'templari' | 'corse' | 'adrenalina';
+export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'templari' | 'corse' | 'adrenalina' | 'arena';
 export type IslandSlot = { at: [number, number]; kind: string; rot?: number };
 export type IslandProp = { k: string; at: [number, number]; rot?: number };
 export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna' | 'tema' | 'negozio'; // negozio: il dentro del negozio dei mobili (#265), oltre il mare
@@ -64,12 +64,19 @@ export type ArchipelagoIsland = { island: string; at: [number, number]; role: Ar
 /** Il mondo continuo (CONTRACTS §11): isole di islands.json posate su una griglia w×h di celle da `tile` m; il resto è acqua profonda. */
 /** `mare` = [w, h] in celle della parte navigabile (dall'angolo in alto a sinistra): oltre stanno i giardini delle case (#237), la barca non ci va. */
 export type ArchipelagoDef = { id: string; nome: string; w: number; h: number; tile: number; mare?: [number, number]; islands: ArchipelagoIsland[] };
+/** Una scala della casa (#386): sta sulla cella `cell` della stanza `stanza` (da quando la casa è al livello `da`), si prende camminandoci sopra e porta nella stanza `a`, alla cella `arrivo`. */
+export type CasaScala = { stanza: 'terra' | 'cantina' | 'piano'; verso: 'giu' | 'su'; cell: [number, number]; a: 'terra' | 'cantina' | 'piano'; arrivo: [number, number]; da: number };
+export type CasaLivello = { id: string; nome: string; desc: string; stanza: 'terra' | 'cantina' | 'piano'; pavimento: [number, number, number, number]; costo: { legno: number; pietra: number; perle: number } };
 /** Borgo Marea (#237): la casa `n` = lo slot `n` (= il lotto/giardino `n`). `at` = cella dell'edificio, `porta` = cella della via davanti, entrambe nel template `borgo`. */
 export type BorgoDef = {
   nome: string; case: { at: [number, number]; porta: [number, number] }[];
   /** La stanza della casa nel template `lotto` (#240): pavimento [x0, z0, x1, z1) in celle, altezza dei muri in m, porta in fondo (`retro`),
    *  passaggio del giardino (`giardino`) e corridoio d'ingresso sotto il pavimento (#265: colonna x, righe [z0, z1); in fondo si esce in città). */
   stanza: { pavimento: [number, number, number, number]; altezza: number; retro: [number, number]; giardino: [number, number]; corridoio: [number, number, number] };
+  /** Gli ampliamenti della casa (#386), uno alla volta e in ordine (livello 1 = il primo): `stanza` = quale stanza cambia ('terra' = quella di sempre,
+   *  poi 'cantina' e 'piano'), `pavimento` = il suo nuovo rettangolo [x0, z0, x1, z1) (contiene quello di prima), `costo` = Legno, Pietra e Perle
+   *  (Legno e Pietra non oltre 1500, il tetto del Magazzino L3, se no non si pagano mai). Il rettangolo sta tutto dentro la pianta del template `lotto`. */
+  casa: { livelli: CasaLivello[]; scale: CasaScala[] };
   /** Il negozio dei mobili (#265): in città (celle del template porto) e dentro (template `negozio`). */
   negozio: { at: [number, number]; porta: [number, number]; rot: number };
   negozioDentro: { pavimento: [number, number, number, number]; corridoio: [number, number, number]; altezza: number; finitura: { pavimento: string; carta: string } };
@@ -77,12 +84,12 @@ export type BorgoDef = {
   pavimenti: StanzaFinitura[]; carte: StanzaFinitura[];
 };
 /** `perle`: prezzo al negozio dei mobili (#265); assente o 0 = di serie, di tutti. */
-export type StanzaFinitura = { id: string; nome: string; motivo: string; colori: string[]; perle?: number };
+export type StanzaFinitura = { id: string; nome: string; motivo?: string; colori: string[]; perle?: number };
 /** Un mobile della casa (#265, mobili.json): `posto` terra (celle del pavimento) o parete (una cella di muro), `forma` = render/mobili.ts (assente: scatola di ripiego).
  * `categoria` = una di MOBILI_CATEGORIE (catalogo del negozio); `celle` = ingombro a terra [larghezza, profondità] in celle (default [1,1], a parete sempre 1);
- * `altezza` (m) serve solo alla scatola di ripiego; `vetrina` = sta anche in mostra sulle pedane del negozio (max 3 a terra). Il modello 3D è `mob_<id>` in manifest_mobili.json.
+ * `altezza` (m) serve solo alla scatola di ripiego. Ogni mobile può finire nella vetrina del giorno (economy/vetrina.ts). Il modello 3D è `mob_<id>` in manifest_mobili.json.
  * Nome e descrizione del gioco: `nome` qui, descrizione in mobili_testi.json (caricata solo da negozio e ARREDA, non pesa sull'avvio). */
-export type MobileDef = { id: string; nome: string; categoria: string; perle: number; posto: 'terra' | 'parete'; forma?: string; colori: string[]; celle?: [number, number]; altezza?: number; vetrina?: boolean };
+export type MobileDef = { id: string; nome: string; categoria: string; perle: number; posto: 'terra' | 'parete'; forma?: string; colori: string[]; celle?: [number, number]; altezza?: number };
 /** `mercante`: esclusivo del Mercante delle Perle al Porto (#63): nell'editor si vede ma si compra solo da lui. */
 export type HatDef = { id: string; nome: string; perle: number; mercante?: boolean };
 export type DecorDef = { id: string; nome: string; perle: number; model: string; mercante?: boolean };

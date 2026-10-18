@@ -11,13 +11,16 @@
 - **Visite con permessi**, ed eventuali attacchi o interazioni competitive tra isole (prima stava tra i «Mai»).
 - **Oggetti e equipaggiamento che passano da un'isola all'altra**, con una lore comune.
 
+## Da confermare con Jack
+- **Isola dell'Arena** (Riccardo, 17 ott 2026, #373, `docs/ARENA.md`): PvP alla Brawl Stars con le armi, le magie e le pozioni dei dungeon, duello 1v1 al meglio di 3 nel colosseo. È già giocabile (isola a `[238, 256]`, aperta a tutti); non è nella tabella dei format di `VISIONE.md`: Jack dice se resta un'isola a sé o se va legata a un'isola-format.
+
 ## Format piaciuti a Jack, parcheggiati (16 ott 2026, brainstorming del prossimo format)
 - **Isola dello sport**: calcio, basket, golf (idea già nata nel gruppo).
-- **Difesa del Porto** alla Plants vs Zombies (la Difesa scelta il 9 ott): i pirati maledetti arrivano dal mare per corsie, la marea sposta il campo.
+- ~~**Difesa del Porto** alla Plants vs Zombies~~ → ripresa da Jack il 16 ott (#358): banco `provadifesa.html`, `docs/DIFESA.md`. L'idea della marea che sposta il campo resta una variante da provare dopo.
 - **Carte della Marea** alla Pokémon TCG Pocket / Clash Royale: carte di tutto MAREA, bustine vinte negli altri format, sfide ai capitani.
 - **Cucina del Porto** alla Overcooked: livelli da 3 minuti, una cucina per isola, ingredienti dagli altri format; in 4 il caos.
 
-## Dopo dicembre 2026
+## Più avanti
 - Corse, gara tra amici: **urti e oggetti anche tra amici** (Jack, 12 ott 2026: «tanto comunque bisognerà implementare gli oggetti tra amici»). Oggi gli amici sono fantasmi: serve una soluzione di rete (l'urto o il colpo li decide chi colpisce e li manda agli altri). Prima gli urti veri coi bot.
 - Battaglia carte/unità in tempo reale (Clash Royale-like): netcode a bassa latenza, bot, bilanciamento. Unica ragione per il piano Paid di Cloudflare.
 - Puzzle leggero con i moduli dell'isola (tubi/tessere).
@@ -36,7 +39,7 @@
 - Missioni della Bacheca con «visita un'isola» o «fai un giro in barca»: servirebbe una prova lato server della posizione (oggi la posizione è del client).
 - ~~Barche per giocatore~~ fatto l'8 ott 2026 (#6, #107): la barca di ognuno al molo della sua isola, la tua si scansa se uno scafo la tocca. Resta: la barca degli amici a piedi lontano da casa si vede a casa, non dove l'hanno lasciata (servirebbe la posizione della barca nel `pos`).
 - Caricamento a due tempi dei modelli: all'avvio solo L1 e ciò che serve al proprio lotto; L2/L3, Porto e facciate dopo (oggi 1,53 MB iniziali su 2).
-- Bordo del mondo: la barca può uscire dalla mappa (mare infinito). Un muro morbido o una corrente che riporta indietro.
+- ~~Bordo del mondo~~ fatto (#5): una corrente morbida riporta la barca verso le isole (GDD §3, CONTRACTS).
 - Test `m1_isola`: usare l'orologio di test di M1-server (`X-Test-Now-Offset` con `--var TEST_CLOCK:1`) invece di aspettare 3 minuti veri.
 - ~~Runner dei test: processi wrangler orfani dopo un timeout~~ fatto l'8 ott 2026 (#8).
 - ~~Regata sulla laguna~~ fatto in Fetta 2 (v3).

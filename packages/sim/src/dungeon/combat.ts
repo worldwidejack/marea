@@ -1,8 +1,9 @@
 // Danni: eroe → nemico (arma × tratti − armatura), nemico → eroe (difesa/(difesa+k) e moltiplicatori per tipo), morte e bottino.
 import { RPG } from '@marea/content/rpg.ts';
 import type { SkillId, Traits } from '@marea/content/rpg.ts';
+import type { RunArmor } from '../rpg/types.ts';
 import type { DungeonState, Enemy } from './state.ts';
-import { add, ev, nuovoBottino, secToTicks } from './state.ts';
+import { add, conEroe, ev, nuovoBottino, secToTicks } from './state.ts';
 import { rollLoot } from './loot.ts';
 import { moveCircle } from './map.ts';
 import { risveglio } from './altari.ts';
@@ -10,14 +11,22 @@ import { grigliaDi, schermato } from './muove.ts';
 import { spingi } from './vento.ts';
 import { scarica } from './custode.ts';
 import { barriera } from './unici.ts';
+import { chino, sbilancia, scudoSu } from './vaelen.ts';
+import { evocazioneNemica } from './pvp.ts';
 import { BOSS_RALLENTA, COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 
-/** Somma dei buff attivi per una chiave (pozioni). */
+const DANNO_MODS = new Set(['dannoLeggere', 'dannoPesanti', 'dannoArco', 'dannoDistruzione']);
+const VEL_MODS = new Set(['velocitaLeggere', 'velocitaPesanti', 'tensioneArco', 'velocitaCorsa', 'caricaVeloce']);
+
+/** Somma dei buff attivi per una chiave (pozioni e Furia). */
 export function buff(s: DungeonState, mod: string): number {
   let v = 0;
-  for (const b of s.hero.buffs) if (b.mod === mod) v += b.valore;
+  const isDanno = DANNO_MODS.has(mod), isVel = VEL_MODS.has(mod);
+  for (const b of s.hero.buffs) {
+    if (b.mod === mod || (isDanno && b.mod === 'furiaDanno') || (isVel && b.mod === 'furiaVel')) v += b.valore;
+  }
   return v;
 }
 
@@ -36,6 +45,9 @@ export type HitSrc = {
   letale?: boolean;
   /** Magie elettriche: il nemico colpito va a `molt` della velocità per `secondi` s. */
   rallenta?: { molt: number; secondi: number };
+  /** Vento in Poppa (l'onda d'urto del caricato con la Brezza piena): sfonda ogni scudo (Sentinella, Guardia della Paratia, la salva del
+   *  Capitano) e passa lo scafandro del Palombaro come un colpo normale. */
+  sfonda?: boolean;
 };
 
 /** Elettriche: il nemico cammina e attacca a `molt` della velocità per `secondi` s. Stessa macchina del Taglio Critico (perk.ts: lentoT, lentoMolt,
@@ -59,7 +71,7 @@ export function dannoSu(e: Enemy, src: HitSrc): number {
 
 /** Applica un colpo dell'eroe (o di un alleato) a un nemico: danno, sanguinamento, spinta, aggro, morte. Ritorna il danno. */
 export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
-  if (e.st === 'morto' || e.alleato) return 0;
+  if (e.st === 'morto' || (e.alleato && !evocazioneNemica(s, e))) return 0; // in Arena anche le evocazioni avversarie
   // Archivio: l'Astrolabio con gli anelli-scudo ancora interi non prende danni
   if (e.def.astrolabio && schermato(s, e)) { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z) }); return 0; }
   // Fucina: il Mastro Forgiatore acceso non prende danni; lo scafandro del Golem-Palombaro para da davanti, da dietro (le valvole) fa di più
@@ -67,15 +79,27 @@ export function hitEnemy(s: DungeonState, e: Enemy, src: HitSrc): number {
   // Mausoleo: il Custode che cambia cuore non prende danni
   if (e.def.custode && e.modo === 'cambio') { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'cuore' }); return 0; }
   let retro = 1;
+  // Diga, il Capitano Vaelen: mentre spezza le catene non prende danni; lo scudo della salva para da davanti (un caricato da davanti o
+  // l'onda d'urto del Vento in Poppa lo sfondano e la salva finisce); chino sulla lancia, alle spalle la catena prende di più
+  const V = e.def.vaelen;
+  if (V && e.modo === 'cambio') { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'catene' }); return 0; }
+  if (V && src.ox !== undefined && src.oz !== undefined && (scudoSu(e) || chino(e))) {
+    const ax = src.ox - e.x, az = src.oz - e.z, l = Math.sqrt(ax * ax + az * az), k = l > 1e-6 ? (ax * e.fx + az * e.fz) / l : 0;
+    if (scudoSu(e) && k >= V.salva.scudo) {
+      if ((src.caricato && src.mischia) || src.sfonda) sbilancia(s, e);
+      else { ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: 'scudo' }); return 0; }
+    } else if (chino(e) && k <= RETRO_SCAFANDRO) retro = V.spazzata.retro;
+  }
   // lo scafandro del Golem-Palombaro e lo scudo della Sentinella dell'Egida (finché non è sfondato) parano da davanti
   const scudo = e.def.scudo && !(e.rotto !== undefined && e.rotto > s.tick) ? e.def.scudo : undefined, sc = e.def.scafandro ?? scudo;
   if (sc && src.ox !== undefined && src.oz !== undefined) {
     const ax = src.ox - e.x, az = src.oz - e.z, l = Math.sqrt(ax * ax + az * az), k = l > 1e-6 ? (ax * e.fx + az * e.fz) / l : 0;
-    if (k >= sc.cono && scudo && src.caricato && src.mischia) {
-      // il caricato sfonda lo scudo: la Sentinella barcolla, senza scudo, e il colpo passa
-      e.rotto = s.tick + secToTicks(scudo.rotto); e.st = 'recupera'; e.stT = 0; e.stDur = secToTicks(scudo.rotto); e.area = false; e.tiro = false; e.comboN = 0;
+    if (k >= sc.cono && scudo && ((src.caricato && src.mischia) || src.sfonda)) {
+      // il caricato sfonda lo scudo: la Sentinella barcolla, senza scudo, e il colpo passa (il portello della Guardia della Paratia va in
+      // frantumi per sempre)
+      e.rotto = scudo.perso ? Number.MAX_SAFE_INTEGER : s.tick + secToTicks(scudo.rotto); e.st = 'recupera'; e.stT = 0; e.stDur = secToTicks(scudo.rotto); e.area = false; e.tiro = false; e.comboN = 0;
       ev(s, { t: 'sfondato', x: r2(e.x), z: r2(e.z) });
-    } else if (k >= sc.cono) {
+    } else if (k >= sc.cono && !src.sfonda) {
       ev(s, { t: 'parato', x: r2(e.x), z: r2(e.z), perche: scudo ? 'scudo' : 'scafandro' });
       // lo scudo a energia cinetica respinge chi lo colpisce di lama
       if (scudo && src.mischia && !src.daAlleato && l > 1e-6) spingi(s, ax / l, az / l, scudo.spinta, 0.25);
@@ -150,7 +174,8 @@ export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: numbe
   const k = RPG.armatura?.k ?? 100;
   const tipo = kind === 'magia' ? a.vsMagia : kind === 'contundente' ? a.vsContundente : a.vsTaglio;
   const resist = kind === 'magia' ? Math.min(0.9, buff(s, 'resistMagia')) : 0;
-  const d = Math.max(DANNO_MIN, danno * (1 - difesa / (difesa + k)) * tipo * (1 - resist));
+  const raw = Math.max(DANNO_MIN, danno * (1 - difesa / (difesa + k)) * tipo * (1 - resist));
+  const d = s.runHero.arena ? Math.min(RPG.arena?.dannoMax ?? 92, raw) : raw;
   h.vita -= d;
   h.hurt = COLPITO_TICKS;
   s.danniPresi += d;
@@ -162,6 +187,39 @@ export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: numbe
   }
   if (h.vita <= 0) caduto(s);
   return true;
+}
+
+/** Danno calibrato PvP (Arena, docs/ARENA.md): tiene conto dell'armatura del difensore (con `penetra`), resistenze e Carica massima,
+ *  ed è limitato a `RPG.arena.dannoMax` (< 100) così nessun singolo colpo può mai fare one-shot a chi ha 100 di Vita. */
+export function dannoPvp(difensore: RunArmor, src: HitSrc, difBuff = 0, resBuff = 0): number {
+  const k = RPG.armatura?.k ?? 100;
+  const difesa = Math.max(0, (difensore.difesa + difBuff) * (1 - (src.traits.penetra ?? 0)));
+  const kind: HurtKind = src.magico ? 'magia' : src.traits.sbilancia ? 'contundente' : 'taglio';
+  const tipo = kind === 'magia' ? difensore.vsMagia : kind === 'contundente' ? difensore.vsContundente : difensore.vsTaglio;
+  const resist = kind === 'magia' ? Math.min(0.9, resBuff) : 0;
+  const letaleMolt = src.letale ? RPG.arena?.caricaMassimaMolt ?? 1.35 : 1;
+  const d = src.danno * letaleMolt * (1 - difesa / (difesa + k)) * tipo * (1 - resist);
+  const dMax = RPG.arena?.dannoMax ?? 92;
+  return r2(Math.min(dMax, Math.max(DANNO_MIN, d)));
+}
+
+/** Applica un colpo PvP all'eroe `bersaglioIdx` (Arena): rispetta protezione e Barriera Cinetica, e non può mai uccidere in un colpo chi ha 100 di Vita. */
+export function hitHeroPvp(s: DungeonState, bersaglioIdx: number, src: HitSrc): number {
+  const b = s.eroi[bersaglioIdx];
+  if (!b || b.done || b.hero.protetto > 0) return 0;
+  return conEroe(s, bersaglioIdx, () => {
+    const h = s.hero, a = s.runHero.armatura;
+    if (a.barriera && barriera(s)) return 0;
+    h.ritmo = 0;
+    const d = dannoPvp(a, src, buff(s, 'difesa'), buff(s, 'resistMagia'));
+    h.vita -= d;
+    h.hurt = COLPITO_TICKS;
+    s.danniPresi += d;
+    ev(s, { t: 'colpo', x: r2(h.x), z: r2(h.z), danno: Math.round(d), su: 'eroe', ...(src.caricato ? { caricato: true } : {}) });
+    if (src.rallenta) { h.lento = Math.max(h.lento, secToTicks(src.rallenta.secondi)); h.lentoMolt = Math.min(h.lento > 0 ? h.lentoMolt : 1, src.rallenta.molt); }
+    if (h.vita <= 0) caduto(s);
+    return d;
+  });
 }
 
 /** L'eroe di turno è a terra: si risveglia all'ultimo altare salvato, se no la spedizione finisce (morto). */

@@ -74,7 +74,7 @@ export function stepGeyser(s: DungeonState): void {
   for (const g of s.geyser) {
     g.t++;
     if (g.t === g.avviso + 1) {
-      ev(s, { t: g.magma ? 'magma' : g.spinta !== undefined ? 'bomba' : 'geyser', x: r2(g.x), z: r2(g.z) });
+      ev(s, { t: g.magma ? 'magma' : g.cannone ? 'cannonata' : g.spinta !== undefined ? 'bomba' : 'geyser', x: r2(g.x), z: r2(g.z) });
       // Fucina: la palla di magma lascia una pozza che brucia
       if (g.magma) fuocoA(s, g.x, g.z, g.magma.raggio, g.magma.durata, g.magma.dps, g.magma.secondi);
     }

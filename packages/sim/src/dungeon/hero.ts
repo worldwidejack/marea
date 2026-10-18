@@ -18,9 +18,10 @@ import { consuma, rebuild } from './zaino.ts';
 import { apriValvola, valvolaVicina } from './acque.ts';
 import { giraTimone, timoneVicino } from './vento.ts';
 import { alto } from './muove.ts';
-import { canale, fermaCanale, lanciaBomba } from './magie.ts';
-import { caricaBarriera, eco, fineColpo, inizioColpo, molla, moltRitmo, stepUnici, stordisci } from './unici.ts';
+import { aimAlleato, canale, fermaCanale, isSupporto, lanciaBomba } from './magie.ts';
+import { caricaBarriera, caricaBrezza, eco, fineColpo, inizioColpo, inizioPoppa, molla, moltCaricaPoppa, moltRitmo, spintaPoppa, stepUnici, stordisci } from './unici.ts';
 import { curaCompagni, lamaAria, scaricaDi, statiCaricato, terremoto, veleno } from './perk.ts';
+import { aimEroi, colpisciEroe, eroiNemici, evocazioneNemica, ostile, separaEroi } from './pvp.ts';
 
 /** Pugni quando l'arma si rompe: da RPG.pugni (balance.json), ripiego in tuning. */
 export function pugni(): RunWeapon {
@@ -29,16 +30,18 @@ export function pugni(): RunWeapon {
   return { id: null, kind: 'pugni', skill: 'armiLeggere', classe: null, danno: p.danno, tempo: p.tempo, portata: p.portata, carica: p.carica, caricaMolt: p.caricaMolt, gittata: 0, traits: {} };
 }
 
-const ostili = (s: DungeonState): Enemy[] => s.enemies.filter((e) => !e.alleato && e.st !== 'morto');
+/** I bersagli dell'eroe di turno: i nemici vivi e, in Arena, le evocazioni avversarie (gli eroi avversari a parte: pvp.ts). */
+const ostili = (s: DungeonState): Enemy[] => s.enemies.filter((e) => ostile(s, e));
 export const malusDi = (s: DungeonState): number => Math.max(0, Math.min(0.95, s.runHero.armatura.malus - buff(s, 'malusArmatura')));
 export function vicinoUscita(s: DungeonState): boolean {
+  if (s.pvp) return false; // in Arena non si esce dalla scala
   const dx = s.map.exit.x - s.hero.x, dz = s.map.exit.z - s.hero.z;
   return dx * dx + dz * dz <= RAGGIO_USCITA * RAGGIO_USCITA;
 }
 
 /** Mira assistita: nemico più vicino entro `range` nel cono (coseno `cosMin`) davanti, altrimenti il più vicino entro `fallback`.
  *  In mischia (`vista` false) non conta chi vola alto (Archivio): la lama non ci arriva. */
-export function aim(s: DungeonState, range: number, cosMin: number, fallback: number, vista: boolean): Enemy | null {
+export function aim(s: DungeonState, range: number, cosMin: number, fallback: number, vista: boolean): { x: number; z: number } | null {
   const h = s.hero;
   let best: Enemy | null = null, bd = Infinity, near: Enemy | null = null, nd = Infinity;
   for (const e of ostili(s)) {
@@ -49,9 +52,16 @@ export function aim(s: DungeonState, range: number, cosMin: number, fallback: nu
     if (reach <= range && dot >= cosMin && d < bd) { bd = d; best = e; }
     if (reach <= fallback && d < nd) { nd = d; near = e; }
   }
+  // Arena: anche gli eroi avversari (vince il più vicino tra tutti)
+  if (s.pvp) {
+    const p = aimEroi(s, range, cosMin, fallback, vista);
+    if (p.best && p.best.d < bd) return p.best;
+    if (best) return best;
+    if (p.near && p.near.d < nd) return p.near;
+  }
   return best ?? near;
 }
-function faceTo(s: DungeonState, e: Enemy | null): void {
+function faceTo(s: DungeonState, e: { x: number; z: number } | null): void {
   if (!e) return;
   const h = s.hero, dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
   if (d > 1e-6) { h.fx = dx / d; h.fz = dz / d; }
@@ -75,6 +85,7 @@ function startSwing(s: DungeonState, caricato: boolean): void {
   h.caricato = caricato; h.colpiti = []; h.colpito = false; h.carica = 0;
   h.massimo = caricato && h.massimo; h.massimaP = 0; // Carica massima: il colpo che parte è quello letale solo se la carica era arrivata in fondo
   inizioColpo(s, caricato); // Mausoleo: lame del Fendiflutti, ritmo della Grande Lancetta
+  inizioPoppa(s, caricato); // Diga: il Vento in Poppa dell'Albero della «Stella del Mattino»
   if (caricato && s.runHero.perk?.aria) lamaAria(s); // Lama d'aria
 }
 
@@ -85,7 +96,7 @@ function sweepSwing(s: DungeonState): void {
   const k = swept(h.stile, h.actT / h.actDur), fatto = k * COLPI[h.stile].arco;
   if (k > 0) {
     const mod = a.classe === 'pesante' ? 'dannoPesanti' : 'dannoLeggere';
-    const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod)) * moltRitmo(s);
+    const danno = a.danno * (h.caricato ? a.caricaMolt : 1) * (1 + buff(s, mod)) * moltRitmo(s) * (h.poppa ? 1 + (a.traits.poppa?.danno ?? 0) : 1);
     for (const e of ostili(s)) {
       if (h.colpiti.includes(e.id) || alto(s, e)) continue; // chi vola alto: la lama gli passa sotto
       const dx = e.x - h.x, dz = e.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
@@ -94,10 +105,21 @@ function sweepSwing(s: DungeonState): void {
       h.colpiti.push(e.id);
       // spinta e direzione del colpo: dove va la lama (nel giro, via dall'eroe)
       const dirX = h.stile === 'giro' && d > 1e-6 ? dx / d : h.fx, dirZ = h.stile === 'giro' && d > 1e-6 ? dz / d : h.fz;
-      const preso = hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}) });
+      const preso = hitEnemy(s, e, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}), ...(h.poppa ? { sfonda: true } : {}) });
+      if (h.poppa) spintaPoppa(s, e, dirX, dirZ); // Vento in Poppa: l'onda d'urto respinge (anche chi ha parato)
       if (preso > 0 && rh.perk) { if (h.caricato) statiCaricato(s, e); else veleno(s, e); } // Taglio Critico (sanguina e rallenta), Colpo fatale (paralizza); Lame avvelenate sui colpi normali
       // Mausoleo: il Rintocco stordisce, l'Eco della Marea fa l'onda attorno a chi hai preso
       if (preso > 0) { stordisci(s, e); if (rh.eco) eco(s, e, danno); }
+    }
+    // Arena: la lama prende anche gli avversari (una volta per swing: in `colpiti` come -1 - indice)
+    for (const j of eroiNemici(s)) {
+      if (h.colpiti.includes(-1 - j)) continue;
+      const o = s.eroi[j]!, r = o.runHero.raggio, dx = o.hero.x - h.x, dz = o.hero.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
+      if (d > a.portata + r) continue;
+      if (sweepTo(h.stile, h.fx, h.fz, dx, dz, r, d <= r + rh.raggio) > fatto) continue;
+      h.colpiti.push(-1 - j);
+      const dirX = h.stile === 'giro' && d > 1e-6 ? dx / d : h.fx, dirZ = h.stile === 'giro' && d > 1e-6 ? dz / d : h.fz;
+      colpisciEroe(s, j, { danno, traits: a.traits, magico: false, skill: a.skill as SkillId, caricato: h.caricato, dirX, dirZ, daAlleato: false, ox: h.x, oz: h.z, mischia: true, ...(h.massimo ? { letale: true } : {}) });
     }
   }
   if (k < 1) return;
@@ -177,8 +199,9 @@ function cast(s: DungeonState, dir: Mira): void {
     add(s.xp, 'evocazione', sp.costo * (RPG.xp.evocazioneLancio ?? 0));
     return;
   }
-  if (sp.forma === 'bomba') { // lenta, in alto: atterra sul nemico che hai davanti e scoppia (magie.ts)
-    if (!dir) faceTo(s, aim(s, sp.gittata ?? MAGIA_GITTATA, COS_BOMBA, 0, true));
+  if (sp.forma === 'bomba') { // lenta, in alto: atterra sul nemico (o alleato, se di supporto) che hai davanti e scoppia (magie.ts)
+    const g = sp.gittata ?? MAGIA_GITTATA;
+    if (!dir) faceTo(s, isSupporto(sp) ? aimAlleato(s, g, COS_BOMBA, g * 0.5) : aim(s, g, COS_BOMBA, 0, true));
     lanciaBomba(s, sp);
     return;
   }
@@ -234,7 +257,7 @@ export function beviNow(s: DungeonState, id: string): DungeonEvent[] | null {
   return [{ t: 'pozione', id }];
 }
 
-function applyPotion(s: DungeonState, p: RunPotion): void {
+export function applyPotion(s: DungeonState, p: RunPotion): void {
   const h = s.hero, rh = s.runHero;
   consuma(s, p.id, s.usati);
   if (p.cura.vita) { h.vita = Math.min(rh.max.vita, h.vita + p.cura.vita); curaCompagni(s, p.cura.vita); } // Medico da campo
@@ -295,7 +318,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       break;
     case 'press':
       if (!inp.a) startSwing(s, false);
-      else if (h.actT >= HOLD_TICKS) { h.act = 'carica'; h.actT = 0; h.actDur = secToTicks(a.carica * (1 + malusDi(s)) / (1 + buff(s, 'caricaVeloce'))); h.carica = 0; }
+      else if (h.actT >= HOLD_TICKS) { h.act = 'carica'; h.actT = 0; h.actDur = secToTicks((a.carica * (1 + malusDi(s)) * moltCaricaPoppa(s)) / (1 + buff(s, 'caricaVeloce'))); h.carica = 0; }
       break;
     case 'carica':
       h.carica = Math.min(1, h.actT / h.actDur);
@@ -308,7 +331,7 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       break;
     case 'swing':
       if (!h.colpito) sweepSwing(s);
-      if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; fineColpo(s); }
+      if (h.actT >= h.actDur) { h.act = 'idle'; h.actT = 0; h.poppa = false; fineColpo(s); }
       break;
     case 'tende': {
       h.carica = Math.min(1, h.actT / h.actDur);
@@ -322,8 +345,9 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
       faceDir(s, dir); // col mouse l'eroe segue il cursore finché si mira
       const sp = magiaPronta(s);
       if (sp?.forma === 'raggio') {
-        // raggio continuo: finché tieni A resta acceso (costa Magicka al secondo) e si aggancia al nemico davanti; rilasci o finisci la Magicka e si spegne
-        if (inp.a && !dir) faceTo(s, aim(s, sp.gittata ?? 5, COS_RAGGIO, (sp.gittata ?? 5) * 0.5, true));
+        // raggio continuo: finché tieni A resta acceso (costa Magicka al secondo) e si aggancia al nemico (o alleato, se di supporto) davanti; rilasci o finisci la Magicka e si spegne
+        const g = sp.gittata ?? 5;
+        if (inp.a && !dir) faceTo(s, isSupporto(sp) ? aimAlleato(s, g, COS_RAGGIO, g * 0.5) : aim(s, g, COS_RAGGIO, g * 0.5, true));
         if (!inp.a || !canale(s, sp)) { fermaCanale(s, sp); h.act = 'idle'; h.actT = 0; }
       } else if (!inp.a) { h.act = 'idle'; h.actT = 0; cast(s, dir); }
       break;
@@ -341,24 +365,27 @@ export function stepHero(s: DungeonState, inp: DungeonInput): void {
   const arcoLibero = !!rh.perk?.arcoMobile && h.act === 'tende';
   const lento = !arcoLibero && h.act !== 'idle' && h.act !== 'tira' && h.act !== 'lancia';
   h.running = h.moving && inp.b && !lento && !arcoLibero && h.stamina > 0;
-  let v = h.running ? rh.corsa * (1 + buff(s, 'velocitaCorsa')) : rh.camminata;
+  let v = h.running ? rh.corsa * (1 + buff(s, 'velocitaCorsa')) : rh.camminata * (1 + buff(s, 'furiaVel'));
   if (h.running) h.stamina = Math.max(0, h.stamina - rh.staminaCorsa * DT);
   if (lento) v *= rh.mentreCarichi;
   if (h.lento > 0) v *= h.lentoMolt; // Tubo-strisciante
   v *= (1 - malusDi(s)) * rh.armatura.velocitaMolt;
+  const x0 = h.x, z0 = h.z;
   if (h.moving) {
     moveCircle(s.map, h, mx * v * DT, my * v * DT, rh.raggio);
     if (h.act !== 'swing' && h.act !== 'tira' && h.act !== 'lancia' && !arcoLibero && h.canale === 0 && !(dir && (h.act === 'tende' || h.act === 'punta'))) { h.fx = mx / mag; h.fz = my / mag; }
   }
   caricaBarriera(s); // Mausoleo: l'Armatura del Moto Perpetuo si carica camminando
+  caricaBrezza(s, x0, z0); // Diga: correndo la vela dell'Albero della «Stella del Mattino» si gonfia
   // i nemici sono solidi: l'eroe non li attraversa
   for (const e of s.enemies) {
-    if (e.st === 'morto' || e.alleato || e.def.muove === 'vola') continue; // chi vola passa sopra
+    if (e.st === 'morto' || (e.alleato && !evocazioneNemica(s, e)) || e.def.muove === 'vola') continue; // chi vola passa sopra
     const dx = h.x - e.x, dz = h.z - e.z, d2 = dx * dx + dz * dz, rr = rh.raggio + e.def.raggio;
     if (d2 >= rr * rr || d2 < 1e-12) continue;
     const d = Math.sqrt(d2), k = (rr - d) / d;
     moveCircle(s.map, h, dx * k, dz * k, rh.raggio);
   }
+  separaEroi(s); // Arena: nemmeno l'avversario si attraversa
   // rigenerazione (la stamina non torna mentre corri o tendi un arco che la consuma)
   h.vita = Math.min(rh.max.vita, h.vita + (rh.regen.vita + buff(s, 'regenVita')) * DT);
   h.magicka = Math.min(rh.max.magicka, h.magicka + (rh.regen.magicka + buff(s, 'regenMagicka')) * DT);

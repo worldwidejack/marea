@@ -89,7 +89,11 @@ export type LotState = {
   liberatorie?: string[];
   /** La casa arredabile (#265, economy/casa.ts): magazzino dei mobili, mobili posati, pavimenti e carte. Assente = stanza vuota di serie. */
   casa?: CasaState;
+  /** Arena PvP (docs/ARENA.md, arena/premio.ts): duello aperto, monete prese oggi (giorno UTC), partite vinte, perse e pari. Assente = mai giocato. */
+  arena?: ArenaLotto;
 };
+/** Il duello aperto dal DO Arena (`run`, questo giocatore è l'eroe `idx`), monete del premio prese oggi e statistiche. */
+export type ArenaLotto = { pending: { run: string; idx: number; startMs: number } | null; giorno: number; preso: number; vinte: number; perse: number; pari: number };
 /** Partita a ondate aperta dal server (seed e opzioni da rigiocare), premio del giorno e migliori risultati. `party` = insieme: la partita
  *  `run` del DO TemplariInsieme, dove questo giocatore è l'eroe `idx` (l'esito viene dal log della squadra). */
 export type TemplariLotto = {
@@ -130,7 +134,6 @@ export type Challenge = {
 };
 
 export const ZERO: Resources = { legno: 0, pietra: 0, perle: 0 };
-export const RES_KEYS = ['legno', 'pietra', 'perle'] as const;
 export const add = (a: Resources, b: Resources): Resources => ({ legno: a.legno + b.legno, pietra: a.pietra + b.pietra, perle: a.perle + b.perle });
 export const sub = (a: Resources, b: Resources): Resources => ({ legno: a.legno - b.legno, pietra: a.pietra - b.pietra, perle: a.perle - b.perle });
 export const scale = (a: Resources, k: number): Resources => ({ legno: Math.floor(a.legno * k), pietra: Math.floor(a.pietra * k), perle: Math.floor(a.perle * k) });

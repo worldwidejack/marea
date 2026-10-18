@@ -15,6 +15,8 @@
 // Mausoleo: forme in codice di rpg/mausoleo.ts; chi è potenziato da un Chierico brilla d'oro a scatti, la Sentinella con lo scudo sfondato
 // barcolla e lampeggia rossa, chi è stordito dal Rintocco ondeggia; il Custode che cambia cuore lampeggia bianco e nella nebbia, mentre
 // prepara lo scatto, sbiadisce. Lame d'acqua in volo (della Guardia, del Custode e del Fendiflutti).
+// Diga: forme in codice di rpg/diga.ts; la Guardia della Paratia perde il portello (`senza`), il Fuciliere si inginocchia mentre mira,
+// l'Albatros vola alto e atterra dopo il barile; palle di moschetto in volo.
 import * as THREE from 'three';
 import { ENEMIES } from '@marea/content/rpg.ts';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
@@ -27,6 +29,7 @@ import { formaNemico } from './drenaggio.ts';
 import { formaNemico as formaArchivio, giriAstrolabio } from './archivio.ts';
 import { formaNemico as formaFucina } from './fucina.ts';
 import { formaNemico as formaMausoleo } from './mausoleo.ts';
+import { formaNemico as formaDiga } from './diga.ts';
 import type { Arco } from './arco.ts';
 
 type NemV = DungeonView['nemici'][number] & { area?: number };
@@ -70,7 +73,7 @@ const steps = (v: number, n: number) => Math.floor(Math.max(0, Math.min(1, v)) *
 const ARCIERI = new Set(ENEMIES.filter((d) => d.comportamento === 'arciere' && !d.arpione).map((d) => d.id));
 /** Archivio: chi vola e quanto sta alto quando vola alto (quando scende sta a BASSO). */
 const VOLA = new Set(ENEMIES.filter((d) => d.muove === 'vola').map((d) => d.id));
-const ALTO: Record<string, number> = { nem_aerostato: 1.7, nem_astrolabio: 1.2, nem_anello: 1.4 }, BASSO = 0.35, SU_GRATA = 1.0;
+const ALTO: Record<string, number> = { nem_aerostato: 1.7, nem_astrolabio: 1.2, nem_anello: 1.4, nem_albatros: 1.8 }, BASSO = 0.35, SU_GRATA = 1.0;
 const FUOCO = new THREE.Color(PAL.arancio), AZZURRO = new THREE.Color(PAL.acquaBassa), NERO = new THREE.Color(0, 0, 0), ORO = new THREE.Color(PAL.giallo);
 /** Impugnatura dell'arco (spazio della radice del nemico, −Z avanti): a riposo nella mano sinistra lungo il fianco; in mira davanti
  *  all'altezza delle spalle, col corpo girato di fianco (la sinistra verso il bersaglio). */
@@ -107,11 +110,11 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         body.add(m); e.arco = { obj: m, a: armaArco(m, o.loader, true, 2.6) };
       });
     }
-    void object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? formaFucina(n.model) ?? formaMausoleo(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
+    void object(o.loader, n.model, () => formaNemico(n.model) ?? formaArchivio(n.model) ?? formaFucina(n.model) ?? formaMausoleo(n.model) ?? formaDiga(n.model) ?? boxes(FALLBACK[n.model] ?? FALLBACK['nem_bandito']!)).then((m) => {
       body.add(m);
       if (n.model === 'nem_astrolabio') for (const g of giriAstrolabio()) { m.add(g); e.giri.push(g); } // anelli che girano (anche sul modello vero)
       e.mats = materialsOf(m);
-      if (n.alleato) for (const x of e.mats) { x.color.lerp(NEON, 0.6); x.transparent = true; x.opacity = 0.85; }
+      if (n.alleato) for (const x of e.mats) { x.color.lerp(n.avversario ? RED : NEON, 0.6); x.transparent = true; x.opacity = 0.85; } // Arena: quelle dell'avversario rosse
       e.base = e.mats.map((x) => x.emissive.clone());
       const box = new THREE.Box3().setFromObject(m); e.height = (box.max.y - box.min.y) * (n.boss ? 1.2 : 1) + 0.3;
       e.ready = true;
@@ -130,15 +133,20 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
     };
     return object(o.loader, name, () => boxes(fb[name]!));
   }
-  function projObj(tipo: string, el?: 'fuoco' | 'elettricita', bomba = false): Promise<THREE.Object3D> {
+  function projObj(tipo: string, el?: 'fuoco' | 'elettricita' | 'cura' | 'furia', bomba = false): Promise<THREE.Object3D> {
     if (tipo === 'freccia' || tipo === 'freccia_nemica') return frecciaInVolo(o.loader, tipo === 'freccia_nemica');
     if (tipo === 'arpione_nemico') return Promise.resolve(boxes([[0.06, 0.06, 0.9, 0, 0, 0.15, PAL.legno], [0.16, 0.16, 0.28, 0, 0, -0.42, PAL.pietraChiara], [0.3, 0.05, 0.05, 0, 0, -0.3, PAL.pietra]]));
     if (tipo === 'vento_nemico') return Promise.resolve(boxes([[0.7, 0.08, 0.3, 0, 0, 0, PAL.sabbiaChiara], [0.5, 0.06, 0.22, 0, 0, 0.22, PAL.acquaBassa], [0.3, 0.05, 0.15, 0, 0, 0.42, PAL.acqua]], true));
     if (tipo === 'lama_nemica' || tipo === 'lama') return Promise.resolve(boxes([[0.9, 0.06, 0.18, 0, 0, 0, PAL.acquaBassa], [0.6, 0.04, 0.1, 0, 0, 0.12, PAL.acqua], [0.3, 0.03, 0.06, 0, 0, 0.24, PAL.sabbiaChiara]], true));
+    if (tipo === 'palla_nemica') return Promise.resolve(boxes([[0.2, 0.2, 0.2, 0, 0, 0, PAL.neroCaldo], [0.07, 0.07, 0.9, 0, 0, 0.5, PAL.sabbiaChiara], [0.12, 0.12, 0.3, 0, 0, 0.2, PAL.pietra]], true)); // palla di moschetto con la scia
     if (tipo === 'acqua_nemica') return Promise.resolve(boxes([[0.32, 0.32, 0.5, 0, 0, 0, PAL.acquaBassa], [0.2, 0.2, 0.5, 0, 0, 0.22, PAL.acqua], [0.12, 0.12, 0.3, 0, 0, 0.5, PAL.sabbiaChiara]], true));
-    // bombe: una palla grossa che ruota (rossa e arancio, o gialla e azzurra), tonda come il low-poly consente
+    // bombe: una palla grossa che ruota (rossa e arancio, gialla e azzurra, verde per la cura, arancio/rosa per la furia), tonda come il low-poly consente
     if (tipo === 'magia' && bomba) return Promise.resolve(boxes(el === 'elettricita'
       ? [[0.5, 0.5, 0.5, 0, 0, 0, PAL.giallo], [0.36, 0.36, 0.64, 0, 0, 0, PAL.acquaBassa], [0.64, 0.36, 0.36, 0, 0, 0, PAL.acquaBassa]]
+      : el === 'cura'
+      ? [[0.5, 0.5, 0.5, 0, 0, 0, PAL.erba], [0.36, 0.36, 0.64, 0, 0, 0, PAL.erbaChiara], [0.64, 0.36, 0.36, 0, 0, 0, PAL.acquaBassa]]
+      : el === 'furia'
+      ? [[0.5, 0.5, 0.5, 0, 0, 0, PAL.arancio], [0.36, 0.36, 0.64, 0, 0, 0, PAL.rosaNeon], [0.64, 0.36, 0.36, 0, 0, 0, PAL.giallo]]
       : [[0.5, 0.5, 0.5, 0, 0, 0, PAL.rosso], [0.36, 0.36, 0.64, 0, 0, 0, PAL.arancio], [0.64, 0.36, 0.36, 0, 0, 0, PAL.giallo]], true));
     // proiettile elettrico: un lampo lungo e sottile, giallo col cuore azzurro
     if (tipo === 'magia' && el === 'elettricita') return Promise.resolve(boxes([[0.16, 0.16, 1.0, 0, 0, 0, PAL.giallo], [0.08, 0.08, 1.3, 0, 0, 0, PAL.acquaBassa], [0.34, 0.06, 0.4, 0, 0, 0.1, PAL.giallo]], true));
@@ -256,6 +264,9 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         if (n.rotto) { b.rotation.z = 0.15 * (Math.floor(t * 6) % 2 ? 1 : -1); b.rotation.x = -0.2; glowC = RED; glow = Math.floor(t * 8) % 2 ? 0.5 : 0.1; }
         if (n.stordito) b.rotation.z = 0.2 * (Math.floor(t * 5 + e.id) % 4 - 1.5) / 1.5;
         if (n.attacco === 'cambio') { glowC = WHITE; glow = Math.floor(t * 10) % 2 ? 0.8 : 0.2; }
+        // Diga: il Fuciliere mira in ginocchio, fermo (niente inclinazione all'indietro); la Guardia della Paratia senza il portello
+        if (n.attacco === 'fucile') { b.rotation.x = 0; b.position.z = 0; b.position.y -= 0.3; }
+        if (n.model === 'nem_guardiano') { const p = b.getObjectByName('portello'); if (p) p.visible = !n.senza; }
         if (e.arco) {
           const yaw = b.rotation.y, a = e.arco.obj;
           a.position.lerpVectors(ARCO_GIU, ARCO_SU, su).applyAxisAngle(YA, -yaw); // nello spazio del corpo, che è girato di yaw
@@ -269,7 +280,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
         if (n.spento !== e.spento) { e.spento = !!n.spento; for (const m of e.mats) if (/_brace$|emissiv/.test(m.name)) m.color.setScalar(e.spento ? 0.22 : 1); }
         e.mats.forEach((m, i) => {
           if (glowC) m.emissive.copy(glowC).multiplyScalar(glow); else m.emissive.copy(e.base[i]!);
-          if (n.alleato) m.emissive.lerp(NEON, 0.35);
+          if (n.alleato) m.emissive.lerp(n.avversario ? RED : NEON, 0.35);
           const op = (n.alleato ? 0.85 : 1) * fade * (n.attacco === 'scatto' && n.anim === 'prepara' ? 0.35 : 1); // nella nebbia sbiadisce
           if (op < 1 !== m.transparent) { m.transparent = op < 1; m.needsUpdate = true; }
           m.opacity = op;
@@ -289,7 +300,7 @@ export function createActors(o: { loader: Loader; scene: DungeonScene }): Actors
       for (const e of enemies.values()) {
         const n = e.v;
         if (!e.root.visible || n.anim === 'morto' || (n.vita >= n.max && !n.capo) || !e.ready) continue;
-        out.push({ id: e.id, pos: e.root.position.clone().setY(fy + e.height + e.alt), frac: n.vita / n.max, ally: n.alleato, boss: n.boss, capo: !!n.capo });
+        out.push({ id: e.id, pos: e.root.position.clone().setY(fy + e.height + e.alt), frac: n.vita / n.max, ally: n.alleato && !n.avversario, boss: n.boss, capo: !!n.capo });
       }
       return out;
     },

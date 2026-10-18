@@ -64,17 +64,13 @@ export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;
 export const BORGO = borgo as unknown as BorgoDef; // Borgo Marea (#237): una casa per slot
 export const MOBILI = (mobili as unknown as { mobili: MobileDef[] }).mobili as readonly MobileDef[]; // Mobili della casa (#265)
+/** Quanti mobili espone il negozio ogni giorno: a terra (pedane) e a parete (muro). Il pool è tutto mobili.json (economy/vetrina.ts). */
+export const MOBILI_VETRINA = (mobili as unknown as { vetrina: { terra: number; parete: number; carte: number; pavimenti: number } }).vetrina;
 /** Le categorie del catalogo del negozio dei mobili (ordine = ordine delle schede). Un mobile ha esattamente una di queste in `categoria`. */
 export const MOBILI_CATEGORIE = (mobili as unknown as { categorie: { id: string; nome: string }[] }).categorie as readonly { id: string; nome: string }[];
 export const SCACCHI = scacchi as unknown as ScacchiCfg;
 export const RIENTRO = rientro as unknown as RientroCfg; // Mentre eri via e libro degli ospiti (#86)
 export const METEO = meteo as unknown as MeteoCfg;
-
-export function decorDef(id: string): DecorDef {
-  const d = DECOR.find((x) => x.id === id);
-  if (!d) throw new Error(`Decorazione sconosciuta: ${id}`);
-  return d;
-}
 
 export function building(id: string): BuildingDef {
   const b = BUILDINGS.find((x) => x.id === id);
@@ -122,6 +118,28 @@ function validateBorgo(): string[] {
     const [cx, c0, c1] = st.corridoio;
     if (c0 !== z1 || cx < x0 || cx >= x1) errs.push('borgo: il corridoio parte dal bordo davanti della stanza');
     for (let z = c0; z < c1; z++) if (!'.P'.includes(lt.rows[z]?.[cx] ?? '~')) errs.push(`borgo: il corridoio ha una cella non camminabile in ${cx},${z}`);
+    // gli ampliamenti della casa (#386): ogni stanza cresce senza perdere celle e sta sul pavimento del template; il piano terra tiene il bordo davanti e il corridoio
+    const att = new Map<string, readonly number[]>([['terra', st.pavimento]]), idl = new Set<string>();
+    for (const [n, l] of BORGO.casa.livelli.entries()) {
+      const r = l.pavimento, prima = att.get(l.stanza), k = l.costo;
+      if (idl.has(l.id)) errs.push(`borgo: casa.livelli ${l.id} doppio`);
+      idl.add(l.id);
+      if (!['terra', 'cantina', 'piano'].includes(l.stanza)) errs.push(`borgo: casa.livelli[${n}] ha una stanza sconosciuta (${l.stanza})`);
+      if (![k.legno, k.pietra, k.perle].every((v) => Number.isInteger(v) && v > 0) || k.legno > 1500 || k.pietra > 1500) errs.push(`borgo: casa.livelli[${n}] ha un costo non valido (interi > 0, Legno e Pietra fino a 1500)`);
+      if (prima && (r[0] > prima[0]! || r[1] > prima[1]! || r[2] < prima[2]! || r[3] < prima[3]! || r.every((v, i) => v === prima[i]))) errs.push(`borgo: casa.livelli[${n}] deve contenere e superare la stanza di prima`);
+      for (let z = r[1]; z < r[3]; z++) for (let x = r[0]; x < r[2]; x++) if (!'.LP'.includes(lt.rows[z]?.[x] ?? '~')) errs.push(`borgo: casa.livelli[${n}] ha una cella non di pavimento in ${x},${z}`);
+      if (l.stanza === 'terra' && (r[3] !== z1 || r[0] > cx || r[2] <= cx)) errs.push(`borgo: casa.livelli[${n}]: il piano terra tiene il bordo davanti e il corridoio`);
+      att.set(l.stanza, r);
+    }
+    // le scale (#386): ognuna sta in una stanza che a quel livello c'è e porta in una cella dell'altra stanza, anch'essa già c'è
+    const rettA = (id: string, liv: number): readonly number[] | null => { let r: readonly number[] | null = id === 'terra' ? st.pavimento : null; for (const l of BORGO.casa.livelli.slice(0, liv)) if (l.stanza === id) r = l.pavimento; return r; };
+    const dentroR = (r: readonly number[] | null, c: readonly number[]) => !!r && c[0]! >= r[0]! && c[0]! < r[2]! && c[1]! >= r[1]! && c[1]! < r[3]!;
+    for (const [n, s] of BORGO.casa.scale.entries()) {
+      if (!dentroR(rettA(s.stanza, s.da), s.cell)) errs.push(`borgo: casa.scale[${n}] sta fuori dalla stanza ${s.stanza} al livello ${s.da}`);
+      if (!dentroR(rettA(s.a, s.da), s.arrivo)) errs.push(`borgo: casa.scale[${n}] arriva fuori dalla stanza ${s.a} al livello ${s.da}`);
+      if (s.verso !== 'giu' && s.verso !== 'su') errs.push(`borgo: casa.scale[${n}] ha un verso sconosciuto`);
+      if (!BORGO.casa.livelli.some((l, i) => i + 1 === s.da && l.stanza !== 'terra')) errs.push(`borgo: casa.scale[${n}]: il livello ${s.da} non apre una stanza nuova`);
+    }
   }
   if (!BORGO.pavimenti.length || !BORGO.carte.length) errs.push('borgo: serve almeno un pavimento e una carta da parati');
   // finiture e mobili (#265): id unici, quella di serie gratis, prezzi interi, colori in esadecimale (dalla palette)
@@ -149,9 +167,11 @@ function validateBorgo(): string[] {
     if (!/^[a-z][a-z0-9_]*$/.test(m.id) || !(Number.isInteger(m.perle) && m.perle > 0) || (m.posto !== 'terra' && m.posto !== 'parete') || !m.colori.length || !m.colori.every(hex)) errs.push(`mobili: ${m.id} non valido`);
     if (!MOBILI_CATEGORIE.some((c) => c.id === m.categoria)) errs.push(`mobili: ${m.id} ha una categoria sconosciuta (${m.categoria})`);
     if (m.celle && (m.celle.length !== 2 || !m.celle.every((n) => Number.isInteger(n) && n >= 1 && n <= 3) || (m.posto === 'parete' && (m.celle[0] !== 1 || m.celle[1] !== 1)))) errs.push(`mobili: ${m.id} ha un ingombro non valido (celle 1-3, a parete solo [1,1])`);
-    if (m.vetrina && m.celle && (m.celle[0] !== 1 || m.celle[1] !== 1)) errs.push(`mobili: ${m.id} è troppo grande per le pedane della vetrina (solo 1 cella)`);
     if (m.altezza !== undefined && !(m.altezza > 0 && m.altezza <= 3)) errs.push(`mobili: ${m.id} ha un'altezza non valida (0-3 m)`);
   }
-  if (MOBILI.filter((m) => m.vetrina && m.posto === 'terra').length > 3) errs.push('mobili: in vetrina a terra ce ne stanno al massimo 3 (le pedane del negozio)');
+  // la vetrina del giorno: i posti del negozio sono una cella sì e una no lungo il pavimento (game/negozio.ts); carte e mobili a parete dividono il muro
+  const vt = MOBILI_VETRINA, posti = Math.floor((nd.pavimento[2] - nd.pavimento[0] - 1) / 2);
+  if (![vt.terra, vt.parete, vt.carte, vt.pavimenti].every((n) => Number.isInteger(n) && n >= 0)) errs.push('mobili: la vetrina del giorno vuole posti interi (0 o più)');
+  else if (vt.terra > posti || vt.pavimenti > posti || vt.parete + vt.carte > posti) errs.push(`mobili: nel negozio ci sono ${posti} posti per fila: a terra ${vt.terra}, pavimenti ${vt.pavimenti}, al muro parete ${vt.parete} + carte ${vt.carte}`);
   return errs;
 }

@@ -37,7 +37,7 @@ type Run = {
 
 const COUNTDOWN = 3 * 60, END_WAIT = 3 * 60, END_SKIP = 50; // tick
 const MAX_BUOYS = 12;
-let ctx: Ctx | null = null, driver: (RegataDriver & { start(c: RegataChallenge, signal?: AbortSignal, auto?: { speed: number }): Promise<PackedInputs | null> }) | null = null;
+let driver: (RegataDriver & { start(c: RegataChallenge, signal?: AbortSignal, auto?: { speed: number }): Promise<PackedInputs | null> }) | null = null;
 
 const diffOf = (d: unknown): Difficulty => { const n = Math.round(Number(d)); return (n >= 1 && n <= 3 ? n : 2) as Difficulty; };
 const fmt = (ms: number) => { const s = Math.max(0, ms) / 1000; const m = Math.floor(s / 60); return `${m}:${(s - m * 60).toFixed(1).padStart(4, '0')}`; };
@@ -210,7 +210,6 @@ function createRaceHud(root: HTMLElement): RaceHud {
 
 /** Da chiamare una volta in main.ts dopo il mondo: prepara boe e HUD, registra hook e stato per i test. */
 export async function setupRegata(o: Ctx): Promise<RegataDriver> {
-  ctx = o;
   const buoys = await createBuoys(o.loader); o.world.scene.add(buoys.group);
   const hud = createRaceHud(o.root);
   const arch = o.world.archipelago;
@@ -331,6 +330,3 @@ export async function setupRegata(o: Ctx): Promise<RegataDriver> {
   registerTestHook('regataAutopilot', (speed) => { autoSpeed = Math.max(0, Math.min(20, Math.round(Number(speed ?? 1)) || 0)); return autoSpeed; });
   return d;
 }
-
-/** Il contesto è pronto (per chi deve decidere se mostrare il Tavolo). */
-export const regataReady = (): boolean => !!ctx && !!driver;

@@ -83,13 +83,15 @@ export type Api = {
   collect(building: string): Promise<LotState>;
   build(building: string, cell: Cell): Promise<LotState>;
   upgrade(building: string): Promise<LotState>;
+  /** Edifici liberi (#382): sposta in una cella libera dell'isola. */
+  buildingMove(id: string, cell: Cell): Promise<LotState>;
   decor(decor: string, cell: Cell, rot: number): Promise<LotState>;
   /** Decorazioni libere (#108): sposta in una cella, ruota di 90°, rivendi (metà delle Perle). */
   decorMove(id: string, cell: Cell): Promise<LotState>;
   decorRotate(id: string): Promise<LotState>;
   decorSell(id: string): Promise<LotState>;
-  /** La casa arredabile (#265): compra (negozio dei mobili), finitura (compra pavimento/carta), scegli, posa, sposta, ruota, ritira, baule. */
-  casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number }): Promise<LotState>;
+  /** La casa arredabile (#265): compra (negozio dei mobili), finitura (compra pavimento/carta), scegli, posa, sposta, ruota, ritira, baule, amplia (#386: il mobiliere ingrandisce la casa, `da` = il livello che vedi). */
+  casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule' | 'amplia', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number; da?: number }): Promise<LotState>;
   /** Tutte le persone dell'arcipelago (me compreso). */
   persone(): Promise<Persona[]>;
   /** Le mie sfide: in gioco (mandate e ricevute) e chiuse degli ultimi 7 giorni, le più recenti prima. */
@@ -266,6 +268,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     collect: (building) => post('/api/lot/collect', { building }),
     build: (building, cell) => post('/api/lot/build', { building, cell }),
     upgrade: (building) => post('/api/lot/upgrade', { building }),
+    buildingMove: (id, cell) => post('/api/lot/building/move', { id, cell }),
     decor: (decor, cell, rot) => post('/api/lot/decor', { decor, cell, rot }),
     decorMove: (id, cell) => post('/api/lot/decor/move', { id, cell }),
     decorRotate: (id) => post('/api/lot/decor/rotate', { id }),

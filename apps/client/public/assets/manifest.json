@@ -970,23 +970,6 @@
     ]
    }
   },
-  "prop_deposito": {
-   "file": "prop_deposito.glb",
-   "tris": 104,
-   "kb": 5.3,
-   "bounds": {
-    "min": [
-     -0.34,
-     0,
-     -0.4
-    ],
-    "max": [
-     0.34,
-     0.61,
-     0.36
-    ]
-   }
-  },
   "prop_filo_lanterne": {
    "file": "prop_filo_lanterne.glb",
    "tris": 170,
@@ -1167,48 +1150,6 @@
      0.16
     ]
    }
-  },
-  "prop_molo_l2": {
-   "file": "prop_molo_l2.glb",
-   "tris": 146,
-   "kb": 7.5,
-   "bounds": {
-    "min": [
-     -0.91,
-     0.5,
-     -0.94
-    ],
-    "max": [
-     0.95,
-     2.2,
-     0.84
-    ]
-   },
-   "footprint": [
-    2,
-    2
-   ]
-  },
-  "prop_molo_l3": {
-   "file": "prop_molo_l3.glb",
-   "tris": 190,
-   "kb": 9.1,
-   "bounds": {
-    "min": [
-     -0.93,
-     0.5,
-     -0.97
-    ],
-    "max": [
-     0.93,
-     2.3,
-     0.94
-    ]
-   },
-   "footprint": [
-    2,
-    2
-   ]
   },
   "prop_palma": {
    "file": "prop_palma.glb",

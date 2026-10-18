@@ -24,9 +24,9 @@
 // `faro` (i livelli, letti dal Worker): così chi entra dopo una salita la impara subito.
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
-import { build, buyHat, collect, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
+import { build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
 import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
-import { compraFinitura, compraMobile, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
+import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
@@ -51,6 +51,7 @@ import { nowFromHeader } from '../clock.ts';
 import type { Env } from '../env.ts';
 import { RPG_ACTS, SERVE_GRUPPO, json, rpgRoute } from './lot_rpg.ts';
 import { TEMPLARI_ACTS, templariRoute } from './lot_templari.ts';
+import { ARENA_ACTS, arenaRoute } from './lot_arena.ts';
 import { firmaLiberatoria } from '@marea/sim/adrenalina/liberatoria.ts';
 
 const isCell = (v: unknown): v is [number, number] => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= 0 && n < 256);
@@ -139,6 +140,7 @@ export class Lot extends DurableObject<Env> {
         return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
       }
       if (act === 'faro_dona' || act === 'faro_livelli') return this.faro(lot, act, body, now);
+      if (ARENA_ACTS.has(act)) return arenaRoute(lot, act, body, now, (l) => this.save(l)); // solo dal DO Arena
       if (TEMPLARI_ACTS.has(act)) {
         // partita insieme aperta: prima il log della squadra dal DO TemplariInsieme, poi il lotto riletto (nell'attesa può essere cambiato)
         const g = lot.templari?.pending?.party;
@@ -314,6 +316,12 @@ export class Lot extends DurableObject<Env> {
         if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
         return build(lot, b, cell, now);
       }
+      case 'building_move': {
+        const id = body['id'], cell = body['cell'];
+        if (!isId(id)) return json({ error: 'Manca l’edificio' }, 400);
+        if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
+        return moveBuilding(lot, id, cell, now);
+      }
       case 'decor': {
         const d = DECOR.find((x) => x.id === body['decor']), cell = body['cell'], rot = body['rot'] ?? 0;
         if (!d) return json({ error: 'Decorazione sconosciuta' }, 400);
@@ -330,11 +338,11 @@ export class Lot extends DurableObject<Env> {
         return moveDecor(lot, id, cell, now);
       }
       // la casa arredabile (#265, economy/casa.ts): compra (negozio dei mobili), posa, sposta, gira, ritira; finiture; il baule
-      case 'casa_compra': return isId(body['id']) ? compraMobile(lot, body['id'], now) : json({ error: 'Mobile sconosciuto' }, 400);
+      case 'casa_compra': return isId(body['id']) ? compraMobileDelGiorno(lot, body['id'], now) : json({ error: 'Mobile sconosciuto' }, 400);
       case 'casa_finitura': case 'casa_scegli': {
         const tipo = body['tipo'], id = body['id'];
         if ((tipo !== 'pavimento' && tipo !== 'carta') || !isId(id)) return json({ error: 'Finitura non valida' }, 400);
-        return act === 'casa_finitura' ? compraFinitura(lot, tipo, id, now) : scegliFinitura(lot, tipo, id, now);
+        return act === 'casa_finitura' ? compraFinituraDelGiorno(lot, tipo, id, now) : scegliFinitura(lot, tipo, id, now);
       }
       case 'casa_posa': case 'casa_sposta': {
         const id = body['id'], cell = body['cell'], muro = body['muro'], rot = body['rot'] ?? 0;
@@ -349,6 +357,8 @@ export class Lot extends DurableObject<Env> {
         if (!isId(id)) return json({ error: 'Manca il mobile' }, 400);
         return act === 'casa_ruota' ? ruotaMobile(lot, id, now) : ritiraMobile(lot, id, now);
       }
+      // il mobiliere ingrandisce la casa (#386): `da` = il livello che il giocatore vede (se è cambiato nel frattempo, niente si paga due volte)
+      case 'casa_amplia': return Number.isInteger(body['da']) ? ampliaCasa(lot, body['da'] as number, now) : json({ error: 'Livello della casa non valido' }, 400);
       case 'casa_baule': {
         const cell = body['cell'];
         if (cell === undefined) return ruotaBaule(lot, now);

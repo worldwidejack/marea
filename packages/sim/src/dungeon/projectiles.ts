@@ -2,22 +2,25 @@
 // Archivio: l'arpione del Drone Idro-Ragno, se prende, tira l'eroe verso chi l'ha lanciato (vento.ts, spinta da fuori).
 import { DT } from '../constants.ts';
 import type { DungeonState, Enemy, Proj } from './state.ts';
-import { add, ev, finita, inGioco } from './state.ts';
+import { ev, finita, inGioco } from './state.ts';
 import { hitEnemy, hitHero } from './combat.ts';
 import { isOpaque } from './map.ts';
 import { ALTEZZA_BERSAGLIO, HZ } from './tuning.ts';
 import { spingi } from './vento.ts';
 import { effettiMagia, guidaFreccia } from './perk.ts';
 import { scoppio } from './magie.ts';
+import { colpisciEroe as colpoPvp, eroeToccato, eroiNelCerchio, ostile } from './pvp.ts';
 
 const MARGINE = 0.15;
 
 function explode(s: DungeonState, p: Proj): void {
+  const src = { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione' as const, caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p), ...(p.rallenta ? { rallenta: p.rallenta } : {}) };
   for (const e of s.enemies) {
-    if (e.alleato || e.st === 'morto') continue;
+    if (!ostile(s, e)) continue;
     const dx = e.x - p.x, dz = e.z - p.z, r = p.raggio + e.def.raggio;
-    if (dx * dx + dz * dz <= r * r) hitEnemy(s, e, { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p), ...(p.rallenta ? { rallenta: p.rallenta } : {}) });
+    if (dx * dx + dz * dz <= r * r) hitEnemy(s, e, src);
   }
+  for (const j of eroiNelCerchio(s, p.x, p.z, p.raggio)) colpoPvp(s, j, src); // Arena: anche gli avversari
 }
 /** Da dove arriva un proiettile (per lo scafandro del Golem-Palombaro): un metro indietro lungo il volo. */
 function da(p: Proj): { ox: number; oz: number } {
@@ -29,10 +32,13 @@ function da(p: Proj): { ox: number; oz: number } {
 function hitFoes(s: DungeonState, p: Proj): boolean {
   let first: Enemy | null = null, fd = Infinity;
   for (const e of s.enemies) {
-    if (e.alleato || e.st === 'morto' || p.colpiti.includes(e.id)) continue;
+    if (!ostile(s, e) || p.colpiti.includes(e.id)) continue;
     const dx = e.x - p.x, dz = e.z - p.z, r = e.def.raggio + MARGINE * (p.mole ?? 1), d2 = dx * dx + dz * dz; // Grandi Magie: contatto più largo
     if (d2 <= r * r && d2 < fd) { fd = d2; first = e; }
   }
+  // Arena: un avversario più vicino del primo nemico prende lui il colpo
+  const eroe = s.pvp ? eroeToccato(s, p.x, p.z, MARGINE * (p.mole ?? 1), p.colpiti) : null;
+  if (eroe && eroe.d2 < fd) return colpoSuEroe(s, p, eroe.j);
   if (!first) return false;
   if (p.magico) {
     if (p.raggio > 0) explode(s, p);
@@ -44,6 +50,19 @@ function hitFoes(s: DungeonState, p: Proj): boolean {
   // Mausoleo: la lama d'acqua del Fendiflutti dà l'esperienza dell'arma (come la mischia), le frecce quella dell'arco
   hitEnemy(s, first, { danno: p.danno, traits: p.traits, magico: false, skill: p.tipo === 'lama' ? s.hero.arma.skill : 'arceria', caricato: false, dirX: p.vx / v, dirZ: p.vz / v, daAlleato: false, ...da(p) });
   if (p.traits.trapassa) { p.colpiti.push(first.id); return false; }
+  return true;
+}
+
+/** Arena: il proiettile dell'eroe di turno prende l'avversario j (la magia ad area esplode lì). true = il proiettile è finito. */
+function colpoSuEroe(s: DungeonState, p: Proj, j: number): boolean {
+  if (p.magico) {
+    if (p.raggio > 0) explode(s, p);
+    else colpoPvp(s, j, { danno: p.danno, traits: p.traits, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ...da(p), ...(p.rallenta ? { rallenta: p.rallenta } : {}) });
+    return true;
+  }
+  const v = Math.sqrt(p.vx * p.vx + p.vz * p.vz) || 1;
+  colpoPvp(s, j, { danno: p.danno, traits: p.traits, magico: false, skill: p.tipo === 'lama' ? s.hero.arma.skill : 'arceria', caricato: false, dirX: p.vx / v, dirZ: p.vz / v, daAlleato: false, ...da(p) });
+  if (p.traits.trapassa) { p.colpiti.push(-1 - j); return false; }
   return true;
 }
 

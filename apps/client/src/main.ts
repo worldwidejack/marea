@@ -1,5 +1,5 @@
 // Avvio del client: renderer, mondo, ciclo a 60 Hz con interpolazione, test API. Unico modulo con side effect.
-import { DT, barcaDi, canBoard } from '@marea/sim';
+import { DT, barcaDi, canBoard, livelloCasa } from '@marea/sim';
 import { FLAGS } from './flags.ts';
 import { preparaInstallazione } from './installa.ts';
 import { createRenderer } from './render/scene.ts';
@@ -29,6 +29,7 @@ import { createGuida } from './ui/guida.ts';
 import type { Guida, GuidaStep } from './ui/guida.ts';
 import { createIngressi } from './game/ingressi.ts';
 import { createTemplari } from './game/templari.ts';
+import type { ArenaIsola } from './game/arena.ts';
 import { createAdrenalina } from './game/adrenalina.ts';
 import { createEroe } from './ui/eroe.ts';
 import { createPorto } from './game/porto.ts';
@@ -130,8 +131,8 @@ async function boot(): Promise<void> {
   for (const sp of ingressi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, show: () => ingressi.next() === sp.id, group: 'dungeon' });
   // Isola dei Templari (docs/TEMPLARI.md): la porta della chiesa e le ondate (chunk templari/ scaricato entrando); ?templari=1 per le prove
   const tpl = createTemplari({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot });
-  /** Nel dungeon o nella chiesa dei Templari: il mondo di superficie sta fermo e la sua interfaccia sparisce. */
-  const sotto = () => ingressi.active || tpl.active;
+  /** Nel dungeon, nella chiesa dei Templari o nel duello dell'Arena: il mondo di superficie sta fermo e la sua interfaccia sparisce. */
+  const sotto = () => ingressi.active || tpl.active || !!ar?.active;
   // Porto (#63-#65): Mercante delle Perle, Bacheca delle missioni, Gente del Porto; i pannelli si scaricano alla prima apertura
   const porto = createPorto({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot });
   // nella sezione del Porto subito dopo la piazza: Mercante e Bacheca prima dei minigiochi
@@ -139,19 +140,25 @@ async function boot(): Promise<void> {
   // Porto tra amici (#110 #111): Tabellone dei record in piazza e Faro comune sullo scoglio; pannelli scaricati alla prima apertura
   const amici = createPortoAmici({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot, notte: () => aspetto?.momento === 'notte' });
   targets.splice(targets.findIndex((t) => t.id === 'bacheca') + 1, 0, ...amici.spots.map((sp): CompassTarget => ({ id: sp.id, label: sp.id === 'record' ? 'Record' : 'Faro', icon: sp.id, x: sp.x, z: sp.z, sezione: 'porto' })));
-  // Isole a tema (#68): sblocchi, barriere in mare, il Vulcano che caccia; in bussola appena scoperte (minimappa), col lucchetto in mappa finché chiuse
+  // Isole a tema (#68): sblocchi, barriere in mare, il Vulcano che caccia; in bussola appena scoperte (minimappa), invisibili in mappa finché chiuse
   const temi = createTemi({ world, hud, loader, root, camera: renderer.camera, canvas, getLot: () => myLot(), notte: () => aspetto?.momento === 'notte' });
   if (tpl.spot) targets.push({ id: 'templari', label: 'Chiesa', icon: 'templari', x: tpl.spot.x, z: tpl.spot.z, show: () => FLAGS.templari || temi.aperta('templari'), sezione: 'isole' });
   // Isola dell'Adrenalina (docs/ADRENALINA.md): la funivia e il cancello con la liberatoria; ?adrenalina=1 per le prove
   const adr = createAdrenalina({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, getLot: () => myLot(), setLot: setMyLot, nome: () => me?.nome ?? '', aperta: () => temi.aperta('adrenalina') });
   if (adr.spot) targets.push({ id: 'funivia', label: 'Funivia', icon: 'adrenalina', x: adr.spot.x, z: adr.spot.z, show: () => FLAGS.adrenalina || temi.aperta('adrenalina'), sezione: 'isole' });
+  // Isola dell'Arena (docs/ARENA.md): il portone del colosseo, il pannello del duello (chunk GDR) e il duello 1v1; ?arena=1 / ?arena=banco per le prove
+  // (chunk a parte, TECH §5: il portone compare un attimo dopo il mondo; la meta in bussola c'è subito)
+  let ar: ArenaIsola | null = null;
+  void import('./game/arena.ts').then((m) => { ar = m.createArena({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot, nome: () => me?.nome ?? '' }); }).catch((e: unknown) => { console.warn('[marea] arena non caricata', e); });
+  { const pa = arch.places.find((p) => p.island === 'arena'), col = ISLANDS.find((i) => i.id === 'arena')?.props?.find((p) => p.k === 'colosseo'); if (pa && col) targets.push({ id: 'arena', label: 'Colosseo', icon: 'arena', x: (pa.origin[0] + col.at[0] + 0.5) * arch.tile, z: (pa.origin[1] + col.at[1] + 7) * arch.tile, sezione: 'isole' }); }
   // lo scheletro col calice sotto il faro della Tempesta: in bussola finché il calice non è tuo (e la Tempesta è aperta)
   if (tpl.relitto) targets.push({ id: 'relitto_templare', label: 'Relitto', icon: 'templari', x: tpl.relitto.x, z: tpl.relitto.z, show: () => !tpl.calice() && temi.aperta('tempesta'), sezione: 'isole' });
   for (const p of temi.isole) targets.push({ id: 'tema:' + p.island, label: p.nome.replace(/^Isola (della |delle |dei |del )?/, ''), icon: p.island as PixId, x: p.spawn.x, z: p.spawn.z, show: () => mappa?.vista(`${p.role}:${p.index}`) ?? false, sezione: 'isole' });
   // Libro degli ospiti e «Mentre eri via» (#86): leggio vicino al molo di ogni isola abitata; la cartolina al rientro (dopo i primi passi)
   const velo = createVelo({ root, mondo: world }); // dissolvenza dei passaggi città → stanza → giardino (#265)
-  const borgo = createBorgo({ world, hud, root, velo, abitanti: [...owners.filter((w) => w.id !== me?.id).map((w) => ({ slot: w.slot, nome: w.nome, mia: false })), ...(world.slot !== null ? [{ slot: world.slot, nome: me?.nome ?? 'Tu', mia: true }] : [])] }); // porte delle case (#237)
-  const stanza = createStanza({ world, renderer, slots: [...new Set([...owners.map((w) => w.slot), world.slot].filter((x): x is number => x !== null))], lotDi: (s) => isole.find((i) => i.slot === s)?.view.state() ?? null }); // la stanza della casa (#240), con pavimento e carta di chi ci abita (#265)
+  const lotDi = (s: number) => isole.find((i) => i.slot === s)?.view.state() ?? null; // lo stato del lotto di quello slot (pavimento, carta e livello della casa)
+  const borgo = createBorgo({ world, hud, root, velo, livelloDi: (s) => livelloCasa(lotDi(s)?.casa), abitanti: [...owners.filter((w) => w.id !== me?.id).map((w) => ({ slot: w.slot, nome: w.nome, mia: false })), ...(world.slot !== null ? [{ slot: world.slot, nome: me?.nome ?? 'Tu', mia: true }] : [])] }); // porte delle case (#237)
+  const stanza = createStanza({ world, renderer, velo, slots: [...new Set([...owners.map((w) => w.slot), world.slot].filter((x): x is number => x !== null))], lotDi }); // la stanza della casa (#240), con pavimento e carta di chi ci abita (#265)
   const libri = createLibri({ world, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, isole, onFirma: (e) => emotes.play(e) });
   const eroe = me && api.enabled ? createEroe({ api, hud, root, getLot: () => myLot(), setLot: setMyLot }) : null;
   // ARREDA (#265): in casa tua magazzino, mobili da posare davanti a te, pavimenti e carte; il baule si apre con A
@@ -180,7 +187,7 @@ async function boot(): Promise<void> {
   targets.unshift(segno.target);
   // mete: comprimibile, caselle per scegliere, sezioni Porto e Isole; con una sola accesa anche la freccia sullo schermo (nascosta quando c'è sopra un pannello)
   const compass = createCompass({ root, targets, sezioni: SEZIONI, camera: renderer.camera, canvas, groundY: world.groundY, hidden: () => coperto() });
-  // minimappa (#62): cerchio con l'arcipelago attorno a te, M o un tocco aprono la mappa intera; isole non visitate nella nebbia.
+  // minimappa (#62, #360): cerchio col nord in alto e l'arcipelago attorno a te, M o un tocco aprono la mappa intera; zoom a scatti; isole non visitate o chiuse invisibili.
   // Si scarica subito dopo l'avvio (import a parte): il JS iniziale ha un tetto (TECH §5), il cerchio arriva un attimo dopo il mondo.
   const places = arch.places.filter((p) => p.role !== 'lotto' && p.role !== 'negozio').map((p) => ({ /* i giardini (#237) stanno fuori dalla mappa del mare */ id: `${p.role}:${p.index}`, nome: p.role === 'lotto' ? (p.slot === world.slot ? 'Casa' : '') : p.nome, x0: p.origin[0], z0: p.origin[1], w: p.w, h: p.h, sempre: p.role === 'porto' || (p.role === 'lotto' && p.slot === world.slot), ...(p.tema ? { chiusa: () => !temi.aperta(p.island) } : {}) }));
   let mappa: Minimappa | null = null;
@@ -207,6 +214,8 @@ async function boot(): Promise<void> {
   };
   registerStateProvider('tavolo', () => ({ exists: !!tavolo, near: nearTavolo(), open: !!tavolo?.isOpen(), at: tavoloAt ? { x: tavoloAt.x, z: tavoloAt.z } : null }));
   registerTestHook('openTavolo', () => openTavolo());
+  // test (#386): il livello e i mobili della casa di un lotto scelti da noi (senza server, ?net=0), per vedere cantina e secondo piano senza comprarli
+  registerTestHook('casaStato', (slot, patch) => { const lv = isole.find((i) => i.slot === Number(slot))?.view, s = lv?.state(); if (!lv || !s) return false; lv.set({ ...s, casa: { ...(s.casa ?? {}), ...(patch as object) } }); return true; });
   // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-8, G = ruota, #90). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
   const link = `${location.origin}/?t=${encodeURIComponent(FLAGS.token)}`; // per entrare come sé da un altro dispositivo (editor: COPIA / MANDA)
   const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, barca: world, onSaved: () => hud.toast('Look salvato'), onNome: (n) => hud.toast(`Nome salvato: ${n}`), onBarca: () => hud.toast('Barca salvata'), onLot: refreshMyLot }) : null;
@@ -242,8 +251,8 @@ async function boot(): Promise<void> {
   let evocato: Evocato | null = null, evocatoCarico = false;
   const EMOTES = AVATAR.emote as EmoteId[];
   /** Pannelli aperti che non sono il foglio delle isole (#mzSheet): lì sotto le decorazioni non rispondono ad A. */
-  const panelsBusyNoSheet = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || !!eroe?.isOpen();
-  const panelsBusy = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy();
+  const panelsBusyNoSheet = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || !!eroe?.isOpen();
+  const panelsBusy = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy();
   const openEditor = () => { if (!editor || panelsBusy()) return false; feed?.close(); editor.open(); return true; };
   const openFeed = () => { if (!feed || panelsBusy()) return false; editor?.close(); feed.open(); return true; };
   // Un solo listener in bubble: i pannelli aperti fermano il keydown in capture, quindi qui arrivano solo i tasti «liberi».
@@ -253,6 +262,7 @@ async function boot(): Promise<void> {
     if (e.code === 'KeyC') { if (editor?.isOpen()) editor.close(); else openEditor(); return; }
     if (e.code === 'KeyF') { if (feed?.isOpen()) feed.close(); else openFeed(); return; }
     if (e.code === 'KeyM') { if (!panelsBusy()) mappa?.toggle(); return; }
+    const zoom = e.key === '+' || e.key === '=' || e.code === 'NumpadAdd' ? 1 : e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract' ? -1 : 0; if (zoom && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) { if (!panelsBusy()) mappa?.zoom(zoom); return; } // + e −: zoom a scatti della minimappa (#360); `key`: vale anche la tastiera italiana
     if (e.code === 'KeyJ') { if (diario.isOpen()) diario.close(); else if (!panelsBusy()) { editor?.close(); feed?.close(); eroe?.close(); diario.open(); } return; } // Diario del capitano (#87)
     if (e.code === 'KeyI') { if (eroe?.isOpen()) eroe.close(); else if (eroe && !panelsBusy()) { editor?.close(); feed?.close(); eroe.open(); } return; }
     if (e.code === 'KeyG') { if (emotes.wheelOpen) emotes.closeWheel(); else if (!panelsBusy() && !editor?.isOpen() && !feed?.isOpen()) emotes.toggleWheel(); return; }
@@ -292,14 +302,14 @@ async function boot(): Promise<void> {
       return p && dist(p, qui()) < 80 ? { x: p.x, y: world.groundY(p.x, p.z) + 2.4, z: p.z } : { x: portoAt.x, y: 3, z: portoAt.z };
     } },
     { id: 'universale', titolo: 'Pesca o tuffati', come: 'Barca ferma in mare aperto: PESCA. Su acqua bassa vicino a riva: TUFFATI.', done: () => !!document.querySelector('#mzPescaGioco.on, #mzPerleGioco.on'), target: () => (world.mode === 'walk' ? barcaTarget() : null) },
-    { id: 'mappa', titolo: 'Guarda la mappa', come: 'Tocca il cerchio della mappa (o M). La nebbia copre dove non sei mai stato.', done: () => !!mappa?.isOpen(), target: () => null },
-    ...(temi.isole.length ? [{ id: 'isola', titolo: 'Scopri un\'isola nuova', come: 'Segui la freccia nella nebbia. Certe isole non ti fanno entrare: è carattere.', done: () => temi.isole.some(isolaVista), target: () => {
+    { id: 'mappa', titolo: 'Guarda la mappa', come: 'Tocca il cerchio della mappa (o M). Le isole compaiono quando ci passi vicino in barca.', done: () => !!mappa?.isOpen(), target: () => null },
+    ...(temi.isole.length ? [{ id: 'isola', titolo: 'Scopri un\'isola nuova', come: 'Segui la freccia in mare aperto. Certe isole non ti fanno entrare: è carattere.', done: () => temi.isole.some(isolaVista), target: () => {
       const p = piuVicino(temi.isole.filter((x) => !isolaVista(x)).map((x) => x.spawn));
       return p ? { x: p.x, y: 3, z: p.z } : null;
     } }] : []),
   ];
   /** Gara, minigioco, dungeon o un pannello aperto: le frecce sullo schermo (guida, mete) si tolgono. */
-  const coperto = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!eroe?.isOpen();
+  const coperto = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!eroe?.isOpen();
   const META_DEL_PASSO: Record<string, string> = { segheria: 'casa', costruisci: 'casa', parla: 'porto' };
   const guida = createGuida({
     root, camera: renderer.camera, canvas, steps, vecchi: (hasLot ? 2 : 0) + 1 + (reg ? 1 : 0), storeKey: `marea:guida:${me?.id ?? 'ospite'}`,
@@ -321,7 +331,7 @@ async function boot(): Promise<void> {
   };
   const foto = createFoto({
     root, hud, canvas, diorama: renderer.diorama, rendi: () => renderer.render(acc / DT, t), posto: () => postoDi(qui()),
-    puo: () => !(regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy()),
+    puo: () => !(regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy()),
     prima: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); libri.close(); diario.close(); mappa?.close(); impostazioni.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); },
   });
   const FERMO = { mx: 0, my: 0, a: false, b: false }; // in modalità foto l'avatar sta fermo (il mondo no)
@@ -341,12 +351,13 @@ async function boot(): Promise<void> {
       if (ingressi.active) { ingressi.step(f); acc -= DT; steps++; continue; } // nel dungeon il mondo di superficie sta fermo
       if (tpl.active) { tpl.step(f); acc -= DT; steps++; continue; } // nella chiesa dei Templari idem
       if (adr.active) { adr.step(f); acc -= DT; steps++; continue; } // sulla pista dello snowboard idem
-      if (regata.active) regata.step(f); else { const aR = arreda?.tick(f.a, f.b) ?? false, aB0 = borgo.tick(f.a && !aR) || aR, aB = (negozio?.tick(f.a && !aB0) ?? false) || aB0, aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
-      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!eroe?.isOpen() || foto.isOpen()) && !regata.active;
+      if (ar?.active) { ar.step(f); acc -= DT; steps++; continue; } // nel duello dell'Arena idem
+      if (regata.active) regata.step(f); else { const aR = arreda?.tick(f.a, f.b) ?? false, aB0 = borgo.tick(f.a && !aR) || aR, aB = (negozio?.tick(f.a && !aB0) ?? false) || aB0, aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); ar?.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
+      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!eroe?.isOpen() || foto.isOpen()) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
-    if (ingressi.active) ingressi.update(acc / DT, dt, t); else if (tpl.active) tpl.update(acc / DT, dt, t); else if (adr.active) adr.update(dt, t, acc / DT); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); tpl.update(acc / DT, dt, t); adr.update(dt, t); animali?.update(dt, t); } // Animali (#67)
+    if (ingressi.active) ingressi.update(acc / DT, dt, t); else if (tpl.active) tpl.update(acc / DT, dt, t); else if (adr.active) adr.update(dt, t, acc / DT); else if (ar?.active) ar.update(acc / DT, dt, t); else { world.update(acc / DT, dt, t); ingressi.update(acc / DT, dt, t); tpl.update(acc / DT, dt, t); adr.update(dt, t); ar?.update(acc / DT, dt, t); animali?.update(dt, t); } // Animali (#67)
     regata.update(acc / DT, dt, t);
     { const ev = myLot()?.hero?.evocato ?? null; if (ev && !evocato && !evocatoCarico) { evocatoCarico = true; void import('./rpg/evocato.ts').then((mod) => { evocato = mod.createEvocato({ world, loader }); }).catch(() => { evocatoCarico = false; }); } try { evocato?.update(dt, t, ev, world.mode === 'walk' && !sotto() && !regata.active); } catch (e) { console.warn('[marea] evocato', e); evocato?.dispose(); evocato = null; } } // solo resa: se qualcosa va storto si spegne, il gioco continua
     emotes.update(dt); setTopbarHidden(regata.active || sotto());
@@ -361,7 +372,7 @@ async function boot(): Promise<void> {
     compass.update(focus, renderer.diorama.yaw, t);
     const arrivato = segno.update(focus); // segnalino raggiunto: si toglie da solo
     if (arrivato) hud.toast(`Sei arrivato${arrivato.nome ? ` · ${arrivato.nome}` : ''}`, 2200);
-    mappa?.update({ x: focus.x, z: focus.z, yaw: focus.yaw }, renderer.diorama.yaw, world.net.peers());
+    mappa?.update({ x: focus.x, z: focus.z, yaw: focus.yaw }, world.net.peers());
     aspetto?.update(Date.now(), t, focus);
     renderer.render(acc / DT, t);
     hud.setPerf(renderer.stats());
@@ -379,7 +390,7 @@ async function boot(): Promise<void> {
     const ciSono = () => { if (document.visibilityState === 'visible') void api.presenza().catch(() => { /* riprova al prossimo giro */ }); };
     rientro = api.rientro().then(async (r) => {
       myView?.set(r.lot);
-      if (r.riepilogo && (!FLAGS.test || FLAGS.rientro) && !FLAGS.banco) await libri.cartolina(r.riepilogo, r.novita, myView ? () => { void myView.collectAll().then((g) => { if (g.legno + g.pietra + g.perle > 0) hud.toast(`Raccolto: ${[g.legno && `+${g.legno} Legno`, g.pietra && `+${g.pietra} Pietra`, g.perle && `+${g.perle} Perle`].filter(Boolean).join(', ')}`, 2600); }); } : null);
+      if (r.riepilogo && (!FLAGS.test || FLAGS.rientro) && !FLAGS.banco && FLAGS.arena !== 'banco') await libri.cartolina(r.riepilogo, r.novita, myView ? () => { void myView.collectAll().then((g) => { if (g.legno + g.pietra + g.perle > 0) hud.toast(`Raccolto: ${[g.legno && `+${g.legno} Legno`, g.pietra && `+${g.pietra} Pietra`, g.perle && `+${g.perle} Perle`].filter(Boolean).join(', ')}`, 2600); }); } : null);
     }).catch(() => { /* senza rientro si gioca lo stesso */ }).finally(() => {
       setInterval(ciSono, RIENTRO.presenzaSecondi * 1000);
       document.addEventListener('visibilitychange', ciSono);
@@ -389,7 +400,7 @@ async function boot(): Promise<void> {
   // «Dall'ultima volta» (#279): chi ha fatto cosa nel codice dalla visita scorsa; dopo la cartolina, quando non c'è altro aperto (chunk ui/novita.ts)
   const novita = (prova?: { lavori: { t: number; chi: string; titolo: string }[]; ora: number }) => import('./ui/novita.ts').then((m) =>
     m.apriNovita({ root, chiave: `marea:novita:${me?.id ?? 'ospite'}`, busy: () => panelsBusy() || !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen(), ...(prova ? { prova } : {}) }));
-  if ((!FLAGS.test || FLAGS.novita) && !FLAGS.banco) void rientro.then(() => novita()).catch(() => { /* senza novità si gioca lo stesso */ });
+  if ((!FLAGS.test || FLAGS.novita) && !FLAGS.banco && FLAGS.arena !== 'banco') void rientro.then(() => novita()).catch(() => { /* senza novità si gioca lo stesso */ });
   registerTestHook('novitaProva', (lavori, ora) => { void novita({ lavori: lavori as { t: number; chi: string; titolo: string }[], ora: Number(ora) }); return true; });
   setReady();
   hud.toast(me ? `Ciao ${me.nome}` : 'MAREA', 2500);

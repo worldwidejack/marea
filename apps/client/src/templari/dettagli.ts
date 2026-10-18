@@ -9,7 +9,6 @@ import type { Arena } from '@marea/sim/templari/mappa.ts';
 import { C, SUOLO, TIPO } from '@marea/sim/templari/mappa.ts';
 import { PAL } from '../ui/style.ts';
 import { cellHash } from '../rpg/dungeon_kit.ts';
-import { P } from '../render/island_parts.ts';
 import { unisci } from './armi3d.ts';
 import type { Pezzo } from './armi3d.ts';
 

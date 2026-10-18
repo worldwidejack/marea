@@ -90,9 +90,6 @@ function quando(da: number, ora: number): string {
 const leggi = (k: string): number | null => { try { const v = localStorage.getItem(k); return v ? Number(v) || null : null; } catch { return null; } };
 const scrivi = (k: string, t: number) => { try { localStorage.setItem(k, String(t)); } catch { /* storage bloccato: la rivedrai */ } };
 
-let aperto = false;
-export const novitaAperta = () => aperto;
-
 /** Mostra la schermata se ci sono lavori nuovi. Risponde quando si chiude (true) o subito se non c'era niente (false). */
 export async function apriNovita(o: NovitaOpts): Promise<boolean> {
   let lavori: Lavoro[] = o.prova?.lavori ?? [];
@@ -128,14 +125,13 @@ export async function apriNovita(o: NovitaOpts): Promise<boolean> {
   const ok = el('button', 'ok', 'Si gioca');
   card.append(ok);
   o.root.append(bg, card);
-  aperto = true;
   // le righe tagliate (oltre due) hanno «tutto ▾»
   for (const b of card.querySelectorAll<HTMLElement>('.chi')) { const c = b.querySelector<HTMLElement>('.cosa'); if (c && c.scrollHeight > c.clientHeight + 2) b.classList.add('lunga'); }
 
   return new Promise((res) => {
     const chiudi = () => {
       removeEventListener('keydown', tasti, true);
-      bg.remove(); card.remove(); aperto = false;
+      bg.remove(); card.remove();
       scrivi(o.chiave, ultimo);
       res(true);
     };

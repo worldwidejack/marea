@@ -3,10 +3,10 @@
 // Sim pura in @marea/sim/sparo (60 Hz fissi); qui la resa: camera in prima persona (l'arma in mano, inmano.ts) o in terza (l'avatar da
 // dietro la spalla destra, squadra.ts), succo e suoni dagli eventi (eventi.ts), HUD (hud.ts, missione_ui.ts). Passata pixel del gioco
 // (metà risoluzione, palette); H = HD. PC: clic per catturare il mouse, WASD, clic spara, destro mira, R, Spazio, C, Shift, E, 1-2-3;
-// V camera, H pixel/HD, T pilota, M muto, Invio ricomincia; Esc = pausa. Telefono (tocco.ts): joystick, trascini per mirare, bottoni;
-// mira assistita e sparo automatico (quando il mirino è su un nemico) spegnibili dal pannello «⚙ prove».
+// V camera, H pixel/HD, T pilota, M muto, Invio ricomincia; Esc = pausa. Telefono (tocco.ts, come COD Mobile): joystick col lucchetto della corsa, due SPARA, MIRA a tocco, trascini per mirare;
+// spara e mira, mira assistita (si attacca e rallenta sul nemico) e sparo automatico spegnibili dal pannello «⚙ prove».
 // Indirizzo: ?modo=poligono&cam=prima|terza&hd=1&auto=1&fov=90&prova=1 (prova = parte subito, senza briefing né pausa: per i test).
-// Test: window.__sparo = { ready, state(), set({...}), perf(), avanti(n), premi(input, n), partita(), rendi(dt), succoAvanti(s) }.
+// Test: window.__sparo = { ready, state(), set({...}: anche assistita, automatico), perf(), avanti(n), premi(input, n), partita(), rendi(dt), succoAvanti(s) }.
 import * as THREE from 'three';
 import { SPARO } from '@marea/content/sparo.ts';
 import { TICK_HZ } from '@marea/sim/constants.ts';
@@ -37,14 +37,16 @@ import { creaTocco } from './tocco.ts';
 /** `alto` = vista dall'alto del piazzale (solo per le prove, da set()). */
 type Cam = 'prima' | 'terza' | 'alto';
 const q = new URLSearchParams(location.search), M = SPARO.mappa;
-const salvato = (() => { try { return JSON.parse(localStorage.getItem('marea.sparo') ?? '{}') as { cam?: Cam; hd?: boolean; sens?: number; fov?: number; assistita?: boolean; automatico?: boolean }; } catch { return {}; } })();
+const salvato = (() => { try { return JSON.parse(localStorage.getItem('marea.sparo') ?? '{}') as { cam?: Cam; hd?: boolean; sens?: number; fov?: number; assistita?: boolean; automatico?: boolean; sparaMira?: boolean }; } catch { return {}; } })();
 let cam: Cam = (q.get('cam') as Cam) ?? salvato.cam ?? 'prima';
 if (cam !== 'prima' && cam !== 'terza' && cam !== 'alto') cam = 'prima';
 let modo: SModo = q.get('modo') === 'poligono' ? 'poligono' : 'missione', immortale = false;
 let hd = q.has('hd') ? q.get('hd') === '1' : !!salvato.hd, auto = q.get('auto') === '1', pausa = false, muto = false;
 let fovBase = Number(q.get('fov')) || salvato.fov || 90, assistita = salvato.assistita ?? true, automatico = salvato.automatico ?? true;
+/** Telefono: tenere SPARA mette anche in mira (pistola e mitra; il pompa spara dal fianco), come lo «ADS fire» di COD Mobile. */
+let sparaMira = salvato.sparaMira ?? true;
 const prova = q.get('prova') === '1';
-const salva = () => { try { localStorage.setItem('marea.sparo', JSON.stringify({ cam, hd, sens: ctl.sens, fov: fovBase, assistita, automatico })); } catch { /* niente memoria: pazienza */ } };
+const salva = () => { try { localStorage.setItem('marea.sparo', JSON.stringify({ cam, hd, sens: ctl.sens, fov: fovBase, assistita, automatico, sparaMira })); } catch { /* niente memoria: pazienza */ } };
 
 // ---------- resa ----------
 const canvas = document.getElementById('gl') as HTMLCanvasElement, root = document.getElementById('ui') as HTMLElement;
@@ -114,7 +116,7 @@ function comandi(): SInput {
   const a = cam === 'terza' ? convergi() : { yaw: ctl.yaw, pitch: ctl.pitch }, cl = (v: number) => Math.max(-1, Math.min(1, v));
   return {
     mx: cl(c.mx + (t?.mx ?? 0)), my: cl(c.my + (t?.my ?? 0)), yaw: quantizzaMira(a.yaw), pitch: quantizzaMira(a.pitch), fuoco,
-    mira: c.mira || !!t?.mira, ricarica: c.ricarica || !!t?.ricarica, salto: c.salto || !!t?.salto, giu: c.giu || !!t?.giu,
+    mira: c.mira || !!t?.mira || (!!t?.fuoco && sparaMira && A.id !== 'pompa'), ricarica: c.ricarica || !!t?.ricarica, salto: c.salto || !!t?.salto, giu: c.giu || !!t?.giu,
     corsa: c.corsa || !!t?.corsa, azione: c.azione || !!t?.azione, arma,
   };
 }
@@ -149,6 +151,7 @@ const opzioni = () => hud.opzioni([
   { id: 'fov', etichetta: () => `campo visivo: ${fovBase}°`, premi: () => { fovBase = fovBase >= 110 ? 80 : fovBase + 10; salva(); } },
   ...(tocco.attivo ? [
     { id: 'assist', etichetta: () => `mira assistita: ${assistita ? 'SÌ' : 'NO'}`, premi: () => { assistita = !assistita; salva(); } },
+    { id: 'sparamira', etichetta: () => `spara e mira: ${sparaMira ? 'SÌ' : 'NO'}`, premi: () => { sparaMira = !sparaMira; salva(); } },
     { id: 'autof', etichetta: () => `sparo automatico: ${automatico ? 'SÌ' : 'NO'}`, premi: () => { automatico = !automatico; salva(); } },
   ] : []),
   { id: 'auto', etichetta: () => `pilota automatico: ${auto ? 'SÌ' : 'NO'} (T)`, premi: () => { auto = !auto; avvia(); } },
@@ -241,6 +244,7 @@ function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   // su PC senza mouse catturato (Esc) la missione si ferma; sul telefono si ferma se è in verticale
   const ferma = pausa || !avviata || (!prova && !auto && avviata && !finita && (tocco.attivo ? innerHeight > innerWidth : !ctl.catturato()));
+  if (tocco.attivo) tocco.frena = !ferma && assistita && cam !== 'alto' && mirinoSuNemico();
   if (!ferma) { assisti(dt); acc += dt; while (acc >= DT) { unPasso(auto ? autopilota(s) : comandi()); acc -= DT; } } else acc = 0;
   inquadra(dt, ferma ? 1 : acc / DT);
   if (!pausa) succo.aggiorna(dt); // in pausa anche il succo resta fermo (le foto dei test)
@@ -271,12 +275,14 @@ const stato = () => {
 (window as unknown as { __sparo: unknown }).__sparo = {
   get ready() { return ready; },
   state: stato,
-  set(o: { cam?: Cam; hd?: boolean; auto?: boolean; pausa?: boolean; x?: number; z?: number; yaw?: number; pitch?: number; modo?: SModo; immortale?: boolean }) {
+  set(o: { cam?: Cam; hd?: boolean; auto?: boolean; pausa?: boolean; assistita?: boolean; automatico?: boolean; x?: number; z?: number; yaw?: number; pitch?: number; modo?: SModo; immortale?: boolean }) {
     if (o.modo !== undefined || o.immortale !== undefined) { if (o.modo) modo = o.modo; if (o.immortale !== undefined) immortale = o.immortale; ricomincia(); }
     if (o.cam) cam = o.cam;
     if (o.hd !== undefined) { hd = o.hd; resize(); }
     if (o.auto !== undefined) { auto = o.auto; avvia(); }
     if (o.pausa !== undefined) pausa = o.pausa;
+    if (o.assistita !== undefined) assistita = o.assistita;
+    if (o.automatico !== undefined) automatico = o.automatico;
     if (o.x !== undefined) { s.g.x = o.x; prima.x = o.x; }
     if (o.z !== undefined) { s.g.z = o.z; prima.z = o.z; }
     if (o.yaw !== undefined) { ctl.yaw = o.yaw; s.g.yaw = o.yaw; }

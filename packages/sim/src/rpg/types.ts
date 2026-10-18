@@ -1,5 +1,5 @@
 // Tipi del personaggio GDR (docs/RPG.md, CONTRACTS §15). Interfaccia fissa tra sim/rpg, sim/dungeon, server e client.
-import type { AttrId, EnemyKind, ItemKind, MaterialId, SkillId, Traits, WeaponClass, WeaponTypeId } from '@marea/content/rpg.ts';
+import type { AttrId, EnemyKind, ItemKind, MaterialId, SkillId, SpellElement, Traits, WeaponClass, WeaponTypeId } from '@marea/content/rpg.ts';
 import type { DungeonAzioni } from '../dungeon/types.ts';
 
 /** `mano` (dungeon v6): cosa tengono le mani. Assente = l'arma; 'magia' = la magia preparata (`magia`), che la A lancia al posto dell'arma.
@@ -39,7 +39,16 @@ export type HeroState = {
   lanterne?: Record<string, number>;
   /** Patto di sangue (perk): la creatura evocata ancora viva (id del nemico evocato), che ti segue di dungeon in dungeon e sull'isola. Assente = nessuna. */
   evocato?: string;
+  /** Arena (docs/ARENA.md): il set del duello, scelto all'ingresso del colosseo. Non tocca `equip` né lo zaino (in Arena non si consuma
+   *  niente). Assente = quello di partenza fatto da `equip` (rpg/arena.ts, loadoutDi). */
+  arena?: ArenaLoadout;
 };
+
+/** Uno slot rapido dell'Arena: un'arma o un arco dello zaino (con l'arco, `frecce` = il tipo di freccia; assente = ARENA.frecceBase), o una
+ *  magia conosciuta. */
+export type ArenaSlot = { arma: string; frecce?: string } | { magia: string };
+/** Il set del duello (docs/ARENA.md §2): vestizione, ARENA.slot slot rapidi (null = vuoto), ARENA.pozioni pozioni rapide (null = nessuna). */
+export type ArenaLoadout = { corpo?: string; anello1?: string; anello2?: string; slot: (ArenaSlot | null)[]; pozioni: (string | null)[] };
 
 /** Voce del catalogo (generata dalla sim: tipo × materiale + oggetti scritti a mano). La UI la usa per nome, peso, descrizione e statistiche. */
 export type ItemDef = {
@@ -102,9 +111,11 @@ export type RunArmor = {
   /** Armatura del Moto Perpetuo (Mausoleo): la Barriera Cinetica (Traits.barriera). Assente con ogni altra armatura. */
   barriera?: NonNullable<Traits['barriera']>;
 };
-export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione'; elemento?: 'fuoco' | 'elettricita'; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number;
+export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione'; elemento?: SpellElement; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number;
   /** Forma e dettagli (SpellDef): assenti = proiettile. Raggio: `costo` e `danno` sono al secondo. */
   forma?: 'proiettile' | 'raggio' | 'bomba'; gittata?: number; larghezza?: number; volo?: number; rallenta?: { molt: number; secondi: number };
+  /** Supporto (Step 1 Arena): cura alleati/evocazioni o dà Furia (+danno e +velocità). */
+  cura?: number; furia?: { danno: number; velocita: number; secondi: number };
   /** Grandi Magie: la magia è più grande di questo fattore (raggio dello scoppio già moltiplicato); assente = 1. */
   mole?: number };
 /** Effetti dei perk che la sim del dungeon deve conoscere (gli altri sono già numeri dentro RunHero). Assente o campo assente = non c'è. */
@@ -136,6 +147,8 @@ export type RunHero = {
   max: Record<AttrId, number>;
   regen: Record<AttrId, number>;
   camminata: number; corsa: number; staminaCorsa: number; mentreCarichi: number; raggio: number;
+  /** Arena PvP (docs/ARENA.md Step 1): statistiche di base normalizzate a 100/100/100 e danni PvP scalati senza one-shot. */
+  arena?: boolean;
   /** Anello dell'Onda della Regina al dito (Mausoleo): l'Eco della Marea (Traits.eco; due anelli non si sommano). Assente senza. */
   eco?: NonNullable<Traits['eco']>;
   arma: RunWeapon;
@@ -207,7 +220,9 @@ export type RpgAction =
   | { t: 'butta'; item: string; n: number }
   | { t: 'serra' }
   /** Contrabbandiere del Porto: compra la merce di oggi o gli vendi roba dello zaino (monete). */
-  | { t: 'contrabbando'; op: 'compra' | 'vendi'; item: string; n: number };
+  | { t: 'contrabbando'; op: 'compra' | 'vendi'; item: string; n: number }
+  /** Arena: salva il set del duello (controllato con erroreLoadout di rpg/arena.ts). */
+  | { t: 'arena'; loadout: ArenaLoadout };
 
 /** Spedizione aperta dal server (dentro LotState.dungeon). */
 /** `salvataggio`: input fino all'ultimo altare (encodeDungeon), verificati dal server con POST /api/dungeon/save. Se la spedizione non

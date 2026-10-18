@@ -2,7 +2,7 @@
 import { ATTRS } from '@marea/content/rpg.ts';
 import type { AttrId } from '@marea/content/rpg.ts';
 import { EQUIP_SLOTS } from './types.ts';
-import type { EquipSlot, RpgAction } from './types.ts';
+import type { ArenaLoadout, ArenaSlot, EquipSlot, RpgAction } from './types.ts';
 
 const str = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 40;
 const qty = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 999;
@@ -30,6 +30,28 @@ export function parseRpgAction(v: unknown): RpgAction | null {
     case 'serra': return { t: 'serra' };
     case 'contrabbando':
       return (o.op === 'compra' || o.op === 'vendi') && str(o.item) && qty(o.n) ? { t: 'contrabbando', op: o.op, item: o.item, n: o.n } : null;
+    case 'arena': { const l = parseLoadout(o.loadout); return l ? { t: 'arena', loadout: l } : null; }
     default: return null;
   }
+}
+
+/** Forma del set dell'Arena (ArenaLoadout): id corti, slot e pozioni come array (le lunghezze le controlla erroreLoadout). */
+export function parseLoadout(v: unknown): ArenaLoadout | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const o = v as Record<string, unknown>;
+  if (!Array.isArray(o.slot) || o.slot.length > 9 || !Array.isArray(o.pozioni) || o.pozioni.length > 4) return null;
+  const slot: (ArenaSlot | null)[] = [];
+  for (const x of o.slot) {
+    if (x === null) { slot.push(null); continue; }
+    if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+    const s = x as Record<string, unknown>;
+    if (str(s.magia) && s.arma === undefined) slot.push({ magia: s.magia });
+    else if (str(s.arma) && s.magia === undefined && (s.frecce === undefined || str(s.frecce))) slot.push(str(s.frecce) ? { arma: s.arma, frecce: s.frecce } : { arma: s.arma });
+    else return null;
+  }
+  const pozioni: (string | null)[] = [];
+  for (const x of o.pozioni) { if (x === null) pozioni.push(null); else if (str(x)) pozioni.push(x); else return null; }
+  const out: ArenaLoadout = { slot, pozioni };
+  for (const k of ['corpo', 'anello1', 'anello2'] as const) { const x = o[k]; if (x === undefined || x === null) continue; if (!str(x)) return null; out[k] = x; }
+  return out;
 }

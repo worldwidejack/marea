@@ -1,12 +1,12 @@
-// Isole a tema (#68): le 5 isole con lo sblocco ci sono, di serie sono chiuse col motivo giusto (Corse e Templari sono aperte a tutti) (barriera in mare per Tempesta, Ghiacci e Giardino,
-// il Vulcano ti caccia a terra, all'Adrenalina ti ferma il cancello della funivia: m4_adrenalina), si aprono col requisito (hook temiProva), minimappa col lucchetto, bussola dopo la scoperta,
+// Isole a tema (#68): le 5 isole con lo sblocco ci sono, di serie sono chiuse col motivo giusto (Corse, Templari e Arena sono aperte a tutti) (barriera in mare per Tempesta, Ghiacci e Giardino,
+// il Vulcano ti caccia a terra, all'Adrenalina ti ferma il cancello della funivia: m4_adrenalina), si aprono col requisito (hook temiProva), in mappa invisibili finché chiuse (#360), bussola dopo la scoperta,
 // scenografia viva (pioggia, banchisa, nebbia, fumo) e corrente al bordo del mondo (#5). Screenshot di ogni isola da vicino a 390×844 e
 // da PC, draw call ≤ 100, niente errori. Numeri: tests/out/m3_isole.json
 import fs from 'node:fs';
 import path from 'node:path';
 export const timeout = 600000;
 const ISOLE = ['tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'adrenalina'];
-const LIBERE = new Set(['corse', 'templari']); // i Templari dal 10/10: niente calice da trovare
+const LIBERE = new Set(['corse', 'templari', 'arena']); // i Templari dal 10/10: niente calice da trovare; l'Arena (#373) è di tutti
 const MOTIVI = { adrenalina: /guardiano della funivia.*liberatoria/, tempesta: /tempesta ti respinge.*Molo al livello 2/, ghiacci: /mare gela.*livello 3/, vulcano: /abitanti ti cacciano.*Lanterna in testa/, giardino: /nebbia.*mappa del Giardino/ };
 const APRI = { adrenalina: { cappello: 'casco', liberatorie: ['adrenalina'] }, tempesta: { molo: 2 }, ghiacci: { livello: 3 }, vulcano: { cappello: 'lanterna' }, giardino: { mappe: ['giardino'] } };
 
@@ -41,9 +41,9 @@ export default async function (ctx) {
   const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
   await ctx.waitReady(d.page, 30000);
 
-  await ctx.test('sette isole a tema: cinque chiuse di serie col motivo giusto, Corse e Templari aperte a tutti', async () => {
+  await ctx.test('otto isole a tema: cinque chiuse di serie col motivo giusto, Corse, Templari e Arena aperte a tutti', async () => {
     const s = await st(d);
-    assert(s.temi && s.temi.isole.length === 7, `isole a tema: ${JSON.stringify(s.temi)}`);
+    assert(s.temi && s.temi.isole.length === 8, `isole a tema: ${JSON.stringify(s.temi)}`);
     for (const i of s.temi.isole) {
       if (LIBERE.has(i.id)) { assert(i.aperta, `${i.id} chiusa`); continue; } // sblocco `libera`
       assert(!i.aperta, `${i.id} aperta di serie`);
@@ -56,11 +56,12 @@ export default async function (ctx) {
     assert(!(await st(d)).compass.shown.some((x) => x.startsWith('tema:')), 'le isole a tema non scoperte sono già nella bussola');
   });
 
-  await ctx.test('mappa: lucchetto sulle chiuse; scoperte → in bussola', async () => {
+  await ctx.test('mappa: le chiuse non si vedono (solo mare) anche scoperte; scoperte → in bussola', async () => {
     await hook(d, 'mappaScopri'); await d.page.waitForTimeout(300);
     const s = await st(d);
-    assert(s.mappa.chiuse.length === 5, 'scoperte ma ancora chiuse: il lucchetto resta');
-    for (const id of [...ISOLE, 'corse']) assert(s.compass.shown.includes('tema:' + id), `bussola senza ${id}: ${JSON.stringify(s.compass.shown)}`);
+    assert(s.mappa.chiuse.length === 5 && s.mappa.nascoste.length === 5, 'scoperte ma ancora chiuse: restano invisibili');
+    for (const id of s.mappa.chiuse) { const t = await hook(d, 'mappaTerra', id); assert(t.base === 0, `${id} chiusa ma in mappa: ${JSON.stringify(t)}`); }
+    for (const id of [...ISOLE, 'corse', 'arena']) assert(s.compass.shown.includes('tema:' + id), `bussola senza ${id}: ${JSON.stringify(s.compass.shown)}`);
     await hook(d, 'mappa', 'apri'); await d.page.waitForTimeout(300);
     await ctx.shot(d.page, 'desktop_mappa_chiuse');
     await hook(d, 'mappa', 'chiudi');
@@ -122,11 +123,11 @@ export default async function (ctx) {
     ctx.noErrors(d, 'vulcano');
   });
 
-  await ctx.test('aperte: niente lucchetto in mappa', async () => {
+  await ctx.test('aperte: in mappa si vedono', async () => {
     await hook(d, 'temiProva', 'tutte'); await d.page.waitForTimeout(800);
     const s = await st(d);
     assert(s.temi.isole.every((i) => i.aperta), 'temiProva tutte non apre tutto');
-    assert(s.mappa.chiuse.length === 0, `lucchetti rimasti: ${JSON.stringify(s.mappa.chiuse)}`);
+    assert(s.mappa.chiuse.length === 0 && s.mappa.nascoste.length === 0, `isole ancora nascoste: ${JSON.stringify(s.mappa.nascoste)}`);
   });
 
   // screenshot di ogni isola da vicino (aperte), PC e telefono; di notte i Ghiacci con l'aurora

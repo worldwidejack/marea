@@ -4,6 +4,9 @@
 // - La Grande Lancetta, TIC-TAC: i colpi a tempo col tic salgono di danno; il quinto di fila è il Rintocco, che stordisce.
 // - Arco Carillon, CARICA A MOLLA: niente tensione, colpi pieni subito, si ricarica da solo un colpo alla volta.
 // - Anello dell'Onda della Regina, ECO DELLA MAREA: i colpi in mischia liberano un'onda che prende i nemici attorno a chi colpisci.
+// Dalla Diga dei Disertori (docs/RPG.md §2g):
+// - L'Albero della «Stella del Mattino», VENTO IN POPPA: correndo la vela si gonfia (cariche di Brezza); piene, il caricato parte in metà
+//   tempo e libera un'onda d'urto che fa di più, respinge e sfonda ogni scudo.
 // Tutto sull'eroe di turno; senza questi oggetti non succede niente (le funzioni escono subito).
 import { DT } from '../constants.ts';
 import type { DungeonState, Enemy } from './state.ts';
@@ -97,6 +100,37 @@ export function molla(s: DungeonState): boolean {
   if (h.molla >= M.colpi) h.mollaT = s.tick + secToTicks(M.ricarica); // la ricarica parte dal primo colpo tirato
   h.molla--;
   return false;
+}
+
+/** Vento in Poppa: correndo la vela si gonfia, una carica di Brezza ogni `metri` m corsi (fino a `cariche`). (x0, z0) = dov'era prima
+ *  del passo. */
+export function caricaBrezza(s: DungeonState, x0: number, z0: number): void {
+  const h = s.hero, P = h.arma.traits.poppa;
+  if (!P || !h.running || h.brezza >= P.cariche) return;
+  const dx = h.x - x0, dz = h.z - z0;
+  h.brezzaM += Math.sqrt(dx * dx + dz * dz);
+  if (h.brezzaM < P.metri) return;
+  h.brezzaM -= P.metri; h.brezza++;
+  if (h.brezza >= P.cariche) h.brezzaM = 0;
+  ev(s, { t: 'brezza', n: h.brezza });
+}
+/** La Brezza è piena (il prossimo caricato è quello col Vento in Poppa). */
+export const brezzaPiena = (s: DungeonState): boolean => { const P = s.hero.arma.traits.poppa; return !!P && s.hero.brezza >= P.cariche; };
+/** Moltiplicatore del tempo di carica del caricato: con la Brezza piena si carica in `carica` del tempo. */
+export const moltCaricaPoppa = (s: DungeonState): number => (brezzaPiena(s) ? s.hero.arma.traits.poppa!.carica : 1);
+/** Parte un caricato pieno: con la Brezza piena è l'onda d'urto (consuma le cariche). */
+export function inizioPoppa(s: DungeonState, caricato: boolean): void {
+  const h = s.hero;
+  h.poppa = caricato && brezzaPiena(s);
+  if (!h.poppa) return;
+  h.brezza = 0; h.brezzaM = 0;
+  ev(s, { t: 'poppa', x: r2(h.x), z: r2(h.z) });
+}
+/** L'onda d'urto ha preso `e`: vola via di `spinta` m lungo (dx, dz) (i capi, le torrette e gli anelli no). */
+export function spintaPoppa(s: DungeonState, e: Enemy, dx: number, dz: number): void {
+  const P = s.hero.arma.traits.poppa;
+  if (!P || !s.hero.poppa || e.def.boss || e.st === 'morto' || e.def.comportamento === 'torretta' || e.def.comportamento === 'anello') return;
+  moveCircle(grigliaDi(s, e), e, dx * P.spinta, dz * P.spinta, e.def.raggio);
 }
 
 /** Il Rintocco: chi prende il colpo resta stordito (i capi no). */

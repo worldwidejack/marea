@@ -7,6 +7,8 @@
 // Mausoleo: aspetta che la lancetta passi prima di entrare nel suo giro (dentro, corre), gira alle spalle della Sentinella come del
 // Palombaro, e col Custode corre nel varco dell'ondata (o dietro una colonna), si toglie da dove ricompare con lo scatto e non lo colpisce
 // mentre cambia cuore.
+// Diga: esce di lato dalle corsie telegrafate (schiacciata, affondi, carica) e dalla linea del Fuciliere quando si blocca, scappa dai
+// cerchi dei barili e delle cannonate e scende dai rottami; gira alle spalle del Capitano quando alza lo scudo della salva.
 // Non tocca lo stato della sim: la sua memoria sta in una WeakMap (il replay non la vede).
 import type { Rng } from '../rng.ts';
 import type { DungeonInput } from './types.ts';
@@ -23,6 +25,9 @@ import { areaRaggio } from './enemies.ts';
 import { inGetto, statoLava } from './fuoco.ts';
 import { lancettaDir } from './onde.ts';
 import { varchiDi } from './custode.ts';
+import { inCorsia } from './diga.ts';
+import { scudoSu } from './vaelen.ts';
+import { secToTicks } from './state.ts';
 import { GEYSER_DIR, HZ } from './tuning.ts';
 
 type Mem = {
@@ -149,7 +154,7 @@ function fight(s: DungeonState, m: Mem, e: Enemy, o: Out): void {
   const corta = sp?.forma === 'raggio' || sp?.forma === 'bomba', gittata = sp?.gittata ?? 5;
   if (h.act === 'punta') { o.mx = u.x * 0.2; o.my = u.z * 0.2; if (sp?.forma === 'raggio' && d < gittata + 0.5 && vede) o.a = true; return; }
   const lancia = !!sp && h.act === 'idle' && h.cdMagia === 0 && h.magicka >= sp.costo && vede && d < (corta ? gittata : 14) && !(acceso && sp.scuola === 'distruzione')
-    && (sp.scuola === 'distruzione' || !s.enemies.some((x) => x.alleato && x.st !== 'morto' && (x.padrone ?? 0) === s.cur));
+    && (sp.scuola === 'distruzione' || (sp.evoca ? !s.enemies.some((x) => x.alleato && x.st !== 'morto' && (x.padrone ?? 0) === s.cur) : false));
   if (lancia && !m.prevC && !m.prevA) { o.c = !h.incanta; o.a = true; o.mx = u.x * 0.2; o.my = u.z * 0.2; return; }
   if (!lancia && h.incanta && h.act === 'idle' && !m.prevC) o.c = true;
   // Mausoleo, il Custode: l'ondata si prende nel varco, lo scatto si schiva, mentre cambia cuore non si colpisce
@@ -187,8 +192,9 @@ function fight(s: DungeonState, m: Mem, e: Enemy, o: Out): void {
     if (ex * ex + ez * ez > 0.16) { const v = nav(s, m, p.x, p.z); if (v) { o.mx = v.x; o.my = v.z; o.b = true; } }
     return;
   }
-  // il Golem-Palombaro e la Sentinella (finché lo scudo regge) parano da davanti: prima di lato, poi alle spalle
-  if ((e.def.scafandro || (e.def.scudo && !(e.rotto !== undefined && e.rotto > s.tick))) && d > 1e-6) {
+  // il Golem-Palombaro, la Sentinella e la Guardia della Paratia (finché lo scudo regge) e il Capitano con lo scudo della salva parano
+  // da davanti: prima di lato, poi alle spalle
+  if ((e.def.scafandro || (e.def.scudo && !(e.rotto !== undefined && e.rotto > s.tick)) || scudoSu(e)) && d > 1e-6) {
     const k = (-dx * e.fx - dz * e.fz) / d;
     if (k > -0.3) {
       const r = e.def.raggio + rh.raggio + Math.min(a.portata, 1.8) * 0.7, lato = -dx * -e.fz + -dz * e.fx >= 0 ? 1 : -1;
@@ -214,6 +220,46 @@ function fight(s: DungeonState, m: Mem, e: Enemy, o: Out): void {
   if (d > reach || !vede) { const v = nav(s, m, e.x, e.z); if (v) { o.mx = v.x; o.my = v.z; } return; }
   // attacco normale: premi un tick, rilascia il successivo (lo swing parte al rilascio)
   if (h.act === 'idle' && !m.prevA) { o.a = true; o.mx = u.x * 0.15; o.my = u.z * 0.15; }
+}
+
+/** Diga: la corsia telegrafata di un nemico (schiacciata, affondo, carica; la linea del Fuciliere quando sta per bloccarsi) passa dove
+ *  sto: la direzione per uscirne di lato (null = nessuna corsia addosso). */
+function viaDalleCorsie(s: DungeonState): { x: number; z: number } | null {
+  const h = s.hero;
+  for (const e of s.enemies) {
+    if (e.alleato || e.st !== 'prepara' || !e.mira) continue;
+    let largo: number;
+    if (e.modo === 'schiacciata' && e.def.schiacciata) largo = e.def.schiacciata.largo;
+    else if (e.modo === 'affondo' && e.def.vaelen) largo = e.def.vaelen.affondo.largo;
+    else if (e.modo === 'carica' && e.def.vaelen) { if (e.stT < e.stDur - secToTicks(e.def.vaelen.carica.blocca) - 10) continue; largo = e.def.vaelen.carica.largo + 0.4; }
+    else if (e.modo === 'fucile' && e.def.fucile) { if (e.stT < e.stDur - secToTicks(e.def.fucile.blocca) - 8) continue; largo = 0.45; }
+    else continue;
+    if (!inCorsia(s, e, largo + 0.3)) continue;
+    const m = e.mira, lato = (h.x - e.x) * -m.dz + (h.z - e.z) * m.dx >= 0 ? 1 : -1;
+    for (const k of [lato, -lato]) { // di lato, dalla parte dove sono già (se c'è un muro, dall'altra)
+      const x = h.x - m.dz * k * 2, z = h.z + m.dx * k * 2;
+      if (clearPath(s.map, h.x, h.z, x, z, s.runHero.raggio)) return { x: -m.dz * k, z: m.dx * k };
+    }
+    return { x: -m.dx, z: -m.dz };
+  }
+  return null;
+}
+/** Diga: in (x, z) fa male (rottami, cerchio di un barile o di una cannonata in arrivo). */
+function digaScotta(s: DungeonState, x: number, z: number): boolean {
+  const c = cellOf(s.map, x, z), r = s.runHero.raggio;
+  if (c >= 0 && s.map.rottami[c]) return true;
+  for (const g of s.geyser) { if (g.spinta === undefined || g.t > g.avviso) continue; const dx = x - g.x, dz = z - g.z, rr = g.r + r + 0.2; if (dx * dx + dz * dz < rr * rr) return true; }
+  return false;
+}
+/** Diga: se sotto i piedi fa male, la direzione verso il posto sicuro più vicino (null = va bene così). */
+function viaDaiRottami(s: DungeonState): { x: number; z: number } | null {
+  const h = s.hero, r = s.runHero.raggio;
+  if (!digaScotta(s, h.x, h.z)) return null;
+  for (const k of [1.2, 2.2, 3.2]) for (const [dx, dz] of GEYSER_DIR) {
+    const x = h.x + dx * k, z = h.z + dz * k;
+    if (!digaScotta(s, x, z) && clearPath(s.map, h.x, h.z, x, z, r)) return { x: dx, z: dz };
+  }
+  return null;
 }
 
 /** Fucina: in (x, z) scotta (lava che scorre o sta per scorrere, chiazza di fuoco, palla di magma in arrivo). */
@@ -261,6 +307,8 @@ export function autopilot(s: DungeonState, rng: Rng): DungeonInput {
   if (h.vita < rh.max.vita * 0.35 && h.pozioni > 0 && h.act === 'idle' && !m.prevD) { o.d = true; return finish(); }
   // Fucina: prima di tutto, via da dove scotta
   if (s.map.lave.length || s.map.getti.length) { const v = viaDalFuoco(s); if (v) { o.mx = v.x; o.my = v.z; o.b = true; return finish(); } }
+  // Diga: fuori dalle corsie telegrafate, dai cerchi in arrivo e dai rottami
+  if (s.def.rottami) { const v = viaDalleCorsie(s) ?? viaDaiRottami(s); if (v) { o.mx = v.x; o.my = v.z; o.b = true; return finish(); } }
   for (const [k, until] of m.ban) if (until <= s.tick) m.ban.delete(k);
   const libero = rh.caricoMax - pesoZaino(s);
   const tempo = s.tick > 20 * 60 * HZ - 3 * 60 * HZ;

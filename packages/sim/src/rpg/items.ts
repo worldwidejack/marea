@@ -57,6 +57,7 @@ function fromRaw(r: ItemDefRaw, byId: Map<string, ItemDef>): ItemDef {
   else if (!base) it.colore = MATERIALS.find((m) => m.costo === r.id)?.colore ?? it.colore;
   if (r.danno !== undefined) it.danno = r.danno;
   if (r.velocita !== undefined) it.velocita = r.velocita;
+  if (r.portata !== undefined) it.portata = r.portata;
   if (r.difesa !== undefined) it.difesa = r.difesa;
   if (r.traits) it.traits = { ...(it.traits ?? {}), ...traitsOf(r.traits) };
   if (r.mods) it.mods = { ...r.mods };
@@ -89,8 +90,6 @@ export function itemDef(id: string): ItemDef {
   if (!it) throw new Error(`Oggetto sconosciuto: ${id}`);
   return it;
 }
-/** Peso di un oggetto (0 se sconosciuto). */
-export function pesoOf(id: string): number { return BY_ID.get(id)?.peso ?? 0; }
 /** Materiale di un oggetto generato o di un unico (via la sua base). */
 export function materialOf(it: ItemDef): MaterialDef | undefined { return it.materiale ? MATERIALS.find((m) => m.id === it.materiale) : undefined; }
 /** Tipo d'arma (anche degli unici). */

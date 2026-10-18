@@ -54,6 +54,7 @@ export const INGRESSI = [
   { id: 'archivio', nome: 'Archivio Navigazionale', island: 'laguna', at: [47, 36], stile: 'archivio', difficolta: 4, richiede: 'drenaggio' },
   { id: 'fucina', nome: 'Fucina a Pressione', island: 'laguna', at: [26, 5], stile: 'fucina', difficolta: 5, richiede: 'archivio' },
   { id: 'mausoleo', nome: 'Mausoleo Cinetico', island: 'laguna', at: [8, 13], stile: 'mausoleo', difficolta: 7, richiede: 'fucina' },
+  { id: 'diga', nome: 'La Diga dei Disertori', island: 'tempesta', at: [22, 20], stile: 'diga', difficolta: 9 },
 ] as const;
 /** Il dungeon da completare prima di poter entrare (porta sigillata), o null. */
 export const richiesto = (id: string): string | null => { const d = INGRESSI.find((x) => x.id === id); return d && 'richiede' in d ? d.richiede : null; };
