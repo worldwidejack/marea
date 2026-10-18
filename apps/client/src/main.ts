@@ -137,7 +137,7 @@ async function boot(): Promise<void> {
   const porto = createPorto({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot });
   // nella sezione del Porto subito dopo la piazza: Mercante e Bacheca prima dei minigiochi
   targets.splice(targets.findIndex((t) => t.id === 'porto') + 1, 0, ...porto.spots.map((sp): CompassTarget => ({ id: sp.id, label: sp.id === 'mercante' ? 'Mercante' : sp.id === 'contrabbando' ? 'Contrabbando' : 'Bacheca', icon: sp.id, x: sp.x, z: sp.z, sezione: 'porto' })));
-  // Porto tra amici (#110 #111): Tabellone dei record in piazza e Faro comune sullo scoglio; pannelli scaricati alla prima apertura
+  // Porto tra amici (#110 #111): Tabellone dei record in piazza e Faro comune sullo scoglio (spento per ora, ?faro=1: resta il modello); pannelli scaricati alla prima apertura
   const amici = createPortoAmici({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot, notte: () => aspetto?.momento === 'notte' });
   targets.splice(targets.findIndex((t) => t.id === 'bacheca') + 1, 0, ...amici.spots.map((sp): CompassTarget => ({ id: sp.id, label: sp.id === 'record' ? 'Record' : 'Faro', icon: sp.id, x: sp.x, z: sp.z, sezione: 'porto' })));
   // Isole a tema (#68): sblocchi, barriere in mare, il Vulcano che caccia; in bussola appena scoperte (minimappa), invisibili in mappa finché chiuse
@@ -168,7 +168,7 @@ async function boot(): Promise<void> {
   void import('./game/negozio.ts').then((m) => { negozio = m.createNegozio({ world, renderer, loader, root, hud, velo, api: me && api.enabled ? api : null, getLot: () => myLot(), setLot: setMyLot }); }).catch(() => { /* senza negozio si gioca lo stesso */ });
   let arreda: Arreda | null = null;
   if (world.slot !== null) void import('./game/arreda.ts').then((m) => { arreda = m.createArreda({ world, root, hud, api: me && api.enabled ? api : null, lotto: lots.find((lv) => !lv.readonly) ?? null, slot: world.slot, stanza, apriBaule: () => eroe?.openBuilding('forziere') }); }).catch(() => { /* senza ARREDA si gioca lo stesso */ });
-  // Diario del capitano (#87): bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette con nome e titolo sopra la testa
+  // Diario del capitano (#87): bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette col nome (e il titolo, solo con ?traguardi=1) sopra la testa
   const diario = createDiario({ root, hud, api: me && api.enabled ? api : null, me, world, owners, getLot: () => myLot(), setLot: setMyLot, hidden: () => regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy(),
     pausa: () => !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || !!tavolo?.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!document.querySelector('#mzSheet.on'),
     onOpen: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); } });
@@ -403,7 +403,10 @@ async function boot(): Promise<void> {
   if ((!FLAGS.test || FLAGS.novita) && !FLAGS.banco && FLAGS.arena !== 'banco') void rientro.then(() => novita()).catch(() => { /* senza novità si gioca lo stesso */ });
   registerTestHook('novitaProva', (lavori, ora) => { void novita({ lavori: lavori as { t: number; chi: string; titolo: string }[], ora: Number(ora) }); return true; });
   setReady();
-  hud.toast(me ? `Ciao ${me.nome}` : 'MAREA', 2500);
+  // la guida non parte da sola (VISIONE §1): al primissimo ingresso il saluto dice dove si accende, e se ne va da sé
+  const ciao = me ? `Ciao ${me.nome}` : 'MAREA';
+  if (guida.primaVolta) hud.toast(`${ciao}! Se vuoi una mano, la guida «Primi passi» la accendi dalle Impostazioni (ingranaggio in alto)`, 7000);
+  else hud.toast(ciao, 2500);
   console.log(`[marea] build ${__BUILD__} · isola ${world.map.id} ${world.map.w}×${world.map.h}`);
 }
 boot().catch((e) => { console.error('[marea] avvio fallito', e); document.body.insertAdjacentHTML('beforeend', `<pre style="color:#F4E3C1;padding:16px">Qualcosa è andato storto all'avvio.\n${String(e)}</pre>`); });

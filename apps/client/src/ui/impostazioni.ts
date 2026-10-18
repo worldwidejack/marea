@@ -1,4 +1,5 @@
-// Impostazioni (#53): ingranaggio #mzSetBtn nella barra in alto, pannello #mzSet con camera (5 viste), ciclo giorno/notte,
+// Impostazioni (#53): ingranaggio #mzSetBtn nella barra in alto, pannello #mzSet con in cima la riga «Guida Primi passi» (l'unico posto dove si
+// accende, VISIONE §1), poi camera (5 viste), ciclo giorno/notte,
 // meteo (#85), stampa giapponese e contorni, volume di Musica ed Effetti (audio/ponte.ts: 4 livelli, NO … ALTA). Di serie (#59) ciclo, camera 22° e contorni; le scelte restano su questo dispositivo (localStorage).
 // Solo sui dispositivi touch (#143): «Una mano» (il joystick nasce dove tocchi) e quanti secondi resta dopo il rilascio.
 // Coi test automatici (?test=1) si parte tutto spento, così gli screenshot non dipendono dall'ora vera; ?serie=1 usa i valori di serie.
@@ -68,7 +69,8 @@ export function loadImpostazioni(): Impostazioni {
 
 export type ImpostazioniPanel = { open(): void; close(): void; isOpen(): boolean; readonly value: Impostazioni };
 
-/** `guida`: la riga «Guida Primi passi» (SÌ/NO) per riaccendere la guida chiusa con ×; non è un'impostazione salvata qui (sta nella guida). */
+/** `guida`: la riga «Guida Primi passi» (SÌ/NO), l'unico posto dove la guida si accende (non parte da sola, VISIONE §1) o si riaccende dopo la ×;
+ *  non è un'impostazione salvata qui (sta nella guida). */
 export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazioni): void; guida?: { on(): boolean; set(on: boolean): void } }): ImpostazioniPanel {
   injectUiStyle(); injectStyle();
   let cur = loadImpostazioni(), open = false;
@@ -109,6 +111,15 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
       row.appendChild(b);
     });
     cam.appendChild(row);
+    // in cima: è l'unico posto dove si accende la guida (non parte da sola) e il saluto del primo ingresso manda qui; sul telefono si vede senza scorrere
+    const g = o.guida;
+    if (g) {
+      const on = g.on(), b = el('button', 'mz-set-row' + (on ? ' on' : '')); b.type = 'button'; b.dataset['set'] = 'guida';
+      const txt = el('span'); txt.append(el('span', '', 'Guida «Primi passi»'), el('span', 'q', 'per chi arriva: una scheda gialla ti dice cosa fare, un passo alla volta'));
+      b.append(txt, el('span', 'sw', on ? 'SÌ' : 'NO'));
+      b.addEventListener('click', () => { g.set(!g.on()); render(); });
+      body.appendChild(b);
+    }
     body.append(volRow('musica', 'Musica'), volRow('effetti', 'Effetti'), cam);
     if (touch) {
       body.appendChild(toggleRow('unaMano', 'Una mano', 'il joystick appare dove tocchi lo schermo'));
@@ -128,14 +139,6 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
       toggleRow('meteo', 'Meteo', 'sole, nuvole, pioggia, nebbia, vento: lo stesso per tutti'),
       toggleRow('stampa', 'Stampa giapponese', 'colori da stampa antica, onde, carta'),
       toggleRow('contorni', 'Contorni', 'una riga scura attorno a cose e persone'));
-    const g = o.guida;
-    if (g) {
-      const on = g.on(), b = el('button', 'mz-set-row' + (on ? ' on' : '')); b.type = 'button'; b.dataset['set'] = 'guida';
-      const txt = el('span'); txt.append(el('span', '', 'Guida «Primi passi»'), el('span', 'q', 'la scheda gialla coi consigli per chi arriva'));
-      b.append(txt, el('span', 'sw', on ? 'SÌ' : 'NO'));
-      b.addEventListener('click', () => { g.set(!g.on()); render(); });
-      body.appendChild(b);
-    }
   }
   const btn = topButton({ root: o.root, id: 'mzSetBtn', order: 5, label: '', title: 'Impostazioni', onClick: () => (open ? close() : show()) });
   btn.el.insertBefore(gearIcon(), btn.el.firstChild);

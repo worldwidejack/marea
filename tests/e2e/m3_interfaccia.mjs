@@ -3,6 +3,7 @@
 // mete), guida «Primi passi» al primo passo; poi al Porto accanto al Mercante (bottone del Porto) e in barca sul mare da pesca (PESCA).
 // In ogni posa: i rettangoli degli elementi fissi non si sovrappongono e stanno dentro lo schermo. Più la guida: si chiude con ×, resta
 // chiusa al ricaricamento, e chi aveva fatto i 4 passi vecchi (progresso numerico in localStorage) riparte dai passi nuovi, non da capo.
+// La guida non parte da sola (VISIONE §1): ogni ingresso nuovo controlla che sia spenta e la accende dalla riga delle Impostazioni.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -47,6 +48,20 @@ export default async function (ctx) {
       return P;
     };
     const hook = (page, n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
+    /** La guida è spenta (non parte da sola): si accende dalla riga «Guida Primi passi» delle Impostazioni, e il pannello si richiude. */
+    const accendiGuida = async (P, tag = '') => {
+      const g = (await ctx.getState(P.page)).guida;
+      assert(g.chiusa === true && g.current === null && !g.visibile, 'la guida è partita da sola: ' + JSON.stringify(g));
+      if (tag) await ctx.shot(P.page, `${tag}_0_primo_ingresso`);
+      await P.page.locator('#mzSetBtn').click();
+      await P.page.locator('#mzSet.on [data-set="guida"]').scrollIntoViewIfNeeded();
+      if (tag) await ctx.shot(P.page, `${tag}_0_impostazioni`);
+      await P.page.locator('#mzSet.on [data-set="guida"]').click();
+      await ctx.waitState(P.page, (s) => s.guida.chiusa === false && s.guida.current !== null, 3000);
+      if (tag) { await sleep(300); await ctx.shot(P.page, `${tag}_0_impostazioni_guida_si`); }
+      await P.page.locator('#mzSet .mz-x').click();
+      await ctx.waitState(P.page, (s) => s.impostazioni.open === false && s.guida.visibile, 5000);
+    };
     /** Rettangoli visibili degli elementi fissi + coppie che si sovrappongono (più di 2 px per lato: bordi e ombre a contatto vanno bene). */
     const misura = (page) => page.evaluate((FISSI) => {
       const vw = innerWidth, vh = innerHeight, out = [];
@@ -97,6 +112,7 @@ export default async function (ctx) {
     const pose = [['iphone', ctx.B.IPHONE, 'tokL'], ['android', ANDROID, 'tokM'], ['pc', ctx.B.DESKTOP, 'tokU']];
     for (const [nome, vp, tok] of pose) {
       const P = await apri(tok, vp);
+      await accendiGuida(P, nome);
       const touch = !!vp.hasTouch;
       await ctx.test(`${nome} ${vp.width}×${vp.height}: sull'isola con mete aperte, guida e minimappa niente si sovrappone`, async () => {
         const s0 = await ctx.getState(P.page);
@@ -145,12 +161,13 @@ export default async function (ctx) {
 
     await ctx.test('guida: SALTA passa al passo dopo, × la chiude e resta chiusa al ricaricamento, dalle Impostazioni si riaccende', async () => {
       const P = await apri('tokU', ctx.B.DESKTOP), page = P.page;
+      await accendiGuida(P);
       const g0 = (await ctx.getState(page)).guida;
       await page.locator('#mzGuida [data-act="salta"]').click();
       await ctx.waitState(page, (s, g0) => s.guida.done === g0.done + 1 && s.guida.current !== g0.current, 3000, g0);
       await page.locator('#mzGuida [data-act="chiudi"]').click();
       await ctx.waitState(page, (s) => s.guida.chiusa === true && s.guida.current === null, 3000);
-      await page.waitForFunction(() => /chiusa/i.test(document.getElementById('mzGuida').textContent) && document.getElementById('mzGuida').classList.contains('on'), null, { timeout: 5000 });
+      await page.waitForFunction(() => /spenta/i.test(document.getElementById('mzGuida').textContent) && document.getElementById('mzGuida').classList.contains('on'), null, { timeout: 5000 });
       await ctx.shot(page, 'guida_chiusa');
       await page.waitForFunction(() => !document.getElementById('mzGuida').classList.contains('on'), null, { timeout: 8000 });
       await page.reload(); await ctx.waitReady(page, 30000); await ctx.waitState(page, (s) => !!s.guida, 20000);
@@ -168,6 +185,7 @@ export default async function (ctx) {
       await page.evaluate(() => localStorage.setItem('marea:guida:luca', '4'));
       await page.reload(); await ctx.waitReady(page, 30000);
       try { await ctx.waitState(page, (s) => !!s.guida, 20000); } catch (e) { ctx.log('state: ' + await page.evaluate(() => { try { return Object.keys(window.__game.state()).join(','); } catch (x) { return 'ERR ' + x.stack; } })); throw e; }
+      await accendiGuida(P); // il progresso di prima riparte spento: prima si accendeva da sola
       const g = (await ctx.getState(page)).guida;
       ctx.log('guida da «4»: ' + JSON.stringify(g));
       assert(g.current === 'parla' && g.done >= 4 && ['segheria', 'barca', 'regata', 'costruisci'].every((id) => g.fatti.includes(id)), 'guida: ' + JSON.stringify(g));

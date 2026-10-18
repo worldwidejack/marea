@@ -4,6 +4,8 @@
 // il titolo resta anche quando l'editor salva il look. Browser telefono 390×844 (Luca): bottone col libro, album sui pesci, scheda di un
 // pesce, Traguardi → RISCUOTI → USA TITOLO, targhetta col titolo sopra la testa, avviso quando si compie un traguardo. PC (Mia): sull'isola
 // di Luca vede «Campione» sotto il suo nome (e il cambio dal vivo), la visita si segna nel diario, J apre il diario, sfoglia quello di Luca.
+// Traguardi e titoli sono spenti per ora (VISIONE §2): queste prove li riaccendono con ?traguardi=1; le ultime entrano senza e controllano
+// che il Diario resti senza la pagina dei Traguardi, senza numerino, senza titolo in testata né sopra le teste (il server li conta lo stesso).
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -96,7 +98,7 @@ export default async function (ctx) {
     });
 
     // ---------- telefono (Luca) ----------
-    const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokL&test=1`, { viewport: ctx.B.IPHONE }); pages.push(P); ctx._pages.push(P);
+    const P = await ctx.B.openPage(ctx.browser, `${base}/?t=tokL&test=1&traguardi=1`, { viewport: ctx.B.IPHONE }); pages.push(P); ctx._pages.push(P);
     const page = P.page;
     await ctx.waitReady(page, 30000);
     await ctx.waitState(page, (s) => s.lot && s.lot.ready === true && s.diario && s.animali, 30000);
@@ -156,7 +158,7 @@ export default async function (ctx) {
     });
 
     // ---------- PC (Mia) ----------
-    const D = await ctx.B.openPage(ctx.browser, `${base}/?t=tokM&test=1`, { viewport: ctx.B.DESKTOP }); pages.push(D); ctx._pages.push(D);
+    const D = await ctx.B.openPage(ctx.browser, `${base}/?t=tokM&test=1&traguardi=1`, { viewport: ctx.B.DESKTOP }); pages.push(D); ctx._pages.push(D);
     const dp = D.page;
     await ctx.waitReady(dp, 60000);
     await ctx.waitState(dp, (s) => s.lot && s.lot.ready === true && s.diario, 60000);
@@ -201,6 +203,62 @@ export default async function (ctx) {
       assert(via.status === 200 && via.body.diario.titolo === null, 'togli titolo');
       await ctx.waitState(dp, (s) => s.targhette.some((t) => t.who === 'luca' && t.titolo === null), 15000);
       ctx.noErrors(D, 'PC');
+    });
+
+    // ---------- senza ?traguardi=1: com'è il gioco adesso ----------
+    await ctx.test('senza traguardi, PC (Mia): sopra Luca solo il nome anche se ha un titolo; il Diario ha 5 pagine e niente titolo in testata', async () => {
+      const r = await post('/api/diario/titolo', 'tokL', { id: 'primo_oro' });
+      assert(r.status === 200 && r.body.diario.titolo === 'primo_oro', 'titolo: ' + r.status);
+      await D.close().catch(() => {});
+      const D2 = await ctx.B.openPage(ctx.browser, `${base}/?t=tokM&test=1`, { viewport: ctx.B.DESKTOP }); pages.push(D2); ctx._pages.push(D2);
+      const d2 = D2.page, h2 = (n, ...a) => d2.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
+      await ctx.waitReady(d2, 60000);
+      await ctx.waitState(d2, (s) => s.lot && s.lot.ready === true && s.diario && s.borgo, 60000);
+      await h2('goto', 'lotto:0');
+      const porta = (await ctx.getState(d2)).borgo.porte.find((p) => p.slot === 0);
+      await h2('teleport', porta.x + 2, porta.z);
+      await ctx.waitState(d2, (s) => s.targhette.some((t) => t.who === 'luca' && t.nome === 'Luca' && t.on), 20000);
+      assert((await ctx.getState(d2)).targhette.every((t) => t.titolo === null), 'titoli sopra le teste: ' + JSON.stringify((await ctx.getState(d2)).targhette));
+      await d2.keyboard.press('KeyJ');
+      await ctx.waitState(d2, (s) => s.diario.open && s.diario.ui && s.diario.ui.tab === 'pesci', 15000);
+      const s = await ctx.getState(d2);
+      assert(s.diario.tabs.length === 5 && !s.diario.tabs.includes('traguardi'), 'linguette: ' + s.diario.tabs.join(','));
+      assert(await d2.locator('#mzDiario [data-tab]').count() === 5 && await d2.locator('#mzDiario [data-tab="traguardi"]').count() === 0, 'linguetta Traguardi ancora nel DOM');
+      await d2.locator('#mzDiario .mz-dia-chi [data-chi="luca"]').click();
+      await ctx.waitState(d2, (s) => s.diario.ui.chi === 'luca' && !s.diario.ui.carica, 10000);
+      assert(!/Campione|titolo/i.test(await d2.locator('#mzDiario .chi-t').innerText()), 'titolo di Luca in testata: ' + await d2.locator('#mzDiario .chi-t').innerText());
+      await sleep(200);
+      await ctx.shot(d2, 'desktop_4_senza_traguardi');
+      ctx.noErrors(D2, 'PC senza traguardi');
+    });
+
+    await ctx.test('senza traguardi, telefono (Luca): niente numerino sul libro, niente avviso, niente targhetta col titolo; apri sui traguardi = Pesci', async () => {
+      await P.close().catch(() => {});
+      const Q = await ctx.B.openPage(ctx.browser, `${base}/?t=tokL&test=1`, { viewport: ctx.B.IPHONE }); pages.push(Q); ctx._pages.push(Q);
+      const q = Q.page, hq = (n, ...a) => q.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
+      await ctx.waitReady(q, 30000);
+      await ctx.waitState(q, (s) => s.lot && s.lot.ready === true && s.diario && s.animali, 30000);
+      await hq('animali', false);
+      await sleep(1500);
+      const s0 = await ctx.getState(q);
+      assert(s0.diario.titolo === 'primo_oro', 'il server tiene il titolo: ' + s0.diario.titolo);
+      assert(s0.diario.badge === 0 && await q.locator('#mzDiarioBtn .mz-badge.on').count() === 0, 'numerino: ' + s0.diario.badge);
+      assert(!s0.targhette.some((t) => t.who === 'me'), 'targhetta sopra di sé: ' + JSON.stringify(s0.targhette));
+      for (const a of ['gabbiano', 'lucciola']) await hq('diarioAvvista', a); // tutti gli animali = traguardo «Tutti gli animali» compiuto: l'avviso non deve uscire
+      await hq('diarioFlush');
+      await ctx.waitState(q, (s) => s.diario.animali.length === 6, 15000);
+      await sleep(1000);
+      assert((await ctx.getState(q)).diario.avviso === null && !(await q.locator('#mzTrag.on').count()), 'avviso del traguardo comparso');
+      await hq('diarioApri', 'traguardi');
+      await ctx.waitState(q, (s) => s.diario.open && s.diario.ui && s.diario.ui.tab === 'pesci', 15000);
+      assert(await q.locator('#mzDiario [data-tab]').count() === 5, 'linguette sul telefono');
+      const ct = await q.locator('#mzDiario .chi-t').innerText();
+      assert(!/Campione|titolo/i.test(ct), 'titolo in testata: ' + ct);
+      const box = await q.locator('#mzDiario').boundingBox();
+      assert(box && box.x >= 0 && box.x + box.width <= 390 && box.y >= 0 && box.y + box.height <= 844, 'il diario esce dal telefono: ' + JSON.stringify(box));
+      await sleep(250);
+      await ctx.shot(q, 'iphone_5_senza_traguardi');
+      ctx.noErrors(Q, 'telefono senza traguardi');
     });
   } finally {
     for (const p of pages) await p.close().catch(() => {});
