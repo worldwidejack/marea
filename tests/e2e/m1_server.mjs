@@ -108,13 +108,14 @@ export default async function (ctx) {
 
     const L = cellsOf('L');
     const slot = (i) => L[i] ?? [2 + i, 2];
-    await ctx.test('celle: edifici solo su L libere, decorazioni solo su sabbia/erba (altrimenti 400), occupata 409', async () => {
+    await ctx.test('celle: edifici sull’isola (L, erba, sabbia: #382) ma non in acqua, decorazioni solo su sabbia/erba (altrimenti 400), occupata 409', async () => {
       const bad = tpl ? cellsOf('d')[0] : [999, 0];
       const r1 = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: bad });
       assert(r1.status === 400 && /costruire|Cella/.test(r1.body.error), 'cella non valida: ' + r1.status + ' ' + JSON.stringify(r1.body));
       if (tpl) {
-        const r2 = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: cellsOf('g')[0] });
-        assert(r2.status === 400, 'erba non-slot accettata per un edificio');
+        // dal #382 gli edifici stanno anche su erba e sabbia (niente più solo slot L): in acqua no
+        const r2 = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: cellsOf(',')[0] });
+        assert(r2.status === 400, 'acqua accettata per un edificio');
         const r3 = await post('/api/lot/decor', 'tokA', { decor: 'barile', cell: L[0], rot: 0 });
         assert(r3.status === 400 && /decorazione/.test(r3.body.error), 'decor su slot L: ' + r3.status);
       }
