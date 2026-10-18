@@ -510,7 +510,13 @@ export function createLotView(o: LotViewOptions): LotView {
 
   const contains = (x: number, z: number) => x >= ox * T - 6 && z >= oz * T - 6 && x <= (ox + tpl.w) * T + 6 && z <= (oz + tpl.h) * T + 6;
   const tap = (target: string | [number, number]): boolean => {
-    if (Array.isArray(target)) { const c: [number, number] = [Number(target[0]), Number(target[1])]; const b = lot?.buildings.find((x) => x.cell[0] === c[0] && x.cell[1] === c[1]); return b ? openBuilding(b.id) : openBuild(c); }
+    if (Array.isArray(target)) {
+      const c: [number, number] = [Number(target[0]), Number(target[1])];
+      if (panel?.kind === 'sposta') { scegliCella(c); return true; }
+      if (panel?.kind === 'sposta_edificio') { scegliCellaEdificio(c); return true; }
+      const b = lot?.buildings.find((x) => x.cell[0] === c[0] && x.cell[1] === c[1]);
+      return b ? openBuilding(b.id) : openBuild(c);
+    }
     const b = lot?.buildings.find((x) => x.id === target) ?? lot?.buildings.find((x) => x.building === target);
     if (!b && decorOf(target)) return openDecor(target);
     return b ? openBuilding(b.id) : false;
