@@ -26,7 +26,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
 import { build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
 import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
-import { compraFinitura, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
+import { ampliaCasa, compraFinitura, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
@@ -357,6 +357,8 @@ export class Lot extends DurableObject<Env> {
         if (!isId(id)) return json({ error: 'Manca il mobile' }, 400);
         return act === 'casa_ruota' ? ruotaMobile(lot, id, now) : ritiraMobile(lot, id, now);
       }
+      // il mobiliere ingrandisce la casa (#386): `da` = il livello che il giocatore vede (se è cambiato nel frattempo, niente si paga due volte)
+      case 'casa_amplia': return Number.isInteger(body['da']) ? ampliaCasa(lot, body['da'] as number, now) : json({ error: 'Livello della casa non valido' }, 400);
       case 'casa_baule': {
         const cell = body['cell'];
         if (cell === undefined) return ruotaBaule(lot, now);

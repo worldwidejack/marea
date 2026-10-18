@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { BORGO, MOBILI } from '@marea/content';
 import type { MobileDef } from '@marea/content';
-import { baule, casaDi, celleMobile, finitureScelte, inStanza, possiedeFinitura, postoMobileError } from '@marea/sim';
+import { baule, casaDi, celleMobile, finitureScelte, inStanza, livelloCasa, possiedeFinitura, postoMobileError, stanzaAt, stanzaTerra } from '@marea/sim';
 import type { LotState, Muro, PlacedMobile, PostoMobile } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { LotView } from './lot.ts';
@@ -21,7 +21,7 @@ export type Arreda = { tick(a: boolean, b: boolean): boolean; update(): void };
 type Modo = { kind: 'posa'; mobile: MobileDef; rot: number } | { kind: 'sposta'; id: string; mobile: MobileDef; rot: number } | { kind: 'baule' };
 type Vicino = { kind: 'mobile'; a: PlacedMobile; def: MobileDef } | { kind: 'baule' };
 
-const ST = BORGO.stanza, [X0, Z0, X1, Z1] = ST.pavimento;
+const [X0, Z0] = BORGO.stanza.pavimento; // la stanza di serie: solo per la quota del pavimento (le stanze vere dipendono dal livello della casa, #386)
 const OK = '#B6FF3D', NO = '#FF5C3D'; // verde e rosso neon della sagoma (ART_BIBLE §2), come SPOSTA in giardino
 const BAULE: MobileDef = { id: 'baule', nome: 'Baule', categoria: 'contenitori', perle: 1, posto: 'terra', forma: 'baule', colori: [PAL.legno] };
 const CSS = `
@@ -66,12 +66,15 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
   const lot = (): LotState | null => o.lotto?.state() ?? null;
   const mia = () => !!o.api && !!o.lotto && o.slot !== null && o.stanza.dentro() === o.slot && w.mode === 'walk';
   const def = (id: string) => MOBILI.find((m) => m.id === id) ?? null;
+  /** Il pavimento della stanza che contiene la cella (a quel livello di casa), o quello del piano terra. */
+  const rettDi = (cell: readonly [number, number]) => { const l = livelloCasa(casaDi(lot())); return (stanzaAt(l, cell) ?? stanzaTerra(l)).pavimento; };
 
   /** La cella (e il muro) davanti a te: per terra un passo avanti; a parete il muro che guardi (verso sud: il muro di lato più vicino). */
   const davanti = (parete: boolean): PostoMobile => {
     const a = w.avatar.state, dx = Math.sin(a.yaw), dz = -Math.cos(a.yaw);
     const cl = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
     const cx = (a.x - ox) / T, cz = (a.z - oz) / T;
+    const [X0, Z0, X1, Z1] = rettDi([Math.floor(cx), Math.floor(cz)]); // la stanza in cui sei
     if (!parete) return { cell: [cl(Math.floor(cx + dx * 0.75), X0, X1 - 1), cl(Math.floor(cz + dz * 0.75), Z0, Z1 - 1)] };
     const ix = cl(Math.floor(cx), X0, X1 - 1), iz = cl(Math.floor(cz), Z0, Z1 - 1);
     const muro: Muro = Math.abs(dz) >= Math.abs(dx) ? (dz < 0 ? 'n' : cx - X0 < X1 - cx ? 'o' : 'e') : dx < 0 ? 'o' : 'e';
@@ -176,7 +179,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     const arr = casaDi(l).arredi ?? [];
     const a0 = arr.find((x) => { const d = def(x.mobile); return !x.muro && !!d && celleMobile(d, x.cell, x.rot ?? 0).some((q) => q[0] === terra.cell[0] && q[1] === terra.cell[1]); }); // anche una cella qualsiasi di un mobile lungo
     if (a0 && def(a0.mobile)) return { kind: 'mobile', a: a0, def: def(a0.mobile)! };
-    const m = davanti(true), a = w.avatar.state, p = postoArredo(m, T), vicinoMuro = Math.hypot(a.x - ox - p.x, a.z - oz - p.z) < 2.6;
+    const m = davanti(true), a = w.avatar.state, p = postoArredo(m, T, [1, 1], rettDi(m.cell)), vicinoMuro = Math.hypot(a.x - ox - p.x, a.z - oz - p.z) < 2.6;
     const a1 = vicinoMuro ? arr.find((x) => x.muro === m.muro && x.cell[0] === m.cell[0] && x.cell[1] === m.cell[1]) : null;
     return a1 && def(a1.mobile) ? { kind: 'mobile', a: a1, def: def(a1.mobile)! } : null;
   };
@@ -232,7 +235,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
       if (!modo || !target || !mia()) { sagoma.visible = false; return; }
       const parete = !!target.muro, rot = modo.kind === 'baule' ? casaDi(lot()).bauleRot ?? 0 : modo.rot;
       const celle = modo.kind === 'baule' ? [1, 1] as [number, number] : modo.mobile.celle ?? [1, 1];
-      const p = postoArredo({ cell: target.cell, ...(target.muro ? { muro: target.muro } : {}), rot }, T, celle);
+      const p = postoArredo({ cell: target.cell, ...(target.muro ? { muro: target.muro } : {}), rot }, T, celle, rettDi(target.cell));
       const fk = celle.join('x');
       if (fk !== fTerraKey) { fTerraKey = fk; fTerra.clear(); for (const g of cornice(celle[0] * T - 0.1, celle[1] * T - 0.1, 0.08)) fTerra.add(new THREE.Mesh(g, matOk)); }
       sagoma.visible = true; fTerra.visible = !parete; fMuro.visible = parete;

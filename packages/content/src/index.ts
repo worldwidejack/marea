@@ -118,6 +118,19 @@ function validateBorgo(): string[] {
     const [cx, c0, c1] = st.corridoio;
     if (c0 !== z1 || cx < x0 || cx >= x1) errs.push('borgo: il corridoio parte dal bordo davanti della stanza');
     for (let z = c0; z < c1; z++) if (!'.P'.includes(lt.rows[z]?.[cx] ?? '~')) errs.push(`borgo: il corridoio ha una cella non camminabile in ${cx},${z}`);
+    // gli ampliamenti della casa (#386): ogni stanza cresce senza perdere celle e sta sul pavimento del template; il piano terra tiene il bordo davanti e il corridoio
+    const att = new Map<string, readonly number[]>([['terra', st.pavimento]]), idl = new Set<string>();
+    for (const [n, l] of BORGO.casa.livelli.entries()) {
+      const r = l.pavimento, prima = att.get(l.stanza), k = l.costo;
+      if (idl.has(l.id)) errs.push(`borgo: casa.livelli ${l.id} doppio`);
+      idl.add(l.id);
+      if (!['terra', 'cantina', 'piano'].includes(l.stanza)) errs.push(`borgo: casa.livelli[${n}] ha una stanza sconosciuta (${l.stanza})`);
+      if (![k.legno, k.pietra, k.perle].every((v) => Number.isInteger(v) && v > 0) || k.legno > 1500 || k.pietra > 1500) errs.push(`borgo: casa.livelli[${n}] ha un costo non valido (interi > 0, Legno e Pietra fino a 1500)`);
+      if (prima && (r[0] > prima[0]! || r[1] > prima[1]! || r[2] < prima[2]! || r[3] < prima[3]! || r.every((v, i) => v === prima[i]))) errs.push(`borgo: casa.livelli[${n}] deve contenere e superare la stanza di prima`);
+      for (let z = r[1]; z < r[3]; z++) for (let x = r[0]; x < r[2]; x++) if (!'.LP'.includes(lt.rows[z]?.[x] ?? '~')) errs.push(`borgo: casa.livelli[${n}] ha una cella non di pavimento in ${x},${z}`);
+      if (l.stanza === 'terra' && (r[3] !== z1 || r[0] > cx || r[2] <= cx)) errs.push(`borgo: casa.livelli[${n}]: il piano terra tiene il bordo davanti e il corridoio`);
+      att.set(l.stanza, r);
+    }
   }
   if (!BORGO.pavimenti.length || !BORGO.carte.length) errs.push('borgo: serve almeno un pavimento e una carta da parati');
   // finiture e mobili (#265): id unici, quella di serie gratis, prezzi interi, colori in esadecimale (dalla palette)

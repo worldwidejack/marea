@@ -25,7 +25,7 @@ Mai scrivere a mano `.glb` né `manifest_mobili.json`. Il segnaposto è una scat
 - `categoria`: una di `categorie` in cima al file (`dormire`, `sedersi`, `tavoli`, `contenitori`, `luci`, `tecnologia`, `piante`, `decorazioni`, `cucina`, `bagno`, `giochi`).
 - `perle`: intero > 0. Fasce: piccoli 10-30 · medi 40-90 · grandi/ingombranti 100-250 · pezzi rari fino a 400. Chi non ha idea sceglie per ingombro e bizzarria.
 - `posto`: `terra` (celle del pavimento, si gira di 90°) o `parete` (appeso a un muro, una cella di muro).
-- `celle`: ingombro a terra `[larghezza, profondità]` in **celle da 2 m**, 1-3 per lato. Assente = `[1,1]`. A parete sempre 1×1 (non scriverlo). La stanza è 7×6 celle: un mobile da 3 celle è un evento.
+- `celle`: ingombro a terra `[larghezza, profondità]` in **celle da 2 m**, 1-3 per lato. Assente = `[1,1]`. A parete sempre 1×1 (non scriverlo). La stanza è 7×6 celle (fino a 13×7 con gli ampliamenti del mobiliere, #386, GDD §5): un mobile da 3 celle è un evento.
 - `altezza`: metri, solo per la scatola-segnaposto (assente = 1). Mettila vera: aiuta a capire la scena prima del modello.
 - `colori`: 1-3 esadecimali **della palette** (ART_BIBLE §2; `#C98A4B` legno chiaro, `#8E5A2B` legno, `#5A3A1E` legno scuro, `#E8E1D6` pietra chiara, `#B9AFA3` pietra, `#7F7568` pietra scura, `#4A4340` roccia, `#23201F` nero caldo, `#E8433F` rosso, `#F2A33A` arancio, `#F5D547` giallo, `#8FC35B` erba, `#2C6B3F` bosco, `#3FB9C9` acqua, `#2478A8` acqua profonda, `#A64DFF` viola, `#F4E3C1` sabbia chiara, `#E2B97F` sabbia). Il primo è il corpo, il secondo il bordo/ripiano, il terzo l'accento.
 - `vetrina`: **non esiste più** (#384): non serve scegliere quali mobili stanno in mostra. Ogni mobile entra da solo nella vetrina del giorno (§7).

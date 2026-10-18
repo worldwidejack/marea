@@ -1,6 +1,12 @@
 {
   "nome": "Borgo Marea",
   "stanza": { "pavimento": [11, 27, 18, 33], "altezza": 3.2, "retro": [14, 27], "giardino": [14, 19], "corridoio": [14, 33, 35] },
+  "_casa": "Gli ampliamenti della casa (#386), dal mobiliere: si fanno uno alla volta, in questo ordine, e costano tanto (Legno, Pietra e Perle: le Perle sono la parte che si suda). `stanza` = quale stanza cambia (terra = la stanza di sempre), `pavimento` = il suo nuovo rettangolo [x0, z0, x1, z1) in celle del template lotto, sempre più grande del precedente; la pianta massima sta già nelle righe di islands.json. Legno e Pietra sopra 800 si pagano solo col Magazzino al livello 3 (tetto 1500).",
+  "casa": { "livelli": [
+    { "id": "stanza1", "nome": "Stanza più grande", "desc": "La stanza passa da 7×6 a 9×7 celle: più posto per i mobili.", "stanza": "terra", "pavimento": [10, 26, 19, 33], "costo": { "legno": 300, "pietra": 150, "perle": 150 } },
+    { "id": "stanza2", "nome": "Stanza ancora più grande", "desc": "La stanza passa a 11×7 celle.", "stanza": "terra", "pavimento": [9, 26, 20, 33], "costo": { "legno": 500, "pietra": 300, "perle": 300 } },
+    { "id": "stanza3", "nome": "La stanza più grande", "desc": "La stanza passa a 13×7 celle: un salone.", "stanza": "terra", "pavimento": [8, 26, 21, 33], "costo": { "legno": 800, "pietra": 500, "perle": 500 } }
+  ] },
   "negozio": {"at": [48, 25], "porta": [49, 26], "rot": -2.51},
   "negozioDentro": { "pavimento": [2, 2, 16, 7], "corridoio": [8, 7, 9], "altezza": 3.6, "finitura": { "pavimento": "piastrelle", "carta": "rombi" } },
   "pavimenti": [
