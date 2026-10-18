@@ -55,6 +55,7 @@ import { createBorgo, portaDi } from './game/borgo.ts';
 import { createVelo } from './ui/velo.ts';
 import { createStanza } from './game/stanza.ts';
 import type { Arreda } from './game/arreda.ts';
+import type { ModificaIsola } from './game/modifica_isola.ts';
 import type { Negozio } from './game/negozio.ts';
 import type { LibroIsola } from './game/libro.ts';
 
@@ -173,6 +174,8 @@ async function boot(): Promise<void> {
   void import('./game/negozio.ts').then((m) => { negozio = m.createNegozio({ world, renderer, loader, root, hud, velo, api: me && api.enabled ? api : null, getLot: () => myLot(), setLot: setMyLot }); }).catch(() => { /* senza negozio si gioca lo stesso */ });
   let arreda: Arreda | null = null;
   if (world.slot !== null) void import('./game/arreda.ts').then((m) => { arreda = m.createArreda({ world, root, hud, api: me && api.enabled ? api : null, lotto: lots.find((lv) => !lv.readonly) ?? null, slot: world.slot, stanza, apriBaule: () => eroe?.openBuilding('forziere') }); }).catch(() => { /* senza ARREDA si gioca lo stesso */ });
+  let modificaIsola: ModificaIsola | null = null;
+  if (world.slot !== null) void import('./game/modifica_isola.ts').then((m) => { modificaIsola = m.createModificaIsola({ world, renderer, root, hud, api: me && api.enabled ? api : null, lotto: lots.find((lv) => !lv.readonly) ?? null, slot: world.slot, stanza }); }).catch((e: unknown) => { console.warn('[marea] modifica isola non caricata', e); });
   // Diario del capitano (#87): bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette col nome (e il titolo, solo con ?traguardi=1) sopra la testa
   const diario = createDiario({ root, hud, api: me && api.enabled ? api : null, me, world, owners, getLot: () => myLot(), setLot: setMyLot, hidden: () => regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy(),
     pausa: () => !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || !!tavolo?.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!document.querySelector('#mzSheet.on'),
@@ -359,7 +362,7 @@ async function boot(): Promise<void> {
       if (adr.active) { adr.step(f); acc -= DT; steps++; continue; } // sulla pista dello snowboard idem
       if (ar?.active) { ar.step(f); acc -= DT; steps++; continue; } // nel duello dell'Arena idem
       if (regata.active) regata.step(f); else { const aR = arreda?.tick(f.a, f.b) ?? false, aB0 = borgo.tick(f.a && !aR) || aR, aB = (negozio?.tick(f.a && !aB0) ?? false) || aB0, aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); ar?.tick(f.a); dif?.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
-      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!eroe?.isOpen() || foto.isOpen()) && !regata.active;
+      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen() || foto.isOpen() || !!modificaIsola?.active) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
@@ -367,7 +370,7 @@ async function boot(): Promise<void> {
     regata.update(acc / DT, dt, t);
     { const ev = myLot()?.hero?.evocato ?? null; if (ev && !evocato && !evocatoCarico) { evocatoCarico = true; void import('./rpg/evocato.ts').then((mod) => { evocato = mod.createEvocato({ world, loader }); }).catch(() => { evocatoCarico = false; }); } try { evocato?.update(dt, t, ev, world.mode === 'walk' && !sotto() && !regata.active); } catch (e) { console.warn('[marea] evocato', e); evocato?.dispose(); evocato = null; } } // solo resa: se qualcosa va storto si spegne, il gioco continua
     emotes.update(dt); setTopbarHidden(regata.active || sotto());
-    giochi.update(t, acc / DT); if (!sotto()) { porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); amici.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); libri.update(world.mode === 'walk' ? world.avatar.state : world.boat.state); borgo.update(); arreda?.update(); negozio?.update(dt); } guideStep = guida.current(); guida.update(t);
+    giochi.update(t, acc / DT); if (!sotto()) { porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); amici.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); libri.update(world.mode === 'walk' ? world.avatar.state : world.boat.state); borgo.update(); arreda?.update(); modificaIsola?.update(dt); negozio?.update(dt); } guideStep = guida.current(); guida.update(t);
     if (!sotto()) temi.update(dt, t); // Isole a tema (#68)
     if (document.querySelector('#mzSheet.on')) { if (tavolo?.isOpen()) tavolo.close(); editor?.close(); feed?.close(); porto.close(); amici.close(); libri.close(); diario.close(); } // aperto un edificio: gli altri pannelli lasciano il posto
     const focus = world.mode === 'walk' ? world.avatar.state : world.boat.state;

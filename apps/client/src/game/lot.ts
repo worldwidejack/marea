@@ -54,6 +54,7 @@ export type LotView = {
    * la sua scheda; in SPOSTA, A conferma. `focus` null = non a piedi (o pronto a salire in barca). true = A è della decorazione.
    */
   tick(a: boolean, focus: { x: number; z: number } | null): boolean;
+  readonly template: GridMap; readonly origin: [number, number]; readonly tile: number;
 };
 
 const POLL_S = 30, FACING = Math.PI; // i modelli guardano −Z: li giriamo verso la camera (sud-est)
@@ -146,7 +147,7 @@ export function createLotView(o: LotViewOptions): LotView {
     const tok = ++d.tok;
     const { obj, name } = await makeObject(b);
     if (tok !== d.tok || disposed) return;
-    obj.rotation.y = obj.userData['baule'] ? ((casaDi(lot).bauleRot ?? 0) * Math.PI) / 2 : FACING;
+    obj.rotation.y = obj.userData['baule'] ? ((casaDi(lot).bauleRot ?? 0) * Math.PI) / 2 : FACING + ((b.rot ?? 0) * Math.PI) / 2;
     d.holder.clear(); d.holder.add(obj); d.model = name;
     const bb = new THREE.Box3().setFromObject(obj);
     d.height = Number.isFinite(bb.max.y) ? Math.max(1, bb.max.y) : 2.2;
@@ -165,8 +166,9 @@ export function createLotView(o: LotViewOptions): LotView {
         d = { holder, key: '', model: '', height: 2.2, tok: 0, label: S.labels.add(() => { if (!ro) void collect(id); }) };
         drawn.set(b.id, d);
       }
-      const key = `${b.building}:${b.level}` + (b.building === 'forziere' && inStanza(b.cell) ? `:casa:${casaDi(lot).bauleRot ?? 0}` : '');
+      const key = `${b.building}:${b.level}:${b.rot ?? 0}` + (b.building === 'forziere' && inStanza(b.cell) ? `:casa:${casaDi(lot).bauleRot ?? 0}` : '');
       const p = world(b.cell); d.holder.position.set(p.x, p.y, p.z); // il baule si sposta (#265)
+      if (d.holder.children[0] && !d.holder.children[0].userData['baule']) d.holder.children[0].rotation.y = FACING + ((b.rot ?? 0) * Math.PI) / 2;
       if (d.key !== key) { d.key = key; void loadInto(d, b); }
     }
     for (const [id, d] of drawn) if (!seen.has(id)) { group.remove(d.holder); d.label.remove(); drawn.delete(id); }
@@ -458,7 +460,7 @@ export function createLotView(o: LotViewOptions): LotView {
   // ---- tap sul canvas: breve, fermo, un dito solo, non sui controlli (sono DOM sopra al canvas) ----
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.4), hit = new THREE.Vector3();
   function tapAt(clientX: number, clientY: number): boolean {
-    if (!o.camera || !o.canvas || !lot) return false;
+    if (!o.camera || !o.canvas || !lot || document.body.classList.contains('mz-edit-mode')) return false;
     const r = o.canvas.getBoundingClientRect();
     ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, o.camera);
@@ -567,7 +569,7 @@ export function createLotView(o: LotViewOptions): LotView {
 
   const ready = lot ? (sync(), refreshUi(true), Promise.resolve()) : refresh();
   return {
-    readonly: ro, group, ready,
+    readonly: ro, group, ready, template: tpl, origin: o.origin, tile: T,
     state: () => lot, refresh, tap, contains, set: (l: LotState) => { if (!disposed) setLot(l); },
     tick(a, focus) {
       const pressA = a && !aWas; aWas = a;

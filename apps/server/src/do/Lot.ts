@@ -24,7 +24,7 @@
 // `faro` (i livelli, letti dal Worker): così chi entra dopo una salita la impara subito.
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
-import { build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
+import { applyBuildingLayout, build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, placeStoredBuilding, rotateBuilding, rotateDecor, sellDecor, stowAllBuildings, stowBuilding, upgrade } from '@marea/sim/economy/actions.ts';
 import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
 import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
@@ -329,6 +329,37 @@ export class Lot extends DurableObject<Env> {
         if (!isId(id)) return json({ error: 'Manca l’edificio' }, 400);
         if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
         return moveBuilding(lot, id, cell, now);
+      }
+      case 'building_rotate': {
+        const id = body['id'];
+        if (!isId(id)) return json({ error: 'Manca l’edificio' }, 400);
+        return rotateBuilding(lot, id, now);
+      }
+      case 'building_stow': {
+        const id = body['id'];
+        if (!isId(id)) return json({ error: 'Manca l’edificio' }, 400);
+        return stowBuilding(lot, id, now);
+      }
+      case 'building_stow_all':
+        return stowAllBuildings(lot, now);
+      case 'building_place_stored': {
+        const id = body['id'], cell = body['cell'], rot = typeof body['rot'] === 'number' ? body['rot'] : 0;
+        if (!isId(id)) return json({ error: 'Manca l’edificio' }, 400);
+        if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
+        return placeStoredBuilding(lot, id, cell, rot, now);
+      }
+      case 'building_layout': {
+        const placed = body['placed'], stowed = body['stowed'];
+        if (!Array.isArray(placed)) return json({ error: 'Formato disposizione non valido' }, 400);
+        for (const p of placed) {
+          if (!p || typeof p !== 'object' || !isId((p as Record<string, unknown>)['id']) || !isCell((p as Record<string, unknown>)['cell'])) {
+            return json({ error: 'Elemento disposizione non valido' }, 400);
+          }
+        }
+        if (stowed !== undefined && (!Array.isArray(stowed) || !stowed.every(isId))) {
+          return json({ error: 'Elemento magazzino non valido' }, 400);
+        }
+        return applyBuildingLayout(lot, { placed: placed as { id: string; cell: [number, number]; rot?: number }[], stowed: stowed as string[] | undefined }, now);
       }
       case 'decor': {
         const d = DECOR.find((x) => x.id === body['decor']), cell = body['cell'], rot = body['rot'] ?? 0;
