@@ -219,7 +219,14 @@
    "clip": {
     "fermo": [
      "fermo.png"
-    ]
+    ],
+    "corre": {
+     "f": [
+      "scatta_1.png",
+      "scatta_2.png"
+     ],
+     "fps": 12
+    }
    }
   },
   "base": {
@@ -293,7 +300,36 @@
    }
   },
   "bandiera": {
-   "alias": "base"
+   "cartella": "capobanda",
+   "base": "cammina_1.png",
+   "scala_di": "base",
+   "alto": 0.66,
+   "clip": {
+    "fermo": [
+     "cammina_1.png"
+    ],
+    "cammina": {
+     "f": [
+      "cammina_1.png",
+      "cammina_2.png",
+      "cammina_3.png",
+      "cammina_4.png"
+     ],
+     "giro": 0.2
+    },
+    "mangia": {
+     "f": [
+      "mangia_1.png",
+      "mangia_2.png",
+      "mangia_3.png",
+      "mangia_2.png"
+     ],
+     "fps": 7
+    },
+    "ko": [
+     "ko.png"
+    ]
+   }
   },
   "secchioNudo": {
    "cartella": "scarabeo",
