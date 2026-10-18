@@ -40,17 +40,32 @@ export function occupied(lot: LotState, cell: readonly [number, number]): boolea
   return lot.buildings.some((b) => same(b.cell, cell)) || lot.decor.some((d) => same(d.cell, cell));
 }
 
+/** Tile su cui si possono mettere gli edifici (#382): entro i limiti dell'isola (erba, sabbia o slot L). Il molo va sul `d`. */
+export const BUILD_TILES: ReadonlySet<string> = new Set(['L', '.', 'g']);
+
 /** Perché una cella non va: 'posizione' = tipo di cella sbagliato (richiesta rotta, 400), 'cella' = occupata (conflitto, 409). */
 export type CellProblem = { code: 'posizione' | 'cella'; msg: string };
 const OCCUPATA: CellProblem = { code: 'cella', msg: 'Cella occupata' };
 
 /** null se l'edificio può stare in `cell`. Senza template accetta ogni cella libera. */
-export function buildCellError(lot: LotState, cell: readonly [number, number], t: LotTemplate | null): CellProblem | null {
-  if (t && tileAt(t, cell[0], cell[1]) !== 'L') return { code: 'posizione', msg: 'Qui non si può costruire: scegli uno spazio edificio' };
+export function buildCellError(lot: LotState, cell: readonly [number, number], t: LotTemplate | null, buildingId?: string): CellProblem | null {
+  if (t) {
+    if (buildingId === 'molo') {
+      if (tileAt(t, cell[0], cell[1]) !== 'd') return { code: 'posizione', msg: 'Il molo deve stare all’attracco' };
+    } else if (buildingId === 'forziere' && isLotto(t) && inStanza(cell)) {
+      // Il forziere può stare nella stanza della casa (#265)
+    } else {
+      if (!BUILD_TILES.has(tileAt(t, cell[0], cell[1]))) return { code: 'posizione', msg: 'Qui non si può costruire: scegli un punto libero dell’isola' };
+      if (riservate(t).some((c) => same(c, cell))) return { code: 'posizione', msg: 'Qui c’è già qualcosa dell’isola' };
+      if (inCasa(t, cell)) return { code: 'posizione', msg: 'Gli edifici vanno all’aperto nel giardino' };
+    }
+  }
   return occupied(lot, cell) ? OCCUPATA : null;
 }
-/** Il Forziere (il baule, #265) sta su una `L` o su una cella qualunque del pavimento della stanza (lo sposti come un mobile). */
-const posticino = (t: LotTemplate, b: { building: string; cell: [number, number] }): boolean => tileAt(t, b.cell[0], b.cell[1]) === 'L' || (b.building === 'forziere' && isLotto(t) && inStanza(b.cell));
+/** Un edificio sta su una cella valida dell'isola (o il Forziere sul pavimento della stanza). */
+const posticino = (t: LotTemplate, b: { building: string; cell: [number, number] }): boolean =>
+  (b.building === 'forziere' && isLotto(t) && inStanza(b.cell)) ||
+  (BUILD_TILES.has(tileAt(t, b.cell[0], b.cell[1])) && !inCasa(t, b.cell) && !riservate(t).some((c) => same(c, b.cell)));
 
 /**
  * Celle del template `lotto` già prese da cose fisse (#108): il leggio del libro degli ospiti (RIENTRO.libro.lotto) e le decorazioni
@@ -102,10 +117,10 @@ export function fitToTemplate(lot: LotState, t: LotTemplate | null): LotState {
   const keepDecor = lot.decor.map((d) => { const ok = DECOR_TILES.has(tileAt(t, d.cell[0], d.cell[1])) && !inCasa(t, d.cell) && !isTaken(d.cell); if (ok) taken.push(d.cell); return ok; });
   if (keep.every(Boolean) && keepDecor.every(Boolean)) return lot;
   // 2) gli altri vanno nella prima cella giusta libera (se non ce n'è, restano dove sono)
-  const slots = cellsOf(t, 'L');
+  const bSpots = [...cellsOf(t, 'L'), ...cellsOf(t, '.'), ...cellsOf(t, 'g')].filter((c) => !inCasa(t, c) && !riservate(t).some((x) => same(x, c)));
   const buildings = lot.buildings.map((b, i) => {
     if (keep[i]) return b;
-    const free = b.building === 'molo' ? (isTaken(dock) ? undefined : dock) : slots.find((c) => !isTaken(c));
+    const free = b.building === 'molo' ? (isTaken(dock) ? undefined : dock) : bSpots.find((c) => !isTaken(c));
     if (!free) return b;
     taken.push(free);
     return { ...b, cell: free };

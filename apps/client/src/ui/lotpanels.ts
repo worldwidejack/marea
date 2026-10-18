@@ -22,6 +22,7 @@ export type PanelCtx = {
   onUpgrade(id: string): void;
   onBuild(building: string, cell: [number, number]): void;
   onChoose(building: string | null): void;
+  onSpostaBuilding?(id: string): void;
   onClose(): void;
 };
 export type Panel = { body: HTMLElement; sig: string };
@@ -123,6 +124,9 @@ export function buildingPanel(ctx: PanelCtx, b: PlacedBuilding): Panel {
     const more = describe(def, b.level + 1)[0];
     if (more) info.appendChild(el('div', '', `L${b.level + 1}: ${more.charAt(0).toLowerCase()}${more.slice(1)}`));
   }
+  if (!ctx.readonly && b.building !== 'molo') {
+    body.appendChild(btn('ghost', 'sposta', 'SPOSTA', [], ctx.busy, () => ctx.onSpostaBuilding?.(b.id)));
+  }
   return { body, sig: sigOf(body) };
 }
 
@@ -203,15 +207,23 @@ export function decorPanel(ctx: DecorCtx, d: PlacedDecor, conferma: boolean): Pa
   return { body, sig: sigOf(body) };
 }
 
-/** Modalità SPOSTA: la cella scelta (sagoma verde o rossa sul lotto), CONFERMA solo se va bene, ANNULLA rimette com'era. */
-export function spostaPanel(ctx: DecorCtx, d: PlacedDecor, cell: [number, number], problema: string | null): Panel {
-  const ferma = cell[0] === d.cell[0] && cell[1] === d.cell[1];
-  const body = el('div'); body.dataset['panel'] = 'sposta'; body.dataset['id'] = d.id; body.dataset['cell'] = cell.join(','); body.dataset['ok'] = String(!ferma && !problema);
-  body.appendChild(head(`Sposta: ${decorNome(d.decor)}`, '', ctx.onClose));
-  body.appendChild(el('div', 'mz-info', 'Tocca una cella di sabbia o d’erba libera. A o CONFERMA per posarla lì.'));
-  body.appendChild(el('div', 'mz-note' + (ferma ? '' : problema ? ' no' : ' ok'), ferma ? 'È qui adesso: scegli un’altra cella' : problema ? `✗ ${problema}` : '✓ Qui va bene'));
+function makeSpostaPanel(title: string, panelKind: string, id: string, cell: [number, number], isSame: boolean, problema: string | null, infoText: string, ctx: { busy: boolean; onConferma(): void; onAnnulla(): void; onClose(): void }): Panel {
+  const body = el('div'); body.dataset['panel'] = panelKind; body.dataset['id'] = id; body.dataset['cell'] = cell.join(','); body.dataset['ok'] = String(!isSame && !problema);
+  body.appendChild(head(title, '', ctx.onClose));
+  body.appendChild(el('div', 'mz-info', infoText));
+  body.appendChild(el('div', 'mz-note' + (isSame ? '' : problema ? ' no' : ' ok'), isSame ? 'È qui adesso: scegli un’altra cella' : problema ? `✗ ${problema}` : '✓ Qui va bene'));
   const row = el('div', 'mz-row');
-  row.append(btn('ghost', 'annulla', 'ANNULLA', [], ctx.busy, ctx.onAnnulla), btn('green', 'conferma', 'CONFERMA', [], ctx.busy || ferma || !!problema, ctx.onConferma));
+  row.append(btn('ghost', 'annulla', 'ANNULLA', [], ctx.busy, ctx.onAnnulla), btn('green', 'conferma', 'CONFERMA', [], ctx.busy || isSame || !!problema, ctx.onConferma));
   body.appendChild(row);
   return { body, sig: sigOf(body) };
+}
+
+/** Modalità SPOSTA: la cella scelta (sagoma verde o rossa sul lotto), CONFERMA solo se va bene, ANNULLA rimette com'era. */
+export function spostaPanel(ctx: DecorCtx, d: PlacedDecor, cell: [number, number], problema: string | null): Panel {
+  return makeSpostaPanel(`Sposta: ${decorNome(d.decor)}`, 'sposta', d.id, cell, cell[0] === d.cell[0] && cell[1] === d.cell[1], problema, 'Tocca una cella di sabbia o d’erba libera. A o CONFERMA per posarla lì.', ctx);
+}
+
+/** Modalità SPOSTA per gli edifici (#382): la cella scelta (sagoma verde o rossa), CONFERMA o ANNULLA. */
+export function spostaBuildingPanel(ctx: { busy: boolean; onConferma(): void; onAnnulla(): void; onClose(): void }, b: PlacedBuilding, cell: [number, number], problema: string | null): Panel {
+  return makeSpostaPanel(`Sposta: ${buildingDef(b.building).nome}`, 'sposta_edificio', b.id, cell, cell[0] === b.cell[0] && cell[1] === b.cell[1], problema, 'Tocca un punto libero dell’isola. A o CONFERMA per posarlo lì.', ctx);
 }

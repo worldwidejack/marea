@@ -24,7 +24,7 @@
 // `faro` (i livelli, letti dal Worker): così chi entra dopo una salita la impara subito.
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
-import { build, buyHat, collect, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
+import { build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, rotateDecor, sellDecor, upgrade } from '@marea/sim/economy/actions.ts';
 import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
 import { compraFinitura, compraMobile, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
@@ -315,6 +315,12 @@ export class Lot extends DurableObject<Env> {
         if (!isId(b) || !BUILDINGS.some((d) => d.id === b)) return json({ error: 'Edificio sconosciuto' }, 400);
         if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
         return build(lot, b, cell, now);
+      }
+      case 'building_move': {
+        const id = body['id'], cell = body['cell'];
+        if (!isId(id)) return json({ error: 'Manca l’edificio' }, 400);
+        if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
+        return moveBuilding(lot, id, cell, now);
       }
       case 'decor': {
         const d = DECOR.find((x) => x.id === body['decor']), cell = body['cell'], rot = body['rot'] ?? 0;

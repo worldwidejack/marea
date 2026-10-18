@@ -49,14 +49,14 @@ export function pay(lot: LotState, cost: Resources): LotState {
   return { ...lot, resources: sub(lot.resources, cost), ledger: { ...lot.ledger, spent: add(lot.ledger.spent, cost) } };
 }
 
-/** Costruisce in una cella `L` libera del template (default `lotto`; null = nessun controllo sul tipo di cella). */
+/** Costruisce in una cella libera dell'isola (#382; default template `lotto`; null = nessun controllo sul tipo di cella). */
 export function build(lot0: LotState, buildingId: string, cell: [number, number], nowMs: number, tpl: LotTemplate | null = defaultTemplate()): LotState {
   let lot = advance(lot0, nowMs);
   if (lot.construction) throw new EconomyError('cantiere', 'C’è già un cantiere in corso');
   const def = building(buildingId);
   if (lot.buildings.some((b) => b.building === buildingId)) throw new EconomyError('unico', `Hai già: ${def.nome}`);
   if (def.requires && !lot.buildings.some((b) => b.building === def.requires && b.level >= 1)) throw new EconomyError('requisito', `Serve prima: ${building(def.requires).nome}`);
-  const bad = buildCellError(lot, cell, tpl);
+  const bad = buildCellError(lot, cell, tpl, buildingId);
   if (bad) throw new EconomyError(bad.code, bad.msg);
   const lvl = def.levels[0];
   if (!lvl) throw new EconomyError('livello', 'Edificio senza livelli');
@@ -64,6 +64,18 @@ export function build(lot0: LotState, buildingId: string, cell: [number, number]
   const id = `${buildingId}-${lot.buildings.length + 1}`;
   const placed: PlacedBuilding = { id, building: buildingId, level: 0, cell, buffer: 0, lastMs: nowMs };
   return { ...lot, version: lot.version + 1, buildings: [...lot.buildings, placed], construction: { building: buildingId, level: 1, endsMs: nowMs + lvl.seconds * 1000, placedId: id } };
+}
+
+/** Sposta un edificio (#382) in un'altra cella valida dell'isola (stessa cella = invariato; la sua cella attuale non conta come occupata). */
+export function moveBuilding(lot0: LotState, id: string, cell: [number, number], nowMs: number, tpl: LotTemplate | null = defaultTemplate()): LotState {
+  const lot = advance(lot0, nowMs);
+  const b = lot.buildings.find((x) => x.id === id);
+  if (!b) throw new EconomyError('sconosciuto', 'Edificio non trovato');
+  if (b.building === 'molo') throw new EconomyError('posizione', 'Il Molo deve restare all’attracco');
+  if (b.cell[0] === cell[0] && b.cell[1] === cell[1]) return lot;
+  const bad = buildCellError({ ...lot, buildings: lot.buildings.filter((x) => x.id !== id) }, cell, tpl, b.building);
+  if (bad) throw new EconomyError(bad.code, bad.msg);
+  return { ...lot, version: lot.version + 1, buildings: lot.buildings.map((x) => (x.id === id ? { ...x, cell: [cell[0], cell[1]] } : x)) };
 }
 
 export function upgrade(lot0: LotState, placedId: string, nowMs: number): LotState {
