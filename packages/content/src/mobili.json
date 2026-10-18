@@ -99,6 +99,16 @@
     { "id": "gagliardetto_calcistico_biancorosso", "nome": "Gagliardetto calcistico biancorosso", "categoria": "decorazioni", "perle": 20, "posto": "parete", "altezza": 0.75, "colori": ["#E8433F", "#E8E1D6", "#F5D547"] },
     { "id": "insegna_al_neon_open", "nome": "Insegna al neon \"OPEN\"", "categoria": "luci", "perle": 65, "posto": "parete", "altezza": 0.5, "colori": ["#FF3DA6", "#3DF5FF", "#23201F"] },
     { "id": "quadro_notte_stellata", "nome": "Quadro \"Notte Stellata\"", "categoria": "decorazioni", "perle": 75, "posto": "parete", "altezza": 0.8, "colori": ["#2478A8", "#8E5A2B", "#F5D547"] },
-    { "id": "spada_bastarda_incrociata_con_scudo", "nome": "Spada bastarda incrociata con scudo", "categoria": "decorazioni", "perle": 80, "posto": "parete", "altezza": 1.15, "colori": ["#7F7568", "#E8E1D6", "#F5D547"] }
+    { "id": "spada_bastarda_incrociata_con_scudo", "nome": "Spada bastarda incrociata con scudo", "categoria": "decorazioni", "perle": 80, "posto": "parete", "altezza": 1.15, "colori": ["#7F7568", "#E8E1D6", "#F5D547"] },
+    { "id": "targa_stradale_via_rossi", "nome": "Targa stradale \"Via Rossi\"", "categoria": "decorazioni", "perle": 25, "posto": "parete", "altezza": 0.35, "colori": ["#3FB9C9", "#E8E1D6", "#E8433F"] },
+    { "id": "orologio_da_stazione_con_doppio_quadrante", "nome": "Orologio da stazione con doppio quadrante", "categoria": "decorazioni", "perle": 45, "posto": "parete", "altezza": 0.65, "colori": ["#23201F", "#E8E1D6", "#E8433F"] },
+    { "id": "poster_di_un_film_inesistente", "nome": "Poster di un film inesistente", "categoria": "decorazioni", "perle": 15, "posto": "parete", "altezza": 0.95, "colori": ["#2478A8", "#F2A33A", "#F5D547"] },
+    { "id": "cornice_con_foto_di_un_pesce_rosso", "nome": "Cornice con foto di un pesce rosso", "categoria": "decorazioni", "perle": 20, "posto": "parete", "altezza": 0.45, "colori": ["#8E5A2B", "#E8E1D6", "#F2A33A"] },
+    { "id": "mensola_con_barattoli_di_conserve", "nome": "Mensola con barattoli di conserve", "categoria": "contenitori", "perle": 35, "posto": "parete", "altezza": 0.5, "colori": ["#C98A4B", "#E8E1D6", "#8FC35B"] },
+    { "id": "arazzo_con_paesaggio_montano", "nome": "Arazzo con paesaggio montano", "categoria": "decorazioni", "perle": 55, "posto": "parete", "altezza": 1.2, "colori": ["#2C6B3F", "#5A3A1E", "#F2A33A"] },
+    { "id": "bersaglio_da_freccette_storto", "nome": "Bersaglio da freccette storto", "categoria": "giochi", "perle": 30, "posto": "parete", "altezza": 0.55, "colori": ["#23201F", "#E8E1D6", "#E8433F"] },
+    { "id": "tabellone_da_biliardo_con_gessetti", "nome": "Tabellone da biliardo con gessetti", "categoria": "giochi", "perle": 40, "posto": "parete", "altezza": 0.75, "colori": ["#5A3A1E", "#2C6B3F", "#3FB9C9"] },
+    { "id": "insegna_vietato_lingresso_ai_venditori", "nome": "Insegna \"Vietato l’ingresso ai venditori\"", "categoria": "decorazioni", "perle": 25, "posto": "parete", "altezza": 0.4, "colori": ["#E8E1D6", "#E8433F", "#23201F"] },
+    { "id": "stendardo_medievale_con_stemma_inventato", "nome": "Stendardo medievale con stemma inventato", "categoria": "decorazioni", "perle": 60, "posto": "parete", "altezza": 1.35, "colori": ["#A64DFF", "#F5D547", "#5A3A1E"] }
   ]
 }
