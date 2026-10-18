@@ -219,7 +219,7 @@ async function boot(): Promise<void> {
   // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-8, G = ruota, #90). Un pannello alla volta; niente con Tavolo aperto, foglio del lotto o gara.
   const link = `${location.origin}/?t=${encodeURIComponent(FLAGS.token)}`; // per entrare come sé da un altro dispositivo (editor: COPIA / MANDA)
   const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => world.setLook(l) }, barca: world, onSaved: () => hud.toast('Look salvato'), onNome: (n) => hud.toast(`Nome salvato: ${n}`), onBarca: () => hud.toast('Barca salvata'), onLot: refreshMyLot }) : null;
-  // impostazioni (#53): camera, ciclo giorno/notte, meteo (#85), stampa, contorni; di serie (#59) ciclo, camera 22° e contorni, per chiunque (anche senza link)
+  // impostazioni (#53): camera, ciclo giorno/notte, meteo (#361), stampa, contorni; di serie (#59) ciclo, camera 22° e contorni, per chiunque (anche senza link)
   // la resa delle impostazioni (passata finale, acqua stampa, ciclo) si scarica solo se qualcosa è acceso: con tutto spento zero byte in più
   let aspetto: Aspetto | null = null, aspettoLoad: Promise<void> | null = null, voglio: Impostazioni | null = null;
   const applica = (s: Impostazioni) => {
@@ -238,9 +238,14 @@ async function boot(): Promise<void> {
   registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
   registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
   registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0, meteoK: aspetto?.meteoK ?? 0, gocce: aspetto?.gocce ?? 0 }));
-  // meteo (#85): 'sereno' | 'nuvoloso' | 'pioggia' | 'nebbia' | 'vento', 'spento' con l'impostazione spenta; dai test si forza (k di serie 1, null = l'orologio)
+  // meteo (#361): il tempo dove sei, 'sereno' | 'bianca' | 'grigia' | 'pioggia' | 'temporale' (la nuvola che hai sopra), 'spento' con l'impostazione
+  // spenta; `nuvole` quante ce ne sono, quanto piove e lampeggia dove sei. Dai test: meteo(tipo, k) una nuvola sopra di te (null = l'orologio),
+  // nuvole([{ tipo, dx, dz, r }]) nuvole ferme attorno a te, lampo(true) un lampo fisso nel temporale più vicino
   registerStateProvider('meteo', () => aspetto?.meteo ?? 'spento');
+  registerStateProvider('nuvole', () => aspetto?.nuvole ?? null);
   registerTestHook('meteo', (st, k) => aspetto?.forzaMeteo(st === null || st === undefined ? null : (String(st) as 'sereno'), k === undefined ? 1 : Number(k)));
+  registerTestHook('nuvole', (ns) => aspetto?.forzaNuvole(Array.isArray(ns) ? (ns as { tipo: 'bianca'; dx: number; dz: number; r?: number }[]) : null));
+  registerTestHook('lampo', (on) => aspetto?.forzaLampo(on === true));
   // feed: con le sfide con posta spente resta per le visite al libro degli ospiti (#86)
   const feed = me && api.enabled ? createFeed({ api, hud, root, ...(FLAGS.sfide ? {} : { vuoto: 'Niente di nuovo. Quando un amico firma il libro della tua isola o batte un tuo record, lo vedi qui.' }), onNews: (news) => { if (news.some((n) => n.tipo !== 'sfida_ricevuta' && n.tipo !== 'sfida_accettata')) refreshMyLot(); } }) : null;
   const emotes = createEmotes({ world, camera: renderer.camera, canvas, root });

@@ -25,6 +25,8 @@ export type Renderer = {
   setNitido?(k: number | null): void;
   /** Interni del mondo (#265, la stanza della casa): niente cielo né foschia della passata finale, fondo di `colore`; null = all'aperto. */
   setInterno(colore: string | null): void;
+  /** Al chiuso: dentro un interno (setInterno con un colore) o in una scena a parte (dungeon, Templari): niente nuvole, pioggia né tuoni. */
+  readonly alChiuso: boolean;
 };
 export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): Renderer {
   const gl = new THREE.WebGLRenderer({ canvas: o.canvas, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: true, stencil: false });
@@ -67,6 +69,7 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
       if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
     },
     setPost: (p) => { post = p; post?.setSize(w, h); },
+    get alChiuso() { return interno || active !== scene; },
     setInterno: (c) => { interno = c !== null; scene.background = c !== null ? new THREE.Color(c) : sky.texture; },
     setView: (v) => { view = v; applyView(); },
     setNitido: (k) => { if (k === nitido) return; nitido = k; o.canvas.style.imageRendering = k !== null ? 'auto' : 'pixelated'; resize(); },

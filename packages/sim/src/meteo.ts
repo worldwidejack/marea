@@ -113,7 +113,7 @@ export function ventoIntegrale(a: number, b: number, cfg: MeteoCfg = METEO): num
   return s;
 }
 /** Il vento all'istante `ms`: livello a gradini (0..1) e verso (versore) dell'ora. */
-export function ventoAt(ms: number, cfg: MeteoCfg = METEO): { k: number; dx: number; dz: number } {
+export function ventoMeteoAt(ms: number, cfg: MeteoCfg = METEO): { k: number; dx: number; dz: number } {
   const P = cfg.vento.periodoMin * MIN, p = Math.floor(ms / P), l0 = livello(p - 1, cfg), l1 = livello(p, cfg);
   const n = Math.max(1, cfg.gradini), T = cfg.vento.transizioneS * 1000, dt = ms - p * P;
   const k = dt >= T ? l1 : l0 + ((l1 - l0) * Math.min(n, Math.floor(dt / (T / n)) + 1)) / n;
@@ -192,7 +192,7 @@ export function meteoQui(ms: number, x: number, z: number, cfg: MeteoCfg = METEO
   }
   let stato: MeteoStato = 'sereno', k = 0;
   for (const t of NUVOLA_TIPI) if (tipi[t] > 0 && tipi[t] >= k) { stato = t; k = tipi[t]; } // a pari k vince la più pesante (ultima)
-  return { stato, k, pioggia, lampi, vento: Math.max(ventoAt(ms, cfg).k, lampi), tipi };
+  return { stato, k, pioggia, lampi, vento: Math.max(ventoMeteoAt(ms, cfg).k, lampi), tipi };
 }
 /** Il lampo della nuvola `n` acceso all'istante `ms`, se c'è: solo i temporali formati (k = 1), uno ogni tanto, dentro la pioggia. */
 export function lampoAt(ms: number, n: Nuvola, cfg: MeteoCfg = METEO): Lampo | null {

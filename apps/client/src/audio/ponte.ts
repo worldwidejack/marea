@@ -68,7 +68,7 @@ export function tensione(k: number): void { motore?.tensione(k); }
 export function suona(id: SuonoId, k?: number): void { motore?.suona(id, k); }
 /** Musica: 'auto' (di serie) la sceglie il gioco (giorno, notte, gara, dungeon); le altre la forzano. */
 export const musica = { set(m: MusicaModo | 'auto'): void { forzata = m; motore?.musica(m); } };
-/** Meteo vicino a un'isola a tema (futuro): pioggia o vento, k 0..1. */
+/** Meteo dove sei (#361, render/aspetto.ts): pioggia sotto una nuvola di pioggia o di temporale, vento quando soffia forte, k 0..1. */
 export function setMeteo(t: Meteo, k: number): void { meteo = { t, k }; motore?.meteo(t, k); }
 /** Raffica della Regata (0..1, ogni tick): soffio di vento, più forte quanto più è forte. */
 export function vento(g: number): void { motore?.vento(g); }

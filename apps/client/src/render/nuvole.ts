@@ -2,9 +2,11 @@
 // mondo (giorno, tramonto, notte). Tutte le nuvole in un InstancedMesh solo: una draw call. La forma di ogni nuvola nasce dal suo seme
 // (sim/meteo.ts `forma`): stessa nuvola, stessi batuffoli per tutti. Riempiono l'ellisse della sim, così l'ombra (passata finale) e la
 // pioggia cadono proprio sotto.
-// La camera di MAREA è bassa: una nuvola tra la camera e chi gioca gli starebbe davanti. I batuffoli più vicini alla camera di chi gioca
-// (in profondità) si sciolgono a gradini: si vedono le nuvole dietro e attorno, mai sopra la testa; sotto restano ombra e pioggia.
-// Il lampo dei temporali: una spezzata gialla dalla pancia della nuvola al mare (LineSegments, una draw call solo mentre c'è).
+// La camera di MAREA è bassa: una nuvola tra la camera e chi gioca gli starebbe davanti. I batuffoli vicini alla linea camera → chi gioca
+// (entro `LIBERO` m, più il loro raggio) si sciolgono a gradini: si vedono le nuvole dietro e attorno, mai davanti a chi gioca né sopra
+// la sua testa; sotto restano ombra e pioggia.
+// Il lampo dei temporali: una spezzata gialla larga `LAMPO_L` m dalla pancia della nuvola al mare, a nastro girato verso la camera (una
+// mesh di 18 triangoli, una draw call solo mentre c'è): a metà risoluzione una linea da un pixel non si vedeva.
 import * as THREE from 'three';
 import type { NuvolaTipo } from '@marea/content';
 import type { Lampo, Nuvola } from '@marea/sim/meteo.ts';
@@ -32,8 +34,12 @@ const COLORI: Record<NuvolaTipo, [string, string]> = {
   pioggia: ['#B9AFA3', '#7F7568'],
   temporale: ['#7F7568', '#4A4340'],
 };
+/** Larghezza del lampo (m). */
+const LAMPO_L = 1;
+/** Metri liberi attorno alla linea camera → chi gioca: lì le nuvole si sciolgono. */
+const LIBERO = 6;
 /** Batuffoli al massimo (tutte le nuvole vicine insieme). */
-const MAXB = 420;
+const MAXB = 300;
 
 type Batuffolo = { u: number; v: number; rh: number; h: number; y: number; cima: boolean };
 /** Generatore piccolo e fisso (mulberry32): la stessa forma su ogni dispositivo. */
@@ -81,27 +87,35 @@ export function createNuvole(st: StileNuvole): Nuvole {
   mesh.name = 'nuvole_corpi'; mesh.frustumCulled = false; mesh.castShadow = false; mesh.receiveShadow = false; mesh.count = 0;
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   mesh.setColorAt(0, new THREE.Color('#ffffff'));
-  // lampo: 9 segmenti a zig-zag, due fili affiancati perché a metà risoluzione resti visibile
-  const lpos = new Float32Array(9 * 2 * 2 * 3);
+  // lampo: 9 segmenti a zig-zag, ognuno un quadrilatero (2 triangoli) largo LAMPO_L, rifatto verso la camera a ogni frame
+  const lpos = new Float32Array(9 * 6 * 3), punti: THREE.Vector3[] = Array.from({ length: 10 }, () => new THREE.Vector3());
   const lgeo = new THREE.BufferGeometry(); lgeo.setAttribute('position', new THREE.BufferAttribute(lpos, 3));
-  const lmat = new THREE.LineBasicMaterial({ color: '#F5D547', fog: false, depthWrite: false }); lmat.name = 'lampo';
-  const fulmine = new THREE.LineSegments(lgeo, lmat); fulmine.name = 'lampo'; fulmine.frustumCulled = false; fulmine.visible = false;
+  const lmat = new THREE.MeshBasicMaterial({ color: '#F5D547', fog: false, depthWrite: false, side: THREE.DoubleSide }); lmat.name = 'lampo';
+  const fulmine = new THREE.Mesh(lgeo, lmat); fulmine.name = 'lampo'; fulmine.frustumCulled = false; fulmine.visible = false;
+  let cam: THREE.Camera | null = null;
+  const destra = new THREE.Vector3(), seg = new THREE.Vector3(), lato = new THREE.Vector3(), vista = new THREE.Vector3();
   const group = new THREE.Group(); group.name = 'nuvole'; group.add(mesh, fulmine);
   const forme = new Map<string, Batuffolo[]>();
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-  const avanti = new THREE.Vector3(), col = new THREE.Color(), cima = new THREE.Color(), pancia = new THREE.Color();
+  const col = new THREE.Color(), cima = new THREE.Color(), pancia = new THREE.Color();
+  const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sfera = new THREE.Sphere();
   let batuffoli = 0, disegnate = 0, lampoSeme = -1;
   return {
     group, stile: st,
     get batuffoli() { return batuffoli; }, get disegnate() { return disegnate; },
     update(ns, camera, f) {
-      camera.getWorldDirection(avanti);
-      const cp = camera.position, dF = (f.x - cp.x) * avanti.x + (f.y - cp.y) * avanti.y + (f.z - cp.z) * avanti.z;
+      cam = camera;
+      camera.updateMatrixWorld();
+      frustum.setFromProjectionMatrix(pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+      const cp = camera.position, lx = f.x - cp.x, ly = f.y + 1 - cp.y, lz = f.z - cp.z, l2 = lx * lx + ly * ly + lz * lz || 1;
       const vive = new Set<string>();
       let i = 0; disegnate = 0;
       for (const n of ns) {
         const key = `${n.id}:${st.nome}`;
         vive.add(key);
+        // fuori inquadratura: niente batuffoli (sono contati, MAXB, e vanno a quelle che si vedono)
+        sfera.center.set(n.x, st.quota + st.spessore * 0.5, n.z); sfera.radius = Math.max(n.rx, n.rz) + st.batuffolo[1] + st.spessore;
+        if (!frustum.intersectsSphere(sfera)) continue;
         let bs = forme.get(key);
         if (!bs) { bs = disponi(n, st); forme.set(key, bs); }
         cima.set(COLORI[n.tipo][0]); pancia.set(COLORI[n.tipo][1]);
@@ -111,9 +125,11 @@ export function createNuvole(st: StileNuvole): Nuvole {
         for (const b of bs) {
           if (i >= MAXB) break;
           const x = n.x + b.u * n.dx - b.v * n.dz, z = n.z + b.u * n.dz + b.v * n.dx;
-          // davanti a chi gioca (più vicino alla camera, con tutto il batuffolo): si scioglie in 3 gradini su 6 m
-          const d = (x - cp.x) * avanti.x + (st.quota - cp.y) * avanti.y + (z - cp.z) * avanti.z - b.rh;
-          const via = Math.floor(Math.max(0, Math.min(1, (d - dF - 1) / 6)) * 3 + 1e-9) / 3;
+          // vicino alla linea camera → chi gioca (con tutto il batuffolo): si scioglie in 3 gradini su 6 m
+          const py = st.quota + b.y + b.h * 0.5, tt = Math.max(0, Math.min(1, ((x - cp.x) * lx + (py - cp.y) * ly + (z - cp.z) * lz) / l2));
+          const ex = x - cp.x - tt * lx, ey = py - cp.y - tt * ly, ez = z - cp.z - tt * lz;
+          const d = Math.sqrt(ex * ex + ey * ey + ez * ez) - b.rh;
+          const via = Math.floor(Math.max(0, Math.min(1, (d - LIBERO) / 6)) * 3 + 1e-9) / 3;
           if (via <= 0) continue;
           const s = crescita * via;
           p.set(x, st.quota + b.y, z); sc.set(b.rh * s, b.h * s, b.rh * s);
@@ -124,21 +140,29 @@ export function createNuvole(st: StileNuvole): Nuvole {
         if (qualcuno) disegnate++;
       }
       for (const k of forme.keys()) if (!vive.has(k)) forme.delete(k);
-      mesh.count = i; batuffoli = i;
+      mesh.count = i; mesh.visible = i > 0; batuffoli = i;
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     },
     lampo(l) {
-      if (!l) { fulmine.visible = false; return; }
+      if (!l || !cam) { fulmine.visible = false; return; }
       fulmine.visible = true;
-      if (l.seme === lampoSeme) return;
-      lampoSeme = l.seme;
-      const r = rngDi(l.seme);
-      let x = l.x, z = l.z, y = st.quota, k = 0;
+      if (l.seme !== lampoSeme) {
+        lampoSeme = l.seme;
+        const r = rngDi(l.seme);
+        punti[0]!.set(l.x, st.quota, l.z);
+        for (let s = 1; s < 10; s++) punti[s]!.set(l.x + (r() - 0.5) * 5, st.quota * (1 - s / 9), l.z + (r() - 0.5) * 4);
+      }
+      // ogni segmento: un nastro largo LAMPO_L di traverso rispetto alla vista
+      destra.setFromMatrixColumn(cam.matrixWorld, 0);
       for (let s = 0; s < 9; s++) {
-        const y2 = st.quota * (1 - (s + 1) / 9), x2 = l.x + (r() - 0.5) * 3.2, z2 = l.z + (r() - 0.5) * 3.2;
-        for (const o of [0, 0.18]) { lpos.set([x + o, y, z, x2 + o, y2, z2], k); k += 6; }
-        x = x2; z = z2; y = y2;
+        const a = punti[s]!, b = punti[s + 1]!;
+        seg.subVectors(b, a); vista.subVectors(a, cam.position);
+        lato.crossVectors(seg, vista).normalize();
+        if (!(lato.lengthSq() > 0)) lato.copy(destra);
+        lato.multiplyScalar(LAMPO_L / 2);
+        const v = [a.x - lato.x, a.y - lato.y, a.z - lato.z, a.x + lato.x, a.y + lato.y, a.z + lato.z, b.x + lato.x, b.y + lato.y, b.z + lato.z, b.x - lato.x, b.y - lato.y, b.z - lato.z];
+        lpos.set([v[0]!, v[1]!, v[2]!, v[3]!, v[4]!, v[5]!, v[6]!, v[7]!, v[8]!, v[0]!, v[1]!, v[2]!, v[6]!, v[7]!, v[8]!, v[9]!, v[10]!, v[11]!], s * 18);
       }
       lgeo.attributes.position!.needsUpdate = true;
     },

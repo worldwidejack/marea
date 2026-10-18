@@ -4,8 +4,11 @@
 // Modo 2 giorno: fasce turchesi, scogli sott'acqua nel basso fondale, riflessi a linee, scintille bianche.
 // Modo 3 tramonto: teal scuro, scia di luce arancio verso il sole, schiuma calda.
 // Tutto quantizzato a 8 texel/m così resta a pixel anche da vicino.
+// Meteo (#361): sotto le nuvole di pioggia (NUBI, condivisi con la passata finale e la pioggia) cerchi a pixel che si allargano, solo
+// dove piove davvero e vicino alla camera.
 import * as THREE from 'three';
 import type { GridMap } from '@marea/sim';
+import { GLSL_NUBI, NUBI } from './meteo.ts';
 
 const MAXD = 16; // m: oltre è mare aperto
 
@@ -47,6 +50,7 @@ uniform int uMode;
 uniform vec3 uC0, uC1, uC2, uC3, uFoam, uLine, uSunDir, uTint, uMoonDir;
 uniform float uNight;
 varying vec3 vW;
+${GLSL_NUBI}
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) {
   vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -96,6 +100,21 @@ void main() {
     float shore = 0.9 + 0.35 * sin(t * 1.4 + vnoise(q * 0.5) * 6.0);
     if (dd < shore) c = uFoam;
   }
+  if (uNubiN > 0 && dd > 1.0) {
+    vec2 toC = vW.xz - cameraPosition.xz;
+    float rain = dot(toC, toC) < 3600.0 ? pioggiaIn(vW.xz) : 0.0;
+    if (rain > 0.0) {
+      // pioggia: celle da 1,25 m, ognuna col suo tempo; schizzo poi cerchio che si allarga (più fitti quanto più piove)
+      vec2 cl = floor(q / 1.25);
+      float h0 = hash(cl + 5.3), tt = t / 0.9 + h0, gen = floor(tt), ph = fract(tt);
+      if (hash(cl + gen * 1.37) < 0.35 * rain) {
+        vec2 ctr = (cl + 0.2 + 0.6 * vec2(hash(cl + gen + 0.5), hash(cl - gen + 9.1))) * 1.25;
+        float r = (0.06 + ph * 0.32) * 8.0, d = length((q - ctr) * 8.0);
+        if (ph < 0.12 && d < 0.8) c = uFoam;
+        else if (abs(d - r) < 0.55 && ph < 0.7) c = ph < 0.3 ? uFoam : uLine;
+      }
+    }
+  }
   c *= uTint;
   if (uNight > 0.01) { // notte (#56): scia della luna e stelle riflesse, come nell'acqua del gioco
     vec2 toP = vW.xz - cameraPosition.xz;
@@ -116,7 +135,7 @@ export function createWater2(map: GridMap): Water2 {
     tDist: { value: distanceField(map) }, uMapSize: { value: new THREE.Vector2(map.w * map.tile, map.h * map.tile) }, uTime: { value: 0 }, uMode: { value: 1 },
     uC0: { value: col('#fff') }, uC1: { value: col('#fff') }, uC2: { value: col('#fff') }, uC3: { value: col('#fff') }, uFoam: { value: col('#fff') }, uLine: { value: col('#fff') },
     uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uTint: { value: new THREE.Color(1, 1, 1) },
-    uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(0, 0, -1) },
+    uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(0, 0, -1) }, ...NUBI,
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U });
   // 4 km di lato: senza foschia (#282) il bordo non deve vedersi fino al piano lontano (900 m); la griglia evita triangoli enormi
