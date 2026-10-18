@@ -28,16 +28,21 @@ export function postoArredo(a: Pick<PlacedMobile, 'cell' | 'muro' | 'rot'>, T: n
 
 export function createArrediVista(o: { group: THREE.Group; origin: readonly [number, number]; tile: number; groundY(x: number, z: number): number }): { sync(lot: LotState | null): void; dispose(): void } {
   const T = o.tile, ox = o.origin[0] * T, oz = o.origin[1] * T;
-  let key = '', livello = 0, mesh: THREE.Mesh | null = null, modelli: THREE.Group | null = null, mod: Promise<[typeof import('../render/mobili.ts'), typeof import('../render/mobili_modelli.ts')]> | null = null, disposed = false;
-  const via = () => { if (mesh) { o.group.remove(mesh); mesh.geometry.dispose(); mesh = null; } if (modelli) { o.group.remove(modelli); modelli = null; } }; // le geometrie dei modelli sono in cache: non si distruggono
+  let key = '', livello = 0, oggetti: THREE.Object3D[] = [], mod: Promise<[typeof import('../render/mobili.ts'), typeof import('../render/mobili_modelli.ts')]> | null = null, disposed = false;
+  const via = () => { for (const ob of oggetti) { o.group.remove(ob); if (ob instanceof THREE.Mesh) ob.geometry.dispose(); } oggetti = []; }; // le geometrie dei modelli sono in cache: non si distruggono
   const rifai = (m: typeof import('../render/mobili.ts'), mm: typeof import('../render/mobili_modelli.ts'), vivi: Map<string, Part[]>, arredi: readonly PlacedMobile[], k: string) => {
     if (disposed || k !== key) return;
     via();
     if (!arredi.length) return;
-    // la mesh sta appena oltre il muro in fondo (la stanza nasconde i figli del lotto più a nord), le forme relative a lì
-    const p0 = new THREE.Vector3(ox + X0 * T, o.groundY(ox + (X0 + 1) * T, oz + (Z0 + 1) * T), oz + Z0 * T + 0.01);
+    // una mesh per stanza (piano terra, cantina, secondo piano, #386): la stanza in cui sei mostra solo la sua (game/stanza.ts, userData.stanza)
+    const perStanza = new Map<string, PlacedMobile[]>();
+    for (const a of arredi) { const id = stanzaAt(livello, a.cell)?.id ?? 'terra'; const l = perStanza.get(id) ?? []; l.push(a); perStanza.set(id, l); }
+    for (const [id, lista] of perStanza) {
+    // la mesh sta appena oltre il muro in fondo della sua stanza (la stanza nasconde i figli del lotto più a nord), le forme relative a lì
+    const [rx0, rz0] = stanzaAt(livello, lista[0]!.cell)?.pavimento ?? BORGO.stanza.pavimento;
+    const p0 = new THREE.Vector3(ox + rx0 * T, o.groundY(ox + (rx0 + 1) * T, oz + (rz0 + 1) * T), oz + rz0 * T + 0.01);
     const parti: THREE.BufferGeometry[] = [], gm = new THREE.Group();
-    for (const a of arredi) {
+    for (const a of lista) {
       const d = MOBILI.find((x) => x.id === a.mobile); if (!d) continue;
       const p = postoArredo(a, T, d.celle, stanzaAt(livello, a.cell)?.pavimento), ps = vivi.get(d.id);
       if (ps) { // ha il suo modello 3D (manifest_mobili.json): mesh a parte, con la texture dell'atlas
@@ -49,10 +54,11 @@ export function createArrediVista(o: { group: THREE.Group; origin: readonly [num
       parti.push(g);
     }
     if (parti.length) {
-      mesh = new THREE.Mesh(m.unisci(parti), vc); mesh.name = 'arredi'; mesh.position.copy(p0); mesh.castShadow = mesh.receiveShadow = true;
-      o.group.add(mesh);
+      const mesh = new THREE.Mesh(m.unisci(parti), vc); mesh.name = 'arredi'; mesh.userData['stanza'] = id; mesh.position.copy(p0); mesh.castShadow = mesh.receiveShadow = true;
+      o.group.add(mesh); oggetti.push(mesh);
     }
-    if (gm.children.length) { gm.name = 'arredi_modelli'; gm.position.copy(p0); modelli = gm; o.group.add(gm); }
+    if (gm.children.length) { gm.name = 'arredi_modelli'; gm.userData['stanza'] = id; gm.position.copy(p0); oggetti.push(gm); o.group.add(gm); }
+    }
   };
   return {
     sync(lot) {

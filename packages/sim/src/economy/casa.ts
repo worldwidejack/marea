@@ -7,7 +7,7 @@ import { BORGO, MOBILI } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { advance } from './advance.ts';
 import { pay } from './actions.ts';
-import { livelloCasa, prossimoAmpliamento, stanzaAt, stanzeDi } from './stanze.ts';
+import { livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzeDi } from './stanze.ts';
 import type { Stanza } from './stanze.ts';
 import { inVetrina } from './vetrina.ts';
 import { EconomyError, ZERO } from './types.ts';
@@ -44,8 +44,8 @@ export function celleMobile(m: Pick<MobileDef, 'posto' | 'celle'>, cell: readonl
 }
 
 const [CX] = BORGO.stanza.corridoio;
-/** Le celle di una stanza dove si passa (niente mobili a terra): dove sbuca il corridoio e quella davanti alla porta in fondo. */
-const passaggi = (s: Stanza): readonly (readonly [number, number])[] => [...(s.id === 'terra' ? [[CX, s.pavimento[3] - 1] as const] : []), ...(s.retro ? [s.retro] : [])];
+/** Le celle di una stanza dove si passa (niente mobili a terra): dove sbuca il corridoio, quella davanti alla porta in fondo e le scale (#386). */
+const passaggi = (s: Stanza, livello: number): readonly (readonly [number, number])[] => [...(s.id === 'terra' ? [[CX, s.pavimento[3] - 1] as const] : []), ...(s.retro ? [s.retro] : []), ...scaleDi(livello).filter((c) => c.stanza === s.id).map((c) => c.cell)];
 /** Il livello della casa di un lotto. */
 export const livelloLotto = (lot: LotState | null | undefined): number => livelloCasa(lot?.casa);
 
@@ -81,7 +81,7 @@ export function postoMobileError(lot: LotState, m: MobileDef, p: PostoMobile, se
     return arredi.some((a) => a.muro === p.muro && same(a.cell, c)) ? { code: 'cella', msg: 'Su questo muro c’è già qualcosa' } : null;
   }
   if (p.muro) return { code: 'posizione', msg: 'Questo va per terra' };
-  if (mie.some((q) => passaggi(stanza).some((r) => same(r, q)))) return { code: 'posizione', msg: 'Qui si passa: lascia libero' };
+  if (mie.some((q) => passaggi(stanza, liv).some((r) => same(r, q)))) return { code: 'posizione', msg: 'Qui si passa: lascia libero' };
   const occupate = (q: readonly [number, number]) => arredi.some((a) => {
     if (a.muro) return false;
     const d = mobile(a.mobile);
