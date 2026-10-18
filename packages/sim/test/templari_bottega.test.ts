@@ -36,7 +36,7 @@ test('i posti: Strega in cima al cimitero, Mercante sulla riva della spiaggia, t
   const s = partita(), a = s.arena;
   const st = a.personaggi.find((x) => x.id === 'strega')!, me = a.personaggi.find((x) => x.id === 'mercante')!;
   assert.ok(st.z < 5 && st.fz === -1, JSON.stringify(st));
-  assert.ok(me.z > 80 && me.fz === 1, JSON.stringify(me));
+  assert.ok(me.z > 70 && me.fz === 1, JSON.stringify(me));
   assert.equal(templari.view(s).prompt?.cosa ?? null, null);
   da(s, 'strega');
   assert.equal(templari.view(s).prompt?.cosa, 'strega');

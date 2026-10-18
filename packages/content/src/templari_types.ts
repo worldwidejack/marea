@@ -209,4 +209,5 @@ export type TLegenda = { porta?: string; muro?: string; comparsa?: string; trapp
 /** Un fuoco da accendere (docs/TEMPLARI.md §9b): il nome e cosa accende (`rogo` = la trappola del rogo funziona, `strega` = la Strega
  *  vende, `mercante` = la nave del Mercante attracca). */
 export type TFuocoDef = { nome: string; apre: 'rogo' | 'strega' | 'mercante'; dice: string };
-export type TMappaDef = { tile: number; legenda: Record<string, TLegenda>; rows: string[] };
+/** `w`: larghezza fissa (le righe possono essere più corte): l'aspetto delle celle dipende dal loro indice, che dipende da `w`. */
+export type TMappaDef = { tile: number; w?: number; legenda: Record<string, TLegenda>; rows: string[] };

@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "maxMinuti": 60,
   "partenza": { "punti": 500, "arma": "spada" },
   "eroe": {

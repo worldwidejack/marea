@@ -37,7 +37,7 @@ export type Scena = {
   setCripta(dentro: boolean): void;
   /** Finestra sull'eroe accesa o spenta (la foto della chiesa dipinta, dipinto.ts, la spegne). */
   setTaglia(on: boolean): void;
-  stats(): { muri: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number; sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number };
+  stats(): { muri: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number; sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number; palizzata: number; navi: number };
   dispose(): void;
 };
 
@@ -246,7 +246,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   const muri: number[] = [], colonne: number[] = [], bassi: number[] = [];
   for (let i = 0; i < a.cell.length; i++) {
     const k = a.cell[i]!;
-    if (k === C.muro && a.tipo[i] !== TIPO.tenda) muri.push(i); else if (k === C.colonna) colonne.push(i); else if (k === C.basso) bassi.push(i);
+    if (k === C.muro && a.tipo[i] !== TIPO.tenda && a.tipo[i] !== TIPO.palizzata && a.tipo[i] !== TIPO.nave) muri.push(i); else if (k === C.colonna) colonne.push(i); else if (k === C.basso) bassi.push(i);
   }
   const conTex = conci(); disp.push(conTex);
   const muroGeo = new THREE.BoxGeometry(1, 1, 1); muroGeo.translate(0, 0.5, 0);
@@ -283,9 +283,10 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   // nebbia a distanza (alla PS1): il buio oltre le zone si perde, il primo piano resta pulito
   scene.fog = new THREE.Fog(PAL.neroCaldo, 36, 85);
 
-  // ---- tende dei pirati, scogli e relitti della spiaggia (accampamento.ts) e la sala del banchetto nella taverna (banchetto.ts) ----
+  // ---- tende dei pirati, palizzata, nave in secca, scogli e relitti della spiaggia (accampamento.ts) e la sala del banchetto nella
+  // taverna (banchetto.ts) ----
   const tende = gruppi(a, TIPO.tenda);
-  const accampamento = createAccampamento(scene, a, tende);
+  const accampamento = createAccampamento(scene, a, tende, gruppi(a, TIPO.nave));
   const banchetto = createBanchetto(scene, a);
 
   // ---- cose basse: tutto in due InstancedMesh (box e cilindri) coi colori per istanza ----
@@ -586,7 +587,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
       campana.visible = m; terra.visible = !m;
       if (m) campana.rotation.set(0, 0, 0);
     },
-    stats: () => ({ muri: muri.length, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats(), ...dettagli.stats() }),
+    stats: () => ({ muri: muri.length, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats(), ...dettagli.stats(), ...accampamento.stats() }),
     dispose() { arredi.dispose(); dettagli.dispose(); accampamento.dispose(); banchetto.dispose(); fin.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
   };
 }

@@ -481,7 +481,14 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
           for (const q of s.arena.porte) if (!s.porte[q.id]) { s.eroe.punti += TEMPLARI.porte[q.id]?.prezzo ?? 0; apriPorta(s, q); }
           sc?.setPorte(s.porte);
           h.x = p.x - p.fx * 1.2; h.z = p.z - p.fz * 1.2; h.fx = p.fx; h.fz = p.fz;
-        }]) },
+        }]).concat(([['spiaggia_taverna', 1, 0, 'Porta taverna'], ['spiaggia_cimitero', 0, 1, 'Cancello cimitero']] as const).map(([id, dx, dz, nome]): [string, () => void] => [nome, () => {
+          // le due porte dell'accampamento (§12b punto 2), dalla parte della spiaggia: per misurare la strada fino al Mercante
+          const q = s.arena.porte.find((x) => x.id === id);
+          if (!q) return;
+          tutteAperte();
+          const c = q.celle[0]!, cx = c % s.arena.w, cz = (c - cx) / s.arena.w;
+          vai((cx + 0.5 + dx * 1.5) * s.arena.tile, (cz + 0.5 + dz * 1.5) * s.arena.tile, dx, dz);
+        }])) },
       ],
     };
   }
