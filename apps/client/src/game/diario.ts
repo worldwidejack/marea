@@ -2,6 +2,8 @@
 // dei traguardi da riscuotere, avviso breve quando se ne compie uno, avvistamenti (animali passati vicino: li segnala game/animali.ts;
 // isole dove entri, compresi i lotti degli amici) mandati al server a gruppi. L'album vero (pagine, RISCUOTI, titoli) sta nel chunk
 // ui/diario_ui.ts, scaricato alla prima apertura. Quello che conta (pesci, perle, medaglie) lo scrive il server dopo il replay.
+// Traguardi e titoli spenti per ora (VISIONE §2): senza ?traguardi=1 (FLAGS.traguardi) niente pagina, numerino né avviso; il server
+// continua a contarli (diario nel lotto), così riaccesi ritrovano tutto.
 import { daRiscuotere, diarioOf, isolaValida, traguardiOf } from '@marea/sim/economy/diario.ts';
 import type { LotState } from '@marea/sim';
 import { DIARIO } from '@marea/content/diario.ts';
@@ -12,9 +14,10 @@ import { PAL, el } from '../ui/style.ts';
 import { topButton } from '../ui/topbar.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { suona } from '../audio/ponte.ts';
+import { FLAGS } from '../flags.ts';
 
 export type DiarioTab = 'pesci' | 'perle' | 'animali' | 'medaglie' | 'isole' | 'traguardi';
-export const DIARIO_TABS: readonly DiarioTab[] = ['pesci', 'perle', 'animali', 'medaglie', 'isole', 'traguardi'];
+export const DIARIO_TABS: readonly DiarioTab[] = FLAGS.traguardi ? ['pesci', 'perle', 'animali', 'medaglie', 'isole', 'traguardi'] : ['pesci', 'perle', 'animali', 'medaglie', 'isole'];
 export type Diario = {
   /** Un animale passato vicino (id di diario.json `animali`). */
   avvista(id: string): void;
@@ -94,7 +97,7 @@ export function createDiario(o: { root: HTMLElement; hud: Hud; api: Api | null; 
   let visti: Set<string> | null = null, lastLot: LotState | null = null;
   const controlla = () => {
     const lot = o.getLot();
-    if (!online || !lot || lot === lastLot) return;
+    if (!FLAGS.traguardi || !online || !lot || lot === lastLot) return;
     lastLot = lot;
     const pronti = daRiscuotere(lot, { amici: amici() });
     btn.setBadge(pronti.length);
@@ -165,7 +168,7 @@ export function createDiario(o: { root: HTMLElement; hud: Hud; api: Api | null; 
   registerStateProvider('diario', () => {
     const lot = o.getLot(), d = lot ? diarioOf(lot) : null;
     return {
-      caricato: !!m, open: api.isOpen(), ui: ui?.state() ?? null, badge: lot && online ? daRiscuotere(lot, { amici: amici() }).length : 0,
+      caricato: !!m, open: api.isOpen(), ui: ui?.state() ?? null, tabs: DIARIO_TABS, badge: lot && online && FLAGS.traguardi ? daRiscuotere(lot, { amici: amici() }).length : 0,
       coda: { animali: [...coda.animali], isole: [...coda.isole] }, inviati, avviso: avviso.classList.contains('on') ? ultimoAvviso : null,
       animali: d?.animali ?? [], isole: d?.isole ?? [], pesci: d?.pesci ?? {}, perle: d?.perle ?? {}, medaglie: d?.medaglie ?? {}, riscossi: d?.riscossi ?? [], titolo: d?.titolo ?? null,
     };

@@ -2,6 +2,7 @@
 // Segheria (cartello evidenziato → conferma già pronta), poi la barca, poi la Regata; al molo della Laguna compare GIOCA, la gara la corre
 // l'autopilot, il server rigioca gli input e paga il premio della medaglia (balance.solo); la guida passa a «Costruisci col premio».
 // Senza ?sfide=1 niente Tavolo con posta: né al Porto né nel pannello Costruisci. API: play senza partita aperta 409, input rotti 400.
+// La guida non parte da sola (VISIONE §1): al primo ingresso è spenta, c'è solo il toast che la indica; Luca la accende dalle Impostazioni.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -55,6 +56,24 @@ export default async function (ctx) {
     await ctx.waitState(page, (s) => s.lot && s.lot.ready === true && s.guida, 15000);
     const st = () => ctx.getState(page);
     const hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
+
+    await ctx.test('primo ingresso: la guida non parte da sola (solo il toast che la indica); dalle Impostazioni si accende', async () => {
+      const s0 = await st();
+      assert(s0.guida.chiusa === true && s0.guida.current === null && !s0.guida.visibile && s0.guida.primaVolta, 'guida al primo ingresso: ' + JSON.stringify(s0.guida));
+      assert(await page.locator('#mzGuida.on').count() === 0 && !s0.guida.pointer, 'la scheda della guida si vede');
+      assert(s0.lot.slotSigns.every((x) => !x.hint), 'a guida spenta nessun cartello suggerito');
+      const toast = await page.evaluate(() => document.getElementById('toast')?.textContent ?? '');
+      assert(/Primi passi/.test(toast) && /Impostazioni/.test(toast), 'toast: ' + toast);
+      await ctx.shot(page, '0_primo_ingresso');
+      await page.locator('#mzSetBtn').click();
+      await page.waitForSelector('#mzSet.on [data-set="guida"]', { timeout: 5000 });
+      assert(/NO/.test(await page.locator('#mzSet [data-set="guida"] .sw').innerText()), 'la riga della guida deve dire NO');
+      await page.locator('#mzSet [data-set="guida"]').click();
+      await ctx.waitState(page, (s) => s.guida.chiusa === false && s.guida.current === 'segheria', 3000);
+      await ctx.shot(page, '0_impostazioni_guida');
+      await page.locator('#mzSet .mz-x').click();
+      await ctx.waitState(page, (s) => s.guida.visibile && s.lot.slotSigns.some((x) => x.hint), 5000);
+    });
 
     await ctx.test('apertura: guida 1/8 «Segheria», cartelli Costruisci con lo slot suggerito, bussola con Porto e Regata, niente Tavolo', async () => {
       const s = await st();
@@ -125,7 +144,7 @@ export default async function (ctx) {
 
     await ctx.test('nessun pageerror per Luca', async () => { ctx.noErrors(P, 'Luca'); });
 
-    await ctx.test('link di gruppo: nome → isola sua (slot libero) e guida; nome corto 400; oltre max_usi 403', async () => {
+    await ctx.test('link di gruppo: nome → isola sua (slot libero), guida spenta; nome corto 400; oltre max_usi 403', async () => {
       const G = await ctx.B.openPage(ctx.browser, `${base}/?invito=gruppo1&test=1`, { viewport: ctx.B.IPHONE }); ctx._pages.push(G);
       await G.page.waitForSelector('#mzEntra input', { timeout: 15000 });
       await ctx.shot(G.page, '6_entra');
@@ -135,7 +154,7 @@ export default async function (ctx) {
       await ctx.waitReady(G.page, 30000);
       await ctx.waitState(G.page, (s) => s.lot && s.lot.ready === true && s.guida && s.arch, 15000);
       const s = await ctx.getState(G.page);
-      assert(s.arch.slot === 2 && s.guida.current === 'segheria', 'Giò: ' + JSON.stringify({ slot: s.arch.slot, guida: s.guida }));
+      assert(s.arch.slot === 2 && s.guida.chiusa === true && s.guida.current === null && s.guida.total === 8, 'Giò: ' + JSON.stringify({ slot: s.arch.slot, guida: s.guida }));
       const tok = await G.page.evaluate(() => localStorage.getItem('marea:token'));
       const me = await (await fetch(base + '/api/me', { headers: { 'x-token': tok } })).json();
       assert(me.nome === 'Giò Bianchi' && /^gio-bianchi-[0-9a-f]{4}$/.test(me.id), 'persona: ' + JSON.stringify({ id: me.id, nome: me.nome }));
