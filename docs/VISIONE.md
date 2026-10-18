@@ -18,10 +18,33 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | Minimappa e mappa grande | **fatto** (16 ott 2026, #360): **nord sempre in alto**; **zoom a più scatti**; **icone degli spot**; le isole non sbloccate **non si vedono proprio** (niente nebbia sopra) | nord in alto, zoom a scatti, icone delle mete, isole chiuse invisibili (`ui/minimappa.ts`, GDD §3); tra due varianti Jack ha scelto (17 ott) icone col contorno nero, 3 scatti, bottoni accanto al cerchio |
 
 ## 2. Progressione, economia, isole personali (punti 35-55 della revisione)
-- **L'isola personale «nel nulla» convince poco.** Oggi è il giardino dietro la casa del Borgo, fuori dal mare (#237).
-- **Direzione possibile** (da ripensare con Jack): all'inizio hai **solo la casa** → fai risorse o monete → **compri la prima barca** → salpi → poi puoi **colonizzare altre isole**. Oggi la barca ce l'hai da subito.
+### Una valuta sola e le botteghe del Borgo (Jack e gli amici, 18 ott 2026, #414)
+**Deciso**: via l'isola personale alla Grepolis (il giardino dietro la casa con Segheria, Cava, Magazzino…). Il giro «Segheria → Legno → edificio più grande» era circolare (Jack, 9 ott) e il gioco ormai sta nelle isole-format (Corse, Difesa, Templari, Sparo, Dungeon): **una valuta sola le lega tutte**.
+- **Le monete** sono l'unica valuta: si vincono nei minigiochi e nei format, si trovano nei dungeon, si spendono nelle botteghe. Le **Perle confluiscono nelle monete**: i cosmetici costano di più.
+- **Il motivo per tornare ogni giorno**: le **vetrine delle botteghe cambiano ogni giorno** (come il mobiliere, #384 #393, e il Contrabbandiere) e i **record per isola**. Niente regali gratis al rientro.
+- **I salvataggi si convertono**: chi ha già comprato **tiene tutto** (mobili, finiture, cappelli, colori della barca, decorazioni, ampliamenti della casa, equipaggiamento). Legno, Pietra, Perle e gli edifici spenti diventano monete a un **cambio fisso** scritto nel GDD §5. Gli edifici che diventano botteghe portano il loro livello alla bottega.
+- **Restano i tetti al giorno** che ci sono già (10 partite premiate ai minigiochi, 150 monete ai Templari, 150 all'Arena): niente monete infinite da un minigioco facile.
+- Il **bottino del dungeon** (ferro, argento, erbe…) resta **oggetto**, non valuta: è il progresso del GDR di Riccardo.
+
+| Oggi | Dopo |
+|---|---|
+| Legno, Pietra, Perle (`resources.json`) + monete del GDR (`HeroState.monete`) | **monete**, un portafoglio solo nel lotto |
+| Banco da Lavoro (giardino) | **Fabbro** nel Borgo: forgia e migliora armi e armature; il livello del banco diventa il tuo livello col Fabbro (sblocca i materiali, RPG §5); il Legno da forgiare si compra da lui |
+| Tavolo Alchemico + Serra | **Alchimista** nel Borgo: pozioni (ricette di RPG §6) e vende gli ingredienti base al posto della Serra |
+| Molo a livelli | **Cantiere navale** nel Borgo: potenziamenti della barca (velocità); la **barca potenziata apre la Tempesta** (oggi Molo al livello 2) |
+| Mercante delle Perle, mobiliere, Contrabbandiere | **restano**, prezzi in monete |
+| Forziere | il **baule della casa** (c'è già): il livello resta, quanto ci sta |
+| Segheria, Cava, Magazzino, Faro (edificio), Tavolo delle Sfide, Casa (edificio) | **spenti**, non cancellati: niente produzione, niente cantieri |
+| Giardino dietro la casa + portale + modalità modifica dell'isola | **spenti**; la **casa** nel Borgo resta (mobili, ampliamenti, visite, libro degli ospiti) |
+| Decorazioni del giardino | restano tue: si posano **in casa** con ARREDA, come i mobili a terra |
+| Bacheca delle missioni | premi in monete; via le missioni che non si possono più fare (raccogli Legno/Pietra, avvia un cantiere) |
+
+**Ordine dei lavori** (#414, una PR ciascuno): 1) questo documento · 2) sim e content: portafoglio, premi, prezzi, conversione dei salvataggi · 3) client: un contatore solo nell'HUD (lo stile nuovo dell'HUD si sceglie a parte), giardino e pannelli del lotto spenti, negozi a monete · 4) le botteghe Fabbro, Alchimista, Cantiere navale nel Borgo, con le vetrine del giorno · 5) pulizia del codice spento, dopo, a parte.
+
+Resta valido, per più avanti:
+- **Direzione possibile** (da ripensare con Jack): all'inizio hai **solo la casa** → fai monete → **compri la prima barca** al Cantiere → salpi. Oggi la barca ce l'hai da subito.
 - **Idea**: più avanti una meccanica da **city builder a esagoni**. Da valutare.
-- **Risorse, estrattori e strutture economiche: da ripensare.** Oggi Legno, Pietra, Perle; Segheria, Cava, Magazzino, Casa, Faro, Tavolo (GDD §5). Non aggiungere edifici o risorse nuove finché non si decide.
+- Non aggiungere valute, risorse o edifici di produzione nuovi: si aggiungono **botteghe** e **cose da comprare**.
 
 | Cosa | Decisione | Nota |
 |---|---|---|
@@ -30,7 +53,7 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | «Mentre eri via» | **sì** | |
 | Libro degli ospiti | **sì, e di più** | si potranno **scrivere messaggi**, non solo saluti con le emote |
 | Visita alle isole degli amici | **sì** | **idea** futura: permessi, ed eventuali attacchi o interazioni competitive (prima stava tra i «Mai» del BACKLOG) |
-| Mercante del Porto | **sì** | la valuta potrebbe non essere le Perle |
+| Mercante del Porto | **sì** | **deciso** (18 ott 2026, #414): vende a monete |
 | Bacheca delle missioni | sacrificabile, **non prioritaria** | non ci si investe |
 | NPC del Porto | **sì** | |
 | Tabelloni dei record | **sì**, anche **uno per isola** | oggi uno solo, in piazza |
@@ -77,8 +100,8 @@ Prima di rifare da zero una cosa, guarda se una di queste ce l'ha già.
 6. Meteo a nuvole che si muovono (il più grosso dei sei).
 
 **Da decidere con Jack prima di scrivere codice** (scelte A/B con screenshot):
-- la partenza nuova (casa → barca → colonie) e cosa ne è del giardino;
-- risorse, estrattori e valuta del Mercante;
+- la partenza nuova (casa → barca → colonie); il giardino: **deciso** il 18 ott (spento, §2);
+- risorse, estrattori e valuta del Mercante: **deciso** il 18 ott (monete e botteghe, §2, #414);
 - l'unione di Adrenalina e Corse;
 - lo sparatutto: **deciso** il 16 ott (missioni alla COD, camera prima/terza, `SPARO.md`); restano ambientazione e isola;
 - permessi e attacchi alle isole degli amici;
