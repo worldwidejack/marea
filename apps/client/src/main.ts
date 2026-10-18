@@ -363,7 +363,7 @@ async function boot(): Promise<void> {
     puo: () => !(regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy()),
     prima: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); libri.close(); diario.close(); mappa?.close(); impostazioni.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); },
   });
-  allegro = createHudAllegro({ root, net: world.net, loader, look: me?.look ?? null, nome: me?.nome ?? '' });
+  allegro = createHudAllegro({ root, net: world.net, loader, gl: renderer.gl, look: me?.look ?? null, nome: me?.nome ?? '' });
   const FERMO = { mx: 0, my: 0, a: false, b: false }; // in modalità foto l'avatar sta fermo (il mondo no)
   // Decorazioni libere (#108): vicino a una decorazione della tua isola, a piedi, A apre la sua scheda (in SPOSTA conferma)
   const mioLotto = lots.find((lv) => !lv.readonly) ?? null;

@@ -4,6 +4,8 @@
 // Ridisegna sopra i moduli di sempre (topbar, barra risorse, minimappa, mete, cartellini, bottoni di posto) senza toccarne la logica:
 // selettori `body #id` così vince sullo stile vecchio qualunque sia l'ordine dei <style>. I pannelli (fogli, editor, diario…) restano com'erano.
 // Joystick, A e B sono in game/input.ts (stile inline). Colori: palette sua, come l'interfaccia delle Corse (ROADMAP §Deviazioni).
+import type { Look } from '@marea/protocol';
+import { AVATAR } from '@marea/content';
 import { injectUiStyle } from './style.ts';
 
 export const ALLEGRO = {
@@ -39,6 +41,12 @@ function vortice(): string {
 const CAMPANA = `<path d='M12 3.6c-3.3 0-5.6 2.6-5.6 5.9v3.7l-1.9 3v1.3h15v-1.3l-1.9-3V9.5c0-3.3-2.3-5.9-5.6-5.9z' fill='#FFD43B' stroke='${A.notte}' stroke-width='1.5' stroke-linejoin='round'/><path d='M9.5 18.9a2.5 2.5 0 0 0 5 0z' fill='#FFD43B' stroke='${A.notte}' stroke-width='1.4' stroke-linejoin='round'/><path d='M8.6 8.4c.4-1.4 1.4-2.3 2.6-2.6' fill='none' stroke='#fff' stroke-width='1.4' stroke-linecap='round'/>`;
 const BANDIERA = `<path d='M8 3.5v17' stroke='${A.notte}' stroke-width='2.2' stroke-linecap='round'/><path d='M8.6 4.4h9.6l-2.6 3.8 2.6 3.8H8.6z' fill='${A.rosso}' stroke='${A.notte}' stroke-width='1.3' stroke-linejoin='round'/>`;
 const SPILLO = `<path d='M12 21s-6.2-6.4-6.2-11a6.2 6.2 0 0 1 12.4 0c0 4.6-6.2 11-6.2 11z' fill='${A.oro}' stroke='${A.notte}' stroke-width='1.6'/><circle cx='12' cy='10' r='2.3' fill='${A.notte}'/>`;
+/** Testa disegnata coi colori del look (pelle, capelli, vestito): niente WebGL, va bene per il fumetto di un amico e intanto che il
+ *  ritratto vero si fa. Senza look, colori di serie. */
+export function testaSvg(look: Look | null): string {
+  const pelle = AVATAR.pelle[look?.pelle ?? 0] ?? '#F6D3A8', capelli = AVATAR.coloriCapelli[look?.coloreCapelli ?? 3] ?? '#F2C94C', vestito = AVATAR.vestiti[look?.vestito ?? 0] ?? '#2BB3A8';
+  return svg(`<circle cx='12' cy='10' r='5.2' fill='${pelle}' stroke='${A.notte}' stroke-width='1.2'/><path d='M6.6 9.2c0-3.4 2.4-5.4 5.4-5.4s5.4 2 5.4 5.4c-1.4-1.2-3.4-1.9-5.4-1.9s-4 .7-5.4 1.9z' fill='${capelli}' stroke='${A.notte}' stroke-width='1.1'/><circle cx='10' cy='10.6' r='.7' fill='${A.notte}'/><circle cx='14' cy='10.6' r='.7' fill='${A.notte}'/><path d='M4 23c.6-4.4 3.8-6.6 8-6.6s7.4 2.2 8 6.6z' fill='${vestito}' stroke='${A.notte}' stroke-width='1.2'/>`);
+}
 /** Testa stilizzata finché il ritratto vero non è pronto (o se WebGL manca). */
 export const TESTA_DI_RISERVA = svg(`<circle cx='12' cy='10' r='5.2' fill='#F6D3A8' stroke='${A.notte}' stroke-width='1.2'/><path d='M6.6 9.2c0-3.4 2.4-5.4 5.4-5.4s5.4 2 5.4 5.4c-1.4-1.2-3.4-1.9-5.4-1.9s-4 .7-5.4 1.9z' fill='#F2C94C' stroke='${A.notte}' stroke-width='1.1'/><path d='M4 23c.6-4.4 3.8-6.6 8-6.6s7.4 2.2 8 6.6z' fill='#2BB3A8' stroke='${A.notte}' stroke-width='1.2'/>`);
 
@@ -76,7 +84,7 @@ body #mzTop .mz-topbtn.mz-via { display: none !important; }
 body #mzTop .mz-topbtn > canvas, body #mzTop .mz-topbtn > svg { display: none; }
 body #mzTop .mz-badge { top: ${k(-5)}; right: ${k(-5)}; min-width: ${k(17)}; height: ${k(17)}; padding: 0 ${k(3)}; box-sizing: border-box; border-radius: 999px; background: ${A.rosso}; border: ${k(2.5)} solid ${A.bianco}; box-shadow: 0 0 0 ${k(1.5)} ${A.notte}; color: ${A.bianco}; font: ${k(10)} ${FONT_ALLEGRO}; text-shadow: none; }
 body #mzTop #mzFeedBtn { left: 10px; top: calc(${T} + ${k(50)}); width: ${k(46)}; height: ${k(46)}; background-color: ${A.rosso} !important; background-image: ${svg(CAMPANA)}; background-size: 64%; }
-body #mzTop #mzAvatarBtn { left: 8px; top: calc(${T} + ${k(106)}); width: ${k(60)}; height: ${k(60)}; overflow: hidden; background: ${A.blu} ${TESTA_DI_RISERVA} center 70% / 82% no-repeat !important; }
+body #mzTop #mzAvatarBtn { left: 8px; top: calc(${T} + ${k(106)}); width: ${k(60)}; height: ${k(60)}; overflow: hidden; background: ${A.blu} var(--mz-testa, ${TESTA_DI_RISERVA}) center 70% / 82% no-repeat !important; }
 body #mzTop #mzAvatarBtn img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; image-rendering: pixelated; background: ${A.blu}; }
 body #mzTop #mzSetBtn { left: auto; right: 6px; top: calc(${T} - ${k(6)}); width: ${k(40)}; height: ${k(40)}; border: 0; box-shadow: none; background: transparent ${svg(ingranaggio())} center / 74% no-repeat !important; filter: drop-shadow(0 ${k(2)} 0 ${A.notte}); }
 body #mzTop #mzSetBtn.on { box-shadow: none; filter: drop-shadow(0 0 ${k(3)} ${A.oro}) drop-shadow(0 ${k(2)} 0 ${A.notte}); }
@@ -93,7 +101,7 @@ body #mzTop #mzTemplariProva { top: calc(${T} + ${k(336)}); } body #mzTop #mzTem
 #mzOnline.on { opacity: 1; transform: none; }
 #mzOnline::before { content: ''; position: absolute; left: ${k(-9)}; top: 50%; width: ${k(10)}; height: ${k(10)}; background: ${A.bianco}; border-left: ${k(2.5)} solid ${A.notte}; border-bottom: ${k(2.5)} solid ${A.notte}; transform: translateY(-50%) rotate(45deg); }
 #mzOnline::after { content: ''; position: absolute; right: ${k(-14)}; top: ${k(-12)}; width: ${k(16)}; height: ${k(16)}; background: ${svg(`<path d='M4 18 9 9M11 20l9-6' stroke='${A.oro}' stroke-width='3.4' stroke-linecap='round'/><path d='M4 18 9 9M11 20l9-6' stroke='${A.notte}' stroke-width='1' stroke-linecap='round' opacity='.35'/>`)} center / contain no-repeat; }
-#mzOnline img, #mzOnline i { width: ${k(26)}; height: ${k(26)}; flex: none; border-radius: 50%; background: ${A.crema} ${TESTA_DI_RISERVA} center / 90% no-repeat; object-fit: cover; image-rendering: pixelated; }
+#mzOnline i { width: ${k(26)}; height: ${k(26)}; flex: none; border-radius: 50%; background: ${A.crema} ${TESTA_DI_RISERVA} center 80% / 92% no-repeat; }
 body.mz-sotto #mzOnline, #ui.mz-racing #mzOnline { visibility: hidden; }
 
 /* ——— minimappa: anello d'oro, bianco e blu notte; N gialla; + − e bandierina sul bordo ——— */
