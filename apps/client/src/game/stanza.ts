@@ -1,9 +1,9 @@
 // La stanza della casa (#240, #265), stile Animal Crossing: pavimento a piastrelle, tre pareti con la carta da parati (davanti è
-// aperta verso la camera, col bordo del pavimento tagliato come un plastico), la porta in fondo che porta al giardino e, sotto, il
+// aperta verso la camera, col bordo del pavimento tagliato come un plastico), il portale in fondo che porta al giardino e, sotto, il
 // corridoio di assi da cui si entra e si esce in città. Sta nel template `lotto` (BORGO.stanza, celle locali): così baule e decorazioni
 // dentro casa sono celle del LotState come in giardino. Dentro la camera è fissa sopra l'ingresso (render/camera.ts `blocca`) e attorno
-// è buio: niente mare, pesci, gabbiani, pioggia, cielo né foschia (render/scene.ts `setInterno`). In giardino, al posto della porta, un
-// passaggio coperto riporta in casa. In casa e in giardino la minimappa si nasconde (body.mz-casa): il giardino sta fuori dalla mappa.
+// è buio: niente mare, pesci, gabbiani, pioggia, cielo né foschia (render/scene.ts `setInterno`). In giardino, sopra al pontile, un
+// portale interdimensionale riporta in casa. In casa e in giardino la minimappa si nasconde (body.mz-casa): il giardino sta fuori dalla mappa.
 // Pavimenti e carte da parati vengono da borgo.json (il primo è quello di serie); `motivo` dice come si dipinge la texture.
 import * as THREE from 'three';
 import { BORGO } from '@marea/content';
@@ -17,6 +17,8 @@ import { M, P, merged, painted } from '../render/island_parts.ts';
 import { registerStateProvider } from '../test/testapi.ts';
 import { NASCOSTI_DENTRO, costruisciStanza, createInquadratura } from './interno.ts';
 import type { Pianta } from './interno.ts';
+import { creaPortale } from '../render/portale.ts';
+import type { Portale } from '../render/portale.ts';
 
 const ST = BORGO.stanza, [, , C1] = ST.corridoio;
 const STANZE_MAX = PIANTE_MAX; // le stanze più grandi che la casa avrà mai: per capire in quale sei
@@ -51,21 +53,7 @@ function libera(g: THREE.Object3D): void {
   });
 }
 
-/** Il passaggio coperto del giardino (#265): tettoia di legno su quattro pali con l'interno buio, con la bocca in (x, z) rivolta a est
- *  (verso la camera, che sta a sud-est: si vede il buio dentro); ci si cammina dentro verso ovest e si torna in casa. Coordinate mondo. */
-function passaggio(x: number, y: number, z: number): THREE.BufferGeometry[] {
-  const g: THREE.BufferGeometry[] = [], gira = M(x, y, z, 0, -Math.PI / 2, 0);
-  x = 0; y = 0; z = 0; // costruito con la bocca a nord e il corpo verso sud, poi girato: il corpo va a ovest
-  for (const sx of [-1, 1]) for (const dz of [0, 1.8]) g.push(painted(new THREE.BoxGeometry(0.22, 2.5, 0.22), P.legnoScuro, M(x + sx * 1.05, y + 1.25, z + dz)));
-  for (const sx of [-1, 1]) g.push(painted(new THREE.BoxGeometry(1.3, 0.14, 2.6), P.legno, M(x + sx * 0.6, y + 2.45, z + 0.9, 0, 0, sx * -0.45)));
-  g.push(painted(new THREE.BoxGeometry(0.2, 0.2, 2.6), P.legnoScuro, M(x, y + 2.75, z + 0.9)));
-  for (const sx of [-1, 1]) g.push(painted(new THREE.BoxGeometry(0.12, 1.9, 1.6), P.legno, M(x + sx * 1.05, y + 1.2, z + 0.9))); // fianchi
-  g.push(painted(new THREE.BoxGeometry(2.0, 2.4, 0.12), P.neroCaldo, M(x, y + 1.2, z + 1.85))); // il buio in fondo
-  g.push(painted(new THREE.BoxGeometry(2.0, 0.06, 1.9), P.legnoChiaro, M(x, y + 0.03, z + 0.9))); // assi per terra
-  g.push(painted(new THREE.BoxGeometry(0.9, 0.5, 0.08), P.legnoChiaro, M(x, y + 2.3, z - 0.05)), painted(new THREE.BoxGeometry(0.22, 0.22, 0.1), P.rosso, M(x, y + 2.32, z - 0.1))); // insegna
-  for (const q of g) q.applyMatrix4(gira);
-  return g;
-}
+
 
 export type Stanza = { dentro(): number | null; stanza(): StanzaId | null };
 
@@ -96,14 +84,15 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
     if (quiStanza !== 'cantina') rifinisci(pav, carta);
   };
 
-  // il passaggio coperto del giardino verso la stanza, in ogni giardino abitato (una mesh sola)
-  const gx = ST.giardino[0] * T, gz = (ST.giardino[1] + 0.5) * T; // bocca sul lato ovest della cella `giardino`
-  const passaggi = o.slots.flatMap((s) => {
-    const l = arch.lots.find((q) => q.slot === s); if (!l) return [];
+  // il portale interdimensionale del giardino verso la stanza (#404), posizionato sopra al pontile
+  const gx = ST.giardino[0] * T, gz = (ST.giardino[1] + 0.5) * T;
+  const portaliGiardino = new THREE.Group(); portaliGiardino.name = 'passaggi_giardino';
+  for (const s of o.slots) {
+    const l = arch.lots.find((q) => q.slot === s); if (!l) continue;
     const ox = l.origin[0] * T, oz = l.origin[1] * T;
-    return passaggio(ox + gx, w.groundY(ox + gx + 1, oz + gz), oz + gz);
-  });
-  if (passaggi.length) { const m = new THREE.Mesh(merged(passaggi), vc); m.name = 'passaggi_giardino'; m.castShadow = true; m.receiveShadow = true; w.scene.add(m); }
+    portaliGiardino.add(creaPortale({ x: ox + gx, y: w.groundY(ox + gx, oz + gz), z: oz + gz, ry: 0 }));
+  }
+  if (portaliGiardino.children.length) w.scene.add(portaliGiardino);
 
   const inq = createInquadratura({ world: w, renderer: o.renderer });
 
@@ -138,6 +127,9 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
   w.dopoCull = () => {
     for (const n of nascosti) n.visible = true;
     nascosti.length = 0;
+    const tempo = performance.now() * 0.001;
+    for (const p of portaliGiardino.children) (p as Portale).update?.(tempo);
+    (room?.getObjectByName('portale_retro') as Portale | undefined)?.update?.(tempo);
     const prima = qui, primaStanza = quiStanza, d = dentroDi();
     qui = d?.slot ?? null; quiStanza = d?.stanza ?? null;
     if (d && `${livelloDi(d.slot)}:${d.stanza}` !== costruitaPer) { costruisci(livelloDi(d.slot), d.stanza); if (qui === prima && quiStanza === primaStanza) entra(d.slot, d.stanza); } // la casa è cresciuta: stanza nuova e camera nuova

@@ -19,12 +19,12 @@ const M = arch.map, T = M.tile;
 const temi = arch.places.filter((p) => p.tema);
 const isola = (id: string): ArchPlace => { const p = temi.find((q) => q.island === id); assert.ok(p, id); return p; };
 const T0 = Date.UTC(2026, 9, 8, 12);
-const LIBERE = new Set(['corse', 'templari', 'arena']);
+const LIBERE = new Set(['corse', 'templari', 'arena', 'difesa']);
 
-test('otto isole a tema, ognuna con uno sblocco diverso e lontana dal giro iniziale', () => {
-  assert.deepEqual(temi.map((p) => p.island).sort(), ['adrenalina', 'arena', 'corse', 'ghiacci', 'giardino', 'tempesta', 'templari', 'vulcano']);
-  // le Corse (docs/CORSE.md), i Templari (dal 10/10, senza calice) e l'Arena (docs/ARENA.md) sono aperte a tutti, anche senza link personale; l'Adrenalina vuole firma e casco (docs/ADRENALINA.md)
-  assert.deepEqual(temi.map((p) => p.tema!.sblocco.tipo).sort(), ['cappello', 'funivia', 'libera', 'libera', 'libera', 'livello', 'mappa', 'molo']);
+test('nove isole a tema, ognuna con uno sblocco diverso e lontana dal giro iniziale', () => {
+  assert.deepEqual(temi.map((p) => p.island).sort(), ['adrenalina', 'arena', 'corse', 'difesa', 'ghiacci', 'giardino', 'tempesta', 'templari', 'vulcano']);
+  // le Corse (docs/CORSE.md), i Templari (dal 10/10, senza calice) l'Arena (docs/ARENA.md) e la Difesa (docs/DIFESA.md §6) sono aperte a tutti, anche senza link personale; l'Adrenalina vuole firma e casco (docs/ADRENALINA.md)
+  assert.deepEqual(temi.map((p) => p.tema!.sblocco.tipo).sort(), ['cappello', 'funivia', 'libera', 'libera', 'libera', 'libera', 'livello', 'mappa', 'molo']);
   for (const p of temi) assert.equal(p.style, p.island, `${p.island}: stile = tema`);
   const porto = arch.spawnOf(null);
   for (const p of temi) {
@@ -49,9 +49,9 @@ test('viaggiatore dal lotto: Molo, personaggio, cappello, mappe', () => {
   assert.equal(v2.molo, 2); assert.equal(v2.livello, 4); assert.deepEqual(v2.mappe, ['giardino']);
 });
 
-test('di serie tutte chiuse (tranne Corse, Templari e Arena, aperte a tutti), col motivo giusto in italiano', () => {
+test('di serie tutte chiuse (tranne Corse, Templari, Arena e Difesa, aperte a tutti), col motivo giusto in italiano', () => {
   const s = sblocchi(arch.places, NESSUNO);
-  assert.equal(Object.keys(s).length, 8);
+  assert.equal(Object.keys(s).length, 9);
   for (const [id, v] of Object.entries(s)) assert.equal(v.aperta, LIBERE.has(id), id);
   assert.match(s['tempesta']!.motivo, /tempesta ti respinge.*Molo al livello 2/);
   assert.match(s['ghiacci']!.motivo, /mare gela.*livello 3/);
