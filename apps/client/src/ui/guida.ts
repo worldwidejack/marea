@@ -1,9 +1,11 @@
 // Guida «Primi passi» (GDD §9): un'azione alla volta, niente testo lungo. Una scheda con il passo corrente e una freccia gialla che punta
 // la meta: sopra la cosa se è in vista, sul bordo dello schermo (verso la meta) se è fuori. I passi e le loro condizioni li passa main.ts.
-// Un passo fatto resta fatto, **anche fuori ordine** (sei salito in barca prima della Segheria? vale lo stesso): progresso per persona in
-// localStorage `marea:guida:<id>` = `{ fatti: [id…], chiusa }`. Il vecchio formato (un numero N = i primi N passi fatti) si legge ancora:
-// chi aveva finito i passi di prima riparte da quelli nuovi, non da capo. SALTA salta il passo, × chiude la guida (si riaccende dalle
-// Impostazioni). Sul telefono la scheda sta in basso e lascia il posto ai bottoni GIOCA / PESCA / Porto quando le finirebbero sopra.
+// **Facoltativa** (VISIONE §1, 18 ott 2026): non parte da solo, la accende chi la vuole dalla riga «Guida Primi passi» delle Impostazioni;
+// al primissimo ingresso main.ts mostra solo un toast che lo dice (`primaVolta`). Un passo fatto resta fatto, **anche fuori ordine e a guida
+// spenta** (sei salito in barca prima della Segheria? vale lo stesso): progresso per persona in localStorage `marea:guida:<id>` =
+// `{ fatti: [id…], chiusa, v: 2 }`. Quello che c'era prima della v2 (il numero N = i primi N passi fatti, o il JSON senza `v`) si legge
+// ancora per i passi fatti, ma la guida riparte spenta: prima si accendeva da sola, ora la sceglie chi gioca. SALTA salta il passo, × la
+// spegne. Sul telefono la scheda sta in basso e lascia il posto ai bottoni GIOCA / PESCA / Porto quando le finirebbero sopra.
 import type * as THREE from 'three';
 import { ARROW_SVG } from './compass.ts';
 import { pointerPose } from './pointer.ts';
@@ -26,6 +28,8 @@ export type Guida = {
   chiusa(): boolean;
   /** × e la riga delle Impostazioni. */
   setChiusa(v: boolean): void;
+  /** Prima volta di questa persona su questo dispositivo (niente salvato): main.ts mostra l'invito ad accenderla. */
+  readonly primaVolta: boolean;
 };
 
 const CSS = `
@@ -55,7 +59,7 @@ const CSS = `
 #ui.mz-racing .mz-guida, #ui.mz-racing .mz-guida-ptr { visibility: hidden; }
 `;
 
-type Saved = { fatti: string[]; chiusa: boolean };
+type Saved = { fatti: string[]; chiusa: boolean; nuovo?: boolean };
 
 /** `vecchi`: quanti passi in testa a `steps` c'erano già col vecchio formato (un numero): il numero salvato vale solo per loro. */
 export function createGuida(o: { root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement; steps: GuidaStep[]; vecchi?: number; storeKey: string; hidden(): boolean; onFocus?(id: string | null): void }): Guida {
@@ -68,7 +72,7 @@ export function createGuida(o: { root: HTMLElement; camera: THREE.Camera; canvas
     for (const ev of ['pointerdown', 'touchstart']) b.addEventListener(ev, (x) => x.stopPropagation()); // niente joystick né tocchi sul mondo
     return b;
   };
-  const salta = btn('salta', 'SALTA ▸', 'Salta questo passo'), chiudi = btn('chiudi', '×', 'Chiudi la guida');
+  const salta = btn('salta', 'SALTA ▸', 'Salta questo passo'), chiudi = btn('chiudi', '×', 'Spegni la guida');
   const hd = el('div', 'hd'); hd.append(small, salta, chiudi);
   card.append(hd, tit, come);
   const ptr = el('div', 'mz-guida-ptr'); ptr.id = 'mzGuidaPtr'; ptr.innerHTML = ARROW_SVG; // SVG statico
@@ -78,16 +82,18 @@ export function createGuida(o: { root: HTMLElement; camera: THREE.Camera; canvas
   const read = (): Saved => {
     try {
       const raw = localStorage.getItem(o.storeKey);
-      if (!raw) return { fatti: [], chiusa: false };
-      if (/^\d+$/.test(raw.trim())) return { fatti: ids.slice(0, Math.min(Number(raw), o.vecchi ?? ids.length)), chiusa: false }; // formato di prima: i primi N passi
-      const v = JSON.parse(raw) as Partial<Saved>;
-      return { fatti: Array.isArray(v.fatti) ? v.fatti.filter((x): x is string => typeof x === 'string') : [], chiusa: v.chiusa === true };
-    } catch { return { fatti: [], chiusa: false }; }
+      if (!raw) return { fatti: [], chiusa: true, nuovo: true }; // non parte da sola: la accende chi la vuole (Impostazioni)
+      if (/^\d+$/.test(raw.trim())) return { fatti: ids.slice(0, Math.min(Number(raw), o.vecchi ?? ids.length)), chiusa: true }; // formato di prima: i primi N passi
+      const v = JSON.parse(raw) as Partial<Saved> & { v?: number };
+      // prima della v2 la guida si accendeva da sola: chi l'aveva ancora accesa non l'aveva scelta, riparte spenta (i passi fatti restano)
+      return { fatti: Array.isArray(v.fatti) ? v.fatti.filter((x): x is string => typeof x === 'string') : [], chiusa: v.v === 2 ? v.chiusa !== false : true };
+    } catch { return { fatti: [], chiusa: true }; }
   };
   const saved = read();
   const fatti = new Set(saved.fatti);
   let chiusa = saved.chiusa;
-  const write = () => { try { localStorage.setItem(o.storeKey, JSON.stringify({ fatti: [...fatti], chiusa })); } catch { /* storage bloccato: la guida riparte al prossimo avvio */ } };
+  const write = () => { try { localStorage.setItem(o.storeKey, JSON.stringify({ fatti: [...fatti], chiusa, v: 2 })); } catch { /* storage bloccato: al prossimo avvio la guida riparte spenta */ } };
+  if (saved.nuovo) write(); // l'invito (toast in main.ts) si vede una volta sola
   const total = o.steps.length;
   const doneN = () => o.steps.filter((s) => fatti.has(s.id)).length;
   const next = () => o.steps.find((s) => !fatti.has(s.id)) ?? null;
@@ -138,8 +144,9 @@ export function createGuida(o: { root: HTMLElement; camera: THREE.Camera; canvas
     return false;
   };
 
-  registerStateProvider('guida', () => ({ done: doneN(), total, current: chiusa ? null : next()?.id ?? null, pointer: ptr.classList.contains('on'), chiusa, fatti: ids.filter((id) => fatti.has(id)), cede }));
+  registerStateProvider('guida', () => ({ done: doneN(), total, current: chiusa ? null : next()?.id ?? null, pointer: ptr.classList.contains('on'), chiusa, fatti: ids.filter((id) => fatti.has(id)), cede, visibile: card.classList.contains('on'), primaVolta: saved.nuovo === true }));
   return {
+    primaVolta: saved.nuovo === true,
     current: () => (chiusa ? null : next()?.id ?? null),
     chiusa: () => chiusa,
     setChiusa,
@@ -159,7 +166,7 @@ export function createGuida(o: { root: HTMLElement; camera: THREE.Camera; canvas
         o.onFocus?.(null); ptr.classList.remove('on');
         const msg = chiusa ? t < closedUntil : t < byeUntil;
         card.classList.toggle('on', msg && !hide);
-        if (chiusa) show('PRIMI PASSI · CHIUSA', 'Guida chiusa', 'Se ti manca, la riaccendi dalle Impostazioni (ingranaggio).', true);
+        if (chiusa) show('PRIMI PASSI · SPENTA', 'Guida spenta', 'Quando vuoi la riaccendi dalle Impostazioni (ingranaggio in alto).', true);
         else show('PRIMI PASSI · FATTO!', 'Ora sai tutto', 'Il resto lo scopri da solo. O te lo spiega Nonna Pina, che non aspetta altro.', true);
         return;
       }

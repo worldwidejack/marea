@@ -1,5 +1,5 @@
 // Flag dall'URL, congelati all'avvio. Contratto: docs/TECH.md §9.
-export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; sfide: boolean; invito: string; serie: boolean; rientro: boolean; novita: boolean; templari: boolean; banco: boolean; gara: boolean; pulito: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova' };
+export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; sfide: boolean; faro: boolean; traguardi: boolean; invito: string; serie: boolean; rientro: boolean; novita: boolean; templari: boolean; banco: boolean; gara: boolean; pulito: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova' };
 function read(): Flags {
   const q = new URLSearchParams(location.search);
   const on = (k: string) => q.get(k) === '1' || q.get(k) === 'true';
@@ -17,6 +17,9 @@ function read(): Flags {
     rientro: on('rientro'), // coi test (?test=1) la cartolina «Mentre eri via» compare solo con ?rientro=1 (l'orologio di prova la farebbe uscire ovunque)
     serie: on('serie'), // coi test (?test=1) le impostazioni partono spente; ?serie=1 usa quelle di serie vere (#59)
     sfide: on('sfide'), // Tavolo delle Sfide con posta e feed: spenti finché si prova il gioco da soli (?sfide=1 li riaccende)
+    // spenti per ora (VISIONE §2, 18 ott 2026): il codice resta, l'URL li riaccende per le prove e per i loro test
+    faro: on('faro'), // Faro comune del Porto (#111): senza ?faro=1 niente cartello, bottone, pannello né meta; il modello sulla riva resta (scenografia)
+    traguardi: on('traguardi'), // Traguardi e titoli del Diario (#87): senza ?traguardi=1 niente pagina, numerino, avviso né titolo sopra il nome
     gara: q.get('gara') === 'amici', // link «gara tra amici» (#204): si apre subito la sala delle Corse
     templari: on('templari') || q.get('templari') === 'banco', // Isola dei Templari per le prove: isola aperta, altare senza reliquia, bottone ⚔ per entrare subito nelle ondate
     banco: q.get('templari') === 'banco', // stanza di prova dei Templari: dentro la chiesa appena si apre, col banco (zombie, armi, ondata, punti), senza server

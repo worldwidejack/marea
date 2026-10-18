@@ -1,6 +1,7 @@
 // Targhette sopra la testa (#87): il nome degli amici e, sotto, il titolo che hanno scelto nel Diario del capitano (arriva col Peer:
 // `titolo` = id del traguardo). Sopra la propria testa la targhetta c'è solo con un titolo scelto (il tuo nome lo sai già).
 // DOM proiettato ogni frame come i fumetti delle emote; lontano (> DIST m), fuori schermo o con un fumetto sopra la stessa testa sparisce.
+// Titoli spenti per ora (VISIONE §2): senza ?traguardi=1 (FLAGS.traguardi) agli amici resta solo il nome, sopra la tua testa niente.
 import * as THREE from 'three';
 import type { Camera } from 'three';
 import { titoloDi } from '@marea/sim/economy/diario.ts';
@@ -8,6 +9,7 @@ import type { GameWorld } from './world.ts';
 import { PAL, el } from '../ui/style.ts';
 import { registerStateProvider } from '../test/testapi.ts';
 import { LABEL_NEAR_M } from '../ui/sheet.ts';
+import { FLAGS } from '../flags.ts';
 
 export type Targhette = { update(): void };
 const DIST = 40;
@@ -60,8 +62,8 @@ export function createTarghette(o: { world: GameWorld; camera: Camera; canvas: H
     update() {
       seen.length = 0;
       const w = o.world, f = w.mode === 'walk' ? w.avatar.state : w.boat.state, live = new Set<string>();
-      for (const p of w.net.peers()) { live.add(p.id); posa(p.id, p.nome, titoloDi(p.titolo), f); }
-      const mio = o.mio();
+      for (const p of w.net.peers()) { live.add(p.id); posa(p.id, p.nome, FLAGS.traguardi ? titoloDi(p.titolo) : null, f); }
+      const mio = FLAGS.traguardi ? o.mio() : null;
       if (mio?.titolo) { live.add('me'); posa('me', mio.nome, mio.titolo, f); }
       for (const [id, t] of tags) if (!live.has(id)) { t.el.remove(); tags.delete(id); }
     },

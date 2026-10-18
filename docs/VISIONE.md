@@ -14,7 +14,7 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | Arcipelago condiviso, movimento in tempo reale, camera diorama regolabile, app installabile, a piedi e in barca | **sì**, è la base | c'è |
 | Giorno/notte | **sì**, ma spegnibile | c'è già l'interruttore nelle Impostazioni (#54) |
 | Meteo | **da rifare**: niente nebbia globale fissa. **Nuvole che si muovono sulla mappa** e decidono il meteo del posto dove sono (piove sotto la nuvola, non ovunque) | uno stato solo per tutto il mondo, dall'orologio (`meteo.json`, GDD §3) |
-| Tutorial «Primi passi» | **sì, ma facoltativo**: non parte da solo, lo accende chi lo vuole | parte da solo al primo ingresso, si chiude con × (GDD §9, `ui/guida.ts`) |
+| Tutorial «Primi passi» | **fatto** (18 ott 2026): **facoltativo**, non parte da solo, lo accende chi lo vuole | si accende dalla riga «Guida Primi passi» delle Impostazioni; al primo ingresso solo un toast che lo dice (GDD §9, `ui/guida.ts`) |
 | Minimappa e mappa grande | **fatto** (16 ott 2026, #360): **nord sempre in alto**; **zoom a più scatti**; **icone degli spot**; le isole non sbloccate **non si vedono proprio** (niente nebbia sopra) | nord in alto, zoom a scatti, icone delle mete, isole chiuse invisibili (`ui/minimappa.ts`, GDD §3); tra due varianti Jack ha scelto (17 ott) icone col contorno nero, 3 scatti, bottoni accanto al cerchio |
 
 ## 2. Progressione, economia, isole personali (punti 35-55 della revisione)
@@ -34,9 +34,9 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | Bacheca delle missioni | sacrificabile, **non prioritaria** | non ci si investe |
 | NPC del Porto | **sì** | |
 | Tabelloni dei record | **sì**, anche **uno per isola** | oggi uno solo, in piazza |
-| Faro comune | **via** per ora | |
+| Faro comune | **via** per ora: **fatto** (18 ott 2026, #111) | spento con la flag `?faro=1` (`flags.ts`): resta solo il modello sulla riva (GDD §5) |
 | Diario del capitano | **sì** | |
-| Traguardi e titoli | **via** per ora | oggi sono una pagina del Diario |
+| Traguardi e titoli | **via** per ora: **fatto** (18 ott 2026, #87) | spenti con la flag `?traguardi=1` (`flags.ts`): il Diario resta senza la loro pagina, niente titoli sopra il nome (GDD §5) |
 
 «Via per ora» vuol dire: non ci si lavora più. Toglierli dal gioco è un lavoro a parte, con la sua issue; meglio spegnerli che cancellare il codice.
 
@@ -70,9 +70,9 @@ Prima di rifare da zero una cosa, guarda se una di queste ce l'ha già.
 ## 6. Cosa si può fare subito e cosa va chiesto
 **Chiari, si possono aprire come issue:**
 1. ~~Minimappa e mappa grande: nord in alto, zoom a scatti, icone degli spot, isole chiuse invisibili.~~ Fatto (#360).
-2. Tutorial che non parte da solo.
+2. ~~Tutorial che non parte da solo.~~ Fatto (18 ott 2026).
 3. Libro degli ospiti con messaggi scritti.
-4. Faro comune e traguardi/titoli spenti.
+4. ~~Faro comune e traguardi/titoli spenti.~~ Fatto (18 ott 2026: flag `?faro=1` e `?traguardi=1`, il codice resta).
 5. Tabelloni dei record anche sulle isole.
 6. Meteo a nuvole che si muovono (il più grosso dei sei).
 
