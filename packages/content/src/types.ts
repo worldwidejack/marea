@@ -395,12 +395,25 @@ export type KoiCfg = {
   premioExtra?: PremioExtra;
 };
 // fine Giardino
-/** Meteo (#85): stati del tempo, uguale per tutti (deriva dall'orologio come il ciclo giorno/notte). */
-export type MeteoStato = 'sereno' | 'nuvoloso' | 'pioggia' | 'nebbia' | 'vento';
-/** Ogni `cicloMin` minuti (dall'epoca) una sequenza di periodi da `createRng(seed:ciclo)`: stato a sorte per `peso` (mai lo stesso
- *  due volte di fila), durata tra `durataMin`; il ciclo parte sereno e, se resta meno di `minimoMin`, finisce sereno.
- *  L'intensità sale e scende in `gradini` passi durante `transizioneS` secondi all'inizio e alla fine di ogni periodo. */
+/** Meteo (#361, rifatto il 16 ott 2026 sulla decisione di Jack del 14 ott): nuvole che si muovono sopra l'arcipelago e decidono il
+ *  meteo del posto dove sono. Bianca = solo ombra, grigia = coperto, pioggia, temporale = pioggia e lampi. */
+export type NuvolaTipo = 'bianca' | 'grigia' | 'pioggia' | 'temporale';
+/** Il tempo che fa in un punto: 'sereno' o il tipo della nuvola che ci sta sopra. */
+export type MeteoStato = 'sereno' | NuvolaTipo;
+/** Nuvole a corsie (sim/meteo.ts): `corsie` nuvole al massimo; ogni corsia ogni `cicloMin` minuti fa nascere una nuvola con probabilità
+ *  `nasce` (entro `nasceEntroMin` dall'inizio del giro), che vive `vitaMin` minuti, cresce e si scioglie in `gradini` passi durante
+ *  `transizioneS` secondi. Raggio per tipo, ellisse allungata nel verso in cui va; `bordo` = la fascia (frazione del raggio) dove il
+ *  meteo del posto sale a gradini; la pioggia cade entro `pioggiaR` del raggio. Si muovono col vento: `nuvolaMs` m/s più `ventoMs` m/s
+ *  col vento pieno; il vento ha un livello ogni `periodoMin` minuti e un verso (attorno a `verso`, ± `sbandamentoGradi`) ogni
+ *  `direzioneMin`. Escono dal `campo` da un lato e rientrano dall'altro, sciogliendosi entro `bordoCampoM` dal bordo. */
 export type MeteoCfg = {
-  seed: string; cicloMin: number; transizioneS: number; gradini: number; minimoMin: number;
-  stati: Record<MeteoStato, { peso: number; durataMin: [number, number] }>;
+  seed: string; gradini: number;
+  campo: [number, number, number, number]; bordoCampoM: number;
+  nuvole: { corsie: number; cicloMin: number; nasce: number; nasceEntroMin: number; vitaMin: [number, number]; transizioneS: number; allungamento: [number, number]; bordo: number; pioggiaR: number };
+  tipi: Record<NuvolaTipo, { peso: number; raggio: [number, number] }>;
+  vento: { verso: [number, number]; sbandamentoGradi: number; direzioneMin: number; periodoMin: number; livelli: number[]; pesi: number[]; transizioneS: number; nuvolaMs: number; ventoMs: number };
+  /** Ogni nuvola di temporale, ogni `ogniS` secondi, fa un lampo con probabilità `prob`, lungo `durataMs`. */
+  lampi: { ogniS: number; prob: number; durataMs: number };
+  /** Variante B per la scelta di Jack (#361, `?nuvole=b`): numeri che sostituiscono quelli di `nuvole`. Si toglie quando sceglie. */
+  provaB?: Partial<MeteoCfg['nuvole']>;
 };

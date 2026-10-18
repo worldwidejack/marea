@@ -1,59 +1,71 @@
-// Meteo (#85): funzione pura dell'orologio. Deterministica, copre tutti gli stati in un giorno, periodi contigui, gradini.
+// Meteo (#361): nuvole pure dall'orologio e dal seed. Stesso cielo per tutti a parità di ora, nuvole che si muovono senza salti,
+// meteo del posto giusto sotto e fuori dalla nuvola (piove sotto la nuvola di pioggia, non ovunque), tutto a gradini.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { METEO } from '@marea/content';
-import { METEO_STATI, meteoAt, periodiMeteo } from '../src/meteo.ts';
+import { NUVOLA_TIPI, lampoAt, meteoCfg, meteoQui, nuvoleAt, ventoIntegrale } from '../src/meteo.ts';
+import type { Nuvola } from '../src/meteo.ts';
 
-const DAY = 86_400_000, T0 = Date.UTC(2026, 9, 8);
+const T0 = Date.UTC(2026, 9, 16, 12), MIN = 60_000, n = METEO.gradini;
+const aGradini = (v: number) => Math.abs(v * n - Math.round(v * n)) < 1e-9;
+const finta = (o: Partial<Nuvola>): Nuvola => ({ id: 'x', tipo: 'pioggia', x: 100, z: 100, rx: 50, rz: 40, dx: 1, dz: 0, k: 1, forma: 1, nata: 0, muore: 1e15, ...o });
 
-test('meteo: stesso istante, stesso tempo (anche ricalcolando i periodi)', () => {
-  for (let i = 0; i < 200; i++) {
+test('meteo: stesso istante, stesso cielo (anche senza cache) e stesso meteo nello stesso punto', () => {
+  for (let i = 0; i < 60; i++) {
     const ms = T0 + i * 437_123;
-    assert.deepEqual(meteoAt(ms), meteoAt(ms));
-    assert.deepEqual(meteoAt(ms, { ...METEO }), meteoAt(ms)); // senza cache = con cache
+    assert.deepEqual(nuvoleAt(ms), nuvoleAt(ms));
+    assert.deepEqual(nuvoleAt(ms, { ...METEO }), nuvoleAt(ms)); // un'altra copia dei numeri = un altro giocatore
+    assert.deepEqual(meteoQui(ms, 300, 300, { ...METEO }), meteoQui(ms, 300, 300));
   }
+  assert.ok(nuvoleAt(T0).length > 5, 'poche nuvole');
 });
 
-test('meteo: in un giorno ci sono tutti gli stati; il sereno è il più frequente; pioggia 3-5 min', () => {
-  const tempo: Record<string, number> = {}, pioggia: number[] = [];
-  const L = METEO.cicloMin * 60_000;
-  for (let c = Math.floor(T0 / L); c * L < T0 + DAY; c++) {
-    for (const p of periodiMeteo(c)) {
-      tempo[p.stato] = (tempo[p.stato] ?? 0) + (p.a - p.da);
-      if (p.stato === 'pioggia') pioggia.push((p.a - p.da) / 60_000);
+test('meteo: le nuvole si muovono, senza salti, alla velocità del vento', () => {
+  const vmax = METEO.vento.nuvolaMs + METEO.vento.ventoMs;
+  let prima = nuvoleAt(T0), mosse = 0;
+  for (let s = 10; s <= 1200; s += 10) {
+    const ora = nuvoleAt(T0 + s * 1000);
+    for (const c of ora) {
+      const p = prima.find((x) => x.id === c.id);
+      if (!p) continue;
+      const d = Math.sqrt((c.x - p.x) ** 2 + (c.z - p.z) ** 2);
+      if (d > 500) continue; // rientrata dall'altro lato del campo
+      assert.ok(d <= vmax * 10 + 1e-6, `salto di ${d.toFixed(2)} m in 10 s`);
+      assert.ok(d >= METEO.vento.nuvolaMs * 10 * 0.99, `ferma: ${d.toFixed(2)} m in 10 s`);
+      mosse++;
     }
+    prima = ora;
   }
-  for (const s of METEO_STATI) assert.ok((tempo[s] ?? 0) > 0, `manca ${s} in un giorno: ${JSON.stringify(tempo)}`);
-  const sereno = tempo['sereno']!;
-  for (const s of METEO_STATI) if (s !== 'sereno') assert.ok(sereno > tempo[s]!, `${s} più del sereno: ${JSON.stringify(tempo)}`);
-  assert.ok(pioggia.length > 0 && pioggia.every((m) => m <= 5.001), `piogge: ${pioggia.join(', ')}`);
-  assert.ok(pioggia.filter((m) => m >= 3).length >= pioggia.length * 0.7, `piogge troppo corte: ${pioggia.join(', ')}`);
+  assert.ok(mosse > 100, `poche nuvole seguite: ${mosse}`);
+  const a = T0, b = T0 + 7 * MIN, c = T0 + 19 * MIN; // il vento si somma a pezzi
+  assert.ok(Math.abs(ventoIntegrale(a, c) - ventoIntegrale(a, b) - ventoIntegrale(b, c)) < 1e-6);
 });
 
-test('meteo: periodi contigui, che coprono il ciclo, mai due uguali di fila; il ciclo parte sereno', () => {
-  const L = METEO.cicloMin * 60_000;
-  for (let c = Math.floor(T0 / L); c < Math.floor(T0 / L) + 100; c++) {
-    const ps = periodiMeteo(c);
-    assert.equal(ps[0]!.da, c * L); assert.equal(ps[ps.length - 1]!.a, (c + 1) * L); assert.equal(ps[0]!.stato, 'sereno');
-    for (let i = 1; i < ps.length; i++) { assert.equal(ps[i]!.da, ps[i - 1]!.a); assert.notEqual(ps[i]!.stato, ps[i - 1]!.stato); }
-  }
+test('meteo: sotto la nuvola di pioggia piove, al bordo solo ombra, fuori sereno; a gradini entrando', () => {
+  const ns = [finta({})];
+  const sotto = meteoQui(T0, 100, 100, METEO, ns);
+  assert.equal(sotto.stato, 'pioggia'); assert.equal(sotto.k, 1); assert.equal(sotto.pioggia, 1);
+  const bordo = meteoQui(T0, 100 + 50 * 0.9, 100, METEO, ns); // dentro l'ombra, fuori dal raggio della pioggia
+  assert.equal(bordo.stato, 'pioggia'); assert.ok(bordo.k > 0 && bordo.k < 1, `k al bordo ${bordo.k}`); assert.equal(bordo.pioggia, 0);
+  const fuori = meteoQui(T0, 300, 100, METEO, ns);
+  assert.equal(fuori.stato, 'sereno'); assert.equal(fuori.k, 0); assert.equal(fuori.pioggia, 0);
+  const visti = new Set<number>();
+  for (let x = 100; x <= 160; x += 0.5) { const q = meteoQui(T0, x, 100, METEO, ns); assert.ok(aGradini(q.k) && aGradini(q.pioggia)); visti.add(q.k); }
+  assert.equal(visti.size, n + 1, `gradini visti entrando: ${[...visti].join(', ')}`);
+  const temp = meteoQui(T0, 100, 100, METEO, [finta({ tipo: 'bianca', rx: 80, rz: 80 }), finta({ tipo: 'temporale' })]);
+  assert.equal(temp.stato, 'temporale'); assert.equal(temp.lampi, 1); assert.equal(temp.vento, 1);
+  assert.equal(meteoQui(T0, 100, 100, METEO, [finta({ tipo: 'bianca' })]).pioggia, 0); // la bianca fa solo ombra
 });
 
-test('meteo: intensità a gradini, sale all\'inizio e scende alla fine del periodo', () => {
-  const L = METEO.cicloMin * 60_000;
-  const p = periodiMeteo(Math.floor(T0 / L)).find((x) => x.stato !== 'sereno' && x.a - x.da >= 2 * METEO.transizioneS * 1000)!;
-  assert.ok(p, 'nessun periodo abbastanza lungo');
-  const ks = new Set<number>();
-  for (let ms = p.da; ms < p.a; ms += 1000) {
-    const m = meteoAt(ms); ks.add(m.k);
-    assert.equal(m.stato, p.stato);
-    assert.ok(Number.isInteger(Math.round(m.k * METEO.gradini * 1e6) / 1e6), `k non a gradini: ${m.k}`);
+test('meteo: in un giorno tutti i tipi; al Porto piove ogni tanto ma non quasi sempre; lampi solo dai temporali', () => {
+  const tipi = new Set<string>();
+  let pioggia = 0, minuti = 0;
+  for (let i = 0; i < 24 * 60; i += 2, minuti++) {
+    const ms = T0 + i * MIN, ns = nuvoleAt(ms);
+    for (const c of ns) { tipi.add(c.tipo); assert.ok(aGradini(c.k)); if (c.tipo !== 'temporale') assert.equal(lampoAt(ms, c), null); }
+    if (meteoQui(ms, 300, 300, METEO, ns).pioggia > 0) pioggia++;
   }
-  assert.equal(meteoAt(p.da).k, 0);
-  assert.equal(meteoAt(Math.floor((p.da + p.a) / 2)).k, 1);
-  assert.equal(meteoAt(p.a - 1).k, 0);
-  assert.equal(ks.size, METEO.gradini + 1, `gradini visti: ${[...ks].join(', ')}`);
-  // il sereno ha k = 0
-  const s = periodiMeteo(Math.floor(T0 / L))[0]!;
-  assert.equal(meteoAt(s.da + 1000).k, 0);
+  for (const t of NUVOLA_TIPI) assert.ok(tipi.has(t), `manca ${t}`);
+  assert.ok(pioggia > 0 && pioggia < minuti * 0.3, `pioggia al Porto ${pioggia}/${minuti}`);
+  assert.ok(meteoCfg('B').nuvole.corsie > METEO.nuvole.corsie, 'la variante B non è più fitta');
 });

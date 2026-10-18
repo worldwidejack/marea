@@ -1,6 +1,6 @@
 // Impostazioni (#53): ingranaggio #mzSetBtn nella barra in alto, pannello #mzSet con in cima la riga «Guida Primi passi» (l'unico posto dove si
 // accende, VISIONE §1), poi camera (5 viste), ciclo giorno/notte,
-// meteo (#85), stampa giapponese e contorni, volume di Musica ed Effetti (audio/ponte.ts: 4 livelli, NO … ALTA). Di serie (#59) ciclo, camera 22° e contorni; le scelte restano su questo dispositivo (localStorage).
+// meteo (#361), stampa giapponese e contorni, volume di Musica ed Effetti (audio/ponte.ts: 4 livelli, NO … ALTA). Di serie (#59) ciclo, camera 22° e contorni; le scelte restano su questo dispositivo (localStorage).
 // Solo sui dispositivi touch (#143): «Una mano» (il joystick nasce dove tocchi) e quanti secondi resta dopo il rilascio.
 // Coi test automatici (?test=1) si parte tutto spento, così gli screenshot non dipendono dall'ora vera; ?serie=1 usa i valori di serie.
 // Il pannello non sa niente di three: chiama onChange e render/aspetto.ts fa il resto.
@@ -136,7 +136,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
     }
     body.append(
       toggleRow('ciclo', 'Ciclo giorno e notte', `giorno, tramonto, notte, alba: un giro ogni ${CICLO_MIN} minuti`),
-      toggleRow('meteo', 'Meteo', 'sole, nuvole, pioggia, nebbia, vento: lo stesso per tutti'),
+      toggleRow('meteo', 'Meteo', 'nuvole, pioggia e temporali: lo stesso cielo per tutti'),
       toggleRow('stampa', 'Stampa giapponese', 'colori da stampa antica, onde, carta'),
       toggleRow('contorni', 'Contorni', 'una riga scura attorno a cose e persone'));
   }

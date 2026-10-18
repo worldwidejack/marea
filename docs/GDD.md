@@ -46,17 +46,16 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 - **Camera**: dall'alto in diagonale (diorama), segue l'avatar, zoom 0,6-1,6. Stessa vista per costruire.
 - **Una mano** (#143, solo telefono e tablet, spenta di serie): nelle Impostazioni. Il joystick fisso sparisce e ne nasce uno dove appoggi il pollice; quando lo alzi resta lì, più chiaro, per **1, 2, 3 o 5 s** (si sceglie sotto l'interruttore, di serie 2): rimettendoci il dito sopra lo riprendi, altrove ne nasce uno nuovo. Vale ovunque (mondo, barca, gare, dungeon, Templari). Sul PC la voce non c'è.
 - **Ciclo giorno/notte**: sì, dalle Impostazioni (#54), acceso di serie (#59); un giro ogni 24 min, stessa ora per tutti.
-- **Meteo** (#85): sereno, nuvoloso, pioggia, nebbia, vento forte; cambia ogni qualche minuto, **uguale per tutti** (dall'orologio, come il ciclo). Interruttore nelle Impostazioni, acceso di serie. Solo aspetto e suono, niente effetti sul gioco. Numeri in `packages/content/src/meteo.json`:
+- **Meteo a nuvole** (#361, rifatto il 18 ott 2026; prima #85 era uno stato solo per tutto il mondo): **nuvole che si muovono sopra l'arcipelago** e decidono il tempo del posto dove sono: piove sotto la nuvola di pioggia, non ovunque. Niente nebbia. Posto, tipo e forma di ogni nuvola vengono dall'orologio e da un seed (`sim/meteo.ts`): **due giocatori nello stesso punto vedono lo stesso cielo**. Il tuo tempo è quello della nuvola che hai sopra, a gradini entrando e uscendo (luce, cielo, acqua, suono). Si vedono dall'alto, con l'ombra sotto (anche sul mare); la pioggia cade sotto di loro anche lontano (si vede piovere là); i temporali fanno lampi e tuoni. Interruttore nelle Impostazioni, acceso di serie. Solo aspetto e suono, niente effetti sul gioco. Numeri in `packages/content/src/meteo.json`:
 
-| Stato | Peso | Durata (min) |
-|---|---|---|
-| sereno | 6 | 5-10 |
-| nuvoloso | 3 | 4-7 |
-| pioggia | 2 | 3-5 |
-| nebbia | 1,5 | 3-5 |
-| vento | 1,5 | 3-5 |
+| Tipo | Peso | Raggio (m) | Cosa fa |
+|---|---|---|---|
+| bianca | 4 | 30-55 | solo ombra |
+| grigia | 3 | 40-65 | coperto: luce piatta |
+| pioggia | 2,5 | 45-70 | pioggia entro il 75% del raggio, acqua scura |
+| temporale | 1 | 55-85 | pioggia, buio, un lampo ogni 7 s col 55% (260 ms) |
 
-  Ciclo di 40 min che parte sereno (mai due stati uguali di fila; se restano meno di 2,5 min finisce sereno); passaggi in 5 gradini da 8 s (40 s). In un giorno: sereno ~50% del tempo, poi nuvoloso ~20%, pioggia ~13%, nebbia e vento ~9% l'uno.
+  40 corsie: ogni 14 min ognuna fa nascere una nuvola col 90% (entro 1,5 min), che vive 9,5-12,5 min e nasce e si scioglie in 5 gradini da 8 s; ellisse allungata fino a 1,6 nel verso in cui va; il tempo del posto sale nel 30% esterno del raggio. Si muovono a 1,2 m/s più 2,2 m/s col vento pieno; il vento ha un livello ogni 6 min (0 / 0,4 / 1 con pesi 5 / 3 / 1,5) e un verso ogni ora (da nord-ovest ± 45°). Il campo (−150…870 × −150…1162 m) è un toro: chi esce da un lato rientra dall'altro, sciolto entro 100 m dal bordo. In un giorno, in un punto: sereno ~86% del tempo, grigia ~4,5%, pioggia ~4%, bianca ~3%, temporale ~2,5%; ~2,5 nuvole entro 200 m. **[scelta di Jack da fare]** variante B (`?nuvole=B`: 56 corsie, piove su tutta la nuvola, nuvole a lastre più alte): sereno ~80%, piove ~10%.
 
 ## 4. Chi sei: l'avatar
 Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 teste, 1,6 m), pochi poligoni, viso e vestiti dipinti a pixel. Personalizzazione V1: tono della pelle (6), capelli (8 tagli × 6 colori), vestito (6 colori), cappello (13: 3 gratis, 4 a Perle anche dall'editor (il quarto è il **Casco**, 35 Perle, dal 10 ott 2026: senza, la funivia dell'Adrenalina non ti fa salire), 6 **esclusivi del Mercante delle Perle** al Porto; colori dei capelli con nomi da capelli: nero corvino, castano scuro, castano, biondo miele, rosso fuoco, biondo platino). Emote (4) al posto della chat. Animazioni: idle, camminata, corsa, seduto (in barca), remata/timone.

@@ -4,8 +4,11 @@
 // Contorni dalla profondità inversa (1/z): su un piano è lineare sullo schermo, quindi il laplaciano è zero ovunque tranne su bordi e spigoli.
 //   - vicino molto più lontano del pixel → sagoma: inchiostro dello stile (o il colore stesso più scuro)
 //   - laplaciano negativo piccolo → spigolo convesso: schiarito (o a inchiostro, per la stampa)
+// Ombre delle nuvole (#361): dal punto del mondo dietro ogni pixel (ricostruito dalla profondità), le nuvole vicine (NUBI, condivisi con
+//   pioggia e mare) lo scuriscono verso il blu-viola delle ombre, a due gradini (bordo e pancia), sotto la quota delle nuvole.
 // Palette: ogni pixel va al colore più vicino della palette dello stile. Niente dithering (#282, Jack 13 ott: «ci sono proprio dei pois fermi»).
 import * as THREE from 'three';
+import { GLSL_NUBI, MAXN, NUBI } from './meteo.ts';
 
 /** Quello che la passata prende da uno stile (provapixel/styles.ts lo soddisfa). */
 export type PostLook = {
@@ -43,6 +46,21 @@ uniform float uNight, uCover;
 uniform vec2 uCloudOff;
 uniform vec3 uPal[${MAXPAL}];
 uniform int uPalN;
+uniform float uOmbre;
+${GLSL_NUBI}
+/** Quanto fanno ombra le nuvole sul punto p (0..1): la più scura che c'è sopra, a gradini (bordo a metà). */
+float ombraNubi(vec3 p) {
+  if (p.y > uQuota - 0.3) return 0.0;
+  float o = 0.0;
+  for (int i = 0; i < ${MAXN}; i++) {
+    if (i >= uNubiN) break;
+    vec4 b = uNubiB[i];
+    float d2 = nubeD2(uNubiA[i], b, p.xz);
+    float k = d2 < 0.55 ? 1.0 : d2 < 1.0 ? 0.5 : 0.0;
+    o = max(o, k * b.z);
+  }
+  return o;
+}
 
 float viewZ(vec2 uv) { float d = texture2D(tDepth, uv).x; return -perspectiveDepthToViewZ(d, uNear, uFar); }
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -98,6 +116,13 @@ void main() {
       if (far > 0.12 && z < 160.0) c = mix(c * uInk, uInkCol, uInkMix);
       else if (lap < -0.006 && z < 90.0) c = uCrease >= 0.0 ? min(c * (1.0 + uCrease * 0.56) + 0.04 * uCrease, vec3(1.0)) : mix(c, uInkCol, -uCrease);
     }
+    if (uOmbre > 0.5 && uNubiN > 0) {
+      // il punto del mondo dietro il pixel: raggio della camera fino alla profondità z
+      vec4 v = uInvProj * vec4(vUv * 2.0 - 1.0, 1.0, 1.0); v /= v.w;
+      vec3 wp = (uCamWorld * vec4(v.xyz * (z / -v.z), 1.0)).xyz;
+      float o = ombraNubi(wp);
+      if (o > 0.0) c *= mix(vec3(1.0), vec3(0.5, 0.48, 0.7), o); // verso il blu-viola delle ombre (ART_BIBLE §7), mai grigio
+    }
     if (uFog > 0.5) {
       // fino a uFogMax entro uFogFar, poi piano fino al 100% a 700 m: le sagome lontane restano visibili, pallide
       float f = uFogMax * clamp((z - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0) + (1.0 - uFogMax) * clamp((z - uFogFar) / 500.0, 0.0, 1.0);
@@ -149,6 +174,7 @@ export function createPost(): Post {
     uCloud: { value: col('#F4E3C1') }, uCloudDark: { value: col('#E8E1D6') },
     uNight: { value: 0 }, uCover: { value: 0 }, uCloudOff: { value: new THREE.Vector2() }, uMoonDir: { value: new THREE.Vector3(-0.66, 0.05, -0.75) }, uMoonCol: { value: col('#E8E1D6') },
     uPal: { value: Array.from({ length: MAXPAL }, () => new THREE.Vector3()) }, uPalN: { value: 0 },
+    uOmbre: { value: 0 }, ...NUBI,
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U, depthTest: false, depthWrite: false });
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat); quad.frustumCulled = false;
@@ -178,7 +204,7 @@ export function createPost(): Post {
       if (lastT >= 0 && wind > 0) U.uCloudOff.value.x += Math.min(0.1, Math.max(0, t - lastT)) * 0.08 * wind; // col vento le nuvole corrono (#85), senza salti
       lastT = t;
       U.uInvProj.value.copy(camera.projectionMatrixInverse); U.uCamWorld.value.copy(camera.matrixWorld);
-      U.uOutline.value = toggles.contorni ? 1 : 0; U.uFog.value = toggles.foschia && world ? 1 : 0; U.uSky.value = toggles.cielo && world ? 1 : 0;
+      U.uOutline.value = toggles.contorni ? 1 : 0; U.uFog.value = toggles.foschia && world ? 1 : 0; U.uSky.value = toggles.cielo && world ? 1 : 0; U.uOmbre.value = world ? 1 : 0;
       gl.setRenderTarget(null); gl.render(quad, ortho);
     },
   };

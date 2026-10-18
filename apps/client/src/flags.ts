@@ -1,5 +1,5 @@
 // Flag dall'URL, congelati all'avvio. Contratto: docs/TECH.md §9.
-export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; sfide: boolean; faro: boolean; traguardi: boolean; invito: string; serie: boolean; rientro: boolean; novita: boolean; templari: boolean; banco: boolean; gara: boolean; pulito: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova' };
+export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; sfide: boolean; faro: boolean; traguardi: boolean; invito: string; serie: boolean; rientro: boolean; novita: boolean; templari: boolean; banco: boolean; gara: boolean; pulito: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova'; nuvole: 'A' | 'B' };
 function read(): Flags {
   const q = new URLSearchParams(location.search);
   const on = (k: string) => q.get(k) === '1' || q.get(k) === 'true';
@@ -28,6 +28,7 @@ function read(): Flags {
     // isola dei Templari dipinta (templari/dipinto.ts): ?dipinto=0 i blocchi di prima, ?dipinto=prova i tasti P/L/K e window.__dipinto; coi test
     // (?test=1) spenta se non si chiede ?dipinto=1: su SwiftShader lo shader del dipinto rallenta tanto da far scadere le prove a tempo
     dipinto: q.get('dipinto') === '0' ? 'no' : q.get('dipinto') === 'prova' ? 'prova' : q.get('dipinto') === '1' || !on('test') ? 'si' : 'no',
+    nuvole: (q.get('nuvole') ?? '').toUpperCase() === 'B' ? 'B' : 'A', // meteo a nuvole (#361): ?nuvole=B la variante B per la scelta di Jack (forma, quota, copertura)
     adrenalina: on('adrenalina'), // Isola dell'Adrenalina per le prove: liberatoria già firmata, casco non richiesto, bottone 🚡 per andare al cancello
     difesa: on('difesa'), // Isola della Difesa per le prove: bottone 🥕 per andare al cancello dell'orto
   };
