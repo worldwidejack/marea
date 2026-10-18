@@ -1,25 +1,29 @@
 // Il negozio dei mobili del Borgo (#265). Fuori: una bottega sullo slargo della prima fontana (borgo.json `negozio`, la scrive
 // tools/borgo_pianta.py) con la tenda a strisce, la vetrina e l'insegna MOBILI. Dentro: il template `negozio` oltre il mare (come i
 // giardini), la stessa stanza «da plastico» della casa (game/interno.ts: camera fissa sopra l'ingresso, corridoio, buio attorno), il
-// mobiliere dietro al bancone, i mobili sulle pedane, i campioni di carta da parati appesi al muro e quelli di pavimento per terra.
+// mobiliere dietro al bancone, i mobili del giorno sulle pedane e sul muro, i campioni di carta da parati appesi al muro e quelli di pavimento per terra.
+// I mobili in mostra cambiano ogni giorno (mezzanotte di Roma, sim `vetrinaDelGiorno`, #384): uguali per tutti, pescati da tutto mobili.json,
+// e si compra solo quello che è esposto (lo controlla anche il server). Il banco del mobiliere dice cosa c'è oggi e quando cambia.
 // Si entra camminando contro la porta (o A), si esce in fondo al corridoio; davanti a un pezzo A apre la scheda: COMPRA (Perle) → il
 // mobile va nel magazzino di casa (ARREDA), pavimento e carta si mettono subito. Prezzi e righe: mobili.json e borgo.json.
 // Tutto questo sta in un chunk (main.ts lo scarica subito dopo l'avvio, TECH §5): la bottega compare un attimo dopo il mondo.
 import * as THREE from 'three';
-import { BORGO, MOBILI, MOBILI_CATEGORIE } from '@marea/content';
+import { BORGO, MOBILI, MOBILI_VETRINA } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
-import { casaDi, possiedeFinitura } from '@marea/sim';
+import { MAX_LIVELLO_CASA, casaDi, finoAMezzanotte, giornoRoma, livelloCasa, possiedeFinitura, prossimoAmpliamento, storageCap, vetrinaDelGiorno } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
 import type { Loader } from '../render/loader.ts';
 import type { Hud } from '../ui/hud.ts';
 import type { Velo } from '../ui/velo.ts';
+import type { Part } from '../rpg/dungeon_kit.ts';
 import { ApiError } from '../net/api.ts';
 import type { Api } from '../net/api.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
 import { mobileGeo } from '../render/mobili.ts';
 import { PAL, el } from '../ui/style.ts';
+import { fmtDur } from '../ui/sheet.ts';
 import { pixIcon } from '../ui/icons.ts';
 import { createAvatar } from './avatar.ts';
 import type { Avatar } from './avatar.ts';
@@ -28,20 +32,21 @@ import type { Pianta } from './interno.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
 export type Negozio = { tick(a: boolean): boolean; update(dt: number): void; readonly dentro: boolean };
-type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'catalogo'; id: string; nome: string; perle: number; x: number; z: number; fx: number; fz: number };
+type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'banco'; id: string; nome: string; perle: number; x: number; z: number; fx: number; fz: number };
 
 const ND = BORGO.negozioDentro, [X0, Z0, X1] = ND.pavimento, [CX, C0, C1] = ND.corridoio;
 const PIANTA: Pianta = { pavimento: ND.pavimento, corridoio: ND.corridoio, altezza: ND.altezza, retro: null };
 const RAGGIO = 2.2, VICINO = 1.7;
+/** I posti in fila (pedane, quadri a muro, campioni di pavimento): una cella sì e una no, a partire dalla seconda; l'ultima cella è del banco. */
+const POSTI = Math.floor((X1 - X0 - 1) / 2), posto = (i: number): number => X0 + 1 + i * 2;
 const CSS = `
 #mzNegozioBar { position: absolute; left: 8px; right: 8px; top: calc(max(8px, env(safe-area-inset-top)) + 60px); display: none; justify-content: center; z-index: 15; pointer-events: none; }
 #mzNegozioBar.on { display: flex; }
 #mzNegozioBar .t { padding: 4px 10px; background: rgba(46,30,20,.93); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 14px ui-monospace, Menlo, monospace; text-align: center; }
 #mzNegozio .prezzo { margin: 8px 0; color: ${PAL.sabbia}; font-size: 15px; }
 #mzNegozio .prezzo b { color: ${PAL.giallo}; }
-#mzNegozio .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-#mzNegozio .chips button { min-height: 36px; padding: 0 10px; background: ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.legnoChiaro}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; }
-#mzNegozio .chips button.on { background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border-color: ${PAL.neroCaldo}; }
+#mzNegozio .prezzo .manca { color: ${PAL.rosso}; }
+#mzNegozio h3 { margin: 12px 0 2px; color: ${PAL.giallo}; font: bold 14px ui-monospace, Menlo, monospace; }
 `;
 
 /** La bottega vista da fuori (davanti verso +Z): muri chiari, tetto rosso, vetrina, porta, tenda a strisce, insegna (a parte, con la scritta). */
@@ -73,6 +78,8 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   if (!porto || !place) return { tick: () => false, update: () => {}, dentro: false };
   const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
   const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  /** L'ora del server (l'economia non usa mai l'orologio del client); senza collegamento l'orologio locale, solo per mostrare qualcosa. */
+  const adesso = (): number => o.api?.serverNow() ?? Date.now();
 
   // ——— fuori: la bottega sullo slargo, girata verso la porta ———
   const N = BORGO.negozio, fuori = new THREE.Group(); fuori.name = 'negozio_mobili';
@@ -91,41 +98,79 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   dentroG.name = 'negozio_dentro'; dentroG.visible = false;
   dentroG.position.set(ox, w.groundY(ox + (X0 + 1) * T, oz + (Z0 + 1) * T), oz);
   w.scene.add(dentroG);
-  const pezzi: Pezzo[] = [], parti: THREE.BufferGeometry[] = [];
+  const pezzi: Pezzo[] = [], pezziFissi: Pezzo[] = [], pezziGiorno: Pezzo[] = [], parti: THREE.BufferGeometry[] = [];
   const cella = (cx: number, cz: number) => ({ x: (cx + 0.5) * T, z: (cz + 0.5) * T });
-  // in mostra solo i mobili con `vetrina` (le pedane sono 3); tutti gli altri si sfogliano dal catalogo sul banco
-  const terra = MOBILI.filter((m) => m.vetrina && m.posto === 'terra'), parete = MOBILI.filter((m) => m.vetrina && m.posto === 'parete');
-  const carte = BORGO.carte.filter((f) => (f.perle ?? 0) > 0), pavimenti = BORGO.pavimenti.filter((f) => (f.perle ?? 0) > 0);
-  // in fondo al muro: carte da parati in vendita e i mobili da parete; davanti, una fila di pedane coi mobili a terra; sotto, i campioni di pavimento
-  [...carte.map((f) => ({ f, m: null })), ...parete.map((m) => ({ f: null, m }))].forEach((q, i) => {
-    const c = cella(X0 + 1 + i * 2, Z0), x = c.x, z = Z0 * T;
-    if (q.f) {
-      const t = texture(q.f); t.repeat.set(1.2, 1.6);
-      const pan = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.6), new THREE.MeshLambertMaterial({ map: t })); pan.position.set(x, 1.2, z + 0.08); dentroG.add(pan); // davanti alla cornice
-      parti.push(painted(new THREE.BoxGeometry(1.4, 1.8, 0.06), P.legnoScuro, M(x, 1.2, z + 0.01)));
-      pezzi.push({ kind: 'carta', id: q.f.id, nome: q.f.nome, perle: q.f.perle ?? 0, x, z, fx: x, fz: z + 1.6 });
-    } else if (q.m) {
-      const g = mobileGeo(q.m.forma, q.m.colori, q.m); g.translate(x, -0.4, z); parti.push(g);
-      pezzi.push({ kind: 'mobile', id: q.m.id, nome: q.m.nome, perle: q.m.perle, x, z, fx: x, fz: z + 1.6 });
-    }
-  });
-  terra.forEach((m, i) => {
-    const c = cella(X0 + 1 + i * 2, Z0 + 2);
+  // fisse: le pedane (vuote o piene) e il bancone; tutto quello che si vende cambia col giorno (monta)
+  for (let i = 0; i < Math.min(MOBILI_VETRINA.terra, POSTI); i++) {
+    const c = cella(posto(i), Z0 + 2);
     parti.push(painted(new THREE.CylinderGeometry(0.95, 1.05, 0.2, 8), P.pietra, M(c.x, 0.1, c.z)));
-    const g = mobileGeo(m.forma, m.colori, m); g.translate(c.x, 0.2, c.z); parti.push(g);
-    pezzi.push({ kind: 'mobile', id: m.id, nome: m.nome, perle: m.perle, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.5 });
-  });
-  pavimenti.forEach((f, i) => {
-    const c = cella(X0 + 1 + i * 2, Z0 + 4), t = texture(f); t.repeat.set(1, 1);
-    const tile = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 1.6), new THREE.MeshLambertMaterial({ map: t })); tile.position.set(c.x, 0.06, c.z); tile.receiveShadow = true; dentroG.add(tile);
-    pezzi.push({ kind: 'pavimento', id: f.id, nome: f.nome, perle: f.perle ?? 0, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.4 });
-  });
-  // il bancone a destra, col registratore di cassa; dietro il mobiliere
+  }
+  // il bancone nell'ultima cella a destra, col registratore di cassa; dietro il mobiliere
   const bc = cella(X1 - 1, Z0 + 2);
   parti.push(painted(new THREE.BoxGeometry(1.4, 1.0, 3.0), P.legno, M(bc.x - 0.4, 0.5, bc.z + 0.6)), painted(new THREE.BoxGeometry(1.5, 0.1, 3.1), P.legnoChiaro, M(bc.x - 0.4, 1.05, bc.z + 0.6)));
   parti.push(painted(new THREE.BoxGeometry(0.5, 0.35, 0.4), P.arancio, M(bc.x - 0.4, 1.28, bc.z)), painted(new THREE.BoxGeometry(0.3, 0.08, 0.2), P.neroCaldo, M(bc.x - 0.4, 1.48, bc.z)));
-  pezzi.push({ kind: 'catalogo', id: 'catalogo', nome: 'Catalogo di tutti i mobili', perle: 0, x: bc.x - 0.4, z: bc.z + 0.6, fx: bc.x - 1.9, fz: bc.z + 0.6 }); // davanti al banco
-  const mob = new THREE.Mesh(merged(parti), vc); mob.castShadow = mob.receiveShadow = true; dentroG.add(mob);
+  pezziFissi.push({ kind: 'banco', id: 'banco', nome: 'Il mobiliere', perle: 0, x: bc.x - 0.4, z: bc.z + 0.6, fx: bc.x - 1.9, fz: bc.z + 0.6 }); // davanti al banco
+  const fisso = new THREE.Mesh(merged(parti), vc); fisso.castShadow = fisso.receiveShadow = true; dentroG.add(fisso);
+
+  // la merce del giorno (#384, #393): sulle pedane i mobili a terra, al muro in cornice le carte da parati e (dopo) i mobili a parete, per terra i
+  // campioni di pavimento. Si rifà quando cambia il giorno e quando arrivano i modelli 3D (Blender, `mob_<id>`): finché non ci sono, la scatola o la
+  // forma procedurale di render/mobili.ts.
+  const giornoG = new THREE.Group(); giornoG.name = 'negozio_giorno'; dentroG.add(giornoG);
+  let giornoMostrato = 0, token = 0, modelli: typeof import('../render/mobili_modelli.ts') | null = null;
+  const monta = (g: number, vivi: ReadonlyMap<string, Part[]>) => {
+    for (const c of giornoG.children.slice()) { // le geometrie dei modelli sono in cache: vivono nei gruppi, non qui; le texture dei campioni sì (si ridipingono)
+      giornoG.remove(c);
+      if (c instanceof THREE.Mesh) { c.geometry.dispose(); if (c.userData['campione']) { const m = c.material as THREE.MeshLambertMaterial; m.map?.dispose(); m.dispose(); } }
+    }
+    pezziGiorno.length = 0;
+    const v = vetrinaDelGiorno(g), geo: THREE.BufferGeometry[] = [];
+    const metti = (m: MobileDef, x: number, y: number, z: number) => {
+      const [cw, cd] = m.posto === 'terra' ? m.celle ?? [1, 1] : [1, 1], sc = cw * cd > 1 ? 1.7 / (2 * Math.max(cw, cd)) : 1; // un mobile da più celle sta in piccolo sulla pedana
+      const ps = vivi.get(m.id);
+      if (ps && modelli) { const mg = modelli.gruppoModello(ps); mg.position.set(x, y, z); mg.scale.setScalar(sc); giornoG.add(mg); return; }
+      const gg = mobileGeo(m.forma, m.colori, m); gg.scale(sc, sc, sc); gg.translate(x, y, z); geo.push(gg);
+    };
+    const def = (id: string) => MOBILI.find((m) => m.id === id);
+    v.terra.slice(0, POSTI).forEach((id, i) => {
+      const m = def(id); if (!m) return;
+      const c = cella(posto(i), Z0 + 2);
+      metti(m, c.x, 0.2, c.z);
+      pezziGiorno.push({ kind: 'mobile', id: m.id, nome: m.nome, perle: m.perle, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.5 });
+    });
+    // al muro: prima le carte da parati appese in cornice, poi i mobili a parete
+    const carte = v.carte.flatMap((id) => BORGO.carte.find((f) => f.id === id) ?? []).slice(0, POSTI);
+    carte.forEach((f, i) => {
+      const c = cella(posto(i), Z0), x = c.x, z = Z0 * T;
+      const t = texture(f); t.repeat.set(1.2, 1.6);
+      const pan = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.6), new THREE.MeshLambertMaterial({ map: t })); pan.position.set(x, 1.2, z + 0.08); pan.userData['campione'] = true; giornoG.add(pan); // davanti alla cornice
+      geo.push(painted(new THREE.BoxGeometry(1.4, 1.8, 0.06), P.legnoScuro, M(x, 1.2, z + 0.01)));
+      pezziGiorno.push({ kind: 'carta', id: f.id, nome: f.nome, perle: f.perle ?? 0, x, z, fx: x, fz: z + 1.6 });
+    });
+    v.pavimenti.flatMap((id) => BORGO.pavimenti.find((f) => f.id === id) ?? []).slice(0, POSTI).forEach((f, i) => {
+      const c = cella(posto(i), Z0 + 4), t = texture(f); t.repeat.set(1, 1);
+      const tile = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 1.6), new THREE.MeshLambertMaterial({ map: t })); tile.position.set(c.x, 0.06, c.z); tile.receiveShadow = true; tile.userData['campione'] = true; giornoG.add(tile);
+      pezziGiorno.push({ kind: 'pavimento', id: f.id, nome: f.nome, perle: f.perle ?? 0, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.4 });
+    });
+    v.parete.slice(0, Math.max(0, POSTI - carte.length)).forEach((id, j) => {
+      const m = def(id); if (!m) return;
+      const c = cella(posto(carte.length + j), Z0), z = Z0 * T;
+      metti(m, c.x, 0, z);
+      pezziGiorno.push({ kind: 'mobile', id: m.id, nome: m.nome, perle: m.perle, x: c.x, z, fx: c.x, fz: z + 1.6 });
+    });
+    if (geo.length) { const mesh = new THREE.Mesh(merged(geo), vc); mesh.castShadow = mesh.receiveShadow = true; giornoG.add(mesh); }
+    pezzi.length = 0; pezzi.push(...pezziFissi, ...pezziGiorno);
+  };
+  const allestisci = (g: number) => {
+    giornoMostrato = g; const t = ++token;
+    monta(g, new Map());
+    const v = vetrinaDelGiorno(g);
+    void import('../render/mobili_modelli.ts').then(async (mm) => {
+      const vivi = await mm.modelliMobili([...v.terra, ...v.parete]);
+      if (t !== token || !vivi.size) return;
+      modelli = mm; monta(g, vivi);
+    }).catch(() => { /* senza modelli restano le scatole */ });
+  };
+  allestisci(giornoRoma(adesso()));
   let ciro: Avatar | null = null;
   const ciroPos = { x: ox + bc.x + 0.6, z: oz + bc.z + 0.6 };
   void createAvatar({ loader: o.loader, look: { pelle: 2, capelli: 5, coloreCapelli: 3, vestito: 4, cappello: 0 }, x: ciroPos.x, z: ciroPos.z }).then((av) => {
@@ -163,7 +208,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   o.root.append(btn, bar, sheet);
   for (const e of [btn, bar, sheet]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   type Vicino = { kind: 'porta' } | { kind: 'esci' } | { kind: 'pezzo'; p: Pezzo };
-  let near: Vicino | null = null, aperto: Pezzo | null = null, busy = false, aWas = false, nota = '', comprati = 0, cat = MOBILI_CATEGORIE[0]?.id ?? '', sel: string | null = null;
+  let near: Vicino | null = null, aperto: Pezzo | null = null, busy = false, aWas = false, nota = '', comprati = 0, ultimo = 0, conferma = false, ampliati = 0, confermaT = 0;
   const libero = () => w.mode === 'walk' && !w.frozen && !w.race.on && !o.velo.attivo;
   const trova = (): Vicino | null => {
     if (!libero()) return null;
@@ -176,22 +221,70 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     for (const p of pezzi) { const d = Math.hypot(f.x - ox - p.fx, f.z - oz - p.fz); if (d < bd) { bd = d; best = p; } }
     return best ? { kind: 'pezzo', p: best } : null;
   };
-  const chiudi = () => { aperto = null; sel = null; nota = ''; sheet.classList.remove('on'); sheet.replaceChildren(); };
-  const gia = (p: Pezzo): boolean => p.kind !== 'mobile' && p.kind !== 'catalogo' && possiedeFinitura(o.getLot(), p.kind, p.id);
-  /** Le descrizioni dei mobili (mobili_testi.json): si scaricano alla prima scheda, non pesano sull'avvio. */
+  const chiudi = () => { aperto = null; nota = ''; conferma = false; sheet.classList.remove('on'); sheet.replaceChildren(); };
+  const gia = (p: Pezzo): boolean => (p.kind === 'pavimento' || p.kind === 'carta') && possiedeFinitura(o.getLot(), p.kind, p.id);
+  /** Le descrizioni dei mobili e delle finiture: si scaricano alla prima scheda, non pesano sull'avvio. */
   let testi: Record<string, string> | null = null;
-  const caricaTesti = () => { if (!testi) { testi = {}; void import('@marea/content/mobili_testi.json', { with: { type: 'json' } }).then((m) => { testi = (m.default as { testi: Record<string, string> }).testi; ridisegna(); }).catch(() => {}); } };
-  const ridisegna = () => { if (aperto?.kind === 'catalogo') catalogo(); else if (aperto) scheda(aperto); };
+  const caricaTesti = () => {
+    if (!testi) {
+      testi = {};
+      void Promise.all([
+        import('@marea/content/mobili_testi.json', { with: { type: 'json' } }).then((m) => (m.default as { testi: Record<string, string> }).testi).catch(() => ({})),
+        import('@marea/content/finiture_testi.json', { with: { type: 'json' } }).then((m) => (m.default as { testi: Record<string, string> }).testi).catch(() => ({})),
+      ]).then(([m1, m2]) => { testi = { ...m1, ...m2 }; ridisegna(); }).catch(() => {});
+    }
+  };
+  const ridisegna = () => { if (aperto) scheda(aperto); };
   const celleDi = (m: MobileDef): number => m.posto === 'parete' ? 1 : (m.celle?.[0] ?? 1) * (m.celle?.[1] ?? 1);
   const dove = (m: MobileDef): string => m.posto === 'parete' ? 'Si appende al muro' : celleDi(m) > 1 ? `Per terra: occupa ${celleDi(m)} celle` : 'Per terra: occupa una cella';
-  const pezzoDi = (m: MobileDef): Pezzo => ({ kind: 'mobile', id: m.id, nome: m.nome, perle: m.perle, x: 0, z: 0, fx: 0, fz: 0 });
-  function scheda(p: Pezzo): void {
-    if (p.kind === 'catalogo') { catalogo(); return; }
-    aperto = p; caricaTesti();
-    const l = o.getLot(), perle = l?.resources.perle ?? 0, m = p.kind === 'mobile' ? MOBILI.find((x) => x.id === p.id) ?? null : null;
+  const testata = (titolo: string): HTMLElement => {
     const testa = el('div', 'mz-row'); testa.style.alignItems = 'center';
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudi);
-    const t = el('b', '', p.nome); t.style.flex = '1'; t.style.color = PAL.giallo; testa.append(t, x);
+    const t = el('b', '', titolo); t.style.flex = '1'; t.style.color = PAL.giallo; testa.append(t, x);
+    return testa;
+  };
+  /** Il banco: cosa c'è in vetrina oggi e fra quanto cambia. */
+  function banco(): void {
+    const v = vetrinaDelGiorno(giornoRoma(adesso())), n = v.terra.length + v.parete.length + v.carte.length + v.pavimenti.length;
+    const corpo: Node[] = [testata('IL MOBILIERE')];
+    corpo.push(el('div', 'prezzo', n ? `Oggi in vetrina: ${v.terra.length + v.parete.length} mobili, ${v.carte.length} carte da parati e ${v.pavimenti.length} pavimenti. Vendo solo quelli: gli altri tornano un altro giorno.` : 'Oggi la vetrina è vuota.'));
+    corpo.push(el('div', 'prezzo', `Merce nuova fra ${fmtDur(finoAMezzanotte(adesso()) / 1000)}.`));
+    // gli ampliamenti della casa (#386): uno alla volta, costano tanto; per non sbagliare dal telefono si conferma con un secondo tocco
+    const l = o.getLot(), liv = livelloCasa(casaDi(l)), prossimo = prossimoAmpliamento(liv);
+    corpo.push(el('h3', '', 'INGRANDISCI LA CASA'));
+    if (!prossimo || !l) corpo.push(el('div', 'prezzo', 'La tua casa è grande al massimo: non c’è altro da ampliare.'));
+    else {
+      corpo.push(el('div', 'prezzo', `Ampliamento ${liv + 1} di ${MAX_LIVELLO_CASA}: `), el('div', 'prezzo', prossimo.desc));
+      corpo[corpo.length - 2]!.appendChild(el('b', '', prossimo.nome));
+      const tetto = storageCap(l), r = l.resources, k = prossimo.costo;
+      const riga = (nome: string, serve: number, ho: number) => { const d = el('div', 'prezzo'); d.append(el('span', '', `${nome} `), el('b', '', String(serve)), el('span', ho >= serve ? 'ok' : 'manca', ho >= serve ? ` · ne hai ${ho} ✓` : ` · ti mancano ${serve - ho}`)); return d; };
+      corpo.push(riga('Legno', k.legno, r.legno), riga('Pietra', k.pietra, r.pietra), riga('Perle', k.perle, r.perle));
+      if (k.legno > tetto || k.pietra > tetto) corpo.push(el('div', 'prezzo', `Il tuo Magazzino contiene al massimo ${tetto} per risorsa: ti serve un Magazzino più grande.`));
+      const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'amplia';
+      b.append(el('span', '', !o.api ? 'Serve il collegamento' : conferma ? 'SICURO? TOCCA ANCORA' : 'AMPLIA'), el('b', '', conferma ? '✓' : ''));
+      b.disabled = busy || !o.api;
+      b.addEventListener('click', () => void amplia(liv));
+      corpo.push(b);
+    }
+    if (nota) corpo.push(el('div', 'prezzo', nota));
+    sheet.replaceChildren(...corpo); sheet.classList.add('on');
+  }
+  async function amplia(da: number): Promise<void> {
+    const l = o.getLot(), prossimo = prossimoAmpliamento(da);
+    if (busy || !o.api || !l || !prossimo) return;
+    const k = prossimo.costo, r = l.resources;
+    if (r.legno < k.legno || r.pietra < k.pietra || r.perle < k.perle) { conferma = false; nota = 'Non hai ancora abbastanza: ' + [r.legno < k.legno ? `Legno (${k.legno - r.legno} in più)` : '', r.pietra < k.pietra ? `Pietra (${k.pietra - r.pietra} in più)` : '', r.perle < k.perle ? `Perle (${k.perle - r.perle} in più)` : ''].filter(Boolean).join(', ') + '.'; banco(); return; }
+    if (!conferma) { conferma = true; nota = ''; banco(); clearTimeout(confermaT); confermaT = window.setTimeout(() => { if (conferma && aperto?.kind === 'banco') { conferma = false; banco(); } }, 4000); return; }
+    clearTimeout(confermaT); conferma = false; busy = true; banco();
+    try {
+      o.setLot(await o.api.casa('amplia', { da })); ampliati++; nota = '';
+      o.hud.toast(`${prossimo.nome}: fatto! Torna a casa a vederla`, 3200);
+    } catch (e) { nota = e instanceof ApiError ? e.message : 'Qualcosa non va, riprova'; } finally { busy = false; if (aperto?.kind === 'banco') banco(); }
+  }
+  function scheda(p: Pezzo): void {
+    aperto = p; caricaTesti();
+    if (p.kind === 'banco') { banco(); return; }
+    const l = o.getLot(), perle = l?.resources.perle ?? 0, m = p.kind === 'mobile' ? MOBILI.find((x) => x.id === p.id) ?? null : null;
     const tipo = p.kind === 'mobile' ? 'Mobile: va nel magazzino di casa, lo posi con ARREDA' : p.kind === 'pavimento' ? 'Pavimento: si mette subito in casa tua' : 'Carta da parati: si mette subito in casa tua';
     const prezzo = el('div', 'prezzo'); prezzo.append(el('span', '', `${tipo}. Prezzo `), el('b', '', `${p.perle} Perle`), el('span', '', ` · ne hai ${perle}`));
     const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'compra';
@@ -199,63 +292,25 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     b.append(el('span', '', g ? 'Ce l’hai già' : !o.api ? 'Serve il collegamento' : 'COMPRA'), el('b', '', g ? '✓' : `${p.perle}`));
     b.disabled = g || busy || !o.api;
     b.addEventListener('click', () => void compra(p));
-    const corpo: Node[] = [testa];
-    if (m && testi?.[m.id]) corpo.push(el('div', 'prezzo', testi[m.id]!));
+    const corpo: Node[] = [testata(p.nome)];
+    if (testi?.[p.id]) corpo.push(el('div', 'prezzo', testi[p.id]!));
     if (m) corpo.push(el('div', 'prezzo', dove(m)));
-    corpo.push(prezzo, b);
+    corpo.push(prezzo);
+    const mag = m ? casaDi(l).magazzino?.[m.id] : 0;
+    if (mag) corpo.push(el('div', 'prezzo', `Ne hai già ${mag} nel magazzino.`));
+    corpo.push(b);
     if (nota) corpo.push(el('div', 'prezzo', nota));
-    sheet.replaceChildren(...corpo); sheet.classList.add('on');
-  }
-  /** Il catalogo del banco: tutti i mobili, per categoria (mobili.json `categorie`); toccandone uno si legge la descrizione e si compra. */
-  function catalogo(): void {
-    aperto = pezzi.find((q) => q.kind === 'catalogo') ?? aperto; caricaTesti();
-    const l = o.getLot(), perle = l?.resources.perle ?? 0, mag = casaDi(l).magazzino ?? {};
-    const testa = el('div', 'mz-row'); testa.style.alignItems = 'center';
-    const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudi);
-    const m = sel ? MOBILI.find((q) => q.id === sel) ?? null : null;
-    const t = el('b', '', m ? m.nome : 'CATALOGO'); t.style.flex = '1'; t.style.color = PAL.giallo; testa.append(t, x);
-    const corpo: Node[] = [testa];
-    if (m) {
-      const ind = el('button', 'mz-btn', ''); ind.type = 'button'; ind.dataset['act'] = 'indietro'; ind.append(el('span', '', '‹ Torna al catalogo'), el('b', '', ''));
-      ind.addEventListener('click', () => { sel = null; nota = ''; catalogo(); });
-      const prezzo = el('div', 'prezzo'); prezzo.append(el('span', '', `${dove(m)}. Prezzo `), el('b', '', `${m.perle} Perle`), el('span', '', ` · ne hai ${perle}`));
-      const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'compra';
-      b.append(el('span', '', !o.api ? 'Serve il collegamento' : 'COMPRA'), el('b', '', `${m.perle}`));
-      b.disabled = busy || !o.api;
-      b.addEventListener('click', () => void compra(pezzoDi(m)));
-      corpo.push(ind);
-      if (testi?.[m.id]) corpo.push(el('div', 'prezzo', testi[m.id]!));
-      corpo.push(prezzo);
-      if (mag[m.id]) corpo.push(el('div', 'prezzo', `Ne hai già ${mag[m.id]} nel magazzino.`));
-      corpo.push(b);
-      if (nota) corpo.push(el('div', 'prezzo', nota));
-    } else {
-      const chips = el('div', 'chips');
-      for (const c of MOBILI_CATEGORIE) {
-        const n = MOBILI.filter((q) => q.categoria === c.id).length; if (!n) continue;
-        const bt = el('button', c.id === cat ? 'on' : '', `${c.nome} ${n}`); bt.type = 'button'; bt.dataset['cat'] = c.id;
-        bt.addEventListener('click', () => { cat = c.id; catalogo(); });
-        chips.append(bt);
-      }
-      corpo.push(chips);
-      for (const q of MOBILI.filter((r) => r.categoria === cat)) {
-        const r = el('button', 'mz-btn', ''); r.type = 'button'; r.dataset['mobile'] = q.id;
-        r.append(el('span', '', q.nome), el('b', '', `${q.perle}`));
-        r.addEventListener('click', () => { sel = q.id; nota = ''; catalogo(); });
-        corpo.push(r);
-      }
-    }
     sheet.replaceChildren(...corpo); sheet.classList.add('on');
   }
   async function compra(p: Pezzo): Promise<void> {
     const l = o.getLot();
-    if (busy || !o.api || !l || p.kind === 'catalogo' || gia(p)) return;
+    if (busy || !o.api || !l || p.kind === 'banco' || gia(p)) return;
     if (l.resources.perle < p.perle) { nota = `Ti mancano ${p.perle - l.resources.perle} Perle: le vinci ai minigiochi e alla Bacheca.`; ridisegna(); return; }
     busy = true; ridisegna();
     try {
       const next = await (p.kind === 'mobile' ? o.api.casa('compra', { id: p.id }) : o.api.casa('finitura', { tipo: p.kind, id: p.id }));
       o.setLot(next); comprati++;
-      if (aperto?.kind === 'catalogo') { nota = ''; ridisegna(); } else chiudi(); // dal catalogo si resta, per comprarne altri
+      chiudi();
       o.hud.toast(p.kind === 'mobile' ? `${p.nome}: è nel magazzino, arreda da casa tua` : `${p.nome}: messo in casa tua`, 2600);
     } catch (e) { nota = e instanceof ApiError ? e.message : 'Qualcosa non va, riprova'; ridisegna(); } finally { busy = false; }
   }
@@ -267,7 +322,8 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   btn.addEventListener('click', () => { if (near) vai(near); });
 
   registerStateProvider('negozio', () => ({
-    dentro, aperto: aperto?.id ?? null, near: near ? (near.kind === 'pezzo' ? near.p.id : near.kind) : null, comprati,
+    dentro, aperto: aperto?.id ?? null, ampliati, conferma, livello: livelloCasa(casaDi(o.getLot())), near: near ? (near.kind === 'pezzo' ? near.p.id : near.kind) : null, comprati, giorno: giornoMostrato,
+    vetrina: vetrinaDelGiorno(giornoMostrato),
     pezzi: pezzi.map((p) => ({ kind: p.kind, id: p.id, perle: p.perle, x: ox + p.fx, z: oz + p.fz })), porta: { x: px, z: pz, muro, verso }, uscita: { x: ox + (CX + 0.5) * T, z: oz + (C0 + 0.5) * T },
     magazzino: casaDi(o.getLot()).magazzino ?? {},
   }));
@@ -289,7 +345,14 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       if (near && pa) { vai(near); return true; }
       return !!near;
     },
-    update() {
+    update(dt) {
+      // a mezzanotte di Roma la vetrina cambia: si controlla una volta al secondo; chi è dentro se ne accorge (scheda chiusa, toast)
+      ultimo += dt;
+      if (ultimo >= 1) {
+        ultimo = 0;
+        const g = giornoRoma(adesso());
+        if (g !== giornoMostrato) { allestisci(g); if (dentro) { chiudi(); o.hud.toast('Il mobiliere ha messo in mostra merce nuova', 2600); } }
+      }
       const k = near ? (near.kind === 'pezzo' ? 'p:' + near.p.id : near.kind) : '';
       if (k !== lastK) {
         lastK = k;
@@ -297,7 +360,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
         if (near?.kind === 'porta') btn.replaceChildren(pixIcon('casa', 24), el('span', '', 'NEGOZIO DEI MOBILI'), el('small', '', 'A'));
         if (near?.kind === 'esci') btn.replaceChildren(pixIcon('casa', 24), el('span', '', 'ESCI'), el('small', '', 'A'));
         bar.classList.toggle('on', near?.kind === 'pezzo');
-        if (near?.kind === 'pezzo') bar.replaceChildren(el('div', 't', near.p.kind === 'catalogo' ? 'Catalogo di tutti i mobili · A per sfogliarlo' : `${near.p.nome} · ${near.p.perle} Perle · A per guardarlo`));
+        if (near?.kind === 'pezzo') bar.replaceChildren(el('div', 't', near.p.kind === 'banco' ? 'Il mobiliere · A per parlargli' : `${near.p.nome} · ${near.p.perle} Perle · A per guardarlo`));
       }
       if (ciro && dentro) { ciro.setPose({ x: ciroPos.x, z: ciroPos.z, yaw: -Math.PI / 2, anim: 'idle' }); ciro.update(1, 1 / 60); }
     },

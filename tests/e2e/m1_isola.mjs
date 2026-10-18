@@ -41,8 +41,9 @@ export default async function (ctx) {
   const dist = path.join(ctx.OUT, `m1_isola-dist-${process.pid}`), persist = path.join(ctx.OUT, `m1_isola-${process.pid}`);
   const balance = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/balance.json'), 'utf8'));
   const buildings = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/buildings.json'), 'utf8'));
+  const WIN = process.platform === 'win32';
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, shell: WIN }).toString();
   let dev = null, log = '';
   const pages = [];
   try {
@@ -55,11 +56,14 @@ export default async function (ctx) {
 
     fs.rmSync(persist, { recursive: true, force: true });
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
-    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command', "INSERT INTO persone (id, nome, token) VALUES ('isola', 'Isola', 'tokI'), ('amico', 'Amico', 'tokA');");
+    const sql = path.join(persist, 'persone.sql');
+    fs.mkdirSync(persist, { recursive: true });
+    fs.writeFileSync(sql, "INSERT INTO persone (id, nome, token) VALUES ('isola', 'Isola', 'tokI'), ('amico', 'Amico', 'tokA');\n");
+    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--file', sql);
     ctx.log('D1 pronto');
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', dist, '--persist-to', persist, '--var', 'MAREA_TEST:1', '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', dist, '--persist-to', persist, '--var', 'MAREA_TEST:1', '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: !WIN, shell: WIN, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const base = `http://127.0.0.1:${port}`;
     let up = false;
@@ -204,6 +208,21 @@ export default async function (ctx) {
     });
     await ctx.shot(page, 'ti_mancano');
 
+    await ctx.test('sposta edificio (#382): tocco SPOSTA, sagoma, CONFERMA sposta l’edificio', async () => {
+      await hook('lotTap', seg.id);
+      await ctx.waitState(page, (s) => s.lot.panel && s.lot.panel.kind === 'edificio', 5000);
+      await page.click('#mzSheet button[data-act="sposta"]');
+      await ctx.waitState(page, (s) => s.lot.panel && s.lot.panel.kind === 'sposta_edificio', 5000);
+      const targetCell = slotB;
+      await hook('lotTap', targetCell);
+      await ctx.waitState(page, (s, t) => s.lot.sagoma && s.lot.sagoma.cell[0] === t[0] && s.lot.sagoma.cell[1] === t[1], 5000, targetCell); // la funzione gira nella pagina: le variabili del test si passano come argomento
+      await ctx.shot(page, 'sposta_edificio');
+      await page.click('#mzSheet button[data-act="conferma"]');
+      await ctx.waitState(page, (s, t) => s.lot.buildings.some((b) => b.id === t.id && b.cell[0] === t.cell[0] && b.cell[1] === t.cell[1]), 8000, { id: seg.id, cell: targetCell });
+      const after = (await st()).buildings.find((b) => b.id === seg.id);
+      ctx.assert(after.cell[0] === targetCell[0] && after.cell[1] === targetCell[1], 'cella non aggiornata dopo sposta: ' + JSON.stringify(after));
+    });
+
     await ctx.test('zero errori console (tranne il 409 voluto)', async () => {
       const errs = errorsOf(P, [[409, '/api/lot/build']]);
       ctx.assert(!errs.length, errs.join('\n'));
@@ -232,7 +251,10 @@ export default async function (ctx) {
     });
   } finally {
     for (const p of pages) await p.close().catch(() => {});
-    if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    if (dev) {
+      if (WIN) { try { execFileSync('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* ok */ } }
+      else { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    }
     fs.rmSync(persist, { recursive: true, force: true });
     fs.rmSync(dist, { recursive: true, force: true });
   }

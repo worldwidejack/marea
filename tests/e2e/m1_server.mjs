@@ -17,8 +17,9 @@ export default async function (ctx) {
   const { assert } = ctx;
   const SERVER = path.join(ctx.ROOT, 'apps/server');
   const persist = path.join(ctx.OUT, `m1server-${process.pid}`);
+  const WIN = process.platform === 'win32';
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, shell: WIN }).toString();
   const sim = async (f) => import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src', f)).href);
   const { regata, lazyAutopilot } = await sim('minigames/regata/regata.ts');
   const { packInputs, quantize, replay } = await sim('replay.ts');
@@ -33,8 +34,10 @@ export default async function (ctx) {
   try {
     fs.rmSync(persist, { recursive: true, force: true });
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
-    // una persona «vecchia» senza slot, poi due inviti veri: invita.mjs deve dare il primo slot libero
-    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command', "INSERT INTO persone (id, nome, token, slot) VALUES ('zero', 'Zero', 'tok0', 0);");
+    const sql = path.join(persist, 'persone.sql');
+    fs.mkdirSync(persist, { recursive: true });
+    fs.writeFileSync(sql, "INSERT INTO persone (id, nome, token, slot) VALUES ('zero', 'Zero', 'tok0', 0);\n");
+    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--file', sql);
     const invita = (nome, id, token) => execFileSync(process.execPath, [path.join(SERVER, 'scripts/invita.mjs'), nome, '--id', id, '--token', token, '--persist-to', persist], { env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
     const outA = invita('Anna', 'anna', 'tokA');
     invita('Bruno', 'bruno', 'tokB');
@@ -42,7 +45,7 @@ export default async function (ctx) {
 
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: !WIN, shell: WIN, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const base = `http://127.0.0.1:${port}`;
     let up = false;
@@ -108,13 +111,13 @@ export default async function (ctx) {
 
     const L = cellsOf('L');
     const slot = (i) => L[i] ?? [2 + i, 2];
-    await ctx.test('celle: edifici solo su L libere, decorazioni solo su sabbia/erba (altrimenti 400), occupata 409', async () => {
+    await ctx.test('celle: edifici solo su posizioni valide, decorazioni solo su sabbia/erba (altrimenti 400), occupata 409', async () => {
       const bad = tpl ? cellsOf('d')[0] : [999, 0];
       const r1 = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: bad });
       assert(r1.status === 400 && /costruire|Cella/.test(r1.body.error), 'cella non valida: ' + r1.status + ' ' + JSON.stringify(r1.body));
       if (tpl) {
-        const r2 = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: cellsOf('g')[0] });
-        assert(r2.status === 400, 'erba non-slot accettata per un edificio');
+        const r2 = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: cellsOf('~')[0] });
+        assert(r2.status === 400 && /costruire|Cella/.test(r2.body.error), 'acqua accettata per un edificio');
         const r3 = await post('/api/lot/decor', 'tokA', { decor: 'barile', cell: L[0], rot: 0 });
         assert(r3.status === 400 && /decorazione/.test(r3.body.error), 'decor su slot L: ' + r3.status);
       }
@@ -254,7 +257,10 @@ export default async function (ctx) {
       assert(all.every((c) => ['chiusa', 'rifiutata', 'scaduta'].includes(c.state)), 'sfide rimaste aperte');
     });
   } finally {
-    if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    if (dev) {
+      if (WIN) { try { execFileSync('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* ok */ } }
+      else { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    }
     fs.rmSync(persist, { recursive: true, force: true });
   }
 }
