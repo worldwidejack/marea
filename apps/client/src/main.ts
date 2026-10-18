@@ -151,7 +151,7 @@ async function boot(): Promise<void> {
   // (chunk a parte, TECH §5: il portone compare un attimo dopo il mondo; la meta in bussola c'è subito)
   let ar: ArenaIsola | null = null;
   void import('./game/arena.ts').then((m) => { ar = m.createArena({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot, nome: () => me?.nome ?? '' }); }).catch((e: unknown) => { console.warn('[marea] arena non caricata', e); });
-  // Isola della Difesa (docs/DIFESA.md §7): il cancello dell'orto apre il gioco sopra il mondo (chunk a parte); ?difesa=1 per le prove
+  // Isola della Difesa (docs/DIFESA.md §6): il cancello dell'orto apre il gioco sopra il mondo (chunk a parte); ?difesa=1 per le prove
   let dif: DifesaIsola | null = null;
   void import('./game/difesa.ts').then((m) => { dif = m.createDifesa({ world, renderer, hud, root, canvas }); }).catch((e: unknown) => { console.warn('[marea] difesa non caricata', e); });
   { const pa = arch.places.find((p) => p.island === 'difesa'), c = ISLANDS.find((i) => i.id === 'difesa')?.props?.find((p) => p.k === 'orto_campo'); if (pa && c) targets.push({ id: 'difesa', label: 'Orto', icon: 'difesa', x: (pa.origin[0] + c.at[0] - 6.3) * arch.tile, z: (pa.origin[1] + c.at[1]) * arch.tile, sezione: 'isole' }); } // = ingressoOrto() di game/difesa.ts

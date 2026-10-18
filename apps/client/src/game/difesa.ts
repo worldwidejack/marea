@@ -1,4 +1,4 @@
-// Isola della Difesa nel mondo (docs/DIFESA.md §7): il cancello dell'orto davanti al casale, col cartello che si vede da lontano e
+// Isola della Difesa nel mondo (docs/DIFESA.md §6): il cancello dell'orto davanti al casale, col cartello che si vede da lontano e
 // DIFENDI L'ORTO (A vicino, ≤ 4 m). Il gioco è la stessa pagina del banco (provadifesa.html, canvas 2D, chunk tutto suo): si apre sopra il
 // mondo in un riquadro a tutto schermo e il mondo intanto sta fermo (niente passi né resa: main.ts salta il frame finché è aperto).
 // Si torna all'isola con ✕ ISOLA, con Esc a menù chiuso, o dal gioco stesso (messaggio `marea:difesa:esci`). Livelli e medaglie restano

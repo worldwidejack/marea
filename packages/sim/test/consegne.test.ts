@@ -38,7 +38,7 @@ test('consegne: i moli sono le B di Porto, Laguna, facciate e isole a tema senza
   assert.equal(moli[0]!.id, 'porto');
   assert.ok(moli.some((m) => m.id === 'laguna') && moli.some((m) => m.id === 'vulcano') && moli.some((m) => m.id === 'neon'));
   assert.ok(!moli.some((m) => m.id === 'tempesta'), 'la Tempesta ha la barriera: da chiusa non ci si arriva');
-  assert.deepEqual(moli.map((m) => m.nome), ['Borgo', 'Laguna', 'Neon', 'Selvaggia', 'Vulcano', 'Templari', 'Corse', 'Adrenalina', 'Arena']);
+  assert.deepEqual(moli.map((m) => m.nome), ['Borgo', 'Laguna', 'Neon', 'Selvaggia', 'Vulcano', 'Templari', 'Corse', 'Adrenalina', 'Arena', 'Difesa']);
   assert.equal(new Set(moli.map((m) => m.id)).size, moli.length);
   for (const m of moli) {
     assert.equal(map.at(Math.floor(m.x / map.tile), Math.floor(m.z / map.tile)), 'B', `${m.id} non è su una B`);

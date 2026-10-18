@@ -1,4 +1,4 @@
-// Isola della Difesa (docs/DIFESA.md §7) senza server (net=0). Telefono 390×844: l'isola c'è (casale, orto a 5 corsie, mulino), vicino al
+// Isola della Difesa (docs/DIFESA.md §6) senza server (net=0). Telefono 390×844: l'isola c'è (casale, orto a 5 corsie, mulino), vicino al
 // cancello dell'orto compare DIFENDI L'ORTO; il tocco apre il gioco sopra il mondo (riquadro con provadifesa.html che arriva al menù o, coi
 // test, alla partita), il mondo sta fermo; ✕ ISOLA richiude e si è di nuovo davanti al cancello. PC 1280×720: A apre, Esc richiude.
 // Screenshot in tests/out/shots/m4_difesa_isola_*.png.

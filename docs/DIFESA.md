@@ -168,3 +168,21 @@ rilancia, si guarda la tabella).
   caselle, nomi, colori della UI. Le pelli vere le fa `tools/difesa_sprite.py` dalle immagini di Codex e stanno in
   `apps/client/public/assets/difesa/<id>/` (budget a parte nella build: `difesaAssetsMB`). Il movimento è animazione da codice.
 - Test: `node --test packages/sim/test/difesa.test.ts` (sim) e `node tests/run.mjs m4_provadifesa` (banco).
+
+## 6. L'isola della Difesa (18 ott 2026, #395)
+Jack: «costruire l'isola tower defense in cui mettere il nostro Plants vs Zombies ed altro in futuro». L'isola `difesa` sta a ovest del
+Porto (`archipelago.json` `[34, 138]`, 40×36 celle, sblocco `libera`), stile suo (`render/island_difesa.ts`, chunk a parte come Arena e
+Corse): terra battuta, prato, riva di sassi.
+- **Un mondo per zona.** Ogni mondo della Difesa (ambientazione e stile suoi, §1) ha la sua zona dell'isola. Il primo è **L'orto**: il
+  **casale** da difendere a ovest, davanti l'**orto a 5 corsie × 9 caselle** come il campo del gioco (aiuole rialzate, i difensori fermi a
+  sinistra, le lumache che arrivano da destra, la capobanda con la bandierina), la **staccionata** con l'arco del cancello verso il casale,
+  il **mulino a vento** a nord-est che si vede dal mare, spaventapasseri, carriola, cassette di verdura. Il resto dell'isola è prato
+  libero per i mondi dopo (spiaggia, cucina, cameretta… dal foglio delle prove di Codex).
+- **Si gioca dal cancello.** Vicino all'arco (≤ 4 m) **DIFENDI L'ORTO** (o A) apre il gioco sopra il mondo: la stessa pagina del banco
+  (`provadifesa.html?mondo=1`) in un riquadro a tutto schermo; intanto il mondo sta fermo e non si disegna (`main.ts` salta il frame).
+  Si torna al cancello con **✕ ISOLA** (in basso a sinistra), con Esc fuori dal riquadro o dal gioco stesso (messaggio
+  `marea:difesa:esci` alla pagina madre). Telefono in orizzontale come sul banco.
+- Livelli sbloccati, medaglie e record per ora restano nel browser (`localStorage` `marea.difesa`, gli stessi del banco): il salvataggio
+  sul server e il tabellone dei record dell'isola sono il passo dopo.
+- Bussola e minimappa: meta «Orto». Prove: `?difesa=1` mette il bottone 🥕 (vai al cancello); `state().difesa = { spot, near, aperte,
+  aperta }`, hook `difesaVai`, `difesaApri`, `difesaChiudi`. Test: `node tests/run.mjs m4_difesa_isola`.

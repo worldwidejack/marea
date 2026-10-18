@@ -85,6 +85,7 @@ export const PROP_TEMI = ['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone'
   'chiesa_templare', 'casa_rovina', 'tomba', 'croce_pietra', 'tenda', 'relitto_templare', 'scheletro',
   'funivia_valle', 'funivia_monte', 'guardiano', 'cartello_piste', 'piattaforma_lancio', 'porta_slalom', 'abete', // Isola dell'Adrenalina
   'colosseo', 'stendardo', // Isola dell'Arena
+  'casale', 'orto_campo', 'mulino', 'spaventapasseri', 'carriola', 'cassette', // Isola della Difesa
   'arco_via', 'tribuna', 'gomme', 'kart_fermo', 'bandierina', // Isola delle Corse
   'strada', 'rotatoria', 'trofeo', 'statua_trofeo', 'torre_corse', 'garage_corse', 'bancarella', 'festone', 'lampione', 'palo_molo',
   'porta_neve', 'porta_giungla', 'porta_neon', 'porta_luna', 'porta_spiaggia', 'ruota_panoramica', 'tendone', 'tendone_piccolo', 'tempio_giungla',

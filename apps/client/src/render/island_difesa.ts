@@ -1,4 +1,4 @@
-// Isola della Difesa (docs/DIFESA.md §7) nell'arcipelago, in un chunk a parte come Arena e Corse (island_temi.ts lo scarica all'avvio e
+// Isola della Difesa (docs/DIFESA.md §6) nell'arcipelago, in un chunk a parte come Arena e Corse (island_temi.ts lo scarica all'avvio e
 // createIsland lo aspetta; il JS iniziale ha un tetto, TECH §5): terreni (terra dell'orto, prato, riva di sassi) e decorazioni.
 // Il primo mondo della Difesa è L'ORTO: il CASALE da difendere a ovest, davanti l'ORTO a 5 corsie × 9 caselle come il campo del gioco
 // (porchetta di legno, aiuole rialzate, i difensori a sinistra, le lumache che arrivano da destra), la STACCIONATA col cancello verso il
@@ -55,17 +55,30 @@ function peperoncino(parts: THREE.BufferGeometry[], x: number, z: number): void 
   parts.push(painted(box(0.12, 0.18, 0.12), P.erbaScura, M(x - 0.15, 1.18, z, 0, 0, 0.35)));
 }
 function lumaca(parts: THREE.BufferGeometry[], x: number, z: number, bandiera = false): void {
-  // corpo lungo verso −X (arriva da destra), guscio a spirale, due antenne
-  parts.push(painted(box(1.0, 0.24, 0.34), P.sabbiaChiara, M(x, 0.52, z)));
-  parts.push(painted(box(0.3, 0.42, 0.32), P.sabbiaChiara, M(x - 0.48, 0.66, z)));
-  for (const s of [-1, 1]) parts.push(painted(box(0.05, 0.32, 0.05), P.sabbiaChiara, M(x - 0.55, 1.0, z + s * 0.09, s * 0.25, 0, 0.3)));
-  parts.push(painted(cyl(0.42, 0.42, 0.34, 8), P.legnoChiaro, M(x + 0.12, 0.92, z, Math.PI / 2, 0, 0)));
-  parts.push(painted(cyl(0.26, 0.26, 0.36, 8), P.legno, M(x + 0.16, 0.95, z, Math.PI / 2, 0, 0)));
-  parts.push(painted(cyl(0.1, 0.1, 0.38, 6), P.legnoChiaro, M(x + 0.18, 0.98, z, Math.PI / 2, 0, 0)));
+  // come nel gioco: corpo lilla lungo verso −X (arriva da destra), guscio viola a spirale, due antenne con gli occhi
+  parts.push(painted(box(1.0, 0.24, 0.34), P.pietraChiara, M(x, 0.52, z)));
+  parts.push(painted(box(0.3, 0.42, 0.32), P.pietraChiara, M(x - 0.48, 0.66, z)));
+  for (const s of [-1, 1]) {
+    parts.push(painted(box(0.05, 0.32, 0.05), P.pietraChiara, M(x - 0.55, 1.0, z + s * 0.09, s * 0.25, 0, 0.3)));
+    parts.push(painted(ico(0.07, 0), P.sabbiaChiara, M(x - 0.6, 1.17, z + s * 0.13)));
+  }
+  parts.push(painted(cyl(0.42, 0.42, 0.34, 8), P.violaNeon, M(x + 0.12, 0.92, z, Math.PI / 2, 0, 0)));
+  parts.push(painted(cyl(0.27, 0.27, 0.36, 8), P.viola, M(x + 0.16, 0.95, z, Math.PI / 2, 0, 0)));
+  parts.push(painted(cyl(0.11, 0.11, 0.38, 6), P.violaNeon, M(x + 0.18, 0.98, z, Math.PI / 2, 0, 0)));
   if (bandiera) {
     parts.push(painted(box(0.04, 0.9, 0.04), P.legnoScuro, M(x + 0.1, 1.75, z)));
     parts.push(painted(box(0.45, 0.3, 0.03), P.rosso, M(x + 0.34, 2.02, z, 0, 0, -0.1)));
   }
+}
+/** L'annaffiatoio a molla in testa a ogni corsia (il «tosaerba» del gioco): base di legno, molla, annaffiatoio verde col beccuccio a +X. */
+function annaffiatoio(parts: THREE.BufferGeometry[], x: number, z: number): void {
+  parts.push(painted(box(0.7, 0.14, 0.5), P.arancio, M(x, 0.07, z)));
+  for (let k = 0; k < 3; k++) parts.push(painted(cyl(0.16, 0.16, 0.07, 8), P.pietraChiara, M(x, 0.2 + k * 0.11, z)));
+  parts.push(painted(cyl(0.24, 0.27, 0.42, 8), P.erbaScura, M(x, 0.75, z)));
+  parts.push(painted(cyl(0.24, 0.24, 0.05, 8), P.erbaChiara, M(x, 0.97, z)));
+  parts.push(painted(cyl(0.05, 0.07, 0.5, 6), P.erbaScura, M(x + 0.38, 0.85, z, 0, 0, -1.0)));
+  parts.push(painted(cyl(0.12, 0.08, 0.1, 8), P.pietra, M(x + 0.6, 0.99, z, 0, 0, -1.0)));
+  parts.push(painted(box(0.08, 0.32, 0.06), P.erbaScura, M(x - 0.3, 0.8, z)));
 }
 
 // ——— il campo dell'orto ———
@@ -86,6 +99,7 @@ function campo(): THREE.BufferGeometry {
   zucca(parts, X(3), Z(2)); zucca(parts, X(3), Z(4), 0.9);
   peperoncino(parts, X(2), Z(1));
   lumaca(parts, X(7) + 0.3, Z(0)); lumaca(parts, X(8), Z(2), true); lumaca(parts, X(6) + 0.5, Z(4));
+  for (let k = 0; k < C.corsie; k++) annaffiatoio(parts, -L / 2 - 0.15, Z(k)); // in testa a ogni corsia, dentro la staccionata
   // staccionata attorno al campo, col cancello aperto a ovest (verso il casale) sulla corsia di mezzo
   const fx = L / 2 + 0.6, fz = W / 2 + 0.6;
   const palo = (x: number, z: number) => parts.push(painted(box(0.16, 1.1, 0.16), P.legnoChiaro, M(x, 0.55, z)));
@@ -99,7 +113,13 @@ function campo(): THREE.BufferGeometry {
   traverse(fx, -fz, fx, fz);
   // lato ovest: due pezzi e il cancello aperto in mezzo
   for (const s of [-1, 1]) { palo(-fx, s * fz); palo(-fx, s * 1.2); traverse(-fx, s * fz, -fx, s * 1.2); }
-  parts.push(painted(box(0.08, 0.8, 2.0), P.legno, M(-fx - 0.9, 0.55, -1.2 - 0.05, 0, 1.2, 0)));
+  // l'arco del cancello: due pali alti, la traversa e il cartello con la carota (si vede dal casale)
+  for (const s of [-1, 1]) parts.push(painted(box(0.22, 2.9, 0.22), P.legnoScuro, M(-fx, 1.45, s * 1.2)));
+  parts.push(painted(box(0.26, 0.22, 2.9), P.legnoScuro, M(-fx, 2.8, 0)));
+  parts.push(painted(box(0.1, 0.62, 1.9), P.legnoChiaro, M(-fx - 0.1, 2.35, 0)));
+  parts.push(painted(new THREE.ConeGeometry(0.14, 0.75, 5), P.arancio, M(-fx - 0.18, 2.35, -0.45, 0, 0, 0, 1, 1, 1).multiply(M(0, 0, 0, Math.PI / 2, 0, 0))));
+  for (const a of [-0.5, 0.5]) parts.push(painted(box(0.05, 0.24, 0.08), P.erbaScura, M(-fx - 0.18, 2.35 + a * 0.12, -0.9 + a * 0.08, a, 0, 0)));
+  for (const z of [-0.05, 0.25, 0.55]) parts.push(painted(box(0.04, 0.08, 0.2), P.legnoScuro, M(-fx - 0.17, 2.4, z))); // la scritta (tre trattini)
   return merged(parts);
 }
 

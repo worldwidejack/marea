@@ -18,7 +18,7 @@ export const adrenalinaPronta: Promise<void> = import('./island_adrenalina.ts').
 // Isola dell'Arena (docs/ARENA.md): terreni e colosseo in un chunk a parte (island_arena.ts), aspettato da `createIsland`
 let arena: typeof import('./island_arena.ts') | null = null;
 export const arenaPronta: Promise<void> = import('./island_arena.ts').then((m) => { arena = m; Object.assign(PAINT_TEMI, m.PAINT_ARENA); }, () => {});
-// Isola della Difesa (docs/DIFESA.md §7): terreni, casale, orto e mulino in un chunk a parte (island_difesa.ts), aspettato da `createIsland`
+// Isola della Difesa (docs/DIFESA.md §6): terreni, casale, orto e mulino in un chunk a parte (island_difesa.ts), aspettato da `createIsland`
 let difesa: typeof import('./island_difesa.ts') | null = null;
 export const difesaPronta: Promise<void> = import('./island_difesa.ts').then((m) => { difesa = m; Object.assign(PAINT_TEMI, m.PAINT_DIFESA); }, () => {});
 const DIFESA_PROPS = ['casale', 'orto_campo', 'mulino', 'spaventapasseri', 'carriola', 'cassette'] as const;
