@@ -40,7 +40,7 @@ export type IslandDef = {
 };
 export type IslandStyle = 'lotto' | 'porto' | 'laguna' | 'neon' | 'selvaggia' | TemaStyle;
 /** Isole a tema (#68, GDD §3): stile della resa = id del tema. */
-export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'templari' | 'corse' | 'adrenalina' | 'arena';
+export type TemaStyle = 'tempesta' | 'ghiacci' | 'vulcano' | 'giardino' | 'templari' | 'corse' | 'adrenalina' | 'arena' | 'difesa';
 export type IslandSlot = { at: [number, number]; kind: string; rot?: number };
 export type IslandProp = { k: string; at: [number, number]; rot?: number };
 export type ArchipelagoRole = 'porto' | 'lotto' | 'facciata' | 'laguna' | 'tema' | 'negozio'; // negozio: il dentro del negozio dei mobili (#265), oltre il mare

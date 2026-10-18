@@ -78,7 +78,7 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
   return errs;
 }
 
-const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia', 'tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'corse', 'adrenalina', 'arena']);
+const STYLES = new Set(['lotto', 'porto', 'laguna', 'neon', 'selvaggia', 'tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'corse', 'adrenalina', 'arena', 'difesa']);
 /** Decorazioni delle isole a tema (#68): segnaposto procedurali in apps/client/src/render/island_temi.ts. */
 export const PROP_TEMI = ['faro_rovina', 'relitto', 'bandiera_pirata', 'cannone', 'albero_secco', 'iceberg', 'pinguino', 'igloo', 'pino_neve',
   'roccia_lavica', 'capanna', 'braciere', 'statua', 'cartello', 'abitante', 'ciliegio', 'tempio', 'torii_pietra', 'lanterna_pietra', 'ponticello',
