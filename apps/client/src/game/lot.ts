@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ISLANDS, building as buildingDef } from '@marea/content';
-import { advance, bufferParams, casaDi, decorCellError, decorRimborso, inStanza, parseIsland, storageCap } from '@marea/sim';
+import { advance, bufferParams, buildCellError, casaDi, decorCellError, decorRimborso, inStanza, parseIsland, storageCap } from '@marea/sim';
 import { createArrediVista } from './arredi_vista.ts';
 import type { GridMap, LotState, PlacedBuilding, PlacedDecor, Resources } from '@marea/sim';
 import type { Loader } from '../render/loader.ts';
@@ -18,7 +18,7 @@ import { PAL, el } from '../ui/style.ts';
 import { pixIcon, resIcon } from '../ui/icons.ts';
 import { createLabelLayer, createSheet, flyResources, fmtClock, LABEL_NEAR_M, tickTimers, timerSpan } from '../ui/sheet.ts';
 import type { Label, LabelLayer, Sheet } from '../ui/sheet.ts';
-import { buildPanel, buildable, buildingPanel, decorNome, decorPanel, spostaPanel } from '../ui/lotpanels.ts';
+import { buildPanel, buildable, buildingPanel, decorNome, decorPanel, spostaBuildingPanel, spostaPanel } from '../ui/lotpanels.ts';
 import type { DecorCtx, PanelCtx } from '../ui/lotpanels.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { suona } from '../audio/ponte.ts';
@@ -118,7 +118,8 @@ export function createLotView(o: LotViewOptions): LotView {
   let lot: LotState | null = o.initial ?? null, view: LotState | null = lot;
   let busy = false, poll = 0, slow = 0, endsSeen = 0, inflight: Promise<void> | null = null, lastError: string | null = null, refreshes = 0, disposed = false;
   let panel: { kind: 'edificio'; id: string } | { kind: 'costruisci'; cell: [number, number]; chosen: string | null }
-    | { kind: 'decor'; id: string; vendi: boolean } | { kind: 'sposta'; id: string; cell: [number, number] } | null = null;
+    | { kind: 'decor'; id: string; vendi: boolean } | { kind: 'sposta'; id: string; cell: [number, number] }
+    | { kind: 'sposta_edificio'; id: string; cell: [number, number] } | null = null;
   let nearDecor: string | null = null, aWas = false;
   const nearLabel = ro ? null : S.labels.add(() => { if (nearDecor) openDecor(nearDecor); });
   nearLabel?.set('bubble', [pixIcon('martello', 16), el('span', '', 'MODIFICA · A')], 'decor'); nearLabel?.el.classList.add('decor');
@@ -204,19 +205,43 @@ export function createLotView(o: LotViewOptions): LotView {
     const p = world(cell); rec.holder.position.set(p.x, p.y, p.z); rec.holder.rotation.y = FACING + (rot * Math.PI) / 2;
   }
   const decorOf = (id: string): PlacedDecor | null => lot?.decor.find((d) => d.id === id) ?? null;
+  const buildingOf = (id: string): PlacedBuilding | null => lot?.buildings.find((b) => b.id === id) ?? null;
+  function posaEdificio(b: PlacedBuilding, d: Drawn): void {
+    const cell = panel?.kind === 'sposta_edificio' && panel.id === b.id ? panel.cell : b.cell;
+    const p = world(cell); d.holder.position.set(p.x, p.y, p.z);
+  }
   /** Perché la decorazione `id` non può andare in `cell` (null = va bene): stesse regole del server, senza contare lei stessa. */
   function sagomaProblema(id: string, cell: [number, number]): string | null {
     if (!lot) return 'Isola non pronta';
     const err = decorCellError({ ...lot, decor: lot.decor.filter((d) => d.id !== id) }, cell, tpl);
     return err ? (err.code === 'cella' ? 'Cella occupata' : err.msg) : null;
   }
+  /** Perché l'edificio `id` non può andare in `cell` (#382; null = va bene). */
+  function sagomaEdificioProblema(id: string, cell: [number, number]): string | null {
+    if (!lot) return 'Isola non pronta';
+    const b = buildingOf(id);
+    if (!b) return 'Edificio non trovato';
+    const err = buildCellError({ ...lot, buildings: lot.buildings.filter((x) => x.id !== id) }, cell, tpl, b.building);
+    return err ? (err.code === 'cella' ? 'Cella occupata' : err.msg) : null;
+  }
   function syncSagoma(): void {
-    const d = panel?.kind === 'sposta' ? decorOf(panel.id) : null;
-    if (!d || panel?.kind !== 'sposta') { sagoma.visible = false; return; }
-    const ferma = panel.cell[0] === d.cell[0] && panel.cell[1] === d.cell[1], bad = !ferma && !!sagomaProblema(d.id, panel.cell);
-    const p = world(panel.cell); sagoma.position.set(p.x, p.y + 0.03, p.z); sagoma.visible = true;
-    sagoma.material = mat(bad ? SAGOMA_NO : SAGOMA_OK);
-    const rec = decorDrawn.get(d.id); if (rec) posaDecor(d, rec);
+    if (panel?.kind === 'sposta') {
+      const d = decorOf(panel.id);
+      if (!d) { sagoma.visible = false; return; }
+      const ferma = panel.cell[0] === d.cell[0] && panel.cell[1] === d.cell[1], bad = !ferma && !!sagomaProblema(d.id, panel.cell);
+      const p = world(panel.cell); sagoma.position.set(p.x, p.y + 0.03, p.z); sagoma.visible = true;
+      sagoma.material = mat(bad ? SAGOMA_NO : SAGOMA_OK);
+      const rec = decorDrawn.get(d.id); if (rec) posaDecor(d, rec);
+    } else if (panel?.kind === 'sposta_edificio') {
+      const b = buildingOf(panel.id);
+      if (!b) { sagoma.visible = false; return; }
+      const ferma = panel.cell[0] === b.cell[0] && panel.cell[1] === b.cell[1], bad = !ferma && !!sagomaEdificioProblema(b.id, panel.cell);
+      const p = world(panel.cell); sagoma.position.set(p.x, p.y + 0.03, p.z); sagoma.visible = true;
+      sagoma.material = mat(bad ? SAGOMA_NO : SAGOMA_OK);
+      const d = drawn.get(b.id); if (d) posaEdificio(b, d);
+    } else {
+      sagoma.visible = false;
+    }
   }
 
   // ---- stato dal server ----
@@ -285,6 +310,11 @@ export function createLotView(o: LotViewOptions): LotView {
     });
   };
   const conferma = () => {
+    if (panel?.kind === 'sposta_edificio') {
+      const { id, cell } = panel, b = buildingOf(id);
+      if (!b || (cell[0] === b.cell[0] && cell[1] === b.cell[1]) || sagomaEdificioProblema(id, cell)) return Promise.resolve(false);
+      return act(() => o.api.buildingMove(id, cell), () => { closePanel(); suona('martello'); o.hud.toast(`${buildingDef(b.building).nome}: spostato`, 1800); });
+    }
     if (panel?.kind !== 'sposta') return Promise.resolve(false);
     const { id, cell } = panel, d = decorOf(id);
     if (!d || (cell[0] === d.cell[0] && cell[1] === d.cell[1]) || sagomaProblema(id, cell)) return Promise.resolve(false);
@@ -294,13 +324,15 @@ export function createLotView(o: LotViewOptions): LotView {
   // ---- pannelli ----
   function closePanel(): void {
     const era = panel?.kind === 'sposta' ? panel.id : null;
+    const eraEdificio = panel?.kind === 'sposta_edificio' ? panel.id : null;
     panel = null; pick.visible = false; sagoma.visible = false;
     if (era) { const d = decorOf(era), rec = decorDrawn.get(era); if (d && rec) posaDecor(d, rec); } // ANNULLA: torna com'era
+    if (eraEdificio) { const b = buildingOf(eraEdificio), d = drawn.get(eraEdificio); if (b && d) posaEdificio(b, d); }
     if (S.owner === me) S.sheet.close();
   }
   function openDecor(id: string): boolean {
     if (ro || !decorOf(id)) return false;
-    if (panel?.kind === 'sposta') closePanel();
+    if (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') closePanel();
     panel = { kind: 'decor', id, vendi: false }; pick.visible = false; S.owner = me; renderPanel(); return true;
   }
   /** SPOSTA: la sagoma parte dalla cella di adesso; un tocco su una cella la sposta lì. */
@@ -312,6 +344,14 @@ export function createLotView(o: LotViewOptions): LotView {
     if (panel?.kind !== 'sposta') return;
     panel.cell = cell; syncSagoma(); renderPanel();
   }
+  function startSpostaBuilding(id: string): void {
+    const b = buildingOf(id); if (!b || ro || b.building === 'molo') return;
+    panel = { kind: 'sposta_edificio', id, cell: [b.cell[0], b.cell[1]] }; S.owner = me; syncSagoma(); renderPanel();
+  }
+  function scegliCellaEdificio(cell: [number, number]): void {
+    if (panel?.kind !== 'sposta_edificio') return;
+    panel.cell = cell; syncSagoma(); renderPanel();
+  }
   const dctx = (id: string): DecorCtx => ({
     busy,
     onSposta: () => startSposta(id), onRuota: () => void ruota(id), onVendi: () => void vendi(id),
@@ -320,12 +360,12 @@ export function createLotView(o: LotViewOptions): LotView {
   });
   function openBuilding(id: string): boolean {
     if (!lot?.buildings.some((b) => b.id === id)) return false;
-    if (panel?.kind === 'sposta') closePanel();
+    if (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') closePanel();
     panel = { kind: 'edificio', id }; pick.visible = false; S.owner = me; renderPanel(); return true;
   }
   function openBuild(cell: [number, number]): boolean {
-    if (ro || !lot || !isFree(cell) || !tpl.lots.some((c) => c.cx === cell[0] && c.cz === cell[1])) return false;
-    if (panel?.kind === 'sposta') closePanel();
+    if (ro || !lot || buildCellError(lot, cell, tpl) !== null) return false;
+    if (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') closePanel();
     const h = o.hint?.(), sug = h && h.cell[0] === cell[0] && h.cell[1] === cell[1] && buildable(lot).some((d) => d.id === h.building) ? h.building : null;
     panel = { kind: 'costruisci', cell, chosen: sug }; S.owner = me;
     const p = world(cell); pick.position.set(p.x, p.y + 0.04, p.z); pick.visible = true;
@@ -334,7 +374,8 @@ export function createLotView(o: LotViewOptions): LotView {
   const ctx = (): PanelCtx => ({
     lot: view ?? lot!, readonly: ro, hide: o.hide ?? [], ownerName: o.ownerName ?? o.owner ?? 'un amico', busy,
     onCollect: (id) => void collect(id), onUpgrade: (id) => void upgrade(id), onBuild: (b, c) => void build(b, c),
-    onChoose: (b) => { if (panel?.kind === 'costruisci') { panel.chosen = b; renderPanel(); } }, onClose: closePanel,
+    onChoose: (b) => { if (panel?.kind === 'costruisci') { panel.chosen = b; renderPanel(); } },
+    onSpostaBuilding: (id) => startSpostaBuilding(id), onClose: closePanel,
   });
   function renderPanel(): void {
     if (!panel || !view || S.owner !== me) return;
@@ -347,8 +388,19 @@ export function createLotView(o: LotViewOptions): LotView {
       if (!d) { closePanel(); return; }
       const p = panel.kind === 'decor' ? decorPanel(dctx(d.id), d, panel.vendi) : spostaPanel(dctx(d.id), d, panel.cell, sagomaProblema(d.id, panel.cell));
       S.sheet.open(`${panel.kind}:${d.id}:${panel.kind === 'sposta' ? panel.cell.join(',') : panel.vendi}`, p.body, p.sig);
+    } else if (panel.kind === 'sposta_edificio') {
+      const b = buildingOf(panel.id);
+      if (!b) { closePanel(); return; }
+      const bid = b.id;
+      const p = spostaBuildingPanel({
+        busy,
+        onConferma: () => void conferma(),
+        onAnnulla: () => { closePanel(); openBuilding(bid); },
+        onClose: closePanel,
+      }, b, panel.cell, sagomaEdificioProblema(b.id, panel.cell));
+      S.sheet.open(`sposta-edificio:${b.id}:${panel.cell.join(',')}`, p.body, p.sig);
     } else {
-      if (!isFree(panel.cell)) { closePanel(); return; }
+      if (buildCellError(view ?? lot, panel.cell, tpl) !== null) { closePanel(); return; }
       const p = buildPanel(ctx(), panel.cell, panel.chosen); S.sheet.open(`costruisci:${panel.cell.join(',')}:${panel.chosen ?? ''}`, p.body, p.sig);
     }
     S.sheet.tick(now());
@@ -411,9 +463,12 @@ export function createLotView(o: LotViewOptions): LotView {
     ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, o.camera);
     plane.constant = -gy((ox + tpl.w / 2) * T, (oz + tpl.h / 2) * T);
-    // SPOSTA (#108): il tocco sceglie la cella della sagoma (sul piano del lotto), niente altri pannelli
-    if (panel?.kind === 'sposta') {
-      if (ray.ray.intersectPlane(plane, hit)) scegliCella([Math.floor(hit.x / T) - ox, Math.floor(hit.z / T) - oz]);
+    // SPOSTA (#108, #382): il tocco sceglie la cella della sagoma (sul piano del lotto), niente altri pannelli
+    if (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') {
+      if (ray.ray.intersectPlane(plane, hit)) {
+        const c: [number, number] = [Math.floor(hit.x / T) - ox, Math.floor(hit.z / T) - oz];
+        if (panel.kind === 'sposta') scegliCella(c); else scegliCellaEdificio(c);
+      }
       return true;
     }
     const decorHolders = ro ? [] : [...decorDrawn.values()].map((d) => d.holder);
@@ -429,7 +484,7 @@ export function createLotView(o: LotViewOptions): LotView {
       if (dc) return openDecor(dc.id);
       const b = lot.buildings.find((x) => x.cell[0] === cell[0] && x.cell[1] === cell[1] && x.building !== 'molo');
       if (b) return openBuilding(b.id);
-      if (tpl.at(cell[0], cell[1]) === 'L' && openBuild(cell)) return true;
+      if (buildCellError(lot, cell, tpl) === null && openBuild(cell)) return true;
       const molo = lot.buildings.find((x) => x.building === 'molo');
       if (molo && tpl.at(cell[0], cell[1]) === 'd') return openBuilding(molo.id);
     }
@@ -476,7 +531,11 @@ export function createLotView(o: LotViewOptions): LotView {
         return { id: d.id, decor: d.decor, cell: d.cell, rot: d.rot ?? 0, model: decorDrawn.get(d.id)?.model ?? null, at: h ? { x: h.position.x, z: h.position.z } : null };
       }),
       nearDecor,
-      sagoma: panel?.kind === 'sposta' ? { id: panel.id, cell: panel.cell, visible: sagoma.visible, color: '#' + (sagoma.material as THREE.MeshLambertMaterial).color.getHexString().toUpperCase(), problema: sagomaProblema(panel.id, panel.cell) } : null,
+      sagoma: (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') ? {
+        id: panel.id, cell: panel.cell, visible: sagoma.visible,
+        color: '#' + (sagoma.material as THREE.MeshLambertMaterial).color.getHexString().toUpperCase(),
+        problema: panel.kind === 'sposta' ? sagomaProblema(panel.id, panel.cell) : sagomaEdificioProblema(panel.id, panel.cell),
+      } : null,
       slotSigns: [...slotLabels.values()].map((sl) => ({ cell: sl.cell, hint: sl.label.el.classList.contains('hint') })),
     };
   });
@@ -494,7 +553,7 @@ export function createLotView(o: LotViewOptions): LotView {
   registerTestHook('lotDecorRimborso', (decor) => decorRimborso(String(decor)));
   /** Azione diretta senza i controlli della UI (per vedere gli errori del server). */
   registerTestHook('lotAct' + sfx, async (kind, a, b) => {
-    const ok = kind === 'collect' ? await collect(String(a)) : kind === 'upgrade' ? await upgrade(String(a)) : await build(String(a), b as [number, number]);
+    const ok = kind === 'collect' ? await collect(String(a)) : kind === 'upgrade' ? await upgrade(String(a)) : kind === 'build' ? await build(String(a), b as [number, number]) : await act(() => o.api.buildingMove(String(a), b as [number, number]));
     return { ok, error: lastError };
   });
 
@@ -505,7 +564,7 @@ export function createLotView(o: LotViewOptions): LotView {
     tick(a, focus) {
       const pressA = a && !aWas; aWas = a;
       if (ro || disposed || !lot) return false;
-      if (panel?.kind === 'sposta' && S.owner === me) { if (pressA) void conferma(); return true; }
+      if ((panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') && S.owner === me) { if (pressA) void conferma(); return true; }
       if (panel && S.owner === me) { nearDecor = null; return panel.kind === 'decor'; }
       nearDecor = null;
       if (focus && !busy && !document.querySelector('#mzSheet.on')) {

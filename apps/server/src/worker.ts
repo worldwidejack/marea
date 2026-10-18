@@ -312,6 +312,13 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, azione[1] ?? '', body);
       }
+      // edifici liberi (#382): sposta (solo la propria isola: il DO è quello della persona)
+      const bld = path.match(/^\/api\/lot\/(?:building\/move|move)$/);
+      if (bld && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'building_move', { id: body['id'], cell: body['cell'] });
+      }
       // decorazioni libere (#108): sposta, ruota, rivendi (solo le proprie: il DO è quello della persona)
       const dec = path.match(/^\/api\/lot\/decor\/(move|rotate|sell)$/);
       if (dec && req.method === 'POST') {

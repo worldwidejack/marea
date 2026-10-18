@@ -83,6 +83,8 @@ export type Api = {
   collect(building: string): Promise<LotState>;
   build(building: string, cell: Cell): Promise<LotState>;
   upgrade(building: string): Promise<LotState>;
+  /** Edifici liberi (#382): sposta in una cella libera dell'isola. */
+  buildingMove(id: string, cell: Cell): Promise<LotState>;
   decor(decor: string, cell: Cell, rot: number): Promise<LotState>;
   /** Decorazioni libere (#108): sposta in una cella, ruota di 90°, rivendi (metà delle Perle). */
   decorMove(id: string, cell: Cell): Promise<LotState>;
@@ -266,6 +268,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     collect: (building) => post('/api/lot/collect', { building }),
     build: (building, cell) => post('/api/lot/build', { building, cell }),
     upgrade: (building) => post('/api/lot/upgrade', { building }),
+    buildingMove: (id, cell) => post('/api/lot/building/move', { id, cell }),
     decor: (decor, cell, rot) => post('/api/lot/decor', { decor, cell, rot }),
     decorMove: (id, cell) => post('/api/lot/decor/move', { id, cell }),
     decorRotate: (id) => post('/api/lot/decor/rotate', { id }),

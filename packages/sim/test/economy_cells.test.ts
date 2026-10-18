@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AVATAR } from '@marea/content';
-import { build, buyHat, newLot, ownsHat, placeDecor } from '../src/economy/actions.ts';
+import { build, buyHat, moveBuilding, newLot, ownsHat, placeDecor } from '../src/economy/actions.ts';
 import { buildCellError, cellsOf, dockCell, fitToTemplate, lotTemplate, tileAt } from '../src/economy/cells.ts';
 import type { LotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
@@ -32,13 +32,14 @@ test('template: il Molo iniziale sta sul primo `d`, le celle L sono gli slot', (
   assert.deepEqual(lot.holds, {});
 });
 
-test('build: solo celle L libere del template; decor: solo sabbia/erba libere', () => {
+test('build: entro i limiti dell’isola (erba, sabbia, L); decor: solo sabbia/erba libere', () => {
   let lot = newLot('a', 0, T);
-  for (const bad of [[0, 0], [4, 3], [4, 6], [4, 5], [2, 2], [99, 1], [-1, 2]] as [number, number][])
+  for (const bad of [[0, 0], [4, 3], [4, 6], [4, 5], [1, 6], [99, 1], [-1, 2]] as [number, number][])
     assert.throws(() => build(lot, 'segheria', bad, 0, T), isErr('posizione'), `cella ${bad} accettata`);
-  lot = build(lot, 'segheria', L[0]!, 0, T);
-  assert.equal(buildCellError(lot, L[0]!, T)?.code, 'cella');
-  assert.throws(() => build({ ...lot, construction: null }, 'cava', L[0]!, 0, T), isErr('cella'));
+  // posizionamento su erba libera accettato (#382)
+  lot = build(lot, 'segheria', [2, 2], 0, T);
+  assert.equal(buildCellError(lot, [2, 2], T)?.code, 'cella');
+  assert.throws(() => build({ ...lot, construction: null }, 'cava', [2, 2], 0, T), isErr('cella'));
   const rich = { ...lot, resources: { ...lot.resources, perle: 50 }, ledger: { ...lot.ledger, generated: { ...lot.ledger.generated, perle: 50 } } };
   for (const bad of [L[1]!, [4, 6], [4, 5], [4, 3], [0, 0]] as [number, number][])
     assert.throws(() => placeDecor(rich, 'barile', bad, 0, 0, 5, T), isErr('posizione'), `decor su ${bad} accettata`);
@@ -46,6 +47,27 @@ test('build: solo celle L libere del template; decor: solo sabbia/erba libere', 
   const d = placeDecor(rich, 'barile', [1, 1], 0, 0, 5, T);
   assert.equal(d.resources.perle, 45);
   assert.equal(checkInvariant([d]), null);
+});
+
+test('moveBuilding: sposta gli edifici a piacimento sul lotto (#382)', () => {
+  let lot = newLot('a', 0, T);
+  lot = build(lot, 'segheria', L[0]!, 0, T);
+  const placed = lot.buildings.find((b) => b.building === 'segheria')!;
+  // Sposta su erba libera [2, 2]
+  lot = moveBuilding(lot, placed.id, [2, 2], 100, T);
+  assert.deepEqual(lot.buildings.find((b) => b.id === placed.id)!.cell, [2, 2]);
+  // Stessa cella: invariato
+  assert.equal(moveBuilding(lot, placed.id, [2, 2], 100, T), lot);
+  // Cella fuori isola o roccia: errore posizione
+  assert.throws(() => moveBuilding(lot, placed.id, [0, 0], 100, T), isErr('posizione'));
+  assert.throws(() => moveBuilding(lot, placed.id, [4, 3], 100, T), isErr('posizione'));
+  // Non si sposta il molo
+  assert.throws(() => moveBuilding(lot, 'molo', [2, 2], 100, T), isErr('posizione'));
+  // Edificio sconosciuto
+  assert.throws(() => moveBuilding(lot, 'inesistente', [2, 2], 100, T), isErr('sconosciuto'));
+  // Cella occupata da decorazione
+  const withDecor = placeDecor({ ...lot, resources: { ...lot.resources, perle: 50 } }, 'barile', [1, 1], 0, 100, 5, T);
+  assert.throws(() => moveBuilding(withDecor, placed.id, [1, 1], 100, T), isErr('cella'));
 });
 
 test('senza template (null) le celle non si validano; col template vero di islands.json il Molo sta su un `d`', () => {
