@@ -7,6 +7,7 @@ import type { StanzaFinitura } from '@marea/content';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
+import { creaPortale } from '../render/portale.ts';
 
 let disegniPromise: Promise<typeof import('./finiture_disegni.ts')> | null = null;
 let disegniMod: typeof import('./finiture_disegni.ts') | null = null;
@@ -81,7 +82,6 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
     painted(new THREE.BoxGeometry(lw, 0.25, 0.12), P.legnoScuro, M(X0 * T + lw / 2, 0.12, Z0 * T + 0.06)),
     painted(new THREE.BoxGeometry(0.12, 0.25, ld), P.legnoScuro, M(X0 * T + 0.06, 0.12, Z0 * T + ld / 2)),
     painted(new THREE.BoxGeometry(0.12, 0.25, ld), P.legnoScuro, M(X1 * T - 0.06, 0.12, Z0 * T + ld / 2)),
-    ...(p.retro !== null ? porta((p.retro + 0.5) * T, 0, Z0 * T + 0.05) : []),
     ...(p.corridoio ? [
       // bordo del pavimento a sinistra e a destra del corridoio (pietra scura, mezzo metro: si vede il «taglio»)
       painted(new THREE.BoxGeometry(xa - X0 * T + SPESSORE, 0.55, 0.3), P.roccia, M((X0 * T - SPESSORE + xa) / 2, -0.25, zf + 0.15)),
@@ -94,6 +94,11 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
     ]),
   ];
   group.add(new THREE.Mesh(merged(parti), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+  if (p.retro !== null) {
+    const portale = creaPortale({ x: (p.retro + 0.5) * T, y: 0.02, z: Z0 * T + 0.05, ry: 0 });
+    portale.name = 'portale_retro';
+    group.add(portale);
+  }
   const buio = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshBasicMaterial({ color: P.neroCaldo }));
   buio.rotation.x = -Math.PI / 2; buio.position.set(X0 * T + lw / 2, -0.6, Z0 * T + ld / 2); group.add(buio);
   let fp: StanzaFinitura | null = null, fc: StanzaFinitura | null = null;

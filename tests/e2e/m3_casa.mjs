@@ -1,7 +1,7 @@
 // La casa alla Animal Crossing (#265), senza server (net=0, casa 3 = la tua): si entra camminando contro la porta (velo nero a scalini),
-// dentro la camera è fissa sopra l'ingresso (yaw 0) e la minimappa sparisce; in fondo alla stanza si va in giardino camminando contro la
-// porta, nel passaggio coperto si torna in casa, in fondo al corridoio si esce in città e tutto torna com'era.
-// Screenshot: stanza da telefono e da PC (da confrontare con la reference di Animal Crossing), giardino col passaggio, ritorno in città.
+// dentro la camera è fissa sopra l'ingresso (yaw 0) e la minimappa sparisce; in fondo alla stanza si va in giardino camminando contro il
+// portale, nel portale sul pontile si torna in casa, in fondo al corridoio si esce in città e tutto torna com'era.
+// Screenshot: stanza da telefono e da PC (da confrontare con la reference di Animal Crossing), giardino col portale, ritorno in città.
 export const timeout = 180000;
 
 export default async function (ctx) {
@@ -65,23 +65,24 @@ export default async function (ctx) {
       assert(Math.abs(q.stanza.camera.yaw - yaw0) < 1e-6, 'camera non tornata com\'era: ' + JSON.stringify(q.stanza.camera));
     });
 
-    await ctx.test(`${nome}: contro la porta in fondo si va in giardino; nel passaggio coperto si torna in casa`, async () => {
-      await cammina(p.page, ['ArrowUp'], (q) => q.stanza.dentro === null && q.velo.passaggi >= 2, 20000);
+    await ctx.test(`${nome}: contro il portale in fondo si va in giardino; nel portale sul pontile si torna in casa`, async () => {
+      await cammina(p.page, ['ArrowUp'], (q) => q.velo.attivo, 20000);
       await fine(p.page);
       let q = await st(p.page);
       assert(q.arch.place === 'lotto' && !q.mappa.mini, 'in giardino: ' + JSON.stringify({ place: q.arch.place, mini: q.mappa.mini }));
       await p.page.waitForTimeout(600);
       await ctx.shot(p.page, `${nome}_giardino`);
-      // la bocca del passaggio guarda a est: ci si torna camminando verso ovest
-      const torna = await st(p.page);
-      await cammina(p.page, frecce(Math.PI / 4, -1, 0), (s, slot) => s.stanza.dentro === slot, 20000, SLOT);
+      // il portale sta a sud sul pontile: ci si torna camminando verso il portale
+      const torna = await st(p.page), porta = torna.borgo.porte.find((x) => x.slot === SLOT);
+      const dx = porta.giardino.x - torna.avatar.x, dz = porta.giardino.z - torna.avatar.z;
+      await cammina(p.page, frecce(Math.PI / 4, dx, dz), (s, slot) => s.stanza.dentro === slot, 20000, SLOT);
       await fine(p.page);
       q = await st(p.page);
-      assert(q.velo.passaggi > torna.velo.passaggi, 'passaggio del giardino senza velo');
+      assert(q.velo.passaggi > torna.velo.passaggi, 'portale del giardino senza velo');
     });
 
     await ctx.test(`${nome}: in fondo al corridoio si esce in città, la camera e la minimappa tornano`, async () => {
-      await cammina(p.page, ['ArrowDown'], (q) => q.stanza.dentro === null && q.arch.place === 'porto', 20000);
+      await cammina(p.page, ['ArrowDown'], (q) => q.velo.attivo, 20000);
       await fine(p.page);
       await ctx.waitState(p.page, (q) => q.mappa.mini, 5000);
       const q = await st(p.page), porta = q.borgo.porte.find((x) => x.slot === SLOT);
