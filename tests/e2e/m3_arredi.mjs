@@ -144,7 +144,8 @@ export default async function (ctx) {
       await ctx.shot(V.page, 'telefono_stanza_arredata');
       await V.page.locator('#mzArredaBtn').tap();
       await ctx.waitState(V.page, (q) => q.arreda.aperto, 3000);
-      const piccoli = await V.page.evaluate(() => [...document.querySelectorAll('#mzArreda button, #mzArredaBtn')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 24), w: Math.round(r.width), h: Math.round(r.height), fuori: r.left < 0 || r.right > innerWidth || r.bottom > innerHeight }; }).filter((r) => r.w < 44 || r.h < 44 || r.fuori));
+      // il pannello può scorrere (dal #389 ogni finitura ha la sua descrizione): un bottone sotto il bordo dello schermo va bene se sta dentro un contenitore che scorre
+      const piccoli = await V.page.evaluate(() => { const scorre = (b) => { for (let e = b.parentElement; e; e = e.parentElement) { if (/(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight) return true; } return false; }; return [...document.querySelectorAll('#mzArreda button, #mzArredaBtn')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 24), w: Math.round(r.width), h: Math.round(r.height), fuori: r.left < 0 || r.right > innerWidth || (r.bottom > innerHeight && !scorre(b)) }; }).filter((r) => r.w < 44 || r.h < 44 || r.fuori); });
       assert(!piccoli.length, 'bottoni piccoli o fuori: ' + JSON.stringify(piccoli));
       await ctx.shot(V.page, 'telefono_arreda');
       ctx.noErrors(V.pg, 'telefono');
