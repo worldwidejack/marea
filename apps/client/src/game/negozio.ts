@@ -216,9 +216,17 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   };
   const chiudi = () => { aperto = null; nota = ''; sheet.classList.remove('on'); sheet.replaceChildren(); };
   const gia = (p: Pezzo): boolean => (p.kind === 'pavimento' || p.kind === 'carta') && possiedeFinitura(o.getLot(), p.kind, p.id);
-  /** Le descrizioni dei mobili (mobili_testi.json): si scaricano alla prima scheda, non pesano sull'avvio. */
+  /** Le descrizioni dei mobili e delle finiture: si scaricano alla prima scheda, non pesano sull'avvio. */
   let testi: Record<string, string> | null = null;
-  const caricaTesti = () => { if (!testi) { testi = {}; void import('@marea/content/mobili_testi.json', { with: { type: 'json' } }).then((m) => { testi = (m.default as { testi: Record<string, string> }).testi; ridisegna(); }).catch(() => {}); } };
+  const caricaTesti = () => {
+    if (!testi) {
+      testi = {};
+      void Promise.all([
+        import('@marea/content/mobili_testi.json', { with: { type: 'json' } }).then((m) => (m.default as { testi: Record<string, string> }).testi).catch(() => ({})),
+        import('@marea/content/finiture_testi.json', { with: { type: 'json' } }).then((m) => (m.default as { testi: Record<string, string> }).testi).catch(() => ({})),
+      ]).then(([m1, m2]) => { testi = { ...m1, ...m2 }; ridisegna(); }).catch(() => {});
+    }
+  };
   const ridisegna = () => { if (aperto) scheda(aperto); };
   const celleDi = (m: MobileDef): number => m.posto === 'parete' ? 1 : (m.celle?.[0] ?? 1) * (m.celle?.[1] ?? 1);
   const dove = (m: MobileDef): string => m.posto === 'parete' ? 'Si appende al muro' : celleDi(m) > 1 ? `Per terra: occupa ${celleDi(m)} celle` : 'Per terra: occupa una cella';
@@ -248,7 +256,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     b.disabled = g || busy || !o.api;
     b.addEventListener('click', () => void compra(p));
     const corpo: Node[] = [testata(p.nome)];
-    if (m && testi?.[m.id]) corpo.push(el('div', 'prezzo', testi[m.id]!));
+    if (testi?.[p.id]) corpo.push(el('div', 'prezzo', testi[p.id]!));
     if (m) corpo.push(el('div', 'prezzo', dove(m)));
     corpo.push(prezzo);
     const mag = m ? casaDi(l).magazzino?.[m.id] : 0;

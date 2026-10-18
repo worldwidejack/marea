@@ -104,6 +104,16 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     else await fai(() => o.api!.casa('baule', { cell: p.cell }), () => { o.hud.toast('Baule spostato', 1600); fine(); });
   };
 
+  let finitureTesti: Record<string, string> | null = null;
+  const caricaFinitureTesti = () => {
+    if (!finitureTesti) {
+      finitureTesti = {};
+      void import('@marea/content/finiture_testi.json', { with: { type: 'json' } })
+        .then((m) => { finitureTesti = (m.default as { testi: Record<string, string> }).testi; if (aperto) apri(); })
+        .catch(() => {});
+    }
+  };
+
   // ——— il pannello: magazzino, pavimento, carta ———
   const riga = (testo: string, azione: string | null, fn: () => void, attuale = false) => {
     const b = el('button', 'mz-btn', ''); b.type = 'button';
@@ -115,6 +125,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
   function apri(): void {
     const l = lot(); if (!l) return;
     aperto = true;
+    caricaFinitureTesti();
     const c = casaDi(l), mag = c.magazzino ?? {}, scelte = finitureScelte(l);
     const testa = el('div', 'mz-row'); testa.style.alignItems = 'center';
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudi);
@@ -129,6 +140,11 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
       for (const f of lista) if (possiedeFinitura(l, tipo, f.id)) {
         const r = riga(f.nome, 'METTI', () => void fai(() => o.api!.casa('scegli', { tipo, id: f.id }), () => apri()), scelte[tipo] === f.id);
         r.dataset['finitura'] = `${tipo}:${f.id}`; corpo.push(r);
+        if (finitureTesti?.[f.id]) {
+          const d = el('div', 'vuoto', finitureTesti[f.id]!);
+          d.style.margin = '-4px 0 8px 12px'; d.style.fontSize = '12px'; d.style.fontStyle = 'italic';
+          corpo.push(d);
+        }
       }
     }
     if (baule(l) && inStanza(baule(l)!.cell)) corpo.push(el('h3', '', 'Baule'), riga('Sposta il baule', 'SPOSTA', () => inizia({ kind: 'baule' })));

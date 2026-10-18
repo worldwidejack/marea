@@ -8,53 +8,32 @@ import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
 
+let disegniPromise: Promise<typeof import('./finiture_disegni.ts')> | null = null;
+let disegniMod: typeof import('./finiture_disegni.ts') | null = null;
+
+export function caricaDisegni(): Promise<typeof import('./finiture_disegni.ts')> {
+  return (disegniPromise ??= import('./finiture_disegni.ts').then((m) => {
+    disegniMod = m;
+    return m;
+  }));
+}
+
 export const SPESSORE = 0.3;
 /** Inquadratura degli interni: da sud (yaw 0), dall'alto (pitch), FOV un po' più largo della diorama. */
 export const VISTA = { yaw: 0, pitch: (54 * Math.PI) / 180, fov: 36 };
 /** Cose del mondo che dentro non si vedono (nomi delle mesh): animali, lucciole, pioggia, acqua «stampa», lampadine. */
 export const NASCOSTI_DENTRO = ['animali', 'lucciole', 'pioggia', 'acqua_stile', 'luci'] as const;
 
-/** Texture a pixel di un pavimento o di una carta da parati: 16×16 texel per cella (pavimento, 2 m) o per metro (carta). */
+/** Texture a pixel di un pavimento o di una carta da parati: 16×16 o 32×32 texel per cella (pavimento, 2 m) o per metro (carta). */
 export function texture(f: StanzaFinitura): THREE.CanvasTexture {
-  const c = document.createElement('canvas'); c.width = 16; c.height = 16;
-  const g = c.getContext('2d')!, [a = P.pietraChiara, b = P.pietra, k = P.pietraScura] = f.colori;
-  const px = (col: string, x: number, y: number, w = 1, h = 1) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
-  if (f.motivo === 'rombi') {
-    px(a, 0, 0, 16, 16);
-    for (let y = 0; y < 16; y++) { const d = Math.abs(8 - y); px(b, d, y, 16 - 2 * d, 1); }
-    for (let y = 0; y < 16; y++) { const d = Math.abs(8 - y); px(k, d, y); px(k, 15 - d, y); }
-  } else if (f.motivo === 'listelli') { // parquet: listelli orizzontali sfalsati
-    px(a, 0, 0, 16, 16);
-    for (let y = 0; y < 16; y += 4) { px(k, 0, y, 16, 1); px(b, 0, y + 2, 16, 1); const o = (y / 4) % 2 ? 4 : 12; px(k, o, y, 1, 4); px(k, (o + 8) % 16, y, 1, 4); }
-  } else if (f.motivo === 'stuoia') { // stuoia di bambù: canne verticali sottili con le legature
-    px(a, 0, 0, 16, 16);
-    for (let x = 0; x < 16; x += 2) px(x % 4 ? b : a, x, 0, 1, 16);
-    for (let x = 0; x < 16; x += 4) px(k, x, 0, 1, 16);
-    px(k, 0, 5, 16, 1); px(k, 0, 13, 16, 1);
-  } else if (f.motivo === 'lastre') { // lastre di pietra grandi, fughe scure
-    px(a, 0, 0, 16, 16); px(b, 9, 1, 6, 6); px(b, 1, 10, 5, 5);
-    px(k, 0, 0, 16, 1); px(k, 0, 0, 1, 16); px(k, 8, 0, 1, 9); px(k, 0, 8, 16, 1); px(k, 7, 8, 1, 8);
-  } else if (f.motivo === 'righe') { // carta a righe verticali larghe con un filo scuro
-    px(a, 0, 0, 16, 16); px(b, 4, 0, 4, 16); px(b, 12, 0, 4, 16); px(k, 8, 0, 1, 16); px(k, 0, 0, 1, 16);
-  } else if (f.motivo === 'mattoni') { // muro di pietra: blocchi sfalsati con la malta chiara
-    px(a, 0, 0, 16, 16);
-    for (let y = 0; y < 16; y += 4) { px(k, 0, y + 3, 16, 1); const o = (y / 4) % 2 ? 4 : 0; px(k, o, y, 1, 3); px(k, o + 8, y, 1, 3); px(b, o + 1, y, 2, 1); }
-  } else if (f.motivo === 'perline') { // perline di legno: assi verticali con la scanalatura
-    px(a, 0, 0, 16, 16);
-    for (let x = 0; x < 16; x += 4) { px(k, x, 0, 1, 16); px(b, x + 1, 0, 1, 16); }
-    px(k, 6, 4, 1, 1); px(k, 14, 11, 1, 1);
-  } else if (f.motivo === 'assi') { // assi di legno per lungo, con le fughe e i chiodi (il corridoio)
-    px(a, 0, 0, 16, 16);
-    for (let x = 0; x < 16; x += 4) { px(k, x, 0, 1, 16); px(b, x + 1, 0, 1, 16); }
-    for (const [x, y] of [[2, 3], [6, 11], [10, 5], [14, 13]] as const) px(k, x, y);
-    px(k, 0, 7, 4, 1); px(k, 8, 13, 4, 1);
-  } else { // 'scacchi' (di serie): quattro piastrelle per cella, fuga scura
-    px(a, 0, 0, 16, 16); px(b, 8, 0, 8, 8); px(b, 0, 8, 8, 8);
-    px(k, 0, 0, 16, 1); px(k, 0, 8, 16, 1); px(k, 0, 0, 1, 16); px(k, 8, 0, 1, 16);
-  }
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d')!;
+  g.fillStyle = f.colori[0] ?? P.pietraChiara; g.fillRect(0, 0, 32, 32);
+  if (disegniMod) disegniMod.disegnaFinituraSuCanvas(c, f);
   const t = new THREE.CanvasTexture(c);
   t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  if (!disegniMod) void caricaDisegni().then((m) => { m.disegnaFinituraSuCanvas(c, f); t.needsUpdate = true; });
   return t;
 }
 export const ASSI: StanzaFinitura = { id: 'assi', nome: 'Assi', motivo: 'assi', colori: [P.legnoChiaro, P.legno, P.legnoScuro] };

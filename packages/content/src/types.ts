@@ -77,7 +77,7 @@ export type BorgoDef = {
   pavimenti: StanzaFinitura[]; carte: StanzaFinitura[];
 };
 /** `perle`: prezzo al negozio dei mobili (#265); assente o 0 = di serie, di tutti. */
-export type StanzaFinitura = { id: string; nome: string; motivo: string; colori: string[]; perle?: number };
+export type StanzaFinitura = { id: string; nome: string; motivo?: string; colori: string[]; perle?: number };
 /** Un mobile della casa (#265, mobili.json): `posto` terra (celle del pavimento) o parete (una cella di muro), `forma` = render/mobili.ts (assente: scatola di ripiego).
  * `categoria` = una di MOBILI_CATEGORIE (catalogo del negozio); `celle` = ingombro a terra [larghezza, profondità] in celle (default [1,1], a parete sempre 1);
  * `altezza` (m) serve solo alla scatola di ripiego. Ogni mobile può finire nella vetrina del giorno (economy/vetrina.ts). Il modello 3D è `mob_<id>` in manifest_mobili.json.
