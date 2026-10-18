@@ -315,9 +315,20 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, azione[1] ?? '', body);
       }
-      // edifici liberi (#382): sposta (solo la propria isola: il DO è quello della persona)
-      const bld = path.match(/^\/api\/lot\/(?:building\/move|move)$/);
+      // edifici liberi (#382, #403): sposta, ruota, riponi, riponi_tutto, posa_magazzino, disposizione
+      const bld = path.match(/^\/api\/lot\/building\/(move|rotate|stow|stow_all|place_stored|layout)$/);
       if (bld && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const act = bld[1];
+        if (act === 'move') return lotReq(env, p.id, now, 'building_move', { id: body['id'], cell: body['cell'] });
+        if (act === 'rotate') return lotReq(env, p.id, now, 'building_rotate', { id: body['id'] });
+        if (act === 'stow') return lotReq(env, p.id, now, 'building_stow', { id: body['id'] });
+        if (act === 'stow_all') return lotReq(env, p.id, now, 'building_stow_all', {});
+        if (act === 'place_stored') return lotReq(env, p.id, now, 'building_place_stored', { id: body['id'], cell: body['cell'], rot: body['rot'] });
+        if (act === 'layout') return lotReq(env, p.id, now, 'building_layout', { placed: body['placed'], stowed: body['stowed'] });
+      }
+      if (path === '/api/lot/move' && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, 'building_move', { id: body['id'], cell: body['cell'] });

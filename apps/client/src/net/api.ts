@@ -83,8 +83,13 @@ export type Api = {
   collect(building: string): Promise<LotState>;
   build(building: string, cell: Cell): Promise<LotState>;
   upgrade(building: string): Promise<LotState>;
-  /** Edifici liberi (#382): sposta in una cella libera dell'isola. */
+  /** Edifici liberi (#382, #403): sposta, ruota di 90°, riponi nel magazzino, riponi tutti, posa dal magazzino, salva intera disposizione. */
   buildingMove(id: string, cell: Cell): Promise<LotState>;
+  buildingRotate(id: string): Promise<LotState>;
+  buildingStow(id: string): Promise<LotState>;
+  buildingStowAll(): Promise<LotState>;
+  buildingPlaceStored(id: string, cell: Cell, rot?: number): Promise<LotState>;
+  buildingLayout(layout: { placed: { id: string; cell: Cell; rot?: number }[]; stowed?: string[] }): Promise<LotState>;
   decor(decor: string, cell: Cell, rot: number): Promise<LotState>;
   /** Decorazioni libere (#108): sposta in una cella, ruota di 90°, rivendi (metà delle Perle). */
   decorMove(id: string, cell: Cell): Promise<LotState>;
@@ -269,6 +274,11 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     build: (building, cell) => post('/api/lot/build', { building, cell }),
     upgrade: (building) => post('/api/lot/upgrade', { building }),
     buildingMove: (id, cell) => post('/api/lot/building/move', { id, cell }),
+    buildingRotate: (id) => post('/api/lot/building/rotate', { id }),
+    buildingStow: (id) => post('/api/lot/building/stow', { id }),
+    buildingStowAll: () => post('/api/lot/building/stow_all', {}),
+    buildingPlaceStored: (id, cell, rot) => post('/api/lot/building/place_stored', { id, cell, rot }),
+    buildingLayout: (layout) => post('/api/lot/building/layout', layout),
     decor: (decor, cell, rot) => post('/api/lot/decor', { decor, cell, rot }),
     decorMove: (id, cell) => post('/api/lot/decor/move', { id, cell }),
     decorRotate: (id) => post('/api/lot/decor/rotate', { id }),

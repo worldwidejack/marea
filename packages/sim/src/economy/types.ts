@@ -3,7 +3,9 @@ import type { DungeonLotState, HeroState } from '../rpg/types.ts';
 export type { Resources };
 
 import type { CasaState } from './casa.ts';
-export type PlacedBuilding = { id: string; building: string; level: number; cell: [number, number]; buffer: number; lastMs: number };
+export type PlacedBuilding = { id: string; building: string; level: number; cell: [number, number]; buffer: number; lastMs: number; rot?: number };
+/** Edificio riposto nel magazzino dell'isola (#403). */
+export type StoredBuilding = { id: string; building: string; level: number; buffer: number; lastMs: number; rot?: number };
 /** Decorazione posata. `rot` = quarti di giro (0-3) attorno all'asse verticale; assente = 0 (#108). */
 export type PlacedDecor = { id: string; decor: string; cell: [number, number]; rot?: number };
 export type Construction = { building: string; level: number; endsMs: number; placedId: string };
@@ -46,6 +48,8 @@ export type LotState = {
   nowMs: number;
   resources: Resources;
   buildings: PlacedBuilding[];
+  /** Edifici riposti nel magazzino dell'isola (#403): assente = []. */
+  magazzinoEdifici?: StoredBuilding[];
   construction: Construction | null;
   decor: PlacedDecor[];
   escrow: Resources;
