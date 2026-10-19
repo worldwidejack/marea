@@ -79,15 +79,13 @@ function wsRifiuta(code: 'token' | 'interno', msg: string): Response {
 }
 
 /** Richiesta interna a un DO: proprietario in x-persona, ora del server (eventualmente di test) in x-now. */
-function doReq(ns: DurableObjectNamespace, name: string, persona: string, now: number, path: string, body?: unknown, nome?: string): Promise<Response> {
-  const headers: Record<string, string> = { 'x-persona': persona, 'x-now': String(now), 'content-type': 'application/json' };
-  if (nome) headers['x-persona-nome'] = encodeURIComponent(nome);
+function doReq(ns: DurableObjectNamespace, name: string, persona: string, now: number, path: string, body?: unknown): Promise<Response> {
   return ns.get(ns.idFromName(name)).fetch(new Request('https://do/' + path, {
     method: body === undefined ? 'GET' : 'POST', body: body === undefined ? undefined : JSON.stringify(body),
-    headers,
+    headers: { 'x-persona': persona, 'x-now': String(now), 'content-type': 'application/json' },
   }));
 }
-const lotReq = (env: Env, owner: string, now: number, path: string, body?: unknown, nome?: string) => doReq(env.LOT, owner, owner, now, path, body, nome);
+const lotReq = (env: Env, owner: string, now: number, path: string, body?: unknown) => doReq(env.LOT, owner, owner, now, path, body);
 const sfideReq = (env: Env, me: string, now: number, path: string, body?: unknown) => doReq(env.SFIDE, 'tavolo', me, now, path, body);
 /** Look nuovo alla zona `porto` (i socket vivi di quella persona lo mandano nel prossimo snap), col titolo del diario se c'è (#87). Best-effort: se fallisce, pazienza. */
 async function avvisaZona(env: Env, persona: string, look: LookSalvato): Promise<void> {
@@ -276,7 +274,6 @@ export default {
         await salvaNome(env, p.id, nome);
         p.nome = nome;
         await avvisaZonaNome(env, p.id, nome);
-        if (nome.toLowerCase() === 'riccc') await lotReq(env, p.id, now, 'state', undefined, nome);
         return json({ ok: true, nome });
       }
       if (path === '/api/look/hat' && req.method === 'POST') {
@@ -308,7 +305,7 @@ export default {
         if (typeof id !== 'string' || !coloreBarca(id)) return json({ error: 'Colore sconosciuto' }, 400);
         return lotReq(env, p.id, now, 'barca', { id });
       }
-      if (path === '/api/lot' && req.method === 'GET') return sincIndossa(env, p, await lotReq(env, p.id, now, 'state', undefined, p.nome));
+      if (path === '/api/lot' && req.method === 'GET') return sincIndossa(env, p, await lotReq(env, p.id, now, 'state'));
       const azione = path.match(/^\/api\/lot\/(collect|build|upgrade|decor)$/);
       if (azione && req.method === 'POST') {
         const body = await corpo();
