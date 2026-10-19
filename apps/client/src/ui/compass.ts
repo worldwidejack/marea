@@ -20,8 +20,8 @@ import { registerStateProvider } from '../test/testapi.ts';
  *  `group`: chiave della casella condivisa da più mete che non si vedono mai insieme (i dungeon: spegnerne uno li spegne tutti).
  *  `sezione`: id di una `CompassSezione`: la meta sta nella riga richiudibile di quella sezione.
  *  `navi`: meta del navigatore (una sola): `label`, `x`, `z` letti a ogni frame; toccando la riga si chiama `togli`. */
-export type CompassTarget = { id: string; label: string; x: number; z: number; icon?: PixId; show?(): boolean; group?: string; sezione?: string; navi?: boolean; togli?(): void };
-export type CompassSezione = { id: string; nome: string; icon: PixId };
+export type CompassTarget = { id: string; label: string; x: number; z: number; icon?: PixId; show?(): boolean; group?: string; sezione?: string; navi?: boolean; togli?(): void; desc?: string | (() => string) };
+export type CompassSezione = { id: string; nome: string; icon: PixId; desc?: string | (() => string) };
 export type Compass = { update(me: { x: number; z: number }, cameraYaw: number, t?: number): void; focus(id: string | null): void; dispose(): void };
 
 const NEAR_M = 30; // entro questa distanza la meta si vede già: niente freccia nella riga
@@ -64,6 +64,14 @@ const CSS = `
 .mz-mete-row .mz-mete-x { color: ${P.sabbiaChiara}; font-size: 16px; }
 .mz-mete-row.sez.aperta { border-color: ${P.sabbia}; }
 .mz-mete-arr { display: inline-block; color: ${P.giallo}; width: 16px; height: 20px; flex: none; }
+.mz-mete-info { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; border: 1.5px solid ${P.legnoChiaro}; color: ${P.giallo}; font-size: 11px; font-weight: bold; flex: none; cursor: pointer; user-select: none; line-height: 1; margin-left: 2px; }
+.mz-mete-info:hover { border-color: ${P.giallo}; color: ${P.sabbiaChiara}; } .mz-mete-info.on { background: ${P.giallo}; color: ${P.neroCaldo}; border-color: ${P.giallo}; }
+.mz-mete-desc { display: none; flex-direction: column; gap: 4px; padding: 6px 8px; margin: 0 0 2px; border-radius: 4px; ${BOX} font-size: 12px; line-height: 1.3; max-width: 250px; box-sizing: border-box; flex: none; }
+.mz-mete-desc.figlio { margin-left: 14px; border-color: ${P.legno}; }
+.mz-mete-desc-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-weight: bold; }
+.mz-mete-desc-tit { font-size: 13px; color: ${P.giallo}; font-weight: bold; }
+.mz-mete-desc-x { cursor: pointer; font-size: 16px; line-height: 1; color: ${P.sabbiaChiara}; padding: 0 4px; flex: none; } .mz-mete-desc-x:hover { color: ${P.giallo}; }
+.mz-mete-desc-txt { color: ${P.sabbiaChiara}; font-weight: normal; font-size: 12px; white-space: normal; word-break: break-word; }
 @media (max-width: 699px) {
   #compass { top: calc(max(8px, env(safe-area-inset-top)) + 158px); bottom: calc(40% + 16px); }
   #compass .nome, #compass .mz-mete-lbl { display: none; }
@@ -71,6 +79,8 @@ const CSS = `
   .mz-mete-row { min-height: 40px; }
   .mz-mete-row.sez .mz-mete-apri, .mz-mete-row .mz-mete-x { min-width: 36px; }
   .mz-mete-row.figlio { margin-left: 10px; }
+  .mz-mete-info { width: 22px; height: 22px; min-width: 22px; min-height: 22px; font-size: 12px; }
+  .mz-mete-desc { max-width: calc(100vw - 32px); font-size: 13px; } .mz-mete-desc.figlio { margin-left: 10px; }
 }
 #mzMetePtr { position: absolute; left: 0; top: 0; display: none; z-index: 12; pointer-events: none !important; }
 #mzMetePtr.on { display: block; }
@@ -90,8 +100,26 @@ const arrowEl = (cls: string) => { const a = span(cls); a.innerHTML = ARROW_SVG;
 const guard = (e: HTMLElement) => { for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation()); };
 const distText = (d: number) => (d <= NEAR_M ? 'qui' : `${Math.round(d)} m`);
 
-type Row = { t: CompassTarget; row: HTMLElement; arrow: HTMLElement; text: HTMLElement; nome: HTMLElement; shown: string; ang: number; d: number; sez: Sez | null };
-type Sez = { s: CompassSezione; row: HTMLElement; arrow: HTMLElement; text: HTMLElement; chev: HTMLElement; members: Row[]; shown: string; mode: string; sig: string };
+const DEFAULT_DESC: Record<string, string> = {
+  casa: 'La tua isola con casa, magazzino e giardino.', porto: 'Il centro dell’arcipelago con botteghe e amici.', mercante: 'Compra e vendi materiali e arredi al Porto.', contrabbando: 'Scambi speciali e oggetti rari dal contrabbandiere.',
+  bacheca: 'Missioni e compiti da completare per guadagnare monete.', record: 'Classifiche e punteggi dei minigiochi tra amici.', faro: 'Il faro comune dell’arcipelago costruito insieme.', regata: 'Gara di barche a vela a tempo tra le boe.',
+  pesca: 'Pesca pesci e tesori dal mare con la canna.', scacchi: 'Partite a scacchi al tavolo del Porto.', consegne: 'Consegna pacchi in barca tra le varie isole.', ingorgo: 'Rompicapo: libera la barca incastrata al molo.',
+  pinguini: 'Minigioco sui ghiacci: raduna i pinguini.', koi: 'Dai da mangiare alle carpe koi nel laghetto.', arrembaggio: 'Difendi la nave dall’assalto dei pirati.', lava: 'Scappa dalla colata di lava prima che ti prenda.',
+  templari: 'Affronta ondate di crociati zombi nella chiesa.', funivia: 'Sali in cima alla montagna dell’Isola dell’Adrenalina.', difesa: 'Difendi l’orto dalle ondate di creature selvatiche.', arena: 'Duelli uno contro uno nell’arena del colosseo.',
+  relitto_templare: 'Il relitto dello scheletro templare col calice.', segno: 'Punto fissato sulla mappa dell’arcipelago.',
+};
+const SEZ_DESC: Record<string, string> = { porto: 'Tutti i luoghi e le botteghe del Porto.', isole: 'Le isole a tema scoperte nell’arcipelago.' };
+const descOf = (t: CompassTarget): string => {
+  if (t.desc) return typeof t.desc === 'function' ? t.desc() : t.desc;
+  if (t.group === 'dungeon') return 'Il dungeon più facile che non hai ancora sconfitto';
+  const k = t.id.split(':')[0]!;
+  if (t.id.startsWith('tema:')) return `Isola ${t.label}: esplora e scopri le sue attività.`;
+  return DEFAULT_DESC[t.id] ?? DEFAULT_DESC[k] ?? 'Luogo dell’arcipelago.';
+};
+const sezDescOf = (s: CompassSezione): string => (typeof s.desc === 'function' ? s.desc() : (s.desc ?? SEZ_DESC[s.id] ?? 'Sezione di mete.'));
+
+type Row = { t: CompassTarget; row: HTMLElement; arrow: HTMLElement; text: HTMLElement; nome: HTMLElement; info: HTMLElement; descEl: HTMLElement; descTit: HTMLElement; descTxt: HTMLElement; shown: string; ang: number; d: number; sez: Sez | null };
+type Sez = { s: CompassSezione; row: HTMLElement; arrow: HTMLElement; text: HTMLElement; chev: HTMLElement; info: HTMLElement; descEl: HTMLElement; members: Row[]; shown: string; mode: string; sig: string };
 
 export function createCompass(o: {
   root: HTMLElement; targets: CompassTarget[];
@@ -131,32 +159,56 @@ export function createCompass(o: {
   const sezDef = new Map((o.sezioni ?? []).map((s) => [s.id, s]));
   const sezs = new Map<string, Sez>();
   const rows: Row[] = [];
+  let descFor: string | null = null;
+  const paintDesc = () => {
+    for (const r of rows) {
+      const isThis = descFor === r.t.id, canShow = isThis && open && r.shown === 'flex';
+      r.info.classList.toggle('on', isThis); r.info.setAttribute('aria-expanded', String(isThis));
+      r.descEl.style.display = canShow ? 'flex' : 'none';
+      if (canShow) { const d = descOf(r.t); if (r.descTxt.textContent !== d) r.descTxt.textContent = d; }
+    }
+    for (const z of sezs.values()) {
+      const isThis = descFor === ('sez:' + z.s.id), canShow = isThis && open && z.shown === 'flex';
+      z.info.classList.toggle('on', isThis); z.info.setAttribute('aria-expanded', String(isThis));
+      z.descEl.style.display = canShow ? 'flex' : 'none';
+    }
+  };
+  const mkDesc = (key: string, title: string, text: string, figlio = false) => {
+    const el = div('mz-mete-desc' + (figlio ? ' figlio' : '')); el.dataset['descFor'] = key; el.style.display = 'none'; guard(el); el.addEventListener('click', (e) => e.stopPropagation());
+    const head = div('mz-mete-desc-head'), tit = span('mz-mete-desc-tit', title), x = span('mz-mete-desc-x', '×');
+    x.setAttribute('role', 'button'); x.title = 'Chiudi'; x.addEventListener('click', (e) => { e.stopPropagation(); descFor = null; paintDesc(); });
+    head.append(tit, x); const txt = span('mz-mete-desc-txt', text); el.append(head, txt);
+    return { el, tit, txt };
+  };
   const mkRow = (t: CompassTarget, sez: Sez | null): Row => {
     const row = div('mz-mete-row' + (sez ? ' figlio' : '') + (t.navi ? ' navi' : ''));
-    row.dataset['id'] = t.id;
-    row.style.display = 'none';
+    row.dataset['id'] = t.id; row.style.display = 'none';
     const arrow = arrowEl('mz-mete-arr'), text = span('mz-mete-dist'), nome = span('nome', t.label);
+    const info = span('mz-mete-info', '?'); info.setAttribute('role', 'button'); info.title = `Cos'è ${t.label}?`; info.setAttribute('aria-label', `Cos'è ${t.label}?`);
+    info.addEventListener('click', (e) => { e.stopPropagation(); descFor = descFor === t.id ? null : t.id; paintDesc(); });
+    const { el: descEl, tit: descTit, txt: descTxt } = mkDesc(t.id, t.label, descOf(t), !!sez);
     if (t.navi) { // navigatore: niente casella, × in fondo; la riga intera lo toglie
       row.setAttribute('role', 'button'); row.title = 'Togli il segnalino';
       const x = span('mz-mete-x', '×'); x.dataset['act'] = 'togli';
-      row.append(...(t.icon ? [pixIcon(t.icon, 16)] : []), nome, text, arrow, x);
+      row.append(...(t.icon ? [pixIcon(t.icon, 16)] : []), nome, text, arrow, info, x);
       row.addEventListener('click', () => { t.togli?.(); });
     } else {
       row.setAttribute('role', 'checkbox');
-      row.append(span('mz-mete-box'), ...(t.icon ? [pixIcon(t.icon, 16)] : []), nome, text, arrow);
+      row.append(span('mz-mete-box'), ...(t.icon ? [pixIcon(t.icon, 16)] : []), nome, text, arrow, info);
       row.addEventListener('click', () => { const k = keyOf(t); if (off.has(k)) off.delete(k); else off.add(k); store(); });
     }
-    return { t, row, arrow, text, nome, shown: '', ang: 0, d: 0, sez };
+    return { t, row, arrow, text, nome, info, descEl, descTit, descTxt, shown: '', ang: 0, d: 0, sez };
   };
   const mkSez = (s: CompassSezione): Sez => {
-    const row = div('mz-mete-row sez');
-    row.dataset['sez'] = s.id;
-    row.setAttribute('role', 'checkbox');
-    row.style.display = 'none';
+    const row = div('mz-mete-row sez'); row.dataset['sez'] = s.id; row.setAttribute('role', 'checkbox'); row.style.display = 'none';
     const arrow = arrowEl('mz-mete-arr'), text = span('mz-mete-dist'), chevS = span('mz-mete-apri');
     chevS.setAttribute('role', 'button'); chevS.dataset['act'] = 'apri'; chevS.title = 'Apri la sezione';
-    row.append(span('mz-mete-box'), pixIcon(s.icon, 16), span('nome', s.nome), text, arrow, chevS);
-    const z: Sez = { s, row, arrow, text, chev: chevS, members: [], shown: '', mode: '', sig: '' };
+    const info = span('mz-mete-info', '?'); info.setAttribute('role', 'button'); info.title = `Cos'è ${s.nome}?`; info.setAttribute('aria-label', `Cos'è ${s.nome}?`);
+    const sezKey = 'sez:' + s.id;
+    info.addEventListener('click', (e) => { e.stopPropagation(); descFor = descFor === sezKey ? null : sezKey; paintDesc(); });
+    const { el: descEl } = mkDesc(sezKey, s.nome, sezDescOf(s));
+    row.append(span('mz-mete-box'), pixIcon(s.icon, 16), span('nome', s.nome), text, arrow, info, chevS);
+    const z: Sez = { s, row, arrow, text, chev: chevS, info, descEl, members: [], shown: '', mode: '', sig: '' };
     // la casella (tutta la riga tranne ▸): accese tutte → spente tutte, altrimenti accese tutte
     row.addEventListener('click', () => {
       const vis = z.members.filter((r) => r.t.show?.() ?? true), tutte = vis.every((r) => !off.has(keyOf(r.t)));
@@ -171,16 +223,16 @@ export function createCompass(o: {
     let z: Sez | null = null;
     if (def) {
       z = sezs.get(def.id) ?? null;
-      if (!z) { z = mkSez(def); sezs.set(def.id, z); list.appendChild(z.row); }
+      if (!z) { z = mkSez(def); sezs.set(def.id, z); list.appendChild(z.row); list.appendChild(z.descEl); }
     }
     const r = mkRow(t, z);
     if (z) {
       // dopo l'ultima meta già nella sezione (o subito dopo la sua riga)
-      const after = z.members[z.members.length - 1]?.row ?? z.row;
-      after.after(r.row);
+      const after = z.members.length > 0 ? z.members[z.members.length - 1]!.descEl : z.descEl;
+      after.after(r.row, r.descEl);
       z.members.push(r);
-    } else if (t.navi) list.prepend(r.row); // il navigatore in cima
-    else list.appendChild(r.row);
+    } else if (t.navi) list.prepend(r.row, r.descEl); // il navigatore in cima
+    else { list.appendChild(r.row); list.appendChild(r.descEl); }
     rows.push(r);
   }
   o.root.appendChild(box);
@@ -206,6 +258,7 @@ export function createCompass(o: {
       z.sig = ''; // casella della sezione: si rifà al prossimo update
     }
     paintFocus();
+    paintDesc();
   };
   /** Bordo giallo sulla meta della guida; se sta in una sezione chiusa, sulla riga della sezione. */
   const paintFocus = () => {
@@ -221,17 +274,15 @@ export function createCompass(o: {
     if (!cam || !canvas || r.d < ARRIVO_M || o.hidden?.() || (focused === r.t.id && document.querySelector('#mzGuidaPtr.on'))) { ptr.classList.remove('on'); ptrMode = 'off'; return; } // la guida punta già lì
     if (ptrFor !== r.t.id) { ptrFor = r.t.id; tag.replaceChildren(...(r.t.icon ? [pixIcon(r.t.icon, 16)] : []), tagText); }
     tagText.textContent = `${Math.round(r.d)} m`;
-    const cr = canvas.getBoundingClientRect();
-    const phone = cr.width < 700, M = 44, TOP = 118;
-    // in basso: sopra joystick e A/B (telefono) e sopra la scheda della guida quando sta in basso
+    const cr = canvas.getBoundingClientRect(), phone = cr.width < 700, M = 44, TOP = 118;
     let BOT = cr.height - (phone ? 200 : M);
     const g = document.querySelector('#mzGuida.on')?.getBoundingClientRect();
     if (g && g.top - cr.top > cr.height / 2) BOT = Math.min(BOT, g.top - cr.top - 12);
     const y = (o.groundY?.(r.t.x, r.t.z) ?? 0) + 2.5;
     const p = pointerPose({ camera: cam, canvas, root: o.root, target: { x: r.t.x, y, z: r.t.z }, top: TOP, bottom: BOT, m: M });
     let x = p.x, yy = p.y, ang = p.ang, tx: number, ty: number;
-    if (p.inView) { yy = p.y - 32 - Math.abs(Math.sin(t * 4)) * 10; tx = 0; ty = -40; } // sopra la meta, punta giù e rimbalza; cartellino sopra
-    else { // sul bordo; cartellino dalla parte del centro, staccato dalla freccia (larghezza stimata: icona + cifre)
+    if (p.inView) { yy = p.y - 32 - Math.abs(Math.sin(t * 4)) * 10; tx = 0; ty = -40; }
+    else {
       yy = Math.min(p.y, BOT - 20);
       const tw = 40 + tagText.textContent.length * 7.5;
       tx = -Math.sin(ang) * (24 + tw / 2); ty = Math.cos(ang) * 36;
@@ -259,14 +310,13 @@ export function createCompass(o: {
   registerStateProvider('compass', () => {
     const vis = rows.filter((r) => r.t.show?.() ?? true), on = vis.filter(acceso);
     return {
-      open, shown: vis.map((r) => r.t.id), on: on.map((r) => r.t.id), single: on.length === 1 ? on[0]!.t.id : null, navi: on.find((r) => r.t.navi)?.t.id ?? null, pointer: ptrMode, aperta,
+      open, shown: vis.map((r) => r.t.id), on: on.map((r) => r.t.id), single: on.length === 1 ? on[0]!.t.id : null, navi: on.find((r) => r.t.navi)?.t.id ?? null, pointer: ptrMode, aperta, descFor,
       sezioni: [...sezs.values()].map((z) => ({ id: z.s.id, mode: z.mode, mete: z.members.filter((r) => r.t.show?.() ?? true).map((r) => r.t.id) })),
     };
   });
 
   return {
     update(me, yaw, t = 0) {
-      // stessa convenzione di input.ts: su schermo «su» = (−sin yaw, −cos yaw), «destra» = (cos yaw, −sin yaw) in assi mondo
       const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
       const on: Row[] = [];
       for (const r of rows) {
@@ -275,25 +325,23 @@ export function createCompass(o: {
         r.ang = Math.atan2(dx * rx + dz * rz, dx * fx + dz * fz);
         if ((r.t.show?.() ?? true) && acceso(r)) on.push(r);
       }
-      // sezioni: nessuna meta = niente; una = riga normale (non rientrata); più = riga della sezione, mete sotto solo se aperta
       let focusDirty = false;
       for (const z of sezs.values()) {
         const vis = z.members.filter((r) => r.t.show?.() ?? true);
         const mode = vis.length === 0 ? 'nulla' : vis.length === 1 ? 'una' : 'sez';
         if (mode !== z.mode) {
           z.mode = mode; focusDirty = true;
-          for (const r of z.members) r.row.classList.toggle('figlio', mode === 'sez');
+          for (const r of z.members) { r.row.classList.toggle('figlio', mode === 'sez'); r.descEl.classList.toggle('figlio', mode === 'sez'); }
         }
         const n = vis.filter((r) => !off.has(keyOf(r.t))).length, sig = `${n}/${vis.length}`;
-        if (sig !== z.sig) { // casella: piena (tutte accese), a metà (alcune), vuota (nessuna)
+        if (sig !== z.sig) {
           z.sig = sig;
           z.row.classList.toggle('off', n === 0); z.row.classList.toggle('part', n > 0 && n < vis.length);
           z.row.setAttribute('aria-checked', n === 0 ? 'false' : n === vis.length ? 'true' : 'mixed');
         }
         showRow(z, open && mode === 'sez');
-        if (!open || mode !== 'sez') continue;
-        // distanza e freccia: la meta che dà il nome alla sezione (il Porto) se è accesa, se no la più vicina tra le accese (se non ce n'è,
-        // la più vicina e basta, senza freccia)
+        if (!open || mode !== 'sez') { if (descFor === 'sez:' + z.s.id) z.descEl.style.display = 'none'; continue; }
+        if (descFor === 'sez:' + z.s.id) z.descEl.style.display = 'flex';
         const acc = vis.filter((r) => !off.has(keyOf(r.t))), pool = acc.length ? acc : vis;
         const best = acc.find((r) => r.t.id === z.s.id) ?? pool.reduce((a, b) => (b.d < a.d ? b : a));
         arrowTo(z, best.d, best.ang);
@@ -301,13 +349,15 @@ export function createCompass(o: {
       if (focusDirty) paintFocus();
       for (const r of rows) {
         const there = r.t.show?.() ?? true;
-        // aperto: tutte le mete (le spente sbiadite, per riaccenderle) tranne quelle di una sezione chiusa; chiuso: nessuna riga
         const show = there && open && (!r.sez || r.sez.mode !== 'sez' || aperta === r.sez.s.id);
         showRow(r, show);
-        if (show) arrowTo(r, r.d, r.ang);
-        if (show && r.t.navi && r.nome.textContent !== r.t.label) r.nome.textContent = r.t.label; // il segnalino agganciato a una meta ne prende il nome
+        if (!show) { if (descFor === r.t.id) r.descEl.style.display = 'none'; }
+        else {
+          if (descFor === r.t.id) r.descEl.style.display = 'flex';
+          arrowTo(r, r.d, r.ang);
+          if (r.t.navi && r.nome.textContent !== r.t.label) { r.nome.textContent = r.t.label; r.descTit.textContent = r.t.label; }
+        }
       }
-      // chiuso: una meta accesa (o il navigatore) = la sua icona, distanza e freccia nell'intestazione; più mete = quante sono
       const one = on.find((r) => r.t.navi) ?? (on.length === 1 ? on[0]! : null);
       const key = open ? 'open' : one ? 'one:' + one.t.id : 'n:' + on.length;
       if (key !== sumFor) {
@@ -318,7 +368,7 @@ export function createCompass(o: {
       }
       if (one && !open) {
         const d = sum.querySelector<HTMLElement>('.mz-mete-d'), a = sum.querySelector<HTMLElement>('.mz-mete-arr'), n = sum.querySelector<HTMLElement>('.mz-mete-n');
-        if (n && n.textContent !== one.t.label) n.textContent = one.t.label; // il navigatore agganciato a una meta ne prende il nome
+        if (n && n.textContent !== one.t.label) n.textContent = one.t.label;
         if (d) d.textContent = distText(one.d);
         if (a) { a.style.transform = `rotate(${one.ang.toFixed(3)}rad)`; a.style.visibility = one.d <= NEAR_M ? 'hidden' : ''; }
       }

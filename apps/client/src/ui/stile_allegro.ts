@@ -140,6 +140,13 @@ body #compass .mz-mete-row.navi { border-color: ${A.rosso}; }
 body #compass .mz-mete-row .mz-mete-box { border-radius: ${k(4)}; border-color: ${A.bianco}; }
 body #compass .mz-mete-row:not(.off) .mz-mete-box { background: ${A.oro}; border-color: ${A.oro}; }
 body #compass .mz-mete-row .mz-mete-apri, body #compass .mz-mete-row .mz-mete-x { border-left-color: ${A.celeste}; color: ${A.oro}; }
+body #compass .mz-mete-info { width: ${k(20)}; height: ${k(20)}; border-radius: 50%; border: ${k(1.5)} solid ${A.celeste}; color: ${A.oro}; font: bold ${k(12)} ${FONT_ALLEGRO}; background: rgba(255,255,255,0.08); }
+body #compass .mz-mete-info:hover { border-color: ${A.oro}; }
+body #compass .mz-mete-info.on { background: ${A.oro}; color: ${A.notte}; border-color: ${A.oro}; }
+body #compass .mz-mete-desc { padding: ${k(6)} ${k(10)}; border-radius: ${k(12)}; background: ${A.notteBlu}; border: ${k(2)} solid ${A.celeste}; box-shadow: 0 0 0 ${k(1.5)} ${A.notte}, 0 ${k(3)} 0 ${k(1.5)} ${A.notte}; color: ${A.bianco}; font: ${k(12)} ${FONT_ALLEGRO}; max-width: ${k(260)}; }
+body #compass .mz-mete-desc-tit { color: ${A.oro}; font-size: ${k(13)}; }
+body #compass .mz-mete-desc-x { color: ${A.bianco}; font-size: ${k(16)}; }
+body #compass .mz-mete-desc-txt { color: ${A.bianco}; font-size: ${k(12)}; font-weight: normal; }
 body #mzMetePtr .mz-mete-tag { border-radius: 999px; background: ${A.notteBlu}; border: 2px solid ${A.celeste}; box-shadow: 0 2px 0 ${A.notte}; color: ${A.bianco}; font: 12px ${FONT_ALLEGRO}; }
 
 /* ——— cartellini nel mondo (nomi, edifici): pillola ardesia col bordo bianco e la punta ——— */
