@@ -9,7 +9,7 @@ import { AVATAR, BALANCE } from '@marea/content';
 import { ARENA } from '@marea/content/arena.ts';
 import { TEMPLARI } from '@marea/content/templari.ts';
 import { buyHat, newLot, ownsHat } from '../src/economy/actions.ts';
-import { ampliaCasa, livelloLotto } from '../src/economy/casa.ts';
+import { ampliaCasa, ampliatoOggi, livelloLotto } from '../src/economy/casa.ts';
 import { checkMonete } from '../src/economy/monete.ts';
 import { eventiPartita, missioniOf, riscuotiMissione, tracciaMissioni } from '../src/economy/missioni.ts';
 import { finishSolo, soloPrize, startSolo } from '../src/economy/rewards.ts';
@@ -40,7 +40,7 @@ function compra(lot0: LotState, t: number): LotState {
   let lot = lot0;
   for (let guard = 0; guard < 20; guard++) {
     const liv = livelloLotto(lot), casa = LIVELLI_CASA[liv];
-    if (casa && lot.monete >= casa.monete) { lot = ampliaCasa(lot, liv, t); continue; }
+    if (casa && lot.monete >= casa.monete && !ampliatoOggi(lot, t)) { lot = ampliaCasa(lot, liv, t); continue; }
     const hat = AVATAR.cappelli.filter((h) => h.monete > 0 && !ownsHat(lot, h.id)).sort((a, b) => a.monete - b.monete)[0];
     if (hat && lot.monete >= hat.monete && (!casa || lot.monete - hat.monete >= casa.monete / 2)) { lot = buyHat(lot, hat.id, t); continue; }
     break;

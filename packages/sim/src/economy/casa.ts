@@ -10,6 +10,7 @@ import { spendi } from './monete.ts';
 import { livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzeDi } from './stanze.ts';
 import type { Stanza } from './stanze.ts';
 import { inVetrina, inVetrinaFinitura } from './vetrina.ts';
+import { giornoRoma } from './giorno.ts';
 import { EconomyError } from './types.ts';
 import type { LotState, PlacedBuilding } from './types.ts';
 
@@ -28,6 +29,8 @@ export type CasaState = {
   bauleRot?: number;
   /** Gli ampliamenti fatti dal mobiliere (#386, economy/stanze.ts): 0..max. Assente = 0, la stanza di sempre. */
   livello?: number;
+  /** Giorno di Roma (giornoRoma) dell'ultimo ampliamento fatto: massimo uno al giorno (#436). */
+  ampliatoGiorno?: number;
 };
 export type Finitura = 'pavimento' | 'carta';
 /** Dove va un mobile: cella del pavimento, più il muro se è da parete. */
@@ -52,6 +55,8 @@ export const livelloLotto = (lot: LotState | null | undefined): number => livell
 export const mobile = (id: string): MobileDef | null => MOBILI.find((m) => m.id === id) ?? null;
 export const finitura = (tipo: Finitura, id: string): StanzaFinitura | null => (tipo === 'pavimento' ? BORGO.pavimenti : BORGO.carte).find((f) => f.id === id) ?? null;
 export const casaDi = (lot: LotState | null | undefined): CasaState => lot?.casa ?? {};
+/** Ha già fatto un ampliamento della casa oggi (giorno di Roma, #436)? */
+export const ampliatoOggi = (lot: LotState | null | undefined, nowMs: number): boolean => casaDi(lot).ampliatoGiorno === giornoRoma(nowMs);
 /** Una finitura è tua: quella di serie (monete 0) o comprata. */
 export function possiedeFinitura(lot: LotState | null, tipo: Finitura, id: string): boolean {
   const f = finitura(tipo, id);
@@ -131,15 +136,17 @@ function riancora(a: PlacedMobile, vecchie: readonly Stanza[], nuove: readonly S
   return { ...a, cell: a.muro === 'n' ? [a.cell[0], z0] : a.muro === 'o' ? [x0, a.cell[1]] : [x1 - 1, a.cell[1]] };
 }
 /** Il mobiliere ingrandisce la casa di un livello (#386): costa monete (borgo.json `casa.livelli`, #414). `da` = il livello che il giocatore
- *  vede adesso: se nel frattempo è cambiato (doppio tocco, altro dispositivo) niente si paga due volte. */
+ *  vede adesso: se nel frattempo è cambiato (doppio tocco, altro dispositivo) niente si paga due volte. Al massimo un ampliamento al giorno (#436). */
 export function ampliaCasa(lot0: LotState, da: number, nowMs: number): LotState {
   const lot = advance(lot0, nowMs), liv = livelloLotto(lot);
   if (da !== liv) throw new EconomyError('livello', 'La casa è già cambiata: guarda com’è adesso');
   const next = prossimoAmpliamento(liv);
   if (!next) throw new EconomyError('livello', 'La casa è già grande al massimo');
+  const g = giornoRoma(nowMs);
+  if (casaDi(lot).ampliatoGiorno === g) throw new EconomyError('tetto', 'Puoi fare al massimo un ampliamento al giorno: torna domani');
   const pagato = spendi(lot, next.monete), c = casaDi(pagato);
   const vecchie = stanzeDi(liv), nuove = stanzeDi(liv + 1);
-  return conCasa(pagato, { ...c, livello: liv + 1, arredi: (c.arredi ?? []).map((a) => riancora(a, vecchie, nuove)) });
+  return conCasa(pagato, { ...c, livello: liv + 1, ampliatoGiorno: g, arredi: (c.arredi ?? []).map((a) => riancora(a, vecchie, nuove)) });
 }
 /** Compra la carta o il pavimento della vetrina di oggi (#393): come i mobili, il negozio vende solo quello che espone. Quello che hai già resta «unico». */
 export function compraFinituraDelGiorno(lot0: LotState, tipo: Finitura, id: string, nowMs: number): LotState {

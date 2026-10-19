@@ -12,13 +12,14 @@ export const timeout = 420000;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const WIN = process.platform === 'win32';
 
 export default async function (ctx) {
   const { assert } = ctx;
   const SERVER = path.join(ctx.ROOT, 'apps/server');
   const persist = path.join(ctx.OUT, `m3ampl-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, shell: WIN }).toString();
   const sim = async (f) => import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src', f)).href);
   const { regata } = await sim('minigames/regata/regata.ts');
   const { packInputs, quantize } = await sim('replay.ts');
@@ -34,10 +35,13 @@ export default async function (ctx) {
   try {
     fs.rmSync(persist, { recursive: true, force: true });
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
-    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command', "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0), ('ada', 'Ada', 'tokA', 1);");
+    const sql = path.join(persist, 'persone.sql');
+    fs.mkdirSync(persist, { recursive: true });
+    fs.writeFileSync(sql, "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0), ('ada', 'Ada', 'tokA', 1);\n");
+    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--file', sql);
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: !WIN, shell: WIN, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const BASE = `http://127.0.0.1:${port}`;
     let up = false;
@@ -113,6 +117,8 @@ export default async function (ctx) {
       const lot = (await get('/api/lot')).body;
       assert(lot.casa.livello === 1, 'livello sul server: ' + JSON.stringify(lot.casa));
       assert(lot.monete === prima - k1, 'costo: ' + JSON.stringify({ prima, dopo: lot.monete, k1 }));
+      const bis = await post('/api/lot/casa/amplia', { da: 1 });
+      assert(bis.status === 409 && bis.body.code === 'tetto', 'secondo ampliamento nello stesso giorno rifiutato: ' + bis.status + ' ' + JSON.stringify(bis.body));
     });
 
     await ctx.test('PC: a casa la stanza è più grande: si passa oltre il vecchio muro e ci si ferma al nuovo', async () => {
@@ -154,8 +160,11 @@ export default async function (ctx) {
     });
   } finally {
     for (const p of pages) await p.close().catch(() => {});
-    if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
-    fs.rmSync(persist, { recursive: true, force: true });
+    if (dev) {
+      if (WIN) { try { execFileSync('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* già chiuso */ } }
+      else { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    }
+    try { fs.rmSync(persist, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); } catch { /* file ancora aperti su Windows */ }
     delete globalThis.__pc;
   }
 }
