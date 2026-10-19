@@ -23,6 +23,7 @@ export type SuonoId =
   | 'tpl_pistola' | 'tpl_moschetto' | 'tpl_trombone' | 'tpl_freccia' | 'tpl_fendente' | 'tpl_porta' | 'tpl_potere' | 'tpl_potere_preso'
   | 'tpl_cassa' | 'tpl_teschio' | 'tpl_rogo' | 'tpl_caduto'
   | 'tpl_campanella' | 'tpl_stona' | 'tpl_anima' | 'tpl_crollo' // i segreti (§9c): campanelle (k = quale), stonata, un'anima all'altare, il muro che crolla
+  | 'tpl_lamento' | 'tpl_spettro' // i fantasmi (§12b punto 5): il lamento lungo quando sono vicini, l'urlo quando si arrabbiano
   | 'altoparlante' | 'pagina'; // lore nei dungeon (rpg/dungeon_testi.ts)
 /** `inno` = la canzone segreta dei Templari (audio/inno.ts): suona una volta (INNO_SECONDI), poi chi l'ha chiesta torna ad 'auto'. */
 export type MusicaModo = 'giorno' | 'notte' | 'gara' | 'dungeon' | 'templari' | 'inno' | 'silenzio';

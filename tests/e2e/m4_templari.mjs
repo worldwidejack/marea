@@ -531,6 +531,25 @@ export default async function (ctx) {
     assert(sc.indizi === 10, 'scheletri e scritte in scena: ' + sc.indizi);
     ctx.noErrors(d, 'PC');
   });
+  await ctx.test('PC: i fantasmi — azzurri e trasparenti, una mesh sola; arrabbiato diventa rosso, attraversa e colpisce', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    await prova({ pulisci: true, ferma: true, vita: 1e6, dove: { x: 60.5, z: 42.5 }, zombie: 'fantasma', dist: 3 });
+    await ctx.waitState(pc, (st) => st.templari.fantasmi?.disegnati === 1, 5000);
+    let st = await ctx.getState(pc);
+    assert(st.templari.fantasmi.rabbia === 0, 'il fantasma nuovo è già arrabbiato');
+    assert(st.templari.attori.zombie === 0, 'il fantasma disegnato anche come zombie');
+    await pc.waitForTimeout(800);
+    await ctx.shot(pc, 'pc_fantasma');
+    const perf = await ctx.getPerf(pc);
+    await prova({ pulisci: true, ferma: true, vita: 1e6, dove: { x: 60.5, z: 42.5 }, zombie: 'fantasma', dist: 4, arrabbiato: true });
+    await ctx.waitState(pc, (st) => st.templari.fantasmi?.rabbia === 1, 5000);
+    // colpisce: la vita scende, o lo scudo sulle spalle (da una prova di prima) para il colpo e si consuma
+    const st0 = (await ctx.getState(pc)).templari, vita = st0.eroe.vita, scudo = st0.scudo?.vita ?? 0;
+    await ctx.waitState(pc, (st, a) => st.templari.eroe.vita < a[0] || (st.templari.scudo?.vita ?? 0) < a[1], 10000, [vita, scudo]).catch(async () => { throw new Error('il fantasma arrabbiato non colpisce: ' + JSON.stringify((await ctx.getState(pc)).templari.fantasmi)); });
+    await ctx.shot(pc, 'pc_fantasma_arrabbiato');
+    console.log('    perf col fantasma', JSON.stringify(perf));
+    ctx.noErrors(d, 'PC');
+  });
   await ctx.test('PC: le campanelle nell’ordine scritto in taverna danno una pozione; i tre teschi fanno partire la canzone', async () => {
     const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
     await prova({ pulisci: true, ferma: true, indizio: true });

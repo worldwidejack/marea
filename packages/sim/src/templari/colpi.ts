@@ -9,6 +9,7 @@ import type { TState, Zombie } from './stato.ts';
 import { COLPITO_TICKS, classeDi, ev, inPiedi, secToTicks, usa, vitaBase } from './stato.ts';
 import { vicinoRaggiungibile } from './raggiungi.ts';
 import { anima, colpoMuro, haLancia } from './segreti.ts';
+import { arrabbia } from './fantasmi.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
 /** Fiamme a terra insieme al massimo (le più vecchie si spengono). */
@@ -84,7 +85,7 @@ export function colpisci(s: TState, z: Zombie, c: Colpo): Esito {
   const uccide = z.vita <= 0;
   ev(s, { t: 'colpo', id: z.id, x: r2(z.x), z: r2(z.z), danno: Math.round(d), uccide, caricato: c.caricato });
   if (c.spinta > 0 && !uccide) moveCircle(s.gr.zombie, z, c.dirX * c.spinta, c.dirZ * c.spinta, z.def.raggio);
-  if (!uccide) { dai(s, TEMPLARI.punti.colpo, 'colpo'); return 'colpito'; }
+  if (!uccide) { dai(s, TEMPLARI.punti.colpo, 'colpo'); arrabbia(s, z, s.chi); return 'colpito'; }
   uccidi(s, z);
   if (c.cura) s.eroe.vita = Math.min(s.eroe.max, s.eroe.vita + c.cura);
   if (!c.super) caricaSuper(s);
@@ -103,7 +104,7 @@ function scappa(s: TState, z: Zombie): void {
 export function danneggia(s: TState, z: Zombie, n: number, punti: number): void {
   z.vita -= s.tick < s.poteri.ira && !z.def.boss ? z.vita : n;
   if (z.def.fugge !== undefined && z.vita <= z.max * z.def.fugge) { scappa(s, z); return; }
-  if (z.vita <= 0) { uccidi(s, z); dai(s, punti, 'uccisione'); }
+  if (z.vita <= 0) { uccidi(s, z); dai(s, punti, 'uccisione'); } else arrabbia(s, z, s.chi);
 }
 
 /** Un power-up a terra dove è morto uno zombie (o nella cella raggiungibile più vicina): a caso, e sempre se `sicuro` (i boss). */
@@ -125,6 +126,7 @@ export function uccidi(s: TState, z: Zombie, potere = true): void {
   z.vita = 0; z.st = 'morto'; z.stT = 0; z.finestra = -1;
   s.uccisioni++;
   ev(s, { t: 'morte', id: z.id, tipo: z.tipo, x: r2(z.x), z: r2(z.z) });
+  if (z.def.fantasma) return; // i fantasmi (§12b punto 5): niente anima per la Lancia, niente power-up
   anima(s, z); // nella cripta l'anima va all'altare (§9c)
   if (potere) lasciaPotere(s, z.x, z.z, !!z.def.boss);
   // lo scudato lascia lo scudo a terra, se non gliel'hai spaccato

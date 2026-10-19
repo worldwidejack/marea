@@ -15,6 +15,7 @@ import { accendi, daiTutti, ferisci } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
 import { attive, comparsaVicina } from './ondate.ts';
 import { colpoMuro, flusso, scalaZombie } from './segreti.ts';
+import { stepFantasma } from './fantasmi.ts';
 
 function aggiornaFlow(s: TState): void {
   if (s.tick - s.flowTick < FLOW_OGNI) return;
@@ -168,13 +169,14 @@ function bersaglio(s: TState, z: Zombie): void {
 }
 
 function stepUno(s: TState, z: Zombie): void {
-  bersaglio(s, z);
+  // i fantasmi (§12b punto 5, fantasmi.ts) si muovono a modo loro; il colpo è quello di tutti, contro la loro preda
+  if (z.def.fantasma) { if (stepFantasma(s, z)) return; } else bersaglio(s, z);
   const h = s.eroe, def = z.def;
   const dx = h.x - z.x, dz = h.z - z.z, d = Math.sqrt(dx * dx + dz * dz);
   z.stT++;
   if (z.hurt > 0) z.hurt--;
   if (z.cd > 0) z.cd--;
-  if (s.tick >= z.grido && z.st !== 'morto') {
+  if (s.tick >= z.grido && z.st !== 'morto' && !z.def.fantasma) {
     z.grido = s.tick + secToTicks(4 + s.rng.next() * 7);
     ev(s, { t: 'grido', id: z.id, tipo: z.vel >= def.velocita.scatta && !def.boss ? 'urlo' : s.rng.next() < 0.35 ? 'deus' : 'rantolo' });
   }
@@ -301,7 +303,7 @@ export function stepZombi(s: TState): void {
     if (z.st === 'morto') { z.stT++; continue; }
     stepUno(s, z);
     if (s.done) return;
-    if (!(['sorge', 'morto', 'fugge'] as string[]).includes(z.st)) act.push(z); // stepUno può averlo fatto sparire (de Molay)
+    if (!(['sorge', 'morto', 'fugge'] as string[]).includes(z.st) && !z.def.fantasma) act.push(z); // stepUno può averlo fatto sparire (de Molay); i fantasmi trapassano
   }
   separa(s, act);
   stepTiri(s);

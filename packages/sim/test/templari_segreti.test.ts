@@ -108,7 +108,7 @@ test('gli zombie seguono l\'eroe giù dalla scala, e dai sarcofagi ne escono di 
   // l'ondata: con l'eroe nella cripta gli zombie escono dai sarcofagi
   s.quanti = 3; s.usciti = 0; s.prossima = s.tick;
   passi(s, tick(6));
-  const nuovi = s.zombie.filter((x) => x !== z);
+  const nuovi = s.zombie.filter((x) => x !== z && !x.def.fantasma); // i fantasmi (§12b punto 5) girano sopra per conto loro
   assert.ok(nuovi.length >= 2 && nuovi.every((x) => inCripta(s, x.x, x.z)), JSON.stringify(nuovi.map((x) => [x.x, x.z])));
 });
 
