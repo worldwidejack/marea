@@ -420,7 +420,8 @@ export default async function (ctx) {
     await pc.waitForTimeout(700);
     await ctx.shot(pc, 'pc_segreti_muro_rotto');
     await prova({ cripta: true, anime: 3 });
-    await ctx.waitState(pc, (st) => st.templari.segreti.dentro === true, 5000);
+    await ctx.waitState(pc, (st) => st.templari.segreti.dentro === true, 5000)
+      .catch(async () => { const t = (await ctx.getState(pc)).templari; throw new Error(`non si entra nella cripta: ${JSON.stringify({ seg: t.segreti, eroe: t.eroe, piano: t.piano })}`); });
     await pc.waitForTimeout(900);
     await ctx.shot(pc, 'pc_cripta');
     const perf = await ctx.getPerf(pc);
