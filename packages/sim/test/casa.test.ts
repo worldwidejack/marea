@@ -107,9 +107,8 @@ test('finiture: compri una volta (si mette subito), scegli solo le tue; quella d
 
 test('baule: il Forziere costruito in casa si sposta sul pavimento e si gira; resta lì ricaricando', () => {
   let lot = ricco(0);
-  const slot = T.rows.flatMap((r, z) => [...r].map((ch, x) => [x, z, ch] as const)).find(([x, z, ch]) => ch === 'L' && x >= X0 && x < X1 && z >= Z0 && z < Z1)!;
   assert.throws(() => spostaBaule(lot, [X0 + 3, Z0 + 3], 0), isErr('sconosciuto'));
-  lot = build(lot, 'forziere', [slot[0], slot[1]], 0);
+  lot = build(lot, 'forziere', [X0 + 1, Z0 + 1], 0);
   lot = spostaBaule(lot, [X0 + 3, Z0 + 3], 0);
   assert.deepEqual(lot.buildings.find((b) => b.building === 'forziere')!.cell, [X0 + 3, Z0 + 3]);
   assert.deepEqual(fitToTemplate(lot, T).buildings, lot.buildings, 'il baule sul pavimento non viene rimesso su una L');
