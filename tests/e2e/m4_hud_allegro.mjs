@@ -1,7 +1,8 @@
 // HUD «Allegro» (#417, scelto da Jack e dal gruppo il 18 ott 2026: assets/concept/ui/hud2_3_mario.jpg). Server locale pulito, Luca entra
 // col suo link su iPhone 390×844 e poi sul PC 1280×720. Si controlla: il bottone AVATAR col ritratto della testa; il menù a tutto schermo
 // con Aspetto, Personaggio e Foto, che aprono i pannelli di sempre; i bottoni tolti (maglietta, faccina, scudo, libro, macchina foto) non
-// si vedono; B non c'è nel mondo; accanto a Nonna Pina sotto A compare «Parla»; quando Mia entra, accanto alla campanella «Mia è online».
+// si vedono; B non c'è nel mondo; accanto a Nonna Pina sotto A compare «Parla» (il bottone PARLA che diventa la scritta, niente in mezzo
+// allo schermo); quando Mia entra, accanto alla campanella «Mia è online».
 // Screenshot per il confronto con l'immagine scelta (iphone_hud, iphone_menu, iphone_parla, iphone_online, pc_hud).
 import fs from 'node:fs';
 import net from 'node:net';
@@ -76,7 +77,15 @@ export default async function (ctx) {
       assert(g, 'Nonna Pina non c\'è');
       await hook(L.page, 'teleport', g.x + 1.2, g.z + 1.2);
       await ctx.waitState(L.page, (s) => s.wp2_input.azione === 'Parla', 6000);
-      assert(await vede(L.page, '#btnAzione'), 'la scritta sotto A non si vede');
+      // sul telefono la scritta sotto A è il bottone PARLA stesso (.mz-in-a, verbo nel ::before) e in mezzo allo schermo non resta niente
+      const sotto = await L.page.evaluate(() => {
+        const b = document.querySelector('.mz-play.on.mz-in-a'), a = document.getElementById('btnA');
+        if (!b || !a) return null;
+        const r = b.getBoundingClientRect(), ra = a.getBoundingClientRect();
+        return { verbo: getComputedStyle(b, '::before').content, cx: r.left + r.width / 2, sotto: r.top >= ra.bottom - 2, aCx: ra.left + ra.width / 2 };
+      });
+      assert(sotto && sotto.verbo === '"Parla"' && sotto.sotto && Math.abs(sotto.cx - sotto.aCx) < 4, 'la scritta «Parla» non sta sotto A: ' + JSON.stringify(sotto));
+      assert(await vede(L.page, '.mz-play.on.mz-in-a') && !(await vede(L.page, '#btnAzione')), 'sotto A una scritta sola');
       await sleep(400);
       await ctx.shot(L.page, 'iphone_parla');
       await hook(L.page, 'teleport', g.x + 25, g.z + 25);

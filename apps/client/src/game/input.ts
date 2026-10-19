@@ -27,6 +27,9 @@ const BTN_A = 86, BTN_B = 64;
 const BLU_NOTTE = '#1B2340', FONT = "'MzTitan','Arial Rounded MT Bold',ui-rounded,system-ui,sans-serif";
 const CONTORNO = `0 2px 0 ${BLU_NOTTE},2px 0 0 ${BLU_NOTTE},-2px 0 0 ${BLU_NOTTE},0 -2px 0 ${BLU_NOTTE},1.5px 1.5px 0 ${BLU_NOTTE},-1.5px 1.5px 0 ${BLU_NOTTE},1.5px -1.5px 0 ${BLU_NOTTE},-1.5px -1.5px 0 ${BLU_NOTTE},0 4px 0 ${BLU_NOTTE}`;
 const SAFE = 'env(safe-area-inset-bottom, 0px)';
+// le 4 frecce chiare sull'anello del joystick e il riflesso bianco in alto a sinistra sui bottoni, come nel mockup (#417); bordi netti, niente sfumature
+const FRECCE = `url("data:image/svg+xml,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='#fff' fill-opacity='.55' stroke='#fff' stroke-opacity='.55' stroke-width='3' stroke-linejoin='round'><path d='M50 8 57 16H43zM50 92 57 84H43zM8 50 16 43V57zM92 50 84 43V57z'/></g></svg>")}") center / 100% no-repeat`;
+const RIFLESSO = 'radial-gradient(ellipse 19% 11% at 31% 25%, rgba(255,255,255,.8) 97%, transparent 100%)';
 
 /** schermo (x destra, y giù) → assi mondo con la yaw della camera. Con yaw=π/4: (0,−1) "su" → (−0,707, −0,707). */
 export function screenToWorld(sx: number, sy: number, yaw: number): { mx: number; my: number } {
@@ -56,16 +59,16 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   const joy = mk('joystick'), stick = mk('stick'); joy.appendChild(stick);
   const btnA = mk('btnA', 'btn'), btnB = mk('btnB', 'btn'), azione = mk('btnAzione'); btnA.textContent = 'A'; btnB.textContent = 'B';
   const nogesture = 'touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;';
-  const ringCss = `${nogesture}position:absolute;width:${RING}px;height:${RING}px;border-radius:50%;background:rgba(27,35,64,.42);border:3px solid rgba(255,255,255,.7);box-shadow:0 0 0 2px rgba(27,35,64,.55);`;
+  const ringCss = `${nogesture}position:absolute;width:${RING}px;height:${RING}px;border-radius:50%;background:${FRECCE},rgba(27,35,64,.42);border:3px solid rgba(255,255,255,.7);box-shadow:0 0 0 2px rgba(27,35,64,.55);`;
   const fixedCss = `${ringCss}left:max(16px,env(safe-area-inset-left,0px));bottom:calc(${SAFE} + 32px);`;
   joy.style.cssText = fixedCss;
   stick.style.cssText = `position:absolute;left:${(RING - 6 - STICK) / 2}px;top:${(RING - 6 - STICK) / 2}px;width:${STICK}px;height:${STICK}px;border-radius:50%;background:#FFF6E0;border:3px solid ${BLU_NOTTE};box-shadow:inset 0 -5px 0 #E2D3AE;box-sizing:border-box;pointer-events:none;will-change:transform;`;
   // bottoni tondi: colore pieno, anello bianco, contorno blu notte e un'ombra piena sotto (niente sfumature)
-  const btnCss = (size: number, right: string, bottom: string, bg: string, scuro: string) => `${nogesture}position:absolute;right:${right};bottom:${bottom};width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:${bg};border:4px solid #fff;box-shadow:0 0 0 3px ${BLU_NOTTE},inset 0 -7px 0 ${scuro},0 5px 0 3px ${BLU_NOTTE};color:#fff;font:${Math.round(size * 0.46)}px ${FONT};text-shadow:${CONTORNO};display:flex;align-items:center;justify-content:center;`;
+  const btnCss = (size: number, right: string, bottom: string, bg: string, scuro: string) => `${nogesture}position:absolute;right:${right};bottom:${bottom};width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:${RIFLESSO},${bg};border:4px solid #fff;box-shadow:0 0 0 3px ${BLU_NOTTE},inset 0 -7px 0 ${scuro},0 5px 0 3px ${BLU_NOTTE};color:#fff;font:${Math.round(size * 0.46)}px ${FONT};text-shadow:${CONTORNO};display:flex;align-items:center;justify-content:center;`;
   const aCss = btnCss(BTN_A, 'max(18px,env(safe-area-inset-right,0px))', `calc(${SAFE} + 46px)`, '#EE3640', '#B81F2B');
   const bCss = btnCss(BTN_B, `calc(max(18px,env(safe-area-inset-right,0px)) + ${BTN_A + 12}px)`, `calc(${SAFE} + 40px)`, '#2F86E8', '#1A5DB8');
   // la scritta sotto A: pillola blu notte col bordo chiaro, centrata sul bottone
-  const azCss = `${nogesture}position:absolute;right:calc(max(18px,env(safe-area-inset-right,0px)) + ${BTN_A / 2}px);bottom:calc(${SAFE} + 22px);transform:translateX(50%);min-width:56px;box-sizing:border-box;padding:3px 12px 4px;border-radius:999px;background:${BLU_NOTTE};border:2px solid #9FD3FF;color:#fff;font:15px ${FONT};text-align:center;white-space:nowrap;pointer-events:none;z-index:1;`;
+  const azCss = `${nogesture}position:absolute;right:calc(max(18px,env(safe-area-inset-right,0px)) + ${BTN_A / 2}px);bottom:calc(${SAFE} + 14px);transform:translateX(50%);min-width:56px;box-sizing:border-box;padding:3px 12px 4px;border-radius:999px;background:${BLU_NOTTE};border:2px solid #9FD3FF;color:#fff;font:15px ${FONT};text-align:center;white-space:nowrap;pointer-events:none;z-index:1;`;
   let bVia = false, azTesto: string | null = null;
   btnA.style.cssText = aCss; btnB.style.cssText = bCss; azione.style.cssText = azCss + 'display:none;';
   o.root.append(joy, btnA, btnB, azione);

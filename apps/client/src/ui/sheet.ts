@@ -66,6 +66,11 @@ export const LABEL_NEAR_M = 12;
 /** `vicino` = false: cartello discreto (piccolo, in trasparenza); di serie pieno. */
 export type Label = { el: HTMLElement; set(kind: 'bubble' | 'timer' | 'full' | 'info', content: Node[], sig: string): void; place(x: number, y: number, on: boolean, vicino?: boolean): void; remove(): void };
 export type LabelLayer = { add(onTap?: () => void): Label; el: HTMLElement };
+/** Sopra questa riga (px CSS dall'alto) i cartellini non si mostrano: sul telefono è la fascia dell'HUD (monete, avatar, minimappa,
+ *  mete), che nel mockup scelto (#417) resta pulita. La misura la dà ui/hud_allegro.ts; 0 = nessuna fascia (PC). */
+let taglioSu = 0;
+export function setTaglioEtichette(px: number): void { taglioSu = px; }
+const ALTEZZA_LBL = 28; // il cartellino sta sopra il punto (translate −100 %): questa è la sua altezza circa, punta compresa
 /** Strato di etichette sopra il canvas; la posizione la calcola chi proietta dal mondo (x, y in px CSS). */
 export function createLabelLayer(root: HTMLElement): LabelLayer {
   const layer = el('div', 'mz mz-labels');
@@ -88,7 +93,7 @@ export function createLabelLayer(root: HTMLElement): LabelLayer {
           e.replaceChildren(...content);
         },
         place(x, y, on, vicino = true) {
-          if (!on) { if (shown) { e.style.transform = 'translate(-9999px,0)'; shown = false; } return; }
+          if (!on || y - ALTEZZA_LBL < taglioSu) { if (shown) { e.style.transform = 'translate(-9999px,0)'; shown = false; } return; }
           if (far === vicino) { far = !vicino; e.classList.toggle('far', far); }
           const rx = Math.round(x), ry = Math.round(y);
           if (shown && rx === lx && ry === ly) return;

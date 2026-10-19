@@ -3,6 +3,7 @@
 //   Personaggio = zaino e armi, Foto). I bottoni vecchi (maglietta, scudo, macchina foto) restano nel DOM nascosti: il menù li «tocca».
 // - Bandierina sul bordo della minimappa: apre e chiude l'elenco delle mete (la pillola sotto la minimappa fa lo stesso).
 // - «Albi è online»: fumetto accanto alla campanella quando un amico entra nel mondo (evento `join` della Zone).
+// - Sul telefono la fascia in alto dell'HUD resta senza cartellini del mondo, come nel mockup (`setTaglioEtichette`).
 // Lo stile sta in ui/stile_allegro.ts.
 import type { WebGLRenderer } from 'three';
 import type { Look } from '@marea/protocol';
@@ -10,6 +11,7 @@ import type { NetClient } from '../net/client.ts';
 import type { Loader } from '../render/loader.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { injectAllegro, testaSvg } from './stile_allegro.ts';
+import { setTaglioEtichette } from './sheet.ts';
 import { el } from './style.ts';
 import { topButton } from './topbar.ts';
 
@@ -75,12 +77,27 @@ export function createHudAllegro(o: { root: HTMLElement; net: NetClient; loader:
   };
   o.net.on('join', (m) => { if (m.peer.id !== o.net.me?.id) annuncia(m.peer.id, m.peer.nome, m.peer.look); });
 
-  registerStateProvider('hudAllegro', () => ({ menu: !!menu?.isOpen(), voci: menu?.voci() ?? [], ritratto: !!url, online: bolla.classList.contains('on') ? ultimo : null }));
+  // ——— fascia dell'HUD senza cartellini (telefono): fino al fondo del più basso fra avatar, minimappa e pillola delle mete ———
+  // si rimisura ogni mezzo secondo (rotazione, tastiera, la pillola che cambia altezza), non a ogni fotogramma
+  let taglio = 0, misurato = -Infinity;
+  const misura = () => {
+    let giu = 0;
+    if (innerWidth < 700) for (const s of ['#mzAvatarBtn', '#mzMini', '#compass .mz-mete-head']) {
+      const r = document.querySelector(s)?.getBoundingClientRect();
+      if (r && r.height > 0) giu = Math.max(giu, r.bottom + 4);
+    }
+    if (giu !== taglio) { taglio = giu; setTaglioEtichette(giu); }
+  };
+
+  registerStateProvider('hudAllegro', () => ({ menu: !!menu?.isOpen(), voci: menu?.voci() ?? [], ritratto: !!url, online: bolla.classList.contains('on') ? ultimo : null, taglio }));
   registerTestHook('hudAllegroOnline', (nome) => { annuncia('test:' + String(nome), String(nome), look); return true; });
 
   return {
     setLook(l) { if (JSON.stringify(l) === JSON.stringify(look)) return; look = l; disegna(); },
-    update() { const c = document.getElementById('compass'); flag.classList.toggle('on', !!c?.classList.contains('open')); },
+    update() {
+      const c = document.getElementById('compass'); flag.classList.toggle('on', !!c?.classList.contains('open'));
+      const ora = performance.now(); if (ora - misurato > 500) { misurato = ora; misura(); }
+    },
     chiudi,
     isOpen: () => !!menu?.isOpen(),
   };

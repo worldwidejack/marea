@@ -55,12 +55,20 @@ const PILLOLA_SCURA = `border-radius: 999px; background: ${A.notteBlu}; border: 
 // le colonne: a sinistra monete (T), campanella (T+50), avatar (T+106); a destra ingranaggio (T), minimappa (T+34, 104 px), mete (T+152)
 const MINI = 104, MINI_TOP = 34, DESTRA = 22; // DESTRA: la minimappa sta un po' dentro, così + − e bandierina sul bordo restano nello schermo
 
+// Ritocchi del 19 ott (Jack: «un po' diverse dal mockup»), qui e non dentro il CSS perché i commenti del CSS finiscono nel JS scaricato:
+// - cartellini nel mondo piccoli come «Nonna Pina» nel mockup: pillola ardesia col bordo bianco e la punta, scritta normale, tutti dello
+//   stesso colore (`.mz-labels` nel selettore vince sulle misure grandi dei moduli: .spot, .dng…); le persone solo col nome; il ::before
+//   allarga la zona da toccare; sul telefono la fascia dell'HUD in alto resta senza cartellini (ui/sheet.ts, setTaglioEtichette);
+// - sul telefono il bottone di posto che A fa già (main.ts lo segna con .mz-in-a e gli dà il verbo in data-verbo) non sta più in mezzo
+//   allo schermo: diventa lui la scritta sotto A («Parla», «Gioca»), come nel mockup, e toccarlo fa la stessa cosa di A (la scritta
+//   #btnAzione intanto si nasconde). Sul PC resta in mezzo, perché dice il tasto (E); quelli che A non fa (INSIEME, PESCA…) restano dove sono;
+// - la pillola delle mete dice nome e spillo coi metri, senza freccia (ui/compass.ts sceglie la meta).
 const CSS = `
 @font-face { font-family: 'MzTitan'; src: url('/assets/fonts/titan-one-latin.woff2') format('woff2'); font-display: swap; }
 :root { --mzk: 1; --mzT: max(10px, env(safe-area-inset-top)); }
 @media (min-width: 700px) { :root { --mzk: 1.18; } }
 
-/* ——— monete (barra risorse): pillola ardesia col bordo d'oro, in alto a sinistra ——— */
+${/* ——— monete (barra risorse): pillola ardesia col bordo d'oro, in alto a sinistra ——— */ ''}
 body #mzBar { left: 10px; right: auto; top: ${T}; justify-content: flex-start; align-items: center; gap: ${k(12)}; height: ${k(38)}; padding: 0 ${k(14)} 0 ${k(6)}; box-sizing: border-box;
   background: ${A.ardesia}; border: ${k(3)} solid ${A.oro}; border-radius: 999px; box-shadow: 0 0 0 ${k(2.5)} ${A.notte}, 0 ${k(4)} 0 ${k(2.5)} ${A.notte}; }
 body #mzBar .mz-chip { min-height: 0; padding: 0; gap: ${k(5)}; background: none; border: 0; box-shadow: none; color: ${A.bianco}; font: ${k(20)} ${FONT_ALLEGRO}; text-shadow: ${CONTORNO_ALLEGRO}; transition: transform .15s; }
@@ -71,11 +79,11 @@ body #mzBar .mz-chip[data-res="monete"] :is(canvas, span) { display: none; }
 body #mzBar .mz-chip[data-res="monete"]::before { content: ''; flex: none; width: ${k(34)}; height: ${k(34)}; margin-left: ${k(-12)}; box-sizing: border-box; border-radius: 50%;
   border: ${k(2.5)} solid ${A.notte}; box-shadow: inset 0 0 0 ${k(3)} ${A.oroChiaro}, inset 0 ${k(-4)} 0 ${k(4)} ${A.oroScuro};
   background: linear-gradient(${A.bianco}, ${A.bianco}) center / ${k(5)} ${k(14)} no-repeat, ${A.oro}; }
-/* cantiere: pillola blu accanto alla campanella (sparisce con l'economia a monete) */
+${/* cantiere: pillola blu accanto alla campanella (sparisce con l'economia a monete) */ ''}
 body #mzWork { top: calc(${T} + ${k(54)}); left: calc(10px + ${k(58)}); right: auto; transform: none; min-height: ${k(32)}; padding: 0 ${k(12)}; max-width: calc(100% - 10px - ${k(58)} - ${DESTRA}px - ${k(MINI + 10 + 48 + 10)}); box-sizing: border-box; ${PILLOLA_SCURA} }
 body #mzWork.on { line-height: ${k(27)}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ——— bottoni in alto: ognuno al suo posto (la barra non è più una fila) ——— */
+${/* ——— bottoni in alto: ognuno al suo posto (la barra non è più una fila) ——— */ ''}
 body #mzTop { position: absolute; inset: 0; display: block; pointer-events: none; z-index: 14; }
 body #mzTop .mz-topbtn { position: absolute; pointer-events: auto; padding: 0; ${BOTTONE} background-color: ${A.blu}; color: ${A.bianco}; font: ${k(18)} ${FONT_ALLEGRO}; text-shadow: ${CONTORNO_ALLEGRO}; }
 body #mzTop .mz-topbtn:active { transform: translateY(${k(3)}); box-shadow: 0 0 0 ${k(2.5)} ${A.notte}, 0 ${k(1)} 0 ${k(2.5)} ${A.notte}; }
@@ -89,12 +97,12 @@ body #mzTop #mzAvatarBtn img { position: absolute; inset: 0; width: 100%; height
 body #mzTop #mzSetBtn { left: auto; right: 6px; top: calc(${T} - ${k(6)}); width: ${k(40)}; height: ${k(40)}; border: 0; box-shadow: none; background: transparent ${svg(ingranaggio())} center / 74% no-repeat !important; filter: drop-shadow(0 ${k(2)} 0 ${A.notte}); }
 body #mzTop #mzSetBtn.on { box-shadow: none; filter: drop-shadow(0 0 ${k(3)} ${A.oro}) drop-shadow(0 ${k(2)} 0 ${A.notte}); }
 body #mzTop #mzTeleBtn { left: auto; right: calc(${DESTRA}px + ${k(MINI + 10)}); top: calc(${T} + ${k(MINI_TOP + 56)}); width: ${k(48)}; height: ${k(48)}; border-color: ${A.oro}; background-color: ${A.blu} !important; background-image: ${svg(vortice())}; background-size: 74%; font-size: 0; color: transparent; text-shadow: none; }
-/* i bottoni di prova (?templari=1, ?arena=1…): in colonna a sinistra sotto l'avatar */
+${/* i bottoni di prova (?templari=1, ?arena=1…): in colonna a sinistra sotto l'avatar */ ''}
 body #mzTop #mzArenaVai, body #mzTop #mzAdrenalinaVai, body #mzTop #mzDifesaVai, body #mzTop #mzTemplariProva, body #mzTop #mzTemplariVai { left: 10px; width: ${k(44)}; height: ${k(44)}; font: ${k(20)} system-ui, sans-serif; text-shadow: none; }
 body #mzTop #mzArenaVai { top: calc(${T} + ${k(180)}); } body #mzTop #mzAdrenalinaVai { top: calc(${T} + ${k(232)}); } body #mzTop #mzDifesaVai { top: calc(${T} + ${k(284)}); }
 body #mzTop #mzTemplariProva { top: calc(${T} + ${k(336)}); } body #mzTop #mzTemplariVai { top: calc(${T} + ${k(388)}); }
 
-/* ——— «Albi è online»: fumetto bianco che esce dalla campanella ——— */
+${/* ——— «Albi è online»: fumetto bianco che esce dalla campanella ——— */ ''}
 #mzOnline { position: absolute; left: calc(10px + ${k(58)}); top: calc(${T} + ${k(56)}); z-index: 15; display: flex; align-items: center; gap: ${k(6)}; height: ${k(36)}; padding: 0 ${k(14)} 0 ${k(5)}; box-sizing: border-box;
   border-radius: 999px; background: ${A.bianco}; border: ${k(2.5)} solid ${A.notte}; box-shadow: 0 ${k(3)} 0 ${A.notte}; color: ${A.notte}; font: ${k(14)} ${FONT_ALLEGRO}; white-space: nowrap; pointer-events: none;
   opacity: 0; transform: translateX(${k(-12)}); transition: opacity .25s, transform .25s; }
@@ -104,7 +112,7 @@ body #mzTop #mzTemplariProva { top: calc(${T} + ${k(336)}); } body #mzTop #mzTem
 #mzOnline i { width: ${k(26)}; height: ${k(26)}; flex: none; border-radius: 50%; background: ${A.crema} ${TESTA_DI_RISERVA} center 80% / 92% no-repeat; }
 body.mz-sotto #mzOnline, #ui.mz-racing #mzOnline { visibility: hidden; }
 
-/* ——— minimappa: anello d'oro, bianco e blu notte; N gialla; + − e bandierina sul bordo ——— */
+${/* ——— minimappa: anello d'oro, bianco e blu notte; N gialla; + − e bandierina sul bordo ——— */ ''}
 body #mzMini { left: auto; right: ${DESTRA}px; bottom: auto; top: calc(${T} + ${k(MINI_TOP)}); width: ${k(MINI)}; height: ${k(MINI)}; }
 body #mzMini canvas { border: ${k(5)} solid ${A.oro}; box-shadow: 0 0 0 ${k(3)} ${A.bianco}, 0 0 0 ${k(5.5)} ${A.notte}, 0 ${k(5)} 0 ${k(5.5)} ${A.notte}; background: #1E6FD0; }
 body #mzMini .n { top: ${k(1)}; font: ${k(17)} ${FONT_ALLEGRO}; color: ${A.oro}; text-shadow: ${CONTORNO_ALLEGRO}; }
@@ -119,8 +127,8 @@ body #mzMiniZoom button[data-zoom="-"]::before { content: '\\2212'; }
 #mzMiniMete:active { transform: translateY(${k(2)}); }
 #ui.mz-racing #mzMiniMete, body.mz-sotto #mzMiniMete, body.mz-casa #mzMiniMete { visibility: hidden; }
 
-/* ——— mete: chiuse sono la pillola del navigatore sotto la minimappa (icona, nome, distanza, ›) ——— */
-body #compass { right: 10px; top: calc(${T} + ${k(MINI_TOP + MINI + 16)}); bottom: calc(40% + 16px); gap: ${k(5)}; } /* telefono: sopra la guida e i comandi */
+${/* ——— mete: chiuse sono la pillola del navigatore sotto la minimappa (icona, nome, distanza, ›) ——— */ ''}
+body #compass { right: 10px; top: calc(${T} + ${k(MINI_TOP + MINI + 16)}); bottom: calc(40% + 16px); gap: ${k(5)}; } ${/* telefono: sopra la guida e i comandi */ ''}
 @media (min-width: 700px) { body #compass { bottom: calc(env(safe-area-inset-bottom, 0px) + ${k(190)}); } }
 body #compass .mz-mete-head button { min-height: ${k(42)}; padding: 0 0 0 ${k(8)}; gap: ${k(6)}; overflow: hidden; ${PILLOLA_SCURA} }
 body #compass .mz-mete-head button.tutte { padding: 0 ${k(10)}; font-size: ${k(12)}; }
@@ -133,7 +141,7 @@ body #mzMete .mz-mete-txt { display: flex; flex-direction: column; align-items: 
 body #mzMete .mz-mete-n { color: ${A.bianco}; font-size: ${k(13)}; max-width: ${k(150)}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 body #mzMete .mz-mete-d { display: inline-flex; align-items: center; gap: ${k(2)}; color: ${A.oro}; font-size: ${k(16)}; text-shadow: 0 ${k(1.5)} 0 ${A.notte}; }
 body #mzMete .mz-mete-d::before { content: ''; width: ${k(14)}; height: ${k(14)}; background: ${svg(SPILLO)} center / contain no-repeat; }
-body #mzMete .mz-mete-arr { color: ${A.oro}; width: ${k(14)}; height: ${k(18)}; }
+body #mzMete .mz-mete-arr { display: none; }
 body #mzMete .mz-mete-chev { align-self: stretch; display: flex; align-items: center; padding: 0 ${k(9)}; margin-left: ${k(4)}; background: ${A.blu}; color: ${A.bianco}; font: ${k(16)} ${FONT_ALLEGRO}; border-left: ${k(2)} solid ${A.celeste}; }
 body #compass .mz-mete-row { min-height: ${k(36)}; padding: ${k(2)} ${k(10)} ${k(2)} ${k(8)}; gap: ${k(6)}; border-radius: ${k(14)}; background: ${A.notteBlu}; border: ${k(2)} solid ${A.celeste}; box-shadow: 0 0 0 ${k(1.5)} ${A.notte}, 0 ${k(3)} 0 ${k(1.5)} ${A.notte}; color: ${A.bianco}; font: ${k(13)} ${FONT_ALLEGRO}; overflow: hidden; }
 body #compass .mz-mete-row.navi { border-color: ${A.rosso}; }
@@ -149,20 +157,29 @@ body #compass .mz-mete-desc-x { color: ${A.bianco}; font-size: ${k(16)}; }
 body #compass .mz-mete-desc-txt { color: ${A.bianco}; font-size: ${k(12)}; font-weight: normal; }
 body #mzMetePtr .mz-mete-tag { border-radius: 999px; background: ${A.notteBlu}; border: 2px solid ${A.celeste}; box-shadow: 0 2px 0 ${A.notte}; color: ${A.bianco}; font: 12px ${FONT_ALLEGRO}; }
 
-/* ——— cartellini nel mondo (nomi, edifici): pillola ardesia col bordo bianco e la punta ——— */
-body .mz-lbl { min-height: 28px; padding: 0 10px; gap: 5px; border-radius: 999px; background: ${A.ardesia}; border: 2px solid ${A.bianco}; box-shadow: 0 0 0 1.5px ${A.notte}, 0 3px 0 1.5px ${A.notte}; color: ${A.bianco}; font: 14px ${FONT_ALLEGRO}; font-weight: 400; }
-body .mz-lbl::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 8px; height: 8px; background: ${A.ardesia}; border-right: 2px solid ${A.bianco}; border-bottom: 2px solid ${A.bianco}; transform: translateX(-50%) rotate(45deg); }
-body .mz-lbl.bubble { border-color: ${A.oro}; } body .mz-lbl.bubble::after { border-color: ${A.oro}; }
-body .mz-lbl.full { background: ${A.oro}; color: ${A.notte}; } body .mz-lbl.full::after { background: ${A.oro}; }
-body .mz-lbl.timer, body .mz-lbl.slot { border-color: ${A.celeste}; } body .mz-lbl.timer::after, body .mz-lbl.slot::after { border-color: ${A.celeste}; }
-body .mz-lbl.slot.hint { background: ${A.oro}; color: ${A.notte}; border-color: ${A.bianco}; } body .mz-lbl.slot.hint::after { background: ${A.oro}; border-color: ${A.bianco}; }
+${/* cartellini nel mondo */ ''}
+body .mz-labels .mz-lbl { min-height: 24px; min-width: 0; padding: 0 9px 1px; gap: 4px; box-sizing: border-box; border-radius: 999px; background: ${A.ardesia}; border: 2px solid ${A.bianco}; box-shadow: 0 0 0 1.5px ${A.notte}, 0 3px 0 1.5px ${A.notte}; color: ${A.bianco}; font: 13px ${FONT_ALLEGRO}; font-weight: 400; }
+body .mz-labels .mz-lbl::after { content: ''; position: absolute; left: 50%; bottom: -5px; width: 7px; height: 7px; background: ${A.ardesia}; border-right: 2px solid ${A.bianco}; border-bottom: 2px solid ${A.bianco}; transform: translateX(-50%) rotate(45deg); }
+body .mz-labels .mz-lbl.persona .mz-ico { display: none; }
+body .mz-labels .mz-lbl.bubble::before { content: ''; position: absolute; inset: -10px -4px; }
+body .mz-labels .mz-lbl.full, body .mz-labels .mz-lbl.slot.hint { min-height: 26px; background: ${A.oro}; color: ${A.notte}; font-size: 14px; }
+body .mz-labels .mz-lbl.full::after, body .mz-labels .mz-lbl.slot.hint::after { background: ${A.oro}; }
 
-/* ——— bottoni di posto (GIOCA, PESCA, ENTRA…): pillola bianca col contorno e il tasto in un tondo blu notte ——— */
+${/* ——— bottoni di posto (GIOCA, PESCA, ENTRA…): pillola bianca col contorno e il tasto in un tondo blu notte ——— */ ''}
 body .mz-play { min-height: ${k(52)}; padding: 0 ${k(10)} 0 ${k(10)}; gap: ${k(8)}; border-radius: 999px; background: ${A.bianco}; color: ${A.notte}; border: ${k(3)} solid ${A.notte}; box-shadow: 0 ${k(5)} 0 ${A.notte}; font: ${k(16)} ${FONT_ALLEGRO}; }
 body .mz-play:active { box-shadow: 0 ${k(2)} 0 ${A.notte}; }
 body .mz-play small { display: grid; place-items: center; min-width: ${k(26)}; height: ${k(26)}; padding: 0 ${k(5)}; box-sizing: border-box; border-radius: 999px; background: ${A.rosso}; color: ${A.bianco}; font-size: ${k(13)}; opacity: 1; text-shadow: 0 1px 0 ${A.notte}; }
+@media (hover: none) and (pointer: coarse) {
+  body .mz-play.on.mz-in-a { left: auto !important; top: auto !important; right: calc(max(18px, env(safe-area-inset-right, 0px)) + 43px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px) !important; transform: translateX(50%) !important;
+    min-height: 0; min-width: 56px; justify-content: center; gap: 0; padding: 3px 12px 4px; border-radius: 999px; background: ${A.notte} !important; border: 2px solid ${A.celeste}; box-shadow: none; color: ${A.bianco}; font: 15px ${FONT_ALLEGRO}; }
+  body .mz-play.on.mz-in-a::before { content: attr(data-verbo); }
+  body .mz-play.on.mz-in-a > * { font-size: 0 !important; width: 0 !important; height: 0 !important; min-width: 0 !important; margin: 0; padding: 0 !important; border: 0; overflow: hidden; }
+  body .mz-play.on.mz-in-a .mz-ico { display: none !important; }
+  body .mz-play.on.mz-in-a:active { transform: translateX(50%) translateY(2px) !important; box-shadow: none; }
+  body:has(.mz-play.on.mz-in-a) #btnAzione { display: none !important; }
+}
 
-/* ——— guida «Primi passi»: scheda bianca; sul telefono resta in basso sopra i comandi, sul PC sotto la colonna di sinistra ——— */
+${/* ——— guida «Primi passi»: scheda bianca; sul telefono resta in basso sopra i comandi, sul PC sotto la colonna di sinistra ——— */ ''}
 body .mz-guida { border-radius: ${k(18)}; background: ${A.bianco}; border: ${k(3)} solid ${A.notte}; box-shadow: 0 ${k(5)} 0 ${A.notte}; color: ${A.notte}; padding: ${k(8)} ${k(10)} ${k(10)} ${k(12)}; }
 body .mz-guida small { color: ${A.bluScuro}; font: ${k(12)} ${FONT_ALLEGRO}; letter-spacing: .04em; }
 body .mz-guida b { font: ${k(18)} ${FONT_ALLEGRO}; font-weight: 400; color: ${A.notte}; }
@@ -171,7 +188,7 @@ body .mz-guida button { border-radius: 999px; background: ${A.notteBlu}; border:
 body .mz-guida.ok { border-color: #2BA84A; } body .mz-guida.ok small { color: #1E8A3A; }
 @media (min-width: 700px) { body .mz-guida { left: 10px; top: calc(${T} + ${k(184)}); width: ${k(260)}; } }
 
-/* ——— avvisi ——— */
+${/* ——— avvisi ——— */ ''}
 body #toast { top: max(30%, calc(${T} + ${k(MINI_TOP + MINI + 64)})) !important; max-width: min(${k(340)}, calc(100% - 32px)) !important; box-sizing: border-box; padding: ${k(8)} ${k(16)}; border-radius: ${k(18)}; line-height: 1.25; background: ${A.bianco}; color: ${A.notte}; border: ${k(2.5)} solid ${A.notte}; box-shadow: 0 ${k(4)} 0 ${A.notte}; font: ${k(15)} ${FONT_ALLEGRO}; }
 body .mz-banner { border-radius: ${k(20)}; background: ${A.bianco}; color: ${A.notte}; border: ${k(3)} solid ${A.rosso}; box-shadow: 0 ${k(5)} 0 ${A.notte}; font: ${k(16)} ${FONT_ALLEGRO}; }
 `;

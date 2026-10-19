@@ -75,7 +75,7 @@ export function createLibri(o: LibriOpts): Libri {
     const w = arch.lotCellToWorld(is.slot, cfg.lotto), y = o.world.groundY(w.x, w.z);
     geos.push(leggioGeometry().applyMatrix4(M(w.x, y, w.z, 0, 0, 0, 1.2, 1.2, 1.2)));
     const label = layer.add(() => { if (dist(w.x, w.z) < cfg.raggio * 2.5) void open(lib); else o.hud.toast(`Libro degli ospiti${is.mine ? '' : ' di ' + is.ownerName}: vicino al molo`, 2200); });
-    label.set('bubble', [pixIcon('libro', 16), el('span', '', 'LIBRO')], 'libro'); label.el.classList.add('libro'); label.el.dataset['libro'] = is.owner;
+    label.set('bubble', [pixIcon('libro', 16), el('span', '', 'Libro')], 'libro'); label.el.classList.add('libro'); label.el.dataset['libro'] = is.owner;
     const lib = { is, x: w.x, z: w.z + 0.9, px: w.x, pz: w.z, y, label }; // x, z = dove sta chi legge (davanti al leggio, verso il molo)
     return lib;
   });

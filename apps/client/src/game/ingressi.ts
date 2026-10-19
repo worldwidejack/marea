@@ -127,7 +127,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     if (o.loader.has(name)) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => holder.add(placeholder()));
     else holder.add(placeholder(s.stile));
     const label = layer.add(() => { void enter(s); });
-    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome.toUpperCase())], 'dng');
+    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome)], 'dng');
     label.el.classList.add('dng');
     const sig = richiesto(s.id) ? sigillo(s.stile) : null;
     if (sig) holder.add(sig);
@@ -424,8 +424,8 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
           if (c !== m.chiuso) {
             m.chiuso = c; m.sig.visible = c;
             if (!c && m.s.id === 'vuoto') { try { localStorage.setItem('marea:cancello_vuoto_aperto', '1'); } catch {} }
-            const r = richiesto(m.s.id), tag = c ? (r === 'unico_anello_onda' ? ' · CANCELLO CHIUSO' : ' · SIGILLATO') : '';
-            m.label.set('bubble', [pixIcon(m.s.icon, 16), el('span', '', `${m.s.nome.toUpperCase()}${tag}`)], c ? 'dng-sig' : 'dng');
+            const r = richiesto(m.s.id), tag = c ? (r === 'unico_anello_onda' ? ' · cancello chiuso' : ' · sigillato') : '';
+            m.label.set('bubble', [pixIcon(m.s.icon, 16), el('span', '', `${m.s.nome}${tag}`)], c ? 'dng-sig' : 'dng');
             m.label.el.classList.add('dng'); m.label.el.classList.toggle('sig', c); // set() rifà le classi
           }
         }

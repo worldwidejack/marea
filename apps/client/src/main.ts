@@ -141,14 +141,20 @@ async function boot(): Promise<void> {
   const AZIONI: readonly (readonly [string, string])[] = [['mzPortaBtn', 'Entra'], ['mzNegozioBtn', 'Entra'], ['mzPortoBtn', 'Guarda'], ['mzLibroBtn', 'Leggi'], ['mzAmiciBtn', 'Guarda'],
     ['mzPlay', 'Gioca'], ['mzDngEntra', 'Entra'], ['mzTemplariEntra', 'Entra'], ['mzFunivia', 'Sali'], ['mzArenaEntra', 'Entra'], ['mzDifesaEntra', 'Entra']];
   const VERBI: Record<string, string> = { PARLA: 'Parla', GIOCA: 'Gioca', FIRMA: 'Firma', ESCI: 'Esci', ENTRA: 'Entra', TORNA: 'Entra', VAI: 'Entra' };
+  // il bottone di posto che A fa già prende .mz-in-a e il verbo: sul telefono lo stile Allegro ne fa la scritta «Parla» sotto A (mockup #417)
+  let inA: HTMLElement | null = null;
   const azioneA = (): string | null => {
+    let chi: HTMLElement | null = null, t: string | null = null;
     for (const [id, base] of AZIONI) {
       const b = document.getElementById(id);
       if (!b?.classList.contains('on')) continue;
       const parola = (b.textContent ?? '').trim().split(/[\s·]+/)[0]?.toUpperCase() ?? '';
-      return VERBI[parola] ?? base;
+      chi = b; t = VERBI[parola] ?? base;
+      break;
     }
-    return world.mode === 'walk' && canBoard(world.avatar.state, world.boat.state, world.map) ? 'Sali' : null;
+    if (chi !== inA) { inA?.classList.remove('mz-in-a'); chi?.classList.add('mz-in-a'); inA = chi; }
+    if (chi && t && chi.dataset['verbo'] !== t) chi.dataset['verbo'] = t;
+    return t ?? (world.mode === 'walk' && canBoard(world.avatar.state, world.boat.state, world.map) ? 'Sali' : null);
   };
   // Porto (#63-#65): Mercante del Porto, Bacheca delle missioni, Gente del Porto; i pannelli si scaricano alla prima apertura
   const porto = createPorto({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot });

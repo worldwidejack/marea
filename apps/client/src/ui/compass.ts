@@ -307,6 +307,16 @@ export function createCompass(o: {
 
   /** Accesa: la casella è piena (il navigatore lo è sempre). */
   const acceso = (r: Row) => !!r.t.navi || !off.has(keyOf(r.t));
+  /** La meta accesa più vicina che non hai già raggiunto (oltre NEAR_M; se lo sono tutte, la più vicina). Quella di prima resta finché
+   *  un'altra non è più vicina di 15 m: camminando fra due mete quasi alla stessa distanza la pillola non salta di continuo. */
+  let vicinaPrima: Row | null = null;
+  const piuVicina = (on: Row[]): Row | null => {
+    const lontane = on.filter((r) => r.d > NEAR_M), pool = lontane.length ? lontane : on;
+    if (!pool.length) return (vicinaPrima = null);
+    const best = pool.reduce((a, b) => (b.d < a.d ? b : a));
+    if (!vicinaPrima || !pool.includes(vicinaPrima) || best.d < vicinaPrima.d - 15) vicinaPrima = best;
+    return vicinaPrima;
+  };
   registerStateProvider('compass', () => {
     const vis = rows.filter((r) => r.t.show?.() ?? true), on = vis.filter(acceso);
     return {
@@ -359,18 +369,21 @@ export function createCompass(o: {
         }
       }
       const one = on.find((r) => r.t.navi) ?? (on.length === 1 ? on[0]! : null);
-      const key = open ? 'open' : one ? 'one:' + one.t.id : 'n:' + on.length;
+      // a menù chiuso la pillola dice sempre una meta col nome e i metri, come «Grotta della Marea · 102 m» nel mockup (#417): quella
+      // sola accesa o del navigatore; se no quella della guida; se no la più vicina fra quelle non ancora raggiunte (fuori da NEAR_M)
+      const prossima = one ?? on.find((r) => r.t.id === focused) ?? piuVicina(on);
+      const key = open ? 'open' : prossima ? 'one:' + prossima.t.id : 'n:' + on.length;
       if (key !== sumFor) {
         sumFor = key;
         if (open || on.length === 0) sum.replaceChildren();
-        else if (one) { const txt = span('mz-mete-txt'); txt.append(span('mz-mete-n', one.t.label), span('mz-mete-d')); sum.replaceChildren(...(one.t.icon ? [pixIcon(one.t.icon, 16)] : []), txt, arrowEl('mz-mete-arr')); }
+        else if (prossima) { const txt = span('mz-mete-txt'); txt.append(span('mz-mete-n', prossima.t.label), span('mz-mete-d')); sum.replaceChildren(...(prossima.t.icon ? [pixIcon(prossima.t.icon, 16)] : []), txt, arrowEl('mz-mete-arr')); }
         else sum.replaceChildren(span('', `· ${on.length}`));
       }
-      if (one && !open) {
+      if (prossima && !open) {
         const d = sum.querySelector<HTMLElement>('.mz-mete-d'), a = sum.querySelector<HTMLElement>('.mz-mete-arr'), n = sum.querySelector<HTMLElement>('.mz-mete-n');
-        if (n && n.textContent !== one.t.label) n.textContent = one.t.label;
-        if (d) d.textContent = distText(one.d);
-        if (a) { a.style.transform = `rotate(${one.ang.toFixed(3)}rad)`; a.style.visibility = one.d <= NEAR_M ? 'hidden' : ''; }
+        if (n && n.textContent !== prossima.t.label) n.textContent = prossima.t.label;
+        if (d) d.textContent = distText(prossima.d);
+        if (a) { a.style.transform = `rotate(${prossima.ang.toFixed(3)}rad)`; a.style.visibility = prossima.d <= NEAR_M ? 'hidden' : ''; }
       }
       if (one) place(one, t); else if (ptrMode !== 'off') { ptr.classList.remove('on'); ptrMode = 'off'; }
     },

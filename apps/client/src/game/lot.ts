@@ -123,7 +123,7 @@ export function createLotView(o: LotViewOptions): LotView {
     | { kind: 'sposta_edificio'; id: string; cell: [number, number] } | null = null;
   let nearDecor: string | null = null, aWas = false;
   const nearLabel = ro ? null : S.labels.add(() => { if (nearDecor) openDecor(nearDecor); });
-  nearLabel?.set('bubble', [pixIcon('martello', 16), el('span', '', 'MODIFICA · A')], 'decor'); nearLabel?.el.classList.add('decor');
+  nearLabel?.set('bubble', [pixIcon('martello', 16), el('span', '', 'Modifica · A')], 'decor'); nearLabel?.el.classList.add('decor');
   /** Monete mostrate mentre volano verso il contatore (null = quelle del lotto). */
   let holdMonete: number | null = null;
 
@@ -436,7 +436,7 @@ export function createLotView(o: LotViewOptions): LotView {
         d.label.set('timer', [el('span', '', `${def.nome} tra `), timerSpan(c.endsMs)], `t:${c.endsMs}`);
       } else if (def.produces && b.level >= 1 && b.buffer >= 1) {
         const n = Math.floor(b.buffer), rate = def.levels[b.level - 1]?.rate ?? 0, full = rate > 0 && b.buffer >= rate * fast - 0.5;
-        d.label.set(full ? 'full' : 'bubble', [resIcon(def.produces, 16), el('span', '', full ? `${n} PIENO` : `+${n}`)], `b:${n}:${full}`);
+        d.label.set(full ? 'full' : 'bubble', [resIcon(def.produces, 16), el('span', '', full ? `${n} pieno` : `+${n}`)], `b:${n}:${full}`);
       } else d.label.set('info', [], 'x');
     }
     tickTimers(S.labels.el, t);

@@ -1,8 +1,8 @@
 {
   "posti": {
-    "mercante": { "nome": "Mercante del Porto", "cartello": "MERCANTE", "at": [40, 43.4], "rot": 3.1416, "fronte": [40, 44.9], "raggio": 3.2 },
-    "bacheca": { "nome": "Bacheca delle missioni", "cartello": "BACHECA", "at": [48, 43.6], "rot": 3.1416, "fronte": [48, 44.9], "raggio": 3.2 },
-    "contrabbando": { "nome": "Banco del Furetto", "cartello": "CONTRABBANDO", "at": [53.2, 38.4], "rot": 2.6, "fronte": [52.4, 39.7], "raggio": 2.6 }
+    "mercante": { "nome": "Mercante del Porto", "cartello": "Mercante", "at": [40, 43.4], "rot": 3.1416, "fronte": [40, 44.9], "raggio": 3.2 },
+    "bacheca": { "nome": "Bacheca delle missioni", "cartello": "Bacheca", "at": [48, 43.6], "rot": 3.1416, "fronte": [48, 44.9], "raggio": 3.2 },
+    "contrabbando": { "nome": "Banco del Furetto", "cartello": "Contrabbando", "at": [53.2, 38.4], "rot": 2.6, "fronte": [52.4, 39.7], "raggio": 2.6 }
   },
   "gente": [
     {

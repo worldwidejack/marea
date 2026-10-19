@@ -102,7 +102,7 @@ export default async function (ctx) {
       const s = await st();
       assert(s.porto.gente.length === gente.gente.length && s.porto.gente.length >= 4, 'gente: ' + JSON.stringify(s.porto.gente));
       const labels = await page.evaluate(() => [...document.querySelectorAll('.mz-lbl[data-porto]')].map((e) => e.textContent));
-      assert(labels.includes('MERCANTE') && labels.includes('BACHECA'), 'cartelli: ' + labels.join(','));
+      assert(labels.includes('Mercante') && labels.includes('Bacheca'), 'cartelli: ' + labels.join(','));
       await ctx.shot(page, 'desktop_piazza');
       const perf = await ctx.getPerf(page); ctx.log('perf piazza', JSON.stringify(perf));
       assert(perf.drawCalls <= 100, `draw call in piazza ${perf.drawCalls}`);

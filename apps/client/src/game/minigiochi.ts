@@ -173,7 +173,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     const name = s.model && o.loader.has(s.model) ? s.model : s.boa && o.loader.has('prop_boa_next') ? 'prop_boa_next' : null;
     if (name) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => {});
     const label = layer.add(() => { void play(s); });
-    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome.toUpperCase())], 'spot');
+    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome)], 'spot');
     label.el.classList.add('spot');
     return { s, holder, label };
   });
