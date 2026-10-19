@@ -40,7 +40,7 @@ Per chi lavora: prima di aggiungere un minigioco piccolo e isolato, chiediti a q
 | Decorazioni del giardino | restano tue: si posano **in casa** con ARREDA, come i mobili a terra |
 | Bacheca delle missioni | premi in monete; via le missioni che non si possono più fare (raccogli Legno/Pietra, avvia un cantiere) |
 
-**Ordine dei lavori** (#414, una PR ciascuno): 1) questo documento · 2) sim e content: portafoglio, premi, prezzi, conversione dei salvataggi · 3) client: un contatore solo nell'HUD (lo stile nuovo dell'HUD si sceglie a parte), giardino e pannelli del lotto spenti, negozi a monete · 4) le botteghe Fabbro, Alchimista, Cantiere navale nel Borgo, con le vetrine del giorno · 5) pulizia del codice spento, dopo, a parte.
+**Ordine dei lavori** (#414, una PR ciascuno): 1) questo documento · 2) sim e content: portafoglio, premi, prezzi, conversione dei salvataggi · 3) client: un contatore solo nell'HUD (lo stile nuovo dell'HUD si sceglie a parte), giardino e pannelli del lotto spenti, negozi a monete · 4) le botteghe Fabbro, Alchimista, Cantiere navale nel Borgo, con le vetrine del giorno: **fatto** (19 ott 2026, GDD §5 «Botteghe del Borgo») · 5) pulizia del codice spento, dopo, a parte.
 
 Resta valido, per più avanti:
 - **Direzione possibile** (da ripensare con Jack): all'inizio hai **solo la casa** → fai monete → **compri la prima barca** al Cantiere → salpi. Oggi la barca ce l'hai da subito.

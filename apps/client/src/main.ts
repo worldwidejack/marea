@@ -59,6 +59,7 @@ import { createStanza } from './game/stanza.ts';
 import type { Arreda } from './game/arreda.ts';
 import type { ModificaIsola } from './game/modifica_isola.ts';
 import type { Negozio } from './game/negozio.ts';
+import type { Botteghe } from './game/botteghe.ts';
 import type { LibroIsola } from './game/libro.ts';
 
 const TAVOLO_R = 3.5; // m: quanto vicino al Tavolo per aprirlo con E / A
@@ -138,7 +139,7 @@ async function boot(): Promise<void> {
   /** Nel dungeon, nella chiesa dei Templari o nel duello dell'Arena: il mondo di superficie sta fermo e la sua interfaccia sparisce. */
   const sotto = () => ingressi.active || tpl.active || !!ar?.active;
   /** La scritta sotto A (#417): il primo bottone di posto acceso, nell'ordine in cui main passa A ai moduli; se no, la barca. */
-  const AZIONI: readonly (readonly [string, string])[] = [['mzPortaBtn', 'Entra'], ['mzNegozioBtn', 'Entra'], ['mzPortoBtn', 'Guarda'], ['mzLibroBtn', 'Leggi'], ['mzAmiciBtn', 'Guarda'],
+  const AZIONI: readonly (readonly [string, string])[] = [['mzPortaBtn', 'Entra'], ['mzNegozioBtn', 'Entra'], ['mzPortoBtn', 'Guarda'], ['mzBottegaBtn', 'Compra'], ['mzLibroBtn', 'Leggi'], ['mzAmiciBtn', 'Guarda'],
     ['mzPlay', 'Gioca'], ['mzDngEntra', 'Entra'], ['mzTemplariEntra', 'Entra'], ['mzFunivia', 'Sali'], ['mzArenaEntra', 'Entra'], ['mzDifesaEntra', 'Entra']];
   const VERBI: Record<string, string> = { PARLA: 'Parla', GIOCA: 'Gioca', FIRMA: 'Firma', ESCI: 'Esci', ENTRA: 'Entra', TORNA: 'Entra', VAI: 'Entra' };
   const azioneA = (): string | null => {
@@ -187,14 +188,17 @@ async function boot(): Promise<void> {
   // il negozio dei mobili del Borgo (#265, chunk a parte: la bottega compare un attimo dopo il mondo)
   let negozio: Negozio | null = null;
   void import('./game/negozio.ts').then((m) => { negozio = m.createNegozio({ world, renderer, loader, root, hud, velo, api: me && api.enabled ? api : null, getLot: () => myLot(), setLot: setMyLot }); }).catch(() => { /* senza negozio si gioca lo stesso */ });
+  // le botteghe del Borgo (#414): Fabbro, Alchimista, Cantiere navale sulla spiaggia accanto al molo (chunk a parte, come il negozio)
+  let botteghe: Botteghe | null = null;
+  void import('./game/botteghe.ts').then((m) => { botteghe = m.createBotteghe({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot }); }).catch(() => { /* senza botteghe si gioca lo stesso */ });
   let arreda: Arreda | null = null;
   if (world.slot !== null) void import('./game/arreda.ts').then((m) => { arreda = m.createArreda({ world, root, hud, api: me && api.enabled ? api : null, lotto: lots.find((lv) => !lv.readonly) ?? null, slot: world.slot, stanza, apriBaule: () => eroe?.openBuilding('forziere') }); }).catch(() => { /* senza ARREDA si gioca lo stesso */ });
   let modificaIsola: ModificaIsola | null = null;
   if (world.slot !== null) void import('./game/modifica_isola.ts').then((m) => { modificaIsola = m.createModificaIsola({ world, renderer, root, hud, api: me && api.enabled ? api : null, lotto: lots.find((lv) => !lv.readonly) ?? null, slot: world.slot, stanza }); }).catch((e: unknown) => { console.warn('[marea] modifica isola non caricata', e); });
   // Diario del capitano (#87): bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette col nome (e il titolo, solo con ?traguardi=1) sopra la testa
   const diario = createDiario({ root, hud, api: me && api.enabled ? api : null, me, world, owners, getLot: () => myLot(), setLot: setMyLot, hidden: () => regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy(),
-    pausa: () => !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || !!tavolo?.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!document.querySelector('#mzSheet.on'),
-    onOpen: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); } });
+    pausa: () => !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || !!tavolo?.isOpen() || porto.isBusy() || !!botteghe?.isBusy() || amici.isBusy() || libri.isBusy() || !!document.querySelector('#mzSheet.on'),
+    onOpen: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); botteghe?.close(); amici.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); } });
   // Teletrasporto (#264): per ora per tutti, strumento di sviluppo. Il pannello sta in un chunk, caricato al primo tocco.
   type TeleUi = ReturnType<typeof import('./ui/teletrasporto_ui.ts').createTeletrasportoUi>;
   let teleUi: TeleUi | null = null;
@@ -280,8 +284,8 @@ async function boot(): Promise<void> {
   let evocato: Evocato | null = null, evocatoCarico = false;
   const EMOTES = AVATAR.emote as EmoteId[];
   /** Pannelli aperti che non sono il foglio delle isole (#mzSheet): lì sotto le decorazioni non rispondono ad A. */
-  const panelsBusyNoSheet = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || !!eroe?.isOpen();
-  const panelsBusy = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy();
+  const panelsBusyNoSheet = () => diario.isOpen() || porto.isBusy() || !!botteghe?.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || !!eroe?.isOpen();
+  const panelsBusy = () => diario.isOpen() || porto.isBusy() || !!botteghe?.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!document.querySelector('#mzSheet.on') || regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy();
   const openEditor = () => { if (!editor || panelsBusy()) return false; feed?.close(); editor.open(); return true; };
   const openFeed = () => { if (!feed || panelsBusy()) return false; editor?.close(); feed.open(); return true; };
   // Un solo listener in bubble: i pannelli aperti fermano il keydown in capture, quindi qui arrivano solo i tasti «liberi».
@@ -338,7 +342,7 @@ async function boot(): Promise<void> {
     } }] : []),
   ];
   /** Gara, minigioco, dungeon o un pannello aperto: le frecce sullo schermo (guida, mete) si tolgono. */
-  const coperto = () => diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen();
+  const coperto = () => diario.isOpen() || porto.isBusy() || !!botteghe?.isBusy() || amici.isBusy() || libri.isBusy() || regata.active || giochi.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen();
   const META_DEL_PASSO: Record<string, string> = { segheria: 'casa', costruisci: 'casa', parla: 'porto' };
   const guida = createGuida({
     root, camera: renderer.camera, canvas, steps, vecchi: (hasLot ? 2 : 0) + 1 + (reg ? 1 : 0), storeKey: `marea:guida:${me?.id ?? 'ospite'}`,
@@ -361,7 +365,7 @@ async function boot(): Promise<void> {
   const foto = createFoto({
     root, hud, canvas, diorama: renderer.diorama, rendi: () => renderer.render(acc / DT, t), posto: () => postoDi(qui()),
     puo: () => !(regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy() || !!ar?.isBusy() || !!dif?.isBusy()),
-    prima: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); amici.close(); libri.close(); diario.close(); mappa?.close(); impostazioni.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); },
+    prima: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); botteghe?.close(); amici.close(); libri.close(); diario.close(); mappa?.close(); impostazioni.close(); if (tavolo?.isOpen()) tavolo.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); },
   });
   allegro = createHudAllegro({ root, net: world.net, loader, gl: renderer.gl, look: me?.look ?? null, nome: me?.nome ?? '' });
   const FERMO = { mx: 0, my: 0, a: false, b: false }; // in modalità foto l'avatar sta fermo (il mondo no)
@@ -383,8 +387,8 @@ async function boot(): Promise<void> {
       if (tpl.active) { tpl.step(f); acc -= DT; steps++; continue; } // nella chiesa dei Templari idem
       if (adr.active) { adr.step(f); acc -= DT; steps++; continue; } // sulla pista dello snowboard idem
       if (ar?.active) { ar.step(f); acc -= DT; steps++; continue; } // nel duello dell'Arena idem
-      if (regata.active) regata.step(f); else { const aR = arreda?.tick(f.a, f.b) ?? false, aB0 = borgo.tick(f.a && !aR) || aR, aB = (negozio?.tick(f.a && !aB0) ?? false) || aB0, aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); ar?.tick(f.a); dif?.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
-      world.frozen = (diario.isOpen() || porto.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen() || foto.isOpen() || !!modificaIsola?.active) && !regata.active;
+      if (regata.active) regata.step(f); else { const aR = arreda?.tick(f.a, f.b) ?? false, aB0 = borgo.tick(f.a && !aR) || aR, aB1 = (negozio?.tick(f.a && !aB0) ?? false) || aB0, aB = (botteghe?.tick(f.a && !aB1) ?? false) || aB1, aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); ar?.tick(f.a); dif?.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
+      world.frozen = (diario.isOpen() || porto.isBusy() || !!botteghe?.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen() || foto.isOpen() || !!modificaIsola?.active) && !regata.active;
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
@@ -398,9 +402,9 @@ async function boot(): Promise<void> {
       input.setAzione(nelMondo && !world.frozen ? azioneA() : null);
       allegro?.update();
     }
-    giochi.update(t, acc / DT); if (!sotto()) { porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); amici.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); libri.update(world.mode === 'walk' ? world.avatar.state : world.boat.state); borgo.update(); arreda?.update(); modificaIsola?.update(dt); negozio?.update(dt); } guideStep = guida.current(); guida.update(t);
+    giochi.update(t, acc / DT); if (!sotto()) { porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); amici.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); libri.update(world.mode === 'walk' ? world.avatar.state : world.boat.state); borgo.update(); arreda?.update(); modificaIsola?.update(dt); negozio?.update(dt); botteghe?.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); } guideStep = guida.current(); guida.update(t);
     if (!sotto()) temi.update(dt, t); // Isole a tema (#68)
-    if (document.querySelector('#mzSheet.on')) { if (tavolo?.isOpen()) tavolo.close(); editor?.close(); feed?.close(); porto.close(); amici.close(); libri.close(); diario.close(); } // aperto un edificio: gli altri pannelli lasciano il posto
+    if (document.querySelector('#mzSheet.on')) { if (tavolo?.isOpen()) tavolo.close(); editor?.close(); feed?.close(); porto.close(); botteghe?.close(); amici.close(); libri.close(); diario.close(); } // aperto un edificio: gli altri pannelli lasciano il posto
     const focus = world.mode === 'walk' ? world.avatar.state : world.boat.state;
     for (const lv of lots) lv.update(dt, focus);
     if (diario.isOpen() && (editor?.isOpen() || feed?.isOpen() || eroe?.isOpen() || porto.isBusy() || amici.isBusy())) diario.close(); // aperto un altro pannello dopo il diario

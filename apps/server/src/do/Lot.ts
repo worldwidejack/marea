@@ -25,8 +25,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
 import { applyBuildingLayout, build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, placeStoredBuilding, rotateBuilding, rotateDecor, sellDecor, stowAllBuildings, stowBuilding, upgrade } from '@marea/sim/economy/actions.ts';
-import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
-import { miglioraBottega } from '@marea/sim/economy/botteghe.ts';
+import { compraColoreDelGiorno, miglioraBottega } from '@marea/sim/economy/botteghe.ts';
 import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
@@ -428,7 +427,7 @@ export class Lot extends DurableObject<Env> {
       case 'barca': {
         const id = body['id'];
         if (!isId(id)) return json({ error: 'Colore sconosciuto' }, 400);
-        return compraColoreBarca(lot, id, now);
+        return compraColoreDelGiorno(lot, id, now); // le vernici del Cantiere solo il loro giorno (#414)
       }
       case 'hold': {
         const cid = body['cid'], stake = body['stake'], kind = body['kind'];

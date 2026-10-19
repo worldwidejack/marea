@@ -1,8 +1,11 @@
 {
-  "_nota": "Botteghe di Borgo Marea (#414, VISIONE §2, GDD §5): prendono il posto degli edifici del giardino. Livelli e prezzi in monete; vetrina del giorno = un oggetto per scomparto, uguale per tutti, nuova a mezzanotte di Roma (economy/botteghe.ts). Fabbro: ogni voce di uno scomparto è un tipo, la vetrina pesca tra tipo_materiale con i materiali di `materiali`. Prezzo dei pezzi in vetrina = valore del Contrabbandiere (RPG §6) × ricarico.",
+  "_nota": "Botteghe di Borgo Marea (#414, VISIONE §2, GDD §5): prendono il posto degli edifici del giardino. `posto`: celle del template `porto` (come gente.json: `at` la bottega, `rot` il verso del davanti, `fronte` dove ci si ferma per comprare, entro `raggio` m); `look` e `battute` del bottegaio. Livelli e prezzi in monete; vetrina del giorno = un oggetto per scomparto, uguale per tutti, nuova a mezzanotte di Roma (economy/botteghe.ts). Fabbro: ogni voce di uno scomparto è un tipo, la vetrina pesca tra tipo_materiale con i materiali di `materiali`. Prezzo dei pezzi in vetrina = valore del Contrabbandiere (RPG §6) × ricarico.",
   "fabbro": {
     "nome": "Fabbro",
     "bottegaio": "Brando",
+    "posto": { "at": [47.0, 37.6], "rot": 3.1416, "fronte": [47.0, 39.6], "raggio": 2.6, "dove": "in piazza, accanto alla Grotta della Marea" },
+    "look": { "pelle": 3, "capelli": 4, "coloreCapelli": 0, "vestito": 1, "cappello": 0 },
+    "battute": ["Roba fresca di forgia!", "Il ferro si batte finché è caldo. Le monete pure.", "Portami argento e vetro dai dungeon: io ci faccio miracoli.", "Oggi in vetrina c'è roba che domani non trovi."],
     "livelli": [
       { "monete": 0, "desc": "Forgia legno, bronzo e ferro" },
       { "monete": 800, "desc": "Forgia anche argento, oro e vetro" },
@@ -15,6 +18,9 @@
   "alchimista": {
     "nome": "Alchimista",
     "bottegaio": "Sibilla",
+    "posto": { "at": [35.0, 40.0], "rot": 3.1416, "fronte": [35.0, 42.0], "raggio": 2.6, "dove": "in piazza, a ovest del Mercante" },
+    "look": { "pelle": 0, "capelli": 6, "coloreCapelli": 5, "vestito": 4, "cappello": 0 },
+    "battute": ["Bolle, bolle! Una pozione per ogni guaio.", "Le erbe le ho sempre. Le cose rare, solo oggi.", "Non annusare il calderone. Fidati.", "Una pozione di vita prima del dungeon e torni a casa intero."],
     "ricarico": 1.5,
     "scomparti": [
       ["pozione_vita", "pozione_vita_grande", "pozione_stamina"],
@@ -25,6 +31,9 @@
   "cantiere": {
     "nome": "Cantiere navale",
     "bottegaio": "Bepi",
+    "posto": { "at": [56.5, 51.0], "rot": 3.1416, "fronte": [56.5, 53.0], "raggio": 2.6, "dove": "in riva al mare, a est del molo" },
+    "look": { "pelle": 2, "capelli": 1, "coloreCapelli": 2, "vestito": 0, "cappello": 3 },
+    "battute": ["Una barca veloce passa anche la Tempesta.", "Vernici nuove ogni giorno: scegli il colore e te la pitturo io.", "Scafo, vela, chiglia: qui si fa tutto a mano.", "Chi va piano va sano. Chi va forte arriva prima."],
     "livelli": [
       { "monete": 0, "desc": "La barca di sempre" },
       { "monete": 300, "desc": "Barca più veloce del 10%: regge la Tempesta" },

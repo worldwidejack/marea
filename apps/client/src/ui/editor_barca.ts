@@ -39,9 +39,9 @@ const injectStyle = (): void => {
   if (document.getElementById('mz-eb-style')) return;
   const st = document.createElement('style'); st.id = 'mz-eb-style'; st.textContent = STYLE; document.head.appendChild(st);
 };
-// le vernici del Cantiere navale (#414) entrano qui quando il Cantiere c'è nel Borgo (botteghe, passo 4 lato client)
-const COLORI_EDITOR = BARCA_COLORI.filter((k) => !k.cantiere);
-const VELE = ['nessuna', ...COLORI_EDITOR.map((k) => k.id)], SCAFI = COLORI_EDITOR.map((k) => k.id);
+const VELE = ['nessuna', ...BARCA_COLORI.map((k) => k.id)], SCAFI = BARCA_COLORI.map((k) => k.id);
+/** Dove si compra un colore che non hai: le esclusive dal Mercante, le vernici al Cantiere navale (#414). */
+const MISS_MERCANTE = 'Esclusiva del Mercante del Porto: si compra da lui, in piazza', MISS_CANTIERE = 'Vernice del Cantiere navale del Borgo: si compra da Bepi il giorno che è in vetrina';
 const listaDi = (r: RigaBarca): string[] => (r === 'scafo' ? SCAFI : VELE);
 
 export function createSezioneBarca(o: { api: Api; me: Me; world: { setBarca(b: BarcaLook): void }; getLot(): LotState | null; onChange(): void }): SezioneBarca {
@@ -69,7 +69,7 @@ export function createSezioneBarca(o: { api: Api; me: Me; world: { setBarca(b: B
       return b;
     };
     st.append(mk(-1, '‹'), n, mk(1, '›'));
-    const miss = el('div', 'mz-note mz-ed-miss', 'Esclusiva del Mercante del Porto: si compra da lui, in piazza');
+    const miss = el('div', 'mz-note mz-ed-miss', MISS_MERCANTE);
     row.append(lbl, st, miss);
     righe[r] = { row, n, v, miss };
   }
@@ -90,9 +90,10 @@ export function createSezioneBarca(o: { api: Api; me: Me; world: { setBarca(b: B
       n.replaceChildren(chip, k ? k.nome : 'Senza vela');
       row.setAttribute('aria-valuetext', k ? k.nome : 'Senza vela');
       v.className = 'v' + (tuo(id) ? '' : ' lock');
-      if (k && k.monete > 0 && !tuo(id)) { v.replaceChildren(); const c = el('span', 'mz-cost'); c.append(resIcon('monete', 16), `${k.monete} monete`); v.append(c, el('span', 'mz-ed-merc', 'dal Mercante')); }
+      if (k && k.monete > 0 && !tuo(id)) { v.replaceChildren(); const c = el('span', 'mz-cost'); c.append(resIcon('monete', 16), `${k.monete} monete`); v.append(c, el('span', 'mz-ed-merc', k.cantiere ? 'al Cantiere' : 'dal Mercante')); }
       else v.textContent = k && k.monete > 0 ? 'tuo' : `${listaDi(r).indexOf(id) + 1}/${listaDi(r).length}`;
       miss.style.display = tuo(id) ? 'none' : '';
+      if (k && !tuo(id)) miss.textContent = k.cantiere ? MISS_CANTIERE : MISS_MERCANTE;
     }
     if (document.activeElement !== input) input.value = nomeGrezzo;
     disegnaBarca(prev, draft);

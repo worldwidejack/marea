@@ -2,14 +2,15 @@
 // giorni di fila), livelli a monete del Fabbro e della barca al Cantiere, acquisti dalla vetrina, vernici della barca solo il giorno giusto.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { AVATAR } from '@marea/content';
+import { AVATAR, ISLANDS } from '@marea/content';
 import { BOTTEGHE, BOTTEGHE_IDS, validateBotteghe } from '@marea/content/botteghe.ts';
 import { RPG } from '@marea/content/rpg.ts';
 import { newLot } from '../src/economy/actions.ts';
-import { compraColoreBarca, possiedeColore } from '../src/economy/barca.ts';
-import { delGiorno, inVetrinaBottega, livelloCantiere, livelloFabbro, miglioraBottega, prossimoLivello, vetrinaBottega, vetrinaBottegaDel } from '../src/economy/botteghe.ts';
+import { possiedeColore } from '../src/economy/barca.ts';
+import { compraColoreDelGiorno, delGiorno, inVetrinaBottega, livelloCantiere, livelloFabbro, miglioraBottega, prossimoLivello, vetrinaBottega, vetrinaBottegaDel } from '../src/economy/botteghe.ts';
 import { finoAMezzanotte, giornoRoma } from '../src/economy/giorno.ts';
 import { checkMonete } from '../src/economy/monete.ts';
+import { isCellaScavabileBorgo } from '../src/economy/pala.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { applyRpgAction } from '../src/rpg/actions.ts';
@@ -37,6 +38,14 @@ test('botteghe: contenuti validi, oggetti e vernici esistenti', () => {
   assert.deepEqual(sempreInVendita('fabbro').map((x) => x.id).sort(), ['lingotto_bronzo', 'lingotto_ferro']);
   assert.deepEqual(sempreInVendita('alchimista').map((x) => x.id).sort(), ['erba_curativa', 'fiore_azzurro', 'radice_vigore']);
   assert.equal(sempreInVendita('fabbro').length + sempreInVendita('alchimista').length, Object.keys(RPG.bottega).length);
+  // nel Borgo: la bottega e il posto davanti al banco sulla via delle botteghe (lastricata, camminabile), niente buche lì
+  const porto = ISLANDS.find((i) => i.id === 'porto')!;
+  for (const id of BOTTEGHE_IDS) {
+    const p = BOTTEGHE[id].posto!;
+    for (const c of [p.at, p.fronte]) assert.ok('.gP'.includes(porto.rows[Math.floor(c[1])]![Math.floor(c[0])]!), `${id}: ${c} non sta sulla terra`);
+    assert.ok(!isCellaScavabileBorgo([Math.floor(p.fronte[0]), Math.floor(p.fronte[1])]), `${id}: davanti al banco si scava`);
+    assert.ok(!isCellaScavabileBorgo([Math.floor(p.at[0]), Math.floor(p.at[1])]), `${id}: dentro la bottega si scava`);
+  }
 });
 
 test('botteghe: la vetrina del giorno, uno per scomparto, uguale per tutti, mai uguale al giorno prima, tutto esce in un giro', () => {
@@ -133,12 +142,12 @@ test('botteghe: si compra solo la vetrina di oggi, al suo prezzo, nello zaino', 
 test('botteghe: le vernici del Cantiere si comprano solo il giorno che sono in vetrina, le esclusive del Mercante sempre', () => {
   const ora = T0 + 1000, oggi = vetrinaBottega('cantiere', ora);
   const domani = BOTTEGHE.cantiere.scomparti.flat().find((id) => !oggi.includes(id))!;
-  let l = compraColoreBarca(lotto(500), oggi[0]!, ora);
+  let l = compraColoreDelGiorno(lotto(500), oggi[0]!, ora);
   assert.ok(possiedeColore(l, oggi[0]!));
   assert.equal(l.monete, 500 - AVATAR.barca.colori.find((k) => k.id === oggi[0])!.monete);
-  assert.throws(() => compraColoreBarca(l, oggi[0]!, ora), isErr('unico'));
-  assert.throws(() => compraColoreBarca(lotto(500), domani, ora), isErr('requisito'));
+  assert.throws(() => compraColoreDelGiorno(l, oggi[0]!, ora), isErr('unico'));
+  assert.throws(() => compraColoreDelGiorno(lotto(500), domani, ora), isErr('requisito'));
   assert.ok(inVetrinaBottega('cantiere', ora, oggi[2]!));
-  l = compraColoreBarca(lotto(500), 'nero', ora);
+  l = compraColoreDelGiorno(lotto(500), 'nero', ora);
   assert.ok(possiedeColore(l, 'nero'), 'le esclusive del Mercante non cambiano');
 });

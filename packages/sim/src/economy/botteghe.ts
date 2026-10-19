@@ -6,6 +6,7 @@ import { BOTTEGHE } from '@marea/content/botteghe.ts';
 import type { BottegaId, BottegaLivello } from '@marea/content/botteghe.ts';
 import { createRng } from '../rng.ts';
 import { advance } from './advance.ts';
+import { coloreBarca, compraColoreBarca } from './barca.ts';
 import { giornoRoma } from './giorno.ts';
 import { spendi } from './monete.ts';
 import { EconomyError } from './types.ts';
@@ -72,3 +73,10 @@ export function vetrinaBottegaDel(b: BottegaId, g: number): string[] {
 }
 export const vetrinaBottega = (b: BottegaId, ms: number): string[] => vetrinaBottegaDel(b, giornoRoma(ms));
 export const inVetrinaBottega = (b: BottegaId, ms: number, id: string): boolean => vetrinaBottega(b, ms).includes(id);
+/** Compra un colore della barca (#107) al banco giusto: le esclusive dal Mercante sempre, le vernici del Cantiere solo il giorno che sono
+ *  nella sua vetrina (EconomyError 'requisito'). La usa il server (POST /api/barca/colore). */
+export function compraColoreDelGiorno(lot: LotState, id: string, nowMs: number): LotState {
+  const k = coloreBarca(id);
+  if (k?.cantiere && !inVetrinaBottega('cantiere', nowMs, id)) throw new EconomyError('requisito', 'Oggi il Cantiere non ce l’ha: la vetrina cambia a mezzanotte');
+  return compraColoreBarca(lot, id, nowMs);
+}

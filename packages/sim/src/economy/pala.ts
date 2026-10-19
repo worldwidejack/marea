@@ -3,6 +3,7 @@
 import { BORGO, ISLANDS, MINIGAMES_CFG } from '@marea/content';
 import { GENTE } from '@marea/content/porto.ts';
 import { INSETTI_CFG } from '@marea/content/insetti.ts';
+import { BOTTEGHE, BOTTEGHE_IDS } from '@marea/content/botteghe.ts';
 import { hashJson } from '../hash.ts';
 import { createRng } from '../rng.ts';
 import { advance } from './advance.ts';
@@ -50,6 +51,8 @@ function calcolaScavabili(): { list: [number, number][]; set: Set<string> } {
     if (vicino(cx, cz, BORGO.negozio.at[0], BORGO.negozio.at[1], 3.2) || vicino(cx, cz, BORGO.negozio.porta[0], BORGO.negozio.porta[1], 1.5)) return true;
     for (const s of INSETTI_CFG.sassi.celle) if (vicino(cx, cz, s[0], s[1], 1.1)) return true; // i sassi degli insetti (#445)
     for (const p of Object.values(GENTE.posti)) if (vicino(cx, cz, p.at[0], p.at[1], 1.5) || vicino(cx, cz, p.fronte[0], p.fronte[1], 1.1)) return true;
+    // le botteghe del Borgo (#414): la casetta (col Cantiere un po' più larga) e il posto davanti al banco
+    for (const id of BOTTEGHE_IDS) { const p = BOTTEGHE[id].posto; if (p && (vicino(cx, cz, p.at[0], p.at[1], 6.5) || vicino(cx, cz, p.fronte[0], p.fronte[1], 1.5))) return true; }
     for (const n of GENTE.gente) if (n.giro.length === 1 && n.giro[0] && vicino(cx, cz, n.giro[0][0], n.giro[0][1], 1.1)) return true;
     const pc = MINIGAMES_CFG.consegne.posti['porto'], pi = MINIGAMES_CFG.ingorgo.posti['porto'];
     if (pc && vicino(cx, cz, pc[0], pc[1], 1.1)) return true;
