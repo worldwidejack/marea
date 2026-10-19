@@ -111,6 +111,15 @@ export default async function (ctx) {
       await post('/api/nome', 'tokA', { nome: 'Anna' });
     });
 
+    await ctx.test('nessun nome regala monete: rinominarsi «riccc» non cambia il portafoglio', async () => {
+      const prima = (await lot('tokA')).monete;
+      const r = await post('/api/nome', 'tokA', { nome: 'riccc' });
+      assert(r.status === 200, 'cambio nome non riuscito: ' + JSON.stringify(r.body));
+      const dopo = (await lot('tokA')).monete;
+      assert(dopo === prima, `rinominarsi «riccc» ha cambiato le monete: ${prima} → ${dopo}`);
+      await post('/api/nome', 'tokA', { nome: 'Anna' });
+    });
+
     const L = cellsOf('L');
     const slot = (i) => L[i] ?? [2 + i, 2];
     await ctx.test('celle: edifici solo su posizioni valide, decorazioni solo su sabbia/erba (altrimenti 400), occupata 409', async () => {
