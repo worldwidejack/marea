@@ -1,0 +1,35 @@
+{
+  "_nota": "Botteghe di Borgo Marea (#414, VISIONE §2, GDD §5): prendono il posto degli edifici del giardino. Livelli e prezzi in monete; vetrina del giorno = un oggetto per scomparto, uguale per tutti, nuova a mezzanotte di Roma (economy/botteghe.ts). Fabbro: ogni voce di uno scomparto è un tipo, la vetrina pesca tra tipo_materiale con i materiali di `materiali`. Prezzo dei pezzi in vetrina = valore del Contrabbandiere (RPG §6) × ricarico.",
+  "fabbro": {
+    "nome": "Fabbro",
+    "bottegaio": "Brando",
+    "livelli": [
+      { "monete": 0, "desc": "Forgia legno, bronzo e ferro" },
+      { "monete": 800, "desc": "Forgia anche argento, oro e vetro" },
+      { "monete": 2500, "desc": "Forgia tutto, anche ossa e meteorite" }
+    ],
+    "ricarico": 1.5,
+    "materiali": ["bronzo", "ferro", "argento", "oro", "vetro"],
+    "scomparti": [["nunchaku", "katana", "ascia"], ["lancia", "spadone", "martello", "arco"], ["armatura"]]
+  },
+  "alchimista": {
+    "nome": "Alchimista",
+    "bottegaio": "Sibilla",
+    "ricarico": 1.5,
+    "scomparti": [
+      ["pozione_vita", "pozione_vita_grande", "pozione_stamina"],
+      ["pozione_magicka", "pozione_magicka_minore", "pozione_forza"],
+      ["fungo_luminoso", "seta_ragno", "zanna_lupo", "polvere_ossa", "essenza_vuoto"]
+    ]
+  },
+  "cantiere": {
+    "nome": "Cantiere navale",
+    "bottegaio": "Bepi",
+    "livelli": [
+      { "monete": 0, "desc": "La barca di sempre" },
+      { "monete": 300, "desc": "Barca più veloce del 10%: regge la Tempesta" },
+      { "monete": 1200, "desc": "Barca più veloce del 20%" }
+    ],
+    "scomparti": [["turchese", "acquamarina", "mela", "lime"], ["mogano", "ardesia", "avorio"], ["verde_neon", "ambra_neon", "viola_neon", "rosso_neon"]]
+  }
+}

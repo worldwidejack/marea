@@ -54,7 +54,8 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
       bcIds.add(k.id);
       if (!HEX.test(k.hex)) errs.push(`barca ${k.id}: colore non valido ${k.hex}`);
       if (!(Number.isInteger(k.monete) && k.monete >= 0)) errs.push(`barca ${k.id}: prezzo in monete non valido`);
-      if (k.mercante ? k.monete <= 0 : k.monete > 0) errs.push(`barca ${k.id}: a pagamento solo dal Mercante (monete > 0 ⇔ mercante)`);
+      if (k.mercante && k.cantiere) errs.push(`barca ${k.id}: o del Mercante o del Cantiere, non tutti e due`);
+      if (k.mercante || k.cantiere ? k.monete <= 0 : k.monete > 0) errs.push(`barca ${k.id}: a pagamento solo dal Mercante o dal Cantiere (monete > 0 ⇔ mercante o cantiere)`);
     }
     if (!bcIds.has(bc.scafo) || (bc.colori.find((k) => k.id === bc.scafo)?.monete ?? 1) > 0) errs.push(`barca: scafo di serie non gratis o sconosciuto ${bc.scafo}`);
     if (bc.vela !== 'nessuna' && (!bcIds.has(bc.vela) || (bc.colori.find((k) => k.id === bc.vela)?.monete ?? 1) > 0)) errs.push(`barca: vela di serie non gratis o sconosciuta ${bc.vela}`);

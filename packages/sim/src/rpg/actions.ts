@@ -6,12 +6,14 @@ import { hashJson } from '../hash.ts';
 import { guadagna, prezzoInMonete, spendi } from '../economy/monete.ts';
 import { EconomyError } from '../economy/types.ts';
 import type { LotState } from '../economy/types.ts';
-import { addTo, available, bagWeight, buildingLevel, chestCap, equipError, fixEquip, removeFrom, stow, takeItems, withEquip } from './bag.ts';
+import { addTo, available, bagWeight, chestCap, equipError, fixEquip, removeFrom, stow, takeItems, withEquip } from './bag.ts';
 import type { Bag } from './bag.ts';
 import { caricoMaxOf, carriedOf, modsOf } from './derived.ts';
 import { gainSkillXp, heroOf } from './hero.ts';
 import { hasItem, itemDef } from './items.ts';
 import { inVendita, offertaLosca, prezzoLosco } from './contrabbando.ts';
+import { inVetrinaBottega, livelloFabbro } from '../economy/botteghe.ts';
+import { prezzoVetrina } from './botteghe.ts';
 import { erroreLoadout, pulisciLoadout } from './arena.ts';
 import type { EquipSlot, HeroState, ItemDef, RpgAction } from './types.ts';
 
@@ -23,11 +25,6 @@ const err = (code: ConstructorParameters<typeof EconomyError>[0], msg: string): 
 function needItem(id: string): ItemDef {
   if (!hasItem(id)) throw err('oggetto', 'Oggetto sconosciuto');
   return itemDef(id);
-}
-function needBuilding(lot: LotState, id: string): number {
-  const lv = buildingLevel(lot, id);
-  if (lv < 1) throw err('edificio', `Serve: ${building(id).nome}`);
-  return lv;
 }
 /** Ripone tutto (zaino, poi Forziere) o lancia 'peso' senza toccare niente. */
 function stowAll(lot: LotState, h: HeroState, id: string, n: number): { hero: HeroState; forziere: Bag } {
@@ -71,8 +68,8 @@ function doppie(lot: LotState, cosa: string, n: number, p: number): number {
 function forgia(lot: LotState, h: HeroState, id: string, n: number): { hero: HeroState; forziere: Bag; lot: LotState } {
   const it = needItem(id);
   if (!it.forgia) throw err('oggetto', `${it.nome} non si può forgiare`);
-  const lv = needBuilding(lot, 'banco');
-  if (lv < it.forgia.banco) throw err('livello', `Serve il Banco da Lavoro di livello ${it.forgia.banco}`);
+  // al Fabbro del Borgo (#414): il primo livello è di tutti, gli altri si comprano da lui (economy/botteghe.ts)
+  if (livelloFabbro(lot) < it.forgia.banco) throw err('livello', `Serve il Fabbro al livello ${it.forgia.banco}: miglioralo da lui`);
   const sconto = Math.max(-0.9, modsOf(h).materialiForgia ?? 0);
   let legno = 0;
   const cost: Record<string, number> = {};
@@ -93,7 +90,6 @@ function forgia(lot: LotState, h: HeroState, id: string, n: number): { hero: Her
 function alchimia(lot: LotState, h: HeroState, ricetta: string, n: number): { hero: HeroState; forziere: Bag } {
   const r = RECIPES.find((x) => x.id === ricetta);
   if (!r) throw err('sconosciuto', 'Ricetta sconosciuta');
-  needBuilding(lot, 'alchimia');
   if ((h.skill.alchimia?.lv ?? 0) < r.livello) throw err('livello_skill', `Serve Alchimia ${r.livello}`);
   const cost: Record<string, number> = {};
   for (const [id, q] of Object.entries(r.ingredienti)) cost[id] = q * n;
@@ -158,8 +154,7 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
     case 'alchimia': ({ hero: h, forziere } = alchimia(lot, h, a.ricetta, a.n ?? 1)); break;
     case 'compra': {
       const prezzo = RPG.bottega[a.item];
-      if (prezzo === undefined || !hasItem(a.item)) throw err('oggetto', 'Il Banco non lo vende');
-      needBuilding(lot, 'banco');
+      if (prezzo === undefined || !hasItem(a.item)) throw err('oggetto', 'Le botteghe non lo vendono');
       const pagato = spendi(lot, prezzo * a.n);
       ({ hero: h, forziere } = stowAll(lot, h, a.item, a.n));
       lot = pagato;
@@ -197,6 +192,15 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       break;
     }
     case 'serra': ({ hero: h, forziere, lot } = serra(lot, h)); break;
+    case 'vetrina': {
+      // la vetrina di oggi del Fabbro o dell'Alchimista (#414): si compra nello zaino (o nel Forziere se lo zaino è pieno)
+      const it = needItem(a.item);
+      if (!inVetrinaBottega(a.bottega, nowMs, it.id)) throw err('oggetto', 'Oggi non è in vetrina: la merce cambia a mezzanotte');
+      const pagato = spendi(lot, prezzoVetrina(a.bottega, it.id) * a.n);
+      ({ hero: h, forziere } = stowAll(lot, h, it.id, a.n));
+      lot = pagato;
+      break;
+    }
     case 'arena': {
       // il set del duello (docs/ARENA.md §2): solo quello che hai, nello zaino o nel Forziere; non tocca l'equipaggiamento dei dungeon
       const why = erroreLoadout(h, a.loadout, (id) => available(lot, h, id));

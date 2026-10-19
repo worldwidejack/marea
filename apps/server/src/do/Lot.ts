@@ -26,6 +26,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
 import { applyBuildingLayout, build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, placeStoredBuilding, rotateBuilding, rotateDecor, sellDecor, stowAllBuildings, stowBuilding, upgrade } from '@marea/sim/economy/actions.ts';
 import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
+import { miglioraBottega } from '@marea/sim/economy/botteghe.ts';
 import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
@@ -408,6 +409,12 @@ export class Lot extends DurableObject<Env> {
       }
       // il mobiliere ingrandisce la casa (#386): `da` = il livello che il giocatore vede (se è cambiato nel frattempo, niente si paga due volte)
       case 'casa_amplia': return Number.isInteger(body['da']) ? ampliaCasa(lot, body['da'] as number, now) : json({ error: 'Livello della casa non valido' }, 400);
+      // botteghe del Borgo (#414): il Fabbro sale di livello, il Cantiere potenzia la barca; `da` come per gli ampliamenti
+      case 'bottega_migliora': {
+        const b = body['bottega'], da = body['da'];
+        if ((b !== 'fabbro' && b !== 'cantiere') || !Number.isInteger(da)) return json({ error: 'Bottega o livello non valido' }, 400);
+        return miglioraBottega(lot, b, da as number, now);
+      }
       case 'casa_baule': {
         const cell = body['cell'];
         if (cell === undefined) return ruotaBaule(lot, now);

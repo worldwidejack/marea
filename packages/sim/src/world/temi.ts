@@ -39,7 +39,8 @@ export function sbloccoTema(s: TemaSblocco, v: Viaggiatore): Sblocco {
   switch (s.tipo) {
     case 'molo': {
       const ok = v.molo >= s.livello;
-      return { aperta: ok, motivo: ok ? 'Aperta' : `La tempesta ti respinge: serve il Molo al livello ${s.livello}${v.molo ? ` (il tuo è al ${v.molo})` : ' (della tua isola)'}`, manca: `Molo al livello ${s.livello}` };
+      // la barca si potenzia al Cantiere navale del Borgo (#414): il suo livello è quello del Molo di prima
+      return { aperta: ok, motivo: ok ? 'Aperta' : `La tempesta ti respinge: serve la barca al livello ${s.livello}${v.molo ? ` (la tua è al ${v.molo})` : ''}, potenziala al Cantiere navale del Borgo`, manca: `Barca al livello ${s.livello} (Cantiere)` };
     }
     case 'livello': {
       const ok = v.livello >= s.livello;

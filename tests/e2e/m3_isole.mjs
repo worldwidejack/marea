@@ -7,7 +7,7 @@ import path from 'node:path';
 export const timeout = 600000;
 const ISOLE = ['tempesta', 'ghiacci', 'vulcano', 'giardino', 'templari', 'adrenalina'];
 const LIBERE = new Set(['corse', 'templari', 'arena', 'difesa']); // i Templari dal 10/10: niente calice da trovare; l'Arena (#373) e la Difesa (#395) sono di tutti
-const MOTIVI = { adrenalina: /guardiano della funivia.*liberatoria/, tempesta: /tempesta ti respinge.*Molo al livello 2/, ghiacci: /mare gela.*livello 3/, vulcano: /abitanti ti cacciano.*Lanterna in testa/, giardino: /nebbia.*mappa del Giardino/ };
+const MOTIVI = { adrenalina: /guardiano della funivia.*liberatoria/, tempesta: /tempesta ti respinge.*barca al livello 2.*Cantiere navale/, ghiacci: /mare gela.*livello 3/, vulcano: /abitanti ti cacciano.*Lanterna in testa/, giardino: /nebbia.*mappa del Giardino/ };
 const APRI = { adrenalina: { cappello: 'casco', liberatorie: ['adrenalina'] }, tempesta: { molo: 2 }, ghiacci: { livello: 3 }, vulcano: { cappello: 'lanterna' }, giardino: { mappe: ['giardino'] } };
 
 export default async function (ctx) {

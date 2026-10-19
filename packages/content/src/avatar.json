@@ -15,7 +15,18 @@
       { "id": "tramonto", "nome": "Arancio tramonto", "hex": "#F2A33A", "monete": 60, "mercante": true },
       { "id": "corsaro", "nome": "Viola corsaro", "hex": "#A64DFF", "monete": 75, "mercante": true },
       { "id": "rosa_neon", "nome": "Rosa neon", "hex": "#FF3DA6", "monete": 105, "mercante": true },
-      { "id": "ciano_neon", "nome": "Ciano neon", "hex": "#3DF5FF", "monete": 120, "mercante": true }
+      { "id": "ciano_neon", "nome": "Ciano neon", "hex": "#3DF5FF", "monete": 120, "mercante": true },
+      { "id": "turchese", "nome": "Turchese laguna", "hex": "#3FB9C9", "monete": 45, "cantiere": true },
+      { "id": "acquamarina", "nome": "Acquamarina", "hex": "#7FE3E0", "monete": 45, "cantiere": true },
+      { "id": "mela", "nome": "Verde mela", "hex": "#8FC35B", "monete": 45, "cantiere": true },
+      { "id": "lime", "nome": "Lime", "hex": "#D9E872", "monete": 60, "cantiere": true },
+      { "id": "mogano", "nome": "Mogano", "hex": "#5A3A1E", "monete": 60, "cantiere": true },
+      { "id": "ardesia", "nome": "Ardesia", "hex": "#4A4340", "monete": 60, "cantiere": true },
+      { "id": "avorio", "nome": "Avorio", "hex": "#E8E1D6", "monete": 60, "cantiere": true },
+      { "id": "verde_neon", "nome": "Verde neon", "hex": "#B6FF3D", "monete": 105, "cantiere": true },
+      { "id": "ambra_neon", "nome": "Ambra neon", "hex": "#FFB03D", "monete": 105, "cantiere": true },
+      { "id": "viola_neon", "nome": "Viola neon", "hex": "#8A5CFF", "monete": 120, "cantiere": true },
+      { "id": "rosso_neon", "nome": "Rosso neon", "hex": "#FF5C3D", "monete": 120, "cantiere": true }
     ]
   },
   "pelle": ["#FBE2C8", "#EFC29B", "#D9A070", "#B8784C", "#8C5636", "#5A3A28"],

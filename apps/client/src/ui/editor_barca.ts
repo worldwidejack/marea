@@ -39,7 +39,9 @@ const injectStyle = (): void => {
   if (document.getElementById('mz-eb-style')) return;
   const st = document.createElement('style'); st.id = 'mz-eb-style'; st.textContent = STYLE; document.head.appendChild(st);
 };
-const VELE = ['nessuna', ...BARCA_COLORI.map((k) => k.id)], SCAFI = BARCA_COLORI.map((k) => k.id);
+// le vernici del Cantiere navale (#414) entrano qui quando il Cantiere c'è nel Borgo (botteghe, passo 4 lato client)
+const COLORI_EDITOR = BARCA_COLORI.filter((k) => !k.cantiere);
+const VELE = ['nessuna', ...COLORI_EDITOR.map((k) => k.id)], SCAFI = COLORI_EDITOR.map((k) => k.id);
 const listaDi = (r: RigaBarca): string[] => (r === 'scafo' ? SCAFI : VELE);
 
 export function createSezioneBarca(o: { api: Api; me: Me; world: { setBarca(b: BarcaLook): void }; getLot(): LotState | null; onChange(): void }): SezioneBarca {

@@ -98,7 +98,8 @@ export type MobileDef = { id: string; nome: string; categoria: string; monete: n
 export type HatDef = { id: string; nome: string; monete: number; mercante?: boolean };
 export type DecorDef = { id: string; nome: string; monete: number; model: string; mercante?: boolean };
 /** Colore della barca (#107): per lo scafo e per la vela; `monete` > 0 = esclusivo del Mercante del Porto (si compra una volta, vale per tutti e due). */
-export type BarcaColore = { id: string; nome: string; hex: string; monete: number; mercante?: boolean };
+/** `mercante`: esclusiva del Mercante del Porto (sempre in vendita); `cantiere`: vernice del Cantiere navale del Borgo (solo il giorno che è in vetrina, #414). */
+export type BarcaColore = { id: string; nome: string; hex: string; monete: number; mercante?: boolean; cantiere?: boolean };
 /** La tua barca (#107): colori (id stabili, si aggiunge in fondo), scafo e vela di serie (`vela` 'nessuna' = la barca a remi di prima), nome lungo al massimo `nomeMax`. */
 export type BarcaDef = { nomeMax: number; scafo: string; vela: string; colori: BarcaColore[] };
 export type AvatarDef = {
