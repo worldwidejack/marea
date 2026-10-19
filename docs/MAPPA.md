@@ -79,7 +79,7 @@ Test della sim: `packages/sim/test/*.test.ts` (node:test), fixture d'oro in `tes
 ## tools
 | Dove | Cosa c'è | Chi |
 |---|---|---|
-| `build.mjs`, `check_static.mjs`, `check_types.mjs`, `contact.mjs`, `deploy.mjs` | build col budget, controlli, foglio degli screenshot, deploy (lo lancia solo GitHub) | J |
+| `build.mjs`, `check_static.mjs`, `check_types.mjs`, `contact.mjs`, `deploy.mjs`, `riordina_git.mjs` | build col budget, controlli, foglio degli screenshot, deploy (lo lancia solo GitHub), riordino di rami e copie di lavoro ferme | J |
 | `build_assets.mjs`, `export_gltf.py`, `*_leggero.*`, `icone.py`, `sprite_oggetti.py`, `avatar_giro.*` | asset: Blender → glTF, alleggerimenti, icone, sprite | tutti |
 | `corse_piste*`, `corse_foglio.py`, `veicol*` | piste e veicoli delle Corse | J |
 | `discesa_sentieri*`, `adrenalina_piste.mjs` | piste delle discese | B |
