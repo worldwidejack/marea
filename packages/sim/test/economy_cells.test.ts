@@ -6,6 +6,8 @@ import { build, buyHat, moveBuilding, newLot, ownsHat, placeDecor } from '../src
 import { buildCellError, cellsOf, dockCell, fitToTemplate, lotTemplate, tileAt } from '../src/economy/cells.ts';
 import type { LotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
+import { checkMonete } from '../src/economy/monete.ts';
+import { conMonete, senzaMonete } from './monete_util.ts';
 import { EconomyError } from '../src/economy/types.ts';
 
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
@@ -40,13 +42,14 @@ test('build: entro i limiti dell’isola (erba, sabbia, L); decor: solo sabbia/e
   lot = build(lot, 'segheria', [2, 2], 0, T);
   assert.equal(buildCellError(lot, [2, 2], T)?.code, 'cella');
   assert.throws(() => build({ ...lot, construction: null }, 'cava', [2, 2], 0, T), isErr('cella'));
-  const rich = { ...lot, resources: { ...lot.resources, perle: 50 }, ledger: { ...lot.ledger, generated: { ...lot.ledger.generated, perle: 50 } } };
+  const rich = conMonete(senzaMonete(lot), 50);
   for (const bad of [L[1]!, [4, 6], [4, 5], [4, 3], [0, 0]] as [number, number][])
     assert.throws(() => placeDecor(rich, 'barile', bad, 0, 0, 5, T), isErr('posizione'), `decor su ${bad} accettata`);
   assert.throws(() => placeDecor(placeDecor(rich, 'barile', [1, 1], 0, 0, 5, T), 'cassa', [1, 1], 0, 0, 5, T), isErr('cella'));
   const d = placeDecor(rich, 'barile', [1, 1], 0, 0, 5, T);
-  assert.equal(d.resources.perle, 45);
+  assert.equal(d.monete, 45);
   assert.equal(checkInvariant([d]), null);
+  assert.equal(checkMonete([d]), null);
 });
 
 test('moveBuilding: sposta gli edifici a piacimento sul lotto (#382)', () => {
@@ -66,7 +69,7 @@ test('moveBuilding: sposta gli edifici a piacimento sul lotto (#382)', () => {
   // Edificio sconosciuto
   assert.throws(() => moveBuilding(lot, 'inesistente', [2, 2], 100, T), isErr('sconosciuto'));
   // Cella occupata da decorazione
-  const withDecor = placeDecor({ ...lot, resources: { ...lot.resources, perle: 50 } }, 'barile', [1, 1], 0, 100, 5, T);
+  const withDecor = placeDecor(conMonete(lot, 50), 'barile', [1, 1], 0, 100, 5, T);
   assert.throws(() => moveBuilding(withDecor, placed.id, [1, 1], 100, T), isErr('cella'));
 });
 
@@ -105,25 +108,25 @@ test('fitToTemplate: un lotto vecchio (celle arbitrarie) torna nel template senz
   assert.equal(fitToTemplate(fit2, T), fit2, 'già in regola → stesso oggetto');
 });
 
-test('cappelli: i gratuiti sono di tutti, quelli a Perle si comprano una volta', () => {
-  const free = AVATAR.cappelli.find((h) => h.perle === 0)!;
-  const paid = AVATAR.cappelli.find((h) => h.perle > 0)!;
-  let lot = newLot('a', 0, T);
+test('cappelli: i gratuiti sono di tutti, quelli a pagamento si comprano una volta (monete)', () => {
+  const free = AVATAR.cappelli.find((h) => h.monete === 0)!;
+  const paid = AVATAR.cappelli.find((h) => h.monete > 0)!;
+  let lot = senzaMonete(newLot('a', 0, T));
   assert.ok(ownsHat(lot, free.id));
   assert.ok(!ownsHat(lot, paid.id));
-  assert.throws(() => buyHat(lot, paid.id, 0), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.perle === paid.perle);
+  assert.throws(() => buyHat(lot, paid.id, 0), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.monete === paid.monete);
   assert.throws(() => buyHat(lot, free.id, 0), isErr('cappello'));
   assert.throws(() => buyHat(lot, 'tiara_inesistente', 0), isErr('sconosciuto'));
-  const perle = paid.perle + 3;
-  lot = { ...lot, resources: { ...lot.resources, perle }, ledger: { ...lot.ledger, generated: { ...lot.ledger.generated, perle } } };
+  lot = conMonete(lot, paid.monete + 3);
   lot = buyHat(lot, paid.id, 1000);
-  assert.equal(lot.resources.perle, 3);
+  assert.equal(lot.monete, 3);
   assert.ok(ownsHat(lot, paid.id));
   assert.throws(() => buyHat(lot, paid.id, 2000), isErr('unico'));
   // gli esclusivi del Mercante (#63) si comprano allo stesso modo, una volta
   const ex = AVATAR.cappelli.find((h) => h.mercante)!;
-  lot = { ...lot, resources: { ...lot.resources, perle: lot.resources.perle + ex.perle }, ledger: { ...lot.ledger, generated: { ...lot.ledger.generated, perle: lot.ledger.generated.perle + ex.perle } } };
+  lot = conMonete(lot, ex.monete);
   lot = buyHat(lot, ex.id, 3000);
-  assert.ok(ownsHat(lot, ex.id) && lot.resources.perle === 3);
+  assert.ok(ownsHat(lot, ex.id) && lot.monete === 3);
   assert.equal(checkInvariant([lot]), null);
+  assert.equal(checkMonete([lot]), null);
 });

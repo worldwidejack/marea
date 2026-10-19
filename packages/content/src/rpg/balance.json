@@ -9,8 +9,7 @@
   "partenza": {
     "inv": { "katana_legno": 1, "armatura_legno": 1, "pozione_vita_minore": 2, "arco_legno": 1, "frecce_legno": 20 },
     "equip": { "arma": "katana_legno", "corpo": "armatura_legno", "pozione": "pozione_vita_minore", "frecce": "frecce_legno", "magia": "fiammata" },
-    "magie": ["fiammata"],
-    "monete": 20
+    "magie": ["fiammata"]
   },
   "dungeon": { "maxMinuti": 20, "morte": { "bottino": 0, "xp": 1 }, "altare": { "protezione": 3 }, "gruppo": { "max": 4, "vitaPerCompagno": 0.6 } },
   "arena": { "attributi": { "vita": 100, "magicka": 100, "stamina": 100 }, "dannoMolt": 0.45, "dannoMax": 92, "caricaMassimaMolt": 1.35 },
@@ -31,7 +30,8 @@
   },
 
   "forziere": [100, 250, 600],
-  "bottega": { "lingotto_bronzo": 12, "lingotto_ferro": 20, "erba_curativa": 3, "fiore_azzurro": 3, "radice_vigore": 4 },
+  "bottega": { "lingotto_bronzo": 12, "lingotto_ferro": 20, "erba_curativa": 3, "fiore_azzurro": 3, "radice_vigore": 4 }
+,
   "contrabbando": {
     "vendita": 1.5, "compra": 0.3, "lavoro": 1.25, "pozione": 1.5,
     "valori": {
@@ -40,7 +40,7 @@
       "erba_curativa": 3, "fiore_azzurro": 3, "radice_vigore": 4, "seta_ragno": 4, "zanna_lupo": 4, "fungo_luminoso": 6, "polvere_ossa": 6, "essenza_vuoto": 15,
       "anello_vita_debole": 60, "anello_magicka_debole": 60, "anello_stamina_debole": 60, "veste_apprendista": 40
     },
-    "tipi": { "anello": 140, "veste": 120, "libro": 150, "pozione": 20, "unico": 600 },
+    "tipi": { "anello": 140, "veste": 120, "libro": 150, "pozione": 20, "unico": 600, "strumento": 500 },
     "banco": {
       "arma": ["katana_bronzo", "nunchaku_bronzo", "ascia_bronzo", "lancia_bronzo", "spadone_bronzo", "martello_bronzo", "arco_bronzo",
                "katana_ferro", "nunchaku_ferro", "ascia_ferro", "lancia_ferro", "spadone_ferro", "martello_ferro", "arco_ferro"],

@@ -1,8 +1,8 @@
 // M1 · Fetta 3, editor dell'avatar (F3-avatar, CONTRACTS §13) sul server locale (wrangler dev, TEST_CLOCK:1).
 // (1) C apre #mzEditor, le frecce cambiano riga e valore, l'avatar cambia subito, nessuna POST /api/look; (2) Esc ripristina e chiude;
-// (3) vestito + Salva → POST 200, dopo il reload /api/me e l'avatar hanno il look nuovo; (4) cappello a Perle: prezzo, «Compra» senza Perle
+// (3) vestito + Salva → POST 200, dopo il reload /api/me e l'avatar hanno il look nuovo; (4) cappello a monete: prezzo, «Compra» senza monete
 // → avviso gentile sotto la riga del cappello (#4, arancio, nessuna chiamata al server), Salva spento; un esclusivo del Mercante (#63) non
-// ha «Compra» ma l'avviso «dal Mercante»; poi Perle vinte con una sfida chiusa (API) → Compra e Salva; (5) Tavolo aperto: C non apre l'editor;
+// ha «Compra» ma l'avviso «dal Mercante»; poi monete vinte con due Regate da solo (API) → Compra e Salva; (5) Tavolo aperto: C non apre l'editor;
 // (6) «Altro dispositivo»: COPIA LINK / MANDA danno `/?t=token` (mai scritto a schermo), copia rifiutata → campo col link;
 // (7) telefono 390×844: il bottone apre il foglio, che lascia libero il centro.
 import fs from 'node:fs';
@@ -84,7 +84,7 @@ export default async function (ctx) {
       await anna.page.keyboard.press('c');
       await waitOpen(anna, true);
       assert(await anna.page.locator('#mzEditor.on').isVisible(), '#mzEditor.on non visibile');
-      await ctx.waitState(anna.page, (s) => s.editor.perle !== null, 5000);
+      await ctx.waitState(anna.page, (s) => s.editor.monete !== null, 5000);
       assert((await focusedRow(anna)) === 'pelle', 'focus iniziale non sulla riga Pelle: ' + (await focusedRow(anna)));
       const s0 = await st(anna);
       assert(sameLook(s0.editor.draft, saved0) && sameLook(s0.wp2_avatar.look, saved0), 'bozza/avatar iniziali ≠ salvato: ' + S(s0.editor.draft));
@@ -153,27 +153,27 @@ export default async function (ctx) {
       assert(posts.look.length === 1, 'POST /api/look attese 1: ' + posts.look.length);
     });
 
-    await ctx.test('cappello a Perle: prezzo, «Compra» senza Perle → avviso gentile vicino al bottone, Salva spento; con le Perle vinte compra e salva', async () => {
+    await ctx.test('cappello a monete: prezzo, «Compra» senza monete → avviso gentile vicino al bottone, Salva spento; con le monete vinte compra e salva', async () => {
       await anna.page.evaluate(() => window.__game.test.openEditor());
       await waitOpen(anna, true);
-      await ctx.waitState(anna.page, (s) => s.editor.perle !== null, 5000);
-      const p0 = (await st(anna)).editor.perle;
+      await ctx.waitState(anna.page, (s) => s.editor.monete !== null, 5000);
+      const p0 = (await st(anna)).editor.monete, prezzo = avatar.cappelli[HAT].monete;
       for (let i = 0; i < HAT; i++) await nav(anna, 'cappello:piu').click();
       let s = await st(anna);
       assert(s.editor.draft.cappello === HAT && s.wp2_avatar.look.cappello === HAT, 'cappello pescatore non in anteprima: ' + S(s.editor.draft));
       assert(!s.editor.owned.includes('pescatore'), 'pescatore già posseduto?');
       const row = await anna.page.locator('#mzEditor [data-row="cappello"]').innerText();
-      assert(/10 Perle/.test(row) && /pescatore/i.test(row), 'prezzo non visibile: ' + row);
+      assert(new RegExp(`${prezzo} monete`).test(row) && /pescatore/i.test(row), 'prezzo non visibile: ' + row);
       assert(await nav(anna, 'salva').isDisabled(), 'Salva acceso con un cappello non tuo');
       const hats0 = posts.hat.length;
       await nav(anna, 'compra').click();
       const bad = anna.page.locator('#mzEditor [data-row="cappello"] .mz-ed-miss.bad');
       await bad.waitFor({ timeout: 5000 });
       const errTxt = await bad.innerText(), col = await bad.evaluate((e) => getComputedStyle(e).color);
-      ctx.log(`Perle ${p0} · avviso: «${errTxt}» (${col})`);
-      assert(/Ti mancano 10 Perle/.test(errTxt) && /minigiochi/.test(errTxt), 'avviso non gentile: ' + errTxt);
+      ctx.log(`monete ${p0} · avviso: «${errTxt}» (${col})`);
+      assert(new RegExp(`Ti mancano ${prezzo - p0} monete`).test(errTxt) && /minigiochi/.test(errTxt), 'avviso non gentile: ' + errTxt);
       assert(col === 'rgb(242, 163, 58)', 'avviso non arancio (#4: niente rosso da errore): ' + col);
-      assert(posts.hat.length === hats0, 'senza Perle «Compra» non deve chiamare il server');
+      assert(posts.hat.length === hats0, 'senza monete «Compra» non deve chiamare il server');
       assert(await nav(anna, 'salva').isDisabled(), 'Salva acceso dopo l’errore');
       await ctx.shot(anna.page, 'cappello_senza_perle_errore');
       // esclusivo del Mercante (#63): si prova, ma niente «Compra»: si compra al Porto
@@ -185,7 +185,7 @@ export default async function (ctx) {
       await anna.page.keyboard.press('Escape'); await waitOpen(anna, false);
       assert(posts.look.length === 1, 'POST /api/look con cappello non tuo');
 
-      // Perle vere: Tavolo per entrambi, sfida chiusa via API (Anna con l'autopilot, Bruno pigro)
+      // monete vere: Regate da solo via API con l'autopilot (le sfide pagano ancora le Perle di prima, spente: #414)
       for (const t of ['tokA', 'tokB']) { const r = await post('/api/lot/build', t, { building: 'tavolo', cell: slotCells[0] }); assert(r.status === 200, `tavolo ${t}: ${r.status}`); }
       OFF = 10 * MIN;
       const race = (seed, difficulty, pigro) => {
@@ -193,28 +193,27 @@ export default async function (ctx) {
         while (!x.done) { const f = quantize(pigro ? lazyAutopilot(x) : regata.autopilot(x, rng)); frames.push(f); regata.step(x, f); }
         return packInputs(frames);
       };
-      const c = (await post('/api/challenges', 'tokA', { minigame: 'regata', to: 'bruno', stake: { legno: 10, pietra: 0, perle: 0 } })).body;
-      assert(c.id, 'sfida: ' + S(c));
-      assert((await post(`/api/challenges/${c.id}/play`, 'tokA', { inputs: race(c.seed, c.difficulty, false) })).status === 200, 'play Anna');
-      assert((await post(`/api/challenges/${c.id}/accept`, 'tokB')).status === 200, 'accept Bruno');
-      const pb = await post(`/api/challenges/${c.id}/play`, 'tokB', { inputs: race(c.seed, c.difficulty, true) });
-      assert(pb.status === 200 && pb.body.challenge.state === 'chiusa', 'sfida non chiusa: ' + S(pb.body).slice(0, 200));
-      const perle = (await get('/api/lot', 'tokA')).body.resources.perle;
-      ctx.log(`Perle di Anna dopo la sfida: ${perle}`);
-      assert(perle >= avatar.cappelli[HAT].perle, 'Perle insufficienti anche dopo la sfida: ' + perle);
+      for (let i = 0; i < 6 && (await get('/api/lot', 'tokA')).body.monete < prezzo; i++) {
+        const g = (await post('/api/solo/start', 'tokA', { minigame: 'regata' })).body;
+        assert(Number.isInteger(g.seed), 'solo start: ' + S(g).slice(0, 200));
+        assert((await post('/api/solo/play', 'tokA', { inputs: race(g.seed, g.difficulty, false) })).status === 200, 'solo play');
+      }
+      const perle = (await get('/api/lot', 'tokA')).body.monete;
+      ctx.log(`monete di Anna dopo le Regate: ${perle}`);
+      assert(perle >= prezzo, 'monete insufficienti anche dopo le Regate: ' + perle);
 
       await anna.page.evaluate(() => window.__game.test.openEditor());
       await waitOpen(anna, true);
-      await ctx.waitState(anna.page, (x, n) => x.editor.perle === n, 5000, perle);
+      await ctx.waitState(anna.page, (x, n) => x.editor.monete === n, 5000, perle);
       for (let i = 0; i < HAT; i++) await nav(anna, 'cappello:piu').click();
       const [r2] = await Promise.all([
         anna.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/look/hat', { timeout: 10000 }),
         nav(anna, 'compra').click(),
       ]);
-      assert(r2.status() === 200, 'compra con le Perle: ' + r2.status());
+      assert(r2.status() === 200, 'compra con le monete: ' + r2.status());
       await ctx.waitState(anna.page, (x) => x.editor.owned.includes('pescatore') && !x.editor.busy, 5000);
       s = await st(anna);
-      assert(s.editor.perle === perle - avatar.cappelli[HAT].perle, 'Perle non scalate nel pannello: ' + s.editor.perle);
+      assert(s.editor.monete === perle - prezzo, 'monete non scalate nel pannello: ' + s.editor.monete);
       assert(!(await nav(anna, 'salva').isDisabled()), 'Salva spento con il cappello comprato');
       await ctx.shot(anna.page, 'cappello_comprato');
       const [r3] = await Promise.all([
@@ -270,10 +269,11 @@ export default async function (ctx) {
       assert(!(await st(anna)).editor.linkVisibile, 'il campo col link resta dopo la chiusura');
     });
 
-    await ctx.test('telefono 390×844: tocco su #mzEditorBtn apre il foglio, il centro resta libero', async () => {
+    await ctx.test('telefono 390×844: AVATAR → Aspetto apre il foglio (#417), il centro resta libero', async () => {
       const bruno = await open('tokB', ctx.B.IPHONE);
       const b0 = (await st(bruno)).wp2_avatar.look;
-      await bruno.page.locator('#mzEditorBtn').tap();
+      await bruno.page.locator('#mzAvatarBtn').tap();
+      await bruno.page.locator('#mzAvatarMenu [data-voce="aspetto"]').tap();
       await waitOpen(bruno, true);
       // si misura quando è arrivato il lotto chiesto all'apertura: se cambia qualcosa il foglio si rifà e i bottoni di prima si staccano (#166)
       await ctx.waitState(bruno.page, (s) => s.editor.lotFresco === true, 15000);

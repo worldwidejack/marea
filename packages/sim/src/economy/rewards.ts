@@ -1,9 +1,11 @@
-// Premi dei minigiochi: Perle per medaglia nelle sfide (mai zero), premio in risorse nelle partite da solo, Faro acceso dopo una vittoria.
+// Premi dei minigiochi: monete nelle partite da solo (#414); Perle per medaglia nelle sfide con posta (spente: risorse di prima, mai zero) e
+// Faro acceso dopo una vittoria (edificio spento).
 import { BALANCE, MINIGAMES_CFG, building } from '@marea/content';
 import type { PremioExtra } from '@marea/content';
 import type { Medal } from '../minigames/types.ts';
 import { advance } from './advance.ts';
 import { mappeDaOro } from '../world/temi.ts';
+import { guadagna } from './monete.ts';
 import { EconomyError, ZERO, add } from './types.ts';
 import type { LotState, Resources, SoloState } from './types.ts';
 
@@ -47,12 +49,12 @@ export function soloOf(lot: LotState, nowMs: number): SoloState {
   const s = lot.solo ?? NO_SOLO, day = Math.floor(nowMs / DAY);
   return s.day === day ? s : { ...s, day, premiate: 0 };
 }
-/** Premio di una partita da solo per medaglia (senza medaglia = premio di consolazione); più il `premioExtra` del minigioco, se ne ha uno (es. le Perle: l'oro dà Perle in più). */
-export function soloPrize(medal: Medal, minigame?: string): Resources {
+/** Monete di una partita da solo per medaglia (senza medaglia = premio di consolazione); più il `premioExtra` del minigioco, se ne ha uno (es. la Caccia alle perle: l'oro dà monete in più). */
+export function soloPrize(medal: Medal, minigame?: string): number {
   const p = BALANCE.solo.premi[medal ?? 'nessuna'];
   const cfg = minigame && Object.hasOwn(MINIGAMES_CFG, minigame) ? (MINIGAMES_CFG as Record<string, { premioExtra?: PremioExtra }>)[minigame] : undefined;
   const x = medal ? cfg?.premioExtra?.[medal] : undefined;
-  return { legno: p.legno + (x?.legno ?? 0), pietra: p.pietra + (x?.pietra ?? 0), perle: p.perle + (x?.perle ?? 0) };
+  return p + (x ?? 0);
 }
 /** Partite premiate che restano oggi. */
 export function soloLeft(lot: LotState, nowMs: number): number {
@@ -65,7 +67,7 @@ export function startSolo(lot: LotState, minigame: string, seed: number, nowMs: 
   return { ...lot, version: lot.version + 1, solo: { ...s, pending } };
 }
 /** `mappe`: mappe delle isole a tema trovate con questa partita (#68: la prima medaglia d'oro regala quella del Giardino). */
-export type SoloOutcome = { lot: LotState; premio: Resources; premiata: boolean; mappe: string[] };
+export type SoloOutcome = { lot: LotState; premio: number; premiata: boolean; mappe: string[] };
 /**
  * Chiude la partita aperta con la medaglia che il server ha ricalcolato rigiocando gli input. Premio pieno finché ci sono partite
  * premiate oggi, poi zero (si gioca lo stesso).
@@ -74,19 +76,17 @@ export function finishSolo(lot0: LotState, medal: Medal, nowMs: number): SoloOut
   const s = soloOf(lot0, nowMs);
   if (!s.pending) throw new EconomyError('partita', 'Nessuna partita aperta: riparti dal via');
   const premiata = s.premiate < BALANCE.solo.premiateAlGiorno;
-  const premio = premiata ? soloPrize(medal, s.pending.minigame) : { ...ZERO };
+  const premio = premiata ? soloPrize(medal, s.pending.minigame) : 0;
   const lot = advance(lot0, nowMs);
   const mappe = medal === 'oro' ? mappeDaOro().filter((m) => !(lot.mappe ?? []).includes(m)) : [];
   return {
     premio, premiata, mappe,
-    lot: {
+    lot: guadagna({
       ...lot,
       ...(mappe.length ? { mappe: [...(lot.mappe ?? []), ...mappe] } : {}),
       version: lot.version + 1,
-      resources: add(lot.resources, premio),
-      ledger: { ...lot.ledger, generated: add(lot.ledger.generated, premio) },
       boostUntilMs: faroBoost(lot, medal !== null, nowMs), // una medaglia accende il Faro come una vittoria
       solo: { day: s.day, premiate: s.premiate + (premiata ? 1 : 0), giocate: s.giocate + 1, pending: null },
-    },
+    }, premio),
   };
 }

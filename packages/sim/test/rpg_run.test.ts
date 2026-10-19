@@ -2,6 +2,7 @@
 // Navigazione sparisse (fitHero).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { BALANCE } from '@marea/content';
 import { DUNGEONS, RPG, SKILLS } from '@marea/content/rpg.ts';
 import { newLot } from '../src/economy/actions.ts';
 import { EconomyError } from '../src/economy/types.ts';
@@ -49,7 +50,7 @@ test('rpg spedizione: uscito tiene bottino, monete e xp; usati e rotti escono da
   assert.equal(l.dungeon?.pending, null);
   assert.deepEqual(out.tenuto, { erba_curativa: 3, lingotto_ferro: 5 });
   assert.equal(out.monete, 40);
-  assert.equal(h.monete, RPG.partenza.monete + 40);
+  assert.equal(l.monete, BALANCE.monete.partenza + 40, 'le monete della spedizione vanno nel lotto (#414)');
   assert.equal(h.inv.lingotto_ferro, 5);
   assert.equal(h.inv.pozione_vita_minore, 1);
   assert.equal(h.inv.frecce_legno, 13);

@@ -65,7 +65,7 @@ export type MaterialDef = {
 };
 export type WeaponTypeDef = { id: WeaponTypeId; nome: string; classe: WeaponClass; danno: number; velocita: number; portata: number; peso: number; carica: number; caricaMolt: number; model: string; descr: string };
 
-export type ItemKind = 'arma' | 'arco' | 'frecce' | 'armatura' | 'veste' | 'anello' | 'pozione' | 'libro' | 'ingrediente' | 'materiale';
+export type ItemKind = 'arma' | 'arco' | 'frecce' | 'armatura' | 'veste' | 'anello' | 'pozione' | 'libro' | 'ingrediente' | 'materiale' | 'strumento';
 /** Oggetti scritti a mano (anelli, vesti, pozioni, libri, ingredienti, materiali, unici). Armi/armature/archi/frecce dei materiali li genera la sim (tipo × materiale). */
 export type ItemDefRaw = {
   id: string; nome: string; kind: ItemKind; peso: number; descr: string;
@@ -344,7 +344,8 @@ export type RpgBalance = {
   /** R-rpg, facoltativi: arma quando non ne hai una; quanto ogni livello di abilità sopra skillIniziale alza danno (armi e magie) e potenza delle pozioni. */
   pugni?: { danno: number; velocita: number; portata: number; carica: number; caricaMolt: number };
   abilita?: { dannoPerLivello: number; potenzaPerLivello: number };
-  partenza: { inv: Record<string, number>; equip: Record<string, string>; magie: string[]; monete: number };
+  /** Zaino, equipaggiamento e magie di chi comincia (le monete di partenza stanno nel lotto: balance.json `monete.partenza`, #414). */
+  partenza: { inv: Record<string, number>; equip: Record<string, string>; magie: string[] };
   /** altare.protezione: secondi senza danni dopo il risveglio all'altare (i nemici non ti uccidono appena riapri gli occhi). */
   dungeon: {
     maxMinuti: number; morte: { bottino: number; xp: number }; altare: { protezione: number };

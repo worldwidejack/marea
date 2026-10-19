@@ -1,6 +1,6 @@
 // Isola dei Templari lato server (docs/TEMPLARI.md §10, CONTRACTS «Templari»): POST /api/templari/start apre la partita (seed nel lotto),
 // /api/templari/finish rigioca gli input nel DO (giocati qui in Node col pilota della sim: stesso esito e stesso hash) e paga le ondate
-// superate (15 Legno, 8 Pietra, 2 Perle a ondata) entro il tetto del giorno; record e partite nel lotto; uscita dal menu = conta come
+// superate (monete a ondata, #414) entro il tetto del giorno; record e partite nel lotto; uscita dal menu = conta come
 // cadere; senza partita aperta 409, input rotti 400; hash diverso = solo un avviso nel log. wrangler dev locale come m2_server.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -71,8 +71,8 @@ export default async function (ctx) {
       assert(r.body.result.esito === (g.r.esito ?? 'uscito') && r.body.result.superate === g.r.superate && r.body.result.uccisioni === g.r.uccisioni, 'esito diverso: ' + JSON.stringify(r.body.result));
       const sup = Math.min(TEMPLARI.premio.maxOndate, g.r.superate), pp = TEMPLARI.premio.perOndata;
       assert(sup >= 1, 'il pilota non ha superato ondate');
-      assert(r.body.premio.legno === pp.legno * sup && r.body.premio.pietra === pp.pietra * sup && r.body.premio.perle === pp.perle * sup, 'premio: ' + JSON.stringify(r.body.premio));
-      assert(r.body.lot.resources.legno === l0.resources.legno + r.body.premio.legno, 'Legno non arrivato nel lotto');
+      assert(r.body.premio === pp * sup, 'premio: ' + JSON.stringify(r.body.premio));
+      assert(r.body.lot.monete === l0.monete + r.body.premio, 'monete non arrivate nel lotto');
       assert(r.body.lot.templari.pending === null && r.body.lot.templari.record === r.body.result.ondata && r.body.lot.templari.partite >= 1, 'lotto: ' + JSON.stringify(r.body.lot.templari));
       assert(!/templari hash diverso/.test(log), 'hash diverso tra client e server');
       const again = await post('/api/templari/finish', { inputs: g.inputs, azioni: [], hash: g.r.hash });
@@ -95,10 +95,10 @@ export default async function (ctx) {
         const st = (await post('/api/templari/start', { subito: true })).body;
         const g = gioca(st.seed, true, 60 * 60 * 6);
         const r = (await post('/api/templari/finish', { inputs: g.inputs, azioni: [], hash: g.r.hash })).body;
-        preso += r.premio.legno; tetto = r.tetto;
+        preso += r.premio; tetto = r.tetto;
       }
       const l = await lot();
-      assert(l.templari.preso.legno <= TEMPLARI.premio.tetto.legno, `preso oggi ${l.templari.preso.legno} oltre il tetto`);
+      assert(l.templari.preso <= TEMPLARI.premio.tetto && preso <= TEMPLARI.premio.tetto, `preso oggi ${l.templari.preso} oltre il tetto`);
       ctx.log(`preso oggi ${JSON.stringify(l.templari.preso)} · tetto raggiunto: ${tetto}`);
     });
 

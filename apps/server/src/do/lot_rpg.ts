@@ -11,15 +11,19 @@ import { dungeon as dungeonSim } from '@marea/sim/dungeon/dungeon.ts';
 import { decodeDungeon, encodeDungeon, isPackedDungeon, parseDungeonAzioni, replayDungeon } from '@marea/sim/dungeon/replay.ts';
 import type { PackedDungeon } from '@marea/sim/dungeon/types.ts';
 import { chiudiGruppo, chiudiSalvata, risultatoGruppo } from '@marea/sim/dungeon/settle.ts';
+import { advance } from '@marea/sim/economy/advance.ts';
+import { bottinoDelGiorno, bottinoRiscossoOggi, possiedePala, riscuotiBottino } from '@marea/sim/economy/pala.ts';
+import { EconomyError } from '@marea/sim/economy/types.ts';
 import type { LotState } from '@marea/sim/economy/types.ts';
 import { applyRpgAction, parseRpgAction } from '@marea/sim/rpg/actions.ts';
+import { compraPala, parseBucaDono, prelevaPerSeppellire, riceviSeppellito } from '@marea/sim/rpg/pala.ts';
 import { finishDungeon, startDungeon } from '@marea/sim/rpg/run.ts';
 
 export const json = (dati: unknown, status = 200): Response =>
   new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 
 /** `dungeon_party_start {dungeon, seed, run, idx}` → {hero, stato, lot} arriva solo dal DO Spedizioni (dungeon insieme, #118), mai dal Worker. */
-export const RPG_ACTS = new Set(['rpg', 'dungeon_start', 'dungeon_party_start', 'dungeon_save', 'dungeon_finish']);
+export const RPG_ACTS = new Set(['rpg', 'dungeon_start', 'dungeon_party_start', 'dungeon_save', 'dungeon_finish', 'casa_pala', 'pala_scava', 'pala_seppellisci', 'pala_dissotterra']);
 /** Rotte che, con una spedizione insieme aperta, hanno bisogno del log della squadra (Lot.ts lo chiede prima e lo mette in `gruppo`). */
 export const SERVE_GRUPPO = new Set(['dungeon_start', 'dungeon_party_start', 'dungeon_finish']);
 
@@ -31,6 +35,39 @@ function inputsOf(raw: unknown): PackedDungeon | null {
 
 /** Rotte GDR: `save` scrive il lotto nello storage del DO; `tornato` ritocca il lotto di una spedizione chiusa (contatori delle missioni). Lancia EconomyError (le traduce chi chiama). */
 export function rpgRoute(lot: LotState, act: string, body: Record<string, unknown>, now: number, save: (l: LotState) => void, tornato: (l: LotState) => LotState = (l) => l): Response {
+  if (act === 'casa_pala') {
+    const next = compraPala(lot, now);
+    save(next);
+    return json(next);
+  }
+  if (act === 'pala_scava') {
+    if (!possiedePala(lot)) throw new EconomyError('oggetto', 'Serve la pala');
+    const c = body['cell'];
+    const cell = Array.isArray(c) && c.length === 2 && Number.isInteger(c[0]) && Number.isInteger(c[1]) ? [c[0] as number, c[1] as number] as const : null;
+    const b = bottinoDelGiorno(now);
+    if (cell && cell[0] === b.cell[0] && cell[1] === b.cell[1] && !bottinoRiscossoOggi(lot, now)) {
+      const r = riscuotiBottino(lot, now);
+      save(r.lot);
+      return json({ bottino: true, monete: r.monete, nome: `${r.monete} monete`, lot: r.lot });
+    }
+    const next = advance(lot, now);
+    save(next);
+    return json({ bottino: false, lot: next });
+  }
+  if (act === 'pala_seppellisci') {
+    const d = parseBucaDono(body['dono']);
+    if (!d) return json({ error: 'Oggetto da seppellire non valido' }, 400);
+    const r = prelevaPerSeppellire(lot, d, now);
+    save(r.lot);
+    return json(r);
+  }
+  if (act === 'pala_dissotterra') {
+    const d = parseBucaDono(body['dono']);
+    if (!d) return json({ error: 'Contenuto della buca non valido' }, 400);
+    const r = riceviSeppellito(lot, d, now);
+    save(r.lot);
+    return json(r);
+  }
   if (act === 'rpg') {
     const a = parseRpgAction(body['azione']);
     if (!a) return json({ error: 'Azione non valida' }, 400);

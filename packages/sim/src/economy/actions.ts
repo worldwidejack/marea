@@ -3,16 +3,18 @@ import { AVATAR, BALANCE, DECOR, building } from '@marea/content';
 import { advance, storageCap } from './advance.ts';
 import { buildCellError, decorCellError, defaultTemplate, dockCell } from './cells.ts';
 import type { LotTemplate } from './cells.ts';
+import { guadagna, spendi } from './monete.ts';
 import { EconomyError, ZERO, add, geq, missing, sub } from './types.ts';
 import type { LotState, PlacedBuilding, PlacedDecor, Resources, StoredBuilding } from './types.ts';
 
-/** Lotto nuovo: Molo L1 sul molo `d` del template (default: `lotto` di islands.json; va bene anche un GridMap) + partenza da BALANCE. */
+/** Lotto nuovo: Molo L1 sul molo `d` del template (default: `lotto` di islands.json; va bene anche un GridMap), le monete di partenza
+ *  (`BALANCE.monete.partenza`, #414) e le risorse di prima di BALANCE.partenza, che servono solo al codice spento del giardino. */
 export function newLot(owner: string, nowMs: number, tpl: LotTemplate | null = defaultTemplate()): LotState {
   const cell = dockCell(tpl);
   const molo: PlacedBuilding = { id: 'molo', building: 'molo', level: 1, cell, buffer: 0, lastMs: nowMs };
   return {
-    owner, version: 0, nowMs, resources: { ...BALANCE.partenza }, buildings: [molo], construction: null, decor: [],
-    escrow: { ...ZERO }, ledger: { generated: { ...BALANCE.partenza }, spent: { ...ZERO } }, boostUntilMs: 0,
+    owner, version: 0, nowMs, monete: BALANCE.monete.partenza, resources: { ...BALANCE.partenza }, buildings: [molo], construction: null, decor: [],
+    escrow: { ...ZERO }, ledger: { generated: { ...BALANCE.partenza }, spent: { ...ZERO }, monete: { generated: BALANCE.monete.partenza, spent: 0 } }, boostUntilMs: 0,
     challenges: { day: 0, used: 0 }, posseduti: [], holds: {}, settled: [],
   };
 }
@@ -290,14 +292,14 @@ export function upgrade(lot0: LotState, placedId: string, nowMs: number): LotSta
   return { ...lot, version: lot.version + 1, construction: { building: b.building, level: b.level + 1, endsMs: nowMs + lvl.seconds * 1000, placedId } };
 }
 
-/** Decorazione: costa Perle (il prezzo lo passa il chiamante dal catalogo `DECOR`), istantanea, su sabbia/erba libera del template. */
-export function placeDecor(lot0: LotState, decor: string, cell: [number, number], rot: number, nowMs: number, costPerle = 0, tpl: LotTemplate | null = defaultTemplate()): LotState {
+/** Decorazione: costa monete (il prezzo lo passa il chiamante dal catalogo `DECOR`), istantanea, su sabbia/erba libera del template. */
+export function placeDecor(lot0: LotState, decor: string, cell: [number, number], rot: number, nowMs: number, prezzo = 0, tpl: LotTemplate | null = defaultTemplate()): LotState {
   let lot = advance(lot0, nowMs);
-  if (!Number.isInteger(costPerle) || costPerle < 0) throw new EconomyError('sconosciuto', 'Prezzo della decorazione non valido');
+  if (!Number.isInteger(prezzo) || prezzo < 0) throw new EconomyError('sconosciuto', 'Prezzo della decorazione non valido');
   const bad = decorCellError(lot, cell, tpl);
   if (bad) throw new EconomyError(bad.code, bad.msg);
   if (!Number.isInteger(rot) || rot < 0 || rot > 3) throw new EconomyError('posizione', 'Rotazione non valida (0-3)');
-  lot = pay(lot, { ...ZERO, perle: costPerle });
+  lot = spendi(lot, prezzo);
   const placed: PlacedDecor = { id: `${decor}-${nextDecorN(lot)}`, decor, cell };
   if (rot) placed.rot = rot;
   return { ...lot, version: lot.version + 1, decor: [...lot.decor, placed] };
@@ -315,9 +317,9 @@ function findDecor(lot: LotState, id: string): PlacedDecor {
   return d;
 }
 
-/** Perle che tornano rivendendo una decorazione (#108): BALANCE.decor.rimborso del prezzo di catalogo, per difetto. Sconosciuta = 0. */
+/** Monete che tornano rivendendo una decorazione (#108): BALANCE.decor.rimborso del prezzo di catalogo, per difetto. Sconosciuta = 0. */
 export function decorRimborso(decor: string): number {
-  const p = DECOR.find((d) => d.id === decor)?.perle ?? 0;
+  const p = DECOR.find((d) => d.id === decor)?.monete ?? 0;
   return Math.max(0, Math.floor(p * BALANCE.decor.rimborso));
 }
 
@@ -346,33 +348,27 @@ export function rotateDecor(lot0: LotState, id: string, nowMs: number): LotState
   };
 }
 
-/** Rivende una decorazione (#108): sparisce dall'isola e tornano `decorRimborso` Perle (entrata nel libro mastro, come le altre). */
-export function sellDecor(lot0: LotState, id: string, nowMs: number): { lot: LotState; perle: number } {
+/** Rivende una decorazione (#108): sparisce e tornano `decorRimborso` monete (entrata nel libro mastro, come le altre). */
+export function sellDecor(lot0: LotState, id: string, nowMs: number): { lot: LotState; monete: number } {
   const lot = advance(lot0, nowMs);
-  const d = findDecor(lot, id), perle = decorRimborso(d.decor), back: Resources = { ...ZERO, perle };
-  return {
-    perle,
-    lot: {
-      ...lot, version: lot.version + 1, decor: lot.decor.filter((x) => x.id !== id),
-      resources: add(lot.resources, back), ledger: { ...lot.ledger, generated: add(lot.ledger.generated, back) },
-    },
-  };
+  const d = findDecor(lot, id), monete = decorRimborso(d.decor);
+  return { monete, lot: guadagna({ ...lot, version: lot.version + 1, decor: lot.decor.filter((x) => x.id !== id) }, monete) };
 }
 
-/** Cappelli posseduti: i gratuiti (perle 0) sono di tutti, gli altri solo se comprati. */
+/** Cappelli posseduti: i gratuiti (monete 0) sono di tutti, gli altri solo se comprati. */
 export function ownsHat(lot: LotState, hatId: string): boolean {
   const h = AVATAR.cappelli.find((x) => x.id === hatId);
-  return !!h && (h.perle <= 0 || (lot.posseduti ?? []).includes(hatId));
+  return !!h && (h.monete <= 0 || (lot.posseduti ?? []).includes(hatId));
 }
 
-/** Compra un cappello a pagamento, una volta sola (GDD §4): le Perle sono spese, il cappello va in `posseduti`. */
+/** Compra un cappello a pagamento, una volta sola (GDD §4): le monete sono spese, il cappello va in `posseduti`. */
 export function buyHat(lot0: LotState, hatId: string, nowMs: number): LotState {
   let lot = advance(lot0, nowMs);
   const h = AVATAR.cappelli.find((x) => x.id === hatId);
   if (!h) throw new EconomyError('sconosciuto', 'Cappello sconosciuto');
-  if (h.perle <= 0) throw new EconomyError('cappello', `${h.nome}: è gratis, non serve comprarlo`);
+  if (h.monete <= 0) throw new EconomyError('cappello', `${h.nome}: è gratis, non serve comprarlo`);
   if (ownsHat(lot, hatId)) throw new EconomyError('unico', `Hai già: ${h.nome}`);
-  lot = pay(lot, { ...ZERO, perle: h.perle });
+  lot = spendi(lot, h.monete);
   return { ...lot, version: lot.version + 1, posseduti: [...(lot.posseduti ?? []), hatId] };
 }
 

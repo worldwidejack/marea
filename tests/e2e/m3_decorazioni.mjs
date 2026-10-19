@@ -1,7 +1,7 @@
-// Decorazioni libere (#108) sul server locale (wrangler dev, TEST_CLOCK:1). Luca vince Perle con le Regate (API, autopilot) e compra due
+// Decorazioni libere (#108) sul server locale (wrangler dev, TEST_CLOCK:1). Luca vince monete con le Regate (API, autopilot) e compra due
 // decorazioni (API, come il Mercante); poi nel browser, sulla sua isola: (1) A vicino a una decorazione apre la scheda SPOSTA / RUOTA /
 // RIVENDI; (2) SPOSTA: sagoma rossa sull'altra decorazione e sul libro degli ospiti (CONFERMA spenta), verde su erba libera, A conferma,
-// il server la sposta; (3) RUOTA gira di 90° (salvato); (4) RIVENDI con conferma: metà delle Perle per difetto, la decorazione sparisce;
+// il server la sposta; (3) RUOTA gira di 90° (salvato); (4) RIVENDI con conferma: metà delle monete per difetto, la decorazione sparisce;
 // (5) API: niente sposta su cella occupata, niente id sconosciuti, isole degli altri senza scheda; (6) telefono 390×844: tocco sulla
 // decorazione, scheda e sagoma verde/rossa dentro lo schermo con bottoni ≥ 44 px, ANNULLA rimette com'era.
 import fs from 'node:fs';
@@ -27,7 +27,7 @@ export default async function (ctx) {
   const { createRng } = await sim('rng.ts');
   const read = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
   const decor = read('decor.json'), balance = read('balance.json'), rientro = read('rientro.json');
-  const prezzo = (id) => decor.find((d) => d.id === id).perle;
+  const prezzo = (id) => decor.find((d) => d.id === id).monete;
   const rimborso = (id) => Math.floor(prezzo(id) * balance.decor.rimborso);
   // celle del template `lotto` (erba lontana dal libro degli ospiti e dagli slot): A = la lanterna, B = il barile, C = dove si sposta A
   const A = [11, 16], B = [13, 16], C = [11, 14], LIBRO = rientro.libro.lotto;
@@ -57,9 +57,9 @@ export default async function (ctx) {
     };
     const serve = prezzo('lanterna') + prezzo('barile') + 2;
 
-    await ctx.test('API: Perle dalle Regate, due decorazioni comprate; sposta/ruota/rivendi rifiutano richieste rotte', async () => {
-      for (let i = 0; i < 6 && (await get('/api/lot')).body.resources.perle < serve; i++) assert((await playSolo('tokL')).status === 200, 'regata');
-      for (let i = 0; i < 6 && (await get('/api/lot', 'tokA')).body.resources.perle < prezzo('barile'); i++) assert((await playSolo('tokA')).status === 200, 'regata di Ada');
+    await ctx.test('API: monete dalle Regate, due decorazioni comprate; sposta/ruota/rivendi rifiutano richieste rotte', async () => {
+      for (let i = 0; i < 6 && (await get('/api/lot')).body.monete < serve; i++) assert((await playSolo('tokL')).status === 200, 'regata');
+      for (let i = 0; i < 6 && (await get('/api/lot', 'tokA')).body.monete < prezzo('barile'); i++) assert((await playSolo('tokA')).status === 200, 'regata di Ada');
       assert((await post('/api/lot/decor', { decor: 'lanterna', cell: A, rot: 0 })).status === 200, 'compra lanterna');
       assert((await post('/api/lot/decor', { decor: 'barile', cell: B, rot: 0 })).status === 200, 'compra barile');
       assert((await post('/api/lot/decor', { decor: 'barile', cell: A, rot: 0 }, 'tokA')).status === 200, 'compra il barile di Ada');
@@ -78,7 +78,7 @@ export default async function (ctx) {
       if (!lot.decor.some((d) => d.id === ada.id)) assert((await post('/api/lot/decor/sell', { id: ada.id })).status === 404, 'decorazione altrui');
       const dopo = (await get('/api/lot')).body;
       assert(JSON.stringify(dopo.decor) === JSON.stringify(lot.decor), 'le richieste rifiutate non toccano niente');
-      ctx.log(`Perle ${dopo.resources.perle} · decor ${la.id} ${ba.id}`);
+      ctx.log(`monete ${dopo.monete} · decor ${la.id} ${ba.id}`);
     });
 
     const open = async (viewport) => {
@@ -174,18 +174,18 @@ export default async function (ctx) {
       assert((await V.st()).panel?.kind === 'decor', 'dopo RUOTA la scheda resta aperta');
     });
 
-    await ctx.test('PC: RIVENDI chiede conferma, poi rimborsa metà delle Perle per difetto e toglie la decorazione', async () => {
+    await ctx.test('PC: RIVENDI chiede conferma, poi rimborsa metà delle monete per difetto e toglie la decorazione', async () => {
       const V = globalThis.__pc;
-      const p0 = (await get('/api/lot')).body.resources.perle;
+      const p0 = (await get('/api/lot')).body.monete;
       await V.page.locator('#mzSheet [data-act="rivendi"]').click();
       await ctx.waitState(V.page, (s) => s.lot.panel && s.lot.panel.vendi === true, 5000);
       await ctx.shot(V.page, 'desktop_rivendi_conferma');
       await V.page.locator('#mzSheet [data-act="vendi"]').click();
       await ctx.waitState(V.page, (s, id) => s.lot.panel === null && !s.lot.decor.some((d) => d.id === id), 8000, lanterna.id);
       const lot = (await get('/api/lot')).body;
-      assert(lot.resources.perle === p0 + rimborso('lanterna'), `Perle ${lot.resources.perle} ≠ ${p0} + ${rimborso('lanterna')}`);
+      assert(lot.monete === p0 + rimborso('lanterna'), `monete ${lot.monete} ≠ ${p0} + ${rimborso('lanterna')}`);
       assert(lot.decor.length === 1 && lot.decor[0].id === barile.id, 'decor dopo la vendita: ' + JSON.stringify(lot.decor));
-      await ctx.waitState(V.page, (s, w) => s.lot.resources.perle === w, 8000, lot.resources.perle);
+      await ctx.waitState(V.page, (s, w) => s.lot.monete === w, 8000, lot.monete);
       ctx.noErrors(V.pg, 'PC');
     });
 
@@ -196,7 +196,7 @@ export default async function (ctx) {
       assert((await post('/api/lot/decor', { decor: 'lanterna', cell: A, rot: 0 })).status === 200, 'ricompra lanterna');
       const ids = (await get('/api/lot')).body.decor.map((d) => d.id);
       assert(new Set(ids).size === ids.length && ids.length === 2, 'id ripetuti dopo la vendita: ' + ids);
-      ctx.log(`Perle ${lot.resources.perle} · decor ${ids}`);
+      ctx.log(`monete ${lot.monete} · decor ${ids}`);
       const V = await open(ctx.B.IPHONE);
       const b = (await V.st()).decor.find((d) => d.decor === 'barile');
       await V.hook('teleport', b.at.x + 1.1, b.at.z + 0.4); await V.hook('setZoom', 0.9);

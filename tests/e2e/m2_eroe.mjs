@@ -1,5 +1,5 @@
 // M2 · R-pannelli (Mondo Sotterraneo, CONTRACTS §15): scheda del personaggio e pannelli degli edifici GDR sul server locale (wrangler dev, TEST_CLOCK:1).
-// (1) tasto I e bottone #mzHeroBtn aprono #mzEroe, Esc chiude, le tre schede si cambiano, un'abilità mostra i suoi perk; (2) Zaino: equipaggia l'arco
+// (1) tasto I e AVATAR → Personaggio aprono #mzEroe, Esc chiude, le tre schede si cambiano, un'abilità mostra i suoi perk; (2) Zaino: equipaggia l'arco
 // e torna alla katana (salvato sul server); (3) Banco costruito (orologio di test) → dal foglio dell'edificio «Forgia» apre il pannello, compri
 // il bronzo in Bottega e forgi un'arma di bronzo; (4) Forziere: deposita 1 / tutti e preleva; (5) Serra: «Raccogli» porta gli ingredienti;
 // (6) telefono 390×844: righe ≥ 44 px, testo leggibile, screenshot di ogni pannello. Screenshot in tests/out/shots/m2_eroe_*.png.
@@ -66,6 +66,8 @@ export default async function (ctx) {
     const st = async (pg) => (await ctx.getState(pg.page)).eroe;
     const waitEroe = (pg, fn, arg = null, ms = 8000) => ctx.waitState(pg.page, `(s, a) => !!s.eroe && (${fn})(s.eroe, a)`, ms, arg);
     const click = async (pg, sel) => { const l = pg.page.locator(sel).first(); await l.waitFor({ state: 'visible', timeout: 5000 }); await l.scrollIntoViewIfNeeded(); await l.click(); };
+    /** Il Personaggio si apre dal menù AVATAR (#417): il bottone dello scudo c'è ma è nascosto. */
+    const apriEroe = async (pg) => { await click(pg, '#mzAvatarBtn'); await click(pg, '#mzAvatarMenu [data-voce="personaggio"]'); };
     const idle = (pg) => waitEroe(pg, '(e) => !e.busy');
     const refresh = async (pg) => { await pg.page.evaluate(() => window.__game.test.lotRefresh()); };
     /** Dal foglio dell'edificio (#mzSheet) al pannello GDR: tocco sull'edificio, poi il bottone d'azione. */
@@ -80,7 +82,7 @@ export default async function (ctx) {
     const D = await open(ctx.B.DESKTOP);
 
     await ctx.test('scheda: tasto I e bottone aprono #mzEroe, Esc chiude, schede Personaggio/Abilità/Zaino, perk di un’abilità', async () => {
-      assert(await D.page.locator('#mzHeroBtn').isVisible(), 'manca #mzHeroBtn in topbar');
+      assert(await D.page.locator('#mzAvatarBtn').isVisible() && !(await D.page.locator('#mzHeroBtn').isVisible()), 'il Personaggio sta nel menù AVATAR (#417)');
       await D.page.keyboard.press('KeyI');
       await waitEroe(D, '(e) => e.open && e.loaded && e.view === "eroe" && e.tab === "pg"', null, 15000);
       const e0 = await st(D);
@@ -89,7 +91,7 @@ export default async function (ctx) {
       await ctx.shot(D.page, 'desktop_personaggio');
       await D.page.keyboard.press('Escape');
       await waitEroe(D, '(e) => !e.open');
-      await click(D, '#mzHeroBtn');
+      await apriEroe(D);
       await waitEroe(D, '(e) => e.open && e.view === "eroe"');
       assert(await D.page.locator('#mzHeroBtn.on').count(), 'bottone non acceso col pannello aperto');
       await click(D, '#mzEroe [data-tab="abilita"]');
@@ -130,7 +132,7 @@ export default async function (ctx) {
     });
 
     await ctx.test('Zaino: Butta via una freccia (due tocchi: il primo chiede conferma), tolta sul server', async () => {
-      await click(D, '#mzHeroBtn');
+      await apriEroe(D);
       await waitEroe(D, '(e) => e.open && e.view === "eroe"');
       await click(D, '#mzEroe [data-tab="zaino"]');
       const n0 = (await lot()).hero.inv.frecce_legno;
@@ -156,7 +158,7 @@ export default async function (ctx) {
       for (let i = 0; i < 6; i++) {
         const l = await lot();
         const need = Math.max(1, 3 - bronzo(l)); // almeno un lingotto si compra sempre dalla Bottega
-        if ((l.hero?.monete ?? RPG.partenza.monete) >= need * prezzo) break;
+        if (l.monete >= need * prezzo) break;
         const s = (await post('/api/dungeon/start', 'tokA', { dungeon: 'grotta' })).body;
         const g = dungeon.create({ seed: s.seed, dungeon: s.dungeon, hero: s.hero, stato: s.stato, partenza: s.partenza });
         const rng = createRng(s.seed), frames = [];
@@ -166,7 +168,7 @@ export default async function (ctx) {
       }
       const l0 = await lot();
       const comprare = Math.max(1, 3 - bronzo(l0));
-      assert((l0.hero?.monete ?? 0) >= comprare * prezzo, `monete insufficienti per il test: ${l0.hero?.monete}`);
+      assert(l0.monete >= comprare * prezzo, `monete insufficienti per il test: ${l0.monete}`);
       await fromSheet(D, 'banco');
       await ctx.shot(D.page, 'desktop_banco');
       for (let i = 0; i < comprare; i++) {
@@ -248,7 +250,7 @@ export default async function (ctx) {
         assert(!bad.length, `${name}: ` + bad.slice(0, 6).join(' · '));
         await ctx.shot(T.page, `telefono_${name}`);
       };
-      await click(T, '#mzHeroBtn');
+      await apriEroe(T);
       await waitEroe(T, '(e) => e.open && e.view === "eroe"', null, 15000);
       await check('personaggio');
       await click(T, '#mzEroe [data-tab="abilita"]'); await click(T, '#mzEroe [data-skill="forgiatura"]'); await check('abilita');

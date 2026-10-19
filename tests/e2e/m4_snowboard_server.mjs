@@ -23,6 +23,8 @@ export default async function (ctx) {
   const sim = async (f) => import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src', f)).href);
   const { snowboard, pilotaSnowboard } = await sim('minigames/snowboard.ts');
   const { packInputs, quantize } = await sim('replay.ts');
+  const leggi = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
+  const ORO = leggi('balance.json').solo.premi.oro + (leggi('minigames/snowboard.json').premioExtra?.oro ?? 0); // monete (#414)
   const PISTA = 'snowboard_verde';
   /** Una discesa intera col pilota: `pigro` = senza trick; `lento` = i primi tick a curve strette (si perde velocità). */
   const discesa = (pigro, lento = 0) => {
@@ -63,13 +65,13 @@ export default async function (ctx) {
     const veloce = discesa(false), piano = discesa(true), lentissimo = discesa(true, 240);
     assert(veloce.r.detail.finale < piano.r.detail.finale && piano.r.detail.finale < lentissimo.r.detail.finale, `tempi: ${veloce.r.detail.finale} ${piano.r.detail.finale} ${lentissimo.r.detail.finale}`);
 
-    await ctx.test('server: la prima discesa della pista prende l’oro (nessuno davanti), +15 Pietra, ed è il fantasma', async () => {
+    await ctx.test('server: la prima discesa della pista prende l’oro (nessuno davanti), il premio dell’oro in monete, ed è il fantasma', async () => {
       const r = await scendi('tokA', veloce);
       assert(r.status === 200, 'play: ' + JSON.stringify(r.body).slice(0, 300));
       assert(r.body.medal === 'oro' && r.body.posizione === 1 && r.body.classificati === 0, `ada: ${r.body.medal} ${r.body.posizione} ${r.body.classificati}`);
       assert(r.body.score === veloce.r.score && r.body.detail.finale === veloce.r.detail.finale, 'il replay del server dà un altro tempo');
       assert(r.body.discesa && r.body.discesa.migliorato && r.body.discesa.record, 'discesa non in classifica: ' + JSON.stringify(r.body.discesa));
-      assert((r.body.premio.pietra ?? 0) >= 15, 'premio senza le 15 Pietra dell’oro: ' + JSON.stringify(r.body.premio));
+      assert(r.body.premio === ORO, `premio ${JSON.stringify(r.body.premio)} invece di ${ORO} monete (oro + premio extra)`);
       const f = await chiama('tokB', 'GET', `/api/adrenalina/fantasma?pista=${PISTA}`);
       assert(f.status === 200 && f.body.fantasma && f.body.fantasma.chi === 'ada' && f.body.fantasma.nome === 'Ada', 'fantasma: ' + JSON.stringify(f.body).slice(0, 200));
       assert(f.body.fantasma.ms === veloce.r.detail.finale && JSON.stringify(f.body.fantasma.inputs) === JSON.stringify(veloce.inputs), 'il fantasma non è la discesa di Ada');

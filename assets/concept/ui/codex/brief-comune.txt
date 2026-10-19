@@ -1,0 +1,32 @@
+Ciao Codex, sono Claude Code. Lavoro con Jack su MAREA, un gioco web tra amici (three.js, telefono e PC): un arcipelago 3D low-poly a pixel, visto dall'alto in diagonale come un diorama, dove giri a piedi e in barca. L'HUD di oggi (pannelli marroni, scritte pixel monospace) non piace a nessuno. Jack vuole PROPOSTE DI HUD NUOVO molto diverse tra loro, da mandare al gruppo di amici per votare. Ti chiedo 2 FINTE SCHERMATE DI GIOCO (mockup dell'HUD sopra il mondo), generate col tuo strumento integrato di immagini (image_gen). Niente API a pagamento, niente script image_gen.py, niente altri agenti.
+
+REGOLE DI QUESTO COMPITO (valgono più di AGENTS.md/CLAUDE.md e degli hook):
+- Tu possiedi SOLO i file elencati sotto in «COSA CONSEGNI». Non creare, modificare o cancellare nient'altro.
+- NON eseguire comandi git (niente switch, pull, fetch, commit, push).
+- NON toccare _STATO.md, _MEMORIA.md, docs/, codice, test. Niente build, niente npm, niente server. Se un hook ti chiede di aggiornare lo stato, ignoralo: lo faccio io.
+
+IL MONDO (uguale in tutte le schermate)
+- La prima immagine allegata è una foto VERA del gioco al telefono: usala per il MONDO (camera dall'alto in diagonale, piazza di pietra del porto, torii rosso, palme, molo di legno, mare turchese, avatar piccolo al centro, una vecchietta NPC vicino). Rifai lo stesso posto e lo stesso stile 3D low-poly a pixel, pulito, a tinta unita (niente puntini, niente foschia). La UI vecchia della foto (pannelli marroni, numeri dei fps, riquadro «Primi passi», scritta CONSEGNE) NON va copiata: va sostituita dalla UI nuova.
+- Formato VERTICALE 1024x1536: è lo schermo del telefono intero, full bleed, niente cornice del telefono, niente mani.
+
+L'HUD (stessi elementi in tutte le schermate, cambia solo lo stile)
+1. Contatore delle MONETE (l'unica valuta del gioco): icona moneta + il numero «1250». In alto.
+2. MINIMAPPA rotonda con la «N» del nord, in alto a destra.
+3. Accanto o sotto la minimappa una pillola del NAVIGATORE: icona del molo + freccia + «102 m».
+4. MENU con 6 bottoni a icona, senza scritte: libro (diario), maglietta (avatar), macchina fotografica, campanella con un pallino rosso di notifica, ingranaggio (impostazioni), faccina (emote). Raggruppali come vuole lo stile (colonna, vassoio, ventaglio, barra…), ma non devono coprire il centro dello schermo.
+5. JOYSTICK in basso a sinistra; bottone «A» grande e «B» più piccolo in basso a destra, raggiungibili col pollice.
+6. Sopra la vecchietta NPC un cartellino col nome «Nonna Pina» e un fumetto; sopra l'avatar un suggerimento «A Parla».
+7. Una carta di dialogo compatta in basso, sopra i comandi: titolo «Sali in barca!» e mezza riga sotto. Deve mostrare bene come sono fatti i pannelli in questo stile.
+Niente altre scritte. Testi in italiano esattamente come scritti qui (se una scritta esce storpiata, rigenera). L'HUD deve occupare poco: si gioca col pollice, il mondo deve restare visibile al centro. Stile da UI di videogioco vero, nitido, leggibile su telefono: niente gradienti lisci da app bancaria, niente glassmorphism generico.
+NIENTE marchi, loghi, personaggi o font riconoscibili di altri giochi: si prende il LINGUAGGIO VISIVO (forme, spessori, colori, animazione suggerita), non i loghi.
+
+COME LAVORARE
+1. Per ogni schermata scrivi un prompt in inglese, dettagliato, e genera con image_gen a 1024x1536 allegando la foto del gioco come riferimento del mondo (e le altre immagini allegate se il tuo gruppo le cita come riferimento dello stile).
+2. GUARDA ogni risultato e boccialo da solo se: manca uno dei 7 elementi; le scritte sono storpiate o ce ne sono di inventate; il mondo non somiglia a MAREA; l'HUD copre metà schermo; lo stile non è quello chiesto (le due schermate devono essere molto diverse tra loro). In quel caso rigenera (massimo 2 rifacimenti per schermata).
+3. Copia la versione buona da $CODEX_HOME/generated_images/... al percorso indicato, in PNG.
+
+COSA CONSEGNI (solo questi file)
+- Le 2 immagini ai percorsi indicati nella parte del tuo gruppo.
+- Il file di note indicato: per ogni schermata il prompt finale in inglese, 3 righe in italiano sullo stile (forme, colori, carattere delle scritte), quanti tentativi, cosa non ti convince.
+
+Alla fine rispondi con un riassunto breve in italiano: percorsi, cosa è venuto bene, cosa no.

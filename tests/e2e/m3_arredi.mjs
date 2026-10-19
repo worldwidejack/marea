@@ -1,4 +1,4 @@
-// La casa arredabile (#265) sul server locale (wrangler dev, TEST_CLOCK:1). Luca vince Perle con le Regate (API, autopilot), compra i tre
+// La casa arredabile (#265) sul server locale (wrangler dev, TEST_CLOCK:1). Luca vince monete con le Regate (API, autopilot; il resto dalla rotta di prova), compra i tre
 // mobili, un pavimento e una carta (API, come farà il negozio dei mobili); il server rifiuta le richieste rotte. Poi nel browser, in casa:
 // pavimento e carta comprati si vedono; ARREDA apre il magazzino; POSA mette il comodino davanti a te (sagoma verde, QUI), l'orologio sul
 // muro in fondo; davanti al comodino A apre la scheda: GIRA (salvato), METTI VIA (torna nel magazzino). Telefono 390×844: ARREDA e il
@@ -30,11 +30,11 @@ export default async function (ctx) {
   // il negozio vende solo la vetrina di oggi (#384): due mobili 1×1 a terra (i più economici) e uno a parete, tra quelli esposti oggi
   const { vetrinaOra } = await sim('economy/vetrina.ts');
   const oggi = vetrinaOra(Date.now()), def = (id) => mobili.find((m) => m.id === id);
-  const terre = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.perle - b.perle);
+  const terre = oggi.terra.map(def).filter((m) => m && !m.celle).sort((a, b) => a.monete - b.monete);
   const comodino = terre[0], stereo = terre[1], orologio = def(oggi.parete[0]);
   assert(comodino && stereo && orologio, 'la vetrina di oggi non ha due mobili a terra 1×1 e uno a parete');
   const pav = borgo.pavimenti.find((f) => f.id === oggi.pavimenti[0]), carta = borgo.carte.find((f) => f.id === oggi.carte[0]); // il negozio vende solo carte e pavimenti di oggi (#393)
-  const serve = comodino.perle + stereo.perle + orologio.perle + pav.perle + carta.perle;
+  const serve = comodino.monete + stereo.monete + orologio.monete + pav.monete + carta.monete;
 
   let dev = null, log = '';
   const pages = [];
@@ -61,14 +61,16 @@ export default async function (ctx) {
     };
 
     await ctx.test('API: tre mobili nel magazzino, pavimento e carta comprati e messi; le richieste rotte non toccano niente', async () => {
-      for (let i = 0; i < 10 && (await get('/api/lot')).body.resources.perle < serve; i++) assert((await playSolo('tokL')).status === 200, 'regata');
-      const p0 = (await get('/api/lot')).body.resources.perle;
-      assert(p0 >= serve, `Perle ${p0} < ${serve}`);
+      for (let i = 0; i < 4 && (await get('/api/lot')).body.monete < serve; i++) assert((await playSolo('tokL')).status === 200, 'regata');
+      // le Regate da sole non sempre bastano (10 premiate al giorno): il resto dalla rotta di prova (#414)
+      { const m = (await get('/api/lot')).body.monete; if (m < serve) assert((await post('/api/test/monete', { n: serve - m })).status === 200, 'monete di prova'); }
+      const p0 = (await get('/api/lot')).body.monete;
+      assert(p0 >= serve, `monete ${p0} < ${serve}`);
       for (const m of [comodino, stereo, orologio]) assert((await post('/api/lot/casa/compra', { id: m.id })).status === 200, 'compra ' + m.id);
       assert((await post('/api/lot/casa/finitura', { tipo: 'pavimento', id: pav.id })).status === 200, 'compra il pavimento');
       assert((await post('/api/lot/casa/finitura', { tipo: 'carta', id: carta.id })).status === 200, 'compra la carta');
       const lot = (await get('/api/lot')).body;
-      assert(lot.resources.perle === p0 - serve, `Perle ${lot.resources.perle} invece di ${p0 - serve}`);
+      assert(lot.monete === p0 - serve, `monete ${lot.monete} invece di ${p0 - serve}`);
       assert(JSON.stringify(lot.casa.magazzino) === JSON.stringify({ [comodino.id]: 1, [stereo.id]: 1, [orologio.id]: 1 }), 'magazzino: ' + JSON.stringify(lot.casa));
       assert(lot.casa.pavimento === pav.id && lot.casa.carta === carta.id, 'finiture: ' + JSON.stringify(lot.casa));
       assert((await post('/api/lot/casa/compra', { id: 'trono' })).status === 404, 'mobile sconosciuto');

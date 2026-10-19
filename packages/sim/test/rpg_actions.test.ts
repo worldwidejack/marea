@@ -1,11 +1,14 @@
 // Azioni del personaggio sull'isola: attributi, perk, equip, libri, forgia, alchimia, bottega, Forziere, Serra, forma di rete, determinismo.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { BALANCE } from '@marea/content';
 import { RPG } from '@marea/content/rpg.ts';
 import { collectAll, newLot } from '../src/economy/actions.ts';
 import { advance } from '../src/economy/advance.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
+import { checkMonete } from '../src/economy/monete.ts';
+import { conMonete, senzaMonete } from './monete_util.ts';
 import { hashJson } from '../src/hash.ts';
 import { applyRpgAction, parseRpgAction } from '../src/rpg/actions.ts';
 import { gainSkillXp, heroOf, newHero } from '../src/rpg/hero.ts';
@@ -13,11 +16,11 @@ import type { HeroState, RpgAction } from '../src/rpg/types.ts';
 
 const T0 = 1_800_000_000_000, H = 3_600_000;
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
-/** Lotto con gli edifici dati già costruiti (id → livello) e tanto Legno. */
+/** Lotto con gli edifici dati già costruiti (id → livello), 500 monete (e le risorse di prima, codice spento). */
 function lotWith(bs: Record<string, number>, hero?: HeroState, forziere?: Record<string, number>): LotState {
   const l = newLot('jack', T0, null);
   const extra = Object.entries(bs).map(([b, level], i) => ({ id: `${b}-${i + 2}`, building: b, level, cell: [i + 1, 0] as [number, number], buffer: 0, lastMs: T0 }));
-  const out: LotState = { ...l, buildings: [...l.buildings, ...extra], resources: { legno: 500, pietra: 500, perle: 0 } };
+  const out: LotState = conMonete(senzaMonete({ ...l, buildings: [...l.buildings, ...extra], resources: { legno: 500, pietra: 500, perle: 0 } }), 500);
   if (hero) out.hero = hero;
   if (forziere) out.forziere = forziere;
   return out;
@@ -81,13 +84,15 @@ test('rpg azioni: forgia con Banco, livello del Banco, materiali da zaino e Forz
   assert.equal(heroOf(l).inv.lingotto_ferro, undefined);
   assert.equal(l.forziere?.lingotto_ferro, undefined);
   assert.ok(heroOf(l).skill.forgiatura.xp > 0, 'xp di Forgiatura');
-  // legno: si paga col Legno del Magazzino; 10 frecce per forgiata
+  // legno: si paga in monete al cambio fisso (#414: il Legno non c'è più), almeno 1; 10 frecce per forgiata
+  const legnoInMonete = (n: number) => Math.max(1, Math.ceil(n * BALANCE.monete.cambio.legno));
   l = act(lotWith({ banco: 1 }), { t: 'forgia', item: 'frecce_legno', n: 2 });
-  assert.equal(l.resources.legno, 500 - 10);
+  assert.equal(l.monete, 500 - legnoInMonete(10));
+  assert.equal(l.resources.legno, 500, 'il Legno di prima non si tocca');
   assert.equal(heroOf(l).inv.frecce_legno, 20 + 20);
-  assert.equal(l.ledger.spent.legno, 10);
-  const povero = { ...lotWith({ banco: 1 }), resources: { legno: 5, pietra: 0, perle: 0 } };
-  assert.throws(() => act(povero, { t: 'forgia', item: 'katana_legno' }), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca?.legno === 15);
+  assert.equal(checkMonete([l]), null);
+  const povero = { ...lotWith({ banco: 1 }), monete: 1 };
+  assert.throws(() => act(povero, { t: 'forgia', item: 'katana_legno' }), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca?.monete === legnoInMonete(20) - 1); // katana di legno: 20 Legno
   // Mano parsimoniosa: −20 % di materiale (4 → 4 × 0,8 = 3,2 → 4 arrotondato su; 6 → 5)
   const fabbro: HeroState = { ...withInv({ lingotto_ferro: 5 }), perk: ['fo_parsimonia'] };
   l = act(lotWith({ banco: 1 }, fabbro), { t: 'forgia', item: 'martello_ferro' });
@@ -108,13 +113,14 @@ test('rpg azioni: alchimia con Tavolo, livello di Alchimia, ingredienti da zaino
 });
 
 test('rpg azioni: bottega al Banco con le monete', () => {
-  const h = { ...newHero(), monete: 30 };
-  assert.throws(() => act(lotWith({}, h), { t: 'compra', item: 'lingotto_ferro', n: 1 }), isErr('edificio'));
-  assert.throws(() => act(lotWith({ banco: 1 }, h), { t: 'compra', item: 'lingotto_argento', n: 1 }), isErr('oggetto'));
-  assert.throws(() => act(lotWith({ banco: 1 }, h), { t: 'compra', item: 'lingotto_ferro', n: 2 }), isErr('risorse'));
-  const l = act(lotWith({ banco: 1 }, h), { t: 'compra', item: 'lingotto_bronzo', n: 2 });
+  const h = newHero(), con30 = (l: LotState) => conMonete(senzaMonete(l), 30);
+  assert.throws(() => act(con30(lotWith({}, h)), { t: 'compra', item: 'lingotto_ferro', n: 1 }), isErr('edificio'));
+  assert.throws(() => act(con30(lotWith({ banco: 1 }, h)), { t: 'compra', item: 'lingotto_argento', n: 1 }), isErr('oggetto'));
+  assert.throws(() => act(con30(lotWith({ banco: 1 }, h)), { t: 'compra', item: 'lingotto_ferro', n: 2 }), isErr('risorse'));
+  const l = act(con30(lotWith({ banco: 1 }, h)), { t: 'compra', item: 'lingotto_bronzo', n: 2 });
   assert.equal(heroOf(l).inv.lingotto_bronzo, 2);
-  assert.equal(heroOf(l).monete, 30 - 2 * RPG.bottega.lingotto_bronzo!);
+  assert.equal(l.monete, 30 - 2 * RPG.bottega.lingotto_bronzo!);
+  assert.equal(checkMonete([l]), null);
 });
 
 test('rpg azioni: Forziere con capienza per livello, niente equipaggiati, zaino a peso', () => {

@@ -32,10 +32,10 @@ export function invNow(s: DungeonState): Bag {
   return out;
 }
 
-/** Il personaggio com'è adesso nel dungeon (per la scheda: zaino, equipaggiamento, monete); null senza `stato`. */
+/** Il personaggio com'è adesso nel dungeon (per la scheda: zaino, equipaggiamento; le monete raccolte qui sono `s.monete`); null senza `stato`. */
 export function heroNow(s: DungeonState): HeroState | null {
   if (!s.stato) return null;
-  return { ...s.stato, inv: invNow(s), equip: { ...s.equip }, usura: { ...s.stato.usura, ...s.usura }, monete: s.stato.monete + s.monete };
+  return { ...s.stato, inv: invNow(s), equip: { ...s.equip }, usura: { ...s.stato.usura, ...s.usura } };
 }
 
 /** Consuma un oggetto (pozione bevuta, freccia tirata, arma rotta): prima quelli portati da casa, contati in `into` (usati o rotti), poi

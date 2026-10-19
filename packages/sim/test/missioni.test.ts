@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { GENTE, MISSIONI, validatePorto } from '@marea/content/porto.ts';
 import { newLot } from '../src/economy/actions.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
+import { checkMonete } from '../src/economy/monete.ts';
 import { eventiPartita, eventiRaccolta, finoAlCambio, giornoDi, missioniDelGiorno, missioniOf, riscuotiMissione, tracciaMissioni } from '../src/economy/missioni.ts';
 import { EconomyError, add } from '../src/economy/types.ts';
 
@@ -55,9 +56,11 @@ test('missioni: i contatori salgono, RISCUOTI paga una volta sola, libro mastro 
   const st = missioniOf(l1, T0 + 2000).list[0]!;
   assert.ok(st.compiuta && st.fatto === st.n, 'compiuta');
   const out = riscuotiMissione(l1, first.i, T0 + 3000);
-  assert.deepEqual(out.premio, first.premio);
-  assert.deepEqual(out.lot.resources, add(l1.resources, first.premio));
+  assert.equal(out.premio, first.premio);
+  assert.equal(out.lot.monete, l1.monete + first.premio);
+  assert.deepEqual(out.lot.resources, l1.resources);
   assert.equal(checkInvariant([out.lot], { legno: 0, pietra: 0, perle: 0 }), null);
+  assert.equal(checkMonete([out.lot]), null);
   assert.ok(missioniOf(out.lot, T0 + 3000).list[0]!.riscossa);
   assert.throws(() => riscuotiMissione(out.lot, first.i, T0 + 4000), (e) => e instanceof EconomyError && /già riscosso/.test(e.message));
   assert.throws(() => riscuotiMissione(out.lot, 7, T0 + 4000), (e) => e instanceof EconomyError && e.code === 'sconosciuto');

@@ -55,6 +55,12 @@ export async function rottePortoAmici(path: string, req: Request, env: Env, sfid
     const d = (await r.json()) as { faro: FaroStato; saliti: number[]; dono: unknown; lot: unknown };
     return json({ faro: faroVista(d.faro, nomeDi), saliti: d.saliti, dono: d.dono, lot: d.lot });
   }
+  if (path === '/api/borgo/buche' && req.method === 'GET') return sfide('buche');
+  if (path === '/api/borgo/buca' && req.method === 'POST') {
+    const body = await corpo();
+    if (body instanceof Response) return body;
+    return sfide('buca', { op: body['op'], cell: body['cell'], dono: body['dono'] });
+  }
   return null;
 }
 

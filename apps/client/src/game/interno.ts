@@ -20,8 +20,8 @@ export function caricaDisegni(): Promise<typeof import('./finiture_disegni.ts')>
 }
 
 export const SPESSORE = 0.3;
-/** Inquadratura degli interni: da sud (yaw 0), dall'alto (pitch), FOV un po' più largo della diorama. */
-export const VISTA = { yaw: 0, pitch: (54 * Math.PI) / 180, fov: 36 };
+/** Inquadratura degli interni: da sud (yaw 0), inclinata (pitch ~38° per vedere bene mobili e pareti), FOV un po' più largo della diorama. */
+export const VISTA = { yaw: 0, pitch: (38 * Math.PI) / 180, fov: 36 };
 /** Cose del mondo che dentro non si vedono (nomi delle mesh): animali, lucciole, pioggia, acqua «stampa», lampadine. */
 export const NASCOSTI_DENTRO = ['animali', 'lucciole', 'pioggia', 'acqua_stile', 'luci'] as const;
 
@@ -124,9 +124,9 @@ export function createInquadratura(o: { world: GameWorld; renderer: Renderer }):
     const [X0, Z0, X1, Z1] = p.pavimento, lw = (X1 - X0) * T, ld = (Z1 - Z0) * T, cl = p.corridoio ? (p.corridoio[2] - p.corridoio[1]) * T : 0;
     const a = dio.camera.aspect, t = Math.tan((VISTA.fov * Math.PI) / 360);
     aspetto = a;
-    const alto = (ld + cl) * Math.sin(VISTA.pitch) + p.altezza * Math.cos(VISTA.pitch) + 1; // quanto è alta la stanza vista dalla camera (m)
-    const dAlto = alto / 2 / t, dLargo = (lw + 2) / 2 / (t * a);
-    distanza = Math.min(Math.max(dAlto, dLargo), dAlto * 1.6); // col telefono in verticale non si allontana troppo: ti segue in x
+    const alto = ld * Math.sin(VISTA.pitch) + p.altezza * Math.cos(VISTA.pitch) + 0.8; // quanto è alta la stanza vista dalla camera (m)
+    const dAlto = alto / 2 / t, dLargo = (lw + 1.6) / 2 / (t * a);
+    distanza = Math.min(Math.max(dAlto * 0.88, dLargo * 0.9), dAlto * 1.4); // più vicina: i mobili si vedono grandi e definiti
     mezzaVista = distanza * t * a;
     dio.blocca?.({ ...VISTA, dist: distanza });
   };
@@ -135,12 +135,13 @@ export function createInquadratura(o: { world: GameWorld; renderer: Renderer }):
     entra(ox, oz, p) {
       const [X0, Z0, X1, Z1] = p.pavimento, lw = (X1 - X0) * T, ld = (Z1 - Z0) * T, cl = p.corridoio ? (p.corridoio[2] - p.corridoio[1]) * T : 0;
       o.renderer.setInterno(P.neroCaldo);
-      const centroZ = Z0 * T + (ld + cl) / 2 - 1.5, xMin = ox + X0 * T - 1, xMax = ox + X1 * T + 1;
-      w.camFissa = (x) => {
+      const centroZ = Z0 * T + ld / 2, xMin = ox + X0 * T - 1, xMax = ox + X1 * T + 1;
+      w.camFissa = (x, z) => {
         if (dio.camera.aspect !== aspetto) misura(p);
         const cx = ox + X0 * T + lw / 2, m = Math.max(0, (xMax - xMin) / 2 - mezzaVista);
+        const cz = oz + centroZ, zOltre = z > oz + Z1 * T ? Math.min(cl, z - (oz + Z1 * T)) : 0;
         // in verticale lo schermo sotto è dei comandi: la stanza sale un po' (il bersaglio scende verso il corridoio)
-        return { x: Math.min(cx + m, Math.max(cx - m, x)), z: oz + centroZ + (aspetto < 0.8 ? 3 : 0) };
+        return { x: Math.min(cx + m, Math.max(cx - m, x)), z: cz + zOltre + (aspetto < 0.8 ? 2 : 0) };
       };
       misura(p);
       const t = w.camFissa(w.avatar.state.x, w.avatar.state.z)!;

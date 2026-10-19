@@ -1,10 +1,11 @@
 // Banco da Lavoro (R-pannelli): forgia per materiale e categoria, confronto con quello che hai, costo con quanti ne hai (zaino + Forziere;
-// il legno è il Legno del Magazzino), «Forgia» (azione `forgia`). In fondo la Bottega: materiali base con le monete (azione `compra`).
+// il Legno si paga in monete, #414), «Forgia» (azione `forgia`). In fondo la Bottega: materiali base con le monete (azione `compra`).
 import { MATERIALS, RPG } from '@marea/content/rpg.ts';
 import { available, buildingLevel } from '@marea/sim/rpg/bag.ts';
 import { modsOf } from '@marea/sim/rpg/derived.ts';
 import { ITEMS, hasItem, itemDef } from '@marea/sim/rpg/items.ts';
 import type { ItemDef } from '@marea/sim/rpg/types.ts';
+import { prezzoInMonete } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import { el } from '../ui/style.ts';
 import { button, chip, fmtN, iconOf, row, sec, statLines } from './items_ui.ts';
@@ -24,7 +25,8 @@ export function forgeCost(v: View, it: ItemDef): Cost[] {
   const sconto = Math.max(-0.9, modsOf(v.hero).materialiForgia ?? 0);
   return Object.entries(it.forgia?.costo ?? {}).map(([c, q]) => {
     const need = Math.max(1, Math.ceil(q * (1 + sconto)));
-    if (c === 'risorsa:legno') return { id: c, nome: 'Legno', need, have: Math.floor(v.lot.resources.legno) };
+    // il Legno si paga in monete a chi forgia (#414): al cambio fisso, almeno 1
+    if (c === 'risorsa:legno') return { id: c, nome: 'monete (il Legno)', need: prezzoInMonete({ legno: need }), have: v.lot.monete };
     return { id: c, nome: hasItem(c) ? itemDef(c).nome : c, need, have: available(v.lot, v.hero, c) };
   });
 }
@@ -109,7 +111,7 @@ export function renderForge(v: View, out: HTMLElement): void {
 }
 
 function bottega(v: View, out: HTMLElement): void {
-  out.appendChild(sec('Bottega', `${v.hero.monete} monete`));
+  out.appendChild(sec('Bottega', `${v.lot.monete} monete`));
   for (const [id, prezzo] of Object.entries(RPG.bottega)) {
     if (!hasItem(id)) continue;
     const it = itemDef(id), have = available(v.lot, v.hero, id);
@@ -120,7 +122,7 @@ function bottega(v: View, out: HTMLElement): void {
     const r = el('div', 'mz-row');
     for (const n of [1, 5]) {
       const tot = prezzo * n;
-      const b = button(`compra:${id}:${n}`, `Compra ${n}`, `${tot} monete`, n === 1 ? 'green' : 'ghost', v.busy || v.hero.monete < tot,
+      const b = button(`compra:${id}:${n}`, `Compra ${n}`, `${tot} monete`, n === 1 ? 'green' : 'ghost', v.busy || v.lot.monete < tot,
         () => v.act({ t: 'compra', item: id, n }, (l) => `Comprato: ${n} × ${it.nome} ${whereTo(v, l, id)}`));
       b.dataset['act'] = 'compra';
       r.appendChild(b);

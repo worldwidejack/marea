@@ -112,7 +112,7 @@ export default async function (ctx) {
       const d = createDuello({ seed: parte.seed, eroi: parte.eroi.map((e) => e.eroe) });
       const rng = [createRng(parte.seed).fork('a'), createRng(parte.seed + 1).fork('b')], mandato = ['', ''];
       let conn = [ada, bea], n = 0, staccata = false, ripresa = false, resa = false;
-      const monete0 = [(await lot('tok_ada')).hero?.monete ?? RPG.partenza.monete, (await lot('tok_bea')).hero?.monete ?? RPG.partenza.monete];
+      const monete0 = [(await lot('tok_ada')).monete, (await lot('tok_bea')).monete]; // le monete stanno nel lotto (#414)
       const t0 = Date.now();
       while (d.fase !== 'finita' && Date.now() - t0 < 120000) {
         // bea perde la linea dopo 8 s e si ricollega dopo 3; dopo 20 s si arrende
@@ -152,8 +152,8 @@ export default async function (ctx) {
       assert(JSON.stringify(fa.esito) === JSON.stringify(d.esito), `esito del server ${JSON.stringify(fa.esito)} ≠ client ${JSON.stringify(d.esito)}`);
       assert(fa.premio === ARENA.premio.vinta, 'premio di ada: ' + JSON.stringify(fa));
       const la = await lot('tok_ada'), lb = await lot('tok_bea');
-      assert(la.hero.monete === monete0[0] + ARENA.premio.vinta && la.arena.vinte === 1 && la.arena.pending === null, 'lotto di ada: ' + JSON.stringify({ m: la.hero.monete, a: la.arena }));
-      assert(lb.hero.monete === monete0[1] && lb.arena.perse === 1 && lb.arena.pending === null, 'lotto di bea (arresa: niente premio): ' + JSON.stringify({ m: lb.hero.monete, a: lb.arena }));
+      assert(la.monete === monete0[0] + ARENA.premio.vinta && la.arena.vinte === 1 && la.arena.pending === null, 'lotto di ada: ' + JSON.stringify({ m: la.monete, a: la.arena }));
+      assert(lb.monete === monete0[1] && lb.arena.perse === 1 && lb.arena.pending === null, 'lotto di bea (arresa: niente premio): ' + JSON.stringify({ m: lb.monete, a: lb.arena }));
       assert(!/non coincide/.test(log), 'il replay del server non coincide col duello dal vivo');
     });
 

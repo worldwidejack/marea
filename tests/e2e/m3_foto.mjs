@@ -47,13 +47,14 @@ export default async function (ctx) {
   await giorno(p.page);
   const page = p.page;
   await ctx.test('telefono: il bottone c’è e il codice della foto non è ancora scaricato', async () => {
-    assert(await page.isVisible('#mzFotoBtn'), 'bottone della macchina fotografica assente');
+    assert(await page.isVisible('#mzAvatarBtn') && !(await page.isVisible('#mzFotoBtn')), 'la foto sta nel menù AVATAR (#417): bottone AVATAR assente o macchina fotografica ancora in vista');
     const st = await ctx.getState(page);
     assert(st.foto && st.foto.caricata === false && st.foto.aperta === false, `foto: ${JSON.stringify(st.foto)}`);
   });
   let avatar0 = null;
   await ctx.test('telefono: si entra, l’interfaccia sparisce, restano SCATTA e ×', async () => {
-    await page.click('#mzFotoBtn');
+    await page.click('#mzAvatarBtn');
+    await page.click('#mzAvatarMenu [data-voce="foto"]');
     await ctx.waitState(page, (st) => st.foto.aperta === true, 15000);
     const st = await ctx.getState(page);
     assert(st.foto.visibili.length === 0, `ancora visibili: ${st.foto.visibili.join(', ')}`);
@@ -107,7 +108,7 @@ export default async function (ctx) {
     await ctx.waitState(page, (st) => st.foto.aperta === false, 5000);
     const st = await ctx.getState(page);
     for (const id of ['mzTop', 'joystick', 'btnA']) assert(st.foto.visibili.includes(id), `${id} non è tornato: ${st.foto.visibili.join(', ')}`);
-    assert(await page.isVisible('#mzFotoBtn'), 'bottone della foto sparito');
+    assert(await page.isVisible('#mzAvatarBtn'), 'bottone AVATAR sparito');
     assert(Math.abs(st.foto.yaw - CAM_YAW) < 1e-6, `camera non tornata: yaw ${st.foto.yaw}`);
     ctx.noErrors(p, 'telefono');
   });

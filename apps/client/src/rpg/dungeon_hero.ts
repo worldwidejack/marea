@@ -128,6 +128,10 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     thighR: bone('UpperLeg.R'), thighL: bone('UpperLeg.L'), shinR: bone('LowerLeg.R'), shinL: bone('LowerLeg.L'),
   };
   const inner = avatar.object.children[0] ?? avatar.object;
+  // Le ossa che ritocchiamo sopra la clip. Il mixer di three riscrive un osso solo se il valore della clip cambia: da fermi (idle quasi
+  // costante) non cancella le nostre rotazioni, e ogni frame se ne sommava un'altra (gambe/schiena impazzite). Quindi: prima del mixer si
+  // rimette la posa pulita, dopo il mixer la si salva, e poi si applicano le rotazioni.
+  const touched = Object.values(B).filter((b): b is THREE.Object3D => !!b).map((bone) => ({ bone, clean: bone.quaternion.clone() }));
   const bodyMats = materialsOf(avatar.object);
   let eqKey = '';
   const equip = (h: EquipVista): void => {
@@ -460,7 +464,9 @@ export async function createHeroActor(o: { loader: Loader; look: Look; hero: { a
     },
     update(alpha, dt) {
       clock += dt;
+      for (const t of touched) t.bone.quaternion.copy(t.clean);
       avatar.update(alpha, dt);
+      for (const t of touched) t.clean.copy(t.bone.quaternion);
       if (cur) {
         const t = lerp(prevT, curT, alpha), c = lerp(prevC, curC, alpha);
         pose(target, cur, t, c);

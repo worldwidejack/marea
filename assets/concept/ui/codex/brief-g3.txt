@@ -1,0 +1,7 @@
+IL TUO GRUPPO: G3. Percorsi: assets/concept/ui/hud_5_minimale.png e assets/concept/ui/hud_6_pokemon.png. Note: assets/concept/ui/codex/NOTE-g3.md.
+
+SCHERMATA 5 — «Minimale» (assets/concept/ui/hud_5_minimale.png)
+Linguaggio visivo minimale alla Zelda Breath of the Wild / Tears of the Kingdom: quasi niente cornici, icone a filo bianco sottile con un'ombra scura leggera, carattere sottile e pulito, pannelli semitrasparenti scuri solo dove serve, minimappa con un anello sottile, tutto piccolo ed elegante agli angoli, il mondo protagonista. Calmo e raffinato, ma leggibile al telefono.
+
+SCHERMATA 6 — «Avventura moderna» (assets/concept/ui/hud_6_pokemon.png)
+Linguaggio visivo moderno alla Pokémon Scarlatto/Violetto e Leggende: pillole e capsule bianche pulite con accenti di colore vivo (arancio, viola, ciano), angoli tagliati in diagonale, piccole strisce e motivi geometrici, carattere sans grassetto moderno, icone piatte con un tocco di colore, carta di dialogo bianca con una banda colorata. Fresco, ordinato, da gioco Nintendo recente.

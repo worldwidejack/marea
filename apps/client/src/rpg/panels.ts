@@ -87,7 +87,7 @@ function header(lot: LotState | null): HTMLElement {
   const lv = view === 'eroe' ? (h ? `L${h.livello}` : '') : lot && view && view !== 'contrabbando' ? `L${buildingLevel(lot, view)}` : '';
   if (lv) title.append(' ', el('span', 'mz-lvl', lv));
   head.appendChild(title);
-  if (h) { const c = el('span', 'mz-rp-coins'); c.append(el('i'), String(h.monete)); c.title = 'Monete'; head.appendChild(c); }
+  if (h && lot) { const c = el('span', 'mz-rp-coins'); c.append(el('i'), String(lot.monete)); c.title = 'Monete'; head.appendChild(c); }
   const x = el('button', 'mz-x', '×'); x.type = 'button'; x.title = 'Chiudi (Esc)'; x.setAttribute('aria-label', 'Chiudi'); x.dataset['act'] = 'chiudi'; x.dataset['k'] = 'chiudi';
   x.addEventListener('click', () => closePanels());
   head.appendChild(x);
@@ -235,6 +235,6 @@ registerStateProvider('eroe', () => {
   return {
     loaded: true, open: view !== null, view, tab: view === 'eroe' ? ui.tab : null, busy, sotto: !!bag,
     livello: h?.livello ?? 0, xp: h?.xp ?? 0, carico: d?.carico ?? 0, caricoMax: d?.caricoMax ?? 0, scelte: h?.scelte ?? 0, perkPunti: h?.perkPunti ?? 0,
-    monete: h?.monete ?? 0, equip: h ? { ...h.equip } : {}, inv: h ? { ...h.inv } : {}, forziere: l?.forziere ? { ...l.forziere } : {},
+    monete: l?.monete ?? 0, equip: h ? { ...h.equip } : {}, inv: h ? { ...h.inv } : {}, forziere: l?.forziere ? { ...l.forziere } : {},
   };
 });

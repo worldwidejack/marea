@@ -17,6 +17,7 @@ export const SLOT_NOME: Record<EquipSlot, string> = {
   arma: 'Arma', frecce: 'Frecce', corpo: 'Corpo', anello1: 'Anello 1', anello2: 'Anello 2', pozione: 'Pozione rapida', magia: 'Magia', mano: 'Mani',
 };
 export const GROUPS: readonly { id: string; nome: string; kinds: readonly ItemKind[] }[] = [
+  { id: 'strumenti', nome: 'Strumenti', kinds: ['strumento'] },
   { id: 'armi', nome: 'Armi', kinds: ['arma'] }, { id: 'archi', nome: 'Archi e frecce', kinds: ['arco', 'frecce'] },
   { id: 'armature', nome: 'Armature e vesti', kinds: ['armatura', 'veste'] }, { id: 'anelli', nome: 'Anelli', kinds: ['anello'] },
   { id: 'pozioni', nome: 'Pozioni', kinds: ['pozione'] }, { id: 'libri', nome: 'Libri', kinds: ['libro'] },
@@ -76,6 +77,7 @@ const ART: Record<ItemKind, readonly string[]> = {
   libro: ['mmmmmmm.', 'mwwwwwmd', 'mwddwwmd', 'mwwwwwmd', 'mwddwwmd', 'mwwwwwmd', 'mmmmmmmd', '.ddddddd'],
   materiale: ['........', '........', '..wwww..', '.wmmmmm.', 'mmmmmmmd', 'mmmmmmmd', '.ddddddd', '........'],
   ingrediente: ['.....mm.', '....mmmm', '...mmwmm', '..mmwmm.', '.mmwmm..', '.mwmm...', '.dmm....', 'd.......'],
+  strumento: ['.....cc.', '.....bc.', '....b...', '...b....', '.wwm....', 'wmmmd...', 'mmmmd...', '.ddd....'],
 };
 export function itemIcon(kind: ItemKind, color: string, px = 24): HTMLCanvasElement {
   const c = document.createElement('canvas'); c.width = 8; c.height = 8; c.className = 'mz-ico mz-rp-ico'; c.setAttribute('aria-hidden', 'true');

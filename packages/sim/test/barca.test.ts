@@ -12,8 +12,8 @@ import { barcheSovrapposte, landingSpot, newBoat, ormeggioLibero, scafoInAcqua, 
 
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code;
 const B = AVATAR.barca;
-const gratis = B.colori.filter((k) => k.perle === 0), esclusivi = B.colori.filter((k) => k.perle > 0);
-const conPerle = (lot: LotState, n: number): LotState => ({ ...lot, resources: { ...lot.resources, perle: lot.resources.perle + n }, ledger: { ...lot.ledger, generated: { ...lot.ledger.generated, perle: lot.ledger.generated.perle + n } } });
+const gratis = B.colori.filter((k) => k.monete === 0), esclusivi = B.colori.filter((k) => k.monete > 0);
+import { conMonete, senzaMonete } from './monete_util.ts';
 
 test('barca: contenuti validi, 4-6 colori gratis e 4-6 esclusivi del Mercante, di serie = la barca a remi di prima', () => {
   assert.deepEqual(validateContent(), []);
@@ -59,19 +59,19 @@ test('barca: validazione della scelta (colori esistenti e tuoi)', () => {
 
 test('barca: un colore esclusivo si compra una volta, poi vale per scafo e vela', () => {
   const ex = esclusivi[1]!, free = gratis[2]!;
-  let lot = newLot('a', 0);
+  let lot = senzaMonete(newLot('a', 0));
   assert.ok(possiedeColore(lot, free.id) && !possiedeColore(lot, ex.id));
-  assert.throws(() => compraColoreBarca(lot, ex.id, 0), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.perle === ex.perle);
+  assert.throws(() => compraColoreBarca(lot, ex.id, 0), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.monete === ex.monete);
   assert.throws(() => compraColoreBarca(lot, free.id, 0), isErr('unico'));
   assert.throws(() => compraColoreBarca(lot, 'oro_finto', 0), isErr('sconosciuto'));
-  lot = conPerle(lot, ex.perle + 2);
+  lot = conMonete(lot, ex.monete + 2);
   const v0 = lot.version;
   lot = compraColoreBarca(lot, ex.id, 1000);
-  assert.equal(lot.resources.perle, 2);
+  assert.equal(lot.monete, 2);
   assert.ok(lot.version > v0);
   assert.ok(possiedeColore(lot, ex.id));
   assert.ok((lot.posseduti ?? []).includes('barca:' + ex.id));
-  assert.throws(() => compraColoreBarca(conPerle(lot, 100), ex.id, 2000), isErr('unico'));
+  assert.throws(() => compraColoreBarca(conMonete(lot, 100), ex.id, 2000), isErr('unico'));
   assert.deepEqual(validaBarca({ scafo: ex.id, vela: ex.id, nome: 'Mia' }, lot), { scafo: ex.id, vela: ex.id, nome: 'Mia' });
   assert.equal(checkInvariant([lot]), null);
 });

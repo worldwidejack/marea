@@ -192,8 +192,8 @@ export type TemplariCfg = {
   /** Gli eroi del menù d'ingresso (il primo è quello di serie). */
   eroi: TEroeDef[];
   poteri: { probabilita: number; maxOndata: number; aTerra: number; lampeggia: number; durata: number; raggio: number; campane: number; muratori: number; tipi: TPotere[] };
-  /** Premio per ondata superata (fino a `maxOndate`) e tetto del giorno UTC. */
-  premio: { perOndata: TRisorse; maxOndate: number; tetto: TRisorse };
+  /** Monete per ondata superata (fino a `maxOndate`) e tetto del giorno UTC (#414). */
+  premio: { perOndata: number; maxOndate: number; tetto: number };
 };
 
 export type TPortaDef = { nome: string; prezzo: number; zona: string };

@@ -95,7 +95,7 @@ export default async function (ctx) {
       start = s.resources;
       for (const k of RES) ctx.assert(start[k] === balance.partenza[k], `${k}: ${start[k]} ≠ partenza ${balance.partenza[k]}`);
       const bar = await page.evaluate(() => { const b = document.getElementById('mzBar'); return { on: b.classList.contains('on'), text: b.textContent, h: b.getBoundingClientRect().height, top: b.getBoundingClientRect().top }; });
-      ctx.assert(bar.on && bar.text.includes(String(start.legno)) && bar.text.includes(String(start.pietra)), 'barra risorse non mostrata: ' + JSON.stringify(bar));
+      ctx.assert(bar.on && bar.text.trim() === String(s.monete), 'contatore delle monete non mostrato: ' + JSON.stringify(bar)); // una valuta sola (#414)
       ctx.log(`partenza ${JSON.stringify(start)} · barra alta ${bar.h} px · slot liberi ${JSON.stringify(s.freeSlots)}`);
       ctx.assert(s.freeSlots.length >= 2, 'servono almeno 2 slot L liberi nel template');
       [slotA, slotB] = s.freeSlots;
@@ -169,15 +169,11 @@ export default async function (ctx) {
       await ctx.shot(page, 'pannello_edificio');
       const before = (await st()).resources.legno;
       await page.click('#mzSheet button[data-act="raccogli"]');
-      const flew = await page.waitForSelector('.mz-fly', { timeout: 3000 }).then(() => true).catch(() => false);
       await ctx.waitState(page, (s, b) => s.lot.resources.legno > b, 8000, before);
       const after = await st();
-      // la barra arriva al valore col volo: si aspetta che coincida (a 2 fps, su GitHub, ci mette ben più di 900 ms)
-      await page.waitForFunction((n) => document.querySelector('#mzBar [data-res="legno"]')?.textContent.trim() === String(n), after.resources.legno, { timeout: 8000 }).catch(() => {});
-      const bar = await page.textContent('#mzBar [data-res="legno"]');
-      ctx.log(`raccolti ${after.resources.legno - before} Legno · volo ${flew} · barra «${bar.trim()}»`);
-      ctx.assert(flew, 'nessuna risorsa in volo');
-      ctx.assert(bar.trim() === String(after.resources.legno), 'barra non aggiornata dopo il volo');
+      // il Legno non ha più un contatore nell'HUD (una valuta sola, le monete: #414): niente volo, solo il deposito nel lotto
+      ctx.log(`raccolti ${after.resources.legno - before} Legno`);
+      ctx.assert(await page.locator('#mzBar [data-res="monete"]').count() === 1 && await page.locator('#mzBar [data-res="legno"]').count() === 0, 'nell’HUD un contatore solo, le monete');
     });
 
     await ctx.test('migliora (spesa + timer) e «ti mancano …» in grigio nella build mode', async () => {

@@ -1,4 +1,5 @@
 {
+  "monete": { "partenza": 20, "cambio": { "legno": 0.25, "pietra": 0.25, "perle": 3 } },
   "partenza": { "legno": 400, "pietra": 160, "perle": 0 },
   "capBase": 800,
   "bufferOre": 10,
@@ -7,10 +8,10 @@
   "perleMedaglia": { "oro": 20, "argento": 10, "bronzo": 5, "sconfitta": 2 },
   "solo": {
     "premi": {
-      "oro": { "legno": 60, "pietra": 30, "perle": 20 },
-      "argento": { "legno": 30, "pietra": 15, "perle": 10 },
-      "bronzo": { "legno": 15, "pietra": 8, "perle": 5 },
-      "nessuna": { "legno": 0, "pietra": 0, "perle": 2 }
+      "oro": 30,
+      "argento": 15,
+      "bronzo": 8,
+      "nessuna": 2
     },
     "premiateAlGiorno": 10
   },

@@ -11,15 +11,15 @@ import { checkInvariant } from '../src/economy/ledger.ts';
 import { finoAMezzanotte, giornoRoma } from '../src/economy/giorno.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
+import { conMonete, senzaMonete } from './monete_util.ts';
 import { inVetrina, inVetrinaFinitura, vetrinaDelGiorno, vetrinaOra } from '../src/economy/vetrina.ts';
 
 const DAY = 86_400_000, HOUR = 3_600_000;
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const T0 = Date.UTC(2026, 9, 18, 12); // 18 ott 2026, mezzogiorno UTC
 
-function ricco(perle: number): LotState {
-  const l = newLot('a', 0, lotTemplate()!);
-  return { ...l, resources: { ...l.resources, perle }, ledger: { ...l.ledger, generated: { ...l.ledger.generated, perle: l.ledger.generated.perle + perle - l.resources.perle } } };
+function ricco(monete: number): LotState {
+  return conMonete(senzaMonete(newLot('a', 0, lotTemplate()!)), monete);
 }
 
 test('la vetrina è la stessa per tutti nello stesso giorno e non dipende da quante volte la chiedi', () => {
@@ -65,7 +65,7 @@ test('cambia a mezzanotte di Roma, estate (UTC+2) e inverno (UTC+1)', () => {
 
 test('un mobile nuovo nel catalogo entra da solo nel pool; quelli già in vetrina non si spostano se non vince', () => {
   const prima = Array.from({ length: 40 }, (_, g) => vetrinaDelGiorno(giornoRoma(T0) + g));
-  const NUOVO: MobileDef = { id: 'mobile_prova_vetrina', nome: 'Prova', categoria: 'decorazioni', perle: 10, posto: 'terra', colori: ['#C98A4B'] };
+  const NUOVO: MobileDef = { id: 'mobile_prova_vetrina', nome: 'Prova', categoria: 'decorazioni', monete: 10, posto: 'terra', colori: ['#C98A4B'] };
   (MOBILI as MobileDef[]).push(NUOVO);
   try {
     const dopo = prima.map((_, g) => vetrinaDelGiorno(giornoRoma(T0) + g));
@@ -82,11 +82,11 @@ test('un mobile nuovo nel catalogo entra da solo nel pool; quelli già in vetrin
 });
 
 test('compraMobileDelGiorno: si compra solo quello esposto oggi; il resto è «requisito»; l’id sconosciuto è «sconosciuto»', () => {
-  const v = vetrinaOra(T0), lot = ricco(1000);
+  const v = vetrinaOra(T0), lot = ricco(5000);
   const esposto = v.terra[0]!, fuori = MOBILI.find((m) => m.posto === 'terra' && !v.terra.includes(m.id))!;
   const l1 = compraMobileDelGiorno(lot, esposto, T0);
   assert.equal(l1.casa?.magazzino?.[esposto], 1);
-  assert.ok(l1.resources.perle < lot.resources.perle);
+  assert.ok(l1.monete < lot.monete);
   assert.equal(checkInvariant([l1]), null);
   assert.throws(() => compraMobileDelGiorno(lot, fuori.id, T0), isErr('requisito'));
   assert.throws(() => compraMobileDelGiorno(lot, 'trono', T0), isErr('sconosciuto'));
@@ -98,7 +98,7 @@ test('compraMobileDelGiorno: si compra solo quello esposto oggi; il resto è «r
 });
 
 test('carte da parati e pavimenti: ogni giorno una scelta a pagamento, uguale per tutti, diversa da un giorno all’altro; i nuovi entrano da soli', () => {
-  const pagano = (l: readonly StanzaFinitura[]) => new Set(l.filter((f) => (f.perle ?? 0) > 0).map((f) => f.id));
+  const pagano = (l: readonly StanzaFinitura[]) => new Set(l.filter((f) => (f.monete ?? 0) > 0).map((f) => f.id));
   const carte = pagano(BORGO.carte), pav = pagano(BORGO.pavimenti), visteC = new Set<string>(), visteP = new Set<string>();
   let uguali = 0;
   for (let g = 0; g < 90; g++) {
@@ -113,7 +113,7 @@ test('carte da parati e pavimenti: ogni giorno una scelta a pagamento, uguale pe
   assert.equal(uguali, 0, 'due giorni di fila con le stesse carte e gli stessi pavimenti');
   assert.ok(visteC.size >= Math.min(carte.size, 20) && visteP.size >= Math.min(pav.size, 20), `in 90 giorni sono passate ${visteC.size} carte e ${visteP.size} pavimenti`);
   // uno nuovo nel catalogo entra da solo nel pool
-  const NUOVA: StanzaFinitura = { id: 'carta_prova_vetrina', nome: 'Prova', motivo: 'righe', colori: ['#E8E1D6', '#B9AFA3', '#7F7568'], perle: 20 };
+  const NUOVA: StanzaFinitura = { id: 'carta_prova_vetrina', nome: 'Prova', motivo: 'righe', colori: ['#E8E1D6', '#B9AFA3', '#7F7568'], monete: 60 };
   (BORGO.carte as StanzaFinitura[]).push(NUOVA);
   try {
     const uscita = Array.from({ length: 60 }, (_, g) => vetrinaDelGiorno(giornoRoma(T0) + g).carte).filter((c) => c.includes(NUOVA.id)).length;
@@ -122,9 +122,9 @@ test('carte da parati e pavimenti: ogni giorno una scelta a pagamento, uguale pe
 });
 
 test('compraFinituraDelGiorno: si compra solo la carta o il pavimento esposto oggi; quello che hai già è «unico»; l’id sconosciuto «sconosciuto»', () => {
-  const v = vetrinaOra(T0), lot = ricco(2000);
+  const v = vetrinaOra(T0), lot = ricco(5000);
   const carta = v.carte[0]!, pavimento = v.pavimenti[0]!;
-  const fuoriC = BORGO.carte.find((f) => (f.perle ?? 0) > 0 && !v.carte.includes(f.id))!, fuoriP = BORGO.pavimenti.find((f) => (f.perle ?? 0) > 0 && !v.pavimenti.includes(f.id))!;
+  const fuoriC = BORGO.carte.find((f) => (f.monete ?? 0) > 0 && !v.carte.includes(f.id))!, fuoriP = BORGO.pavimenti.find((f) => (f.monete ?? 0) > 0 && !v.pavimenti.includes(f.id))!;
   let l1 = compraFinituraDelGiorno(lot, 'carta', carta, T0);
   assert.equal(l1.casa?.carta, carta);
   l1 = compraFinituraDelGiorno(l1, 'pavimento', pavimento, T0);

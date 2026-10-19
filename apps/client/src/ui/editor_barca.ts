@@ -67,7 +67,7 @@ export function createSezioneBarca(o: { api: Api; me: Me; world: { setBarca(b: B
       return b;
     };
     st.append(mk(-1, '‹'), n, mk(1, '›'));
-    const miss = el('div', 'mz-note mz-ed-miss', 'Esclusiva del Mercante delle Perle: si compra da lui, in piazza al Porto');
+    const miss = el('div', 'mz-note mz-ed-miss', 'Esclusiva del Mercante del Porto: si compra da lui, in piazza');
     row.append(lbl, st, miss);
     righe[r] = { row, n, v, miss };
   }
@@ -88,8 +88,8 @@ export function createSezioneBarca(o: { api: Api; me: Me; world: { setBarca(b: B
       n.replaceChildren(chip, k ? k.nome : 'Senza vela');
       row.setAttribute('aria-valuetext', k ? k.nome : 'Senza vela');
       v.className = 'v' + (tuo(id) ? '' : ' lock');
-      if (k && k.perle > 0 && !tuo(id)) { v.replaceChildren(); const c = el('span', 'mz-cost'); c.append(resIcon('perle', 16), `${k.perle} Perle`); v.append(c, el('span', 'mz-ed-merc', 'dal Mercante')); }
-      else v.textContent = k && k.perle > 0 ? 'tuo' : `${listaDi(r).indexOf(id) + 1}/${listaDi(r).length}`;
+      if (k && k.monete > 0 && !tuo(id)) { v.replaceChildren(); const c = el('span', 'mz-cost'); c.append(resIcon('monete', 16), `${k.monete} monete`); v.append(c, el('span', 'mz-ed-merc', 'dal Mercante')); }
+      else v.textContent = k && k.monete > 0 ? 'tuo' : `${listaDi(r).indexOf(id) + 1}/${listaDi(r).length}`;
       miss.style.display = tuo(id) ? 'none' : '';
     }
     if (document.activeElement !== input) input.value = nomeGrezzo;

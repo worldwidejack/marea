@@ -33,8 +33,37 @@ export default async function (ctx) {
     await p.page.evaluate(() => window.__game.test.setZoom(1.6)); await p.page.waitForTimeout(300); await ctx.shot(p.page, 'iphone_zoom_max');
     const c = (await ctx.getState(p.page)).camera; ctx.assert(c.zoom > 1.5, `zoom ${c.zoom}`);
   });
+  await ctx.test('iphone: bussola con descrizione aperta', async () => {
+    await p.page.locator('#mzMete').click();
+    await p.page.waitForSelector('#compass .mz-mete-row[data-id="grotta"]', { timeout: 8000 });
+    await p.page.locator('#compass .mz-mete-row[data-id="grotta"] .mz-mete-info').click();
+    await p.page.waitForFunction(() => {
+      const el = document.querySelector('#compass .mz-mete-desc[data-desc-for="grotta"]');
+      return el && getComputedStyle(el).display !== 'none';
+    }, null, { timeout: 4000 });
+    await ctx.shot(p.page, 'iphone_mete_desc');
+    await p.page.locator('#compass .mz-mete-desc[data-desc-for="grotta"] .mz-mete-desc-x').click();
+  });
   const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
   await ctx.test('desktop: ready senza errori', async () => { await ctx.waitReady(d.page, 20000); await d.page.waitForTimeout(500); ctx.noErrors(d, 'desktop'); });
   await ctx.shot(d.page, 'desktop_spawn');
   await ctx.test('prestazioni: dati letti', async () => { const perf = await ctx.getPerf(d.page); ctx.log('perf', JSON.stringify(perf)); ctx.assert(perf.drawCalls > 0 && perf.drawCalls <= 100, `draw call ${perf.drawCalls}`); });
+  await ctx.test('bussola: descrizione apribile delle mete', async () => {
+    await d.page.waitForSelector('#compass .mz-mete-row[data-id="grotta"]', { timeout: 8000 });
+    const grottaRow = d.page.locator('#compass .mz-mete-row[data-id="grotta"]');
+    await grottaRow.locator('.mz-mete-info').click();
+    const descBox = d.page.locator('#compass .mz-mete-desc[data-desc-for="grotta"]');
+    await d.page.waitForFunction(() => {
+      const el = document.querySelector('#compass .mz-mete-desc[data-desc-for="grotta"]');
+      return el && getComputedStyle(el).display !== 'none';
+    }, null, { timeout: 4000 });
+    const descTxt = await descBox.locator('.mz-mete-desc-txt').textContent();
+    ctx.assert(descTxt?.includes('Il dungeon più facile che non hai ancora sconfitto'), `testo descrizione inatteso: ${descTxt}`);
+    await ctx.shot(d.page, 'desktop_mete_desc');
+    await descBox.locator('.mz-mete-desc-x').click();
+    await d.page.waitForFunction(() => {
+      const el = document.querySelector('#compass .mz-mete-desc[data-desc-for="grotta"]');
+      return !el || getComputedStyle(el).display === 'none';
+    }, null, { timeout: 4000 });
+  });
 }
