@@ -33,6 +33,8 @@ export type Fantasma = { chi: string; nome: string; ms: number; seed: number; op
 /** Tabellone dei record (#110, GET /api/record): per minigioco il migliore di oggi e di sempre tra gli amici. */
 export type RecordVista = { chi: string; nome: string; score: number; medal: Medal; detail: Record<string, number>; quando: number };
 export type RecordRiga = { minigame: string; nome: string; oggi: RecordVista | null; sempre: RecordVista | null };
+/** I collezionisti (#457, GET /api/collezione): pesci e insetti consegnati al mobiliere, chi ne ha di più prima. */
+export type CollezioneRiga = { id: string; nome: string; pesci: number; insetti: number };
 /** Faro comune del Porto (#111, GET /api/faro): totali, livello, prossima soglia, bonus attuale, chi ha versato di più. */
 export type FaroVista = {
   legno: number; pietra: number; livello: number; max: number; livelli: number[]; bonus: number;
@@ -96,9 +98,11 @@ export type Api = {
   decorRotate(id: string): Promise<LotState>;
   decorSell(id: string): Promise<LotState>;
   /** La casa arredabile (#265) e la pala (#438): compra (negozio dei mobili), finitura, scegli, posa, sposta, ruota, ritira, baule, amplia, pala. */
-  casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule' | 'amplia' | 'pala' | 'retino', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number; da?: number }): Promise<LotState>;
+  casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule' | 'amplia' | 'pala' | 'retino' | 'canna', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number; da?: number }): Promise<LotState>;
   /** Gli insetti di Borgo Marea (#445): sasso/albero {idx} → {uscito, gia, lot}; cattura {k} → {lot, id}; consegna {id} → {lot}. */
   insetti(op: 'sasso' | 'albero' | 'cattura' | 'consegna', body: { idx?: number; k?: string; id?: string }): Promise<{ lot: LotState; uscito?: { k: string; id: string; t: number } | null; gia?: boolean; id?: string }>;
+  /** I pesci (#457): cattura {k} (ombra del turno) → {lot, id}; consegna {id} al mobiliere → {lot}. */
+  pesci(op: 'cattura' | 'consegna', body: { k?: string; id?: string }): Promise<{ lot: LotState; id?: string }>;
   /** Botteghe del Borgo (#414): migliora il Fabbro o la barca al Cantiere di un livello; `da` = il livello che vedi (409 se è già cambiato). */
   bottega(azione: 'migliora', body: { bottega: 'fabbro' | 'cantiere'; da: number }): Promise<LotState>;
   /** Tutte le persone dell'arcipelago (me compreso). */
@@ -141,6 +145,8 @@ export type Api = {
   // ---- Porto tra amici (#110 #111) ----
   /** Tabellone dei record: una riga per minigioco da solo. */
   record(): Promise<RecordRiga[]>;
+  /** La classifica dei collezionisti (#457): chi ha consegnato più pesci e insetti al mobiliere, tra chi ha un'isola. */
+  collezione(): Promise<CollezioneRiga[]>;
   faro(): Promise<FaroVista>;
   /** Versa Legno e Pietra al Faro comune (dal tuo Magazzino; mai oltre quello che manca): risponde col faro e col tuo lotto. */
   faroVersa(legno: number, pietra: number): Promise<FaroVersato>;
@@ -289,6 +295,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     decorSell: (id) => post('/api/lot/decor/sell', { id }),
     casa: (azione, body) => post('/api/lot/casa/' + azione, body),
     insetti: (op, body) => call('POST', '/api/lot/insetti/' + op, body).then((d) => ({ ...(d as object), lot: asLot(op === 'consegna' ? d : (d as Record<string, unknown>)['lot']) })),
+    pesci: (op, body) => call('POST', '/api/lot/pesci/' + op, body).then((d) => op === 'consegna' ? { lot: asLot(d) } : { id: String((d as Record<string, unknown>)['id'] ?? ''), lot: asLot((d as Record<string, unknown>)['lot']) }),
     bottega: (azione, body) => post('/api/lot/bottega/' + azione, body),
     async persone() {
       const d = await call('GET', '/api/persone');
@@ -332,6 +339,11 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       const d = await call('GET', '/api/record');
       const list = isObj(d) && Array.isArray(d['voci']) ? d['voci'] : [];
       return (list as unknown[]).filter((x): x is RecordRiga => isObj(x) && typeof x['minigame'] === 'string');
+    },
+    async collezione() {
+      const d = await call('GET', '/api/collezione');
+      const list = isObj(d) && Array.isArray(d['righe']) ? d['righe'] : [];
+      return (list as unknown[]).filter((x): x is CollezioneRiga => isObj(x) && typeof x['id'] === 'string' && typeof x['pesci'] === 'number' && typeof x['insetti'] === 'number');
     },
     async faro() {
       const d = await call('GET', '/api/faro');

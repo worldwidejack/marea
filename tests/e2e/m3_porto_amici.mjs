@@ -1,4 +1,4 @@
-// Porto tra amici (#110 #111) sul server locale (wrangler dev, TEST_CLOCK:1). API: Luca fa una Regata ferma (0 punti) e una Pesca col
+// Porto tra amici (#110 #111) sul server locale (wrangler dev, TEST_CLOCK:1). API: Luca fa una Regata ferma (0 punti) e una Caccia alle perle col
 // pilota; Mia fa la Regata col pilota e gli toglie il record (riga nel feed di Luca); il tabellone dà il migliore di oggi e di sempre coi
 // nomi. Faro comune: Segheria e Cava, l'orologio di prova avanza di 10 h alla volta, i due raccolgono e versano tutto finché il faro sale
 // al livello 1 (soglie di content); libro mastro in pari (risorse uscite dai lotti = totale del faro), riga «Faro» nel feed, livelli
@@ -71,24 +71,24 @@ export default async function (ctx) {
       const b = await solo('tokM', 'regata', pilota('regata'));
       assert(b.status === 200 && b.body.score > 0 && b.body.record?.sempre, 'regata di Mia: ' + JSON.stringify({ ...b.body, lot: undefined }));
       regataMia = b.body;
-      const c = await solo('tokL', 'pesca', pilota('pesca'), { mare: 'porto' });
-      assert(c.status === 200 && c.body.score > 0 && c.body.record?.sempre, 'pesca di Luca: ' + c.status);
+      const c = await solo('tokL', 'perle', pilota('perle'));
+      assert(c.status === 200 && c.body.score > 0 && c.body.record?.sempre, 'perle di Luca: ' + c.status);
       pescaLuca = c.body;
       // una partita peggiore non tocca il record
       const d = await solo('tokM', 'regata', ferma);
       assert(d.status === 200 && d.body.record && !d.body.record.oggi && !d.body.record.sempre, 'regata peggiore: ' + JSON.stringify(d.body.record));
       const r = await get('/api/record', 'tokL');
       assert(r.status === 200 && Array.isArray(r.body.voci), 'record: ' + r.status);
-      const reg = r.body.voci.find((v) => v.minigame === 'regata'), pes = r.body.voci.find((v) => v.minigame === 'pesca');
+      const reg = r.body.voci.find((v) => v.minigame === 'regata'), pes = r.body.voci.find((v) => v.minigame === 'perle');
       assert(reg.sempre.chi === 'mia' && reg.sempre.nome === 'Mia' && reg.sempre.score === regataMia.score && reg.oggi.chi === 'mia', 'regata: ' + JSON.stringify(reg));
       assert(typeof reg.sempre.detail.ms === 'number' && reg.sempre.medal === regataMia.medal, 'detail e medaglia: ' + JSON.stringify(reg.sempre));
-      assert(pes.sempre.chi === 'luca' && pes.sempre.score === pescaLuca.score, 'pesca: ' + JSON.stringify(pes));
+      assert(pes.sempre.chi === 'luca' && pes.sempre.score === pescaLuca.score, 'perle: ' + JSON.stringify(pes));
       assert(r.body.voci.find((v) => v.minigame === 'koi').sempre === null, 'koi mai giocato');
       const f = await get('/api/feed', 'tokL');
       const riga = f.body.items.find((x) => x.tipo === 'record');
       assert(riga && riga.testo === 'Mia ha battuto il tuo record alla Regata' && riga.da === 'mia' && !riga.sfida, 'feed di Luca: ' + JSON.stringify(f.body.items));
       assert(!(await get('/api/feed', 'tokM')).body.items.some((x) => x.tipo === 'record'), 'Mia non ha perso niente');
-      ctx.log(`regata Mia ${regataMia.score} (${regataMia.detail.ms} ms, ${regataMia.medal}) · pesca Luca ${pescaLuca.score}`);
+      ctx.log(`regata Mia ${regataMia.score} (${regataMia.detail.ms} ms, ${regataMia.medal}) · perle Luca ${pescaLuca.score}`);
     });
 
     // ---- telefono (Luca) ----
@@ -113,7 +113,7 @@ export default async function (ctx) {
       assert(!small.length, 'bottoni < 44 px: ' + small.join(','));
     };
 
-    await ctx.test('telefono: faro al livello 0 (spento); tabellone: Mia alla Regata col tempo, Luca alla Pesca coi punti', async () => {
+    await ctx.test('telefono: faro al livello 0 (spento); tabellone: Mia alla Regata col tempo, Luca alle Perle coi punti', async () => {
       const s0 = await tst();
       assert(s0.portoAmici.faro.livello === 0 && !s0.portoAmici.faro.acceso && s0.portoAmici.faro.modello === 'bld_faro_l1' && s0.portoAmici.faro.luci > 0, 'faro al via: ' + JSON.stringify(s0.portoAmici.faro));
       const f = await posto(tp, 'faro');
@@ -132,9 +132,10 @@ export default async function (ctx) {
       assert((await reg.getAttribute('data-chi')) === 'mia', 'regata: non c\'è Mia');
       const secs = (regataMia.detail.ms / 1000).toFixed(1).replace('.', ',');
       assert((await reg.innerText()).includes(`${secs} s`), `tempo della regata ${secs}: ${await reg.innerText()}`);
-      const pes = tp.locator('#mzAmiciPanel [data-minigioco="pesca"] [data-cella="oggi"]');
-      assert((await pes.getAttribute('data-chi')) === 'luca' && (await pes.innerText()).includes(`${pescaLuca.score} punti`), 'pesca: ' + await pes.innerText());
-      assert(await tp.locator('#mzAmiciPanel [data-minigioco="pesca"] .mz-pa-cell.io').count() === 2, 'la riga di Luca è evidenziata');
+      const pes = tp.locator('#mzAmiciPanel [data-minigioco="perle"] [data-cella="oggi"]');
+      assert((await pes.getAttribute('data-chi')) === 'luca' && (await pes.innerText()).includes(`${pescaLuca.score} punti`), 'perle: ' + await pes.innerText());
+      assert(await tp.locator('#mzAmiciPanel [data-minigioco="perle"] .mz-pa-cell.io').count() === 2, 'la riga di Luca è evidenziata');
+      assert(await tp.locator('#mzAmiciPanel [data-minigioco="collezione"] [data-chi="luca"]').count() === 1, 'i collezionisti (#457) in cima al tabellone');
       await dentro(tp, '#mzAmiciPanel', 390, 844);
       await tp.waitForTimeout(250);
       await ctx.shot(tp, 'iphone_record');

@@ -25,7 +25,6 @@ import type { Scacchi } from '../ui/scacchi.ts';
 import type { InputFrame, PackedInputs } from '@marea/sim';
 import { createLabelLayer, flyResources, LABEL_NEAR_M } from '../ui/sheet.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-import { createPostoPesca } from './pesca.ts';
 import { suona } from '../audio/ponte.ts';
 import { createPostoPerle } from './perle.ts'; // Perle
 import { temaAperta } from './temi.ts'; // Ghiacci e Giardino
@@ -212,7 +211,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     else if (e.code === 'KeyR') { e.preventDefault(); e.stopImmediatePropagation(); const s = esitoSpot ?? spots.find((x) => x.id === last?.spot) ?? spots[0]; const sc = esitoScelte; closeEsito(); if (s) void play(s, sc); }
   };
   function showEsito(s: Spot, medal: Medal, sub: string, premio: number | null, note: string | null): void {
-    esitoSpot = s; // RIGIOCA (R) rigioca questo, anche se il posto è mobile (pesca)
+    esitoSpot = s; // RIGIOCA (R) rigioca questo, anche se il posto è mobile (perle)
     esito.classList.remove('kart'); esito.style.borderColor = '';
     const again = el('button', 'mz-btn ghost', 'RIGIOCA'); again.dataset['act'] = 'rigioca';
     const sc = esitoScelte;
@@ -294,10 +293,6 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     } finally { busy = false; }
   }
 
-  // ---- Pesca (#66): minigioco universale, posto mobile (in barca, ferma, in mare aperto): bottone PESCA e tasto P in game/pesca.ts;
-  // la schermata (ui/pesca.ts) si scarica alla prima partita. Non sta in `spots` (niente boa, niente riga nella bussola).
-  registraSchermo('pesca', (root) => import('../ui/pesca.ts').then((m) => m.createPesca({ root })));
-  const pesca = createPostoPesca({ world: o.world, root: o.root, hud: o.hud, libero: () => !(busy || open || o.world.race.on || schermoAperto()), gioca: (sp) => { void play(sp); } });
   // Perle: minigioco universale, posto mobile (in barca, ferma, su acqua bassa vicino a una costa, lontano dai moli): bottone TUFFATI e
   // tasto T in game/perle.ts; la schermata (ui/perle.ts) si scarica alla prima partita. Non sta in `spots` (niente boa né bussola).
   registraSchermo('perle', (root) => import('../ui/perle.ts').then((m) => m.createPerle({ root })));
@@ -333,14 +328,12 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
       if (near && near !== nearWas) o.hud.toast(near.tasto ? `${near.nome}: ${matchMedia('(pointer: coarse)').matches ? 'tocca GIOCA' : `${near.tasto.nome} o GIOCA`} · A al molo per scendere` : `${near.nome}: premi A o tocca GIOCA`, 2500);
       nearWas = near;
       if (near && pressA && !near.tasto) void play(near);
-      pesca.tick(); // Pesca (#66)
       perle.tick(); // Perle
     },
     update(t, alpha = 1) {
       const show = !!near && !busy && !open && !o.world.race.on && !schermoAperto();
       if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', near.tasto?.nome ?? 'A')); }
       btn.classList.toggle('on', show);
-      pesca.update(); // Pesca (#66)
       perle.update(); // Perle
       for (const g of schermi.values()) g.update?.(t, alpha);
       const me = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;

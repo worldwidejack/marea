@@ -334,7 +334,7 @@ async function boot(): Promise<void> {
       const p = piuVicino(porto.gente());
       return p && dist(p, qui()) < 80 ? { x: p.x, y: world.groundY(p.x, p.z) + 2.4, z: p.z } : { x: portoAt.x, y: 3, z: portoAt.z };
     } },
-    { id: 'universale', titolo: 'Pesca o tuffati', come: 'Barca ferma in mare aperto: PESCA. Su acqua bassa vicino a riva: TUFFATI.', done: () => !!document.querySelector('#mzPescaGioco.on, #mzPerleGioco.on'), target: () => (world.mode === 'walk' ? barcaTarget() : null) },
+    { id: 'universale', titolo: 'Pesca o tuffati', come: 'Su acqua bassa vicino a riva: TUFFATI. Con la canna (negozio dei mobili) si pesca dalla riva o dalla barca ferma.', done: () => !!document.querySelector('#mzPescaPanel.on, #mzPerleGioco.on'), target: () => (world.mode === 'walk' ? barcaTarget() : null) },
     { id: 'mappa', titolo: 'Guarda la mappa', come: 'Tocca il cerchio della mappa (o M). Le isole compaiono quando ci passi vicino in barca.', done: () => !!mappa?.isOpen(), target: () => null },
     ...(temi.isole.length ? [{ id: 'isola', titolo: 'Scopri un\'isola nuova', come: 'Segui la freccia in mare aperto. Certe isole non ti fanno entrare: è carattere.', done: () => temi.isole.some(isolaVista), target: () => {
       const p = piuVicino(temi.isole.filter((x) => !isolaVista(x)).map((x) => x.spawn));
@@ -388,7 +388,7 @@ async function boot(): Promise<void> {
       if (adr.active) { adr.step(f); acc -= DT; steps++; continue; } // sulla pista dello snowboard idem
       if (ar?.active) { ar.step(f); acc -= DT; steps++; continue; } // nel duello dell'Arena idem
       if (regata.active) regata.step(f); else { const aR = arreda?.tick(f.a, f.b) ?? false, aB0 = borgo.tick(f.a && !aR) || aR, aB1 = (negozio?.tick(f.a && !aB0) ?? false) || aB0, aB = (botteghe?.tick(f.a && !aB1) ?? false) || aB1, aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; tickTavolo(f.a && !aPorto); giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); ar?.tick(f.a); dif?.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima di Tavolo e minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
-      world.frozen = (diario.isOpen() || porto.isBusy() || !!botteghe?.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen() || foto.isOpen() || !!modificaIsola?.active) && !regata.active;
+      world.frozen = (diario.isOpen() || porto.isBusy() || !!botteghe?.isBusy() || amici.isBusy() || libri.isBusy() || !!tavolo?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen() || foto.isOpen() || !!modificaIsola?.active || !!negozio?.pescando()) && !regata.active; // pescando (#457) il mondo sta fermo
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;
@@ -399,7 +399,7 @@ async function boot(): Promise<void> {
     { // #417: nel mondo B non serve (solo POSA/SPOSTA dell'arredamento); sotto A la scritta di cosa fa adesso
       const nelMondo = !regata.active && !giochi.isBusy() && !sotto() && !adr.active && !document.body.classList.contains('mz-gp');
       input.setB(!nelMondo || !!arreda?.attivo());
-      input.setAzione(nelMondo && !world.frozen ? azioneA() : null);
+      input.setAzione(nelMondo ? (negozio?.azionePesca() ?? (!world.frozen ? azioneA() : null)) : null);
       allegro?.update();
     }
     giochi.update(t, acc / DT); if (!sotto()) { porto.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); amici.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); libri.update(world.mode === 'walk' ? world.avatar.state : world.boat.state); borgo.update(); arreda?.update(); modificaIsola?.update(dt); negozio?.update(dt); botteghe?.update(dt, world.mode === 'walk' ? world.avatar.state : world.boat.state); } guideStep = guida.current(); guida.update(t);

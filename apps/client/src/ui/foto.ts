@@ -1,5 +1,5 @@
 // Modalità foto (#109), parte nel bundle iniziale (piccola): bottone con la macchina fotografica a pixel nella barra in alto (ordine 6) e
-// tasto O (in main.ts: P è della pesca). Tutto il resto (interfaccia che sparisce, camera che gira attorno all'avatar, SCATTA, cornice,
+// tasto O (in main.ts: P è della pesca dalla barca). Tutto il resto (interfaccia che sparisce, camera che gira attorno all'avatar, SCATTA, cornice,
 // SALVA / CONDIVIDI) sta nel chunk ui/foto_ui.ts, scaricato alla prima apertura. Il mondo resta vivo, l'avatar sta fermo (main.ts).
 import { PAL } from './style.ts';
 import { topButton } from './topbar.ts';

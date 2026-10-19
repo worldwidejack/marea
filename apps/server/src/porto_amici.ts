@@ -40,6 +40,14 @@ export async function rottePortoAmici(path: string, req: Request, env: Env, sfid
     const { nomeDi } = await nomi(env);
     return json({ voci: DIARIO.minigiochi.map((g) => ({ minigame: g.id, nome: g.nome, oggi: voce(tab.oggi[g.id], nomeDi), sempre: voce(tab.sempre[g.id], nomeDi) })) });
   }
+  // i collezionisti (#457): chi ha consegnato più pesci e insetti al mobiliere, tra chi ha un'isola
+  if (path === '/api/collezione' && req.method === 'GET') {
+    const r = await sfide('collezione');
+    if (!r.ok) return r;
+    const { collezione } = (await r.json()) as { collezione: Record<string, { pesci: number; insetti: number }> };
+    const { nomeDi, conIsola } = await nomi(env);
+    return json({ righe: classificaCollezione(collezione, conIsola).map((x) => ({ ...x, nome: nomeDi(x.id) })) });
+  }
   if (path === '/api/faro' && req.method === 'GET') {
     const r = await sfide('faro');
     if (!r.ok) return r;
@@ -62,6 +70,25 @@ export async function rottePortoAmici(path: string, req: Request, env: Env, sfid
     return sfide('buca', { op: body['op'], cell: body['cell'], dono: body['dono'] });
   }
   return null;
+}
+
+/** La classifica dei collezionisti: tutti quelli con un'isola (anche a zero), prima chi ha più pesci + insetti, a pari chi ha più pesci. */
+export function classificaCollezione(c: Record<string, { pesci: number; insetti: number }>, conIsola: readonly string[]): { id: string; pesci: number; insetti: number }[] {
+  return conIsola.map((id) => ({ id, pesci: c[id]?.pesci ?? 0, insetti: c[id]?.insetti ?? 0 }))
+    .sort((a, b) => b.pesci + b.insetti - (a.pesci + a.insetti) || b.pesci - a.pesci || a.id.localeCompare(b.id));
+}
+
+/** Dopo una consegna al mobiliere (insetto o pesce) andata a buon fine: i numeri della collezione del lotto vanno alla classifica dei
+ *  collezionisti. Best-effort come il record: se non risponde, la consegna vale lo stesso. Risponde col corpo del lotto com'era. */
+export async function segnaCollezioneDa(lotRes: Response, sfide: Sfide): Promise<Response> {
+  if (!lotRes.ok) return lotRes;
+  const testo = await lotRes.text();
+  try {
+    const lot = JSON.parse(testo) as { pesci?: { posseduti?: unknown[] }; insetti?: { posseduti?: unknown[] } };
+    const r = await sfide('collezione', { pesci: lot.pesci?.posseduti?.length ?? 0, insetti: lot.insetti?.posseduti?.length ?? 0 });
+    await r.body?.cancel();
+  } catch { /* la classifica si aggiorna alla prossima consegna */ }
+  return new Response(testo, { status: lotRes.status, headers: lotRes.headers });
 }
 
 /**

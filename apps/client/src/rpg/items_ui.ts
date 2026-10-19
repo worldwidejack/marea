@@ -8,6 +8,8 @@ import type { PanelCtx } from './types.ts';
 import { PAL, el } from '../ui/style.ts';
 import { INSETTI, RETINO } from '@marea/content/insetti.ts';
 import { insettoCanvas } from '../ui/insetti_sprite.ts';
+import { CANNA, PESCI } from '@marea/content/pesci.ts';
+import { pesceCanvas } from '../ui/pesci_sprite.ts';
 
 export const SKILL_NOME: Record<SkillId, string> = {
   armiLeggere: 'Armi leggere', armiPesanti: 'Armi pesanti', arceria: 'Arceria', distruzione: 'Distruzione',
@@ -19,7 +21,7 @@ export const SLOT_NOME: Record<EquipSlot, string> = {
   arma: 'Arma', frecce: 'Frecce', corpo: 'Corpo', anello1: 'Anello 1', anello2: 'Anello 2', pozione: 'Pozione rapida', magia: 'Magia', mano: 'Mani',
 };
 export const GROUPS: readonly { id: string; nome: string; kinds: readonly ItemKind[] }[] = [
-  { id: 'strumenti', nome: 'Strumenti', kinds: ['strumento'] }, { id: 'insetti', nome: 'Insetti', kinds: ['insetto'] },
+  { id: 'strumenti', nome: 'Strumenti', kinds: ['strumento'] }, { id: 'insetti', nome: 'Insetti', kinds: ['insetto'] }, { id: 'pesci', nome: 'Pesci', kinds: ['pesce'] },
   { id: 'armi', nome: 'Armi', kinds: ['arma'] }, { id: 'archi', nome: 'Archi e frecce', kinds: ['arco', 'frecce'] },
   { id: 'armature', nome: 'Armature e vesti', kinds: ['armatura', 'veste'] }, { id: 'anelli', nome: 'Anelli', kinds: ['anello'] },
   { id: 'pozioni', nome: 'Pozioni', kinds: ['pozione'] }, { id: 'libri', nome: 'Libri', kinds: ['libro'] },
@@ -81,7 +83,10 @@ const ART: Record<ItemKind, readonly string[]> = {
   ingrediente: ['.....mm.', '....mmmm', '...mmwmm', '..mmwmm.', '.mmwmm..', '.mwmm...', '.dmm....', 'd.......'],
   strumento: ['.....cc.', '.....bc.', '....b...', '...b....', '.wwm....', 'wmmmd...', 'mmmmd...', '.ddd....'],
   insetto: ['........', '.w....w.', '..wmmw..', '.wmmmmw.', '..mddm..', '.wmmmmw.', '..mmmm..', '........'],
+  pesce: ['........', '..mmm..d', '.mmmmmdd', 'mwmmmmdd', 'mmmmmmdd', '.mmmmm.d', '..mmm...', '........'],
 };
+/** La canna da pesca (#457): canna, lenza e galleggiante. */
+const ART_CANNA: readonly string[] = ['.......c', '......cw', '.....c.w', '....c..w', '...c...w', '..b....m', '.bb.....', 'b.......'];
 /** Il retino (#445): cerchio, rete e asta. */
 const ART_RETINO: readonly string[] = ['..wwww..', '.w....w.', '.w....w.', '..wwww..', '...b....', '..b.....', '.b......', 'c.......'];
 export function itemIcon(kind: ItemKind, color: string, px = 24, art?: readonly string[]): HTMLCanvasElement {
@@ -99,7 +104,9 @@ export const iconOf = (it: ItemDef, px = 24): HTMLCanvasElement => {
   // gli insetti (#445) col loro disegno 16×16, il retino col suo
   const ins = it.kind === 'insetto' ? INSETTI.find((d) => d.id === it.id) : undefined;
   if (ins) { const c = insettoCanvas(ins, px / 16); c.classList.add('mz-rp-ico'); return c; }
-  return itemIcon(it.kind, it.colore, px, it.id === RETINO.id ? ART_RETINO : undefined);
+  const pe = it.kind === 'pesce' ? PESCI.find((d) => d.id === it.id) : undefined; // i pesci (#457) col loro disegno 20×12
+  if (pe) { const c = pesceCanvas(pe, px / 20); c.classList.add('mz-rp-ico'); return c; }
+  return itemIcon(it.kind, it.colore, px, it.id === RETINO.id ? ART_RETINO : it.id === CANNA.id ? ART_CANNA : undefined);
 };
 /** Colore di una magia (icona, sfera nelle mani, linea di mira): cura verde, furia arancio, evocazioni viola, elettriche gialle, il resto fuoco. */
 export const coloreMagia = (id: string, scuola: string): string => {

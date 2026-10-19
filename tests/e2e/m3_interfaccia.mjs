@@ -1,6 +1,6 @@
 // Interfaccia con tutto acceso (bussola, guida, minimappa, barra risorse, bottoni): server locale pulito, Luca entra col suo link con le
 // impostazioni di serie su iPhone 390×844, Android piccolo 360×740 e PC 1280×720. Mete aperte e tutte accese, isole a tema scoperte (14
-// mete), guida «Primi passi» al primo passo; poi al Porto accanto al Mercante (bottone del Porto) e in barca sul mare da pesca (PESCA).
+// mete), guida «Primi passi» al primo passo; poi al Porto accanto al Mercante (bottone del Porto) e in barca sul mare da pesca (PESCA, con la canna).
 // In ogni posa: i rettangoli degli elementi fissi non si sovrappongono e stanno dentro lo schermo. Più la guida: si chiude con ×, resta
 // chiusa al ricaricamento, e chi aveva fatto i 4 passi vecchi (progresso numerico in localStorage) riparte dai passi nuovi, non da capo.
 // La guida non parte da sola (VISIONE §1): ogni ingresso nuovo controlla che sia spenta e la accende dalla riga delle Impostazioni.
@@ -17,7 +17,7 @@ const ANDROID = { width: 360, height: 740, deviceScaleFactor: 2, isMobile: true,
 /** Elementi fissi dell'interfaccia (selettori → nome leggibile). Ognuno conta solo se si vede. */
 const FISSI = [
   ['#mzBar > *', 'risorsa'], ['#mzWork', 'cantiere'], ['#mzTop > *', 'bottone in alto'], ['#compass > *', 'bussola'], ['#mzMini', 'minimappa'], ['#mzMiniZoom > *', 'zoom minimappa'], ['#mzMiniMete', 'bandierina mete'],
-  ['#mzGuida', 'guida'], ['#btnA', 'A'], ['#btnB', 'B'], ['#joystick', 'joystick'], ['#mzPlay', 'GIOCA'], ['#mzPortoBtn', 'Porto'], ['#mzAmiciBtn', 'Record e Faro'], ['#mzPesca', 'PESCA'], ['#mzPerle', 'TUFFATI'],
+  ['#mzGuida', 'guida'], ['#btnA', 'A'], ['#btnB', 'B'], ['#joystick', 'joystick'], ['#mzPlay', 'GIOCA'], ['#mzPortoBtn', 'Porto'], ['#mzAmiciBtn', 'Record e Faro'], ['#mzPescaBtn', 'PESCA'], ['#mzPerle', 'TUFFATI'],
 ];
 
 export default async function (ctx) {
@@ -112,6 +112,13 @@ export default async function (ctx) {
       await ctx.waitState(P.page, (s, id) => s.compass.aperta === id, 3000, id);
     };
 
+    // la canna (#457) a chi entra nelle pose: senza, in barca il bottone PESCA non c'è
+    for (const tok of ['tokL', 'tokM', 'tokU']) {
+      const h = { 'x-token': tok, 'content-type': 'application/json' };
+      await fetch(base + '/api/lot', { headers: h });
+      await fetch(base + '/api/test/monete', { method: 'POST', headers: h, body: JSON.stringify({ n: 600 }) });
+      assert((await fetch(base + '/api/lot/casa/canna', { method: 'POST', headers: h, body: '{}' })).status === 200, 'canna di prova');
+    }
     const pose = [['iphone', ctx.B.IPHONE, 'tokL'], ['android', ANDROID, 'tokM'], ['pc', ctx.B.DESKTOP, 'tokU']];
     for (const [nome, vp, tok] of pose) {
       const P = await apri(tok, vp);
@@ -154,8 +161,8 @@ export default async function (ctx) {
       await ctx.test(`${nome}: in barca sul mare da pesca (PESCA) niente si sovrappone`, async () => {
         await hook(P.page, 'goto', 'porto'); await sleep(300);
         await hook(P.page, 'setMode', 'boat'); await sleep(300);
-        await hook(P.page, 'pescaVai', 'porto');
-        await ctx.waitState(P.page, (s) => !!s.pescaPosto?.ok, 8000);
+        await hook(P.page, 'pescaBarcaVai');
+        await ctx.waitState(P.page, (s) => !!s.pesca?.barca?.ok && /PESCA/.test(s.pesca.bottone ?? ''), 8000);
         await controlla(P, `${nome}_pesca`, ['PESCA', 'bussola', 'minimappa']);
         ctx.noErrors(P, nome);
       });
