@@ -252,3 +252,8 @@ export const PALA = forma([
   pz(box(0.04, 0.95, 0.04).translate(0, 0.47, 0), PAL.legnoChiaro, mat(0, 0, 0)), pz(box(0.14, 0.04, 0.04), PAL.legnoScuro, mat(0, 0.96, 0)),
   pz(box(0.22, 0.26, 0.03), PAL.pietra, mat(0, -0.12, 0)), pz(box(0.18, 0.06, 0.035), PAL.pietraChiara, mat(0, -0.22, 0)),
 ]);
+/** Zolla di terra smossa dalla pala. */
+export const TERRA_CLOD = forma([pz(new THREE.DodecahedronGeometry(0.08, 0), PAL.legnoScuro, mat(0, 0, 0))]);
+/** Scheggia o scintilla dal sasso colpito con la pala. */
+export const SCHEGGIA_SASSO = forma([pz(new THREE.DodecahedronGeometry(0.05, 0), PAL.pietraChiara, mat(0, 0, 0))]);
+
