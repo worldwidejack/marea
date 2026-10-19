@@ -122,8 +122,8 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   // e dopo la pala l'espositore del retino (#445): asta, cerchio e rete
   const rz = bc.z + 4.3;
   parti.push(painted(new THREE.CylinderGeometry(0.45, 0.5, 0.16, 8), P.legnoScuro, M(bc.x - 0.4, 0.08, rz)), painted(new THREE.CylinderGeometry(0.04, 0.04, 1.3, 6), P.legnoChiaro, M(bc.x - 0.4, 0.8, rz, 0, 0, -0.12)));
-  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; parti.push(painted(new THREE.BoxGeometry(0.16, 0.03, 0.03), P.pietra, M(bc.x - 0.58 + Math.cos(a) * 0.2, 1.62 + Math.sin(a) * 0.2, rz, 0, 0, a + Math.PI / 2))); }
-  parti.push(painted(new THREE.CylinderGeometry(0.17, 0.04, 0.3, 8), P.pietraChiara, M(bc.x - 0.58, 1.62, rz + 0.13, Math.PI / 2)));
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; parti.push(painted(new THREE.BoxGeometry(0.16, 0.03, 0.03), P.pietra, M(bc.x - 0.58 + Math.cos(a) * 0.2, 1.62 + Math.sin(a) * 0.2, rz, 0, 0, a + Math.PI / 2)), painted(new THREE.BoxGeometry(0.165, 0.035, 0.035), P.sabbiaChiara, M(bc.x - 0.58 + Math.cos(a) * 0.2, 1.62 + Math.sin(a) * 0.2, rz + 0.015, 0, 0, a + Math.PI / 2))); }
+  parti.push(painted(new THREE.CylinderGeometry(0.19, 0.12, 0.16, 8), P.pietraChiara, M(bc.x - 0.58, 1.62, rz + 0.08, -Math.PI / 2)), painted(new THREE.CylinderGeometry(0.12, 0.04, 0.16, 8), P.pietraChiara, M(bc.x - 0.58, 1.59, rz + 0.23, -Math.PI / 2)));
   pezziFissi.push({ kind: 'retino', id: RETINO.id, nome: RETINO.nome, monete: RETINO.monete, x: bc.x - 0.4, z: rz, fx: bc.x - 1.9, fz: rz });
   const fisso = new THREE.Mesh(merged(parti), vc); fisso.castShadow = fisso.receiveShadow = true; dentroG.add(fisso);
 

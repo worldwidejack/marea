@@ -16,6 +16,7 @@ import type { Api } from '../net/api.ts';
 import { ApiError } from '../net/api.ts';
 import { pennello } from '../render/pennello.ts';
 import { FILO, FOGLIA_CADE, LUME, NIDO, OMBRA, PALA, RETINO, SASSO, formeInsetto } from '../render/insetti_forme.ts';
+import { creaRetinoAnim } from './retino_anim.ts';
 import { daAlbero, daSasso, nuovoAttore, prendibile, vive } from './insetti_vita.ts';
 import type { Attore, Chi, Mondo } from './insetti_vita.ts';
 import { insettoCanvas } from '../ui/insetti_sprite.ts';
@@ -258,16 +259,20 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const foglie: { x: number; y: number; z: number; t: number; s: number }[] = [];
   const bone = (n: string) => w.avatar.object.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n)) ?? w.avatar.object.getObjectByName(n) ?? null;
   const V = new THREE.Vector3();
+  const retinoAnim = creaRetinoAnim(w);
   const disegnaMano = (mano: Attrezzo) => {
     if (mano === 'nulla' || w.mode !== 'walk' || !w.avatar.visible) return;
+    if (mano === 'retino') {
+      const p = retinoAnim.posa();
+      corpi.put(RETINO, p.x, p.y, p.z, p.h, p.pitch, p.roll, 1);
+      return;
+    }
     const f = w.avatar.state, h = f.yaw, rx = Math.cos(h), rz = Math.sin(h), fx = Math.sin(h), fz = -Math.cos(h);
     const b = bone('Hand.R') ?? bone('LowerArm.R');
     let x: number, y: number, z: number;
     if (b) { b.getWorldPosition(V); x = V.x + fx * 0.08; y = V.y - 0.05; z = V.z + fz * 0.08; }
     else { x = f.x + rx * 0.28 + fx * 0.15; y = w.groundY(f.x, f.z) + 0.85; z = f.z + rz * 0.28 + fz * 0.15; }
-    const k = colpo > 0 ? 1 - colpo / COLPO_S : 0, swing = Math.sin(Math.min(1, k * 1.4) * Math.PI * 0.5);
-    const pitch = mano === 'retino' ? -0.35 - swing * 1.25 : -0.25;
-    corpi.put(mano === 'retino' ? RETINO : PALA, x, y - (mano === 'pala' ? 0.35 : 0.4), z, h, pitch, mano === 'retino' ? 0.15 : 0.1);
+    corpi.put(PALA, x, y - 0.35, z, h, -0.25, 0.1);
   };
   const disegna = (now: number, dt: number) => {
     corpi.begin(); luci.begin();
@@ -351,9 +356,10 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       if (congelato > 0) { congelato -= dt; if (congelato <= 0) w.frozen = false; }
       const f = w.avatar.state;
       fermoDa = Math.hypot(f.vx, f.vz) < 0.2 ? fermoDa + dt : 0;
-      if (colpo > 0) { colpo = Math.max(0, colpo - dt); if (!colpito && colpo < COLPO_S * 0.8) chiudiColpo(); }
+      const c = chi(), dentro = inBorgo(), mano = inMano();
+      retinoAnim.aggiorna(dt, colpo, COLPO_S, dentro && mano === 'retino');
+      if (colpo > 0) { colpo = Math.max(0, colpo - dt); if (!colpito && colpo <= COLPO_S * 0.52) chiudiColpo(); }
       syncLiberi(now);
-      const c = chi(), dentro = inBorgo();
       for (const [k, a] of attori) {
         if (Math.hypot(a.x - c.x, a.z - c.z) > 60 && a.stato !== 'via') continue; // lontano: fermo, si sveglia quando arrivi
         const ev = vive(a, c, dt, mondo);
@@ -363,7 +369,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       }
       disegna(now, dt);
       contesto();
-      const show = dentro && !!ctx, mano = inMano();
+      const show = dentro && !!ctx;
       const key = !show ? '' : ctx === 'retino' ? 'r' : ctx === 'sasso' ? 's' : 'a';
       if (key !== lastBtn) {
         lastBtn = key; azioneBtn.classList.toggle('on', show);

@@ -220,11 +220,32 @@ export const SASSO = forma([
   pz(new THREE.DodecahedronGeometry(0.3, 0), PAL.pietra, mat(0.38, 0.16, 0.22, 0.7, 0.1, 0.3).scale(new THREE.Vector3(1, 0.7, 1))),
   pz(new THREE.DodecahedronGeometry(0.22, 0), PAL.pietraChiara, mat(-0.12, 0.43, -0.05, 0.2, 0.9, 0).scale(new THREE.Vector3(1.2, 0.45, 1))),
 ]);
-/** Il retino in mano: asta di legno, cerchio e rete chiara. Il manico è all'origine, la rete in punta su +Y. */
+/** Il retino in mano: asta di legno con impugnatura, ghiera e telaio con sacca in rete chiara (rivolta all'indietro su +Z). */
 export const RETINO = forma([
-  pz(box(0.04, 1.0, 0.04).translate(0, 0.5, 0), PAL.legnoChiaro, mat(0, 0, 0)),
-  ...Array.from({ length: 8 }, (_, i) => { const a = (i / 8) * Math.PI * 2; return pz(box(0.16, 0.03, 0.03), PAL.pietra, mat(Math.cos(a) * 0.19, 1.2 + Math.sin(a) * 0.19, 0, 0, 0, a + Math.PI / 2)); }),
-  pz(cyl(0.18, 0.04, 0.28, 8), PAL.pietraChiara, mat(0, 1.2, 0.12, Math.PI / 2)),
+  // pomello e impugnatura in legno scuro
+  pz(box(0.048, 0.03, 0.048), PAL.legnoScuro, mat(0, 0.015, 0)),
+  pz(box(0.042, 0.24, 0.042), PAL.legnoScuro, mat(0, 0.15, 0)),
+  // asta principale in legno chiaro
+  pz(box(0.036, 0.76, 0.036), PAL.legnoChiaro, mat(0, 0.65, 0)),
+  // ghiera di metallo e supporti del telaio
+  pz(box(0.046, 0.05, 0.046), PAL.pietra, mat(0, 1.045, 0)),
+  pz(box(0.02, 0.07, 0.02), PAL.pietra, mat(-0.04, 1.08, 0, 0, 0, -0.4)),
+  pz(box(0.02, 0.07, 0.02), PAL.pietra, mat(0.04, 1.08, 0, 0, 0, 0.4)),
+  // telaio del cerchio (metallo)
+  ...Array.from({ length: 8 }, (_, i) => {
+    const a = (i / 8) * Math.PI * 2;
+    return pz(box(0.165, 0.025, 0.025), PAL.pietra, mat(Math.cos(a) * 0.20, 1.23 + Math.sin(a) * 0.20, 0, 0, 0, a + Math.PI / 2));
+  }),
+  // bordo in tela del cerchio (sabbia chiara)
+  ...Array.from({ length: 8 }, (_, i) => {
+    const a = (i / 8) * Math.PI * 2;
+    return pz(box(0.168, 0.034, 0.034), PAL.sabbiaChiara, mat(Math.cos(a) * 0.20, 1.23 + Math.sin(a) * 0.20, 0.015, 0, 0, a + Math.PI / 2));
+  }),
+  // sacca della rete: bocca larga montata sul cerchio a z=0, si estende all'indietro su +Z con piega naturale
+  pz(cyl(0.198, 0.188, 0.10, 8), PAL.pietraChiara, mat(0, 1.23, 0.06, -Math.PI / 2)),
+  pz(cyl(0.188, 0.115, 0.14, 8), PAL.pietraChiara, mat(0, 1.21, 0.18, -Math.PI / 2)),
+  pz(cyl(0.115, 0.04, 0.12, 8), PAL.pietraChiara, mat(0, 1.16, 0.31, -Math.PI / 2)),
+  pz(new THREE.DodecahedronGeometry(0.045, 0), PAL.pietraChiara, mat(0, 1.14, 0.37)),
 ]);
 /** La pala in mano (manico all'origine, lama in punta). */
 export const PALA = forma([
