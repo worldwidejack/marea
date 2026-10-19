@@ -1,5 +1,5 @@
-// Diario del capitano e traguardi (#87): contenuti validi, conteggi dalle partite rigiocate (pesci per specie, perle per tipo, medaglia
-// migliore), avvistamenti validati e deduplicati, sblocco dei traguardi, RISCUOTI una volta sola col libro mastro in pari, titoli.
+// Diario del capitano e traguardi (#87): contenuti validi, conteggi dalle partite rigiocate (perle per tipo, medaglia migliore; i pesci
+// dalla collezione della canna, #457), avvistamenti validati e deduplicati, sblocco dei traguardi, RISCUOTI una volta sola col libro mastro in pari, titoli.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DIARIO, ISOLE_DIARIO, PESCI_DIARIO, TRAGUARDI, validateDiario } from '@marea/content/diario.ts';
@@ -20,6 +20,8 @@ const T0 = 1_800_000_000_000;
 const CTX = { amici: 2 };
 const t = (id: string) => TRAGUARDI.find((x) => x.id === id)!;
 const stato = (lot: LotState, id: string) => traguardiOf(lot, CTX).find((x) => x.id === id)!;
+/** I pesci pescati con la canna (#457, LotState.pesci): visti per specie. */
+const conPesci = (lot: LotState, visti: Record<string, number>): LotState => ({ ...lot, pesci: { visti, posseduti: [], presi: [] } });
 
 test('diario: contenuti validi, minigiochi del diario = minigiochi registrati, traguardi ~20 con premi 15-90 monete', () => {
   assert.deepEqual(validateDiario(), []);
@@ -39,29 +41,24 @@ function partita(id: string, seed: number, opzioni?: Record<string, string>) {
   return replayPartita(id, seed, 2, packInputs(frames), opzioni);
 }
 
-test('raccolta: la pesca conta i pesci per specie, la caccia le perle per tipo; replay() resta uguale', () => {
-  const p = partita('pesca', 7, { mare: 'porto' });
-  const tot = Object.values(p.raccolta).reduce((a, b) => a + b, 0);
-  assert.equal(tot, p.result.detail['pesci'], 'pesci per specie = pesci presi');
-  assert.ok(Object.keys(p.raccolta).every((id) => PESCI_DIARIO.some((f) => f.id === id)));
+test('raccolta: la caccia conta le perle per tipo; replay() resta uguale', () => {
   const q = partita('perle', 11);
   assert.deepEqual(q.raccolta, { bianca: q.result.detail['bianche'], conchiglia: q.result.detail['conchiglie'], rosa: q.result.detail['rosa'], nera: q.result.detail['nere'] });
   const r = partita('regata', 3);
   assert.deepEqual(r.raccolta, {}, 'la regata non raccoglie niente');
 });
 
-test('registraPartita: pesci e perle nelle loro pagine, partite per minigioco, medaglia migliore (mai peggiorata)', () => {
+test('registraPartita: perle nella loro pagina, partite per minigioco, medaglia migliore (mai peggiorata)', () => {
   let lot = newLot('ada', T0);
-  lot = registraPartita(lot, 'pesca', 'bronzo', { sardina: 3, tonno: 1, boh: 9 });
-  lot = registraPartita(lot, 'pesca', 'oro', { sardina: 1 });
-  lot = registraPartita(lot, 'pesca', 'argento', {});
-  lot = registraPartita(lot, 'perle', null, { bianca: 20, nera: 1, bolla: 4 });
+  lot = registraPartita(lot, 'perle', 'bronzo', { bianca: 3, bolla: 4 });
+  lot = registraPartita(lot, 'perle', 'oro', { bianca: 17, nera: 1 });
+  lot = registraPartita(lot, 'perle', 'argento', {});
   lot = registraPartita(lot, 'regata', 'argento', { sardina: 99 });
   const d = diarioOf(lot);
-  assert.deepEqual(d.pesci, { sardina: 4, tonno: 1 }, 'id fuori catalogo ignorati');
-  assert.deepEqual(d.perle, { bianca: 20, nera: 1 });
-  assert.deepEqual(d.giocati, { pesca: 3, perle: 1, regata: 1 });
-  assert.deepEqual(d.medaglie, { pesca: 'oro', regata: 'argento' });
+  assert.deepEqual(d.pesci, {}, 'i pesci non arrivano più dai minigiochi');
+  assert.deepEqual(d.perle, { bianca: 20, nera: 1 }, 'id fuori catalogo ignorati');
+  assert.deepEqual(d.giocati, { perle: 3, regata: 1 });
+  assert.deepEqual(d.medaglie, { perle: 'oro', regata: 'argento' });
   assert.equal(lot.version, newLot('ada', T0).version, 'non tocca la versione (va con la partita)');
 });
 
@@ -82,7 +79,7 @@ test('registraVisti: solo id dei cataloghi, niente doppioni, mai la propria isol
 test('progresso dei traguardi: conteggi, «tutti» sul catalogo, amici dal contesto, edifici e partite di prima del diario', () => {
   let lot = newLot('ada', T0);
   assert.equal(daRiscuotere(lot, CTX).length, 0, 'lotto nuovo: niente da riscuotere');
-  lot = registraPartita(lot, 'pesca', 'oro', { sardina: 5, orata: 3, tonno: 1, polpo: 1 });
+  lot = conPesci(registraPartita(lot, 'perle', 'oro', {}), { ghiozzo: 5, orata: 3, celacanto: 1, polpo: 1, boh: 4 });
   assert.deepEqual(progresso(lot, t('pescatore'), CTX), { fatto: 10, n: 10 });
   assert.deepEqual(progresso(lot, t('re_della_lenza'), CTX), { fatto: 10, n: 50 });
   assert.deepEqual(progresso(lot, t('tutte_le_specie'), CTX), { fatto: 4, n: PESCI_DIARIO.length });
@@ -111,7 +108,7 @@ test('progresso dei traguardi: conteggi, «tutti» sul catalogo, amici dal conte
 });
 
 test('RISCUOTI: paga le monete una volta sola, libro mastro in pari; non compiuto o sconosciuto = errore; poi il titolo', () => {
-  let lot = registraPartita(newLot('ada', T0), 'pesca', 'bronzo', { sardina: 1 });
+  let lot = conPesci(newLot('ada', T0), { ghiozzo: 1 });
   assert.throws(() => riscuotiTraguardo(lot, 'pescatore', T0, CTX), (e: unknown) => e instanceof EconomyError && e.code === 'traguardo' && /1 su 10/.test(e.message));
   assert.throws(() => riscuotiTraguardo(lot, 'boh', T0, CTX), (e: unknown) => e instanceof EconomyError && e.code === 'sconosciuto');
   assert.throws(() => scegliTitolo(lot, 'primo_pesce'), (e: unknown) => e instanceof EconomyError && e.code === 'traguardo');
@@ -130,12 +127,11 @@ test('RISCUOTI: paga le monete una volta sola, libro mastro in pari; non compiut
   assert.throws(() => scegliTitolo(lot, 'boh'), (e: unknown) => e instanceof EconomyError && e.code === 'sconosciuto');
 });
 
-test('una pesca vera dell\'autopilota sblocca «Primo pesce» e «Primo oro» (come fa il server dopo il replay)', () => {
-  const seed = 42, mare = { mare: 'largo' };
-  const p = partita('pesca', seed, mare);
-  assert.equal(replay('pesca', seed, 2, packInputs([]), mare).score, 0);
-  const lot = registraPartita(newLot('ada', T0), 'pesca', p.result.medal, p.raccolta);
+test('una caccia alle perle vera dell’autopilota sblocca «Prima medaglia» (come fa il server dopo il replay)', () => {
+  const seed = 42, p = partita('perle', seed);
+  assert.equal(replay('perle', seed, 2, packInputs([])).score, 0);
+  const lot = registraPartita(newLot('ada', T0), 'perle', p.result.medal, p.raccolta);
   const pronti = daRiscuotere(lot, CTX);
-  assert.ok(pronti.includes('primo_pesce') && pronti.includes('prima_medaglia'), pronti.join(','));
+  if (p.result.medal) assert.ok(pronti.includes('prima_medaglia'), pronti.join(','));
   if (p.result.medal === 'oro') assert.ok(pronti.includes('primo_oro'));
 });

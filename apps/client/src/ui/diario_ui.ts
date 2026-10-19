@@ -1,11 +1,9 @@
-// Diario del capitano (#87), chunk caricato con import() alla prima apertura da game/diario.ts. Un album a pagine: Pesci (sagoma a pixel
-// di ogni specie, quante volte), Perle, Animali avvistati, Medaglie (la migliore per minigioco), Isole visitate (la forma vera dell'isola,
+// Diario del capitano (#87), chunk caricato con import() alla prima apertura da game/diario.ts. Un album a pagine: Pesci (#457: disegno a pixel
+// di ogni specie, quante volte, scheda dopo la consegna al mobiliere), Perle, Animali avvistati, Medaglie (la migliore per minigioco), Isole visitate (la forma vera dell'isola,
 // un pixel per cella), Traguardi (progresso, RISCUOTI sul server, titolo sotto il nome). Caselle grigie con «?» per quello che manca,
 // contatore «3/12» su ogni linguetta. Si può sfogliare anche il diario di un amico (sola lettura, dal suo lotto).
 // Traguardi e titoli spenti per ora (VISIONE §2): senza ?traguardi=1 la linguetta non c'è (DIARIO_TABS) e in testata niente titolo.
 // Un pollice: linguette e caselle ≥ 44 px. Tastiera in capture solo a pannello aperto: Esc/J chiude, ←/→ linguette, ↑/↓ tra i bottoni.
-import { MINIGAMES_CFG } from '@marea/content';
-import type { PescaPesce, PescaRarita } from '@marea/content';
 import { DIARIO, ISOLE_DIARIO, TRAGUARDI } from '@marea/content/diario.ts';
 import { diarioOf, titoloDi, traguardiOf } from '@marea/sim/economy/diario.ts';
 import type { TraguardoStato } from '@marea/sim/economy/diario.ts';
@@ -17,6 +15,9 @@ import { PAL, el, injectUiStyle } from './style.ts';
 import { pixIcon, resIcon } from './icons.ts';
 import { flyResources } from './sheet.ts';
 import { pesceCanvas } from './pesci_sprite.ts';
+import { PESCI, PESCI_CFG } from '@marea/content/pesci.ts';
+import type { PesceDef } from '@marea/content/pesci.ts';
+import { pesciOf } from '@marea/sim/economy/pesci.ts';
 import { INSETTI, INSETTI_CFG } from '@marea/content/insetti.ts';
 import type { InsettoDef } from '@marea/content/insetti.ts';
 import { insettiOf } from '@marea/sim/economy/insetti.ts';
@@ -26,15 +27,14 @@ import { suona } from '../audio/ponte.ts';
 import { FLAGS } from '../flags.ts';
 
 const P = PAL;
-const CFG = MINIGAMES_CFG.pesca;
-const PESCI: readonly PescaPesce[] = CFG.pesci;
-const RAR_COL: Record<PescaRarita, string> = { comune: P.pietraChiara, noncomune: P.erba, raro: P.acquaBassa, leggendario: P.giallo };
 const INS_RAR_COL: Record<InsettoDef['rarita'], string> = { comune: P.pietraChiara, noncomune: P.erba, raro: P.acquaBassa, ultrararo: P.giallo };
 const INS_DOVE: Record<InsettoDef['tipo'], string> = { volante: 'vola in giro', terra: 'cammina nell’erba', sasso: 'esce dai sassi colpiti con la pala', albero: 'cade dagli alberi scossi' };
 const INS_STAGIONE: Record<InsettoDef['stagione'], string> = { tutto: 'tutto l’anno', primavera: 'in primavera', estate: 'd’estate', autunno: 'd’autunno', inverno: 'd’inverno' };
 const INS_FASCIA: Record<InsettoDef['fascia'], string> = { sempre: 'giorno e notte', giorno: 'di giorno', notte: 'di notte' };
 /** «vola in giro d'estate, di notte». */
 const doveInsetto = (i: InsettoDef): string => `${INS_DOVE[i.tipo]} ${INS_STAGIONE[i.stagione]}, ${INS_FASCIA[i.fascia]}`;
+/** «si pesca dalla riva d'estate, di notte · ombra grande» (#457). */
+const dovePesce = (p: PesceDef): string => `si pesca ${p.zona === 'riva' ? 'dalle rive di Borgo Marea' : 'dalla barca in mare aperto'} ${INS_STAGIONE[p.stagione]}, ${INS_FASCIA[p.fascia]} · ombra ${PESCI_CFG.taglie[p.taglia - 1]?.nome.toLowerCase() ?? ''}`;
 const TAB_NOME: Record<DiarioTab, string> = { pesci: 'Pesci', insetti: 'Insetti', perle: 'Perle', animali: 'Animali', medaglie: 'Medaglie', isole: 'Isole', traguardi: 'Traguardi' };
 
 const STYLE = `
@@ -138,7 +138,7 @@ export function createDiarioUi(ctx: DiarioCtx) {
     const amiciIsole = ctx.owners.filter((w) => w.id !== (chi ?? meId)).map((w) => `lotto:${w.id}`);
     const tr = l ? traguardiOf(l, { amici: amiciDi(chi) }) : [];
     return {
-      pesci: { fatto: PESCI.filter((p) => (d.pesci[p.id] ?? 0) > 0).length, tot: PESCI.length },
+      pesci: { fatto: PESCI.filter((p) => (l?.pesci?.visti[p.id] ?? 0) > 0).length, tot: PESCI.length },
       insetti: { fatto: INSETTI.filter((i) => (l?.insetti?.visti[i.id] ?? 0) > 0).length, tot: INSETTI.length },
       perle: { fatto: DIARIO.perle.filter((p) => (d.perle[p.id] ?? 0) > 0).length, tot: DIARIO.perle.length },
       animali: { fatto: DIARIO.animali.filter((a) => d.animali.includes(a.id)).length, tot: DIARIO.animali.length },
@@ -212,18 +212,21 @@ export function createDiarioUi(ctx: DiarioCtx) {
     return n;
   }
   const b = (t: string) => el('b', '', t), k = (t: string) => el('span', 'k', t);
-  const mariDi = (id: string) => Object.values(CFG.mari).filter((m) => m.pesci.includes(id)).map((m) => m.nome).join(', ');
-
-  function bodyPesci(d: DiarioState): HTMLElement[] {
-    const g = el('div', 'mz-dia-grid');
+  /** Pesci (#457): come gli insetti, il disegno si sblocca pescandolo («visto»), la scheda consegnandolo al mobiliere («catturato», verde). */
+  function bodyPesci(l: LotState | null): HTMLElement[] {
+    const s = pesciOf(l, Date.now()), g = el('div', 'mz-dia-grid');
     for (const p of PESCI) {
-      const n = d.pesci[p.id] ?? 0;
-      g.appendChild(cella(p.id, pesceCanvas(p, 3, n === 0), p.nome, n, n > 0, (c) => { const r = el('span', 'rar'); r.style.setProperty('--r', RAR_COL[p.rarita]); c.appendChild(r); }));
+      const n = s.visti[p.id] ?? 0, tuo = s.posseduti.includes(p.id);
+      g.appendChild(cella(p.id, pesceCanvas(p, 3, n === 0), p.nome, n, n > 0, (c) => {
+        const r = el('span', 'rar'); r.style.setProperty('--r', INS_RAR_COL[p.rarita]); c.appendChild(r);
+        if (tuo) { c.classList.add('tuo'); c.appendChild(el('span', 'tuo', '✓')); }
+      }));
     }
-    const p = PESCI.find((x) => x.id === sel), n = p ? d.pesci[p.id] ?? 0 : 0;
-    const info = p
-      ? (n > 0 ? [b(p.nome), ' · ', k(CFG.rarita[p.rarita].nome), ` · pescato ${n} ${n === 1 ? 'volta' : 'volte'}. `, p.battuta] : [b('???'), ' · ', k(CFG.rarita[p.rarita].nome), ` · non ancora pescato. Vive in: ${mariDi(p.id) || 'mari lontani'}.`])
-      : ['Tocca un pesce per leggere la sua scheda. Si pesca dalla barca ferma in acqua profonda (P).'];
+    const p = PESCI.find((x) => x.id === sel), n = p ? s.visti[p.id] ?? 0 : 0, tuo = !!p && s.posseduti.includes(p.id);
+    const info = !p ? [`Ne hai visti ${PESCI.filter((x) => (s.visti[x.id] ?? 0) > 0).length}, catturati (consegnati al mobiliere) ${s.posseduti.length}. Tocca un pesce per la scheda: si pescano con la canna dalle rive di Borgo Marea e dalla barca ferma al largo.`]
+      : tuo ? [b(p.nome), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · ${dovePesce(p)}. `, p.descr]
+      : n > 0 ? [b(p.nome), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · pescato ${n} ${n === 1 ? 'volta' : 'volte'}, ${dovePesce(p)}. Portalo al mobiliere per leggere la sua scheda.`]
+      : [b('???'), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · non ancora pescato. ${dovePesce(p)[0]!.toUpperCase()}${dovePesce(p).slice(1)}.`];
     return [g, nota(info)];
   }
   /** Insetti (#445): il disegno si sblocca prendendolo col retino («visto»), la scheda consegnandolo al mobiliere («posseduto», verde). */
@@ -317,7 +320,7 @@ export function createDiarioUi(ctx: DiarioCtx) {
     const c = conti(l, d), pronti = l && mio() ? traguardiOf(l, { amici: amiciDi(null) }).filter((t) => t.compiuto && !t.riscosso).length : 0;
     sheet.dataset['tab'] = tab; sheet.dataset['chi'] = chi ?? 'io';
     const corpo = carica ? [el('div', 'mz-dia-vuoto', 'Sfoglio il diario…')]
-      : tab === 'pesci' ? bodyPesci(d) : tab === 'insetti' ? bodyInsetti(l) : tab === 'perle' ? bodyPerle(d) : tab === 'animali' ? bodyAnimali(d) : tab === 'medaglie' ? bodyMedaglie(d) : tab === 'isole' ? bodyIsole(d) : bodyTraguardi(l, d);
+      : tab === 'pesci' ? bodyPesci(l) : tab === 'insetti' ? bodyInsetti(l) : tab === 'perle' ? bodyPerle(d) : tab === 'animali' ? bodyAnimali(d) : tab === 'medaglie' ? bodyMedaglie(d) : tab === 'isole' ? bodyIsole(d) : bodyTraguardi(l, d);
     const parti: HTMLElement[] = [head(d)];
     const cr = chiRow(); if (cr) parti.push(cr);
     parti.push(tabs(c, pronti), pagina(c[tab]), ...corpo);

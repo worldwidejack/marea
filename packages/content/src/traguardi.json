@@ -5,7 +5,7 @@
     { "id": "re_della_lenza", "nome": "Cinquanta pesci", "testo": "Pesca 50 pesci", "titolo": "Re della lenza", "monete": 60, "se": { "tipo": "pesci", "n": 50 } },
     { "id": "naturalista", "nome": "Sei specie", "testo": "Pesca 6 specie diverse", "titolo": "Naturalista", "monete": 45, "se": { "tipo": "specie", "n": 6 } },
     { "id": "tutte_le_specie", "nome": "Tutte le specie", "testo": "Pesca ogni specie del mare", "titolo": "Re dei pesci", "monete": 90, "se": { "tipo": "specie", "tutti": true } },
-    { "id": "leggenda", "nome": "Pesce leggendario", "testo": "Pesca un pesce leggendario", "titolo": "Leggenda del mare", "monete": 60, "se": { "tipo": "rarita", "rarita": "leggendario", "n": 1 } },
+    { "id": "leggenda", "nome": "Pesce leggendario", "testo": "Pesca un pesce ultra-raro", "titolo": "Leggenda del mare", "monete": 60, "se": { "tipo": "rarita", "rarita": "ultrararo", "n": 1 } },
     { "id": "cercatore", "nome": "Cento perle", "testo": "Raccogli 100 perle e conchiglie nella caccia", "titolo": "Cercatore di perle", "monete": 45, "se": { "tipo": "perle", "n": 100 } },
     { "id": "perla_nera", "nome": "Perla nera", "testo": "Trova una perla nera in fondo a un crepaccio", "titolo": "Palombaro", "monete": 30, "se": { "tipo": "perla", "perla": "nera", "n": 1 } },
     { "id": "collezionista", "nome": "Tutte le perle", "testo": "Trova ogni tipo di perla e la conchiglia", "titolo": "Collezionista", "monete": 45, "se": { "tipo": "tipiPerle", "tutti": true } },

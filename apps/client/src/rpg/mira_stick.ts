@@ -38,6 +38,8 @@ export type MiraStick = {
   readonly on: boolean;
   /** Direzione del dito mentre mira (versore in assi mondo, la stessa che la sim userà), null se non mira. */
   dir(): { x: number; z: number } | null;
+  /** Quanto è spinto il pomello (0 al centro … 1 al bordo), anche nel tick del rilascio: la pesca (#457) ci decide quanto lontano lanciare. */
+  forza(): number;
   /** Pausa, domanda, blur: il dito non conta più. */
   cancel(): void;
   dispose(): void;
@@ -47,13 +49,13 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
   if (!document.getElementById('mz-mira-style')) { const st = document.createElement('style'); st.id = 'mz-mira-style'; st.textContent = CSS; document.head.appendChild(st); }
   const aim = el('div', 'mz mz-mira'); aim.id = o.id;
   const knob = el('i'); aim.append(knob);
-  let id: number | null = null, on = false, held = false, rel = false, tap = false, m = 0, t0 = 0, touchSeen = false;
+  let id: number | null = null, on = false, held = false, rel = false, tap = false, m = 0, t0 = 0, touchSeen = false, forza = 0;
   const paint = (x: number, y: number) => { knob.style.transform = `translate(${x * MIRA_R}px, ${y * MIRA_R}px)`; aim.classList.toggle('tieni', held); };
   const move = (e: PointerEvent) => {
     const r = aim.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
     const d = Math.sqrt(dx * dx + dy * dy), k = d > MIRA_R ? MIRA_R / d : 1, jx = (dx * k) / MIRA_R, jy = (dy * k) / MIRA_R, len = d * k / MIRA_R;
     if (len > MIRA_DEAD) held = true;
-    if (held && len > 0.12) { const w = screenToWorld(jx, jy, o.yaw()); m = aimIndex(w.mx, w.my) || m; }
+    if (held && len > 0.12) { const w = screenToWorld(jx, jy, o.yaw()); m = aimIndex(w.mx, w.my) || m; forza = len; }
     paint(jx, jy);
   };
   const end = () => {
@@ -66,7 +68,7 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
   aim.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (id !== null || o.blocked()) return;
-    id = e.pointerId; m = 0; rel = false; tap = false; t0 = performance.now();
+    id = e.pointerId; m = 0; rel = false; tap = false; t0 = performance.now(); forza = 0;
     try { aim.setPointerCapture(e.pointerId); } catch { /* sintetico */ }
     move(e);
   });
@@ -95,6 +97,7 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
     },
     get on() { return on; },
     dir() { const d = held ? aimDir(m) : null; return d ? { x: d[0], z: d[1] } : null; },
+    forza: () => forza,
     cancel,
     dispose() {
       removeEventListener('pointerup', up as EventListener); removeEventListener('pointercancel', up as EventListener); removeEventListener('pointerdown', seen, true);

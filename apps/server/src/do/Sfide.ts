@@ -21,7 +21,7 @@ import type { FeedTipo } from '@marea/protocol';
 import { nowFromHeader } from '../clock.ts';
 import type { FeedDati } from '../feed.ts';
 import { creaTabellaFeed, leggiFeed, nonLetti, scriviFeed, segnaLetti } from './feedStore.ts';
-import { apriDono, chiudiDono, creaTabellePorto, doniAperti, leggiFaro, leggiTabellone, scriviFaro, scriviTabellone } from './portoStore.ts';
+import { apriDono, chiudiDono, creaTabellePorto, doniAperti, leggiCollezione, leggiFaro, leggiTabellone, scriviCollezione, scriviFaro, scriviTabellone } from './portoStore.ts';
 import type { DonoAperto } from './portoStore.ts';
 import { dosaDono, faroProssimo, versaNelFaro } from '@marea/sim/economy/faro.ts';
 import type { FaroStato } from '@marea/sim/economy/faro.ts';
@@ -205,6 +205,7 @@ export class Sfide extends DurableObject<Env> {
         if (req.method === 'GET' && act === 'feed') return json({ rows: leggiFeed(sql, me), nonLetti: nonLetti(sql, me), faroLivelli: leggiFaro(sql).livelli });
         if (req.method === 'GET' && act === 'record') return json({ tab: recordDi(leggiTabellone(sql), now) });
         if (req.method === 'GET' && act === 'faro') return json({ faro: leggiFaro(sql) });
+        if (req.method === 'GET' && act === 'collezione') return json({ collezione: leggiCollezione(sql) });
         if (req.method === 'GET' && act === 'buche') return json({ buche: listBuche(sql), now });
         // Adrenalina (passo 3b): la classifica a tempo di una pista e il fantasma del primo
         if (req.method === 'GET' && (act === 'discese' || act === 'fantasma')) {
@@ -226,6 +227,7 @@ export class Sfide extends DurableObject<Env> {
           return json({ ok: true });
         }
         if (act === 'record') return this.record(me, body, now);
+        if (act === 'collezione') return this.collezione(me, body, now);
         if (act === 'discesa') return this.discesa(me, body, now);
         if (act === 'faro_versa') return await this.faroVersa(me, body, now);
         if (act === 'buca') return await handleBuca(sql, me, body, now, this.env);
@@ -259,6 +261,15 @@ export class Sfide extends DurableObject<Env> {
       });
     }
     return json({ oggi: out.oggi, sempre: out.sempre });
+  }
+
+  /** I collezionisti (#457): dopo una consegna al mobiliere il Worker scrive qui quanti pesci e insetti ha `me` (letti dal suo lotto). */
+  private collezione(me: string, body: Record<string, unknown>, now: number): Response {
+    const pesci = body['pesci'], insetti = body['insetti'], ok = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 1000;
+    if (!ok(pesci) || !ok(insetti)) return json({ error: 'Richiesta non valida' }, 400);
+    const sql = this.ctx.storage.sql, c = leggiCollezione(sql);
+    scriviCollezione(sql, { ...c, [me]: { pesci, insetti, quando: now } });
+    return json({ ok: true });
   }
 
   /** Discesa dell'Adrenalina già rigiocata dal DO del lotto (passo 3b): se è il miglior tempo finale di `me` su quella pista entra in

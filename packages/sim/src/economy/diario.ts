@@ -82,13 +82,14 @@ export function registraVisti(lot: LotState, v: { animali?: readonly string[]; i
 
 /** Quanto manca a un traguardo: `fatto` su `n` (fatto ≤ n). */
 export function progresso(lot: LotState, t: TraguardoDef, ctx: DiarioCtx): { fatto: number; n: number } {
-  const d = diarioOf(lot), se = t.se;
+  const d = diarioOf(lot), se = t.se, pv = lot.pesci?.visti ?? {};
   const conta = (tot: number, fatto: number) => { const n = se.tutti ? Math.max(1, tot) : se.n ?? 1; return { fatto: Math.min(n, fatto), n }; };
   const mini = DIARIO.minigiochi.map((m) => m.id);
   switch (se.tipo) {
-    case 'pesci': return conta(0, somma(d.pesci));
-    case 'specie': return conta(PESCI_DIARIO.length, PESCI_DIARIO.filter((p) => (d.pesci[p.id] ?? 0) > 0).length);
-    case 'rarita': return conta(0, PESCI_DIARIO.filter((p) => p.rarita === se.rarita).reduce((a, p) => a + (d.pesci[p.id] ?? 0), 0));
+    // i pesci (#457) li conta la collezione del lotto (LotState.pesci), non più il diario del minigioco della pesca
+    case 'pesci': return conta(0, PESCI_DIARIO.reduce((a, p) => a + Math.max(0, pv[p.id] ?? 0), 0));
+    case 'specie': return conta(PESCI_DIARIO.length, PESCI_DIARIO.filter((p) => (pv[p.id] ?? 0) > 0).length);
+    case 'rarita': return conta(0, PESCI_DIARIO.filter((p) => p.rarita === se.rarita).reduce((a, p) => a + (pv[p.id] ?? 0), 0));
     case 'perle': return conta(0, somma(d.perle));
     case 'perla': return conta(0, d.perle[se.perla ?? ''] ?? 0);
     case 'tipiPerle': return conta(DIARIO.perle.length, DIARIO.perle.filter((p) => (d.perle[p.id] ?? 0) > 0).length);

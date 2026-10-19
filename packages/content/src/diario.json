@@ -1,7 +1,6 @@
 {
   "minigiochi": [
     { "id": "regata", "nome": "Regata" },
-    { "id": "pesca", "nome": "Pesca", "raccolta": "pesci" },
     { "id": "perle", "nome": "Caccia alle perle", "raccolta": "perle" },
     { "id": "consegne", "nome": "Consegne" },
     { "id": "ingorgo", "nome": "Ingorgo" },

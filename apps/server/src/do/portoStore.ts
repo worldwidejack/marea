@@ -24,6 +24,10 @@ const scrivi = (sql: SqlStorage, k: string, v: unknown): void => { sql.exec('INS
 export const leggiTabellone = (sql: SqlStorage): TabelloneRecord => leggi(sql, 'record', tabelloneNuovo);
 export const scriviTabellone = (sql: SqlStorage, t: TabelloneRecord): void => scrivi(sql, 'record', t);
 export const leggiFaro = (sql: SqlStorage): FaroStato => leggi(sql, 'faro', faroNuovo);
+/** I collezionisti (#457): per persona quanti pesci e insetti ha consegnato al mobiliere (lo scrive il Worker dopo ogni consegna). */
+export type Collezione = Record<string, { pesci: number; insetti: number; quando: number }>;
+export const leggiCollezione = (sql: SqlStorage): Collezione => leggi(sql, 'collezione', () => ({}));
+export const scriviCollezione = (sql: SqlStorage, c: Collezione): void => scrivi(sql, 'collezione', c);
 export const scriviFaro = (sql: SqlStorage, f: FaroStato): void => scrivi(sql, 'faro', f);
 
 export function apriDono(sql: SqlStorage, d: DonoAperto): void {

@@ -75,10 +75,6 @@ export function vento(g: number): void { motore?.vento(g); }
 /** Dungeon: posizione dell'eroe a ogni tick (i passi li conta il motore) ed eventi della sim (colpi, monete, altari). */
 export function dungeonPasso(x: number, z: number): void { motore?.dungeonPasso(x, z); }
 export function dungeonEvento(e: { t: string; su?: string; critico?: boolean }): void { motore?.dungeonEvento(e); }
-/** Pesca (ui/pesca.ts, a ogni disegno): quando cambia fase, il suo suono (lancio, galleggiante in acqua, abbocca, preso, scappato). */
-let faseWas: string | null = null;
-const FASI: Record<string, SuonoId> = { lancio: 'lancio', attesa: 'plop', abbocca: 'abbocca', preso: 'pesce', scappato: 'scappato' };
-export function pescaFase(f: string | null): void { if (f === faseWas) return; faseWas = f; const id = f ? FASI[f] : undefined; if (id) suona(id); }
 /** Volumi dalle Impostazioni: livelli 0 (spento) … 3. */
 export function setVolumi(m: number, e: number): void { vol = { musica: m, effetti: e }; motore?.volumi(m, e); carica(); }
 

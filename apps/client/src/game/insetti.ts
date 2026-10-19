@@ -10,6 +10,7 @@ import type { InsettoDef } from '@marea/content/insetti.ts';
 import type { LotState } from '@marea/sim';
 import { ALBERI_BORGO, SASSI_BORGO, insettiOf, insettoDef, liberiDelTurno, notteAt, possiedeRetino, stagioneAt, turnoAt } from '@marea/sim/economy/insetti.ts';
 import { possiedePala } from '@marea/sim/economy/pala.ts';
+import { possiedeCanna } from '@marea/sim/economy/pesci.ts';
 import type { GameWorld } from './world.ts';
 import type { Hud } from '../ui/hud.ts';
 import type { Api } from '../net/api.ts';
@@ -24,7 +25,7 @@ import { PAL, el } from '../ui/style.ts';
 import { suona } from '../audio/ponte.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
-export type Attrezzo = 'nulla' | 'pala' | 'retino';
+export type Attrezzo = 'nulla' | 'pala' | 'retino' | 'canna';
 export type InsettiBorgo = {
   tick(a: boolean): boolean; update(dt: number): void;
   /** Cosa hai in mano (la pala scava solo se è in mano). */
@@ -62,6 +63,7 @@ const ICONE: Record<Attrezzo, string[]> = {
   nulla: ['........', '..m.m...', '.mmmmm..', '.mmmmmm.', '.mmmmmm.', '..mmmm..', '..mmmm..', '........'],
   pala: ['.....dd.', '.....md.', '....m...', '...m....', '.ppm....', 'pwppd...', 'pppd....', '.dd.....'],
   retino: ['..wwww..', '.w....w.', '.w....w.', '..wwww..', '...m....', '..m.....', '.m......', 'm.......'],
+  canna: ['.......m', '......mw', '.....m.w', '....m..w', '...m...w', '.pm....w', 'dm.....d', 'd.......'],
 };
 function iconaAttrezzo(a: Attrezzo): HTMLCanvasElement {
   const c = document.createElement('canvas'); c.width = c.height = 8; c.setAttribute('aria-hidden', 'true');
@@ -69,7 +71,7 @@ function iconaAttrezzo(a: Attrezzo): HTMLCanvasElement {
   if (g) ICONE[a].forEach((r, y) => [...r].forEach((k, x) => { const f = col[k]; if (f) { g.fillStyle = f; g.fillRect(x, y, 1, 1); } }));
   return c;
 }
-const NOME_ATTREZZO: Record<Attrezzo, string> = { nulla: 'MANI', pala: 'PALA', retino: 'RETINO' };
+const NOME_ATTREZZO: Record<Attrezzo, string> = { nulla: 'MANI', pala: 'PALA', retino: 'RETINO', canna: 'CANNA' };
 
 export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud: Hud; api: Api | null; getLot(): LotState | null; setLot(l: LotState): void; negozioDentro(): boolean }): InsettiBorgo {
   const w = o.world, arch = w.archipelago, T = arch.tile, porto = arch.places.find((p) => p.role === 'porto');
@@ -98,14 +100,14 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   };
 
   // ——— cosa hai in mano ———
-  const leggi = (): Attrezzo => { try { const v = localStorage.getItem(SALVA); return v === 'pala' || v === 'retino' || v === 'nulla' ? v : 'pala'; } catch { return 'pala'; } };
+  const leggi = (): Attrezzo => { try { const v = localStorage.getItem(SALVA); return v === 'pala' || v === 'retino' || v === 'canna' || v === 'nulla' ? v : 'pala'; } catch { return 'pala'; } };
   let scelta: Attrezzo = leggi();
-  const hai = (a: Attrezzo): boolean => a === 'nulla' || (a === 'pala' ? possiedePala(o.getLot()) : possiedeRetino(o.getLot()));
-  const inMano = (): Attrezzo => (hai(scelta) ? scelta : hai('retino') && scelta !== 'nulla' ? 'retino' : hai('pala') && scelta !== 'nulla' ? 'pala' : 'nulla');
+  const hai = (a: Attrezzo): boolean => a === 'nulla' || (a === 'pala' ? possiedePala(o.getLot()) : a === 'canna' ? possiedeCanna(o.getLot()) : possiedeRetino(o.getLot()));
+  const inMano = (): Attrezzo => (hai(scelta) ? scelta : scelta === 'nulla' ? 'nulla' : hai('retino') ? 'retino' : hai('pala') ? 'pala' : hai('canna') ? 'canna' : 'nulla');
   const metti = (a: Attrezzo) => { scelta = a; try { localStorage.setItem(SALVA, a); } catch { /* niente */ } };
   const cambia = (): void => {
-    const giro: Attrezzo[] = ['nulla', 'pala', 'retino'].filter((x) => hai(x as Attrezzo)) as Attrezzo[];
-    if (giro.length < 2) { o.hud.toast(hai('retino') || hai('pala') ? 'Hai un attrezzo solo' : 'Gli attrezzi (pala e retino) si comprano al negozio dei mobili', 2200); return; }
+    const giro: Attrezzo[] = ['nulla', 'pala', 'retino', 'canna'].filter((x) => hai(x as Attrezzo)) as Attrezzo[];
+    if (giro.length < 2) { o.hud.toast(hai('retino') || hai('pala') || hai('canna') ? 'Hai un attrezzo solo' : 'Gli attrezzi (pala, retino e canna da pesca) si comprano al negozio dei mobili', 2200); return; }
     const i = giro.indexOf(inMano()), next = giro[(i + 1) % giro.length]!;
     metti(next); colpo = 0; suona('click');
   };
@@ -272,7 +274,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const V = new THREE.Vector3();
   const retinoAnim = creaRetinoAnim(w);
   const disegnaMano = (mano: Attrezzo) => {
-    if (mano === 'nulla' || w.mode !== 'walk' || !w.avatar.visible) return;
+    if (mano === 'nulla' || mano === 'canna' || w.mode !== 'walk' || !w.avatar.visible) return; // la canna la disegna game/pesca.ts
     if (mano === 'retino') {
       const p = retinoAnim.posa();
       corpi.put(RETINO, p.x, p.y, p.z, p.h, p.pitch, p.roll, 1);
@@ -391,7 +393,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
         else if (key === 'a') azioneBtn.replaceChildren(el('span', '', 'SCUOTI'), el('span', 'lungo', 'L’ALBERO'), el('b', '', 'A'));
         for (const cv of azioneBtn.querySelectorAll('canvas')) { (cv as HTMLCanvasElement).style.width = (cv as HTMLCanvasElement).style.height = '20px'; (cv as HTMLCanvasElement).style.imageRendering = 'pixelated'; }
       }
-      const attr = dentro && (hai('pala') || hai('retino')) ? mano : '';
+      const attr = dentro && (hai('pala') || hai('retino') || hai('canna')) ? mano : '';
       if (attr !== lastAttr) {
         lastAttr = attr; attrBtn.classList.toggle('on', !!attr);
         if (attr) attrBtn.replaceChildren(iconaAttrezzo(attr as Attrezzo), el('span', '', NOME_ATTREZZO[attr as Attrezzo]));

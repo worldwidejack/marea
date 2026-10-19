@@ -5,7 +5,6 @@ import islands from './islands.json' with { type: 'json' };
 import avatar from './avatar.json' with { type: 'json' };
 import balance from './balance.json' with { type: 'json' };
 import regata from './minigames/regata.json' with { type: 'json' };
-import pesca from './minigames/pesca.json' with { type: 'json' };
 import consegne from './minigames/consegne.json' with { type: 'json' };
 import ingorgo from './minigames/ingorgo.json' with { type: 'json' };
 import decor from './decor.json' with { type: 'json' };
@@ -24,7 +23,7 @@ import corse from './minigames/corse.json' with { type: 'json' }; // Isola delle
 import snowboard from './minigames/snowboard.json' with { type: 'json' }; // Isola dell'Adrenalina
 import type { ArrembaggioCfg, LavaCfg } from './types.ts'; // Tempesta, Vulcano
 import type { MobileDef } from './types.ts'; // Mobili della casa (#265)
-import type { ArchipelagoDef, AvatarDef, BorgoDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, MeteoCfg, PerleCfg, PescaCfg, RegataCfg, ResourceDef, RientroCfg, ScacchiCfg } from './types.ts';
+import type { ArchipelagoDef, AvatarDef, BorgoDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, MeteoCfg, PerleCfg, RegataCfg, ResourceDef, RientroCfg, ScacchiCfg } from './types.ts';
 import type { PinguiniCfg } from './types.ts'; // Ghiacci
 import type { KoiCfg } from './types.ts'; // Giardino
 import type { CorseCfg } from './types.ts'; // Isola delle Corse
@@ -40,7 +39,7 @@ export const ISLANDS = islands as unknown as readonly IslandDef[];
 export const AVATAR = avatar as unknown as AvatarDef;
 export const BALANCE = balance as unknown as BalanceDef;
 export const MINIGAMES_CFG: {
-  regata: RegataCfg; pesca: PescaCfg; consegne: ConsegneCfg; ingorgo: IngorgoCfg; perle: PerleCfg;
+  regata: RegataCfg; consegne: ConsegneCfg; ingorgo: IngorgoCfg; perle: PerleCfg;
   pinguini: PinguiniCfg; // Ghiacci
   koi: KoiCfg; // Giardino
   arrembaggio: ArrembaggioCfg; // Tempesta
@@ -49,7 +48,6 @@ export const MINIGAMES_CFG: {
   snowboard: SnowboardMgCfg; // Isola dell'Adrenalina
 } = {
   regata: regata as unknown as RegataCfg,
-  pesca: pesca as unknown as PescaCfg,
   consegne: consegne as unknown as ConsegneCfg, // Consegne
   ingorgo: ingorgo as unknown as IngorgoCfg, // Ingorgo
   perle: perle as unknown as PerleCfg, // Perle

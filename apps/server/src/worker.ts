@@ -13,7 +13,7 @@ import { nowFor } from './clock.ts';
 import { elencoPersone, entraConInvito, esistePersona, salvaLook, salvaNome, segnaAccesso } from './db.ts';
 import { toFeedItem } from './feed.ts';
 import type { FeedRow } from './feed.ts';
-import { rottePortoAmici, segnaRecordDa } from './porto_amici.ts';
+import { rottePortoAmici, segnaCollezioneDa, segnaRecordDa } from './porto_amici.ts';
 import { giocaSolo, rotteAdrenalina } from './adrenalina.ts';
 export { Zone } from './do/Zone.ts';
 export { Lot } from './do/Lot.ts';
@@ -341,7 +341,7 @@ export default {
         return lotReq(env, p.id, now, 'decor_' + (dec[1] ?? ''), { id: body['id'], cell: body['cell'] });
       }
       // la casa arredabile (#265), la pala (#438) e il retino (#445): negozio dei mobili e ARREDA (solo la propria casa: il DO è quello della persona)
-      const casa = path.match(/^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|baule|amplia|pala|retino)$/);
+      const casa = path.match(/^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|baule|amplia|pala|retino|canna)$/);
       if (casa && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
@@ -359,7 +359,16 @@ export default {
       if (ins && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
-        return lotReq(env, p.id, now, 'insetti_' + (ins[1] ?? ''), { idx: body['idx'], k: body['k'], id: body['id'] });
+        const r = await lotReq(env, p.id, now, 'insetti_' + (ins[1] ?? ''), { idx: body['idx'], k: body['k'], id: body['id'] });
+        return ins[1] === 'consegna' ? segnaCollezioneDa(r, (q, b) => sfideReq(env, p.id, now, q, b)) : r;
+      }
+      // i pesci (#457): tira su il pesce di un'ombra, consegna al mobiliere (la consegna aggiorna la classifica dei collezionisti)
+      const pes = path.match(/^\/api\/lot\/pesci\/(cattura|consegna)$/);
+      if (pes && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        const r = await lotReq(env, p.id, now, 'pesci_' + (pes[1] ?? ''), { k: body['k'], id: body['id'] });
+        return pes[1] === 'consegna' ? segnaCollezioneDa(r, (q, b) => sfideReq(env, p.id, now, q, b)) : r;
       }
       // minigiochi da solo (senza posta): il DO del lotto apre la partita e la premia
       if (path === '/api/solo/start' && req.method === 'POST') {

@@ -5,6 +5,7 @@
 import { ITEMS_RAW, MATERIALS, WEAPON_TYPES } from '@marea/content/rpg.ts';
 import type { ItemDefRaw, MaterialDef, Traits, WeaponTypeDef } from '@marea/content/rpg.ts';
 import { INSETTI } from '@marea/content/insetti.ts';
+import { PESCI } from '@marea/content/pesci.ts';
 import type { ItemDef } from './types.ts';
 
 const r2 = (x: number): number => Math.round(x * 100) / 100;
@@ -83,6 +84,13 @@ function catalog(): ItemDef[] {
   for (const i of INSETTI) {
     if (byId.has(i.id)) throw new Error(`insetti.json: id già usato da un oggetto ${i.id}`);
     const it: ItemDef = { id: i.id, nome: i.nome, kind: 'insetto', peso: 0, colore: '#8FC35B', valore: i.prezzo, descr: 'Un insetto preso col retino a Borgo Marea. Portalo al mobiliere per la tua collezione o vendilo al Contrabbandiere.' };
+    byId.set(it.id, it);
+    out.push(it);
+  }
+  // i pesci (#457): come gli insetti, peso 0; la scheda vera nel Diario dopo la consegna al mobiliere
+  for (const p of PESCI) {
+    if (byId.has(p.id)) throw new Error(`pesci.json: id già usato da un oggetto ${p.id}`);
+    const it: ItemDef = { id: p.id, nome: p.nome, kind: 'pesce', peso: 0, colore: '#3FB9C9', valore: p.prezzo, descr: 'Un pesce tirato su con la canna. Portalo al mobiliere per la tua collezione o vendilo al Contrabbandiere.' };
     byId.set(it.id, it);
     out.push(it);
   }
