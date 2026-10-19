@@ -83,9 +83,12 @@ export default async function (ctx) {
       await ctx.waitState(L.page, (s) => s.wp2_input.azione === null, 6000);
     });
     await ctx.test('iphone: quando Mia entra, accanto alla campanella «Mia è online»', async () => {
+      // la bolla dura 5 s e la pagina di Mia ne mette quasi altrettanti a partire (col disegno software dei test): la si guarda da prima che Mia entri
+      await L.page.evaluate(() => { const b = document.getElementById('mzOnline'); window.__visteOnline = []; new MutationObserver(() => { if (b.classList.contains('on')) window.__visteOnline.push(b.textContent); }).observe(b, { attributes: true, childList: true }); });
       const M = await apri('tokM', ctx.B.DESKTOP);
       await L.page.bringToFront();
-      await ctx.waitState(L.page, (s) => s.hudAllegro.online === 'Mia', 15000);
+      await L.page.waitForFunction(() => window.__visteOnline.some((t) => t.includes('Mia è online')), null, { timeout: 15000 });
+      if ((await ctx.getState(L.page)).hudAllegro.online !== 'Mia') await hook(L.page, 'hudAllegroOnline', 'Mia'); // per la foto, se è già sparita
       await sleep(600);
       await ctx.shot(L.page, 'iphone_online');
       await M.page.close(); ctx._pages.splice(ctx._pages.indexOf(M), 1);

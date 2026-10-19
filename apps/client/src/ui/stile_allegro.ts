@@ -67,7 +67,7 @@ body #mzBar .mz-chip { min-height: 0; padding: 0; gap: ${k(5)}; background: none
 body #mzBar .mz-chip b { min-width: 0; font-weight: 400; }
 body #mzBar .mz-chip canvas { width: ${k(24)} !important; height: ${k(24)} !important; }
 body #mzBar .mz-chip.bump { transform: scale(1.15); color: ${A.oroChiaro}; }
-body #mzBar .mz-chip[data-res="monete"] canvas { display: none; }
+body #mzBar .mz-chip[data-res="monete"] :is(canvas, span) { display: none; }
 body #mzBar .mz-chip[data-res="monete"]::before { content: ''; flex: none; width: ${k(34)}; height: ${k(34)}; margin-left: ${k(-12)}; box-sizing: border-box; border-radius: 50%;
   border: ${k(2.5)} solid ${A.notte}; box-shadow: inset 0 0 0 ${k(3)} ${A.oroChiaro}, inset 0 ${k(-4)} 0 ${k(4)} ${A.oroScuro};
   background: linear-gradient(${A.bianco}, ${A.bianco}) center / ${k(5)} ${k(14)} no-repeat, ${A.oro}; }
