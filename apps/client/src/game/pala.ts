@@ -123,7 +123,7 @@ export function createPalaBorgo(o: {
   }
 
   async function refreshBuche(): Promise<BucaBorgo[]> {
-    if (!FLAGS.token) return buche;
+    if (!o.api || !FLAGS.token) return buche;
     try {
       const d = await callServer('GET', '/api/borgo/buche');
       if (Array.isArray(d['buche'])) { buche = d['buche'] as BucaBorgo[]; rebuildMesh(); }
