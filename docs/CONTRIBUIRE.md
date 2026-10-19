@@ -3,7 +3,7 @@
 > Per l'AI (Claude, Codex, Antigravity…) di chiunque metta mano a MAREA. La persona davanti a te probabilmente non è un programmatore: fai tu i passi tecnici e spiegali in una riga; a lei chiedi solo il cosa (gusto, priorità), con scelte A/B e screenshot. Le regole stanno in `CLAUDE.md`: qui ci sono i passi pratici.
 
 ## In breve
-**Issue** (il lavoro) → **ramo** → codice + test → **`/consegna`** (PR → controlli di GitHub → merge) → **deploy automatico** se la suite completa su `main` è verde. Nessuno deploya a mano, nessuno tocca Cloudflare.
+**Issue** (il lavoro) → **ramo** → codice + test → **`/consegna`** (PR → controlli di GitHub → merge) → **deploy automatico** pochi minuti dopo il merge. Nessuno deploya a mano, nessuno tocca Cloudflare.
 
 ## 1. Prima volta: preparare il computer (~10 minuti)
 Serve un account GitHub invitato nel repo (l'invito arriva per email da `worldwidejack` e va accettato: senza, puoi leggere il codice ma non mandare PR) e **Claude Code** (incluso in Claude Pro), Codex o Antigravity.
@@ -41,7 +41,7 @@ git switch -c <tuonome>/<cosa-fai>        # es. luca/boa-luminosa
 - **Documenti**: si toccano solo se la tua PR cambia quello che descrivono (il GDD se cambia com'è il gioco, il documento della modalità se cambia la modalità). Il diario del lavoro non va nei documenti: va nella PR, alla voce «Decisioni prese».
 
 ## 4. Consegnare: `/consegna`
-Il comando fa tutto: test veloci, commit, push del ramo, PR con descrizione, attesa dei controlli (1-2 min), merge. A mano sarebbe:
+Il comando fa tutto: test veloci, commit, push del ramo, PR con descrizione, attesa dei controlli (tutta la suite, ~15 min), merge. A mano sarebbe:
 ```
 node tests/run.mjs static types sim boot
 git add -A && git commit -m "…" && git push -u origin HEAD
@@ -50,7 +50,7 @@ gh pr checks --watch
 gh pr merge --squash --delete-branch
 ```
 Controlli **rossi** → non si fa merge: leggi l'errore (`gh run view --log-failed`), sistema, ripusha.
-Il deploy parte da solo dopo il merge e dura **20-45 minuti**: non restare a guardarlo. A fine lavoro controllane l'esito con `gh run list --workflow deploy.yml --limit 3`.
+Il deploy parte da solo dopo il merge e dura **~5 minuti**. Controllane l'esito con `gh run list --workflow deploy.yml --limit 3`.
 
 ## 5. Quando qualcuno ha cambiato `main` mentre lavoravi
 ```
@@ -60,18 +60,19 @@ Conflitti: tieni **entrambe** le modifiche quando possibile (sono lavori diversi
 Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue righe da lì e scrivi la nota nella PR.
 
 ## 6. Cosa succede dopo il merge
-- GitHub fa girare **tutta** la suite (4 gruppi in parallelo, 20-45 min). Verde → `tools/deploy.mjs` pubblica su https://marea.stanza-idee.workers.dev (migrazioni del database comprese). Rosso → online resta la versione di prima, e chi ha fatto l'ultimo merge sistema con una PR nuova.
+- **Prima del merge**, sulla PR, GitHub fa girare **tutta** la suite: test veloci + gioco vero in 6 gruppi paralleli (`tests/shard.mjs`, ~15 min). `main` è protetto: si unisce solo col controllo «esito» verde.
+- **Dopo il merge** il deploy rifà i test veloci (due PR verdi unite di seguito non si sono mai provate insieme) e `tools/deploy.mjs` pubblica su https://marea.stanza-idee.workers.dev (migrazioni del database comprese), in ~5 min. Rosso → online resta la versione di prima, e chi ha fatto l'ultimo merge sistema con una PR nuova.
 - Se dopo un deploy il gioco online ha un problema: GitHub → Actions → **Torna indietro** → Run workflow. Riporta online la versione precedente in un minuto. Attenzione: non annulla le migrazioni del database.
 - Una PR che tocca solo file `.md` o `docs/` non rifà test e deploy (il gioco non cambia).
 - Due merge ravvicinati: i deploy vanno in coda, non si accavallano.
-- GitHub disegna il gioco a 2-4 fps (contro ~60 di un Mac): se cade una suite e2e, il deploy la riprova una volta sola. Static, types, sim e budget non si riprovano. Un test e2e nuovo non deve aspettare tempi fissi brevi (`sleep(200)` sul Mac sono ~12 frame, su GitHub nemmeno uno): aspetta lo stato (`ctx.waitState`, `waitForFunction`).
+- GitHub disegna il gioco a 2-4 fps (contro ~60 di un Mac): se cade una suite e2e, i controlli la riprovano una volta sola e lasciano un avviso (test instabile da sistemare). Static, types, sim e budget non si riprovano. Un test e2e nuovo non deve aspettare tempi fissi brevi (`sleep(200)` sul Mac sono ~12 frame, su GitHub nemmeno uno): aspetta lo stato (`ctx.waitState`, `waitForFunction`).
 
 ## 7. Regole del gruppo
 - **Mai push su `main`, mai `npm run deploy`, mai `wrangler` verso Cloudflare.** Il gioco online è di tutti.
 - **Il repo è pubblico**: chiunque legge codice, issue e PR. Segreti, token, link personali con `?t=`, codici d'invito e dati personali: mai nel repo, mai nelle issue, mai nelle PR.
 - `_STATO.md` e `_MEMORIA.md` sono il diario personale di Jack: stanno solo sul suo Mac, fuori dal repo. Il tuo lavoro lo racconti nella PR.
 - Migrazioni D1: numero successivo all'ultimo in `apps/server/migrations/` su `main` aggiornato. I controlli della PR bocciano due migrazioni con lo stesso numero.
-- Niente push di prova a raffica: prova in locale prima. Ogni merge che cambia il gioco occupa la coda del deploy per mezz'ora.
+- Niente push di prova a raffica: prova in locale prima. Ogni push su una PR rifà tutta la suite (~15 min di GitHub).
 
 ## 8. Problemi già risolti
 *(Aggiungi qui una riga quando sistemi un intoppo di installazione o di test.)*

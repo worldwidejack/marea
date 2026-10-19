@@ -1,4 +1,5 @@
-# Controlli su ogni Pull Request: tipi, sim, budget della build, avvio del gioco. Verde = si può fare merge.
+# Controlli su ogni Pull Request: TUTTA la suite prima del merge (test veloci + gioco vero in 6 gruppi paralleli, tests/shard.mjs).
+# «esito» verde = si può unire (main è protetto: senza «esito» verde GitHub non unisce). Le PR di soli documenti saltano gli e2e.
 name: Controlli
 on:
   pull_request:
@@ -6,13 +7,30 @@ on:
 concurrency:
   group: controlli-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+env:
+  CI: '1'
+  WRANGLER_SEND_METRICS: 'false'
 jobs:
-  controlli:
+  cosa:
+    name: cosa cambia
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      gioco: ${{ steps.c.outputs.gioco }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: c
+        name: Solo documenti?
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$base" ] || git diff --name-only "$base" HEAD | grep -qvE '(\.md$|^docs/)'; then echo "gioco=si" >> "$GITHUB_OUTPUT"; else echo "gioco=no" >> "$GITHUB_OUTPUT"; fi
+
+  veloci:
+    name: test veloci
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    env:
-      CI: '1'
-      WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,9 +48,68 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-out
+          name: test-out-veloci
           path: |
             tests/out/report.json
             tests/out/shots/
           retention-days: 7
           if-no-files-found: ignore
+
+  e2e:
+    name: gioco vero
+    needs: cosa
+    if: needs.cosa.outputs.gioco == 'si'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        gruppo: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - name: Suite del gruppo ${{ matrix.gruppo }}
+        id: suite
+        run: |
+          suite=$(node tests/shard.mjs ${{ matrix.gruppo }} 6)
+          echo "Suite: $suite"
+          node tests/run.mjs $suite
+        continue-on-error: true
+      # GitHub disegna il gioco a 2-4 fps: un test e2e a tempo può cadere per lentezza. Si riprovano una volta sola le suite cadute;
+      # se è caduto qualcosa di deterministico (budget della build) non si riprova.
+      - name: Riprova le suite cadute (una volta)
+        if: steps.suite.outcome == 'failure'
+        run: |
+          cadute=$(node -e "const r=require('./tests/out/report.json'); console.log([...new Set(r.results.filter(x=>!x.ok).map(x=>x.suite))].join(' '))")
+          echo "Cadute: $cadute"
+          echo "::warning::Suite riprovate (instabili da sistemare): $cadute"
+          for s in $cadute; do case "$s" in static|types|sim|build|runner) echo "::error::$s è deterministico: niente riprova."; exit 1;; esac; done
+          if [ -n "$cadute" ]; then node tests/run.mjs $cadute; fi
+      - name: Screenshot e report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-out-${{ matrix.gruppo }}
+          path: |
+            tests/out/report.json
+            tests/out/perf.json
+            tests/out/shots/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  esito:
+    name: esito
+    needs: [cosa, veloci, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Tutto verde?
+        run: |
+          echo "test veloci: ${{ needs.veloci.result }} · gioco vero: ${{ needs.e2e.result }}"
+          [ "${{ needs.veloci.result }}" = "success" ] || { echo "::error::Test veloci rossi"; exit 1; }
+          case "${{ needs.e2e.result }}" in success|skipped) ;; *) echo "::error::Gioco vero rosso"; exit 1;; esac
