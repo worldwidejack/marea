@@ -12,4 +12,4 @@ assignees: ''
 <!-- come si capisce che è finito: «nella Regata si vede la linea d'arrivo», «il test X passa» -->
 
 ## Dove guardare
-<!-- file o documenti utili, se li sai (docs/CONTRACTS.md §1 ha la mappa del codice) -->
+<!-- file o documenti utili, se li sai (docs/MAPPA.md dice dove sta il codice) -->

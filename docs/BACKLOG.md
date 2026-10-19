@@ -1,6 +1,6 @@
 # MAREA — Backlog (idee parcheggiate, zero sensi di colpa)
 
-> Ogni idea nuova → una riga qui. Entra in una milestone solo tramite `ROADMAP.md`. Niente deroghe alla V1.
+> Ogni idea nuova → una riga qui. Entra nel gioco solo con l'ok di Jack.
 > Dal 14 ott 2026 la direzione del gioco sta in `docs/VISIONE.md` (un'isola intera per ogni format): un'idea qui sotto che è un minigioco piccolo e isolato va prima legata a un'isola-format.
 
 ## Dalla revisione di Jack (14 ott 2026, `VISIONE.md`)
@@ -39,7 +39,7 @@
 - Missioni della Bacheca con «visita un'isola» o «fai un giro in barca»: servirebbe una prova lato server della posizione (oggi la posizione è del client).
 - ~~Barche per giocatore~~ fatto l'8 ott 2026 (#6, #107): la barca di ognuno al molo della sua isola, la tua si scansa se uno scafo la tocca. Resta: la barca degli amici a piedi lontano da casa si vede a casa, non dove l'hanno lasciata (servirebbe la posizione della barca nel `pos`).
 - Caricamento a due tempi dei modelli: all'avvio solo L1 e ciò che serve al proprio lotto; L2/L3, Porto e facciate dopo (oggi 1,53 MB iniziali su 2).
-- ~~Bordo del mondo~~ fatto (#5): una corrente morbida riporta la barca verso le isole (GDD §3, CONTRACTS).
+- ~~Bordo del mondo~~ fatto (#5): una corrente morbida riporta la barca verso le isole (GDD §3).
 - Test `m1_isola`: usare l'orologio di test di M1-server (`X-Test-Now-Offset` con `--var TEST_CLOCK:1`) invece di aspettare 3 minuti veri.
 - ~~Runner dei test: processi wrangler orfani dopo un timeout~~ fatto l'8 ott 2026 (#8).
 - ~~Regata sulla laguna~~ fatto in Fetta 2 (v3).

@@ -1,3 +1,5 @@
+> **archivio: non si legge per lavorare.** Vecchie tappe e diario delle deviazioni, fermi al 19 ott 2026. Dove va il gioco: `docs/VISIONE.md`; le decisioni nuove stanno nelle PR («Decisioni prese»).
+
 # MAREA — Roadmap
 
 > Le tappe del progetto, in ordine. **MAREA non ha scadenze** (Jack, 7 ott 2026): le date sotto sono quelle del piano iniziale, valgono solo come ordine. A fine tappa si annota qui cosa è cambiato e perché (§Deviazioni). Il dettaglio storico sta in `_MEMORIA.md`.

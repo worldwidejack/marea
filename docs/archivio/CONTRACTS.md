@@ -1,3 +1,5 @@
+> **archivio: non si legge per lavorare.** Vecchia mappa del codice e vecchi contratti tra pacchetti, fermi al 19 ott 2026. Com'è adesso: `docs/MAPPA.md` e `docs/TECH.md`; la storia sta in git e nelle PR.
+
 # MAREA — CONTRACTS (interfacce tra pacchetti; si cambiano con una PR che aggiorna anche questo file)
 
 > Leggere con `TECH.md` §3 (regole di codice) e `ROADMAP.md`. Ogni file della tabella di proprietà esiste già come **stub che esporta l'interfaccia finale**: sostituisci il corpo, tieni nomi e firme. Gli stub segnati «funzionante» fanno girare il walking skeleton: tienili in piedi mentre li sostituisci.

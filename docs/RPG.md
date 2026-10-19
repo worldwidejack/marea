@@ -1,7 +1,7 @@
 # MAREA — Mondo Sotterraneo (GDD della parte GDR)
 
-> Parte del GDD (`GDD.md` §12 rimanda qui; vale come il GDD). Nasce dal documento di **Riccardo** «Piano Gioco» (6 ott 2026), portato nel repo da Jack. Le scelte che il documento non diceva le ha prese il Claude di Jack e sono segnate **[scelta provvisoria]**: Riccardo le può cambiare.
-> Numeri: tutti in `packages/content/src/rpg/*.json`. Le tabelle qui sono la prima ipotesi; cambiarli = aggiornare qui e una riga in `ROADMAP.md` §Deviazioni.
+> Parte del GDD (`GDD.md` §12 rimanda qui). Nasce dal documento di **Riccardo** «Piano Gioco» (6 ott 2026), portato nel repo da Jack. Le scelte che il documento non diceva le ha prese il Claude di Jack e sono segnate **[scelta provvisoria]**: Riccardo le può cambiare.
+> Numeri: tutti in `packages/content/src/rpg/*.json`. Le tabelle qui sono la prima ipotesi; cambiarli = aggiornare qui, col perché nella PR.
 
 ## 0. Chi fa cosa
 - **Jack** (superficie): isole, barca, minigiochi per le risorse, edifici del villaggio (anche Banco da Lavoro, Tavolo Alchemico, Forziere, Serra: li si piazza sull'isola come gli altri), sbloccabili estetici.
