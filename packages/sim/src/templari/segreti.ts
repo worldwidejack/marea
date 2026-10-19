@@ -10,7 +10,7 @@
 import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
 import { createRng } from '../rng.ts';
 import { bfs, cellOf } from '../dungeon/map.ts';
-import type { Arena } from './mappa.ts';
+import type { Arena, Passaggio } from './mappa.ts';
 import type { TState, Zombie } from './stato.ts';
 import { ev, haPozione, inPiedi, secToTicks, usa } from './stato.ts';
 import { bevi } from './bottega.ts';
@@ -32,11 +32,19 @@ export function segretiToccati(s: TState): boolean {
 }
 
 // ---------------- la cripta ----------------
-/** Il punto (x, z) sta nella cripta. */
+/** Il punto (x, z) sta nel piano di sotto (la cripta o le catacombe, §12b punto 3). */
 export function inCripta(s: TState, x: number, z: number): boolean {
   const c = s.arena.cripta, i = cellOf(s.gr.percorso, x, z);
   return !!c && i >= 0 && c.dentro[i] === 1;
 }
+/** Il punto (x, z) sta nella sala della cripta (lì le anime vanno all'altare; nelle catacombe no, scelta di birbasan). */
+export function inSala(s: TState, x: number, z: number): boolean {
+  const c = s.arena.cripta, i = cellOf(s.gr.percorso, x, z);
+  return !!c && i >= 0 && c.sala[i] === 1;
+}
+/** La scala si usa: la cripta col muro rotto, le grate delle catacombe comprate. */
+export const passaggioAperto = (s: TState, p: Passaggio): boolean => (p.porta ? !!s.porte[p.porta] : s.segreti.muro);
+const aperti = (s: TState): Passaggio[] => s.arena.passaggi.filter((p) => passaggioAperto(s, p));
 
 /** Il muro si rompe: la sua cella si apre per tutti (da lì si scende), gli zombie ricalcolano la strada. */
 export function rompiMuro(s: TState): void {
@@ -67,47 +75,59 @@ export function fendenteMuro(s: TState, portata: number, caricato: boolean, giro
   colpoMuro(s, c.muro.x, c.muro.z, 0, caricato);
 }
 
-/** Il flow field degli zombie (zombie.ts) verso le celle `from`: col muro rotto i due capi della scala sono vicini (un passo). Con una scala
- *  sola, la strada più corta la usa al massimo una volta: distanza = min(dritta, fino a un capo + 1 + dall'altro capo). */
+/** Il flow field degli zombie (zombie.ts) verso le celle `from`, passando dalle scale aperte (i due capi di una scala sono a un passo).
+ *  Si rilassa scala per scala finché non migliora più (con tre scale la strada più corta ne usa al massimo tre). */
 export function flusso(s: TState, from: number | readonly number[]): void {
-  const g = s.gr.percorso, c = s.arena.cripta;
+  const g = s.gr.percorso;
   bfs(g, from, s.flow);
-  if (!c || !s.segreti.muro) return;
-  const a = c.muro.cella, b = c.scala.cella, da = s.flow[a] ?? -1, db = s.flow[b] ?? -1;
-  const via = (capo: number, dCapo: number) => {
-    if (dCapo < 0) return;
-    const d = bfs(g, capo);
-    for (let i = 0; i < d.length; i++) { const x = d[i]!; if (x >= 0 && (s.flow[i]! < 0 || dCapo + 1 + x < s.flow[i]!)) s.flow[i] = dCapo + 1 + x; }
-  };
-  via(b, da); via(a, db);
+  const ap = aperti(s);
+  if (!ap.length) return;
+  const da = new Map<number, Int32Array>(), dist = (c: number) => { let d = da.get(c); if (!d) { d = bfs(g, c); da.set(c, d); } return d; };
+  for (let giro = 0; giro <= ap.length; giro++) {
+    let meglio = false;
+    for (const p of ap) for (const [x, y] of [[p.a, p.b], [p.b, p.a]] as const) {
+      const dx = s.flow[x.cella] ?? -1;
+      if (dx < 0) continue;
+      const d = dist(y.cella);
+      for (let i = 0; i < d.length; i++) { const v = d[i]!; if (v >= 0 && (s.flow[i]! < 0 || dx + 1 + v < s.flow[i]!)) { s.flow[i] = dx + 1 + v; meglio = true; } }
+    }
+    if (!meglio) break;
+  }
 }
-/** Lo zombie sta su un capo della scala e il flow field dice di passare dall'altro: ci va (true = si è spostato, il passo è fatto). */
+/** L'altro capo della scala aperta che ha un capo nella cella `qui`, o null. */
+function altroCapo(s: TState, qui: number): { p: Passaggio; da: Passaggio['a']; a: Passaggio['a'] } | null {
+  if (qui < 0) return null;
+  for (const p of s.arena.passaggi) {
+    if (qui !== p.a.cella && qui !== p.b.cella) continue;
+    if (!passaggioAperto(s, p)) return null;
+    return qui === p.a.cella ? { p, da: p.a, a: p.b } : { p, da: p.b, a: p.a };
+  }
+  return null;
+}
+/** Lo zombie sta su un capo di una scala e il flow field dice di passare dall'altro: ci va (true = si è spostato, il passo è fatto). */
 export function scalaZombie(s: TState, z: Zombie, qui: number): boolean {
-  const c = s.arena.cripta;
-  if (!c || !s.segreti.muro || qui < 0) return false;
-  const altro = qui === c.muro.cella ? c.scala : qui === c.scala.cella ? c.muro : null;
-  if (!altro) return false;
-  const dq = s.flow[qui] ?? -1, da = s.flow[altro.cella] ?? -1;
+  const k = altroCapo(s, qui);
+  if (!k) return false;
+  const dq = s.flow[qui] ?? -1, da = s.flow[k.a.cella] ?? -1;
   if (da < 0 || (dq >= 0 && da >= dq)) return false;
-  z.x = altro.x; z.z = altro.z;
-  ev(s, { t: 'scala', id: z.id, x: altro.x, z: altro.z });
+  z.x = k.a.x; z.z = k.a.z;
+  ev(s, { t: 'scala', id: z.id, x: k.a.x, z: k.a.z });
   return true;
 }
-/** L'eroe di turno entra in un capo della scala: arriva davanti all'altro (scende nella cripta o torna in chiesa). */
+/** L'eroe di turno entra in un capo di una scala: arriva davanti all'altro (scende sotto o torna sopra). `via` = quale scala. */
 export function scalaEroe(s: TState): void {
-  const c = s.arena.cripta, h = s.eroe;
-  if (!c || !s.segreti.muro) return;
-  const i = cellOf(s.gr.eroe, h.x, h.z), dove = i === c.muro.cella ? c.giu : i === c.scala.cella ? c.su : null;
-  if (!dove) return;
+  const h = s.eroe, k = altroCapo(s, cellOf(s.gr.eroe, h.x, h.z));
+  if (!k) return;
+  const dove = k.a.davanti;
   h.x = dove.x; h.z = dove.z; h.fx = dove.fx; h.fz = dove.fz;
-  ev(s, { t: 'scala', giu: dove === c.giu, x: dove.x, z: dove.z });
+  ev(s, { t: 'scala', giu: k.a === k.p.b, via: k.p.id, x: dove.x, z: dove.z });
 }
 /** L'altare è libero per l'eroe di turno: le anime della squadra bastano per il suo sigillo (5, e 5 in più per ogni Lancia persa cadendo). */
 export const lanciaLibera = (s: TState): boolean => s.segreti.anime >= s.eroe.sigillo;
 /** Uno zombie è morto (colpi.ts `uccidi`): se era nella cripta e l'altare è ancora sigillato per qualcuno, la sua anima va all'altare. */
 export function anima(s: TState, z: Zombie): void {
   const g = s.segreti, attesa = s.eroi.filter((h) => !h.fuori && g.anime < h.sigillo).map((h) => h.sigillo);
-  if (!g.muro || !attesa.length || !inCripta(s, z.x, z.z)) return;
+  if (!attesa.length || !inSala(s, z.x, z.z)) return; // nella sala della cripta (§12b punto 3: nelle catacombe no)
   g.anime++;
   ev(s, { t: 'anima', x: r2(z.x), z: r2(z.z), n: g.anime, tutte: Math.min(...attesa) });
   if (attesa.includes(g.anime)) ev(s, { t: 'cripta', fase: 'libera' });
@@ -115,7 +135,7 @@ export function anima(s: TState, z: Zombie): void {
 /** L'eroe di turno è all'altare della cripta. */
 export function vicinoAltareCripta(s: TState): boolean {
   const c = s.arena.cripta, h = s.eroe, r = TEMPLARI.cripta.raggio;
-  return !!c && s.segreti.muro && d2(c.altare.x, c.altare.z, h.x, h.z) <= r * r;
+  return !!c && d2(c.altare.x, c.altare.z, h.x, h.z) <= r * r; // ci si arriva anche dalle grate delle catacombe
 }
 /** L'eroe di turno ha già l'arma della cripta. */
 export const haLancia = (s: TState): boolean => s.eroe.armi.some((x) => x?.id === TEMPLARI.cripta.arma);

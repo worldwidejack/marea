@@ -15,6 +15,8 @@ import type { Pezzo } from './armi3d.ts';
 
 export type Arredi = {
   update(t: number): void;
+  /** L'eroe è sotto (§12b punto 3): il mare non si vede. */
+  setSotto(on: boolean): void;
   stats(): { croci: number; usci: number; archi: number; cipressi: number };
   dispose(): void;
 };
@@ -201,8 +203,11 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
   const teschioMat = new THREE.MeshLambertMaterial({ map: teschioT, side: THREE.DoubleSide }); disp.push(teschioMat);
   if (sabbia.length) {
     mareT.repeat.set(W * T / 8, 5);
-    mare = new THREE.Mesh(new THREE.PlaneGeometry(W * T + 60, 40), new THREE.MeshLambertMaterial({ map: mareT }));
-    mare.rotation.x = -Math.PI / 2; mare.position.set((W * T) / 2, -0.02, H * T + 20); mare.name = 'mare';
+    // il mare oltre la riva: fino al pavimento del piano di sotto (§12b punto 3, scena.ts), che comincia 14 righe prima delle catacombe
+    let fine = a.sopra + 40;
+    for (let i = a.sopra * W; i < a.cell.length; i++) if (a.cell[i] !== C.fuori) { fine = Math.max(a.sopra + 4, Math.floor(i / W) - 14); break; }
+    mare = new THREE.Mesh(new THREE.PlaneGeometry(W * T + 60, (fine - a.sopra) * T), new THREE.MeshLambertMaterial({ map: mareT }));
+    mare.rotation.x = -Math.PI / 2; mare.position.set((W * T) / 2, -0.02, ((a.sopra + fine) / 2) * T); mare.name = 'mare';
     scene.add(mare); disp.push(mare.geometry, mare.material as THREE.Material);
   }
   // bandiera nera sulla tenda più grande della spiaggia
@@ -252,6 +257,7 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
       if (bandiera) bandiera.rotation.y = 0.35 * Math.sin(st * 0.8);
       if (mare) mareT.offset.x = (st % 32) / 64;
     },
+    setSotto(on) { if (mare) mare.visible = !on; },
     stats: () => ({ croci: croci.length, usci: usci.length, archi: archi.length, cipressi: cip.length }),
     dispose() { for (const d of disp) d.dispose(); },
   };

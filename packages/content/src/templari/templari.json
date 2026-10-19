@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "maxMinuti": 60,
   "partenza": { "punti": 500, "arma": "spada" },
   "eroe": {
@@ -68,7 +68,9 @@
     "taverna": { "nome": "Taverna del Teschio", "prezzo": 750, "zona": "taverna" },
     "spiaggia_taverna": { "nome": "Porta della spiaggia", "prezzo": 1250, "zona": "spiaggia" },
     "spiaggia_cimitero": { "nome": "Cancello della spiaggia", "prezzo": 1250, "zona": "spiaggia" },
-    "sacrestia": { "nome": "Porta della sacrestia", "prezzo": 750, "zona": "sacrestia" }
+    "sacrestia": { "nome": "Porta della sacrestia", "prezzo": 750, "zona": "sacrestia" },
+    "grata_ossario": { "nome": "Grata dell’ossario", "prezzo": 1250, "zona": "cripta" },
+    "grata_grotta": { "nome": "Grata della grotta", "prezzo": 1250, "zona": "cripta" }
   },
   "porta": { "raggio": 1.7 },
   "alberi": { "cipresso": 0.3, "palma": 0.2, "lampione": 0.12 },

@@ -19,6 +19,8 @@ import { createArredi } from './arredi.ts';
 import { createDettagli } from './dettagli.ts';
 import { createAccampamento } from './accampamento.ts';
 import { createBanchetto } from './banchetto.ts';
+import { createCatacombe3d } from './catacombe3d.ts';
+import type { Catacombe3d } from './catacombe3d.ts';
 import { createFinestra } from '../render/finestra.ts';
 
 export type Scena = {
@@ -35,6 +37,8 @@ export type Scena = {
   setMuroRotto(rotto: boolean): void;
   /** L'eroe è nella cripta: luna, cielo e ambiente quasi spenti, restano la lanterna, le torce e l'altare. */
   setCripta(dentro: boolean): void;
+  /** Le catacombe (§12b punto 3): nicchie, torce, fucina (per le prove). */
+  catacombe: Catacombe3d;
   /** Finestra sull'eroe accesa o spenta (la foto della chiesa dipinta, dipinto.ts, la spegne). */
   setTaglia(on: boolean): void;
   stats(): { muri: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number; sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number; palizzata: number; navi: number };
@@ -49,10 +53,12 @@ const H_CASA = [2.2, 2.8, 1.8, 3.0, 2.5, 1.4];
 const FIN = { raggio: 2, altezza: 0.75 } as const;
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 
-/** Pavimento: una texture a pixel per tutta l'arena, il suolo di ogni cella dalla mappa. */
-function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasTexture {
-  const cv = document.createElement('canvas'); cv.width = a.w * PX; cv.height = a.h * PX;
+/** Pavimento: una texture a pixel per le righe da `z0` a `z1` (escluse) dell'arena, il suolo di ogni cella dalla mappa. Due: il sopra e
+ *  il piano di sotto (§12b punto 3), che sta più giù oltre il mare; tra i due solo il mare (arredi.ts). */
+function pavimento(a: Arena, centro: { x: number; z: number }, z0: number, z1: number): THREE.CanvasTexture {
+  const cv = document.createElement('canvas'); cv.width = a.w * PX; cv.height = (z1 - z0) * PX;
   const g = cv.getContext('2d')!;
+  g.translate(0, -z0 * PX); // si disegna con le coordinate dell'arena
   const px = (c: string, x: number, y: number, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
   // distanza (celle) dalla terra o dal pavimento più vicini, per il buio a bande oltre le zone
   // e il suolo più vicino: oltre la sabbia c'è il mare, oltre il resto il bosco scuro
@@ -68,18 +74,19 @@ function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasText
   }
   // mare: le celle di fuori vicine alla sabbia collegate al bordo della mappa (le sacche chiuse dentro l'isola restano bosco)
   const acqua = new Uint8Array(W * H), qa: number[] = [];
-  const puo = (i: number) => a.cell[i] === C.fuori && vicino[i] === SUOLO.sabbia && d[i]! <= 12;
+  // (e sotto la riva, fino al sopra: dal §12b la taverna dà sul mare, la striscia di spiaggia sotto non c'è più)
+  let riva = 0;
+  for (let i = 0; i < a.sopra * W; i++) if (a.suolo[i] === SUOLO.sabbia) riva = Math.floor(i / W);
+  const puo = (i: number) => a.cell[i] === C.fuori && ((vicino[i] === SUOLO.sabbia && d[i]! <= 12) || (Math.floor(i / W) > riva && Math.floor(i / W) < a.sopra));
   for (let i = 0; i < W * H; i++) { const cx = i % W, cz = (i - cx) / W; if ((cz === H - 1 || cx === 0 || cx === W - 1) && puo(i)) { acqua[i] = 1; qa.push(i); } }
   for (let k = 0; k < qa.length; k++) {
     const i = qa[k]!, cx = i % W, cz = (i - cx) / W;
     for (const [dx, dz] of N4) { const nx = cx + dx, nz = cz + dz, j = nz * W + nx; if (nx >= 0 && nz >= 0 && nx < W && nz < H && !acqua[j] && puo(j)) { acqua[j] = 1; qa.push(j); } }
   }
   const mare = (i: number) => acqua[i] === 1;
-  // attorno alla cripta (§9c) niente bosco: sotto terra è tutto nero
-  let bx0 = W, bx1 = -1, bz0 = H, bz1 = -1;
-  if (a.cripta) for (let i = 0; i < W * H; i++) if (a.cripta.dentro[i]) { const x = i % W, z = (i - x) / W; bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); bz0 = Math.min(bz0, z); bz1 = Math.max(bz1, z); }
-  const sottoterra = (cx: number, cz: number) => cx >= bx0 - 6 && cx <= bx1 + 9 && cz >= bz0 - 6 && cz <= bz1 + 6;
-  for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
+  // il piano di sotto (cripta e catacombe, §9c e §12b, dalla riga `sopra` in giù): niente bosco né mare, sotto terra è tutto nero
+  const sottoterra = (_cx: number, cz: number) => cz >= a.sopra;
+  for (let cz = z0; cz < z1; cz++) for (let cx = 0; cx < W; cx++) {
     const i = cz * W + cx, x0 = cx * PX, y0 = cz * PX, hh = (s: number) => cellHash(cx, cz, s);
     const su = a.cell[i] === C.fuori ? SUOLO.niente : a.suolo[i]!;
     switch (su) {
@@ -95,6 +102,10 @@ function pavimento(a: Arena, centro: { x: number; z: number }): THREE.CanvasText
         if (dd <= 3) for (let s = 0; s < 3 * K2; s++) if (hh(s) < 0.5) px(PAL.bosco, x0 + Math.floor(hh(s + 9) * PX), y0 + Math.floor(hh(s + 19) * PX));
         break;
       }
+      case SUOLO.catacomba: // terra battuta delle catacombe: scura, coi sassi e le schegge d'osso
+        px(hh(1) < 0.5 ? PAL.ombraCalda : PAL.neroCaldo, x0, y0, PX, PX);
+        for (let s = 0; s < 6 * K2; s++) { const c = hh(s + 2); px(c < 0.45 ? PAL.roccia : c < 0.8 ? PAL.pietraScura : PAL.sabbia, x0 + Math.floor(hh(s + 30) * PX), y0 + Math.floor(hh(s + 40) * PX), c < 0.8 ? 2 : 1, 1); }
+        break;
       case SUOLO.terra:
         px(hh(1) < 0.5 ? PAL.bosco : P.boscoOmbra, x0, y0, PX, PX);
         for (let s = 0; s < 7 * K2; s++) { const c = hh(s + 2); px(c < 0.3 ? PAL.erbaScura : c < 0.55 ? PAL.legnoScuro : c < 0.62 ? PAL.roccia : P.boscoOmbra, x0 + Math.floor(hh(s + 30) * PX), y0 + Math.floor(hh(s + 40) * PX), 1, 1 + (c < 0.3 ? 1 : 0)); }
@@ -237,10 +248,25 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
     return n(x) > n(b) ? x : b;
   }, a.bracieri[0] ?? { x: a.w / 2, z: a.h / 2 });
   // ---- pavimento ----
-  const tex = pavimento(a, centro); disp.push(tex);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(a.w * T, a.h * T), lambert({ map: tex }));
-  floor.rotation.x = -Math.PI / 2; floor.position.set((a.w * T) / 2, 0, (a.h * T) / 2); floor.name = 'pavimento';
+  const tex = pavimento(a, centro, 0, a.sopra); disp.push(tex);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(a.w * T, a.sopra * T), lambert({ map: tex }));
+  floor.rotation.x = -Math.PI / 2; floor.position.set((a.w * T) / 2, 0, (a.sopra * T) / 2); floor.name = 'pavimento';
   scene.add(floor); disp.push(floor.geometry, floor.material as THREE.Material);
+  // il piano di sotto (§12b punto 3): il suo pavimento, nero attorno ai tunnel (14 righe: dal sotto non si vede il mare), sopra il mare in mezzo
+  let floorSotto: THREE.Mesh | null = null;
+  { let zs = a.h;
+    for (let i = a.sopra * W; i < a.cell.length; i++) if (a.cell[i] !== C.fuori) { zs = Math.floor(i / W); break; }
+    zs = Math.max(a.sopra, zs - 14);
+    if (zs < a.h) {
+      const ts = pavimento(a, centro, zs, a.h); disp.push(ts);
+      // 40 m in più attorno (la texture ripete il bordo, nero): dal sotto non si vede la fine del pavimento
+      const M = 40, gS = new THREE.PlaneGeometry((a.w + 2 * M) * T, (a.h - zs + 2 * M) * T), uv = gS.getAttribute('uv');
+      for (let k = 0; k < uv.count; k++) uv.setXY(k, (uv.getX(k) * (a.w + 2 * M) - M) / a.w, (uv.getY(k) * (a.h - zs + 2 * M) - M) / (a.h - zs));
+      floorSotto = new THREE.Mesh(gS, lambert({ map: ts }));
+      floorSotto.rotation.x = -Math.PI / 2; floorSotto.position.set((a.w * T) / 2, 0, ((zs + a.h) / 2) * T); floorSotto.name = 'pavimento_sotto';
+      floorSotto.visible = false; // si vede solo da sotto (setCripta)
+      scene.add(floorSotto); disp.push(floorSotto.geometry, floorSotto.material as THREE.Material);
+    } }
 
   // ---- muri della chiesa e delle case: un box per cella; le case senza tetto (dentro solo travi crollate) ----
   const muri: number[] = [], colonne: number[] = [], bassi: number[] = [];
@@ -254,6 +280,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   const muro = new THREE.InstancedMesh(muroGeo, muroMat, Math.max(1, muri.length)); muro.name = 'muri'; muro.frustumCulled = false;
   const altezza = muri.map((i) => {
     const cx = i % W, cz = Math.floor(i / W), h = cellHash(cx, cz, 11);
+    if (a.tipo[i] === TIPO.roccia || a.tipo[i] === TIPO.nicchia) return 3.2 + 0.5 * h; // la roccia delle catacombe: alta, il tunnel è chiuso
     if (a.tipo[i] !== TIPO.casa) return H_MURO[Math.floor(h * H_MURO.length)]!;
     const bordo = N4.some(([dx, dz]) => tipoA(cx + dx, cz + dz) !== TIPO.casa);
     return bordo ? H_CASA[Math.floor(h * H_CASA.length)]! : 0.35 + 0.3 * cellHash(cx, cz, 12);
@@ -268,7 +295,8 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   muri.forEach((i, n) => {
     const p = ctr(i), casa = a.tipo[i] === TIPO.casa, h = cellHash(i, 1, 2);
     muro.setMatrixAt(n, m4.compose(v(p.x, 0, p.z), qq.identity(), v(T, altezza[n]!, T)));
-    muro.setColorAt(n, col.set(casa ? (altezza[n]! < 1 ? PAL.legnoScuro : h < 0.15 ? PAL.pietraScura : tintaCasa.get(i) ?? PAL.sabbia) : h < 0.3 ? PAL.pietra : PAL.pietraChiara));
+    const roccia = a.tipo[i] === TIPO.roccia || a.tipo[i] === TIPO.nicchia;
+    muro.setColorAt(n, col.set(casa ? (altezza[n]! < 1 ? PAL.legnoScuro : h < 0.15 ? PAL.pietraScura : tintaCasa.get(i) ?? PAL.sabbia) : roccia ? (h < 0.5 ? PAL.roccia : PAL.pietraScura) : h < 0.3 ? PAL.pietra : PAL.pietraChiara));
   });
   scene.add(muro); disp.push(muroGeo, muroMat);
   const colGeo = new THREE.CylinderGeometry(0.4, 0.48, 1, 8); colGeo.translate(0, 0.5, 0);
@@ -288,6 +316,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   const tende = gruppi(a, TIPO.tenda);
   const accampamento = createAccampamento(scene, a, tende, gruppi(a, TIPO.nave));
   const banchetto = createBanchetto(scene, a);
+  const catacombe = createCatacombe3d(scene, a);
 
   // ---- cose basse: tutto in due InstancedMesh (box e cilindri) coi colori per istanza ----
   type Ist = { x: number; y?: number; z: number; sx: number; sy: number; sz: number; c: string; rx?: number; ry?: number; rz?: number };
@@ -319,6 +348,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
       case TIPO.leva: break; // sotto, con le trappole
       case TIPO.sarcofago: case TIPO.armadio: break; // in dettagli.ts
       case TIPO.campanella: case TIPO.altareCripta: break; // in segreti3d.ts
+      case TIPO.fucina: break; // in catacombe3d.ts
       case TIPO.cosa: break; // sotto, a gruppi
       default: sassi.push(i);
     }
@@ -464,7 +494,25 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   // ---- porte: battenti di legno con la croce rossa (il cancello verso la spiaggia: sbarre di ferro), cartello col prezzo; una draw call ciascuna ----
   const porte = new Map<string, THREE.Object3D[]>();
   const portaMat = lambert({ vertexColors: true }); disp.push(portaMat);
+  /** Le grate delle catacombe (§12b punto 3): sopra stesa sul buco, sotto in piedi in cima alla scala; una mesh e un cartello per capo
+   *  (i due capi sono lontani: insieme non si taglierebbero mai fuori dalla vista). */
+  function grata(id: string, celle: number[]): void {
+    const l: THREE.Object3D[] = [];
+    for (const c of celle) {
+      const p = ctr(c), su = Math.floor(p.z / T) < a.sopra, pezzi: Pezzo[] = [];
+      if (su) for (const k of [-0.3, -0.1, 0.1, 0.3]) pezzi.push({ g: new THREE.BoxGeometry(0.06, 0.06, 0.9), c: PAL.roccia, x: p.x + k, y: 0.17, z: p.z }, { g: new THREE.BoxGeometry(0.9, 0.06, 0.06), c: PAL.pietraScura, x: p.x, y: 0.19, z: p.z + k });
+      else for (const k of [-0.33, 0, 0.33]) pezzi.push({ g: new THREE.BoxGeometry(0.08, 2.2, 0.08), c: PAL.roccia, x: p.x + k, y: 1.1, z: p.z }, { g: new THREE.BoxGeometry(0.08, 0.08, 0.9), c: PAL.roccia, x: p.x, y: 0.4 + (k + 0.33) * 1.6, z: p.z, ry: Math.PI / 2 });
+      const geo = unisci(pezzi); disp.push(geo);
+      const mesh = new THREE.Mesh(geo, portaMat); mesh.name = 'porta_' + id;
+      const ct = cartello(String(TEMPLARI.porte[id]?.prezzo ?? 0)); disp.push(ct);
+      const sm = new THREE.SpriteMaterial({ map: ct }); disp.push(sm);
+      const sp = new THREE.Sprite(sm); sp.scale.set(1.6, 0.6, 1); sp.position.set(p.x, su ? 1.6 : 3.0, p.z); sp.name = 'cartello_' + id;
+      scene.add(mesh, sp); l.push(mesh, sp);
+    }
+    porte.set(id, l);
+  }
   for (const p of a.porte) {
+    if (a.passaggi.some((x) => x.porta === p.id)) { grata(p.id, p.celle); continue; }
     const cancello = p.id === 'spiaggia_cimitero', pezzi: Pezzo[] = [];
     const cs = p.celle.map(ctr), c0 = cs[0]!, c1 = cs[cs.length - 1]!, cx = (c0.x + c1.x) / 2, cz = (c0.z + c1.z) / 2;
     const lungoX = Math.abs(c1.x - c0.x) > Math.abs(c1.z - c0.z);
@@ -512,7 +560,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
 
   // ---- finestra sull'eroe: tutto quello che sta in scena adesso (non il pavimento) ----
   const fin = createFinestra({ raggio: FIN.raggio, altezza: FIN.altezza, coperchio: PAL.ombraCalda });
-  fin.applica(scene, { taglia: true }, (m) => m === floor);
+  fin.applica(scene, { taglia: true }, (m) => m === floor || m === floorSotto);
   const qi = new THREE.Quaternion();
 
   let assiOra = '', poolT = -1, leveOra = '', criptaOra = false;
@@ -522,6 +570,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   return {
     scene,
     update(hx, hz, t, assi, trappole) {
+      catacombe.update(t);
       fin.aggiorna(camera, hx, 1, hz);
       lanterna.position.set(hx, 2.4, hz);
       arredi.update(t); dettagli.update(t); accampamento.update(t); banchetto.update(t);
@@ -575,10 +624,14 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
     setCalice(v) { caliceAlt.visible = v; },
     setTaglia(on) { fin.setTaglia(on); },
     setMuroRotto(r) { if (nCrepa < 0) return; muro.setMatrixAt(nCrepa, r ? ZERO : mCrepa); muro.instanceMatrix.needsUpdate = true; },
+    catacombe,
     setCripta(d) {
       if (d === criptaOra) return;
       criptaOra = d;
-      hemi.intensity = d ? 0.1 : LUCI.hemi; amb.intensity = d ? 0.05 : LUCI.amb; luna.intensity = d ? 0 : LUCI.luna;
+      catacombe.setSotto(d); arredi.setSotto(d);
+      // chi è sotto vede solo il sotto: il pavimento di sopra e il mare spariscono, quello di sotto compare
+      floor.visible = !d; if (floorSotto) floorSotto.visible = d;
+      hemi.intensity = d ? 0.2 : LUCI.hemi; amb.intensity = d ? 0.1 : LUCI.amb; luna.intensity = d ? 0 : LUCI.luna;
       lanterna.intensity = d ? 11 : LUCI.lanterna; lanterna.distance = d ? 11 : LUCI.dist;
     },
     setCampana(m) {
@@ -588,6 +641,6 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
       if (m) campana.rotation.set(0, 0, 0);
     },
     stats: () => ({ muri: muri.length, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats(), ...dettagli.stats(), ...accampamento.stats() }),
-    dispose() { arredi.dispose(); dettagli.dispose(); accampamento.dispose(); banchetto.dispose(); fin.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
+    dispose() { arredi.dispose(); dettagli.dispose(); accampamento.dispose(); banchetto.dispose(); catacombe.dispose(); fin.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
   };
 }

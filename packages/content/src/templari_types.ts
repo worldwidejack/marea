@@ -205,9 +205,12 @@ export type TPotere = 'faretra' | 'ira' | 'campane' | 'decima' | 'muratori';
  *  = zona), celle delle trappole e loro leve. */
 export type TLegenda = { porta?: string; muro?: string; comparsa?: string; trappola?: string; leva?: string; personaggio?: 'mercante' | 'strega'; fuoco?: string; pezzo?: string;
   /** Segreti (§9c): il muro crepato, la scala e l'altare della cripta; una campanella (id); il muro con l'ordine delle campane; un teschio (id). */
-  cripta?: 'muro' | 'scala' | 'altare'; campanella?: string; indizio?: string; teschio?: string };
+  cripta?: 'muro' | 'scala' | 'altare'; campanella?: string; indizio?: string; teschio?: string;
+  /** Catacombe (§12b punto 3): con `porta`, le due celle della porta sono i due capi di una scala (una sopra, una sotto); la fucina. */
+  scala?: boolean; fucina?: string };
 /** Un fuoco da accendere (docs/TEMPLARI.md §9b): il nome e cosa accende (`rogo` = la trappola del rogo funziona, `strega` = la Strega
  *  vende, `mercante` = la nave del Mercante attracca). */
 export type TFuocoDef = { nome: string; apre: 'rogo' | 'strega' | 'mercante'; dice: string };
 /** `w`: larghezza fissa (le righe possono essere più corte): l'aspetto delle celle dipende dal loro indice, che dipende da `w`. */
-export type TMappaDef = { tile: number; w?: number; legenda: Record<string, TLegenda>; rows: string[] };
+/** `sopra`: le righe del sopra (da lì in giù il piano di sotto, §12b punto 3): il dipinto e il mare guardano solo quelle. */
+export type TMappaDef = { tile: number; w?: number; sopra?: number; legenda: Record<string, TLegenda>; rows: string[] };

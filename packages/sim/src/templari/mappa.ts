@@ -10,15 +10,17 @@ import type { Griglia } from '../dungeon/map.ts';
 /** Codici di cella. */
 export const C = { fuori: 0, pavimento: 1, muro: 2, colonna: 3, basso: 4, finestra: 5, porta: 6, terra: 7 } as const;
 /** Suolo delle celle (solo per la resa): pietre della chiesa, terra del sagrato, acciottolato, erba, sabbia, assito. */
-export const SUOLO = { niente: 0, pietra: 1, terra: 2, ciottoli: 3, erba: 4, sabbia: 5, assi: 6 } as const;
+export const SUOLO = { niente: 0, pietra: 1, terra: 2, ciottoli: 3, erba: 4, sabbia: 5, assi: 6, catacomba: 7 } as const;
 /** Cos'è una cella piena (solo per la resa). */
 export const TIPO = { niente: 0, chiesa: 1, casa: 2, tenda: 3, colonna: 4, stallo: 5, maceria: 6, muretto: 7, tomba: 8, cosa: 9, braciere: 10, altare: 11, altarino: 12, cassa: 13, leva: 14, tramezzo: 15, sarcofago: 16, armadio: 17, fuoco: 18,
   /** Segreti (§9c): una campanella sul palo, il muro crepato, l'altare della cripta, la scala della cripta. */
   campanella: 19, crepa: 20, altareCripta: 21, scala: 22,
   /** L'accampamento stretto (§12b punto 2): la palizzata di pali appuntiti e la nave tirata in secca su un fianco. */
-  palizzata: 23, nave: 24 } as const;
-const SUOLO_DI: Record<string, number> = { '.': SUOLO.pietra, ',': SUOLO.terra, v: SUOLO.ciottoli, e: SUOLO.erba, s: SUOLO.sabbia, w: SUOLO.assi };
-const TIPO_DI: Record<string, number> = { N: TIPO.tramezzo, V: TIPO.sarcofago, Y: TIPO.armadio, '#': TIPO.chiesa, h: TIPO.casa, t: TIPO.tenda, '|': TIPO.palizzata, '=': TIPO.nave, o: TIPO.colonna, p: TIPO.stallo, r: TIPO.maceria, q: TIPO.maceria, m: TIPO.muretto, g: TIPO.tomba, k: TIPO.cosa, b: TIPO.braciere, A: TIPO.altare, a: TIPO.altarino, C: TIPO.cassa };
+  palizzata: 23, nave: 24,
+  /** Le catacombe (§12b punto 3): la roccia dei tunnel, le nicchie coi morti, la fucina dei Templari, le grate delle uscite. */
+  roccia: 25, nicchia: 26, fucina: 27, grata: 28 } as const;
+const SUOLO_DI: Record<string, number> = { '.': SUOLO.pietra, ',': SUOLO.terra, v: SUOLO.ciottoli, e: SUOLO.erba, s: SUOLO.sabbia, w: SUOLO.assi, ':': SUOLO.catacomba };
+const TIPO_DI: Record<string, number> = { N: TIPO.tramezzo, V: TIPO.sarcofago, Y: TIPO.armadio, '#': TIPO.chiesa, h: TIPO.casa, t: TIPO.tenda, '|': TIPO.palizzata, '=': TIPO.nave, '%': TIPO.roccia, '&': TIPO.nicchia, o: TIPO.colonna, p: TIPO.stallo, r: TIPO.maceria, q: TIPO.maceria, m: TIPO.muretto, g: TIPO.tomba, k: TIPO.cosa, b: TIPO.braciere, A: TIPO.altare, a: TIPO.altarino, C: TIPO.cassa };
 
 type P = { x: number; z: number };
 export type Finestra = { cx: number; cz: number; x: number; z: number;
@@ -41,7 +43,14 @@ export type PostiPezzo = { id: string; posti: P[] };
 /** La cripta sotto la chiesa (docs/TEMPLARI.md §9c): il muro crepato della rotonda e la scala in fondo alla cripta sono i due capi della
  *  stessa scala (la sim porta eroi e zombie dall'uno all'altro). `su` = la cella di chiesa davanti al muro (ci arrivi tornando su), `giu` =
  *  quella della cripta davanti alla scala (ci arrivi scendendo), col verso in cui guardi arrivando; `dentro` = le celle della cripta. */
-export type Cripta = { muro: P & { cella: number }; su: P & { fx: number; fz: number }; scala: P & { cella: number }; giu: P & { fx: number; fz: number }; altare: P; dentro: Uint8Array };
+export type Cripta = { muro: P & { cella: number }; su: P & { fx: number; fz: number }; scala: P & { cella: number }; giu: P & { fx: number; fz: number }; altare: P;
+  /** Dal §12b punto 3 `dentro` = tutto il piano di sotto (cripta e catacombe); `sala` = la sala della cripta (lì contano le anime). */
+  dentro: Uint8Array; sala: Uint8Array };
+/** Un capo di una scala: la cella (ci entri) e quella davanti, dove arrivi venendo dall'altro capo, col verso in cui guardi. */
+export type Capo = P & { cella: number; davanti: P & { fx: number; fz: number } };
+/** Una scala tra il sopra e il sotto (§9c, §12b punto 3): `a` sopra, `b` sotto. Si usa quando è aperta: `porta` = la grata comprata,
+ *  `null` = il muro crepato rotto (la cripta). La sim porta eroi e zombie da un capo all'altro. */
+export type Passaggio = { id: string; porta: string | null; a: Capo; b: Capo };
 /** Una campanella o un teschio dei segreti: id e cella. */
 export type Segreto = { id: string; x: number; z: number };
 export type Albero = { x: number; z: number; cella: number; tipo: 'cipresso' | 'palma' | 'lampione'; h: number };
@@ -70,6 +79,8 @@ export type Arena = {
   fuochi: Fuoco[]; pezzi: PostiPezzo[];
   /** Segreti (§9c): la cripta, le campanelle, il muro con l'ordine delle campane (come un'arma sul muro: la cella davanti e il muro), i teschi. */
   cripta: Cripta | null; campanelle: Segreto[]; indizio: Omit<Muro, 'arma'> | null; teschi: Segreto[];
+  /** Le scale tra sopra e sotto (la cripta e le due grate delle catacombe), la fucina (§12b), le righe del sopra (`sopra`, il resto è sotto). */
+  passaggi: Passaggio[]; fucina: P | null; sopra: number;
   /** Indice della trappola per cella (-1 = nessuna). */
   trappolaDi: Int8Array;
   /** Per la resa: suolo e tipo di ogni cella (SUOLO, TIPO). */
@@ -121,12 +132,13 @@ export function parseArena(def: TMappaDef): Arena {
   const fuochi: Fuoco[] = [], pezziMap = new Map<string, P[]>();
   const campanelle: Segreto[] = [], teschi: Segreto[] = [], cr = { muro: -1, scala: -1, altare: [] as P[] };
   let indizioC: { cx: number; cz: number } | null = null;
+  const scale = new Set<string>(), fuc: P[] = [];
   for (let cz = 0; cz < h; cz++) for (let cx = 0; cx < w; cx++) {
     const ch = rows[cz]![cx] ?? ' ', i = cz * w + cx;
     suolo[i] = SUOLO_DI[ch] ?? SUOLO.niente; tipo[i] = TIPO_DI[ch] ?? TIPO.niente;
     switch (ch) {
       case ' ': cell[i] = C.fuori; break;
-      case '#': case 'h': case 't': case 'N': case '|': case '=': cell[i] = C.muro; opaque[i] = 1; break;
+      case '#': case 'h': case 't': case 'N': case '|': case '=': case '%': case '&': cell[i] = C.muro; opaque[i] = 1; break;
       case 'o': cell[i] = C.colonna; opaque[i] = 1; break;
       case 'A': cell[i] = C.basso; altSum = { x: altSum.x + (cx + 0.5) * t, z: altSum.z + (cz + 0.5) * t, n: altSum.n + 1 }; break;
       case 'p': case 'r': case 'q': case 'm': case 'g': case 'k': case 'V': case 'Y': cell[i] = C.basso; break;
@@ -134,13 +146,14 @@ export function parseArena(def: TMappaDef): Arena {
       case 'a': cell[i] = C.basso; altarini.push(ctr(cx, cz)); break;
       case 'C': cell[i] = C.basso; casseC.push({ cx, cz }); break;
       case 'W': cell[i] = C.finestra; finestraDi[i] = finestre.length; finestre.push({ cx, cz, ...ctr(cx, cz), dentro: ctr(cx, cz), fuori: ctr(cx, cz) }); break;
-      case '.': case 'w': cell[i] = C.pavimento; break;
+      case '.': case 'w': case ':': cell[i] = C.pavimento; break;
       case ',': case 'v': case 'e': case 's': cell[i] = C.terra; break;
       case 'S': cell[i] = C.pavimento; spawn = { ...ctr(cx, cz), fx: 1, fz: 0 }; break;
       case 'z': cell[i] = C.terra; comparse.push({ ...ctr(cx, cz), zona: 'fuori' }); break;
       default: {
         const l = def.legenda[ch];
-        if (l?.porta) { cell[i] = C.porta; const a = porteMap.get(l.porta) ?? []; a.push(i); porteMap.set(l.porta, a); break; }
+        if (l?.porta) { cell[i] = C.porta; const a = porteMap.get(l.porta) ?? []; a.push(i); porteMap.set(l.porta, a); if (l.scala) { scale.add(l.porta); tipo[i] = TIPO.grata; } break; }
+        if (l?.fucina) { cell[i] = C.basso; tipo[i] = TIPO.fucina; fuc.push(ctr(cx, cz)); break; }
         if (l?.muro) { cell[i] = C.pavimento; muriC.push({ arma: l.muro, cx, cz }); break; }
         if (l?.comparsa) { cell[i] = C.terra; comparse.push({ ...ctr(cx, cz), zona: l.comparsa }); break; }
         if (l?.trappola) { cell[i] = C.pavimento; const a = trapMap.get(l.trappola) ?? []; a.push(i); trapMap.set(l.trappola, a); break; }
@@ -193,25 +206,44 @@ export function parseArena(def: TMappaDef): Arena {
     return { ...ctr(cx, cz), fx: -d[0], fz: -d[1] };
   });
   /** La cripta: i due capi della scala con la cella davanti (la prima libera dei 4 vicini) e le celle della cripta (dalla scala in giù). */
-  function cripta(): Cripta | null {
-    if (cr.muro < 0 || cr.scala < 0) return null;
-    const capo = (i: number) => {
-      const cx = i % w, cz = (i - cx) / w, d = N4.find(([dx, dz]) => { const c = k(cx + dx, cz + dz); return c === C.pavimento || c === C.terra; }) ?? [1, 0];
-      return { cella: i, ...ctr(cx, cz), davanti: { ...ctr(cx + d[0], cz + d[1]), fx: d[0], fz: d[1] } };
-    };
-    const m = capo(cr.muro), sc = capo(cr.scala), dentro = new Uint8Array(w * h);
-    const q = [Math.floor(sc.davanti.z / t) * w + Math.floor(sc.davanti.x / t)];
-    dentro[q[0]!] = 1;
+  /** Un capo di scala: la cella e la prima libera dei 4 vicini (ci arrivi venendo dall'altro capo). */
+  function capo(i: number): Capo {
+    const cx = i % w, cz = (i - cx) / w, d = N4.find(([dx, dz]) => { const c = k(cx + dx, cz + dz); return c === C.pavimento || c === C.terra; }) ?? [1, 0];
+    return { cella: i, ...ctr(cx, cz), davanti: { ...ctr(cx + d[0], cz + d[1]), fx: d[0], fz: d[1] } };
+  }
+  /** Le celle libere attaccate a `da` (a 4 vicini) che vanno bene per `ok`. */
+  function riempi(da: number, ok: (i: number) => boolean): Uint8Array {
+    const out = new Uint8Array(w * h), q = [da];
+    out[da] = 1;
     while (q.length) {
       const i = q.pop()!, cx = i % w, cz = (i - cx) / w;
       for (const [dx, dz] of N4) {
         const nx = cx + dx, nz = cz + dz, j = nz * w + nx, c = k(nx, nz);
-        if (dentro[j] || (c !== C.pavimento && c !== C.terra)) continue;
-        dentro[j] = 1; q.push(j);
+        if (out[j] || (c !== C.pavimento && c !== C.terra) || !ok(j)) continue;
+        out[j] = 1; q.push(j);
       }
     }
+    return out;
+  }
+  /** La cripta: i due capi della scala e le celle del sotto (dalla scala in giù: cripta e catacombe); la sala = le lastre della cripta. */
+  function cripta(): Cripta | null {
+    if (cr.muro < 0 || cr.scala < 0) return null;
+    const m = capo(cr.muro), sc = capo(cr.scala), da = Math.floor(sc.davanti.z / t) * w + Math.floor(sc.davanti.x / t);
+    const dentro = riempi(da, () => true), sala = riempi(da, (j) => suolo[j] === SUOLO.pietra);
     const n = Math.max(1, cr.altare.length), alt = cr.altare.reduce((s, p) => ({ x: s.x + p.x / n, z: s.z + p.z / n }), { x: 0, z: 0 });
-    return { muro: { cella: m.cella, x: m.x, z: m.z }, su: m.davanti, scala: { cella: sc.cella, x: sc.x, z: sc.z }, giu: sc.davanti, altare: alt, dentro };
+    return { muro: { cella: m.cella, x: m.x, z: m.z }, su: m.davanti, scala: { cella: sc.cella, x: sc.x, z: sc.z }, giu: sc.davanti, altare: alt, dentro, sala };
+  }
+  /** Le scale tra sopra e sotto: la cripta (muro e scala) e le porte con `scala` (le grate: una cella sopra, una sotto). */
+  function passaggi(): Passaggio[] {
+    const out: Passaggio[] = [];
+    if (cr.muro >= 0 && cr.scala >= 0) out.push({ id: 'cripta', porta: null, a: capo(cr.muro), b: capo(cr.scala) });
+    for (const id of scale) {
+      const c = porteMap.get(id) ?? [];
+      if (c.length !== 2) throw new Error(`Arena dei Templari: la scala '${id}' vuole due celle (${c.length})`);
+      const [p, q] = [...c].sort((x, y) => x - y);
+      out.push({ id, porta: id, a: capo(p!), b: capo(q!) });
+    }
+    return out;
   }
   /** Il muro con l'ordine delle campane: la cella davanti e il muro accanto (come le armi sul muro). */
   function indizio(): Omit<Muro, 'arma'> | null {
@@ -228,7 +260,8 @@ export function parseArena(def: TMappaDef): Arena {
     porte: [...porteMap.entries()].map(([id, celle]) => ({ id, celle })), comparse, bracieri, altarini, muri, casse, dentro: [],
     trappole, alberi: trovaAlberi(w, h, cell, suolo, t, posti), trappolaDi, suolo, tipo,
     fuochi, pezzi: [...pezziMap.entries()].map(([id, p]) => ({ id, posti: p })),
-    cripta: cripta(), campanelle, teschi, indizio: indizio(),
+    cripta: cripta(), campanelle, teschi, indizio: indizio(), passaggi: passaggi(), fucina: fuc.length ? { x: fuc.reduce((s, p) => s + p.x, 0) / fuc.length, z: fuc.reduce((s, p) => s + p.z, 0) / fuc.length } : null,
+    sopra: def.sopra ?? h,
     personaggi: posti.map(({ id, cx, cz }) => { const d = N4.find(([dx, dz]) => k(cx + dx, cz + dz) === C.fuori) ?? [0, -1]; return { id, ...ctr(cx, cz), fx: d[0], fz: d[1] }; }),
   };
   // celle dell'eroe all'inizio: a 4 vicini dalla partenza, senza attraversare finestre e porte

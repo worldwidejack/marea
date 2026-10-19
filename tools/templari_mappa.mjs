@@ -23,8 +23,11 @@
 //   colpo pesante) · 'H' la scala della cripta (in cima si torna in chiesa) · 'P' l'altare della Lancia · 'n' comparse della cripta (dai
 //   sarcofagi, attive col muro rotto) · '7' '8' '9' '0' le campanelle (croce, teschio, ancora, luna) · 'B' il muro con l'ordine delle
 //   campane (la cella davanti) · 'i' 'l' '!' i teschi della canzone segreta.
-// La cripta sta nell'angolo nord-ovest, staccata da tutto: il muro rotto e la scala sono due capi della stessa scala (la sim porta eroi e
-// zombie dall'uno all'altro), così sotto la chiesa c'è posto senza toccare il resto della mappa.
+// Il piano di sotto (§12b punto 3, le catacombe): sta nelle righe sotto la riga SOPRA (84), staccato da tutto. La cripta, i tunnel e le
+// sale si raggiungono solo dalle scale, che sono due capi della stessa scala (la sim porta eroi e zombie dall'uno all'altro): il muro rotto
+// della rotonda e la scala 'H' in fondo alla cripta; le due grate da comprare ('<' sull'ossario del cimitero, '>' nella grotta tra gli
+// scogli dell'accampamento), ognuna con una cella sopra e una sotto (legenda `porta` con `scala`). Sotto: ':' terra battuta, '%' roccia
+// (muro), '&' nicchia coi morti (muro), '+' comparse delle catacombe (attive col muro rotto o una grata aperta), '*' la fucina dei Templari.
 // La chiesa è alla templare: una rotonda (come il Santo Sepolcro, la Temple Church di Londra, la Vera Cruz di Segovia) col giro di
 // colonne, e a est il presbiterio con l'abside e l'altare maggiore. Attorno il sagrato diviso da muretti in tre parti: ovest verso la
 // piazza del borgo, nord verso il cimitero, sud-est verso la spiaggia e l'accampamento dei pirati.
@@ -34,7 +37,8 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'packages/content/src/templari/mappa.json');
-const W = 100, H = 84;
+const W = 100, H = 145, SOPRA = 84; // dalla riga SOPRA in giù il piano di sotto (le catacombe, §12b punto 3), che comincia 24 righe più giù:
+// tra la riva e il sotto c'è il mare, così dall'accampamento non si vede il nero del sotto e dal sotto non si vede il mare
 const g = Array.from({ length: H }, () => Array(W).fill(' '));
 const set = (x, z, c) => { if (x >= 0 && z >= 0 && x < W && z < H) g[z][x] = c; };
 const get = (x, z) => (x >= 0 && z >= 0 && x < W && z < H ? g[z][x] : ' ');
@@ -207,14 +211,49 @@ const PEZZI = { c: [[64, 54], [12, 69], [70, 64]], d: [[52, 22], [28, 45], [40, 
 for (const [c, l] of Object.entries(PEZZI)) for (const [x, z] of l) { if (',vews'.includes(get(x, z))) set(x, z, c); else throw new Error(`pezzo ${c} su '${get(x, z)}' in ${x},${z}`); }
 
 // ——— segreti (§9c): la cripta, il muro crepato, le campanelle col loro indizio, i teschi ———
+// ——— il piano di sotto (§9c, §12b punto 3) ———
 // cripta: una sala buia a colonne, quattro sarcofagi per lato (gli zombie escono da lì davanti), l'altare della Lancia a ovest, la scala a est
-const CR = { x0: 3, x1: 25, z0: 2, z1: 14 };
+const CR = { x0: 3, x1: 25, z0: 129, z1: 141 };
 rect(CR.x0, CR.z0, CR.x1, CR.z1, '#'); rect(CR.x0 + 1, CR.z0 + 1, CR.x1 - 1, CR.z1 - 1, '.');
 for (const x of [8, 12, 16, 20]) { for (const z of [CR.z0 + 1, CR.z0 + 2, CR.z1 - 2, CR.z1 - 1]) set(x, z, 'V'); set(x, CR.z0 + 3, 'n'); set(x, CR.z1 - 3, 'n'); }
-for (const x of [10, 14, 18]) { set(x, 6, 'o'); set(x, 10, 'o'); }
-for (const z of [7, 8, 9]) set(5, z, 'P');
-const SCALA = [CR.x1, 8];
+for (const x of [10, 14, 18]) { set(x, CR.z0 + 4, 'o'); set(x, CR.z0 + 8, 'o'); }
+for (const z of [CR.z0 + 5, CR.z0 + 6, CR.z0 + 7]) set(5, z, 'P');
+const SCALA = [CR.x1, CR.z0 + 6];
 set(SCALA[0], SCALA[1], 'H');
+// le catacombe: dal lato nord della cripta un tunnel che arriva a un incrocio; a est una strettoia e la grotta sotto l'accampamento, a
+// ovest il ramo (con una strettoia) che sale all'ossario del cimitero, a nord la sala della fucina. Larghi 2 m, strettoie da 1 m (scelta
+// di birbasan). Si scava nel vuoto (':'), poi la roccia attorno ('%'), poi le nicchie coi morti ('&') sulla roccia dei tunnel.
+const scava = (x0, z0, x1, z1) => rect(x0, z0, x1, z1, ':');
+scava(23, CR.z0, 24, CR.z0);                    // il varco nel muro nord della cripta
+scava(23, 123, 24, 128);                        // il tunnel
+scava(16, 121, 25, 122);                        // l'incrocio
+scava(26, 121, 28, 121);                        // strettoia verso la grotta
+scava(29, 117, 34, 122); scava(30, 116, 33, 116);  // la grotta sotto l'accampamento
+scava(14, 121, 15, 122); scava(11, 121, 13, 121); scava(8, 121, 10, 122); // il ramo ovest, con una strettoia
+scava(8, 114, 9, 120);                            // sale verso l'ossario
+scava(5, 109, 12, 113);                           // l'ossario di sotto
+scava(21, 119, 22, 120); scava(17, 111, 26, 118);   // la sala della fucina
+const SOTTO = (c) => c === ':' || c === '.' || c === 'V' || c === 'o' || c === 'P' || c === 'H' || c === 'n';
+each((x, z) => {
+  if (z < SOPRA || get(x, z) !== ' ') return;
+  for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) if (SOTTO(get(x + dx, z + dz))) { set(x, z, '%'); return; }
+});
+// la fucina dei Templari contro il muro nord della sala (fredda: si accende al passo 7), le grate in cima alle due salite
+set(21, 111, '*'); set(22, 111, '*');
+const GRATE = { '<': { sotto: [8, 108], sopra: [74, 11] }, '>': { sotto: [32, 115], sopra: [61, 70] } };
+for (const [c, { sotto, sopra }] of Object.entries(GRATE)) {
+  if (get(...sotto) !== '%') throw new Error(`la grata ${c} di sotto non è nella roccia (${get(...sotto)})`);
+  if (!'eq'.includes(get(...sopra))) throw new Error(`la grata ${c} di sopra è su '${get(...sopra)}'`);
+  set(...sotto, c); set(...sopra, c);
+}
+// nicchie coi morti sulla roccia dei tunnel (non accanto alle grate, alla fucina e ai varchi)
+for (const [x, z] of [[22, 124], [25, 126], [22, 127], [17, 120], [25, 120], [18, 123], [25, 123], [27, 120], [14, 120], [10, 123], [7, 116], [10, 118], [6, 108], [11, 108], [13, 112], [16, 114], [27, 116], [35, 119], [31, 123]]) {
+  if (get(x, z) !== '%') throw new Error(`nicchia fuori dalla roccia in ${x},${z} (${get(x, z)})`);
+  set(x, z, '&');
+}
+// gli zombie escono anche dalle nicchie: comparse delle catacombe davanti a qualcuna
+const CATACOMBE = [[17, 121], [25, 122], [9, 117], [31, 119], [19, 116], [24, 113], [8, 111]];
+for (const [x, z] of CATACOMBE) { if (get(x, z) !== ':') throw new Error(`comparsa delle catacombe su '${get(x, z)}' in ${x},${z}`); set(x, z, '+'); }
 // il muro crepato: nel muro nord-ovest della rotonda, accanto all'ascia (dietro c'è la scala che scende)
 const CREPA = [40, 35];
 if (get(...CREPA) !== '#') throw new Error(`il muro crepato non è su un muro (${get(...CREPA)})`);
@@ -255,8 +294,8 @@ for (const [c, l] of Object.entries(comparse)) for (const [x, z] of l) { if ('ve
 for (const [x, z] of [[33, 33], [34, 52], [60, 30], [72, 33], [76, 50], [52, 56]]) if (fuori(x, z)) set(x, z, 'q');
 
 // ——— controlli: zone collegate dalle porte giuste, comparse raggiungibili, l'eroe chiuso in chiesa all'inizio ———
-const PORTE = '123456';
-const pieno = (c) => ' #ohtmApbrqkgaCWNVYIOUZP7890|='.includes(c);
+const PORTE = '123456<>';
+const pieno = (c) => ' #ohtmApbrqkgaCWNVYIOUZP7890|=%&*'.includes(c);
 function bfs(sx, sz, solido) {
   const seen = new Set([sx + ',' + sz]), q = [[sx, sz]];
   while (q.length) {
@@ -309,12 +348,17 @@ rows.forEach((r, z) => [...r].forEach((c, x) => { if (c === 'z' && !daZombie.has
   const giu = bfs(SCALA[0] - 1, SCALA[1], pieno);
   if (giu.has(sx + ',' + sz) || tutte.has(`${SCALA[0] - 1},${SCALA[1]}`)) errs.push('la cripta deve essere staccata dal resto');
   rows.forEach((r, z) => [...r].forEach((c, x) => {
-    if (c === 'n' && !giu.has(x + ',' + z)) errs.push(`la comparsa della cripta in ${x},${z} non si raggiunge dalla scala`);
+    if ('n+'.includes(c) && !giu.has(x + ',' + z)) errs.push(`la comparsa della cripta in ${x},${z} non si raggiunge dalla scala`);
+    if ('<>*'.includes(c) && z >= SOPRA && !QUATTRO.some(([dx, dz]) => giu.has(x + dx + ',' + (z + dz)))) errs.push(`'${c}' di sotto in ${x},${z} non si raggiunge dalla cripta`);
     if (c === 'P' && !QUATTRO.some(([dx, dz]) => giu.has(x + dx + ',' + (z + dz)))) errs.push(`l'altare della cripta in ${x},${z} non si raggiunge`);
   }));
   for (const [c, [x, z]] of Object.entries(CAMPANELLE)) if (!QUATTRO.some(([dx, dz]) => tutte.has(x + dx + ',' + (z + dz)))) errs.push(`la campanella ${c} in ${x},${z} non si raggiunge`);
   for (const [c, [x, z]] of Object.entries(TESCHI)) if (!tutte.has(x + ',' + z)) errs.push(`il teschio ${c} in ${x},${z} non si raggiunge`);
-  if (!aperte(['1', '3']).has(INDIZIO.join(','))) errs.push("l'indizio delle campane non si raggiunge dalla taverna"); }
+  if (!aperte(['1', '3']).has(INDIZIO.join(','))) errs.push("l'indizio delle campane non si raggiunge dalla taverna");
+  // le grate di sopra: l'ossario col cimitero, la grotta con l'accampamento
+  const accanto = (s, [x, z]) => QUATTRO.some(([dx, dz]) => s.has(x + dx + ',' + (z + dz)));
+  if (!accanto(aperte(['2']), GRATE['<'].sopra)) errs.push("la grata dell'ossario non si raggiunge dal cimitero");
+  if (!accanto(aperte(['1', '3', '4']), GRATE['>'].sopra) || accanto(aperte(['1', '3']), GRATE['>'].sopra)) errs.push("la grata della grotta si deve raggiungere dall'accampamento"); }
 if (errs.length) { console.error(errs.slice(0, 20).join('\n')); process.exit(1); }
 
 // righe senza spazi in coda (il parser tratta il fuori come spazio)
@@ -324,7 +368,7 @@ const trimmed = rows.map((r) => r.replace(/ +$/, ''));
 const LARGA = 95;
 if (Math.max(...trimmed.map((r) => r.length)) > LARGA) throw new Error(`la mappa è più larga di ${LARGA}`);
 const out = {
-  tile: 1, w: LARGA,
+  tile: 1, w: LARGA, sopra: SOPRA,
   legenda: {
     '1': { porta: 'portale' }, '2': { porta: 'cimitero' }, '3': { porta: 'taverna' }, '4': { porta: 'spiaggia_taverna' }, '5': { porta: 'spiaggia_cimitero' }, '6': { porta: 'sacrestia' },
     'R': { muro: 'arco' }, 'M': { muro: 'mazza' }, 'X': { muro: 'ascia' }, 'G': { muro: 'pistola' }, 'K': { muro: 'moschetto' }, 'E': { muro: 'trombone' },
@@ -333,7 +377,8 @@ const out = {
     'F': { personaggio: 'strega' }, 'D': { personaggio: 'mercante' },
     'I': { fuoco: 'coro' }, 'O': { fuoco: 'cimitero' }, 'U': { fuoco: 'spiaggia' },
     'c': { pezzo: 'corda' }, 'd': { pezzo: 'battaglio' }, 'f': { pezzo: 'perno' },
-    'Z': { cripta: 'muro' }, 'H': { cripta: 'scala' }, 'P': { cripta: 'altare' }, 'n': { comparsa: 'cripta' },
+    'Z': { cripta: 'muro' }, 'H': { cripta: 'scala' }, 'P': { cripta: 'altare' }, 'n': { comparsa: 'cripta' }, '+': { comparsa: 'cripta' },
+    '<': { porta: 'grata_ossario', scala: true }, '>': { porta: 'grata_grotta', scala: true }, '*': { fucina: 'forgia' },
     '7': { campanella: 'croce' }, '8': { campanella: 'teschio' }, '9': { campanella: 'ancora' }, '0': { campanella: 'luna' },
     'B': { indizio: 'campane' }, 'i': { teschio: 'piazza' }, 'l': { teschio: 'taverna' }, '!': { teschio: 'ossario' },
   },

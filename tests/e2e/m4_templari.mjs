@@ -420,7 +420,8 @@ export default async function (ctx) {
     await pc.waitForTimeout(700);
     await ctx.shot(pc, 'pc_segreti_muro_rotto');
     await prova({ cripta: true, anime: 3 });
-    await ctx.waitState(pc, (st) => st.templari.segreti.dentro === true, 5000);
+    await ctx.waitState(pc, (st) => st.templari.segreti.dentro === true, 5000)
+      .catch(async () => { const t = (await ctx.getState(pc)).templari; throw new Error(`non si entra nella cripta: ${JSON.stringify({ seg: t.segreti, eroe: t.eroe, piano: t.piano })}`); });
     await pc.waitForTimeout(900);
     await ctx.shot(pc, 'pc_cripta');
     const perf = await ctx.getPerf(pc);
@@ -449,6 +450,44 @@ export default async function (ctx) {
     await ctx.waitState(pc, (st) => st.templari.eroe.arma === 'lancia', 5000);
     await pc.waitForTimeout(700);
     await ctx.shot(pc, 'pc_lancia');
+    ctx.noErrors(d, 'PC');
+  });
+  await ctx.test('PC: le catacombe — F compra la grata della grotta, giù nei tunnel (buio, nel budget), la fucina fredda, su dall’ossario', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    await prova({ pulisci: true, ferma: true, vita: 1e6, punti: 3000, porte: ['portale', 'taverna', 'spiaggia_taverna', 'cimitero'], grata: 'grata_grotta' });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'porta', 5000);
+    await pc.waitForTimeout(500);
+    await ctx.shot(pc, 'pc_grata_grotta');
+    await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+    await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
+    await ctx.waitState(pc, (st) => st.templari.porte?.grata_grotta === true, 5000);
+    // un passo sulla grata (la cella tra gli scogli accanto all'approdo): giù nelle catacombe
+    await prova({ dove: { x: 61.5, z: 70.5 } });
+    await ctx.waitState(pc, (st) => st.templari.segreti.dentro === true && st.templari.catacombe?.sotto === true, 8000)
+      .catch(async () => { const t = (await ctx.getState(pc)).templari; throw new Error(`non è sceso dalla grata: ${JSON.stringify({ eroe: t.eroe, cat: t.catacombe })}`); });
+    const cat = (await ctx.getState(pc)).templari.catacombe;
+    assert(cat.nicchie >= 15 && cat.torce >= 8 && cat.fucina && cat.bocche === 2, `catacombe: ${JSON.stringify(cat)}`);
+    await prova({ zombie: 'fante', dist: 2 });
+    await pc.waitForTimeout(900);
+    await ctx.shot(pc, 'pc_catacombe');
+    let perf = await ctx.getPerf(pc);
+    assert(perf.drawCalls <= 100, `draw call nelle catacombe ${perf.drawCalls} > 100`);
+    await prova({ pulisci: true, fucina: true });
+    await pc.waitForTimeout(900);
+    await ctx.shot(pc, 'pc_fucina');
+    perf = await ctx.getPerf(pc);
+    assert(perf.drawCalls <= 100, `draw call alla fucina ${perf.drawCalls} > 100`);
+    // su dall'ossario: la grata di sotto si compra anche da lì
+    await prova({ tunnel: 'grata_ossario', punti: 3000 });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'porta', 5000);
+    await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+    await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
+    await ctx.waitState(pc, (st) => st.templari.porte?.grata_ossario === true, 5000);
+    await prova({ dove: { x: 8.5, z: 108.5 } });
+    await ctx.waitState(pc, (st) => st.templari.segreti.dentro === false && st.templari.eroe.z < 20, 8000)
+      .catch(async () => { const t = (await ctx.getState(pc)).templari; throw new Error(`non è salito all'ossario: ${JSON.stringify(t.eroe)}`); });
+    await pc.waitForTimeout(700);
+    await ctx.shot(pc, 'pc_ossario');
     ctx.noErrors(d, 'PC');
   });
   await ctx.test('PC: le campanelle nell’ordine scritto in taverna danno una pozione; i tre teschi fanno partire la canzone', async () => {

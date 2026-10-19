@@ -51,7 +51,7 @@ function accanto(s: TState, x: number, z: number) {
 
 test('la mappa: la cripta staccata da tutto finché il muro regge, quattro campanelle, tre teschi; l\'ordine cambia col seed', () => {
   const s = partita();
-  for (const q of s.arena.porte) apriPorta(s, q);
+  for (const q of s.arena.porte) if (!q.id.startsWith('grata')) apriPorta(s, q); // le grate delle catacombe (§12b) portano sotto anche loro
   const c = cr(s), d = raggiungibili(s);
   assert.equal(d[cellOf(s.gr.eroe, c.giu.x, c.giu.z)], -1, 'nella cripta si arriva senza rompere il muro');
   assert.ok(d[cellOf(s.gr.eroe, c.su.x, c.su.z)]! >= 0, 'il muro non si raggiunge dalla chiesa');
