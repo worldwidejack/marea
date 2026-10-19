@@ -128,8 +128,8 @@ export function createLotView(o: LotViewOptions): LotView {
   let holdMonete: number | null = null;
 
   const now = () => o.api.serverNow();
-  const isFree = (c: readonly [number, number]) => !!lot && !lot.buildings.some((b) => b.cell[0] === c[0] && b.cell[1] === c[1]) && !lot.decor.some((d) => d.cell[0] === c[0] && d.cell[1] === c[1]);
-  const freeSlots = (): [number, number][] => (lot ? tpl.lots.map((c): [number, number] => [c.cx, c.cz]).filter(isFree) : []);
+  const isFree = (c: readonly [number, number]) => !inStanza(c) && !!lot && !lot.buildings.some((b) => b.cell[0] === c[0] && b.cell[1] === c[1]) && !lot.decor.some((d) => d.cell[0] === c[0] && d.cell[1] === c[1]);
+  const freeSlots = (): [number, number][] => (lot ? tpl.lots.map((c): [number, number] => [c.cx, c.cz]).filter((c) => !inStanza(c) && isFree(c)) : []);
 
   // ---- modelli: bld_<id>_l<livello> → _l1 → segnaposto; cantiere: bld_cantiere → segnaposto ----
   async function makeObject(b: PlacedBuilding): Promise<{ obj: THREE.Object3D; name: string }> {
@@ -374,7 +374,7 @@ export function createLotView(o: LotViewOptions): LotView {
     panel = { kind: 'edificio', id }; pick.visible = false; S.owner = me; renderPanel(); return true;
   }
   function openBuild(cell: [number, number]): boolean {
-    if (ro || !lot || buildCellError(lot, cell, tpl) !== null) return false;
+    if (ro || !lot || inStanza(cell) || buildCellError(lot, cell, tpl) !== null) return false;
     if (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') closePanel();
     const h = o.hint?.(), sug = h && h.cell[0] === cell[0] && h.cell[1] === cell[1] && buildable(lot).some((d) => d.id === h.building) ? h.building : null;
     panel = { kind: 'costruisci', cell, chosen: sug }; S.owner = me;
