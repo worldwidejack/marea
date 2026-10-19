@@ -14,9 +14,11 @@ export const SUOLO = { niente: 0, pietra: 1, terra: 2, ciottoli: 3, erba: 4, sab
 /** Cos'è una cella piena (solo per la resa). */
 export const TIPO = { niente: 0, chiesa: 1, casa: 2, tenda: 3, colonna: 4, stallo: 5, maceria: 6, muretto: 7, tomba: 8, cosa: 9, braciere: 10, altare: 11, altarino: 12, cassa: 13, leva: 14, tramezzo: 15, sarcofago: 16, armadio: 17, fuoco: 18,
   /** Segreti (§9c): una campanella sul palo, il muro crepato, l'altare della cripta, la scala della cripta. */
-  campanella: 19, crepa: 20, altareCripta: 21, scala: 22 } as const;
+  campanella: 19, crepa: 20, altareCripta: 21, scala: 22,
+  /** L'accampamento stretto (§12b punto 2): la palizzata di pali appuntiti e la nave tirata in secca su un fianco. */
+  palizzata: 23, nave: 24 } as const;
 const SUOLO_DI: Record<string, number> = { '.': SUOLO.pietra, ',': SUOLO.terra, v: SUOLO.ciottoli, e: SUOLO.erba, s: SUOLO.sabbia, w: SUOLO.assi };
-const TIPO_DI: Record<string, number> = { N: TIPO.tramezzo, V: TIPO.sarcofago, Y: TIPO.armadio, '#': TIPO.chiesa, h: TIPO.casa, t: TIPO.tenda, o: TIPO.colonna, p: TIPO.stallo, r: TIPO.maceria, q: TIPO.maceria, m: TIPO.muretto, g: TIPO.tomba, k: TIPO.cosa, b: TIPO.braciere, A: TIPO.altare, a: TIPO.altarino, C: TIPO.cassa };
+const TIPO_DI: Record<string, number> = { N: TIPO.tramezzo, V: TIPO.sarcofago, Y: TIPO.armadio, '#': TIPO.chiesa, h: TIPO.casa, t: TIPO.tenda, '|': TIPO.palizzata, '=': TIPO.nave, o: TIPO.colonna, p: TIPO.stallo, r: TIPO.maceria, q: TIPO.maceria, m: TIPO.muretto, g: TIPO.tomba, k: TIPO.cosa, b: TIPO.braciere, A: TIPO.altare, a: TIPO.altarino, C: TIPO.cassa };
 
 type P = { x: number; z: number };
 export type Finestra = { cx: number; cz: number; x: number; z: number;
@@ -107,7 +109,7 @@ const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 export function parseArena(def: TMappaDef): Arena {
   const c0 = CACHE.get(def);
   if (c0) return c0;
-  const rows = def.rows, h = rows.length, w = Math.max(...rows.map((r) => r.length)), t = def.tile;
+  const rows = def.rows, h = rows.length, w = Math.max(def.w ?? 0, ...rows.map((r) => r.length)), t = def.tile;
   const cell = new Uint8Array(w * h), opaque = new Uint8Array(w * h), finestraDi = new Int16Array(w * h).fill(-1);
   const suolo = new Uint8Array(w * h), tipo = new Uint8Array(w * h), trappolaDi = new Int8Array(w * h).fill(-1);
   const trapMap = new Map<string, number[]>(), leve = new Map<string, P>();
@@ -124,7 +126,7 @@ export function parseArena(def: TMappaDef): Arena {
     suolo[i] = SUOLO_DI[ch] ?? SUOLO.niente; tipo[i] = TIPO_DI[ch] ?? TIPO.niente;
     switch (ch) {
       case ' ': cell[i] = C.fuori; break;
-      case '#': case 'h': case 't': case 'N': cell[i] = C.muro; opaque[i] = 1; break;
+      case '#': case 'h': case 't': case 'N': case '|': case '=': cell[i] = C.muro; opaque[i] = 1; break;
       case 'o': cell[i] = C.colonna; opaque[i] = 1; break;
       case 'A': cell[i] = C.basso; altSum = { x: altSum.x + (cx + 0.5) * t, z: altSum.z + (cz + 0.5) * t, n: altSum.n + 1 }; break;
       case 'p': case 'r': case 'q': case 'm': case 'g': case 'k': case 'V': case 'Y': cell[i] = C.basso; break;

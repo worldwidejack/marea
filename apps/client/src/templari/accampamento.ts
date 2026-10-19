@@ -2,17 +2,19 @@
 // «fai vedere che sono capanne»), con la tela a due falde sul palo di colmo, i due pali che spuntano sopra, l'ingresso scuro con le falde
 // aperte sul lato che guarda la camera, le corde ai picchetti, lo stendardo su un'asta e un po' di roba davanti; poi la spiaggia meno
 // spoglia: scogli in mare lungo la riva, sassi, conchiglie, legni portati dal mare e alghe sulla sabbia. Solo resa (le tende restano celle
-// piene nella sim, gli scogli sulla sabbia sono celle 'q' della mappa). Tutto fisso in una mesh, sassi e scogli in un InstancedMesh.
+// piene nella sim, gli scogli sulla sabbia sono celle 'q' della mappa). Dal §12b (18 ott 2026) l'accampamento è stretto: la palizzata di
+// tronchi appuntiti ('|') e la nave tirata in secca su un fianco ('='), che prima stava in mare a ovest per bellezza, ora fa da muro.
+// Tutto fisso in una mesh, sassi e scogli in un InstancedMesh.
 import * as THREE from 'three';
 import type { Arena } from '@marea/sim/templari/mappa.ts';
-import { C, SUOLO } from '@marea/sim/templari/mappa.ts';
+import { C, SUOLO, TIPO } from '@marea/sim/templari/mappa.ts';
 import { PAL } from '../ui/style.ts';
 import { cellHash } from '../rpg/dungeon_kit.ts';
 import { merged } from '../render/island_parts.ts';
 import { unisci } from './armi3d.ts';
 import type { Pezzo } from './armi3d.ts';
 
-export type Accampamento = { update(t: number): void; dispose(): void };
+export type Accampamento = { update(t: number): void; stats(): { palizzata: number; navi: number }; dispose(): void };
 
 const B = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const CY = (r0: number, r1: number, h: number, n = 6) => new THREE.CylinderGeometry(r0, r1, h, n);
@@ -56,7 +58,39 @@ function tenda(lx: number, lz: number, tela: string, toppa: string, bandiera: 't
   return unisci(p);
 }
 
-export function createAccampamento(scene: THREE.Scene, a: Arena, tende: number[][]): Accampamento {
+/** Tronco della palizzata alto `h`, pivot a terra: fusto a 6 facce e punta. */
+const tronco = (h: number, c: string): Pezzo[] => [{ g: CY(0.15, 0.17, h - 0.35, 6), c, y: (h - 0.35) / 2 }, { g: new THREE.ConeGeometry(0.15, 0.35, 6), c: PAL.legnoChiaro, y: h - 0.175 }];
+
+/** La nave tirata in secca su un fianco (il carenaggio dei pirati, §3), lunga `lx` lungo X e larga `lz`, pivot al centro a terra: lo scafo
+ *  sbandato col ponte verso il mare (assi, boccaporto, parapetto, il moncone dell'albero), la prua a punta a ovest e lo specchio di poppa a
+ *  est, la chiglia e la linea della pece, i puntelli che lo reggono; sulla sabbia l'albero spezzato, la vela strappata, un secchio di pece.
+ *  Sta tutta dentro le sue celle (la sim le tiene piene). */
+function naveInSecca(lx: number, lz: number): THREE.BufferGeometry {
+  const h = 2.1, D = lz - 0.7, L = lx - 0.6, s = 0.6, cs = Math.cos(s), sn = Math.sin(s), yc = 1.0;
+  /** Un pezzo dello scafo: posizione nel riferimento dello scafo (centro a `yc`, sbandato di `s` attorno a X). */
+  const sc = (g: THREE.BufferGeometry, c: string, x: number, y: number, z: number, ry = 0): Pezzo => ({ g, c, x, y: yc + y * cs - z * sn, z: y * sn + z * cs, rx: s, ry });
+  const corpo = L - 1.4, xc = 0.7, ponte = h / 2;
+  return unisci([
+    sc(B(corpo, h, D), PAL.legnoScuro, xc, 0, 0),                                                     // lo scafo
+    ...[-1, 1].map((k) => sc(B(1.9, h * 0.92, D * 0.62), PAL.legnoScuro, -L / 2 + 1.0, -0.04, k * D * 0.2, k * 0.42)), // la prua a punta
+    sc(B(0.3, h + 0.3, D + 0.1), PAL.legno, L / 2, 0.1, 0),                                              // lo specchio di poppa
+    sc(B(L, 0.3, 0.3), PAL.legno, -0.1, -h / 2 - 0.12, 0),                                               // la chiglia
+    sc(B(corpo, 0.26, 0.04), PAL.legno, xc, ponte - 0.22, D / 2 + 0.02),                                // il capo di banda
+    sc(B(corpo, 0.3, 0.04), PAL.neroCaldo, xc, -h / 2 + 0.3, D / 2 + 0.02),                             // la linea della pece
+    ...[-2, -1, 1, 2].map((k) => sc(B(corpo - 0.4, 0.03, 0.05), PAL.neroCaldo, xc, ponte + 0.01, (k * D) / 5)), // le assi del ponte
+    sc(B(0.9, 0.07, 0.8), PAL.neroCaldo, xc + 1.6, ponte + 0.03, 0), sc(B(1.0, 0.09, 0.08), PAL.legnoChiaro, xc + 1.6, ponte + 0.05, 0), // il boccaporto
+    ...[-3, -2, -1, 0, 1, 2].map((k) => sc(B(0.08, 0.5, 0.08), PAL.legno, xc + k * 1.2 + 0.6, ponte + 0.25, D / 2 - 0.05)),   // il parapetto
+    sc(B(corpo * 0.7, 0.07, 0.07), PAL.legno, xc - 0.6, ponte + 0.5, D / 2 - 0.05),
+    sc(CY(0.15, 0.19, 1.3, 6), PAL.legno, xc - 1.2, ponte + 0.65, 0),                                  // il moncone dell'albero
+    ...[-0.32, 0, 0.32].map((f): Pezzo => ({ g: B(0.14, 1.6, 0.14), c: PAL.legnoChiaro, x: f * L, y: 0.7, z: -lz / 2 + 0.3, rx: -0.55 })), // i puntelli
+    { g: CY(0.12, 0.16, lx * 0.6, 5), c: PAL.legno, x: 0.4, y: 0.12, z: lz / 2 - 0.2, rz: Math.PI / 2, ry: 0.06 },  // l'albero spezzato
+    { g: B(2.2, 0.05, 1.1), c: PAL.sabbiaChiara, x: 1.6, y: 0.05, z: lz / 2 - 0.5, ry: 0.15 },          // la vela strappata
+    { g: B(1.1, 0.05, 0.6), c: PAL.sabbia, x: -2.6, y: 0.05, z: lz / 2 - 0.4, ry: -0.3 },
+    { g: CY(0.24, 0.2, 0.45, 7), c: PAL.neroCaldo, x: -L / 2 + 1.3, y: 0.22, z: -lz / 2 + 0.4 },        // il secchio di pece
+  ]);
+}
+
+export function createAccampamento(scene: THREE.Scene, a: Arena, tende: number[][], navi: number[][] = []): Accampamento {
   const T = a.tile, W = a.w, H = a.h;
   const disp: { dispose(): void }[] = [];
   const lam = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide }); disp.push(lam);
@@ -73,6 +107,31 @@ export function createAccampamento(scene: THREE.Scene, a: Arena, tende: number[]
     const geo = tenda((x1 - x0) * T, (z1 - z0) * T + 0.1, tela, toppa, n % 2 ? 'rossa' : 'teschio');
     metti(geo, ((x0 + x1) / 2) * T, 0, ((z0 + z1) / 2) * T); geo.dispose();
   });
+
+  // ---- palizzata (§12b punto 2): tre tronchi appuntiti per cella lungo la fila, legati da due traverse; alti diversi, qualcuno storto ----
+  const tipoA = (cx: number, cz: number) => (cx < 0 || cz < 0 || cx >= W || cz >= H ? TIPO.niente : a.tipo[cz * W + cx]!);
+  const TRONCHI = [1.9, 2.15, 2.35, 2.05].map((h, k) => unisci(tronco(h, k % 2 ? PAL.legnoScuro : PAL.legno)));
+  let palizzata = 0;
+  for (let cz = 0; cz < H; cz++) for (let cx = 0; cx < W; cx++) {
+    if (tipoA(cx, cz) !== TIPO.palizzata) continue;
+    palizzata++;
+    const lungoX = tipoA(cx - 1, cz) === TIPO.palizzata || tipoA(cx + 1, cz) === TIPO.palizzata, solo = !lungoX && tipoA(cx, cz - 1) !== TIPO.palizzata && tipoA(cx, cz + 1) !== TIPO.palizzata;
+    const x = (cx + 0.5) * T, z = (cz + 0.5) * T;
+    for (let k = -1; k <= 1; k++) {
+      const h = cellHash(cx * 3 + k, cz, 61), o = k * 0.33;
+      metti(TRONCHI[Math.floor(h * TRONCHI.length)]!, lungoX ? x + o : x + (h - 0.5) * 0.06, 0, lungoX ? z + (h - 0.5) * 0.06 : z + o, h * 6);
+      if (solo) metti(TRONCHI[Math.floor(h * 3.9) % TRONCHI.length]!, x + o, 0, z + 0.3, h * 4);
+    }
+    for (const y of [0.55, 1.35]) { const g = unisci([{ g: B(lungoX ? T + 0.02 : 0.08, 0.1, lungoX ? 0.08 : T + 0.02), c: PAL.legnoScuro }]); metti(g, x + (lungoX ? 0 : 0.17), y, z + (lungoX ? 0.17 : 0), 0); g.dispose(); }
+  }
+  for (const g of TRONCHI) g.dispose();
+  // ---- la nave in secca: sulle sue celle ----
+  for (const g of navi) {
+    const xs = g.map((i) => i % W), zs = g.map((i) => Math.floor(i / W));
+    const x0 = Math.min(...xs), x1 = Math.max(...xs) + 1, z0 = Math.min(...zs), z1 = Math.max(...zs) + 1;
+    const lungo = x1 - x0 >= z1 - z0, geo = naveInSecca((lungo ? x1 - x0 : z1 - z0) * T, (lungo ? z1 - z0 : x1 - x0) * T);
+    metti(geo, ((x0 + x1) / 2) * T, 0, ((z0 + z1) / 2) * T, lungo ? 0 : Math.PI / 2); geo.dispose();
+  }
 
   // ---- spiaggia: legni portati dal mare e alghe sulla sabbia libera; sassi e conchiglie; scogli in mare lungo la riva ----
   const cella = (cx: number, cz: number) => (cx < 0 || cz < 0 || cx >= W || cz >= H ? C.fuori : a.cell[cz * W + cx]!);
@@ -107,6 +166,7 @@ export function createAccampamento(scene: THREE.Scene, a: Arena, tende: number[]
   scene.add(sm); disp.push(sGeo, sMat);
   return {
     update() {},
+    stats: () => ({ palizzata, navi: navi.length }),
     dispose() { scene.remove(mesh, sm); for (const d of disp) d.dispose(); },
   };
 }

@@ -43,6 +43,9 @@ const LUNA = new THREE.Vector3(-30, 50, -20).normalize(); // da dove viene la lu
 // luci con l'ombra: al massimo 24, un tassello dell'atlas ciascuna (8 × 3); le luci puntiformi della scena al massimo 24 (oltre: senza ombre)
 const MAX_LUCI = 24, MAX_PUNTI = 24, PX_OTT = LEGGERO ? 128 : 256, COL_ATLAS = 8, RIGHE_ATLAS = MAX_LUCI / COL_ATLAS;
 // pezzi che si muovono, spariscono o stanno fuori: restano coi loro colori
+/** Zone (x0, z0, x1, z1 in metri) dove l'isola è cambiata dopo il dipinto: lì restano i colori dei blocchi finché non lo si rifà. §12b punto 2
+ *  (18 ott 2026): l'accampamento stretto, la riva sotto la taverna, il cancello del cimitero spostato; il dipinto si rifà dopo il punto 3. */
+const DA_RIFARE: [number, number, number, number][] = [[24, 59, 95, 84], [6, 73.5, 24, 84], [72, 42.5, 83, 46]];
 const FUORI = new Set(['assi', 'campana', 'campana_a_terra', 'calice', 'nave', 'mare', 'bandiera_nera', 'aste', 'nebbia', 'rogo', 'fiamme_bracieri', 'fiammelle', 'stendardi']);
 
 const PARS_V = /* glsl */ `
@@ -68,6 +71,7 @@ uniform mat4 uDpMat;
 uniform vec3 uDpMin;
 uniform vec3 uDpMax;
 uniform float uDpOn;
+uniform vec4 uDpBuchi[ 4 ];
 uniform float uDpBias;
 uniform sampler2D uDpLunaProf;
 uniform mat4 uDpLunaMat;
@@ -108,7 +112,9 @@ const COLORE_F = /* glsl */ `
 		vec3 dpLn = dpL.xyz / dpL.w * 0.5 + 0.5;
 		if ( all( greaterThan( dpLn, vec3( 0.0 ) ) ) && all( lessThan( dpLn, vec3( 1.0 ) ) ) && dpLn.z > texture2D( uDpLunaProf, dpLn.xy ).r + uDpLunaBias ) dpOmbra = 1.0;
 	}
-	if ( uDpOn > 0.5 && all( greaterThanEqual( vDpW, uDpMin ) ) && all( lessThanEqual( vDpW, uDpMax ) ) ) {
+	bool dpBuco = false;
+	for ( int k = 0; k < 4; k ++ ) if ( vDpW.x >= uDpBuchi[ k ].x && vDpW.x <= uDpBuchi[ k ].z && vDpW.z >= uDpBuchi[ k ].y && vDpW.z <= uDpBuchi[ k ].w ) dpBuco = true;
+	if ( uDpOn > 0.5 && ! dpBuco && all( greaterThanEqual( vDpW, uDpMin ) ) && all( lessThanEqual( vDpW, uDpMax ) ) ) {
 		vec4 dpC = uDpMat * vec4( vDpW, 1.0 );
 		vec3 dpN = dpC.xyz / dpC.w * 0.5 + 0.5;
 		if ( all( greaterThan( dpN.xy, vec2( 0.0 ) ) ) && all( lessThan( dpN.xy, vec2( 1.0 ) ) ) ) {
@@ -226,6 +232,7 @@ export function createDipinto(o: { scene: THREE.Scene; gl: THREE.WebGLRenderer; 
     uDpTex: { value: vuota as THREE.Texture }, uDpProf: { value: prof.depthTexture as THREE.Texture },
     uDpMat: { value: new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse) },
     uDpMin: { value: box.min.clone() }, uDpMax: { value: box.max.clone() },
+    uDpBuchi: { value: [0, 1, 2, 3].map((k) => { const b = DA_RIFARE[k]; return b ? new THREE.Vector4(...b) : new THREE.Vector4(1, 1, 0, 0); }) },
     uDpOn: { value: 0 }, uDpBias: { value: 0.12 / (cam.far - cam.near) }, // 12 cm di tolleranza nella profondità
     uDpLunaProf: { value: ombra.depthTexture as THREE.Texture },
     uDpLunaMat: { value: new THREE.Matrix4().multiplyMatrices(camL.projectionMatrix, camL.matrixWorldInverse) },

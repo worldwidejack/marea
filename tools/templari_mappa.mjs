@@ -9,7 +9,7 @@
 // apre con la porta '6'.
 // Fuori: ',' terra del sagrato · 'v' acciottolato della piazza · 'e' erba del cimitero · 's' sabbia della spiaggia · 'w' assito della taverna
 //   · 'h' casa diroccata (muro) · 't' tenda dei pirati (muro) · 'm' muretto (basso, ferma tutti) · 'g' tomba · 'k' pozzo, carretti, botti,
-//   cannoni · 'q' macerie · ' ' fuori dalla mappa.
+//   cannoni · 'q' macerie (sulla sabbia scogli) · '|' palizzata dell'accampamento (muro) · '=' la nave in secca (muro) · ' ' fuori dalla mappa.
 // Porte (legenda `porta`: si comprano, aprono una zona): '1' portale → piazza · '2' porta nord → cimitero · '3' taverna · '4' dalla taverna
 //   all'accampamento · '5' dal cimitero all'accampamento · '6' dal coro alla sacrestia.
 // Comparse degli zombie: 'z' sagrato (sempre attive) · 'y' piazza · 'u' cimitero · 'x' taverna · 'j' spiaggia (legenda `comparsa`: attive
@@ -45,23 +45,17 @@ const d = (x, z, cx, cz) => Math.hypot(x + 0.5 - cx, z + 0.5 - cz);
 // ——— zone di fuori (prima, così chiesa e sagrato ci si disegnano sopra) ———
 rect(4, 25, 34, 59, 'v');    // piazza del borgo
 rect(36, 3, 88, 25, 'e');    // cimitero
-rect(10, 74, 94, 82, 's'); rect(28, 60, 94, 73, 's'); // spiaggia e accampamento
 // case diroccate della piazza, il pozzo e i carretti
 for (const [x0, z0, x1, z1] of [[6, 27, 12, 33], [16, 26, 22, 30], [5, 39, 10, 46], [6, 50, 13, 56], [20, 51, 26, 56], [27, 27, 32, 31]]) rect(x0, z0, x1, z1, 'h');
 rect(18, 40, 19, 41, 'k'); set(26, 37, 'k'); set(27, 37, 'k'); set(14, 36, 'q'); set(30, 47, 'q');
-// taverna del Teschio: muri, assito, bancone, botti; due porte (dalla piazza a nord, verso la spiaggia a sud)
+// taverna del Teschio: muri, assito, bancone, botti; due porte (dalla piazza a nord, verso l'accampamento a est: §12b, prima a sud)
 rect(6, 60, 24, 73, '#'); rect(7, 61, 23, 72, 'w');
 rect(9, 64, 15, 64, 'p'); set(20, 62, 'k'); set(21, 62, 'k'); set(22, 65, 'k'); set(8, 71, 'k');
 for (const x of [14, 15]) set(x, 60, '3');
-for (const x of [16, 17]) set(x, 73, '4');
+for (const z of [66, 67]) set(24, z, '4');
 // cimitero: tombe in file, l'ossario in fondo
 for (let z = 7; z <= 21; z += 4) for (let x = 41; x <= 84; x += 3) if (!(x > 68 && z < 12)) { set(x, z, 'g'); set(x, z + 1, 'g'); }
 rect(70, 5, 79, 10, 'h');
-// accampamento: tende, falò, cannoni puntati al mare, botti
-for (const [x0, z0] of [[38, 67], [51, 70], [66, 66], [80, 68]]) rect(x0, z0, x0 + 3, z0 + 3, 't');
-set(60, 65, 'U'); set(46, 79, 'k'); set(47, 79, 'k'); set(72, 79, 'k'); set(73, 79, 'k'); set(87, 64, 'k'); set(33, 76, 'q');
-// scogli sparsi sulla sabbia (ostacoli bassi, la resa li fa di roccia: scena.ts)
-for (const [x, z] of [[30, 63], [44, 62], [45, 62], [57, 74], [62, 72], [75, 61], [85, 74], [85, 75], [92, 76], [24, 80], [40, 77], [69, 81], [13, 77], [89, 66]]) { if (get(x, z) !== 's') throw new Error(`scoglio fuori dalla sabbia in ${x},${z}`); set(x, z, 'q'); }
 
 // ——— rotonda e presbiterio ———
 const R = { cx: 46, cz: 42.5, r: 10 };          // rotonda: muro tra 9 e 10 m dal centro
@@ -100,7 +94,32 @@ muretto(25, 59, 42, 59);     // piazza | spiaggia
 muretto(74, 44, 92, 44);     // nord | sud-est, dall'abside verso il mare
 muretto(35, 3, 35, 22); muretto(35, 22, 43, 22); // piazza | cimitero
 muretto(88, 3, 88, 41);      // cimitero | spiaggia, lungo il bordo est
-for (const x of [80, 81]) set(x, 44, '5'); // cancello dal cimitero alla spiaggia
+for (const x of [74, 75]) set(x, 44, '5'); // cancello dal cimitero alla spiaggia (§12b: accanto all'abside, prima a x 80)
+
+// ——— accampamento dei pirati (§12b punto 2, 18 ott 2026): prima era una spiaggia larga e vuota dove si girava in tondo; ora è una striscia
+// tra la taverna e la palizzata est, chiusa a nord da una palizzata (dal sagrato si entra da un varco solo: ci arriva chi viene dal
+// cimitero) e a sud dagli scogli. In mezzo la strada (z 65..68) dalla porta della taverna al varco, e a pettine i vicoli tra tende,
+// palizzate, la nave in secca e i cannoni, quasi tutti ciechi; alla riva si scende solo dall'approdo del Mercante.
+const ACC = { x0: 25, x1: 80, z0: 60, z1: 73 };
+rect(ACC.x0, ACC.z0, ACC.x1, ACC.z1, 's');
+set(43, 60, 'm'); set(43, 61, 'm');            // il muretto ovest | sud-est arriva fino alla palizzata
+const tenda = (x0, z0) => rect(x0, z0, x0 + 3, z0 + 3, 't');
+// a nord: la palizzata col varco, poi a pettine tende e vicoli ciechi
+rect(44, 60, 80, 60, '|'); rect(73, 60, 74, 60, 's');
+rect(25, 61, 25, 63, '|');                       // tra la taverna e la prima tenda niente passaggio (si girerebbe attorno alla tenda)
+tenda(26, 61);
+rect(32, 64, 43, 64, '|'); rect(43, 62, 43, 64, '|'); // la tasca del moschetto: ci si entra solo accanto alla tenda
+tenda(44, 61); rect(51, 61, 51, 64, '|'); tenda(52, 61); tenda(58, 61); tenda(64, 61); rect(68, 61, 68, 64, '|'); rect(72, 61, 72, 64, '|'); tenda(76, 61);
+rect(80, 61, 80, 72, '|');                       // a est la palizzata scende fino agli scogli
+// la strada: qualche botte che la spezza (il falò dei pirati sta in mezzo, davanti all'approdo: sotto coi fuochi)
+for (const [x, z] of [[34, 65], [35, 65], [41, 68], [66, 65], [67, 68]]) set(x, z, 'k');
+// a sud: la nave in secca su un fianco, le tende, i cannoni puntati al mare; la riva è tutta scogli tranne l'approdo
+rect(27, 69, 37, 71, '=');
+rect(42, 70, 46, 72, 'q'); tenda(47, 69); rect(55, 70, 55, 72, 'q'); rect(61, 70, 62, 72, 'q'); tenda(63, 69);
+tenda(70, 69); rect(76, 69, 76, 72, '|');
+for (const x of [52, 67, 74]) { set(x, 72, 'k'); set(x + 1, 72, 'k'); }
+rect(ACC.x0, 72, 37, 72, 'q');                  // dietro la nave gli scogli (niente giro attorno alla nave)
+rect(ACC.x0, ACC.z1, ACC.x1, ACC.z1, 'q'); rect(56, ACC.z1, 60, ACC.z1, 's');
 
 // colonne: giro di 8 nella rotonda (raggio 5,5), due pilastri all'arco del presbiterio
 for (let i = 0; i < 8; i++) {
@@ -168,11 +187,11 @@ altareLaterale();                     // altare laterale a sinistra del portale,
 set(61, 37, 'M');                     // mazza ferrata: muro nord del presbiterio, tra gli stalli
 set(40, 36, 'X');                     // ascia danese: muro nord-ovest della rotonda, tra le macerie
 set(7, 67, 'G');                      // pistola a pietra focaia: muro ovest della taverna
-set(42, 69, 'K');                     // moschetto: accanto alla prima tenda
-set(65, 68, 'E');                     // trombone: accanto alla terza tenda
+set(41, 62, 'K');                     // moschetto: in fondo alla tasca dietro la prima tenda (contro la palizzata)
+set(62, 61, 'E');                     // trombone: in fondo a un vicolo cieco tra due tende
 set(44, 34, 'C'); set(67, 37, 'C');   // cassa: in fondo alla rotonda e accanto all'abside
 set(SA.x1 - 1, SA.z1 - 2, 'C');      // e in sacrestia, contro il muro est
-set(11, 44, 'C'); set(69, 11, 'C'); set(55, 71, 'C'); // e nella piazza (contro una casa), davanti all'ossario, accanto a una tenda
+set(11, 44, 'C'); set(69, 11, 'C'); set(51, 70, 'C'); // e nella piazza (contro una casa), davanti all'ossario, accanto a una tenda della riva
 
 // ——— trappole: il rogo sulla passatoia del presbiterio, la campana davanti alla porta nord (fuori) ———
 for (let x = 58; x <= 66; x++) for (const z of [42, 43]) if (get(x, z) === '.') set(x, z, 'J');
@@ -182,8 +201,9 @@ set(59, 38, 'L');
 
 // ——— fuochi da accendere (il terzo è il falò dei pirati, sopra) e posti dei pezzi della campana, uno per zona ———
 set(66, 46, 'I');                     // coro: accanto agli stalli a sud, a due passi dalla partenza
+set(58, 66, 'U');                     // spiaggia: il falò in mezzo alla strada, davanti all'approdo del Mercante
 set(64, 5, 'O');                      // cimitero: in cima, accanto alla capanna della Strega
-const PEZZI = { c: [[64, 54], [12, 69], [70, 64]], d: [[52, 22], [28, 45], [40, 72]], f: [[82, 78], [17, 34], [80, 25]] };
+const PEZZI = { c: [[64, 54], [12, 69], [70, 64]], d: [[52, 22], [28, 45], [40, 72]], f: [[78, 71], [17, 34], [80, 25]] };
 for (const [c, l] of Object.entries(PEZZI)) for (const [x, z] of l) { if (',vews'.includes(get(x, z))) set(x, z, c); else throw new Error(`pezzo ${c} su '${get(x, z)}' in ${x},${z}`); }
 
 // ——— segreti (§9c): la cripta, il muro crepato, le campanelle col loro indizio, i teschi ———
@@ -200,7 +220,7 @@ const CREPA = [40, 35];
 if (get(...CREPA) !== '#') throw new Error(`il muro crepato non è su un muro (${get(...CREPA)})`);
 set(CREPA[0], CREPA[1], 'Z');
 // campanelle: una per zona, su un palo (croce in chiesa, teschio al cimitero, ancora alla spiaggia, luna in piazza); l'indizio in taverna
-const CAMPANELLE = { 7: [41, 48], 8: [67, 14], 9: [48, 65], 0: [21, 43] }; // croce: nella rotonda, accanto alla tomba di un cavaliere (non dal coro: lì le draw call sono al limite)
+const CAMPANELLE = { 7: [41, 48], 8: [67, 14], 9: [49, 61], 0: [21, 43] }; // croce: nella rotonda, accanto alla tomba di un cavaliere (non dal coro: lì le draw call sono al limite)
 for (const [c, [x, z]] of Object.entries(CAMPANELLE)) { if ('.,vesw'.includes(get(x, z))) set(x, z, c); else throw new Error(`campanella ${c} su '${get(x, z)}' in ${x},${z}`); }
 const INDIZIO = [19, 61]; // sul muro nord della taverna, dentro (la camera lo vede dritto; lontano dal coro, dove le draw call sono al limite)
 if (get(...INDIZIO) !== 'w' || get(INDIZIO[0], INDIZIO[1] - 1) !== '#') throw new Error("l'indizio delle campane vuole l'assito con un muro a nord");
@@ -225,10 +245,10 @@ for (const [x, z] of finestre) {
   if (!best) throw new Error(`nessuna comparsa per la finestra ${x},${z}`);
   set(best.x, best.z, 'z');
 }
-const comparse = { y: [[9, 36], [15, 48], [24, 33], [30, 54], [8, 58]], u: [[39, 6], [50, 13], [63, 9], [76, 19], [85, 13], [44, 22]], x: [[21, 70], [10, 69]], j: [[34, 81], [50, 82], [63, 81], [77, 82], [90, 80], [92, 62]] };
+const comparse = { y: [[9, 36], [15, 48], [24, 33], [30, 54], [8, 58]], u: [[39, 6], [50, 13], [63, 9], [76, 19], [85, 13], [44, 22]], x: [[21, 70], [10, 69]], j: [[36, 61], [25, 71], [56, 62], [70, 61], [78, 69], [39, 69]] };
 // Strega e Mercante (docs/TEMPLARI.md §7b): il posto dove si parla con loro, sul bordo del campo; loro stanno fuori, oltre il bordo
 // ('F' strega: in cima al cimitero, la capanna oltre i cipressi · 'D' mercante: sulla riva della spiaggia, la barca in mare)
-const PERSONAGGI = { F: [61, 3], D: [56, 82] };
+const PERSONAGGI = { F: [61, 3], D: [58, 73] };
 for (const [c, [x, z]] of Object.entries(PERSONAGGI)) { if ('es'.includes(get(x, z)) && get(x, z - 1 + (c === 'D' ? 2 : 0)) === ' ') set(x, z, c); else throw new Error(`${c} non sta sul bordo in ${x},${z}`); }
 for (const [c, l] of Object.entries(comparse)) for (const [x, z] of l) { if ('vews'.includes(get(x, z))) set(x, z, c); else throw new Error(`comparsa ${c} su '${get(x, z)}' in ${x},${z}`); }
 // qualche maceria sul sagrato (ostacoli che spezzano le corse)
@@ -236,7 +256,7 @@ for (const [x, z] of [[33, 33], [34, 52], [60, 30], [72, 33], [76, 50], [52, 56]
 
 // ——— controlli: zone collegate dalle porte giuste, comparse raggiungibili, l'eroe chiuso in chiesa all'inizio ———
 const PORTE = '123456';
-const pieno = (c) => ' #ohtmApbrqkgaCWNVYIOUZP7890'.includes(c);
+const pieno = (c) => ' #ohtmApbrqkgaCWNVYIOUZP7890|='.includes(c);
 function bfs(sx, sz, solido) {
   const seen = new Set([sx + ',' + sz]), q = [[sx, sz]];
   while (q.length) {
@@ -267,7 +287,7 @@ for (const [c, porte] of Object.entries(zona)) {
 }
 // ogni finestra si passa dritta: dentro un pavimento, fuori il sagrato
 for (const [x, z] of finestre) if (!QUATTRO.some(([dx, dz]) => !pieno(get(x + dx, z + dz)) && get(x - dx, z - dz) !== ' ' && !pieno(get(x - dx, z - dz)))) errs.push(`la finestra ${x},${z} non si attraversa`);
-if (!aperte(['2', '5']).has('50,82')) errs.push('dal cimitero col cancello 5 non si arriva alla spiaggia');
+if (!aperte(['2', '5']).has(PERSONAGGI.D.join(','))) errs.push('dal cimitero col cancello 5 non si arriva alla spiaggia');
 // la Strega si raggiunge con la porta del cimitero, il Mercante solo arrivando alla spiaggia
 { const f = PERSONAGGI.F.join(','), m = PERSONAGGI.D.join(',');
   if (chiuso.has(f) || !aperte(['2']).has(f)) errs.push('la Strega si deve raggiungere con la porta del cimitero');
@@ -299,8 +319,12 @@ if (errs.length) { console.error(errs.slice(0, 20).join('\n')); process.exit(1);
 
 // righe senza spazi in coda (il parser tratta il fuori come spazio)
 const trimmed = rows.map((r) => r.replace(/ +$/, ''));
+// larghezza fissa a 95 (quella di prima del §12b): l'aspetto delle celle (altezze dei muri, colori) viene da cellHash(indice), e con una
+// larghezza diversa cambierebbe tutta l'isola, anche sotto il dipinto
+const LARGA = 95;
+if (Math.max(...trimmed.map((r) => r.length)) > LARGA) throw new Error(`la mappa è più larga di ${LARGA}`);
 const out = {
-  tile: 1,
+  tile: 1, w: LARGA,
   legenda: {
     '1': { porta: 'portale' }, '2': { porta: 'cimitero' }, '3': { porta: 'taverna' }, '4': { porta: 'spiaggia_taverna' }, '5': { porta: 'spiaggia_cimitero' }, '6': { porta: 'sacrestia' },
     'R': { muro: 'arco' }, 'M': { muro: 'mazza' }, 'X': { muro: 'ascia' }, 'G': { muro: 'pistola' }, 'K': { muro: 'moschetto' }, 'E': { muro: 'trombone' },

@@ -1,9 +1,9 @@
 // Arredi dell'arena dei Templari (docs/TEMPLARI.md §3, «Riferimenti storici»): quello che non ferma nessuno ma racconta il posto.
 // Chiesa: il tamburo di archi sopra il giro di colonne (la charola di Tomar), le dodici croci rosse di consacrazione sui muri della rotonda,
 // i due stendardi Beauceant (bianco e nero con la croce rossa, come nell'affresco di San Bevignate) ai lati del coro. Borgo: usci scuri e
-// tegole rimaste sulle case diroccate. Cimitero: i cipressi lungo i muri, l'ossario coi teschi. Spiaggia: il mare di notte, la nave dei
-// pirati tirata in secca su un fianco (carenaggio), la bandiera nera sulla tenda grande, la griglia del boucan sul falò, l'insegna col
-// teschio sopra la taverna. Tutto instanziato o unito: poche draw call.
+// tegole rimaste sulle case diroccate. Cimitero: i cipressi lungo i muri, l'ossario coi teschi. Spiaggia: il mare di notte, la bandiera
+// nera sulla tenda grande, la griglia del boucan sul falò, l'insegna col teschio sopra la taverna (la nave in secca dal §12b sta
+// nell'accampamento, accampamento.ts). Tutto instanziato o unito: poche draw call.
 import * as THREE from 'three';
 import type { Arena } from '@marea/sim/templari/mappa.ts';
 import { C, SUOLO, TIPO } from '@marea/sim/templari/mappa.ts';
@@ -193,32 +193,17 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
   const troncoGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.6, 5); troncoGeo.translate(0, 0.3, 0);
   const tronco = istanze(troncoGeo, new THREE.MeshLambertMaterial({ color: PAL.legnoScuro, flatShading: true }), tronchi.length, 'cipressi_tronchi');
   tronchi.forEach((m, n) => tronco.setMatrixAt(n, m));
-  // ---- spiaggia: il mare a sud, la nave in secca a est, bandiera nera, griglia del boucan, insegna della taverna ----
+  // ---- spiaggia: il mare a sud, bandiera nera, griglia del boucan, insegna della taverna ----
   const sabbia = [...Array(W * H).keys()].filter((i) => a.suolo[i] === SUOLO.sabbia);
   const mareT = mareTex(); disp.push(mareT);
-  let mare: THREE.Mesh | null = null, nave: THREE.Mesh | null = null, bandiera: THREE.Mesh | null = null;
+  let mare: THREE.Mesh | null = null, bandiera: THREE.Mesh | null = null;
   const teschioT = teschioTex(); disp.push(teschioT);
   const teschioMat = new THREE.MeshLambertMaterial({ map: teschioT, side: THREE.DoubleSide }); disp.push(teschioMat);
   if (sabbia.length) {
-    const zMax = Math.max(...sabbia.map((i) => Math.floor(i / W))) + 1, xMin = Math.min(...sabbia.map((i) => i % W));
     mareT.repeat.set(W * T / 8, 5);
     mare = new THREE.Mesh(new THREE.PlaneGeometry(W * T + 60, 40), new THREE.MeshLambertMaterial({ map: mareT }));
     mare.rotation.x = -Math.PI / 2; mare.position.set((W * T) / 2, -0.02, H * T + 20); mare.name = 'mare';
     scene.add(mare); disp.push(mare.geometry, mare.material as THREE.Material);
-    // la nave in secca nell'acqua bassa a ovest della spiaggia (a ovest non copre la vista: la camera guarda da sud-est): scafo su un
-    // fianco, chiglia, albero spezzato, una vela strappata
-    const nx = xMin * T - 4.5, nz = (zMax - 5) * T;
-    const naveGeo = unisci([
-      { g: new THREE.BoxGeometry(3.2, 2.4, 11), c: PAL.legnoScuro, rz: 0.62 },
-      { g: new THREE.BoxGeometry(3.25, 0.3, 11.05), c: PAL.legno, y: 0.6, rz: 0.62 },
-      { g: new THREE.BoxGeometry(3.25, 0.25, 11.05), c: PAL.neroCaldo, y: -0.4, rz: 0.62 },
-      { g: new THREE.BoxGeometry(0.4, 0.5, 11.6), c: PAL.roccia, x: 0.9, y: -1.3, rz: 0.62 },
-      { g: new THREE.BoxGeometry(2.6, 2.2, 0.4), c: PAL.legno, z: 5.6, rz: 0.62 },
-      { g: new THREE.CylinderGeometry(0.16, 0.2, 9, 5), c: PAL.legno, x: -4.2, y: 0.3, z: -1, rz: Math.PI / 2 + 0.2, ry: 0.4 },
-      { g: new THREE.BoxGeometry(2.4, 0.06, 3.2), c: PAL.sabbiaChiara, x: -4, y: 0.25, z: 1.4, ry: 0.5, rx: 0.1 },
-    ]);
-    nave = new THREE.Mesh(naveGeo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
-    nave.position.set(nx, 1.1, nz); nave.name = 'nave'; scene.add(nave); disp.push(naveGeo, nave.material as THREE.Material);
   }
   // bandiera nera sulla tenda più grande della spiaggia
   const tende = [...Array(W * H).keys()].filter((i) => a.tipo[i] === TIPO.tenda);
