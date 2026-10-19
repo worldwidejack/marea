@@ -132,7 +132,7 @@ async function boot(): Promise<void> {
   const setMyLot = (l: LotState) => { lots.find((lv) => !lv.readonly)?.set(l); };
   const ingressi = createIngressi({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot });
   // dei dungeon la bussola mostra solo il più facile non ancora completato (difficoltà invisibile, docs/RPG.md §2)
-  for (const sp of ingressi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, show: () => ingressi.next() === sp.id, group: 'dungeon' });
+  for (const sp of ingressi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, show: () => ingressi.next() === sp.id, group: 'dungeon', desc: 'Il dungeon più facile che non hai ancora sconfitto' });
   // Isola dei Templari (docs/TEMPLARI.md): la porta della chiesa e le ondate (chunk templari/ scaricato entrando); ?templari=1 per le prove
   const tpl = createTemplari({ world, renderer, loader, api: me && api.enabled ? api : null, hud, root, canvas, getLot: () => myLot(), setLot: setMyLot });
   /** Nel dungeon, nella chiesa dei Templari o nel duello dell'Arena: il mondo di superficie sta fermo e la sua interfaccia sparisce. */
