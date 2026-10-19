@@ -12,6 +12,7 @@ const CSS = `
 .mz-topbtn { position: relative; width: 44px; height: 44px; flex: none; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(46,30,20,.92); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; color: ${P.sabbiaChiara}; font: bold 15px ui-monospace, Menlo, monospace; cursor: pointer; }
 .mz-topbtn.on { border-color: ${P.giallo}; color: ${P.giallo}; }
 .mz-topbtn:active { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
+.mz-topbtn.mz-via { display: none !important; }
 .mz-topbtn:focus { outline: none; } .mz-topbtn:focus-visible { outline: 3px solid ${P.giallo}; outline-offset: 2px; }
 .mz-badge { position: absolute; top: -9px; right: -9px; min-width: 20px; height: 20px; padding: 0 5px; display: none; align-items: center; justify-content: center; background: ${P.rosso}; color: ${P.sabbiaChiara}; border: 2px solid ${P.neroCaldo}; font-size: 12px; font-weight: bold; line-height: 1; }
 .mz-badge.on { display: flex; }
@@ -30,10 +31,11 @@ function bar(root: HTMLElement): HTMLElement {
   return b;
 }
 
-/** Un bottone 44×44 nella barra: `label` è il testo/icona iniziale (il modulo può appendere la sua icona a pixel in `el`). */
-export function topButton(o: { root: HTMLElement; id: string; order: number; label: string; title: string; onClick(): void }): TopButton {
+/** Un bottone 44×44 nella barra: `label` è il testo/icona iniziale (il modulo può appendere la sua icona a pixel in `el`).
+ *  `nascosto` (#417): il bottone c'è ma non si vede; lo apre il menù AVATAR (ui/hud_allegro.ts) o il suo tasto. */
+export function topButton(o: { root: HTMLElement; id: string; order: number; label: string; title: string; onClick(): void; nascosto?: boolean }): TopButton {
   const b = bar(o.root);
-  const btn = el('button', 'mz mz-topbtn', o.label);
+  const btn = el('button', 'mz mz-topbtn' + (o.nascosto ? ' mz-via' : ''), o.label);
   btn.id = o.id; btn.type = 'button'; btn.title = o.title; btn.setAttribute('aria-label', o.title); btn.style.order = String(o.order);
   const badge = el('i', 'mz-badge'); btn.appendChild(badge);
   btn.addEventListener('click', (e) => { e.preventDefault(); btn.blur(); o.onClick(); });

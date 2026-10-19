@@ -230,11 +230,11 @@ export default async function (ctx) {
 
   const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
   await pronta(d.page);
-  await ctx.test('PC: cerchio in basso a destra, mappa grande col mouse (clic = segnalino, rotella = zoom sul punto, trascinare = spostare)', async () => {
+  await ctx.test('PC: cerchio in alto a destra (#417), mappa grande col mouse (clic = segnalino, rotella = zoom sul punto, trascinare = spostare)', async () => {
     await d.page.waitForTimeout(600);
     await ctx.shot(d.page, 'desktop_mini');
     const box = await d.page.evaluate(() => { const r = document.getElementById('mzMini').getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, vw: innerWidth, vh: innerHeight }; });
-    assert(box.x > box.vw / 2 && box.y > box.vh / 2, `posto del cerchio: ${JSON.stringify(box)}`);
+    assert(box.x > box.vw / 2 && box.y < box.vh / 2, `posto del cerchio: ${JSON.stringify(box)}`);
     await d.page.keyboard.press('KeyM'); await d.page.waitForTimeout(300);
     assert((await mappa(d.page)).zoomMappa.i === 0 && (await mappa(d.page)).zoomMappa.x === 1, 'al PC la mappa si apre intera');
     const at = await hook(d.page, 'mappaSchermo', 40, 400);

@@ -1,0 +1,13 @@
+1_corse https://chatgpt.com/c/6ad53018-a6e4-83eb-ae5b-3360c49ad73e
+2_animalcrossing https://chatgpt.com/c/6ad5303a-118c-83ed-82b2-960d77bbcae8
+3_nautico https://chatgpt.com/c/6ad5303a-c91c-83eb-96c4-c6f0bf84ad85
+4_brawl https://chatgpt.com/c/6ad53042-ab1c-83eb-bc92-f54a43a8ec93
+5_minimale https://chatgpt.com/c/6ad53042-ba48-83ed-a6bf-6c1b89a30e69
+6_pokemon https://chatgpt.com/c/6ad53042-d2d4-83eb-8ff2-49c643b3af1d
+# giro 2 (bottoni decisi, #417)
+g2_1_genshin https://chatgpt.com/c/6ad53676-0f64-83eb-9063-cbac8fd16aa5
+g2_2_fortnite https://chatgpt.com/c/6ad53676-55b8-83eb-b16e-5635926200a0
+g2_3_mario https://chatgpt.com/c/6ad53676-3d14-83ed-9878-9e7c57836f75
+g2_4_splatoon https://chatgpt.com/c/6ad53676-249c-83eb-bd41-38b0724bd7a6
+g2_5_persona https://chatgpt.com/c/6ad53676-bb30-83ed-bc5a-ef9aacc1a100
+g2_6_wii https://chatgpt.com/c/6ad53676-3afc-83eb-83b2-262b278c54a8

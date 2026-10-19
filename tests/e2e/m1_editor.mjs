@@ -270,10 +270,11 @@ export default async function (ctx) {
       assert(!(await st(anna)).editor.linkVisibile, 'il campo col link resta dopo la chiusura');
     });
 
-    await ctx.test('telefono 390×844: tocco su #mzEditorBtn apre il foglio, il centro resta libero', async () => {
+    await ctx.test('telefono 390×844: AVATAR → Aspetto apre il foglio (#417), il centro resta libero', async () => {
       const bruno = await open('tokB', ctx.B.IPHONE);
       const b0 = (await st(bruno)).wp2_avatar.look;
-      await bruno.page.locator('#mzEditorBtn').tap();
+      await bruno.page.locator('#mzAvatarBtn').tap();
+      await bruno.page.locator('#mzAvatarMenu [data-voce="aspetto"]').tap();
       await waitOpen(bruno, true);
       // si misura quando è arrivato il lotto chiesto all'apertura: se cambia qualcosa il foglio si rifà e i bottoni di prima si staccano (#166)
       await ctx.waitState(bruno.page, (s) => s.editor.lotFresco === true, 15000);

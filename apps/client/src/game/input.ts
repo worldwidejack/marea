@@ -4,6 +4,8 @@
 // «Una mano» (#143, Impostazioni, solo touch): niente joystick fisso; nasce dove il dito tocca il canvas e, dopo il rilascio, resta lì
 // (più chiaro) per i secondi scelti: un tocco sopra o appena fuori lo riprende col centro di prima, altrove ne nasce uno nuovo.
 // I tocchi brevi sul canvas restano dei loro (lotto, gatti): il joystick appare e basta. Un secondo dito sul canvas (pizzico) lo lascia.
+// Aspetto «Allegro» (#417, scelto da Jack il 18 ott 2026, `assets/concept/ui/hud2_3_mario.jpg`): A rosso col bordo bianco, sotto la
+// scritta di cosa fa adesso (#btnAzione, `setAzione`); B c'è solo dove serve (`setB`: nel mondo a piedi e in barca no).
 import type { InputFrame } from '@marea/sim';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
@@ -11,13 +13,19 @@ export type Input = {
   sample(): InputFrame; dispose(): void; inject(f: Partial<InputFrame> | null): void;
   /** Una mano (#143): joystick dove tocchi, che resta `sec` secondi dopo il rilascio. Spento = joystick fisso in basso a sinistra. */
   setUnaMano(on: boolean, sec: number): void;
+  /** La scritta sotto A («Parla», «Gioca»…); null la toglie. */
+  setAzione(t: string | null): void;
+  /** B visibile o no (main lo spegne nel mondo, dove non fa niente). Di serie acceso: le pagine di prova lo usano. */
+  setB(on: boolean): void;
 };
 
 const DEAD = 0.14; // zona morta del joystick (frazione del raggio); oltre, la magnitudine riparte da 0
-const RING = 132, STICK = 52, R = 44; // px: anello, pomello, corsa massima del pomello
+const RING = 124, STICK = 56, R = 42; // px: anello, pomello, corsa massima del pomello
 const GRAB = RING / 2 + 3 + 28; // una mano: un tocco entro questo raggio dal centro riprende il joystick fermo (anello + bordo + margine del pollice)
 const KEY_WALK = 0.7; // tastiera: camminata; con Shift = 1 (corsa)
-const BTN_A = 84, BTN_B = 68;
+const BTN_A = 86, BTN_B = 64;
+const BLU_NOTTE = '#1B2340', FONT = "'MzTitan','Arial Rounded MT Bold',ui-rounded,system-ui,sans-serif";
+const CONTORNO = `0 2px 0 ${BLU_NOTTE},2px 0 0 ${BLU_NOTTE},-2px 0 0 ${BLU_NOTTE},0 -2px 0 ${BLU_NOTTE},1.5px 1.5px 0 ${BLU_NOTTE},-1.5px 1.5px 0 ${BLU_NOTTE},1.5px -1.5px 0 ${BLU_NOTTE},-1.5px -1.5px 0 ${BLU_NOTTE},0 4px 0 ${BLU_NOTTE}`;
 const SAFE = 'env(safe-area-inset-bottom, 0px)';
 
 /** schermo (x destra, y giù) → assi mondo con la yaw della camera. Con yaw=π/4: (0,−1) "su" → (−0,707, −0,707). */
@@ -46,17 +54,21 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   // ---- DOM: joystick e bottoni (stile inline: index.html è di WP0) ----
   const mk = (id: string, cls?: string): HTMLElement => { const e = document.createElement('div'); e.id = id; if (cls) e.className = cls; return e; };
   const joy = mk('joystick'), stick = mk('stick'); joy.appendChild(stick);
-  const btnA = mk('btnA', 'btn'), btnB = mk('btnB', 'btn'); btnA.textContent = 'A'; btnB.textContent = 'B';
+  const btnA = mk('btnA', 'btn'), btnB = mk('btnB', 'btn'), azione = mk('btnAzione'); btnA.textContent = 'A'; btnB.textContent = 'B';
   const nogesture = 'touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;';
-  const ringCss = `${nogesture}position:absolute;width:${RING}px;height:${RING}px;border-radius:50%;background:rgba(46,30,20,.5);border:3px solid rgba(244,227,193,.55);`;
+  const ringCss = `${nogesture}position:absolute;width:${RING}px;height:${RING}px;border-radius:50%;background:rgba(27,35,64,.42);border:3px solid rgba(255,255,255,.7);box-shadow:0 0 0 2px rgba(27,35,64,.55);`;
   const fixedCss = `${ringCss}left:max(16px,env(safe-area-inset-left,0px));bottom:calc(${SAFE} + 32px);`;
   joy.style.cssText = fixedCss;
-  stick.style.cssText = `position:absolute;left:${(RING - 6 - STICK) / 2}px;top:${(RING - 6 - STICK) / 2}px;width:${STICK}px;height:${STICK}px;border-radius:50%;background:rgba(244,227,193,.88);border:3px solid #8E5A2B;pointer-events:none;will-change:transform;`;
-  const btnCss = (size: number, right: string, bottom: string, bg: string) => `${nogesture}position:absolute;right:${right};bottom:${bottom};width:${size}px;height:${size}px;border-radius:50%;background:${bg};border:3px solid rgba(244,227,193,.7);color:#F4E3C1;font:bold ${Math.round(size * 0.34)}px ui-monospace,Menlo,monospace;display:flex;align-items:center;justify-content:center;`;
-  const aCss = btnCss(BTN_A, 'max(16px,env(safe-area-inset-right,0px))', `calc(${SAFE} + 36px)`, 'rgba(232,67,63,.78)');
-  const bCss = btnCss(BTN_B, `calc(max(16px,env(safe-area-inset-right,0px)) + ${BTN_A + 8}px)`, `calc(${SAFE} + 36px)`, 'rgba(46,30,20,.6)');
-  btnA.style.cssText = aCss; btnB.style.cssText = bCss;
-  o.root.append(joy, btnA, btnB);
+  stick.style.cssText = `position:absolute;left:${(RING - 6 - STICK) / 2}px;top:${(RING - 6 - STICK) / 2}px;width:${STICK}px;height:${STICK}px;border-radius:50%;background:#FFF6E0;border:3px solid ${BLU_NOTTE};box-shadow:inset 0 -5px 0 #E2D3AE;box-sizing:border-box;pointer-events:none;will-change:transform;`;
+  // bottoni tondi: colore pieno, anello bianco, contorno blu notte e un'ombra piena sotto (niente sfumature)
+  const btnCss = (size: number, right: string, bottom: string, bg: string, scuro: string) => `${nogesture}position:absolute;right:${right};bottom:${bottom};width:${size}px;height:${size}px;box-sizing:border-box;border-radius:50%;background:${bg};border:4px solid #fff;box-shadow:0 0 0 3px ${BLU_NOTTE},inset 0 -7px 0 ${scuro},0 5px 0 3px ${BLU_NOTTE};color:#fff;font:${Math.round(size * 0.46)}px ${FONT};text-shadow:${CONTORNO};display:flex;align-items:center;justify-content:center;`;
+  const aCss = btnCss(BTN_A, 'max(18px,env(safe-area-inset-right,0px))', `calc(${SAFE} + 46px)`, '#EE3640', '#B81F2B');
+  const bCss = btnCss(BTN_B, `calc(max(18px,env(safe-area-inset-right,0px)) + ${BTN_A + 12}px)`, `calc(${SAFE} + 40px)`, '#2F86E8', '#1A5DB8');
+  // la scritta sotto A: pillola blu notte col bordo chiaro, centrata sul bottone
+  const azCss = `${nogesture}position:absolute;right:calc(max(18px,env(safe-area-inset-right,0px)) + ${BTN_A / 2}px);bottom:calc(${SAFE} + 22px);transform:translateX(50%);min-width:56px;box-sizing:border-box;padding:3px 12px 4px;border-radius:999px;background:${BLU_NOTTE};border:2px solid #9FD3FF;color:#fff;font:15px ${FONT};text-align:center;white-space:nowrap;pointer-events:none;z-index:1;`;
+  let bVia = false, azTesto: string | null = null;
+  btnA.style.cssText = aCss; btnB.style.cssText = bCss; azione.style.cssText = azCss + 'display:none;';
+  o.root.append(joy, btnA, btnB, azione);
   for (const e of [joy, btnA, btnB]) e.addEventListener('contextmenu', (ev) => ev.preventDefault());
   // niente scroll/zoom della pagina (Safari ignora user-scalable=no)
   const noGesture = (e: Event) => e.preventDefault();
@@ -81,7 +93,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
     if (st === 'riposo') restT = setTimeout(() => { restT = null; pad = 'via'; paintJoy(); }, restaMs);
     paintJoy();
   };
-  const setStick = () => { stick.style.transform = `translate(${jx * R}px, ${jy * R}px)`; stick.style.background = jid === null ? 'rgba(244,227,193,.88)' : '#F4E3C1'; };
+  const setStick = () => { stick.style.transform = `translate(${jx * R}px, ${jy * R}px)`; stick.style.background = jid === null ? '#FFF6E0' : '#FFFFFF'; };
   const moveStick = (e: PointerEvent) => {
     let ox = cx, oy = cy;
     if (!una) { const r = joy.getBoundingClientRect(); ox = r.left + r.width / 2; oy = r.top + r.height / 2; }
@@ -113,8 +125,8 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   // ---- bottoni: un set di pointerId per bottone (multi-touch); il latch cattura anche i tocchi più brevi di un tick ----
   const aHeld = new Set<number>(), bHeld = new Set<number>();
   const paintBtns = () => {
-    btnA.style.cssText = aCss + (aHeld.size ? 'transform:scale(.92);filter:brightness(1.25);' : '');
-    btnB.style.cssText = bCss + (bHeld.size ? 'transform:scale(.92);filter:brightness(1.4);' : '');
+    btnA.style.cssText = aCss + (aHeld.size ? 'transform:translateY(3px) scale(.95);filter:brightness(1.12);' : '');
+    btnB.style.cssText = bCss + (bHeld.size ? 'transform:translateY(3px) scale(.95);filter:brightness(1.15);' : '') + (bVia ? 'display:none;' : '');
   };
   const wire = (btn: HTMLElement, held: Set<number>, latch: () => void) => {
     btn.addEventListener('pointerdown', (e) => { if (dedupe(e)) return; e.preventDefault(); held.add(e.pointerId); latch(); try { btn.setPointerCapture(e.pointerId); } catch { /* sintetico */ } paintBtns(); });
@@ -130,6 +142,17 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   let last = { sx: 0, sy: 0, mag: 0, src: 'none' };
   const input: Input = {
     inject: (f) => { injected = f; },
+    setAzione(t) {
+      if (t === azTesto) return;
+      azTesto = t;
+      azione.textContent = t ?? '';
+      azione.style.cssText = azCss + (t ? '' : 'display:none;');
+    },
+    setB(on) {
+      if (on !== bVia) return;
+      bVia = !on; if (bVia) { bHeld.clear(); bLatch = false; }
+      paintBtns();
+    },
     setUnaMano(on, sec) {
       restaMs = Math.max(0, sec) * 1000;
       if (on === una) return;
@@ -163,10 +186,10 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
       o.canvas.removeEventListener('pointerdown', onCanvasDown); if (restT !== null) clearTimeout(restT);
       document.removeEventListener('visibilitychange', onVis);
       for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.removeEventListener(ev, noGesture as EventListener);
-      joy.remove(); btnA.remove(); btnB.remove();
+      joy.remove(); btnA.remove(); btnB.remove(); azione.remove();
     },
   };
-  registerStateProvider('wp2_input', () => ({ ...last, stick: [jx, jy], a: aHeld.size > 0, b: bHeld.size > 0, injected: !!injected, unaMano: una, pad: una ? pad : 'fisso', padAt: [Math.round(cx), Math.round(cy)], restaMs }));
+  registerStateProvider('wp2_input', () => ({ ...last, stick: [jx, jy], a: aHeld.size > 0, b: bHeld.size > 0, injected: !!injected, unaMano: una, pad: una ? pad : 'fisso', padAt: [Math.round(cx), Math.round(cy)], restaMs, azione: azTesto, bVisibile: !bVia }));
   registerTestHook('wp2_inject', (f) => input.inject((f ?? null) as Partial<InputFrame> | null));
   return input;
 }

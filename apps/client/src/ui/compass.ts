@@ -1,6 +1,6 @@
 // Bussola dell'HUD («METE»): una riga per luogo (Casa, Porto, Regata…) con casella, icona, distanza e freccia. La freccia ha l'asta (un
 // triangolo quasi equilatero non dice da che parte punta) e gira nello spazio dello schermo. L'intestazione comprime il menù (sul telefono
-// parte chiuso, sul PC aperto); toccando una riga la meta si accende o si spegne, TUTTE/NESSUNA in un colpo. Con **una sola** meta accesa
+// parte chiuso, sul PC aperto; si apre anche dalla bandierina della minimappa, #417); toccando una riga la meta si accende o si spegne, TUTTE/NESSUNA in un colpo. Con **una sola** meta accesa
 // compare anche una freccia sullo schermo: sopra la meta se si vede, sul bordo verso di lei se no (`pointer.ts`, come la guida).
 // Le mete con la stessa `sezione` (Porto: Mercante, Bacheca, Scacchi, Consegne, Ingorgo; Isole a tema) stanno in **una riga sola** che si
 // apre con ▸ (una sezione aperta alla volta); la casella della sezione accende o spegne tutte le sue mete, distanza e freccia sono della meta
@@ -104,7 +104,7 @@ export function createCompass(o: {
 }): Compass {
   if (!document.getElementById('mz-compass-style')) { const st = document.createElement('style'); st.id = 'mz-compass-style'; st.textContent = CSS; document.head.appendChild(st); }
   const saved = load();
-  let open = saved.open ?? !matchMedia('(max-width: 699px)').matches; // telefono: chiuso, PC: aperto
+  let open = saved.open ?? !matchMedia('(max-width: 699px)').matches; // telefono: chiuso (la pillola del navigatore, #417), PC: aperto
   let aperta: string | null = typeof saved.sez === 'string' ? saved.sez : null; // sezione aperta (una alla volta)
   const off = new Set(saved.off ?? []);
   const keyOf = (t: CompassTarget) => t.group ?? t.id;
@@ -313,11 +313,12 @@ export function createCompass(o: {
       if (key !== sumFor) {
         sumFor = key;
         if (open || on.length === 0) sum.replaceChildren();
-        else if (one) sum.replaceChildren(...(one.t.icon ? [pixIcon(one.t.icon, 16)] : []), span('mz-mete-d'), arrowEl('mz-mete-arr'));
+        else if (one) { const txt = span('mz-mete-txt'); txt.append(span('mz-mete-n', one.t.label), span('mz-mete-d')); sum.replaceChildren(...(one.t.icon ? [pixIcon(one.t.icon, 16)] : []), txt, arrowEl('mz-mete-arr')); }
         else sum.replaceChildren(span('', `· ${on.length}`));
       }
       if (one && !open) {
-        const d = sum.querySelector<HTMLElement>('.mz-mete-d'), a = sum.querySelector<HTMLElement>('.mz-mete-arr');
+        const d = sum.querySelector<HTMLElement>('.mz-mete-d'), a = sum.querySelector<HTMLElement>('.mz-mete-arr'), n = sum.querySelector<HTMLElement>('.mz-mete-n');
+        if (n && n.textContent !== one.t.label) n.textContent = one.t.label; // il navigatore agganciato a una meta ne prende il nome
         if (d) d.textContent = distText(one.d);
         if (a) { a.style.transform = `rotate(${one.ang.toFixed(3)}rad)`; a.style.visibility = one.d <= NEAR_M ? 'hidden' : ''; }
       }

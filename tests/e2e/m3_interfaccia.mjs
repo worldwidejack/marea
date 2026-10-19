@@ -16,7 +16,7 @@ const ANDROID = { width: 360, height: 740, deviceScaleFactor: 2, isMobile: true,
 
 /** Elementi fissi dell'interfaccia (selettori → nome leggibile). Ognuno conta solo se si vede. */
 const FISSI = [
-  ['#mzBar > *', 'risorsa'], ['#mzWork', 'cantiere'], ['#mzTop > *', 'bottone in alto'], ['#compass > *', 'bussola'], ['#mzMini', 'minimappa'], ['#mzMiniZoom > *', 'zoom minimappa'],
+  ['#mzBar > *', 'risorsa'], ['#mzWork', 'cantiere'], ['#mzTop > *', 'bottone in alto'], ['#compass > *', 'bussola'], ['#mzMini', 'minimappa'], ['#mzMiniZoom > *', 'zoom minimappa'], ['#mzMiniMete', 'bandierina mete'],
   ['#mzGuida', 'guida'], ['#btnA', 'A'], ['#btnB', 'B'], ['#joystick', 'joystick'], ['#mzPlay', 'GIOCA'], ['#mzPortoBtn', 'Porto'], ['#mzAmiciBtn', 'Record e Faro'], ['#mzPesca', 'PESCA'], ['#mzPerle', 'TUFFATI'],
 ];
 
@@ -73,8 +73,11 @@ export default async function (ctx) {
         out.push({ nome: `${nome}${e.id ? '#' + e.id : e.dataset.id ? '[' + e.dataset.id + ']' : ''}`, x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) });
       }
       const sopra = [];
+      // #417: + − e la bandierina stanno apposta sul bordo della minimappa (come nell'immagine scelta): fra loro e col cerchio non contano
+      const bordo = (r) => /^(minimappa|zoom minimappa|bandierina mete)/.test(r.nome);
       for (let i = 0; i < out.length; i++) for (let j = i + 1; j < out.length; j++) {
         const a = out[i], b = out[j];
+        if (bordo(a) && bordo(b)) continue;
         const ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x), oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
         if (ox > 2 && oy > 2) sopra.push(`${a.nome} × ${b.nome} (${ox}×${oy})`);
       }
@@ -124,7 +127,7 @@ export default async function (ctx) {
         const righe = await P.page.evaluate(() => [...document.querySelectorAll('#compass .mz-mete-row')].filter((r) => r.style.display !== 'none').map((r) => r.dataset.id ?? 'sez:' + r.dataset.sez));
         ctx.log(`${nome}: righe chiuse ${righe.join(', ')}`);
         assert(righe.length <= 6 && righe.includes('sez:porto') && righe.includes('sez:isole') && !righe.includes('mercante'), 'righe: ' + righe.join(','));
-        await controlla(P, `${nome}_isola`, ['risorsa', 'bussola', 'minimappa', 'zoom minimappa', 'guida', 'bottone in alto', ...(touch ? ['A', 'B', 'joystick'] : [])]);
+        await controlla(P, `${nome}_isola`, ['risorsa', 'bussola', 'minimappa', 'zoom minimappa', 'guida', 'bottone in alto', ...(touch ? ['A', 'joystick'] : [])]);
         await apriSezione(P, 'porto');
         await P.page.waitForFunction(() => document.querySelector('#compass [data-id="mercante"]')?.style.display === 'flex', null, { timeout: 5000 });
         const aperte = await P.page.evaluate(() => { const l = document.querySelector('#compass .mz-mete-list'); return { righe: [...l.querySelectorAll('.mz-mete-row')].filter((r) => r.style.display !== 'none').map((r) => r.dataset.id ?? 'sez:' + r.dataset.sez), scorre: l.scrollHeight > l.clientHeight + 2 }; });

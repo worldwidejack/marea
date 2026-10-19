@@ -1,0 +1,7 @@
+IL TUO GRUPPO: G1. Percorsi: assets/concept/ui/hud_1_corse.png e assets/concept/ui/hud_2_animalcrossing.png. Note: assets/concept/ui/codex/NOTE-g1.md.
+
+SCHERMATA 1 — «Famiglia delle Corse» (assets/concept/ui/hud_1_corse.png)
+La seconda e la terza immagine allegate sono l'HUD e il menù GIÀ APPROVATI da Jack per l'isola delle Corse di MAREA. Estendi ESATTAMENTE quella famiglia a tutto il gioco: carattere tondo grassissimo tipo Titan One in bianco con contorno scuro, blu profondo + ciano + giallo acceso, targhe e carte leggermente inclinate in corsivo, bordi bianchi spessi, dettagli a scacchi bianchi e blu, pannelli a vetro azzurro. Il bottone A giallo enorme come il GAS dell'HUD delle Corse. Deve sembrare lo stesso gioco di quelle due immagini.
+
+SCHERMATA 2 — «Isola tranquilla» (assets/concept/ui/hud_2_animalcrossing.png)
+Linguaggio visivo delle UI cozy alla Animal Crossing New Horizons: forme tonde e morbide, bolle e pillole color crema e beige caldo con un'ombra piatta sotto, testo marrone scuro in un carattere tondo e amichevole, icone semplici e colorate come adesivi, minimappa con bordo a ciambella crema, la carta di dialogo come un fumetto ovale con il nome in una linguetta colorata. Allegro, rilassato, pulito.
