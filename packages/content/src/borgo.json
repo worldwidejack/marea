@@ -19,6 +19,7 @@
   ] },
   "negozio": {"at": [48, 25], "porta": [49, 26], "rot": -2.51},
   "negozioDentro": { "pavimento": [2, 2, 16, 7], "corridoio": [8, 7, 9], "altezza": 3.6, "finitura": { "pavimento": "piastrelle", "carta": "rombi" } },
+  "pala": { "id": "pala", "nome": "Pala", "monete": 500, "bottino": [10, 200] },
   "pavimenti": [
     { "id": "piastrelle", "nome": "Piastrelle crema", "motivo": "scacchi", "colori": ["#E8E1D6", "#B9AFA3", "#7F7568"] },
     { "id": "parquet", "nome": "Parquet di noce", "motivo": "listelli", "colori": ["#C98A4B", "#8E5A2B", "#5A3A1E"], "monete": 75 },

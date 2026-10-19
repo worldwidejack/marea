@@ -40,7 +40,7 @@
       "erba_curativa": 3, "fiore_azzurro": 3, "radice_vigore": 4, "seta_ragno": 4, "zanna_lupo": 4, "fungo_luminoso": 6, "polvere_ossa": 6, "essenza_vuoto": 15,
       "anello_vita_debole": 60, "anello_magicka_debole": 60, "anello_stamina_debole": 60, "veste_apprendista": 40
     },
-    "tipi": { "anello": 140, "veste": 120, "libro": 150, "pozione": 20, "unico": 600 },
+    "tipi": { "anello": 140, "veste": 120, "libro": 150, "pozione": 20, "unico": 600, "strumento": 500 },
     "banco": {
       "arma": ["katana_bronzo", "nunchaku_bronzo", "ascia_bronzo", "lancia_bronzo", "spadone_bronzo", "martello_bronzo", "arco_bronzo",
                "katana_ferro", "nunchaku_ferro", "ascia_ferro", "lancia_ferro", "spadone_ferro", "martello_ferro", "arco_ferro"],

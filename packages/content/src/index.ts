@@ -173,5 +173,7 @@ function validateBorgo(): string[] {
   const vt = MOBILI_VETRINA, posti = Math.floor((nd.pavimento[2] - nd.pavimento[0] - 1) / 2);
   if (![vt.terra, vt.parete, vt.carte, vt.pavimenti].every((n) => Number.isInteger(n) && n >= 0)) errs.push('mobili: la vetrina del giorno vuole posti interi (0 o più)');
   else if (vt.terra > posti || vt.pavimenti > posti || vt.parete + vt.carte > posti) errs.push(`mobili: nel negozio ci sono ${posti} posti per fila: a terra ${vt.terra}, pavimenti ${vt.pavimenti}, al muro parete ${vt.parete} + carte ${vt.carte}`);
+  const pl = BORGO.pala;
+  if (!pl || pl.id !== 'pala' || !(Number.isInteger(pl.monete) && pl.monete > 0) || !Array.isArray(pl.bottino) || pl.bottino.length !== 2 || !(Number.isInteger(pl.bottino[0]) && Number.isInteger(pl.bottino[1]) && pl.bottino[0] >= 1 && pl.bottino[1] >= pl.bottino[0])) errs.push('borgo: pala non valida');
   return errs;
 }

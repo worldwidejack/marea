@@ -162,6 +162,13 @@ Niente migrazioni: classifica e input stanno nel SQLite del DO `Sfide` (tabella 
 |---|---|
 | `POST /api/nome` | `{ nome: string }` → `{ ok: true, nome: string }`: nome da 2 a 16 caratteri ripulito dal server. Aggiorna `persone.nome` in D1 e avvisa la Zone (`POST https://zone/nome`), che aggiorna `Peer.nome` nel prossimo snap. 400 se non valido — **nuovo** |
 
+### Aggiunte Pala e buche a Borgo Marea (#438, 19 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/lot/casa/pala` | `{}` → `LotState`: compra la pala al negozio dei mobili del Borgo (`500` monete, `BORGO.pala.monete`); va nello zaino del personaggio (`hero.inv.pala = 1`, categoria `Strumenti`, peso `0`). 409 se già posseduta o monete insufficienti — **nuovo** |
+| `GET /api/borgo/buche` | → `{ buche: { cell: [number, number], stato: 'aperta' \| 'seppellita' }[], now: number }`: buche condivise di Borgo Marea nel SQLite del DO `Sfide` (tabella `buche`) — **nuovo** |
+| `POST /api/borgo/buca` | `{ op: 'scava' \| 'chiudi' \| 'seppellisci', cell: [number, number], dono?: { tipo: 'oggetto' \| 'mobile', id: string, n: number } \| { tipo: 'monete', monete: number } }` → coordina DO `Sfide` e DO `Lot`: con `scava` apre una buca, dissotterra una croce seppellita (`azione: 'dissotterrata'`) o riscuote il bottino giornaliero (`azione: 'bottino'`, `10..200` monete, sparisce solo per il chiamante tramite `lot.bottinoGiorno`); con `chiudi` richiude una buca aperta; con `seppellisci` preleva dal lotto e lascia una croce (`stato: 'seppellita'`) a tempo indeterminato — **nuovo** |
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32, `a` 0/1 e `b` 0/1/2: **2 = `b` con `c`** («dall'altra parte», `InputFrame.c` facoltativo; nelle Corse l'oggetto va al contrario, #250). Le partite di prima (solo 0/1) restano valide; il server controlla la forma con `isPackedInputs`. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 
