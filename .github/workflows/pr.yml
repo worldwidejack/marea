@@ -66,7 +66,10 @@ jobs:
       matrix:
         gruppo: [0, 1, 2, 3, 4, 5]
     steps:
+      # storia di main: la build ne fa /novita.json (la schermata «Dall'ultima volta», la prova m3_novita)
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 300
       - uses: actions/setup-node@v4
         with:
           node-version: 26
