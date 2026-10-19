@@ -43,11 +43,10 @@ const LUNA = new THREE.Vector3(-30, 50, -20).normalize(); // da dove viene la lu
 // luci con l'ombra: al massimo 24, un tassello dell'atlas ciascuna (8 × 3); le luci puntiformi della scena al massimo 24 (oltre: senza ombre)
 const MAX_LUCI = 24, MAX_PUNTI = 24, PX_OTT = LEGGERO ? 128 : 256, COL_ATLAS = 8, RIGHE_ATLAS = MAX_LUCI / COL_ATLAS;
 // pezzi che si muovono, spariscono o stanno fuori: restano coi loro colori
-/** Zone (x0, z0, x1, z1 in metri) dove l'isola è cambiata dopo il dipinto: lì restano i colori dei blocchi finché non lo si rifà. §12b punto 2
- *  (18 ott 2026): l'accampamento stretto, la riva sotto la taverna, il cancello del cimitero spostato; punto 3: la cripta, che era nell'angolo
- *  nord-ovest, ora sta nel piano di sotto. Il dipinto si rifà dopo il punto 3. */
-const DA_RIFARE: [number, number, number, number][] = [[24, 59, 95, 84], [6, 73.5, 24, 84], [72, 42.5, 83, 46], [0, 0, 30, 18]]; // e la cripta di prima (§12b punto 3: ora è sotto)
-const FUORI = new Set(['assi', 'campana', 'campana_a_terra', 'calice', 'nave', 'mare', 'bandiera_nera', 'aste', 'nebbia', 'rogo', 'fiamme_bracieri', 'fiammelle', 'stendardi']);
+/** Zone (x0, z0, x1, z1 in metri, al massimo 4) dove l'isola è cambiata dopo il dipinto: lì restano i colori dei blocchi finché non lo si rifà.
+ *  Vuota dal 19 ott 2026: il dipinto è rifatto dopo la spiaggia e le catacombe (§12b punti 2 e 3). */
+const DA_RIFARE: [number, number, number, number][] = [];
+const FUORI = new Set(['assi', 'campana', 'campana_a_terra', 'calice', 'nave', 'mare', 'bandiera_nera', 'aste', 'nebbia', 'rogo', 'fiamme_bracieri', 'fiammelle', 'stendardi', 'bocche_grate']);
 
 const PARS_V = /* glsl */ `
 varying vec3 vDpW;
