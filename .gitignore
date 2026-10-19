@@ -9,6 +9,12 @@ assets/export/
 __pycache__/
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
+.claude/launch.json
+.claude/worktrees/
+
+# diario di Jack: vive solo sul suo Mac, mai nel repo (che è pubblico)
+/_STATO.md
+/_MEMORIA.md
 
 # concept art: nel repo solo i JPG, i PNG originali restano sul Mac
 assets/concept/**/*.png
