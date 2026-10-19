@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { BORGO, MOBILI, MOBILI_VETRINA } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
-import { MAX_LIVELLO_CASA, casaDi, finoAMezzanotte, giornoRoma, livelloCasa, possiedeFinitura, prossimoAmpliamento, vetrinaDelGiorno } from '@marea/sim';
+import { MAX_LIVELLO_CASA, ampliatoOggi, casaDi, finoAMezzanotte, giornoRoma, livelloCasa, possiedeFinitura, prossimoAmpliamento, vetrinaDelGiorno } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
@@ -259,9 +259,11 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       const serve = prossimo.monete, ho = l.monete;
       const d = el('div', 'prezzo'); d.append(el('span', '', 'Prezzo '), el('b', '', `${serve} monete`), el('span', ho >= serve ? 'ok' : 'manca', ho >= serve ? ` · ne hai ${ho} ✓` : ` · ti mancano ${serve - ho}`));
       corpo.push(d);
+      const fattoOggi = ampliatoOggi(l, adesso());
+      if (fattoOggi) corpo.push(el('div', 'prezzo', `Hai già fatto un ampliamento oggi. Il mobiliere riprenderà i lavori domani (fra ${fmtDur(finoAMezzanotte(adesso()) / 1000)}).`));
       const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'amplia';
-      b.append(el('span', '', !o.api ? 'Serve il collegamento' : conferma ? 'SICURO? TOCCA ANCORA' : 'AMPLIA'), el('b', '', conferma ? '✓' : ''));
-      b.disabled = busy || !o.api;
+      b.append(el('span', '', !o.api ? 'Serve il collegamento' : fattoOggi ? 'TORNA DOMANI' : conferma ? 'SICURO? TOCCA ANCORA' : 'AMPLIA'), el('b', '', !fattoOggi && conferma ? '✓' : ''));
+      b.disabled = busy || !o.api || fattoOggi;
       b.addEventListener('click', () => void amplia(liv));
       corpo.push(b);
     }
@@ -271,6 +273,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   async function amplia(da: number): Promise<void> {
     const l = o.getLot(), prossimo = prossimoAmpliamento(da);
     if (busy || !o.api || !l || !prossimo) return;
+    if (ampliatoOggi(l, adesso())) { conferma = false; nota = 'Hai già fatto un ampliamento oggi: torna domani!'; banco(); return; }
     if (l.monete < prossimo.monete) { conferma = false; nota = `Non hai ancora abbastanza: ti mancano ${prossimo.monete - l.monete} monete.`; banco(); return; }
     if (!conferma) { conferma = true; nota = ''; banco(); clearTimeout(confermaT); confermaT = window.setTimeout(() => { if (conferma && aperto?.kind === 'banco') { conferma = false; banco(); } }, 4000); return; }
     clearTimeout(confermaT); conferma = false; busy = true; banco();

@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BORGO, MOBILI } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
-import { ampliaCasa, compraMobile, livelloLotto, posaMobile, postoMobileError } from '../src/economy/casa.ts';
+import { ampliaCasa, ampliatoOggi, compraMobile, livelloLotto, posaMobile, postoMobileError } from '../src/economy/casa.ts';
 import { decorCellError, fitToTemplate, inStanza, lotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
 import { LIVELLI_CASA, MAX_LIVELLO_CASA, PIANTE_MAX, livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzaTerra, stanzeDi } from '../src/economy/stanze.ts';
@@ -18,6 +18,7 @@ import { stepAvatar, newAvatar } from '../src/world/avatar.ts';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import { NO_INPUT } from '../src/types.ts';
 
+const DAY = 24 * 3600_000;
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const T = lotTemplate()!, ST = BORGO.stanza;
 const terra = MOBILI.find((m) => m.posto === 'terra' && !m.celle)!, parete = MOBILI.find((m) => m.posto === 'parete')!;
@@ -25,7 +26,10 @@ const terra = MOBILI.find((m) => m.posto === 'terra' && !m.celle)!, parete = MOB
 function ricco(): LotState {
   return conMonete(newLot('a', 0, T), 30_000);
 }
-const su = (lot: LotState, n: number): LotState => { for (let i = 0; i < n; i++) lot = ampliaCasa(lot, livelloLotto(lot), 1000 + i); return lot; };
+const su = (lot: LotState, n: number, t0 = lot.nowMs || 1000): LotState => {
+  for (let i = 0; i < n; i++) lot = ampliaCasa(lot, livelloLotto(lot), t0 + (i + 1) * DAY);
+  return lot;
+};
 
 test('la tabella: ordine, costi che si pagano davvero, rettangoli annidati e dentro la pianta del template', () => {
   assert.ok(MAX_LIVELLO_CASA >= 3);
@@ -67,6 +71,21 @@ test('ampliaCasa: senza abbastanza non cambia niente («risorse», con quanto ma
   assert.equal(uno.monete, lot.monete - LIVELLI_CASA[0]!.monete, 'pagato una volta sola');
   assert.throws(() => ampliaCasa(lot, 1.5, 1000), isErr('livello'));
   assert.throws(() => ampliaCasa(lot, -1, 1000), isErr('livello'));
+});
+
+test('ampliaCasa: al massimo un ampliamento al giorno (giornoRoma); il giorno dopo si può ancora', () => {
+  let lot = ricco();
+  assert.equal(ampliatoOggi(lot, 1000), false);
+  lot = ampliaCasa(lot, 0, 1000);
+  assert.equal(livelloLotto(lot), 1);
+  assert.equal(ampliatoOggi(lot, 1000), true);
+  // stesso giorno: rifiutato («tetto»)
+  assert.throws(() => ampliaCasa(lot, 1, 1000 + 3600_000), isErr('tetto'));
+  // giorno dopo: non è più ampliato oggi e si può fare il secondo livello
+  assert.equal(ampliatoOggi(lot, 1000 + DAY), false);
+  lot = ampliaCasa(lot, 1, 1000 + DAY);
+  assert.equal(livelloLotto(lot), 2);
+  assert.equal(ampliatoOggi(lot, 1000 + DAY), true);
 });
 
 test('le stanze crescono: a ogni livello la nuova contiene la vecchia; fuori dalla stanza attuale non si posa, dentro quella nuova sì', () => {
