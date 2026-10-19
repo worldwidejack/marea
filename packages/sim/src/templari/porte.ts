@@ -16,7 +16,7 @@ export const trappolaDef = (id: string): TTrappolaDef => TEMPLARI.trappole[id]!;
 /** La zona è aperta: 'fuori' (il sagrato) sempre, le altre quando una delle loro porte è aperta. */
 export function zonaAperta(s: TState, zona: string): boolean {
   if (zona === 'fuori') return true;
-  if (zona === 'cripta') return s.segreti.muro; // i sarcofagi della cripta (§9c), quando il muro è rotto
+  if (zona === 'cripta' && s.segreti.muro) return true; // la cripta e le catacombe (§9c, §12b): col muro rotto, o con una grata (sotto)
   for (const id in s.porte) if (s.porte[id] && portaDef(id).zona === zona) return true;
   return false;
 }

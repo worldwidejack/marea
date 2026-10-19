@@ -1,7 +1,8 @@
-// Dove arriva l'eroe con le porte aperte adesso (e la cripta, col muro rotto) (power-up a terra, posti della cassa, autopilota): distanze BFS sulla griglia dell'eroe
+// Dove arriva l'eroe con le porte aperte adesso (e il piano di sotto, dalle scale aperte: §9c, §12b) (power-up a terra, posti della cassa, autopilota): distanze BFS sulla griglia dell'eroe
 // dalla partenza, in cache finché non si apre un'altra porta (dipendono solo dalle porte: le finestre per l'eroe sono sempre chiuse).
 import { bfs, cellOf } from '../dungeon/map.ts';
 import type { TState } from './stato.ts';
+import { passaggioAperto } from './segreti.ts';
 
 const CACHE = new WeakMap<TState, { n: number; d: Int32Array }>();
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
@@ -11,10 +12,18 @@ export function raggiungibili(s: TState): Int32Array {
   for (const k in s.porte) if (s.porte[k]) n++;
   const c = CACHE.get(s);
   if (c && c.n === n) return c.d;
-  // col muro rotto anche la cripta (§9c): ci si arriva dalla scala
-  const cr = s.arena.cripta, da = [cellOf(s.gr.eroe, s.arena.spawn.x, s.arena.spawn.z)];
-  if (cr && s.segreti.muro) da.push(cellOf(s.gr.eroe, cr.giu.x, cr.giu.z));
-  const d = bfs(s.gr.eroe, da);
+  // dalle scale aperte (la cripta col muro rotto, le grate comprate): dall'altro capo di una scala che si raggiunge si va avanti
+  const da = [cellOf(s.gr.eroe, s.arena.spawn.x, s.arena.spawn.z)], ap = s.arena.passaggi.filter((p) => passaggioAperto(s, p));
+  let d = bfs(s.gr.eroe, da);
+  for (let giro = 0; giro < ap.length; giro++) {
+    let nuovi = false;
+    for (const p of ap) for (const [x, y] of [[p.a, p.b], [p.b, p.a]] as const) {
+      const c = cellOf(s.gr.eroe, y.davanti.x, y.davanti.z);
+      if ((d[x.cella] ?? -1) >= 0 && (d[c] ?? -1) < 0) { da.push(c); nuovi = true; }
+    }
+    if (!nuovi) break;
+    d = bfs(s.gr.eroe, da);
+  }
   CACHE.set(s, { n, d });
   return d;
 }

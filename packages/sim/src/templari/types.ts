@@ -104,7 +104,7 @@ export type TEvento =
    *  (x, z). Un'anima dalla cripta all'altare (n su tutte). Una campanella suonata (giusta o no: si ricomincia), tutte giuste; un teschio
    *  trovato (n su tutti), la canzone. */
   | { t: 'cripta'; fase: 'polvere' | 'muro' | 'libera' | 'presa' }
-  | { t: 'scala'; id?: number; giu?: boolean; x: number; z: number }
+  | { t: 'scala'; id?: number; giu?: boolean; via?: string; x: number; z: number }
   | { t: 'anima'; x: number; z: number; n: number; tutte: number }
   | { t: 'campanella'; id: string; giusta: boolean; n: number; tutte: number }
   | { t: 'campaneGiuste' }

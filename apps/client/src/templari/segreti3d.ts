@@ -142,7 +142,8 @@ export function createSegreti3d(scene: THREE.Scene, a: Arena): Segreti3d {
     const luce = new THREE.Mesh(luceG, basic(PAL.sabbiaChiara, { transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide })); luce.position.set(0, 0, 0.45); luce.renderOrder = 2; sc.add(luce);
     // torce sui muri lunghi (niente luci vere: costano a tutta la scena), fiamme che tremano a scatti
     let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-    for (let i = 0; i < cr.dentro.length; i++) if (cr.dentro[i]) { const x = i % a.w, z = Math.floor(i / a.w); x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+    // nella sala della cripta (le torce delle catacombe le mette catacombe3d.ts, §12b)
+    for (let i = 0; i < cr.sala.length; i++) if (cr.sala[i]) { const x = i % a.w, z = Math.floor(i / a.w); x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
     for (const z of [z0 - 0.45, z1 + 1.45]) for (let x = x0 + 3; x < x1 - 1 && posTorce.length < 12; x += 6) posTorce.push(new THREE.Vector3(x + 0.5, 1.84, z));
     root.add(new THREE.Mesh(geo(posTorce.flatMap((p): Pezzo[] => [{ g: box(0.1, 0.35, 0.1), c: PAL.legnoScuro, x: p.x, y: 1.6, z: p.z }, { g: box(0.16, 0.08, 0.16), c: PAL.roccia, x: p.x, y: 1.8, z: p.z }])), vc));
     torce.count = posTorce.length; root.add(torce);

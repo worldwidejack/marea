@@ -44,8 +44,9 @@ const LUNA = new THREE.Vector3(-30, 50, -20).normalize(); // da dove viene la lu
 const MAX_LUCI = 24, MAX_PUNTI = 24, PX_OTT = LEGGERO ? 128 : 256, COL_ATLAS = 8, RIGHE_ATLAS = MAX_LUCI / COL_ATLAS;
 // pezzi che si muovono, spariscono o stanno fuori: restano coi loro colori
 /** Zone (x0, z0, x1, z1 in metri) dove l'isola è cambiata dopo il dipinto: lì restano i colori dei blocchi finché non lo si rifà. §12b punto 2
- *  (18 ott 2026): l'accampamento stretto, la riva sotto la taverna, il cancello del cimitero spostato; il dipinto si rifà dopo il punto 3. */
-const DA_RIFARE: [number, number, number, number][] = [[24, 59, 95, 84], [6, 73.5, 24, 84], [72, 42.5, 83, 46]];
+ *  (18 ott 2026): l'accampamento stretto, la riva sotto la taverna, il cancello del cimitero spostato; punto 3: la cripta, che era nell'angolo
+ *  nord-ovest, ora sta nel piano di sotto. Il dipinto si rifà dopo il punto 3. */
+const DA_RIFARE: [number, number, number, number][] = [[24, 59, 95, 84], [6, 73.5, 24, 84], [72, 42.5, 83, 46], [0, 0, 30, 18]]; // e la cripta di prima (§12b punto 3: ora è sotto)
 const FUORI = new Set(['assi', 'campana', 'campana_a_terra', 'calice', 'nave', 'mare', 'bandiera_nera', 'aste', 'nebbia', 'rogo', 'fiamme_bracieri', 'fiammelle', 'stendardi']);
 
 const PARS_V = /* glsl */ `
@@ -193,7 +194,8 @@ const profondita = (w: number, h: number) => {
 };
 
 export function createDipinto(o: { scene: THREE.Scene; gl: THREE.WebGLRenderer; arena: Arena; setTaglia(on: boolean): void }): Dipinto {
-  const box = new THREE.Box3(new THREE.Vector3(0, -0.1, 0), new THREE.Vector3(o.arena.w * o.arena.tile, 9, o.arena.h * o.arena.tile));
+  // solo il sopra (§12b punto 3: dalla riga `sopra` in giù ci sono le catacombe, che non si dipingono)
+  const box = new THREE.Box3(new THREE.Vector3(0, -0.1, 0), new THREE.Vector3(o.arena.w * o.arena.tile, 9, o.arena.sopra * o.arena.tile));
   // camera della foto: la direzione della diorama (render/camera.ts: da sud-est, 45° dall'alto)
   const dir = new THREE.Vector3(Math.sin(Math.PI / 4) * Math.cos(Math.PI / 4), Math.sin(Math.PI / 4), Math.cos(Math.PI / 4) * Math.cos(Math.PI / 4));
   const cam = cameraSu(box, dir, 0, 1);
