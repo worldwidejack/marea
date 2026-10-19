@@ -8,7 +8,7 @@
 |---|---|---|
 | `main.ts` | avvio, ciclo a 60 Hz, aggancio di ogni isola e modalità | tutti |
 | `flags.ts` | interruttori dall'URL (`?test=1`, `?fps=1`, `?faro=1`…) | tutti |
-| `game/` | il mondo: avatar, barca, input; Borgo, casa, arredi, negozio dei mobili, pala, insetti; Porto; posti dei minigiochi; ingressi di dungeon e isole a tema; animali | tutti, R sul Borgo |
+| `game/` | il mondo: avatar, barca, input; Borgo, casa, arredi, negozio dei mobili, botteghe, pala, insetti; Porto; posti dei minigiochi; ingressi di dungeon e isole a tema; animali | tutti, R sul Borgo |
 | `render/` | grafica 3D: scena a metà risoluzione, camera, acqua, luce, meteo e nuvole, isole (un file per isola a tema), mobili | J, R |
 | `ui/` | interfaccia: HUD «Allegro», minimappa, bussola, impostazioni, editor dell'avatar, diario, schermate a pixel dei minigiochi, pannelli del Porto | J |
 | `net/` | `api.ts` (HTTP `/api/*`), `client.ts` (WebSocket della zona) | tutti |

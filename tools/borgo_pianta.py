@@ -22,6 +22,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CONTENT = ROOT / 'packages/content/src'
 PIAZZA = json.loads((ROOT / 'tools/borgo_piazza.json').read_text(encoding='utf-8'))
+# le botteghe del Borgo (#414, botteghe.json `posto`): lì niente edifici della piazza né arredo; il banco davanti resta libero
+BOTTEGHE = [dict(b['posto'], id=k) for k, b in json.loads((CONTENT / 'botteghe.json').read_text(encoding='utf-8')).items() if not k.startswith('_')]
+POSTI_BOTTEGHE = [(b['at'][0], b['at'][1], 2.6) for b in BOTTEGHE] + [(b['fronte'][0], b['fronte'][1], 1.2) for b in BOTTEGHE]
+# l'impronta della casetta (il Cantiere con la tettoia a est) e il posto davanti al banco: l'arredo che ci cade si toglie a borgo fatto
+IMPRONTE = [(b['at'][0], b['at'][1], 2.4) for b in BOTTEGHE] + [(b['fronte'][0], b['fronte'][1], 1.2) for b in BOTTEGHE] + [(b['at'][0] + 2.6, b['at'][1], 1.9) for b in BOTTEGHE if b['id'] == 'cantiere']
+slot_tolti = []   # le casette finte della piazza al posto delle botteghe: per l'arredo contano come se ci fossero (così il resto del paese non cambia)
 
 PORTO_AT = (110, 120)            # dove stava il vecchio Porto nel mondo (celle): la piazza resta lì
 QUADRO = (88, 92, 166, 180)      # riquadro del template nel mondo [x0, z0, x1, z1): a est la Laguna parte da x 170 (4 celle di mare tra i riquadri)
@@ -149,6 +155,7 @@ slots = []
 for s in PIAZZA['slots']:
     X, Z = SPOSTA[0] + s['at'][0], SPOSTA[1] + s['at'][1]
     if s['kind'] != 'tavolo' and any(c in paved for c in impronta(X, Z)): put(X, Z, 'g'); continue
+    if s['kind'] != 'tavolo' and any(math.hypot(X - bx, Z - bz) < 3 for bx, bz, _ in POSTI_BOTTEGHE): put(X, Z, 'g'); slot_tolti.append((X, Z)); continue  # al suo posto una bottega
     slots.append({'at': [X, Z], 'kind': s['kind'], 'rot': s['rot']})
 
 # ——— case: nei rioni, due file schiena contro schiena (una guarda l'anello, una il lungomare), una casa ogni due celle ———
@@ -218,6 +225,7 @@ for c in (faro, fronte):
 arredo = []
 occupati = [(h[0], h[1], 1.2) for h, _, _ in case] + [(p[0], p[1], 0.9) for _, p, _ in case] + [(s['at'][0], s['at'][1], 2.2) for s in slots[:1]]
 occupati += [(s['at'][0], s['at'][1], 1.6) for s in slots if s['kind'].startswith('casa') and list(s['at']) not in [list(h) for h, _, _ in case]]
+occupati += [(x, z, 1.6) for x, z in slot_tolti]
 occupati += [(faro[0], faro[1], 3.0), (fronte[0], fronte[1], 1.5)] + POSTI + [(neg[0] + 0.5, neg[1] + 0.5, 2.4), (neg_porta[0] + 0.5, neg_porta[1] + 0.5, 1.0)]
 for p in PIAZZA['props']: occupati.append((p['at'][0] + SPOSTA[0], p['at'][1] + SPOSTA[1], 1.0))
 def posto_libero(x, z, r=0.8):
@@ -312,9 +320,16 @@ def rettangoli(cells):
         for a, b in zip(zs, zs[1:] + [None]):
             if b != a + 1: out.append([x0, s, x1, a]); s = b
     return sorted(out, key=lambda r: (r[1], r[0]))
+# ——— il lastricato delle botteghe (#414): sotto e davanti a ogni bottega, dalla casetta al banco (il Cantiere con la tettoia a est): lì niente palme. In fondo, a borgo fatto: così il resto del paese (case, arredo, alberi) resta com'era ———
+for b in BOTTEGHE:
+    (ax, az), (fx, fz) = b['at'], b['fronte']
+    for z in range(math.floor(az - 1.2), math.ceil(fz) + 1):
+        for x in range(math.floor(ax - 2.3), math.ceil(ax + 2.3) + (3 if b['id'] == 'cantiere' else 0) + 1): via(x, z)
+
 paved = {c for c in paved if get(*c) in '.PL'}
 
 rows = [''.join(r) for r in grid]
+arredo = [a for a in arredo if not any(math.hypot(a['at'][0] - bx, a['at'][1] - bz) < r for bx, bz, r in IMPRONTE)]  # niente arredo dentro le botteghe (#414)
 props = [{**p, 'at': [round(p['at'][0] + SPOSTA[0], 2), round(p['at'][1] + SPOSTA[1], 2)]} for p in PIAZZA['props']] + arredo
 porto = {'id': 'porto', 'nome': 'Borgo Marea', 'tile': 2, 'style': 'porto', 'scenery': 0.35, 'rows': rows,
          'paved': rettangoli(paved), 'slots': slots, 'props': props}

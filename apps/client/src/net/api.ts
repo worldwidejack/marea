@@ -99,6 +99,8 @@ export type Api = {
   casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule' | 'amplia' | 'pala' | 'retino', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number; da?: number }): Promise<LotState>;
   /** Gli insetti di Borgo Marea (#445): sasso/albero {idx} → {uscito, gia, lot}; cattura {k} → {lot, id}; consegna {id} → {lot}. */
   insetti(op: 'sasso' | 'albero' | 'cattura' | 'consegna', body: { idx?: number; k?: string; id?: string }): Promise<{ lot: LotState; uscito?: { k: string; id: string; t: number } | null; gia?: boolean; id?: string }>;
+  /** Botteghe del Borgo (#414): migliora il Fabbro o la barca al Cantiere di un livello; `da` = il livello che vedi (409 se è già cambiato). */
+  bottega(azione: 'migliora', body: { bottega: 'fabbro' | 'cantiere'; da: number }): Promise<LotState>;
   /** Tutte le persone dell'arcipelago (me compreso). */
   persone(): Promise<Persona[]>;
   /** Le mie sfide: in gioco (mandate e ricevute) e chiuse degli ultimi 7 giorni, le più recenti prima. */
@@ -165,7 +167,7 @@ export type Api = {
   buyHat(id: string): Promise<LotState>;
   /** La tua barca (#107): colori e nome (POST /api/barca), il server ripulisce il nome e controlla i colori esclusivi. Risponde con la barca salvata. */
   barca(b: BarcaLook): Promise<BarcaLook>;
-  /** Compra un colore esclusivo della barca dal Mercante, una volta (POST /api/barca/colore). 409 con `manca` senza monete. */
+  /** Compra un colore della barca, una volta (POST /api/barca/colore): le esclusive dal Mercante, le vernici del Cantiere il giorno che sono in vetrina. 409 con `manca` senza monete. */
   buyColore(id: string): Promise<LotState>;
   /** Novità (sfide ricevute, accettate, esiti…), le più recenti prima; `nonLetti` è il numero per il badge. */
   feed(): Promise<{ items: FeedItem[]; nonLetti: number }>;
@@ -287,6 +289,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     decorSell: (id) => post('/api/lot/decor/sell', { id }),
     casa: (azione, body) => post('/api/lot/casa/' + azione, body),
     insetti: (op, body) => call('POST', '/api/lot/insetti/' + op, body).then((d) => ({ ...(d as object), lot: asLot(op === 'consegna' ? d : (d as Record<string, unknown>)['lot']) })),
+    bottega: (azione, body) => post('/api/lot/bottega/' + azione, body),
     async persone() {
       const d = await call('GET', '/api/persone');
       const list = Array.isArray(d) ? d : isObj(d) && Array.isArray(d['persone']) ? d['persone'] : [];

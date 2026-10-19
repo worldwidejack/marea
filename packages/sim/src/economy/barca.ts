@@ -4,7 +4,6 @@
 import { AVATAR } from '@marea/content';
 import type { BarcaColore } from '@marea/content';
 import { advance } from './advance.ts';
-import { inVetrinaBottega } from './botteghe.ts';
 import { spendi } from './monete.ts';
 import { EconomyError } from './types.ts';
 import type { LotState } from './types.ts';
@@ -65,15 +64,15 @@ export function validaBarca(v: unknown, lot: LotState | null): BarcaLook | strin
 /** Dove si compra un colore a pagamento: le esclusive dal Mercante, le vernici del Cantiere solo il giorno che sono in vetrina (#414). */
 export const dove = (k: BarcaColore): string => (k.cantiere ? 'si compra al Cantiere navale del Borgo, il giorno che è in vetrina' : 'compralo dal Mercante del Porto');
 
-/** Compra un colore esclusivo della barca, una volta sola (come i cappelli): monete spese, «barca:<id>» in `posseduti`. Le vernici del
- *  Cantiere solo se sono nella sua vetrina di oggi. */
+/** Compra un colore della barca, una volta sola (come i cappelli): monete spese, «barca:<id>» in `posseduti`. Il server passa da
+ *  `compraColoreDelGiorno` (economy/botteghe.ts): le vernici del Cantiere solo il giorno che sono in vetrina (qui niente botteghe: barca.ts
+ *  sta nel JS iniziale). */
 export function compraColoreBarca(lot0: LotState, id: string, nowMs: number): LotState {
   let lot = advance(lot0, nowMs);
   const k = coloreBarca(id);
   if (!k) throw new EconomyError('sconosciuto', 'Colore sconosciuto');
   if (k.monete <= 0) throw new EconomyError('unico', `${k.nome}: è gratis, non serve comprarlo`);
   if (possiedeColore(lot, id)) throw new EconomyError('unico', `Hai già: ${k.nome}`);
-  if (k.cantiere && !inVetrinaBottega('cantiere', nowMs, id)) throw new EconomyError('requisito', 'Oggi il Cantiere non ce l’ha: la vetrina cambia a mezzanotte');
   lot = spendi(lot, k.monete);
   return { ...lot, version: lot.version + 1, posseduti: [...(lot.posseduti ?? []), chiaveColore(id)] };
 }
