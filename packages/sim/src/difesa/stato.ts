@@ -5,6 +5,7 @@
 import type { DLivelloDef, DProfilo, DProfiloId, DSopravvivenzaDef, DTipoNemico, DTipoUnita } from '@marea/content/difesa.ts';
 import { DIFESA, profiloDifesa } from '@marea/content/difesa.ts';
 import { TICK_HZ } from '../constants.ts';
+import { casoIntero } from '../rng.ts';
 
 /** Un difensore in campo. `t` = tick della prossima azione (colpo, moneta, scoppio, mina armata). */
 export type DUnita = { id: number; tipo: DTipoUnita; corsia: number; col: number; vita: number; vitaMax: number; t: number; armata: boolean; nata: number; morsa: number };
@@ -73,14 +74,8 @@ export type DState = {
 };
 
 export const tick = (sec: number): number => Math.round(sec * TICK_HZ);
-/** Numero a caso in [0, 1) dallo stato (mulberry32: solo interi a 32 bit, uguale su ogni motore). */
-export function caso(s: { caso: number }): number {
-  s.caso = (s.caso + 0x6d2b79f5) >>> 0;
-  let t = s.caso;
-  t = Math.imul(t ^ (t >>> 15), t | 1);
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-}
+/** Numero a caso in [0, 1) dallo stato: il generatore sta in rng.ts (casoIntero), qui solo il nome che usa la partita. */
+export const caso = casoIntero;
 /** A caso tra i due numeri di una coppia [min, max]. */
 export const tra = (s: { caso: number }, ab: number[]): number => ab[0]! + (ab[1]! - ab[0]!) * caso(s);
 export const prof = (s: DState): DProfilo => profiloDifesa(s.profilo);
