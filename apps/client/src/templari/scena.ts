@@ -20,6 +20,7 @@ import { createDettagli } from './dettagli.ts';
 import { createAccampamento } from './accampamento.ts';
 import { createBanchetto } from './banchetto.ts';
 import { createCatacombe3d } from './catacombe3d.ts';
+import { pezziIndizi } from './indizi3d.ts';
 import type { Catacombe3d } from './catacombe3d.ts';
 import { createFinestra } from '../render/finestra.ts';
 
@@ -41,7 +42,7 @@ export type Scena = {
   catacombe: Catacombe3d;
   /** Finestra sull'eroe accesa o spenta (la foto della chiesa dipinta, dipinto.ts, la spegne). */
   setTaglia(on: boolean): void;
-  stats(): { muri: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number; sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number; palizzata: number; navi: number };
+  stats(): { muri: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number; sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number; palizzata: number; navi: number; indizi: number };
   dispose(): void;
 };
 
@@ -306,7 +307,10 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   colonne.forEach((i, n) => { const p = ctr(i); colonna.setMatrixAt(n, m4.compose(v(p.x, 0, p.z), qq.identity(), v(1, hCol[n]!, 1))); });
   scene.add(colonna); disp.push(colGeo, colMat);
   const altezzaDi = new Map(muri.map((i, n) => [i, altezza[n]!]));
-  const arredi = createArredi(scene, a, { centro, colonne, hCol, altezza: (i) => altezzaDi.get(i) ?? 0 });
+  // gli indizi (§12b punto 4, indizi3d.ts): quelli della chiesa con le aste degli stendardi, quelli di sotto con le catacombe, gli altri
+  // in una mesh per zona (fuori dal dipinto)
+  const indizi = pezziIndizi(a);
+  const arredi = createArredi(scene, a, { centro, colonne, hCol, altezza: (i) => altezzaDi.get(i) ?? 0, aste: indizi.chiesa });
   const dettagli = createDettagli(scene, a, { centro, altezza: (i) => altezzaDi.get(i) ?? 0 });
   // nebbia a distanza (alla PS1): il buio oltre le zone si perde, il primo piano resta pulito
   scene.fog = new THREE.Fog(PAL.neroCaldo, 36, 85);
@@ -316,7 +320,11 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   const tende = gruppi(a, TIPO.tenda);
   const accampamento = createAccampamento(scene, a, tende, gruppi(a, TIPO.nave));
   const banchetto = createBanchetto(scene, a);
-  const catacombe = createCatacombe3d(scene, a);
+  const catacombe = createCatacombe3d(scene, a, indizi.sotto);
+  if (indizi.zone.length) {
+    const im = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }); disp.push(im);
+    for (const z of indizi.zone) { const g = unisci(z); const m = new THREE.Mesh(g, im); m.name = 'indizi'; scene.add(m); disp.push(g); }
+  }
 
   // ---- cose basse: tutto in due InstancedMesh (box e cilindri) coi colori per istanza ----
   type Ist = { x: number; y?: number; z: number; sx: number; sy: number; sz: number; c: string; rx?: number; ry?: number; rz?: number };
@@ -640,7 +648,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
       campana.visible = m; terra.visible = !m;
       if (m) campana.rotation.set(0, 0, 0);
     },
-    stats: () => ({ muri: muri.length, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats(), ...dettagli.stats(), ...accampamento.stats() }),
+    stats: () => ({ muri: muri.length, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats(), ...dettagli.stats(), ...accampamento.stats(), indizi: a.scheletri.length + a.sangue.length }),
     dispose() { arredi.dispose(); dettagli.dispose(); accampamento.dispose(); banchetto.dispose(); catacombe.dispose(); fin.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
   };
 }

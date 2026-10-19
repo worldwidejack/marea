@@ -31,7 +31,8 @@ const teschio = (x: number, y: number, z: number, ry: number, s = 1): Pezzo[] =>
 ];
 const osso = (x: number, y: number, z: number, ry: number, l = 0.45): Pezzo => ({ g: B(l, 0.06, 0.06), c: PAL.sabbiaChiara, x, y: y + 0.03, z, ry });
 
-export function createCatacombe3d(scene: THREE.Scene, a: Arena): Catacombe3d {
+/** `piu`: pezzi in più da unire al piano di sotto (gli indizi delle catacombe, indizi3d.ts). */
+export function createCatacombe3d(scene: THREE.Scene, a: Arena, piu: Pezzo[] = []): Catacombe3d {
   const T = a.tile, W = a.w, H = a.h;
   const disp: { dispose(): void }[] = [];
   const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }); disp.push(vc);
@@ -104,6 +105,7 @@ export function createCatacombe3d(scene: THREE.Scene, a: Arena): Catacombe3d {
     bocche++;
   }
 
+  sotto.push(...piu);
   const gSotto = sotto.length ? unisci(sotto) : new THREE.BufferGeometry();
   const mSotto = new THREE.Mesh(gSotto, vc); mSotto.name = 'catacombe'; mSotto.visible = false; scene.add(mSotto);
   const mSopra = sopra.map((ps) => { const g = unisci(ps); disp.push(g); const m = new THREE.Mesh(g, vc); m.name = 'bocche_grate'; scene.add(m); return m; });

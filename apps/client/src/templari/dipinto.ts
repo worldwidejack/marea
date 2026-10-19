@@ -46,7 +46,7 @@ const MAX_LUCI = 24, MAX_PUNTI = 24, PX_OTT = LEGGERO ? 128 : 256, COL_ATLAS = 8
 /** Zone (x0, z0, x1, z1 in metri, al massimo 4) dove l'isola è cambiata dopo il dipinto: lì restano i colori dei blocchi finché non lo si rifà.
  *  Vuota dal 19 ott 2026: il dipinto è rifatto dopo la spiaggia e le catacombe (§12b punti 2 e 3). */
 const DA_RIFARE: [number, number, number, number][] = [];
-const FUORI = new Set(['assi', 'campana', 'campana_a_terra', 'calice', 'nave', 'mare', 'bandiera_nera', 'aste', 'nebbia', 'rogo', 'fiamme_bracieri', 'fiammelle', 'stendardi', 'bocche_grate']);
+const FUORI = new Set(['assi', 'campana', 'campana_a_terra', 'calice', 'nave', 'mare', 'bandiera_nera', 'aste', 'nebbia', 'rogo', 'fiamme_bracieri', 'fiammelle', 'stendardi', 'bocche_grate', 'indizi']);
 
 const PARS_V = /* glsl */ `
 varying vec3 vDpW;

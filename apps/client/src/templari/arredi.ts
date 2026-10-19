@@ -62,7 +62,8 @@ const mareTex = () => canvasTex(32, 16, (px) => {
   for (let k = 0; k < 14; k++) { const x = Math.floor(cellHash(k, 1, 7) * 30), y = Math.floor(cellHash(k, 2, 7) * 16); px(k % 4 ? PAL.acquaProfonda : PAL.acqua, x, y, 2 + (k % 3), 1); }
 }, true);
 
-export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: number; z: number }; colonne: number[]; hCol: number[]; altezza: (i: number) => number }): Arredi {
+/** `o.aste`: pezzi in più da unire alla mesh delle aste (gli indizi in chiesa, indizi3d.ts: nessuna draw call in più nel coro). */
+export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: number; z: number }; colonne: number[]; hCol: number[]; altezza: (i: number) => number; aste?: Pezzo[] }): Arredi {
   const T = a.tile, W = a.w, H = a.h;
   const ctr = (i: number) => ({ x: ((i % W) + 0.5) * T, z: (Math.floor(i / W) + 0.5) * T });
   const cellA = (cx: number, cz: number) => (cx < 0 || cz < 0 || cx >= W || cz >= H ? C.fuori : a.cell[cz * W + cx]!);
@@ -173,11 +174,11 @@ export function createArredi(scene: THREE.Scene, a: Arena, o: { centro: { x: num
   const aste = [nord.at(-1), sud.at(-1)].filter((x): x is number => x !== undefined).map(ctr);
   const stendT = stendardoTex(); disp.push(stendT);
   const stend = istanze(new THREE.PlaneGeometry(1, 2).translate(0, -1, 0), new THREE.MeshLambertMaterial({ map: stendT, side: THREE.DoubleSide, alphaTest: 0.5 }), aste.length, 'stendardi');
-  const asteGeo = unisci(aste.flatMap((p) => [
+  const asteGeo = unisci(aste.flatMap((p): Pezzo[] => [
     { g: new THREE.BoxGeometry(0.1, 3.6, 0.1), c: PAL.legnoScuro, x: p.x, y: 1.8, z: p.z },
     { g: new THREE.BoxGeometry(1.2, 0.08, 0.08), c: PAL.legnoScuro, x: p.x + 0.55, y: 3.45, z: p.z },
     { g: new THREE.BoxGeometry(0.16, 0.16, 0.16), c: PAL.giallo, x: p.x, y: 3.68, z: p.z },
-  ]));
+  ]).concat(o.aste ?? []));
   const asteM = new THREE.Mesh(asteGeo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })); asteM.name = 'aste'; scene.add(asteM); disp.push(asteGeo, asteM.material as THREE.Material);
 
   // ---- cimitero: cipressi sul bordo dell'erba (nord e ovest, a.alberi: la sim li ferma grandi come il tronco) e i teschi davanti all'ossario ----

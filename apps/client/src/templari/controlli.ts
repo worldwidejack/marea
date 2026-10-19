@@ -62,8 +62,8 @@ export type Controlli = {
 };
 
 
-/** `insieme`: la pausa non ferma la partita (gli altri continuano), il menu lo dice. */
-export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; onEsci(): void; insieme?: boolean }): Controlli {
+/** `insieme`: la pausa non ferma la partita (gli altri continuano), il menu lo dice. `extra`: nel menù sopra ESCI (i biglietti letti). */
+export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; onEsci(): void; insieme?: boolean; extra?: HTMLElement }): Controlli {
   if (!document.getElementById('mz-tpl-ctl-style')) { const st = document.createElement('style'); st.id = 'mz-tpl-ctl-style'; st.textContent = CSS; document.head.appendChild(st); }
   const stop = (e: Event) => e.stopPropagation();
   // AZIONE: tenuto (ripara) o tocco breve (latch: anche più corto di un tick arriva alla sim). Dal telefono vero non partiva (10/10):
@@ -105,7 +105,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   const titolo = el('b', '', 'PAUSA'), sub = el('div', 'sub', PAUSA);
   const riprendi = el('button', 'mz-btn green', 'RIPRENDI'); riprendi.type = 'button'; riprendi.dataset['act'] = 'riprendi';
   const esci = el('button', 'mz-btn ghost', 'ESCI DALLA PARTITA'); esci.type = 'button'; esci.dataset['act'] = 'esci';
-  menu.append(titolo, sub, riprendi, esci);
+  menu.append(titolo, sub, riprendi, ...(o.extra ? [o.extra] : []), esci);
   let pausa = false, chiedi = false;
   const stick = createMiraStick({ id: 'mzTplMira', yaw: o.yaw, blocked: () => pausa });
   for (const e of [az, sc, su, top, menu]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, stop);

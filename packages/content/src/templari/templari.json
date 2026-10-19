@@ -1,5 +1,5 @@
 {
-  "version": 9,
+  "version": 10,
   "maxMinuti": 60,
   "partenza": { "punti": 500, "arma": "spada" },
   "eroe": {
@@ -102,6 +102,66 @@
   "cripta": { "anime": 5, "raggio": 1.8, "arma": "lancia", "polvere": 1.2 },
   "campanelle": { "raggio": 1.7, "lista": { "croce": "La campanella della croce", "teschio": "La campanella del teschio", "ancora": "La campanella dell'ancora", "luna": "La campanella della luna" } },
   "teschi": { "tieni": 1.5, "raggio": 1.3 },
+  "indizi": {
+    "raggio": 1.1,
+    "scheletri": {
+      "coro": {
+        "chi": "Bertrand di Marsiglia, cercatore di tesori",
+        "righe": [
+          "Se leggi, sei vivo. Io no.",
+          "Qui i morti tornano a ondate. Inchioda le assi alle finestre e non smettere di combattere.",
+          "Accendi i tre fuochi: quello del coro, quello del cimitero e il falò dei pirati sulla spiaggia. Svegliano chi ti può aiutare.",
+          "La campana grande è a terra. La corda, il battaglio e il perno sono sparsi per l’isola: la bussola in alto li segna.",
+          "Io cercavo il tesoro dei frati. Nella rotonda la pietra suona vuota: cerca il muro crepato."
+        ]
+      },
+      "rotonda": {
+        "chi": "Arnaud, che bussava ai muri",
+        "righe": [
+          "Il muro crepato non cede ai colpi leggeri. Ci vuole un colpo pesante: tieni premuto e colpisci.",
+          "Sotto c’è la cripta. L’altare è sigillato e vuole cinque anime: uccidili là sotto, nella sala dei sarcofagi.",
+          "Poi la Lancia è tua. Io non ci sono arrivato.",
+          "Jacopo, il mio socio, giura che in taverna le campane parlano."
+        ]
+      },
+      "taverna": {
+        "chi": "Jacopo da Chioggia, pirata",
+        "righe": [
+          "L’ordine è scritto sul muro. Quattro campanelle, una per zona: la croce, il teschio, l’ancora, la luna.",
+          "Suonale in fila. Se sbagli stonano, e si ricomincia dalla prima.",
+          "E i teschi cantano. Uno è in quest’angolo, uno dietro una casa della piazza, uno dietro l’ossario del cimitero."
+        ]
+      },
+      "ossario": {
+        "chi": "Pierre, becchino",
+        "righe": [
+          "Tre teschi: tieni la mano su ognuno finché non canta.",
+          "Sotto l’ossario i frati scavarono gallerie fino al mare. La grata costa cara, ma porta alla spiaggia in un lampo."
+        ]
+      },
+      "catacombe": {
+        "chi": "un marinaio senza nome",
+        "righe": [
+          "Due grate: una sale all’ossario, l’altra alla grotta tra gli scogli, accanto al Mercante.",
+          "Dalle nicchie escono i morti. Non fermarti nelle strettoie.",
+          "Più su c’è la fucina dei Templari. Fredda."
+        ]
+      },
+      "fucina": {
+        "chi": "fra’ Étienne, fabbro del Tempio",
+        "righe": [
+          "Qui nacque la spada del Gran Maestro.",
+          "La fucina è fredda da sette secoli. Tornerà ad ardere quando Jacques de Molay perderà la sua lama."
+        ]
+      }
+    },
+    "sangue": {
+      "crepa": ["SOTTO DORMONO", "I FRATI", "COLPISCI FORTE"],
+      "campane": ["SUONALE", "IN ORDINE"],
+      "teschi": ["TRE TESCHI", "CANTANO"],
+      "fucina": ["QUI NACQUE", "LA SPADA"]
+    }
+  },
   "campana": { "pezzi": { "corda": "La corda", "battaglio": "Il battaglio", "perno": "Il perno" }, "raggio": 1.3, "monta": 2 },
   "eroi": [
     { "id": "crociato", "nome": "Il Crociato", "titolo": "Spade, mazze e asce", "descr": "Un templare che non è diventato zombie. Regge più colpi, colpisce più forte da vicino e parte con lo scudo sulle spalle.",

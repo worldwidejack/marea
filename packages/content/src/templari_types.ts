@@ -189,6 +189,9 @@ export type TemplariCfg = {
   campanelle: { raggio: number; lista: Record<string, string> };
   /** I teschi della canzone segreta: AZIONE tenuto `tieni` s entro `raggio` m. */
   teschi: { tieni: number; raggio: number };
+  /** Gli indizi (§12b punto 4): gli scheletri col biglietto (AZIONE entro `raggio` m lo apre; id → chi l'ha scritto e le righe) e le
+   *  scritte col sangue (id → righe, in maiuscolo: si disegnano a pixel). Dove stanno lo dice la mappa (`scheletri`, `sangue`). */
+  indizi: { raggio: number; scheletri: Record<string, { chi: string; righe: string[] }>; sangue: Record<string, string[]> };
   /** Gli eroi del menù d'ingresso (il primo è quello di serie). */
   eroi: TEroeDef[];
   poteri: { probabilita: number; maxOndata: number; aTerra: number; lampeggia: number; durata: number; raggio: number; campane: number; muratori: number; tipi: TPotere[] };
@@ -213,4 +216,8 @@ export type TLegenda = { porta?: string; muro?: string; comparsa?: string; trapp
 export type TFuocoDef = { nome: string; apre: 'rogo' | 'strega' | 'mercante'; dice: string };
 /** `w`: larghezza fissa (le righe possono essere più corte): l'aspetto delle celle dipende dal loro indice, che dipende da `w`. */
 /** `sopra`: le righe del sopra (da lì in giù il piano di sotto, §12b punto 3): il dipinto e il mare guardano solo quelle. */
-export type TMappaDef = { tile: number; w?: number; sopra?: number; legenda: Record<string, TLegenda>; rows: string[] };
+/** `scheletri`: gli scheletri col biglietto (§12b punto 4), seduti su una cella libera (schiena al muro accanto). `sangue`: le scritte
+ *  col sangue, su una cella di muro (`lato`: la faccia, verso la cella libera) o sul pavimento (senza `lato`). Fuori dalle righe: la
+ *  mappa (e il dipinto) non cambia. */
+export type TMappaDef = { tile: number; w?: number; sopra?: number; legenda: Record<string, TLegenda>; rows: string[];
+  scheletri?: { id: string; x: number; z: number }[]; sangue?: { id: string; x: number; z: number; lato?: 'n' | 's' | 'e' | 'o' }[] };

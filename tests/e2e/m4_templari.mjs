@@ -420,7 +420,7 @@ export default async function (ctx) {
     await pc.waitForTimeout(700);
     await ctx.shot(pc, 'pc_segreti_muro_rotto');
     await prova({ cripta: true, anime: 3 });
-    await ctx.waitState(pc, (st) => st.templari.segreti.dentro === true, 5000)
+    await ctx.waitState(pc, (st) => st.templari.segreti.dentro === true, 10000) // con la macchina carica scendere ha superato i 5 s (19 ott)
       .catch(async () => { const t = (await ctx.getState(pc)).templari; throw new Error(`non si entra nella cripta: ${JSON.stringify({ seg: t.segreti, eroe: t.eroe, piano: t.piano })}`); });
     await pc.waitForTimeout(900);
     await ctx.shot(pc, 'pc_cripta');
@@ -488,6 +488,47 @@ export default async function (ctx) {
       .catch(async () => { const t = (await ctx.getState(pc)).templari; throw new Error(`non è salito all'ossario: ${JSON.stringify(t.eroe)}`); });
     await pc.waitForTimeout(700);
     await ctx.shot(pc, 'pc_ossario');
+    ctx.noErrors(d, 'PC');
+  });
+  await ctx.test('PC: gli indizi — F apre il biglietto dello scheletro, Esc lo chiude; la scritta col sangue nella rotonda; in pausa si rilegge; la bussola', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    await prova({ pulisci: true, ferma: true, vita: 1e6, scheletro: 'coro' });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'biglietto', 5000);
+    await ctx.waitState(pc, (st) => !st.templari.isola.azioneTenuta, 5000);
+    await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
+    await ctx.waitState(pc, (st) => st.templari.biglietti.aperto === 'coro', 5000);
+    const testo = await pc.textContent('#mzTplBiglietto');
+    assert(testo.includes('tre fuochi') && testo.includes('Bertrand'), 'il biglietto del coro: ' + testo.slice(0, 120));
+    await ctx.shot(pc, 'pc_biglietto_coro');
+    // la bussola: una freccia verso il fuoco spento più vicino
+    const gradi = await pc.getAttribute('#mzTplBussolaFuoco', 'data-gradi');
+    assert(gradi !== null && gradi !== '', 'la bussola non punta a nessun fuoco: ' + gradi);
+    await pc.keyboard.press('Escape');
+    await ctx.waitState(pc, (st) => st.templari.biglietti.aperto === null && st.templari.pausa === false, 5000);
+    // nella rotonda: lo scheletro di Arnaud e la scritta in mezzo al giro di colonne
+    await prova({ scheletro: 'rotonda' });
+    await ctx.waitState(pc, (st) => st.templari.prompt === 'biglietto', 5000);
+    await pc.keyboard.down('KeyF'); await pc.waitForTimeout(120); await pc.keyboard.up('KeyF');
+    await ctx.waitState(pc, (st) => st.templari.biglietti.aperto === 'rotonda', 5000);
+    // andando via si chiude da solo (come il menù del Mercante)
+    await prova({ dove: { x: 63.5, z: 42.5 } });
+    await ctx.waitState(pc, (st) => st.templari.biglietti.aperto === null, 5000);
+    await prova({ scheletro: 'rotonda' });
+    await pc.waitForTimeout(900);
+    await ctx.shot(pc, 'pc_scheletro_rotonda');
+    // in pausa la lista dei biglietti trovati; uno si rilegge, Esc lo chiude e la pausa resta
+    await pc.keyboard.press('Escape');
+    await ctx.waitState(pc, (st) => st.templari.pausa === true, 5000);
+    assert((await pc.locator('#mzTplLetti button').count()) === 2, 'in pausa non ci sono i due biglietti letti');
+    await pc.click('#mzTplLetti [data-biglietto=coro]');
+    await ctx.waitState(pc, (st) => st.templari.biglietti.aperto === 'coro', 5000);
+    await ctx.shot(pc, 'pc_pausa_biglietti');
+    await pc.keyboard.press('Escape');
+    await ctx.waitState(pc, (st) => st.templari.biglietti.aperto === null && st.templari.pausa === true, 5000);
+    await pc.keyboard.press('Escape');
+    await ctx.waitState(pc, (st) => st.templari.pausa === false, 5000);
+    const sc = (await ctx.getState(pc)).templari.scena;
+    assert(sc.indizi === 10, 'scheletri e scritte in scena: ' + sc.indizi);
     ctx.noErrors(d, 'PC');
   });
   await ctx.test('PC: le campanelle nell’ordine scritto in taverna danno una pozione; i tre teschi fanno partire la canzone', async () => {
