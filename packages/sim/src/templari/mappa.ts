@@ -53,6 +53,10 @@ export type Capo = P & { cella: number; davanti: P & { fx: number; fz: number } 
 export type Passaggio = { id: string; porta: string | null; a: Capo; b: Capo };
 /** Una campanella o un teschio dei segreti: id e cella. */
 export type Segreto = { id: string; x: number; z: number };
+/** Uno scheletro col biglietto (§12b punto 4): la cella e da che parte guarda (via dal muro dove poggia la schiena). */
+export type Scheletro = Segreto & { fx: number; fz: number };
+/** Una scritta col sangue: il punto in mezzo alla scritta e la normale della faccia del muro (0, 0 = sul pavimento). */
+export type Scritta = Segreto & { nx: number; nz: number };
 export type Albero = { x: number; z: number; cella: number; tipo: 'cipresso' | 'palma' | 'lampione'; h: number };
 /** Posto della cassa del tesoro (la cella della cassa) e da che parte guarda (via dal muro). */
 export type PostoCassa = { x: number; z: number; fx: number; fz: number };
@@ -81,6 +85,8 @@ export type Arena = {
   cripta: Cripta | null; campanelle: Segreto[]; indizio: Omit<Muro, 'arma'> | null; teschi: Segreto[];
   /** Le scale tra sopra e sotto (la cripta e le due grate delle catacombe), la fucina (§12b), le righe del sopra (`sopra`, il resto è sotto). */
   passaggi: Passaggio[]; fucina: P | null; sopra: number;
+  /** Gli indizi (§12b punto 4): scheletri col biglietto e scritte col sangue (dalla mappa, fuori dalle righe). */
+  scheletri: Scheletro[]; sangue: Scritta[];
   /** Indice della trappola per cella (-1 = nessuna). */
   trappolaDi: Int8Array;
   /** Per la resa: suolo e tipo di ogni cella (SUOLO, TIPO). */
@@ -88,6 +94,7 @@ export type Arena = {
 };
 
 const CACHE = new WeakMap<TMappaDef, Arena>();
+const LATI = { n: [0, -1], s: [0, 1], e: [1, 0], o: [-1, 0] } as const;
 /** Numero fisso 0..1 di una cella (come cellHash del client): dove vanno gli alberi è uguale per tutti. */
 export function hashCella(cx: number, cz: number, salt = 0): number {
   let h = (cx * 374761393 + cz * 668265263 + salt * 2246822519) | 0;
@@ -262,6 +269,15 @@ export function parseArena(def: TMappaDef): Arena {
     fuochi, pezzi: [...pezziMap.entries()].map(([id, p]) => ({ id, posti: p })),
     cripta: cripta(), campanelle, teschi, indizio: indizio(), passaggi: passaggi(), fucina: fuc.length ? { x: fuc.reduce((s, p) => s + p.x, 0) / fuc.length, z: fuc.reduce((s, p) => s + p.z, 0) / fuc.length } : null,
     sopra: def.sopra ?? h,
+    scheletri: (def.scheletri ?? []).map(({ id, x: cx, z: cz }) => {
+      // la schiena al primo muro tra nord, ovest, est, sud (così guarda verso la camera, che sta a sud-est)
+      const d = [[0, -1], [-1, 0], [1, 0], [0, 1]].find(([dx, dz]) => k(cx + dx!, cz + dz!) === C.muro) ?? [0, -1];
+      return { id, ...ctr(cx, cz), fx: -d[0]!, fz: -d[1]! };
+    }),
+    sangue: (def.sangue ?? []).map(({ id, x, z, lato }) => {
+      const [nx, nz] = lato ? LATI[lato] : [0, 0];
+      return { id, x: (x + 0.5 + nx * 0.5) * t, z: (z + 0.5 + nz * 0.5) * t, nx, nz };
+    }),
     personaggi: posti.map(({ id, cx, cz }) => { const d = N4.find(([dx, dz]) => k(cx + dx, cz + dz) === C.fuori) ?? [0, -1]; return { id, ...ctr(cx, cz), fx: d[0], fz: d[1] }; }),
   };
   // celle dell'eroe all'inizio: a 4 vicini dalla partenza, senza attraversare finestre e porte

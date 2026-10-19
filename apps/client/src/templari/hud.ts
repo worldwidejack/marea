@@ -26,6 +26,7 @@ const CSS = `
 #mzTpl .isola { position: absolute; left: ${LEFT}; top: calc(${TOP} + 124px); display: flex; gap: 6px; font-size: 11px; font-weight: bold; color: ${PAL.sabbiaChiara}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
 #mzTpl .isola span { padding: 1px 5px; background: rgba(35,32,31,.75); border: 1px solid ${PAL.pietra}; }
 #mzTpl .isola span.ok { border-color: ${PAL.giallo}; color: ${PAL.giallo}; }
+#mzTpl .isola span i.frc { display: inline-block; margin-left: 4px; font-style: normal; color: ${PAL.giallo}; }
 #mzTpl .poz span { padding: 1px 4px; background: rgba(35,32,31,.85); border: 1px solid currentColor; font-size: 10px; font-weight: bold; }
 @keyframes mzTplLamp { 50% { opacity: .2; } }
 #mzTpl .vign { position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 0 10px rgba(232,67,63,.55), inset 0 0 0 22px rgba(232,67,63,.3), inset 0 0 0 40px rgba(232,67,63,.14); }
@@ -52,7 +53,8 @@ body.mz-sotto .mz-labels, body.mz-sotto #mzPlay, body.mz-sotto #mzEmoteRow, body
 `;
 
 export type TplHud = {
-  set(v: TView): void;
+  /** `yaw`: la camera, per la bussola (le frecce verso il fuoco spento e il pezzo della campana più vicini, §12b punto 4). */
+  set(v: TView, yaw?: number): void;
   /** Punti guadagnati (o spesi, negativi): il numerino che sale accanto ai punti. */
   punti(n: number): void;
   /** Scritta grande al centro per `ms` (0 = finché non la si toglie). */
@@ -84,10 +86,11 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string, pot?: boo
   box.append(vign, ond, pti, arma, vita, pot, isola, poz, msg, boss, big);
   root.append(box);
   const amici: HTMLElement[] = [];
-  let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1, pot: '', poz: '', isola: '' };
+  let bigT: ReturnType<typeof setTimeout> | null = null, shown = { ond: -1, pti: -1, arma: '', msg: '', vita: -1, rest: -1, pot: '', poz: '', isola: '', frF: '', frC: '' };
+  let frF: HTMLElement | null = null, frC: HTMLElement | null = null;
 
   return {
-    set(v) {
+    set(v, yaw = 0) {
       const n = v.ondata;
       if (n !== shown.ond || v.restano !== shown.rest) {
         shown.ond = n; shown.rest = v.restano;
@@ -115,8 +118,23 @@ export function createTplHud(root: HTMLElement, nomeArma: (id: string, pot?: boo
         shown.isola = ik;
         const f = el('span', accesi === v.fuochi.length ? 'ok' : '', `🔥 ${accesi}/${v.fuochi.length}`);
         const c = el('span', v.campana ? 'ok' : '', v.campana ? '🔔 montata' : `🔔 ${presi}/${v.pezzi.length}`);
+        frF = el('i', 'frc', '↑'); frC = el('i', 'frc', '↑'); frF.id = 'mzTplBussolaFuoco'; frC.id = 'mzTplBussolaPezzo'; shown.frF = shown.frC = '';
+        f.append(frF); c.append(frC);
         isola.replaceChildren(f, c, ...(anime ? [el('span', '', anime)] : []), ...(teschi ? [el('span', teschi === g.teschi.length ? 'ok' : '', `☠ ${teschi}/${g.teschi.length}`)] : []));
       }
+      // la bussola: verso il fuoco spento e il pezzo a terra più vicini (non quando sei sotto o ci sei già sopra)
+      const verso = (el: HTMLElement | null, chiave: 'frF' | 'frC', l: { x: number; z: number }[]) => {
+        if (!el) return;
+        let best: { x: number; z: number } | null = null, bd = Infinity;
+        for (const p of l) { const d = (p.x - v.eroe.x) * (p.x - v.eroe.x) + (p.z - v.eroe.z) * (p.z - v.eroe.z); if (d < bd) { bd = d; best = p; } }
+        const dx = best ? best.x - v.eroe.x : 0, dz = best ? best.z - v.eroe.z : 0;
+        // dal mondo allo schermo (l'inverso di game/input.ts screenToWorld): a destra e in su
+        const k = !best || v.segreti.dentro || bd < 9 ? '' : String(Math.round(Math.atan2(dx * Math.cos(yaw) - dz * Math.sin(yaw), -dx * Math.sin(yaw) - dz * Math.cos(yaw)) / (Math.PI / 8)) * 22.5);
+        if (k === shown[chiave]) return;
+        shown[chiave] = k; el.style.display = k ? '' : 'none'; el.style.transform = `rotate(${k || 0}deg)`; el.dataset['gradi'] = k;
+      };
+      verso(frF, 'frF', v.fuochi.filter((x) => !x.acceso));
+      verso(frC, 'frC', v.campana ? [] : v.pezzi.filter((x) => !x.preso));
       // pozioni della Strega bevute
       const pk2 = v.eroe.pozioni.join(',') + (v.eroe.intoccabile ? '!' : '');
       if (pk2 !== shown.poz) {

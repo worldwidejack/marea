@@ -109,6 +109,8 @@ export type TEvento =
   | { t: 'campanella'; id: string; giusta: boolean; n: number; tutte: number }
   | { t: 'campaneGiuste' }
   | { t: 'teschio'; id: string; n: number; tutti: number }
+  /** AZIONE su uno scheletro (§12b punto 4): il client apre il suo biglietto. */
+  | { t: 'biglietto'; id: string }
   | { t: 'canzone' };
 
 /** Un evento della sim; insieme `e` = l'eroe a cui è successo (o che l'ha fatto). */
@@ -116,7 +118,7 @@ export type TEventoDi = TEvento & { e?: number };
 
 /** Cosa farebbe AZIONE adesso (il bottone lo dice). */
 /** `k` = lavoro in corso (AZIONE tenuto su un fuoco o sulla campana), 0..1. */
-export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola' | 'mercante' | 'strega' | 'fuoco' | 'pezzo' | 'monta' | 'lancia' | 'campanella' | 'teschio'; testo: string; prezzo: number; puoi: boolean; k?: number } | null;
+export type TPrompt = { cosa: 'reliquia' | 'ripara' | 'compra' | 'munizioni' | 'cassa' | 'prendi' | 'scudo' | 'porta' | 'trappola' | 'mercante' | 'strega' | 'fuoco' | 'pezzo' | 'monta' | 'lancia' | 'campanella' | 'teschio' | 'biglietto'; testo: string; prezzo: number; puoi: boolean; k?: number } | null;
 
 export type TView = {
   tick: number; fase: TFase;

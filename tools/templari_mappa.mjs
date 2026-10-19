@@ -267,6 +267,31 @@ set(INDIZIO[0], INDIZIO[1], 'B');
 // teschi (nascosti, come gli orsacchiotti): dietro una casa della piazza, nell'angolo della taverna, dietro l'ossario
 const TESCHI = { i: [17, 25], l: [7, 72], '!': [75, 4] };
 for (const [c, [x, z]] of Object.entries(TESCHI)) { if ('.,vesw'.includes(get(x, z))) set(x, z, c); else throw new Error(`teschio ${c} su '${get(x, z)}' in ${x},${z}`); }
+// ——— gli indizi (§12b punto 4): fuori dalle righe (la mappa e il dipinto non cambiano) ———
+// scheletri col biglietto, seduti con la schiena al muro, uno per segreto, in catena: il coro (accanto alla partenza: cosa si fa
+// sull'isola), la rotonda (il muro crepato e la cripta), la taverna (le campanelle e i teschi), l'ossario (i teschi e la grata), le
+// catacombe (le grate e la fucina), la fucina (passo 7)
+const SCHELETRI = { coro: [71, 44], rotonda: [39, 37], taverna: [23, 61], ossario: [77, 11], catacombe: [19, 121], fucina: [25, 111] };
+for (const [id, [x, z]] of Object.entries(SCHELETRI)) {
+  if (!'.,vesw:'.includes(get(x, z))) throw new Error(`scheletro ${id} su '${get(x, z)}' in ${x},${z}`);
+  if (!QUATTRO.some(([dx, dz]) => '#h%&'.includes(get(x + dx, z + dz)))) throw new Error(`lo scheletro ${id} in ${x},${z} non ha un muro per la schiena`);
+}
+// scritte col sangue: sul pavimento (si leggono meglio: la camera le vede dritte) o su un muro (la faccia `lato` guarda una cella
+// libera; la camera vede di sbieco le facce a sud e a est)
+const SANGUE = [
+  { id: 'crepa', x: 42.7, z: 39.8 },              // in mezzo alla rotonda, dentro il giro di colonne (tra il muro crepato e le colonne non c'è posto)
+  { id: 'campane', x: 17, z: 62 },               // in taverna, sotto l'ordine delle campane scritto sul muro
+  { id: 'teschi', x: 75.6, z: 12.6 },            // davanti all'ossario, accanto allo scheletro del becchino
+  { id: 'fucina', x: 24.4, z: 110, lato: 's' },    // sul muro nord della sala della fucina
+];
+const LATO = { n: [0, -1], s: [0, 1], e: [1, 0], o: [-1, 0] };
+for (const { id, x, z, lato } of SANGUE) {
+  const cx = Math.floor(x), cz = Math.floor(z);
+  if (lato) {
+    const [dx, dz] = LATO[lato];
+    if (!'#h%&'.includes(get(cx, cz)) || !'.,vesw:'.includes(get(cx + dx, cz + dz))) throw new Error(`la scritta ${id} vuole un muro in ${cx},${cz} con la faccia ${lato} libera`);
+  } else if (!'.,vesw:XMRGKE'.includes(get(cx, cz))) throw new Error(`la scritta ${id} sul pavimento è su '${get(cx, cz)}' in ${cx},${cz}`);
+}
 
 // ——— partenza davanti all'altare; comparse: sagrato fuori dalle finestre, e nelle zone ———
 set(66, 42, 'S');
@@ -354,6 +379,8 @@ rows.forEach((r, z) => [...r].forEach((c, x) => { if (c === 'z' && !daZombie.has
   }));
   for (const [c, [x, z]] of Object.entries(CAMPANELLE)) if (!QUATTRO.some(([dx, dz]) => tutte.has(x + dx + ',' + (z + dz)))) errs.push(`la campanella ${c} in ${x},${z} non si raggiunge`);
   for (const [c, [x, z]] of Object.entries(TESCHI)) if (!tutte.has(x + ',' + z)) errs.push(`il teschio ${c} in ${x},${z} non si raggiunge`);
+  for (const [id, [x, z]] of Object.entries(SCHELETRI)) if (!tutte.has(x + ',' + z) && !giu.has(x + ',' + z)) errs.push(`lo scheletro ${id} in ${x},${z} non si raggiunge`);
+  if (!chiuso.has(SCHELETRI.coro.join(','))) errs.push('lo scheletro del coro si deve raggiungere dalla partenza');
   if (!aperte(['1', '3']).has(INDIZIO.join(','))) errs.push("l'indizio delle campane non si raggiunge dalla taverna");
   // le grate di sopra: l'ossario col cimitero, la grotta con l'accampamento
   const accanto = (s, [x, z]) => QUATTRO.some(([dx, dz]) => s.has(x + dx + ',' + (z + dz)));
@@ -384,7 +411,9 @@ const out = {
   },
   rows: trimmed,
 };
-fs.writeFileSync(OUT, JSON.stringify(out, null, 0).replace('"rows":[', '"rows":[\n').replace(/","/g, '",\n"').replace(/"\]\}$/, '"\n]}\n'));
+const liste = { scheletri: Object.entries(SCHELETRI).map(([id, [x, z]]) => ({ id, x, z })), sangue: SANGUE };
+fs.writeFileSync(OUT, JSON.stringify(out, null, 0).replace('"rows":[', '"rows":[\n').replace(/","/g, '",\n"').replace(/"\]\}$/, '"\n],\n')
+  + Object.entries(liste).map(([k, l]) => `"${k}":[\n${l.map((x) => JSON.stringify(x)).join(',\n')}\n]`).join(',\n') + '}\n');
 const conta = (c) => rows.join('').split(c).length - 1;
 console.log(`[templari] mappa ${W}×${H}: ${conta('W')} finestre, ${conta('z') + conta('y') + conta('u') + conta('x') + conta('j')} comparse, ${conta('C')} posti della cassa → ${path.relative(ROOT, OUT)}`);
 if (process.argv.includes('--stampa')) console.log(trimmed.filter((r) => r.trim()).join('\n'));

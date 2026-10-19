@@ -15,21 +15,32 @@ export const BIGLIETTO = [
   '— fra’ Guillaume, sergente del Tempio',
 ];
 const CSS_BIGLIETTO = `
-#mzBiglietto { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100% - 32px)); max-height: calc(100% - 120px); overflow-y: auto; box-sizing: border-box; padding: 16px 16px 12px; z-index: 31; display: none;
+.mz-biglietto { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100% - 32px)); max-height: calc(100% - 120px); overflow-y: auto; box-sizing: border-box; padding: 16px 16px 12px; z-index: 31; display: none;
   background: ${PAL.sabbiaChiara}; color: ${PAL.ombraCalda}; border: 3px solid ${PAL.legnoChiaro}; box-shadow: 0 4px 0 ${PAL.neroCaldo}, inset 0 0 0 2px ${PAL.sabbia}; font-size: 14px; line-height: 1.45; }
-#mzBiglietto.on { display: block; }
-#mzBiglietto b { display: block; margin-bottom: 8px; font-size: 13px; letter-spacing: .1em; color: ${PAL.rosso}; text-align: center; }
-#mzBiglietto p { margin: 0 0 8px; }
-#mzBiglietto p.firma { text-align: right; font-style: italic; }
-#mzBiglietto button { display: block; margin: 10px auto 0; min-width: 120px; min-height: 44px; background: ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.legnoChiaro}; font: bold 15px ui-monospace, Menlo, monospace; cursor: pointer; }
+.mz-biglietto.on { display: block; }
+.mz-biglietto b { display: block; margin-bottom: 8px; font-size: 13px; letter-spacing: .1em; color: ${PAL.rosso}; text-align: center; }
+.mz-biglietto p { margin: 0 0 8px; }
+.mz-biglietto p.firma { text-align: right; font-style: italic; }
+.mz-biglietto button { display: block; margin: 10px auto 0; min-width: 120px; min-height: 44px; background: ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; border: 2px solid ${PAL.legnoChiaro}; font: bold 15px ui-monospace, Menlo, monospace; cursor: pointer; }
 `;
 
-/** Il foglio del biglietto, nascosto, dentro `root` (si apre con la classe `on`); `chiuso` gira quando si preme Chiudi. */
-export function creaBiglietto(root: HTMLElement, chiuso: () => void): HTMLElement {
+/** Un biglietto: il titolo in rosso, le righe, la firma in corsivo a destra. */
+export type TestoBiglietto = { titolo: string; righe: string[]; firma?: string };
+const GUILLAUME: TestoBiglietto = { titolo: '✠ IL BIGLIETTO DELLO SCHELETRO', righe: BIGLIETTO.slice(0, -1), firma: BIGLIETTO.at(-1)! };
+/** Riscrive il foglio (il bottone Chiudi resta). */
+export function scriviBiglietto(b: HTMLElement, t: TestoBiglietto): void {
+  const chiudi = b.querySelector('button[data-act="chiudi"]')!;
+  b.replaceChildren(el('b', '', t.titolo), ...t.righe.map((r) => el('p', '', r)), ...(t.firma ? [el('p', 'firma', t.firma)] : []), chiudi);
+  b.scrollTop = 0;
+}
+/** Il foglio del biglietto, nascosto, dentro `root` (si apre con la classe `on`); `chiuso` gira quando si preme Chiudi. Di serie il
+ *  biglietto di fra' Guillaume; i Templari ne aprono altri (templari/biglietti.ts, `id` diverso). */
+export function creaBiglietto(root: HTMLElement, chiuso: () => void, testo: TestoBiglietto = GUILLAUME, id = 'mzBiglietto'): HTMLElement {
   if (!document.getElementById('mz-biglietto-style')) { const st = document.createElement('style'); st.id = 'mz-biglietto-style'; st.textContent = CSS_BIGLIETTO; document.head.appendChild(st); }
-  const biglietto = el('div', 'mz'); biglietto.id = 'mzBiglietto';
+  const biglietto = el('div', 'mz mz-biglietto'); biglietto.id = id;
   const chiudi = el('button', '', 'Chiudi') as HTMLButtonElement; chiudi.type = 'button'; chiudi.dataset['act'] = 'chiudi';
-  biglietto.append(el('b', '', '✠ IL BIGLIETTO DELLO SCHELETRO'), ...BIGLIETTO.map((r, i) => el('p', i === BIGLIETTO.length - 1 ? 'firma' : '', r)), chiudi);
+  biglietto.append(chiudi);
+  scriviBiglietto(biglietto, testo);
   for (const ev of ['pointerdown', 'touchstart']) biglietto.addEventListener(ev, (x) => x.stopPropagation());
   chiudi.addEventListener('click', () => { biglietto.classList.remove('on'); chiuso(); });
   root.append(biglietto);

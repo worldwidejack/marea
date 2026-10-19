@@ -24,7 +24,7 @@ import { ruota, tira } from './proiettili.ts';
 import { cassaMia, usaCassa, vicinoCassa } from './cassa.ts';
 import { accendiTrappola, apriPorta, levaVicina, portaDef, portaVicina, trappolaAccesa, trappolaDef, trappolaPronta, trappolaUsabile } from './porte.ts';
 import { acceso, fuocoPer, fuocoVicino, lavora, lavoroK, pezziPresi, pezziTutti, pezzoVicino, prendiPezzo } from './fuochi.ts';
-import { campanellaVicina, fendenteMuro, haLancia, lanciaLibera, nomeLancia, scalaEroe, suonaCampanella, teschioVicino, vicinoAltareCripta } from './segreti.ts';
+import { campanellaVicina, fendenteMuro, haLancia, lanciaLibera, nomeLancia, scalaEroe, scheletroVicino, suonaCampanella, teschioVicino, vicinoAltareCripta } from './segreti.ts';
 
 const vivi = (s: TState): Zombie[] => s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge');
 const ANIM_TIRO = Math.round(0.25 * 60), ANIM_LANCIO = Math.round(0.35 * 60);
@@ -246,6 +246,8 @@ export function prompt(s: TState): TPrompt {
   if (vicinoAltareCripta(s) && !haLancia(s)) return lanciaLibera(s)
     ? { cosa: 'lancia', testo: `Prendi: ${nomeLancia()}`, prezzo: 0, puoi: true }
     : { cosa: 'lancia', testo: `L'altare è sigillato: anime ${s.segreti.anime}/${s.eroe.sigillo}`, prezzo: 0, puoi: false };
+  // gli indizi (§12b punto 4): lo scheletro col biglietto
+  if (scheletroVicino(s)) return { cosa: 'biglietto', testo: 'Leggi il biglietto', prezzo: 0, puoi: true };
   const chi = chiVicino(s);
   if (chi && !acceso(s, chi)) return { cosa: chi, testo: chi === 'mercante' ? `La nave è al largo: ${fuocoPer('mercante')?.nome.toLowerCase() ?? 'accendi il fuoco'}` : `La Strega dorme: ${fuocoPer('strega')?.nome.toLowerCase() ?? 'accendi il fuoco'}`, prezzo: 0, puoi: false };
   if (chi) return { cosa: chi, testo: chi === 'mercante' ? 'Il Mercante' : 'La Strega', prezzo: 0, puoi: true };
@@ -302,6 +304,8 @@ function azione(s: TState, dDown: boolean, dHeld: boolean): void {
     ev(s, { t: 'scudo', preso: true });
     return;
   }
+  const sk = scheletroVicino(s);
+  if (dDown && sk) { ev(s, { t: 'biglietto', id: sk }); return; }
   const m = muroVicino(s), o = m ? offerta(s, m) : null;
   if (dDown && m && o) {
     if (!spendi(s, o.prezzo)) return;

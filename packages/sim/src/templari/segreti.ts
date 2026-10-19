@@ -176,6 +176,13 @@ export function teschioVicino(s: TState): string | null {
   for (const t of s.arena.teschi) if (!s.segreti.teschi[t.id] && d2(t.x, t.z, h.x, h.z) <= r * r) return t.id;
   return null;
 }
+/** Lo scheletro col biglietto a portata (§12b punto 4), il più vicino, o null. Leggerlo non cambia la partita (solo un evento). */
+export function scheletroVicino(s: TState): string | null {
+  const h = s.eroe, r = TEMPLARI.indizi.raggio;
+  let best: string | null = null, bd = r * r;
+  for (const k of s.arena.scheletri) { const d = d2(k.x, k.z, h.x, h.z); if (d <= bd) { bd = d; best = k.id; } }
+  return best;
+}
 export const teschiTrovati = (s: TState): number => Object.values(s.segreti.teschi).filter(Boolean).length;
 /** Un teschio trovato (fuochi.ts `lavora`, AZIONE tenuto fino in fondo); col terzo la canzone. */
 export function trovaTeschio(s: TState, id: string): void {
