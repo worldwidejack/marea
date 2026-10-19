@@ -423,7 +423,7 @@ export function createLotView(o: LotViewOptions): LotView {
     const v = view ?? lot, t = now();
     const c = v.construction ?? lot.construction;
     if (!ro) {
-      o.hud.setMonete?.(holdMonete ?? lot.monete);
+      o.hud.setResources?.({ monete: holdMonete ?? lot.monete });
       const cc = lot.construction;
       if (cc && cc.endsMs > t) o.hud.setWork?.(`${buildingDef(cc.building).nome}${cc.level > 1 ? ' L' + cc.level : ''} tra ${fmtClock(cc.endsMs - t)}`, () => openBuilding(cc.placedId));
       else o.hud.setWork?.(null);
@@ -621,7 +621,7 @@ export function createLotView(o: LotViewOptions): LotView {
       removeEventListener('pointerup', onUp); removeEventListener('pointercancel', onCancel);
       removeEventListener('keydown', onKey);
       document.removeEventListener('visibilitychange', onVis);
-      if (!ro) { o.hud.setMonete?.(null); o.hud.setWork?.(null); }
+      if (!ro) { o.hud.setResources?.(null); o.hud.setWork?.(null); }
     },
   };
 }

@@ -10,7 +10,7 @@ import type { LotState, Resources, Riepilogo } from '@marea/sim';
 import type { EmoteId } from '@marea/protocol';
 import type { Hud } from './hud.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
-import { RES_IDS, RES_NOME, pixIcon, resIcon } from './icons.ts';
+import { RISORSE_IDS, RES_NOME, pixIcon, resIcon } from './icons.ts';
 import { relTime } from './feed.ts';
 import { EMOTE_WORDS, emoteIcon } from '../game/emote.ts';
 
@@ -77,7 +77,7 @@ export function durata(ms: number): string {
 const isEmote = (e: string): e is EmoteId => AVATAR.emote.includes(e);
 const nomi = (xs: string[]): string => (xs.length <= 1 ? xs[0] ?? '' : xs.slice(0, -1).join(', ') + ' e ' + xs[xs.length - 1]);
 function resSpans(r: Resources): HTMLElement[] {
-  return RES_IDS.filter((k) => r[k] > 0).map((k) => { const s = el('span', 'n'); s.append(resIcon(k, 16), el('span', '', `+${r[k]} ${RES_NOME[k]}`)); return s; });
+  return RISORSE_IDS.filter((k) => r[k] > 0).map((k) => { const s = el('span', 'n'); s.append(resIcon(k, 16), el('span', '', `+${r[k]} ${RES_NOME[k]}`)); return s; });
 }
 
 /** `now` = ora del server stimata (per «2 h fa»). */
@@ -152,7 +152,7 @@ export function createRientroUi(o: { root: HTMLElement; hud: Hud; now(): number;
     if (dep > 0 && raccogli) {
       go.dataset['act'] = 'raccogli';
       const tot = el('span', 'tot'); tot.append(el('span', '', 'RACCOGLI TUTTO'));
-      for (const k of RES_IDS) if (r.depositi[k] > 0) { const sp = el('span'); sp.append(resIcon(k, 16), el('span', '', String(r.depositi[k]))); tot.append(sp); }
+      for (const k of RISORSE_IDS) if (r.depositi[k] > 0) { const sp = el('span'); sp.append(resIcon(k, 16), el('span', '', String(r.depositi[k]))); tot.append(sp); }
       go.append(tot);
       primary = () => { close(); raccogli(); };
     } else { go.dataset['act'] = 'avanti'; go.textContent = 'AVANTI'; primary = () => close(); }

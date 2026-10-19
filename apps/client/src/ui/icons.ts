@@ -4,8 +4,10 @@ import { PAL } from './style.ts';
 
 /** `monete` = la valuta del gioco (#414); legno, pietra, perle = le risorse di prima, solo per il codice spento (giardino, sfide, Faro comune). */
 export type ResId = keyof Resources | 'monete';
+/** Le voci della barra in alto (`Hud.setResources`): dal #414 una sola, le monete. */
+export const RES_IDS: readonly ResId[] = ['monete'];
 /** Le risorse di prima, nell'ordine di sempre (le usa solo il codice spento). */
-export const RES_IDS: readonly (keyof Resources)[] = ['legno', 'pietra', 'perle'];
+export const RISORSE_IDS: readonly (keyof Resources)[] = ['legno', 'pietra', 'perle'];
 export const RES_NOME: Record<ResId, string> = { monete: 'monete', legno: 'Legno', pietra: 'Pietra', perle: 'Perle' };
 
 const COL: Record<string, string> = {

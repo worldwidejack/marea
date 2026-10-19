@@ -1,19 +1,19 @@
-// HUD in DOM: overlay prestazioni (?fps=1), toast, contatore delle monete in alto (una valuta sola, #414), chip del cantiere, avviso fisso. WP0 + M1-isola.
+// HUD in DOM: overlay prestazioni (?fps=1), toast, barra in alto (le voci di RES_IDS: dal #414 solo le monete), chip del cantiere, avviso fisso. WP0 + M1-isola.
 import type { Flags } from '../flags.ts';
 import { injectUiStyle, el } from './style.ts';
-import { resIcon } from './icons.ts';
+import { RES_IDS, resIcon } from './icons.ts';
 import type { ResId } from './icons.ts';
 
 export type Hud = {
   setPerf(s: { drawCalls: number; triangles: number; fps: number; frameMs: number }): void;
   toast(text: string, ms?: number): void;
-  /** Contatore delle monete: null lo nasconde (niente lotto). Opzionale per compatibilità con HUD finti nei test. */
-  setMonete?(n: number | null): void;
+  /** Barra in alto, una voce per id di RES_IDS (dal #414 solo `monete`): null la nasconde (niente lotto). Opzionale per compatibilità con HUD finti nei test. */
+  setResources?(r: Partial<Record<ResId, number>> | null): void;
   /** Chip del cantiere sotto la barra («Cava tra 1:32»); null lo nasconde. */
   setWork?(text: string | null, onTap?: () => void): void;
   /** Avviso fisso al centro (es. link non valido); null lo toglie. */
   banner?(text: string | null): void;
-  /** Centro del contatore delle monete in px CSS (destinazione delle monete che volano); null per le risorse di prima, che non hanno più un contatore. */
+  /** Centro della voce della barra in px CSS (destinazione delle risorse che volano); null se la barra non ha quella voce (le risorse di prima). */
   resAnchor?(id: ResId): { x: number; y: number } | null;
   bump?(id: ResId): void;
   readonly root?: HTMLElement;
@@ -29,26 +29,30 @@ export function createHud(o: { root: HTMLElement; flags: Flags }): Hud {
   if (o.flags.fps) perf.style.display = 'block';
 
   const bar = el('div', 'mz mz-bar'); bar.id = 'mzBar';
-  // un contatore solo (#414): lo stile nuovo dell'HUD si sceglie a parte, qui resta quello di sempre
-  const chip = el('div', 'mz-chip'); chip.dataset['res'] = 'monete'; chip.title = 'Monete';
-  const num = el('b', '', '0');
-  chip.append(resIcon('monete', 24), num);
-  bar.appendChild(chip);
+  const chips: Partial<Record<ResId, { chip: HTMLElement; num: HTMLElement }>> = {};
+  for (const id of RES_IDS) {
+    const chip = el('div', 'mz-chip'); chip.dataset['res'] = id;
+    const num = el('b', '', '0');
+    chip.append(resIcon(id, 24), num);
+    bar.appendChild(chip);
+    chips[id] = { chip, num };
+  }
   const work = el('div', 'mz mz-work'); work.id = 'mzWork'; work.setAttribute('role', 'button');
   let workTap: (() => void) | undefined;
   work.addEventListener('click', () => workTap?.());
   const ban = el('div', 'mz mz-banner'); ban.id = 'mzBanner'; ban.setAttribute('role', 'alert');
   o.root.append(bar, work, ban);
 
-  let timer = 0, bumpT = 0;
+  let timer = 0;
+  const bumps = new Map<ResId, number>();
   return {
     root: o.root,
     setPerf(s) { if (o.flags.fps) perf.textContent = `${s.fps.toFixed(0)} fps · ${s.frameMs.toFixed(1)} ms\n${s.drawCalls} draw · ${(s.triangles / 1000).toFixed(1)}k tri\n${__BUILD__}`; },
     toast(text, ms = 2200) { toast.textContent = text; toast.style.opacity = '1'; clearTimeout(timer); timer = window.setTimeout(() => (toast.style.opacity = '0'), ms); },
-    setMonete(n) {
-      bar.classList.toggle('on', n !== null);
-      if (n === null) return;
-      const t = String(Math.floor(n)); if (num.textContent !== t) num.textContent = t;
+    setResources(r) {
+      bar.classList.toggle('on', !!r);
+      if (!r) return;
+      for (const id of RES_IDS) { const c = chips[id], t = String(Math.floor(r[id] ?? 0)); if (c && c.num.textContent !== t) c.num.textContent = t; }
     },
     setWork(text, onTap) {
       work.classList.toggle('on', !!text);
@@ -57,14 +61,15 @@ export function createHud(o: { root: HTMLElement; flags: Flags }): Hud {
     },
     banner(text) { ban.classList.toggle('on', !!text); ban.textContent = text ?? ''; },
     resAnchor(id) {
-      if (id !== 'monete' || !bar.classList.contains('on')) return null;
-      const r = chip.getBoundingClientRect(), root = o.root.getBoundingClientRect();
+      const c = chips[id];
+      if (!c || !bar.classList.contains('on')) return null;
+      const r = c.chip.getBoundingClientRect(), root = o.root.getBoundingClientRect();
       return { x: r.left - root.left + 20, y: r.top - root.top + r.height / 2 };
     },
     bump(id) {
-      if (id !== 'monete') return;
-      chip.classList.add('bump');
-      clearTimeout(bumpT); bumpT = window.setTimeout(() => chip.classList.remove('bump'), 350);
+      const c = chips[id]?.chip; if (!c) return;
+      c.classList.add('bump');
+      clearTimeout(bumps.get(id)); bumps.set(id, window.setTimeout(() => c.classList.remove('bump'), 350));
     },
   };
 }

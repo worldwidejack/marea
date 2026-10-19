@@ -6,7 +6,7 @@ import { bufferCap, decorRimborso, geq, missing, storageCap } from '@marea/sim';
 import type { LotState, PlacedBuilding, PlacedDecor, Resources } from '@marea/sim';
 import { mancaText } from '../net/api.ts';
 import { el } from './style.ts';
-import { RES_IDS, RES_NOME, resIcon } from './icons.ts';
+import { RISORSE_IDS, RES_NOME, resIcon } from './icons.ts';
 import { fmtDur, timerSpan } from './sheet.ts';
 import { eroeForPanels } from './eroe.ts';
 import type { BuildingKind } from '../rpg/types.ts';
@@ -29,7 +29,7 @@ export type Panel = { body: HTMLElement; sig: string };
 
 export function costNodes(cost: Resources): HTMLElement[] {
   const out: HTMLElement[] = [];
-  for (const id of RES_IDS) if (cost[id] > 0) { const c = el('span', 'mz-cost'); c.append(resIcon(id, 16), el('span', '', String(cost[id]))); out.push(c); }
+  for (const id of RISORSE_IDS) if (cost[id] > 0) { const c = el('span', 'mz-cost'); c.append(resIcon(id, 16), el('span', '', String(cost[id]))); out.push(c); }
   if (!out.length) out.push(el('span', 'mz-cost', 'gratis'));
   return out;
 }
