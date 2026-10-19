@@ -1,7 +1,6 @@
-# MAREA — Game Design Document (fonte di verità)
+# MAREA — Game Design Document
 
-> Dove questo file contraddice gli altri documenti, vince questo. Si aggiorna solo tramite l'orchestratore; le idee nuove vanno in `BACKLOG.md`.
-> **Dove va il gioco: `docs/VISIONE.md`** (revisione di Jack, 14 ott 2026, #323). Questo file descrive il gioco com'è; per il lavoro nuovo vince VISIONE, e quando un suo punto si fa si riscrive qui la sezione.
+> Com'è il gioco oggi. **Dove va: `docs/VISIONE.md`**; quando un suo punto si fa, si riscrive qui la sezione. Le idee nuove vanno in `BACKLOG.md`.
 > Versione 1.0 · 29 set 2026 · titolo di lavoro **MAREA** (si può cambiare).
 
 ## 0. In tre righe
@@ -278,10 +277,10 @@ Fuori: battaglia unità, bot, puzzle, chat testuale, interni degli edifici, cicl
 I numeri di questo documento sono la **prima ipotesi**. La verità operativa sta in `packages/content/src/balance.json`, nei json di `packages/content/src/minigames/` e (GDR) in `packages/content/src/rpg/`; quando cambiano, si aggiorna la tabella qui e si annota in `ROADMAP.md` §Deviazioni.
 
 ## 12. Mondo Sotterraneo (GDR, dal 6 ott 2026)
-Sotto le isole ci sono dungeon con combattimento alla Skyrim, voluti da **Riccardo** (che ne cura il design): personaggio con Vita/Magicka/Stamina, 7 abilità, perk, forgia di armi e armature in 8 materiali, alchimia, bottino. **Facoltativo**: chi non scende gioca MAREA come prima. In superficie zero nemici. Tutto il design sta in **`docs/RPG.md`**, che vale come questo documento. Rispetto al §10: il combattimento entra (solo nei dungeon, contro la sim, mai contro gli amici); gli interni restano fuori dalla superficie.
+Sotto le isole ci sono dungeon con combattimento alla Skyrim, voluti da **Riccardo** (che ne cura il design): personaggio con Vita/Magicka/Stamina, 7 abilità, perk, forgia di armi e armature in 8 materiali, alchimia, bottino. **Facoltativo**: chi non scende gioca MAREA come prima. In superficie zero nemici. Tutto il design sta in **`docs/RPG.md`**. Rispetto al §10: il combattimento entra (solo nei dungeon, contro la sim, mai contro gli amici); gli interni restano fuori dalla superficie.
 
 ## 13. Isola dei Templari (modalità a ondate, dall'8 ott 2026)
-Isola personale di **birbasan** (tema libero, ok di Jack): crociati zombie a ondate infinite, armi da comprare coi punti della partita, porte, trappole, boss. Tutto il design sta in **`docs/TEMPLARI.md`**, che vale come questo documento. Rispetto al §1 (30-120 s) e al §10 (storia, nemici): la partita è lunga e ha una storia, ma si gioca in una scena a parte come i dungeon; nel resto dell'arcipelago restano zero nemici.
+Isola personale di **birbasan** (tema libero, ok di Jack): crociati zombie a ondate infinite, armi da comprare coi punti della partita, porte, trappole, boss. Tutto il design sta in **`docs/TEMPLARI.md`**. Rispetto al §1 (30-120 s) e al §10 (storia, nemici): la partita è lunga e ha una storia, ma si gioca in una scena a parte come i dungeon; nel resto dell'arcipelago restano zero nemici.
 
 ## 14. Isola dell'Adrenalina (discese, dal 10 ott 2026)
-Isola a tema **per tutti** proposta da **birbasan** (#189), con l'**ok di Jack** (10 ott 2026): una montagna con una funivia, ogni gioco un modo diverso di scenderla, contro i fantasmi degli amici, con una barra **Adrenalina** che moltiplica i punti di chi rischia. Tutto il design sta in **`docs/ADRENALINA.md`**, che vale come questo documento. Rispetta il §1 (discese da 60-120 s, un pollice, non si muore mai) e il §10 (niente bot, niente nemici); le due novità rispetto al §6 sono le piste fisse e la scena a parte.
+Isola a tema **per tutti** proposta da **birbasan** (#189), con l'**ok di Jack** (10 ott 2026): una montagna con una funivia, ogni gioco un modo diverso di scenderla, contro i fantasmi degli amici, con una barra **Adrenalina** che moltiplica i punti di chi rischia. Tutto il design sta in **`docs/ADRENALINA.md`**. Rispetta il §1 (discese da 60-120 s, un pollice, non si muore mai) e il §10 (niente bot, niente nemici); le due novità rispetto al §6 sono le piste fisse e la scena a parte.

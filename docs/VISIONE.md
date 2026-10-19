@@ -1,6 +1,6 @@
 # MAREA — Visione (revisione di Jack, 14 ott 2026)
 
-> Jack ha passato in rassegna tutto il gioco e ha deciso dove va (issue #323). Il GDD dice **com'è il gioco oggi**, questo file dice **dove va**. Per il lavoro nuovo vince questo file; quando un punto si fa, si riscrive la sezione del GDD e qui la riga diventa «fatto».
+> Jack ha passato in rassegna tutto il gioco e ha deciso dove va (issue #323). Il GDD dice **com'è il gioco oggi**, questo file dice **dove va**. Quando un punto si fa, si riscrive la sezione del GDD e qui la riga diventa «fatto».
 > Legenda: **sì** = resta · **via** = si toglie per ora · **da rifare** / **da ripensare** = la direzione è decisa, la forma no · **idea** = da valutare con Jack, non si fa senza di lui.
 
 ## 0. In tre righe

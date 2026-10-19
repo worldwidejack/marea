@@ -1,6 +1,6 @@
 # MAREA — Difesa a corsie (bibbia corta, banco di prova)
 
-> Format ripreso da Jack il 16 ott 2026 (issue #358): «qualcosa come Plants vs Zombies». Vale come il GDD per la Difesa; `VISIONE.md` §3
+> Format ripreso da Jack il 16 ott 2026 (issue #358): «qualcosa come Plants vs Zombies». Il documento della Difesa; `VISIONE.md` §3
 > rimanda qui. Oggi esiste solo il **banco di prova** `provadifesa.html`: il gioco non cambia. Numeri in
 > `packages/content/src/difesa.json`, con due profili: `pvz` (l'originale, per verificare che la sim faccia le stesse cose) e `marea` (i
 > nostri, che si tarano con lo strumento di bilanciamento e con Jack).

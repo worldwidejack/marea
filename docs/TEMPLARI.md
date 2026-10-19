@@ -1,7 +1,7 @@
 # MAREA — Isola dei Templari (GDD della modalità a ondate)
 
-> Parte del GDD (`GDD.md` §3, §6 e §13 rimandano qui; vale come il GDD). Isola personale di **birbasan**, tema libero con l'ok di Jack (8 ott 2026). Nasce dalla bozza di decisioni presa in chat; le scelte che la bozza non diceva le ha prese Claude e sono segnate **[scelta provvisoria]**.
-> Numeri: tutti in `packages/content/src/templari.json`. Le tabelle qui sono la **prima ipotesi**; cambiarli = aggiornare qui e una riga in `ROADMAP.md` §Deviazioni.
+> Parte del GDD (`GDD.md` §3, §6 e §13 rimandano qui). Isola personale di **birbasan**, tema libero con l'ok di Jack (8 ott 2026). Nasce dalla bozza di decisioni presa in chat; le scelte che la bozza non diceva le ha prese Claude e sono segnate **[scelta provvisoria]**.
+> Numeri: tutti in `packages/content/src/templari.json`. Le tabelle qui sono la **prima ipotesi**; cambiarli = aggiornare qui, col perché nella PR.
 
 ## 0. In tre righe
 Un'isola maledetta a sud dell'arcipelago: chiesa templare in rovina al centro, borgo abbandonato attorno, cimitero, accampamento pirata sulla spiaggia. Porti la **reliquia** all'altare e i Templari morti si svegliano: **ondate infinite** di crociati zombie alla Call of Duty Zombies, con punti per comprare armi, aprire porte e accendere trappole. Muori → esci; più ondate superi, più Legno, Pietra e Perle porti a casa.
