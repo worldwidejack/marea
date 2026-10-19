@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 // Build del client (vite) + controllo dei budget (TECH.md §5) + report tests/out/build.json.
 // Uso: node tools/build.mjs [--out <dir>] [--quiet] [--no-enforce]. Esporta build() per i test/deploy.
-// Budget (alzati l'8 ott 2026 su decisione di Jack, ROADMAP §Deviazioni): js iniziale ≤ 1240 KB (gzip ≤ 376 KB dal 14 ott, #304: il catalogo di ~100 mobili è dati nel JS iniziale; entry + chunk precaricati da index.html) · ogni chunk caricato dopo con import() ≤ 600 KB (gzip ≤ 180),
-// tutti insieme ≤ 3000 KB (gzip ≤ 900): ognuno si scarica solo quando serve (dall'8 ott 2026, ROADMAP §Deviazioni; il JS delle pagine di prova va a parte, in proveJsKB) ·
-// modelli del manifest secondario `manifest_rpg.json` (caricati entrando in un dungeon) ≤ 1,5 MB · mobili `manifest_mobili.json` ≤ 3 MB (caricati solo da chi mostra un mobile) · kit delle Corse `manifest_corse.json` ≤ 2,5 MB · pelli della Difesa `assets/difesa/` ≤ 4 MB (le carica solo provadifesa.html, una alla volta: fuori dalla stima delle texture del gioco, #358) · caricamento iniziale ≤ 2 MB (html + js + css + manifest + atlas + modelli del manifest) · texture ≤ 16 MB stimati (w×h×4 di ogni PNG).
+// Budget: i limiti veri sono in BUDGET qui sotto (JS iniziale, chunk caricati dopo con import(), manifest secondari, caricamento iniziale,
+// texture stimate); le regole stanno in docs/TECH.md §5. Il JS delle pagine di prova va a parte, in proveJsKB.
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
@@ -139,7 +138,7 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
     for (const w of warns) console.log(`[build] avviso: ${w}`);
     console.log(`[build] report → ${path.relative(ROOT, REPORT)}`);
   }
-  if (errs.length && enforce) throw new Error('Budget superato:\n  - ' + errs.join('\n  - ') + '\n(TECH.md §5: non si alza il limite, si taglia il contenuto)');
+  if (errs.length && enforce) throw new Error('Budget superato:\n  - ' + errs.join('\n  - ') + '\n(TECH.md §5: prima sposta codice in chunk caricati dopo con import(); se non basta, alza il limite in BUDGET qui sopra e scrivi il perché nella PR)');
   return report;
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
