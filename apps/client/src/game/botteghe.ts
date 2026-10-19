@@ -2,7 +2,7 @@
 // Cantiere navale in riva a est del molo (botteghe.json `posto`: sparse per il Borgo, Jack non le voleva tutte in fila), casette copiate dal concept scelto da Jack (render/botteghe_forme.ts), coi bottegai dietro al banco
 // (avatar `chr_base`), il cartellino col nome, il fumo del camino e del calderone. Davanti al banco: bottone col nome della bottega (A / E /
 // Spazio) → il pannello della bottega (rpg/bottega_ui.ts, scaricato alla prima apertura). Chunk a parte (main.ts lo scarica dopo l'avvio):
-// le botteghe compaiono un attimo dopo il mondo. Draw call: casette in un mesh (+ ombra), luci, insegne, fumi: 4 in tutto, più i bottegai.
+// le botteghe compaiono un attimo dopo il mondo. Draw call: casette in un mesh (+ ombra), insegne, fumi: 4 in tutto, più i bottegai da vicino.
 import * as THREE from 'three';
 import { BOTTEGHE, BOTTEGHE_IDS } from '@marea/content/botteghe.ts';
 import type { BottegaId } from '@marea/content/botteghe.ts';
@@ -40,7 +40,9 @@ const CSS = `
 .mz-bottega-btn canvas { width: 24px; height: 24px; image-rendering: pixelated; }
 .mz-lbl.bottega canvas { width: 16px; height: 16px; image-rendering: pixelated; }
 `;
-const SHOW_M = 60, NPC_M = 30, PUFF = 5;
+/** I bottegai (avatar `chr_base`, 5 draw call a testa e altrettante d'ombra, senza frustum culling) si disegnano solo da vicino: dall'alto sulla
+ *  piazza tre bottegai sforavano le 100 draw call (TECH §5). L'ombra solo vicinissimi, come la gente del Porto. */
+const SHOW_M = 60, NPC_M = 10, SHADOW_M = 6, PUFF = 5;
 
 /** L'icona a pixel della bottega (la sua insegna) per il bottone e il cartellino. */
 const iconaBottega = (id: BottegaId): HTMLCanvasElement => canvasInsegna(id);
@@ -54,8 +56,8 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
   const layer = createLabelLayer(o.root);
   let ui: BottegaUi | null = null, loading: Promise<BottegaUi | null> | null = null, near: BottegaId | null = null, nearWas: BottegaId | null = null, aWas = false, closedAt = 0;
 
-  // ---- le casette: tutte in un mesh (colori per vertice), le luci in un altro, le insegne in un terzo ----
-  const corpi: THREE.BufferGeometry[] = [], luci: THREE.BufferGeometry[] = [], insegne: THREE.BufferGeometry[] = [];
+  // ---- le casette (e il fuoco, la pozione) in un mesh a colori per vertice, le insegne in un altro ----
+  const corpi: THREE.BufferGeometry[] = [], insegne: THREE.BufferGeometry[] = [];
   const fumi: { x: number; y: number; z: number; c: THREE.Color }[] = [];
   const posti = BOTTEGHE_IDS.flatMap((id) => {
     const b = BOTTEGHE[id], posto = b.posto;
@@ -63,7 +65,7 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
     const w = at(posto.at), f = at(posto.fronte), y = o.world.groundY(w.x, w.z), ry = posto.rot + Math.PI; // il modello guarda +Z, `rot` è il verso del davanti (π = sud)
     const forme = FORME[id](), m = M(w.x, y, w.z, 0, ry, 0);
     corpi.push(forme.corpo.applyMatrix4(m));
-    if (forme.luce.attributes.position) luci.push(forme.luce.applyMatrix4(m));
+    if (forme.luce.attributes.position) corpi.push(forme.luce.applyMatrix4(m)); // fuoco e pozione nel corpo: una draw call in meno (TECH §5)
     const s = forme.insegna;
     insegne.push(facciaInsegna(id).applyMatrix4(M(s.x, s.y, s.z, 0, s.ry, 0)).applyMatrix4(m));
     const loc = (x: number, yy: number, z: number) => new THREE.Vector3(x, yy, z).applyMatrix4(m);
@@ -71,12 +73,10 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
     const bp = loc(forme.bottegaio.x, 0, forme.bottegaio.z);
     const label = layer.add(() => { if (dist(f.x, f.z) < posto.raggio + 2) void apri(id); else o.hud.toast(`${b.nome}: ${posto.dove}`, 2200); });
     label.set('bubble', [iconaBottega(id), el('span', '', b.nome.toUpperCase())], 'spot'); label.el.classList.add('spot', 'bottega'); label.el.dataset['bottega'] = id;
-    return [{ id, nome: b.nome, raggio: posto.raggio, x: w.x, y, z: w.z, fx: f.x, fz: f.z, ry, bx: bp.x, bz: bp.z, label, av: null as Avatar | null }];
+    return [{ id, nome: b.nome, raggio: posto.raggio, x: w.x, y, z: w.z, fx: f.x, fz: f.z, ry, bx: bp.x, bz: bp.z, label, av: null as Avatar | null, ombra: true, meshes: [] as THREE.Mesh[] }];
   });
   const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const corpo = new THREE.Mesh(merged(corpi), vc); corpo.name = 'botteghe_casette'; corpo.castShadow = corpo.receiveShadow = true; group.add(corpo);
-  const lumi = new THREE.MeshBasicMaterial({ vertexColors: true });
-  if (luci.length) { const l = new THREE.Mesh(merged(luci), lumi); l.name = 'botteghe_luci'; group.add(l); }
   const ins = new THREE.Mesh(merged(insegne), new THREE.MeshLambertMaterial({ map: texInsegne(), side: THREE.FrontSide })); ins.name = 'botteghe_insegne'; group.add(ins);
   // fumo: PUFF cubetti per ogni camino o calderone che salgono, crescono e spariscono (un InstancedMesh)
   const fumo = new THREE.InstancedMesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), new THREE.MeshLambertMaterial({ flatShading: true }), Math.max(1, fumi.length * PUFF));
@@ -90,6 +90,7 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
     if (!look) continue;
     void createAvatar({ loader: o.loader, look, x: s.bx, z: s.bz }).then((av) => {
       av.setGround(o.world.groundY); av.object.name = 'bottegaio_' + s.id; group.add(av.object); s.av = av;
+      av.object.traverse((x) => { if ((x as THREE.Mesh).isMesh) s.meshes.push(x as THREE.Mesh); });
       av.setPose({ x: s.bx, z: s.bz, yaw: -s.ry + Math.PI, anim: 'idle' }); // guarda la strada (yaw 0 = −Z)
     }).catch(() => { /* senza avatar la bottega funziona lo stesso */ });
   }
@@ -169,11 +170,12 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
       for (const s of posti) {
         const p = screenOf(s.x, 5.2, s.z);
         s.label.place(p.x, p.y, p.on && fd(s.x, s.z) < SHOW_M && !o.world.race.on, dist(s.x, s.z) < LABEL_NEAR_M);
-        if (s.av) { const far = fd(s.x, s.z) > NPC_M; s.av.visible = !far; s.av.object.visible = !far; if (!far) { s.av.setPose({ x: s.bx, z: s.bz, yaw: -s.ry + Math.PI, anim: 'idle' }); s.av.update(1, dt); } }
+        if (s.av) {
+          const ombra = fd(s.bx, s.bz) < SHADOW_M;
+          if (ombra !== s.ombra) { s.ombra = ombra; for (const m of s.meshes) m.castShadow = ombra; }
+          const far = fd(s.bx, s.bz) > NPC_M; s.av.visible = !far; s.av.object.visible = !far; if (!far) { s.av.setPose({ x: s.bx, z: s.bz, yaw: -s.ry + Math.PI, anim: 'idle' }); s.av.update(1, dt); } }
       }
-      // il fuoco del forno che tremola, i fumi che salgono
-      const k = 0.85 + 0.15 * Math.sin(t * 11) * Math.sin(t * 3.7);
-      lumi.color.setScalar(k);
+      // i fumi che salgono
       fumi.forEach((fu, i) => {
         for (let j = 0; j < PUFF; j++) {
           const ph = (t * 0.3 + j / PUFF + i * 0.37) % 1, s = (0.6 + ph * 1.2) * (ph > 0.75 ? (1 - ph) * 4 : 1);
