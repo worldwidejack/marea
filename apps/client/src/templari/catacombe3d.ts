@@ -37,7 +37,7 @@ export function createCatacombe3d(scene: THREE.Scene, a: Arena): Catacombe3d {
   const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }); disp.push(vc);
   const cella = (cx: number, cz: number) => (cx < 0 || cz < 0 || cx >= W || cz >= H ? C.fuori : a.cell[cz * W + cx]!);
   const libera = (cx: number, cz: number) => { const c = cella(cx, cz); return c === C.pavimento || c === C.terra; };
-  const sotto: Pezzo[] = [], sopra: Pezzo[] = [], torce: THREE.Vector3[] = [];
+  const sotto: Pezzo[] = [], sopra: Pezzo[][] = [], torce: THREE.Vector3[] = [];
   let nicchie = 0;
 
   // ---- le nicchie: sulla faccia della roccia che dà sul tunnel, il buco scuro col ripiano, un teschio e le ossa ----
@@ -95,18 +95,19 @@ export function createCatacombe3d(scene: THREE.Scene, a: Arena): Catacombe3d {
     const b = p.b, dx = b.x - b.davanti.x, dz = b.z - b.davanti.z, ry = Math.atan2(dx, dz);
     for (let k = 0; k < 5; k++) sotto.push({ g: B(0.9, 0.18 + k * 0.22, 0.22), c: k % 2 ? PAL.pietra : PAL.pietraScura, x: b.x - dx * (0.4 - k * 0.2), y: (0.18 + k * 0.22) / 2, z: b.z - dz * (0.4 - k * 0.2), ry });
     const s = p.a;
-    sopra.push(
+    // una mesh per bocca: unite, ossario e grotta (lontani) non uscirebbero mai dal frustum
+    sopra.push([
       { g: B(0.92, 0.04, 0.92), c: PAL.neroCaldo, x: s.x, y: 0.02, z: s.z },
       ...[-1, 1].flatMap((k): Pezzo[] => [{ g: B(1.1, 0.16, 0.14), c: PAL.pietraScura, x: s.x, y: 0.08, z: s.z + k * 0.5 }, { g: B(0.14, 0.16, 1.1), c: PAL.pietraScura, x: s.x + k * 0.5, y: 0.08, z: s.z }]),
       ...[-1, 1].map((k): Pezzo => ({ g: B(0.06, 0.5, 0.06), c: PAL.legno, x: s.x + k * 0.22, y: 0.2, z: s.z - 0.3 })), { g: B(0.5, 0.05, 0.05), c: PAL.legno, x: s.x, y: 0.3, z: s.z - 0.3 },
-    );
+    ]);
     bocche++;
   }
 
-  const gSotto = sotto.length ? unisci(sotto) : new THREE.BufferGeometry(), gSopra = sopra.length ? unisci(sopra) : new THREE.BufferGeometry();
+  const gSotto = sotto.length ? unisci(sotto) : new THREE.BufferGeometry();
   const mSotto = new THREE.Mesh(gSotto, vc); mSotto.name = 'catacombe'; mSotto.visible = false; scene.add(mSotto);
-  const mSopra = new THREE.Mesh(gSopra, vc); mSopra.name = 'bocche_grate'; scene.add(mSopra);
-  disp.push(gSotto, gSopra);
+  const mSopra = sopra.map((ps) => { const g = unisci(ps); disp.push(g); const m = new THREE.Mesh(g, vc); m.name = 'bocche_grate'; scene.add(m); return m; });
+  disp.push(gSotto);
   const fiammaG = new THREE.ConeGeometry(0.06, 0.16, 4); fiammaG.translate(0, 0.08, 0);
   const fiammaM = new THREE.MeshBasicMaterial({ color: PAL.arancio });
   const fiamme = new THREE.InstancedMesh(fiammaG, fiammaM, Math.max(1, torce.length)); fiamme.name = 'torce_catacombe'; fiamme.count = torce.length; fiamme.frustumCulled = false; fiamme.visible = false;
@@ -125,6 +126,6 @@ export function createCatacombe3d(scene: THREE.Scene, a: Arena): Catacombe3d {
       fiamme.instanceMatrix.needsUpdate = true;
     },
     stats: () => ({ nicchie, torce: torce.length, fucina: !!f, bocche, sotto: sottoOra }),
-    dispose() { scene.remove(mSotto, mSopra, fiamme); for (const d of disp) d.dispose(); },
+    dispose() { scene.remove(mSotto, ...mSopra, fiamme); for (const d of disp) d.dispose(); },
   };
 }
