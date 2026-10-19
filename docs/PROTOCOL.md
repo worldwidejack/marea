@@ -169,6 +169,15 @@ Niente migrazioni: classifica e input stanno nel SQLite del DO `Sfide` (tabella 
 | `GET /api/borgo/buche` | → `{ buche: { cell: [number, number], stato: 'aperta' \| 'seppellita' }[], now: number }`: buche condivise di Borgo Marea nel SQLite del DO `Sfide` (tabella `buche`) — **nuovo** |
 | `POST /api/borgo/buca` | `{ op: 'scava' \| 'chiudi' \| 'seppellisci', cell: [number, number], dono?: { tipo: 'oggetto' \| 'mobile', id: string, n: number } \| { tipo: 'monete', monete: number } }` → coordina DO `Sfide` e DO `Lot`: con `scava` apre una buca, dissotterra una croce seppellita (`azione: 'dissotterrata'`) o riscuote il bottino giornaliero (`azione: 'bottino'`, `10..200` monete, sparisce solo per il chiamante tramite `lot.bottinoGiorno`); con `chiudi` richiude una buca aperta; con `seppellisci` preleva dal lotto e lascia una croce (`stato: 'seppellita'`) a tempo indeterminato — **nuovo** |
 
+### Aggiunte Insetti di Borgo Marea (#445, 19 ott 2026)
+| Metodo e percorso | Corpo → risposta |
+|---|---|
+| `POST /api/lot/casa/retino` | `{}` → `LotState`: compra il retino (`500` monete, `hero.inv.retino = 1`, Strumenti, peso 0). 409 se già posseduto o monete insufficienti — **nuovo** |
+| `POST /api/lot/insetti/sasso` · `/albero` | `{ idx }` → `{ uscito: { k, id, t } \| null, gia: boolean, lot }`: colpisce il sasso (serve la pala) o scuote l'albero `idx`; una volta al giorno a testa (`gia: true` le altre). L'insetto uscito si può prendere per la sua finestra + 20 s — **nuovo** |
+| `POST /api/lot/insetti/cattura` | `{ k }` → `{ lot, id }`: prende col retino l'insetto `k` (`p:<turno>:<i>[:<j>]` in giro, del turno o di quello prima; `s:…`/`a:…` uscito). Nello zaino a peso 0, `insetti.visti[id] += 1`. 400 se è volato via, 409 se già preso — **nuovo** |
+| `POST /api/lot/insetti/consegna` | `{ id }` → `LotState`: lo dà al mobiliere (sparisce dallo zaino, `insetti.posseduti` + id). 409 se il mobiliere ce l'ha già — **nuovo** |
+| `POST /api/rpg` `contrabbando vendi` | gli insetti si vendono come ogni oggetto dello zaino, a prezzo pieno (`insetti.json` `prezzo`) |
+
 ## 5. Input log compresso (`PackedInputs`)
 Array di run-length: `[[ticks, mx, my, a, b], ...]` con `mx, my` quantizzati a 1/32, `a` 0/1 e `b` 0/1/2: **2 = `b` con `c`** («dall'altra parte», `InputFrame.c` facoltativo; nelle Corse l'oggetto va al contrario, #250). Le partite di prima (solo 0/1) restano valide; il server controlla la forma con `isPackedInputs`. Una Regata da 60 s pesa < 4 KB. Il replay è `replay(minigame, seed, difficulty, inputs)` in `packages/sim/src/replay.ts`.
 

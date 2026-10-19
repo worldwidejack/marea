@@ -17,13 +17,15 @@ import { EconomyError } from '@marea/sim/economy/types.ts';
 import type { LotState } from '@marea/sim/economy/types.ts';
 import { applyRpgAction, parseRpgAction } from '@marea/sim/rpg/actions.ts';
 import { compraPala, parseBucaDono, prelevaPerSeppellire, riceviSeppellito } from '@marea/sim/rpg/pala.ts';
+import { catturaInsetto, cercaInsetto, compraRetino, consegnaInsetto } from '@marea/sim/rpg/insetti.ts';
 import { finishDungeon, startDungeon } from '@marea/sim/rpg/run.ts';
 
 export const json = (dati: unknown, status = 200): Response =>
   new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 
 /** `dungeon_party_start {dungeon, seed, run, idx}` → {hero, stato, lot} arriva solo dal DO Spedizioni (dungeon insieme, #118), mai dal Worker. */
-export const RPG_ACTS = new Set(['rpg', 'dungeon_start', 'dungeon_party_start', 'dungeon_save', 'dungeon_finish', 'casa_pala', 'pala_scava', 'pala_seppellisci', 'pala_dissotterra']);
+export const RPG_ACTS = new Set(['rpg', 'dungeon_start', 'dungeon_party_start', 'dungeon_save', 'dungeon_finish', 'casa_pala', 'pala_scava', 'pala_seppellisci', 'pala_dissotterra',
+  'casa_retino', 'insetti_sasso', 'insetti_albero', 'insetti_cattura', 'insetti_consegna']);
 /** Rotte che, con una spedizione insieme aperta, hanno bisogno del log della squadra (Lot.ts lo chiede prima e lo mette in `gruppo`). */
 export const SERVE_GRUPPO = new Set(['dungeon_start', 'dungeon_party_start', 'dungeon_finish']);
 
@@ -53,6 +55,27 @@ export function rpgRoute(lot: LotState, act: string, body: Record<string, unknow
     const next = advance(lot, now);
     save(next);
     return json({ bottino: false, lot: next });
+  }
+  // gli insetti di Borgo Marea (#445): retino, sassi (con la pala) e alberi una volta al giorno, cattura, consegna al mobiliere
+  if (act === 'casa_retino') { const next = compraRetino(lot, now); save(next); return json(next); }
+  if (act === 'insetti_sasso' || act === 'insetti_albero') {
+    const r = cercaInsetto(lot, act === 'insetti_sasso' ? 'sasso' : 'albero', Number(body['idx']), now);
+    if (!r.gia) save(r.lot);
+    return json({ uscito: r.uscito, gia: r.gia, lot: r.lot });
+  }
+  if (act === 'insetti_cattura') {
+    const k = body['k'];
+    if (typeof k !== 'string' || k.length > 40) return json({ error: 'Insetto non valido' }, 400);
+    const r = catturaInsetto(lot, k, now);
+    save(r.lot);
+    return json(r);
+  }
+  if (act === 'insetti_consegna') {
+    const id = body['id'];
+    if (typeof id !== 'string' || id.length > 40) return json({ error: 'Insetto non valido' }, 400);
+    const next = consegnaInsetto(lot, id, now);
+    save(next);
+    return json(next);
   }
   if (act === 'pala_seppellisci') {
     const d = parseBucaDono(body['dono']);

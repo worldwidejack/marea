@@ -96,7 +96,9 @@ export type Api = {
   decorRotate(id: string): Promise<LotState>;
   decorSell(id: string): Promise<LotState>;
   /** La casa arredabile (#265) e la pala (#438): compra (negozio dei mobili), finitura, scegli, posa, sposta, ruota, ritira, baule, amplia, pala. */
-  casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule' | 'amplia' | 'pala', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number; da?: number }): Promise<LotState>;
+  casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule' | 'amplia' | 'pala' | 'retino', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number; da?: number }): Promise<LotState>;
+  /** Gli insetti di Borgo Marea (#445): sasso/albero {idx} → {uscito, gia, lot}; cattura {k} → {lot, id}; consegna {id} → {lot}. */
+  insetti(op: 'sasso' | 'albero' | 'cattura' | 'consegna', body: { idx?: number; k?: string; id?: string }): Promise<{ lot: LotState; uscito?: { k: string; id: string; t: number } | null; gia?: boolean; id?: string }>;
   /** Tutte le persone dell'arcipelago (me compreso). */
   persone(): Promise<Persona[]>;
   /** Le mie sfide: in gioco (mandate e ricevute) e chiuse degli ultimi 7 giorni, le più recenti prima. */
@@ -284,6 +286,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     decorRotate: (id) => post('/api/lot/decor/rotate', { id }),
     decorSell: (id) => post('/api/lot/decor/sell', { id }),
     casa: (azione, body) => post('/api/lot/casa/' + azione, body),
+    insetti: (op, body) => call('POST', '/api/lot/insetti/' + op, body).then((d) => ({ ...(d as object), lot: asLot(op === 'consegna' ? d : (d as Record<string, unknown>)['lot']) })),
     async persone() {
       const d = await call('GET', '/api/persone');
       const list = Array.isArray(d) ? d : isObj(d) && Array.isArray(d['persone']) ? d['persone'] : [];

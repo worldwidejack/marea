@@ -206,7 +206,7 @@ export default async function (ctx) {
     });
 
     // ---------- senza ?traguardi=1: com'è il gioco adesso ----------
-    await ctx.test('senza traguardi, PC (Mia): sopra Luca solo il nome anche se ha un titolo; il Diario ha 5 pagine e niente titolo in testata', async () => {
+    await ctx.test('senza traguardi, PC (Mia): sopra Luca solo il nome anche se ha un titolo; il Diario ha 6 pagine (con gli Insetti, #445) e niente titolo in testata', async () => {
       const r = await post('/api/diario/titolo', 'tokL', { id: 'primo_oro' });
       assert(r.status === 200 && r.body.diario.titolo === 'primo_oro', 'titolo: ' + r.status);
       await D.close().catch(() => {});
@@ -222,8 +222,8 @@ export default async function (ctx) {
       await d2.keyboard.press('KeyJ');
       await ctx.waitState(d2, (s) => s.diario.open && s.diario.ui && s.diario.ui.tab === 'pesci', 15000);
       const s = await ctx.getState(d2);
-      assert(s.diario.tabs.length === 5 && !s.diario.tabs.includes('traguardi'), 'linguette: ' + s.diario.tabs.join(','));
-      assert(await d2.locator('#mzDiario [data-tab]').count() === 5 && await d2.locator('#mzDiario [data-tab="traguardi"]').count() === 0, 'linguetta Traguardi ancora nel DOM');
+      assert(s.diario.tabs.length === 6 && !s.diario.tabs.includes('traguardi'), 'linguette: ' + s.diario.tabs.join(','));
+      assert(await d2.locator('#mzDiario [data-tab]').count() === 6 && await d2.locator('#mzDiario [data-tab="traguardi"]').count() === 0, 'linguetta Traguardi ancora nel DOM');
       await d2.locator('#mzDiario .mz-dia-chi [data-chi="luca"]').click();
       await ctx.waitState(d2, (s) => s.diario.ui.chi === 'luca' && !s.diario.ui.carica, 10000);
       assert(!/Campione|titolo/i.test(await d2.locator('#mzDiario .chi-t').innerText()), 'titolo di Luca in testata: ' + await d2.locator('#mzDiario .chi-t').innerText());
@@ -251,7 +251,7 @@ export default async function (ctx) {
       assert((await ctx.getState(q)).diario.avviso === null && !(await q.locator('#mzTrag.on').count()), 'avviso del traguardo comparso');
       await hq('diarioApri', 'traguardi');
       await ctx.waitState(q, (s) => s.diario.open && s.diario.ui && s.diario.ui.tab === 'pesci', 15000);
-      assert(await q.locator('#mzDiario [data-tab]').count() === 5, 'linguette sul telefono');
+      assert(await q.locator('#mzDiario [data-tab]').count() === 6, 'linguette sul telefono');
       const ct = await q.locator('#mzDiario .chi-t').innerText();
       assert(!/Campione|titolo/i.test(ct), 'titolo in testata: ' + ct);
       const box = await q.locator('#mzDiario').boundingBox();

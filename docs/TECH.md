@@ -50,7 +50,7 @@ _I limiti non sono un dictat: si possono alzare quando serve ed è sensato (Jack
 
 | Cosa | Limite |
 |---|---|
-| `app.js` (client) | ≤ 1300 KB minificato, ≤ 392 KB gzip (era 250 fino all’8 ott 2026, 350 fino all’11 ott, 1200/360 fino al 13 ott, 1215/366 fino al 14 ott; il catalogo dei mobili: +25/+10; gli ampliamenti della casa 1260/380 il 18 ott; l’Isola della Difesa +10/+3 il 18 ott; nuovi lotti mobili da parete 1275/385 il 18 ott, #420; l'HUD «Allegro» col suo stile nel JS iniziale 1300/392 il 19 ott, #417) |
+| `app.js` (client) | ≤ 1305 KB minificato, ≤ 394 KB gzip (era 250 fino all’8 ott 2026, 350 fino all’11 ott, 1200/360 fino al 13 ott, 1215/366 fino al 14 ott; il catalogo dei mobili: +25/+10; gli ampliamenti della casa 1260/380 il 18 ott; l’Isola della Difesa +10/+3 il 18 ott; nuovi lotti mobili da parete 1275/385 il 18 ott, #420; l'HUD «Allegro» col suo stile nel JS iniziale 1300/392 il 19 ott, #417; gli insetti 1305/394 il 19 ott, #445: tutto in chunk, ma il JS iniziale era a 1299,2 e i chunk rimescolati da Rollup pesano +1,1 KB) |
 | Ogni chunk caricato dopo (`import()`: GDR, minimappa, isole, giochi a schermo, audio) | ≤ 600 KB minificato, ≤ 180 KB gzip; tutti insieme ≤ 3000 KB, ≤ 900 KB gzip |
 | Discese dell'Isola dell'Adrenalina (`apps/client/src/adrenalina/`, scaricato salendo in funivia; niente nel JS iniziale) | come ogni chunk (12 ott 2026: ~50 KB, ~20 gzip); in pista draw call e triangoli come sopra: abeti a riquadri da 100 m spenti oltre 420 m, il terreno si vede tutto fino in valle (12 ott: massimo 51 draw call e 97.000 triangoli a 390×844) |
 
