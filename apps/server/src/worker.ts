@@ -340,8 +340,8 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, 'decor_' + (dec[1] ?? ''), { id: body['id'], cell: body['cell'] });
       }
-      // la casa arredabile (#265): negozio dei mobili e ARREDA (solo la propria casa: il DO è quello della persona)
-      const casa = path.match(/^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|baule|amplia)$/);
+      // la casa arredabile (#265) e la pala (#438): negozio dei mobili e ARREDA (solo la propria casa: il DO è quello della persona)
+      const casa = path.match(/^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|baule|amplia|pala)$/);
       if (casa && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;

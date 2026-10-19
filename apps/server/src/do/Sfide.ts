@@ -28,6 +28,7 @@ import type { FaroStato } from '@marea/sim/economy/faro.ts';
 import { recordDi, segnaRecord } from '@marea/sim/economy/record.ts';
 import { MINIGAMES } from '@marea/sim/minigames/registry.ts';
 import '@marea/sim/corse/registra.ts'; // Corse: il server rigioca sul motore v2 (#173)
+import { handleBuca, listBuche } from './bucheStore.ts';
 import '@marea/sim/adrenalina/registra.ts'; // Adrenalina: le discese nel tabellone dei record (passo 3b)
 import { SNOWBOARD_PISTE } from '@marea/content/adrenalina.ts';
 import { migliora } from '@marea/sim/adrenalina/classifica.ts';
@@ -204,6 +205,7 @@ export class Sfide extends DurableObject<Env> {
         if (req.method === 'GET' && act === 'feed') return json({ rows: leggiFeed(sql, me), nonLetti: nonLetti(sql, me), faroLivelli: leggiFaro(sql).livelli });
         if (req.method === 'GET' && act === 'record') return json({ tab: recordDi(leggiTabellone(sql), now) });
         if (req.method === 'GET' && act === 'faro') return json({ faro: leggiFaro(sql) });
+        if (req.method === 'GET' && act === 'buche') return json({ buche: listBuche(sql), now });
         // Adrenalina (passo 3b): la classifica a tempo di una pista e il fantasma del primo
         if (req.method === 'GET' && (act === 'discese' || act === 'fantasma')) {
           const pista = url.searchParams.get('pista') ?? '';
@@ -226,6 +228,7 @@ export class Sfide extends DurableObject<Env> {
         if (act === 'record') return this.record(me, body, now);
         if (act === 'discesa') return this.discesa(me, body, now);
         if (act === 'faro_versa') return await this.faroVersa(me, body, now);
+        if (act === 'buca') return await handleBuca(sql, me, body, now, this.env);
         if (act === 'create') return await this.create(me, body, now);
         const row = typeof body['id'] === 'string' ? this.get(body['id']) : null;
         if (!row) return json({ error: 'Sfida non trovata' }, 404);

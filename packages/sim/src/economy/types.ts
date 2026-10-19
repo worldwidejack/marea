@@ -101,6 +101,8 @@ export type LotState = {
   liberatorie?: string[];
   /** La casa arredabile (#265, economy/casa.ts): magazzino dei mobili, mobili posati, pavimenti e carte. Assente = stanza vuota di serie. */
   casa?: CasaState;
+  /** Giorno di Roma (`giornoRoma`) in cui il proprietario ha già scavato il bottino giornaliero di Borgo Marea (#438). Assente = mai. */
+  bottinoGiorno?: number;
   /** Arena PvP (docs/ARENA.md, arena/premio.ts): duello aperto, monete prese oggi (giorno UTC), partite vinte, perse e pari. Assente = mai giocato. */
   arena?: ArenaLotto;
 };

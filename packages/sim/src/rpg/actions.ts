@@ -191,6 +191,7 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
     case 'butta': {
       // gli slot che restano senza l'oggetto si svuotano (fixEquip in fondo): la UI chiede conferma prima
       const it = needItem(a.item);
+      if (it.kind === 'strumento') throw err('oggetto', `${it.nome} non si butta via`);
       if ((h.inv[it.id] ?? 0) < a.n) throw err('oggetto', `Non hai abbastanza: ${it.nome}`);
       h = { ...h, inv: removeFrom(h.inv, it.id, a.n) };
       break;
@@ -213,6 +214,7 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
         h = { ...h, inv: addTo(h.inv, it.id, a.n) };
         lot = pagato;
       } else {
+        if (it.kind === 'strumento') throw err('oggetto', `${it.nome} non si vende`);
         if ((h.inv[it.id] ?? 0) < a.n) throw err('oggetto', `Non hai abbastanza: ${it.nome}`);
         const eq = Object.entries(h.equip).filter(([s, id]) => s !== 'magia' && id === it.id).length;
         if ((h.inv[it.id] ?? 0) - a.n < eq) throw err('equip', `Togli prima ${it.nome} dall'equipaggiamento`);

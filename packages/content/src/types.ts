@@ -82,6 +82,8 @@ export type BorgoDef = {
   /** Il negozio dei mobili (#265): in città (celle del template porto) e dentro (template `negozio`). */
   negozio: { at: [number, number]; porta: [number, number]; rot: number };
   negozioDentro: { pavimento: [number, number, number, number]; corridoio: [number, number, number]; altezza: number; finitura: { pavimento: string; carta: string } };
+  /** La pala (#438): si compra al negozio dei mobili (`monete`) e scava buche a Borgo Marea; ogni giorno nasconde un bottino da `bottino` [min, max] monete. */
+  pala: { id: string; nome: string; monete: number; bottino: [number, number] };
   /** Pavimenti e carte da parati: il primo è quello di serie. `motivo` = come si dipinge (render/stanza), `colori` dalla palette. */
   pavimenti: StanzaFinitura[]; carte: StanzaFinitura[];
 };

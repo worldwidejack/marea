@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { BORGO, MOBILI, MOBILI_VETRINA } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { MAX_LIVELLO_CASA, ampliatoOggi, casaDi, finoAMezzanotte, giornoRoma, livelloCasa, possiedeFinitura, prossimoAmpliamento, vetrinaDelGiorno } from '@marea/sim';
+import { possiedePala } from '@marea/sim/economy/pala.ts';
 import type { LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
@@ -30,9 +31,10 @@ import type { Avatar } from './avatar.ts';
 import { NASCOSTI_DENTRO, costruisciStanza, createInquadratura, texture } from './interno.ts';
 import type { Pianta } from './interno.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { createPalaBorgo } from './pala.ts';
 
 export type Negozio = { tick(a: boolean): boolean; update(dt: number): void; readonly dentro: boolean };
-type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'banco'; id: string; nome: string; monete: number; x: number; z: number; fx: number; fz: number };
+type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'banco' | 'pala'; id: string; nome: string; monete: number; x: number; z: number; fx: number; fz: number };
 
 const ND = BORGO.negozioDentro, [X0, Z0, X1] = ND.pavimento, [CX, C0, C1] = ND.corridoio;
 const PIANTA: Pianta = { pavimento: ND.pavimento, corridoio: ND.corridoio, altezza: ND.altezza, retro: null };
@@ -105,11 +107,14 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     const c = cella(posto(i), Z0 + 2);
     parti.push(painted(new THREE.CylinderGeometry(0.95, 1.05, 0.2, 8), P.pietra, M(c.x, 0.1, c.z)));
   }
-  // il bancone nell'ultima cella a destra, col registratore di cassa; dietro il mobiliere
+  // il bancone nell'ultima cella a destra, col registratore di cassa; dietro il mobiliere, e accanto l'espositore fisso della pala (#438)
   const bc = cella(X1 - 1, Z0 + 2);
   parti.push(painted(new THREE.BoxGeometry(1.4, 1.0, 3.0), P.legno, M(bc.x - 0.4, 0.5, bc.z + 0.6)), painted(new THREE.BoxGeometry(1.5, 0.1, 3.1), P.legnoChiaro, M(bc.x - 0.4, 1.05, bc.z + 0.6)));
   parti.push(painted(new THREE.BoxGeometry(0.5, 0.35, 0.4), P.arancio, M(bc.x - 0.4, 1.28, bc.z)), painted(new THREE.BoxGeometry(0.3, 0.08, 0.2), P.neroCaldo, M(bc.x - 0.4, 1.48, bc.z)));
+  parti.push(painted(new THREE.CylinderGeometry(0.45, 0.5, 0.16, 8), P.legnoScuro, M(bc.x - 0.4, 0.08, bc.z + 2.65)), painted(new THREE.CylinderGeometry(0.05, 0.05, 1.15, 6), P.legnoChiaro, M(bc.x - 0.4, 0.72, bc.z + 2.65, 0, 0, 0.18)));
+  parti.push(painted(new THREE.BoxGeometry(0.26, 0.05, 0.08), P.legnoScuro, M(bc.x - 0.5, 1.28, bc.z + 2.65, 0, 0, 0.18)), painted(new THREE.BoxGeometry(0.28, 0.34, 0.05), P.pietra, M(bc.x - 0.3, 0.24, bc.z + 2.65, 0, 0, 0.18)));
   pezziFissi.push({ kind: 'banco', id: 'banco', nome: 'Il mobiliere', monete: 0, x: bc.x - 0.4, z: bc.z + 0.6, fx: bc.x - 1.9, fz: bc.z + 0.6 }); // davanti al banco
+  pezziFissi.push({ kind: 'pala', id: BORGO.pala.id, nome: BORGO.pala.nome, monete: BORGO.pala.monete, x: bc.x - 0.4, z: bc.z + 2.65, fx: bc.x - 1.9, fz: bc.z + 2.65 });
   const fisso = new THREE.Mesh(merged(parti), vc); fisso.castShadow = fisso.receiveShadow = true; dentroG.add(fisso);
 
   // la merce del giorno (#384, #393): sulle pedane i mobili a terra, al muro in cornice le carte da parati e (dopo) i mobili a parete, per terra i
@@ -222,7 +227,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     return best ? { kind: 'pezzo', p: best } : null;
   };
   const chiudi = () => { aperto = null; nota = ''; conferma = false; sheet.classList.remove('on'); sheet.replaceChildren(); };
-  const gia = (p: Pezzo): boolean => (p.kind === 'pavimento' || p.kind === 'carta') && possiedeFinitura(o.getLot(), p.kind, p.id);
+  const gia = (p: Pezzo): boolean => p.kind === 'pala' ? possiedePala(o.getLot()) : (p.kind === 'pavimento' || p.kind === 'carta') && possiedeFinitura(o.getLot(), p.kind, p.id);
   /** Le descrizioni dei mobili e delle finiture: si scaricano alla prima scheda, non pesano sull'avvio. */
   let testi: Record<string, string> | null = null;
   const caricaTesti = () => {
@@ -243,14 +248,22 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     const t = el('b', '', titolo); t.style.flex = '1'; t.style.color = PAL.giallo; testa.append(t, x);
     return testa;
   };
-  /** Il banco: cosa c'è in vetrina oggi e fra quanto cambia. */
+  /** Il banco: cosa c'è in vetrina oggi, la pala di Borgo Marea e gli ampliamenti della casa. */
   function banco(): void {
     const v = vetrinaDelGiorno(giornoRoma(adesso())), n = v.terra.length + v.parete.length + v.carte.length + v.pavimenti.length;
     const corpo: Node[] = [testata('IL MOBILIERE')];
     corpo.push(el('div', 'prezzo', n ? `Oggi in vetrina: ${v.terra.length + v.parete.length} mobili, ${v.carte.length} carte da parati e ${v.pavimenti.length} pavimenti. Vendo solo quelli: gli altri tornano un altro giorno.` : 'Oggi la vetrina è vuota.'));
     corpo.push(el('div', 'prezzo', `Merce nuova fra ${fmtDur(finoAMezzanotte(adesso()) / 1000)}.`));
+    const l = o.getLot(), haPala = possiedePala(l), pPala = pezziFissi.find((x) => x.kind === 'pala')!;
+    corpo.push(el('h3', '', 'STRUMENTI · LA PALA'));
+    corpo.push(el('div', 'prezzo', `Scava buche a Borgo Marea per seppellire o dissotterrare oggetti, mobili e monete (${BORGO.pala.monete} monete, peso 0 nello zaino).`));
+    const bp = el('button', 'mz-btn', ''); bp.type = 'button'; bp.dataset['act'] = 'compra-pala';
+    bp.append(el('span', '', haPala ? 'Ce l’hai già nello zaino' : !o.api ? 'Serve il collegamento' : 'COMPRA LA PALA'), el('b', '', haPala ? '✓' : `${BORGO.pala.monete}`));
+    bp.disabled = haPala || busy || !o.api;
+    bp.addEventListener('click', () => void compra(pPala));
+    corpo.push(bp);
     // gli ampliamenti della casa (#386): uno alla volta, costano tanto; per non sbagliare dal telefono si conferma con un secondo tocco
-    const l = o.getLot(), liv = livelloCasa(casaDi(l)), prossimo = prossimoAmpliamento(liv);
+    const liv = livelloCasa(casaDi(l)), prossimo = prossimoAmpliamento(liv);
     corpo.push(el('h3', '', 'INGRANDISCI LA CASA'));
     if (!prossimo || !l) corpo.push(el('div', 'prezzo', 'La tua casa è grande al massimo: non c’è altro da ampliare.'));
     else {
@@ -286,7 +299,9 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     aperto = p; caricaTesti();
     if (p.kind === 'banco') { banco(); return; }
     const l = o.getLot(), monete = l?.monete ?? 0, m = p.kind === 'mobile' ? MOBILI.find((x) => x.id === p.id) ?? null : null;
-    const tipo = p.kind === 'mobile' ? 'Mobile: va nel magazzino di casa, lo posi con ARREDA' : p.kind === 'pavimento' ? 'Pavimento: si mette subito in casa tua' : 'Carta da parati: si mette subito in casa tua';
+    const tipo = p.kind === 'pala'
+      ? 'Strumento (peso 0 nello zaino): scava buche a Borgo Marea per seppellire oggetti, mobili e monete o cercare il bottino del giorno'
+      : p.kind === 'mobile' ? 'Mobile: va nel magazzino di casa, lo posi con ARREDA' : p.kind === 'pavimento' ? 'Pavimento: si mette subito in casa tua' : 'Carta da parati: si mette subito in casa tua';
     const prezzo = el('div', 'prezzo'); prezzo.append(el('span', '', `${tipo}. Prezzo `), el('b', '', `${p.monete} monete`), el('span', '', ` · ne hai ${monete}`));
     const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'compra';
     const g = gia(p);
@@ -309,10 +324,10 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     if (l.monete < p.monete) { nota = `Ti mancano ${p.monete - l.monete} monete: le vinci ai minigiochi, ai Templari, nell'Arena e nei dungeon.`; ridisegna(); return; }
     busy = true; ridisegna();
     try {
-      const next = await (p.kind === 'mobile' ? o.api.casa('compra', { id: p.id }) : o.api.casa('finitura', { tipo: p.kind, id: p.id }));
+      const next = await (p.kind === 'pala' ? o.api.casa('pala', {}) : p.kind === 'mobile' ? o.api.casa('compra', { id: p.id }) : o.api.casa('finitura', { tipo: p.kind, id: p.id }));
       o.setLot(next); comprati++;
       chiudi();
-      o.hud.toast(p.kind === 'mobile' ? `${p.nome}: è nel magazzino, arreda da casa tua` : `${p.nome}: messo in casa tua`, 2600);
+      o.hud.toast(p.kind === 'pala' ? 'Pala comprata! La trovi nello zaino (Strumenti) e puoi usarla a Borgo Marea' : p.kind === 'mobile' ? `${p.nome}: è nel magazzino, arreda da casa tua` : `${p.nome}: messo in casa tua`, 2800);
     } catch (e) { nota = e instanceof ApiError ? e.message : 'Qualcosa non va, riprova'; ridisegna(); } finally { busy = false; }
   }
   const vai = (v: Vicino) => {
@@ -330,6 +345,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   }));
   registerTestHook('negozio', (conVelo) => { if (conVelo) passa(entraDentro); else entraDentro(); return true; });
 
+  const pala = createPalaBorgo({ world: w, root: o.root, hud: o.hud, api: o.api, getLot: o.getLot, setLot: o.setLot, negozioDentro: () => dentro });
   let lastK = '';
   return {
     get dentro() { return dentro; },
@@ -344,7 +360,8 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       }
       if (aperto && (!near || near.kind !== 'pezzo' || near.p !== aperto)) chiudi();
       if (near && pa) { vai(near); return true; }
-      return !!near;
+      if (near) return true;
+      return pala.tick(a);
     },
     update(dt) {
       // a mezzanotte di Roma la vetrina cambia: si controlla una volta al secondo; chi è dentro se ne accorge (scheda chiusa, toast)
@@ -364,6 +381,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
         if (near?.kind === 'pezzo') bar.replaceChildren(el('div', 't', near.p.kind === 'banco' ? 'Il mobiliere · A per parlargli' : `${near.p.nome} · ${near.p.monete} monete · A per guardarlo`));
       }
       if (ciro && dentro) { ciro.setPose({ x: ciroPos.x, z: ciroPos.z, yaw: -Math.PI / 2, anim: 'idle' }); ciro.update(1, 1 / 60); }
+      pala.update(dt);
     },
   };
 }
