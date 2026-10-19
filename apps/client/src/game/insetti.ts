@@ -89,6 +89,11 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const mondo: Mondo = {
     terra: (x, z) => { const c = w.map.worldToCell(x, z); return CAMMINA.has(w.map.at(c.cx, c.cz)) && arch.placeAt(x, z)?.role === 'porto'; },
     y: (x, z) => w.groundY(x, z),
+    acqua: (x, z) => {
+      if (arch.placeAt(x, z)?.role !== 'porto') return true;
+      const c = w.map.worldToCell(x, z), t = w.map.at(c.cx, c.cz);
+      return t === '~' || t === ',' || t === 'B' || w.groundY(x, z) <= 0.05;
+    },
   };
 
   // ——— cosa hai in mano ———
@@ -206,9 +211,15 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
     colpito = true;
     const a = chiVicino();
     if (a) { a.stato = 'preso'; a.t = 0; void cattura(a); return; }
-    // mancato: chi vola lì vicino scappa (Excel: «manca il colpo di retino a < 1.5 tile»), l'ape esce dallo schermo
+    // mancato: chi sta lì vicino scappa allontanandosi a varie velocità (non sparisce)
     const f = w.avatar.state;
-    for (const b of attori.values()) if (b.def.tipo === 'volante' && b.stato !== 'via' && Math.hypot(b.x - f.x, b.z - f.z) < 1.5 + PORTATA) { b.stato = 'via'; b.t = 0; suona('scappato'); }
+    let via = false;
+    for (const b of attori.values()) {
+      if (b.stato !== 'preso' && b.stato !== 'acqua' && b.stato !== 'cade' && Math.hypot(b.x - f.x, b.z - f.z) < 1.8 + PORTATA) {
+        if (b.stato !== 'scappa') { b.stato = 'scappa'; b.t = 0; via = true; }
+      }
+    }
+    if (via) suona('scappato');
   };
 
   // ——— dove sei: cosa fa la A ———
@@ -301,8 +312,8 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       if (a.stato === 'appeso') { corpi.put(FILO, a.x, g + a.y, a.z, 0, 0, 0, 1); corpi.put(FILO, a.x, g + a.y + 1, a.z, 0, 0, 0, Math.max(0.01, a.filo - 1)); }
       const s = SCALA * (a.def.id === 'regina' ? 1.35 : a.def.forma === 'ercole' ? 1 : a.def.forma === 'formica' ? 0.85 : 1);
       const y = g + (a.stato === 'stordito' ? 0.12 : 0) + a.y;
-      corpi.put(posa, a.x, y, a.z, a.h, pitch, roll, s * (a.stato === 'via' ? Math.max(0.3, a.alfa) : 1));
-      if (volante && a.stato !== 'via') corpi.put(OMBRA, a.x, g + 0.02, a.z, 0, 0, 0, s * 0.7);
+      corpi.put(posa, a.x, y, a.z, a.h, pitch, roll, s * (a.stato === 'via' || a.stato === 'acqua' ? Math.max(0.3, a.alfa) : 1));
+      if (volante && a.stato !== 'via' && a.stato !== 'acqua') corpi.put(OMBRA, a.x, g + 0.02, a.z, 0, 0, 0, s * 0.7);
       // la lucciola accende e spegne il lume; di notte le altre no
       if (a.def.comportamento === 'lucciola' && notte && (a.vita + a.seme * 3) % 2.2 < 1.4) luci.put(LUME, a.x - Math.sin(a.h) * 0.12, y, a.z + Math.cos(a.h) * 0.12, 0, 0, 0, 1, giallo, giallo);
     }
@@ -355,11 +366,13 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       syncLiberi(now);
       const c = chi(), dentro = inBorgo();
       for (const [k, a] of attori) {
-        if (Math.hypot(a.x - c.x, a.z - c.z) > 60 && a.stato !== 'via') continue; // lontano: fermo, si sveglia quando arrivi
+        if (Math.hypot(a.x - c.x, a.z - c.z) > 60 && a.stato !== 'via' && a.stato !== 'acqua') continue; // lontano: fermo, si sveglia quando arrivi
         const ev = vive(a, c, dt, mondo);
         if (ev.punto && dentro) punto(ev.punto);
         if (ev.tonfo) suona('colpo_dato');
+        if (ev.plop) suona('plop');
         if (a.stato === 'via' && a.t > 1.6) { attori.delete(k); andati.add(k); }
+        if (a.stato === 'acqua' && a.t > 1.2) { attori.delete(k); andati.add(k); }
       }
       disegna(now, dt);
       contesto();

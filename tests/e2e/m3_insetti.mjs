@@ -115,12 +115,23 @@ export default async function (ctx) {
       await hook('insettiAttrezzo', 'retino');
       const a = (await st()).insetti.attori.find((x) => x.k.startsWith('p:') && x.prendibile);
       assert(a, 'nessun insetto in giro: ' + JSON.stringify((await st()).insetti.attori));
+      // cattura di a: col retino in mano il colpo prende l'insetto davanti a te
       await hook('teleport', a.x, a.z);
       await hook('insettiRetino');
       await ctx.waitState(page, (s, k) => !s.insetti.attori.some((x) => x.k === k) && s.insetti.cartello, 5000, a.k);
       const l = (await get('/api/lot')).body;
       assert(l.insetti.presi.includes(a.k) && l.hero.inv[a.id] >= 1, 'preso dal server: ' + JSON.stringify(l.insetti));
       assert((await post('/api/lot/insetti/cattura', { k: a.k })).status === 409, 'lo stesso insetto due volte no');
+      // verifica fuga (#458): se manchi il colpo vicino a un insetto, scappa senza sparire e resta prendibile
+      const a2 = (await st()).insetti.attori.find((x) => x.k.startsWith('p:') && x.prendibile);
+      if (a2) {
+        await hook('teleport', a2.x + 1.2, a2.z + 1.2);
+        await hook('insettiRetino');
+        await ctx.waitState(page, (s) => s.insetti.colpo === 0, 3000);
+        const a2Fuga = (await st()).insetti.attori.find((x) => x.k === a2.k);
+        assert(a2Fuga && a2Fuga.stato !== 'via', 'l’insetto allertato non deve sparire (stato via)');
+        assert(a2Fuga && a2Fuga.prendibile, 'l’insetto in fuga deve restare prendibile: ' + JSON.stringify(a2Fuga));
+      }
     });
 
     await ctx.test('4. Al mobiliere lo consegni (sparisce, posseduto, scheda nel Diario); al Contrabbandiere lo vendi (non posseduto)', async () => {
