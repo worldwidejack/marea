@@ -16,8 +16,8 @@ import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { suona } from '../audio/ponte.ts';
 import { FLAGS } from '../flags.ts';
 
-export type DiarioTab = 'pesci' | 'perle' | 'animali' | 'medaglie' | 'isole' | 'traguardi';
-export const DIARIO_TABS: readonly DiarioTab[] = FLAGS.traguardi ? ['pesci', 'perle', 'animali', 'medaglie', 'isole', 'traguardi'] : ['pesci', 'perle', 'animali', 'medaglie', 'isole'];
+export type DiarioTab = 'pesci' | 'insetti' | 'perle' | 'animali' | 'medaglie' | 'isole' | 'traguardi';
+export const DIARIO_TABS: readonly DiarioTab[] = FLAGS.traguardi ? ['pesci', 'insetti', 'perle', 'animali', 'medaglie', 'isole', 'traguardi'] : ['pesci', 'insetti', 'perle', 'animali', 'medaglie', 'isole'];
 export type Diario = {
   /** Un animale passato vicino (id di diario.json `animali`). */
   avvista(id: string): void;

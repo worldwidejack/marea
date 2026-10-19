@@ -12,6 +12,8 @@ import { BORGO, MOBILI, MOBILI_VETRINA } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { MAX_LIVELLO_CASA, ampliatoOggi, casaDi, finoAMezzanotte, giornoRoma, livelloCasa, possiedeFinitura, prossimoAmpliamento, vetrinaDelGiorno } from '@marea/sim';
 import { possiedePala } from '@marea/sim/economy/pala.ts';
+import { INSETTI, RETINO } from '@marea/content/insetti.ts';
+import { insettiOf, possiedeRetino } from '@marea/sim/economy/insetti.ts';
 import type { LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
@@ -32,9 +34,11 @@ import { NASCOSTI_DENTRO, costruisciStanza, createInquadratura, texture } from '
 import type { Pianta } from './interno.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { createPalaBorgo } from './pala.ts';
+import { createInsettiBorgo } from './insetti.ts';
+import { insettoCanvas } from '../ui/insetti_sprite.ts';
 
 export type Negozio = { tick(a: boolean): boolean; update(dt: number): void; readonly dentro: boolean };
-type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'banco' | 'pala'; id: string; nome: string; monete: number; x: number; z: number; fx: number; fz: number };
+type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'banco' | 'pala' | 'retino'; id: string; nome: string; monete: number; x: number; z: number; fx: number; fz: number };
 
 const ND = BORGO.negozioDentro, [X0, Z0, X1] = ND.pavimento, [CX, C0, C1] = ND.corridoio;
 const PIANTA: Pianta = { pavimento: ND.pavimento, corridoio: ND.corridoio, altezza: ND.altezza, retro: null };
@@ -115,6 +119,12 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   parti.push(painted(new THREE.BoxGeometry(0.26, 0.05, 0.08), P.legnoScuro, M(bc.x - 0.5, 1.28, bc.z + 2.65, 0, 0, 0.18)), painted(new THREE.BoxGeometry(0.28, 0.34, 0.05), P.pietra, M(bc.x - 0.3, 0.24, bc.z + 2.65, 0, 0, 0.18)));
   pezziFissi.push({ kind: 'banco', id: 'banco', nome: 'Il mobiliere', monete: 0, x: bc.x - 0.4, z: bc.z + 0.6, fx: bc.x - 1.9, fz: bc.z + 0.6 }); // davanti al banco
   pezziFissi.push({ kind: 'pala', id: BORGO.pala.id, nome: BORGO.pala.nome, monete: BORGO.pala.monete, x: bc.x - 0.4, z: bc.z + 2.65, fx: bc.x - 1.9, fz: bc.z + 2.65 });
+  // e dopo la pala l'espositore del retino (#445): asta, cerchio e rete
+  const rz = bc.z + 4.3;
+  parti.push(painted(new THREE.CylinderGeometry(0.45, 0.5, 0.16, 8), P.legnoScuro, M(bc.x - 0.4, 0.08, rz)), painted(new THREE.CylinderGeometry(0.04, 0.04, 1.3, 6), P.legnoChiaro, M(bc.x - 0.4, 0.8, rz, 0, 0, -0.12)));
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; parti.push(painted(new THREE.BoxGeometry(0.16, 0.03, 0.03), P.pietra, M(bc.x - 0.58 + Math.cos(a) * 0.2, 1.62 + Math.sin(a) * 0.2, rz, 0, 0, a + Math.PI / 2))); }
+  parti.push(painted(new THREE.CylinderGeometry(0.17, 0.04, 0.3, 8), P.pietraChiara, M(bc.x - 0.58, 1.62, rz + 0.13, Math.PI / 2)));
+  pezziFissi.push({ kind: 'retino', id: RETINO.id, nome: RETINO.nome, monete: RETINO.monete, x: bc.x - 0.4, z: rz, fx: bc.x - 1.9, fz: rz });
   const fisso = new THREE.Mesh(merged(parti), vc); fisso.castShadow = fisso.receiveShadow = true; dentroG.add(fisso);
 
   // la merce del giorno (#384, #393): sulle pedane i mobili a terra, al muro in cornice le carte da parati e (dopo) i mobili a parete, per terra i
@@ -213,7 +223,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   o.root.append(btn, bar, sheet);
   for (const e of [btn, bar, sheet]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   type Vicino = { kind: 'porta' } | { kind: 'esci' } | { kind: 'pezzo'; p: Pezzo };
-  let near: Vicino | null = null, aperto: Pezzo | null = null, busy = false, aWas = false, nota = '', comprati = 0, ultimo = 0, conferma = false, ampliati = 0, confermaT = 0;
+  let near: Vicino | null = null, aperto: Pezzo | null = null, busy = false, consegnati = 0, aWas = false, nota = '', comprati = 0, ultimo = 0, conferma = false, ampliati = 0, confermaT = 0;
   const libero = () => w.mode === 'walk' && !w.frozen && !w.race.on && !o.velo.attivo;
   const trova = (): Vicino | null => {
     if (!libero()) return null;
@@ -227,7 +237,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     return best ? { kind: 'pezzo', p: best } : null;
   };
   const chiudi = () => { aperto = null; nota = ''; conferma = false; sheet.classList.remove('on'); sheet.replaceChildren(); };
-  const gia = (p: Pezzo): boolean => p.kind === 'pala' ? possiedePala(o.getLot()) : (p.kind === 'pavimento' || p.kind === 'carta') && possiedeFinitura(o.getLot(), p.kind, p.id);
+  const gia = (p: Pezzo): boolean => p.kind === 'pala' ? possiedePala(o.getLot()) : p.kind === 'retino' ? possiedeRetino(o.getLot()) : (p.kind === 'pavimento' || p.kind === 'carta') && possiedeFinitura(o.getLot(), p.kind, p.id);
   /** Le descrizioni dei mobili e delle finiture: si scaricano alla prima scheda, non pesano sull'avvio. */
   let testi: Record<string, string> | null = null;
   const caricaTesti = () => {
@@ -262,6 +272,16 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     bp.disabled = haPala || busy || !o.api;
     bp.addEventListener('click', () => void compra(pPala));
     corpo.push(bp);
+    // il retino e la collezione degli insetti (#445): gli insetti dello zaino si consegnano qui, gratis, e diventano tuoi nel Diario
+    const haRetino = possiedeRetino(l), pRet = pezziFissi.find((x) => x.kind === 'retino')!;
+    corpo.push(el('h3', '', 'STRUMENTI · IL RETINO'));
+    corpo.push(el('div', 'prezzo', `Per catturare gli insetti di Borgo Marea (${RETINO.monete} monete, peso 0 nello zaino). Si cambia attrezzo col bottone accanto o col tasto Q.`));
+    const br = el('button', 'mz-btn', ''); br.type = 'button'; br.dataset['act'] = 'compra-retino';
+    br.append(el('span', '', haRetino ? 'Ce l’hai già nello zaino' : !o.api ? 'Serve il collegamento' : 'COMPRA IL RETINO'), el('b', '', haRetino ? '✓' : `${RETINO.monete}`));
+    br.disabled = haRetino || busy || !o.api;
+    br.addEventListener('click', () => void compra(pRet));
+    corpo.push(br);
+    corpo.push(...collezione(l));
     // gli ampliamenti della casa (#386): uno alla volta, costano tanto; per non sbagliare dal telefono si conferma con un secondo tocco
     const liv = livelloCasa(casaDi(l)), prossimo = prossimoAmpliamento(liv);
     corpo.push(el('h3', '', 'INGRANDISCI LA CASA'));
@@ -283,6 +303,30 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     if (nota) corpo.push(el('div', 'prezzo', nota));
     sheet.replaceChildren(...corpo); sheet.classList.add('on');
   }
+  /** Gli insetti: quanti ne hai dato al mobiliere e quelli nello zaino da consegnare (gratis: spariscono e nel Diario diventano tuoi). */
+  function collezione(l: LotState | null): Node[] {
+    const s = insettiOf(l, adesso()), inv = l?.hero?.inv ?? {}, out: Node[] = [el('h3', '', `LA COLLEZIONE DI INSETTI · ${s.posseduti.length}/${INSETTI.length}`)];
+    const zaino = INSETTI.filter((d) => (inv[d.id] ?? 0) > 0);
+    out.push(el('div', 'prezzo', zaino.length ? 'Me li regali? Li tengo io e nel tuo Diario si sblocca la loro scheda. Se ce l’ho già, vendilo al Contrabbandiere.' : 'Portami gli insetti che prendi col retino: li tengo io e nel tuo Diario si sblocca la loro scheda.'));
+    for (const d of zaino) {
+      const ce = s.posseduti.includes(d.id), b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'consegna'; b.dataset['insetto'] = d.id;
+      const ic = insettoCanvas(d, 2); ic.style.flex = 'none';
+      b.append(ic, el('span', '', `${d.nome} ×${inv[d.id]}`), el('b', '', ce ? 'Ce l’ho già' : 'CONSEGNA'));
+      b.disabled = ce || busy || !o.api;
+      b.addEventListener('click', () => void consegna(d.id));
+      out.push(b);
+    }
+    return out;
+  }
+  async function consegna(id: string): Promise<void> {
+    if (busy || !o.api) return;
+    busy = true; banco();
+    try {
+      const r = await o.api.insetti('consegna', { id }); o.setLot(r.lot); consegnati++; nota = '';
+      const d = INSETTI.find((x) => x.id === id);
+      o.hud.toast(`«Che meraviglia, ${d?.nome ?? id}! Lo tengo io.» La sua scheda è nel tuo Diario`, 3200);
+    } catch (e) { nota = e instanceof ApiError ? e.message : 'Qualcosa non va, riprova'; } finally { busy = false; if (aperto?.kind === 'banco') banco(); }
+  }
   async function amplia(da: number): Promise<void> {
     const l = o.getLot(), prossimo = prossimoAmpliamento(da);
     if (busy || !o.api || !l || !prossimo) return;
@@ -299,7 +343,9 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     aperto = p; caricaTesti();
     if (p.kind === 'banco') { banco(); return; }
     const l = o.getLot(), monete = l?.monete ?? 0, m = p.kind === 'mobile' ? MOBILI.find((x) => x.id === p.id) ?? null : null;
-    const tipo = p.kind === 'pala'
+    const tipo = p.kind === 'retino'
+      ? 'Strumento (peso 0 nello zaino): cattura gli insetti di Borgo Marea, in giro, sotto i sassi e sugli alberi scossi'
+      : p.kind === 'pala'
       ? 'Strumento (peso 0 nello zaino): scava buche a Borgo Marea per seppellire oggetti, mobili e monete o cercare il bottino del giorno'
       : p.kind === 'mobile' ? 'Mobile: va nel magazzino di casa, lo posi con ARREDA' : p.kind === 'pavimento' ? 'Pavimento: si mette subito in casa tua' : 'Carta da parati: si mette subito in casa tua';
     const prezzo = el('div', 'prezzo'); prezzo.append(el('span', '', `${tipo}. Prezzo `), el('b', '', `${p.monete} monete`), el('span', '', ` · ne hai ${monete}`));
@@ -324,10 +370,11 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     if (l.monete < p.monete) { nota = `Ti mancano ${p.monete - l.monete} monete: le vinci ai minigiochi, ai Templari, nell'Arena e nei dungeon.`; ridisegna(); return; }
     busy = true; ridisegna();
     try {
-      const next = await (p.kind === 'pala' ? o.api.casa('pala', {}) : p.kind === 'mobile' ? o.api.casa('compra', { id: p.id }) : o.api.casa('finitura', { tipo: p.kind, id: p.id }));
+      const next = await (p.kind === 'retino' ? o.api.casa('retino', {}) : p.kind === 'pala' ? o.api.casa('pala', {}) : p.kind === 'mobile' ? o.api.casa('compra', { id: p.id }) : o.api.casa('finitura', { tipo: p.kind, id: p.id }));
       o.setLot(next); comprati++;
       chiudi();
-      o.hud.toast(p.kind === 'pala' ? 'Pala comprata! La trovi nello zaino (Strumenti) e puoi usarla a Borgo Marea' : p.kind === 'mobile' ? `${p.nome}: è nel magazzino, arreda da casa tua` : `${p.nome}: messo in casa tua`, 2800);
+      if (p.kind === 'retino') insetti.prendi('retino');
+      o.hud.toast(p.kind === 'retino' ? 'Retino comprato! Ce l’hai in mano: cambi attrezzo col bottone accanto o col tasto Q' : p.kind === 'pala' ? 'Pala comprata! La trovi nello zaino (Strumenti) e puoi usarla a Borgo Marea' : p.kind === 'mobile' ? `${p.nome}: è nel magazzino, arreda da casa tua` : `${p.nome}: messo in casa tua`, 2800);
     } catch (e) { nota = e instanceof ApiError ? e.message : 'Qualcosa non va, riprova'; ridisegna(); } finally { busy = false; }
   }
   const vai = (v: Vicino) => {
@@ -341,11 +388,12 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     dentro, aperto: aperto?.id ?? null, ampliati, conferma, livello: livelloCasa(casaDi(o.getLot())), near: near ? (near.kind === 'pezzo' ? near.p.id : near.kind) : null, comprati, giorno: giornoMostrato,
     vetrina: vetrinaDelGiorno(giornoMostrato),
     pezzi: pezzi.map((p) => ({ kind: p.kind, id: p.id, monete: p.monete, x: ox + p.fx, z: oz + p.fz })), porta: { x: px, z: pz, muro, verso }, uscita: { x: ox + (CX + 0.5) * T, z: oz + (C0 + 0.5) * T },
-    magazzino: casaDi(o.getLot()).magazzino ?? {},
+    magazzino: casaDi(o.getLot()).magazzino ?? {}, consegnati,
   }));
   registerTestHook('negozio', (conVelo) => { if (conVelo) passa(entraDentro); else entraDentro(); return true; });
 
-  const pala = createPalaBorgo({ world: w, root: o.root, hud: o.hud, api: o.api, getLot: o.getLot, setLot: o.setLot, negozioDentro: () => dentro });
+  const insetti = createInsettiBorgo({ world: w, root: o.root, hud: o.hud, api: o.api, getLot: o.getLot, setLot: o.setLot, negozioDentro: () => dentro });
+  const pala = createPalaBorgo({ world: w, root: o.root, hud: o.hud, api: o.api, getLot: o.getLot, setLot: o.setLot, negozioDentro: () => dentro, inMano: insetti.attrezzo, occupato: insetti.occupato });
   let lastK = '';
   return {
     get dentro() { return dentro; },
@@ -361,7 +409,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       if (aperto && (!near || near.kind !== 'pezzo' || near.p !== aperto)) chiudi();
       if (near && pa) { vai(near); return true; }
       if (near) return true;
-      return pala.tick(a);
+      return insetti.tick(a) || pala.tick(a);
     },
     update(dt) {
       // a mezzanotte di Roma la vetrina cambia: si controlla una volta al secondo; chi è dentro se ne accorge (scheda chiusa, toast)
@@ -381,6 +429,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
         if (near?.kind === 'pezzo') bar.replaceChildren(el('div', 't', near.p.kind === 'banco' ? 'Il mobiliere · A per parlargli' : `${near.p.nome} · ${near.p.monete} monete · A per guardarlo`));
       }
       if (ciro && dentro) { ciro.setPose({ x: ciroPos.x, z: ciroPos.z, yaw: -Math.PI / 2, anim: 'idle' }); ciro.update(1, 1 / 60); }
+      insetti.update(dt);
       pala.update(dt);
     },
   };

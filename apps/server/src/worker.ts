@@ -340,8 +340,8 @@ export default {
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, 'decor_' + (dec[1] ?? ''), { id: body['id'], cell: body['cell'] });
       }
-      // la casa arredabile (#265) e la pala (#438): negozio dei mobili e ARREDA (solo la propria casa: il DO è quello della persona)
-      const casa = path.match(/^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|baule|amplia|pala)$/);
+      // la casa arredabile (#265), la pala (#438) e il retino (#445): negozio dei mobili e ARREDA (solo la propria casa: il DO è quello della persona)
+      const casa = path.match(/^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|baule|amplia|pala|retino)$/);
       if (casa && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
@@ -353,6 +353,13 @@ export default {
         const body = await corpo();
         if (body instanceof Response) return body;
         return lotReq(env, p.id, now, 'bottega_migliora', { bottega: body['bottega'], da: body['da'] });
+      }
+      // gli insetti di Borgo Marea (#445): colpisci un sasso, scuoti un albero, prendi col retino, consegna al mobiliere
+      const ins = path.match(/^\/api\/lot\/insetti\/(sasso|albero|cattura|consegna)$/);
+      if (ins && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'insetti_' + (ins[1] ?? ''), { idx: body['idx'], k: body['k'], id: body['id'] });
       }
       // minigiochi da solo (senza posta): il DO del lotto apre la partita e la premia
       if (path === '/api/solo/start' && req.method === 'POST') {

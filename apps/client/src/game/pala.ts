@@ -63,6 +63,10 @@ function croceSeppellitaGeo(x: number, y: number, z: number): THREE.BufferGeomet
 export function createPalaBorgo(o: {
   world: GameWorld; root: HTMLElement; hud: Hud; api: Api | null;
   getLot(): LotState | null; setLot(l: LotState): void; negozioDentro(): boolean;
+  /** Cosa hai in mano (#445): si scava solo con la pala in mano; assente = sempre la pala. */
+  inMano?(): string;
+  /** Vicino a un sasso o a un albero (#445): il bottone SCAVA si fa da parte. */
+  occupato?(): boolean;
 }): PalaBorgo {
   const w = o.world, arch = w.archipelago, T = arch.tile;
   const porto = arch.places.find((p) => p.role === 'porto');
@@ -71,6 +75,7 @@ export function createPalaBorgo(o: {
   const [ox, oz] = porto.origin;
   const cellWorld = (c: readonly [number, number]) => ({ x: (ox + c[0] + 0.5) * T, z: (oz + c[1] + 0.5) * T });
   const adesso = () => o.api?.serverNow() ?? Date.now();
+  const conPala = () => (o.inMano?.() ?? 'pala') === 'pala' && !(o.occupato?.() ?? false);
 
   const group = new THREE.Group(); group.name = 'borgo_buche'; w.scene.add(group);
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
@@ -366,7 +371,7 @@ export function createPalaBorgo(o: {
         if (pa) void apriSheetBuca(near.cell);
         return true;
       }
-      if (possiedePala(o.getLot())) {
+      if (possiedePala(o.getLot()) && conPala()) {
         if (pa) void eseguiScava(near.cell);
         return true;
       }
@@ -380,7 +385,7 @@ export function createPalaBorgo(o: {
       }
       rebuildMesh();
       const dentroBorgo = inBorgo(), haPala = possiedePala(o.getLot()), near = findNearBuca();
-      const showBtn = dentroBorgo && (near?.kind === 'aperta' || (haPala && (near !== null || targetDigCell() !== null)));
+      const showBtn = dentroBorgo && (near?.kind === 'aperta' || (haPala && conPala() && (near !== null || targetDigCell() !== null)));
       const btnKey = !showBtn ? '' : near?.kind === 'aperta' ? 'aperta' : near ? 'dissotterra' : 'scava';
       if (btnKey !== lastBtnKey) {
         lastBtnKey = btnKey;
