@@ -435,7 +435,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   registerTestHook('negozio', (conVelo) => { if (conVelo) passa(entraDentro); else entraDentro(); return true; });
 
   const insetti = createInsettiBorgo({ world: w, root: o.root, hud: o.hud, api: o.api, getLot: o.getLot, setLot: o.setLot, negozioDentro: () => dentro });
-  const pala = createPalaBorgo({ world: w, root: o.root, hud: o.hud, api: o.api, getLot: o.getLot, setLot: o.setLot, negozioDentro: () => dentro, inMano: insetti.attrezzo, occupato: insetti.occupato });
+  const pala = createPalaBorgo({ world: w, root: o.root, hud: o.hud, api: o.api, getLot: o.getLot, setLot: o.setLot, negozioDentro: () => dentro, inMano: insetti.attrezzo, occupato: insetti.occupato, zolle: insetti.zolle });
   const pesca = createPescaBorgo({ world: w, root: o.root, hud: o.hud, api: o.api, camera: o.renderer.camera, canvas: o.renderer.gl.domElement, yaw: () => o.renderer.diorama.yaw,
     getLot: o.getLot, setLot: o.setLot, negozioDentro: () => dentro, inMano: insetti.attrezzo });
   let lastK = '';

@@ -305,7 +305,7 @@ export async function createIsland(o: {
     if (style === 'porto') {
       const corpo: THREE.BufferGeometry[] = [], luci: THREE.BufferGeometry[] = [];
       for (const kind of Object.keys(placed)) {
-        if (!BORGO_PEZZI.has(kind) && kind !== 'albero_tondo') continue;
+        if (!BORGO_PEZZI.has(kind)) continue;
         const gg = TEMA_GLOW.has(kind) ? glowGeo(kind) : null;
         if (MINUTI.has(kind)) fondi(propGeo(kind), propMat, placed[kind]!, false, minuti);
         else for (const m of placed[kind]!) corpo.push(propGeo(kind).clone().applyMatrix4(m));
@@ -320,7 +320,7 @@ export async function createIsland(o: {
       if (!mats.length) continue;
       if (name) unisci(name, mats, cast, () => (MODEL_ONLY.has(kind) ? null : instanced(propGeo(kind), propMat, mats, kind, cast)), dest);
       else if (MINUTI.has(kind)) fondi(propGeo(kind), propMat, mats, cast, dest); // sassi e cespugli a colori: anche loro fusi
-      else add([instanced(propGeo(kind), propMat, mats, kind, cast)], dest);
+      else add([instanced(propGeo(kind), propMat, mats, style === 'porto' && kind === 'albero_tondo' ? 'alberi_borgo' : kind, cast)], dest);
       if (name && MODEL_ONLY.has(kind)) blocchi.push({ name, mats });
       const gg = TEMA_GLOW.has(kind) ? glowGeo(kind) : null;
       if (gg) add([instanced(gg, glowMat, mats, kind + '_luce', false)]);
