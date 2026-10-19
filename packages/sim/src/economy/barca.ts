@@ -4,6 +4,7 @@
 import { AVATAR } from '@marea/content';
 import type { BarcaColore } from '@marea/content';
 import { advance } from './advance.ts';
+import { inVetrinaBottega } from './botteghe.ts';
 import { spendi } from './monete.ts';
 import { EconomyError } from './types.ts';
 import type { LotState } from './types.ts';
@@ -28,7 +29,7 @@ export function nomeBarca(v: unknown): string {
   return v.slice(0, 64).normalize('NFD').replace(/\p{M}/gu, '').replace(/[^A-Za-z0-9 '.!?-]/g, '').replace(/\s+/g, ' ').trim().slice(0, BARCA.nomeMax).trim();
 }
 
-/** Il colore è tuo: gratis per tutti, o comprato dal Mercante. */
+/** Il colore è tuo: gratis per tutti, o comprato (dal Mercante o al Cantiere navale). */
 export function possiedeColore(lot: LotState | null, id: string): boolean {
   const k = coloreBarca(id);
   return !!k && (k.monete <= 0 || (lot?.posseduti ?? []).includes(chiaveColore(id)));
@@ -56,18 +57,23 @@ export function validaBarca(v: unknown, lot: LotState | null): BarcaLook | strin
   if (o['nome'] !== undefined && typeof o['nome'] !== 'string') return 'Nome della barca non valido';
   if (lot) for (const id of [scafo, vela]) {
     const k = coloreBarca(id);
-    if (k && !possiedeColore(lot, id)) return `${k.nome}: non è tuo, compralo dal Mercante del Porto (${k.monete} monete)`;
+    if (k && !possiedeColore(lot, id)) return `${k.nome}: non è tuo, ${dove(k)} (${k.monete} monete)`;
   }
   return { scafo, vela, nome: nomeBarca(o['nome']) };
 }
 
-/** Compra un colore esclusivo della barca, una volta sola (come i cappelli): monete spese, «barca:<id>» in `posseduti`. */
+/** Dove si compra un colore a pagamento: le esclusive dal Mercante, le vernici del Cantiere solo il giorno che sono in vetrina (#414). */
+export const dove = (k: BarcaColore): string => (k.cantiere ? 'si compra al Cantiere navale del Borgo, il giorno che è in vetrina' : 'compralo dal Mercante del Porto');
+
+/** Compra un colore esclusivo della barca, una volta sola (come i cappelli): monete spese, «barca:<id>» in `posseduti`. Le vernici del
+ *  Cantiere solo se sono nella sua vetrina di oggi. */
 export function compraColoreBarca(lot0: LotState, id: string, nowMs: number): LotState {
   let lot = advance(lot0, nowMs);
   const k = coloreBarca(id);
   if (!k) throw new EconomyError('sconosciuto', 'Colore sconosciuto');
   if (k.monete <= 0) throw new EconomyError('unico', `${k.nome}: è gratis, non serve comprarlo`);
   if (possiedeColore(lot, id)) throw new EconomyError('unico', `Hai già: ${k.nome}`);
+  if (k.cantiere && !inVetrinaBottega('cantiere', nowMs, id)) throw new EconomyError('requisito', 'Oggi il Cantiere non ce l’ha: la vetrina cambia a mezzanotte');
   lot = spendi(lot, k.monete);
   return { ...lot, version: lot.version + 1, posseduti: [...(lot.posseduti ?? []), chiaveColore(id)] };
 }

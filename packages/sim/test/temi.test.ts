@@ -53,7 +53,7 @@ test('di serie tutte chiuse (tranne Corse, Templari, Arena e Difesa, aperte a tu
   const s = sblocchi(arch.places, NESSUNO);
   assert.equal(Object.keys(s).length, 9);
   for (const [id, v] of Object.entries(s)) assert.equal(v.aperta, LIBERE.has(id), id);
-  assert.match(s['tempesta']!.motivo, /tempesta ti respinge.*Molo al livello 2/);
+  assert.match(s['tempesta']!.motivo, /tempesta ti respinge.*barca al livello 2.*Cantiere navale/);
   assert.match(s['ghiacci']!.motivo, /mare gela.*livello 3/);
   assert.match(s['vulcano']!.motivo, /abitanti ti cacciano.*Lanterna in testa/);
   assert.match(s['giardino']!.motivo, /nebbia.*mappa del Giardino/);
@@ -61,7 +61,7 @@ test('di serie tutte chiuse (tranne Corse, Templari, Arena e Difesa, aperte a tu
   // con lotto nuovo (Molo L1) e cappello di paglia: tutto chiuso tranne Corse e Templari
   const v = viaggiatore(newLot('bruno', T0), 1);
   assert.ok(Object.entries(sblocchi(arch.places, v)).every(([id, x]) => x.aperta === LIBERE.has(id)));
-  assert.match(sblocchi(arch.places, v)['tempesta']!.motivo, /il tuo è al 1/);
+  assert.match(sblocchi(arch.places, v)['tempesta']!.motivo, /la tua è al 1/);
 });
 
 test('ognuna si apre col suo requisito, e solo con quello', () => {

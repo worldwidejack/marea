@@ -12,14 +12,15 @@ import { barcheSovrapposte, landingSpot, newBoat, ormeggioLibero, scafoInAcqua, 
 
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code;
 const B = AVATAR.barca;
-const gratis = B.colori.filter((k) => k.monete === 0), esclusivi = B.colori.filter((k) => k.monete > 0);
+const gratis = B.colori.filter((k) => k.monete === 0), esclusivi = B.colori.filter((k) => k.mercante), vernici = B.colori.filter((k) => k.cantiere);
 import { conMonete, senzaMonete } from './monete_util.ts';
 
-test('barca: contenuti validi, 4-6 colori gratis e 4-6 esclusivi del Mercante, di serie = la barca a remi di prima', () => {
+test('barca: contenuti validi, 4-6 colori gratis, 4-6 esclusivi del Mercante e le vernici del Cantiere, di serie = la barca a remi di prima', () => {
   assert.deepEqual(validateContent(), []);
   assert.ok(gratis.length >= 4 && gratis.length <= 6, `gratis ${gratis.length}`);
   assert.ok(esclusivi.length >= 4 && esclusivi.length <= 6, `esclusivi ${esclusivi.length}`);
-  assert.ok(esclusivi.every((k) => k.mercante));
+  assert.ok(B.colori.every((k) => (k.monete > 0) === (!!k.mercante || !!k.cantiere)), 'a pagamento = del Mercante o del Cantiere (#414)');
+  assert.ok(vernici.length >= 3, `vernici del Cantiere ${vernici.length}`);
   assert.equal(BARCA_DI_SERIE.vela, 'nessuna');
   assert.equal(B.colori.find((k) => k.id === BARCA_DI_SERIE.scafo)?.hex, '#8E5A2B', 'lo scafo di serie è il legno di sempre');
   assert.ok(diSerie(BARCA_DI_SERIE));

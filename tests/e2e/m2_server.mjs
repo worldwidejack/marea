@@ -89,11 +89,10 @@ export default async function (ctx) {
       assert(ign.status === 404 && ign.body.code === 'sconosciuto', 'perk sconosciuto: ' + JSON.stringify(ign));
     });
 
-    await ctx.test('Banco: si costruisce col lotto; in cantiere compra 409; finito (orologio di test) compra e forgia; monete finite 409', async () => {
+    await ctx.test('Banco: si costruisce col lotto (codice spento); il Fabbro del Borgo vende e forgia anche senza; monete finite 409', async () => {
       const b = await post('/api/lot/build', 'tokA', { building: 'banco', cell: bancoCell });
       assert(b.status === 200 && b.body.construction?.building === 'banco', 'build banco: ' + b.status + ' ' + JSON.stringify(b.body).slice(0, 200));
-      const early = await rpg('tokA', { t: 'compra', item: 'lingotto_bronzo', n: 1 });
-      assert(early.status === 409 && early.body.code === 'edificio', 'compra in cantiere: ' + JSON.stringify(early));
+      // dal #414 la roba di base la vende il Fabbro del Borgo: il Banco (anche in cantiere) non serve più
       OFF = (banco.levels[0].seconds + 60) * 1000;
       const l0 = await lot('tokA');
       assert(l0.buildings.find((x) => x.building === 'banco')?.level === 1, 'Banco non finito col clock di test');

@@ -218,6 +218,8 @@ export type RpgAction =
   /** Butta via n oggetti dallo zaino: spariscono. */
   | { t: 'butta'; item: string; n: number }
   | { t: 'serra' }
+  /** Botteghe del Borgo (#414): compra n pezzi della vetrina di oggi del Fabbro o dell'Alchimista (monete, nello zaino). */
+  | { t: 'vetrina'; bottega: 'fabbro' | 'alchimista'; item: string; n: number }
   /** Contrabbandiere del Porto: compra la merce di oggi o gli vendi roba dello zaino (monete). */
   | { t: 'contrabbando'; op: 'compra' | 'vendi'; item: string; n: number }
   /** Arena: salva il set del duello (controllato con erroreLoadout di rpg/arena.ts). */

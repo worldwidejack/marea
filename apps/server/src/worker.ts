@@ -348,6 +348,12 @@ export default {
         const { id, tipo, cell, muro, rot, da } = body;
         return lotReq(env, p.id, now, 'casa_' + (casa[1] ?? ''), { id, tipo, cell, muro, rot, da });
       }
+      // botteghe del Borgo (#414): migliora il Fabbro o la barca al Cantiere (la merce passa da /api/rpg e /api/barca/colore)
+      if (path === '/api/lot/bottega/migliora' && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'bottega_migliora', { bottega: body['bottega'], da: body['da'] });
+      }
       // minigiochi da solo (senza posta): il DO del lotto apre la partita e la premia
       if (path === '/api/solo/start' && req.method === 'POST') {
         const body = await corpo();

@@ -72,9 +72,11 @@ test('rpg azioni: equip controlla slot, tipo e zaino; leggere un libro insegna l
   assert.throws(() => act(l, { t: 'leggi', item: 'pozione_vita_minore' }), isErr('oggetto'));
 });
 
-test('rpg azioni: forgia con Banco, livello del Banco, materiali da zaino e Forziere, Legno del Magazzino, perk e xp', () => {
+test('rpg azioni: forgia dal Fabbro (livello del Banco di prima), materiali da zaino e Forziere, Legno in monete, perk e xp', () => {
   const h = withInv({ lingotto_ferro: 3 });
-  assert.throws(() => act(lotWith({}, h), { t: 'forgia', item: 'katana_ferro' }), isErr('edificio'));
+  // al Fabbro del Borgo (#414) il primo livello è di tutti: senza Banco si forgia legno, bronzo e ferro, non l'argento
+  assert.throws(() => act(lotWith({}, h), { t: 'forgia', item: 'katana_ferro' }), isErr('materiale'), 'niente Banco: si arriva ai materiali');
+  assert.throws(() => act(lotWith({}, h), { t: 'forgia', item: 'katana_argento' }), isErr('livello'));
   assert.throws(() => act(lotWith({ banco: 1 }, h), { t: 'forgia', item: 'katana_argento' }), isErr('livello'));
   assert.throws(() => act(lotWith({ banco: 1 }, h), { t: 'forgia', item: 'katana_ferro' }), isErr('materiale'), '3 lingotti su 4');
   assert.throws(() => act(lotWith({ banco: 3 }, h), { t: 'forgia', item: 'unico_martello_re' }), isErr('oggetto'));
@@ -99,9 +101,9 @@ test('rpg azioni: forgia con Banco, livello del Banco, materiali da zaino e Forz
   assert.equal(heroOf(l).inv.lingotto_ferro, undefined, 'martello: 6 lingotti × 0,8 = 5');
 });
 
-test('rpg azioni: alchimia con Tavolo, livello di Alchimia, ingredienti da zaino e Forziere', () => {
+test('rpg azioni: alchimia dall\'Alchimista (senza Tavolo), livello di Alchimia, ingredienti da zaino e Forziere', () => {
   const h = withInv({ erba_curativa: 3 });
-  assert.throws(() => act(lotWith({}, h), { t: 'alchimia', ricetta: 'r_vita_minore' }), isErr('edificio'));
+  assert.equal(heroOf(act(lotWith({}, h), { t: 'alchimia', ricetta: 'r_vita_minore' })).inv.pozione_vita_minore, 2 + 1, 'all\'Alchimista del Borgo (#414) non serve il Tavolo');
   assert.throws(() => act(lotWith({ alchimia: 1 }, h), { t: 'alchimia', ricetta: 'r_vita' }), isErr('livello_skill'));
   assert.throws(() => act(lotWith({ alchimia: 1 }, h), { t: 'alchimia', ricetta: 'r_vita_minore', n: 2 }), isErr('materiale'));
   assert.throws(() => act(lotWith({ alchimia: 1 }, h), { t: 'alchimia', ricetta: 'r_niente' }), isErr('sconosciuto'));
@@ -112,9 +114,9 @@ test('rpg azioni: alchimia con Tavolo, livello di Alchimia, ingredienti da zaino
   assert.ok(heroOf(l).skill.alchimia.xp > 0);
 });
 
-test('rpg azioni: bottega al Banco con le monete', () => {
+test('rpg azioni: roba di base dalle botteghe con le monete', () => {
   const h = newHero(), con30 = (l: LotState) => conMonete(senzaMonete(l), 30);
-  assert.throws(() => act(con30(lotWith({}, h)), { t: 'compra', item: 'lingotto_ferro', n: 1 }), isErr('edificio'));
+  assert.equal(heroOf(act(con30(lotWith({}, h)), { t: 'compra', item: 'lingotto_ferro', n: 1 })).inv.lingotto_ferro, 1, 'dal Fabbro del Borgo (#414) senza Banco');
   assert.throws(() => act(con30(lotWith({ banco: 1 }, h)), { t: 'compra', item: 'lingotto_argento', n: 1 }), isErr('oggetto'));
   assert.throws(() => act(con30(lotWith({ banco: 1 }, h)), { t: 'compra', item: 'lingotto_ferro', n: 2 }), isErr('risorse'));
   const l = act(con30(lotWith({ banco: 1 }, h)), { t: 'compra', item: 'lingotto_bronzo', n: 2 });
