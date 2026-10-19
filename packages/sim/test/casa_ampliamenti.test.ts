@@ -1,37 +1,42 @@
-// Gli ampliamenti della casa (#386): il mobiliere ingrandisce la stanza un livello alla volta (Legno, Pietra, Perle); le stanze crescono senza
+// Gli ampliamenti della casa (#386): il mobiliere ingrandisce la stanza un livello alla volta (monete, #414); le stanze crescono senza
 // perdere celle, i mobili a muro vanno col muro, il server non paga due volte, la collisione chiude le celle non ancora sbloccate.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BORGO, MOBILI } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
-import { ampliaCasa, compraMobile, livelloLotto, posaMobile, postoMobileError } from '../src/economy/casa.ts';
+import { ampliaCasa, ampliatoOggi, compraMobile, livelloLotto, posaMobile, postoMobileError } from '../src/economy/casa.ts';
 import { decorCellError, fitToTemplate, inStanza, lotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
 import { LIVELLI_CASA, MAX_LIVELLO_CASA, PIANTE_MAX, livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzaTerra, stanzeDi } from '../src/economy/stanze.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
+import { checkMonete } from '../src/economy/monete.ts';
+import { conMonete } from './monete_util.ts';
 import { composeArchipelago } from '../src/world/archipelago.ts';
 import { mascheraCase } from '../src/world/casa_mappa.ts';
 import { stepAvatar, newAvatar } from '../src/world/avatar.ts';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import { NO_INPUT } from '../src/types.ts';
 
+const DAY = 24 * 3600_000;
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const T = lotTemplate()!, ST = BORGO.stanza;
 const terra = MOBILI.find((m) => m.posto === 'terra' && !m.celle)!, parete = MOBILI.find((m) => m.posto === 'parete')!;
-/** Un lotto con tutto il necessario in tasca (le risorse entrano nel libro mastro come «generate», così l'invariante regge). */
+/** Un lotto con tutte le monete che servono (entrano nel libro mastro come premio, così l'invariante regge). */
 function ricco(): LotState {
-  const l = newLot('a', 0, T), r = { legno: 9000, pietra: 9000, perle: 9000 };
-  return { ...l, resources: r, ledger: { ...l.ledger, generated: { legno: l.ledger.generated.legno + r.legno - l.resources.legno, pietra: l.ledger.generated.pietra + r.pietra - l.resources.pietra, perle: l.ledger.generated.perle + r.perle - l.resources.perle } } };
+  return conMonete(newLot('a', 0, T), 30_000);
 }
-const su = (lot: LotState, n: number): LotState => { for (let i = 0; i < n; i++) lot = ampliaCasa(lot, livelloLotto(lot), 1000 + i); return lot; };
+const su = (lot: LotState, n: number, t0 = lot.nowMs || 1000): LotState => {
+  for (let i = 0; i < n; i++) lot = ampliaCasa(lot, livelloLotto(lot), t0 + (i + 1) * DAY);
+  return lot;
+};
 
 test('la tabella: ordine, costi che si pagano davvero, rettangoli annidati e dentro la pianta del template', () => {
   assert.ok(MAX_LIVELLO_CASA >= 3);
   let prima = ST.pavimento as readonly number[];
   for (const [i, l] of LIVELLI_CASA.entries()) {
     assert.equal(prossimoAmpliamento(i), l);
-    assert.ok(l.costo.legno <= 1500 && l.costo.pietra <= 1500 && l.costo.perle > 0, l.id);
+    assert.ok(Number.isInteger(l.monete) && l.monete > 0, l.id);
     if (l.stanza === 'terra') {
       assert.ok(l.pavimento[0] <= prima[0]! && l.pavimento[1] <= prima[1]! && l.pavimento[2] >= prima[2]! && l.pavimento[3] === prima[3]!, `${l.id} non contiene la stanza di prima`);
       prima = l.pavimento;
@@ -39,32 +44,48 @@ test('la tabella: ordine, costi che si pagano davvero, rettangoli annidati e den
     for (let z = l.pavimento[1]; z < l.pavimento[3]; z++) for (let x = l.pavimento[0]; x < l.pavimento[2]; x++) assert.ok('.LP'.includes(T.rows[z]![x]!), `${l.id}: ${x},${z} non è pavimento`);
   }
   assert.equal(prossimoAmpliamento(MAX_LIVELLO_CASA), null);
-  // costano sempre di più (si suda): le Perle salgono a ogni livello
-  for (let i = 1; i < LIVELLI_CASA.length; i++) assert.ok(LIVELLI_CASA[i]!.costo.perle > LIVELLI_CASA[i - 1]!.costo.perle, 'le Perle non salgono');
+  // costano sempre di più (si suda): il prezzo sale a ogni livello
+  for (let i = 1; i < LIVELLI_CASA.length; i++) assert.ok(LIVELLI_CASA[i]!.monete > LIVELLI_CASA[i - 1]!.monete, 'il prezzo non sale');
 });
 
-test('ampliaCasa: un livello alla volta, paga Legno, Pietra e Perle, libro mastro in pari; il massimo si ferma', () => {
+test('ampliaCasa: un livello alla volta, paga in monete, libro mastro in pari; il massimo si ferma', () => {
   let lot = ricco();
-  const prima = lot.resources;
+  const prima = lot.monete;
   lot = ampliaCasa(lot, 0, 1000);
-  const k = LIVELLI_CASA[0]!.costo;
   assert.equal(livelloLotto(lot), 1);
-  assert.deepEqual(lot.resources, { legno: prima.legno - k.legno, pietra: prima.pietra - k.pietra, perle: prima.perle - k.perle });
+  assert.equal(lot.monete, prima - LIVELLI_CASA[0]!.monete);
   assert.equal(checkInvariant([lot]), null);
+  assert.equal(checkMonete([lot]), null);
   lot = su(lot, MAX_LIVELLO_CASA - 1);
   assert.equal(livelloLotto(lot), MAX_LIVELLO_CASA);
   assert.throws(() => ampliaCasa(lot, MAX_LIVELLO_CASA, 2000), isErr('livello'));
   assert.equal(checkInvariant([lot]), null);
+  assert.equal(checkMonete([lot]), null);
 });
 
 test('ampliaCasa: senza abbastanza non cambia niente («risorse», con quanto manca); un livello vecchio (doppio tocco) non paga due volte', () => {
-  const lot = ricco(), povero = { ...lot, resources: { ...lot.resources, perle: 5 } };
-  assert.throws(() => ampliaCasa(povero, 0, 1000), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.perle === LIVELLI_CASA[0]!.costo.perle - 5);
+  const lot = ricco(), povero = { ...lot, monete: 5 };
+  assert.throws(() => ampliaCasa(povero, 0, 1000), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.monete === LIVELLI_CASA[0]!.monete - 5);
   const uno = ampliaCasa(lot, 0, 1000);
   assert.throws(() => ampliaCasa(uno, 0, 1001), isErr('livello'));
-  assert.equal(uno.resources.perle, lot.resources.perle - LIVELLI_CASA[0]!.costo.perle, 'pagato una volta sola');
+  assert.equal(uno.monete, lot.monete - LIVELLI_CASA[0]!.monete, 'pagato una volta sola');
   assert.throws(() => ampliaCasa(lot, 1.5, 1000), isErr('livello'));
   assert.throws(() => ampliaCasa(lot, -1, 1000), isErr('livello'));
+});
+
+test('ampliaCasa: al massimo un ampliamento al giorno (giornoRoma); il giorno dopo si può ancora', () => {
+  let lot = ricco();
+  assert.equal(ampliatoOggi(lot, 1000), false);
+  lot = ampliaCasa(lot, 0, 1000);
+  assert.equal(livelloLotto(lot), 1);
+  assert.equal(ampliatoOggi(lot, 1000), true);
+  // stesso giorno: rifiutato («tetto»)
+  assert.throws(() => ampliaCasa(lot, 1, 1000 + 3600_000), isErr('tetto'));
+  // giorno dopo: non è più ampliato oggi e si può fare il secondo livello
+  assert.equal(ampliatoOggi(lot, 1000 + DAY), false);
+  lot = ampliaCasa(lot, 1, 1000 + DAY);
+  assert.equal(livelloLotto(lot), 2);
+  assert.equal(ampliatoOggi(lot, 1000 + DAY), true);
 });
 
 test('le stanze crescono: a ogni livello la nuova contiene la vecchia; fuori dalla stanza attuale non si posa, dentro quella nuova sì', () => {

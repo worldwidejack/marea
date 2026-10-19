@@ -6,11 +6,12 @@
 import { BORGO, MOBILI } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { advance } from './advance.ts';
-import { pay } from './actions.ts';
+import { spendi } from './monete.ts';
 import { livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzeDi } from './stanze.ts';
 import type { Stanza } from './stanze.ts';
 import { inVetrina, inVetrinaFinitura } from './vetrina.ts';
-import { EconomyError, ZERO } from './types.ts';
+import { giornoRoma } from './giorno.ts';
+import { EconomyError } from './types.ts';
 import type { LotState, PlacedBuilding } from './types.ts';
 
 export type Muro = 'n' | 'o' | 'e';
@@ -28,6 +29,8 @@ export type CasaState = {
   bauleRot?: number;
   /** Gli ampliamenti fatti dal mobiliere (#386, economy/stanze.ts): 0..max. Assente = 0, la stanza di sempre. */
   livello?: number;
+  /** Giorno di Roma (giornoRoma) dell'ultimo ampliamento fatto: massimo uno al giorno (#436). */
+  ampliatoGiorno?: number;
 };
 export type Finitura = 'pavimento' | 'carta';
 /** Dove va un mobile: cella del pavimento, più il muro se è da parete. */
@@ -52,10 +55,12 @@ export const livelloLotto = (lot: LotState | null | undefined): number => livell
 export const mobile = (id: string): MobileDef | null => MOBILI.find((m) => m.id === id) ?? null;
 export const finitura = (tipo: Finitura, id: string): StanzaFinitura | null => (tipo === 'pavimento' ? BORGO.pavimenti : BORGO.carte).find((f) => f.id === id) ?? null;
 export const casaDi = (lot: LotState | null | undefined): CasaState => lot?.casa ?? {};
-/** Una finitura è tua: quella di serie (perle 0) o comprata. */
+/** Ha già fatto un ampliamento della casa oggi (giorno di Roma, #436)? */
+export const ampliatoOggi = (lot: LotState | null | undefined, nowMs: number): boolean => casaDi(lot).ampliatoGiorno === giornoRoma(nowMs);
+/** Una finitura è tua: quella di serie (monete 0) o comprata. */
 export function possiedeFinitura(lot: LotState | null, tipo: Finitura, id: string): boolean {
   const f = finitura(tipo, id);
-  return !!f && (!(f.perle ?? 0) || (casaDi(lot).finiture ?? []).includes(id));
+  return !!f && (!(f.monete ?? 0) || (casaDi(lot).finiture ?? []).includes(id));
 }
 /** Pavimento e carta scelti (id), quelli di serie se non hai scelto o non esistono più. */
 export function finitureScelte(lot: LotState | null): { pavimento: string; carta: string } {
@@ -107,11 +112,11 @@ const controlla = (lot: LotState, m: MobileDef, p: PostoMobile, senza: string | 
   if (bad) throw new EconomyError(bad.code, bad.msg);
 };
 
-/** Compra un mobile al negozio: Perle spese, uno in più nel magazzino. */
+/** Compra un mobile al negozio: monete spese, uno in più nel magazzino. */
 export function compraMobile(lot0: LotState, id: string, nowMs: number): LotState {
   const m = mobile(id);
   if (!m) throw new EconomyError('sconosciuto', 'Mobile sconosciuto');
-  const lot = pay(advance(lot0, nowMs), { ...ZERO, perle: m.perle }), c = casaDi(lot), mag = { ...(c.magazzino ?? {}) };
+  const lot = spendi(advance(lot0, nowMs), m.monete), c = casaDi(lot), mag = { ...(c.magazzino ?? {}) };
   mag[id] = (mag[id] ?? 0) + 1;
   return conCasa(lot, { ...c, magazzino: mag });
 }
@@ -130,16 +135,18 @@ function riancora(a: PlacedMobile, vecchie: readonly Stanza[], nuove: readonly S
   const [x0, z0, x1] = n.pavimento;
   return { ...a, cell: a.muro === 'n' ? [a.cell[0], z0] : a.muro === 'o' ? [x0, a.cell[1]] : [x1 - 1, a.cell[1]] };
 }
-/** Il mobiliere ingrandisce la casa di un livello (#386): costa Legno, Pietra e Perle (borgo.json `casa.livelli`). `da` = il livello che il giocatore
- *  vede adesso: se nel frattempo è cambiato (doppio tocco, altro dispositivo) niente si paga due volte. */
+/** Il mobiliere ingrandisce la casa di un livello (#386): costa monete (borgo.json `casa.livelli`, #414). `da` = il livello che il giocatore
+ *  vede adesso: se nel frattempo è cambiato (doppio tocco, altro dispositivo) niente si paga due volte. Al massimo un ampliamento al giorno (#436). */
 export function ampliaCasa(lot0: LotState, da: number, nowMs: number): LotState {
   const lot = advance(lot0, nowMs), liv = livelloLotto(lot);
   if (da !== liv) throw new EconomyError('livello', 'La casa è già cambiata: guarda com’è adesso');
   const next = prossimoAmpliamento(liv);
   if (!next) throw new EconomyError('livello', 'La casa è già grande al massimo');
-  const pagato = pay(lot, { legno: next.costo.legno, pietra: next.costo.pietra, perle: next.costo.perle }), c = casaDi(pagato);
+  const g = giornoRoma(nowMs);
+  if (casaDi(lot).ampliatoGiorno === g) throw new EconomyError('tetto', 'Puoi fare al massimo un ampliamento al giorno: torna domani');
+  const pagato = spendi(lot, next.monete), c = casaDi(pagato);
   const vecchie = stanzeDi(liv), nuove = stanzeDi(liv + 1);
-  return conCasa(pagato, { ...c, livello: liv + 1, arredi: (c.arredi ?? []).map((a) => riancora(a, vecchie, nuove)) });
+  return conCasa(pagato, { ...c, livello: liv + 1, ampliatoGiorno: g, arredi: (c.arredi ?? []).map((a) => riancora(a, vecchie, nuove)) });
 }
 /** Compra la carta o il pavimento della vetrina di oggi (#393): come i mobili, il negozio vende solo quello che espone. Quello che hai già resta «unico». */
 export function compraFinituraDelGiorno(lot0: LotState, tipo: Finitura, id: string, nowMs: number): LotState {
@@ -153,7 +160,7 @@ export function compraFinitura(lot0: LotState, tipo: Finitura, id: string, nowMs
   const f = finitura(tipo, id);
   if (!f) throw new EconomyError('sconosciuto', tipo === 'pavimento' ? 'Pavimento sconosciuto' : 'Carta da parati sconosciuta');
   if (possiedeFinitura(lot0, tipo, id)) throw new EconomyError('unico', 'Ce l’hai già');
-  const lot = pay(advance(lot0, nowMs), { ...ZERO, perle: f.perle ?? 0 }), c = casaDi(lot);
+  const lot = spendi(advance(lot0, nowMs), f.monete ?? 0), c = casaDi(lot);
   return conCasa(lot, { ...c, finiture: [...(c.finiture ?? []), id], [tipo]: id });
 }
 /** Mette un pavimento o una carta che hai già. */
@@ -211,7 +218,7 @@ export function spostaBaule(lot0: LotState, cell: [number, number], nowMs: numbe
   const lot = advance(lot0, nowMs), b = baule(lot);
   if (!b) throw new EconomyError('sconosciuto', 'Il baule non c’è ancora: costruisci il Forziere');
   if (same(b.cell, cell)) return lot;
-  controlla({ ...lot, buildings: lot.buildings.filter((x) => x.id !== b.id) }, { id: 'baule', nome: 'Baule', categoria: 'contenitori', perle: 1, posto: 'terra', forma: 'baule', colori: ['#8E5A2B'] }, { cell });
+  controlla({ ...lot, buildings: lot.buildings.filter((x) => x.id !== b.id) }, { id: 'baule', nome: 'Baule', categoria: 'contenitori', monete: 1, posto: 'terra', forma: 'baule', colori: ['#8E5A2B'] }, { cell });
   return { ...lot, version: lot.version + 1, buildings: lot.buildings.map((x) => (x.id === b.id ? { ...x, cell: [cell[0], cell[1]] } : x)) };
 }
 /** Gira il baule di 90°. */

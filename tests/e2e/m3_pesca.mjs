@@ -115,13 +115,13 @@ export default async function (ctx) {
     });
 
     await ctx.test('l\'autopilota finisce la partita, il server rigioca e paga l\'oro; la scheda mostra pesci, punti e mare', async () => {
-      const before = (await st()).lot.resources;
+      const before = (await st()).lot.monete;
       await hook('pescaAuto', true);
       await ctx.waitState(page, (s) => s.minigiochi.open === true, 60000);
       const s = await st(), r = s.minigiochi.last;
       ctx.log(`esito ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
       assert(r.medal === 'oro' && r.premiata && JSON.stringify(r.premio) === JSON.stringify(balance.solo.premi.oro), 'esito: ' + JSON.stringify(r));
-      for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] >= before[k] + r.premio[k], `${k} non pagato`);
+      assert(r.lot.monete >= before + r.premio, 'monete non pagate');
       const txt = await page.locator('#mzEsito').innerText();
       assert(/ORO/.test(txt) && /pesci/.test(txt) && /Mare aperto/.test(txt), 'scheda: ' + txt);
       await sleep(300);

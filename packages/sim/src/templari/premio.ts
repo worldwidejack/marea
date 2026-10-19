@@ -1,21 +1,23 @@
 // La partita a ondate nel lotto (docs/TEMPLARI.md §10): il server apre la partita col seed, a fine partita rigioca gli input e paga le ondate
-// superate (Legno, Pietra, Perle a ondata, fino a maxOndate) entro il tetto del giorno UTC. Il record resta nel lotto. Pura.
+// superate (monete a ondata, fino a maxOndate, #414) entro il tetto del giorno UTC. Il record resta nel lotto. Pura.
 // In più lo sblocco dell'isola (§2): il calice preso accanto allo scheletro sotto il faro della Tempesta resta nel lotto (`reliquie`).
 import { ARCHIPELAGO } from '@marea/content';
 import { TEMPLARI, eroeDef } from '@marea/content/templari.ts';
 import { sbloccoTema, viaggiatore } from '../world/temi.ts';
 import { advance } from '../economy/advance.ts';
-import { EconomyError, ZERO, add } from '../economy/types.ts';
-import type { LotState, Resources, TemplariLotto } from '../economy/types.ts';
+import { guadagna } from '../economy/monete.ts';
+import { EconomyError } from '../economy/types.ts';
+import type { LotState, TemplariLotto } from '../economy/types.ts';
 import type { TRisultato } from './types.ts';
 
 const DAY = 86_400_000;
-const NESSUNO: TemplariLotto = { pending: null, giorno: 0, preso: { ...ZERO }, record: 0, partite: 0 };
+const NESSUNO: TemplariLotto = { pending: null, giorno: 0, preso: 0, record: 0, partite: 0 };
 
-/** Stato dei Templari del lotto, col premio del giorno azzerato se è cambiato il giorno UTC. */
+/** Stato dei Templari del lotto, col premio del giorno azzerato se è cambiato il giorno UTC (nei salvataggi di prima `preso` era in risorse: vale 0). */
 export function templariOf(lot: LotState, nowMs: number): TemplariLotto {
-  const t = lot.templari ?? NESSUNO, g = Math.floor(nowMs / DAY);
-  return t.giorno === g ? t : { ...t, giorno: g, preso: { ...ZERO } };
+  const t0 = lot.templari ?? NESSUNO, g = Math.floor(nowMs / DAY);
+  const t = typeof t0.preso === 'number' ? t0 : { ...t0, preso: 0 };
+  return t.giorno === g ? t : { ...t, giorno: g, preso: 0 };
 }
 
 /** Il calice dei Templari (la reliquia `id`) preso accanto allo scheletro sotto il faro della Tempesta: serve aver aperto la Tempesta (lo
@@ -27,10 +29,10 @@ export function prendiReliquia(lot: LotState, id = 'templari'): { lot: LotState;
   return { lot: { ...lot, version: lot.version + 1, reliquie: [...(lot.reliquie ?? []), id] }, nuova: true };
 }
 
-/** Premio pieno per `superate` ondate (prima del tetto). */
-export function premioOndate(superate: number): Resources {
+/** Monete piene per `superate` ondate (prima del tetto). */
+export function premioOndate(superate: number): number {
   const p = TEMPLARI.premio, n = Math.max(0, Math.min(p.maxOndate, Math.floor(superate)));
-  return { legno: p.perOndata.legno * n, pietra: p.perOndata.pietra * n, perle: p.perOndata.perle * n };
+  return p.perOndata * n;
 }
 
 /** Insieme: il DO TemplariInsieme apre la partita della squadra nel lotto di ciascuno (seed comune, io = idx). */
@@ -46,29 +48,23 @@ export function startTemplari(lot: LotState, seed: number, nowMs: number, subito
   return { ...lot, version: lot.version + 1, templari: { ...t, pending: { seed: seed >>> 0, subito: !!subito, startMs: nowMs, ...(cl ? { classe: cl } : {}) } } };
 }
 
-export type TemplariEsito = { lot: LotState; premio: Resources; pieno: Resources; tetto: boolean; record: boolean; superate: number };
+export type TemplariEsito = { lot: LotState; premio: number; pieno: number; tetto: boolean; record: boolean; superate: number };
 
 /** Chiude la partita aperta col risultato che il server ha ricalcolato: premio entro il tetto di oggi, record, partite. */
 export function finishTemplari(lot0: LotState, r: TRisultato, nowMs: number): TemplariEsito {
   const t = templariOf(lot0, nowMs);
   if (!t.pending) throw new EconomyError('partita', 'Nessuna partita aperta: rientra dalla chiesa');
   const pieno = premioOndate(r.superate), cap = TEMPLARI.premio.tetto;
-  const premio: Resources = {
-    legno: Math.max(0, Math.min(pieno.legno, cap.legno - t.preso.legno)),
-    pietra: Math.max(0, Math.min(pieno.pietra, cap.pietra - t.preso.pietra)),
-    perle: Math.max(0, Math.min(pieno.perle, cap.perle - t.preso.perle)),
-  };
-  const tetto = premio.legno < pieno.legno || premio.pietra < pieno.pietra || premio.perle < pieno.perle;
+  const premio = Math.max(0, Math.min(pieno, cap - t.preso));
+  const tetto = premio < pieno;
   const record = r.ondata > t.record;
   const lot = advance(lot0, nowMs);
   return {
     premio, pieno, tetto, record, superate: r.superate,
-    lot: {
+    lot: guadagna({
       ...lot,
       version: lot.version + 1,
-      resources: add(lot.resources, premio),
-      ledger: { ...lot.ledger, generated: add(lot.ledger.generated, premio) },
-      templari: { pending: null, giorno: t.giorno, preso: add(t.preso, premio), record: Math.max(t.record, r.ondata), partite: t.partite + 1 },
-    },
+      templari: { pending: null, giorno: t.giorno, preso: t.preso + premio, record: Math.max(t.record, r.ondata), partite: t.partite + 1 },
+    }, premio),
   };
 }

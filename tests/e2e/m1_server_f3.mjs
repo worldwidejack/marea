@@ -69,14 +69,14 @@ export default async function (ctx) {
     const waitFor = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = fn(); if (v) return v; await sleep(20); } return fn(); };
 
     const baseLook = { pelle: 1, capelli: 1, coloreCapelli: 1, vestito: 1, cappello: 0 };
-    const paid = avatar.cappelli.findIndex((h) => h.perle > 0);
-    await ctx.test('look: indici validi 200, fuori range 400, cappello a Perle non posseduto 400', async () => {
+    const paid = avatar.cappelli.findIndex((h) => h.monete > 0);
+    await ctx.test('look: indici validi 200, fuori range 400, cappello a pagamento non posseduto 400', async () => {
       assert((await post('/api/look', 'tokA', baseLook)).status === 200, 'look valido rifiutato');
       const bad = await post('/api/look', 'tokA', { ...baseLook, vestito: avatar.vestiti.length });
       assert(bad.status === 400 && typeof bad.body.error === 'string', 'vestito fuori range: ' + bad.status);
       assert((await post('/api/look', 'tokA', { ...baseLook, pelle: -1 })).status === 400, 'pelle negativa accettata');
       const hat = await post('/api/look', 'tokA', { ...baseLook, cappello: paid });
-      assert(hat.status === 400 && /compralo/.test(hat.body.error), 'cappello a Perle non posseduto: ' + JSON.stringify(hat.body));
+      assert(hat.status === 400 && /compralo/.test(hat.body.error), 'cappello a pagamento non posseduto: ' + JSON.stringify(hat.body));
       assert((await get('/api/me', 'tokA')).body.look.vestito === 1, 'look non salvato');
     });
 

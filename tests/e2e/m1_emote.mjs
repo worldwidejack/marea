@@ -1,6 +1,6 @@
 // M1 · Fetta 3, emote (F3-emote-feed): due browser (Anna e Bruno) sul server locale, entrambi al Porto a ~3 m. Tasto 1 da Anna → fumetto
 // proprio subito, fumetto sopra Anna da Bruno entro 1,5 s, via dopo ~2,5 s; 10 pressioni in 1 s → un solo frame `emote`; niente emote col
-// Tavolo aperto; telefono 390×844: #mzEmoteBtn apre la riga di 4. Il feed (non è questo il test) risponde vuoto via page.route.
+// Tavolo aperto; telefono 390×844: la faccina non si vede più (#417), la riga si apre dal bottone nascosto. Il feed (non è questo il test) risponde vuoto via page.route.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -166,7 +166,7 @@ export default async function (ctx) {
     });
 
     // ---- telefono: Anna rientra da un iPhone (la connessione desktop viene sostituita) ----
-    await ctx.test('telefono 390×844: #mzEmoteBtn apre la riga di 4, tocco → fumetto e frame', async () => {
+    await ctx.test('telefono 390×844: niente faccina in vista (#417); la riga dal bottone nascosto → fumetto e frame', async () => {
       await anna.close(); ctx._pages.splice(ctx._pages.indexOf(anna), 1);
       anna = await openPage(ctx, `${base}/?t=tokA&test=1&sfide=1`, ctx.B.IPHONE);
       await ctx.waitReady(anna.page, 30000);
@@ -176,8 +176,8 @@ export default async function (ctx) {
       const s0 = await st(anna);
       assert(s0.emotes.coarse === true, 'iPhone senza pointer: coarse');
       const btn = await anna.page.$('#mzEmoteBtn');
-      assert(btn && (await btn.isVisible()), 'manca #mzEmoteBtn');
-      await btn.tap();
+      assert(btn && !(await btn.isVisible()), 'la faccina è ancora in vista (#417)');
+      await btn.evaluate((b) => b.click()); // la riga c'è ancora nel codice: la si apre dal bottone nascosto
       await anna.page.waitForSelector('#mzEmoteRow.on', { timeout: 2000 });
       const picks = await anna.page.$$eval('#mzEmoteRow.on .mz-emote-pick', (bs) => bs.map((b) => { const r = b.getBoundingClientRect(); return { id: b.dataset.emote, w: r.width, h: r.height, l: r.left, r: r.right, t: r.top }; }));
       ctx.log('riga: ' + JSON.stringify(picks));
@@ -185,7 +185,7 @@ export default async function (ctx) {
       assert(picks.every((p) => p.w >= 44 && p.h >= 44 && p.l >= 0 && p.r <= 390), 'bottoni sotto i 44 px o fuori schermo');
       await ctx.shot(anna.page, 'riga_390');
       anna.sent.length = 0;
-      await anna.page.tap('#mzEmoteRow .mz-emote-pick[data-emote="esulta"]');
+      await anna.page.evaluate(() => document.querySelector('#mzEmoteRow .mz-emote-pick[data-emote="esulta"]')?.click());
       await anna.page.waitForSelector('.mz-emote[data-who="me"][data-emote="esulta"]', { state: 'attached', timeout: 1000 });
       assert(!(await anna.page.$('#mzEmoteRow.on')), 'la riga resta aperta dopo il tocco');
       await sleep(250);

@@ -128,7 +128,8 @@ function detail(v: View, it: ItemDef, eq: SlotOggetto[]): HTMLElement {
     }
   } else if (it.kind === 'materiale') box.appendChild(el('p', 'mz-rp-warn', 'Serve per forgiare al Banco da Lavoro.'));
   else if (it.kind === 'ingrediente') box.appendChild(el('p', 'mz-rp-warn', 'Serve al Tavolo Alchemico.'));
-  box.appendChild(buttaVia(v, it, eq));
+  else if (it.kind === 'strumento') box.appendChild(el('p', 'mz-rp-warn', 'Si usa a Borgo Marea per scavare buche e cercare tesori. Non pesa nello zaino.'));
+  if (it.kind !== 'strumento') box.appendChild(buttaVia(v, it, eq));
   return box;
 }
 

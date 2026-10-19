@@ -172,7 +172,7 @@ export default async function (ctx) {
         assert(has >= had + n - via, `${id}: prima ${had}, tenuto ${n}, usati ${via}, adesso ${has}`);
       }
       assert(Object.keys(r.tenuto).length > 0, 'l\'autopilot nella Grotta dovrebbe portare a casa qualcosa');
-      assert((after.hero?.monete ?? 0) === (before.hero?.monete ?? 0) + r.monete, 'monete non arrivate');
+      assert(after.monete === before.monete + r.monete, 'monete non arrivate nel lotto');
       assert(!after.dungeon?.pending, 'spedizione ancora aperta dopo finish');
       // capo della Grotta ucciso (lo dice il server) = Grotta completata, e la bussola passa alla Cripta
       const fatta = (after.hero?.completati ?? []).includes('grotta');

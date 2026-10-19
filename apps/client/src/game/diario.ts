@@ -75,7 +75,7 @@ export function createDiario(o: { root: HTMLElement; hud: Hud; api: Api | null; 
   let m: Chunk | null = null, ui: Ui | null = null, loading: Promise<Ui> | null = null;
   const ctx: DiarioCtx = { root: o.root, hud: o.hud, api: o.api, me: o.me, world: o.world, owners: o.owners, getLot: o.getLot, setLot: o.setLot, onClose: () => btn.setOn(false) };
   const load = (): Promise<Ui> => (loading ??= import('../ui/diario_ui.ts').then((x) => { m = x; ui = x.createDiarioUi(ctx); return ui; }, (e: unknown) => { loading = null; o.hud.toast('Connessione lenta: riprova', 2500); throw e; }));
-  const btn = topButton({ root: o.root, id: 'mzDiarioBtn', order: 5, label: '', title: 'Diario del capitano (J)', onClick: () => { if (api.isOpen()) api.close(); else api.open(); } });
+  const btn = topButton({ root: o.root, id: 'mzDiarioBtn', order: 5, label: '', title: 'Diario del capitano (J)', nascosto: true, onClick: () => { if (api.isOpen()) api.close(); else api.open(); } });
   btn.el.insertBefore(libroIcon(), btn.el.firstChild);
 
   // ---- avviso «traguardo compiuto» (tocco = apre il diario sui traguardi) ----

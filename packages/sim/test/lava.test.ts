@@ -116,13 +116,13 @@ test('lava: input rotti (assi fuori scala, NaN, a che cambia ogni tick) non romp
   assert.throws(() => replay('lava', 1, 2, [[lava.maxTicks + 1, 0, 0, 1, 0]]));
 });
 
-test('lava: il posto sta sull\'Isola Vulcano, a piedi; l\'oro dà Pietra in più', () => {
+test('lava: il posto sta sull\'Isola Vulcano, a piedi; l\'oro dà monete in più', () => {
   const arch = composeArchipelago(ARCHIPELAGO, ISLANDS);
   const p = arch.places.find((q) => q.island === C.isola);
   assert.ok(p?.tema, 'isola a tema');
   const [cx, cz] = C.posto;
   assert.ok(['.', 'g'].includes(arch.map.at(p.origin[0] + cx, p.origin[1] + cz)), 'cella camminabile');
-  const extra = C.premioExtra?.oro?.pietra ?? 0;
+  const extra = C.premioExtra?.oro ?? 0;
   assert.ok(extra > 0);
-  assert.deepEqual(soloPrize('oro', 'lava'), { ...BALANCE.solo.premi.oro, pietra: BALANCE.solo.premi.oro.pietra + extra });
+  assert.equal(soloPrize('oro', 'lava'), BALANCE.solo.premi.oro + extra);
 });

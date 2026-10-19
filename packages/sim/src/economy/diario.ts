@@ -6,8 +6,9 @@ import { DIARIO, ISOLE_DIARIO, PESCI_DIARIO, TRAGUARDI } from '@marea/content/di
 import type { TraguardoDef } from '@marea/content/diario.ts';
 import type { Medal } from '../minigames/types.ts';
 import { advance } from './advance.ts';
-import { EconomyError, ZERO, add } from './types.ts';
-import type { DiarioState, LotState, Resources } from './types.ts';
+import { guadagna } from './monete.ts';
+import { EconomyError } from './types.ts';
+import type { DiarioState, LotState } from './types.ts';
 
 /** Quello che il server non sa da solo: quanti amici hanno un'isola (per «visita le isole di tutti gli amici»). */
 export type DiarioCtx = { amici: number };
@@ -124,24 +125,18 @@ export function daRiscuotere(lot: LotState, ctx: DiarioCtx): string[] {
   return traguardiOf(lot, ctx).filter((t) => t.compiuto && !t.riscosso).map((t) => t.id);
 }
 
-/** RISCUOTI: traguardo compiuto e non ancora riscosso → Perle nel lotto (e nel libro mastro). Una volta sola. */
-export function riscuotiTraguardo(lot0: LotState, id: string, nowMs: number, ctx: DiarioCtx): { lot: LotState; premio: Resources; traguardo: TraguardoStato } {
+/** RISCUOTI: traguardo compiuto e non ancora riscosso → monete nel lotto (e nel libro mastro). Una volta sola. */
+export function riscuotiTraguardo(lot0: LotState, id: string, nowMs: number, ctx: DiarioCtx): { lot: LotState; premio: number; traguardo: TraguardoStato } {
   const lot = advance(lot0, nowMs); // edifici finiti adesso contano
   const t = traguardiOf(lot, ctx).find((x) => x.id === id);
   if (!t) throw new EconomyError('sconosciuto', 'Traguardo sconosciuto');
   if (t.riscosso) throw new EconomyError('traguardo', 'Premio già riscosso');
   if (!t.compiuto) throw new EconomyError('traguardo', `Non ancora: ${t.fatto} su ${t.n}`);
-  const premio: Resources = { ...ZERO, perle: t.perle }, d = diarioOf(lot);
+  const premio = t.monete, d = diarioOf(lot);
   return {
     premio,
     traguardo: { ...t, riscosso: true },
-    lot: {
-      ...lot,
-      version: lot.version + 1,
-      resources: add(lot.resources, premio),
-      ledger: { ...lot.ledger, generated: add(lot.ledger.generated, premio) },
-      diario: { ...d, riscossi: [...d.riscossi, id] },
-    },
+    lot: guadagna({ ...lot, version: lot.version + 1, diario: { ...d, riscossi: [...d.riscossi, id] } }, premio),
   };
 }
 

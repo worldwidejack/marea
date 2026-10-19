@@ -145,13 +145,13 @@ export default async function (ctx) {
     });
 
     await ctx.test('PC: l\'autopilota consegna tutti i pacchi, il server rigioca e paga l\'oro; si torna sul molo a piedi', async () => {
-      const before = (await st()).lot.resources;
+      const before = (await st()).lot.monete;
       await hook('consegneAuto', 20);
       await ctx.waitState(page, (q) => q.minigiochi.open === true, 90000);
       const s = await st(), r = s.minigiochi.last;
       ctx.log(`consegne: ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
       assert(r.medal === 'oro' && r.premiata && r.detail.consegne === 4, 'esito: ' + JSON.stringify(r));
-      for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] === before[k] + balance.solo.premi.oro[k], k);
+      assert(r.lot.monete === before + balance.solo.premi.oro, 'monete');
       assert(/4\/4 pacchi/.test(await page.locator('#mzEsito').innerText()), 'la scheda non dice 4/4 pacchi');
       assert(s.mode === 'walk' && !s.consegne.active, 'dopo la partita: ' + s.mode);
       await ctx.shot(page, 'pc_4_esito');

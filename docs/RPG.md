@@ -181,7 +181,7 @@ Scheda di Riccardo (scritta con Gemini, adattata dal suo Claude al gioco vero); 
   - **Niente pausa insieme**: Esc apre il menu ma il dungeon non si ferma; con lo zaino aperto il tuo eroe sta fermo (occhio ai nemici).
 
 ## 5. Equipaggiamento e forgia
-Si sblocca costruendo il **Banco da Lavoro**. Per forgiare serve **solo un tot di quel materiale** (il Legno è quello del Magazzino dell'isola; gli altri si trovano nei dungeon). **[scelta provvisoria]** il livello del Banco sblocca i materiali: L1 legno, bronzo, ferro · L2 + argento, oro, vetro · L3 + ossa, meteorite.
+Si sblocca costruendo il **Banco da Lavoro** (dal #414 diventa il **Fabbro** del Borgo: VISIONE §2). Per forgiare serve **solo un tot di quel materiale** (il Legno si paga in **monete** a chi forgia, 4 Legno = 1 moneta, almeno 1: il Legno come risorsa non c'è più, #414; gli altri materiali si trovano nei dungeon). **[scelta provvisoria]** il livello del Banco sblocca i materiali: L1 legno, bronzo, ferro · L2 + argento, oro, vetro · L3 + ossa, meteorite.
 
 **Armi** (compensate da velocità contro danno)
 | Classe | Arma | Carattere |
@@ -217,7 +217,7 @@ Più gli **archi** e le **frecce**. **Armi uniche**: drop speciali non forgiabil
 - **Tavolo Alchemico**: ricette tutte visibili; la difficoltà è procurarsi e coltivare gli ingredienti. Salendo in Alchimia si sbloccano più ricette e le pozioni curano di più.
 - **Serra**: genera da sola gli ingredienti di base (si raccolgono come Legno e Pietra); quelli rari solo nei dungeon.
 - **Inventario a peso** (cresce con la Stamina). Sull'isola il **Forziere** tiene l'eccesso; migliorarlo alza quanto ci sta. **Butta via** (Riccardo, 7 ott 2026): dallo zaino, sull'isola e nel dungeon, con un secondo tocco di conferma; gli oggetti spariscono.
-- **[scelta provvisoria] Monete**: si trovano nei dungeon e servono a comprare i materiali di base al Banco da Lavoro (bottega minima) e dal Contrabbandiere al Porto.
+- **[scelta provvisoria] Monete**: si trovano nei dungeon e servono a comprare i materiali di base al Banco da Lavoro (bottega minima) e dal Contrabbandiere al Porto. Dal 18 ott 2026 (#414) sono **la valuta di tutto il gioco** e stanno nel lotto (`LotState.monete`), non più nel personaggio: le guadagni anche coi minigiochi, i Templari e l'Arena (GDD §5).
 - **Contrabbandiere del Porto** (Riccardo, 8 ott 2026, #127): il **Furetto**, banco losco a sud della Grotta della Marea, paga e vende in **monete**. Ogni giorno (cambio a **mezzanotte italiana**) vende **un'arma, un'armatura, un materiale e un ingrediente** pescati da un banco senza roba rara (armi e archi di bronzo e ferro; armature di bronzo e ferro, veste da apprendista; lingotti di bronzo, ferro, argento; ingredienti comuni: niente oro, vetro, ossa, meteorite, essenza del vuoto, unici); in un giro esce tutto, mai lo stesso due giorni di fila. **Compra tutto** quello che sta nello zaino (non quello che hai addosso) a una frazione del valore: conviene più che buttare, non per fare soldi. Valore = costo di forgia × 1,25 (materiali a prezzo fisso, il Legno quasi niente), pozioni = ingredienti × 1,5, il resto a prezzo fisso per tipo; **vende a valore × 1,5, compra a valore × 0,3** (totale arrotondato giù: la roba di Legno non la prende). Esempi: katana di ferro 150 / 30, armatura di ferro 300 / 60, lingotto di ferro 30 / 6. Numeri in `rpg/balance.json` `contrabbando`.
 
 ## 7. Prima taratura (6 ott 2026, da rivedere giocando)

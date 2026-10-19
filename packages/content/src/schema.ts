@@ -43,8 +43,8 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
   for (const h of c.avatar.cappelli) {
     if (hatIds.has(h.id)) errs.push(`cappello duplicato: ${h.id}`);
     hatIds.add(h.id);
-    if (!(Number.isInteger(h.perle) && h.perle >= 0)) errs.push(`cappello ${h.id}: costo in perle non valido`);
-    if (h.mercante && h.perle <= 0) errs.push(`cappello ${h.id}: esclusivo del Mercante ma gratis`);
+    if (!(Number.isInteger(h.monete) && h.monete >= 0)) errs.push(`cappello ${h.id}: prezzo in monete non valido`);
+    if (h.mercante && h.monete <= 0) errs.push(`cappello ${h.id}: esclusivo del Mercante ma gratis`);
   }
   const bc = c.avatar.barca, bcIds = new Set<string>();
   if (!bc || !Array.isArray(bc.colori)) errs.push('avatar.barca mancante');
@@ -53,18 +53,18 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
       if (bcIds.has(k.id) || k.id === 'nessuna') errs.push(`barca: colore duplicato o riservato ${k.id}`);
       bcIds.add(k.id);
       if (!HEX.test(k.hex)) errs.push(`barca ${k.id}: colore non valido ${k.hex}`);
-      if (!(Number.isInteger(k.perle) && k.perle >= 0)) errs.push(`barca ${k.id}: costo in perle non valido`);
-      if (k.mercante ? k.perle <= 0 : k.perle > 0) errs.push(`barca ${k.id}: a Perle solo dal Mercante (perle > 0 ⇔ mercante)`);
+      if (!(Number.isInteger(k.monete) && k.monete >= 0)) errs.push(`barca ${k.id}: prezzo in monete non valido`);
+      if (k.mercante ? k.monete <= 0 : k.monete > 0) errs.push(`barca ${k.id}: a pagamento solo dal Mercante (monete > 0 ⇔ mercante)`);
     }
-    if (!bcIds.has(bc.scafo) || (bc.colori.find((k) => k.id === bc.scafo)?.perle ?? 1) > 0) errs.push(`barca: scafo di serie non gratis o sconosciuto ${bc.scafo}`);
-    if (bc.vela !== 'nessuna' && (!bcIds.has(bc.vela) || (bc.colori.find((k) => k.id === bc.vela)?.perle ?? 1) > 0)) errs.push(`barca: vela di serie non gratis o sconosciuta ${bc.vela}`);
+    if (!bcIds.has(bc.scafo) || (bc.colori.find((k) => k.id === bc.scafo)?.monete ?? 1) > 0) errs.push(`barca: scafo di serie non gratis o sconosciuto ${bc.scafo}`);
+    if (bc.vela !== 'nessuna' && (!bcIds.has(bc.vela) || (bc.colori.find((k) => k.id === bc.vela)?.monete ?? 1) > 0)) errs.push(`barca: vela di serie non gratis o sconosciuta ${bc.vela}`);
     if (!(Number.isInteger(bc.nomeMax) && bc.nomeMax >= 4 && bc.nomeMax <= 20)) errs.push('barca.nomeMax fuori misura (4-20)');
   }
   const decorIds = new Set<string>();
   for (const d of c.decor ?? []) {
     if (decorIds.has(d.id)) errs.push(`decorazione duplicata: ${d.id}`);
     decorIds.add(d.id);
-    if (!(d.perle >= 0)) errs.push(`decorazione ${d.id}: costo in perle non valido`);
+    if (!(Number.isInteger(d.monete) && d.monete >= 0)) errs.push(`decorazione ${d.id}: prezzo in monete non valido`);
     if (!/^prop_[a-z_]+$/.test(d.model)) errs.push(`decorazione ${d.id}: nome modello non valido ${d.model}`);
   }
   if (c.balance.bufferOre <= 0) errs.push('balance.bufferOre deve essere > 0');
@@ -73,8 +73,11 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
   if (!(c.balance.solo?.premiateAlGiorno >= 0)) errs.push('balance.solo.premiateAlGiorno mancante o negativo');
   for (const k of ['oro', 'argento', 'bronzo', 'nessuna'] as const) {
     const r = c.balance.solo?.premi?.[k];
-    if (!r || !(['legno', 'pietra', 'perle'] as const).every((x) => Number.isInteger(r[x]) && r[x] >= 0)) errs.push(`balance.solo.premi.${k} non valido`);
+    if (!(Number.isInteger(r) && r >= 0)) errs.push(`balance.solo.premi.${k} non valido (monete, intero ≥ 0)`);
   }
+  const mo = c.balance.monete;
+  if (!mo || !(Number.isInteger(mo.partenza) && mo.partenza >= 0)) errs.push('balance.monete.partenza mancante o non valido');
+  else if (!(['legno', 'pietra', 'perle'] as const).every((x) => mo.cambio?.[x] >= 0)) errs.push('balance.monete.cambio non valido (monete per Legno, Pietra, Perla)');
   return errs;
 }
 
@@ -174,7 +177,7 @@ function validateTema(tag: string, t: TemaDef, x0: number, z0: number, w: number
   return errs;
 }
 
-/** Isole a tema contro edifici e avatar: il Molo ha quel livello, il cappello esiste ed è a Perle (uno gratuito non sbloccherebbe niente). */
+/** Isole a tema contro edifici e avatar: il Molo ha quel livello, il cappello esiste ed è a pagamento (uno gratuito non sbloccherebbe niente). */
 export function validateTemi(a: ArchipelagoDef, buildings: BuildingDef[], avatar: AvatarDef): string[] {
   const errs: string[] = [];
   const molo = buildings.find((b) => b.id === 'molo');
@@ -185,7 +188,7 @@ export function validateTemi(a: ArchipelagoDef, buildings: BuildingDef[], avatar
     if (s.tipo === 'cappello' || s.tipo === 'funivia') {
       const h = avatar.cappelli.find((c) => c.id === s.cappello);
       if (!h) errs.push(`isola ${e.island}: cappello sconosciuto ${s.cappello}`);
-      else if (h.perle <= 0) errs.push(`isola ${e.island}: il cappello ${s.cappello} è gratuito`);
+      else if (h.monete <= 0) errs.push(`isola ${e.island}: il cappello ${s.cappello} è gratuito`);
     }
   }
   return errs;

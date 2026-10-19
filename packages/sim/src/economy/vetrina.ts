@@ -24,7 +24,7 @@ function scelti(pool: readonly { id: string }[], n: number, giorno: number, chia
 
 /** La vetrina di un giorno di Roma (numero del giorno, `giornoRoma`). */
 export function vetrinaDelGiorno(giorno: number): Vetrina {
-  const aPagamento = (l: readonly { id: string; perle?: number }[]) => l.filter((f) => (f.perle ?? 0) > 0);
+  const aPagamento = (l: readonly { id: string; monete?: number }[]) => l.filter((f) => (f.monete ?? 0) > 0);
   return {
     terra: scelti(MOBILI.filter((m) => m.posto === 'terra'), MOBILI_VETRINA.terra, giorno),
     parete: scelti(MOBILI.filter((m) => m.posto === 'parete'), MOBILI_VETRINA.parete, giorno),

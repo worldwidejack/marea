@@ -51,7 +51,7 @@
     { "id": "cavaliere", "nome": "Templare a cavallo", "vitaMolt": 12, "raggio": 0.48, "velocita": {"cammina": 2, "corre": 2, "scatta": 2}, "danno": 50, "portata": 1.6, "preparazione": 0.7, "recupero": 1, "strappa": 0.3, "sorge": 2, "boss": true, "punti": 500, "carica": {"velocita": 7, "durata": 1.6, "danno": 70, "spinta": 2.5, "vista": 12, "ricarica": 5, "preparazione": 0.9} },
     { "id": "molay", "nome": "Jacques de Molay", "vitaMolt": 25, "raggio": 0.46, "velocita": {"cammina": 2.4, "corre": 2.4, "scatta": 2.4}, "danno": 40, "portata": 1, "preparazione": 0.6, "recupero": 0.8, "strappa": 0.2, "sorge": 2.4, "boss": true, "punti": 500, "scia": {"dps": 20, "durata": 3, "raggio": 0.9, "ogni": 0.5}, "palla": {"danno": 40, "velocita": 9, "gittata": 14, "ricarica": 3.5, "fuoco": {"dps": 20, "durata": 2, "raggio": 1.4}}, "fugge": 0.5 }
   ],
-  "premio": { "perOndata": {"legno": 15, "pietra": 8, "perle": 2}, "maxOndate": 30, "tetto": {"legno": 600, "pietra": 300, "perle": 60} },
+  "premio": { "perOndata": 5, "maxOndate": 30, "tetto": 150 },
   "scudo": {
     "vita": 1500,
     "cono": 0.34,

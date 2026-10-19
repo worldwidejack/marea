@@ -13,7 +13,7 @@
   "punti": { "ossidiana": 10, "scintilla": 25, "rubino": 60 },
   "difficolta": { "geyser": [0.6, 1, 1.3], "buchi": [0.85, 1, 1.1] },
   "medaglie": { "oro": 0.5, "argento": 0.3, "bronzo": 0.12 },
-  "premioExtra": { "oro": { "pietra": 20 } },
+  "premioExtra": { "oro": 5 },
   "autopilota": { "orizzonte": 80 },
   "_nota": "Fuga dalla lava (Isola Vulcano, vicino al cratere). Vista di profilo: corri da solo verso destra a `velocita` px/tick sulle colonne di basalto sopra un mare di lava; TOCCA = salto, TIENI PREMUTO = salto più lungo (gravitaTenuto per al massimo tenutoMax tick). Le rocce crepate affondano dopo il primo passo, i geyser eruttano a tempo (avviso prima). Toccare la lava o un geyser = scottatura: −punti, rimbalzo in su, invulnerabile (e niente premi) per invulnerabileSecondi. Prendi ossidiana, scintille (in alto) e rubini. Unità = pixel della schermata 192×136 (y cresce in giù), per tick (60 al secondo). medaglie = frazione dei punti di tutto il percorso. premioExtra = risorse in più rispetto a balance.solo (l'ossidiana dà pietra)."
 }

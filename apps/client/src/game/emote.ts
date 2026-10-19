@@ -284,7 +284,7 @@ export function createEmotes(o: { world: GameWorld; camera: Camera; canvas: HTML
     more.addEventListener('click', (e) => { e.preventDefault(); more.blur(); const c = centerOf(more); openWheel(c.x, c.y, 'tocco'); });
     row.appendChild(more);
     o.root.appendChild(row);
-    btn = topButton({ root: o.root, id: 'mzEmoteBtn', order: 3, label: '', title: 'Emote (tieni premuto: ruota)', onClick: () => {
+    btn = topButton({ root: o.root, id: 'mzEmoteBtn', order: 3, label: '', title: 'Emote (tieni premuto: ruota)', nascosto: true, onClick: () => {
       if (skipClick) { skipClick = false; return; } // il «click» che segue un tocco lungo
       if (wheel.open) closeWheel();
       else if (row?.classList.contains('on')) closeRow(); else openRow();

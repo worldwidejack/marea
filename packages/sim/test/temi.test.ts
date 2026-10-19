@@ -86,13 +86,13 @@ test('Adrenalina: si sbarca sempre (niente barriera), ma la funivia vuole la lib
   assert.equal(p.tema!.barriera, 0, 'niente barriera: ti ferma il cancello, non il mare');
   assert.equal(s.tipo, 'funivia');
   const casco = AVATAR.cappelli.find((h) => h.id === 'casco');
-  assert.ok(casco && casco.perle > 0 && !casco.mercante, 'il casco si compra a Perle dall’editor');
+  assert.ok(casco && casco.monete > 0 && !casco.mercante, 'il casco si compra a monete dall’editor');
   assert.equal(AVATAR.cappelli.at(-1)!.id, 'casco', 'in coda: gli indici dei cappelli salvati restano quelli');
   const base: Viaggiatore = { ...NESSUNO, molo: 1 };
   const solo = sbloccoTema(s, { ...base, cappello: 'casco' });
   assert.equal(solo.aperta, false); assert.equal(solo.manca, 'La liberatoria');
   const firma = sbloccoTema(s, { ...base, liberatorie: ['adrenalina'] });
-  assert.equal(firma.aperta, false); assert.match(firma.motivo, /senza casco qui non sale nessuno/); assert.equal(firma.manca, 'Casco (35 Perle)');
+  assert.equal(firma.aperta, false); assert.match(firma.motivo, /senza casco qui non sale nessuno/); assert.equal(firma.manca, `Casco (${casco.monete} monete)`);
   assert.equal(sbloccoTema(s, { ...base, liberatorie: ['adrenalina'], cappello: 'lanterna' }).aperta, false, 'un altro cappello non basta');
   assert.equal(sbloccoTema(s, { ...base, liberatorie: ['adrenalina'], cappello: 'casco' }).aperta, true);
   // la firma resta nel lotto, una volta sola

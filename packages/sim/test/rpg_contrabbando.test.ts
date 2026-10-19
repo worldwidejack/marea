@@ -5,6 +5,7 @@ import { RECIPES, RPG } from '@marea/content/rpg.ts';
 import { newLot } from '../src/economy/actions.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
+import { conMonete, senzaMonete } from './monete_util.ts';
 import { applyRpgAction, parseRpgAction } from '../src/rpg/actions.ts';
 import { CATEGORIE_LOSCHE, bancoDi, finoAMezzanotte, giornoRoma, offertaLosca, prezzoLosco, valoreDi } from '../src/rpg/contrabbando.ts';
 import { heroOf, newHero } from '../src/rpg/hero.ts';
@@ -13,7 +14,8 @@ import type { HeroState } from '../src/rpg/types.ts';
 
 const H = 3_600_000, D = 24 * H;
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
-const lotOf = (h: HeroState, ms: number): LotState => ({ ...newLot('jack', ms, null), hero: h });
+/** Lotto col personaggio `h` e `monete` monete esatte (#414: le monete stanno nel lotto). */
+const lotOf = (h: HeroState, ms: number, monete = 0): LotState => conMonete(senzaMonete({ ...newLot('jack', ms, null), hero: h }), monete);
 
 test('contrabbando: il banco ha solo oggetti che esistono, della categoria giusta, niente unici', () => {
   const kinds: Record<string, readonly string[]> = { arma: ['arma', 'arco'], armatura: ['armatura', 'veste'], materiale: ['materiale'], ingrediente: ['ingrediente'] };
@@ -61,20 +63,20 @@ test('contrabbando: tutto ha un valore, vende caro e compra poco (niente guadagn
 
 test('contrabbando: compra la merce di oggi nello zaino, vende dallo zaino, non quel che hai addosso', () => {
   const ms = Date.UTC(2026, 11, 28, 12), oggi = bancoDi(ms);
-  const ricco = { ...newHero(), monete: 5000 };
+  const ricco = newHero();
   // compra: solo la merce di oggi, con le monete, nello zaino
   const altro = RPG.contrabbando.banco.materiale.find((x) => x !== oggi.materiale)!;
-  assert.throws(() => applyRpgAction(lotOf(ricco, ms), { t: 'contrabbando', op: 'compra', item: altro, n: 1 }, ms), isErr('oggetto'));
-  assert.throws(() => applyRpgAction(lotOf({ ...ricco, monete: 1 }, ms), { t: 'contrabbando', op: 'compra', item: oggi.materiale, n: 1 }, ms), isErr('risorse'));
-  assert.throws(() => applyRpgAction(lotOf({ ...ricco, monete: 1e7 }, ms), { t: 'contrabbando', op: 'compra', item: oggi.materiale, n: 999 }, ms), isErr('peso'));
-  let l = applyRpgAction(lotOf(ricco, ms), { t: 'contrabbando', op: 'compra', item: oggi.arma, n: 1 }, ms);
+  assert.throws(() => applyRpgAction(lotOf(ricco, ms, 5000), { t: 'contrabbando', op: 'compra', item: altro, n: 1 }, ms), isErr('oggetto'));
+  assert.throws(() => applyRpgAction(lotOf(ricco, ms, 1), { t: 'contrabbando', op: 'compra', item: oggi.materiale, n: 1 }, ms), isErr('risorse'));
+  assert.throws(() => applyRpgAction(lotOf(ricco, ms, 1e7), { t: 'contrabbando', op: 'compra', item: oggi.materiale, n: 999 }, ms), isErr('peso'));
+  let l = applyRpgAction(lotOf(ricco, ms, 5000), { t: 'contrabbando', op: 'compra', item: oggi.arma, n: 1 }, ms);
   assert.equal(heroOf(l).inv[oggi.arma], 1);
-  assert.equal(heroOf(l).monete, 5000 - prezzoLosco(oggi.arma));
+  assert.equal(l.monete, 5000 - prezzoLosco(oggi.arma));
   // vende: monete in più, oggetto via; quello equipaggiato no
-  const m0 = heroOf(l).monete;
+  const m0 = l.monete;
   l = applyRpgAction(l, { t: 'contrabbando', op: 'vendi', item: oggi.arma, n: 1 }, ms);
   assert.equal(heroOf(l).inv[oggi.arma] ?? 0, 0);
-  assert.equal(heroOf(l).monete, m0 + offertaLosca(oggi.arma, 1));
+  assert.equal(l.monete, m0 + offertaLosca(oggi.arma, 1));
   const h = newHero(), arma = h.equip.arma!;
   assert.throws(() => applyRpgAction(lotOf(h, ms), { t: 'contrabbando', op: 'vendi', item: arma, n: h.inv[arma]! }, ms), isErr('equip'));
   assert.throws(() => applyRpgAction(lotOf(h, ms), { t: 'contrabbando', op: 'vendi', item: 'lingotto_ferro', n: 1 }, ms), isErr('oggetto'));

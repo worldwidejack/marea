@@ -1,5 +1,5 @@
 // Gli ampliamenti della casa (#386) sul server locale (wrangler dev, TEST_CLOCK:1). Luca: il server rifiuta l'ampliamento senza risorse e con un
-// livello sbagliato; vince Perle con le Regate (API, autopilot); in casa (livello 0) camminando verso ovest si ferma al muro della stanza piccola;
+// livello sbagliato; vince monete con le Regate (API, autopilot; il resto dalla rotta di prova /api/test/monete, #414); in casa (livello 0) camminando verso ovest si ferma al muro della stanza piccola;
 // dal mobiliere (banco del negozio) INGRANDISCI LA CASA chiede una conferma, poi paga e porta la casa a livello 1; tornato a casa la stanza è più
 // grande: ora si passa oltre il vecchio muro e ci si ferma al nuovo. Telefono 390×844: la scheda del banco sta nello schermo, bottoni ≥ 44 px.
 // Screenshot: il banco con l'ampliamento, la stanza al livello 0 e al livello 1 (PC), la scheda da telefono.
@@ -12,20 +12,21 @@ export const timeout = 420000;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const WIN = process.platform === 'win32';
 
 export default async function (ctx) {
   const { assert } = ctx;
   const SERVER = path.join(ctx.ROOT, 'apps/server');
   const persist = path.join(ctx.OUT, `m3ampl-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, shell: WIN }).toString();
   const sim = async (f) => import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src', f)).href);
   const { regata } = await sim('minigames/regata/regata.ts');
   const { packInputs, quantize } = await sim('replay.ts');
   const { createRng } = await sim('rng.ts');
   const read = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
   const borgo = read('borgo.json'), arch = read('archipelago.json');
-  const liv1 = borgo.casa.livelli[0], k1 = liv1.costo, [X0, Z0, X1, Z1] = borgo.stanza.pavimento, N = liv1.pavimento;
+  const liv1 = borgo.casa.livelli[0], k1 = liv1.monete, [X0, Z0, X1, Z1] = borgo.stanza.pavimento, N = liv1.pavimento;
   const ORIG = arch.islands.find((i) => i.role === 'lotto' && i.slot === 0).at;
   const mondo = (cx, cz) => ({ x: (ORIG[0] + cx) * 2, z: (ORIG[1] + cz) * 2 });
 
@@ -34,10 +35,13 @@ export default async function (ctx) {
   try {
     fs.rmSync(persist, { recursive: true, force: true });
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
-    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command', "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0), ('ada', 'Ada', 'tokA', 1);");
+    const sql = path.join(persist, 'persone.sql');
+    fs.mkdirSync(persist, { recursive: true });
+    fs.writeFileSync(sql, "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0), ('ada', 'Ada', 'tokA', 1);\n");
+    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--file', sql);
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: !WIN, shell: WIN, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const BASE = `http://127.0.0.1:${port}`;
     let up = false;
@@ -66,15 +70,17 @@ export default async function (ctx) {
     await ctx.test('API: senza risorse il server rifiuta (con quanto manca); con un livello sbagliato o senza livello no; niente cambia', async () => {
       const lot0 = (await get('/api/lot')).body;
       const r = await post('/api/lot/casa/amplia', { da: 0 });
-      assert(r.status === 409 && r.body.code === 'risorse' && r.body.manca.perle === k1.perle - lot0.resources.perle, 'senza Perle: ' + r.status + ' ' + JSON.stringify(r.body));
+      assert(r.status === 409 && r.body.code === 'risorse' && r.body.manca.monete === k1 - lot0.monete, 'senza monete: ' + r.status + ' ' + JSON.stringify(r.body));
       assert((await post('/api/lot/casa/amplia', {})).status === 400, 'senza livello');
       assert((await post('/api/lot/casa/amplia', { da: 'x' })).status === 400, 'livello non numerico');
-      for (let i = 0; i < 12 && (await get('/api/lot')).body.resources.perle < k1.perle; i++) assert((await playSolo('tokL')).status === 200, 'regata');
+      for (let i = 0; i < 3; i++) assert((await playSolo('tokL')).status === 200, 'regata');
+      const manca = k1 - (await get('/api/lot')).body.monete;
+      if (manca > 0) assert((await post('/api/test/monete', { n: manca })).status === 200, 'monete di prova');
       const lot1 = (await get('/api/lot')).body;
-      assert(lot1.resources.perle >= k1.perle && lot1.resources.legno >= k1.legno && lot1.resources.pietra >= k1.pietra, 'servono ' + JSON.stringify(k1) + ' ma ci sono ' + JSON.stringify(lot1.resources));
+      assert(lot1.monete >= k1, `servono ${k1} monete ma ce ne sono ${lot1.monete}`);
       const sbagliato = await post('/api/lot/casa/amplia', { da: 1 });
       assert(sbagliato.status === 409 && sbagliato.body.code === 'livello', 'livello sbagliato: ' + sbagliato.status + ' ' + JSON.stringify(sbagliato.body));
-      assert(((await get('/api/lot')).body.casa?.livello ?? 0) === 0 && (await get('/api/lot')).body.resources.perle === lot1.resources.perle, 'i rifiuti hanno cambiato qualcosa');
+      assert(((await get('/api/lot')).body.casa?.livello ?? 0) === 0 && (await get('/api/lot')).body.monete === lot1.monete, 'i rifiuti hanno cambiato qualcosa');
     });
 
     let V;
@@ -100,9 +106,9 @@ export default async function (ctx) {
       await V.page.keyboard.press('KeyE');
       await ctx.waitState(V.page, (s) => s.negozio.aperto === 'banco', 3000);
       const t = await V.page.locator('#mzNegozio').innerText();
-      assert(t.includes('INGRANDISCI LA CASA') && t.includes(liv1.nome) && t.includes(String(k1.perle)), 'scheda del banco: ' + t);
+      assert(t.includes('INGRANDISCI LA CASA') && t.includes(liv1.nome) && t.includes(String(k1)), 'scheda del banco: ' + t);
       await ctx.shot(V.page, 'pc_banco_ampliamento');
-      const prima = (await get('/api/lot')).body.resources;
+      const prima = (await get('/api/lot')).body.monete;
       await V.page.locator('#mzNegozio [data-act="amplia"]').click();
       await ctx.waitState(V.page, (s) => s.negozio.conferma === true, 3000);
       assert(((await get('/api/lot')).body.casa?.livello ?? 0) === 0, 'al primo tocco non paga');
@@ -110,7 +116,9 @@ export default async function (ctx) {
       await ctx.waitState(V.page, (s) => s.negozio.ampliati === 1 && s.negozio.livello === 1, 8000);
       const lot = (await get('/api/lot')).body;
       assert(lot.casa.livello === 1, 'livello sul server: ' + JSON.stringify(lot.casa));
-      assert(lot.resources.legno === prima.legno - k1.legno && lot.resources.pietra === prima.pietra - k1.pietra && lot.resources.perle === prima.perle - k1.perle, 'costo: ' + JSON.stringify({ prima, dopo: lot.resources, k1 }));
+      assert(lot.monete === prima - k1, 'costo: ' + JSON.stringify({ prima, dopo: lot.monete, k1 }));
+      const bis = await post('/api/lot/casa/amplia', { da: 1 });
+      assert(bis.status === 409 && bis.body.code === 'tetto', 'secondo ampliamento nello stesso giorno rifiutato: ' + bis.status + ' ' + JSON.stringify(bis.body));
     });
 
     await ctx.test('PC: a casa la stanza è più grande: si passa oltre il vecchio muro e ci si ferma al nuovo', async () => {
@@ -152,8 +160,11 @@ export default async function (ctx) {
     });
   } finally {
     for (const p of pages) await p.close().catch(() => {});
-    if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
-    fs.rmSync(persist, { recursive: true, force: true });
+    if (dev) {
+      if (WIN) { try { execFileSync('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* già chiuso */ } }
+      else { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    }
+    try { fs.rmSync(persist, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); } catch { /* file ancora aperti su Windows */ }
     delete globalThis.__pc;
   }
 }

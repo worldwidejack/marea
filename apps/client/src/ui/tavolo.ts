@@ -8,8 +8,9 @@ import type { Challenge, LotState, Resources } from '@marea/sim';
 import { mancaText } from '../net/api.ts';
 import type { Api, Me, PackedInputs, Persona, PlayResult } from '../net/api.ts';
 import { el, injectUiStyle } from './style.ts';
-import { RES_IDS } from './icons.ts';
-import type { ResId } from './icons.ts';
+import { RISORSE_IDS } from './icons.ts';
+/** Le sfide con posta (spente) usano le risorse di prima. */
+type ResId = 'legno' | 'pietra' | 'perle';
 import { createSheet, tickTimers } from './sheet.ts';
 import type { Sheet } from './sheet.ts';
 import { STEP, viewAmici, viewAttesa, viewEsito, viewHome, viewPosta } from './tavolo_viste.ts';
@@ -22,7 +23,7 @@ export type TavoloOpts = {
   /** Fa giocare la gara della sfida; null = annullata (Esc). */
   play: (challenge: Challenge) => Promise<PackedInputs | null>;
   onClose?: () => void;
-  /** Il lotto riletto dal server (posta tolta, esito con Perle): la barra delle risorse lo segue subito. */
+  /** Il lotto riletto dal server (posta tolta, esito con Perle: sfide spente, risorse di prima). */
   onLot?: (lot: LotState) => void;
   /** Dove appendere il pannello (default #ui, poi body). */
   root?: HTMLElement;
@@ -213,7 +214,7 @@ export function createTavolo(o: TavoloOpts): Tavolo {
     const max = info().wagerMax;
     if (total(stake) > max) stake = { ...ZERO, legno: Math.min(BALANCE.wager.min, max) };
     if (total(stake) < BALANCE.wager.min && lot) {
-      const best = RES_IDS.filter((k) => k !== 'perle').reduce((a, k) => (lot && lot.resources[k] > lot.resources[a] ? k : a), 'legno' as ResId);
+      const best = RISORSE_IDS.filter((k) => k !== 'perle').reduce((a, k) => (lot && lot.resources[k] > lot.resources[a] ? k : a), 'legno' as ResId);
       stake = { ...ZERO, [best]: Math.min(BALANCE.wager.min, max) };
     }
   }

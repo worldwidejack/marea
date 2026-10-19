@@ -1,7 +1,7 @@
 // Editor dell'avatar (F3-avatar, CONTRACTS §13): pelle, taglio, colore dei capelli, vestito, cappello. Anteprima DAL VIVO sul proprio avatar
 // (o.avatar.setLook a ogni cambio, nessuna chiamata al server); Salva → POST /api/look; Esc, C, × o Annulla ripristinano il look salvato.
-// Cappelli a Perle: prezzo, «Compra» (POST /api/look/hat), Salva spento finché il cappello scelto non è tuo. Tutto da AVATAR (@marea/content).
-// Senza Perle abbastanza «Compra» non chiama il server: sotto la riga un avviso gentile (#4). Gli esclusivi del Mercante (#63) si vedono
+// Cappelli a pagamento (monete, #414): prezzo, «Compra» (POST /api/look/hat), Salva spento finché il cappello scelto non è tuo. Tutto da AVATAR (@marea/content).
+// Senza monete abbastanza «Compra» non chiama il server: sotto la riga un avviso gentile (#4). Gli esclusivi del Mercante (#63) si vedono
 // e si provano, ma si comprano solo da lui al Porto. Colori dei capelli con nomi da capelli (#3, `nomiColoriCapelli`).
 // PC prima: frecce su/giù = riga (poi i bottoni), sinistra/destra = valore, Invio attiva il bottone, Tab funziona. Tasti in capture su
 // window solo a pannello aperto, con stopPropagation (mai keyup, altrimenti restano incollati in input.ts), come il Tavolo.
@@ -9,8 +9,9 @@
 // si mostra a schermo (niente screenshot con la chiave), tranne quando la copia non riesce: allora un campo da selezionare a mano.
 // Sezione «La tua barca» (#107, ui/editor_barca.ts): scafo, vela, nome; Salva manda anche quella se è cambiata.
 import { AVATAR } from '@marea/content';
-import type { BarcaLook, Look, LotState, Resources } from '@marea/protocol';
-import { mancaText, perleText } from '../net/api.ts';
+import type { BarcaLook, Look, LotState } from '@marea/protocol';
+import type { Mancanza } from '@marea/sim';
+import { mancaText, moneteText } from '../net/api.ts';
 import type { Api, Me } from '../net/api.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
 import { resIcon } from './icons.ts';
@@ -31,7 +32,7 @@ export type EditorOpts = {
   onNome?(n: string): void;
   /** Barca salvata (#107). */
   onBarca?(b: BarcaLook): void;
-  /** Dopo un acquisto (cappello a Perle) il lotto cambia: chi ascolta aggiorna la vista del lotto. */
+  /** Dopo un acquisto (cappello a pagamento) il lotto cambia: chi ascolta aggiorna la vista del lotto. */
   onLot?(lot: LotState): void;
   onOpen?(): void; onClose?(): void;
   /** Il link personale (`/?t=token`): COPIA / MANDA per entrare come sé da un altro dispositivo. Senza, la sezione non c'è. */
@@ -117,17 +118,17 @@ export function createEditor(o: EditorOpts): Editor {
   });
   nomeRow.append(nomeLbl, nomeInput);
 
-  const perle =(): number | null => (lot ? lot.resources.perle : null);
-  /** Quello che il foglio mostra del lotto: Perle e cose possedute (cappelli, colori della barca). */
-  const firma = (): string => `${perle()}|${(lot?.posseduti ?? []).join(',')}`;
+  const monete = (): number | null => (lot ? lot.monete : null);
+  /** Quello che il foglio mostra del lotto: monete e cose possedute (cappelli, colori della barca). */
+  const firma = (): string => `${monete()}|${(lot?.posseduti ?? []).join(',')}`;
   const sez = o.barca ? createSezioneBarca({ api, me: o.me, world: o.barca, getLot: () => lot, onChange: () => { note = null; render(); } }) : null;
   const isBarcaRow = (r: string | undefined): r is RigaBarca => r === 'scafo' || r === 'vela';
-  const owned = (): string[] => HATS.filter((h) => h.perle <= 0 || (lot?.posseduti ?? []).includes(h.id)).map((h) => h.id);
+  const owned = (): string[] => HATS.filter((h) => h.monete <= 0 || (lot?.posseduti ?? []).includes(h.id)).map((h) => h.id);
   /** Il cappello scelto si può salvare: gratis, comprato, o già nel look salvato (il server l'aveva accettato). */
   const hatOk = (): boolean => { const h = HATS[draft.cappello]; return !h || owned().includes(h.id) || draft.cappello === clampLook(o.me.look).cappello; };
   const errText = (e: unknown): string => {
-    const x = e as { message?: string; manca?: Resources };
-    if (x?.manca && x.manca.perle > 0 && !x.manca.legno && !x.manca.pietra) return perleText(x.manca.perle);
+    const x = e as { message?: string; manca?: Mancanza };
+    if ((x?.manca?.monete ?? 0) > 0) return moneteText(x.manca?.monete ?? 0);
     const m = mancaText(x?.manca);
     return (x?.message || 'Qualcosa non va, riprova') + (m ? `: ${m}` : '');
   };
@@ -146,8 +147,8 @@ export function createEditor(o: EditorOpts): Editor {
   async function compra(): Promise<void> {
     const h = HATS[draft.cappello];
     if (!h || busy || h.mercante) return;
-    const p = perle();
-    if (p !== null && p < h.perle) { note = { text: perleText(h.perle - p), bad: true, hat: true }; render(); return; } // niente 409: lo diciamo prima
+    const p = monete();
+    if (p !== null && p < h.monete) { note = { text: moneteText(h.monete - p), bad: true, hat: true }; render(); return; } // niente 409: lo diciamo prima
     const g = gen;
     busy = true; note = null; render();
     try {
@@ -271,7 +272,7 @@ export function createEditor(o: EditorOpts): Editor {
     b.addEventListener('click', () => { if (!b.disabled && !busy) onClick(); });
     return b;
   }
-  const perleTag = (n: number): HTMLElement => { const s = el('span', 'mz-cost'); s.append(resIcon('perle', 16), `${n} Perle`); return s; };
+  const prezzoTag = (n: number): HTMLElement => { const s = el('span', 'mz-cost'); s.append(resIcon('monete', 16), `${n} monete`); return s; };
 
   function rowEl(r: Row): HTMLElement {
     const v = draft[r.id];
@@ -281,14 +282,14 @@ export function createEditor(o: EditorOpts): Editor {
     w.setAttribute('aria-valuenow', String(v)); w.setAttribute('aria-valuetext', r.nomeDi(v));
     const lbl = el('div', 'mz-ed-lbl'); lbl.appendChild(el('span', '', r.nome));
     const hat = r.id === 'cappello' ? HATS[v] : undefined;
-    if (hat && hat.perle > 0) {
+    if (hat && hat.monete > 0) {
       const mine = owned().includes(hat.id);
       const t = el('span', 'v' + (mine ? '' : ' lock'));
-      if (mine) t.textContent = 'tuo'; else t.appendChild(perleTag(hat.perle));
+      if (mine) t.textContent = 'tuo'; else t.appendChild(prezzoTag(hat.monete));
       if (!hatOk() && hat.mercante) t.appendChild(el('span', 'mz-ed-merc', 'dal Mercante'));
       else if (!hatOk()) { // prezzo + «Compra» sulla riga del cappello: Annulla/Salva restano in vista in fondo
         const b = el('button', 'mz-ed-buy', 'COMPRA'); b.type = 'button'; b.dataset['nav'] = 'compra'; b.dataset['act'] = 'compra';
-        b.disabled = busy; b.title = `Compra ${hat.nome} per ${hat.perle} Perle`;
+        b.disabled = busy; b.title = `Compra ${hat.nome} per ${hat.monete} monete`;
         b.addEventListener('click', () => { if (!busy) void compra(); });
         t.appendChild(b);
       }
@@ -317,7 +318,7 @@ export function createEditor(o: EditorOpts): Editor {
       };
       st.append(mk(-1, '‹'), el('span', 'n', cap(r.nomeDi(v))), mk(1, '›'));
       w.appendChild(st);
-      if (hat?.mercante && !owned().includes(hat.id)) w.appendChild(el('div', 'mz-note mz-ed-miss', 'Esclusiva del Mercante delle Perle: si compra da lui, in piazza al Porto'));
+      if (hat?.mercante && !owned().includes(hat.id)) w.appendChild(el('div', 'mz-note mz-ed-miss', 'Esclusiva del Mercante del Porto: si compra da lui, in piazza'));
       else if (r.id === 'cappello' && note?.hat) w.appendChild(el('div', 'mz-note mz-ed-miss ' + (note.bad ? 'bad' : 'ok'), note.text));
     }
     return w;
@@ -348,8 +349,8 @@ export function createEditor(o: EditorOpts): Editor {
     const keep = hadFocus ? active?.dataset['nav'] ?? active?.closest<HTMLElement>('[data-nav]')?.dataset['nav'] : undefined;
     const head = el('div', 'mz-head');
     head.appendChild(el('div', 'mz-title', 'Il tuo avatar'));
-    const pc = el('span', 'mz-ed-perle'); pc.dataset['perle'] = String(perle() ?? ''); pc.title = 'Le tue Perle';
-    pc.append(resIcon('perle', 16), perle() === null ? '…' : String(perle()));
+    const pc = el('span', 'mz-ed-perle'); pc.dataset['monete'] = String(monete() ?? ''); pc.title = 'Le tue monete';
+    pc.append(resIcon('monete', 16), monete() === null ? '…' : String(monete()));
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.title = 'Annulla e chiudi (Esc)'; x.setAttribute('aria-label', 'Chiudi');
     x.dataset['act'] = 'chiudi'; x.dataset['nav'] = 'chiudi';
     x.addEventListener('click', () => { if (!busy) close(); });
@@ -378,7 +379,7 @@ export function createEditor(o: EditorOpts): Editor {
   }
 
   // ---------- apri / chiudi ----------
-  const btn = topButton({ root, id: 'mzEditorBtn', order: 2, label: '', title: 'Il tuo avatar (C)', onClick: () => toggle() });
+  const btn = topButton({ root, id: 'mzEditorBtn', order: 2, label: '', title: 'Il tuo avatar (C)', nascosto: true, onClick: () => toggle() });
   btn.el.prepend(headIcon(24));
   function show(): void {
     if (open) return;
@@ -394,9 +395,9 @@ export function createEditor(o: EditorOpts): Editor {
     navItems()[0]?.focus({ preventScroll: true });
     o.onOpen?.();
     const g = gen;
-    // si ridisegna solo se Perle o cose possedute sono cambiate: rifare il foglio stacca i bottoni e si mangia il tocco in corso
+    // si ridisegna solo se monete o cose possedute sono cambiate: rifare il foglio stacca i bottoni e si mangia il tocco in corso
     api.lot().then((l) => { lot = l; if (g !== gen) return; lotFresco = true; if (firma() !== firmaLot) render(); },
-      () => { if (g === gen) lotFresco = true; /* le Perle restano quelle note: lo dirà il server se non bastano */ });
+      () => { if (g === gen) lotFresco = true; /* le monete restano quelle note: lo dirà il server se non bastano */ });
   }
   /** Chiude annullando: l'avatar torna al look salvato (dopo Salva, me.look è già quello nuovo). */
   function close(): void {
@@ -415,6 +416,6 @@ export function createEditor(o: EditorOpts): Editor {
   }
   function toggle(): void { if (open) close(); else show(); }
 
-  registerStateProvider('editor', () => ({ open, draft: { ...draft }, draftNome, saved: { ...clampLook(o.me.look) }, savedNome: o.me.nome, owned: owned(), perle: perle(), busy, note: note?.text ?? null, linkVisibile, lotFresco, barca: sez?.state() ?? null }));
+  registerStateProvider('editor', () => ({ open, draft: { ...draft }, draftNome, saved: { ...clampLook(o.me.look) }, savedNome: o.me.nome, owned: owned(), monete: monete(), busy, note: note?.text ?? null, linkVisibile, lotFresco, barca: sez?.state() ?? null }));
   return { open: show, close, toggle, isOpen: () => open };
 }

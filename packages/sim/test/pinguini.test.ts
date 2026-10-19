@@ -149,7 +149,6 @@ test('pinguini: a metà partita il replay coincide (1 livello → bronzo); senza
 });
 
 test('pinguini: l\'oro paga balance.solo più il premio extra del json', () => {
-  const p = soloPrize('oro', 'pinguini'), b = BALANCE.solo.premi.oro, x = CFG.premioExtra?.oro ?? {};
-  assert.deepEqual(p, { legno: b.legno + (x.legno ?? 0), pietra: b.pietra + (x.pietra ?? 0), perle: b.perle + (x.perle ?? 0) });
-  assert.deepEqual(soloPrize('argento', 'pinguini'), { ...BALANCE.solo.premi.argento });
+  assert.equal(soloPrize('oro', 'pinguini'), BALANCE.solo.premi.oro + (CFG.premioExtra?.oro ?? 0));
+  assert.equal(soloPrize('argento', 'pinguini'), BALANCE.solo.premi.argento);
 });

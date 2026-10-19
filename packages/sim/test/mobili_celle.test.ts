@@ -10,17 +10,18 @@ import { celleMobile, compraMobile, posaMobile, ruotaMobile, spostaMobile } from
 import { lotTemplate } from '../src/economy/cells.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
+import { conMonete } from './monete_util.ts';
 
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const [X0, Z0, X1] = BORGO.stanza.pavimento;
 // un divano 2×1 e un armadio 1×2 finti, aggiunti al catalogo solo per questo test (ogni file di test è un processo a parte)
-const DIVANO: MobileDef = { id: 'divano_prova', nome: 'Divano', categoria: 'sedersi', perle: 10, posto: 'terra', colori: ['#C98A4B'], celle: [2, 1] };
-const ARMADIO: MobileDef = { id: 'armadio_prova', nome: 'Armadio', categoria: 'contenitori', perle: 10, posto: 'terra', colori: ['#5A3A1E'], celle: [1, 2] };
+const DIVANO: MobileDef = { id: 'divano_prova', nome: 'Divano', categoria: 'sedersi', monete: 10, posto: 'terra', colori: ['#C98A4B'], celle: [2, 1] };
+const ARMADIO: MobileDef = { id: 'armadio_prova', nome: 'Armadio', categoria: 'contenitori', monete: 10, posto: 'terra', colori: ['#5A3A1E'], celle: [1, 2] };
 (MOBILI as MobileDef[]).push(DIVANO, ARMADIO);
 
 function conMobili(...ids: string[]): LotState {
   let l = newLot('a', 0, lotTemplate()!);
-  l = { ...l, resources: { ...l.resources, perle: 1000 }, ledger: { ...l.ledger, generated: { ...l.ledger.generated, perle: l.ledger.generated.perle + 1000 - l.resources.perle } } };
+  l = conMonete(l, 5000);
   for (const id of ids) l = compraMobile(l, id, 1000);
   return l;
 }
