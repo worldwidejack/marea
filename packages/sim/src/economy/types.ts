@@ -9,7 +9,10 @@ export type StoredBuilding = { id: string; building: string; level: number; buff
 /** Decorazione posata. `rot` = quarti di giro (0-3) attorno all'asse verticale; assente = 0 (#108). */
 export type PlacedDecor = { id: string; decor: string; cell: [number, number]; rot?: number };
 export type Construction = { building: string; level: number; endsMs: number; placedId: string };
-export type LedgerTotals = { generated: Resources; spent: Resources };
+/** Libro mastro: `generated`/`spent` = le risorse di prima (codice spento), `monete` = entrate e uscite di monete (#414; assente = 0 e 0). */
+export type LedgerTotals = { generated: Resources; spent: Resources; monete?: { generated: number; spent: number } };
+/** La conversione di un vecchio salvataggio (#414, `cambio.ts`): quando, quante monete in tutto e da cosa (risorse, edifici spenti, monete del personaggio). */
+export type CambioMonete = { ms: number; monete: number; risorse: Resources; edifici: Resources; edificiSpenti: string[]; eroe: number };
 /** Sfide lanciate oggi (giorno UTC = floor(nowMs / 86 400 000)): servono per le sfide gratis del Tavolo. */
 export type ChallengeCount = { day: number; used: number };
 /** Minigiochi da solo (senza posta): partita aperta dal server (seed) e conteggio del giorno UTC per il tetto dei premi. */
@@ -46,6 +49,11 @@ export type LotState = {
   owner: string;
   version: number;
   nowMs: number;
+  /** Le monete (#414): l'unica valuta. I salvataggi di prima (senza) li converte il server in lettura (`economy/cambio.ts`). */
+  monete: number;
+  /** La conversione del salvataggio vecchio, se c'è stata (per l'avviso al rientro). */
+  cambio?: CambioMonete;
+  /** Risorse di prima (Legno, Pietra, Perle): solo per il codice spento del giardino, non si vedono e non si spendono più. */
   resources: Resources;
   buildings: PlacedBuilding[];
   /** Edifici riposti nel magazzino dell'isola (#403): assente = []. */
@@ -103,7 +111,8 @@ export type ArenaLotto = { pending: { run: string; idx: number; startMs: number 
 export type TemplariLotto = {
   /** `classe`: l'eroe scelto nel menù d'ingresso (assente = senza eroe, come prima del menù); insieme gli eroi stanno nel log della squadra. */
   pending: { seed: number; subito: boolean; startMs: number; classe?: string; party?: { run: string; idx: number } } | null;
-  giorno: number; preso: Resources;
+  /** Monete prese oggi (#414; nei salvataggi di prima un oggetto di risorse: vale 0). */
+  giorno: number; preso: number;
   record: number; partite: number;
 };
 
@@ -151,10 +160,12 @@ export const missing = (have: Resources, cost: Resources): Resources => ({
 export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'posta' | 'tetto' | 'escrow' | 'cappello' | 'posizione' | 'partita'
   | 'missione' | 'firma' | 'traguardo' | 'faro'
   | 'peso' | 'equip' | 'perk' | 'materiale' | 'edificio' | 'livello_skill' | 'oggetto' | 'spedizione';
+/** Quanto manca: `monete` per tutto quello che si compra (#414); le risorse di prima solo nel codice spento. */
+export type Mancanza = Partial<Resources> & { monete?: number };
 export class EconomyError extends Error {
   code: EconomyErrorCode;
-  manca: Resources | undefined;
-  constructor(code: EconomyErrorCode, msg: string, manca?: Resources) {
+  manca: Mancanza | undefined;
+  constructor(code: EconomyErrorCode, msg: string, manca?: Mancanza) {
     super(msg);
     this.name = 'EconomyError';
     this.code = code;

@@ -128,6 +128,5 @@ test('koi: tocchi a caso e frame rotti non rompono niente (carpe dentro lo stagn
 });
 
 test('koi: l\'oro paga balance.solo più il premio extra del json', () => {
-  const p = soloPrize('oro', 'koi'), b = BALANCE.solo.premi.oro, x = CFG.premioExtra?.oro ?? {};
-  assert.deepEqual(p, { legno: b.legno + (x.legno ?? 0), pietra: b.pietra + (x.pietra ?? 0), perle: b.perle + (x.perle ?? 0) });
+  assert.equal(soloPrize('oro', 'koi'), BALANCE.solo.premi.oro + (CFG.premioExtra?.oro ?? 0));
 });

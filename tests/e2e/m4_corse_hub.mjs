@@ -293,7 +293,7 @@ export default async function (ctx) {
     });
 
     await ctx.test('gioco: porta della Spiaggia → scelta → gara (pilota automatico, il server la rigioca) → esito → di nuovo nell\'hub davanti alla porta', async () => {
-      const before = (await st()).lot.resources;
+      const before = (await st()).lot.monete;
       await hook('corseHubVai', 'spiaggia');
       // la scelta apre il palco, che carica l'avatar e fotografa i veicoli col pilota al volante: su GitHub (SwiftShader) servono più di 5 s
       await ctx.waitState(page, (s) => s.corse.scelta === true, 30000);
@@ -309,7 +309,7 @@ export default async function (ctx) {
       const s = await st(), r = s.minigiochi.last;
       ctx.log(`esito ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
       assert(r.detail.giri === r.detail.tot && r.detail.pos >= 1, 'esito: ' + JSON.stringify(r));
-      if (r.premiata) for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] >= before[k] + r.premio[k], `${k} non pagato`);
+      if (r.premiata) assert(r.lot.monete >= before + r.premio, 'monete non pagate');
       assert(s.corse.hub.aperto && !s.corse.active, 'sotto la scheda non c\'è l\'hub');
       numeri.gioco.esito = { medal: r.medal, detail: r.detail };
       await sleep(300);

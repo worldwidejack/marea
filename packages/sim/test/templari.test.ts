@@ -82,7 +82,7 @@ test('templari: morire costa la partita, l\'eroe fermo cade', () => {
 });
 
 test('templari: premio per ondata superata col tetto del giorno', () => {
-  assert.deepEqual(premioOndate(10), { legno: 150, pietra: 80, perle: 20 });
+  assert.equal(premioOndate(10), 10 * TEMPLARI.premio.perOndata);
   assert.deepEqual(premioOndate(99), premioOndate(TEMPLARI.premio.maxOndate));
   const now = 1_800_000_000_000;
   let lot = newLot('io', now);
@@ -92,14 +92,15 @@ test('templari: premio per ondata superata col tetto del giorno', () => {
   for (let i = 0; i < 6; i++) {
     lot = startTemplari(lot, 100 + i, now);
     const out = finishTemplari(lot, r(20), now);
-    lot = out.lot; tot += out.premio.legno;
+    lot = out.lot; tot += out.premio;
   }
-  assert.equal(tot, TEMPLARI.premio.tetto.legno);
+  assert.equal(tot, TEMPLARI.premio.tetto);
+  assert.equal(lot.monete, newLot('io', now).monete + TEMPLARI.premio.tetto);
   assert.equal(lot.templari!.record, 21);
   assert.equal(lot.templari!.partite, 6);
   // il giorno dopo si riparte
   lot = startTemplari(lot, 1, now + 86_400_000);
-  assert.equal(finishTemplari(lot, r(2), now + 86_400_000).premio.legno, 30);
+  assert.equal(finishTemplari(lot, r(2), now + 86_400_000).premio, TEMPLARI.premio.perOndata * 2);
 });
 
 test('il calice della Tempesta: serve la Tempesta aperta (Molo 2), poi resta nel lotto e apre l’isola; la seconda volta non cambia niente', () => {

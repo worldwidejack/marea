@@ -51,7 +51,7 @@ export default async function (ctx) {
       for (let i = 0; i < m.maxTicks && !m.result(s).done; i++) { const f = sim.quantize(gara.pilotaGara(s)); frames.push(f); m.step(s, f); }
       return { frames, r: m.result(s) };
     };
-    const premioDi = (medal) => { const p = { ...balance.solo.premi[medal] }; for (const [k, v] of Object.entries(CFG.premioExtra?.[medal] ?? {})) p[k] = (p[k] ?? 0) + v; return p; };
+    const premioDi = (medal) => balance.solo.premi[medal] + (CFG.premioExtra?.[medal] ?? 0); // monete (#414)
 
     await ctx.test('API: il server rigioca la gara del pilota automatico sulla pista scelta, medaglia dalla posizione, premio pagato', async () => {
       const st = await post('/api/solo/start', 'tokU', { minigame: 'corse', opzioni: { pista: 'spiaggia_lungomare', veicolo: 'auto' } });
@@ -164,13 +164,13 @@ export default async function (ctx) {
     });
 
     await ctx.test('telefono: il pilota automatico finisce la gara, il server rigioca, la scheda dice posizione e tempo; si torna nell\'hub e poi nel mondo', async () => {
-      const before = (await st()).lot.resources;
+      const before = (await st()).lot.monete;
       await hook('corseAuto', 12);
       await ctx.waitState(page, (s) => s.minigiochi.open === true, 150000);
       const s = await st(), r = s.minigiochi.last;
       ctx.log(`esito ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
       assert(r.detail.giri === r.detail.tot && r.detail.pos >= 1 && r.detail.pos <= 5, 'esito: ' + JSON.stringify(r));
-      if (r.premiata) for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] >= before[k] + r.premio[k], `${k} non pagato`);
+      if (r.premiata) assert(r.lot.monete >= before + r.premio, 'monete non pagate');
       const txt = await page.locator('#mzEsito').innerText();
       // la schermata dei risultati (#276): titolo, 5 righe (tu e 4 bot), la tua in giallo, il giro migliore
       const righe = await page.locator('#mzEsito .kr-riga').count(), mia = await page.locator('#mzEsito .kr-riga.tu .n').innerText();

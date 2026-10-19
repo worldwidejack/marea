@@ -1,4 +1,4 @@
-// M1-server: slot dei lotti (migrazione + invita.mjs), celle del template `lotto`, decorazioni e cappelli a Perle, sfide differite con posta
+// M1-server: slot dei lotti (migrazione + invita.mjs), celle del template `lotto`, decorazioni e cappelli a monete (#414), sfide differite con posta
 // alla Regata (replay lato server), rifiuto, scadenza con l'orologio di test, concorrenza, e il libro mastro in pari alla fine.
 // wrangler dev locale con `--var TEST_CLOCK:1`: l'header X-Test-Now-Offset sposta «adesso» in avanti (solo qui, mai in produzione).
 import fs from 'node:fs';
@@ -27,6 +27,7 @@ export default async function (ctx) {
   const islands = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/islands.json'), 'utf8'));
   const avatar = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/avatar.json'), 'utf8'));
   const balance = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/balance.json'), 'utf8'));
+  const decor = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/decor.json'), 'utf8'));
   const tpl = islands.find((i) => i.id === 'lotto');
   const cellsOf = (ch) => (tpl ? tpl.rows.flatMap((row, z) => [...row].flatMap((c, x) => (c === ch ? [[x, z]] : []))) : []);
 
@@ -68,6 +69,7 @@ export default async function (ctx) {
         assert(l.resources[k] >= 0, `${what}: ${l.owner} ${k} negativo`);
         tot.have += have; tot.should += should;
       }
+      for (const l of lots) { const m = l.ledger.monete ?? { generated: 0, spent: 0 }; assert(l.monete >= 0 && l.monete === m.generated - m.spent, `${what}: ${l.owner} monete ${l.monete} ≠ ${m.generated} − ${m.spent}`); }
       assert(tot.have === tot.should, `${what}: globale ${tot.have} ≠ ${tot.should}`);
       return lots;
     };
@@ -123,19 +125,20 @@ export default async function (ctx) {
       }
       const r4 = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: slot(0) });
       assert(r4.status === 200 && r4.body.construction?.building === 'tavolo', 'tavolo non avviato: ' + JSON.stringify(r4.body).slice(0, 200));
-      const r5 = await post('/api/lot/decor', 'tokA', { decor: 'barile', cell: tpl ? cellsOf('g')[0] : [9, 9], rot: 1 });
-      assert(r5.status === 409 && r5.body.manca?.perle === 5, 'decor senza Perle: ' + JSON.stringify(r5.body));
+      const caro = decor.find((d) => !d.mercante && d.monete > balance.monete.partenza);
+      const r5 = await post('/api/lot/decor', 'tokA', { decor: caro.id, cell: tpl ? cellsOf('g')[0] : [9, 9], rot: 1 });
+      assert(r5.status === 409 && r5.body.manca?.monete === caro.monete - balance.monete.partenza, 'decor senza monete: ' + JSON.stringify(r5.body));
       const r6 = await post('/api/lot/decor', 'tokA', { decor: 'nave_spaziale', cell: [1, 1], rot: 0 });
       assert(r6.status === 400, 'decorazione sconosciuta accettata');
     });
 
-    const paid = avatar.cappelli.findIndex((h) => h.perle > 0);
+    const paid = avatar.cappelli.findIndex((h) => h.monete > 0);
     const baseLook = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0 };
-    await ctx.test('cappelli: non posseduto → 400, senza Perle non si compra (409), i gratuiti vanno sempre', async () => {
+    await ctx.test('cappelli: non posseduto → 400, senza monete non si compra (409), i gratuiti vanno sempre', async () => {
       assert((await post('/api/look', 'tokA', { ...baseLook, cappello: paid })).status === 400, 'cappello non posseduto accettato');
       assert((await post('/api/look', 'tokA', { ...baseLook, cappello: 2 })).status === 200, 'cappello gratuito rifiutato');
       const r = await post('/api/look/hat', 'tokA', { cappello: paid });
-      assert(r.status === 409 && r.body.manca?.perle === avatar.cappelli[paid].perle, 'compra senza Perle: ' + JSON.stringify(r.body));
+      assert(r.status === 409 && r.body.manca?.monete === avatar.cappelli[paid].monete - balance.monete.partenza, 'compra senza monete: ' + JSON.stringify(r.body));
       assert((await post('/api/look/hat', 'tokA', { cappello: 1 })).status === 409, 'comprato un cappello gratuito');
     });
 
@@ -191,9 +194,16 @@ export default async function (ctx) {
       assert((await post(`/api/challenges/${main.id}/play`, 'tokB', { inputs: b.inputs })).status === 409, 'sfida chiusa rigiocata');
     });
 
-    await ctx.test('cappello comprato con le Perle vinte: poi /api/look lo accetta', async () => {
-      const need = avatar.cappelli[paid].perle;
-      if (resA.resources.perle < need) { ctx.warn('cappello', `A ha ${resA.resources.perle} Perle, ne servono ${need}: salto l’acquisto`); return; }
+    await ctx.test('cappello comprato con le monete vinte da solo: poi /api/look lo accetta', async () => {
+      const need = avatar.cappelli[paid].monete;
+      // le sfide pagano ancora le Perle di prima (spente, #414): le monete si vincono da soli
+      for (let i = 0; i < 10 && (await lot('tokA')).monete < need; i++) {
+        const st = await post('/api/solo/start', 'tokA', { minigame: 'regata' });
+        assert(st.status === 200, 'solo start: ' + JSON.stringify(st.body).slice(0, 200));
+        assert((await post('/api/solo/play', 'tokA', { inputs: race(st.body.seed, st.body.difficulty, false).inputs })).status === 200, 'solo play');
+      }
+      const m = (await lot('tokA')).monete;
+      if (m < need) { ctx.warn('cappello', `A ha ${m} monete, ne servono ${need}: salto l’acquisto`); return; }
       const r = await post('/api/look/hat', 'tokA', { cappello: avatar.cappelli[paid].id });
       assert(r.status === 200 && r.body.posseduti.includes(avatar.cappelli[paid].id), 'acquisto: ' + JSON.stringify(r.body).slice(0, 200));
       assert((await post('/api/look/hat', 'tokA', { cappello: paid })).status === 409, 'comprato due volte');

@@ -20,7 +20,7 @@ export default async function (ctx) {
   const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 90000 }).toString();
   const json = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
   const balance = json('balance.json');
-  const oroDi = (cfg) => { const o = { ...balance.solo.premi.oro }; for (const [k, v] of Object.entries(cfg.premioExtra?.oro ?? {})) o[k] += v; return o; };
+  const oroDi = (cfg) => balance.solo.premi.oro + (cfg.premioExtra?.oro ?? 0); // monete (#414)
   const ORO = { pinguini: oroDi(json('minigames/pinguini.json')), koi: oroDi(json('minigames/koi.json')) };
   const pages = [];
   let w = null;
@@ -123,13 +123,13 @@ export default async function (ctx) {
     });
 
     await ctx.test('Pinguini: l\'autopilota finisce, il server rigioca e paga l\'oro (con la Pietra in più)', async () => {
-      const before = (await st()).lot.resources;
+      const before = (await st()).lot.monete;
       await hook(page, 'pinguiniAuto', true);
       await ctx.waitState(page, (s) => s.minigiochi.open === true, 120000);
       const r = (await st()).minigiochi.last;
       ctx.log(`pinguini esito ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
       assert(r.medal === 'oro' && r.premiata && JSON.stringify(r.premio) === JSON.stringify(ORO.pinguini), 'esito: ' + JSON.stringify(r));
-      for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] >= before[k] + r.premio[k], `${k} non pagato`);
+      assert(r.lot.monete >= before + r.premio, 'monete non pagate');
       const txt = await page.locator('#mzEsito').innerText();
       assert(/ORO/.test(txt) && /3\/3 livelli/.test(txt), 'scheda: ' + txt);
       await sleep(300);

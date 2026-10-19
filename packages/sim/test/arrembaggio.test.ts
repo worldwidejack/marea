@@ -107,14 +107,14 @@ test('arrembaggio: input rotti (assi fuori scala, NaN, a che cambia ogni tick) n
   assert.throws(() => replay('arrembaggio', 1, 2, [[arrembaggio.maxTicks + 1, 0, 0, 1, 0]]));
 });
 
-test('arrembaggio: il posto sta sull\'Isola della Tempesta, a piedi; l\'oro dà Legno in più', () => {
+test('arrembaggio: il posto sta sull\'Isola della Tempesta, a piedi; l\'oro dà monete in più', () => {
   const arch = composeArchipelago(ARCHIPELAGO, ISLANDS);
   const p = arch.places.find((q) => q.island === C.isola);
   assert.ok(p?.tema, 'isola a tema');
   const [cx, cz] = C.posto;
   assert.ok(['.', 'g'].includes(arch.map.at(p.origin[0] + cx, p.origin[1] + cz)), 'cella camminabile');
-  const extra = C.premioExtra?.oro?.legno ?? 0;
+  const extra = C.premioExtra?.oro ?? 0;
   assert.ok(extra > 0);
-  assert.deepEqual(soloPrize('oro', 'arrembaggio'), { ...BALANCE.solo.premi.oro, legno: BALANCE.solo.premi.oro.legno + extra });
-  assert.deepEqual(soloPrize('argento', 'arrembaggio'), BALANCE.solo.premi.argento);
+  assert.equal(soloPrize('oro', 'arrembaggio'), BALANCE.solo.premi.oro + extra);
+  assert.equal(soloPrize('argento', 'arrembaggio'), BALANCE.solo.premi.argento);
 });

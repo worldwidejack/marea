@@ -124,21 +124,22 @@ export default async function (ctx) {
     await ctx.shot(page, '3_gioca');
 
     await ctx.test('GIOCA → gara (autopilot) → il server premia la medaglia; scheda con il premio; guida 4/8', async () => {
-      const before = (await st()).lot.resources;
+      const before = (await st()).lot.monete;
       await hook('regataAutopilot', 20);
       await page.locator('#mzPlay').click();
       await ctx.waitState(page, (s) => s.minigiochi.open === true, 60000);
       const s = await st(), r = s.minigiochi.last;
-      ctx.log(`esito ${r.medal} ${r.score} · premio ${JSON.stringify(r.premio)} · ${JSON.stringify(before)} → ${JSON.stringify(r.lot.resources)}`);
+      ctx.log(`esito ${r.medal} ${r.score} · premio ${JSON.stringify(r.premio)} · ${before} → ${r.lot.monete} monete`);
       assert(r.medal !== null && r.premiata, 'l\'autopilot deve prendere una medaglia premiata: ' + JSON.stringify(r));
       const prize = balance.solo.premi[r.medal];
       assert(JSON.stringify(r.premio) === JSON.stringify(prize), 'premio diverso da balance.solo');
-      for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] === before[k] + prize[k], `${k}: ${before[k]} + ${prize[k]} ≠ ${r.lot.resources[k]}`);
+      assert(r.lot.monete === before + prize, `monete: ${before} + ${prize} ≠ ${r.lot.monete}`);
       assert(/\+\d+/.test(await page.locator('#mzEsito').innerText()), 'la scheda non mostra il premio');
       await ctx.shot(page, '4_esito');
       await page.locator('#mzEsito [data-act="ok"]').click();
       await ctx.waitState(page, (s) => s.guida.current === 'costruisci' && s.minigiochi.open === false, 5000);
-      await ctx.waitState(page, (s, o) => s.lot.resources.legno === o, 10000, r.lot.resources.legno); // la barra si aggiorna subito
+      await ctx.waitState(page, (s, o) => s.lot.monete === o, 10000, r.lot.monete); // il contatore si aggiorna subito
+      await ctx.waitState(page, (s, o) => Number(document.querySelector('.mz-chip[data-res="monete"] b')?.textContent ?? -1) === o, 10000, r.lot.monete).catch(() => assert(false, 'il contatore delle monete non segue il lotto'));
     });
     await ctx.shot(page, '5_costruisci');
 

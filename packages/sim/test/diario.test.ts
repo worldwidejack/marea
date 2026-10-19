@@ -6,6 +6,7 @@ import { DIARIO, ISOLE_DIARIO, PESCI_DIARIO, TRAGUARDI, validateDiario } from '@
 import { validateContent } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
+import { checkMonete } from '../src/economy/monete.ts';
 import { daRiscuotere, diarioOf, isolaValida, progresso, registraDiscesa, registraPartita, registraVisti, riscuotiTraguardo, scegliTitolo, titoloDi, traguardiOf } from '../src/economy/diario.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
@@ -20,12 +21,12 @@ const CTX = { amici: 2 };
 const t = (id: string) => TRAGUARDI.find((x) => x.id === id)!;
 const stato = (lot: LotState, id: string) => traguardiOf(lot, CTX).find((x) => x.id === id)!;
 
-test('diario: contenuti validi, minigiochi del diario = minigiochi registrati, traguardi ~20 con premi 5-30 Perle', () => {
+test('diario: contenuti validi, minigiochi del diario = minigiochi registrati, traguardi ~20 con premi 15-90 monete', () => {
   assert.deepEqual(validateDiario(), []);
   assert.deepEqual(validateContent(), []);
   assert.deepEqual(DIARIO.minigiochi.map((m) => m.id).sort(), Object.keys(MINIGAMES).sort(), 'ogni minigioco ha la sua riga nella pagina Medaglie');
   assert.ok(TRAGUARDI.length >= 18 && TRAGUARDI.length <= 26, `${TRAGUARDI.length} traguardi`);
-  assert.ok(TRAGUARDI.every((x) => x.perle >= 5 && x.perle <= 30));
+  assert.ok(TRAGUARDI.every((x) => x.monete >= 15 && x.monete <= 90));
   assert.ok(ISOLE_DIARIO.some((i) => i.id === 'porto') && !ISOLE_DIARIO.some((i) => i.id === 'lotto'));
   assert.equal(titoloDi('pescatore'), 'Pescatore');
   assert.equal(titoloDi('boh'), null);
@@ -109,14 +110,15 @@ test('progresso dei traguardi: conteggi, «tutti» sul catalogo, amici dal conte
   assert.equal(stato(registraDiscesa(newLot('dan', T0)), 'speleologo').compiuto, true);
 });
 
-test('RISCUOTI: paga le Perle una volta sola, libro mastro in pari; non compiuto o sconosciuto = errore; poi il titolo', () => {
+test('RISCUOTI: paga le monete una volta sola, libro mastro in pari; non compiuto o sconosciuto = errore; poi il titolo', () => {
   let lot = registraPartita(newLot('ada', T0), 'pesca', 'bronzo', { sardina: 1 });
   assert.throws(() => riscuotiTraguardo(lot, 'pescatore', T0, CTX), (e: unknown) => e instanceof EconomyError && e.code === 'traguardo' && /1 su 10/.test(e.message));
   assert.throws(() => riscuotiTraguardo(lot, 'boh', T0, CTX), (e: unknown) => e instanceof EconomyError && e.code === 'sconosciuto');
   assert.throws(() => scegliTitolo(lot, 'primo_pesce'), (e: unknown) => e instanceof EconomyError && e.code === 'traguardo');
   const r = riscuotiTraguardo(lot, 'primo_pesce', T0, CTX);
-  assert.deepEqual(r.premio, { legno: 0, pietra: 0, perle: t('primo_pesce').perle });
-  assert.equal(r.lot.resources.perle, lot.resources.perle + t('primo_pesce').perle);
+  assert.equal(r.premio, t('primo_pesce').monete);
+  assert.equal(r.lot.monete, lot.monete + t('primo_pesce').monete);
+  assert.equal(checkMonete([r.lot]), null);
   assert.equal(r.traguardo.riscosso, true);
   assert.equal(checkInvariant([r.lot], { legno: 0, pietra: 0, perle: 0 }), null);
   assert.throws(() => riscuotiTraguardo(r.lot, 'primo_pesce', T0, CTX), (e: unknown) => e instanceof EconomyError && /già riscosso/.test(e.message));

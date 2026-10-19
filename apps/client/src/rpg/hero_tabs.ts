@@ -36,7 +36,7 @@ export function renderPg(v: View, out: HTMLElement): void {
   out.appendChild(stat('Difesa', fmtN(d.difesa)));
   if (d.malus > 0) out.appendChild(stat('Lentezza armatura', `−${Math.round(d.malus * 100)} %`));
   out.appendChild(sec('Borsa'));
-  out.appendChild(stat('Monete', String(h.monete), PAL.giallo));
+  out.appendChild(stat('Monete', String(v.lot.monete), PAL.giallo));
   if (h.discese) out.appendChild(stat('Spedizioni', h.morti ? `${h.discese} (${h.morti} finite male)` : String(h.discese)));
 }
 

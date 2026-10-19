@@ -15,7 +15,7 @@ export function newHero(): HeroState {
   for (const s of SKILLS) skill[s] = { lv: RPG.livelli.skillIniziale, xp: 0 };
   return {
     v: 1, livello: 1, xp: 0, scelte: 0, punti: { vita: 0, magicka: 0, stamina: 0 }, perkPunti: 0, perk: [], skill,
-    inv: { ...P.inv }, equip: { ...P.equip } as HeroState['equip'], magie: [...P.magie], monete: P.monete, usura: {}, discese: 0, morti: 0,
+    inv: { ...P.inv }, equip: { ...P.equip } as HeroState['equip'], magie: [...P.magie], usura: {}, discese: 0, morti: 0,
   };
 }
 /** Il personaggio del lotto (lot.hero ?? newHero()). */

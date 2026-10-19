@@ -13,7 +13,7 @@ export type PortoPosto = { nome: string; cartello: string; at: [number, number];
 /** `contrabbando`: banco del Contrabbandiere accanto alla Grotta (GDR: monete, merce in rpg/balance.json `contrabbando`). */
 export type GenteDef = { posti: { mercante: PortoPosto; bacheca: PortoPosto; contrabbando: PortoPosto }; gente: PersonaPorto[] };
 /** Un tipo di missione: `testo` con {n}; `n` = [min, max] a passi di `passo`; `gruppo`: due tipi dello stesso gruppo non escono lo stesso giorno. */
-export type MissioneTipoDef = { tipo: string; testo: string; n: [number, number]; passo: number; gruppo?: string; premio: Resources };
+export type MissioneTipoDef = { tipo: string; testo: string; n: [number, number]; passo: number; gruppo?: string; monete: number };
 export type MissioniDef = { alGiorno: number; tipi: MissioneTipoDef[] };
 
 export const GENTE = gente as unknown as GenteDef;
@@ -42,7 +42,7 @@ export function validatePorto(): string[] {
     tipi.add(t.tipo);
     if (!(MISSIONE_TIPI as readonly string[]).includes(t.tipo)) errs.push(`missioni: tipo ${t.tipo} che il server non sa contare`);
     if (!(t.n[0] >= 1 && t.n[1] >= t.n[0] && t.passo >= 1)) errs.push(`missioni ${t.tipo}: n o passo non validi`);
-    if (!(['legno', 'pietra', 'perle'] as const).every((k) => Number.isInteger(t.premio[k]) && t.premio[k] >= 0)) errs.push(`missioni ${t.tipo}: premio non valido`);
+    if (!(Number.isInteger(t.monete) && t.monete > 0)) errs.push(`missioni ${t.tipo}: premio in monete non valido`);
   }
   const gruppi = new Set(MISSIONI.tipi.map((t) => t.gruppo ?? t.tipo));
   if (gruppi.size < MISSIONI.alGiorno) errs.push(`missioni: ${gruppi.size} gruppi per ${MISSIONI.alGiorno} missioni al giorno`);

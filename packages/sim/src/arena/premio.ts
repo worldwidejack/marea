@@ -1,10 +1,10 @@
 // Il duello dell'Arena nel lotto (docs/ARENA.md §6): il DO Arena apre il duello nel lotto di ciascuno (startArena) e a fine partita, con
 // l'esito che ha calcolato lui rigiocando il log, lo chiude (finishArena): monete del personaggio per la partita vinta o persa, entro il
-// tetto del giorno UTC; pareggio e resa niente. Il bilanciamento dei dungeon non cambia: si toccano solo HeroState.monete e LotState.arena.
+// tetto del giorno UTC; pareggio e resa niente. Il bilanciamento dei dungeon non cambia: si toccano solo le monete del lotto (#414) e LotState.arena.
 import { ARENA } from '@marea/content/arena.ts';
 import { advance } from '../economy/advance.ts';
+import { guadagna } from '../economy/monete.ts';
 import type { ArenaLotto, LotState } from '../economy/types.ts';
-import { heroOf } from '../rpg/hero.ts';
 
 const DAY = 86_400_000;
 const NESSUNO: ArenaLotto = { pending: null, giorno: 0, preso: 0, vinte: 0, perse: 0, pari: 0 };
@@ -31,12 +31,12 @@ export function finishArena(lot0: LotState, run: string, ruolo: ArenaRuolo, nowM
   if (!a.pending || a.pending.run !== run) return { lot: lot0, premio: 0, pieno: 0, tetto: false };
   const P = ARENA.premio, pieno = ruolo === 'vinta' ? P.vinta : ruolo === 'persa' ? P.persa : 0;
   const premio = Math.max(0, Math.min(pieno, P.tetto - a.preso));
-  const lot = advance(lot0, nowMs), h = heroOf(lot);
+  const lot = advance(lot0, nowMs);
   return {
     premio, pieno, tetto: premio < pieno,
-    lot: {
-      ...lot, version: lot.version + 1, hero: { ...h, monete: h.monete + premio },
+    lot: guadagna({
+      ...lot, version: lot.version + 1,
       arena: { pending: null, giorno: a.giorno, preso: a.preso + premio, vinte: a.vinte + (ruolo === 'vinta' ? 1 : 0), perse: a.perse + (ruolo === 'persa' || ruolo === 'arreso' ? 1 : 0), pari: a.pari + (ruolo === 'pari' ? 1 : 0) },
-    },
+    }, premio),
   };
 }

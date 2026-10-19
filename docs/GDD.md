@@ -18,13 +18,13 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 1. **Entri** dal tuo link → sei sul molo della tua isola, la camera diorama la mostra tutta.
 2. **Raccogli**: gli edifici hanno accumulato risorse nel loro deposito (tap sull'edificio → volano nel Magazzino). Feed: «Marco ti ha sfidato alla Regata», «hai vinto 40 Legno».
 3. **Costruisci**: nuovo edificio o miglioramento (spesa immediata + timer), o piazzi una decorazione.
-4. **Minigiochi** (1-3): prendi la barca e vai dove sta il minigioco (la Regata al molo della Laguna); con una medaglia vinci Legno, Pietra e Perle. Le sfide differite con posta tornano dopo la prova con gli amici (vedi §7).
+4. **Minigiochi** (1-3): prendi la barca e vai dove sta il minigioco (la Regata al molo della Laguna); con una medaglia vinci monete (§5). Le sfide differite con posta tornano dopo la prova con gli amici (vedi §7).
 5. **Esci** con almeno un timer che finirà prima del prossimo rientro (il gioco lo dice: «la Cava finisce tra 6 h»).
 
 **Mentre eri via** (#86, 8 ott 2026): se mancavi da almeno **10 minuti** (`rientro.json`), all'ingresso una cartolina dice da quanto mancavi, quanto c'è nei depositi, il cantiere finito, chi ha firmato il tuo libro degli ospiti, le novità della campanella e le missioni nuove della Bacheca; **RACCOGLI TUTTO** svuota tutti i depositi nel Magazzino (fino al tetto). L'assenza la misura il server, da quando sei uscito.
 
 ## 3. Il mondo: l'arcipelago
-- **Borgo Marea** (Riccardo, 12 ott 2026, #237): il Porto è il centro di una città, **Borgo Marea**, con **30 case** (una per abitante, una città per server; il 31° arriva senza casa). Si nasce davanti alla porta di casa. Dentro la casa (stanza con il baule) la porta sul retro dà sul **giardino**: è l'isola personale di prima, con gli stessi edifici e la stessa produzione, ma non sta più nel mare (dalla città non si vede). Case e giardini degli altri si visitano in sola lettura. In piazza restano Mercante, Bacheca, Faro, Grotta e minigiochi: è lì che ci si incontra. Dal 13 ott 2026 (#265) è un borgo **a vicoli**, piccolo e fitto: attorno alla piazza un anello di via, tre rioni di case a schiera col lungomare dietro, slarghi con la fontana, lampioncini, festoni di lampadine, vasi di fiori e cassette della posta alle porte, siepi e alberi, e cinque paesani che girano per le vie. Sullo slargo della prima fontana c'è il **negozio dei mobili** (#265): ci entri, guardi i mobili sulle pedane e i campioni di pavimento e carta, compri in Perle; il mobile va nel magazzino di casa e lo posi con ARREDA. Le isole personali nel mare spariscono. **Un'isola sola** (Jack, 12 ott 2026, #247, pianta «ferro di cavallo»): la piazza del Porto al centro, due anelli di vie con cinque raggi e le case attorno; a sud resta aperta la baia col molo, e il **Grande Faro** sta in punta al braccio a sud-ovest, sulla bocca della baia.
+- **Borgo Marea** (Riccardo, 12 ott 2026, #237): il Porto è il centro di una città, **Borgo Marea**, con **30 case** (una per abitante, una città per server; il 31° arriva senza casa). Si nasce davanti alla porta di casa. Dentro la casa (stanza con il baule) la porta sul retro dà sul **giardino**: è l'isola personale di prima, con gli stessi edifici e la stessa produzione, ma non sta più nel mare (dalla città non si vede). Case e giardini degli altri si visitano in sola lettura. In piazza restano Mercante, Bacheca, Faro, Grotta e minigiochi: è lì che ci si incontra. Dal 13 ott 2026 (#265) è un borgo **a vicoli**, piccolo e fitto: attorno alla piazza un anello di via, tre rioni di case a schiera col lungomare dietro, slarghi con la fontana, lampioncini, festoni di lampadine, vasi di fiori e cassette della posta alle porte, siepi e alberi, e cinque paesani che girano per le vie. Sullo slargo della prima fontana c'è il **negozio dei mobili** (#265): ci entri, guardi i mobili sulle pedane e i campioni di pavimento e carta, compri in monete; il mobile va nel magazzino di casa e lo posi con ARREDA. Le isole personali nel mare spariscono. **Un'isola sola** (Jack, 12 ott 2026, #247, pianta «ferro di cavallo»): la piazza del Porto al centro, due anelli di vie con cinque raggi e le case attorno; a sud resta aperta la baia col molo, e il **Grande Faro** sta in punta al braccio a sud-ovest, sulla bocca della baia.
 - **Zone comuni** (tutti le vedono, nessuno le possiede): in V1 una sola zona vera, il **Porto** (villaggio con edifici e mood asiatico: lanterne, torii, moli di legno, insegne). Il **Distretto Neon** (cyberpunk leggero) e l'**Isola Selvaggia** (natura, scogliere, palme) esistono come **facciate** visibili dalla barca; diventano zone vere quando chi ci lavora le apre (Neon e Laguna sono di Riccardo, #25 #26).
 - **Isole a tema** (Jack, 7 ott 2026): ogni isola nuova ha un **tema** suo (contenuti e grafica), **minigiochi suoi** e un **modo suo per sbloccarla** (barca potenziata, livello del personaggio, un certo cappello senza il quale gli abitanti ti cacciano, una mappa…). Le prime quattro (#68, 8 ott 2026), lontane dal giro iniziale:
   - **Isola della Tempesta** (nord-est): scogli neri e scogliere, faro in rovina, relitti, cannoni e bandiere pirata; mare scuro, onde alte, pioggia, fulmini. La tempesta in mare ti respinge finché il **Molo** della tua isola non è al **livello 2**. Nella gola tra le due creste di roccia c'è l'ingresso della **Diga dei Disertori**, il dungeon più difficile del gioco (la prua di un galeone incastrata tra le rocce; `RPG.md` §2g).
@@ -33,7 +33,7 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
   - **Isola Giardino** (sud-ovest): ciliegi in fiore, tempio, torii e lanterne di pietra, stagno con le carpe koi e il ponticello rosso. Nascosta nella nebbia, dove la barca si perde e torna indietro, finché non hai la **mappa**: la regala la prima medaglia d'oro in un minigioco.
   - **Isola dei Templari** (sud, tra Giardino e Vulcano; isola di birbasan, 8 ott 2026): chiesa templare in rovina, borgo abbandonato, cimitero, accampamento pirata. Aperta a tutti (dal 10 ott 2026): si arriva, si entra in chiesa e si gioca; il **calice** nel relitto templare sotto il faro della Tempesta resta come storia. Non ha un minigioco ma una **modalità a ondate** di crociati zombie (§6, design in **`docs/TEMPLARI.md`**).
   - **Isola delle Corse** (nord-est, tra Ghiacci e Tempesta; Jack, 9 ott 2026, #155): prato rasato, anello d'asfalto, tribune, gomme, arco del via a scacchi. **Aperta a tutti** (sblocco `libera`). Il suo gioco è il **Gran Premio**: kart alla Mario Kart con la camera dietro, drift e turbo, 3 giri contro 4 bot (design in **`docs/CORSE.md`**). **Dove va** (intervista del 9 ott 2026, CORSE.md Parte A): l'isola diventa un'avventura completa alla Diddy Kong Racing, un posto strano dove tutto è diventato una corsa, con un hub aperto da girare col veicolo, 6 zone × 4 piste più i boss, 4 famiglie di veicoli (ruote, due ruote, acqua, scivoli e binari) più quelli buffi, pubblico di manichini e animali piloti. Il Gran Premio resta finché il circuito della Spiaggia non lo sostituisce.
-  - **Isola dell'Adrenalina** (nord-ovest, tra Selvaggia e Ghiacci; proposta di birbasan il 10 ott 2026, #189, con l'ok di Jack): una montagna sola, neve in cima, bosco a metà, scogliere sul mare, una **funivia** dal molo alla vetta. Ci sbarchi sempre, ma il guardiano della funivia ti fa salire solo dopo una **liberatoria** ironica (si firma una volta) e col **Casco** in testa (35 Perle); fino ad allora l'isola non si vede in mappa. I suoi giochi sono **discese brevi** (snowboard, bici downhill, lancio col paracadute) contro i fantasmi degli amici (§6, design in **`docs/ADRENALINA.md`**).
+  - **Isola dell'Adrenalina** (nord-ovest, tra Selvaggia e Ghiacci; proposta di birbasan il 10 ott 2026, #189, con l'ok di Jack): una montagna sola, neve in cima, bosco a metà, scogliere sul mare, una **funivia** dal molo alla vetta. Ci sbarchi sempre, ma il guardiano della funivia ti fa salire solo dopo una **liberatoria** ironica (si firma una volta) e col **Casco** in testa (105 monete); fino ad allora l'isola non si vede in mappa. I suoi giochi sono **discese brevi** (snowboard, bici downhill, lancio col paracadute) contro i fantasmi degli amici (§6, design in **`docs/ADRENALINA.md`**).
   - **Isola dell'Arena** (sud-est, tra Templari e Vulcano; di Riccardo, 17 ott 2026, #373, da confermare con Jack): un **colosseo** di pietra chiara che si vede dal mare, molo e viale con gli stendardi. Aperta a tutti. Non ha un minigioco ma il **PvP alla Brawl Stars** con le armi, le magie e le pozioni dei dungeon: duello 1v1 al meglio di 3 (§6, design in **`docs/ARENA.md`**).
   - **Isola della Difesa** (ovest, accanto al Porto; 18 ott 2026, #395): il tower defense a corsie alla Plants vs Zombies. Un mondo per zona dell'isola; il primo è **L'orto**: un casale da difendere, l'orto a 5 corsie davanti, la staccionata con l'arco e un mulino a vento che si vede dal mare. Aperta a tutti. Al cancello **DIFENDI L'ORTO** apre il gioco sopra il mondo (6 livelli + Sopravvivenza; design in **`docs/DIFESA.md`**).
   - Minigiochi propri (§6, tabella «Isole a tema»): **Ghiacci → Pinguini sul ghiaccio** (vicino agli igloo), **Giardino → Carpe koi** (sul ponticello rosso), **Tempesta → Arrembaggio** (cannone sul promontorio del faro), **Vulcano → Fuga dalla lava** (tra le capanne e il cratere). Il posto c'è (anche in bussola) solo quando l'isola è aperta.
@@ -43,7 +43,7 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
 - **Bordo del mondo** (#5): al bordo dell'arcipelago una corrente morbida riporta la barca verso le isole.
 - **Isole personali (lotti)**: una per amico, disposte attorno al Porto e alla Laguna, a **10-25 s di barca** (80-240 m) da entrambi. Vi si arriva in barca o con «vai a casa». Un lotto è una griglia di celle da 2 m con slot per edifici e decorazioni; il Molo è sempre costruito e fa da spawn.
 - **Barca**: il mezzo principale. Sali dal molo (tasto A vicino alla barca), guida arcade (accelerazione, virata, scia), scendi a qualsiasi molo. Anche a piedi sulle isole.
-- **La tua barca** (#107, 8 ott 2026): colore dello **scafo** (fasciame fuori e dentro) e della **vela** (una vela latina su un alberetto; di serie nessuna vela: la barca a remi di prima), e un **nome** di massimo 14 caratteri su una targa ai due fianchi. Si sceglie nell'editor (sezione Barca); 6 colori gratis, 6 **esclusivi del Mercante delle Perle** (§5), comprati una volta valgono per scafo e vela. Gli amici la vedono: quando navighi dov'è, quando sei a piedi o non ci sei **ormeggiata al molo della tua isola**. Due barche ferme non stanno mai una sopra l'altra: se uno scafo tocca la tua barca vuota, la tua si sposta al posto libero più vicino del molo (#6).
+- **La tua barca** (#107, 8 ott 2026): colore dello **scafo** (fasciame fuori e dentro) e della **vela** (una vela latina su un alberetto; di serie nessuna vela: la barca a remi di prima), e un **nome** di massimo 14 caratteri su una targa ai due fianchi. Si sceglie nell'editor (sezione Barca); 6 colori gratis, 6 **esclusivi del Mercante del Porto** (§5), comprati una volta valgono per scafo e vela. Gli amici la vedono: quando navighi dov'è, quando sei a piedi o non ci sei **ormeggiata al molo della tua isola**. Due barche ferme non stanno mai una sopra l'altra: se uno scafo tocca la tua barca vuota, la tua si sposta al posto libero più vicino del molo (#6).
 - **Camera**: dall'alto in diagonale (diorama), segue l'avatar, zoom 0,6-1,6. Stessa vista per costruire.
 - **Una mano** (#143, solo telefono e tablet, spenta di serie): nelle Impostazioni. Il joystick fisso sparisce e ne nasce uno dove appoggi il pollice; quando lo alzi resta lì, più chiaro, per **1, 2, 3 o 5 s** (si sceglie sotto l'interruttore, di serie 2): rimettendoci il dito sopra lo riprendi, altrove ne nasce uno nuovo. Vale ovunque (mondo, barca, gare, dungeon, Templari). Sul PC la voce non c'è.
 - **Ciclo giorno/notte**: sì, dalle Impostazioni (#54), acceso di serie (#59); un giro ogni 24 min, stessa ora per tutti.
@@ -59,10 +59,36 @@ Riferimenti: **Grepolis** (rientro quotidiano, timer, risorse), **Mario Party** 
   40 corsie: ogni 14 min ognuna fa nascere una nuvola col 90% (entro 1,5 min), che vive 9,5-12,5 min e nasce e si scioglie in 5 gradini da 8 s; ellisse allungata fino a 1,6 nel verso in cui va; il tempo del posto sale nel 30% esterno del raggio. Si muovono a 1,2 m/s più 2,2 m/s col vento pieno; il vento ha un livello ogni 6 min (0 / 0,4 / 1 con pesi 5 / 3 / 1,5) e un verso ogni ora (da nord-ovest ± 45°). Il campo (−150…870 × −150…1162 m) è un toro: chi esce da un lato rientra dall'altro, sciolto entro 100 m dal bordo. In un giorno, in un punto: sereno ~86% del tempo, grigia ~4,5%, pioggia ~4%, bianca ~3%, temporale ~2,5%; ~2,5 nuvole entro 200 m. **[scelta di Jack da fare]** variante B (`?nuvole=B`: 56 corsie, piove su tutta la nuvola, nuvole a lastre più alte): sereno ~80%, piove ~10%.
 
 ## 4. Chi sei: l'avatar
-Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 teste, 1,6 m), pochi poligoni, viso e vestiti dipinti a pixel. Personalizzazione V1: tono della pelle (6), capelli (8 tagli × 6 colori), vestito (6 colori), cappello (13: 3 gratis, 4 a Perle anche dall'editor (il quarto è il **Casco**, 35 Perle, dal 10 ott 2026: senza, la funivia dell'Adrenalina non ti fa salire), 6 **esclusivi del Mercante delle Perle** al Porto; colori dei capelli con nomi da capelli: nero corvino, castano scuro, castano, biondo miele, rosso fuoco, biondo platino). Emote (4) al posto della chat. Animazioni: idle, camminata, corsa, seduto (in barca), remata/timone.
+Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 teste, 1,6 m), pochi poligoni, viso e vestiti dipinti a pixel. Personalizzazione V1: tono della pelle (6), capelli (8 tagli × 6 colori), vestito (6 colori), cappello (13: 3 gratis, 4 a pagamento anche dall'editor (il quarto è il **Casco**, 105 monete, dal 10 ott 2026: senza, la funivia dell'Adrenalina non ti fa salire), 6 **esclusivi del Mercante del Porto**; colori dei capelli con nomi da capelli: nero corvino, castano scuro, castano, biondo miele, rosso fuoco, biondo platino). Emote (4) al posto della chat. Animazioni: idle, camminata, corsa, seduto (in barca), remata/timone.
 
 ## 5. Economia
-**Risorse**: **Legno** e **Pietra** (prodotte dall'isola, servono a costruire) e **Perle** (da minigiochi, wager, missioni della Bacheca e **traguardi del Diario**, spenti per ora: sbloccano cappelli e decorazioni esclusive; non si producono, non si comprano).
+**Una valuta sola: le monete** (Jack e gli amici, 18 ott 2026, #414, VISIONE §2). Si vincono nei minigiochi e nei format, si trovano nei dungeon, si spendono nelle botteghe e dai negozi del Borgo e del Porto. Legno, Pietra e Perle non ci sono più: i salvataggi di prima si convertono (sotto). Nell'HUD un contatore solo. Numeri in `balance.json` (`monete`, `solo`), nei json dei format e nei cataloghi; la taratura si verifica con `economy_30days.test.ts` (tre archetipi, sotto).
+
+| Da dove | Monete | Tetto |
+|---|---|---|
+| Minigiochi da solo (`balance.json` `solo`) | oro **30**, argento **15**, bronzo **8**, senza medaglia **2**; più il `premioExtra` del minigioco all'oro (Caccia alle perle +15, Lava e Arrembaggio e Corse +5, Snowboard +4, Koi e Pinguini +2) | le prime **10 partite al giorno** (giorno UTC), poi si gioca senza premio |
+| Bacheca del Porto (3 missioni al giorno) | 10-30 a missione (tabella sotto) | 3 al giorno |
+| Isola dei Templari (`templari.json` `premio`) | **5** per ondata superata, fino a 30 ondate | **150** al giorno |
+| Arena (`arena.json` `premio`) | vinta **30**, persa **10** | **150** al giorno |
+| Dungeon (`rpg/loot.json`) | dai nemici e dai forzieri, come prima | — |
+| Contrabbandiere | compra lo zaino a poco (RPG §6) | — |
+| Chi comincia | **20** (`monete.partenza`) | — |
+
+**Taratura** (`economy_30days.test.ts`, 30 giorni, a ogni visita 2-4 minigiochi con medaglie a caso, le missioni fatte, una partita ai Templari al giorno, 0-3 duelli): chi entra **2 volte al giorno** fa ~220 monete al giorno, **1 volta** ~160, **2 volte a settimana** ~40; nessun giorno passa i tetti. In un mese chi gioca ogni giorno compra tutti i cappelli e tre ampliamenti della casa, nessuno arriva alla casa più grande.
+
+**Cambio dei salvataggi di prima** (`economy/cambio.ts`, in lettura sul server, una volta sola): **1 Perla = 3 monete, 4 Legno = 1 moneta, 4 Pietra = 1 moneta** (`monete.cambio`, totale arrotondato giù). Diventano monete le risorse del lotto, gli **edifici spenti** del giardino (Segheria, Cava, Magazzino, Casa, Faro, Tavolo, Serra: quanto erano costati i livelli, il cantiere in corso e il deposito non raccolto) e le monete del personaggio. **Chi ha comprato tiene tutto**: cappelli, colori della barca, decorazioni, mobili, finiture, ampliamenti, equipaggiamento. Molo, Banco da Lavoro, Tavolo Alchemico e Forziere restano col loro livello (diventano la barca, il Fabbro, l'Alchimista e il baule della casa, VISIONE §2). Esempio vero, il lotto di Mino: 1200 Legno, 946 Pietra, 22 Perle, 10 edifici e 308 monete del personaggio → **1709 monete**.
+
+**Prezzi**: i cosmetici costano **3 volte le Perle di prima** (le monete arrivano da più posti: VISIONE §2). Niente acceleratori né monete a pagamento: **mai soldi veri**.
+
+| Cosa | Prezzo |
+|---|---|
+| Decorazioni (20, 8 esclusive) | 15-135 monete; si comprano dal Mercante del Porto; sulla tua isola si spostano, si girano di 90° e si **rivendono a metà prezzo** (per difetto, `balance.json` `decor.rimborso` 0,5) |
+| Mobili della casa (#265, #384, `mobili.json`: tutto il catalogo) | 45-540 monete. In casa tua: si comprano al negozio dei mobili del Borgo, **ma solo quelli in vetrina**: ogni giorno (mezzanotte di Roma, uguale per tutti) il mobiliere espone 6 mobili a terra e fino a 3 a parete pescati a caso da tutto il catalogo (un mobile nuovo entra da solo nel pool). Vanno nel magazzino, con ARREDA si posano davanti a te (a terra, si girano di 90°; o sul muro che guardi), si spostano e si rimettono via |
+| Pavimenti e carte da parati (#265, `borgo.json`) | 60-90 monete. Quello di serie gratis; gli altri si comprano una volta al negozio dei mobili e si scelgono con ARREDA. **Come i mobili, ruotano ogni giorno** (#393): il negozio espone 3 carte e 4 pavimenti a pagamento pescati a caso da tutti quelli di `borgo.json` (uguale per tutti, mezzanotte di Roma) e si compra solo quello che è esposto |
+| Ampliamenti della casa (#386, `borgo.json` `casa.livelli`) | Dal mobiliere del Borgo, **uno alla volta e in ordine**, istantanei e **molto cari**: la stanza passa da 7×6 a 9×7, 11×7 e 13×7 celle (livelli 1-3); poi una scala scende in una cantina di pietra 5×4 (4), la cantina diventa 11×6 (5), un'altra scala sale a un secondo piano 5×4 (6) che diventa 11×6 (7). Le scale si prendono camminandoci sopra; i mobili si posano in ogni stanza. Dopo l'ampliamento si cammina nella stanza nuova e i mobili a muro si riappendono al muro nuovo. Prezzi: 1) **550** — 2) **1100** — 3) **1800** — 4) **2500** — 5) **3200** — 6) **4200** — 7) **5500** (18.850 in tutto; prima Perle × 3 più Legno e Pietra al cambio) |
+
+### Giardino e risorse di prima (spenti, #414)
+Il giardino dietro la casa con gli edifici che producevano Legno e Pietra è **spento** (VISIONE §2): il codice resta per le prove e si toglie a parte (#414 passo 5). Le risorse di prima restano solo nel codice spento (edifici, Faro comune, sfide con posta) e non si vedono più. Com'era:
 
 | Edificio | Cosa fa | Costo L1 · L2 · L3 (Legno/Pietra) | Tempo L1 · L2 · L3 |
 |---|---|---|---|
@@ -73,66 +99,49 @@ Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 te
 | Casa | Slot cosmetici avatar 2 → 4 → 6 | 60/30 · 250/150 · 700/500 | 10 min · 2 h · 8 h |
 | Faro | +50 % produzione per 2 h dopo una vittoria (1 attivo) | 120/120 · 400/400 | 30 min · 3 h |
 | Tavolo delle Sfide | Wager max 50 → 150 → 400; sfide gratis/giorno 3 → 5 → 8 | 40/10 · 180/100 · 500/350 | 5 min · 1 h · 6 h |
-| Decorazioni (20, 8 esclusive) | Solo estetica, sulla sabbia/erba del lotto; si comprano dal Mercante delle Perle; sulla tua isola si spostano, si girano di 90° e si **rivendono a metà prezzo** (per difetto, `balance.json` `decor.rimborso` 0,5) | 5-45 Perle | istantanee |
-| Mobili della casa (#265, #384, `mobili.json`: tutto il catalogo) | In casa tua: si comprano al negozio dei mobili del Borgo, **ma solo quelli in vetrina**: ogni giorno (mezzanotte di Roma, uguale per tutti) il mobiliere espone 6 mobili a terra e fino a 3 a parete pescati a caso da tutto il catalogo (un mobile nuovo entra da solo nel pool). Vanno nel magazzino, con ARREDA si posano davanti a te (a terra, si girano di 90°; o sul muro che guardi), si spostano e si rimettono via | 15-180 Perle | istantanei |
-| Pavimenti e carte da parati (#265, `borgo.json`) | Quello di serie gratis; gli altri si comprano una volta al negozio dei mobili e si scelgono con ARREDA. **Come i mobili, ruotano ogni giorno** (#393): il negozio espone 3 carte e 4 pavimenti a pagamento pescati a caso da tutti quelli di `borgo.json` (uguale per tutti, mezzanotte di Roma) e si compra solo quello che è esposto. Parquet 25, Stuoia di bambù 20, Lastre di pietra 30; Righe marine 20, Muro di pietra 25, Perline di legno 25 e tutti gli altri | 20-30 Perle | istantanei |
-| Ampliamenti della casa (#386, `borgo.json` `casa.livelli`) | Dal mobiliere del Borgo, **uno alla volta e in ordine**, istantanei e **molto cari** (le Perle sono la parte che si suda): la stanza passa da 7×6 a 9×7, 11×7 e 13×7 celle (livelli 1-3); poi una scala scende in una cantina di pietra 5×4 (4), la cantina diventa 11×6 (5), un'altra scala sale a un secondo piano 5×4 (6) che diventa 11×6 (7). Le scale si prendono camminandoci sopra; i mobili si posano in ogni stanza. Dopo l'ampliamento si cammina nella stanza nuova e i mobili a muro si riappendono al muro nuovo. Legno e Pietra sopra 800 si pagano solo col Magazzino al livello 3 | Perle · Legno · Pietra: 1) 150 · 300 · 150 — 2) 300 · 500 · 300 — 3) 500 · 800 · 500 — 4) 700 · 1000 · 700 — 5) 900 · 1200 · 900 — 6) 1200 · 1400 · 1000 — 7) 1600 · 1500 · 1200 (5350 Perle in tutto) | istantanei |
 
-**Regole**
 - **Produzione pigra**: ogni edificio accumula nel suo deposito in base al tempo trascorso (`advance(lotto, oraServer)`): piena velocità per **10 ore**, poi al **25 %** fino a 110 ore (così chi entra due volte a settimana non resta fermo). Raccogliere sposta il deposito nel Magazzino, fino al suo tetto. Il server è l'unica autorità del tempo; il client non usa mai il suo orologio per l'economia.
 - **Costruire** = spesa immediata + timer; un solo cantiere alla volta in V1. Niente acceleratori a pagamento: **mai soldi veri**.
 - **Partenza**: Molo L1, 400 Legno, 160 Pietra, 0 Perle. Tetto base del deposito centrale senza Magazzino: 800 per risorsa. Nei primi 10 minuti si costruiscono Segheria e Cava e si scopre il Tavolo.
-- **Taratura**: tutti i numeri stanno in `packages/content/src/balance.json` e si verificano con `economy_30days.test.ts` su tre archetipi (chi entra 2 volte al giorno / 1 volta / 2 volte a settimana → dopo 30 giorni ~100 % / ~75 % / ~40 % degli edifici a L2, nessuno a L3 pieno).
-- **Dai minigiochi da solo** (`balance.json` → `solo`): il premio della medaglia arriva sempre, senza posta. Premiate le prime **10 partite al giorno** (giorno UTC), poi si gioca senza premio. Una medaglia attiva il Faro.
-
-| Medaglia | Legno | Pietra | Perle |
-|---|---|---|---|
-| Oro | 60 | 30 | 20 |
-| Argento | 30 | 15 | 10 |
-| Bronzo | 15 | 8 | 5 |
-| Nessuna | 0 | 0 | 2 |
-
-Un minigioco può dare qualcosa in più (`premioExtra` nel suo json): la **Caccia alle perle** all'oro dà **+10 Perle** (§6).
-
-- **Dalle sfide con posta** (spente per ora, §7): medaglia → Perle **5 / 10 / 20** (bronzo / argento / oro) e attiva il Faro. Chi perde una sfida prende comunque **2 Perle** (mai zero).
+- **Taratura**: era sugli edifici a L2 dopo 30 giorni; ora `economy_30days.test.ts` misura le monete al giorno (sopra).
+- **Dalle sfide con posta** (spente per ora, §7, risorse di prima): medaglia → Perle **5 / 10 / 20** (bronzo / argento / oro) e attiva il Faro. Chi perde una sfida prende comunque **2 Perle** (mai zero).
 
 ### Porto: Mercante, Bacheca e Gente (#63-#65, 8 ott 2026)
-- **Mercante delle Perle** (banco in piazza, a sinistra del Tavolo; Maestro Ishi accanto): vende tutti i cappelli a Perle, tutte le decorazioni e i colori esclusivi della barca (#107); le **esclusive** si comprano solo da lui. Un cappello si compra una volta (poi INDOSSA); una decorazione si posa sulla tua isola, nella cella libera di sabbia/erba più vicina a casa; poi la tocchi (o premi A vicino) e la **sposti** dove vuoi (sagoma verde/rossa sulle celle), la **ruoti** o la **rivendi** per metà delle Perle (#108). Prezzi (`avatar.json`, `decor.json`):
+- **Mercante del Porto** (banco in piazza, a sinistra del Tavolo; Maestro Ishi accanto): vende tutti i cappelli a pagamento, tutte le decorazioni e i colori esclusivi della barca (#107); le **esclusive** si comprano solo da lui. Un cappello si compra una volta (poi INDOSSA); una decorazione si posa sulla tua isola, nella cella libera di sabbia/erba più vicina a casa; poi la tocchi (o premi A vicino) e la **sposti** dove vuoi (sagoma verde/rossa sulle celle), la **ruoti** o la **rivendi** per metà del prezzo (#108). Prezzi in monete (`avatar.json`, `decor.json`):
 
-| Cappelli esclusivi | Perle | Decorazioni esclusive | Perle |
+| Cappelli esclusivi | Monete | Decorazioni esclusive | Monete |
 |---|---|---|---|
-| Cappello a cono | 20 | Ancora arrugginita | 15 |
-| Berretto da capitano | 30 | Carpa di carta | 18 |
-| Tricorno pirata | 45 | Bandiera pirata | 20 |
-| Polpo in testa | 60 | Lampione di pietra | 22 |
-| Corona di perle | 80 | Gong del porto | 25 |
-| Elmo da palombaro | 100 | Bonsai paziente | 30 |
-| | | Papera gigante | 35 |
-| | | Pagoda in miniatura | 45 |
+| Cappello a cono | 60 | Ancora arrugginita | 45 |
+| Berretto da capitano | 90 | Carpa di carta | 54 |
+| Tricorno pirata | 135 | Bandiera pirata | 60 |
+| Polpo in testa | 180 | Lampione di pietra | 66 |
+| Corona di perle | 240 | Gong del porto | 75 |
+| Elmo da palombaro | 300 | Bonsai paziente | 90 |
+| | | Papera gigante | 105 |
+| | | Pagoda in miniatura | 135 |
 
 Colori della barca (#107, `avatar.json` `barca`): gratis Legno (di serie), Tela, Rosso lanterna, Blu mare, Verde bosco, Giallo sole; esclusivi del Mercante (scheda BARCA, si comprano una volta e valgono per scafo e vela):
 
-| Colore esclusivo | Perle |
+| Colore esclusivo | Monete |
 |---|---|
-| Nero pirata | 15 |
-| Blu abisso | 15 |
-| Arancio tramonto | 20 |
-| Viola corsaro | 25 |
-| Rosa neon | 35 |
-| Ciano neon | 40 |
+| Nero pirata | 45 |
+| Blu abisso | 45 |
+| Arancio tramonto | 60 |
+| Viola corsaro | 75 |
+| Rosa neon | 105 |
+| Ciano neon | 120 |
 
 - **Bacheca delle missioni** (in piazza, a destra del Tavolo): **3 missioni al giorno** (giorno UTC), diverse per ognuno, mai due dello stesso gruppo; si fanno durante il giorno e si **riscuotono** alla Bacheca (una volta). Contano solo cose che il server vede (`missioni.json`):
 
-| Missione | Quanto | Premio (Legno / Pietra / Perle) |
+| Missione | Quanto | Monete |
 |---|---|---|
-| Raccogli Legno dalla tua isola | 40-120 (a 10) | 0 / 15 / 8 |
-| Raccogli Pietra dalla tua isola | 20-60 (a 10) | 30 / 0 / 8 |
-| Avvia un cantiere (costruisci o migliora) | 1 | 0 / 0 / 10 |
-| Gioca partite ai minigiochi | 2-4 | 20 / 10 / 8 |
-| Vinci una medaglia *(gruppo medaglie)* | 1 | 0 / 0 / 12 |
-| Vinci un oro *(gruppo medaglie)* | 1 | 0 / 0 / 20 |
-| Torna da una spedizione nel Mondo Sotterraneo | 1 | 0 / 10 / 15 |
-| Compra qualcosa dal Mercante | 1 | 20 / 0 / 6 |
+| Gioca partite ai minigiochi | 2-4 | 15 |
+| Vinci una medaglia *(gruppo medaglie)* | 1 | 20 |
+| Vinci un oro *(gruppo medaglie)* | 1 | 30 |
+| Torna da una spedizione nel Mondo Sotterraneo | 1 | 25 |
+| Compra qualcosa dal Mercante | 1 | 10 |
+
+Dal 18 ott 2026 (#414) via le missioni che non si possono più fare senza il giardino (raccogli Legno o Pietra, avvia un cantiere).
 
 - **Gente del Porto** (`gente.json`): Maestro Ishi (il Mercante), Gigi il Mozzo (sul viale: barca, Laguna, dungeon), Capitan Remo (passeggia in piazza: isole a tema, mappa, Tempesta), Nonna Pina (al molo: produzione, Bacheca, Mercante). Vicino premi A (o tocca il nome): 3 battute ironiche che spiegano il gioco ai nuovi.
 
@@ -141,17 +150,17 @@ Colori della barca (#107, `avatar.json` `barca`): gratis Legno (di serie), Tela,
 - **Traguardi e titoli: spenti per ora** (VISIONE §2, 18 ott 2026). Nel Diario non c'è la pagina dei Traguardi, sul libro niente numerino, niente avviso «traguardo compiuto», in testata e sopra le teste solo il nome (niente titolo). Il codice resta: il server continua a contarli nel lotto (e tiene i titoli già scelti, che nessuno vede), così riaccesi ritrovano tutto; `?traguardi=1` li riaccende per le prove e per i loro test.
 - Com'erano accesi (`traguardi.json`, 23): compiuto → **RISCUOTI** (una volta, il server verifica e paga) → il suo **titolo** si può mettere sotto il nome, sopra la testa (lo vedono gli amici). Avviso breve quando se ne compie uno, numerino sul libro.
 
-| Traguardo | Premio (Perle) | Titolo |
+| Traguardo | Premio (monete) | Titolo |
 |---|---|---|
-| Primo pesce · 10 pesci · 50 pesci | 5 · 10 · 20 | Mozzo · Pescatore · Re della lenza |
-| 6 specie · tutte le specie · un leggendario | 15 · 30 · 20 | Naturalista · Re dei pesci · Leggenda del mare |
-| 100 perle e conchiglie · una perla nera · tutti i tipi | 15 · 10 · 15 | Cercatore di perle · Palombaro · Collezionista |
-| Prima medaglia · primo oro · oro in ogni minigioco | 5 · 15 · 30 | Promessa · Campione · Leggenda di MAREA |
-| Ogni minigioco giocato · 50 partite | 15 · 20 | Tuttofare · Lupo di mare |
-| Segheria, Cava, Magazzino, Casa e Faro · Segheria L3 | 20 · 20 | Capomastro · Boscaiolo |
-| 5 animali · tutti gli animali | 10 · 20 | Amico degli animali · Sussurratore |
-| Tutte le isole · un amico · tutti gli amici | 15 · 5 · 15 | Esploratore · Buon vicino · Ospite d'onore |
-| 1 spedizione · 10 spedizioni nel Mondo Sotterraneo | 10 · 25 | Speleologo · Avventuriero |
+| Primo pesce · 10 pesci · 50 pesci | 15 · 30 · 60 | Mozzo · Pescatore · Re della lenza |
+| 6 specie · tutte le specie · un leggendario | 45 · 90 · 60 | Naturalista · Re dei pesci · Leggenda del mare |
+| 100 perle e conchiglie · una perla nera · tutti i tipi | 45 · 30 · 45 | Cercatore di perle · Palombaro · Collezionista |
+| Prima medaglia · primo oro · oro in ogni minigioco | 15 · 45 · 90 | Promessa · Campione · Leggenda di MAREA |
+| Ogni minigioco giocato · 50 partite | 45 · 60 | Tuttofare · Lupo di mare |
+| Segheria, Cava, Magazzino, Casa e Faro · Segheria L3 | 60 · 60 | Capomastro · Boscaiolo |
+| 5 animali · tutti gli animali | 30 · 60 | Amico degli animali · Sussurratore |
+| Tutte le isole · un amico · tutti gli amici | 45 · 15 · 45 | Esploratore · Buon vicino · Ospite d'onore |
+| 1 spedizione · 10 spedizioni nel Mondo Sotterraneo | 30 · 75 | Speleologo · Avventuriero |
 
 ### Porto tra amici: Tabellone dei record e Faro comune (#110 #111, 8 ott 2026) · Faro comune spento (18 ott 2026)
 - **Tabellone dei record** (prato a ovest della piazza, accanto al Mercante): per ogni minigioco da solo il **migliore di oggi** (giorno UTC) e il **migliore di sempre** tra gli amici, con nome, punteggio (tempo per la Regata, pacchi per le Consegne, ingorghi/livelli e mosse per Ingorgo e Pinguini, altrimenti punti) e medaglia. Lo scrive il server quando rigioca la partita; a pari punteggio resta chi c'era. Chi perde il record di sempre lo legge nella campanella («Luca ha battuto il tuo record alla Pesca»).
@@ -200,7 +209,7 @@ Punteggio («più alto vince»): Consegne = 1000 a pacco + 10 a secondo avanzato
 
 12 pesci: Sardina Pensierosa, Ciabatta Spaiata (non è un pesce, vale lo stesso), Ghiozzo Brontolone, Sgombro in Ritardo · Orata col Mutuo, Branzino Influencer, Granchio Burocrate · Pesce Palla Offeso, Polpo Multitasking · Tonno Pensionato, Pesce Lanterna Nostalgico, Pesce Spada Spuntato. Ogni mare ne ha 6 (almeno uno per rarità); le isole a tema avranno i loro (`minigames/pesca.json` → `mari`).
 
-- **Caccia alle perle** — in barca **ferma** su **acqua bassa** vicino a una costa (a più di 8 m da un molo, dove la A fa scendere a terra) compare **TUFFATI** (tasto T). Schermata a pixel di profilo: la corrente ti porta verso destra, **tieni premuto = nuoti giù, lascia = risali** (un dito, stile «Flappy» morbido). 60 s: prendi perle bianche, conchiglie, perle **rosa** nelle ostriche (si aprono quando arrivi) e perle **nere** in fondo ai crepacci; **meduse** e **granchi** ti tolgono un quarto d'aria (non si muore). L'aria dura 7 s sott'acqua e si ricarica in 1 s a galla o nelle bolle; senz'aria risali da solo e perdi tempo. Il fondale nasce dal seed (≈ 57 perle bianche, 11 conchiglie, 4 rosa, 3 nere, 6 bolle: ≈ 1400 punti in tutto). Medaglie in **frazione dei punti di tutto il fondale**: **oro 55 %, argento 35 %, bronzo 15 %** (il pilota di riferimento fa 60-87 %; chi tocca a caso prende il bronzo, chi resta a galla niente). L'oro dà **10 Perle in più** del premio di §5 (`premioExtra` in `minigames/perle.json`): oro = 60 Legno, 30 Pietra, **30 Perle**.
+- **Caccia alle perle** — in barca **ferma** su **acqua bassa** vicino a una costa (a più di 8 m da un molo, dove la A fa scendere a terra) compare **TUFFATI** (tasto T). Schermata a pixel di profilo: la corrente ti porta verso destra, **tieni premuto = nuoti giù, lascia = risali** (un dito, stile «Flappy» morbido). 60 s: prendi perle bianche, conchiglie, perle **rosa** nelle ostriche (si aprono quando arrivi) e perle **nere** in fondo ai crepacci; **meduse** e **granchi** ti tolgono un quarto d'aria (non si muore). L'aria dura 7 s sott'acqua e si ricarica in 1 s a galla o nelle bolle; senz'aria risali da solo e perdi tempo. Il fondale nasce dal seed (≈ 57 perle bianche, 11 conchiglie, 4 rosa, 3 nere, 6 bolle: ≈ 1400 punti in tutto). Medaglie in **frazione dei punti di tutto il fondale**: **oro 55 %, argento 35 %, bronzo 15 %** (il pilota di riferimento fa 60-87 %; chi tocca a caso prende il bronzo, chi resta a galla niente). L'oro dà **15 monete in più** del premio di §5 (`premioExtra` in `minigames/perle.json`): oro = 60 Legno, 30 Pietra, **30 Perle**.
 
 | Cosa | Punti | Dove |
 |---|---|---|

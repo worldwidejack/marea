@@ -34,7 +34,7 @@ export default async function (ctx) {
     const st = await ctx.getState(page);
     const i = st.temi.isole.find((x) => x.id === 'adrenalina');
     assert(i && !i.aperta && i.barriera === 0, `isola: ${JSON.stringify(i)}`);
-    assert(/guardiano della funivia.*liberatoria/.test(i.motivo) && /Casco \(35 Perle\)/.test(i.manca), `motivo: ${i.motivo} · ${i.manca}`);
+    assert(/guardiano della funivia.*liberatoria/.test(i.motivo) && /Casco \(105 monete\)/.test(i.manca), `motivo: ${i.motivo} · ${i.manca}`);
     const c0 = st.temi.cacce;
     await hook(page, 'goto', 'adrenalina');
     await page.waitForTimeout(3500);
@@ -64,7 +64,7 @@ export default async function (ctx) {
     await page.click('#mzFunivia');
     await ctx.waitState(page, (st) => st.adrenalina.liberatoria === true, 5000);
     const testo = await page.textContent('#mzLiberatoria');
-    assert(testo.includes('ossa rotte, orgoglio ferito e Perle perse'), 'liberatoria senza il testo');
+    assert(testo.includes('ossa rotte, orgoglio ferito e monete perse'), 'liberatoria senza il testo');
     await ctx.shot(page, 'liberatoria');
     await page.click('#mzLiberatoria [data-act=firma]');
     await ctx.waitState(page, (st) => st.adrenalina.firmata === true && st.adrenalina.liberatoria === false && st.adrenalina.firme === 1, 5000);

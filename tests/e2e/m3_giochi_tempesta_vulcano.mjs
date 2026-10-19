@@ -27,9 +27,7 @@ export default async function (ctx) {
   const balance = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/balance.json'), 'utf8'));
   const oroDi = (id) => {
     const cfg = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, `packages/content/src/minigames/${id}.json`), 'utf8'));
-    const oro = { ...balance.solo.premi.oro };
-    for (const [k, v] of Object.entries(cfg.premioExtra?.oro ?? {})) oro[k] += v;
-    return oro;
+    return balance.solo.premi.oro + (cfg.premioExtra?.oro ?? 0); // monete (#414)
   };
   const pages = [];
   let dev = null, log = '';
@@ -143,14 +141,14 @@ export default async function (ctx) {
       });
 
       await ctx.test(`${g.id}: l'autopilota finisce la partita, il server rigioca e paga l'oro col premio extra; la scheda dice cosa hai fatto`, async () => {
-        const before = (await st()).lot.resources;
+        const before = (await st()).lot.monete;
         await hook(g.id + 'Auto', true);
         await ctx.waitState(page, (s) => s.minigiochi.open === true, 120000);
         const s = await st(), r = s.minigiochi.last;
         ctx.log(`esito ${g.id} ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
         const oro = oroDi(g.id);
         assert(r.medal === 'oro' && r.premiata && JSON.stringify(r.premio) === JSON.stringify(oro), 'esito: ' + JSON.stringify(r));
-        for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] >= before[k] + r.premio[k], `${k} non pagato`);
+        assert(r.lot.monete >= before + r.premio, 'monete non pagate');
         const txt = await page.locator('#mzEsito').innerText();
         assert(/ORO/.test(txt) && /\d+ punti/.test(txt) && (g.id === 'lava' ? /pezzi/.test(txt) : /navi affondate/.test(txt)), 'scheda: ' + txt);
         await sleep(300);

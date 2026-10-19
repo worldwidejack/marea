@@ -1,6 +1,6 @@
 {
   "posti": {
-    "mercante": { "nome": "Mercante delle Perle", "cartello": "MERCANTE", "at": [40, 43.4], "rot": 3.1416, "fronte": [40, 44.9], "raggio": 3.2 },
+    "mercante": { "nome": "Mercante del Porto", "cartello": "MERCANTE", "at": [40, 43.4], "rot": 3.1416, "fronte": [40, 44.9], "raggio": 3.2 },
     "bacheca": { "nome": "Bacheca delle missioni", "cartello": "BACHECA", "at": [48, 43.6], "rot": 3.1416, "fronte": [48, 44.9], "raggio": 3.2 },
     "contrabbando": { "nome": "Banco del Furetto", "cartello": "CONTRABBANDO", "at": [53.2, 38.4], "rot": 2.6, "fronte": [52.4, 39.7], "raggio": 2.6 }
   },
@@ -12,8 +12,8 @@
       "battute": [
         "Benvenuto! Tutto quello che vedi è in vendita. Anche il banco, ma costa troppo.",
         "Cappelli esclusivi, decorazioni esclusive. Esclusive perché le vendo solo io.",
-        "Non accetto Legno, non accetto Pietra. Accetto Perle, complimenti e Perle.",
-        "Le Perle si vincono ai minigiochi e alla Bacheca. Io aspetto qui. Sono bravissimo ad aspettare."
+        "Accetto monete, complimenti e monete. In quest'ordine.",
+        "Le monete si vincono ai minigiochi, alla Bacheca, nell'Arena, dai Templari. Io aspetto qui. Sono bravissimo ad aspettare."
       ]
     },
     {
@@ -24,7 +24,7 @@
         "Psst. Sì, tu. Roba buona, appena uscita dalla Grotta. Non chiedere da dove.",
         "Ogni giorno un'arma, un'armatura, un materiale e un ingrediente. A mezzanotte cambio tutto e mi scordo cosa avevo.",
         "Ti compro tutto quello che trovi lì sotto. A prezzo d'amico. Amico mio, non tuo.",
-        "Monete sonanti, niente Perle. Le Perle portale a Maestro Ishi, che ha il banco pulito."
+        "Monete sonanti, niente domande. Per i cappelli c'è Maestro Ishi, che ha il banco pulito."
       ]
     },
     {
@@ -32,7 +32,7 @@
       "look": { "pelle": 2, "capelli": 1, "coloreCapelli": 4, "vestito": 2, "cappello": 8 },
       "giro": [[43.4, 48.6], [43.4, 54.6]], "velocita": 1.1, "raggio": 3,
       "battute": [
-        "Ehi, nuovo! Questo è il Porto. Qui non si paga l'affitto: si paga in Perle, e le Perle non crescono sugli alberi.",
+        "Ehi, nuovo! Questo è il Porto. Qui non si paga l'affitto: si paga in monete, e le monete non crescono sugli alberi.",
         "La barca sta al molo: avvicinati e premi A. Con la barca vai alle isole degli amici e alla Laguna, dove c'è la Regata.",
         "Sotto alcune isole ci sono i dungeon. Io ci sono sceso una volta. Ne sono uscito con un pugnale arrugginito e gli incubi."
       ]
@@ -52,9 +52,9 @@
       "look": { "pelle": 4, "capelli": 3, "coloreCapelli": 5, "vestito": 3, "cappello": 3 },
       "giro": [[46.2, 56.4]], "velocita": 0, "raggio": 3,
       "battute": [
-        "Ciao tesoro. La tua isola lavora anche quando dormi: Segheria e Cava riempiono i depositi, tu passi e raccogli.",
+        "Ciao tesoro. Le botteghe del Borgo cambiano la vetrina ogni giorno: passa a guardare, che il bello finisce presto.",
         "Alla Bacheca in piazza ci sono tre missioni nuove ogni giorno. Le fai, torni e premi RISCUOTI. Così si campa.",
-        "Le Perle spendile dal Mercante. Ishi è onesto, eh. Per essere un mercante."
+        "Le monete spendile dal Mercante. Ishi è onesto, eh. Per essere un mercante."
       ]
     },
     {

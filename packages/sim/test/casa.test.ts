@@ -9,33 +9,37 @@ import { decorCellError, fitToTemplate, lotTemplate } from '../src/economy/cells
 import { checkInvariant } from '../src/economy/ledger.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
+import { checkMonete } from '../src/economy/monete.ts';
+import { conMonete, senzaMonete } from './monete_util.ts';
 
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const T = lotTemplate()!;
 const ST = BORGO.stanza, [X0, Z0, X1, Z1] = ST.pavimento;
-function ricco(perle: number): LotState {
+/** Un lotto con `monete` monete (e le risorse di prima per costruire il baule, codice spento). */
+function ricco(monete: number): LotState {
   const l = newLot('a', 0, T);
-  return { ...l, resources: { ...l.resources, legno: 5000, pietra: 5000, perle }, ledger: { ...l.ledger, generated: { ...l.ledger.generated, legno: l.ledger.generated.legno + 5000 - l.resources.legno, pietra: l.ledger.generated.pietra + 5000 - l.resources.pietra, perle } } };
+  return conMonete(senzaMonete({ ...l, resources: { ...l.resources, legno: 5000, pietra: 5000 }, ledger: { ...l.ledger, generated: { ...l.ledger.generated, legno: l.ledger.generated.legno + 5000 - l.resources.legno, pietra: l.ledger.generated.pietra + 5000 - l.resources.pietra } } }), monete);
 }
 const terra = MOBILI.find((m) => m.posto === 'terra')!, parete = MOBILI.find((m) => m.posto === 'parete')!;
 
 test('catalogo: almeno tre mobili, almeno uno a terra e uno a parete; finiture di serie gratis', () => {
   assert.ok(MOBILI.length >= 3);
   assert.ok(terra && parete);
-  assert.equal(BORGO.pavimenti[0]!.perle ?? 0, 0);
-  assert.equal(BORGO.carte[0]!.perle ?? 0, 0);
+  assert.equal(BORGO.pavimenti[0]!.monete ?? 0, 0);
+  assert.equal(BORGO.carte[0]!.monete ?? 0, 0);
   assert.ok(BORGO.pavimenti.length >= 4 && BORGO.carte.length >= 4);
 });
 
-test('compra: Perle spese, il mobile va nel magazzino; senza Perle errore e niente cambia', () => {
-  let lot = ricco(terra.perle + parete.perle);
+test('compra: monete spese, il mobile va nel magazzino; senza monete errore e niente cambia', () => {
+  let lot = ricco(terra.monete + parete.monete);
   lot = compraMobile(lot, terra.id, 1000);
   lot = compraMobile(lot, parete.id, 1000);
-  assert.equal(lot.resources.perle, 0);
+  assert.equal(lot.monete, 0);
   assert.deepEqual(lot.casa?.magazzino, { [terra.id]: 1, [parete.id]: 1 });
   assert.throws(() => compraMobile(lot, terra.id, 1000), isErr('risorse'));
   assert.throws(() => compraMobile(lot, 'inesistente', 1000), isErr('sconosciuto'));
   assert.equal(checkInvariant([lot]), null);
+  assert.equal(checkMonete([lot]), null);
 });
 
 test('posa a terra: solo sul pavimento libero, non sui passaggi; gira; sposta; ritira nel magazzino', () => {
@@ -84,13 +88,13 @@ test('posa a parete: sul bordo del muro giusto, non sulla porta in fondo, uno pe
 
 test('finiture: compri una volta (si mette subito), scegli solo le tue; quella di serie è di tutti', () => {
   const p = BORGO.pavimenti[1]!, k = BORGO.carte[1]!;
-  let lot = ricco((p.perle ?? 0) + (k.perle ?? 0));
+  let lot = ricco((p.monete ?? 0) + (k.monete ?? 0));
   assert.deepEqual(finitureScelte(lot), { pavimento: BORGO.pavimenti[0]!.id, carta: BORGO.carte[0]!.id });
   assert.ok(possiedeFinitura(lot, 'pavimento', BORGO.pavimenti[0]!.id));
   assert.throws(() => scegliFinitura(lot, 'pavimento', p.id, 0), isErr('requisito'));
   lot = compraFinitura(lot, 'pavimento', p.id, 0);
   lot = compraFinitura(lot, 'carta', k.id, 0);
-  assert.equal(lot.resources.perle, 0);
+  assert.equal(lot.monete, 0);
   assert.deepEqual(finitureScelte(lot), { pavimento: p.id, carta: k.id });
   assert.throws(() => compraFinitura(lot, 'pavimento', p.id, 0), isErr('unico'));
   lot = scegliFinitura(lot, 'pavimento', BORGO.pavimenti[0]!.id, 0);

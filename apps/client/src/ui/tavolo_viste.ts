@@ -6,8 +6,9 @@ import type { Challenge, LotState, Resources } from '@marea/sim';
 import { mancaText } from '../net/api.ts';
 import type { Me, Persona, PlayResult } from '../net/api.ts';
 import { el } from './style.ts';
-import { RES_IDS, RES_NOME, resIcon } from './icons.ts';
-import type { ResId } from './icons.ts';
+import { RISORSE_IDS, RES_NOME, resIcon } from './icons.ts';
+/** Le sfide con posta (spente) usano le risorse di prima. */
+type ResId = 'legno' | 'pietra' | 'perle';
 import { costNodes } from './lotpanels.ts';
 import { timerSpan } from './sheet.ts';
 import type { Note, View } from './tavolo.ts';
@@ -158,7 +159,7 @@ export function viewPosta(ctx: TavoloCtx, body: HTMLElement, to: Persona): void 
   const r1 = el('div'); r1.append('Posta ', el('span', 'mz-tot', String(tot)), ` · da ${min} a ${t.wagerMax}`);
   inf.append(r1, el('div', '', 'Chi vince prende il doppio. 24 h per rispondere.'));
   body.appendChild(inf);
-  for (const r of RES_IDS) {
+  for (const r of RISORSE_IDS) {
     const row = el('div', 'mz-step');
     row.tabIndex = 0; row.dataset['res'] = r; row.dataset['nav'] = 'res:' + r;
     row.setAttribute('role', 'spinbutton');

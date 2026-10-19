@@ -34,6 +34,6 @@
   },
   "griglia": [[-5, -2.5], [-5, 2.5], [-11, -2.5], [-11, 2.5], [-17, 0]],
   "scoreBase": 30000,
-  "premioExtra": { "oro": { "legno": 20 } },
+  "premioExtra": { "oro": 5 },
   "_nota": "Gran Premio (Isola delle Corse, docs/CORSE.md). Kart arcade: niente fisica vera, il kart segue la pista con sterzo, presa (quanto in fretta la direzione del moto raggiunge il muso: bassa = scivola) e drift. pista.punti = centro della pista in metri (anello chiuso, levigato con Catmull-Rom e campionato ogni `passo` m); larghezza = mezza carreggiata; oltre c'è `erba` m di prato (velocità × kart.erbaVelocita) e poi il muro (velocità × muro). guide = i 3 tipi di guida da provare (scelta nel primo tick della partita): velocità m/s, accelerazione m/s², sterzo rad/s a sterzo pieno, presa e presaDrift 1/s, drift = sterzo in più in derapata. drift: parte col bottone o da solo tenendo lo sterzo oltre autoSterzo per autoSecondi (0 = mai da solo); la carica (s) dà la spinta (s) del turbo (+turbo × velocità). bot: bravura = frazione della velocità massima, corsia = quanto si allargano (frazione della mezza carreggiata), sguardo = metri davanti [fissi, × velocità], elastico = quanto rallentano se sono davanti a te (per metro, fino a Max) e accelerano se sono dietro. griglia = [metri prima del via, lato] dei 5 kart: i 4 bot e tu (l'ultimo). Medaglia = posizione all'arrivo (1° oro, 2° argento, 3° bronzo). scoreBase − centesimi = punteggio (tempo più basso = più alto)."
 }

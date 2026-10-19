@@ -1,5 +1,5 @@
 // Contesti del chunk delle ondate dei Templari. Solo tipi: li importa anche game/templari.ts (bundle iniziale).
-import type { InputFrame, Resources } from '@marea/sim';
+import type { InputFrame } from '@marea/sim';
 import type { TAzioni, TRisultato } from '@marea/sim/templari/types.ts';
 import type { GameWorld } from '../game/world.ts';
 import type { Renderer } from '../render/scene.ts';
@@ -32,4 +32,4 @@ export type TemplariRun = {
   readonly done: Promise<TemplariFine | { insieme: true } | null>;
 };
 /** Scheda dell'esito: il risultato (del server, o del client senza link) e il premio (null = senza server). */
-export type EsitoVista = { result: TRisultato; premio: Resources | null; tetto?: boolean; record?: boolean };
+export type EsitoVista = { result: TRisultato; /** Monete (#414). */ premio: number | null; tetto?: boolean; record?: boolean };

@@ -1,5 +1,4 @@
-// HUD in DOM: overlay prestazioni (?fps=1), toast, barra risorse in alto (Legno, Pietra, Perle), chip del cantiere, avviso fisso. WP0 + M1-isola.
-import type { Resources } from '@marea/sim';
+// HUD in DOM: overlay prestazioni (?fps=1), toast, barra in alto (le voci di RES_IDS: dal #414 solo le monete), chip del cantiere, avviso fisso. WP0 + M1-isola.
 import type { Flags } from '../flags.ts';
 import { injectUiStyle, el } from './style.ts';
 import { RES_IDS, resIcon } from './icons.ts';
@@ -8,13 +7,13 @@ import type { ResId } from './icons.ts';
 export type Hud = {
   setPerf(s: { drawCalls: number; triangles: number; fps: number; frameMs: number }): void;
   toast(text: string, ms?: number): void;
-  /** Barra risorse: null la nasconde (niente lotto). Opzionale per compatibilità con HUD finti nei test. */
-  setResources?(r: Resources | null): void;
+  /** Barra in alto, una voce per id di RES_IDS (dal #414 solo `monete`): null la nasconde (niente lotto). Opzionale per compatibilità con HUD finti nei test. */
+  setResources?(r: Partial<Record<ResId, number>> | null): void;
   /** Chip del cantiere sotto la barra («Cava tra 1:32»); null lo nasconde. */
   setWork?(text: string | null, onTap?: () => void): void;
   /** Avviso fisso al centro (es. link non valido); null lo toglie. */
   banner?(text: string | null): void;
-  /** Centro della voce della barra in px CSS (destinazione delle risorse che volano). */
+  /** Centro della voce della barra in px CSS (destinazione delle risorse che volano); null se la barra non ha quella voce (le risorse di prima). */
   resAnchor?(id: ResId): { x: number; y: number } | null;
   bump?(id: ResId): void;
   readonly root?: HTMLElement;
@@ -30,7 +29,7 @@ export function createHud(o: { root: HTMLElement; flags: Flags }): Hud {
   if (o.flags.fps) perf.style.display = 'block';
 
   const bar = el('div', 'mz mz-bar'); bar.id = 'mzBar';
-  const chips = {} as Record<ResId, { chip: HTMLElement; num: HTMLElement }>;
+  const chips: Partial<Record<ResId, { chip: HTMLElement; num: HTMLElement }>> = {};
   for (const id of RES_IDS) {
     const chip = el('div', 'mz-chip'); chip.dataset['res'] = id;
     const num = el('b', '', '0');
@@ -53,7 +52,7 @@ export function createHud(o: { root: HTMLElement; flags: Flags }): Hud {
     setResources(r) {
       bar.classList.toggle('on', !!r);
       if (!r) return;
-      for (const id of RES_IDS) { const t = String(Math.floor(r[id] ?? 0)); if (chips[id].num.textContent !== t) chips[id].num.textContent = t; }
+      for (const id of RES_IDS) { const c = chips[id], t = String(Math.floor(r[id] ?? 0)); if (c && c.num.textContent !== t) c.num.textContent = t; }
     },
     setWork(text, onTap) {
       work.classList.toggle('on', !!text);
@@ -62,12 +61,14 @@ export function createHud(o: { root: HTMLElement; flags: Flags }): Hud {
     },
     banner(text) { ban.classList.toggle('on', !!text); ban.textContent = text ?? ''; },
     resAnchor(id) {
-      if (!bar.classList.contains('on')) return null;
-      const r = chips[id].chip.getBoundingClientRect(), root = o.root.getBoundingClientRect();
+      const c = chips[id];
+      if (!c || !bar.classList.contains('on')) return null;
+      const r = c.chip.getBoundingClientRect(), root = o.root.getBoundingClientRect();
       return { x: r.left - root.left + 20, y: r.top - root.top + r.height / 2 };
     },
     bump(id) {
-      const c = chips[id].chip; c.classList.add('bump');
+      const c = chips[id]?.chip; if (!c) return;
+      c.classList.add('bump');
       clearTimeout(bumps.get(id)); bumps.set(id, window.setTimeout(() => c.classList.remove('bump'), 350));
     },
   };

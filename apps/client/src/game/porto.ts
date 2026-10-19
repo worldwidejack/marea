@@ -1,4 +1,4 @@
-// Porto più ricco (#63-#65), la parte nel mondo (bundle iniziale, piccola): banco del Mercante delle Perle e Bacheca delle missioni in
+// Porto più ricco (#63-#65), la parte nel mondo (bundle iniziale, piccola): banco del Mercante del Porto e Bacheca delle missioni in
 // piazza (segnaposto procedurali a colori di palette + cartello DOM), la Gente del Porto (avatar `chr_base` con look diversi, ferma o
 // su un giro avanti e indietro), il bottone PARLA / MERCANTE / BACHECA quando ci sei vicino (A / E / Spazio sulla tastiera).
 // I pannelli (negozio, missioni, battute) stanno in ui/porto_ui.ts, scaricato con import() alla prima apertura (tetto del JS, TECH §5).

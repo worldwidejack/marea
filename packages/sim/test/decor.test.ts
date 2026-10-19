@@ -9,6 +9,8 @@ import { advance } from '../src/economy/advance.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
+import { checkMonete } from '../src/economy/monete.ts';
+import { conMonete, senzaMonete } from './monete_util.ts';
 
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const T: LotTemplate = { rows: [
@@ -21,17 +23,16 @@ const T: LotTemplate = { rows: [
   '~,,.dd.,,~',
   '~,,,,B,,,~',
 ] };
-/** Lotto con `perle` Perle già nel libro mastro (così l'invariante torna). */
-function ricco(perle: number, tpl: LotTemplate | null = T): LotState {
-  const l = newLot('a', 0, tpl);
-  return { ...l, resources: { ...l.resources, perle }, ledger: { ...l.ledger, generated: { ...l.ledger.generated, perle } } };
+/** Lotto con `monete` monete esatte, nel libro mastro (così l'invariante torna). */
+function ricco(monete: number, tpl: LotTemplate | null = T): LotState {
+  return conMonete(senzaMonete(newLot('a', 0, tpl)), monete);
 }
-const prezzo = (id: string) => DECOR.find((d) => d.id === id)!.perle;
+const prezzo = (id: string) => DECOR.find((d) => d.id === id)!.monete;
 
 test('rimborso: metà del prezzo per difetto, numero in balance.json', () => {
   assert.equal(BALANCE.decor.rimborso, 0.5);
-  for (const d of DECOR) assert.equal(decorRimborso(d.id), Math.floor(d.perle / 2), d.id);
-  assert.equal(decorRimborso('lanterna'), 2, '5 Perle → 2');
+  for (const d of DECOR) assert.equal(decorRimborso(d.id), Math.floor(d.monete / 2), d.id);
+  assert.equal(decorRimborso('lanterna'), Math.floor(prezzo('lanterna') / 2), 'per difetto');
   assert.equal(decorRimborso('inesistente'), 0);
 });
 
@@ -73,25 +74,25 @@ test('ruota: un quarto di giro a ogni tocco, dopo 4 torna a 0; il campo assente 
   assert.equal(placeDecor(ricco(10), 'barile', [1, 1], 2, 0, 5, T).decor[0]!.rot, 2);
 });
 
-test('rivendi: toglie la decorazione, rimborsa metà delle Perle, libro mastro in pari', () => {
-  let lot = ricco(100);
+test('rivendi: toglie la decorazione, rimborsa metà del prezzo in monete, libro mastro in pari', () => {
+  let lot = ricco(300);
   lot = placeDecor(lot, 'statua', [1, 1], 0, 0, prezzo('statua'), T);
   lot = placeDecor(lot, 'lanterna', [2, 1], 0, 0, prezzo('lanterna'), T);
-  const perle0 = lot.resources.perle;
+  const monete0 = lot.monete;
   const out = sellDecor(lot, lot.decor[0]!.id, 50);
-  assert.equal(out.perle, Math.floor(prezzo('statua') / 2));
-  assert.equal(out.lot.resources.perle, perle0 + out.perle);
+  assert.equal(out.monete, Math.floor(prezzo('statua') / 2));
+  assert.equal(out.lot.monete, monete0 + out.monete);
   assert.equal(out.lot.decor.length, 1);
   assert.equal(out.lot.decor[0]!.decor, 'lanterna');
-  assert.equal(out.lot.ledger.generated.perle, lot.ledger.generated.perle + out.perle, 'il rimborso è un’entrata');
-  assert.equal(checkInvariant([out.lot]), null);
+  assert.equal(out.lot.ledger.monete!.generated, lot.ledger.monete!.generated + out.monete, 'il rimborso è un’entrata');
+  assert.equal(checkMonete([out.lot]), null);
   const out2 = sellDecor(out.lot, out.lot.decor[0]!.id, 60);
-  assert.equal(out2.perle, 2);
+  assert.equal(out2.monete, Math.floor(prezzo('lanterna') / 2));
   assert.equal(out2.lot.decor.length, 0);
-  assert.equal(checkInvariant([out2.lot]), null);
+  assert.equal(checkMonete([out2.lot]), null);
   assert.throws(() => sellDecor(out2.lot, 'lanterna-2', 70), isErr('sconosciuto'), 'già venduta');
-  // comprare e rivendere non crea Perle
-  assert.ok(out2.lot.resources.perle < 100);
+  // comprare e rivendere non crea monete
+  assert.ok(out2.lot.monete < 300);
 });
 
 test('dopo una vendita il nuovo id non ripete quelli rimasti', () => {

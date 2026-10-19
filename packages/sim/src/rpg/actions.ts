@@ -3,8 +3,8 @@ import { PERKS, RECIPES, RPG, spellDef } from '@marea/content/rpg.ts';
 import { building } from '@marea/content';
 import { advance } from '../economy/advance.ts';
 import { hashJson } from '../hash.ts';
-import { pay } from '../economy/actions.ts';
-import { EconomyError, ZERO } from '../economy/types.ts';
+import { guadagna, prezzoInMonete, spendi } from '../economy/monete.ts';
+import { EconomyError } from '../economy/types.ts';
 import type { LotState } from '../economy/types.ts';
 import { addTo, available, bagWeight, buildingLevel, chestCap, equipError, fixEquip, removeFrom, stow, takeItems, withEquip } from './bag.ts';
 import type { Bag } from './bag.ts';
@@ -80,11 +80,12 @@ function forgia(lot: LotState, h: HeroState, id: string, n: number): { hero: Her
     const tot = Math.max(1, Math.ceil(q * (1 + sconto))) * n;
     if (c === 'risorsa:legno') legno += tot; else cost[c] = (cost[c] ?? 0) + tot;
   }
-  if (legno > 0 && lot.resources.legno < legno) throw new EconomyError('risorse', `Mancano ${legno - lot.resources.legno} di Legno`, { ...ZERO, legno: legno - lot.resources.legno });
+  // il Legno non c'è più (#414): lo vende chi forgia, al cambio delle monete (almeno 1 moneta se ne serve)
+  const moneteLegno = prezzoInMonete({ legno });
+  const lot2 = spendi(lot, moneteLegno); // prima delle monete: se mancano non si tocca niente
   let { hero, forziere } = takeAll(lot, h, cost);
   const doppio = doppie(lot, id, n, modsOf(h).forgiaDoppia ?? 0); // Capolavoro
   ({ hero, forziere } = stowAll({ ...lot, forziere }, hero, id, (n + doppio) * (it.forgia.n ?? 1)));
-  const lot2 = legno > 0 ? pay(lot, { ...ZERO, legno }) : lot;
   hero = gainSkillXp(hero, 'forgiatura', (RPG.xp.forgia ?? 15) * it.forgia.banco * n);
   return { hero, forziere, lot: lot2 };
 }
@@ -159,10 +160,9 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       const prezzo = RPG.bottega[a.item];
       if (prezzo === undefined || !hasItem(a.item)) throw err('oggetto', 'Il Banco non lo vende');
       needBuilding(lot, 'banco');
-      const tot = prezzo * a.n;
-      if (h.monete < tot) throw err('risorse', `Monete insufficienti: ne servono ${tot}`);
+      const pagato = spendi(lot, prezzo * a.n);
       ({ hero: h, forziere } = stowAll(lot, h, a.item, a.n));
-      h = { ...h, monete: h.monete - tot };
+      lot = pagato;
       break;
     }
     case 'deposita': {
@@ -208,17 +208,18 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       const it = needItem(a.item);
       if (a.op === 'compra') {
         if (!inVendita(nowMs, it.id)) throw err('oggetto', 'Oggi non lo vende');
-        const tot = prezzoLosco(it.id) * a.n;
-        if (h.monete < tot) throw err('risorse', `Monete insufficienti: ne servono ${tot}`);
+        const pagato = spendi(lot, prezzoLosco(it.id) * a.n);
         if (carriedOf(h) + it.peso * a.n > caricoMaxOf(h) + 1e-9) throw err('peso', 'Zaino troppo pesante');
-        h = { ...h, monete: h.monete - tot, inv: addTo(h.inv, it.id, a.n) };
+        h = { ...h, inv: addTo(h.inv, it.id, a.n) };
+        lot = pagato;
       } else {
         if ((h.inv[it.id] ?? 0) < a.n) throw err('oggetto', `Non hai abbastanza: ${it.nome}`);
         const eq = Object.entries(h.equip).filter(([s, id]) => s !== 'magia' && id === it.id).length;
         if ((h.inv[it.id] ?? 0) - a.n < eq) throw err('equip', `Togli prima ${it.nome} dall'equipaggiamento`);
         const paga = offertaLosca(it.id, a.n);
         if (paga < 1) throw err('oggetto', 'Non vale niente: non lo prende');
-        h = { ...h, monete: h.monete + paga, inv: removeFrom(h.inv, it.id, a.n) };
+        h = { ...h, inv: removeFrom(h.inv, it.id, a.n) };
+        lot = guadagna(lot, paga);
       }
       break;
     }

@@ -4,8 +4,8 @@
 import { AVATAR } from '@marea/content';
 import type { BarcaColore } from '@marea/content';
 import { advance } from './advance.ts';
-import { pay } from './actions.ts';
-import { EconomyError, ZERO } from './types.ts';
+import { spendi } from './monete.ts';
+import { EconomyError } from './types.ts';
 import type { LotState } from './types.ts';
 
 /** Scelta della barca (come in `LookSalvato.barca`): id di colore per scafo e vela ('nessuna' = senza vela), nome già ripulito. */
@@ -31,7 +31,7 @@ export function nomeBarca(v: unknown): string {
 /** Il colore è tuo: gratis per tutti, o comprato dal Mercante. */
 export function possiedeColore(lot: LotState | null, id: string): boolean {
   const k = coloreBarca(id);
-  return !!k && (k.perle <= 0 || (lot?.posseduti ?? []).includes(chiaveColore(id)));
+  return !!k && (k.monete <= 0 || (lot?.posseduti ?? []).includes(chiaveColore(id)));
 }
 
 /** La barca di un look salvato qualunque (D1, Peer, /api/lots): forma giusta e colori esistenti, altrimenti di serie. Non guarda chi possiede cosa. */
@@ -56,18 +56,18 @@ export function validaBarca(v: unknown, lot: LotState | null): BarcaLook | strin
   if (o['nome'] !== undefined && typeof o['nome'] !== 'string') return 'Nome della barca non valido';
   if (lot) for (const id of [scafo, vela]) {
     const k = coloreBarca(id);
-    if (k && !possiedeColore(lot, id)) return `${k.nome}: non è tuo, compralo dal Mercante delle Perle (${k.perle} Perle)`;
+    if (k && !possiedeColore(lot, id)) return `${k.nome}: non è tuo, compralo dal Mercante del Porto (${k.monete} monete)`;
   }
   return { scafo, vela, nome: nomeBarca(o['nome']) };
 }
 
-/** Compra un colore esclusivo della barca, una volta sola (come i cappelli): Perle spese, «barca:<id>» in `posseduti`. */
+/** Compra un colore esclusivo della barca, una volta sola (come i cappelli): monete spese, «barca:<id>» in `posseduti`. */
 export function compraColoreBarca(lot0: LotState, id: string, nowMs: number): LotState {
   let lot = advance(lot0, nowMs);
   const k = coloreBarca(id);
   if (!k) throw new EconomyError('sconosciuto', 'Colore sconosciuto');
-  if (k.perle <= 0) throw new EconomyError('unico', `${k.nome}: è gratis, non serve comprarlo`);
+  if (k.monete <= 0) throw new EconomyError('unico', `${k.nome}: è gratis, non serve comprarlo`);
   if (possiedeColore(lot, id)) throw new EconomyError('unico', `Hai già: ${k.nome}`);
-  lot = pay(lot, { ...ZERO, perle: k.perle });
+  lot = spendi(lot, k.monete);
   return { ...lot, version: lot.version + 1, posseduti: [...(lot.posseduti ?? []), chiaveColore(id)] };
 }

@@ -124,7 +124,8 @@ export function createLotView(o: LotViewOptions): LotView {
   let nearDecor: string | null = null, aWas = false;
   const nearLabel = ro ? null : S.labels.add(() => { if (nearDecor) openDecor(nearDecor); });
   nearLabel?.set('bubble', [pixIcon('martello', 16), el('span', '', 'MODIFICA · A')], 'decor'); nearLabel?.el.classList.add('decor');
-  let holdRes: LotState['resources'] | null = null;
+  /** Monete mostrate mentre volano verso il contatore (null = quelle del lotto). */
+  let holdMonete: number | null = null;
 
   const now = () => o.api.serverNow();
   const isFree = (c: readonly [number, number]) => !!lot && !lot.buildings.some((b) => b.cell[0] === c[0] && b.cell[1] === c[1]) && !lot.decor.some((d) => d.cell[0] === c[0] && d.cell[1] === c[1]);
@@ -291,8 +292,7 @@ export function createLotView(o: LotViewOptions): LotView {
       const gained = Math.floor(next.resources[res] - prev.resources[res]);
       if (gained <= 0) { o.hud.toast(storageCap(next) - next.resources[res] < 1 ? 'Magazzino pieno: miglioralo per tenere di più' : 'Deposito ancora vuoto'); return; }
       const d = drawn.get(id), p = d ? screenOf(d.holder.position.x, d.holder.position.y + d.height, d.holder.position.z) : null;
-      holdRes = prev.resources; refreshUi(true);
-      flyResources(root, p ?? { x: innerWidth / 2, y: innerHeight / 2 }, o.hud.resAnchor?.(res) ?? null, res, gained, () => { holdRes = null; o.hud.bump?.(res); refreshUi(true); });
+      flyResources(root, p ?? { x: innerWidth / 2, y: innerHeight / 2 }, o.hud.resAnchor?.(res) ?? null, res, gained, () => { o.hud.bump?.(res); refreshUi(true); });
       o.hud.toast(`+${gained} ${res === 'legno' ? 'Legno' : res === 'pietra' ? 'Pietra' : 'Perle'}`, 1400);
     });
   }
@@ -310,12 +310,12 @@ export function createLotView(o: LotViewOptions): LotView {
     const pos = rec ? rec.holder.position.clone() : null;
     return act(() => o.api.decorSell(id), (prev, next) => {
       closePanel();
-      const gained = next.resources.perle - prev.resources.perle;
-      o.hud.toast(`${decorNome(d.decor)} rivenduta: +${gained} Perle`, 2400);
+      const gained = next.monete - prev.monete;
+      o.hud.toast(`${decorNome(d.decor)} rivenduta: +${gained} monete`, 2400);
       if (gained > 0) {
         const at = pos ? screenOf(pos.x, pos.y + 1, pos.z) : null;
-        holdRes = prev.resources; refreshUi(true);
-        flyResources(root, at ?? { x: innerWidth / 2, y: innerHeight / 2 }, o.hud.resAnchor?.('perle') ?? null, 'perle', gained, () => { holdRes = null; o.hud.bump?.('perle'); refreshUi(true); });
+        holdMonete = prev.monete; refreshUi(true);
+        flyResources(root, at ?? { x: innerWidth / 2, y: innerHeight / 2 }, o.hud.resAnchor?.('monete') ?? null, 'monete', gained, () => { holdMonete = null; o.hud.bump?.('monete'); refreshUi(true); });
       }
     });
   };
@@ -423,7 +423,7 @@ export function createLotView(o: LotViewOptions): LotView {
     const v = view ?? lot, t = now();
     const c = v.construction ?? lot.construction;
     if (!ro) {
-      o.hud.setResources?.(holdRes ? { ...lot.resources, ...holdRes } : lot.resources);
+      o.hud.setResources?.({ monete: holdMonete ?? lot.monete });
       const cc = lot.construction;
       if (cc && cc.endsMs > t) o.hud.setWork?.(`${buildingDef(cc.building).nome}${cc.level > 1 ? ' L' + cc.level : ''} tra ${fmtClock(cc.endsMs - t)}`, () => openBuilding(cc.placedId));
       else o.hud.setWork?.(null);
@@ -538,7 +538,7 @@ export function createLotView(o: LotViewOptions): LotView {
     const v = view, t = now();
     return {
       ready: !!lot, readonly: ro, owner: lot?.owner ?? o.owner ?? null, origin: [ox, oz], serverNow: t, busy, refreshes, error: lastError ?? o.api.lastError,
-      resources: lot?.resources ?? null,
+      resources: lot?.resources ?? null, monete: lot?.monete ?? null,
       buildings: (v?.buildings ?? []).map((b) => ({ id: b.id, building: b.building, level: b.level, cell: b.cell, buffer: Math.floor(b.buffer), model: drawn.get(b.id)?.model ?? null })),
       construction: v?.construction ? { ...v.construction, leftS: Math.max(0, Math.ceil((v.construction.endsMs - t) / 1000)) } : null,
       freeSlots: ro ? [] : freeSlots(),

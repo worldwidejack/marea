@@ -1,5 +1,5 @@
 // Caccia alle perle, minigioco universale: dalla barca ferma su acqua bassa ',' (vicino a una costa, lontano dai moli) ti tuffi.
-// API (wrangler locale pulito): il server rigioca gli input dell'autopilota e paga l'oro di balance.solo più le Perle extra
+// API (wrangler locale pulito): il server rigioca gli input dell'autopilota e paga l'oro di balance.solo più le monete extra
 // (perle.json premioExtra); chi non si tuffa non prende medaglia; input oltre 60 s rifiutati. Browser (telefono 390×844): a piedi
 // niente TUFFATI; in barca ferma su acqua bassa compare; si apre la schermata (regole, tuffo, fondale a metà partita), l'autopilota
 // finisce e la scheda dà il premio. PC: tasto T, schermata grande, un tuffo tenendo premuto Spazio, Esc = ritirato; lì gli orari di
@@ -23,8 +23,7 @@ export default async function (ctx) {
   const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
   const balance = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/balance.json'), 'utf8'));
   const cfg = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/minigames/perle.json'), 'utf8'));
-  const oro = { ...balance.solo.premi.oro };
-  for (const [k, v] of Object.entries(cfg.premioExtra?.oro ?? {})) oro[k] += v;
+  const oro = balance.solo.premi.oro + (cfg.premioExtra?.oro ?? 0); // monete (#414)
   const pages = [];
   let dev = null, log = '';
   try {
@@ -48,7 +47,7 @@ export default async function (ctx) {
       return { frames, r: m.result(s) };
     };
 
-    await ctx.test('API: il server rigioca gli input dell\'autopilota e paga l\'oro con le Perle in più', async () => {
+    await ctx.test('API: il server rigioca gli input dell\'autopilota e paga l\'oro con le monete in più', async () => {
       const st = await post('/api/solo/start', 'tokU', { minigame: 'perle' });
       assert(st.status === 200 && st.body.minigame === 'perle' && Number.isInteger(st.body.seed) && st.body.lot?.solo?.pending?.minigame === 'perle',
         `start perle: ${st.status} ${JSON.stringify(st.body).slice(0, 300)}`);
@@ -125,14 +124,14 @@ export default async function (ctx) {
       assert(v.punti > 0 && v.prese.bianca > 0, 'a metà partita niente perle: ' + JSON.stringify(v));
     });
 
-    await ctx.test('l\'autopilota finisce la partita, il server rigioca e paga l\'oro (con le Perle in più); la scheda mostra perle e punti', async () => {
-      const before = (await st()).lot.resources;
+    await ctx.test('l\'autopilota finisce la partita, il server rigioca e paga l\'oro (con le monete in più); la scheda mostra perle e punti', async () => {
+      const before = (await st()).lot.monete;
       await hook('perleAuto', true);
       await ctx.waitState(page, (s) => s.minigiochi.open === true, 90000);
       const s = await st(), r = s.minigiochi.last;
       ctx.log(`esito ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
       assert(r.medal === 'oro' && r.premiata && JSON.stringify(r.premio) === JSON.stringify(oro), 'esito: ' + JSON.stringify(r));
-      for (const k of ['legno', 'pietra', 'perle']) assert(r.lot.resources[k] >= before[k] + r.premio[k], `${k} non pagato`);
+      assert(r.lot.monete >= before + r.premio, 'monete non pagate');
       const txt = await page.locator('#mzEsito').innerText();
       assert(/ORO/.test(txt) && /\d+ prese/.test(txt) && /\d+ punti/.test(txt), 'scheda: ' + txt);
       await sleep(300);

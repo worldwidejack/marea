@@ -47,7 +47,7 @@ export function sbloccoTema(s: TemaSblocco, v: Viaggiatore): Sblocco {
     }
     case 'cappello': {
       const ok = v.cappello === s.cappello, h = hatOf(s.cappello), nome = h?.nome ?? s.cappello;
-      return { aperta: ok, motivo: ok ? 'Aperta' : `Gli abitanti ti cacciano: senza ${nome} qui non si entra`, manca: `${nome}${h?.perle ? ` (${h.perle} Perle)` : ''}` };
+      return { aperta: ok, motivo: ok ? 'Aperta' : `Gli abitanti ti cacciano: senza ${nome} qui non si entra`, manca: `${nome}${h?.monete ? ` (${h.monete} monete)` : ''}` };
     }
     case 'mappa': {
       const ok = v.mappe.includes(s.mappa), isola = isolaDellaMappa(s.mappa);
@@ -59,7 +59,7 @@ export function sbloccoTema(s: TemaSblocco, v: Viaggiatore): Sblocco {
       return { aperta: ok, motivo: ok ? 'Aperta' : 'Una nebbia rossa ti fa girare al largo: qualcosa, sotto il faro della Tempesta, apre la strada', manca: 'La reliquia dei Templari' };
     }
     case 'funivia': { // Isola dell'Adrenalina: prima la firma, poi il casco in testa
-      const firmata = (v.liberatorie ?? []).includes(s.liberatoria), casco = v.cappello === s.cappello, h = hatOf(s.cappello), prezzo = `${h?.nome ?? s.cappello} (${h?.perle} Perle)`;
+      const firmata = (v.liberatorie ?? []).includes(s.liberatoria), casco = v.cappello === s.cappello, h = hatOf(s.cappello), prezzo = `${h?.nome ?? s.cappello} (${h?.monete} monete)`;
       if (firmata && casco) return { aperta: true, motivo: 'Aperta', manca: '' };
       return { aperta: false, motivo: `Il guardiano della funivia: ${firmata ? 'senza casco qui non sale nessuno' : 'prima la liberatoria, poi casco in testa'}`, manca: firmata ? prezzo : casco ? 'La liberatoria' : `Liberatoria e ${prezzo}` };
     }

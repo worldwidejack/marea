@@ -1,6 +1,6 @@
 // Diario del capitano e traguardi (#87) sul server locale (wrangler dev, D1 e DO in una cartella privata). API: una pesca dell'autopilota
 // rigiocata dal server riempie la pagina Pesci (specie e quante volte), la medaglia e le partite; avvistamenti validati (niente id
-// inventati, niente la propria isola, solo lotti di amici veri); RISCUOTI una volta sola (Perle nel lotto), titolo solo se riscosso, e
+// inventati, niente la propria isola, solo lotti di amici veri); RISCUOTI una volta sola (monete nel lotto), titolo solo se riscosso, e
 // il titolo resta anche quando l'editor salva il look. Browser telefono 390×844 (Luca): bottone col libro, album sui pesci, scheda di un
 // pesce, Traguardi → RISCUOTI → USA TITOLO, targhetta col titolo sopra la testa, avviso quando si compie un traguardo. PC (Mia): sull'isola
 // di Luca vede «Campione» sotto il suo nome (e il cambio dal vivo), la visita si segna nel diario, J apre il diario, sfoglia quello di Luca.
@@ -73,16 +73,16 @@ export default async function (ctx) {
       assert(c.status === 400, 'forma sbagliata: ' + c.status);
     });
 
-    await ctx.test('API: RISCUOTI una volta sola (Perle nel lotto), non compiuto 409, sconosciuto 404; titolo solo se riscosso', async () => {
-      const prima = (await get('/api/lot', 'tokL')).body.resources.perle;
+    await ctx.test('API: RISCUOTI una volta sola (monete nel lotto), non compiuto 409, sconosciuto 404; titolo solo se riscosso', async () => {
+      const prima = (await get('/api/lot', 'tokL')).body.monete;
       const no = await post('/api/diario/riscuoti', 'tokL', { id: 'avventuriero' });
       assert(no.status === 409 && /Non ancora/.test(no.body.error), 'non compiuto: ' + JSON.stringify(no));
       assert((await post('/api/diario/riscuoti', 'tokL', { id: 'boh' })).status === 404, 'sconosciuto');
       const ok = await post('/api/diario/riscuoti', 'tokL', { id: 'primo_pesce' });
-      assert(ok.status === 200 && ok.body.premio.perle === T('primo_pesce').perle && ok.body.lot.resources.perle === prima + T('primo_pesce').perle, 'riscuoti: ' + JSON.stringify(ok.body).slice(0, 200));
+      assert(ok.status === 200 && ok.body.premio === T('primo_pesce').monete && ok.body.lot.monete === prima + T('primo_pesce').monete, 'riscuoti: ' + JSON.stringify(ok.body).slice(0, 200));
       const due = await post('/api/diario/riscuoti', 'tokL', { id: 'primo_pesce' });
       assert(due.status === 409 && /già riscosso/.test(due.body.error), 'seconda volta: ' + JSON.stringify(due));
-      assert((await get('/api/lot', 'tokL')).body.resources.perle === prima + T('primo_pesce').perle, 'pagato due volte');
+      assert((await get('/api/lot', 'tokL')).body.monete === prima + T('primo_pesce').monete, 'pagato due volte');
       const tNo = await post('/api/diario/titolo', 'tokL', { id: 'avventuriero' });
       assert(tNo.status === 409, 'titolo non riscosso: ' + tNo.status);
       const t = await post('/api/diario/titolo', 'tokL', { id: 'primo_pesce' });
@@ -126,16 +126,16 @@ export default async function (ctx) {
       await ctx.shot(page, 'iphone_1_pesci');
     });
 
-    await ctx.test('telefono: Traguardi → RISCUOTI «Primo oro» (Perle in tasca) → USA TITOLO', async () => {
+    await ctx.test('telefono: Traguardi → RISCUOTI «Primo oro» (monete in tasca) → USA TITOLO', async () => {
       await page.locator('#mzDiario [data-tab="traguardi"]').click();
       await ctx.waitState(page, (s) => s.diario.ui.tab === 'traguardi', 5000);
       await sleep(200);
       await ctx.shot(page, 'iphone_2_traguardi');
-      const perle = (await st()).lot.resources.perle;
+      const perle = (await st()).lot.monete;
       await page.locator('#mzDiario [data-traguardo="primo_oro"] [data-act="riscuoti"]').click();
       await ctx.waitState(page, (s) => s.diario.riscossi.includes('primo_oro') && !s.diario.ui.busy, 10000);
       const s1 = await st();
-      assert(s1.lot.resources.perle === perle + T('primo_oro').perle, `Perle ${perle} → ${s1.lot.resources.perle}`);
+      assert(s1.lot.monete === perle + T('primo_oro').monete, `monete ${perle} → ${s1.lot.monete}`);
       await page.locator('#mzDiario [data-traguardo="primo_oro"] [data-act="titolo"]').click();
       await ctx.waitState(page, (s) => s.diario.titolo === 'primo_oro' && !s.diario.ui.busy, 10000);
       assert(/Campione/.test(await page.locator('#mzDiario .chi-t').innerText()), 'titolo in testata');

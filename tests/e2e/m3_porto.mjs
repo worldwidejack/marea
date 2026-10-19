@@ -1,7 +1,7 @@
-// Porto più ricco (#63-#65) sul server locale (wrangler dev, TEST_CLOCK:1). Luca vince Perle con tre Regate (API, autopilot), poi nel
+// Porto più ricco (#63-#65) sul server locale (wrangler dev, TEST_CLOCK:1). Luca vince monete con tre Regate (API, autopilot), poi nel
 // browser: (1) piazza con banco del Mercante, Bacheca e la Gente del Porto (avatar veri, giro, nomi); (2) E al banco apre il Mercante:
 // prova un cappello esclusivo sull'avatar, COMPRA, INDOSSA (salvato sul server), compra una decorazione esclusiva → posata sull'isola;
-// senza Perle l'avviso gentile (#4) senza chiamate; (3) la Bacheca mostra le 3 missioni del giorno uguali a quelle della sim, una compiuta
+// senza monete l'avviso gentile (#4) senza chiamate; (3) la Bacheca mostra le 3 missioni del giorno uguali a quelle della sim, una compiuta
 // si RISCUOTE una volta sola (premio nel lotto); (4) PARLA con Gigi: battute di gente.json, AVANTI fino a CIAO; (5) telefono 390×844:
 // bottone, pannello, scheda delle battute; (6) draw call in piazza ≤ 100. Screenshot di tutto.
 import fs from 'node:fs';
@@ -65,16 +65,18 @@ export default async function (ctx) {
       return post('/api/solo/play', { inputs: packInputs(frames) });
     };
 
-    await ctx.test('API: RISCUOTI di una missione non compiuta 409, indice rotto 400; tre Regate danno Perle e contano le partite', async () => {
+    await ctx.test('API: RISCUOTI di una missione non compiuta 409, indice rotto 400; tre Regate danno monete e contano le partite', async () => {
       const a = await post('/api/missioni/riscuoti', { i: 0 });
       assert(a.status === 409 && /Non ancora/.test(a.body.error), `riscuoti a vuoto: ${a.status} ${JSON.stringify(a.body)}`);
       const b = await post('/api/missioni/riscuoti', { i: 'x' });
       assert(b.status === 400, 'indice rotto: ' + b.status);
       for (let i = 0; i < 3; i++) { const r = await playSolo(); assert(r.status === 200 && r.body.medal, 'regata: ' + JSON.stringify(r.body).slice(0, 200)); }
       const lot = (await get('/api/lot')).body;
-      ctx.log(`Perle ${lot.resources.perle} · contatori ${JSON.stringify(lot.missioni)}`);
+      ctx.log(`monete ${lot.monete} · contatori ${JSON.stringify(lot.missioni)}`);
       assert(lot.missioni.prog.partite === 3 && lot.missioni.prog.medaglia === 3, 'contatori delle partite: ' + JSON.stringify(lot.missioni));
-      assert(lot.resources.perle >= kasa.perle + ancora.perle, 'Perle insufficienti per il test: ' + lot.resources.perle);
+      // le Regate da sole non bastano sempre (oro, argento…): il resto dalla rotta di prova (#414), giusto quello che serve
+      if (lot.monete < kasa.monete + ancora.monete) assert((await post('/api/test/monete', { n: kasa.monete + ancora.monete - lot.monete })).status === 200, 'monete di prova');
+      assert((await get('/api/lot')).body.monete >= kasa.monete + ancora.monete, 'monete insufficienti per il test');
       if (oggi.some((m) => m.tipo === 'cantiere')) assert((await post('/api/lot/build', { building: 'segheria', cell: segCell })).status === 200, 'cantiere');
     });
 
@@ -126,9 +128,9 @@ export default async function (ctx) {
       await page.locator('#mzPortoPanel [data-item="kasa"] [data-act="prova"]').click();
       await ctx.waitState(page, (s, i) => s.wp2_avatar.look.cappello === i, 3000, KASA);
       await ctx.shot(page, 'desktop_mercante_prova');
-      const p0 = (await st()).lot.resources.perle;
+      const p0 = (await st()).lot.monete;
       await page.locator('#mzPortoPanel [data-item="kasa"] [data-act="compra"]').click();
-      await ctx.waitState(page, (s, want) => s.lot.resources.perle === want, 8000, p0 - kasa.perle);
+      await ctx.waitState(page, (s, want) => s.lot.monete === want, 8000, p0 - kasa.monete);
       await page.locator('#mzPortoPanel [data-item="kasa"] [data-act="indossa"]').click();
       await ctx.waitState(page, (s) => /ti sta benissimo/.test(s.porto.ui.note ?? ''), 8000);
       assert((await get('/api/me')).body.look.cappello === KASA, 'cappello non salvato');
@@ -136,23 +138,23 @@ export default async function (ctx) {
       await ctx.shot(page, 'desktop_mercante_comprato');
     });
 
-    await ctx.test('Mercante: decorazione esclusiva comprata e posata sull’isola; senza Perle avviso gentile senza chiamate', async () => {
+    await ctx.test('Mercante: decorazione esclusiva comprata e posata sull’isola; senza monete avviso gentile senza chiamate', async () => {
       await page.locator('#mzPortoPanel [data-tab="decor"]').click();
-      const p0 = (await st()).lot.resources.perle;
+      const p0 = (await st()).lot.monete;
       await page.locator('#mzPortoPanel [data-item="ancora"] [data-act="compra"]').click();
-      await ctx.waitState(page, (s, want) => s.lot.resources.perle === want && s.lot.decor.length === 1, 8000, p0 - ancora.perle);
+      await ctx.waitState(page, (s, want) => s.lot.monete === want && s.lot.decor.length === 1, 8000, p0 - ancora.monete);
       await ctx.shot(page, 'desktop_mercante_decor');
       // un cappello che costa troppo: avviso gentile, niente richiesta
       await page.locator('#mzPortoPanel [data-tab="cappelli"]').click();
       let hats = 0; page.on('request', (r) => { if (new URL(r.url()).pathname === '/api/look/hat') hats++; });
-      const perle = (await st()).lot.resources.perle;
-      assert(perle < palombaro.perle, 'troppe Perle per provare l’avviso: ' + perle);
+      const perle = (await st()).lot.monete;
+      assert(perle < palombaro.monete, 'troppe monete per provare l’avviso: ' + perle);
       await page.locator('#mzPortoPanel [data-item="palombaro"] [data-act="compra"]').click();
       const miss = page.locator('#mzPortoPanel .mz-pt-miss');
       await miss.waitFor({ timeout: 3000 });
       const t = await miss.innerText();
-      assert(new RegExp(`Ti mancano ${palombaro.perle - perle} Perle`).test(t), 'avviso: ' + t);
-      assert(hats === 0, 'chiamata al server senza Perle');
+      assert(new RegExp(`Ti mancano ${palombaro.monete - perle} monete`).test(t), 'avviso: ' + t);
+      assert(hats === 0, 'chiamata al server senza monete');
       await ctx.shot(page, 'desktop_mercante_senza_perle');
       await page.keyboard.press('Escape');
       await ctx.waitState(page, (s) => s.porto.open === null, 3000);
@@ -180,9 +182,9 @@ export default async function (ctx) {
       const i = cards.findIndex((c) => c.act === 'RISCUOTI');
       assert(i >= 0, 'nessuna missione compiuta: ' + JSON.stringify(cards));
       await ctx.shot(page, 'desktop_bacheca');
-      const p0 = (await st()).lot.resources, prem = oggi[i].premio;
+      const p0 = (await st()).lot.monete, prem = oggi[i].premio;
       await page.locator(`#mzPortoPanel [data-missione="${i}"] [data-act="riscuoti"]`).click();
-      await ctx.waitState(page, (s, w) => s.lot.resources.perle === w, 8000, p0.perle + prem.perle);
+      await ctx.waitState(page, (s, w) => s.lot.monete === w, 8000, p0 + prem);
       await page.waitForFunction((i) => document.querySelector(`#mzPortoPanel [data-missione="${i}"] [data-act="riscuoti"]`)?.textContent === 'RISCOSSA', i, { timeout: 5000 });
       await ctx.shot(page, 'desktop_bacheca_riscossa');
       const again = await post('/api/missioni/riscuoti', { i });

@@ -258,10 +258,10 @@ export default {
         const look = validaLook(body);
         if (typeof look === 'string') return json({ error: look }, 400);
         const hat = AVATAR.cappelli[look.cappello];
-        if (hat && hat.perle > 0) {
+        if (hat && hat.monete > 0) {
           const r = await lotReq(env, p.id, now, 'state');
           const lot = r.ok ? ((await r.json()) as { posseduti?: string[] }) : null;
-          if (!lot?.posseduti?.includes(hat.id)) return json({ error: `${hat.nome}: non è tuo, compralo prima (${hat.perle} Perle)` }, 400);
+          if (!lot?.posseduti?.includes(hat.id)) return json({ error: `${hat.nome}: non è tuo, compralo prima (${hat.monete} monete)` }, 400);
         }
         const salvato = conTitolo(look, p.look); // il titolo del diario (#87) resta quello scelto: l'editor non lo conosce
         await salvaLook(env, p.id, salvato);
@@ -454,6 +454,14 @@ export default {
         const body = await corpo(MAX_DUNGEON_BODY);
         if (body instanceof Response) return body;
         return sincIndossa(env, p, await lotReq(env, p.id, now, path.endsWith('save') ? 'dungeon_save' : 'dungeon_finish', { inputs: body['inputs'], azioni: body['azioni'], hash: body['hash'] }));
+      }
+      // monete di prova (#414): solo dal server locale (gli e2e che comprano cose care), come /api/test/inv; online 403
+      if (path === '/api/test/monete' && req.method === 'POST') {
+        const u = new URL(req.url);
+        if (u.hostname !== '127.0.0.1' && u.hostname !== 'localhost') return json({ error: 'Vietato' }, 403);
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'test_monete', body);
       }
       if (path === '/api/test/inv' && req.method === 'POST') {
         const u = new URL(req.url);

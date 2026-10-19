@@ -158,7 +158,7 @@ export default async function (ctx) {
       for (let i = 0; i < 6; i++) {
         const l = await lot();
         const need = Math.max(1, 3 - bronzo(l)); // almeno un lingotto si compra sempre dalla Bottega
-        if ((l.hero?.monete ?? RPG.partenza.monete) >= need * prezzo) break;
+        if (l.monete >= need * prezzo) break;
         const s = (await post('/api/dungeon/start', 'tokA', { dungeon: 'grotta' })).body;
         const g = dungeon.create({ seed: s.seed, dungeon: s.dungeon, hero: s.hero, stato: s.stato, partenza: s.partenza });
         const rng = createRng(s.seed), frames = [];
@@ -168,7 +168,7 @@ export default async function (ctx) {
       }
       const l0 = await lot();
       const comprare = Math.max(1, 3 - bronzo(l0));
-      assert((l0.hero?.monete ?? 0) >= comprare * prezzo, `monete insufficienti per il test: ${l0.hero?.monete}`);
+      assert(l0.monete >= comprare * prezzo, `monete insufficienti per il test: ${l0.monete}`);
       await fromSheet(D, 'banco');
       await ctx.shot(D.page, 'desktop_banco');
       for (let i = 0; i < comprare; i++) {
