@@ -3,6 +3,7 @@
 import { SPARO } from '@marea/content/sparo.ts';
 import type { SPunto } from '@marea/content/sparo.ts';
 import { TICK_HZ } from '../constants.ts';
+import { casoIntero } from '../rng.ts';
 
 /** Comandi di un tick. `mx` = di lato (+ destra), `my` = avanti (+); `yaw` (0 = −Z, verso sinistra positivo) e `pitch` (+ in su) in
  *  radianti, già quantizzati con `quantizzaMira` (il replay li rilegge uguali); `arma` 1..3 = cambia arma, 0 = tieni quella. */
@@ -85,14 +86,8 @@ export type SModo = 'poligono' | 'missione';
 export type SOpzioni = { modo?: SModo; immortale?: boolean };
 export type SState = { tick: number; caso: number; modo: SModo; immortale: boolean; g: SGiocatore; bot: SBot[]; ev: SEvento[]; missione: SMissione | null };
 
-/** Numero a caso in [0, 1) dallo stato (mulberry32: solo interi a 32 bit, uguale su ogni motore). */
-export function caso(s: { caso: number }): number {
-  s.caso = (s.caso + 0x6d2b79f5) >>> 0;
-  let t = s.caso;
-  t = Math.imul(t ^ (t >>> 15), t | 1);
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-}
+/** Numero a caso in [0, 1) dallo stato: il generatore sta in rng.ts (casoIntero), qui solo il nome che usa la partita. */
+export const caso = casoIntero;
 export const secTick = (sec: number): number => sec * TICK_HZ;
 
 function attore(p: SPunto, vita: number): SAttore {

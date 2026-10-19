@@ -34,7 +34,7 @@ La stessa `sim` gira nel browser (per giocare) e nel Durable Object (per **verif
 - **TypeScript ovunque**, `strict` + `noUncheckedIndexedAccess` + `verbatimModuleSyntax` + **`erasableSyntaxOnly`**: niente `enum` (usa `as const`), niente `namespace`, niente parameter properties. Così Node 26 esegue i `.ts` **senza build** (test della sim in Node puro).
 - **Import relativi con estensione `.ts` esplicita** (`import { createRng } from './rng.ts'`); tra pacchetti `@marea/sim`, `@marea/sim/rng.ts`. Tipi con `import type`.
 - **Nessun side effect all'import**: solo `apps/client/src/main.ts` e `apps/server/src/worker.ts` avviano qualcosa. Ogni modulo di `sim`, `protocol`, `content` deve importarsi in Node.
-- **Determinismo**: in `sim` la casualità passa solo da `createRng(seed)` e `.fork(label)`; il tempo è `tick` (60 Hz) o `nowMs` passato dal chiamante. Stesso seed + stessi input = stesso `hash()`.
+- **Determinismo**: in `sim` la casualità passa solo da `rng.ts`: `createRng(seed)` e `.fork(label)`, o `casoIntero(s)` quando il seme sta nello stato serializzabile della partita (Difesa, Sparo); il tempo è `tick` (60 Hz) o `nowMs` passato dal chiamante. Stesso seed + stessi input = stesso `hash()`.
 - Numeri di gioco **solo** in `packages/content` (JSON). Costanti tecniche in `packages/sim/src/constants.ts`.
 - Testi in italiano nel client; niente i18n. Errori del server in italiano.
 - Dipendenza nuova: solo se serve, col perché nella PR.

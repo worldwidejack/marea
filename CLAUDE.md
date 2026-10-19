@@ -20,7 +20,7 @@ Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue 
 
 ## Regole di codice
 1. **Mai lasciare `main` rotto.** Controlli rossi = niente merge: si sistema.
-2. **`packages/sim` è puro**: niente DOM, `three`, `Math.random`, `Date.now`, `performance.now`, timer. Casualità solo da `createRng(seed)`. Niente `Math.sin/cos/atan2/hypot/pow/…` (cambiano tra motori e il replay del server diverge): `trig.ts`, oppure + − × ÷ e `Math.sqrt`. Lo controlla `tools/check_static.mjs`.
+2. **`packages/sim` è puro**: niente DOM, `three`, `Math.random`, `Date.now`, `performance.now`, timer. Casualità solo da `rng.ts`: `createRng(seed)`, o `casoIntero` se lo stato della partita dev'essere serializzabile. Niente `Math.sin/cos/atan2/hypot/pow/…` (cambiano tra motori e il replay del server diverge): `trig.ts`, oppure + − × ÷ e `Math.sqrt`. Lo controlla `tools/check_static.mjs`.
 3. **TypeScript erasable**: niente `enum`, `namespace`, parameter properties; `import type` per i tipi; import relativi con `.ts`.
 4. **Numeri di gioco solo nei JSON** di `packages/content`.
 5. **Dipendenza nuova**: solo se serve, col perché nella PR.
