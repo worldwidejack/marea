@@ -102,7 +102,7 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.perle && s.perle.open && s.perle.intro, 15000);
       await sleep(300);
       await ctx.shot(page, 'iphone_2_regole');
-      const box = await page.locator('#mzPerleGioco .mz-pr-box').boundingBox();
+      const box = await page.locator('#mzPerleGioco .mz-gp-box').boundingBox();
       assert(box && box.x >= 0 && box.x + box.width <= 390 && box.y >= 0 && box.y + box.height <= 844, 'la schermata esce dal telefono: ' + JSON.stringify(box));
       // tieni premuto il bottone grande per un secondo: il sub scende
       const b = await page.locator('#mzPerleGiu').boundingBox();

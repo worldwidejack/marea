@@ -1,4 +1,4 @@
-// Schermata comune dei giochi a pixel delle isole a tema (Arrembaggio sulla Tempesta, Fuga dalla lava sul Vulcano): scena a pixel su
+// Schermata comune dei giochi a pixel «tieni premuto» (Arrembaggio sulla Tempesta, Fuga dalla lava sul Vulcano, Perle): scena a pixel su
 // <canvas>, barre, cartello delle regole (il tempo parte al primo tocco), messaggio, punti, bottone grande e soglie delle medaglie.
 // Un pollice: si tiene premuto ovunque sulla schermata (o Spazio / Invio / E e i tasti del gioco); Esc o × = ritirati.
 // Fa girare la sim a 60 Hz (accumulatore suo), registra un InputFrame quantizzato per tick e alla fine restituisce packInputs(frames):
@@ -8,6 +8,7 @@ import type { Difficulty, InputFrame, MinigameModule, PackedInputs } from '@mare
 import { PAL, el, injectUiStyle } from './style.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { suona } from '../audio/ponte.ts';
+import type { SuonoId } from '../audio/ponte.ts';
 
 const P = PAL;
 const END_HOLD = 90; // tick: «Tempo!» a schermo prima di chiudere
@@ -32,9 +33,15 @@ export type DefSchermo<S, X> = {
   regole: string;
   barre: { nome: string; cls: string }[];
   tasti: string[];
+  /** Suono al primo tocco (default 'via') e all'apertura (default 'apri'; null = niente). */
+  suoni?: { via?: SuonoId; apri?: SuonoId | null };
+  /** CSS in più solo di questo gioco (colori delle sue barre e del bottone): i selettori partono da `#<domId>`. */
+  css?: string;
   /** Effetti solo del client per una partita nuova (dal seed). */
   scena(s: S, seed: number): X;
   pittore(cv: HTMLCanvasElement): (s: S, x: X, t: number, alpha: number, fermo: boolean) => void;
+  /** Prima di ogni tick della sim (e dopo `<id>FinoA`, così la foto non resta a metà tra due tick): quello che serve a `dopoPasso`. */
+  primaPasso?(s: S, x: X): void;
   /** Dopo ogni tick della sim: effetti e suoni. */
   dopoPasso(s: S, x: X): void;
   stato(s: S, x: X, o: { held: boolean; intro: boolean; auto: boolean }): StatoSchermo;
@@ -88,6 +95,7 @@ const CSS = `
 export function createSchermoPixel<S extends { tick: number; done: boolean }, X>(root: HTMLElement, def: DefSchermo<S, X>): SchermoPixel {
   injectUiStyle();
   if (!document.getElementById('mz-gp-style')) { const st = document.createElement('style'); st.id = 'mz-gp-style'; st.textContent = CSS; document.head.appendChild(st); }
+  if (def.css && !document.getElementById(`mz-gp-style-${def.id}`)) { const st = document.createElement('style'); st.id = `mz-gp-style-${def.id}`; st.textContent = def.css; document.head.appendChild(st); }
   const mod = getMinigame(def.id) as MinigameModule<S>;
   const TASTI = new Set(['Space', 'Enter', 'NumpadEnter', 'KeyE', ...def.tasti]);
   const wrap = el('div', 'mz mz-gp'); wrap.id = def.domId; wrap.style.background = def.velo;
@@ -142,10 +150,11 @@ export function createSchermoPixel<S extends { tick: number; done: boolean }, X>
   // keyup senza fermarlo: anche input.ts deve vederlo (altrimenti i tasti restano incollati nel mondo)
   addEventListener('keyup', (e) => { keys.delete(e.code); });
   x.addEventListener('click', () => close(null));
-  function inizia(): void { if (gm?.intro) { gm.intro = false; rules.style.display = 'none'; suona('via'); } }
+  function inizia(): void { if (gm?.intro) { gm.intro = false; rules.style.display = 'none'; suona(def.suoni?.via ?? 'via'); } }
 
   function passo(f: InputFrame): void {
     if (!gm) return;
+    def.primaPasso?.(gm.s, gm.x);
     const q = quantize(f);
     gm.frames.push(q); mod.step(gm.s, q);
     def.dopoPasso(gm.s, gm.x);
@@ -203,7 +212,7 @@ export function createSchermoPixel<S extends { tick: number; done: boolean }, X>
     inizia();
     const fino = Math.max(1, Math.min(mod.maxTicks - 1, Number(n) || 1));
     while (gm.s.tick < fino) passo(fermo ? { mx: 0, my: 0, a: false, b: false } : mod.autopilot(gm.s, autoRng));
-    acc = 0; render();
+    def.primaPasso?.(gm.s, gm.x); acc = 0; render();
     return gm.s.tick;
   });
 
@@ -218,7 +227,8 @@ export function createSchermoPixel<S extends { tick: number; done: boolean }, X>
         rules.style.display = auto ? 'none' : '';
         pointers.clear(); keys.clear();
         wrap.classList.add('on'); addEventListener('keydown', onKey, true);
-        suona('apri');
+        const apri = def.suoni?.apri === undefined ? 'apri' : def.suoni.apri;
+        if (apri) suona(apri);
         render(); raf = requestAnimationFrame(loop);
       });
     },
