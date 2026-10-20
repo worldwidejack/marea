@@ -1,5 +1,5 @@
 {
- "version": "2026-10-17-62",
+ "version": "2026-10-20-93",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
@@ -38,6 +38,48 @@
      0.78,
      1.17,
      0.7
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_appendiabiti_da_ingresso_in_legno": {
+   "file": "mob_appendiabiti_da_ingresso_in_legno.glb",
+   "tris": 174,
+   "kb": 7.8,
+   "bounds": {
+    "min": [
+     -0.5,
+     1.62,
+     -0.32
+    ],
+    "max": [
+     0.5,
+     2.06,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_arazzo_con_paesaggio_montano": {
+   "file": "mob_arazzo_con_paesaggio_montano.glb",
+   "tris": 166,
+   "kb": 7.7,
+   "bounds": {
+    "min": [
+     -0.56,
+     1.4,
+     -0.05
+    ],
+    "max": [
+     0.56,
+     2.46,
+     0
     ]
    },
    "footprint": [
@@ -101,6 +143,27 @@
      0.17,
      0.32,
      0.16
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_bersaglio_da_freccette_storto": {
+   "file": "mob_bersaglio_da_freccette_storto.glb",
+   "tris": 230,
+   "kb": 9.4,
+   "bounds": {
+    "min": [
+     -0.63,
+     1.52,
+     -0.23
+    ],
+    "max": [
+     0.44,
+     2.28,
+     0
     ]
    },
    "footprint": [
@@ -276,6 +339,27 @@
     1.9
    ]
   },
+  "mob_chitarra_elettrica_appesa": {
+   "file": "mob_chitarra_elettrica_appesa.glb",
+   "tris": 300,
+   "kb": 12.6,
+   "bounds": {
+    "min": [
+     -0.18,
+     1.3,
+     -0.16
+    ],
+    "max": [
+     0.16,
+     2.56,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_comodino_in_laminato": {
    "file": "mob_comodino_in_laminato.glb",
    "tris": 264,
@@ -332,6 +416,69 @@
      0.34,
      0.78,
      0.29
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_condizionatore_d_aria": {
+   "file": "mob_condizionatore_d_aria.glb",
+   "tris": 68,
+   "kb": 4.2,
+   "bounds": {
+    "min": [
+     -0.58,
+     2.06,
+     -0.33
+    ],
+    "max": [
+     0.58,
+     2.6,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_cornice_con_foto_di_un_pesce_rosso": {
+   "file": "mob_cornice_con_foto_di_un_pesce_rosso.glb",
+   "tris": 140,
+   "kb": 6.5,
+   "bounds": {
+    "min": [
+     -0.27,
+     1.66,
+     -0.05
+    ],
+    "max": [
+     0.27,
+     2.24,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_diploma_incorniciato": {
+   "file": "mob_diploma_incorniciato.glb",
+   "tris": 104,
+   "kb": 5.3,
+   "bounds": {
+    "min": [
+     -0.36,
+     1.67,
+     -0.05
+    ],
+    "max": [
+     0.36,
+     2.26,
+     0
     ]
    },
    "footprint": [
@@ -465,6 +612,69 @@
     1.9
    ]
   },
+  "mob_gagliardetto_calcistico_biancorosso": {
+   "file": "mob_gagliardetto_calcistico_biancorosso.glb",
+   "tris": 148,
+   "kb": 7,
+   "bounds": {
+    "min": [
+     -0.32,
+     1.42,
+     -0.07
+    ],
+    "max": [
+     0.32,
+     2.44,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_insegna_al_neon_open": {
+   "file": "mob_insegna_al_neon_open.glb",
+   "tris": 250,
+   "kb": 10.7,
+   "bounds": {
+    "min": [
+     -0.48,
+     1.25,
+     -0.09
+    ],
+    "max": [
+     0.54,
+     2.28,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_insegna_vietato_lingresso_ai_venditori": {
+   "file": "mob_insegna_vietato_lingresso_ai_venditori.glb",
+   "tris": 200,
+   "kb": 8.5,
+   "bounds": {
+    "min": [
+     -0.36,
+     1.75,
+     -0.05
+    ],
+    "max": [
+     0.39,
+     2.27,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_isola_da_cucina_in_marmo": {
    "file": "mob_isola_da_cucina_in_marmo.glb",
    "tris": 116,
@@ -521,6 +731,27 @@
      0.17,
      0.6,
      0.3
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_lavagna_in_sughero": {
+   "file": "mob_lavagna_in_sughero.glb",
+   "tris": 160,
+   "kb": 7.4,
+   "bounds": {
+    "min": [
+     -0.6,
+     1.5,
+     -0.05
+    ],
+    "max": [
+     0.6,
+     2.34,
+     0
     ]
    },
    "footprint": [
@@ -675,6 +906,69 @@
     1.9
    ]
   },
+  "mob_mensola_con_action_figures": {
+   "file": "mob_mensola_con_action_figures.glb",
+   "tris": 216,
+   "kb": 9.4,
+   "bounds": {
+    "min": [
+     -0.62,
+     1.54,
+     -0.3
+    ],
+    "max": [
+     0.62,
+     2.14,
+     0.02
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_mensola_con_barattoli_di_conserve": {
+   "file": "mob_mensola_con_barattoli_di_conserve.glb",
+   "tris": 273,
+   "kb": 11.2,
+   "bounds": {
+    "min": [
+     -0.52,
+     1.55,
+     -0.25
+    ],
+    "max": [
+     0.52,
+     2.1,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_mensola_singola_in_legno": {
+   "file": "mob_mensola_singola_in_legno.glb",
+   "tris": 127,
+   "kb": 6,
+   "bounds": {
+    "min": [
+     -0.55,
+     1.56,
+     -0.25
+    ],
+    "max": [
+     0.55,
+     2.06,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_mobile_tv_basso": {
    "file": "mob_mobile_tv_basso.glb",
    "tris": 180,
@@ -689,6 +983,69 @@
      0.81,
      0.58,
      0.27
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_orologio_a_cucu_in_legno": {
+   "file": "mob_orologio_a_cucu_in_legno.glb",
+   "tris": 204,
+   "kb": 8.9,
+   "bounds": {
+    "min": [
+     -0.37,
+     1.22,
+     -0.4
+    ],
+    "max": [
+     0.37,
+     2.43,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_orologio_da_parete_analogico": {
+   "file": "mob_orologio_da_parete_analogico.glb",
+   "tris": 188,
+   "kb": 8.3,
+   "bounds": {
+    "min": [
+     -0.28,
+     1.67,
+     -0.06
+    ],
+    "max": [
+     0.28,
+     2.23,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_orologio_da_stazione_con_doppio_quadrante": {
+   "file": "mob_orologio_da_stazione_con_doppio_quadrante.glb",
+   "tris": 180,
+   "kb": 8.2,
+   "bounds": {
+    "min": [
+     -0.24,
+     1.7,
+     -0.57
+    ],
+    "max": [
+     0.24,
+     2.3,
+     0
     ]
    },
    "footprint": [
@@ -815,6 +1172,90 @@
      0.67,
      0.8,
      0.69
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_poster_di_mostro_tascabile": {
+   "file": "mob_poster_di_mostro_tascabile.glb",
+   "tris": 93,
+   "kb": 4.9,
+   "bounds": {
+    "min": [
+     -0.4,
+     1.48,
+     -0.06
+    ],
+    "max": [
+     0.4,
+     2.44,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_poster_di_un_film_inesistente": {
+   "file": "mob_poster_di_un_film_inesistente.glb",
+   "tris": 128,
+   "kb": 6.2,
+   "bounds": {
+    "min": [
+     -0.35,
+     1.45,
+     -0.03
+    ],
+    "max": [
+     0.35,
+     2.45,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_quadro_con_paesaggio_sereno": {
+   "file": "mob_quadro_con_paesaggio_sereno.glb",
+   "tris": 124,
+   "kb": 6,
+   "bounds": {
+    "min": [
+     -0.47,
+     1.65,
+     -0.08
+    ],
+    "max": [
+     0.47,
+     2.4,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_quadro_notte_stellata": {
+   "file": "mob_quadro_notte_stellata.glb",
+   "tris": 160,
+   "kb": 7.4,
+   "bounds": {
+    "min": [
+     -0.61,
+     1.58,
+     -0.13
+    ],
+    "max": [
+     0.61,
+     2.42,
+     0.05
     ]
    },
    "footprint": [
@@ -1032,6 +1473,90 @@
     1.9
    ]
   },
+  "mob_spada_bastarda_incrociata_con_scudo": {
+   "file": "mob_spada_bastarda_incrociata_con_scudo.glb",
+   "tris": 137,
+   "kb": 6.6,
+   "bounds": {
+    "min": [
+     -0.43,
+     1.47,
+     -0.13
+    ],
+    "max": [
+     0.41,
+     2.31,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_specchio_a_forma_di_cuore_con_cornice_dorata": {
+   "file": "mob_specchio_a_forma_di_cuore_con_cornice_dorata.glb",
+   "tris": 134,
+   "kb": 6.3,
+   "bounds": {
+    "min": [
+     -0.46,
+     1.35,
+     -0.09
+    ],
+    "max": [
+     0.46,
+     2.3,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_specchio_ovale_con_cornice_d_oro": {
+   "file": "mob_specchio_ovale_con_cornice_d_oro.glb",
+   "tris": 114,
+   "kb": 5.6,
+   "bounds": {
+    "min": [
+     -0.42,
+     1.32,
+     -0.05
+    ],
+    "max": [
+     0.42,
+     2.67,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_specchio_rettangolare_semplice": {
+   "file": "mob_specchio_rettangolare_semplice.glb",
+   "tris": 90,
+   "kb": 4.8,
+   "bounds": {
+    "min": [
+     -0.29,
+     1.51,
+     -0.05
+    ],
+    "max": [
+     0.29,
+     2.39,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_statua_di_procione_in_ceramica": {
    "file": "mob_statua_di_procione_in_ceramica.glb",
    "tris": 280,
@@ -1053,6 +1578,48 @@
     1.9
    ]
   },
+  "mob_stendardo_medievale_con_stemma_inventato": {
+   "file": "mob_stendardo_medievale_con_stemma_inventato.glb",
+   "tris": 206,
+   "kb": 9.1,
+   "bounds": {
+    "min": [
+     -0.54,
+     1.25,
+     -0.05
+    ],
+    "max": [
+     0.52,
+     2.47,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_tabellone_da_biliardo_con_gessetti": {
+   "file": "mob_tabellone_da_biliardo_con_gessetti.glb",
+   "tris": 324,
+   "kb": 13.3,
+   "bounds": {
+    "min": [
+     -0.44,
+     1.65,
+     -0.1
+    ],
+    "max": [
+     0.44,
+     2.27,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_tappeto_rettangolare_a_tinta_unita": {
    "file": "mob_tappeto_rettangolare_a_tinta_unita.glb",
    "tris": 222,
@@ -1067,6 +1634,27 @@
      0.9,
      0.09,
      0.61
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_targa_stradale_via_rossi": {
+   "file": "mob_targa_stradale_via_rossi.glb",
+   "tris": 120,
+   "kb": 5.8,
+   "bounds": {
+    "min": [
+     -0.55,
+     1.83,
+     -0.04
+    ],
+    "max": [
+     0.38,
+     2.2,
+     0
     ]
    },
    "footprint": [
@@ -1200,6 +1788,27 @@
     1.9
    ]
   },
+  "mob_telecamera_di_sicurezza_a_circuito_chiuso": {
+   "file": "mob_telecamera_di_sicurezza_a_circuito_chiuso.glb",
+   "tris": 128,
+   "kb": 6.2,
+   "bounds": {
+    "min": [
+     -0.1,
+     2.05,
+     -0.44
+    ],
+    "max": [
+     0.1,
+     2.45,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_tenda_da_campeggio": {
    "file": "mob_tenda_da_campeggio.glb",
    "tris": 110,
@@ -1242,6 +1851,27 @@
     1.9
    ]
   },
+  "mob_testa_di_t_rex_in_plastica": {
+   "file": "mob_testa_di_t_rex_in_plastica.glb",
+   "tris": 304,
+   "kb": 12.8,
+   "bounds": {
+    "min": [
+     -0.24,
+     1.58,
+     -0.48
+    ],
+    "max": [
+     0.24,
+     2.24,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_trono_di_plastica_dorata": {
    "file": "mob_trono_di_plastica_dorata.glb",
    "tris": 161,
@@ -1277,6 +1907,27 @@
      0.81,
      1.02,
      0.45
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_ventaglio_gigante_decorativo": {
+   "file": "mob_ventaglio_gigante_decorativo.glb",
+   "tris": 316,
+   "kb": 13.2,
+   "bounds": {
+    "min": [
+     -0.68,
+     1.27,
+     -0.17
+    ],
+    "max": [
+     0.68,
+     2.26,
+     0.07
     ]
    },
    "footprint": [

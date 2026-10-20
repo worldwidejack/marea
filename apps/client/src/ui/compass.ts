@@ -144,14 +144,14 @@ export function createCompass(o: {
   const head = div('mz-mete-head');
   const toggle = document.createElement('button'); toggle.type = 'button'; toggle.id = 'mzMete'; toggle.className = 'mz';
   const sum = span('mz-mete-sum'), chev = span('mz-mete-chev');
-  toggle.append(pixIcon('mete', 16), span('mz-mete-lbl', 'METE'), sum, chev);
+  toggle.append(pixIcon('mete', 16), span('mz-mete-lbl', 'Mete'), sum, chev);
   const allBtn = (act: 'tutte' | 'nessuna', text: string) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'mz tutte'; b.dataset['act'] = act; b.textContent = text;
     b.addEventListener('click', (e) => { e.preventDefault(); b.blur(); if (act === 'tutte') off.clear(); else for (const r of rows) if (!r.t.navi) off.add(keyOf(r.t)); store(); });
     return b;
   };
   toggle.addEventListener('click', (e) => { e.preventDefault(); toggle.blur(); open = !open; store(); });
-  head.append(toggle, allBtn('tutte', 'TUTTE'), allBtn('nessuna', 'NESSUNA'));
+  head.append(toggle, allBtn('tutte', 'Tutte'), allBtn('nessuna', 'Nessuna'));
   const list = div('mz-mete-list');
   box.append(head, list);
 

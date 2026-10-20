@@ -14,6 +14,7 @@ import type { Hud } from '../ui/hud.ts';
 import { ApiError } from '../net/api.ts';
 import type { Api } from '../net/api.ts';
 import { PAL, el } from '../ui/style.ts';
+import { bottoneKit, campioneKit, cartaKit, fermaTocchi, injectKit, rigaKit, schedeKit, veloKit } from '../ui/kit.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { postoArredo } from './arredi_vista.ts';
 
@@ -24,18 +25,6 @@ type Vicino = { kind: 'mobile'; a: PlacedMobile; def: MobileDef } | { kind: 'bau
 const [X0, Z0] = BORGO.stanza.pavimento; // la stanza di serie: solo per la quota del pavimento (le stanze vere dipendono dal livello della casa, #386)
 const OK = '#B6FF3D', NO = '#FF5C3D'; // verde e rosso neon della sagoma (ART_BIBLE §2), come SPOSTA in giardino
 const BAULE: MobileDef = { id: 'baule', nome: 'Baule', categoria: 'contenitori', monete: 1, posto: 'terra', forma: 'baule', colori: [PAL.legno] };
-const CSS = `
-#mzArredaBtn { position: absolute; left: 50%; top: var(--mzT, max(8px, env(safe-area-inset-top))); transform: translateX(-50%); display: none; min-height: 44px; padding: 0 16px; background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; z-index: 15; cursor: pointer; }
-#mzArredaBtn.on { display: block; }
-#mzArredaBar { position: absolute; left: 8px; right: 8px; top: calc(max(8px, env(safe-area-inset-top)) + 60px); display: none; flex-direction: column; align-items: center; gap: 6px; z-index: 15; pointer-events: none; }
-#mzArredaBar.on { display: flex; }
-#mzArredaBar .t { padding: 4px 10px; background: rgba(46,30,20,.93); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 14px ui-monospace, Menlo, monospace; text-align: center; }
-#mzArredaBar .r { display: flex; gap: 8px; pointer-events: auto; }
-#mzArredaBar button { min-width: 88px; min-height: 44px; background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; font: bold 15px ui-monospace, Menlo, monospace; cursor: pointer; }
-#mzArredaBar button.no { background: ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; border-color: ${PAL.legnoChiaro}; }
-#mzArreda h3 { margin: 10px 0 2px; color: ${PAL.giallo}; font: bold 14px ui-monospace, Menlo, monospace; }
-#mzArreda .vuoto { color: ${PAL.sabbia}; font-size: 14px; }
-`;
 
 /** Cornice (4 listelli) w×d nel piano XZ, alta `s`: la sagoma per terra (w e d = ingombro del mobile). */
 function cornice(w: number, d: number, s: number): THREE.BufferGeometry[] {
@@ -47,11 +36,11 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
   const w = o.world, arch = w.archipelago, T = arch.tile;
   const lotDef = o.slot !== null ? arch.lots.find((l) => l.slot === o.slot) ?? null : null;
   const ox = lotDef ? lotDef.origin[0] * T : 0, oz = lotDef ? lotDef.origin[1] * T : 0;
-  const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
-  const btn = el('button', 'mz', 'ARREDA'); btn.id = 'mzArredaBtn'; btn.type = 'button'; o.root.appendChild(btn);
-  const bar = el('div', 'mz'); bar.id = 'mzArredaBar'; o.root.appendChild(bar);
-  const sheet = el('div', 'mz mz-sheet'); sheet.id = 'mzArreda'; o.root.appendChild(sheet);
-  for (const e of [btn, bar, sheet]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
+  injectKit();
+  const btn = fermaTocchi(el('button', 'mk-btn mk-pill', 'Arreda')); btn.id = 'mzArredaBtn'; btn.type = 'button'; o.root.appendChild(btn);
+  const bar = fermaTocchi(el('div', 'mk-barra')); bar.id = 'mzArredaBar'; o.root.appendChild(bar);
+  const sheet = veloKit(o.root, 'mzArreda');
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) chiudi(); }); // un tocco fuori dalla carta chiude
   // sagoma: per terra una cornice, a parete una cornice in piedi; più l'anteprima del mobile
   const matOk = new THREE.MeshBasicMaterial({ color: OK }), matNo = new THREE.MeshBasicMaterial({ color: NO });
   const sagoma = new THREE.Group(); sagoma.name = 'arreda_sagoma'; sagoma.visible = false; w.scene.add(sagoma);
@@ -93,7 +82,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     busy = true;
     try { o.lotto.set(await fn()); dopo?.(); return true; } catch (e) { errore(e); return false; } finally { busy = false; disegna(); }
   };
-  const chiudi = () => { aperto = false; sheet.classList.remove('on'); sheet.replaceChildren(); };
+  const chiudi = () => { aperto = false; sheet.classList.remove('on'); sheet.replaceChildren(); disegna(); };
   const inizia = (m: Modo) => {
     chiudi(); modo = m; prevKey = '';
     void import('../render/mobili.ts').then((mod) => { mobiliMod = mod; prevKey = ''; }).catch(() => {});
@@ -117,63 +106,63 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     }
   };
 
-  // ——— il pannello: magazzino, pavimento, carta ———
-  const riga = (testo: string, azione: string | null, fn: () => void, attuale = false) => {
-    const b = el('button', 'mz-btn', ''); b.type = 'button';
-    b.append(el('span', '', testo), el('b', '', attuale ? '✓' : azione ?? ''));
-    if (!azione || attuale) b.disabled = true;
-    b.addEventListener('click', fn);
-    return b;
+  // ——— il pannello (kit dei pannelli, ui/kit.ts): schede Mobili, Pavimento, Pareti; davanti a un mobile la sua scheda ———
+  type Scheda = 'mobili' | 'pavimento' | 'carta';
+  let tab: Scheda = 'mobili';
+  /** La carta del pannello, alta quanto serve: `sopra` (le schede) resta ferma, `corpo` scorre. */
+  const mostra = (titolo: string, sopra: Node | null, corpo: Node[]) => {
+    const c = cartaKit(titolo, chiudi);
+    if (sopra) c.carta.insertBefore(sopra, c.corpo);
+    c.corpo.append(...corpo);
+    c.carta.classList.add('corta');
+    sheet.replaceChildren(c.carta); sheet.classList.add('on');
   };
+  /** Bottone d'azione di una riga: spento con la spunta se è già così. */
+  const azione = (testo: string, fn: () => void, attuale = false) => { const b = bottoneKit(attuale ? '✓' : testo, fn); b.disabled = attuale; return b; };
   function apri(): void {
     const l = lot(); if (!l) return;
     aperto = true;
     caricaFinitureTesti();
     const st = o.stanza.stanza() ?? 'terra', stanzaAttiva = st === 'piano' ? 'piano' : 'terra';
     const c = casaDi(l), mag = c.magazzino ?? {}, scelte = finitureScelte(l, stanzaAttiva);
-    const testa = el('div', 'mz-row'); testa.style.alignItems = 'center';
-    const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudi);
-    const t = el('b', '', 'ARREDA'); t.style.flex = '1'; t.style.color = PAL.giallo;
-    testa.append(t, x);
-    const corpo: Node[] = [testa, el('h3', '', 'Magazzino')];
-    const ids = Object.keys(mag).filter((k) => mag[k]! > 0 && def(k));
-    if (!ids.length) corpo.push(el('div', 'vuoto', 'Vuoto: i mobili si comprano al negozio dei mobili del Borgo.'));
-    for (const id of ids) { const r = riga(`${def(id)!.nome} ×${mag[id]}`, 'POSA', () => inizia({ kind: 'posa', mobile: def(id)!, rot: 0 })); r.dataset['mobile'] = id; corpo.push(r); }
-    if (st === 'cantina') {
-      corpo.push(el('div', 'vuoto', 'In cantina pavimento e pareti sono di pietra naturale.'));
+    const schede = schedeKit<Scheda>([{ id: 'mobili', nome: 'Mobili' }, { id: 'pavimento', nome: 'Pavimento' }, { id: 'carta', nome: 'Pareti' }], tab, (t) => { tab = t; apri(); });
+    const corpo: Node[] = [];
+    if (tab === 'mobili') {
+      const ids = Object.keys(mag).filter((k) => mag[k]! > 0 && def(k));
+      if (!ids.length) corpo.push(el('div', 'mk-nota', 'Vuoto: i mobili si comprano al negozio dei mobili del Borgo.'));
+      for (const id of ids) {
+        const d = def(id)!, b = azione('Posa', () => inizia({ kind: 'posa', mobile: d, rot: 0 })); b.dataset['mobile'] = id;
+        corpo.push(rigaKit({ icona: campioneKit(d.colori), nome: d.nome, sotto: [mag[id]! > 1 ? `Ne hai ${mag[id]}` : d.posto === 'parete' ? 'Va sul muro' : 'Va per terra'], azione: b }));
+      }
+      if (baule(l) && inStanza(baule(l)!.cell)) corpo.push(rigaKit({ icona: campioneKit(BAULE.colori), nome: 'Baule', sotto: ['Il tuo forziere'], azione: azione('Sposta', () => inizia({ kind: 'baule' })) }));
+    } else if (st === 'cantina') {
+      corpo.push(el('div', 'mk-nota', 'In cantina pavimento e pareti sono di pietra naturale.'));
     } else {
-      for (const [tipo, nome, lista] of [['pavimento', 'Pavimento', BORGO.pavimenti], ['carta', 'Carta da parati', BORGO.carte]] as const) {
-        corpo.push(el('h3', '', nome));
-        for (const f of lista) if (possiedeFinitura(l, tipo, f.id)) {
-          const r = riga(f.nome, 'METTI', () => void fai(() => o.api!.casa('scegli', { tipo, id: f.id, stanza: stanzaAttiva }), () => apri()), scelte[tipo] === f.id);
-          r.dataset['finitura'] = `${tipo}:${f.id}`; corpo.push(r);
-          if (finitureTesti?.[f.id]) {
-            const d = el('div', 'vuoto', finitureTesti[f.id]!);
-            d.style.margin = '-4px 0 8px 12px'; d.style.fontSize = '12px'; d.style.fontStyle = 'italic';
-            corpo.push(d);
-          }
-        }
+      const lista = tab === 'pavimento' ? BORGO.pavimenti : BORGO.carte;
+      for (const f of lista) if (possiedeFinitura(l, tab, f.id)) {
+        const tipo = tab, b = azione('Metti', () => void fai(() => o.api!.casa('scegli', { tipo, id: f.id, stanza: stanzaAttiva }), () => apri()), scelte[tipo] === f.id);
+        b.dataset['finitura'] = `${tipo}:${f.id}`;
+        const r = rigaKit({ icona: campioneKit(f.colori), nome: f.nome, sotto: finitureTesti?.[f.id] ? [finitureTesti[f.id]!] : [], azione: b });
+        r.classList.toggle('on', scelte[tipo] === f.id);
+        corpo.push(r);
       }
     }
-    if (baule(l) && inStanza(baule(l)!.cell)) corpo.push(el('h3', '', 'Baule'), riga('Sposta il baule', 'SPOSTA', () => inizia({ kind: 'baule' })));
-    sheet.replaceChildren(...corpo); sheet.classList.add('on');
+    mostra('Arreda', schede, corpo);
+    disegna();
   }
   function scheda(v: Vicino): void {
     aperto = true;
-    const testa = el('div', 'mz-row'); testa.style.alignItems = 'center';
-    const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudi);
-    const t = el('b', '', v.kind === 'baule' ? 'Baule' : v.def.nome); t.style.flex = '1'; t.style.color = PAL.giallo;
-    testa.append(t, x);
-    const rr = el('div', 'mz-row');
+    const fila = el('div', 'mk-fila');
     if (v.kind === 'baule') {
-      rr.append(riga('Apri', 'APRI', () => { chiudi(); o.apriBaule?.(); }), riga('Sposta', 'SPOSTA', () => inizia({ kind: 'baule' })), riga('Gira', 'GIRA', () => void fai(() => o.api!.casa('baule', {}))));
+      fila.append(bottoneKit('Apri', () => { chiudi(); o.apriBaule?.(); }), bottoneKit('Sposta', () => inizia({ kind: 'baule' }), 'carta'), bottoneKit('Gira', () => void fai(() => o.api!.casa('baule', {})), 'carta'));
     } else {
       const a = v.a, d = v.def;
-      rr.append(riga('Sposta', 'SPOSTA', () => inizia({ kind: 'sposta', id: a.id, mobile: d, rot: a.rot ?? 0 })));
-      if (!a.muro) rr.append(riga('Gira', 'GIRA', () => void fai(() => o.api!.casa('ruota', { id: a.id }))));
-      rr.append(riga('Metti via', 'VIA', () => void fai(() => o.api!.casa('ritira', { id: a.id }), () => { chiudi(); o.hud.toast(`${d.nome}: nel magazzino`, 1600); })));
+      fila.append(bottoneKit('Sposta', () => inizia({ kind: 'sposta', id: a.id, mobile: d, rot: a.rot ?? 0 })));
+      if (!a.muro) fila.append(bottoneKit('Gira', () => void fai(() => o.api!.casa('ruota', { id: a.id })), 'carta'));
+      fila.append(bottoneKit('Metti via', () => void fai(() => o.api!.casa('ritira', { id: a.id }), () => { chiudi(); o.hud.toast(`${d.nome}: nel magazzino`, 1600); }), 'carta'));
     }
-    sheet.replaceChildren(testa, rr); sheet.classList.add('on');
+    const nome = v.kind === 'baule' ? 'Baule' : v.def.nome, colori = v.kind === 'baule' ? BAULE.colori : v.def.colori;
+    mostra(nome, null, [rigaKit({ icona: campioneKit(colori), nome, sotto: [v.kind === 'baule' ? 'Il tuo forziere' : 'Cosa ne fai?'] }), fila]);
   }
   btn.addEventListener('click', () => { if (aperto) chiudi(); else apri(); disegna(); });
 
@@ -193,8 +182,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
   let barKey = '';
   function disegna(): void {
     const qui = mia();
-    btn.classList.toggle('on', qui && !modo);
-    btn.textContent = aperto && !modo ? 'CHIUDI' : 'ARREDA';
+    btn.classList.toggle('on', qui && !modo && !aperto);
     const k = !qui ? '' : modo ? `m:${modo.kind}:${ok}:${busy}` : vicino ? `v:${vicino.kind === 'baule' ? 'baule' : vicino.a.id}` : '';
     if (k === barKey) return;
     barKey = k;
@@ -202,14 +190,13 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     if (!k) { bar.replaceChildren(); return; }
     if (modo) {
       const nome = modo.kind === 'baule' ? 'Baule' : modo.mobile.nome;
-      const t = el('div', 't', `${nome}: muoviti e premi A ${ok ? '' : '(qui no)'}`.trim());
-      const r = el('div', 'r');
-      const qui2 = el('button', '', 'QUI'); qui2.type = 'button'; qui2.disabled = !ok || busy; qui2.addEventListener('click', () => void conferma());
-      r.append(qui2);
-      if (modo.kind === 'posa' && modo.mobile.posto === 'terra') { const g = el('button', '', 'GIRA'); g.type = 'button'; g.addEventListener('click', () => { if (modo?.kind === 'posa') { modo.rot = (modo.rot + 1) % 4; prevKey = ''; } }); r.append(g); }
-      const no = el('button', 'no', 'ANNULLA'); no.type = 'button'; no.addEventListener('click', fine); r.append(no);
+      const t = el('div', 'mk-cartello', ok ? `${nome}: muoviti e premi A` : `${nome}: qui non ci sta`);
+      const r = el('div', 'mk-fila');
+      const qui2 = bottoneKit('Qui', () => void conferma()); qui2.disabled = !ok || busy; r.append(qui2);
+      if (modo.kind === 'posa' && modo.mobile.posto === 'terra') r.append(bottoneKit('Gira', () => { if (modo?.kind === 'posa') { modo.rot = (modo.rot + 1) % 4; prevKey = ''; } }, 'carta'));
+      r.append(bottoneKit('Annulla', fine, 'carta'));
       bar.replaceChildren(t, r);
-    } else if (vicino) bar.replaceChildren(el('div', 't', `${vicino.kind === 'baule' ? 'Baule' : vicino.def.nome}: A modifica`));
+    } else if (vicino) bar.replaceChildren(el('div', 'mk-cartello', `${vicino.kind === 'baule' ? 'Baule' : vicino.def.nome}: A per modificarlo`));
   }
 
   registerStateProvider('arreda', () => {
