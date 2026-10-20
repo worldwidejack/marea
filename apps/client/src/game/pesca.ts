@@ -308,7 +308,9 @@ export function createPescaBorgo(o: {
     if (fase === 'mira' || fase === 'preso' || fase === 'scappa') return -0.45;
     return -0.3;
   };
-  const conCanna = (): boolean => fase !== 'spento' || (w.mode === 'walk' && w.avatar.visible && inBorgo() && o.inMano() === 'canna');
+  const inInterno = (): boolean => o.negozioDentro() || arch.placeAt(w.avatar.state.x, w.avatar.state.z)?.role === 'negozio' || document.body.classList.contains('mz-casa');
+  const puoImpugnare = (): boolean => w.mode === 'walk' && !w.race.on && (inBorgo() || inInterno());
+  const conCanna = (): boolean => fase !== 'spento' || (w.avatar.visible && puoImpugnare() && o.inMano() === 'canna');
   const disegna = (dt: number, tempo: number) => {
     corpi.begin(); ombreM.begin();
     const c = centro();

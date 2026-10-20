@@ -73,6 +73,15 @@ export default async function (ctx) {
       await page.keyboard.down('ArrowDown');
       try { await ctx.waitState(page, (s) => !s.negozio.dentro && s.arch.place === 'porto', 20000); } finally { await page.keyboard.up('ArrowDown'); }
       await page.waitForFunction(() => !window.__game.state().velo.attivo, null, { timeout: 5000 });
+      // rientro nel negozio con il retino in mano: resta impugnato e non fluttua sulla porta (#486)
+      await hook('negozio', false);
+      await ctx.waitState(page, (s) => s.negozio.dentro, 5000);
+      assert((await st()).insetti.attrezzo === 'retino', 'rientrando nel negozio il retino resta in mano');
+      await ctx.shot(page, 'pc_negozio_rientro_retino');
+      await hook('teleport', uscita.x, uscita.z);
+      await page.keyboard.down('ArrowDown');
+      try { await ctx.waitState(page, (s) => !s.negozio.dentro && s.arch.place === 'porto', 20000); } finally { await page.keyboard.up('ArrowDown'); }
+      await page.waitForFunction(() => !window.__game.state().velo.attivo, null, { timeout: 5000 });
     });
 
     let preso = null;

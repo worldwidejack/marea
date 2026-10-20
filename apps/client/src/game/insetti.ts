@@ -118,6 +118,8 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   };
 
   const inBorgo = (): boolean => (w.mode === 'walk' && !w.race.on && !o.negozioDentro() && !document.body.classList.contains('mz-casa') && arch.placeAt(w.avatar.state.x, w.avatar.state.z)?.role === 'porto');
+  const inInterno = (): boolean => o.negozioDentro() || arch.placeAt(w.avatar.state.x, w.avatar.state.z)?.role === 'negozio' || document.body.classList.contains('mz-casa');
+  const puoImpugnare = (): boolean => w.mode === 'walk' && !w.race.on && (inBorgo() || inInterno());
 
   // ——— gli insetti ———
   const attori = new Map<string, Attore>(), andati = new Set<string>();
@@ -248,7 +250,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const agisci = () => { if (ctx === 'retino') retinata(); else if (ctx === 'sasso' && ctxIdx >= 0) void cerca('sasso', ctxIdx); else if (ctx === 'albero' && ctxIdx >= 0) void cerca('albero', ctxIdx); };
   azioneBtn.addEventListener('click', agisci); attrBtn.addEventListener('click', cambia);
   addEventListener('keydown', (e) => {
-    if (e.code !== 'KeyQ' || e.repeat || e.altKey || e.ctrlKey || e.metaKey || !inBorgo() || w.frozen) return;
+    if (e.code !== 'KeyQ' || e.repeat || e.altKey || e.ctrlKey || e.metaKey || !puoImpugnare() || w.frozen) return;
     const t = e.target as HTMLElement | null; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
     cambia();
   });
@@ -267,8 +269,9 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const V = new THREE.Vector3();
   const retinoAnim = creaRetinoAnim(w);
   const disegnaMano = (mano: Attrezzo) => {
-    if (mano === 'nulla' || mano === 'canna' || w.mode !== 'walk' || !w.avatar.visible) return; // la canna la disegna game/pesca.ts
+    if (mano === 'nulla' || mano === 'canna' || !puoImpugnare() || !w.avatar.visible) return; // la canna la disegna game/pesca.ts
     if (mano === 'retino') {
+      if (!retinoAnim.attivo()) return;
       const p = retinoAnim.posa();
       corpi.put(RETINO, p.x, p.y, p.z, p.h, p.pitch, p.roll, 1);
       return;
@@ -368,7 +371,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       if (congelato > 0) { congelato -= dt; if (congelato <= 0 && !w.avatar.azioneInCorso) w.frozen = false; }
       const f = w.avatar.state; fermoDa = Math.hypot(f.vx, f.vz) < 0.2 ? fermoDa + dt : 0;
       const c = chi(), dentro = inBorgo(), mano = inMano();
-      retinoAnim.aggiorna(dt, colpo, COLPO_S, dentro && mano === 'retino');
+      retinoAnim.aggiorna(dt, colpo, COLPO_S, puoImpugnare() && mano === 'retino');
       if (colpo > 0) { colpo = Math.max(0, colpo - dt); if (!colpito && colpo <= COLPO_S * 0.52) chiudiColpo(); }
       syncLiberi(now);
       for (const [k, a] of attori) {
@@ -387,7 +390,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
         else if (key === 'a') azioneBtn.replaceChildren(el('span', '', 'SCUOTI'), el('span', 'lungo', 'L’ALBERO'), el('b', '', 'A'));
         for (const cv of azioneBtn.querySelectorAll('canvas')) { (cv as HTMLCanvasElement).style.width = (cv as HTMLCanvasElement).style.height = '20px'; (cv as HTMLCanvasElement).style.imageRendering = 'pixelated'; }
       }
-      const attr = dentro && (hai('pala') || hai('retino') || hai('canna')) ? mano : '';
+      const attr = puoImpugnare() && (hai('pala') || hai('retino') || hai('canna')) ? mano : '';
       if (attr !== lastAttr) { lastAttr = attr; attrBtn.classList.toggle('on', !!attr); if (attr) attrBtn.replaceChildren(iconaAttrezzo(attr as Attrezzo), el('span', '', NOME_ATTREZZO[attr as Attrezzo])); }
     },
   };
