@@ -4,7 +4,7 @@
 // FALLISCE se in un qualsiasi punto draw call > 100 o triangoli > 150.000 (TECH §5). Numeri: tests/out/m3_prestazioni.json
 // Screenshot (22°): Porto, molo, Vulcano, Laguna, mare aperto verso le isole, Porto di notte.
 export const timeout = 600000; // su GitHub il giro dura ~6 min (era al limite dei 7 con le isole a tema)
-const MAX_DRAW = 100, MAX_TRIS = 200000; // 150k → 180k col Borgo Marea (#237), → 200k con la città attorno al Porto (#247, ROADMAP §Deviazioni)
+const MAX_DRAW = 100, MAX_TRIS = 215000; // 150k → 180k col Borgo Marea (#237), → 200k con la città attorno al Porto (#247, ROADMAP §Deviazioni), → 215k coi personaggi del Borgo coi modelli loro (npc_, ART_BIBLE §5: −40 draw call, +14k triangoli)
 const SHOTS = new Set(['porto', 'molo', 'laguna', 'vulcano', 'vulcano_chiusa', 'mare_sudest', 'mare_est']);
 
 /** Punti del giro: come arrivarci (hook di test). */

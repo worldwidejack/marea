@@ -147,7 +147,7 @@ export function createPorto(o: PortoOpts): Porto {
     if (!cammina) posaForma(o.world.solidi, 'persona', first.x, first.z);
     const n: Npc = { p, av: null, meshes: [], shadow: true, cammina, x: first.x, z: first.z, yaw: b ? -GENTE.posti[b].rot : Math.PI, label: layer.add(() => { if (dist(n.x, n.z) < TAP_M) void open(b ? alBanco(b) : { kind: 'persona', p }); }), talk: false, segno: false };
     nome(n, false); n.label.el.dataset['persona'] = p.id;
-    void createAvatar({ loader: o.loader, look: p.look, x: first.x, z: first.z }).then((av) => {
+    void createAvatar({ loader: o.loader, look: p.look, x: first.x, z: first.z, ...(p.modello ? { modello: p.modello } : {}) }).then((av) => {
       av.setGround(o.world.groundY); av.object.name = 'gente_' + p.id; group.add(av.object); n.av = av;
       av.object.traverse((x) => { if ((x as THREE.Mesh).isMesh) n.meshes.push(x as THREE.Mesh); });
     }).catch(() => { /* senza avatar la persona non c'è: pazienza */ });

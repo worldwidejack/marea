@@ -1,0 +1,319 @@
+{
+ "version": "2026-10-20-13",
+ "atlas": "atlas.png",
+ "texelsPerMeter": 16,
+ "models": {
+  "npc_ada": {
+   "file": "npc_ada.glb",
+   "tris": 4750,
+   "kb": 149.1,
+   "bounds": {
+    "min": [
+     -0.33,
+     0,
+     -0.33
+    ],
+    "max": [
+     0.32,
+     1.79,
+     0.32
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_bepi": {
+   "file": "npc_bepi.glb",
+   "tris": 3710,
+   "kb": 129.4,
+   "bounds": {
+    "min": [
+     -0.34,
+     -0.01,
+     -0.29
+    ],
+    "max": [
+     0.33,
+     1.61,
+     0.19
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_bice": {
+   "file": "npc_bice.glb",
+   "tris": 3696,
+   "kb": 127.4,
+   "bounds": {
+    "min": [
+     -0.3,
+     -0.01,
+     -0.4
+    ],
+    "max": [
+     0.36,
+     1.51,
+     0.82
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_brando": {
+   "file": "npc_brando.glb",
+   "tris": 4610,
+   "kb": 139.1,
+   "bounds": {
+    "min": [
+     -0.42,
+     -0.01,
+     -0.53
+    ],
+    "max": [
+     0.63,
+     1.91,
+     0.19
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_furetto": {
+   "file": "npc_furetto.glb",
+   "tris": 4462,
+   "kb": 145.4,
+   "bounds": {
+    "min": [
+     -0.3,
+     0,
+     -0.31
+    ],
+    "max": [
+     0.31,
+     1.85,
+     0.25
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_gaspare": {
+   "file": "npc_gaspare.glb",
+   "tris": 3886,
+   "kb": 128.1,
+   "bounds": {
+    "min": [
+     -0.29,
+     -0.01,
+     -0.3
+    ],
+    "max": [
+     0.29,
+     1.87,
+     0.53
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_gigi": {
+   "file": "npc_gigi.glb",
+   "tris": 3522,
+   "kb": 132.2,
+   "bounds": {
+    "min": [
+     -0.22,
+     0,
+     -0.17
+    ],
+    "max": [
+     0.22,
+     1.37,
+     0.18
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_ishi": {
+   "file": "npc_ishi.glb",
+   "tris": 4640,
+   "kb": 139,
+   "bounds": {
+    "min": [
+     -0.41,
+     0,
+     -0.37
+    ],
+    "max": [
+     0.41,
+     1.81,
+     0.28
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_nella": {
+   "file": "npc_nella.glb",
+   "tris": 4940,
+   "kb": 146.7,
+   "bounds": {
+    "min": [
+     -0.3,
+     0,
+     -0.39
+    ],
+    "max": [
+     0.3,
+     1.54,
+     0.25
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_pina": {
+   "file": "npc_pina.glb",
+   "tris": 4650,
+   "kb": 140.9,
+   "bounds": {
+    "min": [
+     -0.31,
+     0,
+     -0.24
+    ],
+    "max": [
+     0.23,
+     1.33,
+     0.22
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_remo": {
+   "file": "npc_remo.glb",
+   "tris": 4948,
+   "kb": 150.4,
+   "bounds": {
+    "min": [
+     -0.45,
+     -0.01,
+     -0.37
+    ],
+    "max": [
+     0.45,
+     1.75,
+     0.27
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_sibilla": {
+   "file": "npc_sibilla.glb",
+   "tris": 5000,
+   "kb": 157,
+   "bounds": {
+    "min": [
+     -0.32,
+     0,
+     -0.33
+    ],
+    "max": [
+     0.36,
+     1.96,
+     0.31
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_tonio": {
+   "file": "npc_tonio.glb",
+   "tris": 3268,
+   "kb": 115.8,
+   "bounds": {
+    "min": [
+     -0.3,
+     -0.01,
+     -1.55
+    ],
+    "max": [
+     0.74,
+     1.84,
+     0.27
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  }
+ }
+}

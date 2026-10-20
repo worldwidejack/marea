@@ -90,7 +90,8 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
   for (const s of posti) {
     const look = BOTTEGHE[s.id].look;
     if (!look) continue;
-    void createAvatar({ loader: o.loader, look, x: s.bx, z: s.bz }).then((av) => {
+    const modello = BOTTEGHE[s.id].modello;
+    void createAvatar({ loader: o.loader, look, x: s.bx, z: s.bz, ...(modello ? { modello } : {}) }).then((av) => {
       av.setGround(o.world.groundY); av.object.name = 'bottegaio_' + s.id; group.add(av.object); s.av = av;
       av.object.traverse((x) => { if ((x as THREE.Mesh).isMesh) s.meshes.push(x as THREE.Mesh); });
       av.setPose({ x: s.bx, z: s.bz, yaw: -s.ry + Math.PI, anim: 'idle' }); // guarda la strada (yaw 0 = −Z)

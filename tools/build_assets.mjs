@@ -9,6 +9,7 @@
 //    (CONTRACTS §15): il manifest principale non li elenca. Foglio per Jack: tests/out/rpg_contact.png.
 //    manifest_corse.json = kit delle zone dell'Isola delle Corse (cs_), scaricato solo dal chunk delle Corse (CONTRACTS §34).
 //    manifest_mobili.json = i mobili della casa (mob_<id>, assets/blender/models_mobili.py), scaricato solo da chi mostra un mobile (docs/MOBILI.md).
+//    manifest_gente.json = i personaggi del Borgo (npc_<id>, assets/blender/models_gente.py), scaricato dopo l'avvio da chi li incontra.
 // Fallisce se un modello supera il budget (ART_BIBLE §4) o manca un nome obbligatorio (CONTRACTS §9).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -47,6 +48,7 @@ const REQUIRED_RPG = [...['grotta', 'cripta', 'vuoto'].flatMap((st) => ['pavimen
 const isRpg = (n) => /^(dng_|nem_|arm_|fx_)/.test(n) || n === 'prop_sacco';
 const isCorse = (n) => n.startsWith('cs_');
 const isMobili = (n) => n.startsWith('mob_');
+const isGente = (n) => n.startsWith('npc_');
 const CLIPS = ['idle', 'walk', 'run', 'sit', 'row'];
 const DNG_MODULE = /^dng_(grotta|cripta|vuoto|drenaggio|archivio|fucina|mausoleo|diga)_(pavimento|muro|muro_basso)$/;
 const BOSS = new Set(['nem_re_ossa', 'nem_custode', 'nem_capoturno', 'nem_astrolabio', 'nem_forgiatore', 'nem_custode_egida', 'nem_vaelen']);
@@ -61,7 +63,7 @@ const HUB_BUDGET = (n) => n === 'cs_h_ruota_giro' ? [1, 2000] : HUB_GRANDI.test(
 const DISCESA_LEGGERI = { cs_d_bici_ruota: 450, cs_d_erba: 40, cs_d_fiori: 60, cs_d_felce: 60, cs_d_cespuglio: 120, cs_d_braccia: 900 };
 const DISCESA_BUDGET = (n) => DISCESA_LEGGERI[n] ? [1, DISCESA_LEGGERI[n]] : n.startsWith('cs_d_bici_') ? [1, 1200] : /^cs_d_(abete_|pino_|tronco_alto)/.test(n) ? [1, 500] : [1, 300];
 const BUDGET = (n) => n.startsWith('cs_d_') ? DISCESA_BUDGET(n) : n.startsWith('cs_h_') ? HUB_BUDGET(n) : n.startsWith('mob_') ? [1, 600] : n === 'cs_manichino_testa' ? [1, 50] : n.startsWith('cs_v_') ? [1, 1800] : n.startsWith('cs_p_') ? [1, 3000] : CORSE_GRANDI.test(n) ? [1, 800] : isCorse(n) ? [1, 300] : n.startsWith('mod_') || DNG_MODULE.test(n) ? [1, 60] : n.startsWith('bld_') ? [300, 800] : n.startsWith('prop_') || n.startsWith('dng_') ? [50, 200]
-  : n.startsWith('boat_') ? [1, 600] : n === 'chr_base' ? [1, 3500] : n.startsWith('chr_') ? [1, 1500] : BOSS.has(n) ? [1, 1200] : n.startsWith('nem_') ? [1, 600]
+  : n.startsWith('boat_') ? [1, 600] : n === 'chr_base' ? [1, 3500] : n.startsWith('chr_') ? [1, 1500] : n.startsWith('npc_') ? [1, 6000] : BOSS.has(n) ? [1, 1200] : n.startsWith('nem_') ? [1, 600]
   : n.startsWith('arm_') ? [1, 80] : n.startsWith('fx_') ? [1, 40] : [1, 800];
 // Tinte di default dell'avatar: le zone pelle/capelli/vestito dell'atlas sono maschere bianche, il colore è il fattore del materiale.
 const TINT = { mat_pelle: '#D9A070', mat_capelli: '#2E1E14', mat_vestito: '#3FB9C9', mat_cappello: '#E2B97F' };
@@ -101,10 +103,11 @@ const manPath = path.join(PUB, 'manifest.json');
 const rpgPath = path.join(PUB, 'manifest_rpg.json');
 const corsePath = path.join(PUB, 'manifest_corse.json');
 const mobiliPath = path.join(PUB, 'manifest_mobili.json');
+const gentePath = path.join(PUB, 'manifest_gente.json');
 const readMan = (p) => (fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : { models: {} });
-const old = readMan(manPath); const oldRpg = readMan(rpgPath); const oldCorse = readMan(corsePath); const oldMobili = readMan(mobiliPath);
+const old = readMan(manPath); const oldRpg = readMan(rpgPath); const oldCorse = readMan(corsePath); const oldMobili = readMan(mobiliPath); const oldGente = readMan(gentePath);
 // tutti i modelli in un dizionario solo; la separazione nei due manifest avviene alla scrittura (isRpg)
-const models = only.length ? { ...(old.models || {}), ...(oldRpg.models || {}), ...(oldCorse.models || {}), ...(oldMobili.models || {}) } : {};
+const models = only.length ? { ...(old.models || {}), ...(oldRpg.models || {}), ...(oldCorse.models || {}), ...(oldMobili.models || {}), ...(oldGente.models || {}) } : {};
 const errors = [];
 
 /** Toglie l'atlas incorporato dal GLB: l'immagine diventa `uri: atlas.png` (una sola texture condivisa, file piccoli). */
@@ -183,7 +186,7 @@ for (const file of fs.readdirSync(RAW).filter((f) => f.endsWith('.glb')).sort())
   const clips = root.listAnimations().map((a) => a.getName());
   const [lo, hi] = BUDGET(name);
   if (tris > hi || tris < lo) errors.push(`${name}: ${tris} tri fuori budget [${lo}, ${hi}]`);
-  if (name.startsWith('chr_')) for (const c of CLIPS) if (!clips.includes(c)) errors.push(`${name}: manca la clip «${c}»`);
+  if (/^(chr|npc)_/.test(name)) for (const c of CLIPS) if (!clips.includes(c)) errors.push(`${name}: manca la clip «${c}»`);
   const glb = externalizeAtlas(Buffer.from(await io.writeBinary(doc)));
   fs.writeFileSync(path.join(PUB, file), glb);
   const r2 = (v) => Math.round(v * 100) / 100;
@@ -209,10 +212,11 @@ if (!only.length) for (const f of fs.readdirSync(PUB)) if (f.endsWith('.glb') &&
 
 fs.copyFileSync(ATLAS, path.join(PUB, 'atlas.png'));
 const sorted = Object.fromEntries(Object.keys(models).sort().map((k) => [k, models[k]]));
-const mainModels = Object.fromEntries(Object.entries(sorted).filter(([k]) => !isRpg(k) && !isCorse(k) && !isMobili(k)));
+const mainModels = Object.fromEntries(Object.entries(sorted).filter(([k]) => !isRpg(k) && !isCorse(k) && !isMobili(k) && !isGente(k)));
 const corseModels = Object.fromEntries(Object.entries(sorted).filter(([k]) => isCorse(k)));
 const rpgModels = Object.fromEntries(Object.entries(sorted).filter(([k]) => isRpg(k)));
 const mobiliModels = Object.fromEntries(Object.entries(sorted).filter(([k]) => isMobili(k)));
+const genteModels = Object.fromEntries(Object.entries(sorted).filter(([k]) => isGente(k)));
 const version = new Date().toISOString().slice(0, 10) + '-' + Object.keys(mainModels).length;
 fs.writeFileSync(manPath, JSON.stringify({ version, atlas: 'atlas.png', texelsPerMeter: 16, models: mainModels }, null, 1) + '\n');
 const versionRpg = new Date().toISOString().slice(0, 10) + '-' + Object.keys(rpgModels).length;
@@ -221,6 +225,8 @@ const versionCorse = new Date().toISOString().slice(0, 10) + '-' + Object.keys(c
 fs.writeFileSync(corsePath, JSON.stringify({ version: versionCorse, atlas: 'atlas.png', texelsPerMeter: 16, models: corseModels }, null, 1) + '\n');
 const versionMobili = new Date().toISOString().slice(0, 10) + '-' + Object.keys(mobiliModels).length;
 fs.writeFileSync(mobiliPath, JSON.stringify({ version: versionMobili, atlas: 'atlas.png', texelsPerMeter: 16, models: mobiliModels }, null, 1) + '\n');
+const versionGente = new Date().toISOString().slice(0, 10) + '-' + Object.keys(genteModels).length;
+fs.writeFileSync(gentePath, JSON.stringify({ version: versionGente, atlas: 'atlas.png', texelsPerMeter: 16, models: genteModels }, null, 1) + '\n');
 
 // ---- 4. contact sheet delle anteprime
 if (!noPreview) {

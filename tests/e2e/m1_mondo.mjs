@@ -1,7 +1,7 @@
 // M1-mondo · arcipelago: spawn sul proprio lotto (?slot=N) o al Porto, hook goto(), viste di Porto, lotto, laguna, facciate e
 // barca in mare aperto tra le isole, ognuna nel budget di TECH §5 (draw call ≤ 100, triangoli ≤ 150.000). Numeri: tests/out/m1_mondo.json
 export const timeout = 240000;
-const BUDGET = { drawCalls: 100, triangles: 200000 }; // 150k → 180k col Borgo Marea (#237), → 200k con la città attorno al Porto (#247, ROADMAP §Deviazioni)
+const BUDGET = { drawCalls: 100, triangles: 215000 }; // 150k → 180k col Borgo Marea (#237), → 200k con la città attorno al Porto (#247, ROADMAP §Deviazioni), → 215k coi personaggi del Borgo coi modelli loro (npc_, ART_BIBLE §5: −40 draw call, +14k triangoli)
 
 export default async function (ctx) {
   const { assert } = ctx;

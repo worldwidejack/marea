@@ -1,7 +1,7 @@
 // WP1 render-mondo: screenshot delle viste chiave (spawn telefono/desktop, zoom min/max, barca in mare aperto, isola dall'alto),
 // canvas non vuoto, camera ferma quando l'avatar è fermo, budget di draw call e triangoli (TECH §5).
 export const timeout = 150000;
-const BUDGET = { drawCalls: 100, triangles: 200000 }; // come TECH §5: 150k → 180k col Borgo Marea (#237), → 200k con la città attorno al Porto (#247)
+const BUDGET = { drawCalls: 100, triangles: 215000 }; // come TECH §5: 150k → 180k col Borgo Marea (#237), → 200k con la città attorno al Porto (#247), → 215k coi personaggi del Borgo (npc_)
 export default async function (ctx) {
   const { assert } = ctx;
   const settle = (p, ms = 900) => p.page.waitForTimeout(ms);
