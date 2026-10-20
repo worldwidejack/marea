@@ -15,9 +15,10 @@ const OST_PER = Math.round(CFG.ostrica.periodoSecondi * 60), OST_OPEN = Math.rou
 type Col = keyof typeof PAL;
 export type Fx = { x: number; y: number; t: number; testo: string; col: Col };
 export type Bollicina = { x: number; y: number; vy: number };
-/** Tutto quello che serve per disegnare: lo stato della sim più gli effetti solo del client (dal seed o dagli eventi). */
+/** Gli effetti solo del client (dal seed o dagli eventi) che servono per disegnare, accanto allo stato della sim. `prima` = com'era la
+ *  sim prima dell'ultimo tick (per i suoni). */
 export type Scena = {
-  s: PerleState; prevY: number; intro: boolean; end: number;
+  prevY: number; prima: { punti: number; bolle: number; colpi: number; rare: number };
   preso: Set<PerleItem>; colpi: number; fx: Fx[]; bolle: Bollicina[]; shake: number;
   /** Profilo delle isole all'orizzonte e degli scogli lontani (solo estetica, dal seed). */
   isole: number[]; scogli: number[];
@@ -69,8 +70,7 @@ const KIND_COL: Record<string, Col> = { bianca: 'pietraChiara', conchiglia: 'ara
 const ACQUA: Col[] = ['acquaBassa', 'acqua', 'acquaProfonda', 'abisso'];
 
 /** Effetti di un tick (dopo lo step della sim): numeri che volano per le prese, bollicine, scossa ai colpi. */
-export function effetti(sc: Scena): void {
-  const s = sc.s;
+export function effetti(s: PerleState, sc: Scena): void {
   for (const it of s.items) {
     if (!it.preso || sc.preso.has(it)) continue;
     sc.preso.add(it);
@@ -87,7 +87,7 @@ export function effetti(sc: Scena): void {
   if (sc.shake > 0) sc.shake--;
 }
 
-export function createPittore(cv: HTMLCanvasElement): (sc: Scena, t: number, alpha: number) => void {
+export function createPittore(cv: HTMLCanvasElement): (s: PerleState, sc: Scena, t: number, alpha: number, fermo: boolean) => void {
   cv.width = W; cv.height = H;
   const g = cv.getContext('2d')!;
   const img = g.createImageData(W, H), buf = new Uint32Array(img.data.buffer);
@@ -119,8 +119,7 @@ export function createPittore(cv: HTMLCanvasElement): (sc: Scena, t: number, alp
   };
   const giro = (a: number[], i: number) => a[((i % a.length) + a.length) % a.length]!;
 
-  return (sc, t, alpha) => {
-    const s = sc.s, fermo = sc.intro || sc.end >= 0;
+  return (s, sc, t, alpha, fermo) => {
     const subX = s.x + (fermo ? 0 : CFG.velocita * alpha), subY = sc.prevY + (s.y - sc.prevY) * (fermo ? 1 : alpha);
     const shake = sc.shake > 0 ? (sc.shake % 4 < 2 ? 1 : -1) : 0;
     const cf = Math.floor(subX - DX) + shake;
