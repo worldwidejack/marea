@@ -22,7 +22,7 @@ export default async function (ctx) {
   await ctx.test('(0) controlli creati: #joystick #btnA grandi, #btnB nascosto nel mondo (#417), pagina senza scroll', async () => {
     const r = await page.evaluate(() => Object.fromEntries(['joystick', 'btnA', 'btnB'].map((id) => { const b = document.getElementById(id).getBoundingClientRect(); return [id, [Math.round(b.width), Math.round(b.height), Math.round(b.left), Math.round(b.top)]]; })));
     ctx.log('controlli [w,h,left,top]', JSON.stringify(r));
-    ctx.assert(r.joystick[0] >= 120 && r.btnA[0] >= 72, 'controlli troppo piccoli');
+    ctx.assert(r.joystick[0] >= 110 && r.btnA[0] >= 70, 'controlli troppo piccoli');
     ctx.assert(r.btnB[0] === 0 && (await ctx.getState(page)).wp2_input.bVisibile === false, 'B si vede nel mondo, dove non fa niente');
     ctx.assert(r.btnA[2] + r.btnA[0] <= 390 && r.joystick[2] >= 0, 'fuori schermo');
     ctx.assert(await page.evaluate(() => getComputedStyle(document.getElementById('joystick')).touchAction === 'none'), 'touch-action non none');

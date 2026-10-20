@@ -72,7 +72,7 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
     for (const fu of forme.fumi) { const p = loc(fu.x, fu.y, fu.z); fumi.push({ x: p.x, y: p.y, z: p.z, c: new THREE.Color(fu.colore) }); }
     const bp = loc(forme.bottegaio.x, 0, forme.bottegaio.z);
     const label = layer.add(() => { if (dist(f.x, f.z) < posto.raggio + 2) void apri(id); else o.hud.toast(`${b.nome}: ${posto.dove}`, 2200); });
-    label.set('bubble', [iconaBottega(id), el('span', '', b.nome.toUpperCase())], 'spot'); label.el.classList.add('spot', 'bottega'); label.el.dataset['bottega'] = id;
+    label.set('bubble', [iconaBottega(id), el('span', '', b.nome)], 'spot'); label.el.classList.add('spot', 'bottega'); label.el.dataset['bottega'] = id;
     return [{ id, nome: b.nome, raggio: posto.raggio, x: w.x, y, z: w.z, fx: f.x, fz: f.z, ry, bx: bp.x, bz: bp.z, label, av: null as Avatar | null, ombra: true, meshes: [] as THREE.Mesh[] }];
   });
   const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
@@ -164,7 +164,7 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
     update(dt, focus) {
       t += dt;
       const show = !!near && !ui?.isOpen() && !eroeForPanels()?.isOpen() && !o.world.race.on && !o.world.frozen;
-      if (show && near && btn.dataset['k'] !== near) { btn.dataset['k'] = near; btn.replaceChildren(iconaBottega(near), el('span', '', BOTTEGHE[near].nome.toUpperCase()), el('small', '', 'A')); }
+      if (show && near && btn.dataset['k'] !== near) { btn.dataset['k'] = near; btn.replaceChildren(iconaBottega(near), el('span', '', BOTTEGHE[near].nome), el('small', '', 'A')); }
       btn.classList.toggle('on', show);
       const fd = (x: number, z: number) => Math.hypot(focus.x - x, focus.z - z);
       for (const s of posti) {

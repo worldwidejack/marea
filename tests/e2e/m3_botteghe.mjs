@@ -93,7 +93,7 @@ export default async function (ctx) {
       for (const id of ['fabbro', 'alchimista', 'cantiere']) { await V.hook('bottegaVai', id, 3.2); await V.page.waitForTimeout(2600); await ctx.shot(V.page, 'botteghe_pc_fuori_' + id); }
       await davanti(V, 'fabbro');
       const testo = await V.page.locator('#mzBottegaBtn').innerText();
-      assert(/FABBRO/.test(testo), 'bottone: ' + testo);
+      assert(/Fabbro/.test(testo), 'bottone: ' + testo);
       await pannello(V, 'fabbro');
       await ctx.shot(V.page, 'botteghe_pc_fabbro');
       const m0 = (await V.st()).lot.monete;
@@ -121,7 +121,7 @@ export default async function (ctx) {
       ctx.noErrors(V.pg);
     });
 
-    await ctx.test('telefono 390×844: carta e bottoni dentro lo schermo, ≥ 44 px; un carattere per bottega, titolo su una riga lontano dalla X', async () => {
+    await ctx.test('telefono 390×844: carta e bottoni dentro lo schermo, ≥ 44 px; il carattere del kit, titolo su una riga lontano dalla X', async () => {
       const V = await open(ctx.B.IPHONE, 'tokA');
       await V.hook('bottegaVai', 'fabbro', 3.2);
       await V.hook('setZoom', 1.3);
@@ -129,21 +129,21 @@ export default async function (ctx) {
       await ctx.shot(V.page, 'botteghe_tel_fuori');
       await davanti(V, 'fabbro'); await pannello(V, 'fabbro');
       const vw = await V.page.evaluate(() => ({ w: innerWidth, h: innerHeight }));
-      const r = await V.page.locator('#mzBottega .bt-carta').boundingBox();
+      const r = await V.page.locator('#mzBottega .mk-carta').boundingBox();
       assert(r && r.x >= 0 && r.y >= 0 && r.x + r.width <= vw.w && r.y + r.height <= vw.h, 'carta fuori schermo: ' + JSON.stringify(r));
-      for (const b of await V.page.locator('#mzBottega .bt-compra, #mzBottega .bt-x, #mzBottega .bt-tab').all()) {
+      for (const b of await V.page.locator('#mzBottega .mk-btn, #mzBottega .mk-x, #mzBottega .mk-tab').all()) {
         const bb = await b.boundingBox();
         if (bb && bb.y < vw.h) assert(bb.height >= 40 && bb.width >= 40, 'bottone piccolo: ' + JSON.stringify(bb));
       }
-      // i caratteri delle botteghe (uno per bottega) arrivati e il titolo su una riga, dentro, che non tocca la X
+      // il carattere del kit (Alegreya) arrivato e il titolo su una riga, dentro, che non tocca la X
       await V.page.evaluate(() => document.fonts.ready);
       const fonti = await V.page.evaluate(() => [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/["']/g, '')));
-      for (const f of ['MzCinzel', 'MzAlegreyaSans']) assert(fonti.includes(f), 'carattere non caricato: ' + f + ' in ' + fonti.join(','));
+      for (const f of ['MzAlegreya']) assert(fonti.includes(f), 'carattere non caricato: ' + f + ' in ' + fonti.join(','));
       await ctx.shot(V.page, 'botteghe_tel_fabbro');
       for (const id of ['alchimista', 'cantiere']) {
         await V.page.locator('#mzBottega [data-act="chiudi"]').click();
         await davanti(V, id); await pannello(V, id); await V.page.evaluate(() => document.fonts.ready); await V.page.waitForTimeout(300);
-        const t = await V.page.locator('#mzBottega .bt-titolo').boundingBox(), x = await V.page.locator('#mzBottega .bt-x').boundingBox();
+        const t = await V.page.locator('#mzBottega .mk-titolo').boundingBox(), x = await V.page.locator('#mzBottega .mk-x').boundingBox();
         assert(t && x && t.x + t.width <= x.x + 1 && t.height < 60, `${id}: titolo addosso alla X o su due righe ` + JSON.stringify({ t, x }));
         await ctx.shot(V.page, 'botteghe_tel_' + id);
       }
