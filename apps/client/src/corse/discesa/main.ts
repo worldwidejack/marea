@@ -19,7 +19,7 @@ import { createPost } from '../../render/post.ts';
 import { P } from '../../render/island_parts.ts';
 import { STYLES } from '../../provapixel/styles.ts';
 import { creaLinee } from '../effetti.ts';
-import { stileProva } from '../prova/stile.ts';
+import { stileCorse } from '../stile.ts';
 import { creaBici3d } from './bici3d.ts';
 import { creaCiclista } from './ciclista.ts';
 import type { Ciclista } from './ciclista.ts';
@@ -65,7 +65,7 @@ caricaPezzi(PEZZI).then(() => { scenografia = creaScenografia(S, terreno); scene
 // il ciclista col casco (cappello 12): si vede dalla camera dietro
 creaCiclista(bici3d.corpo, { pelle: 1, capelli: 3, coloreCapelli: 1, vestito: 2, cappello: 12 }).then((c) => { ciclista = c; }).catch((e) => console.warn('[discesa] ciclista non caricato', e));
 
-stileProva();
+stileCorse();
 const input = createInput({ canvas, root, cameraYaw: () => 0 });
 const btnA = document.getElementById('btnA'), btnB = document.getElementById('btnB');
 if (btnA) { btnA.textContent = 'SALTO'; btnA.style.fontSize = '15px'; }

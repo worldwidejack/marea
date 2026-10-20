@@ -15,7 +15,7 @@ import { CORSE, CORSE_PISTE, CORSE_PISTE_SPIAGGIA } from '@marea/content/corse.t
 import { famiglieDi, opzioniGara } from '@marea/sim/corse/gara.ts';
 import { PAL, el } from '../../ui/style.ts';
 import { suona } from '../../audio/ponte.ts';
-import type { Modo } from '../prova/camera.ts';
+import type { Modo } from '../regia.ts';
 import { pistaCorse } from '@marea/sim/corse/pista.ts';
 import type { CVeicoloDef } from '@marea/content/corse_types.ts';
 import type { Palco } from './palco.ts';

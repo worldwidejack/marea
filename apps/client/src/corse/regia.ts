@@ -1,4 +1,4 @@
-// Le camere del banco di prova delle piste (#170), dal menù opzioni:
+// Le camere delle Corse (regia), scelte dal menù opzioni (#170):
 // - alta: «sui binari», sulla pista qualche metro dietro di te, così nei giri della morte e nelle curve resta sopra la strada (il sopra
 //   è quello della pista lì); guarda un po' più avanti, a metà tra il muso e il moto: in drift vedi il kart di traverso;
 // - dietro (10 ott, Riccardo: «la guida è meglio nell'hub che in gara»): come la camera dell'hub, dietro al veicolo lungo la sua
@@ -13,7 +13,7 @@ import { nuovaTerna, terna } from '@marea/sim/corse/nastro.ts';
 import { nastroDi } from '@marea/sim/corse/pista.ts';
 import type { Pista } from '@marea/sim/corse/pista.ts';
 import type { Veicolo } from '@marea/sim/corse/veicolo.ts';
-import { occhio } from '../veicoli3d.ts';
+import { occhio } from './veicoli3d.ts';
 
 export type Modo = 'dietro' | 'alta' | 'cofano';
 /** Il tuo veicolo nel mondo (posizione, muso, sopra, moto), la pista, il fronte dell'onda e il saltello del drift (m). */

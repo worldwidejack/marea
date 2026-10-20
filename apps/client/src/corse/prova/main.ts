@@ -40,8 +40,8 @@ import { creaOggetti3d, creaUsa, giroColpito } from '../oggetti3d.ts';
 import { createAvatar } from '../../game/avatar.ts';
 import type { Avatar } from '../../game/avatar.ts';
 import type { Look } from '@marea/protocol';
-import { creaRegia } from './camera.ts';
-import { stileProva } from './stile.ts';
+import { creaRegia } from '../regia.ts';
+import { stileCorse } from '../stile.ts';
 import { fondalePista } from '../fondale_piste.ts';
 import type { Fondale } from '../discesa/fondale.ts';
 
@@ -280,7 +280,7 @@ function aggiornaCamera(dt: number) {
 }
 
 // ---------- interfaccia ----------
-stileProva();
+stileCorse();
 const linee = creaLinee(root);
 const mappa = creaMinimappa(root);
 const hud = document.createElement('div'); hud.className = 'pp-hud'; root.appendChild(hud);

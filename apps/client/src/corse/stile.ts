@@ -1,8 +1,8 @@
-// Lo stile del banco di prova delle piste (provapiste.html): HUD, semaforo, messaggi, pannello delle prove, menù opzioni, minimappa,
+// Lo stile delle Corse (gara, hub, discesa e banco delle piste): HUD, semaforo, messaggi, pannello delle prove, menù opzioni, minimappa,
 // linee di velocità. Colori solo della palette.
-import { P } from '../../render/island_parts.ts';
+import { P } from '../render/island_parts.ts';
 
-export function stileProva(): void {
+export function stileCorse(): void {
   const css = document.createElement('style');
   css.textContent = `
 .pp-hud { position: absolute; top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: none; font: bold 18px ui-monospace, Menlo, monospace; color: ${P.sabbiaChiara}; z-index: 3; }

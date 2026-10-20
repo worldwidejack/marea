@@ -22,7 +22,7 @@ import { creaLinee, creaParticelle, emettiVeicolo } from '../effetti.ts';
 import { creaSuoni } from '../suoni.ts';
 import { veicoloMesh as meshVeicolo } from '../veicoli3d.ts';
 import { caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
-import { stileProva } from '../prova/stile.ts';
+import { stileCorse } from '../stile.ts';
 import { creaHub } from './mappa.ts';
 import { VISTA } from './mondo_cielo.ts';
 import type { IdPorta, MondoHub, PortaHub } from './mappa.ts';
@@ -99,7 +99,7 @@ export type Hub = {
 };
 
 export function creaSchermoHub(o: OpzioniHub): Hub {
-  stileProva();
+  stileCorse();
   if (!document.getElementById('mz-hub-style')) { const st = document.createElement('style'); st.id = 'mz-hub-style'; st.textContent = CSS; document.head.appendChild(st); }
   const stop = (e: Event) => e.stopPropagation();
   const avatarOn = o.avatar !== false;
