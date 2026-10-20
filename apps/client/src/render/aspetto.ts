@@ -21,7 +21,7 @@ import { FLAGS } from '../flags.ts';
 import { createLuci } from './luci.ts';
 import type { Luci } from './luci.ts';
 import type { Water2 } from './water2.ts';
-import { GIORNO, LUNA_DIR, fase, momento } from './ciclo.ts';
+import { GIORNO, LUNA_DIR, LUCE_INTERNO, fase, momento } from './ciclo.ts';
 import type { Momento } from './ciclo.ts';
 import { MAXN, NUBI, OMBRA, conMeteo, coperturaMeteo, createPioggia } from './meteo.ts';
 import type { Pioggia } from './meteo.ts';
@@ -75,6 +75,7 @@ type Scena = { props: readonly { k: string; x: number; z: number; rot: number }[
 export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Water; map: GridMap; scena?: Scena }): Aspetto {
   let imp: Impostazioni = { ...SPENTO }, post: Post | null = null, water2: Water2 | null = null;
   let m: Momento = GIORNO, cicloWas = false, nextTick = 0, forzata: number | null = null, luci: Luci | null = null;
+  let alChiusoWas = false;
   // meteo (#361): `vis` = il momento col tempo del posto, quello che si dipinge; `met` = il tempo dove sei adesso
   let vis: Momento = GIORNO, met: MeteoQui = SERENO, meteoWas = false;
   let pioggia: Pioggia | null = null, postOn = false, nuvole: Nuvole | null = null;
@@ -85,12 +86,13 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
   let foco: { x: number; z: number } | null = null, tutte: Nuvola[] = [], vicine: Nuvola[] = [], lampo: Lampo | null = null, lampoSeme = -1, lampoVicino = 0, lampoWas = false, tende = 0;
   const tint = new THREE.Color(), avanti = new THREE.Vector3();
   const look = (): PostLook => {
-    const st = imp.stampa, n = m.notte; // cielo e nuvole col meteo (vis) // di notte la stampa schiarisce un po' la scena buia e la porta sui suoi indaco
+    const dentro = o.renderer.alChiuso;
+    const st = imp.stampa, n = dentro ? 0 : m.notte; // cielo e nuvole col meteo (vis); dentro niente notte per la passata finale (#490)
     return {
       palette: st ? (n >= 0.5 ? PALETTE_STAMPA_NOTTE : PALETTE_STAMPA) : null, paper: st ? 1 : 0,
       grade: { ...(st ? { exp: 1.05 + 0.55 * n, sat: 0.8 + 0.15 * n, con: 1.1 + 0.05 * n, tint: mixHex('#fff2dc', '#e4e8ff', n) } : { exp: 1, sat: 1, con: 1, tint: '#ffffff' }), ...(lampoWas ? { exp: (st ? 1.05 + 0.55 * n : 1) * (1 + 0.9 * lampoVicino) } : {}) }, // il lampo vicino illumina tutto per un attimo
       ink: st ? { col: n >= 0.5 ? '#0d0f1c' : '#1b1d2b', mix: 1, crease: -0.55 } : { col: '#000000', mix: 0, crease: 1 },
-      sky: { top: vis.sky3[0], mid: vis.sky3[1], hor: vis.sky3[2], sun: '#ffffff', glow: '#ffffff', sunDir: [0, -1, 0], sunSize: 0, cloud: vis.clouds[0], cloudDark: vis.clouds[1], night: vis.notte, moonDir: LUNA_DIR,
+      sky: { top: vis.sky3[0], mid: vis.sky3[1], hor: vis.sky3[2], sun: '#ffffff', glow: '#ffffff', sunDir: [0, -1, 0], sunSize: 0, cloud: vis.clouds[0], cloudDark: vis.clouds[1], night: dentro ? 0 : vis.notte, moonDir: LUNA_DIR,
         cover: coperturaMeteo(met.stato, met.k), wind: met.vento },
       fog: { col: vis.fog, near: 0, far: 1, max: 0 }, // foschia spenta (#282)
     };
@@ -104,14 +106,21 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
   };
   /** Luce, cielo e acqua dal momento `m` (anche per tornare al giorno di serie quando si spegne il ciclo). */
   const paint = () => {
+    const dentro = o.renderer.alChiuso;
     vis = conMeteo(m, met.stato, met.k);
-    const luna = m.notte * (1 - coperturaMeteo(met.stato, met.k)); // sotto le nuvole niente scia della luna
-    o.lights.set?.(vis.sun); o.renderer.sky.setBands(vis.bands); setWaterColors(vis.water); setWaterNight(luna, LUNA_DIR);
+    const luna = dentro ? 0 : m.notte * (1 - coperturaMeteo(met.stato, met.k)); // sotto le nuvole o dentro niente scia della luna
+    o.lights.set?.(dentro ? LUCE_INTERNO : vis.sun);
+    if (!dentro) {
+      o.renderer.sky.setBands(vis.bands); setWaterColors(vis.water); setWaterNight(luna, LUNA_DIR);
     acquaStampa(); water2?.night(luna, LUNA_DIR);
     setWaterMeteo(met.vento, met.pioggia);
     pioggia?.set(met.pioggia, m.notte, met.vento);
     // suono: la pioggia dove piove, se no il vento quando soffia forte
-    setMeteo(met.pioggia > 0 ? 'pioggia' : met.vento >= 0.4 ? 'vento' : 'sereno', met.pioggia > 0 ? met.pioggia : met.vento >= 0.4 ? met.vento : 0);
+      setMeteo(met.pioggia > 0 ? 'pioggia' : met.vento >= 0.4 ? 'vento' : 'sereno', met.pioggia > 0 ? met.pioggia : met.vento >= 0.4 ? met.vento : 0);
+    } else {
+      pioggia?.set(0, 0, 0);
+      setMeteo('sereno', 0);
+    }
     aggiornaPost();
   };
   /** Le nuvole adesso (dall'orologio o forzate dai test) e le più vicine a chi gioca, spostate sull'immagine più vicina del campo (toro). */
@@ -162,9 +171,9 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
     if (sempre || need !== postOn) { o.renderer.setPost(need ? post : null); postOn = need; }
   };
   const api: Aspetto = {
-    get momento() { return imp.ciclo ? m.nome : 'giorno'; },
+    get momento() { return o.renderer.alChiuso ? 'interno' : (imp.ciclo ? m.nome : 'giorno'); },
     get luci() { return luci?.accese ?? 0; },
-    get buio() { return imp.ciclo ? m.luci : 0; },
+    get buio() { return o.renderer.alChiuso ? 0 : (imp.ciclo ? m.luci : 0); },
     get attivo() { return postOn; },
     get meteo() { return imp.meteo ? met.stato : 'spento'; },
     get meteoK() { return imp.meteo ? met.k : 0; },
@@ -201,14 +210,15 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
     update(nowMs, t, focus) {
       if (focus) foco = { x: focus.x, z: focus.z };
       if (water2?.mesh.visible) { const p = o.renderer.camera.position; water2.follow(p.x, p.z); water2.update(t); }
-      if (imp.ciclo && luci) { const f = focus ?? o.renderer.camera.position; luci.set(m.luci, f.x, f.z, nowMs); }
+      const dentro = o.renderer.alChiuso;
+      if (imp.ciclo && luci) { const f = focus ?? o.renderer.camera.position; luci.set(dentro ? 0 : m.luci, f.x, f.z, nowMs); }
       if (imp.meteo && nuvole && pioggia) {
         // ogni frame: le nuvole si muovono piano ma si vedono muovere (posto e forma dalla sim, uguali per tutti)
-        const f = focus ?? o.renderer.camera.position, fuori = o.renderer.alChiuso;
+        const f = focus ?? o.renderer.camera.position, fuori = !dentro;
         nuvoleAdesso(nowMs, f.x, f.z); aggiornaNubi(f.x, f.z);
-        nuvole.group.visible = !fuori;
-        if (!fuori) nuvole.update(vicine, o.renderer.camera, { x: f.x, y: o.scena?.groundY(f.x, f.z) ?? 0, z: f.z });
-        lampo = fuori ? null : lampoAdesso(nowMs); nuvole.lampo(lampo);
+        nuvole.group.visible = fuori;
+        if (fuori) nuvole.update(vicine, o.renderer.camera, { x: f.x, y: o.scena?.groundY(f.x, f.z) ?? 0, z: f.z });
+        lampo = fuori ? lampoAdesso(nowMs) : null; nuvole.lampo(lampo);
         if (lampo && lampo.seme !== lampoSeme) { // un lampo nuovo: il tuono, più forte quanto è vicino
           lampoSeme = lampo.seme;
           lampoVicino = Math.max(0, 1 - Math.sqrt((lampo.x - f.x) ** 2 + (lampo.z - f.z) ** 2) / 260);
@@ -216,13 +226,15 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
         }
         const flash = !!lampo && lampoVicino > 0.25;
         if (flash !== lampoWas) { lampoWas = flash; aggiornaPost(); }
-        pioggia.object.visible = !fuori && (met.pioggia > 0 || tende > 0);
+        pioggia.object.visible = fuori && (met.pioggia > 0 || tende > 0);
         if (pioggia.object.visible) pioggia.update(t, f.x, f.z);
       }
-      if ((!imp.ciclo && !imp.meteo) || nowMs < nextTick) return;
+      const chiusoCambiato = dentro !== alChiusoWas;
+      alChiusoWas = dentro;
+      if (!chiusoCambiato && ((!imp.ciclo && !imp.meteo) || nowMs < nextTick)) return;
       nextTick = nowMs + 500; // due volte al secondo bastano: un passaggio dura minuti, un gradino del meteo secondi
       if (imp.ciclo) m = momento(forzata ?? fase(nowMs));
-      if (imp.meteo) { const f = focus ?? o.renderer.camera.position; met = o.renderer.alChiuso ? SERENO : meteoQui(nowMs, f.x, f.z, cfg, tutte); } // al chiuso non piove
+      if (imp.meteo) { const f = focus ?? o.renderer.camera.position; met = dentro ? SERENO : meteoQui(nowMs, f.x, f.z, cfg, tutte); } // al chiuso non piove
       paint();
     },
     forzaFase(f) { forzata = f; nextTick = 0; },

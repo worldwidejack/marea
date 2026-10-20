@@ -27,6 +27,8 @@ export type Renderer = {
   setInterno(colore: string | null): void;
   /** Al chiuso: dentro un interno (setInterno con un colore) o in una scena a parte (dungeon, Templari): niente nuvole, pioggia né tuoni. */
   readonly alChiuso: boolean;
+  /** Se siamo dentro un interno del mondo (stanza della casa, negozio dei mobili, #490). */
+  readonly interno: boolean;
 };
 export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): Renderer {
   const gl = new THREE.WebGLRenderer({ canvas: o.canvas, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: true, stencil: false });
@@ -70,6 +72,7 @@ export function createRenderer(o: { canvas: HTMLCanvasElement; flags: Flags }): 
     },
     setPost: (p) => { post = p; post?.setSize(w, h); },
     get alChiuso() { return interno || active !== scene; },
+    get interno() { return interno; },
     setInterno: (c) => { interno = c !== null; scene.background = c !== null ? new THREE.Color(c) : sky.texture; },
     setView: (v) => { view = v; applyView(); },
     setNitido: (k) => { if (k === nitido) return; nitido = k; o.canvas.style.imageRendering = k !== null ? 'auto' : 'pixelated'; resize(); },

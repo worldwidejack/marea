@@ -242,7 +242,7 @@ async function boot(): Promise<void> {
   collegaAudio({ world, root, momento: () => aspetto?.momento ?? 'giorno', gioco: () => giochi.isBusy(), dungeon: () => sotto(), templari: () => tpl.active }); // suoni e musica (audio/ponte.ts), al primo gesto
   registerTestHook('ciclo', (f) => aspetto?.forzaFase(f === null || f === undefined ? null : Number(f)));
   registerTestHook('aspettoPronto', () => aspettoLoad ?? Promise.resolve());
-  registerStateProvider('aspetto', () => ({ momento: aspetto?.momento ?? 'giorno', post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0, meteoK: aspetto?.meteoK ?? 0, gocce: aspetto?.gocce ?? 0 }));
+  registerStateProvider('aspetto', () => ({ momento: aspetto ? aspetto.momento : (renderer.alChiuso ? 'interno' : 'giorno'), post: aspetto?.attivo ?? false, caricato: !!aspetto, luci: aspetto?.luci ?? 0, meteoK: aspetto?.meteoK ?? 0, gocce: aspetto?.gocce ?? 0, chiuso: renderer.alChiuso, interno: renderer.interno }));
   // meteo (#361): il tempo dove sei, 'sereno' | 'bianca' | 'grigia' | 'pioggia' | 'temporale' (la nuvola che hai sopra), 'spento' con l'impostazione
   // spenta; `nuvole` quante ce ne sono, quanto piove e lampeggia dove sei. Dai test: meteo(tipo, k) una nuvola sopra di te (null = l'orologio),
   // nuvole([{ tipo, dx, dz, r }]) nuvole ferme attorno a te, lampo(true) un lampo fisso nel temporale più vicino
