@@ -78,7 +78,7 @@ export type BorgoDef = {
   /** Gli ampliamenti della casa (#386), uno alla volta e in ordine (livello 1 = il primo): `stanza` = quale stanza cambia ('terra' = quella di sempre,
    *  poi 'cantina' e 'piano'), `pavimento` = il suo nuovo rettangolo [x0, z0, x1, z1) (contiene quello di prima), `monete` = il prezzo.
    *  Il rettangolo sta tutto dentro la pianta del template `lotto`. */
-  casa: { livelli: CasaLivello[]; scale: CasaScala[] };
+  casa: { livelli: CasaLivello[]; scale: CasaScala[]; corridoi?: Record<'terra' | 'cantina' | 'piano', [number, number, number]> };
   /** Il negozio dei mobili (#265): in città (celle del template porto) e dentro (template `negozio`). */
   negozio: { at: [number, number]; porta: [number, number]; rot: number };
   negozioDentro: { pavimento: [number, number, number, number]; corridoio: [number, number, number]; altezza: number; finitura: { pavimento: string; carta: string } };

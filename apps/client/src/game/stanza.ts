@@ -7,7 +7,7 @@
 // Pavimenti e carte da parati vengono da borgo.json (il primo è quello di serie); `motivo` dice come si dipinge la texture.
 import * as THREE from 'three';
 import { BORGO } from '@marea/content';
-import { PIANTE_MAX, finitureScelte, livelloCasa, mascheraCase, scaleDi, stanzeDi } from '@marea/sim';
+import { CORRIDOI, PIANTE_MAX, finitureScelte, livelloCasa, mascheraCase, scaleDi, stanzeDi } from '@marea/sim';
 import type { GridMap, LotState, StanzaId } from '@marea/sim';
 import type { CasaScala } from '@marea/content';
 import type { Velo } from '../ui/velo.ts';
@@ -20,28 +20,44 @@ import type { Pianta } from './interno.ts';
 import { creaPortale } from '../render/portale.ts';
 import type { Portale } from '../render/portale.ts';
 
-const ST = BORGO.stanza, [, , C1] = ST.corridoio;
+const ST = BORGO.stanza;
 const STANZE_MAX = PIANTE_MAX; // le stanze più grandi che la casa avrà mai: per capire in quale sei
-/** La pianta di una stanza a un livello di casa (#386): gli ampliamenti la ingrandiscono. Il piano terra tiene il corridoio e la porta in fondo; cantina e secondo piano no. */
+/** La pianta di una stanza a un livello di casa (#386): gli ampliamenti la ingrandiscono. Ogni piano ha il suo corridoio / ballatoio. */
 const piantaDi = (livello: number, id: StanzaId = 'terra'): Pianta => {
   const s = stanzeDi(livello).find((r) => r.id === id) ?? stanzeDi(livello)[0]!;
-  return id === 'terra' ? { pavimento: s.pavimento, corridoio: ST.corridoio, altezza: ST.altezza, retro: ST.retro[0] } : { pavimento: s.pavimento, corridoio: null, altezza: ST.altezza, retro: null };
+  const scale = scaleDi(livello).filter((x) => x.stanza === id);
+  return {
+    pavimento: s.pavimento,
+    corridoio: CORRIDOI[id],
+    altezza: ST.altezza,
+    retro: id === 'terra' ? ST.retro[0] : null,
+    scale,
+    chiusoInFondo: id !== 'terra',
+  };
 };
-/** Una scala (#386), in coordinate locali del lotto: una botola con la ringhiera che scende, o una rampa che sale, sulla cella della scala. */
+/** Una scala (#386), collegata al corridoio: scende in cantina o sale al secondo piano. */
 function scala(s: CasaScala, T: number): THREE.BufferGeometry[] {
   const x = (s.cell[0] + 0.5) * T, z = (s.cell[1] + 0.5) * T, g: THREE.BufferGeometry[] = [], b = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
+  // la scala è sul lato del corridoio: verso ovest (sinistra) o est (destra)
+  const versoEst = s.cell[0] > (CORRIDOI[s.stanza]?.[0] ?? 14);
   if (s.verso === 'giu') {
+    // botola / apertura nel pavimento con gradini che scendono nel buio verso nord
     for (const sz of [-1, 1]) g.push(painted(b(1.7, 0.14, 0.16), P.legnoScuro, M(x, 0.08, z + sz * 0.77)));
     for (const sx of [-1, 1]) g.push(painted(b(0.16, 0.14, 1.7), P.legnoScuro, M(x + sx * 0.77, 0.08, z)));
     g.push(painted(b(1.4, 0.04, 1.4), P.neroCaldo, M(x, 0.06, z)));
-    [P.legnoChiaro, P.legno, P.legnoScuro, P.roccia].forEach((c, i) => g.push(painted(b(1.1, 0.04, 0.3), c, M(x, 0.1, z - 0.5 + i * 0.33)))); // i gradini che scendono nel buio
-    for (const sx of [-1, 1]) g.push(painted(b(0.08, 0.8, 0.08), P.legnoScuro, M(x + sx * 0.8, 0.45, z + 0.8)));
-    g.push(painted(b(1.7, 0.07, 0.07), P.legno, M(x, 0.82, z + 0.8)));
+    [P.legnoChiaro, P.legno, P.legnoScuro, P.roccia].forEach((c, i) => g.push(painted(b(1.1, 0.04, 0.3), c, M(x, 0.1, z - 0.5 + i * 0.33))));
+    // ringhiera di protezione sul lato esterno e dietro
+    const outX = versoEst ? x + 0.8 : x - 0.8;
+    g.push(painted(b(0.08, 0.8, 1.6), P.legnoScuro, M(outX, 0.45, z)));
+    g.push(painted(b(1.6, 0.8, 0.08), P.legnoScuro, M(x, 0.45, z + 0.8)));
   } else {
-    for (let i = 0; i < 4; i++) g.push(painted(b(1.3, 0.2 * (i + 1), 0.36), i % 2 ? P.legno : P.legnoChiaro, M(x, 0.1 * (i + 1), z + 0.55 - i * 0.36))); // i gradini che salgono verso il fondo
-    for (const sx of [-1, 1]) { g.push(painted(b(0.08, 1.2, 0.08), P.legnoScuro, M(x + sx * 0.7, 0.8, z + 0.65))); g.push(painted(b(0.08, 0.08, 1.5), P.legno, M(x + sx * 0.7, 1.15, z - 0.05))); }
+    // gradini che salgono verso nord
+    for (let i = 0; i < 4; i++) g.push(painted(b(1.3, 0.2 * (i + 1), 0.36), i % 2 ? P.legno : P.legnoChiaro, M(x, 0.1 * (i + 1), z + 0.55 - i * 0.36)));
+    const outX = versoEst ? x + 0.7 : x - 0.7;
+    g.push(painted(b(0.08, 1.2, 0.08), P.legnoScuro, M(outX, 0.8, z + 0.65)));
+    g.push(painted(b(0.08, 0.08, 1.5), P.legno, M(outX, 1.15, z - 0.05)));
   }
-  g.push(painted(b(0.6, 0.02, 0.22), P.giallo, M(x, 0.03, z + (s.verso === 'giu' ? 1.2 : 1.15)))); // la targhetta sul pavimento davanti
+  g.push(painted(b(0.6, 0.02, 0.22), P.giallo, M(x, 0.03, z + 0.9))); // la targhetta sul pavimento davanti
   return g;
 }
 /** Libera geometrie, materiali e texture di un gruppo che non serve più (la stanza si rifà quando la casa cresce). */
@@ -63,11 +79,23 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
   // la stanza è quella del livello di casa di chi ci abita (#386): si rifà quando cambia
   let room!: THREE.Group, rifinisci!: (p: typeof pav, c: typeof carta) => void, costruitaPer = '';
   const livelloDi = (slot: number): number => livelloCasa(o.lotDi?.(slot)?.casa);
-  // la cantina è di pietra, sempre: pavimento e carta scelti con ARREDA valgono per gli altri piani
+  let qui: number | null = null, quiStanza: StanzaId | null = null, inScala = false, arrediVisibili: string[] = [];
+
+  // la cantina è di pietra, sempre: pavimento e carta scelti con ARREDA sono indipendenti tra terra e piano
   const cantinaPav = BORGO.pavimenti.find((f) => f.id === 'lastre') ?? BORGO.pavimenti[0]!, cantinaCarta = BORGO.carte.find((f) => f.id === 'mattoni') ?? BORGO.carte[0]!;
+  const finiturePer = (slot: number, id: StanzaId) => {
+    if (id === 'cantina') return { p: cantinaPav, c: cantinaCarta };
+    const s = finitureScelte(o.lotDi?.(slot) ?? null, id);
+    return {
+      p: BORGO.pavimenti.find((f) => f.id === s.pavimento) ?? BORGO.pavimenti[0]!,
+      c: BORGO.carte.find((f) => f.id === s.carta) ?? BORGO.carte[0]!,
+    };
+  };
   const costruisci = (livello: number, id: StanzaId) => {
     if (room) { w.scene.remove(room); libera(room); }
-    const r = costruisciStanza(T, piantaDi(livello, id), id === 'cantina' ? cantinaPav : pav, id === 'cantina' ? cantinaCarta : carta);
+    const f = finiturePer(qui ?? 0, id);
+    pav = f.p; carta = f.c;
+    const r = costruisciStanza(T, piantaDi(livello, id), pav, carta);
     room = r.group; rifinisci = r.rifinisci; room.name = 'stanza'; room.visible = false; w.scene.add(room); costruitaPer = livello + ':' + id;
     const scale = scaleDi(livello).filter((s) => s.stanza === id).flatMap((s) => scala(s, T));
     if (scale.length) { const m = new THREE.Mesh(merged(scale), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })); m.name = 'scale'; m.castShadow = m.receiveShadow = true; room.add(m); }
@@ -78,9 +106,10 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
   w.maschera = (m) => (mascherata ??= mascheraCase(m, arch.lots, livelloDi));
   // pavimento e carta di chi ci abita (#265: comprati al negozio dei mobili e scelti con ARREDA): si ridipingono quando cambiano
   const finiture = (slot: number) => {
-    const s = finitureScelte(o.lotDi?.(slot) ?? null);
-    pav = BORGO.pavimenti.find((f) => f.id === s.pavimento) ?? BORGO.pavimenti[0]!; carta = BORGO.carte.find((f) => f.id === s.carta) ?? BORGO.carte[0]!;
-    if (quiStanza !== 'cantina') rifinisci(pav, carta);
+    if (quiStanza === 'cantina') return;
+    const f = finiturePer(slot, quiStanza ?? 'terra');
+    pav = f.p; carta = f.c;
+    rifinisci(pav, carta);
   };
 
   // il portale interdimensionale del giardino verso la stanza (#404), posizionato sopra al pontile
@@ -94,8 +123,6 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
   if (portaliGiardino.children.length) w.scene.add(portaliGiardino);
 
   const inq = createInquadratura({ world: w, renderer: o.renderer });
-
-  let qui: number | null = null, quiStanza: StanzaId | null = null, inScala = false, arrediVisibili: string[] = [];
   const nascosti: THREE.Object3D[] = [];
   /** In quale casa e in quale stanza sei (dai bordi delle stanze più grandi: lì dentro non c'è altro che la casa). */
   const dentroDi = (): { slot: number; stanza: StanzaId } | null => {
@@ -104,7 +131,8 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
     const cx = a.x / T - p.origin[0], cz = a.z / T - p.origin[1];
     for (const m of STANZE_MAX) {
       const [x0, z0, x1, z1] = m.pavimento;
-      if (cx >= x0 - 1 && cx < x1 + 1 && cz >= z0 - 1 && cz < (m.id === 'terra' ? C1 + 0.5 : z1 + 0.5)) return { slot: p.slot, stanza: m.id };
+      const c1 = CORRIDOI[m.id]?.[2] ?? z1;
+      if (cx >= x0 - 1 && cx < x1 + 1 && cz >= z0 - 1 && cz < c1 + 0.5) return { slot: p.slot, stanza: m.id };
     }
     return null;
   };

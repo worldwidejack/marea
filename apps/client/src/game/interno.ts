@@ -51,7 +51,14 @@ export function porta(x: number, y: number, z: number, ry = 0): THREE.BufferGeom
 }
 
 /** Pianta di un interno, in celle del suo template: pavimento [x0, z0, x1, z1), corridoio [cx, c0, c1), altezza dei muri (m), porta in fondo (colonna, o null). */
-export type Pianta = { pavimento: readonly [number, number, number, number]; corridoio: readonly [number, number, number] | null; altezza: number; retro: number | null };
+export type Pianta = {
+  pavimento: readonly [number, number, number, number];
+  corridoio: readonly [number, number, number] | null;
+  altezza: number;
+  retro: number | null;
+  scale?: readonly { cell: readonly [number, number]; verso: 'giu' | 'su' }[];
+  chiusoInFondo?: boolean;
+};
 
 /** La stanza «da plastico» in coordinate locali del template: pavimento e carta si cambiano con `rifinisci`. */
 export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, carta: StanzaFinitura): { group: THREE.Group; rifinisci(pav: StanzaFinitura, carta: StanzaFinitura): void } {
@@ -67,6 +74,14 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
     const corr = new THREE.Mesh(new THREE.PlaneGeometry(cw, cl), new THREE.MeshLambertMaterial({ map: tAssi }));
     corr.rotation.x = -Math.PI / 2; corr.position.set((CX + 0.5) * T, -0.08, C0 * T + cl / 2); corr.receiveShadow = true;
     group.add(corr);
+    if (p.scale) {
+      for (const s of p.scale) {
+        const sx = (s.cell[0] + 0.5) * T, sz = (s.cell[1] + 0.5) * T;
+        const pian = new THREE.Mesh(new THREE.PlaneGeometry(T, T), new THREE.MeshLambertMaterial({ map: tAssi }));
+        pian.rotation.x = -Math.PI / 2; pian.position.set(sx, -0.08, sz); pian.receiveShadow = true;
+        group.add(pian);
+      }
+    }
   }
   // pareti: in fondo e ai lati (davanti aperta), carta da parati una volta per metro
   const pareti: THREE.Mesh[] = [];
@@ -79,6 +94,21 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
   parete(ld, X1 * T + SPESSORE / 2, Z0 * T + ld / 2, Math.PI / 2);
   // battiscopa, porta sul retro, bordo davanti tagliato (lo spessore del pavimento, come un plastico) e i fianchi bassi del corridoio
   const zf = Z1 * T, xa = CX * T, xb = (CX + 1) * T;
+  const fianchi: THREE.BufferGeometry[] = [];
+  if (p.corridoio) {
+    for (let cz = C0; cz < C1; cz++) {
+      const czMid = (cz + 0.5) * T;
+      if (!(p.scale ?? []).some((s) => s.cell[0] === CX - 1 && s.cell[1] === cz)) {
+        fianchi.push(painted(new THREE.BoxGeometry(0.2, 0.7, T), P.legnoScuro, M(xa - 0.1, 0.27, czMid)));
+      }
+      if (!(p.scale ?? []).some((s) => s.cell[0] === CX + 1 && s.cell[1] === cz)) {
+        fianchi.push(painted(new THREE.BoxGeometry(0.2, 0.7, T), P.legnoScuro, M(xb + 0.1, 0.27, czMid)));
+      }
+    }
+    if (p.chiusoInFondo) {
+      fianchi.push(painted(new THREE.BoxGeometry(cw + 0.2, 0.7, 0.2), P.legnoScuro, M((CX + 0.5) * T, 0.27, C1 * T - 0.1)));
+    }
+  }
   const parti = [
     painted(new THREE.BoxGeometry(lw, 0.25, 0.12), P.legnoScuro, M(X0 * T + lw / 2, 0.12, Z0 * T + 0.06)),
     painted(new THREE.BoxGeometry(0.12, 0.25, ld), P.legnoScuro, M(X0 * T + 0.06, 0.12, Z0 * T + ld / 2)),
@@ -88,7 +118,7 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
       painted(new THREE.BoxGeometry(xa - X0 * T + SPESSORE, 0.55, 0.3), P.roccia, M((X0 * T - SPESSORE + xa) / 2, -0.25, zf + 0.15)),
       painted(new THREE.BoxGeometry(X1 * T + SPESSORE - xb, 0.55, 0.3), P.roccia, M((xb + X1 * T + SPESSORE) / 2, -0.25, zf + 0.15)),
       // i fianchi del corridoio: muretti bassi di legno che finiscono nel buio, e la soglia in cima
-      ...[xa - 0.1, xb + 0.1].map((x) => painted(new THREE.BoxGeometry(0.2, 0.7, cl), P.legnoScuro, M(x, 0.27, C0 * T + cl / 2))),
+      ...fianchi,
       painted(new THREE.BoxGeometry(cw, 0.08, 0.2), P.legnoScuro, M((CX + 0.5) * T, -0.02, C0 * T + 0.1)),
     ] : [
       painted(new THREE.BoxGeometry(lw + 2 * SPESSORE, 0.55, 0.3), P.roccia, M(X0 * T + lw / 2, -0.25, zf + 0.15)), // il bordo davanti, tutto intero

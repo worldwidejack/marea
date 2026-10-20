@@ -19,6 +19,13 @@ export const livelloCasa = (casa: { livello?: number } | null | undefined): numb
 /** L'ampliamento che porta la casa dal livello dato al successivo; null = già al massimo. */
 export const prossimoAmpliamento = (livello: number): CasaLivello | null => LIVELLI_CASA[Math.max(0, Math.floor(livello))] ?? null;
 
+/** I corridoi e ballatoi delle stanze (borgo.json `casa.corridoi`). */
+export const CORRIDOI: Record<StanzaId, readonly [number, number, number]> = (BORGO.casa.corridoi as Record<StanzaId, readonly [number, number, number]>) ?? {
+  terra: BORGO.stanza.corridoio,
+  cantina: [7, 42, 44],
+  piano: [22, 42, 44],
+};
+
 /** Le scale della casa (borgo.json `casa.scale`) e quelle che ci sono a un livello. */
 export const SCALE_CASA: readonly CasaScala[] = BORGO.casa.scale;
 export const scaleDi = (livello: number): readonly CasaScala[] => SCALE_CASA.filter((s) => livello >= s.da);
@@ -37,8 +44,17 @@ export function stanzeDi(livello: number): readonly Stanza[] {
   }
   return out;
 }
-/** La stanza (a quel livello) il cui pavimento contiene la cella, o null. */
-export const stanzaAt = (livello: number, c: readonly [number, number]): Stanza | null => stanzeDi(livello).find((s) => dentro(s.pavimento, c)) ?? null;
+/** La stanza (a quel livello) che contiene la cella (pavimento o corridoio/scale), o null. */
+export function stanzaAt(livello: number, c: readonly [number, number]): Stanza | null {
+  const stanze = stanzeDi(livello);
+  const found = stanze.find((s) => dentro(s.pavimento, c));
+  if (found) return found;
+  for (const s of stanze) {
+    const cr = CORRIDOI[s.id];
+    if (cr && c[1] >= cr[1] && c[1] < cr[2] && Math.abs(c[0] - cr[0]) <= 1) return s;
+  }
+  return null;
+}
 /** Il piano terra a quel livello. */
 export const stanzaTerra = (livello: number): Stanza => stanzeDi(livello)[0]!;
 

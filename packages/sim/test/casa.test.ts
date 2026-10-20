@@ -104,6 +104,32 @@ test('finiture: compri una volta (si mette subito), scegli solo le tue; quella d
   assert.equal(checkInvariant([lot]), null);
 });
 
+test('finiture: indipendenti tra piano terra e primo piano', () => {
+  const p1 = BORGO.pavimenti[1]!, p2 = BORGO.pavimenti[2]!;
+  const k1 = BORGO.carte[1]!, k2 = BORGO.carte[2]!;
+  let lot = ricco((p1.monete ?? 0) + (p2.monete ?? 0) + (k1.monete ?? 0) + (k2.monete ?? 0));
+  lot = compraFinitura(lot, 'pavimento', p1.id, 0);
+  lot = compraFinitura(lot, 'pavimento', p2.id, 0);
+  lot = compraFinitura(lot, 'carta', k1.id, 0);
+  lot = compraFinitura(lot, 'carta', k2.id, 0);
+
+  // Inizialmente 'piano' usa quelle di serie se non impostate
+  assert.deepEqual(finitureScelte(lot, 'piano'), { pavimento: BORGO.pavimenti[0]!.id, carta: BORGO.carte[0]!.id });
+
+  // Imposta finiture sul primo piano
+  lot = scegliFinitura(lot, 'pavimento', p1.id, 0, 'piano');
+  lot = scegliFinitura(lot, 'carta', k1.id, 0, 'piano');
+
+  // Imposta finiture diverse a piano terra
+  lot = scegliFinitura(lot, 'pavimento', p2.id, 0, 'terra');
+  lot = scegliFinitura(lot, 'carta', k2.id, 0, 'terra');
+
+  // Le scelte rimangono indipendenti
+  assert.deepEqual(finitureScelte(lot, 'terra'), { pavimento: p2.id, carta: k2.id });
+  assert.deepEqual(finitureScelte(lot, 'piano'), { pavimento: p1.id, carta: k1.id });
+  assert.equal(checkInvariant([lot]), null);
+});
+
 test('baule: il Forziere costruito in casa si sposta sul pavimento e si gira; resta lì ricaricando', () => {
   let lot = ricco(0);
   assert.throws(() => spostaBaule(lot, [X0 + 3, Z0 + 3], 0), isErr('sconosciuto'));

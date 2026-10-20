@@ -8,7 +8,7 @@ import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { advance } from './advance.ts';
 import { spendi } from './monete.ts';
 import { livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzeDi } from './stanze.ts';
-import type { Stanza } from './stanze.ts';
+import type { Stanza, StanzaId } from './stanze.ts';
 import { inVetrina, inVetrinaFinitura } from './vetrina.ts';
 import { giornoRoma } from './giorno.ts';
 import { EconomyError } from './types.ts';
@@ -23,8 +23,10 @@ export type CasaState = {
   arredi?: PlacedMobile[];
   /** Pavimenti e carte comprati (id di borgo.json); quelli di serie sono di tutti. */
   finiture?: string[];
-  /** Scelti (assente = quello di serie, il primo). */
+  /** Scelti per il piano terra (assente = quello di serie, il primo). */
   pavimento?: string; carta?: string;
+  /** Scelti per il primo piano (assente = quello di serie, il primo). */
+  pavimentoPiano?: string; cartaPiano?: string;
   /** Quarti di giro del baule (Forziere) in casa. */
   bauleRot?: number;
   /** Gli ampliamenti fatti dal mobiliere (#386, economy/stanze.ts): 0..max. Assente = 0, la stanza di sempre. */
@@ -62,10 +64,12 @@ export function possiedeFinitura(lot: LotState | null, tipo: Finitura, id: strin
   const f = finitura(tipo, id);
   return !!f && (!(f.monete ?? 0) || (casaDi(lot).finiture ?? []).includes(id));
 }
-/** Pavimento e carta scelti (id), quelli di serie se non hai scelto o non esistono più. */
-export function finitureScelte(lot: LotState | null): { pavimento: string; carta: string } {
+/** Pavimento e carta scelti (id) per quella stanza ('terra' o 'piano'), quelli di serie se non hai scelto o non esistono più. */
+export function finitureScelte(lot: LotState | null, stanza: StanzaId = 'terra'): { pavimento: string; carta: string } {
   const c = casaDi(lot);
-  return { pavimento: finitura('pavimento', c.pavimento ?? '') ? c.pavimento! : BORGO.pavimenti[0]!.id, carta: finitura('carta', c.carta ?? '') ? c.carta! : BORGO.carte[0]!.id };
+  const p = stanza === 'piano' ? (c.pavimentoPiano ?? BORGO.pavimenti[0]!.id) : (c.pavimento ?? BORGO.pavimenti[0]!.id);
+  const k = stanza === 'piano' ? (c.cartaPiano ?? BORGO.carte[0]!.id) : (c.carta ?? BORGO.carte[0]!.id);
+  return { pavimento: finitura('pavimento', p) ? p : BORGO.pavimenti[0]!.id, carta: finitura('carta', k) ? k : BORGO.carte[0]!.id };
 }
 
 const same = (a: readonly [number, number], b: readonly [number, number]): boolean => a[0] === b[0] && a[1] === b[1];
@@ -78,8 +82,9 @@ export function postoMobileError(lot: LotState, m: MobileDef, p: PostoMobile, se
   const liv = livelloLotto(lot), stanza = Array.isArray(c) && Number.isInteger(c[0]) && Number.isInteger(c[1]) ? stanzaAt(liv, c) : null;
   if (!stanza) return { code: 'posizione', msg: 'Fuori dalla stanza' };
   const mie = celleMobile(m, c, p.rot ?? 0);
-  if (!mie.every((q) => stanzaAt(liv, q)?.id === stanza.id)) return { code: 'posizione', msg: 'Non ci sta: esce dalla stanza' };
-  const [X0, Z0, X1] = stanza.pavimento;
+  const [X0, Z0, X1, Z1] = stanza.pavimento;
+  const dentroPav = (q: readonly [number, number]) => q[0] >= X0 && q[0] < X1 && q[1] >= Z0 && q[1] < Z1;
+  if (!mie.every(dentroPav)) return { code: 'posizione', msg: 'Non ci sta: esce dalla stanza' };
   if (m.posto === 'parete') {
     const ok = p.muro === 'n' ? c[1] === Z0 && !(stanza.retro && c[0] === stanza.retro[0]) : p.muro === 'o' ? c[0] === X0 : p.muro === 'e' ? c[0] === X1 - 1 : false;
     if (!ok) return { code: 'posizione', msg: 'Questo si appende a un muro' };
@@ -163,11 +168,13 @@ export function compraFinitura(lot0: LotState, tipo: Finitura, id: string, nowMs
   const lot = spendi(advance(lot0, nowMs), f.monete ?? 0), c = casaDi(lot);
   return conCasa(lot, { ...c, finiture: [...(c.finiture ?? []), id], [tipo]: id });
 }
-/** Mette un pavimento o una carta che hai già. */
-export function scegliFinitura(lot0: LotState, tipo: Finitura, id: string, nowMs: number): LotState {
+/** Mette un pavimento o una carta che hai già in quella stanza ('terra' o 'piano'). */
+export function scegliFinitura(lot0: LotState, tipo: Finitura, id: string, nowMs: number, stanza: StanzaId = 'terra'): LotState {
   const lot = advance(lot0, nowMs);
   if (!possiedeFinitura(lot, tipo, id)) throw new EconomyError(finitura(tipo, id) ? 'requisito' : 'sconosciuto', 'Prima compralo al negozio dei mobili');
-  return conCasa(lot, { ...casaDi(lot), [tipo]: id });
+  const c = casaDi(lot);
+  const k = stanza === 'piano' ? (tipo === 'pavimento' ? 'pavimentoPiano' : 'cartaPiano') : tipo;
+  return conCasa(lot, { ...c, [k]: id });
 }
 /** Posa un mobile del magazzino nella stanza. */
 export function posaMobile(lot0: LotState, id: string, p: PostoMobile, rot: number, nowMs: number): LotState {
