@@ -116,6 +116,8 @@ test('posti barca del molo del Porto: tu più dodici amici, in fila, nessuno sca
     const barca = { ...newBoat(p.x, p.z), yaw: p.yaw };
     assert.ok(map.isDock(p.bitta.x, p.bitta.z), `posto ${i}: la bitta non sta sul molo`);
     assert.ok(canBoard(newAvatar(p.bitta.x, p.bitta.z), barca, map) && landingSpot(barca, map), `posto ${i}: dalla bitta non si sale o non si scende`);
+    const giu = landingSpot(barca, map); // dove si scende (il centro della cella di molo accanto) si risale
+    assert.ok(giu && canBoard(newAvatar(giu.x, giu.z), barca, map), `posto ${i}: da dove si scende non si risale`);
   }
   assert.deepEqual(postiDelMolo(map, b.x, b.z), { posti, dita }, 'sempre gli stessi');
 });
