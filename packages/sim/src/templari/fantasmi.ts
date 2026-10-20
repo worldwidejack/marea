@@ -18,7 +18,6 @@ const DEF = (): (TNemicoDef & { fantasma: NonNullable<TNemicoDef['fantasma']> })
   const d = TEMPLARI.nemici.find((n) => n.fantasma);
   return d?.fantasma ? (d as TNemicoDef & { fantasma: NonNullable<TNemicoDef['fantasma']> }) : null;
 };
-export const eFantasma = (z: Zombie): boolean => !!z.def.fantasma;
 /** Un fantasma calmo: non lo si mira da soli, non lo insegue l'autopilota. */
 export const calmo = (z: Zombie): boolean => !!z.def.fantasma && !z.arrabbiato;
 
