@@ -8,7 +8,7 @@ import type { HeroState, RpgAction, RunHero, RunResult } from '@marea/sim/rpg/ty
 import type { DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
 import type { TAzioni, TRisultato } from '@marea/sim/templari/types.ts';
 
-/** `look` è quello salvato in D1: anche titolo (#87) e barca (#107) se scelti. */
+/** `look` è quello salvato in D1: anche la barca, se scelta. */
 export type Me = { id: string; nome: string; look: LookSalvato; lotto: LotState | null; slot?: number | null };
 export type { FeedItem };
 /** Chi abita quale slot dell'arcipelago (per le visite in sola lettura). Richiede GET /api/lots lato server. */
@@ -136,10 +136,6 @@ export type Api = {
   // ---- Diario del capitano (#87) ----
   /** Avvistamenti (animali passati vicino, isole visitate): il server tiene solo gli id dei cataloghi, una volta. */
   diarioVisto(v: { animali?: string[]; isole?: string[] }): Promise<{ nuovi: { animali: string[]; isole: string[] }; lot: LotState }>;
-  /** RISCUOTI un traguardo compiuto: il server verifica, paga le monete (una volta) e risponde col lotto. */
-  diarioRiscuoti(id: string): Promise<{ premio: number; lot: LotState }>;
-  /** Titolo sotto il nome (id di un traguardo riscosso; null = nessuno): lo vedono anche gli amici. */
-  diarioTitolo(id: string | null): Promise<LotState>;
   // ---- M1 · Fetta 3 (CONTRACTS §13) ----
   /** Salva il look (POST /api/look). 400 in italiano se il cappello è a pagamento e non è tuo. Aggiorna anche la presenza (gli altri lo vedono). */
   look(l: Look): Promise<void>;
@@ -362,12 +358,6 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       const ids = (x: unknown) => (Array.isArray(x) ? x.filter((s): s is string => typeof s === 'string') : []);
       return { nuovi: { animali: ids(n['animali']), isole: ids(n['isole']) }, lot: asLot(d) };
     },
-    async diarioRiscuoti(id) {
-      const d = await call('POST', '/api/diario/riscuoti', { id });
-      if (!isObj(d) || typeof d['premio'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');
-      return { premio: d['premio'], lot: asLot(d['lot']) };
-    },
-    diarioTitolo: (id) => post('/api/diario/titolo', { id }),
     async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
     async nome(n) {
       const d = await call('POST', '/api/nome', { nome: n });

@@ -5,13 +5,13 @@ export const PROTOCOL_VERSION = 1 as const;
 
 export type Mode = 'walk' | 'boat';
 export type Look = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
-/** `titolo` (#87, facoltativo): id del traguardo scelto, il client lo mostra sotto il nome (testo in @marea/content/diario.ts). */
 /** La tua barca (#107): id dei colori di avatar.json `barca` per scafo e vela ('nessuna' = senza vela), nome già ripulito dal server. */
 export type BarcaLook = { scafo: string; vela: string; nome: string };
 /** `barca` (#107, facoltativo): assente = la barca di serie. `indossa` (#190, facoltativo): armatura, arma e frecce che si vedono addosso (id del catalogo); assente = niente. */
-export type Peer = { id: string; nome: string; x: number; z: number; yaw: number; mode: Mode; anim: string; look: Look; titolo?: string; barca?: BarcaLook; indossa?: Indossa };
-/** Look come sta in D1 (`persone.look`): più il titolo scelto nel diario (#87), che la Zone passa nel Peer. Niente migrazioni. */
-export type LookSalvato = Look & { titolo?: string; barca?: BarcaLook; indossa?: Indossa };
+export type Peer = { id: string; nome: string; x: number; z: number; yaw: number; mode: Mode; anim: string; look: Look; barca?: BarcaLook; indossa?: Indossa };
+/** Look come sta in D1 (`persone.look`): più la barca e quello che si vede addosso, che la Zone passa nel Peer. Niente migrazioni.
+ *  I look salvati prima possono avere ancora `titolo` (traguardi tolti): non si legge più. */
+export type LookSalvato = Look & { barca?: BarcaLook; indossa?: Indossa };
 /** Emote (PROTOCOL §3): le prime 4 da M1, le altre 4 dal #90. Un client vecchio scarta in silenzio quelle che non conosce. */
 export type EmoteId = 'saluto' | 'esulta' | 'ride' | 'no' | 'applauso' | 'cuore' | 'sorpresa' | 'balla';
 /** Feed (M1 · Fetta 3, PROTOCOL §4): righe scritte dal DO Sfide, testo composto dal Worker con i nomi. */

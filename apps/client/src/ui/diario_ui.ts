@@ -1,19 +1,15 @@
 // Diario del capitano (#87), chunk caricato con import() alla prima apertura da game/diario.ts. Un album a pagine: Pesci (#457: disegno a pixel
 // di ogni specie, quante volte, scheda dopo la consegna al mobiliere), Perle, Animali avvistati, Medaglie (la migliore per minigioco), Isole visitate (la forma vera dell'isola,
-// un pixel per cella), Traguardi (progresso, RISCUOTI sul server, titolo sotto il nome). Caselle grigie con «?» per quello che manca,
-// contatore «3/12» su ogni linguetta. Si può sfogliare anche il diario di un amico (sola lettura, dal suo lotto).
-// Traguardi e titoli spenti per ora (VISIONE §2): senza ?traguardi=1 la linguetta non c'è (DIARIO_TABS) e in testata niente titolo.
+// un pixel per cella). Caselle grigie con «?» per quello che manca, contatore dei trovati su ogni linguetta. Si può sfogliare anche il diario
+// di un amico (sola lettura, dal suo lotto). I traguardi coi titoli sono stati tolti (tag archivio/spenti-traguardi).
 // Un pollice: linguette e caselle ≥ 44 px. Tastiera in capture solo a pannello aperto: Esc/J chiude, ←/→ linguette, ↑/↓ tra i bottoni.
-import { DIARIO, ISOLE_DIARIO, TRAGUARDI } from '@marea/content/diario.ts';
-import { diarioOf, titoloDi, traguardiOf } from '@marea/sim/economy/diario.ts';
-import type { TraguardoStato } from '@marea/sim/economy/diario.ts';
+import { DIARIO, ISOLE_DIARIO } from '@marea/content/diario.ts';
+import { diarioOf } from '@marea/sim/economy/diario.ts';
 import type { DiarioState, LotState } from '@marea/sim';
-import { ApiError } from '../net/api.ts';
 import type { DiarioCtx, DiarioTab } from '../game/diario.ts';
 import { DIARIO_TABS, libroIcon } from '../game/diario.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
-import { pixIcon, resIcon } from './icons.ts';
-import { flyResources } from './sheet.ts';
+import { pixIcon } from './icons.ts';
 import { pesceCanvas } from './pesci_sprite.ts';
 import { PESCI, PESCI_CFG } from '@marea/content/pesci.ts';
 import type { PesceDef } from '@marea/content/pesci.ts';
@@ -22,9 +18,8 @@ import { INSETTI, INSETTI_CFG } from '@marea/content/insetti.ts';
 import type { InsettoDef } from '@marea/content/insetti.ts';
 import { insettiOf } from '@marea/sim/economy/insetti.ts';
 import { insettoCanvas } from './insetti_sprite.ts';
-import { ANIMALI_ART, ISOLA, MEDAGLIA, MED_COL, PERLE_ART, STELLA, ZAMPA, artCanvas, isolaCanvas, medagliaCanvas } from './diario_disegni.ts';
+import { ANIMALI_ART, ISOLA, MEDAGLIA, MED_COL, PERLE_ART, ZAMPA, artCanvas, isolaCanvas, medagliaCanvas } from './diario_disegni.ts';
 import { suona } from '../audio/ponte.ts';
-import { FLAGS } from '../flags.ts';
 
 const P = PAL;
 const INS_RAR_COL: Record<InsettoDef['rarita'], string> = { comune: P.pietraChiara, noncomune: P.erba, raro: P.acquaBassa, ultrararo: P.giallo };
@@ -35,7 +30,7 @@ const INS_FASCIA: Record<InsettoDef['fascia'], string> = { sempre: 'giorno e not
 const doveInsetto = (i: InsettoDef): string => `${INS_DOVE[i.tipo]} ${INS_STAGIONE[i.stagione]}, ${INS_FASCIA[i.fascia]}`;
 /** «si pesca dalla riva d'estate, di notte · ombra grande» (#457). */
 const dovePesce = (p: PesceDef): string => `si pesca ${p.zona === 'riva' ? 'dalle rive di Borgo Marea' : 'dalla barca in mare aperto'} ${INS_STAGIONE[p.stagione]}, ${INS_FASCIA[p.fascia]} · ombra ${PESCI_CFG.taglie[p.taglia - 1]?.nome.toLowerCase() ?? ''}`;
-const TAB_NOME: Record<DiarioTab, string> = { pesci: 'Pesci', insetti: 'Insetti', perle: 'Perle', animali: 'Animali', medaglie: 'Medaglie', isole: 'Isole', traguardi: 'Traguardi' };
+const TAB_NOME: Record<DiarioTab, string> = { pesci: 'Pesci', insetti: 'Insetti', perle: 'Perle', animali: 'Animali', medaglie: 'Medaglie', isole: 'Isole' };
 
 const STYLE = `
 .mz-sheet.mz-dia { box-sizing: border-box; max-height: 76%; padding-top: 8px; }
@@ -43,14 +38,12 @@ const STYLE = `
 .mz-dia .mz-head { gap: 8px; margin-bottom: 6px; }
 .mz-dia .mz-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .mz-dia .chi-t { display: flex; flex-direction: column; min-width: 0; margin-left: auto; text-align: right; font-size: 12px; font-weight: bold; color: ${P.sabbia}; line-height: 1.25; }
-.mz-dia .chi-t b { color: ${P.giallo}; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mz-dia-chi { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 6px; padding-bottom: 2px; }
 .mz-dia-chi button { flex: none; min-width: 56px; min-height: 40px; padding: 0 10px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; }
 .mz-dia-chi button[aria-pressed="true"] { border-color: ${P.giallo}; color: ${P.giallo}; }
 .mz-dia-tabs { display: grid; grid-template-columns: repeat(var(--n, 6), 1fr); gap: 4px; margin-bottom: 6px; }
 .mz-dia-tab { position: relative; min-height: 50px; padding: 3px 0 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbia}; font: bold 11px ui-monospace, Menlo, monospace; cursor: pointer; }
 .mz-dia-tab[aria-pressed="true"] { background: ${P.arancio}; color: ${P.neroCaldo}; border-color: ${P.neroCaldo}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
-.mz-dia-tab i { position: absolute; top: -7px; right: -5px; min-width: 16px; height: 16px; padding: 0 3px; background: ${P.rosso}; color: ${P.sabbiaChiara}; border: 2px solid ${P.neroCaldo}; font: bold 10px/16px ui-monospace, Menlo, monospace; font-style: normal; }
 .mz-dia-pg { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 2px 0 6px; padding-bottom: 2px; border-bottom: 2px solid ${P.legno}; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: .05em; color: ${P.sabbia}; }
 .mz-dia-pg b { color: ${P.giallo}; font-size: 15px; letter-spacing: 0; }
 .mz-dia-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
@@ -73,26 +66,6 @@ const STYLE = `
 .mz-dia-row .nm { flex: 1; min-width: 0; display: flex; flex-direction: column; font-weight: bold; font-size: 14px; }
 .mz-dia-row .nm small { font-size: 12px; color: ${P.sabbia}; font-weight: normal; }
 .mz-dia-row .md { font-weight: bold; text-transform: uppercase; font-size: 13px; }
-.mz-dia-card { margin-top: 8px; padding: 7px 9px; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 2px solid ${P.legnoScuro}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
-.mz-dia-card.fatto { background: ${P.erbaChiara}; }
-.mz-dia-card.riscosso { background: ${P.pietraChiara}; }
-.mz-dia-card .hd { display: flex; align-items: center; gap: 6px; }
-.mz-dia-card .hd b { flex: 1; min-width: 0; font-size: 14px; }
-.mz-dia-card .tx { font-size: 13px; line-height: 1.3; margin-top: 2px; }
-.mz-dia-card .tl { font-size: 12px; font-weight: bold; color: ${P.legno}; }
-.mz-dia-card .tl.uso { color: ${P.rosso}; }
-.mz-dia-bar { position: relative; height: 10px; margin: 6px 0 4px; background: ${P.pietra}; border: 2px solid ${P.neroCaldo}; }
-.mz-dia-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: ${P.erbaScura}; }
-.mz-dia-card .ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.mz-dia-card .pz { display: inline-flex; align-items: center; gap: 4px; font-weight: bold; font-size: 14px; }
-.mz-dia-card .cnt { font-size: 12px; color: ${P.roccia}; font-weight: bold; }
-.mz-dia-act { flex: none; min-width: 104px; min-height: 44px; padding: 0 8px; background: ${P.arancio}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; box-shadow: 0 3px 0 ${P.neroCaldo}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; }
-.mz-dia-act.green { background: ${P.erba}; }
-.mz-dia-act.ghost { background: ${P.legnoScuro}; color: ${P.sabbiaChiara}; border-color: ${P.legnoChiaro}; }
-.mz-dia-act:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
-.mz-dia-act:disabled { background: ${P.roccia}; color: ${P.pietra}; border-color: ${P.pietraScura}; cursor: default; }
-.mz-dia-miss { margin: 4px 2px 0; color: ${P.rosso}; font-size: 13px; font-weight: bold; }
-.mz-dia-miss.ok { color: ${P.erbaScura}; }
 .mz-dia-vuoto { margin-top: 8px; color: ${P.sabbia}; font-size: 13px; }
 `;
 
@@ -106,11 +79,8 @@ export function createDiarioUi(ctx: DiarioCtx) {
   let open = false, tab: DiarioTab = 'pesci', gen = 0, sel: string | null = null;
   /** Di chi è il diario aperto (null = mio) e il suo lotto (gli altri: letto dal server, sola lettura). */
   let chi: string | null = null, altrui: LotState | null = null, carica = false;
-  const note = { busy: false, testo: null as { id: string; text: string; bad: boolean } | null, riscossi: 0 };
 
   const lot = (): LotState | null => (chi ? altrui : ctx.getLot());
-  const amiciDi = (id: string | null) => ctx.owners.filter((w) => w.id !== (id ?? meId)).length;
-  const mio = () => chi === null && !!ctx.api?.enabled && !!meId;
 
   // ---------- tastiera ----------
   const items = (): HTMLElement[] => [...sheet.querySelectorAll<HTMLElement>('button:not(:disabled)')];
@@ -136,7 +106,6 @@ export function createDiarioUi(ctx: DiarioCtx) {
   type Conta = { fatto: number; tot: number };
   const conti = (l: LotState | null, d: DiarioState): Record<DiarioTab, Conta> => {
     const amiciIsole = ctx.owners.filter((w) => w.id !== (chi ?? meId)).map((w) => `lotto:${w.id}`);
-    const tr = l ? traguardiOf(l, { amici: amiciDi(chi) }) : [];
     return {
       pesci: { fatto: PESCI.filter((p) => (l?.pesci?.visti[p.id] ?? 0) > 0).length, tot: PESCI.length },
       insetti: { fatto: INSETTI.filter((i) => (l?.insetti?.visti[i.id] ?? 0) > 0).length, tot: INSETTI.length },
@@ -144,18 +113,16 @@ export function createDiarioUi(ctx: DiarioCtx) {
       animali: { fatto: DIARIO.animali.filter((a) => d.animali.includes(a.id)).length, tot: DIARIO.animali.length },
       medaglie: { fatto: DIARIO.minigiochi.filter((m) => d.medaglie[m.id]).length, tot: DIARIO.minigiochi.length },
       isole: { fatto: [...ISOLE_DIARIO.map((i) => i.id), ...amiciIsole].filter((id) => d.isole.includes(id)).length, tot: ISOLE_DIARIO.length + amiciIsole.length },
-      traguardi: { fatto: tr.filter((t) => t.riscosso).length, tot: tr.length },
     };
   };
 
   // ---------- disegno ----------
-  function head(d: DiarioState): HTMLElement {
+  function head(): HTMLElement {
     const h = el('div', 'mz-head'), t = el('div', 'mz-title');
     t.append(libroIcon(), el('span', '', 'Diario'));
     const nome = chi ? ctx.owners.find((w) => w.id === chi)?.nome ?? chi : ctx.me?.nome ?? 'Ospite';
     const ct = el('div', 'chi-t'); ct.dataset['chi'] = chi ?? 'io';
     ct.append(el('span', '', chi ? `di ${nome}` : 'capitano ' + nome));
-    if (FLAGS.traguardi) { const tit = titoloDi(d.titolo); ct.appendChild(el('b', '', tit ? `«${tit}»` : 'senza titolo')); }
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.title = 'Chiudi (Esc, J)'; x.setAttribute('aria-label', 'Chiudi'); x.dataset['act'] = 'chiudi';
     x.addEventListener('click', () => close());
     h.append(t, ct, x);
@@ -174,17 +141,16 @@ export function createDiarioUi(ctx: DiarioCtx) {
     for (const w of altri) b(w.id, w.nome);
     return r;
   }
-  function tabs(c: Record<DiarioTab, Conta>, pronti: number): HTMLElement {
+  function tabs(c: Record<DiarioTab, Conta>): HTMLElement {
     const r = el('div', 'mz-dia-tabs'); r.setAttribute('role', 'tablist'); r.style.setProperty('--n', String(DIARIO_TABS.length));
     const icone: Record<DiarioTab, () => HTMLElement> = {
       pesci: () => pixIcon('pesca', 20), insetti: () => insettoCanvas(INSETTI.find((i) => i.id === 'monarca') ?? INSETTI[0]!, 1.25), perle: () => pixIcon('perle', 20), animali: () => artCanvas(ZAMPA, 2.5),
-      medaglie: () => artCanvas(MEDAGLIA, 2.5, { col: { m: P.giallo } }), isole: () => artCanvas(ISOLA, 2.5), traguardi: () => artCanvas(STELLA, 2.5),
+      medaglie: () => artCanvas(MEDAGLIA, 2.5, { col: { m: P.giallo } }), isole: () => artCanvas(ISOLA, 2.5),
     };
     for (const t of DIARIO_TABS) {
       const b = el('button', 'mz-dia-tab'); b.type = 'button'; b.dataset['tab'] = t; b.title = TAB_NOME[t]; b.setAttribute('role', 'tab');
       b.setAttribute('aria-pressed', String(tab === t)); b.setAttribute('aria-label', `${TAB_NOME[t]} ${c[t].fatto} su ${c[t].tot}`);
       b.append(icone[t](), el('span', '', `${c[t].fatto}/${c[t].tot}`));
-      if (t === 'traguardi' && pronti > 0 && mio()) b.appendChild(el('i', '', String(pronti)));
       b.addEventListener('click', () => vai(t));
       r.appendChild(b);
     }
@@ -279,102 +245,38 @@ export function createDiarioUi(ctx: DiarioCtx) {
     const v = voci.find((x) => x.id === sel), ok = !!v && d.isole.includes(v.id);
     return [g, nota(v ? (ok ? [b(v.nome), ' · visitata.'] : [b('???'), ' · non ancora visitata: vacci in barca.']) : ['Un\'isola si segna quando ci arrivi (in barca basta entrare nelle sue acque).'])];
   }
-  function bodyTraguardi(l: LotState | null, d: DiarioState): HTMLElement[] {
-    if (!l) return [el('div', 'mz-dia-vuoto', 'I traguardi sono per chi ha il link personale: chiedilo a Jack')];
-    const ordine = (t: TraguardoStato) => (t.compiuto && !t.riscosso ? 0 : !t.riscosso ? 1 - t.fatto / t.n : 2);
-    const list = traguardiOf(l, { amici: amiciDi(chi) }).sort((a, z) => ordine(a) - ordine(z));
-    const out: HTMLElement[] = [];
-    for (const t of list) {
-      const c = el('div', 'mz-dia-card' + (t.riscosso ? ' riscosso' : t.compiuto ? ' fatto' : '')); c.dataset['traguardo'] = t.id;
-      const hd = el('div', 'hd'); hd.append(artCanvas(STELLA, 2, t.compiuto ? {} : { ombra: true }), el('b', '', t.nome));
-      const pz = el('span', 'pz'); pz.append(resIcon('monete', 16), `+${t.monete}`); hd.appendChild(pz);
-      const bar = el('div', 'mz-dia-bar'), fill = el('i'); fill.style.width = `${Math.round((100 * t.fatto) / t.n)}%`; bar.appendChild(fill);
-      const uso = d.titolo === t.id;
-      const tl = el('div', 'tl' + (uso ? ' uso' : ''), uso ? `Titolo «${t.titolo}» · in uso` : `Titolo: «${t.titolo}»`);
-      const ft = el('div', 'ft'); ft.appendChild(el('span', 'cnt', t.riscosso ? 'Riscosso' : `${t.fatto} / ${t.n}`));
-      if (mio()) {
-        let btn: HTMLButtonElement;
-        if (!t.riscosso) {
-          btn = el('button', 'mz-dia-act' + (t.compiuto ? ' green' : ''), t.compiuto ? 'RISCUOTI' : 'IN CORSO'); btn.dataset['act'] = 'riscuoti';
-          btn.disabled = !t.compiuto || note.busy;
-          btn.addEventListener('click', () => void riscuoti(t.id, btn));
-        } else {
-          btn = el('button', 'mz-dia-act' + (uso ? ' ghost' : ''), uso ? 'TOGLI' : 'USA TITOLO'); btn.dataset['act'] = 'titolo';
-          btn.disabled = note.busy;
-          btn.addEventListener('click', () => void titolo(uso ? null : t.id));
-        }
-        btn.type = 'button'; ft.appendChild(btn);
-      }
-      c.append(hd, el('div', 'tx', t.testo), bar, tl, ft);
-      if (note.testo?.id === t.id) c.appendChild(el('div', 'mz-dia-miss' + (note.testo.bad ? '' : ' ok'), note.testo.text));
-      out.push(c);
-    }
-    return out;
-  }
-
   function render(): void {
     if (!open) return;
     const active = document.activeElement as HTMLElement | null;
-    const keep = active && sheet.contains(active) ? { tab: active.dataset['tab'], cella: active.dataset['cella'], chi: active.dataset['chi'], tr: active.closest<HTMLElement>('[data-traguardo]')?.dataset['traguardo'], act: active.dataset['act'] } : null;
+    const keep = active && sheet.contains(active) ? { tab: active.dataset['tab'], cella: active.dataset['cella'], chi: active.dataset['chi'] } : null;
     const l = lot(), d = l ? diarioOf(l) : diarioOf({ owner: '' } as LotState);
-    const c = conti(l, d), pronti = l && mio() ? traguardiOf(l, { amici: amiciDi(null) }).filter((t) => t.compiuto && !t.riscosso).length : 0;
+    const c = conti(l, d);
     sheet.dataset['tab'] = tab; sheet.dataset['chi'] = chi ?? 'io';
     const corpo = carica ? [el('div', 'mz-dia-vuoto', 'Sfoglio il diario…')]
-      : tab === 'pesci' ? bodyPesci(l) : tab === 'insetti' ? bodyInsetti(l) : tab === 'perle' ? bodyPerle(d) : tab === 'animali' ? bodyAnimali(d) : tab === 'medaglie' ? bodyMedaglie(d) : tab === 'isole' ? bodyIsole(d) : bodyTraguardi(l, d);
-    const parti: HTMLElement[] = [head(d)];
+      : tab === 'pesci' ? bodyPesci(l) : tab === 'insetti' ? bodyInsetti(l) : tab === 'perle' ? bodyPerle(d) : tab === 'animali' ? bodyAnimali(d) : tab === 'medaglie' ? bodyMedaglie(d) : bodyIsole(d);
+    const parti: HTMLElement[] = [head()];
     const cr = chiRow(); if (cr) parti.push(cr);
-    parti.push(tabs(c, pronti), pagina(c[tab]), ...corpo);
+    parti.push(tabs(c), pagina(c[tab]), ...corpo);
     sheet.replaceChildren(...parti);
     if (keep) {
-      const q = keep.tab ? `[data-tab="${CSS.escape(keep.tab)}"]` : keep.cella ? `[data-cella="${CSS.escape(keep.cella)}"]` : keep.chi ? `.mz-dia-chi [data-chi="${CSS.escape(keep.chi)}"]`
-        : keep.tr ? `[data-traguardo="${CSS.escape(keep.tr)}"] [data-act]:not(:disabled)` : null;
+      const q = keep.tab ? `[data-tab="${CSS.escape(keep.tab)}"]` : keep.cella ? `[data-cella="${CSS.escape(keep.cella)}"]` : keep.chi ? `.mz-dia-chi [data-chi="${CSS.escape(keep.chi)}"]` : null;
       (q ? sheet.querySelector<HTMLElement>(q) : null)?.focus({ preventScroll: true });
     }
   }
-  function vai(t: DiarioTab): void { if (t === tab) return; tab = t; sel = null; note.testo = null; sheet.scrollTop = 0; render(); }
+  function vai(t: DiarioTab): void { if (t === tab) return; tab = t; sel = null; sheet.scrollTop = 0; render(); }
 
   async function scegliChi(id: string | null): Promise<void> {
     if (id === chi) return;
-    chi = id; altrui = null; sel = null; note.testo = null;
+    chi = id; altrui = null; sel = null;
     if (!id || !ctx.api) { carica = false; render(); return; }
     const g = ++gen; carica = true; render();
     try { const l = await ctx.api.lot(id); if (g === gen && chi === id) altrui = l; } catch { if (g === gen) chi = null; ctx.hud.toast('Diario non raggiungibile: riprova', 2200); }
     if (g === gen) { carica = false; render(); }
   }
-  async function riscuoti(id: string, btn: HTMLElement): Promise<void> {
-    if (note.busy || !ctx.api) return;
-    const g = gen; note.busy = true; note.testo = null; render();
-    try {
-      const r = await ctx.api.diarioRiscuoti(id);
-      ctx.setLot(r.lot); note.riscossi++;
-      if (g === gen) note.testo = { id, text: 'Premio riscosso! Ora il titolo è tuo', bad: false };
-      fly(btn, r.premio); suona('medaglia_oro');
-    } catch (e) { if (g === gen) note.testo = { id, text: e instanceof ApiError ? e.message : 'Qualcosa non va, riprova', bad: true }; }
-    note.busy = false;
-    if (g === gen) render();
-  }
-  async function titolo(id: string | null): Promise<void> {
-    if (note.busy || !ctx.api) return;
-    const g = gen, cur = diarioOf(ctx.getLot() ?? ({ owner: '' } as LotState)).titolo;
-    note.busy = true; note.testo = null; render();
-    try {
-      const l = await ctx.api.diarioTitolo(id);
-      ctx.setLot(l);
-      const tid = id ?? cur ?? '';
-      if (g === gen) note.testo = { id: tid, text: id ? `Ora sotto il tuo nome c'è «${titoloDi(id) ?? ''}»` : 'Titolo tolto', bad: false };
-    } catch (e) { if (g === gen) note.testo = { id: id ?? cur ?? '', text: e instanceof ApiError ? e.message : 'Qualcosa non va, riprova', bad: true }; }
-    note.busy = false;
-    if (g === gen) render();
-  }
-  function fly(from: HTMLElement, premio: number): void {
-    const r = from.getBoundingClientRect(), rr = ctx.root.getBoundingClientRect(), p = { x: r.left - rr.left + r.width / 2, y: r.top - rr.top + r.height / 2 };
-    if (premio > 0) flyResources(ctx.root, p, ctx.hud.resAnchor?.('monete') ?? null, 'monete', premio, () => ctx.hud.bump?.('monete'));
-  }
-
   function apri(t?: DiarioTab): void {
     if (t && DIARIO_TABS.includes(t)) { tab = t; sel = null; }
     if (open) { render(); return; }
-    open = true; gen++; note.testo = null; note.busy = false;
+    open = true; gen++;
     if (!meId) chi = null;
     sheet.classList.add('on'); keys(true); render();
     sheet.scrollTop = 0;
@@ -396,6 +298,6 @@ export function createDiarioUi(ctx: DiarioCtx) {
 
   return {
     open: apri, close, isOpen: () => open,
-    state: () => ({ open, tab, chi, sel, busy: note.busy, nota: note.testo?.text ?? null, riscossi: note.riscossi, carica, traguardi: TRAGUARDI.length }),
+    state: () => ({ open, tab, chi, sel, carica }),
   };
 }

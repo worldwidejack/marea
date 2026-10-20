@@ -182,7 +182,7 @@ export function createEditor(o: EditorOpts): Editor {
       }
       if (lookNuovo) {
         await api.look(l);
-        o.me.look = { ...o.me.look, ...l }; // anche se nel frattempo il pannello è stato chiuso: il server l'ha salvato (titolo e barca restano)
+        o.me.look = { ...o.me.look, ...l }; // anche se nel frattempo il pannello è stato chiuso: il server l'ha salvato (la barca resta)
         o.onSaved?.(l);
       }
       if (barcaNuova && sez) { const b = await sez.save(); o.onBarca?.(b); } // (non `o.onBarca?.(await …)`: senza callback non salverebbe)
