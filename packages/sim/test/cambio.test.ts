@@ -47,7 +47,7 @@ test('il lotto vero di Mino: monete giuste, tutto quello che ha comprato è anco
   // chi ha comprato tiene tutto: cappelli e colori, la casa (mobili, finiture, ampliamenti), zaino e Forziere, diario
   assert.deepEqual(out.posseduti, v.posseduti);
   assert.deepEqual(out.casa, v.casa);
-  assert.deepEqual(out.decor, v.decor);
+  assert.deepEqual((out as { decor?: unknown }).decor, (v as { decor?: unknown }).decor, 'le decorazioni le sposta in casa decorInCasa, non il cambio');
   assert.deepEqual(out.forziere, v.forziere);
   assert.deepEqual(out.diario, v.diario);
   const { monete: _m, ...eroeSenza } = v.hero!;

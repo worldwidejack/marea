@@ -119,20 +119,16 @@ export default async function (ctx) {
 
     const L = cellsOf('L');
     await ctx.test('il giardino non c\'è più: costruire, raccogliere e spostare edifici rispondono 404; decorazioni a monete (sconosciuta 400, senza monete 409)', async () => {
-      for (const [p, b] of [['/api/lot/build', { building: 'tavolo', cell: L[0] ?? [2, 2] }], ['/api/lot/collect', { building: 'molo' }], ['/api/lot/upgrade', { building: 'molo' }], ['/api/lot/building/move', { id: 'molo', cell: [1, 1] }]]) {
+      for (const [p, b] of [['/api/lot/build', { building: 'tavolo', cell: L[0] ?? [2, 2] }], ['/api/lot/collect', { building: 'molo' }], ['/api/lot/upgrade', { building: 'molo' }], ['/api/lot/building/move', { id: 'molo', cell: [1, 1] }], ['/api/lot/decor/move', { id: 'barile-1', cell: [1, 1] }]]) {
         const r = await post(p, 'tokA', b);
         assert(r.status === 404, `${p}: ${r.status}`);
       }
       const l = await lot('tokA');
       assert(l.buildings.some((b) => b.building === 'forziere' && b.level === 1), 'baule di serie mancante: ' + JSON.stringify(l.buildings));
-      if (tpl) {
-        const r3 = await post('/api/lot/decor', 'tokA', { decor: 'barile', cell: L[0], rot: 0 });
-        assert(r3.status === 400 && /decorazione/.test(r3.body.error), 'decor su slot L: ' + r3.status);
-      }
       const caro = decor.find((d) => !d.mercante && d.monete > balance.monete.partenza);
-      const r5 = await post('/api/lot/decor', 'tokA', { decor: caro.id, cell: tpl ? cellsOf('g')[0] : [9, 9], rot: 1 });
+      const r5 = await post('/api/lot/decor', 'tokA', { decor: caro.id });
       assert(r5.status === 409 && r5.body.manca?.monete === caro.monete - balance.monete.partenza, 'decor senza monete: ' + JSON.stringify(r5.body));
-      const r6 = await post('/api/lot/decor', 'tokA', { decor: 'nave_spaziale', cell: [1, 1], rot: 0 });
+      const r6 = await post('/api/lot/decor', 'tokA', { decor: 'nave_spaziale' });
       assert(r6.status === 400, 'decorazione sconosciuta accettata');
     });
 

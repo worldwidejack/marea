@@ -2,17 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BALANCE, ISLANDS, building } from '@marea/content';
 import { parseIsland } from '../src/world/grid.ts';
-import { build, collect, newLot, placeDecor, upgrade } from '../src/economy/actions.ts';
+import { build, collect, newLot, upgrade } from '../src/economy/actions.ts';
 import { advance, bufferCap, storageCap } from '../src/economy/advance.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
-import { cellsOf } from '../src/economy/cells.ts';
 import { EconomyError, ZERO } from '../src/economy/types.ts';
 import type { LotState, Resources } from '../src/economy/types.ts';
 
 const H = 3_600_000;
 const m = parseIsland(ISLANDS[0]!);
 const cell = (i: number): [number, number] => [m.lots[i]!.cx, m.lots[i]!.cz];
-const grass = (i: number): [number, number] => cellsOf(m, 'g')[i]!;
 const lvl = (id: string, l: number) => building(id).levels[l - 1]!;
 const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 /** Un lotto ricco, col Faro al livello dato. */
@@ -92,14 +90,6 @@ test('errori in italiano: risorse (con manca), unico, cella, requisito, livello 
   assert.throws(() => upgrade(max, 'segheria-2', H), isErr('livello'));
 });
 
-test('decorazioni: costano monete, cella libera', () => {
-  let lot = richLot('a', 0);
-  lot = placeDecor(lot, 'lanterna', grass(0), 0, 0, 5, m);
-  assert.equal(lot.monete, 95);
-  assert.throws(() => placeDecor(lot, 'lanterna', grass(0), 0, 0, 5, m), isErr('cella'));
-  assert.throws(() => placeDecor({ ...lot, monete: 1 }, 'torii', grass(1), 0, 0, 5, m), (e: unknown) => isErr('risorse')(e) && (e as EconomyError).manca!.monete === 4);
-  assert.equal(checkInvariant([lot]), null);
-});
 
 test('Faro: produzione col boost solo dentro la finestra', () => {
   const hours = lvl('faro', 1).boostHours!;

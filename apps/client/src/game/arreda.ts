@@ -3,9 +3,9 @@
 // gira (quelli a terra). Quelli a parete vanno sul muro che guardi. Davanti a un mobile già posato A apre la sua scheda: SPOSTA, GIRA,
 // METTI VIA (torna nel magazzino); davanti al baule (il Forziere) anche APRI. Le regole sono quelle del server (economy/casa.ts).
 import * as THREE from 'three';
-import { BORGO, MOBILI } from '@marea/content';
+import { BORGO } from '@marea/content';
 import type { MobileDef } from '@marea/content';
-import { baule, casaDi, celleMobile, finitureScelte, inStanza, livelloCasa, possiedeFinitura, postoMobileError, stanzaAt, stanzaTerra } from '@marea/sim';
+import { baule, casaDi, celleMobile, decorDi, finitureScelte, inStanza, livelloCasa, mobile, possiedeFinitura, postoMobileError, stanzaAt, stanzaTerra } from '@marea/sim';
 import type { LotState, Muro, PlacedMobile, PostoMobile } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { LotView } from './lot.ts';
@@ -16,6 +16,7 @@ import type { Api } from '../net/api.ts';
 import { PAL, el } from '../ui/style.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { postoArredo } from './arredi_vista.ts';
+import type { Loader } from '../render/loader.ts';
 
 export type Arreda = { tick(a: boolean, b: boolean): boolean; update(): void; /** POSA o SPOSTA in corso: B serve (chiude). */ attivo(): boolean };
 type Modo = { kind: 'posa'; mobile: MobileDef; rot: number } | { kind: 'sposta'; id: string; mobile: MobileDef; rot: number } | { kind: 'baule' };
@@ -43,7 +44,7 @@ function cornice(w: number, d: number, s: number): THREE.BufferGeometry[] {
   return [[0, -hd, w, t], [0, hd, w, t], [-hw, 0, t, d], [hw, 0, t, d]].map(([x, z, a, b]) => { const g = new THREE.BoxGeometry(a!, s, b!); g.translate(x!, s / 2, z!); return g; });
 }
 
-export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud; api: Api | null; lotto: LotView | null; slot: number | null; stanza: Stanza; apriBaule?: () => void }): Arreda {
+export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud; api: Api | null; lotto: LotView | null; slot: number | null; stanza: Stanza; loader: Loader; apriBaule?: () => void }): Arreda {
   const w = o.world, arch = w.archipelago, T = arch.tile;
   const lotDef = o.slot !== null ? arch.lots.find((l) => l.slot === o.slot) ?? null : null;
   const ox = lotDef ? lotDef.origin[0] * T : 0, oz = lotDef ? lotDef.origin[1] * T : 0;
@@ -65,7 +66,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
   let modo: Modo | null = null, aperto = false, busy = false, aWas = false, bWas = false, vicino: Vicino | null = null, target: PostoMobile | null = null, ok = false, prevKey = '';
   const lot = (): LotState | null => o.lotto?.state() ?? null;
   const mia = () => !!o.api && !!o.lotto && o.slot !== null && o.stanza.dentro() === o.slot && w.mode === 'walk';
-  const def = (id: string) => MOBILI.find((m) => m.id === id) ?? null;
+  const def = (id: string) => mobile(id); // anche le decorazioni del Mercante («decor:<id>»)
   /** Il pavimento della stanza che contiene la cella (a quel livello di casa), o quello del piano terra. */
   const rettDi = (cell: readonly [number, number]) => { const l = livelloCasa(casaDi(lot())); return (stanzaAt(l, cell) ?? stanzaTerra(l)).pavimento; };
 
@@ -137,7 +138,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     testa.append(t, x);
     const corpo: Node[] = [testa, el('h3', '', 'Magazzino')];
     const ids = Object.keys(mag).filter((k) => mag[k]! > 0 && def(k));
-    if (!ids.length) corpo.push(el('div', 'vuoto', 'Vuoto: i mobili si comprano al negozio dei mobili del Borgo.'));
+    if (!ids.length) corpo.push(el('div', 'vuoto', 'Vuoto: i mobili si comprano al negozio dei mobili del Borgo, le decorazioni dal Mercante del Porto.'));
     for (const id of ids) { const r = riga(`${def(id)!.nome} ×${mag[id]}`, 'POSA', () => inizia({ kind: 'posa', mobile: def(id)!, rot: 0 })); r.dataset['mobile'] = id; corpo.push(r); }
     if (st === 'cantina') {
       corpo.push(el('div', 'vuoto', 'In cantina pavimento e pareti sono di pietra naturale.'));
@@ -252,7 +253,11 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
         prevKey = key; anteprima.clear();
         const geo = modo.kind === 'baule' ? mobiliMod.bauleGeo(baule(lot()!)?.level ?? 1) : mobiliMod.mobileGeo(modo.mobile.forma, modo.mobile.colori, modo.mobile);
         anteprima.add(new THREE.Mesh(geo, vc));
-        if (modo.kind !== 'baule') { // se il mobile ha il suo modello 3D, l'anteprima è quello
+        const dec = modo.kind !== 'baule' ? decorDi(modo.mobile.id) : null;
+        if (dec) { // una decorazione: l'anteprima è il suo modello, girato come quando è posata
+          const k = key;
+          void import('../render/decor.ts').then((dm) => dm.decorObject(dec.id, o.loader)).then(({ obj }) => { if (prevKey === k) { anteprima.clear(); const g = new THREE.Group(); g.rotation.y = Math.PI; g.add(obj); anteprima.add(g); } }).catch(() => {});
+        } else if (modo.kind !== 'baule') { // se il mobile ha il suo modello 3D, l'anteprima è quello
           const k = key, id = modo.mobile.id;
           void import('../render/mobili_modelli.ts').then(async (mm) => { const ps = await mm.modelloMobile(id); if (ps && prevKey === k) { anteprima.clear(); anteprima.add(mm.gruppoModello(ps)); } }).catch(() => {});
         }

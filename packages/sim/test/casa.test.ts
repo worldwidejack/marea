@@ -1,11 +1,11 @@
 // La casa arredabile (#265): mobili comprati nel magazzino, posati a terra o a parete nella stanza, spostati, girati, ritirati; pavimenti
-// e carte comprati una volta e scelti; il baule (Forziere) si sposta sul pavimento; le decorazioni del giardino in casa no. Libro mastro in pari.
+// e carte comprati una volta e scelti; il baule (Forziere) si sposta sul pavimento. Libro mastro in pari.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BORGO, MOBILI } from '@marea/content';
-import { build, newLot, placeDecor } from '../src/economy/actions.ts';
+import { build, newLot } from '../src/economy/actions.ts';
 import { compraFinitura, compraMobile, conBaule, finitureScelte, posaMobile, possiedeFinitura, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '../src/economy/casa.ts';
-import { decorCellError, fitToTemplate, lotTemplate } from '../src/economy/cells.ts';
+import { fitToTemplate, lotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { checkMonete } from '../src/economy/monete.ts';
@@ -140,16 +140,6 @@ test('baule: il Forziere costruito in casa si sposta sul pavimento e si gira; re
   assert.throws(() => spostaBaule(lot, [ST.corridoio[0], Z1 - 1], 0), isErr('posizione'));
   lot = ruotaBaule(lot, 0);
   assert.equal(lot.casa!.bauleRot, 1);
-});
-
-test('decorazioni del giardino: in casa no (stanza e corridoio), e quelle già finite in casa tornano in giardino', () => {
-  const lot = ricco(100);
-  assert.equal(decorCellError(lot, [X0 + 1, Z0 + 1], T)?.code, 'posizione');
-  assert.equal(decorCellError(lot, [ST.corridoio[0], ST.corridoio[1]], T)?.code, 'posizione');
-  assert.throws(() => placeDecor(lot, 'barile', [X0 + 1, Z0 + 1], 0, 0, 5, T), isErr('posizione'));
-  const vecchio: LotState = { ...lot, decor: [{ id: 'barile-1', decor: 'barile', cell: [X0 + 1, Z0 + 1] }] };
-  const d = fitToTemplate(vecchio, T).decor[0]!;
-  assert.ok(d.cell[1] < Z0 - 1, 'tornata in giardino: ' + d.cell.join(','));
 });
 
 test('baule di serie: chi non l’ha costruito lo trova in casa, livello 1, in una cella libera della stanza; chi ce l’ha resta com’è', () => {

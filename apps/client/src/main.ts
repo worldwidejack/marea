@@ -133,7 +133,7 @@ async function boot(): Promise<void> {
   let negozio: Negozio | null = null, botteghe: Botteghe | null = null, arreda: Arreda | null = null;
   void import('./game/negozio.ts').then((m) => { negozio = m.createNegozio({ world, renderer, loader, root, hud, velo, api: net, ...lotto }); }).catch(() => { /* senza negozio si gioca lo stesso */ });
   void import('./game/botteghe.ts').then((m) => { botteghe = m.createBotteghe({ world, loader, api: net, me, hud, root, camera: renderer.camera, canvas, ...lotto }); }).catch(() => { /* senza botteghe si gioca lo stesso */ });
-  if (world.slot !== null) void import('./game/arreda.ts').then((m) => { arreda = m.createArreda({ world, root, hud, api: net, lotto: mioLotto, slot: world.slot, stanza, apriBaule: () => eroe?.openBuilding('forziere') }); }).catch(() => { /* senza ARREDA si gioca lo stesso */ });
+  if (world.slot !== null) void import('./game/arreda.ts').then((m) => { arreda = m.createArreda({ world, root, hud, api: net, lotto: mioLotto, slot: world.slot, stanza, loader, apriBaule: () => eroe?.openBuilding('forziere') }); }).catch(() => { /* senza ARREDA si gioca lo stesso */ });
   // Diario del capitano: bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette col nome sopra la testa degli amici
   const diario = createDiario({ root, hud, api: net, me, world, owners, ...lotto, hidden: () => reg.aperto(['gioco']),
     pausa: () => reg.aperto(['pannello', 'personale'], 'diario'), onOpen: () => reg.chiudi(['diario']) });

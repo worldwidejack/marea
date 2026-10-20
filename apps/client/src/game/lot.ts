@@ -42,7 +42,7 @@ export function createLotView(o: LotViewOptions): LotView {
   const gy = o.groundY ?? (() => 0.4);
   const group = new THREE.Group(); group.name = ro ? `lot_${o.owner ?? '?'}` : 'lot_mio'; o.scene.add(group);
   const world = (c: readonly [number, number]) => { const x = (ox + c[0] + 0.5) * T, z = (oz + c[1] + 0.5) * T; return { x, z, y: gy(x, z) }; };
-  const arredi = createArrediVista({ group, origin: o.origin, tile: T, groundY: gy });
+  const arredi = createArrediVista({ group, origin: o.origin, tile: T, groundY: gy, loader: o.loader });
   let lot: LotState | null = o.initial ?? null;
   let poll = 0, inflight: Promise<void> | null = null, lastError: string | null = null, refreshes = 0, disposed = false;
 
