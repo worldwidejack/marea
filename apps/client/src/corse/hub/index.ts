@@ -24,6 +24,7 @@ import { veicoloMesh as meshVeicolo } from '../veicoli3d.ts';
 import { caricaKit, kitPronto, loaderCorse, postoAvatar } from '../veicoli_kit.ts';
 import { stileCorse } from '../stile.ts';
 import { creaHub } from './mappa.ts';
+import { creaPiantina } from '../piantina.ts';
 import { VISTA } from './mondo_cielo.ts';
 import type { IdPorta, MondoHub, PortaHub } from './mappa.ts';
 import { guida, metti, nuovaAuto, respingi, yawDi } from './guida.ts';
@@ -353,41 +354,27 @@ const r1 = (x: number) => Math.round(x * 10) / 10, r2 = (x: number) => Math.roun
 
 /** La minimappa dell'hub (in alto a destra): la costa, le strade, le porte (gialle aperte, grigie chiuse), il garage, il molo e tu. */
 function creaMappa(root: HTMLElement, m: MondoHub): { el: HTMLCanvasElement; disegna(a: AutoHub): void } {
-  const W = 120, H = 100, el = document.createElement('canvas');
-  el.width = W; el.height = H; el.id = 'mzHubMappa'; el.className = 'mz-hub-mappa';
-  root.appendChild(el);
-  const g = el.getContext('2d');
-  const pi = m.pianta, dx = Math.max(1, pi.max[0] - pi.min[0]), dz = Math.max(1, pi.max[1] - pi.min[1]);
-  const k = Math.min((W - 8) / dx, (H - 8) / dz), ox = (W - dx * k) / 2, oz = (H - dz * k) / 2;
-  const mx = (x: number) => ox + (x - pi.min[0]) * k, mz = (z: number) => oz + (z - pi.min[1]) * k;
-  let fondo: ImageData | null = null;
-  const quadro = (x: number, z: number, r: number, c: string, bordo = P.neroCaldo) => {
-    if (!g) return;
-    g.fillStyle = bordo; g.fillRect(Math.round(mx(x)) - r - 1, Math.round(mz(z)) - r - 1, r * 2 + 2, r * 2 + 2);
-    g.fillStyle = c; g.fillRect(Math.round(mx(x)) - r, Math.round(mz(z)) - r, r * 2, r * 2);
-  };
-  function sfondo() {
-    if (!g) return;
-    g.clearRect(0, 0, W, H);
-    if (pi.costa.length > 2) {
+  const pi = creaPiantina(root, { W: 120, H: 100, margine: 8, id: 'mzHubMappa', cls: 'mz-hub-mappa' }), p = m.pianta, { mx, mz } = pi;
+  pi.inquadra(p.min[0], p.min[1], p.max[0], p.max[1]);
+  const sfondo = () => pi.sfondo((g) => {
+    if (p.costa.length > 2) {
       g.fillStyle = P.erbaScura; g.beginPath();
-      pi.costa.forEach(([x, z], i) => (i ? g.lineTo(mx(x), mz(z)) : g.moveTo(mx(x), mz(z))));
+      p.costa.forEach(([x, z], i) => (i ? g.lineTo(mx(x), mz(z)) : g.moveTo(mx(x), mz(z))));
       g.closePath(); g.fill();
     }
     g.strokeStyle = P.pietraChiara; g.lineWidth = 2; g.lineCap = 'round'; g.lineJoin = 'round';
-    for (const s of pi.strade) { g.beginPath(); s.forEach(([x, z], i) => (i ? g.lineTo(mx(x), mz(z)) : g.moveTo(mx(x), mz(z)))); g.stroke(); }
-    for (const p of m.porte) quadro(p.x, p.z, 3, p.aperta ? P.giallo : P.pietraScura);
-    quadro(m.garage.x, m.garage.z, 2, P.arancio);
-    quadro(m.molo.x, m.molo.z, 2, P.legnoChiaro);
-    fondo = g.getImageData(0, 0, W, H);
-  }
+    for (const s of p.strade) { g.beginPath(); s.forEach(([x, z], i) => (i ? g.lineTo(mx(x), mz(z)) : g.moveTo(mx(x), mz(z)))); g.stroke(); }
+    for (const q of m.porte) pi.quadro(q.x, q.z, 3, q.aperta ? P.giallo : P.pietraScura);
+    pi.quadro(m.garage.x, m.garage.z, 2, P.arancio);
+    pi.quadro(m.molo.x, m.molo.z, 2, P.legnoChiaro);
+  });
   return {
-    el,
+    el: pi.el,
     disegna(a) {
+      const g = pi.g;
       if (!g) return;
-      if (!fondo) sfondo();
-      g.putImageData(fondo!, 0, 0);
-      quadro(a.x, a.z, 3, P.rosso);
+      if (!pi.rimetti()) { sfondo(); pi.rimetti(); }
+      pi.quadro(a.x, a.z, 3, P.rosso);
       // il muso: due pixel davanti
       g.fillStyle = P.pietraChiara; g.fillRect(Math.round(mx(a.x + a.hx * 7)) - 1, Math.round(mz(a.z + a.hz * 7)) - 1, 2, 2);
     },
