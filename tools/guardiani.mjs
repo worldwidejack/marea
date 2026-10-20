@@ -166,24 +166,43 @@ function banchi(errs) {
   for (const p of PAGINE) if (p !== 'index.html' && !registrate.has(p)) errs.push(`apps/client/${p}: banco di prova non registrato in ${f} (pagina, a cosa serve, di chi)`);
 }
 function mappa(errs) {
+  if (!fs.existsSync(path.join(ROOT, 'docs/MAPPA.md'))) { errs.push('docs/MAPPA.md: manca la mappa del codice'); return; }
   const testo = leggi('docs/MAPPA.md');
   const cartelle = ['apps/client/src', 'apps/server/src', 'apps/server', 'packages/content/src', 'packages/protocol/src', 'packages/sim/src', 'tests', 'tools']
     .flatMap((d) => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).filter((e) => e.isDirectory() && !['node_modules', 'dist', 'out', '.wrangler', 'test'].includes(e.name) || (e.isDirectory() && e.name === 'test' && d === 'apps/client/src')).map((e) => `${d}/${e.name}`));
   for (const c of cartelle) if (!testo.includes(path.basename(c) + '/') && !testo.includes(path.basename(c) + '*')) errs.push(`${c}/: cartella senza riga in docs/MAPPA.md (aggiungila nella stessa PR)`);
 }
+// cosa non va nei commenti: numeri di PR o issue, date, «deciso da Jack». Una riga ritoccata che li aveva già non conta: conta solo quello che è nuovo.
+const SPIE = [
+  [/(?:^|[^&\w])(#\d{2,4})\b/g, 'un numero di PR o issue', 'il perché va nella descrizione della PR'],
+  [/\b(\d{1,2}\s+(?:gen|feb|mar|apr|mag|giu|lug|ago|set|ott|nov|dic)[a-z]*)\b/gi, 'una data', 'la storia sta in git e nelle PR'],
+  [/\b(decis[oa]\s+(?:da|con)\s+jack|jack\s+ha\s+(?:deciso|scelto))/gi, '«deciso da Jack»', 'le decisioni vanno nella PR («Decisioni prese»)'],
+];
+const commentoDi = (riga) => riga.match(/(?:\/\/|\/\*|^[+-]\s*\*)(.*)$/)?.[1] ?? '';
 function commentiNuovi(errs) {
   const base = spawnSync('git', ['merge-base', 'HEAD', 'origin/main'], { cwd: ROOT, encoding: 'utf8' });
   if (base.status !== 0) return; // niente storia (copia senza git o checkout corto): si salta
   const d = spawnSync('git', ['diff', '-U0', '--no-color', base.stdout.trim(), '--', 'apps', 'packages', 'tools', 'tests'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const perFile = new Map(); // file → spie nelle righe tolte, e quelle nelle righe aggiunte
   let file = '';
   for (const riga of (d.stdout || '').split('\n')) {
+    if (riga.startsWith('--- ')) continue;
     if (riga.startsWith('+++ ')) { file = riga.slice(6); continue; }
-    if (!riga.startsWith('+') || !/\.(ts|mts|mjs|js)$/.test(file) || file === 'tools/guardiani.mjs') continue; // lui le regole le cita
-    const commento = riga.match(/(?:\/\/|\/\*|^\+\s*\*)(.*)$/)?.[1];
-    if (!commento) continue;
-    if (/(^|[^&\w])#\d{2,4}\b/.test(commento)) errs.push(`${file}: commento nuovo con un numero di PR o issue («${commento.trim().slice(0, 60)}»): il perché va nella descrizione della PR`);
-    else if (/\b\d{1,2}\s+(gen|feb|mar|apr|mag|giu|lug|ago|set|ott|nov|dic)\w*\b|\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b(?!\s*[*+\-/])/i.test(commento) && !/https?:/.test(commento)) errs.push(`${file}: commento nuovo con una data («${commento.trim().slice(0, 60)}»): la storia sta in git e nelle PR`);
-    else if (/decis[oa]\s+(da|con)\s+jack|jack\s+ha\s+(deciso|scelto)/i.test(commento)) errs.push(`${file}: commento nuovo con «deciso da Jack»: le decisioni vanno nella PR («Decisioni prese»)`);
+    if (!/^[+-]/.test(riga) || !/\.(ts|mts|mjs|js)$/.test(file) || file === 'tools/guardiani.mjs') continue; // lui le regole le cita
+    const f = perFile.get(file) ?? { via: new Set(), nuove: [] };
+    perFile.set(file, f);
+    const commento = commentoDi(riga);
+    SPIE.forEach(([re], k) => {
+      for (const m of commento.matchAll(re)) {
+        const spia = m[1].toLowerCase();
+        if (riga[0] === '-') f.via.add(spia); else f.nuove.push({ spia, k, commento });
+      }
+    });
+  }
+  for (const [file, f] of perFile) for (const { spia, k, commento } of f.nuove) {
+    if (f.via.has(spia)) continue;
+    const [, cosa, dove] = SPIE[k];
+    errs.push(`${file}: commento nuovo con ${cosa} («${commento.trim().slice(0, 60)}»): ${dove}`);
   }
 }
 
