@@ -1,24 +1,20 @@
 // «Mentre eri via» e libro degli ospiti (#86, GDD §2). Puro: l'ora la passa il chiamante (il DO del lotto, con l'ora del server).
 // - `rientra`: all'ingresso il server confronta l'ultima volta che il proprietario c'era (`visto`) con adesso; oltre RIENTRO.sogliaMinuti
-//   risponde con il riepilogo (depositi pieni, cantiere finito, chi ha firmato il libro, missioni nuove) e segna `visto = adesso`.
+//   risponde con il riepilogo (chi ha firmato il libro, missioni nuove) e segna `visto = adesso`.
 // - `segnaVisto`: il «ci sono» del client mentre gioca (così l'assenza si misura da quando è uscito).
-// - `firmaLibro`: un amico firma il libro dell'isola (nome + emote), una volta al giorno UTC per isola; il libro tiene le ultime N firme.
-import { AVATAR, BUILDINGS, RIENTRO } from '@marea/content';
+// - `firmaLibro`: un amico firma il libro della casa (nome + emote), una volta al giorno UTC per casa; il libro tiene le ultime N firme.
+import { AVATAR, RIENTRO } from '@marea/content';
 import { advance } from './advance.ts';
 import { giornoDi } from './missioni.ts';
 import { MISSIONI } from '@marea/content/porto.ts';
-import { EconomyError, ZERO } from './types.ts';
-import type { CantiereFinito, Firma, LotState, Resources } from './types.ts';
+import { EconomyError } from './types.ts';
+import type { Firma, LotState } from './types.ts';
 
 export type { Firma };
 /** Riepilogo dell'assenza: tutto dal punto di vista del server, all'ora `nowMs`. */
 export type Riepilogo = {
   /** Da quanto mancavi (ms). */
   assenteMs: number;
-  /** Quanto c'è nei depositi degli edifici adesso (unità intere): lo prende RACCOGLI TUTTO, fino al tetto del Magazzino. */
-  depositi: Resources;
-  /** Cantiere finito mentre eri via (null = nessuno). */
-  cantiere: CantiereFinito | null;
   /** Firme arrivate mentre eri via, le più recenti prima (al massimo RIENTRO.firme.mostra), e quante in tutto. */
   ospiti: Firma[];
   ospitiTot: number;
@@ -27,27 +23,13 @@ export type Riepilogo = {
 };
 
 const sogliaMs = (): number => RIENTRO.sogliaMinuti * 60_000;
-const PRODUCE = new Map(BUILDINGS.map((b) => [b.id, b.produces] as const));
-
-/** Depositi degli edifici produttivi (unità intere), sullo stato già avanzato. */
-export function depositi(lot: LotState): Resources {
-  const out: Resources = { ...ZERO };
-  for (const b of lot.buildings) {
-    const res = PRODUCE.get(b.building);
-    if (res && b.level >= 1) out[res] += Math.floor(b.buffer);
-  }
-  return out;
-}
 
 /** Riepilogo dell'assenza da `sinceMs` a `nowMs` (il lotto viene avanzato a `nowMs`). */
 export function riepilogoAssenza(lot0: LotState, sinceMs: number, nowMs: number): Riepilogo {
   const lot = advance(lot0, nowMs);
   const nuove = (lot.ospiti ?? []).filter((f) => f.quando > sinceMs);
-  const fin = lot.finito && lot.finito.endsMs > sinceMs && lot.finito.endsMs <= nowMs ? { ...lot.finito } : null;
   return {
     assenteMs: Math.max(0, nowMs - sinceMs),
-    depositi: depositi(lot),
-    cantiere: fin,
     ospiti: nuove.slice(-RIENTRO.firme.mostra).reverse(),
     ospitiTot: nuove.length,
     missioniNuove: giornoDi(nowMs) > giornoDi(sinceMs) ? MISSIONI.alGiorno : 0,

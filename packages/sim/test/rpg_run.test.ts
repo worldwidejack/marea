@@ -15,8 +15,9 @@ import { isErr } from './economia_util.ts';
 const T0 = 1_800_000_000_000;
 const DUNGEON = DUNGEONS[0]?.id ?? 'grotta';
 function lot(hero?: HeroState, forziere = 0): LotState {
-  const l = newLot('jack', T0, null);
-  const out: LotState = forziere ? { ...l, buildings: [...l.buildings, { id: 'forziere-2', building: 'forziere', level: forziere, cell: [1, 0], buffer: 0, lastMs: T0 }] } : l;
+  const l = newLot('jack', T0);
+  const { baule, ...senza } = l.casa ?? {};
+  const out: LotState = { ...l, casa: forziere && baule ? { ...senza, baule: { ...baule, livello: forziere } } : senza }; // 0 = senza baule
   return hero ? { ...out, hero } : out;
 }
 function result(o: Partial<RunResult>): RunResult {

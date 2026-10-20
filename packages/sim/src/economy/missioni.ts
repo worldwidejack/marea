@@ -76,11 +76,6 @@ export function eventiPartita(medal: 'oro' | 'argento' | 'bronzo' | null): Event
   return { partite: 1, medaglia: medal ? 1 : 0, oro: medal === 'oro' ? 1 : 0 };
 }
 
-/** Eventi di una raccolta: quanto Legno e Pietra sono entrati davvero nel Magazzino (dal libro mastro). */
-export function eventiRaccolta(prima: LotState, dopo: LotState): EventiMissione {
-  return { legno: dopo.ledger.generated.legno - prima.ledger.generated.legno, pietra: dopo.ledger.generated.pietra - prima.ledger.generated.pietra };
-}
-
 /** RISCUOTI: missione compiuta e non ancora riscossa → monete nel lotto (e nel libro mastro). */
 export function riscuotiMissione(lot0: LotState, i: number, nowMs: number): { lot: LotState; premio: number; missione: MissioneStato } {
   const { list } = missioniOf(lot0, nowMs);

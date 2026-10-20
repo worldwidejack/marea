@@ -400,7 +400,6 @@
   "apps/client/src/ui/diario_ui.ts": 402,
   "apps/client/src/ui/editor.ts": 422,
   "apps/client/src/ui/pinguini.ts": 404,
-  "apps/server/src/do/Lot.ts": 439,
   "apps/server/src/worker.ts": 555,
   "packages/sim/src/dungeon/enemies.ts": 527,
   "packages/sim/src/templari/eroe.ts": 440

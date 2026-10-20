@@ -1,23 +1,20 @@
 // La casa arredabile (#265): mobili comprati nel magazzino, posati a terra o a parete nella stanza, spostati, girati, ritirati; pavimenti
-// e carte comprati una volta e scelti; il baule (Forziere) si sposta sul pavimento. Libro mastro in pari.
+// e carte comprati una volta e scelti; il baule di serie (il Forziere) si sposta sul pavimento. Libro mastro in pari.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BORGO, MOBILI } from '@marea/content';
-import { build, newLot } from '../src/economy/actions.ts';
+import { newLot } from '../src/economy/actions.ts';
 import { compraFinitura, compraMobile, conBaule, finitureScelte, posaMobile, possiedeFinitura, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '../src/economy/casa.ts';
-import { fitToTemplate, lotTemplate } from '../src/economy/cells.ts';
-import { checkInvariant } from '../src/economy/ledger.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { checkMonete } from '../src/economy/monete.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
 import { isErr } from './economia_util.ts';
 
-const T = lotTemplate()!;
 const ST = BORGO.stanza, [X0, Z0, X1, Z1] = ST.pavimento;
-/** Un lotto con `monete` monete (e le risorse di prima per costruire il baule, codice spento). */
+/** Un lotto con `monete` monete, senza baule (la stanza tutta libera: il baule lo mettono i test che ne parlano). */
 function ricco(monete: number): LotState {
-  const l = newLot('a', 0, T);
-  return conMonete(senzaMonete({ ...l, resources: { ...l.resources, legno: 5000, pietra: 5000 }, ledger: { ...l.ledger, generated: { ...l.ledger.generated, legno: l.ledger.generated.legno + 5000 - l.resources.legno, pietra: l.ledger.generated.pietra + 5000 - l.resources.pietra } } }), monete);
+  const l = newLot('a', 0), { baule: _b, ...casa } = l.casa ?? {};
+  return conMonete(senzaMonete({ ...l, casa }), monete);
 }
 const terra = MOBILI.find((m) => m.posto === 'terra')!, parete = MOBILI.find((m) => m.posto === 'parete')!;
 
@@ -37,7 +34,6 @@ test('compra: monete spese, il mobile va nel magazzino; senza monete errore e ni
   assert.deepEqual(lot.casa?.magazzino, { [terra.id]: 1, [parete.id]: 1 });
   assert.throws(() => compraMobile(lot, terra.id, 1000), isErr('risorse'));
   assert.throws(() => compraMobile(lot, 'inesistente', 1000), isErr('sconosciuto'));
-  assert.equal(checkInvariant([lot]), null);
   assert.equal(checkMonete([lot]), null);
 });
 
@@ -45,7 +41,6 @@ test('posa a terra: solo sul pavimento libero, non sui passaggi; gira; sposta; r
   let lot = compraMobile(compraMobile(ricco(500), terra.id, 0), terra.id, 0);
   assert.throws(() => posaMobile(lot, terra.id, { cell: [X0 - 1, Z0] }, 0, 0), isErr('posizione'));
   assert.throws(() => posaMobile(lot, terra.id, { cell: [ST.corridoio[0], Z1 - 1] }, 0, 0), isErr('posizione'), 'sbocco del corridoio');
-  assert.throws(() => posaMobile(lot, terra.id, { cell: [ST.retro[0], ST.retro[1]] }, 0, 0), isErr('posizione'), 'davanti alla porta in fondo');
   assert.throws(() => posaMobile(lot, terra.id, { cell: [X0, Z0], muro: 'n' }, 0, 0), isErr('posizione'), 'a terra non va sul muro');
   lot = posaMobile(lot, terra.id, { cell: [X0, Z0] }, 1, 0);
   const a = lot.casa!.arredi![0]!;
@@ -64,13 +59,11 @@ test('posa a terra: solo sul pavimento libero, non sui passaggi; gira; sposta; r
   assert.equal(lot.casa!.magazzino![terra.id], 1);
   assert.equal(lot.casa!.arredi!.length, 1);
   assert.notEqual(posaMobile(lot, terra.id, { cell: [X0 + 3, Z0 + 2] }, 0, 0).casa!.arredi![1]!.id, lot.casa!.arredi![0]!.id, 'id nuovo');
-  assert.equal(checkInvariant([lot]), null);
 });
 
-test('posa a parete: sul bordo del muro giusto, non sulla porta in fondo, uno per cella di muro; non si gira', () => {
+test('posa a parete: sul bordo del muro giusto, uno per cella di muro; non si gira', () => {
   let lot = compraMobile(compraMobile(ricco(500), parete.id, 0), parete.id, 0);
   assert.throws(() => posaMobile(lot, parete.id, { cell: [X0 + 1, Z0 + 1], muro: 'n' }, 0, 0), isErr('posizione'), 'non sul bordo');
-  assert.throws(() => posaMobile(lot, parete.id, { cell: [ST.retro[0], Z0], muro: 'n' }, 0, 0), isErr('posizione'), 'sulla porta');
   assert.throws(() => posaMobile(lot, parete.id, { cell: [X0, Z0] }, 0, 0), isErr('posizione'), 'senza muro');
   lot = posaMobile(lot, parete.id, { cell: [X0, Z0 + 2], muro: 'o' }, 0, 0);
   assert.throws(() => posaMobile(lot, parete.id, { cell: [X0, Z0 + 2], muro: 'o' }, 0, 0), isErr('cella'));
@@ -101,7 +94,6 @@ test('finiture: compri una volta (si mette subito), scegli solo le tue; quella d
   lot = scegliFinitura(lot, 'pavimento', p.id, 0);
   assert.equal(finitureScelte(lot).pavimento, p.id);
   assert.throws(() => scegliFinitura(lot, 'carta', 'inesistente', 0), isErr('sconosciuto'));
-  assert.equal(checkInvariant([lot]), null);
 });
 
 test('finiture: indipendenti tra piano terra e primo piano', () => {
@@ -127,16 +119,14 @@ test('finiture: indipendenti tra piano terra e primo piano', () => {
   // Le scelte rimangono indipendenti
   assert.deepEqual(finitureScelte(lot, 'terra'), { pavimento: p2.id, carta: k2.id });
   assert.deepEqual(finitureScelte(lot, 'piano'), { pavimento: p1.id, carta: k1.id });
-  assert.equal(checkInvariant([lot]), null);
 });
 
-test('baule: il Forziere costruito in casa si sposta sul pavimento e si gira; resta lì ricaricando', () => {
+test('baule: si sposta sul pavimento e si gira', () => {
   let lot = ricco(0);
   assert.throws(() => spostaBaule(lot, [X0 + 3, Z0 + 3], 0), isErr('sconosciuto'));
-  lot = build(lot, 'forziere', [X0 + 1, Z0 + 1], 0);
+  lot = conBaule(lot);
   lot = spostaBaule(lot, [X0 + 3, Z0 + 3], 0);
-  assert.deepEqual(lot.buildings.find((b) => b.building === 'forziere')!.cell, [X0 + 3, Z0 + 3]);
-  assert.deepEqual(fitToTemplate(lot, T).buildings, lot.buildings, 'il baule sul pavimento non viene rimesso su una L');
+  assert.deepEqual(lot.casa?.baule, { livello: 1, cell: [X0 + 3, Z0 + 3] });
   assert.throws(() => spostaBaule(lot, [ST.corridoio[0], Z1 - 1], 0), isErr('posizione'));
   lot = ruotaBaule(lot, 0);
   assert.equal(lot.casa!.bauleRot, 1);
@@ -146,11 +136,12 @@ test('baule di serie: chi non l’ha costruito lo trova in casa, livello 1, in u
   let lot = ricco(5000);
   const m = MOBILI.find((x) => x.posto === 'terra' && !x.celle)!;
   lot = posaMobile(compraMobile(lot, m.id, 0), m.id, { cell: [X0, Z0] }, 0, 0); // la prima cella è presa da un mobile
-  const con = conBaule(lot), b = con.buildings.find((x) => x.building === 'forziere')!;
-  assert.ok(b && b.level === 1, 'baule di serie: ' + JSON.stringify(con.buildings));
+  const con = conBaule(lot), b = con.casa!.baule!;
+  assert.ok(b && b.livello === 1, 'baule di serie: ' + JSON.stringify(con.casa));
   assert.ok(b.cell[0] >= X0 && b.cell[0] < X1 && b.cell[1] >= Z0 && b.cell[1] < Z1 && !(b.cell[0] === X0 && b.cell[1] === Z0), 'cella: ' + b.cell.join(','));
   assert.equal(conBaule(con), con, 'una seconda volta non ne aggiunge un altro');
-  const costruito = build(ricco(500), 'forziere', [X0 + 2, Z0 + 2], 0);
-  assert.equal(conBaule(costruito), costruito, 'chi l’aveva costruito tiene il suo');
+  const suo = { ...ricco(500), casa: { baule: { livello: 3, cell: [X0 + 2, Z0 + 2] as [number, number] } } };
+  assert.equal(conBaule(suo), suo, 'chi ce l’ha tiene il suo');
+  assert.ok(newLot('b', 0).casa?.baule, 'un lotto nuovo ce l’ha già');
   assert.equal(checkMonete([con]), null);
 });

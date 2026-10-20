@@ -267,7 +267,7 @@ test('fucina: A sulla chiusa raffredda la Colata Maestra (per tutti, anche insie
 });
 
 test('fucina: porta sigillata — senza l’Archivio completato non si entra, dopo sì', () => {
-  const lot = newLot('p', 0, null);
+  const lot = newLot('p', 0);
   const h = heroOf(lot);
   assert.throws(() => startDungeon({ ...lot, hero: { ...h, completati: ['drenaggio'] } }, 'fucina', 1, 1000), /sigillata/);
   const aperto = startDungeon({ ...lot, hero: { ...h, completati: ['drenaggio', 'archivio'] } }, 'fucina', 1, 1000);

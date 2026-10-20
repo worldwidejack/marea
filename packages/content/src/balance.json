@@ -1,10 +1,17 @@
 {
-  "monete": { "partenza": 20, "cambio": { "legno": 0.25, "pietra": 0.25, "perle": 3 } },
-  "partenza": { "legno": 400, "pietra": 160, "perle": 0 },
-  "capBase": 800,
-  "bufferOre": 10,
-  "bufferLentoOre": 110,
-  "bufferLentoQuota": 0.25,
+  "monete": {
+    "partenza": 20,
+    "cambio": { "legno": 0.25, "pietra": 0.25, "perle": 3 },
+    "edifici": {
+      "segheria": { "produce": "legno", "livelli": [{ "legno": 30 }, { "legno": 120, "pietra": 60 }, { "legno": 400, "pietra": 250 }] },
+      "cava": { "produce": "pietra", "livelli": [{ "legno": 50 }, { "legno": 150, "pietra": 80 }, { "legno": 450, "pietra": 300 }] },
+      "magazzino": { "livelli": [{ "legno": 40, "pietra": 20 }, { "legno": 200, "pietra": 120 }, { "legno": 600, "pietra": 400 }] },
+      "casa": { "livelli": [{ "legno": 60, "pietra": 30 }, { "legno": 250, "pietra": 150 }, { "legno": 700, "pietra": 500 }] },
+      "faro": { "livelli": [{ "legno": 120, "pietra": 120 }, { "legno": 400, "pietra": 400 }] },
+      "tavolo": { "livelli": [{ "legno": 40, "pietra": 10 }, { "legno": 180, "pietra": 100 }, { "legno": 500, "pietra": 350 }] },
+      "serra": { "livelli": [{ "legno": 70, "pietra": 20 }, { "legno": 260, "pietra": 120 }, { "legno": 650, "pietra": 400 }] }
+    }
+  },
   "solo": {
     "premi": {
       "oro": 30,

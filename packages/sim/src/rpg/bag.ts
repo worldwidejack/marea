@@ -24,11 +24,8 @@ export function bagWeight(bag: Bag): number {
   return r2(w);
 }
 
-/** Livello del Forziere costruito (0 se non c'è o è in costruzione). */
-export function buildingLevel(lot: LotState, id: string): number {
-  return lot.buildings.find((b) => b.building === id)?.level ?? 0;
-}
-export function chestCap(lot: LotState): number { return forziereCap(buildingLevel(lot, 'forziere')); }
+/** Quanto ci sta nel baule di casa (il Forziere; senza baule 0). */
+export function chestCap(lot: LotState): number { return forziereCap(lot.casa?.baule?.livello ?? 0); }
 
 /** Quante unità di `id` stanno in `room` kg (peso 0 = tutte). */
 function fitting(id: string, n: number, room: number): number {

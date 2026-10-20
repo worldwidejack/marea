@@ -20,13 +20,13 @@ import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, DECOR } from '@marea/content';
 import { buyHat, newLot } from '@marea/sim/economy/actions.ts';
 import { compraColoreDelGiorno, miglioraBottega } from '@marea/sim/economy/botteghe.ts';
-import { ampliaCasa, compraFinituraDelGiorno, conBaule, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
+import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
-import { convertiMonete } from '@marea/sim/economy/cambio.ts';
-import { compraDecor, decorInCasa } from '@marea/sim/economy/decorazioni.ts';
+import { aggiornaSalvataggio } from '@marea/sim/economy/cambio.ts';
+import type { LottoDiPrima } from '@marea/sim/economy/cambio.ts';
+import { compraDecor } from '@marea/sim/economy/decorazioni.ts';
 import { guadagna } from '@marea/sim/economy/monete.ts';
-import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
 import { finishSolo, soloOf, startSolo } from '@marea/sim/economy/rewards.ts';
 import { EconomyError } from '@marea/sim/economy/types.ts';
 import { eventiPartita, riscuotiMissione, tracciaMissioni } from '@marea/sim/economy/missioni.ts';
@@ -73,15 +73,14 @@ export class Lot extends DurableObject<Env> {
   private load(owner: string, now: number): LotState {
     const row = this.ctx.storage.sql.exec<{ json: string }>('SELECT json FROM stato WHERE k = 1').toArray()[0];
     if (!row) {
-      const lot = conBaule(newLot(owner, now));
+      const lot = newLot(owner, now);
       this.save(lot);
       return lot;
     }
-    const lot = JSON.parse(row.json) as LotState;
-    // salvataggi di prima delle monete (#414): risorse, edifici spenti e monete del personaggio diventano monete, una volta sola;
-    // lotti nati prima del template `lotto` (celle arbitrarie): Molo sul molo, edifici sugli slot L; poi resta com'è
-    // il baule di serie a chi non l'aveva, le decorazioni del giardino nel magazzino di casa; e personaggi con abilità o perk che non esistono più (Navigazione): via, i perk tornano punti
-    const fit = conBaule(fitHero(fitToTemplate(decorInCasa(convertiMonete(lot)), defaultTemplate())));
+    const lot = JSON.parse(row.json) as LotState | LottoDiPrima;
+    // salvataggi di prima: monete, niente giardino, decorazioni in casa, baule di serie (economy/cambio.ts), una volta sola;
+    // e personaggi con abilità o perk che non esistono più (Navigazione): via, i perk tornano punti
+    const fit = fitHero(aggiornaSalvataggio(lot));
     // spedizione abbandonata da un pezzo con un altare toccato: si chiude tenendo il bottino dell'altare
     const chiusa = chiudiScaduta(fit, now);
     if (chiusa) { this.save(chiusa.lot); return chiusa.lot; }

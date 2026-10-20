@@ -5,9 +5,7 @@ import assert from 'node:assert/strict';
 import { BORGO, MOBILI } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
 import { ampliaCasa, ampliatoOggi, compraMobile, livelloLotto, posaMobile, postoMobileError } from '../src/economy/casa.ts';
-import { buildCellError, fitToTemplate, inStanza, lotTemplate } from '../src/economy/cells.ts';
-import { checkInvariant } from '../src/economy/ledger.ts';
-import { LIVELLI_CASA, MAX_LIVELLO_CASA, PIANTE_MAX, livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzaTerra, stanzeDi } from '../src/economy/stanze.ts';
+import { LIVELLI_CASA, MAX_LIVELLO_CASA, PIANTE_MAX, inStanza, livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzaTerra, stanzeDi } from '../src/economy/stanze.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { checkMonete } from '../src/economy/monete.ts';
@@ -20,11 +18,11 @@ import { NO_INPUT } from '../src/types.ts';
 import { isErr } from './economia_util.ts';
 
 const DAY = 24 * 3600_000;
-const T = lotTemplate()!, ST = BORGO.stanza;
+const ST = BORGO.stanza, T = ISLANDS.find((i) => i.id === 'lotto')!;
 const terra = MOBILI.find((m) => m.posto === 'terra' && !m.celle)!, parete = MOBILI.find((m) => m.posto === 'parete')!;
 /** Un lotto con tutte le monete che servono (entrano nel libro mastro come premio, così l'invariante regge). */
 function ricco(): LotState {
-  return conMonete(newLot('a', 0, T), 30_000);
+  return conMonete(newLot('a', 0), 30_000);
 }
 const su = (lot: LotState, n: number, t0 = lot.nowMs || 1000): LotState => {
   for (let i = 0; i < n; i++) lot = ampliaCasa(lot, livelloLotto(lot), t0 + (i + 1) * DAY);
@@ -54,12 +52,10 @@ test('ampliaCasa: un livello alla volta, paga in monete, libro mastro in pari; i
   lot = ampliaCasa(lot, 0, 1000);
   assert.equal(livelloLotto(lot), 1);
   assert.equal(lot.monete, prima - LIVELLI_CASA[0]!.monete);
-  assert.equal(checkInvariant([lot]), null);
   assert.equal(checkMonete([lot]), null);
   lot = su(lot, MAX_LIVELLO_CASA - 1);
   assert.equal(livelloLotto(lot), MAX_LIVELLO_CASA);
   assert.throws(() => ampliaCasa(lot, MAX_LIVELLO_CASA, 2000), isErr('livello'));
-  assert.equal(checkInvariant([lot]), null);
   assert.equal(checkMonete([lot]), null);
 });
 
@@ -99,8 +95,6 @@ test('le stanze crescono: a ogni livello la nuova contiene la vecchia; fuori dal
   assert.equal(lot.casa!.arredi![0]!.cell[0], nuova[0], 'il mobile resta dov’è dopo altri ampliamenti');
   lot = su(lot, MAX_LIVELLO_CASA - 1);
   assert.equal(lot.casa!.arredi![0]!.cell[0], nuova[0]);
-  assert.equal(postoMobileError(lot, terra, { cell: [ST.retro[0], stanzaTerra(MAX_LIVELLO_CASA).pavimento[1]] }, null)?.code, 'posizione', 'davanti alla porta in fondo, anche con la stanza grande');
-  assert.equal(checkInvariant([lot]), null);
 });
 
 test('i mobili a muro vanno col muro: dopo l’ampliamento stanno sul muro nuovo, nello stesso punto di lato', () => {
@@ -115,15 +109,12 @@ test('i mobili a muro vanno col muro: dopo l’ampliamento stanno sul muro nuovo
   assert.deepEqual(a.find((x) => x.muro === 'o')!.cell, [r[0], Z0 + 2]);
   assert.deepEqual(a.find((x) => x.muro === 'e')!.cell, [r[2] - 1, Z0 + 3]);
   for (const x of a) assert.equal(postoMobileError({ ...lot, casa: { ...lot.casa, arredi: a.filter((y) => y.id !== x.id) } }, parete, { cell: x.cell, muro: x.muro }), null, 'ancora valido: ' + JSON.stringify(x));
-  // la porta in fondo si sposta col muro: sul muro nord, davanti alla porta, niente
-  assert.equal(postoMobileError(lot, parete, { cell: [ST.retro[0], r[1]], muro: 'n' })?.code, 'posizione');
 });
 
-test('giardino: la pianta massima della casa è chiusa agli edifici anche se la stanza è ancora piccola', () => {
-  const lot = newLot('a', 0, T), max = PIANTE_MAX.find((s) => s.id === 'terra')!.pavimento;
+test('stanze: la pianta massima della casa è «in casa» anche se la stanza è ancora piccola', () => {
+  const max = PIANTE_MAX.find((s) => s.id === 'terra')!.pavimento;
   assert.ok(inStanza([max[0], max[1]]) && inStanza([max[2] - 1, max[3] - 1]));
-  assert.equal(buildCellError(lot, [max[0], max[1]], T, 'segheria')?.code, 'posizione');
-  assert.equal(fitToTemplate(lot, T), lot, 'un lotto nuovo è già a posto');
+  assert.ok(!inStanza([max[0] - 1, max[1]]));
   assert.deepEqual(stanzeDi(0).map((s) => s.id), ['terra']);
   assert.equal(livelloCasa({ livello: 99 }), MAX_LIVELLO_CASA);
   assert.equal(livelloCasa(undefined), 0);
@@ -179,7 +170,6 @@ test('cantina e secondo piano: ci sono solo dal livello giusto; si posa dentro l
   lot = su(lot, 1);
   const cantina2 = stanzeDi(lc + 1).find((s) => s.id === 'cantina')!.pavimento;
   assert.equal(lot.casa!.arredi!.find((a) => a.muro === 'n')!.cell[1], cantina2[1]);
-  assert.equal(checkInvariant([lot]), null);
 });
 
 test('la collisione chiude anche cantina e secondo piano finché non si sbloccano', () => {

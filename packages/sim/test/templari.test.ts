@@ -106,7 +106,7 @@ test('templari: premio per ondata superata col tetto del giorno', () => {
 test('il calice della Tempesta: serve la Tempesta aperta (Molo 2), poi resta nel lotto e apre l’isola; la seconda volta non cambia niente', () => {
   const lot = newLot('anna', 1_800_000_000_000);
   assert.throws(() => prendiReliquia(lot), (e: unknown) => e instanceof EconomyError && e.code === 'requisito');
-  const molo2 = { ...lot, buildings: lot.buildings.map((b) => (b.building === 'molo' ? { ...b, level: 2 } : b)) };
+  const molo2 = { ...lot, barca: 2 };
   const r = prendiReliquia(molo2);
   assert.equal(r.nuova, true);
   assert.deepEqual(r.lot.reliquie, ['templari']);

@@ -1,6 +1,6 @@
 {
   "nome": "Borgo Marea",
-  "stanza": { "pavimento": [11, 27, 18, 33], "altezza": 3.2, "retro": [14, 27], "giardino": [15, 21], "corridoio": [14, 33, 35] },
+  "stanza": { "pavimento": [11, 27, 18, 33], "altezza": 3.2, "corridoio": [14, 33, 35] },
   "_casa": "Gli ampliamenti della casa (#386), dal mobiliere: si fanno uno alla volta, in questo ordine, e costano tanto (`monete`, #414). `stanza` = quale stanza cambia (terra = la stanza di sempre), `pavimento` = il suo nuovo rettangolo [x0, z0, x1, z1) in celle del template lotto, sempre più grande del precedente; la pianta massima sta già nelle righe di islands.json.",
   "casa": { "livelli": [
     { "id": "stanza1", "nome": "Stanza più grande", "desc": "La stanza passa da 7×6 a 9×7 celle: più posto per i mobili.", "stanza": "terra", "pavimento": [10, 26, 19, 33], "monete": 700 },

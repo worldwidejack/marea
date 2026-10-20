@@ -20,9 +20,9 @@ export const NESSUNO: Viaggiatore = { molo: 0, livello: 1, cappello: null, mappe
 /** `motivo`: la frase che vede chi viene respinto; `manca`: cosa serve, corto (minimappa, bussola). */
 export type Sblocco = { aperta: boolean; motivo: string; manca: string };
 
-/** Viaggiatore dal lotto (Molo, personaggio, mappe) e dal cappello indosso (indice di avatar.json come in Look, o id). */
+/** Viaggiatore dal lotto (barca, personaggio, mappe) e dal cappello indosso (indice di avatar.json come in Look, o id). */
 export function viaggiatore(lot: LotState | null, cappello: number | string | null): Viaggiatore {
-  const molo = lot ? lot.buildings.reduce((m, b) => (b.building === 'molo' ? Math.max(m, b.level) : m), 0) : 0;
+  const molo = lot ? lot.barca ?? 1 : 0; // il livello della barca al Cantiere (lo sblocco `molo` di archipelago.json)
   const hat = typeof cappello === 'number' ? AVATAR.cappelli[cappello]?.id ?? null : cappello;
   return { molo, livello: lot?.hero?.livello ?? 1, cappello: hat && hat !== 'nessuno' ? hat : null, mappe: lot?.mappe ?? [], reliquie: lot?.reliquie ?? [], liberatorie: lot?.liberatorie ?? [] };
 }

@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { ARCHIPELAGO, AVATAR, ISLANDS, validateContent } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
 import { BARCA_DI_SERIE, barcaDi, compraColoreBarca, diSerie, nomeBarca, possiedeColore, validaBarca } from '../src/economy/barca.ts';
-import { checkInvariant } from '../src/economy/ledger.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import { composeArchipelago } from '../src/world/archipelago.ts';
 import { barcheSovrapposte, landingSpot, newBoat, ormeggioLibero, scafoInAcqua, yawOrmeggio } from '../src/world/boat.ts';
@@ -73,7 +72,6 @@ test('barca: un colore esclusivo si compra una volta, poi vale per scafo e vela'
   assert.ok((lot.posseduti ?? []).includes('barca:' + ex.id));
   assert.throws(() => compraColoreBarca(conMonete(lot, 100), ex.id, 2000), isErr('unico'));
   assert.deepEqual(validaBarca({ scafo: ex.id, vela: ex.id, nome: 'Mia' }, lot), { scafo: ex.id, vela: ex.id, nome: 'Mia' });
-  assert.equal(checkInvariant([lot]), null);
 });
 
 test('ormeggi (#6): scafi che si toccano e no', () => {

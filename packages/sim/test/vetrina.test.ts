@@ -6,8 +6,6 @@ import { BORGO, MOBILI, MOBILI_VETRINA } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
 import { compraFinituraDelGiorno, compraMobileDelGiorno } from '../src/economy/casa.ts';
-import { lotTemplate } from '../src/economy/cells.ts';
-import { checkInvariant } from '../src/economy/ledger.ts';
 import { finoAMezzanotte, giornoRoma } from '../src/economy/giorno.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
@@ -18,7 +16,7 @@ const DAY = 86_400_000, HOUR = 3_600_000;
 const T0 = Date.UTC(2026, 9, 18, 12); // 18 ott 2026, mezzogiorno UTC
 
 function ricco(monete: number): LotState {
-  return conMonete(senzaMonete(newLot('a', 0, lotTemplate()!)), monete);
+  return conMonete(senzaMonete(newLot('a', 0)), monete);
 }
 
 test('la vetrina è la stessa per tutti nello stesso giorno e non dipende da quante volte la chiedi', () => {
@@ -86,7 +84,6 @@ test('compraMobileDelGiorno: si compra solo quello esposto oggi; il resto è «r
   const l1 = compraMobileDelGiorno(lot, esposto, T0);
   assert.equal(l1.casa?.magazzino?.[esposto], 1);
   assert.ok(l1.monete < lot.monete);
-  assert.equal(checkInvariant([l1]), null);
   assert.throws(() => compraMobileDelGiorno(lot, fuori.id, T0), isErr('requisito'));
   assert.throws(() => compraMobileDelGiorno(lot, 'trono', T0), isErr('sconosciuto'));
   // il giorno dopo quello di ieri non c'è più (o ce n'è un altro): l'esposto di oggi domani si compra solo se è di nuovo in vetrina
@@ -128,7 +125,6 @@ test('compraFinituraDelGiorno: si compra solo la carta o il pavimento esposto og
   assert.equal(l1.casa?.carta, carta);
   l1 = compraFinituraDelGiorno(l1, 'pavimento', pavimento, T0);
   assert.equal(l1.casa?.pavimento, pavimento);
-  assert.equal(checkInvariant([l1]), null);
   assert.throws(() => compraFinituraDelGiorno(lot, 'carta', fuoriC.id, T0), isErr('requisito'));
   assert.throws(() => compraFinituraDelGiorno(lot, 'pavimento', fuoriP.id, T0), isErr('requisito'));
   assert.throws(() => compraFinituraDelGiorno(l1, 'carta', carta, T0), isErr('unico'), 'già tua');

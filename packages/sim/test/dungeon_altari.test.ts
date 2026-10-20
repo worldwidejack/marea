@@ -94,7 +94,7 @@ test('lanterne: ESCI = fuori col bottino («uscito», come la scala) e la lanter
   assert.equal(r.outcome, 'uscito');
   assert.equal(r.lanterna, 1);
   assert.equal(dungeon.act(s, { t: 'salva' }), null, 'a partita finita niente azioni');
-  const l0 = startDungeon(newLot('jack', T0, null), 'grotta', 9, T0 + 1000);
+  const l0 = startDungeon(newLot('jack', T0), 'grotta', 9, T0 + 1000);
   const out = finishDungeon(l0, r, T0 + 60_000);
   assert.deepEqual(out.tenuto, { lingotto_ferro: 3 });
   assert.equal(out.monete, 9);
@@ -147,7 +147,7 @@ test('altari: morendo dopo un altare ti risvegli lì, barre piene, solo il botti
 });
 
 test('altari: a fine spedizione si tiene il bottino dell’altare (morte, tempo, partita lasciata a metà); uscendo tutto', () => {
-  const l = startDungeon(newLot('jack', T0, null), 'grotta', 9, T0 + 1000);
+  const l = startDungeon(newLot('jack', T0), 'grotta', 9, T0 + 1000);
   const base: RunResult = { done: true, outcome: 'morto', ticks: 3600, bottino: { lingotto_bronzo: 2, lingotto_ferro: 3 }, monete: 30, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0, hash: 1, salvato: { bottino: { lingotto_bronzo: 2 }, monete: 12 }, cadute: 2 };
   for (const outcome of ['morto', 'tempo', null] as const) {
     const out = finishDungeon(l, { ...base, outcome, done: outcome !== null }, T0 + 60_000);
@@ -183,7 +183,7 @@ test('altari: il replay degli input fino all’altare ritrova il salvataggio; il
   assert.equal(r.hash, dungeon.result(s).hash, 'stesso hash del client');
 
   // il server: spedizione aperta con quel salvataggio, mai chiusa (scheda chiusa)
-  const l0 = startDungeon(newLot('jack', T0, null), 'grotta', seed, T0);
+  const l0 = startDungeon(newLot('jack', T0), 'grotta', seed, T0);
   const lot: LotState = { ...l0, dungeon: { pending: { ...l0.dungeon!.pending!, hero, stato: undefined, salvataggio: { inputs: encodeDungeon(packDungeon(log)), ticks: r.ticks, azioni } } } };
   assert.equal(chiudiScaduta(lot, T0 + 60_000), null, 'una spedizione ancora in corso non si chiude da sola');
   for (const out of [chiudiSalvata(lot, T0 + 60_000), chiudiScaduta(lot, T0 + (RPG.dungeon.maxMinuti + 6) * 60_000)]) {

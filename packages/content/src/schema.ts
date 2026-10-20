@@ -1,24 +1,13 @@
 // Validatore dei contenuti: niente dipendenze, errori in italiano. Chiamato da tools/check_static.mjs e dai test.
-import type { ArchipelagoDef, AvatarDef, BalanceDef, BuildingDef, DecorDef, IslandDef, ResourceDef, TemaDef } from './types.ts';
+import type { ArchipelagoDef, AvatarDef, BalanceDef, DecorDef, IslandDef, TemaDef } from './types.ts';
 
 const HEX = /^#[0-9A-F]{6}$/;
 const TILES = new Set(['~', ',', '.', 'g', 'r', 'd', 'P', 'B', 'L']);
 
-export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDef[]; islands: IslandDef[]; avatar: AvatarDef; balance: BalanceDef; decor?: DecorDef[] }): string[] {
+export function validateAll(c: { islands: IslandDef[]; avatar: AvatarDef; balance: BalanceDef; decor?: DecorDef[] }): string[] {
   const errs: string[] = [];
-  const ids = new Set<string>();
-  for (const b of c.buildings) {
-    if (ids.has(b.id)) errs.push(`edificio duplicato: ${b.id}`);
-    ids.add(b.id);
-    if (!b.levels.length) errs.push(`edificio senza livelli: ${b.id}`);
-    for (const [i, l] of b.levels.entries()) {
-      if (l.seconds < 0) errs.push(`${b.id} L${i + 1}: tempo negativo`);
-      for (const k of ['legno', 'pietra', 'perle'] as const) if (l.cost[k] < 0) errs.push(`${b.id} L${i + 1}: costo negativo (${k})`);
-    }
-    if (b.requires && !c.buildings.some((o) => o.id === b.requires)) errs.push(`${b.id}: requisito sconosciuto ${b.requires}`);
-  }
-  const resIds = new Set(c.resources.map((r) => r.id));
-  for (const k of ['legno', 'pietra', 'perle']) if (!resIds.has(k as ResourceDef['id'])) errs.push(`risorsa mancante: ${k}`);
+  for (const [id, e] of Object.entries(c.balance.monete.edifici))
+    for (const [i, l] of e.livelli.entries()) for (const [k, v] of Object.entries(l)) if (!(Number.isInteger(v) && v >= 0)) errs.push(`balance.monete.edifici.${id} L${i + 1}: costo non valido (${k})`);
   for (const isl of c.islands) {
     const w = isl.rows[0]?.length ?? 0;
     let spawn = 0, boat = 0;
@@ -68,7 +57,6 @@ export function validateAll(c: { buildings: BuildingDef[]; resources: ResourceDe
     if (!(Number.isInteger(d.monete) && d.monete >= 0)) errs.push(`decorazione ${d.id}: prezzo in monete non valido`);
     if (!/^prop_[a-z_]+$/.test(d.model)) errs.push(`decorazione ${d.id}: nome modello non valido ${d.model}`);
   }
-  if (c.balance.bufferOre <= 0) errs.push('balance.bufferOre deve essere > 0');
   if (!(c.balance.solo?.premiateAlGiorno >= 0)) errs.push('balance.solo.premiateAlGiorno mancante o negativo');
   for (const k of ['oro', 'argento', 'bronzo', 'nessuna'] as const) {
     const r = c.balance.solo?.premi?.[k];
@@ -176,14 +164,13 @@ function validateTema(tag: string, t: TemaDef, x0: number, z0: number, w: number
   return errs;
 }
 
-/** Isole a tema contro edifici e avatar: il Molo ha quel livello, il cappello esiste ed è a pagamento (uno gratuito non sbloccherebbe niente). */
-export function validateTemi(a: ArchipelagoDef, buildings: BuildingDef[], avatar: AvatarDef): string[] {
+/** Isole a tema contro l'avatar: il cappello esiste ed è a pagamento (uno gratuito non sbloccherebbe niente). Il livello della barca
+ *  (sblocco `molo`) contro i livelli del Cantiere lo controlla il test della sim (botteghe.json è un'entry a parte). */
+export function validateTemi(a: ArchipelagoDef, avatar: AvatarDef): string[] {
   const errs: string[] = [];
-  const molo = buildings.find((b) => b.id === 'molo');
   for (const e of a.islands) {
     const s = e.tema?.sblocco;
     if (!s) continue;
-    if (s.tipo === 'molo' && (!molo || s.livello > molo.levels.length)) errs.push(`isola ${e.island}: il Molo non ha il livello ${s.livello}`);
     if (s.tipo === 'cappello' || s.tipo === 'funivia') {
       const h = avatar.cappelli.find((c) => c.id === s.cappello);
       if (!h) errs.push(`isola ${e.island}: cappello sconosciuto ${s.cappello}`);

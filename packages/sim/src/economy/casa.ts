@@ -1,7 +1,7 @@
 // La casa arredabile (#265, CONTRACTS §41): mobili (mobili.json) comprati al negozio dei mobili finiscono nel magazzino di casa e si
 // posano nella stanza (BORGO.stanza): quelli «a terra» su una cella del pavimento (si girano di 90°), quelli «a parete» su una cella di
 // muro (in fondo `n`, a sinistra `o`, a destra `e`). Pavimenti e carte da parati (borgo.json) si comprano una volta e poi si scelgono.
-// Il baule è il Forziere (edificio, livelli e capienza come prima): in casa si sposta e si gira come un mobile.
+// Il baule (il Forziere di prima: livello e capienza come prima, di serie al livello 1) in casa si sposta e si gira come un mobile.
 // Puro: lo usano il DO del lotto (valida e salva) e il client (sagoma verde/rossa, anteprima). Tutto sta nel LotState, campo `casa`.
 import { BORGO, MOBILI } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
@@ -13,7 +13,7 @@ import type { Stanza, StanzaId } from './stanze.ts';
 import { inVetrina, inVetrinaFinitura } from './vetrina.ts';
 import { giornoRoma } from './giorno.ts';
 import { EconomyError } from './types.ts';
-import type { LotState, PlacedBuilding } from './types.ts';
+import type { LotState } from './types.ts';
 
 export type Muro = 'n' | 'o' | 'e';
 /** Un mobile posato: `cell` del pavimento (a parete: la cella del pavimento lungo quel muro), `rot` quarti di giro (solo a terra). */
@@ -28,6 +28,8 @@ export type CasaState = {
   pavimento?: string; carta?: string;
   /** Scelti per il primo piano (assente = quello di serie, il primo). */
   pavimentoPiano?: string; cartaPiano?: string;
+  /** Il baule (il Forziere): livello (quanto ci sta) e cella del pavimento. Assente = non ancora messo (`conBaule` lo mette). */
+  baule?: { livello: number; cell: [number, number] };
   /** Quarti di giro del baule (Forziere) in casa. */
   bauleRot?: number;
   /** Gli ampliamenti fatti dal mobiliere (#386, economy/stanze.ts): 0..max. Assente = 0, la stanza di sempre. */
@@ -50,8 +52,8 @@ export function celleMobile(m: Pick<MobileDef, 'posto' | 'celle'>, cell: readonl
 }
 
 const [CX] = BORGO.stanza.corridoio;
-/** Le celle di una stanza dove si passa (niente mobili a terra): dove sbuca il corridoio, quella davanti alla porta in fondo e le scale (#386). */
-const passaggi = (s: Stanza, livello: number): readonly (readonly [number, number])[] => [...(s.id === 'terra' ? [[CX, s.pavimento[3] - 1] as const] : []), ...(s.retro ? [s.retro] : []), ...scaleDi(livello).filter((c) => c.stanza === s.id).map((c) => c.cell)];
+/** Le celle di una stanza dove si passa (niente mobili a terra): dove sbuca il corridoio e le scale. */
+const passaggi = (s: Stanza, livello: number): readonly (readonly [number, number])[] => [...(s.id === 'terra' ? [[CX, s.pavimento[3] - 1] as const] : []), ...scaleDi(livello).filter((c) => c.stanza === s.id).map((c) => c.cell)];
 /** Il livello della casa di un lotto. */
 export const livelloLotto = (lot: LotState | null | undefined): number => livelloCasa(lot?.casa);
 
@@ -75,19 +77,19 @@ export function finitureScelte(lot: LotState | null, stanza: StanzaId = 'terra')
 }
 
 const same = (a: readonly [number, number], b: readonly [number, number]): boolean => a[0] === b[0] && a[1] === b[1];
-/** Il Forziere (il baule) di questo lotto, se è costruito. */
-export const baule = (lot: LotState): PlacedBuilding | null => lot.buildings.find((b) => b.building === 'forziere') ?? null;
+/** Il baule di questo lotto (livello e cella), se c'è. */
+export const baule = (lot: LotState): { livello: number; cell: [number, number] } | null => lot.casa?.baule ?? null;
+const senzaBaule = (lot: LotState): LotState => { const { baule: _via, ...c } = casaDi(lot); return { ...lot, casa: c }; };
 /** Il baule visto come un mobile a terra di una cella (per le regole del posto). */
 const BAULE: MobileDef = { id: 'baule', nome: 'Baule', categoria: 'contenitori', monete: 1, posto: 'terra', forma: 'baule', colori: ['#8E5A2B'] };
-/** Ogni casa ha il baule: chi non l'aveva costruito lo trova di serie, livello 1, nella prima cella libera della stanza (da nord-ovest).
+/** Ogni casa ha il baule: chi non l'aveva lo trova di serie, livello 1, nella prima cella libera della stanza (da nord-ovest).
  *  Chi ce l'ha già torna identico. */
 export function conBaule(lot: LotState): LotState {
   if (baule(lot)) return lot;
   const [x0, z0, x1, z1] = stanzaTerra(livelloLotto(lot)).pavimento;
   for (let z = z0; z < z1; z++) for (let x = x0; x < x1; x++) {
     if (postoMobileError(lot, BAULE, { cell: [x, z] })) continue;
-    const b: PlacedBuilding = { id: 'forziere', building: 'forziere', level: 1, cell: [x, z], buffer: 0, lastMs: lot.nowMs };
-    return { ...lot, version: lot.version + 1, buildings: [...lot.buildings, b] };
+    return { ...lot, version: lot.version + 1, casa: { ...casaDi(lot), baule: { livello: 1, cell: [x, z] } } };
   }
   return lot;
 }
@@ -102,7 +104,7 @@ export function postoMobileError(lot: LotState, m: MobileDef, p: PostoMobile, se
   const dentroPav = (q: readonly [number, number]) => q[0] >= X0 && q[0] < X1 && q[1] >= Z0 && q[1] < Z1;
   if (!mie.every(dentroPav)) return { code: 'posizione', msg: 'Non ci sta: esce dalla stanza' };
   if (m.posto === 'parete') {
-    const ok = p.muro === 'n' ? c[1] === Z0 && !(stanza.retro && c[0] === stanza.retro[0]) : p.muro === 'o' ? c[0] === X0 : p.muro === 'e' ? c[0] === X1 - 1 : false;
+    const ok = p.muro === 'n' ? c[1] === Z0 : p.muro === 'o' ? c[0] === X0 : p.muro === 'e' ? c[0] === X1 - 1 : false;
     if (!ok) return { code: 'posizione', msg: 'Questo si appende a un muro' };
     return arredi.some((a) => a.muro === p.muro && same(a.cell, c)) ? { code: 'cella', msg: 'Su questo muro c’è già qualcosa' } : null;
   }
@@ -112,7 +114,7 @@ export function postoMobileError(lot: LotState, m: MobileDef, p: PostoMobile, se
     if (a.muro) return false;
     const d = mobile(a.mobile);
     return d ? celleMobile(d, a.cell, a.rot ?? 0).some((r) => same(r, q)) : same(a.cell, q);
-  }) || lot.buildings.some((b) => same(b.cell, q));
+  }) || (!!lot.casa?.baule && same(lot.casa.baule.cell, q));
   if (mie.some(occupate)) return { code: 'cella', msg: 'Cella occupata' };
   return null;
 }
@@ -241,8 +243,8 @@ export function spostaBaule(lot0: LotState, cell: [number, number], nowMs: numbe
   const lot = advance(lot0, nowMs), b = baule(lot);
   if (!b) throw new EconomyError('sconosciuto', 'Il baule non c’è ancora: rientra in casa');
   if (same(b.cell, cell)) return lot;
-  controlla({ ...lot, buildings: lot.buildings.filter((x) => x.id !== b.id) }, BAULE, { cell });
-  return { ...lot, version: lot.version + 1, buildings: lot.buildings.map((x) => (x.id === b.id ? { ...x, cell: [cell[0], cell[1]] } : x)) };
+  controlla(senzaBaule(lot), BAULE, { cell });
+  return conCasa(lot, { ...casaDi(lot), baule: { livello: b.livello, cell: [cell[0], cell[1]] } });
 }
 /** Gira il baule di 90°. */
 export function ruotaBaule(lot0: LotState, nowMs: number): LotState {

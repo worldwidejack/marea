@@ -72,7 +72,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     return { cell: [muro === 'o' ? X0 : X1 - 1, iz], muro };
   };
   const problema = (l: LotState, m: Modo, p: PostoMobile): string | null => {
-    if (m.kind === 'baule') { const b = baule(l); if (!b) return 'Niente baule'; const e = postoMobileError({ ...l, buildings: l.buildings.filter((x) => x.id !== b.id) }, BAULE, { cell: p.cell }); return e && !(b.cell[0] === p.cell[0] && b.cell[1] === p.cell[1]) ? e.msg : null; }
+    if (m.kind === 'baule') { const b = baule(l); if (!b) return 'Niente baule'; const { baule: _b, ...senza } = casaDi(l), e = postoMobileError({ ...l, casa: senza }, BAULE, { cell: p.cell }); return e && !(b.cell[0] === p.cell[0] && b.cell[1] === p.cell[1]) ? e.msg : null; }
     const e = postoMobileError(l, m.mobile, { ...p, rot: m.rot }, m.kind === 'sposta' ? m.id : null);
     return e ? e.msg : null;
   };
@@ -238,7 +238,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
       const key = `${modo.kind === 'baule' ? 'baule' : modo.mobile.id}:${mobiliMod ? 1 : 0}`;
       if (key !== prevKey && mobiliMod) {
         prevKey = key; anteprima.clear();
-        const geo = modo.kind === 'baule' ? mobiliMod.bauleGeo(baule(lot()!)?.level ?? 1) : mobiliMod.mobileGeo(modo.mobile.forma, modo.mobile.colori, modo.mobile);
+        const geo = modo.kind === 'baule' ? mobiliMod.bauleGeo(baule(lot()!)?.livello ?? 1) : mobiliMod.mobileGeo(modo.mobile.forma, modo.mobile.colori, modo.mobile);
         anteprima.add(new THREE.Mesh(geo, vc));
         const dec = modo.kind !== 'baule' ? decorDi(modo.mobile.id) : null;
         if (dec) { // una decorazione: l'anteprima è il suo modello, girato come quando è posata

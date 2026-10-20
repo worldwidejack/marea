@@ -5,10 +5,8 @@
 // Le azioni vanno a POST /api/rpg: il lotto nuovo → ctx.setLot; errori (ApiError, già in italiano) → toast.
 // Nel dungeon (openHero con un RunBag, dungeon v5) la scheda mostra lo zaino della spedizione: Equipaggia/Togli e Butta via vanno alla sim
 // come azioni (la partita è in pausa finché la scheda è aperta); livelli, perk e libri si fanno fuori dal dungeon.
-import { building } from '@marea/content';
 import type { LotState } from '@marea/sim';
 import { heroDerived, heroOf } from '@marea/sim/rpg/hero.ts';
-import { buildingLevel } from '@marea/sim/rpg/bag.ts';
 import type { RpgAction } from '@marea/sim/rpg/types.ts';
 import { el, injectUiStyle } from '../ui/style.ts';
 import { registerStateProvider } from '../test/testapi.ts';
@@ -21,7 +19,7 @@ import { renderContrabbando } from './contrabbando.ts';
 import type { UiState, View } from './items_ui.ts';
 
 type ViewId = 'eroe' | BuildingKind | 'contrabbando';
-const titolo = (v: ViewId): string => (v === 'eroe' ? 'Personaggio' : v === 'contrabbando' ? 'Il Furetto · contrabbando' : building(v).nome);
+const titolo = (v: ViewId): string => (v === 'eroe' ? 'Personaggio' : v === 'contrabbando' ? 'Il Furetto · contrabbando' : 'Baule');
 const TABS: readonly { id: UiState['tab']; nome: string }[] = [{ id: 'pg', nome: 'Personaggio' }, { id: 'abilita', nome: 'Abilità' }, { id: 'zaino', nome: 'Zaino' }];
 
 let ctx: PanelCtx | null = null, sheet: HTMLElement | null = null, view: ViewId | null = null;
@@ -82,7 +80,7 @@ function header(lot: LotState | null): HTMLElement {
   const head = el('div', 'mz-head');
   const h = bag ? bag.hero() : lot ? heroOf(lot) : null;
   const title = el('div', 'mz-title', view === 'eroe' || !view ? (bag ? 'Zaino · dungeon' : 'Personaggio') : titolo(view));
-  const lv = view === 'eroe' ? (h ? `L${h.livello}` : '') : lot && view && view !== 'contrabbando' ? `L${buildingLevel(lot, view)}` : '';
+  const lv = view === 'eroe' ? (h ? `L${h.livello}` : '') : lot && view === 'forziere' ? `L${lot.casa?.baule?.livello ?? 0}` : '';
   if (lv) title.append(' ', el('span', 'mz-lvl', lv));
   head.appendChild(title);
   if (h && lot) { const c = el('span', 'mz-rp-coins'); c.append(el('i'), String(lot.monete)); c.title = 'Monete'; head.appendChild(c); }

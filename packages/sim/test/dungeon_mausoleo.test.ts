@@ -356,14 +356,14 @@ test('mausoleo: Anello dell’Onda — il colpo in mischia libera un’onda sugl
   assert.ok(b.vita < b.max, 'l’onda prende anche quello dietro');
   assert.equal(b.max - b.vita, Math.max(1, 40 * E.frazione - 14));
   // due anelli uguali: l'Eco una volta sola
-  const h = heroOf(newLot('p', 0, null));
+  const h = heroOf(newLot('p', 0));
   const due = buildRunHero({ ...h, inv: { ...h.inv, unico_anello_onda: 2 }, equip: { ...h.equip, anello1: 'unico_anello_onda', anello2: 'unico_anello_onda' } });
   assert.deepEqual(due.eco, E);
   assert.equal(buildRunHero(h).eco, undefined);
 });
 
 test('mausoleo: porta sigillata — senza la Fucina completata non si entra, dopo sì', () => {
-  const lot = newLot('p', 0, null);
+  const lot = newLot('p', 0);
   const h = heroOf(lot);
   assert.throws(() => startDungeon({ ...lot, hero: { ...h, completati: ['drenaggio', 'archivio'] } }, 'mausoleo', 1, 1000), /sigillata/);
   const aperto = startDungeon({ ...lot, hero: { ...h, completati: ['drenaggio', 'archivio', 'fucina'] } }, 'mausoleo', 1, 1000);

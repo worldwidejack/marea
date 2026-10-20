@@ -1,6 +1,6 @@
-// Le botteghe di Borgo Marea (#414, VISIONE §2): livelli in monete e vetrine del giorno. Fabbro = il Banco da Lavoro di prima (il livello
-// sblocca i materiali da forgiare, RPG §5), Cantiere navale = il Molo a livelli (velocità della barca, la Tempesta al 2), Alchimista = Tavolo
-// Alchemico + Serra (senza livelli: le ricette le apre l'abilità). Puro e deterministico: la vetrina dipende solo dal giorno di Roma e da
+// Le botteghe di Borgo Marea (VISIONE §2): livelli in monete e vetrine del giorno. Fabbro: il livello sblocca i materiali da forgiare
+// (RPG §5), `LotState.botteghe.fabbro`; Cantiere navale: il livello della barca (velocità, la Tempesta al 2), `LotState.barca`; Alchimista
+// senza livelli (le ricette le apre l'abilità). Puro e deterministico: la vetrina dipende solo dal giorno di Roma e da
 // botteghe.json, così client e server calcolano la stessa cosa. Le vetrine di oggetti (Fabbro, Alchimista) stanno in rpg/botteghe.ts.
 import { BOTTEGHE } from '@marea/content/botteghe.ts';
 import type { BottegaId, BottegaLivello } from '@marea/content/botteghe.ts';
@@ -15,18 +15,13 @@ import type { LotState } from './types.ts';
 /** Le botteghe che si migliorano a monete. */
 export type BottegaConLivelli = 'fabbro' | 'cantiere';
 
-const livelloEdificio = (lot: LotState, id: string): number =>
-  Math.max(0, ...lot.buildings.filter((b) => b.building === id).map((b) => b.level), ...(lot.magazzinoEdifici ?? []).filter((b) => b.building === id).map((b) => b.level));
-
-/** Il tuo livello col Fabbro (1-3): il primo è di tutti; chi aveva il Banco da Lavoro tiene il suo livello. */
+/** Il tuo livello col Fabbro (1-3): il primo è di tutti. */
 export function livelloFabbro(lot: LotState | null): number {
-  if (!lot) return 1;
-  return Math.min(BOTTEGHE.fabbro.livelli?.length ?? 3, Math.max(1, lot.botteghe?.fabbro ?? 0, livelloEdificio(lot, 'banco')));
+  return Math.min(BOTTEGHE.fabbro.livelli?.length ?? 3, Math.max(1, lot?.botteghe?.fabbro ?? 1));
 }
-/** Il livello della barca al Cantiere (1-3) = il livello del Molo (velocità, la Tempesta al 2). */
+/** Il livello della barca al Cantiere (1-3: velocità, la Tempesta al 2). */
 export function livelloCantiere(lot: LotState | null): number {
-  if (!lot) return 1;
-  return Math.min(BOTTEGHE.cantiere.livelli?.length ?? 3, Math.max(1, livelloEdificio(lot, 'molo')));
+  return Math.min(BOTTEGHE.cantiere.livelli?.length ?? 3, Math.max(1, lot?.barca ?? 1));
 }
 export const livelloBottega = (lot: LotState | null, b: BottegaConLivelli): number => (b === 'fabbro' ? livelloFabbro(lot) : livelloCantiere(lot));
 /** Il prossimo livello (quanto costa e cosa dà) o null se sei già al massimo. */
@@ -44,9 +39,7 @@ export function miglioraBottega(lot0: LotState, b: BottegaConLivelli, da: number
   if (!next) throw new EconomyError('livello', b === 'fabbro' ? 'Col Fabbro sei già al massimo' : 'La barca è già al massimo');
   const pagato = spendi(lot, next.monete);
   if (b === 'fabbro') return { ...pagato, version: lot.version + 1, botteghe: { ...pagato.botteghe, fabbro: next.livello } };
-  const molo = pagato.buildings.find((x) => x.building === 'molo');
-  if (!molo) throw new EconomyError('requisito', 'Non hai una barca da migliorare');
-  return { ...pagato, version: lot.version + 1, buildings: pagato.buildings.map((x) => (x === molo ? { ...x, level: next.livello } : x)) };
+  return { ...pagato, version: lot.version + 1, barca: next.livello };
 }
 
 /** Un oggetto del `pool` per il giorno `g`: in un giro (tanti giorni quanti oggetti) esce tutto una volta, in ordine rimescolato; mai lo

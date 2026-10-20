@@ -1,78 +1,114 @@
-// Conversione dei vecchi salvataggi alle monete (#414, VISIONE §2, GDD §5). La fa il server in lettura (DO Lot), una volta sola: un lotto
-// con `monete` è già convertito. Chi ha comprato tiene tutto (mobili, finiture, cappelli, colori della barca, decorazioni, ampliamenti,
-// equipaggiamento): diventano monete, al cambio fisso di `BALANCE.monete.cambio`, solo
-// - le risorse di prima (Legno, Pietra, Perle) del lotto;
-// - gli edifici spenti del giardino (EDIFICI_SPENTI): quanto erano costati i loro livelli (anche il cantiere in corso, già pagato) e il
-//   deposito non ancora raccolto;
-// - le monete del personaggio (`hero.monete`, il portafoglio del GDR di prima; senza personaggio quelle con cui sarebbe nato).
-// Molo (la barca), Banco da Lavoro (Fabbro), Tavolo Alchemico (Alchimista) e Forziere (baule della casa) restano col loro livello.
-// Le poste delle vecchie sfide (escrow) restano nelle risorse di prima. Pura.
-import { BALANCE, building } from '@marea/content';
+// I salvataggi di prima diventano quelli di oggi (VISIONE §2, GDD §5). Lo fa il server in lettura (DO Lot, `aggiornaSalvataggio`), una
+// volta sola: un lotto di oggi torna identico. Due passi.
+// 1) `convertiMonete` (un lotto senza `monete`): diventano monete, al cambio fisso di `BALANCE.monete.cambio`,
+//    - le risorse di prima (Legno, Pietra, Perle) del lotto;
+//    - gli edifici spenti del giardino (le chiavi di `BALANCE.monete.edifici`): quanto erano costati i loro livelli (anche il cantiere in
+//      corso, già pagato) e il deposito di Legno o Pietra non ancora raccolto;
+//    - le monete del personaggio (`hero.monete`, il portafoglio del GDR di prima; senza personaggio quelle con cui sarebbe nato).
+//    Chi ha comprato tiene tutto (mobili, finiture, cappelli, colori della barca, decorazioni, ampliamenti, equipaggiamento).
+// 2) `senzaGiardino` (un lotto con `buildings`): quello che resta degli edifici diventa un campo suo. Il Molo → il livello della barca
+//    (`barca`), il Banco da Lavoro → il livello col Fabbro (`botteghe.fabbro`), il Forziere → il baule di casa (`casa.baule`, col suo livello;
+//    se stava in giardino, in casa nella prima cella libera). Il Tavolo Alchemico non serve più (l'Alchimista non ha livelli). Via risorse,
+//    edifici, cantiere, poste delle sfide, Faro e libro mastro di prima. Poi le decorazioni del giardino nel magazzino (`decorInCasa`) e il
+//    baule di serie a chi non l'ha (`conBaule`). Pura.
+import { BALANCE } from '@marea/content';
+import type { MobileDef } from '@marea/content';
+import { conBaule, postoMobileError } from './casa.ts';
+import type { CasaState } from './casa.ts';
+import { decorInCasa } from './decorazioni.ts';
 import { inMonete } from './monete.ts';
-import { ZERO, add } from './types.ts';
-import type { CambioMonete, LotState, PlacedBuilding, Resources, StoredBuilding } from './types.ts';
+import { livelloCasa, stanzaAt } from './stanze.ts';
+import type { CambioMonete, LotState, Resources } from './types.ts';
 
-/** Edifici del giardino che non ci sono più (#414): diventano monete. Gli altri diventano le botteghe del Borgo, la barca e il baule. */
-export const EDIFICI_SPENTI: ReadonlySet<string> = new Set(['segheria', 'cava', 'magazzino', 'casa', 'faro', 'tavolo', 'serra']);
+/** Un edificio del giardino di prima (posato o riposto nel magazzino dell'isola). */
+type EdificioVecchio = { id: string; building: string; level: number; cell?: [number, number]; buffer?: number };
+/** Un salvataggio di prima: quello di oggi più i campi del giardino, e senza `monete` se non è ancora convertito. */
+export type LottoDiPrima = Omit<LotState, 'monete'> & {
+  monete?: number;
+  resources?: Resources;
+  buildings?: EdificioVecchio[];
+  magazzinoEdifici?: EdificioVecchio[];
+  construction?: { building: string; level: number } | null;
+  escrow?: Resources;
+  boostUntilMs?: number;
+  finito?: unknown;
+  /** Sfide con posta e Faro comune di prima (codice tolto da tempo): restavano nei salvataggi. */
+  challenges?: unknown; holds?: unknown; settled?: unknown; faro?: unknown;
+  ledger: LotState['ledger'] & { generated?: Resources; spent?: Resources };
+  hero?: LotState['hero'] & { monete?: number };
+};
 
-/** Quanto è costato un edificio fino al livello `livello` (somma dei livelli 1..livello). */
+const ZERO: Resources = { legno: 0, pietra: 0, perle: 0 };
+const add = (a: Resources, b: Partial<Resources>): Resources => ({ legno: a.legno + (b.legno ?? 0), pietra: a.pietra + (b.pietra ?? 0), perle: a.perle + (b.perle ?? 0) });
+const EDIFICI = BALANCE.monete.edifici;
+/** Il baule come mobile a terra di una cella (per vedere se la cella del Forziere di prima è ancora libera). */
+const BAULE: MobileDef = { id: 'baule', nome: 'Baule', categoria: 'contenitori', monete: 1, posto: 'terra', colori: [] };
+
+/** Edifici del giardino che diventano monete; gli altri (Molo, Banco, Tavolo Alchemico, Forziere) diventano barca, Fabbro e baule. */
+export const EDIFICI_SPENTI: ReadonlySet<string> = new Set(Object.keys(EDIFICI));
+
+/** Quanto è costato un edificio spento fino al livello `livello` (somma dei livelli 1..livello). */
 export function costoEdificio(id: string, livello: number): Resources {
   let r: Resources = { ...ZERO };
-  for (const l of building(id).levels.slice(0, Math.max(0, livello))) r = add(r, l.cost);
+  for (const l of EDIFICI[id]?.livelli.slice(0, Math.max(0, livello)) ?? []) r = add(r, l);
   return r;
 }
 
-/** Valore di un edificio spento: i livelli pagati più il deposito di Legno o Pietra non raccolto (la Serra tiene ingredienti: non conta). */
-function valore(b: PlacedBuilding | StoredBuilding): Resources {
-  const r = costoEdificio(b.building, b.level), res = building(b.building).produces, dep = Math.max(0, Math.floor(b.buffer || 0));
-  return res === 'legno' || res === 'pietra' ? { ...r, [res]: r[res] + dep } : r;
+/** Valore di un edificio spento: i livelli pagati più il deposito di Legno o Pietra non raccolto (la Serra teneva ingredienti: non conta). */
+function valore(b: EdificioVecchio): Resources {
+  const r = costoEdificio(b.building, b.level), res = EDIFICI[b.building]?.produce, dep = Math.max(0, Math.floor(b.buffer || 0));
+  return res ? { ...r, [res]: r[res] + dep } : r;
 }
 
-type LottoVecchio = Omit<LotState, 'monete'> & { monete?: number; hero?: LotState['hero'] & { monete?: number } };
-
 /** Converte un salvataggio di prima del 18 ott 2026 (nessun `monete`); un lotto già convertito torna identico. */
-export function convertiMonete(lot0: LotState | LottoVecchio): LotState {
-  if (typeof lot0.monete === 'number') return lot0 as LotState;
-  const lot = lot0 as LottoVecchio;
+export function convertiMonete(lot: LottoDiPrima): LottoDiPrima & { monete: number } {
+  if (typeof lot.monete === 'number') return lot as LottoDiPrima & { monete: number };
   let edifici: Resources = { ...ZERO };
-  const spenti: string[] = [];
-  const buildings: PlacedBuilding[] = [];
-  for (const b of lot.buildings) {
-    if (EDIFICI_SPENTI.has(b.building)) { edifici = add(edifici, valore(b)); spenti.push(b.building); } else buildings.push(b);
-  }
-  const riposti: StoredBuilding[] = [];
-  for (const b of lot.magazzinoEdifici ?? []) {
-    if (EDIFICI_SPENTI.has(b.building)) { edifici = add(edifici, valore(b)); spenti.push(b.building); continue; }
-    // un edificio che resta (barca, bottega, baule) ma era riposto: torna fuori, così il suo livello vale ancora (fitToTemplate gli trova la cella)
-    if (buildings.some((x) => x.building === b.building)) riposti.push(b);
-    else buildings.push({ id: b.id, building: b.building, level: b.level, cell: [0, 0], buffer: b.buffer, lastMs: b.lastMs, ...(b.rot ? { rot: b.rot } : {}) });
+  const spenti: string[] = [], resta: EdificioVecchio[] = [];
+  for (const b of [...(lot.buildings ?? []), ...(lot.magazzinoEdifici ?? [])]) {
+    if (EDIFICI_SPENTI.has(b.building)) { edifici = add(edifici, valore(b)); spenti.push(b.building); } else resta.push(b);
   }
   // il cantiere di un edificio spento era già pagato: vale il livello che stava costruendo
-  let construction = lot.construction;
-  if (construction && EDIFICI_SPENTI.has(construction.building)) {
-    const l = building(construction.building).levels[construction.level - 1];
-    if (l) edifici = add(edifici, l.cost);
-    construction = null;
-  }
+  const c = lot.construction;
+  if (c && EDIFICI_SPENTI.has(c.building)) edifici = add(edifici, EDIFICI[c.building]?.livelli[c.level - 1] ?? {});
   const eroe = lot.hero ? Math.max(0, Math.floor(lot.hero.monete ?? 0)) : BALANCE.monete.partenza;
-  const risorse: Resources = { ...lot.resources };
+  const risorse: Resources = { ...ZERO, ...lot.resources };
   const monete = inMonete(risorse) + inMonete(edifici) + eroe;
   const cambio: CambioMonete = { ms: lot.nowMs, monete, risorse, edifici, edificiSpenti: [...new Set(spenti)].sort(), eroe };
   let hero = lot.hero;
   if (hero && 'monete' in hero) { const { monete: _vecchie, ...h } = hero; hero = h; }
-  const out: LotState = {
-    ...lot,
-    version: lot.version + 1,
-    monete,
-    cambio,
-    resources: { ...ZERO },
-    buildings,
-    construction,
-    boostUntilMs: 0,
-    // le risorse escono dal libro mastro di prima (così il suo invariante regge) ed entrano in quello delle monete
-    ledger: { ...lot.ledger, spent: add(lot.ledger.spent, risorse), monete: { generated: monete, spent: 0 } },
+  return {
+    ...lot, version: lot.version + 1, monete, cambio, buildings: resta, magazzinoEdifici: [], construction: null, resources: { ...ZERO },
+    ledger: { ...lot.ledger, monete: { generated: monete, spent: 0 } },
     ...(hero ? { hero } : {}),
   };
-  if (lot.magazzinoEdifici) out.magazzinoEdifici = riposti;
-  return out;
+}
+
+/** Il livello più alto di un edificio fra quelli posati e riposti (0 = non c'è). */
+const livelloDi = (lot: LottoDiPrima, id: string): number => Math.max(0, ...[...(lot.buildings ?? []), ...(lot.magazzinoEdifici ?? [])].filter((b) => b.building === id).map((b) => b.level));
+
+const VECCHI = ['resources', 'buildings', 'magazzinoEdifici', 'construction', 'escrow', 'boostUntilMs', 'finito', 'challenges', 'holds', 'settled', 'faro'];
+/** Toglie il giardino da un lotto già in monete: Molo, Banco e Forziere diventano barca, Fabbro e baule. Un lotto di oggi torna identico. */
+export function senzaGiardino(vecchio: LottoDiPrima & { monete: number }): LotState {
+  if (!VECCHI.some((k) => k in vecchio)
+    && !('generated' in vecchio.ledger) && !('spent' in vecchio.ledger)) return vecchio as LotState;
+  const { resources: _r, buildings: _b, magazzinoEdifici: _m, construction: _c, escrow: _e, boostUntilMs: _f, finito: _x, challenges: _s, holds: _h, settled: _t, faro: _fc, ledger, ...resto } = vecchio;
+  const lot: LotState = { ...resto, version: vecchio.version + 1, ledger: ledger.monete ? { monete: ledger.monete } : {} };
+  const molo = livelloDi(vecchio, 'molo'), banco = livelloDi(vecchio, 'banco');
+  if (molo > 1) lot.barca = Math.max(lot.barca ?? 1, molo);
+  if (banco > (lot.botteghe?.fabbro ?? 1)) lot.botteghe = { ...lot.botteghe, fabbro: banco };
+  const forziere = [...(vecchio.buildings ?? []), ...(vecchio.magazzinoEdifici ?? [])].filter((b) => b.building === 'forziere' && b.level >= 1).sort((a, b) => b.level - a.level)[0];
+  if (forziere && !lot.casa?.baule) {
+    // il Forziere che stava già in casa resta dov'era; quello del giardino va nella prima cella libera (la mette conBaule, col suo livello)
+    const inCasa = !!forziere.cell && !!stanzaAt(livelloCasa(lot.casa), forziere.cell) && !postoMobileError(lot, BAULE, { cell: forziere.cell });
+    const casa: CasaState = lot.casa ?? {};
+    if (inCasa) lot.casa = { ...casa, baule: { livello: forziere.level, cell: [forziere.cell![0], forziere.cell![1]] } };
+    else { const conB = conBaule(lot); if (conB.casa?.baule) lot.casa = { ...conB.casa, baule: { ...conB.casa.baule, livello: forziere.level } }; }
+  }
+  return lot;
+}
+
+/** Un salvataggio qualunque (di prima o di oggi) come quello di oggi: monete, niente giardino, decorazioni in casa, baule. */
+export function aggiornaSalvataggio(lot: LotState | LottoDiPrima): LotState {
+  return conBaule(decorInCasa(senzaGiardino(convertiMonete(lot as LottoDiPrima))));
 }

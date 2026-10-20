@@ -136,14 +136,10 @@ export type Api = {
   lastError: string | null;
 };
 
-const RES_NOMI: Record<keyof Mancanza, string> = { monete: 'monete', legno: 'Legno', pietra: 'Pietra', perle: 'Perle' };
-/** «ti mancano 20 monete» (le risorse di prima solo nel codice spento: «ti mancano 10 Legno e 20 Pietra»); '' se non manca niente. */
+/** «ti mancano 20 monete»; '' se non manca niente. */
 export function mancaText(m: Mancanza | undefined | null): string {
-  if (!m) return '';
-  const parts = (Object.keys(RES_NOMI) as (keyof Mancanza)[]).filter((k) => (m[k] ?? 0) > 0).map((k) => `${Math.ceil(m[k] ?? 0)} ${RES_NOMI[k]}`);
-  if (!parts.length) return '';
-  const last = parts.pop();
-  return `ti mancano ${parts.length ? parts.join(', ') + ' e ' : ''}${last}`;
+  const n = Math.ceil(m?.monete ?? 0);
+  return n > 0 ? `ti mancano ${n} monete` : '';
 }
 
 /** Monete che mancano, detto con garbo (#4): vicino al bottone «Compra» dell'editor e del Mercante, invece dell'errore secco. */
@@ -152,7 +148,7 @@ export function moneteText(n: number): string {
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
-const isLot = (v: unknown): v is LotState => isObj(v) && typeof v['owner'] === 'string' && isObj(v['resources']) && Array.isArray(v['buildings']);
+const isLot = (v: unknown): v is LotState => isObj(v) && typeof v['owner'] === 'string' && typeof v['monete'] === 'number';
 const FEED_TIPI: readonly string[] = ['visita', 'record'];
 const asFeedItem = (v: unknown): FeedItem | null => {
   if (!isObj(v) || typeof v['id'] !== 'number' || typeof v['tipo'] !== 'string' || !FEED_TIPI.includes(v['tipo']) || typeof v['testo'] !== 'string') return null;

@@ -329,7 +329,7 @@ test('diga: l’Albero della «Stella del Mattino» — affondo lungo; correndo 
   const it = itemDef('unico_albero_stella');
   assert.equal(it.unico, true);
   assert.equal(it.portata, 4.2);
-  const lot = newLot('p', 0, null), h = heroOf(lot);
+  const lot = newLot('p', 0), h = heroOf(lot);
   const rh = buildRunHero({ ...h, inv: { ...h.inv, unico_albero_stella: 1 }, equip: { ...h.equip, arma: 'unico_albero_stella' } });
   assert.equal(rh.arma.portata, 4.2);
   assert.deepEqual(rh.arma.traits.poppa, { metri: 6, cariche: 3, carica: 0.5, danno: 0.45, spinta: 4 });
@@ -368,7 +368,7 @@ test('diga: l’Albero della «Stella del Mattino» — affondo lungo; correndo 
 });
 
 test('diga: aperta fin dall’inizio — un eroe appena nato ci entra (nessun dungeon completato, nessun anello)', () => {
-  const lot = newLot('p', 0, null), h = heroOf(lot);
+  const lot = newLot('p', 0), h = heroOf(lot);
   const aperto = startDungeon({ ...lot, hero: { ...h, completati: [] } }, 'diga', 1, 1000);
   assert.equal(aperto.dungeon?.pending?.dungeon, 'diga');
 });

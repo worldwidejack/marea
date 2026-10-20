@@ -44,7 +44,7 @@ test('viaggiatore dal lotto: Molo, personaggio, cappello, mappe', () => {
   assert.equal(v.molo, 1); assert.equal(v.livello, 1); assert.equal(v.cappello, AVATAR.cappelli[1]!.id); assert.deepEqual(v.mappe, []);
   assert.equal(viaggiatore(null, 0).cappello, null, 'nessun cappello');
   assert.equal(viaggiatore(null, 'lanterna').cappello, 'lanterna');
-  const lot2 = { ...lot, buildings: lot.buildings.map((b) => (b.building === 'molo' ? { ...b, level: 2 } : b)), hero: { ...(lot.hero ?? ({} as never)), livello: 4 }, mappe: ['giardino'] };
+  const lot2 = { ...lot, barca: 2, hero: { ...(lot.hero ?? ({} as never)), livello: 4 }, mappe: ['giardino'] };
   const v2 = viaggiatore(lot2 as typeof lot, null);
   assert.equal(v2.molo, 2); assert.equal(v2.livello, 4); assert.deepEqual(v2.mappe, ['giardino']);
 });
