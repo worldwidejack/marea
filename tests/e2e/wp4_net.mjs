@@ -6,14 +6,6 @@ import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 export const timeout = 240000;
 
-/** Celle `L` (slot edificio) del template `lotto` (islands.json); senza template due celle qualsiasi. */
-function slotCells(root) {
-  const isl = JSON.parse(fs.readFileSync(path.join(root, 'packages/content/src/islands.json'), 'utf8')).find((i) => i.id === 'lotto');
-  if (!isl) return [[3, 4], [5, 4]];
-  const out = [];
-  isl.rows.forEach((row, z) => { for (let x = 0; x < row.length; x++) if (row[x] === 'L') out.push([x, z]); });
-  return out;
-}
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -49,11 +41,7 @@ export default async function (ctx) {
       ctx.assert((await post('/api/look', { pelle: 1, capelli: 2, coloreCapelli: 3, vestito: 4, cappello: 0 })).status === 200, 'look valido rifiutato');
       ctx.assert((await post('/api/look', { pelle: 99, capelli: 2, coloreCapelli: 3, vestito: 4, cappello: 0 })).status === 400, 'look fuori indice accettato');
       ctx.assert((await (await fetch(base + '/api/me', { headers: { 'x-token': 'tok1' } })).json()).look.pelle === 1, 'look non salvato');
-      const [c1, c2] = slotCells(ctx.ROOT);
-      const b1 = await post('/api/lot/build', { building: 'segheria', cell: c1 });
-      ctx.assert(b1.status === 200 && (await b1.json()).construction, 'build non avviata');
-      const b2 = await post('/api/lot/build', { building: 'cava', cell: c2 });
-      ctx.assert(b2.status === 409 && (await b2.json()).error, 'secondo cantiere non rifiutato con 409');
+      ctx.assert((await post('/api/lot/build', { building: 'segheria', cell: [2, 2] })).status === 404, 'si costruisce ancora nel giardino');
       ctx.assert((await fetch(base + '/api/lot/due', { headers: { 'x-token': 'tok1' } })).status === 200, 'isola altrui non leggibile');
       // senza TEST_CLOCK (come in produzione) l'orologio di test è ignorato
       const ping = await (await fetch(base + '/api/ping', { headers: { 'x-test-now-offset': String(10 * 86_400_000) } })).json();

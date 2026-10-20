@@ -1,627 +1,120 @@
-// Vista economica di un'isola (M1-isola): edifici del LotState sulle celle del template, depositi, cantiere, tap → pannelli, build mode.
-// Sugli slot liberi dell'isola propria un cartello «Costruisci» (tocco = pannello); lo slot suggerito dalla guida apre già la conferma.
-// Stato e ora dal server (api.serverNow() solo per animare i timer e i depositi che crescono); rilettura dopo ogni azione e ogni 30 s
-// mentre sei sull'isola. Celle di LotState locali al template: mondo = (origin + cell + 0,5) × tile.
-// Decorazioni libere (#108): sulla tua isola tocco (o A vicino) su una decorazione = scheda SPOSTA / RUOTA / RIVENDI; SPOSTA mette una
-// sagoma sul lotto (verde se la cella va bene, rossa se no: stesse regole del server, decorCellError di @marea/sim).
+// La casa di un giocatore vista dal client: il LotState del server (monete, casa, personaggio…), il baule e i mobili nella stanza, il
+// contatore delle monete in alto (solo la tua). Stato dal server: rilettura dopo ogni azione e ogni 30 s mentre sei nel lotto (o sempre, se
+// la vista non sa dove sei). Celle di LotState locali al template `lotto`: mondo = (origin + cell + 0,5) × tile. Le case degli amici sono
+// in sola lettura.
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { ISLANDS, building as buildingDef } from '@marea/content';
-import { advance, bufferParams, buildCellError, casaDi, decorCellError, decorRimborso, inStanza, parseIsland, storageCap } from '@marea/sim';
+import { ISLANDS } from '@marea/content';
+import { casaDi, inStanza, parseIsland } from '@marea/sim';
 import { createArrediVista } from './arredi_vista.ts';
-import type { GridMap, LotState, PlacedBuilding, PlacedDecor, Resources } from '@marea/sim';
+import type { GridMap, LotState } from '@marea/sim';
 import type { Loader } from '../render/loader.ts';
 import type { Hud } from '../ui/hud.ts';
-import { ApiError, MSG_401, mancaText } from '../net/api.ts';
+import { ApiError, MSG_401 } from '../net/api.ts';
 import type { Api } from '../net/api.ts';
-import { PAL, el } from '../ui/style.ts';
-import { pixIcon, resIcon } from '../ui/icons.ts';
-import { createLabelLayer, createSheet, flyResources, fmtClock, LABEL_NEAR_M, tickTimers, timerSpan } from '../ui/sheet.ts';
-import type { Label, LabelLayer, Sheet } from '../ui/sheet.ts';
-import { buildPanel, buildable, buildingPanel, decorNome, decorPanel, spostaBuildingPanel, spostaPanel } from '../ui/lotpanels.ts';
-import type { DecorCtx, PanelCtx } from '../ui/lotpanels.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-import { suona } from '../audio/ponte.ts';
 
 export type LotViewOptions = {
   scene: THREE.Scene; loader: Loader; origin: [number, number]; tile: number; api: Api; hud: Hud;
-  /** Isola altrui: niente azioni, niente barra risorse. Serve `owner`. */
+  /** Casa altrui: niente contatore delle monete. Serve `owner`. */
   readonly?: boolean; owner?: string; ownerName?: string;
-  /** Per il tap (raycast): camera del renderer e canvas. Senza, la vista si guarda e basta. */
-  camera?: THREE.Camera; canvas?: HTMLCanvasElement;
   /** Template del lotto (id di islands.json o GridMap già letto); default `lotto`, poi la prima isola. */
   template?: string | GridMap;
   groundY?: (x: number, z: number) => number;
   /** Stato già in mano (es. da /api/me): evita la prima lettura. */
   initial?: LotState | null;
-  /** Slot suggerito (guida «Primi passi»): il suo cartello è evidenziato e toccarlo apre già la conferma di `building`. */
-  hint?: () => { cell: [number, number]; building: string } | null;
-  /** Edifici da non offrire nel pannello Costruisci (es. il Tavolo delle Sfide, spento). */
-  hide?: readonly string[];
 };
 export type LotView = {
   readonly readonly: boolean; readonly group: THREE.Group; readonly ready: Promise<void>;
   state(): LotState | null; refresh(): Promise<void>;
-  /** Stato arrivato da un'altra risposta del server (azione GDR, spedizione): si applica senza rileggere. */
+  /** Stato arrivato da un'altra risposta del server (azione GDR, spedizione, acquisto): si applica senza rileggere. */
   set(l: LotState): void;
-  /** RACCOGLI TUTTO (#86): ogni deposito con l'azione di sempre (le risorse volano nella barra); risponde con quanto è entrato. */
-  collectAll(): Promise<Resources>;
-  /** Ogni frame. `focus` = posizione dell'avatar: la rilettura ogni 30 s gira solo quando è sull'isola (senza focus: sempre). */
+  /** Ogni frame. `focus` = posizione dell'avatar: la rilettura ogni 30 s gira solo quando è nel lotto (senza focus: sempre). */
   update(dt: number, focus?: { x: number; z: number }): void;
-  tap(target: string | [number, number]): boolean; contains(x: number, z: number): boolean; dispose(): void;
-  /**
-   * Un tick (60 Hz), solo sulla tua isola: vicino a una decorazione (entro DECOR_NEAR m da `focus`, a piedi) il fronte di salita di A apre
-   * la sua scheda; in SPOSTA, A conferma. `focus` null = non a piedi (o pronto a salire in barca). true = A è della decorazione.
-   */
-  tick(a: boolean, focus: { x: number; z: number } | null): boolean;
+  contains(x: number, z: number): boolean; dispose(): void;
   readonly template: GridMap; readonly origin: [number, number]; readonly tile: number;
 };
 
-const POLL_S = 30, FACING = Math.PI; // i modelli guardano −Z: li giriamo verso la camera (sud-est)
-const DECOR_NEAR = 1.7; // m: da qui A apre la scheda della decorazione più vicina (#108)
-const SAGOMA_OK = '#B6FF3D', SAGOMA_NO = '#FF5C3D'; // verde neon / rosso neon (ART_BIBLE §2)
-const COLORS: Record<string, [string, string]> = {
-  segheria: [PAL.legno, PAL.legnoScuro], cava: [PAL.pietra, PAL.roccia], magazzino: [PAL.legnoChiaro, PAL.rosso],
-  casa: [PAL.sabbiaChiara, PAL.rosso], faro: [PAL.pietraChiara, PAL.rosso], tavolo: [PAL.legno, PAL.arancio],
-};
-const mats = new Map<string, THREE.MeshLambertMaterial>();
-const mat = (c: string) => { let m = mats.get(c); if (!m) { m = new THREE.MeshLambertMaterial({ color: new THREE.Color(c), flatShading: true }); mats.set(c, m); } return m; };
-const box = (w: number, h: number, d: number, x = 0, y = 0, z = 0) => new THREE.BoxGeometry(w, h, d).translate(x, y + h / 2, z);
-
-/** Segnaposto a colori di palette finché M1-asset non ha il modello. */
-function placeholder(kind: string): THREE.Object3D {
-  const g = new THREE.Group();
-  if (kind === 'cantiere') {
-    const parts = [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]].map(([x, z]) => box(0.14, 1.3, 0.14, x, 0, z));
-    parts.push(box(1.6, 0.1, 0.12, 0, 1.2, -0.7), box(1.6, 0.1, 0.12, 0, 1.2, 0.7), box(0.12, 0.1, 1.6, -0.7, 1.2, 0), box(0.12, 0.1, 1.6, 0.7, 1.2, 0), box(1.0, 0.25, 0.5, 0.1, 0, 0.1));
-    g.add(new THREE.Mesh(mergeGeometries(parts), mat(PAL.legnoChiaro)));
-    g.add(new THREE.Mesh(box(0.5, 0.4, 0.5, -0.3, 0, -0.2), mat(PAL.pietra)));
-  } else {
-    const [body, roof] = COLORS[kind] ?? [PAL.sabbia, PAL.legnoScuro];
-    const tall = kind === 'faro' ? 2.6 : 1.2;
-    g.add(new THREE.Mesh(box(kind === 'faro' ? 0.9 : 1.5, tall, kind === 'faro' ? 0.9 : 1.3), mat(body)));
-    const r = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.8, 4).rotateY(Math.PI / 4).translate(0, tall + 0.4, 0), mat(roof));
-    g.add(r);
-  }
-  g.traverse((n) => { if ((n as THREE.Mesh).isMesh) { n.castShadow = true; n.receiveShadow = true; } });
-  return g;
-}
-/** Cornice quadrata a terra (slot libero, cella scelta). */
-function frameGeo(s = 1.7, t = 0.14, h = 0.05): THREE.BufferGeometry {
-  return mergeGeometries([box(s, h, t, 0, 0, -s / 2 + t / 2), box(s, h, t, 0, 0, s / 2 - t / 2), box(t, h, s, -s / 2 + t / 2, 0, 0), box(t, h, s, s / 2 - t / 2, 0, 0)]);
-}
-
-type Drawn = { holder: THREE.Group; key: string; model: string; height: number; tok: number; label: Label };
-type Shared = { sheet: Sheet; labels: LabelLayer; owner: object | null };
-const shared = new WeakMap<HTMLElement, Shared>();
+const POLL_S = 30;
 
 export function createLotView(o: LotViewOptions): LotView {
   const ro = !!o.readonly, T = o.tile, [ox, oz] = o.origin;
   const tpl: GridMap = typeof o.template === 'object' ? o.template : parseIsland(ISLANDS.find((i) => i.id === (o.template ?? 'lotto')) ?? ISLANDS.find((i) => i.id === 'lotto') ?? ISLANDS[0]!);
   const gy = o.groundY ?? (() => 0.4);
-  const root = o.hud.root ?? (document.getElementById('ui') as HTMLElement);
-  let sh = shared.get(root);
-  if (!sh) { const s: Shared = { sheet: createSheet(root, () => { s.owner = null; }), labels: createLabelLayer(root), owner: null }; sh = s; shared.set(root, s); }
-  const S = sh, me = {};
   const group = new THREE.Group(); group.name = ro ? `lot_${o.owner ?? '?'}` : 'lot_mio'; o.scene.add(group);
   const world = (c: readonly [number, number]) => { const x = (ox + c[0] + 0.5) * T, z = (oz + c[1] + 0.5) * T; return { x, z, y: gy(x, z) }; };
-  const fg = frameGeo();
-  const slotsMesh = new THREE.InstancedMesh(fg, mat(PAL.arancio), Math.max(1, tpl.lots.length)); slotsMesh.count = 0; slotsMesh.name = 'lot_slot'; group.add(slotsMesh);
-  const pick = new THREE.Mesh(fg, mat(PAL.giallo)); pick.visible = false; pick.name = 'lot_scelta'; group.add(pick);
-  // sagoma di SPOSTA (#108): cornice spessa verde/rossa sulla cella scelta, la decorazione ci si sposta sopra finché non confermi o annulli
-  const sagoma = new THREE.Mesh(frameGeo(1.9, 0.24, 0.08), mat(SAGOMA_OK)); sagoma.visible = false; sagoma.name = 'lot_sagoma'; group.add(sagoma);
-  const drawn = new Map<string, Drawn>();
   const arredi = createArrediVista({ group, origin: o.origin, tile: T, groundY: gy });
-  // decorazioni (#63, comprate dal Mercante): il codice dei segnaposto si scarica solo quando un'isola ne ha una
-  const decorDrawn = new Map<string, { holder: THREE.Group; model: string; key: string }>();
-  let decorMod: Promise<typeof import('../render/decor.ts')> | null = null;
-  const slotLabels = new Map<string, { cell: [number, number]; label: Label }>(); // cartelli «Costruisci» sugli slot liberi
-  let lot: LotState | null = o.initial ?? null, view: LotState | null = lot;
-  let busy = false, poll = 0, slow = 0, endsSeen = 0, inflight: Promise<void> | null = null, lastError: string | null = null, refreshes = 0, disposed = false;
-  let panel: { kind: 'edificio'; id: string } | { kind: 'costruisci'; cell: [number, number]; chosen: string | null }
-    | { kind: 'decor'; id: string; vendi: boolean } | { kind: 'sposta'; id: string; cell: [number, number] }
-    | { kind: 'sposta_edificio'; id: string; cell: [number, number] } | null = null;
-  let nearDecor: string | null = null, aWas = false;
-  const nearLabel = ro ? null : S.labels.add(() => { if (nearDecor) openDecor(nearDecor); });
-  nearLabel?.set('bubble', [pixIcon('martello', 16), el('span', '', 'MODIFICA · A')], 'decor'); nearLabel?.el.classList.add('decor');
-  /** Monete mostrate mentre volano verso il contatore (null = quelle del lotto). */
-  let holdMonete: number | null = null;
+  let lot: LotState | null = o.initial ?? null;
+  let poll = 0, inflight: Promise<void> | null = null, lastError: string | null = null, refreshes = 0, disposed = false;
 
-  const now = () => o.api.serverNow();
-  const isFree = (c: readonly [number, number]) => !inStanza(c) && !!lot && !lot.buildings.some((b) => b.cell[0] === c[0] && b.cell[1] === c[1]) && !lot.decor.some((d) => d.cell[0] === c[0] && d.cell[1] === c[1]);
-  const freeSlots = (): [number, number][] => (lot ? tpl.lots.map((c): [number, number] => [c.cx, c.cz]).filter((c) => !inStanza(c) && isFree(c)) : []);
-
-  // ---- modelli: bld_<id>_l<livello> → _l1 → segnaposto; cantiere: bld_cantiere → segnaposto ----
-  async function makeObject(b: PlacedBuilding): Promise<{ obj: THREE.Object3D; name: string }> {
-    // il Forziere in casa è il baule (#265): un mobile vero, girato come vuoi (davanti verso +Z, la camera di casa guarda da sud)
-    if (b.building === 'forziere' && b.level >= 1 && inStanza(b.cell)) {
-      const m = await import('../render/mobili.ts'), obj = new THREE.Mesh(m.bauleGeo(b.level), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
-      obj.castShadow = obj.receiveShadow = true; obj.userData['baule'] = true;
-      return { obj, name: 'baule' };
-    }
-    const def = buildingDef(b.building);
-    const names = b.level < 1 ? ['bld_cantiere', 'bld_cantiere_l1'] : [`${def.model}_l${b.level}`, `${def.model}_l1`];
-    for (const n of names) if (o.loader.has(n)) { try { return { obj: (await o.loader.load(n)).scene, name: n }; } catch { /* file rotto: prova il prossimo */ } }
-    return { obj: placeholder(b.level < 1 ? 'cantiere' : b.building), name: b.level < 1 ? 'segnaposto_cantiere' : 'segnaposto_' + b.building };
-  }
-  async function loadInto(d: Drawn, b: PlacedBuilding): Promise<void> {
-    const tok = ++d.tok;
-    const { obj, name } = await makeObject(b);
-    if (tok !== d.tok || disposed) return;
-    const curRot = lot?.buildings.find((x) => x.id === b.id)?.rot ?? b.rot ?? 0;
-    obj.rotation.y = obj.userData['baule'] ? ((casaDi(lot).bauleRot ?? 0) * Math.PI) / 2 : FACING + (curRot * Math.PI) / 2;
-    d.holder.clear(); d.holder.add(obj); d.model = name;
-    const bb = new THREE.Box3().setFromObject(obj);
-    d.height = Number.isFinite(bb.max.y) ? Math.max(1, bb.max.y) : 2.2;
+  // ---- il baule (il Forziere) in casa: un mobile vero, girato come vuoi (davanti verso +Z, la camera di casa guarda da sud) ----
+  const baule = new THREE.Group(); baule.name = 'baule'; group.add(baule);
+  let bauleKey = '', bauleTok = 0;
+  async function disegnaBaule(livello: number, tok: number): Promise<void> {
+    const m = await import('../render/mobili.ts');
+    if (tok !== bauleTok || disposed) return;
+    const obj = new THREE.Mesh(m.bauleGeo(livello), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+    obj.castShadow = obj.receiveShadow = true; obj.userData['baule'] = true;
+    baule.clear(); baule.add(obj);
   }
   function sync(): void {
     if (!lot) return;
-    const seen = new Set<string>();
-    for (const b of lot.buildings) {
-      if (b.building === 'molo') continue; // il molo è il terreno `d` dell'isola
-      seen.add(b.id);
-      let d = drawn.get(b.id);
-      if (!d) {
-        const holder = new THREE.Group(); holder.name = 'bld_' + b.id; holder.userData['lotId'] = b.id;
-        const p = world(b.cell); holder.position.set(p.x, p.y, p.z); group.add(holder);
-        const id = b.id;
-        d = { holder, key: '', model: '', height: 2.2, tok: 0, label: S.labels.add(() => { if (!ro) void collect(id); }) };
-        drawn.set(b.id, d);
+    const b = lot.buildings.find((x) => x.building === 'forziere' && x.level >= 1 && inStanza(x.cell)) ?? null, rot = casaDi(lot).bauleRot ?? 0;
+    const key = b ? `${b.level}:${b.cell.join(',')}:${rot}` : '';
+    if (key !== bauleKey) {
+      bauleKey = key; baule.visible = !!b;
+      if (b) {
+        const p = world(b.cell); baule.position.set(p.x, p.y, p.z); baule.rotation.y = (rot * Math.PI) / 2;
+        void disegnaBaule(b.level, ++bauleTok).catch(() => { /* senza baule si gioca lo stesso */ });
       }
-      d.holder.visible = true;
-      const key = `${b.building}:${b.level}` + (b.building === 'forziere' && inStanza(b.cell) ? `:casa:${casaDi(lot).bauleRot ?? 0}` : '');
-      const p = world(b.cell); d.holder.position.set(p.x, p.y, p.z); // il baule si sposta (#265)
-      if (d.holder.children[0] && !d.holder.children[0].userData['baule']) d.holder.children[0].rotation.y = FACING + ((b.rot ?? 0) * Math.PI) / 2;
-      if (d.key !== key) { d.key = key; void loadInto(d, b); }
     }
-    const stowedSet = new Set((lot.magazzinoEdifici ?? []).map((s) => s.id));
-    for (const [id, d] of drawn) if (!seen.has(id)) {
-      if (stowedSet.has(id)) { d.holder.visible = false; d.label.place(0, 0, false, false); }
-      else { group.remove(d.holder); d.label.remove(); drawn.delete(id); }
-    }
-    const seenD = new Set<string>();
-    for (const dc of lot.decor) {
-      seenD.add(dc.id);
-      const had = decorDrawn.get(dc.id);
-      if (had) { posaDecor(dc, had); continue; }
-      const holder = new THREE.Group(); holder.name = 'decor_' + dc.id; holder.userData['decorId'] = dc.id; group.add(holder);
-      const rec = { holder, model: '', key: '' }; decorDrawn.set(dc.id, rec); posaDecor(dc, rec);
-      decorMod ??= import('../render/decor.ts');
-      void decorMod.then((m) => m.decorObject(dc.decor, o.loader)).then(({ obj, model }) => { if (!disposed && decorDrawn.get(dc.id) === rec) { holder.add(obj); rec.model = model; } }).catch(() => { /* senza decorazione si gioca lo stesso */ });
-    }
-    for (const [id, d] of decorDrawn) if (!seenD.has(id)) { group.remove(d.holder); decorDrawn.delete(id); }
-    arredi.sync(lot); // i mobili di casa (#265)
-    const free = ro ? [] : freeSlots(), m = new THREE.Matrix4();
-    free.forEach((c, i) => { const p = world(c); slotsMesh.setMatrixAt(i, m.makeTranslation(p.x, p.y + 0.02, p.z)); });
-    slotsMesh.count = free.length; slotsMesh.instanceMatrix.needsUpdate = true;
-    const canBuild = !!lot && buildable(lot).some((d) => !o.hide?.includes(d.id));
-    const keep = new Set(canBuild ? free.map((c) => c.join(',')) : []);
-    for (const [k, sl] of slotLabels) if (!keep.has(k)) { sl.label.remove(); slotLabels.delete(k); }
-    for (const c of canBuild ? free : []) {
-      const k = c.join(','); if (slotLabels.has(k)) continue;
-      const label = S.labels.add(() => { openBuild(c); });
-      label.set('bubble', [pixIcon('martello', 16), el('span', '', 'Costruisci')], 'slot');
-      label.el.classList.add('slot'); label.el.dataset['cell'] = k;
-      slotLabels.set(k, { cell: c, label });
-    }
-  }
-
-  /** Posa (o riposa) una decorazione: nella cella della sagoma se la stai spostando, altrimenti nella sua; rotazione a quarti di giro. */
-  function posaDecor(dc: PlacedDecor, rec: { holder: THREE.Group; key: string }): void {
-    const cell = panel?.kind === 'sposta' && panel.id === dc.id ? panel.cell : dc.cell, rot = dc.rot ?? 0, key = `${cell.join(',')}:${rot}`;
-    if (rec.key === key) return;
-    rec.key = key;
-    const p = world(cell); rec.holder.position.set(p.x, p.y, p.z); rec.holder.rotation.y = FACING + (rot * Math.PI) / 2;
-  }
-  const decorOf = (id: string): PlacedDecor | null => lot?.decor.find((d) => d.id === id) ?? null;
-  const buildingOf = (id: string): PlacedBuilding | null => lot?.buildings.find((b) => b.id === id) ?? null;
-  function posaEdificio(b: PlacedBuilding, d: Drawn): void {
-    const cell = panel?.kind === 'sposta_edificio' && panel.id === b.id ? panel.cell : b.cell;
-    const p = world(cell); d.holder.position.set(p.x, p.y, p.z);
-  }
-  /** Perché la decorazione `id` non può andare in `cell` (null = va bene): stesse regole del server, senza contare lei stessa. */
-  function sagomaProblema(id: string, cell: [number, number]): string | null {
-    if (!lot) return 'Isola non pronta';
-    const err = decorCellError({ ...lot, decor: lot.decor.filter((d) => d.id !== id) }, cell, tpl);
-    return err ? (err.code === 'cella' ? 'Cella occupata' : err.msg) : null;
-  }
-  /** Perché l'edificio `id` non può andare in `cell` (#382; null = va bene). */
-  function sagomaEdificioProblema(id: string, cell: [number, number]): string | null {
-    if (!lot) return 'Isola non pronta';
-    const b = buildingOf(id);
-    if (!b) return 'Edificio non trovato';
-    const err = buildCellError({ ...lot, buildings: lot.buildings.filter((x) => x.id !== id) }, cell, tpl, b.building);
-    return err ? (err.code === 'cella' ? 'Cella occupata' : err.msg) : null;
-  }
-  function syncSagoma(): void {
-    if (panel?.kind === 'sposta') {
-      const d = decorOf(panel.id);
-      if (!d) { sagoma.visible = false; return; }
-      const ferma = panel.cell[0] === d.cell[0] && panel.cell[1] === d.cell[1], bad = !ferma && !!sagomaProblema(d.id, panel.cell);
-      const p = world(panel.cell); sagoma.position.set(p.x, p.y + 0.03, p.z); sagoma.visible = true;
-      sagoma.material = mat(bad ? SAGOMA_NO : SAGOMA_OK);
-      const rec = decorDrawn.get(d.id); if (rec) posaDecor(d, rec);
-    } else if (panel?.kind === 'sposta_edificio') {
-      const b = buildingOf(panel.id);
-      if (!b) { sagoma.visible = false; return; }
-      const ferma = panel.cell[0] === b.cell[0] && panel.cell[1] === b.cell[1], bad = !ferma && !!sagomaEdificioProblema(b.id, panel.cell);
-      const p = world(panel.cell); sagoma.position.set(p.x, p.y + 0.03, p.z); sagoma.visible = true;
-      sagoma.material = mat(bad ? SAGOMA_NO : SAGOMA_OK);
-      const d = drawn.get(b.id); if (d) posaEdificio(b, d);
-    } else {
-      sagoma.visible = false;
-    }
+    arredi.sync(lot);
+    if (!ro) o.hud.setResources?.({ monete: lot.monete });
   }
 
   // ---- stato dal server ----
   let setSeq = 0;
-  function setLot(l: LotState): void { setSeq++; poll = 0; lot = l; view = advance(l, Math.max(l.nowMs, now())); sync(); refreshUi(true); }
-  function fail(e: unknown): string {
-    const msg = e instanceof ApiError ? (e.manca ? `${e.message}: ${mancaText(e.manca)}` : e.message) : 'Qualcosa non va, riprova';
-    lastError = msg;
-    if (e instanceof ApiError && e.status === 401) o.hud.banner?.(MSG_401); else o.hud.toast(msg, 3200);
-    return msg;
+  function setLot(l: LotState): void { setSeq++; poll = 0; lot = l; sync(); }
+  function fail(e: unknown): void {
+    lastError = e instanceof ApiError ? e.message : 'Qualcosa non va, riprova';
+    if (e instanceof ApiError && e.status === 401) o.hud.banner?.(MSG_401); else o.hud.toast(lastError, 3200);
   }
   function refresh(): Promise<void> {
     if (inflight) return inflight;
-    if (!o.api.enabled || (ro && !o.owner) || document.body.classList.contains('mz-edit-mode')) return Promise.resolve();
+    if (!o.api.enabled || (ro && !o.owner)) return Promise.resolve();
     poll = 0;
     const seq = setSeq;
     inflight = o.api.lot(ro ? o.owner : undefined)
-      .then((l) => { refreshes++; if (!disposed && seq === setSeq && !document.body.classList.contains('mz-edit-mode') && (!lot || l.version >= lot.version)) setLot(l); lastError = null; })
+      .then((l) => { refreshes++; if (!disposed && seq === setSeq && (!lot || l.version >= lot.version)) setLot(l); lastError = null; })
       .catch((e: unknown) => { fail(e); })
       .finally(() => { inflight = null; });
     return inflight;
   }
-  async function act(fn: () => Promise<LotState>, after?: (prev: LotState, next: LotState) => void): Promise<boolean> {
-    if (ro || busy || !lot) return false;
-    busy = true; refreshUi(true);
-    try { const prev = lot, next = await fn(); if (disposed) return true; setLot(next); after?.(prev, next); lastError = null; return true; }
-    catch (e) { fail(e); if (e instanceof ApiError && (e.status === 409 || e.status === 404)) void refresh(); return false; }
-    finally { busy = false; refreshUi(true); }
-  }
-  const screenOf = (x: number, y: number, z: number) => {
-    if (!o.camera || !o.canvas) return null;
-    const v = new THREE.Vector3(x, y, z).project(o.camera), r = o.canvas.getBoundingClientRect(), rr = root.getBoundingClientRect();
-    return { x: r.left - rr.left + ((v.x + 1) / 2) * r.width, y: r.top - rr.top + ((1 - v.y) / 2) * r.height, on: v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1 };
-  };
-  function collect(id: string): Promise<boolean> {
-    return act(() => o.api.collect(id), (prev, next) => {
-      const b = next.buildings.find((x) => x.id === id), res = b ? buildingDef(b.building).produces : undefined;
-      if (!b || !res) return;
-      const gained = Math.floor(next.resources[res] - prev.resources[res]);
-      if (gained <= 0) { o.hud.toast(storageCap(next) - next.resources[res] < 1 ? 'Magazzino pieno: miglioralo per tenere di più' : 'Deposito ancora vuoto'); return; }
-      const d = drawn.get(id), p = d ? screenOf(d.holder.position.x, d.holder.position.y + d.height, d.holder.position.z) : null;
-      flyResources(root, p ?? { x: innerWidth / 2, y: innerHeight / 2 }, o.hud.resAnchor?.(res) ?? null, res, gained, () => { o.hud.bump?.(res); refreshUi(true); });
-      o.hud.toast(`+${gained} ${res === 'legno' ? 'Legno' : res === 'pietra' ? 'Pietra' : 'Perle'}`, 1400);
-    });
-  }
-  const upgrade = (id: string) => act(() => o.api.upgrade(id), () => suona('martello'));
-  const build = (building: string, cell: [number, number]) => act(() => o.api.build(building, cell), (_p, next) => {
-    if (!next.construction) return;
-    closePanel(); suona('martello');
-    o.hud.toast(`Cantiere avviato: ${buildingDef(building).nome} tra ${fmtClock(next.construction.endsMs - now())}`, 2600);
-  });
-
-  // decorazioni libere (#108): ogni azione la decide il server, la sagoma è solo un'anteprima
-  const ruota = (id: string) => act(() => o.api.decorRotate(id), () => suona('martello'));
-  const vendi = (id: string) => {
-    const d = decorOf(id), rec = decorDrawn.get(id); if (!d) return Promise.resolve(false);
-    const pos = rec ? rec.holder.position.clone() : null;
-    return act(() => o.api.decorSell(id), (prev, next) => {
-      closePanel();
-      const gained = next.monete - prev.monete;
-      o.hud.toast(`${decorNome(d.decor)} rivenduta: +${gained} monete`, 2400);
-      if (gained > 0) {
-        const at = pos ? screenOf(pos.x, pos.y + 1, pos.z) : null;
-        holdMonete = prev.monete; refreshUi(true);
-        flyResources(root, at ?? { x: innerWidth / 2, y: innerHeight / 2 }, o.hud.resAnchor?.('monete') ?? null, 'monete', gained, () => { holdMonete = null; o.hud.bump?.('monete'); refreshUi(true); });
-      }
-    });
-  };
-  const conferma = () => {
-    if (panel?.kind === 'sposta_edificio') {
-      const { id, cell } = panel, b = buildingOf(id);
-      if (!b || (cell[0] === b.cell[0] && cell[1] === b.cell[1]) || sagomaEdificioProblema(id, cell)) return Promise.resolve(false);
-      return act(() => o.api.buildingMove(id, cell), () => { closePanel(); suona('martello'); o.hud.toast(`${buildingDef(b.building).nome}: spostato`, 1800); });
-    }
-    if (panel?.kind !== 'sposta') return Promise.resolve(false);
-    const { id, cell } = panel, d = decorOf(id);
-    if (!d || (cell[0] === d.cell[0] && cell[1] === d.cell[1]) || sagomaProblema(id, cell)) return Promise.resolve(false);
-    return act(() => o.api.decorMove(id, cell), () => { closePanel(); suona('martello'); o.hud.toast(`${decorNome(d.decor)}: spostata`, 1800); });
-  };
-
-  // ---- pannelli ----
-  function closePanel(): void {
-    const era = panel?.kind === 'sposta' ? panel.id : null;
-    const eraEdificio = panel?.kind === 'sposta_edificio' ? panel.id : null;
-    panel = null; pick.visible = false; sagoma.visible = false;
-    if (era) { const d = decorOf(era), rec = decorDrawn.get(era); if (d && rec) posaDecor(d, rec); } // ANNULLA: torna com'era
-    if (eraEdificio) { const b = buildingOf(eraEdificio), d = drawn.get(eraEdificio); if (b && d) posaEdificio(b, d); }
-    if (S.owner === me) S.sheet.close();
-  }
-  function openDecor(id: string): boolean {
-    if (ro || !decorOf(id)) return false;
-    if (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') closePanel();
-    panel = { kind: 'decor', id, vendi: false }; pick.visible = false; S.owner = me; renderPanel(); return true;
-  }
-  /** SPOSTA: la sagoma parte dalla cella di adesso; un tocco su una cella la sposta lì. */
-  function startSposta(id: string): void {
-    const d = decorOf(id); if (!d || ro) return;
-    panel = { kind: 'sposta', id, cell: [d.cell[0], d.cell[1]] }; S.owner = me; syncSagoma(); renderPanel();
-  }
-  function scegliCella(cell: [number, number]): void {
-    if (panel?.kind !== 'sposta') return;
-    panel.cell = cell; syncSagoma(); renderPanel();
-  }
-  function startSpostaBuilding(id: string): void {
-    const b = buildingOf(id); if (!b || ro || b.building === 'molo') return;
-    panel = { kind: 'sposta_edificio', id, cell: [b.cell[0], b.cell[1]] }; S.owner = me; syncSagoma(); renderPanel();
-  }
-  function scegliCellaEdificio(cell: [number, number]): void {
-    if (panel?.kind !== 'sposta_edificio') return;
-    panel.cell = cell; syncSagoma(); renderPanel();
-  }
-  const dctx = (id: string): DecorCtx => ({
-    busy,
-    onSposta: () => startSposta(id), onRuota: () => void ruota(id), onVendi: () => void vendi(id),
-    onChiediVendi: (si) => { if (panel?.kind === 'decor') { panel.vendi = si; renderPanel(); } },
-    onConferma: () => void conferma(), onAnnulla: () => { if (panel?.kind === 'sposta') { const back = panel.id; closePanel(); openDecor(back); } else closePanel(); }, onClose: closePanel,
-  });
-  function openBuilding(id: string): boolean {
-    if (!lot?.buildings.some((b) => b.id === id)) return false;
-    if (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') closePanel();
-    panel = { kind: 'edificio', id }; pick.visible = false; S.owner = me; renderPanel(); return true;
-  }
-  function openBuild(cell: [number, number]): boolean {
-    if (ro || !lot || inStanza(cell) || buildCellError(lot, cell, tpl) !== null) return false;
-    if (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') closePanel();
-    const h = o.hint?.(), sug = h && h.cell[0] === cell[0] && h.cell[1] === cell[1] && buildable(lot).some((d) => d.id === h.building) ? h.building : null;
-    panel = { kind: 'costruisci', cell, chosen: sug }; S.owner = me;
-    const p = world(cell); pick.position.set(p.x, p.y + 0.04, p.z); pick.visible = true;
-    renderPanel(); return true;
-  }
-  const ctx = (): PanelCtx => ({
-    lot: view ?? lot!, readonly: ro, hide: o.hide ?? [], ownerName: o.ownerName ?? o.owner ?? 'un amico', busy,
-    onCollect: (id) => void collect(id), onUpgrade: (id) => void upgrade(id), onBuild: (b, c) => void build(b, c),
-    onChoose: (b) => { if (panel?.kind === 'costruisci') { panel.chosen = b; renderPanel(); } },
-    onSpostaBuilding: (id) => startSpostaBuilding(id), onClose: closePanel,
-  });
-  function renderPanel(): void {
-    if (!panel || !view || S.owner !== me) return;
-    if (panel.kind === 'edificio') {
-      const id = panel.id, b = view.buildings.find((x) => x.id === id);
-      if (!b) { closePanel(); return; }
-      const p = buildingPanel(ctx(), b); S.sheet.open('edificio:' + b.id, p.body, p.sig);
-    } else if (panel.kind === 'decor' || panel.kind === 'sposta') {
-      const d = decorOf(panel.id);
-      if (!d) { closePanel(); return; }
-      const p = panel.kind === 'decor' ? decorPanel(dctx(d.id), d, panel.vendi) : spostaPanel(dctx(d.id), d, panel.cell, sagomaProblema(d.id, panel.cell));
-      S.sheet.open(`${panel.kind}:${d.id}:${panel.kind === 'sposta' ? panel.cell.join(',') : panel.vendi}`, p.body, p.sig);
-    } else if (panel.kind === 'sposta_edificio') {
-      const b = buildingOf(panel.id);
-      if (!b) { closePanel(); return; }
-      const bid = b.id;
-      const p = spostaBuildingPanel({
-        busy,
-        onConferma: () => void conferma(),
-        onAnnulla: () => { closePanel(); openBuilding(bid); },
-        onClose: closePanel,
-      }, b, panel.cell, sagomaEdificioProblema(b.id, panel.cell));
-      S.sheet.open(`sposta-edificio:${b.id}:${panel.cell.join(',')}`, p.body, p.sig);
-    } else {
-      if (buildCellError(view ?? lot, panel.cell, tpl) !== null) { closePanel(); return; }
-      const p = buildPanel(ctx(), panel.cell, panel.chosen); S.sheet.open(`costruisci:${panel.cell.join(',')}:${panel.chosen ?? ''}`, p.body, p.sig);
-    }
-    S.sheet.tick(now());
-  }
-
-  // ---- UI periodica: depositi proiettati, etichette, barra, chip del cantiere ----
-  function refreshUi(force = false): void {
-    if (!lot) return;
-    if (force || slow >= 0.25) { slow = 0; view = advance(lot, Math.max(lot.nowMs, now())); }
-    const v = view ?? lot, t = now();
-    const c = v.construction ?? lot.construction;
-    if (!ro) {
-      o.hud.setResources?.({ monete: holdMonete ?? lot.monete });
-      const cc = lot.construction;
-      if (cc && cc.endsMs > t) o.hud.setWork?.(`${buildingDef(cc.building).nome}${cc.level > 1 ? ' L' + cc.level : ''} tra ${fmtClock(cc.endsMs - t)}`, () => openBuilding(cc.placedId));
-      else o.hud.setWork?.(null);
-    }
-    const fast = bufferParams().fastH;
-    for (const b of v.buildings) {
-      const d = drawn.get(b.id); if (!d) continue;
-      const def = buildingDef(b.building);
-      if (c && c.placedId === b.id && c.endsMs > t) {
-        d.label.set('timer', [el('span', '', `${def.nome} tra `), timerSpan(c.endsMs)], `t:${c.endsMs}`);
-      } else if (def.produces && b.level >= 1 && b.buffer >= 1) {
-        const n = Math.floor(b.buffer), rate = def.levels[b.level - 1]?.rate ?? 0, full = rate > 0 && b.buffer >= rate * fast - 0.5;
-        d.label.set(full ? 'full' : 'bubble', [resIcon(def.produces, 16), el('span', '', full ? `${n} PIENO` : `+${n}`)], `b:${n}:${full}`);
-      } else d.label.set('info', [], 'x');
-    }
-    tickTimers(S.labels.el, t);
-    if (panel) renderPanel();
-  }
-  /** `focus` = dove sei: oltre LABEL_NEAR_M i cartelli sono discreti (#129, solo da PC); senza focus restano pieni. */
-  function placeLabels(focus?: { x: number; z: number }): void {
-    const t = now(), c = view?.construction;
-    const vic = (p: { x: number; z: number }) => !focus || Math.hypot(p.x - focus.x, p.z - focus.z) < LABEL_NEAR_M;
-    for (const [id, d] of drawn) {
-      const b = view?.buildings.find((x) => x.id === id);
-      const has = !!b && ((c && c.placedId === id && c.endsMs > t) || (b.level >= 1 && b.buffer >= 1 && !!buildingDef(b.building).produces));
-      const p = has ? screenOf(d.holder.position.x, d.holder.position.y + d.height + 0.3, d.holder.position.z) : null;
-      d.label.place(p?.x ?? 0, p?.y ?? 0, !!p?.on, vic(d.holder.position));
-    }
-    if (nearLabel) {
-      const rec = nearDecor && !panel ? decorDrawn.get(nearDecor) : null, p = rec ? screenOf(rec.holder.position.x, rec.holder.position.y + 1.9, rec.holder.position.z) : null;
-      nearLabel.place(p?.x ?? 0, p?.y ?? 0, !!p?.on);
-    }
-    const h = o.hint?.(), busyNow = !!lot?.construction && lot.construction.endsMs > t;
-    for (const sl of slotLabels.values()) {
-      const p = world(sl.cell), sp = !busyNow || panel ? screenOf(p.x, p.y + 0.9, p.z) : null; // col cantiere occupato i cartelli tacciono
-      const isHint = !!h && h.cell[0] === sl.cell[0] && h.cell[1] === sl.cell[1];
-      sl.label.el.classList.toggle('hint', isHint);
-      sl.label.place(sp?.x ?? 0, sp?.y ?? 0, !!sp?.on, isHint || vic(p)); // lo slot suggerito dalla guida resta pieno
-    }
-  }
-
-  // ---- tap sul canvas: breve, fermo, un dito solo, non sui controlli (sono DOM sopra al canvas) ----
-  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.4), hit = new THREE.Vector3();
-  function tapAt(clientX: number, clientY: number): boolean {
-    if (!o.camera || !o.canvas || !lot || document.body.classList.contains('mz-edit-mode')) return false;
-    const r = o.canvas.getBoundingClientRect();
-    ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
-    ray.setFromCamera(ndc, o.camera);
-    plane.constant = -gy((ox + tpl.w / 2) * T, (oz + tpl.h / 2) * T);
-    // SPOSTA (#108, #382): il tocco sceglie la cella della sagoma (sul piano del lotto), niente altri pannelli
-    if (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') {
-      if (ray.ray.intersectPlane(plane, hit)) {
-        const c: [number, number] = [Math.floor(hit.x / T) - ox, Math.floor(hit.z / T) - oz];
-        if (panel.kind === 'sposta') scegliCella(c); else scegliCellaEdificio(c);
-      }
-      return true;
-    }
-    const decorHolders = ro ? [] : [...decorDrawn.values()].map((d) => d.holder);
-    for (const h of ray.intersectObjects([...[...drawn.values()].map((d) => d.holder), ...decorHolders], true)) {
-      let n: THREE.Object3D | null = h.object;
-      while (n && !n.userData['lotId'] && !n.userData['decorId']) n = n.parent;
-      if (n?.userData['decorId']) return openDecor(String(n.userData['decorId']));
-      if (n) return openBuilding(String(n.userData['lotId']));
-    }
-    if (ray.ray.intersectPlane(plane, hit)) {
-      const cell: [number, number] = [Math.floor(hit.x / T) - ox, Math.floor(hit.z / T) - oz];
-      const dc = ro ? null : lot.decor.find((x) => x.cell[0] === cell[0] && x.cell[1] === cell[1]);
-      if (dc) return openDecor(dc.id);
-      const b = lot.buildings.find((x) => x.cell[0] === cell[0] && x.cell[1] === cell[1] && x.building !== 'molo');
-      if (b) return openBuilding(b.id);
-      if (buildCellError(lot, cell, tpl) === null && openBuild(cell)) return true;
-      const molo = lot.buildings.find((x) => x.building === 'molo');
-      if (molo && tpl.at(cell[0], cell[1]) === 'd') return openBuilding(molo.id);
-    }
-    if (S.owner === me) closePanel();
-    return false;
-  }
-  let down: { id: number; x: number; y: number; t: number } | null = null, multi = false;
-  const onDown = (e: PointerEvent) => { if (down) { multi = true; return; } multi = false; down = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() }; };
-  const onMove = (e: PointerEvent) => { if (down && e.pointerId === down.id && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 12) multi = true; };
-  const onUp = (e: PointerEvent) => {
-    if (!down || e.pointerId !== down.id) return;
-    const ok = !multi && performance.now() - down.t < 450 && Math.hypot(e.clientX - down.x, e.clientY - down.y) <= 12;
-    down = null;
-    if (ok && document.elementFromPoint(e.clientX, e.clientY) === o.canvas) tapAt(e.clientX, e.clientY);
-  };
-  const onCancel = () => { down = null; };
-  o.canvas?.addEventListener('pointerdown', onDown); o.canvas?.addEventListener('pointermove', onMove);
-  addEventListener('pointerup', onUp); addEventListener('pointercancel', onCancel);
-  const onKey = (e: KeyboardEvent) => { if (e.code === 'Escape' && panel && S.owner === me) { e.preventDefault(); closePanel(); } };
-  addEventListener('keydown', onKey);
   const onVis = () => { if (!document.hidden) void refresh(); };
   document.addEventListener('visibilitychange', onVis);
 
   const contains = (x: number, z: number) => x >= ox * T - 6 && z >= oz * T - 6 && x <= (ox + tpl.w) * T + 6 && z <= (oz + tpl.h) * T + 6;
-  const tap = (target: string | [number, number]): boolean => {
-    if (Array.isArray(target)) {
-      const c: [number, number] = [Number(target[0]), Number(target[1])];
-      if (panel?.kind === 'sposta') { scegliCella(c); return true; }
-      if (panel?.kind === 'sposta_edificio') { scegliCellaEdificio(c); return true; }
-      const b = lot?.buildings.find((x) => x.cell[0] === c[0] && x.cell[1] === c[1]);
-      return b ? openBuilding(b.id) : openBuild(c);
-    }
-    const b = lot?.buildings.find((x) => x.id === target) ?? lot?.buildings.find((x) => x.building === target);
-    if (!b && decorOf(target)) return openDecor(target);
-    return b ? openBuilding(b.id) : false;
-  };
 
   // ---- test API ----
   const key = ro ? `lot:${o.owner ?? '?'}` : 'lot', sfx = ro ? `@${o.owner ?? '?'}` : '';
-  const unState = registerStateProvider(key, () => {
-    const v = view, t = now();
-    return {
-      ready: !!lot, readonly: ro, owner: lot?.owner ?? o.owner ?? null, origin: [ox, oz], serverNow: t, busy, refreshes, error: lastError ?? o.api.lastError,
-      resources: lot?.resources ?? null, monete: lot?.monete ?? null,
-      buildings: (v?.buildings ?? []).map((b) => ({ id: b.id, building: b.building, level: b.level, cell: b.cell, buffer: Math.floor(b.buffer), model: drawn.get(b.id)?.model ?? null })),
-      construction: v?.construction ? { ...v.construction, leftS: Math.max(0, Math.ceil((v.construction.endsMs - t) / 1000)) } : null,
-      freeSlots: ro ? [] : freeSlots(),
-      panel: S.owner === me && panel ? { ...panel } : null,
-      labels: [...drawn.entries()].map(([id, d]) => ({ id, text: d.label.el.textContent ?? '', cls: d.label.el.className })),
-      decor: (lot?.decor ?? []).map((d) => {
-        const h = decorDrawn.get(d.id)?.holder;
-        return { id: d.id, decor: d.decor, cell: d.cell, rot: d.rot ?? 0, model: decorDrawn.get(d.id)?.model ?? null, at: h ? { x: h.position.x, z: h.position.z } : null };
-      }),
-      nearDecor,
-      sagoma: (panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') ? {
-        id: panel.id, cell: panel.cell, visible: sagoma.visible,
-        color: '#' + (sagoma.material as THREE.MeshLambertMaterial).color.getHexString().toUpperCase(),
-        problema: panel.kind === 'sposta' ? sagomaProblema(panel.id, panel.cell) : sagomaEdificioProblema(panel.id, panel.cell),
-      } : null,
-      slotSigns: [...slotLabels.values()].map((sl) => ({ cell: sl.cell, hint: sl.label.el.classList.contains('hint') })),
-    };
-  });
-  registerTestHook('lotTap' + sfx, (t) => tap(t as string | [number, number]));
+  const unState = registerStateProvider(key, () => ({
+    ready: !!lot, readonly: ro, owner: lot?.owner ?? o.owner ?? null, origin: [ox, oz], serverNow: o.api.serverNow(), refreshes, error: lastError ?? o.api.lastError,
+    monete: lot?.monete ?? null, baule: bauleKey || null,
+  }));
   registerTestHook('lotRefresh' + sfx, () => refresh());
-  /** Posizione a schermo (px CSS) di un edificio o di una cella, per toccare davvero il canvas nei test. */
-  registerTestHook('lotScreen' + sfx, (t) => {
-    const b = typeof t === 'string' ? lot?.buildings.find((x) => x.id === t || x.building === t) : null;
-    const c = b ? b.cell : (t as [number, number]);
-    const p = world(c), d = b ? drawn.get(b.id) : null;
-    return screenOf(p.x, p.y + (d ? d.height * 0.4 : 0), p.z);
-  });
-  /** Decorazioni (#108): posizione a schermo di una decorazione (per toccarla davvero) e rimborso previsto. */
-  registerTestHook('lotDecorScreen' + sfx, (id) => { const rec = decorDrawn.get(String(id)); return rec ? screenOf(rec.holder.position.x, rec.holder.position.y + 0.5, rec.holder.position.z) : null; });
-  registerTestHook('lotDecorRimborso', (decor) => decorRimborso(String(decor)));
-  /** Azione diretta senza i controlli della UI (per vedere gli errori del server). */
-  registerTestHook('lotAct' + sfx, async (kind, a, b) => {
-    const ok = kind === 'collect' ? await collect(String(a)) : kind === 'upgrade' ? await upgrade(String(a)) : kind === 'build' ? await build(String(a), b as [number, number]) : await act(() => o.api.buildingMove(String(a), b as [number, number]));
-    return { ok, error: lastError };
-  });
 
-  const ready = lot ? (sync(), refreshUi(true), Promise.resolve()) : refresh();
+  const ready = lot ? (sync(), Promise.resolve()) : refresh();
   return {
     readonly: ro, group, ready, template: tpl, origin: o.origin, tile: T,
-    state: () => lot, refresh, tap, contains, set: (l: LotState) => { if (!disposed) setLot(l); },
-    tick(a, focus) {
-      const pressA = a && !aWas; aWas = a;
-      if (ro || disposed || !lot) return false;
-      if ((panel?.kind === 'sposta' || panel?.kind === 'sposta_edificio') && S.owner === me) { if (pressA) void conferma(); return true; }
-      if (panel && S.owner === me) { nearDecor = null; return panel.kind === 'decor'; }
-      nearDecor = null;
-      if (focus && !busy && !document.querySelector('#mzSheet.on')) {
-        let bd = DECOR_NEAR;
-        for (const [id, rec] of decorDrawn) { const d = Math.hypot(rec.holder.position.x - focus.x, rec.holder.position.z - focus.z); if (d < bd) { bd = d; nearDecor = id; } }
-      }
-      if (nearDecor && pressA) openDecor(nearDecor);
-      return !!nearDecor;
-    },
-    async collectAll() {
-      const r0 = lot?.resources ?? { legno: 0, pietra: 0, perle: 0 };
-      for (const b of view?.buildings ?? []) if (b.level >= 1 && b.buffer >= 1 && buildingDef(b.building).produces) await collect(b.id);
-      const r1 = lot?.resources ?? r0;
-      return { legno: r1.legno - r0.legno, pietra: r1.pietra - r0.pietra, perle: r1.perle - r0.perle };
-    },
+    state: () => lot, refresh, contains, set: (l: LotState) => { if (!disposed) setLot(l); },
     update(dt, focus) {
       if (disposed) return;
-      slow += dt;
       const active = !focus || contains(focus.x, focus.z);
       if (active && !document.hidden) { poll += dt; if (poll >= POLL_S) void refresh(); }
-      const c = lot?.construction;
-      if (c && now() >= c.endsMs + 300 && endsSeen !== c.endsMs) { endsSeen = c.endsMs; void refresh(); }
-      if (panel && S.owner !== me) closePanel(); // il pannello condiviso l'ha preso un'altra isola: la sagoma sparisce, la decorazione torna a posto
-      if (slow >= 0.25) refreshUi();
-      if (pick.visible) pick.scale.setScalar(1 + 0.06 * Math.sin(performance.now() / 180));
-      placeLabels(focus);
     },
     dispose() {
-      disposed = true; unState(); closePanel(); arredi.dispose();
-      for (const d of drawn.values()) d.label.remove();
-      nearLabel?.remove();
-      for (const sl of slotLabels.values()) sl.label.remove();
-      slotLabels.clear();
-      drawn.clear(); o.scene.remove(group);
-      o.canvas?.removeEventListener('pointerdown', onDown); o.canvas?.removeEventListener('pointermove', onMove);
-      removeEventListener('pointerup', onUp); removeEventListener('pointercancel', onCancel);
-      removeEventListener('keydown', onKey);
+      disposed = true; unState(); arredi.dispose(); o.scene.remove(group);
       document.removeEventListener('visibilitychange', onVis);
-      if (!ro) { o.hud.setResources?.(null); o.hud.setWork?.(null); }
+      if (!ro) o.hud.setResources?.(null);
     },
   };
 }

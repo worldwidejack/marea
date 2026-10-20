@@ -6,9 +6,7 @@ import { PAL } from './style.ts';
 export type ResId = keyof Resources | 'monete';
 /** Le voci della barra in alto (`Hud.setResources`): dal #414 una sola, le monete. */
 export const RES_IDS: readonly ResId[] = ['monete'];
-/** Le risorse di prima, nell'ordine di sempre (le usa solo il codice spento). */
-export const RISORSE_IDS: readonly (keyof Resources)[] = ['legno', 'pietra', 'perle'];
-export const RES_NOME: Record<ResId, string> = { monete: 'monete', legno: 'Legno', pietra: 'Pietra', perle: 'Perle' };
+const RES_NOME: Record<ResId, string> = { monete: 'monete', legno: 'Legno', pietra: 'Pietra', perle: 'Perle' };
 
 const COL: Record<string, string> = {
   a: PAL.legnoChiaro, b: PAL.legno, c: PAL.legnoScuro, s: PAL.sabbia,

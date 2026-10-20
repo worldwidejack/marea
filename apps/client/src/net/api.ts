@@ -62,21 +62,7 @@ export type Api = {
   /** Senza id: il proprio lotto. Con id: quello di un altro, in sola lettura. */
   lot(id?: string): Promise<LotState>;
   lots(): Promise<LotOwner[]>;
-  collect(building: string): Promise<LotState>;
-  build(building: string, cell: Cell): Promise<LotState>;
-  upgrade(building: string): Promise<LotState>;
-  /** Edifici liberi (#382, #403): sposta, ruota di 90°, riponi nel magazzino, riponi tutti, posa dal magazzino, salva intera disposizione. */
-  buildingMove(id: string, cell: Cell): Promise<LotState>;
-  buildingRotate(id: string): Promise<LotState>;
-  buildingStow(id: string): Promise<LotState>;
-  buildingStowAll(): Promise<LotState>;
-  buildingPlaceStored(id: string, cell: Cell, rot?: number): Promise<LotState>;
-  buildingLayout(layout: { placed: { id: string; cell: Cell; rot?: number }[]; stowed?: string[] }): Promise<LotState>;
   decor(decor: string, cell: Cell, rot: number): Promise<LotState>;
-  /** Decorazioni libere (#108): sposta in una cella, ruota di 90°, rivendi (metà del prezzo in monete). */
-  decorMove(id: string, cell: Cell): Promise<LotState>;
-  decorRotate(id: string): Promise<LotState>;
-  decorSell(id: string): Promise<LotState>;
   /** La casa arredabile (#265) e la pala (#438): compra (negozio dei mobili), finitura, scegli, posa, sposta, ruota, ritira, baule, amplia, pala. */
   casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule' | 'amplia' | 'pala' | 'retino' | 'canna', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number; da?: number; stanza?: 'terra' | 'cantina' | 'piano' }): Promise<LotState>;
   /** Gli insetti di Borgo Marea (#445): sasso/albero {idx} → {uscito, gia, lot}; cattura {k} → {lot, id}; consegna {id} → {lot}. */
@@ -237,19 +223,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       return (list as unknown[]).filter((x): x is LotOwner => isObj(x) && typeof x['slot'] === 'number' && typeof x['id'] === 'string')
         .map((x) => ({ slot: x.slot, id: x.id, nome: String(x.nome ?? x.id), ...(isObj(x.look) ? { look: x.look } : {}) }));
     },
-    collect: (building) => post('/api/lot/collect', { building }),
-    build: (building, cell) => post('/api/lot/build', { building, cell }),
-    upgrade: (building) => post('/api/lot/upgrade', { building }),
-    buildingMove: (id, cell) => post('/api/lot/building/move', { id, cell }),
-    buildingRotate: (id) => post('/api/lot/building/rotate', { id }),
-    buildingStow: (id) => post('/api/lot/building/stow', { id }),
-    buildingStowAll: () => post('/api/lot/building/stow_all', {}),
-    buildingPlaceStored: (id, cell, rot) => post('/api/lot/building/place_stored', { id, cell, rot }),
-    buildingLayout: (layout) => post('/api/lot/building/layout', layout),
     decor: (decor, cell, rot) => post('/api/lot/decor', { decor, cell, rot }),
-    decorMove: (id, cell) => post('/api/lot/decor/move', { id, cell }),
-    decorRotate: (id) => post('/api/lot/decor/rotate', { id }),
-    decorSell: (id) => post('/api/lot/decor/sell', { id }),
     casa: (azione, body) => post('/api/lot/casa/' + azione, body),
     insetti: (op, body) => call('POST', '/api/lot/insetti/' + op, body).then((d) => ({ ...(d as object), lot: asLot(op === 'consegna' ? d : (d as Record<string, unknown>)['lot']) })),
     pesci: (op, body) => call('POST', '/api/lot/pesci/' + op, body).then((d) => op === 'consegna' ? { lot: asLot(d) } : { id: String((d as Record<string, unknown>)['id'] ?? ''), lot: asLot((d as Record<string, unknown>)['lot']) }),

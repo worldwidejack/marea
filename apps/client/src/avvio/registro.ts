@@ -8,20 +8,17 @@ export type Gruppo = 'pannello' | 'personale' | 'gioco' | 'ferma';
 export type Voce = { id: string; gruppo: Gruppo; aperto(): boolean; chiudi?(): void };
 
 export function creaRegistro(voci: readonly Voce[]) {
-  const foglio = () => !!document.querySelector('#mzSheet.on'); // il foglio di un edificio dell'isola
   const aperto = (gruppi: readonly Gruppo[], tranne?: string) => voci.some((v) => v.id !== tranne && gruppi.includes(v.gruppo) && v.aperto());
   return {
-    foglio,
     /** Qualcosa di aperto nei gruppi dati (senza `tranne`). */
     aperto,
     /** Gara, minigioco, dungeon o un pannello aperto: le frecce sullo schermo (guida, mete) si tolgono e le decorazioni non rispondono ad A. */
     coperto: () => aperto(['pannello', 'personale', 'gioco']),
-    /** Un pannello del mondo, il foglio di un edificio o una partita: niente editor, feed, mappa, emote. */
-    occupato: () => aperto(['pannello', 'gioco']) || foglio(),
-    /** Chiude i pannelli (del mondo e personali), tranne quelli in `tranne`; il foglio di un edificio con `foglio`. */
-    chiudi(tranne: readonly string[] = [], conFoglio = false) {
+    /** Un pannello del mondo o una partita: niente editor, feed, mappa, emote. */
+    occupato: () => aperto(['pannello', 'gioco']),
+    /** Chiude i pannelli (del mondo e personali), tranne quelli in `tranne`. */
+    chiudi(tranne: readonly string[] = []) {
       for (const v of voci) if ((v.gruppo === 'pannello' || v.gruppo === 'personale') && !tranne.includes(v.id)) v.chiudi?.();
-      if (conFoglio) document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click();
     },
   };
 }

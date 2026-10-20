@@ -1,8 +1,8 @@
 // «Mentre eri via» e libro degli ospiti (#86) sul server locale (wrangler dev, TEST_CLOCK:1: l'ora la sposta X-Test-Now-Offset).
-// Bea (slot 0) entra la prima volta (niente cartolina), costruisce Segheria e Cava ed esce. Un'ora dopo Marco (slot 1, telefono) va
+// Bea (slot 0) entra la prima volta (niente cartolina) ed esce. Un'ora dopo Marco (slot 1, telefono) va
 // davanti a casa di Bea, al leggio accanto alla porta: FIRMA, sceglie il saluto, la firma resta nel libro (una sola al giorno: la seconda 409).
-// Sei ore dopo Bea rientra dal telefono: la cartolina «Mentre eri via» dice da quanto mancava, i depositi, il cantiere finito, che Marco
-// è passato; RACCOGLI TUTTO e le risorse salgono quanto i depositi. Nel feed di Bea la visita; al suo leggio il libro con la firma.
+// Sei ore dopo Bea rientra dal telefono: la cartolina «Mentre eri via» dice da quanto mancava e che Marco è passato (niente depositi né
+// cantieri: il giardino non c'è più); AVANTI la chiude. Nel feed di Bea la visita; al suo leggio il libro con la firma.
 // API: firma sul proprio libro 409, saluto sconosciuto 400, isola inesistente 404. Screenshot del telefono di libro, cartolina e feed.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -35,9 +35,7 @@ export default async function (ctx) {
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
   const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
   const read = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
-  const islands = read('islands.json'), rientro = read('rientro.json');
-  const slots = islands.find((i) => i.id === 'lotto').slots;
-  const segCell = slots.find((s) => s.kind === 'segheria').at, cavaCell = slots.find((s) => s.kind === 'cava').at;
+  const rientro = read('rientro.json');
 
   let dev = null, log = '';
   try {
@@ -58,11 +56,9 @@ export default async function (ctx) {
     };
     const bea = (off, m, p, b) => call('tokB', off, m, p, b), marco = (off, m, p, b) => call('tokM', off, m, p, b);
 
-    await ctx.test('API: primo ingresso senza cartolina; Bea costruisce Segheria e Cava; firme non valide rifiutate', async () => {
+    await ctx.test('API: primo ingresso senza cartolina; firme non valide rifiutate', async () => {
       const r = await bea(0, 'POST', '/api/rientro', {});
       assert(r.status === 200 && r.body.riepilogo === null && r.body.lot.visto > 0, 'primo rientro: ' + JSON.stringify(r.body).slice(0, 200));
-      assert((await bea(0, 'POST', '/api/lot/build', { building: 'segheria', cell: segCell })).status === 200, 'segheria');
-      assert((await bea(MIN, 'POST', '/api/lot/build', { building: 'cava', cell: cavaCell })).status === 200, 'cava');
       const poco = await bea(2 * MIN, 'POST', '/api/rientro', {});
       assert(poco.body.riepilogo === null, 'dopo due minuti niente cartolina');
       const mio = await bea(2 * MIN, 'POST', '/api/libro/firma', { isola: 'bea', emote: 'saluto' });
@@ -115,7 +111,7 @@ export default async function (ctx) {
 
     // ---- Bea rientra dopo sei ore (telefono) ----
     const OFF = 6 * H;
-    await ctx.test('telefono, Bea dopo 6 h: cartolina con assenza, depositi, cantiere, la firma di Marco; RACCOGLI TUTTO alza le risorse', async () => {
+    await ctx.test('telefono, Bea dopo 6 h: cartolina con assenza e la firma di Marco, niente depositi né cantieri; AVANTI la chiude', async () => {
       const P = await openAt(ctx, `${B}/?t=tokB&test=1&rientro=1`, ctx.B.IPHONE, OFF), page = P.page;
       const st = () => ctx.getState(page), hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
       await ctx.waitReady(page, 30000);
@@ -125,13 +121,10 @@ export default async function (ctx) {
       const r = (await st()).libro.cartolina.riepilogo;
       ctx.log('riepilogo', JSON.stringify(r));
       assert(r.assenteMs >= 6 * H - 3 * MIN && r.assenteMs <= 6 * H + 10 * MIN, 'assenza: ' + r.assenteMs); // più il tempo vero passato col test
-      assert(r.depositi.legno >= 100 && r.depositi.pietra >= 60, 'depositi: ' + JSON.stringify(r.depositi));
-      assert(r.cantiere && r.cantiere.building === 'cava', 'cantiere finito: ' + JSON.stringify(r.cantiere));
       assert(r.ospitiTot === 1 && r.ospiti[0].nome === 'Marco', 'ospiti: ' + JSON.stringify(r.ospiti));
       const card = page.locator('#mzRientro');
       const txt = await card.innerText();
-      assert(/MENTRE ERI VIA/i.test(txt) && /Mancavi da [56] h/.test(txt) && /Marco/.test(txt) && /Cava/.test(txt), 'cartolina: ' + txt);
-      assert(new RegExp(`\\+${r.depositi.legno} Legno`).test(txt) && new RegExp(`\\+${r.depositi.pietra} Pietra`).test(txt), 'depositi nella cartolina: ' + txt);
+      assert(/MENTRE ERI VIA/i.test(txt) && /Mancavi da [56] h/.test(txt) && /Marco/.test(txt) && !/Legno|Pietra|Cantiere|RACCOGLI/i.test(txt), 'cartolina: ' + txt);
       const box = await card.boundingBox();
       assert(box && box.x >= 0 && box.x + box.width <= 390 && box.y >= 0 && box.y + box.height <= 844, 'cartolina fuori schermo: ' + JSON.stringify(box));
       const small = await page.evaluate(() => [...document.querySelectorAll('#mzRientro button')].filter((b) => b.getBoundingClientRect().height < 44).map((b) => b.textContent));
@@ -139,18 +132,8 @@ export default async function (ctx) {
       assert((await st()).libro.ui.righe.includes('ospiti'), 'riga delle firme');
       await sleep(400);
       await ctx.shot(page, 'iphone_cartolina');
-      const r0 = (await st()).lot.resources;
-      await page.locator('#mzRientro [data-act="raccogli"]').tap();
-      await ctx.waitState(page, (s, w) => s.libro.open === null && s.lot.resources.legno >= w.l && s.lot.resources.pietra >= w.p && !s.lot.busy, 15000, { l: r0.legno + r.depositi.legno, p: r0.pietra + r.depositi.pietra });
-      const r1 = (await st()).lot.resources;
-      ctx.log(`risorse ${JSON.stringify(r0)} → ${JSON.stringify(r1)}`);
-      // tra la cartolina e il tocco passa tempo vero (l'orologio di prova sposta solo l'inizio): i depositi possono crescere di un'unità
-      const dl = r1.legno - r0.legno - r.depositi.legno, dp = r1.pietra - r0.pietra - r.depositi.pietra;
-      assert(dl >= 0 && dl <= 2 && dp >= 0 && dp <= 2, `raccolto diverso dai depositi: ${dl} ${dp}`);
-      const srv = (await bea(OFF + MIN, 'GET', '/api/lot')).body;
-      assert(srv.resources.legno === r1.legno && srv.resources.pietra === r1.pietra, 'risorse sul server: ' + JSON.stringify(srv.resources));
-      await sleep(900);
-      await ctx.shot(page, 'iphone_raccolto');
+      await page.locator('#mzRientro [data-act="avanti"]').tap();
+      await ctx.waitState(page, (s) => s.libro.open === null, 8000);
 
       // feed: la visita di Marco con il suo saluto
       const feed = (await bea(OFF + MIN, 'GET', '/api/feed')).body;

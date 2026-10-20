@@ -72,8 +72,6 @@ body #mzBar .mz-chip[data-res="monete"]::before { content: ''; flex: none; width
   border: ${k(2.5)} solid ${A.notte}; box-shadow: inset 0 0 0 ${k(3)} ${A.oroChiaro}, inset 0 ${k(-4)} 0 ${k(4)} ${A.oroScuro};
   background: linear-gradient(${A.bianco}, ${A.bianco}) center / ${k(5)} ${k(14)} no-repeat, ${A.oro}; }
 /* cantiere: pillola blu accanto alla campanella (sparisce con l'economia a monete) */
-body #mzWork { top: calc(${T} + ${k(54)}); left: calc(10px + ${k(58)}); right: auto; transform: none; min-height: ${k(32)}; padding: 0 ${k(12)}; max-width: calc(100% - 10px - ${k(58)} - ${DESTRA}px - ${k(MINI + 10 + 48 + 10)}); box-sizing: border-box; ${PILLOLA_SCURA} }
-body #mzWork.on { line-height: ${k(27)}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ——— bottoni in alto: ognuno al suo posto (la barra non è più una fila) ——— */
 body #mzTop { position: absolute; inset: 0; display: block; pointer-events: none; z-index: 14; }
