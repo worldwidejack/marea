@@ -50,7 +50,7 @@
     {
       "id": "pina", "nome": "Nonna Pina", "ruolo": "guida",
       "look": { "pelle": 4, "capelli": 3, "coloreCapelli": 5, "vestito": 3, "cappello": 3 },
-      "giro": [[46.2, 56.4]], "velocita": 0, "raggio": 3,
+      "giro": [[46.2, 56.4]], "velocita": 0.5, "raggio": 3,
       "battute": [
         "Ciao tesoro. Le botteghe del Borgo cambiano la vetrina ogni giorno: passa a guardare, che il bello finisce presto.",
         "Alla Bacheca in piazza ci sono tre missioni nuove ogni giorno. Le fai, torni e premi RISCUOTI. Così si campa.",

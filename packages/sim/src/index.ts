@@ -8,6 +8,8 @@ export * from './world/avatar.ts';
 export * from './world/boat.ts';
 export * from './world/temi.ts';
 export * from './world/casa_mappa.ts'; // La mappa di chi cammina nelle case: ampliamenti sbloccati (#386)
+export * from './world/ostacoli.ts'; // Cose solide del Borgo: alberi, case, banchi, gente
+export * from './world/cammino.ts'; // Percorsi della gente che passeggia
 export * from './economy/types.ts';
 export * from './economy/monete.ts'; // la valuta (#414)
 export * from './economy/advance.ts';

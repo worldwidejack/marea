@@ -5,7 +5,7 @@ import gente from './gente.json' with { type: 'json' };
 import missioni from './missioni.json' with { type: 'json' };
 
 export type PortoLook = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
-/** Una persona del Porto (`paesano`: abitanti del Borgo, il loro giro lo scrive tools/borgo_pianta.py): `giro` = punti da percorrere avanti e indietro (uno solo = ferma), `velocita` in m/s, `raggio` = da quanto vicino si parla.
+/** Una persona del Porto (`paesano`: abitanti del Borgo, il loro giro lo scrive tools/borgo_pianta.py): `giro[0]` = dove parte (o sta, se ferma); con `velocita` > 0 (m/s) passeggia per il Borgo (client game/passeggio.ts), chi sta a un banco no; `raggio` = da quanto vicino si parla.
  *  `battute`: le dicono in fila, una dopo l'altra; i paesani non le hanno (le loro chiacchiere e i favori stanno in paesani.json). */
 export type PersonaPorto = { id: string; nome: string; ruolo: 'mercante' | 'contrabbandiere' | 'guida' | 'paesano'; look: PortoLook; giro: [number, number][]; velocita: number; raggio: number; battute?: string[] };
 /** Banco del Mercante o Bacheca: dove sta il prop (`at`, `rot`) e dove si mette chi gioca per usarlo (`fronte`, entro `raggio` m). */
