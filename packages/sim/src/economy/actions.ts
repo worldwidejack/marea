@@ -1,11 +1,11 @@
 // Azioni economiche pure: ogni azione fa prima advance(nowMs), poi controlla e lancia EconomyError in italiano (con `manca` se mancano risorse).
-import { AVATAR, BALANCE, DECOR, building } from '@marea/content';
+import { AVATAR, BALANCE, building } from '@marea/content';
 import { advance, storageCap } from './advance.ts';
-import { buildCellError, decorCellError, defaultTemplate, dockCell } from './cells.ts';
+import { buildCellError, defaultTemplate, dockCell } from './cells.ts';
 import type { LotTemplate } from './cells.ts';
-import { guadagna, spendi } from './monete.ts';
+import { spendi } from './monete.ts';
 import { EconomyError, ZERO, add, geq, missing, sub } from './types.ts';
-import type { LotState, PlacedBuilding, PlacedDecor, Resources, StoredBuilding } from './types.ts';
+import type { LotState, PlacedBuilding, Resources, StoredBuilding } from './types.ts';
 
 /** Lotto nuovo: Molo L1 sul molo `d` del template (default: `lotto` di islands.json; va bene anche un GridMap), le monete di partenza
  *  (`BALANCE.monete.partenza`, #414) e le risorse di prima di BALANCE.partenza, che servono solo al codice spento del giardino. */
@@ -13,7 +13,7 @@ export function newLot(owner: string, nowMs: number, tpl: LotTemplate | null = d
   const cell = dockCell(tpl);
   const molo: PlacedBuilding = { id: 'molo', building: 'molo', level: 1, cell, buffer: 0, lastMs: nowMs };
   return {
-    owner, version: 0, nowMs, monete: BALANCE.monete.partenza, resources: { ...BALANCE.partenza }, buildings: [molo], construction: null, decor: [],
+    owner, version: 0, nowMs, monete: BALANCE.monete.partenza, resources: { ...BALANCE.partenza }, buildings: [molo], construction: null,
     escrow: { ...ZERO }, ledger: { generated: { ...BALANCE.partenza }, spent: { ...ZERO }, monete: { generated: BALANCE.monete.partenza, spent: 0 } }, boostUntilMs: 0,
     posseduti: [],
   };
@@ -290,69 +290,6 @@ export function upgrade(lot0: LotState, placedId: string, nowMs: number): LotSta
   if (!lvl) throw new EconomyError('livello', `${def.nome}: livello massimo raggiunto`);
   lot = pay(lot, lvl.cost);
   return { ...lot, version: lot.version + 1, construction: { building: b.building, level: b.level + 1, endsMs: nowMs + lvl.seconds * 1000, placedId } };
-}
-
-/** Decorazione: costa monete (il prezzo lo passa il chiamante dal catalogo `DECOR`), istantanea, su sabbia/erba libera del template. */
-export function placeDecor(lot0: LotState, decor: string, cell: [number, number], rot: number, nowMs: number, prezzo = 0, tpl: LotTemplate | null = defaultTemplate()): LotState {
-  let lot = advance(lot0, nowMs);
-  if (!Number.isInteger(prezzo) || prezzo < 0) throw new EconomyError('sconosciuto', 'Prezzo della decorazione non valido');
-  const bad = decorCellError(lot, cell, tpl);
-  if (bad) throw new EconomyError(bad.code, bad.msg);
-  if (!Number.isInteger(rot) || rot < 0 || rot > 3) throw new EconomyError('posizione', 'Rotazione non valida (0-3)');
-  lot = spendi(lot, prezzo);
-  const placed: PlacedDecor = { id: `${decor}-${nextDecorN(lot)}`, decor, cell };
-  if (rot) placed.rot = rot;
-  return { ...lot, version: lot.version + 1, decor: [...lot.decor, placed] };
-}
-
-/** Numero per l'id della prossima decorazione (`<decor>-<n>`): oltre tutti quelli già usati, così dopo una vendita non si ripete un id. */
-function nextDecorN(lot: LotState): number {
-  let n = lot.decor.length;
-  for (const d of lot.decor) { const k = Number(d.id.slice(d.id.lastIndexOf('-') + 1)); if (Number.isInteger(k) && k > n) n = k; }
-  return n + 1;
-}
-function findDecor(lot: LotState, id: string): PlacedDecor {
-  const d = lot.decor.find((x) => x.id === id);
-  if (!d) throw new EconomyError('sconosciuto', 'Decorazione non trovata');
-  return d;
-}
-
-/** Monete che tornano rivendendo una decorazione (#108): BALANCE.decor.rimborso del prezzo di catalogo, per difetto. Sconosciuta = 0. */
-export function decorRimborso(decor: string): number {
-  const p = DECOR.find((d) => d.id === decor)?.monete ?? 0;
-  return Math.max(0, Math.floor(p * BALANCE.decor.rimborso));
-}
-
-/** Sposta una decorazione (#108) in un'altra cella valida (stesse regole di placeDecor; la sua cella di adesso non conta come occupata). */
-export function moveDecor(lot0: LotState, id: string, cell: [number, number], nowMs: number, tpl: LotTemplate | null = defaultTemplate()): LotState {
-  const lot = advance(lot0, nowMs);
-  const d = findDecor(lot, id);
-  if (d.cell[0] === cell[0] && d.cell[1] === cell[1]) return lot;
-  const bad = decorCellError({ ...lot, decor: lot.decor.filter((x) => x.id !== id) }, cell, tpl);
-  if (bad) throw new EconomyError(bad.code, bad.msg);
-  return { ...lot, version: lot.version + 1, decor: lot.decor.map((x) => (x.id === id ? { ...x, cell: [cell[0], cell[1]] } : x)) };
-}
-
-/** Ruota una decorazione di 90° (#108): rot 0 → 1 → 2 → 3 → 0 (assente = 0). */
-export function rotateDecor(lot0: LotState, id: string, nowMs: number): LotState {
-  const lot = advance(lot0, nowMs);
-  findDecor(lot, id);
-  return {
-    ...lot, version: lot.version + 1,
-    decor: lot.decor.map((x) => {
-      if (x.id !== id) return x;
-      const rot = ((x.rot ?? 0) + 1) % 4, out: PlacedDecor = { id: x.id, decor: x.decor, cell: x.cell };
-      if (rot) out.rot = rot;
-      return out;
-    }),
-  };
-}
-
-/** Rivende una decorazione (#108): sparisce e tornano `decorRimborso` monete (entrata nel libro mastro, come le altre). */
-export function sellDecor(lot0: LotState, id: string, nowMs: number): { lot: LotState; monete: number } {
-  const lot = advance(lot0, nowMs);
-  const d = findDecor(lot, id), monete = decorRimborso(d.decor);
-  return { monete, lot: guadagna({ ...lot, version: lot.version + 1, decor: lot.decor.filter((x) => x.id !== id) }, monete) };
 }
 
 /** Cappelli posseduti: i gratuiti (monete 0) sono di tutti, gli altri solo se comprati. */

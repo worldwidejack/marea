@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { BORGO, MOBILI } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
 import { ampliaCasa, ampliatoOggi, compraMobile, livelloLotto, posaMobile, postoMobileError } from '../src/economy/casa.ts';
-import { decorCellError, fitToTemplate, inStanza, lotTemplate } from '../src/economy/cells.ts';
+import { buildCellError, fitToTemplate, inStanza, lotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
 import { LIVELLI_CASA, MAX_LIVELLO_CASA, PIANTE_MAX, livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzaTerra, stanzeDi } from '../src/economy/stanze.ts';
 import { EconomyError } from '../src/economy/types.ts';
@@ -119,10 +119,10 @@ test('i mobili a muro vanno col muro: dopo l’ampliamento stanno sul muro nuovo
   assert.equal(postoMobileError(lot, parete, { cell: [ST.retro[0], r[1]], muro: 'n' })?.code, 'posizione');
 });
 
-test('giardino: la pianta massima della casa è chiusa a decorazioni ed edifici anche se la stanza è ancora piccola', () => {
+test('giardino: la pianta massima della casa è chiusa agli edifici anche se la stanza è ancora piccola', () => {
   const lot = newLot('a', 0, T), max = PIANTE_MAX.find((s) => s.id === 'terra')!.pavimento;
   assert.ok(inStanza([max[0], max[1]]) && inStanza([max[2] - 1, max[3] - 1]));
-  assert.equal(decorCellError(lot, [max[0], max[1]], T)?.code, 'posizione');
+  assert.equal(buildCellError(lot, [max[0], max[1]], T, 'segheria')?.code, 'posizione');
   assert.equal(fitToTemplate(lot, T), lot, 'un lotto nuovo è già a posto');
   assert.deepEqual(stanzeDi(0).map((s) => s.id), ['terra']);
   assert.equal(livelloCasa({ livello: 99 }), MAX_LIVELLO_CASA);

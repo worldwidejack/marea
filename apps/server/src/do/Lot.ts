@@ -1,8 +1,7 @@
 // Il lotto di un giocatore (casa, monete, personaggio, collezioni): LotState in una riga JSON dello storage SQLite del DO, azioni
 // economiche pure di @marea/sim con l'ora del server. Il Worker instrada qui con idFromName(persona.id) e passa il proprietario in `x-persona`
 // e l'ora in `x-now` (vedi clock.ts). Il DO serializza le richieste (input gate) e lo storage SQL è sincrono: niente corse tra due azioni.
-// Richieste dal Worker: GET /state · POST /decor {decor, cell, rot} · /hat {hat}.
-// Decorazioni libere (#108): POST /decor_move {id, cell} · /decor_rotate {id} · /decor_sell {id} → LotState (rimborso da BALANCE.decor).
+// Richieste dal Worker: GET /state · POST /decor {decor} (nel magazzino di casa) · /hat {hat}.
 // · /barca {id} (#107: colore esclusivo della barca, una volta).
 // Minigiochi da solo: POST /solo_start {minigame, opzioni?} → {seed, difficulty, opzioni, lot} · /solo_play {inputs} → il server rigioca gli input, premia la
 // medaglia (balance.solo) e risponde {score, medal, detail, premio, premiata, lot}.
@@ -19,12 +18,13 @@
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, DECOR } from '@marea/content';
-import { buyHat, moveDecor, newLot, placeDecor, rotateDecor, sellDecor } from '@marea/sim/economy/actions.ts';
+import { buyHat, newLot } from '@marea/sim/economy/actions.ts';
 import { compraColoreDelGiorno, miglioraBottega } from '@marea/sim/economy/botteghe.ts';
 import { ampliaCasa, compraFinituraDelGiorno, conBaule, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { convertiMonete } from '@marea/sim/economy/cambio.ts';
+import { compraDecor, decorInCasa } from '@marea/sim/economy/decorazioni.ts';
 import { guadagna } from '@marea/sim/economy/monete.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
 import { finishSolo, soloOf, startSolo } from '@marea/sim/economy/rewards.ts';
@@ -80,8 +80,8 @@ export class Lot extends DurableObject<Env> {
     const lot = JSON.parse(row.json) as LotState;
     // salvataggi di prima delle monete (#414): risorse, edifici spenti e monete del personaggio diventano monete, una volta sola;
     // lotti nati prima del template `lotto` (celle arbitrarie): Molo sul molo, edifici sugli slot L; poi resta com'è
-    // il baule di serie a chi non l'aveva; e personaggi con abilità o perk che non esistono più (Navigazione): via, i perk tornano punti
-    const fit = conBaule(fitHero(fitToTemplate(convertiMonete(lot), defaultTemplate())));
+    // il baule di serie a chi non l'aveva, le decorazioni del giardino nel magazzino di casa; e personaggi con abilità o perk che non esistono più (Navigazione): via, i perk tornano punti
+    const fit = conBaule(fitHero(fitToTemplate(decorInCasa(convertiMonete(lot)), defaultTemplate())));
     // spedizione abbandonata da un pezzo con un altare toccato: si chiude tenendo il bottino dell'altare
     const chiusa = chiudiScaduta(fit, now);
     if (chiusa) { this.save(chiusa.lot); return chiusa.lot; }
@@ -258,20 +258,10 @@ export class Lot extends DurableObject<Env> {
 
   private act(lot: LotState, act: string, body: Record<string, unknown>, now: number): LotState | Response {
     switch (act) {
+      // le decorazioni del Mercante vanno nel magazzino di casa: si posano con ARREDA come i mobili (casa_posa)
       case 'decor': {
-        const d = DECOR.find((x) => x.id === body['decor']), cell = body['cell'], rot = body['rot'] ?? 0;
-        if (!d) return json({ error: 'Decorazione sconosciuta' }, 400);
-        if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
-        if (typeof rot !== 'number' || !Number.isInteger(rot) || rot < 0 || rot > 3) return json({ error: 'Rotazione non valida (0-3)' }, 400);
-        return placeDecor(lot, d.id, cell, rot, now, d.monete);
-      }
-      case 'decor_move': case 'decor_rotate': case 'decor_sell': {
-        const id = body['id'], cell = body['cell'];
-        if (!isId(id)) return json({ error: 'Manca la decorazione' }, 400);
-        if (act === 'decor_rotate') return rotateDecor(lot, id, now);
-        if (act === 'decor_sell') return sellDecor(lot, id, now).lot;
-        if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
-        return moveDecor(lot, id, cell, now);
+        const d = DECOR.find((x) => x.id === body['decor']);
+        return d ? compraDecor(lot, d.id) : json({ error: 'Decorazione sconosciuta' }, 400);
       }
       // la casa arredabile (#265, economy/casa.ts): compra (negozio dei mobili), posa, sposta, gira, ritira; finiture; il baule
       case 'casa_compra': return isId(body['id']) ? compraMobileDelGiorno(lot, body['id'], now) : json({ error: 'Mobile sconosciuto' }, 400);

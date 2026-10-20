@@ -9,8 +9,6 @@ import type { PesciState } from './pesci.ts';
 export type PlacedBuilding = { id: string; building: string; level: number; cell: [number, number]; buffer: number; lastMs: number; rot?: number };
 /** Edificio riposto nel magazzino dell'isola (#403). */
 export type StoredBuilding = { id: string; building: string; level: number; buffer: number; lastMs: number; rot?: number };
-/** Decorazione posata. `rot` = quarti di giro (0-3) attorno all'asse verticale; assente = 0 (#108). */
-export type PlacedDecor = { id: string; decor: string; cell: [number, number]; rot?: number };
 export type Construction = { building: string; level: number; endsMs: number; placedId: string };
 /** Libro mastro: `generated`/`spent` = le risorse di prima (codice spento), `monete` = entrate e uscite di monete (#414; assente = 0 e 0). */
 export type LedgerTotals = { generated: Resources; spent: Resources; monete?: { generated: number; spent: number } };
@@ -53,7 +51,6 @@ export type LotState = {
   /** Edifici riposti nel magazzino dell'isola (#403): assente = []. */
   magazzinoEdifici?: StoredBuilding[];
   construction: Construction | null;
-  decor: PlacedDecor[];
   /** Poste delle vecchie sfide (risorse di prima, codice tolto): resta per il libro mastro. */
   escrow: Resources;
   ledger: LedgerTotals;

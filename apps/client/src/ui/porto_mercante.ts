@@ -1,10 +1,9 @@
-// Mercante del Porto (#63), corpo del pannello: cappelli (prova sul tuo avatar, COMPRA, INDOSSA) e decorazioni (COMPRA → posata
-// sulla tua isola, nella cella libera più vicina a casa) e colori esclusivi della barca (#107: prova sulla tua barca, COMPRA, poi SCAFO o
-// VELA). Le esclusive del Mercante (avatar.json / decor.json `mercante: true`) in cima.
-// Tutto deciso dal server: monete (#414), posseduti, celle. Fa parte del chunk dei pannelli del Porto (ui/porto_ui.ts).
+// Mercante del Porto, corpo del pannello: cappelli (prova sul tuo avatar, COMPRA, INDOSSA), decorazioni (COMPRA → nel magazzino di
+// casa, si posano con ARREDA) e colori esclusivi della barca (prova sulla tua barca, COMPRA, poi SCAFO o VELA). Le esclusive del Mercante
+// (avatar.json / decor.json `mercante: true`) in cima.
+// Tutto deciso dal server: monete, posseduti. Fa parte del chunk dei pannelli del Porto (ui/porto_ui.ts).
 import { AVATAR, DECOR } from '@marea/content';
-import { barcaDi, cellsOf, decorCellError, defaultTemplate, possiedeColore } from '@marea/sim';
-import type { LotState } from '@marea/sim';
+import { barcaDi, casaDi, chiaveDecor, possiedeColore } from '@marea/sim';
 import type { Look } from '@marea/protocol';
 import { ApiError, mancaText, moneteText } from '../net/api.ts';
 import type { PortoCtx } from '../game/porto.ts';
@@ -12,8 +11,7 @@ import { el } from './style.ts';
 import { resIcon } from './icons.ts';
 
 export type Tab = 'cappelli' | 'decor' | 'barca';
-/** Le decorazioni non si vendono finché non si posano in casa: col giardino spento finirebbero dove non si vedono. */
-export const TABS: readonly Tab[] = ['cappelli', 'barca'];
+export const TABS: readonly Tab[] = ['cappelli', 'decor', 'barca'];
 export type Note = { id: string; text: string; bad: boolean } | null;
 /** `provaBarca`: id del colore esclusivo che si sta provando sullo scafo (#107). */
 export type MercanteState = { tab: Tab; prova: number | null; provaBarca: string | null; note: Note; busy: boolean };
@@ -21,16 +19,6 @@ export type MercanteState = { tab: Tab; prova: number | null; provaBarca: string
 const HATS = AVATAR.cappelli.map((h, i) => ({ ...h, i })).filter((h) => h.monete > 0).sort((a, b) => Number(!!b.mercante) - Number(!!a.mercante) || a.monete - b.monete);
 const DECORS = [...DECOR].sort((a, b) => Number(!!b.mercante) - Number(!!a.mercante) || a.monete - b.monete);
 const COLORI = AVATAR.barca.colori.filter((k) => k.mercante).sort((a, b) => a.monete - b.monete);
-
-/** Cella libera per una decorazione: sabbia/erba del template, la più vicina allo spawn di casa ma non attaccata (lì si arriva). */
-export function cellaLibera(lot: LotState): [number, number] | null {
-  const t = defaultTemplate();
-  if (!t) return null;
-  const casa = cellsOf(t, 'P')[0] ?? [0, 0];
-  const ok = [...cellsOf(t, 'g'), ...cellsOf(t, '.')].filter((c) => !decorCellError(lot, c, t) && Math.max(Math.abs(c[0] - casa[0]), Math.abs(c[1] - casa[1])) >= 2);
-  ok.sort((a, b) => Math.hypot(a[0] - casa[0], a[1] - casa[1]) - Math.hypot(b[0] - casa[0], b[1] - casa[1]) || a[1] - b[1] || a[0] - b[0]);
-  return ok[0] ?? null;
-}
 
 const errText = (e: unknown): string => {
   if (e instanceof ApiError && e.manca) return (e.manca.monete ?? 0) > 0 ? moneteText(e.manca.monete ?? 0) : `${e.message}: ${mancaText(e.manca)}`;
@@ -43,7 +31,7 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
   const owned = (id: string) => (lot?.posseduti ?? []).includes(id);
   const body = el('div'); body.dataset['panel'] = 'mercante';
   const tabs = el('div', 'mz-pt-tabs');
-  for (const [id, nome] of [['cappelli', 'Cappelli'], ['barca', 'Barca']] as const) {
+  for (const [id, nome] of [['cappelli', 'Cappelli'], ['decor', 'Decorazioni'], ['barca', 'Barca']] as const) {
     const b = el('button', 'mz-pt-tab', nome); b.type = 'button'; b.dataset['tab'] = id; b.setAttribute('aria-pressed', String(st.tab === id));
     b.addEventListener('click', () => { st.tab = id; st.note = null; redraw(); });
     tabs.appendChild(b);
@@ -116,17 +104,15 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
     }
   } else {
     for (const d of DECORS) {
-      const quante = lot?.decor.filter((x) => x.decor === d.id).length ?? 0;
+      const k = chiaveDecor(d.id), casa = casaDi(lot), quante = (casa.magazzino?.[k] ?? 0) + (casa.arredi ?? []).filter((x) => x.mobile === k).length;
       const row = el('div', 'mz-pt-row'); row.dataset['item'] = d.id;
       const nm = el('div', 'nm');
-      nm.append(el('b', '', d.nome), el('small', d.mercante ? 'tag' : 'tag dim', [d.mercante ? 'Esclusiva' : '', quante ? `ne hai ${quante}` : ''].filter(Boolean).join(' · ') || 'per la tua isola'));
+      nm.append(el('b', '', d.nome), el('small', d.mercante ? 'tag' : 'tag dim', [d.mercante ? 'Esclusiva' : '', quante ? `ne hai ${quante}` : ''].filter(Boolean).join(' · ') || 'per la tua casa'));
       row.append(nm, price(d.monete), act('Compra', 'compra', '', !online, () => {
         if (monete !== null && monete < d.monete) { st.note = { id: d.id, text: moneteText(d.monete - monete), bad: true }; redraw(); return; }
         void busyRun(d.id, async () => {
-          const cur = ctx.getLot(); const cell = cur ? cellaLibera(cur) : null;
-          if (!cell) throw new ApiError(409, 'Sulla tua isola non c’è più posto per le decorazioni');
-          const l = await ctx.api!.decor(d.id, cell, 0); ctx.setLot(l);
-          return `${d.nome}: consegnata vicino a casa. Toccala sull’isola per spostarla`;
+          const l = await ctx.api!.decor(d.id); ctx.setLot(l);
+          return `${d.nome}: è nel magazzino di casa. Posala con ARREDA`;
         });
       }));
       body.appendChild(row);
