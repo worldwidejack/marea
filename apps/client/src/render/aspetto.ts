@@ -216,8 +216,8 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
         // ogni frame: le nuvole si muovono piano ma si vedono muovere (posto e forma dalla sim, uguali per tutti)
         const f = focus ?? o.renderer.camera.position, fuori = !dentro;
         nuvoleAdesso(nowMs, f.x, f.z); aggiornaNubi(f.x, f.z);
-        nuvole.group.visible = !fuori;
-        if (!fuori) nuvole.update(vicine, o.renderer.camera, { x: f.x, y: o.scena?.groundY(f.x, f.z) ?? 0, z: f.z });
+        nuvole.group.visible = fuori;
+        if (fuori) nuvole.update(vicine, o.renderer.camera, { x: f.x, y: o.scena?.groundY(f.x, f.z) ?? 0, z: f.z });
         lampo = fuori ? lampoAdesso(nowMs) : null; nuvole.lampo(lampo);
         if (lampo && lampo.seme !== lampoSeme) { // un lampo nuovo: il tuono, più forte quanto è vicino
           lampoSeme = lampo.seme;
@@ -226,7 +226,7 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
         }
         const flash = !!lampo && lampoVicino > 0.25;
         if (flash !== lampoWas) { lampoWas = flash; aggiornaPost(); }
-        pioggia.object.visible = !fuori && (met.pioggia > 0 || tende > 0);
+        pioggia.object.visible = fuori && (met.pioggia > 0 || tende > 0);
         if (pioggia.object.visible) pioggia.update(t, f.x, f.z);
       }
       const chiusoCambiato = dentro !== alChiusoWas;
