@@ -17,6 +17,7 @@ import { PAL, el } from '../../ui/style.ts';
 import { suona } from '../../audio/ponte.ts';
 import type { Modo } from '../regia.ts';
 import { pistaCorse } from '@marea/sim/corse/pista.ts';
+import { adatta, lineePista, riquadroLinee, tracciaLinea, viaDi } from '../piantina.ts';
 import type { CVeicoloDef } from '@marea/content/corse_types.ts';
 import type { Palco } from './palco.ts';
 
@@ -61,24 +62,16 @@ const DESCR: Record<string, string> = {
 const ICONA: Record<string, string> = { kart: '🏎️', auto: '🚗', carrello: '🛒', moto_acqua: '🚤', gommone: '🛟', vasca: '🛁', fuoristrada: '🚙', moto: '🏍️', bob: '🛷', divano: '🛋️', ape: '🛺', struzzo: '🦤', pizza: '🍕', papera: '🦆', carrello_miniera: '⛏️', carrello_corsa: '🏁', carrello_corazzato: '🛡️' };
 const giriDi = (id: string) => { const d = CORSE_PISTE[id]!; return d.tipo === 'fuga' ? 'FUGA' : `${d.giri} GIRI`; };
 const famDi = (id: string) => famiglieDi(CORSE_PISTE[id]!).map((f) => CORSE.famiglie[f].nome).join(' + ');
-/** Il tracciato visto dall'alto, bianco col bordo scuro. */
+/** Il tracciato visto dall'alto, bianco col bordo scuro (a doppia densità). */
 function tracciato(id: string, W = 120, H = 78): HTMLCanvasElement {
   const c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2;
   const g = c.getContext('2d'); if (!g) return c;
   g.scale(2, 2); g.lineJoin = 'round'; g.lineCap = 'round';
-  const p = pistaCorse(id), linee = [p.n, ...p.rami.map((r) => r.n)];
-  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-  for (const n of linee) for (let i = 0; i < n.n; i++) { x0 = Math.min(x0, n.x[i]!); x1 = Math.max(x1, n.x[i]!); z0 = Math.min(z0, n.z[i]!); z1 = Math.max(z1, n.z[i]!); }
-  const k = Math.min((W - 14) / Math.max(1, x1 - x0), (H - 14) / Math.max(1, z1 - z0)), ox = (W - (x1 - x0) * k) / 2, oz = (H - (z1 - z0) * k) / 2;
-  const traccia = () => linee.forEach((n) => {
-    g.beginPath();
-    for (let i = 0; i < n.n; i += 2) { const x = ox + (n.x[i]! - x0) * k, z = oz + (n.z[i]! - z0) * k; if (i) g.lineTo(x, z); else g.moveTo(x, z); }
-    if (n.chiuso) g.closePath();
-    g.stroke();
-  });
+  const p = pistaCorse(id), linee = lineePista(p), [x0, z0, x1, z1] = riquadroLinee(linee), { mx, mz } = adatta(x0, z0, x1, z1, W, H, 14);
+  const traccia = () => linee.forEach((n) => tracciaLinea(g, n, mx, mz));
   g.strokeStyle = PAL.abisso; g.lineWidth = 7; traccia();
   g.strokeStyle = '#FFFFFF'; g.lineWidth = 3.5; traccia();
-  const iv = Math.round(p.def.via / p.n.passo) % p.n.n, vx = ox + (p.n.x[iv]! - x0) * k, vz = oz + (p.n.z[iv]! - z0) * k;
+  const iv = viaDi(p), vx = mx(p.n.x[iv]!), vz = mz(p.n.z[iv]!);
   g.fillStyle = PAL.abisso; g.fillRect(vx - 4, vz - 4, 8, 8); g.fillStyle = PAL.giallo; g.fillRect(vx - 2.5, vz - 2.5, 5, 5);
   return c;
 }
