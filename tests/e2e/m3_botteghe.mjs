@@ -57,7 +57,7 @@ export default async function (ctx) {
       const doppio = await post('/api/lot/bottega/migliora', { bottega: 'fabbro', da: 1 }, 'tokA');
       assert(doppio.status === 409 && doppio.body.code === 'livello', 'stesso `da` due volte: ' + JSON.stringify(doppio));
       const c1 = await post('/api/lot/bottega/migliora', { bottega: 'cantiere', da: 1 }, 'tokA');
-      assert(c1.status === 200 && c1.body.buildings.find((b) => b.building === 'molo')?.level === 2, 'barca al 2: ' + JSON.stringify(c1.body).slice(0, 200));
+      assert(c1.status === 200 && c1.body.barca === 2, 'barca al 2: ' + JSON.stringify(c1.body).slice(0, 200));
       const rotto = await post('/api/lot/bottega/migliora', { bottega: 'segheria', da: 1 }, 'tokA');
       assert(rotto.status === 400, 'bottega sconosciuta: ' + rotto.status);
       const oggi = vetrinaBottega('cantiere', ora), domani = botteghe.cantiere.scomparti.flat().find((id) => !oggi.includes(id));
