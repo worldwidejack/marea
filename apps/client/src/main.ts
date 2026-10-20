@@ -52,7 +52,6 @@ import { createBorgo } from './game/borgo.ts';
 import { createVelo } from './ui/velo.ts';
 import { createStanza } from './game/stanza.ts';
 import type { Arreda } from './game/arreda.ts';
-import type { ModificaIsola } from './game/modifica_isola.ts';
 import type { Negozio } from './game/negozio.ts';
 import type { Botteghe } from './game/botteghe.ts';
 import { SEZIONI, creaMete, dentro } from './avvio/mete.ts';
@@ -132,11 +131,10 @@ async function boot(): Promise<void> {
   const libri = createLibri({ world, api: net, me, hud, root, camera: renderer.camera, canvas, isole, onFirma: (e) => emotes.play(e) });
   const eroe = net ? createEroe({ api: net, hud, root, ...lotto }) : null;
   // negozio dei mobili, botteghe, ARREDA in casa tua e modifica dell'isola: chunk a parte, arrivano un attimo dopo il mondo
-  let negozio: Negozio | null = null, botteghe: Botteghe | null = null, arreda: Arreda | null = null, modificaIsola: ModificaIsola | null = null;
+  let negozio: Negozio | null = null, botteghe: Botteghe | null = null, arreda: Arreda | null = null;
   void import('./game/negozio.ts').then((m) => { negozio = m.createNegozio({ world, renderer, loader, root, hud, velo, api: net, ...lotto }); }).catch(() => { /* senza negozio si gioca lo stesso */ });
   void import('./game/botteghe.ts').then((m) => { botteghe = m.createBotteghe({ world, loader, api: net, me, hud, root, camera: renderer.camera, canvas, ...lotto }); }).catch(() => { /* senza botteghe si gioca lo stesso */ });
   if (world.slot !== null) void import('./game/arreda.ts').then((m) => { arreda = m.createArreda({ world, root, hud, api: net, lotto: mioLotto, slot: world.slot, stanza, apriBaule: () => eroe?.openBuilding('forziere') }); }).catch(() => { /* senza ARREDA si gioca lo stesso */ });
-  if (world.slot !== null) void import('./game/modifica_isola.ts').then((m) => { modificaIsola = m.createModificaIsola({ world, renderer, root, hud, api: net, lotto: mioLotto, slot: world.slot, stanza }); }).catch((e: unknown) => { console.warn('[marea] modifica isola non caricata', e); });
   // Diario del capitano: bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette col nome sopra la testa degli amici
   const diario = createDiario({ root, hud, api: net, me, world, owners, ...lotto, hidden: () => reg.aperto(['gioco']),
     pausa: () => reg.aperto(['pannello', 'personale'], 'diario') || reg.foglio(), onOpen: () => reg.chiudi(['diario'], true) });
@@ -192,7 +190,6 @@ async function boot(): Promise<void> {
     { id: 'difesa', gruppo: 'gioco', aperto: () => !!dif?.isBusy() },
     { id: 'funivia', gruppo: 'ferma', aperto: () => adr.isBusy() },
     { id: 'foto', gruppo: 'ferma', aperto: () => foto.isOpen() },
-    { id: 'modifica isola', gruppo: 'ferma', aperto: () => !!modificaIsola?.active },
     { id: 'pesca', gruppo: 'ferma', aperto: () => !!negozio?.pescando() },
   ]);
 
@@ -284,7 +281,7 @@ async function boot(): Promise<void> {
     }
     const focus = qui();
     giochi.update(t, alpha);
-    if (!sotto()) { porto.update(dt, focus); amici.update(dt, focus); libri.update(focus); borgo.update(); arreda?.update(); modificaIsola?.update(dt); negozio?.update(dt); botteghe?.update(dt, focus); }
+    if (!sotto()) { porto.update(dt, focus); amici.update(dt, focus); libri.update(focus); borgo.update(); arreda?.update(); negozio?.update(dt); botteghe?.update(dt, focus); }
     guida.update(t);
     if (!sotto()) temi.update(dt, t);
     if (reg.foglio()) reg.chiudi(['eroe']); // aperto un edificio: gli altri pannelli lasciano il posto

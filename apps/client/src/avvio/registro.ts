@@ -3,7 +3,7 @@
 //  - pannello: sta sopra il mondo (Diario, Porto, Record, botteghe, libro degli ospiti)
 //  - personale: i pannelli tuoi (look, novità, scheda dell'eroe)
 //  - gioco: una partita o un posto chiuso (Regata, minigiochi, dungeon, chiesa dei Templari, Arena, Difesa)
-//  - ferma: ferma il mondo e basta (funivia dell'Adrenalina, modalità foto, modifica dell'isola, pesca dal negozio)
+//  - ferma: ferma il mondo e basta (funivia dell'Adrenalina, modalità foto, pesca dal negozio)
 export type Gruppo = 'pannello' | 'personale' | 'gioco' | 'ferma';
 export type Voce = { id: string; gruppo: Gruppo; aperto(): boolean; chiudi?(): void };
 
