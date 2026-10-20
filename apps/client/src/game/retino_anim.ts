@@ -12,6 +12,7 @@ export type RetinoPosa = {
 export type RetinoAnim = {
   aggiorna(dt: number, colpo: number, colpoS: number, attivo: boolean): void;
   posa(): RetinoPosa;
+  attivo(): boolean;
 };
 
 const qa = new THREE.Quaternion(), qp = new THREE.Quaternion(), ql = new THREE.Quaternion();
@@ -127,6 +128,7 @@ export function creaRetinoAnim(w: GameWorld): RetinoAnim {
   const handPos = new THREE.Vector3();
   let ultimaPosa: RetinoPosa = { x: 0, y: 0, z: 0, h: 0, pitch: -0.32, roll: 0.16 };
   let registrato = false;
+  let isAttivo = false;
   let curT = 0;
 
   const override = () => {
@@ -158,7 +160,8 @@ export function creaRetinoAnim(w: GameWorld): RetinoAnim {
 
   return {
     aggiorna(_dt, colpo, colpoS, attivo) {
-      if (!attivo || w.mode !== 'walk' || !w.avatar.visible) {
+      isAttivo = attivo && w.mode === 'walk' && w.avatar.visible;
+      if (!isAttivo) {
         if (registrato) {
           w.avatar.setArmOverride(null);
           registrato = false;
@@ -172,5 +175,6 @@ export function creaRetinoAnim(w: GameWorld): RetinoAnim {
       }
     },
     posa: () => ultimaPosa,
+    attivo: () => isAttivo,
   };
 }
