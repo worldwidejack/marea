@@ -1,24 +1,14 @@
-// Premi dei minigiochi: monete nelle partite da solo (#414); Perle per medaglia nelle sfide con posta (spente: risorse di prima, mai zero) e
-// Faro acceso dopo una vittoria (edificio spento).
+// Premi dei minigiochi: monete nelle partite da solo (#414) e Faro acceso dopo una medaglia (edificio spento).
 import { BALANCE, MINIGAMES_CFG, building } from '@marea/content';
 import type { PremioExtra } from '@marea/content';
 import type { Medal } from '../minigames/types.ts';
 import { advance } from './advance.ts';
 import { mappeDaOro } from '../world/temi.ts';
 import { guadagna } from './monete.ts';
-import { EconomyError, ZERO, add } from './types.ts';
-import type { LotState, Resources, SoloState } from './types.ts';
+import { EconomyError } from './types.ts';
+import type { LotState, SoloState } from './types.ts';
 
 const HOUR = 3_600_000;
-/** `esito` c'è solo nelle sfide: 'sconfitta' → almeno le Perle di consolazione; 'vittoria' accende il Faro anche senza medaglia. Senza esito (partita da solo) vince chi prende una medaglia. */
-export type GameOutcome = { medal: Medal; esito?: 'vittoria' | 'sconfitta' | 'parita' };
-
-export function perleFor(o: GameOutcome): number {
-  const P = BALANCE.perleMedaglia;
-  const m = o.medal ? P[o.medal] : 0;
-  return Math.max(m, P.sconfitta);
-}
-
 /** Fine del boost del Faro dopo una vittoria (un solo Faro attivo: si rinnova, non si somma); senza Faro o senza vittoria resta com'è. */
 function faroBoost(lot: LotState, win: boolean, nowMs: number): number {
   const until = lot.boostUntilMs ?? 0;
@@ -28,20 +18,7 @@ function faroBoost(lot: LotState, win: boolean, nowMs: number): number {
   return Math.max(until, nowMs + hours * HOUR);
 }
 
-export function applyMinigameResult(lot0: LotState, result: GameOutcome, nowMs: number): LotState {
-  const lot = advance(lot0, nowMs);
-  const gained: Resources = { ...ZERO, perle: perleFor(result) };
-  const win = result.esito ? result.esito === 'vittoria' : result.medal !== null;
-  return {
-    ...lot,
-    version: lot.version + 1,
-    resources: add(lot.resources, gained),
-    ledger: { ...lot.ledger, generated: add(lot.ledger.generated, gained) },
-    boostUntilMs: faroBoost(lot, win, nowMs),
-  };
-}
-
-// ---------- minigiochi da solo (senza posta) ----------
+// ---------- minigiochi da solo ----------
 const DAY = 86_400_000;
 const NO_SOLO: SoloState = { day: 0, premiate: 0, giocate: 0, pending: null };
 /** Stato «da solo» del lotto, col conteggio azzerato se è cambiato il giorno UTC. */

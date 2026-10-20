@@ -36,7 +36,7 @@ export type LotViewOptions = {
   initial?: LotState | null;
   /** Slot suggerito (guida «Primi passi»): il suo cartello è evidenziato e toccarlo apre già la conferma di `building`. */
   hint?: () => { cell: [number, number]; building: string } | null;
-  /** Edifici da non offrire nel pannello Costruisci (es. il Tavolo finché le sfide con posta sono spente). */
+  /** Edifici da non offrire nel pannello Costruisci (es. il Tavolo delle Sfide, spento). */
   hide?: readonly string[];
 };
 export type LotView = {

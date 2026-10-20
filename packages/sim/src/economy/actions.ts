@@ -15,7 +15,7 @@ export function newLot(owner: string, nowMs: number, tpl: LotTemplate | null = d
   return {
     owner, version: 0, nowMs, monete: BALANCE.monete.partenza, resources: { ...BALANCE.partenza }, buildings: [molo], construction: null, decor: [],
     escrow: { ...ZERO }, ledger: { generated: { ...BALANCE.partenza }, spent: { ...ZERO }, monete: { generated: BALANCE.monete.partenza, spent: 0 } }, boostUntilMs: 0,
-    challenges: { day: 0, used: 0 }, posseduti: [], holds: {}, settled: [],
+    posseduti: [],
   };
 }
 

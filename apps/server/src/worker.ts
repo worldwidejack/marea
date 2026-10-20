@@ -245,7 +245,7 @@ export default {
         await sincIndossa(env, p, r);
         return json({ id: p.id, nome: p.nome, look: JSON.parse(p.look) as unknown, slot: p.slot ?? null, now, lotto });
       }
-      // chi abita l'arcipelago: /api/persone tutti (per scegliere chi sfidare), /api/lots solo chi ha un lotto (per le visite)
+      // chi abita l'arcipelago: /api/persone tutti, /api/lots solo chi ha un lotto (per le visite)
       if ((path === '/api/persone' || path === '/api/lots') && req.method === 'GET') {
         const tutte = (await elencoPersone(env)).filter((x) => path === '/api/persone' || x.slot !== null);
         return json(tutte.map((x) => ({ id: x.id, nome: x.nome, slot: x.slot ?? null, look: JSON.parse(x.look) as unknown })));
@@ -527,24 +527,6 @@ export default {
         return sfideReq(env, p.id, now, 'feed_letto', typeof fino === 'number' ? { fino } : {});
       }
 
-      if (path === '/api/challenges') {
-        if (req.method === 'GET') return sfideReq(env, p.id, now, 'list');
-        if (req.method === 'POST') {
-          const body = await corpo();
-          if (body instanceof Response) return body;
-          const to = body['to'];
-          if (typeof to !== 'string' || to.length > 40) return json({ error: 'Chi vuoi sfidare?' }, 400);
-          if (to === p.id) return json({ error: 'Non puoi sfidare te stesso' }, 400);
-          if (!(await esistePersona(env, to))) return json({ error: 'Persona non trovata' }, 404);
-          return sfideReq(env, p.id, now, 'create', { minigame: body['minigame'], to, stake: body['stake'] });
-        }
-      }
-      const sfida = path.match(/^\/api\/challenges\/([a-z0-9-]{1,40})\/(play|accept|decline)$/);
-      if (sfida && req.method === 'POST') {
-        const body = await corpo(sfida[2] === 'play' ? MAX_PLAY_BODY : MAX_BODY);
-        if (body instanceof Response) return body;
-        return sfideReq(env, p.id, now, sfida[2] ?? '', { id: sfida[1], inputs: body['inputs'] });
-      }
       return json({ error: 'Non trovato' }, 404);
     } catch (e) {
       console.error('[marea] errore', e);

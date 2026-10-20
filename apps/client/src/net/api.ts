@@ -1,8 +1,8 @@
-// Client HTTP tipizzato di MAREA (M1-isola, F2-tavolo): /api/me, /api/lot[/:id], azioni sul lotto, /api/persone, sfide. Token in `X-Token`.
+// Client HTTP tipizzato di MAREA (M1-isola): /api/me, /api/lot[/:id], azioni sul lotto, minigiochi, feed. Token in `X-Token`.
 // Errori sempre come ApiError con messaggio italiano pronto da mostrare (il server manda `{ error, manca? }`, PROTOCOL.md §6).
 // Orologio: ogni risposta porta l'ora del server (`now` o `LotState.nowMs`); serverNow() la proietta con l'orologio locale
 // SOLO per animare i conti alla rovescia. L'economia la decide il server.
-import type { Challenge, LotState, Mancanza, Medal, PackedInputs, Resources, Riepilogo } from '@marea/sim';
+import type { LotState, Mancanza, Medal, PackedInputs, Riepilogo } from '@marea/sim';
 import type { BarcaLook, FeedItem, Look, LookSalvato } from '@marea/protocol';
 import type { HeroState, RpgAction, RunHero, RunResult } from '@marea/sim/rpg/types.ts';
 import type { DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
@@ -14,11 +14,7 @@ export type { FeedItem };
 /** Chi abita quale slot dell'arcipelago (per le visite in sola lettura). Richiede GET /api/lots lato server. */
 export type LotOwner = { slot: number; id: string; nome: string; look?: LookSalvato };
 export type Cell = [number, number];
-/** Chiunque abiti l'arcipelago (GET /api/persone): serve per scegliere chi sfidare. */
-export type Persona = { id: string; nome: string; slot: number | null; look: Look };
-export type { Challenge, PackedInputs };
-/** Risposta di POST /api/challenges/:id/play: il punteggio lo decide il replay del server. */
-export type PlayResult = { score: number; medal: Medal; detail: Record<string, number>; challenge: Challenge };
+export type { PackedInputs };
 
 /** Partita da solo aperta dal server (POST /api/solo/start): il seed lo sceglie lui. */
 export type SoloStart = { minigame: string; seed: number; difficulty: number; /** Opzioni normalizzate dal server (es. { mare } della pesca). */ opzioni: Record<string, string>; lot: LotState };
@@ -105,16 +101,6 @@ export type Api = {
   pesci(op: 'cattura' | 'consegna', body: { k?: string; id?: string }): Promise<{ lot: LotState; id?: string }>;
   /** Botteghe del Borgo (#414): migliora il Fabbro o la barca al Cantiere di un livello; `da` = il livello che vedi (409 se è già cambiato). */
   bottega(azione: 'migliora', body: { bottega: 'fabbro' | 'cantiere'; da: number }): Promise<LotState>;
-  /** Tutte le persone dell'arcipelago (me compreso). */
-  persone(): Promise<Persona[]>;
-  /** Le mie sfide: in gioco (mandate e ricevute) e chiuse degli ultimi 7 giorni, le più recenti prima. */
-  challenges(): Promise<Challenge[]>;
-  /** Lancia una sfida (posta in escrow, stato `gioca_sfidante`: ora tocca a me giocare). 409 con `manca` se non bastano le risorse. */
-  createChallenge(to: string, stake: Resources, minigame?: string): Promise<Challenge>;
-  accept(id: string): Promise<Challenge>;
-  decline(id: string): Promise<Challenge>;
-  /** Manda gli input della mia partita; il server la rigioca e risponde con punteggio, medaglia e sfida aggiornata. */
-  play(id: string, inputs: PackedInputs): Promise<PlayResult>;
   /** Minigiochi da solo (senza posta): apre una partita col seed del server; `opzioni` = parametri della partita (es. il mare della pesca). */
   soloStart(minigame: string, opzioni?: Record<string, string>): Promise<SoloStart>;
   /** Consegna gli input della partita da solo: il server la rigioca e premia la medaglia. */
@@ -175,7 +161,7 @@ export type Api = {
   barca(b: BarcaLook): Promise<BarcaLook>;
   /** Compra un colore della barca, una volta (POST /api/barca/colore): le esclusive dal Mercante, le vernici del Cantiere il giorno che sono in vetrina. 409 con `manca` senza monete. */
   buyColore(id: string): Promise<LotState>;
-  /** Novità (sfide ricevute, accettate, esiti…), le più recenti prima; `nonLetti` è il numero per il badge. */
+  /** Novità (firme al libro, record battuti…), le più recenti prima; `nonLetti` è il numero per il badge. */
   feed(): Promise<{ items: FeedItem[]; nonLetti: number }>;
   /** Segna letti gli id ≤ `fino` (tutti senza `fino`). Ritorna quanti restano non letti. */
   feedRead(fino?: number): Promise<number>;
@@ -202,20 +188,13 @@ export function moneteText(n: number): string {
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const isLot = (v: unknown): v is LotState => isObj(v) && typeof v['owner'] === 'string' && isObj(v['resources']) && Array.isArray(v['buildings']);
-const isChallenge = (v: unknown): v is Challenge => isObj(v) && typeof v['id'] === 'string' && typeof v['from'] === 'string' && typeof v['to'] === 'string' && typeof v['state'] === 'string' && isObj(v['stake']);
-const asChallenge = (d: unknown): Challenge => {
-  const v = isChallenge(d) ? d : isObj(d) && isChallenge(d['challenge']) ? d['challenge'] : null;
-  if (!v) throw new ApiError(500, 'Risposta del server non valida');
-  return v;
-};
-const cid = (id: string) => `/api/challenges/${encodeURIComponent(id)}`;
-const FEED_TIPI: readonly string[] = ['sfida_ricevuta', 'sfida_accettata', 'sfida_rifiutata', 'sfida_scaduta', 'sfida_chiusa', 'visita', 'record', 'faro'];
+const FEED_TIPI: readonly string[] = ['visita', 'record', 'faro'];
 const isFaro = (v: unknown): v is FaroVista => isObj(v) && typeof v['livello'] === 'number' && typeof v['legno'] === 'number' && Array.isArray(v['classifica']);
 const asFeedItem = (v: unknown): FeedItem | null => {
   if (!isObj(v) || typeof v['id'] !== 'number' || typeof v['tipo'] !== 'string' || !FEED_TIPI.includes(v['tipo']) || typeof v['testo'] !== 'string') return null;
   return {
     id: v['id'], quando: typeof v['quando'] === 'number' ? v['quando'] : 0, tipo: v['tipo'] as FeedItem['tipo'], testo: v['testo'], letto: !!v['letto'],
-    ...(typeof v['sfida'] === 'string' ? { sfida: v['sfida'] } : {}), ...(typeof v['da'] === 'string' ? { da: v['da'] } : {}),
+    ...(typeof v['da'] === 'string' ? { da: v['da'] } : {}),
     ...(typeof v['emote'] === 'string' ? { emote: v['emote'] } : {}),
   };
 };
@@ -297,28 +276,6 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     insetti: (op, body) => call('POST', '/api/lot/insetti/' + op, body).then((d) => ({ ...(d as object), lot: asLot(op === 'consegna' ? d : (d as Record<string, unknown>)['lot']) })),
     pesci: (op, body) => call('POST', '/api/lot/pesci/' + op, body).then((d) => op === 'consegna' ? { lot: asLot(d) } : { id: String((d as Record<string, unknown>)['id'] ?? ''), lot: asLot((d as Record<string, unknown>)['lot']) }),
     bottega: (azione, body) => post('/api/lot/bottega/' + azione, body),
-    async persone() {
-      const d = await call('GET', '/api/persone');
-      const list = Array.isArray(d) ? d : isObj(d) && Array.isArray(d['persone']) ? d['persone'] : [];
-      return (list as unknown[]).filter((x): x is Persona => isObj(x) && typeof x['id'] === 'string')
-        .map((x) => ({ id: x.id, nome: String(x.nome ?? x.id), slot: typeof x.slot === 'number' ? x.slot : null, look: x.look }));
-    },
-    async challenges() {
-      const d = await call('GET', '/api/challenges');
-      const list = Array.isArray(d) ? d : isObj(d) && Array.isArray(d['challenges']) ? d['challenges'] : [];
-      return (list as unknown[]).filter(isChallenge);
-    },
-    async createChallenge(to, stake, minigame = 'regata') {
-      return asChallenge(await call('POST', '/api/challenges', { minigame, to, stake: { legno: stake.legno, pietra: stake.pietra, perle: stake.perle } }));
-    },
-    accept: async (id) => asChallenge(await call('POST', cid(id) + '/accept', {})),
-    decline: async (id) => asChallenge(await call('POST', cid(id) + '/decline', {})),
-    async play(id, inputs) {
-      const d = await call('POST', cid(id) + '/play', { inputs });
-      if (!isObj(d) || typeof d['score'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');
-      const medal = d['medal'] === 'oro' || d['medal'] === 'argento' || d['medal'] === 'bronzo' ? d['medal'] : null;
-      return { score: d['score'], medal, detail: isObj(d['detail']) ? (d['detail'] as Record<string, number>) : {}, challenge: asChallenge(d['challenge']) };
-    },
     async soloStart(minigame, opzioni) {
       const d = await call('POST', '/api/solo/start', opzioni ? { minigame, opzioni } : { minigame });
       if (!isObj(d) || typeof d['seed'] !== 'number') throw new ApiError(500, 'Risposta del server non valida');

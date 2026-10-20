@@ -31,7 +31,6 @@ test('template: il Molo iniziale sta sul primo `d`, le celle L sono gli slot', (
   assert.equal(tileAt(T, 4, 6), 'd');
   assert.equal(L.length, 4);
   assert.deepEqual(lot.posseduti, []);
-  assert.deepEqual(lot.holds, {});
 });
 
 test('build: entro i limiti dell’isola (erba, sabbia, L); decor: solo sabbia/erba libere', () => {

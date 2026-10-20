@@ -18,8 +18,7 @@
 // Isola dell'Adrenalina (docs/ADRENALINA.md §2): POST /adrenalina_liberatoria {} → {lot, nuova} (la firma al cancello della funivia, una volta sola).
 // Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
-// Richieste dal DO Sfide (mai esposte dal Worker): POST /hold {cid, stake, kind} · /release {cid, release}: idempotenti per id sfida.
-// Faro comune (#111), sempre dal DO Sfide: POST /faro_dona {id, dono} (Legno e Pietra escono dal lotto, idempotente per id) ·
+// Faro comune (#111), dal DO Sfide (mai esposte dal Worker): POST /faro_dona {id, dono} (Legno e Pietra escono dal lotto, idempotente per id) ·
 // /faro_livelli {livelli} (i momenti in cui il faro è salito: il bonus di produzione lo applica `advance`). Anche /rientro può portare
 // `faro` (i livelli, letti dal Worker): così chi entra dopo una salita la impara subito.
 import { DurableObject } from 'cloudflare:workers';
@@ -32,8 +31,6 @@ import { advance } from '@marea/sim/economy/advance.ts';
 import { convertiMonete } from '@marea/sim/economy/cambio.ts';
 import { guadagna } from '@marea/sim/economy/monete.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
-import { holdStake, releaseStake } from '@marea/sim/economy/challenge.ts';
-import type { Release } from '@marea/sim/economy/challenge.ts';
 import { finishSolo, soloOf, startSolo } from '@marea/sim/economy/rewards.ts';
 import { EconomyError } from '@marea/sim/economy/types.ts';
 import { eventiPartita, eventiRaccolta, riscuotiMissione, tracciaMissioni } from '@marea/sim/economy/missioni.ts';
@@ -48,7 +45,7 @@ import { isPackedInputs, replayPartita } from '@marea/sim/replay.ts';
 import { registraDiscesa, registraPartita, registraVisti, riscuotiTraguardo, scegliTitolo } from '@marea/sim/economy/diario.ts';
 import { fitHero, newHero } from '@marea/sim/rpg/hero.ts';
 import { chiudiScaduta } from '@marea/sim/dungeon/settle.ts';
-import type { EconomyErrorCode, LotState, Resources } from '@marea/sim/economy/types.ts';
+import type { EconomyErrorCode, LotState } from '@marea/sim/economy/types.ts';
 import { nowFromHeader } from '../clock.ts';
 import type { Env } from '../env.ts';
 import { RPG_ACTS, SERVE_GRUPPO, json, rpgRoute } from './lot_rpg.ts';
@@ -58,25 +55,12 @@ import { firmaLiberatoria } from '@marea/sim/adrenalina/liberatoria.ts';
 
 const isCell = (v: unknown): v is [number, number] => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= 0 && n < 256);
 const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 40;
-const isRes = (v: unknown): v is Resources => {
-  if (!v || typeof v !== 'object') return false;
-  const r = v as Record<string, unknown>;
-  return (['legno', 'pietra', 'perle'] as const).every((k) => Number.isInteger(r[k]) && (r[k] as number) >= 0);
-};
 /** Lista di id dal client: al massimo 20, stringhe corte. null = forma sbagliata. */
 const idList = (v: unknown): string[] | null => {
   if (v === undefined || v === null) return [];
   return Array.isArray(v) && v.length <= 20 && v.every((x) => typeof x === 'string' && x.length > 0 && x.length <= 48) ? (v as string[]) : null;
 };
-const MEDALS: readonly unknown[] = ['oro', 'argento', 'bronzo', null];
-function isRelease(v: unknown): v is Release {
-  if (!v || typeof v !== 'object') return false;
-  const r = v as Record<string, unknown>;
-  if (r['esito'] === 'rimborso') return true;
-  if (!MEDALS.includes(r['medal'])) return false;
-  return r['esito'] === 'persa' || r['esito'] === 'pari' || (r['esito'] === 'vinta' && isRes(r['pot']));
-}
-/** Contatori delle missioni mossi da un'azione andata a buon fine (le poste delle sfide non contano). */
+/** Contatori delle missioni mossi da un'azione andata a buon fine. */
 function eventiAzione(act: string, prima: LotState, dopo: LotState): EventiMissione {
   if (act === 'collect') return eventiRaccolta(prima, dopo);
   if (act === 'build' || act === 'upgrade') return { cantiere: 1 };
@@ -84,7 +68,7 @@ function eventiAzione(act: string, prima: LotState, dopo: LotState): EventiMissi
   return {};
 }
 /** Stato HTTP di un errore economico: richiesta rotta 400, cosa inesistente 404, il resto è un conflitto con lo stato (409). */
-const STATUS: Partial<Record<EconomyErrorCode, number>> = { sconosciuto: 404, posizione: 400, posta: 400 };
+const STATUS: Partial<Record<EconomyErrorCode, number>> = { sconosciuto: 404, posizione: 400 };
 /** Partite e spedizioni contano anche nel diario del capitano (#87). */
 const tornatoDaSpedizione = (l: LotState, now: number): LotState => registraDiscesa(tracciaMissioni(l, { dungeon: 1 }, now));
 
@@ -420,16 +404,6 @@ export class Lot extends DurableObject<Env> {
         const id = body['id'];
         if (!isId(id)) return json({ error: 'Colore sconosciuto' }, 400);
         return compraColoreDelGiorno(lot, id, now); // le vernici del Cantiere solo il loro giorno (#414)
-      }
-      case 'hold': {
-        const cid = body['cid'], stake = body['stake'], kind = body['kind'];
-        if (!isId(cid) || !isRes(stake) || (kind !== 'apri' && kind !== 'accetta')) return json({ error: 'Richiesta non valida' }, 400);
-        return holdStake(lot, cid, stake, kind, now);
-      }
-      case 'release': {
-        const cid = body['cid'], rel = body['release'];
-        if (!isId(cid) || !isRelease(rel)) return json({ error: 'Richiesta non valida' }, 400);
-        return releaseStake(lot, cid, rel, now);
       }
       default:
         return json({ error: 'Non trovato' }, 404);

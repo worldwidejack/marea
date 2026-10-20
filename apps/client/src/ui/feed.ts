@@ -15,9 +15,8 @@ import type { EmoteId } from '@marea/protocol';
 import { AVATAR } from '@marea/content';
 
 export type Feed = { refresh(): Promise<void>; open(): void; close(): void; toggle(): void; isOpen(): boolean; readonly unread: number };
-/** `onNews`: righe mai viste (una sfida chiusa, rifiutata o scaduta muove le risorse: main rilegge il lotto). */
-/** `vuoto`: la riga quando non c'è niente (senza sfide con posta non si invita al Tavolo). */
-export type FeedOpts = { api: Api; hud: Hud; root?: HTMLElement; pollMs?: number; vuoto?: string; onOpen?(): void; onClose?(): void; onNews?(items: FeedItem[]): void };
+/** `onNews`: righe mai viste (main rilegge il lotto). */
+export type FeedOpts = { api: Api; hud: Hud; root?: HTMLElement; pollMs?: number; onOpen?(): void; onClose?(): void; onNews?(items: FeedItem[]): void };
 
 export const FEED_POLL_MS = 30_000;
 const FIRST_MS = 3000;
@@ -30,10 +29,6 @@ const CSS = `
 .mz-feed-row .q { display: block; margin-top: 2px; font-size: 12px; color: ${P.pietra}; }
 .mz-feed-row.new { background: ${P.ombraCalda}; border-color: ${P.giallo}; color: ${P.sabbiaChiara}; font-weight: bold; }
 .mz-feed-row.new .q { color: ${P.giallo}; }
-.mz-feed-row[data-tipo="sfida_ricevuta"] { border-left-color: ${P.arancio}; }
-.mz-feed-row[data-tipo="sfida_accettata"] { border-left-color: ${P.acqua}; }
-.mz-feed-row[data-tipo="sfida_chiusa"] { border-left-color: ${P.erba}; }
-.mz-feed-row[data-tipo="sfida_rifiutata"], .mz-feed-row[data-tipo="sfida_scaduta"] { border-left-color: ${P.pietraScura}; }
 .mz-feed-row[data-tipo="visita"] { border-left-color: ${P.giallo}; display: flex; gap: 8px; align-items: flex-start; }
 .mz-feed-row[data-tipo="record"] { border-left-color: ${P.rosso}; }
 .mz-feed-row[data-tipo="faro"] { border-left-color: ${P.giallo}; }
@@ -76,7 +71,7 @@ export function relTime(ms: number): string {
   const d = Math.floor(s / 86400);
   return d === 1 ? 'ieri' : `${d} giorni fa`;
 }
-/** Per il toast: la prima frase se sta nei `n` caratteri («Anna ti sfida alla Regata: posta 20 Legno»), altrimenti tagliata con «…». */
+/** Per il toast: la prima frase se sta nei `n` caratteri, altrimenti tagliata con «…». */
 const short = (t: string, n = 64) => {
   if (t.length <= n) return t;
   const dot = t.indexOf('. ');
@@ -103,7 +98,7 @@ export function createFeed(o: FeedOpts): Feed {
 
   const render = () => {
     body.replaceChildren();
-    if (!items.length) { body.appendChild(el('div', 'mz-feed-empty', o.vuoto ?? 'Niente di nuovo. Sfida qualcuno al Tavolo del Porto.')); return; }
+    if (!items.length) { body.appendChild(el('div', 'mz-feed-empty', 'Niente di nuovo. Quando un amico firma il libro della tua isola o batte un tuo record, lo vedi qui.')); return; }
     const now = o.api.serverNow();
     for (const it of items) {
       const isNew = !it.letto || fresh.has(it.id);

@@ -100,7 +100,7 @@ Ogni partita invia al DO `Lot` il **seed** e l'**input log** (uno `InputFrame` c
 - Deploy (`tools/deploy.mjs`, lo lancia solo GitHub dopo il merge): build → migrazioni D1 → `wrangler deploy` → attende `/version.json` col build nuovo.
 - `npm run assets` → Blender headless (`tools/export_gltf.py`) + `gltf-transform` (dedup, prune, weld, quantize; **niente Draco**) → `apps/client/public/assets/`. Gli export sono **nel repo**: il client si costruisce senza Blender.
 - `npm test` → `tests/run.mjs all`: `static` (check_static), `types` (tsc per pacchetto), `sim` (node --test), poi le suite e2e (Playwright su Chrome di sistema, viewport iPhone emulato), `contact` (ffmpeg). Dettagli: `tests/README.md`.
-- Flag URL: tutti in `apps/client/src/flags.ts`, ognuno col suo commento. I più usati: `?fps=1` prestazioni · `?test=1` `window.__game` con gli hook · `?seed=N` · `?nosound=1` · `?net=0` offline. Le cose spente si riaccendono per le prove con `?sfide=1`, `?faro=1`, `?traguardi=1`.
+- Flag URL: tutti in `apps/client/src/flags.ts`, ognuno col suo commento. I più usati: `?fps=1` prestazioni · `?test=1` `window.__game` con gli hook · `?seed=N` · `?nosound=1` · `?net=0` offline. Le cose spente si riaccendono per le prove con `?faro=1`, `?traguardi=1`.
 
 ## 10. Portabilità verso un motore
 `packages/sim` non conosce Three né il DOM; `packages/content` è JSON; gli asset sono glTF. Le **fixture d'oro** (`packages/sim/test/fixtures/*.json`: seed + input log → hash e punteggio attesi) sono il criterio di parità: un porting è «fatto» quando le passa tutte.
