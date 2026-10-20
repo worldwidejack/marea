@@ -66,7 +66,7 @@ export function gainSkillXp(h: HeroState, skill: SkillId, xp: number): HeroState
   const cur = h.skill[skill] ?? { lv: L.skillIniziale, xp: 0 };
   if (cur.lv >= L.skillMax) return h;
   let lv = cur.lv, sx = cur.xp + xp, heroXp = h.xp;
-  const perLv = RPG.xp.personaggioPerLivelloSkill ?? 1;
+  const perLv = RPG.xp.personaggioPerLivelloSkill;
   while (lv < L.skillMax && sx >= skillXpNeeded(lv)) {
     sx -= skillXpNeeded(lv);
     lv++;

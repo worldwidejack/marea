@@ -77,7 +77,7 @@ describe('Arena Step 1 — Bilanciamento PvP e nuove magie di supporto', () => {
 
       assert.ok(normale < 100, `colpo normale di ${it.id} (${normale}) non deve fare one-shot`);
       assert.ok(caricato < 100, `colpo caricato di ${it.id} (${caricato}) non deve fare one-shot`);
-      assert.ok(estremo < 100 && estremo <= (RPG.arena?.dannoMax ?? 92), `colpo estremo di ${it.id} (${estremo}) non deve fare one-shot`);
+      assert.ok(estremo < 100 && estremo <= RPG.arena.dannoMax, `colpo estremo di ${it.id} (${estremo}) non deve fare one-shot`);
     }
 
     // Verifica che i colpi più pesanti si avvicinino molto a 100 (es. >= 80) ma lascino vivo il bersaglio a 100 di Vita

@@ -175,7 +175,7 @@ export function hitHero(s: DungeonState, danno: number, kind: HurtKind, x: numbe
   const tipo = kind === 'magia' ? a.vsMagia : kind === 'contundente' ? a.vsContundente : a.vsTaglio;
   const resist = kind === 'magia' ? Math.min(0.9, buff(s, 'resistMagia')) : 0;
   const raw = Math.max(DANNO_MIN, danno * (1 - difesa / (difesa + k)) * tipo * (1 - resist));
-  const d = s.runHero.arena ? Math.min(RPG.arena?.dannoMax ?? 92, raw) : raw;
+  const d = s.runHero.arena ? Math.min(RPG.arena.dannoMax, raw) : raw;
   h.vita -= d;
   h.hurt = COLPITO_TICKS;
   s.danniPresi += d;
@@ -197,9 +197,9 @@ export function dannoPvp(difensore: RunArmor, src: HitSrc, difBuff = 0, resBuff 
   const kind: HurtKind = src.magico ? 'magia' : src.traits.sbilancia ? 'contundente' : 'taglio';
   const tipo = kind === 'magia' ? difensore.vsMagia : kind === 'contundente' ? difensore.vsContundente : difensore.vsTaglio;
   const resist = kind === 'magia' ? Math.min(0.9, resBuff) : 0;
-  const letaleMolt = src.letale ? RPG.arena?.caricaMassimaMolt ?? 1.35 : 1;
+  const letaleMolt = src.letale ? RPG.arena.caricaMassimaMolt : 1;
   const d = src.danno * letaleMolt * (1 - difesa / (difesa + k)) * tipo * (1 - resist);
-  const dMax = RPG.arena?.dannoMax ?? 92;
+  const dMax = RPG.arena.dannoMax;
   return r2(Math.min(dMax, Math.max(DANNO_MIN, d)));
 }
 

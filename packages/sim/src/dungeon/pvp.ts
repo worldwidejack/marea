@@ -63,7 +63,7 @@ export function eroeToccato(s: DungeonState, x: number, z: number, margine: numb
 /** Colpo dell'eroe di turno (o della sua evocazione) sull'avversario j. Ritorna il danno. Le evocazioni hanno il danno dei dungeon: sugli
  *  eroi va scalato come le armi della fotografia arena (RPG.arena.dannoMolt). */
 export function colpisciEroe(s: DungeonState, j: number, src: HitSrc): number {
-  const d = hitHeroPvp(s, j, src.daAlleato ? { ...src, danno: src.danno * (RPG.arena?.dannoMolt ?? 0.45) } : src);
+  const d = hitHeroPvp(s, j, src.daAlleato ? { ...src, danno: src.danno * RPG.arena.dannoMolt } : src);
   if (d > 0 && !src.daAlleato) s.danniFatti += d;
   return d;
 }

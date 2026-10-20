@@ -188,7 +188,7 @@ function perkOf(h: HeroState, m: Mods): RunPerk | undefined {
  *  `o.arena`: normalizza Vita, Magicka e Stamina a 100 di base (docs/ARENA.md Step 1) e scala i danni tra giocatori evitando i one-shot. */
 export function buildRunHero(h: HeroState, o?: { arena?: boolean }): RunHero {
   const arena = !!o?.arena;
-  const A = RPG.arena ?? { attributi: { vita: 100, magicka: 100, stamina: 100 }, dannoMolt: 0.45, dannoMax: 92, caricaMassimaMolt: 1.35 };
+  const A = RPG.arena;
   const m = modsOf(h);
   const max = arena ? { ...A.attributi } : maxOf(h, m);
   const R = RPG.attributi.regen;

@@ -83,7 +83,7 @@ function forgia(lot: LotState, h: HeroState, id: string, n: number): { hero: Her
   let { hero, forziere } = takeAll(lot, h, cost);
   const doppio = doppie(lot, id, n, modsOf(h).forgiaDoppia ?? 0); // Capolavoro
   ({ hero, forziere } = stowAll({ ...lot, forziere }, hero, id, (n + doppio) * (it.forgia.n ?? 1)));
-  hero = gainSkillXp(hero, 'forgiatura', (RPG.xp.forgia ?? 15) * it.forgia.banco * n);
+  hero = gainSkillXp(hero, 'forgiatura', RPG.xp.forgia * it.forgia.banco * n);
   return { hero, forziere, lot: lot2 };
 }
 
@@ -96,7 +96,7 @@ function alchimia(lot: LotState, h: HeroState, ricetta: string, n: number): { he
   let { hero, forziere } = takeAll(lot, h, cost);
   const doppio = doppie(lot, r.id, n, modsOf(h).doppiaDose ?? 0); // Doppia dose
   ({ hero, forziere } = stowAll({ ...lot, forziere }, hero, r.risultato, r.n * (n + doppio)));
-  hero = gainSkillXp(hero, 'alchimia', ((RPG.xp.alchimia ?? 12) + r.livello * (RPG.xp.alchimiaPerLivello ?? 0)) * n);
+  hero = gainSkillXp(hero, 'alchimia', (RPG.xp.alchimia + r.livello * RPG.xp.alchimiaPerLivello) * n);
   return { hero, forziere };
 }
 

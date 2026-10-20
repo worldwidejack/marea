@@ -122,7 +122,7 @@ function colpiRaggio(s: DungeonState, sp: RunSpell, effetti: boolean): void {
       }
       if (sp.furia) {
         potenziaAlleato(s, bestE, sp.furia);
-        add(s.xp, 'evocazione', sp.costo * dtStep * (RPG.xp.evocazioneLancio ?? 0));
+        add(s.xp, 'evocazione', sp.costo * dtStep * RPG.xp.evocazioneLancio);
       }
     } else if (bestH >= 0) {
       const tr = s.eroi[bestH]!;
@@ -134,7 +134,7 @@ function colpiRaggio(s: DungeonState, sp: RunSpell, effetti: boolean): void {
       }
       if (sp.furia) {
         potenziaEroe(tr.hero, s.tick, sp.furia);
-        add(s.xp, 'evocazione', sp.costo * dtStep * (RPG.xp.evocazioneLancio ?? 0));
+        add(s.xp, 'evocazione', sp.costo * dtStep * RPG.xp.evocazioneLancio);
       }
     }
     return;
@@ -197,7 +197,7 @@ export function lanciaBomba(s: DungeonState, sp: RunSpell): void {
       if (lungo < 0.2 || lungo > max || Math.abs(dx * h.fz - dz * h.fx) > BOMBA_LATO + raggio) continue;
       if (lungo < vicino) { vicino = lungo; d = lungo; }
     }
-    add(s.xp, 'evocazione', sp.costo * (RPG.xp.evocazioneLancio ?? 0));
+    add(s.xp, 'evocazione', sp.costo * RPG.xp.evocazioneLancio);
     if (s.pvp && vicino === Infinity) d = 0.4; // Arena: senza compagni davanti la Cura e la Furia a bomba cadono ai tuoi piedi
   }
   d = Math.min(d, libera(s, h.fx, h.fz, max));
