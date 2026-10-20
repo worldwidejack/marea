@@ -72,7 +72,7 @@ Resta valido, per più avanti:
 | **Templari** | sopravvivenza a ondate, zombie | Isola dei Templari | ondate, eroi, fino a 4 insieme | `TEMPLARI.md` |
 | **Dungeon** | fantasy-avventura classico | da decidere | Mondo Sotterraneo sotto le isole | `RPG.md` |
 | **Sparatutto a missioni** | missioni alla COD / GoldenEye 64, prima e terza persona; da soli prima, deathmatch tra amici come bonus (Jack, 16 ott) | da decidere | banco `provasparo.html`: poligono nel piazzale dei container | `SPARO.md` |
-| **Difesa a corsie** | Plants vs Zombies, con più mondi ognuno con ambientazione e stile suoi (Jack, 16 ott) | **Isola della Difesa** (18 ott 2026, #395): un mondo per zona, il primo è L'orto | l'orto col casale e il cancello che apre il gioco (6 livelli + Sopravvivenza coi numeri di PvZ); banco `provadifesa.html` | `DIFESA.md` §6 |
+| **Difesa a corsie** | Plants vs Zombies, con più mondi ognuno con ambientazione e stile suoi (Jack, 16 ott) | **Isola della Difesa** (18 ott 2026, #395): un mondo per zona, il primo è L'orto | l'orto col casale e il cancello che apre il gioco (6 livelli + Sopravvivenza coi numeri di PvZ); pagina `difesa.html` | `DIFESA.md` §6 |
 
 **Le isole si parlano** tra loro con:
 - **lore condivisa**;

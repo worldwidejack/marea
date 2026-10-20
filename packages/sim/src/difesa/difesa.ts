@@ -1,4 +1,4 @@
-// La Difesa a corsie (banco provadifesa.html, #358; docs/DIFESA.md): un passo della partita. Ordine del tick: comandi del giocatore,
+// La Difesa a corsie (difesa.html, #358; docs/DIFESA.md): un passo della partita. Ordine del tick: comandi del giocatore,
 // cielo e ondate (fermi nel tutorial finché non pianti), difensori, colpi, nemici, tosaerba, monete, fine partita.
 // Vittoria: lanciate tutte le ondate e nessun nemico in campo. Sconfitta: un nemico in fondo a una corsia che ha già usato il tosaerba.
 import type { DComando, DState } from './stato.ts';

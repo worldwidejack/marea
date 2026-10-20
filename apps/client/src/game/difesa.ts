@@ -1,5 +1,5 @@
 // Isola della Difesa nel mondo (docs/DIFESA.md §6): il cancello dell'orto davanti al casale, col cartello che si vede da lontano e
-// DIFENDI L'ORTO (A vicino, ≤ 4 m). Il gioco è la stessa pagina del banco (provadifesa.html, canvas 2D, chunk tutto suo): si apre sopra il
+// DIFENDI L'ORTO (A vicino, ≤ 4 m). Il gioco è la pagina difesa.html (canvas 2D, chunk tutto suo): si apre sopra il
 // mondo in un riquadro a tutto schermo e il mondo intanto sta fermo (niente passi né resa: main.ts salta il frame finché è aperto).
 // Si torna all'isola con ✕ ISOLA, con Esc a menù chiuso, o dal gioco stesso (messaggio `marea:difesa:esci`). Livelli e medaglie restano
 // quelli del banco (localStorage del browser): sono gli stessi dentro e fuori dal mondo.
@@ -63,7 +63,7 @@ export function createDifesa(o: { world: GameWorld; renderer: Renderer; hud: Hud
     velo.id = 'mzDifesa';
     Object.assign(velo.style, { position: 'fixed', inset: '0', zIndex: '60', background: '#1d1a22' });
     const fr = document.createElement('iframe');
-    fr.src = '/provadifesa.html?mondo=1' + (FLAGS.test ? '&prova=1' : '');
+    fr.src = '/difesa.html?mondo=1' + (FLAGS.test ? '&prova=1' : '');
     fr.title = 'Difesa: l’orto';
     fr.allow = 'autoplay; fullscreen';
     Object.assign(fr.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0', display: 'block' });

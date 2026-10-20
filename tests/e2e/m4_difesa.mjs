@@ -1,4 +1,4 @@
-// Banco di prova della Difesa a corsie alla Plants vs Zombies (provadifesa.html, #358; docs/DIFESA.md). Cosa si controlla:
+// La pagina della Difesa a corsie alla Plants vs Zombies (difesa.html, #358; docs/DIFESA.md). Cosa si controlla:
 // - la pagina si apre senza errori; senza parametri compare il menù dei livelli; con ?livello parte subito;
 // - telefono in orizzontale (844×390) e PC (1280×720): la barra delle carte e la barra delle ondate non si coprono e stanno nello
 //   schermo, il campo si vede tutto, disegnare un frame costa poco (meno di 30 ms: sui server di GitHub tutto è molto più lento);
@@ -9,7 +9,7 @@
 // - col telefono in verticale compare «GIRA IL TELEFONO»;
 // - di serie si carica la pelle dell'orto (#379: fotogrammi di Codex, fondale, suoni) e non quella di riserva; chi aveva salvato la
 //   segnaposto passa all'orto; ?stile=segnaposto la apre ancora.
-// Screenshot in tests/out/shots/m4_provadifesa_*, numeri in tests/out/m4_provadifesa.json.
+// Screenshot in tests/out/shots/m4_difesa_*, numeri in tests/out/m4_difesa.json.
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -23,7 +23,7 @@ export default async function (ctx) {
   const numeri = {};
   const apri = async (qs, viewport) => {
     for (const x of ctx._pages.splice(0)) await x.close().catch(() => {});
-    const p = await ctx.open('provadifesa.html' + qs, { viewport });
+    const p = await ctx.open('difesa.html' + qs, { viewport });
     try { await p.page.waitForFunction(() => window.__difesa && window.__difesa.ready === true, null, { timeout: 60000 }); } catch {
       throw new Error(`non pronta · errori ${p.errors.join(' | ')} · richieste fallite ${p.failed.join(' | ')}`);
     }
@@ -170,5 +170,5 @@ export default async function (ctx) {
     await ctx.shot(p.page, 'verticale');
   });
 
-  fs.writeFileSync(path.join(ctx.OUT, 'm4_provadifesa.json'), JSON.stringify(numeri, null, 1) + '\n');
+  fs.writeFileSync(path.join(ctx.OUT, 'm4_difesa.json'), JSON.stringify(numeri, null, 1) + '\n');
 }

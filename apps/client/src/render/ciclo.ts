@@ -1,6 +1,6 @@
 // Ciclo giorno → tramonto → notte → alba (#53, impostazioni; #487 sempre on e sincronizzato all'ora reale di Roma).
 // (Date.now), quindi chi ha il ciclo acceso vede la stessa ora degli altri. «giorno» = esattamente i colori di oggi del gioco.
-// Un giro dura CICLO_MIN minuti; i passaggi sono interpolazioni lineari tra momenti fissi (colori in RGB, gradi del sole).
+// Un giro dura un giorno vero (faseRoma); i passaggi sono interpolazioni lineari tra momenti fissi (colori in RGB, gradi del sole).
 import * as THREE from 'three';
 import { SKY_BANDS } from './sky.ts';
 import { WATER_COLORS } from './water.ts';
