@@ -171,7 +171,7 @@ body .mz-guida b { font: 700 ${k(17)} ${FONT_LIBRO}; color: ${L.inchiostro}; }
 body .mz-guida span { color: ${L.inchiostro2}; font: ${k(13)} / 1.3 ${FONT_LIBRO}; }
 body .mz-guida button { border-radius: 999px; background: ${L.cartaChiara}; border: 1.5px solid ${L.oro}; color: ${L.inchiostro}; font: 700 ${k(11)} ${FONT_LIBRO}; }
 body .mz-guida.ok { border-color: ${L.foglia}; } body .mz-guida.ok small { color: ${L.foglia}; }
-@media (min-width: 700px) { body .mz-guida { left: 10px; top: calc(${T} + ${k(184)}); width: ${k(260)}; } }
+@media (min-width: 700px) { body .mz-guida { left: 10px; top: calc(${T} + ${k(204)}); width: ${k(260)}; } }
 
 /* ——— avvisi ——— */
 body #toast { top: max(30%, calc(${T} + ${k(MINI_TOP + MINI + 64)})) !important; max-width: min(${k(340)}, calc(100% - 32px)) !important; box-sizing: border-box; padding: ${k(7)} ${k(16)}; border-radius: ${k(14)}; line-height: 1.25; background: ${L.cartaChiara}; color: ${L.inchiostro}; ${CORNICE} font: 700 ${k(15)} ${FONT_LIBRO}; }
