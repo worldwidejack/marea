@@ -6,6 +6,7 @@ export * from './world/grid.ts';
 export * from './world/archipelago.ts';
 export * from './world/avatar.ts';
 export * from './world/boat.ts';
+export * from './world/ormeggi.ts';
 export * from './world/temi.ts';
 export * from './world/casa_mappa.ts'; // La mappa di chi cammina nelle case: ampliamenti sbloccati (#386)
 export * from './world/ostacoli.ts'; // Cose solide del Borgo: alberi, case, banchi, gente

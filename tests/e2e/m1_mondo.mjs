@@ -34,7 +34,7 @@ export default async function (ctx) {
     ctx.log('isola', JSON.stringify(st.island), 'arch', JSON.stringify({ slot: st.arch.slot, place: st.arch.place, lots: st.arch.lots }));
     assert(st.arch.slot === null && st.arch.place === 'porto', `spawn fuori dal Porto: ${st.arch.place}`);
     assert(st.island.w >= 200 && st.arch.lots === 30, 'la mappa non è l’arcipelago');
-    assert(Math.hypot(st.boat.x - st.island.dock.x, st.boat.z - st.island.dock.z) <= 3, 'barca lontana dal molo');
+    assert(Math.hypot(st.boat.x - st.island.dock.x, st.boat.z - st.island.dock.z) <= 4, 'barca lontana dal molo'); // dal centro della cella di molo: si sbarca fino a raggioImbarco + 1
     const chunks = st.arch.chunks; ctx.log('isole (tri istanziati)', chunks.map((c) => `${c.id}:${c.tris}`).join(' '));
   });
   await view(p, '1_porto', async () => { await hook(p, 'setZoom', 1.3); });

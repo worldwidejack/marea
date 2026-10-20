@@ -96,7 +96,9 @@ export type BalanceDef = {
   /** Minigiochi da solo: monete per medaglia ('nessuna' = arrivato senza medaglia) e quante partite al giorno sono premiate. */
   solo: { premi: { oro: number; argento: number; bronzo: number; nessuna: number }; premiateAlGiorno: number };
   avatar: { camminata: number; corsa: number; sogliaCorsa: number; raggio: number };
-  barca: { accel: number; maxSpeed: number; virata: number; attrito: number; rimbalzo: number; raggioImbarco: number };
+  barca: { accel: number; maxSpeed: number; virata: number; attrito: number; rimbalzo: number; raggioImbarco: number;
+    /** Posti barca del molo: `passo` m tra due barche affiancate, `stacco` m d'acqua tra poppa e molo, `dito` m di pontile tra due posti; scendendo a meno di `aggancio` m dal tuo posto, la barca ci si mette da sola. */
+    ormeggio: { passo: number; stacco: number; dito: number; aggancio: number } };
 };
 /** «Mentre eri via» e libro degli ospiti (#86, GDD §2). */
 export type RientroCfg = {

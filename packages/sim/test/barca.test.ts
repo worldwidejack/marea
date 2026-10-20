@@ -6,7 +6,9 @@ import { newLot } from '../src/economy/actions.ts';
 import { BARCA_DI_SERIE, barcaDi, compraColoreBarca, diSerie, nomeBarca, possiedeColore, validaBarca } from '../src/economy/barca.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import { composeArchipelago } from '../src/world/archipelago.ts';
-import { barcheSovrapposte, landingSpot, newBoat, ormeggioLibero, scafoInAcqua, yawOrmeggio } from '../src/world/boat.ts';
+import { barcheSovrapposte, canBoard, landingSpot, newBoat, ormeggioLibero, scafoInAcqua, yawOrmeggio } from '../src/world/boat.ts';
+import { newAvatar } from '../src/world/avatar.ts';
+import { postiDelMolo } from '../src/world/ormeggi.ts';
 
 const B = AVATAR.barca;
 const gratis = B.colori.filter((k) => k.monete === 0), esclusivi = B.colori.filter((k) => k.mercante), vernici = B.colori.filter((k) => k.cantiere);
@@ -99,4 +101,21 @@ test('ormeggi (#6): posto libero vicino al molo, mai sopra un\'altra barca, si s
     assert.ok(terza && !barcheSovrapposte(terza, altra) && !barcheSovrapposte(terza, p), 'c\'è posto anche per una terza');
     assert.deepEqual(ormeggioLibero(map, b.x, b.z, []), { x: b.x, z: b.z, yaw: altra.yaw }, 'libero: resta dov\'è');
   }
+});
+
+test('posti barca del molo del Porto: tu più dodici amici, in fila, nessuno scafo sul molo o sopra un altro, da ogni bitta si sale', () => {
+  const arch = composeArchipelago(ARCHIPELAGO, ISLANDS), map = arch.map, b = arch.boatOf(null);
+  const { posti, dita } = postiDelMolo(map, b.x, b.z);
+  assert.ok(posti.length >= 13, `posti ${posti.length}`);
+  assert.ok(dita.length >= 8, `dita ${dita.length}`);
+  assert.ok(Math.hypot(posti[0]!.x - b.x, posti[0]!.z - b.z) < 3, 'il primo posto (il tuo) sta accanto alla B');
+  for (const [i, p] of posti.entries()) {
+    for (const l of [-2.3, 0, 2.3]) for (const w of [-0.8, 0.8]) // tutto lo scafo in acqua, poppa compresa: niente barche sotto le assi
+      assert.ok(map.navigable(p.x + Math.sin(p.yaw) * l + Math.cos(p.yaw) * w, p.z - Math.cos(p.yaw) * l + Math.sin(p.yaw) * w), `posto ${i}: scafo fuori dall'acqua`);
+    for (const q of posti.slice(i + 1)) assert.ok(!barcheSovrapposte(p, q), `posti che si toccano: ${JSON.stringify([p, q])}`);
+    const barca = { ...newBoat(p.x, p.z), yaw: p.yaw };
+    assert.ok(map.isDock(p.bitta.x, p.bitta.z), `posto ${i}: la bitta non sta sul molo`);
+    assert.ok(canBoard(newAvatar(p.bitta.x, p.bitta.z), barca, map) && landingSpot(barca, map), `posto ${i}: dalla bitta non si sale o non si scende`);
+  }
+  assert.deepEqual(postiDelMolo(map, b.x, b.z), { posti, dita }, 'sempre gli stessi');
 });
