@@ -22,9 +22,9 @@ import { matOnda, ondaGeo } from './onda3d.ts';
 import { creaSuoni } from './suoni.ts';
 import { veicoloMesh } from './veicoli3d.ts';
 import { PILOTI, caricaKit, kitPronto, loaderCorse, postoAvatar } from './veicoli_kit.ts';
-import { creaRegia } from './prova/camera.ts';
-import type { Modo } from './prova/camera.ts';
-import { stileProva } from './prova/stile.ts';
+import { creaRegia } from './regia.ts';
+import type { Modo } from './regia.ts';
+import { stileCorse } from './stile.ts';
 import type { Amico } from './amici.ts';
 import { creaOggetti3d, giroColpito } from './oggetti3d.ts';
 import { fondalePista } from './fondale_piste.ts';
@@ -70,7 +70,7 @@ export type VistaGara = {
 };
 
 export function creaVistaGara(o: { root: HTMLElement; camera: THREE.PerspectiveCamera; look: () => Look; onLuce?: (x: number, z: number) => void }): VistaGara {
-  stileProva(); stileKart();
+  stileCorse(); stileKart();
   const gruppo = new THREE.Group(); gruppo.name = 'corse_gara';
   const matVeicoli = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const materialeOnda = matOnda();
