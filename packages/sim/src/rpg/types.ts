@@ -63,6 +63,8 @@ export type ItemDef = {
   cura?: Partial<Record<AttrId, number>>; buff?: { mod: string; valore: number; secondi: number }; mods?: Partial<Record<string, number>>; insegna?: string;
   /** Frecce: gravità in m/s² (R-rpg, facoltativo). */
   gravita?: number;
+  /** Insetti (#445): monete che dà il Contrabbandiere per un pezzo (`prezzo` di insetti.json). */
+  valore?: number;
 };
 
 /** Numeri derivati per la UI (scheda del personaggio). */

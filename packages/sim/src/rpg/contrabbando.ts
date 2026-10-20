@@ -40,7 +40,8 @@ export function valoreDi(id: string): number {
   let out = C.valori[id];
   if (out === undefined && hasItem(id)) {
     const it = itemDef(id);
-    if (it.unico) out = C.tipi.unico ?? 0;
+    if (it.valore !== undefined) out = it.valore / C.compra; // gli insetti (#445): lui li paga a prezzo pieno (offertaLosca)
+    else if (it.unico) out = C.tipi.unico ?? 0;
     else if (it.forgia) out = Object.entries(it.forgia.costo).reduce((s, [m, q]) => s + (C.valori[m] ?? 0) * q, 0) * C.lavoro / (it.forgia.n ?? 1);
     else {
       const r = RECIPES.filter((x) => x.risultato === id).map((x) => Object.entries(x.ingredienti).reduce((s, [m, q]) => s + valoreDi(m) * q, 0) * C.pozione / x.n);
@@ -53,4 +54,9 @@ export function valoreDi(id: string): number {
 /** Quanto chiede lui per un pezzo (almeno 1 moneta). */
 export const prezzoLosco = (id: string): number => Math.max(1, Math.ceil(valoreDi(id) * C.vendita));
 /** Quanto ti dà lui per n pezzi: arrotondato giù sul totale (roba che non vale niente = 0, non la prende). */
-export const offertaLosca = (id: string, n: number): number => Math.floor(valoreDi(id) * C.compra * n + 1e-9);
+export const offertaLosca = (id: string, n: number): number => {
+  // gli insetti di Borgo Marea (#445) li paga a prezzo pieno (insetti.json `prezzo`): sono la sua passione
+  const v = hasItem(id) ? itemDef(id).valore : undefined;
+  if (v !== undefined) return v * n;
+  return Math.floor(valoreDi(id) * C.compra * n + 1e-9);
+};

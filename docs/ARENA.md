@@ -2,7 +2,7 @@
 
 > Documento di riferimento della modalità PvP e dell'Isola dell'Arena. Le parti 1-4 sono il design di Riccardo; la parte 5 dice com'è fatta
 > adesso (17 ott 2026, #373). Le voci **[proposta]** sono scelte di Claude dove il design non diceva niente: si cambiano nei JSON di
-> `packages/content/src/arena/arena.json` (e una riga in `ROADMAP.md` §Deviazioni). Mappa del codice: `CONTRACTS.md` §48; messaggi: `PROTOCOL.md` §10.
+> `packages/content/src/arena/arena.json` (col perché nella PR). Mappa del codice: `MAPPA.md`; messaggi: `packages/protocol/src/arena.ts`.
 
 ---
 

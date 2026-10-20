@@ -1,22 +1,22 @@
 # MAREA — Tech Design
 
-> Architettura, regole di codice, limiti, pipeline. I contratti tra pacchetti sono in `CONTRACTS.md`; il protocollo in `PROTOCOL.md`.
+> Architettura, regole di codice, convenzioni, limiti, pipeline. Dove sta il codice: `MAPPA.md`; messaggi tra gioco e server: `PROTOCOL.md`.
 
 ## 1. Architettura in una figura
 ```
  browser (telefono / desktop)                         Cloudflare (piano Free)
  ┌──────────────────────────────────┐   HTTPS /api/*   ┌─────────────────────────────┐
  │ apps/client  (Vite + Three.js)   │ ───────────────▶ │ apps/server  Worker         │
- │  render/  camera diorama, pixel  │   WS /ws/zone/*  │   worker.ts  router, auth   │
+ │  render/  camera diorama, pixel  │   WS /ws/*       │   worker.ts  rotte, auth    │
  │  game/    avatar, barca, input   │ ◀──────────────▶ │   do/Zone    presenza WS    │
- │  net/     client WS, clock       │                  │   do/Lot     isola, timer   │
- │  ui/      HUD, build, sfide      │   file statici   │   D1  persone, inviti, ledger│
+ │  net/     client WS, clock       │                  │   do/Lot     lotto, replay  │
+ │  ui/      HUD, pannelli          │   file statici   │   D1  persone, inviti       │
  │  ▲ usa                           │ ◀─────────────── │   assets = apps/client/dist │
  └──┼───────────────────────────────┘                  └──────────────▲──────────────┘
     │                                                                 │ usa
  ┌──┴──────────────────────────────────────────────────────────────────┴──────────────┐
- │ packages/sim  (TypeScript PURO: rng, economia, mondo, minigiochi, replay)          │
- │ packages/protocol (tipi dei messaggi)   packages/content (JSON: edifici, isole…)  │
+ │ packages/sim  (TypeScript PURO: rng, economia, mondo, minigiochi, modalità, replay)│
+ │ packages/protocol (tipi dei messaggi)   packages/content (JSON dei numeri di gioco)│
  └───────────────────────────────────────────────────────────────────────────────────┘
 ```
 La stessa `sim` gira nel browser (per giocare) e nel Durable Object (per **verificare**: replay dell'input log). È il cuore portabile: un porting a un motore rifà solo `render/` e `ui/`.
@@ -24,94 +24,94 @@ La stessa `sim` gira nel browser (per giocare) e nel Durable Object (per **verif
 ## 2. Pacchetti (npm workspaces)
 | Pacchetto | Cosa | Dipende da | Vietato |
 |---|---|---|---|
-| `@marea/sim` | rng seedabile, `economy` (advance/collect/build/ledger), `world` (griglia, collisioni, avatar, barca), `minigames/*`, `replay`, `hash` | `@marea/content` | DOM, `three`, `Math.random`, `Date.now`, `performance.now`, `setTimeout`, funzioni trascendenti di `Math` (al loro posto `trig.ts`) |
-| `@marea/protocol` | tipi dei messaggi WS/HTTP, `PROTOCOL_VERSION`, validatori senza dipendenze | — | tutto ciò che non è tipi/validazione |
-| `@marea/content` | JSON data-driven + validatore: `buildings`, `resources`, `islands`, `avatar`, `balance`, `minigames/*` | — | codice di gioco |
+| `@marea/sim` | rng seedabile, economia del lotto, mondo (griglia, collisioni, avatar, barca), minigiochi e modalità, `replay`, `hash` | `@marea/content` | DOM, `three`, `Math.random`, `Date.now`, `performance.now`, `setTimeout`, funzioni trascendenti di `Math` (al loro posto `trig.ts`) |
+| `@marea/protocol` | tipi dei messaggi WebSocket, `PROTOCOL_VERSION`, validatori senza dipendenze | — | tutto ciò che non è tipi/validazione |
+| `@marea/content` | JSON dei numeri di gioco, i loro tipi e il validatore | — | codice di gioco |
 | `@marea/client` | Vite + Three.js; UI in HTML/CSS sopra il canvas, **niente framework** | sim, protocol, content, three | logica economica (solo il server decide) |
-| `@marea/server` | Worker + DO `Zone` + DO `Lot` + D1 | sim, protocol, content | leggere stream pesanti nel Worker (10 ms CPU) |
+| `@marea/server` | Worker + Durable Objects + D1 | sim, protocol, content | leggere stream pesanti nel Worker (10 ms CPU) |
 
 ## 3. Regole di codice (le controlla `tools/check_static.mjs`)
 - **TypeScript ovunque**, `strict` + `noUncheckedIndexedAccess` + `verbatimModuleSyntax` + **`erasableSyntaxOnly`**: niente `enum` (usa `as const`), niente `namespace`, niente parameter properties. Così Node 26 esegue i `.ts` **senza build** (test della sim in Node puro).
 - **Import relativi con estensione `.ts` esplicita** (`import { createRng } from './rng.ts'`); tra pacchetti `@marea/sim`, `@marea/sim/rng.ts`. Tipi con `import type`.
 - **Nessun side effect all'import**: solo `apps/client/src/main.ts` e `apps/server/src/worker.ts` avviano qualcosa. Ogni modulo di `sim`, `protocol`, `content` deve importarsi in Node.
-- **Determinismo**: in `sim` la casualità passa solo da `createRng(seed)` e `.fork(label)`; il tempo è `tick` (60 Hz) o `nowMs` passato dal chiamante. Stesso seed + stessi input = stesso `hash()`.
+- **Determinismo**: in `sim` la casualità passa solo da `rng.ts`: `createRng(seed)` e `.fork(label)`, o `casoIntero(s)` quando il seme sta nello stato serializzabile della partita (Difesa, Sparo); il tempo è `tick` (60 Hz) o `nowMs` passato dal chiamante. Stesso seed + stessi input = stesso `hash()`.
 - Numeri di gioco **solo** in `packages/content` (JSON). Costanti tecniche in `packages/sim/src/constants.ts`.
-- Testi in italiano nel client; niente i18n in V1. Errori del server in italiano.
-- Nessuna dipendenza nuova senza una riga in `ROADMAP.md` §Deviazioni.
+- Testi in italiano nel client; niente i18n. Errori del server in italiano.
+- Dipendenza nuova: solo se serve, col perché nella PR.
+
+## 3b. Convenzioni
+- **Spazio**: 1 unità = 1 m, Y in su, −Z avanti. Posizioni nel mondo `{x, z}` sul piano, `y` solo per la resa. Angoli in radianti; `yaw` attorno a Y, 0 = −Z.
+- **Input**: `InputFrame = { mx, my, a, b }` con `mx, my ∈ [−1, 1]` in **assi mondo** (`mx` = +X, `my` = +Z; il client ruota il joystick con la camera), `a` azione/accelera, `b` secondario/freno; `c` facoltativo («dall'altra parte»). Si campiona una volta per tick e si quantizza con `quantize()` di `replay.ts` quando si registra una partita.
+- **Minigiochi e modalità**: modulo puro e deterministico a 60 Hz (`MinigameModule` in `sim/src/minigames/types.ts`): `create({ seed, difficulty, opzioni })`, `step(state, input)`, `result(state)` → `{ done, score, medal, detail }` (il punteggio è sempre «più alto vince»), `autopilot`, `view`. Si registrano in `minigames/registry.ts`; il server rigioca gli input con `replay()`.
+- **Mappe delle isole** (`islands.json`): un carattere = una cella da 2 m. `~` acqua profonda · `,` acqua bassa (navigabile) · `.` sabbia · `g` erba · `r` roccia (non camminabile) · `d` molo · `P` spawn dell'avatar · `B` spawn della barca · `L` slot. `parseIsland()` in `sim/src/world/grid.ts`; l'arcipelago intero è un `GridMap` solo (`world/archipelago.ts`).
+- **Test nel browser**: `window.__game = { ready, build, flags, state(), perf(), test: {…} }` (`apps/client/src/test/testapi.ts`). Ogni modulo registra il suo pezzo di `state()` con `registerStateProvider` e i suoi hook con `registerTestHook`; gli hook che cambiano il gioco funzionano solo con `?test=1`.
+- **Asset**: `apps/client/public/assets/manifest.json` = `{ atlas, models: { [nome]: { file, tris, bounds } }, version }`, più manifest secondari caricati quando servono (`manifest_rpg`, `manifest_corse`, `manifest_mobili`). Sorgenti in `assets/blender/`, licenze in `assets/licenses.md`.
+- Log tecnici in inglese col prefisso `[marea]`.
 
 ## 4. Ciclo di gioco nel client
 - Sim a **60 Hz** con accumulatore (`DT = 1/60`), massimo 5 passi per frame; render a rAF con interpolazione `alpha` tra tick precedente e corrente.
-- Input campionato una volta per tick (`InputFrame`: joystick `mx, my` ∈ [−1, 1], bottoni `a`, `b`).
-- L'avatar e la barca locali sono **client-authoritative** per la posizione (inviata a 10 Hz); tutto il resto (economia, sfide, ledger) è server-authoritative.
-- Look pixel: si renderizza su un canvas a **metà risoluzione** (pixel ratio ≤ 1,5 × 0,5) e lo si ingrandisce con `image-rendering: pixelated`. Zero post-processing.
+- L'avatar e la barca locali sono **client-authoritative** per la posizione (inviata a 10 Hz); tutto il resto (economia, partite, premi) è server-authoritative.
+- Look pixel: si renderizza su un canvas a **metà risoluzione** (pixel ratio ≤ 1,5 × 0,5) e lo si ingrandisce con `image-rendering: pixelated`.
 
 ## 5. Budget (la build fallisce se superati, `tools/build.mjs`)
-_I limiti non sono un dictat: si possono alzare quando serve ed è sensato (Jack, 11 ott 2026). Prima si prova a spostare codice in chunk `import()`; se non basta si alza il numero qui e si annota in `ROADMAP.md` §Deviazioni._
+I numeri veri del JS e dei MB stanno in `BUDGET` di `tools/build.mjs`; draw call e triangoli in `tests/e2e/m3_prestazioni.mjs`. Non sono un dictat (Jack, 11 ott 2026): prima si prova a spostare codice in chunk `import()`; se non basta si alza il limite lì, col perché nella PR. All'avvio sul telefono non si rallenta mai.
 
-| Cosa | Limite |
+| Cosa | Limite (19 ott 2026) |
 |---|---|
-| `app.js` (client) | ≤ 1300 KB minificato, ≤ 392 KB gzip (era 250 fino all’8 ott 2026, 350 fino all’11 ott, 1200/360 fino al 13 ott, 1215/366 fino al 14 ott; il catalogo dei mobili: +25/+10; gli ampliamenti della casa 1260/380 il 18 ott; l’Isola della Difesa +10/+3 il 18 ott; nuovi lotti mobili da parete 1275/385 il 18 ott, #420; l'HUD «Allegro» col suo stile nel JS iniziale 1300/392 il 19 ott, #417) |
-| Ogni chunk caricato dopo (`import()`: GDR, minimappa, isole, giochi a schermo, audio) | ≤ 600 KB minificato, ≤ 180 KB gzip; tutti insieme ≤ 3000 KB, ≤ 900 KB gzip |
-| Discese dell'Isola dell'Adrenalina (`apps/client/src/adrenalina/`, scaricato salendo in funivia; niente nel JS iniziale) | come ogni chunk (12 ott 2026: ~50 KB, ~20 gzip); in pista draw call e triangoli come sopra: abeti a riquadri da 100 m spenti oltre 420 m, il terreno si vede tutto fino in valle (12 ott: massimo 51 draw call e 97.000 triangoli a 390×844) |
-
-| Caricamento iniziale (html + js + atlas + modelli della prima isola) | ≤ 3 MB (era 2) |
-| Modelli dei mobili della casa (`manifest_mobili.json`, `mob_<id>`, scaricato solo da chi mostra un mobile; ≤ 600 triangoli l'uno) | ≤ 3 MB (#304, `docs/MOBILI.md`) |
-| Kit delle zone dell'Isola delle Corse (`manifest_corse.json`, scaricato aprendo una pista vestita) | ≤ 2,5 MB (era 0,6: Spiaggia e porto 0,2 MB + 20 veicoli e piloti 1,4 MB, deviazione del 9 ott 2026) |
-| Draw call per frame | ≤ 100 |
-| Triangoli a schermo | ≤ 200.000 (150.000 fino al Borgo Marea, #237; 180.000 fino alla città attorno al Porto, #247: si torna giù con case più leggere; Corse 180.000 dai veicoli AI 3D, #281) |
-| Texture in VRAM | ≤ 16 MB (eccezione: le ondate dei Templari col dipinto, ~100 MB da PC e ~25 MB al telefono, `TEMPLARI.md` §3b) |
-| Shadow map | 1 × 1024² (o blob) |
+| JS iniziale | ~1,3 MB minificato, ~394 KB gzip |
+| Ogni chunk caricato dopo con `import()` (GDR, minimappa, isole, giochi a schermo, audio) | ≤ 600 KB minificato, ≤ 180 KB gzip; tutti insieme ≤ 3000 KB, ≤ 900 KB gzip |
+| Caricamento iniziale (html + js + atlas + modelli della prima isola) | ≤ 3 MB |
+| Manifest secondari: modelli dei dungeon · kit delle Corse · mobili · pelli della Difesa | ≤ 1,5 · 2,5 · 3 · 4 MB |
+| Draw call per frame | ≤ 100 (sul PC, solo a zoom massimo sopra il Borgo: ≤ 110; dal 19 ott oscillava fra 101 e 105 con insetti, pesci e botteghe: da riportare sotto 100 unendo cappelli e ingressi in pezzi unici) |
+| Triangoli a schermo | ≤ 200.000 |
+| Texture in VRAM | ≤ 16 MB (eccezione: le ondate dei Templari col dipinto, `TEMPLARI.md` §3b) |
+| Shadow map | una, 1024² (le Corse in HD: 2048² al PC) |
 | FPS | 60 su iPhone 12+, ≥ 45 su Android medio, mai < 30 |
-Il `perf` test legge `window.__game.perf()` (draw call, triangoli, fps) durante 20 s di navigazione.
 
-### 5b. Come si sta nel budget (8 ott 2026, camera di serie a 22°)
-Con la camera bassa si vede fino all'orizzonte: senza accorgimenti si disegnava mezzo arcipelago (fino a 179 draw call e 313.000 triangoli). Le regole, tutte in `render/island.ts` e `render/island_sagoma.ts`:
-- **Culling per isola**: ogni isola ha una scatola stretta (rettangolo delle celle + 4 m, dal pelo dell'acqua alla cima); `Island.cull(camera)` (chiamato da `world.ts` prima di ogni render) spegne le isole la cui scatola è fuori inquadratura. Serve perché la sfera di un InstancedMesh di mezza isola scende di decine di metri sott'acqua ed entrava nell'inquadratura anche da isole invisibili.
-- **Sagoma da lontano**: oltre `LOD_M` (210 m dalla camera al bordo dell'isola, dove la foschia è già all'80 %) si disegna la sagoma: terreno a colori della palette, rive, scogliere, palme e blocchi degli edifici in **una** geometria (1 draw call, niente ombre, 1-6 mila triangoli); montagne, torri e decorazioni a tema riusano le loro geometrie. Isteresi 15 m.
-- **Scenografia minuta** (sassi, cespugli, casse, barili, lanterne, fili di lanterne): niente ombre e spenta oltre `MINUTI_M` (150 m).
-- **Tutto fuso per isola**: moduli del terreno, prop ed edifici glTF stanno tutti sull'atlas (materiali `mat_atlas` e `mat_emissivo`): si fondono in una geometria per isola, materiale e gruppo (vicino / minuti, con o senza ombra). Un'isola costa ~5-8 draw call invece di 15-30. Davanti agli ingressi dei dungeon niente scenografia (`createIsland({ libere })`).
-- **Edifici dei lotti** (`lot_*`, `game/lot.ts`): spenti fuori inquadratura o oltre `LOD_M`.
+### 5b. Come si sta nel budget (camera di serie a 22°)
+Con la camera bassa si vede fino all'orizzonte: senza accorgimenti si disegnerebbe mezzo arcipelago. Le regole, tutte in `render/island.ts` e `render/island_sagoma.ts`:
+- **Culling per isola**: ogni isola ha una scatola stretta (rettangolo delle celle + 4 m, dal pelo dell'acqua alla cima); `Island.cull(camera)` (chiamato da `world.ts` prima di ogni render) spegne le isole fuori inquadratura.
+- **Sagoma da lontano**: oltre `LOD_M` (210 m dalla camera al bordo dell'isola) si disegna la sagoma: terreno, rive, scogliere, palme e blocchi in **una** geometria (1 draw call, niente ombre). Isteresi 15 m.
+- **Scenografia minuta** (sassi, cespugli, casse, barili, lanterne): niente ombre e spenta oltre `MINUTI_M` (150 m).
+- **Tutto fuso per isola**: moduli del terreno, prop ed edifici stanno sull'atlas (materiali `mat_atlas` e `mat_emissivo`) e si fondono in una geometria per isola, materiale e gruppo. Un'isola costa ~5-8 draw call invece di 15-30.
 - Un modello nuovo per le isole: **sull'atlas** (così si fonde). Una scenografia nuova vicino a un'isola: dentro il suo gruppo, o con un culling suo (come `temi_fx.ts`, `porto.ts`, `animali.ts`).
-- Controllo: `tests/e2e/m3_prestazioni.mjs` (giro di tutte le isole e del mare aperto, 22° e 45°, zoom di partenza e massimo, giorno e notte, telefono e PC; fallisce sopra 100 draw call o 180.000 triangoli; numeri in `tests/out/m3_prestazioni.json`). Hook di test `disegnati()`: mesh per mesh cosa si disegna nella vista e nell'ombra (con `PREST_DIAG=1` finisce nel json).
+- Controllo: `tests/e2e/m3_prestazioni.mjs` (giro di tutte le isole e del mare aperto, camere e zoom diversi, giorno e notte, telefono e PC; numeri in `tests/out/m3_prestazioni.json`). Hook di test `disegnati()`: mesh per mesh cosa si disegna nella vista e nell'ombra.
 
 ## 6. Cloudflare piano Free (verificato il 29 set 2026)
 | Servizio | Limite Free | Come lo usiamo |
 |---|---|---|
-| Worker | 100.000 richieste/giorno, 10 ms CPU | solo routing, auth, piccoli JSON |
-| Durable Objects (SQLite) | inclusi nel Free; 100k richieste/giorno, WebSocket contati 20:1 con **Hibernation** | `Zone` (presenza, WS), `Lot` (isola, timer, replay minigiochi: fino a 30 s CPU) |
-| D1 | 5 M letture/giorno, 100k scritture/giorno, 5 GB | persone, inviti, sfide, ledger |
+| Worker | 100.000 richieste/giorno, 10 ms CPU | solo rotte, auth, piccoli JSON |
+| Durable Objects (SQLite) | inclusi nel Free; 100k richieste/giorno, WebSocket contati 20:1 con **Hibernation** | `Lot` (il lotto di ognuno, replay delle partite: fino a 30 s CPU), `Zone` (presenza), partite in tempo reale, `Sfide` (coordinatore unico) |
+| D1 | 5 M letture/giorno, 100k scritture/giorno, 5 GB | persone, inviti |
 | Static assets | illimitati | il client (`apps/client/dist`) servito dallo stesso Worker: un solo URL, zero CORS |
-URL: `https://marea.stanza-idee.workers.dev` (il sottodominio `stanza-idee.workers.dev` è dell'account). Stima: 10 amici × 30 min/giorno di posizioni a 10 Hz ≈ 9.000 richieste-equivalenti/giorno. Se un giorno si apre al pubblico: piano Paid 5 $/mese.
 
-### 6b. Sfide tra due isole (M1, 30 set 2026)
-Un **DO unico `Sfide`** (`idFromName('tavolo')`, binding `SFIDE`) tiene le sfide nel suo SQLite e coordina; le **poste restano nell'escrow dei due `Lot`**. Tra due DO non c'è transazione: ogni operazione su un lotto è **idempotente per id sfida** e tiene da sola l'invariante; il coordinatore **scrive prima l'intento** (`fase`/`pending`) e poi chiama i lotti, ritentando (a ogni richiesta e con un alarm), sotto un mutex. Replay di una Regata da 120 s: 3-14 ms in Node, ~27 ms a muro nel DO (limite 30 s); nel Worker non si fa replay.
+URL: `https://marea.stanza-idee.workers.dev`. Se un giorno si apre al pubblico: piano Paid 5 $/mese.
+Il DO `Sfide` (un'istanza sola, `idFromName('tavolo')`) è il **coordinatore unico** dell'arcipelago: buche del Borgo, discese dell'Adrenalina, feed, tabellone dei record. Tra due DO non c'è transazione: ogni operazione su un lotto è idempotente e il coordinatore scrive prima l'intento, poi chiama i lotti.
 
 ## 7. Autenticazione
-Link personale con **token** (`?t=<token>` → salvato in `localStorage`, poi header `X-Token`), creato con `node apps/server/scripts/invita.mjs "Nome" --remote` (stampa il link; senza `--remote` scrive nel D1 locale) e mandato da Jack su WhatsApp. **Passkey** opzionale da M1 («Aggiungi Face ID») per legare un secondo dispositivo, con `@simplewebauthn/server` su WebCrypto. Zero email, zero OAuth, zero servizi terzi.
+Link personale con **token** (`?t=<token>` → salvato in `localStorage`, poi header `X-Token`), creato con `node apps/server/scripts/invita.mjs "Nome" --remote`; oppure link di gruppo `?invito=<codice>`, dove si sceglie il nome (`ui/entra.ts` → `POST /api/entra`). Zero email, zero password, zero servizi terzi. I link e i codici non vanno mai nel repo.
 
 ## 8. Anti-cheat (basta per gli amici)
-Ogni partita di minigioco invia al DO `Lot` il **seed** e l'**input log** (uno `InputFrame` compresso per tick). Il DO rigioca la partita con la stessa `sim` e accetta solo il punteggio che ne esce. Orologio: solo del server (`serverNow()` dal client, corretto con ping/pong).
+Ogni partita invia al DO `Lot` il **seed** e l'**input log** (uno `InputFrame` compresso per tick). Il DO rigioca la partita con la stessa `sim` e accetta solo il punteggio che ne esce. Orologio: solo del server (`serverNow()` dal client, corretto con ping/pong).
 
 ## 9. Pipeline
 - `npm run dev` → Vite con proxy `/api` e `/ws` verso `wrangler dev` (`npm run dev:server`, porta 8787).
 - `npm run build` → `vite build` in `apps/client/dist` + `version.json {build, when}` + controllo budget.
-- `npm run deploy` → build → `wrangler d1 migrations apply DB --remote` → `wrangler deploy` (cwd `apps/server`) → poll di `/version.json` finché `build` coincide → 2 min di `wrangler tail` a campione.
-- `npm run assets` → Blender headless (`tools/export_gltf.py`) + `gltf-transform` (dedup, prune, weld, quantize; **niente Draco**) → `apps/client/public/assets/` + `manifest.json`. Gli export sono **committati**: il client si costruisce senza Blender.
-- `npm test` → `tests/run.mjs all`: `static` (check_static), `types` (tsc per pacchetto), `sim` (node --test), `boot look perf net` (Playwright su Chrome di sistema, viewport iPhone emulato), `contact` (ffmpeg).
-- Flag URL: `?fps=1` overlay prestazioni · `?test=1` `window.__game` con hook mutanti e salvataggio in memoria · `?seed=N` · `?nosound=1` niente audio (il chunk `audio/` non si scarica; coi test si parte comunque muti) · `?quality=low|high` · `?net=0` offline · `?autopilot=1` · `?sfide=1` riaccende Tavolo con posta e feed (spenti dalla Sessione 5) · `?faro=1` riaccende il Faro comune del Porto e `?traguardi=1` traguardi e titoli del Diario (spenti dal 18 ott 2026, VISIONE §2: il codice resta, i loro e2e li riaccendono) · `?rientro=1` coi test fa comparire la cartolina «Mentre eri via» · `?novita=1` coi test fa comparire la schermata «Dall'ultima volta» (#279: lavori su main dalla visita scorsa, da `/novita.json` che la build scrive dal git log) · `?serie=1` coi test usa le impostazioni di serie (senza, `?test=1` parte con tutto spento) · `?nuvole=B` la variante B del meteo a nuvole (#361: nuvole piatte a lastre più alte, più nuvole, pioggia su tutta la nuvola; senza, A) · `?gara=amici` apre subito l'hub delle Corse con la sala della gara tra amici (link da mandare agli amici: `?t=<token>&gara=amici`, #204).
+- Deploy (`tools/deploy.mjs`, lo lancia solo GitHub dopo il merge): build → migrazioni D1 → `wrangler deploy` → attende `/version.json` col build nuovo.
+- `npm run assets` → Blender headless (`tools/export_gltf.py`) + `gltf-transform` (dedup, prune, weld, quantize; **niente Draco**) → `apps/client/public/assets/`. Gli export sono **nel repo**: il client si costruisce senza Blender.
+- `npm test` → `tests/run.mjs all`: `static` (check_static), `types` (tsc per pacchetto), `sim` (node --test), poi le suite e2e (Playwright su Chrome di sistema, viewport iPhone emulato), `contact` (ffmpeg). Dettagli: `tests/README.md`.
+- Flag URL: tutti in `apps/client/src/flags.ts`, ognuno col suo commento. I più usati: `?fps=1` prestazioni · `?test=1` `window.__game` con gli hook · `?seed=N` · `?nosound=1` · `?net=0` offline. Le cose spente si riaccendono per le prove con `?sfide=1`, `?faro=1`, `?traguardi=1`.
 
 ## 10. Portabilità verso un motore
-`packages/sim` non conosce Three né il DOM; `packages/content` è JSON; gli asset sono glTF; questo documento e il GDD non citano API di Three. Le **fixture d'oro** (`packages/sim/test/fixtures/*.json`: seed + input log → hash e punteggio attesi) sono il criterio di parità: un porting è «fatto» quando le passa tutte.
+`packages/sim` non conosce Three né il DOM; `packages/content` è JSON; gli asset sono glTF. Le **fixture d'oro** (`packages/sim/test/fixtures/*.json`: seed + input log → hash e punteggio attesi) sono il criterio di parità: un porting è «fatto» quando le passa tutte.
 
 ## 11. Registro rischi
 | Rischio | Contromisura |
 |---|---|
-| Impantanarsi nel setup | ogni sessione finisce deployata; contratti e stub prima delle wave; `_STATO.md` aggiornato |
-| Prestazioni su telefono | budget in build, mezza risoluzione, atlas unico, `perf` test, collaudo di Jack in 4G |
-| Tetti Cloudflare Free | posizioni a 10 Hz con batching, Hibernation, logica nei DO, consumi controllati ogni settimana |
-| Amici bloccati al login | link-token senza password; prova con un amico vero nella prima settimana di M1 |
-| Look incoerente | regola dell'atlas, art bible, contact sheet approvato prima della serie |
-| Deriva degli agenti in parallelo | file disgiunti, `check_static`, contratti congelati, gate verde per WP |
-| Le 2 ore di Jack | scelte A/B con screenshot, mai domande aperte |
+| Impantanarsi | PR piccole, una cosa alla volta, sempre online |
+| Prestazioni su telefono | budget in build, mezza risoluzione, atlas unico, test delle prestazioni |
+| Tetti Cloudflare Free | posizioni a 10 Hz con batching, Hibernation, logica nei DO |
+| Look incoerente | atlas, art bible, screenshot approvati da Jack prima della PR |
+| Tre AI in parallelo sugli stessi file | PR piccole, `check_static`, `main` sempre verde, `MAPPA.md` |
 | Cheating | replay nel DO, orologio del server |
 | Node esegue `.ts` solo se «erasable» | `erasableSyntaxOnly` in tsconfig + `types` nel test runner |

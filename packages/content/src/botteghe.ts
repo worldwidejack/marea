@@ -10,7 +10,14 @@ export const BOTTEGHE_IDS: readonly BottegaId[] = ['fabbro', 'alchimista', 'cant
 export type BottegaLivello = { monete: number; desc: string };
 /** `scomparti`: la vetrina del giorno pesca un oggetto da ognuno (id di oggetti, di colori della barca o, nel Fabbro, tipi d'arma da
  *  incrociare con `materiali`); `ricarico`: prezzo = valore dell'oggetto × ricarico (Fabbro e Alchimista). */
-export type BottegaDef = { nome: string; bottegaio: string; livelli?: BottegaLivello[]; ricarico?: number; materiali?: string[]; scomparti: string[][] };
+/** Dove sta nel Borgo (celle del template `porto`, come i posti di gente.json): `at` la bottega, `rot` il verso del davanti (π = sud),
+ *  `fronte` dove ci si ferma per comprare, entro `raggio` m; `dove` in parole. */
+export type BottegaPosto = { at: [number, number]; rot: number; fronte: [number, number]; raggio: number; /** Dove sta, in parole (cartellino toccato da lontano). */ dove: string };
+export type BottegaioLook = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
+export type BottegaDef = {
+  nome: string; bottegaio: string; livelli?: BottegaLivello[]; ricarico?: number; materiali?: string[]; scomparti: string[][];
+  posto?: BottegaPosto; look?: BottegaioLook; battute?: string[];
+};
 export type BottegheDef = Record<BottegaId, BottegaDef>;
 
 export const BOTTEGHE = botteghe as unknown as BottegheDef;
@@ -26,6 +33,8 @@ export function validateBotteghe(): string[] {
     const tutti = b.scomparti.flat();
     if (new Set(tutti).size !== tutti.length) errs.push(`botteghe ${id}: un oggetto sta in due scomparti`);
     if (b.ricarico !== undefined && !(b.ricarico >= 1)) errs.push(`botteghe ${id}: ricarico sotto 1`);
+    if (!b.posto) errs.push(`botteghe ${id}: manca il posto nel Borgo`);
+    if (!b.battute?.length) errs.push(`botteghe ${id}: il bottegaio non dice niente`);
     if (b.livelli) {
       if (b.livelli[0]?.monete !== 0) errs.push(`botteghe ${id}: il primo livello è gratis (è di tutti)`);
       for (const [n, l] of b.livelli.entries()) {

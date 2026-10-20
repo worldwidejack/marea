@@ -103,7 +103,7 @@ const distText = (d: number) => (d <= NEAR_M ? 'qui' : `${Math.round(d)} m`);
 const DEFAULT_DESC: Record<string, string> = {
   casa: 'La tua isola con casa, magazzino e giardino.', porto: 'Il centro dell’arcipelago con botteghe e amici.', mercante: 'Compra e vendi materiali e arredi al Porto.', contrabbando: 'Scambi speciali e oggetti rari dal contrabbandiere.',
   bacheca: 'Missioni e compiti da completare per guadagnare monete.', record: 'Classifiche e punteggi dei minigiochi tra amici.', faro: 'Il faro comune dell’arcipelago costruito insieme.', regata: 'Gara di barche a vela a tempo tra le boe.',
-  pesca: 'Pesca pesci e tesori dal mare con la canna.', scacchi: 'Partite a scacchi al tavolo del Porto.', consegne: 'Consegna pacchi in barca tra le varie isole.', ingorgo: 'Rompicapo: libera la barca incastrata al molo.',
+  scacchi: 'Partite a scacchi al tavolo del Porto.', consegne: 'Consegna pacchi in barca tra le varie isole.', ingorgo: 'Rompicapo: libera la barca incastrata al molo.',
   pinguini: 'Minigioco sui ghiacci: raduna i pinguini.', koi: 'Dai da mangiare alle carpe koi nel laghetto.', arrembaggio: 'Difendi la nave dall’assalto dei pirati.', lava: 'Scappa dalla colata di lava prima che ti prenda.',
   templari: 'Affronta ondate di crociati zombi nella chiesa.', funivia: 'Sali in cima alla montagna dell’Isola dell’Adrenalina.', difesa: 'Difendi l’orto dalle ondate di creature selvatiche.', arena: 'Duelli uno contro uno nell’arena del colosseo.',
   relitto_templare: 'Il relitto dello scheletro templare col calice.', segno: 'Punto fissato sulla mappa dell’arcipelago.',

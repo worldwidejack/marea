@@ -146,7 +146,7 @@ export default async function (ctx) {
     const d = await ctx.open('?test=1&net=0', { viewport: ctx.B.DESKTOP });
     await ctx.waitReady(d.page, 20000);
     await d.page.click('#mzSetBtn'); await d.page.waitForTimeout(150);
-    assert(await d.page.isVisible('#mzSet [data-set="ciclo"]'), 'pannello non aperto');
+    assert(await d.page.isVisible('#mzSet [data-set="meteo"]'), 'pannello non aperto');
     assert(!(await d.page.isVisible('#mzSet [data-set="unaMano"]')), '«Una mano» sul PC');
     ctx.noErrors(d, 'PC');
   });

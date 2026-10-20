@@ -25,8 +25,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
 import { applyBuildingLayout, build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, placeStoredBuilding, rotateBuilding, rotateDecor, sellDecor, stowAllBuildings, stowBuilding, upgrade } from '@marea/sim/economy/actions.ts';
-import { compraColoreBarca } from '@marea/sim/economy/barca.ts';
-import { miglioraBottega } from '@marea/sim/economy/botteghe.ts';
+import { compraColoreDelGiorno, miglioraBottega } from '@marea/sim/economy/botteghe.ts';
 import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
@@ -94,16 +93,10 @@ export class Lot extends DurableObject<Env> {
     super(ctx, env);
     ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS stato (k INTEGER PRIMARY KEY, json TEXT NOT NULL)');
   }
-  /** Il personaggio di prova di Riccardo (#401): sempre almeno 100.000 monete. */
-  private checkGemmeRiccc(owner: string, lot: LotState, nome?: string): LotState {
-    const o = owner.toLowerCase(), isRiccc = o === 'riccc' || o.startsWith('riccc-') || o === 'riccardo' || (typeof nome === 'string' && nome.toLowerCase() === 'riccc');
-    if (!isRiccc || lot.monete >= 100_000) return lot;
-    return guadagna(lot, 100_000 - lot.monete);
-  }
-  private load(owner: string, now: number, nome?: string): LotState {
+  private load(owner: string, now: number): LotState {
     const row = this.ctx.storage.sql.exec<{ json: string }>('SELECT json FROM stato WHERE k = 1').toArray()[0];
     if (!row) {
-      const lot = this.checkGemmeRiccc(owner, newLot(owner, now), nome);
+      const lot = newLot(owner, now);
       this.save(lot);
       return lot;
     }
@@ -111,7 +104,7 @@ export class Lot extends DurableObject<Env> {
     // salvataggi di prima delle monete (#414): risorse, edifici spenti e monete del personaggio diventano monete, una volta sola;
     // lotti nati prima del template `lotto` (celle arbitrarie): Molo sul molo, edifici sugli slot L; poi resta com'è
     // e personaggi con abilità o perk che non esistono più (Navigazione): via, i perk tornano punti
-    const fit = this.checkGemmeRiccc(owner, fitHero(fitToTemplate(convertiMonete(lot), defaultTemplate())), nome);
+    const fit = fitHero(fitToTemplate(convertiMonete(lot), defaultTemplate()));
     // spedizione abbandonata da un pezzo con un altare toccato: si chiude tenendo il bottino dell'altare
     const chiusa = chiudiScaduta(fit, now);
     if (chiusa) { this.save(chiusa.lot); return chiusa.lot; }
@@ -126,12 +119,10 @@ export class Lot extends DurableObject<Env> {
     const url = new URL(req.url);
     const owner = req.headers.get('x-persona') ?? '';
     if (!owner) return json({ error: 'Manca la persona' }, 400);
-    const rawNome = req.headers.get('x-persona-nome');
-    const nome = rawNome ? decodeURIComponent(rawNome) : undefined;
     const now = nowFromHeader(req);
     const act = url.pathname.replace(/^\/+/, '');
     try {
-      const lot = this.load(owner, now, nome);
+      const lot = this.load(owner, now);
       if (req.method === 'GET' && act === 'state') {
         const next = advance(lot, now);
         this.save(next);
@@ -147,7 +138,7 @@ export class Lot extends DurableObject<Env> {
         // spedizione insieme aperta (#118): prima il log della squadra dal DO Spedizioni, poi il lotto riletto (nell'attesa può essere cambiato)
         if (g && SERVE_GRUPPO.has(act)) {
           const gruppo = await this.logGruppo(g);
-          return rpgRoute(this.load(owner, now, nome), act, { ...body, gruppo }, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
+          return rpgRoute(this.load(owner, now), act, { ...body, gruppo }, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
         }
         return rpgRoute(lot, act, body, now, (l) => this.save(l), (l) => tornatoDaSpedizione(l, now));
       }
@@ -158,7 +149,7 @@ export class Lot extends DurableObject<Env> {
         const g = lot.templari?.pending?.party;
         if (g && act === 'templari_finish') {
           const gruppo = await this.logTemplari(g);
-          return templariRoute(this.load(owner, now, nome), act, { ...body, gruppo }, now, (l) => this.save(l));
+          return templariRoute(this.load(owner, now), act, { ...body, gruppo }, now, (l) => this.save(l));
         }
         return templariRoute(lot, act, body, now, (l) => this.save(l));
       }
@@ -428,7 +419,7 @@ export class Lot extends DurableObject<Env> {
       case 'barca': {
         const id = body['id'];
         if (!isId(id)) return json({ error: 'Colore sconosciuto' }, 400);
-        return compraColoreBarca(lot, id, now);
+        return compraColoreDelGiorno(lot, id, now); // le vernici del Cantiere solo il loro giorno (#414)
       }
       case 'hold': {
         const cid = body['cid'], stake = body['stake'], kind = body['kind'];

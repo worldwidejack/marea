@@ -45,3 +45,15 @@ export function createRng(seed: number | string): Rng {
   };
   return rng;
 }
+
+/**
+ * Generatore con tutto lo stato in un intero (mulberry32, solo interi a 32 bit: uguale su ogni motore), per le sim che tengono
+ * lo stato della partita serializzabile e confrontabile con un hash (Difesa, Sparo): `s.caso` è il seme e avanza a ogni numero.
+ */
+export function casoIntero(s: { caso: number }): number {
+  s.caso = (s.caso + 0x6d2b79f5) >>> 0;
+  let t = s.caso;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}

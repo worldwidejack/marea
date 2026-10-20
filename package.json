@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "MAREA: arcipelago 3D condiviso tra amici. La tua isola produce mentre non ci sei.",
+  "description": "MAREA: arcipelago 3D condiviso tra amici, nel browser. Borgo Marea, isole a tema e minigiochi, un'unica valuta: le monete.",
   "workspaces": [
     "packages/*",
     "apps/*"

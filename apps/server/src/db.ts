@@ -35,9 +35,7 @@ const SLOT_LIBERO = `(SELECT value FROM json_each('${JSON.stringify(Array.from({
  * Ingresso dal link di gruppo: se l'invito ha ancora ingressi, crea la persona (primo slot libero) e conta l'uso, in una sola
  * transazione (batch D1). null = invito inesistente o finito.
  */
-const INVITI_RICCC = new Set(['riccc-p1-k8m2', 'riccc-p2-v4q9', 'riccc-p3-x7n5']);
 export async function entraConInvito(env: Env, codice: string, id: string, nome: string, token: string): Promise<{ slot: number | null } | null> {
-  if (INVITI_RICCC.has(codice)) await env.DB.prepare("INSERT OR IGNORE INTO inviti (codice, creato_da, max_usi) VALUES (?1, 'riccc', 1)").bind(codice).run();
   const ok = 'EXISTS (SELECT 1 FROM inviti WHERE codice = ?1 AND usi < max_usi)';
   const [ins] = await env.DB.batch([
     env.DB.prepare(`INSERT INTO persone (id, nome, token, admin, look, slot) SELECT ?2, ?3, ?4, 0, '${LOOK_A}', ${SLOT_LIBERO} WHERE ${ok}`).bind(codice, id, nome, token),

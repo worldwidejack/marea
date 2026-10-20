@@ -8,29 +8,29 @@ import { PAL } from '../ui/style.ts';
 
 export type Forma = { pos: Float32Array; col: Float32Array; ch: Uint8Array; n: number };
 /** Colore fisso (hex della palette) o canale del mantello: 1 = colore principale, 2 = secondario. */
-type Tinta = string | 1 | 2;
-type Pezzo = { g: THREE.BufferGeometry; c: Tinta; m: THREE.Matrix4 };
+export type Tinta = string | 1 | 2;
+export type Pezzo = { g: THREE.BufferGeometry; c: Tinta; m: THREE.Matrix4 };
 
 const E = new THREE.Euler(), Q = new THREE.Quaternion(), V = new THREE.Vector3(), S = new THREE.Vector3(1, 1, 1);
 /** Matrice: posizione, rotazione (XYZ) e scala. */
 export const mat = (x: number, y: number, z: number, rx = 0, ry = 0, rz = 0, s = 1) =>
   new THREE.Matrix4().compose(V.set(x, y, z), Q.setFromEuler(E.set(rx, ry, rz)), S.set(s, s, s));
-const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
+export const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 /** Scatola appesa per la cima (perno in alto): zampe che ruotano attorno all'anca. */
-const hang = (w: number, h: number, d: number) => box(w, h, d).translate(0, -h / 2, 0);
+export const hang = (w: number, h: number, d: number) => box(w, h, d).translate(0, -h / 2, 0);
 /** Scatola che parte dal perno verso +X (ali). */
-const arm = (w: number, h: number, d: number) => box(w, h, d).translate(w / 2, 0, 0);
+export const arm = (w: number, h: number, d: number) => box(w, h, d).translate(w / 2, 0, 0);
 /** Scatola che parte dal perno verso +Z (code). */
 const tailSeg = (w: number, h: number, d: number) => box(w, h, d).translate(0, 0, d / 2);
 /** Specchio in X col verso dei triangoli raddrizzato (altrimenti il lato specchiato verrebbe scartato come retro). */
-function mirrorX(g: THREE.BufferGeometry): THREE.BufferGeometry {
+export function mirrorX(g: THREE.BufferGeometry): THREE.BufferGeometry {
   g.scale(-1, 1, 1);
   const ix = g.index?.array;
   if (ix) for (let i = 0; i < ix.length; i += 3) { const t = ix[i]!; ix[i] = ix[i + 2]!; ix[i + 2] = t; }
   return g;
 }
 
-function forma(parti: Pezzo[]): Forma {
+export function forma(parti: Pezzo[]): Forma {
   let n = 0;
   const geos = parti.map((p) => { const g = (p.g.index ? p.g.toNonIndexed() : p.g).applyMatrix4(p.m); n += g.attributes.position!.count; return { g, c: p.c }; });
   const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), ch = new Uint8Array(n), c = new THREE.Color();
@@ -44,7 +44,7 @@ function forma(parti: Pezzo[]): Forma {
   }
   return { pos, col, ch, n };
 }
-const pz = (g: THREE.BufferGeometry, c: Tinta, m: THREE.Matrix4): Pezzo => ({ g, c, m });
+export const pz = (g: THREE.BufferGeometry, c: Tinta, m: THREE.Matrix4): Pezzo => ({ g, c, m });
 
 // ———— gabbiano: bianco, ali grigie lunghe e strette con le punte nere, becco giallo; apertura alare ~1,5 m (più grande del vero: deve leggersi) ————
 function testaGabbiano(t: THREE.Matrix4): Pezzo[] {

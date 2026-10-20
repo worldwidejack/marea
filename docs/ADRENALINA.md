@@ -1,8 +1,8 @@
 # MAREA — Isola dell'Adrenalina (GDD dell'isola)
 
-> Parte del GDD (`GDD.md` §3, §6 e §14 rimandano qui; vale come il GDD). Isola a tema **per tutti**, proposta da **birbasan** il 10 ott 2026; issue madre #189. Non è un'isola personale: entra con l'**ok di Jack** (10 ott 2026). Nasce da una bozza di decisioni presa in chat; le scelte che la bozza non diceva le ha prese Claude e sono segnate **[scelta provvisoria]**.
+> Parte del GDD (`GDD.md` §3, §6 e §14 rimandano qui). Isola a tema **per tutti**, proposta da **birbasan** il 10 ott 2026; issue madre #189. Non è un'isola personale: entra con l'**ok di Jack** (10 ott 2026). Nasce da una bozza di decisioni presa in chat; le scelte che la bozza non diceva le ha prese Claude e sono segnate **[scelta provvisoria]**.
 > **14 ott 2026** (`VISIONE.md` §4): l'Adrenalina probabilmente si unisce all'Isola delle Corse. Finché Jack non conferma, le discese restano qui; il lavoro nuovo va pensato per poter traslocare nell'hub delle Corse.
-> Numeri: andranno in `packages/content/src/adrenalina/` e in `packages/content/src/minigames/<gioco>.json` (uno per gioco). Le tabelle qui sono la **prima ipotesi**; cambiarli = aggiornare qui e una riga in `ROADMAP.md` §Deviazioni.
+> Numeri: andranno in `packages/content/src/adrenalina/` e in `packages/content/src/minigames/<gioco>.json` (uno per gioco). Le tabelle qui sono la **prima ipotesi**; cambiarli = aggiornare qui, col perché nella PR.
 
 ## 0. In tre righe
 Un'isola che è quasi tutta una montagna: neve in cima, bosco a metà, scogliere sul mare. Una **funivia** dal molo porta in vetta, e da lì scegli come buttarti giù: **snowboard**, **bici downhill** o **lancio col paracadute**. Discese brevi (60-120 s) contro il **fantasma** del record di un amico, con una barra **Adrenalina** che moltiplica i punti di chi rischia.

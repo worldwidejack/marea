@@ -1,4 +1,4 @@
-# Su ogni push a main: suite completa (4 gruppi in parallelo, tests/shard.mjs), poi deploy su Cloudflare. Se un test fallisce, online resta la versione di prima.
+# Su ogni push a main: test veloci (la PR ha già passato tutta la suite, pr.yml) e deploy su Cloudflare. Se qualcosa fallisce, online resta la versione di prima.
 name: Deploy
 on:
   push:
@@ -10,61 +10,16 @@ concurrency:
   group: deploy
   cancel-in-progress: false
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 50
-    strategy:
-      fail-fast: false
-      matrix:
-        gruppo: [0, 1, 2, 3]
-    env:
-      CI: '1'
-      WRANGLER_SEND_METRICS: 'false'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-      - run: npm ci
-      - name: Suite del gruppo ${{ matrix.gruppo }}
-        id: suite
-        run: |
-          suite=$(node tests/shard.mjs ${{ matrix.gruppo }} 4)
-          echo "Suite: $suite"
-          node tests/run.mjs $suite
-        continue-on-error: true
-      # GitHub disegna il gioco a 2-4 fps: un test e2e a tempo può cadere per lentezza. Si riprovano una volta sola le suite e2e cadute;
-      # se è caduto qualcosa di deterministico (static, types, sim, budget della build) non si riprova e il deploy non parte.
-      - name: Riprova le suite e2e cadute (una volta)
-        if: steps.suite.outcome == 'failure'
-        run: |
-          cadute=$(node -e "const r=require('./tests/out/report.json'); console.log([...new Set(r.results.filter(x=>!x.ok).map(x=>x.suite))].join(' '))")
-          echo "Cadute: $cadute"
-          for s in $cadute; do case "$s" in static|types|sim|build|runner) echo "::error::$s è deterministico: niente riprova."; exit 1;; esac; done
-          if [ -n "$cadute" ]; then node tests/run.mjs $cadute; fi
-      - name: Screenshot e report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-out-${{ matrix.gruppo }}
-          path: |
-            tests/out/report.json
-            tests/out/perf.json
-            tests/out/shots/
-          retention-days: 14
-          if-no-files-found: ignore
   deploy:
-    needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       CI: '1'
       WRANGLER_SEND_METRICS: 'false'
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      # storia di main: la build ne fa /novita.json, la schermata «Dall'ultima volta» (#279)
+      # storia di main: la build ne fa /novita.json, la schermata «Dall'ultima volta»
       - uses: actions/checkout@v4
         with:
           fetch-depth: 300
@@ -73,9 +28,22 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
+      # due PR verdi unite una dopo l'altra non si sono mai provate insieme: i test veloci controllano che main si costruisca e si avvii
+      - name: Test veloci (static, types, sim, boot)
+        run: node tests/run.mjs static types sim boot
       - name: Deploy su Cloudflare
         run: node tools/deploy.mjs --no-tail
       - name: Riepilogo
         run: |
           echo "### Online: https://marea.stanza-idee.workers.dev" >> "$GITHUB_STEP_SUMMARY"
           curl -s https://marea.stanza-idee.workers.dev/version.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Screenshot e report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-out-deploy
+          path: |
+            tests/out/report.json
+            tests/out/shots/
+          retention-days: 14
+          if-no-files-found: ignore

@@ -1,13 +1,14 @@
 // Pannelli del Porto tra amici (#110 #111), chunk caricato con import() alla prima apertura da game/porto_amici.ts:
 //  - Tabellone dei record: per ogni minigioco da solo il migliore di oggi e il migliore di sempre tra gli amici (nome, punteggio come lo
-//    mostra il gioco, medaglia). I punteggi li scrive il server dopo il replay (GET /api/record).
+//    mostra il gioco, medaglia). I punteggi li scrive il server dopo il replay (GET /api/record). In cima i collezionisti (#457): chi ha
+//    consegnato più pesci e insetti al mobiliere (GET /api/collezione).
 //  - Faro comune: livello, barre verso il prossimo livello (Legno e Pietra totali), bottoni per versare 50 / 200 / TUTTO dal Magazzino
 //    (POST /api/faro/versa: decide il server), bonus di adesso e del prossimo livello, chi ha versato di più.
 // Tastiera in capture solo a pannello aperto (come porto_ui.ts): Esc o E chiudono, frecce tra i bottoni.
 import { FARO } from '@marea/content/porto_amici.ts';
 import { finoAlCambio } from '@marea/sim/economy/missioni.ts';
 import { ApiError, mancaText } from '../net/api.ts';
-import type { FaroVista, RecordRiga, RecordVista } from '../net/api.ts';
+import type { CollezioneRiga, FaroVista, RecordRiga, RecordVista } from '../net/api.ts';
 import type { PortoAmiciCtx } from '../game/porto_amici.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
 import { pixIcon, resIcon } from './icons.ts';
@@ -82,7 +83,7 @@ export function createPortoAmiciUi(ctx: PortoAmiciCtx): PortoAmiciUi {
   for (const ev of ['pointerdown', 'touchstart']) sheet.addEventListener(ev, (x) => x.stopPropagation());
   ctx.root.appendChild(sheet);
   let kind: 'record' | 'faro' | null = null, gen = 0, timer = 0;
-  let righe: RecordRiga[] | null = null, carica = false, errore: string | null = null;
+  let righe: RecordRiga[] | null = null, carica = false, errore: string | null = null, collez: CollezioneRiga[] | null = null;
   const st = { busy: false, note: null as { text: string; bad: boolean } | null, versati: 0 };
   const meId = () => ctx.me?.id ?? '';
 
@@ -126,6 +127,18 @@ export function createPortoAmiciUi(ctx: PortoAmiciCtx): PortoAmiciUi {
     body.appendChild(say);
     if (!ctx.api?.enabled) { body.appendChild(el('div', 'mz-pa-note bad', 'Il tabellone è per chi ha il link personale: chiedilo a Jack')); return body; }
     if (!righe) { body.appendChild(el('div', 'mz-pa-note' + (errore ? ' bad' : ''), errore ?? 'Leggo il tabellone…')); return body; }
+    // i collezionisti (#457): pesci e insetti consegnati al mobiliere
+    if (collez?.length) {
+      const box = el('div', 'mz-pa-rec'); box.dataset['minigioco'] = 'collezione';
+      box.appendChild(el('b', '', 'Collezionisti · pesci e insetti dal mobiliere'));
+      collez.forEach((c, i) => {
+        const r = el('div', 'mz-pa-top' + (c.id === meId() ? ' io' : '')); r.dataset['chi'] = c.id;
+        const tot = el('span', 'q'); tot.append(el('b', '', String(c.pesci + c.insetti)));
+        r.append(el('span', 'n', String(i + 1)), el('span', 'nm', c.nome), el('span', 'q', `${c.pesci} pesci`), el('span', 'q', `${c.insetti} insetti`), tot);
+        box.appendChild(r);
+      });
+      body.appendChild(box);
+    }
     for (const r of righe) {
       const box = el('div', 'mz-pa-rec'); box.dataset['minigioco'] = r.minigame;
       const cols = el('div', 'mz-pa-cols'); cols.append(cella('OGGI', r.minigame, r.oggi), cella('SEMPRE', r.minigame, r.sempre));
@@ -235,6 +248,7 @@ export function createPortoAmiciUi(ctx: PortoAmiciCtx): PortoAmiciUi {
       carica = true; errore = null;
       ctx.api.record().then((r) => { righe = r; }, (e: unknown) => { errore = e instanceof ApiError ? e.message : 'Tabellone non letto, riprova'; })
         .finally(() => { carica = false; if (g === gen) render(); });
+      ctx.api.collezione().then((c) => { collez = c; if (g === gen) render(); }, () => { /* senza collezionisti il tabellone c'è lo stesso */ });
     } else {
       // faro e Magazzino freschi dal server (gli altri versano anche mentre guardi)
       void Promise.allSettled([ctx.api.faro().then(ctx.setFaro), ctx.api.lot().then(ctx.setLot)]).then(() => { if (g === gen) render(); });
@@ -254,6 +268,6 @@ export function createPortoAmiciUi(ctx: PortoAmiciCtx): PortoAmiciUi {
     record: () => apri('record'),
     faro: () => apri('faro'),
     close: () => close(), isOpen: () => kind !== null,
-    state: () => ({ kind, busy: st.busy, note: st.note?.text ?? null, versati: st.versati, carica, righe: righe?.map((r) => ({ minigame: r.minigame, oggi: r.oggi ? { chi: r.oggi.chi, score: r.oggi.score, testo: punteggioText(r.minigame, r.oggi) } : null, sempre: r.sempre ? { chi: r.sempre.chi, score: r.sempre.score, testo: punteggioText(r.minigame, r.sempre) } : null })) ?? null }),
+    state: () => ({ kind, busy: st.busy, note: st.note?.text ?? null, versati: st.versati, carica, collezione: collez, righe: righe?.map((r) => ({ minigame: r.minigame, oggi: r.oggi ? { chi: r.oggi.chi, score: r.oggi.score, testo: punteggioText(r.minigame, r.oggi) } : null, sempre: r.sempre ? { chi: r.sempre.chi, score: r.sempre.score, testo: punteggioText(r.minigame, r.sempre) } : null })) ?? null }),
   };
 }

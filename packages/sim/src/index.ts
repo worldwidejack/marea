@@ -21,7 +21,6 @@ export * from './replay.ts';
 export * from './economy/cells.ts';
 export * from './economy/challenge.ts';
 export * from './minigames/scacchi.ts';
-export * from './minigames/pesca.ts';
 export * from './minigames/consegne/consegne.ts'; // Consegne
 export * from './minigames/ingorgo.ts'; // Ingorgo
 export * from './minigames/perle.ts'; // Perle

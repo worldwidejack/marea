@@ -11,6 +11,9 @@ import type { Loader } from '../render/loader.ts';
 import { createAnimator } from '../render/anim.ts';
 import type { Animator } from '../render/anim.ts';
 import { registerStateProvider } from '../test/testapi.ts';
+import { creaGestoreAzioni } from './avatar_azioni.ts';
+import type { AvatarAzione } from './avatar_azioni.ts';
+export type { AvatarAzione } from './avatar_azioni.ts';
 
 export type Avatar = {
   object: THREE.Object3D; state: AvatarState; prev: AvatarState;
@@ -40,6 +43,11 @@ export type Avatar = {
   indossaMats(): THREE.MeshLambertMaterial[];
   /** Cosa si vede adesso (per i test); null se niente è ancora vestito. */
   indossaStato(): { corpo: string | null; arma: string | null; faretra: boolean; tri: number } | null;
+  /** Override procedurale del braccio destro (attrezzi, retino). null per disattivare. */
+  setArmOverride(fn: ((dt: number) => void) | null): void;
+  /** Avvia un'azione animata (scuotere albero, pala su sasso/buca). Ritorna la durata in s. */
+  avviaAzione(tipo: AvatarAzione, durata?: number, bersaglio?: { x: number; z: number }): number;
+  readonly azioneInCorso: AvatarAzione | null; readonly azioneProgresso: number; readonly azioneTempo: number; interrompiAzione(): void;
 };
 
 const HIP_H = 0.82, SIT_HIP = 0.42, SEAT_DROP = 0.37; // altezza del bacino in piedi / seduto; bacino → seduta
@@ -163,6 +171,7 @@ function buildRig(look: Look): Rig {
   };
   const upperP = part(hips, [0, 0, 0], upperGeometry(look));
   const armLp = part(upperP.g, [-0.245, 0.44, 0], armGeometry(look)), armRp = part(upperP.g, [0.245, 0.44, 0], armGeometry(look));
+  armRp.g.name = 'armR';
   const tl = part(hips, [-0.085, 0, 0], thighGeometry()), tr = part(hips, [0.085, 0, 0], thighGeometry());
   const sl = part(tl.g, [0, -0.4, 0], shinGeometry()), sr = part(tr.g, [0, -0.4, 0], shinGeometry());
   return {
@@ -250,8 +259,17 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   if (o.loader.has('chr_base')) { try { model = await loadModel(o.loader); } catch (e) { console.warn('[marea] chr_base non caricabile, uso il segnaposto', e); } }
   if (model) object.add(model.root); else { rig = buildRig(look); object.add(rig.root); }
   const body = model ? model.root : rig!.root, bodyY = body.position.y, bodyYaw = body.rotation.y; // il gesto muove il corpo, non `object` (lo posa update)
-
   let state = newAvatar(o.x, o.z), prev = state;
+  const bone = (n: string) => object.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n)) ?? object.getObjectByName(n) ?? null;
+  let armOverride: ((dt: number) => void) | null = null, armTouched = false;
+  const cleanArmR = new THREE.Quaternion(), cleanForeR = new THREE.Quaternion();
+  const getArmBones = () => ({ armR: bone('UpperArm.R'), foreR: bone('LowerArm.R') });
+  const azioni = creaGestoreAzioni({
+    body, bone,
+    rig: rig ? { upper: rig.upper, armL: rig.armL, armR: rig.armR } : null,
+    getPos: () => ({ x: state.x, z: state.z }),
+    orienta: (yaw) => { state = { ...state, yaw }; prev = { ...prev, yaw }; viewYaw = yaw; snap = true; },
+  });
   let home: THREE.Object3D | null = null, attached = false, rowing = false, rowPh = 0;
   let groundFn: ((x: number, z: number) => number) | null = null, lastMap: GridMap | null = null;
   let gy = 0.4, snap = true, viewYaw = 0, shown = 'idle', heldFor = 1;
@@ -315,21 +333,34 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
       if (want !== shown && (heldFor > 0.1 || seated !== (shown === 'sit' || shown === 'row'))) { shown = want; heldFor = 0; }
       const speed = seated ? 0 : Math.hypot(state.vx, state.vz);
       if (model) {
+        const { armR, foreR } = getArmBones();
+        if (armTouched && armR && foreR) {
+          armR.quaternion.copy(cleanArmR);
+          foreR.quaternion.copy(cleanForeR);
+          armTouched = false;
+        }
         const a = model.anim;
         if (!a.play(shown, 0.15)) a.play('idle', 0.15);
         a.setSpeed(shown === 'walk' ? speed / CLIP_SPEED.walk : shown === 'run' ? speed / CLIP_SPEED.run : shown === 'row' ? 0.6 + 0.4 * Math.abs(Math.cos(rowPh * 0.5)) : 1);
         a.update(dt);
-      } else poseRig(dt, speed, shown);
+        if (armOverride) {
+          if (armR && foreR) { cleanArmR.copy(armR.quaternion); cleanForeR.copy(foreR.quaternion); armTouched = true; }
+          armOverride(dt);
+        }
+      } else {
+        poseRig(dt, speed, shown);
+        if (armOverride) armOverride(dt);
+      }
+      azioni.update(dt);
     },
-    teleport(x, z, yaw) { state = { ...state, x, z, vx: 0, vz: 0, ...(yaw !== undefined ? { yaw } : {}) }; prev = state; snap = true; },
+    teleport(x, z, yaw) { azioni.interrompi(); state = { ...state, x, z, vx: 0, vz: 0, ...(yaw !== undefined ? { yaw } : {}) }; prev = state; snap = true; },
     setLook: applyLook,
     setCappello(id) { model?.setCappello(id); },
     setIndossa(i, opt) {
       if (!model) return;
       indossa = vuoto(i) ? undefined : i;
-      if (!indossa && !vestito) return; // niente da togliere
+      if (!indossa && !vestito) return;
       const schiena = opt?.schiena !== false, fatto = indossa;
-      // in superficie si carica a tempo perso (porta con sé i dati del GDR: qualche decina di KB gzip), nel dungeon subito
       vestito ??= new Promise<void>((r) => (!schiena || typeof requestIdleCallback !== 'function' ? setTimeout(r, schiena ? 500 : 0) : requestIdleCallback(() => r(), { timeout: 3000 })))
         .then(() => import('../rpg/vestito.ts')).then((m) => (vestitoOra = m.creaVestito({ loader: o.loader, root: model!.root, rest: model!.rest })));
       void vestito.then((v) => v.set(fatto, schiena)).catch((e) => console.warn('[marea] equipaggiamento non vestito', e));
@@ -339,20 +370,25 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
     gesto(hop, spin) { body.position.y = bodyY + hop; body.rotation.y = bodyYaw + spin; },
     setGround(fn) { groundFn = fn; snap = true; },
     attachTo(parent, seat = { x: 0, y: SEAT_DROP, z: 0 }, yaw = 0) {
-      if (parent) {
-        if (!attached) home = object.parent;
-        seatPos.set(seat.x, seat.y - SEAT_DROP, seat.z);
-        parent.add(object); object.position.copy(seatPos); object.rotation.set(0, -yaw, 0); attached = true;
-      } else if (attached) {
-        attached = false; rowing = false; if (home) home.add(object); snap = true;
-      }
+      if (parent) { if (!attached) home = object.parent; seatPos.set(seat.x, seat.y - SEAT_DROP, seat.z); parent.add(object); object.position.copy(seatPos); object.rotation.set(0, -yaw, 0); attached = true; }
+      else if (attached) { attached = false; rowing = false; if (home) home.add(object); snap = true; }
     },
     setRowing(on, phase = 0) { rowing = on; rowPh = phase; },
     setPose(p) {
-      const a = (['idle', 'walk', 'run', 'sit'] as const).find((k) => k === p.anim) ?? 'idle';
-      const s = a === 'walk' ? CLIP_SPEED.walk : a === 'run' ? CLIP_SPEED.run : 0;
+      const a = (['idle', 'walk', 'run', 'sit'] as const).find((k) => k === p.anim) ?? 'idle', s = a === 'walk' ? CLIP_SPEED.walk : a === 'run' ? CLIP_SPEED.run : 0;
       prev = state; state = { x: p.x, z: p.z, yaw: p.yaw, vx: Math.sin(p.yaw) * s, vz: -Math.cos(p.yaw) * s, anim: a };
     },
+    setArmOverride(fn) {
+      armOverride = fn;
+      if (!fn && armTouched) {
+        const { armR, foreR } = getArmBones();
+        if (armR && foreR) { armR.quaternion.copy(cleanArmR); foreR.quaternion.copy(cleanForeR); armR.updateMatrixWorld(true); foreR.updateMatrixWorld(true); }
+        armTouched = false;
+      }
+    },
+    avviaAzione: (t, d, b) => azioni.avvia(t, d, b),
+    get azioneInCorso() { return azioni.inCorso; }, get azioneProgresso() { return azioni.progresso; }, get azioneTempo() { return azioni.tempo; },
+    interrompiAzione: () => azioni.interrompi(),
   };
   if (!registered) {
     registered = true;

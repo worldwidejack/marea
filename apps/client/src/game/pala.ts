@@ -15,6 +15,7 @@ import { FLAGS } from '../flags.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
 import { PAL, el } from '../ui/style.ts';
 import { pixIcon } from '../ui/icons.ts';
+import { suona } from '../audio/ponte.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 
 export type PalaBorgo = { tick(a: boolean): boolean; update(dt: number): void };
@@ -22,25 +23,19 @@ type NearBuca = { kind: 'aperta' | 'seppellita' | 'bottino'; cell: [number, numb
 
 const RAGGIO_BUCA = 2.1;
 const POLL_S = 5;
-const CSS = `
-#mzScavaBtn { position: absolute; left: 50%; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 16px); transform: translateX(-50%); z-index: 16; display: none; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; background: rgba(46,30,20,.94); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; border-radius: 6px; box-shadow: 0 3px 0 ${PAL.neroCaldo}; }
-#mzScavaBtn.on { display: inline-flex; }
-#mzScavaBtn b { color: ${PAL.giallo}; }
+const CSS = `#mzScavaBtn { position: absolute; left: 50%; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 16px); transform: translateX(-50%); z-index: 16; display: none; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; background: rgba(46,30,20,.94); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; border-radius: 6px; box-shadow: 0 3px 0 ${PAL.neroCaldo}; }
+#mzScavaBtn.on { display: inline-flex; } #mzScavaBtn b { color: ${PAL.giallo}; }
 #mzPalaSheet .tabs { display: flex; gap: 6px; margin: 8px 0; }
 #mzPalaSheet .tab { flex: 1; padding: 6px 8px; background: rgba(35,32,31,.85); border: 1px solid ${PAL.legno}; color: ${PAL.sabbia}; font: bold 12px ui-monospace, Menlo, monospace; cursor: pointer; }
 #mzPalaSheet .tab.on { background: ${PAL.legno}; color: ${PAL.giallo}; border-color: ${PAL.giallo}; }
 #mzPalaSheet .lista { max-height: 210px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
 #mzPalaSheet .riga { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; background: rgba(35,32,31,.75); border: 1px solid ${PAL.legnoScuro}; color: ${PAL.sabbiaChiara}; font: 13px ui-monospace, Menlo, monospace; }
-#mzPalaSheet .riga b { color: ${PAL.giallo}; }
-#mzPalaSheet .monete-box { display: flex; align-items: center; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
-#mzPalaSheet input[type="number"] { width: 96px; padding: 6px 8px; background: ${PAL.neroCaldo}; border: 1px solid ${PAL.legnoChiaro}; color: ${PAL.giallo}; font: bold 14px ui-monospace, Menlo, monospace; }
-`;
+#mzPalaSheet .riga b { color: ${PAL.giallo}; } #mzPalaSheet .monete-box { display: flex; align-items: center; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
+#mzPalaSheet input[type="number"] { width: 96px; padding: 6px 8px; background: ${PAL.neroCaldo}; border: 1px solid ${PAL.legnoChiaro}; color: ${PAL.giallo}; font: bold 14px ui-monospace, Menlo, monospace; }`;
 
 /** Geometria di una buca aperta: pozzo scuro nel terreno con bordo di zolle scavate. */
 function bucaApertaGeo(x: number, y: number, z: number): THREE.BufferGeometry[] {
-  const out: THREE.BufferGeometry[] = [];
-  out.push(painted(new THREE.CylinderGeometry(0.56, 0.58, 0.08, 10), P.legno, M(x, y + 0.03, z)));
-  out.push(painted(new THREE.CylinderGeometry(0.42, 0.36, 0.09, 10), P.neroCaldo, M(x, y + 0.045, z)));
+  const out = [painted(new THREE.CylinderGeometry(0.56, 0.58, 0.08, 10), P.legno, M(x, y + 0.03, z)), painted(new THREE.CylinderGeometry(0.42, 0.36, 0.09, 10), P.neroCaldo, M(x, y + 0.045, z))];
   for (let i = 0; i < 6; i++) {
     const a = (i * Math.PI) / 3 + 0.2;
     out.push(painted(new THREE.BoxGeometry(0.22, 0.1, 0.16), i % 2 ? P.legnoScuro : P.legnoChiaro, M(x + Math.cos(a) * 0.48, y + 0.07, z + Math.sin(a) * 0.48, 0, -a, 0)));
@@ -50,19 +45,25 @@ function bucaApertaGeo(x: number, y: number, z: number): THREE.BufferGeometry[] 
 
 /** Geometria della croce sul terreno (stile Animal Crossing): terra smossa con segno a X ben visibile. */
 function croceSeppellitaGeo(x: number, y: number, z: number): THREE.BufferGeometry[] {
-  const out: THREE.BufferGeometry[] = [];
-  out.push(painted(new THREE.CylinderGeometry(0.5, 0.54, 0.04, 8), P.sabbia, M(x, y + 0.02, z)));
-  out.push(painted(new THREE.CylinderGeometry(0.42, 0.45, 0.05, 8), P.legno, M(x, y + 0.026, z)));
-  out.push(painted(new THREE.BoxGeometry(0.74, 0.06, 0.15), P.legnoScuro, M(x, y + 0.045, z, 0, Math.PI / 4, 0)));
-  out.push(painted(new THREE.BoxGeometry(0.74, 0.06, 0.15), P.legnoScuro, M(x, y + 0.045, z, 0, -Math.PI / 4, 0)));
-  out.push(painted(new THREE.BoxGeometry(0.66, 0.065, 0.08), P.neroCaldo, M(x, y + 0.05, z, 0, Math.PI / 4, 0)));
-  out.push(painted(new THREE.BoxGeometry(0.66, 0.065, 0.08), P.neroCaldo, M(x, y + 0.05, z, 0, -Math.PI / 4, 0)));
-  return out;
+  return [
+    painted(new THREE.CylinderGeometry(0.5, 0.54, 0.04, 8), P.sabbia, M(x, y + 0.02, z)),
+    painted(new THREE.CylinderGeometry(0.42, 0.45, 0.05, 8), P.legno, M(x, y + 0.026, z)),
+    painted(new THREE.BoxGeometry(0.74, 0.06, 0.15), P.legnoScuro, M(x, y + 0.045, z, 0, Math.PI / 4, 0)),
+    painted(new THREE.BoxGeometry(0.74, 0.06, 0.15), P.legnoScuro, M(x, y + 0.045, z, 0, -Math.PI / 4, 0)),
+    painted(new THREE.BoxGeometry(0.66, 0.065, 0.08), P.neroCaldo, M(x, y + 0.05, z, 0, Math.PI / 4, 0)),
+    painted(new THREE.BoxGeometry(0.66, 0.065, 0.08), P.neroCaldo, M(x, y + 0.05, z, 0, -Math.PI / 4, 0)),
+  ];
 }
 
 export function createPalaBorgo(o: {
   world: GameWorld; root: HTMLElement; hud: Hud; api: Api | null;
   getLot(): LotState | null; setLot(l: LotState): void; negozioDentro(): boolean;
+  /** Cosa hai in mano (#445): si scava solo con la pala in mano; assente = sempre la pala. */
+  inMano?(): string;
+  /** Vicino a un sasso o a un albero (#445): il bottone SCAVA si fa da parte. */
+  occupato?(): boolean;
+  /** Particelle di terra dalla buca scavata o chiusa. */
+  zolle?(x: number, y: number, z: number, n?: number): void;
 }): PalaBorgo {
   const w = o.world, arch = w.archipelago, T = arch.tile;
   const porto = arch.places.find((p) => p.role === 'porto');
@@ -71,6 +72,7 @@ export function createPalaBorgo(o: {
   const [ox, oz] = porto.origin;
   const cellWorld = (c: readonly [number, number]) => ({ x: (ox + c[0] + 0.5) * T, z: (oz + c[1] + 0.5) * T });
   const adesso = () => o.api?.serverNow() ?? Date.now();
+  const conPala = () => (o.inMano?.() ?? 'pala') === 'pala' && !(o.occupato?.() ?? false);
 
   const group = new THREE.Group(); group.name = 'borgo_buche'; w.scene.add(group);
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
@@ -138,7 +140,7 @@ export function createPalaBorgo(o: {
   o.root.append(scavaBtn, sheet);
   for (const e of [scavaBtn, sheet]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
 
-  let apertaCell: [number, number] | null = null, tab: 'zaino' | 'mobili' | 'monete' = 'zaino', moneteInput = 50, busy = false, nota = '', pollAcc = 0, aWas = false;
+  let apertaCell: [number, number] | null = null, tab: 'zaino' | 'mobili' | 'monete' = 'zaino', moneteInput = 50, busy = false, nota = '', pollAcc = 0, aWas = false, congelato = 0;
   const chiudiSheet = () => { apertaCell = null; nota = ''; sheet.classList.remove('on'); sheet.replaceChildren(); };
 
   const inBorgo = (): boolean => {
@@ -188,6 +190,10 @@ export function createPalaBorgo(o: {
     const near = findNearBuca();
     const bersaglio = cell ?? (near && (near.kind === 'seppellita' || near.kind === 'bottino') ? near.cell : targetDigCell());
     if (!bersaglio) { o.hud.toast('Qui non c’è spazio per scavare: spostati su un tratto libero di Borgo Marea', 2400); return null; }
+    const cw = cellWorld(bersaglio);
+    w.avatar.avviaAzione('pala_scava', 0.85, { x: cw.x, z: cw.z });
+    w.frozen = true; congelato = 0.85; suona('plop');
+    o.zolle?.(cw.x, w.groundY(cw.x, cw.z) + 0.1, cw.z, 6);
     busy = true;
     try {
       const d = await callServer('POST', '/api/borgo/buca', { op: 'scava', cell: bersaglio });
@@ -207,6 +213,10 @@ export function createPalaBorgo(o: {
   async function eseguiChiudi(cell?: [number, number]): Promise<boolean> {
     const target = cell ?? apertaCell ?? findNearBuca()?.cell ?? null;
     if (!target || busy) return false;
+    const cw = cellWorld(target);
+    w.avatar.avviaAzione('pala_chiudi', 0.75, { x: cw.x, z: cw.z });
+    w.frozen = true; congelato = 0.75; suona('plop');
+    o.zolle?.(cw.x, w.groundY(cw.x, cw.z) + 0.05, cw.z, 4);
     busy = true;
     try {
       const d = await callServer('POST', '/api/borgo/buca', { op: 'chiudi', cell: target });
@@ -225,6 +235,10 @@ export function createPalaBorgo(o: {
   async function eseguiSeppellisci(dono: BucaDono, cell?: [number, number]): Promise<boolean> {
     const target = cell ?? apertaCell ?? findNearBuca()?.cell ?? null;
     if (!target || busy) return false;
+    const cw = cellWorld(target);
+    w.avatar.avviaAzione('pala_chiudi', 0.75, { x: cw.x, z: cw.z });
+    w.frozen = true; congelato = 0.75; suona('plop');
+    o.zolle?.(cw.x, w.groundY(cw.x, cw.z) + 0.05, cw.z, 4);
     busy = true;
     try {
       const d = await callServer('POST', '/api/borgo/buca', { op: 'seppellisci', cell: target, dono });
@@ -256,55 +270,41 @@ export function createPalaBorgo(o: {
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudiSheet);
     const tit = el('b', '', 'BUCA APERTA NEL TERRENO'); tit.style.flex = '1'; tit.style.color = PAL.giallo;
     testa.append(tit, x);
-
     const chiudiBtn = el('button', 'mz-btn', ''); chiudiBtn.type = 'button'; chiudiBtn.dataset['act'] = 'chiudi-buca';
     chiudiBtn.append(el('span', '', 'CHIUDI LA BUCA (torna terreno normale)'), el('b', '', '✕'));
-    chiudiBtn.disabled = busy;
-    chiudiBtn.addEventListener('click', () => void eseguiChiudi());
-
+    chiudiBtn.disabled = busy; chiudiBtn.addEventListener('click', () => void eseguiChiudi());
     const tabs = el('div', 'tabs');
     for (const [id, label] of [['zaino', 'Zaino'], ['mobili', 'Mobili'], ['monete', 'Monete']] as const) {
-      const tb = el('button', 'tab' + (tab === id ? ' on' : ''), label);
-      tb.type = 'button'; tb.dataset['tab'] = id;
-      tb.addEventListener('click', () => { tab = id; void renderSheet(); });
-      tabs.appendChild(tb);
+      const tb = el('button', 'tab' + (tab === id ? ' on' : ''), label); tb.type = 'button'; tb.dataset['tab'] = id;
+      tb.addEventListener('click', () => { tab = id; void renderSheet(); }); tabs.appendChild(tb);
     }
-
     const lista = el('div', 'lista');
     if (tab === 'zaino') {
       const inv = lot?.hero?.inv ?? {};
       const voci = Object.entries(inv).filter(([id, n]) => n > 0 && id !== 'pala' && defs.get(id)?.kind !== 'strumento');
       if (!voci.length) lista.appendChild(el('div', 'riga', 'Nessun oggetto seppellibile nello zaino.'));
       for (const [id, n] of voci) {
-        const nome = defs.get(id)?.nome ?? id;
-        const r = el('div', 'riga'); r.dataset['item'] = id;
+        const nome = defs.get(id)?.nome ?? id, r = el('div', 'riga'); r.dataset['item'] = id;
         r.append(el('span', '', `${nome} (×${n})`));
         const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['seppellisci'] = `oggetto:${id}`;
-        b.append(el('span', '', 'Seppellisci'), el('b', '', '1'));
-        b.disabled = busy;
+        b.append(el('span', '', 'Seppellisci'), el('b', '', '1')); b.disabled = busy;
         b.addEventListener('click', () => void eseguiSeppellisci({ tipo: 'oggetto', id, n: 1 }));
-        r.appendChild(b);
-        lista.appendChild(r);
+        r.appendChild(b); lista.appendChild(r);
       }
     } else if (tab === 'mobili') {
       const mag = casaDi(lot).magazzino ?? {};
       const voci = Object.entries(mag).filter(([, n]) => n > 0);
       if (!voci.length) lista.appendChild(el('div', 'riga', 'Nessun mobile non piazzato nel magazzino di casa.'));
       for (const [id, n] of voci) {
-        const nome = MOBILI.find((m) => m.id === id)?.nome ?? id;
-        const r = el('div', 'riga'); r.dataset['mobile'] = id;
+        const nome = MOBILI.find((m) => m.id === id)?.nome ?? id, r = el('div', 'riga'); r.dataset['mobile'] = id;
         r.append(el('span', '', `${nome} (×${n})`));
         const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['seppellisci'] = `mobile:${id}`;
-        b.append(el('span', '', 'Seppellisci'), el('b', '', '1'));
-        b.disabled = busy;
+        b.append(el('span', '', 'Seppellisci'), el('b', '', '1')); b.disabled = busy;
         b.addEventListener('click', () => void eseguiSeppellisci({ tipo: 'mobile', id, n: 1 }));
-        r.appendChild(b);
-        lista.appendChild(r);
+        r.appendChild(b); lista.appendChild(r);
       }
     } else {
-      const disp = lot?.monete ?? 0;
-      const box = el('div', 'monete-box');
-      const inp = document.createElement('input');
+      const disp = lot?.monete ?? 0, box = el('div', 'monete-box'), inp = document.createElement('input');
       inp.type = 'number'; inp.min = '1'; inp.max = String(Math.max(1, disp));
       inp.value = String(Math.min(Math.max(1, moneteInput), Math.max(1, disp)));
       inp.dataset['act'] = 'input-monete';
@@ -313,8 +313,7 @@ export function createPalaBorgo(o: {
       b.append(el('span', '', 'Seppellisci monete'), el('b', '', `hai ${disp}`));
       b.disabled = busy || disp < 1;
       b.addEventListener('click', () => void eseguiSeppellisci({ tipo: 'monete', monete: Math.max(1, Math.floor(Number(inp.value) || moneteInput)) }));
-      box.append(el('span', '', 'Quantità:'), inp, b);
-      lista.appendChild(box);
+      box.append(el('span', '', 'Quantità:'), inp, b); lista.appendChild(box);
     }
 
     const corpo: Node[] = [testa, chiudiBtn, el('div', '', 'Oppure scegli cosa seppellire (rimarrà una croce nel terreno):'), tabs, lista];
@@ -366,13 +365,17 @@ export function createPalaBorgo(o: {
         if (pa) void apriSheetBuca(near.cell);
         return true;
       }
-      if (possiedePala(o.getLot())) {
+      if (possiedePala(o.getLot()) && conPala()) {
         if (pa) void eseguiScava(near.cell);
         return true;
       }
       return false;
     },
     update(dt) {
+      if (congelato > 0) {
+        congelato -= dt;
+        if (congelato <= 0 && !w.avatar.azioneInCorso) w.frozen = false;
+      }
       pollAcc += dt;
       if (pollAcc >= POLL_S) {
         pollAcc = 0;
@@ -380,7 +383,7 @@ export function createPalaBorgo(o: {
       }
       rebuildMesh();
       const dentroBorgo = inBorgo(), haPala = possiedePala(o.getLot()), near = findNearBuca();
-      const showBtn = dentroBorgo && (near?.kind === 'aperta' || (haPala && (near !== null || targetDigCell() !== null)));
+      const showBtn = dentroBorgo && (near?.kind === 'aperta' || (haPala && conPala() && (near !== null || targetDigCell() !== null)));
       const btnKey = !showBtn ? '' : near?.kind === 'aperta' ? 'aperta' : near ? 'dissotterra' : 'scava';
       if (btnKey !== lastBtnKey) {
         lastBtnKey = btnKey;

@@ -1,5 +1,5 @@
-// Diario del capitano e traguardi (#87) sul server locale (wrangler dev, D1 e DO in una cartella privata). API: una pesca dell'autopilota
-// rigiocata dal server riempie la pagina Pesci (specie e quante volte), la medaglia e le partite; avvistamenti validati (niente id
+// Diario del capitano e traguardi (#87) sul server locale (wrangler dev, D1 e DO in una cartella privata). API: una caccia alle perle
+// dell'autopilota rigiocata dal server dà la medaglia e le partite, due pesci presi con la canna (#457) riempiono la pagina Pesci; avvistamenti validati (niente id
 // inventati, niente la propria isola, solo lotti di amici veri); RISCUOTI una volta sola (monete nel lotto), titolo solo se riscosso, e
 // il titolo resta anche quando l'editor salva il look. Browser telefono 390×844 (Luca): bottone col libro, album sui pesci, scheda di un
 // pesce, Traguardi → RISCUOTI → USA TITOLO, targhetta col titolo sopra la testa, avviso quando si compie un traguardo. PC (Mia): sull'isola
@@ -23,7 +23,7 @@ export default async function (ctx) {
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
   const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
   const read = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
-  const { traguardi } = read('traguardi.json'), pescaCfg = read('minigames/pesca.json');
+  const { traguardi } = read('traguardi.json'), pescaCfg = read('pesci.json');
   const T = (id) => traguardi.find((t) => t.id === id);
   const pages = [];
   let dev = null, log = '';
@@ -43,6 +43,7 @@ export default async function (ctx) {
     const post = async (p, t, b) => { const r = await fetch(base + p, { method: 'POST', headers: { 'x-token': t, 'content-type': 'application/json' }, body: JSON.stringify(b ?? {}) }); return { status: r.status, body: await r.json() }; };
     const get = async (p, t) => { const r = await fetch(base + p, { headers: { 'x-token': t } }); return { status: r.status, body: await r.json() }; };
     const sim = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src/index.ts')).href);
+    const simPesci = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src/economy/pesci.ts')).href);
     const autoplay = (id, seed, difficulty, opzioni) => {
       const m = sim.getMinigame(id), s = m.create({ seed, difficulty, opzioni }), rng = sim.createRng(1), frames = [];
       for (let i = 0; i < m.maxTicks && !m.result(s).done; i++) { const f = sim.quantize(m.autopilot(s, rng)); frames.push(f); m.step(s, f); }
@@ -50,18 +51,23 @@ export default async function (ctx) {
     };
     let presi = [];
 
-    await ctx.test('API: una pesca rigiocata dal server riempie il diario (specie e quante, medaglia, partite)', async () => {
-      const st = await post('/api/solo/start', 'tokL', { minigame: 'pesca', opzioni: { mare: 'porto' } });
+    await ctx.test('API: una caccia alle perle rigiocata dal server dà medaglia e partite; i pesci della canna riempiono la pagina Pesci', async () => {
+      const st = await post('/api/solo/start', 'tokL', { minigame: 'perle' });
       assert(st.status === 200, 'start: ' + st.status);
-      const local = autoplay('pesca', st.body.seed, st.body.difficulty, { mare: 'porto' });
+      const local = autoplay('perle', st.body.seed, st.body.difficulty, st.body.opzioni);
       const r = await post('/api/solo/play', 'tokL', { inputs: sim.packInputs(local.frames) });
       assert(r.status === 200 && r.body.medal === 'oro', 'play: ' + JSON.stringify(r.body).slice(0, 200));
-      presi = local.presi;
-      const d = r.body.lot.diario, conta = {};
-      for (const id of presi) conta[id] = (conta[id] ?? 0) + 1;
-      assert(JSON.stringify(Object.entries(d.pesci).sort()) === JSON.stringify(Object.entries(conta).sort()), `pesci ${JSON.stringify(d.pesci)} ≠ presi ${JSON.stringify(conta)}`);
-      assert(d.medaglie.pesca === 'oro' && d.giocati.pesca === 1, 'medaglia/partite: ' + JSON.stringify(d));
-      ctx.log(`pesca: ${presi.length} pesci, ${Object.keys(conta).length} specie`);
+      const d = r.body.lot.diario;
+      assert(d.medaglie.perle === 'oro' && d.giocati.perle === 1 && !d.medaglie.pesca, 'medaglia/partite: ' + JSON.stringify(d));
+      assert((await post('/api/test/monete', 'tokL', { n: 600 })).status === 200, 'monete di prova');
+      assert((await post('/api/lot/casa/canna', 'tokL')).status === 200, 'la canna');
+      const ombre = simPesci.ombreDelTurno(simPesci.turnoPesciAt(Date.now())).filter((o, i, l) => l.findIndex((x) => x.id === o.id) === i).slice(0, 2);
+      for (const o of ombre) {
+        const c = await post('/api/lot/pesci/cattura', 'tokL', { k: o.k });
+        assert(c.status === 200 && c.body.id === o.id, 'cattura: ' + JSON.stringify(c.body).slice(0, 200));
+      }
+      presi = ombre.map((o) => o.id);
+      ctx.log(`pesci: ${presi.join(', ')}`);
     });
 
     await ctx.test('API: avvistamenti validati (id inventati, la propria isola e lotti di sconosciuti scartati), una volta sola', async () => {
@@ -184,7 +190,7 @@ export default async function (ctx) {
       await ctx.waitState(dp, (s) => s.diario.ui.chi === 'luca' && !s.diario.ui.carica, 10000);
       await dp.locator('#mzDiario [data-tab="medaglie"]').click();
       await ctx.waitState(dp, (s) => s.diario.ui.tab === 'medaglie', 5000);
-      assert(/oro/i.test(await dp.locator('#mzDiario [data-minigioco="pesca"]').innerText()), 'medaglia di Luca alla pesca');
+      assert(/oro/i.test(await dp.locator('#mzDiario [data-minigioco="perle"]').innerText()), 'medaglia di Luca alle perle');
       assert(/Campione/.test(await dp.locator('#mzDiario .chi-t').innerText()), 'titolo di Luca in testata');
       await dp.locator('#mzDiario [data-tab="traguardi"]').click();
       assert(await dp.locator('#mzDiario [data-act="riscuoti"]').count() === 0, 'nel diario di un altro non si riscuote');
@@ -206,7 +212,7 @@ export default async function (ctx) {
     });
 
     // ---------- senza ?traguardi=1: com'è il gioco adesso ----------
-    await ctx.test('senza traguardi, PC (Mia): sopra Luca solo il nome anche se ha un titolo; il Diario ha 5 pagine e niente titolo in testata', async () => {
+    await ctx.test('senza traguardi, PC (Mia): sopra Luca solo il nome anche se ha un titolo; il Diario ha 6 pagine (con gli Insetti, #445) e niente titolo in testata', async () => {
       const r = await post('/api/diario/titolo', 'tokL', { id: 'primo_oro' });
       assert(r.status === 200 && r.body.diario.titolo === 'primo_oro', 'titolo: ' + r.status);
       await D.close().catch(() => {});
@@ -222,8 +228,8 @@ export default async function (ctx) {
       await d2.keyboard.press('KeyJ');
       await ctx.waitState(d2, (s) => s.diario.open && s.diario.ui && s.diario.ui.tab === 'pesci', 15000);
       const s = await ctx.getState(d2);
-      assert(s.diario.tabs.length === 5 && !s.diario.tabs.includes('traguardi'), 'linguette: ' + s.diario.tabs.join(','));
-      assert(await d2.locator('#mzDiario [data-tab]').count() === 5 && await d2.locator('#mzDiario [data-tab="traguardi"]').count() === 0, 'linguetta Traguardi ancora nel DOM');
+      assert(s.diario.tabs.length === 6 && !s.diario.tabs.includes('traguardi'), 'linguette: ' + s.diario.tabs.join(','));
+      assert(await d2.locator('#mzDiario [data-tab]').count() === 6 && await d2.locator('#mzDiario [data-tab="traguardi"]').count() === 0, 'linguetta Traguardi ancora nel DOM');
       await d2.locator('#mzDiario .mz-dia-chi [data-chi="luca"]').click();
       await ctx.waitState(d2, (s) => s.diario.ui.chi === 'luca' && !s.diario.ui.carica, 10000);
       assert(!/Campione|titolo/i.test(await d2.locator('#mzDiario .chi-t').innerText()), 'titolo di Luca in testata: ' + await d2.locator('#mzDiario .chi-t').innerText());
@@ -251,7 +257,7 @@ export default async function (ctx) {
       assert((await ctx.getState(q)).diario.avviso === null && !(await q.locator('#mzTrag.on').count()), 'avviso del traguardo comparso');
       await hq('diarioApri', 'traguardi');
       await ctx.waitState(q, (s) => s.diario.open && s.diario.ui && s.diario.ui.tab === 'pesci', 15000);
-      assert(await q.locator('#mzDiario [data-tab]').count() === 5, 'linguette sul telefono');
+      assert(await q.locator('#mzDiario [data-tab]').count() === 6, 'linguette sul telefono');
       const ct = await q.locator('#mzDiario .chi-t').innerText();
       assert(!/Campione|titolo/i.test(ct), 'titolo in testata: ' + ct);
       const box = await q.locator('#mzDiario').boundingBox();

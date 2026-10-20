@@ -1,3 +1,8 @@
 Font del menù delle Corse (#271), scaricato da Google Fonts il 13 ott 2026 (sottoinsieme latin, woff2), con l'ok di Jack.
 - titan-one-latin.woff2: «Titan One» di Rodrigo Fuenzalida, SIL Open Font License 1.1 (https://fonts.google.com/specimen/Titan+One).
 La licenza OFL permette di usarli e ridistribuirli col gioco, non di venderli da soli.
+Font del pannello delle botteghe del Borgo (#414), scaricati da Google Fonts il 19 ott 2026 (sottoinsieme latin, woff2), con l'ok di Jack: un carattere per bottega.
+- cinzel-900-latin.woff2: «Cinzel» di Natanael Gama (titoli del Fabbro), SIL Open Font License 1.1.
+- almendra-700-latin.woff2: «Almendra» di Ana Sanfelippo (titoli dell'Alchimista), SIL Open Font License 1.1.
+- lobster-400-latin.woff2: «Lobster» di Pablo Impallari (titoli del Cantiere navale), SIL Open Font License 1.1.
+- alegreya-sans-800-latin.woff2: «Alegreya Sans» di Huerta Tipográfica (testi delle botteghe), SIL Open Font License 1.1.

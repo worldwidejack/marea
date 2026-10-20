@@ -4,7 +4,7 @@
 // index.ts chiama validateDiario() dentro validateContent().
 import diario from './diario.json' with { type: 'json' };
 import traguardi from './traguardi.json' with { type: 'json' };
-import pesca from './minigames/pesca.json' with { type: 'json' };
+import pesci from './pesci.json' with { type: 'json' };
 import buildings from './buildings.json' with { type: 'json' };
 import archipelago from './archipelago.json' with { type: 'json' };
 import islands from './islands.json' with { type: 'json' };
@@ -22,7 +22,7 @@ export type TraguardoSe = {
   tipo: TraguardoTipo;
   n?: number;
   tutti?: boolean;
-  /** `rarita`: rarità del pesce (pesca.json). */
+  /** `rarita`: rarità del pesce (pesci.json). */
   rarita?: string;
   /** `perla`: tipo di perla (diario.json `perle`). */
   perla?: string;
@@ -57,8 +57,8 @@ export const ISOLE_DIARIO: readonly DiarioIsola[] = (() => {
   }
   return out;
 })();
-/** Id dei pesci (pesca.json): la pagina Pesci dell'album. */
-export const PESCI_DIARIO: readonly { id: string; rarita: string }[] = (pesca as unknown as { pesci: { id: string; rarita: string }[] }).pesci;
+/** Id e rarità dei pesci (pesci.json, #457): la pagina Pesci dell'album e i traguardi dei pesci. */
+export const PESCI_DIARIO: readonly { id: string; rarita: string }[] = (pesci as unknown as { pesci: { id: string; rarita: string }[] }).pesci;
 
 /** [] se tutto ok, altrimenti errori in italiano. */
 export function validateDiario(): string[] {

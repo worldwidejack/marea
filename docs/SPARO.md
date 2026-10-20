@@ -1,6 +1,6 @@
 # MAREA — Sparatutto a missioni (bibbia corta, banco di prova)
 
-> Format deciso da Jack il 16 ott 2026 (issue #355). Vale come il GDD per lo sparatutto; `VISIONE.md` §3 rimanda qui.
+> Format deciso da Jack il 16 ott 2026 (issue #355). Il documento dello sparatutto; `VISIONE.md` §3 rimanda qui.
 > Oggi esiste solo il **banco di prova** `provasparo.html`: il gioco non cambia. Ambientazione, storia, nemici e armi veri li decidono
 > l'intervista e la concept art dopo il banco. Numeri in `packages/content/src/sparo.json`: sono la **prima ipotesi**, si tarano con Jack.
 

@@ -3,7 +3,7 @@
 // Uso: node tools/deploy.mjs [--dry-run] [--no-build] [--no-tail] [--tail-seconds N]
 //   --dry-run   niente deploy vero: build (o dist esistente con --no-build), bundle di prova con `wrangler deploy --dry-run`, elenco migrazioni, controllo login; stampa cosa farebbe.
 //   --no-build  usa apps/client/dist già costruito (deve avere version.json).
-// Solo l'orchestratore lancia il deploy vero (CLAUDE.md, Fine sessione).
+// Il deploy vero lo lancia solo GitHub dopo il merge su main (.github/workflows/deploy.yml): a mano si usa solo --dry-run.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';

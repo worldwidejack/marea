@@ -7,7 +7,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const walk = (d) => fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? (e.name === 'node_modules' || e.name === 'dist' ? [] : walk(path.join(d, e.name))) : /\.(ts|mts)$/.test(e.name) && !e.name.endsWith('.d.ts') ? [path.join(d, e.name)] : []) : [];
 const rel = (f) => path.relative(ROOT, f).split(path.sep).join('/');
-const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+// via i commenti in un passaggio solo, da sinistra: le stringhe restano com'è, poi /* … */ (tenendo gli a capo) e // fino a fine riga.
+// Così un «/*» dentro un commento // (es. «rpg/*.json») non nasconde il codice che segue, e un «//» dentro una stringa non è un commento.
+const strip = (s) => s.replace(/("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\[\s\S]|[^`\\])*`)|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m, str) => str ?? m.replace(/[^\n]/g, ''));
+// il controllo prova anche sé stesso: fino al 19 ott un «/*» dentro un // nascondeva il codice di 13 file a tutti i controlli
+{
+  const prova = strip('// dati in rpg/*.json\nconst x = Math.random();\n/** fine */\nconst u = "https://x.it"; // commento\n');
+  if (!/Math\.random/.test(prova) || !prova.includes('https://x.it') || prova.includes('commento')) { console.error('[static] il lettore dei commenti è rotto: i controlli non vedrebbero il codice'); process.exit(1); }
+}
 const errs = [], warns = [];
 const MAX_LINES = 400;
 const files = [...walk(path.join(ROOT, 'packages')), ...walk(path.join(ROOT, 'apps'))];
@@ -21,6 +28,9 @@ for (const f of files) {
     if (/\bDate\.now\s*\(/.test(code)) errs.push(`${r}: Date.now (il tempo lo passa il chiamante)`);
     if (/\bperformance\.now\s*\(/.test(code)) errs.push(`${r}: performance.now in sim`);
     if (/\b(setTimeout|setInterval|requestAnimationFrame)\s*\(/.test(code)) errs.push(`${r}: timer in sim`);
+    if (/\bnew\s+Date\s*\(\s*\)/.test(code)) errs.push(`${r}: new Date() senza argomenti in sim (il tempo lo passa il chiamante)`);
+    if (/\bcrypto\s*\./.test(code)) errs.push(`${r}: crypto in sim (casualità solo da rng.ts)`);
+    if (r !== 'packages/sim/src/rng.ts' && /0x6d2b79f5|\bmulberry32\s*\(|\bsfc32\s*\(|\bxorshift\w*\s*\(/i.test(code)) errs.push(`${r}: generatore casuale fatto a mano (casualità solo da rng.ts: createRng o casoIntero)`);
   }
   if (isPure) {
     if (/\b(document|window|localStorage|navigator)\s*\./.test(code)) errs.push(`${r}: DOM/window in pacchetto puro`);

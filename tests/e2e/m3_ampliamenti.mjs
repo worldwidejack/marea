@@ -154,8 +154,20 @@ export default async function (ctx) {
       await W.page.waitForTimeout(500);
       const txt = await W.page.locator('#mzNegozio').innerText();
       assert(/Non hai ancora abbastanza/.test(txt), 'senza risorse: ' + txt);
-      const piccoli = await W.page.evaluate(() => [...document.querySelectorAll('#mzNegozio button')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 20), w: Math.round(r.width), h: Math.round(r.height), ok: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight }; }).filter((b) => b.h < 44 || !b.ok));
+      // la scheda scorre dentro sé stessa (pala, retino, canna l'hanno allungata): contano i bottoni nella parte che si vede,
+      // la scheda intera sta nello schermo, e tornando in cima il × si raggiunge
+      const misura = () => W.page.evaluate(() => {
+        const scheda = document.querySelector('#mzNegozio'), S = scheda.getBoundingClientRect();
+        const bottoni = [...scheda.querySelectorAll('button')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 20), w: Math.round(r.width), h: Math.round(r.height), vis: r.bottom > S.top && r.top < S.bottom, ok: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight }; });
+        return { scheda: { top: Math.round(S.top), bottom: Math.round(S.bottom), h: innerHeight }, bottoni };
+      });
+      const dopo = await misura();
+      assert(dopo.scheda.top >= 0 && dopo.scheda.bottom <= dopo.scheda.h, 'la scheda esce dallo schermo: ' + JSON.stringify(dopo.scheda));
+      const piccoli = dopo.bottoni.filter((b) => b.vis && (b.h < 44 || !b.ok));
       assert(!piccoli.length, 'bottoni piccoli o fuori: ' + JSON.stringify(piccoli));
+      await W.page.evaluate(() => { document.querySelector('#mzNegozio').scrollTop = 0; });
+      const chiudi = (await misura()).bottoni.find((b) => b.t.trim() === '×');
+      assert(chiudi && chiudi.vis && chiudi.ok && chiudi.h >= 44, 'il × non si raggiunge tornando in cima: ' + JSON.stringify(chiudi));
       ctx.noErrors(W.pg, 'telefono');
     });
   } finally {
