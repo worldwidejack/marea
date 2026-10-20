@@ -1,5 +1,5 @@
-// M1 · Fetta 1, integrazione (WP0): il client vero (main.ts) col server vero. Una persona col suo slot entra dal link, nasce sulla
-// propria isola, vede la barra risorse e la bussola, costruisce; l'isola di un'altra persona si vede in sola lettura.
+// M1 · Fetta 1, integrazione (WP0): il client vero (main.ts) col server vero. Una persona col suo slot entra dal link, nasce nel Borgo
+// davanti a casa, vede il contatore delle monete e la bussola; la casa di un'altra persona si vede in sola lettura, col suo baule.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -30,10 +30,8 @@ export default async function (ctx) {
     for (let i = 0; i < 120 && !up; i++) { try { up = (await fetch(base + '/api/ping')).ok; } catch { /* non ancora */ } if (!up) await sleep(500); }
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
 
-    // Bea costruisce una Segheria via API, così Ada ha qualcosa da vedere sulla sua isola
     const me = await (await fetch(base + '/api/me', { headers: { 'x-token': 'tokB' } })).json();
-    const cell = me.lotto && (await fetch(base + '/api/lot/build', { method: 'POST', headers: { 'x-token': 'tokB', 'content-type': 'application/json' }, body: JSON.stringify({ building: 'segheria', cell: [6, 10] }) })).status;
-    ctx.log(`Bea: slot ${me.slot}, build segheria → ${cell}`);
+    ctx.log(`Bea: slot ${me.slot}`);
 
     const pa = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`); pages.push(pa);
     await ctx.test('Ada entra dal link e nasce nel Borgo davanti alla casa 2 (#237)', async () => {
@@ -43,10 +41,10 @@ export default async function (ctx) {
       ctx.assert(s.arch && s.arch.slot === 2, 'slot sbagliato: ' + JSON.stringify(s.arch));
       ctx.assert(s.arch.place === 'porto', 'non è nel Borgo (al Porto): ' + JSON.stringify(s.arch.place));
     });
-    await ctx.test('barra risorse e lotto pronti, bussola verso Porto', async () => {
+    await ctx.test('contatore delle monete e lotto pronti, bussola verso Porto', async () => {
       await ctx.waitState(pa.page, (s) => s.lot && s.lot.ready === true, 15000);
       const s = await ctx.getState(pa.page);
-      ctx.assert(s.lot.resources.legno > 0, 'risorse assenti: ' + JSON.stringify(s.lot.resources));
+      ctx.assert(s.lot.monete > 0 && /^\d+$/.test(await pa.page.locator('.mz-chip[data-res="monete"] b').innerText()), 'monete assenti: ' + s.lot.monete);
       // sul telefono le mete partono chiuse: un tocco su METE le apre
       ctx.assert(s.compass && s.compass.open === false, 'mete aperte di base sul telefono: ' + JSON.stringify(s.compass));
       await pa.page.locator('#mzMete').tap();
@@ -58,14 +56,14 @@ export default async function (ctx) {
       ctx.assert(/Porto\s*\d+ m/.test(txt), 'bussola senza Porto');
     });
     await ctx.shot(pa.page, 'm1_int_spawn_lotto');
-    await ctx.test('l\'isola di Bea (slot 3) si vede in sola lettura con la sua Segheria', async () => {
+    await ctx.test('la casa di Bea (slot 3) si vede in sola lettura, col baule di serie', async () => {
       await ctx.waitState(pa.page, (s) => { const v = s['lot:bea']; return !!v && v.ready === true; }, 15000);
-      const v = (await ctx.getState(pa.page))['lot:bea'];
-      ctx.log(`lot:bea ${JSON.stringify(v.buildings.map((b) => b.building))}`);
-      ctx.assert(v.buildings.some((b) => b.building === 'segheria'), 'la Segheria di Bea non si vede');
-      await pa.page.evaluate(() => window.__game.test.goto('lotto:3')); await sleep(1500);
+      await pa.page.evaluate(() => window.__game.test.porta(3)); await sleep(1500);
+      const s = await ctx.getState(pa.page), v = s['lot:bea'];
+      ctx.log(`lot:bea ${JSON.stringify(v)}`);
+      ctx.assert(v.readonly && v.baule && s.stanza.dentro === 3, 'casa di Bea: ' + JSON.stringify({ v, dentro: s.stanza.dentro }));
     });
-    await ctx.shot(pa.page, 'm1_int_isola_di_bea');
+    await ctx.shot(pa.page, 'm1_int_casa_di_bea');
     await ctx.test('in mare la bussola indica Casa e Porto', async () => {
       await pa.page.evaluate(() => window.__game.test.goto('laguna')); await sleep(800);
       const txt = await pa.page.evaluate(() => [...document.querySelectorAll('#compass .mz-mete-row')].filter((r) => r.style.display !== 'none').map((r) => r.textContent).join('\n'));

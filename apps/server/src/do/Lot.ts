@@ -1,13 +1,13 @@
-// Isola di un giocatore: LotState in una riga JSON dello storage SQLite del DO, produzione pigra (`advance` a ogni lettura con l'ora del
-// server), azioni economiche pure di @marea/sim. Il Worker instrada qui con idFromName(persona.id) e passa il proprietario in `x-persona`
+// Il lotto di un giocatore (casa, monete, personaggio, collezioni): LotState in una riga JSON dello storage SQLite del DO, azioni
+// economiche pure di @marea/sim con l'ora del server. Il Worker instrada qui con idFromName(persona.id) e passa il proprietario in `x-persona`
 // e l'ora in `x-now` (vedi clock.ts). Il DO serializza le richieste (input gate) e lo storage SQL è sincrono: niente corse tra due azioni.
-// Richieste dal Worker: GET /state · POST /collect {building} · /build {building, cell} · /upgrade {building} · /decor {decor, cell, rot} · /hat {hat}.
+// Richieste dal Worker: GET /state · POST /decor {decor, cell, rot} · /hat {hat}.
 // Decorazioni libere (#108): POST /decor_move {id, cell} · /decor_rotate {id} · /decor_sell {id} → LotState (rimborso da BALANCE.decor).
 // · /barca {id} (#107: colore esclusivo della barca, una volta).
 // Minigiochi da solo: POST /solo_start {minigame, opzioni?} → {seed, difficulty, opzioni, lot} · /solo_play {inputs} → il server rigioca gli input, premia la
 // medaglia (balance.solo) e risponde {score, medal, detail, premio, premiata, lot}.
 // Bacheca del Porto (#64): POST /missione {i} → RISCUOTI {premio, missione, lot}. I contatori delle missioni di oggi li aggiornano qui
-// le azioni che il server verifica davvero (raccolte, cantieri, acquisti, partite da solo, spedizioni): `tracciaMissioni` di @marea/sim.
+// le azioni che il server verifica davvero (acquisti, partite da solo, spedizioni): `tracciaMissioni` di @marea/sim.
 // Diario del capitano: POST /diario_visto {animali, isole} (avvistamenti dal client, solo id dei cataloghi). Pesci, perle, medaglie e
 // partite li scrive `solo_play` dopo il replay, le spedizioni `dungeon_finish` (registraPartita / registraDiscesa di @marea/sim/economy/diario.ts).
 // Dungeon insieme (#118): /dungeon_party_start arriva dal DO Spedizioni; con pending.party il lotto chiede il log della squadra (POST /log) e lo rigioca.
@@ -18,10 +18,10 @@
 // Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
 import { DurableObject } from 'cloudflare:workers';
-import { AVATAR, BUILDINGS, DECOR } from '@marea/content';
-import { applyBuildingLayout, build, buyHat, collect, moveBuilding, moveDecor, newLot, placeDecor, placeStoredBuilding, rotateBuilding, rotateDecor, sellDecor, stowAllBuildings, stowBuilding, upgrade } from '@marea/sim/economy/actions.ts';
+import { AVATAR, DECOR } from '@marea/content';
+import { buyHat, moveDecor, newLot, placeDecor, rotateDecor, sellDecor } from '@marea/sim/economy/actions.ts';
 import { compraColoreDelGiorno, miglioraBottega } from '@marea/sim/economy/botteghe.ts';
-import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
+import { ampliaCasa, compraFinituraDelGiorno, conBaule, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { convertiMonete } from '@marea/sim/economy/cambio.ts';
@@ -29,7 +29,7 @@ import { guadagna } from '@marea/sim/economy/monete.ts';
 import { defaultTemplate, fitToTemplate } from '@marea/sim/economy/cells.ts';
 import { finishSolo, soloOf, startSolo } from '@marea/sim/economy/rewards.ts';
 import { EconomyError } from '@marea/sim/economy/types.ts';
-import { eventiPartita, eventiRaccolta, riscuotiMissione, tracciaMissioni } from '@marea/sim/economy/missioni.ts';
+import { eventiPartita, riscuotiMissione, tracciaMissioni } from '@marea/sim/economy/missioni.ts';
 import type { EventiMissione } from '@marea/sim/economy/missioni.ts';
 import { firmaLibro, rientra, segnaVisto } from '@marea/sim/economy/rientro.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
@@ -56,9 +56,7 @@ const idList = (v: unknown): string[] | null => {
   return Array.isArray(v) && v.length <= 20 && v.every((x) => typeof x === 'string' && x.length > 0 && x.length <= 48) ? (v as string[]) : null;
 };
 /** Contatori delle missioni mossi da un'azione andata a buon fine. */
-function eventiAzione(act: string, prima: LotState, dopo: LotState): EventiMissione {
-  if (act === 'collect') return eventiRaccolta(prima, dopo);
-  if (act === 'build' || act === 'upgrade') return { cantiere: 1 };
+function eventiAzione(act: string): EventiMissione {
   if (act === 'decor' || act === 'hat' || act === 'barca' || act === 'casa_compra' || act === 'casa_finitura') return { mercante: 1 }; // anche il negozio dei mobili (#265)
   return {};
 }
@@ -75,15 +73,15 @@ export class Lot extends DurableObject<Env> {
   private load(owner: string, now: number): LotState {
     const row = this.ctx.storage.sql.exec<{ json: string }>('SELECT json FROM stato WHERE k = 1').toArray()[0];
     if (!row) {
-      const lot = newLot(owner, now);
+      const lot = conBaule(newLot(owner, now));
       this.save(lot);
       return lot;
     }
     const lot = JSON.parse(row.json) as LotState;
     // salvataggi di prima delle monete (#414): risorse, edifici spenti e monete del personaggio diventano monete, una volta sola;
     // lotti nati prima del template `lotto` (celle arbitrarie): Molo sul molo, edifici sugli slot L; poi resta com'è
-    // e personaggi con abilità o perk che non esistono più (Navigazione): via, i perk tornano punti
-    const fit = fitHero(fitToTemplate(convertiMonete(lot), defaultTemplate()));
+    // il baule di serie a chi non l'aveva; e personaggi con abilità o perk che non esistono più (Navigazione): via, i perk tornano punti
+    const fit = conBaule(fitHero(fitToTemplate(convertiMonete(lot), defaultTemplate())));
     // spedizione abbandonata da un pezzo con un altare toccato: si chiude tenendo il bottino dell'altare
     const chiusa = chiudiScaduta(fit, now);
     if (chiusa) { this.save(chiusa.lot); return chiusa.lot; }
@@ -178,7 +176,7 @@ export class Lot extends DurableObject<Env> {
       }
       const next0 = this.act(lot, act, body, now);
       if (next0 instanceof Response) return next0;
-      const next = tracciaMissioni(next0, eventiAzione(act, lot, next0), now);
+      const next = tracciaMissioni(next0, eventiAzione(act), now);
       this.save(next);
       return json(next);
     } catch (e) {
@@ -260,55 +258,6 @@ export class Lot extends DurableObject<Env> {
 
   private act(lot: LotState, act: string, body: Record<string, unknown>, now: number): LotState | Response {
     switch (act) {
-      case 'collect':
-        if (!isId(body['building'])) return json({ error: 'Manca l’edificio' }, 400);
-        return collect(lot, body['building'], now);
-      case 'upgrade':
-        if (!isId(body['building'])) return json({ error: 'Manca l’edificio' }, 400);
-        return upgrade(lot, body['building'], now);
-      case 'build': {
-        const b = body['building'], cell = body['cell'];
-        if (!isId(b) || !BUILDINGS.some((d) => d.id === b)) return json({ error: 'Edificio sconosciuto' }, 400);
-        if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
-        return build(lot, b, cell, now);
-      }
-      case 'building_move': {
-        const id = body['id'], cell = body['cell'];
-        if (!isId(id)) return json({ error: 'Manca l’edificio' }, 400);
-        if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
-        return moveBuilding(lot, id, cell, now);
-      }
-      case 'building_rotate': {
-        const id = body['id'];
-        if (!isId(id)) return json({ error: 'Manca l’edificio' }, 400);
-        return rotateBuilding(lot, id, now);
-      }
-      case 'building_stow': {
-        const id = body['id'];
-        if (!isId(id)) return json({ error: 'Manca l’edificio' }, 400);
-        return stowBuilding(lot, id, now);
-      }
-      case 'building_stow_all':
-        return stowAllBuildings(lot, now);
-      case 'building_place_stored': {
-        const id = body['id'], cell = body['cell'], rot = typeof body['rot'] === 'number' ? body['rot'] : 0;
-        if (!isId(id)) return json({ error: 'Manca l’edificio' }, 400);
-        if (!isCell(cell)) return json({ error: 'Cella non valida' }, 400);
-        return placeStoredBuilding(lot, id, cell, rot, now);
-      }
-      case 'building_layout': {
-        const placed = body['placed'], stowed = body['stowed'];
-        if (!Array.isArray(placed)) return json({ error: 'Formato disposizione non valido' }, 400);
-        for (const p of placed) {
-          if (!p || typeof p !== 'object' || !isId((p as Record<string, unknown>)['id']) || !isCell((p as Record<string, unknown>)['cell'])) {
-            return json({ error: 'Elemento disposizione non valido' }, 400);
-          }
-        }
-        if (stowed !== undefined && (!Array.isArray(stowed) || !stowed.every(isId))) {
-          return json({ error: 'Elemento magazzino non valido' }, 400);
-        }
-        return applyBuildingLayout(lot, { placed: placed as { id: string; cell: [number, number]; rot?: number }[], stowed: stowed as string[] | undefined }, now);
-      }
       case 'decor': {
         const d = DECOR.find((x) => x.id === body['decor']), cell = body['cell'], rot = body['rot'] ?? 0;
         if (!d) return json({ error: 'Decorazione sconosciuta' }, 400);

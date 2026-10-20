@@ -1,11 +1,11 @@
-// Pezzi DOM generici della vista isola: pannello a scomparsa dal basso (un pollice), etichette ancorate al mondo, risorse che volano.
+// Pezzi DOM generici: conti alla rovescia, etichette ancorate al mondo, monete che volano verso il contatore.
 import { el } from './style.ts';
 import { resIcon } from './icons.ts';
 import type { ResId } from './icons.ts';
 import { suona } from '../audio/ponte.ts';
 
 /** Conto alla rovescia «1:32» / «1:04:09». */
-export function fmtClock(ms: number): string {
+function fmtClock(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000));
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${m}:${String(ss).padStart(2, '0')}`;
@@ -31,34 +31,6 @@ export function tickTimers(root: ParentNode, now: number): void {
     const t = (s.dataset['prefix'] ?? '') + fmtClock(Number(s.dataset['ends']) - now);
     if (s.textContent !== t) s.textContent = t;
   }
-}
-
-export type Sheet = { el: HTMLElement; key(): string | null; open(key: string, body: HTMLElement, sig?: string): void; close(): void; tick(now: number): void };
-/** Pannello dal basso. open() con la stessa chiave e la stessa firma non ridisegna (un tocco a metà non si perde). */
-export function createSheet(root: HTMLElement, onClose?: () => void): Sheet {
-  const sheet = el('div', 'mz mz-sheet'); sheet.id = 'mzSheet';
-  root.appendChild(sheet);
-  let cur: string | null = null, curSig = '';
-  // i tocchi sul pannello non arrivano al canvas né al joystick
-  for (const ev of ['pointerdown', 'touchstart']) sheet.addEventListener(ev, (e) => e.stopPropagation());
-  return {
-    el: sheet,
-    key: () => cur,
-    open(key, body, sig = '') {
-      if (cur === key && sig && sig === curSig) return;
-      cur = key; curSig = sig;
-      sheet.replaceChildren(body);
-      sheet.classList.add('on');
-    },
-    close() {
-      if (!cur) return;
-      cur = null; curSig = '';
-      sheet.classList.remove('on');
-      sheet.replaceChildren();
-      onClose?.();
-    },
-    tick(now) { if (cur) tickTimers(sheet, now); },
-  };
 }
 
 /** Entro quanti metri un cartello delle attività torna pieno (#129): oltre è piccolo e in trasparenza (classe `far`). */

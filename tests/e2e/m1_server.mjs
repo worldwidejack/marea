@@ -118,19 +118,17 @@ export default async function (ctx) {
     });
 
     const L = cellsOf('L');
-    const slot = (i) => L[i] ?? [2 + i, 2];
-    await ctx.test('celle: edifici solo su posizioni valide, decorazioni solo su sabbia/erba (altrimenti 400), occupata 409', async () => {
-      const bad = tpl ? cellsOf('d')[0] : [999, 0];
-      const r1 = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: bad });
-      assert(r1.status === 400 && /costruire|Cella/.test(r1.body.error), 'cella non valida: ' + r1.status + ' ' + JSON.stringify(r1.body));
+    await ctx.test('il giardino non c\'è più: costruire, raccogliere e spostare edifici rispondono 404; decorazioni a monete (sconosciuta 400, senza monete 409)', async () => {
+      for (const [p, b] of [['/api/lot/build', { building: 'tavolo', cell: L[0] ?? [2, 2] }], ['/api/lot/collect', { building: 'molo' }], ['/api/lot/upgrade', { building: 'molo' }], ['/api/lot/building/move', { id: 'molo', cell: [1, 1] }]]) {
+        const r = await post(p, 'tokA', b);
+        assert(r.status === 404, `${p}: ${r.status}`);
+      }
+      const l = await lot('tokA');
+      assert(l.buildings.some((b) => b.building === 'forziere' && b.level === 1), 'baule di serie mancante: ' + JSON.stringify(l.buildings));
       if (tpl) {
-        const r2 = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: cellsOf('~')[0] });
-        assert(r2.status === 400 && /costruire|Cella/.test(r2.body.error), 'acqua accettata per un edificio');
         const r3 = await post('/api/lot/decor', 'tokA', { decor: 'barile', cell: L[0], rot: 0 });
         assert(r3.status === 400 && /decorazione/.test(r3.body.error), 'decor su slot L: ' + r3.status);
       }
-      const r4 = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: slot(0) });
-      assert(r4.status === 200 && r4.body.construction?.building === 'tavolo', 'tavolo non avviato: ' + JSON.stringify(r4.body).slice(0, 200));
       const caro = decor.find((d) => !d.mercante && d.monete > balance.monete.partenza);
       const r5 = await post('/api/lot/decor', 'tokA', { decor: caro.id, cell: tpl ? cellsOf('g')[0] : [9, 9], rot: 1 });
       assert(r5.status === 409 && r5.body.manca?.monete === caro.monete - balance.monete.partenza, 'decor senza monete: ' + JSON.stringify(r5.body));

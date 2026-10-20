@@ -42,5 +42,5 @@ export type RunBag = {
   /** Insieme (#118): il gioco non si ferma mentre la scheda è aperta. */
   insieme?: boolean;
 };
-export type BuildingKind = 'banco' | 'alchimia' | 'forziere' | 'serra';
+export type BuildingKind = 'forziere';
 export type { DungeonFinish };

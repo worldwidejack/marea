@@ -7,7 +7,7 @@ import { BORGO, MOBILI } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { advance } from './advance.ts';
 import { spendi } from './monete.ts';
-import { livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzeDi } from './stanze.ts';
+import { livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzaTerra, stanzeDi } from './stanze.ts';
 import type { Stanza, StanzaId } from './stanze.ts';
 import { inVetrina, inVetrinaFinitura } from './vetrina.ts';
 import { giornoRoma } from './giorno.ts';
@@ -75,6 +75,20 @@ export function finitureScelte(lot: LotState | null, stanza: StanzaId = 'terra')
 const same = (a: readonly [number, number], b: readonly [number, number]): boolean => a[0] === b[0] && a[1] === b[1];
 /** Il Forziere (il baule) di questo lotto, se è costruito. */
 export const baule = (lot: LotState): PlacedBuilding | null => lot.buildings.find((b) => b.building === 'forziere') ?? null;
+/** Il baule visto come un mobile a terra di una cella (per le regole del posto). */
+const BAULE: MobileDef = { id: 'baule', nome: 'Baule', categoria: 'contenitori', monete: 1, posto: 'terra', forma: 'baule', colori: ['#8E5A2B'] };
+/** Ogni casa ha il baule: chi non l'aveva costruito lo trova di serie, livello 1, nella prima cella libera della stanza (da nord-ovest).
+ *  Chi ce l'ha già torna identico. */
+export function conBaule(lot: LotState): LotState {
+  if (baule(lot)) return lot;
+  const [x0, z0, x1, z1] = stanzaTerra(livelloLotto(lot)).pavimento;
+  for (let z = z0; z < z1; z++) for (let x = x0; x < x1; x++) {
+    if (postoMobileError(lot, BAULE, { cell: [x, z] })) continue;
+    const b: PlacedBuilding = { id: 'forziere', building: 'forziere', level: 1, cell: [x, z], buffer: 0, lastMs: lot.nowMs };
+    return { ...lot, version: lot.version + 1, buildings: [...lot.buildings, b] };
+  }
+  return lot;
+}
 
 /** Perché un mobile non può stare lì (null = va bene). `senza` = id di un mobile da non contare (quello che sposti). */
 export function postoMobileError(lot: LotState, m: MobileDef, p: PostoMobile, senza: string | null = null): { code: 'posizione' | 'cella'; msg: string } | null {
@@ -223,15 +237,15 @@ export function ritiraMobile(lot0: LotState, id: string, nowMs: number): LotStat
 /** Sposta il baule (il Forziere) su un'altra cella del pavimento della stanza. */
 export function spostaBaule(lot0: LotState, cell: [number, number], nowMs: number): LotState {
   const lot = advance(lot0, nowMs), b = baule(lot);
-  if (!b) throw new EconomyError('sconosciuto', 'Il baule non c’è ancora: costruisci il Forziere');
+  if (!b) throw new EconomyError('sconosciuto', 'Il baule non c’è ancora: rientra in casa');
   if (same(b.cell, cell)) return lot;
-  controlla({ ...lot, buildings: lot.buildings.filter((x) => x.id !== b.id) }, { id: 'baule', nome: 'Baule', categoria: 'contenitori', monete: 1, posto: 'terra', forma: 'baule', colori: ['#8E5A2B'] }, { cell });
+  controlla({ ...lot, buildings: lot.buildings.filter((x) => x.id !== b.id) }, BAULE, { cell });
   return { ...lot, version: lot.version + 1, buildings: lot.buildings.map((x) => (x.id === b.id ? { ...x, cell: [cell[0], cell[1]] } : x)) };
 }
 /** Gira il baule di 90°. */
 export function ruotaBaule(lot0: LotState, nowMs: number): LotState {
   const lot = advance(lot0, nowMs);
-  if (!baule(lot)) throw new EconomyError('sconosciuto', 'Il baule non c’è ancora: costruisci il Forziere');
+  if (!baule(lot)) throw new EconomyError('sconosciuto', 'Il baule non c’è ancora: rientra in casa');
   const c = casaDi(lot), rot = ((c.bauleRot ?? 0) + 1) % 4, out: CasaState = { ...c };
   if (rot) out.bauleRot = rot; else delete out.bauleRot;
   return conCasa(lot, out);

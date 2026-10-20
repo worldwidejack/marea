@@ -1,4 +1,4 @@
-// HUD in DOM: overlay prestazioni (?fps=1), toast, barra in alto (le voci di RES_IDS: dal #414 solo le monete), chip del cantiere, avviso fisso. WP0 + M1-isola.
+// HUD in DOM: overlay prestazioni (?fps=1), toast, barra in alto (le voci di RES_IDS: solo le monete), avviso fisso.
 import type { Flags } from '../flags.ts';
 import { injectUiStyle, el } from './style.ts';
 import { RES_IDS, resIcon } from './icons.ts';
@@ -9,8 +9,6 @@ export type Hud = {
   toast(text: string, ms?: number): void;
   /** Barra in alto, una voce per id di RES_IDS (dal #414 solo `monete`): null la nasconde (niente lotto). Opzionale per compatibilità con HUD finti nei test. */
   setResources?(r: Partial<Record<ResId, number>> | null): void;
-  /** Chip del cantiere sotto la barra («Cava tra 1:32»); null lo nasconde. */
-  setWork?(text: string | null, onTap?: () => void): void;
   /** Avviso fisso al centro (es. link non valido); null lo toglie. */
   banner?(text: string | null): void;
   /** Centro della voce della barra in px CSS (destinazione delle risorse che volano); null se la barra non ha quella voce (le risorse di prima). */
@@ -23,7 +21,7 @@ export function createHud(o: { root: HTMLElement; flags: Flags }): Hud {
   injectUiStyle();
   const perf = o.root.querySelector<HTMLElement>('#perf') ?? o.root.appendChild(Object.assign(document.createElement('div'), { id: 'perf' }));
   const toast = o.root.querySelector<HTMLElement>('#toast') ?? o.root.appendChild(Object.assign(document.createElement('div'), { id: 'toast' }));
-  // il toast scende sotto barra risorse e chip del cantiere; non intercetta i tocchi
+  // il toast scende sotto la barra delle monete; non intercetta i tocchi
   Object.assign(toast.style, { top: 'calc(max(8px, env(safe-area-inset-top)) + 102px)', zIndex: '26', maxWidth: 'calc(100% - 32px)', textAlign: 'center', pointerEvents: 'none', whiteSpace: 'normal' });
   perf.style.top = 'calc(max(8px, env(safe-area-inset-top)) + 150px)';
   if (o.flags.fps) perf.style.display = 'block';
@@ -37,11 +35,8 @@ export function createHud(o: { root: HTMLElement; flags: Flags }): Hud {
     bar.appendChild(chip);
     chips[id] = { chip, num };
   }
-  const work = el('div', 'mz mz-work'); work.id = 'mzWork'; work.setAttribute('role', 'button');
-  let workTap: (() => void) | undefined;
-  work.addEventListener('click', () => workTap?.());
   const ban = el('div', 'mz mz-banner'); ban.id = 'mzBanner'; ban.setAttribute('role', 'alert');
-  o.root.append(bar, work, ban);
+  o.root.append(bar, ban);
 
   let timer = 0;
   const bumps = new Map<ResId, number>();
@@ -53,11 +48,6 @@ export function createHud(o: { root: HTMLElement; flags: Flags }): Hud {
       bar.classList.toggle('on', !!r);
       if (!r) return;
       for (const id of RES_IDS) { const c = chips[id], t = String(Math.floor(r[id] ?? 0)); if (c && c.num.textContent !== t) c.num.textContent = t; }
-    },
-    setWork(text, onTap) {
-      work.classList.toggle('on', !!text);
-      if (text && work.textContent !== text) work.textContent = text;
-      workTap = onTap;
     },
     banner(text) { ban.classList.toggle('on', !!text); ban.textContent = text ?? ''; },
     resAnchor(id) {

@@ -16,7 +16,7 @@ const ANDROID = { width: 360, height: 740, deviceScaleFactor: 2, isMobile: true,
 
 /** Elementi fissi dell'interfaccia (selettori → nome leggibile). Ognuno conta solo se si vede. */
 const FISSI = [
-  ['#mzBar > *', 'risorsa'], ['#mzWork', 'cantiere'], ['#mzTop > *', 'bottone in alto'], ['#compass > *', 'bussola'], ['#mzMini', 'minimappa'], ['#mzMiniZoom > *', 'zoom minimappa'], ['#mzMiniMete', 'bandierina mete'],
+  ['#mzBar > *', 'risorsa'], ['#mzTop > *', 'bottone in alto'], ['#compass > *', 'bussola'], ['#mzMini', 'minimappa'], ['#mzMiniZoom > *', 'zoom minimappa'], ['#mzMiniMete', 'bandierina mete'],
   ['#mzGuida', 'guida'], ['#btnA', 'A'], ['#btnB', 'B'], ['#joystick', 'joystick'], ['#mzPlay', 'GIOCA'], ['#mzPortoBtn', 'Porto'], ['#mzAmiciBtn', 'Record e Faro'], ['#mzPescaBtn', 'PESCA'], ['#mzPerle', 'TUFFATI'], ['#mzArredaBtn', 'ARREDA'],
 ];
 

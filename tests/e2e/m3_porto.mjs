@@ -1,6 +1,6 @@
 // Porto più ricco (#63-#65) sul server locale (wrangler dev, TEST_CLOCK:1). Luca vince monete con tre Regate (API, autopilot), poi nel
 // browser: (1) piazza con banco del Mercante, Bacheca e la Gente del Porto (avatar veri, giro, nomi); (2) E al banco apre il Mercante:
-// prova un cappello esclusivo sull'avatar, COMPRA, INDOSSA (salvato sul server), compra una decorazione esclusiva → posata sull'isola;
+// prova un cappello esclusivo sull'avatar, COMPRA, INDOSSA (salvato sul server), niente decorazioni per ora;
 // senza monete l'avviso gentile (#4) senza chiamate; (3) la Bacheca mostra le 3 missioni del giorno uguali a quelle della sim, una compiuta
 // si RISCUOTE una volta sola (premio nel lotto); (4) PARLA con Gigi: battute di gente.json, AVANTI fino a CIAO; (5) telefono 390×844:
 // bottone, pannello, scheda delle battute; (6) draw call in piazza ≤ 100. Screenshot di tutto.
@@ -30,8 +30,7 @@ export default async function (ctx) {
   const read = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
   const avatar = read('avatar.json'), decor = read('decor.json'), gente = read('gente.json'), islands = read('islands.json');
   const KASA = avatar.cappelli.findIndex((h) => h.id === 'kasa'), kasa = avatar.cappelli[KASA];
-  const ancora = decor.find((d) => d.id === 'ancora'), palombaro = avatar.cappelli.find((h) => h.id === 'palombaro');
-  const segCell = islands.find((i) => i.id === 'lotto').slots.find((s) => s.kind === 'segheria').at;
+  const palombaro = avatar.cappelli.find((h) => h.id === 'palombaro');
 
   // un giorno (con l'orologio di test) in cui almeno una missione si fa in fretta: partite, medaglie, acquisti, cantiere
   const base = Date.now() + ((Date.now() % DAY) > DAY - 20 * 60_000 ? 30 * 60_000 : 0);
@@ -75,9 +74,8 @@ export default async function (ctx) {
       ctx.log(`monete ${lot.monete} · contatori ${JSON.stringify(lot.missioni)}`);
       assert(lot.missioni.prog.partite === 3 && lot.missioni.prog.medaglia === 3, 'contatori delle partite: ' + JSON.stringify(lot.missioni));
       // le Regate da sole non bastano sempre (oro, argento…): il resto dalla rotta di prova (#414), giusto quello che serve
-      if (lot.monete < kasa.monete + ancora.monete) assert((await post('/api/test/monete', { n: kasa.monete + ancora.monete - lot.monete })).status === 200, 'monete di prova');
-      assert((await get('/api/lot')).body.monete >= kasa.monete + ancora.monete, 'monete insufficienti per il test');
-      if (oggi.some((m) => m.tipo === 'cantiere')) assert((await post('/api/lot/build', { building: 'segheria', cell: segCell })).status === 200, 'cantiere');
+      if (lot.monete < kasa.monete) assert((await post('/api/test/monete', { n: kasa.monete - lot.monete })).status === 200, 'monete di prova');
+      assert((await get('/api/lot')).body.monete >= kasa.monete, 'monete insufficienti per il test');
     });
 
     // ---- PC ----
@@ -138,12 +136,8 @@ export default async function (ctx) {
       await ctx.shot(page, 'desktop_mercante_comprato');
     });
 
-    await ctx.test('Mercante: decorazione esclusiva comprata e posata sull’isola; senza monete avviso gentile senza chiamate', async () => {
-      await page.locator('#mzPortoPanel [data-tab="decor"]').click();
-      const p0 = (await st()).lot.monete;
-      await page.locator('#mzPortoPanel [data-item="ancora"] [data-act="compra"]').click();
-      await ctx.waitState(page, (s, want) => s.lot.monete === want && s.lot.decor.length === 1, 8000, p0 - ancora.monete);
-      await ctx.shot(page, 'desktop_mercante_decor');
+    await ctx.test('Mercante: niente scheda delle decorazioni (finché non si posano in casa); senza monete avviso gentile senza chiamate', async () => {
+      assert(await page.locator('#mzPortoPanel [data-tab="decor"]').count() === 0, 'la scheda DECORAZIONI c\'è ancora');
       // un cappello che costa troppo: avviso gentile, niente richiesta
       await page.locator('#mzPortoPanel [data-tab="cappelli"]').click();
       let hats = 0; page.on('request', (r) => { if (new URL(r.url()).pathname === '/api/look/hat') hats++; });
@@ -159,14 +153,6 @@ export default async function (ctx) {
       await page.keyboard.press('Escape');
       await ctx.waitState(page, (s) => s.porto.open === null, 3000);
       assert((await st()).wp2_avatar.look.cappello === KASA, 'dopo la chiusura il cappello indossato deve restare');
-      // a casa: la decorazione c'è, col segnaposto
-      await hook('goto', 'lotto:0'); await hook('setZoom', 1.2);
-      await ctx.waitState(page, (s) => s.lot.decor.length === 1 && !!s.lot.decor[0].model, 8000);
-      const d = (await st()).lot.decor[0];
-      assert(d.decor === 'ancora' && /segnaposto_ancora|prop_ancora/.test(d.model), 'decorazione: ' + JSON.stringify(d));
-      await sleep(800);
-      await ctx.shot(page, 'desktop_decor_isola');
-      await hook('goto', 'porto');
     });
 
     await ctx.test('Bacheca: le 3 missioni di oggi uguali alla sim; una compiuta si RISCUOTE una volta sola', async () => {

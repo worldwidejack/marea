@@ -12,7 +12,8 @@ import { el } from './style.ts';
 import { resIcon } from './icons.ts';
 
 export type Tab = 'cappelli' | 'decor' | 'barca';
-export const TABS: readonly Tab[] = ['cappelli', 'decor', 'barca'];
+/** Le decorazioni non si vendono finché non si posano in casa: col giardino spento finirebbero dove non si vedono. */
+export const TABS: readonly Tab[] = ['cappelli', 'barca'];
 export type Note = { id: string; text: string; bad: boolean } | null;
 /** `provaBarca`: id del colore esclusivo che si sta provando sullo scafo (#107). */
 export type MercanteState = { tab: Tab; prova: number | null; provaBarca: string | null; note: Note; busy: boolean };
@@ -42,7 +43,7 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
   const owned = (id: string) => (lot?.posseduti ?? []).includes(id);
   const body = el('div'); body.dataset['panel'] = 'mercante';
   const tabs = el('div', 'mz-pt-tabs');
-  for (const [id, nome] of [['cappelli', 'Cappelli'], ['decor', 'Decorazioni'], ['barca', 'Barca']] as const) {
+  for (const [id, nome] of [['cappelli', 'Cappelli'], ['barca', 'Barca']] as const) {
     const b = el('button', 'mz-pt-tab', nome); b.type = 'button'; b.dataset['tab'] = id; b.setAttribute('aria-pressed', String(st.tab === id));
     b.addEventListener('click', () => { st.tab = id; st.note = null; redraw(); });
     tabs.appendChild(b);

@@ -22,7 +22,7 @@ const fit = (p: number, room: number, n: number): number => (p <= 0 ? n : Math.m
 
 export function renderChest(v: View, out: HTMLElement): void {
   const cap = chestCap(v.lot);
-  if (cap <= 0) { out.appendChild(el('div', 'mz-rp-note', 'Costruisci il Forziere sulla tua isola: tiene quello che non porti nello zaino.')); return; }
+  if (cap <= 0) { out.appendChild(el('div', 'mz-rp-note', 'Il baule è in casa tua: tiene quello che non porti nello zaino.')); return; }
   const d = heroDerived(v.hero), f = v.lot.forziere ?? {}, fw = bagWeight(f);
   const sel = v.ui.chest;
   if (sel && !((sel.side === 'zaino' ? v.hero.inv : f)[sel.id] ?? 0)) v.ui.chest = null;

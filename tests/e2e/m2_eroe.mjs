@@ -1,8 +1,7 @@
-// M2 · R-pannelli (Mondo Sotterraneo, CONTRACTS §15): scheda del personaggio e pannelli degli edifici GDR sul server locale (wrangler dev, TEST_CLOCK:1).
+// M2 · R-pannelli (Mondo Sotterraneo, CONTRACTS §15): scheda del personaggio e baule di casa sul server locale (wrangler dev, TEST_CLOCK:1).
 // (1) tasto I e AVATAR → Personaggio aprono #mzEroe, Esc chiude, le tre schede si cambiano, un'abilità mostra i suoi perk; (2) Zaino: equipaggia l'arco
-// e torna alla katana (salvato sul server); (3) Banco costruito (orologio di test) → dal foglio dell'edificio «Forgia» apre il pannello, compri
-// il bronzo in Bottega e forgi un'arma di bronzo; (4) Forziere: deposita 1 / tutti e preleva; (5) Serra: «Raccogli» porta gli ingredienti;
-// (6) telefono 390×844: righe ≥ 44 px, testo leggibile, screenshot di ogni pannello. Screenshot in tests/out/shots/m2_eroe_*.png.
+// e torna alla katana (salvato sul server); (3) Baule di casa (di serie): in casa, davanti al baule A → APRI, deposita 1 / tutti e preleva;
+// (4) telefono 390×844: righe ≥ 44 px, testo leggibile, screenshot di ogni pannello. Screenshot in tests/out/shots/m2_eroe_*.png.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -21,11 +20,6 @@ export default async function (ctx) {
   const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
   const sim = async (f) => import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src', f)).href);
   const { RPG, PERKS } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/rpg.ts')).href);
-  const buildings = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/buildings.json'), 'utf8'));
-  const islands = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/islands.json'), 'utf8'));
-  const slots = islands.find((i) => i.id === 'lotto').slots;
-  const cellOf = (k) => slots.find((s) => s.kind === k)?.at;
-  const secs = (k) => buildings.find((b) => b.id === k).levels[0].seconds;
 
   let dev = null, log = '', OFF = 0;
   const pages = [];
@@ -46,15 +40,6 @@ export default async function (ctx) {
     const get = async (p, t) => { const r = await fetch(base + p, { headers: hdr(t) }); return { status: r.status, body: await r.json() }; };
     const post = async (p, t, b) => { const r = await fetch(base + p, { method: 'POST', headers: hdr(t), body: JSON.stringify(b ?? {}) }); return { status: r.status, body: await r.json() }; };
     const lot = async () => (await get('/api/lot', 'tokA')).body;
-    /** Costruisce col lotto e porta avanti l'orologio di test fino alla fine del cantiere. */
-    const build = async (k) => {
-      const r = await post('/api/lot/build', 'tokA', { building: k, cell: cellOf(k) });
-      assert(r.status === 200, `build ${k}: ${r.status} ${JSON.stringify(r.body).slice(0, 160)}`);
-      OFF += (secs(k) + 30) * 1000;
-      const l = await lot();
-      assert(l.buildings.find((b) => b.building === k)?.level === 1, `${k} non finito col clock di test`);
-    };
-
     const open = async (viewport) => {
       const pg = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`, { viewport });
       pages.push(pg); ctx._pages.push(pg);
@@ -69,14 +54,19 @@ export default async function (ctx) {
     /** Il Personaggio si apre dal menù AVATAR (#417): il bottone dello scudo c'è ma è nascosto. */
     const apriEroe = async (pg) => { await click(pg, '#mzAvatarBtn'); await click(pg, '#mzAvatarMenu [data-voce="personaggio"]'); };
     const idle = (pg) => waitEroe(pg, '(e) => !e.busy');
-    const refresh = async (pg) => { await pg.page.evaluate(() => window.__game.test.lotRefresh()); };
-    /** Dal foglio dell'edificio (#mzSheet) al pannello GDR: tocco sull'edificio, poi il bottone d'azione. */
-    const fromSheet = async (pg, k) => {
-      await refresh(pg);
-      await pg.page.evaluate((b) => window.__game.test.lotTap(b), k);
-      await click(pg, '#mzSheet.on [data-act="rpg"]');
-      await waitEroe(pg, '(e, k) => e.open && e.view === k', k);
-      assert(!(await pg.page.locator('#mzSheet.on').count()), 'il foglio dell’edificio resta aperto sotto il pannello');
+    /** Il baule di casa (di serie): si entra in casa, davanti al baule A apre la scheda, APRI il pannello del Forziere. */
+    const apriBaule = async (pg) => {
+      const hook = (n, ...a) => pg.page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
+      await hook('porta', 0);
+      await ctx.waitState(pg.page, (s) => s.stanza.dentro === 0 && s.arreda?.mia && !!s.lot.baule, 15000);
+      const s = await ctx.getState(pg.page), [cx, cz] = s.lot.baule.split(':')[1].split(',').map(Number), o = s.lot.origin;
+      await hook('teleport', (o[0] + cx + 0.5) * 2, (o[1] + cz + 1.5) * 2);
+      await pg.page.keyboard.down('ArrowUp'); await sleep(90); await pg.page.keyboard.up('ArrowUp'); await sleep(250);
+      await ctx.waitState(pg.page, (q) => q.arreda.vicino === 'baule', 5000);
+      await sleep(400); await ctx.shot(pg.page, `baule_${pg.page.viewportSize()?.width ?? 0}`);
+      await pg.page.keyboard.press('KeyE');
+      await pg.page.locator('#mzArreda button', { hasText: 'Apri' }).click();
+      await waitEroe(pg, '(e) => e.open && e.view === "forziere"');
     };
 
     const D = await open(ctx.B.DESKTOP);
@@ -146,55 +136,8 @@ export default async function (ctx) {
       await waitEroe(D, '(e) => !e.open');
     });
 
-    await ctx.test('Banco: costruito col clock di test, «Forgia» dal foglio, bronzo comprato in Bottega, arma di bronzo forgiata', async () => {
-      await build('banco');
-      // monete: la dotazione non basta per 3 lingotti → qualche spedizione nella Grotta giocata in Node con l'autopilot (come m2_server)
-      const { dungeon } = await sim('dungeon/dungeon.ts');
-      const { autopilot } = await sim('dungeon/autopilot.ts');
-      const { packDungeon, quantizeDungeon } = await sim('dungeon/replay.ts');
-      const { createRng } = await sim('rng.ts');
-      const prezzo = RPG.bottega.lingotto_bronzo;
-      const bronzo = (l) => (l.hero?.inv?.lingotto_bronzo ?? 0) + (l.forziere?.lingotto_bronzo ?? 0);
-      for (let i = 0; i < 6; i++) {
-        const l = await lot();
-        const need = Math.max(1, 3 - bronzo(l)); // almeno un lingotto si compra sempre dalla Bottega
-        if (l.monete >= need * prezzo) break;
-        const s = (await post('/api/dungeon/start', 'tokA', { dungeon: 'grotta' })).body;
-        const g = dungeon.create({ seed: s.seed, dungeon: s.dungeon, hero: s.hero, stato: s.stato, partenza: s.partenza });
-        const rng = createRng(s.seed), frames = [];
-        while (!g.done && frames.length < dungeon.maxTicks) { const f = quantizeDungeon(autopilot(g, rng)); frames.push(f); dungeon.step(g, f); }
-        const r = await post('/api/dungeon/finish', 'tokA', { inputs: packDungeon(frames), hash: dungeon.result(g).hash });
-        ctx.log(`spedizione ${i + 1}: ${r.status} ${r.body.result?.outcome} · +${r.body.monete} monete · tenuto ${JSON.stringify(r.body.tenuto)}`);
-      }
-      const l0 = await lot();
-      const comprare = Math.max(1, 3 - bronzo(l0));
-      assert(l0.monete >= comprare * prezzo, `monete insufficienti per il test: ${l0.monete}`);
-      await fromSheet(D, 'banco');
-      await ctx.shot(D.page, 'desktop_banco');
-      for (let i = 0; i < comprare; i++) {
-        await click(D, '#mzEroe [data-k="compra:lingotto_bronzo:1"]');
-        await idle(D);
-      }
-      assert(bronzo(await lot()) >= 3, 'bronzo non comprato: ' + JSON.stringify((await lot()).hero.inv));
-      await click(D, '#mzEroe [data-k="mat:bronzo"]');
-      await click(D, '#mzEroe [data-k="cat:leggere"]');
-      await click(D, '#mzEroe [data-item="nunchaku_bronzo"]');
-      await ctx.shot(D.page, 'desktop_banco_bronzo');
-      await click(D, '#mzEroe [data-det="nunchaku_bronzo"] [data-act="forgia"]');
-      await idle(D);
-      const l1 = await lot();
-      assert((l1.hero.inv.nunchaku_bronzo ?? 0) + (l1.forziere?.nunchaku_bronzo ?? 0) === 1, 'nunchaku di bronzo non forgiato: ' + JSON.stringify(l1.hero.inv));
-      assert(l1.hero.skill.forgiatura.xp > 0 || l1.hero.skill.forgiatura.lv > RPG.livelli.skillIniziale, 'niente xp di Forgiatura');
-      // un materiale oltre il livello del Banco è bloccato col motivo
-      await click(D, '#mzEroe [data-k="mat:argento"]');
-      assert(/livello 2/.test(await D.page.locator('#mzEroe .mz-rp-note').first().innerText()), 'argento senza motivo del blocco');
-      await D.page.keyboard.press('Escape');
-      await waitEroe(D, '(e) => !e.open');
-    });
-
-    await ctx.test('Forziere: deposita 1 e tutti, poi preleva tutti', async () => {
-      await build('forziere');
-      await fromSheet(D, 'forziere');
+    await ctx.test('Baule di casa (di serie): deposita 1 e tutti, poi preleva tutti', async () => {
+      await apriBaule(D);
       const n0 = (await st(D)).inv.frecce_legno;
       await click(D, '#mzEroe [data-col="zaino"] [data-item="frecce_legno"]');
       await click(D, '#mzEroe [data-act="deposita"]');
@@ -207,23 +150,6 @@ export default async function (ctx) {
       await click(D, '#mzEroe [data-col="forziere"] [data-item="frecce_legno"]');
       await click(D, '#mzEroe [data-act="preleva-tutti"]');
       await waitEroe(D, '(e) => !e.busy && e.inv.frecce_legno === a && !e.forziere.frecce_legno', n0);
-      await D.page.keyboard.press('Escape');
-    });
-
-    await ctx.test('Serra: «Raccogli» dal foglio porta gli ingredienti nel Forziere e li mostra', async () => {
-      await build('serra');
-      OFF += 3600 * 1000; // un'ora di produzione
-      await fromSheet(D, 'serra');
-      await D.page.locator('#mzEroe [data-arrivato]').first().waitFor({ state: 'visible', timeout: 8000 });
-      const l = await lot();
-      const ing = ['erba_curativa', 'fiore_azzurro', 'radice_vigore'].reduce((a, id) => a + (l.forziere?.[id] ?? 0), 0);
-      assert(ing >= 1, 'nessun ingrediente nel Forziere: ' + JSON.stringify(l.forziere));
-      await ctx.shot(D.page, 'desktop_serra');
-      await D.page.keyboard.press('Escape');
-      await build('alchimia');
-      await fromSheet(D, 'alchimia');
-      await click(D, '#mzEroe [data-ricetta="r_vita_minore"]');
-      await ctx.shot(D.page, 'desktop_alchimia');
       await D.page.keyboard.press('Escape');
     });
 
@@ -256,13 +182,10 @@ export default async function (ctx) {
       await click(T, '#mzEroe [data-tab="abilita"]'); await click(T, '#mzEroe [data-skill="forgiatura"]'); await check('abilita');
       await click(T, '#mzEroe [data-tab="zaino"]'); await click(T, '#mzEroe [data-item="katana_legno"]'); await check('zaino');
       await click(T, '#mzEroe [data-act="chiudi"]'); await waitEroe(T, '(e) => !e.open');
-      for (const k of ['banco', 'forziere', 'alchimia']) {
-        await fromSheet(T, k);
-        if (k === 'banco') await click(T, '#mzEroe [data-item="katana_legno"]');
-        if (k === 'forziere') await click(T, '#mzEroe [data-col="zaino"] [data-item="pozione_vita_minore"]');
-        await check(k);
-        await click(T, '#mzEroe [data-act="chiudi"]'); await waitEroe(T, '(e) => !e.open');
-      }
+      await apriBaule(T);
+      await click(T, '#mzEroe [data-col="zaino"] [data-item="pozione_vita_minore"]');
+      await check('forziere');
+      await click(T, '#mzEroe [data-act="chiudi"]'); await waitEroe(T, '(e) => !e.open');
     });
 
     await ctx.test('nessun errore in console', async () => {

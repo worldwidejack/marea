@@ -1,7 +1,7 @@
 // M2-server (Mondo Sotterraneo, CONTRACTS §15): personaggio nel lotto, POST /api/rpg (equip, leggi, perk, compra, forgia, deposita),
 // spedizioni POST /api/dungeon/start|finish con replay nel DO (input giocati qui in Node con l'autopilot della sim: stesso esito e
 // stesso bottino), errori 409/400/413, hash diverso = solo un avviso nel log, la Regata da solo non tocca il personaggio.
-// wrangler dev locale con `--var TEST_CLOCK:1`: l'header X-Test-Now-Offset fa finire il cantiere del Banco (solo qui, mai in produzione).
+// wrangler dev locale con `--var TEST_CLOCK:1`: l'header X-Test-Now-Offset sposta l'orologio del server (solo qui, mai in produzione).
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -33,9 +33,6 @@ export default async function (ctx) {
   const { finishDungeon } = await sim('rpg/run.ts');
   const { RPG } = await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/rpg.ts')).href);
   const items = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/rpg/items.json'), 'utf8'));
-  const banco = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/buildings.json'), 'utf8')).find((b) => b.id === 'banco');
-  const islands = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/islands.json'), 'utf8'));
-  const bancoCell = islands.find((i) => i.id === 'lotto')?.slots?.find((s) => s.kind === 'banco')?.at ?? [14, 14];
 
   let dev = null, log = '', OFF = 0;
   try {
@@ -84,18 +81,12 @@ export default async function (ctx) {
       const eq = await rpg('tokA', { t: 'equip', slot: 'arma', item: 'katana_bronzo' });
       assert(eq.status === 409 && eq.body.code === 'oggetto', 'equip non tuo: ' + JSON.stringify(eq));
       const dep = await rpg('tokA', { t: 'deposita', item: 'frecce_legno', n: 5 });
-      assert(dep.status === 409 && dep.body.code === 'edificio', 'deposita senza Forziere: ' + JSON.stringify(dep));
+      assert(dep.body.code !== 'edificio', 'deposita: il baule di serie c\'è, niente «Serve il Forziere»: ' + JSON.stringify(dep));
       const ign = await rpg('tokA', { t: 'perk', perk: 'non_esiste' });
       assert(ign.status === 404 && ign.body.code === 'sconosciuto', 'perk sconosciuto: ' + JSON.stringify(ign));
     });
 
-    await ctx.test('Banco: si costruisce col lotto (codice spento); il Fabbro del Borgo vende e forgia anche senza; monete finite 409', async () => {
-      const b = await post('/api/lot/build', 'tokA', { building: 'banco', cell: bancoCell });
-      assert(b.status === 200 && b.body.construction?.building === 'banco', 'build banco: ' + b.status + ' ' + JSON.stringify(b.body).slice(0, 200));
-      // dal #414 la roba di base la vende il Fabbro del Borgo: il Banco (anche in cantiere) non serve più
-      OFF = (banco.levels[0].seconds + 60) * 1000;
-      const l0 = await lot('tokA');
-      assert(l0.buildings.find((x) => x.building === 'banco')?.level === 1, 'Banco non finito col clock di test');
+    await ctx.test('Fabbro del Borgo: vende e forgia senza Banco; monete finite 409', async () => {
       const prezzo = RPG.bottega.lingotto_bronzo;
       const c = await rpg('tokA', { t: 'compra', item: 'lingotto_bronzo', n: 1 });
       assert(c.status === 200 && c.body.hero.inv.lingotto_bronzo === 1 && c.body.monete === PARTENZA - prezzo, 'compra: ' + JSON.stringify(c.body.hero ?? c.body).slice(0, 200));

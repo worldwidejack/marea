@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BORGO, MOBILI } from '@marea/content';
 import { build, newLot, placeDecor } from '../src/economy/actions.ts';
-import { compraFinitura, compraMobile, finitureScelte, posaMobile, possiedeFinitura, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '../src/economy/casa.ts';
+import { compraFinitura, compraMobile, conBaule, finitureScelte, posaMobile, possiedeFinitura, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '../src/economy/casa.ts';
 import { decorCellError, fitToTemplate, lotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
 import type { LotState } from '../src/economy/types.ts';
@@ -150,4 +150,17 @@ test('decorazioni del giardino: in casa no (stanza e corridoio), e quelle già f
   const vecchio: LotState = { ...lot, decor: [{ id: 'barile-1', decor: 'barile', cell: [X0 + 1, Z0 + 1] }] };
   const d = fitToTemplate(vecchio, T).decor[0]!;
   assert.ok(d.cell[1] < Z0 - 1, 'tornata in giardino: ' + d.cell.join(','));
+});
+
+test('baule di serie: chi non l’ha costruito lo trova in casa, livello 1, in una cella libera della stanza; chi ce l’ha resta com’è', () => {
+  let lot = ricco(5000);
+  const m = MOBILI.find((x) => x.posto === 'terra' && !x.celle)!;
+  lot = posaMobile(compraMobile(lot, m.id, 0), m.id, { cell: [X0, Z0] }, 0, 0); // la prima cella è presa da un mobile
+  const con = conBaule(lot), b = con.buildings.find((x) => x.building === 'forziere')!;
+  assert.ok(b && b.level === 1, 'baule di serie: ' + JSON.stringify(con.buildings));
+  assert.ok(b.cell[0] >= X0 && b.cell[0] < X1 && b.cell[1] >= Z0 && b.cell[1] < Z1 && !(b.cell[0] === X0 && b.cell[1] === Z0), 'cella: ' + b.cell.join(','));
+  assert.equal(conBaule(con), con, 'una seconda volta non ne aggiunge un altro');
+  const costruito = build(ricco(500), 'forziere', [X0 + 2, Z0 + 2], 0);
+  assert.equal(conBaule(costruito), costruito, 'chi l’aveva costruito tiene il suo');
+  assert.equal(checkMonete([con]), null);
 });
