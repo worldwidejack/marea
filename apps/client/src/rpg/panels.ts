@@ -1,5 +1,5 @@
 // Pannelli del personaggio e degli edifici GDR (R-pannelli, CONTRACTS §15 e §13): un solo foglio #mzEroe (classe mz-sheet mz-side) che
-// mostra la scheda del personaggio (Personaggio / Abilità / Zaino) o un edificio (Banco, Tavolo Alchemico, Forziere, Serra).
+// mostra la scheda del personaggio (Personaggio / Abilità / Zaino), il baule di casa (Forziere) o il banco del Contrabbandiere.
 // Un pannello alla volta: aprendolo si chiudono gli altri fogli; se se ne apre un altro (o si scende nel dungeon) questo si chiude.
 // Tasti in capture con stopPropagation (mai keyup): Esc e I chiudono, ←/→ cambiano scheda, ↑/↓ spostano il fuoco; C e F passano a main.
 // Le azioni vanno a POST /api/rpg: il lotto nuovo → ctx.setLot; errori (ApiError, già in italiano) → toast.
@@ -16,8 +16,6 @@ import type { BuildingKind, PanelCtx, RunBag } from './types.ts';
 import { injectRpgStyle } from './hero_style.ts';
 import { renderPg, renderSkills } from './hero_tabs.ts';
 import { renderBag } from './hero_bag.ts';
-import { renderForge } from './forge.ts';
-import { harvest, renderAlchemy, renderSerra } from './alchemy.ts';
 import { renderChest } from './chest.ts';
 import { renderContrabbando } from './contrabbando.ts';
 import type { UiState, View } from './items_ui.ts';
@@ -32,7 +30,7 @@ let busy = false, lastSet: LotState | null = null, drawn: LotState | null = null
 let bag: RunBag | null = null;
 /** Battuta del Furetto in cima al suo banco (la sceglie game/porto.ts a ogni apertura). */
 let battuta = '';
-const ui: UiState = { tab: 'pg', skill: null, item: null, mat: 'legno', cat: 'leggere', chest: null, serra: null, focus: null, butta: null };
+const ui: UiState = { tab: 'pg', skill: null, item: null, chest: null, focus: null, butta: null };
 
 const curLot = (): LotState | null => ctx?.getLot() ?? lastSet;
 const heroBtn = (): HTMLElement | null => document.getElementById('mzHeroBtn');
@@ -127,11 +125,8 @@ function render(): void {
     if (bag) body.appendChild(el('div', 'mz-rp-sotto', bag.insieme ? 'Sei nel dungeon con la squadra: il gioco NON è in pausa, occhio ai nemici!' : 'Sei nel dungeon: il gioco è in pausa. Cambia arma o butta via quello che non serve.'));
     const v: View = { ctx, lot, hero, busy, ui, act, rerender: render, sotto: !!bag, ...(bag ? { bevi } : {}) };
     if (view === 'eroe') (ui.tab === 'pg' ? renderPg : ui.tab === 'abilita' ? renderSkills : renderBag)(v, body);
-    else if (view === 'banco') renderForge(v, body);
-    else if (view === 'alchimia') renderAlchemy(v, body);
     else if (view === 'forziere') renderChest(v, body);
-    else if (view === 'contrabbando') renderContrabbando(v, body, battuta);
-    else renderSerra(v, body);
+    else renderContrabbando(v, body, battuta);
   }
   const top = header(lot);
   sheet.replaceChildren(top, body);
@@ -180,7 +175,7 @@ function show(c: PanelCtx, v: ViewId): void {
   injectUiStyle(); injectRpgStyle();
   const s = ensureSheet(c.root);
   for (const x of document.querySelectorAll<HTMLElement>('.mz-sheet.on:not(#mzEroe) [data-act="chiudi"]')) x.click(); // un pannello alla volta
-  if (view !== v) { resetScroll = true; ui.item = null; ui.chest = null; ui.skill = null; ui.butta = null; if (v !== 'serra') ui.serra = null; }
+  if (view !== v) { resetScroll = true; ui.item = null; ui.chest = null; ui.skill = null; ui.butta = null; }
   const was = view;
   view = v;
   s.setAttribute('aria-label', titolo(v));
@@ -202,11 +197,6 @@ export function openHero(c: PanelCtx, b?: RunBag): void {
 export function openBuilding(c: PanelCtx, kind: BuildingKind): void {
   if (bag) return; // nel dungeon niente edifici
   show(c, kind);
-  if (kind !== 'serra') return;
-  // «Raccogli» dal foglio della Serra: raccoglie subito se c'è qualcosa di pronto, poi mostra cosa è arrivato
-  ui.serra = null;
-  const lot = curLot();
-  if (lot && sheet?.querySelector('[data-act="serra"]:not(:disabled)')) harvest({ ctx: c, lot, hero: heroOf(lot), busy, ui, act, rerender: render, sotto: false });
 }
 /** Banco del Contrabbandiere al Porto (game/porto.ts via ui/eroe.ts). */
 export function openContrabbando(c: PanelCtx, frase: string): void {

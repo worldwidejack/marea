@@ -73,9 +73,6 @@ body #mzBar .mz-chip.bump { transform: scale(1.15); color: ${L.acqua}; }
 body #mzBar .mz-chip[data-res="monete"] :is(canvas, span) { display: none; }
 body #mzBar .mz-chip[data-res="monete"]::before { content: ''; flex: none; width: ${k(26)}; height: ${k(26)}; box-sizing: border-box; border-radius: 50%;
   border: ${k(1.5)} solid ${L.inchiostro}; box-shadow: inset 0 0 0 ${k(2.5)} ${L.oro}; background: linear-gradient(${L.oroScuro}, ${L.oroScuro}) center / ${k(4)} ${k(11)} no-repeat, ${L.oroChiaro}; }
-/* cantiere: cartiglio accanto alla campanella (sparisce con l'economia a monete) */
-body #mzWork { top: calc(${T} + ${k(48)}); left: calc(8px + ${k(52)}); right: auto; transform: none; min-height: ${k(30)}; padding: 0 ${k(12)}; max-width: calc(100% - 8px - ${k(52)} - ${DESTRA}px - ${k(MINI + 10 + 48 + 10)}); box-sizing: border-box; ${PILLOLA} }
-body #mzWork.on { line-height: ${k(27)}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ——— bottoni in alto: tondi di carta col filo d'oro, ognuno al suo posto ——— */
 body #mzTop { position: absolute; inset: 0; display: block; pointer-events: none; z-index: 14; }

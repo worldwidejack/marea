@@ -133,15 +133,7 @@ const ROTTE: readonly Rotta[] = [
     return typeof id === 'string' && coloreBarca(id) ? c.lotto('barca', { id }) : json({ error: 'Colore sconosciuto' }, 400);
   } },
   { m: 'GET', via: '/api/lot', fa: async (c) => sincIndossa(c.env, c.p, await c.lotto('state')) },
-  { m: 'POST', via: /^\/api\/lot\/(collect|build|upgrade|decor)$/, fa: (c, b, x) => c.lotto(x[1]!, b) },
-  // edifici liberi: sposta, ruota, riponi, riponi tutto, posa dal magazzino, disposizione
-  { m: 'POST', via: '/api/lot/building/move', fa: alLotto('building_move', ['id', 'cell']) },
-  { m: 'POST', via: '/api/lot/building/rotate', fa: alLotto('building_rotate', ['id']) },
-  { m: 'POST', via: '/api/lot/building/stow', fa: alLotto('building_stow', ['id']) },
-  { m: 'POST', via: '/api/lot/building/stow_all', fa: alLotto('building_stow_all', []) },
-  { m: 'POST', via: '/api/lot/building/place_stored', fa: alLotto('building_place_stored', ['id', 'cell', 'rot']) },
-  { m: 'POST', via: '/api/lot/building/layout', fa: alLotto('building_layout', ['placed', 'stowed']) },
-  { m: 'POST', via: '/api/lot/move', fa: alLotto('building_move', ['id', 'cell']) },
+  { m: 'POST', via: '/api/lot/decor', fa: alLotto('decor', ['decor', 'cell', 'rot']) },
   // decorazioni libere: sposta, ruota, rivendi (solo le proprie: il DO è quello della persona)
   { m: 'POST', via: /^\/api\/lot\/decor\/(move|rotate|sell)$/, fa: (c, b, x) => c.lotto('decor_' + x[1], scegli(b, ['id', 'cell'])) },
   // la casa arredabile, la pala e il retino: negozio dei mobili e ARREDA (solo la propria casa)

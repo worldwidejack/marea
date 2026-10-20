@@ -1,8 +1,7 @@
 {
  "_come": "Violazioni di quando sono nati i guardiani (tools/guardiani.mjs): si tollerano finché non peggiorano. Si stringono con node tools/guardiani.mjs --aggiorna; a mano si tolgono, non si aggiungono.",
  "file": [
-  "apps/client/src/corse/pista3d.ts",
-  "apps/client/src/ui/lot_harness.ts"
+  "apps/client/src/corse/pista3d.ts"
  ],
  "export": {
   "apps/client/src/audio/inno.ts": [
@@ -149,9 +148,6 @@
   "apps/client/src/render/meteo.ts": [
    "GOCCE"
   ],
-  "apps/client/src/render/portale.ts": [
-   "getPortaleTexture"
-  ],
   "apps/client/src/rpg/arco.ts": [
    "FRECCIA_S"
   ],
@@ -164,9 +160,6 @@
   ],
   "apps/client/src/rpg/dungeon_luce.ts": [
    "VISTO"
-  ],
-  "apps/client/src/rpg/forge.ts": [
-   "forgeCost"
   ],
   "apps/client/src/rpg/mausoleo.ts": [
    "colonnaGeo"
@@ -192,9 +185,6 @@
   "apps/client/src/ui/insetti_sprite.ts": [
    "IW",
    "spriteInsetto"
-  ],
-  "apps/client/src/ui/lotpanels.ts": [
-   "describe"
   ],
   "apps/client/src/ui/pesci_sprite.ts": [
    "SW",
@@ -394,7 +384,6 @@
   "apps/client/src/corse/scena.ts": 746,
   "apps/client/src/corse/vista_gara.ts": 434,
   "apps/client/src/game/ingressi.ts": 438,
-  "apps/client/src/game/lot.ts": 628,
   "apps/client/src/game/negozio.ts": 485,
   "apps/client/src/game/pesca.ts": 510,
   "apps/client/src/game/templari.ts": 410,
@@ -438,8 +427,7 @@
   "apps/client/src/provapixel/main.ts": 1,
   "apps/client/src/rpg/arena_menu.ts": 4,
   "apps/client/src/sparo/main.ts": 1,
-  "apps/client/src/ui/entra.ts": 1,
-  "apps/client/src/ui/lot_harness.ts": 1
+  "apps/client/src/ui/entra.ts": 1
  },
  "documenti": {
   "docs/CORSE.md": 46730,

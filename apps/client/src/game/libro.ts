@@ -33,7 +33,7 @@ export type Libri = {
   vicino(): boolean;
   close(): void;
   /** «Mentre eri via»: la cartolina, se nel riepilogo c'è qualcosa da raccontare. Risponde true se l'ha mostrata. */
-  cartolina(r: Riepilogo, novita: number, raccogli: (() => void) | null): Promise<boolean>;
+  cartolina(r: Riepilogo, novita: number): Promise<boolean>;
 };
 export type LibriOpts = {
   world: GameWorld; api: Api | null; me: Me | null; hud: Hud; root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement;
@@ -165,14 +165,14 @@ export function createLibri(o: LibriOpts): Libri {
     isBusy: () => !!ui?.isOpen(),
     vicino: () => near !== null,
     close: () => ui?.close(),
-    async cartolina(r, novita, raccogli) {
-      const vuota = r.depositi.legno + r.depositi.pietra + r.depositi.perle <= 0 && !r.cantiere && !r.ospitiTot && !r.missioniNuove && novita <= 0;
+    async cartolina(r, novita) {
+      const vuota = !r.ospitiTot && !r.missioniNuove && novita <= 0;
       card = { riepilogo: r, novita, mostrata: false };
       if (vuota) return false;
       const u = await loadUi();
       if (!u) return false;
       if (u.isOpen()) u.close();
-      u.cartolina(r, novita, raccogli);
+      u.cartolina(r, novita);
       card.mostrata = true;
       return true;
     },

@@ -1,7 +1,7 @@
 // Avvio del client: renderer, mondo, moduli delle isole e delle modalità, ciclo a 60 Hz con interpolazione, test API. Unico modulo con
 // side effect. I pezzi dell'avvio stanno in avvio/: mete della bussola, passi della guida, tasti, grafica, rientro e il registro delle
 // modalità (chi è aperto, chi ferma il mondo, chi si chiude).
-import { DT, barcaDi, canBoard } from '@marea/sim';
+import { DT, barcaDi } from '@marea/sim';
 import type { InputFrame as Frame, LotState } from '@marea/sim';
 import { ARCHIPELAGO } from '@marea/content';
 import type { EmoteId } from '@marea/protocol';
@@ -91,9 +91,8 @@ async function boot(): Promise<void> {
     const other = owners.find((w) => w.slot === l.slot && w.id !== me?.id);
     if (!mine && !other) continue;
     lots.push(createLotView({
-      scene: world.scene, loader, origin: l.origin, tile: arch.tile, api, hud, camera: renderer.camera, canvas,
+      scene: world.scene, loader, origin: l.origin, tile: arch.tile, api, hud,
       template: l.template, groundY: world.groundY, readonly: !mine, owner: other?.id, ownerName: other?.nome, initial: mine ? me?.lotto ?? null : null,
-      ...(mine ? { hide: ['tavolo'] } : {}), // il Tavolo delle Sfide sull'isola non si costruisce più
     }));
     isole.push({ slot: l.slot, owner: mine ? me!.id : other!.id, ownerName: mine ? me!.nome : other!.nome, mine, view: lots[lots.length - 1]! });
   }
@@ -137,7 +136,7 @@ async function boot(): Promise<void> {
   if (world.slot !== null) void import('./game/arreda.ts').then((m) => { arreda = m.createArreda({ world, root, hud, api: net, lotto: mioLotto, slot: world.slot, stanza, apriBaule: () => eroe?.openBuilding('forziere') }); }).catch(() => { /* senza ARREDA si gioca lo stesso */ });
   // Diario del capitano: bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette col nome sopra la testa degli amici
   const diario = createDiario({ root, hud, api: net, me, world, owners, ...lotto, hidden: () => reg.aperto(['gioco']),
-    pausa: () => reg.aperto(['pannello', 'personale'], 'diario') || reg.foglio(), onOpen: () => reg.chiudi(['diario'], true) });
+    pausa: () => reg.aperto(['pannello', 'personale'], 'diario'), onOpen: () => reg.chiudi(['diario']) });
   // teletrasporto sulle isole, strumento di sviluppo: il pannello sta in un chunk, caricato al primo tocco
   let teleUi: ReturnType<typeof import('./ui/teletrasporto_ui.ts').createTeletrasportoUi> | null = null;
   const teleBtn = topButton({ root, id: 'mzTeleBtn', order: 9, label: 'TP', title: 'Teletrasporto sulle isole', onClick: () => {
@@ -225,7 +224,7 @@ async function boot(): Promise<void> {
   const foto = createFoto({
     root, hud, canvas, diorama: renderer.diorama, rendi: () => renderer.render(acc / DT, t), posto: () => postoDi(qui()),
     puo: () => !reg.aperto(['gioco']),
-    prima: () => { reg.chiudi([], true); mappa?.close(); impostazioni.close(); },
+    prima: () => { reg.chiudi(); mappa?.close(); impostazioni.close(); },
   });
   allegro = createHudAllegro({ root, net: world.net, loader, gl: renderer.gl, look: me?.look ?? null, nome: me?.nome ?? '' });
 
@@ -239,14 +238,9 @@ async function boot(): Promise<void> {
     { attiva: () => !!ar?.active, passo: (f: Frame) => ar?.step(f), rendi: (a: number, dt: number, tt: number) => ar?.update(a, dt, tt) },
   ];
   /** Chi prende A nel mondo, in quest'ordine: chi lo prende lo toglie a quelli dopo (Porto prima dei minigiochi). */
-  const decorTick = (a: boolean): boolean => { // decorazioni della tua isola: a piedi, A apre la loro scheda
-    if (!mioLotto) return false;
-    const aPiedi = world.mode === 'walk' && !world.frozen && !reg.coperto() && !canBoard(world.avatar.state, world.boat.state, world.map);
-    return mioLotto.tick(a, aPiedi ? world.avatar.state : null);
-  };
   const PRENDONO_A: ((a: boolean, b: boolean) => boolean)[] = [
     (a, b) => arreda?.tick(a, b) ?? false, (a) => libri.tick(a), (a) => borgo.tick(a), (a) => negozio?.tick(a) ?? false, (a) => botteghe?.tick(a) ?? false,
-    (a) => porto.tick(a), (a) => amici.tick(a), decorTick,
+    (a) => porto.tick(a), (a) => amici.tick(a),
   ];
   let last = performance.now(), acc = 0, t = 0, eqN = 0;
   const frame = (now: number) => {
@@ -284,7 +278,6 @@ async function boot(): Promise<void> {
     if (!sotto()) { porto.update(dt, focus); amici.update(dt, focus); libri.update(focus); borgo.update(); arreda?.update(); negozio?.update(dt); botteghe?.update(dt, focus); }
     guida.update(t);
     if (!sotto()) temi.update(dt, t);
-    if (reg.foglio()) reg.chiudi(['eroe']); // aperto un edificio: gli altri pannelli lasciano il posto
     for (const lv of lots) lv.update(dt, focus);
     if (diario.isOpen() && (reg.aperto(['personale']) || porto.isBusy() || amici.isBusy())) diario.close(); // aperto un altro pannello dopo il diario
     diario.update(dt, focus); targhette.update(); // il diario rilegge ogni 30 s solo l'isola dove sei; timer ed etichette ogni frame

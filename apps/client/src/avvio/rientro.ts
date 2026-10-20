@@ -16,13 +16,13 @@ export function avviaRientro(o: {
   /** Un pannello è aperto: le novità aspettano. */
   busy: () => boolean;
 }): void {
-  const { api, me, hud, myView } = o;
+  const { api, me, myView } = o;
   let rientro: Promise<void> = Promise.resolve();
   if (me && api.enabled && FLAGS.net) {
     const ciSono = () => { if (document.visibilityState === 'visible') void api.presenza().catch(() => { /* riprova al prossimo giro */ }); };
     rientro = api.rientro().then(async (r) => {
       myView?.set(r.lot);
-      if (r.riepilogo && (!FLAGS.test || FLAGS.rientro) && !FLAGS.banco && FLAGS.arena !== 'banco') await o.libri.cartolina(r.riepilogo, r.novita, myView ? () => { void myView.collectAll().then((g) => { if (g.legno + g.pietra + g.perle > 0) hud.toast(`Raccolto: ${[g.legno && `+${g.legno} Legno`, g.pietra && `+${g.pietra} Pietra`, g.perle && `+${g.perle} Perle`].filter(Boolean).join(', ')}`, 2600); }); } : null);
+      if (r.riepilogo && (!FLAGS.test || FLAGS.rientro) && !FLAGS.banco && FLAGS.arena !== 'banco') await o.libri.cartolina(r.riepilogo, r.novita);
     }).catch(() => { /* senza rientro si gioca lo stesso */ }).finally(() => {
       setInterval(ciSono, RIENTRO.presenzaSecondi * 1000);
       document.addEventListener('visibilitychange', ciSono);

@@ -32,9 +32,7 @@ export const GROUPS: readonly { id: string; nome: string; kinds: readonly ItemKi
 export type UiState = {
   tab: 'pg' | 'abilita' | 'zaino';
   skill: SkillId | null; item: string | null;
-  mat: string; cat: string;
   chest: { side: 'zaino' | 'forziere'; id: string } | null;
-  serra: { arrivati: Record<string, number>; dove: string } | null;
   /** Dopo il prossimo ridisegno: porta in vista l'elemento con questo data-k. */
   focus: string | null;
   /** «Butta via» toccato una volta: aspetta la conferma (stesso oggetto e quantità). */

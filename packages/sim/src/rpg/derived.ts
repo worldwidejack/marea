@@ -140,7 +140,7 @@ function spellsOf(h: HeroState, m: Mods, maxMagicka: number): RunSpell[] {
 }
 
 /** Potenza delle pozioni: sale con Alchimia sopra il livello iniziale e coi perk. */
-export function potionPower(h: HeroState, m: Mods = modsOf(h)): number {
+function potionPower(h: HeroState, m: Mods = modsOf(h)): number {
   return r2(1 + skillBonus(h, 'alchimia', RPG.abilita?.potenzaPerLivello ?? 0.01) + mod(m, 'potenzaPozioni'));
 }
 function potionsOf(h: HeroState, m: Mods): RunPotion[] {

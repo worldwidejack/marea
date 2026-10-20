@@ -1,16 +1,15 @@
 // «Mentre eri via» e libro degli ospiti (#86), chunk caricato con import() da game/libro.ts solo quando serve.
-// - Cartolina (al rientro, se mancavi da abbastanza): da quanto mancavi, depositi pieni, cantiere finito, chi ha firmato il libro, novità
-//   della campanella, missioni nuove. RACCOGLI TUTTO raccoglie tutti i depositi (l'azione di sempre, edificio per edificio) e chiude.
-//   Un tocco fuori dalla cartolina, × o Esc la chiudono; Invio / Spazio / E = il bottone grande.
-// - Libro: sull'isola di un amico FIRMA con una delle 8 emote (anche 1-8 sulla tastiera), una volta al giorno; sulla tua le ultime firme.
+// - Cartolina (al rientro, se mancavi da abbastanza): da quanto mancavi, chi ha firmato il libro, novità della campanella, missioni nuove.
+//   Un tocco fuori dalla cartolina, × o Esc la chiudono; Invio / Spazio / E = AVANTI.
+// - Libro: davanti alla casa di un amico FIRMA con una delle 8 emote (anche 1-8 sulla tastiera), una volta al giorno; sulla tua le ultime firme.
 // Tastiera in capture su window solo a pannello aperto, con stopPropagation (mai keyup), come feed ed editor.
-import { AVATAR, RIENTRO, building } from '@marea/content';
+import { AVATAR, RIENTRO } from '@marea/content';
 import { firmeRecenti } from '@marea/sim';
-import type { LotState, Resources, Riepilogo } from '@marea/sim';
+import type { LotState, Riepilogo } from '@marea/sim';
 import type { EmoteId } from '@marea/protocol';
 import type { Hud } from './hud.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
-import { RISORSE_IDS, RES_NOME, pixIcon, resIcon } from './icons.ts';
+import { pixIcon } from './icons.ts';
 import { relTime } from './feed.ts';
 import { EMOTE_WORDS, emoteIcon } from '../game/emote.ts';
 
@@ -23,7 +22,7 @@ export type LibroApri = {
 export type RientroUi = {
   readonly kind: 'libro' | 'cartolina' | null;
   libro(o: LibroApri): void;
-  cartolina(r: Riepilogo, novita: number, raccogli: (() => void) | null): void;
+  cartolina(r: Riepilogo, novita: number): void;
   close(): void; isOpen(): boolean;
   state(): Record<string, unknown>;
 };
@@ -76,9 +75,6 @@ export function durata(ms: number): string {
 }
 const isEmote = (e: string): e is EmoteId => AVATAR.emote.includes(e);
 const nomi = (xs: string[]): string => (xs.length <= 1 ? xs[0] ?? '' : xs.slice(0, -1).join(', ') + ' e ' + xs[xs.length - 1]);
-function resSpans(r: Resources): HTMLElement[] {
-  return RISORSE_IDS.filter((k) => r[k] > 0).map((k) => { const s = el('span', 'n'); s.append(resIcon(k, 16), el('span', '', `+${r[k]} ${RES_NOME[k]}`)); return s; });
-}
 
 /** `now` = ora del server stimata (per «2 h fa»). */
 export function createRientroUi(o: { root: HTMLElement; hud: Hud; now(): number; onClose?(): void }): RientroUi {
@@ -118,7 +114,7 @@ export function createRientroUi(o: { root: HTMLElement; hud: Hud; now(): number;
   }
   const xBtn = (): HTMLButtonElement => { const x = el('button', 'mz-x', '×'); x.type = 'button'; x.title = 'Chiudi (Esc)'; x.dataset['act'] = 'chiudi'; x.addEventListener('click', () => close()); return x; };
 
-  function cartolina(r: Riepilogo, novita: number, raccogli: (() => void) | null): void {
+  function cartolina(r: Riepilogo, novita: number): void {
     show('cartolina');
     const stamp = el('div', 'stamp'); stamp.append(pixIcon('casa', 32));
     const list = el('ul');
@@ -128,12 +124,6 @@ export function createRientroUi(o: { root: HTMLElement; hud: Hud; now(): number;
       const tx = el('div'); tx.append(...body);
       li.append(ic, tx); list.appendChild(li);
     };
-    const dep = r.depositi.legno + r.depositi.pietra + r.depositi.perle;
-    if (dep > 0) { const d = el('div'); d.append(...resSpans(r.depositi)); riga('depositi', [resIcon(r.depositi.legno > 0 ? 'legno' : r.depositi.pietra > 0 ? 'pietra' : 'perle', 24)], el('b', '', 'Nei depositi della tua isola'), d); }
-    if (r.cantiere) {
-      const nome = building(r.cantiere.building).nome + (r.cantiere.level > 1 ? ` L${r.cantiere.level}` : '');
-      riga('cantiere', [pixIcon('martello', 24)], el('b', '', `Cantiere finito: ${nome}`));
-    }
     if (r.ospitiTot > 0) {
       const chi = [...new Set(r.ospiti.map((f) => f.nome))];
       const testa = chi.length > 3 ? `${chi.slice(0, 3).join(', ')} e altri ${chi.length - 3}` : nomi(chi);
@@ -149,18 +139,11 @@ export function createRientroUi(o: { root: HTMLElement; hud: Hud; now(): number;
     if (r.missioniNuove > 0) riga('missioni', [pixIcon('bacheca', 24)], el('b', '', `${r.missioniNuove} missioni nuove alla Bacheca del Porto`));
     const acts = el('div', 'acts');
     const go = el('button', 'mz-btn green'); go.type = 'button';
-    if (dep > 0 && raccogli) {
-      go.dataset['act'] = 'raccogli';
-      const tot = el('span', 'tot'); tot.append(el('span', '', 'Raccogli tutto'));
-      for (const k of RISORSE_IDS) if (r.depositi[k] > 0) { const sp = el('span'); sp.append(resIcon(k, 16), el('span', '', String(r.depositi[k]))); tot.append(sp); }
-      go.append(tot);
-      primary = () => { close(); raccogli(); };
-    } else { go.dataset['act'] = 'avanti'; go.textContent = 'AVANTI'; primary = () => close(); }
+    go.dataset['act'] = 'avanti'; go.textContent = 'AVANTI'; primary = () => close();
     go.addEventListener('click', () => primary?.());
     acts.append(go);
-    if (dep > 0 && raccogli) { const later = el('button', 'mz-btn ghost', 'Dopo'); later.type = 'button'; later.dataset['act'] = 'chiudi'; later.addEventListener('click', () => close()); acts.append(later); }
     card.replaceChildren(stamp, el('h2', '', 'Mentre eri via'), el('div', 'sub', `Mancavi da ${durata(r.assenteMs)}`), list, acts);
-    st = { righe: [...list.children].map((x) => (x as HTMLElement).dataset['riga']), raccogli: go.dataset['act'] === 'raccogli' };
+    st = { righe: [...list.children].map((x) => (x as HTMLElement).dataset['riga']) };
     card.scrollTop = 0;
   }
 
