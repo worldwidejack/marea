@@ -1,5 +1,5 @@
 // Minigiochi da solo (senza posta): ogni minigioco ha il suo posto su un'isola (la Regata al molo della Laguna, il via della gara;
-// Scacco in 3 al Tavolo del Porto, quando le sfide con posta sono spente: ti siedi e si apre la scacchiera, niente premio;
+// Scacco in 3 al Tavolo del Porto: ti siedi e si apre la scacchiera, niente premio;
 // i «giochi a schermo» (SCHERMI: una schermata sopra il mondo, premio come la Regata) si scaricano solo quando parte la partita).
 // Le Lanterne (#7) sono state tolte l'8 ott 2026 (Jack: «fa cagare»).
 // Minigiochi universali (GDD §3): Consegne (in barca, nel mondo) e Ingorgo (a schermo) su ogni molo con un posto in content, a piedi.

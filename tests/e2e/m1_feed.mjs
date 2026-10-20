@@ -3,13 +3,12 @@
 //     feedRefresh() con una riga nuova → badge 1 + toast; Esc chiude.
 //  2) poll: scheda visibile → almeno un giro in 35 s (poll a 30 s); scheda nascosta (visibilityState finto) → zero giri, e un giro subito
 //     quando torna visibile. Il telefono 390×844 apre il feed dalla campanella.
-//  3) server vero: Anna sfida Bruno e gioca (input pigri come m1_server), Bruno entra e il badge vale 1. Se /api/feed risponde 404
-//     (F3-server non ha ancora finito) è un warn, non un fallimento.
+//  3) server vero: Anna firma il libro dell'isola di Bruno, Bruno entra e il badge vale 1. Se /api/feed risponde 404 è un warn,
+//     non un fallimento.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
 export const timeout = 240000;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
@@ -22,11 +21,6 @@ export default async function (ctx) {
   const persist = path.join(ctx.OUT, `m1feed-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
   const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
-  const sim = async (f) => import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src', f)).href);
-  const { regata, lazyAutopilot } = await sim('minigames/regata/regata.ts');
-  const { packInputs, quantize } = await sim('replay.ts');
-  const tpl = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/islands.json'), 'utf8')).find((i) => i.id === 'lotto');
-  const slotCells = tpl.rows.flatMap((row, z) => [...row].flatMap((c, x) => (c === 'L' ? [[x, z]] : [])));
   let dev = null, log = '', OFF = 0;
   try {
     fs.rmSync(persist, { recursive: true, force: true });
@@ -69,7 +63,7 @@ export default async function (ctx) {
       });
       const feed = o.rows ? await fakeFeed(pg, o.rows) : null;
       await pg.page.route('**/api/**', (route) => route.fallback({ headers: { ...route.request().headers(), 'x-test-now-offset': String(OFF) } }));
-      await pg.page.goto(`${base}/?t=${token}&test=1&sfide=1`, { waitUntil: 'load' });
+      await pg.page.goto(`${base}/?t=${token}&test=1`, { waitUntil: 'load' });
       await ctx.waitReady(pg.page, 30000);
       return { pg, feed };
     };
@@ -79,9 +73,9 @@ export default async function (ctx) {
 
     // ---- 1) feed finto ----
     const rows = [
-      { id: 3, quando: now - 26 * 3600_000, tipo: 'sfida_chiusa', testo: 'Hai battuto Bruno: +20 Legno, +10 Perle', sfida: 'c1', da: 'bruno', letto: true },
-      { id: 5, quando: now - 2 * MIN, tipo: 'sfida_accettata', testo: 'Bruno ha accettato la tua sfida', sfida: 'c2', da: 'bruno', letto: false },
-      { id: 7, quando: now - 20_000, tipo: 'sfida_ricevuta', testo: 'Anna ti sfida alla Regata: posta 20 Legno. Rispondi al Tavolo entro 24 h', sfida: 'c3', da: 'anna', letto: false },
+      { id: 3, quando: now - 26 * 3600_000, tipo: 'record', testo: 'Bruno ha battuto il tuo record alla Regata', da: 'bruno', letto: true },
+      { id: 5, quando: now - 2 * MIN, tipo: 'visita', testo: 'Bruno è passato sulla tua isola e ha firmato il libro', da: 'bruno', emote: 'saluto', letto: false },
+      { id: 7, quando: now - 20_000, tipo: 'visita', testo: 'Anna è passato sulla tua isola e ha firmato il libro', da: 'anna', emote: 'esulta', letto: false },
     ];
     const { pg: carla, feed: cf } = await open('tokC', ctx.B.DESKTOP, { rows });
     await ctx.test('avvio: campanella con badge 2 e toast «2 novità» (primo giro ~3 s)', async () => {
@@ -98,7 +92,7 @@ export default async function (ctx) {
       await carla.page.keyboard.press('KeyF');
       await carla.page.waitForSelector('#mzFeed.on', { timeout: 2000 });
       const txt = await carla.page.textContent('#mzFeed');
-      assert(txt.includes('Anna ti sfida alla Regata') && txt.includes('Bruno ha accettato') && txt.includes('Hai battuto Bruno'), 'testi: ' + txt);
+      assert(txt.includes('Anna è passato') && txt.includes('Bruno è passato') && txt.includes('Bruno ha battuto il tuo record'), 'testi: ' + txt);
       assert(/2 min fa/.test(txt) && /adesso/.test(txt) && /ieri/.test(txt), 'ore relative: ' + txt);
       const hi = await carla.page.$$eval('#mzFeed .mz-feed-row.new', (r) => r.map((x) => x.dataset.feed));
       assert(hi.join() === '7,5', 'righe in evidenza: ' + hi);
@@ -128,12 +122,12 @@ export default async function (ctx) {
       assert(Math.hypot(a1.x - a0.x, a1.z - a0.z) > 0.2, 'avatar fermo dopo la chiusura del feed');
     });
     await ctx.test('feedRefresh() con una riga nuova → badge 1 + toast col testo', async () => {
-      cf.rows.push({ id: 9, quando: Date.now(), tipo: 'sfida_ricevuta', testo: 'Dario ti sfida alla Regata: posta 30 Pietra. Rispondi al Tavolo entro 24 h', sfida: 'c4', da: 'dario', letto: false });
+      cf.rows.push({ id: 9, quando: Date.now(), tipo: 'record', testo: 'Dario ha battuto il tuo record alla Regata', da: 'dario', letto: false });
       await carla.page.evaluate(() => window.__game.test.feedRefresh());
       const b = await badge(carla.page), t = await toast(carla.page);
       ctx.log(`badge «${b}», toast «${t}»`);
       assert(b === '1', 'badge: ' + b);
-      assert(t.startsWith('Dario ti sfida alla Regata'), 'toast: ' + t);
+      assert(t.startsWith('Dario ha battuto il tuo record'), 'toast: ' + t);
       // un secondo giro senza novità non ripete il toast
       await carla.page.evaluate(() => { document.getElementById('toast').style.opacity = '0'; });
       await carla.page.evaluate(() => window.__game.test.feedRefresh());
@@ -142,7 +136,7 @@ export default async function (ctx) {
     });
 
     // ---- 2) poll: Carla visibile, Dario (telefono) con la scheda «nascosta» ----
-    const drows = [{ id: 11, quando: now - 5 * MIN, tipo: 'sfida_rifiutata', testo: 'Bruno ha rifiutato: posta restituita', sfida: 'c5', da: 'bruno', letto: false }];
+    const drows = [{ id: 11, quando: now - 5 * MIN, tipo: 'visita', testo: 'Bruno è passato sulla tua isola e ha firmato il libro', da: 'bruno', emote: 'saluto', letto: false }];
     const { pg: dario, feed: df } = await open('tokD', ctx.B.IPHONE, { rows: drows, hidden: true });
     await ctx.test('poll: scheda visibile ≥ 1 giro in 35 s, scheda nascosta 0 giri; tornata visibile → un giro subito', async () => {
       const c0 = cf.gets.length, t0 = Date.now();
@@ -179,18 +173,12 @@ export default async function (ctx) {
     const get = async (p, t) => { const r = await fetch(base + p, { headers: hdr(t) }); return { status: r.status, body: await r.json().catch(() => null) }; };
     const probe = await get('/api/feed', 'tokB');
     if (probe.status === 404) {
-      ctx.warn('server vero: Anna sfida Bruno → badge 1 su Bruno', '/api/feed risponde 404: F3-server non ha ancora finito, test rimandato');
+      ctx.warn('server vero: Anna firma il libro di Bruno → badge 1 su Bruno', '/api/feed risponde 404: test rimandato');
     } else {
-      await ctx.test('server vero: Anna sfida Bruno e gioca, Bruno entra e il badge vale 1', async () => {
-        const b = await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: slotCells[0] });
-        assert(b.status === 200, 'build tavolo: ' + b.status + ' ' + JSON.stringify(b.body).slice(0, 200));
+      await ctx.test('server vero: Anna firma il libro di Bruno, Bruno entra e il badge vale 1', async () => {
         OFF = 10 * MIN;
-        const c = await post('/api/challenges', 'tokA', { minigame: 'regata', to: 'bruno', stake: { legno: 20, pietra: 0, perle: 0 } });
-        assert(c.status === 200, 'sfida: ' + JSON.stringify(c.body).slice(0, 200));
-        const s = regata.create({ seed: c.body.seed, difficulty: c.body.difficulty }), frames = [];
-        while (!s.done) { const f = quantize(lazyAutopilot(s)); frames.push(f); regata.step(s, f); }
-        const p = await post(`/api/challenges/${c.body.id}/play`, 'tokA', { inputs: packInputs(frames) });
-        assert(p.status === 200 && p.body.challenge.state === 'aperta', 'play: ' + JSON.stringify(p.body).slice(0, 200));
+        const fi = await post('/api/libro/firma', 'tokA', { isola: 'bruno', emote: 'saluto' });
+        assert(fi.status === 200, 'firma: ' + fi.status + ' ' + JSON.stringify(fi.body).slice(0, 200));
         const f = await get('/api/feed', 'tokB');
         ctx.log('feed di Bruno: ' + JSON.stringify(f.body).slice(0, 300));
         assert(f.status === 200 && f.body.nonLetti === 1, 'feed di Bruno: ' + f.status);
@@ -200,7 +188,7 @@ export default async function (ctx) {
         const t = await toast(bruno.page);
         ctx.log(`toast di Bruno «${t}»`);
         assert(/Anna/.test(t), 'toast di Bruno: ' + t);
-        await ctx.shot(bruno.page, 'bruno_sfidato_1280');
+        await ctx.shot(bruno.page, 'bruno_visitato_1280');
         await bruno.page.keyboard.press('KeyF');
         await bruno.page.waitForSelector('#mzFeed.on', { timeout: 2000 });
         await ctx.waitState(bruno.page, (st) => st.feed.unread === 0, 5000);

@@ -26,7 +26,7 @@
 | Dove | Cosa c'è | Chi |
 |---|---|---|
 | `rng.ts`, `trig.ts`, `hash.ts`, `replay.ts` | casualità da seed, seni e coseni uguali su ogni motore, hash, replay degli input | tutti |
-| `economy/` | il lotto di ognuno: monete, botteghe e vetrine, casa e ampliamenti, mobili, missioni, diario, pala, insetti, pesci, cambio dei salvataggi; anche il codice spento (edifici, sfide, faro) | J, R |
+| `economy/` | il lotto di ognuno: monete, botteghe e vetrine, casa e ampliamenti, mobili, missioni, diario, pala, insetti, pesci, cambio dei salvataggi; anche il codice spento (edifici, faro) | J, R |
 | `world/` | arcipelago a celle, avatar, barca, collisioni, sblocchi delle isole a tema | tutti |
 | `minigames/` | minigiochi nel formato comune (`create`, `step`, `result`, `autopilot`), elencati in `registry.ts` | J |
 | `meteo.ts` | nuvole e meteo dall'orologio | J |

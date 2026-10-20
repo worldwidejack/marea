@@ -14,10 +14,10 @@ export type Peer = { id: string; nome: string; x: number; z: number; yaw: number
 export type LookSalvato = Look & { titolo?: string; barca?: BarcaLook; indossa?: Indossa };
 /** Emote (PROTOCOL §3): le prime 4 da M1, le altre 4 dal #90. Un client vecchio scarta in silenzio quelle che non conosce. */
 export type EmoteId = 'saluto' | 'esulta' | 'ride' | 'no' | 'applauso' | 'cuore' | 'sorpresa' | 'balla';
-/** Feed (M1 · Fetta 3, PROTOCOL §4): righe scritte dal DO Sfide a ogni passaggio di stato, testo composto dal Worker con i nomi. */
+/** Feed (M1 · Fetta 3, PROTOCOL §4): righe scritte dal DO Sfide, testo composto dal Worker con i nomi. */
 /** `visita` (#86): un amico è passato sulla tua isola e ha firmato il libro degli ospiti (`da` = chi, `emote` = il suo saluto). */
-export type FeedTipo = 'sfida_ricevuta' | 'sfida_accettata' | 'sfida_rifiutata' | 'sfida_scaduta' | 'sfida_chiusa' | 'visita' | 'record' | 'faro';
-export type FeedItem = { id: number; quando: number; tipo: FeedTipo; testo: string; sfida?: string; da?: string; emote?: string; letto: boolean };
+export type FeedTipo = 'visita' | 'record' | 'faro';
+export type FeedItem = { id: number; quando: number; tipo: FeedTipo; testo: string; da?: string; emote?: string; letto: boolean };
 
 export type ClientMsg =
   | { t: 'hello'; v: number; build: string }

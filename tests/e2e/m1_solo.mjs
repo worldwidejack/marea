@@ -1,7 +1,7 @@
 // Primo avvio di un amico (guida «Primi passi» + minigiochi da solo): server locale pulito, Luca entra col suo link. La guida chiede la
 // Segheria (cartello evidenziato → conferma già pronta), poi la barca, poi la Regata; al molo della Laguna compare GIOCA, la gara la corre
 // l'autopilot, il server rigioca gli input e paga il premio della medaglia (balance.solo); la guida passa a «Costruisci col premio».
-// Senza ?sfide=1 niente Tavolo con posta: né al Porto né nel pannello Costruisci. API: play senza partita aperta 409, input rotti 400.
+// Niente Tavolo delle Sfide nel pannello Costruisci. API: play senza partita aperta 409, input rotti 400.
 // La guida non parte da sola (VISIONE §1): al primo ingresso è spenta, c'è solo il toast che la indica; Luca la accende dalle Impostazioni.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -75,14 +75,13 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.guida.visibile && s.lot.slotSigns.some((x) => x.hint), 5000);
     });
 
-    await ctx.test('apertura: guida 1/8 «Segheria», cartelli Costruisci con lo slot suggerito, bussola con Porto e Regata, niente Tavolo', async () => {
+    await ctx.test('apertura: guida 1/8 «Segheria», cartelli Costruisci con lo slot suggerito, bussola con Porto e Regata', async () => {
       const s = await st();
       assert(s.guida.current === 'segheria' && s.guida.total === 8 && s.guida.pointer, 'guida: ' + JSON.stringify(s.guida));
       const signs = s.lot.slotSigns;
       assert(signs.length >= 5 && signs.filter((x) => x.hint).length === 1, 'cartelli: ' + JSON.stringify(signs));
       const rows = await page.evaluate(() => [...document.querySelectorAll('#compass [data-id]')].map((r) => r.dataset.id));
       assert(rows.includes('porto') && rows.includes('regata') && rows.includes('casa'), 'bussola: ' + rows.join(','));
-      assert(s.tavolo.exists === false, 'il Tavolo con posta non deve esserci senza ?sfide=1');
       assert(s.minigiochi.spots.some((x) => x.id === 'regata'), 'manca il posto della Regata');
     });
     await ctx.shot(page, '1_apertura');

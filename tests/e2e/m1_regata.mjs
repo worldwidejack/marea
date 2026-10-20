@@ -1,4 +1,4 @@
-// M1 · Fetta 2, Regata (F2-test): Anna al Porto col server locale. E al Tavolo apre il pannello; una gara intera con l'autopilot della sim
+// M1 · Fetta 2, Regata (F2-test): Anna al Porto col server locale. Una gara intera con l'autopilot della sim
 // (hook startRegataAuto) dà lo stesso risultato a schermo e nel replay locale; boe disegnate sulla laguna; budget draw call/triangoli
 // in gara; Esc annulla e riporta a piedi; blur azzera gli input; nessun pageerror. Server: wrangler dev --local (login con ?t=).
 import fs from 'node:fs';
@@ -32,7 +32,7 @@ export default async function (ctx) {
     for (let i = 0; i < 120 && !up; i++) { try { up = (await fetch(base + '/api/ping')).ok; } catch { /* non ancora */ } if (!up) await sleep(500); }
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
 
-    p = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1&sfide=1`, { viewport: ctx.B.DESKTOP });
+    p = await ctx.B.openPage(ctx.browser, `${base}/?t=tokA&test=1`, { viewport: ctx.B.DESKTOP });
     ctx._pages.push(p);
     const page = p.page;
     const hook = (fn, ...args) => page.evaluate(([f, a]) => window.__game.test[f](...a), [fn, args]);
@@ -40,29 +40,11 @@ export default async function (ctx) {
     const shotsOf = async (label) => ctx.shot(page, label);
 
     await ctx.waitReady(page, 30000);
-    await ctx.waitState(page, (s) => s.tavolo && s.tavolo.exists === true, 15000);
-
-    await ctx.test('Anna al Porto: E vicino al Tavolo apre il pannello, Esc lo chiude', async () => {
-      await hook('goto', 'porto');
-      const at = (await st()).tavolo.at;
-      assert(at && Number.isFinite(at.x), 'il Porto non ha un Tavolo: ' + JSON.stringify(at));
-      await hook('setZoom', 0.9);
-      await hook('teleport', at.x, at.z + 2.5);
-      await ctx.waitState(page, (s) => s.tavolo.near === true, 5000);
-      assert(!(await st()).tavolo.open, 'pannello già aperto prima di E');
-      await page.keyboard.press('KeyE');
-      await ctx.waitState(page, (s) => s.tavolo.open === true, 5000);
-      const title = await page.evaluate(() => document.querySelector('#mzTavolo.on')?.innerText ?? '');
-      ctx.log('pannello: ' + title.replace(/\n/g, ' · ').slice(0, 120));
-      assert(/Tavolo delle Sfide/i.test(title), 'pannello senza titolo: ' + title);
-      await page.waitForTimeout(400);
-      await shotsOf('tavolo_aperto_con_E');
-      await page.keyboard.press('Escape');
-      await ctx.waitState(page, (s) => s.tavolo.open === false, 5000);
-    });
 
     let liveRes = null;
     await ctx.test('gara con l\'autopilot: boe disegnate sulla laguna, budget in gara, live = replay locale', async () => {
+      await hook('goto', 'porto');
+      await hook('setZoom', 0.9);
       await hook('startRegataAuto', 1, 2, 20);
       await ctx.waitState(page, (s) => s.regata.active === true, 5000);
       const r0 = (await st()).regata;
@@ -125,7 +107,6 @@ export default async function (ctx) {
       const s = await st();
       assert(s.regata.last?.cancelled === true, 'last.cancelled non vero: ' + JSON.stringify(s.regata.last));
       assert(s.mode === 'walk', 'dopo Esc non si è a piedi: ' + s.mode);
-      assert(s.tavolo.open === false, 'Esc ha aperto/lasciato aperto il Tavolo');
       await page.waitForTimeout(300);
       await shotsOf('dopo_Esc_a_piedi');
     });

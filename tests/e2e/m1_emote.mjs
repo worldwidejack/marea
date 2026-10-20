@@ -1,6 +1,6 @@
 // M1 · Fetta 3, emote (F3-emote-feed): due browser (Anna e Bruno) sul server locale, entrambi al Porto a ~3 m. Tasto 1 da Anna → fumetto
-// proprio subito, fumetto sopra Anna da Bruno entro 1,5 s, via dopo ~2,5 s; 10 pressioni in 1 s → un solo frame `emote`; niente emote col
-// Tavolo aperto; telefono 390×844: la faccina non si vede più (#417), la riga si apre dal bottone nascosto. Il feed (non è questo il test) risponde vuoto via page.route.
+// proprio subito, fumetto sopra Anna da Bruno entro 1,5 s, via dopo ~2,5 s; 10 pressioni in 1 s → un solo frame `emote`; niente emote con
+// un pannello aperto (il feed); telefono 390×844: la faccina non si vede più, la riga si apre dal bottone nascosto. Il feed (non è questo il test) risponde vuoto via page.route.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -47,8 +47,8 @@ export default async function (ctx) {
     for (let i = 0; i < 120 && !up; i++) { try { up = (await fetch(base + '/api/ping')).ok; } catch { /* non ancora */ } if (!up) await sleep(500); }
     if (!up) throw new Error('wrangler dev non risponde:\n' + log.split('\n').slice(-20).join('\n'));
 
-    let anna = await openPage(ctx, `${base}/?t=tokA&test=1&sfide=1`, ctx.B.DESKTOP);
-    const bruno = await openPage(ctx, `${base}/?t=tokB&test=1&sfide=1`, ctx.B.DESKTOP);
+    let anna = await openPage(ctx, `${base}/?t=tokA&test=1`, ctx.B.DESKTOP);
+    const bruno = await openPage(ctx, `${base}/?t=tokB&test=1`, ctx.B.DESKTOP);
     const st = (p) => ctx.getState(p.page);
     /** Anna e Bruno al Porto, Bruno a ~3 m da Anna; Bruno disegna Anna ferma dov'è. */
     const place = async () => {
@@ -85,7 +85,6 @@ export default async function (ctx) {
       const s = await st(anna);
       assert(s.emotes.shown.some((x) => x.who === 'me' && x.on), 'fumetto proprio non visibile: ' + JSON.stringify(s.emotes.shown));
     });
-    await ctx.shot(anna.page, 'anna_saluta_1280');
 
     let seenAt = 0;
     await ctx.test('Bruno vede il fumetto sopra Anna entro 1,5 s, sulla sua testa', async () => {
@@ -142,33 +141,35 @@ export default async function (ctx) {
       await sleep(300);
       ctx.log('frame emote inviati: ' + JSON.stringify(anna.sent.map((x) => x.id)));
       assert(anna.sent.length === 1 && anna.sent[0].id === 'ride', 'frame inviati: ' + anna.sent.length);
+      // la foto di Anna col fumetto si fa qui e non dopo il primo saluto: lì teneva la scheda di Bruno dietro e il saluto gli arrivava tardi
+      await ctx.shot(anna.page, 'anna_ride_1280');
       // Bruno ne vede uno solo
       await bruno.page.waitForSelector('.mz-emote[data-who="anna"][data-emote="ride"]', { state: 'attached', timeout: 1500 });
       assert((await bruno.page.$$('.mz-emote[data-who="anna"]')).length === 1, 'più fumetti di Anna su Bruno');
     });
 
-    await ctx.test('Tavolo aperto: niente fumetto né frame', async () => {
+    await ctx.test('pannello aperto (feed): niente fumetto né frame', async () => {
       await anna.page.bringToFront();
       await ctx.waitState(anna.page, (s) => s.emotes.cooldown === 0 && !(s.emotes.shown ?? []).length, 5000);
-      assert(await anna.page.evaluate(() => window.__game.test.openTavolo()), 'openTavolo ha risposto false');
-      await ctx.waitState(anna.page, (s) => s.tavolo.open === true, 5000);
+      assert(await anna.page.evaluate(() => window.__game.test.openFeed()), 'openFeed ha risposto false');
+      await ctx.waitState(anna.page, (s) => s.feed.open === true, 5000);
       await ctx.waitState(anna.page, (s) => s.emotes.blocked === true, 5000); // world.frozen arriva al frame dopo (a 2 fps, su GitHub, sono 500 ms)
       anna.sent.length = 0;
       await anna.page.keyboard.press('Digit4');
       const viaHook = await anna.page.evaluate(() => window.__game.test.emote('no'));
       await sleep(300);
-      assert(anna.sent.length === 0, 'frame con Tavolo aperto: ' + JSON.stringify(anna.sent));
-      assert(viaHook === false, 'emote() col Tavolo aperto ha risposto true');
-      assert(!(await anna.page.$('.mz-emote[data-who="me"]')), 'fumetto col Tavolo aperto');
+      assert(anna.sent.length === 0, 'frame col feed aperto: ' + JSON.stringify(anna.sent));
+      assert(viaHook === false, 'emote() col feed aperto ha risposto true');
+      assert(!(await anna.page.$('.mz-emote[data-who="me"]')), 'fumetto col feed aperto');
       await anna.page.keyboard.press('Escape');
-      await ctx.waitState(anna.page, (s) => s.tavolo.open === false, 5000).catch(async () => { await anna.page.keyboard.press('Escape'); await ctx.waitState(anna.page, (s) => s.tavolo.open === false, 5000); });
+      await ctx.waitState(anna.page, (s) => s.feed.open === false, 5000).catch(async () => { await anna.page.keyboard.press('Escape'); await ctx.waitState(anna.page, (s) => s.feed.open === false, 5000); });
       ctx.noErrors(anna, 'Anna'); ctx.noErrors(bruno, 'Bruno');
     });
 
     // ---- telefono: Anna rientra da un iPhone (la connessione desktop viene sostituita) ----
     await ctx.test('telefono 390×844: niente faccina in vista (#417); la riga dal bottone nascosto → fumetto e frame', async () => {
       await anna.close(); ctx._pages.splice(ctx._pages.indexOf(anna), 1);
-      anna = await openPage(ctx, `${base}/?t=tokA&test=1&sfide=1`, ctx.B.IPHONE);
+      anna = await openPage(ctx, `${base}/?t=tokA&test=1`, ctx.B.IPHONE);
       await ctx.waitReady(anna.page, 30000);
       await ctx.waitState(anna.page, (s) => s.net.status === 'on' && s.net.peers === 1, 15000);
       annaAt = await place();

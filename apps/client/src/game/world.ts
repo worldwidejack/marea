@@ -41,7 +41,7 @@ export type GameWorld = {
   /** Luci e acqua del mondo: le ricolora il ciclo giorno/notte delle impostazioni (render/aspetto.ts, #53). */
   lights: Lights; water: Water;
   step(input: InputFrame): void; update(alpha: number, dt: number, t: number): void; dispose(): void;
-  /** Fermo (Tavolo, editor o feed aperti): l'avatar e la barca ignorano l'input. */
+  /** Fermo (un pannello aperto): l'avatar e la barca ignorano l'input. */
   frozen: boolean;
   /** Look di chi gioca (da /api/me); setLook lo applica ad avatar e guidatore della barca (F3, editor dal vivo). */
   readonly look: Look;
@@ -344,7 +344,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     },
     gesto(id, hop, spin) { (id === 'me' ? avatar : remotes.get(id)?.avatar)?.gesto(hop, spin); },
     step(input: InputFrame) {
-      if (frozen || racing) input = NO_INPUT; // la gara muove la barca da sé (race.set); col Tavolo aperto l'avatar sta fermo
+      if (frozen || racing) input = NO_INPUT; // la gara muove la barca da sé (race.set); con un pannello aperto l'avatar sta fermo
       const pressA = input.a && !aWas; aWas = input.a;
       if (racing) {
         // niente: la barca l'ha già posata race.set

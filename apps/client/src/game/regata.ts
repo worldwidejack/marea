@@ -214,7 +214,7 @@ export async function setupRegata(o: Ctx): Promise<RegataDriver> {
   const hud = createRaceHud(o.root);
   const arch = o.world.archipelago;
   let run: Run | null = null;
-  /** Autopilot per le gare lanciate dal Tavolo (test e2e e ?autopilot=1): tick di sim per tick del ciclo, 0 = a mano. */
+  /** Autopilot delle gare (test e2e e ?autopilot=1): tick di sim per tick del ciclo, 0 = a mano. */
   let autoSpeed = FLAGS.autopilot ? 1 : 0;
   let lastOut: { ticks: number; rows: number; live: MinigameResult | null; replay: MinigameResult | null; cancelled: boolean } | null = null;
 
@@ -229,7 +229,7 @@ export async function setupRegata(o: Ctx): Promise<RegataDriver> {
 
   const onKey = (e: KeyboardEvent) => {
     if (!run || e.code !== 'Escape') return;
-    e.preventDefault(); e.stopImmediatePropagation(); // il Tavolo non deve chiudersi sotto la gara
+    e.preventDefault(); e.stopImmediatePropagation(); // Esc ferma la gara e non chiude altro sotto
     quitRun();
   };
   const quitRun = () => { const r = run; if (!r) return; if (r.phase === 'end') r.finish(packInputs(r.frames)); else r.finish(null); };
@@ -323,10 +323,10 @@ export async function setupRegata(o: Ctx): Promise<RegataDriver> {
   const testChallenge = (seed: unknown, diff: unknown): RegataChallenge => ({ id: 'test', minigame: 'regata', difficulty: diffOf(diff ?? 2), seed: Number(seed ?? 1) || 1 });
   /** Autopilot di riferimento della sim (e2e): `speed` tick di sim per tick del ciclo (1-20). Il risultato finisce in state().regata.last. */
   registerTestHook('startRegataAuto', (seed, diff, speed) => { void d.start(testChallenge(seed, diff), undefined, { speed: Number(speed ?? 1) || 1 }); return true; });
-  /** Gara a mano (tastiera/joystick), come dal Tavolo. */
+  /** Gara a mano (tastiera/joystick). */
   registerTestHook('startRegata', (seed, diff) => { void d.start(testChallenge(seed, diff)); return true; });
   registerTestHook('regataCancel', () => { quitRun(); return true; });
-  /** Le gare lanciate dal Tavolo le corre l'autopilot (`speed` 1-20; 0 = di nuovo a mano): per provare il giro completo Tavolo → gara → server. */
+  /** Le gare del minigioco le corre l'autopilot (`speed` 1-20; 0 = di nuovo a mano): per provare il giro completo gara → server. */
   registerTestHook('regataAutopilot', (speed) => { autoSpeed = Math.max(0, Math.min(20, Math.round(Number(speed ?? 1)) || 0)); return autoSpeed; });
   return d;
 }

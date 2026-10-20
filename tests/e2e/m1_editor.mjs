@@ -2,9 +2,9 @@
 // (1) C apre #mzEditor, le frecce cambiano riga e valore, l'avatar cambia subito, nessuna POST /api/look; (2) Esc ripristina e chiude;
 // (3) vestito + Salva → POST 200, dopo il reload /api/me e l'avatar hanno il look nuovo; (4) cappello a monete: prezzo, «Compra» senza monete
 // → avviso gentile sotto la riga del cappello (#4, arancio, nessuna chiamata al server), Salva spento; un esclusivo del Mercante (#63) non
-// ha «Compra» ma l'avviso «dal Mercante»; poi monete vinte con due Regate da solo (API) → Compra e Salva; (5) Tavolo aperto: C non apre l'editor;
-// (6) «Altro dispositivo»: COPIA LINK / MANDA danno `/?t=token` (mai scritto a schermo), copia rifiutata → campo col link;
-// (7) telefono 390×844: il bottone apre il foglio, che lascia libero il centro.
+// ha «Compra» ma l'avviso «dal Mercante»; poi monete vinte con due Regate da solo (API) → Compra e Salva;
+// (5) «Altro dispositivo»: COPIA LINK / MANDA danno `/?t=token` (mai scritto a schermo), copia rifiutata → campo col link;
+// (6) telefono 390×844: il bottone apre il foglio, che lascia libero il centro.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -29,10 +29,7 @@ export default async function (ctx) {
   const { regata, lazyAutopilot } = await sim('minigames/regata/regata.ts');
   const { packInputs, quantize } = await sim('replay.ts');
   const { createRng } = await sim('rng.ts');
-  const islands = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/islands.json'), 'utf8'));
   const avatar = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/avatar.json'), 'utf8'));
-  const tpl = islands.find((i) => i.id === 'lotto');
-  const slotCells = tpl.rows.flatMap((row, z) => [...row].flatMap((c, x) => (c === 'L' ? [[x, z]] : [])));
   const HAT = avatar.cappelli.findIndex((h) => h.id === 'pescatore');
 
   let dev = null, log = '', OFF = 0;
@@ -58,7 +55,7 @@ export default async function (ctx) {
     // ---- browser: conta le POST /api/look e /api/look/hat; orologio di test su ogni /api ----
     const posts = { look: [], hat: [] };
     const open = async (token, viewport) => {
-      const pg = await ctx.B.openPage(ctx.browser, `${base}/?t=${token}&test=1&sfide=1`, { viewport });
+      const pg = await ctx.B.openPage(ctx.browser, `${base}/?t=${token}&test=1`, { viewport });
       pages.push(pg); ctx._pages.push(pg);
       await pg.page.route('**/api/**', (route) => {
         const rq = route.request(), u = new URL(rq.url());
@@ -185,8 +182,7 @@ export default async function (ctx) {
       await anna.page.keyboard.press('Escape'); await waitOpen(anna, false);
       assert(posts.look.length === 1, 'POST /api/look con cappello non tuo');
 
-      // monete vere: Regate da solo via API con l'autopilot (le sfide pagano ancora le Perle di prima, spente: #414)
-      for (const t of ['tokA', 'tokB']) { const r = await post('/api/lot/build', t, { building: 'tavolo', cell: slotCells[0] }); assert(r.status === 200, `tavolo ${t}: ${r.status}`); }
+      // monete vere: Regate da solo via API con l'autopilot
       OFF = 10 * MIN;
       const race = (seed, difficulty, pigro) => {
         const x = regata.create({ seed, difficulty }), rng = createRng(seed), frames = [];
@@ -224,18 +220,6 @@ export default async function (ctx) {
       await waitOpen(anna, false);
       assert((await get('/api/me', 'tokA')).body.look.cappello === HAT, 'cappello non salvato sul server');
       assert((await st(anna)).wp2_avatar.look.cappello === HAT, 'avatar senza cappello dopo Salva');
-    });
-
-    await ctx.test('Tavolo aperto: C non apre l’editor', async () => {
-      await anna.page.evaluate(() => window.__game.test.openTavolo());
-      await ctx.waitState(anna.page, (s) => s.tavolo.open === true, 5000);
-      await anna.page.keyboard.press('c');
-      await anna.page.waitForTimeout(300);
-      const s = await st(anna);
-      assert(s.editor.open === false && s.tavolo.open === true, `editor ${s.editor.open}, tavolo ${s.tavolo.open}`);
-      assert(!(await anna.page.locator('#mzEditor.on').count()), '#mzEditor visibile col Tavolo aperto');
-      await anna.page.keyboard.press('Escape');
-      await ctx.waitState(anna.page, (x) => x.tavolo.open === false, 5000);
     });
 
     await ctx.test('altro dispositivo: COPIA LINK copia /?t=token (mai a schermo), MANDA condivide, copia rifiutata → campo col link', async () => {

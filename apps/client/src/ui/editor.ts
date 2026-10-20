@@ -4,7 +4,7 @@
 // Senza monete abbastanza «Compra» non chiama il server: sotto la riga un avviso gentile (#4). Gli esclusivi del Mercante (#63) si vedono
 // e si provano, ma si comprano solo da lui al Porto. Colori dei capelli con nomi da capelli (#3, `nomiColoriCapelli`).
 // PC prima: frecce su/giù = riga (poi i bottoni), sinistra/destra = valore, Invio attiva il bottone, Tab funziona. Tasti in capture su
-// window solo a pannello aperto, con stopPropagation (mai keyup, altrimenti restano incollati in input.ts), come il Tavolo.
+// window solo a pannello aperto, con stopPropagation (mai keyup, altrimenti restano incollati in input.ts).
 // In fondo «Altro dispositivo»: COPIA / MANDA il proprio link col token (il token sta solo nel browser che ha aperto il link). Il link non
 // si mostra a schermo (niente screenshot con la chiave), tranne quando la copia non riesce: allora un campo da selezionare a mano.
 // Sezione «La tua barca» (#107, ui/editor_barca.ts): scafo, vela, nome; Salva manda anche quella se è cambiata.

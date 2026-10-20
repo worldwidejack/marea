@@ -49,7 +49,7 @@
 - Test e2e con `wrangler dev` su Windows: `npx` va lanciato come `node node_modules/wrangler/bin/wrangler.js` e lo spegnimento con `process.kill(-pid)` non esiste (serve `taskkill /T`).
 
 - Minigiochi da soli su altre isole (un gioco per ogni isola a tema; le Lanterne sono state tolte l'8 ott 2026): il formato c'è (`game/minigiochi.ts`, un posto per minigioco).
-- Sfide con posta tra amici (`?sfide=1`): si riaccendono quando la prova da soli è piaciuta; da decidere se il Tavolo sull'isola resta o se la sfida si lancia dal posto del minigioco.
+- Sfide con posta tra amici (codice di prima nel tag `archivio/spenti-sfide`): tornano quando la prova da soli è piaciuta; da decidere se il Tavolo sull'isola resta o se la sfida si lancia dal posto del minigioco.
 
 - Isole a tema dopo la Tempesta (GDD §3): **Ghiacci** (iceberg, aurora, pinguini), **Vulcano** (lava, ossidiana, forge: aggancio con Riccardo), **Giardino** (ciliegi, templi, carpe koi). Sblocchi da distribuire: livello del personaggio, un cappello «se no gli abitanti ti linciano», una mappa.
 - Minigiochi universali dopo la pesca: caccia alle perle (consegne in barca e ingorgo al porto fatti l'8 ott 2026, GDD §6).

@@ -1,11 +1,12 @@
-// Feed nel SQLite del DO Sfide (CONTRACTS §13): una riga per persona a ogni passaggio di stato di una sfida. Solo SQL sincrono: le righe
-// si scrivono nello stesso blocco del `put` della sfida (niente `await` in mezzo), così un crash non lascia una sfida senza riga o viceversa.
-// Il DO non conosce i nomi: il testo lo compone il Worker (`feed.ts`).
+// Feed nel SQLite del DO Sfide (CONTRACTS §13): una riga per persona a ogni novità (firma al libro, record battuto, Faro comune).
+// Solo SQL sincrono. Il DO non conosce i nomi: il testo lo compone il Worker (`feed.ts`).
+// Le righe delle vecchie sfide con posta (tipo `sfida_…`, codice tolto) restano nel database ma non si leggono e non si contano.
 import type { FeedTipo } from '@marea/protocol';
 import type { FeedDati, FeedRow } from '../feed.ts';
 
 const MAX_PER_PERSONA = 100;
 const PAGINA = 30;
+const VIVE = "tipo NOT LIKE 'sfida%'";
 
 export function creaTabellaFeed(sql: SqlStorage): void {
   sql.exec(`CREATE TABLE IF NOT EXISTS feed (
@@ -14,7 +15,7 @@ export function creaTabellaFeed(sql: SqlStorage): void {
   sql.exec('CREATE INDEX IF NOT EXISTS feed_persona ON feed (persona, id)');
 }
 
-/** Scrive una riga (una sola per persona, sfida e tipo: i recuperi dopo un crash non fanno doppioni) e tiene le ultime 100 per persona. */
+/** Scrive una riga (una sola per persona, chiave `sfida` e tipo: niente doppioni) e tiene le ultime 100 per persona. */
 export function scriviFeed(sql: SqlStorage, r: { persona: string; tipo: FeedTipo; sfida: string; altro: string; dati: FeedDati; letto: boolean; quando: number }): void {
   const gia = sql.exec('SELECT 1 AS x FROM feed WHERE persona = ? AND sfida = ? AND tipo = ? LIMIT 1', r.persona, r.sfida, r.tipo).toArray().length > 0;
   if (gia) return;
@@ -24,13 +25,13 @@ export function scriviFeed(sql: SqlStorage, r: { persona: string; tipo: FeedTipo
 }
 
 export function nonLetti(sql: SqlStorage, persona: string): number {
-  return sql.exec<{ n: number }>('SELECT COUNT(*) AS n FROM feed WHERE persona = ? AND letto = 0', persona).one().n;
+  return sql.exec<{ n: number }>(`SELECT COUNT(*) AS n FROM feed WHERE persona = ? AND letto = 0 AND ${VIVE}`, persona).one().n;
 }
 
 /** Le ultime 30 righe di `persona`, le più recenti prima. */
 export function leggiFeed(sql: SqlStorage, persona: string): FeedRow[] {
   return sql.exec<{ id: number; quando: number; tipo: string; sfida: string | null; altro: string | null; dati: string; letto: number }>(
-    `SELECT id, quando, tipo, sfida, altro, dati, letto FROM feed WHERE persona = ? ORDER BY id DESC LIMIT ${PAGINA}`, persona,
+    `SELECT id, quando, tipo, sfida, altro, dati, letto FROM feed WHERE persona = ? AND ${VIVE} ORDER BY id DESC LIMIT ${PAGINA}`, persona,
   ).toArray().map((x) => {
     let dati: FeedDati = {};
     try { dati = JSON.parse(x.dati) as FeedDati; } catch { /* riga vecchia o rotta: senza dati */ }

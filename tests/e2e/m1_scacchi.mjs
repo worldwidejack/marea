@@ -1,4 +1,4 @@
-// Scacco in 3 al Tavolo del Porto (sfide con posta spente): vicino al Tavolo compare GIOCA, si apre la scacchiera, il Nero sta fermo.
+// Scacco in 3 al Tavolo del Porto: vicino al Tavolo compare GIOCA, si apre la scacchiera, il Nero sta fermo.
 // Problema 1 risolto toccando le caselle (Td5, Cc6, Td8#) → SCACCO MATTO e PROSSIMO; un tentativo sbagliato → Niente matto e RIPROVA.
 export const timeout = 90000;
 const sq = (s) => (8 - Number(s[1])) * 8 + 'abcdefgh'.indexOf(s[0]);
@@ -12,10 +12,9 @@ export default async function (ctx) {
 
   await ctx.test('al Tavolo del Porto compare GIOCA · SCACCO IN 3', async () => {
     const st = await ctx.getState(page);
-    const at = st.tavolo?.at;
-    ctx.assert(at, 'Tavolo del Porto non trovato');
-    ctx.assert(st.minigiochi.spots.some((s) => s.id === 'scacchi'), 'spot scacchi assente');
-    await page.evaluate(({ x, z }) => window.__game.test.teleport(x + 2.5, z + 1.5), at);
+    const at = st.minigiochi.spots.find((s) => s.id === 'scacchi');
+    ctx.assert(at, 'spot scacchi assente (Tavolo del Porto)');
+    await page.evaluate(({ x, z }) => window.__game.test.teleport(x + 2.5, z + 1.5), { x: at.x, z: at.z });
     await ctx.waitState(page, (s) => s.minigiochi.near === 'scacchi', 5000);
     await page.waitForTimeout(300);
   });

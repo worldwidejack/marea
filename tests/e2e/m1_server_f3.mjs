@@ -1,17 +1,15 @@
-// M1 · Fetta 3, lato server: look che arriva in presenza (POST /api/look → Zone → snap), emote con pausa di 800 ms senza eco, feed delle
-// sfide nel DO Sfide (righe a ogni passaggio di stato, testi composti nel Worker, letto/non letto, 30 righe, niente doppioni in parallelo).
+// M1 · Fetta 3, lato server: look che arriva in presenza (POST /api/look → Zone → snap), emote con pausa di 800 ms senza eco, feed nel
+// DO Sfide con le firme al libro degli ospiti (testi composti nel Worker, una al giorno, letto/non letto, 30 righe, niente doppioni in parallelo).
 // Solo API + WebSocket grezzi, niente browser. wrangler dev locale con `--var TEST_CLOCK:1` (X-Test-Now-Offset sposta «adesso»).
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
 export const timeout = 300000;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MIN = 60_000, H = 60 * MIN;
-const RES = [['legno', 'Legno'], ['pietra', 'Pietra'], ['perle', 'Perle']];
 
 export default async function (ctx) {
   const { assert } = ctx;
@@ -19,16 +17,7 @@ export default async function (ctx) {
   const persist = path.join(ctx.OUT, `m1serverf3-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
   const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
-  const sim = async (f) => import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src', f)).href);
-  const { regata, lazyAutopilot } = await sim('minigames/regata/regata.ts');
-  const { packInputs, quantize, replay } = await sim('replay.ts');
-  const { createRng } = await sim('rng.ts');
-  const islands = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/islands.json'), 'utf8'));
   const avatar = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/avatar.json'), 'utf8'));
-  const balance = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/balance.json'), 'utf8'));
-  const tpl = islands.find((i) => i.id === 'lotto');
-  const L = tpl ? tpl.rows.flatMap((row, z) => [...row].flatMap((c, x) => (c === 'L' ? [[x, z]] : []))) : [];
-  const P = balance.perleMedaglia, perleFor = (m) => Math.max(m ? P[m] : 0, P.sconfitta);
 
   let dev = null, log = '', OFF = 0;
   const sockets = [];
@@ -51,14 +40,7 @@ export default async function (ctx) {
     const get = async (p, t) => { const r = await fetch(base + p, { headers: hdr(t) }); return { status: r.status, body: await r.json() }; };
     const post = async (p, t, b) => { const r = await fetch(base + p, { method: 'POST', headers: hdr(t), body: b === undefined ? undefined : JSON.stringify(b) }); return { status: r.status, body: await r.json() }; };
     const feed = async (t) => { const r = await get('/api/feed', t); assert(r.status === 200 && Array.isArray(r.body.items), 'feed: ' + r.status + ' ' + JSON.stringify(r.body).slice(0, 200)); return r.body; };
-    const of = (f, sfida, tipo) => f.items.filter((x) => x.sfida === sfida && (!tipo || x.tipo === tipo));
-    const race = (seed, difficulty, pigro) => {
-      const s = regata.create({ seed, difficulty });
-      const rng = createRng(seed), frames = [];
-      while (!s.done) { const f = quantize(pigro ? lazyAutopilot(s) : regata.autopilot(s, rng)); frames.push(f); regata.step(s, f); }
-      const inputs = packInputs(frames);
-      return { inputs, expect: replay('regata', seed, difficulty, inputs) };
-    };
+    const firma = (t, isola, emote = 'saluto') => post('/api/libro/firma', t, { isola, emote });
     const wsUrl = (t) => `ws://127.0.0.1:${port}/ws/zone/porto?t=${t}`;
     const openWs = (t, hello = true) => new Promise((res, rej) => {
       const w = new WebSocket(wsUrl(t)); w.msgs = []; w.closed = null; sockets.push(w);
@@ -117,81 +99,30 @@ export default async function (ctx) {
     });
     for (const w of sockets) try { w.close(); } catch { /* già chiusa */ }
 
-    // Tavolo di Anna (5 min di cantiere): poi l'orologio di test va avanti
-    assert((await post('/api/lot/build', 'tokA', { building: 'tavolo', cell: L[0] ?? [2, 2] })).status === 200, 'tavolo non avviato');
-    OFF = 10 * MIN;
-    const stake = { legno: 20, pietra: 0, perle: 0 };
-    const sfida = async (st = stake) => { const r = await post('/api/challenges', 'tokA', { minigame: 'regata', to: 'bruno', stake: st }); assert(r.status === 200, 'crea: ' + JSON.stringify(r.body)); return r.body; };
-    const netto = (c, side) => {
-      const esito = c.winner === 'pari' ? 'parita' : c.winner === side ? 'vittoria' : 'sconfitta';
-      const medal = side === 'from' ? c.medalFrom : c.medalTo;
-      const n = {};
-      for (const [k] of RES) n[k] = esito === 'vittoria' ? c.pot[k] - c.stake[k] : esito === 'sconfitta' ? -c.stake[k] : 0;
-      n.perle += perleFor(medal);
-      return { esito, txt: RES.filter(([k]) => n[k] !== 0).map(([k, nome]) => `${n[k] > 0 ? '+' : '−'}${Math.abs(n[k])} ${nome}`).join(', ') };
-    };
-
-    await ctx.test('feed: crea → niente; gioca → sfida_ricevuta a Bruno; accetta → sfida_accettata ad Anna; chiusa → a entrambi con le cifre giuste', async () => {
-      const main = await sfida();
-      assert((await feed('tokA')).items.length === 0 && (await feed('tokB')).items.length === 0, 'righe alla creazione');
-      const a = race(main.seed, main.difficulty, false);
-      assert((await post(`/api/challenges/${main.id}/play`, 'tokA', { inputs: a.inputs })).status === 200, 'play A');
+    await ctx.test('feed: Anna firma il libro di Bruno → una riga «visita» a Bruno col testo e il saluto, ad Anna niente; una firma al giorno', async () => {
+      assert((await feed('tokA')).items.length === 0 && (await feed('tokB')).items.length === 0, 'righe prima delle firme');
+      const r = await firma('tokA', 'bruno');
+      assert(r.status === 200, 'firma: ' + r.status + ' ' + JSON.stringify(r.body).slice(0, 200));
       const fb = await feed('tokB');
-      const ric = of(fb, main.id, 'sfida_ricevuta');
-      assert(ric.length === 1 && !ric[0].letto && ric[0].da === 'anna' && fb.nonLetti === 1, 'ricevuta: ' + JSON.stringify(fb));
-      assert(ric[0].testo === 'Anna ti sfida alla Regata: posta 20 Legno. Rispondi al Tavolo entro 24 h', 'testo: ' + ric[0].testo);
+      const [v] = fb.items;
+      assert(fb.items.length === 1 && v.tipo === 'visita' && v.da === 'anna' && !v.letto && v.emote === 'saluto' && fb.nonLetti === 1, 'visita: ' + JSON.stringify(fb));
+      assert(v.testo === 'Anna è passato sulla tua isola e ha firmato il libro', 'testo: ' + v.testo);
       assert(Math.abs(fb.now - Date.now() - OFF) < 60_000, 'now del feed senza orologio di test');
-      assert((await feed('tokA')).items.length === 0, 'riga ad Anna per la propria partita');
-      assert((await post(`/api/challenges/${main.id}/accept`, 'tokB')).status === 200, 'accept');
-      const fa = await feed('tokA');
-      const acc = of(fa, main.id, 'sfida_accettata');
-      assert(acc.length === 1 && !acc[0].letto && acc[0].testo === 'Bruno ha accettato la tua sfida', 'accettata: ' + JSON.stringify(fa));
-      assert(of(await feed('tokB'), main.id, 'sfida_accettata').length === 0, 'accettata anche a Bruno');
-      const b = race(main.seed, main.difficulty, true);
-      const pb = await post(`/api/challenges/${main.id}/play`, 'tokB', { inputs: b.inputs });
-      const c = pb.body.challenge;
-      assert(pb.status === 200 && c.state === 'chiusa' && c.winner === 'from', 'esito: ' + JSON.stringify(pb.body).slice(0, 300));
-      const [ca] = of(await feed('tokA'), main.id, 'sfida_chiusa'), [cb] = of(await feed('tokB'), main.id, 'sfida_chiusa');
-      assert(ca && !ca.letto && cb && cb.letto, 'chiusa letto/non letto: ' + JSON.stringify([ca, cb]));
-      const na = netto(c, 'from'), nb = netto(c, 'to');
-      assert(ca.testo === `Hai battuto Bruno: ${na.txt}` && na.txt === `+20 Legno, +${perleFor(c.medalFrom)} Perle`, 'testo A: ' + ca.testo);
-      assert(cb.testo === `Anna ti ha battuto: ${nb.txt}` && nb.txt === `−20 Legno, +${perleFor(c.medalTo)} Perle`, 'testo B: ' + cb.testo);
-      ctx.log(`A: «${ca.testo}» · B: «${cb.testo}»`);
-
-      const pari = await sfida({ legno: 10, pietra: 5, perle: 0 });
-      const lazy = race(pari.seed, pari.difficulty, true);
-      await post(`/api/challenges/${pari.id}/play`, 'tokA', { inputs: lazy.inputs });
-      await post(`/api/challenges/${pari.id}/accept`, 'tokB');
-      const pp = (await post(`/api/challenges/${pari.id}/play`, 'tokB', { inputs: lazy.inputs })).body.challenge;
-      assert(pp.winner === 'pari', 'stessa partita non in parità: ' + JSON.stringify(pp).slice(0, 200));
-      const [xa] = of(await feed('tokA'), pari.id, 'sfida_chiusa'), [xb] = of(await feed('tokB'), pari.id, 'sfida_chiusa');
-      assert(xa?.testo === `Pari con Bruno: posta restituita, +${perleFor(pp.medalFrom)} Perle` && xb?.testo === `Pari con Anna: posta restituita, +${perleFor(pp.medalTo)} Perle`, 'parità: ' + JSON.stringify([xa, xb]));
-      const r = of(await feed('tokB'), pari.id, 'sfida_ricevuta')[0];
-      assert(r?.testo === 'Anna ti sfida alla Regata: posta 10 Legno e 5 Pietra. Rispondi al Tavolo entro 24 h', 'posta con due risorse: ' + r?.testo);
+      assert((await feed('tokA')).items.length === 0, 'riga ad Anna per la propria firma');
+      assert((await firma('tokA', 'bruno')).status === 409, 'seconda firma nello stesso giorno accettata');
+      assert((await feed('tokB')).items.length === 1, 'doppione dopo la seconda firma');
+      assert((await firma('tokA', 'anna')).status === 409, 'firma sul proprio libro accettata');
+      OFF += 25 * H;
+      assert((await firma('tokA', 'bruno', 'esulta')).status === 200, 'firma del giorno dopo');
+      const fb2 = await feed('tokB');
+      assert(fb2.items.length === 2 && fb2.items[0].emote === 'esulta' && fb2.nonLetti === 2, 'giorno dopo: ' + JSON.stringify(fb2.items));
     });
 
-    await ctx.test('rifiuto → sfida_rifiutata ad Anna; dopo 25 h due GET /api/feed in parallelo danno una sola sfida_scaduta per parte', async () => {
-      const d = await sfida({ legno: 10, pietra: 0, perle: 0 });
-      await post(`/api/challenges/${d.id}/play`, 'tokA', { inputs: race(d.seed, d.difficulty, true).inputs });
-      assert((await post(`/api/challenges/${d.id}/decline`, 'tokB')).status === 200, 'decline');
-      const rif = of(await feed('tokA'), d.id, 'sfida_rifiutata');
-      assert(rif.length === 1 && !rif[0].letto && rif[0].testo === 'Bruno ha rifiutato: posta restituita', 'rifiutata: ' + JSON.stringify(rif));
-      assert(of(await feed('tokB'), d.id, 'sfida_rifiutata').length === 0, 'rifiutata anche a Bruno');
-      // la quarta sfida del giorno costa una Perla (Anna le ha vinte): una giocata (aperta) e una no (gioca_sfidante)
-      const aperta = await sfida({ legno: 10, pietra: 0, perle: 0 });
-      await post(`/api/challenges/${aperta.id}/play`, 'tokA', { inputs: race(aperta.seed, aperta.difficulty, true).inputs });
-      const mai = await sfida({ legno: 10, pietra: 0, perle: 0 });
-      OFF += 25 * H;
-      const [fa1, fb1, fa2, fb2] = await Promise.all([feed('tokA'), feed('tokB'), feed('tokA'), feed('tokB')]);
-      for (const [f, chi] of [[fa1, 'A'], [fa2, 'A'], [fb1, 'B'], [fb2, 'B']]) {
-        assert(of(f, aperta.id, 'sfida_scaduta').length === 1, `${chi}: scadute (aperta) ${JSON.stringify(of(f, aperta.id))}`);
-        assert(of(f, mai.id, 'sfida_scaduta').length === (chi === 'A' ? 1 : 0), `${chi}: scadute (mai giocata) ${JSON.stringify(of(f, mai.id))}`);
-      }
-      const s = of(fa1, aperta.id, 'sfida_scaduta')[0];
-      assert(!s.letto && s.testo === 'La sfida con Bruno è scaduta: posta restituita', 'scaduta: ' + JSON.stringify(s));
-      assert(of(fb1, aperta.id, 'sfida_scaduta')[0].testo === 'La sfida con Anna è scaduta: posta restituita', 'scaduta di B');
-      const lot = (await get('/api/lot', 'tokA')).body;
-      assert(lot.escrow.legno === 0 && Object.keys(lot.holds ?? {}).length === 0, 'posta non rimborsata: ' + JSON.stringify(lot.escrow));
+    await ctx.test('due firme in parallelo sullo stesso libro: una sola passa, una sola riga', async () => {
+      const rs = await Promise.all([firma('tokA', 'carlo'), firma('tokA', 'carlo')]);
+      assert(rs.filter((r) => r.status === 200).length === 1, 'esiti: ' + rs.map((r) => r.status));
+      const fc = await feed('tokC');
+      assert(fc.items.filter((x) => x.tipo === 'visita' && x.da === 'anna').length === 1, 'righe di Carlo: ' + JSON.stringify(fc.items));
     });
 
     await ctx.test('letto: { fino } porta nonLetti a 0, una riga nuova resta non letta; massimo 30 righe, recenti prima; 401 senza token, 400 fino rotto', async () => {
@@ -201,28 +132,23 @@ export default async function (ctx) {
       const r1 = await post('/api/feed/letto', 'tokB', { fino });
       assert(r1.status === 200 && r1.body.ok === true && r1.body.nonLetti === 0, 'letto: ' + JSON.stringify(r1.body));
       assert((await feed('tokB')).items.every((x) => x.letto), 'righe ancora non lette');
-      const n = await sfida({ legno: 10, pietra: 0, perle: 0 });
-      await post(`/api/challenges/${n.id}/play`, 'tokA', { inputs: race(n.seed, n.difficulty, true).inputs });
+      assert((await firma('tokC', 'bruno')).status === 200, 'firma di Carlo');
       const r2 = await post('/api/feed/letto', 'tokB', { fino });
       const f1 = await feed('tokB');
-      assert(r2.body.nonLetti === 1 && f1.nonLetti === 1 && f1.items[0].sfida === n.id && !f1.items[0].letto && f1.items[0].id > fino, 'riga dopo fino: ' + JSON.stringify(f1.items[0]));
-      assert((await post(`/api/challenges/${n.id}/decline`, 'tokB')).status === 200, 'decline');
+      assert(r2.body.nonLetti === 1 && f1.nonLetti === 1 && f1.items[0].da === 'carlo' && !f1.items[0].letto && f1.items[0].id > fino, 'riga dopo fino: ' + JSON.stringify(f1.items[0]));
       assert((await post('/api/feed/letto', 'tokB', {})).body.nonLetti === 0, 'letto senza fino');
       assert((await post('/api/feed/letto', 'tokB', { fino: 'tutto' })).status === 400, 'fino rotto accettato');
       assert((await get('/api/feed')).status === 401 && (await post('/api/feed/letto', undefined, {})).status === 401, 'feed senza token');
-      // oltre 30 righe per Anna: sfide rifiutate subito, 3 al giorno (gratis) spostando l'orologio
-      for (let day = 0; day < 10; day++) {
+      // oltre 30 righe per Bruno: Anna e Carlo firmano il suo libro un giorno dopo l'altro, spostando l'orologio
+      for (let day = 0; day < 16; day++) {
         OFF += 25 * H;
-        for (let i = 0; i < 3; i++) {
-          const c = await sfida({ legno: 10, pietra: 0, perle: 0 });
-          assert((await post(`/api/challenges/${c.id}/decline`, 'tokB')).status === 200, 'decline in serie');
-        }
+        for (const t of ['tokA', 'tokC']) assert((await firma(t, 'bruno')).status === 200, 'firma in serie');
       }
-      const fa = await feed('tokA');
-      assert(fa.items.length === 30, 'righe: ' + fa.items.length);
-      assert(fa.items.every((x, i) => i === 0 || (x.id < fa.items[i - 1].id && x.quando <= fa.items[i - 1].quando)), 'non in ordine: ' + fa.items.map((x) => x.id).join());
-      assert(fa.items[0].tipo === 'sfida_rifiutata' && fa.nonLetti > 30, `nonLetti ${fa.nonLetti}`);
-      ctx.log(`Anna: ${fa.items.length} righe mostrate, ${fa.nonLetti} non lette`);
+      const fb = await feed('tokB');
+      assert(fb.items.length === 30, 'righe: ' + fb.items.length);
+      assert(fb.items.every((x, i) => i === 0 || (x.id < fb.items[i - 1].id && x.quando <= fb.items[i - 1].quando)), 'non in ordine: ' + fb.items.map((x) => x.id).join());
+      assert(fb.items[0].tipo === 'visita' && fb.nonLetti > 30, `nonLetti ${fb.nonLetti}`);
+      ctx.log(`Bruno: ${fb.items.length} righe mostrate, ${fb.nonLetti} non lette`);
     });
 
     await ctx.test('nessun errore del server nel log di wrangler (percorsi normali)', async () => {
