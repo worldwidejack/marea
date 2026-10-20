@@ -1,0 +1,7 @@
+# giro kit UI (stile unico per HUD + pannelli)
+k1_davethediver https://chatgpt.com/c/6ad78c6b-0c24-83eb-9a76-ac595303be61
+k2_windwaker https://chatgpt.com/c/6ad78ca5-1edc-83ed-87b2-229420eef522
+k3_fallguys https://chatgpt.com/c/6ad78ca4-eff8-83ed-ae6e-a58843a7c6a3
+k4_papermario https://chatgpt.com/c/6ad78ca4-fc80-83eb-8173-33a2e37f29a1
+k5_hifirush https://chatgpt.com/c/6ad78ca5-1ca4-83eb-b6e1-16eb31023179
+k6_ninokuni https://chatgpt.com/c/6ad78d13-5c28-83eb-b3fe-36d1f6276270
