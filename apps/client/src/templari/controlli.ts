@@ -8,6 +8,7 @@ import type { TPrompt } from '@marea/sim/templari/types.ts';
 import { createMiraStick } from '../rpg/mira_stick.ts';
 import type { MiraCampione } from '../rpg/mira_stick.ts';
 import { PAL, el } from '../ui/style.ts';
+import { tieniPremuto } from '../ui/comandi_touch.ts';
 
 const SAFE = 'env(safe-area-inset-bottom, 0px)', RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', TOP = 'max(8px, env(safe-area-inset-top))';
 const CSS = `
@@ -71,7 +72,6 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const az = el('div', 'mz mz-tpl-az'); az.id = 'mzTplAzione'; az.setAttribute('role', 'button');
   const perche = el('div', 'mz mz-tpl-perche'); perche.id = 'mzTplPerche';
-  const azHeld = new Set<string>();
   let dLatch = false, cLatch = false, mouseA = false, mouseLatch = false, ora: TPrompt = null, percheT: ReturnType<typeof setTimeout> | null = null;
   const nega = () => {
     if (!ora || ora.puoi) return;
@@ -80,12 +80,7 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
     if (percheT) clearTimeout(percheT);
     percheT = setTimeout(() => { perche.classList.remove('on'); percheT = null; }, 1600);
   };
-  const azGiu = (k: string) => { if (!azHeld.size) nega(); azHeld.add(k); dLatch = true; az.classList.add('giu'); };
-  const azSu = (k: string) => { azHeld.delete(k); if (!azHeld.size) az.classList.remove('giu'); };
-  az.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); azGiu(`p${e.pointerId}`); try { az.setPointerCapture(e.pointerId); } catch { /* sintetico */ } });
-  for (const ev of ['pointerup', 'pointercancel']) az.addEventListener(ev, (e) => azSu(`p${(e as PointerEvent).pointerId}`));
-  az.addEventListener('touchstart', (e) => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); for (const t of e.changedTouches) azGiu(`t${t.identifier}`); }, { passive: false });
-  for (const ev of ['touchend', 'touchcancel']) az.addEventListener(ev, (e) => { for (const t of (e as TouchEvent).changedTouches) azSu(`t${t.identifier}`); });
+  const azDito = tieniPremuto(az, { premi: () => (dLatch = true), cambia: (g) => { if (g) nega(); }, classe: 'giu', ferma: true, ancheTouch: true });
   const sc = el('div', 'mz mz-tpl-sc', 'SCAMBIA'); sc.id = 'mzTplScambia'; sc.setAttribute('role', 'button');
   // SUPER: un tocco (latch, come SCAMBIA)
   let eLatch = false;
@@ -132,13 +127,13 @@ export function createControlli(o: { root: HTMLElement; canvas: HTMLCanvasElemen
   // un clic più corto di un fotogramma (PC lenti) arriva lo stesso alla sim: almeno un tick premuto
   const md = (e: PointerEvent) => { if (e.button === 0 && e.pointerType === 'mouse') { mouseA = true; mouseLatch = true; } };
   const mu = (e: PointerEvent) => { if (e.button === 0) mouseA = false; };
-  const blur = () => { keys.clear(); mouseA = false; azHeld.clear(); stick.cancel(); };
+  const blur = () => { keys.clear(); mouseA = false; azDito.lascia(); stick.cancel(); };
   addEventListener('keydown', kd, true); addEventListener('keyup', ku, true);
   o.canvas.addEventListener('pointerdown', md); addEventListener('pointerup', mu); addEventListener('blur', blur);
   let promptKey = '';
   return {
     sample() {
-      const out = { a: mouseA || mouseLatch, c: cLatch, d: dLatch || azHeld.size > 0 || keys.has('KeyF'), e: eLatch, mira: stick.sample() };
+      const out = { a: mouseA || mouseLatch, c: cLatch, d: dLatch || azDito.giu || keys.has('KeyF'), e: eLatch, mira: stick.sample() };
       cLatch = false; dLatch = false; eLatch = false; mouseLatch = false;
       return out;
     },

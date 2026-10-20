@@ -18,24 +18,33 @@ export type Tenuto = {
  *  `premi` = a ogni dito che scende (il latch dei tick: anche un tocco più corto di un tick arriva alla sim); `cambia` = quando passa da
  *  libero a premuto e indietro (per ridisegnarlo), `classe` = la classe che ha mentre è premuto. `ferma` = il tocco non arriva a chi sta
  *  sotto (stopPropagation). `finestra` = rete di sicurezza: un dito alzato fuori dal bottone senza cattura lo lascia lo stesso.
- *  `bloccaTocchi` = touchstart e touchmove non scorrono la pagina e non arrivano sotto. */
-export function tieniPremuto(b: HTMLElement, o: { premi?(): void; cambia?(giu: boolean): void; classe?: string; ferma?: boolean; finestra?: boolean; bloccaTocchi?: boolean } = {}): Tenuto {
-  const dita = new Set<number>();
-  const pinta = () => { const g = dita.size > 0; if (o.classe) b.classList.toggle(o.classe, g); o.cambia?.(g); };
+ *  `bloccaTocchi` = touchstart e touchmove non scorrono la pagina e non arrivano sotto. `ancheTouch` = conta anche i touch event, ogni dito
+ *  per conto suo (dove su qualche telefono vero il pointerdown non arrivava). */
+export function tieniPremuto(b: HTMLElement, o: { premi?(): void; cambia?(giu: boolean): void; classe?: string; ferma?: boolean; finestra?: boolean; bloccaTocchi?: boolean; ancheTouch?: boolean } = {}): Tenuto {
+  const dita = new Set<number>(), tocchi = new Set<number>();
+  const premuto = () => dita.size + tocchi.size > 0;
+  const pinta = () => { const g = premuto(); if (o.classe) b.classList.toggle(o.classe, g); o.cambia?.(g); };
   b.addEventListener('pointerdown', (e) => {
     e.preventDefault(); if (o.ferma) e.stopPropagation();
-    const nuovo = !dita.size; dita.add(e.pointerId); o.premi?.();
+    const nuovo = !premuto(); dita.add(e.pointerId); o.premi?.();
     try { b.setPointerCapture(e.pointerId); } catch { /* pointer sintetico (test): niente cattura, gli eventi arrivano lo stesso */ }
     if (nuovo) pinta();
   });
-  const su = (e: PointerEvent) => { if (dita.delete(e.pointerId) && !dita.size) pinta(); };
+  const su = (e: PointerEvent) => { if (dita.delete(e.pointerId) && !premuto()) pinta(); };
   for (const ev of ['pointerup', 'pointercancel']) { b.addEventListener(ev, su as EventListener); if (o.finestra) addEventListener(ev, su as EventListener); }
   b.addEventListener('contextmenu', (e) => e.preventDefault());
+  if (o.ancheTouch) {
+    b.addEventListener('touchstart', (e) => {
+      if (e.cancelable) e.preventDefault(); if (o.ferma) e.stopPropagation();
+      for (const t of e.changedTouches) { const nuovo = !premuto(); tocchi.add(t.identifier); o.premi?.(); if (nuovo) pinta(); }
+    }, { passive: false });
+    for (const ev of ['touchend', 'touchcancel']) b.addEventListener(ev, (e) => { for (const t of (e as TouchEvent).changedTouches) if (tocchi.delete(t.identifier) && !premuto()) pinta(); });
+  }
   if (o.bloccaTocchi) for (const ev of ['touchstart', 'touchmove']) b.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
   return {
-    get giu() { return dita.size > 0; },
-    lascia() { if (!dita.size) return; dita.clear(); pinta(); },
-    simula(on) { const prima = dita.size > 0; if (on) dita.add(-1); else dita.delete(-1); if (prima !== dita.size > 0) pinta(); },
+    get giu() { return premuto(); },
+    lascia() { if (!premuto()) return; dita.clear(); tocchi.clear(); pinta(); },
+    simula(on) { const prima = premuto(); if (on) dita.add(-1); else dita.delete(-1); if (prima !== premuto()) pinta(); },
     dispose() { if (o.finestra) for (const ev of ['pointerup', 'pointercancel']) removeEventListener(ev, su as EventListener); },
   };
 }
