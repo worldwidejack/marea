@@ -1,12 +1,14 @@
 // Schermata comune dei giochi a pixel «tieni premuto» (Arrembaggio sulla Tempesta, Fuga dalla lava sul Vulcano, Perle): scena a pixel su
 // <canvas>, barre, cartello delle regole (il tempo parte al primo tocco), messaggio, punti, bottone grande e soglie delle medaglie.
 // Un pollice: si tiene premuto ovunque sulla schermata (o Spazio / Invio / E e i tasti del gioco); Esc o × = ritirati.
-// Fa girare la sim a 60 Hz (accumulatore suo), registra un InputFrame quantizzato per tick e alla fine restituisce packInputs(frames):
-// punteggio e medaglia li decide il server. Ogni gioco dà la sua scena, il disegno e i testi (DefSchermo). Solo colori di PAL.
-import { createRng, getMinigame, packInputs, quantize } from '@marea/sim';
-import type { Difficulty, InputFrame, MinigameModule, PackedInputs } from '@marea/sim';
+// Giro a 60 Hz, input per il server, apertura e chiusura: ui/schermo_motore.ts. Ogni gioco dà la sua scena, il disegno e i testi
+// (DefSchermo). Solo colori di PAL.
+import { getMinigame } from '@marea/sim';
+import type { MinigameModule, PackedInputs } from '@marea/sim';
 import { PAL, el, injectUiStyle } from './style.ts';
-import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { createMotore, rigaMedaglie } from './schermo_motore.ts';
+import type { Partita } from './schermo_motore.ts';
+import { registerStateProvider } from '../test/testapi.ts';
 import { suona } from '../audio/ponte.ts';
 import type { SuonoId } from '../audio/ponte.ts';
 
@@ -96,7 +98,6 @@ export function createSchermoPixel<S extends { tick: number; done: boolean }, X>
   injectUiStyle();
   if (!document.getElementById('mz-gp-style')) { const st = document.createElement('style'); st.id = 'mz-gp-style'; st.textContent = CSS; document.head.appendChild(st); }
   if (def.css && !document.getElementById(`mz-gp-style-${def.id}`)) { const st = document.createElement('style'); st.id = `mz-gp-style-${def.id}`; st.textContent = def.css; document.head.appendChild(st); }
-  const mod = getMinigame(def.id) as MinigameModule<S>;
   const TASTI = new Set(['Space', 'Enter', 'NumpadEnter', 'KeyE', ...def.tasti]);
   const wrap = el('div', 'mz mz-gp'); wrap.id = def.domId; wrap.style.background = def.velo;
   const box = el('div', 'mz-gp-box'); box.style.borderColor = def.bordo; wrap.appendChild(box);
@@ -123,53 +124,12 @@ export function createSchermoPixel<S extends { tick: number; done: boolean }, X>
   const goal = el('div', 'goal');
   box.append(head, bars, scena, status, act, goal);
 
-  type Game = { s: S; x: X; frames: InputFrame[]; intro: boolean; end: number; finish(v: PackedInputs | null): void };
-  let gm: Game | null = null, open = false, auto = false, raf = 0, last = 0, acc = 0, tAnim = 0;
-  const autoRng = createRng(def.id + '-auto');
   const pointers = new Set<number>(), keys = new Set<string>();
   const held = () => pointers.size > 0 || keys.size > 0;
 
-  // ---- input: tieni premuto ovunque sulla schermata (tranne la ×), o un tasto ----
-  wrap.addEventListener('pointerdown', (e) => {
-    if (!open || e.target === x) return;
-    e.preventDefault(); e.stopPropagation();
-    pointers.add(e.pointerId);
-    inizia();
-  });
-  for (const ev of ['touchstart', 'wheel']) wrap.addEventListener(ev, (e) => e.stopPropagation());
-  wrap.addEventListener('contextmenu', (e) => e.preventDefault());
-  const up = (e: PointerEvent) => { pointers.delete(e.pointerId); };
-  addEventListener('pointerup', up); addEventListener('pointercancel', up);
-  addEventListener('blur', () => { pointers.clear(); keys.clear(); });
-  const onKey = (e: KeyboardEvent) => {
-    if (!open) return;
-    e.stopImmediatePropagation();
-    if (e.code === 'Escape') { e.preventDefault(); close(null); return; }
-    if (TASTI.has(e.code)) { e.preventDefault(); keys.add(e.code); inizia(); }
-  };
-  // keyup senza fermarlo: anche input.ts deve vederlo (altrimenti i tasti restano incollati nel mondo)
-  addEventListener('keyup', (e) => { keys.delete(e.code); });
-  x.addEventListener('click', () => close(null));
-  function inizia(): void { if (gm?.intro) { gm.intro = false; rules.style.display = 'none'; suona(def.suoni?.via ?? 'via'); } }
-
-  function passo(f: InputFrame): void {
-    if (!gm) return;
-    def.primaPasso?.(gm.s, gm.x);
-    const q = quantize(f);
-    gm.frames.push(q); mod.step(gm.s, q);
-    def.dopoPasso(gm.s, gm.x);
-  }
-  function tick(): void {
-    if (!gm || gm.intro) return;
-    if (gm.end >= 0) { if (++gm.end >= END_HOLD) close(packInputs(gm.frames)); return; }
-    passo(auto ? mod.autopilot(gm.s, autoRng) : { mx: 0, my: 0, a: held(), b: false });
-    if (gm.s.done) gm.end = 0;
-  }
-
-  function render(): void {
-    if (!gm) return;
-    dipingi(gm.s, gm.x, tAnim, Math.min(1, acc * 60), gm.intro || gm.end >= 0);
-    const v = def.stato(gm.s, gm.x, { held: held(), intro: gm.intro, auto });
+  function render(p: Partita<S, X>, alpha: number, t: number): void {
+    dipingi(p.s, p.x, t, alpha, p.intro || p.end >= 0);
+    const v = def.stato(p.s, p.x, { held: held(), intro: p.intro, auto: motore.auto });
     v.barre.forEach((b, i) => {
       const r = barre[i]; if (!r) return;
       const w = `${Math.round(Math.max(0, Math.min(1, b.w)) * 100)}%`;
@@ -180,59 +140,47 @@ export function createSchermoPixel<S extends { tick: number; done: boolean }, X>
     if (msg.dataset['h'] !== key) { msg.dataset['h'] = key; msg.replaceChildren(document.createTextNode(a), el('small', '', b)); msg.className = 'msg ' + cls; }
     const ptxt = String(v.punti);
     if (pts.dataset['p'] !== ptxt) { pts.dataset['p'] = ptxt; pts.replaceChildren(document.createTextNode(ptxt), el('small', '', 'PUNTI')); }
-    const m = v.medals, gtxt = `${v.punti >= m.bronzo}${v.punti >= m.argento}${v.punti >= m.oro}${m.oro}`;
-    if (goal.dataset['g'] !== gtxt) {
-      goal.dataset['g'] = gtxt;
-      const b1 = (n: string, p: number) => el('b', v.punti >= p ? 'on' : '', `${n} ${p}`);
-      goal.replaceChildren(b1('Bronzo', m.bronzo), document.createTextNode(' · '), b1('Argento', m.argento), document.createTextNode(' · '), b1('Oro', m.oro), document.createTextNode(' punti'));
-    }
+    rigaMedaglie(goal, v.punti, v.medals);
     const [lab, kind] = v.bottone;
     if (act.textContent !== lab) act.textContent = lab;
     act.className = 'act' + (kind ? ' ' + kind : '');
   }
-  function loop(now: number): void {
-    if (!open) return;
-    const dt = Math.max(0, Math.min(0.25, (now - last) / 1000)); last = now; tAnim += dt; // il primo rAF può avere un orario prima di run()
-    if (auto) { for (let i = 0; i < 60 && open; i++) tick(); acc = 0; } // test: una partita intera in pochi secondi
-    else { acc += dt; while (acc >= 1 / 60 && open) { acc -= 1 / 60; tick(); } }
-    if (open) { render(); raf = requestAnimationFrame(loop); }
-  }
-  function close(v: PackedInputs | null): void {
-    if (!open) return;
-    open = false; cancelAnimationFrame(raf); wrap.classList.remove('on'); removeEventListener('keydown', onKey, true);
-    pointers.clear(); keys.clear();
-    const done = gm; gm = null; done?.finish(v);
-  }
 
-  registerStateProvider(def.id, () => ({ open, auto, intro: gm?.intro ?? false, frames: gm?.frames.length ?? 0, view: gm ? def.vista(gm.s) : null }));
-  registerTestHook(def.id + 'Auto', (on) => { auto = on !== false; if (auto) inizia(); return auto; });
-  /** Test: gioca col pilota (o senza toccare niente, `fermo`) fino al tick dato e ferma lì (per gli screenshot a metà partita). */
-  registerTestHook(def.id + 'FinoA', (n, fermo) => {
-    if (!gm) return false;
-    inizia();
-    const fino = Math.max(1, Math.min(mod.maxTicks - 1, Number(n) || 1));
-    while (gm.s.tick < fino) passo(fermo ? { mx: 0, my: 0, a: false, b: false } : mod.autopilot(gm.s, autoRng));
-    def.primaPasso?.(gm.s, gm.x); acc = 0; render();
-    return gm.s.tick;
+  const motore = createMotore<S, X>({
+    id: def.id, mod: getMinigame(def.id) as MinigameModule<S>, wrap, chiudi: x, endHold: END_HOLD, autoPerFrame: 60, partenza: 'tocco',
+    ...(def.suoni?.via ? { via: def.suoni.via } : {}),
+    scena: def.scena,
+    input: () => ({ mx: 0, my: 0, a: held(), b: false }),
+    ...(def.primaPasso ? { primaPasso: (p: Partita<S, X>) => def.primaPasso!(p.s, p.x) } : {}),
+    dopoPasso: (p) => def.dopoPasso(p.s, p.x),
+    render,
+    tasto(e) { if (TASTI.has(e.code)) { e.preventDefault(); keys.add(e.code); motore.inizia(); } },
+    alVia() { rules.style.display = 'none'; },
+    alApri() {
+      rules.style.display = motore.auto ? 'none' : '';
+      pointers.clear(); keys.clear();
+      const apri = def.suoni?.apri === undefined ? 'apri' : def.suoni.apri;
+      if (apri) suona(apri);
+    },
+    alChiudi() { pointers.clear(); keys.clear(); },
   });
 
-  return {
-    run({ seed, difficulty }) {
-      if (open) return Promise.resolve(null);
-      const dd = (Math.round(difficulty) >= 1 && Math.round(difficulty) <= 3 ? Math.round(difficulty) : 2) as Difficulty;
-      return new Promise((finish) => {
-        const s = mod.create({ seed, difficulty: dd });
-        gm = { s, x: def.scena(s, seed), frames: [], intro: !auto, end: -1, finish };
-        open = true; acc = 0; last = performance.now();
-        rules.style.display = auto ? 'none' : '';
-        pointers.clear(); keys.clear();
-        wrap.classList.add('on'); addEventListener('keydown', onKey, true);
-        const apri = def.suoni?.apri === undefined ? 'apri' : def.suoni.apri;
-        if (apri) suona(apri);
-        render(); raf = requestAnimationFrame(loop);
-      });
-    },
-    isOpen: () => open,
-    esito: (d) => def.esito(d),
-  };
+  // ---- input: tieni premuto ovunque sulla schermata (tranne la ×), o un tasto ----
+  wrap.addEventListener('pointerdown', (e) => {
+    if (!motore.isOpen() || e.target === x) return;
+    e.preventDefault(); e.stopPropagation();
+    pointers.add(e.pointerId);
+    motore.inizia();
+  });
+  for (const ev of ['touchstart', 'wheel']) wrap.addEventListener(ev, (e) => e.stopPropagation());
+  wrap.addEventListener('contextmenu', (e) => e.preventDefault());
+  const up = (e: PointerEvent) => { pointers.delete(e.pointerId); };
+  addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  addEventListener('blur', () => { pointers.clear(); keys.clear(); });
+  // keyup senza fermarlo: anche input.ts deve vederlo (altrimenti i tasti restano incollati nel mondo)
+  addEventListener('keyup', (e) => { keys.delete(e.code); });
+
+  registerStateProvider(def.id, () => { const p = motore.partita(); return { open: motore.isOpen(), auto: motore.auto, intro: p?.intro ?? false, frames: p?.frames.length ?? 0, view: p ? def.vista(p.s) : null }; });
+
+  return { run: motore.run, isOpen: motore.isOpen, esito: (d) => def.esito(d) };
 }

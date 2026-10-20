@@ -1,22 +1,23 @@
 // Carpe koi: la schermata del minigioco dell'Isola Giardino (gioco a schermo, scaricato con import() alla prima partita: minigiochi.ts →
 // registraSchermo). Lo stagno visto dall'alto dal ponticello rosso, col ciliegio che fiorisce man mano che fai punti: tocchi un petalo e
 // la carpa più vicina ci corre a mangiarlo; la carpa nera ruba il cibo (la combo si azzera) finché non la tocchi e scappa. Un pollice:
-// si tocca e basta (col mouse si clicca). Esc o × = ritirati. Fa girare la sim `koi` a 60 Hz (accumulatore suo), registra un InputFrame
-// quantizzato per tick e alla fine restituisce packInputs(frames): il punteggio lo decide il server. Solo colori della palette.
+// si tocca e basta (col mouse si clicca). Esc o × = ritirati. Giro a 60 Hz e input per il server: ui/schermo_motore.ts. Solo colori
+// della palette.
 import { MINIGAMES_CFG } from '@marea/content';
-import { KOI_COLORATE, createRng, getMinigame, koiTocco, packInputs, quantize } from '@marea/sim';
-import type { Difficulty, InputFrame, KoiState, KoiView, MinigameModule, PackedInputs } from '@marea/sim';
+import { KOI_COLORATE, getMinigame, koiTocco } from '@marea/sim';
+import type { InputFrame, KoiState, KoiView, MinigameModule } from '@marea/sim';
 import type { SchermoGioco } from '../game/minigiochi.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
 import { RGBA, createTela, dith, hash2, tri } from './tela.ts';
 import type { Col } from './tela.ts';
-import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { createMotore, rigaMedaglie } from './schermo_motore.ts';
+import type { Partita } from './schermo_motore.ts';
+import { registerStateProvider } from '../test/testapi.ts';
 import { suona } from '../audio/ponte.ts';
 
 const P = PAL;
 const CFG = MINIGAMES_CFG.koi;
 const NO: InputFrame = { mx: 0, my: 0, a: false, b: false };
-const END_HOLD = 90;
 /** Tela: riva col ciliegio in alto, lo stagno (SX, SY), il parapetto del ponticello in basso. */
 const SX = 8, SY = 26, PW = CFG.stagno.w, PH = CFG.stagno.h, W = SX * 2 + PW, H = SY + PH + 16;
 /** Segmenti del corpo di una carpa (dalla testa alla coda) e distanza tra due punti della scia. */
@@ -89,48 +90,29 @@ export function createKoi(o: { root: HTMLElement }): SchermoGioco {
   box.append(head, rule, time, scena, status, goal);
 
   type Fx = { x: number; y: number; t: number; testo: string; col: Col };
+  /** Gli effetti solo del client di una partita; `prima` = com'era la sim prima dell'ultimo tick (per suoni e numeri). */
   type Game = {
-    s: KoiState; frames: InputFrame[]; taps: { x: number; y: number }[]; prevA: boolean; intro: boolean; end: number; finish(v: PackedInputs | null): void;
-    scie: { x: number; y: number }[][]; fx: Fx[]; stati: Map<number, number>; fiori: { x: number; y: number; vx: number; vy: number; t: number }[]; comboPrima: number; spaventi: number;
+    s: KoiState; taps: { x: number; y: number }[]; prima: { punti: number; rubati: number; spaventi: number; tocchi: number };
+    scie: { x: number; y: number }[][]; fx: Fx[]; stati: Map<number, number>; fiori: { x: number; y: number; vx: number; vy: number; t: number }[]; comboPrima: number;
   };
-  let g: Game | null = null, open = false, auto = false, raf = 0, last = 0, acc = 0, tAnim = 0, view: KoiView | null = null;
-  const autoRng = createRng('koi-auto');
+  let g: Game | null = null, view: KoiView | null = null;
 
   // ---- input: un tocco sullo stagno (o un clic) ----
   cv.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    if (!g || !open || auto) return;
-    if (g.intro) { inizia(); return; }
-    if (g.end >= 0) return;
+    const p = motore.partita();
+    if (!g || !p || motore.auto) return;
+    if (p.intro) { motore.inizia(); return; }
+    if (p.end >= 0) return;
     const r = cv.getBoundingClientRect(), px = ((e.clientX - r.left) / r.width) * W - SX, py = ((e.clientY - r.top) / r.height) * H - SY;
     if (px < -6 || py < -6 || px > PW + 6 || py > PH + 6) return;
     if (g.taps.length < 3) g.taps.push({ x: Math.max(0, Math.min(PW, px)), y: Math.max(0, Math.min(PH, py)) });
   });
-  intro.addEventListener('pointerdown', (e) => { e.preventDefault(); inizia(); });
-  function inizia(): void { if (g?.intro) { g.intro = false; intro.style.display = 'none'; suona('plop'); } }
-  x.addEventListener('click', () => close(null));
-  const onKey = (e: KeyboardEvent) => {
-    if (!open) return;
-    e.stopImmediatePropagation();
-    if (e.code === 'Escape') { e.preventDefault(); close(null); }
-    else if (['Space', 'Enter', 'KeyE'].includes(e.code)) { e.preventDefault(); inizia(); }
-  };
+  intro.addEventListener('pointerdown', (e) => { e.preventDefault(); motore.inizia(); });
 
-  function tick(): void {
-    if (!g || g.intro) return;
-    if (g.end >= 0) { if (++g.end >= END_HOLD) close(packInputs(g.frames)); return; }
-    let f: InputFrame = NO;
-    if (auto) f = mod.autopilot(g.s, autoRng);
-    else if (!g.prevA && g.taps.length) { const t = g.taps.shift()!; f = koiTocco(t.x, t.y); }
-    f = quantize(f); g.prevA = f.a;
-    const s = g.s, prima = { punti: s.punti, rubati: s.rubati, spaventi: s.spaventi, tocchi: s.tocchi };
-    g.frames.push(f); mod.step(s, f);
-    effetti(g, prima);
-    if (s.done) g.end = 0;
-  }
   /** Suoni e numeri che volano dagli eventi del tick (cibo mangiato o rubato, nera scacciata), fiori che sbocciano a ogni combo da 5. */
-  function effetti(gm: Game, prima: { punti: number; rubati: number; spaventi: number; tocchi: number }): void {
-    const s = gm.s;
+  function effetti(gm: Game): void {
+    const s = gm.s, prima = gm.prima;
     for (const c of s.cibo) {
       if (c.stato < 2 || gm.stati.get(c.id) === c.stato) continue;
       gm.stati.set(c.id, c.stato);
@@ -285,15 +267,15 @@ export function createKoi(o: { root: HTMLElement }): SchermoGioco {
     if (k.modo === 'mangia' && Math.floor(t * 6) % 2) tela.px(SX + h0.x + hx * 4, SY + h0.y + hy * 4, RGBA.pietraChiara);
   }
 
-  function render(): void {
-    if (!g) return;
+  function render(p: Partita<KoiState, Game>, _alpha: number, t: number): void {
+    g = p.x;
     const v = view = mod.view(g.s) as KoiView;
-    disegna(v, tAnim);
+    disegna(v, t);
     bar.style.width = `${Math.max(0, 100 - (v.ms / v.maxMs) * 100)}%`;
     time.classList.toggle('low', v.maxMs - v.ms < 10_000);
     const nera = v.carpe[KOI_COLORATE]!;
     const rubato = g.s.cibo.some((c) => c.stato === 3 && v.tick - c.fine < 90);
-    const [a, b, cls] = g.intro ? ['Pronti?', 'il tempo parte al primo tocco', 'ok']
+    const [a, b, cls] = p.intro ? ['Pronti?', 'il tempo parte al primo tocco', 'ok']
       : v.done ? ['Tempo!', `${v.mangiati} bocconi, ${v.rubati} rubati`, 'go']
       : rubato ? ['La nera ha rubato!', 'combo persa: toccala per scacciarla', 'bad']
       : nera.modo === 'caccia' ? ['La nera punta il cibo!', 'toccala per scacciarla', 'bad']
@@ -307,60 +289,30 @@ export function createKoi(o: { root: HTMLElement }): SchermoGioco {
       pts.dataset['p'] = ptxt;
       pts.replaceChildren(document.createTextNode(String(v.punti)), ...(v.molt > 1 ? [el('span', 'x', `×${v.molt}`)] : []), el('small', '', 'PUNTI'));
     }
-    const m = v.medals, gtxt = `${v.punti >= m.bronzo}${v.punti >= m.argento}${v.punti >= m.oro}${m.oro}`;
-    if (goal.dataset['g'] !== gtxt) {
-      goal.dataset['g'] = gtxt;
-      const b1 = (nome: string, p: number) => el('b', v.punti >= p ? 'on' : '', `${nome} ${p}`);
-      goal.replaceChildren(b1('Bronzo', m.bronzo), document.createTextNode(' · '), b1('Argento', m.argento), document.createTextNode(' · '), b1('Oro', m.oro), document.createTextNode(' punti'));
-    }
+    rigaMedaglie(goal, v.punti, v.medals);
   }
-  function loop(now: number): void {
-    if (!open) return;
-    const dt = Math.max(0, Math.min(0.25, (now - last) / 1000)); last = now; tAnim += dt; // il primo rAF può avere un orario prima di run()
-    if (auto) { for (let i = 0; i < 8 && open; i++) tick(); acc = 0; } // test: veloce
-    else { acc += dt; while (acc >= 1 / 60 && open) { acc -= 1 / 60; tick(); } }
-    if (open) { render(); raf = requestAnimationFrame(loop); }
-  }
-  function close(v: PackedInputs | null): void {
-    if (!open) return;
-    open = false; cancelAnimationFrame(raf); wrap.classList.remove('on'); removeEventListener('keydown', onKey, true);
-    const done = g; g = null; done?.finish(v);
-  }
+  const motore = createMotore<KoiState, Game>({
+    id: 'koi', mod, wrap, chiudi: x, endHold: 90, autoPerFrame: 8, partenza: 'tocco', via: 'plop',
+    scena(s) { const gm: Game = { s, taps: [], prima: { punti: 0, rubati: 0, spaventi: 0, tocchi: 0 }, scie: [], fx: [], stati: new Map(), fiori: [], comboPrima: 0 }; scie(gm); return gm; },
+    input(p, prima) { const t = !prima.a ? p.x.taps.shift() : undefined; return t ? koiTocco(t.x, t.y) : NO; },
+    primaPasso({ s, x: gm }) { gm.prima = { punti: s.punti, rubati: s.rubati, spaventi: s.spaventi, tocchi: s.tocchi }; },
+    dopoPasso: (p) => effetti(p.x),
+    render,
+    tasto(e) { if (['Space', 'Enter', 'KeyE'].includes(e.code)) { e.preventDefault(); motore.inizia(); } },
+    alVia() { intro.style.display = 'none'; },
+    alApri() { const p = motore.partita(); g = p?.x ?? null; view = null; intro.style.display = motore.auto ? 'none' : ''; },
+    alChiudi() { g = null; },
+  });
 
   registerStateProvider('koi', () => ({
-    open, auto, intro: g?.intro ?? false, frames: g?.frames.length ?? 0,
+    open: motore.isOpen(), auto: motore.auto, intro: motore.partita()?.intro ?? false, frames: motore.partita()?.frames.length ?? 0,
     view: view && { punti: view.punti, totale: view.totale, combo: view.combo, molt: view.molt, mangiati: view.mangiati, rubati: view.rubati, tick: view.tick, done: view.done, medals: view.medals, cibo: view.cibo.map((c) => ({ id: c.id, x: c.x, y: c.y, stato: c.stato })), nera: { x: view.carpe[KOI_COLORATE]!.x, y: view.carpe[KOI_COLORATE]!.y, modo: view.carpe[KOI_COLORATE]!.modo }, tocco: view.tocco?.cosa ?? null, corse: view.carpe.filter((k) => k.modo === 'corsa').length },
     /** Stagno in pixel della pagina (per i test che toccano davvero). */
     stagno: (() => { const r = cv.getBoundingClientRect(); return { x0: r.left + (SX / W) * r.width, y0: r.top + (SY / H) * r.height, k: r.width / W }; })(),
   }));
-  registerTestHook('koiAuto', (on) => { auto = on !== false; if (auto) inizia(); return auto; });
-  /** Test: gioca col pilota fino al tick dato e ferma lì (per gli screenshot a metà partita). */
-  registerTestHook('koiFinoA', (n) => {
-    if (!g) return false;
-    inizia();
-    const fino = Math.max(1, Math.min(mod.maxTicks - 1, Number(n) || 1));
-    while (g.s.tick < fino && !g.s.done) {
-      const f = quantize(mod.autopilot(g.s, autoRng)), s = g.s, prima = { punti: s.punti, rubati: s.rubati, spaventi: s.spaventi, tocchi: s.tocchi };
-      g.prevA = f.a; g.frames.push(f); mod.step(s, f); effetti(g, prima);
-    }
-    acc = 0; render();
-    return g.s.tick;
-  });
-
   return {
-    run({ seed, difficulty }) {
-      if (open) return Promise.resolve(null);
-      const d = (Math.round(difficulty) >= 1 && Math.round(difficulty) <= 3 ? Math.round(difficulty) : 2) as Difficulty;
-      return new Promise((finish) => {
-        g = { s: mod.create({ seed, difficulty: d }), frames: [], taps: [], prevA: false, intro: !auto, end: -1, finish, scie: [], fx: [], stati: new Map(), fiori: [], comboPrima: 0, spaventi: 0 };
-        scie(g);
-        open = true; acc = 0; last = performance.now(); view = null; tAnim = 0;
-        intro.style.display = auto ? 'none' : '';
-        wrap.classList.add('on'); addEventListener('keydown', onKey, true);
-        render(); raf = requestAnimationFrame(loop);
-      });
-    },
-    isOpen: () => open,
+    run: motore.run,
+    isOpen: motore.isOpen,
     esito(detail) {
       const n = (k: string) => (typeof detail[k] === 'number' ? (detail[k] as number) : 0);
       return `${n('mangiati')} bocconi · ${n('punti')} punti${n('rubati') ? ` · ${n('rubati')} rubati` : ''}`;
