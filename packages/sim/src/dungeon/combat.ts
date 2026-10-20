@@ -4,7 +4,7 @@ import type { SkillId, Traits } from '@marea/content/rpg.ts';
 import type { RunArmor } from '../rpg/types.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { add, conEroe, ev, nuovoBottino, secToTicks } from './state.ts';
-import { rollLoot } from './loot.ts';
+import { rollLoot } from './tiri.ts';
 import { moveCircle } from './map.ts';
 import { risveglio } from './altari.ts';
 import { grigliaDi, schermato } from './muove.ts';

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { DUNGEONS, enemyDef } from '@marea/content/rpg.ts';
 import { dungeon } from '../src/dungeon/dungeon.ts';
 import { kill } from '../src/dungeon/combat.ts';
-import { lootTable } from '../src/dungeon/loot.ts';
+import { lootTable } from '../src/dungeon/tiri.ts';
 import { itemDef } from '../src/rpg/items.ts';
 import { heroBase } from './dungeon_util.ts';
 

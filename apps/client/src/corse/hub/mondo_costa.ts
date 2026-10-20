@@ -1,6 +1,6 @@
 // La costa dell'hub delle Corse per la minimappa (#185): il contorno più lungo a quota del mare sulla griglia del terreno.
 import type { V2 } from './mondo_base.ts';
-import { MARE, NC, PASSO, X0, Z0 } from './mondo_terreno.ts';
+import { MARE, NC, PASSO, X0, Z0 } from './mondo_base.ts';
 
 export /** La costa per la minimappa: il contorno più lungo a quota del mare (marching squares sulla griglia, poi un punto ogni ~6 m). */
 function costaPrincipale(H: Float32Array): V2[] {
