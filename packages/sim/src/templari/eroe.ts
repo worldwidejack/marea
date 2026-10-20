@@ -16,6 +16,7 @@ import type { TInput, TPrompt } from './types.ts';
 import type { Slot, TState, Zombie } from './stato.ts';
 import { HOLD_TICKS, armaDi, armaIn, classeDi, ev, fiatoMax, haPozione, pozioneDef, secToTicks, slotDi, slotIn } from './stato.ts';
 import { usaSuper } from './super.ts';
+import { calmo } from './fantasmi.ts';
 import { chiVicino, prezzoMunizioni } from './bottega.ts';
 import { accendi, colpisci, dai, spendi } from './colpi.ts';
 import { setFinestra } from './mappa.ts';
@@ -27,6 +28,8 @@ import { acceso, fuocoPer, fuocoVicino, lavora, lavoroK, pezziPresi, pezziTutti,
 import { campanellaVicina, fendenteMuro, haLancia, lanciaLibera, nomeLancia, scalaEroe, scheletroVicino, suonaCampanella, teschioVicino, vicinoAltareCripta } from './segreti.ts';
 
 const vivi = (s: TState): Zombie[] => s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge');
+/** Quelli che la mira assistita e AUTO cercano: non i fantasmi calmi (§12b punto 5), che si colpiscono solo apposta. */
+const bersagli = (s: TState): Zombie[] => vivi(s).filter((z) => !calmo(z));
 const ANIM_TIRO = Math.round(0.25 * 60), ANIM_LANCIO = Math.round(0.35 * 60);
 /** Mira a distanza: aiuta solo dentro un cono di ~35° davanti (sennò il colpo va dritto dove guardi). */
 const COS_TIRO = 0.82;
@@ -37,7 +40,7 @@ export const GIRA_SUL_POSTO = 0.3;
 export function mira(s: TState, range: number): Zombie | null {
   const h = s.eroe;
   let best: Zombie | null = null, bd = Infinity;
-  for (const z of vivi(s)) {
+  for (const z of bersagli(s)) {
     const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz), reach = d - z.def.raggio;
     const dot = d > 1e-6 ? (dx * h.fx + dz * h.fz) / d : 1;
     if (reach <= range && dot >= 0.2 && d < bd) { bd = d; best = z; }
@@ -48,7 +51,7 @@ export function mira(s: TState, range: number): Zombie | null {
 export function miraTiro(s: TState, gittata: number): Zombie | null {
   const h = s.eroe, g = s.gr.percorso;
   let best: Zombie | null = null, bd = Infinity;
-  for (const z of vivi(s)) {
+  for (const z of bersagli(s)) {
     const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
     if (d > gittata || !lineOfSight(g, h.x, h.z, z.x, z.z)) continue;
     const dot = d > 1e-6 ? (dx * h.fx + dz * h.fz) / d : 1;
@@ -65,7 +68,7 @@ function girati(s: TState, dir: Mira): void {
 function vasoLungo(s: TState, dir: readonly [number, number], g: number): number {
   const h = s.eroe;
   let best = g * 0.6, bd = Infinity;
-  for (const z of vivi(s)) {
+  for (const z of bersagli(s)) {
     const dx = z.x - h.x, dz = z.z - h.z, lungo = dx * dir[0] + dz * dir[1], lato = dx * dir[1] - dz * dir[0];
     if (lungo <= 0 || lungo > g || lungo >= bd || lato * lato > (z.def.raggio + 0.8) * (z.def.raggio + 0.8)) continue;
     if (!lineOfSight(s.gr.percorso, h.x, h.z, z.x, z.z)) continue;
@@ -84,7 +87,7 @@ export function aPortata(s: TState): boolean {
   const a = armaIn(s);
   if (a.tipo !== 'mischia' || s.eroe.inMano) return false;
   const h = s.eroe, p = (a.portata ?? 1.5) + TEMPLARI.eroe.raggio * 0.5;
-  for (const z of vivi(s)) {
+  for (const z of bersagli(s)) {
     const dx = z.x - h.x, dz = z.z - h.z, r = p + z.def.raggio;
     if (dx * dx + dz * dz <= r * r) return true;
   }
