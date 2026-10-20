@@ -1,4 +1,4 @@
-// Banco di prova della Difesa a corsie alla Plants vs Zombies (#358, #379): provadifesa.html, pagina a parte, il gioco non cambia
+// La Difesa a corsie alla Plants vs Zombies: difesa.html, pagina a parte; si apre da sola o dal cancello dell'isola (?mondo=1)
 // (docs/DIFESA.md). Sim pura in @marea/sim/difesa (60 Hz fissi); qui la resa su canvas 2D (disegna.ts) con la pelle scelta (skin.ts: di
 // serie «L'orto», animata a fotogrammi, pose.ts), gli effetti, i suoni e l'interfaccia in HTML (ui.ts). Si tocca la carta e poi la casella (o si trascina la carta sulla casella); si toccano le
 // monete per raccoglierle. PC: 1-6 carte, E pala, Spazio pausa, F veloce, T pilota automatico, M muto, R ricomincia, Esc annulla.

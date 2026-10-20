@@ -17,7 +17,7 @@
 | `adrenalina/` | snowboard dell'Adrenalina (chunk dalla funivia) | B |
 | `templari/` | partita a ondate dei Templari (chunk entrando in chiesa) | B |
 | `rpg/` | dungeon, eroe, forgia, alchimia, contrabbando; duello dell'Arena | R |
-| `difesa/` | Difesa alla Plants vs Zombies: `provadifesa.html`, che si apre anche dal cancello dell'isola | J |
+| `difesa/` | Difesa alla Plants vs Zombies: `difesa.html`, che si apre anche dal cancello dell'isola | J |
 | `sparo/` | banco dello sparatutto a missioni (`provasparo.html`) | J |
 | `prova3d/`, `provapixel/` | banchi delle prove di stile | J |
 | `test/` | `window.__game` per i test (hook solo con `?test=1`) | tutti |

@@ -1,4 +1,4 @@
-// La Difesa a corsie alla Plants vs Zombies (banco provadifesa.html, #358; docs/DIFESA.md): stato della partita, comandi, eventi.
+// La Difesa a corsie alla Plants vs Zombies (difesa.html, #358; docs/DIFESA.md): stato della partita, comandi, eventi.
 // Tutto serializzabile (anche il caso: un intero, mulberry32), così l'hash dello stato dice se due partite sono uguali e un giorno il
 // server potrà rigiocarle. Unità: caselle per x (0 = bordo sinistro del campo, la casella c va da c a c+1, 9 = bordo destro) e corsie
 // (0 in alto); i tempi in tick (TICK_HZ al secondo). Solo + − × ÷ (check_static).

@@ -1,7 +1,7 @@
-# MAREA — Difesa a corsie (bibbia corta, banco di prova)
+# MAREA — Difesa a corsie (bibbia corta)
 
 > Format ripreso da Jack il 16 ott 2026 (issue #358): «qualcosa come Plants vs Zombies». Il documento della Difesa; `VISIONE.md` §3
-> rimanda qui. Oggi esiste solo il **banco di prova** `provadifesa.html`: il gioco non cambia. Numeri in
+> rimanda qui. La pagina è `difesa.html`: si apre da sola o dal cancello dell'isola (§6). Numeri in
 > `packages/content/src/difesa.json`, con due profili: `pvz` (l'originale, per verificare che la sim faccia le stesse cose) e `marea` (i
 > nostri, che si tarano con lo strumento di bilanciamento e con Jack).
 
@@ -157,7 +157,7 @@ rilancia, si guarda la tabella).
   distratto), velocità, suoni, livelli tutti aperti, ricomincia, scegli il livello.
 - Medaglia a fine livello: oro senza tosaerba usati, argento con uno, bronzo con di più. Livelli sbloccati, medaglie e record restano
   nel telefono (localStorage).
-- Indirizzo: `provadifesa.html?livello=1..6|s&stile=<pelle>&profilo=pvz|marea&auto=bravo&veloce=2&raccolta=1&seme=N`.
+- Indirizzo: `difesa.html?livello=1..6|s&stile=<pelle>&profilo=pvz|marea&auto=bravo&veloce=2&raccolta=1&seme=N`.
 
 ## 5. Regole per chi ci lavora
 - La sim sta in `packages/sim/src/difesa/` ed è pura come il resto (`check_static`): il caso è un intero nello stato (mulberry32), tempi
@@ -171,7 +171,7 @@ rilancia, si guarda la tabella).
   modifica della posa base, poi stessa scala e allineamento: `tools/difesa_pelle.py` dal manifest `assets/concept/difesa/orto/manifest.json`),
   19 suoni ElevenLabs. Le pelli stanno in `apps/client/public/assets/difesa/<id>/` (budget a parte nella build: `difesaAssetsMB`; l'orto
   1,2 MB su 4). La pelle segnaposto da codice resta con `?stile=segnaposto`.
-- Test: `node --test packages/sim/test/difesa.test.ts` (sim) e `node tests/run.mjs m4_provadifesa` (banco).
+- Test: `node --test packages/sim/test/difesa.test.ts` (sim) e `node tests/run.mjs m4_difesa` (banco).
 
 ## 6. L'isola della Difesa (18 ott 2026, #395)
 Jack: «costruire l'isola tower defense in cui mettere il nostro Plants vs Zombies ed altro in futuro». L'isola `difesa` sta a ovest del
@@ -183,7 +183,7 @@ Corse): terra battuta, prato, riva di sassi.
   il **mulino a vento** a nord-est che si vede dal mare, spaventapasseri, carriola, cassette di verdura. Il resto dell'isola è prato
   libero per i mondi dopo (spiaggia, cucina, cameretta… dal foglio delle prove di Codex).
 - **Si gioca dal cancello.** Vicino all'arco (≤ 4 m) **DIFENDI L'ORTO** (o A) apre il gioco sopra il mondo: la stessa pagina del banco
-  (`provadifesa.html?mondo=1`) in un riquadro a tutto schermo; intanto il mondo sta fermo e non si disegna (`main.ts` salta il frame).
+  (`difesa.html?mondo=1`) in un riquadro a tutto schermo; intanto il mondo sta fermo e non si disegna (`main.ts` salta il frame).
   Si torna al cancello con **✕ ISOLA** (in basso a sinistra), con Esc fuori dal riquadro o dal gioco stesso (messaggio
   `marea:difesa:esci` alla pagina madre). Telefono in orizzontale come sul banco.
 - Livelli sbloccati, medaglie e record per ora restano nel browser (`localStorage` `marea.difesa`, gli stessi del banco): il salvataggio

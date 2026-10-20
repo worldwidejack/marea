@@ -1,4 +1,4 @@
-// La Difesa a corsie alla Plants vs Zombies (banco provadifesa.html, #358; src/difesa/, docs/DIFESA.md). Cosa si controlla:
+// La Difesa a corsie alla Plants vs Zombies (difesa.html, #358; src/difesa/, docs/DIFESA.md). Cosa si controlla:
 // - è deterministica: stesso seme e stesse mosse, stessa partita (hash dello stato uguale);
 // - col profilo `pvz` fa le stesse cose dell'originale: 10 colpi per il nemico base, 28 per il cono, 65 per il secchio; un nemico mangia
 //   il muro in 40 s; il produttore dà la prima moneta in 3-12,5 s e poi ogni 23,5-25 s; il budget delle ondate è ondata ÷ 3 + 1 e

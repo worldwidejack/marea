@@ -1,4 +1,4 @@
-// @marea/content/difesa.ts: numeri della Difesa a corsie alla Plants vs Zombies (banco provadifesa.html, #358; docs/DIFESA.md). Entry
+// @marea/content/difesa.ts: numeri della Difesa a corsie alla Plants vs Zombies (difesa.html, #358; docs/DIFESA.md). Entry
 // separata come sparo.ts: la caricano solo il chunk della Difesa (apps/client/src/difesa/**), la sim (packages/sim/src/difesa/), i test e
 // tools/difesa_bilancio.mjs. Unità: caselle (larghe 1) e corsie, secondi; i passi in caselle al secondo.
 // Due profili: `pvz` = i numeri dell'originale ricavati dal codice (DIFESA.md §2), `marea` = solo quello che cambiamo noi (si fonde su pvz).

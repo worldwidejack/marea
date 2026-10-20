@@ -105,7 +105,7 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   const assetsBytes = files.filter((f) => f.startsWith('assets/')).reduce((a, f) => a + size(f), 0);
 
   // --- texture in VRAM (stima: w×h×4, senza mipmap) ---
-  // le pelli della Difesa (#358) le carica solo il banco provadifesa.html, una alla volta: budget a parte (difesaAssetsMB)
+  // le pelli della Difesa (#358) le carica solo difesa.html, una alla volta: budget a parte (difesaAssetsMB)
   const difesaAssetsBytes = files.filter((f) => f.startsWith('assets/difesa/')).reduce((a, f) => a + size(f), 0);
   const pngs = files.filter((f) => f.endsWith('.png') && !f.startsWith('assets/difesa/'));
   const textures = pngs.map((f) => { const s = pngSize(path.join(outDir, f)); return s ? { file: f, w: s.w, h: s.h, bytes: s.w * s.h * 4 } : null; }).filter(Boolean);
