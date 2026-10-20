@@ -47,7 +47,8 @@ export default async function (ctx) {
     const e0 = (await ctx.getState(page)).templari.eroe;
     assert(e0.classe === 'crociato' && e0.vita === 150, `eroe: ${JSON.stringify(e0)}`);
     await ctx.waitState(page, (st) => st.templari.eroe.vestito === 'tpl_crociato', 15000);
-    assert(await page.isVisible('#mzTplSuper'), 'bottone SUPER assente');
+    // il bottone arriva col primo fotogramma dopo «gioca»: su GitHub il primo disegno della chiesa blocca la pagina qualche secondo
+    await page.waitForSelector('#mzTplSuper.on', { timeout: 15000 }).catch(() => { throw new Error('bottone SUPER assente'); });
     const st = await ctx.getState(page);
     // le assi disegnate sono quelle della sim; il tetto copre il primo disegno della chiesa, che appena dopo «gioca» blocca la pagina
     // 5-6 s su SwiftShader in locale (di più su GitHub): misurato il 9/10 (#171), prima era 5 s e cadeva se il test arrivava prima del blocco
