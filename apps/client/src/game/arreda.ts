@@ -37,7 +37,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
   const lotDef = o.slot !== null ? arch.lots.find((l) => l.slot === o.slot) ?? null : null;
   const ox = lotDef ? lotDef.origin[0] * T : 0, oz = lotDef ? lotDef.origin[1] * T : 0;
   injectKit();
-  const btn = fermaTocchi(el('button', 'mk-pill', 'ARREDA')); btn.id = 'mzArredaBtn'; btn.type = 'button'; o.root.appendChild(btn);
+  const btn = fermaTocchi(el('button', 'mk-btn mk-pill', 'Arreda')); btn.id = 'mzArredaBtn'; btn.type = 'button'; o.root.appendChild(btn);
   const bar = fermaTocchi(el('div', 'mk-barra')); bar.id = 'mzArredaBar'; o.root.appendChild(bar);
   const sheet = veloKit(o.root, 'mzArreda');
   sheet.addEventListener('click', (e) => { if (e.target === sheet) chiudi(); }); // un tocco fuori dalla carta chiude
@@ -154,12 +154,12 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     aperto = true;
     const fila = el('div', 'mk-fila');
     if (v.kind === 'baule') {
-      fila.append(bottoneKit('Apri', () => { chiudi(); o.apriBaule?.(); }), bottoneKit('Sposta', () => inizia({ kind: 'baule' }), 'blu'), bottoneKit('Gira', () => void fai(() => o.api!.casa('baule', {})), 'blu'));
+      fila.append(bottoneKit('Apri', () => { chiudi(); o.apriBaule?.(); }), bottoneKit('Sposta', () => inizia({ kind: 'baule' }), 'carta'), bottoneKit('Gira', () => void fai(() => o.api!.casa('baule', {})), 'carta'));
     } else {
       const a = v.a, d = v.def;
       fila.append(bottoneKit('Sposta', () => inizia({ kind: 'sposta', id: a.id, mobile: d, rot: a.rot ?? 0 })));
-      if (!a.muro) fila.append(bottoneKit('Gira', () => void fai(() => o.api!.casa('ruota', { id: a.id })), 'blu'));
-      fila.append(bottoneKit('Metti via', () => void fai(() => o.api!.casa('ritira', { id: a.id }), () => { chiudi(); o.hud.toast(`${d.nome}: nel magazzino`, 1600); }), 'rosso'));
+      if (!a.muro) fila.append(bottoneKit('Gira', () => void fai(() => o.api!.casa('ruota', { id: a.id })), 'carta'));
+      fila.append(bottoneKit('Metti via', () => void fai(() => o.api!.casa('ritira', { id: a.id }), () => { chiudi(); o.hud.toast(`${d.nome}: nel magazzino`, 1600); }), 'carta'));
     }
     const nome = v.kind === 'baule' ? 'Baule' : v.def.nome, colori = v.kind === 'baule' ? BAULE.colori : v.def.colori;
     mostra(nome, null, [rigaKit({ icona: campioneKit(colori), nome, sotto: [v.kind === 'baule' ? 'Il tuo forziere' : 'Cosa ne fai?'] }), fila]);
@@ -193,8 +193,8 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
       const t = el('div', 'mk-cartello', ok ? `${nome}: muoviti e premi A` : `${nome}: qui non ci sta`);
       const r = el('div', 'mk-fila');
       const qui2 = bottoneKit('Qui', () => void conferma()); qui2.disabled = !ok || busy; r.append(qui2);
-      if (modo.kind === 'posa' && modo.mobile.posto === 'terra') r.append(bottoneKit('Gira', () => { if (modo?.kind === 'posa') { modo.rot = (modo.rot + 1) % 4; prevKey = ''; } }, 'blu'));
-      r.append(bottoneKit('Annulla', fine, 'rosso'));
+      if (modo.kind === 'posa' && modo.mobile.posto === 'terra') r.append(bottoneKit('Gira', () => { if (modo?.kind === 'posa') { modo.rot = (modo.rot + 1) % 4; prevKey = ''; } }, 'carta'));
+      r.append(bottoneKit('Annulla', fine, 'carta'));
       bar.replaceChildren(t, r);
     } else if (vicino) bar.replaceChildren(el('div', 'mk-cartello', `${vicino.kind === 'baule' ? 'Baule' : vicino.def.nome}: A per modificarlo`));
   }
