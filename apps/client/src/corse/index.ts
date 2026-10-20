@@ -37,6 +37,7 @@ import type { IdPorta } from './hub/mappa.ts';
 import { CAMERE, PISTE, creaPannelli, leggiScelta, salvaScelta, veicoloPer } from './hub/pannelli.ts';
 import { creaPalco } from './hub/palco.ts';
 import type { Scelta } from './hub/pannelli.ts';
+import { tieniPremuto } from '../ui/comandi_touch.ts';
 
 const END_WAIT = 300, END_SKIP = 60, END_AMICI = 60 * 45;
 const TELEFONO = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
@@ -104,12 +105,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const gasBtn = el('button', 'mz-gp-gas') as HTMLButtonElement; gasBtn.type = 'button'; gasBtn.id = 'mzGpGas';
   gasBtn.innerHTML = `<i>${ICONA.gas}</i><span>GAS</span>`; // look kart (#276): frecce e scritta, il giallo lo dà stile_kart
-  const gasGiu = new Set<number>();
-  const gasPinta = () => gasBtn.classList.toggle('giu', gasGiu.size > 0);
-  gasBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); gasGiu.add(e.pointerId); try { gasBtn.setPointerCapture(e.pointerId); } catch { /* sintetico */ } gasPinta(); });
-  const gasSu = (e: PointerEvent) => { if (gasGiu.delete(e.pointerId)) gasPinta(); };
-  for (const ev of ['pointerup', 'pointercancel']) { gasBtn.addEventListener(ev, gasSu as EventListener); addEventListener(ev, gasSu as EventListener); }
-  for (const ev of ['touchstart', 'touchmove', 'contextmenu']) gasBtn.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+  const gasDito = tieniPremuto(gasBtn, { classe: 'giu', ferma: true, finestra: true, bloccaTocchi: true });
   o.root.append(gasBtn);
   // ---- USA (gare CON OGGETTI, #250): bottone col dito, Q da tastiera; la sim lo usa allo scatto (bit b) ----
   const usa = creaUsa(o.root);
@@ -226,7 +222,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     const mx = Math.max(-1, Math.min(1, sx / 0.7));
     // USA: Q o il bottone; dall'altra parte (c) con R o, col dito, lo stick verso l'altra parte: senza frenare (#250)
     const b = !!run?.s.oggetti && usa.giu(), c = b && usa.contrario(run!.s.oggetti!.tasche[0]!.ogg, sy, sx);
-    if (dito) return { mx, my: f.b ? -1 : scelta.gasAuto || gasGiu.size > 0 || f.a ? 1 : 0, a: f.a, b, c };
+    if (dito) return { mx, my: f.b ? -1 : scelta.gasAuto || gasDito.giu || f.a ? 1 : 0, a: f.a, b, c };
     const freno = f.b || sy > 0.5, gas = Math.max(0, Math.min(1, -sy / 0.6));
     return { mx, my: freno ? -1 : scelta.gasAuto ? 1 : gas, a: f.a, b, c };
   };
@@ -234,7 +230,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
     const a = document.getElementById('btnA'), b = document.getElementById('btnB');
     if (on) { if (a) { btnA ??= a.textContent; a.innerHTML = `<i>${ICONA.drift}</i><span>DRIFT</span>`; a.style.fontSize = '17px'; } if (b) { btnB ??= b.textContent; b.innerHTML = `<i>${ICONA.freno}</i><span>FRENO</span>`; b.style.fontSize = '13px'; } }
     else {
-      gasGiu.clear(); gasPinta(); if (a && btnA !== null) { a.textContent = btnA; a.style.fontSize = ''; } if (b && btnB !== null) { b.textContent = btnB; b.style.fontSize = ''; } btnA = btnB = null; }
+      gasDito.lascia(); if (a && btnA !== null) { a.textContent = btnA; a.style.fontSize = ''; } if (b && btnB !== null) { b.textContent = btnB; b.style.fontSize = ''; } btnA = btnB = null; }
   };
 
   const g: SchermoGioco = {
@@ -356,7 +352,7 @@ export function createCorse(o: { root: HTMLElement; renderer: Renderer; world: G
   });
   registerTestHook('corseVia', () => { pannelli.via(); return !!pannelli.aperto() || !!run; });
   /** GAS tenuto (col dito il gas è solo sul bottone): true = premuto, false = lasciato. Risponde se il bottone c'è (telefono). */
-  registerTestHook('corseGas', (on) => { if (on) gasGiu.add(-1); else gasGiu.delete(-1); gasPinta(); return dito; });
+  registerTestHook('corseGas', (on) => { gasDito.simula(!!on); return dito; });
   /** Esce: dalla gara (ritirato, si torna nell'hub), se no da pannello e hub insieme (di nuovo nell'arcipelago). */
   registerTestHook('corseEsci', () => { if (run) quitRun(); else { pannelli.chiudi(); esciHub(); } return true; });
   /** Lo stato dell'hub (posizione, quota, velocità, drift, pannello, messaggio…). */

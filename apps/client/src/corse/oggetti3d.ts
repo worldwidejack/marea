@@ -11,6 +11,7 @@ import { nastroDi } from '@marea/sim/corse/pista.ts';
 import type { Pista } from '@marea/sim/corse/pista.ts';
 import { M as Mt, P, merged, painted } from '../render/island_parts.ts';
 import type { SuoniGuida } from './suoni.ts';
+import { tieniPremuto } from '../ui/comandi_touch.ts';
 import { BLOCCO_CIMA, BLOCCO_FIANCO, BUCCIA, CASSA_CIMA, CASSA_FIANCO, COCCO, LATTINA, LIANA, MASSO, PALLA, RAZZO, SALVAGENTE, TRIS, iconaPixel, texturePixel } from './sprite_oggetti.ts';
 
 const MAX = { scatole: 24, trappole: 12, colpi: 16, scudi: 8 };
@@ -61,26 +62,22 @@ export function creaUsa(root: HTMLElement): { giu(): boolean; contrario(ogg: str
   stile();
   const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const b = document.createElement('button'); b.type = 'button'; b.className = 'pp-usa'; b.id = 'ppUsa'; b.textContent = 'USA';
-  const dita = new Set<number>();
   let tasto = false, retro = false;
-  b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); dita.add(e.pointerId); try { b.setPointerCapture(e.pointerId); } catch { /* sintetico */ } b.classList.add('giu'); });
-  const su = (e: PointerEvent) => { if (dita.delete(e.pointerId) && !dita.size) b.classList.remove('giu'); };
-  for (const ev of ['pointerup', 'pointercancel']) { b.addEventListener(ev, su as EventListener); addEventListener(ev, su as EventListener); }
-  for (const ev of ['touchstart', 'touchmove', 'contextmenu']) b.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+  const dita = tieniPremuto(b, { classe: 'giu', ferma: true, finestra: true, bloccaTocchi: true });
   addEventListener('keydown', (e) => { if (e.code === 'KeyQ') tasto = true; else if (e.code === 'KeyR') retro = true; });
   addEventListener('keyup', (e) => { if (e.code === 'KeyQ') tasto = false; else if (e.code === 'KeyR') retro = false; });
-  addEventListener('blur', () => { tasto = retro = false; dita.clear(); });
+  addEventListener('blur', () => { tasto = retro = false; dita.lascia(); });
   root.appendChild(b);
   let testo = '';
   return {
     el: b,
-    giu: () => tasto || retro || dita.size > 0,
+    giu: () => tasto || retro || dita.giu,
     contrario(ogg, sy = 0, sx = 0) {
       if (retro) return true;
-      if (!dito || !dita.size || Math.abs(sy) < 0.6 || Math.abs(sy) < Math.abs(sx)) return false; // stick per lo più su o giù
+      if (!dito || !dita.giu || Math.abs(sy) < 0.6 || Math.abs(sy) < Math.abs(sx)) return false; // stick per lo più su o giù
       return sy > 0 !== dietroDiSerie(ogg);
     },
-    mostra(on) { b.style.display = on && dito ? 'flex' : 'none'; if (!on) { dita.clear(); tasto = retro = false; b.classList.remove('giu'); } },
+    mostra(on) { b.style.display = on && dito ? 'flex' : 'none'; if (!on) { dita.lascia(); tasto = retro = false; } },
     etichetta(t, pronto, ogg = '') {
       const k = `${t}|${ogg}`;
       if (k !== testo) { const i = ogg && img(ogg, 34); if (i) b.innerHTML = `${i}<span>${t}</span>`; else b.textContent = t || 'USA'; testo = k; }
