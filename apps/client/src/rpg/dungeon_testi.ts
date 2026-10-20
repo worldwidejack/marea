@@ -11,6 +11,7 @@ import type { DungeonTesti } from '@marea/content/rpg.ts';
 import { M, merged, painted } from '../render/island_parts.ts';
 import { suona } from '../audio/ponte.ts';
 import { PAL, el } from '../ui/style.ts';
+import { tieniPremuto } from '../ui/comandi_touch.ts';
 import { itemIcon } from './items_ui.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
 
@@ -179,11 +180,8 @@ export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas
   };
   const chiudiLettura = () => { if (!aperta) return; aperta = null; pan.classList.remove('on'); voce.style.visibility = ''; vicSig = ''; suona('chiudi'); };
   chiudi.addEventListener('click', chiudiLettura);
-  const held = new Set<number>();
-  leggi.addEventListener('pointerdown', (e) => { e.preventDefault(); held.add(e.pointerId); giu = true; try { leggi.setPointerCapture(e.pointerId); } catch { /* sintetico */ } });
-  const su = (e: PointerEvent) => { held.delete(e.pointerId); giu = held.size > 0; };
-  leggi.addEventListener('pointerup', su); leggi.addEventListener('pointercancel', su);
-  leggi.addEventListener('contextmenu', (e) => e.preventDefault());
+  // `giu` a parte: aprire la lettura lo spegne anche col dito ancora giù
+  const tLeggi = tieniPremuto(leggi, { premi: () => (giu = true), cambia: (g) => { if (!g) giu = false; } });
   const kd = (e: KeyboardEvent) => {
     if (aperta && (e.code === 'Escape' || (e.code === 'KeyL' && !e.repeat))) { e.preventDefault(); e.stopImmediatePropagation(); chiudiLettura(); return; }
     if (ora) {
@@ -193,7 +191,7 @@ export function createTesti(o: { root: HTMLElement; camera: THREE.Camera; canvas
     if (e.code === 'KeyL' && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); if (!e.repeat) tasto = true; }
   };
   const ku = (e: KeyboardEvent) => { if (e.code === 'KeyL') tasto = false; };
-  const blur = () => { tasto = false; giu = false; held.clear(); };
+  const blur = () => { tasto = false; giu = false; tLeggi.lascia(); };
   addEventListener('keydown', kd, true); addEventListener('keyup', ku, true); addEventListener('blur', blur);
 
   const v3 = new THREE.Vector3();

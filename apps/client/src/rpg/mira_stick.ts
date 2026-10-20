@@ -6,6 +6,7 @@
 import { aimDir, aimIndex } from '@marea/sim/dungeon/mira.ts';
 import { screenToWorld } from '../game/input.ts';
 import { PAL, el } from '../ui/style.ts';
+import { pomello } from '../ui/comandi_touch.ts';
 
 const MIRA = 108, KNOB = 44, MIRA_R = 36, MIRA_DEAD = 0.3, TAP_MS = 350; // px: anello, pomello, corsa del pomello; zona morta (frazione della corsa); durata massima di un tap
 const RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', SAFE = 'env(safe-area-inset-bottom, 0px)';
@@ -53,7 +54,7 @@ export function createMiraStick(o: { id: string; yaw(): number; blocked(): boole
   const paint = (x: number, y: number) => { knob.style.transform = `translate(${x * MIRA_R}px, ${y * MIRA_R}px)`; aim.classList.toggle('tieni', held); };
   const move = (e: PointerEvent) => {
     const r = aim.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-    const d = Math.sqrt(dx * dx + dy * dy), k = d > MIRA_R ? MIRA_R / d : 1, jx = (dx * k) / MIRA_R, jy = (dy * k) / MIRA_R, len = d * k / MIRA_R;
+    const { x: jx, y: jy, len } = pomello(dx, dy, MIRA_R);
     if (len > MIRA_DEAD) held = true;
     if (held && len > 0.12) { const w = screenToWorld(jx, jy, o.yaw()); m = aimIndex(w.mx, w.my) || m; forza = len; }
     paint(jx, jy);

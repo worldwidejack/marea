@@ -6,6 +6,7 @@
 // Latch: un tocco più breve di un tick arriva comunque alla sim. Con la pausa o la domanda aperta la partita è ferma (nessun tick); con la
 // scheda aperta (blocked) i tasti sono suoi. Insieme (#118) la partita non si ferma mai: la Pausa diventa un menu.
 import { PAL, el } from '../ui/style.ts';
+import { tieniPremuto } from '../ui/comandi_touch.ts';
 import { createMiraStick } from './mira_stick.ts';
 
 export type LanternaUi = { salvatoQui: boolean; oggetti: number; monete: number };
@@ -99,7 +100,7 @@ const CSS = `
 export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; onMagia(id: string): void; blocked(): boolean; yaw(): number; insieme?: boolean; valvola?: string; timone?: string }): Controls {
   if (!document.getElementById('mz-dng-ctrl-style')) { const st = document.createElement('style'); st.id = 'mz-dng-ctrl-style'; st.textContent = CSS; document.head.appendChild(st); }
   let cLatch = false, dLatch = false, eLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
-  const cHeld = new Set<number>(), dHeld = new Set<number>(), eHeld = new Set<number>(), keys = new Set<string>();
+  const keys = new Set<string>();
   const mkBtn = (cls: string, key: string, label: string) => {
     const b = el('div', `mz mz-dng-btn ${cls}`); b.id = cls === 'c' ? 'btnC' : cls === 'e' ? 'btnE' : 'btnD';
     const cd = el('div', 'cd'), ico = el('span', 'ico'), sm = el('small', '', `${label} · ${key}`);
@@ -111,13 +112,9 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   // menù rapido delle magie (solo con la magia in mano): un chip per magia, tocco o tasto 1-9
   const sp = el('div', 'mz mz-dng-sp'); sp.id = 'mzDngMagie';
   let spIds: string[] = [], spSig = '';
-  const wire = (b: HTMLElement, held: Set<number>, latch: () => void) => {
-    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); held.add(e.pointerId); latch(); b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch { /* sintetico */ } });
-    const up = (e: PointerEvent) => { held.delete(e.pointerId); if (!held.size) b.classList.remove('on'); };
-    b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
-    b.addEventListener('contextmenu', (e) => e.preventDefault());
-  };
-  wire(C.b, cHeld, () => (cLatch = true)); wire(D.b, dHeld, () => (dLatch = true)); wire(E.b, eHeld, () => (eLatch = true));
+  const tC = tieniPremuto(C.b, { premi: () => (cLatch = true), classe: 'on', ferma: true });
+  const tD = tieniPremuto(D.b, { premi: () => (dLatch = true), classe: 'on', ferma: true });
+  const tE = tieniPremuto(E.b, { premi: () => (eLatch = true), classe: 'on', ferma: true });
 
   // ---- joystick di mira (telefono, arco o magia in mano): trascini = punti e tiri, lasci = l'arco parte dove puntavi (mira_stick.ts) ----
   const stick = createMiraStick({ id: 'mzDngMira', yaw: o.yaw, blocked: () => pausa || asking || o.blocked() });
@@ -198,7 +195,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
   const md = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0 && !pausa && !asking && !o.blocked()) { mouseA = true; aLatch = true; } };
   const mu = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0) mouseA = false; };
-  const blur = () => { keys.clear(); cHeld.clear(); dHeld.clear(); eHeld.clear(); mouseA = false; stick.cancel(); };
+  const blur = () => { keys.clear(); tC.lascia(); tD.lascia(); tE.lascia(); mouseA = false; stick.cancel(); };
   addEventListener('keydown', kd, true); addEventListener('keyup', ku, true);
   o.canvas.addEventListener('pointerdown', md); addEventListener('pointerup', mu); addEventListener('blur', blur);
 
@@ -207,7 +204,7 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
     get paused() { return asking || pausa; },
     sample() {
       const st = stick.sample();
-      const out = { a: aLatch || mouseA || st.held, c: cLatch || cHeld.size > 0 || keys.has('KeyQ'), d: dLatch || dHeld.size > 0 || keys.has('KeyR'), e: eLatch || eHeld.size > 0 || keys.has('KeyE'), m: st.m, tap: st.tap };
+      const out = { a: aLatch || mouseA || st.held, c: cLatch || tC.giu || keys.has('KeyQ'), d: dLatch || tD.giu || keys.has('KeyR'), e: eLatch || tE.giu || keys.has('KeyE'), m: st.m, tap: st.tap };
       aLatch = cLatch = dLatch = eLatch = false;
       return out;
     },
