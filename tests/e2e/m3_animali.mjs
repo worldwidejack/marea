@@ -1,5 +1,5 @@
 // Animali (#67): al Porto ci sono gabbiani, gatti e granchi vicino a chi gioca; un gatto fa le fusa con E (= A) da fermo accanto;
-// un pesce salta; in barca veloce al largo arrivano i delfini; di notte le lucciole. Draw call: con e senza animali (≤ +3) e ≤ 100.
+// un pesce salta; in barca veloce al largo, ogni tanto, i delfini (qui chiamati col gancio `delfini`); di notte le lucciole. Draw call: con e senza animali (≤ +3) e ≤ 100.
 // Screenshot telefono e PC al molo del Porto, fusa, pesce, barca, lucciole, con le impostazioni di serie (?serie=1: camera 22°, contorni, ciclo).
 export const timeout = 480000;
 const MOLO = { x: 265, z: 305 }, ERBA = { x: 241, z: 283 };
@@ -12,6 +12,12 @@ export default async function (ctx) {
     await ctx.waitState(p.page, (s) => !!s.animali && s.animali.gabbiani.tot > 0, 30000).catch((e) => { ctx.noErrors(p, 'avvio degli animali'); throw e; });
     await p.page.evaluate(() => window.__game.test.aspettoPronto());
     await hook(p, 'ciclo', 0.2); await p.page.waitForTimeout(700);
+  };
+  /** I delfini arrivano ogni 20-30 s di navigazione: qui si aspetta la barca veloce al largo e si chiama subito un incontro. */
+  const chiamaDelfini = async (p) => {
+    await ctx.waitState(p.page, (st) => st.boat.speed > 5, 30000).catch(() => {});
+    for (let i = 0; i < 10 && !(await hook(p, 'delfini')); i++) await p.page.waitForTimeout(500);
+    await ctx.waitState(p.page, (st) => st.animali.delfiniFuori >= 1, 20000).catch(() => {});
   };
   /** Draw call e triangoli con gli animali accesi e spenti (stesso punto, stessa camera). */
   const confronto = async (p, nome) => {
@@ -72,7 +78,7 @@ export default async function (ctx) {
     // si parte già al largo (pescaVai): su GitHub (2-4 fps) la barca ci metteva troppo
     await hook(p, 'setMode', 'boat'); await hook(p, 'pescaVai', 'largo'); await hook(p, 'setZoom', 1.0);
     await p.page.keyboard.down('ArrowDown');
-    await ctx.waitState(p.page, (st) => st.animali.delfiniFuori >= 1, 45000).catch(() => {});
+    await chiamaDelfini(p);
     const st = await ctx.getState(p.page);
     await ctx.shot(p.page, 'iphone_barca');
     await p.page.keyboard.up('ArrowDown');
@@ -109,7 +115,7 @@ export default async function (ctx) {
     await hook(d, 'ciclo', 0.2); await hook(d, 'goto', 'porto'); await hook(d, 'setMode', 'boat'); await hook(d, 'pescaVai', 'largo'); await hook(d, 'setZoom', 0.9);
     await d.page.keyboard.down('ArrowDown');
     // il PC in SwiftShader va lento (la sim rallenta sotto i 12 fps): si aspetta che la barca arrivi al largo
-    await ctx.waitState(d.page, (st) => st.animali.delfiniFuori >= 1, 45000).catch(() => {});
+    await chiamaDelfini(d);
     await ctx.shot(d.page, 'desktop_barca');
     const st = await ctx.getState(d.page);
     await d.page.keyboard.up('ArrowDown');
