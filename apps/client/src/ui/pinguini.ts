@@ -1,16 +1,17 @@
 // Pinguini sul ghiaccio: la schermata del minigioco dell'Isola dei Ghiacci (gioco a schermo, scaricato con import() alla prima partita:
 // minigiochi.ts → registraSchermo). Lastra a pixel vista dall'alto sotto l'aurora: trascini un pinguino (o lo tocchi e poi tocchi dove
 // vuoi mandarlo) e scivola finché non sbatte; nelle buche di pesca si tuffa. Tastiera: frecce/WASD muovono il pinguino scelto, Tab o
-// 1-2-3 lo cambiano, R ricomincia, Esc ritira. Fa girare la sim `pinguini` a 60 Hz (accumulatore suo), registra un InputFrame
-// quantizzato per tick e alla fine restituisce packInputs(frames): il punteggio lo decide il server. Solo colori della palette.
+// 1-2-3 lo cambiano, R ricomincia, Esc ritira. Giro a 60 Hz e input per il server: ui/schermo_motore.ts. Solo colori della palette.
 import { MINIGAMES_CFG } from '@marea/content';
-import { PG_DIR, PG_RICOMINCIA, createRng, getMinigame, packInputs, pgMossaFrame, quantize, risolviPinguini, scivola } from '@marea/sim';
-import type { Difficulty, InputFrame, MinigameModule, PackedInputs, PinguiniState, PinguiniView } from '@marea/sim';
+import { PG_DIR, PG_RICOMINCIA, getMinigame, pgMossaFrame, risolviPinguini, scivola } from '@marea/sim';
+import type { InputFrame, MinigameModule, PinguiniState, PinguiniView } from '@marea/sim';
 import type { SchermoGioco } from '../game/minigiochi.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
 import { RGBA, createTela, dith, hash2, tri } from './tela.ts';
 import type { Col } from './tela.ts';
-import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { createMotore } from './schermo_motore.ts';
+import type { Partita } from './schermo_motore.ts';
+import { registerStateProvider } from '../test/testapi.ts';
 import { suona } from '../audio/ponte.ts';
 
 const P = PAL;
@@ -84,15 +85,13 @@ export function createPinguini(o: { root: HTMLElement }): SchermoGioco {
   box.append(head, rule, time, scena, status, row2);
 
   type Game = {
-    s: PinguiniState; frames: InputFrame[]; queue: { p: number; dir: number }[]; reset: boolean; prevA: boolean; prevB: boolean;
-    intro: number; end: number; sel: number; finish(v: PackedInputs | null): void;
+    queue: { p: number; dir: number }[]; reset: boolean; sel: number; esiti: number;
     /** Pinguini tuffati: in che buca (per le teste che spuntano). */
     tuffi: Map<number, number>; idx: number; sbuffi: { x: number; y: number; t: number; acqua: boolean }[]; ultimaVista: number;
     /** Nessuna soluzione da qui (si ricalcola quando cambiano i pinguini): si suggerisce RICOMINCIA. */
     chiave: string; bloccato: boolean;
   };
-  let g: Game | null = null, open = false, auto = false, raf = 0, last = 0, acc = 0, tAnim = 0, view: PinguiniView | null = null;
-  const autoRng = createRng('pinguini-auto');
+  let g: Game | null = null, view: PinguiniView | null = null;
 
   /** Il pinguino si sta ancora muovendo (animazione dell'ultima mossa)? */
   const anim = (v: PinguiniView) => !!v.ultima && v.tick - v.ultima.tick < v.ultima.passi * TPC + (v.ultima.tuffo ? TUFFO : 2);
@@ -107,7 +106,7 @@ export function createPinguini(o: { root: HTMLElement }): SchermoGioco {
     for (const i of vivi(view)) { const q = centro(view.pos[i]!), d = Math.hypot(q.x - px, q.y - 3 - py); if (d < bd) { bd = d; best = i; } }
     return best;
   }
-  const libero = () => !!g && !!view && !auto && g.end < 0 && g.intro <= 0 && view.festa < 0 && !g.queue.length;
+  const libero = () => { const p = motore.partita(); return !!g && !!p && !!view && !motore.auto && p.end < 0 && p.conto <= 0 && view.festa < 0 && !g.queue.length; };
   function manda(p: number, dir: number): void {
     if (!g || !view || !libero()) return;
     g.sel = p;
@@ -141,12 +140,8 @@ export function createPinguini(o: { root: HTMLElement }): SchermoGioco {
     drag = null;
   };
   cv.addEventListener('pointerup', su); cv.addEventListener('pointercancel', su);
-  again.addEventListener('click', () => { if (g && !auto && g.end < 0 && view && view.festa < 0) { g.queue.length = 0; g.reset = true; } });
-  x.addEventListener('click', () => close(null));
-  const onKey = (e: KeyboardEvent) => {
-    if (!open) return;
-    e.stopImmediatePropagation();
-    if (e.code === 'Escape') { e.preventDefault(); close(null); return; }
+  again.addEventListener('click', () => { const p = motore.partita(); if (g && p && !motore.auto && p.end < 0 && view && view.festa < 0) { g.queue.length = 0; g.reset = true; } });
+  const tasto = (e: KeyboardEvent) => {
     if (e.repeat) return;
     if (e.code === 'KeyR') { e.preventDefault(); again.click(); return; }
     if (!g || !view) return;
@@ -158,25 +153,21 @@ export function createPinguini(o: { root: HTMLElement }): SchermoGioco {
     if (d !== undefined) { e.preventDefault(); if (!vv.includes(g.sel)) g.sel = vv[0] ?? 0; manda(g.sel, d); }
   };
 
-  function tick(): void {
-    if (!g) return;
-    if (g.intro > 0) { g.intro--; return; }
-    if (g.end >= 0) { if (++g.end >= END_HOLD) close(packInputs(g.frames)); return; }
-    let f: InputFrame = NO;
-    const v = mod.view(g.s) as PinguiniView;
-    if (auto) f = mod.autopilot(g.s, autoRng);
-    else if (g.reset && !g.prevB) { f = PG_RICOMINCIA; g.reset = false; g.tuffi.clear(); }
-    else if (!g.prevA && !g.prevB && g.queue.length && !anim(v)) { const m = g.queue.shift()!; f = pgMossaFrame(m.p, m.dir); }
-    f = quantize(f); g.prevA = f.a; g.prevB = f.b;
-    const prima = g.s.esiti.length;
-    g.frames.push(f); mod.step(g.s, f);
-    const u = g.s.ultima;
-    if (u && u.tick === g.s.tick) {
+  /** L'input di un tick: RICOMINCIA, o la prossima mossa in coda quando il pinguino di prima ha finito di scivolare. */
+  function input(p: Partita<PinguiniState, Game>, prima: InputFrame): InputFrame {
+    const gm = p.x;
+    if (gm.reset && !prima.b) { gm.reset = false; gm.tuffi.clear(); return PG_RICOMINCIA; }
+    if (!prima.a && !prima.b && gm.queue.length && !anim(mod.view(p.s) as PinguiniView)) { const m = gm.queue.shift()!; return pgMossaFrame(m.p, m.dir); }
+    return NO;
+  }
+  function dopoPasso({ s, x: gm }: Partita<PinguiniState, Game>): void {
+    const u = s.ultima;
+    if (u && u.tick === s.tick) {
       suona('remata');
-      if (u.tuffo) g.tuffi.set(u.p, u.a);
+      if (u.tuffo) gm.tuffi.set(u.p, u.a);
     }
-    if (g.s.esiti.length > prima) suona(g.s.done ? 'arrivo' : 'pesce');
-    if (mod.result(g.s).done) g.end = 0;
+    if (s.esiti.length > gm.esiti) suona(s.done ? 'arrivo' : 'pesce');
+    gm.esiti = s.esiti.length;
   }
 
   // ---------- disegno ----------
@@ -271,7 +262,7 @@ export function createPinguini(o: { root: HTMLElement }): SchermoGioco {
       if (festa || Math.floor(t + p) % 3 === 0) spr(PESCE, q.x + ox + 1, q.y - 1 + bob, MAPPA);
     });
     // il pinguino scelto: frecce gialle dove può andare
-    if (g && !auto && v.festa < 0 && !v.done && inMoto < 0 && v.pos[g.sel] !== undefined && v.pos[g.sel]! >= 0 && Math.floor(t * 3) % 3 !== 0) {
+    if (g && !motore.auto && v.festa < 0 && !v.done && inMoto < 0 && v.pos[g.sel] !== undefined && v.pos[g.sel]! >= 0 && Math.floor(t * 3) % 3 !== 0) {
       const q = centro(v.pos[g.sel]!);
       const l = { lato: L, muro: v.muro, buca: v.buca };
       for (let d = 0; d < 4; d++) {
@@ -315,16 +306,16 @@ export function createPinguini(o: { root: HTMLElement }): SchermoGioco {
       spr(SCIVOLA, cx - 7, cy - 3, map, dir === 3);
       return;
     }
-    const sel = g && g.sel === i && !auto;
+    const sel = g && g.sel === i && !motore.auto;
     rect(cx - 5, cy + 5, 11, 2, sel ? RGBA.giallo : RGBA.pietra); // ombra (gialla sotto quello scelto)
     const righe = Math.round(PINGUINO.length * quanto), salto = view && view.festa >= 0 ? (Math.floor(t * 6 + i) % 2) * -2 : 0;
     spr(PINGUINO.slice(0, righe), cx - 6, cy - 7 + (PINGUINO.length - righe) + salto, map);
     if (quanto < 1) for (let k = 0; k < 5; k++) tela.px(cx - 6 + k * 3, cy + 5 - (k % 2) * 2 - Math.round((1 - quanto) * 3), RGBA.acquaBassa);
   }
 
-  function render(alpha: number): void {
-    if (!g) return;
-    const v = view = mod.view(g.s) as PinguiniView;
+  function render(p: Partita<PinguiniState, Game>, alpha: number, t: number): void {
+    g = p.x;
+    const v = view = mod.view(p.s) as PinguiniView;
     if (v.idx !== g.idx) { g.idx = v.idx; g.tuffi.clear(); g.sel = 0; }
     if (v.mosse === 0 && !v.ultima) g.tuffi.clear();
     if (v.pos[g.sel] === undefined || v.pos[g.sel]! < 0) g.sel = vivi(v)[0] ?? 0;
@@ -337,67 +328,41 @@ export function createPinguini(o: { root: HTMLElement }): SchermoGioco {
     }
     for (const s of g.sbuffi) s.t++;
     g.sbuffi = g.sbuffi.filter((s) => s.t < 18);
-    disegna(v, tAnim, alpha);
+    disegna(v, t, alpha);
     title.textContent = `${CFG.nome} · ${Math.min(v.totale, v.idx + 1)}/${v.totale}`;
     bar.style.width = `${Math.max(0, 100 - (v.ms / v.maxMs) * 100)}%`;
     time.classList.toggle('low', v.maxMs - v.ms < 15_000);
     const key = v.pos.join(',') + ':' + v.idx;
     if (key !== g.chiave) { g.chiave = key; g.bloccato = v.festa < 0 && !v.done && !risolviPinguini({ lato: L, muro: v.muro, buca: v.buca }, v.pos); }
-    const [txt, cls] = g.intro > 0 ? ['Pronti…', ''] : v.done ? (v.timeUp ? ['Tempo!', 'bad'] : ['Tutti a pescare!', 'go'])
+    const [txt, cls] = p.conto > 0 ? ['Pronti…', ''] : v.done ? (v.timeUp ? ['Tempo!', 'bad'] : ['Tutti a pescare!', 'go'])
       : v.festa >= 0 ? ['Bravo! Il prossimo…', 'go'] : g.bloccato && !anim(v) ? ['Incastrati! Tocca RICOMINCIA', 'bad'] : [`Mosse ${v.mosse}`, ''];
     again.classList.toggle('green', g.bloccato);
     if (msg.dataset['t'] !== txt) {
       msg.dataset['t'] = txt; msg.className = 'msg ' + cls; msg.textContent = txt;
-      if (!v.done && v.festa < 0 && g.intro <= 0) msg.appendChild(el('small', '', ` · minimo ${v.ottimo}`));
+      if (!v.done && v.festa < 0 && p.conto <= 0) msg.appendChild(el('small', '', ` · minimo ${v.ottimo}`));
     }
     if (pips.childElementCount !== v.totale || pips.dataset['n'] !== String(v.risolti)) {
       pips.dataset['n'] = String(v.risolti);
       pips.replaceChildren(...Array.from({ length: v.totale }, (_, i) => el('span', i < v.risolti ? 'pip on' : 'pip')));
     }
   }
-  function loop(now: number): void {
-    if (!open) return;
-    const dt = Math.max(0, Math.min(0.25, (now - last) / 1000)); last = now; tAnim += dt; // il primo rAF può avere un orario prima di run()
-    if (auto) { for (let i = 0; i < 6 && open; i++) tick(); acc = 0; } // test: veloce ma con le scivolate che si vedono
-    else { acc += dt; while (acc >= 1 / 60 && open) { acc -= 1 / 60; tick(); } }
-    if (open) { render(auto ? 0 : Math.min(1, acc * 60)); raf = requestAnimationFrame(loop); }
-  }
-  function close(v: PackedInputs | null): void {
-    if (!open) return;
-    open = false; cancelAnimationFrame(raf); wrap.classList.remove('on'); removeEventListener('keydown', onKey, true);
-    drag = null;
-    const done = g; g = null; done?.finish(v);
-  }
+  const motore = createMotore<PinguiniState, Game>({
+    id: 'pinguini', mod, wrap, chiudi: x, endHold: END_HOLD, autoPerFrame: 6, partenza: INTRO, // pilota: veloce ma con le scivolate che si vedono
+    scena: () => ({ queue: [], reset: false, sel: 0, esiti: 0, tuffi: new Map(), idx: 0, sbuffi: [], ultimaVista: -1, chiave: '', bloccato: false }),
+    input, dopoPasso, finita: (s) => mod.result(s).done, render, tasto,
+    alApri() { g = motore.partita()?.x ?? null; view = null; },
+    alChiudi() { drag = null; g = null; },
+  });
 
   registerStateProvider('pinguini', () => ({
-    open, auto, sel: g?.sel ?? -1, frames: g?.frames.length ?? 0, coda: g?.queue.length ?? 0, intro: g?.intro ?? 0,
+    open: motore.isOpen(), auto: motore.auto, sel: g?.sel ?? -1, frames: motore.partita()?.frames.length ?? 0, coda: g?.queue.length ?? 0, intro: motore.partita()?.conto ?? 0,
     view: view && { idx: view.idx, pos: view.pos, mosse: view.mosse, ottimo: view.ottimo, risolti: view.risolti, festa: view.festa, done: view.done, ms: view.ms, tick: view.tick },
     /** Centro di ogni cella in pixel della pagina (per i test che trascinano davvero un pinguino). */
     cella: (() => { const r = cv.getBoundingClientRect(); return { x0: r.left + (BX / W) * r.width, y0: r.top + (BY / H) * r.height, lato: (C / W) * r.width, n: L }; })(),
   }));
-  registerTestHook('pinguiniAuto', (on) => { auto = on !== false; return auto; });
-  /** Test: gioca col pilota fino al tick dato e ferma lì (per gli screenshot a metà partita). */
-  registerTestHook('pinguiniFinoA', (n) => {
-    if (!g) return false;
-    g.intro = 0;
-    const fino = Math.max(1, Math.min(mod.maxTicks - 1, Number(n) || 1));
-    while (g.s.tick < fino && !g.s.done) { const f = quantize(mod.autopilot(g.s, autoRng)); g.prevA = f.a; g.frames.push(f); mod.step(g.s, f); if (g.s.ultima?.tuffo && g.s.ultima.tick === g.s.tick) g.tuffi.set(g.s.ultima.p, g.s.ultima.a); }
-    acc = 0; render(0);
-    return g.s.tick;
-  });
-
   return {
-    run({ seed, difficulty }) {
-      if (open) return Promise.resolve(null);
-      const d = (Math.round(difficulty) >= 1 && Math.round(difficulty) <= 3 ? Math.round(difficulty) : 2) as Difficulty;
-      return new Promise((finish) => {
-        g = { s: mod.create({ seed, difficulty: d }), frames: [], queue: [], reset: false, prevA: false, prevB: false, intro: auto ? 0 : INTRO, end: -1, sel: 0, finish, tuffi: new Map(), idx: 0, sbuffi: [], ultimaVista: -1, chiave: '', bloccato: false };
-        open = true; acc = 0; last = performance.now(); view = null; tAnim = 0;
-        wrap.classList.add('on'); addEventListener('keydown', onKey, true);
-        render(0); raf = requestAnimationFrame(loop);
-      });
-    },
-    isOpen: () => open,
+    run: motore.run,
+    isOpen: motore.isOpen,
     esito: (d) => `${Number(d['risolti'] ?? 0)}/${Number(d['totale'] ?? 3)} livelli · ${Number(d['mosse'] ?? 0)} mosse`,
   };
 }

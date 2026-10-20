@@ -1,14 +1,16 @@
 // Ingorgo al porto: schermata del minigioco (gioco a schermo, scaricato con import() alla prima partita: minigiochi.ts → registraSchermo).
 // Griglia 6×6 vista dall'alto, barchette a pixel ormeggiate; trascini una barca lungo il suo verso (o la tocchi dalla parte dove vuoi che
-// vada: un passo). La rossa esce dal varco a destra. Fa girare la sim `ingorgo` a 60 Hz (accumulatore suo), registra un InputFrame
-// quantizzato per tick e alla fine restituisce packInputs(frames): il punteggio lo decide il server. Esc = ritirati, R = ricomincia.
+// vada: un passo). La rossa esce dal varco a destra. Giro a 60 Hz e input per il server: ui/schermo_motore.ts. Esc = ritirati,
+// R = ricomincia.
 // Solo colori della palette; barche disegnate a pixel in SVG.
 import { MINIGAMES_CFG } from '@marea/content';
-import { LATO, RICOMINCIA, RIGA_USCITA, createRng, getMinigame, limiti, mossaFrame, packInputs, quantize } from '@marea/sim';
-import type { Difficulty, IngorgoView, InputFrame, MinigameModule, Mossa, PackedInputs } from '@marea/sim';
+import { LATO, RICOMINCIA, RIGA_USCITA, getMinigame, limiti, mossaFrame } from '@marea/sim';
+import type { IngorgoView, InputFrame, MinigameModule, Mossa } from '@marea/sim';
 import type { SchermoGioco } from '../game/minigiochi.ts';
 import { PAL, el, injectUiStyle } from './style.ts';
-import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { createMotore } from './schermo_motore.ts';
+import type { Partita } from './schermo_motore.ts';
+import { registerStateProvider } from '../test/testapi.ts';
 
 const P = PAL;
 const CFG = MINIGAMES_CFG.ingorgo;
@@ -17,6 +19,8 @@ const INTRO = 50, END_HOLD = 96; // tick: un attimo prima di partire; esito a sc
 /** Margine della cornice di legno, in % del lato della griglia (la griglia d'acqua sta dentro). */
 const BORDO = 6;
 const IN = 100 - 2 * BORDO;
+/** Lo stato della sim lo legge solo la sim (mod.view): qui serve il tick. */
+type St = { tick: number };
 
 // acqua a pixel: una piastrella per cella, con la riga della griglia in alto e a sinistra e due increspature
 const ACQUA = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect width="16" height="16" fill="${P.acqua}"/><rect width="16" height="1" fill="${P.acquaProfonda}"/><rect width="1" height="16" fill="${P.acquaProfonda}"/><rect x="4" y="5" width="3" height="1" fill="${P.acquaBassa}"/><rect x="10" y="11" width="3" height="1" fill="${P.acquaBassa}"/></svg>`)}")`;
@@ -98,7 +102,7 @@ const ARROW = `<svg viewBox="0 0 8 7" shape-rendering="crispEdges"><path d="M0 2
 export function createIngorgo(o: { root: HTMLElement }): SchermoGioco {
   injectUiStyle();
   if (!document.getElementById('mz-ingorgo-style')) { const st = document.createElement('style'); st.id = 'mz-ingorgo-style'; st.textContent = CSS; document.head.appendChild(st); }
-  const mod = getMinigame('ingorgo') as MinigameModule<unknown>;
+  const mod = getMinigame('ingorgo') as MinigameModule<St>;
   const wrap = el('div', 'mz mz-ig'); wrap.id = 'mzIngorgo';
   const box = el('div', 'mz-ig-box'); wrap.appendChild(box);
   for (const ev of ['pointerdown', 'touchstart', 'wheel']) wrap.addEventListener(ev, (x) => x.stopPropagation());
@@ -123,11 +127,10 @@ export function createIngorgo(o: { root: HTMLElement }): SchermoGioco {
   const row2 = el('div', 'row2'); row2.append(again, goal);
   box.append(head, rule, time, board, status, row2);
 
-  type Game = { s: unknown; frames: InputFrame[]; queue: Mossa[]; reset: boolean; prevA: boolean; prevB: boolean; intro: number; end: number; finish(v: PackedInputs | null): void };
-  let g: Game | null = null, open = false, auto = false, raf = 0, last = 0, acc = 0, view: IngorgoView | null = null, idxDrawn = -1;
+  type Game = { queue: Mossa[]; reset: boolean };
+  let g: Game | null = null, view: IngorgoView | null = null, idxDrawn = -1;
   let els: HTMLButtonElement[] = [];
   let drag: { i: number; h: boolean; start: number; cell: number; lo: number; hi: number; off: number; along: number; len: number; pid: number } | null = null;
-  const autoRng = createRng('ingorgo-auto');
 
   /** Barche (ri)costruite a ogni ingorgo nuovo: un bottone per barca, SVG a pixel dentro. */
   function build(v: IngorgoView): void {
@@ -146,7 +149,8 @@ export function createIngorgo(o: { root: HTMLElement }): SchermoGioco {
   const pending = (i: number) => g?.queue.reduce((a, m) => a + (m.barca === i ? m.delta : 0), 0) ?? 0;
   function grab(ev: PointerEvent, i: number): void {
     ev.preventDefault();
-    if (!g || !view || auto || g.end >= 0 || g.intro > 0 || view.uscita >= 0 || g.queue.length) return;
+    const p = motore.partita();
+    if (!g || !p || !view || motore.auto || p.end >= 0 || p.conto > 0 || view.uscita >= 0 || g.queue.length) return;
     const b = view.barche[i]!, [lo, hi] = limiti(view.barche, i);
     const r = water.getBoundingClientRect(), cell = (b.h ? r.width : r.height) / LATO;
     const p0 = b.h ? r.left + b.x * cell : r.top + b.y * cell;
@@ -171,35 +175,22 @@ export function createIngorgo(o: { root: HTMLElement }): SchermoGioco {
   board.addEventListener('pointermove', onMove);
   board.addEventListener('pointerup', onUp);
   board.addEventListener('pointercancel', onUp);
-  again.addEventListener('click', () => { if (g && !auto && g.end < 0) { g.queue.length = 0; g.reset = true; } });
-  x.addEventListener('click', () => close(null));
-  const onKey = (e: KeyboardEvent) => {
-    if (!open) return;
-    e.stopImmediatePropagation();
-    if (e.code === 'Escape') { e.preventDefault(); close(null); }
-    else if (e.code === 'KeyR' && !e.repeat) { e.preventDefault(); again.click(); }
-  };
+  again.addEventListener('click', () => { const p = motore.partita(); if (g && p && !motore.auto && p.end < 0) { g.queue.length = 0; g.reset = true; } });
 
-  function tick(): void {
-    if (!g) return;
-    if (g.intro > 0) { g.intro--; return; }
-    if (g.end >= 0) { if (++g.end >= END_HOLD) close(packInputs(g.frames)); return; }
-    let f: InputFrame = NO;
-    if (auto) f = mod.autopilot(g.s, autoRng);
-    else if (g.reset && !g.prevB) { f = RICOMINCIA; g.reset = false; }
-    else if (!g.prevA && !g.prevB && g.queue.length) { const m = g.queue.shift()!; f = mossaFrame(m.barca, m.delta); }
-    f = quantize(f); g.prevA = f.a; g.prevB = f.b;
-    g.frames.push(f); mod.step(g.s, f);
-    if (mod.result(g.s).done) g.end = 0;
+  /** L'input di un tick: RICOMINCIA, o la prossima mossa in coda (un fronte alla volta). */
+  function input({ x: gm }: Partita<St, Game>, prima: InputFrame): InputFrame {
+    if (gm.reset && !prima.b) { gm.reset = false; return RICOMINCIA; }
+    if (!prima.a && !prima.b && gm.queue.length) { const m = gm.queue.shift()!; return mossaFrame(m.barca, m.delta); }
+    return NO;
   }
-  function render(): void {
-    if (!g) return;
-    const v = view = mod.view(g.s) as IngorgoView;
+  function render(p: Partita<St, Game>): void {
+    g = p.x;
+    const v = view = mod.view(p.s) as IngorgoView;
     if (v.idx !== idxDrawn) build(v);
     title.textContent = `${CFG.nome} · ${Math.min(v.totale, v.idx + 1)}/${v.totale}`;
     bar.style.width = `${Math.max(0, 100 - (v.ms / v.maxMs) * 100)}%`;
     time.classList.toggle('low', v.maxMs - v.ms < 15_000);
-    const fuori = v.uscita >= 0 ? v.uscita : v.done && !v.timeUp ? Math.min(1, (g.end + 1) / 40) : -1; // la rossa scivola fuori dal varco
+    const fuori = v.uscita >= 0 ? v.uscita : v.done && !v.timeUp ? Math.min(1, (p.end + 1) / 40) : -1; // la rossa scivola fuori dal varco
     v.barche.forEach((b, i) => {
       const e = els[i]; if (!e) return;
       let px = b.x, py = b.y;
@@ -211,51 +202,36 @@ export function createIngorgo(o: { root: HTMLElement }): SchermoGioco {
       const [lo, hi] = limiti(v.barche, i);
       e.classList.toggle('can', lo < 0 || hi > 0);
     });
-    const [txt, cls] = g.intro > 0 ? ['Pronti…', ''] : v.done ? (v.timeUp ? ['Tempo!', 'bad'] : ['Tutti liberi!', 'go'])
+    const [txt, cls] = p.conto > 0 ? ['Pronti…', ''] : v.done ? (v.timeUp ? ['Tempo!', 'bad'] : ['Tutti liberi!', 'go'])
       : v.uscita >= 0 ? ['Libera! Il prossimo…', 'go'] : [`Mosse ${v.mosse}`, ''];
     if (msg.dataset['t'] !== txt) {
       msg.dataset['t'] = txt; msg.className = 'msg ' + cls; msg.textContent = txt;
-      if (!v.done && v.uscita < 0 && g.intro <= 0) msg.appendChild(el('small', '', ` · minimo ${v.ottimo}`));
+      if (!v.done && v.uscita < 0 && p.conto <= 0) msg.appendChild(el('small', '', ` · minimo ${v.ottimo}`));
     }
     if (pips.childElementCount !== v.totale || pips.dataset['n'] !== String(v.risolti)) {
       pips.dataset['n'] = String(v.risolti);
       pips.replaceChildren(...Array.from({ length: v.totale }, (_, i) => el('span', i < v.risolti ? 'pip on' : 'pip')));
     }
   }
-  function loop(now: number): void {
-    if (!open) return;
-    const dt = Math.max(0, Math.min(0.25, (now - last) / 1000)); last = now; // il primo rAF può avere un orario prima di run()
-    if (auto) for (let i = 0; i < 120 && open; i++) tick(); // test: una partita intera in pochi secondi
-    else { acc += dt; while (acc >= 1 / 60 && open) { acc -= 1 / 60; tick(); } }
-    if (open) { render(); raf = requestAnimationFrame(loop); }
-  }
-  function close(v: PackedInputs | null): void {
-    if (!open) return;
-    open = false; cancelAnimationFrame(raf); wrap.classList.remove('on'); removeEventListener('keydown', onKey, true);
-    if (drag) { els[drag.i]?.classList.remove('drag'); drag = null; }
-    const done = g; g = null; done?.finish(v);
-  }
+  const motore = createMotore<St, Game>({
+    id: 'ingorgo', mod, wrap, chiudi: x, endHold: END_HOLD, autoPerFrame: 120, partenza: INTRO, // pilota: una partita intera in pochi secondi
+    scena: () => ({ queue: [], reset: false }),
+    input, finita: (s) => mod.result(s).done, render,
+    tasto(e) { if (e.code === 'KeyR' && !e.repeat) { e.preventDefault(); again.click(); } },
+    alApri() { g = motore.partita()?.x ?? null; view = null; idxDrawn = -1; },
+    alChiudi() { if (drag) { els[drag.i]?.classList.remove('drag'); drag = null; } g = null; },
+  });
 
   registerStateProvider('ingorgo', () => ({
-    open, auto, view,
+    open: motore.isOpen(), auto: motore.auto, view,
     /** Mosse possibili adesso (per i test che trascinano davvero una barca). */
     possibili: view && g ? view.barche.flatMap((_, i) => { const [lo, hi] = limiti(view!.barche, i); return [...(lo < 0 ? [{ barca: i, delta: lo }] : []), ...(hi > 0 ? [{ barca: i, delta: hi }] : [])]; }) : [],
-    frames: g?.frames.length ?? 0,
+    frames: motore.partita()?.frames.length ?? 0,
   }));
-  registerTestHook('ingorgoAuto', (on) => { auto = on !== false; return auto; });
 
   return {
-    run({ seed, difficulty }) {
-      if (open) return Promise.resolve(null);
-      const d = (Math.round(difficulty) >= 1 && Math.round(difficulty) <= 3 ? Math.round(difficulty) : 2) as Difficulty;
-      return new Promise((finish) => {
-        g = { s: mod.create({ seed, difficulty: d }), frames: [], queue: [], reset: false, prevA: false, prevB: false, intro: auto ? 0 : INTRO, end: -1, finish };
-        open = true; acc = 0; last = performance.now(); view = null; idxDrawn = -1;
-        wrap.classList.add('on'); addEventListener('keydown', onKey, true);
-        render(); raf = requestAnimationFrame(loop);
-      });
-    },
-    isOpen: () => open,
+    run: motore.run,
+    isOpen: motore.isOpen,
     esito: (d) => `${Number(d['risolti'] ?? 0)}/${Number(d['totale'] ?? 3)} ingorghi · ${Number(d['mosse'] ?? 0)} mosse`,
   };
 }
