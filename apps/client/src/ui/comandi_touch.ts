@@ -8,6 +8,8 @@ export type Tenuto = {
   readonly giu: boolean;
   /** Lascia tutte le dita (blur, scheda nascosta, bottone nascosto). */
   lascia(): void;
+  /** I test premono e lasciano il bottone senza dito. */
+  simula(on: boolean): void;
   /** Toglie gli ascoltatori della finestra (quelli sul bottone se ne vanno col bottone). */
   dispose(): void;
 };
@@ -33,6 +35,7 @@ export function tieniPremuto(b: HTMLElement, o: { premi?(): void; cambia?(giu: b
   return {
     get giu() { return dita.size > 0; },
     lascia() { if (!dita.size) return; dita.clear(); pinta(); },
+    simula(on) { const prima = dita.size > 0; if (on) dita.add(-1); else dita.delete(-1); if (prima !== dita.size > 0) pinta(); },
     dispose() { if (o.finestra) for (const ev of ['pointerup', 'pointercancel']) removeEventListener(ev, su as EventListener); },
   };
 }

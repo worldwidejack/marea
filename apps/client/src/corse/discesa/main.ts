@@ -28,6 +28,7 @@ import { PEZZI, creaScenografia } from './scenografia.ts';
 import { caricaPezzi } from './kit.ts';
 import { creaSuoni } from './suoni.ts';
 import { creaTerreno } from './terreno.ts';
+import { tieniPremuto } from '../../ui/comandi_touch.ts';
 
 const CAMERE = ['occhi', 'dietro'] as const;
 /** Camere solo per le prove (dall'indirizzo o da set()): dall'alto, per guardare il terreno. */
@@ -75,14 +76,11 @@ btnScatto.id = 'btnScatto'; btnScatto.textContent = 'SCATTO';
 const scattoCss = `touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;position:absolute;right:calc(max(16px,env(safe-area-inset-right,0px)) + 10px);bottom:calc(env(safe-area-inset-bottom,0px) + 132px);width:64px;height:64px;border-radius:50%;background:rgba(242,163,58,.8);border:3px solid rgba(244,227,193,.7);color:#F4E3C1;font:bold 12px ui-monospace,Menlo,monospace;display:flex;align-items:center;justify-content:center;`;
 btnScatto.style.cssText = scattoCss;
 root.appendChild(btnScatto);
-let scattoDito = false, scattoTasto = false;
-const premi = (on: boolean) => { scattoDito = on; btnScatto.style.cssText = scattoCss + (on ? 'transform:scale(.92);filter:brightness(1.25);' : ''); };
-btnScatto.addEventListener('pointerdown', (e) => { e.preventDefault(); premi(true); try { btnScatto.setPointerCapture(e.pointerId); } catch { /* sintetico */ } });
-for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) btnScatto.addEventListener(ev, () => premi(false));
-btnScatto.addEventListener('contextmenu', (e) => e.preventDefault());
+let scattoTasto = false;
+const scatto = tieniPremuto(btnScatto, { cambia: (on) => { btnScatto.style.cssText = scattoCss + (on ? 'transform:scale(.92);filter:brightness(1.25);' : ''); } });
 addEventListener('keydown', (e) => { if (e.code === 'KeyQ') scattoTasto = true; });
 addEventListener('keyup', (e) => { if (e.code === 'KeyQ') scattoTasto = false; });
-addEventListener('blur', () => { scattoTasto = false; premi(false); });
+addEventListener('blur', () => { scattoTasto = false; scatto.lascia(); });
 if (btnB) { btnB.textContent = 'FRENO'; btnB.style.fontSize = '13px'; }
 const hud = document.createElement('div'); hud.className = 'pp-hud'; root.appendChild(hud);
 // la barra dell'energia sotto l'HUD: pedalare la consuma, lo scatto (quando è accesa) la svuota, torna quando non si pedala
@@ -112,7 +110,7 @@ if (via > 0) b.s = via;
 function ricomincia() { b = nuovaBici(); camOk = false; }
 function comandi(): Comandi {
   const f = input.sample();
-  return { sterzo: f.mx, gas: Math.max(0, -f.my), freno: f.b || f.my > 0.5, scatto: scattoDito || scattoTasto, salto: f.a };
+  return { sterzo: f.mx, gas: Math.max(0, -f.my), freno: f.b || f.my > 0.5, scatto: scatto.giu || scattoTasto, salto: f.a };
 }
 addEventListener('keydown', (e) => {
   if (e.repeat) return;
