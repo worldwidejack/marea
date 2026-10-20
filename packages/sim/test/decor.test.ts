@@ -7,12 +7,11 @@ import { cellsOf, decorCellError, lotTemplate, riservate } from '../src/economy/
 import type { LotTemplate } from '../src/economy/cells.ts';
 import { advance } from '../src/economy/advance.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
-import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { checkMonete } from '../src/economy/monete.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
+import { isErr } from './economia_util.ts';
 
-const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const T: LotTemplate = { rows: [
   '~~~~~~~~~~',
   '~..gggg..~',

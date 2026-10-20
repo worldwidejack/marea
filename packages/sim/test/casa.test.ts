@@ -7,12 +7,11 @@ import { build, newLot, placeDecor } from '../src/economy/actions.ts';
 import { compraFinitura, compraMobile, finitureScelte, posaMobile, possiedeFinitura, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '../src/economy/casa.ts';
 import { decorCellError, fitToTemplate, lotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
-import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { checkMonete } from '../src/economy/monete.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
+import { isErr } from './economia_util.ts';
 
-const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const T = lotTemplate()!;
 const ST = BORGO.stanza, [X0, Z0, X1, Z1] = ST.pavimento;
 /** Un lotto con `monete` monete (e le risorse di prima per costruire il baule, codice spento). */

@@ -12,12 +12,10 @@ import { nuovoZombie } from '../src/templari/stato.ts';
 import { raggiungePunto } from '../src/templari/raggiungi.ts';
 import { stepCassa } from '../src/templari/cassa.ts';
 import { daiArma } from '../src/templari/eroe.ts';
-import type { DungeonInput } from '../src/dungeon/types.ts';
+import { FERMO, passi } from './templari_util.ts';
 
-const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-const passi = (s: TState, n: number) => { for (let i = 0; i < n && !s.done; i++) stepTemplari(s, F); };
 /** Un tocco di AZIONE (fronte di salita) e un tick per lasciarla. */
-const azione = (s: TState) => { stepTemplari(s, { ...F, d: true }); stepTemplari(s, F); };
+const azione = (s: TState) => { stepTemplari(s, { ...FERMO, d: true }); stepTemplari(s, FERMO); };
 function arena(seed = 1, ondata = 1): TState {
   const s = templari.create({ seed, opzioni: { subito: true } });
   for (const k in s.fuochi) s.fuochi[k] = true; // i fuochi accesi (§9b): Strega, Mercante e rogo funzionano
@@ -88,7 +86,7 @@ test('ondate con la piazza aperta: gli zombie escono anche dalla piazza quando s
   s.quanti = 30; s.prossima = s.tick;
   const visti = new Set<string>();
   for (let i = 0; i < 60 * 30 && s.usciti < 12; i++) {
-    stepTemplari(s, F);
+    stepTemplari(s, FERMO);
     for (const e of s.eventi) if (e.t === 'sorge') visti.add(s.arena.comparse.find((c) => Math.abs(c.x - e.x) < 0.01 && Math.abs(c.z - e.z) < 0.01)?.zona ?? '?');
   }
   assert.ok(visti.has('piazza'), [...visti].join(','));
@@ -159,7 +157,7 @@ test('power-up: al massimo 4 a ondata, i boss ne lasciano sempre uno, e cadono d
 
 function prendi(s: TState, tipo: 'faretra' | 'ira' | 'campane' | 'decima' | 'muratori') {
   s.drops.push({ id: s.nextId++, tipo, x: s.eroe.x, z: s.eroe.z, fine: s.tick + 600 });
-  stepTemplari(s, F);
+  stepTemplari(s, FERMO);
   assert.ok(!s.drops.some((d) => d.tipo === tipo), 'preso ' + tipo);
 }
 

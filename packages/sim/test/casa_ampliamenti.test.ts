@@ -17,9 +17,9 @@ import { mascheraCase } from '../src/world/casa_mappa.ts';
 import { stepAvatar, newAvatar } from '../src/world/avatar.ts';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import { NO_INPUT } from '../src/types.ts';
+import { isErr } from './economia_util.ts';
 
 const DAY = 24 * 3600_000;
-const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const T = lotTemplate()!, ST = BORGO.stanza;
 const terra = MOBILI.find((m) => m.posto === 'terra' && !m.celle)!, parete = MOBILI.find((m) => m.posto === 'parete')!;
 /** Un lotto con tutte le monete che servono (entrano nel libro mastro come premio, così l'invariante regge). */

@@ -12,9 +12,8 @@ import { rompiMuro, scheletroVicino } from '../src/templari/segreti.ts';
 import { raggiungibili } from '../src/templari/raggiungi.ts';
 import { cellOf } from '../src/dungeon/map.ts';
 import { C } from '../src/templari/mappa.ts';
-import type { DungeonInput } from '../src/dungeon/types.ts';
+import { FERMO } from './templari_util.ts';
 
-const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
 function partita(seed = 3): TState {
   const s = templari.create({ seed, opzioni: { subito: true } });
   s.fase = 'combatti'; s.ondata = 5; s.quanti = 0; s.usciti = 0; s.prossima = 1e9; s.eroe.punti = 50000;
@@ -47,11 +46,11 @@ test('davanti a uno scheletro AZIONE dà il suo biglietto e non cambia la partit
     s.eroe.x = k.x + k.fx * 0.6; s.eroe.z = k.z + k.fz * 0.6;
     assert.equal(prompt(s)?.cosa, 'biglietto', `davanti allo scheletro ${id}: ${JSON.stringify(prompt(s))}`);
     const punti = s.eroe.punti, armi = JSON.stringify(s.eroe.armi);
-    stepTemplari(s, { ...F, d: true });
+    stepTemplari(s, { ...FERMO, d: true });
     assert.deepEqual(s.eventi.filter((e) => e.t === 'biglietto'), [{ t: 'biglietto', id }]);
     assert.equal(s.eroe.punti, punti); assert.equal(JSON.stringify(s.eroe.armi), armi);
     // tenere premuto non lo riapre a ogni passo
-    stepTemplari(s, { ...F, d: true });
+    stepTemplari(s, { ...FERMO, d: true });
     assert.equal(s.eventi.filter((e) => e.t === 'biglietto').length, 0);
   }
 });
@@ -74,6 +73,6 @@ test('gli scheletri non rubano AZIONE ad armi sul muro, finestre, porte e leve',
 test('insieme: il biglietto è di chi l\'ha letto', () => {
   const s = templari.create({ seed: 7, opzioni: { subito: true, eroi: 2 } }), k = s.arena.scheletri.find((x) => x.id === 'coro')!;
   const h = s.eroi[1]!; h.x = k.x + k.fx * 0.6; h.z = k.z + k.fz * 0.6;
-  stepTemplariInsieme(s, [F, { ...F, d: true }]);
+  stepTemplariInsieme(s, [FERMO, { ...FERMO, d: true }]);
   assert.deepEqual(s.eventi.filter((e) => e.t === 'biglietto'), [{ t: 'biglietto', id: 'coro', e: 1 }]);
 });

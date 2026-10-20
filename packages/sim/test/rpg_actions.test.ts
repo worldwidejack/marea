@@ -13,9 +13,9 @@ import { hashJson } from '../src/hash.ts';
 import { applyRpgAction, parseRpgAction } from '../src/rpg/actions.ts';
 import { gainSkillXp, heroOf, newHero } from '../src/rpg/hero.ts';
 import type { HeroState, RpgAction } from '../src/rpg/types.ts';
+import { isErr } from './economia_util.ts';
 
 const T0 = 1_800_000_000_000, H = 3_600_000;
-const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 /** Lotto con gli edifici dati già costruiti (id → livello), 500 monete (e le risorse di prima, codice spento). */
 function lotWith(bs: Record<string, number>, hero?: HeroState, forziere?: Record<string, number>): LotState {
   const l = newLot('jack', T0, null);

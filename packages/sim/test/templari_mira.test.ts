@@ -14,9 +14,8 @@ import { lineOfSight } from '../src/dungeon/map.ts';
 import { AIM_N, aimDir, aimIndex } from '../src/dungeon/mira.ts';
 import { packDungeon, quantizeDungeon, unpackDungeon } from '../src/dungeon/replay.ts';
 import type { DungeonInput } from '../src/dungeon/types.ts';
+import { FERMO, passi } from './templari_util.ts';
 
-const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-const passi = (s: TState, n: number, f: Partial<DungeonInput> = {}) => { for (let i = 0; i < n && !s.done; i++) stepTemplari(s, { ...F, ...f }); };
 function arena(seed = 1): TState {
   const s = templari.create({ seed, opzioni: { subito: true } });
   s.fase = 'combatti'; s.ondata = 1; s.quanti = 0; s.usciti = 0; s.prossima = 1e9;
@@ -97,7 +96,7 @@ test('mischia: la spada non guarda la mira, il fendente resta assistito', () => 
 test('indice di mira: il versore della sim e quello del client coincidono e il log col `m` si comprime e si rigioca', () => {
   for (const m of [1, 37, 120, AIM_N]) assert.equal(aimIndex(aimDir(m)![0], aimDir(m)![1]), m);
   const frames: DungeonInput[] = [];
-  for (let t = 0; t < 600; t++) frames.push(quantizeDungeon({ ...F, mx: t % 90 < 45 ? 1 : -0.5, my: 0.25, a: t % 20 < 8, ...(t % 20 < 8 || t % 7 === 0 ? { m: 1 + ((t * 7) % AIM_N) } : {}) }));
+  for (let t = 0; t < 600; t++) frames.push(quantizeDungeon({ ...FERMO, mx: t % 90 < 45 ? 1 : -0.5, my: 0.25, a: t % 20 < 8, ...(t % 20 < 8 || t % 7 === 0 ? { m: 1 + ((t * 7) % AIM_N) } : {}) }));
   const unpacked = unpackDungeon(packDungeon(frames));
   assert.deepEqual(unpacked, frames, 'pack/unpack porta la mira');
   const s = templari.create({ seed: 4, opzioni: { subito: true } });

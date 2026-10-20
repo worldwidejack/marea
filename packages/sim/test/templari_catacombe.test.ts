@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TEMPLARI } from '@marea/content/templari.ts';
-import { stepTemplari, templari } from '../src/templari/templari.ts';
+import { templari } from '../src/templari/templari.ts';
 import type { TState } from '../src/templari/templari.ts';
 import { apriPorta, portaVicina, zonaAperta } from '../src/templari/porte.ts';
 import { uccidi } from '../src/templari/colpi.ts';
@@ -15,10 +15,8 @@ import { raggiungibili } from '../src/templari/raggiungi.ts';
 import { cellOf } from '../src/dungeon/map.ts';
 import { TIPO } from '../src/templari/mappa.ts';
 import type { Capo, Passaggio } from '../src/templari/mappa.ts';
-import type { DungeonInput } from '../src/dungeon/types.ts';
+import { passi } from './templari_util.ts';
 
-const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-const passi = (s: TState, n: number, inp: Partial<DungeonInput> = {}) => { for (let i = 0; i < n && !s.done; i++) stepTemplari(s, { ...F, ...inp }); };
 function partita(seed = 3): TState {
   const s = templari.create({ seed, opzioni: { subito: true } });
   s.fase = 'combatti'; s.ondata = 5; s.quanti = 0; s.usciti = 0; s.prossima = 1e9; s.eroe.punti = 50000;

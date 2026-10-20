@@ -9,10 +9,8 @@ import type { TState } from '../src/templari/templari.ts';
 import { bossDi } from '../src/templari/ondate.ts';
 import { colpisci } from '../src/templari/colpi.ts';
 import { nuovoZombie, quantiOndata } from '../src/templari/stato.ts';
-import type { DungeonInput } from '../src/dungeon/types.ts';
+import { FERMO, passi } from './templari_util.ts';
 
-const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-const passi = (s: TState, n: number) => { for (let i = 0; i < n && !s.done; i++) stepTemplari(s, F); };
 function arena(seed = 1, ondata = 1): TState {
   const s = templari.create({ seed, opzioni: { subito: true } });
   s.fase = 'combatti'; s.ondata = ondata; s.quanti = 0; s.usciti = 0; s.prossima = 1e9;
@@ -101,7 +99,7 @@ test('pirati dalla 3ª ondata, veloci e fragili; i fanti restano la maggioranza'
   s.fase = 'pausa'; s.ondata = 7; s.faseT = 0;
   const tipi: Record<string, number> = {};
   for (let i = 0; i < 60 * 60 && s.ondata === 8 || i < 700; i++) {
-    stepTemplari(s, F);
+    stepTemplari(s, FERMO);
     for (const z of s.zombie) if (z.st === 'sorge' && z.stT === 1) tipi[z.tipo] = (tipi[z.tipo] ?? 0) + 1;
     if (s.done) break;
     if (s.usciti >= s.quanti && s.ondata >= 8) break;

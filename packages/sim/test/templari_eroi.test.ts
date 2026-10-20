@@ -14,9 +14,8 @@ import { createRng } from '../src/rng.ts';
 import type { TClasse } from '@marea/content/templari.ts';
 import type { DungeonInput } from '../src/dungeon/types.ts';
 import type { TOpzioni } from '../src/templari/types.ts';
+import { passi } from './templari_util.ts';
 
-const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-const passi = (s: TState, n: number, inp: Partial<DungeonInput> = {}) => { for (let i = 0; i < n && !s.done; i++) stepTemplari(s, { ...F, ...inp }); };
 function partita(classe: TClasse | null, ondata = 6): TState {
   const s = templari.create({ seed: 7, opzioni: { subito: true, ...(classe ? { classi: [classe] } : {}) } });
   s.fase = 'combatti'; s.ondata = ondata; s.quanti = 0; s.usciti = 0; s.prossima = 1e9;

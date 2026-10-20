@@ -11,9 +11,8 @@ import { postoPezzo } from '../src/templari/fuochi.ts';
 import { replayTemplari } from '../src/templari/replay.ts';
 import { packDungeon } from '../src/dungeon/replay.ts';
 import type { DungeonInput } from '../src/dungeon/types.ts';
+import { FERMO, passi } from './templari_util.ts';
 
-const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-const passi = (s: TState, n: number, inp: Partial<DungeonInput> = {}) => { for (let i = 0; i < n && !s.done; i++) stepTemplari(s, { ...F, ...inp }); };
 function partita(seed = 3): TState {
   const s = templari.create({ seed, opzioni: { subito: true } });
   s.fase = 'combatti'; s.ondata = 5; s.quanti = 0; s.usciti = 0; s.prossima = 1e9; s.eroe.punti = 50000;
@@ -124,7 +123,7 @@ test('il server rigioca fuochi e pezzi uguali', () => {
   // dalla partenza al fuoco del coro: l'eroe ci cammina (sta a due passi) e tiene AZIONE
   for (let k = 0; k < 400 && !s.fuochi['coro']; k++) {
     const dx = f.x - s.eroe.x, dz = f.z - 0.9 - s.eroe.z, d = Math.sqrt(dx * dx + dz * dz);
-    const inp: DungeonInput = d > 0.6 ? { ...F, mx: Math.round((dx / d) * 8) / 8, my: Math.round((dz / d) * 8) / 8 } : { ...F, d: true };
+    const inp: DungeonInput = d > 0.6 ? { ...FERMO, mx: Math.round((dx / d) * 8) / 8, my: Math.round((dz / d) * 8) / 8 } : { ...FERMO, d: true };
     frames.push(inp); stepTemplari(s, inp);
   }
   assert.equal(s.fuochi['coro'], true, 'il fuoco del coro non si è acceso');

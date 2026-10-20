@@ -4,15 +4,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TEMPLARI, armaDef } from '@marea/content/templari.ts';
-import { stepTemplari, templari } from '../src/templari/templari.ts';
+import { templari } from '../src/templari/templari.ts';
 import type { TState } from '../src/templari/templari.ts';
 import { daiArma } from '../src/templari/eroe.ts';
 import { ferisci } from '../src/templari/colpi.ts';
 import { nuovoZombie, slotDi } from '../src/templari/stato.ts';
-import type { DungeonInput } from '../src/dungeon/types.ts';
+import { passi } from './templari_util.ts';
 
-const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-const passi = (s: TState, n: number, f: Partial<DungeonInput> = {}) => { for (let i = 0; i < n && !s.done; i++) stepTemplari(s, { ...F, ...f }); };
 /** Partita in combattimento senza comparse (ondata 1 già finita di uscire): gli zombie li mettiamo noi. */
 function arena(seed = 1): TState {
   const s = templari.create({ seed, opzioni: { subito: true } });
