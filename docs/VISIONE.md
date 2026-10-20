@@ -58,7 +58,7 @@ Resta valido, per più avanti:
 | Bacheca delle missioni | sacrificabile, **non prioritaria** | non ci si investe |
 | NPC del Porto | **sì** | |
 | Tabelloni dei record | **sì**, anche **uno per isola** | oggi uno solo, in piazza |
-| Faro comune | **via** per ora: **fatto** (18 ott 2026, #111) | spento con la flag `?faro=1` (`flags.ts`): resta solo il modello sulla riva (GDD §5) |
+| Faro comune | **via** per ora: **fatto** (18 ott 2026, #111) | tolto dal codice il 20 ott (tag `archivio/spenti-faro`): resta solo il modello sulla riva, acceso (GDD §5) |
 | Diario del capitano | **sì** | |
 | Traguardi e titoli | **via** per ora: **fatto** (18 ott 2026, #87) | spenti con la flag `?traguardi=1` (`flags.ts`): il Diario resta senza la loro pagina, niente titoli sopra il nome (GDD §5) |
 
@@ -96,7 +96,7 @@ Prima di rifare da zero una cosa, guarda se una di queste ce l'ha già.
 1. ~~Minimappa e mappa grande: nord in alto, zoom a scatti, icone degli spot, isole chiuse invisibili.~~ Fatto (#360).
 2. ~~Tutorial che non parte da solo.~~ Fatto (18 ott 2026).
 3. Libro degli ospiti con messaggi scritti.
-4. ~~Faro comune e traguardi/titoli spenti.~~ Fatto (18 ott 2026: flag `?faro=1` e `?traguardi=1`, il codice resta).
+4. ~~Faro comune e traguardi/titoli spenti.~~ Fatto (18 ott 2026: flag `?traguardi=1`, il codice resta; il Faro comune è uscito dal codice il 20 ott).
 5. Tabelloni dei record anche sulle isole.
 6. Meteo a nuvole che si muovono (il più grosso dei sei).
 

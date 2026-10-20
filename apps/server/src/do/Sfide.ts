@@ -2,21 +2,16 @@
 // tabella `sfide` resta nel database, non si usa più); oggi tiene le cose in comune tra amici. Il nome resta: un Durable Object non si
 // rinomina senza una migrazione. Tutte le operazioni passano da un mutex in memoria: una alla volta (sono poche, tra amici).
 // Richieste dal Worker (x-persona, x-now): GET /feed · POST /feed_letto {fino?} · POST /visita {chi, emote} (riga «è passato sulla tua isola»).
-// Porto tra amici (#110 #111, portoStore.ts): GET /record (tabellone) · POST /record {minigame, score, medal, detail} (dal Worker dopo il replay
-// di una partita da solo nel DO del lotto: mai dal client) · GET /faro · POST /faro_versa {legno, pietra, tutti} (versamento al Faro comune:
-// intento, poi il lotto paga, poi il faro conta; se sale di livello, riga di feed a tutti e i livelli a ogni lotto).
+// Porto tra amici (portoStore.ts): GET /record (tabellone) · POST /record {minigame, score, medal, detail} (dal Worker dopo il replay
+// di una partita da solo nel DO del lotto: mai dal client). Il Faro comune è stato tolto (tag archivio/spenti-faro).
 // Collezionisti: GET/POST /collezione. Buche della pala: GET /buche · POST /buca. Adrenalina: GET /discese, /fantasma · POST /discesa.
 import { DurableObject } from 'cloudflare:workers';
 import { EconomyError } from '@marea/sim/economy/types.ts';
-import type { LotState, Resources } from '@marea/sim/economy/types.ts';
 import { getMinigame } from '@marea/sim/minigames/registry.ts';
 import { isPackedInputs } from '@marea/sim/replay.ts';
 import { nowFromHeader } from '../clock.ts';
 import { creaTabellaFeed, leggiFeed, nonLetti, scriviFeed, segnaLetti } from './feedStore.ts';
-import { apriDono, chiudiDono, creaTabellePorto, doniAperti, leggiCollezione, leggiFaro, leggiTabellone, scriviCollezione, scriviFaro, scriviTabellone } from './portoStore.ts';
-import type { DonoAperto } from './portoStore.ts';
-import { dosaDono, faroProssimo, versaNelFaro } from '@marea/sim/economy/faro.ts';
-import type { FaroStato } from '@marea/sim/economy/faro.ts';
+import { creaTabellePorto, leggiCollezione, leggiTabellone, scriviCollezione, scriviTabellone } from './portoStore.ts';
 import { recordDi, segnaRecord } from '@marea/sim/economy/record.ts';
 import { MINIGAMES } from '@marea/sim/minigames/registry.ts';
 import '@marea/sim/corse/registra.ts'; // Corse: il server rigioca sul motore v2 (#173)
@@ -29,10 +24,6 @@ import type { Env } from '../env.ts';
 
 const json = (dati: unknown, status = 200): Response =>
   new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
-const RIPROVA_MS = 60_000;
-
-type LotError = { error: string; manca?: Resources; code?: string };
-type LotReply = { ok: true; lot: LotState } | { ok: false; status: number; body: LotError };
 
 export class Sfide extends DurableObject<Env> {
   private chain: Promise<unknown> = Promise.resolve();
@@ -43,42 +34,15 @@ export class Sfide extends DurableObject<Env> {
     creaTabellaDiscese(ctx.storage.sql);
   }
 
-  /** Una operazione alla volta, anche mentre si aspettano i DO Lot (l'input gate non basta: le fetch in uscita lo aprono). */
+  /** Una operazione alla volta, anche mentre si aspetta un altro DO (l'input gate non basta: le fetch in uscita lo aprono). */
   private locked<T>(fn: () => Promise<T>): Promise<T> {
     const p = this.chain.then(fn, fn);
     this.chain = p.catch(() => undefined);
     return p;
   }
 
-  // ---------- chiamate ai lotti ----------
-  private async lot(owner: string, path: string, now: number, body?: unknown): Promise<LotReply> {
-    const stub = this.env.LOT.get(this.env.LOT.idFromName(owner));
-    const r = await stub.fetch(new Request('https://lot/' + path, {
-      method: body === undefined ? 'GET' : 'POST', body: body === undefined ? undefined : JSON.stringify(body),
-      headers: { 'x-persona': owner, 'x-now': String(now), 'content-type': 'application/json' },
-    }));
-    if (r.ok) return { ok: true, lot: (await r.json()) as LotState };
-    if (r.status >= 500) throw new Error(`lot ${owner} ${path}: ${r.status}`);
-    return { ok: false, status: r.status, body: (await r.json()) as LotError };
-  }
-  /** Versamenti al faro lasciati a metà (un crash): il lotto è idempotente per id, quindi si richiede e, se ha pagato, il faro conta.
-   *  Gira a ogni richiesta e nell'alarm. */
-  private async sweep(now: number): Promise<void> {
-    for (const d of doniAperti(this.ctx.storage.sql)) {
-      try {
-        const r = await this.lot(d.persona, 'faro_dona', now, { id: d.id, dono: d.dono });
-        if (r.ok) await this.faroConta(d, now); else chiudiDono(this.ctx.storage.sql, d.id);
-      } catch (e) { console.error('[marea] sweep faro', d.id, e); }
-    }
-    await this.scheduleAlarm();
-  }
-  private async scheduleAlarm(): Promise<void> {
-    if (!doniAperti(this.ctx.storage.sql).length) { await this.ctx.storage.deleteAlarm(); return; }
-    await this.ctx.storage.setAlarm(Date.now() + RIPROVA_MS);
-  }
-  async alarm(): Promise<void> {
-    await this.locked(() => this.sweep(Date.now()));
-  }
+  /** Gli alarm di prima (scadenze delle sfide, versamenti al Faro rimasti a metà) non servono più: se ne arriva uno, niente da fare. */
+  async alarm(): Promise<void> { /* niente in sospeso */ }
 
   // ---------- API ----------
   async fetch(req: Request): Promise<Response> {
@@ -94,12 +58,9 @@ export class Sfide extends DurableObject<Env> {
     }
     return this.locked(async () => {
       try {
-        await this.sweep(now);
         const sql = this.ctx.storage.sql;
-        // il feed porta anche i momenti delle salite del Faro: il Worker li passa al lotto al rientro (#111)
-        if (req.method === 'GET' && act === 'feed') return json({ rows: leggiFeed(sql, me), nonLetti: nonLetti(sql, me), faroLivelli: leggiFaro(sql).livelli });
+        if (req.method === 'GET' && act === 'feed') return json({ rows: leggiFeed(sql, me), nonLetti: nonLetti(sql, me) });
         if (req.method === 'GET' && act === 'record') return json({ tab: recordDi(leggiTabellone(sql), now) });
-        if (req.method === 'GET' && act === 'faro') return json({ faro: leggiFaro(sql) });
         if (req.method === 'GET' && act === 'collezione') return json({ collezione: leggiCollezione(sql) });
         if (req.method === 'GET' && act === 'buche') return json({ buche: listBuche(sql), now });
         // Adrenalina (passo 3b): la classifica a tempo di una pista e il fantasma del primo
@@ -124,7 +85,6 @@ export class Sfide extends DurableObject<Env> {
         if (act === 'record') return this.record(me, body, now);
         if (act === 'collezione') return this.collezione(me, body, now);
         if (act === 'discesa') return this.discesa(me, body, now);
-        if (act === 'faro_versa') return await this.faroVersa(me, body, now);
         if (act === 'buca') return await handleBuca(sql, me, body, now, this.env);
         return json({ error: 'Non trovato' }, 404);
       } catch (e) {
@@ -135,7 +95,7 @@ export class Sfide extends DurableObject<Env> {
     });
   }
 
-  // ---------- Porto tra amici (#110 #111) ----------
+  // ---------- Porto tra amici ----------
   /** Partita da solo verificata dal DO del lotto: se è un record entra nel tabellone; chi perde il record di sempre lo legge nel feed. */
   private record(me: string, body: Record<string, unknown>, now: number): Response {
     const mg = body['minigame'], score = body['score'], medal = body['medal'] ?? null;
@@ -171,38 +131,5 @@ export class Sfide extends DurableObject<Env> {
     if (!migliora(cl, me, ms)) return json({ migliorato: false });
     scriviDiscesa(sql, pista, { chi: me, ms: Math.round(ms), quando: now, seed, opzioni: opzioni as Record<string, string>, inputs });
     return json({ migliorato: true, record: !primo || ms < primo.ms });
-  }
-
-  /** Versa al Faro comune: intento → il lotto paga (idempotente per id) → il faro conta. Risponde col faro e col lotto aggiornati. */
-  private async faroVersa(me: string, body: Record<string, unknown>, now: number): Promise<Response> {
-    const sql = this.ctx.storage.sql, f = leggiFaro(sql);
-    if (!faroProssimo(f)) return json({ error: 'Il Faro è già al massimo: grazie a tutti!', code: 'faro' }, 409);
-    const dono = dosaDono(f, { legno: body['legno'], pietra: body['pietra'] });
-    if (dono.legno + dono.pietra <= 0) return json({ error: 'Niente da versare', code: 'faro' }, 400);
-    const tutti = Array.isArray(body['tutti']) ? body['tutti'].filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length <= 40).slice(0, 64) : [];
-    const d: DonoAperto = { id: 'faro-' + crypto.randomUUID().slice(0, 13), persona: me, dono, tutti, quando: now };
-    apriDono(sql, d); // prima l'intento, poi il lotto: se qui si muore, lo sweep riprende
-    const r = await this.lot(me, 'faro_dona', now, { id: d.id, dono });
-    if (!r.ok) { chiudiDono(sql, d.id); return json(r.body, r.status); }
-    const out = await this.faroConta(d, now);
-    await this.scheduleAlarm();
-    return json({ faro: out.faro, saliti: out.saliti, dono, lot: out.lotti.get(me) ?? r.lot });
-  }
-  /** Il lotto ha pagato: il faro conta il versamento (e chiude l'intento) in una transazione; se sale, feed a tutti e livelli a ogni lotto. */
-  private async faroConta(d: DonoAperto, now: number): Promise<{ faro: FaroStato; saliti: number[]; lotti: Map<string, LotState> }> {
-    const sql = this.ctx.storage.sql, chi = [...new Set([...d.tutti, d.persona])];
-    let out = { faro: leggiFaro(sql), saliti: [] as number[] };
-    this.ctx.storage.transactionSync(() => {
-      out = versaNelFaro(leggiFaro(sql), d.persona, d.dono, now);
-      scriviFaro(sql, out.faro);
-      chiudiDono(sql, d.id);
-      for (const lv of out.saliti) for (const p of chi) scriviFeed(sql, { persona: p, tipo: 'faro', sfida: `faro:${lv}`, altro: d.persona, dati: { livello: lv }, letto: p === d.persona, quando: now });
-    });
-    const lotti = new Map<string, LotState>();
-    if (out.saliti.length) { // best-effort: chi non lo riceve adesso lo impara al rientro (il Worker passa i livelli al lotto)
-      const res = await Promise.allSettled(chi.map(async (p) => [p, await this.lot(p, 'faro_livelli', now, { livelli: out.faro.livelli })] as const));
-      for (const x of res) if (x.status === 'fulfilled' && x.value[1].ok) lotti.set(x.value[0], x.value[1].lot);
-    }
-    return { ...out, lotti };
   }
 }

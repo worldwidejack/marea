@@ -6,7 +6,7 @@
 //   deposito non ancora raccolto;
 // - le monete del personaggio (`hero.monete`, il portafoglio del GDR di prima; senza personaggio quelle con cui sarebbe nato).
 // Molo (la barca), Banco da Lavoro (Fabbro), Tavolo Alchemico (Alchimista) e Forziere (baule della casa) restano col loro livello.
-// Le poste delle vecchie sfide (escrow) e il Faro comune restano nelle risorse di prima. Pura.
+// Le poste delle vecchie sfide (escrow) restano nelle risorse di prima. Pura.
 import { BALANCE, building } from '@marea/content';
 import { inMonete } from './monete.ts';
 import { ZERO, add } from './types.ts';
