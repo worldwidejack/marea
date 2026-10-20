@@ -74,7 +74,7 @@ function btn(cls: string, act: string, main: string, sub: (string | HTMLElement)
   return b;
 }
 /** Edifici GDR: bottone d'azione che apre il loro pannello (chunk GDR). */
-const RPG_ACT: Partial<Record<string, [string, string]>> = { banco: ['FORGIA', 'armi e armature'], alchimia: ['PREPARA', 'pozioni'], forziere: ['APRI', 'zaino ↔ forziere'], serra: ['RACCOGLI', ''] };
+const RPG_ACT: Partial<Record<string, [string, string]>> = { banco: ['Forgia', 'armi e armature'], alchimia: ['Prepara', 'pozioni'], forziere: ['Apri', 'zaino ↔ forziere'], serra: ['Raccogli', ''] };
 const missNode = (m: Resources) => el('span', 'miss', mancaText(m));
 const sigOf = (body: HTMLElement) => body.textContent + '|' + [...body.querySelectorAll('button')].map((b) => (b.disabled ? 0 : 1)).join('');
 
@@ -114,7 +114,7 @@ export function buildingPanel(ctx: PanelCtx, b: PlacedBuilding): Panel {
   }
   const next = b.level >= 1 ? def.levels[b.level] : undefined;
   if (b.level < 1) { /* in costruzione: niente miglioramento */ }
-  else if (!next) body.appendChild(btn('', 'migliora', 'LIVELLO MASSIMO', [], true, () => {}));
+  else if (!next) body.appendChild(btn('', 'migliora', 'Livello massimo', [], true, () => {}));
   else {
     const afford = geq(lot.resources, next.cost);
     const sub: (string | HTMLElement)[] = [...costNodes(next.cost), el('span', 'mz-cost', `· ${fmtDur(next.seconds)}`)];
@@ -149,8 +149,8 @@ export function buildPanel(ctx: PanelCtx, cell: [number, number], chosen: string
     body.appendChild(info);
     const row = el('div', 'mz-row');
     row.append(
-      btn('ghost', 'annulla', 'INDIETRO', [], ctx.busy, () => ctx.onChoose(null)),
-      btn('', 'conferma', 'COSTRUISCI', [], ctx.busy || !l1 || !geq(lot.resources, l1.cost) || !!lot.construction, () => ctx.onBuild(chosen, cell)),
+      btn('ghost', 'annulla', 'Indietro', [], ctx.busy, () => ctx.onChoose(null)),
+      btn('', 'conferma', 'Costruisci', [], ctx.busy || !l1 || !geq(lot.resources, l1.cost) || !!lot.construction, () => ctx.onBuild(chosen, cell)),
     );
     body.appendChild(row);
     return { body, sig: sigOf(body) };
@@ -172,7 +172,7 @@ export function buildPanel(ctx: PanelCtx, cell: [number, number], chosen: string
     const sub: (string | HTMLElement)[] = [...costNodes(l1.cost), el('span', 'mz-cost', `· ${fmtDur(l1.seconds)}`)];
     if (!afford) sub.push(el('br'), missNode(missing(lot.resources, l1.cost)));
     else if (req) sub.push(el('br'), el('span', 'miss', `serve prima: ${buildingDef(req).nome}`));
-    const b = btn('', 'scegli', def.nome.toUpperCase(), sub, ctx.busy || !afford || !!req || !!lot.construction, () => ctx.onChoose(def.id));
+    const b = btn('', 'scegli', def.nome, sub, ctx.busy || !afford || !!req || !!lot.construction, () => ctx.onChoose(def.id));
     b.dataset['building'] = def.id;
     body.appendChild(b);
   }
@@ -196,14 +196,14 @@ export function decorPanel(ctx: DecorCtx, d: PlacedDecor, conferma: boolean): Pa
   if (conferma) {
     body.appendChild(el('div', 'mz-info', `Rivendere ${nome}? Tornano ${back} monete (metà del prezzo) e sparisce dall’isola.`));
     const row = el('div', 'mz-row');
-    row.append(btn('ghost', 'indietro', 'INDIETRO', [], ctx.busy, () => ctx.onChiediVendi(false)), btn('', 'vendi', 'RIVENDI', [moneteNode(back)], ctx.busy, ctx.onVendi));
+    row.append(btn('ghost', 'indietro', 'Indietro', [], ctx.busy, () => ctx.onChiediVendi(false)), btn('', 'vendi', 'Rivendi', [moneteNode(back)], ctx.busy, ctx.onVendi));
     body.appendChild(row);
     return { body, sig: sigOf(body) };
   }
   const row = el('div', 'mz-row');
-  row.append(btn('', 'sposta', 'SPOSTA', [], ctx.busy, ctx.onSposta), btn('', 'ruota', 'RUOTA ↻', [], ctx.busy, ctx.onRuota));
+  row.append(btn('', 'sposta', 'Sposta', [], ctx.busy, ctx.onSposta), btn('', 'ruota', 'Ruota ↻', [], ctx.busy, ctx.onRuota));
   body.appendChild(row);
-  body.appendChild(btn('ghost', 'rivendi', 'RIVENDI', [moneteNode(back)], ctx.busy, () => ctx.onChiediVendi(true)));
+  body.appendChild(btn('ghost', 'rivendi', 'Rivendi', [moneteNode(back)], ctx.busy, () => ctx.onChiediVendi(true)));
   return { body, sig: sigOf(body) };
 }
 
@@ -213,7 +213,7 @@ function makeSpostaPanel(title: string, panelKind: string, id: string, cell: [nu
   body.appendChild(el('div', 'mz-info', infoText));
   body.appendChild(el('div', 'mz-note' + (isSame ? '' : problema ? ' no' : ' ok'), isSame ? 'È qui adesso: scegli un’altra cella' : problema ? `✗ ${problema}` : '✓ Qui va bene'));
   const row = el('div', 'mz-row');
-  row.append(btn('ghost', 'annulla', 'ANNULLA', [], ctx.busy, ctx.onAnnulla), btn('green', 'conferma', 'CONFERMA', [], ctx.busy || isSame || !!problema, ctx.onConferma));
+  row.append(btn('ghost', 'annulla', 'Annulla', [], ctx.busy, ctx.onAnnulla), btn('green', 'conferma', 'Conferma', [], ctx.busy || isSame || !!problema, ctx.onConferma));
   body.appendChild(row);
   return { body, sig: sigOf(body) };
 }

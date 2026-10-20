@@ -73,7 +73,7 @@ export type SchedaEsito = { medal: Medal; sub: string; /** Monete vinte (#414), 
 const SCHERMI: Record<string, (root: HTMLElement) => Promise<SchermoGioco>> = {};
 /** Registra un gioco a schermo (dal modulo del minigioco: posto in `spots` più schermata qui). */
 export function registraSchermo(id: string, load: (root: HTMLElement) => Promise<SchermoGioco>): void { SCHERMI[id] = load; }
-const MEDAL_TXT: Record<string, string> = { oro: 'ORO', argento: 'ARGENTO', bronzo: 'BRONZO' };
+const MEDAL_TXT: Record<string, string> = { oro: 'Oro', argento: 'Argento', bronzo: 'Bronzo' };
 const MEDAL_C: Record<string, string> = { oro: PAL.giallo, argento: PAL.pietraChiara, bronzo: PAL.arancio };
 const CSS = `
 .mz-play { position: absolute; left: 50%; top: 60%; transform: translateX(-50%); display: none; align-items: center; gap: 10px; min-height: 56px; padding: 0 18px; background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 5px 0 ${PAL.neroCaldo}; font: bold 18px ui-monospace, Menlo, monospace; z-index: 16; cursor: pointer; white-space: nowrap; }
@@ -172,7 +172,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     const name = s.model && o.loader.has(s.model) ? s.model : s.boa && o.loader.has('prop_boa_next') ? 'prop_boa_next' : null;
     if (name) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => {});
     const label = layer.add(() => { void play(s); });
-    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome.toUpperCase())], 'spot');
+    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome)], 'spot');
     label.el.classList.add('spot');
     return { s, holder, label };
   });
@@ -213,14 +213,14 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   function showEsito(s: Spot, medal: Medal, sub: string, premio: number | null, note: string | null): void {
     esitoSpot = s; // RIGIOCA (R) rigioca questo, anche se il posto è mobile (perle)
     esito.classList.remove('kart'); esito.style.borderColor = '';
-    const again = el('button', 'mz-btn ghost', 'RIGIOCA'); again.dataset['act'] = 'rigioca';
+    const again = el('button', 'mz-btn ghost', 'Rigioca'); again.dataset['act'] = 'rigioca';
     const sc = esitoScelte;
     again.addEventListener('click', () => { closeEsito(); void play(s, sc); });
     const ok = el('button', 'mz-btn', 'OK'); ok.dataset['act'] = 'ok';
     ok.addEventListener('click', () => closeEsito());
     const fine = () => { esito.classList.add('on'); open = true; suona(medal ? `medaglia_${medal}` : 'fine'); addEventListener('keydown', onKey, true); };
     if (schermi.get(s.minigame)?.scheda?.(esito, { medal, sub, premio, note, again, ok })) { fine(); return; }
-    const title = el('h2', '', medal ? MEDAL_TXT[medal]! : SCHERMI[s.minigame] ? 'FINITA' : 'ARRIVATO');
+    const title = el('h2', '', medal ? MEDAL_TXT[medal]! : SCHERMI[s.minigame] ? 'Finita' : 'Arrivato');
     title.style.color = medal ? MEDAL_C[medal]! : PAL.sabbiaChiara;
     esito.style.borderColor = medal ? MEDAL_C[medal]! : PAL.legnoChiaro;
     const body: Node[] = [title, el('div', 'sub', sub)];
@@ -332,7 +332,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     },
     update(t, alpha = 1) {
       const show = !!near && !busy && !open && !o.world.race.on && !schermoAperto();
-      if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `GIOCA · ${near.nome.toUpperCase()}`), el('small', '', near.tasto?.nome ?? 'A')); }
+      if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `Gioca · ${near.nome}`), el('small', '', near.tasto?.nome ?? 'A')); }
       btn.classList.toggle('on', show);
       perle.update(); // Perle
       for (const g of schermi.values()) g.update?.(t, alpha);

@@ -122,7 +122,7 @@ export function createPortoAmiciUi(ctx: PortoAmiciCtx): PortoAmiciUi {
     }
     for (const r of righe) {
       const box = el('div', 'mz-pa-rec'); box.dataset['minigioco'] = r.minigame;
-      const cols = el('div', 'mz-pa-cols'); cols.append(cella('OGGI', r.minigame, r.oggi), cella('SEMPRE', r.minigame, r.sempre));
+      const cols = el('div', 'mz-pa-cols'); cols.append(cella('Oggi', r.minigame, r.oggi), cella('Sempre', r.minigame, r.sempre));
       box.append(el('b', '', r.nome), cols);
       body.appendChild(box);
     }

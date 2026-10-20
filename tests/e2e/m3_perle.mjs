@@ -91,7 +91,7 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.perlePosto.ok && s.perlePosto.bottone, 5000);
       const s = await st();
       assert(!s.pescaPosto?.bottone, 'PESCA e TUFFATI insieme');
-      assert(/TUFFATI/.test(await page.locator('#mzPerle').innerText()), 'testo del bottone');
+      assert(/tuffati/i.test(await page.locator('#mzPerle').innerText()), 'testo del bottone');
       await hook('setZoom', 1.2);
       await sleep(500);
       await ctx.shot(page, 'iphone_1_tuffati');
@@ -133,7 +133,7 @@ export default async function (ctx) {
       assert(r.medal === 'oro' && r.premiata && JSON.stringify(r.premio) === JSON.stringify(oro), 'esito: ' + JSON.stringify(r));
       assert(r.lot.monete >= before + r.premio, 'monete non pagate');
       const txt = await page.locator('#mzEsito').innerText();
-      assert(/ORO/.test(txt) && /\d+ prese/.test(txt) && /\d+ punti/.test(txt), 'scheda: ' + txt);
+      assert(/\bOro\b/.test(txt) && /\d+ prese/.test(txt) && /\d+ punti/.test(txt), 'scheda: ' + txt);
       await sleep(300);
       await ctx.shot(page, 'iphone_5_esito');
       await hook('perleAuto', false);

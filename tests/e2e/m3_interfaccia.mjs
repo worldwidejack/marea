@@ -162,7 +162,7 @@ export default async function (ctx) {
         await hook(P.page, 'goto', 'porto'); await sleep(300);
         await hook(P.page, 'setMode', 'boat'); await sleep(300);
         await hook(P.page, 'pescaBarcaVai');
-        await ctx.waitState(P.page, (s) => !!s.pesca?.barca?.ok && /PESCA/.test(s.pesca.bottone ?? ''), 8000);
+        await ctx.waitState(P.page, (s) => !!s.pesca?.barca?.ok && /pesca/i.test(s.pesca.bottone ?? ''), 8000);
         await controlla(P, `${nome}_pesca`, ['PESCA', 'bussola', 'minimappa']);
         ctx.noErrors(P, nome);
       });

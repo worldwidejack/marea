@@ -102,7 +102,7 @@ export function createFunivia(o: AdrenalinaOpts, place: ArchPlace, spot: { id: s
   if (!document.getElementById('mz-liberatoria-style')) { const st = document.createElement('style'); st.id = 'mz-liberatoria-style'; st.textContent = CSS; document.head.appendChild(st); }
   const carta = el('div', 'mz'); carta.id = 'mzLiberatoria';
   const firmaRiga = el('p', 'firma', '');
-  const bFirma = el('button', '', 'FIRMA') as HTMLButtonElement; bFirma.type = 'button'; bFirma.dataset['act'] = 'firma';
+  const bFirma = el('button', '', 'Firma') as HTMLButtonElement; bFirma.type = 'button'; bFirma.dataset['act'] = 'firma';
   const bNo = el('button', '', 'Non ora') as HTMLButtonElement; bNo.type = 'button'; bNo.dataset['act'] = 'no';
   const bt = el('div', 'bt'); bt.append(bFirma, bNo);
   carta.append(el('b', '', '🚡 LIBERATORIA · FUNIVIA DELLA VETTA'), ...TESTO.map((r) => el('p', '', r)), firmaRiga, bt);

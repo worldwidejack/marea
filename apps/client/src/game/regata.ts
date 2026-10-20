@@ -41,7 +41,7 @@ let driver: (RegataDriver & { start(c: RegataChallenge, signal?: AbortSignal, au
 
 const diffOf = (d: unknown): Difficulty => { const n = Math.round(Number(d)); return (n >= 1 && n <= 3 ? n : 2) as Difficulty; };
 const fmt = (ms: number) => { const s = Math.max(0, ms) / 1000; const m = Math.floor(s / 60); return `${m}:${(s - m * 60).toFixed(1).padStart(4, '0')}`; };
-const MEDAL: Record<string, string> = { oro: 'ORO', argento: 'ARGENTO', bronzo: 'BRONZO' };
+const MEDAL: Record<string, string> = { oro: 'Oro', argento: 'Argento', bronzo: 'Bronzo' };
 const MEDAL_C: Record<string, string> = { oro: PAL.giallo, argento: PAL.pietraChiara, bronzo: PAL.arancio };
 
 /**
@@ -276,7 +276,7 @@ export async function setupRegata(o: Ctx): Promise<RegataDriver> {
         const left = Math.ceil(r.wait / 60);
         if ((r.wait + 1) % 60 === 0) suona('bip'); // 3, 2, 1
         if (r.wait > 0) { hud.big(String(left)); o.world.race.set(worldBoat(r, view(r))); return; }
-        r.phase = 'race'; hud.big('VIA!', PAL.erbaChiara); suona('via');
+        r.phase = 'race'; hud.big('Via!', PAL.erbaChiara); suona('via');
         return;
       }
       if (r.phase === 'race') {
@@ -291,7 +291,7 @@ export async function setupRegata(o: Ctx): Promise<RegataDriver> {
             r.phase = 'end'; r.wait = END_WAIT; r.result = r.mod.result(r.s); suona('arrivo');
             const m = r.result.medal;
             const finished = v.finished ?? v.next >= v.buoys.length;
-            const title = !finished ? 'TEMPO SCADUTO' : m ? MEDAL[m]! : 'ARRIVO';
+            const title = !finished ? 'Tempo scaduto' : m ? MEDAL[m]! : 'Arrivo';
             hud.big(title, m ? MEDAL_C[m] : PAL.sabbiaChiara, `${fmt(v.ms)} · ${v.next}/${v.buoys.length} boe · il server conferma`);
           }
         }

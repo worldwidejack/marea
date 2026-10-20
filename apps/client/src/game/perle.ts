@@ -23,7 +23,7 @@ export function createPostoPerle(o: { world: GameWorld; root: HTMLElement; hud: 
   const arch = o.world.archipelago;
   let q: PerleQui = { ok: false, perche: 'acqua' }, n = 0, ok = false, okWas = false, avvisoAt = -AVVISO_MS;
   const btn = el('button', 'mz mz-play'); btn.id = 'mzPerle'; btn.type = 'button';
-  btn.append(pixIcon('perle', 24), el('span', '', 'TUFFATI · PERLE'), el('small', '', 'T'));
+  btn.append(pixIcon('perle', 24), el('span', '', 'Tuffati · Perle'), el('small', '', 'T'));
   for (const ev of ['pointerdown', 'touchstart']) btn.addEventListener(ev, (x) => x.stopPropagation());
   o.root.appendChild(btn);
 

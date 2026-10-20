@@ -146,12 +146,12 @@ export function createFotoUi(ctx: FotoCtx) {
   const ov = el('div', 'mz'); ov.id = 'mzFoto'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Modalità foto');
   const x = el('button', 'mz-x', '×'); x.type = 'button'; x.title = 'Esci (Esc)'; x.setAttribute('aria-label', 'Esci dalla modalità foto');
   const hint = el('div', 'mz-fo-hint', touch ? 'Trascina per girare · pizzica per lo zoom' : 'Trascina per girare · rotella per lo zoom · Esc per uscire');
-  const scatta = el('button', 'mz-fo-scatta'); scatta.type = 'button'; scatta.id = 'mzFotoScatta'; scatta.append(cameraIcon(30), el('span', '', 'SCATTA'));
+  const scatta = el('button', 'mz-fo-scatta'); scatta.type = 'button'; scatta.id = 'mzFotoScatta'; scatta.append(cameraIcon(30), el('span', '', 'Scatta'));
   const lampo = el('div', 'mz-fo-lampo');
   const ant = el('div', 'mz-fo-ant'); ant.id = 'mzFotoAnt';
   const vista = el('canvas', 'mz-fo-img');
-  const salva = el('button', 'mz-btn green', 'SALVA'); salva.type = 'button'; salva.id = 'mzFotoSalva';
-  const condividi = el('button', 'mz-btn', 'CONDIVIDI'); condividi.type = 'button'; condividi.id = 'mzFotoCondividi';
+  const salva = el('button', 'mz-btn green', 'Salva'); salva.type = 'button'; salva.id = 'mzFotoSalva';
+  const condividi = el('button', 'mz-btn', 'Condividi'); condividi.type = 'button'; condividi.id = 'mzFotoCondividi';
   const act = el('div', 'mz-row mz-fo-act'); act.append(salva, condividi);
   const nota = el('div', 'mz-fo-note');
   ant.append(vista, act, nota);

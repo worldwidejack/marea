@@ -150,7 +150,7 @@ export default async function (ctx) {
         assert(r.medal === 'oro' && r.premiata && JSON.stringify(r.premio) === JSON.stringify(oro), 'esito: ' + JSON.stringify(r));
         assert(r.lot.monete >= before + r.premio, 'monete non pagate');
         const txt = await page.locator('#mzEsito').innerText();
-        assert(/ORO/.test(txt) && /\d+ punti/.test(txt) && (g.id === 'lava' ? /pezzi/.test(txt) : /navi affondate/.test(txt)), 'scheda: ' + txt);
+        assert(/\bOro\b/.test(txt) && /\d+ punti/.test(txt) && (g.id === 'lava' ? /pezzi/.test(txt) : /navi affondate/.test(txt)), 'scheda: ' + txt);
         await sleep(300);
         await ctx.shot(page, `iphone_${g.id}_5_esito`);
         await hook(g.id + 'Auto', false);

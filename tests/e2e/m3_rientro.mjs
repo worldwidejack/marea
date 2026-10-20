@@ -85,7 +85,7 @@ export default async function (ctx) {
       await hook('teleport', lb.x, lb.z); await hook('setZoom', 0.8);
       await ctx.waitState(page, (s) => s.libro.near === 'bea', 8000);
       await page.waitForSelector('#mzLibroBtn.on', { timeout: 5000 });
-      assert(/FIRMA/.test(await page.locator('#mzLibroBtn').innerText()), 'bottone FIRMA');
+      assert(/firma/i.test(await page.locator('#mzLibroBtn').innerText()), 'bottone FIRMA');
       await sleep(600);
       await ctx.shot(page, 'iphone_leggio_firma');
       await page.locator('#mzLibroBtn').tap();
@@ -100,7 +100,7 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.libro.open === null && s.libro.libri.find((l) => l.owner === 'bea').firmato, 8000);
       await ctx.waitState(page, (s) => s.emotes.shown.some((b) => b.who === 'me' && b.id === 'saluto'), 4000);
       await page.waitForSelector('#mzLibroBtn.on', { timeout: 5000 });
-      assert(/FIRMATO/.test(await page.locator('#mzLibroBtn').innerText()), 'dopo la firma il bottone dice FIRMATO');
+      assert(/firmato/i.test(await page.locator('#mzLibroBtn').innerText()), 'dopo la firma il bottone dice FIRMATO');
       await ctx.shot(page, 'iphone_firmato');
       const lot = (await marco(H + MIN, 'GET', '/api/lot/bea')).body;
       assert(lot.ospiti.length === 1 && lot.ospiti[0].chi === 'marco' && lot.ospiti[0].nome === 'Marco' && lot.ospiti[0].emote === 'saluto', 'firma salvata: ' + JSON.stringify(lot.ospiti));
@@ -163,7 +163,7 @@ export default async function (ctx) {
       await hook('teleport', lb.x, lb.z); await hook('setZoom', 0.8);
       await ctx.waitState(page, (s) => s.libro.near === 'bea', 8000);
       await page.waitForSelector('#mzLibroBtn.on', { timeout: 5000 });
-      assert(/LIBRO DEGLI OSPITI/.test(await page.locator('#mzLibroBtn').innerText()), 'bottone del proprio libro');
+      assert(/libro degli ospiti/i.test(await page.locator('#mzLibroBtn').innerText()), 'bottone del proprio libro');
       await page.locator('#mzLibroBtn').tap();
       await ctx.waitState(page, (s) => s.libro.open === 'libro', 8000);
       await page.waitForSelector('#mzLibro.on [data-firma="marco"]', { timeout: 5000 });

@@ -87,7 +87,7 @@ export default async function (ctx) {
       const om = await hook('pescaVai');
       assert(om && om.k.startsWith('r:'), 'nessuna ombra di riva: ' + JSON.stringify((await st()).pesca.ombre));
       await hook('setZoom', 0.7);
-      await ctx.waitState(page, (s) => s.pesca.puoi === 'riva' && /PESCA/.test(s.pesca.bottone ?? ''), 5000);
+      await ctx.waitState(page, (s) => s.pesca.puoi === 'riva' && /pesca/i.test(s.pesca.bottone ?? ''), 5000);
       await page.keyboard.press('KeyE');
       await ctx.waitState(page, (s) => s.pesca.fase === 'mira' && s.pesca.pannello, 3000);
       await ctx.shot(page, 'pc_pesca_mira');
@@ -103,7 +103,7 @@ export default async function (ctx) {
       const s1 = await st();
       assert(s1.pesca.preda && s1.pesca.preda.k === om.k, 'abbocca l’ombra vicina');
       for (let i = 0; i < 6; i++) { await hook('pescaA', 4); await sleep(80); }
-      await ctx.waitState(page, (s) => s.pesca.cartello && /HAI PRESO/.test(s.pesca.cartello), 8000);
+      await ctx.waitState(page, (s) => s.pesca.cartello && /hai preso/i.test(s.pesca.cartello), 8000);
       preso = s1.pesca.preda.id;
       const l = (await get('/api/lot')).body;
       assert(l.hero.inv[preso] === 1 && l.pesci.visti[preso] === 1 && l.pesci.presi.includes(om.k), 'preso dal server: ' + JSON.stringify(l.pesci));
@@ -170,7 +170,7 @@ export default async function (ctx) {
       await hook('setMode', 'boat');
       const p = await hook('pescaBarcaVai');
       assert(p, 'nessun punto da pesca al largo');
-      await ctx.waitState(page, (s) => s.pesca.barca.ok && /PESCA/.test(s.pesca.bottone ?? ''), 8000);
+      await ctx.waitState(page, (s) => s.pesca.barca.ok && /pesca/i.test(s.pesca.bottone ?? ''), 8000);
       await page.locator('#mzPescaBtn').click();
       await ctx.waitState(page, (s) => s.pesca.fase === 'mira' && s.pesca.dove === 'barca', 3000);
       const s = await st();

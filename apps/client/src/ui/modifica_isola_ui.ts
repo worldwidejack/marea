@@ -275,7 +275,7 @@ export function createModificaIsolaUi(root: HTMLElement, cb: ModificaUiCallbacks
   const btn = el('button', 'mz', '');
   btn.id = 'mzModificaIsolaBtn';
   btn.type = 'button';
-  btn.append(pixIcon('martello', 18), el('span', '', 'MODIFICA DISPOSIZIONE'));
+  btn.append(pixIcon('martello', 18), el('span', '', 'Modifica disposizione'));
   btn.addEventListener('click', cb.onOpen);
   root.appendChild(btn);
 
@@ -287,18 +287,18 @@ export function createModificaIsolaUi(root: HTMLElement, cb: ModificaUiCallbacks
   topBar.id = 'mzModificaTopBar';
   const titleBox = el('div', '', '');
   titleBox.id = 'mzModificaTitle';
-  titleBox.append(pixIcon('martello', 16), el('span', '', 'MODIFICA DISPOSIZIONE'));
+  titleBox.append(pixIcon('martello', 16), el('span', '', 'Modifica disposizione'));
 
   const actionsBox = el('div', 'mz-mod-actions');
-  const btnRiponiTutto = el('button', 'mz-mod-btn riponi-tutto', 'RIPONI TUTTO');
+  const btnRiponiTutto = el('button', 'mz-mod-btn riponi-tutto', 'Riponi tutto');
   btnRiponiTutto.type = 'button';
   btnRiponiTutto.addEventListener('click', cb.onRiponiTutto);
 
-  const btnAnnulla = el('button', 'mz-mod-btn annulla', 'ANNULLA');
+  const btnAnnulla = el('button', 'mz-mod-btn annulla', 'Annulla');
   btnAnnulla.type = 'button';
   btnAnnulla.addEventListener('click', cb.onAnnulla);
 
-  const btnSalva = el('button', 'mz-mod-btn salva', 'SALVA');
+  const btnSalva = el('button', 'mz-mod-btn salva', 'Salva');
   btnSalva.type = 'button';
   btnSalva.addEventListener('click', cb.onSalva);
 
@@ -328,7 +328,7 @@ export function createModificaIsolaUi(root: HTMLElement, cb: ModificaUiCallbacks
   trayHeader.id = 'mzModificaTrayHeader';
   const trayHint = el('span', '', 'Tocca un edificio per spostarlo');
   trayHint.id = 'mzModificaTrayHint';
-  trayHeader.append(el('span', '', 'MAGAZZINO COSTRUZIONI'), trayHint);
+  trayHeader.append(el('span', '', 'Magazzino costruzioni'), trayHint);
   const trayCards = el('div', '');
   trayCards.id = 'mzModificaTrayCards';
   tray.append(trayHeader, trayCards);

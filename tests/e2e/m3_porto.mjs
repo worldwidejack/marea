@@ -102,7 +102,7 @@ export default async function (ctx) {
       const s = await st();
       assert(s.porto.gente.length === gente.gente.length && s.porto.gente.length >= 4, 'gente: ' + JSON.stringify(s.porto.gente));
       const labels = await page.evaluate(() => [...document.querySelectorAll('.mz-lbl[data-porto]')].map((e) => e.textContent));
-      assert(labels.includes('MERCANTE') && labels.includes('BACHECA'), 'cartelli: ' + labels.join(','));
+      assert(labels.includes('Mercante') && labels.includes('Bacheca'), 'cartelli: ' + labels.join(','));
       await ctx.shot(page, 'desktop_piazza');
       const perf = await ctx.getPerf(page); ctx.log('perf piazza', JSON.stringify(perf));
       assert(perf.drawCalls <= 100, `draw call in piazza ${perf.drawCalls}`);
@@ -124,7 +124,7 @@ export default async function (ctx) {
       ctx.log('kasa', await bb(), await page.evaluate(() => { const e = document.querySelector('#mzPortoPanel [data-item="kasa"] [data-act="prova"]'); const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return top ? top.outerHTML.slice(0, 120) : null; }));
       await sleep(500); ctx.log('kasa dopo', await bb());
       const txt = await page.locator('#mzPortoPanel').innerText();
-      assert(/ESCLUSIVA/.test(txt) && txt.includes(kasa.nome) && txt.includes(gente.gente[0].nome), 'negozio: ' + txt.slice(0, 300));
+      assert(/esclusiva/i.test(txt) && txt.includes(kasa.nome) && txt.includes(gente.gente[0].nome), 'negozio: ' + txt.slice(0, 300));
       await page.locator('#mzPortoPanel [data-item="kasa"] [data-act="prova"]').click();
       await ctx.waitState(page, (s, i) => s.wp2_avatar.look.cappello === i, 3000, KASA);
       await ctx.shot(page, 'desktop_mercante_prova');
@@ -179,13 +179,13 @@ export default async function (ctx) {
       const cards = await page.evaluate(() => [...document.querySelectorAll('#mzPortoPanel [data-missione]')].map((e) => ({ tipo: e.dataset.tipo, tx: e.querySelector('.tx').textContent, act: e.querySelector('[data-act="riscuoti"]').textContent })));
       ctx.log('bacheca', JSON.stringify(cards));
       assert(JSON.stringify(cards.map((c) => c.tx)) === JSON.stringify(oggi.map((m) => m.testo)), 'missioni diverse dalla sim');
-      const i = cards.findIndex((c) => c.act === 'RISCUOTI');
+      const i = cards.findIndex((c) => c.act === 'Riscuoti');
       assert(i >= 0, 'nessuna missione compiuta: ' + JSON.stringify(cards));
       await ctx.shot(page, 'desktop_bacheca');
       const p0 = (await st()).lot.monete, prem = oggi[i].premio;
       await page.locator(`#mzPortoPanel [data-missione="${i}"] [data-act="riscuoti"]`).click();
       await ctx.waitState(page, (s, w) => s.lot.monete === w, 8000, p0 + prem);
-      await page.waitForFunction((i) => document.querySelector(`#mzPortoPanel [data-missione="${i}"] [data-act="riscuoti"]`)?.textContent === 'RISCOSSA', i, { timeout: 5000 });
+      await page.waitForFunction((i) => document.querySelector(`#mzPortoPanel [data-missione="${i}"] [data-act="riscuoti"]`)?.textContent === 'Riscossa', i, { timeout: 5000 });
       await ctx.shot(page, 'desktop_bacheca_riscossa');
       const again = await post('/api/missioni/riscuoti', { i });
       assert(again.status === 409 && /già riscosso/.test(again.body.error), 'seconda riscossione: ' + again.status);

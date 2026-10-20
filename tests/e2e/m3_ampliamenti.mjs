@@ -106,7 +106,7 @@ export default async function (ctx) {
       await V.page.keyboard.press('KeyE');
       await ctx.waitState(V.page, (s) => s.negozio.aperto === 'banco', 3000);
       const t = await V.page.locator('#mzNegozio').innerText();
-      assert(t.includes('INGRANDISCI LA CASA') && t.includes(liv1.nome) && t.includes(String(k1)), 'scheda del banco: ' + t);
+      assert(/ingrandisci la casa/i.test(t) && t.includes(liv1.nome) && t.includes(String(k1)), 'scheda del banco: ' + t);
       await ctx.shot(V.page, 'pc_banco_ampliamento');
       const prima = (await get('/api/lot')).body.monete;
       await V.page.locator('#mzNegozio [data-act="amplia"]').click();

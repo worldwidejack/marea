@@ -102,7 +102,7 @@ export default async function (ctx) {
       await lp.locator('#mzPortoPanel [data-tab="barca"]').click();
       await lp.waitForSelector(`#mzPortoPanel.on [data-item="${corsaro.id}"]`, { timeout: 10000 });
       const txt = await lp.locator('#mzPortoPanel').innerText();
-      assert(txt.includes(corsaro.nome) && /ESCLUSIVA/.test(txt), 'scheda barca: ' + txt.slice(0, 300));
+      assert(txt.includes(corsaro.nome) && /esclusiva/i.test(txt), 'scheda barca: ' + txt.slice(0, 300));
       await lp.locator(`#mzPortoPanel [data-item="${corsaro.id}"] [data-act="prova"]`).click();
       await ctx.waitState(lp, (s, id) => s.barche.mia.barca.scafo === id, 5000, corsaro.id);
       const p0 = (await lst()).lot.monete;
