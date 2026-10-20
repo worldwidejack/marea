@@ -6,7 +6,6 @@ import { DIARIO, ISOLE_DIARIO, validateDiario } from '@marea/content/diario.ts';
 import { validateContent } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
 import { diarioOf, isolaValida, registraDiscesa, registraPartita, registraVisti } from '../src/economy/diario.ts';
-import type { LotState } from '../src/economy/types.ts';
 import { MINIGAMES, getMinigame } from '../src/minigames/registry.ts';
 import '../src/adrenalina/registra.ts'; // lo snowboard e le Corse sono nel registro solo dal lato server (come lo vede il DO del lotto)
 import '../src/corse/registra.ts';
