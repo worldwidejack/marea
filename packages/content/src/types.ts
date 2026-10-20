@@ -123,8 +123,6 @@ export type BalanceDef = {
   bufferOre: number;
   /** Minigiochi da solo: monete per medaglia ('nessuna' = arrivato senza medaglia) e quante partite al giorno sono premiate. */
   solo: { premi: { oro: number; argento: number; bronzo: number; nessuna: number }; premiateAlGiorno: number };
-  /** Decorazioni (#108): quota del prezzo che torna rivendendole (per difetto). */
-  decor: { rimborso: number };
   avatar: { camminata: number; corsa: number; sogliaCorsa: number; raggio: number };
   barca: { accel: number; maxSpeed: number; virata: number; attrito: number; rimbalzo: number; raggioImbarco: number };
 };

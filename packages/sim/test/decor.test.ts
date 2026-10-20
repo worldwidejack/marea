@@ -1,120 +1,72 @@
-// Decorazioni libere (#108): sposta, ruota, rivendi. Stesse celle di placeDecor, rimborso a metà per difetto, libro mastro in pari.
+// Le decorazioni del Mercante stanno in casa come i mobili a terra: comprate vanno nel magazzino di casa («decor:<id>»), con ARREDA si
+// posano su una cella della stanza, si girano, si spostano e si rimettono via. Quelle posate nel giardino di prima tornano nel magazzino.
+// Libro mastro delle monete in pari.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BALANCE, DECOR, RIENTRO } from '@marea/content';
-import { decorRimborso, moveDecor, newLot, placeDecor, rotateDecor, sellDecor } from '../src/economy/actions.ts';
-import { cellsOf, decorCellError, lotTemplate, riservate } from '../src/economy/cells.ts';
-import type { LotTemplate } from '../src/economy/cells.ts';
-import { advance } from '../src/economy/advance.ts';
-import { checkInvariant } from '../src/economy/ledger.ts';
+import { BORGO, DECOR } from '@marea/content';
+import { newLot } from '../src/economy/actions.ts';
+import { posaMobile, postoMobileError, ritiraMobile, ruotaMobile, spostaMobile, mobile } from '../src/economy/casa.ts';
+import { chiaveDecor, compraDecor, decorComeMobile, decorDi, decorInCasa } from '../src/economy/decorazioni.ts';
+import { lotTemplate } from '../src/economy/cells.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { checkMonete } from '../src/economy/monete.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
 import { isErr } from './economia_util.ts';
 
-const T: LotTemplate = { rows: [
-  '~~~~~~~~~~',
-  '~..gggg..~',
-  '~.gLggLg.~',
-  '~.ggrrgg.~',
-  '~.gLggLg.~',
-  '~...P....~',
-  '~,,.dd.,,~',
-  '~,,,,B,,,~',
-] };
-/** Lotto con `monete` monete esatte, nel libro mastro (così l'invariante torna). */
-function ricco(monete: number, tpl: LotTemplate | null = T): LotState {
-  return conMonete(senzaMonete(newLot('a', 0, tpl)), monete);
-}
+const T = lotTemplate()!;
+const [X0, Z0] = BORGO.stanza.pavimento;
+const ricco = (monete: number): LotState => conMonete(senzaMonete(newLot('a', 0, T)), monete);
 const prezzo = (id: string) => DECOR.find((d) => d.id === id)!.monete;
 
-test('rimborso: metà del prezzo per difetto, numero in balance.json', () => {
-  assert.equal(BALANCE.decor.rimborso, 0.5);
-  for (const d of DECOR) assert.equal(decorRimborso(d.id), Math.floor(d.monete / 2), d.id);
-  assert.equal(decorRimborso('lanterna'), Math.floor(prezzo('lanterna') / 2), 'per difetto');
-  assert.equal(decorRimborso('inesistente'), 0);
+test('chiavi: «decor:<id>» è una decorazione e un mobile a terra di una cella; un mobile vero non lo è', () => {
+  const k = chiaveDecor('lanterna');
+  assert.equal(decorDi(k)?.id, 'lanterna');
+  assert.equal(decorDi('lanterna'), null, 'senza prefisso non è una chiave di decorazione');
+  assert.equal(decorDi(chiaveDecor('inesistente')), null);
+  const m = decorComeMobile(k)!;
+  assert.deepEqual([m.posto, m.forma, m.celle], ['terra', 'decor', [1, 1]]);
+  assert.equal(mobile(k)?.nome, DECOR.find((d) => d.id === 'lanterna')!.nome, 'casa.ts la trova come un mobile');
 });
 
-test('sposta: su sabbia/erba libera sì; su edifici, slot, molo, altre decorazioni o fuori no', () => {
-  let lot = ricco(50);
-  lot = placeDecor(lot, 'barile', [1, 1], 0, 0, 5, T);
-  lot = placeDecor(lot, 'cassa', [2, 1], 0, 0, 5, T);
-  const [barile, cassa] = lot.decor;
-  const mosso = moveDecor(lot, barile!.id, [8, 4], 10, T);
-  assert.deepEqual(mosso.decor.find((d) => d.id === barile!.id)!.cell, [8, 4]);
-  assert.equal(mosso.version, advance(lot, 10).version + 1);
-  assert.deepEqual(mosso.resources, lot.resources, 'spostare non costa');
-  assert.throws(() => moveDecor(lot, barile!.id, cassa!.cell, 10, T), isErr('cella'), 'sopra un’altra decorazione');
-  assert.throws(() => moveDecor(lot, barile!.id, [4, 6], 10, T), isErr('posizione'), 'sul molo');
-  const conCasa = { ...lot, buildings: [...lot.buildings, { id: 'x-9', building: 'casa', level: 1, cell: [8, 4] as [number, number], buffer: 0, lastMs: 0 }] };
-  assert.throws(() => moveDecor(conCasa, barile!.id, [8, 4], 10, T), isErr('cella'), 'sopra un edificio');
-  for (const bad of [[3, 2], [4, 5], [5, 6], [4, 3], [0, 0], [99, 1], [-1, 2]] as [number, number][])
-    assert.throws(() => moveDecor(lot, barile!.id, bad, 10, T), isErr('posizione'), `cella ${bad} accettata`);
-  assert.throws(() => moveDecor(lot, 'barile-99', [8, 4], 10, T), isErr('sconosciuto'));
-  // nella stessa cella: niente da fare, niente versione nuova
-  assert.equal(moveDecor(lot, barile!.id, [1, 1], 10, T).version, advance(lot, 10).version);
-  // la cella lasciata libera torna buona per un'altra
-  assert.doesNotThrow(() => moveDecor(mosso, cassa!.id, [1, 1], 20, T));
-  assert.equal(checkInvariant([mosso]), null);
+test('compra dal Mercante: monete spese, una nel magazzino di casa; senza monete EconomyError con quante mancano', () => {
+  let lot = ricco(500);
+  lot = compraDecor(lot, 'torii');
+  lot = compraDecor(lot, 'torii');
+  assert.equal(lot.monete, 500 - 2 * prezzo('torii'));
+  assert.equal(lot.casa?.magazzino?.[chiaveDecor('torii')], 2);
+  assert.throws(() => compraDecor(ricco(1), 'torii'), (e: unknown) => isErr('risorse')(e) && (e as { manca: { monete: number } }).manca.monete === prezzo('torii') - 1);
+  assert.throws(() => compraDecor(lot, 'nessuna'), isErr('sconosciuto'));
+  assert.equal(checkMonete([lot]), null);
 });
 
-test('ruota: un quarto di giro a ogni tocco, dopo 4 torna a 0; il campo assente vale 0', () => {
-  let lot = placeDecor(ricco(10), 'torii', [1, 1], 0, 0, 5, T);
-  const id = lot.decor[0]!.id;
-  assert.equal(lot.decor[0]!.rot, undefined, 'rot 0 non si salva');
-  const giri: (number | undefined)[] = [];
-  for (let i = 0; i < 4; i++) { lot = rotateDecor(lot, id, i); giri.push(lot.decor[0]!.rot); }
-  assert.deepEqual(giri, [1, 2, 3, undefined]);
-  // un lotto salvato con rot esplicito resta valido
-  const vecchio = { ...lot, decor: [{ id: 'barile-7', decor: 'barile', cell: [2, 1] as [number, number], rot: 3 }] };
-  assert.equal(rotateDecor(vecchio, 'barile-7', 0).decor[0]!.rot, undefined);
-  assert.throws(() => rotateDecor(lot, 'nessuna', 0), isErr('sconosciuto'));
-  assert.throws(() => placeDecor(ricco(10), 'barile', [1, 1], 4, 0, 5, T), isErr('posizione'));
-  assert.equal(placeDecor(ricco(10), 'barile', [1, 1], 2, 0, 5, T).decor[0]!.rot, 2);
+test('in casa: si posa su una cella libera della stanza, si gira, si sposta, torna nel magazzino; nel giardino no', () => {
+  let lot = compraDecor(ricco(200), 'barile');
+  const k = chiaveDecor('barile');
+  assert.equal(postoMobileError(lot, mobile(k)!, { cell: [X0 + 1, Z0 - 3] })?.code, 'posizione', 'fuori dalla stanza');
+  lot = posaMobile(lot, k, { cell: [X0 + 1, Z0 + 1] }, 0, 0);
+  const a = lot.casa!.arredi!.find((x) => x.mobile === k)!;
+  assert.ok(a && !lot.casa!.magazzino?.[k], 'posata e tolta dal magazzino');
+  lot = ruotaMobile(lot, a.id, 0);
+  lot = spostaMobile(lot, a.id, { cell: [X0 + 2, Z0 + 1] }, 0);
+  assert.deepEqual(lot.casa!.arredi!.find((x) => x.id === a.id)!.cell, [X0 + 2, Z0 + 1]);
+  assert.throws(() => posaMobile(lot, k, { cell: [X0 + 3, Z0 + 1] }, 0, 0), isErr('requisito'), 'non ce n’è un’altra nel magazzino');
+  lot = ritiraMobile(lot, a.id, 0);
+  assert.equal(lot.casa!.magazzino![k], 1);
+  assert.equal(checkMonete([lot]), null);
 });
 
-test('rivendi: toglie la decorazione, rimborsa metà del prezzo in monete, libro mastro in pari', () => {
-  let lot = ricco(300);
-  lot = placeDecor(lot, 'statua', [1, 1], 0, 0, prezzo('statua'), T);
-  lot = placeDecor(lot, 'lanterna', [2, 1], 0, 0, prezzo('lanterna'), T);
-  const monete0 = lot.monete;
-  const out = sellDecor(lot, lot.decor[0]!.id, 50);
-  assert.equal(out.monete, Math.floor(prezzo('statua') / 2));
-  assert.equal(out.lot.monete, monete0 + out.monete);
-  assert.equal(out.lot.decor.length, 1);
-  assert.equal(out.lot.decor[0]!.decor, 'lanterna');
-  assert.equal(out.lot.ledger.monete!.generated, lot.ledger.monete!.generated + out.monete, 'il rimborso è un’entrata');
-  assert.equal(checkMonete([out.lot]), null);
-  const out2 = sellDecor(out.lot, out.lot.decor[0]!.id, 60);
-  assert.equal(out2.monete, Math.floor(prezzo('lanterna') / 2));
-  assert.equal(out2.lot.decor.length, 0);
-  assert.equal(checkMonete([out2.lot]), null);
-  assert.throws(() => sellDecor(out2.lot, 'lanterna-2', 70), isErr('sconosciuto'), 'già venduta');
-  // comprare e rivendere non crea monete
-  assert.ok(out2.lot.monete < 300);
-});
-
-test('dopo una vendita il nuovo id non ripete quelli rimasti', () => {
-  let lot = ricco(100);
-  lot = placeDecor(lot, 'barile', [1, 1], 0, 0, 5, T);
-  lot = placeDecor(lot, 'cassa', [2, 1], 0, 0, 5, T);
-  lot = sellDecor(lot, 'barile-1', 0).lot;
-  lot = placeDecor(lot, 'cassa', [1, 1], 0, 0, 5, T);
-  const ids = lot.decor.map((d) => d.id);
-  assert.equal(new Set(ids).size, ids.length, `id ripetuti: ${ids}`);
-  assert.deepEqual(ids, ['cassa-2', 'cassa-3']);
-});
-
-test('template vero: niente decorazioni sul libro degli ospiti né sulle decorazioni fisse del molo', () => {
-  const real = lotTemplate();
-  assert.ok(real, 'manca il template lotto');
-  const ris = riservate(real);
-  assert.ok(ris.some((c) => c[0] === RIENTRO.libro.lotto[0] && c[1] === RIENTRO.libro.lotto[1]), 'il libro non è riservato');
-  assert.equal(riservate(T).length, 0, 'i template dei test non hanno riservate');
-  const lot = ricco(50, real);
-  assert.equal(decorCellError(lot, RIENTRO.libro.lotto, real)?.code, 'posizione');
-  assert.throws(() => placeDecor(lot, 'barile', RIENTRO.libro.lotto, 0, 0, 5), isErr('posizione'));
-  const libera = [...cellsOf(real, 'g'), ...cellsOf(real, '.')].find((c) => !decorCellError(lot, c, real))!;
-  const l2 = placeDecor(lot, 'barile', libera, 0, 0, 5);
-  assert.throws(() => moveDecor(l2, l2.decor[0]!.id, RIENTRO.libro.lotto, 0), isErr('posizione'));
+test('salvataggio di prima: le decorazioni del giardino finiscono nel magazzino di casa, una volta sola; le sconosciute spariscono', () => {
+  const base = ricco(0);
+  const vecchio = { ...base, casa: { magazzino: { letto: 1, [chiaveDecor('barile')]: 1 } }, decor: [
+    { id: 'barile-1', decor: 'barile', cell: [1, 1] }, { id: 'barile-2', decor: 'barile', cell: [2, 1] },
+    { id: 'palma-3', decor: 'palma', cell: [3, 1], rot: 2 }, { id: 'boh-4', decor: 'boh', cell: [4, 1] },
+  ] } as LotState;
+  const out = decorInCasa(vecchio);
+  assert.ok(!('decor' in out));
+  assert.deepEqual(out.casa?.magazzino, { letto: 1, [chiaveDecor('barile')]: 3, [chiaveDecor('palma')]: 1 });
+  assert.equal(out.monete, base.monete, 'niente monete in più né in meno');
+  assert.equal(decorInCasa(out), out, 'un lotto già sistemato torna identico');
+  assert.equal(decorInCasa(base), base, 'un lotto nuovo torna identico');
+  const vuoto = decorInCasa({ ...base, decor: [] } as LotState);
+  assert.ok(!('decor' in vuoto) && vuoto.casa === base.casa);
 });

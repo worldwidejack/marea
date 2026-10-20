@@ -1,13 +1,15 @@
 // I mobili posati in casa (#265, LotState.casa.arredi): una mesh sola per lotto, rifatta solo quando cambiano. La disegna la vista del
 // lotto (game/lot.ts, anche per le case degli amici: sola lettura). La mesh sta nella stanza (la stanza nasconde i figli del lotto a nord
-// del muro in fondo, game/stanza.ts), le forme vengono da render/mobili.ts (chunk caricato al primo mobile).
+// del muro in fondo, game/stanza.ts), le forme vengono da render/mobili.ts (chunk caricato al primo mobile). Le decorazioni del Mercante
+// («decor:<id>», forma `decor`) hanno il loro modello di sempre (render/decor.ts), girato verso la camera come quando stavano in giardino.
 import * as THREE from 'three';
-import { BORGO, MOBILI } from '@marea/content';
-import { casaDi, livelloCasa, stanzaAt } from '@marea/sim';
+import { BORGO } from '@marea/content';
+import { casaDi, decorDi, livelloCasa, mobile, stanzaAt } from '@marea/sim';
 import type { Rect } from '@marea/sim';
 import type { LotState, PlacedMobile } from '@marea/sim';
 import type { MobileDef } from '@marea/content';
 import type { Part } from '../rpg/dungeon_kit.ts';
+import type { Loader } from '../render/loader.ts';
 
 const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
 
@@ -25,7 +27,7 @@ export function postoArredo(a: Pick<PlacedMobile, 'cell' | 'muro' | 'rot'>, T: n
   return { x: cx, z: cz, ry: (r * Math.PI) / 2 };
 }
 
-export function createArrediVista(o: { group: THREE.Group; origin: readonly [number, number]; tile: number; groundY(x: number, z: number): number }): { sync(lot: LotState | null): void; dispose(): void } {
+export function createArrediVista(o: { group: THREE.Group; origin: readonly [number, number]; tile: number; groundY(x: number, z: number): number; loader: Loader }): { sync(lot: LotState | null): void; dispose(): void } {
   const T = o.tile, ox = o.origin[0] * T, oz = o.origin[1] * T;
   let key = '', livello = 0, oggetti: THREE.Object3D[] = [], mod: Promise<[typeof import('../render/mobili.ts'), typeof import('../render/mobili_modelli.ts')]> | null = null, disposed = false;
   const via = () => { for (const ob of oggetti) { o.group.remove(ob); if (ob instanceof THREE.Mesh) ob.geometry.dispose(); } oggetti = []; }; // le geometrie dei modelli sono in cache: non si distruggono
@@ -42,8 +44,13 @@ export function createArrediVista(o: { group: THREE.Group; origin: readonly [num
     const p0 = new THREE.Vector3(ox + rx0 * T, o.groundY(ox + (rx0 + 1) * T, oz + (rz0 + 1) * T), oz + rz0 * T + 0.01);
     const parti: THREE.BufferGeometry[] = [], gm = new THREE.Group();
     for (const a of lista) {
-      const d = MOBILI.find((x) => x.id === a.mobile); if (!d) continue;
-      const p = postoArredo(a, T, d.celle, stanzaAt(livello, a.cell)?.pavimento), ps = vivi.get(d.id);
+      const d = mobile(a.mobile); if (!d) continue;
+      const p = postoArredo(a, T, d.celle, stanzaAt(livello, a.cell)?.pavimento), ps = vivi.get(d.id), dec = decorDi(d.id);
+      if (dec) { // una decorazione: il suo modello (o il segnaposto), caricato a parte
+        const g = new THREE.Group(); g.position.set(ox + p.x - p0.x, 0, oz + p.z - p0.z); g.rotation.y = p.ry + Math.PI; gm.add(g);
+        void import('../render/decor.ts').then((dm) => dm.decorObject(dec.id, o.loader)).then(({ obj }) => { if (!disposed && k === key) g.add(obj); }).catch(() => { /* senza decorazione si gioca lo stesso */ });
+        continue;
+      }
       if (ps) { // ha il suo modello 3D (manifest_mobili.json): mesh a parte, con la texture dell'atlas
         const g = mm.gruppoModello(ps); g.position.set(ox + p.x - p0.x, 0, oz + p.z - p0.z); g.rotation.y = p.ry; gm.add(g);
         continue;

@@ -31,6 +31,7 @@ export * from './economy/rientro.ts'; // Mentre eri via e libro degli ospiti (#8
 // esportato qui finirebbe nel JS iniziale (le cache a livello di modulo non si possono togliere col tree-shaking).
 export * from './economy/barca.ts'; // La tua barca (#107)
 export * from './economy/casa.ts'; // La casa arredabile (#265)
+export * from './economy/decorazioni.ts'; // Le decorazioni del Mercante, in casa come i mobili
 export * from './economy/stanze.ts'; // Le stanze della casa e gli ampliamenti (#386)
 export * from './economy/giorno.ts'; // Il giorno di Roma (vetrina dei mobili, contrabbandiere)
 export * from './economy/vetrina.ts'; // La vetrina del giorno del negozio dei mobili (#384)

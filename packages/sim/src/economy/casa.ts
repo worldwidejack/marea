@@ -6,6 +6,7 @@
 import { BORGO, MOBILI } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
 import { advance } from './advance.ts';
+import { decorComeMobile } from './decorazioni.ts';
 import { spendi } from './monete.ts';
 import { livelloCasa, prossimoAmpliamento, scaleDi, stanzaAt, stanzaTerra, stanzeDi } from './stanze.ts';
 import type { Stanza, StanzaId } from './stanze.ts';
@@ -54,7 +55,8 @@ const passaggi = (s: Stanza, livello: number): readonly (readonly [number, numbe
 /** Il livello della casa di un lotto. */
 export const livelloLotto = (lot: LotState | null | undefined): number => livelloCasa(lot?.casa);
 
-export const mobile = (id: string): MobileDef | null => MOBILI.find((m) => m.id === id) ?? null;
+/** Un mobile di mobili.json o una decorazione del Mercante («decor:<id>», economy/decorazioni.ts): in casa si trattano allo stesso modo. */
+export const mobile = (id: string): MobileDef | null => MOBILI.find((m) => m.id === id) ?? decorComeMobile(id);
 export const finitura = (tipo: Finitura, id: string): StanzaFinitura | null => (tipo === 'pavimento' ? BORGO.pavimenti : BORGO.carte).find((f) => f.id === id) ?? null;
 export const casaDi = (lot: LotState | null | undefined): CasaState => lot?.casa ?? {};
 /** Ha già fatto un ampliamento della casa oggi (giorno di Roma, #436)? */
@@ -110,7 +112,7 @@ export function postoMobileError(lot: LotState, m: MobileDef, p: PostoMobile, se
     if (a.muro) return false;
     const d = mobile(a.mobile);
     return d ? celleMobile(d, a.cell, a.rot ?? 0).some((r) => same(r, q)) : same(a.cell, q);
-  }) || lot.buildings.some((b) => same(b.cell, q)) || lot.decor.some((d) => same(d.cell, q));
+  }) || lot.buildings.some((b) => same(b.cell, q));
   if (mie.some(occupate)) return { code: 'cella', msg: 'Cella occupata' };
   return null;
 }

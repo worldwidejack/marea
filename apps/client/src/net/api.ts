@@ -62,7 +62,7 @@ export type Api = {
   /** Senza id: il proprio lotto. Con id: quello di un altro, in sola lettura. */
   lot(id?: string): Promise<LotState>;
   lots(): Promise<LotOwner[]>;
-  decor(decor: string, cell: Cell, rot: number): Promise<LotState>;
+  decor(decor: string): Promise<LotState>;
   /** La casa arredabile (#265) e la pala (#438): compra (negozio dei mobili), finitura, scegli, posa, sposta, ruota, ritira, baule, amplia, pala. */
   casa(azione: 'compra' | 'finitura' | 'scegli' | 'posa' | 'sposta' | 'ruota' | 'ritira' | 'baule' | 'amplia' | 'pala' | 'retino' | 'canna', body: { id?: string; tipo?: 'pavimento' | 'carta'; cell?: Cell; muro?: 'n' | 'o' | 'e'; rot?: number; da?: number; stanza?: 'terra' | 'cantina' | 'piano' }): Promise<LotState>;
   /** Gli insetti di Borgo Marea (#445): sasso/albero {idx} → {uscito, gia, lot}; cattura {k} → {lot, id}; consegna {id} → {lot}. */
@@ -223,7 +223,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       return (list as unknown[]).filter((x): x is LotOwner => isObj(x) && typeof x['slot'] === 'number' && typeof x['id'] === 'string')
         .map((x) => ({ slot: x.slot, id: x.id, nome: String(x.nome ?? x.id), ...(isObj(x.look) ? { look: x.look } : {}) }));
     },
-    decor: (decor, cell, rot) => post('/api/lot/decor', { decor, cell, rot }),
+    decor: (decor) => post('/api/lot/decor', { decor }),
     casa: (azione, body) => post('/api/lot/casa/' + azione, body),
     insetti: (op, body) => call('POST', '/api/lot/insetti/' + op, body).then((d) => ({ ...(d as object), lot: asLot(op === 'consegna' ? d : (d as Record<string, unknown>)['lot']) })),
     pesci: (op, body) => call('POST', '/api/lot/pesci/' + op, body).then((d) => op === 'consegna' ? { lot: asLot(d) } : { id: String((d as Record<string, unknown>)['id'] ?? ''), lot: asLot((d as Record<string, unknown>)['lot']) }),
