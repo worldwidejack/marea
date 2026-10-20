@@ -97,7 +97,7 @@ export function stepOndate(s: TState): void {
       if (s.faseT >= secToTicks(o.pausa)) nuovaOndata(s);
       return;
     case 'combatti': {
-      const vivi = s.zombie.filter((z) => z.st !== 'morto').length;
+      const vivi = s.zombie.filter((z) => z.st !== 'morto' && !z.def.fantasma).length; // i fantasmi non contano (§12b punto 5)
       if (s.usciti < s.quanti && vivi < insiemeOndata(s.ondata, s.eroi.length) && s.tick >= s.prossima) {
         const c = comparsaVicina(s);
         if (c) {

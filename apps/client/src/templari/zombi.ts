@@ -241,6 +241,7 @@ export function createZombi(scene: THREE.Scene): Zombi {
     tick(v) {
       const seen = new Set<number>();
       for (const n of v.zombie) {
+        if (n.tipo === 'fantasma') continue; // i fantasmi: fantasmi3d.ts
         seen.add(n.id);
         let z = zs.get(n.id);
         if (!z) {

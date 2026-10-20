@@ -10,6 +10,7 @@ import type { TState } from './stato.ts';
 import { armaIn } from './stato.ts';
 import { autoA, finestraVicina, miraTiro } from './eroe.ts';
 import { raggiungePunto } from './raggiungi.ts';
+import { calmo } from './fantasmi.ts';
 
 const sq = (v: number): number => v * v;
 const FERMO: TInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
@@ -46,7 +47,7 @@ export function autopilota(s: TState, _rng: Rng): TInput {
   const h = s.eroe;
   if (s.done) return FERMO;
   // il super carico: appena ce ne sono almeno tre a meno di 6 m
-  if (h.superK >= 1 && !h.prevE && s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge' && sq(z.x - h.x) + sq(z.z - h.z) < 36).length >= 3) return { ...FERMO, e: true };
+  if (h.superK >= 1 && !h.prevE && s.zombie.filter((z) => z.st !== 'morto' && z.st !== 'sorge' && !calmo(z) && sq(z.x - h.x) + sq(z.z - h.z) < 36).length >= 3) return { ...FERMO, e: true };
   if (s.fase === 'altare') {
     const arco = s.arena.muri.find((m) => m.arma === 'arco');
     if (arco && !h.armi.some((x) => x?.id === 'arco')) return vicino(s, arco.x, arco.z, 1.0) ? tocca(s) : verso(s, arco.x, arco.z);
@@ -60,7 +61,7 @@ export function autopilota(s: TState, _rng: Rng): TInput {
     const pr = (am.portata ?? 1.5) + TEMPLARI.eroe.raggio;
     let dietro: { dx: number; dz: number; d: number } | null = null, davanti = false;
     for (const z of s.zombie) {
-      if (z.st === 'morto' || z.st === 'sorge') continue;
+      if (z.st === 'morto' || z.st === 'sorge' || calmo(z)) continue;
       const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
       if (d < 1e-3 || d > pr + z.def.raggio) continue;
       if ((dx * h.fx + dz * h.fz) / d >= 0.3) davanti = true; else if (!dietro || d < dietro.d) dietro = { dx, dz, d };
@@ -73,7 +74,7 @@ export function autopilota(s: TState, _rng: Rng): TInput {
   const ar = armaIn(s);
   if (ar.tipo !== 'mischia' && h.act === 'idle') {
     for (const z of s.zombie) {
-      if (z.st === 'morto' || z.st === 'sorge') continue;
+      if (z.st === 'morto' || z.st === 'sorge' || calmo(z)) continue;
       const dx = z.x - h.x, dz = z.z - h.z, d = Math.sqrt(dx * dx + dz * dz);
       if (d > 1 && d < (ar.gittata ?? 20) * 0.8 && (dx * h.fx + dz * h.fz) / d < 0.85) return { ...FERMO, mx: (dx / d) * 0.25, my: (dz / d) * 0.25 };
     }
@@ -82,7 +83,7 @@ export function autopilota(s: TState, _rng: Rng): TInput {
   // lo zombie dentro più vicino (che non stia ancora strappando fuori)
   let best: { x: number; z: number } | null = null, bd = Infinity;
   for (const z of s.zombie) {
-    if (z.st === 'morto' || z.st === 'sorge' || z.st === 'strappa') continue;
+    if (z.st === 'morto' || z.st === 'sorge' || z.st === 'strappa' || calmo(z)) continue;
     const c = cellOf(s.gr.eroe, z.x, z.z);
     if (c < 0 || s.gr.eroe.solid[c]) continue;
     const d = sq(z.x - h.x) + sq(z.z - h.z);

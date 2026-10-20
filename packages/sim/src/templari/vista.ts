@@ -54,7 +54,7 @@ export function viewOf(s: TState, io = 0): TView {
 function vista(s: TState): TView {
   const h = s.eroe, a = h.armi[h.cur];
   const posa = posaDi(s, h);
-  const vivi = s.zombie.filter((z) => z.st !== 'morto').length;
+  const vivi = s.zombie.filter((z) => z.st !== 'morto' && !z.def.fantasma).length;
   return {
     tick: s.tick, fase: s.fase, ondata: s.ondata, faseS: faseS(s), done: s.done, esito: s.esito, posa,
     eroe: {
@@ -69,6 +69,7 @@ function vista(s: TState): TView {
     zombie: s.zombie.map((z) => ({
       id: z.id, tipo: z.tipo, x: r2(z.x), z: r2(z.z), fx: z.fx, fz: z.fz, anim: animZombie(z),
       t: z.stDur > 0 ? Math.min(1, z.stT / z.stDur) : 0, vita: Math.max(0, z.vita), max: z.max, vel: z.vel, boss: !!z.def.boss, scudo: z.scudo > 0,
+      ...(z.def.fantasma ? { rabbia: z.arrabbiato } : {}),
     })),
     tiri: s.tiri.map((b) => ({ id: b.id, tipo: b.tipo, x: r2(b.x), z: r2(b.z), tx: r2(b.tx), tz: r2(b.tz), r: b.r, k: b.dur > 0 ? Math.min(1, b.t / b.dur) : 0 })),
     boss: bossVista(s),

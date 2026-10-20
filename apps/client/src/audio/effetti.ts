@@ -270,6 +270,20 @@ export const SUONI: Record<SuonoId, Ricetta> = {
     m.soffio({ f: 500, f2: 2800, q: 2.5, t, dur: 0.9, vol: 0.05 + 0.03 * k, a: 0.25 });
     m.tono({ f: 520 * vari(0.03), f2: 1040, onda: 'sine', t: t + 0.1, dur: 0.9, vol: 0.035, a: 0.3, vib: { f: 6, d: 0.02 } });
   },
+  // i fantasmi (§12b punto 5): un lamento lungo che sale e scende tremando, col vento sotto (k = quanto è vicino)
+  tpl_lamento: (m, t, k) => {
+    const v = 0.045 * lontano(k), f = 330 * vari(0.08);
+    m.tono({ f, f2: f * 1.5, onda: 'sine', t, dur: 0.9, vol: v, a: 0.35, vib: { f: 5, d: 0.03 } });
+    m.tono({ f: f * 1.5, f2: f * 0.7, onda: 'sine', t: t + 0.85, dur: 1.5, vol: v, a: 0.1, vib: { f: 4, d: 0.04 } });
+    m.soffio({ tipo: 'lowpass', f: 900, f2: 400, t, dur: 2.3, vol: v * 0.7, a: 0.5 });
+  },
+  // e quando si arrabbia: uno strillo che sale, doppio e stonato, con un soffio tagliente
+  tpl_spettro: (m, t, k) => {
+    const v = 0.07 * lontano(k), f = 520 * vari(0.06);
+    m.tono({ f, f2: f * 2.4, onda: 'sine', t, dur: 0.7, vol: v, a: 0.04, vib: { f: 9, d: 0.05 } });
+    m.tono({ f: f * 1.06, f2: f * 2.6, onda: 'triangle', t: t + 0.02, dur: 0.7, vol: v * 0.6, a: 0.04 });
+    m.soffio({ f: 2400, f2: 5200, q: 1.5, t, dur: 0.6, vol: v * 0.6, a: 0.03 });
+  },
   // il muro crepato che crolla: lo schianto, il rombo lungo e i sassi che rotolano giù per la scala
   tpl_crollo: (m, t) => {
     m.tono({ f: 70, f2: 30, onda: 'sine', t, dur: 0.6, vol: 0.22 });
