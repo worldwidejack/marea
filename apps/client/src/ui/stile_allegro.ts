@@ -55,8 +55,8 @@ const BOTTONE = `border-radius: 50%; border: ${k(2.5)} solid ${L.oro}; box-shado
 /** Cornice del libro (bordo d'oro, filo d'inchiostro) per cartigli e fumetti dell'HUD. */
 const CORNICE = `border: ${k(2)} solid ${L.oro}; box-shadow: 0 0 0 ${k(1.5)} ${L.inchiostro}, inset 0 0 0 ${k(1.5)} ${L.cartaChiara}, 0 ${k(3)} 0 ${k(1.5)} rgba(46,33,24,.35);`;
 const PILLOLA = `border-radius: 999px; background: ${L.carta}; ${CORNICE} color: ${L.inchiostro}; font: 700 ${k(14)} ${FONT_LIBRO};`;
-// le colonne: a sinistra monete (T), campanella (T+46), avatar (T+96); a destra ingranaggio (T), minimappa (T+30, 96 px), mete (T+138)
-const MINI = 96, MINI_TOP = 30, DESTRA = 18; // DESTRA: la minimappa sta un po' dentro, così + − e bandierina sul bordo restano nello schermo
+// le colonne: a sinistra monete (T), campanella (T+46), avatar (T+96); a destra ingranaggio (T), minimappa (T+30, 100 px), mete (T+142)
+const MINI = 100, MINI_TOP = 30, DESTRA = 18; // DESTRA: la minimappa sta un po' dentro, così + − e bandierina sul bordo restano nello schermo
 
 const CSS = `
 @font-face { font-family: 'MzTitan'; src: url('/assets/fonts/titan-one-latin.woff2') format('woff2'); font-display: swap; }
@@ -137,6 +137,7 @@ body #mzMete .mz-mete-arr { color: ${L.acqua}; width: ${k(14)}; height: ${k(18)}
 body #mzMete .mz-mete-chev { align-self: stretch; display: flex; align-items: center; padding: 0 ${k(8)}; margin-left: ${k(4)}; background: ${L.acqua}; color: ${L.cartaChiara}; font: 700 ${k(15)} ${FONT_LIBRO}; border-left: ${k(1.5)} solid ${L.oro}; }
 body #compass .mz-mete-row { min-height: ${k(34)}; padding: ${k(2)} ${k(10)} ${k(2)} ${k(8)}; gap: ${k(6)}; border-radius: ${k(12)}; background: ${L.carta}; ${CORNICE} color: ${L.inchiostro}; font: 700 ${k(13)} ${FONT_LIBRO}; overflow: hidden; }
 body #compass .mz-mete-row.navi { border-color: ${L.acqua}; }
+body #compass .mz-mete-row .mz-mete-dist { flex: 1; } /* distanza, freccia e ? a destra: il centro della riga resta la riga */
 body #compass .mz-mete-row .mz-mete-box { border-radius: ${k(4)}; border-color: ${L.inchiostro2}; }
 body #compass .mz-mete-row:not(.off) .mz-mete-box { background: ${L.acqua}; border-color: ${L.acquaScura}; }
 body #compass .mz-mete-row .mz-mete-apri, body #compass .mz-mete-row .mz-mete-x { border-left-color: ${L.filo}; color: ${L.acqua}; }
