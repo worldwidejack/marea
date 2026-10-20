@@ -15,6 +15,9 @@ import { pixIcon, resIcon } from './icons.ts';
 import { flyResources, tickTimers, timerSpan } from './sheet.ts';
 import { TABS, mercanteBody } from './porto_mercante.ts';
 import type { MercanteState } from './porto_mercante.ts';
+import { chiacchierata, favoreInCorso } from './paesani_dlg.ts';
+import type { Pagina, Scheda } from './paesani_dlg.ts';
+import { registerTestHook } from '../test/testapi.ts';
 
 export type PortoUiKind = 'mercante' | 'bacheca' | 'parla';
 export type PortoUi = {
@@ -69,6 +72,10 @@ const STYLE = `
 .mz-dlg .ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .mz-dlg .n { color: ${P.sabbia}; font-size: 13px; font-weight: bold; }
 .mz-dlg .mz-btn { width: auto; min-width: 140px; margin: 0; justify-content: center; }
+.mz-dlg .nt { margin: -2px 0 8px; color: ${P.sabbia}; font-size: 13px; line-height: 1.35; }
+.mz-dlg .nt.bad { color: ${P.arancio}; font-weight: bold; }
+.mz-dlg .sc { display: flex; gap: 8px; }
+.mz-dlg .sc .mz-btn { min-width: 0; padding: 6px 14px; }
 @media (min-width: 700px) { .mz-dlg { left: 50%; right: auto; width: 540px; transform: translateX(-50%); bottom: 32px; } }
 `;
 
@@ -84,10 +91,10 @@ export function cancelloVuotoAperto(lot: LotState | null): boolean {
   return false;
 }
 
-export function battuteDi(p: PersonaPorto, lot: LotState | null): string[] {
-  if (p.battuteAperto?.length && cancelloVuotoAperto(lot)) return p.battuteAperto;
-  return p.battute;
-}
+/** Le battute in fila della gente che non è paesana (i paesani hanno la chiacchierata di paesani_dlg.ts). */
+export function battuteDi(p: PersonaPorto): string[] { return p.battute ?? []; }
+/** Prove e screenshot: l'ora (ms) delle chiacchiere dei paesani; null = quella del server. */
+let oraFinta: number | null = null;
 
 export function createPortoUi(ctx: PortoCtx): PortoUi {
   injectUiStyle();
@@ -99,6 +106,9 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
   const ishi = GENTE.gente.find((p) => p.ruolo === 'mercante');
   let kind: PortoUiKind | null = null, gen = 0, aperture = 0, timer = 0;
   let persona: PersonaPorto | null = null, riga = 0;
+  /** La chiacchierata con un paesano (null = battute in fila), l'errore del server sulla pagina, quando è apparsa (niente doppi tocchi sulle scelte). */
+  let pagine: Pagina[] | null = null, notaErr: string | null = null, mostrataAt = 0, cieloUsato: { pioggia: number; vento: number } | null = null;
+  registerTestHook('paesaniOra', (ms) => { oraFinta = ms === null || ms === undefined ? null : Number(ms); return true; });
   const merc: MercanteState = { tab: 'cappelli', prova: null, provaBarca: null, note: null, busy: false };
   const bach = { busy: false, note: null as { i: number; text: string; bad: boolean } | null, riscosse: 0 };
 
@@ -109,7 +119,18 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     e.stopPropagation(); // WASD/frecce/C/F/M non arrivano al gioco
     if (e.code === 'Escape') { e.preventDefault(); if (!e.repeat) close(); return; }
     if (kind === 'parla') {
-      if (['Enter', 'Space', 'KeyE'].includes(e.code)) { e.preventDefault(); if (!e.repeat) avanti(); }
+      const sc = [...dlg.querySelectorAll<HTMLElement>('.sc button')];
+      if (sc.length && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault(); const i = sc.indexOf(document.activeElement as HTMLElement);
+        sc[(i < 0 ? 0 : i + (e.key === 'ArrowRight' ? 1 : sc.length - 1)) % sc.length]?.focus();
+        return;
+      }
+      if (['Enter', 'Space', 'KeyE'].includes(e.code)) {
+        e.preventDefault();
+        if (e.repeat) return;
+        if (sc.length) { if (performance.now() - mostrataAt > 400) (sc.includes(document.activeElement as HTMLElement) ? document.activeElement as HTMLElement : sc[0])?.click(); }
+        else avanti();
+      }
       return;
     }
     if (e.code === 'KeyE') { e.preventDefault(); if (!e.repeat) close(); return; }
@@ -143,6 +164,13 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     body.appendChild(say);
     if (!lot || !ctx.api?.enabled) { body.appendChild(el('div', 'mz-pt-miss', 'Le missioni sono per chi ha il link personale: chiedilo a Jack')); return body; }
     const list = el('div');
+    const fav = favoreInCorso(lot, now); // il favore di un paesano (#493): si fa nel Borgo, qui solo il promemoria
+    if (fav) {
+      const c = el('div', 'mz-pt-card'); c.dataset['favore'] = '1';
+      const cnt = el('div', 'cnt'); cnt.append('Favore di un paesano · scade tra ', timerSpan(fav.scade));
+      c.append(el('div', 'tx', fav.testo), cnt);
+      list.appendChild(c);
+    }
     for (const m of missioniOf(lot, now).list) {
       const c = el('div', 'mz-pt-card' + (m.riscossa ? ' fatta' : '')); c.dataset['missione'] = String(m.i); c.dataset['tipo'] = m.tipo;
       const bar = el('div', 'mz-pt-bar'), fill = el('i'); fill.style.width = `${Math.round((100 * m.fatto) / m.n)}%`; bar.appendChild(fill);
@@ -212,25 +240,57 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
 
   function parla(p: PersonaPorto): void {
     close(true);
-    kind = 'parla'; gen++; persona = p; riga = 0;
+    kind = 'parla'; gen++; persona = p; riga = 0; pagine = null; notaErr = null;
+    if (p.ruolo === 'paesano') {
+      const g = gen;
+      const scheda: Scheda = {
+        viva: () => g === gen && kind === 'parla',
+        poi: (nuove) => { if (g !== gen || !pagine) return; pagine.splice(riga + 1, pagine.length, ...nuove); riga++; notaErr = null; renderDlg(); },
+        nota: (t) => { if (g !== gen) return; notaErr = t; renderDlg(); },
+        chiudi: () => { if (g === gen) close(); },
+        vola: (n) => { const b = dlg.querySelector<HTMLElement>('.ft') ?? dlg; fly(b, n); },
+      };
+      const c = ctx.cielo?.() ?? null; cieloUsato = c;
+      pagine = chiacchierata({ id: p.id, ctx, cielo: c, cancello: cancelloVuotoAperto(ctx.getLot()), ora: oraFinta ?? ctx.api?.serverNow() ?? Date.now(), scheda });
+      if (!pagine.length) pagine = [{ testo: '…' }];
+    }
     dlg.classList.add('on'); keys(true); renderDlg();
   }
+  /** Le pagine della scheda: la chiacchierata del paesano o le battute in fila. */
+  const pagineDi = (p: PersonaPorto): Pagina[] => pagine ?? battuteDi(p).map((testo) => ({ testo }));
   function renderDlg(): void {
     if (kind !== 'parla' || !persona) return;
-    const lines = battuteDi(persona, ctx.getLot());
+    const lines = pagineDi(persona), pg = lines[riga];
     const who = el('div', 'who'); who.append(pixIcon('parla', 16), el('span', '', persona.nome));
     const last = riga >= lines.length - 1;
-    const b = el('button', 'mz-btn' + (last ? ' green' : ''), last ? 'CIAO' : 'AVANTI ›'); b.type = 'button'; b.dataset['act'] = last ? 'ciao' : 'avanti';
-    b.addEventListener('click', () => avanti());
-    const ft = el('div', 'ft'); ft.append(el('span', 'n', `${riga + 1}/${lines.length}`), b);
+    const ft = el('div', 'ft'); ft.append(el('span', 'n', lines.length > 1 ? `${riga + 1}/${lines.length}` : ''));
+    if (pg?.scelte?.length) {
+      const sc = el('div', 'sc');
+      for (const s of pg.scelte) {
+        const b = el('button', 'mz-btn' + (s.principale ? ' green' : ' ghost'), s.label); b.type = 'button'; b.dataset['act'] = s.act;
+        b.addEventListener('click', () => { if (b.disabled) return; for (const x of sc.querySelectorAll('button')) (x as HTMLButtonElement).disabled = true; void s.fai(); });
+        sc.appendChild(b);
+      }
+      ft.appendChild(sc);
+    } else {
+      const b = el('button', 'mz-btn' + (last ? ' green' : ''), last ? 'CIAO' : 'AVANTI ›'); b.type = 'button'; b.dataset['act'] = last ? 'ciao' : 'avanti';
+      b.addEventListener('click', () => avanti());
+      ft.appendChild(b);
+    }
     dlg.dataset['persona'] = persona.id;
-    dlg.replaceChildren(who, el('p', '', lines[riga] ?? ''), ft);
+    const parts: HTMLElement[] = [who, el('p', '', pg?.testo ?? '')];
+    if (notaErr) parts.push(el('div', 'nt bad', notaErr));
+    else if (pg?.nota) parts.push(el('div', 'nt', pg.nota));
+    dlg.replaceChildren(...parts, ft);
+    mostrataAt = performance.now();
+    if (pg?.scelte?.length) dlg.querySelector<HTMLElement>('.sc button')?.focus({ preventScroll: true });
   }
   function avanti(): void {
     if (kind !== 'parla' || !persona) return;
-    const lines = battuteDi(persona, ctx.getLot());
+    const lines = pagineDi(persona);
+    if (lines[riga]?.scelte?.length) return; // sulle scelte si tocca un bottone (il bottone A del telefono non sceglie per te)
     if (riga >= lines.length - 1) { close(); return; }
-    riga++; renderDlg();
+    riga++; notaErr = null; renderDlg();
   }
   function close(silent = false): void {
     if (!kind) return;
@@ -241,7 +301,7 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     sheet.classList.remove('on'); dlg.classList.remove('on');
     if (was === 'mercante' && merc.prova !== null && ctx.me) ctx.setLook({ ...ctx.me.look }); // la prova si toglie: torna il look salvato
     if (was === 'mercante' && merc.provaBarca !== null) ctx.world.setBarca(barcaDi(ctx.me?.look)); // anche quella della barca (#107)
-    merc.prova = null; merc.provaBarca = null; persona = null;
+    merc.prova = null; merc.provaBarca = null; persona = null; pagine = null; notaErr = null;
     if (!silent) ctx.onClose();
   }
 
@@ -250,6 +310,6 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     mercante: () => openSheet('mercante'),
     bacheca: () => openSheet('bacheca'),
     parla, avanti, close: () => close(), isOpen: () => kind !== null,
-    state: () => ({ kind, tab: merc.tab, prova: merc.prova, provaBarca: merc.provaBarca, note: merc.note?.text ?? bach.note?.text ?? null, busy: merc.busy || bach.busy, persona: persona?.id ?? null, riga, battuta: persona ? (battuteDi(persona, ctx.getLot())[riga] ?? null) : null, cancelloAperto: cancelloVuotoAperto(ctx.getLot()), riscosse: bach.riscosse }),
+    state: () => ({ kind, tab: merc.tab, prova: merc.prova, provaBarca: merc.provaBarca, note: merc.note?.text ?? bach.note?.text ?? null, busy: merc.busy || bach.busy, persona: persona?.id ?? null, riga, battuta: persona ? (pagineDi(persona)[riga]?.testo ?? null) : null, pagine: persona ? pagineDi(persona).map((x) => ({ testo: x.testo, nota: x.nota ?? null, scelte: x.scelte?.map((s) => s.act) ?? [] })) : null, notaErr, cielo: cieloUsato, cancelloAperto: cancelloVuotoAperto(ctx.getLot()), riscosse: bach.riscosse }),
   };
 }

@@ -149,7 +149,8 @@ async function boot(): Promise<void> {
     return world.mode === 'walk' && canBoard(world.avatar.state, world.boat.state, world.map) ? 'Sali' : null;
   };
   // Porto (#63-#65): Mercante del Porto, Bacheca delle missioni, Gente del Porto; i pannelli si scaricano alla prima apertura
-  const porto = createPorto({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot });
+  const porto = createPorto({ world, loader, api: me && api.enabled ? api : null, me, hud, root, camera: renderer.camera, canvas, getLot: () => myLot(), setLot: setMyLot,
+    cielo: () => (aspetto && aspetto.meteo !== 'spento' ? { pioggia: aspetto.nuvole.pioggia, vento: aspetto.nuvole.vento } : null) });
   // nella sezione del Porto subito dopo la piazza: Mercante e Bacheca prima dei minigiochi
   targets.splice(targets.findIndex((t) => t.id === 'porto') + 1, 0, ...porto.spots.map((sp): CompassTarget => ({ id: sp.id, label: sp.id === 'mercante' ? 'Mercante' : sp.id === 'contrabbando' ? 'Contrabbando' : 'Bacheca', icon: sp.id, x: sp.x, z: sp.z, sezione: 'porto' })));
   // Porto tra amici: Tabellone dei record in piazza (pannello scaricato alla prima apertura) e il Grande Faro sullo scoglio, scenografia

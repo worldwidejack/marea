@@ -92,6 +92,8 @@ export type Api = {
   insetti(op: 'sasso' | 'albero' | 'cattura' | 'consegna', body: { idx?: number; k?: string; id?: string }): Promise<{ lot: LotState; uscito?: { k: string; id: string; t: number } | null; gia?: boolean; id?: string }>;
   /** I pesci (#457): cattura {k} (ombra del turno) → {lot, id}; consegna {id} al mobiliere → {lot}. */
   pesci(op: 'cattura' | 'consegna', body: { k?: string; id?: string }): Promise<{ lot: LotState; id?: string }>;
+  /** I paesani del Borgo (#493): parla {id} → {evento, premio}; accetta {id, slot} il favore chiesto; rifiuta {id}; dona {id} il pesce o l'insetto → {premio}. */
+  paesani(op: 'parla' | 'accetta' | 'rifiuta' | 'dona', body: { id: string; slot?: number }): Promise<{ lot: LotState; evento?: string; premio?: { monete: number } | { mobile: string } | null }>;
   /** Botteghe del Borgo (#414): migliora il Fabbro o la barca al Cantiere di un livello; `da` = il livello che vedi (409 se è già cambiato). */
   bottega(azione: 'migliora', body: { bottega: 'fabbro' | 'cantiere'; da: number }): Promise<LotState>;
   /** Minigiochi da solo (senza posta): apre una partita col seed del server; `opzioni` = parametri della partita (es. il mare della pesca). */
@@ -264,6 +266,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
     casa: (azione, body) => post('/api/lot/casa/' + azione, body),
     insetti: (op, body) => call('POST', '/api/lot/insetti/' + op, body).then((d) => ({ ...(d as object), lot: asLot(op === 'consegna' ? d : (d as Record<string, unknown>)['lot']) })),
     pesci: (op, body) => call('POST', '/api/lot/pesci/' + op, body).then((d) => op === 'consegna' ? { lot: asLot(d) } : { id: String((d as Record<string, unknown>)['id'] ?? ''), lot: asLot((d as Record<string, unknown>)['lot']) }),
+    paesani: (op, body) => call('POST', '/api/lot/paesani/' + op, body).then((d) => { const o = d as Record<string, unknown>; return { evento: typeof o['evento'] === 'string' ? o['evento'] : undefined, premio: isObj(o['premio']) ? o['premio'] as { monete: number } | { mobile: string } : null, lot: asLot(o['lot']) }; }),
     bottega: (azione, body) => post('/api/lot/bottega/' + azione, body),
     async soloStart(minigame, opzioni) {
       const d = await call('POST', '/api/solo/start', opzioni ? { minigame, opzioni } : { minigame });

@@ -44,16 +44,20 @@ export type Porto = {
 export type PortoOpts = {
   world: GameWorld; loader: Loader; api: Api | null; me: Me | null; hud: Hud; root: HTMLElement; camera: THREE.Camera; canvas: HTMLCanvasElement;
   getLot(): LotState | null; setLot(l: LotState): void;
+  /** Il tempo che fa dove sei (pioggia e vento 0..1, render/aspetto.ts): le chiacchiere dei paesani col brutto tempo. null = meteo spento. */
+  cielo?(): { pioggia: number; vento: number } | null;
 };
 /** Contesto che il chunk dei pannelli riceve da qui. */
 export type PortoCtx = PortoOpts & { setLook(l: Look): void; onClose(): void };
 
 type Target = { kind: 'posto'; id: PortoKind; posto: PortoPosto } | { kind: 'persona'; p: PersonaPorto };
-type Npc = { p: PersonaPorto; av: Avatar | null; meshes: THREE.Mesh[]; shadow: boolean; pts: { x: number; z: number }[]; len: number; s: number; x: number; z: number; yaw: number; label: Label; talk: boolean };
+type Npc = { p: PersonaPorto; av: Avatar | null; meshes: THREE.Mesh[]; shadow: boolean; pts: { x: number; z: number }[]; len: number; s: number; x: number; z: number; yaw: number; label: Label; talk: boolean; segno: boolean };
 
 const CSS = `
 .mz-play.on ~ .mz-porto-btn.on { top: calc(60% + 66px); }
 .mz-lbl.persona { border-color: ${P.sabbiaChiara}; font-size: 13px; }
+.mz-lbl.persona.segno { border-color: ${P.giallo}; }
+.mz-lbl.persona .punto { margin-left: 2px; font-size: 16px; }
 `;
 const SHOW_M = 60, NAME_M = 13, TAP_M = 7;
 /** Entro quanti metri il nome di una persona torna pieno (#129, solo da PC): oltre, fino a NAME_M, è discreto. */
@@ -135,14 +139,28 @@ export function createPorto(o: PortoOpts): Porto {
     let len = 0;
     for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.z - pts[i - 1]!.z);
     const first = pts[0]!, b = bancoDi(p);
-    const n: Npc = { p, av: null, meshes: [], shadow: true, pts, len, s: 0, x: first.x, z: first.z, yaw: b ? -GENTE.posti[b].rot : Math.PI, label: layer.add(() => { if (dist(n.x, n.z) < TAP_M) void open(b ? alBanco(b) : { kind: 'persona', p }); }), talk: false };
-    n.label.set('bubble', [pixIcon(b ?? 'parla', 16), el('span', '', p.nome)], 'persona'); n.label.el.classList.add('persona'); n.label.el.dataset['persona'] = p.id;
+    const n: Npc = { p, av: null, meshes: [], shadow: true, pts, len, s: 0, x: first.x, z: first.z, yaw: b ? -GENTE.posti[b].rot : Math.PI, label: layer.add(() => { if (dist(n.x, n.z) < TAP_M) void open(b ? alBanco(b) : { kind: 'persona', p }); }), talk: false, segno: false };
+    nome(n, false); n.label.el.dataset['persona'] = p.id;
     void createAvatar({ loader: o.loader, look: p.look, x: first.x, z: first.z }).then((av) => {
       av.setGround(o.world.groundY); av.object.name = 'gente_' + p.id; group.add(av.object); n.av = av;
       av.object.traverse((x) => { if ((x as THREE.Mesh).isMesh) n.meshes.push(x as THREE.Mesh); });
     }).catch(() => { /* senza avatar la persona non c'è: pazienza */ });
     return n;
   });
+
+  /** Il nome sopra la testa; col segno (un paesano da cui devi andare per un favore, #493) è giallo, ha il «!» e si vede da lontano. */
+  function nome(n: Npc, segno: boolean): void {
+    const b = bancoDi(n.p);
+    n.segno = segno;
+    n.label.set(segno ? 'full' : 'bubble', [pixIcon(b ?? 'parla', 16), el('span', '', n.p.nome), ...(segno ? [el('b', 'punto', '!')] : [])], segno ? 'segno' : 'persona');
+    n.label.el.classList.add('persona'); n.label.el.classList.toggle('segno', segno);
+  }
+  /** Da quale paesano devi andare adesso per il favore in corso (come economy/paesani.ts `daVedere`, senza scaricare le battute). */
+  function daVedere(): string | null {
+    const f = o.getLot()?.paesani?.favore, now = o.api?.serverNow() ?? Date.now();
+    if (!f || now > f.scade) return null;
+    return f.tipo === 'parla' && !f.detto ? f.a : f.da;
+  }
 
   // ---- bottone ----
   const btn = el('button', 'mz mz-play mz-porto-btn'); btn.id = 'mzPortoBtn'; btn.type = 'button';
@@ -214,7 +232,7 @@ export function createPorto(o: PortoOpts): Porto {
   registerStateProvider('porto', () => ({
     near: keyOf(near), open: ui?.isOpen() ? ui.kind : null, ui: ui?.state() ?? null,
     posti: posti.map((s) => ({ id: s.id, x: s.x, z: s.z, fronte: { x: s.fx, z: s.fz } })),
-    gente: npcs.map((n) => ({ id: n.p.id, nome: n.p.nome, x: n.x, z: n.z, pronto: !!n.av, visibile: !!n.av?.object.visible, parla: n.talk })),
+    gente: npcs.map((n) => ({ id: n.p.id, nome: n.p.nome, x: n.x, z: n.z, pronto: !!n.av, visibile: !!n.av?.object.visible, parla: n.talk, segno: n.segno })),
   }));
   registerTestHook('portoApri', async (id) => {
     const k = String(id);
@@ -267,12 +285,17 @@ export function createPorto(o: PortoOpts): Porto {
       btn.classList.toggle('on', show);
       const fd = (x: number, z: number) => Math.hypot(focus.x - x, focus.z - z);
       for (const s of posti) { const p = screenOf(s.x, 3.3, s.z); s.label.place(p.x, p.y, p.on && fd(s.x, s.z) < SHOW_M && !o.world.race.on, dist(s.x, s.z) < LABEL_NEAR_M); }
+      const vedi = daVedere();
       for (const n of npcs) {
+        if ((n.p.id === vedi) !== n.segno) nome(n, n.p.id === vedi);
         const sp = screenOf(n.x, 1, n.z), far = fd(n.x, n.z) > NPC_M || !(sp.on || Math.abs(v.x) < 1.25 && Math.abs(v.y) < 1.25 && v.z < 1);
         if (n.av) { n.av.visible = !far; n.av.object.visible = !far; } // avatar.update (che lo copierebbe) da lontano non gira
         const shadow = !far && fd(n.x, n.z) < SHADOW_M;
         if (shadow !== n.shadow) { n.shadow = shadow; for (const m of n.meshes) m.castShadow = shadow; }
-        if (far) { n.label.place(0, 0, false); continue; }
+        if (far) { // lontano non si disegna; il nome resta solo per chi ha il segno, da cercare
+          if (n.segno) { const q = screenOf(n.x, 2.25, n.z); n.label.place(q.x, q.y, q.on && fd(n.x, n.z) < SHOW_M && !o.world.race.on, true); } else n.label.place(0, 0, false);
+          continue;
+        }
         const f = me(), close = n.talk || (o.world.mode === 'walk' && Math.hypot(f.x - n.x, f.z - n.z) < Math.max(2.2, n.p.raggio));
         let anim = 'idle';
         if (n.pts.length > 1 && n.p.velocita > 0 && !close) {
@@ -282,7 +305,7 @@ export function createPorto(o: PortoOpts): Porto {
         } else if (close && !bancoDi(n.p)) n.yaw = Math.atan2(f.x - n.x, -(f.z - n.z)); // si gira verso di te
         if (n.av) { n.av.setPose({ x: n.x, z: n.z, yaw: n.yaw, anim }); n.av.update(1, dt); }
         const p = screenOf(n.x, 2.25, n.z);
-        n.label.place(p.x, p.y, p.on && !!n.av && fd(n.x, n.z) < NAME_M && !n.talk && !o.world.race.on && !bancoDi(n.p), dist(n.x, n.z) < NAME_NEAR_M); // chi sta a un banco ha già il cartello del banco
+        n.label.place(p.x, p.y, p.on && !!n.av && fd(n.x, n.z) < (n.segno ? SHOW_M : NAME_M) && !n.talk && !o.world.race.on && !bancoDi(n.p), n.segno || dist(n.x, n.z) < NAME_NEAR_M); // chi sta a un banco ha già il cartello del banco
       }
     },
   };
