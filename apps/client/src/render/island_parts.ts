@@ -5,16 +5,11 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createRng } from '@marea/sim';
 import type { Rng } from '@marea/sim';
 import type { Loader } from './loader.ts';
+import { PALETTE } from './palette.ts';
 
 export const ISLAND = { TOP: 0.4, BOTTOM: -1.2, STEP: 0.12, STEP_W: 0.6 } as const;
-export const P = {
-  sabbiaChiara: '#F4E3C1', sabbia: '#E2B97F', legnoChiaro: '#C98A4B', legno: '#8E5A2B', legnoScuro: '#5A3A1E', ombraCalda: '#2E1E14',
-  erbaChiara: '#D9E872', erba: '#8FC35B', erbaScura: '#4E9A46', bosco: '#2C6B3F', boscoOmbra: '#1E4A3A',
-  pietraChiara: '#E8E1D6', pietra: '#B9AFA3', pietraScura: '#7F7568', roccia: '#4A4340', neroCaldo: '#23201F',
-  rosso: '#E8433F', arancio: '#F2A33A', giallo: '#F5D547',
-  rosaNeon: '#FF3DA6', cianoNeon: '#3DF5FF', ambraNeon: '#FFB03D', violaNeon: '#8A5CFF',
-  acquaBassa: '#7FE3E0', acqua: '#3FB9C9', acquaProfonda: '#2478A8', abisso: '#163F73', viola: '#A64DFF', verdeNeon: '#B6FF3D', rossoNeon: '#FF5C3D',
-} as const;
+/** La palette (render/palette.ts). */
+export const P = PALETTE;
 
 // ——— texture procedurali a pixel (16 texel/m): 32×64, metà alta = faccia superiore (2×2 m), metà bassa = fianco (2 m) ———
 export type Painter = (g: CanvasRenderingContext2D, r: Rng) => void;

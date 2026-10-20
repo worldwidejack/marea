@@ -1,11 +1,14 @@
 // Stile pixel dell'interfaccia in DOM (ART_BIBLE §2 e §9): solo colori della palette, bordi netti a 2 px, ombre «dure» senza sfocatura,
 // niente gradienti, font monospazio come l'HUD. Iniettato una volta sola in <head>. Bersagli touch ≥ 44 px.
+import { PALETTE } from '../render/palette.ts';
+/** I colori dell'interfaccia: la palette senza i neon (tranne il rosa) e senza bosco ombra. Sottoinsieme fisso: chi scorre PAL
+(colore più vicino degli oggetti, tavolozze dei disegni) vede sempre gli stessi colori. */
 export const PAL = {
-  sabbiaChiara: '#F4E3C1', sabbia: '#E2B97F', legnoChiaro: '#C98A4B', legno: '#8E5A2B', legnoScuro: '#5A3A1E', ombraCalda: '#2E1E14',
-  erbaChiara: '#D9E872', erba: '#8FC35B', erbaScura: '#4E9A46', bosco: '#2C6B3F',
-  acquaBassa: '#7FE3E0', acqua: '#3FB9C9', acquaProfonda: '#2478A8', abisso: '#163F73',
-  pietraChiara: '#E8E1D6', pietra: '#B9AFA3', pietraScura: '#7F7568', roccia: '#4A4340', neroCaldo: '#23201F',
-  rosso: '#E8433F', arancio: '#F2A33A', giallo: '#F5D547', viola: '#A64DFF', rosaNeon: '#FF3DA6',
+  sabbiaChiara: PALETTE.sabbiaChiara, sabbia: PALETTE.sabbia, legnoChiaro: PALETTE.legnoChiaro, legno: PALETTE.legno, legnoScuro: PALETTE.legnoScuro, ombraCalda: PALETTE.ombraCalda,
+  erbaChiara: PALETTE.erbaChiara, erba: PALETTE.erba, erbaScura: PALETTE.erbaScura, bosco: PALETTE.bosco,
+  acquaBassa: PALETTE.acquaBassa, acqua: PALETTE.acqua, acquaProfonda: PALETTE.acquaProfonda, abisso: PALETTE.abisso,
+  pietraChiara: PALETTE.pietraChiara, pietra: PALETTE.pietra, pietraScura: PALETTE.pietraScura, roccia: PALETTE.roccia, neroCaldo: PALETTE.neroCaldo,
+  rosso: PALETTE.rosso, arancio: PALETTE.arancio, giallo: PALETTE.giallo, viola: PALETTE.viola, rosaNeon: PALETTE.rosaNeon,
 } as const;
 
 const P = PAL;
