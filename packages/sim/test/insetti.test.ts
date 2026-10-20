@@ -37,13 +37,13 @@ test('insetti: catalogo valido, 32 specie nello zaino a peso 0, retino strumento
   assert.ok(ALBERI_BORGO.length >= 8);
 });
 
-test('insetti: stagioni dal calendario di Roma, notte dal ciclo di 24 minuti', () => {
+test('insetti: stagioni dal calendario di Roma, notte dal ciclo di 24 ore', () => {
   assert.equal(stagioneAt(OTT), 'autunno');
   assert.equal(stagioneAt(Date.UTC(2026, 11, 28, 20)), 'inverno');
   assert.equal(stagioneAt(Date.UTC(2027, 3, 1, 12)), 'primavera');
   assert.equal(stagioneAt(Date.UTC(2027, 6, 1, 12)), 'estate');
   assert.equal(stagioneAt(Date.UTC(2026, 10, 30, 23, 30)), 'inverno', 'a Roma è già il primo dicembre');
-  const giro = 24 * 60_000, t0 = Math.floor(OTT / giro) * giro;
+  const giro = 24 * 3600_000, t0 = Date.UTC(2026, 9, 19, 4, 0, 0); // ore 06:00 a Roma (CEST, UTC+2)
   assert.equal(faseCiclo(t0), 0);
   assert.equal(notteAt(t0 + giro * 0.3), false);
   assert.equal(notteAt(t0 + giro * 0.75), true);
@@ -55,9 +55,9 @@ test('insetti: stagioni dal calendario di Roma, notte dal ciclo di 24 minuti', (
 });
 
 test('insetti: in giro uguali per tutti, della stagione e dell\'ora giusta, sulle celle del Borgo', () => {
-  const giro = 24 * 60_000;
+  const giro = 24 * 3600_000;
   let notte = 0, giorno = 0;
-  for (let t = OTT; t < OTT + giro * 3; t += 60_000 * 4) {
+  for (let t = OTT; t < OTT + giro; t += 3600_000) {
     const turno = turnoAt(t), liberi = liberiDelTurno(turno), [a, b] = turnoMs(turno), meta = (a + b) / 2;
     assert.deepEqual(liberiDelTurno(turno), liberi, 'deterministico');
     assert.ok(liberi.length >= 5);

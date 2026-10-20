@@ -24,4 +24,5 @@ export const VISTE: (View & { nome: string })[] = [
   { nome: '15°', pitch: 15, fov: 42, dist: 19, far: 900 },
 ];
 /** Minuti di un giro completo del ciclo giorno/notte (giorno ~13, tramonto ~2, notte ~5, alba ~2 più i passaggi). Aspetto, non numero di gioco. */
-export const CICLO_MIN = 24;
+export const CICLO_ORE = 24;
+export const CICLO_MIN = 24 * 60;

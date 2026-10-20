@@ -12,3 +12,11 @@ export function oreRoma(ms: number): number {
 export const giornoRoma = (ms: number): number => Math.floor((ms + oreRoma(ms) * HOUR) / DAY);
 /** Millisecondi alla prossima mezzanotte di Roma (merce nuova). */
 export const finoAMezzanotte = (ms: number): number => (giornoRoma(ms) + 1) * DAY - oreRoma(ms) * HOUR - ms;
+
+/** Frazione del ciclo giorno/notte [0, 1) per l'istante `ms`: sincronizzata all'ora reale di Roma (#487).
+ *  0 = ore 06:00 (inizio giorno), 0.25 = ore 12:00 (mezzogiorno), 0.58 = ore 20:00 (tramonto), 0.75 = ore 00:00 (notte), 0.96 = ore 05:00 (alba). */
+export function faseRoma(ms: number): number {
+  const msRoma = (ms + oreRoma(ms) * HOUR) % DAY;
+  const msDalle6 = msRoma - 6 * HOUR;
+  return ((msDalle6 % DAY + DAY) % DAY) / DAY;
+}
