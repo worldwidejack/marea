@@ -18,6 +18,7 @@ import { eroeForPanels } from '../ui/eroe.ts';
 import { M, merged } from '../render/island_parts.ts';
 import { FORME, canvasInsegna, facciaInsegna, texInsegne } from '../render/botteghe_forme.ts';
 import { createAvatar } from './avatar.ts';
+import { scegliLod } from './gente_lod.ts';
 import type { Avatar } from './avatar.ts';
 import type { BottegaUi } from '../rpg/bottega_ui.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
@@ -176,7 +177,7 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
         if (s.av) {
           const ombra = fd(s.bx, s.bz) < SHADOW_M;
           if (ombra !== s.ombra) { s.ombra = ombra; for (const m of s.meshes) m.castShadow = ombra; }
-          const far = fd(s.bx, s.bz) > NPC_M; s.av.visible = !far; s.av.object.visible = !far; if (!far) { s.av.setPose({ x: s.bx, z: s.bz, yaw: -s.ry + Math.PI, anim: 'idle' }); s.av.update(1, dt); } }
+          const far = fd(s.bx, s.bz) > NPC_M; s.av.visible = !far; s.av.object.visible = !far; if (!far) { s.av.setPose({ x: s.bx, z: s.bz, yaw: -s.ry + Math.PI, anim: 'idle' }); s.av.update(1, dt); scegliLod(s.meshes, o.camera, s.bx, 1, s.bz); } }
       }
       // i fumi che salgono
       fumi.forEach((fu, i) => {

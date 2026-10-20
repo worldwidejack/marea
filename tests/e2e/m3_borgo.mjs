@@ -6,7 +6,7 @@ import path from 'node:path';
 
 export const timeout = 180000;
 // draw call: 100 dove gioca il telefono; il PC a zoom massimo sopra la piazza vede tutto il borgo e le isole (TECH.md §5): 110
-const MAX_DRAW = 100, MAX_DRAW_PC_ALTO = 110, MAX_TRIS = 215000; // TECH §5
+const MAX_DRAW = 100, MAX_DRAW_PC_ALTO = 110, MAX_TRIS = 200000;
 
 export default async function (ctx) {
   const { assert } = ctx;

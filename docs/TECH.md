@@ -64,7 +64,7 @@ I numeri veri del JS e dei MB stanno in `BUDGET` di `tools/build.mjs`; draw call
 | Caricamento iniziale (html + js + atlas + modelli della prima isola) | ≤ 3 MB |
 | Manifest secondari: modelli dei dungeon · kit delle Corse · mobili · personaggi del Borgo · pelli della Difesa | ≤ 1,5 · 2,5 · 3 · 3 · 4 MB |
 | Draw call per frame | ≤ 100 (sul PC, solo a zoom massimo sopra il Borgo: ≤ 110; dal 19 ott oscillava fra 101 e 105 con insetti, pesci e botteghe: da riportare sotto 100 unendo cappelli e ingressi in pezzi unici) |
-| Triangoli a schermo | ≤ 215.000 (200.000 fino al 20 ott 2026: i 13 personaggi del Borgo coi modelli loro, ART_BIBLE §5, danno +14k triangoli dall'alto ma −40 draw call: 129 → 89) |
+| Triangoli a schermo | ≤ 200.000 (i personaggi del Borgo da lontano usano la versione leggera, ART_BIBLE §5) |
 | Texture in VRAM | ≤ 16 MB (eccezione: le ondate dei Templari col dipinto, `TEMPLARI.md` §3b) |
 | Shadow map | una, 1024² (le Corse in HD: 2048² al PC) |
 | FPS | 60 su iPhone 12+, ≥ 45 su Android medio, mai < 30 |
