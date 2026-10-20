@@ -11,7 +11,7 @@ import type { DungeonEvent, HeroAnim } from './types.ts';
 import type { SwingStyle } from './swing.ts';
 import { bfs, cellOf, moveCircle, parseDungeon } from './map.ts';
 import type { DMap, Griglia } from './map.ts';
-import { rollLoot } from './loot.ts';
+import { rollLoot } from './tiri.ts';
 import { ALLEATO_SEGUE, HZ, P_DORME } from './tuning.ts';
 
 export type Bag = Record<string, number>;

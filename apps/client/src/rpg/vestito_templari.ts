@@ -2,8 +2,8 @@
 // come le armature del GDR (scatole pesate sulle ossa, rpg/vestito.ts: un draw call), con l'id `tpl_<eroe>` in Indossa.corpo; il copricapo
 // (elmo, tricorno, cappuccio) è un cappello dell'avatar (game/avatar.ts, `setCappello`). Misure del corpo di chr_base a riposo: busto
 // 0,95-1,30 m, spalle a ±0,2, cosce 0,46-0,85, avanti = −Z. Solo colori della palette (ART_BIBLE §2).
-import type { Hue, Pz } from './vestito.ts';
-import { SX, avamb, lato } from './vestito.ts';
+import type { Hue, Pz } from './vestito_pezzi.ts';
+import { SX, avamb, lato } from './vestito_pezzi.ts';
 
 /** Il copricapo di ogni eroe (id dei cappelli dell'avatar). */
 export const TESTA_TEMPLARI: Record<string, string> = { crociato: 'elmo_templare', bucaniera: 'pirata', arciere: 'cappuccio_arciere' };

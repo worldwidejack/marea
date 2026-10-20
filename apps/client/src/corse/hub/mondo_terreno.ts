@@ -5,13 +5,12 @@
 // - Le strade sono spezzate morbide (Catmull-Rom) campionate ogni metro; il profilo segue il terreno lisciato con la pendenza
 //   limitata, i ponti hanno le quote date. Il terreno vicino alla strada si raccorda (terrapieni, trincee).
 // - Le domande della guida (`quota`, `superficie`, `fuori`) leggono le griglie precalcolate e le strade: costano poco.
-import { TESSERE, distSeg, h01, lerp, liscio, rumore } from './mondo_base.ts';
+import { MARE, NC, PASSO, TESSERE, X0, Z0, distSeg, h01, lerp, liscio, rumore } from './mondo_base.ts';
 import { costaPrincipale } from './mondo_costa.ts';
 import type { Tessera, V2 } from './mondo_base.ts';
 import type { Superficie } from './mappa.ts';
 
-export const MARE = 0;
-export const X0 = -288, Z0 = -288, PASSO = 2, NC = 288; // celle per lato
+export { MARE, NC, PASSO, X0, Z0 } from './mondo_base.ts';
 export const RIQ = 64, NRIQ = 9;
 export const BORDO = 280; // oltre: fuori
 

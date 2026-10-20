@@ -9,6 +9,10 @@ export type V2 = [number, number];
 export type V3 = [number, number, number];
 export type NomeP = keyof typeof P;
 
+/** La griglia del terreno dell'hub: quota del mare, angolo in basso a sinistra, passo in metri, celle per lato. */
+export const MARE = 0;
+export const X0 = -288, Z0 = -288, PASSO = 2, NC = 288;
+
 // ---------- rumore deterministico ----------
 export const h01 = (x: number, y: number, s = 0): number => {
   let n = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s, 1274126177)) >>> 0;
