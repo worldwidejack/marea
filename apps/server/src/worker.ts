@@ -389,18 +389,13 @@ export default {
       }
       // Rientro (#86): all'ingresso il DO del lotto risponde col riepilogo dell'assenza (null se mancavi da poco) e segna «visto»; qui si
       // aggiungono le novità non lette del feed che non sono visite (le visite stanno già nel riepilogo, come firme del libro)
-      // e i momenti delle salite del Faro comune (#111), che il lotto impara qui se se li era persi
       if (path === '/api/rientro' && req.method === 'POST') {
-        let novita = 0, faro: number[] | undefined;
+        let novita = 0;
         try {
           const f = await sfideReq(env, p.id, now, 'feed');
-          if (f.ok) {
-            const fd = (await f.json()) as { rows: FeedRow[]; faroLivelli?: number[] };
-            novita = fd.rows.filter((x) => !x.letto && x.tipo !== 'visita').length;
-            faro = fd.faroLivelli;
-          }
+          if (f.ok) novita = ((await f.json()) as { rows: FeedRow[] }).rows.filter((x) => !x.letto && x.tipo !== 'visita').length;
         } catch { /* senza feed la scheda esce lo stesso */ }
-        const r = await lotReq(env, p.id, now, 'rientro', faro?.length ? { faro } : {});
+        const r = await lotReq(env, p.id, now, 'rientro', {});
         if (!r.ok) return r;
         const d = (await r.json()) as { riepilogo: unknown; lot: unknown };
         return json({ riepilogo: d.riepilogo, novita, lot: d.lot, now });

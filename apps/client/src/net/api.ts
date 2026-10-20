@@ -31,13 +31,6 @@ export type RecordVista = { chi: string; nome: string; score: number; medal: Med
 export type RecordRiga = { minigame: string; nome: string; oggi: RecordVista | null; sempre: RecordVista | null };
 /** I collezionisti (#457, GET /api/collezione): pesci e insetti consegnati al mobiliere, chi ne ha di più prima. */
 export type CollezioneRiga = { id: string; nome: string; pesci: number; insetti: number };
-/** Faro comune del Porto (#111, GET /api/faro): totali, livello, prossima soglia, bonus attuale, chi ha versato di più. */
-export type FaroVista = {
-  legno: number; pietra: number; livello: number; max: number; livelli: number[]; bonus: number;
-  prossimo: { livello: number; legno: number; pietra: number; bonus: number } | null;
-  classifica: { id: string; nome: string; legno: number; pietra: number }[];
-};
-export type FaroVersato = { faro: FaroVista; saliti: number[]; dono: { legno: number; pietra: number }; lot: LotState };
 
 /** Spedizione aperta dal server (POST /api/dungeon/start): seed e fotografia del personaggio. CONTRACTS §15. */
 export type DungeonStart = { dungeon: string; seed: number; hero: RunHero; lot: LotState;
@@ -128,14 +121,11 @@ export type Api = {
   // ---- Porto (#64) ----
   /** RISCUOTI una missione compiuta della Bacheca (indice 0-2 di oggi): il server verifica, paga e risponde col lotto. */
   riscuoti(i: number): Promise<{ premio: number; lot: LotState }>;
-  // ---- Porto tra amici (#110 #111) ----
+  // ---- Porto tra amici ----
   /** Tabellone dei record: una riga per minigioco da solo. */
   record(): Promise<RecordRiga[]>;
   /** La classifica dei collezionisti (#457): chi ha consegnato più pesci e insetti al mobiliere, tra chi ha un'isola. */
   collezione(): Promise<CollezioneRiga[]>;
-  faro(): Promise<FaroVista>;
-  /** Versa Legno e Pietra al Faro comune (dal tuo Magazzino; mai oltre quello che manca): risponde col faro e col tuo lotto. */
-  faroVersa(legno: number, pietra: number): Promise<FaroVersato>;
   // ---- Rientro e libro degli ospiti (#86) ----
   /** All'ingresso: il server dice cosa è successo mentre eri via e segna che ci sei. */
   rientro(): Promise<Rientro>;
@@ -188,8 +178,7 @@ export function moneteText(n: number): string {
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const isLot = (v: unknown): v is LotState => isObj(v) && typeof v['owner'] === 'string' && isObj(v['resources']) && Array.isArray(v['buildings']);
-const FEED_TIPI: readonly string[] = ['visita', 'record', 'faro'];
-const isFaro = (v: unknown): v is FaroVista => isObj(v) && typeof v['livello'] === 'number' && typeof v['legno'] === 'number' && Array.isArray(v['classifica']);
+const FEED_TIPI: readonly string[] = ['visita', 'record'];
 const asFeedItem = (v: unknown): FeedItem | null => {
   if (!isObj(v) || typeof v['id'] !== 'number' || typeof v['tipo'] !== 'string' || !FEED_TIPI.includes(v['tipo']) || typeof v['testo'] !== 'string') return null;
   return {
@@ -301,17 +290,6 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       const d = await call('GET', '/api/collezione');
       const list = isObj(d) && Array.isArray(d['righe']) ? d['righe'] : [];
       return (list as unknown[]).filter((x): x is CollezioneRiga => isObj(x) && typeof x['id'] === 'string' && typeof x['pesci'] === 'number' && typeof x['insetti'] === 'number');
-    },
-    async faro() {
-      const d = await call('GET', '/api/faro');
-      if (!isObj(d) || !isFaro(d['faro'])) throw new ApiError(500, 'Risposta del server non valida');
-      return d['faro'];
-    },
-    async faroVersa(legno, pietra) {
-      const d = await call('POST', '/api/faro/versa', { legno, pietra });
-      if (!isObj(d) || !isFaro(d['faro'])) throw new ApiError(500, 'Risposta del server non valida');
-      const dono = isObj(d['dono']) ? { legno: Number(d['dono']['legno'] ?? 0), pietra: Number(d['dono']['pietra'] ?? 0) } : { legno: 0, pietra: 0 };
-      return { faro: d['faro'], saliti: Array.isArray(d['saliti']) ? d['saliti'].filter((x): x is number => typeof x === 'number') : [], dono, lot: asLot(d['lot']) };
     },
     async rpg(a) { return asLot(await call('POST', '/api/rpg', { azione: a })); },
     async dungeonStart(dungeon, da) {

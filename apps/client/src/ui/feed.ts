@@ -31,7 +31,6 @@ const CSS = `
 .mz-feed-row.new .q { color: ${P.giallo}; }
 .mz-feed-row[data-tipo="visita"] { border-left-color: ${P.giallo}; display: flex; gap: 8px; align-items: flex-start; }
 .mz-feed-row[data-tipo="record"] { border-left-color: ${P.rosso}; }
-.mz-feed-row[data-tipo="faro"] { border-left-color: ${P.giallo}; }
 .mz-feed-row[data-tipo="visita"] > .mz-ico { margin-top: 2px; }
 .mz-feed-row[data-tipo="visita"] > div { flex: 1; min-width: 0; }
 .mz-feed-empty { color: ${P.sabbia}; margin: 4px 0 10px; }

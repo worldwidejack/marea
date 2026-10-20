@@ -1,12 +1,12 @@
-// Feed nel SQLite del DO Sfide (CONTRACTS §13): una riga per persona a ogni novità (firma al libro, record battuto, Faro comune).
+// Feed nel SQLite del DO Sfide (CONTRACTS §13): una riga per persona a ogni novità (firma al libro, record battuto).
 // Solo SQL sincrono. Il DO non conosce i nomi: il testo lo compone il Worker (`feed.ts`).
-// Le righe delle vecchie sfide con posta (tipo `sfida_…`, codice tolto) restano nel database ma non si leggono e non si contano.
+// Le righe delle cose tolte dal codice (sfide con posta `sfida_…`, Faro comune `faro`) restano nel database ma non si leggono e non si contano.
 import type { FeedTipo } from '@marea/protocol';
 import type { FeedDati, FeedRow } from '../feed.ts';
 
 const MAX_PER_PERSONA = 100;
 const PAGINA = 30;
-const VIVE = "tipo NOT LIKE 'sfida%'";
+const VIVE = "tipo NOT LIKE 'sfida%' AND tipo <> 'faro'";
 
 export function creaTabellaFeed(sql: SqlStorage): void {
   sql.exec(`CREATE TABLE IF NOT EXISTS feed (

@@ -1,9 +1,8 @@
-// Porto tra amici (#110 #111), la parte nel mondo (bundle iniziale, piccola): il Tabellone dei record in piazza (legno, procedurale in
-// palette, un mesh) e il Faro comune sullo scoglio a nord-est (modelli bld_faro_l1/l2: cresce coi livelli; al livello 0 è spento,
-// finestre e lanterna scure; dal livello 1 si accende e di notte un fascio gira dalla lanterna, più lungo e largo a ogni livello). Cartelli RECORD / FARO, bottone quando ci sei vicino
-// (A / E / Spazio). I pannelli stanno in ui/porto_amici_ui.ts, scaricato con import() alla prima apertura (tetto del JS, TECH §5).
-// Faro comune spento per ora (VISIONE §2, #111): senza ?faro=1 (FLAGS.faro) del faro resta solo il modello sulla riva, scenografia col suo
-// livello vero; niente cartello, bottone, pannello, meta in bussola. Il codice resta tutto: si riaccende con la flag.
+// Porto tra amici, la parte nel mondo (bundle iniziale, piccola): il Tabellone dei record in piazza (legno, procedurale in palette,
+// un mesh), col cartello RECORD e il bottone quando ci sei vicino (A / E / Spazio); il pannello sta in ui/porto_amici_ui.ts, scaricato con
+// import() alla prima apertura (tetto del JS, TECH §5). Sullo scoglio a nord-est il Grande Faro, solo scenografia: il Faro comune da
+// costruire insieme è stato tolto (tag archivio/spenti-faro) e il faro resta com'era online, al livello 1: finestre e lanterna accese,
+// di notte un fascio che gira.
 import * as THREE from 'three';
 import { PORTO_AMICI } from '@marea/content/porto_amici.ts';
 import type { PortoPosto } from '@marea/content/porto.ts';
@@ -11,18 +10,17 @@ import type { LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Loader } from '../render/loader.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
-import type { Api, FaroVista, Me } from '../net/api.ts';
+import type { Api, Me } from '../net/api.ts';
 import type { Hud } from '../ui/hud.ts';
 import { el, injectUiStyle } from '../ui/style.ts';
 import { pixIcon } from '../ui/icons.ts';
 import { createLabelLayer, LABEL_NEAR_M } from '../ui/sheet.ts';
 import type { PortoAmiciUi } from '../ui/porto_amici_ui.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-import { FLAGS } from '../flags.ts';
 
-export type AmiciKind = 'record' | 'faro';
+export type AmiciKind = 'record';
 export type PortoAmici = {
-  /** Tabellone e Faro (solo con FLAGS.faro) in coordinate mondo (dove si mette chi gioca: per la bussola). */
+  /** Il Tabellone in coordinate mondo (dove si mette chi gioca: per la bussola). */
   readonly spots: readonly { id: AmiciKind; nome: string; x: number; z: number }[];
   /** Un tick (60 Hz): vicino a un posto, il fronte di salita di A apre il pannello. true = A è di questi posti. */
   tick(a: boolean): boolean;
@@ -35,22 +33,15 @@ export type PortoAmiciOpts = {
   getLot(): LotState | null; setLot(l: LotState): void; notte(): boolean;
 };
 /** Contesto che il chunk dei pannelli riceve da qui. */
-export type PortoAmiciCtx = PortoAmiciOpts & { getFaro(): FaroVista | null; setFaro(f: FaroVista): void; onClose(): void };
+export type PortoAmiciCtx = PortoAmiciOpts & { onClose(): void };
 
 const CSS = `
 .mz-play.on ~ .mz-amici-btn.on { top: calc(60% + 66px); }
 `;
 const SHOW_M = 60, TAP_M = 7;
-/** Come cresce il faro: modello, scala, lunghezza e larghezza del fascio di notte (m) per livello 0-3 (0 = spento). */
-const CRESCITA = [
-  { model: 'bld_faro_l1', scala: 1, fascio: 0, largo: 0 },
-  { model: 'bld_faro_l1', scala: 1.15, fascio: 12, largo: 0.7 },
-  { model: 'bld_faro_l2', scala: 1.15, fascio: 20, largo: 1.0 },
-  { model: 'bld_faro_l2', scala: 1.45, fascio: 30, largo: 1.4 },
-] as const;
-/** Altezza del modello e della lanterna (m, scala 1): dal manifest (bounds) e dalla parte emissiva del glb. */
-const ALTEZZA: Record<string, number> = { bld_faro_l1: 5.3, bld_faro_l2: 7.35 };
-const LANTERNA: Record<string, number> = { bld_faro_l1: 4.55, bld_faro_l2: 6.1 };
+/** Il Grande Faro com'era online al livello 1 del Faro comune: modello, scala, quota della lanterna (m, scala 1: dalla parte emissiva del
+ *  glb), lunghezza e larghezza del fascio di notte (m). */
+const FARO = { model: 'bld_faro_l1', scala: 1.15, lanterna: 4.55, fascio: 12, largo: 0.7 } as const;
 
 /** Tabellone dei record (davanti verso +Z): due pali, tavola con cornice, righe con le medaglie, tettuccio e la coppa in cima. */
 function tabelloneGeometry(): THREE.BufferGeometry {
@@ -82,15 +73,11 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
   const group = new THREE.Group(); group.name = 'porto_amici'; o.world.scene.add(group);
   const layer = createLabelLayer(o.root);
   let ui: PortoAmiciUi | null = null, loading: Promise<PortoAmiciUi | null> | null = null, near: AmiciKind | null = null, nearWas: AmiciKind | null = null, aWas = false, closedAt = 0;
-  let faro: FaroVista | null = null;
 
-  const luoghi = (['record', 'faro'] as const).map((id) => {
-    const posto: PortoPosto = id === 'record' ? PORTO_AMICI.tabellone : PORTO_AMICI.faro, w = at(posto.at), f = at(posto.fronte);
-    return { id, posto, x: w.x, z: w.z, y: o.world.groundY(w.x, w.z), fx: f.x, fz: f.z };
-  });
-  const tab = luoghi[0]!, fp = luoghi[1]!;
-  /** I posti dove si va (cartello, bottone, bussola): il faro solo se acceso (FLAGS.faro); il suo modello si vede comunque. */
-  const posti = luoghi.filter((s) => s.id !== 'faro' || FLAGS.faro).map((s) => {
+  const luogo = (posto: PortoPosto) => { const w = at(posto.at), f = at(posto.fronte); return { posto, x: w.x, z: w.z, y: o.world.groundY(w.x, w.z), fx: f.x, fz: f.z }; };
+  const tab = { id: 'record' as const, ...luogo(PORTO_AMICI.tabellone) }, fp = luogo(PORTO_AMICI.faro);
+  /** I posti dove si va (cartello, bottone, bussola): il Tabellone. */
+  const posti = [tab].map((s) => {
     const label = layer.add(() => { if (Math.hypot(me().x - s.fx, me().z - s.fz) < TAP_M) void open(s.id); else o.hud.toast(`${s.posto.nome}: al Porto`, 2200); });
     label.set('bubble', [pixIcon(s.id, 16), el('span', '', s.posto.cartello)], 'spot'); label.el.classList.add('spot'); label.el.dataset['amici'] = s.id;
     return { ...s, label };
@@ -100,47 +87,17 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
   const tabMesh = new THREE.Mesh(tabelloneGeometry().applyMatrix4(M(tab.x, tab.y, tab.z, 0, tab.posto.rot, 0)), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
   tabMesh.name = 'tabellone_record'; tabMesh.castShadow = true; tabMesh.receiveShadow = true; group.add(tabMesh);
 
-  // ---- faro: modello che cresce, lanterna, fascio di notte ----
+  // ---- Grande Faro: modello acceso, fascio di notte ----
   const faroG = new THREE.Group(); faroG.name = 'faro_comune'; faroG.position.set(fp.x, fp.y, fp.z); faroG.rotation.y = fp.posto.rot; group.add(faroG);
-  const modelli = new Map<string, THREE.Object3D>();
-  /** Le parti emissive (finestre, lanterna) di ogni modello: col faro spento si scambiano con una copia scura. */
-  const luci: { mesh: THREE.Mesh; on: THREE.Material; off: THREE.Material }[] = [];
-  const spenta = (m: THREE.Material): THREE.Material => {
-    const x = m.clone() as THREE.MeshStandardMaterial;
-    if ('emissive' in x) { x.emissive.setRGB(0, 0, 0); x.emissiveMap = null; x.map = null; x.color.set(P.roccia); }
-    return x;
-  };
   const fascioMat = new THREE.MeshBasicMaterial({ color: P.giallo, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide });
   const fascio = new THREE.Mesh(merged([painted(new THREE.BoxGeometry(1, 1, 1), P.giallo, M(0.5, 0, 0)), painted(new THREE.BoxGeometry(1, 1, 1), P.giallo, M(-0.5, 0, 0))]), fascioMat);
   fascio.name = 'faro_fascio'; fascio.visible = false; faroG.add(fascio);
-  let livello = -1, modelloOn = '', giro = 0, acceso = false;
-  async function mostraLivello(lv: number): Promise<void> {
-    const c = CRESCITA[Math.max(0, Math.min(CRESCITA.length - 1, lv))]!;
-    livello = lv;
-    let m = modelli.get(c.model);
-    if (!m && o.loader.has(c.model)) {
-      try {
-        m = (await o.loader.load(c.model)).scene; m.name = 'faro_' + c.model; faroG.add(m); modelli.set(c.model, m);
-        m.traverse((n) => { const mesh = n as THREE.Mesh; if (mesh.isMesh && !Array.isArray(mesh.material) && mesh.material.name === 'mat_emissivo') luci.push({ mesh, on: mesh.material, off: spenta(mesh.material) }); });
-      } catch { /* senza modello niente faro: pazienza */ }
-    }
-    if (livello !== lv) return; // nel frattempo è cambiato ancora
-    for (const [k, x] of modelli) x.visible = k === c.model;
-    if (m) m.scale.setScalar(c.scala);
-    modelloOn = m ? c.model : '';
-    acceso = c.fascio > 0;
-    for (const l of luci) l.mesh.material = acceso ? l.on : l.off;
-    fascio.position.set(0, (LANTERNA[c.model] ?? 4) * c.scala, 0); fascio.scale.set(c.fascio || 1, (c.largo || 1) * 0.6, c.largo || 1);
+  fascio.position.set(0, FARO.lanterna * FARO.scala, 0); fascio.scale.set(FARO.fascio, FARO.largo * 0.6, FARO.largo);
+  let modelloOn = '', giro = 0;
+  if (o.loader.has(FARO.model)) {
+    void o.loader.load(FARO.model).then((g) => { const m = g.scene; m.name = 'faro_' + FARO.model; m.scale.setScalar(FARO.scala); faroG.add(m); modelloOn = FARO.model; })
+      .catch(() => { /* senza modello niente faro: pazienza */ });
   }
-  void mostraLivello(0);
-  const setFaro = (f: FaroVista) => {
-    const su = faro !== null && f.livello > faro.livello;
-    faro = f;
-    if (f.livello !== livello) void mostraLivello(f.livello);
-    if (su) o.hud.toast(`Il Grande Faro è al livello ${f.livello}: Segherie e Cave +${Math.round(f.bonus * 100)} % per tutti`, 3600);
-  };
-  const ricarica = () => (o.api?.enabled ? o.api.faro().then(setFaro, () => { /* resta quello noto */ }) : Promise.resolve());
-  const pronto = ricarica();
 
   // ---- bottone ----
   const btn = el('button', 'mz mz-play mz-amici-btn'); btn.id = 'mzAmiciBtn'; btn.type = 'button';
@@ -152,17 +109,17 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
   async function loadUi(): Promise<PortoAmiciUi | null> {
     if (ui) return ui;
     loading ??= import('../ui/porto_amici_ui.ts').then((m) => {
-      ui = m.createPortoAmiciUi({ ...o, getFaro: () => faro, setFaro, onClose: () => { closedAt = performance.now(); } });
+      ui = m.createPortoAmiciUi({ ...o, onClose: () => { closedAt = performance.now(); } });
       return ui;
     }).catch(() => { loading = null; o.hud.toast('Pannello non caricato: riprova', 2500); return null; });
     return loading;
   }
   async function open(id: AmiciKind): Promise<boolean> {
-    if (ui?.isOpen() || o.world.race.on || performance.now() - closedAt < 350 || (id === 'faro' && !FLAGS.faro)) return false;
+    if (id !== 'record' || ui?.isOpen() || o.world.race.on || performance.now() - closedAt < 350) return false;
     const u = await loadUi();
     if (!u || u.isOpen()) return false;
     btn.classList.remove('on');
-    if (id === 'record') u.record(); else u.faro();
+    u.record();
     return true;
   }
   function findNear(): AmiciKind | null {
@@ -181,14 +138,10 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
   registerStateProvider('portoAmici', () => ({
     near, open: ui?.isOpen() ? ui.kind : null, ui: ui?.state() ?? null,
     posti: posti.map((s) => ({ id: s.id, x: s.x, z: s.z, fronte: { x: s.fx, z: s.fz } })),
-    faro: { attivo: FLAGS.faro, at: { x: fp.x, z: fp.z }, fronte: { x: fp.fx, z: fp.fz }, livello, modello: modelloOn,  scala: CRESCITA[Math.max(0, livello)]?.scala ?? 1, acceso, fascio: fascio.visible, luci: luci.length, dati: faro },
+    faro: { at: { x: fp.x, z: fp.z }, modello: modelloOn, scala: FARO.scala, fascio: fascio.visible },
   }));
-  registerTestHook('amiciApri', (id) => open(String(id) === 'faro' ? 'faro' : 'record'));
+  registerTestHook('amiciApri', (id) => open(String(id) as AmiciKind));
   registerTestHook('amiciChiudi', () => { ui?.close(); return true; });
-  registerTestHook('amiciFaro', () => ricarica().then(() => faro?.livello ?? null));
-  registerTestHook('amiciPronto', () => pronto);
-  /** Solo resa (screenshot dei livelli): il faro come se fosse al livello `lv`, senza toccare i dati. */
-  registerTestHook('amiciMostra', (lv) => mostraLivello(Number(lv)).then(() => livello));
 
   return {
     spots: posti.map((s) => ({ id: s.id, nome: s.posto.nome, x: s.fx, z: s.fz })),
@@ -198,7 +151,7 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
       const pressA = a && !aWas; aWas = a;
       if (ui?.isOpen()) { near = null; return true; }
       near = findNear();
-      if (near && near !== nearWas) o.hud.toast(`${near === 'record' ? PORTO_AMICI.tabellone.nome : PORTO_AMICI.faro.nome}: premi A`, 2200);
+      if (near && near !== nearWas) o.hud.toast(`${PORTO_AMICI.tabellone.nome}: premi A`, 2200);
       nearWas = near;
       if (near && pressA) void open(near);
       return !!near || (!!loading && !ui);
@@ -207,17 +160,15 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
       const show = !!near && !ui?.isOpen() && !o.world.race.on && !o.world.frozen;
       if (show && near && btn.dataset['k'] !== near) {
         btn.dataset['k'] = near;
-        btn.replaceChildren(pixIcon(near, 24), el('span', '', near === 'record' ? 'RECORD' : 'GRANDE FARO'), el('small', '', 'A'));
+        btn.replaceChildren(pixIcon(near, 24), el('span', '', 'RECORD'), el('small', '', 'A'));
       }
       btn.classList.toggle('on', show);
       for (const s of posti) {
-        const h = s.id === 'faro' ? (ALTEZZA[modelloOn] ?? 5) * (CRESCITA[Math.max(0, livello)]?.scala ?? 1) + 1.6 : 4.1;
-        const p = screenOf(s.x, s.y + h, s.z);
+        const p = screenOf(s.x, s.y + 4.1, s.z);
         s.label.place(p.x, p.y, p.on && Math.hypot(focus.x - s.x, focus.z - s.z) < SHOW_M && !o.world.race.on && !ui?.isOpen(), Math.hypot(me().x - s.x, me().z - s.z) < LABEL_NEAR_M);
       }
-      // di notte, acceso: il fascio gira (un giro ogni 8 s)
-      const c = CRESCITA[Math.max(0, livello)];
-      fascio.visible = !!c?.fascio && o.notte();
+      // di notte il fascio gira (un giro ogni 8 s)
+      fascio.visible = o.notte();
       if (fascio.visible) { giro = (giro + dt * Math.PI / 4) % (Math.PI * 2); fascio.rotation.y = giro; }
     },
   };

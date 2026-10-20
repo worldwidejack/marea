@@ -48,7 +48,7 @@ Sotto le isole c'è il **Mondo Sotterraneo**, coi dungeon (§12, `RPG.md`); sull
 - **Una mano** (#143, telefono e tablet, spenta di serie): dalle Impostazioni; il joystick nasce dove appoggi il pollice.
 - **Giorno e notte** (#487): sincronizzato all'ora reale di Roma (un giro ogni 24 ore), stessa ora per tutti; sempre attivo (non si disattiva).
 - **Meteo a nuvole** (#361): nuvole che si muovono sull'arcipelago decidono il tempo del posto dove sono: piove sotto la nuvola, non ovunque. Posto, tipo e forma vengono dall'orologio e da un seed, quindi due giocatori nello stesso punto vedono lo stesso cielo. Solo aspetto e suono, niente effetti sul gioco; si spegne dalle Impostazioni. Numeri in `meteo.json`. **Da scegliere con Jack**: la variante B (`?nuvole=B`: nuvole a lastre più alte, piove di più).
-- **Spenti** (il codice resta finché la pulizia non lo toglie): il giardino dietro la casa con gli edifici che producevano Legno e Pietra, il Faro comune (`?faro=1`), traguardi e titoli (`?traguardi=1`). Le sfide con posta sono già fuori dal codice (§7).
+- **Spenti** (il codice resta finché la pulizia non lo toglie): il giardino dietro la casa con gli edifici che producevano Legno e Pietra, traguardi e titoli (`?traguardi=1`). Le sfide con posta (§7) e il Faro comune sono già fuori dal codice.
 
 ## 4. Chi sei: l'avatar
 Umano semplice in **stile PS1 / Final Fantasy IX**: proporzioni quasi vere (6 teste, 1,6 m), pochi poligoni, viso e vestiti dipinti a pixel. Personalizzazione: tono della pelle (6), capelli (8 tagli × 6 colori), vestito (6 colori), cappello (13: 3 gratis, 4 a pagamento anche dall'editor (il quarto è il **Casco**, 105 monete, dal 10 ott 2026: senza, la funivia dell'Adrenalina non ti fa salire), 6 **esclusivi del Mercante del Porto**; colori dei capelli con nomi da capelli: nero corvino, castano scuro, castano, biondo miele, rosso fuoco, biondo platino). 8 emote al posto della chat (§8). Animazioni: idle, camminata, corsa, seduto (in barca), remata/timone.
@@ -100,7 +100,7 @@ I livelli si comprano subito, uno alla volta, dal bottegaio (niente cantieri né
 
 ### Porto tra amici: Tabellone dei record (#110)
 - **Tabellone dei record** (prato a ovest della piazza, accanto al Mercante): per ogni minigioco da solo il **migliore di oggi** (giorno UTC) e il **migliore di sempre** tra gli amici, con nome, punteggio (tempo per la Regata, pacchi per le Consegne, ingorghi/livelli e mosse per Ingorgo e Pinguini, altrimenti punti) e medaglia. Lo scrive il server quando rigioca la partita; a pari punteggio resta chi c'era. Chi perde il record di sempre lo legge nella campanella («Luca ha battuto il tuo record alla Regata»). In cima i **collezionisti** (#457): chi ha consegnato al mobiliere più pesci e insetti, tra chi ha un'isola (si aggiorna a ogni consegna).
-- **Faro comune: spento** (VISIONE §2). Sullo scoglio resta il modello del Grande Faro; `?faro=1` lo riaccende per le prove e per i suoi test.
+- **Faro comune: tolto** (VISIONE §2; il codice di prima sta nel tag `archivio/spenti-faro`). Sullo scoglio resta il Grande Faro come scenografia, acceso, col fascio che gira di notte.
 
 ## 6. Minigiochi
 **Formato comune** (in `packages/sim/src/minigames/`): modulo puro e deterministico, 60 Hz, `create({seed, difficulty})`, `step(state, input)`, `result(state)`, `autopilot`. Stesso seed = stessa partita, sempre. Il punteggio è **sempre «più alto vince»**; i dettagli (tempo, combo) stanno in `result().detail`.

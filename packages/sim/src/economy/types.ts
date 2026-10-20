@@ -25,11 +25,6 @@ export type Firma = { chi: string; nome: string; emote: string; quando: number }
 /** Ultimo cantiere finito (lo scrive `advance`): serve a «Mentre eri via» anche se nel frattempo qualcuno ha guardato l'isola. */
 export type CantiereFinito = { building: string; level: number; endsMs: number };
 /**
- * Faro comune del Porto (#111), visto da un lotto: quando il faro ha raggiunto ogni livello (ms del server, crescenti: li porta il server,
- * `advance` li usa per il bonus di produzione), quanto Legno e Pietra ha versato quest'isola, gli ultimi id dei versamenti (idempotenza).
- */
-export type FaroLotto = { livelli: number[]; versato: { legno: number; pietra: number }; doni: string[] };
-/**
  * Diario del capitano (#87): quello che conta (pesci, perle, medaglie, partite, spedizioni) lo scrive il server quando verifica una
  * partita; animali e isole arrivano dal client (collezionismo, id validati). `riscossi` = traguardi già pagati, `titolo` = id del
  * traguardo il cui titolo si mostra sotto il nome.
@@ -86,8 +81,6 @@ export type LotState = {
   ospiti?: Firma[];
   /** Ultimo cantiere finito (#86). Assente = nessuno. */
   finito?: CantiereFinito;
-  /** Faro comune del Porto (#111). Assente = livello 0, niente versato. */
-  faro?: FaroLotto;
   /** Isola dei Templari (docs/TEMPLARI.md): partita a ondate aperta, premio preso oggi (giorno UTC), record. Assente = mai giocato. */
   templari?: TemplariLotto;
   /** Reliquie trovate: aprono le isole a tema con sblocco `reliquia` (la Tempesta nasconde quella dei Templari). Assente = []. */
@@ -131,7 +124,7 @@ export const missing = (have: Resources, cost: Resources): Resources => ({
 });
 
 export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'tetto' | 'cappello' | 'posizione' | 'partita'
-  | 'missione' | 'firma' | 'traguardo' | 'faro'
+  | 'missione' | 'firma' | 'traguardo'
   | 'peso' | 'equip' | 'perk' | 'materiale' | 'edificio' | 'livello_skill' | 'oggetto' | 'spedizione';
 /** Quanto manca: `monete` per tutto quello che si compra (#414); le risorse di prima solo nel codice spento. */
 export type Mancanza = Partial<Resources> & { monete?: number };

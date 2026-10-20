@@ -1,10 +1,7 @@
-// Porto tra amici (#110 #111), la parte del Worker: GET /api/record (tabellone dei record coi nomi), GET /api/faro (Faro comune coi nomi
-// della classifica), POST /api/faro/versa {legno, pietra} (il DO Sfide coordina: il lotto paga, il faro conta). Lo stato sta nel DO Sfide
-// (portoStore.ts): qui solo nomi da D1 e piccoli JSON (budget CPU del Worker). Il record lo scrive solo il replay: vedi `segnaRecordDa`.
+// Porto tra amici, la parte del Worker: GET /api/record (tabellone dei record coi nomi), GET /api/collezione (i collezionisti),
+// le buche della pala del Borgo. Lo stato sta nel DO Sfide (portoStore.ts): qui solo nomi da D1 e piccoli JSON (budget CPU del Worker).
+// Il record lo scrive solo il replay: vedi `segnaRecordDa`.
 import { DIARIO } from '@marea/content/diario.ts';
-import { FARO } from '@marea/content/porto_amici.ts';
-import { classificaFaro, faroLivello, faroProssimo } from '@marea/sim/economy/faro.ts';
-import type { FaroStato } from '@marea/sim/economy/faro.ts';
 import type { RecordVoce } from '@marea/sim/economy/record.ts';
 import type { Env } from './env.ts';
 import { elencoPersone } from './db.ts';
@@ -14,15 +11,6 @@ const json = (dati: unknown, status = 200): Response =>
 type Sfide = (path: string, body?: unknown) => Promise<Response>;
 type NomeDi = (id: string) => string;
 
-/** Il faro come lo vede il client: totali, livello, prossima soglia, bonus attuale, chi ha versato di più coi nomi. */
-export function faroVista(f: FaroStato, nomeDi: NomeDi): Record<string, unknown> {
-  const lv = faroLivello(f);
-  return {
-    legno: f.legno, pietra: f.pietra, livello: lv, max: FARO.livelli.length, livelli: f.livelli, prossimo: faroProssimo(f),
-    bonus: FARO.livelli[lv - 1]?.bonus ?? 0,
-    classifica: classificaFaro(f).map((x) => ({ id: x.chi, nome: nomeDi(x.chi), legno: x.legno, pietra: x.pietra })),
-  };
-}
 const voce = (v: RecordVoce | undefined, nomeDi: NomeDi) => (v ? { chi: v.chi, nome: nomeDi(v.chi), score: v.score, medal: v.medal, detail: v.detail, quando: v.quando } : null);
 
 async function nomi(env: Env): Promise<{ nomeDi: NomeDi; conIsola: string[] }> {
@@ -47,21 +35,6 @@ export async function rottePortoAmici(path: string, req: Request, env: Env, sfid
     const { collezione } = (await r.json()) as { collezione: Record<string, { pesci: number; insetti: number }> };
     const { nomeDi, conIsola } = await nomi(env);
     return json({ righe: classificaCollezione(collezione, conIsola).map((x) => ({ ...x, nome: nomeDi(x.id) })) });
-  }
-  if (path === '/api/faro' && req.method === 'GET') {
-    const r = await sfide('faro');
-    if (!r.ok) return r;
-    const { faro } = (await r.json()) as { faro: FaroStato };
-    return json({ faro: faroVista(faro, (await nomi(env)).nomeDi) });
-  }
-  if (path === '/api/faro/versa' && req.method === 'POST') {
-    const body = await corpo();
-    if (body instanceof Response) return body;
-    const { nomeDi, conIsola } = await nomi(env);
-    const r = await sfide('faro_versa', { legno: body['legno'], pietra: body['pietra'], tutti: conIsola });
-    if (!r.ok) return r;
-    const d = (await r.json()) as { faro: FaroStato; saliti: number[]; dono: unknown; lot: unknown };
-    return json({ faro: faroVista(d.faro, nomeDi), saliti: d.saliti, dono: d.dono, lot: d.lot });
   }
   if (path === '/api/borgo/buche' && req.method === 'GET') return sfide('buche');
   if (path === '/api/borgo/buca' && req.method === 'POST') {
