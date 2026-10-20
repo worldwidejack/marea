@@ -30,7 +30,7 @@ test('cappelli: i gratuiti sono di tutti, quelli a pagamento si comprano una vol
   assert.equal(lot.monete, 3);
   assert.ok(ownsHat(lot, paid.id));
   assert.throws(() => buyHat(lot, paid.id, 2000), isErr('unico'));
-  // gli esclusivi del Mercante (#63) si comprano allo stesso modo, una volta
+  // gli esclusivi del Mercante si comprano allo stesso modo, una volta
   const ex = AVATAR.cappelli.find((h) => h.mercante)!;
   lot = conMonete(lot, ex.monete);
   lot = buyHat(lot, ex.id, 3000);
