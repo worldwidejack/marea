@@ -14,9 +14,8 @@ import { parseTAzioni, replayTemplari } from '../src/templari/replay.ts';
 import { encodeDungeon, packDungeon } from '../src/dungeon/replay.ts';
 import type { TAzione, TAzioni } from '../src/templari/types.ts';
 import type { DungeonInput } from '../src/dungeon/types.ts';
+import { FERMO, passi } from './templari_util.ts';
 
-const F: DungeonInput = { mx: 0, my: 0, a: false, b: false, c: false, d: false };
-const passi = (s: TState, n: number, inp: Partial<DungeonInput> = {}) => { for (let i = 0; i < n && !s.done; i++) stepTemplari(s, { ...F, ...inp }); };
 function partita(punti = 50000): TState {
   const s = templari.create({ seed: 3, opzioni: { subito: true } });
   for (const k in s.fuochi) s.fuochi[k] = true; // i fuochi accesi (§9b): Strega, Mercante e rogo funzionano
@@ -165,7 +164,7 @@ test('acquisti in replay: il server li rigioca uguali; le azioni sbagliate non p
   const frames: DungeonInput[] = [], azioni: TAzioni = [];
   for (let i = 0; i < 300; i++) {
     if (i === 100) { const a: TAzione = strega('pietra'); azioni.push([s.tick, a]); templari.act(s, a); }
-    frames.push(F); stepTemplari(s, F);
+    frames.push(FERMO); stepTemplari(s, FERMO);
   }
   azioni.push([s.tick, { t: 'esci' }]); templari.act(s, { t: 'esci' });
   const r = replayTemplari(9, { subito: true }, packDungeon(frames), parseTAzioni(JSON.parse(JSON.stringify(azioni)))!);

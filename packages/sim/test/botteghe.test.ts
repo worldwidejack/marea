@@ -11,7 +11,6 @@ import { compraColoreDelGiorno, delGiorno, inVetrinaBottega, livelloCantiere, li
 import { finoAMezzanotte, giornoRoma } from '../src/economy/giorno.ts';
 import { checkMonete } from '../src/economy/monete.ts';
 import { isCellaScavabileBorgo } from '../src/economy/pala.ts';
-import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { applyRpgAction } from '../src/rpg/actions.ts';
 import { prezzoVetrina, sempreInVendita, vetrinaOggetti } from '../src/rpg/botteghe.ts';
@@ -20,9 +19,9 @@ import { heroOf } from '../src/rpg/hero.ts';
 import { hasItem, itemDef } from '../src/rpg/items.ts';
 import { sbloccoTema, viaggiatore } from '../src/world/temi.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
+import { isErr } from './economia_util.ts';
 
 const T0 = 1_800_000_000_000;
-const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const lotto = (monete: number, extra: Partial<LotState> = {}): LotState => conMonete(senzaMonete({ ...newLot('jack', T0, null), ...extra }), monete);
 
 test('botteghe: contenuti validi, oggetti e vernici esistenti', () => {

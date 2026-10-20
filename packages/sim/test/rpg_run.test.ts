@@ -5,16 +5,15 @@ import assert from 'node:assert/strict';
 import { BALANCE } from '@marea/content';
 import { DUNGEONS, RPG, SKILLS } from '@marea/content/rpg.ts';
 import { newLot } from '../src/economy/actions.ts';
-import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { hashJson } from '../src/hash.ts';
 import { fitHero, heroOf, newHero } from '../src/rpg/hero.ts';
 import { finishDungeon, startDungeon } from '../src/rpg/run.ts';
 import type { HeroState, RunResult } from '../src/rpg/types.ts';
+import { isErr } from './economia_util.ts';
 
 const T0 = 1_800_000_000_000;
 const DUNGEON = DUNGEONS[0]?.id ?? 'grotta';
-const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code;
 function lot(hero?: HeroState, forziere = 0): LotState {
   const l = newLot('jack', T0, null);
   const out: LotState = forziere ? { ...l, buildings: [...l.buildings, { id: 'forziere-2', building: 'forziere', level: forziere, cell: [1, 0], buffer: 0, lastMs: T0 }] } : l;

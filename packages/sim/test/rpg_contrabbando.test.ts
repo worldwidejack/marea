@@ -3,7 +3,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RECIPES, RPG } from '@marea/content/rpg.ts';
 import { newLot } from '../src/economy/actions.ts';
-import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
 import { applyRpgAction, parseRpgAction } from '../src/rpg/actions.ts';
@@ -11,9 +10,9 @@ import { CATEGORIE_LOSCHE, bancoDi, finoAMezzanotte, giornoRoma, offertaLosca, p
 import { heroOf, newHero } from '../src/rpg/hero.ts';
 import { ITEMS, hasItem, itemDef } from '../src/rpg/items.ts';
 import type { HeroState } from '../src/rpg/types.ts';
+import { isErr } from './economia_util.ts';
 
 const H = 3_600_000, D = 24 * H;
-const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 /** Lotto col personaggio `h` e `monete` monete esatte (#414: le monete stanno nel lotto). */
 const lotOf = (h: HeroState, ms: number, monete = 0): LotState => conMonete(senzaMonete({ ...newLot('jack', ms, null), hero: h }), monete);
 

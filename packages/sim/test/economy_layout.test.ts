@@ -4,9 +4,8 @@ import assert from 'node:assert/strict';
 import { applyBuildingLayout, build, moveBuilding, newLot, placeStoredBuilding, rotateBuilding, stowAllBuildings, stowBuilding } from '../src/economy/actions.ts';
 import { cellsOf, dockCell } from '../src/economy/cells.ts';
 import type { LotTemplate } from '../src/economy/cells.ts';
-import { EconomyError } from '../src/economy/types.ts';
+import { isErr } from './economia_util.ts';
 
-const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 
 const T: LotTemplate = { rows: [
   '~~~~~~~~~~',

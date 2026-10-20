@@ -10,10 +10,10 @@ import type { LotState } from '../src/economy/types.ts';
 import { composeArchipelago } from '../src/world/archipelago.ts';
 import { barcheSovrapposte, landingSpot, newBoat, ormeggioLibero, scafoInAcqua, yawOrmeggio } from '../src/world/boat.ts';
 
-const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code;
 const B = AVATAR.barca;
 const gratis = B.colori.filter((k) => k.monete === 0), esclusivi = B.colori.filter((k) => k.mercante), vernici = B.colori.filter((k) => k.cantiere);
 import { conMonete, senzaMonete } from './monete_util.ts';
+import { isErr } from './economia_util.ts';
 
 test('barca: contenuti validi, 4-6 colori gratis, 4-6 esclusivi del Mercante e le vernici del Cantiere, di serie = la barca a remi di prima', () => {
   assert.deepEqual(validateContent(), []);

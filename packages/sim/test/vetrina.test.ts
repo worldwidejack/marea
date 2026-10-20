@@ -9,13 +9,12 @@ import { compraFinituraDelGiorno, compraMobileDelGiorno } from '../src/economy/c
 import { lotTemplate } from '../src/economy/cells.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
 import { finoAMezzanotte, giornoRoma } from '../src/economy/giorno.ts';
-import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
 import { inVetrina, inVetrinaFinitura, vetrinaDelGiorno, vetrinaOra } from '../src/economy/vetrina.ts';
+import { isErr } from './economia_util.ts';
 
 const DAY = 86_400_000, HOUR = 3_600_000;
-const isErr = (code: string) => (e: unknown) => e instanceof EconomyError && e.code === code && /\p{L}/u.test(e.message);
 const T0 = Date.UTC(2026, 9, 18, 12); // 18 ott 2026, mezzogiorno UTC
 
 function ricco(monete: number): LotState {
