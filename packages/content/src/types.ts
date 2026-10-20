@@ -206,32 +206,13 @@ export type ArrembaggioCfg = {
   premioExtra?: PremioExtra;
 };
 // fine Tempesta
-// Isola delle Corse: Gran Premio (docs/CORSE.md)
-/** Un tipo di guida (le 3 da provare): velocità m/s, accelerazione m/s², sterzo rad/s a sterzo pieno, presa e presaDrift 1/s (quanto in
- *  fretta il moto segue il muso), drift = moltiplicatore dello sterzo in derapata. */
-export type CorseGuida = { id: string; nome: string; velocita: number; accelerazione: number; sterzo: number; presa: number; presaDrift: number; drift: number };
-/** Gran Premio (Isola delle Corse): kart arcade su una pista chiusa, 3 giri contro 4 bot. Metri e secondi. */
+// Isola delle Corse: Gran Premio (docs/CORSE.md). Qui solo il posto e il premio: la gara (motore v2) ha i suoi tipi in corse_types.ts.
 export type CorseCfg = {
   id: 'corse';
   nome: string;
-  maxSeconds: number;
   /** Isola a tema dove si gioca e cella locale [x, z] del posto (la linea di partenza sull'isola). */
   isola: string;
   posto: [number, number];
-  giri: number;
-  /** Centro della pista (anello chiuso, metri), campionato ogni `passo` m; larghezza = mezza carreggiata; poi `erba` m di prato e il muro. */
-  pista: { nome: string; punti: [number, number][]; passo: number; larghezza: number; erba: number; muro: number };
-  kart: { raggio: number; frenata: number; folle: number; sterzoPieno: number; erbaVelocita: number; retro: number };
-  guide: CorseGuida[];
-  guidaDiSerie: number;
-  drift: { velocitaMin: number; autoSecondi: number; autoSterzo: number; tieniSterzo: number; carica: [number, number]; spinta: [number, number]; turbo: number; turboAccelerazione: number };
-  bot: {
-    nomi: string[]; bravura: number[]; corsia: number; sguardo: [number, number]; sterzo: number;
-    elastico: { davanti: number; davantiMax: number; dietro: number; dietroMax: number };
-  };
-  /** [metri prima del via, lato] dei kart: prima i bot, ultimo tu. */
-  griglia: [number, number][];
-  scoreBase: number;
   premioExtra?: PremioExtra;
 };
 // fine Isola delle Corse

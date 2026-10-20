@@ -28,7 +28,6 @@ export * from './minigames/pinguini.ts'; // Ghiacci
 export * from './minigames/koi.ts'; // Giardino
 export * from './minigames/arrembaggio.ts'; // Tempesta
 export * from './minigames/lava.ts'; // Vulcano
-export * from './minigames/corse.ts'; // Isola delle Corse
 export * from './economy/rientro.ts'; // Mentre eri via e libro degli ospiti (#86)
 // Meteo (#361): non si esporta da qui. Lo usa solo la resa delle impostazioni (render/aspetto.ts, chunk caricato dopo) da '@marea/sim/meteo.ts':
 // esportato qui finirebbe nel JS iniziale (le cache a livello di modulo non si possono togliere col tree-shaking).
