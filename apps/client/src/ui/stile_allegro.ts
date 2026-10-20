@@ -1,4 +1,4 @@
-// Stile dell'HUD del mondo: il «libro illustrato» del kit (ui/kit.ts, `assets/concept/ui/kit/n6_inchiostro.png`): cartigli di carta crema
+// Stile dell'HUD del mondo: il «libro illustrato» del kit (ui/kit.ts, `assets/concept/ui/kit/n6_inchiostro.jpg`): cartigli di carta crema
 // col bordo d'oro e il filo d'inchiostro, tondi di carta, scritte serif. Piccolo (--mzk .82 sul telefono) così il mondo resta protagonista.
 // Il nome del file e ALLEGRO vengono dallo stile di prima (alla Super Mario): ALLEGRO serve ancora al menù dell'avatar finché non passa al kit.
 // Ridisegna sopra i moduli di sempre (topbar, barra risorse, minimappa, mete, cartellini, bottoni di posto) senza toccarne la logica:
@@ -7,7 +7,7 @@
 import type { Look } from '@marea/protocol';
 import { AVATAR } from '@marea/content';
 import { injectUiStyle } from './style.ts';
-import { FONT_LIBRO, LIBRO as L } from './kit.ts';
+import { FONT_LIBRO, LIBRO as L, injectKit } from './kit.ts';
 
 export const ALLEGRO = {
   notte: '#1B2340', ardesia: '#2B3445', notteBlu: '#173A70', oro: '#F6C21C', oroChiaro: '#FFE27A', oroScuro: '#D39A00',
@@ -183,6 +183,7 @@ export function injectAllegro(): void {
   if (fatto || typeof document === 'undefined') return;
   fatto = true;
   injectUiStyle();
+  injectKit();
   const s = document.createElement('style');
   s.id = 'mz-allegro-style';
   s.textContent = CSS;

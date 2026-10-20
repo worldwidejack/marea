@@ -6,3 +6,5 @@ Font del pannello delle botteghe del Borgo (#414), scaricati da Google Fonts il 
 - almendra-700-latin.woff2: «Almendra» di Ana Sanfelippo (titoli dell'Alchimista), SIL Open Font License 1.1.
 - lobster-400-latin.woff2: «Lobster» di Pablo Impallari (titoli del Cantiere navale), SIL Open Font License 1.1.
 - alegreya-sans-800-latin.woff2: «Alegreya Sans» di Huerta Tipográfica (testi delle botteghe), SIL Open Font License 1.1.
+Font del kit dell'interfaccia (stile «libro illustrato», ui/kit.ts), scaricati da Google Fonts il 20 ott 2026 (sottoinsieme latin, woff2, variabili 400-900), con l'ok di Jack.
+- alegreya-latin.woff2 e alegreya-italic-latin.woff2: «Alegreya» di Huerta Tipográfica (titoli, bottoni, testi di HUD e pannelli), SIL Open Font License 1.1.

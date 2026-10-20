@@ -1,6 +1,6 @@
 // Il kit dell'interfaccia di MAREA: colori, caratteri e pezzi comuni (carta, titolo, chiusura ×, schede, righe, bottoni, barre dei
 // comandi). Si cambia qui e cambia ovunque: anche l'HUD (ui/stile_allegro.ts) prende colori e caratteri da qui.
-// Stile «libro illustrato» (`assets/concept/ui/kit/n6_inchiostro.png`): carta crema, cornice d'oro col filo d'inchiostro, bottoni verde
+// Stile «libro illustrato» (`assets/concept/ui/kit/n6_inchiostro.jpg`): carta crema, cornice d'oro col filo d'inchiostro, bottoni verde
 // acqua, scritte serif da libro di fiabe, tutto piccolo così il mondo resta protagonista. Niente gradienti lisci: colori pieni.
 import { el } from './style.ts';
 
@@ -12,7 +12,7 @@ export const LIBRO = {
   acqua: '#0B7896', acquaScura: '#0A4F63', acquaChiara: '#7FC3C9',
   rosso: '#C8423A', rossoScuro: '#8E2A24', blu: '#2F6FC0', foglia: '#5E9A6E', verdeAvviso: '#E6EDC2',
 } as const;
-/** Serif da libro di fiabe per titoli, bottoni e numeri; finché il file non c'è, Georgia. */
+/** Serif da libro di fiabe (Alegreya) per titoli, bottoni, numeri e testi. */
 export const FONT_LIBRO = "'MzAlegreya', 'Alegreya', Georgia, 'Times New Roman', serif";
 const L = LIBRO;
 const k = (n: number) => `calc(var(--mzk, 1) * ${n}px)`;
@@ -20,9 +20,13 @@ const svg = (dentro: string) => `url("data:image/svg+xml,${encodeURIComponent(`<
 /** Il rametto accanto ai titoli. */
 const RAMETTO = svg(`<path d='M2 15C12 15 22 12 34 4' fill='none' stroke='${L.acquaScura}' stroke-width='1.6' stroke-linecap='round'/><path d='M14 13.5c-1-4 1-7 5-8-1 4-2 7-5 8zM22 10.5c0-4 3-6 7-6-2 3-3 5-7 6zM12 14c-4 1-7-1-8-4 4 0 6 1 8 4zM21 11c-3 2-7 2-9 0 3-2 6-2 9 0z' fill='${L.foglia}' stroke='${L.acquaScura}' stroke-width='.8'/>`);
 /** Cornice del libro: bordo d'oro, filo d'inchiostro fuori, filo d'oro scuro dentro. */
-export const CORNICE_LIBRO = (b = 2) => `border: ${b}px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px ${L.carta}, inset 0 0 0 2.5px ${L.oroScuro}, 0 3px 0 1.5px rgba(46,33,24,.35);`;
+const CORNICE_LIBRO = (b = 2) => `border: ${b}px solid ${L.oro}; box-shadow: 0 0 0 1.5px ${L.inchiostro}, inset 0 0 0 1.5px ${L.carta}, inset 0 0 0 2.5px ${L.oroScuro}, 0 3px 0 1.5px rgba(46,33,24,.35);`;
 
 const CSS = `
+@font-face { font-family: 'MzAlegreya'; src: url('/assets/fonts/alegreya-latin.woff2') format('woff2'); font-weight: 400 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'MzAlegreya'; src: url('/assets/fonts/alegreya-italic-latin.woff2') format('woff2'); font-weight: 400 900; font-style: italic; font-display: swap; }
+/* numeri dritti (4240, non i numeri «antichi» di Alegreya) in tutta l'interfaccia */
+#ui, .mk-velo, .mk-barra { font-variant-numeric: lining-nums; }
 .mk-velo, .mk-barra, .mk-pill { --mk-fb: ${FONT_LIBRO}; --mk-ft: ${FONT_LIBRO}; --mk-tw: 700; }
 .mk-velo { position: absolute; inset: 0; z-index: 40; display: none; background: rgba(46, 33, 24, .18); -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 .mk-velo.on { display: block; }
