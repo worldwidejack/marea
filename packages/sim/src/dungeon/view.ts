@@ -150,7 +150,7 @@ function mausoleo(s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][numb
 }
 /** Diga dei Disertori: la Guardia della Paratia (la corsia della schiacciata, il portello perso), il Fuciliere (la linea di mira, gialla
  *  quando si blocca), il Capitano Vaelen (fase, attacco in corso, la corsia dell'affondo o la freccia della carica, lo scudo della salva). */
-function diga(s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][number]> {
+function diga(_s: DungeonState, e: Enemy): Partial<DungeonView['nemici'][number]> {
   const d = e.def, o: Partial<DungeonView['nemici'][number]> = {}, m = e.mira;
   const fine = (largo: number): [number, number, number] => [r2(e.x + m!.dx * m!.len), r2(e.z + m!.dz * m!.len), largo];
   if (d.schiacciata) {

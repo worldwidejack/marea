@@ -121,7 +121,7 @@ export function createInquadratura(o: { world: GameWorld; renderer: Renderer }):
   const w = o.world, T = w.archipelago.tile, dio = o.renderer.diorama;
   let distanza = 20, mezzaVista = 99, aspetto = 0;
   const misura = (p: Pianta) => {
-    const [X0, Z0, X1, Z1] = p.pavimento, lw = (X1 - X0) * T, ld = (Z1 - Z0) * T, cl = p.corridoio ? (p.corridoio[2] - p.corridoio[1]) * T : 0;
+    const [X0, Z0, X1, Z1] = p.pavimento, lw = (X1 - X0) * T, ld = (Z1 - Z0) * T;
     const a = dio.camera.aspect, t = Math.tan((VISTA.fov * Math.PI) / 360);
     aspetto = a;
     const alto = ld * Math.sin(VISTA.pitch) + p.altezza * Math.cos(VISTA.pitch) + 0.8; // quanto è alta la stanza vista dalla camera (m)

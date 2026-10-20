@@ -81,9 +81,9 @@ type Col = { c: string; glow?: boolean };
 const ROCCIA: Record<TemaStyle, (top: boolean, y: number, h: number, r: Rng) => Col> = {
   tempesta: (top, y, h, r) => (top ? { c: r.next() < 0.5 ? P.pietraScura : P.roccia } : { c: y < 0.3 ? P.neroCaldo : h - y < 0.6 ? P.pietraScura : Math.floor(y / 1.3) % 2 ? P.roccia : P.neroCaldo }),
   ghiacci: (top, y, h) => (top ? { c: P.sabbiaChiara } : { c: h - y < 0.7 ? P.pietraChiara : y < 0.3 ? P.acqua : Math.floor(y / 1.1) % 2 ? P.acquaBassa : P.pietraChiara }),
-  vulcano: (top, y, h, r) => (top ? { c: r.next() < 0.4 ? P.neroCaldo : P.roccia } : { c: y < 0.3 ? P.neroCaldo : Math.floor(y / 1.6) % 2 ? P.roccia : P.neroCaldo }),
+  vulcano: (top, y, _h, r) => (top ? { c: r.next() < 0.4 ? P.neroCaldo : P.roccia } : { c: y < 0.3 ? P.neroCaldo : Math.floor(y / 1.6) % 2 ? P.roccia : P.neroCaldo }),
   giardino: (top, y, h, r) => (top ? { c: r.next() < 0.5 ? P.erbaScura : P.bosco } : { c: h - y < 0.4 ? P.erbaScura : Math.floor(y / 1.2) % 2 ? P.pietra : P.pietraScura }),
-  templari: (top, y, h, r) => (top ? { c: r.next() < 0.5 ? P.pietraScura : P.roccia } : { c: y < 0.3 ? P.neroCaldo : Math.floor(y / 1.1) % 2 ? P.pietraScura : P.roccia }),
+  templari: (top, y, _h, r) => (top ? { c: r.next() < 0.5 ? P.pietraScura : P.roccia } : { c: y < 0.3 ? P.neroCaldo : Math.floor(y / 1.1) % 2 ? P.pietraScura : P.roccia }),
   corse: (top, y, h, r) => (top ? { c: r.next() < 0.75 ? P.pietraChiara : P.sabbiaChiara } : { c: y < 0.6 ? P.pietraScura : h - y < 1.2 || (y > 2.6 && r.next() < 0.72) ? P.pietraChiara : Math.floor(y / 1.3) % 2 ? P.pietra : P.pietraScura }), // montagna innevata del quartiere Neve
   adrenalina: (top, y, h, r) => (adrenalina ? adrenalina.rocciaAdrenalina(top, y, h, r) : { c: P.roccia }), // chunk a parte
   arena: (top, y, h, r) => (arena ? arena.rocciaArena(top, y, h, r) : { c: P.pietra }), // chunk a parte
@@ -282,7 +282,7 @@ export function propTema(kind: TemaProp): THREE.BufferGeometry {
       return merged(parts).scale(1.5, 1.5, 1.5); // si devono vedere dal diorama
     }
     case 'igloo': {
-      parts.push(byFace(new THREE.SphereGeometry(1.7, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), M(0, 0, 0), (ny, y) => (Math.floor(y / 0.42) % 2 ? P.pietraChiara : P.sabbiaChiara)));
+      parts.push(byFace(new THREE.SphereGeometry(1.7, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), M(0, 0, 0), (_ny, y) => (Math.floor(y / 0.42) % 2 ? P.pietraChiara : P.sabbiaChiara)));
       parts.push(byFace(new THREE.CylinderGeometry(0.62, 0.62, 1.1, 8, 1, false, 0, Math.PI), M(0, 0, -1.7, Math.PI / 2, 0, 0), () => P.pietraChiara));
       parts.push(painted(box(0.62, 0.62, 0.05), P.abisso, M(0, 0.3, -2.25)));
       break;

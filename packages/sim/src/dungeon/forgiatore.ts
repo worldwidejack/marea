@@ -64,7 +64,7 @@ function spegni(s: DungeonState, e: Enemy): void {
   ev(s, { t: 'spento', x: r2(e.x), z: r2(e.z) });
 }
 /** Fine dell'attacco: pausa (o fermo spento, se l'ha spento la cascata). */
-function riposa(s: DungeonState, e: Enemy): void {
+function riposa(_s: DungeonState, e: Enemy): void {
   e.modo = undefined; e.mira = undefined; e.area = false;
   setState(e, 'recupera', secToTicks(e.def.forgiatore!.pausa));
 }

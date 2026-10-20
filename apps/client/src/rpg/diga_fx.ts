@@ -19,7 +19,7 @@ import { colori, monconeObj, piloneObj, ponteObj, rottamiGeo, ruotaBaseObj, ruot
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const steps = (v: number, n: number) => Math.floor(Math.max(0, Math.min(1, v)) * n) / n;
-const MAXC = 8, MAXL = 10, MAXB = 12;
+const MAXC = 8, MAXL = 10;
 
 export type DigaFx = {
   tick(v: DungeonView): void;
@@ -147,7 +147,7 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
     const alone = new THREE.Mesh(new THREE.CircleGeometry(7.5, 12, 0, Math.PI), new THREE.MeshBasicMaterial({ color: PAL.giallo, transparent: true, opacity: 0.35 }));
     alone.position.copy(sole.position).add(new THREE.Vector3(0, -0.05, -0.1));
     // i resti della murata: monconi di legno sul bordo
-    const murata = new THREE.Mesh(merged(xs.filter((x, k) => zs[k] === Math.max(...zs)).map((cx, k) => painted(box(0.3, 0.4 + 0.9 * cellHash(cx, 0, 4), 0.3), k % 2 ? PAL.legnoScuro : PAL.legno, M((cx + 0.5) * T + (cellHash(cx, 1, 4) - 0.5), 0.4, z1 - 0.15, 0, 0, (cellHash(cx, 2, 4) - 0.5) * 0.6)))), colori('murata'));
+    const murata = new THREE.Mesh(merged(xs.filter((_x, k) => zs[k] === Math.max(...zs)).map((cx, k) => painted(box(0.3, 0.4 + 0.9 * cellHash(cx, 0, 4), 0.3), k % 2 ? PAL.legnoScuro : PAL.legno, M((cx + 0.5) * T + (cellHash(cx, 1, 4) - 0.5), 0.4, z1 - 0.15, 0, 0, (cellHash(cx, 2, 4) - 0.5) * 0.6)))), colori('murata'));
     murata.position.y = fy;
     const g3 = new THREE.Group(); g3.add(acqua, alone, sole, murata); g3.visible = false; root.add(g3);
     const cx = (x0 + x1) / 2, cz = z1 + 4;
@@ -188,7 +188,7 @@ export function createDigaFx(o: { sc: DungeonScene; loader: Loader; say(text: st
       }
       for (const [id, r] of bombe) if (!seen.has(id)) { r.g.removeFromParent(); for (const m of [r.ring, r.disc]) (m.material as THREE.Material).dispose(); bombe.delete(id); }
     },
-    update(t, hero, v, gioco) {
+    update(t, _hero, v, gioco) {
       const lit = (x: number, z: number) => o.sc.light(x, z) > 0;
       // ruote: gemma rossa che pulsa (da girare), la ruota gira a scatti per un secondo, poi verde
       for (const r of ruote) {

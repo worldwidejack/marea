@@ -77,7 +77,7 @@ function muovi(s: TState, z: Zombie, tx: number, tz: number, v: number): void {
   z.fx = dx / d; z.fz = dz / d;
   moveCircle(s.gr.zombie, z, z.fx * step, z.fz * step, z.def.raggio);
 }
-const guardaEroe = (s: TState, z: Zombie, dx: number, dz: number, d: number) => { if (d > 1e-6) { z.fx = dx / d; z.fz = dz / d; } };
+const guardaEroe = (_s: TState, z: Zombie, dx: number, dz: number, d: number) => { if (d > 1e-6) { z.fx = dx / d; z.fz = dz / d; } };
 const vede = (s: TState, z: Zombie) => lineOfSight(s.gr.percorso, z.x, z.z, s.eroe.x, s.eroe.z);
 
 /** Colpi speciali quando insegue: bomba, carica, palla di fuoco. true = ha cominciato a prepararne uno. */

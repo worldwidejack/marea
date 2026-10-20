@@ -105,7 +105,7 @@ const colpibile = (k: Veicolo) => !k.fine && !k.caduto && k.ramo < 0 && k.h < 1.
 export const VOLO_TRAPPOLA = 0.45;
 
 /** Usa l'oggetto in tasca del veicolo `i`, dall'altra parte se `indietro` (vedi in testa). `pos` = posizioni in classifica (1…). */
-function usa(o: OggettiState, p: Pista, ks: Veicolo[], i: number, pos: number[], R: Regole, indietro: boolean): void {
+function usa(o: OggettiState, _p: Pista, ks: Veicolo[], i: number, pos: number[], R: Regole, indietro: boolean): void {
   const t = o.tasche[i]!, k = ks[i]!, d = oggettoDef(t.ogg);
   if (d.effetto === 'turbo') { daiTurbo(k, d.secondi!, 3, R.somma); if (d.scavalca) t.scavalca = d.secondi!; }
   else if (d.effetto === 'scudo') t.scudo = d.secondi!;
