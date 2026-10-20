@@ -7,15 +7,20 @@
     { "id": "stanza2", "nome": "Stanza ancora più grande", "desc": "La stanza passa a 11×7 celle.", "stanza": "terra", "pavimento": [9, 26, 20, 33], "monete": 1400 },
     { "id": "stanza3", "nome": "La stanza più grande", "desc": "La stanza passa a 13×7 celle: un salone.", "stanza": "terra", "pavimento": [8, 26, 21, 33], "monete": 2200 },
     { "id": "cantina1", "nome": "Scala e cantina", "desc": "In casa una scala scende in una cantina di pietra (5×4 celle).", "stanza": "cantina", "pavimento": [5, 38, 10, 42], "monete": 3000 },
-    { "id": "cantina2", "nome": "Cantina grande", "desc": "La cantina passa a 11×6 celle.", "stanza": "cantina", "pavimento": [2, 37, 13, 43], "monete": 4000 },
+    { "id": "cantina2", "nome": "Cantina grande", "desc": "La cantina passa a 11×6 celle.", "stanza": "cantina", "pavimento": [2, 36, 13, 42], "monete": 4000 },
     { "id": "piano1", "nome": "Secondo piano", "desc": "Un'altra scala sale a un secondo piano (5×4 celle).", "stanza": "piano", "pavimento": [20, 38, 25, 42], "monete": 5200 },
-    { "id": "piano2", "nome": "Secondo piano grande", "desc": "Il secondo piano passa a 11×6 celle.", "stanza": "piano", "pavimento": [17, 37, 28, 43], "monete": 6800 }
+    { "id": "piano2", "nome": "Secondo piano grande", "desc": "Il secondo piano passa a 11×6 celle.", "stanza": "piano", "pavimento": [17, 36, 28, 42], "monete": 6800 }
   ],
+  "corridoi": {
+    "terra": [14, 33, 35],
+    "cantina": [7, 42, 44],
+    "piano": [22, 42, 44]
+  },
   "scale": [
-    { "stanza": "terra", "verso": "giu", "cell": [12, 32], "a": "cantina", "arrivo": [7, 40], "da": 4 },
-    { "stanza": "cantina", "verso": "su", "cell": [7, 41], "a": "terra", "arrivo": [12, 31], "da": 4 },
-    { "stanza": "terra", "verso": "su", "cell": [16, 32], "a": "piano", "arrivo": [22, 40], "da": 6 },
-    { "stanza": "piano", "verso": "giu", "cell": [22, 41], "a": "terra", "arrivo": [16, 31], "da": 6 }
+    { "stanza": "terra", "verso": "giu", "cell": [15, 34], "a": "cantina", "arrivo": [7, 42], "da": 4 },
+    { "stanza": "cantina", "verso": "su", "cell": [8, 43], "a": "terra", "arrivo": [14, 33], "da": 4 },
+    { "stanza": "terra", "verso": "su", "cell": [13, 34], "a": "piano", "arrivo": [22, 42], "da": 6 },
+    { "stanza": "piano", "verso": "giu", "cell": [21, 43], "a": "terra", "arrivo": [14, 33], "da": 6 }
   ] },
   "negozio": {"at": [48, 25], "porta": [49, 26], "rot": -2.51},
   "negozioDentro": { "pavimento": [2, 2, 16, 7], "corridoio": [8, 7, 9], "altezza": 3.6, "finitura": { "pavimento": "piastrelle", "carta": "rombi" } },

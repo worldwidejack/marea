@@ -343,9 +343,9 @@ export class Lot extends DurableObject<Env> {
       // la casa arredabile (#265, economy/casa.ts): compra (negozio dei mobili), posa, sposta, gira, ritira; finiture; il baule
       case 'casa_compra': return isId(body['id']) ? compraMobileDelGiorno(lot, body['id'], now) : json({ error: 'Mobile sconosciuto' }, 400);
       case 'casa_finitura': case 'casa_scegli': {
-        const tipo = body['tipo'], id = body['id'];
+        const tipo = body['tipo'], id = body['id'], stanza = body['stanza'] === 'piano' ? 'piano' : 'terra';
         if ((tipo !== 'pavimento' && tipo !== 'carta') || !isId(id)) return json({ error: 'Finitura non valida' }, 400);
-        return act === 'casa_finitura' ? compraFinituraDelGiorno(lot, tipo, id, now) : scegliFinitura(lot, tipo, id, now);
+        return act === 'casa_finitura' ? compraFinituraDelGiorno(lot, tipo, id, now) : scegliFinitura(lot, tipo, id, now, stanza);
       }
       case 'casa_posa': case 'casa_sposta': {
         const id = body['id'], cell = body['cell'], muro = body['muro'], rot = body['rot'] ?? 0;

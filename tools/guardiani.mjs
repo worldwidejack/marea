@@ -147,7 +147,7 @@ export function misura() {
   }
   const documenti = {};
   const docs = [...fs.readdirSync(ROOT).filter((f) => f.endsWith('.md') && !f.startsWith('_')), ...fs.readdirSync(path.join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => 'docs/' + f)];
-  for (const d of docs) { const n = leggi(d).length, tetto = TETTI_DOC[d] ?? TETTO_DOC; if (n > tetto) documenti[d] = n; }
+  for (const d of docs) { const n = leggi(d).replace(/\r\n/g, '\n').length, tetto = TETTI_DOC[d] ?? TETTO_DOC; if (n > tetto) documenti[d] = n; }
   return { file: fileInutili, export: exportInutili, righe, url, documenti };
 }
 

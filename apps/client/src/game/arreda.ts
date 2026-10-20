@@ -129,7 +129,8 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     const l = lot(); if (!l) return;
     aperto = true;
     caricaFinitureTesti();
-    const c = casaDi(l), mag = c.magazzino ?? {}, scelte = finitureScelte(l);
+    const st = o.stanza.stanza() ?? 'terra', stanzaAttiva = st === 'piano' ? 'piano' : 'terra';
+    const c = casaDi(l), mag = c.magazzino ?? {}, scelte = finitureScelte(l, stanzaAttiva);
     const testa = el('div', 'mz-row'); testa.style.alignItems = 'center';
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudi);
     const t = el('b', '', 'ARREDA'); t.style.flex = '1'; t.style.color = PAL.giallo;
@@ -138,15 +139,19 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     const ids = Object.keys(mag).filter((k) => mag[k]! > 0 && def(k));
     if (!ids.length) corpo.push(el('div', 'vuoto', 'Vuoto: i mobili si comprano al negozio dei mobili del Borgo.'));
     for (const id of ids) { const r = riga(`${def(id)!.nome} ×${mag[id]}`, 'POSA', () => inizia({ kind: 'posa', mobile: def(id)!, rot: 0 })); r.dataset['mobile'] = id; corpo.push(r); }
-    for (const [tipo, nome, lista] of [['pavimento', 'Pavimento', BORGO.pavimenti], ['carta', 'Carta da parati', BORGO.carte]] as const) {
-      corpo.push(el('h3', '', nome));
-      for (const f of lista) if (possiedeFinitura(l, tipo, f.id)) {
-        const r = riga(f.nome, 'METTI', () => void fai(() => o.api!.casa('scegli', { tipo, id: f.id }), () => apri()), scelte[tipo] === f.id);
-        r.dataset['finitura'] = `${tipo}:${f.id}`; corpo.push(r);
-        if (finitureTesti?.[f.id]) {
-          const d = el('div', 'vuoto', finitureTesti[f.id]!);
-          d.style.margin = '-4px 0 8px 12px'; d.style.fontSize = '12px'; d.style.fontStyle = 'italic';
-          corpo.push(d);
+    if (st === 'cantina') {
+      corpo.push(el('div', 'vuoto', 'In cantina pavimento e pareti sono di pietra naturale.'));
+    } else {
+      for (const [tipo, nome, lista] of [['pavimento', 'Pavimento', BORGO.pavimenti], ['carta', 'Carta da parati', BORGO.carte]] as const) {
+        corpo.push(el('h3', '', nome));
+        for (const f of lista) if (possiedeFinitura(l, tipo, f.id)) {
+          const r = riga(f.nome, 'METTI', () => void fai(() => o.api!.casa('scegli', { tipo, id: f.id, stanza: stanzaAttiva }), () => apri()), scelte[tipo] === f.id);
+          r.dataset['finitura'] = `${tipo}:${f.id}`; corpo.push(r);
+          if (finitureTesti?.[f.id]) {
+            const d = el('div', 'vuoto', finitureTesti[f.id]!);
+            d.style.margin = '-4px 0 8px 12px'; d.style.fontSize = '12px'; d.style.fontStyle = 'italic';
+            corpo.push(d);
+          }
         }
       }
     }
@@ -209,7 +214,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
 
   registerStateProvider('arreda', () => {
     const l = lot();
-    return { mia: mia(), modo: modo ? modo.kind : null, aperto, target, ok, vicino: vicino ? (vicino.kind === 'baule' ? 'baule' : vicino.a.id) : null, magazzino: casaDi(l).magazzino ?? {}, arredi: casaDi(l).arredi ?? [], finiture: finitureScelte(l) };
+    return { mia: mia(), modo: modo ? modo.kind : null, aperto, target, ok, vicino: vicino ? (vicino.kind === 'baule' ? 'baule' : vicino.a.id) : null, magazzino: casaDi(l).magazzino ?? {}, arredi: casaDi(l).arredi ?? [], finiture: finitureScelte(l, (o.stanza.stanza() === 'piano' ? 'piano' : 'terra')) };
   });
   registerTestHook('arredaApri', () => { if (!mia()) return false; apri(); disegna(); return true; });
   registerTestHook('arredaPosa', (id) => { const d = def(String(id)); if (!mia() || !d) return false; inizia({ kind: 'posa', mobile: d, rot: 0 }); return true; });
