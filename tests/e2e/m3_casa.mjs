@@ -50,6 +50,12 @@ export default async function (ctx) {
       assert(q.velo.passaggi >= 1, 'nessun velo: ' + JSON.stringify(q.velo));
       assert(q.stanza.camera && Math.abs(q.stanza.camera.yaw) < 1e-6, 'camera: ' + JSON.stringify(q.stanza.camera));
       assert(!q.stanza.mini && !q.mappa.mini, 'minimappa in casa: ' + JSON.stringify({ stanza: q.stanza.mini, mappa: q.mappa.mini }));
+      assert(q.aspetto && q.aspetto.momento === 'interno' && q.aspetto.chiuso, 'illuminazione interna non attiva in casa: ' + JSON.stringify(q.aspetto));
+      await p.page.evaluate(() => window.__game.test.ciclo(0.78));
+      await p.page.waitForTimeout(100);
+      let qNotte = await st(p.page);
+      assert(qNotte.aspetto && qNotte.aspetto.momento === 'interno', 'il ciclo esterno ha alterato la luce interna: ' + JSON.stringify(qNotte.aspetto));
+      await p.page.evaluate(() => window.__game.test.ciclo(null));
       await p.page.waitForTimeout(500);
       await ctx.shot(p.page, `${nome}_stanza`);
     });
@@ -70,6 +76,7 @@ export default async function (ctx) {
       await fine(p.page);
       let q = await st(p.page);
       assert(q.arch.place === 'lotto' && !q.mappa.mini, 'in giardino: ' + JSON.stringify({ place: q.arch.place, mini: q.mappa.mini }));
+      assert(q.aspetto && !q.aspetto.chiuso && q.aspetto.momento !== 'interno', 'in giardino chiuso non falso: ' + JSON.stringify(q.aspetto));
       await p.page.waitForTimeout(600);
       await ctx.shot(p.page, `${nome}_giardino`);
       // il portale sta a sud sul pontile: ci si torna camminando verso il portale
@@ -79,6 +86,7 @@ export default async function (ctx) {
       await fine(p.page);
       q = await st(p.page);
       assert(q.velo.passaggi > torna.velo.passaggi, 'portale del giardino senza velo');
+      assert(q.aspetto && q.aspetto.momento === 'interno' && q.aspetto.chiuso, 'tornato in casa aspetto: ' + JSON.stringify(q.aspetto));
     });
 
     await ctx.test(`${nome}: in fondo al corridoio si esce in città, la camera e la minimappa tornano`, async () => {
@@ -88,6 +96,7 @@ export default async function (ctx) {
       const q = await st(p.page), porta = q.borgo.porte.find((x) => x.slot === SLOT);
       assert(Math.hypot(q.avatar.x - porta.x, q.avatar.z - porta.z) < 2.2, 'non sei davanti a casa: ' + JSON.stringify(q.avatar));
       assert(q.stanza.camera === null, 'camera ancora fissa');
+      assert(q.aspetto && !q.aspetto.chiuso && q.aspetto.momento !== 'interno', 'in città chiuso non falso: ' + JSON.stringify(q.aspetto));
       assert(Math.abs(q.foto.yaw - Math.PI / 4) < 1e-6, 'la camera dell\'overworld si è spostata: yaw ' + q.foto.yaw);
       await p.page.waitForTimeout(500);
       await ctx.shot(p.page, `${nome}_ritorno`);

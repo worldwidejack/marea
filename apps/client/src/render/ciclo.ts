@@ -22,6 +22,13 @@ export type Momento = {
 /** Dove si vede la luna: bassa sull'orizzonte, davanti alla camera (che guarda a nord-ovest), così entra nell'inquadratura bassa e la scia sull'acqua passa vicino al giocatore. */
 export const LUNA_DIR: [number, number, number] = [-0.66, 0.05, -0.75];
 
+/** Luce artificiale fissa per gli interni (case dei giocatori, negozio dei mobili, #490):
+ *  calda, dall'alto (plafoniera/lampadario), ombre corte; non risente dell'ora del giorno né del meteo esterno. */
+export const LUCE_INTERNO: Momento['sun'] = {
+  elev: 68, azim: 215, color: '#F4E3C1', intensity: 2.4,
+  sky: '#F4E3C1', ground: '#5A3A1E', hemiI: 1.6, amb: '#2E1E14', ambI: 0.22,
+};
+
 export const GIORNO: Momento = {
   nome: 'giorno',
   sun: { elev: 40, azim: 225, color: '#FFD9A3', intensity: 2.7, sky: '#9FD3FF', ground: '#7A5A3A', hemiI: 1.9, amb: '#A64DFF', ambI: 0.18 },

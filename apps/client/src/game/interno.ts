@@ -8,6 +8,7 @@ import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
 import { creaPortale } from '../render/portale.ts';
+import { GIORNO, LUCE_INTERNO } from '../render/ciclo.ts';
 
 let disegniPromise: Promise<typeof import('./finiture_disegni.ts')> | null = null;
 let disegniMod: typeof import('./finiture_disegni.ts') | null = null;
@@ -135,6 +136,7 @@ export function createInquadratura(o: { world: GameWorld; renderer: Renderer }):
     entra(ox, oz, p) {
       const [X0, Z0, X1, Z1] = p.pavimento, lw = (X1 - X0) * T, ld = (Z1 - Z0) * T, cl = p.corridoio ? (p.corridoio[2] - p.corridoio[1]) * T : 0;
       o.renderer.setInterno(P.neroCaldo);
+      w.lights.set?.(LUCE_INTERNO);
       const centroZ = Z0 * T + ld / 2, xMin = ox + X0 * T - 1, xMax = ox + X1 * T + 1;
       w.camFissa = (x, z) => {
         if (dio.camera.aspect !== aspetto) misura(p);
@@ -147,6 +149,6 @@ export function createInquadratura(o: { world: GameWorld; renderer: Renderer }):
       const t = w.camFissa(w.avatar.state.x, w.avatar.state.z)!;
       dio.follow(t.x, 0.5, t.z); dio.snap?.();
     },
-    esce() { o.renderer.setInterno(null); dio.blocca?.(null); w.camFissa = null; dio.follow(w.avatar.state.x, 0.5, w.avatar.state.z); dio.snap?.(); },
+    esce() { o.renderer.setInterno(null); w.lights.set?.(GIORNO.sun); dio.blocca?.(null); w.camFissa = null; dio.follow(w.avatar.state.x, 0.5, w.avatar.state.z); dio.snap?.(); },
   };
 }
