@@ -1788,8 +1788,8 @@ def mob_lavagna_in_sughero():
     """Lavagna in sughero a parete: cornice in legno, pannello in sughero con foglietto della spesa, post-it colorati e puntine."""
     m = Mesh('mob_lavagna_in_sughero')
     W, D = ingombro((1, 1))
-    # Cornice in legno scuro a parete (z da -0.05 a 0.0)
-    m.box(-0.60, 1.50, -0.05, 0.60, 2.30, 0.0, 'p_legno_scuro', skip=('back',))
+    # Cornice in legno scuro a parete (z da -0.03 a 0.0, più bassa del pannello)
+    m.box(-0.60, 1.50, -0.03, 0.60, 2.30, 0.0, 'p_legno_scuro', skip=('back',))
     # Pannello centrale in sughero
     m.box(-0.55, 1.55, -0.04, 0.55, 2.25, -0.01, 'p_sabbia', skip=('back',))
     # Lista della spesa lunga a sinistra
@@ -1927,21 +1927,19 @@ def mob_diploma_incorniciato():
     m = Mesh('mob_diploma_incorniciato')
     W, D = ingombro((1, 1))
     # Cornice in legno scuro
-    m.box(-0.36, 1.68, -0.04, 0.36, 2.22, 0.0, 'p_legno_scuro', skip=('back',))
-    # Filetto interno in oro
-    m.box(-0.33, 1.71, -0.038, 0.33, 2.19, -0.02, 'oro', skip=('back',))
-    # Pergamena del diploma
-    m.box(-0.31, 1.73, -0.035, 0.31, 2.17, -0.01, 'carta', skip=('back',))
-    # Lastra di vetro protettiva
-    m.box(-0.31, 1.73, -0.036, 0.31, 2.17, -0.035, 'vetro', skip=('back',))
+    m.box(-0.36, 1.68, -0.03, 0.36, 2.22, 0.0, 'p_legno_scuro', skip=('back',))
+    # Filetto interno in oro (più avanti della cornice, la pergamena ancora più avanti)
+    m.box(-0.33, 1.71, -0.033, 0.33, 2.19, -0.02, 'oro', skip=('back',))
+    # Pergamena del diploma (il vetro dell'atlas è opaco: niente lastra)
+    m.box(-0.31, 1.73, -0.036, 0.31, 2.17, -0.01, 'carta', skip=('back',))
     # Intestazione e righe calligrafiche del diploma
-    m.box(-0.20, 2.09, -0.037, 0.20, 2.12, -0.035, 'p_nero_caldo', skip=('back',))
+    m.box(-0.20, 2.09, -0.039, 0.20, 2.12, -0.036, 'p_nero_caldo', skip=('back',))
     for y in (2.02, 1.95, 1.88, 1.81):
-        m.box(-0.24, y, -0.037, 0.16, y + 0.018, -0.035, 'p_pietra_scura', skip=('back',))
+        m.box(-0.24, y, -0.039, 0.16, y + 0.018, -0.036, 'p_pietra_scura', skip=('back',))
     # Sigillo di ceralacca rosso con nastri accademici
-    m.prism(8, 0.04, 0.04, 1.75, 1.83, 'p_rosso', top='p_rosso', cx=0.18, cz=-0.038)
-    beam(m, (0.17, 1.76, -0.039), (0.15, 1.69, -0.037), 0.018, 0.005, 'p_rosso', end='p_rosso')
-    beam(m, (0.19, 1.76, -0.039), (0.21, 1.68, -0.037), 0.018, 0.005, 'p_rosso', end='p_rosso')
+    m.box(0.14, 1.75, -0.045, 0.22, 1.83, -0.036, 'p_rosso', skip=('back',))
+    beam(m, (0.17, 1.75, -0.040), (0.15, 1.68, -0.040), 0.018, 0.005, 'p_rosso', end='p_rosso')
+    beam(m, (0.19, 1.75, -0.040), (0.21, 1.67, -0.040), 0.018, 0.005, 'p_rosso', end='p_rosso')
     # Gancio metallico in cima
     m.box(-0.04, 2.22, -0.015, 0.04, 2.26, 0.0, 'metallo', skip=('back',))
     return _obj(m, footprint=[W, D])
@@ -2033,9 +2031,6 @@ def mob_orologio_da_parete_analogico():
     beam(m, (cx, cy, -0.051), (cx, cy - 0.14, -0.051), 0.005, 0.005, 'p_rosso')
     # Perno centrale
     m.box(cx - 0.015, cy - 0.015, -0.055, cx + 0.015, cy + 0.015, -0.04, 'p_nero_caldo')
-    # Vetro protettivo
-    glass_pts = [(cx + math.cos(2 * math.pi * i / n) * r_in, cy + math.sin(2 * math.pi * i / n) * r_in, -0.062) for i in range(n)]
-    face(m, glass_pts, 'vetro', (0, 0, -1))
     return _obj(m, footprint=[W, D])
 
 
