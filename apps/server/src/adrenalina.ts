@@ -5,9 +5,8 @@
 // - GET /api/adrenalina/discese?pista= (la classifica coi nomi) · GET /api/adrenalina/fantasma?pista= (il fantasma del primo: input, nome, look).
 import type { Env } from './env.ts';
 import { elencoPersone } from './db.ts';
+import { json } from './http.ts';
 
-const json = (dati: unknown, status = 200): Response =>
-  new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 type Chiama = (path: string, body?: unknown) => Promise<Response>;
 
 async function classifica(sfide: Chiama, pista: string): Promise<{ pista: string; righe: { chi: string; ms: number }[] }> {

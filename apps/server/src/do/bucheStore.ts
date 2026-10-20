@@ -6,9 +6,8 @@ import type { BucaBorgo, BucaDono, BucaStato } from '@marea/sim/economy/pala.ts'
 import type { LotState } from '@marea/sim/economy/types.ts';
 import { parseBucaDono } from '@marea/sim/rpg/pala.ts';
 import type { Env } from '../env.ts';
+import { json } from '../http.ts';
 
-const json = (dati: unknown, status = 200): Response =>
-  new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 
 export function ensureBucheSchema(sql: SqlStorage): void {
   sql.exec(`CREATE TABLE IF NOT EXISTS buche (

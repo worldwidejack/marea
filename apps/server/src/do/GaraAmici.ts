@@ -10,6 +10,8 @@ import type { Look } from '@marea/protocol';
 import { GA_MAX, parseGaClient } from '@marea/protocol/gara_amici.ts';
 import type { GaMembro, GaPos, GaServerMsg } from '@marea/protocol/gara_amici.ts';
 import type { Env } from '../env.ts';
+import { apriSocket, chiudi, ospite, passa } from './sala.ts';
+import type { Contatore } from './sala.ts';
 
 /** Rete di sicurezza: una gara aperta da più di 8 minuti si chiude da sola. */
 const GARA_MAX_MS = 8 * 60_000;
@@ -19,7 +21,7 @@ const MAX_MSG_PER_S = 40;
 const MAX_BAD = 10;
 const VEICOLI = new Set(CORSE.veicoli.map((v) => v.id));
 
-type Conn = { ws: WebSocket; id: string; nome: string; look: Look; veicolo: string; s: number; n: number; np: number; bad: number };
+type Conn = { ws: WebSocket; id: string; nome: string; look: Look; veicolo: string; s: number; n: number; pos: Contatore; bad: number };
 type Corridore = { m: GaMembro; conn: Conn | null; finito: boolean };
 type Gara = { id: string; pista: string; seed: number; corridori: Corridore[]; t0: number; timer: ReturnType<typeof setTimeout> };
 
@@ -31,18 +33,13 @@ export class GaraAmici extends DurableObject<Env> {
   async fetch(req: Request): Promise<Response> {
     if (req.headers.get('upgrade') !== 'websocket') return new Response('WebSocket atteso', { status: 426 });
     const url = new URL(req.url);
-    const id = url.searchParams.get('id') ?? '', nome = url.searchParams.get('nome') ?? 'Ospite';
-    let look: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
-    try { const l = JSON.parse(url.searchParams.get('look') ?? '{}') as Look; if (l && typeof l === 'object') look = { ...look, ...l }; } catch { /* look di default */ }
-    const pair = new WebSocketPair();
-    const [client, server] = [pair[0], pair[1]];
-    server.accept();
-    const fatto = new Response(null, { status: 101, webSocket: client });
+    const { id, nome, look } = ospite(url);
+    const { server, fatto } = apriSocket();
     if (!id) { this.send(server, { t: 'errore', msg: 'Chi sei?' }); server.close(1008, 'id'); return fatto; }
     // la stessa persona in un'altra scheda: quella vecchia esce (se era in gara, per gli altri si ritira)
-    for (const o of [...this.sala]) if (o.id === id) { this.esce(o, false); try { o.ws.close(1000, 'altra scheda'); } catch { /* chiusa */ } }
+    for (const o of [...this.sala]) if (o.id === id) { this.esce(o, false); chiudi(o.ws, 1000, 'altra scheda'); }
     if (this.sala.length >= GA_MAX) { this.annuncia(); this.send(server, { t: 'errore', msg: `La sala è piena (${GA_MAX})` }); server.close(1013, 'piena'); return fatto; }
-    const c: Conn = { ws: server, id, nome, look, veicolo: 'kart', s: 0, n: 0, np: 0, bad: 0 };
+    const c: Conn = { ws: server, id, nome, look, veicolo: 'kart', s: 0, n: 0, pos: { s: 0, n: 0 }, bad: 0 };
     server.addEventListener('message', (ev) => this.onMessage(c, ev.data));
     server.addEventListener('close', () => this.esce(c));
     server.addEventListener('error', () => this.esce(c));
@@ -68,19 +65,17 @@ export class GaraAmici extends DurableObject<Env> {
 
   private onMessage(c: Conn, data: unknown): void {
     if (!this.sala.includes(c)) return;
-    const sec = Math.floor(Date.now() / 1000);
-    if (sec !== c.s) { c.s = sec; c.n = 0; c.np = 0; }
     const m = typeof data === 'string' ? parseGaClient(data) : null;
-    if (!m) { if (++c.bad >= MAX_BAD) { this.esce(c); try { c.ws.close(1003, 'Messaggi non validi'); } catch { /* chiusa */ } } return; }
+    if (!m) { if (++c.bad >= MAX_BAD) { this.esce(c); chiudi(c.ws, 1003, 'Messaggi non validi'); } return; }
     c.bad = 0;
-    if (m.t === 'p') { if (++c.np <= MAX_P_PER_S) this.posizione(c, m.q); return; }
-    if (++c.n > MAX_MSG_PER_S) return;
+    if (m.t === 'p') { if (passa(c.pos, MAX_P_PER_S)) this.posizione(c, m.q); return; }
+    if (!passa(c, MAX_MSG_PER_S)) return;
     this.scaduta();
     switch (m.t) {
       case 'ciao': c.veicolo = VEICOLI.has(m.veicolo) ? m.veicolo : 'kart'; this.annuncia(); return;
       case 'via': this.parti(c, m.pista, m.bot === true, m.oggetti === true); return;
       case 'fine': { const g = this.gara, i = g ? g.corridori.findIndex((r) => r.conn === c) : -1; if (g && i >= 0) this.finito(g, i, m.ms); return; }
-      case 'esco': this.esce(c); try { c.ws.close(1000, 'ciao'); } catch { /* chiusa */ } return;
+      case 'esco': this.esce(c); chiudi(c.ws, 1000, 'ciao'); return;
     }
   }
 

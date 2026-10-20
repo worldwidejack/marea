@@ -21,6 +21,8 @@ import type { Look } from '@marea/protocol';
 import { AR_LETTERE, SQ_TICKS, SQ_TURNO_MS, isCodiceSala, parseArClient } from '@marea/protocol/arena.ts';
 import type { ArEroe, ArServerMsg, ArTurno, SqInput } from '@marea/protocol/arena.ts';
 import type { Env } from '../env.ts';
+import { json } from '../http.ts';
+import { accoda, apriSocket, chiudi, ospite, passa } from './sala.ts';
 
 const CARICO_MAX_MS = ARENA.rete.caricoSecondi * 1000;
 const STACCATO_MAX_MS = ARENA.rete.staccatoSecondi * 1000;
@@ -38,7 +40,6 @@ type Membro = { m: ArEroe; conn: Conn | null; last: SqInput; coda: SqInput[]; az
 /** `pausa`: da quando il duello è fermo per una linea persa (0 = no). */
 type Run = { id: string; seed: number; membri: Membro[]; turni: ArTurno[]; d: DuelloState; azioni: ArenaAzioni; creato: number; t0: number; fine: number; pausa: number };
 
-const json = (v: unknown, status = 200): Response => new Response(JSON.stringify(v), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
 const intDa = (v: string | null): number | null => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
 const frameOf = (x: SqInput) => frameOfRiga([SQ_TICKS, x[0], x[1], x[2], x[3]]);
 
@@ -51,13 +52,8 @@ export class Arena extends DurableObject<Env> {
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
     if (req.headers.get('upgrade') !== 'websocket') return json({ error: 'WebSocket atteso' }, 426);
-    const id = url.searchParams.get('id') ?? '', nome = url.searchParams.get('nome') ?? 'Ospite';
-    let look: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
-    try { const l = JSON.parse(url.searchParams.get('look') ?? '{}') as Look; if (l && typeof l === 'object') look = { ...look, ...l }; } catch { /* look di default */ }
-    const pair = new WebSocketPair();
-    const [client, server] = [pair[0], pair[1]];
-    server.accept();
-    const fatto = new Response(null, { status: 101, webSocket: client });
+    const { id, nome, look } = ospite(url);
+    const { server, fatto } = apriSocket();
     if (!id) { this.send(server, { t: 'errore', msg: 'Chi sei?' }); server.close(1008, 'id'); return fatto; }
     const c: Conn = { ws: server, id, nome, look, dove: 'fuori', codice: '', run: null, s: 0, n: 0, esce: false };
     server.addEventListener('message', (ev) => this.onMessage(c, ev.data));
@@ -67,7 +63,7 @@ export class Arena extends DurableObject<Env> {
     const run = url.searchParams.get('run'), idx = intDa(url.searchParams.get('idx')), n = intDa(url.searchParams.get('n'));
     if (run && idx !== null && n !== null) { this.ricollega(c, run, idx, n); return fatto; }
     // la stessa persona in un'altra scheda: quella vecchia esce dalla coda o dalla sala
-    for (const o of [...this.coda, ...this.sale.values()]) if (o.id === id) { this.via(o); try { o.ws.close(1000, 'altra scheda'); } catch { /* chiusa */ } }
+    for (const o of [...this.coda, ...this.sale.values()]) if (o.id === id) { this.via(o); chiudi(o.ws, 1000, 'altra scheda'); }
     const modo = url.searchParams.get('modo'), codice = (url.searchParams.get('codice') ?? '').toUpperCase();
     if (modo === 'sala' && codice) {
       const host = isCodiceSala(codice, ARENA.rete.codice) ? this.sale.get(codice) : undefined;
@@ -95,16 +91,14 @@ export class Arena extends DurableObject<Env> {
 
   private onMessage(c: Conn, data: unknown): void {
     if (typeof data !== 'string') return;
-    const sec = Math.floor(Date.now() / 1000);
-    if (sec !== c.s) { c.s = sec; c.n = 0; }
-    if (++c.n > MAX_MSG_PER_S) return;
+    if (!passa(c, MAX_MSG_PER_S)) return;
     const m = parseArClient(data);
     if (!m) return;
-    if (m.t === 'esco') { c.esce = true; this.via(c); try { c.ws.close(1000, 'ciao'); } catch { /* chiusa */ } return; }
+    if (m.t === 'esco') { c.esce = true; this.via(c); chiudi(c.ws, 1000, 'ciao'); return; }
     const r = c.run, me = r?.membri.find((x) => x.conn === c);
     if (!r || !me || r.fine || me.arreso) return;
     if (m.t === 'carico') { me.carico = true; this.forsePronti(r); return; }
-    if (m.t === 'in') { me.coda.push(m.f); while (me.coda.length > MAX_CODA) { const old = me.coda.shift()!, h = me.coda[0]!; h[2] |= old[2]; } return; }
+    if (m.t === 'in') { accoda(me.coda, m.f, MAX_CODA); return; }
     if (m.t === 'az') { const a = parseArenaAzione(m.a); if (a && me.az.length < MAX_AZ) me.az.push(a); }
   }
 
@@ -140,7 +134,7 @@ export class Arena extends DurableObject<Env> {
       }
     } catch (e) {
       console.warn('[marea] duello non partito', e);
-      for (const x of chi) { this.send(x.ws, { t: 'errore', msg: 'Non si parte: riprova tra poco' }); try { x.ws.close(1000, 'errore'); } catch { /* chiusa */ } }
+      for (const x of chi) { this.send(x.ws, { t: 'errore', msg: 'Non si parte: riprova tra poco' }); chiudi(x.ws, 1000, 'errore'); }
       return;
     }
     const d = createDuello({ seed, eroi: eroi.map((e) => e.eroe) });
@@ -249,7 +243,7 @@ export class Arena extends DurableObject<Env> {
         } catch (e) { console.warn('[marea] arena: premio non salvato', e); }
       }
       const c = m.conn;
-      if (c) { this.send(c.ws, { t: 'fine', esito, premio, tetto }); c.run = null; m.conn = null; try { c.ws.close(1000, 'fine'); } catch { /* chiusa */ } }
+      if (c) { this.send(c.ws, { t: 'fine', esito, premio, tetto }); c.run = null; m.conn = null; chiudi(c.ws, 1000, 'fine'); }
     }));
   }
 
@@ -258,10 +252,10 @@ export class Arena extends DurableObject<Env> {
     const r = this.runs.get(runId), me = r?.membri[idx];
     if (!r || !me || me.m.id !== c.id || r.fine || me.arreso || n > r.turni.length) {
       this.send(c.ws, { t: 'errore', msg: r?.fine ? 'Il duello è finito' : 'Il duello non c’è più' });
-      try { c.ws.close(1000, 'fuori'); } catch { /* chiusa */ }
+      chiudi(c.ws, 1000, 'fuori');
       return;
     }
-    if (me.conn && me.conn !== c) { const old = me.conn; old.run = null; try { old.ws.close(1000, 'altra scheda'); } catch { /* chiusa */ } }
+    if (me.conn && me.conn !== c) { const old = me.conn; old.run = null; chiudi(old.ws, 1000, 'altra scheda'); }
     me.conn = c; me.staccato = 0; me.carico = true; me.coda = []; // `last` resta: il client riprende con lo stesso input (lo rimanda solo se cambia)
     c.run = r; c.dove = 'duello';
     console.log(`[marea] arena: ${me.m.nome} si ricollega al turno ${n} (server ${r.turni.length})`);
