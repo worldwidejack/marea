@@ -7,7 +7,7 @@
 import { PAL, el, injectUiStyle } from './style.ts';
 import { topButton } from './topbar.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
-import { CICLO_MIN, DI_SERIE, PAD_SEC, SPENTO, VISTE, VOLUMI } from '../render/viste.ts';
+import { DI_SERIE, PAD_SEC, SPENTO, VISTE, VOLUMI } from '../render/viste.ts';
 import { setVolumi } from '../audio/ponte.ts';
 import { FLAGS } from '../flags.ts';
 import type { Impostazioni } from '../render/viste.ts';
@@ -63,7 +63,8 @@ export function loadImpostazioni(): Impostazioni {
     if (!raw) return { ...base };
     const vol = (v: unknown, d: number) => (typeof v === 'number' && v >= 0 && v <= 3 ? Math.round(v) : d); // salvate prima dell'audio: di serie
     const padSec = (PAD_SEC as readonly number[]).includes(Number(raw.padSec)) ? Number(raw.padSec) : base.padSec;
-    return { cam: Number(raw.cam) || 0, ciclo: raw.ciclo === true, stampa: raw.stampa === true, contorni: raw.contorni === true, meteo: typeof raw.meteo === 'boolean' ? raw.meteo : base.meteo, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti), unaMano: raw.unaMano === true, padSec };
+    const ciclo = FLAGS.test && !FLAGS.serie ? raw.ciclo === true : true; // sempre on (#487), non disattivabile (nei test senza ?serie=1 segue base/raw)
+    return { cam: Number(raw.cam) || 0, ciclo, stampa: raw.stampa === true, contorni: raw.contorni === true, meteo: typeof raw.meteo === 'boolean' ? raw.meteo : base.meteo, musica: vol(raw.musica, base.musica), effetti: vol(raw.effetti, base.effetti), unaMano: raw.unaMano === true, padSec };
   } catch { return { ...base }; }
 }
 
@@ -82,7 +83,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cur)); } catch { /* navigazione privata: vale fino a fine sessione */ } };
   const change = (p: Partial<Impostazioni>) => { cur = { ...cur, ...p }; save(); o.onChange(cur); setVolumi(cur.musica, cur.effetti); render(); };
-  const toggleRow = (key: 'ciclo' | 'stampa' | 'contorni' | 'meteo' | 'unaMano', title: string, sub: string) => {
+  const toggleRow = (key: 'stampa' | 'contorni' | 'meteo' | 'unaMano', title: string, sub: string) => {
     const b = el('button', 'mz-set-row' + (cur[key] ? ' on' : '')); b.type = 'button'; b.dataset['set'] = key;
     const txt = el('span'); txt.append(el('span', '', title), el('span', 'q', sub));
     b.append(txt, el('span', 'sw', cur[key] ? 'SÌ' : 'NO'));
@@ -135,7 +136,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
       }
     }
     body.append(
-      toggleRow('ciclo', 'Ciclo giorno e notte', `giorno, tramonto, notte, alba: un giro ogni ${CICLO_MIN} minuti`),
+
       toggleRow('meteo', 'Meteo', 'nuvole, pioggia e temporali: lo stesso cielo per tutti'),
       toggleRow('stampa', 'Stampa giapponese', 'colori da stampa antica, onde, carta'),
       toggleRow('contorni', 'Contorni', 'una riga scura attorno a cose e persone'));

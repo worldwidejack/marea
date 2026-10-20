@@ -50,9 +50,9 @@ test('pesci: il vecchio minigioco della Pesca non c\'è più, e nemmeno nelle me
 });
 
 test('pesci: le ombre del turno sono uguali per tutti, della stagione, dell\'ora e della zona giuste', () => {
-  const giro = 24 * 60_000;
+  const giro = 24 * 3600_000;
   let notte = 0, giorno = 0;
-  for (let t = OTT; t < OTT + giro * 3; t += PESCI_CFG.turno.minuti * 60_000) {
+  for (let t = OTT; t < OTT + giro; t += PESCI_CFG.turno.minuti * 60_000) {
     const turno = turnoPesciAt(t), ombre = ombreDelTurno(turno), [a, b] = turnoPesciMs(turno), meta = (a + b) / 2;
     assert.deepEqual(ombreDelTurno(turno), ombre, 'deterministico');
     assert.equal(ombre.filter((o) => o.zona === 'riva').length, PESCI_CFG.turno.riva);

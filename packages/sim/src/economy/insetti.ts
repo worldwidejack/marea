@@ -7,7 +7,7 @@ import type { InsettoDef, InsettoStagione, InsettoTipo } from '@marea/content/in
 import { hashJson } from '../hash.ts';
 import { createRng } from '../rng.ts';
 import type { Rng } from '../rng.ts';
-import { giornoRoma, oreRoma } from './giorno.ts';
+import { faseRoma, giornoRoma, oreRoma } from './giorno.ts';
 import { celleScavabiliBorgo } from './pala.ts';
 import type { LotState } from './types.ts';
 
@@ -43,7 +43,7 @@ export const meseRoma = (ms: number): number => new Date(ms + oreRoma(ms) * HOUR
 /** La stagione di oggi a Roma. */
 export const stagioneAt = (ms: number): Exclude<InsettoStagione, 'tutto'> => MESE[meseRoma(ms)] ?? 'autunno';
 /** Frazione [0, 1) del giro giorno/notte del gioco (come `fase` di render/ciclo.ts). */
-export function faseCiclo(ms: number): number { const p = ms / (C.ciclo.minuti * 60_000); return p - Math.floor(p); }
+export function faseCiclo(ms: number): number { return faseRoma(ms); }
 export function notteAt(ms: number): boolean { const f = faseCiclo(ms); return f >= C.ciclo.notte[0] && f < C.ciclo.notte[1]; }
 /** L'insetto c'è adesso (stagione e fascia oraria)? */
 export function disponibile(d: InsettoDef, ms: number): boolean {

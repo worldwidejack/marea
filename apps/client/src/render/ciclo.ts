@@ -1,11 +1,11 @@
-// Ciclo giorno → tramonto → notte → alba (#53, impostazioni). Solo aspetto: niente sim, niente server. L'ora viene dall'orologio
+// Ciclo giorno → tramonto → notte → alba (#53, impostazioni; #487 sempre on e sincronizzato all'ora reale di Roma).
 // (Date.now), quindi chi ha il ciclo acceso vede la stessa ora degli altri. «giorno» = esattamente i colori di oggi del gioco.
 // Un giro dura CICLO_MIN minuti; i passaggi sono interpolazioni lineari tra momenti fissi (colori in RGB, gradi del sole).
 import * as THREE from 'three';
 import { SKY_BANDS } from './sky.ts';
 import { WATER_COLORS } from './water.ts';
 
-import { CICLO_MIN } from './viste.ts';
+import { faseRoma } from '@marea/sim';
 
 type W = { abisso: string; profonda: string; acqua: string; bassa: string; schiuma: string };
 export type Momento = {
@@ -54,7 +54,7 @@ const ALBA: Momento = {
 const KEYS: [number, Momento][] = [[0, GIORNO], [0.52, GIORNO], [0.58, TRAMONTO], [0.64, TRAMONTO], [0.7, NOTTE], [0.86, NOTTE], [0.91, ALBA], [0.96, ALBA], [1, GIORNO]];
 
 /** Frazione del giro [0, 1) per l'istante `ms` (Date.now). */
-export function fase(ms: number): number { const p = ms / (CICLO_MIN * 60_000); return p - Math.floor(p); }
+export function fase(ms: number): number { return faseRoma(ms); }
 
 const ca = new THREE.Color(), cb = new THREE.Color();
 const mixHex = (a: string, b: string, k: number) => '#' + ca.set(a).lerp(cb.set(b), k).getHexString();

@@ -1,7 +1,7 @@
 {
   "_nota": "Insetti di Borgo Marea (#445), dal Database_Insetti_GameDesign.xlsx di Riccardo. Prezzi = Excel ÷ 10 (scelta di Riccardo, 19 ott 2026). velocita 1-4 come nell'Excel (m/s in `passi`), allerta in metri, finestra in secondi (0 = nessun limite).",
   "retino": { "id": "retino", "nome": "Retino", "monete": 500 },
-  "ciclo": { "minuti": 24, "notte": [0.61, 0.935] },
+  "ciclo": { "minuti": 1440, "notte": [0.61, 0.935] },
   "stagioni": { "primavera": [3, 4, 5], "estate": [6, 7, 8], "autunno": [9, 10, 11], "inverno": [12, 1, 2] },
   "passi": [0, 1.2, 2.4, 4.4, 6.5],
   "liberi": { "minuti": 4, "quanti": 5 },
