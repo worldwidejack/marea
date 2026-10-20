@@ -69,7 +69,7 @@ export function libera(s: DungeonState, ux: number, uz: number, len: number): nu
 }
 
 /** Un colpo di magia dell'eroe di turno: come i proiettili (magico, distruzione, bruciatura e rallentamento della magia). */
-const colpoMagia = (s: DungeonState, sp: RunSpell, danno: number, ox: number, oz: number): HitSrc => ({
+const colpoMagia = (_s: DungeonState, sp: RunSpell, danno: number, ox: number, oz: number): HitSrc => ({
   danno, traits: sp.sanguina ? { sanguina: sp.sanguina } : {}, magico: true, skill: 'distruzione', caricato: false, dirX: 0, dirZ: 0, daAlleato: false, ox, oz,
   ...(sp.rallenta ? { rallenta: sp.rallenta } : {}),
 });

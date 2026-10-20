@@ -1,0 +1,449 @@
+{
+ "_come": "Violazioni di quando sono nati i guardiani (tools/guardiani.mjs): si tollerano finché non peggiorano. Si stringono con node tools/guardiani.mjs --aggiorna; a mano si tolgono, non si aggiungono.",
+ "file": [
+  "apps/client/src/corse/pista3d.ts",
+  "apps/client/src/ui/lot_harness.ts"
+ ],
+ "export": {
+  "apps/client/src/audio/inno.ts": [
+   "INNO_BPM",
+   "INNO_DURATA"
+  ],
+  "apps/client/src/corse/discesa/bici3d.ts": [
+   "MONTA"
+  ],
+  "apps/client/src/corse/effetti.ts": [
+   "COLORE_LIVELLO"
+  ],
+  "apps/client/src/corse/hub/guida.ts": [
+   "suolo"
+  ],
+  "apps/client/src/corse/hub/mondo_base.ts": [
+   "uvP"
+  ],
+  "apps/client/src/corse/hub/mondo_cielo.ts": [
+   "SOLE"
+  ],
+  "apps/client/src/corse/hub/mondo_kit.ts": [
+   "geoTinta"
+  ],
+  "apps/client/src/corse/hub/mondo_pezzi.ts": [
+   "NOMI"
+  ],
+  "apps/client/src/corse/hub/mondo_terreno.ts": [
+   "BORDO",
+   "DEF_STRADE",
+   "ISOLOTTI",
+   "PAESE",
+   "PIAZZE_C",
+   "PIAZZE_R",
+   "SENTIERI",
+   "TESSERE",
+   "Vicini",
+   "inPiazza",
+   "nat",
+   "scogliera"
+  ],
+  "apps/client/src/corse/hub/pannelli.ts": [
+   "SCELTA_KEY",
+   "tacche",
+   "veicoliDi"
+  ],
+  "apps/client/src/corse/nastro3d.ts": [
+   "COLORE_SUP"
+  ],
+  "apps/client/src/corse/veicoli_ai.ts": [
+   "VEICOLI_AI"
+  ],
+  "apps/client/src/difesa/disegna.ts": [
+   "Anim",
+   "Resa"
+  ],
+  "apps/client/src/difesa/pose.ts": [
+   "chiaveNemico"
+  ],
+  "apps/client/src/difesa/ui.ts": [
+   "Ui"
+  ],
+  "apps/client/src/game/avatar.ts": [
+   "AvatarAzione"
+  ],
+  "apps/client/src/game/barca_look.ts": [
+   "chiaro",
+   "coloreNome",
+   "largoNome",
+   "scriviPixel"
+  ],
+  "apps/client/src/game/emote.ts": [
+   "EMOTE_COOLDOWN_S",
+   "EMOTE_SHOW_S"
+  ],
+  "apps/client/src/game/insetti.ts": [
+   "RETINO_MONETE"
+  ],
+  "apps/client/src/game/insetti_vita.ts": [
+   "volante"
+  ],
+  "apps/client/src/game/interno.ts": [
+   "ASSI",
+   "SPESSORE",
+   "VISTA",
+   "caricaDisegni",
+   "porta"
+  ],
+  "apps/client/src/game/minigiochi.ts": [
+   "registraSchermo"
+  ],
+  "apps/client/src/game/retino_anim.ts": [
+   "calcolaPosaRetino",
+   "valutaPosaRetino"
+  ],
+  "apps/client/src/net/api.ts": [
+   "MSG_RETE"
+  ],
+  "apps/client/src/net/client.ts": [
+   "INTERP_DELAY_MS"
+  ],
+  "apps/client/src/prova3d/kit.ts": [
+   "gableGeometry"
+  ],
+  "apps/client/src/prova3d/kit2.ts": [
+   "hullGeometry"
+  ],
+  "apps/client/src/prova3d/look.ts": [
+   "SUN_LIGHT",
+   "SUN_VIS"
+  ],
+  "apps/client/src/prova3d/paint.ts": [
+   "PAINT_UNIFORMS",
+   "patternTexture"
+  ],
+  "apps/client/src/prova3d/player.ts": [
+   "Player"
+  ],
+  "apps/client/src/render/animali_forme.ts": [
+   "hang"
+  ],
+  "apps/client/src/render/botteghe_forme.ts": [
+   "ORDINE_INSEGNE",
+   "disegnaIcona"
+  ],
+  "apps/client/src/render/island.ts": [
+   "ISLAND"
+  ],
+  "apps/client/src/render/island_parts.ts": [
+   "floorY"
+  ],
+  "apps/client/src/render/island_temi.ts": [
+   "TEMI"
+  ],
+  "apps/client/src/render/light.ts": [
+   "SUN"
+  ],
+  "apps/client/src/render/loader.ts": [
+   "MissingAsset"
+  ],
+  "apps/client/src/render/luci.ts": [
+   "POOL"
+  ],
+  "apps/client/src/render/meteo.ts": [
+   "GOCCE"
+  ],
+  "apps/client/src/render/portale.ts": [
+   "getPortaleTexture"
+  ],
+  "apps/client/src/rpg/arco.ts": [
+   "FRECCIA_S"
+  ],
+  "apps/client/src/rpg/diga.ts": [
+   "cannoneGeo"
+  ],
+  "apps/client/src/rpg/dungeon_kit.ts": [
+   "flat",
+   "toLambert"
+  ],
+  "apps/client/src/rpg/dungeon_luce.ts": [
+   "VISTO"
+  ],
+  "apps/client/src/rpg/forge.ts": [
+   "forgeCost"
+  ],
+  "apps/client/src/rpg/mausoleo.ts": [
+   "colonnaGeo"
+  ],
+  "apps/client/src/sparo/piazzale.ts": [
+   "PEZZI_SPARO"
+  ],
+  "apps/client/src/templari/armi3d.ts": [
+   "oggettoArma"
+  ],
+  "apps/client/src/templari/scelta.ts": [
+   "EROE_KEY"
+  ],
+  "apps/client/src/ui/eroe.ts": [
+   "setEroeForPanels"
+  ],
+  "apps/client/src/ui/feed.ts": [
+   "FEED_POLL_MS"
+  ],
+  "apps/client/src/ui/impostazioni.ts": [
+   "loadImpostazioni"
+  ],
+  "apps/client/src/ui/insetti_sprite.ts": [
+   "IW",
+   "spriteInsetto"
+  ],
+  "apps/client/src/ui/lotpanels.ts": [
+   "describe"
+  ],
+  "apps/client/src/ui/pesci_sprite.ts": [
+   "SW",
+   "spritePesce"
+  ],
+  "apps/client/src/ui/porto_mercante.ts": [
+   "cellaLibera"
+  ],
+  "apps/client/src/ui/segno.ts": [
+   "ARRIVATO_M"
+  ],
+  "apps/client/src/ui/tavolo.ts": [
+   "fmtGara"
+  ],
+  "apps/client/src/ui/tavolo_viste.ts": [
+   "fmtGara"
+  ],
+  "apps/server/src/clock.ts": [
+   "testClockOn"
+  ],
+  "apps/server/src/do/Zone.ts": [
+   "CLOSE_REPLACED"
+  ],
+  "apps/server/src/do/bucheStore.ts": [
+   "deleteBuca",
+   "ensureBucheSchema",
+   "getBuca",
+   "setBuca"
+  ],
+  "apps/server/src/feed.ts": [
+   "feedText",
+   "nettoChiusa",
+   "postaText"
+  ],
+  "apps/server/src/porto_amici.ts": [
+   "classificaCollezione",
+   "faroVista"
+  ],
+  "packages/content/src/corse.ts": [
+   "CORSE_FUORI_GIOCO"
+  ],
+  "packages/content/src/diario.ts": [
+   "TITOLO_MAX",
+   "TRAGUARDO_TIPI"
+  ],
+  "packages/content/src/porto.ts": [
+   "MISSIONE_TIPI"
+  ],
+  "packages/content/src/schema.ts": [
+   "PROP_TEMI"
+  ],
+  "packages/protocol/src/gara_amici.ts": [
+   "isGaPos"
+  ],
+  "packages/protocol/src/index.ts": [
+   "Challenge",
+   "ChallengeState",
+   "PackedInputs",
+   "Resources"
+  ],
+  "packages/protocol/src/messages.ts": [
+   "MAX_SERVER_MSG_BYTES",
+   "isPeer"
+  ],
+  "packages/sim/src/corse/binari.ts": [
+   "muoviBinari"
+  ],
+  "packages/sim/src/corse/veicolo.ts": [
+   "gira"
+  ],
+  "packages/sim/src/difesa/nemici.ts": [
+   "muori",
+   "nemiciIn"
+  ],
+  "packages/sim/src/difesa/ondate.ts": [
+   "scegliCorsia",
+   "vitaOndata"
+  ],
+  "packages/sim/src/dungeon/combat.ts": [
+   "dannoSu",
+   "rallentaNemico"
+  ],
+  "packages/sim/src/dungeon/dungeon.ts": [
+   "EroeDef",
+   "MAX_TICKS"
+  ],
+  "packages/sim/src/dungeon/enemies.ts": [
+   "fisso"
+  ],
+  "packages/sim/src/dungeon/fuoco.ts": [
+   "lavaSu"
+  ],
+  "packages/sim/src/dungeon/hero.ts": [
+   "malusDi",
+   "mergeTraits"
+  ],
+  "packages/sim/src/dungeon/loot.ts": [
+   "pesoDi"
+  ],
+  "packages/sim/src/dungeon/magie.ts": [
+   "libera",
+   "potenziaAlleato",
+   "potenziaEroe"
+  ],
+  "packages/sim/src/dungeon/pvp.ts": [
+   "nemicoDi",
+   "squadraDi"
+  ],
+  "packages/sim/src/dungeon/state.ts": [
+   "PER_EROE"
+  ],
+  "packages/sim/src/dungeon/unici.ts": [
+   "brezzaPiena"
+  ],
+  "packages/sim/src/dungeon/view.ts": [
+   "heroAnim"
+  ],
+  "packages/sim/src/dungeon/zaino.ts": [
+   "daCasa"
+  ],
+  "packages/sim/src/economy/faro.ts": [
+   "FARO_MAX"
+  ],
+  "packages/sim/src/economy/insetti.ts": [
+   "GRUPPO",
+   "MARGINE_USCITO_S",
+   "meseRoma",
+   "poolAt",
+   "possedutoInsetto",
+   "vistoInsetto"
+  ],
+  "packages/sim/src/economy/missioni.ts": [
+   "missioniState"
+  ],
+  "packages/sim/src/meteo.ts": [
+   "METEO_STATI",
+   "ventoMeteoAt"
+  ],
+  "packages/sim/src/minigames/regata/regata.ts": [
+   "regataCourse",
+   "windAt"
+  ],
+  "packages/sim/src/rpg/bag.ts": [
+   "SLOT_KINDS"
+  ],
+  "packages/sim/src/rpg/derived.ts": [
+   "equipped",
+   "maxOf"
+  ],
+  "packages/sim/src/rpg/pala.ts": [
+   "nomeBucaDono"
+  ],
+  "packages/sim/src/rpg/parse.ts": [
+   "parseLoadout"
+  ],
+  "packages/sim/src/sparo/bot.ts": [
+   "ARMA_NEMICO"
+  ],
+  "packages/sim/src/sparo/colpi.ts": [
+   "attoreDi",
+   "caloPortata"
+  ],
+  "packages/sim/src/sparo/giocatore.ts": [
+   "PITCH_MAX"
+  ],
+  "packages/sim/src/templari/bottega.ts": [
+   "vicinoA"
+  ],
+  "packages/sim/src/templari/colpi.ts": [
+   "caricaSuper",
+   "parato"
+  ],
+  "packages/sim/src/templari/eroe.ts": [
+   "GIRA_SUL_POSTO",
+   "aPortata",
+   "mira",
+   "vicinoAltare"
+  ],
+  "packages/sim/src/templari/mappa.ts": [
+   "hashCella"
+  ],
+  "packages/sim/src/templari/raggiungi.ts": [
+   "raggiunge"
+  ],
+  "packages/sim/src/templari/segreti.ts": [
+   "teschiTrovati"
+  ],
+  "packages/sim/src/templari/stato.ts": [
+   "MAX_EROI"
+  ],
+  "packages/sim/src/templari/vista.ts": [
+   "hashOf"
+  ]
+ },
+ "righe": {
+  "apps/client/src/corse/prova/main.ts": 470,
+  "apps/client/src/corse/scena.ts": 746,
+  "apps/client/src/corse/vista_gara.ts": 434,
+  "apps/client/src/game/ingressi.ts": 438,
+  "apps/client/src/game/lot.ts": 628,
+  "apps/client/src/game/negozio.ts": 485,
+  "apps/client/src/game/pesca.ts": 508,
+  "apps/client/src/game/templari.ts": 410,
+  "apps/client/src/game/world.ts": 434,
+  "apps/client/src/main.ts": 454,
+  "apps/client/src/net/api.ts": 464,
+  "apps/client/src/render/island.ts": 415,
+  "apps/client/src/render/island_corse.ts": 575,
+  "apps/client/src/render/island_temi.ts": 447,
+  "apps/client/src/rpg/dungeon_hero.ts": 504,
+  "apps/client/src/rpg/dungeon_run.ts": 475,
+  "apps/client/src/templari/index.ts": 735,
+  "apps/client/src/templari/scena.ts": 655,
+  "apps/client/src/ui/diario_ui.ts": 402,
+  "apps/client/src/ui/editor.ts": 422,
+  "apps/client/src/ui/pinguini.ts": 404,
+  "apps/server/src/do/Lot.ts": 439,
+  "apps/server/src/worker.ts": 555,
+  "packages/sim/src/dungeon/enemies.ts": 527,
+  "packages/sim/src/templari/eroe.ts": 440
+ },
+ "url": {
+  "apps/client/src/corse/amici.ts": 1,
+  "apps/client/src/corse/avviso_ruota.ts": 1,
+  "apps/client/src/corse/discesa/main.ts": 1,
+  "apps/client/src/corse/hub/prova.ts": 1,
+  "apps/client/src/corse/hub/vista.ts": 1,
+  "apps/client/src/corse/nastro3d.ts": 1,
+  "apps/client/src/corse/prova/garage.ts": 1,
+  "apps/client/src/corse/prova/main.ts": 2,
+  "apps/client/src/corse/prova/vista.ts": 1,
+  "apps/client/src/corse/scena.ts": 1,
+  "apps/client/src/corse/veicoli_ai.ts": 1,
+  "apps/client/src/difesa/main.ts": 1,
+  "apps/client/src/game/ingressi.ts": 1,
+  "apps/client/src/game/templari.ts": 3,
+  "apps/client/src/game/world.ts": 1,
+  "apps/client/src/installa.ts": 1,
+  "apps/client/src/net/client.ts": 1,
+  "apps/client/src/prova3d/main.ts": 1,
+  "apps/client/src/provapixel/main.ts": 1,
+  "apps/client/src/rpg/arena_menu.ts": 4,
+  "apps/client/src/sparo/main.ts": 1,
+  "apps/client/src/ui/entra.ts": 1,
+  "apps/client/src/ui/lot_harness.ts": 1
+ },
+ "documenti": {
+  "docs/CORSE.md": 46730,
+  "docs/RPG.md": 73396,
+  "docs/TEMPLARI.md": 58314
+ }
+}

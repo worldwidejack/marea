@@ -6,7 +6,6 @@ import { newLot } from '../src/economy/actions.ts';
 import { BARCA_DI_SERIE, barcaDi, compraColoreBarca, diSerie, nomeBarca, possiedeColore, validaBarca } from '../src/economy/barca.ts';
 import { checkInvariant } from '../src/economy/ledger.ts';
 import { EconomyError } from '../src/economy/types.ts';
-import type { LotState } from '../src/economy/types.ts';
 import { composeArchipelago } from '../src/world/archipelago.ts';
 import { barcheSovrapposte, landingSpot, newBoat, ormeggioLibero, scafoInAcqua, yawOrmeggio } from '../src/world/boat.ts';
 

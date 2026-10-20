@@ -119,7 +119,7 @@ function scatta(s: DungeonState, e: Enemy): void {
 }
 
 /** Fine dell'attacco: pausa della fase (il momento per colpirlo). */
-function riposa(s: DungeonState, e: Enemy): void {
+function riposa(_s: DungeonState, e: Enemy): void {
   const C = e.def.custode!;
   e.modo = undefined; e.mira = undefined; e.area = false; e.tiro = false;
   setState(e, 'recupera', secToTicks(C.pausa[Math.min(e.fase ?? 0, C.pausa.length - 1)] ?? 1));

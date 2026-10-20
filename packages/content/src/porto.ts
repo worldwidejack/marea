@@ -3,7 +3,6 @@
 // Coordinate in celle dell'isola `porto` (interi = centro della cella, come `props` in islands.json); `rot` = rotazione Y in radianti.
 import gente from './gente.json' with { type: 'json' };
 import missioni from './missioni.json' with { type: 'json' };
-import type { Resources } from './types.ts';
 
 export type PortoLook = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
 /** Una persona del Porto (`paesano`: abitanti del Borgo, il loro giro lo scrive tools/borgo_pianta.py): `giro` = punti da percorrere avanti e indietro (uno solo = ferma), `velocita` in m/s, `raggio` = da quanto vicino si parla. */

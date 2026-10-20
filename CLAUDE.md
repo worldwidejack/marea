@@ -30,6 +30,7 @@ Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue 
 9. **Budget** (`docs/TECH.md` §5): se la build sfora, prima sposta codice in chunk `import()`; se non basta, alza il limite in `tools/build.mjs` e scrivilo nella PR. All'avvio sul telefono non si rallenta mai.
 10. **Database**: cambio dello schema = nuova migrazione in `apps/server/migrations/` col numero dopo l'ultimo su `main`. Se qualcuno ti ha preso il numero, rinumera la tua.
 11. **Subagent** dentro una sessione: file disgiunti tra loro; niente commit, push o merge.
+12. **Guardiani** nella suite `static` (`tools/guardiani.mjs`): niente codice inutile, file ≤ 400 righe, URL solo in `flags.ts`, banchi in `apps/client/banchi.json`. Le eccezioni di oggi non si allargano.
 
 **Comandi**: `npm run dev` + `npm run dev:server` (gioco in locale) · `node tests/run.mjs static types sim boot` (test veloci, pochi minuti) · `npm test` (tutto, quasi un'ora sul Mac: lo fa GitHub su ogni PR) · `npm run build` · `npm run assets`.
 

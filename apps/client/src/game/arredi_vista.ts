@@ -9,7 +9,6 @@ import type { LotState, PlacedMobile } from '@marea/sim';
 import type { MobileDef } from '@marea/content';
 import type { Part } from '../rpg/dungeon_kit.ts';
 
-const [X0, Z0, X1] = BORGO.stanza.pavimento;
 const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
 
 /** Dove sta un mobile (m, coordinate del lotto) e verso dove guarda (rad): a terra al centro del suo ingombro (la cella d'ancora, più la

@@ -73,7 +73,7 @@ export function spingi(s: DungeonState, dx: number, dz: number, m: number, sec: 
 }
 
 /** Il vento sposta chi cammina: eroi e nemici a terra (non chi vola, non le torrette, non i capi, non chi sta sulle grate). */
-function spostaNemico(s: DungeonState, e: Enemy): boolean {
+function spostaNemico(_s: DungeonState, e: Enemy): boolean {
   return !e.def.boss && e.def.muove !== 'vola' && e.def.comportamento !== 'torretta' && e.st !== 'morto';
 }
 

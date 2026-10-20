@@ -131,7 +131,7 @@ function corre(s: DungeonState, e: Enemy): void {
 }
 
 /** Fine dell'attacco: pausa della fase (il momento per colpirlo). */
-function riposa(s: DungeonState, e: Enemy): void {
+function riposa(_s: DungeonState, e: Enemy): void {
   const V = e.def.vaelen!;
   e.modo = undefined; e.mira = undefined; e.area = false; e.tiro = false; e.pilone = -1;
   setState(e, 'recupera', secToTicks(V.pausa[Math.min(e.fase ?? 0, V.pausa.length - 1)] ?? 1));

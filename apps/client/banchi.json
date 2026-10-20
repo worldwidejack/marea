@@ -1,0 +1,12 @@
+[
+ { "pagina": "prova3d.html", "cosa": "prove di stile 3D del mondo (luce, materiali, camera)", "chi": "J" },
+ { "pagina": "provapixel.html", "cosa": "prove di stile a pixel (risoluzione, palette, contorni)", "chi": "J" },
+ { "pagina": "provapiste.html", "cosa": "banco delle piste delle Corse: guida, camere, gara di prova", "chi": "J" },
+ { "pagina": "provascena.html", "cosa": "scenografia delle piste delle Corse, vista da sola", "chi": "J" },
+ { "pagina": "provagarage.html", "cosa": "garage delle Corse: veicoli e piloti", "chi": "J" },
+ { "pagina": "provahub.html", "cosa": "hub delle Corse da giocare senza passare dal Porto", "chi": "J" },
+ { "pagina": "provahubvista.html", "cosa": "hub delle Corse in vista dall'alto, per le foto", "chi": "J" },
+ { "pagina": "provadiscesa3d.html", "cosa": "discesa in bici", "chi": "J" },
+ { "pagina": "provasparo.html", "cosa": "sparatutto a missioni", "chi": "J" },
+ { "pagina": "provadifesa.html", "cosa": "Difesa alla Plants vs Zombies: è gioco vero, si apre anche dal cancello dell'isola", "chi": "J" }
+]

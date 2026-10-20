@@ -27,7 +27,7 @@ function voltaCielo(): THREE.BufferGeometry {
   ];
   const N = 32, rad = Math.PI / 180;
   const pt = (el: number, az: number): [number, number, number] => [Math.cos(el * rad) * Math.sin(az), Math.sin(el * rad), -Math.cos(el * rad) * Math.cos(az)];
-  FASCE.forEach(([e0, e1, lon, vic], fi) => {
+  FASCE.forEach(([e0, e1, lon, vic]) => {
     for (let i = 0; i < N; i++) {
       const a0 = (i / N) * Math.PI * 2, a1 = ((i + 1) / N) * Math.PI * 2, am = (a0 + a1) / 2;
       let d = Math.abs(am - azSole) % (Math.PI * 2); if (d > Math.PI) d = Math.PI * 2 - d;

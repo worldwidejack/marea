@@ -73,7 +73,6 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
     if (scale.length) { const m = new THREE.Mesh(merged(scale), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })); m.name = 'scale'; m.castShadow = m.receiveShadow = true; room.add(m); }
   };
   costruisci(0, 'terra');
-  const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   // chi cammina in casa urta i muri della stanza del suo livello, non il bordo del pavimento massimo del template
   let mascherata: GridMap | null = null;
   w.maschera = (m) => (mascherata ??= mascheraCase(m, arch.lots, livelloDi));

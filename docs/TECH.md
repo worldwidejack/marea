@@ -38,6 +38,7 @@ La stessa `sim` gira nel browser (per giocare) e nel Durable Object (per **verif
 - Numeri di gioco **solo** in `packages/content` (JSON). Costanti tecniche in `packages/sim/src/constants.ts`.
 - Testi in italiano nel client; niente i18n. Errori del server in italiano.
 - Dipendenza nuova: solo se serve, col perché nella PR.
+- **Guardiani** (`tools/guardiani.mjs`, girano dentro `check_static`): niente file né export che nessuno usa; file ≤ 400 righe (quelli più lunghi di oggi non possono crescere); `?parametro=` letti solo in `flags.ts`; ogni banco di prova in `apps/client/banchi.json`; documenti ≤ 40k caratteri (CLAUDE.md 6k, MAPPA 8k); ogni cartella in `MAPPA.md`; nei commenti nuovi niente numeri di PR, date o «deciso da Jack»; `noUnusedLocals` e `noUnusedParameters` accesi. Le violazioni di oggi stanno in `tools/guardiani_eccezioni.json`: si tolgono o si stringono (`--aggiorna`), non si aggiungono.
 
 ## 3b. Convenzioni
 - **Spazio**: 1 unità = 1 m, Y in su, −Z avanti. Posizioni nel mondo `{x, z}` sul piano, `y` solo per la resa. Angoli in radianti; `yaw` attorno a Y, 0 = −Z.

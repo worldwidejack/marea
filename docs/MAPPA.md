@@ -1,7 +1,7 @@
 # MAREA — mappa del codice
 
 > Dove sta cosa e chi ci lavora di solito: **J** Jack · **R** Riccardo · **B** birbasan. Una riga per cartella. «Chi» non è un permesso: tutti lavorano su tutto, ma prima di toccare la zona di un altro guarda se ha PR aperte lì.
-> Crei una cartella nuova? Aggiungi la sua riga qui nella stessa PR. Le pagine `apps/client/*.html` sono una per banco di prova, `index.html` è il gioco.
+> Crei una cartella nuova? Aggiungi la sua riga qui nella stessa PR (lo controlla `static`). Le pagine `apps/client/*.html` sono una per banco di prova, elencate in `apps/client/banchi.json`; `index.html` è il gioco.
 
 ## apps/client/src · il gioco nel browser (Vite + Three.js, interfaccia in HTML/CSS)
 | Dove | Cosa c'è | Chi |
@@ -79,7 +79,7 @@ Test della sim: `packages/sim/test/*.test.ts` (node:test), fixture d'oro in `tes
 ## tools
 | Dove | Cosa c'è | Chi |
 |---|---|---|
-| `build.mjs`, `check_static.mjs`, `check_types.mjs`, `contact.mjs`, `deploy.mjs`, `riordina_git.mjs` | build col budget, controlli, foglio degli screenshot, deploy (lo lancia solo GitHub), riordino di rami e copie di lavoro ferme | J |
+| `build.mjs`, `check_static.mjs`, `check_types.mjs`, `guardiani.mjs`, `contact.mjs`, `deploy.mjs`, `riordina_git.mjs` | build col budget, controlli e guardiani (con `guardiani_eccezioni.json`), foglio degli screenshot, deploy (lo lancia solo GitHub), riordino di rami e copie di lavoro ferme | J |
 | `build_assets.mjs`, `export_gltf.py`, `*_leggero.*`, `icone.py`, `sprite_oggetti.py`, `avatar_giro.*` | asset: Blender → glTF, alleggerimenti, icone, sprite | tutti |
 | `corse_piste*`, `corse_foglio.py`, `veicol*` | piste e veicoli delle Corse | J |
 | `discesa_sentieri*`, `adrenalina_piste.mjs` | piste delle discese | B |

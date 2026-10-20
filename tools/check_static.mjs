@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Controlli statici (TECH.md §3): purezza della sim (niente DOM/three/random/tempo/console.log, tsconfig senza lib DOM), import .ts espliciti ed esistenti,
-// niente enum/namespace, `three` solo in apps/client, file > 400 righe (avviso), JSON dei contenuti validi, moduli importabili in Node.
+// niente enum/namespace, `three` solo in apps/client, JSON dei contenuti validi, moduli importabili in Node. In fondo i guardiani (tools/guardiani.mjs):
+// file ed export non usati, tetto delle 400 righe, URL solo in flags.ts, banchi registrati, tetti dei documenti, MAPPA, commenti nuovi.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -16,7 +17,6 @@ const strip = (s) => s.replace(/("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\[
   if (!/Math\.random/.test(prova) || !prova.includes('https://x.it') || prova.includes('commento')) { console.error('[static] il lettore dei commenti è rotto: i controlli non vedrebbero il codice'); process.exit(1); }
 }
 const errs = [], warns = [];
-const MAX_LINES = 400;
 const files = [...walk(path.join(ROOT, 'packages')), ...walk(path.join(ROOT, 'apps'))];
 
 for (const f of files) {
@@ -68,8 +68,6 @@ for (const f of files) {
   }
   if (isSim && /\bconsole\s*\.\s*(log|debug|info)\s*\(/.test(code)) errs.push(`${r}: console.log in packages/sim (la sim non stampa; i log stanno nel client/server)`);
   if (!r.startsWith('apps/client/') && (/\b(?:from|import)\s*\(?\s*['"]three(?:\/[^'"]*)?['"]/.test(code) || /\bimport\s*\(\s*['"]three/.test(code))) errs.push(`${r}: import di three fuori da apps/client`);
-  const nLines = fs.readFileSync(f, 'utf8').split('\n').length;
-  if (nLines > MAX_LINES) warns.push(`${r}: ${nLines} righe (> ${MAX_LINES}: spezza il file)`);
   if (/^\s*(export\s+)?(const\s+)?enum\s+\w+/m.test(code)) errs.push(`${r}: enum (usa as const)`);
   if (/^\s*(export\s+)?namespace\s+\w+/m.test(code)) errs.push(`${r}: namespace`);
   for (const m of code.matchAll(/(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)|import\s*['"]([^'"]+)['"]/g)) {
@@ -108,6 +106,10 @@ try {
   const c = await import(pathToFileURL(path.join(ROOT, 'packages/content/src/index.ts')).href);
   for (const e of c.validateContent()) errs.push(`contenuti: ${e}`);
 } catch (e) { errs.push(`contenuti: ${e.message}`); }
+{
+  const g = (await import('./guardiani.mjs')).guardiani();
+  errs.push(...g.errs); warns.push(...g.warns);
+}
 for (const w of warns) console.log('WARN', w);
 for (const e of errs) console.log('FAIL', e);
 console.log(`[static] ${files.length} file, ${errs.length} errori, ${warns.length} avvisi`);

@@ -79,7 +79,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const sassi = SASSI_BORGO.map((c) => ({ ...cellWorld(c), scossa: 0 }));
   const alberi = ALBERI_BORGO.map((a) => ({ ...cellWorld(a.at), scossa: 0 }));
   let meshAlberi: THREE.InstancedMesh | null = null;
-  const baseMats: THREE.Matrix4[] = [], rotAxis = new THREE.Vector3(), wobbleAxis = new THREE.Vector3(), tmpM = new THREE.Matrix4(), trM = new THREE.Matrix4(), invTrM = new THREE.Matrix4(), r1 = new THREE.Matrix4(), r2 = new THREE.Matrix4();
+  const baseMats: THREE.Matrix4[] = [], tmpM = new THREE.Matrix4(), r1 = new THREE.Matrix4(), r2 = new THREE.Matrix4();
   const particelle: { x: number; y: number; z: number; vx: number; vy: number; vz: number; t: number; tipo: 'terra' | 'scintilla' }[] = [];
   const emettiParticelle = (x: number, y: number, z: number, tipo: 'terra' | 'scintilla', n = 5) => {
     for (let i = 0; i < n; i++) {

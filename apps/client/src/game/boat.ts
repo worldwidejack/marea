@@ -61,7 +61,7 @@ function hullGeometry(scafo: string = C.legno): THREE.BufferGeometry {
   const quad = (a: number[], b: number[], c: number[], d: number[], h: string) => { tri(a, b, c, h); tri(a, c, d, h); };
   const t = 0.07; // spessore della murata
   const outer = st.map(([z, w, gh, kh]) => ({ z, k: [0, kh, z], cl: [-0.55 * w, kh + 0.13, z], cr: [0.55 * w, kh + 0.13, z], gl: [-w, gh, z], gr: [w, gh, z] }));
-  const inner = st.map(([z, w, gh, kh], i) => { const zi = z + (i === 0 ? 0.12 : i === st.length - 1 ? -t : 0), wi = Math.max(0.005, w - t), fl = -0.03; return { gl: [-wi, gh, zi], gr: [wi, gh, zi], fl: [-0.55 * wi, fl, zi], fr: [0.55 * wi, fl, zi] }; });
+  const inner = st.map(([z, w, gh], i) => { const zi = z + (i === 0 ? 0.12 : i === st.length - 1 ? -t : 0), wi = Math.max(0.005, w - t), fl = -0.03; return { gl: [-wi, gh, zi], gr: [wi, gh, zi], fl: [-0.55 * wi, fl, zi], fr: [0.55 * wi, fl, zi] }; });
   for (let i = 0; i < st.length - 1; i++) {
     const a = outer[i]!, b = outer[i + 1]!, ia = inner[i]!, ib = inner[i + 1]!;
     // esterno: fasciame basso scuro + alto chiaro

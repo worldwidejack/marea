@@ -1,7 +1,7 @@
 // Modalità modifica rapida edifici (#403): rotazione, riponi nel magazzino, riponi tutto, posa da magazzino, disposizione batch.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyBuildingLayout, build, moveBuilding, newLot, placeStoredBuilding, rotateBuilding, stowAllBuildings, stowBuilding } from '../src/economy/actions.ts';
+import { applyBuildingLayout, build, newLot, placeStoredBuilding, rotateBuilding, stowAllBuildings, stowBuilding } from '../src/economy/actions.ts';
 import { cellsOf, dockCell } from '../src/economy/cells.ts';
 import type { LotTemplate } from '../src/economy/cells.ts';
 import { EconomyError } from '../src/economy/types.ts';
