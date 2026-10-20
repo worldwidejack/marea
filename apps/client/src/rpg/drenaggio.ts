@@ -5,7 +5,7 @@
 // facce piatte; quando arriva un modello vero nel manifest vince lui.
 import * as THREE from 'three';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
-import { M, block, merged, painted, px, speckle, strata, tex } from '../render/island_parts.ts';
+import { M, block, merged, painted, px, strata, tex } from '../render/island_parts.ts';
 import { PAL } from '../ui/style.ts';
 import type { Part } from './dungeon_kit.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
@@ -27,17 +27,16 @@ let kit: Record<'pavimento' | 'muro' | 'muro_basso' | 'colonna' | 'acqua', Part[
 /** Pezzi del kit `drenaggio` (cache): una geometria e un materiale per pezzo, 12 triangoli i blocchi. */
 export function kitDrenaggio(top: number): NonNullable<typeof kit> {
   if (kit) return kit;
-  const pav = tex('pav', 'drenaggio', (g, r) => {
+  const pav = tex('pav', 'drenaggio', (g) => {
     px(g, PAL.pietraScura, 0, 0, 32, 32);
     for (let i = 0; i < 32; i += 16) { px(g, PAL.roccia, i, 0, 1, 32); px(g, PAL.roccia, 0, i, 32, 1); } // lastre da 1 m
     for (let y = 5; y < 12; y += 2) px(g, PAL.neroCaldo, 20, y, 9, 1); // grata di scolo
     px(g, PAL.roccia, 19, 4, 11, 1); px(g, PAL.roccia, 19, 12, 11, 1);
     for (const [x, y] of [[2, 2], [13, 2], [2, 13], [13, 13], [18, 18], [29, 18], [18, 29], [29, 29]] as const) px(g, PAL.pietra, x, y); // chiodi
-    speckle(g, r, PAL.legno, 10, 0, 32, 2, 1); speckle(g, r, PAL.legnoScuro, 8, 0, 32); speckle(g, r, PAL.pietra, 8, 0, 32); // ruggine
     strata(g, [[PAL.roccia, 4], [PAL.neroCaldo, 32]]);
   });
   const muro = tex('muro', 'drenaggio', (g, r) => {
-    px(g, PAL.roccia, 0, 0, 32, 32); speckle(g, r, PAL.neroCaldo, 30, 0, 32); // la cima, vista dall'alto
+    px(g, PAL.roccia, 0, 0, 32, 32); // la cima, vista dall'alto
     // fianco (32 righe = 2 m dall'alto): lamiere chiodate, tubo d'ottone, riga dell'acqua, ruggine che cola
     px(g, PAL.pietraScura, 0, 32, 32, 32);
     for (const x of [0, 16]) px(g, PAL.roccia, x, 32, 1, 32);
@@ -45,11 +44,11 @@ export function kitDrenaggio(top: number): NonNullable<typeof kit> {
     px(g, PAL.legnoScuro, 0, 39, 32, 1); px(g, PAL.arancio, 0, 40, 32, 2); px(g, PAL.giallo, 0, 40, 32, 1); px(g, PAL.legno, 0, 42, 32, 1); // tubo
     for (const x of [7, 23]) px(g, PAL.legno, x, 39, 2, 4); // fascette
     for (let x = 0; x < 32; x++) if ((x + 1) % 2) px(g, PAL.acquaProfonda, x, 49); // riga dell'acqua di una volta
-    px(g, PAL.roccia, 0, 50, 32, 14); speckle(g, r, PAL.erbaScura, 6, 52, 64); // sotto: bagnato, un po' di muschio
+    px(g, PAL.roccia, 0, 50, 32, 14); // sotto: bagnato
     for (let i = 0; i < 4; i++) { const x = r.int(1, 30); px(g, PAL.legno, x, 43, 1, r.int(3, 9)); } // ruggine colata dal tubo
   });
-  const acqua = tex('acqua', 'drenaggio', (g, r) => {
-    px(g, PAL.acqua, 0, 0, 32, 32); speckle(g, r, PAL.acquaBassa, 18, 0, 32, 3, 1); speckle(g, r, PAL.acquaProfonda, 14, 0, 32, 2, 1);
+  const acqua = tex('acqua', 'drenaggio', (g) => {
+    px(g, PAL.acqua, 0, 0, 32, 32);
     strata(g, [[PAL.acqua, 2], [PAL.acquaProfonda, 32]]);
   });
   const colonna = merged([

@@ -6,7 +6,7 @@
 // Pivot a terra al centro; le facciate guardano +Z (verso la camera).
 import * as THREE from 'three';
 import type { Rng } from '@marea/sim';
-import { M, P, merged, painted, px, speckle, strata } from './island_parts.ts';
+import { M, P, merged, painted, px, strata } from './island_parts.ts';
 import type { Painter } from './island_parts.ts';
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
@@ -15,13 +15,13 @@ const ico = (r: number, d = 0) => new THREE.IcosahedronGeometry(r, d);
 
 // ——— terreni ———
 export const PAINT_DIFESA: Record<string, Painter> = {
-  difesa_sabbia: (g, r) => { px(g, P.sabbia, 0, 0, 32, 32); speckle(g, r, P.sabbiaChiara, 40, 0, 32); speckle(g, r, P.legnoChiaro, 12, 0, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 6], [P.legno, 32]]); },
+  difesa_sabbia: (g) => { px(g, P.sabbia, 0, 0, 32, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 6], [P.legno, 32]]); },
   difesa_erba: (g, r) => {
-    px(g, P.erba, 0, 0, 32, 32); speckle(g, r, P.erbaChiara, 28, 0, 32); speckle(g, r, P.erbaScura, 22, 0, 32, 1, 2); speckle(g, r, P.giallo, 3, 0, 32); speckle(g, r, P.sabbiaChiara, 2, 0, 32);
+    px(g, P.erba, 0, 0, 32, 32);
     strata(g, [[P.erbaScura, 3], [P.legno, 7], [P.legnoScuro, 32]]);
     for (let x = 0; x < 32; x++) if (r.next() < 0.45) px(g, P.erbaScura, x, 35, 1, r.int(1, 2));
   },
-  difesa_riva: (g, r) => { px(g, P.pietra, 0, 0, 32, 32); speckle(g, r, P.pietraChiara, 30, 0, 32, 2, 1); speckle(g, r, P.sabbia, 20, 0, 32); strata(g, [[P.pietraScura, 32]]); },
+  difesa_riva: (g) => { px(g, P.pietra, 0, 0, 32, 32); strata(g, [[P.pietraScura, 32]]); },
 };
 /** La collinetta dietro il casale: prato in cima, terra e pietra sui fianchi. */
 export function rocciaDifesa(top: boolean, y: number, h: number, r: Rng): { c: string } {

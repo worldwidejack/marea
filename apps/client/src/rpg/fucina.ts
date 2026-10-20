@@ -7,7 +7,7 @@
 // modello vero nel manifest vince lui (pavimento, muri, presse, leva, nemici).
 import * as THREE from 'three';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
-import { M, block, merged, painted, px, speckle, strata, tex } from '../render/island_parts.ts';
+import { M, block, merged, painted, px, strata, tex } from '../render/island_parts.ts';
 import type { Loader } from '../render/loader.ts';
 import { PAL } from '../ui/style.ts';
 import { object } from './dungeon_kit.ts';
@@ -48,24 +48,21 @@ export function kitFucina(top: number): KitFucina {
   const pav = tex('pav', 'fucina', (g, r) => {
     px(g, PAL.roccia, 0, 0, 32, 32);
     for (let i = 0; i < 32; i += 16) { px(g, PAL.neroCaldo, i, 0, 1, 32); px(g, PAL.neroCaldo, 0, i, 32, 1); } // lastre di basalto da 1 m
-    speckle(g, r, PAL.neroCaldo, 26, 0, 32); speckle(g, r, PAL.pietraScura, 10, 0, 32); // fuliggine e scaglie
     for (let k = 0; k < 3; k++) { const x = r.int(2, 28), y = r.int(2, 28); px(g, PAL.ombraCalda, x, y, 3, 1); px(g, PAL.legno, x + 1, y, 1, 1); } // crepe con la brace
-    speckle(g, r, PAL.arancio, 3, 0, 32); // braci cadute
     strata(g, [[PAL.neroCaldo, 3], [PAL.roccia, 32]]);
   });
   const muro = tex('muro', 'fucina', (g, r) => {
-    px(g, PAL.neroCaldo, 0, 0, 32, 32); speckle(g, r, PAL.roccia, 20, 0, 32); // la cima: fuliggine
+    px(g, PAL.neroCaldo, 0, 0, 32, 32); // la cima: fuliggine
     // fianco (32 righe = 2 m dall'alto): mattoni refrattari sfalsati, tubo d'ottone, fuliggine in alto e alla base
     px(g, PAL.ombraCalda, 0, 32, 32, 32);
     for (let y = 34, k = 0; y < 62; y += 4, k++) for (let x = (k % 2) * 4 - 4; x < 32; x += 8) px(g, r.next() < 0.75 ? PAL.legnoScuro : PAL.legno, x + 1, y, 7, 3);
-    px(g, PAL.neroCaldo, 0, 32, 32, 2); speckle(g, r, PAL.neroCaldo, 18, 32, 40);
+    px(g, PAL.neroCaldo, 0, 32, 32, 2);
     px(g, PAL.legnoScuro, 0, 43, 32, 1); px(g, PAL.arancio, 0, 44, 32, 2); px(g, PAL.giallo, 0, 44, 32, 1); px(g, PAL.legno, 0, 46, 32, 1); // tubo d'ottone
     for (const x of [5, 21]) px(g, PAL.pietraScura, x, 43, 2, 4); // fascette
     px(g, PAL.neroCaldo, 0, 61, 32, 3);
   });
-  const lava = tex('lava', 'fucina_colata', (g, r) => {
-    px(g, PAL.arancio, 0, 0, 32, 32); speckle(g, r, PAL.giallo, 22, 0, 32, 3, 1); speckle(g, r, PAL.rosso, 14, 0, 32, 2, 2);
-    speckle(g, r, PAL.ombraCalda, 6, 0, 32, 2, 1); // croste che galleggiano
+  const lava = tex('lava', 'fucina_colata', (g) => {
+    px(g, PAL.arancio, 0, 0, 32, 32);
     strata(g, [[PAL.giallo, 2], [PAL.arancio, 6], [PAL.rosso, 32]]);
   });
   const pressa = merged([

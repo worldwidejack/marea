@@ -3,11 +3,11 @@
 // - camera ≠ 45°: vista più bassa, camera.far più lungo, passata finale con cielo all'orizzonte (niente foschia dal 13 ott, #282)
 // - contorni: passata finale con i contorni dalla profondità (il colore stesso più scuro)
 // - stampa: palette giapponese, contorni a inchiostro, grana di carta
-// - mare: sempre l'acqua a onde della stampa (water2.ts) al posto di quella di prima (Jack, 13 ott 2026, #286); ?pulito=0 = quella di prima
+// - mare: sempre l'acqua a onde della stampa (water2.ts), al posto di quella di prima
 // - ciclo: ogni ~½ s luce, bande del cielo, acqua e foschia dal momento della giornata (ciclo.ts); di notte lanterne e insegne fanno luce (luci.ts, #60)
 // - meteo (#361, a nuvole): le nuvole della sim (sim/meteo.ts, dall'orologio: uguali per tutti) si disegnano (nuvole.ts), fanno ombra
 //   (passata finale), piovono e lampeggiano dove sono (meteo.ts, water2.ts); sopra il momento della giornata, la luce, il cielo e il suono
-//   col tempo del posto dove sei (la nuvola che hai sopra, a gradini). ?nuvole=B la variante B per la scelta di Jack.
+//   col tempo del posto dove sei (la nuvola che hai sopra, a gradini).
 import * as THREE from 'three';
 import type { GridMap } from '@marea/sim';
 import type { Renderer } from './scene.ts';
@@ -17,7 +17,6 @@ import { setWaterColors, setWaterMeteo, setWaterNight } from './water.ts';
 import { createPost } from './post.ts';
 import type { Post, PostLook } from './post.ts';
 import { createWater2 } from './water2.ts';
-import { FLAGS } from '../flags.ts';
 import { createLuci } from './luci.ts';
 import type { Luci } from './luci.ts';
 import type { Water2 } from './water2.ts';
@@ -25,10 +24,11 @@ import { GIORNO, LUNA_DIR, fase, momento } from './ciclo.ts';
 import type { Momento } from './ciclo.ts';
 import { MAXN, NUBI, OMBRA, conMeteo, coperturaMeteo, createPioggia } from './meteo.ts';
 import type { Pioggia } from './meteo.ts';
-import { STILI, createNuvole } from './nuvole.ts';
+import { STILE, createNuvole } from './nuvole.ts';
 import type { Nuvole } from './nuvole.ts';
-import { distanzaNuvola, lampoAt, meteoCfg, meteoQui, nuvoleAt } from '@marea/sim/meteo.ts';
+import { distanzaNuvola, lampoAt, meteoQui, nuvoleAt } from '@marea/sim/meteo.ts';
 import type { Lampo, MeteoQui, Nuvola } from '@marea/sim/meteo.ts';
+import { METEO } from '@marea/content';
 import type { MeteoStato, NuvolaTipo } from '@marea/content';
 import { setMeteo, suona } from '../audio/ponte.ts';
 
@@ -54,9 +54,9 @@ export type Aspetto = {
   /** Test e screenshot: fissa il momento del giro (0 giorno … 0,75 notte); null = l'orologio. */
   forzaFase(f: number | null): void;
   /** Meteo (#361): il tempo dove sei ('spento' se l'impostazione è spenta), l'intensità a gradini, le gocce vicine disegnate, quanto
-   *  piove e lampeggia dove sei, le nuvole vive (dalla sim) e quelle disegnate, i batuffoli, la variante (A di serie, B con ?nuvole=B). */
+   *  piove e lampeggia dove sei, le nuvole vive (dalla sim) e quelle disegnate, i batuffoli. */
   readonly meteo: MeteoStato | 'spento'; readonly meteoK: number; readonly gocce: number;
-  readonly nuvole: { variante: 'A' | 'B'; pioggia: number; lampi: number; vento: number; vive: number; vicine: number; disegnate: number; batuffoli: number; tende: number; lampo: boolean };
+  readonly nuvole: { pioggia: number; lampi: number; vento: number; vive: number; vicine: number; disegnate: number; batuffoli: number; tende: number; lampo: boolean };
   /** Test e screenshot: una nuvola di quel tipo sopra chi gioca (lo segue), intensità k (di serie 1); 'sereno' = cielo senza nuvole; null = l'orologio. */
   forzaMeteo(stato: MeteoStato | null, k?: number): void;
   /** Test e screenshot: nuvole ferme nel mondo a (dx, dz) metri da chi gioca adesso, raggio r; [] = nessuna; null = l'orologio. */
@@ -78,8 +78,8 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
   // meteo (#361): `vis` = il momento col tempo del posto, quello che si dipinge; `met` = il tempo dove sei adesso
   let vis: Momento = GIORNO, met: MeteoQui = SERENO, meteoWas = false;
   let pioggia: Pioggia | null = null, postOn = false, nuvole: Nuvole | null = null;
-  const variante = FLAGS.nuvole, cfg = meteoCfg(variante), stile = STILI[variante];
-  NUBI.uPioggiaR.value = cfg.nuvole.pioggiaR; NUBI.uQuota.value = stile.quota;
+  const cfg = METEO;
+  NUBI.uPioggiaR.value = cfg.nuvole.pioggiaR; NUBI.uQuota.value = STILE.quota;
   /** Forzate dai test: `segue` = sopra chi gioca (forzaMeteo), altrimenti ferme nel mondo (forzaNuvole). */
   let forzate: { segue: boolean; ns: { tipo: NuvolaTipo; x: number; z: number; r: number; k: number }[] } | null = null, lampoForzato = false;
   let foco: { x: number; z: number } | null = null, tutte: Nuvola[] = [], vicine: Nuvola[] = [], lampo: Lampo | null = null, lampoSeme = -1, lampoVicino = 0, lampoWas = false, tende = 0;
@@ -171,24 +171,22 @@ export function createAspetto(o: { renderer: Renderer; lights: Lights; water: Wa
     get gocce() { return pioggia?.gocce ?? 0; },
     get nuvole() {
       const on = imp.meteo;
-      return { variante, pioggia: on ? met.pioggia : 0, lampi: on ? met.lampi : 0, vento: on ? met.vento : 0, vive: on ? tutte.length : 0, vicine: on ? vicine.length : 0,
+      return { pioggia: on ? met.pioggia : 0, lampi: on ? met.lampi : 0, vento: on ? met.vento : 0, vive: on ? tutte.length : 0, vicine: on ? vicine.length : 0,
         disegnate: on ? nuvole?.disegnate ?? 0 : 0, batuffoli: on ? nuvole?.batuffoli ?? 0 : 0, tende: on ? tende : 0, lampo: on && !!lampo };
     },
     set(s) {
       imp = { ...s, cam: Math.max(0, Math.min(VISTE.length - 1, Math.round(s.cam) || 0)) };
       o.renderer.setView(imp.cam > 0 ? VISTE[imp.cam]! : null);
       aggiornaPost(true);
-      const onde = imp.stampa || FLAGS.pulito; // il mare della stampa di serie (#286)
-      if (onde && !water2) {
+      if (!water2) { // il mare della stampa, di serie
         water2 = createWater2(o.map);
         water2.set(1, ACQUA_STAMPA.c, ACQUA_STAMPA.foam, ACQUA_STAMPA.line, [0, 1, 0]);
         o.renderer.scene.add(water2.mesh);
       }
-      if (water2) water2.mesh.visible = onde;
-      o.water.mesh.visible = !onde;
+      o.water.mesh.visible = false;
       if (!imp.meteo) { met = SERENO; tutte = []; vicine = []; lampo = null; NUBI.uNubiN.value = 0; tende = 0; }
       if (imp.meteo && !pioggia) { pioggia = createPioggia(); o.renderer.scene.add(pioggia.object); }
-      if (imp.meteo && !nuvole) { nuvole = createNuvole(stile); o.renderer.scene.add(nuvole.group); }
+      if (imp.meteo && !nuvole) { nuvole = createNuvole(STILE); o.renderer.scene.add(nuvole.group); }
       if (nuvole) nuvole.group.visible = imp.meteo;
       if (pioggia && !imp.meteo) pioggia.object.visible = false;
       // spenti: torna esattamente al giorno di sempre (luce, cielo, acqua, niente pioggia né suono di pioggia)

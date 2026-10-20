@@ -2,7 +2,6 @@
 // Senza manifest o con un modello mancante il gioco gira con i segnaposto: chi chiama controlla has(name) prima di load(name).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { FLAGS } from '../flags.ts';
 export type Manifest = { version: string; atlas: string; models: Record<string, { file: string; tris?: number; clips?: string[]; bounds?: unknown }> };
 export type Loader = {
   manifest: Manifest;
@@ -44,10 +43,10 @@ export async function createLoader(o: { base: string }): Promise<Loader> {
       manifest = { version: String(j.version ?? '0'), atlas: String(j.atlas ?? ''), models: j.models && typeof j.models === 'object' ? j.models : {} };
     } else console.warn(`[marea] manifest.json assente (${r.status}): uso i segnaposto`);
   } catch { console.warn('[marea] manifest.json non leggibile: uso i segnaposto'); }
-  // mondo pulito (#286): di serie l'atlas senza puntini (?pulito=0 = quello di prima), per le glb e per chi chiede la texture
-  const atlante = (n: string) => (FLAGS.pulito && n === 'atlas.png' ? 'atlas_pulito.png' : n);
+  // mondo pulito: l'atlas senza puntini al posto di `atlas.png`, per le glb e per chi chiede la texture
+  const atlante = (n: string) => (n === 'atlas.png' ? 'atlas_pulito.png' : n);
   const manager = new THREE.LoadingManager();
-  if (FLAGS.pulito) manager.setURLModifier((u) => u.replace(/(^|\/)atlas\.png$/, '$1atlas_pulito.png'));
+  manager.setURLModifier((u) => u.replace(/(^|\/)atlas\.png$/, '$1atlas_pulito.png'));
   const gltf = new GLTFLoader(manager);
   const models = new Map<string, Promise<{ scene: THREE.Group; clips: THREE.AnimationClip[] }>>();
   const textures = new Map<string, Promise<THREE.Texture>>();

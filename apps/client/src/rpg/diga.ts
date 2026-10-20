@@ -6,7 +6,7 @@
 // fracassato, i rottami acuminati, il ponte mobile). Gli effetti stanno in diga_fx.ts. Solo colori della palette, texture a pixel nearest,
 // facce piatte; quando arriva un modello vero nel manifest vince lui.
 import * as THREE from 'three';
-import { M, block, merged, painted, px, speckle, strata, tex } from '../render/island_parts.ts';
+import { M, block, merged, painted, px, strata, tex } from '../render/island_parts.ts';
 import { PAL } from '../ui/style.ts';
 import type { Part } from './dungeon_kit.ts';
 
@@ -45,19 +45,17 @@ export function cannoneGeo(): THREE.BufferGeometry {
  *  falla sotto il ponte mobile). */
 export function kitDiga(top: number): KitDiga {
   if (kit) return kit;
-  const pav = tex('pav', 'diga', (g, r) => {
+  const pav = tex('pav', 'diga', (g) => {
     px(g, PAL.legno, 0, 0, 32, 32);
     for (let y = 0; y < 32; y += 6) { px(g, PAL.neroCaldo, 0, y, 32, 1); px(g, PAL.legnoChiaro, 0, y + 1, 32, 1); } // tavole col catrame nelle commessure
     for (let y = 0; y < 32; y += 6) px(g, PAL.ombraCalda, (y * 7 + 5) % 32, y + 1, 1, 5); // teste delle tavole
     for (let y = 3; y < 32; y += 6) for (const x of [(y * 3) % 32, (y * 11 + 9) % 32]) px(g, PAL.roccia, x, y); // chiodi
-    speckle(g, r, PAL.legnoScuro, 20, 0, 32, 2, 1); speckle(g, r, PAL.legnoChiaro, 6, 0, 32, 2, 1);
-    speckle(g, r, PAL.pietraChiara, 5, 0, 32); speckle(g, r, PAL.acquaProfonda, 3, 0, 32, 2, 1); // sale e pozzette
     strata(g, [[PAL.legnoScuro, 4], [PAL.ombraCalda, 32]]);
   });
   const muro = tex('muro', 'diga', (g, r) => {
-    px(g, PAL.legnoScuro, 0, 0, 32, 32); speckle(g, r, PAL.ombraCalda, 26, 0, 32, 2, 1); // la cima: il bordo della murata
+    px(g, PAL.legnoScuro, 0, 0, 32, 32); // la cima: il bordo della murata
     for (let y = 0; y < 32; y += 8) px(g, PAL.neroCaldo, 0, y, 32, 1);
-    // fianco (32 righe = 2 m dall'alto): fasciame col catrame, due ordinate, rivetti, la linea dell'acqua coi cirripedi e le alghe
+    // fianco (32 righe = 2 m dall'alto): fasciame col catrame, due ordinate, rivetti, la linea dell'acqua coi cirripedi
     px(g, PAL.legno, 0, 32, 32, 32);
     for (let y = 34; y < 60; y += 4) { px(g, PAL.neroCaldo, 0, y, 32, 1); px(g, PAL.legnoChiaro, (y * 5) % 32, y + 1, 6, 1); }
     for (const x of [3, 19]) { px(g, PAL.legnoScuro, x, 32, 4, 28); px(g, PAL.ombraCalda, x + 3, 32, 1, 28); } // ordinate
@@ -65,11 +63,9 @@ export function kitDiga(top: number): KitDiga {
     px(g, PAL.acquaProfonda, 0, 55, 32, 1); // la linea dell'acqua
     px(g, PAL.ombraCalda, 0, 56, 32, 8);
     for (let i = 0; i < 9; i++) { const x = r.int(0, 31); px(g, i % 3 ? PAL.pietraChiara : PAL.pietra, x, r.int(53, 58), 2, 1); } // cirripedi
-    speckle(g, r, PAL.erbaScura, 8, 57, 64, 1, 2); // alghe
   });
-  const acqua = tex('acqua', 'diga', (g, r) => {
-    px(g, PAL.acquaProfonda, 0, 0, 32, 32); speckle(g, r, PAL.abisso, 22, 0, 32, 3, 1); speckle(g, r, PAL.acqua, 10, 0, 32, 2, 1);
-    speckle(g, r, PAL.sabbiaChiara, 4, 0, 32); // schiuma
+  const acqua = tex('acqua', 'diga', (g) => {
+    px(g, PAL.acquaProfonda, 0, 0, 32, 32);
     strata(g, [[PAL.acqua, 2], [PAL.abisso, 32]]);
   });
   kit = {

@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { METEO } from '@marea/content';
-import { NUVOLA_TIPI, lampoAt, meteoCfg, meteoQui, nuvoleAt, ventoIntegrale } from '../src/meteo.ts';
+import { NUVOLA_TIPI, lampoAt, meteoQui, nuvoleAt, ventoIntegrale } from '../src/meteo.ts';
 import type { Nuvola } from '../src/meteo.ts';
 
 const T0 = Date.UTC(2026, 9, 16, 12), MIN = 60_000, n = METEO.gradini;
@@ -67,5 +67,4 @@ test('meteo: in un giorno tutti i tipi; al Porto piove ogni tanto ma non quasi s
   }
   for (const t of NUVOLA_TIPI) assert.ok(tipi.has(t), `manca ${t}`);
   assert.ok(pioggia > 0 && pioggia < minuti * 0.3, `pioggia al Porto ${pioggia}/${minuti}`);
-  assert.ok(meteoCfg('B').nuvole.corsie > METEO.nuvole.corsie, 'la variante B non è più fitta');
 });

@@ -47,7 +47,7 @@ Sotto le isole c'è il **Mondo Sotterraneo**, coi dungeon (§12, `RPG.md`); sull
 - **Minimappa e mappa grande** (#360): **nord sempre in alto**, **zoom a scatti**, un'**icona** per ogni meta, le isole non ancora scoperte non si vedono proprio. Toccando un punto della mappa grande ci metti un **segnalino**: diventa la meta del navigatore.
 - **Una mano** (#143, telefono e tablet, spenta di serie): dalle Impostazioni; il joystick nasce dove appoggi il pollice.
 - **Giorno e notte** (#487): sincronizzato all'ora reale di Roma (un giro ogni 24 ore), stessa ora per tutti; sempre attivo (non si disattiva).
-- **Meteo a nuvole** (#361): nuvole che si muovono sull'arcipelago decidono il tempo del posto dove sono: piove sotto la nuvola, non ovunque. Posto, tipo e forma vengono dall'orologio e da un seed, quindi due giocatori nello stesso punto vedono lo stesso cielo. Solo aspetto e suono, niente effetti sul gioco; si spegne dalle Impostazioni. Numeri in `meteo.json`. **Da scegliere con Jack**: la variante B (`?nuvole=B`: nuvole a lastre più alte, piove di più).
+- **Meteo a nuvole** (#361): nuvole che si muovono sull'arcipelago decidono il tempo del posto dove sono: piove sotto la nuvola, non ovunque. Posto, tipo e forma vengono dall'orologio e da un seed, quindi due giocatori nello stesso punto vedono lo stesso cielo. Solo aspetto e suono, niente effetti sul gioco; si spegne dalle Impostazioni. Numeri in `meteo.json`.
 - **Spenti** (il codice resta finché la pulizia non lo toglie): il giardino dietro la casa con gli edifici che producevano Legno e Pietra. Le sfide con posta (§7), il Faro comune, i traguardi e i titoli sono già fuori dal codice.
 
 ## 4. Chi sei: l'avatar

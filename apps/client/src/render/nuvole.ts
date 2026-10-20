@@ -11,22 +11,17 @@ import * as THREE from 'three';
 import type { NuvolaTipo } from '@marea/content';
 import type { Lampo, Nuvola } from '@marea/sim/meteo.ts';
 
-/** Come si disegnano le nuvole: le due varianti per la scelta di Jack (#361). Aspetto, non numeri di gioco. */
+/** Come si disegnano le nuvole. Aspetto, non numeri di gioco. */
 export type StileNuvole = {
-  nome: 'A' | 'B';
   /** Quota della pancia (m sul mare): da qui in giù cadono le gocce. */
   quota: number;
   /** Altezza di un batuffolo al centro della nuvola (m). */
   spessore: number;
   /** Raggio orizzontale dei batuffoli (m, min e max) e quanto sono fitti (passo/raggio). */
   batuffolo: [number, number]; passo: number;
-  /** Forma del batuffolo: icosaedro tondo o lastra a 7 lati (piatta, a strati). */
-  forma: 'tondo' | 'lastra';
 };
-export const STILI: Record<'A' | 'B', StileNuvole> = {
-  A: { nome: 'A', quota: 6, spessore: 4.5, batuffolo: [6, 11], passo: 1.25, forma: 'tondo' },
-  B: { nome: 'B', quota: 8.5, spessore: 2.2, batuffolo: [10, 18], passo: 1.1, forma: 'lastra' },
-};
+/** Batuffoli tondi (icosaedri schiacciati), con un batuffolo in cima verso il centro della nuvola. */
+export const STILE: StileNuvole = { quota: 6, spessore: 4.5, batuffolo: [6, 11], passo: 1.25 };
 /** Colori per tipo (palette, ART_BIBLE §2): [cima, pancia]. */
 const COLORI: Record<NuvolaTipo, [string, string]> = {
   bianca: ['#F4E3C1', '#E8E1D6'],
@@ -59,8 +54,7 @@ function disponi(n: Nuvola, st: StileNuvole): Batuffolo[] {
       const cupola = 1 - 0.45 * q; // più alta al centro
       const h = st.spessore * cupola * (0.75 + 0.35 * r());
       out.push({ u: ju, v: jv, rh: rb * (0.8 + 0.4 * r()), h, y: 0, cima: false });
-      if (st.forma === 'tondo' && q < 0.35 && r() < 0.55) out.push({ u: ju + (r() - 0.5) * rb, v: jv + (r() - 0.5) * rb, rh: rb * (0.5 + 0.25 * r()), h: h * 0.7, y: h * 0.75, cima: true });
-      if (st.forma === 'lastra' && q < 0.4 && r() < 0.6) out.push({ u: ju + (r() - 0.5) * rb, v: jv + (r() - 0.5) * rb, rh: rb * (0.55 + 0.2 * r()), h: h * 0.8, y: h, cima: true });
+      if (q < 0.35 && r() < 0.55) out.push({ u: ju + (r() - 0.5) * rb, v: jv + (r() - 0.5) * rb, rh: rb * (0.5 + 0.25 * r()), h: h * 0.7, y: h * 0.75, cima: true });
     }
   }
   return out;
@@ -78,9 +72,8 @@ export type Nuvole = {
 };
 
 export function createNuvole(st: StileNuvole): Nuvole {
-  const geo = st.forma === 'tondo' ? new THREE.IcosahedronGeometry(1, 1) : new THREE.CylinderGeometry(1, 1, 1, 7, 1);
-  if (st.forma === 'tondo') geo.translate(0, 1, 0).scale(1, 0.5, 1); // da 0 a 1 in altezza: la pancia piatta sta sulla quota
-  else geo.translate(0, 0.5, 0);
+  const geo = new THREE.IcosahedronGeometry(1, 1);
+  geo.translate(0, 1, 0).scale(1, 0.5, 1); // da 0 a 1 in altezza: la pancia piatta sta sulla quota
   const mat = new THREE.MeshLambertMaterial({ color: '#ffffff', flatShading: true });
   mat.name = 'nuvole';
   const mesh = new THREE.InstancedMesh(geo, mat, MAXB);
@@ -111,7 +104,7 @@ export function createNuvole(st: StileNuvole): Nuvole {
       const vive = new Set<string>();
       let i = 0; disegnate = 0;
       for (const n of ns) {
-        const key = `${n.id}:${st.nome}`;
+        const key = n.id;
         vive.add(key);
         // fuori inquadratura: niente batuffoli (sono contati, MAXB, e vanno a quelle che si vedono)
         sfera.center.set(n.x, st.quota + st.spessore * 0.5, n.z); sfera.radius = Math.max(n.rx, n.rz) + st.batuffolo[1] + st.spessore;

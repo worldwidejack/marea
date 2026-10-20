@@ -4,7 +4,7 @@
 // si muovono li disegna game/adrenalina_funivia.ts. Solo colori della palette, facce piatte. Pivot a terra, −Z avanti.
 import * as THREE from 'three';
 import type { Rng } from '@marea/sim';
-import { M, P, merged, painted, px, speckle, strata } from './island_parts.ts';
+import { M, P, merged, painted, px, strata } from './island_parts.ts';
 import type { Painter } from './island_parts.ts';
 import type { TemaProp } from './island_temi.ts';
 
@@ -17,12 +17,12 @@ const BLU = P.acquaProfonda;
 export const FUNIVIA = { valle: { y: 4.1, z: 2.2 }, monte: { y: 3.3, z: -1.8 }, scarto: 0.7 } as const;
 // ——— terreni: neve battuta sulla spiaggia di ghiaia, prato di montagna, riva di sassi ———
 export const PAINT_ADRENALINA: Record<string, Painter> = {
-  adrenalina_sabbia: (g, r) => { px(g, P.pietra, 0, 0, 32, 32); speckle(g, r, P.pietraChiara, 40, 0, 32); speckle(g, r, P.pietraScura, 22, 0, 32); strata(g, [[P.pietra, 3], [P.pietraScura, 6], [P.roccia, 32]]); },
-  adrenalina_erba: (g, r) => {
-    px(g, P.erbaScura, 0, 0, 32, 32); speckle(g, r, P.bosco, 34, 0, 32, 1, 2); speckle(g, r, P.erba, 18, 0, 32); speckle(g, r, P.pietraChiara, 5, 0, 32); speckle(g, r, P.legno, 6, 0, 32);
+  adrenalina_sabbia: (g) => { px(g, P.pietra, 0, 0, 32, 32); strata(g, [[P.pietra, 3], [P.pietraScura, 6], [P.roccia, 32]]); },
+  adrenalina_erba: (g) => {
+    px(g, P.erbaScura, 0, 0, 32, 32);
     strata(g, [[P.bosco, 3], [P.legnoScuro, 6], [P.roccia, 32]]);
   },
-  adrenalina_riva: (g, r) => { px(g, P.pietraScura, 0, 0, 32, 32); speckle(g, r, P.pietra, 34, 0, 32, 2, 1); speckle(g, r, P.roccia, 20, 0, 32); strata(g, [[P.roccia, 32]]); },
+  adrenalina_riva: (g) => { px(g, P.pietraScura, 0, 0, 32, 32); strata(g, [[P.roccia, 32]]); },
 };
 
 // ——— montagna: roccia scura in basso, bande di pietra, neve sopra i 9 m e sulle facce in su delle colonne alte ———
