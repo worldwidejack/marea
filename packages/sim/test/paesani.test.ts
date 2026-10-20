@@ -1,4 +1,4 @@
-// Test dei paesani di Borgo Marea (#493): battute del Word tutte presenti e tutte raggiungibili, scelta dal bacino giusto (momento di Roma,
+// Test dei paesani di Borgo Marea: battute del Word tutte presenti e tutte raggiungibili, scelta dal bacino giusto (momento di Roma,
 // stagione, brutto tempo, lore prima e dopo il Cancello), primo incontro e insistente, niente ripetizioni; favori uguali su server e client,
 // pesci e insetti chiesti solo se si prendono davvero per tutto il tempo concesso, messaggio portato e riscosso, regalo, scadenze, premi.
 import { test } from 'node:test';
@@ -26,7 +26,7 @@ import { heroOf } from '../src/rpg/hero.ts';
 import { conMonete } from './monete_util.ts';
 
 const MIN = 60_000, HOUR = 60 * MIN;
-/** 20 ott 2026 a Roma (ora legale, UTC+2): ore 10 = 08:00 UTC. */
+/** Un martedì d'autunno a Roma (ora legale, UTC+2): ore 10 = 08:00 UTC. */
 const OTT = Date.UTC(2026, 9, 20, 8, 0, 0);
 const IDS = ['nella', 'tonio', 'bice', 'gaspare', 'ada_fiori'];
 const tutte = (p: (typeof PAESANI)[string]): Battuta[] => [...p.base, ...Object.values(p.momenti).flat(), ...Object.values(p.stagioni).flat(), ...p.brutto, ...p.primo, ...p.insistente, ...p.lore, ...p.loreAperto];

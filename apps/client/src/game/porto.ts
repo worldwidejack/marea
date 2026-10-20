@@ -148,7 +148,7 @@ export function createPorto(o: PortoOpts): Porto {
     return n;
   });
 
-  /** Il nome sopra la testa; col segno (un paesano da cui devi andare per un favore, #493) è giallo, ha il «!» e si vede da lontano. */
+  /** Il nome sopra la testa; col segno (un paesano da cui devi andare per un favore) è giallo, ha il «!» e si vede da lontano. */
   function nome(n: Npc, segno: boolean): void {
     const b = bancoDi(n.p);
     n.segno = segno;

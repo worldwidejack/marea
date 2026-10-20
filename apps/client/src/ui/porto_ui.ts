@@ -164,7 +164,7 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
     body.appendChild(say);
     if (!lot || !ctx.api?.enabled) { body.appendChild(el('div', 'mz-pt-miss', 'Le missioni sono per chi ha il link personale: chiedilo a Jack')); return body; }
     const list = el('div');
-    const fav = favoreInCorso(lot, now); // il favore di un paesano (#493): si fa nel Borgo, qui solo il promemoria
+    const fav = favoreInCorso(lot, now); // il favore di un paesano: si fa nel Borgo, qui solo il promemoria
     if (fav) {
       const c = el('div', 'mz-pt-card'); c.dataset['favore'] = '1';
       const cnt = el('div', 'cnt'); cnt.append('Favore di un paesano · scade tra ', timerSpan(fav.scade));

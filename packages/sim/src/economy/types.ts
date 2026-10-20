@@ -98,7 +98,7 @@ export type LotState = {
   insetti?: InsettiState;
   /** I pesci (#457, economy/pesci.ts): visti, posseduti (consegnati al mobiliere), ombre già pescate dei turni recenti. Assente = mai pescato niente. */
   pesci?: PesciState;
-  /** I paesani di Borgo Marea (#493, economy/paesani.ts): chi conosci, il favore in corso, i favori presi oggi. Assente = mai parlato con nessuno. */
+  /** I paesani di Borgo Marea (economy/paesani.ts): chi conosci, il favore in corso, i favori presi oggi. Assente = mai parlato con nessuno. */
   paesani?: PaesaniState;
   /** Arena PvP (docs/ARENA.md, arena/premio.ts): duello aperto, monete prese oggi (giorno UTC), partite vinte, perse e pari. Assente = mai giocato. */
   arena?: ArenaLotto;

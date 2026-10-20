@@ -1,5 +1,5 @@
 {
-  "_nota": "Le chiacchiere dei paesani di Borgo Marea e i loro favori (#493). Battute dal Word «Dialoghi personaggi» di Riccardo (20 ott 2026); le righe dei favori le ha scritte Claude nello stesso tono. Una battuta è una stringa o {t, solo?, asciutto?}: `solo` = momenti (mattina, tarda, pranzo, pomeriggio, tramonto, notte, giorno = da mattina a pomeriggio) e/o tempo (pioggia, vento) in cui si può dire; `asciutto` = mai sotto la pioggia. Segnaposto dei favori: {a} chi deve ricevere il messaggio, {da} chi lo manda, {cosa} pesce o insetto con l'articolo, {nome} senza, {tempo} quanto c'è per portarlo, {monete}, {mobile}.",
+  "_nota": "Le chiacchiere dei paesani di Borgo Marea e i loro favori. Battute dal Word «Dialoghi personaggi» di Riccardo; le righe dei favori le ha scritte Claude nello stesso tono. Una battuta è una stringa o {t, solo?, asciutto?}: `solo` = momenti (mattina, tarda, pranzo, pomeriggio, tramonto, notte, giorno = da mattina a pomeriggio) e/o tempo (pioggia, vento) in cui si può dire; `asciutto` = mai sotto la pioggia. Segnaposto dei favori: {a} chi deve ricevere il messaggio, {da} chi lo manda, {cosa} pesce o insetto con l'articolo, {nome} senza, {tempo} quanto c'è per portarlo, {monete}, {mobile}.",
   "momenti": {
     "mattina": [5, 10],
     "tarda": [10, 12],

@@ -96,7 +96,7 @@ export function rpgRoute(lot: LotState, act: string, body: Record<string, unknow
     save(next);
     return json(next);
   }
-  // i paesani del Borgo (#493): parlarci, accettare o rifiutare un favore, regalare il pesce o l'insetto chiesto
+  // i paesani del Borgo: parlarci, accettare o rifiutare un favore, regalare il pesce o l'insetto chiesto
   if (act.startsWith('paesani_')) {
     const id = body['id'];
     if (typeof id !== 'string' || id.length > 40) return json({ error: 'Paesano non valido' }, 400);

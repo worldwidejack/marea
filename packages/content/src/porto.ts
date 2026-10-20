@@ -6,7 +6,7 @@ import missioni from './missioni.json' with { type: 'json' };
 
 export type PortoLook = { pelle: number; capelli: number; coloreCapelli: number; vestito: number; cappello: number };
 /** Una persona del Porto (`paesano`: abitanti del Borgo, il loro giro lo scrive tools/borgo_pianta.py): `giro` = punti da percorrere avanti e indietro (uno solo = ferma), `velocita` in m/s, `raggio` = da quanto vicino si parla.
- *  `battute`: le dicono in fila, una dopo l'altra; i paesani non le hanno (le loro chiacchiere e i favori stanno in paesani.json, #493). */
+ *  `battute`: le dicono in fila, una dopo l'altra; i paesani non le hanno (le loro chiacchiere e i favori stanno in paesani.json). */
 export type PersonaPorto = { id: string; nome: string; ruolo: 'mercante' | 'contrabbandiere' | 'guida' | 'paesano'; look: PortoLook; giro: [number, number][]; velocita: number; raggio: number; battute?: string[] };
 /** Banco del Mercante o Bacheca: dove sta il prop (`at`, `rot`) e dove si mette chi gioca per usarlo (`fronte`, entro `raggio` m). */
 export type PortoPosto = { nome: string; cartello: string; at: [number, number]; rot: number; fronte: [number, number]; raggio: number };

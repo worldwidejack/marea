@@ -1,4 +1,4 @@
-// La chiacchierata con un paesano di Borgo Marea (#493), nel chunk del pannello del Porto (ui/porto_ui.ts la disegna nella scheda in
+// La chiacchierata con un paesano di Borgo Marea, nel chunk del pannello del Porto (ui/porto_ui.ts la disegna nella scheda in
 // basso). Qui si decide cosa dice, pagina per pagina: la battuta della chiacchiera (economy/paesani.ts `chiacchiera`: momento, stagione,
 // tempo che fa, lore, primo incontro, insistente, senza ripetersi), oppure il favore in corso (messaggio da portare, pesce o insetto da
 // regalare, scaduto), e alla fine il favore che chiede adesso, con SÌ / NON ORA. I cambi di stato passano dal server (/api/lot/paesani/*):

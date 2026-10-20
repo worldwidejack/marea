@@ -1,4 +1,4 @@
-// I paesani di Borgo Marea (#493): le chiacchiere (che battuta esce adesso) e i favori (vai a dire a…, portami un pesce o un insetto).
+// I paesani di Borgo Marea: le chiacchiere (che battuta esce adesso) e i favori (vai a dire a…, portami un pesce o un insetto).
 // Puro e deterministico: il tempo arriva da fuori (ms del server), mai un orologio qui.
 // - Chiacchiere: la casualità la passa chi chiama (il client, un Rng nuovo a ogni chiacchierata). Si sceglie prima il bacino, a pesi
 //   (`paesani.json` `pesi`: brutto tempo, momento della giornata, stagione, sempre, lore prima o dopo il Cancello del Vuoto), poi una

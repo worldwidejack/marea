@@ -1,4 +1,4 @@
-// I paesani di Borgo Marea (#493): la prima volta si presentano (e il server se lo ricorda), poi chiacchierano con le battute del bacino
+// I paesani di Borgo Marea: la prima volta si presentano (e il server se lo ricorda), poi chiacchierano con le battute del bacino
 // giusto; chi insiste li stanca. I favori: il paesano chiede (VA BENE / NON ORA), il «!» giallo va sopra chi devi trovare, il destinatario
 // risponde al messaggio, tornando si riscuote; il pesce chiesto si regala (REGALA) e sparisce dallo zaino; la Bacheca ricorda il favore.
 // Telefono 390×844: le scelte stanno nello schermo con bersagli ≥ 44 px. I favori dipendono dalla fascia di 20 minuti: il test cerca,

@@ -1,4 +1,4 @@
-// Azioni sul lotto per i paesani di Borgo Marea (#493): parlarci (primo incontro, messaggio portato, favore riscosso o scaduto),
+// Azioni sul lotto per i paesani di Borgo Marea: parlarci (primo incontro, messaggio portato, favore riscosso o scaduto),
 // accettare o rifiutare il favore che chiedono, regalare il pesce o l'insetto chiesto. Puro: le usa il DO del lotto, che salva.
 // Il favore lo calcola economy/paesani.ts uguale sul server e sul client: qui si ricontrolla che sia proprio quello della fascia.
 import { MOBILI } from '@marea/content';
@@ -17,7 +17,7 @@ const con = (lot: LotState, s: PaesaniState): LotState => ({ ...lot, version: lo
 const chi = (id: string) => { if (!isPaesano(id)) throw new EconomyError('sconosciuto', 'Non conosco nessuno con questo nome'); };
 
 /** Il premio di un favore nel lotto: monete (libro mastro in pari) o un mobile nel magazzino di casa. */
-export function dai(lot: LotState, p: Premio): LotState {
+function dai(lot: LotState, p: Premio): LotState {
   if ('monete' in p) return guadagna(lot, p.monete);
   if (!MOBILI.some((m) => m.id === p.mobile)) return lot;
   const c = lot.casa ?? {}, mag = { ...(c.magazzino ?? {}) };

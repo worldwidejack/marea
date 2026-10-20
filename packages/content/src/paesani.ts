@@ -1,4 +1,4 @@
-// @marea/content/paesani.ts: le chiacchiere dei paesani di Borgo Marea e i loro favori (#493), dal Word «Dialoghi personaggi» di
+// @marea/content/paesani.ts: le chiacchiere dei paesani di Borgo Marea e i loro favori, dal Word «Dialoghi personaggi» di
 // Riccardo. Solo dati: quale battuta esce e quando, e i favori, stanno in @marea/sim/economy/paesani.ts. Entry separata da index.ts
 // (come insetti.ts): le battute non pesano sul JS iniziale, le scarica il pannello del Porto quando parli. La validazione la chiama il
 // test della sim (paesani.test.ts).

@@ -92,7 +92,7 @@ export type Api = {
   insetti(op: 'sasso' | 'albero' | 'cattura' | 'consegna', body: { idx?: number; k?: string; id?: string }): Promise<{ lot: LotState; uscito?: { k: string; id: string; t: number } | null; gia?: boolean; id?: string }>;
   /** I pesci (#457): cattura {k} (ombra del turno) → {lot, id}; consegna {id} al mobiliere → {lot}. */
   pesci(op: 'cattura' | 'consegna', body: { k?: string; id?: string }): Promise<{ lot: LotState; id?: string }>;
-  /** I paesani del Borgo (#493): parla {id} → {evento, premio}; accetta {id, slot} il favore chiesto; rifiuta {id}; dona {id} il pesce o l'insetto → {premio}. */
+  /** I paesani del Borgo: parla {id} → {evento, premio}; accetta {id, slot} il favore chiesto; rifiuta {id}; dona {id} il pesce o l'insetto → {premio}. */
   paesani(op: 'parla' | 'accetta' | 'rifiuta' | 'dona', body: { id: string; slot?: number }): Promise<{ lot: LotState; evento?: string; premio?: { monete: number } | { mobile: string } | null }>;
   /** Botteghe del Borgo (#414): migliora il Fabbro o la barca al Cantiere di un livello; `da` = il livello che vedi (409 se è già cambiato). */
   bottega(azione: 'migliora', body: { bottega: 'fabbro' | 'cantiere'; da: number }): Promise<LotState>;
