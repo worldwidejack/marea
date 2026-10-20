@@ -1,5 +1,5 @@
 {
- "version": "2026-10-20-72",
+ "version": "2026-10-20-82",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
@@ -381,6 +381,27 @@
     1.9
    ]
   },
+  "mob_condizionatore_d_aria": {
+   "file": "mob_condizionatore_d_aria.glb",
+   "tris": 68,
+   "kb": 4.2,
+   "bounds": {
+    "min": [
+     -0.58,
+     2.06,
+     -0.33
+    ],
+    "max": [
+     0.58,
+     2.6,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_diploma_incorniciato": {
    "file": "mob_diploma_incorniciato.glb",
    "tris": 104,
@@ -521,6 +542,48 @@
      0.46,
      1.45,
      0.44
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_gagliardetto_calcistico_biancorosso": {
+   "file": "mob_gagliardetto_calcistico_biancorosso.glb",
+   "tris": 148,
+   "kb": 7,
+   "bounds": {
+    "min": [
+     -0.32,
+     1.42,
+     -0.07
+    ],
+    "max": [
+     0.32,
+     2.44,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_insegna_al_neon_open": {
+   "file": "mob_insegna_al_neon_open.glb",
+   "tris": 250,
+   "kb": 10.7,
+   "bounds": {
+    "min": [
+     -0.48,
+     1.25,
+     -0.09
+    ],
+    "max": [
+     0.54,
+     2.28,
+     0
     ]
    },
    "footprint": [
@@ -759,6 +822,27 @@
     1.9
    ]
   },
+  "mob_mensola_con_action_figures": {
+   "file": "mob_mensola_con_action_figures.glb",
+   "tris": 216,
+   "kb": 9.4,
+   "bounds": {
+    "min": [
+     -0.62,
+     1.54,
+     -0.3
+    ],
+    "max": [
+     0.62,
+     2.14,
+     0.02
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_mensola_singola_in_legno": {
    "file": "mob_mensola_singola_in_legno.glb",
    "tris": 127,
@@ -794,6 +878,27 @@
      0.81,
      0.58,
      0.27
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_orologio_a_cucu_in_legno": {
+   "file": "mob_orologio_a_cucu_in_legno.glb",
+   "tris": 204,
+   "kb": 8.9,
+   "bounds": {
+    "min": [
+     -0.37,
+     1.22,
+     -0.4
+    ],
+    "max": [
+     0.37,
+     2.43,
+     0
     ]
    },
    "footprint": [
@@ -941,6 +1046,69 @@
      0.67,
      0.8,
      0.69
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_poster_di_mostro_tascabile": {
+   "file": "mob_poster_di_mostro_tascabile.glb",
+   "tris": 93,
+   "kb": 4.9,
+   "bounds": {
+    "min": [
+     -0.4,
+     1.48,
+     -0.06
+    ],
+    "max": [
+     0.4,
+     2.44,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_quadro_con_paesaggio_sereno": {
+   "file": "mob_quadro_con_paesaggio_sereno.glb",
+   "tris": 124,
+   "kb": 6,
+   "bounds": {
+    "min": [
+     -0.47,
+     1.65,
+     -0.08
+    ],
+    "max": [
+     0.47,
+     2.4,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_quadro_notte_stellata": {
+   "file": "mob_quadro_notte_stellata.glb",
+   "tris": 160,
+   "kb": 7.4,
+   "bounds": {
+    "min": [
+     -0.61,
+     1.58,
+     -0.13
+    ],
+    "max": [
+     0.61,
+     2.42,
+     0.05
     ]
    },
    "footprint": [
@@ -1151,6 +1319,27 @@
      0.41,
      0.6,
      0.22
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_specchio_a_forma_di_cuore_con_cornice_dorata": {
+   "file": "mob_specchio_a_forma_di_cuore_con_cornice_dorata.glb",
+   "tris": 134,
+   "kb": 6.3,
+   "bounds": {
+    "min": [
+     -0.46,
+     1.35,
+     -0.09
+    ],
+    "max": [
+     0.46,
+     2.3,
+     0
     ]
    },
    "footprint": [
@@ -1487,6 +1676,27 @@
      0.81,
      1.02,
      0.45
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_ventaglio_gigante_decorativo": {
+   "file": "mob_ventaglio_gigante_decorativo.glb",
+   "tris": 316,
+   "kb": 13.2,
+   "bounds": {
+    "min": [
+     -0.68,
+     1.27,
+     -0.17
+    ],
+    "max": [
+     0.68,
+     2.26,
+     0.07
     ]
    },
    "footprint": [

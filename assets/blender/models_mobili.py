@@ -2103,7 +2103,7 @@ def mob_quadro_con_paesaggio_sereno():
     m = Mesh('mob_quadro_con_paesaggio_sereno')
     W, D = ingombro((1, 1))
     # Cornice in legno chiaro
-    m.box(-0.47, 1.65, -0.05, 0.47, 2.31, 0.0, 'p_legno_chiaro', top='p_legno', bottom='p_legno', skip=('back',))
+    m.box(-0.47, 1.65, -0.03, 0.47, 2.31, 0.0, 'p_legno_chiaro', top='p_legno', bottom='p_legno', skip=('back',))
     # Cielo azzurro sereno
     m.box(-0.425, 1.92, -0.038, 0.425, 2.265, -0.01, 'p_acqua_bassa', skip=('back',))
     # Nuvola bianca soffice
@@ -2148,7 +2148,7 @@ def mob_ventaglio_gigante_decorativo():
         p1 = (math.sin(rad1) * r_in, cy + math.cos(rad1) * r_in, -0.04)
         p2 = (math.sin(rad1) * r_out, cy + math.cos(rad1) * r_out, -0.04)
         p3 = (math.sin(rad0) * r_out, cy + math.cos(rad0) * r_out, -0.04)
-        m.poly([p0, p1, p2, p3], 'p_rosso')
+        face(m, [p0, p1, p2, p3], 'p_rosso', (0, 0, -1))
         amid = math.radians((a0 + a1) / 2)
         pm_in = (math.sin(amid) * (r_in + 0.05), cy + math.cos(amid) * (r_in + 0.05), -0.06)
         pm_out = (math.sin(amid) * (r_out - 0.05), cy + math.cos(amid) * (r_out - 0.05), -0.06)
@@ -2166,20 +2166,34 @@ def mob_specchio_a_forma_di_cuore_con_cornice_dorata():
     """Specchio a parete a forma di cuore con spessa cornice dorata, superficie riflettente e nastro rosso."""
     m = Mesh('mob_specchio_a_forma_di_cuore_con_cornice_dorata')
     W, D = ingombro((1, 1))
-    for sx in (-0.22, 0.22):
-        m.prism(8, 0.26, 0.26, 1.95, 2.03, 'oro', top='oro', bottom='oro', cx=sx, cz=-0.04)
-        m.prism(8, 0.2, 0.2, 1.96, 2.04, 'p_pietra_chiara', top='p_pietra_chiara', cx=sx, cz=-0.05)
-    m.box(-0.35, 1.72, -0.08, 0.35, 1.98, 0.0, 'oro')
-    m.box(-0.28, 1.73, -0.09, 0.28, 1.97, -0.01, 'p_pietra_chiara', skip=('back',))
-    beam(m, (-0.35, 1.75, -0.04), (0.0, 1.48, -0.04), 0.1, 0.08, 'oro', end='oro')
-    beam(m, (0.35, 1.75, -0.04), (0.0, 1.48, -0.04), 0.1, 0.08, 'oro', end='oro')
-    face(m, [(-0.26, 1.74, -0.05), (0.26, 1.74, -0.05), (0.0, 1.54, -0.05)], 'p_pietra_chiara', (0, 0, -1))
-    m.cbox(0.0, -0.05, 0.14, 0.06, 2.2, 2.28, 'p_rosso', top='p_rosso')
-    beam(m, (-0.1, 2.16, -0.05), (0.1, 2.26, -0.05), 0.05, 0.05, 'p_rosso', end='p_rosso')
-    beam(m, (0.1, 2.16, -0.05), (-0.1, 2.26, -0.05), 0.05, 0.05, 'p_rosso', end='p_rosso')
-    beam(m, (-0.08, 1.95, -0.06), (0.05, 1.78, -0.06), 0.015, 0.015, 'p_nero_caldo')
-    beam(m, (0.05, 1.78, -0.06), (0.12, 1.72, -0.06), 0.012, 0.012, 'p_nero_caldo')
-    m.box(0.06, 1.82, -0.07, 0.18, 1.94, -0.06, 'p_giallo', skip=('back',))
+
+    def slab(pts, zf, zb, front, side):
+        n = len(pts)
+        cx = sum(p[0] for p in pts) / n
+        cy = sum(p[1] for p in pts) / n
+        face(m, [(x, y, zf) for x, y in pts], front, (0, 0, -1))
+        for i in range(n):
+            a, b = pts[i], pts[(i + 1) % n]
+            nrm = ((a[0] + b[0]) / 2 - cx, (a[1] + b[1]) / 2 - cy, 0)
+            face(m, [(a[0], a[1], zf), (b[0], b[1], zf), (b[0], b[1], zb), (a[0], a[1], zb)], side, nrm)
+
+    def disco(cx, cy, r, k=8):
+        return [(cx + math.cos(2 * math.pi * (i + 0.5) / k) * r, cy + math.sin(2 * math.pi * (i + 0.5) / k) * r) for i in range(k)]
+
+    # Cornice dorata a cuore: due lobi e la punta, spessa 5 cm
+    for sx in (-0.2, 0.2):
+        slab(disco(sx, 2.0, 0.27), -0.05, 0.0, 'oro', 'oro')
+    slab([(-0.46, 1.95), (0.46, 1.95), (0.0, 1.35)], -0.05, 0.0, 'oro', 'oro')
+    # Specchio (vetro dell'atlas) un filo più avanti, più piccolo: resta il bordo d'oro
+    for sx in (-0.2, 0.2):
+        slab(disco(sx, 2.0, 0.19), -0.06, -0.05, 'vetro', 'vetro')
+    slab([(-0.38, 1.97), (0.38, 1.97), (0.0, 1.50)], -0.06, -0.05, 'vetro', 'vetro')
+    # Fiocco rosso nell'incavo tra i lobi
+    m.box(-0.11, 2.19, -0.08, -0.03, 2.30, -0.05, 'p_rosso', skip=('back',))
+    m.box(0.03, 2.19, -0.08, 0.11, 2.30, -0.05, 'p_rosso', skip=('back',))
+    m.box(-0.035, 2.19, -0.09, 0.035, 2.25, -0.05, 'p_rosso', skip=('back',))
+    # Lampo di riflesso sul vetro
+    m.box(0.08, 1.96, -0.065, 0.20, 2.10, -0.06, 'p_pietra_chiara', skip=('back',))
     return _obj(m, footprint=[W, D])
 
 
@@ -2300,17 +2314,18 @@ def mob_insegna_al_neon_open():
            (0.42, 2.14), (0.42, 1.86), (0.2, 1.74), (-0.2, 1.74)]
     for p0, p1 in zip(pts, pts[1:] + [pts[0]]):
         beam(m, (p0[0], p0[1], -0.05), (p1[0], p1[1], -0.05), 0.03, 0.03, 'em_neon_ciano', end='em_neon_ciano')
-    m.box(-0.34, 1.88, -0.065, -0.2, 2.12, -0.045, 'em_neon_rosa')
-    m.box(-0.3, 1.93, -0.07, -0.24, 2.07, -0.04, 'p_nero_caldo')
-    m.box(-0.16, 1.88, -0.065, -0.12, 2.12, -0.045, 'em_neon_rosa')
-    m.box(-0.12, 2.0, -0.065, -0.04, 2.12, -0.045, 'em_neon_rosa')
-    m.box(-0.1, 2.03, -0.07, -0.06, 2.09, -0.04, 'p_nero_caldo')
-    m.box(0.01, 1.88, -0.065, 0.05, 2.12, -0.045, 'em_neon_rosa')
+    # Scritta specchiata in x: il davanti del mobile guarda −Z, chi guarda lo vede da −Z
+    m.box(0.2, 1.88, -0.065, 0.34, 2.12, -0.045, 'em_neon_rosa')
+    m.box(0.24, 1.93, -0.07, 0.3, 2.07, -0.04, 'p_nero_caldo')
+    m.box(0.12, 1.88, -0.065, 0.16, 2.12, -0.045, 'em_neon_rosa')
+    m.box(0.04, 2.0, -0.065, 0.12, 2.12, -0.045, 'em_neon_rosa')
+    m.box(0.06, 2.03, -0.07, 0.1, 2.09, -0.04, 'p_nero_caldo')
+    m.box(-0.05, 1.88, -0.065, -0.01, 2.12, -0.045, 'em_neon_rosa')
     for y in (1.88, 1.98, 2.08):
-        m.box(0.05, y, -0.065, 0.13, y + 0.04, -0.045, 'em_neon_rosa')
-    m.box(0.18, 1.88, -0.065, 0.22, 2.12, -0.045, 'em_neon_rosa')
-    m.box(0.28, 1.88, -0.065, 0.32, 2.12, -0.045, 'em_neon_rosa')
-    beam(m, (0.2, 2.1, -0.055), (0.3, 1.9, -0.055), 0.035, 0.03, 'em_neon_rosa')
+        m.box(-0.13, y, -0.065, -0.05, y + 0.04, -0.045, 'em_neon_rosa')
+    m.box(-0.22, 1.88, -0.065, -0.18, 2.12, -0.045, 'em_neon_rosa')
+    m.box(-0.32, 1.88, -0.065, -0.28, 2.12, -0.045, 'em_neon_rosa')
+    beam(m, (-0.2, 2.1, -0.055), (-0.3, 1.9, -0.055), 0.035, 0.03, 'em_neon_rosa')
     m.cbox(0.46, -0.085, 0.04, 0.01, 1.74, 1.78, 'em_neon_rosso', top='em_neon_rosso')
     beam(m, (0.46, 1.62, -0.04), (0.46, 1.25, -0.02), 0.02, 0.02, 'p_nero_caldo')
     return _obj(m, footprint=[W, D])
