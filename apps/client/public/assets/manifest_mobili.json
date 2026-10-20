@@ -1,5 +1,5 @@
 {
- "version": "2026-10-17-62",
+ "version": "2026-10-20-72",
  "atlas": "atlas.png",
  "texelsPerMeter": 16,
  "models": {
@@ -38,6 +38,27 @@
      0.78,
      1.17,
      0.7
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_appendiabiti_da_ingresso_in_legno": {
+   "file": "mob_appendiabiti_da_ingresso_in_legno.glb",
+   "tris": 174,
+   "kb": 7.8,
+   "bounds": {
+    "min": [
+     -0.5,
+     1.62,
+     -0.32
+    ],
+    "max": [
+     0.5,
+     2.06,
+     0
     ]
    },
    "footprint": [
@@ -276,6 +297,27 @@
     1.9
    ]
   },
+  "mob_chitarra_elettrica_appesa": {
+   "file": "mob_chitarra_elettrica_appesa.glb",
+   "tris": 300,
+   "kb": 12.6,
+   "bounds": {
+    "min": [
+     -0.18,
+     1.3,
+     -0.16
+    ],
+    "max": [
+     0.16,
+     2.56,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_comodino_in_laminato": {
    "file": "mob_comodino_in_laminato.glb",
    "tris": 264,
@@ -332,6 +374,27 @@
      0.34,
      0.78,
      0.29
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_diploma_incorniciato": {
+   "file": "mob_diploma_incorniciato.glb",
+   "tris": 104,
+   "kb": 5.3,
+   "bounds": {
+    "min": [
+     -0.36,
+     1.67,
+     -0.05
+    ],
+    "max": [
+     0.36,
+     2.26,
+     0
     ]
    },
    "footprint": [
@@ -528,6 +591,27 @@
     1.9
    ]
   },
+  "mob_lavagna_in_sughero": {
+   "file": "mob_lavagna_in_sughero.glb",
+   "tris": 160,
+   "kb": 7.4,
+   "bounds": {
+    "min": [
+     -0.6,
+     1.5,
+     -0.05
+    ],
+    "max": [
+     0.6,
+     2.34,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_letto_a_castello_in_ferro": {
    "file": "mob_letto_a_castello_in_ferro.glb",
    "tris": 320,
@@ -675,6 +759,27 @@
     1.9
    ]
   },
+  "mob_mensola_singola_in_legno": {
+   "file": "mob_mensola_singola_in_legno.glb",
+   "tris": 127,
+   "kb": 6,
+   "bounds": {
+    "min": [
+     -0.55,
+     1.56,
+     -0.25
+    ],
+    "max": [
+     0.55,
+     2.06,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_mobile_tv_basso": {
    "file": "mob_mobile_tv_basso.glb",
    "tris": 180,
@@ -689,6 +794,27 @@
      0.81,
      0.58,
      0.27
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_orologio_da_parete_analogico": {
+   "file": "mob_orologio_da_parete_analogico.glb",
+   "tris": 188,
+   "kb": 8.3,
+   "bounds": {
+    "min": [
+     -0.28,
+     1.67,
+     -0.06
+    ],
+    "max": [
+     0.28,
+     2.23,
+     0
     ]
    },
    "footprint": [
@@ -1032,6 +1158,48 @@
     1.9
    ]
   },
+  "mob_specchio_ovale_con_cornice_d_oro": {
+   "file": "mob_specchio_ovale_con_cornice_d_oro.glb",
+   "tris": 114,
+   "kb": 5.6,
+   "bounds": {
+    "min": [
+     -0.42,
+     1.32,
+     -0.05
+    ],
+    "max": [
+     0.42,
+     2.67,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_specchio_rettangolare_semplice": {
+   "file": "mob_specchio_rettangolare_semplice.glb",
+   "tris": 90,
+   "kb": 4.8,
+   "bounds": {
+    "min": [
+     -0.29,
+     1.51,
+     -0.05
+    ],
+    "max": [
+     0.29,
+     2.39,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_statua_di_procione_in_ceramica": {
    "file": "mob_statua_di_procione_in_ceramica.glb",
    "tris": 280,
@@ -1200,6 +1368,27 @@
     1.9
    ]
   },
+  "mob_telecamera_di_sicurezza_a_circuito_chiuso": {
+   "file": "mob_telecamera_di_sicurezza_a_circuito_chiuso.glb",
+   "tris": 128,
+   "kb": 6.2,
+   "bounds": {
+    "min": [
+     -0.1,
+     2.05,
+     -0.44
+    ],
+    "max": [
+     0.1,
+     2.45,
+     0
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
   "mob_tenda_da_campeggio": {
    "file": "mob_tenda_da_campeggio.glb",
    "tris": 110,
@@ -1235,6 +1424,27 @@
      0.1,
      0.48,
      0.12
+    ]
+   },
+   "footprint": [
+    1.9,
+    1.9
+   ]
+  },
+  "mob_testa_di_t_rex_in_plastica": {
+   "file": "mob_testa_di_t_rex_in_plastica.glb",
+   "tris": 304,
+   "kb": 12.8,
+   "bounds": {
+    "min": [
+     -0.24,
+     1.58,
+     -0.48
+    ],
+    "max": [
+     0.24,
+     2.24,
+     0
     ]
    },
    "footprint": [
