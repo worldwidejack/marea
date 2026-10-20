@@ -6,7 +6,8 @@
 ## apps/client/src · il gioco nel browser (Vite + Three.js, interfaccia in HTML/CSS)
 | Dove | Cosa c'è | Chi |
 |---|---|---|
-| `main.ts` | avvio, ciclo a 60 Hz, aggancio di ogni isola e modalità | tutti |
+| `main.ts` | avvio: crea isole e modalità, il registro (chi è aperto, chi ferma il mondo), il ciclo a 60 Hz | tutti |
+| `avvio/` | i pezzi dell'avvio: registro delle modalità, mete della bussola, passi della guida, tasti, grafica, rientro, scritta sotto A | tutti |
 | `flags.ts` | interruttori dall'URL (`?test=1`, `?fps=1`, `?net=0`…) | tutti |
 | `game/` | il mondo: avatar, barca, input; Borgo, casa, arredi, negozio dei mobili, botteghe, pala, insetti, pesca; Porto; posti dei minigiochi; ingressi di dungeon e isole a tema; animali | tutti, R sul Borgo |
 | `render/` | grafica 3D: scena a metà risoluzione, camera, acqua, luce, meteo e nuvole, isole (un file per isola a tema), mobili | J, R |
