@@ -5,7 +5,8 @@ import type { VoceDiscesa } from '@marea/sim/adrenalina/classifica.ts';
 import type { PackedInputs } from '@marea/sim/replay.ts';
 
 export type RigaDiscesa = VoceDiscesa & { quando: number };
-export type Fantasma = RigaDiscesa & { seed: number; opzioni: Record<string, string>; inputs: PackedInputs };
+/** La discesa salvata del migliore (il fantasma, senza nome né look: quelli li aggiunge il Worker, @marea/protocol `Fantasma`). */
+export type DiscesaSalvata = RigaDiscesa & { seed: number; opzioni: Record<string, string>; inputs: PackedInputs };
 
 export function creaTabellaDiscese(sql: SqlStorage): void {
   sql.exec('CREATE TABLE IF NOT EXISTS discese (pista TEXT NOT NULL, chi TEXT NOT NULL, ms INTEGER NOT NULL, quando INTEGER NOT NULL, json TEXT NOT NULL, PRIMARY KEY (pista, chi))');
@@ -18,7 +19,7 @@ export function classificaDiscese(sql: SqlStorage, pista: string): RigaDiscesa[]
 }
 
 /** Il fantasma: la discesa del primo, con gli input per rigiocarla. */
-export function fantasmaDiscesa(sql: SqlStorage, pista: string): Fantasma | null {
+export function fantasmaDiscesa(sql: SqlStorage, pista: string): DiscesaSalvata | null {
   const r = sql.exec<{ chi: string; ms: number; quando: number; json: string }>('SELECT chi, ms, quando, json FROM discese WHERE pista = ? ORDER BY ms, quando LIMIT 1', pista).toArray()[0];
   if (!r) return null;
   try {
@@ -27,6 +28,6 @@ export function fantasmaDiscesa(sql: SqlStorage, pista: string): Fantasma | null
   } catch { return null; }
 }
 
-export function scriviDiscesa(sql: SqlStorage, pista: string, f: Fantasma): void {
+export function scriviDiscesa(sql: SqlStorage, pista: string, f: DiscesaSalvata): void {
   sql.exec('INSERT OR REPLACE INTO discese (pista, chi, ms, quando, json) VALUES (?, ?, ?, ?, ?)', pista, f.chi, f.ms, f.quando, JSON.stringify({ seed: f.seed, opzioni: f.opzioni, inputs: f.inputs }));
 }

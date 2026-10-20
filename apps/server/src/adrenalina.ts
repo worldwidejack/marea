@@ -3,7 +3,9 @@
 //   Worker (dal DO Sfide; il client manda `minigame` e `pista` per risparmiare un giro, ma il lotto non si fida: se manca o è di un'altra
 //   pista risponde 409 `classifica` e il Worker la rimanda). Poi la discesa va in classifica (se è il tuo miglior tempo) con i suoi input.
 // - GET /api/adrenalina/discese?pista= (la classifica coi nomi) · GET /api/adrenalina/fantasma?pista= (il fantasma del primo: input, nome, look).
+import type { Look, RispostaFantasma } from '@marea/protocol';
 import type { Env } from './env.ts';
+import type { DiscesaSalvata, RigaDiscesa } from './do/disceseStore.ts';
 import { elencoPersone } from './db.ts';
 import { json } from './http.ts';
 
@@ -44,12 +46,12 @@ export async function giocaSolo(body: Record<string, unknown>, lot: (b: unknown)
 export async function disceseConNomi(quale: 'discese' | 'fantasma', pista: string, env: Env, sfide: Chiama): Promise<Response> {
   const r = await sfide(quale + '?pista=' + encodeURIComponent(pista));
   if (!r.ok) return r;
-  const d = (await r.json()) as { righe?: { chi: string; ms: number; quando: number }[]; fantasma?: { chi: string; ms: number } | null };
+  const d = (await r.json()) as { righe?: RigaDiscesa[]; fantasma?: DiscesaSalvata | null };
   const persone = new Map((await elencoPersone(env)).map((x) => [x.id, x] as const));
   const nome = (id: string) => persone.get(id)?.nome ?? 'Qualcuno';
   if (d.righe) return json({ pista, righe: d.righe.map((x) => ({ ...x, nome: nome(x.chi) })) });
   const f = d.fantasma ?? null;
-  let look: unknown = null;
-  try { look = f ? JSON.parse(persone.get(f.chi)?.look ?? 'null') : null; } catch { /* look rotto: il fantasma resta coi colori di serie */ }
-  return json({ pista, fantasma: f ? { ...f, nome: nome(f.chi), look } : null });
+  let look: Look | null = null;
+  try { look = f ? (JSON.parse(persone.get(f.chi)?.look ?? 'null') as Look | null) : null; } catch { /* look rotto: il fantasma resta coi colori di serie */ }
+  return json({ pista, fantasma: f ? { chi: f.chi, nome: nome(f.chi), ms: f.ms, seed: f.seed, opzioni: f.opzioni, inputs: f.inputs, look } : null } satisfies RispostaFantasma);
 }

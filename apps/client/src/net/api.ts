@@ -3,16 +3,16 @@
 // Orologio: ogni risposta porta l'ora del server (`now` o `LotState.nowMs`); serverNow() la proietta con l'orologio locale
 // SOLO per animare i conti alla rovescia. L'economia la decide il server.
 import type { LotState, Mancanza, Medal, PackedInputs, Riepilogo } from '@marea/sim';
-import type { BarcaLook, FeedItem, Look, LookSalvato } from '@marea/protocol';
+import type { BarcaLook, CollezioneRiga, Fantasma, FeedItem, Look, Me, PersonaVista, RecordRiga, Rientro } from '@marea/protocol';
 import type { HeroState, RpgAction, RunHero, RunResult } from '@marea/sim/rpg/types.ts';
 import type { DungeonAzioni, PackedDungeon } from '@marea/sim/dungeon/types.ts';
 import type { TAzioni, TRisultato } from '@marea/sim/templari/types.ts';
 
-/** `look` è quello salvato in D1: anche la barca, se scelta. */
-export type Me = { id: string; nome: string; look: LookSalvato; lotto: LotState | null; slot?: number | null };
 export type { FeedItem };
-/** Chi abita quale slot dell'arcipelago (per le visite in sola lettura). Richiede GET /api/lots lato server. */
-export type LotOwner = { slot: number; id: string; nome: string; look?: LookSalvato };
+/** Le risposte che il Worker compone da sé: tipi comuni col server in @marea/protocol (http.ts). */
+export type { CollezioneRiga, Fantasma, Me, RecordRiga, RecordVista } from '@marea/protocol';
+/** Chi abita quale slot dell'arcipelago (per le visite in sola lettura): GET /api/lots. */
+export type LotOwner = Omit<PersonaVista, 'slot' | 'look'> & { slot: number; look?: PersonaVista['look'] }; // il look può mancare (letto con tolleranza)
 export type Cell = [number, number];
 export type { PackedInputs };
 
@@ -23,14 +23,7 @@ export type SoloResult = { score: number; medal: Medal; detail: Record<string, n
   /** Tabellone del Porto (#110): la partita è il migliore di oggi / di sempre tra gli amici. */ record?: { oggi: boolean; sempre: boolean } | null;
   /** Discese dell'Adrenalina (3b): posto nella classifica a tempo (0 = non arrivato), quanti c'erano, se è il tuo miglior tempo e il record. */
   posizione?: number; classificati?: number; discesa?: { migliorato: boolean; record?: boolean } | null };
-/** Il fantasma del record di una pista dell'Adrenalina (3b): input da rigiocare, chi (nome e look), tempo finale. */
-export type Fantasma = { chi: string; nome: string; ms: number; seed: number; opzioni: Record<string, string>; inputs: PackedInputs; look: Look | null };
 
-/** Tabellone dei record (#110, GET /api/record): per minigioco il migliore di oggi e di sempre tra gli amici. */
-export type RecordVista = { chi: string; nome: string; score: number; medal: Medal; detail: Record<string, number>; quando: number };
-export type RecordRiga = { minigame: string; nome: string; oggi: RecordVista | null; sempre: RecordVista | null };
-/** I collezionisti (#457, GET /api/collezione): pesci e insetti consegnati al mobiliere, chi ne ha di più prima. */
-export type CollezioneRiga = { id: string; nome: string; pesci: number; insetti: number };
 
 /** Spedizione aperta dal server (POST /api/dungeon/start): seed e fotografia del personaggio. CONTRACTS §15. */
 export type DungeonStart = { dungeon: string; seed: number; hero: RunHero; lot: LotState;
@@ -47,8 +40,6 @@ export type DungeonFinish = { result: RunResult; tenuto: Record<string, number>;
 export type TemplariStart = { seed: number; subito: boolean; classe?: string | null; lot: LotState };
 export type TemplariFinish = { result: TRisultato; premio: number; pieno: number; tetto: boolean; record: boolean; lot: LotState };
 
-/** Rientro (#86, POST /api/rientro): riepilogo dell'assenza (null se mancavi da poco o è il primo ingresso), novità non lette del feed. */
-export type Rientro = { riepilogo: Riepilogo | null; novita: number; lot: LotState };
 
 export const MSG_401 = 'Link non valido, chiedi a Jack un link nuovo';
 export const MSG_RETE = 'Niente connessione, riprova tra poco';
