@@ -2,6 +2,7 @@
 // Il record lo scrive solo il replay: vedi `segnaRecordDa`.
 import { DIARIO } from '@marea/content/diario.ts';
 import type { RecordVoce } from '@marea/sim/economy/record.ts';
+import type { RispostaCollezione, RispostaRecord } from '@marea/protocol';
 import type { Env } from './env.ts';
 import { elencoPersone } from './db.ts';
 import { json } from './http.ts';
@@ -23,7 +24,7 @@ export async function recordConNomi(env: Env, sfide: Sfide): Promise<Response> {
   if (!r.ok) return r;
   const { tab } = (await r.json()) as { tab: { oggi: Record<string, RecordVoce>; sempre: Record<string, RecordVoce> } };
   const { nomeDi } = await nomi(env);
-  return json({ voci: DIARIO.minigiochi.map((g) => ({ minigame: g.id, nome: g.nome, oggi: voce(tab.oggi[g.id], nomeDi), sempre: voce(tab.sempre[g.id], nomeDi) })) });
+  return json({ voci: DIARIO.minigiochi.map((g) => ({ minigame: g.id, nome: g.nome, oggi: voce(tab.oggi[g.id], nomeDi), sempre: voce(tab.sempre[g.id], nomeDi) })) } satisfies RispostaRecord);
 }
 /** I collezionisti (GET /api/collezione): chi ha consegnato più pesci e insetti al mobiliere, tra chi ha un'isola. */
 export async function collezioneConNomi(env: Env, sfide: Sfide): Promise<Response> {
@@ -31,7 +32,7 @@ export async function collezioneConNomi(env: Env, sfide: Sfide): Promise<Respons
   if (!r.ok) return r;
   const { collezione } = (await r.json()) as { collezione: Record<string, { pesci: number; insetti: number }> };
   const { nomeDi, conIsola } = await nomi(env);
-  return json({ righe: classificaCollezione(collezione, conIsola).map((x) => ({ ...x, nome: nomeDi(x.id) })) });
+  return json({ righe: classificaCollezione(collezione, conIsola).map((x) => ({ ...x, nome: nomeDi(x.id) })) } satisfies RispostaCollezione);
 }
 
 /** La classifica dei collezionisti: tutti quelli con un'isola (anche a zero), prima chi ha più pesci + insetti, a pari chi ha più pesci. */

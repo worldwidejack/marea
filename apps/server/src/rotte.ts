@@ -2,7 +2,8 @@
 // è una riga in ROTTE. Il lavoro vero sta nei DO (Lot = l'isola della persona, Sfide = Porto, feed e classifiche): qui solo smistamento,
 // controlli e piccoli JSON (budget CPU del Worker ~10 ms). Errori sempre `{ error }` in italiano, mai il dettaglio tecnico.
 import { AVATAR } from '@marea/content';
-import type { Look } from '@marea/protocol';
+import type { Look, LookSalvato, Me, PersonaVista, Rientro } from '@marea/protocol';
+import type { LotState, Riepilogo } from '@marea/sim';
 import { coloreBarca, validaBarca } from '@marea/sim/economy/barca.ts';
 import type { Env, Persona } from './env.ts';
 import { elencoPersone, entraConInvito, esistePersona, salvaLook, salvaNome } from './db.ts';
@@ -79,14 +80,14 @@ const nomePulito = (v: unknown) => (typeof v === 'string' ? v.replace(/[\p{C}<>]
 const ROTTE: readonly Rotta[] = [
   { m: 'GET', via: '/api/me', fa: async (c) => {
     const r = await c.lotto('state');
-    const lotto: unknown = r.ok ? await r.clone().json() : null;
+    const lotto = r.ok ? ((await r.clone().json()) as LotState) : null;
     await sincIndossa(c.env, c.p, r);
-    return json({ id: c.p.id, nome: c.p.nome, look: JSON.parse(c.p.look) as unknown, slot: c.p.slot ?? null, now: c.now, lotto });
+    return json({ id: c.p.id, nome: c.p.nome, look: JSON.parse(c.p.look) as LookSalvato, slot: c.p.slot ?? null, now: c.now, lotto } satisfies Me);
   } },
   // chi abita l'arcipelago: /api/persone tutti, /api/lots solo chi ha un lotto (per le visite)
   { m: 'GET', via: /^\/api\/(persone|lots)$/, fa: async (c, _b, x) => {
     const tutte = (await elencoPersone(c.env)).filter((p) => x[1] === 'persone' || p.slot !== null);
-    return json(tutte.map((p) => ({ id: p.id, nome: p.nome, slot: p.slot ?? null, look: JSON.parse(p.look) as unknown })));
+    return json(tutte.map((p) => ({ id: p.id, nome: p.nome, slot: p.slot ?? null, look: JSON.parse(p.look) as LookSalvato })) satisfies PersonaVista[]);
   } },
   { m: 'POST', via: '/api/look', fa: async (c, b) => {
     const look = validaLook(b);
@@ -173,8 +174,8 @@ const ROTTE: readonly Rotta[] = [
     } catch { /* senza feed la scheda esce lo stesso */ }
     const r = await c.lotto('rientro', {});
     if (!r.ok) return r;
-    const d = (await r.json()) as { riepilogo: unknown; lot: unknown };
-    return json({ riepilogo: d.riepilogo, novita, lot: d.lot, now: c.now });
+    const d = (await r.json()) as { riepilogo: Riepilogo | null; lot: LotState };
+    return json({ riepilogo: d.riepilogo, novita, lot: d.lot, now: c.now } satisfies Rientro);
   } },
   { m: 'POST', via: '/api/presenza', senzaCorpo: true, fa: (c) => c.lotto('visto', {}) },
   // Libro degli ospiti: firmi il libro dell'isola di un amico (nome dal tuo link, emote di avatar.json); il DO del suo lotto controlla
