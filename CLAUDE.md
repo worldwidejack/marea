@@ -12,8 +12,8 @@ Online: https://marea.stanza-idee.workers.dev · repo **pubblico** `worldwidejac
 1. Un lavoro = una **issue** assegnata a te. Non c'è? Creala prima, così gli altri sanno che ci sei sopra.
 2. Un **ramo** per lavoro (`nome/cosa-fai`). Mai commit o push su `main`.
 3. **PR piccola**: una PR = una cosa. Meglio tre PR da un'ora che una da una settimana.
-4. Chiudi con **`/consegna`**: test veloci, PR, controlli, merge.
-5. Il **deploy lo fa solo GitHub**, dopo il merge, se la suite completa è verde (20-45 min). Mai `npm run deploy` né `wrangler` verso Cloudflare a mano.
+4. Chiudi con **`/consegna`**: test veloci in locale, PR, controlli di GitHub (tutta la suite, ~15 min), merge. `main` è protetto: senza controlli verdi non si unisce.
+5. Il **deploy lo fa solo GitHub**, ~5 min dopo il merge. Mai `npm run deploy` né `wrangler` verso Cloudflare a mano.
 
 **La storia sta in git e nelle PR, i documenti dicono com'è adesso.** Le decisioni e il loro perché si scrivono nella PR («Decisioni prese»). Un documento si tocca solo se la tua PR cambia quello che descrive.
 Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue righe da lì e scrivi la nota nella PR.
@@ -31,7 +31,7 @@ Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue 
 10. **Database**: cambio dello schema = nuova migrazione in `apps/server/migrations/` col numero dopo l'ultimo su `main`. Se qualcuno ti ha preso il numero, rinumera la tua.
 11. **Subagent** dentro una sessione: file disgiunti tra loro; niente commit, push o merge.
 
-**Comandi**: `npm run dev` + `npm run dev:server` (gioco in locale) · `node tests/run.mjs static types sim boot` (test veloci, pochi minuti) · `npm test` (tutto, quasi un'ora: di solito lo fa GitHub) · `npm run build` · `npm run assets`.
+**Comandi**: `npm run dev` + `npm run dev:server` (gioco in locale) · `node tests/run.mjs static types sim boot` (test veloci, pochi minuti) · `npm test` (tutto, quasi un'ora sul Mac: lo fa GitHub su ogni PR) · `npm run build` · `npm run assets`.
 
 ## Dove sta cosa
 Cartelle e chi ci lavora: `docs/MAPPA.md`. Architettura e regole tecniche: `docs/TECH.md`. Messaggi tra gioco e server: `docs/PROTOCOL.md`. Lavoro in gruppo e primi passi: `docs/CONTRIBUIRE.md`. Lavori da fare: le issue su GitHub.

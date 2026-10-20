@@ -17,7 +17,7 @@ Il suo Claude divide ogni frase in tre buste: **difetto** (si riproduce con un t
 ## Per gli AI: comandi
 ```
 node tests/run.mjs static types sim boot   # i test veloci, quelli dei controlli della PR (pochi minuti)
-npm test                                   # = node tests/run.mjs all: tutto, quasi un'ora sul Mac (di solito lo fa GitHub dopo il merge)
+npm test                                   # = node tests/run.mjs all: tutto, quasi un’ora sul Mac (lo fa GitHub su ogni PR, in 6 gruppi)
 node tests/run.mjs m3_pesca m3_porto       # una o più suite e2e per nome (tests/e2e/<nome>.mjs)
 node tests/run.mjs all --no-build          # usa apps/client/dist già costruito
 node tests/run.mjs look --only zoom        # solo i test il cui nome contiene «zoom»

@@ -74,7 +74,7 @@ Test della sim: `packages/sim/test/*.test.ts` (node:test), fixture d'oro in `tes
 | `run.mjs` | lanciatore delle suite (`static types sim boot` = le veloci) | tutti |
 | `e2e/` | un file per cosa, nel browser vero (`boot`, `look`, `perf`, `m1_*`… `m4_*`) | tutti |
 | `lib/` | browser, server statico, wrangler, palette | tutti |
-| `shard.mjs` | divide la suite completa in gruppi per GitHub | J |
+| `shard.mjs`, `durate.json` | divide la suite in 6 gruppi per i controlli della PR, con le durate misurate su GitHub (`tools/durate_test.mjs` le rimisura) | J |
 
 ## tools
 | Dove | Cosa c'è | Chi |
