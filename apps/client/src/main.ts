@@ -42,6 +42,7 @@ import { createHudAllegro } from './ui/hud_allegro.ts';
 import type { HudAllegro } from './ui/hud_allegro.ts';
 import { createDiario } from './game/diario.ts';
 import { createTarghette } from './game/targhette.ts';
+import { createMiaBarca } from './game/mia_barca.ts';
 import { collegaAudio } from './audio/ponte.ts';
 import type { Animali } from './game/animali.ts';
 import type { Evocato } from './rpg/evocato.ts';
@@ -152,6 +153,7 @@ async function boot(): Promise<void> {
     });
   } });
   const targhette = createTarghette({ world, camera: renderer.camera, canvas, root });
+  const miaBarca = createMiaBarca({ world, camera: renderer.camera, canvas, root }); // il cartellino sopra la tua barca al molo
   // ——— mete, minimappa, impostazioni, guida, foto ———
   const segno = createSegno(); // segnalino del navigatore: si fissa toccando la mappa grande; in cima alle mete, ha lui la freccia sullo schermo
   let mappa: Minimappa | null = null;
@@ -293,7 +295,7 @@ async function boot(): Promise<void> {
     if (reg.foglio()) reg.chiudi(['eroe']); // aperto un edificio: gli altri pannelli lasciano il posto
     for (const lv of lots) lv.update(dt, focus);
     if (diario.isOpen() && (reg.aperto(['personale']) || porto.isBusy() || amici.isBusy())) diario.close(); // aperto un altro pannello dopo il diario
-    diario.update(dt, focus); targhette.update(); // il diario rilegge ogni 30 s solo l'isola dove sei; timer ed etichette ogni frame
+    diario.update(dt, focus); targhette.update(); miaBarca.update(t); // il diario rilegge ogni 30 s solo l'isola dove sei; timer ed etichette ogni frame
     document.body.classList.toggle('mz-sotto', sotto()); // nel dungeon e nella chiesa: l'interfaccia di superficie si nasconde (CSS dei chunk)
     compass.update(focus, renderer.diorama.yaw, t);
     const arrivato = segno.update(focus); // segnalino raggiunto: si toglie da solo
