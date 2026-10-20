@@ -1,11 +1,11 @@
 // DO Sfide (una sola istanza: idFromName('tavolo')). È nato per le sfide con posta, tolte dal codice (tag archivio/spenti-sfide; la loro
 // tabella `sfide` resta nel database, non si usa più); oggi tiene le cose in comune tra amici. Il nome resta: un Durable Object non si
 // rinomina senza una migrazione. Tutte le operazioni passano da un mutex in memoria: una alla volta (sono poche, tra amici).
-// Richieste dal Worker (x-persona, x-now): GET /feed · POST /feed_letto {fino?} · POST /visita {chi, emote} (#86, riga «è passato sulla tua isola»).
+// Richieste dal Worker (x-persona, x-now): GET /feed · POST /feed_letto {fino?} · POST /visita {chi, emote} (riga «è passato sulla tua isola»).
 // Porto tra amici (#110 #111, portoStore.ts): GET /record (tabellone) · POST /record {minigame, score, medal, detail} (dal Worker dopo il replay
 // di una partita da solo nel DO del lotto: mai dal client) · GET /faro · POST /faro_versa {legno, pietra, tutti} (versamento al Faro comune:
 // intento, poi il lotto paga, poi il faro conta; se sale di livello, riga di feed a tutti e i livelli a ogni lotto).
-// Collezionisti (#457): GET/POST /collezione. Buche della pala: GET /buche · POST /buca. Adrenalina: GET /discese, /fantasma · POST /discesa.
+// Collezionisti: GET/POST /collezione. Buche della pala: GET /buche · POST /buca. Adrenalina: GET /discese, /fantasma · POST /discesa.
 import { DurableObject } from 'cloudflare:workers';
 import { EconomyError } from '@marea/sim/economy/types.ts';
 import type { LotState, Resources } from '@marea/sim/economy/types.ts';

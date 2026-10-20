@@ -2,7 +2,7 @@
 import type { Resources } from '@marea/sim';
 import { PAL } from './style.ts';
 
-/** `monete` = la valuta del gioco (#414); legno, pietra, perle = le risorse di prima, solo per il codice spento (giardino, Faro comune). */
+/** `monete` = la valuta del gioco; legno, pietra, perle = le risorse di prima, solo per il codice spento (giardino, Faro comune). */
 export type ResId = keyof Resources | 'monete';
 /** Le voci della barra in alto (`Hud.setResources`): dal #414 una sola, le monete. */
 export const RES_IDS: readonly ResId[] = ['monete'];

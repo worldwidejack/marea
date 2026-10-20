@@ -220,7 +220,7 @@ async function boot(): Promise<void> {
   const refreshMyLot = () => { void lots.find((lv) => !lv.readonly)?.refresh(); };
   // test (#386): il livello e i mobili della casa di un lotto scelti da noi (senza server, ?net=0), per vedere cantina e secondo piano senza comprarli
   registerTestHook('casaStato', (slot, patch) => { const lv = isole.find((i) => i.slot === Number(slot))?.view, s = lv?.state(); if (!lv || !s) return false; lv.set({ ...s, casa: { ...(s.casa ?? {}), ...(patch as object) } }); return true; });
-  // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-8, G = ruota, #90). Un pannello alla volta; niente col foglio del lotto aperto o in gara.
+  // F3 (CONTRACTS §13): editor dell'avatar (C), feed (F), emote (1-8, G = ruota). Un pannello alla volta; niente col foglio del lotto aperto o in gara.
   const link = `${location.origin}/?t=${encodeURIComponent(FLAGS.token)}`; // per entrare come sé da un altro dispositivo (editor: COPIA / MANDA)
   let allegro: HudAllegro | null = null; // HUD «Allegro» (#417): bottone AVATAR, bandierina delle mete, «X è online»; nasce dopo i bottoni dei moduli
   const editor = me && api.enabled ? createEditor({ api, me, root, link, avatar: { setLook: (l) => { world.setLook(l); allegro?.setLook(l); } }, barca: world, onSaved: () => hud.toast('Look salvato'), onNome: (n) => hud.toast(`Nome salvato: ${n}`), onBarca: () => hud.toast('Barca salvata'), onLot: refreshMyLot }) : null;
@@ -251,7 +251,7 @@ async function boot(): Promise<void> {
   registerTestHook('meteo', (st, k) => aspetto?.forzaMeteo(st === null || st === undefined ? null : (String(st) as 'sereno'), k === undefined ? 1 : Number(k)));
   registerTestHook('nuvole', (ns) => aspetto?.forzaNuvole(Array.isArray(ns) ? (ns as { tipo: 'bianca'; dx: number; dz: number; r?: number }[]) : null));
   registerTestHook('lampo', (on) => aspetto?.forzaLampo(on === true));
-  // feed: firme al libro degli ospiti (#86) e record battuti
+  // feed: firme al libro degli ospiti e record battuti
   const feed = me && api.enabled ? createFeed({ api, hud, root, onNews: () => refreshMyLot() }) : null;
   const emotes = createEmotes({ world, camera: renderer.camera, canvas, root });
   // Animali (#67): gabbiani, gatti dei moli (fusa con A o un tocco), pesci, granchi, delfini, lucciole di notte. Solo resa, chunk a parte
@@ -364,8 +364,8 @@ async function boot(): Promise<void> {
       if (tpl.active) { tpl.step(f); acc -= DT; steps++; continue; } // nella chiesa dei Templari idem
       if (adr.active) { adr.step(f); acc -= DT; steps++; continue; } // sulla pista dello snowboard idem
       if (ar?.active) { ar.step(f); acc -= DT; steps++; continue; } // nel duello dell'Arena idem
-      if (regata.active) regata.step(f); else { const aR = arreda?.tick(f.a, f.b) ?? false, aB0 = borgo.tick(f.a && !aR) || aR, aB1 = (negozio?.tick(f.a && !aB0) ?? false) || aB0, aB = (botteghe?.tick(f.a && !aB1) ?? false) || aB1, aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); ar?.tick(f.a); dif?.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima dei minigiochi · giochi.tick con l'input intero (Consegne) · Animali (#67)
-      world.frozen = (diario.isOpen() || porto.isBusy() || !!botteghe?.isBusy() || amici.isBusy() || libri.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen() || foto.isOpen() || !!modificaIsola?.active || !!negozio?.pescando()) && !regata.active; // pescando (#457) il mondo sta fermo
+      if (regata.active) regata.step(f); else { const aR = arreda?.tick(f.a, f.b) ?? false, aB0 = borgo.tick(f.a && !aR) || aR, aB1 = (negozio?.tick(f.a && !aB0) ?? false) || aB0, aB = (botteghe?.tick(f.a && !aB1) ?? false) || aB1, aP0 = porto.tick(f.a && !aB) || aB, aP1 = libri.tick(f.a && !aP0) || aP0, aP2 = amici.tick(f.a && !aP1) || aP1, aPorto = decorTick(f.a && !aP2) || aP2; giochi.tick(f.a && !aPorto, f); ingressi.tick(f.a); tpl.tick(f.a); adr.tick(f.a); ar?.tick(f.a); dif?.tick(f.a); animali?.tick(f.a && !aPorto); } // Porto prima dei minigiochi · giochi.tick con l'input intero (Consegne) · Animali
+      world.frozen = (diario.isOpen() || porto.isBusy() || !!botteghe?.isBusy() || amici.isBusy() || libri.isBusy() || !!editor?.isOpen() || !!feed?.isOpen() || giochi.isBusy() || ingressi.isBusy() || tpl.isBusy() || adr.isBusy() || !!ar?.isBusy() || !!dif?.isBusy() || !!eroe?.isOpen() || foto.isOpen() || !!modificaIsola?.active || !!negozio?.pescando()) && !regata.active; // pescando il mondo sta fermo
       world.step(f); acc -= DT; steps++;
     }
     if (steps === 5) acc = 0;

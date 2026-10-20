@@ -1,4 +1,4 @@
-// M1-server: slot dei lotti (migrazione + invita.mjs), celle del template `lotto`, decorazioni e cappelli a monete (#414), il replay più lungo
+// M1-server: slot dei lotti (migrazione + invita.mjs), celle del template `lotto`, decorazioni e cappelli a monete, il replay più lungo
 // della Regata nel DO del lotto (partita da solo), e il libro mastro in pari a ogni passo.
 // wrangler dev locale con `--var TEST_CLOCK:1`: l'header X-Test-Now-Offset sposta «adesso» in avanti (solo qui, mai in produzione).
 import fs from 'node:fs';

@@ -27,7 +27,7 @@ export type PanelCtx = {
 };
 export type Panel = { body: HTMLElement; sig: string };
 
-export function costNodes(cost: Resources): HTMLElement[] {
+function costNodes(cost: Resources): HTMLElement[] {
   const out: HTMLElement[] = [];
   for (const id of RISORSE_IDS) if (cost[id] > 0) { const c = el('span', 'mz-cost'); c.append(resIcon(id, 16), el('span', '', String(cost[id]))); out.push(c); }
   if (!out.length) out.push(el('span', 'mz-cost', 'gratis'));

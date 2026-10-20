@@ -1,4 +1,4 @@
-// Premi dei minigiochi: monete nelle partite da solo (#414) e Faro acceso dopo una medaglia (edificio spento).
+// Premi dei minigiochi: monete nelle partite da solo e Faro acceso dopo una medaglia (edificio spento).
 import { BALANCE, MINIGAMES_CFG, building } from '@marea/content';
 import type { PremioExtra } from '@marea/content';
 import type { Medal } from '../minigames/types.ts';

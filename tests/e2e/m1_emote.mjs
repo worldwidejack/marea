@@ -1,6 +1,6 @@
 // M1 · Fetta 3, emote (F3-emote-feed): due browser (Anna e Bruno) sul server locale, entrambi al Porto a ~3 m. Tasto 1 da Anna → fumetto
 // proprio subito, fumetto sopra Anna da Bruno entro 1,5 s, via dopo ~2,5 s; 10 pressioni in 1 s → un solo frame `emote`; niente emote con
-// un pannello aperto (il feed); telefono 390×844: la faccina non si vede più (#417), la riga si apre dal bottone nascosto. Il feed (non è questo il test) risponde vuoto via page.route.
+// un pannello aperto (il feed); telefono 390×844: la faccina non si vede più, la riga si apre dal bottone nascosto. Il feed (non è questo il test) risponde vuoto via page.route.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';

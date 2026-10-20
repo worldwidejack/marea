@@ -6,7 +6,7 @@ import type { FeedItem, FeedTipo } from '@marea/protocol';
 
 /** `dati` di una riga. */
 export type FeedDati = {
-  /** Record (#110): il minigioco. */
+  /** Record: il minigioco. */
   minigame?: string;
   /** Visita (#86): il saluto della firma nel libro. */
   emote?: string;

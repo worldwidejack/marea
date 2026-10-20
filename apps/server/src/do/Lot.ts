@@ -18,7 +18,7 @@
 // Isola dell'Adrenalina (docs/ADRENALINA.md §2): POST /adrenalina_liberatoria {} → {lot, nuova} (la firma al cancello della funivia, una volta sola).
 // Rientro e libro degli ospiti (#86): POST /rientro {} → {riepilogo, lot} (riepilogo dell'assenza se mancavi da abbastanza, poi visto = adesso)
 // · /visto {} → {ok} («ci sono» del client che gioca) · /firma {chi, nome, emote} → LotState (un amico firma il libro di questa isola).
-// Faro comune (#111), dal DO Sfide (mai esposte dal Worker): POST /faro_dona {id, dono} (Legno e Pietra escono dal lotto, idempotente per id) ·
+// Faro comune, dal DO Sfide (mai esposte dal Worker): POST /faro_dona {id, dono} (Legno e Pietra escono dal lotto, idempotente per id) ·
 // /faro_livelli {livelli} (i momenti in cui il faro è salito: il bonus di produzione lo applica `advance`). Anche /rientro può portare
 // `faro` (i livelli, letti dal Worker): così chi entra dopo una salita la impara subito.
 import { DurableObject } from 'cloudflare:workers';
