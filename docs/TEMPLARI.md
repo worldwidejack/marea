@@ -261,12 +261,15 @@ Gli easter egg restano segreti, ma qualcosa sull'isola deve dirti che si possono
 - **Draw call**: zero in più nel coro (99-100 coi boss, come prima): scheletri e scritte della chiesa stanno nella mesh delle aste degli stendardi, quelli di sotto nella mesh delle catacombe, gli altri in una mesh per zona; tutti fuori dal dipinto.
 - **Stanza di prova**: nel banco «Segreti», «Prossimo scheletro».
 
-**5. I fantasmi** (idea di birbasan)
+**5. I fantasmi** (idea di birbasan; fatto il 19 ott, issue #447; `templari.json` versione 11)
 - Un **numero fisso** sull'isola per tutta la partita (**3**, **5** in squadra **[scelta provvisoria]**), dall'ondata 1: la probabilità di incontrarne uno è sempre la stessa, non cresce con le ondate e non contano per finire l'ondata.
 - **Trapassano tutto** (muri, porte, assi, case) e **girano a caso** per la mappa: possono spuntare da qualsiasi parte, anche dove le porte sono chiuse.
 - **Di base non attaccano.** Se **ci passi attraverso** si arrabbiano: diventano rossi, urlano e **ti puntano** (velocità 3 m/s, colpo 30, sempre attraverso i muri) finché uno dei due non muore.
 - **Si uccidono con qualsiasi arma** (vita × 0,8 la vita dell'ondata, 100 punti **[scelta provvisoria]**). Ucciso uno, dopo 20 s ne torna un altro da un punto a caso, per tenere fisso il numero.
-- Look: monaci e crociati pallidi, mezzi trasparenti, azzurri; un lamento lungo quando sono vicini.
+- Look: un templare normale, **solo trasparente** (birbasan, 19 ott: niente mantello, niente coda), azzurro; un lamento lungo quando sono vicini.
+- **Com'è fatto.** Sono zombie del tipo `fantasma` (in `templari.json` tra i nemici, con `fantasma { quanti, squadra, torna, lontano }`): le armi, le esplosioni, i super e le trappole li colpiscono come gli altri. Non escono dalle ondate (`sim/templari/fantasmi.ts` ne tiene il numero fisso: all'inizio arrivano uno ogni 3 s, poi chi muore torna dopo 20 s ad almeno 12 m dagli eroi) e non contano per finire l'ondata né per il tetto di zombie in campo. Calmi girano **piano** (0,8 m/s) da un punto a caso all'altro del sopra; arrabbiati vanno dritti a 3 m/s verso chi li ha fatti arrabbiare e lo colpiscono col colpo degli zombie (lo scudo sulle spalle para anche loro). Si arrabbiano anche **se li colpisci** senza ucciderli. Uccisi danno 60 punti (100 in mischia) più 40, niente power-up e niente anime per la Lancia **[scelte provvisorie]**. La mira assistita e AUTO non cercano quelli calmi: si colpiscono solo apposta. Dove girano lo decide un rng a parte: il resto della partita non cambia.
+- **Nel client** (`templari/fantasmi3d.ts`): una figura intera a blocchi in **una mesh sola** (gli zombie ne hanno sette per tipo), trasparente, colorata per istanza (azzurra, rossa), che galleggia un palmo sopra terra; compare dal nulla e muore salendo in cielo. Si disegna solo quando uno è entro 26 m dall'eroe: **una draw call** in più quando ce n'è uno vicino (nel coro coi boss, al limite già prima, può arrivare a 101). Suoni nuovi `tpl_lamento` (quando compare e ogni 7-11 s se uno è entro 14 m) e `tpl_spettro` (quando si arrabbia; la prima volta l'HUD dice perché).
+- **Prove**: `templariProva({ zombie: 'fantasma', arrabbiato? })`; `ferma` tiene lontani anche i fantasmi.
 
 **6. Il monaco, l'alfiere, il lebbroso** (tutti e tre scelti da birbasan; dati in `templari.json` come gli altri nemici)
 

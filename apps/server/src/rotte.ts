@@ -158,6 +158,8 @@ const ROTTE: readonly Rotta[] = [
     const r = await c.lotto('pesci_' + x[1], scegli(b, ['k', 'id']));
     return x[1] === 'consegna' ? segnaCollezioneDa(r, c.sfide) : r;
   } },
+  // i paesani del Borgo: parla (primo incontro, messaggi, favore riscosso), accetta o rifiuta un favore, regala quello che chiedono
+  { m: 'POST', via: /^\/api\/lot\/paesani\/(parla|accetta|rifiuta|dona)$/, fa: (c, b, x) => c.lotto('paesani_' + x[1], scegli(b, ['id', 'slot'])) },
   // minigiochi da solo (senza posta): il DO del lotto apre la partita e la premia; il punteggio vero (dal replay) va anche al tabellone
   // dei record del Porto; le discese dell'Adrenalina passano dalla classifica a tempo (adrenalina.ts)
   { m: 'POST', via: '/api/solo/start', fa: alLotto('solo_start', ['minigame', 'opzioni']) },

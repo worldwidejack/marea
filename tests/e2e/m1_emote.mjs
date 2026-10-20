@@ -117,7 +117,7 @@ export default async function (ctx) {
       assert(g.w > 60 && g.h >= 28, 'fumetto troppo piccolo');
       // Bruno fa l'emote 2: la sua testa (stessa quota) e quella di Anna distano in px quanto ~3 m, non 0 e non mezza schermata
       await bruno.page.keyboard.press('Digit2');
-      await bruno.page.waitForSelector('.mz-emote[data-who="me"][data-emote="esulta"]', { state: 'attached', timeout: 1000 });
+      await bruno.page.waitForSelector('.mz-emote[data-who="me"][data-emote="esulta"]', { state: 'attached', timeout: 3000 });
       const both = (await st(bruno)).emotes.shown;
       const me = both.find((x) => x.who === 'me'), an = both.find((x) => x.who === 'anna') ?? g.s; // Anna è ferma: se il suo fumetto (2,5 s) è già sparito vale l'ancora letta sopra (CI lento)
       const d = Math.hypot(me.x - an.x, me.y - an.y);
@@ -187,11 +187,12 @@ export default async function (ctx) {
       await ctx.shot(anna.page, 'riga_390');
       anna.sent.length = 0;
       await anna.page.evaluate(() => document.querySelector('#mzEmoteRow .mz-emote-pick[data-emote="esulta"]')?.click());
-      await anna.page.waitForSelector('.mz-emote[data-who="me"][data-emote="esulta"]', { state: 'attached', timeout: 1000 });
+      // attese larghe: su GitHub il gioco si disegna a 2-4 fps e il fumetto compare qualche fotogramma dopo (il «subito» lo misura il test del tasto 1)
+      await anna.page.waitForSelector('.mz-emote[data-who="me"][data-emote="esulta"]', { state: 'attached', timeout: 5000 });
       assert(!(await anna.page.$('#mzEmoteRow.on')), 'la riga resta aperta dopo il tocco');
       await sleep(250);
       assert(anna.sent.length === 1 && anna.sent[0].id === 'esulta', 'frame dal telefono: ' + JSON.stringify(anna.sent));
-      await bruno.page.waitForSelector('.mz-emote[data-who="anna"][data-emote="esulta"]', { state: 'attached', timeout: 1500 });
+      await bruno.page.waitForSelector('.mz-emote[data-who="anna"][data-emote="esulta"]', { state: 'attached', timeout: 5000 });
       await ctx.shot(anna.page, 'anna_esulta_390');
       ctx.noErrors(anna, 'Anna'); ctx.noErrors(bruno, 'Bruno');
     });

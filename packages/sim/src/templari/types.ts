@@ -39,6 +39,8 @@ export type TEvento =
   /** L'eroe è stato colpito. */
   | { t: 'ferito'; danno: number; x: number; z: number }
   | { t: 'morte'; id: number; tipo: string; x: number; z: number }
+  /** Un fantasma (§12b punto 5) compare, o si arrabbia (gli sei passato attraverso o l'hai colpito): diventa rosso, urla e ti punta. */
+  | { t: 'fantasma'; id: number; fase: 'compare' | 'arrabbiato'; x: number; z: number }
   /** Punti guadagnati (o spesi, negativi) e perché. */
   | { t: 'punti'; n: number; perche: 'colpo' | 'uccisione' | 'mischia' | 'asse' | 'potere' | 'spesa' }
   | { t: 'ondata'; n: number }
@@ -143,7 +145,9 @@ export type TView = {
   };
   zombie: { id: number; tipo: string; x: number; z: number; fx: number; fz: number; anim: TZombieAnim; t: number; vita: number; max: number; vel: number; boss: boolean;
     /** Ha ancora lo scudo davanti (lo scudato finché non si spacca). */
-    scudo: boolean }[];
+    scudo: boolean;
+    /** Un fantasma arrabbiato (rosso, ti punta). */
+    rabbia?: boolean }[];
   /** Tiri dei nemici in volo: bombe (con dove cadono e il raggio, per il cerchio a terra) e palle di fuoco; `k` = 0..1 del volo. */
   tiri: { id: number; tipo: 'bomba' | 'palla'; x: number; z: number; tx: number; tz: number; r: number; k: number }[];
   /** Il boss in campo (barra in alto): `fugge` = soglia della vita a cui scappa (de Molay), 0 = si combatte fino in fondo. */

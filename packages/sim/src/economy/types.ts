@@ -4,6 +4,7 @@ export type { Resources };
 
 import type { CasaState } from './casa.ts';
 import type { InsettiState } from './insetti.ts';
+import type { PaesaniState } from './paesani.ts';
 import type { PesciState } from './pesci.ts';
 export type PlacedBuilding = { id: string; building: string; level: number; cell: [number, number]; buffer: number; lastMs: number; rot?: number };
 /** Edificio riposto nel magazzino dell'isola (#403). */
@@ -95,6 +96,8 @@ export type LotState = {
   insetti?: InsettiState;
   /** I pesci (#457, economy/pesci.ts): visti, posseduti (consegnati al mobiliere), ombre già pescate dei turni recenti. Assente = mai pescato niente. */
   pesci?: PesciState;
+  /** I paesani di Borgo Marea (economy/paesani.ts): chi conosci, il favore in corso, i favori presi oggi. Assente = mai parlato con nessuno. */
+  paesani?: PaesaniState;
   /** Arena PvP (docs/ARENA.md, arena/premio.ts): duello aperto, monete prese oggi (giorno UTC), partite vinte, perse e pari. Assente = mai giocato. */
   arena?: ArenaLotto;
 };
