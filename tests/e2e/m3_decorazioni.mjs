@@ -100,7 +100,7 @@ export default async function (ctx) {
       await V.page.keyboard.press('KeyE');
       await V.page.locator('#mzArreda button', { hasText: 'Gira' }).click();
       await ctx.waitState(V.page, (q, id) => q.arreda.arredi.find((a) => a.id === id)?.rot === 1, 8000, id);
-      await V.page.locator('#mzArreda .mz-x').click();
+      await V.page.locator('#mzArreda [data-act="chiudi"]').click();
       await ctx.waitState(V.page, (q) => !q.arreda.aperto, 3000);
       await mettiti(V, X0 + 3.5, Z1 - 1.5);
       await V.page.waitForTimeout(800);
