@@ -13,13 +13,11 @@ export const VEICOLI_AI: readonly string[] = [
   'cs_v_kart', 'cs_v_sportiva', 'cs_v_fuoristrada', 'cs_v_moto', 'cs_v_moto_acqua', 'cs_v_bob', 'cs_v_carrello_miniera', 'cs_v_carrello_spesa',
   'cs_v_vasca', 'cs_v_divano', 'cs_v_ape', 'cs_v_struzzo', 'cs_v_pizza', 'cs_v_papera',
 ];
-/** `?veicoli=kit` nell'indirizzo: i veicoli del kit Blender di prima, per confrontare. */
-const spenti = typeof location !== 'undefined' && new URLSearchParams(location.search).get('veicoli') === 'kit';
 const pronti = new Map<string, THREE.Object3D>(), inArrivo = new Map<string, Promise<void>>();
 let loader: GLTFLoader | null = null;
 
 /** Questo modello ha (o avrà, appena scaricata) la carrozzeria AI. */
-export const haVeicoloAi = (modello: string | null | undefined): modello is string => !spenti && !!modello && VEICOLI_AI.includes(modello);
+export const haVeicoloAi = (modello: string | null | undefined): modello is string => !!modello && VEICOLI_AI.includes(modello);
 
 /** Scarica la carrozzeria AI di un modello (una volta sola); si risolve anche se il file non c'è (resta il kit). */
 export function caricaVeicoloAi(modello: string | null | undefined): Promise<void> {

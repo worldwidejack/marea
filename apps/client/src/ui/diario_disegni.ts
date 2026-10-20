@@ -28,7 +28,6 @@ export const ANIMALI_ART: Record<string, Art> = {
   lucciola: ['............', '.....LL.....', '...L....L...', '.....YY.....', '..L.YYYY.L..', '...YYwwYY...', '..L.YYYY.L..', '.....YY.....', '...L....L...', '.....LL.....'],
 };
 export const MEDAGLIA: Art = ['.RR..RR.', '..RRRR..', '...RR...', '..nnnn..', '.nmmmmn.', '.nmwmmn.', '.nmmmmn.', '..nnnn..'];
-export const STELLA: Art = ['...nn...', '..nYYn..', 'nnnYYnnn', 'nYYYYYYn', '.nYYYYn.', '.nYnnYn.', 'nYn..nYn', 'nn....nn'];
 export const ISOLA: Art = ['........', '...gg...', '..gggg..', '.sggggs.', 'AsssssA.', 'AAAAAAAA', '.AAAAAA.', '........'];
 export const ZAMPA: Art = ['.n.n.n..', 'nwnwnwn.', '.n.n.n..', '..nnn...', '.nwwwn..', 'nwwwwwn.', '.nnnnn..', '........'];
 

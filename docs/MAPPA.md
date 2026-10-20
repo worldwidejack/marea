@@ -54,7 +54,7 @@ Test della sim: `packages/sim/test/*.test.ts` (node:test), fixture d'oro in `tes
 | `templari/`, `templari*.ts` | mappa e numeri dei Templari | B |
 | `rpg/`, `rpg*.ts`, `arena/`, `arena.ts` | GDR (armi, materiali, nemici, magie, dungeon) e duello | R |
 | `difesa.*`, `sparo.*` | Difesa e sparatutto | J |
-| `buildings.json`, `resources.json`, `traguardi.json` | spento: edifici, risorse di prima, traguardi | — |
+| `buildings.json`, `resources.json` | spento: edifici, risorse di prima | — |
 
 ## packages/protocol/src · tipi dei messaggi WebSocket
 `messages.ts` (zona: presenza, emote), `squadra.ts` (dungeon insieme), `gara_amici.ts`, `templari_insieme.ts`, `arena.ts`. Tutti.

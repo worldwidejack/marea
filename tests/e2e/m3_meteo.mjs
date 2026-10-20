@@ -27,7 +27,7 @@ export default async function (ctx) {
     const st = await ctx.getState(p.page);
     ctx.assert(st.impostazioni.meteo === true, 'impostazione non salvata');
     ctx.log('nuvole dall’orologio', JSON.stringify(st.nuvole));
-    ctx.assert(st.nuvole.variante === 'A' && st.nuvole.vicine <= 24, `nuvole ${JSON.stringify(st.nuvole)}`);
+    ctx.assert(st.nuvole.vicine <= 24, `nuvole ${JSON.stringify(st.nuvole)}`);
   });
   let base = null;
   await ctx.test('pioggia sopra di te: gocce, più scuro, budget ok', async () => {

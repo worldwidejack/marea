@@ -1,8 +1,9 @@
 // Flag dall'URL, congelati all'avvio. Contratto: docs/TECH.md §9.
-export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; traguardi: boolean; invito: string; serie: boolean; rientro: boolean; novita: boolean; templari: boolean; banco: boolean; gara: boolean; pulito: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova'; nuvole: 'A' | 'B' };
+export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; invito: string; serie: boolean; rientro: boolean; novita: boolean; templari: boolean; banco: boolean; gara: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova'; slot: number | null; ruota: '' | '0' | '1' };
 function read(): Flags {
   const q = new URLSearchParams(location.search);
   const on = (k: string) => q.get(k) === '1' || q.get(k) === 'true';
+  const s = q.get('slot'), slot = s ? Number(s) : NaN;
   let token = q.get('t') ?? '';
   try {
     if (token) localStorage.setItem('marea:token', token);
@@ -16,17 +17,15 @@ function read(): Flags {
     novita: on('novita'), // coi test (?test=1) la schermata «Dall'ultima volta» (#279) compare solo con ?novita=1
     rientro: on('rientro'), // coi test (?test=1) la cartolina «Mentre eri via» compare solo con ?rientro=1 (l'orologio di prova la farebbe uscire ovunque)
     serie: on('serie'), // coi test (?test=1) le impostazioni partono spente; ?serie=1 usa quelle di serie vere (#59)
-    // spenti per ora (VISIONE §2, 18 ott 2026): il codice resta, l'URL li riaccende per le prove e per i loro test
-    traguardi: on('traguardi'), // Traguardi e titoli del Diario (#87): senza ?traguardi=1 niente pagina, numerino, avviso né titolo sopra il nome
     gara: q.get('gara') === 'amici', // link «gara tra amici» (#204): si apre subito la sala delle Corse
     templari: on('templari') || q.get('templari') === 'banco', // Isola dei Templari per le prove: isola aperta, altare senza reliquia, bottone ⚔ per entrare subito nelle ondate
     banco: q.get('templari') === 'banco', // stanza di prova dei Templari: dentro la chiesa appena si apre, col banco (zombie, armi, ondata, punti), senza server
     arena: q.get('arena') === 'banco' ? 'banco' : on('arena') ? 'si' : '', // Arena: ?arena=1 bottoni di prova (⚔ al colosseo), ?arena=banco subito nel duello contro il bot
-    pulito: q.get('pulito') !== '0', // mondo pulito (#286): texture senza puntini e mare della stampa; ?pulito=0 = com'era prima
     // isola dei Templari dipinta (templari/dipinto.ts): ?dipinto=0 i blocchi di prima, ?dipinto=prova i tasti P/L/K e window.__dipinto; coi test
     // (?test=1) spenta se non si chiede ?dipinto=1: su SwiftShader lo shader del dipinto rallenta tanto da far scadere le prove a tempo
     dipinto: q.get('dipinto') === '0' ? 'no' : q.get('dipinto') === 'prova' ? 'prova' : q.get('dipinto') === '1' || !on('test') ? 'si' : 'no',
-    nuvole: (q.get('nuvole') ?? '').toUpperCase() === 'B' ? 'B' : 'A', // meteo a nuvole (#361): ?nuvole=B la variante B per la scelta di Jack (forma, quota, copertura)
+    slot: Number.isInteger(slot) && slot >= 0 ? slot : null, // senza login (test): ?slot=N si nasce davanti alla casa N del Borgo, la barca al molo del Porto
+    ruota: q.get('ruota') === '1' ? '1' : q.get('ruota') === '0' ? '0' : '', // Corse sul telefono: ?ruota=1 l'avviso «Ruota il telefono» sempre, ?ruota=0 mai
     adrenalina: on('adrenalina'), // Isola dell'Adrenalina per le prove: liberatoria già firmata, casco non richiesto, bottone 🚡 per andare al cancello
     difesa: on('difesa'), // Isola della Difesa per le prove: bottone 🥕 per andare al cancello dell'orto
   };

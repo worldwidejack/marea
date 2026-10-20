@@ -5,7 +5,7 @@
 // Lo STENDARDO lungo il viale dal molo al portone. Solo colori della palette, facce piatte. Pivot a terra al centro, il portone verso +Z.
 import * as THREE from 'three';
 import type { Rng } from '@marea/sim';
-import { M, P, merged, painted, px, speckle, strata } from './island_parts.ts';
+import { M, P, merged, painted, px, strata } from './island_parts.ts';
 import type { Painter } from './island_parts.ts';
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
@@ -13,12 +13,12 @@ const cyl = (r0: number, r1: number, h: number, n = 6) => new THREE.CylinderGeom
 
 // ——— terreni ———
 export const PAINT_ARENA: Record<string, Painter> = {
-  arena_sabbia: (g, r) => { px(g, P.sabbia, 0, 0, 32, 32); speckle(g, r, P.sabbiaChiara, 36, 0, 32); speckle(g, r, P.legnoChiaro, 14, 0, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 6], [P.legno, 32]]); speckle(g, r, P.legnoChiaro, 8, 36, 60); },
-  arena_erba: (g, r) => {
-    px(g, P.erba, 0, 0, 32, 32); speckle(g, r, P.erbaChiara, 26, 0, 32); speckle(g, r, P.erbaScura, 22, 0, 32, 1, 2); speckle(g, r, P.rosso, 2, 0, 32); speckle(g, r, P.giallo, 2, 0, 32);
+  arena_sabbia: (g) => { px(g, P.sabbia, 0, 0, 32, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 6], [P.legno, 32]]); },
+  arena_erba: (g) => {
+    px(g, P.erba, 0, 0, 32, 32);
     strata(g, [[P.erbaScura, 3], [P.legno, 7], [P.legnoScuro, 32]]);
   },
-  arena_riva: (g, r) => { px(g, P.pietra, 0, 0, 32, 32); speckle(g, r, P.pietraChiara, 34, 0, 32, 2, 1); speckle(g, r, P.pietraScura, 16, 0, 32); strata(g, [[P.pietraScura, 32]]); },
+  arena_riva: (g) => { px(g, P.pietra, 0, 0, 32, 32); strata(g, [[P.pietraScura, 32]]); },
 };
 /** Le poche rocce dell'isola: pietra chiara a strati, come i blocchi del colosseo. */
 export function rocciaArena(top: boolean, y: number, _h: number, r: Rng): { c: string } {

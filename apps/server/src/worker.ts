@@ -87,7 +87,7 @@ function doReq(ns: DurableObjectNamespace, name: string, persona: string, now: n
 }
 const lotReq = (env: Env, owner: string, now: number, path: string, body?: unknown) => doReq(env.LOT, owner, owner, now, path, body);
 const sfideReq = (env: Env, me: string, now: number, path: string, body?: unknown) => doReq(env.SFIDE, 'tavolo', me, now, path, body);
-/** Look nuovo alla zona `porto` (i socket vivi di quella persona lo mandano nel prossimo snap), col titolo del diario se c'è (#87). Best-effort: se fallisce, pazienza. */
+/** Look nuovo alla zona `porto` (i socket vivi di quella persona lo mandano nel prossimo snap). Best-effort: se fallisce, pazienza. */
 async function avvisaZona(env: Env, persona: string, look: LookSalvato): Promise<void> {
   try {
     const r = await env.ZONE.get(env.ZONE.idFromName('porto')).fetch('https://zone/look', {
@@ -104,13 +104,13 @@ async function avvisaZonaNome(env: Env, persona: string, nome: string): Promise<
     await r.body?.cancel();
   } catch { /* la zona si aggiorna alla prossima connessione */ }
 }
-/** Il look salvato in D1 (JSON) col titolo del diario sostituito: `titolo` null lo toglie (#87). La barca (#107) resta quella salvata,
- *  o quella passata (`barca`; la barca di serie non si scrive). */
-function conTitolo(look: Look, salvato: string, titolo?: string | null, barca?: BarcaLook): LookSalvato {
+/** Il look nuovo da salvare in D1 (JSON): la barca resta quella salvata, o quella passata (`barca`; la barca di serie non si scrive);
+ *  l'equipaggiamento resta quello salvato (lo scrive sincIndossa). Il titolo dei traguardi (tolti) non si scrive più. */
+function conSalvato(look: Look, salvato: string, barca?: BarcaLook): LookSalvato {
   let old: Record<string, unknown> = {};
   try { const v: unknown = JSON.parse(salvato); if (v && typeof v === 'object') old = v as Record<string, unknown>; } catch { /* look rotto */ }
-  const t: unknown = titolo === undefined ? old['titolo'] : titolo, b = barca ?? barcaDi(old), ind = indossaValida(old['indossa']); // l'equipaggiamento (#190) lo scrive sincIndossa, qui resta
-  return { ...look, ...(typeof t === 'string' && t ? { titolo: t } : {}), ...(diSerie(b) ? {} : { barca: b }), ...(ind ? { indossa: ind } : {}) };
+  const b = barca ?? barcaDi(old), ind = indossaValida(old['indossa']);
+  return { ...look, ...(diSerie(b) ? {} : { barca: b }), ...(ind ? { indossa: ind } : {}) };
 }
 /** Quello che si vede addosso (#190), ricavato dal personaggio vero (`hero.equip` nel lotto): se è cambiato rispetto al look salvato lo scrive in D1
  *  e lo manda alla zona, così gli amici vedono armatura e arma solo se le hai davvero. Legge la risposta del DO (LotState, o `{ lot }` / `{ lotto }`)
@@ -134,7 +134,7 @@ async function sincIndossa(env: Env, p: Persona, r: Response): Promise<Response>
   } catch { /* si vede alla prossima */ }
   return r;
 }
-/** Quanti altri hanno un'isola (per i traguardi «tutti gli amici», #87) e i loro id. */
+/** Chi altro ha un'isola (le visite del diario contano solo sulle isole di amici veri). */
 async function amiciConIsola(env: Env, me: string): Promise<string[]> {
   return (await elencoPersone(env)).filter((x) => x.slot !== null && x.id !== me).map((x) => x.id);
 }
@@ -261,7 +261,7 @@ export default {
           const lot = r.ok ? ((await r.json()) as { posseduti?: string[] }) : null;
           if (!lot?.posseduti?.includes(hat.id)) return json({ error: `${hat.nome}: non è tuo, compralo prima (${hat.monete} monete)` }, 400);
         }
-        const salvato = conTitolo(look, p.look); // il titolo del diario (#87) resta quello scelto: l'editor non lo conosce
+        const salvato = conSalvato(look, p.look);
         await salvaLook(env, p.id, salvato);
         await avvisaZona(env, p.id, salvato);
         return json({ ok: true });
@@ -293,7 +293,7 @@ export default {
         if (typeof barca === 'string') return json({ error: barca }, 400);
         let base: Look | string;
         try { base = validaLook(JSON.parse(p.look) as Record<string, unknown>); } catch { base = 'look rotto'; }
-        const salvato = conTitolo(typeof base === 'string' ? { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 } : base, p.look, undefined, barca);
+        const salvato = conSalvato(typeof base === 'string' ? { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 } : base, p.look, barca);
         await salvaLook(env, p.id, salvato);
         await avvisaZona(env, p.id, salvato);
         return json({ ok: true, barca });
@@ -421,7 +421,7 @@ export default {
         try { const f = await doReq(env.SFIDE, 'tavolo', isola, now, 'visita', { chi: p.id, emote }); await f.body?.cancel(); } catch { /* il libro è firmato lo stesso */ }
         return json(lot);
       }
-      // Diario del capitano (#87): avvistamenti (i lotti solo di amici veri), RISCUOTI di un traguardo (il DO verifica e paga), titolo sotto il nome
+      // Diario del capitano: avvistamenti (i lotti solo di amici veri)
       if (path === '/api/diario/visto' && req.method === 'POST') {
         const body = await corpo();
         if (body instanceof Response) return body;
@@ -431,27 +431,6 @@ export default {
           isole = isole.filter((i) => typeof i !== 'string' || !i.startsWith('lotto:') || amici.has(i.slice(6)));
         }
         return lotReq(env, p.id, now, 'diario_visto', { animali: body['animali'], isole });
-      }
-      if (path === '/api/diario/riscuoti' && req.method === 'POST') {
-        const body = await corpo();
-        if (body instanceof Response) return body;
-        return lotReq(env, p.id, now, 'diario_riscuoti', { id: body['id'], amici: (await amiciConIsola(env, p.id)).length });
-      }
-      if (path === '/api/diario/titolo' && req.method === 'POST') {
-        const body = await corpo();
-        if (body instanceof Response) return body;
-        const id = body['id'] ?? null;
-        const r = await lotReq(env, p.id, now, 'diario_titolo', { id });
-        if (!r.ok) return r;
-        const lot = await r.text();
-        let base: Look | string;
-        try { base = validaLook(JSON.parse(p.look) as Record<string, unknown>); } catch { base = 'look rotto'; }
-        if (typeof base !== 'string') { // il titolo va col look (D1 + presenza): così gli amici lo vedono sotto il nome
-          const salvato = conTitolo(base, p.look, typeof id === 'string' ? id : null);
-          await salvaLook(env, p.id, salvato);
-          await avvisaZona(env, p.id, salvato);
-        }
-        return new Response(lot, { status: 200, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
       }
       // Mondo Sotterraneo: azioni del personaggio e spedizioni; il replay lo fa il DO del lotto, mai il Worker (10 ms di CPU)
       if (path === '/api/rpg' && req.method === 'POST') {

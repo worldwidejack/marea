@@ -40,7 +40,6 @@ import { createHudAllegro } from './ui/hud_allegro.ts';
 import type { HudAllegro } from './ui/hud_allegro.ts';
 import { createDiario } from './game/diario.ts';
 import { createTarghette } from './game/targhette.ts';
-import { diarioOf, titoloDi } from '@marea/sim/economy/diario.ts';
 import { collegaAudio } from './audio/ponte.ts';
 import type { Aspetto } from './render/aspetto.ts';
 import type { Animali } from './game/animali.ts';
@@ -192,7 +191,7 @@ async function boot(): Promise<void> {
   if (world.slot !== null) void import('./game/arreda.ts').then((m) => { arreda = m.createArreda({ world, root, hud, api: me && api.enabled ? api : null, lotto: lots.find((lv) => !lv.readonly) ?? null, slot: world.slot, stanza, apriBaule: () => eroe?.openBuilding('forziere') }); }).catch(() => { /* senza ARREDA si gioca lo stesso */ });
   let modificaIsola: ModificaIsola | null = null;
   if (world.slot !== null) void import('./game/modifica_isola.ts').then((m) => { modificaIsola = m.createModificaIsola({ world, renderer, root, hud, api: me && api.enabled ? api : null, lotto: lots.find((lv) => !lv.readonly) ?? null, slot: world.slot, stanza }); }).catch((e: unknown) => { console.warn('[marea] modifica isola non caricata', e); });
-  // Diario del capitano (#87): bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette col nome (e il titolo, solo con ?traguardi=1) sopra la testa
+  // Diario del capitano: bottone col libro e tasto J, album nel chunk ui/diario_ui.ts; targhette col nome sopra la testa degli amici
   const diario = createDiario({ root, hud, api: me && api.enabled ? api : null, me, world, owners, getLot: () => myLot(), setLot: setMyLot, hidden: () => regata.active || giochi.isBusy() || sotto() || ingressi.isBusy() || tpl.isBusy(),
     pausa: () => !!eroe?.isOpen() || !!editor?.isOpen() || !!feed?.isOpen() || porto.isBusy() || !!botteghe?.isBusy() || amici.isBusy() || libri.isBusy() || !!document.querySelector('#mzSheet.on'),
     onOpen: () => { editor?.close(); feed?.close(); eroe?.close(); porto.close(); botteghe?.close(); amici.close(); document.querySelector<HTMLElement>('#mzSheet.on .mz-x')?.click(); } });
@@ -205,7 +204,7 @@ async function boot(): Promise<void> {
       if (teleUi.isOpen()) teleUi.close(); else { teleUi.open(); teleBtn.setOn(true); }
     });
   } });
-  const targhette = createTarghette({ world, camera: renderer.camera, canvas, root, mio: () => { const l = myLot(); return me && l ? { nome: me.nome, titolo: titoloDi(diarioOf(l).titolo) } : null; } });
+  const targhette = createTarghette({ world, camera: renderer.camera, canvas, root });
   // segnalino del navigatore (#144): si fissa toccando la mappa grande; in cima alle mete, ha lui la freccia sullo schermo
   const segno = createSegno();
   targets.unshift(segno.target);

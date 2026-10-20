@@ -372,6 +372,4 @@ export type MeteoCfg = {
   vento: { verso: [number, number]; sbandamentoGradi: number; direzioneMin: number; periodoMin: number; livelli: number[]; pesi: number[]; transizioneS: number; nuvolaMs: number; ventoMs: number };
   /** Ogni nuvola di temporale, ogni `ogniS` secondi, fa un lampo con probabilità `prob`, lungo `durataMs`. */
   lampi: { ogniS: number; prob: number; durataMs: number };
-  /** Variante B per la scelta di Jack (#361, `?nuvole=b`): numeri che sostituiscono quelli di `nuvole`. Si toglie quando sceglie. */
-  provaB?: Partial<MeteoCfg['nuvole']>;
 };

@@ -26,8 +26,8 @@ export type Firma = { chi: string; nome: string; emote: string; quando: number }
 export type CantiereFinito = { building: string; level: number; endsMs: number };
 /**
  * Diario del capitano (#87): quello che conta (pesci, perle, medaglie, partite, spedizioni) lo scrive il server quando verifica una
- * partita; animali e isole arrivano dal client (collezionismo, id validati). `riscossi` = traguardi già pagati, `titolo` = id del
- * traguardo il cui titolo si mostra sotto il nome.
+ * partita; animali e isole arrivano dal client (collezionismo, id validati). I salvataggi di prima possono avere ancora `riscossi` e
+ * `titolo` dei traguardi (tolti): non si leggono più.
  */
 export type DiarioState = {
   pesci: Record<string, number>;
@@ -37,8 +37,6 @@ export type DiarioState = {
   animali: string[];
   isole: string[];
   dungeon: number;
-  riscossi: string[];
-  titolo: string | null;
 };
 export type LotState = {
   owner: string;
@@ -124,7 +122,7 @@ export const missing = (have: Resources, cost: Resources): Resources => ({
 });
 
 export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'tetto' | 'cappello' | 'posizione' | 'partita'
-  | 'missione' | 'firma' | 'traguardo'
+  | 'missione' | 'firma'
   | 'peso' | 'equip' | 'perk' | 'materiale' | 'edificio' | 'livello_skill' | 'oggetto' | 'spedizione';
 /** Quanto manca: `monete` per tutto quello che si compra (#414); le risorse di prima solo nel codice spento. */
 export type Mancanza = Partial<Resources> & { monete?: number };

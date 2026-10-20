@@ -83,16 +83,6 @@ export type GameWorld = {
 /** Chi abita un'isola (GET /api/lots): la sua barca sta ormeggiata al suo molo quando non naviga (#6). */
 export type Abitante = { id: string; slot: number | null; look?: LookSalvato };
 
-/** Adattatore finché main.ts non passa lo slot da /api/me: `?slot=N` nell'URL. */
-function slotFromUrl(): number | null {
-  try {
-    const v = new URLSearchParams(location.search).get('slot');
-    if (v === null || v === '') return null;
-    const n = Number(v);
-    return Number.isInteger(n) && n >= 0 ? n : null;
-  } catch { return null; }
-}
-
 /** Un altro giocatore collegato: l'avatar a piedi (la barca sta nella flotta). */
 type Remote = { avatar: Avatar; look: string };
 /** La barca di un altro (#6): creata la prima volta che serve; `at` ne porta la posizione, `naviga` = c'è lui al timone. */
@@ -106,7 +96,7 @@ const HEAD_Y = 1.9, BOAT_TOP_Y = 1.5; // metri sopra il piede dell'avatar / la b
 export async function createGameWorld(o: { renderer: Renderer; loader: Loader; flags: Flags; hud: Hud; build: string; slot?: number | null; look?: Look; barca?: BarcaLook; meId?: string; abitanti?: readonly Abitante[] }): Promise<GameWorld> {
   const arch = composeArchipelago(ARCHIPELAGO, ISLANDS);
   const map = arch.map;
-  let slot = o.slot !== undefined ? o.slot : slotFromUrl();
+  let slot = o.slot !== undefined ? o.slot : o.flags.slot; // senza login: ?slot=N (test)
   if (slot !== null && !arch.lots.some((l) => l.slot === slot)) slot = null;
   // Borgo Marea (#237): si nasce davanti alla porta di casa, appena fuori dal raggio del bottone (la guida resta in vista, #267; senza casa: al Porto); la barca sta al molo del Porto, non al giardino
   const home = (slot !== null ? portaDi({ archipelago: arch }, slot, 2.5) : null) ?? arch.spawnOf(null), homeBoat = arch.boatOf(null);

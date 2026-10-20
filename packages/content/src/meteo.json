@@ -31,6 +31,5 @@
     "nuvolaMs": 1.2,
     "ventoMs": 2.2
   },
-  "lampi": { "ogniS": 7, "prob": 0.55, "durataMs": 260 },
-  "provaB": { "corsie": 56, "pioggiaR": 1, "bordo": 0.22 }
+  "lampi": { "ogniS": 7, "prob": 0.55, "durataMs": 260 }
 }

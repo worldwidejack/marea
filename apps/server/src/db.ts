@@ -14,7 +14,7 @@ export async function segnaAccesso(env: Env, id: string): Promise<void> {
 export async function esistePersona(env: Env, id: string): Promise<boolean> {
   return (await env.DB.prepare('SELECT 1 AS x FROM persone WHERE id = ?1').bind(id).first<{ x: number }>()) !== null;
 }
-/** Look in D1, col titolo del diario (#87) se c'è: è lo stesso JSON che la Zone legge alla connessione. */
+/** Look in D1 (con barca e quello che si vede addosso): è lo stesso JSON che la Zone legge alla connessione. */
 export async function salvaLook(env: Env, id: string, look: LookSalvato): Promise<void> {
   await env.DB.prepare('UPDATE persone SET look = ?2 WHERE id = ?1').bind(id, JSON.stringify(look)).run();
 }

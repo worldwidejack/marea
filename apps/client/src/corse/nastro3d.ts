@@ -48,9 +48,6 @@ class Tela {
 }
 
 const pt = (n: Nastro, s: number, lat: number, h: number): V3 => punto(n, s, lat, h, [0, 0, 0]);
-/** Prova A/B di Jack (#176): il muretto delle piste della Spiaggia di pietra chiara come nella concept invece che a gomme rosse e
- *  bianche. Si accende con `?muro=pietra` nell'indirizzo del banco. */
-const muroDiPietra = (id: string) => id.startsWith('spiaggia_') && typeof location !== 'undefined' && new URLSearchParams(location.search).get('muro') === 'pietra';
 const ALTO_MURO = 0.9, SPESSO = 0.5, CORDOLO = 0.7, RAMPA = 0.8;
 
 /** Dove va un pezzo a (s, lat) sulle piste a binari: niente (un buco già dal primo giro), `crollo` (un tratto che crolla con un evento
@@ -82,7 +79,7 @@ function rotaie(t: Tela, crollo: Tela | null, p: Pista, n: Nastro, ramo: number)
 /** Strada, bordi, cordoli e muri di un nastro (principale o ramo). Sulle piste a binari: il fondo scuro sotto le traversine, i bordi di
  *  legno, niente cordoli né muro. */
 function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number, crollo: Tela | null = null): void {
-  const d = p.def, acqua = d.stile === 'acqua', ultimo = n.chiuso ? n.n : n.n - 1, pietra = muroDiPietra(d.id), giungla = d.zona === 'giungla';
+  const d = p.def, acqua = d.stile === 'acqua', ultimo = n.chiuso ? n.n : n.n - 1, giungla = d.zona === 'giungla';
   for (let i = 0; i < ultimo; i++) {
     const s0 = i * n.passo, s1 = s0 + n.passo, sm = s0 + n.passo / 2, binari = suRotaie(p, ramo, sm);
     if (!binari && ramo < 0 && superficieA(p, -1, sm, 0, 1) === VUOTO) continue; // i buchi (sui binari si guarda fascia per fascia)
@@ -116,10 +113,10 @@ function strada(t: Tela, p: Pista, n: Nastro, ramo: number, bordo: number, croll
       // muretto di gomme: faccia verso la pista, cima, faccia di fuori
       const mm = pt(n, sm, lato * (lm + bordo), 0);
       if (!acqua && !binari && muroA(p, ramo, sm, lato) && !(p.rami.length && sullAltro(p, ramo, sm, mm[0], mm[1], mm[2]))) {
-        // giungla: una staccionata di tronchi; spiaggia: gomme rosse e bianche (o pietra chiara, prova A/B)
-        const c = giungla ? ((i >> 1) % 3 ? P.legno : P.legnoChiaro) : pietra ? ((i >> 1) % 3 ? P.sabbia : P.sabbiaChiara) : (i >> 1) % 2 ? P.rosso : P.pietraChiara, e0 = b0 + lato * SPESSO, e1 = b1 + lato * SPESSO;
+        // giungla: una staccionata di tronchi; spiaggia: gomme rosse e bianche
+        const c = giungla ? ((i >> 1) % 3 ? P.legno : P.legnoChiaro) : (i >> 1) % 2 ? P.rosso : P.pietraChiara, e0 = b0 + lato * SPESSO, e1 = b1 + lato * SPESSO;
         t.quad(pt(n, s0, b0, 0), pt(n, s0, b0, ALTO_MURO), pt(n, s1, b1, 0), pt(n, s1, b1, ALTO_MURO), c);
-        t.quad(pt(n, s0, b0, ALTO_MURO), pt(n, s0, e0, ALTO_MURO), pt(n, s1, b1, ALTO_MURO), pt(n, s1, e1, ALTO_MURO), giungla ? P.legnoScuro : pietra ? P.pietraChiara : P.neroCaldo);
+        t.quad(pt(n, s0, b0, ALTO_MURO), pt(n, s0, e0, ALTO_MURO), pt(n, s1, b1, ALTO_MURO), pt(n, s1, e1, ALTO_MURO), giungla ? P.legnoScuro : P.neroCaldo);
         t.quad(pt(n, s0, e0, ALTO_MURO), pt(n, s0, e0, 0), pt(n, s1, e1, ALTO_MURO), pt(n, s1, e1, 0), P.roccia);
       }
     }

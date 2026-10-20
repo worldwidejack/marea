@@ -5,7 +5,6 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createRng } from '@marea/sim';
 import type { Rng } from '@marea/sim';
 import type { Loader } from './loader.ts';
-import { FLAGS } from '../flags.ts';
 
 export const ISLAND = { TOP: 0.4, BOTTOM: -1.2, STEP: 0.12, STEP_W: 0.6 } as const;
 export const P = {
@@ -29,9 +28,6 @@ export function tex(label: string, seed: string, paint: Painter): THREE.CanvasTe
   return t;
 }
 export const px = (g: CanvasRenderingContext2D, c: string, x: number, y: number, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
-/** Puntini sparsi; di serie (mondo pulito #286, ?pulito=0 = prima) niente: tinta unita, restano le forme grandi (lastre, assi, fasce dei fianchi). */
-const PUNTINI = FLAGS.pulito ? 0 : 1;
-export const speckle = (g: CanvasRenderingContext2D, r: Rng, c: string, n: number, y0: number, y1: number, w = 1, h = 1) => { for (let i = 0; i < Math.round(n * PUNTINI); i++) px(g, c, r.int(0, 31), r.int(y0, y1 - h), w, h); };
 /** Fianco: lista di [colore, righe] dall'alto; tra una fascia e l'altra una riga a scacchi (dithering tra colori adiacenti). */
 export function strata(g: CanvasRenderingContext2D, bands: [string, number][]): void {
   let y = 32;
@@ -40,44 +36,38 @@ export function strata(g: CanvasRenderingContext2D, bands: [string, number][]): 
   for (let i = 0; i < bands.length - 1; i++) { y += bands[i]![1]; for (let x = (y & 1); x < 32; x += 2) px(g, bands[i]![0], x, y); }
 }
 export const PAINT: Record<string, Painter> = {
-  sabbia: (g, r) => { px(g, P.sabbia, 0, 0, 32, 32); speckle(g, r, P.sabbiaChiara, 46, 0, 32); speckle(g, r, P.legnoChiaro, 10, 0, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 5], [P.legno, 32]]); speckle(g, r, P.sabbiaChiara, 8, 32, 36); },
+  sabbia: (g) => { px(g, P.sabbia, 0, 0, 32, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 5], [P.legno, 32]]); },
   erba: (g, r) => {
-    px(g, P.erba, 0, 0, 32, 32); speckle(g, r, P.erbaChiara, 26, 0, 32); speckle(g, r, P.erbaScura, 22, 0, 32, 1, 2);
+    px(g, P.erba, 0, 0, 32, 32);
     strata(g, [[P.erbaScura, 3], [P.legno, 7], [P.legnoScuro, 32]]);
     for (let x = 0; x < 32; x++) if (r.next() < 0.45) px(g, P.erbaScura, x, 35, 1, r.int(1, 2)); // frangia d'erba che scende sul fianco
-    speckle(g, r, P.legnoChiaro, 10, 38, 48);
   },
-  roccia: (g, r) => {
-    px(g, P.pietra, 0, 0, 32, 32); speckle(g, r, P.pietraChiara, 30, 0, 32, 2, 1); speckle(g, r, P.pietraScura, 22, 0, 32, 1, 1);
+  roccia: (g) => {
+    px(g, P.pietra, 0, 0, 32, 32);
     strata(g, [[P.pietra, 2], [P.pietraScura, 6], [P.roccia, 5], [P.pietraScura, 5], [P.roccia, 32]]);
-    speckle(g, r, P.pietra, 14, 36, 60, 2, 1); speckle(g, r, P.roccia, 10, 34, 50, 1, 2);
   },
-  molo: (g, r) => {
+  molo: (g) => {
     for (let y = 0; y < 32; y += 4) { px(g, y % 8 ? P.legnoChiaro : P.legno, 0, y, 32, 3); px(g, P.legnoScuro, 0, y + 3, 32, 1); }
-    speckle(g, r, P.legnoScuro, 10, 0, 32); px(g, P.legnoScuro, 3, 0, 1, 32); px(g, P.legnoScuro, 28, 0, 1, 32); // chiodi e travi
+    px(g, P.legnoScuro, 3, 0, 1, 32); px(g, P.legnoScuro, 28, 0, 1, 32); // chiodi e travi
     strata(g, [[P.legno, 3], [P.legnoScuro, 32]]);
   },
-  riva: (g, r) => { px(g, P.sabbiaChiara, 0, 0, 32, 32); speckle(g, r, P.sabbia, 60, 0, 32); strata(g, [[P.sabbia, 2], [P.legnoChiaro, 32]]); },
-  // Porto: lastre di pietra a file sfalsate (giunti scuri), qualche lastra più chiara; il fianco resta di sabbia (sta sull'isola).
-  lastricato: (g, r) => {
+  riva: (g) => { px(g, P.sabbiaChiara, 0, 0, 32, 32); strata(g, [[P.sabbia, 2], [P.legnoChiaro, 32]]); },
+  // Porto: lastre di pietra a file sfalsate (giunti scuri); il fianco resta di sabbia (sta sull'isola).
+  lastricato: (g) => {
     px(g, P.pietra, 0, 0, 32, 32);
-    const L = FLAGS.pulito ? 16 : 8, W = FLAGS.pulito ? 16 : 12; // pulito (#286): lastre grandi, meno giunti
+    const L = 16, W = 16; // lastre grandi da un metro, pochi giunti
     for (let y = 0; y < 32; y += L) {
       px(g, P.pietraScura, 0, y, 32, 1);
       const off = (y / L) % 2 ? W / 2 : 0;
       for (let x = off; x < 32 + W; x += W) px(g, P.pietraScura, x % 32, y, 1, L);
-      if (!FLAGS.pulito && r.next() < 0.5) px(g, P.pietraChiara, r.int(1, 20), y + 2, r.int(3, 8), 3);
     }
-    speckle(g, r, P.pietraChiara, 20, 0, 32); speckle(g, r, P.pietraScura, 12, 0, 32);
     strata(g, [[P.pietra, 3], [P.legnoChiaro, 5], [P.legno, 32]]);
   },
-  // Distretto Neon: cemento a piastre da 1 m con giunti, macchie di bagnato; fianco di calcestruzzo scuro (banchina).
-  cemento: (g, r) => {
+  // Distretto Neon: cemento a piastre da 1 m con giunti; fianco di calcestruzzo scuro (banchina).
+  cemento: (g) => {
     px(g, P.pietraScura, 0, 0, 32, 32);
     for (let i = 0; i < 32; i += 16) { px(g, P.roccia, i, 0, 1, 32); px(g, P.roccia, 0, i, 32, 1); }
-    speckle(g, r, P.pietra, 18, 0, 32); speckle(g, r, P.roccia, 26, 0, 32, 2, 1);
     strata(g, [[P.pietraScura, 2], [P.roccia, 10], [P.neroCaldo, 32]]);
-    speckle(g, r, P.pietraScura, 12, 36, 44, 2, 1);
   },
 };
 

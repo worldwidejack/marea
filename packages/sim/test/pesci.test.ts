@@ -1,15 +1,14 @@
 // Test dei pesci (#457): catalogo dall'Excel di Riccardo, ombre uguali per tutti (riva sulle acque del Borgo, barca al largo) della
 // stagione e dell'ora giuste, dove si pesca dalla barca, canna, cattura (zaino a peso 0, «visto»), consegna al mobiliere («catturato»),
-// vendita al Contrabbandiere, traguardi dei pesci, e il vecchio minigioco della Pesca che non c'è più.
+// vendita al Contrabbandiere e il vecchio minigioco della Pesca che non c'è più.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import { ACQUA_RIVA, CANNA, PESCI, PESCI_CFG, tagliaDi, validatePesci } from '@marea/content/pesci.ts';
-import { DIARIO, TRAGUARDI, validateDiario } from '@marea/content/diario.ts';
+import { DIARIO, validateDiario } from '@marea/content/diario.ts';
 import { newLot } from '../src/index.ts';
 import { barcaQui, ombraValida, ombreDelTurno, pesceDisponibile, pesciAt, pesciOf, possiedeCanna, turnoPesciAt, turnoPesciMs } from '../src/economy/pesci.ts';
 import { notteAt } from '../src/economy/insetti.ts';
-import { progresso } from '../src/economy/diario.ts';
 import { MINIGAMES } from '../src/minigames/registry.ts';
 import { composeArchipelago } from '../src/world/archipelago.ts';
 import { carried, heroOf } from '../src/rpg/hero.ts';
@@ -124,13 +123,4 @@ test('pesci: canna, cattura nello zaino a peso 0 e una volta sola per ombra, con
   // le ombre pescate dei turni vecchi si dimenticano
   const tardi = OTT + 30 * 60_000;
   assert.deepEqual(pesciOf(c.lot, tardi).presi, []);
-});
-
-test('pesci: i traguardi dei pesci contano la collezione nuova', () => {
-  let lot = compraCanna(conMonete(newLot('alice', OTT), 600), OTT);
-  const t = TRAGUARDI.find((x) => x.id === 'primo_pesce')!, specie = TRAGUARDI.find((x) => x.id === 'naturalista')!;
-  assert.equal(progresso(lot, t, { amici: 0 }).fatto, 0);
-  lot = catturaPesce(lot, ombreDelTurno(turnoPesciAt(OTT))[0]!.k, OTT).lot;
-  assert.equal(progresso(lot, t, { amici: 0 }).fatto, 1);
-  assert.equal(progresso(lot, specie, { amici: 0 }).fatto, 1);
 });

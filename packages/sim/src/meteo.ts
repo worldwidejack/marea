@@ -67,15 +67,6 @@ const dellaCfg = (cfg: MeteoCfg): Cache => {
   return c;
 };
 
-const variantiCache = new Map<string, MeteoCfg>();
-/** I numeri del meteo: quelli di serie (A) o la variante B della prova per Jack (#361), uguale per tutti quelli che la scelgono. */
-export function meteoCfg(variante: 'A' | 'B' = 'A', cfg: MeteoCfg = METEO): MeteoCfg {
-  if (variante === 'A' || !cfg.provaB) return cfg;
-  let b = variantiCache.get(cfg.seed);
-  if (!b) { b = { ...cfg, nuvole: { ...cfg.nuvole, ...cfg.provaB } }; variantiCache.set(cfg.seed, b); }
-  return b;
-}
-
 // ---------- vento ----------
 /** Livello del vento nel periodo `p` (0..1, uno dei `livelli` estratto per `pesi`). */
 function livello(p: number, cfg: MeteoCfg): number {

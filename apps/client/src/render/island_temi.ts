@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import type { Rng } from '@marea/sim';
 import type { TemaStyle } from '@marea/content';
-import { ISLAND, M, P, merged, painted, px, speckle, strata } from './island_parts.ts';
+import { ISLAND, M, P, merged, painted, px, strata } from './island_parts.ts';
 import type { Painter } from './island_parts.ts';
 import { propTemplari, propTemplariGlow } from './island_templari.ts';
 // Isola delle Corse: le sue decorazioni (island_corse.ts, ~8 KB gzip) stanno in un chunk a parte, fuori dal JS iniziale (TECH §5): si
@@ -37,42 +37,41 @@ export const isTema = (s: string | null | undefined): s is TemaStyle => !!s && (
 
 // ——— terreni: sabbia (spiaggia), erba (interno), riva (scalino verso l'acqua) ———
 export const PAINT_TEMI: Record<string, Painter> = {
-  tempesta_sabbia: (g, r) => { px(g, P.roccia, 0, 0, 32, 32); speckle(g, r, P.neroCaldo, 50, 0, 32); speckle(g, r, P.pietraScura, 22, 0, 32); strata(g, [[P.roccia, 3], [P.neroCaldo, 32]]); speckle(g, r, P.roccia, 10, 36, 50); },
-  tempesta_erba: (g, r) => { px(g, P.boscoOmbra, 0, 0, 32, 32); speckle(g, r, P.bosco, 34, 0, 32, 1, 2); speckle(g, r, P.roccia, 26, 0, 32); speckle(g, r, P.erbaScura, 8, 0, 32); strata(g, [[P.boscoOmbra, 3], [P.roccia, 6], [P.neroCaldo, 32]]); },
-  tempesta_riva: (g, r) => { px(g, P.pietraScura, 0, 0, 32, 32); speckle(g, r, P.roccia, 50, 0, 32); strata(g, [[P.roccia, 2], [P.neroCaldo, 32]]); },
-  ghiacci_sabbia: (g, r) => { px(g, P.pietraChiara, 0, 0, 32, 32); speckle(g, r, P.sabbiaChiara, 40, 0, 32, 2, 1); speckle(g, r, P.acquaBassa, 10, 0, 32); strata(g, [[P.pietraChiara, 3], [P.acquaBassa, 6], [P.acqua, 32]]); speckle(g, r, P.pietraChiara, 10, 40, 60); },
+  tempesta_sabbia: (g) => { px(g, P.roccia, 0, 0, 32, 32); strata(g, [[P.roccia, 3], [P.neroCaldo, 32]]); },
+  tempesta_erba: (g) => { px(g, P.boscoOmbra, 0, 0, 32, 32); strata(g, [[P.boscoOmbra, 3], [P.roccia, 6], [P.neroCaldo, 32]]); },
+  tempesta_riva: (g) => { px(g, P.pietraScura, 0, 0, 32, 32); strata(g, [[P.roccia, 2], [P.neroCaldo, 32]]); },
+  ghiacci_sabbia: (g) => { px(g, P.pietraChiara, 0, 0, 32, 32); strata(g, [[P.pietraChiara, 3], [P.acquaBassa, 6], [P.acqua, 32]]); },
   ghiacci_erba: (g, r) => {
-    px(g, P.sabbiaChiara, 0, 0, 32, 32); speckle(g, r, P.pietraChiara, 60, 0, 32, 2, 1); speckle(g, r, P.acquaBassa, 8, 0, 32, 2, 1);
+    px(g, P.sabbiaChiara, 0, 0, 32, 32);
     strata(g, [[P.sabbiaChiara, 4], [P.pietraChiara, 3], [P.acquaBassa, 8], [P.acqua, 32]]);
     for (let x = 0; x < 32; x++) if (r.next() < 0.5) px(g, P.pietraChiara, x, 39, 1, r.int(1, 3)); // neve che cola sul fianco di ghiaccio
   },
-  ghiacci_riva: (g, r) => { px(g, P.acquaBassa, 0, 0, 32, 32); speckle(g, r, P.pietraChiara, 40, 0, 32, 2, 1); strata(g, [[P.acquaBassa, 3], [P.acqua, 32]]); },
-  vulcano_sabbia: (g, r) => { px(g, P.neroCaldo, 0, 0, 32, 32); speckle(g, r, P.roccia, 40, 0, 32); speckle(g, r, P.viola, 5, 0, 32); speckle(g, r, P.pietraScura, 8, 0, 32); strata(g, [[P.neroCaldo, 32]]); speckle(g, r, P.roccia, 14, 34, 60); },
-  vulcano_erba: (g, r) => { px(g, P.roccia, 0, 0, 32, 32); speckle(g, r, P.pietraScura, 40, 0, 32); speckle(g, r, P.neroCaldo, 30, 0, 32, 2, 1); speckle(g, r, P.arancio, 4, 0, 32); speckle(g, r, P.rosso, 3, 0, 32); strata(g, [[P.roccia, 3], [P.neroCaldo, 32]]); },
-  vulcano_riva: (g, r) => { px(g, P.neroCaldo, 0, 0, 32, 32); speckle(g, r, P.roccia, 30, 0, 32); strata(g, [[P.neroCaldo, 32]]); },
-  giardino_sabbia: (g, r) => { // ghiaia rastrellata
+  ghiacci_riva: (g) => { px(g, P.acquaBassa, 0, 0, 32, 32); strata(g, [[P.acquaBassa, 3], [P.acqua, 32]]); },
+  vulcano_sabbia: (g) => { px(g, P.neroCaldo, 0, 0, 32, 32); strata(g, [[P.neroCaldo, 32]]); },
+  vulcano_erba: (g) => { px(g, P.roccia, 0, 0, 32, 32); strata(g, [[P.roccia, 3], [P.neroCaldo, 32]]); },
+  vulcano_riva: (g) => { px(g, P.neroCaldo, 0, 0, 32, 32); strata(g, [[P.neroCaldo, 32]]); },
+  giardino_sabbia: (g) => { // ghiaia rastrellata
     px(g, P.pietraChiara, 0, 0, 32, 32);
     for (let y = 1; y < 32; y += 4) for (let x = 0; x < 32; x++) px(g, P.pietra, x, y + ((x >> 3) & 1));
-    speckle(g, r, P.pietra, 14, 0, 32); strata(g, [[P.pietra, 3], [P.pietraScura, 32]]);
+    strata(g, [[P.pietra, 3], [P.pietraScura, 32]]);
   },
-  giardino_erba: (g, r) => {
-    px(g, P.erba, 0, 0, 32, 32); speckle(g, r, P.erbaChiara, 30, 0, 32); speckle(g, r, P.erbaScura, 24, 0, 32, 1, 2); speckle(g, r, P.rosaNeon, 5, 0, 32); speckle(g, r, P.sabbiaChiara, 4, 0, 32);
+  giardino_erba: (g) => {
+    px(g, P.erba, 0, 0, 32, 32);
     strata(g, [[P.erbaScura, 3], [P.legno, 7], [P.legnoScuro, 32]]);
   },
-  giardino_riva: (g, r) => { px(g, P.pietra, 0, 0, 32, 32); speckle(g, r, P.pietraChiara, 30, 0, 32, 2, 1); speckle(g, r, P.pietraScura, 20, 0, 32); strata(g, [[P.pietraScura, 32]]); },
+  giardino_riva: (g) => { px(g, P.pietra, 0, 0, 32, 32); strata(g, [[P.pietraScura, 32]]); },
   // Templari: sabbia grigia di cenere, erba scura e secca, riva di sassi
-  templari_sabbia: (g, r) => { px(g, P.sabbia, 0, 0, 32, 32); speckle(g, r, P.pietra, 30, 0, 32); speckle(g, r, P.legnoChiaro, 16, 0, 32); speckle(g, r, P.pietraScura, 8, 0, 32); strata(g, [[P.legnoChiaro, 3], [P.legno, 32]]); speckle(g, r, P.legnoScuro, 10, 36, 60); },
-  templari_erba: (g, r) => { px(g, P.bosco, 0, 0, 32, 32); speckle(g, r, P.erbaScura, 30, 0, 32, 1, 2); speckle(g, r, P.boscoOmbra, 30, 0, 32); speckle(g, r, P.legno, 10, 0, 32); speckle(g, r, P.rosso, 2, 0, 32); strata(g, [[P.boscoOmbra, 3], [P.legnoScuro, 7], [P.ombraCalda, 32]]); },
-  templari_riva: (g, r) => { px(g, P.pietraScura, 0, 0, 32, 32); speckle(g, r, P.pietra, 30, 0, 32, 2, 1); speckle(g, r, P.roccia, 30, 0, 32); strata(g, [[P.roccia, 32]]); },
-  // Isola delle Corse (l'hub vista dal mare, #185): spiaggia chiara, prato pieno di fiori come nella concept, riva di sabbia
-  corse_sabbia: (g, r) => { px(g, P.sabbia, 0, 0, 32, 32); speckle(g, r, P.sabbiaChiara, 50, 0, 32); speckle(g, r, P.legnoChiaro, 12, 0, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 5], [P.legno, 32]]); speckle(g, r, P.sabbiaChiara, 8, 32, 36); },
+  templari_sabbia: (g) => { px(g, P.sabbia, 0, 0, 32, 32); strata(g, [[P.legnoChiaro, 3], [P.legno, 32]]); },
+  templari_erba: (g) => { px(g, P.bosco, 0, 0, 32, 32); strata(g, [[P.boscoOmbra, 3], [P.legnoScuro, 7], [P.ombraCalda, 32]]); },
+  templari_riva: (g) => { px(g, P.pietraScura, 0, 0, 32, 32); strata(g, [[P.roccia, 32]]); },
+  // Isola delle Corse (l'hub vista dal mare): spiaggia chiara, prato, riva di sabbia
+  corse_sabbia: (g) => { px(g, P.sabbia, 0, 0, 32, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 5], [P.legno, 32]]); },
   corse_erba: (g, r) => {
-    px(g, P.erba, 0, 0, 32, 32); speckle(g, r, P.erbaChiara, 30, 0, 32); speckle(g, r, P.erbaScura, 26, 0, 32, 1, 2);
-    speckle(g, r, P.giallo, 4, 0, 32); speckle(g, r, P.rosaNeon, 3, 0, 32); speckle(g, r, P.pietraChiara, 3, 0, 32);
+    px(g, P.erba, 0, 0, 32, 32);
     strata(g, [[P.erbaScura, 3], [P.legno, 7], [P.legnoScuro, 32]]);
     for (let x = 0; x < 32; x++) if (r.next() < 0.45) px(g, P.erbaScura, x, 35, 1, r.int(1, 2));
   },
-  corse_riva: (g, r) => { px(g, P.sabbiaChiara, 0, 0, 32, 32); speckle(g, r, P.sabbia, 60, 0, 32); strata(g, [[P.sabbia, 2], [P.legnoChiaro, 32]]); },
+  corse_riva: (g) => { px(g, P.sabbiaChiara, 0, 0, 32, 32); strata(g, [[P.sabbia, 2], [P.legnoChiaro, 32]]); },
 };
 
 // ——— montagne: colonne di roccia a gradoni, più alte lontano dalla riva (cono del vulcano col cratere di lava) ———

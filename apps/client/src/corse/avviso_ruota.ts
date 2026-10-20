@@ -2,11 +2,11 @@
 // tenuto in verticale compare un avviso a tutto schermo e la gara sta ferma; con una scappatoia piccola per giocare lo stesso in verticale.
 // Sul PC non compare mai. `?ruota=1` lo forza (per provarlo), `?ruota=0` lo toglie.
 import { P } from '../render/island_parts.ts';
+import { FLAGS } from '../flags.ts';
 
 export type AvvisoRuota = { visibile(): boolean; chiudi(): void; /** Acceso solo mentre si gioca (nel gioco, schermo delle Corse aperto); sul banco di prova sempre. */ attiva(on: boolean): void };
 
 export function avvisoRuota(root: HTMLElement, attivoDaSubito = true): AvvisoRuota {
-  const q = new URLSearchParams(location.search).get('ruota');
   const verticale = matchMedia('(orientation: portrait)'), dito = matchMedia('(pointer: coarse)');
   let scappato = false, attivo = attivoDaSubito;
   const css = document.createElement('style');
@@ -26,7 +26,7 @@ export function avvisoRuota(root: HTMLElement, attivoDaSubito = true): AvvisoRuo
   el.querySelector('button')!.addEventListener('click', () => { scappato = true; agg(); });
   for (const t of ['pointerdown', 'touchstart', 'touchmove']) el.addEventListener(t, (e) => e.stopPropagation(), { passive: true });
   root.appendChild(el);
-  const serve = () => q === '1' ? verticale.matches : q === '0' ? false : verticale.matches && dito.matches && Math.min(innerWidth, innerHeight) < 700;
+  const serve = () => FLAGS.ruota === '1' ? verticale.matches : FLAGS.ruota === '0' ? false : verticale.matches && dito.matches && Math.min(innerWidth, innerHeight) < 700;
   function agg() {
     const on = attivo && !scappato && serve();
     el.classList.toggle('on', on);

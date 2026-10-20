@@ -5,7 +5,7 @@
 // dell'Egida, Guardia d'Onore, il Custode dell'Egida), la chiave di carica e il sarcofago della Regina. Gli effetti della scena stanno in
 // mausoleo_fx.ts. Solo colori della palette, texture a pixel nearest, facce piatte; quando arriva un modello vero nel manifest vince lui.
 import * as THREE from 'three';
-import { M, block, merged, painted, px, speckle, strata, tex } from '../render/island_parts.ts';
+import { M, block, merged, painted, px, strata, tex } from '../render/island_parts.ts';
 import { PAL } from '../ui/style.ts';
 import type { Part } from './dungeon_kit.ts';
 
@@ -53,16 +53,15 @@ function cancelloGeo(): THREE.BufferGeometry {
 /** Pezzi del kit `mausoleo` (cache): una geometria e un materiale per pezzo. `acqua` è il cancello (il bacino della chiave di carica). */
 export function kitMausoleo(top: number): KitMausoleo {
   if (kit) return kit;
-  const pav = tex('pav', 'mausoleo', (g, r) => {
+  const pav = tex('pav', 'mausoleo', (g) => {
     px(g, PAL.pietraChiara, 0, 0, 32, 32);
     for (let y = 0; y < 32; y += 8) for (let x = (y / 8) % 2 ? 0 : 8; x < 32; x += 16) px(g, PAL.pietra, x, y, 8, 8); // scacchi di marmo
     for (let i = 0; i < 32; i += 16) { px(g, PAL.giallo, i, 0, 1, 32); px(g, PAL.giallo, 0, i, 32, 1); } // righe d'ottone ogni metro
     for (const [x, y] of [[0, 0], [16, 0], [0, 16], [16, 16]] as const) px(g, PAL.arancio, x, y, 2, 2); // borchie agli incroci
-    speckle(g, r, PAL.sabbiaChiara, 14, 0, 32); speckle(g, r, PAL.pietraScura, 5, 0, 32); // venature
     strata(g, [[PAL.pietra, 3], [PAL.pietraScura, 32]]);
   });
   const muro = tex('muro', 'mausoleo', (g, r) => {
-    px(g, PAL.pietra, 0, 0, 32, 32); speckle(g, r, PAL.pietraChiara, 24, 0, 32); // la cima
+    px(g, PAL.pietra, 0, 0, 32, 32); // la cima
     // fianco (32 righe = 2 m dall'alto): conci di marmo bianco, fascia d'ottone, canale dell'acqua che corre alla base
     px(g, PAL.pietra, 0, 32, 32, 32);
     for (let y = 33, k = 0; y < 52; y += 6, k++) for (let x = (k % 2) * 8 - 8; x < 32; x += 16) px(g, PAL.pietraChiara, x + 1, y, 15, 5);

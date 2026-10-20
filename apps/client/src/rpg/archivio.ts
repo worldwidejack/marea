@@ -6,7 +6,7 @@
 // texture a pixel nearest, facce piatte; quando arriva un modello vero nel manifest vince lui.
 import * as THREE from 'three';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
-import { M, block, merged, painted, px, speckle, strata, tex } from '../render/island_parts.ts';
+import { M, block, merged, painted, px, strata, tex } from '../render/island_parts.ts';
 import { PAL } from '../ui/style.ts';
 import type { Part } from './dungeon_kit.ts';
 import type { DungeonScene } from './dungeon_scene.ts';
@@ -31,17 +31,15 @@ let kit: KitArchivio | null = null;
 /** Pezzi del kit `archivio` (cache): una geometria e un materiale per pezzo. */
 export function kitArchivio(top: number): KitArchivio {
   if (kit) return kit;
-  const pav = tex('pav', 'archivio', (g, r) => {
+  const pav = tex('pav', 'archivio', (g) => {
     px(g, PAL.legno, 0, 0, 32, 32);
     for (let y = 0; y < 32; y += 8) px(g, PAL.legnoScuro, 0, y, 32, 1); // tavole da mezzo metro
     for (let y = 0; y < 32; y += 8) px(g, PAL.legnoScuro, (y * 5 + 7) % 32, y + 1, 1, 7); // giunte sfalsate
     for (const [x, y] of [[3, 3], [27, 11], [11, 19], [21, 27]] as const) px(g, PAL.arancio, x, y); // chiodi d'ottone
-    speckle(g, r, PAL.legnoChiaro, 10, 0, 32, 2, 1); speckle(g, r, PAL.legnoScuro, 14, 0, 32, 2, 1); speckle(g, r, PAL.ombraCalda, 8, 0, 32);
-    speckle(g, r, PAL.sabbiaChiara, 3, 0, 32, 2, 2); // pezzetti di carta
     strata(g, [[PAL.legnoScuro, 4], [PAL.ombraCalda, 32]]);
   });
   const muro = tex('muro', 'archivio', (g, r) => {
-    px(g, PAL.legnoScuro, 0, 0, 32, 32); speckle(g, r, PAL.ombraCalda, 24, 0, 32); // la cima, vista dall'alto
+    px(g, PAL.legnoScuro, 0, 0, 32, 32); // la cima, vista dall'alto
     // fianco (32 righe = 2 m dall'alto): cornice d'ottone, tre ripiani di carte arrotolate, zoccolo scuro
     px(g, PAL.ombraCalda, 0, 32, 32, 32);
     px(g, PAL.arancio, 0, 33, 32, 1);
