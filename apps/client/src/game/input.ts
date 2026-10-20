@@ -8,6 +8,7 @@
 // scritta di cosa fa adesso (#btnAzione, `setAzione`); B c'è solo dove serve (`setB`: nel mondo a piedi e in barca no).
 import type { InputFrame } from '@marea/sim';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { pomello, tieniPremuto } from '../ui/comandi_touch.ts';
 
 export type Input = {
   sample(): InputFrame; dispose(): void; inject(f: Partial<InputFrame> | null): void;
@@ -46,7 +47,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') bLatch = true;
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
-  const releaseAll = () => { keys.clear(); aHeld.clear(); bHeld.clear(); aLatch = bLatch = false; endStick(); paintBtns(); }; // blur / scheda nascosta: niente tasti incollati (anche in gara)
+  const releaseAll = () => { keys.clear(); tA.lascia(); tB.lascia(); aLatch = bLatch = false; endStick(); }; // blur / scheda nascosta: niente tasti incollati (anche in gara)
   addEventListener('keydown', kd); addEventListener('keyup', ku); addEventListener('blur', releaseAll);
   const onVis = () => { if (document.hidden) releaseAll(); };
   document.addEventListener('visibilitychange', onVis);
@@ -69,7 +70,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   let bVia = false, azTesto: string | null = null;
   btnA.style.cssText = aCss; btnB.style.cssText = bCss; azione.style.cssText = azCss + 'display:none;';
   o.root.append(joy, btnA, btnB, azione);
-  for (const e of [joy, btnA, btnB]) e.addEventListener('contextmenu', (ev) => ev.preventDefault());
+  joy.addEventListener('contextmenu', (ev) => ev.preventDefault()); // i bottoni lo fanno in tieniPremuto
   // niente scroll/zoom della pagina (Safari ignora user-scalable=no)
   const noGesture = (e: Event) => e.preventDefault();
   for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, noGesture as EventListener, { passive: false });
@@ -98,7 +99,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
     let ox = cx, oy = cy;
     if (!una) { const r = joy.getBoundingClientRect(); ox = r.left + r.width / 2; oy = r.top + r.height / 2; }
     const dx = e.clientX - ox, dy = e.clientY - oy;
-    const d = Math.hypot(dx, dy); const k = d > R ? R / d : 1; jx = (dx * k) / R; jy = (dy * k) / R; setStick();
+    const p = pomello(dx, dy, R); jx = p.x; jy = p.y; setStick();
   };
   function endStick() { const era = jid !== null; jid = null; jx = jy = 0; setStick(); if (una && era) setPad(restaMs > 0 ? 'riposo' : 'via'); }
   const dedupe = (e: Event) => { if (e === lastEv) return true; lastEv = e; return false; };
@@ -122,21 +123,14 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
   // rete di sicurezza: se la cattura salta (uscita dal browser), lo stick si rilascia comunque; i movimenti del joystick volante arrivano dal canvas
   addEventListener('pointermove', onMove); addEventListener('pointerup', onEnd); addEventListener('pointercancel', onEnd);
 
-  // ---- bottoni: un set di pointerId per bottone (multi-touch); il latch cattura anche i tocchi più brevi di un tick ----
-  const aHeld = new Set<number>(), bHeld = new Set<number>();
+  // ---- bottoni: un set di dita per bottone (ui/comandi_touch.ts, più dita insieme); il latch cattura anche i tocchi più brevi di un tick ----
   const paintBtns = () => {
-    btnA.style.cssText = aCss + (aHeld.size ? 'transform:translateY(3px) scale(.95);filter:brightness(1.12);' : '');
-    btnB.style.cssText = bCss + (bHeld.size ? 'transform:translateY(3px) scale(.95);filter:brightness(1.15);' : '') + (bVia ? 'display:none;' : '');
+    btnA.style.cssText = aCss + (tA.giu ? 'transform:translateY(3px) scale(.95);filter:brightness(1.12);' : '');
+    btnB.style.cssText = bCss + (tB.giu ? 'transform:translateY(3px) scale(.95);filter:brightness(1.15);' : '') + (bVia ? 'display:none;' : '');
   };
-  const wire = (btn: HTMLElement, held: Set<number>, latch: () => void) => {
-    btn.addEventListener('pointerdown', (e) => { if (dedupe(e)) return; e.preventDefault(); held.add(e.pointerId); latch(); try { btn.setPointerCapture(e.pointerId); } catch { /* sintetico */ } paintBtns(); });
-    const up = (e: PointerEvent) => { if (dedupe(e)) return; held.delete(e.pointerId); paintBtns(); };
-    for (const ev of ['pointerup', 'pointercancel']) btn.addEventListener(ev, up as EventListener);
-  };
-  wire(btnA, aHeld, () => (aLatch = true)); wire(btnB, bHeld, () => (bLatch = true));
-  // rete di sicurezza: dito rilasciato fuori dal bottone senza cattura
-  const upAny = (e: PointerEvent) => { if (aHeld.delete(e.pointerId) || bHeld.delete(e.pointerId)) paintBtns(); };
-  addEventListener('pointerup', upAny); addEventListener('pointercancel', upAny);
+  // finestra: rete di sicurezza per il dito rilasciato fuori dal bottone senza cattura
+  const tA = tieniPremuto(btnA, { premi: () => (aLatch = true), cambia: paintBtns, finestra: true });
+  const tB = tieniPremuto(btnB, { premi: () => (bLatch = true), cambia: paintBtns, finestra: true });
 
   let injected: Partial<InputFrame> | null = null;
   let last = { sx: 0, sy: 0, mag: 0, src: 'none' };
@@ -150,7 +144,7 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
     },
     setB(on) {
       if (on !== bVia) return;
-      bVia = !on; if (bVia) { bHeld.clear(); bLatch = false; }
+      bVia = !on; if (bVia) { tB.lascia(); bLatch = false; }
       paintBtns();
     },
     setUnaMano(on, sec) {
@@ -174,22 +168,22 @@ export function createInput(o: { canvas: HTMLCanvasElement; root: HTMLElement; c
         if (d > DEAD) { const mag = (d - DEAD) / (1 - DEAD); sx = (jx / d) * mag; sy = (jy / d) * mag; src = 'stick'; }
       }
       const { mx, my } = screenToWorld(sx, sy, o.cameraYaw());
-      const a = aLatch || aHeld.size > 0 || keys.has('Space') || keys.has('KeyE');
-      const b = bLatch || bHeld.size > 0 || shift;
+      const a = aLatch || tA.giu || keys.has('Space') || keys.has('KeyE');
+      const b = bLatch || tB.giu || shift;
       aLatch = bLatch = false;
       last = { sx, sy, mag: Math.hypot(sx, sy), src };
       return { mx, my, a, b };
     },
     dispose() {
       removeEventListener('keydown', kd); removeEventListener('keyup', ku); removeEventListener('blur', releaseAll);
-      removeEventListener('pointermove', onMove); removeEventListener('pointerup', onEnd); removeEventListener('pointercancel', onEnd); removeEventListener('pointerup', upAny); removeEventListener('pointercancel', upAny);
+      removeEventListener('pointermove', onMove); removeEventListener('pointerup', onEnd); removeEventListener('pointercancel', onEnd); tA.dispose(); tB.dispose();
       o.canvas.removeEventListener('pointerdown', onCanvasDown); if (restT !== null) clearTimeout(restT);
       document.removeEventListener('visibilitychange', onVis);
       for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.removeEventListener(ev, noGesture as EventListener);
       joy.remove(); btnA.remove(); btnB.remove(); azione.remove();
     },
   };
-  registerStateProvider('wp2_input', () => ({ ...last, stick: [jx, jy], a: aHeld.size > 0, b: bHeld.size > 0, injected: !!injected, unaMano: una, pad: una ? pad : 'fisso', padAt: [Math.round(cx), Math.round(cy)], restaMs, azione: azTesto, bVisibile: !bVia }));
+  registerStateProvider('wp2_input', () => ({ ...last, stick: [jx, jy], a: tA.giu, b: tB.giu, injected: !!injected, unaMano: una, pad: una ? pad : 'fisso', padAt: [Math.round(cx), Math.round(cy)], restaMs, azione: azTesto, bVisibile: !bVia }));
   registerTestHook('wp2_inject', (f) => input.inject((f ?? null) as Partial<InputFrame> | null));
   return input;
 }
