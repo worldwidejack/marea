@@ -367,6 +367,13 @@ export default {
         const r = await lotReq(env, p.id, now, 'pesci_' + (pes[1] ?? ''), { k: body['k'], id: body['id'] });
         return pes[1] === 'consegna' ? segnaCollezioneDa(r, (q, b) => sfideReq(env, p.id, now, q, b)) : r;
       }
+      // i paesani del Borgo: parla (primo incontro, messaggi, favore riscosso), accetta o rifiuta un favore, regala quello che chiedono
+      const pae = path.match(/^\/api\/lot\/paesani\/(parla|accetta|rifiuta|dona)$/);
+      if (pae && req.method === 'POST') {
+        const body = await corpo();
+        if (body instanceof Response) return body;
+        return lotReq(env, p.id, now, 'paesani_' + (pae[1] ?? ''), { id: body['id'], slot: body['slot'] });
+      }
       // minigiochi da solo (senza posta): il DO del lotto apre la partita e la premia
       if (path === '/api/solo/start' && req.method === 'POST') {
         const body = await corpo();
