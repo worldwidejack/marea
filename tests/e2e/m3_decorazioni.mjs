@@ -126,7 +126,7 @@ export default async function (ctx) {
       await V.page.keyboard.press('KeyE');
       await ctx.waitState(V.page, (s, id) => s.lot.panel && s.lot.panel.kind === 'decor' && s.lot.panel.id === id, 5000, lanterna.id);
       const txt = await V.page.locator('#mzSheet').innerText();
-      assert(/Lanterna/i.test(txt) && /SPOSTA/.test(txt) && /RUOTA/.test(txt) && /RIVENDI/.test(txt) && txt.includes(`+${rimborso('lanterna')}`), 'scheda: ' + txt);
+      assert(/Lanterna/i.test(txt) && /sposta/i.test(txt) && /ruota/i.test(txt) && /rivendi/i.test(txt) && txt.includes(`+${rimborso('lanterna')}`), 'scheda: ' + txt);
       await ctx.shot(V.page, 'desktop_scheda');
     });
 

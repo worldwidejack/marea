@@ -92,7 +92,7 @@ export default async function (ctx) {
       const sa = s0.insetti.sassi[0];
       await hook('teleport', sa.x + 1.2, sa.z + 0.5);
       await hook('insettiAttrezzo', 'pala');
-      await ctx.waitState(page, (s) => s.insetti.ctx === 'sasso' && /COLPISCI/.test(s.insetti.bottone ?? ''), 3000);
+      await ctx.waitState(page, (s) => s.insetti.ctx === 'sasso' && /colpisci/i.test(s.insetti.bottone ?? ''), 3000);
       let uscito = null;
       for (let i = 0; i < s0.insetti.sassi.length && !uscito; i++) {
         const r = await hook('insettiSasso', i);

@@ -8,10 +8,10 @@ export type MenuAvatar = { apri(): void; chiudi(): void; isOpen(): boolean; voci
 type Voce = { id: string; bottone: string; titolo: string; sotto: string; colore: string; scuro: string; icona: string };
 /** Le voci del menù AVATAR, nell'ordine; una voce c'è solo se il suo bottone nascosto esiste (Personaggio vuole il login). */
 const VOCI: readonly Voce[] = [
-  { id: 'aspetto', bottone: 'mzEditorBtn', titolo: 'ASPETTO', sotto: 'Viso, capelli, vestiti, nome e la tua barca', colore: A.blu, scuro: A.bluScuro, icona: 'maglia' },
-  { id: 'personaggio', bottone: 'mzHeroBtn', titolo: 'PERSONAGGIO', sotto: 'Zaino, armi, armature e abilità', colore: A.rosso, scuro: A.rossoScuro, icona: 'spada' },
-  { id: 'diario', bottone: 'mzDiarioBtn', titolo: 'DIARIO', sotto: 'Pesci, insetti, perle, animali e isole trovati', colore: A.notteBlu, scuro: A.notte, icona: 'libro' },
-  { id: 'foto', bottone: 'mzFotoBtn', titolo: 'FOTO', sotto: 'Scatta una foto al tuo personaggio', colore: A.oro, scuro: A.oroScuro, icona: 'foto' },
+  { id: 'aspetto', bottone: 'mzEditorBtn', titolo: 'Aspetto', sotto: 'Viso, capelli, vestiti, nome e la tua barca', colore: A.blu, scuro: A.bluScuro, icona: 'maglia' },
+  { id: 'personaggio', bottone: 'mzHeroBtn', titolo: 'Personaggio', sotto: 'Zaino, armi, armature e abilità', colore: A.rosso, scuro: A.rossoScuro, icona: 'spada' },
+  { id: 'diario', bottone: 'mzDiarioBtn', titolo: 'Diario', sotto: 'Pesci, insetti, perle, animali e isole trovati', colore: A.notteBlu, scuro: A.notte, icona: 'libro' },
+  { id: 'foto', bottone: 'mzFotoBtn', titolo: 'Foto', sotto: 'Scatta una foto al tuo personaggio', colore: A.oro, scuro: A.oroScuro, icona: 'foto' },
 ];
 const ICONE: Record<string, string> = {
   maglia: `<path d='M8 3 3 6l2.2 4.2L7 9.3V21h10V9.3l1.8.9L21 6l-5-3c-.6 1.5-2.2 2.4-4 2.4S8.6 4.5 8 3z' fill='#fff' stroke='${A.notte}' stroke-width='1.5' stroke-linejoin='round'/>`,
@@ -46,7 +46,7 @@ export function createMenuAvatar(o: { root: HTMLElement; nome: string; ritratto(
   if (!document.getElementById('mz-avatar-menu-style')) { const st = document.createElement('style'); st.id = 'mz-avatar-menu-style'; st.textContent = CSS; document.head.appendChild(st); }
   const menu = el('div', 'mz'); menu.id = 'mzAvatarMenu'; menu.setAttribute('role', 'dialog'); menu.setAttribute('aria-label', 'Avatar');
   const pan = el('div', 'pan');
-  const testa = el('div', 'testa'), ritr = el('div', 'ritr'), rImg = document.createElement('img'), tit = el('div', 'tit', 'AVATAR'), nome = el('small', '', o.nome);
+  const testa = el('div', 'testa'), ritr = el('div', 'ritr'), rImg = document.createElement('img'), tit = el('div', 'tit', 'Avatar'), nome = el('small', '', o.nome);
   rImg.alt = ''; rImg.style.display = 'none'; ritr.appendChild(rImg); tit.appendChild(nome);
   const x = el('button', 'x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Chiudi');
   testa.append(ritr, tit, x);

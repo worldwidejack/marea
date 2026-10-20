@@ -127,7 +127,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     if (o.loader.has(name)) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => holder.add(placeholder()));
     else holder.add(placeholder(s.stile));
     const label = layer.add(() => { void enter(s); });
-    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome.toUpperCase())], 'dng');
+    label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome)], 'dng');
     label.el.classList.add('dng');
     const sig = richiesto(s.id) ? sigillo(s.stile) : null;
     if (sig) holder.add(sig);
@@ -162,7 +162,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
     } catch { o.hud.toast('Squadra non disponibile, riprova', 2500); return; }
     const box = el('div', 'mz mz-dng-sq'); box.id = 'mzDngSquadra';
     const chi = el('div', 'chi', '…'), sub = el('div', 'sub', 'Mi collego…');
-    const via = el('button', 'mz-btn via', 'SCENDIAMO') as HTMLButtonElement; via.type = 'button'; via.dataset['act'] = 'via'; via.disabled = true;
+    const via = el('button', 'mz-btn via', 'Scendiamo') as HTMLButtonElement; via.type = 'button'; via.dataset['act'] = 'via'; via.disabled = true;
     const esci = el('button', 'mz-btn ghost', 'Esci dalla squadra'); esci.type = 'button'; esci.dataset['act'] = 'esci';
     box.append(el('b', '', `Squadra · ${s.nome}`), chi, sub, via, esci);
     for (const ev of ['pointerdown', 'touchstart']) box.addEventListener(ev, (x) => x.stopPropagation());
@@ -187,8 +187,8 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
   function disegnaSquadra(sq: Squadra, max: number): void {
     const n = sq.membri.length;
     sq.chi.textContent = sq.membri.map((x) => x.nome).join(' · ');
-    sq.sub.textContent = n < 2 ? 'Aspetta i compagni: devono premere AFFRONTA INSIEME anche loro' : `${n} su ${max}: chiunque può dire SCENDIAMO`;
-    sq.via.disabled = n < 2; sq.via.textContent = n < 2 ? 'SCENDIAMO' : `SCENDIAMO (${n})`;
+    sq.sub.textContent = n < 2 ? 'Aspetta i compagni: devono premere «Affronta insieme» anche loro' : `${n} su ${max}: chiunque può dire «Scendiamo»`;
+    sq.via.disabled = n < 2; sq.via.textContent = n < 2 ? 'Scendiamo' : `Scendiamo (${n})`;
   }
   function chiudiSquadra(): void {
     const sq = squadra;
@@ -249,7 +249,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       const b = (cls: string, act: string, txt: string, v: 'ingresso' | 'lanterna' | null) => { const x = el('button', cls, txt); x.type = 'button'; x.dataset['act'] = act; x.addEventListener('click', () => close(v)); return x; };
       const kd = (e: KeyboardEvent) => { if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(null); } };
       box.append(el('b', '', s.nome), el('div', 'sub', 'Da dove parti?'),
-        b('mz-btn lan', 'lanterna', 'DALLA LANTERNA', 'lanterna'), b('mz-btn ghost', 'ingresso', 'DALL’INGRESSO', 'ingresso'), b('mz-btn ghost', 'annulla', 'Annulla', null));
+        b('mz-btn lan', 'lanterna', 'Dalla lanterna', 'lanterna'), b('mz-btn ghost', 'ingresso', 'Dall’ingresso', 'ingresso'), b('mz-btn ghost', 'annulla', 'Annulla', null));
       for (const ev of ['pointerdown', 'touchstart']) box.addEventListener(ev, (x) => x.stopPropagation());
       addEventListener('keydown', kd, true);
       o.root.append(box);
@@ -408,13 +408,13 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
       if (show && near && btn.dataset['spot'] !== bsig) {
         btn.dataset['spot'] = bsig;
         const r = richiesto(near.id), cancello = r === 'unico_anello_onda';
-        const txt = chiusa ? (cancello ? `CANCELLO CHIUSO · ${near.nome.toUpperCase()}` : `SIGILLATO · ${near.nome.toUpperCase()}`) : `ENTRA · ${near.nome.toUpperCase()}`;
+        const txt = chiusa ? (cancello ? `Cancello chiuso · ${near.nome}` : `Sigillato · ${near.nome}`) : `Entra · ${near.nome}`;
         const sub = chiusa ? (cancello ? "serve: Anello dell'Onda" : `prima: ${nomeDi(r)}`) : 'A';
         btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', txt), el('small', '', sub));
       }
       btn.classList.toggle('on', show); btn.classList.toggle('sig', chiusa);
       const showSq = show && vicini > 0 && !chiusa, sig = `${near?.id}|${vicini}`;
-      if (showSq && btnSq.dataset['sig'] !== sig) { btnSq.dataset['sig'] = sig; btnSq.replaceChildren(pixIcon(ICON, 24), el('span', '', 'AFFRONTA INSIEME'), el('small', '', `${vicini + 1} qui`)); }
+      if (showSq && btnSq.dataset['sig'] !== sig) { btnSq.dataset['sig'] = sig; btnSq.replaceChildren(pixIcon(ICON, 24), el('span', '', 'Affronta insieme'), el('small', '', `${vicini + 1} qui`)); }
       btnSq.classList.toggle('on', showSq);
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
       for (const m of marks) {
@@ -425,7 +425,7 @@ export function createIngressi(o: { world: GameWorld; renderer: Renderer; loader
             m.chiuso = c; m.sig.visible = c;
             if (!c && m.s.id === 'vuoto') { try { localStorage.setItem('marea:cancello_vuoto_aperto', '1'); } catch {} }
             const r = richiesto(m.s.id), tag = c ? (r === 'unico_anello_onda' ? ' · CANCELLO CHIUSO' : ' · SIGILLATO') : '';
-            m.label.set('bubble', [pixIcon(m.s.icon, 16), el('span', '', `${m.s.nome.toUpperCase()}${tag}`)], c ? 'dng-sig' : 'dng');
+            m.label.set('bubble', [pixIcon(m.s.icon, 16), el('span', '', `${m.s.nome}${tag}`)], c ? 'dng-sig' : 'dng');
             m.label.el.classList.add('dng'); m.label.el.classList.toggle('sig', c); // set() rifà le classi
           }
         }

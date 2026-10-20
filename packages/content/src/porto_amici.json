@@ -1,6 +1,6 @@
 {
-  "tabellone": { "nome": "Tabellone dei record", "cartello": "RECORD", "at": [35.6, 46.2], "rot": 1.5708, "fronte": [37, 46.2], "raggio": 2.8 },
-  "faro": { "nome": "Grande Faro", "cartello": "GRANDE FARO", "at": [36.8, 63.7], "rot": 2.79, "fronte": [37.6, 61.5], "raggio": 3.4 },
+  "tabellone": { "nome": "Tabellone dei record", "cartello": "Record", "at": [35.6, 46.2], "rot": 1.5708, "fronte": [37, 46.2], "raggio": 2.8 },
+  "faro": { "nome": "Grande Faro", "cartello": "Grande Faro", "at": [36.8, 63.7], "rot": 2.79, "fronte": [37.6, 61.5], "raggio": 3.4 },
   "alGioco": {
     "regata": "alla Regata", "perle": "alla Caccia alle perle", "consegne": "alle Consegne", "ingorgo": "all'Ingorgo",
     "pinguini": "ai Pinguini", "koi": "alle Carpe koi", "arrembaggio": "all'Arrembaggio", "lava": "alla Fuga dalla lava", "corse": "al Gran Premio", "snowboard": "allo Snowboard"

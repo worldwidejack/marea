@@ -86,7 +86,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
   const toggleRow = (key: 'stampa' | 'contorni' | 'meteo' | 'unaMano', title: string, sub: string) => {
     const b = el('button', 'mz-set-row' + (cur[key] ? ' on' : '')); b.type = 'button'; b.dataset['set'] = key;
     const txt = el('span'); txt.append(el('span', '', title), el('span', 'q', sub));
-    b.append(txt, el('span', 'sw', cur[key] ? 'SÌ' : 'NO'));
+    b.append(txt, el('span', 'sw', cur[key] ? 'Sì' : 'No'));
     b.addEventListener('click', () => change({ [key]: !cur[key] }));
     return b;
   };
@@ -117,7 +117,7 @@ export function createImpostazioni(o: { root: HTMLElement; onChange(s: Impostazi
     if (g) {
       const on = g.on(), b = el('button', 'mz-set-row' + (on ? ' on' : '')); b.type = 'button'; b.dataset['set'] = 'guida';
       const txt = el('span'); txt.append(el('span', '', 'Guida «Primi passi»'), el('span', 'q', 'per chi arriva: una scheda gialla ti dice cosa fare, un passo alla volta'));
-      b.append(txt, el('span', 'sw', on ? 'SÌ' : 'NO'));
+      b.append(txt, el('span', 'sw', on ? 'Sì' : 'No'));
       b.addEventListener('click', () => { g.set(!g.on()); render(); });
       body.appendChild(b);
     }

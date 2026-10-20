@@ -120,8 +120,8 @@ export function chiacchierata(o: ChiacchierataOpts): Pagina[] {
     case 'dono': {
       const f = ev.favore;
       pagine.push({ testo: riempi(unaDi(V.dono, rng), { cosa: cosa(f), nome: nomeSpecie(f.cosa, f.id) }), scelte: [
-        { label: `REGALA`, act: 'regala', principale: true, fai: () => regala(f) },
-        { label: 'NON ANCORA', act: 'non-ancora', fai: () => scheda.chiudi() },
+        { label: `Regala`, act: 'regala', principale: true, fai: () => regala(f) },
+        { label: 'Non ancora', act: 'non-ancora', fai: () => scheda.chiudi() },
       ] });
       break;
     }
@@ -144,8 +144,8 @@ export function chiacchierata(o: ChiacchierataOpts): Pagina[] {
       : riempi(unaDi(off.cosa === 'pesce' ? V.pesce : V.insetto, rng), { cosa: cosa(off), tempo: durataTesto(off.durata) });
     const nota = off.tipo === 'parla' ? PAESANI[off.a]?.dove ?? '' : dritta(off) + '.';
     return { testo, nota, scelte: [
-      { label: 'VA BENE', act: 'accetta', principale: true, fai: () => accetta(off) },
-      { label: 'NON ORA', act: 'rifiuta', fai: () => rifiuta() },
+      { label: 'Va bene', act: 'accetta', principale: true, fai: () => accetta(off) },
+      { label: 'Non ora', act: 'rifiuta', fai: () => rifiuta() },
     ] };
   }
   async function accetta(off: Offerta): Promise<void> {

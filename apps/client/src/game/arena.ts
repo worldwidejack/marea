@@ -44,11 +44,11 @@ export function createArena(o: { world: GameWorld; renderer: Renderer; loader: L
   // ---- cartello sopra il portone e bottone ENTRA ----
   const layer = createLabelLayer(o.root);
   const label = spot ? layer.add(() => { void entra(); }) : null;
-  label?.set('bubble', [pixIcon('arena', 16), el('span', '', 'COLOSSEO DELL’ARENA')], 'dng');
+  label?.set('bubble', [pixIcon('arena', 16), el('span', '', 'Colosseo dell’Arena')], 'dng');
   label?.el.classList.add('dng');
   const btn = el('button', 'mz mz-play'); btn.id = 'mzArenaEntra'; btn.type = 'button';
   btn.style.background = PAL.giallo; btn.style.color = PAL.ombraCalda;
-  btn.replaceChildren(pixIcon('arena', 24), el('span', '', 'ENTRA NEL COLOSSEO'), el('small', '', 'A'));
+  btn.replaceChildren(pixIcon('arena', 24), el('span', '', 'Entra nel Colosseo'), el('small', '', 'A'));
   for (const ev of ['pointerdown', 'touchstart']) btn.addEventListener(ev, (x) => x.stopPropagation());
   btn.addEventListener('click', () => { void entra(); });
   o.root.append(btn);

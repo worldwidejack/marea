@@ -169,7 +169,7 @@ export function createPescaBorgo(o: {
   o.root.appendChild(stick.el);
   let presoFino = 0, avvisoAt = -AVVISO_MS, okWas = false, cannaAvviso = false;
   const cartello = (d: PesceDef, nuovo: boolean) => {
-    preso.replaceChildren(pesceCanvas(d, 4), el('small', '', 'HAI PRESO'), el('b', '', d.nome.toUpperCase() + '!'), el('small', '', nuovo ? 'Nuovo nel Diario: portalo al mobiliere per la tua collezione' : 'È nello zaino'));
+    preso.replaceChildren(pesceCanvas(d, 4), el('small', '', 'Hai preso'), el('b', '', d.nome + '!'), el('small', '', nuovo ? 'Nuovo nel Diario: portalo al mobiliere per la tua collezione' : 'È nello zaino'));
     preso.classList.add('on'); presoFino = performance.now() + 2800;
   };
   const coarse = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
@@ -491,7 +491,7 @@ export function createPescaBorgo(o: {
       // bottoni e pannello
       const mostraBtn = fase === 'spento' && !!puoi() && !w.frozen;
       const bk = !mostraBtn ? '' : w.mode === 'walk' ? 'r' : 'b';
-      if (bk !== lastBtn) { lastBtn = bk; btn.classList.toggle('on', mostraBtn); { const tasto = bk === 'b' ? (coarse() ? '' : 'P') : 'A'; btn.replaceChildren(pixIcon('pesca', 24), el('span', '', 'PESCA'), ...(tasto ? [el('small', '', tasto)] : [])); } }
+      if (bk !== lastBtn) { lastBtn = bk; btn.classList.toggle('on', mostraBtn); { const tasto = bk === 'b' ? (coarse() ? '' : 'P') : 'A'; btn.replaceChildren(pixIcon('pesca', 24), el('span', '', 'Pesca'), ...(tasto ? [el('small', '', tasto)] : [])); } }
       const stickOn = stick.setOn(fase === 'mira');
       o.root.classList.toggle('mz-pesca-mira', stickOn);
       if (fase === 'spento') { if (lastPanel) { lastPanel = ''; panel.classList.remove('on', 'tira'); } return; }
@@ -499,7 +499,7 @@ export function createPescaBorgo(o: {
       const pk = fase === 'mira' ? (coarse() ? 'Trascina il joystick di destra, lascia e l’esca parte' : 'Mira col mouse, clic (o A) per lanciare')
         : fase === 'volo' ? 'Lancio…'
         : fase === 'attesa' ? (preda ? 'Qualcosa si avvicina… aspetta che vada sotto!' : 'Aspetta che un’ombra si avvicini · A per tirare su')
-        : fase === 'morso' ? 'TIRA! Tocca A più veloce che puoi'
+        : fase === 'morso' ? 'Tira! Tocca A più veloce che puoi'
         : fase === 'preso' ? 'Preso!' : 'Scappato…';
       if (pk !== lastPanel) { lastPanel = pk; testo.replaceChildren(el('span', '', pk), el('small', '', (dove === 'barca' ? 'Dalla barca' : 'Da riva') + (coarse() ? '' : ' · Esc per smettere'))); }
       panel.classList.add('on'); panel.classList.toggle('tira', fase === 'morso');

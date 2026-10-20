@@ -130,7 +130,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   // ---- insieme: GIOCA INSIEME davanti alla porta, la sala, SI PARTE ----
   const btnIns = el('button', 'mz mz-play'); btnIns.id = 'mzTemplariInsieme'; btnIns.type = 'button';
   btnIns.style.color = PAL.ombraCalda;
-  btnIns.replaceChildren(el('span', '', '⚔ GIOCA INSIEME'));
+  btnIns.replaceChildren(el('span', '', '⚔ Gioca insieme'));
   for (const ev of ['pointerdown', 'touchstart']) btnIns.addEventListener(ev, (x) => x.stopPropagation());
   btnIns.addEventListener('click', () => { void giocaInsieme(); });
   o.root.append(btnIns);
@@ -171,7 +171,7 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
     } catch { o.hud.toast('La sala non risponde, riprova', 2500); return; }
     const box = el('div', 'mz mz-tpl-sala'); box.id = 'mzTemplariSala';
     const chi = el('div', 'chi', '…'), sub = el('div', 'sub', 'Mi collego…');
-    const via = el('button', 'mz-btn via', 'SI PARTE') as HTMLButtonElement; via.type = 'button'; via.dataset['act'] = 'via'; via.disabled = true;
+    const via = el('button', 'mz-btn via', 'Si parte') as HTMLButtonElement; via.type = 'button'; via.dataset['act'] = 'via'; via.disabled = true;
     const esci = el('button', 'mz-btn ghost', 'Esci dalla sala'); esci.type = 'button'; esci.dataset['act'] = 'esci';
     box.append(el('b', '', '✠ Insieme nella chiesa'), chi, sub, via, esci);
     for (const ev of ['pointerdown', 'touchstart']) box.addEventListener(ev, (x) => x.stopPropagation());
@@ -233,8 +233,8 @@ export function createTemplari(o: { world: GameWorld; renderer: Renderer; loader
   function disegnaSala(sq: Sala, max: number): void {
     const n = sq.membri.length;
     sq.chi.textContent = sq.membri.map((x) => (x.classe ? `${x.nome} (${NOMI_EROI[x.classe] ?? x.classe})` : x.nome)).join(' · ');
-    sq.sub.textContent = n < 2 ? 'Aspetta i compagni: devono premere GIOCA INSIEME anche loro, qui alla porta' : `${n} su ${max}: chiunque può dire SI PARTE`;
-    sq.via.disabled = n < 2; sq.via.textContent = n < 2 ? 'SI PARTE' : `SI PARTE (${n})`;
+    sq.sub.textContent = n < 2 ? 'Aspetta i compagni: devono premere «Gioca insieme» anche loro, qui alla porta' : `${n} su ${max}: chiunque può dire «Si parte»`;
+    sq.via.disabled = n < 2; sq.via.textContent = n < 2 ? 'Si parte' : `Si parte (${n})`;
   }
   function chiudiSala(): void {
     const sq = sala;

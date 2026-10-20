@@ -24,7 +24,7 @@ type Run = { mod: MinigameModule<unknown>; s: unknown; frames: InputFrame[]; pha
 
 const COUNTDOWN = 3 * 60, END_WAIT = 3 * 60, END_SKIP = 50, FLASH = 75; // tick
 const MAX_CASSE = 8, DOTS = 16, DOT_STEP = 4;
-const MEDAL: Record<string, string> = { oro: 'ORO', argento: 'ARGENTO', bronzo: 'BRONZO' };
+const MEDAL: Record<string, string> = { oro: 'Oro', argento: 'Argento', bronzo: 'Bronzo' };
 const MEDAL_C: Record<string, string> = { oro: PAL.giallo, argento: PAL.pietraChiara, bronzo: PAL.arancio };
 const fmt = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
@@ -181,7 +181,7 @@ export async function createConsegne(o: { root: HTMLElement; world: GameWorld; l
         r.wait--;
         const v = view(r);
         if (r.wait > 0) { if (r.wait % 60 === 59) setBig(String(Math.ceil(r.wait / 60)), PAL.giallo, `Pacco per: ${nomeDi(v.dest)}`); o.world.race.set(v.boat); return; }
-        r.phase = 'race'; setBig('VIA!', PAL.erbaChiara, `Porta il pacco a ${nomeDi(v.dest)}`); r.flash = 45;
+        r.phase = 'race'; setBig('Via!', PAL.erbaChiara, `Porta il pacco a ${nomeDi(v.dest)}`); r.flash = 45;
         return;
       }
       if (r.phase === 'race') {
@@ -189,13 +189,13 @@ export async function createConsegne(o: { root: HTMLElement; world: GameWorld; l
           const frame = quantize(r.auto ? r.mod.autopilot(r.s, r.auto) : f); // quantizzato come nel replay del server
           r.frames.push(frame); r.mod.step(r.s, frame);
           const v = view(r);
-          if (v.consegnate !== r.last.consegnate && !v.done) { setBig('CONSEGNATO!', PAL.erbaChiara, `Prossimo: ${nomeDi(v.dest)}`); r.flash = FLASH; }
+          if (v.consegnate !== r.last.consegnate && !v.done) { setBig('Consegnato!', PAL.erbaChiara, `Prossimo: ${nomeDi(v.dest)}`); r.flash = FLASH; }
           if (v.prese !== r.last.prese) { cTime.classList.add('plus'); setTimeout(() => cTime.classList.remove('plus'), 700); }
           r.last = { consegnate: v.consegnate, prese: v.prese };
           if (v.done || r.frames.length >= r.mod.maxTicks) {
             r.phase = 'end'; r.wait = END_WAIT; r.result = r.mod.result(r.s);
             const m = r.result.medal;
-            setBig(m ? MEDAL[m]! : v.timeUp ? 'TEMPO SCADUTO' : 'FINITO', m ? MEDAL_C[m] : PAL.sabbiaChiara, `${v.consegnate}/${v.totale} pacchi · il server conferma`);
+            setBig(m ? MEDAL[m]! : v.timeUp ? 'Tempo scaduto' : 'Finito', m ? MEDAL_C[m] : PAL.sabbiaChiara, `${v.consegnate}/${v.totale} pacchi · il server conferma`);
           }
         }
         if (r.flash > 0 && --r.flash === 0 && r.phase === 'race') setBig(null);
@@ -255,7 +255,7 @@ export async function createConsegne(o: { root: HTMLElement; world: GameWorld; l
         const on = v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1;
         tag.classList.toggle('on', on);
         if (on) {
-          if (tag.dataset['id'] !== v.dest.id + abitanti.size) { tag.dataset['id'] = v.dest.id + abitanti.size; tag.replaceChildren(pixIcon('consegne', 16), el('span', '', `CONSEGNA · ${nomeDi(v.dest)}`)); }
+          if (tag.dataset['id'] !== v.dest.id + abitanti.size) { tag.dataset['id'] = v.dest.id + abitanti.size; tag.replaceChildren(pixIcon('consegne', 16), el('span', '', `Consegna · ${nomeDi(v.dest)}`)); }
           tag.style.left = `${rc.left - rr.left + ((v3.x + 1) / 2) * rc.width}px`; tag.style.top = `${rc.top - rr.top + ((1 - v3.y) / 2) * rc.height}px`;
         }
       } else { destArr.textContent = ''; destName.textContent = 'fatto'; destDist.textContent = ''; tag.classList.remove('on'); }

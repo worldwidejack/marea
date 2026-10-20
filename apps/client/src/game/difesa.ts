@@ -45,11 +45,11 @@ export function createDifesa(o: { world: GameWorld; renderer: Renderer; hud: Hud
   // ---- cartello sopra il cancello e bottone DIFENDI L'ORTO ----
   const layer = createLabelLayer(o.root);
   const label = spot ? layer.add(() => apri()) : null;
-  label?.set('bubble', [pixIcon('difesa', 16), el('span', '', 'L’ORTO DA DIFENDERE')], 'dng');
+  label?.set('bubble', [pixIcon('difesa', 16), el('span', '', 'L’orto da difendere')], 'dng');
   label?.el.classList.add('dng');
   const btn = el('button', 'mz mz-play'); btn.id = 'mzDifesaEntra'; btn.type = 'button';
   btn.style.background = PAL.giallo; btn.style.color = PAL.ombraCalda;
-  btn.replaceChildren(pixIcon('difesa', 24), el('span', '', 'DIFENDI L’ORTO'), el('small', '', 'A'));
+  btn.replaceChildren(pixIcon('difesa', 24), el('span', '', 'Difendi l’orto'), el('small', '', 'A'));
   for (const ev of ['pointerdown', 'touchstart']) btn.addEventListener(ev, (x) => x.stopPropagation());
   btn.addEventListener('click', () => apri());
   o.root.append(btn);

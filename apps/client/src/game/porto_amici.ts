@@ -160,7 +160,7 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
       const show = !!near && !ui?.isOpen() && !o.world.race.on && !o.world.frozen;
       if (show && near && btn.dataset['k'] !== near) {
         btn.dataset['k'] = near;
-        btn.replaceChildren(pixIcon(near, 24), el('span', '', 'RECORD'), el('small', '', 'A'));
+        btn.replaceChildren(pixIcon(near, 24), el('span', '', 'Record'), el('small', '', 'A'));
       }
       btn.classList.toggle('on', show);
       for (const s of posti) {

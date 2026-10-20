@@ -67,7 +67,7 @@ function iconaAttrezzo(a: Attrezzo): HTMLCanvasElement {
   if (g) ICONE[a].forEach((r, y) => [...r].forEach((k, x) => { const f = col[k]; if (f) { g.fillStyle = f; g.fillRect(x, y, 1, 1); } }));
   return c;
 }
-const NOME_ATTREZZO: Record<Attrezzo, string> = { nulla: 'MANI', pala: 'PALA', retino: 'RETINO', canna: 'CANNA' };
+const NOME_ATTREZZO: Record<Attrezzo, string> = { nulla: 'Mani', pala: 'Pala', retino: 'Retino', canna: 'Canna' };
 
 export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud: Hud; api: Api | null; getLot(): LotState | null; setLot(l: LotState): void; negozioDentro(): boolean }): InsettiBorgo {
   const w = o.world, arch = w.archipelago, T = arch.tile, porto = arch.places.find((p) => p.role === 'porto');
@@ -150,7 +150,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   for (const e of [azioneBtn, attrBtn]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   let presoFino = 0;
   const cartello = (d: InsettoDef, nuovo: boolean) => {
-    preso.replaceChildren(insettoCanvas(d, 4), el('small', '', 'HAI PRESO'), el('b', '', d.nome.toUpperCase() + '!'), el('small', '', nuovo ? 'Nuovo nel Diario: portalo al mobiliere per la tua collezione' : 'È nello zaino'));
+    preso.replaceChildren(insettoCanvas(d, 4), el('small', '', 'Hai preso'), el('b', '', d.nome + '!'), el('small', '', nuovo ? 'Nuovo nel Diario: portalo al mobiliere per la tua collezione' : 'È nello zaino'));
     preso.classList.add('on'); presoFino = performance.now() + 2600;
   };
 
@@ -385,9 +385,9 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       const show = dentro && !!ctx, key = !show ? '' : ctx === 'retino' ? 'r' : ctx === 'sasso' ? 's' : 'a';
       if (key !== lastBtn) {
         lastBtn = key; azioneBtn.classList.toggle('on', show);
-        if (key === 'r') azioneBtn.replaceChildren(iconaAttrezzo('retino'), el('span', '', 'RETINO'), el('b', '', 'A'));
-        else if (key === 's') azioneBtn.replaceChildren(iconaAttrezzo('pala'), el('span', '', 'COLPISCI'), el('span', 'lungo', 'IL SASSO'), el('b', '', 'A'));
-        else if (key === 'a') azioneBtn.replaceChildren(el('span', '', 'SCUOTI'), el('span', 'lungo', 'L’ALBERO'), el('b', '', 'A'));
+        if (key === 'r') azioneBtn.replaceChildren(iconaAttrezzo('retino'), el('span', '', 'Retino'), el('b', '', 'A'));
+        else if (key === 's') azioneBtn.replaceChildren(iconaAttrezzo('pala'), el('span', '', 'Colpisci'), el('span', 'lungo', 'Il sasso'), el('b', '', 'A'));
+        else if (key === 'a') azioneBtn.replaceChildren(el('span', '', 'Scuoti'), el('span', 'lungo', 'L’albero'), el('b', '', 'A'));
         for (const cv of azioneBtn.querySelectorAll('canvas')) { (cv as HTMLCanvasElement).style.width = (cv as HTMLCanvasElement).style.height = '20px'; (cv as HTMLCanvasElement).style.imageRendering = 'pixelated'; }
       }
       const attr = puoImpugnare() && (hai('pala') || hai('retino') || hai('canna')) ? mano : '';

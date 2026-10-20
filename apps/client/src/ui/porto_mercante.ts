@@ -42,7 +42,7 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
   const owned = (id: string) => (lot?.posseduti ?? []).includes(id);
   const body = el('div'); body.dataset['panel'] = 'mercante';
   const tabs = el('div', 'mz-pt-tabs');
-  for (const [id, nome] of [['cappelli', 'CAPPELLI'], ['decor', 'DECORAZIONI'], ['barca', 'BARCA']] as const) {
+  for (const [id, nome] of [['cappelli', 'Cappelli'], ['decor', 'Decorazioni'], ['barca', 'Barca']] as const) {
     const b = el('button', 'mz-pt-tab', nome); b.type = 'button'; b.dataset['tab'] = id; b.setAttribute('aria-pressed', String(st.tab === id));
     b.addEventListener('click', () => { st.tab = id; st.note = null; redraw(); });
     tabs.appendChild(b);
@@ -68,7 +68,7 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
       const mine = owned(h.id), worn = ctx.me?.look.cappello === h.i;
       const row = el('div', 'mz-pt-row' + (st.prova === h.i ? ' sel' : '')); row.dataset['item'] = h.id;
       const nm = el('button', 'nm'); nm.type = 'button'; nm.dataset['act'] = 'prova'; nm.title = 'Provalo sul tuo avatar';
-      nm.append(el('b', '', h.nome), el('small', h.mercante ? 'tag' : 'tag dim', h.mercante ? 'ESCLUSIVA' : mine ? 'già tuo' : 'si trova anche nell’editor'));
+      nm.append(el('b', '', h.nome), el('small', h.mercante ? 'tag' : 'tag dim', h.mercante ? 'Esclusiva' : mine ? 'già tuo' : 'si trova anche nell’editor'));
       nm.addEventListener('click', () => { st.prova = st.prova === h.i ? null : h.i; ctx.setLook({ ...(ctx.me?.look ?? DEFAULT), cappello: st.prova ?? (ctx.me?.look.cappello ?? 0) }); redraw(); });
       row.append(nm, price(h.monete));
       if (mine) row.appendChild(act(worn ? 'ADDOSSO' : 'INDOSSA', 'indossa', 'green', worn || !online, () => void busyRun(h.id, async () => {
@@ -78,7 +78,7 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
         st.prova = null; ctx.setLook(l);
         return `${h.nome}: ti sta benissimo`;
       })));
-      else row.appendChild(act('COMPRA', 'compra', '', !online, () => {
+      else row.appendChild(act('Compra', 'compra', '', !online, () => {
         if (monete !== null && monete < h.monete) { st.note = { id: h.id, text: moneteText(h.monete - monete), bad: true }; redraw(); return; }
         void busyRun(h.id, async () => { const l = await ctx.api!.buyHat(h.id); ctx.setLot(l); return `${h.nome}: è tuo! Premi INDOSSA`; });
       }));
@@ -105,7 +105,7 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
       if (mine) {
         row.append(act('SCAFO', 'scafo', 'green mini', !online || mia.scafo === k.id, () => usa(k, 'scafo')), act('VELA', 'vela', 'green mini', !online || mia.vela === k.id, () => usa(k, 'vela')));
       } else {
-        row.append(price(k.monete), act('COMPRA', 'compra', '', !online, () => {
+        row.append(price(k.monete), act('Compra', 'compra', '', !online, () => {
           if (monete !== null && monete < k.monete) { st.note = { id: k.id, text: moneteText(k.monete - monete), bad: true }; redraw(); return; }
           void busyRun(k.id, async () => { const l = await ctx.api!.buyColore(k.id); ctx.setLot(l); return `${k.nome}: è tuo! Premi SCAFO o VELA`; });
         }));
@@ -118,8 +118,8 @@ export function mercanteBody(ctx: PortoCtx, st: MercanteState, redraw: () => voi
       const quante = lot?.decor.filter((x) => x.decor === d.id).length ?? 0;
       const row = el('div', 'mz-pt-row'); row.dataset['item'] = d.id;
       const nm = el('div', 'nm');
-      nm.append(el('b', '', d.nome), el('small', d.mercante ? 'tag' : 'tag dim', [d.mercante ? 'ESCLUSIVA' : '', quante ? `ne hai ${quante}` : ''].filter(Boolean).join(' · ') || 'per la tua isola'));
-      row.append(nm, price(d.monete), act('COMPRA', 'compra', '', !online, () => {
+      nm.append(el('b', '', d.nome), el('small', d.mercante ? 'tag' : 'tag dim', [d.mercante ? 'Esclusiva' : '', quante ? `ne hai ${quante}` : ''].filter(Boolean).join(' · ') || 'per la tua isola'));
+      row.append(nm, price(d.monete), act('Compra', 'compra', '', !online, () => {
         if (monete !== null && monete < d.monete) { st.note = { id: d.id, text: moneteText(d.monete - monete), bad: true }; redraw(); return; }
         void busyRun(d.id, async () => {
           const cur = ctx.getLot(); const cell = cur ? cellaLibera(cur) : null;

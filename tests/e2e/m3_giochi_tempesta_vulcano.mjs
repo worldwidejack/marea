@@ -109,7 +109,7 @@ export default async function (ctx) {
         await ctx.waitState(page, (s, id) => s.minigiochi.near === id, 20000, g.spot);
         await hook('setZoom', 1.2);
         await sleep(1500);
-        assert(new RegExp(g.nome).test(await page.locator('#mzPlay').innerText()), 'testo del bottone');
+        assert(new RegExp(g.nome, 'i').test(await page.locator('#mzPlay').innerText()), 'testo del bottone');
         await ctx.shot(page, `iphone_${g.id}_1_posto`);
         await page.locator('#mzPlay').click();
         await ctx.waitState(page, (s, id) => s[id] && s[id].open && s[id].intro, 20000, g.id);
@@ -150,7 +150,7 @@ export default async function (ctx) {
         assert(r.medal === 'oro' && r.premiata && JSON.stringify(r.premio) === JSON.stringify(oro), 'esito: ' + JSON.stringify(r));
         assert(r.lot.monete >= before + r.premio, 'monete non pagate');
         const txt = await page.locator('#mzEsito').innerText();
-        assert(/ORO/.test(txt) && /\d+ punti/.test(txt) && (g.id === 'lava' ? /pezzi/.test(txt) : /navi affondate/.test(txt)), 'scheda: ' + txt);
+        assert(/\bOro\b/.test(txt) && /\d+ punti/.test(txt) && (g.id === 'lava' ? /pezzi/.test(txt) : /navi affondate/.test(txt)), 'scheda: ' + txt);
         await sleep(300);
         await ctx.shot(page, `iphone_${g.id}_5_esito`);
         await hook(g.id + 'Auto', false);

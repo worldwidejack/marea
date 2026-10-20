@@ -109,7 +109,7 @@ export default async function (ctx) {
       await hook('teleport', spot.x, spot.z);
       await ctx.waitState(page, (q) => q.minigiochi.near === 'consegne:porto', 5000);
       await page.waitForSelector('#mzPlay.on', { timeout: 3000 });
-      assert(/CONSEGNE/.test(await page.$eval('#mzPlay', (e) => e.textContent)), 'bottone senza CONSEGNE');
+      assert(/consegne/i.test(await page.$eval('#mzPlay', (e) => e.textContent)), 'bottone senza CONSEGNE');
       await page.waitForTimeout(400);
     });
     await ctx.shot(page, 'pc_1_molo');
@@ -137,7 +137,7 @@ export default async function (ctx) {
       await ctx.waitState(page, (q) => q.consegne.dest && Math.hypot(q.consegne.dest.x - q.consegne.boat.x, q.consegne.dest.z - q.consegne.boat.z) < 13, 40000);
       await hook('consegneAuto', 0);
       await page.waitForSelector('#mzConsegneTag.on', { timeout: 3000 });
-      assert(/CONSEGNA/.test(await page.$eval('#mzConsegneTag', (e) => e.textContent)), 'etichetta della meta');
+      assert(/consegna/i.test(await page.$eval('#mzConsegneTag', (e) => e.textContent)), 'etichetta della meta');
       const perf = await page.evaluate(() => window.__game.perf());
       ctx.log(`in consegna: ${perf.drawCalls} draw call, ${perf.triangles} triangoli`);
       assert(perf.drawCalls <= 100, 'draw call: ' + perf.drawCalls);
