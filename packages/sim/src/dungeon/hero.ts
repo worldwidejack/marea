@@ -196,7 +196,7 @@ function cast(s: DungeonState, dir: Mira): void {
     // Patto di sangue: l'evocazione dura finché non muore (e la prossima spedizione parte con lei)
     const e = evocaAlleato(s, sp.evoca, s.runHero.perk?.alleati?.perenne ? null : secToTicks(sp.durata), h.fx, h.fz);
     ev(s, { t: 'evocato', id: e.id, tipo: e.tipo });
-    add(s.xp, 'evocazione', sp.costo * (RPG.xp.evocazioneLancio ?? 0));
+    add(s.xp, 'evocazione', sp.costo * RPG.xp.evocazioneLancio);
     return;
   }
   if (sp.forma === 'bomba') { // lenta, in alto: atterra sul nemico (o alleato, se di supporto) che hai davanti e scoppia (magie.ts)

@@ -2,7 +2,7 @@
 // non posati della casa e quantità a scelta di monete (resta una croce stile Animal Crossing a tempo indeterminato finché un giocatore
 // non la scava fuori), più il bottino giornaliero (10-200 monete in un punto casuale di Borgo Marea, sparisce solo per chi lo scava).
 import * as THREE from 'three';
-import { MOBILI } from '@marea/content';
+import { BORGO, MOBILI } from '@marea/content';
 import { casaDi } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import { bottinoDelGiorno, bottinoRiscossoOggi, cellKeyBorgo, celleScavabiliBorgo, isCellaScavabileBorgo, possiedePala } from '@marea/sim/economy/pala.ts';
@@ -186,7 +186,7 @@ export function createPalaBorgo(o: {
   async function eseguiScava(cell?: [number, number]): Promise<Record<string, unknown> | null> {
     if (busy) return null;
     const lot = o.getLot();
-    if (!possiedePala(lot)) { o.hud.toast('Serve la pala: comprala al negozio dei mobili (500 monete)', 2600); return null; }
+    if (!possiedePala(lot)) { o.hud.toast(`Serve la pala: comprala al negozio dei mobili (${BORGO.pala.monete} monete)`, 2600); return null; }
     const near = findNearBuca();
     const bersaglio = cell ?? (near && (near.kind === 'seppellita' || near.kind === 'bottino') ? near.cell : targetDigCell());
     if (!bersaglio) { o.hud.toast('Qui non c’è spazio per scavare: spostati su un tratto libero di Borgo Marea', 2400); return null; }

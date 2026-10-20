@@ -81,7 +81,7 @@ describe('Arena — loadout del duello', () => {
     const e = buildArenaEroe(h, h.arena!);
     assert.equal(e.varianti.length, 4);
     assert.equal(e.varianti[3], null);
-    for (const v of e.varianti.slice(0, 3)) { assert.ok(v?.arena); assert.deepEqual(v!.max, RPG.arena!.attributi); }
+    for (const v of e.varianti.slice(0, 3)) { assert.ok(v?.arena); assert.deepEqual(v!.max, RPG.arena.attributi); }
     assert.equal(e.varianti[0]!.arma.id, 'katana_legno');
     assert.equal(e.varianti[1]!.arma.kind, 'arco');
     assert.equal(e.varianti[1]!.frecce?.id, 'frecce_ferro');
@@ -106,7 +106,7 @@ describe('Arena — combattimento tra eroi', () => {
     e.hero.vita = 100;
     passi(d, 200, { ...fermo(), a: true });
     passi(d, 60);
-    assert.ok(e.hero.vita > 0 && e.hero.vita >= 100 - (RPG.arena!.dannoMax) - 1, `niente one-shot (${e.hero.vita})`);
+    assert.ok(e.hero.vita > 0 && e.hero.vita >= 100 - (RPG.arena.dannoMax) - 1, `niente one-shot (${e.hero.vita})`);
   });
 
   it('frecce e magie colpiscono l\'avversario; l\'arco consuma solo le sue frecce', () => {
@@ -203,7 +203,7 @@ describe('Arena — il duello al meglio di 3', () => {
     assert.ok(vincitore === 0 || vincitore === 1 || vincitore === null);
     if (vincitore !== null) assert.equal(vinti[vincitore], ARENA.round.vittorie);
     assert.ok(p.d.rounds.length >= ARENA.round.vittorie && p.d.rounds.length <= ARENA.round.massimo);
-    assert.ok(p.maxColpo < 100 && p.maxColpo <= RPG.arena!.dannoMax, `nessun colpo da 100 (${p.maxColpo})`);
+    assert.ok(p.maxColpo < 100 && p.maxColpo <= RPG.arena.dannoMax, `nessun colpo da 100 (${p.maxColpo})`);
     const r = replayDuello(11, p.eroi, p.log);
     assert.deepEqual(r.esito, p.d.esito);
     assert.equal(r.ticks, p.d.tick);

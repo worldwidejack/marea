@@ -353,8 +353,10 @@ export type RpgBalance = {
     gruppo?: { max: number; vitaPerCompagno: number };
   };
   /** Arena PvP (docs/ARENA.md Step 1): statistiche di base normalizzate (100/100/100), scala e tetto ai danni tra giocatori (niente one-shot). */
-  arena?: RpgArenaBalance;
-  xp: Record<string, number>;
+  arena: RpgArenaBalance;
+  /** Esperienza delle abilità fuori dal combattimento: forgiare (× il livello del banco della ricetta), preparare una pozione (+ per livello della
+   *  ricetta), lanciare un'evocazione (× il costo in Magicka); e quanta ne passa al personaggio per livello di abilità. */
+  xp: { forgia: number; alchimia: number; alchimiaPerLivello: number; evocazioneLancio: number; personaggioPerLivelloSkill: number };
   /** Xp di combattimento: danno utile (mai oltre la vita che restava al nemico) × questo, per abilità. Evocazione = danno della tua evocazione. */
   xpDanno?: Partial<Record<SkillId, number>>;
   /** Numeri degli effetti dei perk (docs/RPG.md §3): quanto e per quanto tempo. I perk in sé stanno in perks.json (probabilità, livelli). */
