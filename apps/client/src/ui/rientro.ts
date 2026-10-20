@@ -143,7 +143,7 @@ export function createRientroUi(o: { root: HTMLElement; hud: Hud; now(): number;
         s.append(el('span', '', `${f.nome}: «${isEmote(f.emote) ? EMOTE_WORDS[f.emote] : '…'}»`), el('i', '', relTime(o.now() - f.quando)));
         fr.appendChild(s);
       }
-      riga('ospiti', [pixIcon('libro', 24)], el('b', '', `${testa} ${chi.length === 1 ? 'è passato' : 'sono passati'} sulla tua isola`), fr);
+      riga('ospiti', [pixIcon('libro', 24)], el('b', '', `${testa} ${chi.length === 1 ? 'è passato' : 'sono passati'} da casa tua`), fr);
     }
     if (novita > 0) riga('novita', [pixIcon('parla', 24)], el('b', '', novita === 1 ? '1 novità nella campanella' : `${novita} novità nella campanella`));
     if (r.missioniNuove > 0) riga('missioni', [pixIcon('bacheca', 24)], el('b', '', `${r.missioniNuove} missioni nuove alla Bacheca del Porto`));

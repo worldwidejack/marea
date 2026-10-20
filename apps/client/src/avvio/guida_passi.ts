@@ -1,38 +1,20 @@
-// I passi della guida «Primi passi»: costruire → barca → minigioco → costruire col premio, poi le cose nuove: parla al Porto, pesca o
-// perle, mappa, un'isola nuova. Senza isola propria niente Segheria né costruisci. I primi quattro restano in testa e in quest'ordine: il
-// vecchio progresso salvato (un numero) vale per loro (ui/guida.ts). I passi si contano anche fuori ordine.
-import { ISLANDS } from '@marea/content';
+// I passi della guida «Primi passi»: casa → barca → minigioco → spendi le monete, poi le cose nuove: parla al Porto, pesca o perle, mappa,
+// un'isola nuova. Senza casa (ospite) niente «entra in casa» né «spendi». I primi quattro restano in testa e in quest'ordine: il vecchio
+// progresso salvato (un numero) vale per loro (ui/guida.ts). I passi si contano anche fuori ordine.
+import { BORGO } from '@marea/content';
 import type { LotState } from '@marea/sim';
+import { portaDi } from '../game/borgo.ts';
 import type { GameWorld } from '../game/world.ts';
 import type { GuidaStep } from '../ui/guida.ts';
 
 type Punto = { x: number; z: number };
 
-/** Dove la guida suggerisce di costruire la Segheria (il cartello giallo sul lotto) mentre è quello il passo. */
-export function suggerimento(myLot: () => LotState | null, passo: () => string | null) {
-  const tpl = ISLANDS.find((i) => i.id === 'lotto');
-  const segCell = tpl?.slots?.find((sl) => sl.kind === 'segheria')?.at ?? null;
-  const freeCell = (prefer: readonly [number, number] | null): [number, number] | null => {
-    const l = myLot();
-    if (!l || !tpl) return null;
-    const busy = (c: readonly [number, number]) => l.buildings.some((b) => b.cell[0] === c[0] && b.cell[1] === c[1]) || l.decor.some((d) => d.cell[0] === c[0] && d.cell[1] === c[1]);
-    if (prefer && !busy(prefer)) return [prefer[0], prefer[1]];
-    const sl = (tpl.slots ?? []).find((x) => !busy(x.at) && x.kind !== 'tavolo');
-    return sl ? [sl.at[0], sl.at[1]] : null;
-  };
-  const hint = (): { cell: [number, number]; building: string } | null => {
-    if (passo() !== 'segheria') return null;
-    const c = freeCell(segCell);
-    return c ? { cell: c, building: 'segheria' } : null;
-  };
-  return { freeCell, hint };
-}
-
 export function passiGuida(o: {
   world: GameWorld;
   hasLot: boolean;
   myLot: () => LotState | null;
-  sugg: ReturnType<typeof suggerimento>;
+  /** In casa tua (la stanza del tuo lotto). */
+  inCasa: () => boolean;
   /** Partite giocate (salvate nel lotto + quelle di questa visita). */
   giocate: () => number;
   /** Il primo minigioco (la Regata al molo della Laguna). */
@@ -41,9 +23,10 @@ export function passiGuida(o: {
   isole: readonly { spawn: Punto; role: string; index: number }[];
   mappa: () => { isOpen(): boolean; vista(id: string): boolean } | null;
 }): GuidaStep[] {
-  const { world, hasLot, myLot, sugg, reg, porto } = o, arch = world.archipelago;
-  const home = world.slot !== null ? arch.spawnOf(world.slot) : null, homeDock = world.slot !== null ? arch.boatOf(world.slot) : null;
-  const cellTarget = (c: [number, number] | null) => { if (!c || world.slot === null) return null; const w = arch.lotCellToWorld(world.slot, c); return { x: w.x, y: world.groundY(w.x, w.z) + 1.2, z: w.z }; };
+  const { world, hasLot, myLot, reg, porto } = o, arch = world.archipelago;
+  const porta = world.slot !== null ? portaDi(world, world.slot) : null;
+  const portoPl = arch.places.find((p) => p.role === 'porto'), T = arch.tile;
+  const negozio = portoPl ? { x: (portoPl.origin[0] + BORGO.negozio.porta[0] + 0.5) * T, z: (portoPl.origin[1] + BORGO.negozio.porta[1] + 0.5) * T } : null;
   const qui = () => (world.mode === 'walk' ? world.avatar.state : world.boat.state);
   const dist = (a: Punto, b: Punto) => Math.hypot(a.x - b.x, a.z - b.z);
   const piuVicino = <T extends Punto>(l: readonly T[]): T | null => { const f = qui(); let best: T | null = null; for (const p of l) if (!best || dist(p, f) < dist(best, f)) best = p; return best; };
@@ -51,13 +34,14 @@ export function passiGuida(o: {
   const barcaTarget = () => { const p = world.boat.object.position; return { x: p.x, y: 1.8, z: p.z }; };
   const isolaVista = (p: { role: string; index: number }) => o.mappa()?.vista(`${p.role}:${p.index}`) ?? false;
   return [
-    ...(hasLot ? [{ id: 'segheria', titolo: 'Costruisci la Segheria', come: 'Tocca il cartello giallo: la Segheria fa Legno anche quando non giochi.', done: () => !!myLot()?.buildings.some((b) => b.building === 'segheria'), target: () => cellTarget(sugg.hint()?.cell ?? null) }] : []),
+    ...(hasLot ? [{ id: 'casa', titolo: 'Entra in casa tua', come: 'Segui la freccia fino alla tua porta nel Borgo e premi A: dentro metti i mobili con ARREDA.', done: o.inCasa, target: () => (porta ? { x: porta.x, y: world.groundY(porta.x, porta.z) + 2.2, z: porta.z } : null) }] : []),
     { id: 'barca', titolo: 'Sali in barca', come: 'Cammina fino alla barca e premi A: con la barca vai sulle altre isole.', done: () => world.mode === 'boat' || o.giocate() > 0, target: barcaTarget },
     ...(reg ? [{ id: reg.id, titolo: `Vai alla ${reg.nome}`, come: 'Segui la freccia fino alla bandiera: una medaglia vale monete.', done: () => o.giocate() > 0, target: () => ({ x: reg.x, y: 4, z: reg.z }) }] : []),
-    ...(hasLot ? [{ id: 'costruisci', titolo: 'Costruisci col premio', come: 'Torna a casa e tocca un cartello: Cava, Magazzino, Casa, Faro.', done: () => (myLot()?.buildings.filter((b) => b.building !== 'molo' && b.building !== 'segheria').length ?? 0) > 0, target: () => {
+    ...(hasLot ? [{ id: 'spendi', titolo: 'Spendi le monete', come: 'Compra qualcosa nel Borgo: un mobile al negozio dei mobili o un pezzo in una bottega.', done: () => (myLot()?.ledger.monete?.spent ?? 0) > 0, target: () => {
+      if (!negozio) return null;
       const f = qui();
-      if (home && homeDock && Math.hypot(f.x - home.x, f.z - home.z) > 45) return { x: homeDock.x, y: 2, z: homeDock.z };
-      return cellTarget(sugg.freeCell(null));
+      // in mare la freccia porta al Porto (il Borgo sta attorno), a terra alla porta del negozio dei mobili
+      return world.mode === 'boat' && Math.hypot(f.x - negozio.x, f.z - negozio.z) > 45 ? { x: portoAt.x, y: 3, z: portoAt.z } : { x: negozio.x, y: world.groundY(negozio.x, negozio.z) + 2.2, z: negozio.z };
     } }] : []),
     { id: 'parla', titolo: 'Fai due chiacchiere al Porto', come: 'Al Porto c\'è gente che parla volentieri, anche troppo. Vai vicino e premi A.', done: () => porto.aperto() === 'parla', target: () => {
       const p = piuVicino(porto.gente());

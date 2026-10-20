@@ -7,7 +7,6 @@ import type { StanzaFinitura } from '@marea/content';
 import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
-import { creaPortale } from '../render/portale.ts';
 import { GIORNO, LUCE_INTERNO } from '../render/ciclo.ts';
 
 let disegniPromise: Promise<typeof import('./finiture_disegni.ts')> | null = null;
@@ -50,12 +49,11 @@ export function porta(x: number, y: number, z: number, ry = 0): THREE.BufferGeom
   ];
 }
 
-/** Pianta di un interno, in celle del suo template: pavimento [x0, z0, x1, z1), corridoio [cx, c0, c1), altezza dei muri (m), porta in fondo (colonna, o null). */
+/** Pianta di un interno, in celle del suo template: pavimento [x0, z0, x1, z1), corridoio [cx, c0, c1), altezza dei muri (m). */
 export type Pianta = {
   pavimento: readonly [number, number, number, number];
   corridoio: readonly [number, number, number] | null;
   altezza: number;
-  retro: number | null;
   scale?: readonly { cell: readonly [number, number]; verso: 'giu' | 'su' }[];
   chiusoInFondo?: boolean;
 };
@@ -92,7 +90,7 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
   parete(lw + 2 * SPESSORE, X0 * T + lw / 2, Z0 * T - SPESSORE / 2, 0);
   parete(ld, X0 * T - SPESSORE / 2, Z0 * T + ld / 2, Math.PI / 2);
   parete(ld, X1 * T + SPESSORE / 2, Z0 * T + ld / 2, Math.PI / 2);
-  // battiscopa, porta sul retro, bordo davanti tagliato (lo spessore del pavimento, come un plastico) e i fianchi bassi del corridoio
+  // battiscopa, bordo davanti tagliato (lo spessore del pavimento, come un plastico) e i fianchi bassi del corridoio
   const zf = Z1 * T, xa = CX * T, xb = (CX + 1) * T;
   const fianchi: THREE.BufferGeometry[] = [];
   if (p.corridoio) {
@@ -125,11 +123,6 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
     ]),
   ];
   group.add(new THREE.Mesh(merged(parti), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
-  if (p.retro !== null) {
-    const portale = creaPortale({ x: (p.retro + 0.5) * T, y: 0.02, z: Z0 * T + 0.05, ry: 0 });
-    portale.name = 'portale_retro';
-    group.add(portale);
-  }
   const buio = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshBasicMaterial({ color: P.neroCaldo }));
   buio.rotation.x = -Math.PI / 2; buio.position.set(X0 * T + lw / 2, -0.6, Z0 * T + ld / 2); group.add(buio);
   let fp: StanzaFinitura | null = null, fc: StanzaFinitura | null = null;

@@ -101,7 +101,7 @@ const guard = (e: HTMLElement) => { for (const ev of ['pointerdown', 'touchstart
 const distText = (d: number) => (d <= NEAR_M ? 'qui' : `${Math.round(d)} m`);
 
 const DEFAULT_DESC: Record<string, string> = {
-  casa: 'La tua isola con casa, magazzino e giardino.', porto: 'Il centro dell’arcipelago con botteghe e amici.', mercante: 'Compra e vendi materiali e arredi al Porto.', contrabbando: 'Scambi speciali e oggetti rari dal contrabbandiere.',
+  casa: 'La tua casa nel Borgo: mobili, baule e libro degli ospiti.', porto: 'Il centro dell’arcipelago con botteghe e amici.', mercante: 'Compra e vendi materiali e arredi al Porto.', contrabbando: 'Scambi speciali e oggetti rari dal contrabbandiere.',
   bacheca: 'Missioni e compiti da completare per guadagnare monete.', record: 'Classifiche e punteggi dei minigiochi tra amici.', faro: 'Il faro comune dell’arcipelago costruito insieme.', regata: 'Gara di barche a vela a tempo tra le boe.',
   scacchi: 'Partite a scacchi al tavolo del Porto.', consegne: 'Consegna pacchi in barca tra le varie isole.', ingorgo: 'Rompicapo: libera la barca incastrata al molo.',
   pinguini: 'Minigioco sui ghiacci: raduna i pinguini.', koi: 'Dai da mangiare alle carpe koi nel laghetto.', arrembaggio: 'Difendi la nave dall’assalto dei pirati.', lava: 'Scappa dalla colata di lava prima che ti prenda.',

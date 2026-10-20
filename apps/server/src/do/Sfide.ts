@@ -1,7 +1,7 @@
 // DO Sfide (una sola istanza: idFromName('tavolo')). È nato per le sfide con posta, tolte dal codice (tag archivio/spenti-sfide; la loro
 // tabella `sfide` resta nel database, non si usa più); oggi tiene le cose in comune tra amici. Il nome resta: un Durable Object non si
 // rinomina senza una migrazione. Tutte le operazioni passano da un mutex in memoria: una alla volta (sono poche, tra amici).
-// Richieste dal Worker (x-persona, x-now): GET /feed · POST /feed_letto {fino?} · POST /visita {chi, emote} (riga «è passato sulla tua isola»).
+// Richieste dal Worker (x-persona, x-now): GET /feed · POST /feed_letto {fino?} · POST /visita {chi, emote} (riga «è passato da casa tua»).
 // Porto tra amici (portoStore.ts): GET /record (tabellone) · POST /record {minigame, score, medal, detail} (dal Worker dopo il replay
 // di una partita da solo nel DO del lotto: mai dal client). Il Faro comune è stato tolto (tag archivio/spenti-faro).
 // Collezionisti: GET/POST /collezione. Buche della pala: GET /buche · POST /buca. Adrenalina: GET /discese, /fantasma · POST /discesa.

@@ -1,10 +1,9 @@
 // Teletrasporto (#264, strumento di sviluppo per tutti): elenco delle isole, un tocco e ci sei. Chunk caricato al primo tocco del bottone.
-import type { ArchPlace } from '@marea/sim/world/archipelago.ts';
 import type { GameWorld } from '../game/world.ts';
 import type { Hud } from './hud.ts';
 import { PAL, el } from './style.ts';
 
-export type TeletrasportoCtx = { root: HTMLElement; hud: Hud; world: GameWorld; slots: readonly number[]; onClose(): void };
+export type TeletrasportoCtx = { root: HTMLElement; hud: Hud; world: GameWorld; onClose(): void };
 
 const CSS = `
 #mzTele { position: absolute; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 62%; overflow-y: auto; padding: 12px; background: rgba(46,30,20,.96); border: 2px solid ${PAL.legnoChiaro}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; z-index: 21; display: none; touch-action: pan-y; }
@@ -22,11 +21,9 @@ export function createTeletrasportoUi(ctx: TeletrasportoCtx) {
   const st = document.createElement('style'); st.id = 'mz-tele-style'; st.textContent = CSS; document.head.appendChild(st);
   const box = el('div', 'mz'); box.id = 'mzTele'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Teletrasporto');
   ctx.root.appendChild(box);
-  const chiave = (p: ArchPlace) => (p.role === 'lotto' ? `lotto:${p.slot}` : p.island);
-  const ordine = (p: ArchPlace) => (p.role === 'porto' ? 0 : p.role === 'lotto' ? 2 : 1);
   const posti = () => ctx.world.archipelago.places
-    .filter((p) => p.role !== 'negozio' && (p.role !== 'lotto' || (p.slot !== null && ctx.slots.includes(p.slot)))) // il negozio dei mobili (#265) si raggiunge dalla porta
-    .sort((a, b) => ordine(a) - ordine(b) || a.index - b.index);
+    .filter((p) => p.role !== 'negozio' && p.role !== 'lotto') // il negozio dei mobili e le case si raggiungono dalla porta
+    .sort((a, b) => Number(b.role === 'porto') - Number(a.role === 'porto') || a.index - b.index);
   const close = () => { box.classList.remove('on'); ctx.onClose(); };
   const draw = () => {
     box.textContent = '';
@@ -34,7 +31,7 @@ export function createTeletrasportoUi(ctx: TeletrasportoCtx) {
     const g = el('div', 'g');
     for (const p of posti()) {
       const b = el('button', undefined, p.nome); b.type = 'button';
-      b.addEventListener('click', () => { b.blur(); if (ctx.world.vai(chiave(p))) { ctx.hud.toast(p.nome, 1500); close(); } else ctx.hud.toast('Non adesso', 1500); });
+      b.addEventListener('click', () => { b.blur(); if (ctx.world.vai(p.island)) { ctx.hud.toast(p.nome, 1500); close(); } else ctx.hud.toast('Non adesso', 1500); });
       g.appendChild(b);
     }
     box.appendChild(g);

@@ -11,8 +11,7 @@
   "autopilotaSecondi": 0.5,
   "medaglie": { "oro": 3, "argento": 2, "bronzo": 1 },
   "posti": {
-    "porto": [48, 56],
-    "lotto": [17, 19]
+    "porto": [48, 56]
   },
   "livelli": {
     "a": [

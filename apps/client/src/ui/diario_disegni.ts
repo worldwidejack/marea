@@ -49,8 +49,7 @@ export const medagliaCanvas = (m: 'oro' | 'argento' | 'bronzo' | null, scala = 3
 const TILE_COL: Record<Tile, string> = { '~': P.acquaProfonda, ',': P.acqua, B: P.acqua, '.': P.sabbia, P: P.sabbia, L: P.sabbia, g: P.erba, r: P.roccia, d: P.legno };
 export function isolaCanvas(ctx: DiarioCtx, id: string, vista: boolean): HTMLCanvasElement {
   const arch = ctx.world.archipelago, map = ctx.world.map;
-  const lotto = id.startsWith('lotto:') ? ctx.owners.find((w) => `lotto:${w.id}` === id) : null;
-  const p = lotto ? arch.places.find((q) => q.role === 'lotto' && q.slot === lotto.slot) : arch.places.find((q) => q.island === id && q.role !== 'lotto');
+  const p = arch.places.find((q) => q.island === id && q.role !== 'lotto');
   const c = document.createElement('canvas'); c.className = 'mz-ico'; c.setAttribute('aria-hidden', 'true');
   if (!p) { c.width = c.height = 1; return c; }
   c.width = p.w; c.height = p.h;

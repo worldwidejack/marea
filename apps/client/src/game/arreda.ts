@@ -25,7 +25,7 @@ const [X0, Z0] = BORGO.stanza.pavimento; // la stanza di serie: solo per la quot
 const OK = '#B6FF3D', NO = '#FF5C3D'; // verde e rosso neon della sagoma (ART_BIBLE §2), come SPOSTA in giardino
 const BAULE: MobileDef = { id: 'baule', nome: 'Baule', categoria: 'contenitori', monete: 1, posto: 'terra', forma: 'baule', colori: [PAL.legno] };
 const CSS = `
-#mzArredaBtn { position: absolute; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + 60px); transform: translateX(-50%); display: none; min-height: 44px; padding: 0 16px; background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; z-index: 15; cursor: pointer; }
+#mzArredaBtn { position: absolute; left: 50%; top: var(--mzT, max(8px, env(safe-area-inset-top))); transform: translateX(-50%); display: none; min-height: 44px; padding: 0 16px; background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border: 3px solid ${PAL.neroCaldo}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; z-index: 15; cursor: pointer; }
 #mzArredaBtn.on { display: block; }
 #mzArredaBar { position: absolute; left: 8px; right: 8px; top: calc(max(8px, env(safe-area-inset-top)) + 60px); display: none; flex-direction: column; align-items: center; gap: 6px; z-index: 15; pointer-events: none; }
 #mzArredaBar.on { display: flex; }

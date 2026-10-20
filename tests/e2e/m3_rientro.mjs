@@ -1,6 +1,6 @@
 // «Mentre eri via» e libro degli ospiti (#86) sul server locale (wrangler dev, TEST_CLOCK:1: l'ora la sposta X-Test-Now-Offset).
 // Bea (slot 0) entra la prima volta (niente cartolina), costruisce Segheria e Cava ed esce. Un'ora dopo Marco (slot 1, telefono) va
-// sull'isola di Bea, al leggio vicino al molo: FIRMA, sceglie il saluto, la firma resta nel libro (una sola al giorno: la seconda 409).
+// davanti a casa di Bea, al leggio accanto alla porta: FIRMA, sceglie il saluto, la firma resta nel libro (una sola al giorno: la seconda 409).
 // Sei ore dopo Bea rientra dal telefono: la cartolina «Mentre eri via» dice da quanto mancava, i depositi, il cantiere finito, che Marco
 // è passato; RACCOGLI TUTTO e le risorse salgono quanto i depositi. Nel feed di Bea la visita; al suo leggio il libro con la firma.
 // API: firma sul proprio libro 409, saluto sconosciuto 400, isola inesistente 404. Screenshot del telefono di libro, cartolina e feed.
@@ -86,7 +86,10 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.libro.near === 'bea', 8000);
       await page.waitForSelector('#mzLibroBtn.on', { timeout: 5000 });
       assert(/FIRMA/.test(await page.locator('#mzLibroBtn').innerText()), 'bottone FIRMA');
-      await sleep(600);
+      assert(!(await page.$('#mzPortaBtn.on')), 'accanto al leggio c\'è anche il bottone della porta di casa');
+      await hook('setZoom', 1.5); await sleep(600);
+      await ctx.shot(page, 'iphone_leggio_casa'); // il leggio con la casa e la porta accanto
+      await hook('setZoom', 0.8); await sleep(600);
       await ctx.shot(page, 'iphone_leggio_firma');
       await page.locator('#mzLibroBtn').tap();
       await ctx.waitState(page, (s) => s.libro.open === 'libro', 8000);
@@ -152,7 +155,7 @@ export default async function (ctx) {
       // feed: la visita di Marco con il suo saluto
       const feed = (await bea(OFF + MIN, 'GET', '/api/feed')).body;
       const v = feed.items.find((i) => i.tipo === 'visita');
-      assert(v && v.da === 'marco' && v.emote === 'saluto' && /Marco è passato sulla tua isola/.test(v.testo), 'feed: ' + JSON.stringify(feed.items));
+      assert(v && v.da === 'marco' && v.emote === 'saluto' && /Marco è passato da casa tua/.test(v.testo), 'feed: ' + JSON.stringify(feed.items));
       await hook('openFeed');
       await page.waitForSelector('#mzFeed.on .mz-feed-row[data-tipo="visita"]', { timeout: 8000 });
       await ctx.shot(page, 'iphone_feed_visita');

@@ -106,7 +106,7 @@ export default async function (ctx) {
       const fb = await feed('tokB');
       const [v] = fb.items;
       assert(fb.items.length === 1 && v.tipo === 'visita' && v.da === 'anna' && !v.letto && v.emote === 'saluto' && fb.nonLetti === 1, 'visita: ' + JSON.stringify(fb));
-      assert(v.testo === 'Anna è passato sulla tua isola e ha firmato il libro', 'testo: ' + v.testo);
+      assert(v.testo === 'Anna è passato da casa tua e ha firmato il libro', 'testo: ' + v.testo);
       assert(Math.abs(fb.now - Date.now() - OFF) < 60_000, 'now del feed senza orologio di test');
       assert((await feed('tokA')).items.length === 0, 'riga ad Anna per la propria firma');
       assert((await firma('tokA', 'bruno')).status === 409, 'seconda firma nello stesso giorno accettata');

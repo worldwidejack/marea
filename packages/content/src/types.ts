@@ -136,8 +136,9 @@ export type RientroCfg = {
   presenzaSecondi: number;
   /** Firme: quante ne tiene il libro di un'isola (le più vecchie escono), quante ne mostra, lunghezza massima del nome. Una al giorno (UTC) per persona e isola. */
   firme: { tetto: number; mostra: number; nomeMax: number };
-  /** Il leggio col libro: cella locale [x, z] per id del template dell'isola, da quanti m compare FIRMA, da quanti m si vede il cartello. */
-  libro: { lotto: [number, number]; raggio: number; vista: number };
+  /** Il leggio col libro: `porta` = [di lato, in fuori] in m dalla porta di casa nel Borgo; `lotto` = la cella del giardino di prima
+   *  (codice spento); da quanti m dal posto di chi legge compare FIRMA, da quanti m si vede il cartello. */
+  libro: { lotto: [number, number]; porta: [number, number]; raggio: number; vista: number };
 };
 /** Scacco in 3 (Tavolo del Porto): posizioni FEN (solo pezzi), il Bianco fa `mosse` mosse di fila e il Nero sta fermo. */
 export type ScacchiCfg = { nome: string; mosse: number; problemi: { fen: string; soluzione: string }[] };

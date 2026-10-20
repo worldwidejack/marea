@@ -105,14 +105,13 @@ export function createDiarioUi(ctx: DiarioCtx) {
   // ---------- conteggi delle linguette ----------
   type Conta = { fatto: number; tot: number };
   const conti = (l: LotState | null, d: DiarioState): Record<DiarioTab, Conta> => {
-    const amiciIsole = ctx.owners.filter((w) => w.id !== (chi ?? meId)).map((w) => `lotto:${w.id}`);
     return {
       pesci: { fatto: PESCI.filter((p) => (l?.pesci?.visti[p.id] ?? 0) > 0).length, tot: PESCI.length },
       insetti: { fatto: INSETTI.filter((i) => (l?.insetti?.visti[i.id] ?? 0) > 0).length, tot: INSETTI.length },
       perle: { fatto: DIARIO.perle.filter((p) => (d.perle[p.id] ?? 0) > 0).length, tot: DIARIO.perle.length },
       animali: { fatto: DIARIO.animali.filter((a) => d.animali.includes(a.id)).length, tot: DIARIO.animali.length },
       medaglie: { fatto: DIARIO.minigiochi.filter((m) => d.medaglie[m.id]).length, tot: DIARIO.minigiochi.length },
-      isole: { fatto: [...ISOLE_DIARIO.map((i) => i.id), ...amiciIsole].filter((id) => d.isole.includes(id)).length, tot: ISOLE_DIARIO.length + amiciIsole.length },
+      isole: { fatto: ISOLE_DIARIO.filter((i) => d.isole.includes(i.id)).length, tot: ISOLE_DIARIO.length },
     };
   };
 
@@ -240,7 +239,7 @@ export function createDiarioUi(ctx: DiarioCtx) {
   }
   function bodyIsole(d: DiarioState): HTMLElement[] {
     const g = el('div', 'mz-dia-grid');
-    const voci = [...ISOLE_DIARIO.map((i) => ({ id: i.id, nome: i.nome })), ...ctx.owners.filter((w) => w.id !== (chi ?? meId)).map((w) => ({ id: `lotto:${w.id}`, nome: `Isola di ${w.nome}` }))];
+    const voci = ISOLE_DIARIO.map((i) => ({ id: i.id, nome: i.nome }));
     for (const v of voci) { const ok = d.isole.includes(v.id); g.appendChild(cella(v.id, isolaCanvas(ctx, v.id, ok), v.nome, null, ok)); }
     const v = voci.find((x) => x.id === sel), ok = !!v && d.isole.includes(v.id);
     return [g, nota(v ? (ok ? [b(v.nome), ' · visitata.'] : [b('???'), ' · non ancora visitata: vacci in barca.']) : ['Un\'isola si segna quando ci arrivi (in barca basta entrare nelle sue acque).'])];
