@@ -1,6 +1,6 @@
-// Libro degli ospiti e «Mentre eri via» (#86, GDD §2), la parte nel bundle iniziale (piccola): un leggio col libro aperto vicino al molo
-// di ogni isola abitata (cella RIENTRO.libro di content), cartello LIBRO da vicino, bottone FIRMA sull'isola di un amico (LIBRO sulla tua)
-// quando ci sei accanto a piedi (A / E / Spazio). Il pannello del libro e la cartolina «Mentre eri via» stanno in ui/rientro.ts,
+// Libro degli ospiti e «Mentre eri via» (#86, GDD §2), la parte nel bundle iniziale (piccola): un leggio col libro aperto in strada,
+// accanto alla porta di ogni casa abitata del Borgo (RIENTRO.libro.porta di content), cartello
+// LIBRO da vicino, bottone FIRMA davanti alla casa di un amico (LIBRO davanti alla tua) quando ci sei accanto a piedi (A / E / Spazio). Il pannello del libro e la cartolina «Mentre eri via» stanno in ui/rientro.ts,
 // scaricato con import() solo quando servono (tetto del JS iniziale, TECH §5). Firmare = POST /api/libro/firma: decide il server.
 import * as THREE from 'three';
 import { RIENTRO } from '@marea/content';
@@ -8,6 +8,7 @@ import { firmatoOggi } from '@marea/sim';
 import type { Riepilogo } from '@marea/sim';
 import type { EmoteId } from '@marea/protocol';
 import type { GameWorld } from './world.ts';
+import { portaDi } from './borgo.ts';
 import type { LotView } from './lot.ts';
 import type { Api, Me } from '../net/api.ts';
 import { ApiError } from '../net/api.ts';
@@ -28,6 +29,8 @@ export type Libri = {
   update(focus: { x: number; z: number }): void;
   /** Libro o cartolina aperti (o in caricamento): il mondo sta fermo. */
   isBusy(): boolean;
+  /** Sei accanto a un leggio (dall'ultimo tick): la porta di casa lì vicino lascia A al libro. */
+  vicino(): boolean;
   close(): void;
   /** «Mentre eri via»: la cartolina, se nel riepilogo c'è qualcosa da raccontare. Risponde true se l'ha mostrata. */
   cartolina(r: Riepilogo, novita: number, raccogli: (() => void) | null): Promise<boolean>;
@@ -68,16 +71,20 @@ function leggioGeometry(): THREE.BufferGeometry {
 export function createLibri(o: LibriOpts): Libri {
   injectUiStyle();
   if (!document.getElementById('mz-libro-style')) { const st = document.createElement('style'); st.id = 'mz-libro-style'; st.textContent = CSS; document.head.appendChild(st); }
-  const arch = o.world.archipelago, cfg = RIENTRO.libro;
+  const cfg = RIENTRO.libro;
   const layer = createLabelLayer(o.root);
   const geos: THREE.BufferGeometry[] = [];
-  const libri = o.isole.map((is) => {
-    const w = arch.lotCellToWorld(is.slot, cfg.lotto), y = o.world.groundY(w.x, w.z);
-    geos.push(leggioGeometry().applyMatrix4(M(w.x, y, w.z, 0, 0, 0, 1.2, 1.2, 1.2)));
-    const label = layer.add(() => { if (dist(w.x, w.z) < cfg.raggio * 2.5) void open(lib); else o.hud.toast(`Libro degli ospiti${is.mine ? '' : ' di ' + is.ownerName}: vicino al molo`, 2200); });
+  const [lato, fuori] = cfg.porta;
+  const libri = o.isole.flatMap((is) => {
+    // la porta e il verso della strada (dalla porta in fuori): il leggio sta di lato alla porta, girato verso la strada
+    const p0 = portaDi(o.world, is.slot), p1 = portaDi(o.world, is.slot, 1);
+    if (!p0 || !p1) return [];
+    const dx = p1.x - p0.x, dz = p1.z - p0.z, wx = p0.x + dx * fuori - dz * lato, wz = p0.z + dz * fuori + dx * lato, y = o.world.groundY(wx, wz);
+    geos.push(leggioGeometry().applyMatrix4(M(wx, y, wz, 0, Math.atan2(dx, dz), 0, 1.2, 1.2, 1.2)));
+    const label = layer.add(() => { if (dist(wx, wz) < cfg.raggio * 2.5) void open(lib); else o.hud.toast(`Libro degli ospiti${is.mine ? '' : ' di ' + is.ownerName}: davanti alla porta di casa`, 2200); });
     label.set('bubble', [pixIcon('libro', 16), el('span', '', 'Libro')], 'libro'); label.el.classList.add('libro'); label.el.dataset['libro'] = is.owner;
-    const lib = { is, x: w.x, z: w.z + 0.9, px: w.x, pz: w.z, y, label }; // x, z = dove sta chi legge (davanti al leggio, verso il molo)
-    return lib;
+    const lib = { is, x: wx + dx * 0.9, z: wz + dz * 0.9, px: wx, pz: wz, y, label }; // x, z = dove sta chi legge (davanti al leggio, dalla parte della strada)
+    return [lib];
   });
   type Lib = (typeof libri)[number];
   if (geos.length) {
@@ -156,6 +163,7 @@ export function createLibri(o: LibriOpts): Libri {
 
   return {
     isBusy: () => !!ui?.isOpen(),
+    vicino: () => near !== null,
     close: () => ui?.close(),
     async cartolina(r, novita, raccogli) {
       const vuota = r.depositi.legno + r.depositi.pietra + r.depositi.perle <= 0 && !r.cantiere && !r.ospitiTot && !r.missioniNuove && novita <= 0;

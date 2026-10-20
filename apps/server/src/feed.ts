@@ -24,7 +24,7 @@ export function feedText(row: FeedRow, nomeDi: (id: string) => string): string {
   const d = row.dati ?? {};
   switch (row.tipo) {
     case 'visita':
-      return `${chi} è passato sulla tua isola e ha firmato il libro`;
+      return `${chi} è passato da casa tua e ha firmato il libro`;
     case 'record': // #110
       return `${chi} ha battuto il tuo record ${alGioco(d.minigame ?? '', nomeGioco(d.minigame))}`;
   }

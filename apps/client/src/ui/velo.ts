@@ -1,4 +1,4 @@
-// Dissolvenza dei passaggi (#265): città → stanza → giardino e ritorno. Un velo nero su tutto lo schermo che si chiude a scalini (niente
+// Dissolvenza dei passaggi: città → stanza e ritorno, le scale di casa. Un velo nero su tutto lo schermo che si chiude a scalini (niente
 // sfumatura liscia, ART_BIBLE: a scatti come i pixel), a velo chiuso si fa il passaggio, poi si riapre. Durante il passaggio il mondo
 // è fermo (`world.frozen`), così l'input non ti porta altrove mentre è buio.
 import { registerStateProvider } from '../test/testapi.ts';

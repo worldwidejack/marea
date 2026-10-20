@@ -1,9 +1,7 @@
 // La stanza della casa (#240, #265), stile Animal Crossing: pavimento a piastrelle, tre pareti con la carta da parati (davanti è
-// aperta verso la camera, col bordo del pavimento tagliato come un plastico), il portale in fondo che porta al giardino e, sotto, il
-// corridoio di assi da cui si entra e si esce in città. Sta nel template `lotto` (BORGO.stanza, celle locali): così baule e decorazioni
-// dentro casa sono celle del LotState come in giardino. Dentro la camera è fissa sopra l'ingresso (render/camera.ts `blocca`) e attorno
-// è buio: niente mare, pesci, gabbiani, pioggia, cielo né foschia (render/scene.ts `setInterno`). In giardino, sopra al pontile, un
-// portale interdimensionale riporta in casa. In casa e in giardino la minimappa si nasconde (body.mz-casa): il giardino sta fuori dalla mappa.
+// aperta verso la camera, col bordo del pavimento tagliato come un plastico) e, sotto, il corridoio di assi da cui si entra e si esce in
+// città. Sta nel template `lotto` (BORGO.stanza, celle locali): così baule e mobili sono celle del LotState. Dentro la camera è fissa
+// sopra l'ingresso (render/camera.ts `blocca`) e attorno è buio: niente mare, pesci, gabbiani, pioggia, cielo né foschia (render/scene.ts `setInterno`). In casa la minimappa si nasconde (body.mz-casa): la casa sta fuori dalla mappa.
 // Pavimenti e carte da parati vengono da borgo.json (il primo è quello di serie); `motivo` dice come si dipinge la texture.
 import * as THREE from 'three';
 import { BORGO } from '@marea/content';
@@ -17,8 +15,6 @@ import { M, P, merged, painted } from '../render/island_parts.ts';
 import { registerStateProvider } from '../test/testapi.ts';
 import { NASCOSTI_DENTRO, costruisciStanza, createInquadratura } from './interno.ts';
 import type { Pianta } from './interno.ts';
-import { creaPortale } from '../render/portale.ts';
-import type { Portale } from '../render/portale.ts';
 
 const ST = BORGO.stanza;
 const STANZE_MAX = PIANTE_MAX; // le stanze più grandi che la casa avrà mai: per capire in quale sei
@@ -30,7 +26,6 @@ const piantaDi = (livello: number, id: StanzaId = 'terra'): Pianta => {
     pavimento: s.pavimento,
     corridoio: CORRIDOI[id],
     altezza: ST.altezza,
-    retro: id === 'terra' ? ST.retro[0] : null,
     scale,
     chiusoInFondo: id !== 'terra',
   };
@@ -73,7 +68,7 @@ function libera(g: THREE.Object3D): void {
 
 export type Stanza = { dentro(): number | null; stanza(): StanzaId | null };
 
-export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: readonly number[]; lotDi?: (slot: number) => LotState | null; /** Per cambiare piano dalle scale (#386). */ velo?: Velo }): Stanza {
+export function createStanza(o: { world: GameWorld; renderer: Renderer; lotDi?: (slot: number) => LotState | null; /** Per cambiare piano dalle scale (#386). */ velo?: Velo }): Stanza {
   const w = o.world, arch = w.archipelago, T = arch.tile, dio = o.renderer.diorama;
   let pav = BORGO.pavimenti[0]!, carta = BORGO.carte[0]!;
   // la stanza è quella del livello di casa di chi ci abita (#386): si rifà quando cambia
@@ -112,16 +107,6 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
     rifinisci(pav, carta);
   };
 
-  // il portale interdimensionale del giardino verso la stanza (#404), posizionato sopra al pontile
-  const gx = ST.giardino[0] * T, gz = (ST.giardino[1] + 0.5) * T;
-  const portaliGiardino = new THREE.Group(); portaliGiardino.name = 'passaggi_giardino';
-  for (const s of o.slots) {
-    const l = arch.lots.find((q) => q.slot === s); if (!l) continue;
-    const ox = l.origin[0] * T, oz = l.origin[1] * T;
-    portaliGiardino.add(creaPortale({ x: ox + gx, y: w.groundY(ox + gx, oz + gz), z: oz + gz, ry: 0 }));
-  }
-  if (portaliGiardino.children.length) w.scene.add(portaliGiardino);
-
   const inq = createInquadratura({ world: w, renderer: o.renderer });
   const nascosti: THREE.Object3D[] = [];
   /** In quale casa e in quale stanza sei (dai bordi delle stanze più grandi: lì dentro non c'è altro che la casa). */
@@ -150,19 +135,16 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
     void v.passa(() => w.aPiedi((origin[0] + dest.arrivo[0] + 0.5) * T, (origin[1] + dest.arrivo[1] + 0.5) * T, 0));
   };
   const esce = () => inq.esce();
-  // dopo il cull di ogni frame (world.ts): dentro la stanza si nasconde il resto di quel giardino, il mare, i leggii, animali e pioggia
+  // dopo il cull di ogni frame (world.ts): dentro la stanza si nasconde il resto di quel lotto, il mare, i leggii, animali e pioggia
   w.dopoCull = () => {
     for (const n of nascosti) n.visible = true;
     nascosti.length = 0;
-    const tempo = performance.now() * 0.001;
-    for (const p of portaliGiardino.children) (p as Portale).update?.(tempo);
-    (room?.getObjectByName('portale_retro') as Portale | undefined)?.update?.(tempo);
     const prima = qui, primaStanza = quiStanza, d = dentroDi();
     qui = d?.slot ?? null; quiStanza = d?.stanza ?? null;
     if (d && `${livelloDi(d.slot)}:${d.stanza}` !== costruitaPer) { costruisci(livelloDi(d.slot), d.stanza); if (qui === prima && quiStanza === primaStanza) entra(d.slot, d.stanza); } // la casa è cresciuta: stanza nuova e camera nuova
     if (qui !== prima || quiStanza !== primaStanza) { if (d) entra(d.slot, d.stanza); else esce(); } // anche cambiando piano si rifà l'inquadratura
     const pl = arch.placeAt(w.avatar.state.x, w.avatar.state.z);
-    document.body.classList.toggle('mz-casa', w.mode === 'walk' && (pl?.role === 'lotto' || pl?.role === 'negozio')); // minimappa via in casa, in giardino e nel negozio
+    document.body.classList.toggle('mz-casa', w.mode === 'walk' && (pl?.role === 'lotto' || pl?.role === 'negozio')); // minimappa via in casa e nel negozio
     room.visible = qui !== null;
     if (qui === null) return;
     finiture(qui);
@@ -171,7 +153,7 @@ export function createStanza(o: { world: GameWorld; renderer: Renderer; slots: r
     room.position.set(l.origin[0] * T, w.groundY((l.origin[0] + (rr[0] + rr[2]) / 2) * T, (l.origin[1] + (rr[1] + rr[3]) / 2) * T), l.origin[1] * T);
     scalaTick(l.origin, quiStanza!);
     const via = (n: THREE.Object3D | undefined | null) => { if (n && n.visible) { n.visible = false; nascosti.push(n); } };
-    via(w.scene.getObjectByName('vista_lotto_' + qui)); via(w.water.mesh); via(w.scene.getObjectByName('libri_ospiti')); via(w.scene.getObjectByName('passaggi_giardino'));
+    via(w.scene.getObjectByName('vista_lotto_' + qui)); via(w.water.mesh); via(w.scene.getObjectByName('libri_ospiti'));
     for (const n of NASCOSTI_DENTRO) via(w.scene.getObjectByName(n));
     const zMuro = (l.origin[1] + rr[1]) * T, v = new THREE.Vector3();
     // i mobili sono una mesh per stanza: quelle degli altri piani non si vedono

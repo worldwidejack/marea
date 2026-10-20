@@ -51,7 +51,7 @@ export type Negozio = {
 type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'banco' | 'pala' | 'retino' | 'canna'; id: string; nome: string; monete: number; x: number; z: number; fx: number; fz: number };
 
 const ND = BORGO.negozioDentro, [X0, Z0, X1] = ND.pavimento, [CX, C0, C1] = ND.corridoio;
-const PIANTA: Pianta = { pavimento: ND.pavimento, corridoio: ND.corridoio, altezza: ND.altezza, retro: null };
+const PIANTA: Pianta = { pavimento: ND.pavimento, corridoio: ND.corridoio, altezza: ND.altezza };
 const RAGGIO = 2.2, VICINO = 1.7;
 /** I posti in fila (pedane, quadri a muro, campioni di pavimento): una cella sì e una no, a partire dalla seconda; l'ultima cella è del banco. */
 const POSTI = Math.floor((X1 - X0 - 1) / 2), posto = (i: number): number => X0 + 1 + i * 2;

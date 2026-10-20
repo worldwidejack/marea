@@ -1,7 +1,7 @@
-// La casa alla Animal Crossing (#265), senza server (net=0, casa 3 = la tua): si entra camminando contro la porta (velo nero a scalini),
-// dentro la camera è fissa sopra l'ingresso (yaw 0) e la minimappa sparisce; in fondo alla stanza si va in giardino camminando contro il
-// portale, nel portale sul pontile si torna in casa, in fondo al corridoio si esce in città e tutto torna com'era.
-// Screenshot: stanza da telefono e da PC (da confrontare con la reference di Animal Crossing), giardino col portale, ritorno in città.
+// La casa alla Animal Crossing (#265), senza server (net=0, casa 3 = la tua): si entra con A davanti alla porta (velo nero a scalini),
+// dentro la camera è fissa sopra l'ingresso (yaw 0) e la minimappa sparisce; in fondo alla stanza c'è il muro (il giardino non c'è più),
+// in fondo al corridoio si esce in città e tutto torna com'era.
+// Screenshot: stanza da telefono e da PC (da confrontare con la reference di Animal Crossing), fondo della stanza, ritorno in città.
 export const timeout = 180000;
 
 export default async function (ctx) {
@@ -71,22 +71,15 @@ export default async function (ctx) {
       assert(Math.abs(q.stanza.camera.yaw - yaw0) < 1e-6, 'camera non tornata com\'era: ' + JSON.stringify(q.stanza.camera));
     });
 
-    await ctx.test(`${nome}: contro il portale in fondo si va in giardino; nel portale sul pontile si torna in casa`, async () => {
-      await cammina(p.page, ['ArrowUp'], (q) => q.velo.attivo, 20000);
-      await fine(p.page);
-      let q = await st(p.page);
-      assert(q.arch.place === 'lotto' && !q.mappa.mini, 'in giardino: ' + JSON.stringify({ place: q.arch.place, mini: q.mappa.mini }));
-      assert(q.aspetto && !q.aspetto.chiuso && q.aspetto.momento !== 'interno', 'in giardino chiuso non falso: ' + JSON.stringify(q.aspetto));
-      await p.page.waitForTimeout(600);
-      await ctx.shot(p.page, `${nome}_giardino`);
-      // il portale sta a sud sul pontile: ci si torna camminando verso il portale
-      const torna = await st(p.page), porta = torna.borgo.porte.find((x) => x.slot === SLOT);
-      const dx = porta.giardino.x - torna.avatar.x, dz = porta.giardino.z - torna.avatar.z;
-      await cammina(p.page, frecce(Math.PI / 4, dx, dz), (s, slot) => s.stanza.dentro === slot, 20000, SLOT);
-      await fine(p.page);
-      q = await st(p.page);
-      assert(q.velo.passaggi > torna.velo.passaggi, 'portale del giardino senza velo');
-      assert(q.aspetto && q.aspetto.momento === 'interno' && q.aspetto.chiuso, 'tornato in casa aspetto: ' + JSON.stringify(q.aspetto));
+    await ctx.test(`${nome}: in fondo alla stanza c'è il muro: camminandoci contro si resta in casa (niente giardino)`, async () => {
+      const q0 = await st(p.page);
+      await p.page.keyboard.down('ArrowUp');
+      await p.page.waitForTimeout(3500);
+      await p.page.keyboard.up('ArrowUp');
+      const q = await st(p.page);
+      assert(q.stanza.dentro === SLOT && q.velo.passaggi === q0.velo.passaggi && !q.velo.attivo, 'uscito dalla stanza: ' + JSON.stringify({ dentro: q.stanza.dentro, velo: q.velo }));
+      assert(q.aspetto && q.aspetto.momento === 'interno' && q.aspetto.chiuso, 'in casa aspetto: ' + JSON.stringify(q.aspetto));
+      await ctx.shot(p.page, `${nome}_fondo`);
     });
 
     await ctx.test(`${nome}: in fondo al corridoio si esce in città, la camera e la minimappa tornano`, async () => {

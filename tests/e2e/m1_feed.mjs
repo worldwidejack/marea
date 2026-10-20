@@ -74,8 +74,8 @@ export default async function (ctx) {
     // ---- 1) feed finto ----
     const rows = [
       { id: 3, quando: now - 26 * 3600_000, tipo: 'record', testo: 'Bruno ha battuto il tuo record alla Regata', da: 'bruno', letto: true },
-      { id: 5, quando: now - 2 * MIN, tipo: 'visita', testo: 'Bruno è passato sulla tua isola e ha firmato il libro', da: 'bruno', emote: 'saluto', letto: false },
-      { id: 7, quando: now - 20_000, tipo: 'visita', testo: 'Anna è passato sulla tua isola e ha firmato il libro', da: 'anna', emote: 'esulta', letto: false },
+      { id: 5, quando: now - 2 * MIN, tipo: 'visita', testo: 'Bruno è passato da casa tua e ha firmato il libro', da: 'bruno', emote: 'saluto', letto: false },
+      { id: 7, quando: now - 20_000, tipo: 'visita', testo: 'Anna è passato da casa tua e ha firmato il libro', da: 'anna', emote: 'esulta', letto: false },
     ];
     const { pg: carla, feed: cf } = await open('tokC', ctx.B.DESKTOP, { rows });
     await ctx.test('avvio: campanella con badge 2 e toast «2 novità» (primo giro ~3 s)', async () => {
@@ -136,7 +136,7 @@ export default async function (ctx) {
     });
 
     // ---- 2) poll: Carla visibile, Dario (telefono) con la scheda «nascosta» ----
-    const drows = [{ id: 11, quando: now - 5 * MIN, tipo: 'visita', testo: 'Bruno è passato sulla tua isola e ha firmato il libro', da: 'bruno', emote: 'saluto', letto: false }];
+    const drows = [{ id: 11, quando: now - 5 * MIN, tipo: 'visita', testo: 'Bruno è passato da casa tua e ha firmato il libro', da: 'bruno', emote: 'saluto', letto: false }];
     const { pg: dario, feed: df } = await open('tokD', ctx.B.IPHONE, { rows: drows, hidden: true });
     await ctx.test('poll: scheda visibile ≥ 1 giro in 35 s, scheda nascosta 0 giri; tornata visibile → un giro subito', async () => {
       const c0 = cf.gets.length, t0 = Date.now();

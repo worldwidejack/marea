@@ -1,6 +1,6 @@
 // Interfaccia con tutto acceso (bussola, guida, minimappa, barra risorse, bottoni): server locale pulito, Luca entra col suo link con le
 // impostazioni di serie su iPhone 390×844, Android piccolo 360×740 e PC 1280×720. Mete aperte e tutte accese, isole a tema scoperte (14
-// mete), guida «Primi passi» al primo passo; poi al Porto accanto al Mercante (bottone del Porto) e in barca sul mare da pesca (PESCA, con la canna).
+// mete), guida «Primi passi» al primo passo; poi in casa (ARREDA), al Porto accanto al Mercante (bottone del Porto) e in barca sul mare da pesca (PESCA, con la canna).
 // In ogni posa: i rettangoli degli elementi fissi non si sovrappongono e stanno dentro lo schermo. Più la guida: si chiude con ×, resta
 // chiusa al ricaricamento, e chi aveva fatto i 4 passi vecchi (progresso numerico in localStorage) riparte dai passi nuovi, non da capo.
 // La guida non parte da sola (VISIONE §1): ogni ingresso nuovo controlla che sia spenta e la accende dalla riga delle Impostazioni.
@@ -17,7 +17,7 @@ const ANDROID = { width: 360, height: 740, deviceScaleFactor: 2, isMobile: true,
 /** Elementi fissi dell'interfaccia (selettori → nome leggibile). Ognuno conta solo se si vede. */
 const FISSI = [
   ['#mzBar > *', 'risorsa'], ['#mzWork', 'cantiere'], ['#mzTop > *', 'bottone in alto'], ['#compass > *', 'bussola'], ['#mzMini', 'minimappa'], ['#mzMiniZoom > *', 'zoom minimappa'], ['#mzMiniMete', 'bandierina mete'],
-  ['#mzGuida', 'guida'], ['#btnA', 'A'], ['#btnB', 'B'], ['#joystick', 'joystick'], ['#mzPlay', 'GIOCA'], ['#mzPortoBtn', 'Porto'], ['#mzAmiciBtn', 'Record e Faro'], ['#mzPescaBtn', 'PESCA'], ['#mzPerle', 'TUFFATI'],
+  ['#mzGuida', 'guida'], ['#btnA', 'A'], ['#btnB', 'B'], ['#joystick', 'joystick'], ['#mzPlay', 'GIOCA'], ['#mzPortoBtn', 'Porto'], ['#mzAmiciBtn', 'Record e Faro'], ['#mzPescaBtn', 'PESCA'], ['#mzPerle', 'TUFFATI'], ['#mzArredaBtn', 'ARREDA'],
 ];
 
 export default async function (ctx) {
@@ -126,7 +126,8 @@ export default async function (ctx) {
       const touch = !!vp.hasTouch;
       await ctx.test(`${nome} ${vp.width}×${vp.height}: sull'isola con mete aperte, guida e minimappa niente si sovrappone`, async () => {
         const s0 = await ctx.getState(P.page);
-        assert(s0.guida.current === 'segheria' && s0.guida.total === 8 && s0.guida.done === 0, 'guida all\'inizio: ' + JSON.stringify(s0.guida));
+        // «Spendi le monete» è già fatto: la canna di prova qui sopra è una spesa
+        assert(s0.guida.current === 'casa' && s0.guida.total === 8 && s0.guida.fatti.join() === 'spendi', 'guida all\'inizio: ' + JSON.stringify(s0.guida));
         await accendi(P);
         const s = await ctx.getState(P.page);
         ctx.log(`${nome}: mete ${s.compass.shown.length} (${s.compass.shown.join(',')}) · sezioni ${JSON.stringify(s.compass.sezioni)} · guida ${JSON.stringify(s.guida)}`);
@@ -142,14 +143,13 @@ export default async function (ctx) {
         assert(['mercante', 'bacheca', 'consegne:porto', 'ingorgo:porto'].every((id) => aperte.righe.includes(id)), 'sezione Porto: ' + aperte.righe.join(','));
         await controlla(P, `${nome}_isola_porto_aperto`, ['bussola', 'minimappa', 'guida']);
       });
-      await ctx.test(`${nome}: cantiere in corso (chip in alto) e guida al passo 2/8`, async () => {
-        const seg = await P.page.evaluate(() => window.__game.state().lot.slotSigns.find((x) => x.hint)?.cell);
-        const r = await hook(P.page, 'lotAct', 'build', 'segheria', seg);
-        assert(r.ok, 'Segheria: ' + JSON.stringify(r));
-        await ctx.waitState(P.page, (s) => s.guida.current === 'barca' && s.guida.fatti.includes('segheria'), 8000);
-        await P.page.waitForFunction(() => document.getElementById('mzWork')?.classList.contains('on'), null, { timeout: 8000 });
+      await ctx.test(`${nome}: in casa (ARREDA) e guida al passo dopo, niente si sovrappone`, async () => {
+        const slot = (await ctx.getState(P.page)).borgo.porte.find((q) => q.mia).slot;
+        await hook(P.page, 'porta', slot);
+        await ctx.waitState(P.page, (s) => s.guida.current === 'barca' && s.guida.fatti.includes('casa'), 8000);
         await sleep(1600); // finisce il «FATTO!»
-        await controlla(P, `${nome}_cantiere`, ['cantiere', 'guida', 'bussola', 'minimappa']);
+        await controlla(P, `${nome}_casa`, ['ARREDA', 'guida']);
+        await hook(P.page, 'esciDiCasa', slot);
       });
       await ctx.test(`${nome}: al Porto accanto al Mercante (bottone del Porto) niente si sovrappone`, async () => {
         await hook(P.page, 'goto', 'porto'); await sleep(400);
@@ -190,7 +190,7 @@ export default async function (ctx) {
       ctx.noErrors(P, 'guida');
       await page.context().close().catch(() => {});
     });
-    await ctx.test('guida: chi aveva fatto i 4 passi di prima (progresso «4» salvato) riparte da «Fai due chiacchiere al Porto», non da capo', async () => {
+    await ctx.test('guida: chi aveva fatto i 4 passi di prima (progresso «4» salvato) riparte da «Fai due chiacchiere al Porto», non da capo (i passi di prima diventano casa, barca, Regata, spendi)', async () => {
       const P = await apri('tokL', ctx.B.IPHONE), page = P.page;
       await page.evaluate(() => localStorage.setItem('marea:guida:luca', '4'));
       await page.reload(); await ctx.waitReady(page, 30000);
@@ -198,7 +198,7 @@ export default async function (ctx) {
       await accendiGuida(P); // il progresso di prima riparte spento: prima si accendeva da sola
       const g = (await ctx.getState(page)).guida;
       ctx.log('guida da «4»: ' + JSON.stringify(g));
-      assert(g.current === 'parla' && g.done >= 4 && ['segheria', 'barca', 'regata', 'costruisci'].every((id) => g.fatti.includes(id)), 'guida: ' + JSON.stringify(g));
+      assert(g.current === 'parla' && g.done >= 4 && ['casa', 'barca', 'regata', 'spendi'].every((id) => g.fatti.includes(id)), 'guida: ' + JSON.stringify(g));
       await sleep(600);
       await ctx.shot(page, 'guida_passi_nuovi');
       ctx.noErrors(P, 'guida vecchia');

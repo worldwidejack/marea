@@ -2,8 +2,8 @@
 // rigiocata dal server dà la medaglia e le partite, due pesci presi con la canna riempiono la pagina Pesci; avvistamenti validati
 // (niente id inventati, niente la propria isola, solo lotti di amici veri); le rotte dei traguardi (tolti, tag archivio/spenti-traguardi)
 // non ci sono più e il look salvato non porta titoli. Browser telefono 390×844 (Luca): J apre l'album sui pesci, scheda di un pesce, niente
-// targhetta sopra la propria testa né avvisi di traguardi. PC (Mia): sull'isola di Luca vede il suo nome sopra la testa, la visita si segna
-// nel diario, J apre il diario (6 pagine, niente Traguardi), sfoglia quello di Luca.
+// targhetta sopra la propria testa né avvisi di traguardi. PC (Mia): davanti a casa di Luca vede il suo nome sopra la testa, la casa non si segna
+// come isola, J apre il diario (6 pagine, niente Traguardi), sfoglia quello di Luca.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -133,9 +133,12 @@ export default async function (ctx) {
     await ctx.waitState(dp, (s) => s.lot && s.lot.ready === true && s.diario, 60000);
     const dhook = (n, ...a) => dp.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
-    await ctx.test('PC: davanti a casa di Luca (Borgo, #237) si vede il suo nome sopra la testa; la visita al giardino finisce nel diario di Mia', async () => {
-      await dhook('goto', 'lotto:0');
-      await ctx.waitState(dp, (s) => s.diario.isole.includes('lotto:luca'), 10000);
+    await ctx.test('PC: davanti a casa di Luca (Borgo, #237) si vede il suo nome sopra la testa; entrare in casa sua non segna un\'isola nel diario di Mia', async () => {
+      await dhook('porta', 0);
+      await ctx.waitState(dp, (s) => s.stanza.dentro === 0, 10000);
+      await sleep(1500); // gli avvistamenti si controllano ogni mezzo secondo
+      assert(!(await ctx.getState(dp)).diario.isole.some((i) => i.startsWith('lotto:')), 'casa di Luca segnata come isola: ' + JSON.stringify((await ctx.getState(dp)).diario.isole));
+      await dhook('esciDiCasa', 0);
       const porta = (await ctx.getState(dp)).borgo.porte.find((p) => p.slot === 0);
       await dhook('teleport', porta.x + 2, porta.z);
       await ctx.waitState(dp, (s) => s.targhette.some((t) => t.who === 'luca' && t.nome === 'Luca' && t.on), 20000);

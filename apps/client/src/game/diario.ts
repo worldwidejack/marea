@@ -24,7 +24,7 @@ export type Diario = {
 /** Quello che serve al chunk dell'album (ui/diario_ui.ts). */
 export type DiarioCtx = {
   root: HTMLElement; hud: Hud; api: Api | null; me: Me | null; world: GameWorld;
-  /** Chi ha un'isola (me compreso): nomi delle visite e diario degli amici. */
+  /** Chi abita il Borgo (me compreso): il diario degli amici. */
   owners: readonly LotOwner[];
   getLot(): LotState | null; setLot(l: LotState): void;
   onClose(): void;
@@ -85,15 +85,10 @@ export function createDiario(o: { root: HTMLElement; hud: Hud; api: Api | null; 
       if (coda.animali.size || coda.isole.size) attesa = FLUSH_S;
     } catch { attesa = RIPROVA_S; } finally { inVolo = false; }
   };
-  /** L'isola dove sei adesso, come id del diario (null = in mare o a casa tua). */
+  /** L'isola dove sei adesso, come id del diario (null = in mare, in una casa o nel negozio dei mobili: non sono isole). */
   const isolaQui = (x: number, z: number): string | null => {
     const p = o.world.archipelago.placeAt(x, z);
-    if (!p) return null;
-    if (p.role === 'negozio') return null; // il negozio dei mobili (#265) non è un'isola
-    if (p.role !== 'lotto') return p.island;
-    if (p.slot === o.world.slot) return null;
-    const w = o.owners.find((q) => q.slot === p.slot);
-    return w && o.me && w.id !== o.me.id ? `lotto:${w.id}` : null;
+    return p && p.role !== 'negozio' && p.role !== 'lotto' ? p.island : null;
   };
 
   const api: Diario = {

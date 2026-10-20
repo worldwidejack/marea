@@ -1,6 +1,6 @@
 // Minigiochi universali: Consegne (in barca, dal molo al molo indicato) e Ingorgo (puzzle a schermo stile Rush Hour). Server locale pulito.
 // API: il server rigioca gli input dell'autopilota e paga l'oro (Consegne partite dai Templari: il molo è il primo input, #247), input rotti 400.
-// Browser PC (Luca, casa 0): al Porto compaiono CONSEGNE e INGORGO (non accanto alla barca né allo spawn), Ingorgo anche nel giardino; nella bussola solo
+// Browser PC (Luca, casa 0): al Porto compaiono CONSEGNE e INGORGO (non accanto alla barca né allo spawn), niente nei lotti; nella bussola
 // quelli del Porto; Consegne dal molo: conto alla rovescia, rotta a puntini, meta con bandiera, HUD; l'autopilota consegna tutto, il server premia.
 // Telefono (Mia, 390×844): Ingorgo al Porto, la griglia sta nello schermo, una barca si trascina davvero, RICOMINCIA, Esc ritira;
 // l'autopilota risolve i tre ingorghi e il server premia. HUD delle Consegne leggibile sul telefono.
@@ -87,10 +87,10 @@ export default async function (ctx) {
     const st = () => ctx.getState(page);
     const hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
-    await ctx.test('PC: Consegne al Porto, Ingorgo al Porto e nei giardini (#237); nella bussola solo quelli del Porto', async () => {
+    await ctx.test('PC: Consegne e Ingorgo al Porto, niente nei lotti (il giardino non c\'è più); nella bussola quelli del Porto', async () => {
       const s = await st(), ids = s.minigiochi.spots.map((x) => x.id);
-      for (const id of ['consegne:porto', 'ingorgo:porto', 'ingorgo:lotto:0', 'ingorgo:lotto:7']) assert(ids.includes(id), `manca ${id}: ${ids.join(',')}`);
-      assert(!ids.some((id) => id.startsWith('consegne:lotto')), 'Consegne in un giardino senza molo: ' + ids.join(','));
+      for (const id of ['consegne:porto', 'ingorgo:porto']) assert(ids.includes(id), `manca ${id}: ${ids.join(',')}`);
+      assert(!ids.some((id) => id.includes(':lotto')), 'minigiochi in un lotto: ' + ids.join(','));
       assert(ids.indexOf('regata') === 0, 'la Regata deve restare il primo posto (guida)');
       const rows = await page.evaluate(() => [...document.querySelectorAll('#compass [data-id]')].map((r) => r.dataset.id));
       assert(rows.includes('consegne:porto') && rows.includes('ingorgo:porto'), 'bussola: ' + rows.join(','));
@@ -159,10 +159,11 @@ export default async function (ctx) {
       assert(!(await page.$('#mzConsegne.on')), 'HUD rimasto acceso');
     });
 
-    await ctx.test('PC: Ingorgo nel giardino; Esc ritira', async () => {
-      const spot = (await st()).minigiochi.spots.find((x) => x.id === 'ingorgo:lotto:0');
+    await ctx.test('PC: Ingorgo al Porto; Esc ritira', async () => {
+      await hook('goto', 'porto');
+      const spot = (await st()).minigiochi.spots.find((x) => x.id === 'ingorgo:porto');
       await hook('teleport', spot.x, spot.z);
-      await ctx.waitState(page, (q) => q.minigiochi.near === 'ingorgo:lotto:0', 5000);
+      await ctx.waitState(page, (q) => q.minigiochi.near === 'ingorgo:porto', 5000);
       await page.click('#mzPlay');
       await page.waitForSelector('#mzIngorgo.on', { timeout: 15000 });
       await page.waitForTimeout(1200);

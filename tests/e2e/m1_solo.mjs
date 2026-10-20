@@ -1,7 +1,7 @@
-// Primo avvio di un amico (guida «Primi passi» + minigiochi da solo): server locale pulito, Luca entra col suo link. La guida chiede la
-// Segheria (cartello evidenziato → conferma già pronta), poi la barca, poi la Regata; al molo della Laguna compare GIOCA, la gara la corre
-// l'autopilot, il server rigioca gli input e paga il premio della medaglia (balance.solo); la guida passa a «Costruisci col premio».
-// Niente Tavolo delle Sfide nel pannello Costruisci. API: play senza partita aperta 409, input rotti 400.
+// Primo avvio di un amico (guida «Primi passi» + minigiochi da solo): server locale pulito, Luca entra col suo link. La guida chiede di
+// entrare in casa (freccia sulla porta, A entra), poi la barca, poi la Regata; al molo della Laguna compare GIOCA, la gara la corre
+// l'autopilot, il server rigioca gli input e paga il premio della medaglia (balance.solo); la guida passa a «Spendi le monete».
+// API: play senza partita aperta 409, input rotti 400.
 // La guida non parte da sola (VISIONE §1): al primo ingresso è spenta, c'è solo il toast che la indica; Luca la accende dalle Impostazioni.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -20,7 +20,6 @@ export default async function (ctx) {
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
   const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
   const balance = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/balance.json'), 'utf8'));
-  const segheria = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/buildings.json'), 'utf8')).find((b) => b.id === 'segheria');
 
   let dev = null, log = '', luca = null;
   try {
@@ -61,7 +60,6 @@ export default async function (ctx) {
       const s0 = await st();
       assert(s0.guida.chiusa === true && s0.guida.current === null && !s0.guida.visibile && s0.guida.primaVolta, 'guida al primo ingresso: ' + JSON.stringify(s0.guida));
       assert(await page.locator('#mzGuida.on').count() === 0 && !s0.guida.pointer, 'la scheda della guida si vede');
-      assert(s0.lot.slotSigns.every((x) => !x.hint), 'a guida spenta nessun cartello suggerito');
       const toast = await page.evaluate(() => document.getElementById('toast')?.textContent ?? '');
       assert(/Primi passi/.test(toast) && /Impostazioni/.test(toast), 'toast: ' + toast);
       await ctx.shot(page, '0_primo_ingresso');
@@ -69,36 +67,29 @@ export default async function (ctx) {
       await page.waitForSelector('#mzSet.on [data-set="guida"]', { timeout: 5000 });
       assert(/^No$/.test((await page.locator('#mzSet [data-set="guida"] .sw').innerText()).trim()), 'la riga della guida deve dire No');
       await page.locator('#mzSet [data-set="guida"]').click();
-      await ctx.waitState(page, (s) => s.guida.chiusa === false && s.guida.current === 'segheria', 3000);
+      await ctx.waitState(page, (s) => s.guida.chiusa === false && s.guida.current === 'casa', 3000);
       await ctx.shot(page, '0_impostazioni_guida');
       await page.locator('#mzSet .mz-x').click();
-      await ctx.waitState(page, (s) => s.guida.visibile && s.lot.slotSigns.some((x) => x.hint), 5000);
+      await ctx.waitState(page, (s) => s.guida.visibile, 5000);
     });
 
-    await ctx.test('apertura: guida 1/8 «Segheria», cartelli Costruisci con lo slot suggerito, bussola con Porto e Regata', async () => {
+    await ctx.test('apertura: guida 1/8 «Entra in casa tua» con la freccia, bussola con Casa, Porto e Regata', async () => {
       const s = await st();
-      assert(s.guida.current === 'segheria' && s.guida.total === 8 && s.guida.pointer, 'guida: ' + JSON.stringify(s.guida));
-      const signs = s.lot.slotSigns;
-      assert(signs.length >= 5 && signs.filter((x) => x.hint).length === 1, 'cartelli: ' + JSON.stringify(signs));
+      assert(s.guida.current === 'casa' && s.guida.total === 8 && s.guida.pointer, 'guida: ' + JSON.stringify(s.guida));
       const rows = await page.evaluate(() => [...document.querySelectorAll('#compass [data-id]')].map((r) => r.dataset.id));
       assert(rows.includes('porto') && rows.includes('regata') && rows.includes('casa'), 'bussola: ' + rows.join(','));
       assert(s.minigiochi.spots.some((x) => x.id === 'regata'), 'manca il posto della Regata');
     });
     await ctx.shot(page, '1_apertura');
 
-    await ctx.test('il cartello suggerito apre «Costruire Segheria?», il pannello non offre il Tavolo; costruita → guida 2/8', async () => {
-      const s = await st(), h = s.lot.slotSigns.find((x) => x.hint);
-      await hook('teleport', (s.lot.origin[0] + h.cell[0] + 0.5) * 2, (s.lot.origin[1] + h.cell[1] + 2.5) * 2); await sleep(1200);
-      await page.locator('.mz-lbl.slot.hint').click();
-      await page.waitForSelector('#mzSheet [data-panel="conferma"]', { timeout: 5000 });
-      assert(/segheria/i.test(await page.locator('#mzSheet').innerText()), 'la conferma non è della Segheria');
-      await page.locator('#mzSheet [data-act="annulla"]').click();
-      await page.waitForSelector('#mzSheet [data-panel="costruisci"]', { timeout: 5000 });
-      assert(await page.locator('#mzSheet [data-building="tavolo"]').count() === 0, 'il pannello offre il Tavolo');
-      await page.locator('#mzSheet [data-building="segheria"]').click();
-      await page.locator('#mzSheet [data-act="conferma"]').click();
-      await ctx.waitState(page, (s) => s.guida.current === 'barca', 8000);
-      assert((await st()).lot.resources.legno === balance.partenza.legno - segheria.levels[0].cost.legno, 'Legno dopo la Segheria');
+    await ctx.test('davanti alla porta A entra in casa → guida 2/8 «Sali in barca»; si riesce in città', async () => {
+      const s = await st(), porta = s.borgo.porte.find((q) => q.mia);
+      await hook('teleport', porta.x, porta.z);
+      await ctx.waitState(page, (q) => q.borgo.near && q.borgo.near.dove === 'entra', 5000);
+      await page.keyboard.press('KeyE');
+      await ctx.waitState(page, (q, slot) => q.stanza.dentro === slot && q.guida.current === 'barca', 15000, porta.slot);
+      await hook('esciDiCasa', porta.slot);
+      await ctx.waitState(page, (q) => q.stanza.dentro === null, 5000);
     });
     await ctx.shot(page, '2_barca');
 
@@ -136,11 +127,11 @@ export default async function (ctx) {
       assert(/\+\d+/.test(await page.locator('#mzEsito').innerText()), 'la scheda non mostra il premio');
       await ctx.shot(page, '4_esito');
       await page.locator('#mzEsito [data-act="ok"]').click();
-      await ctx.waitState(page, (s) => s.guida.current === 'costruisci' && s.minigiochi.open === false, 5000);
+      await ctx.waitState(page, (s) => s.guida.current === 'spendi' && s.minigiochi.open === false, 5000);
       await ctx.waitState(page, (s, o) => s.lot.monete === o, 10000, r.lot.monete); // il contatore si aggiorna subito
       await ctx.waitState(page, (s, o) => Number(document.querySelector('.mz-chip[data-res="monete"] b')?.textContent ?? -1) === o, 10000, r.lot.monete).catch(() => assert(false, 'il contatore delle monete non segue il lotto'));
     });
-    await ctx.shot(page, '5_costruisci');
+    await ctx.shot(page, '5_spendi');
 
     await ctx.test('nessun pageerror per Luca', async () => { ctx.noErrors(P, 'Luca'); });
 
