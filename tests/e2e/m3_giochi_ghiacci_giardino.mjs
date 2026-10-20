@@ -90,7 +90,7 @@ export default async function (ctx) {
       await hook(page, 'teleport', sp.x, sp.z);
       await ctx.waitState(page, (s) => s.minigiochi.near === 'pinguini:ghiacci', 15000);
       await page.waitForSelector('#mzPlay.on', { timeout: 5000 });
-      assert(/PINGUINI/.test(await page.locator('#mzPlay').innerText()), 'testo del bottone');
+      assert(/pinguini/i.test(await page.locator('#mzPlay').innerText()), 'testo del bottone');
       assert((await st()).compass.shown.includes(sp.id), 'Pinguini non in bussola a isola aperta');
       await hook(page, 'setZoom', 1.3);
       await sleep(1500);
@@ -131,7 +131,7 @@ export default async function (ctx) {
       assert(r.medal === 'oro' && r.premiata && JSON.stringify(r.premio) === JSON.stringify(ORO.pinguini), 'esito: ' + JSON.stringify(r));
       assert(r.lot.monete >= before + r.premio, 'monete non pagate');
       const txt = await page.locator('#mzEsito').innerText();
-      assert(/ORO/.test(txt) && /3\/3 livelli/.test(txt), 'scheda: ' + txt);
+      assert(/\bOro\b/.test(txt) && /3\/3 livelli/.test(txt), 'scheda: ' + txt);
       await sleep(300);
       await ctx.shot(page, 'iphone_4_esito');
       await hook(page, 'pinguiniAuto', false);
@@ -206,7 +206,7 @@ export default async function (ctx) {
       ctx.log(`koi esito ${r.medal} ${r.score} · ${JSON.stringify(r.detail)}`);
       assert(r.medal === 'oro' && r.premiata && JSON.stringify(r.premio) === JSON.stringify(ORO.koi), 'esito: ' + JSON.stringify(r));
       const txt = await dp.locator('#mzEsito').innerText();
-      assert(/ORO/.test(txt) && /bocconi/.test(txt), 'scheda: ' + txt);
+      assert(/\bOro\b/.test(txt) && /bocconi/.test(txt), 'scheda: ' + txt);
       await sleep(300);
       await ctx.shot(dp, 'desktop_4_koi_esito');
       await hook(dp, 'koiAuto', false);

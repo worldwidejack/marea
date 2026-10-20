@@ -277,39 +277,39 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   /** Il banco: cosa c'è in vetrina oggi, la pala di Borgo Marea e gli ampliamenti della casa. */
   function banco(): void {
     const v = vetrinaDelGiorno(giornoRoma(adesso())), n = v.terra.length + v.parete.length + v.carte.length + v.pavimenti.length;
-    const corpo: Node[] = [testata('IL MOBILIERE')];
+    const corpo: Node[] = [testata('Il mobiliere')];
     corpo.push(el('div', 'prezzo', n ? `Oggi in vetrina: ${v.terra.length + v.parete.length} mobili, ${v.carte.length} carte da parati e ${v.pavimenti.length} pavimenti. Vendo solo quelli: gli altri tornano un altro giorno.` : 'Oggi la vetrina è vuota.'));
     corpo.push(el('div', 'prezzo', `Merce nuova fra ${fmtDur(finoAMezzanotte(adesso()) / 1000)}.`));
     const l = o.getLot(), haPala = possiedePala(l), pPala = pezziFissi.find((x) => x.kind === 'pala')!;
-    corpo.push(el('h3', '', 'STRUMENTI · LA PALA'));
+    corpo.push(el('h3', '', 'Strumenti · La pala'));
     corpo.push(el('div', 'prezzo', `Scava buche a Borgo Marea per seppellire o dissotterrare oggetti, mobili e monete (${BORGO.pala.monete} monete, peso 0 nello zaino).`));
     const bp = el('button', 'mz-btn', ''); bp.type = 'button'; bp.dataset['act'] = 'compra-pala';
-    bp.append(el('span', '', haPala ? 'Ce l’hai già nello zaino' : !o.api ? 'Serve il collegamento' : 'COMPRA LA PALA'), el('b', '', haPala ? '✓' : `${BORGO.pala.monete}`));
+    bp.append(el('span', '', haPala ? 'Ce l’hai già nello zaino' : !o.api ? 'Serve il collegamento' : 'Compra la pala'), el('b', '', haPala ? '✓' : `${BORGO.pala.monete}`));
     bp.disabled = haPala || busy || !o.api;
     bp.addEventListener('click', () => void compra(pPala));
     corpo.push(bp);
     // il retino e la collezione degli insetti (#445): gli insetti dello zaino si consegnano qui, gratis, e diventano tuoi nel Diario
     const haRetino = possiedeRetino(l), pRet = pezziFissi.find((x) => x.kind === 'retino')!;
-    corpo.push(el('h3', '', 'STRUMENTI · IL RETINO'));
+    corpo.push(el('h3', '', 'Strumenti · Il retino'));
     corpo.push(el('div', 'prezzo', `Per catturare gli insetti di Borgo Marea (${RETINO.monete} monete, peso 0 nello zaino). Si cambia attrezzo col bottone accanto o col tasto Q.`));
     const br = el('button', 'mz-btn', ''); br.type = 'button'; br.dataset['act'] = 'compra-retino';
-    br.append(el('span', '', haRetino ? 'Ce l’hai già nello zaino' : !o.api ? 'Serve il collegamento' : 'COMPRA IL RETINO'), el('b', '', haRetino ? '✓' : `${RETINO.monete}`));
+    br.append(el('span', '', haRetino ? 'Ce l’hai già nello zaino' : !o.api ? 'Serve il collegamento' : 'Compra il retino'), el('b', '', haRetino ? '✓' : `${RETINO.monete}`));
     br.disabled = haRetino || busy || !o.api;
     br.addEventListener('click', () => void compra(pRet));
     corpo.push(br);
     // la canna e la collezione dei pesci (#457): come gli insetti
     const haCanna = possiedeCanna(l), pCan = pezziFissi.find((x) => x.kind === 'canna')!;
-    corpo.push(el('h3', '', 'STRUMENTI · LA CANNA DA PESCA'));
+    corpo.push(el('h3', '', 'Strumenti · La canna da pesca'));
     corpo.push(el('div', 'prezzo', `Per pescare dalle rive di Borgo Marea e dalla barca ferma in mare aperto (${CANNA.monete} monete, peso 0 nello zaino). Si mette in mano col bottone dell’attrezzo o col tasto Q.`));
     const bc2 = el('button', 'mz-btn', ''); bc2.type = 'button'; bc2.dataset['act'] = 'compra-canna';
-    bc2.append(el('span', '', haCanna ? 'Ce l’hai già nello zaino' : !o.api ? 'Serve il collegamento' : 'COMPRA LA CANNA'), el('b', '', haCanna ? '✓' : `${CANNA.monete}`));
+    bc2.append(el('span', '', haCanna ? 'Ce l’hai già nello zaino' : !o.api ? 'Serve il collegamento' : 'Compra la canna'), el('b', '', haCanna ? '✓' : `${CANNA.monete}`));
     bc2.disabled = haCanna || busy || !o.api;
     bc2.addEventListener('click', () => void compra(pCan));
     corpo.push(bc2);
     corpo.push(...collezione(l), ...collezionePesci(l));
     // gli ampliamenti della casa (#386): uno alla volta, costano tanto; per non sbagliare dal telefono si conferma con un secondo tocco
     const liv = livelloCasa(casaDi(l)), prossimo = prossimoAmpliamento(liv);
-    corpo.push(el('h3', '', 'INGRANDISCI LA CASA'));
+    corpo.push(el('h3', '', 'Ingrandisci la casa'));
     if (!prossimo || !l) corpo.push(el('div', 'prezzo', 'La tua casa è grande al massimo: non c’è altro da ampliare.'));
     else {
       corpo.push(el('div', 'prezzo', `Ampliamento ${liv + 1} di ${MAX_LIVELLO_CASA}: `), el('div', 'prezzo', prossimo.desc));
@@ -320,7 +320,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       const fattoOggi = ampliatoOggi(l, adesso());
       if (fattoOggi) corpo.push(el('div', 'prezzo', `Hai già fatto un ampliamento oggi. Il mobiliere riprenderà i lavori domani (fra ${fmtDur(finoAMezzanotte(adesso()) / 1000)}).`));
       const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'amplia';
-      b.append(el('span', '', !o.api ? 'Serve il collegamento' : fattoOggi ? 'TORNA DOMANI' : conferma ? 'SICURO? TOCCA ANCORA' : 'AMPLIA'), el('b', '', !fattoOggi && conferma ? '✓' : ''));
+      b.append(el('span', '', !o.api ? 'Serve il collegamento' : fattoOggi ? 'Torna domani' : conferma ? 'Sicuro? tocca ancora' : 'Amplia'), el('b', '', !fattoOggi && conferma ? '✓' : ''));
       b.disabled = busy || !o.api || fattoOggi;
       b.addEventListener('click', () => void amplia(liv));
       corpo.push(b);
@@ -330,13 +330,13 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   }
   /** Gli insetti: quanti ne hai dato al mobiliere e quelli nello zaino da consegnare (gratis: spariscono e nel Diario diventano tuoi). */
   function collezione(l: LotState | null): Node[] {
-    const s = insettiOf(l, adesso()), inv = l?.hero?.inv ?? {}, out: Node[] = [el('h3', '', `LA COLLEZIONE DI INSETTI · ${s.posseduti.length}/${INSETTI.length}`)];
+    const s = insettiOf(l, adesso()), inv = l?.hero?.inv ?? {}, out: Node[] = [el('h3', '', `La collezione di insetti · ${s.posseduti.length}/${INSETTI.length}`)];
     const zaino = INSETTI.filter((d) => (inv[d.id] ?? 0) > 0);
     out.push(el('div', 'prezzo', zaino.length ? 'Me li regali? Li tengo io e nel tuo Diario si sblocca la loro scheda. Se ce l’ho già, vendilo al Contrabbandiere.' : 'Portami gli insetti che prendi col retino: li tengo io e nel tuo Diario si sblocca la loro scheda.'));
     for (const d of zaino) {
       const ce = s.posseduti.includes(d.id), b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'consegna'; b.dataset['insetto'] = d.id;
       const ic = insettoCanvas(d, 2); ic.style.flex = 'none';
-      b.append(ic, el('span', '', `${d.nome} ×${inv[d.id]}`), el('b', '', ce ? 'Ce l’ho già' : 'CONSEGNA'));
+      b.append(ic, el('span', '', `${d.nome} ×${inv[d.id]}`), el('b', '', ce ? 'Ce l’ho già' : 'Consegna'));
       b.disabled = ce || busy || !o.api;
       b.addEventListener('click', () => void consegna(d.id));
       out.push(b);
@@ -345,13 +345,13 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   }
   /** I pesci (#457): come gli insetti, consegnati gratis diventano «catturati» nel Diario. */
   function collezionePesci(l: LotState | null): Node[] {
-    const s = pesciOf(l, adesso()), inv = l?.hero?.inv ?? {}, out: Node[] = [el('h3', '', `LA COLLEZIONE DI PESCI · ${s.posseduti.length}/${PESCI.length}`)];
+    const s = pesciOf(l, adesso()), inv = l?.hero?.inv ?? {}, out: Node[] = [el('h3', '', `La collezione di pesci · ${s.posseduti.length}/${PESCI.length}`)];
     const zaino = PESCI.filter((d) => (inv[d.id] ?? 0) > 0);
     out.push(el('div', 'prezzo', zaino.length ? 'Che bei pesci! Me li lasci? Li tengo io e nel tuo Diario si sblocca la loro scheda. Se ce l’ho già, vendilo al Contrabbandiere.' : 'Portami i pesci che peschi con la canna: li tengo io e nel tuo Diario si sblocca la loro scheda.'));
     for (const d of zaino) {
       const ce = s.posseduti.includes(d.id), b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'consegna-pesce'; b.dataset['pesce'] = d.id;
       const ic = pesceCanvas(d, 2); ic.style.flex = 'none';
-      b.append(ic, el('span', '', `${d.nome} ×${inv[d.id]}`), el('b', '', ce ? 'Ce l’ho già' : 'CONSEGNA'));
+      b.append(ic, el('span', '', `${d.nome} ×${inv[d.id]}`), el('b', '', ce ? 'Ce l’ho già' : 'Consegna'));
       b.disabled = ce || busy || !o.api;
       b.addEventListener('click', () => void consegna(d.id, 'pesci'));
       out.push(b);
@@ -393,7 +393,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     const prezzo = el('div', 'prezzo'); prezzo.append(el('span', '', `${tipo}. Prezzo `), el('b', '', `${p.monete} monete`), el('span', '', ` · ne hai ${monete}`));
     const b = el('button', 'mz-btn', ''); b.type = 'button'; b.dataset['act'] = 'compra';
     const g = gia(p);
-    b.append(el('span', '', g ? 'Ce l’hai già' : !o.api ? 'Serve il collegamento' : 'COMPRA'), el('b', '', g ? '✓' : `${p.monete}`));
+    b.append(el('span', '', g ? 'Ce l’hai già' : !o.api ? 'Serve il collegamento' : 'Compra'), el('b', '', g ? '✓' : `${p.monete}`));
     b.disabled = g || busy || !o.api;
     b.addEventListener('click', () => void compra(p));
     const corpo: Node[] = [testata(p.nome)];
@@ -470,8 +470,8 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
       if (k !== lastK) {
         lastK = k;
         btn.classList.toggle('on', !!near && near.kind !== 'pezzo');
-        if (near?.kind === 'porta') btn.replaceChildren(pixIcon('casa', 24), el('span', '', 'NEGOZIO DEI MOBILI'), el('small', '', 'A'));
-        if (near?.kind === 'esci') btn.replaceChildren(pixIcon('casa', 24), el('span', '', 'ESCI'), el('small', '', 'A'));
+        if (near?.kind === 'porta') btn.replaceChildren(pixIcon('casa', 24), el('span', '', 'Negozio dei mobili'), el('small', '', 'A'));
+        if (near?.kind === 'esci') btn.replaceChildren(pixIcon('casa', 24), el('span', '', 'Esci'), el('small', '', 'A'));
         bar.classList.toggle('on', near?.kind === 'pezzo');
         if (near?.kind === 'pezzo') bar.replaceChildren(el('div', 't', near.p.kind === 'banco' ? 'Il mobiliere · A per parlargli' : `${near.p.nome} · ${near.p.monete} monete · A per guardarlo`));
       }

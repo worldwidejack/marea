@@ -72,7 +72,7 @@ export function createGuida(o: { root: HTMLElement; camera: THREE.Camera; canvas
     for (const ev of ['pointerdown', 'touchstart']) b.addEventListener(ev, (x) => x.stopPropagation()); // niente joystick né tocchi sul mondo
     return b;
   };
-  const salta = btn('salta', 'SALTA ▸', 'Salta questo passo'), chiudi = btn('chiudi', '×', 'Spegni la guida');
+  const salta = btn('salta', 'Salta ▸', 'Salta questo passo'), chiudi = btn('chiudi', '×', 'Spegni la guida');
   const hd = el('div', 'hd'); hd.append(small, salta, chiudi);
   card.append(hd, tit, come);
   const ptr = el('div', 'mz-guida-ptr'); ptr.id = 'mzGuidaPtr'; ptr.innerHTML = ARROW_SVG; // SVG statico
@@ -166,14 +166,14 @@ export function createGuida(o: { root: HTMLElement; camera: THREE.Camera; canvas
         o.onFocus?.(null); ptr.classList.remove('on');
         const msg = chiusa ? t < closedUntil : t < byeUntil;
         card.classList.toggle('on', msg && !hide);
-        if (chiusa) show('PRIMI PASSI · SPENTA', 'Guida spenta', 'Quando vuoi la riaccendi dalle Impostazioni (ingranaggio in alto).', true);
-        else show('PRIMI PASSI · FATTO!', 'Ora sai tutto', 'Il resto lo scopri da solo. O te lo spiega Nonna Pina, che non aspetta altro.', true);
+        if (chiusa) show('Primi passi · Spenta', 'Guida spenta', 'Quando vuoi la riaccendi dalle Impostazioni (ingranaggio in alto).', true);
+        else show('Primi passi · Fatto!', 'Ora sai tutto', 'Il resto lo scopri da solo. O te lo spiega Nonna Pina, che non aspetta altro.', true);
         return;
       }
       card.classList.toggle('on', !hide);
       const n = doneN();
-      if (t < okUntil && lastDone) show(`PRIMI PASSI ${n}/${total} · FATTO!`, lastDone.titolo, `Prossimo: ${st.titolo}`, true);
-      else show(`PRIMI PASSI ${n + 1}/${total}`, st.titolo, st.come, false);
+      if (t < okUntil && lastDone) show(`Primi passi ${n}/${total} · Fatto!`, lastDone.titolo, `Prossimo: ${st.titolo}`, true);
+      else show(`Primi passi ${n + 1}/${total}`, st.titolo, st.come, false);
       o.onFocus?.(st.id);
       place(hide ? null : st.target(), t);
     },

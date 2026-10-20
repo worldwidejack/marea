@@ -115,7 +115,7 @@ export function createBorgo(o: { world: GameWorld; hud: Hud; root: HTMLElement; 
     update() {
       const show = !!near;
       const k = near ? `${near.porta.slot}:${near.dove}` : '';
-      if (show && near && btn.dataset['k'] !== k) { btn.dataset['k'] = k; btn.replaceChildren(pixIcon('casa', 24), el('span', '', testo(near).toUpperCase()), el('small', '', 'A')); }
+      if (show && near && btn.dataset['k'] !== k) { btn.dataset['k'] = k; btn.replaceChildren(pixIcon('casa', 24), el('span', '', testo(near)), el('small', '', 'A')); }
       btn.classList.toggle('on', show);
     },
   };

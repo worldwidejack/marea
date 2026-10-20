@@ -22,7 +22,7 @@ export function entraConInvito(codice: string): Promise<never> {
   const input = document.createElement('input');
   input.name = 'nome'; input.maxLength = 16; input.placeholder = 'il tuo nome'; input.setAttribute('autocomplete', 'nickname'); input.setAttribute('aria-label', 'Il tuo nome');
   const err = el('div', 'err');
-  const btn = el('button', 'mz-btn', 'ENTRA'); btn.type = 'submit';
+  const btn = el('button', 'mz-btn', 'Entra'); btn.type = 'submit';
   form.append(el('h1', '', 'MAREA'), el('p', '', 'Un arcipelago tra amici. Avrai la tua isola: come ti chiami?'), input, err, btn);
   box.appendChild(form); document.body.appendChild(box);
   // i tasti non devono arrivare al gioco (WASD, E, Spazio) mentre si scrive

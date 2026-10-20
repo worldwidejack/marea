@@ -44,7 +44,7 @@ const STYLE = `
 .mz-dia-tabs { display: grid; grid-template-columns: repeat(var(--n, 6), 1fr); gap: 4px; margin-bottom: 6px; }
 .mz-dia-tab { position: relative; min-height: 50px; padding: 3px 0 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; color: ${P.sabbia}; font: bold 11px ui-monospace, Menlo, monospace; cursor: pointer; }
 .mz-dia-tab[aria-pressed="true"] { background: ${P.arancio}; color: ${P.neroCaldo}; border-color: ${P.neroCaldo}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
-.mz-dia-pg { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 2px 0 6px; padding-bottom: 2px; border-bottom: 2px solid ${P.legno}; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: .05em; color: ${P.sabbia}; }
+.mz-dia-pg { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 2px 0 6px; padding-bottom: 2px; border-bottom: 2px solid ${P.legno}; font-size: 13px; font-weight: bold; letter-spacing: .05em; color: ${P.sabbia}; }
 .mz-dia-pg b { color: ${P.giallo}; font-size: 15px; letter-spacing: 0; }
 .mz-dia-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
 .mz-dia-cell { position: relative; min-height: 92px; padding: 4px 2px 3px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 2px; background: ${P.sabbiaChiara}; border: 2px solid ${P.legnoScuro}; box-shadow: 0 3px 0 ${P.neroCaldo}; color: ${P.neroCaldo}; font: bold 11px ui-monospace, Menlo, monospace; line-height: 1.15; text-align: center; cursor: pointer; }
@@ -65,7 +65,7 @@ const STYLE = `
 .mz-dia-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; min-height: 52px; padding: 3px 8px; box-sizing: border-box; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; }
 .mz-dia-row .nm { flex: 1; min-width: 0; display: flex; flex-direction: column; font-weight: bold; font-size: 14px; }
 .mz-dia-row .nm small { font-size: 12px; color: ${P.sabbia}; font-weight: normal; }
-.mz-dia-row .md { font-weight: bold; text-transform: uppercase; font-size: 13px; }
+.mz-dia-row .md { font-weight: bold; font-size: 13px; }
 .mz-dia-vuoto { margin-top: 8px; color: ${P.sabbia}; font-size: 13px; }
 `;
 
@@ -191,7 +191,7 @@ export function createDiarioUi(ctx: DiarioCtx) {
     const info = !p ? [`Ne hai visti ${PESCI.filter((x) => (s.visti[x.id] ?? 0) > 0).length}, catturati (consegnati al mobiliere) ${s.posseduti.length}. Tocca un pesce per la scheda: si pescano con la canna dalle rive di Borgo Marea e dalla barca ferma al largo.`]
       : tuo ? [b(p.nome), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · ${dovePesce(p)}. `, p.descr]
       : n > 0 ? [b(p.nome), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · pescato ${n} ${n === 1 ? 'volta' : 'volte'}, ${dovePesce(p)}. Portalo al mobiliere per leggere la sua scheda.`]
-      : [b('???'), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · non ancora pescato. ${dovePesce(p)[0]!.toUpperCase()}${dovePesce(p).slice(1)}.`];
+      : [b('???'), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · non ancora pescato. ${dovePesce(p)[0]!}${dovePesce(p).slice(1)}.`];
     return [g, nota(info)];
   }
   /** Insetti (#445): il disegno si sblocca prendendolo col retino («visto»), la scheda consegnandolo al mobiliere («posseduto», verde). */
@@ -208,7 +208,7 @@ export function createDiarioUi(ctx: DiarioCtx) {
     const info = !i ? [`Ne hai visti ${INSETTI.filter((x) => (s.visti[x.id] ?? 0) > 0).length}, consegnati al mobiliere ${s.posseduti.length}. Tocca un insetto per la scheda: si prendono col retino a Borgo Marea.`]
       : tuo ? [b(i.nome), ' · ', k(INSETTI_CFG.rarita[i.rarita]), ` · ${doveInsetto(i)}. `, i.descr]
       : n > 0 ? [b(i.nome), ' · ', k(INSETTI_CFG.rarita[i.rarita]), ` · preso ${n} ${n === 1 ? 'volta' : 'volte'}, ${doveInsetto(i)}. Portalo al mobiliere per leggere la sua scheda.`]
-      : [b('???'), ' · ', k(INSETTI_CFG.rarita[i.rarita]), ` · non ancora preso. ${doveInsetto(i)[0]!.toUpperCase()}${doveInsetto(i).slice(1)}.`];
+      : [b('???'), ' · ', k(INSETTI_CFG.rarita[i.rarita]), ` · non ancora preso. ${doveInsetto(i)[0]!}${doveInsetto(i).slice(1)}.`];
     return [g, nota(info)];
   }
   function bodyPerle(d: DiarioState): HTMLElement[] {

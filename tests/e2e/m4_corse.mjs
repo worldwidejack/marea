@@ -92,14 +92,14 @@ export default async function (ctx) {
     const st = () => ctx.getState(page);
     const hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
-    await ctx.test('telefono: l\'isola è aperta a tutti, al via compare GIOCA · ISOLA DELLE CORSE', async () => {
+    await ctx.test('telefono: l\'isola è aperta a tutti, al via compare Gioca · Isola delle Corse', async () => {
       await hook('temiProva', null); // il viaggiatore vero: Molo L1 e basta
       const v = await hook('spotVai', SPOT);
       assert(v && v.aperta === true, 'spotVai: ' + JSON.stringify(v));
       await ctx.waitState(page, (s, id) => s.minigiochi.near === id, 20000, SPOT);
       await sleep(1500);
       const testo = await page.locator('#mzPlay').innerText();
-      assert(/ISOLA DELLE CORSE|GRAN PREMIO/.test(testo), 'testo del bottone: ' + testo); // dal #185 il posto apre l'hub: «Isola delle Corse»
+      assert(/isola delle corse|gran premio/i.test(testo), 'testo del bottone: ' + testo); // dal #185 il posto apre l'hub: «Isola delle Corse»
       await ctx.shot(page, 'telefono_1_posto');
     });
 

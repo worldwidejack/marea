@@ -57,7 +57,7 @@ const CSS = `
 .mz-lb .em button { min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px 0; background: ${P.legnoScuro}; border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; color: ${P.sabbiaChiara}; font: bold 12px ui-monospace, Menlo, monospace; cursor: pointer; }
 .mz-lb .em button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 ${P.neroCaldo}; }
 .mz-lb .em button:disabled { border-color: ${P.pietraScura}; color: ${P.pietra}; cursor: default; }
-.mz-lb .sec { margin: 12px 0 2px; padding-bottom: 2px; border-bottom: 2px solid ${P.legno}; color: ${P.sabbia}; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: .06em; }
+.mz-lb .sec { margin: 12px 0 2px; padding-bottom: 2px; border-bottom: 2px solid ${P.legno}; color: ${P.sabbia}; font-size: 13px; font-weight: bold; letter-spacing: .06em; }
 .mz-lb .fr { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 2px 0; border-bottom: 2px solid ${P.legnoScuro}; }
 .mz-lb .fr b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mz-lb .fr i { font-style: normal; font-size: 12px; color: ${P.pietra}; white-space: nowrap; }
@@ -151,7 +151,7 @@ export function createRientroUi(o: { root: HTMLElement; hud: Hud; now(): number;
     const go = el('button', 'mz-btn green'); go.type = 'button';
     if (dep > 0 && raccogli) {
       go.dataset['act'] = 'raccogli';
-      const tot = el('span', 'tot'); tot.append(el('span', '', 'RACCOGLI TUTTO'));
+      const tot = el('span', 'tot'); tot.append(el('span', '', 'Raccogli tutto'));
       for (const k of RISORSE_IDS) if (r.depositi[k] > 0) { const sp = el('span'); sp.append(resIcon(k, 16), el('span', '', String(r.depositi[k]))); tot.append(sp); }
       go.append(tot);
       primary = () => { close(); raccogli(); };

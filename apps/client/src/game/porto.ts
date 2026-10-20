@@ -279,7 +279,7 @@ export function createPorto(o: PortoOpts): Porto {
       const k = keyOf(t);
       if (show && t && btn.dataset['k'] !== k) {
         btn.dataset['k'] = k ?? '';
-        const label = t.kind === 'posto' ? t.posto.cartello : `PARLA · ${t.p.nome.toUpperCase()}`;
+        const label = t.kind === 'posto' ? t.posto.cartello : `Parla · ${t.p.nome}`;
         btn.replaceChildren(pixIcon(t.kind === 'posto' ? t.id : 'parla', 24), el('span', '', label), el('small', '', 'A'));
       }
       btn.classList.toggle('on', show);

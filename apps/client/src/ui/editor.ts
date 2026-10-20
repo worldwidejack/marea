@@ -288,7 +288,7 @@ export function createEditor(o: EditorOpts): Editor {
       if (mine) t.textContent = 'tuo'; else t.appendChild(prezzoTag(hat.monete));
       if (!hatOk() && hat.mercante) t.appendChild(el('span', 'mz-ed-merc', 'dal Mercante'));
       else if (!hatOk()) { // prezzo + «Compra» sulla riga del cappello: Annulla/Salva restano in vista in fondo
-        const b = el('button', 'mz-ed-buy', 'COMPRA'); b.type = 'button'; b.dataset['nav'] = 'compra'; b.dataset['act'] = 'compra';
+        const b = el('button', 'mz-ed-buy', 'Compra'); b.type = 'button'; b.dataset['nav'] = 'compra'; b.dataset['act'] = 'compra';
         b.disabled = busy; b.title = `Compra ${hat.nome} per ${hat.monete} monete`;
         b.addEventListener('click', () => { if (!busy) void compra(); });
         t.appendChild(b);
@@ -335,8 +335,8 @@ export function createEditor(o: EditorOpts): Editor {
       w.appendChild(f);
     }
     const row = el('div', 'mz-row');
-    row.appendChild(button('ghost', 'copia-link', 'COPIA LINK', [], false, () => void copiaLink()));
-    if (typeof navigator.share === 'function') row.appendChild(button('ghost', 'manda-link', 'MANDA', [], false, () => void mandaLink()));
+    row.appendChild(button('ghost', 'copia-link', 'Copia link', [], false, () => void copiaLink()));
+    if (typeof navigator.share === 'function') row.appendChild(button('ghost', 'manda-link', 'Manda', [], false, () => void mandaLink()));
     w.appendChild(row);
     return w;
   }
@@ -368,7 +368,7 @@ export function createEditor(o: EditorOpts): Editor {
     else if (!note && !nomeOk()) act.appendChild(el('div', 'mz-note bad', 'Scrivi un nome da 2 a 16 lettere'));
     if (note && !note.hat) act.appendChild(el('div', 'mz-note ' + (note.bad ? 'bad' : 'ok'), note.text));
     const row = el('div', 'mz-row');
-    row.append(button('ghost', 'annulla', 'ANNULLA', [], false, () => close()), button('green', 'salva', 'SALVA', [], !hatOk() || (!!sez && !sez.ok()) || !nomeOk(), () => void salva()));
+    row.append(button('ghost', 'annulla', 'Annulla', [], false, () => close()), button('green', 'salva', 'Salva', [], !hatOk() || (!!sez && !sez.ok()) || !nomeOk(), () => void salva()));
     act.appendChild(row);
     body.appendChild(act);
     sheet.replaceChildren(head, body);

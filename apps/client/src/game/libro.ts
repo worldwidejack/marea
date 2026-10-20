@@ -82,7 +82,7 @@ export function createLibri(o: LibriOpts): Libri {
     const dx = p1.x - p0.x, dz = p1.z - p0.z, wx = p0.x + dx * fuori - dz * lato, wz = p0.z + dz * fuori + dx * lato, y = o.world.groundY(wx, wz);
     geos.push(leggioGeometry().applyMatrix4(M(wx, y, wz, 0, Math.atan2(dx, dz), 0, 1.2, 1.2, 1.2)));
     const label = layer.add(() => { if (dist(wx, wz) < cfg.raggio * 2.5) void open(lib); else o.hud.toast(`Libro degli ospiti${is.mine ? '' : ' di ' + is.ownerName}: davanti alla porta di casa`, 2200); });
-    label.set('bubble', [pixIcon('libro', 16), el('span', '', 'LIBRO')], 'libro'); label.el.classList.add('libro'); label.el.dataset['libro'] = is.owner;
+    label.set('bubble', [pixIcon('libro', 16), el('span', '', 'Libro')], 'libro'); label.el.classList.add('libro'); label.el.dataset['libro'] = is.owner;
     const lib = { is, x: wx + dx * 0.9, z: wz + dz * 0.9, px: wx, pz: wz, y, label }; // x, z = dove sta chi legge (davanti al leggio, dalla parte della strada)
     return [lib];
   });
@@ -190,7 +190,7 @@ export function createLibri(o: LibriOpts): Libri {
       const k = t ? `${t.is.owner}:${t.is.mine ? 'mio' : firmato(t) ? 'fatto' : 'firma'}` : '';
       if (show && t && btn.dataset['k'] !== k) {
         btn.dataset['k'] = k;
-        btn.replaceChildren(pixIcon('libro', 24), el('span', '', t.is.mine ? 'LIBRO DEGLI OSPITI' : firmato(t) ? 'LIBRO · FIRMATO' : 'FIRMA'), el('small', '', 'A'));
+        btn.replaceChildren(pixIcon('libro', 24), el('span', '', t.is.mine ? 'Libro degli ospiti' : firmato(t) ? 'Libro · Firmato' : 'Firma'), el('small', '', 'A'));
       }
       btn.classList.toggle('on', show);
       for (const l of libri) {

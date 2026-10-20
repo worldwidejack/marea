@@ -65,7 +65,7 @@ export default async function (ctx) {
       await ctx.shot(page, '0_primo_ingresso');
       await page.locator('#mzSetBtn').click();
       await page.waitForSelector('#mzSet.on [data-set="guida"]', { timeout: 5000 });
-      assert(/NO/.test(await page.locator('#mzSet [data-set="guida"] .sw').innerText()), 'la riga della guida deve dire NO');
+      assert(/^No$/.test((await page.locator('#mzSet [data-set="guida"] .sw').innerText()).trim()), 'la riga della guida deve dire No');
       await page.locator('#mzSet [data-set="guida"]').click();
       await ctx.waitState(page, (s) => s.guida.chiusa === false && s.guida.current === 'casa', 3000);
       await ctx.shot(page, '0_impostazioni_guida');

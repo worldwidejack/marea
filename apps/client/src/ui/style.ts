@@ -41,7 +41,7 @@ const CSS = `
 .mz-sheet { position: absolute; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); max-height: 62%; overflow-y: auto; padding: 12px 12px 10px; background: rgba(46,30,20,.96); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 4px 0 ${P.neroCaldo}; z-index: 20; display: none; font-size: 15px; line-height: 1.35; touch-action: pan-y; }
 .mz-sheet.on { display: block; }
 .mz-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.mz-title { font-size: 17px; font-weight: bold; text-transform: uppercase; letter-spacing: .04em; color: ${P.sabbiaChiara}; }
+.mz-title { font-size: 17px; font-weight: bold; letter-spacing: .04em; color: ${P.sabbiaChiara}; }
 .mz-lvl { color: ${P.giallo}; }
 .mz-x { width: 44px; height: 44px; flex: none; display: flex; align-items: center; justify-content: center; background: ${P.legnoScuro}; border: 2px solid ${P.legnoChiaro}; color: ${P.sabbiaChiara}; font: bold 20px ui-monospace, Menlo, monospace; cursor: pointer; padding: 0; }
 .mz-info { color: ${P.sabbia}; margin: 4px 0 10px; }
@@ -80,7 +80,7 @@ const CSS = `
 .mz-ed-perle { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; min-height: 32px; padding: 0 8px; border: 2px solid ${P.legno}; font-weight: bold; white-space: nowrap; }
 .mz-ed-row { margin-top: 6px; padding: 4px 6px 6px; background: ${P.legnoScuro}; border: 2px solid ${P.legno}; cursor: default; }
 .mz-ed-row:focus-within { border-color: ${P.legnoChiaro}; }
-.mz-ed-lbl { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 20px; margin-bottom: 4px; color: ${P.sabbia}; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: .05em; }
+.mz-ed-lbl { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 20px; margin-bottom: 4px; color: ${P.sabbia}; font-size: 13px; font-weight: bold; letter-spacing: .05em; }
 .mz-ed-lbl .v { color: ${P.giallo}; text-transform: none; letter-spacing: 0; white-space: nowrap; }
 .mz-ed-lbl .v.lock { color: ${P.arancio}; }
 .mz-ed-sw { display: flex; gap: 5px; }

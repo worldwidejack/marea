@@ -35,7 +35,7 @@ export function createTeletrasportoUi(ctx: TeletrasportoCtx) {
       g.appendChild(b);
     }
     box.appendChild(g);
-    const x = el('button', 'x', 'CHIUDI'); x.type = 'button'; x.addEventListener('click', () => { x.blur(); close(); });
+    const x = el('button', 'x', 'Chiudi'); x.type = 'button'; x.addEventListener('click', () => { x.blur(); close(); });
     box.appendChild(x);
   };
   return {

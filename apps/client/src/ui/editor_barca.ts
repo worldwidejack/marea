@@ -32,7 +32,7 @@ const STYLE = `
 .mz-eb-head p { margin: 0; color: ${P.sabbia}; font-size: 13px; line-height: 1.35; }
 .mz-eb-chip { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; border: 2px solid ${P.neroCaldo}; }
 .mz-eb-chip.no { background: ${P.pietra}; box-shadow: inset 0 0 0 3px ${P.pietraChiara}; }
-.mz-eb-nome { width: 100%; box-sizing: border-box; min-height: 44px; padding: 0 8px; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; text-transform: uppercase; }
+.mz-eb-nome { width: 100%; box-sizing: border-box; min-height: 44px; padding: 0 8px; background: ${P.sabbiaChiara}; color: ${P.neroCaldo}; border: 2px solid ${P.neroCaldo}; font: bold 16px ui-monospace, Menlo, monospace; }
 .mz-eb-nome::placeholder { color: ${P.pietraScura}; text-transform: none; }
 `;
 const injectStyle = (): void => {

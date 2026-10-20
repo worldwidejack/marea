@@ -110,7 +110,7 @@ export function createMinimappa(o: {
   // ——— mappa grande ———
   const ov = document.createElement('div'); ov.id = 'mzMappa'; ov.className = 'mz'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Mappa dell\'arcipelago');
   const hd = document.createElement('div'); hd.className = 'hd';
-  const tit = document.createElement('span'), q = document.createElement('span'); tit.textContent = 'MAPPA'; q.className = 'q'; q.textContent = 'le isole compaiono passandoci vicino in barca';
+  const tit = document.createElement('span'), q = document.createElement('span'); tit.textContent = 'Mappa'; q.className = 'q'; q.textContent = 'le isole compaiono passandoci vicino in barca';
   const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.title = 'Chiudi (Esc, M)'; x.dataset['act'] = 'chiudi';
   hd.append(tit, q, x);
   const fr = document.createElement('div'); fr.className = 'fr';

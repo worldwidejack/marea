@@ -67,7 +67,7 @@ const STYLE = `
 .mz-pt-card .cnt { font-size: 12px; color: ${P.roccia}; font-weight: bold; }
 .mz-dlg { position: absolute; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 178px); z-index: 21; display: none; padding: 10px 12px; box-sizing: border-box; background: rgba(46,30,20,.97); border: 3px solid ${P.sabbiaChiara}; box-shadow: 0 5px 0 ${P.neroCaldo}; }
 .mz-dlg.on { display: block; }
-.mz-dlg .who { display: flex; align-items: center; gap: 6px; color: ${P.giallo}; font-weight: bold; font-size: 15px; text-transform: uppercase; letter-spacing: .04em; }
+.mz-dlg .who { display: flex; align-items: center; gap: 6px; color: ${P.giallo}; font-weight: bold; font-size: 15px; letter-spacing: .04em; }
 .mz-dlg p { margin: 6px 0 8px; font-size: 16px; line-height: 1.4; }
 .mz-dlg .ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .mz-dlg .n { color: ${P.sabbia}; font-size: 13px; font-weight: bold; }
@@ -176,7 +176,7 @@ export function createPortoUi(ctx: PortoCtx): PortoUi {
       const bar = el('div', 'mz-pt-bar'), fill = el('i'); fill.style.width = `${Math.round((100 * m.fatto) / m.n)}%`; bar.appendChild(fill);
       const pz = el('div', 'pz');
       if (m.premio > 0) { const s = el('span'); s.append(resIcon('monete', 16), `+${m.premio}`); pz.appendChild(s); }
-      const b = el('button', 'mz-pt-act' + (m.compiuta && !m.riscossa ? ' green' : ''), m.riscossa ? 'RISCOSSA' : m.compiuta ? 'RISCUOTI' : 'IN CORSO');
+      const b = el('button', 'mz-pt-act' + (m.compiuta && !m.riscossa ? ' green' : ''), m.riscossa ? 'Riscossa' : m.compiuta ? 'Riscuoti' : 'In corso');
       b.type = 'button'; b.dataset['act'] = 'riscuoti'; b.disabled = !m.compiuta || m.riscossa || bach.busy;
       b.addEventListener('click', () => void riscuoti(m.i, b));
       const ft = el('div', 'ft'); ft.append(pz, b);

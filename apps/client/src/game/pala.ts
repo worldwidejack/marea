@@ -268,10 +268,10 @@ export function createPalaBorgo(o: {
     const lot = o.getLot();
     const testa = el('div', 'mz-row'); testa.style.alignItems = 'center';
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudiSheet);
-    const tit = el('b', '', 'BUCA APERTA NEL TERRENO'); tit.style.flex = '1'; tit.style.color = PAL.giallo;
+    const tit = el('b', '', 'Buca aperta nel terreno'); tit.style.flex = '1'; tit.style.color = PAL.giallo;
     testa.append(tit, x);
     const chiudiBtn = el('button', 'mz-btn', ''); chiudiBtn.type = 'button'; chiudiBtn.dataset['act'] = 'chiudi-buca';
-    chiudiBtn.append(el('span', '', 'CHIUDI LA BUCA (torna terreno normale)'), el('b', '', '✕'));
+    chiudiBtn.append(el('span', '', 'Chiudi la buca (torna terreno normale)'), el('b', '', '✕'));
     chiudiBtn.disabled = busy; chiudiBtn.addEventListener('click', () => void eseguiChiudi());
     const tabs = el('div', 'tabs');
     for (const [id, label] of [['zaino', 'Zaino'], ['mobili', 'Mobili'], ['monete', 'Monete']] as const) {
@@ -388,9 +388,9 @@ export function createPalaBorgo(o: {
       if (btnKey !== lastBtnKey) {
         lastBtnKey = btnKey;
         scavaBtn.classList.toggle('on', showBtn);
-        if (btnKey === 'aperta') scavaBtn.replaceChildren(pixIcon('segno', 20), el('span', '', 'BUCA APERTA'), el('b', '', 'A'));
-        else if (btnKey === 'dissotterra') scavaBtn.replaceChildren(pixIcon('martello', 20), el('span', '', 'SCAVA CROCE'), el('b', '', 'A'));
-        else if (btnKey === 'scava') scavaBtn.replaceChildren(pixIcon('martello', 20), el('span', '', 'SCAVA BUCA'), el('b', '', 'PALA'));
+        if (btnKey === 'aperta') scavaBtn.replaceChildren(pixIcon('segno', 20), el('span', '', 'Buca aperta'), el('b', '', 'A'));
+        else if (btnKey === 'dissotterra') scavaBtn.replaceChildren(pixIcon('martello', 20), el('span', '', 'Scava croce'), el('b', '', 'A'));
+        else if (btnKey === 'scava') scavaBtn.replaceChildren(pixIcon('martello', 20), el('span', '', 'Scava buca'), el('b', '', 'Pala'));
       }
     },
   };
