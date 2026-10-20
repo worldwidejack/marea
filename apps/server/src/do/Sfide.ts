@@ -21,9 +21,7 @@ import { SNOWBOARD_PISTE } from '@marea/content/adrenalina.ts';
 import { migliora } from '@marea/sim/adrenalina/classifica.ts';
 import { classificaDiscese, creaTabellaDiscese, fantasmaDiscesa, scriviDiscesa } from './disceseStore.ts';
 import type { Env } from '../env.ts';
-
-const json = (dati: unknown, status = 200): Response =>
-  new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
+import { json } from '../http.ts';
 
 export class Sfide extends DurableObject<Env> {
   private chain: Promise<unknown> = Promise.resolve();

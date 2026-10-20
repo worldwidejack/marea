@@ -1,7 +1,6 @@
 {
  "_come": "Violazioni di quando sono nati i guardiani (tools/guardiani.mjs): si tollerano finché non peggiorano. Si stringono con node tools/guardiani.mjs --aggiorna; a mano si tolgono, non si aggiungono.",
  "file": [
-  "apps/client/src/corse/pista3d.ts",
   "apps/client/src/ui/lot_harness.ts"
  ],
  "export": {
@@ -206,12 +205,6 @@
   "apps/client/src/ui/segno.ts": [
    "ARRIVATO_M"
   ],
-  "apps/client/src/ui/tavolo.ts": [
-   "fmtGara"
-  ],
-  "apps/client/src/ui/tavolo_viste.ts": [
-   "fmtGara"
-  ],
   "apps/server/src/clock.ts": [
    "testClockOn"
   ],
@@ -225,20 +218,13 @@
    "setBuca"
   ],
   "apps/server/src/feed.ts": [
-   "feedText",
-   "nettoChiusa",
-   "postaText"
+   "feedText"
   ],
   "apps/server/src/porto_amici.ts": [
-   "classificaCollezione",
-   "faroVista"
+   "classificaCollezione"
   ],
   "packages/content/src/corse.ts": [
    "CORSE_FUORI_GIOCO"
-  ],
-  "packages/content/src/diario.ts": [
-   "TITOLO_MAX",
-   "TRAGUARDO_TIPI"
   ],
   "packages/content/src/porto.ts": [
    "MISSIONE_TIPI"
@@ -250,8 +236,6 @@
    "isGaPos"
   ],
   "packages/protocol/src/index.ts": [
-   "Challenge",
-   "ChallengeState",
    "PackedInputs",
    "Resources"
   ],
@@ -314,9 +298,6 @@
   ],
   "packages/sim/src/dungeon/zaino.ts": [
    "daCasa"
-  ],
-  "packages/sim/src/economy/faro.ts": [
-   "FARO_MAX"
   ],
   "packages/sim/src/economy/insetti.ts": [
    "GRUPPO",
@@ -391,47 +372,38 @@
  },
  "righe": {
   "apps/client/src/corse/prova/main.ts": 470,
-  "apps/client/src/corse/scena.ts": 746,
+  "apps/client/src/corse/scena.ts": 741,
   "apps/client/src/corse/vista_gara.ts": 434,
   "apps/client/src/game/ingressi.ts": 438,
   "apps/client/src/game/lot.ts": 628,
   "apps/client/src/game/negozio.ts": 485,
   "apps/client/src/game/pesca.ts": 510,
   "apps/client/src/game/templari.ts": 410,
-  "apps/client/src/game/world.ts": 434,
-  "apps/client/src/main.ts": 454,
-  "apps/client/src/net/api.ts": 464,
+  "apps/client/src/game/world.ts": 424,
+  "apps/client/src/main.ts": 430,
   "apps/client/src/render/island.ts": 415,
   "apps/client/src/render/island_corse.ts": 575,
-  "apps/client/src/render/island_temi.ts": 447,
+  "apps/client/src/render/island_temi.ts": 446,
   "apps/client/src/rpg/dungeon_hero.ts": 504,
   "apps/client/src/rpg/dungeon_run.ts": 475,
-  "apps/client/src/templari/index.ts": 735,
+  "apps/client/src/templari/index.ts": 722,
   "apps/client/src/templari/scena.ts": 655,
-  "apps/client/src/ui/diario_ui.ts": 402,
   "apps/client/src/ui/editor.ts": 422,
   "apps/client/src/ui/pinguini.ts": 404,
-  "apps/server/src/do/Lot.ts": 439,
-  "apps/server/src/worker.ts": 555,
   "packages/sim/src/dungeon/enemies.ts": 527,
-  "packages/sim/src/templari/eroe.ts": 440
+  "packages/sim/src/templari/eroe.ts": 437
  },
  "url": {
   "apps/client/src/corse/amici.ts": 1,
-  "apps/client/src/corse/avviso_ruota.ts": 1,
   "apps/client/src/corse/discesa/main.ts": 1,
   "apps/client/src/corse/hub/prova.ts": 1,
   "apps/client/src/corse/hub/vista.ts": 1,
-  "apps/client/src/corse/nastro3d.ts": 1,
   "apps/client/src/corse/prova/garage.ts": 1,
   "apps/client/src/corse/prova/main.ts": 2,
   "apps/client/src/corse/prova/vista.ts": 1,
-  "apps/client/src/corse/scena.ts": 1,
-  "apps/client/src/corse/veicoli_ai.ts": 1,
   "apps/client/src/difesa/main.ts": 1,
   "apps/client/src/game/ingressi.ts": 1,
   "apps/client/src/game/templari.ts": 3,
-  "apps/client/src/game/world.ts": 1,
   "apps/client/src/installa.ts": 1,
   "apps/client/src/net/client.ts": 1,
   "apps/client/src/prova3d/main.ts": 1,
@@ -442,8 +414,8 @@
   "apps/client/src/ui/lot_harness.ts": 1
  },
  "documenti": {
-  "docs/CORSE.md": 46730,
+  "docs/CORSE.md": 40813,
   "docs/RPG.md": 73396,
-  "docs/TEMPLARI.md": 58314
+  "docs/TEMPLARI.md": 56494
  }
 }

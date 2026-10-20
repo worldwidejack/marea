@@ -40,11 +40,9 @@ export async function giocaSolo(body: Record<string, unknown>, lot: (b: unknown)
   return json(d);
 }
 
-/** Le rotte dell'Adrenalina che leggono (classifica e fantasma coi nomi); null = non è una di queste. */
-export async function rotteAdrenalina(path: string, url: URL, req: Request, env: Env, sfide: Chiama): Promise<Response | null> {
-  if (req.method !== 'GET' || (path !== '/api/adrenalina/discese' && path !== '/api/adrenalina/fantasma')) return null;
-  const pista = url.searchParams.get('pista') ?? '';
-  const r = await sfide((path.endsWith('discese') ? 'discese' : 'fantasma') + '?pista=' + encodeURIComponent(pista));
+/** Classifica a tempo o fantasma del record di una pista dell'Adrenalina, coi nomi (e il look del fantasma) da D1. */
+export async function disceseConNomi(quale: 'discese' | 'fantasma', pista: string, env: Env, sfide: Chiama): Promise<Response> {
+  const r = await sfide(quale + '?pista=' + encodeURIComponent(pista));
   if (!r.ok) return r;
   const d = (await r.json()) as { righe?: { chi: string; ms: number; quando: number }[]; fantasma?: { chi: string; ms: number } | null };
   const persone = new Map((await elencoPersone(env)).map((x) => [x.id, x] as const));

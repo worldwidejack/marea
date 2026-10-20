@@ -1,13 +1,11 @@
-// Porto tra amici, la parte del Worker: GET /api/record (tabellone dei record coi nomi), GET /api/collezione (i collezionisti),
-// le buche della pala del Borgo. Lo stato sta nel DO Sfide (portoStore.ts): qui solo nomi da D1 e piccoli JSON (budget CPU del Worker).
+// Porto tra amici, la parte del Worker: il tabellone dei record e i collezionisti coi nomi (le rotte stanno in rotte.ts). Lo stato sta nel DO Sfide (portoStore.ts): qui solo nomi da D1 e piccoli JSON (budget CPU del Worker).
 // Il record lo scrive solo il replay: vedi `segnaRecordDa`.
 import { DIARIO } from '@marea/content/diario.ts';
 import type { RecordVoce } from '@marea/sim/economy/record.ts';
 import type { Env } from './env.ts';
 import { elencoPersone } from './db.ts';
+import { json } from './http.ts';
 
-const json = (dati: unknown, status = 200): Response =>
-  new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 type Sfide = (path: string, body?: unknown) => Promise<Response>;
 type NomeDi = (id: string) => string;
 
@@ -19,30 +17,21 @@ async function nomi(env: Env): Promise<{ nomeDi: NomeDi; conIsola: string[] }> {
   return { nomeDi: (id) => m.get(id) ?? 'Qualcuno', conIsola: tutte.filter((x) => x.slot !== null).map((x) => x.id) };
 }
 
-/** Le rotte del Porto tra amici; null = non è una di queste. */
-export async function rottePortoAmici(path: string, req: Request, env: Env, sfide: Sfide, corpo: () => Promise<Record<string, unknown> | Response>): Promise<Response | null> {
-  if (path === '/api/record' && req.method === 'GET') {
-    const r = await sfide('record');
-    if (!r.ok) return r;
-    const { tab } = (await r.json()) as { tab: { oggi: Record<string, RecordVoce>; sempre: Record<string, RecordVoce> } };
-    const { nomeDi } = await nomi(env);
-    return json({ voci: DIARIO.minigiochi.map((g) => ({ minigame: g.id, nome: g.nome, oggi: voce(tab.oggi[g.id], nomeDi), sempre: voce(tab.sempre[g.id], nomeDi) })) });
-  }
-  // i collezionisti (#457): chi ha consegnato più pesci e insetti al mobiliere, tra chi ha un'isola
-  if (path === '/api/collezione' && req.method === 'GET') {
-    const r = await sfide('collezione');
-    if (!r.ok) return r;
-    const { collezione } = (await r.json()) as { collezione: Record<string, { pesci: number; insetti: number }> };
-    const { nomeDi, conIsola } = await nomi(env);
-    return json({ righe: classificaCollezione(collezione, conIsola).map((x) => ({ ...x, nome: nomeDi(x.id) })) });
-  }
-  if (path === '/api/borgo/buche' && req.method === 'GET') return sfide('buche');
-  if (path === '/api/borgo/buca' && req.method === 'POST') {
-    const body = await corpo();
-    if (body instanceof Response) return body;
-    return sfide('buca', { op: body['op'], cell: body['cell'], dono: body['dono'] });
-  }
-  return null;
+/** Tabellone dei record (GET /api/record): per minigioco il migliore di oggi e di sempre tra gli amici, coi nomi. */
+export async function recordConNomi(env: Env, sfide: Sfide): Promise<Response> {
+  const r = await sfide('record');
+  if (!r.ok) return r;
+  const { tab } = (await r.json()) as { tab: { oggi: Record<string, RecordVoce>; sempre: Record<string, RecordVoce> } };
+  const { nomeDi } = await nomi(env);
+  return json({ voci: DIARIO.minigiochi.map((g) => ({ minigame: g.id, nome: g.nome, oggi: voce(tab.oggi[g.id], nomeDi), sempre: voce(tab.sempre[g.id], nomeDi) })) });
+}
+/** I collezionisti (GET /api/collezione): chi ha consegnato più pesci e insetti al mobiliere, tra chi ha un'isola. */
+export async function collezioneConNomi(env: Env, sfide: Sfide): Promise<Response> {
+  const r = await sfide('collezione');
+  if (!r.ok) return r;
+  const { collezione } = (await r.json()) as { collezione: Record<string, { pesci: number; insetti: number }> };
+  const { nomeDi, conIsola } = await nomi(env);
+  return json({ righe: classificaCollezione(collezione, conIsola).map((x) => ({ ...x, nome: nomeDi(x.id) })) });
 }
 
 /** La classifica dei collezionisti: tutti quelli con un'isola (anche a zero), prima chi ha più pesci + insetti, a pari chi ha più pesci. */
