@@ -20,9 +20,9 @@ import { compraPala, parseBucaDono, prelevaPerSeppellire, riceviSeppellito } fro
 import { catturaInsetto, cercaInsetto, compraRetino, consegnaInsetto } from '@marea/sim/rpg/insetti.ts';
 import { catturaPesce, compraCanna, consegnaPesce } from '@marea/sim/rpg/pesci.ts';
 import { finishDungeon, startDungeon } from '@marea/sim/rpg/run.ts';
+import { json } from '../http.ts';
+export { json }; // Lot.ts lo prende ancora da qui
 
-export const json = (dati: unknown, status = 200): Response =>
-  new Response(JSON.stringify(dati), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 
 /** `dungeon_party_start {dungeon, seed, run, idx}` → {hero, stato, lot} arriva solo dal DO Spedizioni (dungeon insieme, #118), mai dal Worker. */
 export const RPG_ACTS = new Set(['rpg', 'dungeon_start', 'dungeon_party_start', 'dungeon_save', 'dungeon_finish', 'casa_pala', 'pala_scava', 'pala_seppellisci', 'pala_dissotterra',

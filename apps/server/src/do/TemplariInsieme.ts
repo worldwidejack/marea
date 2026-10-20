@@ -25,6 +25,8 @@ import { SQ_TICKS, SQ_TURNO_MS, TI_MAX, isTiTurno, parseTiClient } from '@marea/
 import type { SqInput, TiMembro, TiServerMsg, TiTurno } from '@marea/protocol/templari_insieme.ts';
 import type { Env } from '../env.ts';
 import type { LogTemplari } from './lot_templari.ts';
+import { json } from '../http.ts';
+import { accoda, apriSocket, chiudi, ospite, passa } from './sala.ts';
 
 const CARICO_MAX_MS = 20_000;
 const SALVA_MS = 5_000;
@@ -50,7 +52,6 @@ type Run = { id: string; seed: number; membri: Membro[]; turno: number; creato: 
 /** Quello che sta nello storage: il log per il DO del lotto, più quanto serve per riprendere la partita. */
 type Salvata = LogTemplari & { quando: number; turno?: number; membri?: TiMembro[]; fuori?: boolean[]; last?: SqInput[]; creato?: number; fine?: number };
 
-const json = (v: unknown, status = 200): Response => new Response(JSON.stringify(v), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
 const intDa = (v: string | null): number | null => (v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null);
 
 export class TemplariInsieme extends DurableObject<Env> {
@@ -63,13 +64,8 @@ export class TemplariInsieme extends DurableObject<Env> {
     const url = new URL(req.url);
     if (req.method === 'POST' && url.pathname === '/log') return this.logPer(req);
     if (req.headers.get('upgrade') !== 'websocket') return new Response('WebSocket atteso', { status: 426 });
-    const id = url.searchParams.get('id') ?? '', nome = url.searchParams.get('nome') ?? 'Ospite';
-    let look: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
-    try { const l = JSON.parse(url.searchParams.get('look') ?? '{}') as Look; if (l && typeof l === 'object') look = { ...look, ...l }; } catch { /* look di default */ }
-    const pair = new WebSocketPair();
-    const [client, server] = [pair[0], pair[1]];
-    server.accept();
-    const fatto = new Response(null, { status: 101, webSocket: client });
+    const { id, nome, look } = ospite(url);
+    const { server, fatto } = apriSocket();
     if (!id) { this.send(server, { t: 'errore', msg: 'Chi sei?' }); server.close(1008, 'id'); return fatto; }
     const c: Conn = { ws: server, id, nome, look, classe: eroeDef(url.searchParams.get('classe'))?.id ?? null, run: null, s: 0, n: 0, prossimo: 0, esce: false };
     server.addEventListener('message', (ev) => this.onMessage(c, ev.data));
@@ -79,7 +75,7 @@ export class TemplariInsieme extends DurableObject<Env> {
     const run = url.searchParams.get('run'), idx = intDa(url.searchParams.get('idx')), n = intDa(url.searchParams.get('n'));
     if (run && idx !== null && n !== null) { void this.ricollega(c, run, idx, n); return fatto; }
     // la stessa persona in un'altra scheda: quella vecchia esce
-    for (const o of [...this.sala]) if (o.id === id) { this.via(o); try { o.ws.close(1000, 'altra scheda'); } catch { /* chiusa */ } }
+    for (const o of [...this.sala]) if (o.id === id) { this.via(o); chiudi(o.ws, 1000, 'altra scheda'); }
     if (this.sala.length >= TI_MAX) { this.send(server, { t: 'errore', msg: `La sala è piena (${TI_MAX})` }); server.close(1013, 'piena'); return fatto; }
     this.sala.push(c);
     this.annuncia();
@@ -95,18 +91,16 @@ export class TemplariInsieme extends DurableObject<Env> {
 
   private onMessage(c: Conn, data: unknown): void {
     if (typeof data !== 'string') return;
-    const sec = Math.floor(Date.now() / 1000);
-    if (sec !== c.s) { c.s = sec; c.n = 0; }
-    if (++c.n > MAX_MSG_PER_S) return;
+    if (!passa(c, MAX_MSG_PER_S)) return;
     const m = parseTiClient(data);
     if (!m) return;
-    if (m.t === 'esco') { c.esce = true; this.via(c); try { c.ws.close(1000, 'ciao'); } catch { /* chiusa */ } return; }
+    if (m.t === 'esco') { c.esce = true; this.via(c); chiudi(c.ws, 1000, 'ciao'); return; }
     if (m.t === 'via') { void this.parti(c); return; }
     const r = c.run, me = r?.membri.find((x) => x.conn === c);
     if (!r || !me || me.fuori) return;
     if (m.t === 'storia') { this.storia(r, me, m.turni); return; }
     if (m.t === 'carico') { me.carico = true; this.forsePronti(r); return; }
-    if (m.t === 'in') { me.coda.push(m.f); while (me.coda.length > MAX_CODA) { const old = me.coda.shift()!, h = me.coda[0]!; h[2] |= old[2]; } }
+    if (m.t === 'in') { accoda(me.coda, m.f, MAX_CODA); }
     if (m.t === 'az') { const ok = parseTAzioniInsieme([[0, 0, m.a]], 1); if (ok?.[0] && me.az.length < MAX_AZ) me.az.push(ok[0][2]); }
   }
 
@@ -221,7 +215,7 @@ export class TemplariInsieme extends DurableObject<Env> {
     this.registra(r, t);
     const msg = JSON.stringify(t satisfies TiServerMsg);
     for (const m of r.membri) if (m.conn && !m.fuori) { try { m.conn.ws.send(msg); } catch { /* chiusa */ } m.conn.prossimo = r.turno; }
-    if (r.turno * SQ_TICKS >= MAX_TICKS) { for (const m of r.membri) if (m.conn) { try { m.conn.ws.close(1000, 'alba'); } catch { /* chiusa */ } } this.chiudi(r); }
+    if (r.turno * SQ_TICKS >= MAX_TICKS) { for (const m of r.membri) if (m.conn) { chiudi(m.conn.ws, 1000, 'alba'); } this.chiudi(r); }
   }
   /** Il turno r.turno nel log (dal server o, nella ripresa, dalla storia di un client): uscite, acquisti, input di ciascuno. */
   private registra(r: Run, t: TiTurno): void {
@@ -269,7 +263,7 @@ export class TemplariInsieme extends DurableObject<Env> {
     const me = r && !r.fine ? r.membri[idx] : undefined;
     if (c.ws.readyState !== 1) return;
     if (!r || !me || me.m.id !== c.id || me.fuori) { this.butta(c, 'La partita insieme non c’è più'); return; }
-    if (me.conn && me.conn !== c) { const old = me.conn; old.run = null; try { old.ws.close(1000, 'altra scheda'); } catch { /* chiusa */ } }
+    if (me.conn && me.conn !== c) { const old = me.conn; old.run = null; chiudi(old.ws, 1000, 'altra scheda'); }
     me.conn = c; me.staccato = 0; me.carico = true; me.coda = []; me.az = []; me.last = FERMO;
     c.run = r; c.classe = me.m.classe ?? null; c.prossimo = n;
     console.log(`[marea] templari insieme: ${me.m.nome} si ricollega al turno ${n} (server ${r.turno}${r.ripresa ? ', in ripresa' : ''})`);
@@ -282,7 +276,7 @@ export class TemplariInsieme extends DurableObject<Env> {
   private butta(c: Conn, msg: string): void {
     this.send(c.ws, { t: 'errore', msg });
     c.run = null;
-    try { c.ws.close(1000, 'fuori'); } catch { /* chiusa */ }
+    chiudi(c.ws, 1000, 'fuori');
   }
   private recupera(r: Run, c: Conn): void {
     for (const t of this.turniDa(r, c.prossimo)) this.send(c.ws, t);
@@ -380,7 +374,7 @@ export class TemplariInsieme extends DurableObject<Env> {
     if (r) {
       const me = r.membri[idx];
       if (!me) return json({ error: 'Eroe sconosciuto' }, 404);
-      if (me.conn) { const c = me.conn; me.conn = null; c.run = null; try { c.ws.close(1000, 'fine'); } catch { /* chiusa */ } }
+      if (me.conn) { const c = me.conn; me.conn = null; c.run = null; chiudi(c.ws, 1000, 'fine'); }
       this.fuori(r, me);
       return json(this.logOf(r));
     }

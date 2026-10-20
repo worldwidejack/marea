@@ -9,7 +9,7 @@ import type { ArenaRuolo } from '@marea/sim/arena/premio.ts';
 import { buildArenaEroe, loadoutDi, pulisciLoadout } from '@marea/sim/rpg/arena.ts';
 import { available } from '@marea/sim/rpg/bag.ts';
 import { heroOf } from '@marea/sim/rpg/hero.ts';
-import { json } from './lot_rpg.ts';
+import { json } from '../http.ts';
 
 export const ARENA_ACTS = new Set(['arena_start', 'arena_fine']);
 const RUOLI = new Set<ArenaRuolo>(['vinta', 'persa', 'pari', 'arreso']);

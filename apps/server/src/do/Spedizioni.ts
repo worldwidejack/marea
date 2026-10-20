@@ -17,6 +17,8 @@ import type { Look } from '@marea/protocol';
 import { SQ_TICKS, SQ_TURNO_MS, parseSqClient } from '@marea/protocol/squadra.ts';
 import type { SqInput, SqServerMsg } from '@marea/protocol/squadra.ts';
 import type { Env } from '../env.ts';
+import { json } from '../http.ts';
+import { accoda, apriSocket, chiudi, ospite, passa } from './sala.ts';
 
 const MAX_SQUADRA = RPG.dungeon?.gruppo?.max ?? 4;
 const CARICO_MAX_MS = 20_000;
@@ -40,7 +42,6 @@ type Run = {
 /** Quello che il DO del lotto riceve (e lo storage tiene). */
 export type LogSquadra = { dungeon: string; seed: number; eroi: { hero: RunHero; stato: HeroState | null }[]; inputs: string[]; azioni: DungeonAzioni[] };
 
-const json = (v: unknown, status = 200): Response => new Response(JSON.stringify(v), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
 
 export class Spedizioni extends DurableObject<Env> {
   private squadre = new Map<string, Conn[]>();
@@ -51,24 +52,20 @@ export class Spedizioni extends DurableObject<Env> {
     const url = new URL(req.url);
     if (req.method === 'POST' && url.pathname === '/log') return this.logPer(req);
     if (req.headers.get('upgrade') !== 'websocket') return new Response('WebSocket atteso', { status: 426 });
-    const id = url.searchParams.get('id') ?? '', nome = url.searchParams.get('nome') ?? 'Ospite', dungeon = url.searchParams.get('dungeon') ?? '';
-    let look: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
-    try { const l = JSON.parse(url.searchParams.get('look') ?? '{}') as Look; if (l && typeof l === 'object') look = { ...look, ...l }; } catch { /* look di default */ }
-    const pair = new WebSocketPair();
-    const [client, server] = [pair[0], pair[1]];
-    server.accept();
-    if (!id || !DUNGEONS.some((d) => d.id === dungeon)) { this.send(server, { t: 'errore', msg: 'Dungeon sconosciuto' }); server.close(1008, 'dungeon'); return new Response(null, { status: 101, webSocket: client }); }
+    const { id, nome, look } = ospite(url), dungeon = url.searchParams.get('dungeon') ?? '';
+    const { server, fatto } = apriSocket();
+    if (!id || !DUNGEONS.some((d) => d.id === dungeon)) { this.send(server, { t: 'errore', msg: 'Dungeon sconosciuto' }); server.close(1008, 'dungeon'); return fatto; }
     const c: Conn = { ws: server, id, nome, look, dungeon, run: null, s: 0, n: 0 };
     server.addEventListener('message', (ev) => this.onMessage(c, ev.data));
     server.addEventListener('close', () => this.via(c));
     server.addEventListener('error', () => this.via(c));
     // la stessa persona in un'altra scheda: quella vecchia esce
-    for (const [, sq] of this.squadre) for (const o of [...sq]) if (o.id === id) { this.via(o); try { o.ws.close(1000, 'altra scheda'); } catch { /* chiusa */ } }
+    for (const [, sq] of this.squadre) for (const o of [...sq]) if (o.id === id) { this.via(o); chiudi(o.ws, 1000, 'altra scheda'); }
     const sq = this.squadre.get(dungeon) ?? [];
-    if (sq.length >= MAX_SQUADRA) { this.send(server, { t: 'errore', msg: `La squadra è piena (${MAX_SQUADRA})` }); server.close(1013, 'piena'); return new Response(null, { status: 101, webSocket: client }); }
+    if (sq.length >= MAX_SQUADRA) { this.send(server, { t: 'errore', msg: `La squadra è piena (${MAX_SQUADRA})` }); server.close(1013, 'piena'); return fatto; }
     sq.push(c); this.squadre.set(dungeon, sq);
     this.annuncia(dungeon);
-    return new Response(null, { status: 101, webSocket: client });
+    return fatto;
   }
 
   private send(ws: WebSocket, m: SqServerMsg): void { try { ws.send(JSON.stringify(m)); } catch { /* chiusa */ } }
@@ -80,17 +77,15 @@ export class Spedizioni extends DurableObject<Env> {
 
   private onMessage(c: Conn, data: unknown): void {
     if (typeof data !== 'string') return;
-    const sec = Math.floor(Date.now() / 1000);
-    if (sec !== c.s) { c.s = sec; c.n = 0; }
-    if (++c.n > MAX_MSG_PER_S) return;
+    if (!passa(c, MAX_MSG_PER_S)) return;
     const m = parseSqClient(data);
     if (!m) return;
-    if (m.t === 'esco') { this.via(c); try { c.ws.close(1000, 'ciao'); } catch { /* chiusa */ } return; }
+    if (m.t === 'esco') { this.via(c); chiudi(c.ws, 1000, 'ciao'); return; }
     if (m.t === 'via') { void this.parti(c); return; }
     const r = c.run, me = r?.membri.find((x) => x.conn === c);
     if (!r || !me || me.fuori) return;
     if (m.t === 'carico') { me.carico = true; this.forsePronti(r); return; }
-    if (m.t === 'in') { me.coda.push(m.f); while (me.coda.length > MAX_CODA) { const old = me.coda.shift()!, h = me.coda[0]!; h[2] |= old[2]; if (old[3] && !h[3]) h[3] = old[3]; } return; }
+    if (m.t === 'in') { accoda(me.coda, m.f, MAX_CODA, true); return; }
     if (m.t === 'az') {
       const a = parseDungeonAzione(m.a);
       if (a && a.t !== 'ritira' && me.azioni.length + me.az.length < MAX_AZIONI) me.az.push(a);
@@ -197,7 +192,7 @@ export class Spedizioni extends DurableObject<Env> {
     const msg = JSON.stringify({ t: 'T', n: r.turno, f, ...(az.length ? { az } : {}) } satisfies SqServerMsg);
     for (const m of r.membri) if (m.conn && !m.fuori) { try { m.conn.ws.send(msg); } catch { /* chiusa */ } }
     r.turno++;
-    if ((r.turno * SQ_TICKS) >= sim.maxTicks) { for (const m of r.membri) if (m.conn) { try { m.conn.ws.close(1000, 'tempo'); } catch { /* chiusa */ } } this.chiudi(r); }
+    if ((r.turno * SQ_TICKS) >= sim.maxTicks) { for (const m of r.membri) if (m.conn) { chiudi(m.conn.ws, 1000, 'tempo'); } this.chiudi(r); }
   }
 
   private chiudi(r: Run): void {
@@ -237,7 +232,7 @@ export class Spedizioni extends DurableObject<Env> {
     if (r) {
       const me = r.membri[idx];
       if (!me) return json({ error: 'Eroe sconosciuto' }, 404);
-      if (me.conn) { const c = me.conn; me.conn = null; c.run = null; try { c.ws.close(1000, 'fine'); } catch { /* chiusa */ } }
+      if (me.conn) { const c = me.conn; me.conn = null; c.run = null; chiudi(c.ws, 1000, 'fine'); }
       this.fuori(r, me);
       return json(this.logOf(r));
     }

@@ -12,7 +12,7 @@ import type { TClasse } from '@marea/content/templari.ts';
 import type { TAzioniInsieme } from '@marea/sim/templari/replay.ts';
 import { finishTemplari, prendiReliquia, startTemplari, startTemplariInsieme, templariOf } from '@marea/sim/templari/premio.ts';
 import type { PackedDungeon } from '@marea/sim/dungeon/types.ts';
-import { json } from './lot_rpg.ts';
+import { json } from '../http.ts';
 
 export const TEMPLARI_ACTS = new Set(['templari_start', 'templari_party_start', 'templari_finish', 'templari_reliquia']);
 
