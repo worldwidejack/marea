@@ -97,6 +97,10 @@ export type TNemicoDef = {
   carica?: { velocita: number; durata: number; danno: number; spinta: number; vista: number; ricarica: number; preparazione: number };
   /** De Molay: fiamme dove passa (ogni `ogni` s), palle di fuoco che lasciano fiamme, e a questa frazione della vita scappa ridendo. */
   scia?: TFiamma & { ogni: number }; palla?: { danno: number; velocita: number; gittata: number; ricarica: number; fuoco: TFiamma }; fugge?: number;
+  /** Fantasma (§12b punto 5): non esce dalle ondate. Ce ne sono sempre `quanti` sull'isola (`squadra` insieme) dall'ondata 1, girano a
+   *  caso attraverso i muri (`velocita.cammina`), non contano per finire l'ondata; chi gli passa attraverso (o lo colpisce) lo fa
+   *  arrabbiare e lo punta (`velocita.corre`). Ucciso, un altro compare dopo `torna` s, ad almeno `lontano` m dagli eroi. */
+  fantasma?: { quanti: number; squadra: number; torna: number; lontano: number };
 };
 
 export type TOndateCfg = {

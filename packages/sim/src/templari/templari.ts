@@ -10,6 +10,7 @@ import type { TState } from './stato.ts';
 import { stepEroe } from './eroe.ts';
 import { stepZombi } from './zombie.ts';
 import { stepOndate } from './ondate.ts';
+import { stepFantasmi } from './fantasmi.ts';
 import { stepProiettili } from './proiettili.ts';
 import { stepFiamme } from './colpi.ts';
 import { stepCassa } from './cassa.ts';
@@ -44,6 +45,7 @@ export function stepTemplariInsieme(s: TState, inps: readonly TInput[]): void {
   if (!s.done) stepZombi(s);
   if (!s.done) stepTrappole(s);
   if (!s.done) stepOndate(s);
+  if (!s.done) stepFantasmi(s);
   if (!s.done) stepPoteri(s);
   stepCassa(s);
   if (s.drops.length && s.drops[0]!.fine <= s.tick) s.drops = s.drops.filter((d) => d.fine > s.tick);

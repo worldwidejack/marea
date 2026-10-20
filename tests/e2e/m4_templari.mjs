@@ -47,7 +47,8 @@ export default async function (ctx) {
     const e0 = (await ctx.getState(page)).templari.eroe;
     assert(e0.classe === 'crociato' && e0.vita === 150, `eroe: ${JSON.stringify(e0)}`);
     await ctx.waitState(page, (st) => st.templari.eroe.vestito === 'tpl_crociato', 15000);
-    assert(await page.isVisible('#mzTplSuper'), 'bottone SUPER assente');
+    // il bottone arriva col primo fotogramma dopo «gioca»: su GitHub il primo disegno della chiesa blocca la pagina qualche secondo
+    await page.waitForSelector('#mzTplSuper.on', { timeout: 15000 }).catch(() => { throw new Error('bottone SUPER assente'); });
     const st = await ctx.getState(page);
     // le assi disegnate sono quelle della sim; il tetto copre il primo disegno della chiesa, che appena dopo «gioca» blocca la pagina
     // 5-6 s su SwiftShader in locale (di più su GitHub): misurato il 9/10 (#171), prima era 5 s e cadeva se il test arrivava prima del blocco
@@ -529,6 +530,25 @@ export default async function (ctx) {
     await ctx.waitState(pc, (st) => st.templari.pausa === false, 5000);
     const sc = (await ctx.getState(pc)).templari.scena;
     assert(sc.indizi === 10, 'scheletri e scritte in scena: ' + sc.indizi);
+    ctx.noErrors(d, 'PC');
+  });
+  await ctx.test('PC: i fantasmi — azzurri e trasparenti, una mesh sola; arrabbiato diventa rosso, attraversa e colpisce', async () => {
+    const prova = (o) => pc.evaluate((o) => window.__game.test.templariProva(o), o);
+    await prova({ pulisci: true, ferma: true, vita: 1e6, dove: { x: 60.5, z: 42.5 }, zombie: 'fantasma', dist: 3 });
+    await ctx.waitState(pc, (st) => st.templari.fantasmi?.disegnati === 1, 5000);
+    let st = await ctx.getState(pc);
+    assert(st.templari.fantasmi.rabbia === 0, 'il fantasma nuovo è già arrabbiato');
+    assert(st.templari.attori.zombie === 0, 'il fantasma disegnato anche come zombie');
+    await pc.waitForTimeout(800);
+    await ctx.shot(pc, 'pc_fantasma');
+    const perf = await ctx.getPerf(pc);
+    await prova({ pulisci: true, ferma: true, vita: 1e6, dove: { x: 60.5, z: 42.5 }, zombie: 'fantasma', dist: 4, arrabbiato: true });
+    await ctx.waitState(pc, (st) => st.templari.fantasmi?.rabbia === 1, 5000);
+    // colpisce: la vita scende, o lo scudo sulle spalle (da una prova di prima) para il colpo e si consuma
+    const st0 = (await ctx.getState(pc)).templari, vita = st0.eroe.vita, scudo = st0.scudo?.vita ?? 0;
+    await ctx.waitState(pc, (st, a) => st.templari.eroe.vita < a[0] || (st.templari.scudo?.vita ?? 0) < a[1], 10000, [vita, scudo]).catch(async () => { throw new Error('il fantasma arrabbiato non colpisce: ' + JSON.stringify((await ctx.getState(pc)).templari.fantasmi)); });
+    await ctx.shot(pc, 'pc_fantasma_arrabbiato');
+    console.log('    perf col fantasma', JSON.stringify(perf));
     ctx.noErrors(d, 'PC');
   });
   await ctx.test('PC: le campanelle nell’ordine scritto in taverna danno una pozione; i tre teschi fanno partire la canzone', async () => {

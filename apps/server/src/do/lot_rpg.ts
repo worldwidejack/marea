@@ -19,6 +19,7 @@ import { applyRpgAction, parseRpgAction } from '@marea/sim/rpg/actions.ts';
 import { compraPala, parseBucaDono, prelevaPerSeppellire, riceviSeppellito } from '@marea/sim/rpg/pala.ts';
 import { catturaInsetto, cercaInsetto, compraRetino, consegnaInsetto } from '@marea/sim/rpg/insetti.ts';
 import { catturaPesce, compraCanna, consegnaPesce } from '@marea/sim/rpg/pesci.ts';
+import { accettaFavore, donaFavore, parlaPaesano, rifiutaFavore } from '@marea/sim/rpg/paesani.ts';
 import { finishDungeon, startDungeon } from '@marea/sim/rpg/run.ts';
 import { json } from '../http.ts';
 export { json }; // Lot.ts lo prende ancora da qui
@@ -26,7 +27,8 @@ export { json }; // Lot.ts lo prende ancora da qui
 
 /** `dungeon_party_start {dungeon, seed, run, idx}` → {hero, stato, lot} arriva solo dal DO Spedizioni (dungeon insieme, #118), mai dal Worker. */
 export const RPG_ACTS = new Set(['rpg', 'dungeon_start', 'dungeon_party_start', 'dungeon_save', 'dungeon_finish', 'casa_pala', 'pala_scava', 'pala_seppellisci', 'pala_dissotterra',
-  'casa_retino', 'insetti_sasso', 'insetti_albero', 'insetti_cattura', 'insetti_consegna', 'casa_canna', 'pesci_cattura', 'pesci_consegna']);
+  'casa_retino', 'insetti_sasso', 'insetti_albero', 'insetti_cattura', 'insetti_consegna', 'casa_canna', 'pesci_cattura', 'pesci_consegna',
+  'paesani_parla', 'paesani_accetta', 'paesani_rifiuta', 'paesani_dona']);
 /** Rotte che, con una spedizione insieme aperta, hanno bisogno del log della squadra (Lot.ts lo chiede prima e lo mette in `gruppo`). */
 export const SERVE_GRUPPO = new Set(['dungeon_start', 'dungeon_party_start', 'dungeon_finish']);
 
@@ -93,6 +95,23 @@ export function rpgRoute(lot: LotState, act: string, body: Record<string, unknow
     const next = consegnaPesce(lot, id, now);
     save(next);
     return json(next);
+  }
+  // i paesani del Borgo: parlarci, accettare o rifiutare un favore, regalare il pesce o l'insetto chiesto
+  if (act.startsWith('paesani_')) {
+    const id = body['id'];
+    if (typeof id !== 'string' || id.length > 40) return json({ error: 'Paesano non valido' }, 400);
+    if (act === 'paesani_parla') {
+      const r = parlaPaesano(lot, id, now);
+      if (r.cambiato) save(r.lot);
+      return json({ evento: r.evento.k, premio: r.premio, lot: r.lot });
+    }
+    if (act === 'paesani_accetta') {
+      const r = accettaFavore(lot, id, Number(body['slot']), now);
+      save(r.lot);
+      return json(r);
+    }
+    if (act === 'paesani_rifiuta') { const next = rifiutaFavore(lot, id, now); save(next); return json({ lot: next }); }
+    if (act === 'paesani_dona') { const r = donaFavore(lot, id, now); save(r.lot); return json(r); }
   }
   if (act === 'pala_seppellisci') {
     const d = parseBucaDono(body['dono']);

@@ -84,6 +84,8 @@ export type Zombie = {
   preso: boolean; scia: number; fuga: { x: number; z: number } | null;
   /** Danni che lo scudo davanti regge ancora (0 = niente scudo, o spaccato). */
   scudo: number;
+  /** Fantasmi (§12b punto 5, fantasmi.ts): arrabbiato e l'eroe che punta (-1 = nessuno). */
+  arrabbiato: boolean; preda: number;
 };
 /** Tiro di un nemico: bomba del cannoniere (vola a parabola fino a dove eri), palla di fuoco di de Molay (dritta). */
 export type TiroNemico = { id: number; tipo: 'bomba' | 'palla'; x: number; z: number; sx: number; sz: number; tx: number; tz: number; vx: number; vz: number; t: number; dur: number; danno: number; r: number };
@@ -148,6 +150,9 @@ export type TState = {
   flowCelle: number[];
   /** Power-up: Ira di Dio e Decima accese fino al tick, quanti ne sono usciti in questa ondata, l'ultimo uscito. */
   poteri: { ira: number; decima: number; ondata: number; ultimo: string };
+  /** Fantasmi (§12b punto 5): i tick a cui ne compare uno (null = non sono ancora arrivati: arrivano con l'ondata 1) e il loro rng, a
+   *  parte (dove girano non cambia il resto della partita). */
+  fantasmi: number[] | null; rngF: Rng;
   nextId: number;
   flow: Int32Array; flowCell: number; flowTick: number;
   done: boolean; esito: TEsito | null;
@@ -260,6 +265,7 @@ export function createState(seed: number, opzioni: TOpzioni = {}): TState {
     trappole: arena.trappole.map(() => ({ fine: 0, pronta: 0, colpo: 0 })),
     fuochi: Object.fromEntries(arena.fuochi.map((f) => [f.id, false])), pezzi: postiPezzi(arena, seed), campana: false, segreti: segretiNuovi(arena, seed),
     poteri: { ira: 0, decima: 0, ondata: 0, ultimo: '' },
+    fantasmi: null, rngF: createRng((seed ^ 0x5bd1e995) >>> 0),
     nextId: 1,
     flow: new Int32Array(arena.w * arena.h), flowCell: -1, flowTick: -999, flowCelle: [],
     done: false, esito: null, eventi: [],
@@ -321,9 +327,9 @@ export function nuovoZombie(s: TState, tipo: string, x: number, z: number, vel: 
   const def = nemicoDef(tipo), max = Math.round(vitaOndata(s.ondata) * def.vitaMolt);
   const zz: Zombie = {
     id: s.nextId++, tipo, def, x, z, fx: 0, fz: 1, vita: max, max, vel, st: 'sorge', stT: 0, stDur: secToTicks(def.sorge),
-    finestra: -1, hurt: 0, best: 1e9, bestT: s.tick, grido: s.tick + secToTicks(2 + s.rng.next() * 6),
+    finestra: -1, hurt: 0, best: 1e9, bestT: s.tick, grido: s.tick + secToTicks(2 + (def.fantasma ? s.rngF : s.rng).next() * 6),
     modo: 'mischia', cd: secToTicks(2), dx: 0, dz: 1, tx: 0, tz: 0, preso: false, scia: 0, fuga: null,
-    scudo: def.scudo !== undefined ? Math.round(vitaOndata(s.ondata) * (def.scudoVita ?? 1)) : 0,
+    scudo: def.scudo !== undefined ? Math.round(vitaOndata(s.ondata) * (def.scudoVita ?? 1)) : 0, arrabbiato: false, preda: -1,
   };
   s.zombie.push(zz);
   return zz;
