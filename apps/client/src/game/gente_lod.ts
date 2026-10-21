@@ -1,6 +1,7 @@
 // Personaggi del Borgo (`npc_<id>`, ART_BIBLE §5): ogni modello ha due mesh sulle stesse ossa, quella dettagliata e quella leggera
 // (`…_lod`, ~1.800 triangoli). Da lontano (la camera di sempre, ~28 m) a pixel grossi non si distinguono: si disegna la leggera e
 // la dettagliata solo da vicino (zoom avanti, chiacchierata). Tiene giù i triangoli a schermo (TECH §5) e i fps sui telefoni deboli.
+// Qui anche la fila dei caricamenti (inFila).
 import * as THREE from 'three';
 
 /** Sotto questa distanza dalla camera (m) si vede il modello dettagliato. Camera di base 28 m × zoom 0,6-2,2. */
@@ -12,4 +13,13 @@ export function scegliLod(meshes: readonly THREE.Mesh[], camera: THREE.Camera, x
   if (!meshes.some((m) => m.name.endsWith('_lod'))) return;
   const vicino = camera.getWorldPosition(cam).distanceTo(chi.set(x, y, z)) < LOD_M;
   for (const m of meshes) m.visible = m.name.endsWith('_lod') ? !vicino : vicino;
+}
+
+let fila: Promise<unknown> = Promise.resolve();
+/** I modelli dei personaggi si scaricano e si preparano uno alla volta, con un respiro tra l'uno e l'altro: tutti insieme all'avvio
+ *  (13 file, ~2 MB) rubavano i primi secondi al gioco sui telefoni deboli. */
+export function inFila<T>(fn: () => Promise<T>): Promise<T> {
+  const p = fila.then(fn);
+  fila = p.catch(() => undefined).then(() => new Promise((r) => setTimeout(r, 60)));
+  return p;
 }
