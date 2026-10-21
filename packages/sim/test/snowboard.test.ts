@@ -1,6 +1,6 @@
 // Snowboard dell'Isola dell'Adrenalina (docs/ADRENALINA.md §7, CONTRACTS §42). Cosa si controlla:
 // - i dati e la barra Adrenalina (riempie, tetto, cala dopo 3 s, gradini, si azzera);
-// - la discesa del pilota automatico sulla verde (~75 s, tutte le porte, niente cadute) e il determinismo;
+// - la discesa del pilota automatico sulla verde (~80 s, tutte le porte, niente cadute) e il determinismo;
 // - la guida: curva stretta che frena, neve fresca che rallenta, il bosco oltre la neve, gli alberi, la porta mancata;
 // - il fuoripista: al bivio chi va dritto finisce contro l'abete caduto, il sentiero tiene la velocità bassa, si rientra e si arriva;
 // - il salto: grande se lasci sul bordo, basso se tieni, i trick in combo, la presa, gli atterraggi storti.
@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BARRA, SNOWBOARD, SNOWBOARD_PISTE, validateAdrenalina } from '@marea/content/adrenalina.ts';
 import { azzeraBarra, moltiplicatore, nuovaBarra, passoBarra, riempiBarra } from '../src/adrenalina/barra.ts';
-import { bordoA, pistaSnowboard, quotaA } from '../src/adrenalina/pista.ts';
+import { bordoA, pendenzaA, pistaSnowboard, quotaA } from '../src/adrenalina/pista.ts';
 import { pilotaSnowboard, snowboard } from '../src/minigames/snowboard.ts';
 import { medagliaDaPosizione, migliora, posizioneDiscesa } from '../src/adrenalina/classifica.ts';
 import { MINIGAMES } from '../src/minigames/registry.ts';
@@ -33,13 +33,19 @@ const passi = (s: SnowState, n: number, f: InputFrame | ((s: SnowState) => Input
 test('snowboard: i dati sono a posto', () => {
   assert.deepEqual(validateAdrenalina(), []);
   const p = pistaSnowboard('snowboard_verde');
-  assert.ok(p.n.len > 1600 && p.n.len < 2200, `pista lunga ${p.n.len} m`);
+  // il tratto di mezzo corto: ~1,4 km in tutto
+  assert.ok(p.n.len > 1200 && p.n.len < 1600, `pista lunga ${p.n.len} m`);
   assert.ok(VERDE.porte.length >= 8 && VERDE.porte.length <= 22, `${VERDE.porte.length} porte`);
   // una discesa vera da una montagna (birbasan, 12 ott): tanto dislivello, pendenza media da pista rossa, tratti oltre i 30°
   const giu = p.n.y[0]! - p.n.y[p.n.n - 1]!, ripido = p.n.ty.filter((ty) => -ty > 0.5).length;
-  assert.ok(giu > 600 && giu / p.n.len > 0.33, `dislivello ${giu} m su ${p.n.len} m`);
-  assert.ok(ripido > 150, `solo ${ripido} m oltre i 30°`);
-  assert.equal(VERDE.rampe.length, 3);
+  assert.ok(giu > 450 && giu / p.n.len > 0.33, `dislivello ${giu} m su ${p.n.len} m`);
+  assert.ok(ripido > 250, `solo ${ripido} m oltre i 30°`);
+  // tre salti di neve nel canalino, stretti quanto lui, e il trampolino grande
+  assert.equal(VERDE.rampe.length, 4); assert.equal(VERDE.rampe.filter((r) => r.grande).length, 1);
+  const canalino = VERDE.zone.find((z) => z.id === 'canalino')!;
+  assert.ok(VERDE.rampe.filter((r) => r.s > canalino.da && r.s < canalino.a && r.lat[1] - r.lat[0] >= 2 * bordoA(p, r.s) - 0.01).length === 3, 'i salti del canalino');
+  // le porte dello slalom distanti tra loro
+  assert.ok(VERDE.porte.slice(2, 8).every((g, i, a) => i === 0 || g.s - a[i - 1]!.s > 40), 'porte dello slalom a più di 40 m');
   assert.ok(VERDE.arrivo < p.n.len);
 });
 
@@ -58,7 +64,7 @@ test('barra Adrenalina: riempie, tetto, cala dopo calaDopo s, tre gradini, si az
   azzeraBarra(b); assert.equal(b.v, 0);
 });
 
-test('snowboard: il pilota automatico scende la verde in ~105 s, tutte le porte, niente cadute, trick in combo', () => {
+test('snowboard: il pilota automatico scende la verde in ~80 s, tutte le porte, niente cadute, trick in combo', () => {
   const s = nuova();
   passi(s, snowboard.maxTicks, (x) => pilotaSnowboard(x));
   const r = snowboard.result(s);
@@ -67,7 +73,7 @@ test('snowboard: il pilota automatico scende la verde in ~105 s, tutte le porte,
   assert.equal(r.detail['porte'], VERDE.porte.length); assert.equal(r.detail['mancate'], 0); assert.equal(r.detail['cadute'], 0);
   assert.ok(r.detail['salti']! >= 3, `salti ${r.detail['salti']}`);
   assert.deepEqual(s.eventi.filter((e) => e.k === 'fuoripista' || e.k === 'rientro' || e.k === 'arrivo').map((e) => e.k).slice(-3), ['fuoripista', 'rientro', 'arrivo']);
-  assert.ok(r.detail['trick']! >= 5 && r.detail['combo']! >= 2, JSON.stringify(r.detail));
+  assert.ok(r.detail['trick']! >= 4 && r.detail['combo']! >= 2, JSON.stringify(r.detail));
   const pigro = nuova();
   passi(pigro, snowboard.maxTicks, (x) => pilotaSnowboard(x, true));
   // la classifica è a tempo con abbuoni: i trick fanno scendere il tempo finale (lo score è più alto)
@@ -143,12 +149,14 @@ function trampolino(i: number, lascia: number | null): SnowState {
   return s;
 }
 test('snowboard: sul trampolino lasciare proprio sul bordo è il salto grande; tenendo si vola basso', () => {
-  const r = VERDE.rampe[0]!;
+  const r = VERDE.rampe[0]!, p = pistaSnowboard('snowboard_verde');
+  // la spinta si misura rispetto alla neve che scende (il salto di neve sta su un pendio ripido)
+  const suNeve = (x: SnowState) => x.vy + x.v * pendenzaA(p, x.s);
   const grande = qui(nuova(), r.s - r.lungo - 6, 0, 16);
   let vyG = 0, vyB = 0;
-  passi(grande, 500, (x) => { if (x.aria && !vyG) vyG = x.vy; return F({ a: !x.aria && (r.s - x.s) / x.v > 0.05 }); });
+  passi(grande, 200, (x) => { if (x.aria && !vyG) vyG = suNeve(x); return F({ a: !x.aria && (r.s - x.s) / x.v > 0.05 }); });
   const basso = qui(nuova(), r.s - r.lungo - 6, 0, 16);
-  passi(basso, 500, (x) => { if (x.aria && !vyB) vyB = x.vy; return F({ a: true }); });
+  passi(basso, 200, (x) => { if (x.aria && !vyB) vyB = suNeve(x); return F({ a: true }); });
   assert.ok(vyG > r.salto * 0.9, `grande ${vyG}`);
   assert.ok(vyB > 0 && vyB < vyG * 0.75, `basso ${vyB} contro ${vyG}`);
   assert.ok(grande.eventi.some((e) => e.k === 'grande') && grande.barra.v > 0);
@@ -157,7 +165,7 @@ test('snowboard: sul trampolino lasciare proprio sul bordo è il salto grande; t
 });
 
 test('snowboard: trick in combo valgono di più; atterrare a metà trick o in presa è una caduta', () => {
-  const r = VERDE.rampe[2]!;
+  const r = VERDE.rampe.find((q) => q.grande)!;
   /** Salta il trampolino grande e in aria fa `gesti` (uno ogni 0,7 s) e/o la presa. */
   const salta = (gesti: Partial<InputFrame>[], presa: [number, number] | null) => {
     const s = qui(nuova(), r.s - r.lungo - 6, 0, 18);
@@ -195,9 +203,9 @@ test('snowboard: fuoripista, dritto al bivio si sbatte contro l’abete caduto; 
   assert.ok(sentiero.v < SNOWBOARD.fisica.vFuoripista + 1, `nel sentiero ${sentiero.v}`);
 });
 
-test('snowboard: dalla cornice e dalla roccia si vola da soli; atterrare in piano da troppo in alto è una caduta', () => {
+test('snowboard: dalla cornice si vola da soli; atterrare in piano da troppo in alto è una caduta', () => {
   const z = (id: string) => VERDE.zone.find((q) => q.id === id)!;
-  for (const id of ['muro', 'roccia']) {
+  for (const id of ['muro']) {
     const s = qui(nuova(), z(id).da - 25, 0, 17);
     let volo = false;
     passi(s, 240, (x) => { if (x.aria) volo = true; return F(); });

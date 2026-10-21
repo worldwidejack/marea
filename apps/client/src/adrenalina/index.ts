@@ -24,9 +24,11 @@ import { createLights } from '../render/light.ts';
 import { pixelTexture } from '../render/loader.ts';
 import { PAL } from '../ui/style.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
+import { FLAGS } from '../flags.ts';
 import { creaComandi } from './comandi.ts';
 import { creaHud, tempo } from './hud.ts';
 import { creaPista3d } from './pista3d.ts';
+import { creaSfondo } from './sfondo.ts';
 import { creaRegia } from './regia.ts';
 import { creaNeve } from './neve.ts';
 import { creaTavola } from './tavola3d.ts';
@@ -58,7 +60,7 @@ const NOMI_CADUTA: Record<string, string> = { abete: 'CONTRO L’ABETE!', roccia
 const CASCO = AVATAR.cappelli.findIndex((h) => h.id === 'casco');
 const PANNELLI = ['mzSbPiste', 'mzSbRegole', 'mzSbFine'];
 /** Per i test: la discesa aperta adesso. */
-let corrente: { stato(): Record<string, unknown>; auto(n: number): number; metti(o: Record<string, unknown>): unknown; salta(): void; pista(id: string): boolean; fantasmaProva(): unknown; esci(): void } | null = null;
+let corrente: { stato(): Record<string, unknown>; auto(n: number): number; metti(o: Record<string, unknown>): unknown; salta(): void; pista(id: string): boolean; fantasmaProva(): unknown; foto(k: number): string; esci(): void } | null = null;
 registerStateProvider('snowboard', () => (corrente ? corrente.stato() : { active: false }));
 registerTestHook('snowboardAuto', (n) => corrente?.auto(Number(n ?? 1)) ?? null);
 registerTestHook('snowboardMetti', (o) => (corrente && o && typeof o === 'object' ? corrente.metti(o as Record<string, unknown>) : null));
@@ -66,6 +68,8 @@ registerTestHook('snowboardSalta', () => { corrente?.salta(); return !!corrente;
 registerTestHook('snowboardPista', (id) => corrente?.pista(String(id ?? 'snowboard_verde')) ?? false);
 registerTestHook('snowboardFantasmaProva', () => corrente?.fantasmaProva() ?? null);
 registerTestHook('snowboardEsci', () => { corrente?.esci(); return true; });
+/** Prove: il modellino delle montagne da un lato (k = 0-5), per il dipinto. */
+registerTestHook('snowboardFoto', (k) => corrente?.foto(Number(k ?? 0)) ?? null);
 
 /** Cielo di montagna a tre bande piatte (ART_BIBLE §7): azzurro, azzurro chiaro, chiaro all'orizzonte. */
 function cielo(): THREE.Texture {
@@ -108,13 +112,15 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
   const sfondo = cielo(); scene.background = sfondo;
   const luci = createLights(), luciSu = new THREE.Group(); luciSu.add(luci.group); scene.add(luciSu);
   // luce di montagna: sole bianco e alto, cielo freddo nelle ombre (la neve resta neve, non rosa)
-  luci.set?.({ elev: 48, azim: 200, color: 0xfff6e8, intensity: 2.4, sky: 0xdff4ff, ground: 0xc8d4e0, hemiI: 2.5, amb: 0x7fe3e0, ambI: 0.15 });
+  luci.set?.({ elev: 48, azim: 200, color: 0xfffaf2, intensity: 2.5, sky: 0xd6e8ff, ground: 0xb4c6e2, hemiI: 2.8, amb: 0x9fc4ff, ambI: 0.2 });
   const pista3d = creaPista3d(p); scene.add(pista3d.gruppo);
+  const monti = creaSfondo(p); scene.add(monti.gruppo);
+  if (FLAGS.dipinto !== 'no') void monti.dipinto(scene, dito); // le Alpi dipinte (?dipinto=0 il modellino a blocchi)
   const look = { ...ctx.look(), ...(CASCO >= 0 ? { cappello: CASCO } : {}) }; // sulla pista si scende col casco
   const tavola = creaTavola(look); scene.add(tavola.gruppo);
   const viaggio = creaViaggio(p); scene.add(viaggio.gruppo);
   ctx.renderer.setScene(scene);
-  cam0.far = 7000; cam0.near = 0.5; cam0.updateProjectionMatrix();
+  cam0.far = 16000; cam0.near = 0.5; cam0.updateProjectionMatrix();
 
   const hud = creaHud(ctx.root, dito, BARRA.soglie);
   const comandi = creaComandi(hud.zona);
@@ -198,7 +204,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
     ctx.renderer.setScene(null);
     cam0.fov = salva.fov; cam0.near = salva.near; cam0.far = salva.far; cam0.updateProjectionMatrix();
     avatar?.object.removeFromParent();
-    scene.remove(pista3d.gruppo); pista3d.dispose(); tavola.dispose(); tavF?.dispose(); neve.dispose(); viaggio.dispose(); sfondo.dispose();
+    scene.remove(pista3d.gruppo); pista3d.dispose(); tavola.dispose(); tavF?.dispose(); neve.dispose(); viaggio.dispose(); sfondo.dispose(); monti.dispose();
     corrente = null;
     fine(ultimo);
   };
@@ -257,7 +263,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
     const fresca = Math.abs(s.lat) > bordo(ss) ? 0.5 : 0;
     neve.aggiorna({ coda, avanti: fh, destra: rh, v: s.v, spruzzo: Math.min(1, Math.abs(s.vl) / 5 + fresca + s.carica * 0.2), aTerra: fase === 'gara' && !s.aria && s.caduta <= 0 }, dt);
     if (nuvolaA) { nuvolaA = false; neve.nuvola(pos, s.caduta > 0 ? 1 : 0.6); }
-    pista3d.aggiorna(cam0.position, LONTANO + 20);
+    pista3d.aggiorna(cam0.position, LONTANO + 20); monti.segui(cam0.position);
     luciSu.position.y = Math.round(pos.y); luci.follow?.(pos.x, pos.z); // il sole segue la tavola, anche in quota
     const fp = p.def.fuoripista;
     if (fp && pista3d.tronco) pista3d.tronco.cade((ss - (fp.da - 70)) / 22); // l'abete che cade sulla pista chiusa
@@ -311,6 +317,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
       usaFantasma({ chi: 'prova', nome: 'Maestro', ms: tempiSnowboard(g).finale, seed: 1, opzioni: { pista }, inputs: packInputs(log), look: null });
       return { ms: tempiSnowboard(g).finale };
     },
+    foto: (k) => monti.foto(ctx.renderer.gl, k),
     /** Solo prove: mette la tavola a `s` (e `lat`, `v`), salta funivia, cartelli e 3-2-1 (la discesa così non vale per il server). */
     metti: (q) => {
       for (const id of PANNELLI) document.getElementById(id)?.remove();

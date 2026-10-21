@@ -70,13 +70,15 @@ export type SnowboardCfg = {
 export type SOstacoloDef = { s: number; lat: number; r: number; tipo: 'abete' | 'roccia' };
 /** Porta dello slalom: due pali a `lat ± w/2`; `colore` per la resa. */
 export type SPortaDef = { s: number; lat: number; w: number; colore: 'rosso' | 'blu' };
-/** Trampolino: il bordo a `s`, lungo `lungo` m prima, alto `alto` m (per la resa), lancia a `salto` m/s; `lat` = fascia. */
+/** Trampolino: il bordo a `s`, lungo `lungo` m prima, alto `alto` m (per la resa), lancia a `salto` m/s rispetto alla neve che scende; `lat` = fascia. */
 export type SRampaDef = { s: number; lungo: number; alto: number; salto: number; lat: [number, number]; grande?: boolean };
 /** Tratto della pista con un nome (per la resa e i cartelli): pendio, slalom, gola… */
 export type SZonaDef = { id: string; nome: string; da: number; a: number };
 
 export type SPistaDef = {
   id: string; nome: string; gioco: 'snowboard'; colore: 'verde' | 'blu' | 'rossa' | 'nera';
+  /** Si alza quando il tracciato cambia: la classifica e il fantasma ripartono da zero (i tempi vecchi sono di un'altra pista). */
+  versione?: number;
   /** Metri tra due campioni del nastro e mezza carreggiata di serie. */
   passo: number; larghezza: number;
   /** Fascia di neve fresca oltre il bordo (m); nelle gole 0 (oltre il bordo c'è la roccia). */

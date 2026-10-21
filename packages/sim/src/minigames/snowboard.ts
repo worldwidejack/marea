@@ -101,6 +101,8 @@ function atterra(s: SnowState, p: PistaNeve, quota: number): void {
   const sn = pendenzaA(p, s.s), cs = Math.sqrt(1 - sn * sn), botta = -(s.v * cs * sn + s.vy * cs);
   s.aria = false; s.y = quota; s.vy = 0; s.h = 0;
   if (botta > F.botta) { cade(s, p, 'botta'); return; }
+  // su un pendio ripido la caduta diventa velocità lungo la neve (come nella realtà: si atterra in discesa e si riparte forte)
+  if (botta > 0) s.v = clamp(s.v + (botta / cs) * sn, 0, F.vmax);
   if (s.trick >= 0) { cade(s, p, 'storto'); return; }
   if (s.presa) { cade(s, p, 'presa'); return; }
   const molt = moltiplicatore(s.barra, BARRA);
@@ -151,8 +153,9 @@ function step(s: SnowState, f: InputFrame): void {
       if (!(prima < r.s && s.s >= r.s && s.lat >= r.lat[0] && s.lat <= r.lat[1])) continue;
       const dopo = (s.tick - s.rilascio) * DT, mio = s.rilRampa === i && !a;
       const k = !mio ? J.basso : dopo <= J.grande ? 1 : dopo <= J.finestra ? (1 + J.basso) / 2 : J.basso;
+      // la spinta del trampolino è rispetto alla neve che scende: su un pendio ripido si parte già in discesa con lei
       s.y = quotaA(p, s.s, s.lat) + r.alto;
-      decolla(s, r.salto * k, mio && dopo <= J.grande);
+      decolla(s, r.salto * k - s.v * pendenzaA(p, s.s), mio && dopo <= J.grande);
       s.rilRampa = -1;
     }
     // il dosso: se per seguire la neve servisse più della gravità, si vola (con la velocità verticale che si aveva)
