@@ -1,0 +1,319 @@
+{
+ "version": "2026-10-20-13",
+ "atlas": "atlas.png",
+ "texelsPerMeter": 16,
+ "models": {
+  "npc_ada": {
+   "file": "npc_ada.glb",
+   "tris": 6511,
+   "kb": 191.3,
+   "bounds": {
+    "min": [
+     -0.33,
+     0,
+     -0.33
+    ],
+    "max": [
+     0.32,
+     1.79,
+     0.32
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_bepi": {
+   "file": "npc_bepi.glb",
+   "tris": 5510,
+   "kb": 165.3,
+   "bounds": {
+    "min": [
+     -0.34,
+     -0.01,
+     -0.29
+    ],
+    "max": [
+     0.33,
+     1.61,
+     0.19
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_bice": {
+   "file": "npc_bice.glb",
+   "tris": 5494,
+   "kb": 166.2,
+   "bounds": {
+    "min": [
+     -0.3,
+     -0.01,
+     -0.4
+    ],
+    "max": [
+     0.36,
+     1.51,
+     0.82
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_brando": {
+   "file": "npc_brando.glb",
+   "tris": 6406,
+   "kb": 176.3,
+   "bounds": {
+    "min": [
+     -0.42,
+     -0.01,
+     -0.53
+    ],
+    "max": [
+     0.63,
+     1.91,
+     0.19
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_furetto": {
+   "file": "npc_furetto.glb",
+   "tris": 6258,
+   "kb": 185,
+   "bounds": {
+    "min": [
+     -0.31,
+     0,
+     -0.31
+    ],
+    "max": [
+     0.31,
+     1.85,
+     0.25
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_gaspare": {
+   "file": "npc_gaspare.glb",
+   "tris": 5684,
+   "kb": 165.4,
+   "bounds": {
+    "min": [
+     -0.29,
+     -0.01,
+     -0.32
+    ],
+    "max": [
+     0.29,
+     1.87,
+     0.54
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_gigi": {
+   "file": "npc_gigi.glb",
+   "tris": 5312,
+   "kb": 172.3,
+   "bounds": {
+    "min": [
+     -0.22,
+     0,
+     -0.17
+    ],
+    "max": [
+     0.22,
+     1.37,
+     0.18
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_ishi": {
+   "file": "npc_ishi.glb",
+   "tris": 6438,
+   "kb": 175.4,
+   "bounds": {
+    "min": [
+     -0.41,
+     0,
+     -0.37
+    ],
+    "max": [
+     0.41,
+     1.82,
+     0.28
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_nella": {
+   "file": "npc_nella.glb",
+   "tris": 6668,
+   "kb": 187.5,
+   "bounds": {
+    "min": [
+     -0.3,
+     0,
+     -0.39
+    ],
+    "max": [
+     0.3,
+     1.54,
+     0.25
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_pina": {
+   "file": "npc_pina.glb",
+   "tris": 6433,
+   "kb": 177.3,
+   "bounds": {
+    "min": [
+     -0.31,
+     0,
+     -0.24
+    ],
+    "max": [
+     0.23,
+     1.33,
+     0.22
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_remo": {
+   "file": "npc_remo.glb",
+   "tris": 6744,
+   "kb": 187,
+   "bounds": {
+    "min": [
+     -0.45,
+     -0.01,
+     -0.37
+    ],
+    "max": [
+     0.45,
+     1.75,
+     0.27
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_sibilla": {
+   "file": "npc_sibilla.glb",
+   "tris": 6783,
+   "kb": 200.6,
+   "bounds": {
+    "min": [
+     -0.32,
+     0,
+     -0.33
+    ],
+    "max": [
+     0.36,
+     1.96,
+     0.31
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  },
+  "npc_tonio": {
+   "file": "npc_tonio.glb",
+   "tris": 5066,
+   "kb": 152.3,
+   "bounds": {
+    "min": [
+     -0.3,
+     -0.01,
+     -1.55
+    ],
+    "max": [
+     0.74,
+     1.84,
+     0.27
+    ]
+   },
+   "clips": [
+    "idle",
+    "row",
+    "run",
+    "sit",
+    "walk"
+   ]
+  }
+ }
+}

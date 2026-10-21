@@ -10,7 +10,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLIENT = path.join(ROOT, 'apps/client');
-export const BUDGET = { jsKB: 1315, jsGzipKB: 397, lazyChunkKB: 600, lazyChunkGzipKB: 180, lazyJsKB: 3000, lazyJsGzipKB: 900, initialMB: 3, rpgAssetsMB: 1.5, corseAssetsMB: 2.5, mobiliAssetsMB: 3, difesaAssetsMB: 4, textureMB: 16 };
+export const BUDGET = { jsKB: 1315, jsGzipKB: 397, lazyChunkKB: 600, lazyChunkGzipKB: 180, lazyJsKB: 3000, lazyJsGzipKB: 900, initialMB: 3, rpgAssetsMB: 1.5, corseAssetsMB: 2.5, mobiliAssetsMB: 3, genteAssetsMB: 3, difesaAssetsMB: 4, textureMB: 16 };
 const REPORT = path.join(ROOT, 'tests/out/build.json');
 
 const kb = (n) => +(n / 1024).toFixed(1);
@@ -101,6 +101,15 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
       for (const m of Object.values(mm.models || {})) { const rel = resolveAsset(m && m.file ? m.file : ''); if (rel) mobiliAssetsBytes += size(rel); else errs.push(`manifest_mobili.json elenca «${m && m.file}» ma il file non è nel dist`); }
     } catch (e) { errs.push(`assets/manifest_mobili.json non è un JSON valido (${e.message})`); }
   }
+  // manifest dei personaggi del Borgo (npc_<id>): scaricato dopo l'avvio, quando il Porto e le botteghe creano la gente
+  let genteAssetsBytes = 0;
+  const genteRel = 'assets/manifest_gente.json';
+  if (files.includes(genteRel)) {
+    try {
+      const mg = JSON.parse(fs.readFileSync(path.join(outDir, genteRel), 'utf8'));
+      for (const m of Object.values(mg.models || {})) { const rel = resolveAsset(m && m.file ? m.file : ''); if (rel) genteAssetsBytes += size(rel); else errs.push(`manifest_gente.json elenca «${m && m.file}» ma il file non è nel dist`); }
+    } catch (e) { errs.push(`assets/manifest_gente.json non è un JSON valido (${e.message})`); }
+  }
   const initialBytes = [...initialSet].reduce((a, f) => a + size(f), 0);
   const assetsBytes = files.filter((f) => f.startsWith('assets/')).reduce((a, f) => a + size(f), 0);
 
@@ -113,7 +122,7 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
 
   const version = JSON.parse(fs.readFileSync(path.join(outDir, 'version.json'), 'utf8'));
   const report = {
-    build: version.build, jsKB: kb(jsBytes), jsGzipKB: kb(gz), lazyJsKB: kb(lazyBytes), lazyJsGzipKB: kb(lazyGz), proveJsKB: kb(prove.reduce((a, f) => a + size(f), 0)), rpgAssetsMB: mb(rpgAssetsBytes), corseAssetsMB: mb(corseAssetsBytes), mobiliAssetsMB: mb(mobiliAssetsBytes), difesaAssetsMB: mb(difesaAssetsBytes), initialMB: mb(initialBytes), textureMB: mb(texBytes),
+    build: version.build, jsKB: kb(jsBytes), jsGzipKB: kb(gz), lazyJsKB: kb(lazyBytes), lazyJsGzipKB: kb(lazyGz), proveJsKB: kb(prove.reduce((a, f) => a + size(f), 0)), rpgAssetsMB: mb(rpgAssetsBytes), corseAssetsMB: mb(corseAssetsBytes), mobiliAssetsMB: mb(mobiliAssetsBytes), genteAssetsMB: mb(genteAssetsBytes), difesaAssetsMB: mb(difesaAssetsBytes), initialMB: mb(initialBytes), textureMB: mb(texBytes),
     files: files.length, assetsMB: mb(assetsBytes), atlas: manifest?.atlas || null, models: Object.keys(manifest?.models || {}).length, modelTris: tris,
     biggestJs: biggest, lazyChunks, textures, budget: BUDGET, outDir,
   };
@@ -126,6 +135,7 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   if (report.lazyJsKB > BUDGET.lazyJsKB) errs.push(`JS caricato dopo, in tutto, ${report.lazyJsKB} KB oltre il limite di ${BUDGET.lazyJsKB} KB (${lazy.join(', ')})`);
   if (report.lazyJsGzipKB > BUDGET.lazyJsGzipKB) errs.push(`JS caricato dopo, in tutto, gzip ${report.lazyJsGzipKB} KB oltre il limite di ${BUDGET.lazyJsGzipKB} KB`);
   if (report.rpgAssetsMB > BUDGET.rpgAssetsMB) errs.push(`modelli del GDR ${report.rpgAssetsMB} MB oltre il limite di ${BUDGET.rpgAssetsMB} MB`);
+  if (report.genteAssetsMB > BUDGET.genteAssetsMB) errs.push(`personaggi del Borgo ${report.genteAssetsMB} MB oltre il limite di ${BUDGET.genteAssetsMB} MB`);
   if (report.mobiliAssetsMB > BUDGET.mobiliAssetsMB) errs.push(`mobili ${report.mobiliAssetsMB} MB oltre il limite di ${BUDGET.mobiliAssetsMB} MB`);
   if (report.difesaAssetsMB > BUDGET.difesaAssetsMB) errs.push(`pelli della Difesa ${report.difesaAssetsMB} MB oltre il limite di ${BUDGET.difesaAssetsMB} MB`);
   if (report.corseAssetsMB > BUDGET.corseAssetsMB) errs.push(`kit delle Corse ${report.corseAssetsMB} MB oltre il limite di ${BUDGET.corseAssetsMB} MB`);

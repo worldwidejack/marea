@@ -17,6 +17,8 @@ export type BottegaioLook = { pelle: number; capelli: number; coloreCapelli: num
 export type BottegaDef = {
   nome: string; bottegaio: string; livelli?: BottegaLivello[]; ricarico?: number; materiali?: string[]; scomparti: string[][];
   posto?: BottegaPosto; look?: BottegaioLook; battute?: string[];
+  /** Modello del bottegaio (`npc_<id>`, assets/blender/models_gente.py); senza, o se manca dal manifest, `chr_base` col look. */
+  modello?: string;
 };
 export type BottegheDef = Record<BottegaId, BottegaDef>;
 

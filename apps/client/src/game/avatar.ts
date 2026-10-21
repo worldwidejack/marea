@@ -1,4 +1,4 @@
-// Avatar (WP2): modello `chr_base` dal manifest (clip idle walk run sit row, materiali mat_pelle/mat_capelli/mat_vestito/mat_cappello)
+// Avatar (WP2): modello `chr_base` (o `npc_<id>` di manifest_gente.json: i paesani del Borgo, colori nei vertici, il look non li tinge) dal manifest (clip idle walk run sit row, materiali mat_pelle/mat_capelli/mat_vestito/mat_cappello)
 // oppure segnaposto procedurale a 6 teste (1,6 m) fatto di pochi box in colori di palette, animato a mano.
 // La fisica è nella sim (stepAvatar); qui: resa, animazione, look, posa da seduto/a bordo, ombre di contatto.
 import * as THREE from 'three';
@@ -191,8 +191,8 @@ function rebindSkins(root: THREE.Object3D): void {
     sm.bind(new THREE.Skeleton(bones, sm.skeleton.boneInverses), sm.bindMatrix);
   });
 }
-async function loadModel(loader: Loader): Promise<ModelRig> {
-  const { scene, clips } = await loader.load('chr_base');
+async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
+  const { scene, clips } = await loader.load(nome);
   rebindSkins(scene);
   // il corpo a riposo (prima che parta una clip): l'equipaggiamento (rpg/vestito.ts) ci misura i pezzi sulle ossa
   scene.updateMatrixWorld(true);
@@ -253,10 +253,11 @@ const ease = (dt: number, rate: number) => 1 - Math.exp(-dt * rate);
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 let registered = false;
 
-export async function createAvatar(o: { loader: Loader; look: Look; x: number; z: number }): Promise<Avatar> {
+export async function createAvatar(o: { loader: Loader; look: Look; x: number; z: number; modello?: string }): Promise<Avatar> {
   const object = new THREE.Group(); object.name = 'avatar';
   let look = o.look, model: ModelRig | null = null, rig: Rig | null = null;
-  if (o.loader.has('chr_base')) { try { model = await loadModel(o.loader); } catch (e) { console.warn('[marea] chr_base non caricabile, uso il segnaposto', e); } }
+  if (o.modello) { if (!o.loader.has(o.modello)) await o.loader.extend('manifest_gente.json'); if (o.loader.has(o.modello)) model = await loadModel(o.loader, o.modello).catch((e) => { console.warn(`[marea] ${o.modello} non caricabile`, e); return null; }); }
+  if (!model && o.loader.has('chr_base')) { try { model = await loadModel(o.loader); } catch (e) { console.warn('[marea] chr_base non caricabile, uso il segnaposto', e); } }
   if (model) object.add(model.root); else { rig = buildRig(look); object.add(rig.root); }
   const body = model ? model.root : rig!.root, bodyY = body.position.y, bodyYaw = body.rotation.y; // il gesto muove il corpo, non `object` (lo posa update)
   let state = newAvatar(o.x, o.z), prev = state;

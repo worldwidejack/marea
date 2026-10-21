@@ -126,7 +126,7 @@ function alchimista(): FormeBottega {
   pz(p, box(0.42, 0.12, 0.32), P.rosso, M(0.6, 1.36, fz + BZ)); pz(p, box(0.4, 0.04, 0.3), P.sabbiaChiara, M(0.6, 1.43, fz + BZ)); // il libro delle ricette
   for (const [x, c] of [[-0.75, P.erbaScura], [-0.45, P.acqua], [-0.15, P.viola]] as const) pz(p, box(0.15, 0.24, 0.15), c, M(x, 1.42, fz + BZ - 0.05));
   // erbe appese sotto la tenda
-  for (const [x, c] of [[-1.6, P.erbaScura], [-0.6, P.erba], [0.5, P.bosco], [1.5, P.erbaScura]] as const) {
+  for (const [x, c] of [[-1.7, P.erbaScura], [-1.0, P.erba], [-0.3, P.bosco], [0.35, P.erbaScura]] as const) {
     pz(p, box(0.03, 0.3, 0.03), P.legnoScuro, M(x, 2.28, fz + 1.0));
     pz(p, box(0.2, 0.34, 0.16), c, M(x, 1.98, fz + 1.0));
   }
@@ -141,7 +141,7 @@ function alchimista(): FormeBottega {
   pz(p, cil(0.38, 0.75), P.legno, M(2.55, 0.38, fz + 0.6)); pz(p, cil(0.4, 0.06), P.legnoScuro, M(2.55, 0.55, fz + 0.6));
   for (const [x, z, c] of [[-0.12, 0, P.viola], [0.14, 0.1, P.erba], [0.05, -0.15, P.violaNeon], [-0.15, 0.17, P.erbaScura]] as const) pz(p, box(0.2, 0.25, 0.2), c, M(2.55 + x, 0.88, fz + 0.6 + z));
   const insegna = braccioInsegna(p, -w / 2 - 0.05, 2.45, fz + 0.15);
-  return { corpo: merged(p.corpo), luce: merged(p.luce), insegna, bottegaio: { x: 0, z: fz + DZ }, fumi: [{ x: cx, y: 1.0, z: cz, colore: P.viola }] };
+  return { corpo: merged(p.corpo), luce: merged(p.luce), insegna, bottegaio: { x: 1.0, z: fz + DZ + 0.16 }, fumi: [{ x: cx, y: 1.0, z: cz, colore: P.viola }] }; // Sibilla col cappellone: un passo avanti, sennò la tenda la copre
 }
 
 function cantiere(): FormeBottega {

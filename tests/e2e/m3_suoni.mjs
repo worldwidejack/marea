@@ -36,7 +36,7 @@ export default async function (ctx) {
     await hook(p, 'impostazioni', { musica: 2, effetti: 3 });
     await hook(p, 'audioPronto');
     await p.page.keyboard.press('Shift');
-    await waitAudio(p, (a) => a.caricato && a.contesto === 'running' && a.bus.effetti > 0.5 && a.bus.musica > 0.1);
+    await waitAudio(p, (a) => a.caricato && a.contesto === 'running' && a.bus.effetti > 0.5 && a.bus.musica > 0.1 && a.musica !== 'silenzio'); // la musica parte un attimo dopo il contesto
     const a = await audio(p); ctx.log('audio', JSON.stringify({ contesto: a.contesto, bus: a.bus, musica: a.musica }));
     ctx.assert(a.musica === 'giorno', `musica ${a.musica}`);
   });

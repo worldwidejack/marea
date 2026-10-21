@@ -12,6 +12,7 @@ import { posaForma } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import type { Look } from '@marea/protocol';
 import { createAvatar } from './avatar.ts';
+import { inFila, scegliLod } from './gente_lod.ts';
 import type { Avatar } from './avatar.ts';
 import { createPasseggio } from './passeggio.ts';
 import type { Passante } from './passeggio.ts';
@@ -147,7 +148,7 @@ export function createPorto(o: PortoOpts): Porto {
     if (!cammina) posaForma(o.world.solidi, 'persona', first.x, first.z);
     const n: Npc = { p, av: null, meshes: [], shadow: true, cammina, x: first.x, z: first.z, yaw: b ? -GENTE.posti[b].rot : Math.PI, label: layer.add(() => { if (dist(n.x, n.z) < TAP_M) void open(b ? alBanco(b) : { kind: 'persona', p }); }), talk: false, segno: false };
     nome(n, false); n.label.el.dataset['persona'] = p.id;
-    void createAvatar({ loader: o.loader, look: p.look, x: first.x, z: first.z }).then((av) => {
+    void inFila(() => createAvatar({ loader: o.loader, look: p.look, x: first.x, z: first.z, ...(p.modello ? { modello: p.modello } : {}) })).then((av) => {
       av.setGround(o.world.groundY); av.object.name = 'gente_' + p.id; group.add(av.object); n.av = av;
       av.object.traverse((x) => { if ((x as THREE.Mesh).isMesh) n.meshes.push(x as THREE.Mesh); });
     }).catch(() => { /* senza avatar la persona non c'è: pazienza */ });
@@ -309,7 +310,7 @@ export function createPorto(o: PortoOpts): Porto {
         let anim = 'idle';
         if (n.cammina && !close) { n.yaw = n.cammina.yaw; anim = n.cammina.anim; }
         else if (close && !bancoDi(n.p)) { n.yaw = Math.atan2(f.x - n.x, -(f.z - n.z)); if (n.cammina) n.cammina.yaw = n.yaw; } // si gira verso di te
-        if (n.av) { n.av.setPose({ x: n.x, z: n.z, yaw: n.yaw, anim }); n.av.update(1, dt); }
+        if (n.av) { n.av.setPose({ x: n.x, z: n.z, yaw: n.yaw, anim }); n.av.update(1, dt); scegliLod(n.meshes, o.camera, n.x, 1, n.z); }
         const p = screenOf(n.x, 2.25, n.z);
         n.label.place(p.x, p.y, p.on && !!n.av && fd(n.x, n.z) < (n.segno ? SHOW_M : NAME_M) && !n.talk && !o.world.race.on && !bancoDi(n.p), n.segno || dist(n.x, n.z) < NAME_NEAR_M); // chi sta a un banco ha già il cartello del banco
       }

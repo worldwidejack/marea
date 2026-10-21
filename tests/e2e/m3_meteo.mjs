@@ -106,6 +106,8 @@ export default async function (ctx) {
   await ctx.waitReady(d.page, 20000);
   await d.page.evaluate(async () => { window.__game.test.impostazioni({ cam: 3, ciclo: true, contorni: true, meteo: true }); await window.__game.test.aspettoPronto(); window.__game.test.ciclo(0.2); window.__game.test.goto('porto'); }); // all'aperto: lotto:N arriva nella stanza della casa (#240), al buio
   await ctx.test('desktop: nuvola vicina, pioggia e temporale senza errori', async () => {
+    // la gente del Porto arriva un modello alla volta (game/gente_lod.ts inFila): si misura quando c'è tutta, sennò le draw call crescono tra le due misure
+    await ctx.waitState(d.page, (st) => !st.porto || st.porto.gente.every((g) => g.pronto), 30000);
     await forza(d.page, 'sereno', 0);
     const b = await ctx.getPerf(d.page); ctx.log('perf desktop sereno', JSON.stringify(b));
     await d.page.evaluate((v) => { window.__game.test.meteo(null); window.__game.test.nuvole(v); }, VICINA);

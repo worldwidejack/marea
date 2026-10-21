@@ -90,4 +90,4 @@ Test della sim: `packages/sim/test/*.test.ts` (node:test), fixture d'oro in `tes
 | `ingorgo_livelli.mjs`, `pinguini_livelli.mjs`, `prova*_shots.mjs` | livelli dei minigiochi, screenshot dei banchi | J |
 
 ## Altro
-`assets/`: sorgenti Blender, atlas, concept art · `apps/client/public/assets/`: modelli esportati (nel repo, così si costruisce senza Blender) · `docs/`: documenti · `docs/archivio/`: storia, non si legge per lavorare.
+`assets/`: sorgenti Blender, atlas, concept art (i personaggi del Borgo, `npc_<id>`: `assets/blender/models_gente.py` e `gente_*.py`, R) · `apps/client/public/assets/`: modelli esportati (nel repo, così si costruisce senza Blender) · `docs/`: documenti · `docs/archivio/`: storia, non si legge per lavorare.
