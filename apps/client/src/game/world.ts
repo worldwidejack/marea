@@ -195,8 +195,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   // ---- flotta (#6, #107): la barca di ogni altro, al timone dove naviga o ormeggiata al molo della sua isola
   const abitanti = new Map((o.abitanti ?? []).filter((a) => a.id !== o.meId).map((a) => [a.id, a] as const));
   const ormeggioDi = new Map<string, Posa>();
-  // i giardini non hanno più un molo raggiungibile: le barche degli altri stanno ai posti barca del molo del Porto, uno a testa
-  // dopo il tuo. Finiti i posti, si vedono solo quando navigano.
+  // le barche degli altri stanno ai posti barca del molo del Porto, uno a testa dopo il tuo; finiti i posti, si vedono solo quando navigano
   { let i = 1;
     for (const a of abitanti.values()) { const p = a.slot === null ? null : molo.posti[i++]; if (p) ormeggioDi.set(a.id, { x: p.x, z: p.z, yaw: p.yaw }); } }
   const flotta = new Map<string, BarcaAltrui>();
