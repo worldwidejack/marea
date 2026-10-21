@@ -1,16 +1,20 @@
 // Porto più ricco (#63-#65), la parte nel mondo (bundle iniziale, piccola): banco del Mercante del Porto e Bacheca delle missioni in
-// piazza (segnaposto procedurali a colori di palette + cartello DOM), la Gente del Porto (avatar `chr_base` con look diversi, ferma o
-// su un giro avanti e indietro), il bottone PARLA / MERCANTE / BACHECA quando ci sei vicino (A / E / Spazio sulla tastiera).
+// piazza (segnaposto procedurali a colori di palette + cartello DOM), la Gente del Porto (avatar `chr_base` con look diversi: chi sta a
+// un banco resta lì, gli altri passeggiano per il Borgo, game/passeggio.ts), il bottone PARLA / MERCANTE / BACHECA quando ci sei vicino
+// (A / E / Spazio sulla tastiera). Banchi e gente sono solidi (world.solidi, content/collisioni.json).
 // I pannelli (negozio, missioni, battute) stanno in ui/porto_ui.ts, scaricato con import() alla prima apertura (tetto del JS, TECH §5).
 // Accanto alla Grotta il banco del Contrabbandiere (il Furetto): il suo pannello è GDR (monete, oggetti) e lo apre il chunk GDR via ui/eroe.ts.
 import * as THREE from 'three';
 import { DECOR } from '@marea/content';
 import { GENTE } from '@marea/content/porto.ts';
 import type { PersonaPorto, PortoPosto } from '@marea/content/porto.ts';
+import { posaForma } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import type { Look } from '@marea/protocol';
 import { createAvatar } from './avatar.ts';
 import type { Avatar } from './avatar.ts';
+import { createPasseggio } from './passeggio.ts';
+import type { Passante } from './passeggio.ts';
 import type { GameWorld } from './world.ts';
 import type { Loader } from '../render/loader.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
@@ -51,7 +55,8 @@ export type PortoOpts = {
 export type PortoCtx = PortoOpts & { setLook(l: Look): void; onClose(): void };
 
 type Target = { kind: 'posto'; id: PortoKind; posto: PortoPosto } | { kind: 'persona'; p: PersonaPorto };
-type Npc = { p: PersonaPorto; av: Avatar | null; meshes: THREE.Mesh[]; shadow: boolean; pts: { x: number; z: number }[]; len: number; s: number; x: number; z: number; yaw: number; label: Label; talk: boolean; segno: boolean };
+/** `cammina`: chi passeggia (null = sta fermo al suo posto). */
+type Npc = { p: PersonaPorto; av: Avatar | null; meshes: THREE.Mesh[]; shadow: boolean; cammina: Passante | null; x: number; z: number; yaw: number; label: Label; talk: boolean; segno: boolean };
 
 const CSS = `
 .mz-play.on ~ .mz-porto-btn.on { top: calc(60% + 66px); }
@@ -126,6 +131,7 @@ export function createPorto(o: PortoOpts): Porto {
     geos.push((id === 'mercante' ? bancoGeometry() : id === 'contrabbando' ? loscoGeometry() : bachecaGeometry()).applyMatrix4(M(w.x, o.world.groundY(w.x, w.z), w.z, 0, posto.rot, 0)));
     const label = layer.add(() => { if (dist(f.x, f.z) < TAP_M) void open({ kind: 'posto', id, posto }); else o.hud.toast(`${posto.nome}: in piazza, al Porto`, 2200); });
     label.set('bubble', [pixIcon(id, 16), el('span', '', posto.cartello)], 'spot'); label.el.classList.add('spot'); label.el.dataset['porto'] = id;
+    posaForma(o.world.solidi, id === 'mercante' ? 'banco_mercante' : id === 'contrabbando' ? 'banco_contrabbando' : 'bacheca', w.x, w.z, posto.rot);
     return { id, posto, x: w.x, z: w.z, fx: f.x, fz: f.z, label };
   });
   const props = new THREE.Mesh(merged(geos), mat); props.name = 'porto_banco_bacheca'; props.castShadow = true; props.receiveShadow = true; group.add(props);
@@ -134,12 +140,12 @@ export function createPorto(o: PortoOpts): Porto {
   /** Chi sta a un banco: Maestro Ishi al Mercante, il Furetto al Contrabbando (null = gente che parla). */
   const bancoDi = (p: PersonaPorto): PortoKind | null => (p.ruolo === 'mercante' ? 'mercante' : p.ruolo === 'contrabbandiere' ? 'contrabbando' : null);
   const alBanco = (b: PortoKind): Target => ({ kind: 'posto', id: b, posto: GENTE.posti[b] });
+  const passeggio = createPasseggio({ world: o.world });
   const npcs: Npc[] = GENTE.gente.map((p) => {
-    const pts = p.giro.map((c) => at(c));
-    let len = 0;
-    for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.z - pts[i - 1]!.z);
-    const first = pts[0]!, b = bancoDi(p);
-    const n: Npc = { p, av: null, meshes: [], shadow: true, pts, len, s: 0, x: first.x, z: first.z, yaw: b ? -GENTE.posti[b].rot : Math.PI, label: layer.add(() => { if (dist(n.x, n.z) < TAP_M) void open(b ? alBanco(b) : { kind: 'persona', p }); }), talk: false, segno: false };
+    // parte dal primo punto del giro; chi ha una velocità e non sta a un banco passeggia, gli altri sono un solido fermo lì
+    const first = at(p.giro[0]!), b = bancoDi(p), cammina = !b && p.velocita > 0 ? passeggio.aggiungi('gente_' + p.id, first.x, first.z, p.velocita) : null;
+    if (!cammina) posaForma(o.world.solidi, 'persona', first.x, first.z);
+    const n: Npc = { p, av: null, meshes: [], shadow: true, cammina, x: first.x, z: first.z, yaw: b ? -GENTE.posti[b].rot : Math.PI, label: layer.add(() => { if (dist(n.x, n.z) < TAP_M) void open(b ? alBanco(b) : { kind: 'persona', p }); }), talk: false, segno: false };
     nome(n, false); n.label.el.dataset['persona'] = p.id;
     void createAvatar({ loader: o.loader, look: p.look, x: first.x, z: first.z }).then((av) => {
       av.setGround(o.world.groundY); av.object.name = 'gente_' + p.id; group.add(av.object); n.av = av;
@@ -214,25 +220,12 @@ export function createPorto(o: PortoOpts): Porto {
     const r = o.canvas.getBoundingClientRect(), rr = o.root.getBoundingClientRect();
     return { x: r.left - rr.left + ((v.x + 1) / 2) * r.width, y: r.top - rr.top + ((1 - v.y) / 2) * r.height, on: v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05 };
   };
-  /** Punto del giro a distanza `s` (avanti e indietro: dopo `len` si torna) e direzione di marcia. */
-  function along(n: Npc, s: number): { x: number; z: number; dx: number; dz: number } {
-    const L = n.len, u = s % (2 * L), back = u > L, d = back ? 2 * L - u : u;
-    let acc = 0;
-    for (let i = 1; i < n.pts.length; i++) {
-      const a = n.pts[i - 1]!, b = n.pts[i]!, seg = Math.hypot(b.x - a.x, b.z - a.z);
-      if (acc + seg >= d || i === n.pts.length - 1) {
-        const k = seg > 0 ? Math.min(1, (d - acc) / seg) : 0, sg = back ? -1 : 1;
-        return { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k, dx: ((b.x - a.x) / (seg || 1)) * sg, dz: ((b.z - a.z) / (seg || 1)) * sg };
-      }
-      acc += seg;
-    }
-    return { x: n.pts[0]!.x, z: n.pts[0]!.z, dx: 0, dz: -1 };
-  }
 
   registerStateProvider('porto', () => ({
     near: keyOf(near), open: ui?.isOpen() ? ui.kind : null, ui: ui?.state() ?? null,
     posti: posti.map((s) => ({ id: s.id, x: s.x, z: s.z, fronte: { x: s.fx, z: s.fz } })),
-    gente: npcs.map((n) => ({ id: n.p.id, nome: n.p.nome, x: n.x, z: n.z, pronto: !!n.av, visibile: !!n.av?.object.visible, parla: n.talk, segno: n.segno })),
+    gente: npcs.map((n) => ({ id: n.p.id, nome: n.p.nome, x: n.x, z: n.z, pronto: !!n.av, visibile: !!n.av?.object.visible, parla: n.talk, segno: n.segno, passeggia: !!n.cammina, meta: n.cammina?.meta ?? null })),
+    passeggio: passeggio.pronta,
   }));
   registerTestHook('portoApri', async (id) => {
     const k = String(id);
@@ -256,6 +249,18 @@ export function createPorto(o: PortoOpts): Porto {
     return list.length;
   });
   registerTestHook('portoCaricato', () => loadUi().then((u) => !!u));
+  /** Le forme dei solidi del Borgo come linee rosse a terra e a un metro (solo test): per vedere se combaciano coi modelli. */
+  registerTestHook('solidiVedi', () => {
+    const v: number[] = [];
+    for (const s of o.world.solidi.fissi) {
+      const pts = 'hx' in s ? [[-s.hx, -s.hz], [s.hx, -s.hz], [s.hx, s.hz], [-s.hx, s.hz]].map(([a, b]) => [s.x + a! * s.c + b! * s.s, s.z - a! * s.s + b! * s.c] as const)
+        : Array.from({ length: 12 }, (_, i) => [s.x + s.r * Math.cos((i * Math.PI) / 6), s.z + s.r * Math.sin((i * Math.PI) / 6)] as const);
+      for (const y of [0.08, 1]) pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length]!, g = o.world.groundY(s.x, s.z) + y; v.push(p[0], g, p[1], q[0], g, q[1]); });
+    }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+    const l = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: P.rosso })); l.name = 'solidi_vedi'; group.add(l);
+    return o.world.solidi.fissi.length;
+  });
 
   return {
     spots: posti.map((s) => ({ id: s.id, nome: s.posto.nome, x: s.fx, z: s.fz })),
@@ -286,7 +291,11 @@ export function createPorto(o: PortoOpts): Porto {
       const fd = (x: number, z: number) => Math.hypot(focus.x - x, focus.z - z);
       for (const s of posti) { const p = screenOf(s.x, 3.3, s.z); s.label.place(p.x, p.y, p.on && fd(s.x, s.z) < SHOW_M && !o.world.race.on, dist(s.x, s.z) < LABEL_NEAR_M); }
       const vedi = daVedere();
+      // chi passeggia cammina anche lontano da te (si disegna solo vicino); sta fermo se ci parli o gli sei accanto
+      const f = me(), accanto = (n: Npc) => n.talk || (o.world.mode === 'walk' && Math.hypot(f.x - n.x, f.z - n.z) < Math.max(2.2, n.p.raggio));
+      passeggio.update(dt, (c) => { const n = npcs.find((q) => q.cammina === c); return !n || accanto(n); });
       for (const n of npcs) {
+        if (n.cammina) { n.x = n.cammina.x; n.z = n.cammina.z; }
         if ((n.p.id === vedi) !== n.segno) nome(n, n.p.id === vedi);
         const sp = screenOf(n.x, 1, n.z), far = fd(n.x, n.z) > NPC_M || !(sp.on || Math.abs(v.x) < 1.25 && Math.abs(v.y) < 1.25 && v.z < 1);
         if (n.av) { n.av.visible = !far; n.av.object.visible = !far; } // avatar.update (che lo copierebbe) da lontano non gira
@@ -296,13 +305,10 @@ export function createPorto(o: PortoOpts): Porto {
           if (n.segno) { const q = screenOf(n.x, 2.25, n.z); n.label.place(q.x, q.y, q.on && fd(n.x, n.z) < SHOW_M && !o.world.race.on, true); } else n.label.place(0, 0, false);
           continue;
         }
-        const f = me(), close = n.talk || (o.world.mode === 'walk' && Math.hypot(f.x - n.x, f.z - n.z) < Math.max(2.2, n.p.raggio));
+        const close = accanto(n);
         let anim = 'idle';
-        if (n.pts.length > 1 && n.p.velocita > 0 && !close) {
-          n.s += dt * n.p.velocita;
-          const q = along(n, n.s);
-          n.x = q.x; n.z = q.z; n.yaw = Math.atan2(q.dx, -q.dz); anim = 'walk';
-        } else if (close && !bancoDi(n.p)) n.yaw = Math.atan2(f.x - n.x, -(f.z - n.z)); // si gira verso di te
+        if (n.cammina && !close) { n.yaw = n.cammina.yaw; anim = n.cammina.anim; }
+        else if (close && !bancoDi(n.p)) { n.yaw = Math.atan2(f.x - n.x, -(f.z - n.z)); if (n.cammina) n.cammina.yaw = n.yaw; } // si gira verso di te
         if (n.av) { n.av.setPose({ x: n.x, z: n.z, yaw: n.yaw, anim }); n.av.update(1, dt); }
         const p = screenOf(n.x, 2.25, n.z);
         n.label.place(p.x, p.y, p.on && !!n.av && fd(n.x, n.z) < (n.segno ? SHOW_M : NAME_M) && !n.talk && !o.world.race.on && !bancoDi(n.p), n.segno || dist(n.x, n.z) < NAME_NEAR_M); // chi sta a un banco ha già il cartello del banco

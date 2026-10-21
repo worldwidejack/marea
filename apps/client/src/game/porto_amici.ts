@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { PORTO_AMICI } from '@marea/content/porto_amici.ts';
 import type { PortoPosto } from '@marea/content/porto.ts';
+import { posaForma } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Loader } from '../render/loader.ts';
@@ -86,6 +87,7 @@ export function createPortoAmici(o: PortoAmiciOpts): PortoAmici {
   // ---- tabellone: un mesh ----
   const tabMesh = new THREE.Mesh(tabelloneGeometry().applyMatrix4(M(tab.x, tab.y, tab.z, 0, tab.posto.rot, 0)), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
   tabMesh.name = 'tabellone_record'; tabMesh.castShadow = true; tabMesh.receiveShadow = true; group.add(tabMesh);
+  posaForma(o.world.solidi, 'tabellone', tab.x, tab.z, tab.posto.rot); posaForma(o.world.solidi, 'faro', fp.x, fp.z, fp.posto.rot, FARO.scala); // non si attraversano
 
   // ---- Grande Faro: modello acceso, fascio di notte ----
   const faroG = new THREE.Group(); faroG.name = 'faro_comune'; faroG.position.set(fp.x, fp.y, fp.z); faroG.rotation.y = fp.posto.rot; group.add(faroG);

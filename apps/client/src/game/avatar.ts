@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { newAvatar, stepAvatar } from '@marea/sim';
-import type { AvatarState, GridMap, InputFrame } from '@marea/sim';
+import type { AvatarState, GridMap, InputFrame, Ostacoli } from '@marea/sim';
 import type { Indossa, Look } from '@marea/protocol';
 import { AVATAR, BALANCE } from '@marea/content';
 import type { Loader } from '../render/loader.ts';
@@ -17,7 +17,7 @@ export type { AvatarAzione } from './avatar_azioni.ts';
 
 export type Avatar = {
   object: THREE.Object3D; state: AvatarState; prev: AvatarState;
-  step(input: InputFrame, map: GridMap): void; update(alpha: number, dt: number): void; teleport(x: number, z: number, yaw?: number): void; visible: boolean;
+  step(input: InputFrame, map: GridMap, ost?: Pick<Ostacoli, 'vicini'>): void; update(alpha: number, dt: number): void; teleport(x: number, z: number, yaw?: number): void; visible: boolean;
   // ---- aggiunte WP2 (vedi tests/out/richieste/wp2.md) ----
   /** Applica colori e pezzi del look (pelle, capelli, vestito, cappello). */
   setLook(look: Look): void;
@@ -318,7 +318,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   const api: Avatar = {
     object, get state() { return state; }, get prev() { return prev; }, visible: true,
     get attached() { return attached; }, get usesModel() { return !!model; },
-    step(input, map) { ticks++; lastMap = map; prev = state; state = stepAvatar(state, input, map); },
+    step(input, map, ost) { ticks++; lastMap = map; prev = state; state = stepAvatar(state, input, map, ost); },
     update(alpha, dt) {
       object.visible = api.visible;
       const seated = attached;

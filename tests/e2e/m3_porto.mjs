@@ -104,9 +104,11 @@ export default async function (ctx) {
       await ctx.shot(page, 'desktop_piazza');
       const perf = await ctx.getPerf(page); ctx.log('perf piazza', JSON.stringify(perf));
       assert(perf.drawCalls <= 100, `draw call in piazza ${perf.drawCalls}`);
-      const g0 = s.porto.gente.find((g) => g.id === 'remo'); await sleep(1500);
-      const g1 = (await st()).porto.gente.find((g) => g.id === 'remo');
-      assert(Math.hypot(g1.x - g0.x, g1.z - g0.z) > 0.5, 'Capitan Remo non cammina');
+      // Capitan Remo passeggia (game/passeggio.ts): tra una meta e l'altra sosta fino a 10 s
+      const g0 = s.porto.gente.find((g) => g.id === 'remo');
+      let mosso = 0;
+      for (let i = 0; i < 24 && mosso <= 0.5; i++) { await sleep(500); const g1 = (await st()).porto.gente.find((g) => g.id === 'remo'); mosso = Math.hypot(g1.x - g0.x, g1.z - g0.z); }
+      assert(mosso > 0.5, 'Capitan Remo non cammina');
     });
 
     await ctx.test('Mercante: E apre il negozio; prova del cappello esclusivo; COMPRA e INDOSSA (salvato sul server)', async () => {
