@@ -117,11 +117,11 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
   luci.set?.({ elev: 48, azim: 200, color: 0xfffaf2, intensity: 2.5, sky: 0xd6e8ff, ground: 0xb4c6e2, hemiI: 2.8, amb: 0x9fc4ff, ambI: 0.2 });
   const pista3d = creaPista3d(p); scene.add(pista3d.gruppo);
   const monti = creaSfondo(p); scene.add(monti.gruppo);
-  // le Alpi dipinte, gli abeti, la neve e la roccia dipinti (?dipinto=0 la montagna a facce piatte di prima)
+  // le Alpi e gli abeti a pixel (?dipinto=0 il modellino a blocchi e gli abeti a coni)
   let pittura: Pittura | null = null;
   if (FLAGS.dipinto !== 'no') {
-    void monti.dipinto(scene, dito);
-    void caricaPittura(dito).then((pt) => { if (!pt) return; if (fase === 'chiuso') { pt.dispose(); return; } pittura = pt; pista3d.dipingi(pt); monti.dipingi(pt); });
+    void monti.dipinto(scene);
+    void caricaPittura().then((pt) => { if (!pt) return; if (fase === 'chiuso') { pt.dispose(); return; } pittura = pt; pista3d.dipingi(pt); monti.dipingi(pt); });
   }
   const look = { ...ctx.look(), ...(CASCO >= 0 ? { cappello: CASCO } : {}) }; // sulla pista si scende col casco
   const tavola = creaTavola(look); scene.add(tavola.gruppo);
