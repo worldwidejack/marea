@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { BOTTEGHE, BOTTEGHE_IDS } from '@marea/content/botteghe.ts';
 import type { BottegaId } from '@marea/content/botteghe.ts';
+import { posaForma } from '@marea/sim';
 import type { LotState } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Loader } from '../render/loader.ts';
@@ -71,6 +72,7 @@ export function createBotteghe(o: BottegheOpts): Botteghe {
     const loc = (x: number, yy: number, z: number) => new THREE.Vector3(x, yy, z).applyMatrix4(m);
     for (const fu of forme.fumi) { const p = loc(fu.x, fu.y, fu.z); fumi.push({ x: p.x, y: p.y, z: p.z, c: new THREE.Color(fu.colore) }); }
     const bp = loc(forme.bottegaio.x, 0, forme.bottegaio.z);
+    posaForma(o.world.solidi, 'bottega_' + id, w.x, w.z, ry); posaForma(o.world.solidi, 'persona', bp.x, bp.z); // la casetta e chi ci sta dietro al banco sono solidi
     const label = layer.add(() => { if (dist(f.x, f.z) < posto.raggio + 2) void apri(id); else o.hud.toast(`${b.nome}: ${posto.dove}`, 2200); });
     label.set('bubble', [iconaBottega(id), el('span', '', b.nome)], 'spot'); label.el.classList.add('spot', 'bottega'); label.el.dataset['bottega'] = id;
     return [{ id, nome: b.nome, raggio: posto.raggio, x: w.x, y, z: w.z, fx: f.x, fz: f.z, ry, bx: bp.x, bz: bp.z, label, av: null as Avatar | null, ombra: true, meshes: [] as THREE.Mesh[] }];

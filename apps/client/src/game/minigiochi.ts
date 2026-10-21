@@ -10,6 +10,7 @@
 // Alla fine una scheda con l'esito, il premio che vola nella barra e RIGIOCA.
 import * as THREE from 'three';
 import { MINIGAMES_CFG, SCACCHI } from '@marea/content';
+import { posaForma } from '@marea/sim';
 import type { ArchPlace, Medal } from '@marea/sim';
 import type { GameWorld } from './world.ts';
 import type { Loader } from '../render/loader.ts';
@@ -171,6 +172,7 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     const holder = new THREE.Group(); holder.name = 'spot_' + s.id; holder.position.set(s.x, 0, s.z); holder.scale.setScalar(s.boa ? 1.8 : 1.2); group.add(holder);
     const name = s.model && o.loader.has(s.model) ? s.model : s.boa && o.loader.has('prop_boa_next') ? 'prop_boa_next' : null;
     if (name) void o.loader.load(name).then((g) => holder.add(g.scene)).catch(() => {});
+    if (s.posto === 'porto') posaForma(o.world.solidi, 'spot_' + s.minigame, s.x, s.z); // la cassa del corriere e il barile dell'Ingorgo nel Borgo
     const label = layer.add(() => { void play(s); });
     label.set('bubble', [pixIcon(s.icon, 16), el('span', '', s.nome)], 'spot');
     label.el.classList.add('spot');

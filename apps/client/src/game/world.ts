@@ -3,8 +3,8 @@
 // Barche degli altri (#6, #107): chi naviga si vede dov'è, coi suoi colori; chi è a piedi (o offline) ha la barca ormeggiata al molo della
 // SUA isola. La tua, quando è vuota e uno scafo altrui la tocca, si sposta al posto libero più vicino (ormeggioLibero): mai una sopra l'altra.
 import * as THREE from 'three';
-import { BARCA_DI_SERIE, barcaDi, barcheSovrapposte, canBoard, composeArchipelago, correnteBordo, landingSpot, NO_INPUT, ormeggioLibero, yawOrmeggio } from '@marea/sim';
-import type { Archipelago, ArchPlace, BoatState, GridMap, InputFrame, Posa } from '@marea/sim';
+import { BARCA_DI_SERIE, barcaDi, barcheSovrapposte, canBoard, composeArchipelago, correnteBordo, createOstacoli, penetra, posaForma, landingSpot, NO_INPUT, ormeggioLibero, yawOrmeggio } from '@marea/sim';
+import type { Archipelago, ArchPlace, BoatState, GridMap, InputFrame, Ostacoli, Posa } from '@marea/sim';
 import { ARCHIPELAGO, ISLANDS } from '@marea/content';
 import { portaDi } from './borgo.ts';
 import type { BarcaLook, Indossa, Look, LookSalvato, Peer } from '@marea/protocol';
@@ -79,6 +79,8 @@ export type GameWorld = {
   /** La tua barca (#107): colori e nome; setBarca la ridipinge (anteprima dell'editor, dopo il salvataggio). */
   readonly barca: BarcaLook;
   setBarca(b: BarcaLook): void;
+  /** Le cose solide del Borgo (collisioni.json): arredo e case le mette qui il mondo, banchi, botteghe e gente i loro moduli. */
+  readonly solidi: Ostacoli;
 };
 /** Chi abita un'isola (GET /api/lots): la sua barca sta ormeggiata al suo molo quando non naviga (#6). */
 export type Abitante = { id: string; slot: number | null; look?: LookSalvato };
@@ -118,6 +120,11 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     ],
   });
   scene.add(island.group);
+  // Borgo Marea: alberi, sassi, arredo, case e ingressi dei dungeon non si attraversano; banchi, botteghe, faro e gente li aggiungono i loro moduli
+  const solidi = createOstacoli(), borgo = arch.places.find((p) => p.role === 'porto') ?? null;
+  for (const p of island.pezzi ?? []) if (borgo && arch.placeAt(p.x, p.z) === borgo) posaForma(solidi, p.kind, p.x, p.z, p.rot, p.s);
+  for (const b of arch.buildings) if (b.island === borgo?.island) posaForma(solidi, b.kind, b.x, b.z, b.rot);
+  for (const d of INGRESSI) if (borgo && d.island === borgo.island) posaForma(solidi, 'ingresso_' + d.stile, (borgo.origin[0] + d.at[0] + 0.5) * arch.tile, (borgo.origin[1] + d.at[1] + 0.5) * arch.tile, -Math.PI * 0.75); // girati come in ingressi.ts
   // prima di ogni render: si disegnano solo le isole nell'inquadratura, da lontano la sagoma (render/island.ts, TECH §5);
   // gli edifici dei lotti (game/lot.ts, gruppi «lot_*» nella scena) stanno nella loro isola: fuori inquadratura o oltre LOD_M non si disegnano
   let maschera: ((m: GridMap) => GridMap) | null = null;
@@ -296,7 +303,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     },
   };
   const state = {
-    map, avatar, boat, net, archipelago: arch, scene, slot, groundY: island.groundY, race, lights, water,
+    map, avatar, boat, net, archipelago: arch, scene, slot, groundY: island.groundY, race, lights, water, solidi,
     get barca() { return boat.barca; },
     setBarca(b: BarcaLook) { boat.setBarca(b); },
     get mode() { return mode; },
@@ -339,7 +346,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       if (racing) {
         // niente: la barca l'ha già posata race.set
       } else if (mode === 'walk') {
-        avatar.step(input, maschera ? maschera(map) : map);
+        avatar.step(input, maschera ? maschera(map) : map, solidi);
         boat.step(NO_INPUT, map);
         if (pressA && canBoard(avatar.state, boat.state, map)) { mode = 'boat'; boat.setDriver(avatar.state, look); avatar.visible = false; o.hud.toast('Sei in barca: A per accelerare, joystick per virare'); }
       } else {
@@ -364,6 +371,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   } as GameWorld;
   registerStateProvider('avatar', () => ({ ...avatar.state }));
   registerStateProvider('boat', () => ({ ...boat.state }));
+  registerStateProvider('solidi', () => ({ fissi: solidi.fissi.length, versione: solidi.versione }));
   registerStateProvider('mode', () => mode);
   registerStateProvider('camera', () => ({ zoom: diorama.zoom, x: diorama.camera.position.x, y: diorama.camera.position.y, z: diorama.camera.position.z }));
   registerStateProvider('net', () => ({ status: net.status, peers: net.peers().length, error: net.lastError }));
@@ -394,6 +402,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   };
   registerTestHook('teleport', (x, z) => avatar.teleport(Number(x), Number(z)));
   registerTestHook('setZoom', (z) => diorama.setZoom(Number(z)));
+  // i solidi che toccano il cerchio (x, z, r), con quanto ci entra (d > 0): per i test delle collisioni. `fissi` = senza la gente
+  registerTestHook('solidi', (x, z, r, fissi) => solidi.vicini(Number(x), Number(z), Number(r)).filter((q) => !fissi || solidi.fissi.includes(q)).map((q) => ({ ...q, d: penetra(q, Number(x), Number(z), Number(r)).d })));
   /** Test (#360, minimappa col nord fisso): gira la camera attorno a te (yaw in rad; senza valore la legge e basta). */
   registerTestHook('camYaw', (y) => { if (y !== undefined && y !== null) diorama.orbit?.(Number(y), diorama.pitch ?? Math.PI / 4); return diorama.yaw; });
   registerTestHook('peerIndossa', (id) => remotes.get(String(id))?.avatar.indossaStato() ?? null);

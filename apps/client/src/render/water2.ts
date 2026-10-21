@@ -47,7 +47,7 @@ uniform sampler2D tDist;
 uniform vec2 uMapSize;
 uniform float uTime;
 uniform int uMode;
-uniform vec3 uC0, uC1, uC2, uC3, uFoam, uLine, uSunDir, uTint, uMoonDir;
+uniform vec3 uC0, uC1, uC2, uC3, uFoam, uLine, uSunDir, uTint, uMoonDir, uLunaA, uLunaB, uLunaC;
 uniform float uNight;
 varying vec3 vW;
 ${GLSL_NUBI}
@@ -55,6 +55,30 @@ float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 float vnoise(vec2 p) {
   vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+}
+// Scia della luna come nelle notti di Kawase Hasui: un'onda ti manda la luna solo se ha la pendenza giusta (mezzo vettore tra camera e
+// luna), quindi la scia è fitta verso l'orizzonte e si sbriciola avvicinandosi. Le onde sono strette lungo la luna e lunghe di lato:
+// trattini orizzontali con buchi scuri, a gradini di colore (crema, azzurro, blu), alone tratteggiato e qualche scintilla sui bordi.
+vec3 scia(vec2 q, float t, float dist, vec3 c) {
+  vec3 V = normalize(cameraPosition - vec3(q.x, 0.0, q.y)), L = normalize(uMoonDir), H = normalize(V + L);
+  vec2 md = normalize(L.xz), mb = vec2(-md.y, md.x);
+  vec2 s = vec2(dot(H.xz, md), dot(H.xz, mb)) / H.y; // pendenza che serve: lungo la luna e di lato
+  vec2 z = s / vec2(0.2, 0.12);
+  float P = exp(-0.5 * dot(z, z)); // quante onde ce l'hanno (onde basse, vento leggero)
+  if (P < 0.01) return c;
+  float cell = 0.125 * exp2(floor(log2(max(1.0, dist / 30.0)))); // lontano celle più grandi: niente sfarfallio sotto il pixel
+  vec2 p = vec2(dot(q, md), dot(q, mb));
+  p.y += hash(vec2(floor(p.x / cell), 3.0)) * cell * 6.0; // ogni riga sfalsata: trattini a mattoncino, non a griglia
+  vec2 kc = floor(p / vec2(cell, cell * 6.0)), pc = (kc + 0.5) * vec2(cell, cell * 6.0);
+  float r = 0.6 * vnoise(pc * vec2(1.6, 0.3) + vec2(t * 1.3, 0.0)) + 0.4 * vnoise(pc * vec2(3.7, 0.55) + vec2(-t * 1.9, 7.0));
+  r += (hash(kc + floor(t * 2.0) * 0.13) - 0.5) * 0.3; // trattini di lunghezze diverse, bordi sfrangiati
+  float k = P * (1.7 * r - 0.3), sp = hash(floor(pc / cell) + floor(t * 4.0));
+  if (k > 0.8) return uLunaA;
+  if (k > 0.6) return sp > 0.6 ? uLunaA : uLunaB;
+  if (k > 0.4) return sp > 0.3 ? uLunaB : uLunaC;
+  if (k > 0.25 && sp > 0.4) return uLunaC;
+  if (P > 0.08 && sp > 0.985) return uLunaB; // scintille sparse sui bordi
+  return k > 0.12 ? mix(c, uLunaC, 0.35) : c; // alone: trattini appena più chiari attorno alla scia
 }
 void main() {
   vec2 q = (floor(vW.xz * 8.0) + 0.5) / 8.0; // 8 texel/m
@@ -116,10 +140,9 @@ void main() {
     }
   }
   c *= uTint;
-  if (uNight > 0.01) { // notte (#56): scia della luna e stelle riflesse, come nell'acqua del gioco
+  if (uNight > 0.01) { // notte (#56): scia della luna e stelle riflesse
     vec2 toP = vW.xz - cameraPosition.xz;
-    float al = dot(normalize(toP), normalize(uMoonDir.xz)), far = clamp(length(toP) / 70.0, 0.0, 1.0);
-    if (al > 0.99965 - 0.0012 * far && hash(floor(q * 4.0) + floor(t * 3.0)) > 0.6) c = mix(c, uFoam, uNight);
+    c = mix(c, scia(q, t, length(toP), c), uNight);
     float st = hash(floor(q * 1.5) + 17.0);
     if (length(toP) < 70.0 && st > 0.9965 && fract(t * 0.6 + st * 13.0) > 0.3) c = mix(c, uFoam, uNight * 0.85); // stelle riflesse solo vicino (#286)
   }
@@ -136,6 +159,8 @@ export function createWater2(map: GridMap): Water2 {
     uC0: { value: col('#fff') }, uC1: { value: col('#fff') }, uC2: { value: col('#fff') }, uC3: { value: col('#fff') }, uFoam: { value: col('#fff') }, uLine: { value: col('#fff') },
     uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uTint: { value: new THREE.Color(1, 1, 1) },
     uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(0, 0, -1) }, ...NUBI,
+    // scia della luna: crema della luna, azzurro pallido, blu (palette della stampa di notte)
+    uLunaA: { value: col('#f2e6c4') }, uLunaB: { value: col('#9fb2cf') }, uLunaC: { value: col('#5a77a8') },
   };
   const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: U });
   // 4 km di lato: senza foschia (#282) il bordo non deve vedersi fino al piano lontano (900 m); la griglia evita triangoli enormi

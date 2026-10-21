@@ -28,7 +28,7 @@
 |---|---|---|
 | `rng.ts`, `trig.ts`, `hash.ts`, `replay.ts` | casualità da seed, seni e coseni uguali su ogni motore, hash, replay degli input | tutti |
 | `economy/` | il lotto di ognuno: monete, botteghe e vetrine, casa e ampliamenti, mobili, missioni, diario, pala, insetti, pesci, paesani (chiacchiere e favori), decorazioni in casa, cambio dei salvataggi | J, R |
-| `world/` | arcipelago a celle, avatar, barca, collisioni, sblocchi delle isole a tema | tutti |
+| `world/` | arcipelago a celle, avatar, barca, collisioni (celle e solidi del Borgo), percorsi della gente che passeggia, sblocchi delle isole a tema | tutti |
 | `minigames/` | minigiochi nel formato comune (`create`, `step`, `result`, `autopilot`), elencati in `registry.ts` | J |
 | `meteo.ts` | nuvole e meteo dall'orologio | J |
 | `corse/` | motore delle Corse: pista a nastro, veicoli, gara, oggetti, bici | J |
@@ -47,7 +47,7 @@ Test della sim: `packages/sim/test/*.test.ts` (node:test), fixture d'oro in `tes
 | `index.ts`, `types.ts`, `schema.ts` | esporta i contenuti, i tipi, il validatore | tutti |
 | `balance.json`, `botteghe.*`, `missioni.json`, `rientro.json` | economia a monete: premi, tetti, botteghe | J |
 | `archipelago.json`, `islands.json` | posizione delle isole e loro mappe a celle | tutti, R sul Borgo |
-| `borgo.json`, `mobili*.json`, `finiture_testi.json`, `insetti.*`, `pesci.*`, `gente.json`, `paesani.*`, `porto.ts` | Borgo e Porto: case, negozio, pala, mobili, carte e pavimenti, insetti, pesci, gente, chiacchiere e favori dei paesani | R |
+| `borgo.json`, `mobili*.json`, `finiture_testi.json`, `insetti.*`, `pesci.*`, `gente.json`, `paesani.*`, `porto.ts`, `collisioni.json` | Borgo e Porto: case, negozio, pala, mobili, carte e pavimenti, insetti, pesci, gente, chiacchiere e favori dei paesani, forme delle cose solide e passeggio della gente | R |
 | `avatar.json`, `decor.json`, `diario.*`, `meteo.json`, `porto_amici.*` | avatar e barca, decorazioni, diario, meteo, tabellone dei record | J |
 | `minigames/`, `scacchi.json` | un JSON per minigioco | J |
 | `corse/`, `corse*.ts` | piste, motore, discesa | J |

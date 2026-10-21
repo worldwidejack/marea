@@ -1,5 +1,5 @@
 // Borgo Marea a vicoli (#265), senza server (net=0): si nasce davanti alla porta di casa e la porta più vicina è la tua; i paesani
-// girano per il borgo; l'arredo (lampioncini, festoni, vasi, cassette, siepi, fontane, panchine) c'è e sta nel budget (TECH §5).
+// passeggiano per il borgo e niente si attraversa (case, arredo, gente: content/collisioni.json); l'arredo (lampioncini, festoni, vasi, cassette, siepi, fontane, panchine) c'è e sta nel budget (TECH §5).
 // Screenshot: telefono davanti a casa, PC dentro un rione, uno slargo con la fontana, il borgo dall'alto, un vicolo di notte.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -48,6 +48,40 @@ export default async function (ctx) {
     assert(paesani.length >= 5, 'paesani in gente.json: ' + paesani.length);
     const s = await ctx.getState(t.page);
     for (const p of paesani) assert(s.porto.gente.some((g) => g.id === p.id), 'manca ' + p.id);
+  });
+
+  await ctx.test('niente si attraversa: contro una casa ti fermi, e la gente passeggia senza entrare in niente né in nessuno', async () => {
+    await ctx.waitState(t.page, (s) => s.porto && s.porto.passeggio === true && s.solidi.fissi > 150, 20000);
+    const dentro = (x, z, r) => t.page.evaluate(([x, z, r]) => Math.max(0, ...window.__game.test.solidi(x, z, r, true).map((q) => q.d)), [x, z, r]);
+    // da dove porta la freccia → (verso +x nel mondo): si misura con un passo nel prato, poi si cammina 3 s verso la casa da 5 m
+    const c = borgo.case[12], casa = mondo(c.at[0] + 0.5, c.at[1] + 0.5), lontano = mondo(44.5, 51);
+    await hook(t.page, 'teleport', lontano.x, lontano.z); await t.page.waitForTimeout(200);
+    await t.page.keyboard.down('ArrowRight'); await t.page.waitForTimeout(300); await t.page.keyboard.up('ArrowRight'); await t.page.waitForTimeout(150);
+    let s = await ctx.getState(t.page);
+    const l = Math.hypot(s.avatar.x - lontano.x, s.avatar.z - lontano.z), ux = (s.avatar.x - lontano.x) / l, uz = (s.avatar.z - lontano.z) / l;
+    await hook(t.page, 'teleport', casa.x - ux * 5, casa.z - uz * 5); await t.page.waitForTimeout(200);
+    await t.page.keyboard.down('ArrowRight');
+    let peggio = 0;
+    for (let i = 0; i < 25; i++) { s = await ctx.getState(t.page); peggio = Math.max(peggio, await dentro(s.avatar.x, s.avatar.z, 0.35)); await t.page.waitForTimeout(120); }
+    await t.page.keyboard.up('ArrowRight');
+    s = await ctx.getState(t.page);
+    assert(peggio < 0.03 && Math.hypot(s.avatar.x - casa.x, s.avatar.z - casa.z) > 1.3, `la casa si attraversa: dentro ${peggio.toFixed(2)} m, a ${Math.hypot(s.avatar.x - casa.x, s.avatar.z - casa.z).toFixed(2)} m dal centro`);
+    // 12 s di passeggio: chi passeggia non entra mai in un solido fisso né in un altro, e quasi tutti si muovono
+    const molo = mondo(44.5, 61.5); await hook(t.page, 'teleport', molo.x, molo.z); // in fondo al molo: nessuno si ferma per parlarti
+    const strada = new Map();
+    for (let k = 0; k < 30; k++) {
+      const g = (await ctx.getState(t.page)).porto.gente;
+      for (const a of g) for (const b of g) if (a.id < b.id) assert(Math.hypot(a.x - b.x, a.z - b.z) > 0.58, `${a.id} e ${b.id} uno dentro l'altro`);
+      for (const n of g.filter((q) => q.passeggia)) {
+        const d = await dentro(n.x, n.z, 0.3);
+        assert(d < 0.02, `${n.id} entra in un solido di ${d.toFixed(2)} m in ${n.x.toFixed(1)},${n.z.toFixed(1)}`);
+        const m = strada.get(n.id) ?? { x: n.x, z: n.z, m: 0 }; m.m += Math.hypot(n.x - m.x, n.z - m.z); m.x = n.x; m.z = n.z; strada.set(n.id, m);
+      }
+      await t.page.waitForTimeout(400);
+    }
+    const mossi = [...strada.values()].filter((m) => m.m > 2).length;
+    ctx.log('strada in 12 s: ' + [...strada].map(([k, m]) => `${k} ${m.m.toFixed(1)} m`).join(', '));
+    assert(strada.size >= 8 && mossi >= 5, `passeggiano ${strada.size}, si sono mossi ${mossi}`);
   });
 
   await ctx.test('telefono: uno slargo con la fontana, nel budget', async () => {

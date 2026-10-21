@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { BORGO, MOBILI, MOBILI_VETRINA } from '@marea/content';
 import type { MobileDef, StanzaFinitura } from '@marea/content';
-import { MAX_LIVELLO_CASA, ampliatoOggi, casaDi, finoAMezzanotte, giornoRoma, livelloCasa, possiedeFinitura, prossimoAmpliamento, vetrinaDelGiorno } from '@marea/sim';
+import { MAX_LIVELLO_CASA, ampliatoOggi, casaDi, finoAMezzanotte, giornoRoma, livelloCasa, posaForma, possiedeFinitura, prossimoAmpliamento, vetrinaDelGiorno } from '@marea/sim';
 import { possiedePala } from '@marea/sim/economy/pala.ts';
 import { INSETTI, RETINO } from '@marea/content/insetti.ts';
 import { insettiOf, possiedeRetino } from '@marea/sim/economy/insetti.ts';
@@ -102,7 +102,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
   const bx = (porto.origin[0] + N.at[0] + 0.5) * T, bz = (porto.origin[1] + N.at[1] + 0.5) * T;
   const corpo = new THREE.Mesh(bottega(), vc); corpo.castShadow = corpo.receiveShadow = true;
   fuori.add(corpo, insegna()); fuori.position.set(bx, w.groundY(bx, bz), bz); fuori.rotation.y = N.rot + Math.PI; // il modello guarda +Z, `rot` è il verso −Z
-  w.scene.add(fuori);
+  w.scene.add(fuori); posaForma(w.solidi, 'negozio', bx, bz, N.rot + Math.PI); // la bottega non si attraversa
   const px = (porto.origin[0] + N.porta[0] + 0.5) * T, pz = (porto.origin[1] + N.porta[1] + 0.5) * T;
   const vx = bx - px, vz = bz - pz, vl = Math.hypot(vx, vz) || 1, verso = { x: vx / vl, z: vz / vl };
   const muro = { x: px + verso.x * 0.9, z: pz + verso.z * 0.9 };

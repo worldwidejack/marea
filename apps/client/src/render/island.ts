@@ -43,7 +43,7 @@ export type StaticBuilding = { kind: string; x: number; z: number; rot: number }
 export type Island = {
   group: THREE.Group;
   groundY(x: number, z: number): number;
-  props?: { kind: string; x: number; z: number }[];
+  props?: { kind: string; x: number; z: number }[]; pezzi?: { kind: string; x: number; z: number; rot: number; s: number }[]; // ogni decorazione posata davvero (casuale e fissa), per le collisioni
   drawCalls?: number;
   chunks?: { id: string; group: THREE.Group; tris: number }[];
   /** Prima di ogni render (world.ts, preRender): spegne le isole fuori dall'inquadratura (TECH §5, «Come si sta nel budget»). */
@@ -100,7 +100,7 @@ export async function createIsland(o: {
     const c = map.worldToCell(x, z);
     return areas.findIndex((a) => c.cx >= a.x0 && c.cz >= a.z0 && c.cx < a.x0 + a.w && c.cz < a.z0 + a.h);
   };
-  const propsOut: { kind: string; x: number; z: number }[] = [];
+  const propsOut: { kind: string; x: number; z: number }[] = [], pezzi: { kind: string; x: number; z: number; rot: number; s: number }[] = [];
   const jobs: Promise<void>[] = [];
   const chunks: { id: string; group: THREE.Group; tris: number }[] = [];
   const daFondere: Map<string, { mat: THREE.Material; cast: boolean; dest: THREE.Group; geos: THREE.BufferGeometry[] }>[] = [];
@@ -267,12 +267,12 @@ export async function createIsland(o: {
       if (libera(px0, pz0)) continue;
       const tilt = kind === 'palma' || kind === 'albero_secco' ? 0.1 : 0;
       placed[kind]?.push(M(px0, TOP, pz0, 0, rot, tilt, sc, sc, sc));
-      propsOut.push({ kind, x: +px0.toFixed(2), z: +pz0.toFixed(2) });
+      propsOut.push({ kind, x: +px0.toFixed(2), z: +pz0.toFixed(2) }); pezzi.push({ kind, x: px0, z: pz0, rot, s: sc });
     }
     // Decorazioni fisse di quest'isola.
     for (const p of o.props ?? []) {
       if (!knownProp(p.k) || areaOf(p.x, p.z) !== ai || libera(p.x, p.z)) continue;
-      placed[p.k]!.push(M(p.x, groundY(p.x, p.z), p.z, 0, p.rot));
+      placed[p.k]!.push(M(p.x, groundY(p.x, p.z), p.z, 0, p.rot)); pezzi.push({ kind: p.k, x: p.x, z: p.z, rot: p.rot, s: 1 });
     }
 
     // ——— mesh: glTF se c'è, altrimenti segnaposto ———
@@ -409,5 +409,5 @@ export async function createIsland(o: {
     const g = m.geometry, tri = (g.index ? g.index.count : g.attributes.position!.count) / 3;
     c.tris += Math.round(tri * ((m as THREE.InstancedMesh).isInstancedMesh ? (m as THREE.InstancedMesh).count : 1));
   });
-  return { group, groundY, props: propsOut, drawCalls: calls, chunks, cull };
+  return { group, groundY, props: propsOut, pezzi, drawCalls: calls, chunks, cull };
 }

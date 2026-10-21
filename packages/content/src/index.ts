@@ -8,6 +8,7 @@ import ingorgo from './minigames/ingorgo.json' with { type: 'json' };
 import decor from './decor.json' with { type: 'json' };
 import archipelago from './archipelago.json' with { type: 'json' };
 import borgo from './borgo.json' with { type: 'json' };
+import collisioni from './collisioni.json' with { type: 'json' }; // Cose solide del Borgo e gente che passeggia
 import mobili from './mobili.json' with { type: 'json' }; // Mobili della casa (#265)
 import scacchi from './scacchi.json' with { type: 'json' };
 import perle from './minigames/perle.json' with { type: 'json' }; // Perle
@@ -57,6 +58,10 @@ export const MINIGAMES_CFG: {
 export const DECOR = decor as unknown as readonly DecorDef[];
 export const ARCHIPELAGO = archipelago as unknown as ArchipelagoDef;
 export const BORGO = borgo as unknown as BorgoDef; // Borgo Marea (#237): una casa per slot
+/** Forma a terra di una cosa solida (collisioni.json): cerchio `r` o rettangolo `box` [X, Z] in m, `at` spostamento locale. */
+export type FormaDef = { r: number; at?: [number, number] } | { box: [number, number]; at?: [number, number] };
+export type PasseggioDef = { raggio: number; margine: number; passo: number; sosta: [number, number]; attesa: number; costo: { lastricato: number; erba: number; sabbia: number; molo: number }; suVia: number };
+export const COLLISIONI = collisioni as unknown as { forme: Record<string, FormaDef[]>; passeggio: PasseggioDef };
 export const MOBILI = (mobili as unknown as { mobili: MobileDef[] }).mobili as readonly MobileDef[]; // Mobili della casa (#265)
 /** Quanti mobili espone il negozio ogni giorno: a terra (pedane) e a parete (muro). Il pool è tutto mobili.json (economy/vetrina.ts). */
 export const MOBILI_VETRINA = (mobili as unknown as { vetrina: { terra: number; parete: number; carte: number; pavimenti: number } }).vetrina;
