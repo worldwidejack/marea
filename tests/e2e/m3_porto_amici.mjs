@@ -152,8 +152,14 @@ export default async function (ctx) {
       await dh('ciclo', 0.78);
       await dh('teleport', f.x + 4, f.z + 22); await dh('setZoom', 1.6);
       await ctx.waitState(dp, (s) => s.aspetto.momento === 'notte' && s.portoAmici.faro.fascio, 15000);
+      // la luce gira con l'orologio (un giro ogni 10 s): l'angolo cambia, poi si ferma per la foto
+      const a0 = (await ctx.getState(dp)).portoAmici.faro.angolo;
       await dp.waitForTimeout(1200);
+      assert((await ctx.getState(dp)).portoAmici.faro.angolo !== a0, 'il fascio non gira');
+      await dh('faroFermo', 5.0);
+      await dp.waitForTimeout(300);
       await ctx.shot(dp, 'desktop_faro_notte');
+      await dh('faroFermo', null);
       await dh('ciclo', null);
       ctx.noErrors(D, 'PC');
     });

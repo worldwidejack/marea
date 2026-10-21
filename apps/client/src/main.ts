@@ -115,7 +115,8 @@ async function boot(): Promise<void> {
   // Porto: Mercante, Bacheca, Gente del Porto; Tabellone dei record e il Grande Faro (pannelli scaricati alla prima apertura)
   const porto = createPorto({ world, loader, api: net, me, hud, root, camera: renderer.camera, canvas, ...lotto,
     cielo: () => { const a = vis.get(); return a && a.meteo !== 'spento' ? { pioggia: a.nuvole.pioggia, vento: a.nuvole.vento } : null; } });
-  const amici = createPortoAmici({ world, loader, api: net, me, hud, root, camera: renderer.camera, canvas, ...lotto, notte });
+  const amici = createPortoAmici({ world, loader, api: net, me, hud, root, camera: renderer.camera, canvas, ...lotto,
+    buio: () => vis.get()?.buio ?? 0, pioggia: () => { const a = vis.get(); return a && a.meteo !== 'spento' ? a.nuvole.pioggia : 0; } });
   // isole a tema: sblocchi, barriere in mare, il Vulcano che caccia
   const temi = createTemi({ world, hud, loader, root, camera: renderer.camera, canvas, getLot: myLot, notte });
   const adr = createAdrenalina({ world, renderer, loader, api: net, hud, root, ...lotto, nome: () => me?.nome ?? '', aperta: () => temi.aperta('adrenalina') }); // funivia e snowboard
