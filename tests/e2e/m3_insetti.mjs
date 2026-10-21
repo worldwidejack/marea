@@ -123,7 +123,8 @@ export default async function (ctx) {
     await ctx.test('3. Col retino in mano un colpo prende l’insetto in giro davanti a te', async () => {
       await hook('insettiAttrezzo', 'retino');
       // chi gira cambia ogni 4 minuti (liberiDelTurno): uno nato sulla riva, allertato dal colpo, può finire in acqua prima che il
-      // retino si chiuda. Si prova prima chi sta più lontano dall'acqua ('~', ',', 'B' del template porto, 1 cella = 2 m).
+      // retino si chiuda; locuste e farfalle a volte scappano lo stesso. Si prova prima chi sta più lontano dall'acqua ('~', ',', 'B' del
+      // template porto, 1 cella = 2 m) e, se il colpo va a vuoto, il prossimo: due giri della lista.
       const porto = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/islands.json'), 'utf8')).find((i) => i.id === 'porto');
       const c0 = await hook('palaCellWorld', [0, 0]), T = porto.tile;
       const asciutta = (cx, cz) => !['~', ',', 'B', undefined].includes(porto.rows[cz]?.[cx]);
@@ -138,7 +139,7 @@ export default async function (ctx) {
       assert(tutti.length, 'nessun insetto in giro: ' + JSON.stringify((await st()).insetti.attori));
       // cattura: col retino in mano il colpo prende l'insetto davanti a te; si guarda la collezione (non il cartello del passo 2)
       let a = null;
-      for (const t of tutti) {
+      for (const t of [...tutti, ...tutti]) {
         const cur = (await inGiro()).find((x) => x.k === t.k);
         if (!cur) continue;
         const prima = (await st()).insetti.collezione.visti[cur.id] ?? 0;
