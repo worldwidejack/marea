@@ -85,7 +85,7 @@ function makeCtx(suite) {
   const ctx = {
     suite, ROOT, OUT, distDir, base: server.url, browser, assert, B, opts, viewport: VIEWPORT, viewportName: VIEWPORT_NAME, only: ONLY,
     async open(query = '', o = {}) { const p = await B.openPage(browser, server.url + '/' + query, { viewport: VIEWPORT, ...o }); ctx._pages.push(p); return p; },
-    waitReady: B.waitReady, waitState: B.waitState, getState: B.getState, getPerf: B.getPerf, screenStats: B.screenStats,
+    waitReady: B.waitReady, waitState: B.waitState, fulvioFinoA: B.fulvioFinoA, getState: B.getState, getPerf: B.getPerf, screenStats: B.screenStats,
     shot: (page, name) => B.shot(page, `${suite}_${name}`),
     /** Esegue un test con nome; con --only i non corrispondenti sono saltati in silenzio. */
     async test(name, fn) {
