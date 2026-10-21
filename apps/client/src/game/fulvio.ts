@@ -116,7 +116,12 @@ export function createFulvio(o: { root: HTMLElement; hud: Hud; api: Api | null; 
       ...PESCI.filter((d) => (inv[d.id] ?? 0) > 0 && !pes.includes(d.id)).map((d): Scelta => ({ label: d.nome, act: 'consegna-pesce', dato: ['pesce', d.id], icona: pesceCanvas(d, 2), fai: () => void consegna(d.id, 'pesci') })),
       ...INSETTI.filter((d) => (inv[d.id] ?? 0) > 0 && !ins.includes(d.id)).map((d): Scelta => ({ label: d.nome, act: 'consegna', dato: ['insetto', d.id], icona: insettoCanvas(d, 2), fai: () => void consegna(d.id, 'insetti') })),
     ];
-    if (!scelte.length) { dice(!hai && !possiedeCanna(l) && !possiedeRetino(l) ? FV.registra.niente : FV.registra.tascheVuote); return; }
+    if (!scelte.length) {
+      if (hai) dice(FV.registra.giaRegistrati);
+      else if (!possiedeCanna(l) && !possiedeRetino(l)) dice(FV.registra.niente);
+      else dice(FV.registra.tascheVuote);
+      return;
+    }
     for (const s of scelte) s.off = !o.api;
     mostra({ dice: FV.scelte.scegli, scelte: [...scelte, { label: FV.scelte.indietro, act: 'indietro', fai: menu }] });
   }
@@ -159,6 +164,10 @@ export function createFulvio(o: { root: HTMLElement; hud: Hud; api: Api | null; 
   const celleDi = (m: MobileDef): number => m.posto === 'parete' ? 1 : (m.celle?.[0] ?? 1) * (m.celle?.[1] ?? 1);
   const dove = (m: MobileDef): string => m.posto === 'parete' ? 'Si appende al muro' : celleDi(m) > 1 ? `Per terra: occupa ${celleDi(m)} celle` : 'Per terra: occupa una cella';
   function pezzo(p: Pezzo): void {
+    if ((p.kind === 'canna' || p.kind === 'retino' || p.kind === 'pala') && gia(p)) {
+      dice(FV.strumentoPosseduto);
+      return;
+    }
     const l = o.getLot(), prezzo = monete(p.monete), m = p.kind === 'mobile' ? MOBILI.find((x) => x.id === p.id) ?? null : null;
     let testo: string, compra = FV.scelte.compraLo;
     if (p.kind === 'canna') { testo = riempi(FV.canna, { prezzo }); compra = FV.scelte.compraLa; }

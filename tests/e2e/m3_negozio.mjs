@@ -135,6 +135,33 @@ export default async function (ctx) {
       await ctx.waitState(V.page, (s) => s.negozio.aperto === 'banco', 3000);
       await V.page.waitForFunction(() => document.querySelector('#mzNegozio')?.textContent?.includes('Fulvio'), null, { timeout: 5000 });
       await ctx.shot(V.page, 'pc_banco');
+      // 1. creature in tasca ma tutte già registrate nel Diario
+      const lotBase = (await get('/api/lot')).body;
+      const lotGia = JSON.parse(JSON.stringify(lotBase));
+      lotGia.hero = { ...(lotGia.hero ?? {}), inv: { ghiozzo: 1 } };
+      lotGia.pesci = { ...(lotGia.pesci ?? {}), posseduti: ['ghiozzo'], visti: { ghiozzo: 1 } };
+      await V.hook('setLot', lotGia);
+      await V.page.locator('#mzNegozio [data-act="registra"]').click();
+      const txtGia = await V.page.locator('#mzNegozio').innerText();
+      assert(txtGia.includes('consumare inchiostro') && !(await V.page.locator('#mzNegozio [data-pesce]').count()), 'già registrati: ' + txtGia);
+      await V.page.locator('#mzNegozio [data-act="fine"]').click();
+      await ctx.waitState(V.page, (s) => !s.negozio.aperto, 3000);
+
+      // 2. tentativo di acquisto di uno strumento già posseduto (canna)
+      const cannaPz = s0.negozio.pezzi.find((p) => p.kind === 'canna');
+      assert(cannaPz, 'manca la canna');
+      const lotConCanna = JSON.parse(JSON.stringify(lotBase));
+      lotConCanna.hero = { ...(lotConCanna.hero ?? {}), inv: { canna: 1 } };
+      await V.hook('setLot', lotConCanna);
+      await V.hook('teleport', cannaPz.x, cannaPz.z);
+      await ctx.waitState(V.page, (s) => s.negozio.near === 'canna', 5000);
+      await V.page.keyboard.press('KeyE');
+      await ctx.waitState(V.page, (s) => s.negozio.aperto === 'canna', 3000);
+      const txtCanna = await V.page.locator('#mzNegozio').innerText();
+      assert(txtCanna.includes('quattro braccia') && !(await V.page.locator('#mzNegozio [data-act="compra"]').count()), 'canna già posseduta: ' + txtCanna);
+      await V.page.locator('#mzNegozio [data-act="fine"]').click();
+      await ctx.waitState(V.page, (s) => !s.negozio.aperto, 3000);
+      await V.hook('setLot', lotBase);
       // fuori vetrina il server rifiuta (409, requisito) e non cambia niente; l’id sconosciuto resta 404
       const fuori = mobili.find((m) => m.posto === 'terra' && !oggi.terra.includes(m.id)), prima = (await get('/api/lot')).body;
       const r = await post('/api/lot/casa/compra', { id: fuori.id });

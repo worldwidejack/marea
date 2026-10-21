@@ -24,6 +24,7 @@
   "registra": {
     "niente": "E cosa vorresti farmi registrare, l'aria fritta? Non hai mezza bestia in tasca e giri pure a mani nude! Comprati prima una canna da pesca o un retino qua di fianco per iniziare a catturarli, poi ne riparliamo.",
     "tascheVuote": "Ho già tirato fuori gli occhiali e la penna, ma vedo che hai le tasche vuote. Vai a pescare o a dar la caccia a qualche insetto prima di farmi aprire il registro per niente, o ti sei già venduto tutto al contrabbando?",
+    "giaRegistrati": "Fammi dare un'occhiata... Ma mi prendi in giro? Tutta la roba che hai in tasca te l'ho già segnata sul diario! Non farmi consumare inchiostro due volte per le stesse bestie: portami qualche specie nuova, oppure queste vai pure a rifilarle al contrabbando senza troppi rimorsi, tanto sul registro ci sono già.",
     "consegna": "Fammi vedere che mi hai portato... Mmh, puzza il giusto. Hai catturato: {nome}!",
     "fatto": "Ecco fatto... Te l'ho segnato per sempre sul tuo diario, con tanto di timbro. Almeno tu hai avuto il buon cuore di portarmelo invece di svenderlo ai contrabbandieri per due spiccioli! Oh, io registro un esemplare alla volta perché con 'sta umidità mi vengono i crampi alle dita: se ne hai altri, riparlami con calma."
   },
@@ -42,5 +43,6 @@
   },
   "canna": "Ah, la canna da pesca! Costa {prezzo}. Per usarla, avvicinati al mare dove vedi le ombre dei pesci, oppure fermati in mezzo al mare quando sei in barca. Lascia l'amo vicino al pesce e quando ha abboccato premi A a più non posso! Se me lo consegni te lo registro per sempre nel diario e ti spiego cos'è... oppure vendilo pure al contrabbando, se sei solo in cerca di denaro facile, ma sappi che se è una specie nuova non risulterà mai sul tuo diario. Poi vedi tu se riesci a dormire la notte sapendo di aver svenduto la fauna dell'isola per quattro spiccioli! La compri?",
   "retino": "Il caro vecchio retino! Costa {prezzo}. Con questo puoi catturare insetti avvicinandoti e usando il retino col giusto tempismo. Se me lo consegni te lo registro per sempre nel diario e ti spiego cos'è... oppure fai pure il venale e vendilo al contrabbando se pensi solo al denaro, ma ricordati che se è un insetto nuovo non risulterà sul tuo diario, e resterà lì una pagina bianca a ricordarti la tua avidità. Lo vuoi?",
-  "pala": "Una bella pala robusta! Costa {prezzo}. Puoi usarla per fare buchi nel terreno e seppellire quello che vuoi, magari per farlo trovare a qualcun altro... Ah, ti do una dritta: ogni giorno sull'isola appare un bottino nascosto sotto terra tutto da trovare. Te la incarto?"
+  "pala": "Una bella pala robusta! Costa {prezzo}. Puoi usarla per fare buchi nel terreno e seppellire quello che vuoi, magari per farlo trovare a qualcun altro... Ah, ti do una dritta: ogni giorno sull'isola appare un bottino nascosto sotto terra tutto da trovare. Te la incarto?",
+  "strumentoPosseduto": "Ma che te ne fai di un doppione, hai quattro braccia? Questo attrezzo te l'ho già venduto, vedi di usare quello che hai già invece di farmi alzare dalla sedia per niente!"
 }
