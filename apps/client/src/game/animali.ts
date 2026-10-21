@@ -1,6 +1,6 @@
 // Animali e mondo vivo (#67): gabbiani sopra Porto e coste (si posano su lanterne, torii e moli e ripartono quando arrivi), gatti
 // sui moli (dormono, si stiracchiano, ti seguono per qualche metro, fanno le fusa con A o un tocco), pesci che saltano vicino a te,
-// granchi che scappano di lato, delfini accanto alla barca veloce in mare aperto, lucciole di notte col ciclo acceso.
+// granchi che scappano di lato, ogni tanto un delfino (o due) che salta vicino alla barca veloce in mare aperto, lucciole di notte.
 // Solo resa lato client. Tutti gli animali vicini a chi gioca finiscono in UNA mesh rifatta a ogni frame (le forme copiate e girate
 // sulla CPU: pochi migliaia di triangoli) → 1 draw call (+1 nell'ombra); le lucciole, che brillano, in una seconda mesh non illuminata.
 // Si scarica con import() subito dopo l'avvio (main.ts, blocco «Animali (#67)»): il JS iniziale ha un tetto.
@@ -141,8 +141,27 @@ export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canva
     return false;
   };
 
-  // ———— delfini: accanto alla barca veloce in mare aperto ————
-  let delfiniSu = 0, delfiniGiu = 0, delfiniOn = false, delfiniVisti = 0, delfiniN = 0;
+  // ———— delfini: un incontro ogni tanto in barca veloce al largo (secondi di navigazione, non di orologio) ————
+  // uno, a volte due in coppia, sbucano a qualche metro dalla barca e fanno 2-4 salti per la loro strada (in una direzione qualsiasi)
+  type Delfino = { x: number; z: number; h: number; t0: number; salti: number };
+  const delfini: Delfino[] = [];
+  const DELFINO_GIRO = 1.4, DELFINO_V = 5.5; // un salto ogni 1,4 s (fuori per il 60 %), a 5,5 m/s
+  const prossimoIncontro = () => 18 + rVita.next() * 17;
+  let alLargo = 0, incontro = 10 + rVita.next() * 10, delfiniVisti = 0, incontri = 0;
+  const avvistaDelfini = (c: Chi, t: number): boolean => {
+    for (let i = 0; i < 20; i++) {
+      const a = rVita.next() * Math.PI * 2, d = 6 + rVita.next() * 8, x = c.x + Math.cos(a) * d, z = c.z + Math.sin(a) * d;
+      const h = rVita.next() * Math.PI * 2, fx = Math.sin(h), fz = -Math.cos(h), salti = 2 + Math.floor(rVita.next() * 3), via = DELFINO_V * DELFINO_GIRO * salti;
+      // tutta la strada su acqua profonda, e all'inizio dentro lo schermo
+      if (![0, 0.5, 1].every((k) => { const q = map.worldToCell(x + fx * via * k, z + fz * via * k); return map.at(q.cx, q.cz) === '~'; })) continue;
+      if (i < 14 && !inVista(x, 0.5, z, 0.2)) continue;
+      delfini.push({ x, z, h, t0: t, salti });
+      if (rVita.next() < 0.3) delfini.push({ x: x - fz * 1.3 - fx * 0.8, z: z + fx * 1.3 - fz * 0.8, h, t0: t + 0.35, salti });
+      incontri++;
+      return true;
+    }
+    return false;
+  };
   // ———— lucciole ————
   const lucciole = Array.from({ length: N_LUCCIOLE }, (_, i) => ({ a: null as XZ | null, f: i * 1.37, k: 0.7 + (i % 5) * 0.13 }));
   const cLucciola = LUCI_LUCCIOLA.map(col);
@@ -204,11 +223,12 @@ export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canva
       gabbiani: { tot: gabbiani.length, vicini: gv.length, posati: gv.filter((g) => g.stato === 'posato').length, inVolo: gv.filter((g) => g.stato !== 'posato').length },
       gatti: { tot: gatti.length, vicini: Object.values(stati).reduce((a, b) => a + b, 0), stati, fusa: fusaTot, fumetto: fumetti.length > 0 },
       pesci: { salti: nSalti, ora: salti.length }, granchi: { tot: granchi.length, vicini: granchi.filter(vic).length, sotto: granchi.filter((g) => g.stato === 'sotto').length },
-      delfini: delfiniOn ? delfiniN : 0, delfiniFuori: delfiniOn ? delfiniVisti : 0, lucciole: accese,
+      delfini: delfini.length, delfiniFuori: delfiniVisti, delfiniIncontri: incontri, delfiniFra: Math.max(0, incontro - alLargo), lucciole: accese,
     };
   });
   registerTestHook('animali', (on) => { attivi = on !== false; if (!attivi) { corpi.begin(); corpi.end(); luci.begin(); luci.end(); } return attivi; });
   registerTestHook('pesce', () => salta(chi(), tNow));
+  registerTestHook('delfini', () => avvistaDelfini(chi(), tNow));
   /** Il gatto più vicino lontano dalla barca (lì A fa salire a bordo) e un punto calpestabile accanto a lui, dove mettersi per le fusa. */
   registerTestHook('gatto', () => {
     const c = chi(), b = w.boat.state;
@@ -247,27 +267,25 @@ export function createAnimali(o: { world: GameWorld; camera: THREE.Camera; canva
     // pesci: ogni tanto, più spesso in barca
     if (t >= prossimoSalto) { if (salta(c, t)) avvista('pesce'); prossimoSalto = t + (c.walk ? 3 + rVita.next() * 4 : 1.8 + rVita.next() * 2.7); }
     for (let i = salti.length - 1; i >= 0; i--) if (!disegnaSalto(salti[i]!, t, F, draw)) salti.splice(i, 1);
-    // delfini: in barca, veloce, su acqua profonda
+    // delfini: si contano i secondi in barca veloce su acqua profonda; arrivato il momento, un incontro
     const largo = !c.walk && c.speed > 5 && (() => { const q = map.worldToCell(c.x, c.z); return map.at(q.cx, q.cz) === '~'; })();
-    if (largo) { delfiniSu += dt; delfiniGiu = 0; } else { delfiniGiu += dt; delfiniSu = 0; }
-    if (delfiniSu > 0.8) delfiniOn = true; else if (delfiniGiu > 2.5) delfiniOn = false;
+    if (largo) alLargo += dt;
+    if (largo && alLargo >= incontro && delfini.length === 0) { alLargo = 0; incontro = avvistaDelfini(c, t) ? prossimoIncontro() : 2; }
     delfiniVisti = 0;
-    if (delfiniOn) {
-      const fx = Math.sin(c.yaw), fz = -Math.cos(c.yaw), rx = Math.cos(c.yaw), rz = Math.sin(c.yaw);
-      const posti = c.speed > 8 ? [[2.8, -0.4], [-2.9, 0.8], [4.3, 1.9]] : [[2.8, -0.4], [-2.9, 0.8]];
-      delfiniN = posti.length;
-      posti.forEach(([lat, avanti], i) => {
-        const along = avanti! + 0.7 * Math.sin(t * 0.5 + i * 2), x = c.x + rx * lat! + fx * along, z = c.z + rz * lat! + fz * along;
-        if (!acqua(mondo, x, z)) return;
-        // salti a delfino: fuori dall'acqua per il 60 % del giro, spruzzo dove esce e dove rientra
-        const p = ((t + i * 0.45) / 1.4) % 1;
-        if (p < 0.1) draw(F.spruzzo[Math.min(2, Math.floor(p / 0.034))]!, x - fx * 1.0, 0.02, z - fz * 1.0, 0);
-        if (p > 0.6 && p < 0.7) draw(F.spruzzo[Math.min(2, Math.floor((p - 0.6) / 0.034))]!, x + fx * 1.2, 0.02, z + fz * 1.2, 0);
-        if (p >= 0.6) return;
-        const u = p / 0.6;
-        draw(F.delfino, x, -0.75 + 1.1 * Math.sin(Math.PI * u), z, c.yaw, 0.6 * Math.cos(Math.PI * u), 0, 1.25);
-        delfiniVisti++;
-      });
+    for (let i = delfini.length - 1; i >= 0; i--) {
+      const dl = delfini[i]!, e = t - dl.t0;
+      if (e < 0) continue;
+      if (e >= dl.salti * DELFINO_GIRO) { delfini.splice(i, 1); continue; }
+      const fx = Math.sin(dl.h), fz = -Math.cos(dl.h), x = dl.x + fx * DELFINO_V * e, z = dl.z + fz * DELFINO_V * e;
+      if (!vic({ x, z }) || !acqua(mondo, x, z)) continue;
+      // salto a delfino: fuori dall'acqua per il 60 % del giro, spruzzo dove esce e dove rientra
+      const p = (e / DELFINO_GIRO) % 1;
+      if (p < 0.1) draw(F.spruzzo[Math.min(2, Math.floor(p / 0.034))]!, x - fx * 1.0, 0.02, z - fz * 1.0, 0);
+      if (p > 0.6 && p < 0.7) draw(F.spruzzo[Math.min(2, Math.floor((p - 0.6) / 0.034))]!, x + fx * 1.2, 0.02, z + fz * 1.2, 0);
+      if (p >= 0.6) continue;
+      const u = p / 0.6;
+      draw(F.delfino, x, -0.75 + 1.1 * Math.sin(Math.PI * u), z, dl.h, 0.6 * Math.cos(Math.PI * u), 0, 1.25);
+      delfiniVisti++;
     }
     // lucciole: col buio, sull'erba attorno a chi gioca
     const buio = o.buio?.() ?? 0;

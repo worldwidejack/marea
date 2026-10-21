@@ -3,7 +3,7 @@
 // Modo 1 stampa: onde a linee chiare e creste di schiuma ricciute, schiuma bianca spessa sulla riva.
 // Modo 2 giorno: fasce turchesi, scogli sott'acqua nel basso fondale, riflessi a linee, scintille bianche.
 // Modo 3 tramonto: teal scuro, scia di luce arancio verso il sole, schiuma calda.
-// Tutto quantizzato a 8 texel/m così resta a pixel anche da vicino.
+// Tutto quantizzato a 8 texel/m così resta a pixel anche da vicino. In tutti i modi la scia delle barche (scia_acqua.ts), con le stesse righe e schiuma.
 // Meteo (#361): sotto le nuvole di pioggia (NUBI, condivisi con la passata finale e la pioggia) cerchi a pixel che si allargano, solo
 // dove piove davvero e vicino alla camera.
 // Di notte la luce del faro (faro_luce.ts): il riflesso della lanterna a trattini come la luna, e dove il fascio tocca il mare.
@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { FARO_ACQUA, GLSL_FARO } from './faro_luce.ts';
 import type { GridMap } from '@marea/sim';
 import { GLSL_NUBI, NUBI } from './meteo.ts';
+import { GLSL_SCIA, SCIA, tickScia } from './scia_acqua.ts';
 
 const MAXD = 16; // m: oltre è mare aperto
 
@@ -83,6 +84,7 @@ vec3 scia(vec2 q, float t, float dist, vec3 c) {
   if (P > 0.08 && sp > 0.985) return uLunaB; // scintille sparse sui bordi
   return k > 0.12 ? mix(c, uLunaC, 0.35) : c; // alone: trattini appena più chiari attorno alla scia
 }
+${GLSL_SCIA}
 void main() {
   vec2 q = (floor(vW.xz * 8.0) + 0.5) / 8.0; // 8 texel/m
   vec2 uv = q / uMapSize;
@@ -127,6 +129,7 @@ void main() {
     float shore = 0.9 + 0.35 * sin(t * 1.4 + vnoise(q * 0.5) * 6.0);
     if (dd < shore) c = uFoam;
   }
+  if (dd > 1.0) c = sciaColore(q, c, uFoam, uLine); // scia delle barche, con le righe e la schiuma del mare
   if (uNubiN > 0 && dd > 1.0) {
     vec2 toC = vW.xz - cameraPosition.xz;
     float rain = dot(toC, toC) < 3600.0 ? pioggiaIn(vW.xz) : 0.0;
@@ -163,7 +166,7 @@ export function createWater2(map: GridMap): Water2 {
     tDist: { value: distanceField(map) }, uMapSize: { value: new THREE.Vector2(map.w * map.tile, map.h * map.tile) }, uTime: { value: 0 }, uMode: { value: 1 },
     uC0: { value: col('#fff') }, uC1: { value: col('#fff') }, uC2: { value: col('#fff') }, uC3: { value: col('#fff') }, uFoam: { value: col('#fff') }, uLine: { value: col('#fff') },
     uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uTint: { value: new THREE.Color(1, 1, 1) },
-    uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(0, 0, -1) }, ...NUBI,
+    uNight: { value: 0 }, uMoonDir: { value: new THREE.Vector3(0, 0, -1) }, ...NUBI, ...SCIA,
     // scia della luna: crema della luna, azzurro pallido, blu (palette della stampa di notte)
     uLunaA: { value: col('#f2e6c4') }, uLunaB: { value: col('#9fb2cf') }, uLunaC: { value: col('#5a77a8') },
   };
@@ -174,7 +177,7 @@ export function createWater2(map: GridMap): Water2 {
   return {
     mesh,
     follow: (x, z) => mesh.position.set(Math.round(x / 4) * 4, 0, Math.round(z / 4) * 4),
-    update: (t) => { U.uTime.value = t % 3600; },
+    update: (t) => { U.uTime.value = t % 3600; tickScia(); },
     tint: (c) => { U.uTint.value.copy(c); },
     night: (n, d) => { U.uNight.value = n; U.uMoonDir.value.set(d[0], d[1], d[2]).normalize(); },
     set: (mode, c, foam, line, sunDir) => {

@@ -1,5 +1,5 @@
 // Barca (WP2): modello `boat_barca` dal manifest o scafo di legno procedurale (4,5 m, prua alta, sedili, remi); beccheggio e rollio
-// dolci in funzione di velocità e timone; scia a pixel (sprite piatti in un solo InstancedMesh, pool riusato, 1,5 s di vita);
+// dolci in funzione di velocità e timone; scia disegnata dall'acqua (scia.ts registra la strada della prua, render/scia_acqua.ts la disegna);
 // guidatore seduto a bordo (un avatar interno, mostrato da setDriver). La fisica resta in stepBoat (@marea/sim).
 // La tua barca (#107): colore del fasciame alto (scafo), vela facoltativa su un alberetto a prua, nome dipinto a pixel sui due fianchi.
 import * as THREE from 'three';
@@ -14,6 +14,7 @@ import type { Avatar } from './avatar.ts';
 import type { Box } from './avatar.ts';
 import { registerStateProvider } from '../test/testapi.ts';
 import { hexBarca, telaNome } from './barca_look.ts';
+import { createScia } from './scia.ts';
 
 export type Boat = {
   object: THREE.Object3D; state: BoatState; prev: BoatState;
@@ -30,7 +31,7 @@ export type Boat = {
   readonly seat: THREE.Vector3;
   /** Avatar seduto interno usato da setDriver (nascosto quando non si guida). */
   readonly driver: Avatar;
-  /** Sprite di scia vivi in questo momento (test/debug). */
+  /** Punti di scia vivi in questo momento (test/debug). */
   wakeCount(): number;
   /** La tua barca (#107): colori di scafo e vela, nome sul fianco. */
   readonly barca: BarcaLook;
@@ -40,8 +41,7 @@ export type Boat = {
 const DEFAULT_LOOK: Look = { pelle: 2, capelli: 0, coloreCapelli: 0, vestito: 0, cappello: 1 };
 const SEAT = new THREE.Vector3(0, 0.36, 0.55); // sopra la panca di poppa
 const HALF_LEN = 2.25;
-const WAKE_POOL = 96, WAKE_LIFE = 1.5;
-const C = { legno: '#8E5A2B', chiaro: '#C98A4B', scuro: '#5A3A1E', rosso: '#E8433F', sabbia: '#E2B97F', bianco: '#F4E3C1', schiuma: '#FFFFFF', bassa: '#7FE3E0' };
+const C = { legno: '#8E5A2B', chiaro: '#C98A4B', scuro: '#5A3A1E', rosso: '#E8433F', sabbia: '#E2B97F', bianco: '#F4E3C1' };
 const wrapPi = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const ease = (dt: number, rate: number) => 1 - Math.exp(-dt * rate);
 let registered = false;
@@ -150,57 +150,6 @@ function oarGeometry(): THREE.BufferGeometry {
   return mergeBoxes([{ s: [1.5, 0.04, 0.05], at: [0.4, 0, 0], c: C.chiaro }, { s: [0.4, 0.03, 0.16], at: [1.2, 0, 0], c: C.sabbia }, { s: [0.1, 0.05, 0.06], at: [-0.3, 0, 0], c: C.scuro }]);
 }
 
-// ---------- scia ----------
-type Wake = { mesh: THREE.InstancedMesh; update(dt: number, x: number, z: number, yaw: number, wake: number, speed: number): void; count(): number; dispose(): void };
-function createWake(): Wake {
-  const geo = new THREE.PlaneGeometry(1, 1); geo.rotateX(-Math.PI / 2);
-  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-  const mesh = new THREE.InstancedMesh(geo, mat, WAKE_POOL);
-  mesh.frustumCulled = false; mesh.castShadow = false; mesh.receiveShadow = false; mesh.name = 'scia';
-  mesh.matrixWorldAutoUpdate = false; // le istanze sono in coordinate MONDO anche se il mesh vive dentro la barca
-  const age = new Float32Array(WAKE_POOL).fill(WAKE_LIFE), px = new Float32Array(WAKE_POOL), pz = new Float32Array(WAKE_POOL);
-  const vx = new Float32Array(WAKE_POOL), vz = new Float32Array(WAKE_POOL), sz = new Float32Array(WAKE_POOL), ry = new Float32Array(WAKE_POOL);
-  let next = 0, travel = 0, alive = 0;
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s3 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), white = new THREE.Color(C.schiuma), foam = new THREE.Color(C.bassa);
-  const zero = new THREE.Matrix4().makeScale(0, 0, 0);
-  for (let i = 0; i < WAKE_POOL; i++) { mesh.setMatrixAt(i, zero); mesh.setColorAt(i, white); }
-  const spawn = (x: number, z: number, dx: number, dz: number, size: number, yaw: number) => {
-    const i = next; next = (next + 1) % WAKE_POOL; age[i] = 0; px[i] = x; pz[i] = z; vx[i] = dx; vz[i] = dz; sz[i] = size; ry[i] = yaw;
-  };
-  return {
-    mesh,
-    count: () => alive,
-    update(dt, x, z, yaw, wake, speed) {
-      travel += speed * dt; // una coppia di sprite ogni mezzo metro percorso: la scia non si impasta a bassa velocità
-      if (wake > 0.06) {
-        const fx = Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = Math.sin(yaw);
-        while (travel >= 0.5) {
-          travel -= 0.5;
-          const sx = x - fx * (HALF_LEN - 0.1 - travel), sz0 = z - fz * (HALF_LEN - 0.1 - travel), size = 0.32 + 0.22 * wake;
-          spawn(sx, sz0, 0, 0, size * 1.2, yaw); // schiuma al centro
-          for (const side of [-1, 1]) spawn(sx + rx * side * 0.5, sz0 + rz * side * 0.5, rx * side * (0.4 + 0.3 * wake), rz * side * (0.4 + 0.3 * wake), size, yaw); // ramo a V
-        }
-      } else travel = 0;
-      alive = 0;
-      for (let i = 0; i < WAKE_POOL; i++) {
-        if (age[i]! >= WAKE_LIFE) { mesh.setMatrixAt(i, zero); continue; } // (dopo il ciclo: senza sprite vivi il mesh non si disegna)
-        age[i] = age[i]! + dt; const f = age[i]! / WAKE_LIFE;
-        if (f >= 1) { mesh.setMatrixAt(i, zero); continue; }
-        alive++;
-        px[i] = px[i]! + vx[i]! * dt; pz[i] = pz[i]! + vz[i]! * dt;
-        // a scatti (pixel): bianco → acqua bassa, e si restringe a gradini fino a sparire
-        const k = f < 0.3 ? 1 : f < 0.6 ? 0.8 : f < 0.85 ? 0.55 : 0.3;
-        mesh.setColorAt(i, f < 0.45 ? white : foam);
-        q.setFromAxisAngle(up, -ry[i]!); p.set(px[i]!, 0.075, pz[i]!); s3.set(sz[i]! * k, 1, sz[i]! * k * 0.75);
-        mesh.setMatrixAt(i, m4.compose(p, q, s3));
-      }
-      mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-      mesh.visible = alive > 0; // una draw call in meno per ogni barca ferma (le barche ormeggiate degli amici, #6)
-    },
-    dispose() { geo.dispose(); mat.dispose(); mesh.dispose(); },
-  };
-}
-
 export async function createBoat(o: { loader: Loader; x: number; z: number; look?: Look; barca?: BarcaLook }): Promise<Boat> {
   const object = new THREE.Group(); object.name = 'barca'; object.rotation.order = 'YXZ';
   const body = new THREE.Group(); object.add(body); // il corpo beccheggia/rolla; la scia resta fuori (mondo)
@@ -233,7 +182,7 @@ export async function createBoat(o: { loader: Loader; x: number; z: number; look
   const nome = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshLambertMaterial({ map: texN, alphaTest: 0.5, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }));
   nome.name = 'nome_barca'; nome.visible = false; body.add(nome);
   let barca: BarcaLook = { scafo: 'legno', vela: 'nessuna', nome: '' }, barcaKey = JSON.stringify(barca);
-  const wake = createWake(); object.add(wake.mesh);
+  const wake = createScia(HALF_LEN);
   const driver = await createAvatar({ loader: o.loader, look: o.look ?? DEFAULT_LOOK, x: 0, z: 0 });
   driver.attachTo(body, seat); driver.visible = false;
 
@@ -262,7 +211,7 @@ export async function createBoat(o: { loader: Loader; x: number; z: number; look
         oarL.rotation.set(0, sw, dip); oarR.rotation.set(0, -sw, -dip);
       }
       driver.visible = api.driving; driver.setRowing(rowing, rowPh); driver.update(alpha, dt);
-      wake.update(dt, x, z, yaw, state.wake, state.speed);
+      wake.update(dt, x, z, yaw, state.wake);
     },
     setDriver(a, look) { api.driving = !!a; driver.visible = !!a; if (a && look) driver.setLook(look); },
     setYaw(yaw) { state = { ...state, yaw }; prev = state; object.rotation.y = -yaw; },
