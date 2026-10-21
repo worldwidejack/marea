@@ -26,7 +26,9 @@ if (!['invito', 'link', 'admin'].includes(comando ?? '') || (comando !== 'invito
 const FILE = path.join(os.homedir(), '.config/marea/link.txt');
 let grezzo = process.env.MAREA_TOKEN?.trim() || (fs.existsSync(FILE) ? fs.readFileSync(FILE, 'utf8').trim() : '');
 if (!grezzo) falla(`Mi serve il tuo link personale di MAREA: mettilo in ${FILE} (una riga) oppure nella variabile MAREA_TOKEN.\nNon ce l'hai? Chiedilo a un altro dev (admin.mjs link <tuo nome>) o a chi ti ha invitato.`);
-const token = (() => { try { return new URL(grezzo).searchParams.get('t') ?? grezzo; } catch { return grezzo; } })();
+// il file può avere righe di commento: vale il primo `t=…` che si trova, altrimenti la prima riga che non è un commento
+const token = grezzo.match(/[?&]t=([A-Za-z0-9_-]+)/)?.[1] ?? grezzo.split('\n').map((r) => r.trim()).find((r) => r && !/^(#|\/\/)/.test(r) && !/\s/.test(r));
+if (!token) falla('Nel file del tuo link non trovo il token: ci vuole una riga come https://marea.stanza-idee.workers.dev/?t=...');
 
 const corpo = comando === 'invito' ? { usi: opt('--usi') === undefined ? undefined : Number(opt('--usi')) }
   : comando === 'link' ? { persona, ruota: flag('--ruota') } : { persona, admin: !flag('--togli') };

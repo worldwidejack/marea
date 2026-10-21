@@ -1,4 +1,4 @@
-// Inviti e link personali per chi sviluppa (#541): rotte /api/admin/* e script admin.mjs sul server locale vero (wrangler dev, niente browser).
+// Inviti e link personali per chi sviluppa: rotte /api/admin/* e script admin.mjs sul server locale vero (wrangler dev, niente browser).
 // Chi non è admin viene respinto; un admin crea un invito di gruppo che funziona, ritrova (e se serve cambia) il link di un personaggio,
 // promuove un altro dev; nome doppio → scelta per id; non ci si toglie da soli il ruolo.
 import fs from 'node:fs';
@@ -79,9 +79,13 @@ export default async function (ctx) {
     });
 
     await ctx.test('script admin.mjs: stampa il link, e dice chiaro cosa manca', async () => {
-      const run = (extra, home) => { try { return { ok: true, out: execFileSync(process.execPath, [path.join(SERVER, 'scripts/admin.mjs'), ...extra, '--url', base], { env: { ...env, HOME: home, MAREA_TOKEN: home === '/nonexistent' ? '' : `${base}/?t=tokDev` }, stdio: ['ignore', 'pipe', 'pipe'] }).toString() }; } catch (e) { return { ok: false, out: String(e.stderr) }; } };
+      const run = (extra, home, daFile = false) => { try { return { ok: true, out: execFileSync(process.execPath, [path.join(SERVER, 'scripts/admin.mjs'), ...extra, '--url', base], { env: { ...env, HOME: home, MAREA_TOKEN: home === '/nonexistent' || daFile ? '' : `${base}/?t=tokDev` }, stdio: ['ignore', 'pipe', 'pipe'] }).toString() }; } catch (e) { return { ok: false, out: String(e.stderr) }; } };
       const ok = run(['link', 'Helga'], ctx.OUT);
       assert(ok.ok && ok.out.includes('/?t='), 'script link: ' + ok.out);
+      fs.mkdirSync(path.join(ctx.OUT, 'casa/.config/marea'), { recursive: true });
+      fs.writeFileSync(path.join(ctx.OUT, 'casa/.config/marea/link.txt'), `MAREA — link personale (commento)\n${base}/?t=tokDev\n`);
+      const daFile = run(['link', 'Helga'], path.join(ctx.OUT, 'casa'), true);
+      assert(daFile.ok && daFile.out.includes('/?t='), 'file con riga di commento: ' + daFile.out);
       const senza = run(['link', 'Helga'], '/nonexistent');
       assert(!senza.ok && senza.out.includes('link personale'), 'senza link: ' + senza.out);
     });
