@@ -2,6 +2,9 @@
 // Acceso: niente joystick fisso; un dito vero (tocchi CDP) sul canvas fa nascere il joystick lì e l'eroe va dove spingi; al rilascio
 // si ferma e il joystick resta fermo (più chiaro) per i secondi scelti, poi sparisce; un tocco sopra o appena fuori lo riprende col
 // centro di prima, lontano ne nasce uno nuovo; un secondo dito (pizzico) lo lascia. Spento: torna il joystick fisso. Resta dopo il ricaricamento.
+// Stabile: si prova sulla Laguna, lontano dalla gente del Borgo che passeggia (la nuvoletta col nome si tocca e prende il dito, il corpo
+// ferma l'eroe); il punto libero sotto il dito si cerca prima di ogni tocco; ogni prova riparte pulita (nessun dito giù, joystick «via»)
+// e non eredita il joystick fermo della prova prima: quello sparisce dopo secondi veri, mentre sotto SwiftShader i tick vanno a 2-4 fps.
 export const timeout = 180000;
 export default async function (ctx) {
   const { assert } = ctx;
@@ -11,9 +14,18 @@ export default async function (ctx) {
   const S = () => ctx.getState(page);
   const ticks = () => page.evaluate(() => window.__game.state().wp2_boat.ticks);
   const waitTicks = async (n) => { const t0 = await ticks(); await page.waitForFunction(([t0, n]) => window.__game.state().wp2_boat.ticks - t0 >= n, [t0, n], { timeout: 40000, polling: 40 }); };
-  const spawn = async () => { await page.evaluate(() => { const s = window.__game.state().island.spawn; window.__game.test.teleport(s.x, s.z); }); await waitTicks(8); };
+  /** Sulla Laguna, 4 m a sud-ovest dell'approdo: prato aperto, niente gente né etichette a schermo. */
+  const spawn = async () => {
+    await page.evaluate(() => { const t = window.__game.test; if (window.__game.state().arch.place !== 'laguna') t.goto('laguna'); const s = window.__game.state().island.spawn; t.teleport(s.x - 4, s.z + 4); });
+    await waitTicks(8);
+  };
   const cdp = await page.context().newCDPSession(page);
   const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], i) => ({ x, y, id: i + 1 })) });
+  /** Ogni prova parte pulita anche se quella prima è caduta a metà: nessun dito giù, joystick «via», durata scelta. */
+  const riparti = async (padSec = 3) => {
+    await touch('touchEnd', []).catch(() => { /* nessun dito giù */ });
+    await page.evaluate((s) => { const t = window.__game.test; t.impostazioni({ unaMano: false }); t.impostazioni({ unaMano: true, padSec: s }); }, padSec);
+  };
   const joyBox = () => page.evaluate(() => { const j = document.getElementById('joystick'), r = j.getBoundingClientRect(), cs = getComputedStyle(j); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, vis: cs.display !== 'none', op: Number(cs.opacity) }; });
   /** Un punto dove sotto il dito c'è solo il canvas, con margine: il browser aggancia il dito al bottone più vicino (SALTA della guida). */
   const libero = (x0, y0) => page.evaluate(([x0, y0]) => {
@@ -45,10 +57,9 @@ export default async function (ctx) {
     assert(!(await joyBox()).vis, 'il joystick fisso si vede ancora');
   });
 
-  let P = null;
   await ctx.test('il dito sul canvas fa nascere il joystick lì; su = nord-ovest; al rilascio si ferma e il joystick resta', async () => {
     await spawn(); await page.evaluate(() => window.__game.test.setZoom(1));
-    P = await libero(270, 560); assert(P, 'nessun punto libero sul canvas');
+    const P = await libero(270, 560); assert(P, 'nessun punto libero sul canvas');
     await touch('touchStart', [P]); await waitTicks(3);
     let st = await S(), j = await joyBox();
     ctx.log('tocco', P.join(','), 'joystick', JSON.stringify(j), 'pad', st.wp2_input.pad, st.wp2_input.padAt.join(','));
@@ -61,15 +72,19 @@ export default async function (ctx) {
     assert(st.wp2_input.src === 'stick' && st.wp2_input.mag > 0.95 && st.avatar.anim === 'run', 'stick a fondo non è corsa');
     assert(st.avatar.x - a0.x < -0.5 && st.avatar.z - a0.z < -0.5, 'su non porta a nord-ovest');
     await ctx.shot(page, 'joystick_dito');
-    await touch('touchEnd', []); await waitTicks(12);
-    st = await S(); j = await joyBox();
-    assert(st.avatar.anim === 'idle' && st.wp2_input.src === 'none', 'il rilascio non ferma');
+    await touch('touchEnd', []);
+    st = await S(); j = await joyBox(); // subito: il joystick fermo sparisce dopo 3 s veri, e qui un tick può durare un quarto di secondo
     assert(st.wp2_input.pad === 'riposo' && j.vis && j.op < 0.8, `il joystick non è rimasto (più chiaro): ${st.wp2_input.pad} ${JSON.stringify(j)}`);
     await ctx.shot(page, 'joystick_resta');
+    await waitTicks(12); st = await S();
+    assert(st.avatar.anim === 'idle' && st.wp2_input.src === 'none', 'il rilascio non ferma');
   });
 
   await ctx.test('un tocco sopra il joystick fermo lo riprende col centro di prima; lontano ne nasce uno nuovo', async () => {
-    let st = await S(); assert(st.wp2_input.pad === 'riposo', 'il joystick è già sparito');
+    await riparti(5); await spawn(); // 5 s: tra il rilascio e il tocco dopo passano più giri col browser
+    const C = await libero(270, 560); assert(C, 'nessun punto libero sul canvas');
+    await touch('touchStart', [C]); await touch('touchEnd', []);
+    let st = await S(); assert(st.wp2_input.pad === 'riposo', `il joystick non è rimasto: ${st.wp2_input.pad}`);
     const c = st.wp2_input.padAt;
     await touch('touchStart', [[c[0] + 40, c[1]]]); await waitTicks(20);
     st = await S();
@@ -86,9 +101,11 @@ export default async function (ctx) {
 
   await ctx.test('dopo i secondi scelti il joystick sparisce (1 s e 3 s)', async () => {
     const prova = async (sec) => {
-      await page.evaluate((sec) => window.__game.test.impostazioni({ padSec: sec }), sec);
+      await riparti(sec);
+      const P = await libero(270, 560); assert(P, 'nessun punto libero sul canvas');
       await touch('touchStart', [P]); await touch('touchMove', [[P[0] + 10, P[1]]]); await waitTicks(3);
       await touch('touchEnd', []); const t0 = Date.now();
+      assert((await S()).wp2_input.pad === 'riposo', `${sec} s: il tocco non ha fatto nascere il joystick`);
       await page.waitForFunction(() => window.__game.state().wp2_input.pad === 'via', null, { timeout: 15000, polling: 50 });
       const ms = Date.now() - t0, vis = (await joyBox()).vis;
       ctx.log(`${sec} s → sparito dopo ${ms} ms`);
@@ -99,9 +116,11 @@ export default async function (ctx) {
   });
 
   await ctx.test('pizzico: il secondo dito sul canvas lascia il joystick, l\'eroe non cammina', async () => {
-    await spawn();
+    await riparti(); await spawn();
+    const P = await libero(270, 560), Q = P && await libero(P[0] - 120, P[1] - 200);
+    assert(P && Q && Math.hypot(Q[0] - P[0], Q[1] - P[1]) > 150, 'nessun punto libero per le due dita');
     await touch('touchStart', [P]); await touch('touchMove', [[P[0], P[1] - 30]]); await waitTicks(3);
-    const Q = [P[0] - 120, P[1] - 200];
+    assert((await S()).wp2_input.pad === 'su', 'il primo dito non ha fatto nascere il joystick');
     await touch('touchStart', [[P[0], P[1] - 30], Q]); await waitTicks(2);
     await touch('touchMove', [[P[0], P[1] - 60], [Q[0] - 30, Q[1] - 30]]); await waitTicks(15);
     const st = await S();
@@ -111,7 +130,7 @@ export default async function (ctx) {
   });
 
   await ctx.test('zoom: un dito sul joystick e uno su un controllo (mira, bottoni) non zooma; due dita libere sì', async () => {
-    await spawn(); await page.evaluate(() => window.__game.test.setZoom(1));
+    await riparti(); await spawn(); await page.evaluate(() => window.__game.test.setZoom(1));
     const zoom = async () => { await page.waitForTimeout(500); return (await S()).camera.zoom; };
     const A = await page.evaluate(() => { const r = document.getElementById('btnA').getBoundingClientRect(); return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)]; });
     const J = [60, 400]; // joystick volante a sinistra, fuori dalla zona dei controlli
