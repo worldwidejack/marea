@@ -1,5 +1,5 @@
-// Isole dalle celle della mappa (CONTRACTS §4, §11): moduli glTF dal manifest quando esistono (mod_sabbia, mod_sabbia_bordo, mod_erba,
-// mod_scogliera, mod_molo, prop_*, bld_*), altrimenti blocchi e segnaposto con texture a pixel dalla palette.
+// Isole dalle celle della mappa (CONTRACTS §4, §11): moduli glTF dal manifest quando esistono (mod_sabbia, mod_sabbia_bordo,
+// mod_scogliera, mod_molo, prop_*, bld_*), altrimenti blocchi e segnaposto con texture a pixel dalla palette. Il prato è sempre dipinto (render/verde.ts).
 // Mappa grande (arcipelago, centinaia di metri): un gruppo per isola («chunk»). Moduli del terreno, prop ed edifici glTF (tutti
 // sull'atlas) fusi in una geometria per isola e materiale; cull() prima di ogni render spegne le isole fuori inquadratura, da lontano
 // mette la sagoma (island_sagoma.ts) e spegne la scenografia minuta (TECH §5, «Come si sta nel budget»). L'acqua profonda non c'è.
@@ -14,7 +14,7 @@ import type { GridMap, Tile } from '@marea/sim';
 import { createRng } from '@marea/sim';
 import type { Loader } from './loader.ts';
 import { setWaterMap } from './water.ts';
-import { ISLAND, P, PAINT, PROP_KINDS, PROP_MODEL, MODEL_ONLY, M, block, merged, perFondere, buildingGeometry, instanced, modelParts, painted, propGeometry, tex, towerGeometry } from './island_parts.ts';
+import { ISLAND, P, PAINT, PROP_KINDS, PROP_MODEL, MODEL_ONLY, M, albero, alberiIstanziati, block, prato, merged, perFondere, buildingGeometry, instanced, modelParts, painted, propGeometry, tex, towerGeometry } from './island_parts.ts';
 import type { Fit, PropKind } from './island_parts.ts';
 import { BORGO_PEZZI, PAINT_TEMI, SCENA_TEMI, TEMA_GLOW, adrenalinaPronta, arenaPronta, borgoPronta, difesaPronta, corsePronta, TEMA_PROPS, isTema, propTema, propTemaGlow, rocceTema } from './island_temi.ts';
 import type { TemaProp } from './island_temi.ts';
@@ -79,7 +79,7 @@ export async function createIsland(o: {
   const stepGeo = block(T, ISLAND.STEP_W, ISLAND.STEP, ISLAND.BOTTOM);
   const postGeo = painted(new THREE.CylinderGeometry(0.12, 0.14, 1.9, 6), P.legnoScuro, M(0, TOP + 0.15 - 0.95, 0));
   const propGeoCache = new Map<string, THREE.BufferGeometry>();
-  const propGeo = (k: string) => { let g = propGeoCache.get(k); if (!g) { g = TEMA_PROPS.has(k) ? propTema(k as TemaProp) : propGeometry(k as PropKind); propGeoCache.set(k, g); } return g; };
+  const propGeo = (k: string, i = 0) => { if (k === 'albero_tondo') return albero(i); let g = propGeoCache.get(k); if (!g) { g = TEMA_PROPS.has(k) ? propTema(k as TemaProp) : propGeometry(k as PropKind); propGeoCache.set(k, g); } return g; };
   const glowGeoCache = new Map<string, THREE.BufferGeometry | null>();
   const glowGeo = (k: string) => { if (!glowGeoCache.has(k)) glowGeoCache.set(k, propTemaGlow(k as TemaProp)); return glowGeoCache.get(k) ?? null; };
   const knownProp = (k: string) => PROP_KINDS.has(k) || TEMA_PROPS.has(k);
@@ -280,7 +280,7 @@ export async function createIsland(o: {
     // moduli del terreno glTF (tutti sull'atlas) fusi come i prop: un draw call per isola invece di cinque
     unisci('mod_sabbia', sand, false, blk('sabbia', sand, 'sabbia'), vicino, 'terrain');
     unisci('mod_sabbia_bordo', sandEdge, false, blk('sabbia', sandEdge, 'sabbia_bordo'), vicino, 'terrain');
-    unisci('mod_erba', grass, false, blk('erba', grass, 'erba'), vicino, 'terrain');
+    add([blk('erba', grass, 'erba')()]); const ciuffi = prato(grass, T, TOP, area.id + ':' + ai); if (ciuffi) fondi(ciuffi, propMat, [new THREE.Matrix4()], false, minuti); // prato dipinto coi ciuffi (verde.ts)
     unisci('mod_scogliera', rockMod, true, () => instanced(rockGeo, lambertOf('roccia'), rock.map((m) => m.clone().premultiply(new THREE.Matrix4().makeTranslation(0, ISLAND.BOTTOM, 0))), 'scogliera', true), vicino, 'terrain');
     unisci('mod_molo', dock, false, blk('molo', dock, 'molo', dockGeo, false), vicino, 'terrain'); // l'ombra del molo cade sull'acqua, che non la riceve
     add([instanced(blockGeo, lambertOf('lastricato'), paved, 'lastricato', false), instanced(blockGeo, lambertOf('cemento'), concrete, 'cemento', false)]);
@@ -293,7 +293,7 @@ export async function createIsland(o: {
       for (const kind of Object.keys(placed)) {
         if (!TEMA_PROPS.has(kind) && kind !== 'sasso' && kind !== 'cespuglio') continue;
         const gg = TEMA_GLOW.has(kind) ? glowGeo(kind) : null;
-        for (const m of placed[kind]!) { body.push(propGeo(kind).clone().applyMatrix4(m)); if (gg) hot.push(gg.clone().applyMatrix4(m)); }
+        placed[kind]!.forEach((m, i) => { body.push(propGeo(kind, i).clone().applyMatrix4(m)); if (gg) hot.push(gg.clone().applyMatrix4(m)); });
         placed[kind] = [];
       }
       if (body.length) { const m = new THREE.Mesh(merged(body), propMat); m.castShadow = m.receiveShadow = true; m.name = 'decorazioni_' + tema; vicino.add(m); }
@@ -319,7 +319,7 @@ export async function createIsland(o: {
       if (!mats.length) continue;
       if (name) unisci(name, mats, cast, () => (MODEL_ONLY.has(kind) ? null : instanced(propGeo(kind), propMat, mats, kind, cast)), dest);
       else if (MINUTI.has(kind)) fondi(propGeo(kind), propMat, mats, cast, dest); // sassi e cespugli a colori: anche loro fusi
-      else add([instanced(propGeo(kind), propMat, mats, style === 'porto' && kind === 'albero_tondo' ? 'alberi_borgo' : kind, cast)], dest);
+      else add([kind === 'albero_tondo' ? alberiIstanziati(mats, propMat, style === 'porto' ? 'alberi_borgo' : kind, cast) : instanced(propGeo(kind), propMat, mats, kind, cast)], dest);
       if (name && MODEL_ONLY.has(kind)) blocchi.push({ name, mats });
       const gg = TEMA_GLOW.has(kind) ? glowGeo(kind) : null;
       if (gg) add([instanced(gg, glowMat, mats, kind + '_luce', false)]);

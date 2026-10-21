@@ -5,6 +5,7 @@
 // Il file sta in un chunk a parte (island_temi.ts lo carica all'avvio: `borgoPronta`).
 import * as THREE from 'three';
 import { M, P, merged, painted } from './island_parts.ts';
+import { siepe } from './verde.ts';
 
 type G = THREE.BufferGeometry;
 export type BorgoProp = 'lampioncino' | 'filo_borgo' | 'cassetta_posta' | 'vaso_fiori' | 'siepe' | 'fontana' | 'panchina';
@@ -52,12 +53,7 @@ function costruisci(kind: BorgoProp): { b: G[]; l: G[] } {
       for (let i = 0; i < 4; i++) { const a = i * 1.7; b.push(painted(box(0.1, 0.1, 0.1), FIORI[i % FIORI.length]!, M(Math.cos(a) * 0.17, 0.7 + (i % 2) * 0.05, Math.sin(a) * 0.17, 0, a, 0))); }
       break;
     }
-    case 'siepe': {
-      // un tratto di siepe potata lungo X (1,3 m), con qualche fiore
-      b.push(painted(box(1.3, 0.8, 0.55), P.erbaScura, M(0, 0.42, 0)), painted(box(1.2, 0.12, 0.45), P.erba, M(0, 0.86, 0)));
-      b.push(painted(box(0.1, 0.1, 0.06), P.giallo, M(-0.3, 0.6, -0.29)), painted(box(0.1, 0.1, 0.06), P.pietraChiara, M(0.35, 0.45, -0.29)));
-      break;
-    }
+    case 'siepe': b.push(siepe()); break; // un tratto di siepe a ciuffi lungo X (render/verde.ts)
     case 'fontana': {
       // vasca ottagonale di pietra, colonnina e coppa con l'acqua
       b.push(painted(cyl(1.5, 1.6, 0.5, 8), P.pietra, M(0, 0.25, 0)), painted(cyl(1.25, 1.25, 0.06, 8), P.acqua, M(0, 0.45, 0)));

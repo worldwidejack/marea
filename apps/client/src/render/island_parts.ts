@@ -6,6 +6,8 @@ import { createRng } from '@marea/sim';
 import type { Rng } from '@marea/sim';
 import type { Loader } from './loader.ts';
 import { PALETTE } from './palette.ts';
+import { cespuglio } from './verde.ts';
+export { albero, alberiIstanziati, prato } from './verde.ts';
 
 export const ISLAND = { TOP: 0.4, BOTTOM: -1.2, STEP: 0.12, STEP_W: 0.6 } as const;
 /** La palette (render/palette.ts). */
@@ -32,8 +34,12 @@ export function strata(g: CanvasRenderingContext2D, bands: [string, number][]): 
 }
 export const PAINT: Record<string, Painter> = {
   sabbia: (g) => { px(g, P.sabbia, 0, 0, 32, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 5], [P.legno, 32]]); },
+  // prato: macchie scure irregolari che passano da una cella all'altra (niente quadrati), fili scuri e puntini chiari
   erba: (g, r) => {
     px(g, P.erba, 0, 0, 32, 32);
+    for (let k = 0; k < 7; k++) { let x = r.int(0, 31), y = r.int(0, 31); for (let i = 0; i < 26; i++) { px(g, P.erbaScura, x, y, 2, 1); x = (x + r.int(-1, 1) + 32) % 31; y = (y + r.int(-1, 1) + 32) % 32; } }
+    for (let i = 0; i < 40; i++) px(g, P.erbaScura, r.int(0, 31), r.int(0, 30), 1, 2);
+    for (let i = 0; i < 18; i++) px(g, P.erbaChiara, r.int(0, 31), r.int(0, 31));
     strata(g, [[P.erbaScura, 3], [P.legno, 7], [P.legnoScuro, 32]]);
     for (let x = 0; x < 32; x++) if (r.next() < 0.45) px(g, P.erbaScura, x, 35, 1, r.int(1, 2)); // frangia d'erba che scende sul fianco
   },
@@ -114,11 +120,8 @@ export function propGeometry(kind: PropKind): THREE.BufferGeometry {
       parts.push(painted(tip, c, root.clone().multiply(M(0, 0.2, 0.87, 0.75, 0, 0))));
     }
     parts.push(painted(new THREE.IcosahedronGeometry(0.2, 0), P.legnoScuro, M(0.35, 3.2, 0)));
-  } else if (kind === 'cespuglio') {
-    parts.push(painted(new THREE.IcosahedronGeometry(0.55, 0), P.erbaScura, M(0, 0.35, 0, 0, 0, 0, 1, 0.75, 1)));
-    parts.push(painted(new THREE.IcosahedronGeometry(0.38, 0), P.bosco, M(0.45, 0.25, 0.2, 0, 0.6, 0, 1, 0.8, 1)));
-    parts.push(painted(new THREE.IcosahedronGeometry(0.3, 0), P.erba, M(-0.3, 0.45, -0.25)));
-  } else if (kind === 'sasso') {
+  } else if (kind === 'cespuglio') parts.push(cespuglio()); // render/verde.ts
+  else if (kind === 'sasso') {
     parts.push(painted(new THREE.DodecahedronGeometry(0.5, 0), P.pietra, M(0, 0.22, 0, 0.3, 0, 0.2, 1.1, 0.65, 0.85)));
     parts.push(painted(new THREE.DodecahedronGeometry(0.28, 0), P.pietraScura, M(0.5, 0.12, 0.25, 0.5, 0.4, 0)));
   } else if (kind === 'cassa') {
