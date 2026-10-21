@@ -62,6 +62,7 @@ export default async function (ctx) {
       await ctx.waitState(page, (s) => s.negozio.near === 'retino', 5000);
       await page.keyboard.press('KeyE');
       await ctx.waitState(page, (s) => s.negozio.aperto === 'retino', 3000);
+      await ctx.fulvioFinoA(page, 'compra');
       await page.locator('#mzNegozio [data-act="compra"]').click();
       await ctx.waitState(page, (s) => s.insetti.retino === true, 8000);
       const l = (await get('/api/lot')).body;
@@ -156,6 +157,7 @@ export default async function (ctx) {
       await hook('teleport', banco.x, banco.z);
       await ctx.waitState(page, (s) => s.negozio.near === 'banco', 5000);
       await page.keyboard.press('KeyE');
+      await ctx.fulvioFinoA(page, 'registra');
       await page.locator('#mzNegozio [data-act="registra"]').click();
       await page.locator(`#mzNegozio [data-insetto="${preso}"]`).click();
       await ctx.waitState(page, (s) => s.negozio.consegnati === 1, 8000);

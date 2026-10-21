@@ -2,6 +2,8 @@
 // Al banco parla e dà le scelte: cosa vende, registrare nel Diario un pesce o un insetto dello zaino (uno alla volta: sparisce dallo zaino e
 // si sblocca la sua scheda), ingrandire la casa (uno al giorno, fino al massimo). Davanti a un mobile, una carta, un pavimento o uno strumento
 // dice il prezzo e chiede se lo compri. Le battute stanno in packages/content/src/fulvio.json; prezzi e regole li controlla anche il server.
+// Il discorso va a pagine di poche righe (ui/pagine_testo.ts): AVANTI o A per la successiva, le scelte stanno sull'ultima. Appena una pagina
+// compare i tocchi non contano per un attimo: A apre la scheda al volo e il «click» del dito che sale cadrebbe già sul bottone nuovo.
 import { MOBILI } from '@marea/content';
 import FV from '@marea/content/fulvio.json' with { type: 'json' };
 import type { MobileDef } from '@marea/content';
@@ -16,19 +18,25 @@ import type { Hud } from '../ui/hud.ts';
 import { ApiError } from '../net/api.ts';
 import type { Api } from '../net/api.ts';
 import { PAL, el } from '../ui/style.ts';
+import { spezza } from '../ui/pagine_testo.ts';
 import { insettoCanvas } from '../ui/insetti_sprite.ts';
 import { pesceCanvas } from '../ui/pesci_sprite.ts';
 
 export type Pezzo = { kind: 'mobile' | 'pavimento' | 'carta' | 'banco' | 'pala' | 'retino' | 'canna'; id: string; nome: string; monete: number; x: number; z: number; fx: number; fz: number };
 export type Fulvio = {
   apri(p: Pezzo): void; chiudi(): void; readonly aperto: Pezzo | null;
-  stato(): { aperto: string | null; ampliati: number; conferma: boolean; comprati: number; consegnati: number; dice: string | null; scelte: string[] };
+  /** A a scheda aperta: pagina successiva; sull'ultima chiude o prosegue solo se la scelta è una e non costa niente (a comprare si tocca il bottone). */
+  avanti(): void;
+  stato(): { aperto: string | null; ampliati: number; conferma: boolean; comprati: number; consegnati: number; dice: string | null; scelte: string[]; pronto: boolean; pagina: number; pagine: number };
 };
 
 const CSS = `
+#mzNegozio { max-width: 560px; margin: 0 auto; }
 #mzNegozio .fv-dice { margin: 8px 0 4px; color: ${PAL.sabbiaChiara}; font-size: 16px; line-height: 1.4; }
 #mzNegozio .prezzo { margin: 8px 0; color: ${PAL.sabbia}; font-size: 14px; line-height: 1.35; }
 #mzNegozio .prezzo.manca { color: ${PAL.rosso}; font-weight: bold; }
+#mzNegozio .fv-n { margin-right: 8px; color: ${PAL.sabbia}; font-size: 13px; }
+#mzNegozio .mz-btn.attesa:disabled { background: ${PAL.arancio}; color: ${PAL.neroCaldo}; border-color: ${PAL.neroCaldo}; opacity: .55; }
 #mzNegozio h3 { margin: 12px 0 2px; color: ${PAL.giallo}; font: bold 14px ui-monospace, Menlo, monospace; }
 `;
 /** «la prima volta che ci parli» resta su questo telefono/computer. */
@@ -37,6 +45,8 @@ const conosciuto = (): boolean => { try { return localStorage.getItem(CHIAVE) ==
 const conosci = (): void => { try { localStorage.setItem(CHIAVE, '1'); } catch { /* niente memoria: pazienza */ } };
 const riempi = (t: string, v: Record<string, string>): string => t.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? '');
 const monete = (n: number): string => `${n} monete`;
+/** Quanto i tocchi non contano dopo che la scheda si apre, e dopo ogni pagina nuova (ms); righe e lettere al massimo in una pagina. */
+const ATTESA_APRI = 500, ATTESA_PAGINA = 350, RIGHE = 4, LETTERE = 140;
 
 /** Il genere del mobile dalla prima parola del nome, per «un divano… lo vuoi?» / «una poltrona… la vuoi?». */
 const MASCHILI_IN_A = ['diploma'], FEMMINILI_IN_E = ['cornice'];
@@ -48,6 +58,7 @@ function articolo(nome: string): { un: string; lo: string; nome: string } {
 }
 
 type Scelta = { label: string; act: string; fai: () => void; verde?: boolean; off?: boolean; dato?: [string, string]; icona?: HTMLElement };
+/** Una battuta: `dice` può essere lunga (va spezzata in pagine), note e scelte compaiono sull'ultima. */
 type Pagina = { dice: string; note?: Node[]; scelte: Scelta[] };
 
 export function createFulvio(o: { root: HTMLElement; hud: Hud; api: Api | null; getLot(): LotState | null; setLot(l: LotState): void; adesso(): number; prendi(kind: 'retino' | 'canna'): void }): Fulvio {
@@ -56,6 +67,9 @@ export function createFulvio(o: { root: HTMLElement; hud: Hud; api: Api | null; 
   o.root.appendChild(sheet);
   for (const ev of ['pointerdown', 'touchstart']) sheet.addEventListener(ev, (x) => x.stopPropagation());
   let aperto: Pezzo | null = null, pag: Pagina | null = null, busy = false, err = '', comprati = 0, consegnati = 0, ampliati = 0, conferma = false;
+  /** Il testo della battuta spezzato in pagine e quella che si legge; da quando (performance.now) i tocchi valgono; il timer che accende i bottoni. */
+  let pezzi: string[] = [], k = 0, pronto = 0, apertura = 0, riprova = 0;
+  const misura = document.createElement('canvas').getContext('2d');
   /** Le descrizioni dei mobili e delle finiture: si scaricano alla prima scheda, non pesano sull'avvio. */
   let testi: Record<string, string> | null = null;
   const caricaTesti = () => {
@@ -64,31 +78,56 @@ export function createFulvio(o: { root: HTMLElement; hud: Hud; api: Api | null; 
     void Promise.all([
       import('@marea/content/mobili_testi.json', { with: { type: 'json' } }).then((m) => (m.default as { testi: Record<string, string> }).testi).catch(() => ({})),
       import('@marea/content/finiture_testi.json', { with: { type: 'json' } }).then((m) => (m.default as { testi: Record<string, string> }).testi).catch(() => ({})),
-    ]).then(([m1, m2]) => { testi = { ...m1, ...m2 }; if (aperto && aperto.kind !== 'banco') pezzo(aperto); }).catch(() => {});
+    ]).then(([m1, m2]) => { testi = { ...m1, ...m2 }; if (aperto && aperto.kind !== 'banco') { const letta = k; pezzo(aperto); k = Math.min(letta, pezzi.length - 1); disegna(); } }).catch(() => {});
   };
 
-  const chiudi = () => { aperto = null; pag = null; err = ''; conferma = false; sheet.classList.remove('on'); sheet.replaceChildren(); };
+  const chiudi = () => { aperto = null; pag = null; pezzi = []; k = 0; err = ''; conferma = false; clearTimeout(riprova); sheet.classList.remove('on'); sheet.replaceChildren(); };
   const fine = (): Scelta => ({ label: FV.scelte.fine, act: 'fine', fai: chiudi });
   const dice = (testo: string, ...scelte: Scelta[]) => mostra({ dice: testo, scelte: scelte.length ? scelte : [fine()] });
-  function mostra(p: Pagina): void { pag = p; err = ''; disegna(); }
+  /** Da qui i tocchi non contano per `ms` (e comunque non prima della fine dell'attesa d'apertura). */
+  const aspetta = (ms: number) => { pronto = Math.max(performance.now() + ms, apertura); };
+  /** Quanti caratteri stanno in una riga della scheda adesso (monospazio: si misura una lettera). */
+  function caratteriPerRiga(): number {
+    let w = 9.6;
+    if (misura) { misura.font = '16px ui-monospace, Menlo, monospace'; w = misura.measureText('M').width || w; }
+    return Math.max(16, Math.floor(((sheet.clientWidth || o.root.clientWidth - 20) - 24) / w) - 1);
+  }
+  function mostra(p: Pagina): void {
+    pag = p; err = ''; k = 0; pezzi = spezza(p.dice, caratteriPerRiga(), RIGHE, LETTERE);
+    aspetta(ATTESA_PAGINA); sheet.scrollTop = 0; disegna();
+  }
+  /** Le pagine del discorso: AVANTI finché ce n'è, sull'ultima le note e le scelte vere. */
+  const vaiAvanti = (): void => { if (k < pezzi.length - 1) { k++; aspetta(ATTESA_PAGINA); sheet.scrollTop = 0; disegna(); } };
+  const AVANTI: Scelta = { label: FV.scelte.avanti, act: 'avanti', fai: vaiAvanti };
   function disegna(): void {
     if (!aperto || !pag) return;
+    clearTimeout(riprova);
+    const ultima = k >= pezzi.length - 1, attendi = performance.now() < pronto;
+    if (attendi) riprova = window.setTimeout(disegna, pronto - performance.now() + 15); // allo scadere i bottoni si accendono
     const testa = el('div', 'mz-row'); testa.style.alignItems = 'center';
     const x = el('button', 'mz-x', '×'); x.type = 'button'; x.addEventListener('click', chiudi);
-    const t = el('b', '', FV.nome); t.style.flex = '1'; t.style.color = PAL.giallo; testa.append(t, x);
-    const corpo: Node[] = [testa, el('p', 'fv-dice', pag.dice), ...(pag.note ?? [])];
+    const t = el('b', '', FV.nome); t.style.flex = '1'; t.style.color = PAL.giallo; testa.append(t);
+    if (pezzi.length > 1) testa.append(el('small', 'fv-n', `${k + 1}/${pezzi.length}`));
+    testa.append(x);
+    const corpo: Node[] = [testa, el('p', 'fv-dice', pezzi[k] ?? ''), ...(ultima ? pag.note ?? [] : [])];
     if (!o.api) corpo.push(el('div', 'prezzo manca', 'Serve il collegamento'));
-    for (const s of pag.scelte) {
-      const b = el('button', 'mz-btn' + (s.verde ? ' green' : ''), ''); b.type = 'button'; b.dataset['act'] = s.act;
+    for (const s of ultima ? pag.scelte : [AVANTI]) {
+      const b = el('button', 'mz-btn' + (s.verde ? ' green' : '') + (attendi ? ' attesa' : ''), ''); b.type = 'button'; b.dataset['act'] = s.act;
       if (s.dato) b.dataset[s.dato[0]] = s.dato[1];
       if (s.icona) { s.icona.style.flex = 'none'; b.append(s.icona); }
       b.append(el('span', '', s.label));
-      b.disabled = busy || !!s.off;
-      b.addEventListener('click', () => { if (!busy) s.fai(); });
+      b.disabled = busy || !!s.off || attendi;
+      b.addEventListener('click', () => { if (!busy && performance.now() >= pronto) s.fai(); });
       corpo.push(b);
     }
     if (err) corpo.push(el('div', 'prezzo manca', err));
     sheet.replaceChildren(...corpo); sheet.classList.add('on');
+  }
+  function avanti(): void {
+    if (!aperto || !pag || busy || performance.now() < pronto) return;
+    if (k < pezzi.length - 1) { vaiAvanti(); return; }
+    const sola = pag.scelte.length === 1 ? pag.scelte[0] : undefined;
+    if (sola && !sola.verde && !sola.off) sola.fai();
   }
   /** Una chiamata al server: bottoni spenti finché risponde; l'errore resta sotto la battuta. */
   async function chiama(fn: (api: Api) => Promise<void>): Promise<void> {
@@ -205,8 +244,8 @@ export function createFulvio(o: { root: HTMLElement; hud: Hud; api: Api | null; 
 
   return {
     get aperto() { return aperto; },
-    apri(p) { aperto = p; err = ''; conferma = false; caricaTesti(); if (p.kind === 'banco') menu(); else pezzo(p); sheet.scrollTop = 0; },
-    chiudi,
-    stato: () => ({ aperto: aperto?.id ?? null, ampliati, conferma, comprati, consegnati, dice: pag?.dice ?? null, scelte: pag?.scelte.map((s) => s.act) ?? [] }),
+    apri(p) { aperto = p; err = ''; conferma = false; apertura = performance.now() + ATTESA_APRI; caricaTesti(); if (p.kind === 'banco') menu(); else pezzo(p); sheet.scrollTop = 0; },
+    chiudi, avanti,
+    stato: () => ({ aperto: aperto?.id ?? null, ampliati, conferma, comprati, consegnati, dice: pag?.dice ?? null, scelte: pag ? (k >= pezzi.length - 1 ? pag.scelte : [AVANTI]).map((s) => s.act) : [], pronto: performance.now() >= pronto, pagina: k + 1, pagine: pezzi.length }),
   };
 }

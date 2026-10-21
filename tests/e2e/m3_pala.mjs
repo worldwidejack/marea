@@ -85,6 +85,7 @@ export default async function (ctx) {
       await ctx.waitState(L.page, (s) => s.negozio.aperto === 'pala', 3000);
       await ctx.shot(L.page, 'pc_pala_negozio');
 
+      await ctx.fulvioFinoA(L.page, 'compra');
       await L.page.locator('#mzNegozio [data-act="compra"]').click();
       await ctx.waitState(L.page, (s) => s.pala && s.pala.posseduta === true, 8000);
       const lotDopo = (await get('/api/lot', 'tokL')).body;

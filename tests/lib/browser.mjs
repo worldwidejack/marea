@@ -37,6 +37,12 @@ export async function waitState(page, fnSrc, timeout = 10000, arg = null) {
   await page.waitForFunction(([f, a]) => { try { return (0, eval)('(' + f + ')')(window.__game.state(), a); } catch { return false; } }, [fn, arg], { timeout, polling: 100 });
 }
 export const getState = (page) => page.evaluate(() => window.__game.state());
+/** Fulvio parla a pagine (poche righe l'una): tocca AVANTI finché sulla scheda compare il bottone `act` (che si accende da solo dopo l'attesa dei tocchi). */
+export async function fulvioFinoA(page, act) {
+  const bottone = (a) => page.locator(`#mzNegozio [data-act="${a}"]`);
+  await page.locator('#mzNegozio.on [data-act]').first().waitFor({ timeout: 5000 });
+  for (let i = 0; i < 20 && !(await bottone(act).count()); i++) await bottone('avanti').first().click();
+}
 export const getPerf = (page) => page.evaluate(() => window.__game.perf());
 export async function shot(page, name) { fs.mkdirSync(SHOTS, { recursive: true }); const f = path.join(SHOTS, name.replace(/[^\w.-]+/g, '_') + '.png'); await page.screenshot({ path: f, timeout: 90000 }); return f; } // su GitHub (SwiftShader, 2-4 fps) un fotogramma pesante supera i 30 s di serie
 export async function screenStats(page) {
