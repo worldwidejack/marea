@@ -111,7 +111,7 @@ export function createPortoAmiciUi(ctx: PortoAmiciCtx): PortoAmiciUi {
     // i collezionisti (#457): pesci e insetti consegnati al mobiliere
     if (collez?.length) {
       const box = el('div', 'mz-pa-rec'); box.dataset['minigioco'] = 'collezione';
-      box.appendChild(el('b', '', 'Collezionisti · pesci e insetti dal mobiliere'));
+      box.appendChild(el('b', '', 'Collezionisti · pesci e insetti registrati da Fulvio'));
       collez.forEach((c, i) => {
         const r = el('div', 'mz-pa-top' + (c.id === meId() ? ' io' : '')); r.dataset['chi'] = c.id;
         const tot = el('span', 'q'); tot.append(el('b', '', String(c.pesci + c.insetti)));

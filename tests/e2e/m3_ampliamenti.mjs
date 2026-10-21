@@ -1,6 +1,6 @@
 // Gli ampliamenti della casa (#386) sul server locale (wrangler dev, TEST_CLOCK:1). Luca: il server rifiuta l'ampliamento senza risorse e con un
 // livello sbagliato; vince monete con le Regate (API, autopilot; il resto dalla rotta di prova /api/test/monete, #414); in casa (livello 0) camminando verso ovest si ferma al muro della stanza piccola;
-// dal mobiliere (banco del negozio) INGRANDISCI LA CASA chiede una conferma, poi paga e porta la casa a livello 1; tornato a casa la stanza è più
+// da Fulvio (banco del negozio) «Voglio ingrandire la casa» propone il prezzo e chiede conferma, poi paga e porta la casa a livello 1; tornato a casa la stanza è più
 // grande: ora si passa oltre il vecchio muro e ci si ferma al nuovo. Telefono 390×844: la scheda del banco sta nello schermo, bottoni ≥ 44 px.
 // Screenshot: il banco con l'ampliamento, la stanza al livello 0 e al livello 1 (PC), la scheda da telefono.
 import fs from 'node:fs';
@@ -97,7 +97,7 @@ export default async function (ctx) {
       await ctx.shot(V.page, 'pc_livello0');
     });
 
-    await ctx.test('PC: dal mobiliere INGRANDISCI LA CASA chiede conferma, poi paga e porta la casa a livello 1', async () => {
+    await ctx.test('PC: da Fulvio «Voglio ingrandire la casa» propone il prezzo, «Sì, ingrandisci» paga e porta la casa a livello 1', async () => {
       await V.hook('negozio');
       await ctx.waitState(V.page, (s) => s.negozio.dentro, 10000);
       const banco = (await V.st()).negozio.pezzi.find((p) => p.kind === 'banco');
@@ -105,13 +105,14 @@ export default async function (ctx) {
       await ctx.waitState(V.page, (s) => s.negozio.near === 'banco', 5000);
       await V.page.keyboard.press('KeyE');
       await ctx.waitState(V.page, (s) => s.negozio.aperto === 'banco', 3000);
+      assert(/Fulvio/.test(await V.page.locator('#mzNegozio').innerText()), 'Fulvio al banco');
+      await V.page.locator('#mzNegozio [data-act="ingrandisci"]').click();
+      await ctx.waitState(V.page, (s) => s.negozio.conferma === true, 3000);
       const t = await V.page.locator('#mzNegozio').innerText();
-      assert(/ingrandisci la casa/i.test(t) && t.includes(liv1.nome) && t.includes(String(k1)), 'scheda del banco: ' + t);
+      assert(/Allargare la baracca/.test(t) && t.includes(liv1.nome) && t.includes(String(k1)), 'proposta di Fulvio: ' + t);
       await ctx.shot(V.page, 'pc_banco_ampliamento');
       const prima = (await get('/api/lot')).body.monete;
-      await V.page.locator('#mzNegozio [data-act="amplia"]').click();
-      await ctx.waitState(V.page, (s) => s.negozio.conferma === true, 3000);
-      assert(((await get('/api/lot')).body.casa?.livello ?? 0) === 0, 'al primo tocco non paga');
+      assert(((await get('/api/lot')).body.casa?.livello ?? 0) === 0, 'la proposta non paga');
       await V.page.locator('#mzNegozio [data-act="amplia"]').click();
       await ctx.waitState(V.page, (s) => s.negozio.ampliati === 1 && s.negozio.livello === 1, 8000);
       const lot = (await get('/api/lot')).body;
@@ -150,10 +151,12 @@ export default async function (ctx) {
       await ctx.waitState(W.page, (s) => s.negozio.aperto === 'banco', 3000);
       await W.page.waitForTimeout(400);
       await ctx.shot(W.page, 'telefono_banco');
+      await W.page.locator('#mzNegozio [data-act="ingrandisci"]').tap();
+      await W.page.waitForTimeout(300);
       await W.page.locator('#mzNegozio [data-act="amplia"]').tap();
       await W.page.waitForTimeout(500);
       const txt = await W.page.locator('#mzNegozio').innerText();
-      assert(/Non hai ancora abbastanza/.test(txt), 'senza risorse: ' + txt);
+      assert(/Con quali soldi/.test(txt) && txt.includes(String(k1)), 'senza risorse: ' + txt);
       // la scheda scorre dentro sé stessa (pala, retino, canna l'hanno allungata): contano i bottoni nella parte che si vede,
       // la scheda intera sta nello schermo, e tornando in cima il × si raggiunge
       const misura = () => W.page.evaluate(() => {

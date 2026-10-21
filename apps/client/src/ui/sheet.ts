@@ -10,14 +10,6 @@ function fmtClock(ms: number): string {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${m}:${String(ss).padStart(2, '0')}`;
 }
-/** Durata leggibile: «30 s», «2 min», «1 h 20 min». */
-export function fmtDur(seconds: number): string {
-  const s = Math.round(seconds);
-  if (s < 60) return `${s} s`;
-  if (s < 3600) return `${Math.round(s / 60)} min`;
-  const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
-  return m ? `${h} h ${m} min` : `${h} h`;
-}
 
 /** Span con un conto alla rovescia che si aggiorna da solo (tick del foglio) senza ridisegnare il pannello. */
 export function timerSpan(endsMs: number, prefix = ''): HTMLSpanElement {

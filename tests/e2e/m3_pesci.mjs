@@ -138,7 +138,7 @@ export default async function (ctx) {
       await page.locator('#mzDiario [data-tab="pesci"]').click();
       await page.locator(`#mzDiario [data-cella="${preso}"]`).click();
       const prima = (await page.locator('#mzDiario').textContent()) ?? '';
-      assert(prima.includes('Portalo al mobiliere') && !prima.includes(def.descr), 'visto: niente scheda ancora');
+      assert(prima.includes('non ancora registrato') && !prima.includes(def.descr), 'preso ma non registrato: nel Diario non c’è');
       await hook('diarioChiudi');
       await hook('negozio', false);
       await ctx.waitState(page, (s) => s.negozio.dentro, 5000);
@@ -146,6 +146,7 @@ export default async function (ctx) {
       await hook('teleport', banco.x, banco.z);
       await ctx.waitState(page, (s) => s.negozio.near === 'banco', 5000);
       await page.keyboard.press('KeyE');
+      await page.locator('#mzNegozio [data-act="registra"]').click();
       await page.locator(`#mzNegozio [data-pesce="${preso}"]`).click();
       await ctx.waitState(page, (s) => s.negozio.consegnati === 1, 8000);
       const l = (await get('/api/lot')).body;

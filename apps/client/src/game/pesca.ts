@@ -169,7 +169,7 @@ export function createPescaBorgo(o: {
   o.root.appendChild(stick.el);
   let presoFino = 0, avvisoAt = -AVVISO_MS, okWas = false, cannaAvviso = false;
   const cartello = (d: PesceDef, nuovo: boolean) => {
-    preso.replaceChildren(pesceCanvas(d, 4), el('small', '', 'Hai preso'), el('b', '', d.nome + '!'), el('small', '', nuovo ? 'Nuovo nel Diario: portalo al mobiliere per la tua collezione' : 'È nello zaino'));
+    preso.replaceChildren(pesceCanvas(d, 4), el('small', '', 'Hai preso'), el('b', '', d.nome + '!'), el('small', '', nuovo ? 'Non è ancora nel Diario: portalo a Fulvio per registrarlo' : 'È nello zaino'));
     preso.classList.add('on'); presoFino = performance.now() + 2800;
   };
   const coarse = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
@@ -282,10 +282,10 @@ export function createPescaBorgo(o: {
   };
   async function tieni(a: Ombra): Promise<void> {
     if (!o.api) { o.hud.toast('Serve il collegamento per tenere i pesci', 2200); andati.add(a.k); ombre.delete(a.k); return; }
-    const prima = pesciOf(o.getLot(), adesso()).visti[a.def.id] ?? 0;
+    const nuovo = !pesciOf(o.getLot(), adesso()).posseduti.includes(a.def.id); // non ancora registrato da Fulvio
     try {
       const r = await o.api.pesci('cattura', { k: a.k });
-      o.setLot(r.lot); cartello(a.def, prima === 0); suona('pesce');
+      o.setLot(r.lot); cartello(a.def, nuovo); suona('pesce');
     } catch (e) { o.hud.toast(e instanceof ApiError || e instanceof Error ? e.message : 'Qualcosa non va, riprova', 2400); }
     finally { andati.add(a.k); ombre.delete(a.k); }
   }

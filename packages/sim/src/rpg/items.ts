@@ -83,14 +83,14 @@ function catalog(): ItemDef[] {
   // gli insetti di Borgo Marea (#445): nello zaino a peso 0; la descrizione vera la mostra il Diario, solo a chi l'ha consegnato al mobiliere
   for (const i of INSETTI) {
     if (byId.has(i.id)) throw new Error(`insetti.json: id già usato da un oggetto ${i.id}`);
-    const it: ItemDef = { id: i.id, nome: i.nome, kind: 'insetto', peso: 0, colore: '#8FC35B', valore: i.prezzo, descr: 'Un insetto preso col retino a Borgo Marea. Portalo al mobiliere per la tua collezione o vendilo al Contrabbandiere.' };
+    const it: ItemDef = { id: i.id, nome: i.nome, kind: 'insetto', peso: 0, colore: '#8FC35B', valore: i.prezzo, descr: 'Un insetto preso col retino a Borgo Marea. Portalo a Fulvio, al negozio, per registrarlo nel Diario o vendilo al Contrabbandiere.' };
     byId.set(it.id, it);
     out.push(it);
   }
   // i pesci (#457): come gli insetti, peso 0; la scheda vera nel Diario dopo la consegna al mobiliere
   for (const p of PESCI) {
     if (byId.has(p.id)) throw new Error(`pesci.json: id già usato da un oggetto ${p.id}`);
-    const it: ItemDef = { id: p.id, nome: p.nome, kind: 'pesce', peso: 0, colore: '#3FB9C9', valore: p.prezzo, descr: 'Un pesce tirato su con la canna. Portalo al mobiliere per la tua collezione o vendilo al Contrabbandiere.' };
+    const it: ItemDef = { id: p.id, nome: p.nome, kind: 'pesce', peso: 0, colore: '#3FB9C9', valore: p.prezzo, descr: 'Un pesce tirato su con la canna. Portalo a Fulvio, al negozio, per registrarlo nel Diario o vendilo al Contrabbandiere.' };
     byId.set(it.id, it);
     out.push(it);
   }
