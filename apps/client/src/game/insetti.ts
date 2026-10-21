@@ -78,7 +78,8 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const adesso = () => o.api?.serverNow() ?? Date.now();
   const sassi = SASSI_BORGO.map((c) => ({ ...cellWorld(c), scossa: 0 }));
   const alberi = ALBERI_BORGO.map((a) => ({ ...cellWorld(a.at), scossa: 0 }));
-  let meshAlberi: THREE.InstancedMesh | null = null;
+  // ogni albero → la sua istanza nel BatchedMesh «alberi_borgo» (render/verde.ts: l'istanza i è l'albero i)
+  let meshAlberi: THREE.BatchedMesh | null = null;
   const baseMats: THREE.Matrix4[] = [], tmpM = new THREE.Matrix4(), r1 = new THREE.Matrix4(), r2 = new THREE.Matrix4();
   const particelle: { x: number; y: number; z: number; vx: number; vy: number; vz: number; t: number; tipo: 'terra' | 'scintilla' }[] = [];
   const emettiParticelle = (x: number, y: number, z: number, tipo: 'terra' | 'scintilla', n = 5) => {
@@ -291,8 +292,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const disegna = (now: number, dt: number) => {
     corpi.begin(); luci.begin();
     const f = w.avatar.state, notte = notteAt(now);
-    if (!meshAlberi) w.scene.traverse((o) => { if (o instanceof THREE.InstancedMesh && o.name === 'alberi_borgo') { meshAlberi = o; for (let i = 0; i < o.count; i++) { const m = new THREE.Matrix4(); o.getMatrixAt(i, m); baseMats.push(m); } } });
-    let albAgg = false;
+    if (!meshAlberi) w.scene.traverse((o) => { if (o instanceof THREE.BatchedMesh && o.name === 'alberi_borgo') { meshAlberi = o; for (let i = 0; i < Math.min(alberi.length, o.instanceCount); i++) { const m = new THREE.Matrix4(); o.getMatrixAt(i, m); baseMats.push(m); } } });
     alberi.forEach((a, i) => {
       if (a.scossa <= 0) return;
       a.scossa = Math.max(0, a.scossa - dt);
@@ -300,10 +300,9 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       if (meshAlberi && baseMats[i]) {
         const env = a.scossa / 0.85, fq = (0.85 - a.scossa) * 30;
         tmpM.multiplyMatrices(baseMats[i]!, r1.makeRotationX(Math.sin(fq) * 0.14 * env).multiply(r2.makeRotationZ(Math.cos(fq * 0.8) * 0.08 * env)));
-        meshAlberi.setMatrixAt(i, a.scossa > 0 ? tmpM : baseMats[i]!); albAgg = true;
+        meshAlberi.setMatrixAt(i, a.scossa > 0 ? tmpM : baseMats[i]!);
       }
     });
-    if (albAgg && meshAlberi) meshAlberi.instanceMatrix.needsUpdate = true;
     sassi.forEach((s) => {
       if (Math.hypot(s.x - f.x, s.z - f.z) > 70) return;
       s.scossa = Math.max(0, s.scossa - dt);

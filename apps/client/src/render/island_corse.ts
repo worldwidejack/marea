@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { M, P, merged, painted } from './island_parts.ts';
 import type { TemaProp } from './island_temi.ts';
+import { albero } from './verde.ts';
 
 type G = THREE.BufferGeometry;
 // Le decorazioni dell'isola si guardano sempre dall'alto (camera a 22-45°): cubi e cilindri senza la faccia di sotto (2 triangoli su 12
@@ -532,13 +533,7 @@ function costruisci(kind: TemaProp): { b: G[]; l: G[] } {
       b.push(painted(cyl(0.18, 0.14, 0.25, 6), P.acqua, M(-0.7, 0.12, 0.6)));
       break;
     }
-    case 'albero_tondo': {
-      b.push(painted(cyl(0.15, 0.22, 1.8, 5), P.legno, M(0, 0.9, 0)));
-      b.push(painted(ico(1.35, 0), P.erba, M(0, 2.7, 0, 0.3, 0, 0, 1, 0.9, 1)));
-      b.push(painted(otto(1.0), P.erbaScura, M(0.6, 2.2, 0.4, 0, 0.5, 0)));
-      b.push(painted(otto(0.75), P.erbaChiara, M(-0.35, 3.35, -0.3, 0.4, 0.2, 0)));
-      break;
-    }
+    case 'albero_tondo': b.push(albero(0).clone()); break; // gli alberi veri, mischiati, li mette island.ts (render/verde.ts)
     case 'albero_giungla': {
       // albero della giungla: tronco storto, chioma larga a piani, liane
       b.push(painted(cyl(0.16, 0.26, 2.8, 5), P.legnoScuro, M(0.1, 1.4, 0, 0, 0, -0.08)));
