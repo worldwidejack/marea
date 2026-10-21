@@ -7,7 +7,6 @@ import { BORGO, MOBILI, MOBILI_CATEGORIE, validateContent } from '@marea/content
 import type { MobileDef } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
 import { celleMobile, compraMobile, posaMobile, ruotaMobile, spostaMobile } from '../src/economy/casa.ts';
-import { lotTemplate } from '../src/economy/cells.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { conMonete } from './monete_util.ts';
 import { isErr } from './economia_util.ts';
@@ -19,8 +18,8 @@ const ARMADIO: MobileDef = { id: 'armadio_prova', nome: 'Armadio', categoria: 'c
 (MOBILI as MobileDef[]).push(DIVANO, ARMADIO);
 
 function conMobili(...ids: string[]): LotState {
-  let l = newLot('a', 0, lotTemplate()!);
-  l = conMonete(l, 5000);
+  const l0 = newLot('a', 0), { baule: _b, ...casa } = l0.casa ?? {}; // senza baule: la stanza tutta libera
+  let l = conMonete({ ...l0, casa }, 5000);
   for (const id of ids) l = compraMobile(l, id, 1000);
   return l;
 }

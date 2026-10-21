@@ -2,7 +2,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { building } from '@marea/content';
 import { ENEMIES, ITEMS_RAW, LOOT, MATERIALS, PERKS, RECIPES, RPG, SKILLS, SPELLS, WEAPON_TYPES } from '@marea/content/rpg.ts';
 import { ITEMS, hasItem, itemDef } from '../src/rpg/items.ts';
 
@@ -40,7 +39,6 @@ test('rpg catalogo: ogni id usato in partenza, ricette, bottega, libri, Serra e 
   }
   assert.ok(RECIPES.some((r) => r.livello <= RPG.livelli.skillIniziale), 'almeno una ricetta subito');
   for (const id of Object.keys(RPG.bottega)) assert.ok(hasItem(id), `bottega ${id}`);
-  for (const id of building('serra').producesItems ?? []) assert.ok(hasItem(id) && itemDef(id).kind === 'ingrediente', `serra ${id}`);
   for (const it of ITEMS.filter((i) => i.kind === 'libro')) assert.ok(SPELLS.some((s) => s.id === it.insegna), `libro ${it.id}`);
   for (const s of SPELLS) assert.ok(s.id === 'fiammata' || ITEMS.some((i) => i.insegna === s.id), `nessun libro per ${s.id}`);
   // contenuti di R-dungeon (se già scritti): bottino e evocazioni puntano a id veri

@@ -249,7 +249,7 @@ test('mani: si parte con la magia in mano se il personaggio la teneva; senza mag
 });
 
 test('mani sull’isola: preparare una magia la mette in mano, impugnare l’arma o togliere la magia la libera; si salva a fine spedizione', () => {
-  const lot = newLot('jack', T0, null);
+  const lot = newLot('jack', T0);
   const base = heroOf(lot);
   assert.equal(base.equip.mano, undefined);
   const inMano = heroOf(applyRpgAction(lot, { t: 'equip', slot: 'magia', item: 'fiammata' }, T0));

@@ -1,6 +1,4 @@
 // @marea/content: dati di gioco in JSON, tipizzati e validati. Nessuna logica.
-import buildings from './buildings.json' with { type: 'json' };
-import resources from './resources.json' with { type: 'json' };
 import islands from './islands.json' with { type: 'json' };
 import avatar from './avatar.json' with { type: 'json' };
 import balance from './balance.json' with { type: 'json' };
@@ -24,7 +22,7 @@ import corse from './minigames/corse.json' with { type: 'json' }; // Isola delle
 import snowboard from './minigames/snowboard.json' with { type: 'json' }; // Isola dell'Adrenalina
 import type { ArrembaggioCfg, LavaCfg } from './types.ts'; // Tempesta, Vulcano
 import type { MobileDef } from './types.ts'; // Mobili della casa (#265)
-import type { ArchipelagoDef, AvatarDef, BorgoDef, BalanceDef, BuildingDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, MeteoCfg, PerleCfg, RegataCfg, ResourceDef, RientroCfg, ScacchiCfg } from './types.ts';
+import type { ArchipelagoDef, AvatarDef, BorgoDef, BalanceDef, ConsegneCfg, DecorDef, IngorgoCfg, IslandDef, MeteoCfg, PerleCfg, RegataCfg, RientroCfg, ScacchiCfg } from './types.ts';
 import type { PinguiniCfg } from './types.ts'; // Ghiacci
 import type { KoiCfg } from './types.ts'; // Giardino
 import type { CorseCfg } from './types.ts'; // Isola delle Corse
@@ -34,8 +32,6 @@ import { DIARIO, validateDiario } from './diario.ts'; // Diario del capitano (#8
 
 export type * from './types.ts';
 
-export const BUILDINGS = buildings as unknown as readonly BuildingDef[];
-export const RESOURCES = resources as unknown as readonly ResourceDef[];
 export const ISLANDS = islands as unknown as readonly IslandDef[];
 export const AVATAR = avatar as unknown as AvatarDef;
 export const BALANCE = balance as unknown as BalanceDef;
@@ -75,11 +71,6 @@ export const SCACCHI = scacchi as unknown as ScacchiCfg;
 export const RIENTRO = rientro as unknown as RientroCfg; // Mentre eri via e libro degli ospiti (#86)
 export const METEO = meteo as unknown as MeteoCfg;
 
-export function building(id: string): BuildingDef {
-  const b = BUILDINGS.find((x) => x.id === id);
-  if (!b) throw new Error(`Edificio sconosciuto: ${id}`);
-  return b;
-}
 export function island(id: string): IslandDef {
   const i = ISLANDS.find((x) => x.id === id);
   if (!i) throw new Error(`Isola sconosciuta: ${id}`);
@@ -88,9 +79,9 @@ export function island(id: string): IslandDef {
 /** [] se tutto è a posto, altrimenti gli errori in italiano. */
 export function validateContent(): string[] {
   return [
-    ...validateAll({ buildings: [...BUILDINGS], resources: [...RESOURCES], islands: [...ISLANDS], avatar: AVATAR, balance: BALANCE, decor: [...DECOR] }),
+    ...validateAll({ islands: [...ISLANDS], avatar: AVATAR, balance: BALANCE, decor: [...DECOR] }),
     ...validateArchipelago(ARCHIPELAGO, [...ISLANDS]),
-    ...validateTemi(ARCHIPELAGO, [...BUILDINGS], AVATAR),
+    ...validateTemi(ARCHIPELAGO, AVATAR),
     ...validateBorgo(),
     ...validateDiario(), // Diario del capitano (#87)
     ...DIARIO.minigiochi.filter((m) => !Object.hasOwn(MINIGAMES_CFG, m.id)).map((m) => `diario: minigioco sconosciuto ${m.id}`),
@@ -115,9 +106,6 @@ function validateBorgo(): string[] {
   const lt = ISLANDS.find((i) => i.id === 'lotto'), st = BORGO.stanza, [x0, z0, x1, z1] = st.pavimento;
   if (lt) {
     for (let z = z0; z < z1; z++) for (let x = x0; x < x1; x++) if (!'.LP'.includes(lt.rows[z]?.[x] ?? '~')) errs.push(`borgo: la stanza ha una cella non di pavimento in ${x},${z}`);
-    // il passaggio del giardino ha la bocca sul lato ovest della cella `giardino` (#265): si cammina dalla cella verso quella a ovest
-    for (const dx of [0, -1]) if (!'.gdP'.includes(lt.rows[st.giardino[1]]?.[st.giardino[0] + dx] ?? '~')) errs.push('borgo: il passaggio del giardino non è camminabile');
-    if (st.retro[1] !== z0) errs.push('borgo: la porta sul retro sta nella prima fila della stanza');
     const [cx, c0, c1] = st.corridoio;
     if (c0 !== z1 || cx < x0 || cx >= x1) errs.push('borgo: il corridoio parte dal bordo davanti della stanza');
     for (let z = c0; z < c1; z++) if (!'.P'.includes(lt.rows[z]?.[cx] ?? '~')) errs.push(`borgo: il corridoio ha una cella non camminabile in ${cx},${z}`);

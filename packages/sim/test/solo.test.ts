@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BALANCE } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
-import { checkInvariant } from '../src/economy/ledger.ts';
 import { finishSolo, soloLeft, soloOf, soloPrize, startSolo } from '../src/economy/rewards.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import { checkMonete } from '../src/economy/monete.ts';
@@ -25,10 +24,8 @@ test('solo: start apre la partita col seed del server, finish paga e la chiude; 
   const out = finishSolo(l1, 'oro', T0 + 30_000);
   assert.ok(out.premiata);
   assert.equal(out.lot.monete, l0.monete + BALANCE.solo.premi.oro);
-  assert.deepEqual(out.lot.resources, l0.resources);
   assert.equal(out.lot.solo?.pending, null);
   assert.equal(out.lot.solo?.giocate, 1);
-  assert.equal(checkInvariant([out.lot]), null);
   assert.equal(checkMonete([out.lot]), null);
   assert.throws(() => finishSolo(out.lot, 'oro', T0 + 60_000), (e) => e instanceof EconomyError && e.code === 'partita');
 });
@@ -43,7 +40,6 @@ test('solo: oltre il tetto del giorno si gioca senza premio; il giorno dopo si r
   assert.equal(soloLeft(extra.lot, T0 + DAY), BALANCE.solo.premiateAlGiorno);
   const next = finishSolo(startSolo(extra.lot, 'regata', 7, T0 + DAY), 'argento', T0 + DAY);
   assert.ok(next.premiata);
-  assert.equal(checkInvariant([next.lot]), null);
 });
 
 test('solo: la medaglia la decide il replay degli input (autopilot di riferimento → medaglia)', () => {

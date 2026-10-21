@@ -1,33 +1,8 @@
 // Tipi dei contenuti data-driven (packages/content). Solo dati: niente logica di gioco.
-/** Le risorse di prima (Legno, Pietra, Perle): dal 18 ott 2026 (#414) la valuta è una sola, le **monete** (`LotState.monete`). Restano solo per
- *  il codice spento (edifici del giardino, Faro comune, sfide con posta) e per convertire i vecchi salvataggi (`BALANCE.monete.cambio`). */
+/** Le risorse di prima (Legno, Pietra, Perle): la valuta è una sola, le monete (`LotState.monete`). Servono solo a convertire i vecchi
+ *  salvataggi (`BALANCE.monete.cambio`) e a dare un prezzo in monete alle ricette scritte in Legno (la forgia). */
 export type Resources = { legno: number; pietra: number; perle: number };
-export type ResourceId = keyof Resources;
 
-export type BuildingLevel = {
-  cost: Resources;
-  seconds: number;
-  rate?: number;          // unità/ora prodotte (segheria, cava)
-  cap?: number;           // tetto del Magazzino per risorsa
-  slots?: number;         // slot cosmetici (Casa)
-  wagerMax?: number;      // Tavolo delle Sfide
-  freeChallenges?: number;
-  boost?: number;         // Faro
-  boostHours?: number;
-  boatSpeed?: number;     // Molo
-};
-export type BuildingDef = {
-  id: string;
-  nome: string;
-  size: [number, number];
-  model: string;
-  produces?: ResourceId;
-  /** Serra (docs/RPG.md §6): produce ingredienti (id di rpg/items.json) invece di una risorsa; `rate` = ingredienti/ora, a rotazione. */
-  producesItems?: string[];
-  requires?: string;
-  levels: BuildingLevel[];
-};
-export type ResourceDef = { id: ResourceId; nome: string; icona: string };
 export type IslandDef = {
   id: string; nome: string; tile: number; rows: string[];
   /** Resa e scenografia (render): stile dei materiali e densità della scenografia casuale (1 = normale, 0 = niente). */
@@ -72,9 +47,9 @@ export type CasaLivello = { id: string; nome: string; desc: string; stanza: 'ter
 /** Borgo Marea (#237): la casa `n` = lo slot `n` (= il lotto/giardino `n`). `at` = cella dell'edificio, `porta` = cella della via davanti, entrambe nel template `borgo`. */
 export type BorgoDef = {
   nome: string; case: { at: [number, number]; porta: [number, number] }[];
-  /** La stanza della casa nel template `lotto` (#240): pavimento [x0, z0, x1, z1) in celle, altezza dei muri in m, porta in fondo (`retro`),
-   *  passaggio del giardino (`giardino`) e corridoio d'ingresso sotto il pavimento (#265: colonna x, righe [z0, z1); in fondo si esce in città). */
-  stanza: { pavimento: [number, number, number, number]; altezza: number; retro: [number, number]; giardino: [number, number]; corridoio: [number, number, number] };
+  /** La stanza della casa nel template `lotto`: pavimento [x0, z0, x1, z1) in celle, altezza dei muri in m e corridoio d'ingresso sotto il
+   *  pavimento (colonna x, righe [z0, z1); in fondo si esce in città). */
+  stanza: { pavimento: [number, number, number, number]; altezza: number; corridoio: [number, number, number] };
   /** Gli ampliamenti della casa (#386), uno alla volta e in ordine (livello 1 = il primo): `stanza` = quale stanza cambia ('terra' = quella di sempre,
    *  poi 'cantina' e 'piano'), `pavimento` = il suo nuovo rettangolo [x0, z0, x1, z1) (contiene quello di prima), `monete` = il prezzo.
    *  Il rettangolo sta tutto dentro la pianta del template `lotto`. */
@@ -115,12 +90,9 @@ export type AvatarDef = {
   emote: string[];
 };
 export type BalanceDef = {
-  /** La valuta (#414): monete di chi comincia, e il cambio fisso dei vecchi salvataggi (monete per 1 Perla, 1 Legno, 1 Pietra; il totale si arrotonda giù). */
-  monete: { partenza: number; cambio: Resources };
-  /** Risorse vecchie di un lotto nuovo: servono solo al codice spento (edifici del giardino), non si vedono più. */
-  partenza: Resources;
-  capBase: number;
-  bufferOre: number;
+  /** La valuta: monete di chi comincia, il cambio fisso dei vecchi salvataggi (monete per 1 Perla, 1 Legno, 1 Pietra; il totale si arrotonda
+   *  giù) e quanto erano costati i livelli degli edifici del giardino di prima (con la risorsa del deposito), per convertirli. */
+  monete: { partenza: number; cambio: Resources; edifici: Record<string, { produce?: 'legno' | 'pietra'; livelli: Partial<Resources>[] }> };
   /** Minigiochi da solo: monete per medaglia ('nessuna' = arrivato senza medaglia) e quante partite al giorno sono premiate. */
   solo: { premi: { oro: number; argento: number; bronzo: number; nessuna: number }; premiateAlGiorno: number };
   avatar: { camminata: number; corsa: number; sogliaCorsa: number; raggio: number };

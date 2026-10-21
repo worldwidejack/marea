@@ -4,10 +4,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { GENTE, MISSIONI, validatePorto } from '@marea/content/porto.ts';
 import { newLot } from '../src/economy/actions.ts';
-import { checkInvariant } from '../src/economy/ledger.ts';
 import { checkMonete } from '../src/economy/monete.ts';
-import { eventiPartita, eventiRaccolta, finoAlCambio, giornoDi, missioniDelGiorno, missioniOf, riscuotiMissione, tracciaMissioni } from '../src/economy/missioni.ts';
-import { EconomyError, add } from '../src/economy/types.ts';
+import { eventiPartita, finoAlCambio, giornoDi, missioniDelGiorno, missioniOf, riscuotiMissione, tracciaMissioni } from '../src/economy/missioni.ts';
+import { EconomyError } from '../src/economy/types.ts';
 
 const DAY = 86_400_000, T0 = 20_000 * DAY + 3_600_000; // un'ora dopo la mezzanotte UTC
 
@@ -55,8 +54,6 @@ test('missioni: i contatori salgono, RISCUOTI paga una volta sola, libro mastro 
   const out = riscuotiMissione(l1, first.i, T0 + 3000);
   assert.equal(out.premio, first.premio);
   assert.equal(out.lot.monete, l1.monete + first.premio);
-  assert.deepEqual(out.lot.resources, l1.resources);
-  assert.equal(checkInvariant([out.lot], { legno: 0, pietra: 0, perle: 0 }), null);
   assert.equal(checkMonete([out.lot]), null);
   assert.ok(missioniOf(out.lot, T0 + 3000).list[0]!.riscossa);
   assert.throws(() => riscuotiMissione(out.lot, first.i, T0 + 4000), (e) => e instanceof EconomyError && /già riscosso/.test(e.message));
@@ -76,11 +73,9 @@ test('missioni: a mezzanotte UTC contatori e riscosse si azzerano, le missioni c
   assert.deepEqual(Object.keys(l2.missioni!.prog), ['partite']);
 });
 
-test('missioni: eventi di partite e raccolte; zero eventi = lotto invariato', () => {
+test('missioni: eventi delle partite; zero eventi = lotto invariato', () => {
   assert.deepEqual(eventiPartita('oro'), { partite: 1, medaglia: 1, oro: 1 });
   assert.deepEqual(eventiPartita(null), { partite: 1, medaglia: 0, oro: 0 });
   const l0 = newLot('ada', T0);
-  const l1 = { ...l0, ledger: { ...l0.ledger, generated: add(l0.ledger.generated, { legno: 30, pietra: 0, perle: 0 }) } };
-  assert.deepEqual(eventiRaccolta(l0, l1), { legno: 30, pietra: 0 });
-  assert.equal(tracciaMissioni(l0, { legno: 0 }, T0), l0);
+  assert.equal(tracciaMissioni(l0, { partite: 0 }, T0), l0);
 });

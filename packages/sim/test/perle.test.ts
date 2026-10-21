@@ -12,7 +12,6 @@ import { createRng } from '../src/rng.ts';
 import { isPackedInputs, packInputs, quantize, replay } from '../src/replay.ts';
 import type { InputFrame } from '../src/types.ts';
 import { newLot } from '../src/economy/actions.ts';
-import { checkInvariant } from '../src/economy/ledger.ts';
 import { finishSolo, soloPrize, startSolo } from '../src/economy/rewards.ts';
 import { checkMonete } from '../src/economy/monete.ts';
 import { composeArchipelago } from '../src/world/archipelago.ts';
@@ -136,7 +135,5 @@ test('perle: premio della medaglia da balance.solo, più le monete extra dell\'o
   const out = finishSolo(startSolo(l0, 'perle', 7, T0), 'oro', T0 + 61_000);
   assert.equal(out.premio, soloPrize('oro', 'perle'));
   assert.equal(out.lot.monete, l0.monete + out.premio);
-  assert.deepEqual(out.lot.resources, l0.resources);
-  assert.equal(checkInvariant([out.lot]), null);
   assert.equal(checkMonete([out.lot]), null);
 });

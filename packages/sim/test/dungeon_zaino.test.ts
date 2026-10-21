@@ -55,7 +55,7 @@ test('zaino: si equipaggia quello raccolto nel dungeon; uscendo resta, morendo (
   assert.equal(heroNow(s)!.equip.arma, 'katana_ferro');
   const r = dungeon.result(s);
   assert.deepEqual(r.equip, { ...newHero().equip, arma: 'katana_ferro', anello1: 'anello_vita_debole' });
-  const lot = startDungeon(newLot('jack', T0, null), 'grotta', 3, T0);
+  const lot = startDungeon(newLot('jack', T0), 'grotta', 3, T0);
   const ok = heroOf(finishDungeon(lot, { ...r, done: true, outcome: 'uscito' }, T0 + 1).lot);
   assert.equal(ok.equip.arma, 'katana_ferro');
   assert.equal(ok.equip.anello1, 'anello_vita_debole');
@@ -85,7 +85,7 @@ test('zaino: Butta via prima dal bottino, poi da quello portato da casa; il peso
   assert.equal(dungeon.act(s, { t: 'butta', item: 'katana_legno', n: 1 }), null, 'non ne hai più');
   const r = dungeon.result(s);
   assert.deepEqual(r.buttati, { frecce_legno: 5, katana_legno: 1 });
-  const h = heroOf(finishDungeon(startDungeon(newLot('jack', T0, null), 'grotta', 3, T0), { ...r, done: true, outcome: 'uscito' }, T0 + 1).lot);
+  const h = heroOf(finishDungeon(startDungeon(newLot('jack', T0), 'grotta', 3, T0), { ...r, done: true, outcome: 'uscito' }, T0 + 1).lot);
   assert.equal(h.inv['katana_legno'], undefined);
   assert.equal(h.inv['frecce_legno'], 15);
   assert.equal(h.equip.arma, undefined);
@@ -146,7 +146,7 @@ test('zaino: le azioni si rigiocano col log (stesso hash del client); forma cont
 });
 
 test('Butta via sull’isola: toglie dallo zaino (gli slot rimasti senza si svuotano); forma controllata', () => {
-  const lot = newLot('jack', T0, null);
+  const lot = newLot('jack', T0);
   const a = applyRpgAction(lot, { t: 'butta', item: 'frecce_legno', n: 5 }, T0 + 1);
   assert.equal(heroOf(a).inv['frecce_legno'], 15);
   const b = applyRpgAction(a, { t: 'butta', item: 'katana_legno', n: 1 }, T0 + 2);

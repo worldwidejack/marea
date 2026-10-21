@@ -1,6 +1,5 @@
 // Azioni del personaggio sull'isola (POST /api/rpg → DO Lot). Pure: advance(nowMs) prima, poi controlli, EconomyError in italiano, version + 1.
 import { PERKS, RECIPES, RPG, spellDef } from '@marea/content/rpg.ts';
-import { building } from '@marea/content';
 import { advance } from '../economy/advance.ts';
 import { hashJson } from '../hash.ts';
 import { guadagna, prezzoInMonete, spendi } from '../economy/monete.ts';
@@ -19,7 +18,6 @@ import type { EquipSlot, HeroState, ItemDef, RpgAction } from './types.ts';
 
 export { parseRpgAction } from './parse.ts';
 
-const HOUR = 3_600_000;
 const err = (code: ConstructorParameters<typeof EconomyError>[0], msg: string): EconomyError => new EconomyError(code, msg);
 
 function needItem(id: string): ItemDef {
@@ -100,27 +98,6 @@ function alchimia(lot: LotState, h: HeroState, ricetta: string, n: number): { he
   return { hero, forziere };
 }
 
-/** Raccoglie la Serra: ingredienti a rotazione nel Forziere (se c'è), altrimenti nello zaino; quello che non ci sta resta nella Serra. */
-function serra(lot: LotState, h: HeroState): { hero: HeroState; forziere: Bag; lot: LotState } {
-  const b = lot.buildings.find((x) => x.building === 'serra');
-  if (!b || b.level < 1) throw err('edificio', `Serve: ${building('serra').nome}`);
-  const items = building('serra').producesItems ?? [];
-  const k = Math.floor(b.buffer);
-  if (k < 1 || !items.length) return { hero: h, forziere: lot.forziere ?? {}, lot };
-  const cap = chestCap(lot);
-  let hero = h, forziere = lot.forziere ?? {}, room = cap > 0 ? cap - bagWeight(forziere) : caricoMaxOf(h) - carriedOf(h), taken = 0;
-  const off = Math.floor(lot.nowMs / HOUR) % items.length;
-  for (; taken < k; taken++) {
-    const id = items[(off + taken) % items.length]!;
-    const p = hasItem(id) ? itemDef(id).peso : 0;
-    if (p > room + 1e-9) break;
-    room -= p;
-    if (cap > 0) forziere = addTo(forziere, id, 1); else hero = { ...hero, inv: addTo(hero.inv, id, 1) };
-  }
-  if (taken === 0) throw err('peso', cap > 0 ? 'Il Forziere è pieno' : 'Zaino troppo pesante');
-  return { hero, forziere, lot: { ...lot, buildings: lot.buildings.map((x) => (x.id === b.id ? { ...x, buffer: x.buffer - taken } : x)) } };
-}
-
 export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): LotState {
   let lot = advance(lot0, nowMs);
   let h = heroOf(lot);
@@ -163,7 +140,7 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
     case 'deposita': {
       const it = needItem(a.item);
       const cap = chestCap(lot);
-      if (cap <= 0) throw err('edificio', `Serve: ${building('forziere').nome}`);
+      if (cap <= 0) throw err('edificio', 'Il baule è in casa tua: entra e riprova');
       if ((h.inv[it.id] ?? 0) < a.n) throw err('oggetto', `Non hai abbastanza: ${it.nome}`);
       const eq = Object.entries(h.equip).filter(([s, id]) => s !== 'magia' && id === it.id).length;
       if ((h.inv[it.id] ?? 0) - a.n < eq) throw err('equip', `Togli prima ${it.nome} dall'equipaggiamento`);
@@ -175,7 +152,7 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
     }
     case 'preleva': {
       const it = needItem(a.item);
-      if (chestCap(lot) <= 0) throw err('edificio', `Serve: ${building('forziere').nome}`);
+      if (chestCap(lot) <= 0) throw err('edificio', 'Il baule è in casa tua: entra e riprova');
       const f = lot.forziere ?? {};
       if ((f[it.id] ?? 0) < a.n) throw err('oggetto', `Nel Forziere non c'è abbastanza: ${it.nome}`);
       if (carriedOf(h) + it.peso * a.n > caricoMaxOf(h) + 1e-9) throw err('peso', 'Zaino troppo pesante');
@@ -191,7 +168,6 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       h = { ...h, inv: removeFrom(h.inv, it.id, a.n) };
       break;
     }
-    case 'serra': ({ hero: h, forziere, lot } = serra(lot, h)); break;
     case 'vetrina': {
       // la vetrina di oggi del Fabbro o dell'Alchimista (#414): si compra nello zaino (o nel Forziere se lo zaino è pieno)
       const it = needItem(a.item);

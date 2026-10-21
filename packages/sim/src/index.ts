@@ -14,12 +14,10 @@ export * from './economy/types.ts';
 export * from './economy/monete.ts'; // la valuta (#414)
 export * from './economy/advance.ts';
 export * from './economy/actions.ts';
-export * from './economy/ledger.ts';
 export * from './economy/rewards.ts';
 export * from './minigames/types.ts';
 export * from './minigames/registry.ts';
 export * from './replay.ts';
-export * from './economy/cells.ts';
 export * from './minigames/scacchi.ts';
 export * from './minigames/consegne/consegne.ts'; // Consegne
 export * from './minigames/ingorgo.ts'; // Ingorgo

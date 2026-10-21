@@ -294,7 +294,7 @@ test('Patto di sangue: l\'evocazione non scade, resta finché vive, e riparte co
 });
 
 test('Patto di sangue: finishDungeon salva (o toglie) la creatura sul personaggio', () => {
-  const l0 = newLot('jack', 1_800_000_000_000, null);
+  const l0 = newLot('jack', 1_800_000_000_000);
   const h0 = heroCon(['ev_legame', 'ev_richiamo', 'ev_patto', 'ev_sangue']);
   let l = startDungeon({ ...l0, hero: h0 }, 'grotta', 5, 1_800_000_001_000);
   const base = { done: true, outcome: 'uscito' as const, ticks: 100, bottino: {}, monete: 0, xp: {}, usati: {}, rotti: {}, usura: {}, uccisi: {}, danniFatti: 0, danniPresi: 0, hash: 1 };

@@ -27,7 +27,7 @@
 | Dove | Cosa c'è | Chi |
 |---|---|---|
 | `rng.ts`, `trig.ts`, `hash.ts`, `replay.ts` | casualità da seed, seni e coseni uguali su ogni motore, hash, replay degli input | tutti |
-| `economy/` | il lotto di ognuno: monete, botteghe e vetrine, casa e ampliamenti, mobili, missioni, diario, pala, insetti, pesci, paesani (chiacchiere e favori), cambio dei salvataggi; anche il codice spento (edifici) | J, R |
+| `economy/` | il lotto di ognuno: monete, botteghe e vetrine, casa e ampliamenti, mobili, missioni, diario, pala, insetti, pesci, paesani (chiacchiere e favori), decorazioni in casa, cambio dei salvataggi | J, R |
 | `world/` | arcipelago a celle, avatar, barca, collisioni (celle e solidi del Borgo), percorsi della gente che passeggia, sblocchi delle isole a tema | tutti |
 | `minigames/` | minigiochi nel formato comune (`create`, `step`, `result`, `autopilot`), elencati in `registry.ts` | J |
 | `meteo.ts` | nuvole e meteo dall'orologio | J |
@@ -55,7 +55,6 @@ Test della sim: `packages/sim/test/*.test.ts` (node:test), fixture d'oro in `tes
 | `templari/`, `templari*.ts` | mappa e numeri dei Templari | B |
 | `rpg/`, `rpg*.ts`, `arena/`, `arena.ts` | GDR (armi, materiali, nemici, magie, dungeon) e duello | R |
 | `difesa.*`, `sparo.*` | Difesa e sparatutto | J |
-| `buildings.json`, `resources.json` | spento: edifici, risorse di prima | — |
 
 ## packages/protocol/src · tipi dei messaggi WebSocket
 `messages.ts` (zona: presenza, emote), `squadra.ts` (dungeon insieme), `gara_amici.ts`, `templari_insieme.ts`, `arena.ts`. Tutti.

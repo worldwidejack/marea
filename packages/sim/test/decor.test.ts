@@ -7,15 +7,13 @@ import { BORGO, DECOR } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
 import { posaMobile, postoMobileError, ritiraMobile, ruotaMobile, spostaMobile, mobile } from '../src/economy/casa.ts';
 import { chiaveDecor, compraDecor, decorComeMobile, decorDi, decorInCasa } from '../src/economy/decorazioni.ts';
-import { lotTemplate } from '../src/economy/cells.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { checkMonete } from '../src/economy/monete.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
 import { isErr } from './economia_util.ts';
 
-const T = lotTemplate()!;
 const [X0, Z0] = BORGO.stanza.pavimento;
-const ricco = (monete: number): LotState => conMonete(senzaMonete(newLot('a', 0, T)), monete);
+const ricco = (monete: number): LotState => conMonete(senzaMonete(newLot('a', 0)), monete);
 const prezzo = (id: string) => DECOR.find((d) => d.id === id)!.monete;
 
 test('chiavi: «decor:<id>» è una decorazione e un mobile a terra di una cella; un mobile vero non lo è', () => {

@@ -6,12 +6,8 @@ import type { CasaState } from './casa.ts';
 import type { InsettiState } from './insetti.ts';
 import type { PaesaniState } from './paesani.ts';
 import type { PesciState } from './pesci.ts';
-export type PlacedBuilding = { id: string; building: string; level: number; cell: [number, number]; buffer: number; lastMs: number; rot?: number };
-/** Edificio riposto nel magazzino dell'isola (#403). */
-export type StoredBuilding = { id: string; building: string; level: number; buffer: number; lastMs: number; rot?: number };
-export type Construction = { building: string; level: number; endsMs: number; placedId: string };
-/** Libro mastro: `generated`/`spent` = le risorse di prima (codice spento), `monete` = entrate e uscite di monete (#414; assente = 0 e 0). */
-export type LedgerTotals = { generated: Resources; spent: Resources; monete?: { generated: number; spent: number } };
+/** Libro mastro delle monete: entrate e uscite (assente = 0 e 0). */
+export type LedgerTotals = { monete?: { generated: number; spent: number } };
 /** La conversione di un vecchio salvataggio (#414, `cambio.ts`): quando, quante monete in tutto e da cosa (risorse, edifici spenti, monete del personaggio). */
 export type CambioMonete = { ms: number; monete: number; risorse: Resources; edifici: Resources; edificiSpenti: string[]; eroe: number };
 /** Minigiochi da solo (senza posta): partita aperta dal server (seed) e conteggio del giorno UTC per il tetto dei premi. */
@@ -21,8 +17,6 @@ export type SoloState = { day: number; premiate: number; giocate: number; pendin
 export type MissioniState = { day: number; prog: Record<string, number>; riscosse: number[] };
 /** Una firma nel libro degli ospiti di un'isola (#86): chi (id), il nome di allora, una delle emote di avatar.json, ms del server. */
 export type Firma = { chi: string; nome: string; emote: string; quando: number };
-/** Ultimo cantiere finito (lo scrive `advance`): serve a «Mentre eri via» anche se nel frattempo qualcuno ha guardato l'isola. */
-export type CantiereFinito = { building: string; level: number; endsMs: number };
 /**
  * Diario del capitano (#87): quello che conta (pesci, perle, medaglie, partite, spedizioni) lo scrive il server quando verifica una
  * partita; animali e isole arrivano dal client (collezionismo, id validati). I salvataggi di prima possono avere ancora `riscossi` e
@@ -45,16 +39,9 @@ export type LotState = {
   monete: number;
   /** La conversione del salvataggio vecchio, se c'è stata (per l'avviso al rientro). */
   cambio?: CambioMonete;
-  /** Risorse di prima (Legno, Pietra, Perle): solo per il codice spento del giardino, non si vedono e non si spendono più. */
-  resources: Resources;
-  buildings: PlacedBuilding[];
-  /** Edifici riposti nel magazzino dell'isola (#403): assente = []. */
-  magazzinoEdifici?: StoredBuilding[];
-  construction: Construction | null;
-  /** Poste delle vecchie sfide (risorse di prima, codice tolto): resta per il libro mastro. */
-  escrow: Resources;
   ledger: LedgerTotals;
-  boostUntilMs: number;
+  /** Il livello della barca al Cantiere navale (1-3: velocità, la Tempesta dal 2). Assente = 1. */
+  barca?: number;
   /** Cappelli a pagamento comprati (id di avatar.json `cappelli`). I gratuiti non ci stanno: sono di tutti. Assente = []. */
   posseduti?: string[];
   /** Minigiochi da solo. Assente = { day: 0, premiate: 0, giocate: 0, pending: null }. */
@@ -75,8 +62,6 @@ export type LotState = {
   visto?: number;
   /** Libro degli ospiti (#86): le firme degli amici, dalla più vecchia, al massimo RIENTRO.firme.tetto. Assente = []. */
   ospiti?: Firma[];
-  /** Ultimo cantiere finito (#86). Assente = nessuno. */
-  finito?: CantiereFinito;
   /** Isola dei Templari (docs/TEMPLARI.md): partita a ondate aperta, premio preso oggi (giorno UTC), record. Assente = mai giocato. */
   templari?: TemplariLotto;
   /** Reliquie trovate: aprono le isole a tema con sblocco `reliquia` (la Tempesta nasconde quella dei Templari). Assente = []. */
@@ -85,7 +70,7 @@ export type LotState = {
   liberatorie?: string[];
   /** La casa arredabile (#265, economy/casa.ts): magazzino dei mobili, mobili posati, pavimenti e carte. Assente = stanza vuota di serie. */
   casa?: CasaState;
-  /** Botteghe del Borgo (#414, economy/botteghe.ts): il livello comprato col Fabbro (la barca del Cantiere è il livello del Molo). Assente = 1, o quello del Banco da Lavoro di prima. */
+  /** Botteghe del Borgo (economy/botteghe.ts): il livello comprato col Fabbro. Assente = 1. */
   botteghe?: { fabbro?: number };
   /** Giorno di Roma (`giornoRoma`) in cui il proprietario ha già scavato il bottino giornaliero di Borgo Marea (#438). Assente = mai. */
   bottinoGiorno?: number;
@@ -110,22 +95,11 @@ export type TemplariLotto = {
   record: number; partite: number;
 };
 
-export const ZERO: Resources = { legno: 0, pietra: 0, perle: 0 };
-export const add = (a: Resources, b: Resources): Resources => ({ legno: a.legno + b.legno, pietra: a.pietra + b.pietra, perle: a.perle + b.perle });
-export const sub = (a: Resources, b: Resources): Resources => ({ legno: a.legno - b.legno, pietra: a.pietra - b.pietra, perle: a.perle - b.perle });
-export const scale = (a: Resources, k: number): Resources => ({ legno: Math.floor(a.legno * k), pietra: Math.floor(a.pietra * k), perle: Math.floor(a.perle * k) });
-export const total = (a: Resources): number => a.legno + a.pietra + a.perle;
-export const geq = (a: Resources, b: Resources): boolean => a.legno >= b.legno && a.pietra >= b.pietra && a.perle >= b.perle;
-/** Quanto manca per coprire `cost` con `have` (componenti ≥ 0). */
-export const missing = (have: Resources, cost: Resources): Resources => ({
-  legno: Math.max(0, cost.legno - have.legno), pietra: Math.max(0, cost.pietra - have.pietra), perle: Math.max(0, cost.perle - have.perle),
-});
-
-export type EconomyErrorCode = 'risorse' | 'cantiere' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'tetto' | 'cappello' | 'posizione' | 'partita'
+export type EconomyErrorCode = 'risorse' | 'requisito' | 'cella' | 'livello' | 'sconosciuto' | 'unico' | 'tetto' | 'cappello' | 'posizione' | 'partita'
   | 'missione' | 'firma'
   | 'peso' | 'equip' | 'perk' | 'materiale' | 'edificio' | 'livello_skill' | 'oggetto' | 'spedizione';
-/** Quanto manca: `monete` per tutto quello che si compra (#414); le risorse di prima solo nel codice spento. */
-export type Mancanza = Partial<Resources> & { monete?: number };
+/** Quanto manca: le monete per quello che si compra. */
+export type Mancanza = { monete?: number };
 export class EconomyError extends Error {
   code: EconomyErrorCode;
   manca: Mancanza | undefined;

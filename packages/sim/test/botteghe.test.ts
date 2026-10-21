@@ -22,7 +22,7 @@ import { conMonete, senzaMonete } from './monete_util.ts';
 import { isErr } from './economia_util.ts';
 
 const T0 = 1_800_000_000_000;
-const lotto = (monete: number, extra: Partial<LotState> = {}): LotState => conMonete(senzaMonete({ ...newLot('jack', T0, null), ...extra }), monete);
+const lotto = (monete: number, extra: Partial<LotState> = {}): LotState => conMonete(senzaMonete({ ...newLot('jack', T0), ...extra }), monete);
 
 test('botteghe: contenuti validi, oggetti e vernici esistenti', () => {
   assert.deepEqual(validateBotteghe(), []);
@@ -89,10 +89,7 @@ test('botteghe: il Fabbro sale di livello a monete; chi aveva il Banco tiene il 
   assert.equal(prossimoLivello(l, 'fabbro'), null);
   assert.throws(() => miglioraBottega(l, 'fabbro', 3, T0 + 3000), isErr('livello'));
   assert.equal(checkMonete([l]), null);
-  // il Banco da Lavoro di prima, anche riposto nel magazzino dell'isola, vale come livello col Fabbro
-  const banco = (level: number) => ({ id: 'banco-2', building: 'banco', level, buffer: 0, lastMs: T0 });
-  assert.equal(livelloFabbro(lotto(0, { buildings: [...newLot('jack', T0, null).buildings, { ...banco(2), cell: [3, 3] }] })), 2);
-  assert.equal(livelloFabbro(lotto(0, { magazzinoEdifici: [banco(3)] })), 3);
+  assert.equal(livelloFabbro(lotto(0, { botteghe: { fabbro: 2 } })), 2);
   // forgiare l'argento: col Fabbro al 2
   const h = { ...heroOf(lotto(0)), inv: { lingotto_argento: 4 } };
   const conEroe = (x: LotState) => ({ ...x, hero: h });
@@ -110,7 +107,7 @@ test('botteghe: la barca al Cantiere (il Molo di prima) apre la Tempesta', () =>
   assert.match(chiusa.motivo, /Cantiere navale/);
   l = miglioraBottega(l, 'cantiere', 1, T0 + 1000);
   assert.equal(livelloCantiere(l), 2);
-  assert.equal(l.buildings.find((b) => b.building === 'molo')?.level, 2, 'il livello sta nel Molo: velocità e Tempesta come prima');
+  assert.equal(l.barca, 2, 'il livello della barca sta nel lotto: velocità e Tempesta');
   assert.equal(l.monete, 2000 - BOTTEGHE.cantiere.livelli![1]!.monete);
   assert.equal(sbloccoTema(tempesta, viaggiatore(l, null)).aperta, true);
   l = miglioraBottega(l, 'cantiere', 2, T0 + 2000);

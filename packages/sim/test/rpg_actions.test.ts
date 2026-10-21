@@ -1,10 +1,9 @@
-// Azioni del personaggio sull'isola: attributi, perk, equip, libri, forgia, alchimia, bottega, Forziere, Serra, forma di rete, determinismo.
+// Azioni del personaggio: attributi, perk, equip, libri, forgia, alchimia, bottega, baule (Forziere), forma di rete, determinismo.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BALANCE } from '@marea/content';
 import { RPG } from '@marea/content/rpg.ts';
-import { collectAll, newLot } from '../src/economy/actions.ts';
-import { advance } from '../src/economy/advance.ts';
+import { newLot } from '../src/economy/actions.ts';
 import { EconomyError } from '../src/economy/types.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { checkMonete } from '../src/economy/monete.ts';
@@ -16,11 +15,11 @@ import type { HeroState, RpgAction } from '../src/rpg/types.ts';
 import { isErr } from './economia_util.ts';
 
 const T0 = 1_800_000_000_000, H = 3_600_000;
-/** Lotto con gli edifici dati già costruiti (id → livello), 500 monete (e le risorse di prima, codice spento). */
+/** Lotto con 500 monete; `bs` = gli edifici di prima: `banco` = livello col Fabbro, `forziere` = livello del baule (assente = senza baule). */
 function lotWith(bs: Record<string, number>, hero?: HeroState, forziere?: Record<string, number>): LotState {
-  const l = newLot('jack', T0, null);
-  const extra = Object.entries(bs).map(([b, level], i) => ({ id: `${b}-${i + 2}`, building: b, level, cell: [i + 1, 0] as [number, number], buffer: 0, lastMs: T0 }));
-  const out: LotState = conMonete(senzaMonete({ ...l, buildings: [...l.buildings, ...extra], resources: { legno: 500, pietra: 500, perle: 0 } }), 500);
+  const l = newLot('jack', T0), { baule, ...casa } = l.casa ?? {};
+  const out: LotState = conMonete(senzaMonete({ ...l, casa: bs['forziere'] && baule ? { ...casa, baule: { ...baule, livello: bs['forziere'] } } : casa,
+    ...(bs['banco'] ? { botteghe: { fabbro: bs['banco'] } } : {}) }), 500);
   if (hero) out.hero = hero;
   if (forziere) out.forziere = forziere;
   return out;
@@ -90,7 +89,6 @@ test('rpg azioni: forgia dal Fabbro (livello del Banco di prima), materiali da z
   const legnoInMonete = (n: number) => Math.max(1, Math.ceil(n * BALANCE.monete.cambio.legno));
   l = act(lotWith({ banco: 1 }), { t: 'forgia', item: 'frecce_legno', n: 2 });
   assert.equal(l.monete, 500 - legnoInMonete(10));
-  assert.equal(l.resources.legno, 500, 'il Legno di prima non si tocca');
   assert.equal(heroOf(l).inv.frecce_legno, 20 + 20);
   assert.equal(checkMonete([l]), null);
   const povero = { ...lotWith({ banco: 1 }), monete: 1 };
@@ -142,43 +140,21 @@ test('rpg azioni: Forziere con capienza per livello, niente equipaggiati, zaino 
   assert.throws(() => act(l, { t: 'preleva', item: 'lingotto_argento', n: 1 }), isErr('oggetto'));
 });
 
-test('rpg Serra: accumula come la Segheria, collectAll non la tocca, l\'azione la raccoglie a rotazione', () => {
-  let l = lotWith({ serra: 1 });
-  l = advance(l, T0 + 5 * H);
-  const serra = () => l.buildings.find((b) => b.building === 'serra')!;
-  assert.equal(serra().buffer, 20, '4 ingredienti/ora × 5 h');
-  const res = l.resources;
-  l = collectAll(l, l.nowMs + 1);
-  assert.ok(serra().buffer >= 20, 'collectAll non svuota la Serra');
-  assert.deepEqual(l.resources, res);
-  // senza Forziere: nello zaino
-  const z = act(l, { t: 'serra' });
-  const inv = heroOf(z).inv;
-  assert.equal((inv.erba_curativa ?? 0) + (inv.fiore_azzurro ?? 0) + (inv.radice_vigore ?? 0), 20);
-  for (const id of ['erba_curativa', 'fiore_azzurro', 'radice_vigore']) assert.ok((inv[id] ?? 0) >= 6, `${id} a rotazione`);
-  assert.ok(z.buildings.find((b) => b.building === 'serra')!.buffer < 1);
-  // con Forziere: nel Forziere
-  const f = act({ ...l, buildings: [...l.buildings, { id: 'forziere-9', building: 'forziere', level: 1, cell: [9, 0], buffer: 0, lastMs: T0 }] }, { t: 'serra' });
-  assert.equal(Object.values(f.forziere ?? {}).reduce((a, b) => a + b, 0), 20);
-  assert.throws(() => act(lotWith({}), { t: 'serra' }), isErr('edificio'));
-});
-
 test('rpg parseRpgAction: solo forme valide, oggetto pulito', () => {
   assert.deepEqual(parseRpgAction({ t: 'forgia', item: 'katana_ferro', extra: 1 }), { t: 'forgia', item: 'katana_ferro' });
   assert.deepEqual(parseRpgAction({ t: 'equip', slot: 'corpo', item: null }), { t: 'equip', slot: 'corpo', item: null });
   assert.deepEqual(parseRpgAction({ t: 'deposita', item: 'x', n: 999 }), { t: 'deposita', item: 'x', n: 999 });
-  assert.deepEqual(parseRpgAction({ t: 'serra' }), { t: 'serra' });
-  for (const bad of [null, 1, 'serra', [], { t: 'boh' }, { t: 'attributo', attr: 'forza' }, { t: 'compra', item: 'x', n: 0 }, { t: 'compra', item: 'x', n: 1.5 },
+  for (const bad of [null, 1, 'serra', [], { t: 'serra' }, { t: 'boh' }, { t: 'attributo', attr: 'forza' }, { t: 'compra', item: 'x', n: 0 }, { t: 'compra', item: 'x', n: 1.5 },
     { t: 'compra', item: 'x', n: 1000 }, { t: 'compra', item: 'x' }, { t: 'leggi', item: '' }, { t: 'leggi', item: 'x'.repeat(41) }, { t: 'equip', slot: 'testa', item: 'x' },
     { t: 'alchimia', ricetta: 'r', n: -1 }, { t: 'perk', perk: 3 }]) assert.equal(parseRpgAction(bad), null, JSON.stringify(bad));
 });
 
 test('rpg azioni: deterministiche (stesse azioni = stesso hash) e pure (lo stato di partenza non cambia)', () => {
   const run = () => {
-    let l = lotWith({ banco: 1, alchimia: 1, forziere: 1, serra: 1 }, withInv({ lingotto_ferro: 8, erba_curativa: 4 }));
+    let l = lotWith({ banco: 1, forziere: 1 }, withInv({ lingotto_ferro: 8, erba_curativa: 4 }));
     const start = JSON.stringify(l);
     const seq: RpgAction[] = [{ t: 'forgia', item: 'katana_ferro' }, { t: 'equip', slot: 'arma', item: 'katana_ferro' }, { t: 'alchimia', ricetta: 'r_vita_minore', n: 2 },
-      { t: 'deposita', item: 'lingotto_ferro', n: 4 }, { t: 'serra' }, { t: 'forgia', item: 'frecce_legno' }];
+      { t: 'deposita', item: 'lingotto_ferro', n: 4 }, { t: 'forgia', item: 'frecce_legno' }];
     let t = T0;
     for (const a of seq) { t += 2 * H; l = applyRpgAction(l, a, t); }
     return { l, start };
@@ -186,6 +162,6 @@ test('rpg azioni: deterministiche (stesse azioni = stesso hash) e pure (lo stato
   const a = run(), b = run();
   assert.equal(hashJson(a.l), hashJson(b.l));
   assert.equal(heroOf(a.l).equip.arma, 'katana_ferro');
-  const again = lotWith({ banco: 1, alchimia: 1, forziere: 1, serra: 1 }, withInv({ lingotto_ferro: 8, erba_curativa: 4 }));
+  const again = lotWith({ banco: 1, forziere: 1 }, withInv({ lingotto_ferro: 8, erba_curativa: 4 }));
   assert.equal(JSON.stringify(again), a.start);
 });

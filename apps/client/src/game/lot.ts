@@ -4,7 +4,7 @@
 // in sola lettura.
 import * as THREE from 'three';
 import { ISLANDS } from '@marea/content';
-import { casaDi, inStanza, parseIsland } from '@marea/sim';
+import { casaDi, parseIsland } from '@marea/sim';
 import { createArrediVista } from './arredi_vista.ts';
 import type { GridMap, LotState } from '@marea/sim';
 import type { Loader } from '../render/loader.ts';
@@ -58,13 +58,13 @@ export function createLotView(o: LotViewOptions): LotView {
   }
   function sync(): void {
     if (!lot) return;
-    const b = lot.buildings.find((x) => x.building === 'forziere' && x.level >= 1 && inStanza(x.cell)) ?? null, rot = casaDi(lot).bauleRot ?? 0;
-    const key = b ? `${b.level}:${b.cell.join(',')}:${rot}` : '';
+    const b = casaDi(lot).baule ?? null, rot = casaDi(lot).bauleRot ?? 0;
+    const key = b ? `${b.livello}:${b.cell.join(',')}:${rot}` : '';
     if (key !== bauleKey) {
       bauleKey = key; baule.visible = !!b;
       if (b) {
         const p = world(b.cell); baule.position.set(p.x, p.y, p.z); baule.rotation.y = (rot * Math.PI) / 2;
-        void disegnaBaule(b.level, ++bauleTok).catch(() => { /* senza baule si gioca lo stesso */ });
+        void disegnaBaule(b.livello, ++bauleTok).catch(() => { /* senza baule si gioca lo stesso */ });
       }
     }
     arredi.sync(lot);

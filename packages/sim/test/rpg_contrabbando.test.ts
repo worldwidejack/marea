@@ -14,7 +14,7 @@ import { isErr } from './economia_util.ts';
 
 const H = 3_600_000, D = 24 * H;
 /** Lotto col personaggio `h` e `monete` monete esatte (#414: le monete stanno nel lotto). */
-const lotOf = (h: HeroState, ms: number, monete = 0): LotState => conMonete(senzaMonete({ ...newLot('jack', ms, null), hero: h }), monete);
+const lotOf = (h: HeroState, ms: number, monete = 0): LotState => conMonete(senzaMonete({ ...newLot('jack', ms), hero: h }), monete);
 
 test('contrabbando: il banco ha solo oggetti che esistono, della categoria giusta, niente unici', () => {
   const kinds: Record<string, readonly string[]> = { arma: ['arma', 'arco'], armatura: ['armatura', 'veste'], materiale: ['materiale'], ingrediente: ['ingrediente'] };

@@ -261,7 +261,7 @@ test('archivio: sotto metà vita l’Astrolabio stacca 4 anelli-scudo; finché c
 });
 
 test('archivio: porta sigillata — senza il Drenaggio completato non si entra, dopo sì', () => {
-  const lot = newLot('p', 0, null);
+  const lot = newLot('p', 0);
   assert.throws(() => startDungeon(lot, 'archivio', 1, 1000), /sigillata/);
   const h = heroOf(lot);
   const fatto = { ...lot, hero: { ...h, completati: ['drenaggio'] } };

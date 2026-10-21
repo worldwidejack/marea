@@ -9,7 +9,6 @@
 
 /** Quota del piano calpestabile (sabbia, erba, molo) e fondo dei blocchi sott'acqua. */
 import * as THREE from 'three';
-import { BUILDINGS } from '@marea/content';
 import type { IslandStyle } from '@marea/content';
 import type { GridMap, Tile } from '@marea/sim';
 import { createRng } from '@marea/sim';
@@ -205,7 +204,7 @@ export async function createIsland(o: {
 
     // ——— scenografia casuale: palme, cespugli, sassi, casse e barili; mai su slot L (e impronta dell'edificio), spawn, molo, lastricato ———
     const blocked = new Set<number>();
-    const maxW = Math.max(1, ...BUILDINGS.map((b) => b.size[0])), maxD = Math.max(1, ...BUILDINGS.map((b) => b.size[1]));
+    const maxW = 2, maxD = 1; // l'impronta più grande degli edifici sugli slot L (celle)
     const docks: { cx: number; cz: number }[] = [], spawns: { cx: number; cz: number }[] = [], boats: { cx: number; cz: number }[] = [];
     for (let cz = area.z0; cz < area.z0 + area.h; cz++) for (let cx = area.x0; cx < area.x0 + area.w; cx++) {
       const t = at(cx, cz);

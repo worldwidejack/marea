@@ -216,9 +216,10 @@ test('Medico da campo: la pozione che bevi cura anche il compagno vicino, non qu
 });
 
 function lotWith(bs: Record<string, number>, hero: HeroState, forziere: Record<string, number> = {}): LotState {
-  const l = newLot('jack', T0, null);
-  const extra = Object.entries(bs).map(([b, level], i) => ({ id: `${b}-${i + 2}`, building: b, level, cell: [i + 1, 0] as [number, number], buffer: 0, lastMs: T0 }));
-  return { ...l, buildings: [...l.buildings, ...extra], monete: 5000, resources: { legno: 5000, pietra: 500, perle: 0 }, hero, forziere };
+  const l = newLot('jack', T0);
+  // gli edifici di prima: il Banco è il livello col Fabbro, il Forziere il baule di casa
+  const casa = bs['forziere'] ? { ...l.casa, baule: { livello: bs['forziere'], cell: l.casa!.baule!.cell } } : l.casa;
+  return { ...l, ...(bs['banco'] ? { botteghe: { fabbro: bs['banco'] } } : {}), ...(casa ? { casa } : {}), monete: 5000, hero, forziere };
 }
 const act = (l: LotState, a: RpgAction): LotState => applyRpgAction(l, a, l.nowMs + 1000);
 

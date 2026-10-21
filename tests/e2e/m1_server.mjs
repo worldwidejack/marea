@@ -10,7 +10,6 @@ export const timeout = 300000;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const RES = ['legno', 'pietra', 'perle'];
 
 export default async function (ctx) {
   const { assert } = ctx;
@@ -56,18 +55,10 @@ export default async function (ctx) {
     const get = async (p, t) => { const r = await fetch(base + p, { headers: hdr(t) }); return { status: r.status, body: await r.json() }; };
     const post = async (p, t, b) => { const r = await fetch(base + p, { method: 'POST', headers: hdr(t), body: b === undefined ? undefined : JSON.stringify(b) }); return { status: r.status, body: await r.json() }; };
     const lot = async (t) => (await get('/api/lot', t)).body;
-    /** Invariante per lotto e globale: Σ risorse + escrow = generato − speso; monete = guadagnate − spese. */
+    /** Invariante per lotto: monete = guadagnate − spese, mai negative. */
     const ledger = async (what) => {
       const lots = [await lot('tokA'), await lot('tokB')];
-      const tot = { have: 0, should: 0 };
-      for (const l of lots) for (const k of RES) {
-        const have = l.resources[k] + l.escrow[k], should = l.ledger.generated[k] - l.ledger.spent[k];
-        assert(have === should, `${what}: ${l.owner} ${k} in giro ${have}, dovrebbe essere ${should}`);
-        assert(l.resources[k] >= 0, `${what}: ${l.owner} ${k} negativo`);
-        tot.have += have; tot.should += should;
-      }
       for (const l of lots) { const m = l.ledger.monete ?? { generated: 0, spent: 0 }; assert(l.monete >= 0 && l.monete === m.generated - m.spent, `${what}: ${l.owner} monete ${l.monete} ≠ ${m.generated} − ${m.spent}`); }
-      assert(tot.have === tot.should, `${what}: globale ${tot.have} ≠ ${tot.should}`);
       return lots;
     };
     /** Input di una Regata giocata nel Node con l'autopilot (buono) o il pilota pigro. */
@@ -87,10 +78,7 @@ export default async function (ctx) {
       const lots = (await get('/api/lots', 'tokB')).body;
       assert(lots.length === 3 && lots[2].id === 'bruno' && lots[2].slot === 2, 'lots: ' + JSON.stringify(lots));
       assert(Math.abs(a.body.now - Date.now()) < 60_000, '/api/me senza now');
-      if (tpl) {
-        const molo = a.body.lotto.buildings.find((x) => x.building === 'molo');
-        assert(tpl.rows[molo.cell[1]][molo.cell[0]] === 'd', 'il Molo non sta sul d del template: ' + molo.cell);
-      } else ctx.warn('template lotto', 'islands.json senza `lotto`: celle non validate (fallback)');
+      assert(a.body.lotto.casa?.baule?.livello === 1 && !('buildings' in a.body.lotto), 'lotto nuovo: ' + JSON.stringify(a.body.lotto).slice(0, 200));
     });
 
     await ctx.test('/api/nome: cambia il nome della persona e aggiorna /api/me e /api/persone (#301)', async () => {
@@ -124,7 +112,7 @@ export default async function (ctx) {
         assert(r.status === 404, `${p}: ${r.status}`);
       }
       const l = await lot('tokA');
-      assert(l.buildings.some((b) => b.building === 'forziere' && b.level === 1), 'baule di serie mancante: ' + JSON.stringify(l.buildings));
+      assert(l.casa?.baule?.livello === 1, 'baule di serie mancante: ' + JSON.stringify(l.casa));
       const caro = decor.find((d) => !d.mercante && d.monete > balance.monete.partenza);
       const r5 = await post('/api/lot/decor', 'tokA', { decor: caro.id });
       assert(r5.status === 409 && r5.body.manca?.monete === caro.monete - balance.monete.partenza, 'decor senza monete: ' + JSON.stringify(r5.body));

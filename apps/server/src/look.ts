@@ -54,7 +54,7 @@ export async function sincIndossa(env: Env, p: Persona, r: Response): Promise<Re
     const j: unknown = await r.clone().json();
     const o = j && typeof j === 'object' ? (j as Record<string, unknown>) : null;
     const lot = (o?.['lot'] ?? o?.['lotto'] ?? o) as LotState | null;
-    if (!lot || typeof lot !== 'object' || !Array.isArray(lot.buildings)) return r; // non c'è un lotto nella risposta: nulla da confrontare
+    if (!lot || typeof lot !== 'object' || typeof lot.owner !== 'string') return r; // non c'è un lotto nella risposta: nulla da confrontare
     const nuovo = indossaDa(heroOf(lot).equip); // senza personaggio salvato vale quello di partenza (tela, katana di legno, arco…)
     let old: Record<string, unknown> = {};
     try { const v: unknown = JSON.parse(p.look); if (v && typeof v === 'object') old = v as Record<string, unknown>; } catch { /* look rotto */ }

@@ -9,7 +9,7 @@ import type { CasaLivello, CasaScala } from '@marea/content';
 export type Rect = readonly [number, number, number, number];
 export type StanzaId = 'terra' | 'cantina' | 'piano';
 /** Una stanza al livello di casa dato: `retro` = la cella davanti alla porta sul fondo (solo il piano terra: porta il giardino). */
-export type Stanza = { id: StanzaId; pavimento: Rect; retro: readonly [number, number] | null };
+export type Stanza = { id: StanzaId; pavimento: Rect };
 
 export const LIVELLI_CASA: readonly CasaLivello[] = BORGO.casa.livelli;
 export const MAX_LIVELLO_CASA = LIVELLI_CASA.length;
@@ -39,7 +39,7 @@ export function stanzeDi(livello: number): readonly Stanza[] {
   if (!out) {
     const r = new Map<StanzaId, Rect>([['terra', BORGO.stanza.pavimento]]);
     for (const lv of LIVELLI_CASA.slice(0, l)) r.set(lv.stanza, lv.pavimento);
-    out = [...r].map(([id, pavimento]): Stanza => ({ id, pavimento, retro: id === 'terra' ? [BORGO.stanza.retro[0], pavimento[1]] : null }));
+    out = [...r].map(([id, pavimento]): Stanza => ({ id, pavimento }));
     cache.set(l, out);
   }
   return out;
@@ -60,5 +60,6 @@ export const stanzaTerra = (livello: number): Stanza => stanzeDi(livello)[0]!;
 
 /** La pianta massima di ogni stanza: il rettangolo più grande che avrà mai (l'ultimo della tabella, o quello di serie). */
 export const PIANTE_MAX: readonly { id: StanzaId; pavimento: Rect }[] = stanzeDi(MAX_LIVELLO_CASA).map((s) => ({ id: s.id, pavimento: s.pavimento }));
-/** La cella è sul pavimento di una stanza della casa alla pianta massima (anche se quel pezzo non è ancora sbloccato): lì niente giardino. */
-export const inPianteMax = (c: readonly [number, number]): boolean => PIANTE_MAX.some((s) => dentro(s.pavimento, c));
+/** La cella è sul pavimento di una stanza della casa alla pianta massima (anche se quel pezzo non è ancora sbloccato). Per sapere se la
+ *  stanza è già sbloccata: `stanzaAt(livello, cella)`. */
+export const inStanza = (c: readonly [number, number]): boolean => PIANTE_MAX.some((s) => dentro(s.pavimento, c));
