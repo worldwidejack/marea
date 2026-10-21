@@ -3,7 +3,8 @@
 // Modo 1 stampa: onde a linee chiare e creste di schiuma ricciute, schiuma bianca spessa sulla riva.
 // Modo 2 giorno: fasce turchesi, scogli sott'acqua nel basso fondale, riflessi a linee, scintille bianche.
 // Modo 3 tramonto: teal scuro, scia di luce arancio verso il sole, schiuma calda.
-// Tutto quantizzato a 8 texel/m così resta a pixel anche da vicino. In tutti i modi la scia delle barche (scia_acqua.ts), con le stesse righe e schiuma.
+// Tutto quantizzato a 8 texel/m così resta a pixel anche da vicino. In tutti i modi la scia delle barche (scia_acqua.ts), con le stesse righe e schiuma:
+// la barca sposta anche il mare che attraversa (il campo d'onde si legge in qw, spinto di lato dalla scia).
 // Meteo (#361): sotto le nuvole di pioggia (NUBI, condivisi con la passata finale e la pioggia) cerchi a pixel che si allargano, solo
 // dove piove davvero e vicino alla camera.
 // Di notte la luce del faro (faro_luce.ts): il riflesso della lanterna a trattini come la luna, e dove il fascio tocca il mare.
@@ -92,10 +93,13 @@ void main() {
   float t = uTime;
   float wob = vnoise(q * 0.35 + vec2(t * 0.15, 0.0)) - 0.5; // riva che respira
   float dd = d + wob * 0.9;
-  vec3 c = dd < 1.6 ? uC0 : dd < 4.5 ? uC1 : dd < 10.0 ? uC2 : uC3;
+  vec3 c = dd < 1.6 ? uC0 : dd < 4.5 ? uC1 : dd < 10.0 ? uC2 : uC3, c0 = c;
+  float sS = 0.0, sLat = 0.0, sForza = 0.0, sEta = 0.0; vec2 sFuori = vec2(0.0);
+  float sE = dd > 1.0 ? sciaTrova(q, sS, sLat, sForza, sEta, sFuori) : 0.0;
+  vec2 qw = q - sFuori * sciaSpinta(sS, sLat, sE, sForza); // il mare spinto di lato dalla barca: le onde si leggono qui
   if (uMode == 1) {
     // stampa: campo d'onde che scorre; linee di livello chiare, creste ricciute di schiuma dove il campo è alto
-    float w = vnoise(q * vec2(0.11, 0.17) + vec2(t * 0.05, t * 0.02)) * 0.65 + vnoise(q * 0.33 + vec2(-t * 0.04, t * 0.03)) * 0.35;
+    float w = vnoise(qw * vec2(0.11, 0.17) + vec2(t * 0.05, t * 0.02)) * 0.65 + vnoise(qw * 0.33 + vec2(-t * 0.04, t * 0.03)) * 0.35;
     float l = fract(w * 6.0);
     // lontano le righe diventano più fini di un pixel e si sbriciolano in puntini (#286): oltre 70 m il mare è a tinta unita
     bool vicino = length(vW.xz - cameraPosition.xz) < 70.0;
@@ -108,7 +112,7 @@ void main() {
   } else if (uMode == 2) {
     // giorno: scogli e sabbia sotto il pelo dell'acqua, riflessi a reticolo, scintille
     if (dd > 1.0 && dd < 7.0 && vnoise(q * 0.45 + 3.0) > 0.7) c = mix(c, uC3, 0.35);
-    float k = vnoise(q * 0.9 + vec2(t * 0.25, -t * 0.18));
+    float k = vnoise(qw * 0.9 + vec2(t * 0.25, -t * 0.18));
     if (dd < 6.0 && abs(fract(k * 4.0) - 0.5) < 0.05) c = mix(c, uLine, 0.6);
     else if (abs(fract(k * 3.0) - 0.5) < 0.025) c = mix(c, uLine, 0.3); // al largo increspature più rade
     if (hash(floor(q * 2.0) + floor(t * 3.0)) > 0.996) c = uFoam;
@@ -119,17 +123,17 @@ void main() {
   } else if (uMode == 3) {
     // tramonto: increspature scure, scia di luce verso il sole (riflesso del sole su onde a pixel)
     vec3 V = normalize(cameraPosition - vW);
-    vec2 g = vec2(vnoise(q * 0.6 + t * 0.3) - 0.5, vnoise(q * 0.6 + 9.0 - t * 0.25) - 0.5);
+    vec2 g = vec2(vnoise(qw * 0.6 + t * 0.3) - 0.5, vnoise(qw * 0.6 + 9.0 - t * 0.25) - 0.5);
     vec3 N = normalize(vec3(g.x * 0.5, 1.0, g.y * 0.5));
     float spec = dot(reflect(-V, N), normalize(uSunDir));
     float sp = hash(floor(q * 8.0) + floor(t * 5.0));
     if (spec > 0.992 && sp > 0.55) c = uLine;
     else if (spec > 0.98 && sp > 0.85) c = uFoam;
-    if (abs(fract(vnoise(q * vec2(0.1, 0.3) + t * 0.08) * 5.0) - 0.5) < 0.04 && dd > 3.0) c = mix(c, uC3, 0.6);
+    if (abs(fract(vnoise(qw * vec2(0.1, 0.3) + t * 0.08) * 5.0) - 0.5) < 0.04 && dd > 3.0) c = mix(c, uC3, 0.6);
     float shore = 0.9 + 0.35 * sin(t * 1.4 + vnoise(q * 0.5) * 6.0);
     if (dd < shore) c = uFoam;
   }
-  if (dd > 1.0) c = sciaColore(q, c, uFoam, uLine); // scia delle barche, con le righe e la schiuma del mare
+  c = sciaColore(q, c, c0, uFoam, uLine, sE, sS, sLat, sForza, sEta); // scia delle barche, con le righe e la schiuma del mare
   if (uNubiN > 0 && dd > 1.0) {
     vec2 toC = vW.xz - cameraPosition.xz;
     float rain = dot(toC, toC) < 3600.0 ? pioggiaIn(vW.xz) : 0.0;
