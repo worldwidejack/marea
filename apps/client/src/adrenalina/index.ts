@@ -29,6 +29,8 @@ import { creaComandi } from './comandi.ts';
 import { creaHud, tempo } from './hud.ts';
 import { creaPista3d } from './pista3d.ts';
 import { creaSfondo } from './sfondo.ts';
+import { caricaPittura } from './pittura.ts';
+import type { Pittura } from './pittura.ts';
 import { creaRegia } from './regia.ts';
 import { creaNeve } from './neve.ts';
 import { creaTavola } from './tavola3d.ts';
@@ -115,7 +117,12 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
   luci.set?.({ elev: 48, azim: 200, color: 0xfffaf2, intensity: 2.5, sky: 0xd6e8ff, ground: 0xb4c6e2, hemiI: 2.8, amb: 0x9fc4ff, ambI: 0.2 });
   const pista3d = creaPista3d(p); scene.add(pista3d.gruppo);
   const monti = creaSfondo(p); scene.add(monti.gruppo);
-  if (FLAGS.dipinto !== 'no') void monti.dipinto(scene, dito); // le Alpi dipinte (?dipinto=0 il modellino a blocchi)
+  // le Alpi dipinte, gli abeti, la neve e la roccia dipinti (?dipinto=0 la montagna a facce piatte di prima)
+  let pittura: Pittura | null = null;
+  if (FLAGS.dipinto !== 'no') {
+    void monti.dipinto(scene, dito);
+    void caricaPittura(dito).then((pt) => { if (!pt) return; if (fase === 'chiuso') { pt.dispose(); return; } pittura = pt; pista3d.dipingi(pt); monti.dipingi(pt); });
+  }
   const look = { ...ctx.look(), ...(CASCO >= 0 ? { cappello: CASCO } : {}) }; // sulla pista si scende col casco
   const tavola = creaTavola(look); scene.add(tavola.gruppo);
   const viaggio = creaViaggio(p); scene.add(viaggio.gruppo);
@@ -204,7 +211,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
     ctx.renderer.setScene(null);
     cam0.fov = salva.fov; cam0.near = salva.near; cam0.far = salva.far; cam0.updateProjectionMatrix();
     avatar?.object.removeFromParent();
-    scene.remove(pista3d.gruppo); pista3d.dispose(); tavola.dispose(); tavF?.dispose(); neve.dispose(); viaggio.dispose(); sfondo.dispose(); monti.dispose();
+    scene.remove(pista3d.gruppo); pista3d.dispose(); tavola.dispose(); tavF?.dispose(); neve.dispose(); viaggio.dispose(); sfondo.dispose(); monti.dispose(); pittura?.dispose();
     corrente = null;
     fine(ultimo);
   };

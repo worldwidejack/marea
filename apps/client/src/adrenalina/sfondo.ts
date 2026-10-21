@@ -9,6 +9,8 @@ import type { PistaNeve } from '@marea/sim/adrenalina/pista.ts';
 import { quotaA } from '@marea/sim/adrenalina/pista.ts';
 import { PAL } from '../ui/style.ts';
 import { corpoMontagna, liscio } from './corpo.ts';
+import { abetiDipinti, dipingiTerreno } from './pittura.ts';
+import type { Pittura } from './pittura.ts';
 
 export type Sfondo = {
   gruppo: THREE.Group;
@@ -19,6 +21,8 @@ export type Sfondo = {
   /** Carica il panorama dipinto (sul telefono quello piccolo): da lì in poi si vede lui al posto del modellino, e lo sfondo della scena
    *  diventa il colore del suo cielo. */
   dipinto(scena: THREE.Scene, telefono: boolean): Promise<boolean>;
+  /** I pezzi dipinti (pittura.ts): il corpo della montagna di neve e roccia, e i boschi a macchie sotto il limite del bosco. */
+  dipingi(pt: Pittura): void;
   dispose(): void;
 };
 
@@ -27,7 +31,7 @@ export type Sfondo = {
 const FOTO = { lati: 6, largo: 75, w: 1536, h: 1024 } as const;
 const ALTO = Math.tan((FOTO.largo / 2) * (Math.PI / 180)) / (FOTO.w / FOTO.h), STRISCIA = ALTO * Math.cos(Math.PI / FOTO.lati);
 /** Il cielo in cima al panorama (lo stampa cuci_neve.mjs): sopra la striscia la scena ha questo colore piatto. */
-const CIELO = '#5497d4';
+const CIELO = '#4b8dcb';
 /** Raggio del cilindro dipinto (dentro camera.far = 16000). */
 const RAGGIO = 5200;
 
@@ -116,6 +120,21 @@ export function creaSfondo(p: PistaNeve): Sfondo {
     return m;
   })();
   gruppo.add(corpo);
+  /** I boschi dipinti sul corpo, a riquadri da 300 m che si spengono oltre BOSCO_LONTANO m dalla camera. */
+  const boschi: THREE.InstancedMesh[] = [], BOSCO_LONTANO = 900;
+  const pianta = (pt: Pittura) => {
+    const per = new Map<string, THREE.Matrix4[]>(), M4 = (x: number, y: number, z: number, k: number) => new THREE.Matrix4().makeScale(k, k * (0.85 + liscio(x, z, 2) * 0.35), k).setPosition(x, y, z);
+    for (let x = x0 - 500; x < x1 + 500; x += 11) for (let z = z0 - 500; z < z1 + 500; z += 11) {
+      const jx = x + (liscio(x / 7.3, z / 7.3, 6) - 0.5) * 16, jz = z + (liscio(x / 6.1, z / 6.1, 7) - 0.5) * 16;
+      if (liscio(jx / 230, jz / 230, 11) < 0.45) continue; // a macchie, con radure
+      const y = montagna.quota(jx, jz);
+      if (montagna.fuori() < 3 || y > montagna.bosco || y < valle + 15 || Math.abs(montagna.quota(jx + 6, jz) - y) > 5) continue;
+      const k = `${Math.floor(jx / 300)},${Math.floor(jz / 300)}`, l = per.get(k) ?? [];
+      per.set(k, l); l.push(M4(jx, y - 0.2, jz, 0.9 + liscio(jx / 3, jz / 3, 8) * 0.8));
+    }
+    let seme = 50;
+    for (const l of per.values()) { const im = abetiDipinti(pt, l, seme++); boschi.push(im); gruppo.add(im); }
+  };
 
   // ---- il dipinto: una striscia cilindrica attorno alla camera (u = angolo, v = tan dell'elevazione) ----
   let cilindro: THREE.Mesh | null = null, tex: THREE.Texture | null = null;
@@ -140,7 +159,11 @@ export function creaSfondo(p: PistaNeve): Sfondo {
 
   return {
     gruppo,
-    segui(cam) { cilindro?.position.copy(cam); },
+    segui(cam) {
+      cilindro?.position.copy(cam);
+      for (const b of boschi) b.visible = b.boundingSphere!.center.distanceTo(cam) - b.boundingSphere!.radius < BOSCO_LONTANO;
+    },
+    dipingi(pt) { dipingiTerreno(corpo, pt); pianta(pt); },
     foto(gl, k) {
       const scena = new THREE.Scene(); scena.background = new THREE.Color(PAL.acquaBassa);
       scena.add(new THREE.HemisphereLight(0xdff4ff, 0xc8d4e0, 2.2));
@@ -167,6 +190,6 @@ export function creaSfondo(p: PistaNeve): Sfondo {
         return true;
       } catch (e) { console.warn('[marea] panorama dello snowboard non caricato', e); return false; }
     },
-    dispose() { g.dispose(); corpo.geometry.dispose(); matM.dispose(); if (cilindro) { cilindro.geometry.dispose(); (cilindro.material as THREE.Material).dispose(); } tex?.dispose(); },
+    dispose() { g.dispose(); corpo.geometry.dispose(); for (const b of boschi) b.geometry.dispose(); matM.dispose(); if (cilindro) { cilindro.geometry.dispose(); (cilindro.material as THREE.Material).dispose(); } tex?.dispose(); },
   };
 }

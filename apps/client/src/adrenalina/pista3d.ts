@@ -12,11 +12,15 @@ import { dove, punto, terna, nuovaTerna } from '@marea/sim/corse/nastro.ts';
 import { PAL } from '../ui/style.ts';
 import { M, merged, painted } from '../render/island_parts.ts';
 import { corpoMontagna, FASCIA } from './corpo.ts';
+import { abetiDipinti, dipingiTerreno, uvMondo } from './pittura.ts';
+import type { Pittura } from './pittura.ts';
 
 export type Pista3d = {
   gruppo: THREE.Group;
   /** Spegne riquadri e abeti oltre la nebbia (`lontano` m dalla camera). */
   aggiorna(camera: THREE.Vector3, lontano: number): void;
+  /** I pezzi dipinti (pittura.ts): terreno di neve e roccia, abeti dipinti al posto di quelli a coni. */
+  dipingi(pt: Pittura): void;
   /** L'abete che cade sulla pista chiusa: `cade(k)` con k da 0 (in piedi) a 1 (di traverso). */
   tronco: { cade(k: number): void } | null;
   dispose(): void;
@@ -63,8 +67,8 @@ export function creaPista3d(p: PistaNeve): Pista3d {
 
   /** La zona a `s` (cresta, slalom, canalino…: il fianco della montagna cambia). */
   const zonaA = (s: number) => { for (const z of d.zone) if (s >= z.da && s < z.a) return z.id; return ''; };
-  /** Il limite del bosco: sopra solo neve e rocce (come in alta montagna), sotto gli abeti. Dove cominciano gli abeti radi. */
-  const zAbeti = d.zone.find((z) => z.id === 'abeti'), boscoY = zAbeti ? quotaA(p, zAbeti.da, 0) + 25 : Infinity;
+  /** Il limite del bosco (corpo.ts): sopra solo neve e rocce (come in alta montagna), sotto gli abeti. */
+  const boscoY = montagna.bosco;
   /** Quota del terreno a (s, lat) sopra la linea della pista: piatta in pista, poi il fianco della montagna, pochi metri sopra la pista
    *  (niente muraglioni che chiudono la vista). */
   function rilievo(s: number, lat: number, i: number, j: number): number {
@@ -158,8 +162,8 @@ export function creaPista3d(p: PistaNeve): Pista3d {
     const e = bordoA(p, s), nv = neveA(p, s), sotto = boscoY - quotaA(p, s, 0);
     if (nv === 0 || sotto < 0 || h01(i, 3, 21) * 60 > sotto) continue;
     for (const lato of [-1, 1]) {
-      for (let j = 0; j < 6; j++) {
-        const dl = [1.2, 4, 8.5, 14, 22, 33][j]! + h01(i, j, lato) * 3, ss = s + (h01(j, i, 3) - 0.5) * 4;
+      for (let j = 0; j < 8; j++) {
+        const dl = [1.2, 4, 8.5, 14, 22, 33, 44, 55][j]! + h01(i, j, lato) * 3, ss = s + (h01(j, i, 3) - 0.5) * 4;
         if (h01(i, j, 11 + lato) < (j > 3 ? 0.35 : 0.15)) continue;
         const lat = lato * (e + nv + dl);
         punto(n, ss, lat, 0, P3);
@@ -179,7 +183,7 @@ export function creaPista3d(p: PistaNeve): Pista3d {
   }
 
   // ---- tutto il resto fuso in una geometria: rocce, porte, paletti, trampolini, partenza, arrivo, la pista chiusa ----
-  const parti: THREE.BufferGeometry[] = [];
+  const parti: THREE.BufferGeometry[] = [], rampe: THREE.BufferGeometry[] = [];
   const T = nuovaTerna();
   /** Matrice a (s, lat, h): assi della pista (x = destra, y = su, z = avanti). */
   const sulNastro = (s: number, lat: number, h: number, sx = 1, sy = 1, sz = 1) => {
@@ -222,7 +226,7 @@ export function creaPista3d(p: PistaNeve): Pista3d {
     const tL = at(r.s, r.lat[0], r.alto), tR = at(r.s, r.lat[1], r.alto), fL = at(r.s + 0.6, r.lat[0], 0), fR = at(r.s + 0.6, r.lat[1], 0);
     tri(fL, fR, tL); tri(fR, tR, tL); // il fronte, appena inclinato
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
-    parti.push(painted(g, PAL.pietraChiara));
+    rampe.push(painted(g, PAL.pietraChiara));
   }
   // il trampolino battuto: la salita a gradini di 1 m, il bordo arancio, i paletti rossi
   for (const r of d.rampe) {
@@ -231,7 +235,7 @@ export function creaPista3d(p: PistaNeve): Pista3d {
     for (let k = 0; k < passi; k++) {
       const sa = r.s - r.lungo + k, sb = Math.min(r.s, sa + 1), ha = altezzaRampa(r, sa + 0.001), hb = altezzaRampa(r, sb);
       const h = (ha + hb) / 2, ultimo = k === passi - 1;
-      parti.push(painted(new THREE.BoxGeometry(w, Math.max(0.05, h), sb - sa + 0.02), PAL.sabbiaChiara, sulNastro((sa + sb) / 2, mid, h / 2)));
+      rampe.push(painted(new THREE.BoxGeometry(w, Math.max(0.05, h), sb - sa + 0.02), PAL.sabbiaChiara, sulNastro((sa + sb) / 2, mid, h / 2)));
       if (ultimo) parti.push(painted(new THREE.BoxGeometry(w + 0.02, 0.06, 0.5), PAL.arancio, sulNastro(sb - 0.25, mid, h + 0.02)));
     }
     for (const lato of [-1, 1]) parti.push(painted(new THREE.BoxGeometry(0.25, 0.5, 0.25), PAL.rosso, sulNastro(r.s, mid + (lato * (w + 0.6)) / 2, 0.25)));
@@ -250,7 +254,7 @@ export function creaPista3d(p: PistaNeve): Pista3d {
   arco(d.partenza + 1, bordoA(p, d.partenza) + 0.5, 7, PAL.rosso, false);
   arco(d.arrivo, bordoA(p, d.arrivo) + 0.8, 4.8, PAL.rosso, true);
   // la pista battuta chiusa del fuoripista: un nastro piatto sul terreno dal bivio al rientro, i paletti, il cartello con la freccia
-  let tronco: Pista3d['tronco'] = null;
+  let tronco: Pista3d['tronco'] = null, chiusaM: THREE.Mesh | null = null;
   if (fp && chiusa.length > 1) {
     const L = fp.chiusa.l, pos: number[] = [];
     // `y` = quota della pista chiusa lì (dove cerca in 3D: con una quota sbagliata scivola indietro lungo il nastro)
@@ -266,7 +270,7 @@ export function creaPista3d(p: PistaNeve): Pista3d {
       prima = coppia;
     }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
-    const chiusaM = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: PAL.pietraChiara, flatShading: true, polygonOffset: true, polygonOffsetFactor: -2 }));
+    chiusaM = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: PAL.pietraChiara, flatShading: true, polygonOffset: true, polygonOffsetFactor: -2 }));
     chiusaM.name = 'snowboard_pista_chiusa'; chiusaM.receiveShadow = true; gruppo.add(chiusaM); triangoli += pos.length / 9;
     // l'abete al bordo della pista chiusa, a `tronco` m dal bivio: cade di traverso (pivot alla base)
     const a = chiusa[0]!, b = chiusa[1]!, fx = b[0] - a[0], fz = b[2] - a[2], lf = Math.hypot(fx, fz) || 1;
@@ -298,6 +302,8 @@ export function creaPista3d(p: PistaNeve): Pista3d {
     parti.push(painted(new THREE.DodecahedronGeometry(r, 0), h01(i, 6, 33) < 0.5 ? PAL.pietraScura : PAL.roccia, M(P3[0], y + r * 0.2, P3[2], h01(i, 7, 33) * 3, h01(i, 8, 33) * 3, 0, 1, 0.55 + h01(i, 9, 33) * 0.9, 1)));
     if (r > 2.5) parti.push(painted(new THREE.DodecahedronGeometry(r * 0.75, 0), PAL.pietraChiara, M(P3[0], y + r * 0.45, P3[2], 0, h01(i, 8, 33) * 3, 0, 1, 0.35, 1))); // neve sopra
   }
+  const rampeM = new THREE.Mesh(merged(rampe), matV); rampeM.name = 'snowboard_rampe'; rampeM.castShadow = true; rampeM.receiveShadow = true;
+  gruppo.add(rampeM); triangoli += rampeM.geometry.attributes.position!.count / 3;
   const resto = new THREE.Mesh(merged(parti), matV); resto.name = 'snowboard_pezzi'; resto.castShadow = true; resto.receiveShadow = true;
   gruppo.add(resto); triangoli += resto.geometry.attributes.position!.count / 3;
 
@@ -310,15 +316,28 @@ export function creaPista3d(p: PistaNeve): Pista3d {
   montiM.name = 'snowboard_monti'; gruppo.add(montiM);
 
   // riquadri del terreno e degli abeti col loro centro e raggio, per spegnerli oltre la nebbia
-  const spegnibili = istanze.map((m) => ({ m, c: m.geometry.boundingSphere?.center.clone() ?? new THREE.Vector3(), r: m.geometry.boundingSphere?.radius ?? 0 }));
+  const spegnibili = istanze.map((m) => ({ m: m as THREE.Mesh, lontano: 1, c: m.geometry.boundingSphere?.center.clone() ?? new THREE.Vector3(), r: m.geometry.boundingSphere?.radius ?? 0 }));
+  let i0 = 1;
   for (const sp of spegnibili) if (sp.m instanceof THREE.InstancedMesh && sp.m.boundingSphere) { sp.c.copy(sp.m.boundingSphere.center); sp.r = sp.m.boundingSphere.radius; }
   return {
     gruppo, tronco,
-    aggiorna(cam, lontano) { for (const sp of spegnibili) sp.m.visible = sp.c.distanceTo(cam) - sp.r < lontano; },
+    aggiorna(cam, lontano) { for (const sp of spegnibili) sp.m.visible = sp.c.distanceTo(cam) - sp.r < lontano * sp.lontano; },
+    dipingi(pt) {
+      for (const m of riquadri) dipingiTerreno(m, pt);
+      dipingiTerreno(rampeM, pt, true);
+      if (chiusaM) { uvMondo(chiusaM.geometry); const v = chiusaM.material as THREE.Material; chiusaM.material = Object.assign(pt.neve.clone(), { polygonOffset: true, polygonOffsetFactor: -2 }); v.dispose(); }
+      // gli abeti dipinti costano 2 triangoli l'uno: si vedono fino a 3 volte più lontano
+      for (const sp of spegnibili) {
+        const im = sp.m as THREE.InstancedMesh, mm: THREE.Matrix4[] = [];
+        for (let i = 0; i < im.count; i++) { const x = new THREE.Matrix4(); im.getMatrixAt(i, x); mm.push(x); }
+        const d = abetiDipinti(pt, mm, i0++); gruppo.add(d); gruppo.remove(im);
+        sp.m = d; sp.lontano = 3;
+      }
+    },
     numeri: () => ({ abeti: abetiN, triangoli: Math.round(triangoli + abetiN * triAbete), riquadri: riquadri.length }),
     dispose() {
       gruppo.traverse((o) => { if (o instanceof THREE.Mesh) o.geometry.dispose(); });
-      abete.dispose(); matV.dispose();
+      abete.dispose(); matV.dispose(); (chiusaM?.material as THREE.Material | undefined)?.dispose();
     },
   };
 }
