@@ -3,9 +3,9 @@
 // Barche degli altri (#6, #107): chi naviga si vede dov'è, coi suoi colori; chi è a piedi (o offline) ha la barca ormeggiata al molo della
 // SUA isola. La tua, quando è vuota e uno scafo altrui la tocca, si sposta al posto libero più vicino (ormeggioLibero): mai una sopra l'altra.
 import * as THREE from 'three';
-import { BARCA_DI_SERIE, barcaDi, barcheSovrapposte, canBoard, composeArchipelago, correnteBordo, createOstacoli, penetra, posaForma, landingSpot, NO_INPUT, ormeggioLibero, yawOrmeggio } from '@marea/sim';
+import { BARCA_DI_SERIE, barcaDi, barcheSovrapposte, canBoard, composeArchipelago, correnteBordo, createOstacoli, penetra, posaForma, landingSpot, NO_INPUT, ormeggioLibero, postiDelMolo } from '@marea/sim';
 import type { Archipelago, ArchPlace, BoatState, GridMap, InputFrame, Ostacoli, Posa } from '@marea/sim';
-import { ARCHIPELAGO, ISLANDS } from '@marea/content';
+import { ARCHIPELAGO, BALANCE, ISLANDS } from '@marea/content';
 import { portaDi } from './borgo.ts';
 import type { BarcaLook, Indossa, Look, LookSalvato, Peer } from '@marea/protocol';
 import type { Flags } from '../flags.ts';
@@ -16,6 +16,7 @@ import type { Lights } from '../render/light.ts';
 import type { Water } from '../render/water.ts';
 import { createWater } from '../render/water.ts';
 import { createIsland } from '../render/island.ts';
+import { creaPostiMolo } from '../render/molo_posti.ts';
 import { LOD_M } from '../render/island_sagoma.ts';
 import { INGRESSI } from './ingressi.ts';
 import { PORTO_AMICI } from '@marea/content/porto_amici.ts';
@@ -156,8 +157,13 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     const i: Indossa | 'partenza' | undefined = e === 'partenza' ? e : e && (e['corpo'] || e['arma'] || e['frecce']) ? { corpo: e['corpo'], arma: e['arma'], frecce: e['frecce'] } : undefined, k = JSON.stringify(i ?? null);
     if (k !== equipKey) { equipKey = k; avatar.setIndossa(i); boat.driver.setIndossa(i); }
   };
-  /** Ormeggia la barca in (x, z) col muso verso il mare aperto, non contro il molo. */
+  // i posti barca del molo del Porto: il primo, accanto alla B, è il tuo; gli altri degli amici, uno a testa
+  const molo = postiDelMolo(map, homeBoat.x, homeBoat.z), mioPosto = molo.posti[0] ?? null;
+  const alMioPosto = (x: number, z: number) => !!mioPosto && Math.hypot(x - mioPosto.x, z - mioPosto.z) < BALANCE.barca.ormeggio.aggancio;
+  scene.add(creaPostiMolo(molo));
+  /** Ormeggia la barca in (x, z) col muso verso il mare aperto, non contro il molo; vicino al tuo posto barca del Porto, lì. */
   const moor = (x: number, z: number) => {
+    if (mioPosto && alMioPosto(x, z)) { boat.teleport(mioPosto.x, mioPosto.z, mioPosto.yaw); return; }
     boat.teleport(x, z);
     const dock = landingSpot(boat.state, map);
     if (dock) boat.setYaw(Math.atan2(boat.state.x - dock.x, -(boat.state.z - dock.z)));
@@ -189,15 +195,9 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   // ---- flotta (#6, #107): la barca di ogni altro, al timone dove naviga o ormeggiata al molo della sua isola
   const abitanti = new Map((o.abitanti ?? []).filter((a) => a.id !== o.meId).map((a) => [a.id, a] as const));
   const ormeggioDi = new Map<string, Posa>();
-  // #237: i giardini non hanno più un molo raggiungibile: le barche degli altri stanno ormeggiate attorno al molo del Porto,
-  // ognuna nel primo posto libero (la B del Porto è della tua). Se attorno al molo non c'è più posto, si vedono solo quando navigano.
-  { const b0 = arch.boatOf(null), presi: Posa[] = [{ x: b0.x, z: b0.z, yaw: yawOrmeggio(b0.x, b0.z, map) }];
-    for (const a of abitanti.values()) {
-      if (a.slot === null) continue;
-      const p = ormeggioLibero(map, b0.x, b0.z, presi);
-      if (!p) break;
-      presi.push(p); ormeggioDi.set(a.id, p);
-    } }
+  // le barche degli altri stanno ai posti barca del molo del Porto, uno a testa dopo il tuo; finiti i posti, si vedono solo quando navigano
+  { let i = 1;
+    for (const a of abitanti.values()) { const p = a.slot === null ? null : molo.posti[i++]; if (p) ormeggioDi.set(a.id, { x: p.x, z: p.z, yaw: p.yaw }); } }
   const flotta = new Map<string, BarcaAltrui>();
   const creaBarca = async (id: string, f: BarcaAltrui, look: Look, barca: BarcaLook) => {
     f.loading = true;
@@ -263,7 +263,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     toccataT += passo;
     if (toccataT < 0.5) return;
     toccataT = 0;
-    const p = ormeggioLibero(map, mia.x, mia.z, altre);
+    const p = molo.posti.find((q) => Math.hypot(q.x - mia.x, q.z - mia.z) < 20 && !altre.some((b) => barcheSovrapposte(q, b))) ?? ormeggioLibero(map, mia.x, mia.z, altre); // prima un posto barca libero
     if (p) { boat.teleport(p.x, p.z, p.yaw); dockAt = landingSpot(boat.state, map) ?? dockAt; }
   };
 
@@ -352,7 +352,7 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
       } else {
         boat.step(input, map); dopoBarca();
         avatar.teleport(boat.state.x, boat.state.z);
-        if (pressA && boat.state.speed < 2) { const spot = landingSpot(boat.state, map); if (spot) { mode = 'walk'; boat.setDriver(null); avatar.visible = true; avatar.teleport(spot.x, spot.z); o.hud.toast('A terra'); } else o.hud.toast('Avvicinati a un molo per scendere'); }
+        if (pressA && boat.state.speed < 2) { const spot = landingSpot(boat.state, map); if (spot) { mode = 'walk'; boat.setDriver(null); avatar.visible = true; avatar.teleport(spot.x, spot.z); if (alMioPosto(boat.state.x, boat.state.z)) moor(boat.state.x, boat.state.z); o.hud.toast('A terra'); } else o.hud.toast('Avvicinati a un molo per scendere'); }
       }
       const s = mode === 'walk' ? avatar.state : boat.state;
       if (net.status === 'on' && performance.now() - lastSent > 100) { lastSent = performance.now(); net.sendPos({ t: 'pos', x: s.x, z: s.z, yaw: s.yaw, mode, anim: mode === 'walk' ? avatar.state.anim : 'sit' }); }

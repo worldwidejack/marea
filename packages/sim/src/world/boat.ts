@@ -97,11 +97,13 @@ function nearestDock(map: GridMap, x: number, z: number, cells: number): { x: nu
   return best;
 }
 
-/** L'avatar può salire se è sul molo (o a un passo dal molo) ed entro raggioImbarco dalla barca, e la barca è in acqua. */
+/** L'avatar può salire se è sul molo (o a un passo dal molo) ed entro raggioImbarco dalla barca (dal centro o dalla poppa, che ormeggiata
+ *  di poppa tocca il molo), e la barca è in acqua. */
 export function canBoard(a: AvatarState, b: BoatState, map: GridMap): boolean {
   const B = boatParams();
   if (!map.navigable(b.x, b.z)) return false;
-  if (trig.hypot(a.x - b.x, a.z - b.z) > B.raggioImbarco) return false;
+  const px = b.x - trig.sin(b.yaw) * SCAFO.mezzaL, pz = b.z + trig.cos(b.yaw) * SCAFO.mezzaL;
+  if (trig.hypot(a.x - b.x, a.z - b.z) > B.raggioImbarco && trig.hypot(a.x - px, a.z - pz) > B.raggioImbarco) return false;
   if (map.isDock(a.x, a.z)) return true;
   const d = nearestDock(map, a.x, a.z, 1);
   return !!d && d.d <= map.tile * 0.75;
