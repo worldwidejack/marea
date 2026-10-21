@@ -2,7 +2,7 @@
 // Acceso: niente joystick fisso; un dito vero (tocchi CDP) sul canvas fa nascere il joystick lì e l'eroe va dove spingi; al rilascio
 // si ferma e il joystick resta fermo (più chiaro) per i secondi scelti, poi sparisce; un tocco sopra o appena fuori lo riprende col
 // centro di prima, lontano ne nasce uno nuovo; un secondo dito (pizzico) lo lascia. Spento: torna il joystick fisso. Resta dopo il ricaricamento.
-// Stabile (#531): si prova sulla Laguna, lontano dalla gente del Borgo che passeggia (la nuvoletta col nome si tocca e prende il dito, il corpo
+// Stabile: si prova sulla Laguna, lontano dalla gente del Borgo che passeggia (la nuvoletta col nome si tocca e prende il dito, il corpo
 // ferma l'eroe); il punto libero sotto il dito si cerca prima di ogni tocco; ogni prova riparte pulita (nessun dito giù, joystick «via»)
 // e non eredita il joystick fermo della prova prima: quello sparisce dopo secondi veri, mentre sotto SwiftShader i tick vanno a 2-4 fps.
 export const timeout = 180000;
