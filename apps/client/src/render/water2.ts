@@ -6,7 +6,9 @@
 // Tutto quantizzato a 8 texel/m così resta a pixel anche da vicino.
 // Meteo (#361): sotto le nuvole di pioggia (NUBI, condivisi con la passata finale e la pioggia) cerchi a pixel che si allargano, solo
 // dove piove davvero e vicino alla camera.
+// Di notte la luce del faro (faro_luce.ts): il riflesso della lanterna a trattini come la luna, e dove il fascio tocca il mare.
 import * as THREE from 'three';
+import { FARO_ACQUA, GLSL_FARO } from './faro_luce.ts';
 import type { GridMap } from '@marea/sim';
 import { GLSL_NUBI, NUBI } from './meteo.ts';
 
@@ -51,6 +53,7 @@ uniform vec3 uC0, uC1, uC2, uC3, uFoam, uLine, uSunDir, uTint, uMoonDir, uLunaA,
 uniform float uNight;
 varying vec3 vW;
 ${GLSL_NUBI}
+${GLSL_FARO}
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) {
   vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -146,6 +149,7 @@ void main() {
     float st = hash(floor(q * 1.5) + 17.0);
     if (length(toP) < 70.0 && st > 0.9965 && fract(t * 0.6 + st * 13.0) > 0.3) c = mix(c, uFoam, uNight * 0.85); // stelle riflesse solo vicino (#286)
   }
+  if (dd > 1.0) c = faroAcqua(q, c, t);
   gl_FragColor = vec4(c, 1.0); // uTint: il ciclo giorno/notte scurisce l'acqua (non è illuminata)
   #include <colorspace_fragment>
 }`;
@@ -155,6 +159,7 @@ export type Water2 = { mesh: THREE.Mesh; follow(x: number, z: number): void; upd
 export function createWater2(map: GridMap): Water2 {
   const col = (h: string) => new THREE.Color(h);
   const U = {
+    ...FARO_ACQUA,
     tDist: { value: distanceField(map) }, uMapSize: { value: new THREE.Vector2(map.w * map.tile, map.h * map.tile) }, uTime: { value: 0 }, uMode: { value: 1 },
     uC0: { value: col('#fff') }, uC1: { value: col('#fff') }, uC2: { value: col('#fff') }, uC3: { value: col('#fff') }, uFoam: { value: col('#fff') }, uLine: { value: col('#fff') },
     uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uTint: { value: new THREE.Color(1, 1, 1) },
