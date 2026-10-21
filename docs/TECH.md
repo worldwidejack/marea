@@ -90,7 +90,7 @@ URL: `https://marea.stanza-idee.workers.dev`. Se un giorno si apre al pubblico: 
 Il DO `Sfide` (un'istanza sola, `idFromName('tavolo')`) è il **coordinatore unico** dell'arcipelago: buche del Borgo, discese dell'Adrenalina, feed, tabellone dei record. Tra due DO non c'è transazione: ogni operazione su un lotto è idempotente e il coordinatore scrive prima l'intento, poi chiama i lotti.
 
 ## 7. Autenticazione
-Link personale con **token** (`?t=<token>` → salvato in `localStorage`, poi header `X-Token`), creato con `node apps/server/scripts/invita.mjs "Nome" --remote`; oppure link di gruppo `?invito=<codice>`, dove si sceglie il nome (`ui/entra.ts` → `POST /api/entra`). Zero email, zero password, zero servizi terzi. I link e i codici non vanno mai nel repo.
+Link personale con **token** (`?t=<token>` → salvato in `localStorage`, poi header `X-Token`), creato da un admin (`node apps/server/scripts/admin.mjs link|invito`, CONTRIBUIRE §7; `invita.mjs` resta per il database locale); oppure link di gruppo `?invito=<codice>`, dove si sceglie il nome (`ui/entra.ts` → `POST /api/entra`). Zero email, zero password, zero servizi terzi. I link e i codici non vanno mai nel repo.
 
 ## 8. Anti-cheat (basta per gli amici)
 Ogni partita invia al DO `Lot` il **seed** e l'**input log** (uno `InputFrame` compresso per tick). Il DO rigioca la partita con la stessa `sim` e accetta solo il punteggio che ne esce. Orologio: solo del server (`serverNow()` dal client, corretto con ping/pong).

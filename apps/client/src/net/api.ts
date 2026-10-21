@@ -41,7 +41,7 @@ export type TemplariStart = { seed: number; subito: boolean; classe?: string | n
 export type TemplariFinish = { result: TRisultato; premio: number; pieno: number; tetto: boolean; record: boolean; lot: LotState };
 
 
-export const MSG_401 = 'Link non valido, chiedi a Jack un link nuovo';
+export const MSG_401 = 'Link non valido, chiedi un link nuovo a chi ti ha mandato il link';
 export const MSG_RETE = 'Niente connessione, riprova tra poco';
 
 export class ApiError extends Error {
