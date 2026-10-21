@@ -1,7 +1,7 @@
 // Il negozio dei mobili (#265) sul server locale (wrangler dev, TEST_CLOCK:1): Luca vince monete con le Regate (API, autopilot); nel
 // browser cammina contro la porta della bottega sullo slargo ed entra (velo, camera fissa, niente minimappa); davanti a un mobile in vetrina (quella
 // di oggi, #384) A apre la scheda, COMPRA → è nel magazzino (server); una carta da parati comprata si mette subito; il banco dice cosa c’è oggi e il
-// server rifiuta un mobile non esposto; in fondo al corridoio esce in città; a casa ARREDA posa il mobile. Senza monete la scheda dice quante ne mancano e non chiama il server. Telefono 390×844: bottone e scheda dentro
+// server rifiuta un mobile non esposto; in fondo al corridoio esce in città; a casa ARREDA posa il mobile. Senza monete Fulvio dice quante ne servono e non chiama il server. Telefono 390×844: bottone e scheda dentro
 // lo schermo, ≥ 44 px. Screenshot: la bottega in città, il negozio da dentro (PC e telefono), la scheda.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -12,13 +12,14 @@ export const timeout = 420000;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const WIN = process.platform === 'win32';
 
 export default async function (ctx) {
   const { assert } = ctx;
   const SERVER = path.join(ctx.ROOT, 'apps/server');
   const persist = path.join(ctx.OUT, `m3negozio-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, shell: WIN }).toString();
   const sim = async (f) => import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src', f)).href);
   const { regata } = await sim('minigames/regata/regata.ts');
   const { packInputs, quantize } = await sim('replay.ts');
@@ -38,10 +39,13 @@ export default async function (ctx) {
   try {
     fs.rmSync(persist, { recursive: true, force: true });
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
-    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command', "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0), ('ada', 'Ada', 'tokA', 1);");
+    const sql = path.join(persist, 'persone.sql');
+    fs.mkdirSync(persist, { recursive: true });
+    fs.writeFileSync(sql, "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0), ('ada', 'Ada', 'tokA', 1);\n");
+    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--file', sql);
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: !WIN, shell: WIN, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const BASE = `http://127.0.0.1:${port}`;
     let up = false;
@@ -117,7 +121,7 @@ export default async function (ctx) {
 
     await ctx.test('PC: il banco dice cosa c’è oggi; i pezzi in negozio sono la vetrina della sim; un mobile non esposto il server lo rifiuta (#384)', async () => {
       const V = globalThis.__pc, s0 = await V.st(), banco = s0.negozio.pezzi.find((p) => p.kind === 'banco');
-      assert(banco, 'manca il banco del mobiliere');
+      assert(banco, 'manca il banco di Fulvio');
       assert(JSON.stringify(s0.negozio.vetrina) === JSON.stringify(oggi), 'la vetrina del client non è quella della sim: ' + JSON.stringify(s0.negozio.vetrina));
       const esposti = s0.negozio.pezzi.filter((p) => p.kind === 'mobile').map((p) => p.id).sort();
       assert(JSON.stringify(esposti) === JSON.stringify([...oggi.terra, ...oggi.parete].sort()), 'pezzi in negozio: ' + esposti.join(','));
@@ -129,7 +133,7 @@ export default async function (ctx) {
       await ctx.waitState(V.page, (s) => s.negozio.near === 'banco', 5000);
       await V.page.keyboard.press('KeyE');
       await ctx.waitState(V.page, (s) => s.negozio.aperto === 'banco', 3000);
-      await V.page.waitForFunction(() => document.querySelector('#mzNegozio')?.textContent?.includes('Merce nuova'), null, { timeout: 5000 });
+      await V.page.waitForFunction(() => document.querySelector('#mzNegozio')?.textContent?.includes('Fulvio'), null, { timeout: 5000 });
       await ctx.shot(V.page, 'pc_banco');
       // fuori vetrina il server rifiuta (409, requisito) e non cambia niente; l’id sconosciuto resta 404
       const fuori = mobili.find((m) => m.posto === 'terra' && !oggi.terra.includes(m.id)), prima = (await get('/api/lot')).body;
@@ -172,7 +176,7 @@ export default async function (ctx) {
       await V.page.locator('#mzNegozio [data-act="compra"]').tap();
       await V.page.waitForTimeout(500);
       const txt = await V.page.locator('#mzNegozio').innerText();
-      if (perle < caro.monete) assert(/mancano/.test(txt), 'senza monete: ' + txt);
+      if (perle < caro.monete) assert(/Ti servono/.test(txt), 'senza monete: ' + txt);
       const piccoli = await V.page.evaluate(() => [...document.querySelectorAll('#mzNegozio button')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 20), w: Math.round(r.width), h: Math.round(r.height), fuori: r.left < 0 || r.right > innerWidth || r.bottom > innerHeight }; }).filter((r) => r.w < 44 || r.h < 44 || r.fuori));
       assert(!piccoli.length, 'bottoni piccoli o fuori: ' + JSON.stringify(piccoli));
       await ctx.shot(V.page, 'telefono_scheda');
@@ -204,8 +208,11 @@ export default async function (ctx) {
     });
   } finally {
     for (const p of pages) await p.close().catch(() => {});
-    if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
-    fs.rmSync(persist, { recursive: true, force: true });
+    if (dev) {
+      if (WIN) { try { execFileSync('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* già chiuso */ } }
+      else { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    }
+    try { fs.rmSync(persist, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); } catch { /* file ancora aperti su Windows */ }
     delete globalThis.__pc;
   }
 }

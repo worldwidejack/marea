@@ -1,0 +1,46 @@
+{
+  "_nota": "Fulvio, il negoziante dei mobili del Borgo (game/fulvio.ts): le sue battute e le risposte del giocatore. Segnaposto: {nome} (mobile, pesce o insetto), {prezzo} (es. «300 monete»), {descr} (la scheda del Diario), {un} (un/uno/una/un') e {lo} (lo/la) secondo il mobile.",
+  "nome": "Fulvio",
+  "benvenuto": {
+    "primaVolta": "Oh, finalmente una faccia nuova. Io sono Fulvio, gestisco la baracca, gli attrezzi, i cantieri e tutto quello che vedi qua intorno. Non farmi alzare dalla sedia se non è urgente... che ti serve?",
+    "ancora": "Ancora tu? Sono Fulvio, sì, non mi sono mosso di un millimetro. Dimmi veloce che mi sono abbuffato di gamberetti e mi sto abbioccando. che vuoi fare?"
+  },
+  "scelte": {
+    "vendi": "Cosa vendi?",
+    "registra": "Voglio registrare un insetto o un pesce sul diario",
+    "ingrandisci": "Voglio ingrandire la casa",
+    "ciao": "Niente, a dopo",
+    "fine": "Ciao",
+    "avanti": "Avanti ›",
+    "scegli": "Quale gli consegni?",
+    "indietro": "‹ Indietro",
+    "amplia": "Sì, ingrandisci",
+    "noAmplia": "No, ci ripenso",
+    "compraLo": "Lo compro",
+    "compraLa": "La compro",
+    "lascia": "Lascio stare"
+  },
+  "vendi": "Qua di fianco a me ci sono gli strumenti, ti serviranno per fare varie attività come pescare, catturare gli insetti dell'isola e scavare buche. I mobili, i pavimenti e le carte da parati in esposizione servono per decorare la tua casa, e cambiano tutti i giorni. Seleziona pure quello che vuoi comprare.",
+  "registra": {
+    "niente": "E cosa vorresti farmi registrare, l'aria fritta? Non hai mezza bestia in tasca e giri pure a mani nude! Comprati prima una canna da pesca o un retino qua di fianco per iniziare a catturarli, poi ne riparliamo.",
+    "tascheVuote": "Ho già tirato fuori gli occhiali e la penna, ma vedo che hai le tasche vuote. Vai a pescare o a dar la caccia a qualche insetto prima di farmi aprire il registro per niente, o ti sei già venduto tutto al contrabbando?",
+    "consegna": "Fammi vedere che mi hai portato... Mmh, puzza il giusto. Hai catturato: {nome}!",
+    "fatto": "Ecco fatto... Te l'ho segnato per sempre sul tuo diario, con tanto di timbro. Almeno tu hai avuto il buon cuore di portarmelo invece di svenderlo ai contrabbandieri per due spiccioli! Oh, io registro un esemplare alla volta perché con 'sta umidità mi vengono i crampi alle dita: se ne hai altri, riparlami con calma."
+  },
+  "casa": {
+    "massimo": "Ma stai scherzando? Più grande di così non si può! Ti ho già tirato su una reggia, non c'è più mezzo centimetro per allargare i muri. Goditi lo spazio che hai e lascia in pace la mia schiena.",
+    "giaOggi": "Oh, piano con l'entusiasmo! Ho ancora la camicia zuppa di sudore per i lavori di ingrandimento. Faccio un solo cantiere al giorno, non sono mica un gruista automatico. Torna domani se vuoi allargarla ancora.",
+    "proposta": "Vuoi un po' di spazio in più per non inciampare nei tuoi stessi mobili, eh? Allargare la baracca ti costa {prezzo}. È un lavoraccio, ma se paghi subito ti sistemo tutto in giornata. Procediamo?",
+    "fatto": "Affare fatto. Prendo martello, chiodi e una bottiglia d'acqua fresca e ti allargo le pareti. Per oggi non chiedermi più mezzo lavoro manuale!",
+    "soldi": "Con quali soldi, scusa? Guarda che le assi di legno e il cemento non crescono mica sulle palme. Torna quando avrai {prezzo} sonanti in tasca.",
+    "annulla": "Meglio così, risparmio una sudata. Quando ti sta stretta la casa sai dove trovarmi."
+  },
+  "mobile": {
+    "chiede": "Ah sì... {un} {nome}... ottima scelta, costa {prezzo}, {lo} vuoi?",
+    "comprato": "Aggiudicato. Sono sicuro che starà da dio nella tua casetta",
+    "soldi": "Eh, piacerebbe anche a me avere gusti costosi col portafoglio vuoto. Ti servono {prezzo}, torna quando li hai."
+  },
+  "canna": "Ah, la canna da pesca! Costa {prezzo}. Per usarla, avvicinati al mare dove vedi le ombre dei pesci, oppure fermati in mezzo al mare quando sei in barca. Lascia l'amo vicino al pesce e quando ha abboccato premi A a più non posso! Se me lo consegni te lo registro per sempre nel diario e ti spiego cos'è... oppure vendilo pure al contrabbando, se sei solo in cerca di denaro facile, ma sappi che se è una specie nuova non risulterà mai sul tuo diario. Poi vedi tu se riesci a dormire la notte sapendo di aver svenduto la fauna dell'isola per quattro spiccioli! La compri?",
+  "retino": "Il caro vecchio retino! Costa {prezzo}. Con questo puoi catturare insetti avvicinandoti e usando il retino col giusto tempismo. Se me lo consegni te lo registro per sempre nel diario e ti spiego cos'è... oppure fai pure il venale e vendilo al contrabbando se pensi solo al denaro, ma ricordati che se è un insetto nuovo non risulterà sul tuo diario, e resterà lì una pagina bianca a ricordarti la tua avidità. Lo vuoi?",
+  "pala": "Una bella pala robusta! Costa {prezzo}. Puoi usarla per fare buchi nel terreno e seppellire quello che vuoi, magari per farlo trovare a qualcun altro... Ah, ti do una dritta: ogni giorno sull'isola appare un bottino nascosto sotto terra tutto da trovare. Te la incarto?"
+}

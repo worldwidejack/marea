@@ -129,8 +129,8 @@ function detail(v: View, it: ItemDef, eq: SlotOggetto[]): HTMLElement {
   } else if (it.kind === 'materiale') box.appendChild(el('p', 'mz-rp-warn', 'Serve per forgiare al Banco da Lavoro.'));
   else if (it.kind === 'ingrediente') box.appendChild(el('p', 'mz-rp-warn', 'Serve al Tavolo Alchemico.'));
   else if (it.kind === 'strumento') box.appendChild(el('p', 'mz-rp-warn', it.id === 'retino' ? 'Si usa a Borgo Marea per catturare gli insetti: mettilo in mano col bottone dell’attrezzo o col tasto Q. Non pesa nello zaino.' : it.id === 'canna' ? 'Si pesca dalle rive di Borgo Marea (mettila in mano col bottone dell’attrezzo o col tasto Q) e dalla barca ferma in mare aperto. Non pesa nello zaino.' : 'Si usa a Borgo Marea per scavare buche e cercare tesori. Non pesa nello zaino.'));
-  else if (it.kind === 'pesce') box.appendChild(el('p', 'mz-rp-warn', 'Non pesa nello zaino. Al mobiliere del Borgo lo consegni gratis per la collezione (nel Diario si sblocca la sua scheda); al Contrabbandiere lo vendi.'));
-  else if (it.kind === 'insetto') box.appendChild(el('p', 'mz-rp-warn', 'Non pesa nello zaino. Al mobiliere del Borgo lo consegni gratis per la collezione (nel Diario si sblocca la sua scheda); al Contrabbandiere lo vendi.'));
+  else if (it.kind === 'pesce') box.appendChild(el('p', 'mz-rp-warn', 'Non pesa nello zaino. Portalo a Fulvio, al negozio del Borgo, e lo registra nel Diario (si sblocca la sua scheda); al Contrabbandiere lo vendi, ma nel Diario non risulta.'));
+  else if (it.kind === 'insetto') box.appendChild(el('p', 'mz-rp-warn', 'Non pesa nello zaino. Portalo a Fulvio, al negozio del Borgo, e lo registra nel Diario (si sblocca la sua scheda); al Contrabbandiere lo vendi, ma nel Diario non risulta.'));
   if (it.kind !== 'strumento') box.appendChild(buttaVia(v, it, eq));
   return box;
 }

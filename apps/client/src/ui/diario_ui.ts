@@ -1,5 +1,5 @@
-// Diario del capitano (#87), chunk caricato con import() alla prima apertura da game/diario.ts. Un album a pagine: Pesci (#457: disegno a pixel
-// di ogni specie, quante volte, scheda dopo la consegna al mobiliere), Perle, Animali avvistati, Medaglie (la migliore per minigioco), Isole visitate (la forma vera dell'isola,
+// Diario del capitano (#87), chunk caricato con import() alla prima apertura da game/diario.ts. Un album a pagine: Pesci e Insetti (disegno a pixel
+// e scheda di ogni specie, solo dopo averla registrata da Fulvio al negozio), Perle, Animali avvistati, Medaglie (la migliore per minigioco), Isole visitate (la forma vera dell'isola,
 // un pixel per cella). Caselle grigie con «?» per quello che manca, contatore dei trovati su ogni linguetta. Si può sfogliare anche il diario
 // di un amico (sola lettura, dal suo lotto). I traguardi coi titoli sono stati tolti (tag archivio/spenti-traguardi).
 // Un pollice: linguette e caselle ≥ 44 px. Tastiera in capture solo a pannello aperto: Esc/J chiude, ←/→ linguette, ↑/↓ tra i bottoni.
@@ -106,8 +106,8 @@ export function createDiarioUi(ctx: DiarioCtx) {
   type Conta = { fatto: number; tot: number };
   const conti = (l: LotState | null, d: DiarioState): Record<DiarioTab, Conta> => {
     return {
-      pesci: { fatto: PESCI.filter((p) => (l?.pesci?.visti[p.id] ?? 0) > 0).length, tot: PESCI.length },
-      insetti: { fatto: INSETTI.filter((i) => (l?.insetti?.visti[i.id] ?? 0) > 0).length, tot: INSETTI.length },
+      pesci: { fatto: PESCI.filter((p) => l?.pesci?.posseduti.includes(p.id)).length, tot: PESCI.length },
+      insetti: { fatto: INSETTI.filter((i) => l?.insetti?.posseduti.includes(i.id)).length, tot: INSETTI.length },
       perle: { fatto: DIARIO.perle.filter((p) => (d.perle[p.id] ?? 0) > 0).length, tot: DIARIO.perle.length },
       animali: { fatto: DIARIO.animali.filter((a) => d.animali.includes(a.id)).length, tot: DIARIO.animali.length },
       medaglie: { fatto: DIARIO.minigiochi.filter((m) => d.medaglie[m.id]).length, tot: DIARIO.minigiochi.length },
@@ -177,38 +177,30 @@ export function createDiarioUi(ctx: DiarioCtx) {
     return n;
   }
   const b = (t: string) => el('b', '', t), k = (t: string) => el('span', 'k', t);
-  /** Pesci (#457): come gli insetti, il disegno si sblocca pescandolo («visto»), la scheda consegnandolo al mobiliere («catturato», verde). */
+  /** Pesci: un pesce c'è nel Diario (disegno, nome, scheda) solo dopo averlo registrato da Fulvio; pescarlo e basta non conta. */
   function bodyPesci(l: LotState | null): HTMLElement[] {
     const s = pesciOf(l, Date.now()), g = el('div', 'mz-dia-grid');
     for (const p of PESCI) {
-      const n = s.visti[p.id] ?? 0, tuo = s.posseduti.includes(p.id);
-      g.appendChild(cella(p.id, pesceCanvas(p, 3, n === 0), p.nome, n, n > 0, (c) => {
-        const r = el('span', 'rar'); r.style.setProperty('--r', INS_RAR_COL[p.rarita]); c.appendChild(r);
-        if (tuo) { c.classList.add('tuo'); c.appendChild(el('span', 'tuo', '✓')); }
-      }));
+      const tuo = s.posseduti.includes(p.id);
+      g.appendChild(cella(p.id, pesceCanvas(p, 3, !tuo), p.nome, null, tuo, (c) => { const r = el('span', 'rar'); r.style.setProperty('--r', INS_RAR_COL[p.rarita]); c.appendChild(r); }));
     }
-    const p = PESCI.find((x) => x.id === sel), n = p ? s.visti[p.id] ?? 0 : 0, tuo = !!p && s.posseduti.includes(p.id);
-    const info = !p ? [`Ne hai visti ${PESCI.filter((x) => (s.visti[x.id] ?? 0) > 0).length}, catturati (consegnati al mobiliere) ${s.posseduti.length}. Tocca un pesce per la scheda: si pescano con la canna dalle rive di Borgo Marea e dalla barca ferma al largo.`]
+    const p = PESCI.find((x) => x.id === sel), tuo = !!p && s.posseduti.includes(p.id);
+    const info = !p ? [`Registrati ${s.posseduti.length} su ${PESCI.length}. Si pescano con la canna dalle rive di Borgo Marea e dalla barca ferma al largo: portali a Fulvio, al negozio, per segnarli qui.`]
       : tuo ? [b(p.nome), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · ${dovePesce(p)}. `, p.descr]
-      : n > 0 ? [b(p.nome), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · pescato ${n} ${n === 1 ? 'volta' : 'volte'}, ${dovePesce(p)}. Portalo al mobiliere per leggere la sua scheda.`]
-      : [b('???'), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · non ancora pescato. ${dovePesce(p)[0]!}${dovePesce(p).slice(1)}.`];
+      : [b('???'), ' · ', k(PESCI_CFG.rarita[p.rarita]), ` · non ancora registrato. ${dovePesce(p)[0]!.toUpperCase()}${dovePesce(p).slice(1)}.`];
     return [g, nota(info)];
   }
-  /** Insetti (#445): il disegno si sblocca prendendolo col retino («visto»), la scheda consegnandolo al mobiliere («posseduto», verde). */
+  /** Insetti: come i pesci, nel Diario solo dopo averli registrati da Fulvio. */
   function bodyInsetti(l: LotState | null): HTMLElement[] {
     const s = insettiOf(l, Date.now()), g = el('div', 'mz-dia-grid');
     for (const i of INSETTI) {
-      const n = s.visti[i.id] ?? 0, tuo = s.posseduti.includes(i.id);
-      g.appendChild(cella(i.id, insettoCanvas(i, 3, n === 0), i.nome, n, n > 0, (c) => {
-        const r = el('span', 'rar'); r.style.setProperty('--r', INS_RAR_COL[i.rarita]); c.appendChild(r);
-        if (tuo) { c.classList.add('tuo'); c.appendChild(el('span', 'tuo', '✓')); }
-      }));
+      const tuo = s.posseduti.includes(i.id);
+      g.appendChild(cella(i.id, insettoCanvas(i, 3, !tuo), i.nome, null, tuo, (c) => { const r = el('span', 'rar'); r.style.setProperty('--r', INS_RAR_COL[i.rarita]); c.appendChild(r); }));
     }
-    const i = INSETTI.find((x) => x.id === sel), n = i ? s.visti[i.id] ?? 0 : 0, tuo = !!i && s.posseduti.includes(i.id);
-    const info = !i ? [`Ne hai visti ${INSETTI.filter((x) => (s.visti[x.id] ?? 0) > 0).length}, consegnati al mobiliere ${s.posseduti.length}. Tocca un insetto per la scheda: si prendono col retino a Borgo Marea.`]
+    const i = INSETTI.find((x) => x.id === sel), tuo = !!i && s.posseduti.includes(i.id);
+    const info = !i ? [`Registrati ${s.posseduti.length} su ${INSETTI.length}. Si prendono col retino a Borgo Marea: portali a Fulvio, al negozio, per segnarli qui.`]
       : tuo ? [b(i.nome), ' · ', k(INSETTI_CFG.rarita[i.rarita]), ` · ${doveInsetto(i)}. `, i.descr]
-      : n > 0 ? [b(i.nome), ' · ', k(INSETTI_CFG.rarita[i.rarita]), ` · preso ${n} ${n === 1 ? 'volta' : 'volte'}, ${doveInsetto(i)}. Portalo al mobiliere per leggere la sua scheda.`]
-      : [b('???'), ' · ', k(INSETTI_CFG.rarita[i.rarita]), ` · non ancora preso. ${doveInsetto(i)[0]!}${doveInsetto(i).slice(1)}.`];
+      : [b('???'), ' · ', k(INSETTI_CFG.rarita[i.rarita]), ` · non ancora registrato. ${doveInsetto(i)[0]!.toUpperCase()}${doveInsetto(i).slice(1)}.`];
     return [g, nota(info)];
   }
   function bodyPerle(d: DiarioState): HTMLElement[] {

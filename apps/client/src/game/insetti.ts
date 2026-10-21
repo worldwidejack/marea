@@ -150,7 +150,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   for (const e of [azioneBtn, attrBtn]) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   let presoFino = 0;
   const cartello = (d: InsettoDef, nuovo: boolean) => {
-    preso.replaceChildren(insettoCanvas(d, 4), el('small', '', 'Hai preso'), el('b', '', d.nome + '!'), el('small', '', nuovo ? 'Nuovo nel Diario: portalo al mobiliere per la tua collezione' : 'È nello zaino'));
+    preso.replaceChildren(insettoCanvas(d, 4), el('small', '', 'Hai preso'), el('b', '', d.nome + '!'), el('small', '', nuovo ? 'Non è ancora nel Diario: portalo a Fulvio per registrarlo' : 'È nello zaino'));
     preso.classList.add('on'); presoFino = performance.now() + 2600;
   };
 
@@ -159,11 +159,11 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const errore = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : 'Qualcosa non va, riprova');
   async function cattura(a: Attore): Promise<boolean> {
     if (!o.api) { o.hud.toast('Serve il collegamento per tenere gli insetti', 2200); a.stato = 'via'; a.t = 0; return false; }
-    const prima = insettiOf(o.getLot(), adesso()).visti[a.def.id] ?? 0;
+    const nuovo = !insettiOf(o.getLot(), adesso()).posseduti.includes(a.def.id); // non ancora registrato da Fulvio
     try {
       const r = await o.api.insetti('cattura', { k: a.k });
       o.setLot(r.lot); attori.delete(a.k); andati.add(a.k);
-      cartello(a.def, prima === 0); suona('raccolto');
+      cartello(a.def, nuovo); suona('raccolto');
       return true;
     } catch (e) { o.hud.toast(errore(e), 2400); attori.delete(a.k); andati.add(a.k); return false; }
   }
