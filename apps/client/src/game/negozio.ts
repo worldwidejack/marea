@@ -279,7 +279,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
         if (dentro && (f.z - oz) / T > C1 - 0.4 && f.vz > 0) { chiudi(); vai({ kind: 'esci' }); return true; }
       }
       if (fulvio.aperto && (!near || near.kind !== 'pezzo' || near.p !== fulvio.aperto)) chiudi();
-      if (near && pa) { if (near.kind !== 'pezzo' || fulvio.aperto !== near.p) vai(near); return true; } // a scheda aperta A non la ricomincia
+      if (near && pa) { if (near.kind !== 'pezzo' || fulvio.aperto !== near.p) vai(near); else fulvio.avanti(); return true; } // a scheda aperta A non la ricomincia: va alla pagina dopo
       if (near) return true;
       return pesca.tick(a) || insetti.tick(a) || pala.tick(a);
     },

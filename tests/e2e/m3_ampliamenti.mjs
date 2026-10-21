@@ -106,9 +106,11 @@ export default async function (ctx) {
       await V.page.keyboard.press('KeyE');
       await ctx.waitState(V.page, (s) => s.negozio.aperto === 'banco', 3000);
       assert(/Fulvio/.test(await V.page.locator('#mzNegozio').innerText()), 'Fulvio al banco');
+      await ctx.fulvioFinoA(V.page, 'ingrandisci');
       await V.page.locator('#mzNegozio [data-act="ingrandisci"]').click();
       await ctx.waitState(V.page, (s) => s.negozio.conferma === true, 3000);
-      const t = await V.page.locator('#mzNegozio').innerText();
+      await ctx.fulvioFinoA(V.page, 'amplia');
+      const t = (await V.st()).negozio.dice + ' ' + await V.page.locator('#mzNegozio').innerText();
       assert(/Allargare la baracca/.test(t) && t.includes(liv1.nome) && t.includes(String(k1)), 'proposta di Fulvio: ' + t);
       await ctx.shot(V.page, 'pc_banco_ampliamento');
       const prima = (await get('/api/lot')).body.monete;
@@ -151,11 +153,13 @@ export default async function (ctx) {
       await ctx.waitState(W.page, (s) => s.negozio.aperto === 'banco', 3000);
       await W.page.waitForTimeout(400);
       await ctx.shot(W.page, 'telefono_banco');
+      await ctx.fulvioFinoA(W.page, 'ingrandisci');
       await W.page.locator('#mzNegozio [data-act="ingrandisci"]').tap();
       await W.page.waitForTimeout(300);
+      await ctx.fulvioFinoA(W.page, 'amplia');
       await W.page.locator('#mzNegozio [data-act="amplia"]').tap();
       await W.page.waitForTimeout(500);
-      const txt = await W.page.locator('#mzNegozio').innerText();
+      const txt = (await W.st()).negozio.dice;
       assert(/Con quali soldi/.test(txt) && txt.includes(String(k1)), 'senza risorse: ' + txt);
       // la scheda scorre dentro sé stessa (pala, retino, canna l'hanno allungata): contano i bottoni nella parte che si vede,
       // la scheda intera sta nello schermo, e tornando in cima il × si raggiunge

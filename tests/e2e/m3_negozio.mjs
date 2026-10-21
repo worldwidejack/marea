@@ -110,6 +110,7 @@ export default async function (ctx) {
         await V.page.keyboard.press('KeyE');
         await ctx.waitState(V.page, (s, id) => s.negozio.aperto === id, 3000, id);
         if (id === stereo.id) await ctx.shot(V.page, 'pc_scheda');
+        await ctx.fulvioFinoA(V.page, 'compra');
         await V.page.locator('#mzNegozio [data-act="compra"]').click();
         await ctx.waitState(V.page, (s, n) => s.negozio.comprati === n, 8000, id === stereo.id ? 1 : 2);
       }
@@ -134,6 +135,7 @@ export default async function (ctx) {
       await V.page.keyboard.press('KeyE');
       await ctx.waitState(V.page, (s) => s.negozio.aperto === 'banco', 3000);
       await V.page.waitForFunction(() => document.querySelector('#mzNegozio')?.textContent?.includes('Fulvio'), null, { timeout: 5000 });
+      assert((await V.st()).negozio.pagine >= 2, 'anche sul PC, dove le righe sono larghe, il discorso è a pagine corte: ' + JSON.stringify((await V.st()).negozio));
       await ctx.shot(V.page, 'pc_banco');
       // 1. creature in tasca ma tutte già registrate nel Diario
       const lotBase = (await get('/api/lot')).body;
@@ -141,9 +143,11 @@ export default async function (ctx) {
       lotGia.hero = { ...(lotGia.hero ?? {}), inv: { ghiozzo: 1 } };
       lotGia.pesci = { ...(lotGia.pesci ?? {}), posseduti: ['ghiozzo'], visti: { ghiozzo: 1 } };
       await V.hook('setLot', lotGia);
+      await ctx.fulvioFinoA(V.page, 'registra');
       await V.page.locator('#mzNegozio [data-act="registra"]').click();
-      const txtGia = await V.page.locator('#mzNegozio').innerText();
-      assert(txtGia.includes('consumare inchiostro') && !(await V.page.locator('#mzNegozio [data-pesce]').count()), 'già registrati: ' + txtGia);
+      await ctx.waitState(V.page, (s) => /consumare inchiostro/.test(s.negozio.dice ?? ''), 3000);
+      assert(!(await V.page.locator('#mzNegozio [data-pesce]').count()), 'già registrati: non si consegna niente');
+      await ctx.fulvioFinoA(V.page, 'fine');
       await V.page.locator('#mzNegozio [data-act="fine"]').click();
       await ctx.waitState(V.page, (s) => !s.negozio.aperto, 3000);
 
@@ -157,8 +161,9 @@ export default async function (ctx) {
       await ctx.waitState(V.page, (s) => s.negozio.near === 'canna', 5000);
       await V.page.keyboard.press('KeyE');
       await ctx.waitState(V.page, (s) => s.negozio.aperto === 'canna', 3000);
-      const txtCanna = await V.page.locator('#mzNegozio').innerText();
+      const txtCanna = (await V.st()).negozio.dice;
       assert(txtCanna.includes('quattro braccia') && !(await V.page.locator('#mzNegozio [data-act="compra"]').count()), 'canna già posseduta: ' + txtCanna);
+      await ctx.fulvioFinoA(V.page, 'fine');
       await V.page.locator('#mzNegozio [data-act="fine"]').click();
       await ctx.waitState(V.page, (s) => !s.negozio.aperto, 3000);
       await V.hook('setLot', lotBase);
@@ -200,13 +205,69 @@ export default async function (ctx) {
       await V.page.locator('#btnA').tap();
       await ctx.waitState(V.page, (s, id) => s.negozio.aperto === id, 3000, caro.id);
       const perle = (await get('/api/lot', 'tokA')).body.monete;
+      await ctx.fulvioFinoA(V.page, 'compra');
       await V.page.locator('#mzNegozio [data-act="compra"]').tap();
       await V.page.waitForTimeout(500);
-      const txt = await V.page.locator('#mzNegozio').innerText();
+      const txt = (await V.st()).negozio.dice;
       if (perle < caro.monete) assert(/Ti servono/.test(txt), 'senza monete: ' + txt);
       const piccoli = await V.page.evaluate(() => [...document.querySelectorAll('#mzNegozio button')].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.slice(0, 20), w: Math.round(r.width), h: Math.round(r.height), fuori: r.left < 0 || r.right > innerWidth || r.bottom > innerHeight }; }).filter((r) => r.w < 44 || r.h < 44 || r.fuori));
       assert(!piccoli.length, 'bottoni piccoli o fuori: ' + JSON.stringify(piccoli));
       await ctx.shot(V.page, 'telefono_scheda');
+      ctx.noErrors(V.pg, 'telefono');
+    });
+
+    await ctx.test('telefono: Fulvio parla a pagine da 4 righe (AVANTI e A le girano), le scelte stanno sull’ultima e il tocco che apre non sceglie già', async () => {
+      const V = await open(ctx.B.IPHONE, 'tokA');
+      await V.hook('negozio');
+      await ctx.waitState(V.page, (s) => s.negozio.dentro, 8000);
+      const banco = (await V.st()).negozio.pezzi.find((p) => p.kind === 'banco');
+      await V.hook('teleport', banco.x, banco.z);
+      await ctx.waitState(V.page, (s) => s.negozio.near === 'banco', 5000);
+      await V.page.waitForTimeout(500);
+      await V.page.locator('#btnA').tap();
+      await ctx.waitState(V.page, (s) => s.negozio.aperto === 'banco', 3000);
+      // subito dopo l'apertura i bottoni sono spenti e un click sopra non fa niente (se il telefono è lento e l'attesa è già finita, non c'è niente da provare)
+      const subito = await V.page.evaluate(() => {
+        const n = window.__game.state().negozio, bs = [...document.querySelectorAll('#mzNegozio .mz-btn')];
+        bs.forEach((b) => b.click());
+        return { pronto: n.pronto, spenti: bs.every((b) => b.disabled), dopo: window.__game.state().negozio };
+      });
+      if (!subito.pronto) assert(subito.spenti && subito.dopo.pagina === 1 && subito.dopo.aperto === 'banco', 'tocco appena dopo l’apertura: ' + JSON.stringify(subito));
+      await ctx.waitState(V.page, (s) => s.negozio.pronto, 3000);
+      await ctx.shot(V.page, 'telefono_fulvio_pagina');
+      // il discorso è a pagine: nessuna ha più di 4 righe e le scelte compaiono solo sull'ultima
+      const righe = () => V.page.evaluate(() => { const p = document.querySelector('#mzNegozio .fv-dice'); return Math.round(p.getBoundingClientRect().height / parseFloat(getComputedStyle(p).lineHeight)); });
+      const s1 = (await V.st()).negozio;
+      assert(s1.pagine >= 2 && s1.pagina === 1 && s1.scelte.join() === 'avanti', 'prima pagina: ' + JSON.stringify(s1));
+      const testiPagine = [];
+      for (let i = 1; i <= s1.pagine; i++) {
+        const n = await righe();
+        assert(n >= 1 && n <= 4, `pagina ${i}/${s1.pagine}: ${n} righe`);
+        testiPagine.push((await V.page.locator('#mzNegozio .fv-dice').innerText()).trim());
+        if (i === 2) await ctx.shot(V.page, 'telefono_fulvio_pagina2');
+        if (i === s1.pagine) break;
+        await ctx.waitState(V.page, (s) => s.negozio.pronto, 3000);
+        if (i === 1) await V.page.locator('#mzNegozio [data-act="avanti"]').tap(); else await V.page.keyboard.press('KeyE'); // il bottone o A
+        await ctx.waitState(V.page, (s, n) => s.negozio.pagina === n, 3000, i + 1);
+      }
+      // ogni pagina dice solo il suo pezzo: messe in fila rifanno il testo di Fulvio, né una parola in più né ripetuta
+      assert(testiPagine.join(' ') === s1.dice.replace(/\s+/g, ' ').trim(), 'le pagine non rifanno il testo: ' + JSON.stringify(testiPagine));
+      assert(testiPagine.every((t, i) => testiPagine.every((u, j) => i === j || !u.includes(t))), 'una pagina ripete un’altra: ' + JSON.stringify(testiPagine));
+      const fin = (await V.st()).negozio;
+      assert(['vendi', 'registra', 'ingrandisci', 'ciao'].every((a) => fin.scelte.includes(a)) && !fin.scelte.includes('avanti'), 'ultima pagina: ' + JSON.stringify(fin));
+      // A sull'ultima pagina non sceglie per te
+      await ctx.waitState(V.page, (s) => s.negozio.pronto, 3000);
+      await V.page.keyboard.press('KeyE');
+      await V.page.waitForTimeout(400);
+      assert((await V.st()).negozio.aperto === 'banco' && (await V.st()).negozio.pagina === fin.pagina, 'A ha scelto al posto mio');
+      // «Cosa vendi?» ha una sola scelta (Ciao): A gira le pagine e poi chiude
+      await V.page.locator('#mzNegozio [data-act="vendi"]').tap();
+      for (let i = 0; i < 12 && (await V.st()).negozio.aperto; i++) {
+        await ctx.waitState(V.page, (s) => s.negozio.pronto || !s.negozio.aperto, 3000);
+        await V.page.keyboard.press('KeyE');
+        await V.page.waitForTimeout(150);
+      }
+      assert(!(await V.st()).negozio.aperto, 'A di pagina in pagina e alla fine chiude');
       ctx.noErrors(V.pg, 'telefono');
     });
 
