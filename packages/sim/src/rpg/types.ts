@@ -22,6 +22,8 @@ export type HeroState = {
   perkPunti: number;
   perk: string[];
   skill: Record<SkillId, { lv: number; xp: number }>;
+  /** Abilità ripristinate (riportate al lv 1 per 1000 monete con 2 abilità al 100): quante volte ripristinata. */
+  prestigio?: Partial<Record<SkillId, number>>;
   /** Zaino: id oggetto → quantità. Ogni oggetto con lo stesso id è identico (niente istanze). */
   inv: Record<string, number>;
   /** Equipaggiato: id oggetto (o magia per 'magia'). Un oggetto equipaggiato resta anche contato in `inv`. */
@@ -219,6 +221,8 @@ export type RpgAction =
   | { t: 'preleva'; item: string; n: number }
   /** Butta via n oggetti dallo zaino: spariscono. */
   | { t: 'butta'; item: string; n: number }
+  /** Ripristino abilità al livello 1 (per 1000 monete con almeno 2 abilità al livello 100 contemporaneamente). */
+  | { t: 'ripristina_skill'; skill: SkillId }
   /** Botteghe del Borgo (#414): compra n pezzi della vetrina di oggi del Fabbro o dell'Alchimista (monete, nello zaino). */
   | { t: 'vetrina'; bottega: 'fabbro' | 'alchimista'; item: string; n: number }
   /** Contrabbandiere del Porto: compra la merce di oggi o gli vendi roba dello zaino (monete). */

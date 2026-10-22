@@ -60,35 +60,73 @@ export function renderSkills(v: View, out: HTMLElement): void {
   if (h.perkPunti < 1) out.appendChild(el('div', 'mz-rp-cmp', 'Sali di livello per avere punti perk. Tocca un\'abilità per vedere i suoi perk.'));
   for (const s of SKILLS) {
     const st = h.skill[s] ?? { lv: RPG.livelli.skillIniziale, xp: 0 };
+    const prest = h.prestigio?.[s] ?? 0;
+    const effLv = prest > 0 ? RPG.livelli.skillMax : st.lv;
     const need = d.skillProssimo[s];
     const open = v.ui.skill === s;
-    const r = el('button', 'mz-rp-row mz-rp-skill' + (open ? ' on' : ''));
+    const r = el('button', 'mz-rp-row mz-rp-skill' + (open ? ' on' : '') + (prest > 0 ? ' prest' : ''));
     r.type = 'button'; r.dataset['k'] = `skill:${s}`; r.dataset['skill'] = s; r.setAttribute('aria-expanded', open ? 'true' : 'false');
     const top = el('span', 'top');
-    const ready = PERKS.filter((p) => p.skill === s && !h.perk.includes(p.id) && st.lv >= p.livello && (!p.richiede || h.perk.includes(p.richiede))).length;
-    top.append(el('span', 'n', SKILL_NOME[s]), el('span', 'q', ready && h.perkPunti > 0 ? `${ready} perk pronti` : need ? `${fmtN(st.xp, 0)}/${need}` : 'max'), el('span', 'lv', String(st.lv)));
-    r.append(top, bar(need ? st.xp / need : 1, PAL.acquaBassa));
+    const ready = PERKS.filter((p) => p.skill === s && !h.perk.includes(p.id) && effLv >= p.livello && (!p.richiede || h.perk.includes(p.richiede))).length;
+    const nomeWrap = el('span', 'n');
+    nomeWrap.textContent = SKILL_NOME[s];
+    if (prest > 0) {
+      const badge = el('span', 'mz-rp-badge-prest', prest > 1 ? `★×${prest}` : '★');
+      badge.title = 'Abilità ripristinata: perk accessibili come al liv. 100';
+      nomeWrap.appendChild(badge);
+    }
+    const lvEl = el('span', 'lv' + (prest > 0 ? ' prest' : ''));
+    if (prest > 0) lvEl.innerHTML = `${st.lv} <small>(★100)</small>`;
+    else lvEl.textContent = String(st.lv);
+    top.append(nomeWrap, el('span', 'q', ready && h.perkPunti > 0 ? `${ready} perk pronti` : need ? `${fmtN(st.xp, 0)}/${need}` : 'max'), lvEl);
+    r.append(top, bar(need ? st.xp / need : 1, prest > 0 ? PAL.giallo : PAL.acquaBassa));
     r.addEventListener('click', () => { v.ui.skill = open ? null : s; v.rerender(); });
     out.appendChild(r);
-    if (open) out.appendChild(perksOf(v, s, st.lv));
+    if (open) out.appendChild(perksOf(v, s, st.lv, prest));
   }
 }
 
-function perksOf(v: View, s: SkillId, lv: number): HTMLElement {
+function perksOf(v: View, s: SkillId, lv: number, prest: number): HTMLElement {
   const h = v.hero;
   const box = el('div', 'mz-rp-det'); box.dataset['perks'] = s;
+  if (prest > 0) {
+    const banner = el('div', 'mz-rp-prest-banner');
+    banner.innerHTML = `<b>★ Abilità ripristinata${prest > 1 ? ` (×${prest})` : ''}</b>: i perk si sbloccano come a livello 100. Sale di livello dall'attuale e dà esperienza al personaggio.`;
+    box.appendChild(banner);
+  }
+  if (lv >= RPG.livelli.skillMax) {
+    const atMax = SKILLS.filter((id) => (h.skill[id]?.lv ?? 0) >= RPG.livelli.skillMax).length;
+    const req = RPG.livelli.skillMaxRichieste ?? 2;
+    const costo = RPG.livelli.costoRipristino ?? 1000;
+    const canAfford = v.lot.monete >= costo;
+    const card = el('div', 'mz-rp-reset-card');
+    card.appendChild(el('div', 'mz-rp-reset-tit', 'Riporta al livello 1'));
+    if (atMax >= req) {
+      card.appendChild(el('div', 'mz-rp-reset-sub', `Per ${costo} monete riporti ${SKILL_NOME[s]} al livello 1. I perk restano sbloccati, continui a sbloccarne come a livello 100 e torni a salire di livello con il personaggio.`));
+      const b = button(`reset:${s}`, 'Ripristina al liv. 1', canAfford ? `${costo} monete` : `Servono ${costo} monete (hai ${v.lot.monete})`, '', v.busy || !canAfford,
+        () => v.act({ t: 'ripristina_skill', skill: s }, () => `${SKILL_NOME[s]} ripristinata al livello 1!`));
+      card.appendChild(b);
+    } else {
+      card.appendChild(el('div', 'mz-rp-reset-sub', `Servono almeno ${req} abilità al livello 100 contemporaneamente per il ripristino (attualmente ne hai ${atMax}/${req}).`));
+      const b = button(`reset:${s}`, 'Ripristina al liv. 1', `Servono ${req} abilità al 100`, '', true, () => {});
+      card.appendChild(b);
+    }
+    box.appendChild(card);
+  }
   const list = tree(s);
   if (!list.length) { box.appendChild(el('p', '', 'Nessun perk per ora.')); return box; }
   for (const { p, depth } of list) {
     const preso = h.perk.includes(p.id);
     const req = p.richiede ? PERKS.find((x) => x.id === p.richiede) : undefined;
-    const why = preso ? '' : lv < p.livello ? `Serve ${SKILL_NOME[s]} ${p.livello}` : req && !h.perk.includes(req.id) ? `Serve prima: ${req.nome}` : '';
+    const effLv = prest > 0 ? RPG.livelli.skillMax : lv;
+    const why = preso ? '' : effLv < p.livello ? `Serve ${SKILL_NOME[s]} ${p.livello}` : req && !h.perk.includes(req.id) ? `Serve prima: ${req.nome}` : '';
     const pronto = !preso && !why;
     const c = el('div', 'mz-rp-perk ' + (preso ? 'preso' : pronto ? 'pronto' : 'chiuso'));
     c.dataset['perk'] = p.id;
     c.style.marginLeft = `${Math.min(3, depth) * 12}px`;
     const t = el('div', 't');
-    t.append(el('span', '', (depth ? '└ ' : '') + p.nome), el('span', 'st ' + (preso ? 'mz-rp-ok' : pronto ? 'mz-rp-warn' : 'mz-rp-lock'), preso ? 'preso' : pronto ? 'disponibile' : `liv. ${p.livello}`));
+    const badgeTxt = preso ? 'preso' : pronto ? (prest > 0 && lv < p.livello ? 'disponibile (★)' : 'disponibile') : (prest > 0 ? `liv. ${p.livello} (★)` : `liv. ${p.livello}`);
+    t.append(el('span', '', (depth ? '└ ' : '') + p.nome), el('span', 'st ' + (preso ? 'mz-rp-ok' : pronto ? 'mz-rp-warn' : 'mz-rp-lock'), badgeTxt));
     c.append(t, el('div', '', p.descr));
     if (why) c.appendChild(el('div', 'why', why));
     if (pronto) {

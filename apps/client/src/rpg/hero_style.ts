@@ -36,6 +36,15 @@ const CSS = `
 .mz-rp-row .eq { color: ${P.giallo}; font-size: 13px; font-weight: bold; white-space: nowrap; }
 .mz-rp-row .lv { min-width: 3ch; text-align: right; color: ${P.giallo}; font-weight: bold; }
 .mz-rp-skill { display: block; }
+.mz-rp-skill.prest { border-color: ${P.giallo}; }
+.mz-rp-badge-prest { display: inline-block; padding: 1px 4px; margin-left: 6px; background: ${P.legnoScuro}; border: 1px solid ${P.giallo}; color: ${P.giallo}; font-size: 11px; font-weight: bold; vertical-align: middle; }
+.mz-rp-row .lv.prest { color: ${P.giallo}; font-size: 13px; white-space: nowrap; }
+.mz-rp-row .lv.prest small { color: ${P.arancio}; font-size: 11px; margin-left: 2px; }
+.mz-rp-prest-banner { padding: 6px 8px; margin-bottom: 6px; background: ${P.legnoScuro}; border: 2px solid ${P.giallo}; color: ${P.sabbiaChiara}; font-size: 13px; line-height: 1.3; }
+.mz-rp-prest-banner b { color: ${P.giallo}; }
+.mz-rp-reset-card { margin-top: 8px; margin-bottom: 6px; padding: 8px; background: ${P.legnoScuro}; border: 2px solid ${P.arancio}; }
+.mz-rp-reset-tit { font-size: 14px; font-weight: bold; color: ${P.giallo}; text-transform: uppercase; letter-spacing: .04em; }
+.mz-rp-reset-sub { font-size: 13px; color: ${P.sabbia}; margin: 3px 0 6px; line-height: 1.35; }
 .mz-rp-skill .top { display: flex; align-items: center; gap: 8px; }
 .mz-rp-skill .mz-rp-bar { margin: 4px 0 0; }
 .mz-rp-det { margin: 0; padding: 6px 8px 8px; background: ${P.ombraCalda}; border: 2px solid ${P.giallo}; border-top: 0; font-size: 14px; color: ${P.sabbia}; }

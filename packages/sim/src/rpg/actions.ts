@@ -1,5 +1,5 @@
 // Azioni del personaggio sull'isola (POST /api/rpg → DO Lot). Pure: advance(nowMs) prima, poi controlli, EconomyError in italiano, version + 1.
-import { PERKS, RECIPES, RPG, spellDef } from '@marea/content/rpg.ts';
+import { PERKS, RECIPES, RPG, SKILLS, spellDef } from '@marea/content/rpg.ts';
 import { advance } from '../economy/advance.ts';
 import { hashJson } from '../hash.ts';
 import { guadagna, prezzoInMonete, spendi } from '../economy/monete.ts';
@@ -88,7 +88,8 @@ function forgia(lot: LotState, h: HeroState, id: string, n: number): { hero: Her
 function alchimia(lot: LotState, h: HeroState, ricetta: string, n: number): { hero: HeroState; forziere: Bag } {
   const r = RECIPES.find((x) => x.id === ricetta);
   if (!r) throw err('sconosciuto', 'Ricetta sconosciuta');
-  if ((h.skill.alchimia?.lv ?? 0) < r.livello) throw err('livello_skill', `Serve Alchimia ${r.livello}`);
+  const effLv = (h.prestigio?.alchimia ?? 0) > 0 ? RPG.livelli.skillMax : (h.skill.alchimia?.lv ?? 0);
+  if (effLv < r.livello) throw err('livello_skill', `Serve Alchimia ${r.livello}`);
   const cost: Record<string, number> = {};
   for (const [id, q] of Object.entries(r.ingredienti)) cost[id] = q * n;
   let { hero, forziere } = takeAll(lot, h, cost);
@@ -112,7 +113,8 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       if (!p) throw err('sconosciuto', 'Perk sconosciuto');
       if (h.perk.includes(p.id)) throw err('unico', `Hai già: ${p.nome}`);
       if (h.perkPunti < 1) throw err('perk', 'Nessun punto perk: sali di livello');
-      if ((h.skill[p.skill]?.lv ?? 0) < p.livello) throw err('livello_skill', `Serve l'abilità a ${p.livello}`);
+      const effLv = (h.prestigio?.[p.skill] ?? 0) > 0 ? RPG.livelli.skillMax : (h.skill[p.skill]?.lv ?? 0);
+      if (effLv < p.livello) throw err('livello_skill', `Serve l'abilità a ${p.livello}`);
       if (p.richiede && !h.perk.includes(p.richiede)) throw err('perk', `Serve prima: ${PERKS.find((x) => x.id === p.richiede)?.nome ?? p.richiede}`);
       h = { ...h, perkPunti: h.perkPunti - 1, perk: [...h.perk, p.id] };
       break;
@@ -166,6 +168,22 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       if (it.kind === 'strumento') throw err('oggetto', `${it.nome} non si butta via`);
       if ((h.inv[it.id] ?? 0) < a.n) throw err('oggetto', `Non hai abbastanza: ${it.nome}`);
       h = { ...h, inv: removeFrom(h.inv, it.id, a.n) };
+      break;
+    }
+    case 'ripristina_skill': {
+      const s = a.skill;
+      if (!SKILLS.includes(s)) throw err('sconosciuto', 'Abilità sconosciuta');
+      const cur = h.skill[s];
+      const maxLv = RPG.livelli.skillMax;
+      if (!cur || cur.lv < maxLv) throw err('livello_skill', `L'abilità deve essere al livello ${maxLv}`);
+      const atMax = SKILLS.filter((id) => (h.skill[id]?.lv ?? 0) >= maxLv).length;
+      const req = RPG.livelli.skillMaxRichieste ?? 2;
+      if (atMax < req) throw err('requisito', `Servono almeno ${req} abilità al livello ${maxLv} contemporaneamente`);
+      const costo = RPG.livelli.costoRipristino ?? 1000;
+      lot = spendi(lot, costo);
+      const resetLv = RPG.livelli.skillLivelloRipristino ?? 1;
+      const count = (h.prestigio?.[s] ?? 0) + 1;
+      h = { ...h, skill: { ...h.skill, [s]: { lv: resetLv, xp: 0 } }, prestigio: { ...h.prestigio, [s]: count } };
       break;
     }
     case 'vetrina': {

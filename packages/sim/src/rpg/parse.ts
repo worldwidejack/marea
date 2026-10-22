@@ -1,6 +1,6 @@
 // Controllo di forma delle azioni GDR che arrivano dalla rete (POST /api/rpg). Solo forma: i controlli di gioco li fa applyRpgAction.
-import { ATTRS } from '@marea/content/rpg.ts';
-import type { AttrId } from '@marea/content/rpg.ts';
+import { ATTRS, SKILLS } from '@marea/content/rpg.ts';
+import type { AttrId, SkillId } from '@marea/content/rpg.ts';
 import { EQUIP_SLOTS } from './types.ts';
 import type { ArenaLoadout, ArenaSlot, EquipSlot, RpgAction } from './types.ts';
 
@@ -31,6 +31,7 @@ export function parseRpgAction(v: unknown): RpgAction | null {
       return (o.bottega === 'fabbro' || o.bottega === 'alchimista') && str(o.item) && qty(o.n) ? { t: 'vetrina', bottega: o.bottega, item: o.item, n: o.n } : null;
     case 'contrabbando':
       return (o.op === 'compra' || o.op === 'vendi') && str(o.item) && qty(o.n) ? { t: 'contrabbando', op: o.op, item: o.item, n: o.n } : null;
+    case 'ripristina_skill': return SKILLS.includes(o.skill as SkillId) ? { t: 'ripristina_skill', skill: o.skill as SkillId } : null;
     case 'arena': { const l = parseLoadout(o.loadout); return l ? { t: 'arena', loadout: l } : null; }
     default: return null;
   }
