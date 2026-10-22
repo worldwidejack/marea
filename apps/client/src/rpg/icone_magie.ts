@@ -1,4 +1,4 @@
-// I disegni 16×16 delle 13 magie, uno per id di spells.json. Colori fissi (lettere come in icone_armi.ts): fuoco rosso/arancio/giallo,
+// I disegni 16×16 delle magie, uno per id di spells.json. Colori fissi (lettere come in icone_armi.ts): fuoco rosso/arancio/giallo,
 // elettricità giallo e ciano, evocazioni viola, cura verde, furia rosso con le freccette in su.
 export const MAGIE: Readonly<Record<string, readonly string[]>> = {
   fiammata: [ // Proiettile infuocato
