@@ -106,6 +106,10 @@ export default async function (ctx) {
       ctx.assert(Math.hypot(after.x - before.x, after.z - before.z) > 0.5, 'B non vede A muoversi');
       ctx.assert(Math.hypot(after.x - me.x, after.z - me.z) < 0.2, 'posizione vista da B lontana da quella vera');
       ctx.assert(after.at && Math.hypot(after.at.x - me.x, after.at.z - me.z) < 0.5, 'peerAt non converge');
+      // dove B disegna A lo aggiorna il suo giro di disegno, fermo finché la scheda di B è in secondo piano (davanti c'era A): B davanti
+      // e si aspetta che il disegno raggiunga la posa (peerAt invece si calcola quando lo si legge, anche dietro)
+      await pb.page.bringToFront();
+      await ctx.waitState(pb.page, (s) => { const d = (s.peersDrawn ?? [])[0], at = s.netPeers[0]?.at; return !!d && !!at && Math.hypot(d.x - at.x, d.z - at.z) < 0.5; }, 10000).catch(() => {});
       const drawn = (await ctx.getState(pb.page)).peersDrawn ?? [];
       ctx.log('B disegna: ' + JSON.stringify(drawn));
       ctx.assert(drawn.length === 1 && drawn[0].walk && Math.hypot(drawn[0].x - after.at.x, drawn[0].z - after.at.z) < 0.5, 'B non disegna l\'avatar di A dove dovrebbe');
