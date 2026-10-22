@@ -74,8 +74,8 @@ export default async function (ctx) {
   // i punti delle foto, dalle zone della pista: [nome, s, ticks col pilota automatico prima dello scatto, aspetta il volo (m sopra la neve)]
   const PISTA = JSON.parse(fs.readFileSync(new URL('../../packages/content/src/adrenalina/piste/snowboard_verde.json', import.meta.url), 'utf8'));
   const Z = (id) => PISTA.zone.find((z) => z.id === id).da;
-  const PUNTI = [['vetta', 8, 20], ['cresta', Z('cresta') + 60, 40], ['slalom', Z('slalom') + 80, 40], ['cornice', Z('muro') - 15, 0, 2], ['pala', Z('pala') + 25, 40],
-    ['cunetta', PISTA.rampe[0].s - 25, 0, 2], ['canale', Z('canale') + 60, 40], ['roccia', Z('roccia') + 10, 0, 2.5], ['abeti', Z('abeti') + 40, 50],
+  const PUNTI = [['vetta', 8, 20], ['cresta', Z('cresta') + 60, 40], ['slalom', Z('slalom') + 80, 40], ['cornice', Z('muro') - 15, 0, 2], ['canalino', Z('canalino') + 8, 30],
+    ['salto_neve', PISTA.rampe[1].s - 25, 0, 1], ['abeti', Z('abeti') + 10, 40], ['trampolino', PISTA.rampe[3].s - 30, 0, 4],
     ['tronco', PISTA.fuoripista.da - 22, 70], ['sentiero', PISTA.fuoripista.da + 125, 40], ['arrivo', PISTA.arrivo - 40, 40]];
   await ctx.test('telefono: la camera che ti segue lungo tutta la montagna (foto per birbasan)', async () => {
     for (const [nome, s, ticks, volo] of PUNTI) {
