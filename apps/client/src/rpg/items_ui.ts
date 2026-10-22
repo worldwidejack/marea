@@ -1,4 +1,4 @@
-// Pezzi comuni dei pannelli GDR (R-pannelli): nomi italiani, icone a pixel degli oggetti (canvas 8×8 col colore del materiale), barre, righe.
+// Pezzi comuni dei pannelli GDR (R-pannelli): nomi italiani, icone a pixel degli oggetti (canvas 8×8 col colore del materiale; armi, archi e frecce hanno il disegno 16×16 di icone.ts), barre, righe.
 // Solo colori di PAL: il colore di un oggetto si riporta al più vicino della palette.
 import { SPELLS } from '@marea/content/rpg.ts';
 import type { AttrId, ItemKind, SkillId } from '@marea/content/rpg.ts';
@@ -10,6 +10,8 @@ import { INSETTI, RETINO } from '@marea/content/insetti.ts';
 import { insettoCanvas } from '../ui/insetti_sprite.ts';
 import { CANNA, PESCI } from '@marea/content/pesci.ts';
 import { pesceCanvas } from '../ui/pesci_sprite.ts';
+import { ICONA, spriteArma, spriteMagia } from './icone.ts';
+import type { Sprite } from './icone.ts';
 
 export const SKILL_NOME: Record<SkillId, string> = {
   armiLeggere: 'Armi leggere', armiPesanti: 'Armi pesanti', arceria: 'Arceria', distruzione: 'Distruzione',
@@ -98,7 +100,18 @@ export function itemIcon(kind: ItemKind, color: string, px = 24, art?: readonly 
   (art ?? ART[kind] ?? ART.materiale).forEach((row, y) => { for (let x = 0; x < 8; x++) { const k = col[row[x] ?? '.']; if (k) { g.fillStyle = k; g.fillRect(x, y, 1, 1); } } });
   return c;
 }
+/** Un disegno 16×16 di icone.ts in un <canvas> (`px` = lato in px CSS). */
+function spriteCanvas(s: Sprite, px: number): HTMLCanvasElement {
+  const c = document.createElement('canvas'); c.width = c.height = ICONA; c.className = 'mz-ico mz-rp-ico'; c.setAttribute('aria-hidden', 'true');
+  c.style.width = c.style.height = px + 'px';
+  const g = c.getContext('2d');
+  if (g) s.forEach((r, y) => r.forEach((col, x) => { if (col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); } }));
+  return c;
+}
 export const iconOf = (it: ItemDef, px = 24): HTMLCanvasElement => {
+  // armi, archi e frecce col disegno del loro tipo, o il loro se sono unici
+  const arma = it.kind === 'arma' || it.kind === 'arco' || it.kind === 'frecce' ? spriteArma(it, palColor(it.colore)) : null;
+  if (arma) return spriteCanvas(arma, px);
   // gli insetti (#445) col loro disegno 16×16, il retino col suo
   const ins = it.kind === 'insetto' ? INSETTI.find((d) => d.id === it.id) : undefined;
   if (ins) { const c = insettoCanvas(ins, px / 16); c.classList.add('mz-rp-ico'); return c; }
@@ -106,6 +119,11 @@ export const iconOf = (it: ItemDef, px = 24): HTMLCanvasElement => {
   if (pe) { const c = pesceCanvas(pe, px / 20); c.classList.add('mz-rp-ico'); return c; }
   return itemIcon(it.kind, it.colore, px, it.id === RETINO.id ? ART_RETINO : it.id === CANNA.id ? ART_CANNA : undefined);
 };
+/** L'icona di una magia: il suo disegno; se non ne ha uno, un libro del colore della scuola. */
+export function iconaMagia(id: string, px = 24): HTMLCanvasElement {
+  const s = spriteMagia(id);
+  return s ? spriteCanvas(s, px) : itemIcon('libro', coloreMagia(id, SPELLS.find((x) => x.id === id)?.scuola ?? ''), px);
+}
 /** Colore di una magia (icona, sfera nelle mani, linea di mira): cura verde, furia arancio, evocazioni viola, elettriche gialle, il resto fuoco. */
 export const coloreMagia = (id: string, scuola: string): string => {
   const el = SPELLS.find((s) => s.id === id)?.elemento;

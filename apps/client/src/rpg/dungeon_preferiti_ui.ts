@@ -1,12 +1,11 @@
 // I preferiti del dungeon, a schermo (logica in dungeon_preferiti.ts): tre bottoni accanto ad A e B, sulla tastiera i tasti 1-2-3. Un tocco
 // (o il tasto) mette in mano quello che c'è; tenuto premuto (o Maiusc + tasto) si sceglie tra le armi dello zaino e le magie che conosci;
 // vuoto, il primo tocco apre subito la scelta. Quello in mano è cerchiato di giallo; se è una magia, il bottone si riempie mentre ricarica.
-import { spellDef } from '@marea/content/rpg.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
 import type { HeroState } from '@marea/sim/rpg/types.ts';
 import { PAL, el } from '../ui/style.ts';
 import { tieniPremuto } from '../ui/comandi_touch.ts';
-import { coloreMagia, iconOf, itemIcon } from './items_ui.ts';
+import { iconaMagia, iconOf, itemIcon } from './items_ui.ts';
 import { N_PREFERITI, ha, inMano, leggiPreferiti, nomeDi, predefiniti, salvaPreferiti, stessi, vociDi } from './dungeon_preferiti.ts';
 import type { InMano, Preferiti, Preferito } from './dungeon_preferiti.ts';
 
@@ -53,7 +52,7 @@ export function createPreferiti(o: { attivo(): boolean; hero(): HeroState | null
   /** Quelli di adesso: i tuoi, o finché non ne scegli uno quelli di partenza (fatti una volta sola, dall'equipaggiamento dell'entrata). */
   const quali = (h: HeroState | null): Preferiti => salvati ?? (partenza ??= h ? predefiniti(h) : null) ?? Array.from({ length: N_PREFERITI }, () => null);
   const icona = (p: Preferito, px: number): Node => {
-    if ('magia' in p) { let scuola = 'distruzione'; try { scuola = spellDef(p.magia).scuola; } catch { /* sconosciuta */ } return itemIcon('libro', coloreMagia(p.magia, scuola), px); }
+    if ('magia' in p) return iconaMagia(p.magia, px);
     return hasItem(p.arma) ? iconOf(itemDef(p.arma), px) : itemIcon('arma', PAL.pietra, px);
   };
 
