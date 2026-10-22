@@ -12,8 +12,10 @@ export type Regia = {
   segui(o: { s: number; lat: number; y: number; v: number; aria: boolean }, dt: number, scatto?: boolean): void;
 };
 
-/** Metri dietro lungo la pista, altezza sopra la neve di chi filma, quanto avanti guarda, campo visivo da fermo e in più a tutta velocità. */
-const CAM = { dietro: 10, su: 2.1, guarda: 9, fov: 66, fovVeloce: 12, vVeloce: 24 } as const;
+/** Metri dietro lungo la pista, altezza sopra la neve di chi filma, quanto avanti guarda, quanto della pendenza segue lo sguardo, campo
+ *  visivo da fermo e in più a tutta velocità. `pendio` < 1: la camera si inclina meno della pista (inclinata come lei sembrava di andare
+ *  in piano), così il pendio si vede scendere davanti e in alto resta il panorama. */
+const CAM = { dietro: 10, su: 2.4, guarda: 12, pendio: 0.55, fov: 66, fovVeloce: 12, vVeloce: 24 } as const;
 
 export function creaRegia(camera: THREE.PerspectiveCamera, p: PistaNeve): Regia {
   const occhio = new THREE.Vector3(), mira = new THREE.Vector3(), T = nuovaTerna(), P3: [number, number, number] = [0, 0, 0];
@@ -32,10 +34,10 @@ export function creaRegia(camera: THREE.PerspectiveCamera, p: PistaNeve): Regia 
       const voluto = Math.max(neve, Math.min(o.y + 1.2, neve + 6));
       yC = subito ? voluto : yC + (voluto - yC) * k(o.aria ? 3 : 6, dt);
       occhio.set(P3[0], Math.max(yC, neve - 0.5), P3[2]);
-      // guarda poco oltre la tavola, lungo la pista (che scende): la camera si inclina col pendio, l'orizzonte resta dritto
+      // guarda poco oltre la tavola, lungo la pista (che scende): la camera si inclina con una parte del pendio, l'orizzonte resta dritto
       terna(p.n, o.s, T);
       punto(p.n, o.s, o.lat, 0, P3);
-      mira.set(P3[0] + T.tx * CAM.guarda, o.y + 0.5 + T.ty * CAM.guarda, P3[2] + T.tz * CAM.guarda);
+      mira.set(P3[0] + T.tx * CAM.guarda, o.y + 0.5 + T.ty * CAM.guarda * CAM.pendio, P3[2] + T.tz * CAM.guarda);
       camera.position.copy(occhio); camera.up.set(0, 1, 0); camera.lookAt(mira);
       const f = CAM.fov + CAM.fovVeloce * Math.min(1, Math.max(0, (o.v - 10) / (CAM.vVeloce - 10)));
       fov = subito ? f : fov + (f - fov) * k(2, dt);

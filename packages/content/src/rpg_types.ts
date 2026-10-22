@@ -336,7 +336,7 @@ export type RpgArenaBalance = {
 };
 export type RpgBalance = {
   attributi: { base: Record<AttrId, number>; perLivello: number; regen: Record<AttrId, number> };
-  livelli: { skillIniziale: number; skillMax: number; xpSkill: { base: number; perLivello: number }; xpPersonaggio: { base: number; perLivello: number } };
+  livelli: { skillIniziale: number; skillMax: number; xpSkill: { base: number; perLivello: number }; xpPersonaggio: { base: number; perLivello: number }; costoRipristino?: number; skillMaxRichieste?: number; skillLivelloRipristino?: number };
   movimento: { camminata: number; corsa: number; staminaCorsa: number; raggio: number; mentreCarichi: number };
   peso: { base: number; perStamina: number };
   /** R-rpg, facoltativi: leggera = peso massimo per i perk «con armatura leggera» (vesti e nessuna armatura contano sempre); liberi = kg che non rallentano. */

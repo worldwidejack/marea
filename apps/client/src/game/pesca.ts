@@ -67,7 +67,7 @@ const CSS = `
 #mzPescePreso.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 #mzPescePreso b { color: ${PAL.giallo}; font-size: 17px; }
 #mzPescePreso small { color: ${PAL.sabbia}; font-size: 12px; }
-.mz-pesca-mira #btnA, .mz-pesca-mira #btnAzione { display: none !important; }
+.mz-pesca-mira #btnA, .mz-pesca-mira #btnAzione, body.mz-sotto #mzPescaBtn, body.mz-sotto #mzPescaPanel, body.mz-sotto #mzPescePreso { display: none !important; }
 `;
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 const LANCIO_MEDIO = 0.6;

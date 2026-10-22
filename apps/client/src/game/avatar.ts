@@ -12,6 +12,7 @@ import { createAnimator } from '../render/anim.ts';
 import type { Animator } from '../render/anim.ts';
 import { registerStateProvider } from '../test/testapi.ts';
 import { creaGestoreAzioni } from './avatar_azioni.ts';
+import { creaRipristino } from './avatar_override.ts';
 import type { AvatarAzione } from './avatar_azioni.ts';
 export type { AvatarAzione } from './avatar_azioni.ts';
 
@@ -48,6 +49,7 @@ export type Avatar = {
   /** Avvia un'azione animata (scuotere albero, pala su sasso/buca). Ritorna la durata in s. */
   avviaAzione(tipo: AvatarAzione, durata?: number, bersaglio?: { x: number; z: number }): number;
   readonly azioneInCorso: AvatarAzione | null; readonly azioneProgresso: number; readonly azioneTempo: number; interrompiAzione(): void;
+  /** Frazione della velocità a piedi (1 = normale): chi tiene carico il retino va più piano. */ passo: number;
 };
 
 const HIP_H = 0.82, SIT_HIP = 0.42, SEAT_DROP = 0.37; // altezza del bacino in piedi / seduto; bacino → seduta
@@ -262,9 +264,8 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   const body = model ? model.root : rig!.root, bodyY = body.position.y, bodyYaw = body.rotation.y; // il gesto muove il corpo, non `object` (lo posa update)
   let state = newAvatar(o.x, o.z), prev = state;
   const bone = (n: string) => object.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n)) ?? object.getObjectByName(n) ?? null;
-  let armOverride: ((dt: number) => void) | null = null, armTouched = false;
-  const cleanArmR = new THREE.Quaternion(), cleanForeR = new THREE.Quaternion();
-  const getArmBones = () => ({ armR: bone('UpperArm.R'), foreR: bone('LowerArm.R') });
+  let armOverride: ((dt: number) => void) | null = null;
+  const pulite = creaRipristino(bone);
   const azioni = creaGestoreAzioni({
     body, bone,
     rig: rig ? { upper: rig.upper, armL: rig.armL, armR: rig.armR } : null,
@@ -319,7 +320,8 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
   const api: Avatar = {
     object, get state() { return state; }, get prev() { return prev; }, visible: true,
     get attached() { return attached; }, get usesModel() { return !!model; },
-    step(input, map, ost) { ticks++; lastMap = map; prev = state; state = stepAvatar(state, input, map, ost); },
+    passo: 1,
+    step(input, map, ost) { ticks++; lastMap = map; prev = state; state = stepAvatar(state, input, map, ost, api.passo); },
     update(alpha, dt) {
       object.visible = api.visible;
       const seated = attached;
@@ -334,20 +336,12 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
       if (want !== shown && (heldFor > 0.1 || seated !== (shown === 'sit' || shown === 'row'))) { shown = want; heldFor = 0; }
       const speed = seated ? 0 : Math.hypot(state.vx, state.vz);
       if (model) {
-        const { armR, foreR } = getArmBones();
-        if (armTouched && armR && foreR) {
-          armR.quaternion.copy(cleanArmR);
-          foreR.quaternion.copy(cleanForeR);
-          armTouched = false;
-        }
+        pulite.ripristina();
         const a = model.anim;
         if (!a.play(shown, 0.15)) a.play('idle', 0.15);
         a.setSpeed(shown === 'walk' ? speed / CLIP_SPEED.walk : shown === 'run' ? speed / CLIP_SPEED.run : shown === 'row' ? 0.6 + 0.4 * Math.abs(Math.cos(rowPh * 0.5)) : 1);
         a.update(dt);
-        if (armOverride) {
-          if (armR && foreR) { cleanArmR.copy(armR.quaternion); cleanForeR.copy(foreR.quaternion); armTouched = true; }
-          armOverride(dt);
-        }
+        if (armOverride) { pulite.salva(); armOverride(dt); }
       } else {
         poseRig(dt, speed, shown);
         if (armOverride) armOverride(dt);
@@ -381,11 +375,7 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
     },
     setArmOverride(fn) {
       armOverride = fn;
-      if (!fn && armTouched) {
-        const { armR, foreR } = getArmBones();
-        if (armR && foreR) { armR.quaternion.copy(cleanArmR); foreR.quaternion.copy(cleanForeR); armR.updateMatrixWorld(true); foreR.updateMatrixWorld(true); }
-        armTouched = false;
-      }
+      if (!fn) { pulite.ripristina(); object.updateMatrixWorld(true); }
     },
     avviaAzione: (t, d, b) => azioni.avvia(t, d, b),
     get azioneInCorso() { return azioni.inCorso; }, get azioneProgresso() { return azioni.progresso; }, get azioneTempo() { return azioni.tempo; },

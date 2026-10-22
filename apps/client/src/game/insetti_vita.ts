@@ -39,7 +39,7 @@ export type Attore = {
   sx: number; sz: number; ex: number; ez: number;
 };
 /** Chi gioca, visto dagli insetti. */
-export type Chi = { x: number; z: number; v: number; corre: boolean; fermoDa: number; retino: boolean };
+export type Chi = { x: number; z: number; v: number; corre: boolean; fermoDa: number; retino: boolean; /** Frazione del raggio a cui ti notano (1 = normale; col retino carico meno). */ furtivo?: number };
 export type Eventi = { punto?: string; tonfo?: boolean; plop?: boolean };
 /** Il mondo: si può camminare qui? quota del terreno; acqua attorno al porto. */
 export type Mondo = { terra(x: number, z: number): boolean; y(x: number, z: number): number; acqua?(x: number, z: number): boolean };
@@ -105,7 +105,7 @@ export function vive(a: Attore, chi: Chi, dt: number, m: Mondo): Eventi {
     else { a.y += dt * 2.2; avanti(a, v * 2, dt, m, false); }
     return ev;
   }
-  const allerta = def.allerta, allertato = (chi.corre && dist < allerta) || dist < Math.min(0.8, allerta * 0.5), sgambetto = chi.corre && dist < 0.6;
+  const fu = chi.furtivo ?? 1, allerta = def.allerta * fu, allertato = (chi.corre && dist < allerta) || dist < Math.min(0.8, def.allerta * 0.5) * fu, sgambetto = chi.corre && dist < 0.6 * fu;
   switch (def.tipo) {
     case 'volante': {
       if (allertato && a.stato !== 'scappa') { a.stato = 'scappa'; a.t = 0; }
@@ -245,7 +245,7 @@ function scorpione(a: Attore, chi: Chi, dist: number, dt: number, m: Mondo, v: n
     return true;
   }
   if (a.stato === 'calmo') { if (a.t > 3) { a.stato = 'giro'; a.t = 0; } return true; }
-  if (chi.retino && dist < a.def.allerta) { a.stato = 'fermo'; a.t = 0; return true; }
+  if (chi.retino && dist < a.def.allerta * (chi.furtivo ?? 1)) { a.stato = 'fermo'; a.t = 0; return true; }
   return false;
 }
 function salta(a: Attore, chi: Chi, lungo: number): void {

@@ -43,6 +43,8 @@ export type Negozio = {
   pescando(): boolean;
   /** La scritta sotto A della pesca (null = non c'entra). */
   azionePesca(): string | null;
+  /** Il colpo di retino è partito: il personaggio sta fermo. */
+  retinoFermo(): boolean;
 };
 
 const ND = BORGO.negozioDentro, [X0, Z0, X1] = ND.pavimento, [CX, C0, C1] = ND.corridoio;
@@ -82,7 +84,7 @@ function insegna(): THREE.Mesh {
 export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader: Loader; root: HTMLElement; hud: Hud; velo: Velo; api: Api | null; getLot(): LotState | null; setLot(l: LotState): void }): Negozio {
   const w = o.world, arch = w.archipelago, T = arch.tile;
   const porto = arch.places.find((p) => p.role === 'porto'), place = arch.places.find((p) => p.role === 'negozio');
-  if (!porto || !place) return { tick: () => false, update: () => {}, dentro: false, pescando: () => false, azionePesca: () => null };
+  if (!porto || !place) return { tick: () => false, update: () => {}, dentro: false, pescando: () => false, azionePesca: () => null, retinoFermo: () => false };
   const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
   const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   /** L'ora del server (l'economia non usa mai l'orologio del client); senza collegamento l'orologio locale, solo per mostrare qualcosa. */
@@ -268,6 +270,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     get dentro() { return dentro; },
     pescando: () => pesca.attiva(),
     azionePesca: () => pesca.azione(),
+    retinoFermo: () => insetti.fermo(),
     tick(a) {
       if (pesca.attiva() || w.mode === 'boat') { near = null; if (fulvio.aperto) chiudi(); const r = pesca.tick(a); aWas = a; return r; } // pescando, A è della pesca
       const pa = a && !aWas; aWas = a;

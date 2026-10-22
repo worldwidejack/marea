@@ -144,9 +144,54 @@ test('rpg parseRpgAction: solo forme valide, oggetto pulito', () => {
   assert.deepEqual(parseRpgAction({ t: 'forgia', item: 'katana_ferro', extra: 1 }), { t: 'forgia', item: 'katana_ferro' });
   assert.deepEqual(parseRpgAction({ t: 'equip', slot: 'corpo', item: null }), { t: 'equip', slot: 'corpo', item: null });
   assert.deepEqual(parseRpgAction({ t: 'deposita', item: 'x', n: 999 }), { t: 'deposita', item: 'x', n: 999 });
+  assert.deepEqual(parseRpgAction({ t: 'ripristina_skill', skill: 'armiLeggere' }), { t: 'ripristina_skill', skill: 'armiLeggere' });
+  assert.equal(parseRpgAction({ t: 'ripristina_skill', skill: 'nuoto' }), null);
   for (const bad of [null, 1, 'serra', [], { t: 'serra' }, { t: 'boh' }, { t: 'attributo', attr: 'forza' }, { t: 'compra', item: 'x', n: 0 }, { t: 'compra', item: 'x', n: 1.5 },
     { t: 'compra', item: 'x', n: 1000 }, { t: 'compra', item: 'x' }, { t: 'leggi', item: '' }, { t: 'leggi', item: 'x'.repeat(41) }, { t: 'equip', slot: 'testa', item: 'x' },
     { t: 'alchimia', ricetta: 'r', n: -1 }, { t: 'perk', perk: 3 }]) assert.equal(parseRpgAction(bad), null, JSON.stringify(bad));
+});
+
+test('rpg azioni: ripristino abilità al livello 1 per 1000 monete con 2 abilità a 100 contemporaneamente', () => {
+  let h = newHero();
+  h.skill.armiLeggere = { lv: 100, xp: 0 };
+  let l = lotWith({}, h);
+  l = conMonete(senzaMonete(l), 2000);
+  assert.throws(() => act(l, { t: 'ripristina_skill', skill: 'armiLeggere' }), isErr('requisito'), 'serve una seconda abilità al 100');
+  assert.throws(() => act(l, { t: 'ripristina_skill', skill: 'armiPesanti' }), isErr('livello_skill'), 'armiPesanti non è a 100');
+
+  h.skill.armiPesanti = { lv: 100, xp: 0 };
+  l = lotWith({}, h);
+  l = conMonete(senzaMonete(l), 500);
+  assert.throws(() => act(l, { t: 'ripristina_skill', skill: 'armiLeggere' }), isErr('risorse'));
+
+  l = conMonete(senzaMonete(l), 2000);
+  l = act(l, { t: 'ripristina_skill', skill: 'armiLeggere' });
+  assert.equal(l.monete, 1000, 'costa 1000 monete');
+  let hRes = heroOf(l);
+  assert.equal(hRes.skill.armiLeggere.lv, 1);
+  assert.equal(hRes.skill.armiLeggere.xp, 0);
+  assert.equal(hRes.prestigio?.armiLeggere, 1);
+
+  assert.throws(() => act(l, { t: 'ripristina_skill', skill: 'armiPesanti' }), isErr('requisito'), 'ora ce n\'è solo una al 100');
+
+  hRes = { ...hRes, perkPunti: 4 };
+  l = { ...l, hero: hRes };
+  l = act(l, { t: 'perk', perk: 'al_lama' });
+  l = act(l, { t: 'perk', perk: 'al_maestro' });
+  l = act(l, { t: 'perk', perk: 'al_fulmineo' });
+  l = act(l, { t: 'perk', perk: 'al_aria' });
+  assert.ok(heroOf(l).perk.includes('al_aria'), 'perk liv 90 sbloccato anche se armiLeggere è a liv 1');
+
+  const heroLv0 = heroOf(l).livello;
+  const hGained = gainSkillXp(heroOf(l), 'armiLeggere', 500);
+  assert.ok(hGained.skill.armiLeggere.lv > 1, 'armiLeggere guadagna livelli da 1 in poi');
+  assert.ok(hGained.livello > heroLv0, 'il personaggio sale di livello e guadagna scelte/perk');
+
+  let hLoop = { ...heroOf(l), skill: { ...heroOf(l).skill, armiLeggere: { lv: 100, xp: 0 }, armiPesanti: { lv: 100, xp: 0 } } };
+  let lLoop = conMonete(senzaMonete({ ...l, hero: hLoop }), 1000);
+  lLoop = act(lLoop, { t: 'ripristina_skill', skill: 'armiLeggere' });
+  assert.equal(heroOf(lLoop).skill.armiLeggere.lv, 1);
+  assert.equal(heroOf(lLoop).prestigio?.armiLeggere, 2, 'prestigio grado 2');
 });
 
 test('rpg azioni: deterministiche (stesse azioni = stesso hash) e pure (lo stato di partenza non cambia)', () => {

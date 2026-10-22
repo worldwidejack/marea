@@ -3,6 +3,7 @@
 // Più grandi del vero (una farfalla ~0,5 m d'apertura): dalla camera diorama devono leggersi. game/insetti.ts le copia ogni frame in
 // un'unica mesh (render/pennello.ts). Ogni specie ha le sue forme coi suoi tre colori (insetti.json `colori`), fatte alla prima occhiata.
 import * as THREE from 'three';
+import { RETINO as RETINO_CFG } from '@marea/content/insetti.ts';
 import type { InsettoDef, InsettoForma } from '@marea/content/insetti.ts';
 import { PAL } from '../ui/style.ts';
 import { arm, box, forma, mat, mirrorX, pz } from './animali_forme.ts';
@@ -220,33 +221,37 @@ export const SASSO = forma([
   pz(new THREE.DodecahedronGeometry(0.3, 0), PAL.pietra, mat(0.38, 0.16, 0.22, 0.7, 0.1, 0.3).scale(new THREE.Vector3(1, 0.7, 1))),
   pz(new THREE.DodecahedronGeometry(0.22, 0), PAL.pietraChiara, mat(-0.12, 0.43, -0.05, 0.2, 0.9, 0).scale(new THREE.Vector3(1.2, 0.45, 1))),
 ]);
-/** Il retino in mano: asta di legno con impugnatura, ghiera e telaio con sacca in rete chiara (rivolta all'indietro su +Z). */
+/** Il retino in mano: asta di legno con impugnatura, ghiera e telaio con sacca in rete chiara (rivolta all'indietro su +Z).
+ *  Le misure della rete sono quelle di insetti.json `retino.rete`: sono le stesse che prendono gli insetti (game/retino_presa.ts). */
+const RETE = RETINO_CFG.rete, K = RETE.raggio / 0.2, S = RETE.sacca / 0.37, YC = RETE.asta + RETE.raggio, GIRO = 12;
+const cerchio = (spessore: number, z: number, c: string) => Array.from({ length: GIRO }, (_, i) => {
+  const a = (i / GIRO) * Math.PI * 2;
+  return pz(box(2 * RETE.raggio * Math.sin(Math.PI / GIRO) * 1.08, spessore, spessore), c, mat(Math.cos(a) * RETE.raggio, YC + Math.sin(a) * RETE.raggio, z, 0, 0, a + Math.PI / 2));
+});
 export const RETINO = forma([
   // pomello e impugnatura in legno scuro
   pz(box(0.048, 0.03, 0.048), PAL.legnoScuro, mat(0, 0.015, 0)),
   pz(box(0.042, 0.24, 0.042), PAL.legnoScuro, mat(0, 0.15, 0)),
   // asta principale in legno chiaro
-  pz(box(0.036, 0.76, 0.036), PAL.legnoChiaro, mat(0, 0.65, 0)),
+  pz(box(0.036, RETE.asta - 0.27, 0.036), PAL.legnoChiaro, mat(0, (RETE.asta + 0.27) / 2, 0)),
   // ghiera di metallo e supporti del telaio
-  pz(box(0.046, 0.05, 0.046), PAL.pietra, mat(0, 1.045, 0)),
-  pz(box(0.02, 0.07, 0.02), PAL.pietra, mat(-0.04, 1.08, 0, 0, 0, -0.4)),
-  pz(box(0.02, 0.07, 0.02), PAL.pietra, mat(0.04, 1.08, 0, 0, 0, 0.4)),
-  // telaio del cerchio (metallo)
-  ...Array.from({ length: 8 }, (_, i) => {
-    const a = (i / 8) * Math.PI * 2;
-    return pz(box(0.165, 0.025, 0.025), PAL.pietra, mat(Math.cos(a) * 0.20, 1.23 + Math.sin(a) * 0.20, 0, 0, 0, a + Math.PI / 2));
-  }),
-  // bordo in tela del cerchio (sabbia chiara)
-  ...Array.from({ length: 8 }, (_, i) => {
-    const a = (i / 8) * Math.PI * 2;
-    return pz(box(0.168, 0.034, 0.034), PAL.sabbiaChiara, mat(Math.cos(a) * 0.20, 1.23 + Math.sin(a) * 0.20, 0.015, 0, 0, a + Math.PI / 2));
-  }),
+  pz(box(0.046, 0.05, 0.046), PAL.pietra, mat(0, RETE.asta + 0.015, 0)),
+  pz(box(0.02, 0.07, 0.02), PAL.pietra, mat(-0.04, RETE.asta + 0.05, 0, 0, 0, -0.4)),
+  pz(box(0.02, 0.07, 0.02), PAL.pietra, mat(0.04, RETE.asta + 0.05, 0, 0, 0, 0.4)),
+  // telaio del cerchio (metallo) e bordo in tela (sabbia chiara)
+  ...cerchio(0.03, 0, PAL.pietra),
+  ...cerchio(0.04, 0.015, PAL.sabbiaChiara),
   // sacca della rete: bocca larga montata sul cerchio a z=0, si estende all'indietro su +Z con piega naturale
-  pz(cyl(0.198, 0.188, 0.10, 8), PAL.pietraChiara, mat(0, 1.23, 0.06, -Math.PI / 2)),
-  pz(cyl(0.188, 0.115, 0.14, 8), PAL.pietraChiara, mat(0, 1.21, 0.18, -Math.PI / 2)),
-  pz(cyl(0.115, 0.04, 0.12, 8), PAL.pietraChiara, mat(0, 1.16, 0.31, -Math.PI / 2)),
-  pz(new THREE.DodecahedronGeometry(0.045, 0), PAL.pietraChiara, mat(0, 1.14, 0.37)),
+  pz(cyl(0.198 * K, 0.188 * K, 0.10 * S, 10), PAL.pietraChiara, mat(0, YC, 0.06 * S, -Math.PI / 2)),
+  pz(cyl(0.188 * K, 0.115 * K, 0.14 * S, 10), PAL.pietraChiara, mat(0, YC - 0.02 * K, 0.18 * S, -Math.PI / 2)),
+  pz(cyl(0.115 * K, 0.04 * K, 0.12 * S, 10), PAL.pietraChiara, mat(0, YC - 0.07 * K, 0.31 * S, -Math.PI / 2)),
+  pz(new THREE.DodecahedronGeometry(0.045 * K, 0), PAL.pietraChiara, mat(0, YC - 0.09 * K, 0.37 * S)),
 ]);
+/** Dove atterra la rete: un anello a trattini di raggio 1 sul prato (si scala col raggio della rete). */
+export const MIRINO = forma(Array.from({ length: 12 }, (_, i) => {
+  const a = (i / 12) * Math.PI * 2;
+  return pz(box(0.34, 0.04, 0.24), PAL.giallo, mat(Math.cos(a), 0.02, Math.sin(a), 0, -a - Math.PI / 2));
+}));
 /** La pala in mano (manico all'origine, lama in punta). */
 export const PALA = forma([
   pz(box(0.04, 0.95, 0.04).translate(0, 0.47, 0), PAL.legnoChiaro, mat(0, 0, 0)), pz(box(0.14, 0.04, 0.04), PAL.legnoScuro, mat(0, 0.96, 0)),

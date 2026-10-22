@@ -1,8 +1,9 @@
 // La pista dello snowboard in 3D (docs/ADRENALINA.md §3 e §7): la montagna vista da vicino attorno al nastro della sim.
-// - Terreno: un nastro largo (±~110 m) a fasce per riquadri da 100 m (si spengono fuori inquadratura): pista battuta, neve fresca, bosco
-//   che sale ai lati, pareti di roccia nella gola, il sentiero di neve alta del fuoripista e accanto la pista battuta chiusa.
+// - Terreno: un nastro (fino a 64 m oltre la neve fresca, poi il corpo della montagna: corpo.ts) a fasce per riquadri da 100 m (si spengono
+//   fuori inquadratura): pista battuta, neve fresca, fianchi bassi ai lati, pareti di roccia nella gola, il sentiero di neve alta del
+//   fuoripista e accanto la pista battuta chiusa.
 // - Abeti in InstancedMesh per riquadro (bosco, quelli in pista, quelli del fuoripista), rocce, porte dello slalom, paletti dei bordi,
-//   trampolini, partenza, arrivo a scacchi, l'abete che cade di traverso sulla pista chiusa, montagne lontane.
+//   trampolini, partenza, arrivo a scacchi, l'abete che cade di traverso sulla pista chiusa, la vetta. Le montagne attorno: sfondo.ts.
 // Colori solo della palette (ART_BIBLE §2), flat shading, niente texture.
 import * as THREE from 'three';
 import type { PistaNeve } from '@marea/sim/adrenalina/pista.ts';
@@ -10,11 +11,16 @@ import { altezzaRampa, bordoA, fuoripistaA, neveA, quotaA } from '@marea/sim/adr
 import { dove, punto, terna, nuovaTerna } from '@marea/sim/corse/nastro.ts';
 import { PAL } from '../ui/style.ts';
 import { M, merged, painted } from '../render/island_parts.ts';
+import { corpoMontagna, FASCIA, liscio } from './corpo.ts';
+import { abetiDipinti } from './pittura.ts';
+import type { Pittura } from './pittura.ts';
 
 export type Pista3d = {
   gruppo: THREE.Group;
   /** Spegne riquadri e abeti oltre la nebbia (`lontano` m dalla camera). */
   aggiorna(camera: THREE.Vector3, lontano: number): void;
+  /** Gli abeti a pixel (pittura.ts) al posto di quelli a coni. */
+  dipingi(pt: Pittura): void;
   /** L'abete che cade sulla pista chiusa: `cade(k)` con k da 0 (in piedi) a 1 (di traverso). */
   tronco: { cade(k: number): void } | null;
   dispose(): void;
@@ -26,17 +32,20 @@ const RIQUADRO = 100, PASSO_T = 4;
 const h01 = (a: number, b: number, c = 0) => { let x = (a * 374761393 + b * 668265263 + c * 2147483647) | 0; x = (x ^ (x >>> 13)) * 1274126177; return ((x ^ (x >>> 16)) >>> 0) / 4294967296; };
 const C = (h: string) => new THREE.Color(h);
 const COL = {
-  battuta: C(PAL.pietraChiara), fresca: C(PAL.sabbiaChiara), bosco: C(PAL.pietraChiara), macchia: C(PAL.pietra),
+  battuta: C(PAL.pietraChiara), fresca: C(PAL.sabbiaChiara), bosco: C(PAL.sabbiaChiara), macchia: C(PAL.pietra),
   roccia: C(PAL.pietraScura), rocciaScura: C(PAL.roccia),
 };
 
-/** Colonne del terreno (m di lato, da un lato) dato il bordo `e` e la neve fresca `nv`. */
-const colonne = (e: number, nv: number) => [0, e * 0.5, e, e + nv * 0.5, e + nv, e + nv + 4, e + nv + 10, e + nv + 20, e + nv + 36, e + nv + 64, e + nv + 110, e + nv + 170, e + nv + 240, e + nv + 340, e + nv + 480, e + nv + 700, e + nv + 1000];
-/** Oltre questa distanza dal bordo il terreno scende verso la valle (i fianchi della montagna, niente bordi nel vuoto). */
-const GONNA = 200;
+/** Colonne del terreno (m di lato, da un lato) dato il bordo `e` e la neve fresca `nv`. Il nastro si ferma a FASCIA m oltre la neve, a filo
+ *  del corpo della montagna (corpo.ts): più in là, nelle curve, le file si incrocerebbero (lastroni nel cielo). L'ultima colonna è un orlo
+ *  che scende piano (ORLO m in 10 m) sotto il corpo: copre lo scalino tra il nastro e la griglia del corpo. */
+const ORLO = 6;
+const colonne = (e: number, nv: number) => [0, e * 0.5, e, e + nv * 0.5, e + nv, e + nv + 4, e + nv + 10, e + nv + 20, e + nv + 36, e + nv + FASCIA, e + nv + FASCIA + 10];
+/** Il fianco sale al massimo di TETTO m sopra la pista (un versante aperto), TETTO_GOLA nel canalino (le sue pareti di roccia). */
+const TETTO = 9, TETTO_GOLA = 20;
 
 export function creaPista3d(p: PistaNeve): Pista3d {
-  const n = p.n, d = p.def, fp = d.fuoripista ?? null;
+  const n = p.n, d = p.def, fp = d.fuoripista ?? null, montagna = corpoMontagna(p);
   const gruppo = new THREE.Group(); gruppo.name = 'snowboard_pista';
   const matV = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const P3: [number, number, number] = [0, 0, 0];
@@ -56,29 +65,31 @@ export function creaPista3d(p: PistaNeve): Pista3d {
   };
   const inFuori = (s: number) => !!fp && s > fp.da - 30 && s < fp.a + 30;
 
-  /** La zona a `s` (cresta, pala, canale…: il fianco della montagna cambia). */
+  /** La zona a `s` (cresta, slalom, canalino…: il fianco della montagna cambia). */
   const zonaA = (s: number) => { for (const z of d.zone) if (s >= z.da && s < z.a) return z.id; return ''; };
-  /** Il limite del bosco: sopra solo neve e rocce (come in alta montagna), sotto gli abeti. Dove cominciano gli abeti radi. */
-  const zAbeti = d.zone.find((z) => z.id === 'abeti'), boscoY = zAbeti ? quotaA(p, zAbeti.da, 0) + 25 : Infinity;
-  /** Il fondovalle: ben sotto l'arrivo. */
-  let yMin = Infinity; for (const y of n.y) if (y < yMin) yMin = y;
-  const valle = yMin - 260;
-  /** Quota del terreno a (s, lat) sopra la linea della pista: piatta in pista, poi il fianco della montagna, diverso per zona. */
+  /** Il limite del bosco (corpo.ts): sopra solo neve e rocce (come in alta montagna), sotto gli abeti. */
+  const boscoY = montagna.bosco;
+  /** Quota del terreno a (s, lat) sopra la linea della pista: piatta in pista, poi il fianco della montagna, pochi metri sopra la pista
+   *  (niente muraglioni che chiudono la vista). */
   function rilievo(s: number, lat: number, i: number, j: number): number {
     const e = bordoA(p, s), nv = neveA(p, s), a = Math.abs(lat), k = a - e - nv;
     if (a <= e) return 0;
-    // la gonna: dal crinale giù fino alla valle a gradini irregolari (dorsali, conoidi), non un lastrone
-    if (k > GONNA) { const qui = quotaA(p, s, 0), f = Math.min(1, (k - GONNA) / 750); return qui + (valle - qui) * Math.sqrt(f) + (1 - f) * (h01(i, j, 6) - 0.5) * 70 - qui; }
     if (k <= 0) return 0.35 * (a - e) / Math.max(1, nv);
-    const r = (h01(i, j, 5) - 0.5) * 1.2, z = zonaA(s);
-    if (nv === 0) return 1.4 + k * 1.1 + (k > 12 ? (k - 12) * 0.6 : 0) + r * 2; // canale: pareti di roccia
+    const f0 = fianco(s, lat, k, i, j), tt = nv === 0 ? TETTO_GOLA : TETTO;
+    // dossi larghi di neve ai lati (forme grandi a facce piatte che prendono luce e ombra), non nella gola
+    const dossi = nv === 0 ? 0 : (liscio(s / 26, lat / 17, 4) - 0.5) * 6 * Math.min(1, k / 12);
+    return (f0 > 0 ? tt * (1 - Math.exp(-f0 / tt)) : -tt * (1 - Math.exp(f0 / tt))) + dossi;
+  }
+  /** Il fianco della montagna a `k` m oltre la neve fresca, diverso per zona (prima del tetto). */
+  function fianco(s: number, lat: number, k: number, i: number, j: number): number {
+    const nv = neveA(p, s), r = (h01(i, j, 5) - 0.5) * 1.2, z = zonaA(s);
+    if (nv === 0) return 1.4 + k * 1.1 + (k > 12 ? (k - 12) * 0.6 : 0) + r * 2; // canalino: pareti di roccia
     // la cresta: a sinistra il vuoto verso la valle, a destra le rocce della vetta
     if (z === 'partenza' || z === 'cresta') return lat < 0 ? -(k * 0.5 + (k > 12 ? (k - 12) * 0.9 : 0)) + r : 0.4 + k * 0.5 + (k > 20 ? (k - 20) * 0.5 : 0) + r * 2;
     // la spalla della pista battuta: scende piano a sinistra, sale a destra
     if (z === 'slalom') return lat < 0 ? -(k * 0.22) + r * 0.4 : 0.3 + k * 0.3 + (k > 25 ? (k - 25) * 0.5 : 0) + r;
-    // la pala sotto la cornice: una conca larga che sale ai lati
-    if (z === 'cornice' || z === 'muro' || z === 'pala') return 0.3 + k * 0.16 + (k > 25 ? (k - 25) * 0.6 : 0) + r * 1.5;
-    if (z === 'roccia') return 1 + k * 0.7 + r * 2.5;
+    // il muro sotto la cornice: una conca che sale ai lati
+    if (z === 'cornice' || z === 'muro') return 0.3 + k * 0.16 + (k > 25 ? (k - 25) * 0.6 : 0) + r * 1.5;
     if (fuoripistaA(p, s) || inFuori(s)) {
       // nel bosco del fuoripista: sottobosco quasi piatto, dal lato della pista chiusa piatto del tutto fino a lei e oltre
       if (lat > 0) return k < 50 ? 0.1 + r * 0.15 : 0.1 + (k - 50) * 0.35;
@@ -98,7 +109,11 @@ export function creaPista3d(p: PistaNeve): Pista3d {
     for (let r = 0; r <= righe; r++) {
       const s = s0 + ((s1 - s0) * r) / righe, e = bordoA(p, s), nv = neveA(p, s), ri = Math.round(s / PASSO_T);
       const c = colonne(e, nv), lats = [...c.slice(1).reverse().map((v) => -v), ...c];
-      grid.push(lats.map((lat, j) => { punto(n, s, lat, 0, P3); return { x: P3[0], y: quotaTerreno(s, lat, ri, j), z: P3[2], lat }; }));
+      grid.push(lats.map((lat, j) => {
+        punto(n, s, lat, 0, P3);
+        const k = Math.abs(lat) - e - nv, y = k < FASCIA - 0.01 ? quotaTerreno(s, lat, ri, j) : montagna.quota(P3[0], P3[2]) - (k > FASCIA + 0.01 ? ORLO : 0);
+        return { x: P3[0], y, z: P3[2], lat };
+      }));
     }
     const tri = (a: { x: number; y: number; z: number }, b: typeof a, c: typeof a, colr: THREE.Color) => {
       pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
@@ -112,7 +127,9 @@ export function creaPista3d(p: PistaNeve): Pista3d {
       const A = grid[r]!, B = grid[r + 1]!, sMid = s0 + ((s1 - s0) * (r + 0.5)) / righe, e = bordoA(p, sMid), fuori = fuoripistaA(p, sMid);
       for (let j = 0; j + 1 < A.length; j++) {
         const lm = Math.abs((A[j]!.lat + A[j + 1]!.lat) / 2);
-        const colr = lm <= e ? (fuori ? COL.fresca : COL.battuta) : lm <= e + neveA(p, sMid) ? COL.fresca : h01(r + Math.round(s0), j, 9) < 0.18 ? COL.macchia : COL.bosco;
+        // nel canalino le pareti sono di roccia (con qualche lingua di neve), sopra torna la neve
+        const gola = neveA(p, sMid) === 0 && lm > e && lm < e + 30, hr = h01(r + Math.round(s0), j, 9);
+        const colr = gola ? (hr < 0.3 ? COL.bosco : hr < 0.75 ? COL.macchia : COL.roccia) : lm <= e ? (fuori ? COL.fresca : COL.battuta) : lm <= e + neveA(p, sMid) ? COL.fresca : hr < 0.18 ? COL.macchia : COL.bosco;
         tri(A[j]!, B[j + 1]!, B[j]!, colr); tri(A[j]!, A[j + 1]!, B[j + 1]!, colr); // verso: la faccia guarda in su
       }
     }
@@ -147,8 +164,8 @@ export function creaPista3d(p: PistaNeve): Pista3d {
     const e = bordoA(p, s), nv = neveA(p, s), sotto = boscoY - quotaA(p, s, 0);
     if (nv === 0 || sotto < 0 || h01(i, 3, 21) * 60 > sotto) continue;
     for (const lato of [-1, 1]) {
-      for (let j = 0; j < 6; j++) {
-        const dl = [1.2, 4, 8.5, 14, 22, 33][j]! + h01(i, j, lato) * 3, ss = s + (h01(j, i, 3) - 0.5) * 4;
+      for (let j = 0; j < 8; j++) {
+        const dl = [1.2, 4, 8.5, 14, 22, 33, 44, 55][j]! + h01(i, j, lato) * 3, ss = s + (h01(j, i, 3) - 0.5) * 4;
         if (h01(i, j, 11 + lato) < (j > 3 ? 0.35 : 0.15)) continue;
         const lat = lato * (e + nv + dl);
         punto(n, ss, lat, 0, P3);
@@ -196,16 +213,34 @@ export function creaPista3d(p: PistaNeve): Pista3d {
       parti.push(painted(new THREE.BoxGeometry(0.085, 0.5, 0.085), PAL.neroCaldo, sulNastro(s, lato * (e + 0.3), 0.95)));
     }
   }
-  // trampolini: la salita a gradini di 1 m, il bordo arancio, i fianchi
+  // i salti di neve del canalino: un cuneo liscio di neve (la salita che si alza verso il bordo, il fronte, i fianchi)
   for (const r of d.rampe) {
+    if (r.grande) continue;
+    const pos: number[] = [], N = 8, at = (s: number, lat: number, h: number) => { punto(n, s, lat, h, P3); return [P3[0], P3[1], P3[2]] as const; };
+    const tri = (...v: (readonly [number, number, number])[]) => { for (const q of v) pos.push(q[0], q[1], q[2]); };
+    for (let k = 0; k < N; k++) {
+      const sa = r.s - r.lungo + (r.lungo * k) / N, sb = sa + r.lungo / N, ha = altezzaRampa(r, sa), hb = altezzaRampa(r, sb);
+      const aL = at(sa, r.lat[0], ha), aR = at(sa, r.lat[1], ha), bL = at(sb, r.lat[0], hb), bR = at(sb, r.lat[1], hb);
+      tri(aL, bL, aR); tri(aR, bL, bR); // la salita, verso l'alto
+      const gL = at(sa, r.lat[0], 0), gL1 = at(sb, r.lat[0], 0), gR = at(sa, r.lat[1], 0), gR1 = at(sb, r.lat[1], 0);
+      tri(gL, gL1, aL); tri(aL, gL1, bL); tri(gR, aR, gR1); tri(aR, bR, gR1); // i fianchi
+    }
+    const tL = at(r.s, r.lat[0], r.alto), tR = at(r.s, r.lat[1], r.alto), fL = at(r.s + 0.6, r.lat[0], 0), fR = at(r.s + 0.6, r.lat[1], 0);
+    tri(fL, fR, tL); tri(fR, tR, tL); // il fronte, appena inclinato
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+    parti.push(painted(g, PAL.pietraChiara));
+  }
+  // il trampolino battuto: la salita a gradini di 1 m, il bordo arancio, i paletti rossi
+  for (const r of d.rampe) {
+    if (!r.grande) continue;
     const w = r.lat[1] - r.lat[0], mid = (r.lat[0] + r.lat[1]) / 2, passi = Math.ceil(r.lungo);
     for (let k = 0; k < passi; k++) {
       const sa = r.s - r.lungo + k, sb = Math.min(r.s, sa + 1), ha = altezzaRampa(r, sa + 0.001), hb = altezzaRampa(r, sb);
       const h = (ha + hb) / 2, ultimo = k === passi - 1;
-      parti.push(painted(new THREE.BoxGeometry(w, Math.max(0.05, h), sb - sa + 0.02), r.grande ? PAL.sabbiaChiara : PAL.pietraChiara, sulNastro((sa + sb) / 2, mid, h / 2)));
-      if (ultimo && r.grande) parti.push(painted(new THREE.BoxGeometry(w + 0.02, 0.06, 0.5), PAL.arancio, sulNastro(sb - 0.25, mid, h + 0.02)));
+      parti.push(painted(new THREE.BoxGeometry(w, Math.max(0.05, h), sb - sa + 0.02), PAL.sabbiaChiara, sulNastro((sa + sb) / 2, mid, h / 2)));
+      if (ultimo) parti.push(painted(new THREE.BoxGeometry(w + 0.02, 0.06, 0.5), PAL.arancio, sulNastro(sb - 0.25, mid, h + 0.02)));
     }
-    if (r.grande) for (const lato of [-1, 1]) parti.push(painted(new THREE.BoxGeometry(0.25, 0.5, 0.25), PAL.rosso, sulNastro(r.s, mid + (lato * (w + 0.6)) / 2, 0.25)));
+    for (const lato of [-1, 1]) parti.push(painted(new THREE.BoxGeometry(0.25, 0.5, 0.25), PAL.rosso, sulNastro(r.s, mid + (lato * (w + 0.6)) / 2, 0.25)));
   }
   // partenza: la stazione a monte (casetta di legno, tetto innevato, la cabina rossa) e l'arco
   parti.push(painted(new THREE.BoxGeometry(9, 4.2, 7), PAL.legno, sulNastro(1, -18, 2.1)));
@@ -272,38 +307,8 @@ export function creaPista3d(p: PistaNeve): Pista3d {
   const resto = new THREE.Mesh(merged(parti), matV); resto.name = 'snowboard_pezzi'; resto.castShadow = true; resto.receiveShadow = true;
   gruppo.add(resto); triangoli += resto.geometry.attributes.position!.count / 3;
 
-  // ---- la valle in fondo e le montagne attorno (senza nebbia: si vedono da lassù, come nei video) ----
-  const box = new THREE.Box3(); for (const r of riquadri) { r.geometry.computeBoundingBox(); box.union(r.geometry.boundingBox!); }
-  const centro = box.getCenter(new THREE.Vector3()), raggio = box.getSize(new THREE.Vector3()).length() / 2;
+  // ---- la vetta sopra la partenza (le montagne attorno e il fondovalle sono in sfondo.ts) ----
   const monti: THREE.BufferGeometry[] = [];
-  // il fondovalle: un piano a quadrati da 150 m con macchie di bosco e campi di neve che seguono un rumore morbido (non a scacchi),
-  // un lago gelato, qualche dosso
-  const LATO = 150, N = 46, cv = new THREE.Color(), vpos: number[] = [], vcol: number[] = [];
-  const morbido = (x: number, z: number) => Math.sin(x * 0.0021 + 1.3) * Math.cos(z * 0.0017 - 0.4) + 0.6 * Math.sin((x + z) * 0.0043) + 0.35 * Math.cos((x - z) * 0.0089);
-  const vy = (i: number, j: number) => valle + Math.sin(i * 0.7) * Math.cos(j * 0.6) * 12;
-  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-    const x0 = centro.x + (i - N / 2) * LATO, z0 = centro.z + (j - N / 2) * LATO, x1 = x0 + LATO, z1 = z0 + LATO, m = morbido(x0 + LATO / 2, z0 + LATO / 2);
-    const lago = Math.hypot(i - N * 0.64, (j - N * 0.36) * 1.6) < 3.2;
-    cv.set(lago ? PAL.acquaBassa : m > 0.35 ? PAL.bosco : m > 0.05 ? PAL.erbaScura : PAL.pietraChiara);
-    const v = [[x0, vy(i, j), z0], [x1, vy(i + 1, j), z0], [x1, vy(i + 1, j + 1), z1], [x0, vy(i, j + 1), z1]] as const;
-    for (const k of [0, 2, 1, 0, 3, 2]) { vpos.push(...v[k]!); vcol.push(cv.r, cv.g, cv.b); }
-  }
-  const valleG = new THREE.BufferGeometry();
-  valleG.setAttribute('position', new THREE.Float32BufferAttribute(vpos, 3)); valleG.setAttribute('color', new THREE.Float32BufferAttribute(vcol, 3));
-  valleG.computeVertexNormals();
-  const valleM = new THREE.Mesh(valleG, matV); valleM.name = 'snowboard_valle'; gruppo.add(valleM);
-  // le montagne: una corona di cime innevate, alte sopra la valle quanto e più della nostra
-  for (let i = 0; i < 18; i++) {
-    const ang = (i / 18) * Math.PI * 2 + h01(i, 1) * 0.25, dist = raggio + 1800 + h01(i, 2) * 1500, alto = 900 + h01(i, 3) * 900, largo = 600 + h01(i, 4) * 500;
-    const x = centro.x + Math.cos(ang) * dist, z = centro.z + Math.sin(ang) * dist;
-    // una cima con due spalle, la neve sopra (più giù sul lato in ombra)
-    for (const [dx, dz, kh, kl] of [[0, 0, 1, 1], [largo * 0.55, largo * 0.2, 0.62, 0.6], [-largo * 0.5, -largo * 0.25, 0.7, 0.55]] as const) {
-      const h = alto * kh, l = largo * kl, cx = x + dx * Math.cos(ang) - dz * Math.sin(ang), cz = z + dx * Math.sin(ang) + dz * Math.cos(ang);
-      monti.push(painted(new THREE.ConeGeometry(l, h, 5), i % 2 ? PAL.pietraScura : PAL.pietra, M(cx, valle + h / 2, cz, 0, ang + kh, 0)));
-      monti.push(painted(new THREE.ConeGeometry(l * 0.62, h * 0.55, 5), PAL.pietraChiara, M(cx, valle + h * 0.725 + 3, cz, 0, ang + kh, 0))); // un filo più larga: niente sfarfallio
-    }
-  }
-  // la vetta sopra la partenza: la cima da cui si scende
   punto(n, 0, 0, 0, P3);
   monti.push(painted(new THREE.ConeGeometry(260, 520, 6), PAL.pietra, M(P3[0] - 40, P3[1] - 200, P3[2] + 230)));
   monti.push(painted(new THREE.ConeGeometry(135, 240, 6), PAL.pietraChiara, M(P3[0] - 40, P3[1] - 200 + 260 + 4, P3[2] + 230)));
@@ -311,11 +316,21 @@ export function creaPista3d(p: PistaNeve): Pista3d {
   montiM.name = 'snowboard_monti'; gruppo.add(montiM);
 
   // riquadri del terreno e degli abeti col loro centro e raggio, per spegnerli oltre la nebbia
-  const spegnibili = istanze.map((m) => ({ m, c: m.geometry.boundingSphere?.center.clone() ?? new THREE.Vector3(), r: m.geometry.boundingSphere?.radius ?? 0 }));
+  let i0 = 1;
+  const spegnibili = istanze.map((m) => ({ m: m as THREE.Mesh, lontano: 1, c: m.geometry.boundingSphere?.center.clone() ?? new THREE.Vector3(), r: m.geometry.boundingSphere?.radius ?? 0 }));
   for (const sp of spegnibili) if (sp.m instanceof THREE.InstancedMesh && sp.m.boundingSphere) { sp.c.copy(sp.m.boundingSphere.center); sp.r = sp.m.boundingSphere.radius; }
   return {
     gruppo, tronco,
-    aggiorna(cam, lontano) { for (const sp of spegnibili) sp.m.visible = sp.c.distanceTo(cam) - sp.r < lontano; },
+    aggiorna(cam, lontano) { for (const sp of spegnibili) sp.m.visible = sp.c.distanceTo(cam) - sp.r < lontano * sp.lontano; },
+    dipingi(pt) {
+      // gli abeti a pixel costano 2 triangoli l'uno: si vedono fino a 3 volte più lontano
+      for (const sp of spegnibili) {
+        const im = sp.m as THREE.InstancedMesh, mm: THREE.Matrix4[] = [];
+        for (let i = 0; i < im.count; i++) { const x = new THREE.Matrix4(); im.getMatrixAt(i, x); mm.push(x); }
+        const a = abetiDipinti(pt, mm, i0++); gruppo.add(a); gruppo.remove(im);
+        sp.m = a; sp.lontano = 3;
+      }
+    },
     numeri: () => ({ abeti: abetiN, triangoli: Math.round(triangoli + abetiN * triAbete), riquadri: riquadri.length }),
     dispose() {
       gruppo.traverse((o) => { if (o instanceof THREE.Mesh) o.geometry.dispose(); });

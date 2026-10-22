@@ -191,6 +191,7 @@ async function boot(): Promise<void> {
     { id: 'funivia', gruppo: 'ferma', aperto: () => adr.isBusy() },
     { id: 'foto', gruppo: 'ferma', aperto: () => foto.isOpen() },
     { id: 'pesca', gruppo: 'ferma', aperto: () => !!negozio?.pescando() },
+    { id: 'retino', gruppo: 'ferma', aperto: () => !!negozio?.retinoFermo() },
   ]);
 
   const apriEditor = () => { if (!editor || reg.occupato()) return false; feed?.close(); editor.open(); return true; };

@@ -1,6 +1,6 @@
 {
   "attributi": { "base": { "vita": 100, "magicka": 100, "stamina": 100 }, "perLivello": 10, "regen": { "vita": 0.5, "magicka": 4, "stamina": 12 } },
-  "livelli": { "skillIniziale": 15, "skillMax": 100, "xpSkill": { "base": 10, "perLivello": 4 }, "xpPersonaggio": { "base": 75, "perLivello": 25 } },
+  "livelli": { "skillIniziale": 15, "skillMax": 100, "xpSkill": { "base": 10, "perLivello": 4 }, "xpPersonaggio": { "base": 75, "perLivello": 25 }, "costoRipristino": 1000, "skillMaxRichieste": 2, "skillLivelloRipristino": 1 },
   "movimento": { "camminata": 3.2, "corsa": 5.6, "staminaCorsa": 20, "raggio": 0.35, "mentreCarichi": 0.4 },
   "peso": { "base": 20, "perStamina": 0.8 },
   "armatura": { "k": 100, "malusPerPeso": 0.012, "malusMax": 0.6, "leggera": 12, "liberi": 2 },

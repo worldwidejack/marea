@@ -121,27 +121,76 @@ export default async function (ctx) {
       assert((await hook('insettiAlbero', 0)).gia === true, 'lo stesso albero due volte: niente');
     });
 
-    await ctx.test('3. Col retino in mano un colpo prende l’insetto in giro davanti a te', async () => {
+    await ctx.test('3. Col retino: tenuto A carichi (passo lento), al rilascio il colpo atterra a ~1,5 m davanti a te con te fermo e prende solo chi finisce nella rete', async () => {
       await hook('insettiAttrezzo', 'retino');
-      const a = (await st()).insetti.attori.find((x) => x.k.startsWith('p:') && x.prendibile);
-      assert(a, 'nessun insetto in giro: ' + JSON.stringify((await st()).insetti.attori));
-      // cattura di a: col retino in mano il colpo prende l'insetto davanti a te
-      await hook('teleport', a.x, a.z);
+      const { uso } = (await import(pathToFileURL(path.join(ctx.ROOT, 'packages/content/src/insetti.ts')).href)).RETINO;
+      // chi gira cambia ogni 4 minuti: uno nato sulla riva, allertato, può finire in acqua (non più prendibile). Si scelgono prima quelli più
+      // lontani dall'acqua ('~', ',', 'B' del template porto, 1 cella = 2 m)
+      const porto = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/islands.json'), 'utf8')).find((i) => i.id === 'porto');
+      const c0 = await hook('palaCellWorld', [0, 0]), T = porto.tile;
+      const asciutta = (cx, cz) => !['~', ',', 'B', undefined].includes(porto.rows[cz]?.[cx]);
+      const riva = (x, z) => {
+        const cx = Math.floor((x - c0.x) / T + 0.5), cz = Math.floor((z - c0.z) / T + 0.5);
+        let d = 8;
+        for (let dz = -8; dz <= 8; dz++) for (let dx = -8; dx <= 8; dx++) if (!asciutta(cx + dx, cz + dz)) d = Math.min(d, Math.hypot(dx, dz));
+        return d * T;
+      };
+      const inGiro = async () => (await st()).insetti.attori.filter((x) => x.k.startsWith('p:') && x.prendibile).map((x) => ({ ...x, riva: riva(x.x, x.z) })).sort((p, q) => q.riva - p.riva);
+      assert((await inGiro()).length, 'nessun insetto in giro: ' + JSON.stringify((await st()).insetti.attori));
+      // 3a. A tenuto: il retino si carica, si cammina al passo ridotto; al rilascio il personaggio sta fermo fino alla risalita
+      // a 2 m da un insetto lontano dalla barca (col retino in mano è lui a prendere A, non un albero vicino né l'imbarco)
+      const s00 = await st(), t0 = (await inGiro()).find((x) => Math.hypot(x.x - s00.barche.mia.x, x.z - s00.barche.mia.z) > 8);
+      assert(t0, 'nessun insetto lontano dalla barca');
+      await hook('teleport', t0.x, t0.z + 2);
+      await ctx.waitState(page, (s) => s.insetti.ctx === 'retino', 3000);
+      await page.keyboard.down('KeyE');
+      await ctx.waitState(page, (s) => s.insetti.rete.fase === 'carica' && s.insetti.rete.carica >= 1 && s.insetti.bottone && /rilascia/i.test(s.insetti.bottone), 8000);
+      let freccia = null; // una direzione libera (un muro o un solido vicino ferma il passo)
+      for (const k of ['ArrowLeft', 'ArrowDown', 'ArrowRight', 'ArrowUp']) {
+        await page.keyboard.down(k);
+        try { await ctx.waitState(page, (s) => Math.hypot(s.avatar.vx, s.avatar.vz) > 0.5, 1500); freccia = k; break; } catch { await page.keyboard.up(k); }
+      }
+      assert(freccia, 'da carico si cammina');
+      const vc = (await st()).avatar, camminata = 3;
+      assert(Math.abs(Math.hypot(vc.vx, vc.vz) - camminata * uso.passoCarico) < 0.1, `da carico il passo è ridotto: ${Math.hypot(vc.vx, vc.vz)}`);
+      assert((await st()).insetti.rete.passo === uso.passoCarico && (await st()).insetti.rete.posa.pitch > 0.5, 'retino tirato indietro');
+      await ctx.shot(page, 'pc_retino_carico');
+      await page.keyboard.up('KeyE');
+      await ctx.waitState(page, (s) => s.insetti.rete.fase === 'colpo', 3000);
+      const f0 = (await st()).avatar;
+      await ctx.waitState(page, (s) => s.insetti.rete.colpo && ['impatto', 'lag', 'risalita'].includes(s.insetti.rete.colpo.fase), 5000);
+      const f1 = (await st()).avatar;
+      assert(Math.hypot(f1.vx, f1.vz) < 0.01 && Math.hypot(f1.x - f0.x, f1.z - f0.z) < 0.05, 'durante il colpo il personaggio non cammina (anche con la freccia premuta)');
+      await ctx.shot(page, 'pc_retino_a_terra');
+      await page.keyboard.up(freccia);
+      await ctx.waitState(page, (s) => s.insetti.colpo === 0, 5000);
+      // 3b. un colpo che atterra a ~1,8 m dall'insetto: non lo prende (ma chi sta lì vicino scappa, senza sparire)
+      const m0 = (await st()), ox = m0.insetti.rete.mira.x - m0.avatar.x, oz = m0.insetti.rete.mira.z - m0.avatar.z;
+      assert(Math.hypot(ox, oz) > 1.2 && Math.hypot(ox, oz) < 1.8, `la rete atterra a 1,2-1,8 m davanti: ${Math.hypot(ox, oz)}`);
+      const v = (await inGiro()).find((x) => x.riva >= 6); // lontano dall'acqua, se no ci cade scappando
+      assert(v, 'nessun insetto a 6 m dall’acqua: ' + JSON.stringify(await inGiro()));
+      await hook('teleport', v.x - ox + 1.8, v.z - oz);
       await hook('insettiRetino');
-      await ctx.waitState(page, (s, k) => !s.insetti.attori.some((x) => x.k === k) && s.insetti.cartello, 5000, a.k);
+      await ctx.waitState(page, (s) => s.insetti.colpo === 0, 8000);
+      const fuga = (await st()).insetti.attori.find((x) => x.k === v.k);
+      assert(fuga && fuga.stato !== 'via' && fuga.prendibile, 'mancato: l’insetto resta lì (e prendibile), non è stato preso: ' + JSON.stringify(fuga));
+      assert(!(await get('/api/lot')).body.insetti.presi.includes(v.k), 'un colpo a vuoto non prende niente');
+      // 3c. la rete atterra sull'insetto: preso (si riprova se nel frattempo si è spostato)
+      let a = null;
+      for (let prova = 0; prova < 6 && !a; prova++) {
+        const lista = await inGiro(), t = lista[prova % Math.max(1, lista.length)];
+        if (!t) { await page.waitForTimeout(1000); continue; }
+        await hook('teleport', t.x - ox, t.z - oz);
+        await hook('insettiRetino');
+        await ctx.waitState(page, (s) => s.insetti.colpo === 0, 8000);
+        await page.waitForTimeout(500);
+        if ((await st()).insetti.cartello) a = t; // «Hai preso…» resta 2,6 s: si guarda prima di chiamare il server (a volte lento)
+      }
+      assert(a, 'nessuna cattura in 6 colpi con la rete sull’insetto');
+      await ctx.waitState(page, (s, k) => !s.insetti.attori.some((x) => x.k === k), 5000, a.k);
       const l = (await get('/api/lot')).body;
       assert(l.insetti.presi.includes(a.k) && l.hero.inv[a.id] >= 1, 'preso dal server: ' + JSON.stringify(l.insetti));
       assert((await post('/api/lot/insetti/cattura', { k: a.k })).status === 409, 'lo stesso insetto due volte no');
-      // verifica fuga (#458): se manchi il colpo vicino a un insetto, scappa senza sparire e resta prendibile
-      const a2 = (await st()).insetti.attori.find((x) => x.k.startsWith('p:') && x.prendibile);
-      if (a2) {
-        await hook('teleport', a2.x + 1.2, a2.z + 1.2);
-        await hook('insettiRetino');
-        await ctx.waitState(page, (s) => s.insetti.colpo === 0, 3000);
-        const a2Fuga = (await st()).insetti.attori.find((x) => x.k === a2.k);
-        assert(a2Fuga && a2Fuga.stato !== 'via', 'l’insetto allertato non deve sparire (stato via)');
-        assert(a2Fuga && a2Fuga.prendibile, 'l’insetto in fuga deve restare prendibile: ' + JSON.stringify(a2Fuga));
-      }
     });
 
     await ctx.test('4. Al mobiliere lo consegni (sparisce, posseduto, scheda nel Diario); al Contrabbandiere lo vendi (non posseduto)', async () => {

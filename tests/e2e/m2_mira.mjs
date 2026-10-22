@@ -1,5 +1,4 @@
-// M2-mira (dungeon v6, #192): la magia si prende in mano come un'arma (Q / bottone C alterna arma e magia, la A la lancia, il menù rapido
-// compare solo con la magia in mano) e col mouse si mira: arco e magie vanno dove punta il cursore (l'eroe si gira, linea di mira), con
+// M2-mira (dungeon v6, #192): la magia si prende in mano come un'arma (i preferiti 1-2-3 cambiano arma e magia, la A la lancia) e col mouse si mira: arco e magie vanno dove punta il cursore (l'eroe si gira, linea di mira), con
 // un tocco resta la mira assistita. Poi l'autopilot porta la spedizione all'uscita: il server rigioca il log col formato 2 (mira, mani) e
 // l'hash coincide. Screenshot in tests/out/shots/m2_mira_*.png. Persone vere su wrangler dev locale (come m2_dungeon).
 import fs from 'node:fs';
@@ -47,19 +46,23 @@ export default async function (ctx) {
     /** Cursore a (dx, dy) pixel dal centro dello schermo (lì sta l'eroe, la camera lo segue). */
     const cursore = async (dx, dy) => { const v = page.viewportSize(); await page.mouse.move(v.width / 2 + dx, v.height / 2 + dy, { steps: 4 }); };
 
-    await ctx.test('Grotta: con l’arma in mano il menù rapido non c’è; Q prende la magia in mano, il menù compare, la A la lancia (e paga Magicka), Q rimette l’arma', async () => {
+    await ctx.test('Grotta: niente bottone C né menù rapido; i preferiti 1-2-3 (arma, magia, arco di partenza) cambiano le mani, la A lancia (e paga Magicka)', async () => {
       await hook('enterDungeon', 'grotta');
       await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await sleep(1200);
       let h = (await st()).dungeon.hero;
       assert(h.magia === null, 'magia in mano già all’inizio: ' + h.magia);
-      assert(!(await page.locator('#mzDngMagie.on').count()), 'menù rapido visibile con l’arma in mano');
+      assert(!(await page.locator('#btnC, #mzDngMagie').count()), 'il bottone C o il menù rapido ci sono ancora');
+      for (const n of [1, 2, 3]) assert(await page.locator(`#btnF${n}`).count(), `manca il preferito ${n}`);
+      assert(await page.locator('#btnF1.mano').count(), 'il preferito 1 (l’arma in mano) non è cerchiato');
+      assert(/Proiettile infuocato/.test(await page.locator('#btnF2').getAttribute('title')), 'il preferito 2 di partenza non è la magia preparata');
+      assert(/Arco/i.test(await page.locator('#btnF3').getAttribute('title')), 'il preferito 3 di partenza non è un arco');
       await ctx.shot(page, '1_arma_in_mano');
       const m0 = h.magicka;
-      await page.keyboard.press('q');
+      await page.keyboard.press('Digit2');
       await ctx.waitState(page, (s) => s.dungeon.hero.magia === 'fiammata', 3000);
-      await page.waitForSelector('#mzDngMagie.on button[data-magia="fiammata"].cur', { timeout: 3000 });
-      assert(await page.locator('#btnC.mano').count(), 'il bottone C non si accende con la magia in mano');
+      await page.waitForSelector('#btnF2.mano', { timeout: 3000 });
+      assert(!(await page.locator('#btnF1.mano').count()), 'con la magia in mano l’arma resta cerchiata');
       await hook('setZoom', 0.4); // da vicino: mani e sfera
       await sleep(900);
       await ctx.shot(page, '2_magia_in_mano');
@@ -71,10 +74,56 @@ export default async function (ctx) {
       await hook('dungeonPosa', null);
       await hook('setZoom', 1);
       await sleep(700);
-      await page.keyboard.press('q');
-      await ctx.waitState(page, (s) => s.dungeon.hero.magia === null, 3000);
-      assert(!(await page.locator('#mzDngMagie.on').count()), 'menù rapido ancora visibile con l’arma in mano');
+      await page.keyboard.press('Digit3');
+      await ctx.waitState(page, (s) => s.dungeon.hero.magia === null && s.dungeon.hero.arma === 'arco_legno', 3000);
+      await page.keyboard.press('Digit1');
+      await ctx.waitState(page, (s) => s.dungeon.hero.magia === null && s.dungeon.hero.arma !== 'arco_legno', 3000);
+      await page.waitForSelector('#btnF1.mano', { timeout: 2000 }).catch(() => { throw new Error('il preferito 1 non si cerchia tornando all’arma'); });
       assert((await st()).dungeon.equip.mano === undefined, 'equip.mano resta dopo il ritorno all’arma');
+    });
+
+    await ctx.test('Preferiti: Maiusc+tasto (o tenere premuto) apre la scelta e ferma la partita; una voce la assegna e si ricorda; Esc chiude senza pausa', async () => {
+      const t0 = (await st()).dungeon.tick;
+      await page.keyboard.down('Shift'); await page.keyboard.press('Digit1'); await page.keyboard.up('Shift');
+      await page.waitForSelector('#mzDngPreferiti.on', { timeout: 3000 });
+      await sleep(300);
+      const t1 = (await st()).dungeon.tick;
+      await sleep(400);
+      assert((await st()).dungeon.paused && (await st()).dungeon.tick === t1, 'con la scelta aperta la partita deve stare ferma');
+      assert(t1 >= t0, 'tick tornati indietro');
+      await ctx.shot(page, '3b_scelta_preferito');
+      assert(await page.locator('#mzDngPreferiti .lista button').count() >= 3, 'la scelta non elenca armi e magie');
+      await page.keyboard.press('Digit2'); // aperta la scelta i numeri non cambiano le mani
+      await sleep(200);
+      assert((await st()).dungeon.hero.magia === null, 'un numero ha cambiato le mani con la scelta aperta');
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !document.querySelector('#mzDngPreferiti.on'), null, { timeout: 2000 });
+      assert(!(await page.locator('#mzDngPausa.on').count()) && !(await st()).dungeon.paused, 'Esc con la scelta aperta ha aperto la pausa');
+      // tenuto premuto col mouse sul bottone 1: stessa scelta, e la magia passa al posto 1
+      const b = await page.locator('#btnF1').boundingBox();
+      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await sleep(700); await page.mouse.up();
+      await page.waitForSelector('#mzDngPreferiti.on', { timeout: 3000 });
+      await page.locator('#mzDngPreferiti .lista button', { hasText: 'Proiettile infuocato' }).click();
+      await page.waitForFunction(() => !document.querySelector('#mzDngPreferiti.on'), null, { timeout: 2000 });
+      await page.waitForFunction(() => document.getElementById('btnF1').title.includes('Proiettile infuocato'), null, { timeout: 3000 }).catch(() => { throw new Error('il preferito 1 non è diventato la magia'); }); // il bottone si ridisegna al frame dopo
+      assert(JSON.parse(await page.evaluate(() => localStorage.getItem('mz-dng-preferiti')))[0]?.magia === 'fiammata', 'la scelta non si ricorda sul dispositivo');
+      await page.keyboard.press('Digit1');
+      await ctx.waitState(page, (s) => s.dungeon.hero.magia === 'fiammata', 3000);
+      // un preferito vuoto: il primo tocco apre la scelta; «Vuoto» lo svuota
+      await page.keyboard.down('Shift'); await page.keyboard.press('Digit3'); await page.keyboard.up('Shift');
+      await page.waitForSelector('#mzDngPreferiti.on', { timeout: 3000 });
+      await page.locator('#mzDngPreferiti [data-act="vuoto"]').click();
+      await page.waitForSelector('#btnF3.vuoto', { timeout: 2000 });
+      await page.locator('#btnF3').click();
+      await page.waitForSelector('#mzDngPreferiti.on', { timeout: 3000 });
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !document.querySelector('#mzDngPreferiti.on'), null, { timeout: 2000 });
+      await page.keyboard.press('Digit2'); // il 2 è ancora la magia: già in mano, nessuna azione
+      await hook('dungeonAct', { t: 'equip', slot: 'arma', item: 'katana_legno' });
+      await ctx.waitState(page, (s) => s.dungeon.hero.magia === null, 3000);
+      // il mouse ha cliccato sui bottoni: un tocco lo spegne, il test dell'arco riparte da «mouse mai mosso»
+      await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', clientX: 5, clientY: 5, bubbles: true })));
+      await ctx.waitState(page, (s) => s.dungeon.mouse === false, 2000);
     });
 
     await ctx.test('Mira col mouse (arco): tenendo il tasto sinistro l’eroe guarda il cursore, anche camminando; al rilascio parte la freccia e scende il numero di frecce', async () => {
@@ -132,7 +181,6 @@ export default async function (ctx) {
     });
 
     await ctx.test('il server rigioca la spedizione col log con la mira (formato 2): hash del server = hash del client', async () => {
-      await page.keyboard.press('q'); // arma in mano
       await hook('dungeonAct', { t: 'equip', slot: 'arma', item: 'katana_legno' });
       await hook('dungeonAutopilot', true, 12);
       await ctx.waitState(page, (s) => s.dungeonEsito && s.dungeonEsito.open, 200000);

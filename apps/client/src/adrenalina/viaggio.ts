@@ -19,7 +19,7 @@ export const VIAGGIO_S = 4.6;
 export function creaViaggio(p: PistaNeve): Viaggio {
   const P3: [number, number, number] = [0, 0, 0];
   const at = (s: number, lat: number, su: number) => { punto(p.n, s, lat, 0, P3); return new THREE.Vector3(P3[0], quotaA(p, s, lat) + su, P3[2]); };
-  // il cavo: sopra la pista, dalla pala (70 m sopra la neve) alla torre della stazione a monte accanto alla partenza (22 m): almeno ~15 m di
+  // il cavo: sopra la pista, da metà slalom (70 m sopra la neve) alla torre della stazione a monte accanto alla partenza (22 m): almeno ~15 m di
   // luce sulla neve lungo tutto il cavo (sopra la cresta convessa della vetta è lì che è più basso)
   const a = at(Math.min(p.n.len * 0.29, 560), 0, 70), b = at(1, -15, 22);
   const dir = b.clone().sub(a), len = dir.length(), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir.clone().normalize());

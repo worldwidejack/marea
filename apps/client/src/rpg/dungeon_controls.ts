@@ -1,26 +1,26 @@
-// Controlli del dungeon oltre a joystick/A/B di game/input.ts (R-scena): C = alterna arma e magia in mano, D = pozione (bottoni ≥ 56 px sopra
-// B e A, senza coprirli), Q = C e R = D sulla tastiera, clic sinistro tenuto sul canvas = A (con la magia in mano mira, e la lancia al rilascio), «A · Esci col
-// bottino» vicino alla scala. Con la magia in mano (v6) sopra i bottoni compare il MENÙ RAPIDO delle magie: un chip per magia conosciuta,
-// un tocco (o il tasto 1-9) la cambia al volo. In alto a destra ZAINO (tasto I: la scheda del personaggio sullo zaino della spedizione) e
+// Controlli del dungeon oltre a joystick/A/B di game/input.ts (R-scena): D = pozione (bottone ≥ 56 px sopra B e A, senza coprirli), R = D
+// sulla tastiera, clic sinistro tenuto sul canvas = A (con la magia in mano mira, e la lancia al rilascio), «A · Esci col bottino» vicino
+// alla scala. I tre PREFERITI (1-2-3, dungeon_preferiti_ui.ts) cambiano al volo arma e magia in mano. In alto a destra ZAINO (tasto I: la scheda del personaggio sullo zaino della spedizione) e
 // PAUSA (Esc): Riprendi · Zaino · Esci dal dungeon (→ «Uscire?»). Sopra una lanterna: SALVA ed ESCI (dungeon v5, scelta di Riccardo).
 // Latch: un tocco più breve di un tick arriva comunque alla sim. Con la pausa o la domanda aperta la partita è ferma (nessun tick); con la
 // scheda aperta (blocked) i tasti sono suoi. Insieme (#118) la partita non si ferma mai: la Pausa diventa un menu.
+import type { HeroState } from '@marea/sim/rpg/types.ts';
 import { PAL, el } from '../ui/style.ts';
 import { tieniPremuto } from '../ui/comandi_touch.ts';
 import { createMiraStick } from './mira_stick.ts';
+import { createPreferiti } from './dungeon_preferiti_ui.ts';
+import type { InMano, Preferito } from './dungeon_preferiti.ts';
 
 export type LanternaUi = { salvatoQui: boolean; oggetti: number; monete: number };
-/** Una magia del menù rapido: nome, costo in Magicka e una funzione che fa l'icona (un canvas non si clona: ogni chip ne vuole una nuova). */
-export type MagiaUi = { id: string; nome: string; costo: number; icona(): Node; /** Raggio continuo: il costo è al secondo. */ alSecondo?: boolean };
 export type Controls = {
-  /** Un campione per tick: c, d e la A in più (clic tenuto, bottone d'uscita, joystick di mira). `tap` = tocco veloce sul joystick di mira senza trascinare (vale un tick): colpo assistito. `m` = indice di mira del joystick di mira
+  /** Un campione per tick: d e la A in più (clic tenuto, bottone d'uscita, joystick di mira). `tap` = tocco veloce sul joystick di mira senza trascinare (vale un tick): colpo assistito. `m` = indice di mira del joystick di mira
    *  (mentre è tenuto e nel tick del rilascio, così l'arco parte dove puntavi); 0 = niente mira dal dito. */
-  sample(): { a: boolean; c: boolean; d: boolean; e: boolean; m: number; tap: boolean };
+  sample(): { a: boolean; d: boolean; e: boolean; m: number; tap: boolean };
   /** Telefono, arco o magia in mano: al posto del bottone A compare il joystick di mira (trascini = punti e tiri, lasci = l'arco parte). */
   setMira(on: boolean): void;
   /** Direzione del joystick di mira mentre lo tieni (versore in assi mondo, la stessa che la sim userà), null se non lo tieni. */
   miraDir(): { x: number; z: number } | null;
-  /** Pausa o domanda «Uscire?» aperta: niente tick. */
+  /** Pausa, domanda «Uscire?» o scelta di un preferito aperta: niente tick. */
   readonly paused: boolean;
   /** Vicino alla scala: mostra «A · Esci col bottino». */
   setExit(on: boolean): void;
@@ -32,14 +32,14 @@ export type Controls = {
   setSalvato(on: boolean): void;
   /** Sopra una lanterna (null = no): SALVA ed ESCI, e cosa c'è da mettere al sicuro. */
   setLanterna(l: LanternaUi | null): void;
-  /** Icone di C (magia) e D (pozione); `key` cambia quando cambiano (equipaggiamento). */
-  setIcons(c: Node | null, d: Node | null, key?: string): void;
+  /** Icona di D (pozione); `key` cambia quando cambia (equipaggiamento). */
+  setIcons(d: Node | null, key?: string): void;
   /** Perk Scarica: il bottone E (visibile solo con l'arco in mano) e la sua ricarica 0..1 (1 = pronta). */
   setScarica(on: boolean, pronta: number): void;
-  /** Ricarica della magia 0..1 (1 = pronta) e pozioni rimaste. */
-  setState(magia: number, pozioni: number, haMagia: boolean): void;
-  /** Menù rapido delle magie: quelle conosciute, quale è in mano (null = in mano c'è l'arma: il menù si nasconde) e la Magicka che c'è. */
-  setMagie(elenco: readonly MagiaUi[], inMano: string | null, magicka: number): void;
+  /** Pozioni rimaste. */
+  setState(pozioni: number): void;
+  /** I preferiti: il personaggio com'è adesso, cosa hai in mano e la ricarica della magia in mano 0..1 (1 = pronta). */
+  setPreferiti(s: { hero: HeroState | null; mano: InMano; ricarica: number }): void;
   hide(): void;
   dispose(): void;
 };
@@ -48,27 +48,15 @@ const MIRA = 108; // px: anello del joystick di mira (mira_stick.ts), per lascia
 const SAFE = 'env(safe-area-inset-bottom, 0px)', RIGHT = 'max(16px, env(safe-area-inset-right, 0px))', TOP = 'max(8px, env(safe-area-inset-top))';
 const CSS = `
 .mz-dng-btn { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: 3px solid rgba(244,227,193,.7); color: ${PAL.sabbiaChiara}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font: bold 13px ui-monospace, Menlo, monospace; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; z-index: 13; overflow: hidden; }
-.mz-dng-btn.c { right: calc(${RIGHT} + 96px); bottom: calc(${SAFE} + 116px); background: rgba(22,63,115,.82); }
-.mz-dng-btn.d { right: calc(${RIGHT} + 12px); bottom: calc(${SAFE} + 132px); background: rgba(44,107,63,.82); }
-.mz-dng-btn.e { right: calc(${RIGHT} + 96px); bottom: calc(${SAFE} + 184px); background: rgba(120,70,22,.84); display: none; }
+.mz-dng-btn.d { right: calc(${RIGHT} + 4px); bottom: calc(${SAFE} + 132px); background: rgba(44,107,63,.82); }
+.mz-dng-btn.e { right: calc(${RIGHT} + 78px); bottom: calc(${SAFE} + 206px); background: rgba(120,70,22,.84); display: none; }
 .mz-dng-btn.e.on-vis { display: flex; }
-.mz-dng-aimon .mz-dng-btn.e { bottom: calc(${SAFE} + 216px); }
 .mz-dng-aimon #btnA { display: none !important; }
 .mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-right, 0px)) + ${MIRA + 8}px) !important; }
-.mz-dng-aimon .mz-dng-btn.c { bottom: calc(${SAFE} + 148px); }
 .mz-dng-aimon .mz-dng-btn.d { bottom: calc(${SAFE} + 160px); }
-.mz-dng-aimon .mz-dng-sp { bottom: calc(${SAFE} + 236px); }
 .mz-dng-btn.on { transform: scale(.92); filter: brightness(1.3); }
 .mz-dng-btn.off { opacity: .45; }
 .mz-dng-btn.mano { border-color: ${PAL.giallo}; box-shadow: 0 0 0 2px ${PAL.neroCaldo}; }
-.mz-dng-sp { position: absolute; right: ${RIGHT}; bottom: calc(${SAFE} + 206px); display: none; gap: 6px; z-index: 13; -webkit-user-select: none; user-select: none; touch-action: none; }
-.mz-dng-sp.on { display: flex; }
-.mz-dng-sp button { position: relative; width: 46px; height: 46px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(46,30,20,.88); border: 3px solid ${PAL.legnoChiaro}; box-shadow: 0 3px 0 ${PAL.neroCaldo}; color: ${PAL.sabbiaChiara}; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.mz-dng-sp button.cur { border-color: ${PAL.giallo}; background: rgba(86,58,28,.96); }
-.mz-dng-sp button.no { opacity: .5; }
-.mz-dng-sp button:active { transform: translateY(2px); box-shadow: 0 1px 0 ${PAL.neroCaldo}; }
-.mz-dng-sp button i { position: absolute; left: 2px; top: 0; font: bold 11px ui-monospace, Menlo, monospace; font-style: normal; color: ${PAL.sabbia}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
-.mz-dng-sp button b { position: absolute; right: 2px; bottom: 0; font: bold 10px ui-monospace, Menlo, monospace; color: ${PAL.acquaBassa}; text-shadow: 1px 1px 0 ${PAL.neroCaldo}; }
 .mz-dng-btn .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(35,32,31,.7); pointer-events: none; }
 .mz-dng-btn small { font-size: 10px; opacity: .85; position: relative; }
 .mz-dng-btn .ico { position: relative; display: flex; }
@@ -97,22 +85,20 @@ const CSS = `
 .mz-dng-ask .mz-btn small { font-size: 12px; color: inherit; opacity: .8; }
 `;
 
-export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; onMagia(id: string): void; blocked(): boolean; yaw(): number; insieme?: boolean; valvola?: string; timone?: string }): Controls {
+export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement; onAbort(): void; onZaino(): void; onSalva(): void; onEsciLanterna(): void; hero(): HeroState | null; onPreferito(p: Preferito): void; blocked(): boolean; yaw(): number; insieme?: boolean; valvola?: string; timone?: string }): Controls {
   if (!document.getElementById('mz-dng-ctrl-style')) { const st = document.createElement('style'); st.id = 'mz-dng-ctrl-style'; st.textContent = CSS; document.head.appendChild(st); }
-  let cLatch = false, dLatch = false, eLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
+  let dLatch = false, eLatch = false, aLatch = false, mouseA = false, asking = false, pausa = false;
   const keys = new Set<string>();
   const mkBtn = (cls: string, key: string, label: string) => {
-    const b = el('div', `mz mz-dng-btn ${cls}`); b.id = cls === 'c' ? 'btnC' : cls === 'e' ? 'btnE' : 'btnD';
+    const b = el('div', `mz mz-dng-btn ${cls}`); b.id = cls === 'e' ? 'btnE' : 'btnD';
     const cd = el('div', 'cd'), ico = el('span', 'ico'), sm = el('small', '', `${label} · ${key}`);
     b.append(cd, ico, sm); return { b, cd, ico };
   };
-  const C = mkBtn('c', 'Q', 'C'), D = mkBtn('d', 'R', 'D'), E = mkBtn('e', 'E', 'Scarica');
-  C.b.title = 'Alterna arma e magia in mano (Q)'; E.b.title = 'Scarica di frecce (E)';
+  const D = mkBtn('d', 'R', 'D'), E = mkBtn('e', 'E', 'Scarica');
+  E.b.title = 'Scarica di frecce (E)';
   E.ico.textContent = '×3'; E.ico.style.font = 'bold 20px ui-monospace, Menlo, monospace'; E.b.querySelector('small')!.textContent = 'E'; // tre frecce: il nome sta nel tooltip e nella guida
-  // menù rapido delle magie (solo con la magia in mano): un chip per magia, tocco o tasto 1-9
-  const sp = el('div', 'mz mz-dng-sp'); sp.id = 'mzDngMagie';
-  let spIds: string[] = [], spSig = '';
-  const tC = tieniPremuto(C.b, { premi: () => (cLatch = true), classe: 'on', ferma: true });
+  // i preferiti (1-2-3): arma o magia in mano al volo, a scelta di chi gioca
+  const pref = createPreferiti({ attivo: () => !pausa && !asking && !o.blocked(), hero: o.hero, onUsa: o.onPreferito });
   const tD = tieniPremuto(D.b, { premi: () => (dLatch = true), classe: 'on', ferma: true });
   const tE = tieniPremuto(E.b, { premi: () => (eLatch = true), classe: 'on', ferma: true });
 
@@ -149,16 +135,12 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
   const row = el('div', 'mz-row'); row.append(no, yes);
   const askSub = el('div', 'sub', 'Perdi il bottino di questa discesa');
   ask.append(el('b', '', 'Uscire dal dungeon?'), askSub, row);
-  const all = [C.b, D.b, E.b, stick.el, sp, top, exit, valv, tim, lanBox, menu, ask];
-  for (const e of all.slice(3)) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
-  sp.addEventListener('click', (e) => {
-    const b = (e.target as HTMLElement).closest<HTMLElement>('button[data-magia]');
-    if (b && !pausa && !asking) o.onMagia(b.dataset['magia']!);
-  });
+  const altri = [stick.el, top, exit, valv, tim, lanBox, menu, ask], all = [D.b, E.b, ...pref.els, ...altri];
+  for (const e of altri) for (const ev of ['pointerdown', 'touchstart']) e.addEventListener(ev, (x) => x.stopPropagation());
   o.root.append(...all);
 
-  const setPausa = (on: boolean) => { pausa = on; menu.classList.toggle('on', on); if (on) stick.cancel(); };
-  const setAsk = (on: boolean) => { asking = on; ask.classList.toggle('on', on); if (on) { setPausa(false); stick.cancel(); } };
+  const setPausa = (on: boolean) => { pausa = on; menu.classList.toggle('on', on); if (on) { stick.cancel(); pref.chiudi(); } };
+  const setAsk = (on: boolean) => { asking = on; ask.classList.toggle('on', on); if (on) { setPausa(false); stick.cancel(); pref.chiudi(); } };
   const openZaino = () => { setPausa(false); setAsk(false); o.onZaino(); };
   pauseBtn.addEventListener('click', () => { if (!asking) setPausa(!pausa); });
   zaino.addEventListener('click', openZaino);
@@ -175,37 +157,31 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
 
   const kd = (e: KeyboardEvent) => {
     if (e.altKey || e.ctrlKey || e.metaKey || o.blocked()) return; // scheda aperta: Esc e I sono suoi (la chiudono)
-    if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) { if (asking) setAsk(false); else setPausa(!pausa); } return; }
+    if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) { if (pref.aperto) pref.chiudi(); else if (asking) setAsk(false); else setPausa(!pausa); } return; }
     if (asking && (e.code === 'Enter' || e.code === 'KeyY')) { e.preventDefault(); e.stopImmediatePropagation(); setAsk(false); o.onAbort(); return; }
     if (e.code === 'KeyI') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) openZaino(); return; }
-    if (e.code === 'KeyQ' || e.code === 'KeyR' || e.code === 'KeyE') {
+    if (e.code === 'KeyR' || e.code === 'KeyE') {
       e.preventDefault(); e.stopImmediatePropagation();
-      if (e.repeat || pausa || asking) return;
-      keys.add(e.code); if (e.code === 'KeyQ') cLatch = true; else if (e.code === 'KeyE') eLatch = true; else dLatch = true;
+      if (e.repeat || pausa || asking || pref.aperto) return;
+      keys.add(e.code); if (e.code === 'KeyE') eLatch = true; else dLatch = true;
       return;
     }
-    // 1-9: la magia n-esima del menù rapido (solo mentre il menù c'è)
-    const n = /^Digit([1-9])$/.exec(e.code)?.[1];
-    if (n && spIds.length && sp.classList.contains('on')) {
-      e.preventDefault(); e.stopImmediatePropagation();
-      const id = spIds[Number(n) - 1];
-      if (id && !e.repeat && !pausa && !asking) o.onMagia(id);
-    }
+    pref.tasto(e); // 1-2-3: i preferiti
   };
   const ku = (e: KeyboardEvent) => { keys.delete(e.code); };
   const md = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0 && !pausa && !asking && !o.blocked()) { mouseA = true; aLatch = true; } };
   const mu = (e: PointerEvent) => { if (e.pointerType === 'mouse' && e.button === 0) mouseA = false; };
-  const blur = () => { keys.clear(); tC.lascia(); tD.lascia(); tE.lascia(); mouseA = false; stick.cancel(); };
+  const blur = () => { keys.clear(); tD.lascia(); tE.lascia(); mouseA = false; stick.cancel(); };
   addEventListener('keydown', kd, true); addEventListener('keyup', ku, true);
   o.canvas.addEventListener('pointerdown', md); addEventListener('pointerup', mu); addEventListener('blur', blur);
 
   let lastIcons = '', lanSig = '';
   return {
-    get paused() { return asking || pausa; },
+    get paused() { return asking || pausa || pref.aperto; },
     sample() {
       const st = stick.sample();
-      const out = { a: aLatch || mouseA || st.held, c: cLatch || tC.giu || keys.has('KeyQ'), d: dLatch || tD.giu || keys.has('KeyR'), e: eLatch || tE.giu || keys.has('KeyE'), m: st.m, tap: st.tap };
-      aLatch = cLatch = dLatch = eLatch = false;
+      const out = { a: aLatch || mouseA || st.held, d: dLatch || tD.giu || keys.has('KeyR'), e: eLatch || tE.giu || keys.has('KeyE'), m: st.m, tap: st.tap };
+      aLatch = dLatch = eLatch = false;
       return out;
     },
     setMira(on) { o.root.classList.toggle('mz-dng-aimon', stick.setOn(on)); },
@@ -226,37 +202,22 @@ export function createControls(o: { root: HTMLElement; canvas: HTMLCanvasElement
       salva.classList.toggle('fatto', l.salvatoQui);
       esciL.title = 'Esci col bottino: la prossima volta puoi ripartire da qui';
     },
-    setIcons(c, d, key = '') {
-      const k = `${c ? 1 : 0}${d ? 1 : 0}|${key}`; if (k === lastIcons) return; lastIcons = k;
-      C.ico.replaceChildren(...(c ? [c] : [])); D.ico.replaceChildren(...(d ? [d] : []));
+    setIcons(d, key = '') {
+      const k = `${d ? 1 : 0}|${key}`; if (k === lastIcons) return; lastIcons = k;
+      D.ico.replaceChildren(...(d ? [d] : []));
     },
     setScarica(on, pronta) {
       E.b.classList.toggle('on-vis', on);
       E.cd.style.height = `${Math.round((1 - Math.max(0, Math.min(1, pronta))) * 10) * 10}%`;
       E.b.classList.toggle('off', pronta < 1);
     },
-    setState(magia, pozioni, haMagia) {
-      C.cd.style.height = `${Math.round((1 - Math.max(0, Math.min(1, magia))) * 10) * 10}%`; // a gradini del 10 %
-      C.b.classList.toggle('off', !haMagia); D.b.classList.toggle('off', pozioni <= 0);
-    },
-    setMagie(elenco, inMano, magicka) {
-      const on = inMano !== null && elenco.length > 0;
-      sp.classList.toggle('on', on); C.b.classList.toggle('mano', inMano !== null);
-      const sig = on ? `${inMano}|${elenco.map((m) => `${m.id}${magicka >= m.costo ? '' : '-'}`).join(',')}` : '';
-      if (sig === spSig) return;
-      spSig = sig; spIds = on ? elenco.map((m) => m.id) : [];
-      if (!on) { sp.replaceChildren(); return; }
-      sp.replaceChildren(...elenco.map((m, i) => {
-        const b = btn(`${m.id === inMano ? 'cur' : ''}${magicka >= m.costo ? '' : ' no'}`.trim(), 'magia', m.icona(), el('i', '', String(i + 1)), el('b', '', `${m.costo}${m.alSecondo ? '/s' : ''}`));
-        b.dataset['magia'] = m.id; b.title = `${m.nome} · ${m.costo} Magicka${m.alSecondo ? ' al secondo' : ''} (tasto ${i + 1})`; b.setAttribute('aria-label', m.nome);
-        return b;
-      }));
-    },
-    hide() { setAsk(false); setPausa(false); exit.classList.remove('on'); lanBox.classList.remove('on'); sp.classList.remove('on'); stick.setOn(false); E.b.classList.remove('on-vis'); o.root.classList.remove('mz-dng-aimon'); top.style.display = 'none'; lanSig = ''; },
+    setState(pozioni) { D.b.classList.toggle('off', pozioni <= 0); },
+    setPreferiti(s) { pref.aggiorna(s); },
+    hide() { setAsk(false); setPausa(false); pref.chiudi(); exit.classList.remove('on'); lanBox.classList.remove('on'); stick.setOn(false); E.b.classList.remove('on-vis'); o.root.classList.remove('mz-dng-aimon'); top.style.display = 'none'; lanSig = ''; },
     dispose() {
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);
-      stick.dispose(); o.root.classList.remove('mz-dng-aimon');
+      stick.dispose(); pref.dispose(); o.root.classList.remove('mz-dng-aimon');
       for (const e of all) e.remove();
     },
   };
