@@ -19,13 +19,13 @@ export function newAvatar(x: number, z: number): AvatarState {
 const WALK_TILES = new Set(['.', 'g', 'd', 'P', 'L']);
 const wrap = (a: number): number => trig.atan2(trig.sin(a), trig.cos(a));
 
-/** `ost`: i solidi da non attraversare (assenti = solo le celle). */
-export function stepAvatar(s: AvatarState, input: InputFrame, map: GridMap, ost?: Pick<Ostacoli, 'vicini'>): AvatarState {
+/** `ost`: i solidi da non attraversare (assenti = solo le celle). `passo`: frazione della velocità (1 = normale; chi tiene carico il retino va più piano). */
+export function stepAvatar(s: AvatarState, input: InputFrame, map: GridMap, ost?: Pick<Ostacoli, 'vicini'>, passo = 1): AvatarState {
   const { camminata, corsa, sogliaCorsa, raggio } = BALANCE.avatar;
   const mag = Math.min(1, trig.hypot(input.mx, input.my));
   const moving = mag >= 0.1;
   const run = moving && (mag > sogliaCorsa || input.b);
-  const speed = !moving ? 0 : run ? corsa : camminata;
+  const speed = (!moving ? 0 : run ? corsa : camminata) * passo;
   const ux = moving ? input.mx / trig.hypot(input.mx, input.my) : 0;
   const uz = moving ? input.my / trig.hypot(input.mx, input.my) : 0;
   const blocked = (cx: number, cz: number): boolean => !WALK_TILES.has(map.at(cx, cz));

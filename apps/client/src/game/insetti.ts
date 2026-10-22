@@ -16,8 +16,8 @@ import type { Hud } from '../ui/hud.ts';
 import type { Api } from '../net/api.ts';
 import { ApiError } from '../net/api.ts';
 import { pennello } from '../render/pennello.ts';
-import { FILO, FOGLIA_CADE, LUME, NIDO, OMBRA, PALA, RETINO, SASSO, SCHEGGIA_SASSO, TERRA_CLOD, formeInsetto } from '../render/insetti_forme.ts';
-import { creaRetinoAnim } from './retino_anim.ts';
+import { FILO, FOGLIA_CADE, LUME, NIDO, OMBRA, PALA, SASSO, SCHEGGIA_SASSO, TERRA_CLOD, formeInsetto } from '../render/insetti_forme.ts';
+import { creaRetino } from './retino.ts';
 import { daAlbero, daSasso, nuovoAttore, prendibile, vive } from './insetti_vita.ts';
 import type { Attore, Chi, Mondo } from './insetti_vita.ts';
 import { insettoCanvas } from '../ui/insetti_sprite.ts';
@@ -28,6 +28,8 @@ import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 export type Attrezzo = 'nulla' | 'pala' | 'retino' | 'canna';
 export type InsettiBorgo = {
   tick(a: boolean): boolean; update(dt: number): void;
+  /** Il colpo di retino è partito: il personaggio sta fermo. */
+  fermo(): boolean;
   /** Cosa hai in mano (la pala scava solo se è in mano). */
   attrezzo(): Attrezzo;
   /** Vicino a un sasso o a un albero: il bottone della pala si fa da parte. */
@@ -43,8 +45,6 @@ const MAX_V = 60000, MAX_V_LUCI = 3000;
 const R_SASSO = 1.9, R_ALBERO = 2.2, CHIOMA = 2.6;
 /** Quanto più grandi del vero (le forme sono già grandi): dalla camera diorama si devono vedere. */
 const SCALA = 1.7;
-/** Il retino: prende quello che sta entro PORTATA m davanti a te (±70°) o entro VICINO m tutto attorno; i volanti si prendono sull'ombra. */
-const PORTATA = 1.7, VICINO = 0.8, CONO = 1.22, COLPO_S = 0.42;
 const SALVA = 'mz-attrezzo';
 const CSS = `
 #mzInsettiBtn, #mzAttrezzoBtn { position: absolute; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 16px); z-index: 16; display: none; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; background: rgba(46,30,20,.94); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; border-radius: 6px; box-shadow: 0 3px 0 ${PAL.neroCaldo}; }
@@ -71,7 +71,7 @@ const NOME_ATTREZZO: Record<Attrezzo, string> = { nulla: 'Mani', pala: 'Pala', r
 
 export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud: Hud; api: Api | null; getLot(): LotState | null; setLot(l: LotState): void; negozioDentro(): boolean }): InsettiBorgo {
   const w = o.world, arch = w.archipelago, T = arch.tile, porto = arch.places.find((p) => p.role === 'porto');
-  if (!porto) return { tick: () => false, update: () => {}, attrezzo: () => 'nulla', occupato: () => false, prendi: () => {}, zolle: () => {} };
+  if (!porto) return { tick: () => false, update: () => {}, fermo: () => false, attrezzo: () => 'nulla', occupato: () => false, prendi: () => {}, zolle: () => {} };
   if (!document.getElementById('mz-insetti-style')) { const st = document.createElement('style'); st.id = 'mz-insetti-style'; st.textContent = CSS; document.head.appendChild(st); }
   const [ox, oz] = porto.origin;
   const cellWorld = (c: readonly [number, number]) => ({ x: (ox + c[0] + 0.5) * T, z: (oz + c[1] + 0.5) * T });
@@ -115,7 +115,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
     const giro: Attrezzo[] = ['nulla', 'pala', 'retino', 'canna'].filter((x) => hai(x as Attrezzo)) as Attrezzo[];
     if (giro.length < 2) { o.hud.toast(hai('retino') || hai('pala') || hai('canna') ? 'Hai un attrezzo solo' : 'Gli attrezzi (pala, retino e canna da pesca) si comprano al negozio dei mobili', 2200); return; }
     const i = giro.indexOf(inMano()), next = giro[(i + 1) % giro.length]!;
-    metti(next); colpo = 0; suona('click');
+    metti(next); retino.annulla(); suona('click');
   };
 
   const inBorgo = (): boolean => (w.mode === 'walk' && !w.race.on && !o.negozioDentro() && !document.body.classList.contains('mz-casa') && arch.placeAt(w.avatar.state.x, w.avatar.state.z)?.role === 'porto');
@@ -201,37 +201,10 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
     } catch (e) { o.hud.toast(errore(e), 2400); return null; } finally { busy = false; }
   }
 
-  // ——— il colpo di retino ———
-  let colpo = 0, colpito = false;
-  const chiVicino = (): Attore | null => {
-    const f = w.avatar.state, fx = Math.sin(f.yaw), fz = -Math.cos(f.yaw);
-    let best: Attore | null = null, bd = Infinity;
-    for (const a of attori.values()) {
-      if (!prendibile(a)) continue;
-      const dx = a.x - f.x, dz = a.z - f.z, d = Math.hypot(dx, dz);
-      const davanti = d < PORTATA && (dx * fx + dz * fz) / (d || 1) > Math.cos(CONO);
-      if ((d < VICINO || davanti) && d < bd) { bd = d; best = a; }
-    }
-    return best;
-  };
-  const retinata = () => {
-    if (colpo > 0) return;
-    colpo = COLPO_S; colpito = false; suona('lancio');
-  };
-  const chiudiColpo = () => {
-    colpito = true;
-    const a = chiVicino();
-    if (a) { a.stato = 'preso'; a.t = 0; void cattura(a); return; }
-    // mancato: chi sta lì vicino scappa allontanandosi a varie velocità (non sparisce)
-    const f = w.avatar.state;
-    let via = false;
-    for (const b of attori.values()) {
-      if (b.stato !== 'preso' && b.stato !== 'acqua' && b.stato !== 'cade' && Math.hypot(b.x - f.x, b.z - f.z) < 1.8 + PORTATA) {
-        if (b.stato !== 'scappa') { b.stato = 'scappa'; b.t = 0; via = true; }
-      }
-    }
-    if (via) suona('scappato');
-  };
+  // ——— il retino (game/retino.ts): A tenuto carica, al rilascio il colpo arriva a terra; prende solo chi finisce nella rete ———
+  const retino = creaRetino({ w, attori, polvere: (x, y, z) => emettiParticelle(x, y, z, 'terra', 5), preso: (a) => { a.stato = 'preso'; a.t = 0; void cattura(a); } });
+  /** C'è un insetto abbastanza vicino da preferire il retino alla pala e agli alberi? */
+  const chiVicino = (): boolean => { const f = w.avatar.state; for (const a of attori.values()) if (prendibile(a) && Math.hypot(a.x - f.x, a.z - f.z) < RETINO_CFG.uso.allarme) return true; return false; };
 
   // ——— dove sei: cosa fa la A ———
   const vicinoA = (list: { x: number; z: number }[], r: number): number => {
@@ -248,8 +221,12 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
     const a = vicinoA(alberi, R_ALBERO); if (a >= 0) { ctx = 'albero'; ctxIdx = a; return; }
     if (mano === 'retino') ctx = 'retino';
   };
-  const agisci = () => { if (ctx === 'retino') retinata(); else if (ctx === 'sasso' && ctxIdx >= 0) void cerca('sasso', ctxIdx); else if (ctx === 'albero' && ctxIdx >= 0) void cerca('albero', ctxIdx); };
-  azioneBtn.addEventListener('click', agisci); attrBtn.addEventListener('click', cambia);
+  const agisci = () => { if (ctx === 'retino') retino.premi(true); else if (ctx === 'sasso' && ctxIdx >= 0) void cerca('sasso', ctxIdx); else if (ctx === 'albero' && ctxIdx >= 0) void cerca('albero', ctxIdx); };
+  // il bottone del retino si tiene premuto come A: carica finché lo tieni, al rilascio parte il colpo
+  let btnTenuto = false, btnTocco = false; // btnTocco: un tocco più breve di un tick si vede lo stesso
+  azioneBtn.addEventListener('pointerdown', () => { if (ctx === 'retino') btnTenuto = btnTocco = true; });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) azioneBtn.addEventListener(ev, () => { btnTenuto = false; });
+  azioneBtn.addEventListener('click', () => { if (ctx !== 'retino') agisci(); }); attrBtn.addEventListener('click', cambia);
   addEventListener('keydown', (e) => {
     if (e.code !== 'KeyQ' || e.repeat || e.altKey || e.ctrlKey || e.metaKey || !puoImpugnare() || w.frozen) return;
     const t = e.target as HTMLElement | null; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
@@ -260,7 +237,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   let fermoDa = 0, congelato = 0;
   const chi = (): Chi => {
     const f = w.avatar.state, v = Math.hypot(f.vx, f.vz);
-    return { x: f.x, z: f.z, v, corre: f.anim === 'run', fermoDa, retino: inMano() === 'retino' };
+    return { x: f.x, z: f.z, v, corre: f.anim === 'run', fermoDa, retino: inMano() === 'retino', furtivo: retino.furtivo() };
   };
   const punto = (msg: string) => { o.hud.toast(msg, 2400); suona('colpo_preso'); if (!w.frozen) { w.frozen = true; congelato = 1.2; } };
 
@@ -268,15 +245,9 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const foglie: { x: number; y: number; z: number; t: number; s: number }[] = [];
   const bone = (n: string) => w.avatar.object.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n)) ?? w.avatar.object.getObjectByName(n) ?? null;
   const V = new THREE.Vector3();
-  const retinoAnim = creaRetinoAnim(w);
   const disegnaMano = (mano: Attrezzo) => {
     if (mano === 'nulla' || mano === 'canna' || !puoImpugnare() || !w.avatar.visible) return; // la canna la disegna game/pesca.ts
-    if (mano === 'retino') {
-      if (!retinoAnim.attivo()) return;
-      const p = retinoAnim.posa();
-      corpi.put(RETINO, p.x, p.y, p.z, p.h, p.pitch, p.roll, 1);
-      return;
-    }
+    if (mano === 'retino') { retino.disegna(corpi.put); return; }
     const f = w.avatar.state, h = f.yaw, rx = Math.cos(h), rz = Math.sin(h), fx = Math.sin(h), fz = -Math.cos(h);
     const b = bone('Hand.R') ?? bone('LowerArm.R');
     let x: number, y: number, z: number;
@@ -344,7 +315,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   registerStateProvider('insetti', () => {
     const now = adesso();
     return {
-      attrezzo: inMano(), scelta, ctx, ctxIdx, retino: possiedeRetino(o.getLot()), inBorgo: inBorgo(), turno, stagione: stagioneAt(now), notte: notteAt(now), colpo,
+      attrezzo: inMano(), scelta, ctx, ctxIdx, retino: possiedeRetino(o.getLot()), inBorgo: inBorgo(), turno, stagione: stagioneAt(now), notte: notteAt(now), colpo: retino.occupato() ? 1 : 0, rete: retino.stato(),
       bottone: azioneBtn.classList.contains('on') ? azioneBtn.textContent : null, attrezzoBtn: attrBtn.classList.contains('on'), cartello: preso.classList.contains('on') ? preso.textContent : null,
       attori: [...attori.values()].map((a) => ({ k: a.k, id: a.def.id, stato: a.stato, x: a.x, z: a.z, y: a.y, prendibile: prendibile(a) })),
       sassi: sassi.map((s) => ({ x: s.x, z: s.z })), alberi: alberi.map((a) => ({ x: a.x, z: a.z })),
@@ -352,7 +323,8 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
     };
   });
   registerTestHook('insettiAttrezzo', (a) => { if (a === 'nulla' || a === 'pala' || a === 'retino') metti(a); return inMano(); });
-  registerTestHook('insettiRetino', () => { retinata(); return true; });
+  registerTestHook('insettiRetino', () => { retino.tocco(); return true; });
+  registerTestHook('retinoPosa', (fase, t) => { retino.forza((fase as Parameters<typeof retino.forza>[0]) ?? null, Number(t) || 0); return true; });
   registerTestHook('insettiSasso', (i) => cerca('sasso', Number(i))); registerTestHook('insettiAlbero', (i) => cerca('albero', Number(i))); registerTestHook('insettiCattura', (k) => { const a = attori.get(String(k)); return a ? cattura(a) : false; });
   registerTestHook('insettiMostra', (ids, passo) => {
     const f = w.avatar.state, list = Array.isArray(ids) && ids.length ? INSETTI.filter((d) => (ids as string[]).includes(d.id)) : [...INSETTI], p = Number(passo) || 0.9, n = list.length <= 8 ? list.length : Math.ceil(Math.sqrt(list.length));
@@ -361,17 +333,22 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
 
   let aWas = false, lastBtn = '', lastAttr = '';
   return {
-    attrezzo: inMano, occupato: () => ctx === 'sasso' || ctx === 'albero', prendi: metti,
+    attrezzo: inMano, occupato: () => ctx === 'sasso' || ctx === 'albero', prendi: metti, fermo: retino.fermo,
     zolle: (x, y, z, n) => emettiParticelle(x, y, z, 'terra', n),
-    tick(a) { const pa = a && !aWas; aWas = a; contesto(); if (!ctx) return false; if (pa) agisci(); return true; },
+    tick(a) {
+      const giu = a || btnTenuto || btnTocco, pa = giu && !aWas; aWas = giu; btnTocco = false; contesto();
+      if (retino.occupato()) { if (!inBorgo() || inMano() !== 'retino') retino.annulla(); else { retino.premi(giu); return true; } } // carica o colpo in corso: A è del retino
+      if (!ctx) return false;
+      if (pa) agisci();
+      return true;
+    },
     update(dt) {
       const now = adesso();
       if (presoFino && performance.now() > presoFino) { preso.classList.remove('on'); presoFino = 0; }
       if (congelato > 0) { congelato -= dt; if (congelato <= 0 && !w.avatar.azioneInCorso) w.frozen = false; }
       const f = w.avatar.state; fermoDa = Math.hypot(f.vx, f.vz) < 0.2 ? fermoDa + dt : 0;
       const c = chi(), dentro = inBorgo(), mano = inMano();
-      retinoAnim.aggiorna(dt, colpo, COLPO_S, puoImpugnare() && mano === 'retino');
-      if (colpo > 0) { colpo = Math.max(0, colpo - dt); if (!colpito && colpo <= COLPO_S * 0.52) chiudiColpo(); }
+      retino.update(dt, puoImpugnare() && mano === 'retino');
       syncLiberi(now);
       for (const [k, a] of attori) {
         if (Math.hypot(a.x - c.x, a.z - c.z) > 60 && a.stato !== 'via' && a.stato !== 'acqua') continue;
@@ -381,10 +358,11 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
         if (a.stato === 'acqua' && a.t > 1.2) { attori.delete(k); andati.add(k); }
       }
       disegna(now, dt); contesto();
-      const show = dentro && !!ctx, key = !show ? '' : ctx === 'retino' ? 'r' : ctx === 'sasso' ? 's' : 'a';
+      const show = dentro && !!ctx, key = !show ? '' : ctx === 'retino' ? (retino.carico() ? 'c' : 'r') : ctx === 'sasso' ? 's' : 'a';
       if (key !== lastBtn) {
         lastBtn = key; azioneBtn.classList.toggle('on', show);
         if (key === 'r') azioneBtn.replaceChildren(iconaAttrezzo('retino'), el('span', '', 'Retino'), el('b', '', 'A'));
+        else if (key === 'c') azioneBtn.replaceChildren(iconaAttrezzo('retino'), el('span', '', 'Rilascia'), el('b', '', 'A'));
         else if (key === 's') azioneBtn.replaceChildren(iconaAttrezzo('pala'), el('span', '', 'Colpisci'), el('span', 'lungo', 'Il sasso'), el('b', '', 'A'));
         else if (key === 'a') azioneBtn.replaceChildren(el('span', '', 'Scuoti'), el('span', 'lungo', 'L’albero'), el('b', '', 'A'));
         for (const cv of azioneBtn.querySelectorAll('canvas')) { (cv as HTMLCanvasElement).style.width = (cv as HTMLCanvasElement).style.height = '20px'; (cv as HTMLCanvasElement).style.imageRendering = 'pixelated'; }

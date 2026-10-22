@@ -38,8 +38,15 @@ export type InsettoDef = {
   /** La scheda del Diario: si legge solo dopo averlo consegnato al mobiliere. */
   descr: string;
 };
+/** La rete del retino (m): l'asta fino al cerchio, raggio del cerchio, lunghezza della sacca, raggio dell'insetto che vi entra. */
+export type RetinoRete = { asta: number; raggio: number; sacca: number; corpo: number };
+/** Il colpo di retino (game/retino_azione.ts): tempi in secondi, e da carico (A tenuto) la frazione di passo e di raggio di fuga; `allarme` in metri dall'impatto. */
+export type RetinoUso = {
+  caricaS: number; avvioS: number; fendenteS: number; impattoS: number; lagS: number; risalitaS: number;
+  passoCarico: number; furtivoCarico: number; allarme: number;
+};
 export type InsettiCfg = {
-  retino: { id: string; nome: string; monete: number };
+  retino: { id: string; nome: string; monete: number; rete: RetinoRete; uso: RetinoUso };
   /** Il ciclo giorno/notte del gioco (render/ciclo.ts, CICLO_MIN): notte = fase del giro in [notte[0], notte[1]). */
   ciclo: { minuti: number; notte: [number, number] };
   /** Mesi (1-12, calendario di Roma) di ogni stagione. */
@@ -71,6 +78,9 @@ const STAGIONI = new Set(['tutto', 'primavera', 'estate', 'autunno', 'inverno'])
 export function validateInsetti(palette: readonly string[]): string[] {
   const errs: string[] = [], c = INSETTI_CFG, visti = new Set<string>();
   if (c.retino.id !== 'retino' || !(Number.isInteger(c.retino.monete) && c.retino.monete > 0)) errs.push('insetti: retino non valido');
+  const { rete, uso } = c.retino;
+  if (![rete.asta, rete.raggio, rete.sacca, rete.corpo, uso.caricaS, uso.avvioS, uso.fendenteS, uso.impattoS, uso.lagS, uso.risalitaS, uso.allarme].every((n) => n > 0)) errs.push('insetti: rete o tempi del retino non validi');
+  if (![uso.passoCarico, uso.furtivoCarico].every((n) => n > 0 && n <= 1)) errs.push('insetti: passo e fuga da carico del retino fra 0 e 1');
   if (!(c.ciclo.minuti > 0 && c.ciclo.notte[0] >= 0 && c.ciclo.notte[0] < c.ciclo.notte[1] && c.ciclo.notte[1] <= 1)) errs.push('insetti: ciclo non valido');
   const mesi = Object.values(c.stagioni).flat().sort((a, b) => a - b);
   if (mesi.join(',') !== '1,2,3,4,5,6,7,8,9,10,11,12') errs.push('insetti: le stagioni devono coprire i 12 mesi una volta sola');

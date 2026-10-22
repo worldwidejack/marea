@@ -93,10 +93,6 @@
   "apps/client/src/game/minigiochi.ts": [
    "registraSchermo"
   ],
-  "apps/client/src/game/retino_anim.ts": [
-   "calcolaPosaRetino",
-   "valutaPosaRetino"
-  ],
   "apps/client/src/net/api.ts": [
    "MSG_RETE"
   ],
