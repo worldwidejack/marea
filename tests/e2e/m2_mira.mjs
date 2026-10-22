@@ -105,7 +105,7 @@ export default async function (ctx) {
       await page.waitForSelector('#mzDngPreferiti.on', { timeout: 3000 });
       await page.locator('#mzDngPreferiti .lista button', { hasText: 'Proiettile infuocato' }).click();
       await page.waitForFunction(() => !document.querySelector('#mzDngPreferiti.on'), null, { timeout: 2000 });
-      assert((await page.locator('#btnF1').getAttribute('title')).includes('Proiettile infuocato'), 'il preferito 1 non è diventato la magia');
+      await page.waitForFunction(() => document.getElementById('btnF1').title.includes('Proiettile infuocato'), null, { timeout: 3000 }).catch(() => { throw new Error('il preferito 1 non è diventato la magia'); }); // il bottone si ridisegna al frame dopo
       assert(JSON.parse(await page.evaluate(() => localStorage.getItem('mz-dng-preferiti')))[0]?.magia === 'fiammata', 'la scelta non si ricorda sul dispositivo');
       await page.keyboard.press('Digit1');
       await ctx.waitState(page, (s) => s.dungeon.hero.magia === 'fiammata', 3000);
