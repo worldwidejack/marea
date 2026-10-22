@@ -51,6 +51,7 @@ const CSS = `
 #mzInsettiBtn { left: 50%; transform: translateX(-50%); } #mzInsettiBtn.on, #mzAttrezzoBtn.on { display: inline-flex; } #mzInsettiBtn b { color: ${PAL.giallo}; }
 #mzAttrezzoBtn { right: 35px; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 132px); min-width: 44px; padding: 6px 8px; flex-direction: column; gap: 0; font-size: 10px; } #mzAttrezzoBtn canvas { width: 24px; height: 24px; image-rendering: pixelated; }
 @media (max-width: 699px) { #mzInsettiBtn { left: calc(50% + 21px); padding: 8px 10px; } #mzInsettiBtn .lungo { display: none; } }
+body.mz-sotto #mzInsettiBtn, body.mz-sotto #mzAttrezzoBtn, body.mz-sotto #mzInsettoPreso { display: none !important; } /* nel dungeon update() non gira: i bottoni restano come erano */
 #mzInsettoPreso { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.9); z-index: 26; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 18px; background: rgba(46,30,20,.96); border: 3px solid ${PAL.giallo}; box-shadow: 0 4px 0 ${PAL.neroCaldo}; color: ${PAL.sabbiaChiara}; font: bold 15px ui-monospace, Menlo, monospace; text-align: center; opacity: 0; pointer-events: none; transition: opacity .15s steps(3), transform .15s steps(3); max-width: calc(100% - 32px); box-sizing: border-box; }
 #mzInsettoPreso.on { opacity: 1; transform: translate(-50%, -50%) scale(1); } #mzInsettoPreso b { color: ${PAL.giallo}; font-size: 17px; } #mzInsettoPreso small { color: ${PAL.sabbia}; font-size: 12px; }
 `;

@@ -25,6 +25,7 @@ const RAGGIO_BUCA = 2.1;
 const POLL_S = 5;
 const CSS = `#mzScavaBtn { position: absolute; left: 50%; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 16px); transform: translateX(-50%); z-index: 16; display: none; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; background: rgba(46,30,20,.94); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; border-radius: 6px; box-shadow: 0 3px 0 ${PAL.neroCaldo}; }
 #mzScavaBtn.on { display: inline-flex; } #mzScavaBtn b { color: ${PAL.giallo}; }
+body.mz-sotto #mzScavaBtn { display: none !important; }
 #mzPalaSheet .tabs { display: flex; gap: 6px; margin: 8px 0; }
 #mzPalaSheet .tab { flex: 1; padding: 6px 8px; background: rgba(35,32,31,.85); border: 1px solid ${PAL.legno}; color: ${PAL.sabbia}; font: bold 12px ui-monospace, Menlo, monospace; cursor: pointer; }
 #mzPalaSheet .tab.on { background: ${PAL.legno}; color: ${PAL.giallo}; border-color: ${PAL.giallo}; }

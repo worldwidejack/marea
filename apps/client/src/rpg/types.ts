@@ -13,7 +13,7 @@ export type RunCtx = { world: GameWorld; renderer: Renderer; loader: Loader; hud
 export type PanelCtx = { api: Api; hud: Hud; root: HTMLElement; getLot(): LotState | null; setLot(l: LotState): void };
 export type DungeonRun = {
   readonly active: boolean;
-  /** Un tick (60 Hz) con l'input base (joystick, A, B); C e D li legge il chunk dai suoi bottoni/tasti. */
+  /** Un tick (60 Hz) con l'input base (joystick, A, B); D ed E li legge il chunk dai suoi bottoni/tasti. */
   step(f: InputFrame): void;
   update(alpha: number, dt: number, t: number): void;
   /** Esce senza consegnare (Esc lungo, errore): `done` risolve null. */

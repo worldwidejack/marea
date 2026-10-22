@@ -1,6 +1,6 @@
 // Spedizione nel dungeon lato client (R-scena, CONTRACTS §15): prende il controllo del ciclo come la Regata. Carica il kit
 // (manifest_rpg.json), costruisce scena, eroe e nemici, poi a ogni tick registra UN DungeonInput (mx, my, a, b dall'InputFrame di main.ts;
-// c, d e la A in più dai controlli del chunk), sempre quantizzato con quantizeDungeon prima di dungeon.step: il server rigioca gli stessi
+// d e la A in più dai controlli del chunk), sempre quantizzato con quantizeDungeon prima di dungeon.step: il server rigioca gli stessi
 // input. Le azioni dal menu (dungeon v5: cambio d'equipaggiamento e Butta via dalla scheda dello zaino, SALVA ed ESCI sulla lanterna) si
 // applicano subito con dungeon.act e si registrano col tick: il server le rigioca con gli input. A fine partita: packDungeon + azioni + hash
 // di dungeon.result. Pausa (Esc) e scheda dello zaino aperta = nessun tick. Esc → Pausa → Esci → «Uscire?» → abort: `done` risolve null
@@ -8,7 +8,7 @@
 // con input e azioni fin lì, così il server tiene il salvataggio anche se la scheda si chiude (POST /api/dungeon/save).
 // Autopilot (?autopilot=1 o hook dungeonAutopilot): gli input li dà dungeon.autopilot con un rng fisso e si registrano uguali.
 // Mira col mouse (v6, dungeon_mouse.ts): con l'arco o una magia in mano e un mouse vero, mentre la A è giù (o l'arco è teso) l'input porta anche
-// l'indice d'angolo del cursore (DungeonInput.m); senza mouse, o con la mischia, la sim usa la mira assistita. Il C alterna arma e magia.
+// l'indice d'angolo del cursore (DungeonInput.m); senza mouse, o con la mischia, la sim usa la mira assistita. Arma e magia in mano si cambiano con i preferiti 1-2-3 (dungeon_preferiti.ts).
 // Insieme (#118, `o.rete`): la sim ha un eroe per membro della squadra (createPartyRun, s.cur = il mio). Il mio input va al server una volta
 // per turno (SQ_TICKS tick: joystick dell'ultimo tick, bottoni premuti in qualunque tick del turno), solo se cambia; la sim avanza SOLO coi
 // turni del server (stessi input e azioni per tutti = stessa partita), con un piccolo cuscinetto contro i ritardi della rete e una corsa per
@@ -60,7 +60,8 @@ import { createTesti } from './dungeon_testi.ts';
 import type { DungeonTestiUi } from './dungeon_testi.ts';
 import type { DungeonHud } from './dungeon_hud.ts';
 import { createControls } from './dungeon_controls.ts';
-import type { Controls, MagiaUi } from './dungeon_controls.ts';
+import type { Controls } from './dungeon_controls.ts';
+import { mettiInMano } from './dungeon_preferiti.ts';
 import { showDungeonResult } from './dungeon_result.ts';
 import { closePanels, isPanelOpen, openHero, refreshBag } from './panels.ts';
 
@@ -99,7 +100,7 @@ export function startRun(ctx: RunCtx, o: {
   const frames: DungeonInput[] = [], azioni: DungeonAzioni = [];
   let phase: Phase = 'loading', wait = 0, view: DungeonView = dungeon.view(s), auto: Rng | null = null, arma = view.hero.arma;
   let sc: DungeonScene | null = null, hero: HeroActor | null = null, actors: Actors | null = null, hud: DungeonHud | null = null, controls: Controls | null = null, fx: DrenaggioFx | null = null, afx: ArchivioFx | null = null, ffx: FucinaFx | null = null, mfx: MausoleoFx | null = null, dfx: DigaFx | null = null, ufx: UniciFx | null = null, gfx: MagieFx | null = null;
-  let testi: DungeonTestiUi | null = null, mouse: Mouse | null = null, magieUi: MagiaUi[] = [], cursore = '';
+  let testi: DungeonTestiUi | null = null, mouse: Mouse | null = null, cursore = '';
   let resolve!: (v: Out | { insieme: true } | null) => void;
   const done = new Promise<Out | { insieme: true } | null>((r) => (resolve = r));
   const out = (): Out => ({ inputs: packDungeon(frames), hash: dungeon.result(s).hash, azioni: azioni.map(([t, a]) => [t, a]) });
@@ -143,8 +144,8 @@ export function startRun(ctx: RunCtx, o: {
     if (view.hero.arma !== arma) { arma = view.hero.arma; void hero?.setArma(s.hero.arma); }
     hero?.equip(s.runHero); // armatura o veste cambiata dal menu, faretra con arco e frecce
   };
-  /** Equipaggiamento cambiato (mio): barre, icone di C e D. */
-  const nuovoEquip = () => { hud?.setHero(s.runHero); magieUi = hud?.magie() ?? []; const ic = hud?.icons(); if (ic) controls?.setIcons(ic.c, ic.d, ic.key); };
+  /** Equipaggiamento cambiato (mio): barre e icona di D. */
+  const nuovoEquip = () => { hud?.setHero(s.runHero); const ic = hud?.icons(); if (ic) controls?.setIcons(ic.d, ic.key); };
   /** Azione dal menu adesso: si applica alla sim, si registra col tick (= passi fatti) e si mostra. null = fatta, se no il motivo.
    *  Insieme va al server (torna nel turno, la sim la rifà lì): qui solo i controlli che si vedono dalla vista. */
   const act = (a: DungeonAzione): string | null => {
@@ -200,13 +201,12 @@ export function startRun(ctx: RunCtx, o: {
         onZaino: openZaino,
         onSalva: () => { const e = act({ t: 'salva' }); if (e) ctx.hud.toast(e, 1800); },
         onEsciLanterna: () => { const e = act({ t: 'esci' }); if (e) ctx.hud.toast(e, 1800); },
-        // menù rapido: la magia scelta va in mano (stessa azione dello zaino, quindi vale anche in squadra)
-        onMagia: (id) => { if (view.hero.magia === id) return; const e = act({ t: 'equip', slot: 'magia', item: id }); if (e) ctx.hud.toast(e, 1500); },
+        // preferiti 1-2-3: l'arma o la magia scelta va in mano (stessa azione dello zaino, quindi vale anche in squadra)
+        hero: () => heroNow(s), onPreferito: (p) => { const e = mettiInMano(p, heroNow(s), act); if (e) ctx.hud.toast(e, 1500); },
       });
       mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: sc.floorY });
-      magieUi = hud.magie();
       if (sc.def.testi) testi = createTesti({ root: ctx.root, camera: ctx.renderer.camera, canvas: ctx.canvas, sc, insieme: !!rete, capoMorto: () => view.nemici.some((n) => n.capo && n.anim === 'morto') });
-      const ic = hud.icons(); controls.setIcons(ic.c, ic.d, ic.key);
+      const ic = hud.icons(); controls.setIcons(ic.d, ic.key);
       if (s.salvato) controls.setSalvato(true);
       hero.tick(view.hero); actors.tick(view); fx?.tick(view); afx?.tick(view); ffx?.tick(view); mfx?.tick(view); dfx?.tick(view); ufx.tick(view); gfx?.tick(view); sc.setAcque(view.acque); tickAmici();
       ctx.renderer.setScene(sc.scene);
@@ -335,7 +335,7 @@ export function startRun(ctx: RunCtx, o: {
       if (act === 'tira' || act === 'lancia') tapT = 0;
     }
     const a = f.a || c.a || aTap, m = aTap ? 0 : c.m || (a || s.hero.act === 'tende' || s.hero.act === 'punta' ? puntaMouse() : 0); // la mira solo mentre si preme (e al rilascio dell'arco): il log resta corto; il joystick di mira porta la sua
-    return { mx: f.mx, my: f.my, a, b: f.b, c: c.c, d: c.d, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}) };
+    return { mx: f.mx, my: f.my, a, b: f.b, c: false, d: c.d, ...(c.e ? { e: true } : {}), ...(m ? { m } : {}) };
   }
 
   function tickOnce(f: InputFrame): void {
@@ -439,8 +439,8 @@ export function startRun(ctx: RunCtx, o: {
       controls.setMira(phase === 'play' && (!!h.magia || s.hero.arma.kind === 'arco'));
       // Scarica (perk): bottone E solo con l'arco in mano; si riempie mentre la ricarica passa
       controls.setScarica(phase === 'play' && !!s.runHero.perk?.scarica && s.hero.arma.kind === 'arco' && !h.magia, h.scarica ?? 1);
-      controls.setState(spell ? 1 - h.ricaricaMagia / Math.max(0.01, spell.ricarica) : 0, h.pozioni, !!spell);
-      controls.setMagie(magieUi, phase === 'play' ? h.magia ?? null : null, h.magicka);
+      controls.setState(h.pozioni);
+      controls.setPreferiti({ hero: heroNow(s), mano: { arma: h.arma, magia: h.magia ?? null }, ricarica: spell ? 1 - h.ricaricaMagia / Math.max(0.01, spell.ricarica) : 1 });
       const cur = mouse?.attivo && (!!h.magia || s.hero.arma.kind === 'arco') ? 'crosshair' : ''; // il cursore diventa un mirino
       if (cur !== cursore) { cursore = cur; ctx.canvas.style.cursor = cur; }
     },
