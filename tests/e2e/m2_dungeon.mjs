@@ -114,15 +114,21 @@ export default async function (ctx) {
       assert(!rv.ok && /cancello|sbarrato|Anello/i.test((await rv.json()).error ?? ''), 'il Portale del Vuoto si apre senza l’Anello dell’Onda');
     });
 
-    await ctx.test('Cripta: si entra, scena e HUD, Q prende la magia in mano e la A la lancia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
+    await ctx.test('Cripta: si entra, scena e HUD, il tasto 2 prende la magia in mano e la A la lancia; Esc → Pausa (ferma) → Esci → «Uscire?» → ESCI: finish NON parte, la spedizione resta aperta', async () => {
+      // i bottoni degli attrezzi del Borgo (retino, pala, canna) accesi all'ingresso: sotto il loro update() non gira più, li nasconde il CSS
+      await page.waitForSelector('#mzAttrezzoBtn', { state: 'attached', timeout: 15000 });
+      const accesi = await page.evaluate(() => ['mzInsettiBtn', 'mzAttrezzoBtn', 'mzScavaBtn', 'mzPescaBtn'].filter((id) => { const e = document.getElementById(id); if (e) e.classList.add('on'); return !!e; }));
+      assert(accesi.length === 4, `bottoni degli attrezzi trovati: ${accesi}`);
       await hook('enterDungeon', 'cripta');
       await ctx.waitState(page, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
       await page.waitForSelector('#mzDngHud', { timeout: 3000 });
       await page.waitForFunction(() => document.body.classList.contains('mz-sotto'), null, { timeout: 3000 }).catch(() => { throw new Error('body.mz-sotto assente'); });
       assert(!(await page.locator('#compass').isVisible()), 'la bussola si vede nel dungeon');
+      for (const id of accesi) assert(await page.evaluate((i) => getComputedStyle(document.getElementById(i)).display === 'none', id), `#${id} si vede nel dungeon`);
+      await page.evaluate((ids) => ids.forEach((i) => document.getElementById(i).classList.remove('on')), accesi); // erano finti: all'uscita non devono coprire ENTRA
       await sleep(1200); await samplePerf();
       const m0 = (await st()).dungeon.hero.magicka;
-      await page.keyboard.press('q'); // Q = C (v6): la magia preparata (Fiammata) va in mano, il menù rapido compare
+      await page.keyboard.press('Digit2'); // preferito 2 (di partenza: la magia preparata): va in mano
       await ctx.waitState(page, (s) => s.dungeon.hero.magia === 'fiammata', 3000);
       await page.keyboard.press('Space'); // la A la lancia: costa Magicka
       await ctx.waitState(page, (s, m) => s.dungeon.hero.magicka < m, 3000, m0);
@@ -394,7 +400,7 @@ export default async function (ctx) {
       await tp.waitForSelector('#mzDngEntra.on', { timeout: 5000 });
     });
     await ctx.shot(tp, '1_ingresso_390');
-    await ctx.test('telefono: dentro la Grotta i 4 bottoni (A o la mira, B C D), l\'HUD, Zaino e Pausa non si sovrappongono, ≥ 56 px', async () => {
+    await ctx.test('telefono: dentro la Grotta i bottoni (A o la mira, B, D, i 3 preferiti), l\'HUD, Zaino e Pausa non si sovrappongono, ≥ 56 px (i preferiti ≥ 48)', async () => {
       await thook('dungeonAutopilot', true, 1);
       await tp.locator('#mzDngEntra').click();
       await ctx.waitState(tp, (s) => s.dungeon.active && s.dungeon.phase === 'play', 30000);
@@ -402,16 +408,37 @@ export default async function (ctx) {
       // con arco o magia in mano (dipende dal bottino, cioè dal caso) al posto della A c'è il joystick di mira (#210): si controlla quello
       const rects = await tp.evaluate(() => {
         const mira = !!document.querySelector('.mz-dng-aimon'), a = mira ? 'mzDngMira' : 'btnA';
-        return Object.fromEntries([a, 'btnB', 'btnC', 'btnD', 'joystick', 'mzDngHud', 'mzDngZaino', 'mzDngPausaBtn'].map((id) => { const r = document.getElementById(id)?.getBoundingClientRect(); return [id, r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null]; }));
+        return Object.fromEntries([a, 'btnB', 'btnD', 'btnF1', 'btnF2', 'btnF3', 'joystick', 'mzDngHud', 'mzDngZaino', 'mzDngPausaBtn'].map((id) => { const r = document.getElementById(id)?.getBoundingClientRect(); return [id, r ? { x: r.x, y: r.y, w: r.width, h: r.height } : null]; }));
       });
       const ids = Object.keys(rects);
       for (const id of ids) assert(rects[id], `manca #${id}`);
-      for (const id of [ids[0], 'btnB', 'btnC', 'btnD']) assert(rects[id].w >= 56 && rects[id].h >= 56, `#${id} troppo piccolo: ${JSON.stringify(rects[id])}`);
+      for (const id of [ids[0], 'btnB', 'btnD']) assert(rects[id].w >= 56 && rects[id].h >= 56, `#${id} troppo piccolo: ${JSON.stringify(rects[id])}`);
+      for (const id of ['btnF1', 'btnF2', 'btnF3']) assert(rects[id].w >= 48 && rects[id].h >= 48, `#${id} troppo piccolo: ${JSON.stringify(rects[id])}`);
       const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
       for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) assert(!hit(rects[ids[i]], rects[ids[j]]), `#${ids[i]} copre #${ids[j]}: ${JSON.stringify([rects[ids[i]], rects[ids[j]]])}`);
       for (const id of ids) { const r = rects[id]; assert(r.x >= 0 && r.y >= 0 && r.x + r.w <= 390 && r.y + r.h <= 844, `#${id} fuori schermo`); }
     });
     await ctx.shot(tp, '2_grotta_390');
+    await ctx.test('telefono: un tocco sul preferito 2 mette la magia in mano, tenuto premuto sul 3 apre la scelta (dentro lo schermo, ferma la partita)', async () => {
+      await thook('dungeonAutopilot', false);
+      await tp.locator('#btnF2').tap();
+      await ctx.waitState(tp, (s) => s.dungeon.hero.magia === 'fiammata', 3000);
+      await tp.waitForSelector('.mz-dng-aimon', { timeout: 3000 }); // con la magia in mano arriva il joystick di mira: i preferiti restano dove sono
+      const cdp = await tp.context().newCDPSession(tp), b = await tp.locator('#btnF3').boundingBox();
+      const dito = [{ x: b.x + b.width / 2, y: b.y + b.height / 2 }];
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: dito });
+      await sleep(700);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await tp.waitForSelector('#mzDngPreferiti.on', { timeout: 3000 });
+      const r = await tp.evaluate(() => { const q = document.getElementById('mzDngPreferiti').getBoundingClientRect(); return { x: q.x, y: q.y, w: q.width, h: q.height }; });
+      assert(r.x >= 0 && r.y >= 0 && r.x + r.w <= 390 && r.y + r.h <= 844, `la scelta esce dallo schermo: ${JSON.stringify(r)}`);
+      assert((await ctx.getState(tp)).dungeon.paused, 'con la scelta aperta la partita deve andare in pausa');
+      await ctx.shot(tp, '2b_scelta_390');
+      await tp.locator('#mzDngPreferiti [data-act="chiudi"]').tap();
+      await tp.waitForFunction(() => !document.querySelector('#mzDngPreferiti.on'), null, { timeout: 2000 });
+      await tp.locator('#btnF1').tap();
+      await ctx.waitState(tp, (s) => s.dungeon.hero.magia === null, 3000);
+    });
     await ctx.test('telefono: zaino nel dungeon e lanterna (SALVA/ESCI dentro lo schermo, sopra i bottoni senza coprirli)', async () => {
       await thook('dungeonAutopilot', false);
       await tp.locator('#mzDngZaino').click();
@@ -425,9 +452,9 @@ export default async function (ctx) {
       await ctx.waitState(tp, (s, n) => s.dungeon.lanterna === n || !!s.dungeon.outcome, 120000, n);
       if ((await ctx.getState(tp)).dungeon.lanterna !== n) return; // caduto per strada (autopilot di prima): la lanterna si prova al desktop
       await tp.waitForSelector('#mzDngLanterna.on', { timeout: 3000 });
-      const rects = await tp.evaluate(() => Object.fromEntries(['btnA', 'btnB', 'btnC', 'btnD', 'joystick', 'mzDngLanterna'].map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return [id, { x: r.x, y: r.y, w: r.width, h: r.height }]; })));
+      const rects = await tp.evaluate(() => Object.fromEntries(['btnA', 'btnB', 'btnD', 'btnF1', 'btnF2', 'btnF3', 'joystick', 'mzDngLanterna'].map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return [id, { x: r.x, y: r.y, w: r.width, h: r.height }]; })));
       const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-      for (const id of ['btnA', 'btnB', 'btnC', 'btnD', 'joystick']) assert(!hit(rects.mzDngLanterna, rects[id]), `la lanterna copre #${id}`);
+      for (const id of ['btnA', 'btnB', 'btnD', 'btnF1', 'btnF2', 'btnF3', 'joystick']) assert(!hit(rects.mzDngLanterna, rects[id]), `la lanterna copre #${id}`);
       const L = rects.mzDngLanterna; assert(L.x >= 0 && L.x + L.w <= 390 && L.y >= 0 && L.y + L.h <= 844, 'lanterna fuori schermo');
       await ctx.shot(tp, '4_lanterna_390');
     });

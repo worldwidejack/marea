@@ -10,7 +10,6 @@ import { spellDef } from '@marea/content/rpg.ts';
 import { PAL, el } from '../ui/style.ts';
 import { coloreMagia, iconOf, itemIcon } from './items_ui.ts';
 import type { Bar } from './dungeon_actors.ts';
-import type { MagiaUi } from './dungeon_controls.ts';
 
 export type DungeonHud = {
   set(v: DungeonView, maxTicks: number): void;
@@ -25,10 +24,8 @@ export type DungeonHud = {
   big(text: string | null, color?: string, sub?: string): void;
   /** Scritta grande che sparisce da sola dopo `ms` (SALVATO alla lanterna). */
   flash(text: string, color: string, sub: string, ms: number): void;
-  /** Icone di C e D; `key` cambia quando cambiano magia o pozione pronte. */
-  icons(): { c: Node | null; d: Node | null; key: string };
-  /** Le magie conosciute per il menù rapido (icona, nome, costo), nell'ordine dei tasti 1-9. */
-  magie(): MagiaUi[];
+  /** Icona di D; `key` cambia quando cambia la pozione pronta. */
+  icons(): { d: Node | null; key: string };
   /** RunHero rifatto (cambio d'equipaggiamento nel dungeon): frecce, pozione e magia pronte nuove. */
   setHero(h: RunHero): void;
   dispose(): void;
@@ -103,9 +100,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
   let rh = o.hero;
   const arrowsIco = () => (rh.frecce && hasItem(rh.frecce.id) ? iconOf(itemDef(rh.frecce.id), 16) : null);
   let pot = rh.pozione !== null ? rh.pozioni[rh.pozione] ?? null : null;
-  let spell = rh.magia !== null ? rh.magie[rh.magia] ?? null : null;
   const potIco = (px: number) => (pot && hasItem(pot.id) ? iconOf(itemDef(pot.id), px) : null);
-  const spellIco = (px: number) => (spell ? itemIcon('libro', coloreMagia(spell.id, spell.scuola), px) : null);
   const nomeMagia = (id: string): string => { try { return spellDef(id).nome; } catch { return id; } };
   let rowSig = '', toastT = 0, bigOn = false, flashT = 0;
   const v3 = new THREE.Vector3();
@@ -233,12 +228,10 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
       big.textContent = text; big.style.color = color ?? P.sabbiaChiara; big.style.borderColor = color ?? P.legnoChiaro;
       if (sub) big.appendChild(el('small', '', sub));
     },
-    icons: () => ({ c: spellIco(24), d: potIco(24), key: `${spell?.id ?? ''}|${pot?.id ?? ''}` }),
-    magie: () => rh.magie.map((m) => ({ id: m.id, nome: nomeMagia(m.id), costo: m.costo, icona: () => itemIcon('libro', coloreMagia(m.id, m.scuola), 28), ...(m.forma === 'raggio' ? { alSecondo: true } : {}) })),
+    icons: () => ({ d: potIco(24), key: pot?.id ?? '' }),
     setHero(h) {
       rh = h; rowSig = '';
       pot = rh.pozione !== null ? rh.pozioni[rh.pozione] ?? null : null;
-      spell = rh.magia !== null ? rh.magie[rh.magia] ?? null : null;
     },
     flash(text, color, sub, ms) {
       this.big(text, color, sub);
