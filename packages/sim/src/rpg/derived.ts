@@ -49,7 +49,8 @@ export function carriedOf(h: HeroState): number {
 }
 /** Moltiplicatore di un'abilità sopra il livello iniziale (danno delle armi e delle magie, potenza delle pozioni). */
 function skillBonus(h: HeroState, s: SkillId, perLv: number): number {
-  return Math.max(0, (h.skill[s]?.lv ?? RPG.livelli.skillIniziale) - RPG.livelli.skillIniziale) * perLv;
+  const eff = (h.prestigio?.[s] ?? 0) > 0 ? RPG.livelli.skillMax : (h.skill[s]?.lv ?? RPG.livelli.skillIniziale);
+  return Math.max(0, eff - RPG.livelli.skillIniziale) * perLv;
 }
 const dannoPerLv = (): number => RPG.abilita?.dannoPerLivello ?? 0.005;
 
