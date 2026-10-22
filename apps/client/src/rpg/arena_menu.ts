@@ -22,7 +22,7 @@ import { PAL, el, injectUiStyle } from '../ui/style.ts';
 import { FLAGS } from '../flags.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import type { RunCtx } from './types.ts';
-import { coloreMagia, iconOf, itemIcon } from './items_ui.ts';
+import { iconaMagia, iconOf, itemIcon } from './items_ui.ts';
 import { arenaLink, startArenaRun } from './arena_run.ts';
 import type { ArenaDuellante, ArenaRete, ArenaRun } from './arena_run.ts';
 
@@ -102,7 +102,7 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
 
   const nomeOgg = (id: string) => (hasItem(id) ? itemDef(id).nome : id);
   const icoOgg = (id: string, px = 26): Node => (hasItem(id) ? iconOf(itemDef(id), px) : itemIcon('arma', P.pietra, px));
-  const icoMagia = (id: string, px = 26): Node => { try { const s = spellDef(id); return itemIcon('libro', coloreMagia(id, s.scuola), px); } catch { return itemIcon('libro', P.viola, px); } };
+  const icoMagia = (id: string, px = 26): Node => iconaMagia(id, px);
   const nomeMagia = (id: string) => { try { return spellDef(id).nome; } catch { return id; } };
   /** Quello che hai (zaino + Forziere) di un tipo, in ordine di nome. */
   const posseduti = (kinds: string[]): string[] => {

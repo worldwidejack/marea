@@ -8,7 +8,7 @@ import type { RunHero } from '@marea/sim/rpg/types.ts';
 import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
 import { spellDef } from '@marea/content/rpg.ts';
 import { PAL, el } from '../ui/style.ts';
-import { coloreMagia, iconOf, itemIcon } from './items_ui.ts';
+import { iconaMagia, iconOf, itemIcon } from './items_ui.ts';
 import type { Bar } from './dungeon_actors.ts';
 
 export type DungeonHud = {
@@ -100,6 +100,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
   let rh = o.hero;
   const arrowsIco = () => (rh.frecce && hasItem(rh.frecce.id) ? iconOf(itemDef(rh.frecce.id), 16) : null);
   let pot = rh.pozione !== null ? rh.pozioni[rh.pozione] ?? null : null;
+  const armaIco = () => (rh.arma.id && hasItem(rh.arma.id) ? iconOf(itemDef(rh.arma.id), 16) : itemIcon('arma', P.pietra, 16));
   const potIco = (px: number) => (pot && hasItem(pot.id) ? iconOf(itemDef(pot.id), px) : null);
   const nomeMagia = (id: string): string => { try { return spellDef(id).nome; } catch { return id; } };
   let rowSig = '', toastT = 0, bigOn = false, flashT = 0;
@@ -130,7 +131,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         rowSig = sig;
         const it = (ico: Node | null, text: string, cls = '') => { const s = el('span', cls); if (ico) s.appendChild(ico); s.appendChild(document.createTextNode(text)); return s; };
         const kids: Node[] = [];
-        if (inMano) kids.push(it(itemIcon('libro', coloreMagia(inMano.id, inMano.scuola), 16), `${nomeMagia(inMano.id)} ${inMano.costo}${inMano.forma === 'raggio' ? '/s' : ''}`, 'ok'));
+        if (inMano) kids.push(it(iconaMagia(inMano.id, 16), `${nomeMagia(inMano.id)} ${inMano.costo}${inMano.forma === 'raggio' ? '/s' : ''}`, 'ok'));
         if (rh.frecce || rh.arma.kind === 'arco') kids.push(it(arrowsIco(), `${h.frecce}`, h.frecce === 0 ? 'warn' : ''));
         if (pot) kids.push(it(potIco(16), `${h.pozioni}`, h.pozioni === 0 ? 'warn' : ''));
         kids.push(it(itemIcon('materiale', P.legnoChiaro, 16), `${Math.round(z.peso)}/${Math.round(z.max)} kg`, z.peso >= z.max ? 'warn' : ''));
@@ -138,7 +139,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         kids.push(it(null, fmt(left), left < 60 ? 'warn' : ''));
         // gli unici della Regina: la Barriera Cinetica e il contatore dell'arma
         if (bar !== undefined) kids.push(it(itemIcon('armatura', P.acquaBassa, 16), bar >= 1 ? 'PRONTA' : `${Math.floor(bar * 100)}%`, bar >= 1 ? 'ok' : ''));
-        if (car) kids.push(it(itemIcon(car.tipo === 'molla' ? 'arco' : 'arma', car.tipo === 'ritmo' ? P.giallo : car.tipo === 'molla' ? P.arancio : P.acqua, 16), `${CARICO[car.tipo]} ${car.n}/${car.max}`, car.n === 0 && car.tipo !== 'ritmo' && car.tipo !== 'brezza' ? 'warn' : car.n >= car.max && (car.tipo === 'ritmo' || car.tipo === 'brezza') ? 'ok' : ''));
+        if (car) kids.push(it(armaIco(), `${CARICO[car.tipo]} ${car.n}/${car.max}`, car.n === 0 && car.tipo !== 'ritmo' && car.tipo !== 'brezza' ? 'warn' : car.n >= car.max && (car.tipo === 'ritmo' || car.tipo === 'brezza') ? 'ok' : ''));
         row2.replaceChildren(...kids);
         // l'HUD può diventare più alto (gli unici aggiungono una riga): la voce del dungeon (dungeon_testi.ts) si mette sotto
         o.root.style.setProperty('--mz-dng-hud-h', `${box.offsetHeight}px`);

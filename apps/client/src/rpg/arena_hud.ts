@@ -9,7 +9,7 @@ import { hasItem, itemDef } from '@marea/sim/rpg/items.ts';
 import type { DuelloEsito, DuelloView } from '@marea/sim/arena/duello.ts';
 import { spellDef } from '@marea/content/rpg.ts';
 import { PAL, el } from '../ui/style.ts';
-import { coloreMagia, iconOf, itemIcon } from './items_ui.ts';
+import { iconaMagia, iconOf, itemIcon } from './items_ui.ts';
 import { createMiraStick } from './mira_stick.ts';
 
 export type ArenaControlli = {
@@ -87,7 +87,7 @@ body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-rig
 /** Icona di uno slot: l'arma (o l'arco) o la magia in mano in quella RunHero; null = slot vuoto. */
 function iconaSlot(rh: RunHero | null, px: number): Node | null {
   if (!rh) return null;
-  if (rh.manoMagia && rh.magia !== null) { const sp = rh.magie[rh.magia]!; return itemIcon('libro', coloreMagia(sp.id, sp.scuola), px); }
+  if (rh.manoMagia && rh.magia !== null) { const sp = rh.magie[rh.magia]!; return iconaMagia(sp.id, px); }
   return rh.arma.id && hasItem(rh.arma.id) ? iconOf(itemDef(rh.arma.id), px) : itemIcon('arma', P.pietra, px);
 }
 const nomeSlot = (rh: RunHero | null): string => {
