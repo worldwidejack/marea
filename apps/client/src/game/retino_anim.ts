@@ -1,27 +1,29 @@
-// Animazione procedurale del braccio destro e del retino (#461):
-// posa di guardia e colpo (wind-up, sweep in avanti verso il terreno a portata, follow-through e recupero)
-// con IK sul braccio (UpperArm.R + LowerArm.R) e retino saldamente impugnato nella mano.
+// Animazione procedurale del retino in mano: dopo l'animazione dell'avatar il corpo si piega (busto, ginocchia, bacino) e il braccio
+// destro segue la mano con una cinematica inversa (UpperArm.R + LowerArm.R), così il retino resta saldo nella mano in ogni posa di
+// game/retino_chiavi.ts. Le ossa toccate le rimette a posto avatar_override.ts prima che l'animatore giri.
 import * as THREE from 'three';
 import type { GameWorld } from './world.ts';
-
-export type RetinoPosa = {
-  x: number; y: number; z: number;
-  h: number; pitch: number; roll: number;
-};
+import type { PosaRetino } from './retino_chiavi.ts';
+import { posaDaMano } from './retino_presa.ts';
+import type { RetinoPosa } from './retino_presa.ts';
 
 export type RetinoAnim = {
-  aggiorna(dt: number, colpo: number, colpoS: number, attivo: boolean): void;
+  /** La posa da prendere dopo l'animazione dell'avatar; `null` lascia il corpo com'è. */
+  aggiorna(posa: PosaRetino | null): void;
+  /** Il retino nel mondo, come disegnato adesso. */
   posa(): RetinoPosa;
   attivo(): boolean;
 };
 
-const qa = new THREE.Quaternion(), qp = new THREE.Quaternion(), ql = new THREE.Quaternion();
+const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0);
+const qa = new THREE.Quaternion(), qp = new THREE.Quaternion(), ql = new THREE.Quaternion(), qm = new THREE.Quaternion(), qr = new THREE.Quaternion();
 const boneDir = new THREE.Vector3();
 const S = new THREE.Vector3(), D = new THREE.Vector3(), Pp = new THREE.Vector3();
-const E = new THREE.Vector3(), E2 = new THREE.Vector3(), T2 = new THREE.Vector3(), tmp = new THREE.Vector3();
+const E = new THREE.Vector3(), E2 = new THREE.Vector3(), T2 = new THREE.Vector3(), tmp = new THREE.Vector3(), P = new THREE.Vector3();
 const localTarget = new THREE.Vector3(), localPole = new THREE.Vector3(0.5, -0.6, 0.2);
 const poleW = new THREE.Vector3(), targetW = new THREE.Vector3();
-const GRIP_Y = 0.18; // impugnatura a 18 cm dal fondo del manico
+/** Coscia e stinco (m) e quanto lo stinco si piega rispetto alla coscia: i piedi restano dov'erano, il bacino scende. */
+const COSCIA = 0.39, STINCO = 0.38, PIEGA_STINCO = 1.8;
 
 function punta(b: THREE.Object3D, dirW: THREE.Vector3): void {
   b.getWorldQuaternion(qa);
@@ -49,130 +51,74 @@ function ik(up: THREE.Object3D, lo: THREE.Object3D, a: number, b: number, target
   punta(lo, tmp.subVectors(T2, E2).normalize());
 }
 
-export function valutaPosaRetino(t: number): { hx: number; hy: number; hz: number; pitch: number; roll: number; rigX: number; rigZ: number } {
-  if (t <= 0 || t >= 1) {
-    return { hx: 0.22, hy: 0.95, hz: -0.22, pitch: -0.32, roll: 0.16, rigX: -0.7, rigZ: 0.18 };
-  }
-  // Fase 1: caricamento indietro/alto sopra la spalla (0 <= t < 0.18)
-  if (t < 0.18) {
-    const p = t / 0.18;
-    return {
-      hx: 0.22 + 0.03 * p,
-      hy: 0.95 + 0.23 * p,
-      hz: -0.22 + 0.17 * p,
-      pitch: -0.32 + 0.77 * p,
-      roll: 0.16 + 0.09 * p,
-      rigX: -0.7 + 0.5 * p,
-      rigZ: 0.18 + 0.07 * p,
-    };
-  }
-  // Fase 2: fendente in avanti e verso il basso (0.18 <= t < 0.48)
-  if (t < 0.48) {
-    const p = (t - 0.18) / 0.30;
-    const s = p * p * (3 - 2 * p);
-    return {
-      hx: 0.25 - 0.11 * s,
-      hy: 1.18 - 0.60 * s,
-      hz: -0.05 - 0.41 * s,
-      pitch: 0.45 - 1.95 * s,
-      roll: 0.25 - 0.25 * s,
-      rigX: -0.2 - 1.4 * s,
-      rigZ: 0.25 - 0.25 * s,
-    };
-  }
-  // Fase 3: raccolta radente a terra / punto d'impatto (0.48 <= t < 0.70)
-  if (t < 0.70) {
-    const p = (t - 0.48) / 0.22;
-    return {
-      hx: 0.14 - 0.01 * p,
-      hy: 0.58 + 0.04 * p,
-      hz: -0.46 + 0.04 * p,
-      pitch: -1.50 + 0.15 * p,
-      roll: 0.0,
-      rigX: -1.6 + 0.15 * p,
-      rigZ: 0.0,
-    };
-  }
-  // Fase 4: ritorno fluido in guardia (0.70 <= t <= 1)
-  const p = (t - 0.70) / 0.30;
-  const s = p * (2 - p);
-  return {
-    hx: 0.13 + 0.09 * s,
-    hy: 0.62 + 0.33 * s,
-    hz: -0.42 + 0.20 * s,
-    pitch: -1.35 + 1.03 * s,
-    roll: 0.16 * s,
-    rigX: -1.45 + 0.75 * s,
-    rigZ: 0.18 * s,
-  };
-}
-
-export function calcolaPosaRetino(handPos: THREE.Vector3, yaw: number, pitch: number, roll: number): RetinoPosa {
-  const cy = Math.cos(-yaw), sy = Math.sin(-yaw);
-  const cp = Math.cos(pitch), sp = Math.sin(pitch);
-  const cr = Math.cos(roll), sr = Math.sin(roll);
-  const a01 = -sr, a11 = cp * cr, a21 = sp * cr;
-  const m01 = cy * a01 + sy * a21, m11 = a11, m21 = -sy * a01 + cy * a21;
-  return {
-    x: handPos.x - m01 * GRIP_Y,
-    y: handPos.y - m11 * GRIP_Y,
-    z: handPos.z - m21 * GRIP_Y,
-    h: yaw,
-    pitch,
-    roll,
-  };
-}
-
 export function creaRetinoAnim(w: GameWorld): RetinoAnim {
   const bone = (n: string) => w.avatar.object.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n)) ?? w.avatar.object.getObjectByName(n) ?? null;
+  const ossa: Record<string, THREE.Object3D | null> = {};
+  const osso = (n: string) => (ossa[n] ??= bone(n));
   const handPos = new THREE.Vector3();
   let ultimaPosa: RetinoPosa = { x: 0, y: 0, z: 0, h: 0, pitch: -0.32, roll: 0.16 };
-  let registrato = false;
-  let isAttivo = false;
-  let curT = 0;
+  let registrato = false, isAttivo = false, corrente: PosaRetino | null = null;
+
+  /** Ruota l'osso di `ang` attorno a `asse` espresso nel riferimento dell'avatar (x a destra, y in su, avanti = −z). */
+  const ruota = (b: THREE.Object3D | null, asse: THREE.Vector3, ang: number) => {
+    if (!b?.parent || Math.abs(ang) < 1e-4) return;
+    w.avatar.object.getWorldQuaternion(qa);
+    b.parent.getWorldQuaternion(qp);
+    qr.setFromAxisAngle(asse, ang);
+    qm.copy(qp).invert().multiply(qa).multiply(qr).multiply(ql.copy(qa).invert()).multiply(qp);
+    b.quaternion.premultiply(qm);
+  };
+  /** Busto, testa, ginocchia e bacino: il corpo che si piega per il colpo. */
+  const corpo = (v: PosaRetino) => {
+    ruota(osso('Spine'), X, -v.lean); ruota(osso('Spine'), Y, -v.twist); ruota(osso('Head'), X, v.lean * 0.6);
+    const hips = osso('Hips');
+    if (v.knee > 1e-3) {
+      for (const l of ['L', 'R']) { ruota(osso('UpperLeg.' + l), X, v.knee); ruota(osso('LowerLeg.' + l), X, -PIEGA_STINCO * v.knee); }
+      if (hips?.parent) {
+        hips.getWorldPosition(P);
+        P.y -= COSCIA * (1 - Math.cos(v.knee)) + STINCO * (1 - Math.cos((PIEGA_STINCO - 1) * v.knee));
+        hips.position.copy(hips.parent.worldToLocal(P));
+      }
+    }
+    hips?.updateMatrixWorld(true);
+  };
 
   const override = () => {
-    const f = w.avatar.state, h = f.yaw;
-    const v = valutaPosaRetino(curT);
+    const v = corrente, av = w.avatar.object;
+    if (!v) return;
+    av.updateMatrixWorld(true);
+    corpo(v);
     localTarget.set(v.hx, v.hy, v.hz);
-    targetW.copy(localTarget).applyMatrix4(w.avatar.object.matrixWorld);
-    poleW.copy(localPole).applyQuaternion(w.avatar.object.quaternion).normalize();
+    targetW.copy(localTarget).applyMatrix4(av.matrixWorld);
+    poleW.copy(localPole).applyQuaternion(av.quaternion).normalize();
 
-    const up = bone('UpperArm.R'), lo = bone('LowerArm.R');
+    const up = osso('UpperArm.R'), lo = osso('LowerArm.R');
     if (up && lo) {
       ik(up, lo, 0.23, 0.27, targetW, poleW);
       lo.getWorldPosition(handPos);
       const fdir = new THREE.Vector3(0, 1, 0).applyQuaternion(lo.getWorldQuaternion(qp)).normalize();
       handPos.addScaledVector(fdir, 0.27);
     } else {
-      const armR = w.avatar.object.getObjectByName('armR');
-      if (armR) {
-        armR.rotation.x = v.rigX;
-        armR.rotation.z = v.rigZ;
+      const armR = av.getObjectByName('armR');
+      if (armR) { // segnaposto a box: il braccio ruota in blocco verso la mano
+        armR.rotation.x = -Math.atan2(-v.hz, 1.25 - v.hy);
+        armR.rotation.z = 0.1;
         armR.updateMatrixWorld(true);
         armR.localToWorld(handPos.set(0, -0.575, 0));
-      } else {
-        handPos.copy(targetW);
-      }
+      } else handPos.copy(targetW);
     }
-    ultimaPosa = calcolaPosaRetino(handPos, h, v.pitch, v.roll);
+    ultimaPosa = posaDaMano(handPos, -av.rotation.y - v.giro, v.pitch, v.roll);
   };
 
   return {
-    aggiorna(_dt, colpo, colpoS, attivo) {
-      isAttivo = attivo && w.mode === 'walk' && w.avatar.visible;
+    aggiorna(posa) {
+      isAttivo = !!posa && w.mode === 'walk' && w.avatar.visible;
       if (!isAttivo) {
-        if (registrato) {
-          w.avatar.setArmOverride(null);
-          registrato = false;
-        }
+        if (registrato) { w.avatar.setArmOverride(null); registrato = false; }
         return;
       }
-      curT = colpo > 0 ? 1 - colpo / colpoS : 0;
-      if (!registrato) {
-        w.avatar.setArmOverride(override);
-        registrato = true;
-      }
+      corrente = posa;
+      if (!registrato) { w.avatar.setArmOverride(override); registrato = true; }
     },
     posa: () => ultimaPosa,
     attivo: () => isAttivo,

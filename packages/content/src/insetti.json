@@ -1,6 +1,12 @@
 {
   "_nota": "Insetti di Borgo Marea (#445), dal Database_Insetti_GameDesign.xlsx di Riccardo. Prezzi = Excel ÷ 10 (scelta di Riccardo, 19 ott 2026). velocita 1-4 come nell'Excel (m/s in `passi`), allerta in metri, finestra in secondi (0 = nessun limite).",
-  "retino": { "id": "retino", "nome": "Retino", "monete": 500 },
+  "retino": {
+    "id": "retino", "nome": "Retino", "monete": 500,
+    "_rete": "La rete (metri): asta fino al cerchio, raggio del cerchio, lunghezza della sacca, raggio dell'insetto che si prende. Un insetto è preso solo se finisce dentro la rete mentre scende.",
+    "rete": { "asta": 1.03, "raggio": 0.32, "sacca": 0.5, "corpo": 0.17 },
+    "_uso": "Tempi in secondi: carica con A tenuto, fendente, rete ferma a terra, ritardo d'atterraggio, risalita. Da carico: passo e raggio di fuga degli insetti diventano questa frazione. allarme = metri dall'impatto entro cui gli insetti scappano.",
+    "uso": { "caricaS": 0.22, "avvioS": 0.08, "fendenteS": 0.2, "impattoS": 0.08, "lagS": 0.22, "risalitaS": 0.26, "passoCarico": 0.45, "furtivoCarico": 0.35, "allarme": 2.4 }
+  },
   "ciclo": { "minuti": 1440, "notte": [0.61, 0.935] },
   "stagioni": { "primavera": [3, 4, 5], "estate": [6, 7, 8], "autunno": [9, 10, 11], "inverno": [12, 1, 2] },
   "passi": [0, 1.2, 2.4, 4.4, 6.5],
