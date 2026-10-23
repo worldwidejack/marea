@@ -18,9 +18,9 @@ const PALETTE = ['sabbiaChiara', 'sabbia', 'legnoChiaro', 'legno', 'legnoScuro',
   'pietraChiara', 'pietra', 'pietraScura', 'roccia', 'neroCaldo', 'rosso', 'arancio', 'giallo', 'viola', 'rosaNeon'];
 const OTT = Date.UTC(2026, 9, 19, 10, 0, 0);
 
-test('insetti: catalogo valido, 32 specie nello zaino a peso 0, retino strumento a peso 0', () => {
+test('insetti: catalogo valido, 62 specie nello zaino a peso 0, retino strumento a peso 0', () => {
   assert.deepEqual(validateInsetti(PALETTE), []);
-  assert.equal(INSETTI.length, 32);
+  assert.equal(INSETTI.length, 62);
   for (const i of INSETTI) {
     const it = itemDef(i.id);
     assert.equal(it.kind, 'insetto');
@@ -33,6 +33,8 @@ test('insetti: catalogo valido, 32 specie nello zaino a peso 0, retino strumento
   // i prezzi sono quelli dell'Excel ÷ 10
   assert.equal(INSETTI.find((i) => i.id === 'ercole')!.prezzo, 1200);
   assert.equal(INSETTI.find((i) => i.id === 'porcellino')!.prezzo, 25);
+  assert.equal(INSETTI.find((i) => i.id === 'atlante')!.prezzo, 1000, 'seconda infornata: Excel ÷ 10 anche lei');
+  assert.equal(INSETTI.find((i) => i.id === 'mosca')!.prezzo, 6);
   for (const c of SASSI_BORGO) assert.equal(isCellaScavabileOk(c), false, 'sul sasso non si scava');
   assert.ok(ALBERI_BORGO.length >= 8);
 });

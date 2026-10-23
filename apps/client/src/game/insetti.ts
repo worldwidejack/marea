@@ -1,7 +1,8 @@
 // Gli insetti di Borgo Marea (#445, Database_Insetti_GameDesign.xlsx di Riccardo): l'attrezzo in mano (niente, pala, retino: bottone o
 // tasto Q), i sassi da colpire con la pala, gli alberi da scuotere, gli insetti in giro (uguali per tutti nel turno, @marea/sim
 // economy/insetti.ts) e quelli usciti da sassi e alberi (li estrae il server), il colpo di retino e il cartello «Hai preso…».
-// Come si muovono: game/insetti_vita.ts; forme: render/insetti_forme.ts; disegni: ui/insetti_sprite.ts. Si carica col chunk del
+// Come si muovono: game/insetti_vita.ts e game/insetti_specie.ts; come si disegnano: game/insetti_resa.ts e render/insetti_forme.ts;
+// disegni del Diario: ui/insetti_sprite.ts. Si carica col chunk del
 // negozio dei mobili (game/negozio.ts) come la pala: il JS iniziale non cambia. Tutti gli insetti, i sassi e gli attrezzi in mano
 // finiscono in una mesh rifatta a ogni frame (render/pennello.ts) più una per le lucciole che brillano: 2 draw call.
 import * as THREE from 'three';
@@ -16,9 +17,11 @@ import type { Hud } from '../ui/hud.ts';
 import type { Api } from '../net/api.ts';
 import { ApiError } from '../net/api.ts';
 import { pennello } from '../render/pennello.ts';
-import { FILO, FOGLIA_CADE, LUME, NIDO, OMBRA, PALA, SASSO, SCHEGGIA_SASSO, TERRA_CLOD, formeInsetto } from '../render/insetti_forme.ts';
+import { FOGLIA_CADE, NUVOLA, PALA, SASSO, SCHEGGIA_SASSO, TERRA_CLOD } from '../render/insetti_forme.ts';
 import { creaRetino } from './retino.ts';
 import { daAlbero, daSasso, nuovoAttore, prendibile, vive } from './insetti_vita.ts';
+import { avvisoSpecie } from './insetti_specie.ts';
+import { disegnaInsetto } from './insetti_resa.ts';
 import type { Attore, Chi, Mondo } from './insetti_vita.ts';
 import { insettoCanvas } from '../ui/insetti_sprite.ts';
 import { PAL, el } from '../ui/style.ts';
@@ -43,8 +46,8 @@ type Ctx = 'retino' | 'sasso' | 'albero' | null;
 
 const MAX_V = 60000, MAX_V_LUCI = 3000;
 const R_SASSO = 1.9, R_ALBERO = 2.2, CHIOMA = 2.6;
-/** Quanto più grandi del vero (le forme sono già grandi): dalla camera diorama si devono vedere. */
-const SCALA = 1.7;
+/** La nuvola della cimice marmorizzata: per quanti secondi cammini piano, e quanto. */
+const PUZZA_S = 2, PUZZA_PASSO = 0.5;
 const SALVA = 'mz-attrezzo';
 const CSS = `
 #mzInsettiBtn, #mzAttrezzoBtn { position: absolute; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 16px); z-index: 16; display: none; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; background: rgba(46,30,20,.94); border: 2px solid ${PAL.legnoChiaro}; color: ${PAL.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; cursor: pointer; border-radius: 6px; box-shadow: 0 3px 0 ${PAL.neroCaldo}; }
@@ -94,6 +97,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   const luci = pennello(MAX_V_LUCI, new THREE.MeshBasicMaterial({ vertexColors: true }), 'insetti_luci');
   w.scene.add(corpi.mesh, luci.mesh);
   const giallo = new THREE.Color(PAL.giallo);
+  const lampioni = arch.props.filter((q) => q.k === 'lampioncino');
 
   const CAMMINA = new Set(['.', 'g', 'd', 'P']);
   const mondo: Mondo = {
@@ -104,6 +108,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       const c = w.map.worldToCell(x, z), t = w.map.at(c.cx, c.cz);
       return t === '~' || t === ',' || t === 'B' || w.groundY(x, z) <= 0.05;
     },
+    ostacolo: (x, z) => alberi.some((a) => Math.hypot(a.x - x, a.z - z) < 0.6) || lampioni.some((l) => Math.hypot(l.x - x, l.z - z) < 0.5),
   };
 
   // ——— cosa hai in mano ———
@@ -138,7 +143,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       if (!d) continue;
       const c = cellWorld(l.cell), j = Number(l.k.split(':')[3] ?? 0);
       const a = nuovoAttore(l.k, d, c.x + Math.sin(l.seme * 40) * 0.6 + j * 0.35, c.z + Math.cos(l.seme * 40) * 0.6 + j * 0.2, l.seme, c.x, c.z);
-      if (d.comportamento === 'cerchi') { const lamp = arch.props.filter((q) => q.k === 'lampioncino').sort((p, q) => Math.hypot(p.x - c.x, p.z - c.z) - Math.hypot(q.x - c.x, q.z - c.z))[0]; if (lamp) { a.cx = lamp.x; a.cz = lamp.z; } }
+      if (d.comportamento === 'cerchi' || d.comportamento === 'ubriaco') { const lamp = [...lampioni].sort((p, q) => Math.hypot(p.x - c.x, p.z - c.z) - Math.hypot(q.x - c.x, q.z - c.z))[0]; if (lamp) { a.cx = lamp.x; a.cz = lamp.z; } }
       if (d.comportamento === 'diagonale') a.z = c.z - 20;
       attori.set(l.k, a);
     }
@@ -196,7 +201,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
         const a = nuovoAttore(r.uscito.k, d, p.x + (dx / l) * r0, p.z + (dz / l) * r0, (idx * 0.37) % 1, p.x, p.z);
         if (tipo === 'sasso') daSasso(a); else { daAlbero(a, CHIOMA); a.cx = a.x; a.cz = a.z; }
         attori.set(a.k, a);
-        if (tipo === 'albero' && d.comportamento === 'nido') o.hud.toast('È caduto un nido di vespe!', 1800);
+        const avviso = avvisoSpecie(d); if (avviso) o.hud.toast(avviso, 1800);
       }
       return { uscito: r.uscito, gia: false };
     } catch (e) { o.hud.toast(errore(e), 2400); return null; } finally { busy = false; }
@@ -235,7 +240,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
   });
 
   // ——— chi gioca, visto dagli insetti; punture ———
-  let fermoDa = 0, congelato = 0;
+  let fermoDa = 0, congelato = 0, puzza = { x: 0, z: 0, t: 0 };
   const chi = (): Chi => {
     const f = w.avatar.state, v = Math.hypot(f.vx, f.vz);
     return { x: f.x, z: f.z, v, corre: f.anim === 'run', fermoDa, retino: inMano() === 'retino', furtivo: retino.furtivo() };
@@ -292,22 +297,10 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       corpi.put(FOGLIA_CADE, l.x + Math.sin(l.t * 3 + l.s) * 0.4, l.y, l.z, l.t * 2 + l.s, Math.sin(l.t * 4) * 0.5, 0);
     }
     for (const a of [...attori.values(), ...mostra]) {
-      if (Math.hypot(a.x - f.x, a.z - f.z) > 50) continue;
-      const g = w.groundY(a.x, a.z), fm = formeInsetto(a.def), b = a.def.comportamento, volante = a.def.tipo === 'volante' || (a.stato === 'via' && a.y > 0.2);
-      if (a.alfa <= 0.05) continue;
-      const passo = Math.floor(a.vita * (volante ? 14 : 7) + a.seme * 5) % 2 === 0;
-      let posa = passo ? fm.a : fm.b, roll = 0, pitch = 0;
-      if ((a.stato === 'fermo' && (b === 'pausa' || b === 'guscio' || b === 'foglia' || b === 'fissa' || b === 'chele')) || (b === 'chele' && a.stato === 'carica') || a.stato === 'salta') posa = fm.c;
-      if (a.stato === 'stordito') { roll = Math.PI; posa = fm.b; }
-      if (b === 'nido' && (a.stato === 'cade' || a.stato === 'fermo')) { corpi.put(NIDO, a.x, g + Math.max(0, a.y - 0.3), a.z, 0); if (a.stato === 'cade') continue; }
-      if (b === 'nido' && a.stato !== 'cade') corpi.put(NIDO, a.cx, g, a.cz, 0);
-      if (a.stato === 'appeso') { corpi.put(FILO, a.x, g + a.y, a.z, 0, 0, 0, 1); corpi.put(FILO, a.x, g + a.y + 1, a.z, 0, 0, 0, Math.max(0.01, a.filo - 1)); }
-      const s = SCALA * (a.def.id === 'regina' ? 1.35 : a.def.forma === 'ercole' ? 1 : a.def.forma === 'formica' ? 0.85 : 1);
-      const y = g + (a.stato === 'stordito' ? 0.12 : 0) + a.y;
-      corpi.put(posa, a.x, y, a.z, a.h, pitch, roll, s * (a.stato === 'via' || a.stato === 'acqua' ? Math.max(0.3, a.alfa) : 1));
-      if (volante && a.stato !== 'via' && a.stato !== 'acqua') corpi.put(OMBRA, a.x, g + 0.02, a.z, 0, 0, 0, s * 0.7);
-      if (a.def.comportamento === 'lucciola' && notte && (a.vita + a.seme * 3) % 2.2 < 1.4) luci.put(LUME, a.x - Math.sin(a.h) * 0.12, y, a.z + Math.cos(a.h) * 0.12, 0, 0, 0, 1, giallo, giallo);
+      if (Math.hypot(a.x - f.x, a.z - f.z) > 50 || a.alfa <= 0.05) continue;
+      disegnaInsetto(a, w.groundY(a.x, a.z), notte, corpi.put, luci.put, giallo, (x, z) => w.groundY(x, z));
     }
+    if (puzza.t > 0) { puzza.t -= dt; corpi.put(NUVOLA, puzza.x, w.groundY(puzza.x, puzza.z), puzza.z, puzza.t, 0, 0, 0.6 + (PUZZA_S - puzza.t) * 0.4); }
     disegnaMano(inMano());
     corpi.end(); luci.end();
   };
@@ -354,10 +347,12 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
       for (const [k, a] of attori) {
         if (Math.hypot(a.x - c.x, a.z - c.z) > 60 && a.stato !== 'via' && a.stato !== 'acqua') continue;
         const ev = vive(a, c, dt, mondo);
-        if (ev.punto && dentro) punto(ev.punto); if (ev.tonfo) suona('colpo_dato'); if (ev.plop) suona('plop');
+        if (ev.punto && dentro) punto(ev.punto); if (ev.tonfo) suona('colpo_dato'); if (ev.plop) suona('plop'); if (ev.squittio) suona('scappato');
+        if (ev.puzza && dentro) { puzza = { x: a.x, z: a.z, t: PUZZA_S }; o.hud.toast('Che puzza! La cimice ti fa camminare piano', 2000); }
         if (a.stato === 'via' && a.t > 1.6) { attori.delete(k); andati.add(k); }
         if (a.stato === 'acqua' && a.t > 1.2) { attori.delete(k); andati.add(k); }
       }
+      if (puzza.t > 0) w.avatar.passo = Math.min(w.avatar.passo, PUZZA_PASSO);
       disegna(now, dt); contesto();
       const show = dentro && !!ctx, key = !show ? '' : ctx === 'retino' ? (retino.carico() ? 'c' : 'r') : ctx === 'sasso' ? 's' : 'a';
       if (key !== lastBtn) {
