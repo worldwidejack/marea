@@ -283,6 +283,16 @@ export function creaPista3d(p: PistaNeve): Pista3d {
     const albero = new THREE.Mesh(abete, matV); albero.scale.set(1.3, 2.4, 1.3); albero.castShadow = true; perno.add(albero);
     gruppo.add(perno);
     tronco = { cade: (k) => { const e = Math.min(1, Math.max(0, k)); perno.rotation.z = -((e * e * Math.PI) / 2) * 0.97; } };
+    // la transenna a strisce rosse e bianche di traverso sulla pista chiusa, appena dopo il bivio: di lì non si passa (solo fuori dal
+    // sentiero, che lì gira già a sinistra)
+    const ry = Math.atan2(fx, fz), tx = a[0] + (fx / lf) * 12, tz = a[2] + (fz / lf) * 12;
+    for (let i = 0, l = -L; l < L; l += 1.6, i++) {
+      const x = tx + (-fz / lf) * (l + 0.8), z = tz + (fx / lf) * (l + 0.8), w = dove(n, x, a[1], z, fp.da + 12, 40);
+      if (Math.abs(w.lat) < bordoA(p, w.s) + 1.5) continue;
+      const y = sopra(x, a[1], z, fp.da + 12);
+      for (const h of [0.55, 1.15]) parti.push(painted(new THREE.BoxGeometry(1.6, 0.32, 0.1), (i + (h > 1 ? 1 : 0)) % 2 ? PAL.pietraChiara : PAL.rosso, M(x, y + h, z, 0, ry, 0)));
+      if (i % 3 === 0) parti.push(painted(new THREE.BoxGeometry(0.12, 1.4, 0.12), PAL.neroCaldo, M(x, y + 0.7, z)));
+    }
     // paletti della pista chiusa e il cartello con la freccia verso il sentiero (a sinistra)
     for (let i = 2; i < chiusa.length - 1; i += 3) for (const lato of [-1, 1]) {
       const c = chiusa[i]!, x = c[0] + (-fz / lf) * lato * (L + 0.3), z = c[2] + (fx / lf) * lato * (L + 0.3);
@@ -290,10 +300,15 @@ export function creaPista3d(p: PistaNeve): Pista3d {
     }
   }
   if (fp) {
-    parti.push(painted(new THREE.BoxGeometry(0.15, 2.2, 0.15), PAL.legnoScuro, sulNastro(fp.da - 25, -6, 1.1)));
-    parti.push(painted(new THREE.BoxGeometry(2.2, 0.9, 0.08), PAL.arancio, sulNastro(fp.da - 25, -6.4, 2)));
-    parti.push(painted(new THREE.ConeGeometry(0.35, 0.7, 3), PAL.neroCaldo, sulNastro(fp.da - 25, -7.1, 2, 1, 1, 1).multiply(M(0, 0, -0.05, 0, 0, Math.PI / 2))));
-    parti.push(painted(new THREE.BoxGeometry(0.8, 0.14, 0.09), PAL.neroCaldo, sulNastro(fp.da - 25, -6.4, 2)));
+    // la deviazione si deve vedere da lontano: cartelloni arancio con tre frecce verso sinistra sul bordo destro prima del bivio e dove si
+    // andrebbe dritti, il cartello col sentiero a sinistra
+    const freccia = (s: number, lat: number, k: number) => {
+      parti.push(painted(new THREE.BoxGeometry(0.16, 2.6 * k, 0.16), PAL.legnoScuro, sulNastro(s, lat, 1.3 * k)));
+      parti.push(painted(new THREE.BoxGeometry(2.6 * k, 1.1 * k, 0.08), PAL.arancio, sulNastro(s, lat, 2.4 * k)));
+      for (const dx of [-0.75, 0, 0.75]) parti.push(painted(new THREE.ConeGeometry(0.34 * k, 0.6 * k, 3), PAL.neroCaldo, sulNastro(s, lat + dx * k, 2.4 * k).multiply(M(0, 0, -0.05, 0, 0, -Math.PI / 2))));
+    };
+    for (const [ds, lat, k] of [[-55, 5, 1.2], [-35, 4, 1.4], [-15, 3.5, 1.6], [6, 3, 1.6], [16, 4, 1.4]] as const) freccia(fp.da + ds, bordoA(p, fp.da + ds) + lat - 2, k);
+    freccia(fp.da - 25, -6.4, 1);
   }
   // rocce che affiorano dalla neve sopra il limite del bosco: sassi sparsi e qualche spuntone, sui fianchi (mai in pista)
   for (let s = 20, i = 0; s < fine; s += 9, i++) {

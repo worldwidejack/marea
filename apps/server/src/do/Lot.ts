@@ -35,6 +35,7 @@ import type { EventiMissione } from '@marea/sim/economy/missioni.ts';
 import { firmaLibro, rientra, segnaVisto } from '@marea/sim/economy/rientro.ts';
 import { MINIGAMES, getMinigame } from '@marea/sim/minigames/registry.ts';
 import '@marea/sim/corse/registra.ts'; // Corse: il server rigioca sul motore v2 (#173)
+import { PISTA_SNOWBOARD } from '@marea/content/adrenalina.ts';
 import '@marea/sim/adrenalina/registra.ts'; // Adrenalina: le discese dello snowboard (passo 3b)
 import { medagliaDaPosizione, posizioneDiscesa } from '@marea/sim/adrenalina/classifica.ts';
 import { isPackedInputs, replayPartita } from '@marea/sim/replay.ts';
@@ -232,7 +233,7 @@ export class Lot extends DurableObject<Env> {
     // argento secondo, bronzo terzo; nessuno davanti = oro). La classifica la passa il Worker; senza, la partita resta aperta.
     let medal = r.medal, discesa: Record<string, unknown> = {};
     if (p.minigame === 'snowboard') {
-      const pista = p.opzioni?.['pista'] ?? 'snowboard_verde', cl = body['classifica'] as { pista?: unknown; righe?: unknown } | undefined;
+      const pista = p.opzioni?.['pista'] ?? PISTA_SNOWBOARD, cl = body['classifica'] as { pista?: unknown; righe?: unknown } | undefined;
       if (!cl || cl.pista !== pista || !Array.isArray(cl.righe)) return json({ error: 'Serve la classifica della pista', code: 'classifica', pista }, 409);
       const righe = (cl.righe as unknown[]).filter((x): x is { chi: string; ms: number } => !!x && typeof (x as { chi?: unknown }).chi === 'string' && typeof (x as { ms?: unknown }).ms === 'number');
       const arrivato = r.detail['arrivato'] === 1, posizione = arrivato ? posizioneDiscesa(righe, owner, r.detail['finale']!) : 0;

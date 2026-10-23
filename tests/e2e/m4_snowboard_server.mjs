@@ -25,7 +25,7 @@ export default async function (ctx) {
   const { packInputs, quantize } = await sim('replay.ts');
   const leggi = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
   const ORO = leggi('balance.json').solo.premi.oro + (leggi('minigames/snowboard.json').premioExtra?.oro ?? 0); // monete (#414)
-  const PISTA = 'snowboard_verde';
+  const PISTA = 'snowboard_blu';
   /** Una discesa intera col pilota: `pigro` = senza trick; `lento` = i primi tick a curve strette (si perde velocità). */
   const discesa = (pigro, lento = 0) => {
     const s = snowboard.create({ seed: 1, difficulty: 1, opzioni: { pista: PISTA } }), frames = [];

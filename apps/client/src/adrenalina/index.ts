@@ -9,7 +9,7 @@ import type { InputFrame, LotState, PackedInputs } from '@marea/sim';
 import { packInputs, quantize } from '@marea/sim';
 import type { Look } from '@marea/protocol';
 import { AVATAR } from '@marea/content';
-import { BARRA, SNOWBOARD } from '@marea/content/adrenalina.ts';
+import { BARRA, PISTA_SNOWBOARD, SNOWBOARD, SNOWBOARD_PISTE } from '@marea/content/adrenalina.ts';
 import { pilotaSnowboard, snowboard, tempiSnowboard, TRICKS } from '@marea/sim/minigames/snowboard.ts';
 import type { SnowState, SnowView } from '@marea/sim/minigames/snowboard.ts';
 import { bordoA, fuoripistaA, pistaSnowboard } from '@marea/sim/adrenalina/pista.ts';
@@ -38,7 +38,8 @@ import type { Tavola } from './tavola3d.ts';
 import { corsaFantasma } from './fantasma.ts';
 import type { CorsaFantasma, PassoFantasma } from './fantasma.ts';
 import { creaViaggio, VIAGGIO_S } from './viaggio.ts';
-import { cartelloPiste, cartelloRegole, schedaArrivo } from './cartelli.ts';
+import { aggiornaRecord, cartelloPiste, cartelloRegole, schedaArrivo } from './cartelli.ts';
+import type { InfoPista } from './cartelli.ts';
 import type { Arrivo } from './cartelli.ts';
 
 /** Il server delle discese (null = senza link personale: niente premio, niente fantasma). */
@@ -67,7 +68,7 @@ registerStateProvider('snowboard', () => (corrente ? corrente.stato() : { active
 registerTestHook('snowboardAuto', (n) => corrente?.auto(Number(n ?? 1)) ?? null);
 registerTestHook('snowboardMetti', (o) => (corrente && o && typeof o === 'object' ? corrente.metti(o as Record<string, unknown>) : null));
 registerTestHook('snowboardSalta', () => { corrente?.salta(); return !!corrente; });
-registerTestHook('snowboardPista', (id) => corrente?.pista(String(id ?? 'snowboard_verde')) ?? false);
+registerTestHook('snowboardPista', (id) => corrente?.pista(String(id ?? PISTA_SNOWBOARD)) ?? false);
 registerTestHook('snowboardFantasmaProva', () => corrente?.fantasmaProva() ?? null);
 registerTestHook('snowboardEsci', () => { corrente?.esci(); return true; });
 /** Prove: il modellino delle montagne da un lato (k = 0-5), per il dipinto. */
@@ -104,7 +105,7 @@ function piazza(p: PistaNeve, tav: Tavola, q: PassoFantasma, y: number, ss: numb
 }
 
 export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRun {
-  let pista = o.pista ?? 'snowboard_verde', p = pistaSnowboard(pista);
+  let pista = o.pista ?? PISTA_SNOWBOARD, p = pistaSnowboard(pista);
   const cam0 = ctx.renderer.camera, salva = { fov: cam0.fov, near: cam0.near, far: cam0.far };
   const dito = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
@@ -115,8 +116,8 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
   const luci = createLights(), luciSu = new THREE.Group(); luciSu.add(luci.group); scene.add(luciSu);
   // luce di montagna: sole bianco e alto, cielo freddo nelle ombre (la neve resta neve, non rosa)
   luci.set?.({ elev: 48, azim: 200, color: 0xfffaf2, intensity: 2.5, sky: 0xd6e8ff, ground: 0xb4c6e2, hemiI: 2.8, amb: 0x9fc4ff, ambI: 0.2 });
-  const pista3d = creaPista3d(p); scene.add(pista3d.gruppo);
-  const monti = creaSfondo(p); scene.add(monti.gruppo);
+  let pista3d = creaPista3d(p); scene.add(pista3d.gruppo);
+  let monti = creaSfondo(p); scene.add(monti.gruppo);
   // le Alpi e gli abeti a pixel (?dipinto=0 il modellino a blocchi e gli abeti a coni)
   let pittura: Pittura | null = null;
   if (FLAGS.dipinto !== 'no') {
@@ -131,7 +132,20 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
 
   const hud = creaHud(ctx.root, dito, BARRA.soglie);
   const comandi = creaComandi(hud.zona);
-  const regia = creaRegia(cam0, p);
+  let regia = creaRegia(cam0, p);
+  /** La montagna della pista `id` (terreno, abeti, corpo, sfondo, camera): si rifà quando in vetta si sceglie un'altra pista (partono
+   *  tutte dalla stessa vetta: funivia e cartelli restano). */
+  let costruita = pista;
+  const montaPista = (id: string) => {
+    if (id === costruita) return;
+    costruita = id; const q = pistaSnowboard(id);
+    scene.remove(pista3d.gruppo, monti.gruppo); pista3d.dispose(); monti.dispose();
+    pista3d = creaPista3d(q); scene.add(pista3d.gruppo);
+    monti = creaSfondo(q); scene.add(monti.gruppo);
+    if (FLAGS.dipinto !== 'no') void monti.dipinto(scene);
+    if (pittura) { pista3d.dipingi(pittura); monti.dipingi(pittura); }
+    regia = creaRegia(cam0, q);
+  };
   const neve = creaNeve(); scene.add(neve.gruppo);
   // il fantasma: la tavola semitrasparente coi colori di chi ha il record, col nome sopra
   let fantasma: Fantasma | null = null, corsaF: CorsaFantasma | null = null, tavF: Tavola | null = null;
@@ -161,12 +175,16 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
   /** In vetta davanti al cartello delle piste. */
   const inVetta = () => {
     fase = 'cartello'; faseT = 0; nuovaDiscesa(1); hud.aiuto(false); scatto = true;
-    void cartelloPiste(ctx.root, { record: fantasma ? { nome: fantasma.nome, ms: fantasma.ms } : null, mio: null }).then((id) => { if (fase !== 'cartello') return; if (id) void scegli(id); else chiudi(); });
+    // il record di ogni pista (il fantasma del primo): arriva dal server mentre il cartello è già aperto
+    const record: InfoPista['record'] = {};
+    const cartello = cartelloPiste(ctx.root, { record });
+    if (ctx.server) for (const id of Object.keys(SNOWBOARD_PISTE)) void ctx.server.fantasma(id).then((f) => { record[id] = f ? { nome: f.nome, ms: f.ms } : null; aggiornaRecord(id, record[id] ?? null); }, () => {});
+    void cartello.then((id) => { if (fase !== 'cartello') return; if (id) void scegli(id); else chiudi(); });
   };
   /** Pista scelta: la partita sul server (seed), il fantasma del record, il cartello delle regole, poi il 3-2-1. */
   async function scegli(id: string): Promise<void> {
     document.getElementById('mzSbPiste')?.remove();
-    pista = id; p = pistaSnowboard(id); fase = 'regole'; faseT = 0; errore = null; conServer = false;
+    pista = id; p = pistaSnowboard(id); montaPista(id); fase = 'regole'; faseT = 0; errore = null; conServer = false;
     let seed = 1;
     if (ctx.server) {
       const [st, fa] = await Promise.allSettled([ctx.server.start(pista), ctx.server.fantasma(pista)]);
@@ -175,7 +193,7 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
     }
     if (fase !== 'regole') return;
     nuovaDiscesa(seed);
-    await cartelloRegole(ctx.root, fantasma ? { nome: fantasma.nome, ms: fantasma.ms } : null, conServer);
+    await cartelloRegole(ctx.root, pista, fantasma ? { nome: fantasma.nome, ms: fantasma.ms } : null, conServer);
     if (fase !== 'regole') return;
     fase = 'via'; faseT = 0; hud.aiuto(true);
   }
@@ -242,6 +260,9 @@ export function startSnowboard(ctx: SnowCtx, o: { pista?: string } = {}): SnowRu
     snowboard.step(s, q);
     gara++;
     leggiEventi();
+    // la deviazione del fuoripista si annuncia ~60 m prima del bivio (poi i cartelloni con le frecce)
+    const fp = p.def.fuoripista;
+    if (fp && prima.s < fp.da - 60 && s.s >= fp.da - 60) hud.pop('↰ DEVIAZIONE A SINISTRA', PAL.arancio);
     if (s.done) void arrivo();
   };
 

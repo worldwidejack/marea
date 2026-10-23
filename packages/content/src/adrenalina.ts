@@ -3,15 +3,19 @@
 // (apps/client/src/adrenalina/**), i test e il server. Le piste sono generate da tools/adrenalina_piste.mjs (non si scrivono a mano).
 import barra from './adrenalina/barra.json' with { type: 'json' };
 import snowboard from './adrenalina/snowboard.json' with { type: 'json' };
-import snowboardVerde from './adrenalina/piste/snowboard_verde.json' with { type: 'json' };
+import snowboardBlu from './adrenalina/piste/snowboard_blu.json' with { type: 'json' };
+import snowboardRossa from './adrenalina/piste/snowboard_rossa.json' with { type: 'json' };
+import snowboardNera from './adrenalina/piste/snowboard_nera.json' with { type: 'json' };
 import type { BarraCfg, SPistaDef, SnowboardCfg } from './adrenalina_types.ts';
 
 export type * from './adrenalina_types.ts';
 
 export const BARRA = barra as unknown as BarraCfg;
 export const SNOWBOARD = snowboard as unknown as SnowboardCfg;
-/** Le piste dello snowboard per id (per ora la verde: blu, rossa e nera al passo 7). */
-export const SNOWBOARD_PISTE: Record<string, SPistaDef> = Object.fromEntries(([snowboardVerde] as unknown as SPistaDef[]).map((p) => [p.id, p]));
+/** Le piste dello snowboard per id, dalla più facile: blu, rossa, nera. */
+export const SNOWBOARD_PISTE: Record<string, SPistaDef> = Object.fromEntries(([snowboardBlu, snowboardRossa, snowboardNera] as unknown as SPistaDef[]).map((p) => [p.id, p]));
+/** La pista di serie (la più facile). */
+export const PISTA_SNOWBOARD = 'snowboard_blu';
 
 /** Controlli dei dati (in italiano): numeri positivi, porte, trampolini e ostacoli dentro la pista e in ordine. */
 export function validateAdrenalina(): string[] {
@@ -44,7 +48,7 @@ export function validateAdrenalina(): string[] {
     for (const o of p.ostacoli) { if (o.s < prima) e(`ostacolo a ${o.s} m fuori ordine`); if (!pos(o.r)) e(`ostacolo a ${o.s} m senza raggio`); prima = o.s; }
     for (const g of p.gole) if (!(g.a > g.da)) e(`gola ${g.da}-${g.a} rovesciata`);
     const f = p.fuoripista;
-    if (f && (!(f.a > f.da && f.da > p.partenza && f.a <= p.arrivo) || !pos(f.neve) || f.chiusa.punti.length < 2 || !pos(f.chiusa.l) || !pos(f.chiusa.tronco))) e('fuoripista non valido');
+    if (f && (!(f.a > f.da && f.da > p.partenza && f.a <= p.arrivo) || !pos(f.neve) || (f.v !== undefined && !pos(f.v)) || f.chiusa.punti.length < 2 || !pos(f.chiusa.l) || !pos(f.chiusa.tronco))) e('fuoripista non valido');
   }
   return errs;
 }
