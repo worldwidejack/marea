@@ -116,6 +116,27 @@ export default async function (ctx) {
     assert(p.errors.length === 0, p.errors.join('\n'));
   });
 
+  await ctx.test('telefono: dopo l\'avviso «ARRIVANO!» (e col consiglio in basso) i tocchi sul campo arrivano ancora', async () => {
+    p = await apri('?livello=2&seme=5', TEL);
+    const { page } = p;
+    await page.evaluate(() => window.__difesa.set({ valuta: 1000 }));
+    // sim a passi con gli effetti (premi) finché compare un avviso: gli elementi invisibili non devono rubare i tocchi
+    const testo = await page.evaluate(() => { const D = window.__difesa; for (let i = 0; i < 60 * 120 && !document.querySelector('.df-avviso').textContent; i++) D.premi({ t: 'raccogli', id: -1 }); return document.querySelector('.df-avviso').textContent; });
+    assert(testo, 'è comparso un avviso');
+    await page.evaluate(() => { document.querySelector('.df-avviso').style.transition = 'none'; document.querySelector('.df-avviso').classList.remove('su'); });
+    const sopra = await page.evaluate(() => { const D = window.__difesa, r = []; for (let c = 0; c < 9; c++) for (let l = 0; l < 5; l++) { const [x, y] = D.casella(c, l), e = document.elementFromPoint(x, y); if (e?.id !== 'tela') r.push(`${c},${l}: ${e?.className}`); } return r; });
+    assert(sopra.length === 0, `elementi che coprono il campo: ${sopra.join(' | ')}`);
+    const carta = (await box(page, '.df-carta'))[0], av = (await box(page, '.df-avviso'))[0];
+    const c = await page.evaluate((b) => { const D = window.__difesa; for (let l = 0; l < 5; l++) { const [x, y] = D.casella(2, l); if (y > b[1] && y < b[3]) return [x, y, l]; } return null; }, av);
+    if (c) {
+      await page.touchscreen.tap((carta[0] + carta[2]) / 2, (carta[1] + carta[3]) / 2);
+      await page.touchscreen.tap(c[0], c[1]);
+      await page.evaluate(() => window.__difesa.avanti(1));
+      assert((await stato(page)).unita >= 1, 'piantato toccando sotto la fascia dell\'avviso');
+    }
+    assert(p.errors.length === 0, p.errors.join('\n'));
+  });
+
   await ctx.test('pc: col mouse si pianta e si raccoglie una moneta (+25)', async () => {
     p = await apri('?livello=2&prova=1&seme=8', PC);
     const { page } = p;
