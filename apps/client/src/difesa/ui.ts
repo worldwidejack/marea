@@ -15,6 +15,7 @@ export type Fine = { vinta: boolean; titolo: string; righe: string[]; medaglia?:
 
 const CSS = `
 .df { --pan: #6e4024; --bordo: #2e180a; --testo: #fff6e0; --ombra: #2a160a; --acc: #ffd23f; --carta: #f7ecd0; --cartab: #4a2a12; --barra: #26303a; --barrap: #7ad027; --seme: none; }
+#ui > .df-avviso, #ui > .df-consiglio, #ui > .df-mano, #ui > .df-onda { pointer-events: none; }
 .df-barra { position: absolute; left: max(6px, env(safe-area-inset-left)); top: max(4px, env(safe-area-inset-top)); display: flex; gap: 5px; align-items: stretch; padding: 5px; background: var(--pan); border: 4px solid var(--bordo); border-radius: 14px; box-shadow: 0 4px 0 var(--ombra); }
 .df.legno .df-barra { padding: 1px 3px; background: none; border: 13px solid transparent; border-radius: 0; border-image: var(--legno) 50 fill / 13px stretch; box-shadow: none; filter: drop-shadow(0 4px 0 rgba(30,14,4,.45)); }
 .df-valuta { display: flex; align-items: center; gap: 4px; min-width: 84px; padding: 0 10px 0 6px; background: #3a2010; border: 3px solid #1c0d04; border-radius: 12px; box-shadow: inset 0 2px 0 rgba(255,255,255,.12); color: #fff; }
