@@ -6,6 +6,7 @@ import type { Look, LookSalvato, Me, PersonaVista, Rientro } from '@marea/protoc
 import type { LotState, Riepilogo } from '@marea/sim';
 import { coloreBarca, validaBarca } from '@marea/sim/economy/barca.ts';
 import type { Env, Persona } from './env.ts';
+import { nuovoToken, rottaAdmin } from './admin.ts';
 import { elencoPersone, entraConInvito, esistePersona, salvaLook, salvaNome } from './db.ts';
 import { toFeedItem } from './feed.ts';
 import type { FeedRow } from './feed.ts';
@@ -23,7 +24,7 @@ const MAX_DUNGEON_BODY = 524288;
 /** Input log della partita a ondate dei Templari (fino a 60 minuti, compressi con encodeDungeon: ~1 KB al minuto col pilota, fino a ~10
  *  con un pollice nervoso): tetto a 1 MB. */
 const MAX_TEMPLARI_BODY = 1048576;
-export const NO_TOKEN = 'Link non valido: chiedi a Jack un invito nuovo';
+export const NO_TOKEN = 'Link non valido: chiedi un invito nuovo a chi ti ha mandato il link';
 
 /** Corpo JSON piccolo; null = rotto, 'grande' = oltre `max`. */
 async function leggiCorpo(req: Request, max = MAX_BODY): Promise<Record<string, unknown> | null | 'grande'> {
@@ -54,14 +55,14 @@ export async function entra(req: Request, env: Env): Promise<Response> {
   const body = await leggiCorpo(req);
   if (body === 'grande' || !body) return json({ error: 'Richiesta non valida' }, 400);
   const codice = body['invito'], nome = typeof body['nome'] === 'string' ? body['nome'].replace(/[\p{C}<>]/gu, '').trim().replace(/\s+/g, ' ') : '';
-  if (typeof codice !== 'string' || !/^[A-Za-z0-9_-]{4,40}$/.test(codice)) return json({ error: 'Link di invito non valido: chiedi a Jack quello giusto' }, 400);
+  if (typeof codice !== 'string' || !/^[A-Za-z0-9_-]{4,40}$/.test(codice)) return json({ error: 'Link di invito non valido: chiedi quello giusto a chi ti ha mandato il link' }, 400);
   if (nome.length < 2 || nome.length > 16) return json({ error: 'Scrivi un nome da 2 a 16 lettere' }, 400);
   const base = nome.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24) || 'amico';
-  const rnd = crypto.getRandomValues(new Uint8Array(18)), suf = crypto.getRandomValues(new Uint8Array(2)); // token e id da byte diversi
+  const suf = crypto.getRandomValues(new Uint8Array(2));
   const id = `${base}-${Array.from(suf, (b) => b.toString(16).padStart(2, '0')).join('')}`;
-  const token = btoa(String.fromCharCode(...rnd)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const token = nuovoToken();
   const r = await entraConInvito(env, codice, id, nome, token);
-  if (!r) return json({ error: 'Questo invito è finito o non esiste: chiedi a Jack un link nuovo' }, 403);
+  if (!r) return json({ error: 'Questo invito è finito o non esiste: chiedi un link nuovo a chi ti ha mandato il link' }, 403);
   return json({ token, id, nome, slot: r.slot });
 }
 
@@ -78,6 +79,8 @@ const alLotto = (azione: string, campi?: readonly string[]): Fa => (c, b) => c.l
 const nomePulito = (v: unknown) => (typeof v === 'string' ? v.replace(/[\p{C}<>]/gu, '').trim().replace(/\s+/g, ' ') : '');
 
 const ROTTE: readonly Rotta[] = [
+  // inviti e link personali: solo admin (controllo dentro rottaAdmin)
+  { m: 'POST', via: /^\/api\/admin\/(invito|link|admin)$/, fa: (c, b, x) => rottaAdmin(c.env, c.p, x[1]!, b, c.url.origin) },
   { m: 'GET', via: '/api/me', fa: async (c) => {
     const r = await c.lotto('state');
     const lotto = r.ok ? ((await r.clone().json()) as LotState) : null;

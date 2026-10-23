@@ -67,15 +67,26 @@ Se la tua PR litiga su un documento archiviato (`docs/archivio/`), togli le tue 
 - Due merge ravvicinati: i deploy vanno in coda, non si accavallano.
 - GitHub disegna il gioco a 2-4 fps (contro ~60 di un Mac): se cade una suite e2e, i controlli la riprovano una volta sola e lasciano un avviso (test instabile da sistemare). Static, types, sim e budget non si riprovano. Un test e2e nuovo non deve aspettare tempi fissi brevi (`sleep(200)` sul Mac sono ~12 frame, su GitHub nemmeno uno): aspetta lo stato (`ctx.waitState`, `waitForFunction`).
 
-## 7. Regole del gruppo
+## 7. Far giocare qualcuno, ritrovare un link (senza passare da nessuno)
+Chi sviluppa è **admin** e fa tutto da solo, col suo Claude, senza login Cloudflare. Ti serve il **tuo link personale** (quello con cui giochi): salvalo in `~/.config/marea/link.txt` (una riga) oppure nella variabile `MAREA_TOKEN`. Non sei ancora admin? Te lo dà un altro dev con `admin.mjs admin <tuo nome>`.
+```
+node apps/server/scripts/admin.mjs invito --usi 5      # link di gruppo: chi lo apre scrive il nome e ha la sua isola (di serie 7 ingressi, max 50)
+node apps/server/scripts/admin.mjs link Helga          # ritrova il link personale di un personaggio (nome o id; se due si chiamano uguale ti dà gli id)
+node apps/server/scripts/admin.mjs link Helga --ruota  # ne fa uno nuovo e il vecchio smette di valere (link finito in mani sbagliate)
+node apps/server/scripts/admin.mjs admin Albi          # fa admin un altro dev  (--togli per toglierlo)
+```
+`--locale` parla col server di `npm run dev:server` invece che con quello online. Un link è un segreto: va solo alla persona a cui serve, mai nel repo, nelle issue o nelle PR. Gli amici che non sviluppano non sono admin: ricevono il link di gruppo e basta. Il server scrive nei log chi ha creato un invito o letto un link.
+
+## 8. Regole del gruppo
 - **Mai push su `main`, mai `npm run deploy`, mai `wrangler` verso Cloudflare.** Il gioco online è di tutti.
 - **Il repo è pubblico**: chiunque legge codice, issue e PR. Segreti, token, link personali con `?t=`, codici d'invito e dati personali: mai nel repo, mai nelle issue, mai nelle PR.
 - `_STATO.md` e `_MEMORIA.md` sono il diario personale di Jack: stanno solo sul suo Mac, fuori dal repo. Il tuo lavoro lo racconti nella PR.
 - Migrazioni D1: numero successivo all'ultimo in `apps/server/migrations/` su `main` aggiornato. I controlli della PR bocciano due migrazioni con lo stesso numero.
 - Niente push di prova a raffica: prova in locale prima. Ogni push su una PR rifà tutta la suite (~15 min di GitHub).
 
-## 8. Problemi già risolti
+## 9. Problemi già risolti
 *(Aggiungi qui una riga quando sistemi un intoppo di installazione o di test.)*
+- «Solo chi sviluppa MAREA (admin) può farlo»: il tuo personaggio non è admin, fatti promuovere da un altro dev (§7).
 - «Permission denied» o «403» al push: invito non accettato, oppure manca `gh auth login` / `gh auth setup-git`.
 - I test e2e cercano Chrome installato; senza, provano la «headless shell» di Playwright in cache (solo Mac).
 - Windows, PowerShell rifiuta `npm` («esecuzione di script disabilitata»): usa `npm.cmd` (`npm.cmd run dev`), senza cambiare le impostazioni di sicurezza.

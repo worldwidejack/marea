@@ -8,10 +8,10 @@ Online: https://marea.stanza-idee.workers.dev · repo **pubblico** `worldwidejac
 **Chi decide.** `docs/VISIONE.md` (dove va il gioco) > `docs/GDD.md` (com'è il gioco) > documento della modalità (`CORSE.md`, `RPG.md`, `TEMPLARI.md`…). Se due si contraddicono, vale il primo. Un'idea nuova va in `docs/BACKLOG.md` finché Jack non la approva.
 
 ## Flusso
-0. **Prima di ogni lavoro: `git switch main && git pull`**, così non rifai lavoro già fatto e non cancelli quello degli altri. Hai un ramo in corso? `git fetch origin && git rebase origin/main`. Nella cartella ci sono modifiche non tue (un'altra sessione)? Non toccarle: lavora in una cartella a parte, `git worktree add -b <nome>/<cosa> ../marea-<cosa> origin/main`.
+0. **Prima di ogni lavoro: `git switch main && git pull`**. Hai un ramo in corso? `git fetch origin && git rebase origin/main`. Nella cartella ci sono modifiche non tue (un'altra sessione)? Non toccarle: lavora in una cartella a parte, `git worktree add -b <nome>/<cosa> ../marea-<cosa> origin/main`.
 1. Un lavoro = una **issue** assegnata a te. Non c'è? Creala prima, così gli altri sanno che ci sei sopra.
 2. Un **ramo** per lavoro (`nome/cosa-fai`). Mai commit o push su `main`.
-3. **PR piccola**: una PR = una cosa. Meglio tre PR da un'ora che una da una settimana.
+3. **PR piccola**: una PR = una cosa.
 4. Chiudi con **`/consegna`**: test veloci in locale, PR, controlli di GitHub (tutta la suite, ~15 min), merge. `main` è protetto: senza controlli verdi non si unisce.
 5. Il **deploy lo fa solo GitHub**, ~5 min dopo il merge. Mai `npm run deploy` né `wrangler` verso Cloudflare a mano.
 
@@ -41,6 +41,8 @@ Cartelle e chi ci lavora: `docs/MAPPA.md`. Architettura e regole tecniche: `docs
 ## Repo pubblico
 Chiunque può leggere tutto. Mai segreti, token, codici d'invito, link personali (`?t=…`) o dati personali nei file, nelle issue e nelle PR. `_STATO.md` e `_MEMORIA.md` sono il diario personale di Jack: vivono solo sul suo Mac e non vanno nel repo.
 Sul Mac di Jack ci sono anche le sue istruzioni personali, in `CLAUDE.local.md` nella cartella principale del repo: fuori da git, mai da aggiungere.
+
+**Inviti e link** (far giocare qualcuno, ritrovare un link): li fa ogni admin col proprio link, senza Jack: `docs/CONTRIBUIRE.md` §7.
 
 ## Come si parla alle persone
 Italiano, corto, operativo. Niente «ottima domanda», niente entusiasmo finto, niente muri di testo. Scelte A/B con screenshot.
