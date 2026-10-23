@@ -135,7 +135,10 @@ export default async function (ctx) {
         for (let dz = -8; dz <= 8; dz++) for (let dx = -8; dx <= 8; dx++) if (!asciutta(cx + dx, cz + dz)) d = Math.min(d, Math.hypot(dx, dz));
         return d * T;
       };
-      const inGiro = async () => (await st()).insetti.attori.filter((x) => x.k.startsWith('p:') && x.prendibile).map((x) => ({ ...x, riva: riva(x.x, x.z) })).sort((p, q) => q.riva - p.riva);
+      // chi per natura schiva il retino (si alza fuori portata, scarta, sparisce, salta via) non serve a provare la rete
+      const ELUSIVI = new Set(['quota', 'planata', 'librata', 'squittio', 'orchidea', 'schiva', 'cicindela', 'lascia', 'stella', 'furca']);
+      const tranquillo = (id) => !ELUSIVI.has(INSETTI.find((i) => i.id === id)?.comportamento);
+      const inGiro = async () => (await st()).insetti.attori.filter((x) => x.k.startsWith('p:') && x.prendibile && tranquillo(x.id)).map((x) => ({ ...x, riva: riva(x.x, x.z) })).sort((p, q) => q.riva - p.riva);
       assert((await inGiro()).length, 'nessun insetto in giro: ' + JSON.stringify((await st()).insetti.attori));
       // 3a. A tenuto: il retino si carica, si cammina al passo ridotto; al rilascio il personaggio sta fermo fino alla risalita
       // a 2 m da un insetto lontano dalla barca (col retino in mano è lui a prendere A, non un albero vicino né l'imbarco)
