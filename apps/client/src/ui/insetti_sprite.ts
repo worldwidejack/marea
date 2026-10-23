@@ -30,6 +30,20 @@ const MEZZI: Record<InsettoForma, string[]> = {
   forbicina: ['......k.', '.....k..', '......pp', '......pp', '....k.cc', '.....kcc', '....k.cc', '.....kcc', '......cc', '......cc', '......cc', '......cc', '......f.', '.....f..', '.....f..', '......f.'],
   astuccio: ['.......k', '.......k', '.......k', '.....ccc', '....cpcc', '....ccpc', '....cpcc', '....ccpc', '....cpcc', '....ccpc', '....cccc', '.....ccc', '......ff', '......ff', '........', '........'],
   grillotalpa: ['........', '..ff..pp', '..fff.pp', '...ffppp', '....pppp', '....pppp', '.....ccc', '....cccc', '....cccc', '....cccc', '....cccc', '.....ccc', '......cc', '......k.', '.....k..', '........'],
+  pesciolino: ['.....k..', '......k.', '......pp', '.....ccc', '..k.cccc', '...kpppp', '..k.cccc', '...kpppp', '.....ccc', '.....ppp', '......cc', '......pc', '.......c', '.....f.f', '....f..f', '...f....'],
+  stecco: ['.......k', '......k.', '.......f', '...k...c', '....k..c', '.....kpc', '.......c', '..k....c', '...kk..c', '.....kpc', '.......c', '...k...c', '....kk.c', '.......c', '.......p', '........'],
+  mosca: ['........', '........', '....ff.c', '....ffcc', '......cc', '..aa.ccc', '.aaaaccc', 'aaaaaccc', 'aaaa.ppp', '.aa..ppp', '.....ppp', '......pp', '.......p', '........', '........', '........'],
+  blatta: ['...k....', '....k...', '.....k..', '......ff', '.....fff', '..k.cccc', '...kcccc', '..k.cccp', '...kcccp', '..k.cccp', '...kcccp', '....cccp', '.....ccp', '......cp', '........', '........'],
+  lombrico: ['........', '.......f', '......cc', '......cc', '......pp', '......pp', '......cc', '......cc', '......cc', '......cc', '......cc', '......cc', '......cc', '.......c', '........', '........'],
+  luna: ['......k.', '.......k', '.......f', '..cc...f', '.cccc.ff', 'ccpccccf', 'cppccccf', 'cccccccf', '.cccccff', '..ppccff', '...pppcf', '....pp.f', '....p...', '....p...', '...pp...', '........'],
+  macaone: ['.....k..', '......k.', '.ccc...f', 'cfccc..f', 'cfcfcc.f', 'ccfcccff', 'cccccccf', '.cccccff', '..fccc.f', '..pfcc.f', '.ppppcff', '.pfppfcf', '..pppp.f', '...pp..f', '...p....', '..pp....'],
+  larva: ['........', '.....f..', '......f.', '......pp', '.....ppp', '....cccc', '..k.cccc', '...kcfcc', '..k.cccc', '...kcfcc', '....cccc', '.....ccc', '......cc', '........', '........', '........'],
+  cervo: ['....p...', '....p.p.', '.....pp.', '.....ppp', '....pppp', '.k.cccck', '..cfccck', '.kcccfck', '..ccccck', '.kcfccck', '..cccfck', '...ccccc', '....cccc', '.....ccc', '........', '........'],
+  sfinge: ['......k.', '.......k', '.......f', '..cc...f', '.cccc.pp', 'ccpcc.op', 'cppccfpp', 'cccccfff', '.cccccff', '..ppccff', '...pppcf', '....pp.f', '.......f', '........', '........', '........'],
+  opilione: ['k.....k.', '.k....k.', '..k...k.', '...k..k.', '....k.k.', 'kkk..kpp', '...kkccc', '.....ccc', '...kkccc', 'kkk..kcc', '....k...', '...k..k.', '..k...k.', '.k.....k', 'k.......', '........'],
+  portasassi: ['........', '........', '.....k..', '......k.', '......ff', '.....fff', '....pccc', '...cpcpc', '...ccpcc', '...pcccp', '...cpcpc', '...ccpcc', '....pccc', '.....ccp', '........', '........'],
+  tarantola: ['.p......', '..p...p.', '..p...pp', '...pp.pp', 'pp..pfff', '..pppfff', '....pccc', 'ppppcccc', '...pcccc', '..ppcfcc', '.p..cccc', 'p..p.ccc', '..p...cc', '.p......', '........', '........'],
+  millepiedi: ['.....k..', '......ff', '...k.ppp', '....kccc', '...k.ppp', '....kccc', '...k.ppp', '....kccc', '...k.ppp', '....kccc', '...k.ppp', '....kccc', '...k.ppp', '.....ccc', '......cc', '........'],
 };
 const righe = (f: InsettoForma): string[] => {
   const g = MEZZI[f].map((r) => [...(r + [...r].reverse().join(''))]);

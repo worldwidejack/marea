@@ -58,7 +58,7 @@ export function creaRetino(o: { w: GameWorld; attori: Map<string, Attore>; preso
     let via = false;
     for (const b of o.attori.values()) {
       if (dentro.has(b) || b.stato === 'preso' || b.stato === 'acqua' || b.stato === 'cade' || b.stato === 'scappa' || b.stato === 'via' || b.stato === 'appeso') continue;
-      if (Math.hypot(b.x - c.x, b.z - c.z) < uso.allarme) { b.stato = 'scappa'; b.t = 0; via = true; }
+      if (Math.hypot(b.x - c.x, b.z - c.z) < uso.allarme) { b.stato = 'scappa'; b.t = 0; b.spavento = true; via = true; }
     }
     if (via) suona('scappato');
   };

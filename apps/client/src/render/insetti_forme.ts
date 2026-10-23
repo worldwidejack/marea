@@ -29,7 +29,7 @@ const ala = (s: 1 | -1, w: number, d: number, x: number, y: number, z: number, a
   pz(lato(s, w, 0.012, d), c, mat(s * x, y, z, 0, s * yaw, s * alza));
 const occhi = (y: number, z: number, w: number): Pezzo[] => [-1, 1].map((s) => pz(box(0.03, 0.03, 0.03), PAL.neroCaldo, mat(s * w, y, z)));
 
-function farfalla(k: Col, alza: number, falena: boolean): Pezzo[] {
+function farfalla(k: Col, alza: number, falena: boolean, code = false): Pezzo[] {
   const ant: Pezzo[] = [-1, 1].map((s) => pz(box(0.012, 0.012, 0.12), PAL.neroCaldo, mat(s * 0.025, 0.05, -0.15, -0.6, s * 0.3)));
   const w1 = falena ? 0.2 : 0.22, w2 = falena ? 0.16 : 0.15;
   return [
@@ -38,6 +38,7 @@ function farfalla(k: Col, alza: number, falena: boolean): Pezzo[] {
       ala(s as 1 | -1, w1, falena ? 0.13 : 0.17, 0.02, 0.01, -0.04, alza, k.c, falena ? 0.35 : 0.15),
       ala(s as 1 | -1, w2, falena ? 0.12 : 0.13, 0.02, 0.005, 0.06, alza * 0.9, k.p, falena ? 0.6 : -0.25),
       pz(lato(s as 1 | -1, 0.06, 0.016, 0.05), k.f, mat(s * 0.02, 0.016, -0.04, 0, s * 0.15, s * alza).multiply(mat(s * 0.11, 0, 0))), // la macchia sull'ala
+      ...(code ? [pz(box(0.025, 0.012, 0.16), k.f, mat(s * 0.02, 0.005, 0.06, 0, 0, s * alza * 0.9).multiply(mat(s * 0.1, 0, 0.13)))] : []), // macaone e falena Luna
     ]),
   ];
 }
@@ -157,6 +158,73 @@ function astuccio(k: Col): Pezzo[] {
     pz(box(0.04, 0.05, 0.04), k.f, mat(0, -0.12, 0)),
   ];
 }
+// ———— la seconda infornata ————
+/** Un'asta da `a` a `b` (zampe lunghe dell'opilione). */
+function tra(a: [number, number, number], b: [number, number, number], w: number, c: string): Pezzo {
+  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b);
+  return pz(box(w, w, A.distanceTo(B)), c, new THREE.Matrix4().lookAt(A, B, new THREE.Vector3(0, 1, 0)).setPosition(A.clone().add(B).multiplyScalar(0.5)));
+}
+function pesciolino(k: Col, fase: number): Pezzo[] {
+  const out: Pezzo[] = [];
+  for (let i = 0; i < 6; i++) out.push(pz(box(0.09 - i * 0.012, 0.035, 0.05), i % 2 ? k.p : k.c, mat(Math.sin(i * 0.9 + fase) * 0.012, 0.03, -0.12 + i * 0.045)));
+  return [...out, ...[-1, 0, 1].map((s) => pz(box(0.008, 0.008, 0.12), k.f, mat(s * 0.012, 0.03, 0.2, 0, s * 0.35))),
+    ...[-1, 1].map((s) => pz(box(0.008, 0.008, 0.1), k.f, mat(s * 0.02, 0.04, -0.18, -0.3, s * 0.4))), ...zampe(k, 3, 0.05, 0.02, -0.1, 0, fase, k.f)];
+}
+function stecco(k: Col, fase: number, morto: boolean): Pezzo[] {
+  const gambe = morto ? [-1, 1].flatMap((s) => [pz(box(0.012, 0.012, 0.16), k.p, mat(s * 0.02, 0.03, -0.26)), pz(box(0.012, 0.012, 0.14), k.p, mat(s * 0.02, 0.03, 0.22))]) : zampe(k, 3, 0.15, 0.06, -0.1, 0.1, fase, k.p);
+  return [pz(box(0.035, 0.035, 0.42), k.c, mat(0, morto ? 0.02 : 0.06, 0)), pz(box(0.04, 0.04, 0.06), k.f, mat(0, morto ? 0.02 : 0.06, -0.22)), pz(box(0.025, 0.025, 0.1), k.p, mat(0, morto ? 0.02 : 0.06, 0.25)), ...gambe];
+}
+function mosca(k: Col, alza: number): Pezzo[] {
+  return [
+    pz(box(0.08, 0.07, 0.08), k.c, mat(0, 0, -0.02)), pz(box(0.09, 0.06, 0.1), k.p, mat(0, -0.005, 0.07)), pz(box(0.07, 0.06, 0.05), k.c, mat(0, 0, -0.08)),
+    ...[-1, 1].map((s) => pz(box(0.035, 0.045, 0.04), k.f, mat(s * 0.035, 0.01, -0.09))),
+    ...[-1, 1].map((s) => ala(s as 1 | -1, 0.13, 0.06, 0.03, 0.04, 0, alza, PAL.pietraChiara, -0.4)),
+  ];
+}
+function blatta(k: Col, fase: number): Pezzo[] {
+  return [pz(box(0.13, 0.045, 0.22), k.c, mat(0, 0.045, 0.03)), pz(box(0.012, 0.05, 0.2), k.p, mat(0, 0.05, 0.04)), pz(box(0.11, 0.04, 0.06), k.f, mat(0, 0.045, -0.1)),
+    ...[-1, 1].map((s) => pz(box(0.008, 0.008, 0.22), k.p, mat(s * 0.03, 0.05, -0.23, -0.15, s * 0.35))), ...zampe(k, 3, 0.1, 0.03, -0.06, 0.08, fase, k.p)];
+}
+/** Il lombrico allungato (a) o raccolto (b): avanza a fisarmonica. */
+function lombrico(k: Col, lungo: boolean): Pezzo[] {
+  const passo = lungo ? 0.05 : 0.034, w = lungo ? 0.04 : 0.052;
+  return Array.from({ length: 8 }, (_, i) => pz(box(w, w * 0.8, passo + 0.012), i === 2 ? k.p : i === 0 ? k.f : k.c, mat(0, w * 0.4, (i - 3.5) * passo)));
+}
+function larva(k: Col, fase: number): Pezzo[] {
+  return [pz(box(0.15, 0.08, 0.15), k.c, mat(0, 0.05, 0.05)), pz(box(0.11, 0.06, 0.05), k.c, mat(0, 0.045, 0.14)), pz(box(0.07, 0.05, 0.06), k.p, mat(0, 0.05, -0.06)),
+    ...[[-0.04, 0.02], [0.04, 0.06], [0, 0.1]].map(([x, z]) => pz(box(0.03, 0.02, 0.03), k.f, mat(x!, 0.095, z!))),
+    ...[-1, 1].map((s) => pz(box(0.015, 0.015, 0.11), k.f, mat(s * 0.03, 0.05, -0.13, 0, s * -0.35))), ...zampe(k, 3, 0.06, 0.03, -0.04, 0.06, fase, k.p)];
+}
+/** Il cervo volante: le corna (mandibole) aperte di più quando ti carica (posa c). */
+function cervo(k: Col, fase: number, aperte: boolean): Pezzo[] {
+  const ap = aperte ? 0.55 : 0.25;
+  return [...coleottero(k, fase, 0, 1.1), ...[-1, 1].flatMap((s) => [pz(box(0.025, 0.025, 0.17), k.p, mat(s * 0.04, 0.08, -0.25, 0.15, s * -ap)), pz(box(0.02, 0.045, 0.02), k.p, mat(s * (0.04 + Math.sin(ap) * 0.08), 0.1, -0.32))])];
+}
+function opilione(k: Col, fase: number): Pezzo[] {
+  const out: Pezzo[] = [pz(new THREE.DodecahedronGeometry(0.06, 0), k.c, mat(0, 0.18, 0)), pz(box(0.04, 0.03, 0.04), k.p, mat(0, 0.235, -0.02)), ...occhi(0.2, -0.05, 0.015)];
+  for (let i = 0; i < 4; i++) for (const s of [1, -1] as const) {
+    const phi = -1.0 + i * 0.65 + (i % 2 ? 1 : -1) * fase * 0.08, dx = s * Math.cos(phi), dz = Math.sin(phi);
+    out.push(tra([0, 0.18, 0], [dx * 0.13, 0.3, dz * 0.13], 0.012, k.f), tra([dx * 0.13, 0.3, dz * 0.13], [dx * 0.32, 0, dz * 0.32], 0.01, k.f));
+  }
+  return out;
+}
+/** Il portasassi nell'astuccio di pietruzze; chiuso (posa c) è un sassolino. */
+function portasassi(k: Col, fase: number, chiuso: boolean): Pezzo[] {
+  const astuccio: Pezzo[] = [pz(cyl(0.055, 0.045, 0.22, 6), k.c, mat(0, 0.055, 0.04, Math.PI / 2)),
+    ...[[0.03, 0.09, -0.02, k.p], [-0.035, 0.08, 0.06, k.p], [0.02, 0.07, 0.12, k.f], [-0.01, 0.1, 0.03, k.c]].map(([x, y, z, c]) => pz(new THREE.DodecahedronGeometry(0.032, 0), c as string, mat(x as number, y as number, z as number, 0.4, 0.7, 0)))];
+  if (chiuso) return astuccio.map((g) => ({ ...g, m: mat(0, -0.015, 0).multiply(g.m) }));
+  return [...astuccio, pz(box(0.05, 0.04, 0.05), k.f, mat(0, 0.045, -0.1)), ...occhi(0.06, -0.125, 0.015), ...zampe(k, 3, 0.05, 0.03, -0.11, -0.05, fase, k.f)];
+}
+/** La tarantola: un ragno peloso e grosso; impennata (posa c) alza le zampe davanti. */
+function tarantola(k: Col, fase: number, alzata: boolean): Pezzo[] {
+  const out = [...ragno(k, fase, false), pz(box(0.14, 0.03, 0.14), k.p, mat(0, 0.13, 0.06)), pz(box(0.09, 0.025, 0.08), k.c, mat(0, 0.1, -0.04)), ...occhi(0.1, -0.09, 0.02)];
+  return alzata ? out.map((x) => ({ ...x, m: mat(0, 0.04, 0.06, 0.65).multiply(x.m) })) : out;
+}
+/** Il millepiedi corazzato; arrotolato (posa c) è una rotella che rotola in avanti. */
+function millepiedi(k: Col, fase: number, rotolo: boolean): Pezzo[] {
+  if (!rotolo) return segmenti(k, 10, 0.06, fase, false, true);
+  return Array.from({ length: 10 }, (_, i) => { const a = (i / 10) * Math.PI * 2; return pz(box(0.07, 0.035, 0.06), i % 2 ? k.c : k.p, mat(0, 0.1 + Math.sin(a) * 0.085, Math.cos(a) * 0.085, -a)); });
+}
 function grillotalpa(k: Col, fase: number): Pezzo[] {
   return [
     pz(box(0.09, 0.07, 0.2), k.c, mat(0, 0.05, 0.04)), pz(box(0.1, 0.08, 0.08), k.p, mat(0, 0.06, -0.09)),
@@ -191,6 +259,20 @@ function pezzi(f: InsettoForma, k: Col, posa: 'a' | 'b' | 'c', chele: boolean): 
     case 'forbicina': return forbicina(k, fase);
     case 'astuccio': return astuccio(k);
     case 'grillotalpa': return grillotalpa(k, fase);
+    case 'pesciolino': return pesciolino(k, fase);
+    case 'stecco': return stecco(k, fase, c);
+    case 'mosca': return mosca(k, c ? 0.1 : su);
+    case 'blatta': return blatta(k, fase);
+    case 'lombrico': return lombrico(k, posa !== 'b');
+    case 'luna': return farfalla(k, c ? 1.2 : su * 0.8, true, true);
+    case 'macaone': return farfalla(k, c ? 1.2 : su, false, true);
+    case 'larva': return larva(k, fase);
+    case 'cervo': return cervo(k, c ? 0 : fase, c);
+    case 'sfinge': return [...farfalla(k, c ? 1.2 : su * 0.8, true), pz(box(0.05, 0.02, 0.05), k.p, mat(0, 0.025, -0.05)), ...occhi(0.03, -0.06, 0.012)];
+    case 'opilione': return opilione(k, fase);
+    case 'portasassi': return portasassi(k, fase, c);
+    case 'tarantola': return tarantola(k, c ? 0 : fase, c);
+    case 'millepiedi': return millepiedi(k, fase, c);
   }
 }
 const cache = new Map<string, FormeInsetto>();
@@ -213,6 +295,12 @@ export const LUME = forma([pz(new THREE.DodecahedronGeometry(0.07, 0), 1, mat(0,
 export const FILO = forma([pz(box(0.012, 1, 0.012).translate(0, 0.5, 0), PAL.pietraChiara, mat(0, 0, 0))]);
 /** Il nido delle vespe caduto dall'albero. */
 export const NIDO = forma([pz(new THREE.DodecahedronGeometry(0.2, 0), PAL.sabbia, mat(0, 0.18, 0, 0, 0, 0, 1)), pz(cyl(0.12, 0.16, 0.06, 7), PAL.legnoChiaro, mat(0, 0.3, 0)), pz(cyl(0.05, 0.05, 0.05, 6), PAL.neroCaldo, mat(0, 0.08, -0.17, Math.PI / 2))]);
+/** La pallina di terra e foglie dello stercorario. */
+export const PALLINA = forma([pz(new THREE.DodecahedronGeometry(0.09, 0), PAL.legnoScuro, mat(0, 0.09, 0)), pz(box(0.06, 0.02, 0.04), PAL.legno, mat(0.03, 0.16, 0.02, 0.4, 0.6, 0)), pz(box(0.04, 0.02, 0.05), PAL.erbaScura, mat(-0.05, 0.1, -0.04, 1, 0, 0.5))]);
+/** La nuvoletta puzzolente della cimice marmorizzata. */
+export const NUVOLA = forma([[0, 0.35, 0, 0.22], [0.2, 0.3, 0.1, 0.16], [-0.17, 0.4, -0.08, 0.17], [0.04, 0.55, -0.12, 0.14]].map(([x, y, z, r]) => pz(new THREE.DodecahedronGeometry(r!, 0), PAL.erbaChiara, mat(x!, y!, z!))));
+/** Il mucchietto di terra del lombrico che torna sotto. */
+export const MUCCHIO = forma([pz(new THREE.DodecahedronGeometry(0.1, 0), PAL.legnoScuro, mat(0, 0.02, 0).scale(new THREE.Vector3(1.3, 0.5, 1.1))), pz(new THREE.DodecahedronGeometry(0.05, 0), PAL.legno, mat(0.05, 0.06, 0.03))]);
 /** Una foglia che cade dall'albero scosso. */
 export const FOGLIA_CADE = forma([pz(box(0.16, 0.02, 0.1), PAL.erbaScura, mat(0, 0, 0)), pz(box(0.08, 0.025, 0.05), PAL.erba, mat(0.02, 0, 0))]);
 /** Un sasso del Borgo (~1 m, basso): due massi accostati, pietra con la cima chiara. */

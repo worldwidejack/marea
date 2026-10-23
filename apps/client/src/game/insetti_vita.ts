@@ -1,11 +1,13 @@
 // Come si muovono gli insetti di Borgo Marea (#445, #458): le quattro macchine a stati del foglio «Specifiche FSM» dell'Excel di Riccardo
 // (volanti, a terra, dai sassi, dagli alberi scossi), ritoccate dal comportamento della specie (insetti.json `comportamento`).
 // Quando allertati scappano allontanandosi a varie velocità in base alla specie; non spariscono in volo o sotto terra,
-// al massimo cadono in acqua (stato 'acqua') con un tonfo plop (#458).
+// al massimo cadono in acqua (stato 'acqua') con un tonfo plop (#458). La seconda infornata ha i suoi comportamenti in
+// game/insetti_specie.ts; i passi comuni (avanti, verso, balzo) stanno in game/insetti_moto.ts.
 // Solo client e solo aspetto: dove sta un insetto lo decide questo file, chi esce e se è stato preso lo decide il server
 // (@marea/sim economy/insetti.ts e rpg/insetti.ts). Niente three: game/insetti.ts disegna.
-import { INSETTI_CFG } from '@marea/content/insetti.ts';
 import type { InsettoDef } from '@marea/content/insetti.ts';
+import { PASSI, avanti, balzo, d2, prua, salta, verso, via, wrap } from './insetti_moto.ts';
+import { esceSpecie, prendibileSpecie, viveSpecie } from './insetti_specie.ts';
 
 export type Stato =
   | 'giro'      // in giro (vola o cammina attorno a casa)
@@ -19,6 +21,8 @@ export type Stato =
   | 'appeso'    // ragno e verme col filo
   | 'via'       // vola via (solo se punge o cambio turno)
   | 'acqua'     // caduto in acqua
+  | 'plana'     // falena Atlante che si stacca dal tronco
+  | 'rotola'    // millepiedi arrotolato a rotella
   | 'preso';    // nel retino
 export type Attore = {
   k: string; def: InsettoDef;
@@ -35,58 +39,45 @@ export type Attore = {
   alfa: number;
   /** Ragno e verme: lunghezza del filo; vespa: il nido. */
   filo: number; cima: number;
-  /** Per il balzo: da dove a dove. */
+  /** Per il balzo: da dove a dove (la blatta: il tronco; lo stercorario: la pallina). */
   sx: number; sz: number; ex: number; ez: number;
+  /** Un tempo o un contatore a disposizione del comportamento (game/insetti_specie.ts). */
+  u: number;
+  /** Il retino ha appena colpito a vuoto qui vicino (game/retino.ts): il comportamento lo consuma. */
+  spavento?: boolean;
 };
 /** Chi gioca, visto dagli insetti. */
 export type Chi = { x: number; z: number; v: number; corre: boolean; fermoDa: number; retino: boolean; /** Frazione del raggio a cui ti notano (1 = normale; col retino carico meno). */ furtivo?: number };
-export type Eventi = { punto?: string; tonfo?: boolean; plop?: boolean };
-/** Il mondo: si può camminare qui? quota del terreno; acqua attorno al porto. */
-export type Mondo = { terra(x: number, z: number): boolean; y(x: number, z: number): number; acqua?(x: number, z: number): boolean };
+/** Per chi gioca: punture e morsi, tonfi, plop in acqua, la nuvola della cimice (cammini piano), lo squittio della sfinge. */
+export type Eventi = { punto?: string; tonfo?: boolean; plop?: boolean; puzza?: boolean; squittio?: boolean };
+/** Il mondo: si può camminare qui? quota del terreno; acqua attorno al porto; un tronco o un lampione (il maggiolino ci sbatte). */
+export type Mondo = { terra(x: number, z: number): boolean; y(x: number, z: number): number; acqua?(x: number, z: number): boolean; ostacolo?(x: number, z: number): boolean };
 
-const PASSI = INSETTI_CFG.passi;
 export const volante = (a: Attore): boolean => a.def.tipo === 'volante' || (a.stato === 'via' && a.def.tipo !== 'sasso');
-const d2 = (ax: number, az: number, bx: number, bz: number) => Math.hypot(ax - bx, az - bz);
-const wrap = (a: number) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
-/** Prua (rad) per andare verso (dx, dz): come prua() degli animali, avanti = −Z. */
-const prua = (dx: number, dz: number) => Math.atan2(dx, -dz);
-const avanti = (a: Attore, v: number, dt: number, m: Mondo, solo = true): boolean => {
-  const nx = a.x + Math.sin(a.h) * v * dt, nz = a.z - Math.cos(a.h) * v * dt;
-  if (a.stato === 'scappa' && m.acqua?.(nx, nz)) {
-    a.x = nx; a.z = nz; a.stato = 'acqua'; a.t = 0; return true;
-  }
-  if (!solo || m.terra(nx, nz)) {
-    if (!solo && m.acqua?.(nx, nz)) { a.h = wrap(a.h + Math.PI * 0.8); return false; }
-    a.x = nx; a.z = nz;
-  } else a.h = wrap(a.h + Math.PI * (0.6 + 0.4 * Math.sin(a.seme * 9 + a.vita)));
-  return false;
-};
-const verso = (a: Attore, tx: number, tz: number, k: number, dt: number) => { a.h = wrap(a.h + wrap(prua(tx - a.x, tz - a.z) - a.h) * Math.min(1, k * dt)); };
-const via = (a: Attore) => { if (a.stato !== 'via' && a.stato !== 'preso') { a.stato = 'via'; a.t = 0; } };
 
 /** Nuovo attore: `x, z` dove compare, `cx, cz` la sua casa. */
 export function nuovoAttore(k: string, def: InsettoDef, x: number, z: number, seme: number, cx = x, cz = z): Attore {
-  return { k, def, x, z, y: 0, h: seme * Math.PI * 2, cx, cz, stato: 'giro', t: 0, vita: 0, vx: 0, vz: 0, fino: Infinity, seme, alfa: 1, filo: 0, cima: 0, sx: x, sz: z, ex: x, ez: z };
+  return { k, def, x, z, y: 0, h: seme * Math.PI * 2, cx, cz, stato: 'giro', t: 0, vita: 0, vx: 0, vz: 0, fino: Infinity, seme, alfa: 1, filo: 0, cima: 0, sx: x, sz: z, ex: x, ez: z, u: 0 };
 }
 /** Uscito da un sasso: dove e come parte. */
 export function daSasso(a: Attore): Attore {
   a.fino = Infinity;
   a.stato = a.def.comportamento === 'pausa' || a.def.comportamento === 'intontito' ? 'fermo' : 'scappa';
-  return a;
+  return esceSpecie(a);
 }
 /** Caduto da un albero: dall'alto della chioma. */
 export function daAlbero(a: Attore, chioma: number): Attore {
-  a.cima = chioma;
-  if (a.def.comportamento === 'filo') { a.stato = 'appeso'; a.filo = 0; a.y = chioma; a.fino = a.def.finestra; }
+  a.cima = chioma; a.sx = a.cx; a.sz = a.cz; // il tronco
+  if (a.def.comportamento === 'filo' || a.def.comportamento === 'risalita') { a.stato = 'appeso'; a.filo = 0; a.y = chioma; a.fino = a.def.finestra; }
   else { a.stato = 'cade'; a.y = chioma; a.fino = Infinity; }
-  return a;
+  return esceSpecie(a);
 }
 
 /** Può finire nel retino adesso? (la chiocciola nel guscio no, chi è già volato via o caduto in acqua no). */
 export function prendibile(a: Attore): boolean {
   if (a.stato === 'via' || a.stato === 'preso' || a.stato === 'cade' || a.stato === 'acqua') return false;
   if (a.def.comportamento === 'guscio' && a.stato === 'fermo') return false;
-  return true;
+  return prendibileSpecie(a);
 }
 
 /** Un passo di vita. Ritorna gli eventi per chi gioca (punture, tonfi, plop in acqua). */
@@ -99,6 +90,7 @@ export function vive(a: Attore, chi: Chi, dt: number, m: Mondo): Eventi {
     a.alfa = Math.max(0, 1 - a.t / 1.2);
     return ev;
   }
+  if (viveSpecie(a, chi, dt, m, ev, dist)) return ev;
   if (a.stato === 'via') {
     a.alfa = Math.max(0, 1 - a.t / 1.5);
     if (def.tipo === 'sasso' || (def.tipo === 'terra' && b !== 'calpesta' && b !== 'fissa' && b !== 'trillo')) { a.y -= dt * 0.3; avanti(a, v, dt, m, false); }
@@ -147,12 +139,12 @@ export function vive(a: Attore, chi: Chi, dt: number, m: Mondo): Eventi {
         if (a.stato === 'giro' && a.fino === Infinity) { a.stato = 'fermo'; }
         if (a.stato === 'fermo') { if (allertato) { a.stato = 'scappa'; a.t = 0; } break; }
       }
-      if (b === 'chele') { if (scorpione(a, chi, dist, dt, m, v, ev)) break; }
+      if (b === 'chele' || b === 'impenna') { if (scorpione(a, chi, dist, dt, m, v, ev)) break; }
       if (b === 'balzi') {
-        if (a.stato === 'salta') { if (balzo(a, dt, m)) { ev.plop = true; break; } break; }
+        if (a.stato === 'salta') { if (balzo(a, m)) { ev.plop = true; break; } break; }
         if (allertato) { salta(a, chi, 3 + (a.seme * 2) % 1.5); break; }
       }
-      if (a.stato === 'salta') { if (balzo(a, dt, m)) { ev.plop = true; break; } break; }
+      if (a.stato === 'salta') { if (balzo(a, m)) { ev.plop = true; break; } break; }
       const scappa = a.stato === 'scappa' || (dist < allerta && (b === 'pattuglia' || b === 'pattina' || b === 'cammina' || b === 'foglia' || b === 'calpesta'));
       if (scappa) {
         a.stato = 'scappa';
@@ -202,8 +194,9 @@ export function vive(a: Attore, chi: Chi, dt: number, m: Mondo): Eventi {
         break;
       }
       if (a.stato === 'appeso') {
-        const scade = a.vita > a.fino;
-        a.filo = scade ? Math.max(0, a.filo - dt * (b === 'filo' && def.id === 'astuccio' ? 4 : 2)) : Math.min(a.cima - 1.0, a.filo + dt * 2.5);
+        // il ragno della corteccia fa finta di risalire per un attimo, poi torna giù; allo scadere risale di corsa
+        const scade = a.vita > a.fino, finta = b === 'risalita' && a.vita > 0.7 && a.vita < 1.1;
+        a.filo = scade ? Math.max(0, a.filo - dt * (def.id === 'astuccio' ? 4 : b === 'risalita' ? 5 : 2)) : finta ? Math.max(0.3, a.filo - dt * 3) : Math.min(a.cima - 1.0, a.filo + dt * 2.5);
         a.y = a.cima - a.filo; a.x = a.cx + Math.sin(a.vita * 2.2 + a.seme) * 0.12;
         if (scade && a.filo <= 0) { a.alfa = 0; a.stato = 'via'; a.t = 99; }
         break;
@@ -234,7 +227,7 @@ export function vive(a: Attore, chi: Chi, dt: number, m: Mondo): Eventi {
 function scorpione(a: Attore, chi: Chi, dist: number, dt: number, m: Mondo, v: number, ev: Eventi): boolean {
   if (a.stato === 'carica') {
     verso(a, chi.x, chi.z, 10, dt); avanti(a, v, dt, m);
-    if (dist < 0.5) { ev.punto = 'Ahi! Lo scorpione ti ha punto'; via(a); }
+    if (dist < 0.5) { ev.punto = a.def.comportamento === 'impenna' ? 'Ahi! La tarantola ti è saltata addosso' : 'Ahi! Lo scorpione ti ha punto'; via(a); }
     else if (a.t > 2.5) { a.stato = 'giro'; a.t = 0; }
     return true;
   }
@@ -246,19 +239,5 @@ function scorpione(a: Attore, chi: Chi, dist: number, dt: number, m: Mondo, v: n
   }
   if (a.stato === 'calmo') { if (a.t > 3) { a.stato = 'giro'; a.t = 0; } return true; }
   if (chi.retino && dist < a.def.allerta * (chi.furtivo ?? 1)) { a.stato = 'fermo'; a.t = 0; return true; }
-  return false;
-}
-function salta(a: Attore, chi: Chi, lungo: number): void {
-  const h = prua(a.x - chi.x, a.z - chi.z) + Math.sin(a.seme * 17 + a.vita) * 0.5;
-  a.stato = 'salta'; a.t = 0; a.sx = a.x; a.sz = a.z; a.ex = a.x + Math.sin(h) * lungo; a.ez = a.z - Math.cos(h) * lungo; a.h = h;
-}
-function balzo(a: Attore, dt: number, m: Mondo): boolean {
-  const k = Math.min(1, a.t / 0.6);
-  const nx = a.sx + (a.ex - a.sx) * k, nz = a.sz + (a.ez - a.sz) * k;
-  if (m.acqua?.(nx, nz)) { a.x = nx; a.z = nz; a.stato = 'acqua'; a.t = 0; return true; }
-  if (m.terra(nx, nz)) { a.x = nx; a.z = nz; } else { a.ex = a.x; a.ez = a.z; }
-  a.y = Math.sin(k * Math.PI) * 0.9;
-  if (k >= 1) { a.y = 0; a.stato = a.def.comportamento === 'trillo' ? 'scappa' : 'giro'; a.t = 0; }
-  void dt;
   return false;
 }

@@ -14,11 +14,17 @@ export type InsettoComportamento =
   | 'zigzag' | 'soste' | 'cerchi' | 'scatti' | 'maestosa' | 'lucciola' | 'diagonale' | 'basso'
   | 'gruppo' | 'calpesta' | 'fissa' | 'pattuglia' | 'chele' | 'balzi' | 'trillo' | 'foglia' | 'cammina' | 'pattina'
   | 'pausa' | 'subito' | 'guscio' | 'giratondo' | 'intontito'
-  | 'nido' | 'cade' | 'filo' | 'striscia';
+  | 'nido' | 'cade' | 'filo' | 'striscia'
+  // la seconda infornata: game/insetti_specie.ts
+  | 'stella' | 'librata' | 'fiori' | 'planata' | 'ubriaco' | 'termiche' | 'quota' | 'squittio' | 'lascia'
+  | 'schiva' | 'orchidea' | 'cicindela' | 'pallina' | 'furca' | 'impenna'
+  | 'sinuoso' | 'fisarmonica' | 'indietro' | 'morde' | 'molla' | 'corazza' | 'rotella'
+  | 'rametto' | 'radici' | 'decolla' | 'intimidisce' | 'deltaplano' | 'puzza' | 'calabrone' | 'risalita';
 /** Disegno (sprite del Diario e forma 3D). */
 export type InsettoForma =
   | 'porcellino' | 'ape' | 'bombo' | 'formica' | 'farfalla' | 'falena' | 'centopiedi' | 'chiocciola' | 'cimice' | 'coleottero' | 'mantide'
-  | 'ragno' | 'forbicina' | 'cicala' | 'libellula' | 'lucciola' | 'ercole' | 'scorpione' | 'bruco' | 'cavalletta' | 'foglia' | 'astuccio' | 'grillotalpa';
+  | 'ragno' | 'forbicina' | 'cicala' | 'libellula' | 'lucciola' | 'ercole' | 'scorpione' | 'bruco' | 'cavalletta' | 'foglia' | 'astuccio' | 'grillotalpa'
+  | 'pesciolino' | 'stecco' | 'mosca' | 'blatta' | 'lombrico' | 'luna' | 'macaone' | 'larva' | 'cervo' | 'sfinge' | 'opilione' | 'portasassi' | 'tarantola' | 'millepiedi';
 
 export type InsettoDef = {
   id: string; nome: string; stagione: InsettoStagione; fascia: InsettoFascia; tipo: InsettoTipo; rarita: InsettoRarita;
