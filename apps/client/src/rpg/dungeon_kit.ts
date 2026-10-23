@@ -28,8 +28,8 @@ export function parts(loader: Loader, name: string): Promise<Part[] | null> {
   if (!c) { c = new Map(); cache.set(loader, c); }
   let p = c.get(name);
   if (!p) {
+    if (!loader.has(name)) return Promise.resolve(null); // manifest secondario non ancora caricato: non ricordare il «no», o il segnaposto resta anche dopo
     p = (async () => {
-      if (!loader.has(name)) return null;
       try {
         const { scene } = await loader.load(name);
         scene.updateMatrixWorld(true);
