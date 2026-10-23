@@ -2956,6 +2956,269 @@ def mob_stendardo_medievale_con_stemma_inventato():
     return _obj(m, footprint=[W, D])
 
 
+def mob_tazza_con_scritta_miglior_vicino_del_mondo():
+    """Tazza mug in ceramica bianca con caffè freddo dal 2019 dentro, manico ad ansa e scritta con cuoricino sul davanti."""
+    m = Mesh('mob_tazza_con_scritta_miglior_vicino_del_mondo')
+    W, D = ingombro((1, 1))
+    # Corpo cilindrico ottagonale della tazza
+    m.prism(8, 0.22, 0.22, 0.0, 0.35, 'p_pietra_chiara', bottom='p_pietra_chiara')
+    # Caffè scuro freddo rimasto dentro
+    m.prism(8, 0.19, 0.19, 0.26, 0.28, 'p_nero_caldo', top='p_nero_caldo')
+    # Manico ad ansa sulla destra (+X)
+    beam(m, (0.2, 0.08, 0.0), (0.33, 0.12, 0.0), 0.04, 0.04, 'p_pietra_chiara', end='p_pietra_chiara')
+    beam(m, (0.33, 0.12, 0.0), (0.33, 0.26, 0.0), 0.04, 0.04, 'p_pietra_chiara', end='p_pietra_chiara')
+    beam(m, (0.33, 0.26, 0.0), (0.2, 0.28, 0.0), 0.04, 0.04, 'p_pietra_chiara', end='p_pietra_chiara')
+    # Targhetta con scritta "Miglior vicino del mondo" sul davanti (−Z)
+    m.box(-0.12, 0.12, -0.23, 0.12, 0.24, -0.22, 'p_giallo', skip=('back',))
+    m.box(-0.06, 0.15, -0.235, 0.06, 0.21, -0.23, 'p_rosso', skip=('back', 'bottom', 'top'))
+    # DETTAGLIO: alone di muffa verdognola sul caffè freddo dal 2019
+    m.cbox(0.04, 0.04, 0.07, 0.07, 0.28, 0.285, 'p_erba_scura', top='p_erba_scura')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_macchina_fotografica_polaroid_scarica():
+    """Fotocamera stile Polaroid OneStep con foto bianca non sviluppata che spunta dalla fessura e mirino a torretta."""
+    m = Mesh('mob_macchina_fotografica_polaroid_scarica')
+    W, D = ingombro((1, 1))
+    # Base squadrata chiara e corpo inclinato posteriore
+    m.cbox(0.0, 0.0, 0.44, 0.46, 0.0, 0.12, 'p_pietra_chiara', top='p_pietra_chiara', bottom='p_nero_caldo')
+    m.cbox(0.0, 0.08, 0.42, 0.26, 0.12, 0.28, 'p_pietra_chiara', top='p_pietra_chiara')
+    m.cbox(0.0, -0.16, 0.4, 0.04, 0.02, 0.24, 'p_nero_caldo')
+    # Obiettivo cilindrico sporgente sul davanti (−Z)
+    beam(m, (0.0, 0.14, -0.16), (0.0, 0.14, -0.23), 0.16, 0.16, 'p_nero_caldo', end='p_nero_caldo', n=8)
+    beam(m, (0.0, 0.14, -0.22), (0.0, 0.14, -0.235), 0.1, 0.1, 'p_acqua', end='p_acqua', n=8)
+    # Mirino a torretta a sinistra (−X) e pulsante rosso di scatto a destra (+X)
+    m.cbox(-0.14, 0.08, 0.08, 0.12, 0.28, 0.33, 'p_nero_caldo', top='p_nero_caldo')
+    m.cbox(0.14, -0.15, 0.06, 0.06, 0.12, 0.15, 'p_rosso', top='p_rosso')
+    # Striscia decorativa arcobaleno sul frontale
+    m.box(-0.03, 0.02, -0.232, -0.01, 0.11, -0.23, 'p_rosso')
+    m.box(-0.01, 0.02, -0.232, 0.01, 0.11, -0.23, 'p_giallo')
+    m.box(0.01, 0.02, -0.232, 0.03, 0.11, -0.23, 'p_acqua')
+    # DETTAGLIO: la foto Polaroid bianca che esce dalla fessura senza svilupparsi («scatta foto che non si sviluppano»)
+    m.cbox(0.0, -0.23, 0.3, 0.02, 0.02, 0.04, 'p_nero_caldo')
+    m.cbox(0.0, -0.28, 0.22, 0.12, 0.025, 0.035, 'p_pietra_chiara', top='p_pietra_chiara')
+    m.cbox(0.0, -0.29, 0.18, 0.08, 0.035, 0.038, 'p_pietra', top='p_pietra')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_cubo_luminoso_viola():
+    """Scatola cubica viola ispirata al GameCube con manico sul retro, disco superiore e porte controller sul davanti."""
+    m = Mesh('mob_cubo_luminoso_viola')
+    W, D = ingombro((1, 1))
+    # Corpo cubico viola
+    m.cbox(0.0, 0.0, 0.42, 0.42, 0.04, 0.42, 'p_viola', top='p_viola', bottom='p_nero_caldo')
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            m.cbox(sx * 0.17, sz * 0.17, 0.06, 0.06, 0.0, 0.04, 'p_nero_caldo', bottom='p_nero_caldo')
+    # Coperchio circolare nero e logo centrale viola neon
+    m.prism(8, 0.14, 0.14, 0.42, 0.435, 'p_nero_caldo', top='p_nero_caldo', cx=0.0, cz=0.0)
+    m.prism(8, 0.06, 0.06, 0.435, 0.445, 'p_viola_neon', top='p_viola_neon', cx=0.0, cz=0.0)
+    # Tasti Power e Open sul top, LED acceso
+    m.cbox(-0.14, -0.12, 0.04, 0.04, 0.42, 0.435, 'p_pietra', top='p_pietra')
+    m.cbox(0.14, 0.12, 0.04, 0.04, 0.42, 0.435, 'p_pietra', top='p_pietra')
+    m.cbox(-0.14, -0.06, 0.02, 0.02, 0.42, 0.435, 'p_arancio', top='p_arancio')
+    # Frontale con mascherina per controller e memory card
+    m.cbox(0.0, -0.212, 0.32, 0.02, 0.12, 0.32, 'p_pietra', skip=('back',))
+    for i in range(4):
+        m.cbox(-0.105 + i * 0.07, -0.224, 0.04, 0.02, 0.18, 0.24, 'p_nero_caldo', skip=('back',))
+    m.cbox(-0.06, -0.224, 0.07, 0.02, 0.14, 0.16, 'p_nero_caldo', skip=('back',))
+    m.cbox(0.06, -0.224, 0.07, 0.02, 0.14, 0.16, 'p_nero_caldo', skip=('back',))
+    # DETTAGLIO: il famoso manico squadrato sul retro («con un bel manico sul retro»)
+    beam(m, (-0.14, 0.32, 0.21), (-0.14, 0.32, 0.31), 0.04, 0.04, 'p_nero_caldo', end='p_nero_caldo')
+    beam(m, (0.14, 0.32, 0.21), (0.14, 0.32, 0.31), 0.04, 0.04, 'p_nero_caldo', end='p_nero_caldo')
+    beam(m, (-0.14, 0.32, 0.31), (0.14, 0.32, 0.31), 0.04, 0.04, 'p_nero_caldo', end='p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_console_portatile_a_doppio_schermo():
+    """Console portatile grigia pieghevole a conchiglia con doppio schermo e pennino perso a terra sul pavimento."""
+    m = Mesh('mob_console_portatile_a_doppio_schermo')
+    W, D = ingombro((1, 1))
+    # Base orizzontale grigia con schermo inferiore e comandi
+    m.cbox(0.0, 0.04, 0.46, 0.32, 0.0, 0.06, 'p_pietra', top='p_pietra', bottom='p_pietra_scura')
+    m.cbox(0.0, 0.04, 0.22, 0.18, 0.06, 0.065, 'p_nero_caldo', top='p_nero_caldo')
+    # D-pad a croce a sinistra
+    m.cbox(-0.16, 0.04, 0.06, 0.02, 0.06, 0.075, 'p_nero_caldo', top='p_nero_caldo')
+    m.cbox(-0.16, 0.04, 0.02, 0.06, 0.06, 0.075, 'p_nero_caldo', top='p_nero_caldo')
+    # 4 tasti a destra
+    m.cbox(0.16, 0.015, 0.02, 0.02, 0.06, 0.075, 'p_pietra_scura', top='p_pietra_scura')
+    m.cbox(0.16, 0.065, 0.02, 0.02, 0.06, 0.075, 'p_pietra_scura', top='p_pietra_scura')
+    m.cbox(0.135, 0.04, 0.02, 0.02, 0.06, 0.075, 'p_pietra_scura', top='p_pietra_scura')
+    m.cbox(0.185, 0.04, 0.02, 0.02, 0.06, 0.075, 'p_pietra_scura', top='p_pietra_scura')
+    # Cerniera posteriore cilindrica
+    beam(m, (-0.2, 0.05, 0.18), (0.2, 0.05, 0.18), 0.05, 0.05, 'p_pietra_scura', end='p_pietra_scura')
+    # Coperchio superiore inclinato aperto con schermo superiore retroilluminato
+    beam(m, (0.0, 0.06, 0.18), (0.0, 0.28, 0.28), 0.46, 0.05, 'p_pietra', end='p_pietra')
+    beam(m, (0.0, 0.09, 0.18), (0.0, 0.25, 0.26), 0.22, 0.056, 'p_acqua_bassa', end='p_acqua_bassa')
+    beam(m, (-0.16, 0.15, 0.21), (-0.16, 0.19, 0.23), 0.03, 0.054, 'p_pietra_scura')
+    beam(m, (0.16, 0.15, 0.21), (0.16, 0.19, 0.23), 0.03, 0.054, 'p_pietra_scura')
+    # DETTAGLIO: alloggiamento del pennino vuoto e pennino perso caduto a terra («con un pennino perso da qualche parte»)
+    m.cbox(0.232, 0.14, 0.02, 0.06, 0.015, 0.045, 'p_nero_caldo')
+    beam(m, (0.28, 0.01, -0.05), (0.33, 0.01, 0.16), 0.02, 0.02, 'p_pietra_chiara', end='p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_tazza_di_caffe_fumante():
+    """Tazza di caffè con piattino in ceramica e una colonna di fumo a spirale che non si dissolve mai."""
+    m = Mesh('mob_tazza_di_caffe_fumante')
+    W, D = ingombro((1, 1))
+    # Piattino rosso con bordo rialzato
+    m.prism(8, 0.26, 0.26, 0.0, 0.03, 'p_rosso', top='p_pietra_chiara', bottom='p_rosso')
+    m.prism(8, 0.28, 0.28, 0.02, 0.05, 'p_rosso', top='p_rosso')
+    # Tazza rossa svasata con caffè scuro
+    m.prism(8, 0.16, 0.19, 0.03, 0.24, 'p_rosso', top='p_pietra_chiara', bottom='p_rosso')
+    m.prism(8, 0.16, 0.16, 0.21, 0.22, 'p_legno_scuro', top='p_legno_scuro')
+    m.prism(8, 0.17, 0.17, 0.22, 0.24, 'p_pietra_chiara')
+    # Manico ad anello sulla destra (+X)
+    beam(m, (0.16, 0.08, 0.0), (0.27, 0.11, 0.0), 0.035, 0.035, 'p_rosso', end='p_rosso')
+    beam(m, (0.27, 0.11, 0.0), (0.27, 0.19, 0.0), 0.035, 0.035, 'p_rosso', end='p_rosso')
+    beam(m, (0.27, 0.19, 0.0), (0.17, 0.21, 0.0), 0.035, 0.035, 'p_rosso', end='p_rosso')
+    # DETTAGLIO: colonna di vapore a spirale che sale e non sparisce mai («il fumo non sparisce mai»)
+    beam(m, (0.0, 0.24, 0.0), (-0.06, 0.33, 0.02), 0.04, 0.04, 'p_pietra_chiara', end='p_pietra_chiara')
+    beam(m, (-0.06, 0.33, 0.02), (0.05, 0.42, -0.02), 0.035, 0.035, 'p_pietra_chiara', end='p_pietra_chiara')
+    beam(m, (0.05, 0.42, -0.02), (-0.02, 0.52, 0.01), 0.025, 0.025, 'p_pietra_chiara', end='p_pietra_chiara')
+    beam(m, (0.04, 0.24, 0.03), (0.08, 0.32, 0.05), 0.025, 0.025, 'p_pietra_chiara', end='p_pietra_chiara')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_sveglia_digitale_a_led_rossi():
+    """Sveglia da comodino con grande pulsante snooze e display a LED rossi bloccato sulle 07:00."""
+    m = Mesh('mob_sveglia_digitale_a_led_rossi')
+    W, D = ingombro((1, 1))
+    # Scocca nera e tasto snooze in alto
+    m.cbox(0.0, 0.02, 0.40, 0.26, 0.0, 0.18, 'p_nero_caldo', top='p_nero_caldo', bottom='p_nero_caldo')
+    m.cbox(0.0, 0.04, 0.22, 0.08, 0.18, 0.21, 'p_pietra', top='p_pietra')
+    m.cbox(0.205, -0.02, 0.02, 0.07, 0.06, 0.13, 'p_pietra_scura')
+    m.cbox(-0.205, -0.02, 0.02, 0.07, 0.06, 0.13, 'p_pietra_scura')
+    # Schermo display nero frontale (−Z)
+    m.box(-0.17, 0.03, -0.115, 0.17, 0.15, -0.11, 'p_ombra_calda', skip=('back',))
+    # DETTAGLIO: segmenti LED rossi accesi che formano la scritta "07:00" («segna perennemente le 07:00»)
+    # Cifra "0"
+    m.box(-0.14, 0.05, -0.12, -0.09, 0.13, -0.115, 'p_rosso', skip=('back',))
+    m.box(-0.128, 0.065, -0.125, -0.102, 0.115, -0.118, 'p_ombra_calda', skip=('back',))
+    # Cifra "7"
+    m.box(-0.07, 0.118, -0.12, -0.02, 0.13, -0.115, 'p_rosso', skip=('back',))
+    m.box(-0.032, 0.05, -0.12, -0.02, 0.13, -0.115, 'p_rosso', skip=('back',))
+    # Due punti ":"
+    m.cbox(0.0, -0.12, 0.012, 0.01, 0.10, 0.112, 'p_rosso', skip=('back',))
+    m.cbox(0.0, -0.12, 0.012, 0.01, 0.068, 0.08, 'p_rosso', skip=('back',))
+    # Cifra "0"
+    m.box(0.02, 0.05, -0.12, 0.07, 0.13, -0.115, 'p_rosso', skip=('back',))
+    m.box(0.032, 0.065, -0.125, 0.058, 0.115, -0.118, 'p_ombra_calda', skip=('back',))
+    # Cifra "0"
+    m.box(0.09, 0.05, -0.12, 0.14, 0.13, -0.115, 'p_rosso', skip=('back',))
+    m.box(0.102, 0.065, -0.125, 0.128, 0.115, -0.118, 'p_ombra_calda', skip=('back',))
+    # Cavo nero che corre sul pavimento dietro
+    beam(m, (0.05, 0.03, 0.15), (0.12, 0.01, 0.28), 0.02, 0.02, 'p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_lampada_da_scrivania_a_braccio():
+    """Lampada da tavolo a braccio snodabile a pantografo stile Luxo Pixar, con paralume conico e lampadina accesa."""
+    m = Mesh('mob_lampada_da_scrivania_a_braccio')
+    W, D = ingombro((1, 1))
+    # Base circolare zavorrata e perno
+    m.prism(8, 0.22, 0.2, 0.0, 0.05, 'p_pietra_chiara', top='p_pietra_chiara', bottom='p_pietra_chiara')
+    m.prism(6, 0.06, 0.06, 0.05, 0.1, 'p_nero_caldo', top='p_nero_caldo')
+    # Primo segmento a pantografo (due aste inclinate verso l'alto e indietro)
+    beam(m, (-0.035, 0.08, 0.0), (-0.035, 0.38, 0.14), 0.02, 0.02, 'p_pietra_chiara', end='p_pietra_chiara')
+    beam(m, (0.035, 0.08, 0.0), (0.035, 0.38, 0.14), 0.02, 0.02, 'p_pietra_chiara', end='p_pietra_chiara')
+    beam(m, (-0.035, 0.23, 0.07), (0.035, 0.23, 0.07), 0.02, 0.02, 'p_pietra_chiara')
+    # Snodo a gomito centrale
+    m.cbox(0.0, 0.14, 0.1, 0.05, 0.36, 0.41, 'p_nero_caldo', top='p_nero_caldo')
+    # Secondo segmento a pantografo (piega in avanti verso −Z)
+    beam(m, (-0.03, 0.39, 0.14), (-0.03, 0.52, -0.12), 0.02, 0.02, 'p_pietra_chiara', end='p_pietra_chiara')
+    beam(m, (0.03, 0.39, 0.14), (0.03, 0.52, -0.12), 0.02, 0.02, 'p_pietra_chiara', end='p_pietra_chiara')
+    # Snodo testa e calotta paralume
+    m.cbox(0.0, -0.13, 0.07, 0.07, 0.50, 0.56, 'p_nero_caldo', top='p_nero_caldo')
+    m.prism(8, 0.06, 0.1, 0.52, 0.58, 'p_pietra_chiara', cx=0.0, cz=-0.16)
+    m.prism(8, 0.1, 0.22, 0.38, 0.52, 'p_pietra_chiara', cx=0.0, cz=-0.18)
+    # DETTAGLIO: lampadina gialla accesa sotto la cupola e interruttore a levetta rosso («Stile Pixar»)
+    m.prism(6, 0.07, 0.07, 0.42, 0.48, 'p_giallo', top='p_giallo', bottom='p_giallo', cx=0.0, cz=-0.18)
+    beam(m, (0.0, 0.58, -0.16), (0.0, 0.62, -0.14), 0.015, 0.015, 'p_rosso', end='p_rosso')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_boccia_con_pesce_rosso():
+    """Boccia per pesci in vetro con acqua, ghiaia sul fondo e un pesciolino rosso dall'aria giudicante."""
+    m = Mesh('mob_boccia_con_pesce_rosso')
+    W, D = ingombro((1, 1))
+    # Pareti di vetro della boccia a strati ottagonali
+    m.prism(8, 0.16, 0.23, 0.0, 0.06, 'vetro', bottom='vetro')
+    m.prism(8, 0.22, 0.22, 0.01, 0.05, 'p_sabbia_chiara', top='ghiaia')
+    m.prism(8, 0.23, 0.32, 0.06, 0.16, 'vetro')
+    m.prism(8, 0.32, 0.34, 0.16, 0.24, 'vetro')
+    m.prism(8, 0.34, 0.24, 0.24, 0.34, 'vetro')
+    m.prism(8, 0.24, 0.27, 0.34, 0.38, 'vetro')
+    # Acqua trasparente dentro
+    m.prism(8, 0.30, 0.30, 0.29, 0.30, 'p_acqua_bassa', top='p_acqua')
+    # Rametto d'alga sul fondo
+    m.cbox(-0.08, 0.06, 0.04, 0.04, 0.05, 0.18, 'p_bosco')
+    m.cbox(-0.06, 0.06, 0.04, 0.04, 0.12, 0.22, 'p_erba')
+    # DETTAGLIO: il pesciolino rosso stilizzato con l'occhietto che ti fissa («giudica le tue scelte d'arredo»)
+    m.cbox(0.08, -0.06, 0.14, 0.06, 0.15, 0.21, 'p_arancio', top='p_arancio')
+    beam(m, (0.15, 0.18, -0.06), (0.22, 0.21, -0.07), 0.01, 0.07, 'p_rosso', end='p_rosso')
+    m.cbox(0.08, -0.06, 0.06, 0.01, 0.21, 0.24, 'p_rosso')
+    m.cbox(0.03, -0.091, 0.02, 0.01, 0.175, 0.195, 'p_pietra_chiara')
+    m.cbox(0.03, -0.093, 0.01, 0.01, 0.18, 0.19, 'p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_piantina_grassa_in_vaso():
+    """Succulenta carnosa in vaso di terracotta con fiorellino fucsia in cima e stecco di legno nel terriccio."""
+    m = Mesh('mob_piantina_grassa_in_vaso')
+    W, D = ingombro((1, 1))
+    # Vaso svasato in terracotta con bordo
+    m.prism(6, 0.14, 0.22, 0.0, 0.20, 'p_arancio', bottom='p_arancio')
+    m.prism(6, 0.23, 0.23, 0.20, 0.24, 'p_arancio', top='p_arancio')
+    # Terriccio fertile
+    m.prism(6, 0.20, 0.20, 0.21, 0.22, 'p_legno_scuro', top='terra')
+    # Fusto carnoso della pianta
+    m.prism(6, 0.12, 0.15, 0.22, 0.34, 'p_erba', top='p_erba_chiara')
+    m.prism(6, 0.15, 0.08, 0.34, 0.40, 'p_erba_chiara', top='p_erba_chiara')
+    # Foglie grasse radiali attorno al tronco
+    for a in (0, 60, 120, 180, 240, 300):
+        ca = math.cos(math.radians(a))
+        sa = math.sin(math.radians(a))
+        beam(m, (ca * 0.06, 0.24, sa * 0.06), (ca * 0.18, 0.28, sa * 0.18), 0.05, 0.04, 'p_erba', end='p_erba')
+    # DETTAGLIO: fiorellino vivacissimo in cima e targhetta nel terreno («non rischia di morire per la tua incuria»)
+    m.prism(5, 0.05, 0.07, 0.40, 0.43, 'p_rosa_neon', top='p_giallo')
+    beam(m, (0.12, 0.22, 0.12), (0.12, 0.35, 0.12), 0.015, 0.015, 'p_legno_chiaro')
+    m.box(0.08, 0.32, 0.11, 0.16, 0.36, 0.13, 'p_pietra_chiara')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_macchina_da_scrivere_vintage():
+    """Macchina da scrivere con tastiera a gradini, carrello con rullo e foglio di carta infilato per scrittori tormentati."""
+    m = Mesh('mob_macchina_da_scrivere_vintage')
+    W, D = ingombro((1, 1))
+    # Basamento squadrato nero e carrozzeria
+    m.cbox(0.0, 0.0, 0.52, 0.46, 0.0, 0.07, 'p_nero_caldo', top='p_nero_caldo', bottom='p_nero_caldo')
+    m.cbox(0.0, 0.10, 0.48, 0.24, 0.07, 0.16, 'p_nero_caldo', top='p_nero_caldo')
+    m.cbox(-0.21, -0.06, 0.06, 0.18, 0.07, 0.14, 'p_nero_caldo', top='p_nero_caldo')
+    m.cbox(0.21, -0.06, 0.06, 0.18, 0.07, 0.14, 'p_nero_caldo', top='p_nero_caldo')
+    # Tastiera a gradini sul davanti (−Z)
+    for i in range(5):
+        m.cbox(-0.16 + i * 0.08, -0.16, 0.04, 0.035, 0.07, 0.09, 'p_pietra_chiara', top='p_pietra_chiara')
+        m.cbox(-0.16 + i * 0.08, -0.11, 0.04, 0.035, 0.07, 0.11, 'p_pietra_chiara', top='p_pietra_chiara')
+    m.cbox(0.0, -0.20, 0.28, 0.03, 0.06, 0.08, 'p_nero_caldo', top='p_nero_caldo')
+    # Martelletti e bobine del nastro inchiostro
+    m.cbox(0.0, 0.02, 0.28, 0.14, 0.08, 0.12, 'ferro', top='ferro')
+    m.prism(6, 0.04, 0.04, 0.12, 0.15, 'p_rosso', top='p_nero_caldo', cx=-0.16, cz=0.02)
+    m.prism(6, 0.04, 0.04, 0.12, 0.15, 'p_nero_caldo', top='p_rosso', cx=0.16, cz=0.02)
+    # Carrello e rullo nero
+    beam(m, (-0.28, 0.17, 0.14), (0.28, 0.17, 0.14), 0.08, 0.04, 'metallo', end='metallo')
+    beam(m, (-0.22, 0.18, 0.14), (0.22, 0.18, 0.14), 0.09, 0.09, 'p_nero_caldo', end='p_nero_caldo', n=8)
+    beam(m, (-0.26, 0.18, 0.14), (-0.23, 0.18, 0.14), 0.06, 0.06, 'p_pietra_chiara', end='p_pietra_chiara', n=6)
+    beam(m, (0.23, 0.18, 0.14), (0.26, 0.18, 0.14), 0.06, 0.06, 'p_pietra_chiara', end='p_pietra_chiara', n=6)
+    beam(m, (-0.23, 0.18, 0.12), (-0.26, 0.24, 0.04), 0.02, 0.02, 'metallo')
+    # DETTAGLIO: foglio di carta infilato con le prime righe scritte («dar ti arie da scrittore tormentato»)
+    beam(m, (0.0, 0.18, 0.14), (0.0, 0.34, 0.18), 0.28, 0.01, 'carta', end='p_pietra_chiara')
+    beam(m, (-0.02, 0.26, 0.158), (0.08, 0.26, 0.158), 0.015, 0.008, 'p_nero_caldo')
+    beam(m, (-0.06, 0.29, 0.166), (0.04, 0.29, 0.166), 0.015, 0.008, 'p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
 MODELS = {
     f.__name__: f
     for f in (
@@ -3062,6 +3325,16 @@ MODELS = {
         mob_banco_da_lavoro_con_morsa,
         mob_tavolo_da_dj_con_lucine_rotte,
         mob_cassettone_da_farmacia_antica,
+        mob_tazza_con_scritta_miglior_vicino_del_mondo,
+        mob_macchina_fotografica_polaroid_scarica,
+        mob_cubo_luminoso_viola,
+        mob_console_portatile_a_doppio_schermo,
+        mob_tazza_di_caffe_fumante,
+        mob_sveglia_digitale_a_led_rossi,
+        mob_lampada_da_scrivania_a_braccio,
+        mob_boccia_con_pesce_rosso,
+        mob_piantina_grassa_in_vaso,
+        mob_macchina_da_scrivere_vintage,
     )
 }
 

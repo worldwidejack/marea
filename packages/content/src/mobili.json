@@ -119,6 +119,16 @@
     { "id": "tavolino_da_campeggio_richiudibile", "nome": "Tavolino da campeggio richiudibile", "categoria": "tavoli", "monete": 75, "posto": "terra", "altezza": 0.65, "colori": ["#3FB9C9", "#B9AFA3", "#2478A8"] },
     { "id": "banco_da_lavoro_con_morsa", "nome": "Banco da lavoro con morsa", "categoria": "tavoli", "monete": 240, "posto": "terra", "altezza": 0.85, "colori": ["#8E5A2B", "#4A4340", "#E8433F"] },
     { "id": "tavolo_da_dj_con_lucine_rotte", "nome": "Tavolo da DJ con lucine rotte", "categoria": "tavoli", "monete": 255, "posto": "terra", "altezza": 0.95, "colori": ["#23201F", "#4A4340", "#3DF5FF"] },
-    { "id": "cassettone_da_farmacia_antica", "nome": "Cassettone da farmacia antica", "categoria": "tavoli", "monete": 270, "posto": "terra", "altezza": 1.0, "colori": ["#5A3A1E", "#F5D547", "#F4E3C1"] }
+    { "id": "cassettone_da_farmacia_antica", "nome": "Cassettone da farmacia antica", "categoria": "tavoli", "monete": 270, "posto": "terra", "altezza": 1.0, "colori": ["#5A3A1E", "#F5D547", "#F4E3C1"] },
+    { "id": "tazza_con_scritta_miglior_vicino_del_mondo", "nome": "Tazza con scritta \"Miglior vicino del mondo\"", "categoria": "cucina", "monete": 45, "posto": "terra", "altezza": 0.35, "colori": ["#E8E1D6", "#23201F", "#F5D547"] },
+    { "id": "macchina_fotografica_polaroid_scarica", "nome": "Macchina fotografica Polaroid scarica", "categoria": "tecnologia", "monete": 90, "posto": "terra", "altezza": 0.3, "colori": ["#23201F", "#E8E1D6", "#3FB9C9"] },
+    { "id": "cubo_luminoso_viola", "nome": "Cubo luminoso viola", "categoria": "luci", "monete": 120, "posto": "terra", "altezza": 0.45, "colori": ["#A64DFF", "#23201F", "#F5D547"] },
+    { "id": "console_portatile_a_doppio_schermo", "nome": "Console portatile a doppio schermo", "categoria": "giochi", "monete": 105, "posto": "terra", "altezza": 0.3, "colori": ["#B9AFA3", "#23201F", "#3FB9C9"] },
+    { "id": "tazza_di_caffe_fumante", "nome": "Tazza di caffè fumante", "categoria": "cucina", "monete": 45, "posto": "terra", "altezza": 0.4, "colori": ["#E8433F", "#5A3A1E", "#E8E1D6"] },
+    { "id": "sveglia_digitale_a_led_rossi", "nome": "Sveglia digitale a led rossi", "categoria": "tecnologia", "monete": 75, "posto": "terra", "altezza": 0.25, "colori": ["#23201F", "#E8433F", "#B9AFA3"] },
+    { "id": "lampada_da_scrivania_a_braccio", "nome": "Lampada da scrivania a braccio", "categoria": "luci", "monete": 105, "posto": "terra", "altezza": 0.7, "colori": ["#E8E1D6", "#23201F", "#F5D547"] },
+    { "id": "boccia_con_pesce_rosso", "nome": "Boccia con pesce rosso", "categoria": "decorazioni", "monete": 90, "posto": "terra", "altezza": 0.4, "colori": ["#3FB9C9", "#F2A33A", "#F4E3C1"] },
+    { "id": "piantina_grassa_in_vaso", "nome": "Piantina grassa in vaso", "categoria": "piante", "monete": 60, "posto": "terra", "altezza": 0.35, "colori": ["#F2A33A", "#8FC35B", "#5A3A1E"] },
+    { "id": "macchina_da_scrivere_vintage", "nome": "Macchina da scrivere vintage", "categoria": "tecnologia", "monete": 135, "posto": "terra", "altezza": 0.3, "colori": ["#23201F", "#E8E1D6", "#E8433F"] }
   ]
 }
