@@ -38,7 +38,7 @@ export function creaMete(o: {
   // aperta: minigiochi delle isole a tema (Ghiacci, Giardino, Tempesta, Vulcano)
   for (const sp of o.giochi) { const sez = sezioneDi(sp.x, sp.z); targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, ...(sp.aperta ? { show: sp.aperta } : {}), ...(sez ? { sezione: sez } : {}) }); }
   // dei dungeon la bussola mostra solo il più facile non ancora completato (difficoltà invisibile, docs/RPG.md §2)
-  for (const sp of o.ingressi.spots) targets.push({ id: sp.id, label: sp.nome, icon: sp.icon, x: sp.x, z: sp.z, show: () => o.ingressi.next() === sp.id, group: 'dungeon', desc: 'Il dungeon più facile che non hai ancora sconfitto' });
+  for (const sp of o.ingressi.spots) targets.push({ id: sp.id, label: 'Prossimo dungeon', icon: sp.icon, x: sp.x, z: sp.z, show: () => o.ingressi.next() === sp.id, group: 'dungeon', desc: `Il dungeon più facile che non hai ancora sconfitto: ${sp.nome}.` });
   // nella sezione del Porto subito dopo la piazza: Mercante e Bacheca prima dei minigiochi, poi il Tabellone dei record
   targets.splice(targets.findIndex((t) => t.id === 'porto') + 1, 0, ...o.porto.map((sp): CompassTarget => ({ id: sp.id, label: sp.id === 'mercante' ? 'Mercante' : sp.id === 'contrabbando' ? 'Contrabbando' : 'Bacheca', icon: sp.id as PixId, x: sp.x, z: sp.z, sezione: 'porto' })));
   targets.splice(targets.findIndex((t) => t.id === 'bacheca') + 1, 0, ...o.amici.map((sp): CompassTarget => ({ id: sp.id, label: 'Record', icon: sp.id as PixId, x: sp.x, z: sp.z, sezione: 'porto' })));

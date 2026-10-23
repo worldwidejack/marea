@@ -51,6 +51,8 @@ export default async function (ctx) {
   await ctx.test('bussola: descrizione apribile delle mete', async () => {
     await d.page.waitForSelector('#compass .mz-mete-row[data-id="grotta"]', { timeout: 8000 });
     const grottaRow = d.page.locator('#compass .mz-mete-row[data-id="grotta"]');
+    const labelTxt = await grottaRow.locator('.nome').textContent();
+    ctx.assert(labelTxt === 'Prossimo dungeon', `etichetta inattesa: ${labelTxt}`);
     await grottaRow.locator('.mz-mete-info').click();
     const descBox = d.page.locator('#compass .mz-mete-desc[data-desc-for="grotta"]');
     await d.page.waitForFunction(() => {
@@ -58,7 +60,7 @@ export default async function (ctx) {
       return el && getComputedStyle(el).display !== 'none';
     }, null, { timeout: 4000 });
     const descTxt = await descBox.locator('.mz-mete-desc-txt').textContent();
-    ctx.assert(descTxt?.includes('Il dungeon più facile che non hai ancora sconfitto'), `testo descrizione inatteso: ${descTxt}`);
+    ctx.assert(descTxt?.includes('Il dungeon più facile che non hai ancora sconfitto: Grotta della Marea.'), `testo descrizione inatteso: ${descTxt}`);
     await ctx.shot(d.page, 'desktop_mete_desc');
     await descBox.locator('.mz-mete-desc-x').click();
     await d.page.waitForFunction(() => {
