@@ -1400,89 +1400,29 @@
         ],
         "messaggi": {
           "pranzo": {
-            "chiede": [
-              "A forza di bere bianco a stomaco vuoto vedo due moli invece di uno. Vai da {a} a chiedere se c'è un pezzo di pane e qualcosa di solido per un vecchio capitano?",
-              "La cambusa di bordo è ufficialmente deserta. Faresti una corsa da {a} per sentire se avanza una razione di rancio per me?",
-              "Se mi alzo adesso dal muretto perdo il posto migliore al sole. Passa da {a} e chiedi se mi manda due bocconi per tamponare il vino, fai il bravo."
-            ],
-            "risponde": [
-              "Di' pure a {da} che il pane non manca, ma che dovrebbe bere almeno un bicchiere d'acqua ogni tanto. Tieni, portagli questo piatto.",
-              "Figuriamoci se {da} si ricordava di fare la spesa. Ecco qua, portagli questa roba calda prima che inizi a lamentarsi.",
-              "Ah, ti manda {da}? Meno male che almeno si ricorda di mangiare. Dagli questo involto e digli di non lasciare briciole ovunque."
-            ],
-            "grazie": [
-              "Ah, benedetto te e benedetto il cuore d'oro di {a}! Adesso sì che lo stomaco tiene il mare.",
-              "Razione di bordo ricevuta! Ringrazia {a} da parte mia, questo profumino mi rimette al mondo.",
-              "Un pasto da ammiraglio! Sapevo che {a} non avrebbe lasciato morire di fame un lupo di mare in pensione."
-            ]
+            "chiede": "A forza di bere bianco a stomaco vuoto vedo due moli invece di uno. Vai da {a} a chiedere se c'è un pezzo di pane e qualcosa di solido per un vecchio capitano?",
+            "risponde": "Di' pure a {da} che il pane non manca, ma che dovrebbe bere almeno un bicchiere d'acqua ogni tanto. Tieni, portagli questo piatto.",
+            "grazie": "Ah, benedetto te e benedetto il cuore d'oro di {a}! Adesso sì che lo stomaco tiene il mare."
           },
           "prestito": {
-            "chiede": [
-              "Devo stringere un bullone lento sulla poppa prima che cada in acqua. Vai da {a} a chiedere se mi presta una chiave inglese per mezz'ora?",
-              "Mi si è sfilacciata la cima di riserva. Faresti un salto da {a} per vedere se mi presta un pezzo di corda buona o del filo di ferro?",
-              "Ho bisogno di una lanterna che faccia luce vera per controllare la stiva. Chiedi a {a} se me ne presta una fino a domani mattina?"
-            ],
-            "risponde": [
-              "Presto volentieri questa roba a {da}, ma digli che non deve usarla per prendere a martellate quel povero motore arrugginito.",
-              "Ecco quello che chiedeva {da}. Riferiscigli di riportarmelo asciutto e non in fondo al porto come l'anno scorso.",
-              "Se serve a {da} glielo do, ci mancherebbe. Basta che poi non si dimentichi dove l'ha appoggiato dopo il secondo bicchiere."
-            ],
-            "grazie": [
-              "Perfetto, proprio l'attrezzo che mi serviva! Stasera passo io da {a} a restituire il maltolto, parola di marinaio.",
-              "Grande lavoro, mozzo! Con questa roba di {a} sistemo il gozzo in quattro e quattr'otto.",
-              "Ottimo! Sapevo che {a} aveva l'attrezzatura giusta. Grazie per aver fatto da staffetta!"
-            ]
+            "chiede": "Devo stringere un bullone lento sulla poppa prima che cada in acqua. Vai da {a} a chiedere se mi presta una chiave inglese per mezz'ora?",
+            "risponde": "Presto volentieri questa roba a {da}, ma digli che non deve usarla per prendere a martellate quel povero motore arrugginito.",
+            "grazie": "Perfetto, proprio l'attrezzo che mi serviva! Stasera passo io da {a} a restituire il maltolto, parola di marinaio."
           },
           "scuse": {
-            "chiede": [
-              "Ieri sera cantando sul tardi mi sa che ho svegliato mezzo vicolo vicino a {a}. Vai tu a portare le mie scuse ufficiali prima che mi tolgano il saluto?",
-              "Ho lasciato una cassetta di esche vecchie al sole proprio sotto la finestra di {a}. Corri a dire che mi dispiace per l'odore e che passo a toglierla tra poco!",
-              "Faresti da bandiera bianca con {a}? Ieri ho esagerato con le chiacchiere e ho detto una mezza fesseria, digli che il capitano chiede venia."
-            ],
-            "risponde": [
-              "Ah, {da} ha mandato te in avanscoperta, eh? Va bene, digli che non porto rancore, ma che stanotte vorrei dormire in pace.",
-              "Accetto le scuse di {da}, ormai lo conosciamo tutti qui al borgo. Però digli di venire a spostare quella roba entro stasera!",
-              "Riferisci a {da} che per stavolta ci metto una pietra sopra, basta che non diventi un'abitudine tutte le settimane."
-            ],
-            "grazie": [
-              "Acque calme all'orizzonte! Grazie mille, temevo che {a} mi tenesse il muso fino all'inverno prossimo.",
-              "Tempesta scampata! Sei un grande, la prossima volta che vedo {a} offro un giro per farmi perdonare del tutto.",
-              "Meno male che ci sei andato tu! Con {a} avevo proprio calpestato una mina, grazie del salvataggio."
-            ]
+            "chiede": "Ieri sera cantando sul tardi mi sa che ho svegliato mezzo vicolo vicino a {a}. Vai tu a portare le mie scuse ufficiali prima che mi tolgano il saluto?",
+            "risponde": "Ah, {da} ha mandato te in avanscoperta, eh? Va bene, digli che non porto rancore, ma che stanotte vorrei dormire in pace.",
+            "grazie": "Acque calme all'orizzonte! Grazie mille, temevo che {a} mi tenesse il muso fino all'inverno prossimo."
           },
           "briscola": {
-            "chiede": [
-              "Il mare è piatto e il bicchiere è pieno: manca solo una partita a carte! Vai da {a} a chiedere se accetta una sfida a briscola sul muretto?",
-              "Ho le mani che mi prudono per una bella briscola col morto. Avvisa {a} che lo aspetto qui per dargli una lezione di strategia navale!",
-              "Visto che non si salpa, almeno giochiamo! Corri da {a} e digli che ho il mazzo pronto, chi perde pulisce la barca."
-            ],
-            "risponde": [
-              "Giocare con {da}? Quello si inventa le regole in corsa quando vede che sta perdendo! Digli che arrivo, ma i punti li conto io.",
-              "Accetto volentieri la sfida di {da}! Riferiscigli di preparare gli spiccioli perché oggi ho una fortuna sfacciata.",
-              "Dì pure a {da} che tra due minuti sono al molo. Vediamo se è più bravo coi carichi a briscola o a raccontare frottole."
-            ],
-            "grazie": [
-              "Ahah, ha abboccato all'amo! Adesso vedrai che cappotto rifilo a {a}, ho già l'asso di coppe che scalda in tasca.",
-              "Perfetto! Prepara il campo di battaglia, oggi {a} torna a casa con le pive nel sacco.",
-              "Così si fa! Grazie di aver portato l'ambasciata, contro {a} le partite sono sempre memorabili."
-            ]
+            "chiede": "Il mare è piatto e il bicchiere è pieno: manca solo una partita a carte! Vai da {a} a chiedere se accetta una sfida a briscola sul muretto?",
+            "risponde": "Giocare con {da}? Quello si inventa le regole in corsa quando vede che sta perdendo! Digli che arrivo, ma i punti li conto io.",
+            "grazie": "Ahah, ha abboccato all'amo! Adesso vedrai che cappotto rifilo a {a}, ho già l'asso di coppe che scalda in tasca."
           },
           "aiuto": {
-            "chiede": [
-              "L'onda lunga ha spostato la passerella della barca e da solo col mal di schiena non la sollevo. Chiedi a {a} se viene a darmi un colpo di reni?",
-              "Devo girare il gozzo di prua prima che si alzi il vento, ma le cime sono bagnate e pesano come il piombo. Vai a chiamare {a} per darmi una mano?",
-              "Mi è caduta l'ancora di rispetto giù nel fango basso. Senti {a} se mi aiuta a tirarla su a braccia prima che salga l'alta marea?"
-            ],
-            "risponde": [
-              "Ecco, figurati se {da} non aveva bisogno di braccia forti per quella bagnarola. Digli che arrivo subito a dargli una mano.",
-              "Riferisci a {da} di non sforzare la schiena da solo, il tempo di prendere i guanti da lavoro e sono giù da lui.",
-              "Va bene, vengo ad aiutare {da}. Digli di tener pronta la cima buona che tiriamo su tutto insieme."
-            ],
-            "grazie": [
-              "Mille grazie, marinaio! In due con {a} facciamo il lavoro in metà tempo e senza lasciarci le vertebre.",
-              "Ottima notizia! Sapevo che {a} non si tira mai indietro quando c'è da tirare una cima. Grazie della corsa!",
-              "Perfetto, rinforzi in arrivo! Grazie per aver avvisato {a}, ti sei guadagnato i gradi sul campo."
-            ]
+            "chiede": "L'onda lunga ha spostato la passerella della barca e da solo col mal di schiena non la sollevo. Chiedi a {a} se viene a darmi un colpo di reni?",
+            "risponde": "Ecco, figurati se {da} non aveva bisogno di braccia forti per quella bagnarola. Digli che arrivo subito a dargli una mano.",
+            "grazie": "Mille grazie, marinaio! In due con {a} facciamo il lavoro in metà tempo e senza lasciarci le vertebre."
           }
         }
       }
@@ -1671,89 +1611,29 @@
         ],
         "messaggi": {
           "pranzo": {
-            "chiede": [
-              "Ho una fame nera ma non posso farmi vedere in giro adesso. Vai da {a} e chiedi se è rimasto qualcosa in pentola per me?",
-              "Senti, mi fai da complice? Corri da {a} e vedi se mi allunga due bocconi al volo prima che si freddi tutto.",
-              "Se vado io da {a} mi tengono fermo mezz'ora a farmi la predica. Ci vai tu a chiedere se c'è un avanzo di pranzo?"
-            ],
-            "risponde": [
-              "Figurati se {da} non aveva fame a quest'ora. Tieni, portagli questo fagotto e digli di mangiare seduto una buona volta.",
-              "Ah, ti manda {da}? Si sente l'odore di fame da tre vicoli di distanza. Digli che c'è un piatto pronto, ma che si lavi quelle mani nere.",
-              "Sempre a correre a stomaco vuoto, {da}. Ecco qua, digli che gli ho messo da parte una porzione abbondante."
-            ],
-            "grazie": [
-              "Mitico! Sapevo che {a} non mi avrebbe lasciato a pancia vuota. Mi hai salvato il pomeriggio!",
-              "Grande! Guarda che roba, ancora tiepido. Grazie mille, con {a} hai un talento diplomatico che io mi sogno.",
-              "Oh, finalmente si ragiona! Se non andavi tu da {a} a quest'ora stavo sgranocchiando i sassi del molo."
-            ]
+            "chiede": "Ho una fame nera ma non posso farmi vedere in giro adesso. Vai da {a} e chiedi se è rimasto qualcosa in pentola per me?",
+            "risponde": "Figurati se {da} non aveva fame a quest'ora. Tieni, portagli questo fagotto e digli di mangiare seduto una buona volta.",
+            "grazie": "Mitico! Sapevo che {a} non mi avrebbe lasciato a pancia vuota. Mi hai salvato il pomeriggio!"
           },
           "prestito": {
-            "chiede": [
-              "Mi serve un rotolo di spago robusto per un lavoretto segreto. Chiedi a {a} se me ne presta un pezzo senza fare troppe domande?",
-              "Ho rotto il temperino cercando di aprire una cozza gigante. Vai da {a} a sentire se mi presta un attrezzo un secondo?",
-              "Potresti fare un salto da {a}? Mi aveva promesso in prestito quella scatola di latta per metterci le mie esche, ma se vado io non me la molla più."
-            ],
-            "risponde": [
-              "Un prestito a {da}? Speriamo non mi torni indietro coperto di catrame come l'ultima volta. Tieni, digli di averne cura.",
-              "Se lo chiede {da} ci sarà sotto qualche pasticcio dei suoi, poco ma sicuro. Va bene, digli pure che glielo presto fino a stasera.",
-              "Ecco qua quello che cercava {da}. Mi raccomando, riferiscigli che lo voglio indietro intero e non smontato in quindici pezzi."
-            ],
-            "grazie": [
-              "Perfetto! Giuro che a {a} lo riporto più lucido di prima. Forse. Grazie del favore!",
-              "Sei un fenomeno! Adesso posso finire la mia costruzione segreta al molo. Poi passo io da {a} a restituire tutto.",
-              "Forte, te l'ha dato davvero! {a} con me fa sempre mille storie, meno male che ci sei andato tu."
-            ]
+            "chiede": "Mi serve un rotolo di spago robusto per un lavoretto segreto. Chiedi a {a} se me ne presta un pezzo senza fare troppe domande?",
+            "risponde": "Un prestito a {da}? Speriamo non mi torni indietro coperto di catrame come l'ultima volta. Tieni, digli di averne cura.",
+            "grazie": "Perfetto! Giuro che a {a} lo riporto più lucido di prima. Forse. Grazie del favore!"
           },
           "scuse": {
-            "chiede": [
-              "Ho combinato un mezzo guaio col pallone vicino a casa di {a}. Vai tu a tastare il terreno e a dire che mi dispiace tantissimo?",
-              "Mi sa che prima correndo ho rovesciato un secchio proprio davanti a {a}. Mi fai il favore di andare a chiedere scusa da parte mia prima che mi cerchino?",
-              "Faresti da ambasciatore di pace con {a}? Digli che quel sasso non volevo tirarlo lì e che rimedio io promesso."
-            ],
-            "risponde": [
-              "Ah, ecco chi era stato! E {da} manda te invece di metterci la faccia? Va bene, per stavolta passa, ma digli di guardare dove mette i piedi.",
-              "Sapevo che c'era lo zampino di {da}. Riferiscigli che accetto le scuse, però la prossima volta gli faccio ripulire tutto il vicolo.",
-              "Digli pure a {da} di non nascondersi dietro i muretti, non ho mica intenzione di mangiarmelo. Scuse accettate, ma occhio alla prossima."
-            ],
-            "grazie": [
-              "Meno male, mi hai tolto un peso! Pensavo che {a} avesse già preparato una trappola per beccarmi. Ti devo un favore grosso!",
-              "Sospiro di sollievo! Allora posso tornare a girare da quelle parti senza camuffarmi. Grazie per aver parlato con {a}!",
-              "Sei un amico vero! La prossima volta faccio più attenzione vicino a {a}, parola di mozzo."
-            ]
+            "chiede": "Ho combinato un mezzo guaio col pallone vicino a casa di {a}. Vai tu a tastare il terreno e a dire che mi dispiace tantissimo?",
+            "risponde": "Ah, ecco chi era stato! E {da} manda te invece di metterci la faccia? Va bene, per stavolta passa, ma digli di guardare dove mette i piedi.",
+            "grazie": "Meno male, mi hai tolto un peso! Pensavo che {a} avesse già preparato una trappola per beccarmi. Ti devo un favore grosso!"
           },
           "briscola": {
-            "chiede": [
-              "Ho un mazzo di carte tutte segnate dagli spruzzi di mare ma ancora buone. Chiedi a {a} se ci facciamo una briscola veloce sul muretto?",
-              "Vai da {a} e lancia la sfida ufficiale: due mani di briscola secca giù al porto, chi perde paga pegno!",
-              "Mi annoio a morte, avvisa {a} che ho già mescolato le carte e aspetto uno sfidante degno di questo nome."
-            ],
-            "risponde": [
-              "Una partita contro {da}? Quello conta le carte dai riflessi nell'acqua, lo so benissimo! Digli che accetto, ma mescolo io.",
-              "Riferisci a {da} che tra cinque minuti sono là e che si prepari a perdere tutti i suoi tappi di bottiglia a briscola.",
-              "Accetto la sfida di {da}, ci mancherebbe! Digli di non barare col carico di denari come fa sempre."
-            ],
-            "grazie": [
-              "Grande! Adesso preparo il tavolo sulla cassa del pesce e faccio vedere a {a} chi comanda col tre di bastoni.",
-              "Andata! Vedrai che stracciata rifilo a {a} oggi, mi sento fortunatissimo.",
-              "Perfetto, grazie! Se vinco contro {a} facciamo a metà del bottino di tappi, promesso."
-            ]
+            "chiede": "Ho un mazzo di carte tutte segnate dagli spruzzi di mare ma ancora buone. Chiedi a {a} se ci facciamo una briscola veloce sul muretto?",
+            "risponde": "Una partita contro {da}? Quello conta le carte dai riflessi nell'acqua, lo so benissimo! Digli che accetto, ma mescolo io.",
+            "grazie": "Grande! Adesso preparo il tavolo sulla cassa del pesce e faccio vedere a {a} chi comanda col tre di bastoni."
           },
           "aiuto": {
-            "chiede": [
-              "Si è incastrata una cima grossa tra gli scogli bassi e da solo non riesco a tirarla su. Chiedi a {a} se viene a darmi una mano?",
-              "Ho trovato una tavola di legno bellissima portata dalla marea, ma pesa un quintale. Senti {a} se mi aiuta a trascinarla fino al secco?",
-              "Mi è caduto il coltellino in una fessura stretta dove non ci passo col braccio. Vai a chiamare {a} che magari troviamo il modo di recuperarlo?"
-            ],
-            "risponde": [
-              "In cosa si è cacciato stavolta {da}? Va bene, digli di non toccare niente e di aspettarmi lì che arrivo subito.",
-              "Sempre a trafficare con roba più grossa di lui, {da}. Riferiscigli che vengo a dargli una mano appena poso queste cose.",
-              "D'accordo, dì pure a {da} che ci penso io ad aiutarlo, basta che non si sporga troppo dagli scogli bagnati."
-            ],
-            "grazie": [
-              "Grandissimo! Con l'aiuto di {a} tiriamo fuori tutto in due minuti netti. Grazie per la corsa!",
-              "Fiuu, da solo ci avrei messo fino a domani mattina. Grazie di aver avvisato {a}!",
-              "Ottimo! Sapevo che su {a} si poteva contare per i lavori pesanti. Grazie mille!"
-            ]
+            "chiede": "Si è incastrata una cima grossa tra gli scogli bassi e da solo non riesco a tirarla su. Chiedi a {a} se viene a darmi una mano?",
+            "risponde": "In cosa si è cacciato stavolta {da}? Va bene, digli di non toccare niente e di aspettarmi lì che arrivo subito.",
+            "grazie": "Grandissimo! Con l'aiuto di {a} tiriamo fuori tutto in due minuti netti. Grazie per la corsa!"
           }
         }
       }
@@ -1936,89 +1816,29 @@
         ],
         "messaggi": {
           "pranzo": {
-            "chiede": [
-              "Ho preparato una teglia di pasta al forno che basta per un reggimento. Vai da {a} e dì di venire subito a prendersene una fetta prima che io mi offenda!",
-              "Ho visto {a} passare stamattina con una cera pallida che non mi piace per niente. Corri a dire che ho pronto un piatto di gnocchi fumanti col ragù!",
-              "Il brodo è in tavola e non ammetto ritardi! Fila a chiamare {a} e riferisci che se si fredda la minestra poi sono guai seri."
-            ],
-            "risponde": [
-              "Oddio, se rifiuto il pranzo di {da} mi toglie il saluto per dieci anni! Riferisci pure che arrivo di corsa con la forchetta in mano.",
-              "Un invito a pranzo da {da}? Prepariamoci a non riuscire ad alzarci dalla sedia fino a domani. Dì pure che accetto volentieri e ringrazio!",
-              "Ah, ti manda {da}! Sentivo il profumo fin qui. Torna pure a dire che sto arrivando, ho giusto lo spazio per una porzione abbondante."
-            ],
-            "grazie": [
-              "Bravo tesoro! Così mi preparo a scodellare per {a}, e per premio adesso mangi due polpette anche tu senza fiatare.",
-              "Meno male che ci sei andato tu! Almeno so che {a} oggi mette nello stomaco qualcosa di cristiano. Grazie mille!",
-              "Perfetto! Nessuno dice di no alla mia cucina, e {a} lo sa benissimo. Grazie per aver fatto la commissione!"
-            ]
+            "chiede": "Ho preparato una teglia di pasta al forno che basta per un reggimento. Vai da {a} e dì di venire subito a prendersene una fetta prima che io mi offenda!",
+            "risponde": "Oddio, se rifiuto il pranzo di {da} mi toglie il saluto per dieci anni! Riferisci pure che arrivo di corsa con la forchetta in mano.",
+            "grazie": "Bravo tesoro! Così mi preparo a scodellare per {a}, e per premio adesso mangi due polpette anche tu senza fiatare."
           },
           "prestito": {
-            "chiede": [
-              "Ho tutte le mie pentole sui fornelli e mi manca una pirofila grande per il dolce. Vai da {a} a chiedere se me ne presta una per stasera?",
-              "Devo legare tre arrosti giganti e ho finito lo spago da cucina. Faresti un salto da {a} per sentire se me ne presta un gomitolo?",
-              "Mi serve il mortaio pesante per pestare il sale grosso e le erbe. Chiedi a {a} se me lo presta un'oretta prima che butti giù la pasta?"
-            ],
-            "risponde": [
-              "A {da} presto tutto quello che vuole, basta che poi me lo riporti pieno di biscotti come fa sempre! Tieni, portaglielo subito.",
-              "Se serve per la cucina di {da} non si discute nemmeno! Ecco qua, dì pure che può tenerlo finché non ha finito di cucinare.",
-              "Figurati se dico di no a {da}! Consegno tutto a te, ma riferisci che in cambio mi prenoto per gli assaggi di stasera."
-            ],
-            "grazie": [
-              "Che meraviglia! Sapevo che {a} mi avrebbe salvato la ricetta in tempo. Quando sforno ne mando una parte anche di là!",
-              "Eccolo qua, proprio quello che mi serviva! Ringrazia tanto {a}, stasera restituisco tutto lavato e col profumo di buono.",
-              "Sei stato un fulmine! Grazie a te e a {a} il pranzo di oggi è salvo, ti sei meritato una fetta doppia."
-            ]
+            "chiede": "Ho tutte le mie pentole sui fornelli e mi manca una pirofila grande per il dolce. Vai da {a} a chiedere se me ne presta una per stasera?",
+            "risponde": "A {da} presto tutto quello che vuole, basta che poi me lo riporti pieno di biscotti come fa sempre! Tieni, portaglielo subito.",
+            "grazie": "Che meraviglia! Sapevo che {a} mi avrebbe salvato la ricetta in tempo. Quando sforno ne mando una parte anche di là!"
           },
           "scuse": {
-            "chiede": [
-              "Stamattina arrostivo i peperoni sul balcone e il fumo nero è andato dritto verso le finestre di {a}. Vai a chiedere scusa da parte mia e dì che rimedio con una crostata?",
-              "Ieri ho sgridato {a} perché pensavo avesse lasciato il portone aperto col vento, e invece era stato il gatto. Vai tu a portare le mie scuse prima che mi senta in colpa?",
-              "Nella fretta di ritirare le tovaglie ho fatto cadere un vaso proprio vicino a {a}. Corri a dire che mi dispiace tantissimo e che passo io a sistemare!"
-            ],
-            "risponde": [
-              "Ma figuriamoci se me la prendo con {da}! Riferisci pure di stare tranquillissima, basta una fetta di torta e siamo più amici di prima.",
-              "Accetto le scuse di {da} a occhi chiusi, chi avrebbe il coraggio di tenerle il broncio? Dì pure che è già tutto dimenticato!",
-              "Ah, era stata {da}? Allora ha il permesso speciale! Torna pure a dirle che non è successo niente di grave e di non preoccuparsi."
-            ],
-            "grazie": [
-              "Oh, mi hai tolto un macigno dallo stomaco! Con {a} mi dispiaceva proprio aver fatto confusione. Grazie di cuore, tesoro!",
-              "Sospiro di sollievo! Allora domani porto a {a} un vassoio di paste fresche per sigillare la pace. Grazie del favore!",
-              "Bravo, hai parlato proprio bene! Sapevo che {a} ha un cuore grande e non porta rancore. Grazie mille!"
-            ]
+            "chiede": "Stamattina arrostivo i peperoni sul balcone e il fumo nero è andato dritto verso le finestre di {a}. Vai a chiedere scusa da parte mia e dì che rimedio con una crostata?",
+            "risponde": "Ma figuriamoci se me la prendo con {da}! Riferisci pure di stare tranquillissima, basta una fetta di torta e siamo più amici di prima.",
+            "grazie": "Oh, mi hai tolto un macigno dallo stomaco! Con {a} mi dispiaceva proprio aver fatto confusione. Grazie di cuore, tesoro!"
           },
           "briscola": {
-            "chiede": [
-              "Ho finito di sparecchiare e ho giusto mezz'ora prima di impastare il pane. Vai da {a} a chiedere se viene a farsi una briscola veloce al tavolo di cucina?",
-              "Chiedi a {a} se ha il coraggio di sfidarmi a briscola! Chi vince si prende l'ultimo barattolo di marmellata di fichi, chi perde sbuccia le cipolle.",
-              "Mi ci vuole una bella partita a carte per digerire! Corri da {a} e dì che ho già messo il mazzo sul centrino, aspetto solo lo sfidante."
-            ],
-            "risponde": [
-              "Giocare a briscola contro {da} è pericolosissimo: se le prendi il tre di briscola ti guarda col mattarello in mano! Dì pure che accetto e arrivo.",
-              "Una sfida sul tavolo di {da}? Non mancherei per nulla al mondo, soprattutto se c'è in palio la marmellata! Riferisci che sono già per strada.",
-              "Accetto volentieri l'invito di {da}! Dì di preparare le carte e i bicchierini di rosolio che tra due minuti bussano alla porta."
-            ],
-            "grazie": [
-              "Perfetto! Prepara le sedie che oggi a {a} faccio vedere come si gioca di fino con gli assi nella manica.",
-              "Che bella notizia! Con {a} vengono fuori certe partite tirate fino all'ultima carta. Grazie di essere andato!",
-              "Benissimo! Adesso tiro fuori anche i cantucci secchi, così intanto che batto {a} a carte sgranocchiamo qualcosa."
-            ]
+            "chiede": "Ho finito di sparecchiare e ho giusto mezz'ora prima di impastare il pane. Vai da {a} a chiedere se viene a farsi una briscola veloce al tavolo di cucina?",
+            "risponde": "Giocare a briscola contro {da} è pericolosissimo: se le prendi il tre di briscola ti guarda col mattarello in mano! Dì pure che accetto e arrivo.",
+            "grazie": "Perfetto! Prepara le sedie che oggi a {a} faccio vedere come si gioca di fino con gli assi nella manica."
           },
           "aiuto": {
-            "chiede": [
-              "Mi hanno consegnato un sacco di farina da cinquanta chili davanti all'uscio e da sola non posso sollevarlo. Chiedi a {a} se viene a darmi una mano a portarlo in dispensa?",
-              "Devo spostare la damigiana dell'olio nuovo giù nello scantinato prima che prenda luce. Vai a chiamare {a} per aiutarmi nei gradini stretti?",
-              "Il coperchio del barattolone delle olive si è incastrato che sembra saldato col fuoco. Senti {a} se passa un attimo a darmi un giro di polso?"
-            ],
-            "risponde": [
-              "Per la cucina di {da} si corre subito! Dì pure di non provare assolutamente a sollevare pesi da sola, arrivo io tra un minuto.",
-              "Ci mancherebbe altro, vengo subito a dare una mano a {da}! Riferisci di aspettarmi sulla porta che faccio io la fatica.",
-              "D'accordo! Dì a {da} che arrivo al volo, per chi sfama tutto il borgo questo e altro!"
-            ],
-            "grazie": [
-              "Sia lodato il cielo! Con l'aiuto di {a} sistemiamo tutto senza che mi venga il colpo della strega. Grazie, tesoro!",
-              "Ottimo! Sapevo che su {a} si può sempre fare affidamento per i lavori di fatica. Grazie per aver corso fin là!",
-              "Mille grazie! Appena {a} finisce di darmi una mano, preparo una merenda rinforzata per tutti e due."
-            ]
+            "chiede": "Mi hanno consegnato un sacco di farina da cinquanta chili davanti all'uscio e da sola non posso sollevarlo. Chiedi a {a} se viene a darmi una mano a portarlo in dispensa?",
+            "risponde": "Per la cucina di {da} si corre subito! Dì pure di non provare assolutamente a sollevare pesi da sola, arrivo io tra un minuto.",
+            "grazie": "Sia lodato il cielo! Con l'aiuto di {a} sistemiamo tutto senza che mi venga il colpo della strega. Grazie, tesoro!"
           }
         }
       }

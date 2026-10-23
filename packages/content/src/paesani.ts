@@ -38,7 +38,7 @@ export type PaesanoFavori = {
   /** Il premio: monete o un mobile. */
   monete: string[]; mobile: string[];
   /** «Vai a dire a {a} che…»: chi chiede, cosa risponde chi lo riceve (con {da}), il grazie di chi l'ha chiesto quando torni. */
-  messaggi: Record<MessaggioTipo, { chiede: MessaggioBattute; risponde: MessaggioBattute; grazie: MessaggioBattute }>;
+  messaggi: Record<MessaggioTipo, { chiede: string; risponde: string; grazie: string }>;
 };
 export type PaesanoDef = {
   /** Come lo chiamano gli altri nelle frasi ({a}, {da}). */
