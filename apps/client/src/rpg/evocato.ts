@@ -31,7 +31,7 @@ export function createEvocato(o: { world: GameWorld; loader: Loader }): Evocato 
   function carica(t: string): void {
     tipo = t; pronto = false; root.clear();
     const model = ENEMIES.find((e) => e.id === t)?.model ?? 'nem_lupo';
-    void object(o.loader, model, () => boxes(FORME[model] ?? FORME['nem_lupo']!)).then((m) => {
+    void o.loader.extend('manifest_rpg.json').then(() => object(o.loader, model, () => boxes(FORME[model] ?? FORME['nem_lupo']!))).then((m) => { // fuori dal dungeon i modelli RPG non sono ancora nel manifest
       if (tipo !== t) return;
       for (const mt of materialsOf(m)) { mt.color.lerp(NEON, 0.6); mt.transparent = true; mt.opacity = 0.85; } // come gli alleati nel dungeon
       root.add(m); pronto = true;

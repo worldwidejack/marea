@@ -79,6 +79,10 @@ export const LANCIA_TICKS = Math.round(0.35 * HZ);
 export const BEVE_TICKS = Math.round(0.5 * HZ);
 /** Alleato evocato: compare a questa distanza davanti e resta entro questa distanza dall'eroe se non ha bersagli. */
 export const ALLEATO_SEGUE = 2.5;
+/** Nemico in caccia contro un'evocazione: quella già puntata conta come se fosse a questa frazione della distanza, e si lascia solo oltre
+ *  questa frazione della vista. */
+export const PUNTA_SEGUE = 0.7;
+export const PUNTA_RESTA = 1.3;
 /** Pugni (arma rotta o nessuna arma): ripiego se RunHero non li descrive. */
 export const PUGNI = { danno: 4, tempo: 0.5, portata: 1.1, carica: 0.8, caricaMolt: 1.6 } as const;
 /** Monete per colpo dell'arco d'oro e per colpo preso con l'armatura d'oro. */

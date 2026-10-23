@@ -9,6 +9,7 @@ import { ALTEZZA_BERSAGLIO, HZ } from './tuning.ts';
 import { spingi } from './vento.ts';
 import { effettiMagia, guidaFreccia } from './perk.ts';
 import { scoppio } from './magie.ts';
+import { tiroSuAlleato } from './contro_alleati.ts';
 import { colpisciEroe as colpoPvp, eroeToccato, eroiNelCerchio, ostile } from './pvp.ts';
 
 const MARGINE = 0.15;
@@ -108,6 +109,7 @@ function muovi(s: DungeonState): void {
         fine = true; break;
       }
       if (p.y > ALTEZZA_BERSAGLIO) continue;
+      if (p.dalNemico && tiroSuAlleato(s, p, MARGINE)) { fine = true; break; } // le evocazioni fanno da scudo
       if (p.dalNemico && multi) {
         for (const k of inGioco(s)) {
           const r = s.eroi[k]!, dx = r.hero.x - p.x, dz = r.hero.z - p.z, rr = r.runHero.raggio + MARGINE;

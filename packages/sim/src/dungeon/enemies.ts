@@ -27,6 +27,8 @@ import { stepAnello, stepAstrolabio } from './astrolabio.ts';
 import { stepForgiatore } from './forgiatore.ts';
 import { stepCustode } from './custode.ts';
 import { stepVaelen } from './vaelen.ts';
+import { areaSuAlleati, colpoSuAlleato, passoContro, puntato, scegliAlleato } from './contro_alleati.ts';
+import { giraVerso, girata, moveToward, potenza, setState } from './passi.ts';
 import { colpoCorsia, corsiaFino } from './diga.ts';
 import { brucia, scia } from './fuoco.ts';
 import { passoNemico, sanguina } from './perk.ts';
@@ -43,14 +45,10 @@ export const fisso = (e: Enemy): boolean => e.def.comportamento === 'torretta' |
 const vola = (e: Enemy): boolean => e.def.muove === 'vola';
 /** Funzione (non confronto diretto): lo stato può cambiare dentro stepFoe/stepAlly. */
 const vivo = (e: Enemy): boolean => e.st !== 'morto';
-/** Potenziato da un Chierico (Mausoleo) o da Furia: moltiplicatore del danno dei suoi colpi (1 se no). */
-const potenza = (s: DungeonState, e: Enemy): number => (e.potT !== undefined && e.potT > s.tick ? e.potM ?? 1 : 1);
 /** Potenziato da Furia: moltiplicatore di velocità di movimento e d'azione dell'alleato (1 se no). */
 const velAlleato = (s: DungeonState, e: Enemy): number => (e.potT !== undefined && e.potT > s.tick ? e.potV ?? 1 : 1);
 /** Danno di un colpo del nemico in mischia. */
 const dannoDi = (s: DungeonState, e: Enemy): number => e.def.danno * potenza(s, e);
-/** Si gira piano (scafandro del Golem-Palombaro, scudo della Sentinella): rad/s, o null se si gira di colpo. */
-const girata = (d: EnemyDef): number | null => (d.scafandro ?? d.scudo)?.gira ?? null;
 
 function refreshFlow(s: DungeonState): void {
   if (s.tick - s.flowTick < FLOW_OGNI) return;
@@ -125,27 +123,6 @@ function chase(s: DungeonState, e: Enemy, speed: number, verso: 1 | -1): void {
   }
   moveToward(s, e, tx, tz, speed);
 }
-function moveToward(s: DungeonState, e: Enemy, tx: number, tz: number, speed: number): void {
-  const dx = tx - e.x, dz = tz - e.z, d = Math.sqrt(dx * dx + dz * dz);
-  if (d < 1e-6) return;
-  let step = Math.min(d, speed * DT);
-  // Golem-Palombaro e Sentinella: si girano piano e avanzano solo dritti (più è storto, più vanno piano)
-  const gira = girata(e.def);
-  if (gira !== null) step *= Math.max(0, giraVerso(e, dx / d, dz / d, gira * DT));
-  else { e.fx = dx / d; e.fz = dz / d; }
-  if (step > 0) moveCircle(grigliaDi(s, e), e, e.fx * step, e.fz * step, e.def.raggio);
-}
-/** Gira il muso del nemico verso (ux, uz) di al massimo `a` radianti (seno e coseno in serie di Taylor, poi rinormalizza); ritorna il
- *  coseno tra il muso e la meta dopo il giro. */
-function giraVerso(e: Enemy, ux: number, uz: number, a: number): number {
-  const a2 = a * a, c = 1 - a2 / 2 + (a2 * a2) / 24;
-  if (e.fx * ux + e.fz * uz >= c) { e.fx = ux; e.fz = uz; return 1; }
-  const sn = (a - (a * a2) / 6 + (a * a2 * a2) / 120) * (e.fx * uz - e.fz * ux >= 0 ? 1 : -1);
-  const nx = e.fx * c - e.fz * sn, nz = e.fz * c + e.fx * sn, l = Math.sqrt(nx * nx + nz * nz);
-  e.fx = nx / l; e.fz = nz / l;
-  return e.fx * ux + e.fz * uz;
-}
-function setState(e: Enemy, st: Enemy['st'], dur: number): void { e.st = st; e.stT = 0; e.stDur = dur; }
 
 function startPrep(s: DungeonState, e: Enemy, tx: number, tz: number, tiro: boolean): void {
   const dx = tx - e.x, dz = tz - e.z, d = Math.sqrt(dx * dx + dz * dz);
@@ -160,19 +137,21 @@ function startPrep(s: DungeonState, e: Enemy, tx: number, tz: number, tiro: bool
   setState(e, 'prepara', secToTicks(e.def.preparazione * (e.area ? (ar ? ar.prep : BOSS_AREA_PREP) : 1)));
 }
 
-/** Fine preparazione contro l'eroe: colpo in mischia (se è ancora in portata e davanti), ad area, o proiettile. */
+/** Fine preparazione contro l'eroe (o l'evocazione che il nemico ha puntato): colpo in mischia (se è ancora in portata e davanti), ad area, o proiettile. */
 function resolveAttack(s: DungeonState, e: Enemy): void {
-  const h = s.hero, rh = s.runHero;
+  const h = s.hero, rh = s.runHero, pet = puntato(s, e);
   const dx = h.x - e.x, dz = h.z - e.z, d = Math.sqrt(dx * dx + dz * dz);
   if (e.modo === 'cura') { curaFine(s, e); return; } // Chierico a Ingranaggi
+  if (pet?.st === 'morto' && !e.area) { e.tiro = false; e.bersaglio = -1; return; } // l'evocazione puntata è caduta mentre preparava
   if (e.tiro) {
     e.tiro = false; e.mischia = false;
     if (e.def.bomba) { bombaDa(s, e); return; } // Aerostato-Spia
     const p = e.def.proiettile!;
     e.cdTiro = secToTicks(p.ricarica);
-    if (d < 1e-6) return;
+    const ax = pet ? pet.x - e.x : dx, az = pet ? pet.z - e.z : dz, al = pet ? Math.sqrt(ax * ax + az * az) : d; // verso chi è puntato
+    if (al < 1e-6) return;
     const acqua = fisso(e), lama = !!p.lama, mago = !acqua && !lama && (e.def.comportamento === 'mago' || e.def.comportamento === 'mischia'), arp = e.def.arpione;
-    const vx = (dx / d) * p.velocita, vz = (dz / d) * p.velocita;
+    const vx = (ax / al) * p.velocita, vz = (az / al) * p.velocita;
     s.proj.push({
       id: s.nextId++, tipo: acqua ? 'acqua_nemica' : lama ? 'lama_nemica' : arp ? 'arpione_nemico' : mago ? 'magia_nemica' : 'freccia_nemica', x: e.x + e.fx * (e.def.raggio + 0.1), y: MAGIA_Y, z: e.z + e.fz * (e.def.raggio + 0.1),
       vx, vy: 0, vz, g: 0, danno: p.danno * potenza(s, e), life: secToTicks(p.gittata / p.velocita), traits: {}, raggio: 0, colpiti: [],
@@ -184,11 +163,13 @@ function resolveAttack(s: DungeonState, e: Enemy): void {
   const kind = e.def.contundente ? 'contundente' : 'taglio';
   if (e.area) {
     if (e.def.geyser) geyserDa(s, e);
+    areaSuAlleati(s, e, areaRaggio(e.def), dannoDi(s, e) * (e.def.area ? e.def.area.danno : BOSS_AREA_DANNO));
     if (s.eroi.length > 1) { areaSuTutti(s, e, kind); return; }
     if (d <= areaRaggio(e.def) + rh.raggio) hitHero(s, dannoDi(s, e) * (e.def.area ? e.def.area.danno : BOSS_AREA_DANNO), kind, h.x, h.z);
     else ev(s, { t: 'schivato', x: r2(h.x), z: r2(h.z) });
     return;
   }
+  if (pet) { e.modo = undefined; e.mira = undefined; colpoSuAlleato(s, e, pet); return; }
   // Diga: la schiacciata della Guardia della Paratia prende chi sta sulla corsia (tutti gli eroi), non chi ha davanti
   if (e.def.schiacciata && e.modo === 'schiacciata') { colpoCorsia(s, e, e.def.schiacciata.largo, dannoDi(s, e), kind); e.modo = undefined; e.mira = undefined; return; }
   const dot = d > 1e-6 ? (dx * e.fx + dz * e.fz) / d : 1;
@@ -357,6 +338,8 @@ function stepFoe(s: DungeonState, e: Enemy): void {
         return;
       }
       if (fearful(s, e)) { setState(e, 'scappa', 0); return; }
+      const pet = scegliAlleato(s, e, d); // si accorge delle evocazioni: quella più vicina dell'eroe la attacca
+      if (pet) { const az = passoContro(s, e, pet); if (az) startPrep(s, e, pet.x, pet.z, az === 'tiro'); return; }
       const reach = def.portata + def.raggio + rh.raggio, p = def.proiettile;
       if (d <= reach) {
         // scafandro e scudo attaccano solo chi hanno davanti: se no si girano (piano), e intanto alle spalle li si colpisce
@@ -387,7 +370,8 @@ function stepFoe(s: DungeonState, e: Enemy): void {
         const cb = def.combo;
         if (cb && e.mischia && (e.comboN ?? 0) + 1 < cb.colpi) {
           e.comboN = (e.comboN ?? 0) + 1;
-          if (d > 1e-6) { e.fx = dx / d; e.fz = dz / d; }
+          const m = puntato(s, e) ?? h, mx = m.x - e.x, mz = m.z - e.z, ml = Math.sqrt(mx * mx + mz * mz);
+          if (ml > 1e-6) { e.fx = mx / ml; e.fz = mz / ml; }
           setState(e, 'prepara', secToTicks(cb.prep));
           return;
         }
