@@ -58,6 +58,7 @@ function dritta(f: { cosa: 'pesce' | 'insetto'; id: string }): string {
   return dove + (i.fascia === 'giorno' ? ', di giorno' : i.fascia === 'notte' ? ', di notte' : '');
 }
 const MAIUSCOLA = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const testoMsg = (v: string | readonly string[], rng: ReturnType<typeof createRng>) => (typeof v === 'string' ? v : unaDi(v, rng));
 
 export type ChiacchierataOpts = { id: string; ctx: PortoCtx; cielo: Cielo | null; cancello: boolean; ora: number; scheda: Scheda };
 
@@ -98,12 +99,12 @@ export function chiacchierata(o: ChiacchierataOpts): Pagina[] {
   switch (ev.k) {
     case 'messaggio': {
       const f = ev.favore;
-      pagine.push({ testo: riempi(V.messaggi[f.msg].risponde, { da: da(f) }), nota: `Messaggio portato: torna da ${da(f)}` });
+      pagine.push({ testo: riempi(testoMsg(V.messaggi[f.msg].risponde, rng), { da: da(f) }), nota: `Messaggio portato: torna da ${da(f)}` });
       break;
     }
     case 'fatto': {
       const f = ev.favore;
-      pagine.push({ testo: riempi(PAESANI[f.da]!.favori.messaggi[f.msg].grazie, { a: chiamato(f.a) }) });
+      pagine.push({ testo: riempi(testoMsg(PAESANI[f.da]!.favori.messaggi[f.msg].grazie, rng), { a: chiamato(f.a) }) });
       pagine.push({ testo: premioTesto(f.premio), ...(premioNota(f.premio) ? { nota: premioNota(f.premio)! } : {}) });
       break;
     }
@@ -140,7 +141,7 @@ export function chiacchierata(o: ChiacchierataOpts): Pagina[] {
 
   function richiesta(off: Offerta): Pagina {
     const testo = off.tipo === 'parla'
-      ? riempi(V.messaggi[off.msg].chiede, { a: chiamato(off.a) })
+      ? riempi(testoMsg(V.messaggi[off.msg].chiede, rng), { a: chiamato(off.a) })
       : riempi(unaDi(off.cosa === 'pesce' ? V.pesce : V.insetto, rng), { cosa: cosa(off), tempo: durataTesto(off.durata) });
     const nota = off.tipo === 'parla' ? PAESANI[off.a]?.dove ?? '' : dritta(off) + '.';
     return { testo, nota, scelte: [

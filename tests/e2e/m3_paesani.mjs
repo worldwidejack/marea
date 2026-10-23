@@ -12,7 +12,7 @@ export const timeout = 480000;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const IDS = ['nella', 'tonio', 'bice', 'gaspare', 'ada_fiori'];
+const IDS = ['nella', 'tonio', 'bice', 'gaspare', 'ada_fiori', 'remo', 'gigi', 'pina'];
 
 export default async function (ctx) {
   const { assert } = ctx;

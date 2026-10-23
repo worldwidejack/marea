@@ -1,38 +1,98 @@
 {
   "_nota": "Le chiacchiere dei paesani di Borgo Marea e i loro favori. Battute dal Word «Dialoghi personaggi» di Riccardo; le righe dei favori le ha scritte Claude nello stesso tono. Una battuta è una stringa o {t, solo?, asciutto?}: `solo` = momenti (mattina, tarda, pranzo, pomeriggio, tramonto, notte, giorno = da mattina a pomeriggio) e/o tempo (pioggia, vento) in cui si può dire; `asciutto` = mai sotto la pioggia. Segnaposto dei favori: {a} chi deve ricevere il messaggio, {da} chi lo manda, {cosa} pesce o insetto con l'articolo, {nome} senza, {tempo} quanto c'è per portarlo, {monete}, {mobile}.",
   "momenti": {
-    "mattina": [5, 10],
-    "tarda": [10, 12],
-    "pranzo": [12, 14.5],
-    "pomeriggio": [14.5, 18.5],
-    "tramonto": [18.5, 21.5],
-    "notte": [21.5, 5]
+    "mattina": [
+      5,
+      10
+    ],
+    "tarda": [
+      10,
+      12
+    ],
+    "pranzo": [
+      12,
+      14.5
+    ],
+    "pomeriggio": [
+      14.5,
+      18.5
+    ],
+    "tramonto": [
+      18.5,
+      21.5
+    ],
+    "notte": [
+      21.5,
+      5
+    ]
   },
-  "pesi": { "brutto": 4, "momento": 3, "base": 3, "stagione": 2, "lore": 1, "loreAperto": 2.5 },
+  "pesi": {
+    "brutto": 4,
+    "momento": 3,
+    "base": 3,
+    "stagione": 2,
+    "lore": 1,
+    "loreAperto": 2.5
+  },
   "secondaFrase": 0.3,
   "memoria": 14,
-  "insistente": { "finestraS": 150, "dalla": 3 },
-  "brutto": { "pioggia": 0.4, "vento": 0.9 },
+  "insistente": {
+    "finestraS": 150,
+    "dalla": 3
+  },
+  "brutto": {
+    "pioggia": 0.4,
+    "vento": 0.9
+  },
   "favori": {
     "slotMin": 20,
     "probabilita": 0.35,
     "alGiorno": 4,
     "porta": 0.55,
-    "pausaMin": { "no": 15, "fatto": 10 },
+    "pausaMin": {
+      "no": 15,
+      "fatto": 10
+    },
     "parlaMin": 60,
-    "durataMin": [60, 120],
+    "durataMin": [
+      60,
+      120
+    ],
     "passoMin": 15,
     "controlloMin": 10,
-    "rarita": ["comune", "noncomune"],
-    "zona": { "riva": 3, "barca": 1 },
+    "rarita": [
+      "comune",
+      "noncomune"
+    ],
+    "zona": {
+      "riva": 3,
+      "barca": 1
+    },
     "premio": {
-      "parla": [40, 80],
-      "porta": { "per": 1.5, "piu": 40, "min": 50, "max": 300 },
+      "parla": [
+        40,
+        80
+      ],
+      "porta": {
+        "per": 1.5,
+        "piu": 40,
+        "min": 50,
+        "max": 300
+      },
       "mobile": 0.3,
-      "mobileMax": { "parla": 150, "porta": 240 }
+      "mobileMax": {
+        "parla": 150,
+        "porta": 240
+      }
     }
   },
-  "messaggi": ["pranzo", "prestito", "scuse", "briscola", "aiuto"],
+  "messaggi": [
+    "pranzo",
+    "prestito",
+    "scuse",
+    "briscola",
+    "aiuto"
+  ],
   "articoli": {
     "ghiozzo": "un",
     "branzino": "un",
@@ -116,7 +176,15 @@
         "Una volta qui passava la corriera. Non saliva mai nessuno, ma faceva un bel rumore. Adesso c'è troppo silenzio.",
         "Cammini troppo veloce. Guarda che il Borgo finisce presto, poi ti tocca nuotare.",
         "La mia schiena sa se piove due giorni prima del telegiornale. Il telegiornale però lo pagano, a me no.",
-        {"t": "Ti guardo dalla finestra da stamattina. Fai dei giri strani, sai? Proprio senza senso.", "solo": ["tarda", "pranzo", "pomeriggio", "tramonto"]}
+        {
+          "t": "Ti guardo dalla finestra da stamattina. Fai dei giri strani, sai? Proprio senza senso.",
+          "solo": [
+            "tarda",
+            "pranzo",
+            "pomeriggio",
+            "tramonto"
+          ]
+        }
       ],
       "momenti": {
         "mattina": [
@@ -133,15 +201,24 @@
         ],
         "pomeriggio": [
           "Le quattro del pomeriggio. L'ora in cui non è più stamattina ma è ancora presto per cenare. Tempo sprecato.",
-          {"t": "Ho messo fuori la sedia all'ombra. Se si sposta il sole, mi sposto anch'io. È il mio unico sport.", "asciutto": true},
+          {
+            "t": "Ho messo fuori la sedia all'ombra. Se si sposta il sole, mi sposto anch'io. È il mio unico sport.",
+            "asciutto": true
+          },
           "A quest'ora passa sempre il vento dal mare. Porta su l'odore di alghe e le chiacchiere del porto.",
           "Hai finito di correre? Siediti sul muretto, ché mi fai venire il fiatone solo a guardarti."
         ],
         "tramonto": [
-          {"t": "Il sole va giù dietro il promontorio. Tutti a dire \"che spettacolo\". Lo fa tutti i giorni, eh, non è che si impegna.", "asciutto": true},
+          {
+            "t": "Il sole va giù dietro il promontorio. Tutti a dire \"che spettacolo\". Lo fa tutti i giorni, eh, non è che si impegna.",
+            "asciutto": true
+          },
           "Viene su l'umido. Rientra i panni se li hai stesi, altrimenti domani ti metti addosso il cartone.",
           "I lampioni si accendono sempre cinque minuti troppo tardi. Quel tanto che basta per farti inciampare nel tombino.",
-          {"t": "Il cielo è rosso. Dicono \"rosso di sera bel tempo si spera\". Io spero solo che mi passi la sciatica.", "asciutto": true}
+          {
+            "t": "Il cielo è rosso. Dicono \"rosso di sera bel tempo si spera\". Io spero solo che mi passi la sciatica.",
+            "asciutto": true
+          }
         ],
         "notte": [
           "Cosa ci fai in giro col buio? A quest'ora fuori ci sono solo i gatti e la gente con la coscienza sporca.",
@@ -158,10 +235,29 @@
           "Aprile non ti scoprire. Ma nemmeno a maggio, guarda me che ho ancora la maglia di lana."
         ],
         "estate": [
-          {"t": "Un caldo che si incollano i pensieri. Persino le cicale oggi cantano svogliate.", "solo": ["giorno"], "asciutto": true},
+          {
+            "t": "Un caldo che si incollano i pensieri. Persino le cicale oggi cantano svogliate.",
+            "solo": [
+              "giorno"
+            ],
+            "asciutto": true
+          },
           "D'estate i muri buttano fuori il caldo che hanno preso tutto il giorno. Praticamente viviamo dentro un forno a legna.",
-          {"t": "Vedi qualcuno in giro? No. Siamo tutti chiusi al buio col ventilatore puntato sulle ginocchia.", "solo": ["tarda", "pranzo", "pomeriggio"]},
-          {"t": "Il mare brilla che dà fastidio agli occhi. Mettiti un cappello, ché se ti prendi un colpo di sole qui nessuno ti porta in braccio.", "solo": ["giorno"], "asciutto": true}
+          {
+            "t": "Vedi qualcuno in giro? No. Siamo tutti chiusi al buio col ventilatore puntato sulle ginocchia.",
+            "solo": [
+              "tarda",
+              "pranzo",
+              "pomeriggio"
+            ]
+          },
+          {
+            "t": "Il mare brilla che dà fastidio agli occhi. Mettiti un cappello, ché se ti prendi un colpo di sole qui nessuno ti porta in braccio.",
+            "solo": [
+              "giorno"
+            ],
+            "asciutto": true
+          }
         ],
         "autunno": [
           "Cadono le foglie e si tappano le grondaie. Ogni anno la stessa sorpresa, come se gli alberi li avessero piantati ieri.",
@@ -177,9 +273,24 @@
         ]
       },
       "brutto": [
-        {"t": "Piove di traverso. Qui l'ombrello non serve a ripararti, serve a farti volare via come una busta della spesa.", "solo": ["pioggia"]},
-        {"t": "Senti come fischia il vento nei vicoli? Sembra che il paese stia provando a fischiare una canzone, ma è stonato.", "solo": ["vento"]},
-        {"t": "Le grondaie buttano acqua proprio in mezzo alla strada. È fatto apposta per lavarti il collo quando passi.", "solo": ["pioggia"]},
+        {
+          "t": "Piove di traverso. Qui l'ombrello non serve a ripararti, serve a farti volare via come una busta della spesa.",
+          "solo": [
+            "pioggia"
+          ]
+        },
+        {
+          "t": "Senti come fischia il vento nei vicoli? Sembra che il paese stia provando a fischiare una canzone, ma è stonato.",
+          "solo": [
+            "vento"
+          ]
+        },
+        {
+          "t": "Le grondaie buttano acqua proprio in mezzo alla strada. È fatto apposta per lavarti il collo quando passi.",
+          "solo": [
+            "pioggia"
+          ]
+        },
         "Con questo tempaccio il mare arriva fino agli scogli alti. Porta su legna vecchia e scarpe spaiate. Sempre e solo sinistre."
       ],
       "primo": [
@@ -205,7 +316,9 @@
         "Il Vuoto, l'abisso eterno... quante storie. Basta chiudere bene gli scuri la sera, il Vuoto mica c'ha le chiavi di casa."
       ],
       "favori": {
-        "preferisce": { "pesce": 0.5 },
+        "preferisce": {
+          "pesce": 0.5
+        },
         "pesce": [
           "Mi porti {cosa}? È per il gatto del muretto. Non è mio, ma ha gusti precisi. Hai {tempo}, poi lui cambia idea.",
           "Voglio {cosa}. Non chiedermi perché: a una certa età non si spiega più niente. Hai {tempo}, poi lascia stare."
@@ -298,7 +411,10 @@
         "pranzo": [
           "A mezzogiorno la barca balla sull'onda lunga. Se non hai lo stomaco forte, il pranzo lo dai in pasto alle occhiate.",
           "Io mangio pane, pomodoro e due acciughe sotto sale. Roba da re, altro che i ristoranti col tovagliolo di stoffa.",
-          {"t": "Con questo sole a picco i pesci vanno tutti sul fondo a dormire. Hanno capito tutto della vita, loro.", "asciutto": true},
+          {
+            "t": "Con questo sole a picco i pesci vanno tutti sul fondo a dormire. Hanno capito tutto della vita, loro.",
+            "asciutto": true
+          },
           "Vado a fare un pisolino sulla pila delle reti. È più comoda del mio materasso, basta non svegliarsi col segno delle maglie in faccia."
         ],
         "pomeriggio": [
@@ -309,14 +425,20 @@
         ],
         "tramonto": [
           "L'ora del calasole è la migliore per la traina. I predatori salgono a caccia e io salgo a caccia di loro.",
-          {"t": "Quando il sole tocca l'acqua, per un secondo sembra che il mare prenda fuoco. Poi si spegne tutto e fa subito freddo.", "asciutto": true},
+          {
+            "t": "Quando il sole tocca l'acqua, per un secondo sembra che il mare prenda fuoco. Poi si spegne tutto e fa subito freddo.",
+            "asciutto": true
+          },
           "Stanno rientrando i pescherecci da fuori. Contiamo i gabbiani che hanno dietro: più ce n'è, più hanno pescato.",
           "Accendo il fanale di prua. Non serve a vedere dove vado, serve a far capire agli scogli che sto arrivando."
         ],
         "notte": [
           "Di notte si esce con la lampara. Attiri i calamari con la luce. Funziona anche coi turisti in piazza, se ci pensi.",
           "Il mare di notte fa dei rumori strani. Scricchiola, sospira. Io gli dico \"stai buono\" e lui mi bagna gli stivali.",
-          {"t": "Vedi quella stella lì sopra il faro? È l'unica che conosco. Le altre per me sono tutte uguali, basta che facciano luce.", "asciutto": true},
+          {
+            "t": "Vedi quella stella lì sopra il faro? È l'unica che conosco. Le altre per me sono tutte uguali, basta che facciano luce.",
+            "asciutto": true
+          },
           "A quest'ora sul molo ci siamo solo io e i topi. Abbiamo un accordo: loro non toccano le mie esche, io non gli tiro i remi."
         ]
       },
@@ -324,19 +446,38 @@
         "primavera": [
           "In primavera l'acqua si scalda e tornano le seppie sotto costa. Sporcano tutto d'inchiostro, sembra che abbiano litigato col notaio.",
           "Ho dato una mano di vernice blu alla barca. Adesso i pesci non si spaventano, si fermano a farle i complimenti.",
-          {"t": "Aria tiepida, mare calmo. Troppo calmo. Quando il mare fa il bravo così, di solito sta preparando uno scherzo da prete.", "asciutto": true},
+          {
+            "t": "Aria tiepida, mare calmo. Troppo calmo. Quando il mare fa il bravo così, di solito sta preparando uno scherzo da prete.",
+            "asciutto": true
+          },
           "Ieri ho tirato su un ramo fiorito con la rete. A mezzo miglio dalla costa. Il mare si sta mettendo i fiori all'occhiello."
         ],
         "estate": [
-          {"t": "D'estate il porto si riempie di gente col canotto a forma di fenicottero. Io li guardo e penso che Poseidone ha troppa pazienza.", "solo": ["giorno"]},
-          {"t": "Fa così caldo che il pesce arriva sul molo già mezzo cotto. Risparmiamo sull'olio.", "solo": ["giorno"]},
+          {
+            "t": "D'estate il porto si riempie di gente col canotto a forma di fenicottero. Io li guardo e penso che Poseidone ha troppa pazienza.",
+            "solo": [
+              "giorno"
+            ]
+          },
+          {
+            "t": "Fa così caldo che il pesce arriva sul molo già mezzo cotto. Risparmiamo sull'olio.",
+            "solo": [
+              "giorno"
+            ]
+          },
           "L'acqua è un brodo. Per trovare una corrente fresca devi scendere a trenta metri, dove i saraghi si fanno il vento con le pinne.",
           "Ho il segno della canottiera abbronzato sulla pelle dal milleottocento. Se me la tolgo al buio, sembro ancora vestito."
         ],
         "autunno": [
           "Ottobre, tempo di lampughe. Corrono sotto i legni galleggianti. Basta un pezzo di sughero e fai la giornata.",
           "Le prime mareggiate puliscono il porto. Portano via la plastica dell'estate e lasciano solo il sale sui vetri.",
-          {"t": "C'è una nebbiolina sul pelo dell'acqua stamattina. Sembra di navigare dentro una zuppa di latte.", "solo": ["mattina", "tarda"]},
+          {
+            "t": "C'è una nebbiolina sul pelo dell'acqua stamattina. Sembra di navigare dentro una zuppa di latte.",
+            "solo": [
+              "mattina",
+              "tarda"
+            ]
+          },
           "Ho tirato fuori la cerata gialla dall'armadio. Puzza di chiuso e di gasolio, il mio profumo preferito."
         ],
         "inverno": [
@@ -347,10 +488,30 @@
         ]
       },
       "brutto": [
-        {"t": "Piove sul mare. A me fa sempre ridere: tutta quell'acqua che cade dentro altra acqua. Che spreco di fatica.", "solo": ["pioggia"]},
-        {"t": "Questo libeccio spacca gli ormeggi. Senti come sbattono gli alberi delle barche? Sembrano le campane a morto.", "solo": ["vento"]},
-        {"t": "Quando l'acqua dolce della pioggia tocca il mare, le spigole impazziscono vicino alla foce. Prendi la canna, muoviti!", "solo": ["pioggia"]},
-        {"t": "Ho l'acqua dentro gli stivali, dentro il cappuccio e pure nelle orecchie. Praticamente sono diventato un acquario.", "solo": ["pioggia"]}
+        {
+          "t": "Piove sul mare. A me fa sempre ridere: tutta quell'acqua che cade dentro altra acqua. Che spreco di fatica.",
+          "solo": [
+            "pioggia"
+          ]
+        },
+        {
+          "t": "Questo libeccio spacca gli ormeggi. Senti come sbattono gli alberi delle barche? Sembrano le campane a morto.",
+          "solo": [
+            "vento"
+          ]
+        },
+        {
+          "t": "Quando l'acqua dolce della pioggia tocca il mare, le spigole impazziscono vicino alla foce. Prendi la canna, muoviti!",
+          "solo": [
+            "pioggia"
+          ]
+        },
+        {
+          "t": "Ho l'acqua dentro gli stivali, dentro il cappuccio e pure nelle orecchie. Praticamente sono diventato un acquario.",
+          "solo": [
+            "pioggia"
+          ]
+        }
       ],
       "primo": [
         "Oh, guarda chi si vede, un marinaio d'acqua dolce! Si vede da come cammini sul molo: tieni i piedi troppo uniti.",
@@ -377,7 +538,9 @@
         "Da quando quel Portale è aperto, la bassa marea scopre degli scogli neri che prima non c'erano. Ci fanno delle patelle grosse come piatti, però sanno di ferro vecchio."
       ],
       "favori": {
-        "preferisce": { "pesce": 0.8 },
+        "preferisce": {
+          "pesce": 0.8
+        },
         "pesce": [
           "Oggi non abbocca niente, e mia suocera vuole {cosa}. Ci pensi tu? Hai {tempo}, poi arriva lei.",
           "Ho scommesso con quelli del bar che anche un marinaio d'acqua dolce riesce a prendere {cosa}. Fammi vincere. Hai {tempo}.",
@@ -483,7 +646,10 @@
         "tramonto": [
           "Adesso si accendono le lucine dei festoni. C'è sempre una lampadina bruciata in mezzo alla fila. Sempre. Mi rovina la serata.",
           "È l'ora del passeggio. Tutti che si mettono il vestito bello per fare cinquanta metri dalla piazza al molo e ritorno.",
-          {"t": "L'acqua della fontana al tramonto sembra rosa. L'ho assaggiata per vedere se sapeva di fragola. Sa di tubo di ferro, come sempre.", "asciutto": true},
+          {
+            "t": "L'acqua della fontana al tramonto sembra rosa. L'ho assaggiata per vedere se sapeva di fragola. Sa di tubo di ferro, come sempre.",
+            "asciutto": true
+          },
           "Rientro l'innaffiatoio. Se lo lascio fuori di notte, qualcuno ci inciampa e poi dà la colpa a me."
         ],
         "notte": [
@@ -501,10 +667,25 @@
           "L'aria profuma di zagara e di detersivo al limone. Metà è merito della natura, metà è merito mio."
         ],
         "estate": [
-          {"t": "Con questo caldo i vasi bevono più degli avventori del bar. Faccio avanti e indietro dalla fontana con due secchi che sembro un mulo.", "asciutto": true},
+          {
+            "t": "Con questo caldo i vasi bevono più degli avventori del bar. Faccio avanti e indietro dalla fontana con due secchi che sembro un mulo.",
+            "asciutto": true
+          },
           "Bello l'estate, tutti fuori nei vicoli sotto i festoni fino a tardi! Poi però al mattino trovo le carte dei gelati nelle fioriere.",
-          {"t": "Ho buttato tre secchiate d'acqua sulle pietre del vicolo per rinfrescare. Dura due minuti, poi evapora e fa effetto sauna.", "solo": ["giorno"], "asciutto": true},
-          {"t": "Non camminare scalzo che la pietra scotta! E soprattutto, poi mi entri in casa coi piedi neri!", "solo": ["giorno"], "asciutto": true}
+          {
+            "t": "Ho buttato tre secchiate d'acqua sulle pietre del vicolo per rinfrescare. Dura due minuti, poi evapora e fa effetto sauna.",
+            "solo": [
+              "giorno"
+            ],
+            "asciutto": true
+          },
+          {
+            "t": "Non camminare scalzo che la pietra scotta! E soprattutto, poi mi entri in casa coi piedi neri!",
+            "solo": [
+              "giorno"
+            ],
+            "asciutto": true
+          }
         ],
         "autunno": [
           "Le foglie secche. Io le spazzo a destra, il vento le riporta a sinistra. È una guerra tra me e l'autunno, e per ora vince lui.",
@@ -520,10 +701,30 @@
         ]
       },
       "brutto": [
-        {"t": "Piove! Meno male, così oggi non devo innaffiare. Cioè, innaffio lo stesso quelli sotto i balconi che non prendono acqua. Non si scappa.", "solo": ["pioggia"]},
-        {"t": "Questo vento mi sta attorcigliando tutte le lenzuola stese! Sembrano dei fantasmi che fanno a botte!", "solo": ["vento"]},
-        {"t": "Quando piove forte l'acqua scende a fiume per i vicoli. Porta giù tutta la polvere verso il mare. L'unica volta che il cielo mi dà una mano.", "solo": ["pioggia"]},
-        {"t": "Pulisci bene le scarpe sullo zerbino prima di entrare! Con questo fango ci manca solo che mi semini le patate in salotto.", "solo": ["pioggia"]}
+        {
+          "t": "Piove! Meno male, così oggi non devo innaffiare. Cioè, innaffio lo stesso quelli sotto i balconi che non prendono acqua. Non si scappa.",
+          "solo": [
+            "pioggia"
+          ]
+        },
+        {
+          "t": "Questo vento mi sta attorcigliando tutte le lenzuola stese! Sembrano dei fantasmi che fanno a botte!",
+          "solo": [
+            "vento"
+          ]
+        },
+        {
+          "t": "Quando piove forte l'acqua scende a fiume per i vicoli. Porta giù tutta la polvere verso il mare. L'unica volta che il cielo mi dà una mano.",
+          "solo": [
+            "pioggia"
+          ]
+        },
+        {
+          "t": "Pulisci bene le scarpe sullo zerbino prima di entrare! Con questo fango ci manca solo che mi semini le patate in salotto.",
+          "solo": [
+            "pioggia"
+          ]
+        }
       ],
       "primo": [
         "Ah, sei tu quello nuovo! Benvenuto. Ti ho già tolto le ragnatele dalla cassetta della posta, mi facevano impressione. Non c'è di che.",
@@ -548,7 +749,9 @@
         "L'aria che esce da quel Vuoto è gelida, però asciuga i panni in dieci minuti netti. Quasi quasi porto lo stendibiancheria davanti al Portale."
       ],
       "favori": {
-        "preferisce": { "pesce": 0.5 },
+        "preferisce": {
+          "pesce": 0.5
+        },
         "pesce": [
           "Stasera vengono a cena i cugini e il pescivendolo è chiuso. Mi porti {cosa}? A pulire ci penso io, ché tu sporchi e basta. Hai {tempo}.",
           "Mi serve {cosa} per la zuppa della festa. La zuppa la faccio io, come tutto il resto. Tu porta solo quello. Hai {tempo}."
@@ -648,10 +851,16 @@
           "Il pomeriggio è lungo come un lunedì senza pensione. Mi metto sulla panchina a guardare i cantieri. Anche se non c'è nessun cantiere aperto.",
           "Ho contato le auto che passano in un'ora. Tre. Di cui una è la mia che è parcheggiata lì ferma dal giovedì.",
           "Se vedi dei ragazzi che urlano in fondo al vicolo, digli di abbassare la voce che c'è chi cerca di riposare le palpebre.",
-          {"t": "Il sole picchia d'infilata sulla piazza. Non si può stare né al sole né all'ombra, c'è una via di mezzo che è scomoda apposta.", "asciutto": true}
+          {
+            "t": "Il sole picchia d'infilata sulla piazza. Non si può stare né al sole né all'ombra, c'è una via di mezzo che è scomoda apposta.",
+            "asciutto": true
+          }
         ],
         "tramonto": [
-          {"t": "Il tramonto dietro i tetti. Colore arancione scuro, come la ruggine sui cancelli vecchi.", "asciutto": true},
+          {
+            "t": "Il tramonto dietro i tetti. Colore arancione scuro, come la ruggine sui cancelli vecchi.",
+            "asciutto": true
+          },
           "A quest'ora escono tutti i pensionati a presidiare gli angoli strategici della via principale. È il nostro comitato di sorveglianza.",
           "Fa freddo subito, appena cala il sole. L'umidità sale dai tombini e ti va dritta nelle ginocchia buone.",
           "La giornata è andata. Non hai combinato niente di buono, scommetto. Vabbè, domani hai un'altra occasione per fare lo stesso."
@@ -690,10 +899,30 @@
         ]
       },
       "brutto": [
-        {"t": "Piove. E quando piove in questo Borgo, i tombini si otturano con le foglie che Bice non ha spazzato bene.", "solo": ["pioggia"]},
-        {"t": "Questo vento ti sposta i pensieri dalla testa. Tieniti stretto il cappello se non vuoi vederlo volare fino al campanile.", "solo": ["vento"]},
-        {"t": "La strada diventa uno scivolo di fango e ghiaia. Perfetto per chi ha voglia di rompersi il femore senza sforzo.", "solo": ["pioggia"]},
-        {"t": "Con la pioggia forte la piazza si svuota del tutto. Finalmente un po' di silenzio e nessuno che mi rompe le scatole.", "solo": ["pioggia"]}
+        {
+          "t": "Piove. E quando piove in questo Borgo, i tombini si otturano con le foglie che Bice non ha spazzato bene.",
+          "solo": [
+            "pioggia"
+          ]
+        },
+        {
+          "t": "Questo vento ti sposta i pensieri dalla testa. Tieniti stretto il cappello se non vuoi vederlo volare fino al campanile.",
+          "solo": [
+            "vento"
+          ]
+        },
+        {
+          "t": "La strada diventa uno scivolo di fango e ghiaia. Perfetto per chi ha voglia di rompersi il femore senza sforzo.",
+          "solo": [
+            "pioggia"
+          ]
+        },
+        {
+          "t": "Con la pioggia forte la piazza si svuota del tutto. Finalmente un po' di silenzio e nessuno che mi rompe le scatole.",
+          "solo": [
+            "pioggia"
+          ]
+        }
       ],
       "primo": [
         "Tu sei quello nuovo che ha preso la casa in fondo al vicolo. Non fare rumore la notte, che ho il sonno leggero e una mira eccellente col bastone.",
@@ -718,7 +947,9 @@
         "Il Custode del Vuoto dice che ci distruggerà tutti? Prima deve passare attraverso il mio controllo del vicolo, e ti assicuro che è peggio lui."
       ],
       "favori": {
-        "preferisce": { "pesce": 0.5 },
+        "preferisce": {
+          "pesce": 0.5
+        },
         "pesce": [
           "Ai miei tempi {cosa} si prendeva con le mani. Adesso voglio vedere se ci riesci tu, con tutti i tuoi aggeggi. Hai {tempo}.",
           "Mi porti {cosa}? Il medico dice pesce due volte a settimana. Io lo faccio una volta sola, ma bene. Hai {tempo}."
@@ -811,7 +1042,10 @@
         "pranzo": [
           "A mezzogiorno le piante vanno in pausa di traspirazione. Stanno lì all'ombra a non fare niente, invidiose dei cristiani che mangiano.",
           "Io mi siedo sotto il tiglio secolare a mangiare un panino con la frittata di erbette. Le radici mi fanno da poggiapiedi.",
-          {"t": "Il sole a picco brucia le punte delle foglie tenere. Bisogna bagnare solo alla base, altrimenti si scottano come i turisti sulla spiaggia.", "asciutto": true},
+          {
+            "t": "Il sole a picco brucia le punte delle foglie tenere. Bisogna bagnare solo alla base, altrimenti si scottano come i turisti sulla spiaggia.",
+            "asciutto": true
+          },
           "Silenzio. Le piante stanno bevendo. Non fare baccano con le scarpe sulla ghiaia."
         ],
         "pomeriggio": [
@@ -823,7 +1057,10 @@
         "tramonto": [
           "Il profumo del gelsomino si attiva adesso. Si vede che di giorno si vergogna e aspetta il buio per farsi notare.",
           "Chiudo la serra. Le piantine delicate soffrono l'escursione termica della sera. Hanno la pelle più delicata della tua.",
-          {"t": "Il cielo diventa verde chiaro dietro le colline, prima di farsi scuro. È il colore della clorofilla che va a dormire.", "asciutto": true},
+          {
+            "t": "Il cielo diventa verde chiaro dietro le colline, prima di farsi scuro. È il colore della clorofilla che va a dormire.",
+            "asciutto": true
+          },
           "Rimetto gli attrezzi in ordine nel capanno. Ogni forbice deve asciugarsi e ricevere un velo d'olio, altrimenti si offende."
         ],
         "notte": [
@@ -841,10 +1078,22 @@
           "Il polline nell'aria ti fa starnutire? Fatti una tisana di malva e smettila di lamentarti, la natura sta solo festeggiando."
         ],
         "estate": [
-          {"t": "L'estate è una lotta quotidiana contro la siccità. Se non stai attento, il prato inglese diventa la savana in un weekend.", "asciutto": true},
-          {"t": "I fiori estivi resistono al sole battente con una dignità che voi umani vi sognate.", "solo": ["giorno"], "asciutto": true},
+          {
+            "t": "L'estate è una lotta quotidiana contro la siccità. Se non stai attento, il prato inglese diventa la savana in un weekend.",
+            "asciutto": true
+          },
+          {
+            "t": "I fiori estivi resistono al sole battente con una dignità che voi umani vi sognate.",
+            "solo": [
+              "giorno"
+            ],
+            "asciutto": true
+          },
           "Le ortensie vogliono acqua mattina e sera. Se ti dimentichi un giorno, ti guardano con la faccia mortificata per una settimana.",
-          {"t": "La terra si spacca per il caldo. Bisogna zappettare la superficie per farla respirare, come si fa con certe teste dure.", "asciutto": true}
+          {
+            "t": "La terra si spacca per il caldo. Bisogna zappettare la superficie per farla respirare, come si fa con certe teste dure.",
+            "asciutto": true
+          }
         ],
         "autunno": [
           "Le foglie cadono e creano un tappeto dorato. Bellissimo da vedere, un inferno da raccogliere con l'attrezzo di saggina.",
@@ -860,10 +1109,25 @@
         ]
       },
       "brutto": [
-        {"t": "La pioggia battente lava via la polvere dalle foglie. Le piante fanno il bagno e ringraziano sottovoce.", "solo": ["pioggia"]},
-        {"t": "Questo vento di tramontana spezza i rami più fragili del mandorlo. Le piante deboli cadono, la natura fa selezione naturale.", "solo": ["vento"]},
+        {
+          "t": "La pioggia battente lava via la polvere dalle foglie. Le piante fanno il bagno e ringraziano sottovoce.",
+          "solo": [
+            "pioggia"
+          ]
+        },
+        {
+          "t": "Questo vento di tramontana spezza i rami più fragili del mandorlo. Le piante deboli cadono, la natura fa selezione naturale.",
+          "solo": [
+            "vento"
+          ]
+        },
         "Con questo tempaccio i petali delle rose volano via come coriandoli a carnevale. Un disastro floreale in piena regola.",
-        {"t": "Il terreno si inzuppa così tanto che le radici rischiano di affogare. Speriamo che smetta o qui marcisce tutto.", "solo": ["pioggia"]}
+        {
+          "t": "Il terreno si inzuppa così tanto che le radici rischiano di affogare. Speriamo che smetta o qui marcisce tutto.",
+          "solo": [
+            "pioggia"
+          ]
+        }
       ],
       "primo": [
         "Ben arrivato nel Borgo. Se tocchi i miei vasi o calpesti le aiuole della piazza, le mie cesoie troveranno un impiego alternativo.",
@@ -888,7 +1152,9 @@
         "Il Vuoto, gli spettri, l'abisso... tutte cose scenografiche. Ma la vera tragedia è che la terra ora sa di acido. Spero che il concime speciale tenga duro."
       ],
       "favori": {
-        "preferisce": { "pesce": 0.2 },
+        "preferisce": {
+          "pesce": 0.2
+        },
         "pesce": [
           "Mi porti {cosa}? Finisce sotto le rose: concime come una volta. Le rose ringraziano, i vicini meno. Hai {tempo}.",
           "Mi serve {cosa} per il gatto che tiene i topi lontani dall'orto. Lavora gratis, ma mangia. Hai {tempo}."
@@ -952,6 +1218,807 @@
             "chiede": "Ho un vaso di terracotta che pesa come un rimorso. Chiedi a {a} se viene domani a spostarlo con me. Due braccia in più non hanno mai rovinato un giardino.",
             "risponde": "Una mano a {da}? Arrivo coi guanti. Qualsiasi cosa sia, di sicuro ci sono di mezzo le spine.",
             "grazie": "Viene? Bene. Io dirigo, e il vaso lo sposta chi viene. Il giardinaggio è anche questo: dirigere."
+          }
+        }
+      }
+    },
+    "remo": {
+      "chiamato": "Capitan Remo",
+      "dove": "Di solito sta seduto sul muretto del porto, vicino alle barche.",
+      "base": [
+        "Vedi quel gozzo laggiù? Nel cilindro di sinistra ci abita l'anima del vecchio guardiano del faro. Ogni volta che tiro la corda dell'avviamento, lui mi spegne la candela per dispetto.",
+        "Questo vino bianco costa così poco che se cade una goccia per terra svernicia gli scogli, ma tiene lontana l'umidità dalle ossa.",
+        "Nel novantadue ho pescato una murena lunga dodici metri. O erano sedici? Aspetta, ieri avevo detto venti... facciamo diciotto e non se ne parla più.",
+        "La patente nautica non me l'hanno tolta, sia chiaro. L'ho solo lasciata in ostaggio al ministero perché mi occupava troppo spazio nel portafoglio.",
+        "Una volta ho navigato per tre giorni nella nebbia fitta usando solo l'odore del fritto misto sulla costa per tenere la rotta.",
+        "Il mio berretto ha visto più tempeste di quante ne abbia viste questo molo. Quella macchia sopra la visiera però è sugo di stamattina.",
+        "Non toccare mai il timone con la mano sinistra di venerdì, porta una sfortuna nera. Io l'ho fatto una volta e mi si è scollata la suola degli stivali.",
+        "Quando ero giovane facevo il nodo piano con gli occhi bendati e una mano sola. Adesso se provo a legare gli scarponi resto incastrato fino a sera.",
+        "L'acqua del porto oggi ha il colore della zuppa di cipolle fredda. Buon segno per le triglie, pessimo per chi cade di sotto.",
+        "Se senti un colpo secco venire dalla mia barca, non preoccuparti: è solo il fantasma del guardiano che batte col cucchiaio sul serbatoio della nafta.",
+        "Tonio si vanta tanto delle sue reti nuove, ma in mare aperto senza di me si perderebbe pure dentro una pozzanghera.",
+        "Ogni volta che appoggio il bicchiere sul muretto, Bice spunta dal nulla con uno straccio per pulire il cerchio umido sulla pietra.",
+        "Sor Gaspare mi guarda storto perché canto le canzoni da osteria, ma vorrei vedere lui a tenere il timone con sette nodi di traverso.",
+        "Ho chiesto a Fulvio un bullone del dodici per il timone: mi ha detto di ripassare il mese prossimo perché era troppo stanco per aprire il cassetto.",
+        "L'unico pericolo vero di questo mare non sono le secche, è rifiutare il bis di polpette quando passi davanti alla porta di Nonna Pina."
+      ],
+      "momenti": {
+        "mattina": [
+          "Chi va per mare si alza col buio, ma visto che il mio gozzo è a riposo, io mi alzo comodo quando il sole scalda il muretto.",
+          "L'aria di stamattina pizzica il naso. Ci vorrebbe un goccetto di bianco per sciacquare via la nebbia dalla gola.",
+          "Gigi è già passato di corsa tre volte facendomi volare il berretto. Quel ragazzino ha un motore a due tempi al posto dei polmoni.",
+          "Ho provato a dare mezzo giro di manovella al motore stamattina presto: ha fatto due sbuffi neri e mi ha sputato un dado sui piedi."
+        ],
+        "pranzo": [
+          "A mezzogiorno il vero lupo di mare mangia pane duro, olive schiacciate e cipolla cruda. Così poi nessuno gli viene a rompere le scatole fino a sera.",
+          "Lo stomaco brontola come una stiva vuota nella burrasca. È ora di calare l'ancora vicino a una pagnotta.",
+          "Se chiudo gli occhi sento l'odore del soffritto di Nonna Pina che viaggia col vento di terra. Meglio di una bussola magnetica.",
+          "Un bicchiere a stomaco vuoto fa cantare, due fanno ballare, tre ti fanno raccontare di quella volta che ho addomesticato un capodoglio."
+        ],
+        "pomeriggio": [
+          "Il sole del pomeriggio batte dritto sulla pelata sotto il berretto. Quasi quasi mi sposto di mezzo metro all'ombra delle reti.",
+          "Questa è l'ora della bonaccia: non si muove una foglia, non abbocca una bavosa e persino i gabbiani dormono su una zampa sola.",
+          "Guardo Zia Nella seduta là in fondo e mi chiedo chi dei due si sia mosso di meno da stamattina. Secondo me vince lei di un'incollatura.",
+          "Sono entrato da Fulvio dopo pranzo per cercare dello spago: russava in piedi appoggiato al registratore di cassa."
+        ],
+        "tramonto": [
+          "Rosso di sera, buon tempo si spera... a meno che non tiri libeccio, in quel caso piove fisso e mi si bagna il tabacco.",
+          "Quando il sole tocca l'acqua, i mostri del fondale aprono un occhio solo per controllare se sono ancora seduto qui sul molo.",
+          "Tonio sta rientrando adesso col secchio mezzo vuoto, preparati a sentire la scusa della corrente contraria.",
+          "A quest'ora la luce inganna la vista: ieri ho salutato un palo d'ormeggio per venti minuti pensando fosse un vecchio compagno di imbarco."
+        ],
+        "notte": [
+          "Conosco tutte le costellazioni a memoria: quello lassù è il Grande Mestolo, e quella storta a sinistra è la Bottiglia Rovesciata.",
+          "Di notte il fantasma del guardiano dentro il mio motore russa così forte che fa vibrare tutta la carena.",
+          "Ho visto il Furetto scivolare tra gli scogli col lanternino spento. Quello cammina come le murene, senza fare mezzo schizzo.",
+          "Sor Gaspare a quest'ora ha già chiuso tre mandate di catenaccio, io invece resto fuori a fare la guardia alle stelle."
+        ]
+      },
+      "stagioni": {
+        "primavera": [
+          "Vento di primavera, vento traditore: parte che sembra una carezza e dopo dieci minuti ti strappa il cappello e lo butta ai pesci.",
+          "Le rondini di mare sono tornate a fare il nido sotto il pontile. Fanno un chiasso d'inferno, ma portano fortuna alle barche.",
+          "Ada mi ha sgridato perché ho svuotato il fondo del bicchiere in una fioriera. Diceva che le ubriaco le petunie.",
+          "Con i primi caldi il legno della barca si dilata e smette di imbarcare acqua. Quasi quasi domani non la svuoto nemmeno col secchio."
+        ],
+        "estate": [
+          "Sotto questo sole il vino bianco diventa brodo in cinque minuti. Tocca berlo in fretta per questioni di sicurezza nautica.",
+          "D'estate arrivano i marinai della domenica coi pantaloncini bianchi stirati. Basta un'onda di mezzo metro e li vedi pregare tutti i santi.",
+          "Con questa calura persino Bice rallenta il ritmo della scopa. È l'unico periodo dell'anno in cui riesco a seminare briciole in pace.",
+          "Nel settantotto faceva così caldo che le triglie saltavano direttamente in padella già squamate. Parola di capitano."
+        ],
+        "autunno": [
+          "Mare d'autunno, mare di piombo. È il periodo in cui le seppie si avvicinano agli scogli e le mie ginocchia fanno croc-croc.",
+          "L'umidità di ottobre mi entra nella barba e non esce più fino a Pasqua. Mi ci vorrebbe una stufa a legna portatile.",
+          "Sor Gaspare ha tirato fuori il cappotto pesante delle grandi occasioni: vuol dire che la prima mareggiata seria è dietro l'angolo.",
+          "Nonna Pina d'autunno cucina certe zuppe così dense che se ci pianti un remo dentro resta dritto senza tenerlo."
+        ],
+        "inverno": [
+          "Vento di tramontana che taglia le orecchie! Meno male che ho la barba folta, altrimenti avrei il mento di ghiaccio.",
+          "D'inverno il motore posseduto non ne vuole proprio sapere: il vecchio guardiano soffriva i reumatismi da vivo e li soffre pure da morto.",
+          "Tonio esce in barca pure col gelo, io invece presidio il muretto per evitare che se lo portino via le onde. È un lavoro di responsabilità.",
+          "Col freddo che fa, questo bianco economico sembra quasi buono. Scalda poco, ma almeno non congela nel bicchiere."
+        ]
+      },
+      "brutto": [
+        "Burrasca vera! Questo mi ricorda il tifone dell'ottantaquattro, quando ho dovuto governare il timone legandomi all'albero con le bretelle!",
+        "Piove acqua dolce nel mio vino! Sacrilegio, devo coprire il bicchiere col berretto o mi si annacqua tutta la gradazione.",
+        "Senti come fischia il vento tra le cime delle barche? Se ascolti bene sembra una fisarmonica stonata.",
+        "Con queste onde alte tre metri il mio gozzo tira gli ormeggi come un cavallo imbizzarrito. Forza vecchio mio, tieni duro!",
+        "Gigi corre sotto il diluvio come un'anguilla impazzita, mentre io ho già l'acqua dentro gli stivali senza essermi mosso di un passo.",
+        "Mi sono riparato un'ora nella bottega di Fulvio, ma c'era un silenzio così pesante che ho preferito tornare fuori sotto la grandine."
+      ],
+      "primo": [
+        "Salute a te, marinaio d'acqua dolce! Io sono Capitan Remo, comandante in congedo temporaneo per un banale malinteso con la capitaneria.",
+        "Avanti, avvicinati pure, non mordo mica! Capitan Remo, al tuo servizio. Se cerchi un passaggio in barca, ripassa quando il motore smette di bestemmiarmi contro.",
+        "Un volto nuovo sul molo! Prendi posto sul muretto. Io sono Capitan Remo, l'unico uomo a sud del promontorio ad aver preso a pugni uno squalo tigre. O forse era un delfino molto grosso.",
+        "Ehi, tu! Non dar retta a quello che racconta Gigi in giro: la mia barca galleggia benissimo, è solo parcheggiata in modo creativo. Piacere, Capitan Remo.",
+        "Ben arrivato a Borgo Marea! Io sono Capitan Remo. Se hai sete, ho del bianco della casa; se hai fretta, hai sbagliato porto."
+      ],
+      "insistente": [
+        "Oh, ma sei un'aringa che mi giri sempre intorno allo stesso scoglio? Ho finito il fiato per oggi!",
+        "Ancora a parlarmi? Guarda che se mi distrai perdo il filo della storia e poi non mi ricordo più quanti denti aveva la balena bianca.",
+        "Marinaio, stai calpestando la mia ombra da venti minuti. Il molo è lungo, vai a contare le bitte più in là!",
+        "Bice passa di qua dieci volte al giorno con la ramazza, ma tu oggi la batti per distacco! Lasciami bere il mio goccetto in pace.",
+        "Ma ti ha mandato Sor Gaspare a farmi il controllo del tasso alcolico? Circolare, circolare, qui è tutto in regola!",
+        "Per mille carcasse di balena, se mi fai un'altra domanda ti metto a grattare i denti di cane dalla chiglia con le unghie!"
+      ],
+      "lore": [
+        "Te lo dico da lupo di mare: la marea non segue più la luna da settimane. Sale e scende quando pare a lei, come se il fondale stesse respirando.",
+        "Stanotte la bussola della barca girava su se stessa come una trottola impazzita, e il fantasma nel motore non ha fiatato neanche una volta. Aveva paura pure lui.",
+        "Ho tirato su la lenza stamattina e il piombo era mezzo sciolto, come se avesse toccato qualcosa di rovente giù nella fossa.",
+        "Tonio ieri ha tirato su una rete piena di pesci ciechi che non avevamo mai visto in cinquant'anni di porto. Li ha ributtati giù facendosi il segno della croce.",
+        "Anche il Furetto ieri sera guardava l'acqua nera senza dire una parola. E se smette di trafficare uno come lui, vuol dire che tira un'aria pessima."
+      ],
+      "loreAperto": [
+        "Altro che le mie storie da osteria! Quella roba che scivola tra i vicoli ha più tentacoli del kraken che ho visto nell'ottantanove!",
+        "Il vino nel mio bicchiere adesso brilla di viola al buio e fa le bollicine al contrario, dal bordo verso il fondo. Però il sapore è migliorato parecchio!",
+        "Il vecchio guardiano del faro dentro il mio motore si è messo a suonare la sirena da nebbia da solo! Siamo pronti a salpare verso l'ignoto, appena trovo i remi!",
+        "Zia Nella ha visto passare una medusa fatta di fumo davanti alla sua sedia e si è solo lamentata dell'umidità. Quella donna ha il ghiaccio nelle vene.",
+        "Tonio è chiuso in casa coi ferri di cavallo in mano, io invece ho brindato alla salute di quell'ombra storta vicino al lampione. Ha pure ricambiato il saluto!"
+      ],
+      "favori": {
+        "preferisce": {
+          "pesce": 0.85
+        },
+        "pesce": [
+          "Ho scommesso due fiaschi che oggi avrei mostrato a tutti {cosa} appena pescato, ma la mia lenza è imbrogliata! Me lo porti tu entro {tempo}?",
+          "Per la mia leggendaria zuppa del capitano manca l'ingrediente principale: {cosa}! Hai {tempo} per tirarmelo fuori dall'acqua, te la senti?",
+          "Voglio dimostrare che in queste acque gira ancora {cosa} come ai vecchi tempi. Riesci a pescarlo per me entro {tempo}?",
+          "Il fantasma del motore si calma solo se gli faccio vedere {cosa} fresco di giornata. Non chiedermi perché, ma portamelo in {tempo}!"
+        ],
+        "insetto": [
+          "Ho scoperto che l'esca segreta definitiva per i pezzi grossi è {cosa}, ma io a correre nei prati col retino mi rifiuto! Me lo procuri entro {tempo}?",
+          "Una volta su un'isola tropicale ho visto {cosa} grande come un gabbiano! Portamene uno nostrano entro {tempo}, mi è venuta nostalgia.",
+          "C'è una creatura di terra che mi incuriosisce parecchio: {cosa}. Hai {tempo} per acciuffarlo e portarmelo qui sul molo, ci stai?",
+          "Mi serve {cosa} per fare uno scherzo da caserma a un vecchio compagno di bevute. Me lo trovi in {tempo} senza farti beccare?"
+        ],
+        "si": [
+          "All'arrembaggio! Ti aspetto qui sul muretto, tieni gli occhi bene aperti.",
+          "Così parla un vero lupo di mare! Buona caccia e vento in poppa.",
+          "Affare fatto! Io intanto presidio la banchina e ti tengo in caldo la ricompensa."
+        ],
+        "no": [
+          "Ammutinamento! Va bene, vorrà dire che mi arrangerò da solo come nell'ottantasei.",
+          "Niente da fare, eh? Pazienza, bevo un altro goccio e cambio programma.",
+          "Peccato, contavo sul tuo braccio. Sarà per la prossima spedizione."
+        ],
+        "promemoria": [
+          "Ancora a reti vuote? Ricordati che sto aspettando {cosa}, non farmi fare brutta figura!",
+          "Allora, questo esemplare di {nome} salta fuori o si è nascosto sul fondale?",
+          "Il tempo scorre veloce come la corrente: trovami {cosa} prima che cali la stanchezza!"
+        ],
+        "dono": [
+          "Per mille balene, hai preso davvero {cosa}! Passa qua, fammi controllare la stazza!",
+          "Occhio di falco e mano ferma! Hai catturato {cosa} proprio come ti avevo chiesto!",
+          "Guarda che meraviglia di {nome}! Non credevo saresti riuscito a portarmi {cosa} così in fretta!"
+        ],
+        "grazie": [
+          "Un esemplare di {nome} da manuale, degno della mia collezione di bordo! Ecco la tua parte di bottino, te la sei guadagnata.",
+          "Con {cosa} faccio un figurone storico qui al porto! Grazie mille, sei il miglior secondo che potessi chiedere.",
+          "Lavoro impeccabile! Questo {nome} è proprio quello che ci voleva. Prendi pure la tua ricompensa!"
+        ],
+        "attesa": [
+          "Ancora qui in porto? Issa le vele e vai a parlare con {a}, non ho mica tutto il giorno!",
+          "Ehi mozzo, hai perso la rotta per andare da {a} o stai aspettando il vento a favore?",
+          "Forza, muovi quelle gambe! {a} aspetta il mio messaggio e io aspetto la risposta!"
+        ],
+        "scaduto": [
+          "Fuori tempo massimo, marinaio! La marea è cambiata e ormai non mi serve più.",
+          "Eh, hai navigato troppo lento! Ho dovuto rimediare in un altro modo, sarà per la prossima volta.",
+          "Arrivi a porto chiuso! Il tempo è scaduto da un pezzo, tieniti pure il bottino."
+        ],
+        "monete": [
+          "Eccoti {monete} monete sonanti, messe da parte dai miei vecchi viaggi mercantili!",
+          "Tieni queste {monete} monete! Paga del capitano, non spenderle tutte in acqua tonica.",
+          "Il giusto compenso per l'equipaggio: {monete} monete dritte nelle tue tasche!"
+        ],
+        "mobile": [
+          "Prendi {mobile}! L'avevo ripescato dopo un naufragio anni fa, in casa tua starà molto meglio che nella mia stiva.",
+          "Ti regalo {mobile}, bottino di prima scelta! L'ho tenuto sotto il telone della barca per le grandi occasioni.",
+          "Per sdebitarmi ti lascio {mobile}. Roba solida da marinai veri, vedrai che figura!"
+        ],
+        "messaggi": {
+          "pranzo": {
+            "chiede": [
+              "A forza di bere bianco a stomaco vuoto vedo due moli invece di uno. Vai da {a} a chiedere se c'è un pezzo di pane e qualcosa di solido per un vecchio capitano?",
+              "La cambusa di bordo è ufficialmente deserta. Faresti una corsa da {a} per sentire se avanza una razione di rancio per me?",
+              "Se mi alzo adesso dal muretto perdo il posto migliore al sole. Passa da {a} e chiedi se mi manda due bocconi per tamponare il vino, fai il bravo."
+            ],
+            "risponde": [
+              "Di' pure a {da} che il pane non manca, ma che dovrebbe bere almeno un bicchiere d'acqua ogni tanto. Tieni, portagli questo piatto.",
+              "Figuriamoci se {da} si ricordava di fare la spesa. Ecco qua, portagli questa roba calda prima che inizi a lamentarsi.",
+              "Ah, ti manda {da}? Meno male che almeno si ricorda di mangiare. Dagli questo involto e digli di non lasciare briciole ovunque."
+            ],
+            "grazie": [
+              "Ah, benedetto te e benedetto il cuore d'oro di {a}! Adesso sì che lo stomaco tiene il mare.",
+              "Razione di bordo ricevuta! Ringrazia {a} da parte mia, questo profumino mi rimette al mondo.",
+              "Un pasto da ammiraglio! Sapevo che {a} non avrebbe lasciato morire di fame un lupo di mare in pensione."
+            ]
+          },
+          "prestito": {
+            "chiede": [
+              "Devo stringere un bullone lento sulla poppa prima che cada in acqua. Vai da {a} a chiedere se mi presta una chiave inglese per mezz'ora?",
+              "Mi si è sfilacciata la cima di riserva. Faresti un salto da {a} per vedere se mi presta un pezzo di corda buona o del filo di ferro?",
+              "Ho bisogno di una lanterna che faccia luce vera per controllare la stiva. Chiedi a {a} se me ne presta una fino a domani mattina?"
+            ],
+            "risponde": [
+              "Presto volentieri questa roba a {da}, ma digli che non deve usarla per prendere a martellate quel povero motore arrugginito.",
+              "Ecco quello che chiedeva {da}. Riferiscigli di riportarmelo asciutto e non in fondo al porto come l'anno scorso.",
+              "Se serve a {da} glielo do, ci mancherebbe. Basta che poi non si dimentichi dove l'ha appoggiato dopo il secondo bicchiere."
+            ],
+            "grazie": [
+              "Perfetto, proprio l'attrezzo che mi serviva! Stasera passo io da {a} a restituire il maltolto, parola di marinaio.",
+              "Grande lavoro, mozzo! Con questa roba di {a} sistemo il gozzo in quattro e quattr'otto.",
+              "Ottimo! Sapevo che {a} aveva l'attrezzatura giusta. Grazie per aver fatto da staffetta!"
+            ]
+          },
+          "scuse": {
+            "chiede": [
+              "Ieri sera cantando sul tardi mi sa che ho svegliato mezzo vicolo vicino a {a}. Vai tu a portare le mie scuse ufficiali prima che mi tolgano il saluto?",
+              "Ho lasciato una cassetta di esche vecchie al sole proprio sotto la finestra di {a}. Corri a dire che mi dispiace per l'odore e che passo a toglierla tra poco!",
+              "Faresti da bandiera bianca con {a}? Ieri ho esagerato con le chiacchiere e ho detto una mezza fesseria, digli che il capitano chiede venia."
+            ],
+            "risponde": [
+              "Ah, {da} ha mandato te in avanscoperta, eh? Va bene, digli che non porto rancore, ma che stanotte vorrei dormire in pace.",
+              "Accetto le scuse di {da}, ormai lo conosciamo tutti qui al borgo. Però digli di venire a spostare quella roba entro stasera!",
+              "Riferisci a {da} che per stavolta ci metto una pietra sopra, basta che non diventi un'abitudine tutte le settimane."
+            ],
+            "grazie": [
+              "Acque calme all'orizzonte! Grazie mille, temevo che {a} mi tenesse il muso fino all'inverno prossimo.",
+              "Tempesta scampata! Sei un grande, la prossima volta che vedo {a} offro un giro per farmi perdonare del tutto.",
+              "Meno male che ci sei andato tu! Con {a} avevo proprio calpestato una mina, grazie del salvataggio."
+            ]
+          },
+          "briscola": {
+            "chiede": [
+              "Il mare è piatto e il bicchiere è pieno: manca solo una partita a carte! Vai da {a} a chiedere se accetta una sfida a briscola sul muretto?",
+              "Ho le mani che mi prudono per una bella briscola col morto. Avvisa {a} che lo aspetto qui per dargli una lezione di strategia navale!",
+              "Visto che non si salpa, almeno giochiamo! Corri da {a} e digli che ho il mazzo pronto, chi perde pulisce la barca."
+            ],
+            "risponde": [
+              "Giocare con {da}? Quello si inventa le regole in corsa quando vede che sta perdendo! Digli che arrivo, ma i punti li conto io.",
+              "Accetto volentieri la sfida di {da}! Riferiscigli di preparare gli spiccioli perché oggi ho una fortuna sfacciata.",
+              "Dì pure a {da} che tra due minuti sono al molo. Vediamo se è più bravo coi carichi a briscola o a raccontare frottole."
+            ],
+            "grazie": [
+              "Ahah, ha abboccato all'amo! Adesso vedrai che cappotto rifilo a {a}, ho già l'asso di coppe che scalda in tasca.",
+              "Perfetto! Prepara il campo di battaglia, oggi {a} torna a casa con le pive nel sacco.",
+              "Così si fa! Grazie di aver portato l'ambasciata, contro {a} le partite sono sempre memorabili."
+            ]
+          },
+          "aiuto": {
+            "chiede": [
+              "L'onda lunga ha spostato la passerella della barca e da solo col mal di schiena non la sollevo. Chiedi a {a} se viene a darmi un colpo di reni?",
+              "Devo girare il gozzo di prua prima che si alzi il vento, ma le cime sono bagnate e pesano come il piombo. Vai a chiamare {a} per darmi una mano?",
+              "Mi è caduta l'ancora di rispetto giù nel fango basso. Senti {a} se mi aiuta a tirarla su a braccia prima che salga l'alta marea?"
+            ],
+            "risponde": [
+              "Ecco, figurati se {da} non aveva bisogno di braccia forti per quella bagnarola. Digli che arrivo subito a dargli una mano.",
+              "Riferisci a {da} di non sforzare la schiena da solo, il tempo di prendere i guanti da lavoro e sono giù da lui.",
+              "Va bene, vengo ad aiutare {da}. Digli di tener pronta la cima buona che tiriamo su tutto insieme."
+            ],
+            "grazie": [
+              "Mille grazie, marinaio! In due con {a} facciamo il lavoro in metà tempo e senza lasciarci le vertebre.",
+              "Ottima notizia! Sapevo che {a} non si tira mai indietro quando c'è da tirare una cima. Grazie della corsa!",
+              "Perfetto, rinforzi in arrivo! Grazie per aver avvisato {a}, ti sei guadagnato i gradi sul campo."
+            ]
+          }
+        }
+      }
+    },
+    "gigi": {
+      "chiamato": "Gigi il mozzo",
+      "dove": "Di solito corre avanti e indietro lungo il molo del porto.",
+      "base": [
+        "Vedi questo segno nero sul pollice? Catrame fresco della barca di Tonio. Non viene via manco con la carta vetrata.",
+        "Prima ho tirato un sasso piatto in acqua: sette rimbalzi di fila. Record stagionale del molo, altroché.",
+        "Se vedi Bice con il secchio dell'acqua saponata, cambia vicolo. Oggi ha già minacciato tre gabbiani e un cane.",
+        "Sor Gaspare sta fermo in mezzo alla piazza da due ore a fissare il vuoto col bastone. Secondo me si è addormentato in piedi come i cavalli.",
+        "Sono passato davanti alla bottega di Fulvio: ha impiegato quattro minuti solo per girare il cucchiaino nel caffè. Li ho contati.",
+        "L'altro giorno ho provato a sbirciare dietro il banco del Furetto vicino alla grotta. Mi ha fatto un'occhiata che mi sono sentito le tasche vuote.",
+        "Nonna Pina mi ha incastrato nel sottoscala e mi ha fatto mangiare una fetta di lasagna. Giuro che adesso se cado in mare vado dritto sul fondo.",
+        "Capitan Remo dice che il motore del suo gozzo non parte perché dentro c'è lo spirito del vecchio guardiano del faro. Io dico che ha solo le candele marce.",
+        "Non pestare le aiuole vicino a casa di Ada. Quella parla coi gerani e ha le cesoie più affilate di tutto il porto.",
+        "Zia Nella non sbatte le palpebre dal novantotto. Le sono passato davanti correndo sui trampoli e non ha mosso un sopracciglio.",
+        "Ho la fionda nuova in tasca, elastico doppia tirata. Miravo a un barattolo vuoto, ho preso il cappello di Tonio. Meglio se per un'oretta sto basso.",
+        "Tonio giura di aver tirato su un'orata grossa come un vitello, poi però nella cassetta aveva solo tre alici storte.",
+        "Dietro il muretto della piazza si sente tutto. So chi ruba i limoni dall'albero del comune, ma non faccio la spia gratis.",
+        "Ho le ginocchia più sbucciate delle patate di Nonna Pina, ma quel muretto a secco andava scalato per forza.",
+        "Fulvio sbuffa pure quando respira. Gli ho chiesto quanto costava un retino e mi ha guardato come se gli avessi chiesto un rene.",
+        "Il Furetto parla sempre sottovoce, pure quando non c'è un'anima nel raggio di mezzo chilometro. Secondo me ha mal di gola e si vergogna."
+      ],
+      "momenti": {
+        "mattina": [
+          "L'aria del mattino sa di sale, alghe bagnate e caffè bruciato della bottega di Fulvio.",
+          "Tonio è già giù alle reti che litiga coi nodi. Se ti avvicini adesso ti mette a sbrogliare le cime anche a te.",
+          "A quest'ora Bice ha già spazzato la via tre volte. Cammina sulle punte o ci insegue con la ramazza.",
+          "Ho fatto colazione con due focaccine fredde rubate dalla credenza. Adesso ho energie per correre fino a stasera.",
+          "I gabbiani la mattina urlano più di Capitan Remo quando scopre che la bottiglia è vuota."
+        ],
+        "pranzo": [
+          "Senti che profumo di ragù? Viene dalla cucina di Nonna Pina. Se passi sotto la sua finestra ti lancia un piatto dal balcone.",
+          "Ho una fame che mangerei pure le esche finte del Furetto. Quasi quasi vado a vedere se avanza del pane in piazza.",
+          "A mezzogiorno il borgo si svuota, restano fuori solo i gatti, Zia Nella sulla sedia di paglia e il sottoscritto.",
+          "Lo stomaco mi fa più rumore del motore ingolfato di Capitan Remo. Hai mica mezzo panino in tasca?",
+          "Tutti a tavola e nessuno che controlla il molo. È il momento perfetto per fare i tuffi dalla banchina vietata."
+        ],
+        "pomeriggio": [
+          "Il pomeriggio qui non passa mai se non ti inventi qualcosa. Sto costruendo una trappola per granchi con una cassetta rotta.",
+          "Sor Gaspare fa la ronda del pomeriggio. Se mi vede seduto sul parapetto inizia il discorso sui giovani d'oggi che dura fino a Pasqua.",
+          "Ada sta potando le siepi con una faccia da guerra. Meglio girare al largo dalle fioriere per un paio d'ore.",
+          "Ho sfidato i gabbiani a chi prende al volo i pezzetti di crosta. Per ora vincono loro quattro a zero.",
+          "Fulvio dopo pranzo entra in letargo profondo. Potresti spostargli il bancone di due metri e non se ne accorgerebbe."
+        ],
+        "tramonto": [
+          "Guarda l'acqua adesso che cala il sole: sembra rame fuso. È l'ora migliore per cercare i vetri levigati sulla riva.",
+          "Quando il cielo diventa rosso, Tonio inizia a toccare ferro e a fare gli scongiuri per la pesca di domani.",
+          "I lampioni del molo fanno sempre quel ronzio strano appena si accendono. Se gli dai un calcetto smettono.",
+          "Capitan Remo al tramonto è già alla terza versione della storia del calamaro gigante. Stasera ha aggiunto due tentacoli in più.",
+          "Fra poco mi tocca rientrare a lavarmi le mani dal catrame, altrimenti a cena chi li sente i grandi."
+        ],
+        "notte": [
+          "Di notte i vicoli sembrano il doppio più lunghi. Io conosco tutte le pietre che scricchiolano, così non mi sente nessuno.",
+          "Ma tu non dormi mai? Io sono uscito dalla finestra bassa perché non avevo sonno per niente.",
+          "Vicino alla grotta a quest'ora si vede solo la brace della lanterna del Furetto. Sembra un fuoco fatuo.",
+          "Giuro che pure col buio pesto Zia Nella è ancora là fuori sulla sedia. Quella donna vede al buio come i barbagianni.",
+          "Acqua nera e barche che sbattono piano sulle cime. È il momento migliore per ascoltare i segreti del porto."
+        ]
+      },
+      "stagioni": {
+        "primavera": [
+          "Aria tiepida e lucertole sui muretti! Finalmente si può correre senza la giacca pesante che ti frena le braccia.",
+          "Con tutti questi fiori nuovi, Ada è ancora più nervosa del solito. Guai a chi starnutisce vicino alle sue margherite.",
+          "In primavera i pesci saltano fuori dall'acqua da soli, ma Tonio riesce comunque a lamentarsi della corrente.",
+          "Bice ha dichiarato guerra al polline. L'ho vista rincorrere un soffione con la scopa di saggina."
+        ],
+        "estate": [
+          "Fa così caldo che il catrame tra le assi del pontile fa le bolle. Mi ci si è incollata una scarpa stamattina.",
+          "D'estate mi butto in acqua vestito almeno tre volte al giorno. Tanto in dieci minuti al sole sono già asciutto.",
+          "Con questa afa persino Sor Gaspare si è tolto il cappotto di panno. Tieniti forte perché non succedeva da dieci anni.",
+          "Le cicale fanno un baccano assurdo, coprono pure le chiacchiere delle comari dietro la fontana."
+        ],
+        "autunno": [
+          "Cadono le foglie e Bice perde la testa. Ogni foglia che tocca terra per lei è un affronto personale.",
+          "L'acqua del porto d'autunno diventa grigia e porta a riva un sacco di legni strani buoni per farci le spade.",
+          "Si alza il vento fresco e Nonna Pina ricomincia coi brodi bollenti che ti ustionano la lingua al primo cucchiaio.",
+          "Le castagne arrosto sono buone, ma mai quanto usarle come munizioni di riserva quando finiscono i sassi tondi."
+        ],
+        "inverno": [
+          "Ho le dita così gelate che non riesco manco a tendere l'elastico della fionda. Che fregatura l'inverno.",
+          "Col freddo che fa, Capitan Remo dice che il vino bianco gli serve come antigelo per le giunture.",
+          "La pietra del molo col gelo diventa una pista da pattinaggio. Stamattina Tonio ha fatto un liscio da manuale.",
+          "Mi sono infilato tre maglioni uno sopra l'altro, sembro un barile con le gambe ma almeno non batto i denti."
+        ]
+      },
+      "brutto": [
+        "Piove a secchiate e il fango nei vicoli è una meraviglia! Peccato che se Bice mi vede le suole mi spedisce sulla luna.",
+        "Con questo tempaccio il mare sbatte forte contro la diga. Se vai in punta al molo ti fai la doccia salata gratis.",
+        "Vento così dritto che i gabbiani volano all'indietro! Guarda quello là sopra, sta fermo nello stesso punto da mezz'ora.",
+        "Tonio dice che con quest'acqua torbida i pesci stanno tutti sul fondo a giocare a carte. Secondo me non aveva solo voglia di uscire.",
+        "Sor Gaspare col vento forte tiene il cappello con due mani e il bastone sotto l'ascella. Sembra una bandiera umana.",
+        "Sotto l'acquazzone si formano i torrenti giù per le scalinate del borgo. Ho fatto le barchette di corteccia, vanno come siluri!"
+      ],
+      "primo": [
+        "Oh, faccia nuova! Io sono Gigi. Se cerchi qualcuno che sa tutto di tutti qui al borgo, hai trovato l'uomo giusto.",
+        "Fermo là, non fare rumore che mi sto nascondendo da Bice. Piacere, Gigi! Tu chi saresti?",
+        "Ehi! Non ti avevo mai visto girare per i vicoli. Io sono Gigi, il mozzo. Cioè, sarei un mozzo se Capitan Remo avesse una barca che parte.",
+        "Guarda chi si vede, un forestiero. Io sono Gigi. Se ti serve una scorciatoia o vuoi sapere dove nasconde i dolci Nonna Pina, chiedi pure.",
+        "Zitto, abbassati dietro il muretto! Scherzo, non c'è nessuno. Mi chiamo Gigi, benvenuto a Borgo Marea."
+      ],
+      "insistente": [
+        "Oh, ma mi stai facendo il terzo grado? Guarda che non sono stato io a nascondere gli occhiali di Tonio!",
+        "Ancora tu? Se continui a fermarmi perdo il posto buono dietro il muretto e non sento cosa dicono in piazza.",
+        "Senti, non ho mica il bottone sulla schiena che mi schiacci e parlo. Ho delle cose importantissime da combinare!",
+        "Ma ti ha mandato Bice a tenermi d'occhio? Guarda che ho le mani pulite, quasi.",
+        "Uff, sei più appiccicoso della resina dei pini! Lasciami respirare due minuti.",
+        "Oh, basta! Se mi parli un'altra volta tiro fuori la fionda e ti miro ai lacci delle scarpe, uomo avvisato!"
+      ],
+      "lore": [
+        "I grandi fanno tutti finta di niente, ma di notte da sotto le pietre del vecchio molo vengono certi colpi sordi che fanno tremare i secchi.",
+        "L'altra sera ho seguito il Furetto fino alle rocce nere. Aveva nella sacca dei pezzi di ferro che brillavano al buio e pesavano il triplo del normale.",
+        "Se appoggi l'orecchio al muro della cantina di Fulvio, senti come un vento che soffia dal basso. E là sotto non c'è nessuna grotta segnata sulle mappe.",
+        "I vecchi del borgo quando parlano di quello che c'è oltre la scogliera abbassano subito la voce, ma io da dietro le persiane ho sentito tutto.",
+        "Anche i granchi sugli scogli ultimamente camminano tutti storti nella stessa direzione, come se sentissero una calamita sotto l'acqua."
+      ],
+      "loreAperto": [
+        "I grandi sono tutti nel panico con le facce bianche, ma hai visto che roba pazzesca gira per i vicoli? Finalmente succede qualcosa in questo posto!",
+        "Ieri sera un'ombra lunga tre metri è passata davanti a Zia Nella e lei le ha detto di non fare corrente. Io stavo morendo dal ridere dietro il bidone.",
+        "Bice ha provato a dare una scopata a una macchia di nebbia nera sul selciato perché diceva che non era regolamentare. Giuro, questo paese è meglio del circo.",
+        "L'aria pizzica sulla lingua come quando leccavo le pile scariche della radio di Capitan Remo. A me fa correre il doppio più veloce!",
+        "Sor Gaspare voleva fare la multa alle luci strane giù alla riva per schiamazzi notturni. Io mi sono preso i posti in prima fila sul muretto."
+      ],
+      "favori": {
+        "preferisce": {
+          "pesce": 0.4
+        },
+        "pesce": [
+          "Scommessa urgente: ho detto che avrei tirato su {cosa} a mani nude, ma non abbocca niente! Me lo procuri tu entro {tempo}?",
+          "Mi serve assolutamente {cosa} da mettere nel secchio prima che passi Tonio a fare il fenomeno. Hai {tempo}, mi salvi la faccia?",
+          "Voglio vedere da vicino com'è fatto {cosa}, non ne ho mai beccato uno buono oggi. Riesci a portarmelo in {tempo}?",
+          "Se mi porti {cosa} entro {tempo} ti svelo un nascondiglio segreto del molo. Affare fatto?"
+        ],
+        "insetto": [
+          "Ho un'idea geniale per uno scherzo innocente, ma mi serve {cosa} vivo e vegeto! Me lo trovi entro {tempo}?",
+          "Sto facendo una gara di caccia grossa tra le erbacce e mi manca proprio {cosa}. Hai {tempo} per darmi una mano, ci stai?",
+          "Fulvio dice che non sono capace di catturare {cosa} senza spiaccicarlo. Portamene uno perfetto entro {tempo} così gli faccio vedere!",
+          "Cercavo {cosa} da mettere nel mio barattolo col tappo bucato, ma scappano tutti! Me lo prendi tu in {tempo}?"
+        ],
+        "si": [
+          "Grande! Sapevo che eri uno dei nostri. Io intanto tengo d'occhio la zona!",
+          "Mitico! Fai presto però, che se mi passa l'ispirazione è finita.",
+          "Così mi piaci! Ti aspetto qui sul muretto, occhi aperti e passo felpato."
+        ],
+        "no": [
+          "Ma come no? Uff, va bene, farò da solo anche stavolta.",
+          "Peccato, era un piano perfetto. Pazienza, vado a cercare un bastone appuntito.",
+          "Niente, eh? Va beh, vorrà dire che mi inventerò qualcos'altro."
+        ],
+        "promemoria": [
+          "Allora, nessuna traccia? Ricordati che mi serve {cosa}, non tornare a mani vuote!",
+          "Ancora niente {nome}? Dai che il tempo corre e io ho tutto pronto!",
+          "Guarda che sto ancora aspettando {cosa}! Cerca bene vicino agli angoli tranquilli."
+        ],
+        "dono": [
+          "Ma dai, hai preso davvero {cosa}! Fammelo vedere subito!",
+          "Incredibile, un esemplare di {nome} grosso così non l'avevo mai visto da vicino! Passa qua!",
+          "Ce l'hai fatta! Hai trovato proprio {cosa}, sei più veloce di un gabbiano in picchiata!"
+        ],
+        "grazie": [
+          "Questo {nome} è una bomba, grazie mille! Adesso vedrai che faccia fanno qui al borgo.",
+          "Non so come hai fatto a beccare {cosa} così in fretta, ma sei ufficialmente il mio socio preferito!",
+          "Spettacolo! Con {cosa} ho vinto la scommessa a mani basse. Tieni, questo te lo sei strameritato!"
+        ],
+        "attesa": [
+          "Oh, sei ancora qui? Guarda che {a} non si avvisa mica col pensiero, fila!",
+          "Ehi, hai già parlato con {a} o ti sei perso a guardare le nuvole?",
+          "Dai, fai un salto veloce da {a} e poi torna a dirmi che ti ha risposto, sto sulle spine!"
+        ],
+        "scaduto": [
+          "Arrivi tardi! Ormai il momento buono è passato e ho dovuto cambiare piano. Sarà per la prossima!",
+          "Eh, ciao! Ti ho aspettato una vita ma ormai non mi serve più. Peccato!",
+          "Troppo tardi, amico mio! L'occasione è sfumata, tienitelo pure per il museo di Fulvio."
+        ],
+        "monete": [
+          "Ecco a te {monete} monete! Le avevo trovate sotto le assi del pontile, sono tutte tue.",
+          "Pigliati queste {monete} monete, le tenevo da parte nel barattolo delle biglie per le grandi occasioni!",
+          "Affare onesto: a me il bottino, a te {monete} monete sonanti. Non spenderle tutte da Fulvio!"
+        ],
+        "mobile": [
+          "Tieni, ti regalo {mobile}! L'ho recuperato da una stiva vecchia e l'ho ripulito tutto io, giuro che non scotta.",
+          "Prendi {mobile} per casa tua! Io nel mio nascondiglio non sapevo dove infilarlo, a te farà un figurone.",
+          "Per sdebitarmi ti do {mobile}. Non chiedere dove l'ho trovato, sappi solo che è roba di prima scelta!"
+        ],
+        "messaggi": {
+          "pranzo": {
+            "chiede": [
+              "Ho una fame nera ma non posso farmi vedere in giro adesso. Vai da {a} e chiedi se è rimasto qualcosa in pentola per me?",
+              "Senti, mi fai da complice? Corri da {a} e vedi se mi allunga due bocconi al volo prima che si freddi tutto.",
+              "Se vado io da {a} mi tengono fermo mezz'ora a farmi la predica. Ci vai tu a chiedere se c'è un avanzo di pranzo?"
+            ],
+            "risponde": [
+              "Figurati se {da} non aveva fame a quest'ora. Tieni, portagli questo fagotto e digli di mangiare seduto una buona volta.",
+              "Ah, ti manda {da}? Si sente l'odore di fame da tre vicoli di distanza. Digli che c'è un piatto pronto, ma che si lavi quelle mani nere.",
+              "Sempre a correre a stomaco vuoto, {da}. Ecco qua, digli che gli ho messo da parte una porzione abbondante."
+            ],
+            "grazie": [
+              "Mitico! Sapevo che {a} non mi avrebbe lasciato a pancia vuota. Mi hai salvato il pomeriggio!",
+              "Grande! Guarda che roba, ancora tiepido. Grazie mille, con {a} hai un talento diplomatico che io mi sogno.",
+              "Oh, finalmente si ragiona! Se non andavi tu da {a} a quest'ora stavo sgranocchiando i sassi del molo."
+            ]
+          },
+          "prestito": {
+            "chiede": [
+              "Mi serve un rotolo di spago robusto per un lavoretto segreto. Chiedi a {a} se me ne presta un pezzo senza fare troppe domande?",
+              "Ho rotto il temperino cercando di aprire una cozza gigante. Vai da {a} a sentire se mi presta un attrezzo un secondo?",
+              "Potresti fare un salto da {a}? Mi aveva promesso in prestito quella scatola di latta per metterci le mie esche, ma se vado io non me la molla più."
+            ],
+            "risponde": [
+              "Un prestito a {da}? Speriamo non mi torni indietro coperto di catrame come l'ultima volta. Tieni, digli di averne cura.",
+              "Se lo chiede {da} ci sarà sotto qualche pasticcio dei suoi, poco ma sicuro. Va bene, digli pure che glielo presto fino a stasera.",
+              "Ecco qua quello che cercava {da}. Mi raccomando, riferiscigli che lo voglio indietro intero e non smontato in quindici pezzi."
+            ],
+            "grazie": [
+              "Perfetto! Giuro che a {a} lo riporto più lucido di prima. Forse. Grazie del favore!",
+              "Sei un fenomeno! Adesso posso finire la mia costruzione segreta al molo. Poi passo io da {a} a restituire tutto.",
+              "Forte, te l'ha dato davvero! {a} con me fa sempre mille storie, meno male che ci sei andato tu."
+            ]
+          },
+          "scuse": {
+            "chiede": [
+              "Ho combinato un mezzo guaio col pallone vicino a casa di {a}. Vai tu a tastare il terreno e a dire che mi dispiace tantissimo?",
+              "Mi sa che prima correndo ho rovesciato un secchio proprio davanti a {a}. Mi fai il favore di andare a chiedere scusa da parte mia prima che mi cerchino?",
+              "Faresti da ambasciatore di pace con {a}? Digli che quel sasso non volevo tirarlo lì e che rimedio io promesso."
+            ],
+            "risponde": [
+              "Ah, ecco chi era stato! E {da} manda te invece di metterci la faccia? Va bene, per stavolta passa, ma digli di guardare dove mette i piedi.",
+              "Sapevo che c'era lo zampino di {da}. Riferiscigli che accetto le scuse, però la prossima volta gli faccio ripulire tutto il vicolo.",
+              "Digli pure a {da} di non nascondersi dietro i muretti, non ho mica intenzione di mangiarmelo. Scuse accettate, ma occhio alla prossima."
+            ],
+            "grazie": [
+              "Meno male, mi hai tolto un peso! Pensavo che {a} avesse già preparato una trappola per beccarmi. Ti devo un favore grosso!",
+              "Sospiro di sollievo! Allora posso tornare a girare da quelle parti senza camuffarmi. Grazie per aver parlato con {a}!",
+              "Sei un amico vero! La prossima volta faccio più attenzione vicino a {a}, parola di mozzo."
+            ]
+          },
+          "briscola": {
+            "chiede": [
+              "Ho un mazzo di carte tutte segnate dagli spruzzi di mare ma ancora buone. Chiedi a {a} se ci facciamo una briscola veloce sul muretto?",
+              "Vai da {a} e lancia la sfida ufficiale: due mani di briscola secca giù al porto, chi perde paga pegno!",
+              "Mi annoio a morte, avvisa {a} che ho già mescolato le carte e aspetto uno sfidante degno di questo nome."
+            ],
+            "risponde": [
+              "Una partita contro {da}? Quello conta le carte dai riflessi nell'acqua, lo so benissimo! Digli che accetto, ma mescolo io.",
+              "Riferisci a {da} che tra cinque minuti sono là e che si prepari a perdere tutti i suoi tappi di bottiglia a briscola.",
+              "Accetto la sfida di {da}, ci mancherebbe! Digli di non barare col carico di denari come fa sempre."
+            ],
+            "grazie": [
+              "Grande! Adesso preparo il tavolo sulla cassa del pesce e faccio vedere a {a} chi comanda col tre di bastoni.",
+              "Andata! Vedrai che stracciata rifilo a {a} oggi, mi sento fortunatissimo.",
+              "Perfetto, grazie! Se vinco contro {a} facciamo a metà del bottino di tappi, promesso."
+            ]
+          },
+          "aiuto": {
+            "chiede": [
+              "Si è incastrata una cima grossa tra gli scogli bassi e da solo non riesco a tirarla su. Chiedi a {a} se viene a darmi una mano?",
+              "Ho trovato una tavola di legno bellissima portata dalla marea, ma pesa un quintale. Senti {a} se mi aiuta a trascinarla fino al secco?",
+              "Mi è caduto il coltellino in una fessura stretta dove non ci passo col braccio. Vai a chiamare {a} che magari troviamo il modo di recuperarlo?"
+            ],
+            "risponde": [
+              "In cosa si è cacciato stavolta {da}? Va bene, digli di non toccare niente e di aspettarmi lì che arrivo subito.",
+              "Sempre a trafficare con roba più grossa di lui, {da}. Riferiscigli che vengo a dargli una mano appena poso queste cose.",
+              "D'accordo, dì pure a {da} che ci penso io ad aiutarlo, basta che non si sporga troppo dagli scogli bagnati."
+            ],
+            "grazie": [
+              "Grandissimo! Con l'aiuto di {a} tiriamo fuori tutto in due minuti netti. Grazie per la corsa!",
+              "Fiuu, da solo ci avrei messo fino a domani mattina. Grazie di aver avvisato {a}!",
+              "Ottimo! Sapevo che su {a} si poteva contare per i lavori pesanti. Grazie mille!"
+            ]
+          }
+        }
+      }
+    },
+    "pina": {
+      "chiamato": "Nonna Pina",
+      "dove": "Di solito passeggia vicino alla piazza del Borgo, non lontano dal porto.",
+      "base": [
+        "Il segreto della mia lasagna è la besciamella densa come la calce. Quando ne mangi una porzione non ti sposta manco una cannonata.",
+        "Il ragù deve pippare in pentola per almeno sei ore a fuoco lento. Se hai fretta, vai a brucare l'erba nei prati.",
+        "Vedi questo mattarello di legno d'ulivo? Ha quarant'anni di servizio: stende la sfoglia sottile come un velo e raddrizza la schiena a chi lascia gli avanzi.",
+        "Quando qualcuno mi dice «sono a dieta» mi si stringe il cuore. Poi prendo il mestolo grosso e gli riempio il piatto il doppio, così impara.",
+        "Le mie polpette hanno dentro tre tipi di carne, pane raffermo e un ingrediente segreto che non dirò manco sul letto di morte.",
+        "Se ti fa male la testa, mangia un boccone. Se ti fa male lo stomaco, mangia due bocconi. A pancia piena passa qualsiasi malanno.",
+        "Ho impastato sei chili di farina stamattina per sgranchirmi le dita. Adesso ho gli avambracci più duri delle bitte del molo.",
+        "Non fidarti mai di chi cucina senza strutto e senza cipolla. Quella è gente triste che ha qualcosa da nascondere alla coscienza.",
+        "Nella mia dispensa i barattoli di conserva sono schierati per annata come un esercito pronto alla battaglia.",
+        "Chi rifiuta il bis a casa mia mi fa un'offesa personale che mi lego al dito per tre generazioni.",
+        "Tonio stamattina mi ha portato delle triglie che sembravano morte di vecchiaia: gli ho fatto una guardata che è tornato in mare a nuoto.",
+        "Bice viene sempre a controllare se cade una goccia di sugo sul davanzale, ma quando sforno la crostata si presenta puntuale col piattino.",
+        "Sor Gaspare fa tanto il raffinato col bastone, però il piatto di trippa lo pulisce col pane fino a specchiarcisi dentro.",
+        "Capitan Remo beve quel vinaccio che sa di aceto invece di venire a prendersi una scodella di brodo caldo come i cristiani.",
+        "Ada mi regala il rosmarino fresco dalle sue fioriere: credo sia l'unica pianta del borgo che non minaccia con le cesoie."
+      ],
+      "momenti": {
+        "mattina": [
+          "Alle cinque ero già in piedi a tritare sedano, carota e cipolla. Il profumo di soffritto è l'unica sveglia che funziona davvero.",
+          "Hai fatto colazione o sei uscito a stomaco vuoto? Guarda che ti vedo gli occhi lucidi da debolezza, tieni un biscotto!",
+          "La pasta fresca va tirata col fresco della mattina, altrimenti l'impasto suda e i cappelletti si aprono nel brodo.",
+          "Fulvio la mattina beve quel caffè annacquato invece di inzuppare quattro fette di pane nel latte intero come gli dico sempre."
+        ],
+        "pranzo": [
+          "Giù le mani dal pane prima che arrivi il primo! Che poi ti riempi di mollica e mi lasci indietro le tagliatelle.",
+          "A mezzogiorno i miei fornelli cantano a pieno regime. Se passi sotto la finestra solo ad annusare prendi mezzo chilo.",
+          "Il pranzo è una cosa sacra: tovaglia pulita, forchetta in mano e silenzio assoluto finché non si vede il fondo della pirofila.",
+          "Gigi gira intorno alla mia cucina come i gatti randagi: fa finta di passare per caso e intanto allunga le dita sulle frittelle."
+        ],
+        "pomeriggio": [
+          "Adesso che ho lavato i pentoloni mi siedo cinque minuti a sgranare i fagioli. Per modo di dire, che ho già su il bollito per stasera.",
+          "La merenda delle quattro non si salta nemmeno se casca il mondo. Pane, burro e zucchero, come si faceva una volta.",
+          "Con il tepore del pomeriggio l'impasto della focaccia lievita che è una bellezza, gonfia fin sopra il canovaccio.",
+          "Porto sempre una tazza di camomilla a Zia Nella, ma quella resta immobile sulla sedia che pare una statua di sale."
+        ],
+        "tramonto": [
+          "Cala il sole e io inizio a scaldare il minestrone. È così denso che il cucchiaio ci sta piantato in mezzo da solo.",
+          "A quest'ora l'aria si rinfresca e viene subito quell'appetito giusto per tre o quattro polpette d'antipasto.",
+          "Guarda che bel colore arancione ha il cielo stasera: sembra proprio il tuorlo delle uova fresche per le fettuccine.",
+          "Il Furetto passa rasente ai muri quando cala il buio: è così magro e ingobbito che mi viene voglia di tirargli una pagnotta dietro."
+        ],
+        "notte": [
+          "Cosa ci fai in giro a quest'ora invece di stare sotto le coperte? Scommetto che ti sei svegliato coi crampi della fame.",
+          "Di notte lascio la pentola del brodo sulla brace spenta, così per domattina ha tirato fuori tutta la sostanza dalle ossa.",
+          "Se non riesci a prendere sonno, mangia mezza teglia di parmigiana fredda: ti dà una botta tale che dormi fino a dopodomani.",
+          "Sentivo dei passi nel vicolo e pensavo fosse Sor Gaspare di ronda, invece sei tu che vaghi come un'anima in pena a digiuno."
+        ]
+      },
+      "stagioni": {
+        "primavera": [
+          "Fave fresche, piselli dolci e carciofi col gambo tenero! In primavera la mia cucina sembra un campo in fiore, ma passato in padella.",
+          "Con il cambio di stagione ci vuole una cura ricostituente a base di gnocchi fatti a mano tutti i giovedì e pure la domenica.",
+          "L'aria tiepida mette fiacchezza nelle gambe: non farti ingannare, hai bisogno del doppio delle porzioni normali.",
+          "Ada si lamenta dei parassiti sulle rose, io invece mi lamento di chi spizzica l'insalata invece di mangiare il coniglio ripieno."
+        ],
+        "estate": [
+          "Tutti a dire che d'estate ci vuole roba leggera! Fesserie, una bella lasagna fumante ad agosto ti fa sudare fuori tutta la stanchezza.",
+          "È tempo di passata di pomodoro! Ho già preparato ottanta bottiglie in cortile, chi passa di qua viene arruolato a girare il passaverdure.",
+          "Con questo sole i peperoni arrostiti sulla piastra vengono dolci come il miele, ma pesanti come un mattone forato.",
+          "Gigi si butta in mare subito dopo mangiato: ogni volta gli urlo dietro dalla finestra che gli viene una congestione fulminante!"
+        ],
+        "autunno": [
+          "Zucca, funghi e castagne! Finalmente si ricomincia con i piatti seri che ti incollano alla sedia per tre ore.",
+          "Quando cadono le prime foglie io tiro fuori il paiolo di rame per la polenta. Girarla per un'ora vale come spaccare la legna.",
+          "L'umidità dell'autunno si combatte solo a colpi di stracotto al vino rosso e crostini unti fino al gomito.",
+          "Tonio torna dal molo col naso viola per il vento: se non gli facessi trovare la zuppa bollente sarebbe già surgelato."
+        ],
+        "inverno": [
+          "Fuori gela e dentro la mia cucina ci sono quaranta gradi fissi grazie al forno a legna. Avvicinati pure che ti scongelo le orecchie.",
+          "D'inverno la sostanza fa da cappotto naturale! Chi è magro batte i denti, chi mangia i miei cannelloni gira in maniche di camicia.",
+          "Il brodo di cappone di gennaio resuscita pure i morti, figuriamoci se non fa passare un raffreddore da niente.",
+          "Bice spazza la brina dai gradini alle sei del mattino, io almeno uso le braccia per tirare la sfoglia al caldo."
+        ]
+      },
+      "brutto": [
+        "Con questa pioggia battente non si esce di casa senza almeno tre etti di pasta nello stomaco per fare da zavorra contro il vento.",
+        "Senti che tuoni! Meno male che ho chiuso bene i barattoli delle melanzane sott'olio, altrimenti con le vibrazioni mi prendono aria.",
+        "Tempo da lupi, tempo da fagioli con le cotiche! Mettiti comodo che ho su un pentolone di terracotta che borbotta da stamattina.",
+        "Quando tira questo vento di mare il camino fuma un po', ma dà alla scamorza quell'affumicatura naturale che è una poesia.",
+        "Capitan Remo è là fuori sotto l'acquazzone a coprire il bicchiere col cappello: quell'uomo ha più paura dell'acqua dolce che del diavolo.",
+        "Fulvio con la pioggia si muove ancora più piano del solito: se va avanti così mette le radici sotto il bancone."
+      ],
+      "primo": [
+        "Madonna santa che viso sciupato che hai! Io sono Nonna Pina, vieni subito dentro che ti taglio due fette di salame prima che mi svieni sul selciato.",
+        "Guarda qua, un forestiero tutto pelle e ossa! Piacere, Nonna Pina. Qui a Borgo Marea se non finisci tutto quello che hai nel piatto non esci vivo, siamo intesi?",
+        "Avanti, non fare i complimenti sulla porta! Io sono Nonna Pina. Siediti che ho giusto una teglia di lasagne calde: pesano tre chili ma ti rimettono al mondo.",
+        "Oh, finalmente una faccia nuova da rimpinzare! Mi chiamo Nonna Pina. Non ascoltare Gigi se ti dice che il mio polpettone serve per ancorare le barche, quel monello non capisce niente.",
+        "Benvenuto, tesoro bello! Io sono Nonna Pina. Se senti profumo di soffritto a qualsiasi ora del giorno e della notte, segui il naso e bussa pure alla mia porta."
+      ],
+      "insistente": [
+        "Ancora qua a chiacchierare? Guarda che se mi distrai mi si attacca il caramello sul fondo del pentolino e poi ti tocca grattarlo!",
+        "Tesoro della nonna, se apri bocca un'altra volta invece di parlare ti ci infilo un supplì intero, uomo avvisato!",
+        "Ma non hai niente da fare oggi? Prendi quel sacco di patate nell'angolo e sbucciale tutte, almeno rendi utile la lingua!",
+        "Oh, sei più insistente del bruciore di stomaco dopo i peperoni fritti! Lasciami controllare il forno in santa pace!",
+        "Persino Zia Nella fa più conversazione sensata di te quando ti impunti così! Fila a fare due passi prima che prenda il mestolo.",
+        "Se continui a ronzarmi intorno alle sottane chiamo il Furetto e ti faccio spedire in una cassa sull'altra sponda!"
+      ],
+      "lore": [
+        "Da qualche giorno l'acqua del pozzo bolle in pentola ancora prima che io accenda il fuoco sotto. Risparmio legna, ma non mi piace per niente.",
+        "Ieri ho tagliato una cipolla e dentro gli anelli erano disegnati a spirale nera. L'ho buttata nel soffritto lo stesso, ma faceva un fumo viola.",
+        "Il lievito madre nella madia stanotte bussava contro il coperchio di legno come se volesse uscire a fare una passeggiata per il borgo.",
+        "Sor Gaspare dice che sono suggestioni da donnette, ma intanto ieri sera tremava così tanto che ha rovesciato il cucchiaio del brodo.",
+        "Anche Tonio mi ha portato dei pesci con tre occhi che pesavano come sassi di fiume. Gli ho detto di non azzardarsi a metterli sul mio tagliere."
+      ],
+      "loreAperto": [
+        "Sarà anche arrivata la fine del mondo, ma a tavola si viene puntuali lo stesso! Anzi, con quell'aria strana che gira ci vuole una porzione doppia.",
+        "Stamattina un'ombra nera senza faccia è entrata in cucina: le ho urlato di pulirsi i piedi sullo zerbino ed è scappata via dal camino!",
+        "Da quando il cielo ha quel colore livido, le mie lasagne sono diventate ancora più pesanti: chi ne mangia un quadratino non sente più le voci strane nella testa.",
+        "Bice si dispera per la cenere viola sui gradini, io invece ho scoperto che se ci cuoci sotto le patate al cartoccio vengono croccantissime.",
+        "Gigi si diverte a correre dietro alle nebbie che escono dai vicoli, ma se torna a casa tardi per cena vede che paura gli faccio prendere io col mattarello!"
+      ],
+      "favori": {
+        "preferisce": {
+          "pesce": 0.8
+        },
+        "pesce": [
+          "Ho già l'aglio che soffrigge nel tegame di coccio, ma per il brodetto mi manca {cosa}! Me lo porti fresco entro {tempo}?",
+          "Voglio fare una frittura reale che si senta il profumo fino al faro, però mi serve assolutamente {cosa}. Hai {tempo} per darmene uno buono, ci stai?",
+          "Quel pelandrone di Tonio oggi non aveva {cosa} nella cassetta! Vai tu a vedere se riesci a pescarne uno entro {tempo} per la mia teglia al forno?",
+          "Per la cena speciale di stasera la ricetta antica pretende {cosa} appena tirato su dall'acqua. Riesci a procurarmi tutto entro {tempo}?"
+        ],
+        "insetto": [
+          "Ho promesso a Gigi che gli avrei fatto vedere {cosa} dentro un vasetto della marmellata se finiva tutta la minestra! Me ne trovi uno entro {tempo}?",
+          "C'è un vecchio rimedio della bisnonna che dice che tenere {cosa} vicino alla finestra porta fortuna alla lievitazione! Me lo catturi entro {tempo}?",
+          "Voglio far prendere uno spavento a chi viene a rubarmi le crostate sul davanzale mettendoci {cosa} di guardia! Hai {tempo} per portarmelo?",
+          "Ada sostiene che in questo periodo non si trova {cosa} da nessuna parte, ma io dico che si sbaglia di grosso! Me ne porti la prova entro {tempo}?"
+        ],
+        "si": [
+          "Bravo il mio tesoro! Corri veloce e non sudare troppo che poi prendi freddo!",
+          "Così mi piaci, scattante e volenteroso! Io intanto tengo acceso il fuoco sotto la pentola.",
+          "Sapevo che non mi avresti detto di no! Ti aspetto qui sull'uscio, fai buon viaggio."
+        ],
+        "no": [
+          "Come sarebbe a dire di no? Va bene, me ne ricorderò quando distribuisco le porzioni di tiramisù!",
+          "Ah, rifiuti un favore a Nonna Pina? Pazienza, vorrà dire che farò da sola anche stavolta.",
+          "Niente da fare, eh? Si vede proprio che oggi hai mangiato poco e non hai le forze."
+        ],
+        "promemoria": [
+          "Allora, mi hai trovato {cosa} o sei tornato solo per annusare il ragù?",
+          "Ancora niente {nome}? Sbrigati che l'acqua bolle e io non posso aspettare fino a stasera!",
+          "Guarda che sto ancora aspettando {cosa}! Cerca bene e non distrarti per strada."
+        ],
+        "dono": [
+          "Benedetto il cielo, hai trovato davvero {cosa}! Fammelo vedere subito da vicino!",
+          "Ma guarda che meraviglia di {nome}! Hai portato {cosa} proprio come volevo io!",
+          "Puntuale e preciso! Non era facile trovare {cosa} di questa qualità, passa qua alla nonna!"
+        ],
+        "grazie": [
+          "Un esemplare di {nome} davvero coi fiocchi! Grazie mille, adesso sì che viene fuori un capolavoro.",
+          "Con {cosa} hai salvato la giornata di Nonna Pina! Prendi pure questo, te lo sei guadagnato col sudore della fronte.",
+          "Che soddisfazione vedere un bel {nome} così! Grazie di cuore, sei il mio aiutante preferito in tutto il borgo."
+        ],
+        "attesa": [
+          "Ancora qui impalato? Guarda che {a} non ha mica il telefono senza fili nel cervello, corri a portare l'ambasciata!",
+          "Tesoro bello, hai già parlato con {a} o ti sei fermato a contare le formiche sul muretto?",
+          "Su, muovi quelle gambette! Vai da {a} e torna a dirmi cosa ti risponde prima che mi bruci l'arrosto!"
+        ],
+        "scaduto": [
+          "Eh, tesoro mio, sei arrivato che il forno è già spento! Ormai ho dovuto cambiare ricetta, sarà per un'altra volta.",
+          "Troppo tardi! A quest'ora il pranzo è già bello che digerito, non mi serve più.",
+          "Hai fatto il giro largo, eh? Il tempo è scaduto da un pezzo, tieniti pure tutto per te!"
+        ],
+        "monete": [
+          "Tieni {monete} monete, le tenevo nascoste nel barattolo del caffè per i regali importanti! Comprati qualcosa di sostanzioso.",
+          "Ecco a te {monete} monete sonanti! Non dirlo a nessuno e non spenderle tutte in caramelle che ti rovini l'appetito.",
+          "Prendi queste {monete} monete, regalo della nonna! Infilale subito in tasca senza fare storie."
+        ],
+        "mobile": [
+          "Prendi {mobile} per casa tua! L'ho lucidato con la cera d'api finché non ci si poteva specchiare dentro.",
+          "Per ringraziarti ti regalo {mobile}: nella mia cucina non ci passa più neanche uno spillo, da te farà un figurone!",
+          "Tieni, portati a casa {mobile}! È roba solida di una volta, di quelle che durano cent'anni."
+        ],
+        "messaggi": {
+          "pranzo": {
+            "chiede": [
+              "Ho preparato una teglia di pasta al forno che basta per un reggimento. Vai da {a} e dì di venire subito a prendersene una fetta prima che io mi offenda!",
+              "Ho visto {a} passare stamattina con una cera pallida che non mi piace per niente. Corri a dire che ho pronto un piatto di gnocchi fumanti col ragù!",
+              "Il brodo è in tavola e non ammetto ritardi! Fila a chiamare {a} e riferisci che se si fredda la minestra poi sono guai seri."
+            ],
+            "risponde": [
+              "Oddio, se rifiuto il pranzo di {da} mi toglie il saluto per dieci anni! Riferisci pure che arrivo di corsa con la forchetta in mano.",
+              "Un invito a pranzo da {da}? Prepariamoci a non riuscire ad alzarci dalla sedia fino a domani. Dì pure che accetto volentieri e ringrazio!",
+              "Ah, ti manda {da}! Sentivo il profumo fin qui. Torna pure a dire che sto arrivando, ho giusto lo spazio per una porzione abbondante."
+            ],
+            "grazie": [
+              "Bravo tesoro! Così mi preparo a scodellare per {a}, e per premio adesso mangi due polpette anche tu senza fiatare.",
+              "Meno male che ci sei andato tu! Almeno so che {a} oggi mette nello stomaco qualcosa di cristiano. Grazie mille!",
+              "Perfetto! Nessuno dice di no alla mia cucina, e {a} lo sa benissimo. Grazie per aver fatto la commissione!"
+            ]
+          },
+          "prestito": {
+            "chiede": [
+              "Ho tutte le mie pentole sui fornelli e mi manca una pirofila grande per il dolce. Vai da {a} a chiedere se me ne presta una per stasera?",
+              "Devo legare tre arrosti giganti e ho finito lo spago da cucina. Faresti un salto da {a} per sentire se me ne presta un gomitolo?",
+              "Mi serve il mortaio pesante per pestare il sale grosso e le erbe. Chiedi a {a} se me lo presta un'oretta prima che butti giù la pasta?"
+            ],
+            "risponde": [
+              "A {da} presto tutto quello che vuole, basta che poi me lo riporti pieno di biscotti come fa sempre! Tieni, portaglielo subito.",
+              "Se serve per la cucina di {da} non si discute nemmeno! Ecco qua, dì pure che può tenerlo finché non ha finito di cucinare.",
+              "Figurati se dico di no a {da}! Consegno tutto a te, ma riferisci che in cambio mi prenoto per gli assaggi di stasera."
+            ],
+            "grazie": [
+              "Che meraviglia! Sapevo che {a} mi avrebbe salvato la ricetta in tempo. Quando sforno ne mando una parte anche di là!",
+              "Eccolo qua, proprio quello che mi serviva! Ringrazia tanto {a}, stasera restituisco tutto lavato e col profumo di buono.",
+              "Sei stato un fulmine! Grazie a te e a {a} il pranzo di oggi è salvo, ti sei meritato una fetta doppia."
+            ]
+          },
+          "scuse": {
+            "chiede": [
+              "Stamattina arrostivo i peperoni sul balcone e il fumo nero è andato dritto verso le finestre di {a}. Vai a chiedere scusa da parte mia e dì che rimedio con una crostata?",
+              "Ieri ho sgridato {a} perché pensavo avesse lasciato il portone aperto col vento, e invece era stato il gatto. Vai tu a portare le mie scuse prima che mi senta in colpa?",
+              "Nella fretta di ritirare le tovaglie ho fatto cadere un vaso proprio vicino a {a}. Corri a dire che mi dispiace tantissimo e che passo io a sistemare!"
+            ],
+            "risponde": [
+              "Ma figuriamoci se me la prendo con {da}! Riferisci pure di stare tranquillissima, basta una fetta di torta e siamo più amici di prima.",
+              "Accetto le scuse di {da} a occhi chiusi, chi avrebbe il coraggio di tenerle il broncio? Dì pure che è già tutto dimenticato!",
+              "Ah, era stata {da}? Allora ha il permesso speciale! Torna pure a dirle che non è successo niente di grave e di non preoccuparsi."
+            ],
+            "grazie": [
+              "Oh, mi hai tolto un macigno dallo stomaco! Con {a} mi dispiaceva proprio aver fatto confusione. Grazie di cuore, tesoro!",
+              "Sospiro di sollievo! Allora domani porto a {a} un vassoio di paste fresche per sigillare la pace. Grazie del favore!",
+              "Bravo, hai parlato proprio bene! Sapevo che {a} ha un cuore grande e non porta rancore. Grazie mille!"
+            ]
+          },
+          "briscola": {
+            "chiede": [
+              "Ho finito di sparecchiare e ho giusto mezz'ora prima di impastare il pane. Vai da {a} a chiedere se viene a farsi una briscola veloce al tavolo di cucina?",
+              "Chiedi a {a} se ha il coraggio di sfidarmi a briscola! Chi vince si prende l'ultimo barattolo di marmellata di fichi, chi perde sbuccia le cipolle.",
+              "Mi ci vuole una bella partita a carte per digerire! Corri da {a} e dì che ho già messo il mazzo sul centrino, aspetto solo lo sfidante."
+            ],
+            "risponde": [
+              "Giocare a briscola contro {da} è pericolosissimo: se le prendi il tre di briscola ti guarda col mattarello in mano! Dì pure che accetto e arrivo.",
+              "Una sfida sul tavolo di {da}? Non mancherei per nulla al mondo, soprattutto se c'è in palio la marmellata! Riferisci che sono già per strada.",
+              "Accetto volentieri l'invito di {da}! Dì di preparare le carte e i bicchierini di rosolio che tra due minuti bussano alla porta."
+            ],
+            "grazie": [
+              "Perfetto! Prepara le sedie che oggi a {a} faccio vedere come si gioca di fino con gli assi nella manica.",
+              "Che bella notizia! Con {a} vengono fuori certe partite tirate fino all'ultima carta. Grazie di essere andato!",
+              "Benissimo! Adesso tiro fuori anche i cantucci secchi, così intanto che batto {a} a carte sgranocchiamo qualcosa."
+            ]
+          },
+          "aiuto": {
+            "chiede": [
+              "Mi hanno consegnato un sacco di farina da cinquanta chili davanti all'uscio e da sola non posso sollevarlo. Chiedi a {a} se viene a darmi una mano a portarlo in dispensa?",
+              "Devo spostare la damigiana dell'olio nuovo giù nello scantinato prima che prenda luce. Vai a chiamare {a} per aiutarmi nei gradini stretti?",
+              "Il coperchio del barattolone delle olive si è incastrato che sembra saldato col fuoco. Senti {a} se passa un attimo a darmi un giro di polso?"
+            ],
+            "risponde": [
+              "Per la cucina di {da} si corre subito! Dì pure di non provare assolutamente a sollevare pesi da sola, arrivo io tra un minuto.",
+              "Ci mancherebbe altro, vengo subito a dare una mano a {da}! Riferisci di aspettarmi sulla porta che faccio io la fatica.",
+              "D'accordo! Dì a {da} che arrivo al volo, per chi sfama tutto il borgo questo e altro!"
+            ],
+            "grazie": [
+              "Sia lodato il cielo! Con l'aiuto di {a} sistemiamo tutto senza che mi venga il colpo della strega. Grazie, tesoro!",
+              "Ottimo! Sapevo che su {a} si può sempre fare affidamento per i lavori di fatica. Grazie per aver corso fin là!",
+              "Mille grazie! Appena {a} finisce di darmi una mano, preparo una merenda rinforzata per tutti e due."
+            ]
           }
         }
       }

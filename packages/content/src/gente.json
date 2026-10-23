@@ -28,34 +28,19 @@
       ]
     },
     {
-      "id": "gigi", "nome": "Gigi il Mozzo", "ruolo": "guida", "modello": "npc_gigi",
+      "id": "gigi", "nome": "Gigi il Mozzo", "ruolo": "paesano", "modello": "npc_gigi",
       "look": { "pelle": 2, "capelli": 1, "coloreCapelli": 4, "vestito": 2, "cappello": 8 },
-      "giro": [[43.4, 48.6], [43.4, 54.6]], "velocita": 1.1, "raggio": 3,
-      "battute": [
-        "Ehi, nuovo! Questo è il Porto. Qui non si paga l'affitto: si paga in monete, e le monete non crescono sugli alberi.",
-        "La barca sta al molo: avvicinati e premi A. Con la barca vai alle isole degli amici e alla Laguna, dove c'è la Regata.",
-        "Sotto alcune isole ci sono i dungeon. Io ci sono sceso una volta. Ne sono uscito con un pugnale arrugginito e gli incubi."
-      ]
+      "giro": [[43.4, 48.6], [43.4, 54.6]], "velocita": 1.1, "raggio": 3
     },
     {
-      "id": "remo", "nome": "Capitan Remo", "ruolo": "guida", "modello": "npc_remo",
+      "id": "remo", "nome": "Capitan Remo", "ruolo": "paesano", "modello": "npc_remo",
       "look": { "pelle": 3, "capelli": 5, "coloreCapelli": 0, "vestito": 0, "cappello": 7 },
-      "giro": [[40.6, 40.7], [47.4, 40.7]], "velocita": 0.9, "raggio": 3,
-      "battute": [
-        "Capitan Remo, quarant'anni di mare e zero naufragi. Due, se contiamo la vasca da bagno.",
-        "Là fuori ci sono isole a tema da scoprire. Apri la mappa con M: la nebbia copre quelle dove non sei ancora stato.",
-        "Più in là c'è l'Isola della Tempesta: ci arriva solo chi ha il Molo al livello giusto. Io aspetto che passi. Da sei anni."
-      ]
+      "giro": [[40.6, 40.7], [47.4, 40.7]], "velocita": 0.9, "raggio": 3
     },
     {
-      "id": "pina", "nome": "Nonna Pina", "ruolo": "guida", "modello": "npc_pina",
+      "id": "pina", "nome": "Nonna Pina", "ruolo": "paesano", "modello": "npc_pina",
       "look": { "pelle": 4, "capelli": 3, "coloreCapelli": 5, "vestito": 3, "cappello": 3 },
-      "giro": [[46.2, 56.4]], "velocita": 0.5, "raggio": 3,
-      "battute": [
-        "Ciao tesoro. Le botteghe del Borgo cambiano la vetrina ogni giorno: passa a guardare, che il bello finisce presto.",
-        "Alla Bacheca in piazza ci sono tre missioni nuove ogni giorno. Le fai, torni e premi RISCUOTI. Così si campa.",
-        "Le monete spendile dal Mercante. Ishi è onesto, eh. Per essere un mercante."
-      ]
+      "giro": [[46.2, 56.4]], "velocita": 0.5, "raggio": 3
     },
     {
       "id": "nella", "nome": "Zia Nella", "ruolo": "paesano", "modello": "npc_nella",
