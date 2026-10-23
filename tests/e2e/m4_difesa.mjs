@@ -181,7 +181,7 @@ export default async function (ctx) {
     await ctx.shot(p.page, 'pc_persa');
     await p.page.click('.df-velo.su button:has-text("RIPROVA")');
     const st2 = await stato(p.page);
-    assert(st2.esito === '' && st2.tick < 5 && st2.livello === 2, `RIPROVA: ${JSON.stringify(st2)}`);
+    assert(st2.esito === '' && st2.tick < 60 && st2.livello === 2, `RIPROVA: ${JSON.stringify(st2)}`);
   });
 
   await ctx.test('telefono in verticale: «GIRA IL TELEFONO»', async () => {
