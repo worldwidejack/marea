@@ -109,6 +109,16 @@
     { "id": "bersaglio_da_freccette_storto", "nome": "Bersaglio da freccette storto", "categoria": "giochi", "monete": 90, "posto": "parete", "altezza": 0.55, "colori": ["#23201F", "#E8E1D6", "#E8433F"] },
     { "id": "tabellone_da_biliardo_con_gessetti", "nome": "Tabellone da biliardo con gessetti", "categoria": "giochi", "monete": 120, "posto": "parete", "altezza": 0.75, "colori": ["#5A3A1E", "#2C6B3F", "#3FB9C9"] },
     { "id": "insegna_vietato_lingresso_ai_venditori", "nome": "Insegna \"Vietato l’ingresso ai venditori\"", "categoria": "decorazioni", "monete": 75, "posto": "parete", "altezza": 0.4, "colori": ["#E8E1D6", "#E8433F", "#23201F"] },
-    { "id": "stendardo_medievale_con_stemma_inventato", "nome": "Stendardo medievale con stemma inventato", "categoria": "decorazioni", "monete": 180, "posto": "parete", "altezza": 1.35, "colori": ["#A64DFF", "#F5D547", "#5A3A1E"] }
+    { "id": "stendardo_medievale_con_stemma_inventato", "nome": "Stendardo medievale con stemma inventato", "categoria": "decorazioni", "monete": 180, "posto": "parete", "altezza": 1.35, "colori": ["#A64DFF", "#F5D547", "#5A3A1E"] },
+    { "id": "cassa_di_legno_della_frutta_rovesciata", "nome": "Cassa di legno della frutta rovesciata", "categoria": "tavoli", "monete": 45, "posto": "terra", "altezza": 0.45, "colori": ["#C98A4B", "#8E5A2B", "#F5D547"] },
+    { "id": "banco_da_macellaio_in_marmo", "nome": "Banco da macellaio in marmo", "categoria": "tavoli", "monete": 225, "posto": "terra", "altezza": 0.9, "colori": ["#E8E1D6", "#5A3A1E", "#4A4340"] },
+    { "id": "tavolo_da_ping_pong_piegato", "nome": "Tavolo da ping pong piegato", "categoria": "tavoli", "monete": 285, "posto": "terra", "altezza": 1.65, "colori": ["#2C6B3F", "#4A4340", "#E8433F"] },
+    { "id": "valigia_rigida_vintage", "nome": "Valigia rigida vintage", "categoria": "tavoli", "monete": 105, "posto": "terra", "altezza": 0.45, "colori": ["#8E5A2B", "#4A4340", "#F5D547"] },
+    { "id": "pila_di_libri_enormi", "nome": "Pila di libri enormi", "categoria": "tavoli", "monete": 150, "posto": "terra", "altezza": 0.75, "colori": ["#8E5A2B", "#F4E3C1", "#E8433F"] },
+    { "id": "banco_da_scuola_con_sedile_attaccato", "nome": "Banco da scuola con sedile attaccato", "categoria": "tavoli", "monete": 135, "posto": "terra", "altezza": 0.75, "colori": ["#2C6B3F", "#C98A4B", "#F5D547"] },
+    { "id": "tavolino_da_campeggio_richiudibile", "nome": "Tavolino da campeggio richiudibile", "categoria": "tavoli", "monete": 75, "posto": "terra", "altezza": 0.65, "colori": ["#3FB9C9", "#B9AFA3", "#2478A8"] },
+    { "id": "banco_da_lavoro_con_morsa", "nome": "Banco da lavoro con morsa", "categoria": "tavoli", "monete": 240, "posto": "terra", "altezza": 0.85, "colori": ["#8E5A2B", "#4A4340", "#E8433F"] },
+    { "id": "tavolo_da_dj_con_lucine_rotte", "nome": "Tavolo da DJ con lucine rotte", "categoria": "tavoli", "monete": 255, "posto": "terra", "altezza": 0.95, "colori": ["#23201F", "#4A4340", "#3DF5FF"] },
+    { "id": "cassettone_da_farmacia_antica", "nome": "Cassettone da farmacia antica", "categoria": "tavoli", "monete": 270, "posto": "terra", "altezza": 1.0, "colori": ["#5A3A1E", "#F5D547", "#F4E3C1"] }
   ]
 }

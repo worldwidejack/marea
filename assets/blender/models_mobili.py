@@ -1018,7 +1018,6 @@ def mob_letto_singolo_con_materasso_a_molle():
         m.cbox(cw / 2 - 0.03, -0.3 + (i % 2) * 0.02, 0.03, 0.03, my, my + 0.03, 'ferro', top='ferro')
     return _obj(m, footprint=[W, D])
 
-
 def mob_lume_a_olio_mezzo_vuoto():
     """Lume a olio d'ottone e vetro mezzo vuoto: serbatoio trasparente con combustibile a metà, ghiera con stoppino e tubo in vetro rastremato."""
     m = Mesh('mob_lume_a_olio_mezzo_vuoto')
@@ -1332,6 +1331,333 @@ def mob_orologio_da_tavolo_a_forma_di_gatto():
     # DETTAGLIO: coda a pendolo inclinata di lato come se oscillasse («la coda si muove a ogni secondo»)
     beam(m, (0.0, 0.06, 0.06), (-0.10, 0.01, 0.06), 0.025, 0.025, 'p_nero_caldo')
     beam(m, (-0.10, 0.01, 0.06), (-0.14, 0.08, 0.06), 0.025, 0.025, 'p_nero_caldo', end='p_nero_caldo')
+
+
+def mob_cassa_di_legno_della_frutta_rovesciata():
+    """Cassa di legno della frutta rovesciata usata come tavolino, con una candela accesa e cera colata sopra."""
+    m = Mesh('mob_cassa_di_legno_della_frutta_rovesciata')
+    W, D = ingombro((1, 1))
+    cw, cd = 0.92, 0.64
+    # 4 montanti angolari squadrati in legno scuro
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            m.box(sx * (cw / 2 - 0.04) - 0.035, 0.0, sz * (cd / 2 - 0.04) - 0.035,
+                  sx * (cw / 2 - 0.04) + 0.035, 0.44, sz * (cd / 2 - 0.04) + 0.035,
+                  'p_legno_scuro', skip=('bottom',))
+    # Doghe laterali orizzontali (due fasce per lato)
+    for y0, y1 in ((0.05, 0.19), (0.24, 0.38)):
+        m.box(-cw / 2, y0, -cd / 2, cw / 2, y1, -cd / 2 + 0.025, 'tavole', skip=('bottom', 'top'))
+        m.box(-cw / 2, y0, cd / 2 - 0.025, cw / 2, y1, cd / 2, 'tavole', skip=('bottom', 'top'))
+        m.box(-cw / 2, y0, -cd / 2, -cw / 2 + 0.025, y1, cd / 2, 'tavole', skip=('bottom', 'top'))
+        m.box(cw / 2 - 0.025, y0, -cd / 2, cw / 2, y1, cd / 2, 'tavole', skip=('bottom', 'top'))
+    # Piano superiore: fondo della cassa rovesciata (4 doghe con fessura)
+    for i in range(4):
+        z0 = -cd / 2 + 0.02 + i * 0.15
+        m.box(-cw / 2, 0.40, z0, cw / 2, 0.44, z0 + 0.13, 'tavole', top='tavole', skip=('bottom',))
+    # Due listelli trasversali di rinforzo del fondo
+    for sx in (-cw / 2 + 0.1, cw / 2 - 0.14):
+        m.box(sx, 0.44, -cd / 2 + 0.02, sx + 0.04, 0.46, cd / 2 - 0.02, 'p_legno_scuro', top='p_legno_scuro')
+    # DETTAGLIO: candela d'arredo accesa («se ci metti sopra una candela diventa arredo di design»)
+    cx, cz = 0.16, 0.02
+    m.prism(6, 0.045, 0.045, 0.44, 0.62, 'p_pietra_chiara', top='p_pietra_chiara', cx=cx, cz=cz)
+    beam(m, (cx, 0.62, cz), (cx, 0.65, cz), 0.012, 0.012, 'p_nero_caldo', end='p_nero_caldo')
+    m.cone(6, 0.03, 0.65, 0.73, 'p_giallo', cx=cx, cz=cz)
+    # Cera colata sul bordo del listello
+    m.box(cx + 0.03, 0.44, cz - 0.02, cx + 0.07, 0.47, cz + 0.03, 'p_pietra_chiara')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_banco_da_macellaio_in_marmo():
+    """Pesante banco da lavoro in legno massiccio con piano in marmo spesso, tagliere e mannaia conficcata."""
+    m = Mesh('mob_banco_da_macellaio_in_marmo')
+    W, D = ingombro((1, 1))
+    cw, cd = 1.32, 0.84
+    # 4 gambe massicce in legno scuro
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            m.cbox(sx * (cw / 2 - 0.12), sz * (cd / 2 - 0.12), 0.14, 0.14, 0.0, 0.72, 'p_legno_scuro', top='p_legno_scuro')
+    # Fasce di collegamento superiori in legno
+    m.box(-cw / 2 + 0.08, 0.60, -cd / 2 + 0.08, cw / 2 - 0.08, 0.72, -cd / 2 + 0.14, 'p_legno_scuro', skip=('bottom',))
+    m.box(-cw / 2 + 0.08, 0.60, cd / 2 - 0.14, cw / 2 - 0.08, 0.72, cd / 2 - 0.08, 'p_legno_scuro', skip=('bottom',))
+    m.box(-cw / 2 + 0.08, 0.60, -cd / 2 + 0.08, -cw / 2 + 0.14, 0.72, cd / 2 - 0.08, 'p_legno_scuro', skip=('bottom',))
+    m.box(cw / 2 - 0.14, 0.60, -cd / 2 + 0.08, cw / 2 - 0.08, 0.72, cd / 2 - 0.08, 'p_legno_scuro', skip=('bottom',))
+    # Traversi inferiori di rinforzo e ripiano a doghe
+    for y, z in ((0.16, -cd / 2 + 0.12), (0.16, cd / 2 - 0.12)):
+        m.box(-cw / 2 + 0.08, y, z - 0.04, cw / 2 - 0.08, y + 0.06, z + 0.04, 'p_legno_scuro')
+    for i in range(5):
+        x = -cw / 2 + 0.22 + i * 0.20
+        m.box(x, 0.20, -cd / 2 + 0.08, x + 0.10, 0.23, cd / 2 - 0.08, 'tavole', top='tavole')
+    # Piano spesso in marmo bianco con smusso visivo
+    m.cbox(0.0, 0.0, cw + 0.08, cd + 0.08, 0.72, 0.88, 'p_pietra_chiara', top='marmo_muro')
+    # DETTAGLIO: tagliere spesso in legno con mannaia da macellaio conficcata
+    m.cbox(-0.24, -0.04, 0.44, 0.34, 0.88, 0.94, 'p_legno', top='taglio')
+    # Lama della mannaia in metallo conficcata verticalmente
+    m.box(-0.26, 0.93, -0.08, -0.22, 1.07, 0.06, 'metallo', top='metallo')
+    # Manico in legno della mannaia
+    beam(m, (-0.24, 1.05, 0.05), (-0.24, 1.15, 0.17), 0.035, 0.035, 'p_legno_scuro', end='p_legno_scuro')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_tavolo_da_ping_pong_piegato():
+    """Tavolo da ping pong piegato in verticale con carrello a ruote, rete centrale, racchetta rossa e vestiti appesi."""
+    m = Mesh('mob_tavolo_da_ping_pong_piegato')
+    W, D = ingombro((1, 1))
+    # Carrello inferiore nero su 4 rotelle
+    m.cbox(0.0, 0.0, 0.84, 0.48, 0.06, 0.16, 'p_nero_caldo', top='p_nero_caldo')
+    for sx in (-0.36, 0.36):
+        for sz in (-0.20, 0.20):
+            m.prism(6, 0.04, 0.04, 0.0, 0.06, 'ferro', top='p_nero_caldo', cx=sx, cz=sz)
+    # Montanti a V del telaio
+    for sx in (-0.36, 0.36):
+        beam(m, (sx, 0.16, 0.0), (sx, 0.52, -0.16), 0.05, 0.05, 'ferro', end='ferro')
+        beam(m, (sx, 0.16, 0.0), (sx, 0.52, 0.16), 0.05, 0.05, 'ferro', end='ferro')
+    # I due semipiani verdi verticali ripiegati a libro (leggermente inclinati)
+    w_t = 1.48
+    # Semipiano anteriore (-Z)
+    m.cbox(0.0, -0.16, w_t, 0.06, 0.45, 1.62, 'p_bosco', top='p_bosco')
+    # Bordo e linea bianca perimetrale del tavolo
+    m.box(-w_t / 2, 1.60, -0.191, w_t / 2, 1.62, -0.189, 'p_pietra_chiara')
+    m.box(-w_t / 2, 0.45, -0.191, w_t / 2, 0.47, -0.189, 'p_pietra_chiara')
+    m.box(-0.015, 0.45, -0.191, 0.015, 1.62, -0.189, 'p_pietra_chiara')
+    # Semipiano posteriore (+Z)
+    m.cbox(0.0, 0.16, w_t, 0.06, 0.45, 1.62, 'p_bosco', top='p_bosco')
+    # Rete piegata e stipata nel mezzo tra i due piani
+    m.box(-w_t / 2 - 0.06, 0.48, -0.03, w_t / 2 + 0.06, 0.66, 0.03, 'rete', skip=('bottom', 'top'))
+    # DETTAGLIO 1: racchetta rossa da ping pong appoggiata sul montante
+    rx, rz = 0.42, -0.22
+    m.prism(8, 0.08, 0.08, 0.52, 0.54, 'p_rosso', top='p_rosso', cx=rx, cz=rz)
+    beam(m, (rx, 0.53, rz), (rx, 0.53, rz - 0.11), 0.024, 0.02, 'p_legno', end='p_legno')
+    # DETTAGLIO 2: pila di vestiti colorati appoggiati a cavallo del piano («deposito per vestiti»)
+    m.cbox(-0.35, -0.16, 0.38, 0.16, 1.58, 1.66, 'tessuto_rosso', top='tessuto_rosso')
+    m.cbox(-0.32, -0.16, 0.32, 0.18, 1.66, 1.72, 'tessuto_blu', top='tessuto_blu')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_valigia_rigida_vintage():
+    """Valigia rigida vintage marrone aperta su piedini come tavolino basso, con angolari dorati e ricordi all'interno."""
+    m = Mesh('mob_valigia_rigida_vintage')
+    W, D = ingombro((1, 1))
+    vw, vd = 1.05, 0.68
+    # 4 piedini conici torniti stile modernariato
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            m.prism(6, 0.015, 0.035, 0.0, 0.16, 'oro', top='oro', cx=sx * (vw / 2 - 0.10), cz=sz * (vd / 2 - 0.10))
+    # Guscio inferiore (base del tavolino) in cuoio/legno
+    m.cbox(0.0, 0.0, vw, vd, 0.16, 0.36, 'cuoio', top='p_sabbia_chiara', skip=('bottom',))
+    m.cbox(0.0, 0.0, vw + 0.02, vd + 0.02, 0.14, 0.17, 'p_legno_scuro', skip=('bottom',))
+    # Angolari protettivi dorati sui 4 angoli inferiori
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            m.cbox(sx * (vw / 2), sz * (vd / 2), 0.08, 0.08, 0.15, 0.24, 'oro', top='oro')
+    # Coperchio aperto sollevato verso il retro (+Z)
+    m.box(-vw / 2, 0.36, vd / 2 - 0.08, vw / 2, 0.88, vd / 2, 'cuoio', top='p_sabbia_chiara')
+    for sx in (-vw / 2 + 0.04, vw / 2 - 0.04):
+        m.cbox(sx, vd / 2 - 0.04, 0.06, 0.06, 0.82, 0.88, 'oro', top='oro')
+    # Cerniere e tiranti di arresto in metallo
+    beam(m, (-vw / 2 + 0.05, 0.35, 0.0), (-vw / 2 + 0.05, 0.65, vd / 2 - 0.06), 0.015, 0.015, 'oro')
+    beam(m, (vw / 2 - 0.05, 0.35, 0.0), (vw / 2 - 0.05, 0.65, vd / 2 - 0.06), 0.015, 0.015, 'oro')
+    # Maniglia centrale frontale sul davanti (-Z)
+    m.box(-0.10, 0.22, -vd / 2 - 0.04, 0.10, 0.26, -vd / 2, 'p_legno_scuro')
+    # DETTAGLIO: vecchie lettere e una cartolina ingiallita dentro la valigia («contiene ricordi»)
+    m.cbox(-0.20, -0.05, 0.30, 0.22, 0.36, 0.368, 'carta', top='carta')
+    m.cbox(0.18, 0.08, 0.24, 0.18, 0.36, 0.37, 'p_sabbia_chiara', top='p_sabbia_chiara')
+    m.prism(6, 0.04, 0.04, 0.36, 0.38, 'oro', top='oro', cx=0.12, cz=-0.14)
+    return _obj(m, footprint=[W, D])
+
+
+def mob_pila_di_libri_enormi():
+    """Pila elicoidale di enormi tomi rilegati in pelle colorata, con pagine dorate e un segnalibro rosso che pende."""
+    m = Mesh('mob_pila_di_libri_enormi')
+    W, D = ingombro((1, 1))
+    books = [
+        (0.00, 0.00, 0.98, 0.72, 'cuoio', 0.00, 0.14),
+        (0.02, -0.02, 0.94, 0.70, 'rosso_lacca', 0.14, 0.28),
+        (-0.02, 0.03, 0.90, 0.68, 'p_bosco', 0.28, 0.42),
+        (0.03, 0.01, 0.88, 0.66, 'tessuto_blu', 0.42, 0.56),
+        (0.00, 0.00, 0.84, 0.64, 'p_legno_scuro', 0.56, 0.70),
+    ]
+    for cx, cz, w, d, cover, y0, y1 in books:
+        # Piatto inferiore della copertina
+        m.cbox(cx, cz, w, d, y0, y0 + 0.02, cover, top=cover)
+        # Piatto superiore della copertina
+        m.cbox(cx, cz, w, d, y1 - 0.02, y1, cover, top=cover)
+        # Dorso del tomo sul retro (+Z)
+        m.box(cx - w / 2, y0, cz + d / 2 - 0.04, cx + w / 2, y1, cz + d / 2, cover, top=cover)
+        # Blocco delle pagine incavato visibile davanti (-Z) e sui fianchi
+        m.cbox(cx, cz - 0.02, w - 0.04, d - 0.06, y0 + 0.02, y1 - 0.02, 'pagine', top='pagine')
+        # Nervature dorate sul dorso
+        m.box(cx - w / 2 + 0.04, y0 + 0.04, cz + d / 2 - 0.01, cx + w / 2 - 0.04, y0 + 0.06, cz + d / 2 + 0.01, 'oro')
+        m.box(cx - w / 2 + 0.04, y1 - 0.06, cz + d / 2 - 0.01, cx + w / 2 - 0.04, y1 - 0.04, cz + d / 2 + 0.01, 'oro')
+    # DETTAGLIO 1: lungo nastro segnalibro rosso che pende lungo il fianco dei libri
+    beam(m, (0.42, 0.56, -0.05), (0.47, 0.32, -0.08), 0.045, 0.012, 'p_rosso', end='p_rosso')
+    beam(m, (0.47, 0.32, -0.08), (0.45, 0.16, -0.06), 0.045, 0.012, 'p_rosso', end='p_rosso')
+    # DETTAGLIO 2: occhiali da lettura posati sul libro in cima
+    m.prism(6, 0.035, 0.035, 0.70, 0.715, 'oro', top='vetro', cx=-0.08, cz=0.0)
+    m.prism(6, 0.035, 0.035, 0.70, 0.715, 'oro', top='vetro', cx=0.08, cz=0.0)
+    beam(m, (-0.05, 0.71, 0.0), (0.05, 0.71, 0.0), 0.01, 0.01, 'oro')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_banco_da_scuola_con_sedile_attaccato():
+    """Banco scolastico monoposto con telaio verde militare, seduta e schienale in legno, graffiti incisi e quaderno aperto."""
+    m = Mesh('mob_banco_da_scuola_con_sedile_attaccato')
+    W, D = ingombro((1, 1))
+    col_tubo = 'p_bosco'
+    # Slitte metalliche tubolari a terra collegate tra banco e sedia
+    for sx in (-0.36, 0.36):
+        beam(m, (sx, 0.03, -0.55), (sx, 0.03, 0.45), 0.05, 0.05, col_tubo, end=col_tubo)
+        # Gamba montante banco (-Z)
+        beam(m, (sx, 0.03, -0.40), (sx, 0.65, -0.40), 0.045, 0.045, col_tubo, end=col_tubo)
+        # Gamba montante sedia (+Z)
+        beam(m, (sx, 0.03, 0.28), (sx, 0.42, 0.28), 0.045, 0.045, col_tubo, end=col_tubo)
+        # Montante schienale
+        beam(m, (sx, 0.42, 0.36), (sx, 0.76, 0.40), 0.04, 0.04, col_tubo, end=col_tubo)
+    # Traversini di collegamento orizzontale
+    beam(m, (-0.36, 0.03, 0.0), (0.36, 0.03, 0.0), 0.04, 0.04, col_tubo, end=col_tubo)
+    beam(m, (-0.36, 0.58, -0.40), (0.36, 0.58, -0.40), 0.04, 0.04, col_tubo, end=col_tubo)
+    # Vano portalibri sotto il banco in lamiera verde
+    m.cbox(0.0, -0.38, 0.82, 0.44, 0.54, 0.58, col_tubo, top=col_tubo)
+    m.box(-0.41, 0.54, -0.18, 0.41, 0.68, -0.16, col_tubo)
+    # Piano del banco in legno chiaro/formica
+    m.cbox(0.0, -0.38, 0.88, 0.52, 0.68, 0.72, 'p_legno_chiaro', top='p_legno_chiaro')
+    # Seduta della sedia in legno
+    m.cbox(0.0, 0.25, 0.56, 0.34, 0.42, 0.46, 'p_legno', top='p_legno')
+    # Schienale curvato
+    m.cbox(0.0, 0.40, 0.56, 0.04, 0.66, 0.78, 'p_legno', top='p_legno')
+    # DETTAGLIO 1: graffiti colorati e incisioni sulla superficie del banco («pieno di graffiti»)
+    m.box(-0.28, 0.721, -0.45, -0.16, 0.723, -0.38, 'p_rosso')
+    m.box(-0.14, 0.721, -0.32, -0.04, 0.723, -0.24, 'p_giallo')
+    m.box(0.18, 0.721, -0.50, 0.30, 0.723, -0.44, 'p_nero_caldo')
+    # DETTAGLIO 2: quaderno aperto con righe e matita («ci appoggi il quaderno»)
+    m.cbox(0.06, -0.36, 0.24, 0.20, 0.721, 0.726, 'carta', top='carta')
+    beam(m, (0.22, 0.726, -0.42), (0.22, 0.726, -0.28), 0.015, 0.015, 'p_giallo', end='p_nero_caldo')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_tavolino_da_campeggio_richiudibile():
+    """Tavolino pieghevole in alluminio con gambe a forbice incrociate, maniglia da trasporto e spessore sotto un piede."""
+    m = Mesh('mob_tavolino_da_campeggio_richiudibile')
+    W, D = ingombro((1, 1))
+    tw, td = 1.08, 0.76
+    # Piano pieghevole in alluminio/resina azzurra con bordo profilato
+    m.cbox(0.0, 0.0, tw, td, 0.60, 0.64, 'metallo', top='p_acqua')
+    # Giuntura centrale di piegatura
+    m.box(-tw / 2, 0.638, -0.01, tw / 2, 0.642, 0.01, 'p_nero_caldo')
+    # Cornice perimetrale in alluminio
+    for sx in (-1, 1):
+        m.box(sx * (tw / 2 - 0.02), 0.57, -td / 2, sx * (tw / 2), 0.64, td / 2, 'metallo')
+    for sz in (-1, 1):
+        m.box(-tw / 2, 0.57, sz * (td / 2 - 0.02), tw / 2, 0.64, sz * (td / 2), 'metallo')
+    # Gambe a forbice (X) in tubolare metallico su entrambi i lati
+    for sx in (-tw / 2 + 0.08, tw / 2 - 0.08):
+        beam(m, (sx, 0.0, -0.28), (sx, 0.60, 0.28), 0.035, 0.035, 'metallo', end='metallo')
+        beam(m, (sx, 0.0, 0.28), (sx, 0.60, -0.28), 0.035, 0.035, 'metallo', end='metallo')
+        # Perno centrale dell'incrocio
+        m.cbox(sx, 0.0, 0.05, 0.05, 0.28, 0.32, 'ferro', top='ferro')
+    # Tiranti orizzontali di stabilizzazione tra i piedi
+    beam(m, (-tw / 2 + 0.08, 0.02, -0.28), (tw / 2 - 0.08, 0.02, -0.28), 0.03, 0.03, 'metallo', end='metallo')
+    beam(m, (-tw / 2 + 0.08, 0.02, 0.28), (tw / 2 - 0.08, 0.02, 0.28), 0.03, 0.03, 'metallo', end='metallo')
+    # DETTAGLIO 1: maniglia pieghevole in plastica nera sul fianco («l’unico che puoi spostare in giro»)
+    m.box(-0.10, 0.58, -td / 2 - 0.045, 0.10, 0.62, -td / 2, 'p_nero_caldo')
+    # DETTAGLIO 2: sassolino/spessore sotto il piede anteriore sinistro («traballa su ogni superficie»)
+    m.prism(5, 0.04, 0.025, 0.0, 0.035, 'p_pietra', top='p_pietra_chiara', cx=-tw / 2 + 0.08, cz=-0.28)
+    return _obj(m, footprint=[W, D])
+
+
+def mob_banco_da_lavoro_con_morsa():
+    """Robusto banco da lavoro da officina con morsa d'acciaio sul bordo, ripiano inferiore e martello posato sul piano."""
+    m = Mesh('mob_banco_da_lavoro_con_morsa')
+    W, D = ingombro((1, 1))
+    bw, bd = 1.36, 0.82
+    # 4 gambe robuste e traversi in legno scuro
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            m.cbox(sx * (bw / 2 - 0.12), sz * (bd / 2 - 0.12), 0.13, 0.13, 0.0, 0.74, 'p_legno_scuro', top='p_legno_scuro')
+    # Telaio superiore in legno
+    m.box(-bw / 2 + 0.08, 0.62, -bd / 2 + 0.08, bw / 2 - 0.08, 0.74, -bd / 2 + 0.14, 'p_legno_scuro', skip=('bottom',))
+    m.box(-bw / 2 + 0.08, 0.62, bd / 2 - 0.14, bw / 2 - 0.08, 0.74, bd / 2 - 0.08, 'p_legno_scuro', skip=('bottom',))
+    m.box(-bw / 2 + 0.08, 0.62, -bd / 2 + 0.08, -bw / 2 + 0.14, 0.74, bd / 2 - 0.08, 'p_legno_scuro', skip=('bottom',))
+    m.box(bw / 2 - 0.14, 0.62, -bd / 2 + 0.08, bw / 2 - 0.08, 0.74, bd / 2 - 0.08, 'p_legno_scuro', skip=('bottom',))
+    # Ripiano inferiore a doghe
+    m.cbox(0.0, 0.0, bw - 0.16, bd - 0.16, 0.16, 0.20, 'tavole', top='tavole')
+    # Piano di lavoro massiccio in legno scuro e tavole
+    m.cbox(0.0, 0.0, bw + 0.06, bd + 0.06, 0.74, 0.86, 'p_legno', top='tavole')
+    # DETTAGLIO 1: morsa da banco in ghisa con vite di serraggio sul bordo anteriore sinistro
+    mx, mz = -bw / 2 + 0.10, -bd / 2 - 0.04
+    m.cbox(mx, mz, 0.16, 0.18, 0.82, 0.98, 'ferro', top='ferro')
+    # Ganasce della morsa
+    m.cbox(mx, mz - 0.05, 0.18, 0.04, 0.90, 0.99, 'metallo', top='metallo')
+    # Vite e leva a T della morsa
+    beam(m, (mx, 0.88, mz - 0.04), (mx, 0.88, mz - 0.15), 0.03, 0.03, 'metallo', end='metallo')
+    beam(m, (mx - 0.08, 0.88, mz - 0.15), (mx + 0.08, 0.88, mz - 0.15), 0.018, 0.018, 'ferro', end='ferro')
+    # DETTAGLIO 2: martello da carpentiere appoggiato («ci appoggi sopra il martello e poi non lo trovi più»)
+    beam(m, (0.12, 0.88, -0.16), (0.12, 0.88, 0.14), 0.03, 0.025, 'p_legno', end='p_legno')
+    m.cbox(0.12, -0.17, 0.14, 0.06, 0.865, 0.92, 'ferro', top='ferro')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_tavolo_da_dj_con_lucine_rotte():
+    """Consolle da DJ nera con due piatti rotanti, mixer centrale, fader luminosi e una bibita appoggiata."""
+    m = Mesh('mob_tavolo_da_dj_con_lucine_rotte')
+    W, D = ingombro((1, 1))
+    dw, dd = 1.34, 0.74
+    # Basamento e pannello frontale nero della postazione
+    m.cbox(0.0, 0.0, dw - 0.10, dd - 0.12, 0.0, 0.06, 'p_nero_caldo', top='p_nero_caldo')
+    m.cbox(0.0, 0.0, dw, dd, 0.06, 0.86, 'p_nero_caldo', top='p_nero_caldo')
+    # Piano consolle sagomato
+    m.cbox(0.0, 0.0, dw + 0.06, dd + 0.06, 0.86, 0.90, 'p_roccia', top='p_nero_caldo')
+    # Due piatti per vinili (giradischi a sinistra e destra)
+    for px, lbl_col in ((-0.38, 'p_rosso'), (0.38, 'p_ciano_neon')):
+        # Piastra quadrata del giradischi
+        m.cbox(px, 0.0, 0.44, 0.44, 0.90, 0.925, 'p_roccia', top='p_roccia')
+        # Piatto circolare nero
+        m.prism(8, 0.17, 0.17, 0.925, 0.945, 'p_nero_caldo', top='p_nero_caldo', cx=px, cz=0.0)
+        # Etichetta centrale del disco
+        m.prism(6, 0.055, 0.055, 0.945, 0.948, lbl_col, top=lbl_col, cx=px, cz=0.0)
+        # Braccio di lettura puntina
+        beam(m, (px + 0.16, 0.94, 0.16), (px + 0.08, 0.95, -0.04), 0.015, 0.015, 'metallo', end='metallo')
+    # Mixer centrale tra i piatti
+    m.cbox(0.0, 0.0, 0.26, 0.44, 0.90, 0.93, 'p_roccia', top='p_nero_caldo')
+    # Manopole e fader sul mixer
+    for fy in (-0.10, 0.0, 0.10):
+        m.cbox(0.0, fy, 0.03, 0.08, 0.93, 0.945, 'p_pietra_chiara', top='p_pietra_chiara')
+    # DETTAGLIO 1: serie di led/lucine sul frontale, di cui una spenta/rotta («lucine rotte»)
+    leds = ['em_neon_ciano', 'em_neon_rosa', 'p_nero_caldo', 'em_neon_ambra', 'em_neon_verde']
+    for i, col in enumerate(leds):
+        m.cbox(-0.40 + i * 0.20, -dd / 2 - 0.01, 0.06, 0.02, 0.76, 0.82, col, top=col)
+    # DETTAGLIO 2: lattina di bibita appoggiata sul tavolo con macchia («ci appoggi le bibite»)
+    m.prism(6, 0.038, 0.038, 0.90, 1.01, 'p_rosso', top='metallo', cx=-0.52, cz=-0.22)
+    m.box(-0.55, 0.901, -0.27, -0.45, 0.903, -0.17, 'p_rosso')
+    return _obj(m, footprint=[W, D])
+
+
+def mob_cassettone_da_farmacia_antica():
+    """Cassettone d'erboristeria/farmacia in legno scuro con matrice di piccoli cassetti, etichette e boccetta da speziale."""
+    m = Mesh('mob_cassettone_da_farmacia_antica')
+    W, D = ingombro((1, 1))
+    cw, cd = 1.34, 0.66
+    # Zoccolo inferiore modanato
+    m.cbox(0.0, 0.0, cw + 0.02, cd + 0.02, 0.0, 0.08, 'p_legno_scuro', top='p_legno_scuro')
+    # Corpo principale del mobile
+    m.cbox(0.0, 0.0, cw, cd, 0.08, 0.94, 'legno_scuro', top='p_legno_scuro')
+    # Piano superiore sagomato con cornice
+    m.cbox(0.0, 0.0, cw + 0.06, cd + 0.06, 0.94, 1.00, 'p_legno_scuro', top='p_legno')
+    # Matrice di cassettini (4 colonne x 3 righe = 12 cassetti) sul davanti (-Z)
+    for col in range(4):
+        xc = -cw / 2 + 0.20 + col * 0.31
+        for row in range(3):
+            yc = 0.22 + row * 0.24
+            # Pannello frontale del cassetto leggermente in rilievo
+            m.box(xc - 0.13, yc - 0.09, -cd / 2 - 0.015, xc + 0.13, yc + 0.09, -cd / 2, 'p_legno', top='p_legno')
+            # Maniglietta a conchiglia / pomolo dorato
+            m.box(xc - 0.03, yc - 0.04, -cd / 2 - 0.035, xc + 0.03, yc - 0.01, -cd / 2 - 0.015, 'oro', top='oro')
+            # DETTAGLIO: etichetta cartacea rettangolare per le erbe/rimedi («etichetta illeggibile»)
+            m.box(xc - 0.06, yc + 0.02, -cd / 2 - 0.02, xc + 0.06, yc + 0.065, -cd / 2 - 0.015, 'carta', top='carta')
+    # Sopra il piano: vecchia boccetta farmaceutica in vetro con tappo e pergamena arrotolata («ricetta del 1908»)
+    m.prism(6, 0.05, 0.045, 1.00, 1.14, 'vetro', top='vetro', cx=-0.38, cz=0.0)
+    m.prism(6, 0.028, 0.032, 1.14, 1.19, 'p_sabbia', top='p_sabbia', cx=-0.38, cz=0.0)
+    # Pergamena arrotolata
+    m.prism(6, 0.03, 0.03, 1.00, 1.04, 'carta', top='carta', cx=0.28, cz=-0.06, a0=math.pi / 2)
     return _obj(m, footprint=[W, D])
 
 
@@ -2726,6 +3052,16 @@ MODELS = {
         mob_tabellone_da_biliardo_con_gessetti,
         mob_insegna_vietato_lingresso_ai_venditori,
         mob_stendardo_medievale_con_stemma_inventato,
+        mob_cassa_di_legno_della_frutta_rovesciata,
+        mob_banco_da_macellaio_in_marmo,
+        mob_tavolo_da_ping_pong_piegato,
+        mob_valigia_rigida_vintage,
+        mob_pila_di_libri_enormi,
+        mob_banco_da_scuola_con_sedile_attaccato,
+        mob_tavolino_da_campeggio_richiudibile,
+        mob_banco_da_lavoro_con_morsa,
+        mob_tavolo_da_dj_con_lucine_rotte,
+        mob_cassettone_da_farmacia_antica,
     )
 }
 
