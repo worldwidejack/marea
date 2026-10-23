@@ -16,6 +16,7 @@ export type PaesanoSolo = PaesanoMomento | 'giorno' | 'pioggia' | 'vento';
 /** Una battuta: il testo, o il testo con le condizioni (`solo` = quando si può dire; `asciutto` = mai sotto la pioggia). */
 export type Battuta = string | { t: string; solo?: PaesanoSolo[]; asciutto?: boolean };
 export type MessaggioTipo = 'pranzo' | 'prestito' | 'scuse' | 'briscola' | 'aiuto';
+export type MessaggioBattute = string | readonly string[];
 /** I favori nella voce del paesano. Segnaposto: {a} {da} {cosa} {nome} {tempo} {monete} {mobile} (vedi `_nota` del json). */
 export type PaesanoFavori = {
   /** Probabilità che chieda un pesce invece di un insetto, quando chi gioca ha sia la canna che il retino. */
@@ -151,13 +152,20 @@ export function validatePaesani(): string[] {
     if (!v || !(v.preferisce.pesce >= 0 && v.preferisce.pesce <= 1)) { errs.push(`paesani ${id}: favori non validi`); continue; }
     frasi(id, 'pesce', v.pesce, ['cosa', 'tempo'], ['cosa', 'tempo']); frasi(id, 'insetto', v.insetto, ['cosa', 'tempo'], ['cosa', 'tempo']);
     frasi(id, 'si', v.si, []); frasi(id, 'no', v.no, []);
-    frasi(id, 'promemoria', v.promemoria, ['cosa', 'nome']); frasi(id, 'dono', v.dono, ['cosa', 'nome'], ['cosa']); frasi(id, 'grazie', v.grazie, ['cosa', 'nome']);
+    frasi(id, 'promemoria', v.promemoria, ['cosa', 'nome']);
+    for (const t of v.dono) {
+      if (!t.includes('{cosa}') && !t.includes('{nome}')) errs.push(`paesani ${id}: favori.dono senza {cosa} o {nome}`);
+    }
+    frasi(id, 'grazie', v.grazie, ['cosa', 'nome']);
     frasi(id, 'attesa', v.attesa, ['a']); frasi(id, 'scaduto', v.scaduto, []);
     frasi(id, 'monete', v.monete, ['monete'], ['monete']); frasi(id, 'mobile', v.mobile, ['mobile'], ['mobile']);
     for (const t of c.messaggi) {
       const m = v.messaggi[t];
       if (!m) { errs.push(`paesani ${id}: manca il messaggio ${t}`); continue; }
-      frasi(id, `messaggi.${t}.chiede`, [m.chiede], ['a'], ['a']); frasi(id, `messaggi.${t}.risponde`, [m.risponde], ['da'], ['da']); frasi(id, `messaggi.${t}.grazie`, [m.grazie], ['a']);
+      const ch = Array.isArray(m.chiede) ? m.chiede : [m.chiede];
+      const ri = Array.isArray(m.risponde) ? m.risponde : [m.risponde];
+      const gr = Array.isArray(m.grazie) ? m.grazie : [m.grazie];
+      frasi(id, `messaggi.${t}.chiede`, ch, ['a'], ['a']); frasi(id, `messaggi.${t}.risponde`, ri, ['da'], ['da']); frasi(id, `messaggi.${t}.grazie`, gr, ['a']);
     }
   }
   return errs;

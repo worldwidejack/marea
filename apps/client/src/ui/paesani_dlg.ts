@@ -57,7 +57,7 @@ function dritta(f: { cosa: 'pesce' | 'insetto'; id: string }): string {
   const dove = { volante: 'Vola in giro per il Borgo', terra: 'Cammina nell\'erba del Borgo', sasso: 'Esce dai sassi colpiti con la pala', albero: 'Cade dagli alberi scossi' }[i.tipo];
   return dove + (i.fascia === 'giorno' ? ', di giorno' : i.fascia === 'notte' ? ', di notte' : '');
 }
-const MAIUSCOLA = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const MAIUSCOLA = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export type ChiacchierataOpts = { id: string; ctx: PortoCtx; cielo: Cielo | null; cancello: boolean; ora: number; scheda: Scheda };
 

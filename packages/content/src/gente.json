@@ -7,8 +7,8 @@
   "gente": [
     {
       "id": "ishi", "nome": "Maestro Ishi", "ruolo": "mercante", "modello": "npc_ishi",
-      "look": { "pelle": 1, "capelli": 7, "coloreCapelli": 5, "vestito": 4, "cappello": 6 },
-      "giro": [[38.95, 43.75]], "velocita": 0, "raggio": 0,
+      "look": {"pelle":1,"capelli":7,"coloreCapelli":5,"vestito":4,"cappello":6},
+      "giro": [[38.95,43.75]], "velocita": 0, "raggio": 0,
       "battute": [
         "Benvenuto! Tutto quello che vedi è in vendita. Anche il banco, ma costa troppo.",
         "Cappelli esclusivi, decorazioni esclusive. Esclusive perché le vendo solo io.",
@@ -18,8 +18,8 @@
     },
     {
       "id": "furetto", "nome": "Il Furetto", "ruolo": "contrabbandiere", "modello": "npc_furetto",
-      "look": { "pelle": 2, "capelli": 4, "coloreCapelli": 0, "vestito": 1, "cappello": 2 },
-      "giro": [[52.1, 38.2]], "velocita": 0, "raggio": 0,
+      "look": {"pelle":2,"capelli":4,"coloreCapelli":0,"vestito":1,"cappello":2},
+      "giro": [[52.1,38.2]], "velocita": 0, "raggio": 0,
       "battute": [
         "Psst. Sì, tu. Roba buona, appena uscita dalla Grotta. Non chiedere da dove.",
         "Ogni giorno un'arma, un'armatura, un materiale e un ingrediente. A mezzanotte cambio tutto e mi scordo cosa avevo.",
@@ -28,59 +28,44 @@
       ]
     },
     {
-      "id": "gigi", "nome": "Gigi il Mozzo", "ruolo": "guida", "modello": "npc_gigi",
-      "look": { "pelle": 2, "capelli": 1, "coloreCapelli": 4, "vestito": 2, "cappello": 8 },
-      "giro": [[43.4, 48.6], [43.4, 54.6]], "velocita": 1.1, "raggio": 3,
-      "battute": [
-        "Ehi, nuovo! Questo è il Porto. Qui non si paga l'affitto: si paga in monete, e le monete non crescono sugli alberi.",
-        "La barca sta al molo: avvicinati e premi A. Con la barca vai alle isole degli amici e alla Laguna, dove c'è la Regata.",
-        "Sotto alcune isole ci sono i dungeon. Io ci sono sceso una volta. Ne sono uscito con un pugnale arrugginito e gli incubi."
-      ]
+      "id": "gigi", "nome": "Gigi il Mozzo", "ruolo": "paesano", "modello": "npc_gigi",
+      "look": {"pelle":2,"capelli":1,"coloreCapelli":4,"vestito":2,"cappello":8},
+      "giro": [[43.4,48.6],[43.4,54.6]], "velocita": 1.1, "raggio": 3
     },
     {
-      "id": "remo", "nome": "Capitan Remo", "ruolo": "guida", "modello": "npc_remo",
-      "look": { "pelle": 3, "capelli": 5, "coloreCapelli": 0, "vestito": 0, "cappello": 7 },
-      "giro": [[40.6, 40.7], [47.4, 40.7]], "velocita": 0.9, "raggio": 3,
-      "battute": [
-        "Capitan Remo, quarant'anni di mare e zero naufragi. Due, se contiamo la vasca da bagno.",
-        "Là fuori ci sono isole a tema da scoprire. Apri la mappa con M: la nebbia copre quelle dove non sei ancora stato.",
-        "Più in là c'è l'Isola della Tempesta: ci arriva solo chi ha il Molo al livello giusto. Io aspetto che passi. Da sei anni."
-      ]
+      "id": "remo", "nome": "Capitan Remo", "ruolo": "paesano", "modello": "npc_remo",
+      "look": {"pelle":3,"capelli":5,"coloreCapelli":0,"vestito":0,"cappello":7},
+      "giro": [[40.6,40.7],[47.4,40.7]], "velocita": 0.9, "raggio": 3
     },
     {
-      "id": "pina", "nome": "Nonna Pina", "ruolo": "guida", "modello": "npc_pina",
-      "look": { "pelle": 4, "capelli": 3, "coloreCapelli": 5, "vestito": 3, "cappello": 3 },
-      "giro": [[46.2, 56.4]], "velocita": 0.5, "raggio": 3,
-      "battute": [
-        "Ciao tesoro. Le botteghe del Borgo cambiano la vetrina ogni giorno: passa a guardare, che il bello finisce presto.",
-        "Alla Bacheca in piazza ci sono tre missioni nuove ogni giorno. Le fai, torni e premi RISCUOTI. Così si campa.",
-        "Le monete spendile dal Mercante. Ishi è onesto, eh. Per essere un mercante."
-      ]
+      "id": "pina", "nome": "Nonna Pina", "ruolo": "paesano", "modello": "npc_pina",
+      "look": {"pelle":4,"capelli":3,"coloreCapelli":5,"vestito":3,"cappello":3},
+      "giro": [[46.2,56.4]], "velocita": 0.5, "raggio": 3
     },
     {
       "id": "nella", "nome": "Zia Nella", "ruolo": "paesano", "modello": "npc_nella",
-      "look": { "pelle": 1, "capelli": 3, "coloreCapelli": 4, "vestito": 3, "cappello": 0 },
-      "giro": [[50.84, 30.91], [53.37, 25.47]], "velocita": 0.7, "raggio": 3
+      "look": {"pelle":1,"capelli":3,"coloreCapelli":4,"vestito":3,"cappello":0},
+      "giro": [[50.84,30.91],[53.37,25.47]], "velocita": 0.7, "raggio": 3
     },
     {
       "id": "tonio", "nome": "Tonio il Pescatore", "ruolo": "paesano", "modello": "npc_tonio",
-      "look": { "pelle": 3, "capelli": 1, "coloreCapelli": 0, "vestito": 2, "cappello": 7 },
-      "giro": [[63.37, 35.29], [56.84, 27.51]], "velocita": 0.9, "raggio": 3
+      "look": {"pelle":3,"capelli":1,"coloreCapelli":0,"vestito":2,"cappello":7},
+      "giro": [[63.37,35.29],[56.84,27.51]], "velocita": 0.9, "raggio": 3
     },
     {
       "id": "bice", "nome": "Bice", "ruolo": "paesano", "modello": "npc_bice",
-      "look": { "pelle": 0, "capelli": 6, "coloreCapelli": 2, "vestito": 1, "cappello": 0 },
-      "giro": [[40.49, 23.89], [31.28, 28.18]], "velocita": 1.0, "raggio": 3
+      "look": {"pelle":0,"capelli":6,"coloreCapelli":2,"vestito":1,"cappello":0},
+      "giro": [[40.49,23.89],[31.28,28.18]], "velocita": 1, "raggio": 3
     },
     {
       "id": "gaspare", "nome": "Sor Gaspare", "ruolo": "paesano", "modello": "npc_gaspare",
-      "look": { "pelle": 2, "capelli": 0, "coloreCapelli": 3, "vestito": 4, "cappello": 6 },
-      "giro": [[23.55, 43.04], [25.32, 53.04]], "velocita": 0.6, "raggio": 3
+      "look": {"pelle":2,"capelli":0,"coloreCapelli":3,"vestito":4,"cappello":6},
+      "giro": [[23.55,43.04],[25.32,53.04]], "velocita": 0.6, "raggio": 3
     },
     {
       "id": "ada_fiori", "nome": "Ada dei Fiori", "ruolo": "paesano", "modello": "npc_ada",
-      "look": { "pelle": 4, "capelli": 4, "coloreCapelli": 1, "vestito": 0, "cappello": 3 },
-      "giro": [[30.23, 39.86], [24.53, 38.01]], "velocita": 0.8, "raggio": 3
+      "look": {"pelle":4,"capelli":4,"coloreCapelli":1,"vestito":0,"cappello":3},
+      "giro": [[30.23,39.86],[24.53,38.01]], "velocita": 0.8, "raggio": 3
     }
   ]
 }

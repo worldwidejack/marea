@@ -28,14 +28,14 @@ import { conMonete } from './monete_util.ts';
 const MIN = 60_000, HOUR = 60 * MIN;
 /** Un martedì d'autunno a Roma (ora legale, UTC+2): ore 10 = 08:00 UTC. */
 const OTT = Date.UTC(2026, 9, 20, 8, 0, 0);
-const IDS = ['nella', 'tonio', 'bice', 'gaspare', 'ada_fiori'];
+const IDS = ['nella', 'tonio', 'bice', 'gaspare', 'ada_fiori', 'remo', 'gigi', 'pina'];
 const tutte = (p: (typeof PAESANI)[string]): Battuta[] => [...p.base, ...Object.values(p.momenti).flat(), ...Object.values(p.stagioni).flat(), ...p.brutto, ...p.primo, ...p.insistente, ...p.lore, ...p.loreAperto];
 const ctx = (o: Partial<ContestoChiacchiera> = {}): ContestoChiacchiera => ({ ms: OTT, cancello: false, pioggia: 0, vento: 0, primo: false, diFila: 1, recenti: [], ...o });
 
 test('paesani: contenuti validi, tutte le 329 battute del Word, lore di Tonio', () => {
   assert.deepEqual(validatePaesani(), []);
   assert.deepEqual(Object.keys(PAESANI).sort(), [...IDS].sort());
-  assert.equal(IDS.reduce((s, id) => s + tutte(PAESANI[id]!).length, 0), 329);
+  assert.equal(IDS.reduce((s, id) => s + tutte(PAESANI[id]!).length, 0), 569);
   const t = PAESANI['tonio']!;
   assert.ok(t.lore.map(testoBattuta).some((b) => /cancello/i.test(b) && /vuoto/i.test(b)));
   assert.ok(t.lore.map(testoBattuta).some((b) => /onda/i.test(b) && /mausoleo/i.test(b)));
