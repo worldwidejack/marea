@@ -84,6 +84,8 @@ export default async function (ctx) {
       const shown = await page.evaluate(() => [...document.querySelectorAll('#compass [data-id]')].filter((r) => getComputedStyle(r).display !== 'none').map((r) => r.dataset.id));
       const dng = shown.filter((id) => DUNGEONS.some((d) => d.id === id));
       assert(dng.length === 1 && dng[0] === easiest, 'bussola: ' + shown.join(','));
+      const lbl = await page.evaluate((id) => document.querySelector(`#compass [data-id="${id}"] .nome`)?.textContent, easiest);
+      assert(lbl === 'Prossimo dungeon', `etichetta inattesa per il prossimo dungeon: ${lbl}`);
       const g = s.ingressi.spots.find((x) => x.id === 'grotta');
       await hook('teleport', g.x, g.z + 3); await sleep(900);
       await ctx.waitState(page, (s) => s.ingressi.near === 'grotta', 5000);
