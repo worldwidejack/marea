@@ -33,8 +33,8 @@ const passi = (s: SnowState, n: number, f: InputFrame | ((s: SnowState) => Input
 test('snowboard: i dati sono a posto', () => {
   assert.deepEqual(validateAdrenalina(), []);
   const p = pistaSnowboard('snowboard_verde');
-  // il tratto di mezzo corto: ~1,4 km in tutto
-  assert.ok(p.n.len > 1200 && p.n.len < 1600, `pista lunga ${p.n.len} m`);
+  // ~1,8 km: un quarto di porte, un quarto di salti, metà nel bosco (a tempo)
+  assert.ok(p.n.len > 1600 && p.n.len < 2000, `pista lunga ${p.n.len} m`);
   assert.ok(VERDE.porte.length >= 8 && VERDE.porte.length <= 22, `${VERDE.porte.length} porte`);
   // una discesa vera da una montagna (birbasan, 12 ott): tanto dislivello, pendenza media da pista rossa, tratti oltre i 30°
   const giu = p.n.y[0]! - p.n.y[p.n.n - 1]!, ripido = p.n.ty.filter((ty) => -ty > 0.5).length;
@@ -44,8 +44,15 @@ test('snowboard: i dati sono a posto', () => {
   assert.equal(VERDE.rampe.length, 4); assert.equal(VERDE.rampe.filter((r) => r.grande).length, 1);
   const canalino = VERDE.zone.find((z) => z.id === 'canalino')!;
   assert.ok(VERDE.rampe.filter((r) => r.s > canalino.da && r.s < canalino.a && r.lat[1] - r.lat[0] >= 2 * bordoA(p, r.s) - 0.01).length === 3, 'i salti del canalino');
-  // le porte dello slalom distanti tra loro
-  assert.ok(VERDE.porte.slice(2, 8).every((g, i, a) => i === 0 || g.s - a[i - 1]!.s > 40), 'porte dello slalom a più di 40 m');
+  // le porte tutte prima della cornice, vicine (meno di 30 m) e sfalsate: si prendono curvando, non scendendo dritti
+  const cornice = VERDE.zone.find((z) => z.id === 'cornice')!;
+  assert.ok(VERDE.porte.length >= 10 && VERDE.porte.every((g) => g.s < cornice.da), 'porte nel primo tratto');
+  assert.ok(VERDE.porte.every((g, i, a) => i === 0 || (g.s - a[i - 1]!.s < 30 && g.lat * a[i - 1]!.lat < 0)), 'porte vicine e sfalsate');
+  // la pista curva: tra le porte gira di almeno 120° in tutto, e il bosco è la parte più lunga
+  const bosco = VERDE.zone.find((z) => z.id === 'fuoripista')!;
+  let giro = 0; for (let i = 1; i < cornice.da; i++) giro += Math.abs(p.n.th[i]! - p.n.th[i - 1]!);
+  assert.ok(giro > 2, `le porte girano di ${giro} rad`);
+  assert.ok(bosco.a - bosco.da > 600, `bosco lungo ${bosco.a - bosco.da} m`);
   assert.ok(VERDE.arrivo < p.n.len);
 });
 
