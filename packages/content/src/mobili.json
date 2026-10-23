@@ -129,6 +129,18 @@
     { "id": "lampada_da_scrivania_a_braccio", "nome": "Lampada da scrivania a braccio", "categoria": "luci", "monete": 105, "posto": "terra", "altezza": 0.7, "colori": ["#E8E1D6", "#23201F", "#F5D547"] },
     { "id": "boccia_con_pesce_rosso", "nome": "Boccia con pesce rosso", "categoria": "decorazioni", "monete": 90, "posto": "terra", "altezza": 0.4, "colori": ["#3FB9C9", "#F2A33A", "#F4E3C1"] },
     { "id": "piantina_grassa_in_vaso", "nome": "Piantina grassa in vaso", "categoria": "piante", "monete": 60, "posto": "terra", "altezza": 0.35, "colori": ["#F2A33A", "#8FC35B", "#5A3A1E"] },
-    { "id": "macchina_da_scrivere_vintage", "nome": "Macchina da scrivere vintage", "categoria": "tecnologia", "monete": 135, "posto": "terra", "altezza": 0.3, "colori": ["#23201F", "#E8E1D6", "#E8433F"] }
+    { "id": "macchina_da_scrivere_vintage", "nome": "Macchina da scrivere vintage", "categoria": "tecnologia", "monete": 135, "posto": "terra", "altezza": 0.3, "colori": ["#23201F", "#E8E1D6", "#E8433F"] },
+    { "id": "fermacarte_a_palla_di_neve", "nome": "Fermacarte a palla di neve", "categoria": "decorazioni", "monete": 60, "posto": "terra", "altezza": 0.35, "colori": ["#E8E1D6", "#5A3A1E", "#3FB9C9"] },
+    { "id": "microfono_da_podcast", "nome": "Microfono da podcast", "categoria": "tecnologia", "monete": 105, "posto": "terra", "altezza": 0.45, "colori": ["#23201F", "#7F7568", "#E8433F"] },
+    { "id": "pila_di_scartoffie", "nome": "Pila di scartoffie", "categoria": "decorazioni", "monete": 45, "posto": "terra", "altezza": 0.35, "colori": ["#E8E1D6", "#F4E3C1", "#E8433F"] },
+    { "id": "modellino_di_auto_sportiva", "nome": "Modellino di auto sportiva", "categoria": "giochi", "monete": 90, "posto": "terra", "altezza": 0.3, "colori": ["#E8433F", "#23201F", "#F5D547"] },
+    { "id": "gnomo_da_giardino_in_miniatura", "nome": "Gnomo da giardino in miniatura", "categoria": "decorazioni", "monete": 75, "posto": "terra", "altezza": 0.45, "colori": ["#3FB9C9", "#E8433F", "#E8E1D6"] },
+    { "id": "trofeo_d_oro", "nome": "Trofeo d'oro", "categoria": "decorazioni", "monete": 120, "posto": "terra", "altezza": 0.55, "colori": ["#F5D547", "#5A3A1E", "#E8E1D6"] },
+    { "id": "candela_mezza_sciolta", "nome": "Candela mezza sciolta", "categoria": "luci", "monete": 60, "posto": "terra", "altezza": 0.35, "colori": ["#F4E3C1", "#7F7568", "#F2A33A"] },
+    { "id": "abat_jour_con_paralume_in_tessuto", "nome": "Abat-jour con paralume in tessuto", "categoria": "luci", "monete": 75, "posto": "terra", "altezza": 0.55, "colori": ["#F4E3C1", "#8E5A2B", "#F5D547"] },
+    { "id": "piantana_alogena_moderna", "nome": "Piantana alogena moderna", "categoria": "luci", "monete": 135, "posto": "terra", "altezza": 1.85, "colori": ["#23201F", "#7F7568", "#F5D547"] },
+    { "id": "cestino_della_carta_in_metallo", "nome": "Cestino della carta in metallo", "categoria": "contenitori", "monete": 60, "posto": "terra", "altezza": 0.45, "colori": ["#7F7568", "#23201F", "#E8E1D6"] },
+    { "id": "vaso_in_ceramica_con_fiori_veri", "nome": "Vaso in ceramica con fiori veri", "categoria": "piante", "monete": 75, "posto": "terra", "altezza": 0.55, "colori": ["#E8E1D6", "#2C6B3F", "#E8433F"] },
+    { "id": "lampada_da_lettura_a_led_flessibile", "nome": "Lampada da lettura a LED flessibile", "categoria": "luci", "monete": 90, "posto": "terra", "altezza": 0.6, "colori": ["#23201F", "#7F7568", "#3FB9C9"] }
   ]
 }
