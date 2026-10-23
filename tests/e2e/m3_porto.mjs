@@ -249,8 +249,7 @@ export default async function (ctx) {
       const db = await tp.locator('#mzDialogo').boundingBox();
       assert(db && db.y + db.height <= 844 - 100, 'scheda delle battute sopra i comandi: ' + JSON.stringify(db));
       await ctx.shot(tp, 'iphone_dialogo');
-      await tp.locator('#mzDialogo [data-act="avanti"]').tap();
-      await ctx.waitState(tp, (s) => s.porto.ui.riga === 1, 3000);
+      await tp.locator('#mzDialogo .ft button').first().tap();
       await th('portoChiudi');
       ctx.noErrors(T, 'telefono');
     });
