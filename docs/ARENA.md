@@ -96,10 +96,13 @@ dritta. Tutto in vista: niente nebbia dei dungeon. Formato dei dungeon (`ARENA.m
   **tetto di 150 monete al giorno** (giorno UTC), come i Templari. Il lotto tiene vinte, perse e pari (`LotState.arena`).
 
 ### Prove
+- **Ombra di mira**: con una magia a bomba (Bomba di fuoco o elettrica, Cura e Furia a bomba) in mano, mentre si mira a terra c'è un disco scuro col
+  raggio dello scoppio e l'anello del colore della magia, dove la bomba atterrerebbe (stessa distanza della sim: nemico davanti, se no nel vuoto, un
+  muro la accorcia). La vede solo chi mira: ogni client la disegna nella sua scena.
 - **Stanza di prova senza server**: `?test=1&net=0&arena=banco` entra subito nell'allenamento contro l'avversario automatico (`sim/arena/bot.ts`).
   `?arena=1`: il bottone ⚔ porta al colosseo.
 - Test: `packages/sim/test/arena_duello.test.ts` (set, colpi tra eroi, evocazioni, Cura e Furia, pozioni, round, pareggio a tempo, resa, replay
-  uguale tra client e server, premio), `packages/sim/test/arena_squadre.test.ts` (2v2 e 3v3, mappe, erba alta), `tests/e2e/m4_arena.mjs` e
+  uguale tra client e server, premio), `packages/sim/test/arena_squadre.test.ts` (2v2 e 3v3, mappe, erba alta), `packages/sim/test/arena_bot.test.ts` (build casuali, set a mano, distanza della bomba), `tests/e2e/m4_arena.mjs` e
   `m4_arena_squadre.mjs` (telefono e PC), `tests/e2e/m4_arena_server.mjs` (client finti contro il server: coda, sala, linea persa e ripresa,
   resa, premio, 2v2 coi gladiatori).
 
@@ -133,6 +136,13 @@ dritta. Tutto in vista: niente nebbia dei dungeon. Formato dei dungeon (`ARENA.m
 - **[proposta]** Se tra gli **avversari** ci sono gladiatori niente monete (si contano vinte e perse): non si fa il pieno contro i bot. Con i
   gladiatori solo nella tua squadra il premio c'è. L'ALLENAMENTO locale resta senza server né premio: tu (e i compagni) contro i gladiatori,
   con la mappa a scelta o a caso.
+- **Gladiatori dell'allenamento a squadre (2v2 e 3v3)**: ognuno ha il suo set. Di default **build casuale**, tirata a ogni partita
+  (`sim/rpg/arena_bot.ts`): i 4 slot si dividono a sorte tra armi (archi compresi, con una freccia a caso) e magie; con 3 o 4 armi un'**armatura**,
+  con 3 o 4 magie una **veste da mago**, con 2 e 2 un vestito qualsiasi (armatura o veste); due anelli e due pozioni a caso, almeno una magia che
+  fa danno o evoca. Il caso pesca solo tra gli oggetti comuni (niente unici). Nel pannello, sezione **GLADIATORI DELL'ALLENAMENTO**: un tocco su un
+  gladiatore (compagni prima, poi avversari) apre lo stesso editor del tuo set (vestizione, anelli, 4 slot, frecce, pozioni) con **tutto il
+  catalogo e tutte le magie** (anche gli unici), partendo dalla build casuale appena tirata; **BUILD CASUALE** lo rimette al caso, **IL TUO SET**
+  torna al tuo. Perk e abilità dei gladiatori sono quelli del tuo personaggio. Nel duello 1v1 il gladiatore resta una copia del tuo set.
 
 ### Erba alta (come in Brawl Stars)
 - Le celle `E` (legenda `erba`): chi ci sta dentro **non lo vedono gli avversari**: non si disegna, niente nome, la mira assistita non lo punta.

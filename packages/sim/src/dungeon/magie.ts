@@ -170,37 +170,44 @@ export function fermaCanale(s: DungeonState, sp?: RunSpell): void {
 
 // ---------- bomba ----------
 
-/** Lancia la bomba in alto nella direzione dell'eroe: atterra sul primo nemico (o alleato, se di supporto) lungo la mira, se no a 3/4
- *  della gittata; un muro in mezzo la fa cadere prima. Vola `volo` s lungo un arco (gravità BOMBA_G) e arriva a terra proprio al tick giusto. */
-export function lanciaBomba(s: DungeonState, sp: RunSpell): void {
+/** A che distanza dall'eroe di turno atterra una bomba lanciata verso (fx, fz): sul nemico (o alleato, se di supporto) davanti, se no nel vuoto,
+ *  mai oltre il primo muro. Lo usa lanciaBomba e il client per l'ombra di mira (non cambia lo stato). */
+export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: number): number {
   const h = s.hero, max = sp.gittata ?? 9, supp = isSupporto(sp);
   let d = max * BOMBA_VUOTO, vicino = Infinity;
   for (const e of s.enemies) {
     if (supp ? !amica(s, e) : !ostile(s, e)) continue;
-    const dx = e.x - h.x, dz = e.z - h.z, lungo = dx * h.fx + dz * h.fz;
-    if (lungo < (supp ? 0.2 : 0.8) || lungo > max || Math.abs(dx * h.fz - dz * h.fx) > BOMBA_LATO + e.def.raggio) continue;
+    const dx = e.x - h.x, dz = e.z - h.z, lungo = dx * fx + dz * fz;
+    if (lungo < (supp ? 0.2 : 0.8) || lungo > max || Math.abs(dx * fz - dz * fx) > BOMBA_LATO + e.def.raggio) continue;
     if (lungo < vicino) { vicino = lungo; d = lungo; }
   }
   // Arena: le bombe d'attacco puntano anche l'avversario davanti
   for (const j of eroiNemici(s)) {
     if (supp) break;
     const th = s.eroi[j]!.hero, raggio = s.eroi[j]!.runHero.raggio;
-    const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * h.fx + dz * h.fz;
-    if (lungo < 0.8 || lungo > max || Math.abs(dx * h.fz - dz * h.fx) > BOMBA_LATO + raggio) continue;
+    const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * fx + dz * fz;
+    if (lungo < 0.8 || lungo > max || Math.abs(dx * fz - dz * fx) > BOMBA_LATO + raggio) continue;
     if (lungo < vicino) { vicino = lungo; d = lungo; }
   }
   if (supp) {
     for (let i = 0; i < s.eroi.length; i++) {
       if (i === s.cur || s.eroi[i]!.done || !compagno(s, i)) continue;
       const th = s.eroi[i]!.hero, raggio = s.eroi[i]!.runHero.raggio;
-      const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * h.fx + dz * h.fz;
-      if (lungo < 0.2 || lungo > max || Math.abs(dx * h.fz - dz * h.fx) > BOMBA_LATO + raggio) continue;
+      const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * fx + dz * fz;
+      if (lungo < 0.2 || lungo > max || Math.abs(dx * fz - dz * fx) > BOMBA_LATO + raggio) continue;
       if (lungo < vicino) { vicino = lungo; d = lungo; }
     }
-    add(s.xp, 'evocazione', sp.costo * RPG.xp.evocazioneLancio);
     if (s.pvp && vicino === Infinity) d = 0.4; // Arena: senza compagni davanti la Cura e la Furia a bomba cadono ai tuoi piedi
   }
-  d = Math.min(d, libera(s, h.fx, h.fz, max));
+  return Math.min(d, libera(s, fx, fz, max));
+}
+
+/** Lancia la bomba in alto nella direzione dell'eroe: atterra sul primo nemico (o alleato, se di supporto) lungo la mira, se no a 3/4
+ *  della gittata; un muro in mezzo la fa cadere prima. Vola `volo` s lungo un arco (gravità BOMBA_G) e arriva a terra proprio al tick giusto. */
+export function lanciaBomba(s: DungeonState, sp: RunSpell): void {
+  const h = s.hero, supp = isSupporto(sp);
+  if (supp) add(s.xp, 'evocazione', sp.costo * RPG.xp.evocazioneLancio);
+  const d = distanzaBomba(s, sp, h.fx, h.fz);
   const N = Math.max(8, Math.round((sp.volo ?? 1.1) * HZ)), T = N * DT, y0 = MAGIA_Y;
   const orizz = Math.max(0, d - 0.4) / T; // parte 0,4 m davanti all'eroe
   const vy0 = (BOMBA_G * DT * DT * ((N * (N + 1)) / 2) - y0) / T; // somma dei passi (Eulero semi-implicito, come projectiles.ts) = −y0 al tick N

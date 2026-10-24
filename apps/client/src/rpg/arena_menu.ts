@@ -3,14 +3,17 @@
 // che hai nello zaino e nel Forziere e si salva col personaggio: POST /api/rpg {t:'arena'}), il formato (1 CONTRO 1, 2 CONTRO 2, 3 CONTRO 3) e
 // i modi di giocare: CODA VELOCE (gli altri che ci sono; a squadre, passati pochi secondi, i posti vuoti li prendono i gladiatori), SFIDA
 // AMICI (apre una sala con un codice di 4 lettere, o si entra col codice dell'amico; chi la apre preme PARTI ORA), ALLENAMENTO (con i
-// gladiatori automatici, senza server né premio). Coda e sala sono il WebSocket /ws/arena (DO Arena); quando il server ha tutti manda
+// gladiatori automatici, senza server né premio; a squadre ogni gladiatore ha una build casuale o, a scelta, la stessa vestizione, armi, magie
+// e anelli che si danno al proprio personaggio, ma pescando da tutto il catalogo). Coda e sala sono il WebSocket /ws/arena (DO Arena); quando il server ha tutti manda
 // `parte` e comincia la partita (arena_run.ts) coi suoi turni. Linea persa durante la partita: ci si ricollega da soli (`?run=&idx=&n=`) per
 // ARENA.rete.staccatoSecondi. A fine partita la scheda dell'esito, il lotto riletto (il premio è nelle monete) e di nuovo il pannello.
+import { createRng } from '@marea/sim';
 import type { InputFrame, LotState } from '@marea/sim';
 import type { Look } from '@marea/protocol';
 import { ARENA, arenaMappa, mappaPer } from '@marea/content/arena.ts';
 import { spellDef } from '@marea/content/rpg.ts';
 import { formatoDi } from '@marea/sim/arena/duello.ts';
+import { botLoadoutCasuale, catalogoBot, eroeBot, MAGIE_BOT } from '@marea/sim/rpg/arena_bot.ts';
 import { buildArenaEroe, erroreLoadout, loadoutDi, pulisciLoadout, slotArma, slotMagia } from '@marea/sim/rpg/arena.ts';
 import type { Possiede } from '@marea/sim/rpg/arena.ts';
 import { newHero } from '@marea/sim/rpg/hero.ts';
@@ -57,6 +60,12 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
   const eroe = (): HeroState => c.getLot()?.hero ?? (eroeProva ??= newHero());
   const ha = (): Possiede => { const l = c.getLot(), h = eroe(); return (id) => (h.inv[id] ?? 0) + (l?.forziere?.[id] ?? 0); };
   let set: ArenaLoadout = loadoutDi(eroe()), salvato = JSON.stringify(set), scelta: Scelta | null = null;
+  // allenamento a squadre: i set dei gladiatori (null = build casuale a ogni partita) e quello che si sta vestendo adesso (null = il mio)
+  const bots: (ArenaLoadout | null)[] = [];
+  let bot: number | null = null;
+  /** Il set che il pannello sta modificando: il mio, o quello del gladiatore aperto (l'editor è lo stesso). */
+  const corr = (): ArenaLoadout => (bot === null ? set : bots[bot]!);
+  const nomeBot = (k: number): string => ARENA.gladiatori[k % ARENA.gladiatori.length]!.nome;
 
   // ---- pannello ----
   const box = el('div', 'mz mz-col'); box.id = 'mzColosseo';
@@ -75,7 +84,7 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
   const icoMagia = (id: string, px = 26): Node => iconaMagia(id, px);
   const nomeMagia = (id: string) => { try { return spellDef(id).nome; } catch { return id; } };
   /** Quello che hai (zaino + Forziere) di un tipo, in ordine di nome. */
-  const posseduti = (kinds: string[]): string[] => {
+  const possedutiMiei = (kinds: string[]): string[] => {
     const l = c.getLot(), h = eroe(), ids = new Set([...Object.keys(h.inv), ...Object.keys(l?.forziere ?? {})]);
     return [...ids].filter((id) => hasItem(id) && kinds.includes(itemDef(id).kind) && ha()(id) > 0).sort((a, b) => nomeOgg(a).localeCompare(nomeOgg(b)));
   };
@@ -92,7 +101,8 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
   }
   /** Le voci tra cui scegliere per la cella aperta. */
   function voci(sc: Scelta): Voce[] {
-    const h = eroe();
+    const set = corr(), gl = bot !== null, magie = gl ? MAGIE_BOT : eroe().magie;
+    const posseduti = (kinds: string[]): string[] => (gl ? catalogoBot(kinds) : possedutiMiei(kinds)); // un gladiatore ha tutto
     if (sc.tipo === 'corpo') return posseduti(['armatura', 'veste']).map((id) => ({ id, nome: nomeOgg(id), ico: () => icoOgg(id) }));
     if (sc.tipo === 'anello1' || sc.tipo === 'anello2') return posseduti(['anello']).map((id) => ({ id, nome: nomeOgg(id), ico: () => icoOgg(id) }));
     if (sc.tipo === 'pozione') return posseduti(['pozione']).map((id) => ({ id, nome: nomeOgg(id), ico: () => icoOgg(id) }));
@@ -103,25 +113,46 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     const usate = new Set(set.slot.filter((s, i) => s && i !== sc.n).map((s) => (slotMagia(s) ? 'magia:' + s.magia : slotArma(s) ? s.arma : '')));
     return [
       ...posseduti(['arma', 'arco']).filter((id) => !usate.has(id)).map((id): Voce => ({ id, nome: nomeOgg(id), ico: () => icoOgg(id), nota: itemDef(id).kind === 'arco' ? 'arco' : 'arma' })),
-      ...h.magie.filter((m) => !usate.has('magia:' + m)).map((m): Voce => { let costo = ''; try { costo = `${spellDef(m).costo} Magicka`; } catch { /* sconosciuta */ } return { id: 'magia:' + m, nome: nomeMagia(m), ico: () => icoMagia(m), nota: costo }; }),
+      ...magie.filter((m) => !usate.has('magia:' + m)).map((m): Voce => { let costo = ''; try { costo = `${spellDef(m).costo} Magicka`; } catch { /* sconosciuta */ } return { id: 'magia:' + m, nome: nomeMagia(m), ico: () => icoMagia(m), nota: costo }; }),
     ];
   }
   function metti(sc: Scelta, id: string | null): void {
-    const s: ArenaLoadout = { ...set, slot: [...set.slot], pozioni: [...set.pozioni] };
+    const c0 = corr(), s: ArenaLoadout = { ...c0, slot: [...c0.slot], pozioni: [...c0.pozioni] };
     if (sc.tipo === 'corpo' || sc.tipo === 'anello1' || sc.tipo === 'anello2') { if (id) s[sc.tipo] = id; else delete s[sc.tipo]; }
     else if (sc.tipo === 'pozione') s.pozioni[sc.n] = id;
     else if (sc.tipo === 'frecce') { const x = s.slot[sc.n]; if (slotArma(x)) s.slot[sc.n] = id && id !== ARENA.frecceBase ? { arma: x.arma, frecce: id } : { arma: x.arma }; }
     else s.slot[sc.n] = !id ? null : id.startsWith('magia:') ? { magia: id.slice(6) } : { arma: id };
-    set = s; scelta = null;
+    if (bot === null) set = s; else bots[bot] = s;
+    scelta = null;
     err.textContent = '';
     disegna();
   }
+  /** In testa al pannello di un gladiatore: chi è, e i modi di tornare indietro (al mio set, o alla build casuale). */
+  function testaBot(k: number): Node[] {
+    const vai = (testo: string, fn: () => void) => { const b = el('button', 'cella', testo) as HTMLButtonElement; b.type = 'button'; b.dataset['act'] = testo.startsWith('‹') ? 'mio' : 'casuale'; b.addEventListener('click', () => { fn(); bot = null; scelta = null; err.textContent = ''; disegna(); }); return b; };
+    const riga = el('div', 'riga d');
+    riga.append(vai('‹ IL TUO SET', () => {}), vai('BUILD CASUALE', () => { bots[k] = null; }));
+    return [el('h4', '', `GLADIATORE: ${nomeBot(k).toUpperCase()}`), el('div', 'stat', 'Ha tutto il catalogo e tutte le magie; niente si consuma.'), riga];
+  }
+  /** I gladiatori dell'allenamento a squadre (compagni, poi avversari): casuali di default, un tocco per vestirli a mano. */
+  function sezBot(): Node[] {
+    if (formato < 2) return [];
+    const riga = el('div', 'riga d');
+    for (let k = 0; k < 2 * formato - 1; k++) {
+      const b = el('button', 'cella') as HTMLButtonElement; b.type = 'button'; b.dataset['bot'] = String(k);
+      b.append(el('span', '', nomeBot(k)), el('small', '', `${k < formato - 1 ? 'compagno' : 'avversario'} · ${bots[k] ? 'a scelta' : 'casuale'}`));
+      b.addEventListener('click', () => { bots[k] ??= botLoadoutCasuale(createRng((Date.now() >>> 0) % 1_000_000).fork('bot' + k)); bot = k; scelta = null; err.textContent = ''; disegna(); });
+      riga.append(b);
+    }
+    return [el('h4', '', 'GLADIATORI DELL’ALLENAMENTO'), el('div', 'stat', 'Solo per ALLENAMENTO: build casuale a ogni partita. Tocca un gladiatore per scegliergli vestito, armi, magie e anelli.'), riga];
+  }
 
   function disegna(): void {
-    const a = c.getLot()?.arena, kids: Node[] = [];
+    const set = corr(), a = c.getLot()?.arena, kids: Node[] = [];
     const oggi = a && a.giorno === Math.floor(Date.now() / 86_400_000) ? a.preso : 0;
-    kids.push(el('div', 'stat', online() ? `Vinte ${a?.vinte ?? 0} · perse ${a?.perse ?? 0} · pari ${a?.pari ?? 0} · premio di oggi ${oggi}/${ARENA.premio.tetto} monete` : 'Senza link personale: solo allenamento'));
-    kids.push(el('div', 'stat', 'In Arena tutti hanno 100 di Vita, Magicka e Stamina; niente si consuma o si perde.'));
+    if (bot !== null) kids.push(...testaBot(bot));
+    else kids.push(el('div', 'stat', online() ? `Vinte ${a?.vinte ?? 0} · perse ${a?.perse ?? 0} · pari ${a?.pari ?? 0} · premio di oggi ${oggi}/${ARENA.premio.tetto} monete` : 'Senza link personale: solo allenamento'));
+    if (bot === null) kids.push(el('div', 'stat', 'In Arena tutti hanno 100 di Vita, Magicka e Stamina; niente si consuma o si perde.'));
     kids.push(el('h4', '', 'VESTIZIONE'));
     const vest = el('div', 'riga');
     for (const k of ['corpo', 'anello1', 'anello2'] as const) {
@@ -148,7 +179,7 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     kids.push(el('h4', '', `${ARENA.pozioni} POZIONI RAPIDE (TASTI 5-6)`));
     const pz = el('div', 'riga d');
     set.pozioni.forEach((p, n) => pz.append(cella(p ? '' : 'vuota', p ? icoOgg(p) : null, p ? nomeOgg(p) : 'Nessuna', 'una a round', String(5 + n), { tipo: 'pozione', n })));
-    kids.push(pz, listaPer((sc) => sc.tipo === 'pozione'), err);
+    kids.push(pz, listaPer((sc) => sc.tipo === 'pozione'), ...(bot === null ? sezBot() : []), err);
     corpo.replaceChildren(...kids);
     disegnaGioca();
   }
@@ -156,7 +187,7 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
   function listaPer(qui: (sc: Scelta) => boolean): HTMLElement {
     const l = el('div', 'lista');
     if (!scelta || !qui(scelta)) return l;
-    const sc = scelta, cur = sc.tipo === 'slot' ? (() => { const s = set.slot[sc.n]; return slotMagia(s) ? 'magia:' + s.magia : slotArma(s) ? s.arma : null; })() : sc.tipo === 'pozione' ? set.pozioni[sc.n] : sc.tipo === 'frecce' ? (() => { const s = set.slot[sc.n]; return (slotArma(s) && s.frecce) || ARENA.frecceBase; })() : set[sc.tipo] ?? null;
+    const set = corr(), sc = scelta, cur = sc.tipo === 'slot' ? (() => { const s = set.slot[sc.n]; return slotMagia(s) ? 'magia:' + s.magia : slotArma(s) ? s.arma : null; })() : sc.tipo === 'pozione' ? set.pozioni[sc.n] : sc.tipo === 'frecce' ? (() => { const s = set.slot[sc.n]; return (slotArma(s) && s.frecce) || ARENA.frecceBase; })() : set[sc.tipo] ?? null;
     const vv = voci(sc);
     for (const v of vv) {
       const b = el('button', v.id === cur ? 'cur' : ''); b.type = 'button';
@@ -188,7 +219,7 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     } else {
       const on = online();
       const fm = el('div', 'formati');
-      for (const f of FORMATI) { const b = el('button', f === formato ? 'sel' : '', `${f} CONTRO ${f}`) as HTMLButtonElement; b.type = 'button'; b.dataset['f'] = String(f); b.addEventListener('click', () => { formato = f; disegnaGioca(); }); fm.append(b); }
+      for (const f of FORMATI) { const b = el('button', f === formato ? 'sel' : '', `${f} CONTRO ${f}`) as HTMLButtonElement; b.type = 'button'; b.dataset['f'] = String(f); b.addEventListener('click', () => { formato = f; disegna(); }); fm.append(b); }
       // la mappa dell'allenamento: a caso o una a scelta (in coda e in sala la sceglie il server)
       const elenco = ARENA.mappe.filter((m) => m.formati.includes(formato));
       if (!elenco.some((m) => m.id === mappaScelta)) mappaScelta = '';
@@ -298,7 +329,8 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     const f = formato, mappa = mappaScelta ? arenaMappa(mappaScelta) : mappaPer(f, seed), fo = formatoDi(f, mappa.id);
     chiudiPannello();
     // io primo della mia squadra; poi i compagni e gli avversari, a rotazione dai gladiatori
-    const glad = (k: number): ArenaDuellante => { const g = ARENA.gladiatori[k % ARENA.gladiatori.length]!; return { nome: g.nome, look: g.look, eroe: mio }; };
+    // a squadre ogni gladiatore ha il suo set (a scelta, o a caso); nel duello 1v1 una copia del mio
+    const glad = (k: number): ArenaDuellante => ({ nome: nomeBot(k), look: ARENA.gladiatori[k % ARENA.gladiatori.length]!.look, eroe: f > 1 ? eroeBot(h, bots[k] ?? botLoadoutCasuale(createRng(seed).fork('bot' + k))) : mio });
     gioca2(seed, [{ nome: c.nome() || 'Tu', look: c.look(), eroe: mio }, ...Array.from({ length: 2 * f - 1 }, (_, k) => glad(k))], 0, null, fo);
   }
 
@@ -315,18 +347,20 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
       apri();
     });
   }
-  function chiudiPannello(): void { aperto = false; scelta = null; box.classList.remove('on'); }
+  function chiudiPannello(): void { aperto = false; scelta = null; bot = null; box.classList.remove('on'); }
   function apri(): void {
     if (run) return;
-    set = loadoutDi(eroe()); salvato = JSON.stringify(set); err.textContent = '';
+    set = loadoutDi(eroe()); salvato = JSON.stringify(set); err.textContent = ''; bot = null;
     aperto = true; box.classList.add('on'); disegna();
   }
   chiudiBtn.addEventListener('click', () => { esci(); chiudiPannello(); });
   addEventListener('keydown', (e) => { if (aperto && e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); esci(); chiudiPannello(); } }, true);
 
-  registerStateProvider('colosseo', () => ({ aperto, attivo: !!run, formato, set, salvato: JSON.parse(salvato) as unknown, coda: sess ? { modo: sess.modo, codice: sess.codice, duello: !!sess.rete, run: sess.run, io: sess.idx, turni: sess.rete?.ricevuti ?? 0, f: sess.f, dentro: sess.dentro, serve: sess.serve, host: sess.host } : null, ultimo, errore: err.textContent }));
+  registerStateProvider('colosseo', () => ({ aperto, attivo: !!run, formato, bot, bots, set, salvato: JSON.parse(salvato) as unknown, coda: sess ? { modo: sess.modo, codice: sess.codice, duello: !!sess.rete, run: sess.run, io: sess.idx, turni: sess.rete?.ricevuti ?? 0, f: sess.f, dentro: sess.dentro, serve: sess.serve, host: sess.host } : null, ultimo, errore: err.textContent }));
   registerTestHook('arenaSet', (l) => { set = l as ArenaLoadout; disegna(); return erroreLoadout(eroe(), set, ha()); });
   registerTestHook('arenaGioca', (modo, codice, f) => { if (f === 1 || f === 2 || f === 3) formato = f; if (modo === 'allenamento') void allena(); else void entra(modo === 'sala' ? 'sala' : 'coda', typeof codice === 'string' ? codice : ''); return true; });
+  registerTestHook('arenaBot', (k, l) => { const n = Number(k); bots[n] = (l as ArenaLoadout | null) ?? null; disegna(); return true; });
+  registerTestHook('arenaImpara', (ids) => { if (c.getLot() || !Array.isArray(ids)) return false; eroe().magie = [...new Set([...eroe().magie, ...ids.map(String)])]; return true; });
   registerTestHook('arenaVia', () => { const s = sess; if (!s || s.rete || s.ws.readyState !== WebSocket.OPEN) return false; s.ws.send(JSON.stringify({ t: 'via' } satisfies ArClientMsg)); return true; });
   registerTestHook('arenaEsci', () => { esci(); chiudiPannello(); return true; });
   registerTestHook('arenaAuto', (on) => { arenaLink.auto = !!on; return arenaLink.auto; });

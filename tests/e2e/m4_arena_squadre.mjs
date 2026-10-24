@@ -2,7 +2,8 @@
 // 3 contro 3) e la mappa dell'allenamento (a caso o una); l'ALLENAMENTO 2v2 sul Giardino: il tabellone ha due eroi per lato (la mia squadra a
 // sinistra), l'erba alta nasconde gli avversari (non i compagni), un avversario vicino li scopre, io nell'erba leggo il cartello; il pilota
 // combatte. 3v3 sulle Rovine: sei eroi, il tabellone sta nello schermo e il bottone del menu non lo copre. Screenshot in
-// tests/out/shots/m4_arena_squadre_*.png.
+// tests/out/shots/m4_arena_squadre_*.png. Allenamento a squadre: i gladiatori sono casuali di default e si vestono a mano da tutto il catalogo; con una
+// bomba in mano, mentre si mira, a terra c'è l'ombra di dove atterra (nello stato del duello: solo la mia scena la disegna).
 export const timeout = 300000;
 
 export default async function (ctx) {
@@ -115,7 +116,46 @@ export default async function (ctx) {
     await ctx.shot(p3, 'rovine_lotta');
   });
 
+  const w = await ctx.open('?test=1&net=0');
+  const pw = w.page;
+  await ctx.test('telefono: allenamento 2v2: gladiatori casuali di default, a mano si veste tutto; bomba in mano: ombra di mira', async () => {
+    await pannello(pw);
+    assert((await pw.locator('#mzColosseo [data-bot]').count()) === 0, 'nel duello 1v1 non ci sono gladiatori da scegliere');
+    await pw.tap('#mzColosseo .formati button[data-f="2"]');
+    const nomi = () => pw.locator('#mzColosseo [data-bot]').evaluateAll((bs) => bs.map((b) => b.textContent));
+    const n0 = await nomi();
+    assert(n0.length === 3 && n0.every((x) => x.includes('casuale')), 'tre gladiatori, tutti casuali: ' + n0);
+    assert(n0[0].includes('compagno') && n0[1].includes('avversario') && n0[2].includes('avversario'), 'compagno e avversari: ' + n0);
+    await pw.tap('#mzColosseo [data-bot="2"]');
+    const colo = async () => (await ctx.getState(pw)).colosseo;
+    assert((await colo()).bot === 2 && (await colo()).bots[2], 'il gladiatore 2 è aperto, con una build di partenza');
+    await pw.tap('#mzColosseo .riga:not(.d):not(.q) .cella >> nth=0');
+    assert((await pw.locator('#mzColosseo .lista.on button[data-id="unico_veste_arcimago"]').count()) === 1, 'un gladiatore può vestire tutto il catalogo, anche quello che io non ho');
+    await ctx.shot(pw, 'gladiatore_vestizione');
+    await pw.tap('#mzColosseo .lista.on button[data-id="unico_veste_arcimago"]');
+    assert((await colo()).bots[2].corpo === 'unico_veste_arcimago', 'la veste è andata al gladiatore, non a me: ' + JSON.stringify((await colo()).bots[2]));
+    assert(!(await colo()).set.corpo || (await colo()).set.corpo !== 'unico_veste_arcimago', 'il mio set non è cambiato');
+    await pw.tap('#mzColosseo [data-act=casuale]');
+    assert((await colo()).bot === null && (await colo()).bots[2] === null, 'BUILD CASUALE rimette il caso');
+    await pw.tap('#mzColosseo [data-bot="2"]');
+    await pw.tap('#mzColosseo [data-act=mio]');
+    assert((await colo()).bot === null && (await colo()).bots[2], 'IL TUO SET torna al mio senza perdere la scelta');
+    // la mia bomba in mano
+    await pw.evaluate(() => { window.__game.test.arenaImpara(['bomba_fuoco']); window.__game.test.arenaSet({ slot: [{ magia: 'bomba_fuoco' }, null, null, null], pozioni: [null, null] }); });
+    await pw.tap('#mzColosseo .formati button[data-m="giardino"]');
+    await pw.tap('#mzColosseo [data-act=allenamento]');
+    await ctx.waitState(pw, (st) => st.arenaDuello?.fase === 'gioca', 60000);
+    assert((await ctx.getState(pw)).arenaDuello.ombra === null, 'senza mirare niente ombra');
+    await pw.keyboard.down('Space');
+    await ctx.waitState(pw, (st) => !!st.arenaDuello?.ombra, 10000);
+    const o = (await ctx.getState(pw)).arenaDuello.ombra;
+    assert(o.r > 1.5 && o.r < 3.5, 'l’ombra ha il raggio dello scoppio: ' + JSON.stringify(o));
+    await ctx.shot(pw, 'ombra_bomba');
+    await pw.keyboard.up('Space');
+    await ctx.waitState(pw, (st) => st.arenaDuello?.ombra === null, 10000);
+  });
+
   await ctx.test('nessun errore in pagina', async () => {
-    for (const x of [p, q]) assert(!x.errors.length, 'errori: ' + x.errors.slice(0, 3).join('\n'));
+    for (const x of [p, q, w]) assert(!x.errors.length, 'errori: ' + x.errors.slice(0, 3).join('\n'));
   });
 }
