@@ -16,8 +16,8 @@ export type DungeonHud = {
   /** Numero che salta da un punto del mondo. */
   number(p: THREE.Vector3, text: string, kind: 'dato' | 'preso' | 'cura' | 'info', big?: boolean): void;
   bars(list: Bar[]): void;
-  /** Dungeon insieme (#118): nome e vita sopra la testa dei compagni. */
-  compagni(list: { pos: THREE.Vector3; nome: string; frac: number }[]): void;
+  /** Dungeon insieme (#118): nome e vita sopra la testa dei compagni (Arena: `nemico` = un avversario, in rosso). */
+  compagni(list: { pos: THREE.Vector3; nome: string; frac: number; nemico?: boolean }[]): void;
   /** Avviso breve (compagno uscito, caduto…). */
   say(text: string, ms?: number): void;
   event(e: DungeonEvent): void;
@@ -66,6 +66,7 @@ body.mz-sotto .mz-labels, body.mz-sotto #mzPlay, body.mz-sotto #mzEmoteRow, body
 .mz-dng-amico { position: absolute; left: 0; top: 0; text-align: center; font: bold 12px ui-monospace, Menlo, monospace; color: ${P.sabbiaChiara}; text-shadow: 1px 1px 0 ${P.neroCaldo}, -1px 1px 0 ${P.neroCaldo}; white-space: nowrap; }
 .mz-dng-amico i { display: block; width: 44px; height: 6px; margin: 2px auto 0; background: ${P.neroCaldo}; border: 1px solid ${P.neroCaldo}; }
 .mz-dng-amico i b { display: block; height: 100%; background: ${P.erbaChiara}; }
+.mz-dng-amico.nem { color: ${P.rosso}; } .mz-dng-amico.nem i b { background: ${P.rosso}; }
 .mz-dng-toast { position: absolute; left: 50%; top: 27%; transform: translateX(-50%); padding: 6px 12px; background: rgba(46,30,20,.94); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; font-weight: bold; font-size: 15px; z-index: 15; pointer-events: none !important; display: none; max-width: calc(100% - 32px); text-align: center; }
 .mz-dng-toast.on { display: block; }
 .mz-dng-big { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%); display: none; padding: 12px 22px; background: rgba(46,30,20,.95); border: 3px solid ${P.legnoChiaro}; box-shadow: 0 5px 0 ${P.neroCaldo}; text-align: center; z-index: 18; pointer-events: none !important; font: bold 36px ui-monospace, Menlo, monospace; white-space: nowrap; }
@@ -172,6 +173,7 @@ export function createDungeonHud(o: { root: HTMLElement; canvas: HTMLCanvasEleme
         const s = screen(c.pos); if (!s.on) continue;
         let e = amici[i];
         if (!e) { e = el('div', 'mz-dng-amico'); e.append(el('span'), el('i')); (e.lastChild as HTMLElement).appendChild(el('b')); fx.appendChild(e); amici.push(e); }
+        e.classList.toggle('nem', !!c.nemico);
         if ((e.firstChild as HTMLElement).textContent !== c.nome) (e.firstChild as HTMLElement).textContent = c.nome;
         ((e.lastChild as HTMLElement).firstChild as HTMLElement).style.width = `${Math.max(0, Math.round(c.frac * 10)) * 10}%`;
         e.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px) translate(-50%, -100%)`; e.style.display = 'block';

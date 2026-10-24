@@ -7,6 +7,7 @@ import { RPG } from '@marea/content/rpg.ts';
 import type { DungeonState, Enemy } from './state.ts';
 import { hitHeroPvp } from './combat.ts';
 import type { HitSrc } from './combat.ts';
+import { visibileDa } from './erba.ts';
 import { lineOfSight, moveCircle } from './map.ts';
 
 /** Squadra dell'eroe i (senza pvp tutti nella stessa). */
@@ -30,11 +31,12 @@ export const amica = (s: DungeonState, e: Enemy): boolean => e.alleato && e.st !
 export const compagno = (s: DungeonState, j: number): boolean => !s.pvp || squadraDi(s, j) === squadraDi(s, s.cur);
 
 /** Mira assistita sugli avversari: il più vicino entro `range` nel cono davanti (coseno `cosMin`), altrimenti il più vicino entro
- *  `fallback`, in linea di vista se `vista`. Con `d` le distanze dei nemici già trovati, per scegliere il migliore tra tutti. */
+ *  `fallback`, in linea di vista se `vista`. Chi sta nell'erba alta senza essere scoperto non si vede, quindi non si mira. */
 export function aimEroi(s: DungeonState, range: number, cosMin: number, fallback: number, vista: boolean): { best: { x: number; z: number; d: number } | null; near: { x: number; z: number; d: number } | null } {
-  const h = s.hero;
+  const h = s.hero, mia = squadraDi(s, s.cur);
   let best: { x: number; z: number; d: number } | null = null, near: { x: number; z: number; d: number } | null = null;
   for (const j of eroiNemici(s)) {
+    if (!visibileDa(s, j, mia)) continue;
     const o = s.eroi[j]!, dx = o.hero.x - h.x, dz = o.hero.z - h.z, d = Math.sqrt(dx * dx + dz * dz), reach = d - o.runHero.raggio;
     if (vista && !lineOfSight(s.map, h.x, h.z, o.hero.x, o.hero.z)) continue;
     const dot = d > 1e-6 ? (dx * h.fx + dz * h.fz) / d : 1;

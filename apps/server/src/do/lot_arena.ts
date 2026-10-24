@@ -1,8 +1,9 @@
 // Arena PvP nel DO del lotto (docs/ARENA.md, CONTRACTS «Arena»): solo dal DO Arena, mai dal Worker. Il set del duello si salva con
 // POST /api/rpg {t:'arena'} come le altre azioni del personaggio.
 // POST /arena_start {run, idx} → il duello `run` è aperto nel lotto (questo giocatore è l'eroe idx) → {eroe} = la fotografia del set
-// (buildArenaEroe del set salvato, ripulito di quello che non hai più: zaino e Forziere) · /arena_fine {run, ruolo} → premio entro il tetto
-// del giorno (finishArena) → {premio, pieno, tetto, lot}.
+// (buildArenaEroe del set salvato, ripulito di quello che non hai più: zaino e Forziere) · /arena_fine {run, ruolo, senzaPremio?} → premio
+// entro il tetto del giorno (finishArena; senzaPremio: c'erano gladiatori automatici tra gli avversari) → {premio, pieno, tetto, lot}.
+import { ARENA_SQUADRA_MAX } from '@marea/content/arena.ts';
 import type { LotState } from '@marea/sim/economy/types.ts';
 import { finishArena, startArena } from '@marea/sim/arena/premio.ts';
 import type { ArenaRuolo } from '@marea/sim/arena/premio.ts';
@@ -19,7 +20,7 @@ export function arenaRoute(lot: LotState, act: string, body: Record<string, unkn
   if (typeof run !== 'string' || !run || run.length > 64) return json({ error: 'Duello non valido' }, 400);
   if (act === 'arena_start') {
     const idx = body['idx'];
-    if (idx !== 0 && idx !== 1) return json({ error: 'Duello non valido' }, 400);
+    if (typeof idx !== 'number' || !Number.isInteger(idx) || idx < 0 || idx >= 2 * ARENA_SQUADRA_MAX) return json({ error: 'Duello non valido' }, 400);
     const h = heroOf(lot), ha = (id: string) => available(lot, h, id);
     const eroe = buildArenaEroe(h, pulisciLoadout(h, loadoutDi(h), ha));
     const next = startArena(lot, run, idx, now);
@@ -28,7 +29,7 @@ export function arenaRoute(lot: LotState, act: string, body: Record<string, unkn
   }
   const ruolo = body['ruolo'] as ArenaRuolo;
   if (!RUOLI.has(ruolo)) return json({ error: 'Esito non valido' }, 400);
-  const out = finishArena(lot, run, ruolo, now);
+  const out = finishArena(lot, run, ruolo, now, body['senzaPremio'] === true);
   if (out.lot !== lot) save(out.lot);
   return json({ premio: out.premio, pieno: out.pieno, tetto: out.tetto, lot: out.lot });
 }

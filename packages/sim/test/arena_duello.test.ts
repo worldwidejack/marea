@@ -2,7 +2,7 @@
 // round al meglio di 3 con conto alla rovescia, pareggio a tempo, resa, replay del server uguale al client, premio col tetto del giorno.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { ARENA, validateArena } from '@marea/content/arena.ts';
+import { ARENA, arenaMappa, validateArena } from '@marea/content/arena.ts';
 import { RPG } from '@marea/content/rpg.ts';
 import { newLot } from '../src/economy/actions.ts';
 import type { LotState } from '../src/economy/types.ts';
@@ -227,7 +227,7 @@ describe('Arena — il duello al meglio di 3', () => {
     for (let t = 0; t < PAUSA_TICKS; t++) stepDuello(d, [fermo(), fermo()]);
     assert.equal(d.fase, 'conta');
     assert.equal(d.round, 1);
-    const [x0, x1] = ARENA.mappa.spawn;
+    const [x0, x1] = arenaMappa('colosseo').spawn.map((l) => l[0]!);
     assert.equal(d.s.eroi[0]!.hero.x, (x0![0] + 0.5) * 2);
     assert.equal(d.s.eroi[1]!.hero.x, (x1![0] + 0.5) * 2);
     assert.deepEqual(d.s.eroi.map((r) => r.hero.vita), [100, 100]);

@@ -1,20 +1,25 @@
-// Avversario automatico dell'Arena (stanza di prova ?net=0&arena=banco, test): come l'autopilota dei dungeon, ma contro l'altro eroe.
-// Sceglie lo slot giusto per la distanza (mischia vicino, arco o magia lontano se lo vede), gli va incontro lungo il campo BFS, colpisce
-// quando è in portata, tende l'arco fino in fondo, beve sotto metà vita. Non tocca lo stato del duello: la sua memoria sta in una WeakMap
-// e quello che fa passa da input e azioni, registrati come quelli di un giocatore.
+// Gladiatore automatico dell'Arena (stanza di prova ?net=0&arena=banco, allenamento, posti vuoti delle squadre sul server, test): come
+// l'autopilota dei dungeon, ma contro gli avversari. Sceglie l'avversario più vicino che la sua squadra vede (chi sta nell'erba alta non lo
+// vede: gli va incontro dove l'ha visto l'ultima volta, se no verso la partenza avversaria e poi il centro), lo slot giusto per la distanza
+// (mischia vicino, arco o magia lontano se lo vede), gli va incontro lungo il campo BFS, colpisce quando è in portata, tende l'arco fino in
+// fondo, beve sotto metà vita. Non tocca lo stato del duello: la sua memoria sta in una WeakMap e quello che fa passa da input e azioni,
+// registrati come quelli di un giocatore.
+import { arenaMappa } from '@marea/content/arena.ts';
 import type { Rng } from '../rng.ts';
 import type { DungeonInput } from '../dungeon/types.ts';
 import { NO_DUNGEON_INPUT } from '../dungeon/types.ts';
 import type { RunHero } from '../rpg/types.ts';
+import { visibileDa } from '../dungeon/erba.ts';
 import { bfs, cellCenter, cellOf, clearPath, lineOfSight, stepDown } from '../dungeon/map.ts';
 import type { ArenaAzione, DuelloState } from './duello.ts';
 
-type Mem = { field: Int32Array; goal: number; fieldT: number; prevA: boolean; tieni: number; lato: number; latoT: number; slotT: number };
+type Punto = { x: number; z: number };
+type Mem = { field: Int32Array; goal: number; fieldT: number; prevA: boolean; tieni: number; lato: number; latoT: number; slotT: number; visto: Punto | null; giro: number };
 const MEM = new WeakMap<DuelloState, Mem[]>();
 function mem(d: DuelloState, i: number): Mem {
   let all = MEM.get(d);
   if (!all) { all = []; MEM.set(d, all); }
-  return (all[i] ??= { field: new Int32Array(d.s.map.w * d.s.map.h), goal: -1, fieldT: -999, prevA: false, tieni: 0, lato: 1, latoT: 0, slotT: 0 });
+  return (all[i] ??= { field: new Int32Array(d.s.map.w * d.s.map.h), goal: -1, fieldT: -999, prevA: false, tieni: 0, lato: 1, latoT: 0, slotT: 0, visto: null, giro: 0 });
 }
 const norm = (x: number, z: number) => { const l = Math.sqrt(x * x + z * z); return l > 1e-6 ? { x: x / l, z: z / l } : { x: 0, z: 0 }; };
 
@@ -25,12 +30,37 @@ function tipoDi(v: RunHero | null): Tipo {
   return v.arma.kind === 'arco' ? 'arco' : 'mischia';
 }
 
+/** L'avversario più vicino a `i` che la sua squadra vede (null = nessuno: sono tutti a terra o nell'erba alta). */
+function bersaglio(d: DuelloState, i: number): number | null {
+  const s = d.s, h = s.eroi[i]!.hero;
+  let out: number | null = null, best = Infinity;
+  for (let j = 0; j < s.eroi.length; j++) {
+    const o = s.eroi[j]!;
+    if (d.squadre[j] === d.squadre[i] || o.done || !visibileDa(s, j, d.squadre[i]!)) continue;
+    const dx = o.hero.x - h.x, dz = o.hero.z - h.z, q = dx * dx + dz * dz;
+    if (q < best) { best = q; out = j; }
+  }
+  return out;
+}
+
+/** Dove andare senza un avversario in vista: l'ultimo punto dove ne ha visto uno, se no la partenza avversaria (la sua, in ordine) e poi il centro. */
+function pattuglia(d: DuelloState, i: number, m: Mem, h: Punto): Punto {
+  const map = d.s.map, tile = map.tile, vicino = (p: Punto, r: number) => { const dx = p.x - h.x, dz = p.z - h.z; return dx * dx + dz * dz < r * r; };
+  if (m.visto && vicino(m.visto, 1.5)) m.visto = null; // arrivato: non c'è più
+  if (m.visto) return m.visto;
+  const nemica = arenaMappa(d.mappa).spawn[1 - d.squadre[i]!]!, dentro = d.squadre.slice(0, i).filter((q) => q === d.squadre[i]).length;
+  const tappe: Punto[] = [{ x: (nemica[dentro]![0] + 0.5) * tile, z: (nemica[dentro]![1] + 0.5) * tile }, { x: map.w * tile / 2, z: map.h * tile / 2 }];
+  if (vicino(tappe[m.giro % tappe.length]!, 2)) m.giro++;
+  return tappe[m.giro % tappe.length]!;
+}
+
 /** Input e azione (o null) dell'eroe i adesso. */
 export function botArena(d: DuelloState, i: number, rng: Rng): { input: DungeonInput; azione: ArenaAzione | null } {
-  const s = d.s, me = s.eroi[i], lui = s.eroi[1 - i];
-  if (!me || !lui || d.fase === 'finita' || me.done) return { input: { ...NO_DUNGEON_INPUT }, azione: null };
-  const m = mem(d, i), h = me.hero, o = lui.hero, rt = d.rt[i]!, e = d.eroi[i]!;
-  const dx = o.x - h.x, dz = o.z - h.z, dist = Math.sqrt(dx * dx + dz * dz), vede = lineOfSight(s.map, h.x, h.z, o.x, o.z);
+  const s = d.s, me = s.eroi[i], j = bersaglio(d, i), lui = j === null ? null : s.eroi[j]!;
+  if (!me || d.fase === 'finita' || me.done) return { input: { ...NO_DUNGEON_INPUT }, azione: null };
+  const m = mem(d, i), h = me.hero, o = lui?.hero ?? null, rt = d.rt[i]!, e = d.eroi[i]!;
+  if (o) m.visto = { x: o.x, z: o.z };
+  const dx = o ? o.x - h.x : 0, dz = o ? o.z - h.z : 0, dist = o ? Math.sqrt(dx * dx + dz * dz) : Infinity, vede = !!o && lineOfSight(s.map, h.x, h.z, o.x, o.z);
   // pozione sotto metà vita (quella che cura di più tra quelle rimaste)
   if (d.fase === 'gioca' && h.vita < me.runHero.max.vita * 0.5) {
     const k = e.pozioni.map((p, n) => ({ n, v: rt.bevute[n] ? -1 : p.cura.vita ?? 0 })).sort((a, b) => b.v - a.v)[0];
@@ -46,11 +76,12 @@ export function botArena(d: DuelloState, i: number, rng: Rng): { input: DungeonI
   }
   if (d.fase !== 'gioca') return { input: { ...NO_DUNGEON_INPUT }, azione: null };
   const tipo = tipoDi(e.varianti[rt.slot] ?? null), rh = me.runHero;
-  // movimento: verso di lui lungo il campo BFS, di lato ogni tanto quando si tira da lontano
+  // movimento: verso di lui lungo il campo BFS (senza un avversario in vista, verso dove l'ha visto o la pattuglia), di lato ogni tanto quando si tira da lontano
   if (d.tick - m.latoT > 90) { m.latoT = d.tick; m.lato = rng.next() < 0.5 ? -1 : 1; }
   let mv = { x: 0, z: 0 };
   const lontano = tipo === 'mischia' ? rh.arma.portata + 0.2 : tipo === 'arco' ? 9 : 6;
-  if (dist > lontano || !vede) mv = vai(d, m, h, o.x, o.z, rh.raggio);
+  if (!o) { const g = pattuglia(d, i, m, h); mv = vai(d, m, h, g.x, g.z, rh.raggio); }
+  else if (dist > lontano || !vede) mv = vai(d, m, h, o.x, o.z, rh.raggio);
   else if (tipo !== 'mischia') { const u = norm(dx, dz); mv = { x: -u.z * m.lato * 0.6, z: u.x * m.lato * 0.6 }; }
   // attacco: mischia in portata a colpi brevi (ogni tanto caricati), arco teso fino in fondo, magia a colpo singolo o raggio tenuto
   let a = false;

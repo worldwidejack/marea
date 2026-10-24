@@ -18,6 +18,7 @@ import { stepVento } from './vento.ts';
 import { stepFuoco } from './fuoco.ts';
 import { stepLancette, stepOnde } from './mausoleo.ts';
 import { stepRottami } from './diga.ts';
+import { scopriChiAttacca } from './erba.ts';
 import { resultOf, viewOf } from './view.ts';
 import { autopilot } from './autopilot.ts';
 import { HZ } from './tuning.ts';
@@ -38,6 +39,7 @@ export function stepParty(s: DungeonState, inputs: readonly DungeonInput[]): voi
     stepHero(s, inputs[i] ?? NO_DUNGEON_INPUT);
   }
   s.cur = prima;
+  scopriChiAttacca(s); // Arena: chi attacca esce dall'erba alta
   if (!finita(s)) stepEnemies(s);
   if (!finita(s)) stepProjectiles(s);
   if (!finita(s) && s.geyser.length) stepGeyser(s);

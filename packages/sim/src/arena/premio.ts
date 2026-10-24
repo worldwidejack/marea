@@ -25,11 +25,12 @@ export type ArenaRuolo = 'vinta' | 'persa' | 'pari' | 'arreso';
 export type ArenaFine = { lot: LotState; premio: number; pieno: number; tetto: boolean };
 
 /** Chiude il duello `run` col ruolo deciso dal DO Arena: premio entro il tetto di oggi, statistiche. Un duello che non è quello aperto
- *  (vecchio, o già chiuso) non paga niente e non cambia il lotto. */
-export function finishArena(lot0: LotState, run: string, ruolo: ArenaRuolo, nowMs: number): ArenaFine {
+ *  (vecchio, o già chiuso) non paga niente e non cambia il lotto. `senzaPremio`: tra gli avversari c'erano gladiatori automatici (squadre
+ *  incomplete): si contano vinte e perse ma non si pagano monete, così non si fa il pieno di monete contro i bot. */
+export function finishArena(lot0: LotState, run: string, ruolo: ArenaRuolo, nowMs: number, senzaPremio = false): ArenaFine {
   const a = arenaOf(lot0, nowMs);
   if (!a.pending || a.pending.run !== run) return { lot: lot0, premio: 0, pieno: 0, tetto: false };
-  const P = ARENA.premio, pieno = ruolo === 'vinta' ? P.vinta : ruolo === 'persa' ? P.persa : 0;
+  const P = ARENA.premio, pieno = senzaPremio ? 0 : ruolo === 'vinta' ? P.vinta : ruolo === 'persa' ? P.persa : 0;
   const premio = Math.max(0, Math.min(pieno, P.tetto - a.preso));
   const lot = advance(lot0, nowMs);
   return {

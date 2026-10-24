@@ -179,9 +179,50 @@ export default async function (ctx) {
       assert(lc.arena.perse === 1, 'cid arreso: ' + JSON.stringify(lc.arena));
     });
 
+    await ctx.test('2v2 in coda, da solo: passata l’attesa i posti vuoti sono dei gladiatori; 4 input a ogni turno; chi esce lascia i gladiatori, che si arrendono', async () => {
+      const l0 = await lot('tok_ada'), m0 = l0.monete, perse0 = l0.arena?.perse ?? 0;
+      const ada2 = await entra('ada', 'modo=coda&f=2');
+      const at = await ada2.aspetta((m) => m.t === 'attendi', 8000, 'attendi 2v2');
+      assert(at.modo === 'coda' && at.f === 2 && at.dentro === 1 && at.serve === 4, 'attendi: ' + JSON.stringify(at));
+      const t0 = Date.now();
+      const p = await ada2.aspetta((m) => m.t === 'parte', (ARENA.rete.attesaBotSecondi + 15) * 1000, 'parte 2v2');
+      assert(Date.now() - t0 >= ARENA.rete.attesaBotSecondi * 1000 - 1500, `partito prima dell’attesa (${Date.now() - t0} ms)`);
+      assert(p.eroi.length === 4 && p.io === 0 && p.eroi[0].id === 'ada' && !p.eroi[0].bot && p.eroi.slice(1).every((e) => e.bot), 'eroi: ' + JSON.stringify(p.eroi.map((e) => [e.id, e.bot])));
+      assert(JSON.stringify(p.squadre) === '[0,0,1,1]' && ARENA.mappe.some((m) => m.id === p.mappa && m.formati.includes(2)), 'squadre e mappa: ' + JSON.stringify([p.squadre, p.mappa]));
+      assert(p.eroi.slice(1).every((e) => JSON.stringify(e.eroe) === JSON.stringify(p.eroi[0].eroe)), 'i gladiatori copiano il set di ada');
+      ada2.manda({ t: 'carico' });
+      for (let i = 0; i < 750 && ada2.turni.length < 160; i++) await sleep(20); // oltre il conto alla rovescia di 3 s (60 turni da 3 tick, 20 turni al secondo)
+      assert(ada2.turni.length >= 160, 'turni: ' + ada2.turni.length);
+      assert(ada2.turni.every((t) => t.f.length === 4), 'ogni turno ha 4 input');
+      assert(ada2.turni.slice(70).some((t) => t.f.slice(1).some((x) => x[0] !== 0 || x[1] !== 0)), 'i gladiatori stanno fermi');
+      ada2.manda({ t: 'esco' });
+      let l = null;
+      for (let i = 0; i < 300; i++) { l = await lot('tok_ada'); if (l.arena?.pending === null && l.arena.perse > perse0) break; await sleep(100); }
+      assert(l.arena.pending === null && l.arena.perse === perse0 + 1, 'lotto di ada dopo l’uscita: ' + JSON.stringify(l.arena));
+      assert(l.monete === m0, 'niente monete per chi esce: ' + l.monete + ' ≠ ' + m0);
+    });
+
+    await ctx.test('sala 2v2: l’amico entra nella squadra di chi l’ha aperta, chi l’ha aperta preme via, i posti vuoti sono dei gladiatori', async () => {
+      const cid = await entra('cid', 'modo=sala&f=2');
+      const at = await cid.aspetta((m) => m.t === 'attendi' && m.modo === 'sala', 8000, 'sala 2v2');
+      assert(at.f === 2 && at.dentro === 1 && at.serve === 4 && at.host === true && at.codice.length === ARENA.rete.codice, 'attendi: ' + JSON.stringify(at));
+      const dan = await entra('dan', `modo=sala&codice=${at.codice}`);
+      const a2 = await cid.aspetta((m) => m.t === 'attendi' && m.dentro === 2, 8000, 'sala con due'), a3 = await dan.aspetta((m) => m.t === 'attendi', 8000, 'attendi di dan');
+      assert(a2.host === true && a3.host === false && a3.f === 2, 'attendi: ' + JSON.stringify([a2, a3]));
+      dan.manda({ t: 'via' }); // solo chi ha aperto la sala parte
+      await sleep(800);
+      assert(!cid.msgs.some((m) => m.t === 'parte') && !dan.msgs.some((m) => m.t === 'parte'), 'è partita per un ospite');
+      cid.manda({ t: 'via' });
+      const pc = await cid.aspetta((m) => m.t === 'parte', 15000, 'parte cid'), pd = await dan.aspetta((m) => m.t === 'parte', 15000, 'parte dan');
+      assert(pc.run === pd.run && pc.io === 0 && pd.io === 1 && pc.eroi.length === 4, 'parte: ' + JSON.stringify([pc.io, pd.io, pc.eroi.length]));
+      assert(JSON.stringify(pc.squadre) === '[0,0,1,1]' && pc.eroi.map((e) => !!e.bot).join() === 'false,false,true,true', 'squadre: ' + JSON.stringify([pc.squadre, pc.eroi.map((e) => e.id)]));
+      cid.manda({ t: 'esco' }); dan.manda({ t: 'esco' });
+    });
+
     await ctx.test('nessun errore interno nel log di wrangler', async () => {
       assert(!/\[marea\] (lot error|errore)/.test(log), 'errori nel log:\n' + log.split('\n').filter((l) => /\[marea\]/.test(l)).slice(0, 5).join('\n'));
       assert(!/duello non partito|premio non salvato/.test(log), 'duello non partito o premio non salvato:\n' + log.split('\n').filter((l) => /arena/.test(l)).slice(-5).join('\n'));
+      assert(!/non coincide/.test(log), 'il replay del server non coincide con la partita dal vivo (anche quella a squadre coi gladiatori)');
     });
   } finally {
     for (const c of socket) c.chiudi();

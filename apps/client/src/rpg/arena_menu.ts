@@ -1,14 +1,16 @@
 // Il colosseo dell'Arena (docs/ARENA.md §2, PROTOCOL §10): il pannello che si apre all'ingresso e la partita che ne parte.
 // Pannello: IL TUO SET (vestizione, 4 slot rapidi con armi, archi e magie, il tipo di freccia di ogni arco, 2 pozioni; si sceglie tra quello
-// che hai nello zaino e nel Forziere e si salva col personaggio: POST /api/rpg {t:'arena'}) e i modi di giocare: CODA VELOCE (il primo
-// avversario che c'è), SFIDA UN AMICO (apre una sala con un codice di 4 lettere, o si entra col codice dell'amico), ALLENAMENTO (contro
-// l'avversario automatico, senza server né premio). Coda e sala sono il WebSocket /ws/arena (DO Arena); quando il server trova i due manda
-// `parte` e comincia il duello (arena_run.ts) coi suoi turni. Linea persa durante il duello: ci si ricollega da soli (`?run=&idx=&n=`) per
-// ARENA.rete.staccatoSecondi. A fine duello la scheda dell'esito, il lotto riletto (il premio è nelle monete) e di nuovo il pannello.
+// che hai nello zaino e nel Forziere e si salva col personaggio: POST /api/rpg {t:'arena'}), il formato (1 CONTRO 1, 2 CONTRO 2, 3 CONTRO 3) e
+// i modi di giocare: CODA VELOCE (gli altri che ci sono; a squadre, passati pochi secondi, i posti vuoti li prendono i gladiatori), SFIDA
+// AMICI (apre una sala con un codice di 4 lettere, o si entra col codice dell'amico; chi la apre preme PARTI ORA), ALLENAMENTO (con i
+// gladiatori automatici, senza server né premio). Coda e sala sono il WebSocket /ws/arena (DO Arena); quando il server ha tutti manda
+// `parte` e comincia la partita (arena_run.ts) coi suoi turni. Linea persa durante la partita: ci si ricollega da soli (`?run=&idx=&n=`) per
+// ARENA.rete.staccatoSecondi. A fine partita la scheda dell'esito, il lotto riletto (il premio è nelle monete) e di nuovo il pannello.
 import type { InputFrame, LotState } from '@marea/sim';
 import type { Look } from '@marea/protocol';
-import { ARENA } from '@marea/content/arena.ts';
+import { ARENA, arenaMappa, mappaPer } from '@marea/content/arena.ts';
 import { spellDef } from '@marea/content/rpg.ts';
+import { formatoDi } from '@marea/sim/arena/duello.ts';
 import { buildArenaEroe, erroreLoadout, loadoutDi, pulisciLoadout, slotArma, slotMagia } from '@marea/sim/rpg/arena.ts';
 import type { Possiede } from '@marea/sim/rpg/arena.ts';
 import { newHero } from '@marea/sim/rpg/hero.ts';
@@ -25,6 +27,7 @@ import type { RunCtx } from './types.ts';
 import { iconaMagia, iconOf, itemIcon } from './items_ui.ts';
 import { arenaLink, startArenaRun } from './arena_run.ts';
 import type { ArenaDuellante, ArenaRete, ArenaRun } from './arena_run.ts';
+import { CSS_COLOSSEO } from './arena_menu_css.ts';
 
 export type ColosseoCtx = RunCtx & { api: Api | null; getLot(): LotState | null; setLot(l: LotState): void; nome(): string; look(): Look; tornaAllIngresso(): void };
 export type Colosseo = {
@@ -39,48 +42,15 @@ export type Colosseo = {
 };
 
 const P = PAL;
-const CSS = `
-.mz-col { position: absolute; left: 50%; top: max(10px, env(safe-area-inset-top)); bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(420px, calc(100% - 16px)); display: none; flex-direction: column; background: rgba(46,30,20,.97); border: 3px solid ${P.giallo}; box-shadow: 0 5px 0 ${P.neroCaldo}; z-index: 24; }
-.mz-col.on { display: flex; }
-.mz-col .testa { display: flex; align-items: center; gap: 8px; padding: 10px 10px 6px; }
-.mz-col .testa b { flex: 1; font-size: 18px; color: ${P.giallo}; letter-spacing: .04em; }
-.mz-col .corpo { flex: 1; overflow-y: auto; padding: 0 12px 12px; touch-action: pan-y; }
-.mz-col .stat { color: ${P.sabbia}; font-size: 13px; margin-bottom: 6px; }
-.mz-col h4 { margin: 10px 0 4px; font-size: 14px; color: ${P.sabbiaChiara}; letter-spacing: .05em; }
-.mz-col .riga { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.mz-col .riga.q { grid-template-columns: repeat(4, 1fr); }
-.mz-col .riga.d { grid-template-columns: repeat(2, 1fr); }
-.mz-col .cella { position: relative; min-height: 64px; padding: 4px 2px 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: ${P.legnoScuro}; border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; color: ${P.sabbiaChiara}; font: bold 11px ui-monospace, Menlo, monospace; cursor: pointer; text-align: center; line-height: 1.15; }
-.mz-col .cella.vuota { opacity: .6; border-style: dashed; }
-.mz-col .cella.sel { border-color: ${P.giallo}; }
-.mz-col .cella i { position: absolute; left: 3px; top: 1px; font-style: normal; color: ${P.sabbia}; }
-.mz-col .cella small { font-size: 10px; color: ${P.acquaBassa}; }
-.mz-col .lista { margin-top: 6px; padding: 6px; background: rgba(35,32,31,.9); border: 2px solid ${P.giallo}; display: none; }
-.mz-col .lista.on { display: block; }
-.mz-col .lista button { display: flex; width: 100%; align-items: center; gap: 8px; min-height: 44px; margin: 0 0 4px; padding: 4px 8px; background: ${P.legnoScuro}; border: 2px solid ${P.legnoChiaro}; color: ${P.sabbiaChiara}; font: bold 13px ui-monospace, Menlo, monospace; text-align: left; cursor: pointer; }
-.mz-col .lista button.cur { border-color: ${P.giallo}; }
-.mz-col .lista button small { margin-left: auto; color: ${P.sabbia}; font-size: 11px; }
-.mz-col .err { color: ${P.rosso}; font-weight: bold; font-size: 13px; min-height: 18px; margin-top: 6px; }
-.mz-col .gioca { padding: 8px 12px 12px; border-top: 2px solid ${P.legnoChiaro}; }
-.mz-col .gioca .mz-btn { justify-content: center; margin-top: 6px; min-height: 50px; }
-.mz-col .gioca .mz-btn.coda:not(:disabled) { background: ${P.giallo}; }
-.mz-col .gioca .due { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.mz-col .attesa { text-align: center; font-weight: bold; font-size: 15px; color: ${P.giallo}; min-height: 20px; }
-.mz-col .attesa .codice { display: block; font-size: 34px; letter-spacing: .25em; color: ${P.sabbiaChiara}; margin: 4px 0; }
-.mz-col .codiceIn { display: flex; gap: 6px; margin-top: 6px; }
-.mz-col .codiceIn input { flex: 1; min-width: 0; min-height: 48px; padding: 0 10px; background: ${P.neroCaldo}; color: ${P.sabbiaChiara}; border: 2px solid ${P.legnoChiaro}; font: bold 22px ui-monospace, Menlo, monospace; letter-spacing: .2em; text-transform: uppercase; }
-.mz-col .codiceIn .mz-btn { width: auto; margin-top: 0; }
-`;
-
-/** L'avversario dell'allenamento: un look fisso (indici di avatar.json). */
-const GLADIATORE: Look = { pelle: 3, capelli: 2, coloreCapelli: 1, vestito: 2, cappello: 0 };
+/** I formati: eroi per squadra (1 = duello, 2 = 2v2, 3 = 3v3) e come si chiamano sui bottoni. */
+const FORMATI = [1, 2, 3] as const;
 
 type Voce = { id: string; nome: string; ico: () => Node; nota?: string };
 type Scelta = { tipo: 'corpo' } | { tipo: 'anello1' } | { tipo: 'anello2' } | { tipo: 'slot'; n: number } | { tipo: 'frecce'; n: number } | { tipo: 'pozione'; n: number };
 
 export function createColosseo(c: ColosseoCtx): Colosseo {
   injectUiStyle();
-  if (!document.getElementById('mz-colosseo-style')) { const st = document.createElement('style'); st.id = 'mz-colosseo-style'; st.textContent = CSS; document.head.appendChild(st); }
+  if (!document.getElementById('mz-colosseo-style')) { const st = document.createElement('style'); st.id = 'mz-colosseo-style'; st.textContent = CSS_COLOSSEO; document.head.appendChild(st); }
   const online = () => !!c.api && FLAGS.net && !!FLAGS.token;
   // il personaggio di adesso (senza lotto, la stanza di prova: uno nuovo, tenuto qui)
   let eroeProva: HeroState | null = null;
@@ -202,18 +172,29 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
   }
 
   // ---- giocare: coda, sala, allenamento ----
-  type Sessione = { ws: WebSocket; modo: 'coda' | 'sala'; codice: string; rete: (ArenaRete & { turni: ArTurno[]; ricevuti: number; attesaV: { chi: number; fino: number } | null; fineV: ArenaRete['fine']; chiusaV: boolean }) | null; run: string; idx: number; voluta: boolean };
+  type Sessione = { ws: WebSocket; modo: 'coda' | 'sala'; codice: string; rete: (ArenaRete & { turni: ArTurno[]; ricevuti: number; attesaV: { chi: number; fino: number } | null; fineV: ArenaRete['fine']; chiusaV: boolean }) | null; run: string; idx: number; voluta: boolean; f: number; dentro: number; serve: number; host: boolean };
   let sess: Sessione | null = null, run: ArenaRun | null = null, ultimo: unknown = null, codiceIn: HTMLInputElement | null = null;
+  /** Eroi per squadra della prossima partita (1 = duello, 2 = 2v2, 3 = 3v3). */
+  let formato = 1, mappaScelta = '';
+  const btn = (cls: string, act: string, testo: string, fn: () => void, dis = false) => { const b = el('button', `mz-btn ${cls}`, testo) as HTMLButtonElement; b.type = 'button'; b.dataset['act'] = act; b.disabled = dis; b.addEventListener('click', fn); return b; };
   function disegnaGioca(): void {
     const kids: Node[] = [];
     if (sess && !sess.rete) {
-      attesaEl.replaceChildren(sess.modo === 'coda' ? 'In coda: aspetto un avversario…' : sess.codice ? 'Di’ questo codice al tuo amico:' : 'Apro la sala…', ...(sess.codice ? [el('span', 'codice', sess.codice)] : []));
-      const annulla = el('button', 'mz-btn ghost', 'ANNULLA') as HTMLButtonElement; annulla.type = 'button'; annulla.dataset['act'] = 'annulla';
-      annulla.addEventListener('click', () => esci());
-      kids.push(attesaEl, annulla);
+      const s = sess, squadre = s.f > 1 && s.serve > 0;
+      attesaEl.replaceChildren(s.modo === 'coda' ? 'In coda: aspetto gli altri…' : s.codice ? 'Di’ questo codice ai tuoi amici:' : 'Apro la sala…', ...(s.codice ? [el('span', 'codice', s.codice)] : []),
+        ...(squadre ? [el('span', 'quanti', `${s.dentro} su ${s.serve}: i posti vuoti li prendono i gladiatori`)] : []));
+      const annulla = btn('ghost', 'annulla', 'ANNULLA', () => esci());
+      kids.push(attesaEl, ...(s.modo === 'sala' && s.host && squadre ? [btn('coda', 'via', 'PARTI ORA', () => { if (s.ws.readyState === WebSocket.OPEN) s.ws.send(JSON.stringify({ t: 'via' } satisfies ArClientMsg)); })] : []), annulla);
     } else {
-      const btn = (cls: string, act: string, testo: string, fn: () => void, dis = false) => { const b = el('button', `mz-btn ${cls}`, testo) as HTMLButtonElement; b.type = 'button'; b.dataset['act'] = act; b.disabled = dis; b.addEventListener('click', fn); return b; };
       const on = online();
+      const fm = el('div', 'formati');
+      for (const f of FORMATI) { const b = el('button', f === formato ? 'sel' : '', `${f} CONTRO ${f}`) as HTMLButtonElement; b.type = 'button'; b.dataset['f'] = String(f); b.addEventListener('click', () => { formato = f; disegnaGioca(); }); fm.append(b); }
+      // la mappa dell'allenamento: a caso o una a scelta (in coda e in sala la sceglie il server)
+      const elenco = ARENA.mappe.filter((m) => m.formati.includes(formato));
+      if (!elenco.some((m) => m.id === mappaScelta)) mappaScelta = '';
+      const mp = el('div', 'formati m');
+      for (const m of [{ id: '', nome: 'A caso' }, ...elenco]) { const b = el('button', m.id === mappaScelta ? 'sel' : '', m.id ? m.nome.split(' ')[0]! : m.nome) as HTMLButtonElement; b.title = m.nome; b.type = 'button'; b.dataset['m'] = m.id; b.addEventListener('click', () => { mappaScelta = m.id; disegnaGioca(); }); mp.append(b); }
+      kids.push(fm, el('div', 'mappe', 'MAPPA DELL’ALLENAMENTO (in coda la sceglie il server)'), mp);
       kids.push(btn('coda', 'coda', 'CODA VELOCE', () => void entra('coda'), !on));
       const due = el('div', 'due');
       due.append(btn('ghost', 'sala', 'CREA SALA', () => void entra('sala'), !on), btn('ghost', 'allenamento', 'ALLENAMENTO', () => void allena()));
@@ -243,11 +224,11 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     const k = codice.trim().toUpperCase();
     if (codice && k.length !== ARENA.rete.codice) { err.textContent = `Il codice ha ${ARENA.rete.codice} lettere`; return; }
     const u = new URL('/ws/arena', location.href);
-    u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('t', FLAGS.token); u.searchParams.set('modo', modo);
+    u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'; u.searchParams.set('t', FLAGS.token); u.searchParams.set('modo', modo); u.searchParams.set('f', String(formato));
     if (k) u.searchParams.set('codice', k);
     let ws: WebSocket;
     try { ws = new WebSocket(u.toString()); } catch { err.textContent = 'Arena non disponibile, riprova'; return; }
-    const s: Sessione = { ws, modo, codice: '', rete: null, run: '', idx: 0, voluta: false };
+    const s: Sessione = { ws, modo, codice: '', rete: null, run: '', idx: 0, voluta: false, f: formato, dentro: 0, serve: 0, host: false };
     sess = s; disegnaGioca();
     collega(s, ws);
   }
@@ -282,13 +263,13 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
   }
   function onMsg(s: Sessione, m: ArServerMsg): void {
     if (m.t === 'T') { if (s.rete && m.n === s.rete.ricevuti) { s.rete.turni.push(m); s.rete.ricevuti++; } return; }
-    if (m.t === 'attendi') { s.codice = m.codice; disegnaGioca(); return; }
+    if (m.t === 'attendi') { s.codice = m.codice; s.f = m.f ?? s.f; s.dentro = m.dentro ?? 0; s.serve = m.serve ?? 0; s.host = !!m.host; disegnaGioca(); return; }
     if (m.t === 'errore') { c.hud.toast(m.msg, 3000); err.textContent = m.msg; return; }
     if (m.t === 'attesa') { if (s.rete) s.rete.attesaV = m.chi < 0 ? null : { chi: m.chi, fino: Date.now() + m.ms }; return; }
     if (m.t === 'ripresa') { c.hud.toast('Di nuovo in linea', 1200); return; }
     if (m.t === 'fine') { if (s.rete) s.rete.fineV = { esito: m.esito, premio: m.premio, tetto: m.tetto }; ultimo = { esito: m.esito, premio: m.premio }; return; }
     if (m.t === 'parte') {
-      const io = m.io, eroi = m.eroi.map((e): ArenaDuellante => ({ nome: e.nome, look: e.look, eroe: e.eroe })) as [ArenaDuellante, ArenaDuellante];
+      const io = m.io, eroi = m.eroi.map((e): ArenaDuellante => ({ nome: e.nome, look: e.look, eroe: e.eroe }));
       const ws = () => s.ws;
       const rete = {
         turni: [] as ArTurno[], ricevuti: 0, attesaV: null as { chi: number; fino: number } | null, fineV: null as ArenaRete['fine'], chiusaV: false,
@@ -297,7 +278,7 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
       };
       s.rete = rete; s.run = m.run; s.idx = io;
       chiudiPannello();
-      gioca2(m.seed, eroi, io, rete);
+      gioca2(m.seed, eroi, io, rete, m.squadre ? { squadre: m.squadre, mappa: m.mappa ?? 'colosseo' } : undefined);
     }
   }
   function esci(): void {
@@ -308,19 +289,21 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
     disegnaGioca();
   }
 
-  /** Allenamento: contro l'avversario automatico, con una copia del tuo set. */
+  /** Allenamento: tu (più i compagni) contro i gladiatori automatici, tutti con una copia del tuo set (si allena la mano, non l'equipaggiamento). */
   async function allena(): Promise<void> {
     if (sess || run) return;
     const why = await salva();
     if (why) { err.textContent = why; return; }
-    const h = eroe(), mio = buildArenaEroe(h, pulisciLoadout(h, set, ha()));
+    const h = eroe(), mio = buildArenaEroe(h, pulisciLoadout(h, set, ha())), seed = (Date.now() >>> 0) % 1_000_000;
+    const f = formato, mappa = mappaScelta ? arenaMappa(mappaScelta) : mappaPer(f, seed), fo = formatoDi(f, mappa.id);
     chiudiPannello();
-    // il Gladiatore ha lo stesso set (un duello alla pari: si allena la mano, non l'equipaggiamento)
-    gioca2((Date.now() >>> 0) % 1_000_000, [{ nome: c.nome() || 'Tu', look: c.look(), eroe: mio }, { nome: 'Gladiatore', look: GLADIATORE, eroe: mio }], 0, null);
+    // io primo della mia squadra; poi i compagni e gli avversari, a rotazione dai gladiatori
+    const glad = (k: number): ArenaDuellante => { const g = ARENA.gladiatori[k % ARENA.gladiatori.length]!; return { nome: g.nome, look: g.look, eroe: mio }; };
+    gioca2(seed, [{ nome: c.nome() || 'Tu', look: c.look(), eroe: mio }, ...Array.from({ length: 2 * f - 1 }, (_, k) => glad(k))], 0, null, fo);
   }
 
-  function gioca2(seed: number, eroi: [ArenaDuellante, ArenaDuellante], io: number, rete: ArenaRete | null): void {
-    run = startArenaRun(c, { seed, eroi, io, ...(rete ? { rete } : { bot: true }) });
+  function gioca2(seed: number, eroi: ArenaDuellante[], io: number, rete: ArenaRete | null, fo?: { squadre: number[]; mappa: string }): void {
+    run = startArenaRun(c, { seed, eroi, io, ...(fo ?? {}), ...(rete ? { rete } : {}) });
     const r = run;
     void r.done.then(async (fine) => {
       run = null;
@@ -341,9 +324,10 @@ export function createColosseo(c: ColosseoCtx): Colosseo {
   chiudiBtn.addEventListener('click', () => { esci(); chiudiPannello(); });
   addEventListener('keydown', (e) => { if (aperto && e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); esci(); chiudiPannello(); } }, true);
 
-  registerStateProvider('colosseo', () => ({ aperto, attivo: !!run, set, salvato: JSON.parse(salvato) as unknown, coda: sess ? { modo: sess.modo, codice: sess.codice, duello: !!sess.rete, run: sess.run, io: sess.idx, turni: sess.rete?.ricevuti ?? 0 } : null, ultimo, errore: err.textContent }));
+  registerStateProvider('colosseo', () => ({ aperto, attivo: !!run, formato, set, salvato: JSON.parse(salvato) as unknown, coda: sess ? { modo: sess.modo, codice: sess.codice, duello: !!sess.rete, run: sess.run, io: sess.idx, turni: sess.rete?.ricevuti ?? 0, f: sess.f, dentro: sess.dentro, serve: sess.serve, host: sess.host } : null, ultimo, errore: err.textContent }));
   registerTestHook('arenaSet', (l) => { set = l as ArenaLoadout; disegna(); return erroreLoadout(eroe(), set, ha()); });
-  registerTestHook('arenaGioca', (modo, codice) => { if (modo === 'allenamento') void allena(); else void entra(modo === 'sala' ? 'sala' : 'coda', typeof codice === 'string' ? codice : ''); return true; });
+  registerTestHook('arenaGioca', (modo, codice, f) => { if (f === 1 || f === 2 || f === 3) formato = f; if (modo === 'allenamento') void allena(); else void entra(modo === 'sala' ? 'sala' : 'coda', typeof codice === 'string' ? codice : ''); return true; });
+  registerTestHook('arenaVia', () => { const s = sess; if (!s || s.rete || s.ws.readyState !== WebSocket.OPEN) return false; s.ws.send(JSON.stringify({ t: 'via' } satisfies ArClientMsg)); return true; });
   registerTestHook('arenaEsci', () => { esci(); chiudiPannello(); return true; });
   registerTestHook('arenaAuto', (on) => { arenaLink.auto = !!on; return arenaLink.auto; });
   registerTestHook('arenaLinea', () => { const s = sess; if (!s?.rete) return false; try { s.ws.close(4000, 'prova'); } catch { /* */ } return true; });

@@ -36,7 +36,7 @@
 | `templari/` | partita a ondate | B |
 | `dungeon/` | partita nei dungeon: combattimento, nemici, magie, bottino | R |
 | `rpg/` | personaggio: zaino, oggetti, botteghe del GDR, contrabbando | R |
-| `arena/` | duello 1v1 | R |
+| `arena/` | duello 1v1, 2v2, 3v3 e gladiatori automatici | R |
 | `difesa/`, `sparo/` | Difesa a corsie, sparatutto | J |
 
 Test della sim: `packages/sim/test/*.test.ts` (node:test), fixture d'oro in `test/fixtures/`.
