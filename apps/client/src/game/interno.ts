@@ -1,5 +1,5 @@
 // Gli interni del mondo (#265): la stanza della casa (game/stanza.ts) e il negozio dei mobili (game/negozio.ts). Qui le parti comuni:
-// texture a pixel di pavimenti e carte (borgo.json `motivo`), la stanza «da plastico» (pavimento, tre pareti con la carta, davanti aperta
+// pavimenti e carte disegnati interi su misura (finiture_disegni.ts, borgo.json `motivo`), la stanza «da plastico» (pavimento, tre pareti con la carta, davanti aperta
 // col bordo tagliato, corridoio di assi sotto) e l'inquadratura fissa sopra l'ingresso (render/camera.ts `blocca`, scena interna senza
 // cielo né foschia, render/scene.ts `setInterno`). Coordinate in celle del template (tile m l'una), la stanza si disegna dall'origine.
 import * as THREE from 'three';
@@ -8,6 +8,7 @@ import type { GameWorld } from './world.ts';
 import type { Renderer } from '../render/scene.ts';
 import { M, P, merged, painted } from '../render/island_parts.ts';
 import { GIORNO, LUCE_INTERNO } from '../render/ciclo.ts';
+import { TEX_MURO, TEX_PAV, type Muro, type Pav } from './finiture_kit.ts';
 
 let disegniPromise: Promise<typeof import('./finiture_disegni.ts')> | null = null;
 let disegniMod: typeof import('./finiture_disegni.ts') | null = null;
@@ -25,18 +26,26 @@ export const VISTA = { yaw: 0, pitch: (38 * Math.PI) / 180, fov: 36 };
 /** Cose del mondo che dentro non si vedono (nomi delle mesh): animali, lucciole, pioggia, acqua «stampa», lampadine. */
 export const NASCOSTI_DENTRO = ['animali', 'lucciole', 'pioggia', 'acqua_stile', 'luci'] as const;
 
-/** Texture a pixel di un pavimento o di una carta da parati: 16×16 o 32×32 texel per cella (pavimento, 2 m) o per metro (carta). */
-export function texture(f: StanzaFinitura): THREE.CanvasTexture {
-  const c = document.createElement('canvas'); c.width = c.height = 32;
-  const g = c.getContext('2d')!;
-  g.fillStyle = f.colori[0] ?? P.pietraChiara; g.fillRect(0, 0, 32, 32);
-  if (disegniMod) disegniMod.disegnaFinituraSuCanvas(c, f);
+/** Texture di un disegno intero: la tela è subito della misura giusta (tinta di fondo), il disegno arriva col modulo dei disegni. */
+function texturaDisegno(w: number, h: number, fondo: string, disegna: (m: typeof import('./finiture_disegni.ts'), c: HTMLCanvasElement) => void): THREE.CanvasTexture {
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h));
+  const g = c.getContext('2d')!; g.fillStyle = fondo; g.fillRect(0, 0, c.width, c.height);
+  if (disegniMod) disegna(disegniMod, c);
   const t = new THREE.CanvasTexture(c);
   t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace;
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  if (!disegniMod) void caricaDisegni().then((m) => { m.disegnaFinituraSuCanvas(c, f); t.needsUpdate = true; });
+  if (!disegniMod) void caricaDisegni().then((m) => { disegna(m, c); t.needsUpdate = true; });
   return t;
 }
+/** Il pavimento disegnato intero per una pianta di cx×cz celle (16 texel/m): bordi, tappeti e rosoni si rifanno quando la casa cresce. */
+const texturePavimento = (f: StanzaFinitura, s: Pav): THREE.CanvasTexture =>
+  texturaDisegno(s.cx * 2 * TEX_PAV, s.cz * 2 * TEX_PAV, f.colori[0] ?? P.pietraChiara, (m, c) => m.disegnaPavimento(c, f, s));
+/** Una parete disegnata intera (32 texel/m), pezzo del giro delle tre pareti. */
+const textureParete = (f: StanzaFinitura, s: Muro): THREE.CanvasTexture =>
+  texturaDisegno(s.lung * TEX_MURO, s.alt * TEX_MURO, f.colori[0] ?? P.pietraChiara, (m, c) => m.disegnaParete(c, f, s));
+/** Il campione del negozio: un pavimento di 3×3 celle o un pezzo di parete di 2,4×3,2 m, in piccolo. */
+export const textureCampione = (f: StanzaFinitura, tipo: 'pavimento' | 'carta'): THREE.CanvasTexture => tipo === 'pavimento'
+  ? texturePavimento(f, { cx: 3, cz: 3 })
+  : textureParete(f, { lato: 'fondo', lung: 2.4, alt: 3.2, u0: 0, giro: 2.4, x0: 0, x1: Math.round(2.4 * TEX_MURO) });
 export const ASSI: StanzaFinitura = { id: 'assi', nome: 'Assi', motivo: 'assi', colori: [P.legnoChiaro, P.legno, P.legnoScuro] };
 
 /** Una porta (cornice e battente) larga ~1,5 m, in coordinate locali, rivolta verso +z. */
@@ -68,11 +77,11 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
   group.add(floor);
   // corridoio: assi di legno, un po' più in basso del pavimento (un gradino)
   if (p.corridoio) {
-    const tAssi = texture(ASSI); tAssi.repeat.set(1, cl / 2);
-    const corr = new THREE.Mesh(new THREE.PlaneGeometry(cw, cl), new THREE.MeshLambertMaterial({ map: tAssi }));
+    const corr = new THREE.Mesh(new THREE.PlaneGeometry(cw, cl), new THREE.MeshLambertMaterial({ map: texturePavimento(ASSI, { cx: 1, cz: C1 - C0 }) }));
     corr.rotation.x = -Math.PI / 2; corr.position.set((CX + 0.5) * T, -0.08, C0 * T + cl / 2); corr.receiveShadow = true;
     group.add(corr);
     if (p.scale) {
+      const tAssi = texturePavimento(ASSI, { cx: 1, cz: 1 });
       for (const s of p.scale) {
         const sx = (s.cell[0] + 0.5) * T, sz = (s.cell[1] + 0.5) * T;
         const pian = new THREE.Mesh(new THREE.PlaneGeometry(T, T), new THREE.MeshLambertMaterial({ map: tAssi }));
@@ -81,15 +90,20 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
       }
     }
   }
-  // pareti: in fondo e ai lati (davanti aperta), carta da parati una volta per metro
-  const pareti: THREE.Mesh[] = [];
-  const parete = (lung: number, x: number, z: number, ry: number) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(lung, H, SPESSORE), new THREE.MeshLambertMaterial());
-    m.position.set(x, H / 2, z); m.rotation.y = ry; m.receiveShadow = true; m.userData['lung'] = lung; group.add(m); pareti.push(m);
+  // pareti: in fondo e ai lati (davanti aperta). La carta è un disegno solo per parete, sulla faccia verso la stanza; le altre facce
+  // (la cima e i tagli davanti, come un plastico) sono a tinta unita. Le tre pareti si leggono come un giro: sinistra dal davanti al fondo,
+  // fondo da sinistra a destra (passa dietro ai fianchi per lo spessore), destra dal fondo al davanti.
+  const taglio = new THREE.MeshLambertMaterial({ color: P.roccia }), giro = 2 * ld + lw;
+  const pareti: { m: THREE.Mesh; faccia: number; muro: Muro }[] = [];
+  const parete = (muro: Muro, x: number, z: number, ry: number, faccia: number) => {
+    const mats = Array.from({ length: 6 }, (_, i) => (i === faccia ? new THREE.MeshLambertMaterial() : taglio));
+    const m = new THREE.Mesh(new THREE.BoxGeometry(muro.lung, H, SPESSORE), mats);
+    m.position.set(x, H / 2, z); m.rotation.y = ry; m.receiveShadow = true; group.add(m); pareti.push({ m, faccia, muro });
   };
-  parete(lw + 2 * SPESSORE, X0 * T + lw / 2, Z0 * T - SPESSORE / 2, 0);
-  parete(ld, X0 * T - SPESSORE / 2, Z0 * T + ld / 2, Math.PI / 2);
-  parete(ld, X1 * T + SPESSORE / 2, Z0 * T + ld / 2, Math.PI / 2);
+  const muro = (lato: Muro['lato'], lung: number, u0: number, x0: number, x1: number): Muro => ({ lato, lung, alt: H, u0, giro, x0: Math.round(x0 * TEX_MURO), x1: Math.round(x1 * TEX_MURO) });
+  parete(muro('fondo', lw + 2 * SPESSORE, ld - SPESSORE, SPESSORE, SPESSORE + lw), X0 * T + lw / 2, Z0 * T - SPESSORE / 2, 0, 4);
+  parete(muro('sx', ld, 0, 0, ld), X0 * T - SPESSORE / 2, Z0 * T + ld / 2, Math.PI / 2, 4); // la faccia +z guarda dentro (verso +x)
+  parete(muro('dx', ld, ld + lw, 0, ld), X1 * T + SPESSORE / 2, Z0 * T + ld / 2, Math.PI / 2, 5); // qui guarda dentro la faccia −z
   // battiscopa, bordo davanti tagliato (lo spessore del pavimento, come un plastico) e i fianchi bassi del corridoio
   const zf = Z1 * T, xa = CX * T, xb = (CX + 1) * T;
   const fianchi: THREE.BufferGeometry[] = [];
@@ -129,11 +143,11 @@ export function costruisciStanza(T: number, p: Pianta, pav: StanzaFinitura, cart
   const rifinisci = (p2: StanzaFinitura, c2: StanzaFinitura) => {
     if (p2 !== fp) {
       fp = p2; const mt = floor.material as THREE.MeshLambertMaterial; mt.map?.dispose();
-      mt.map = texture(p2); mt.map.repeat.set(X1 - X0, Z1 - Z0); mt.needsUpdate = true;
+      mt.map = texturePavimento(p2, { cx: X1 - X0, cz: Z1 - Z0 }); mt.needsUpdate = true;
     }
     if (c2 !== fc) {
       fc = c2;
-      for (const m of pareti) { const mt = m.material as THREE.MeshLambertMaterial; mt.map?.dispose(); mt.map = texture(c2); mt.map.repeat.set(m.userData['lung'] as number, H); mt.needsUpdate = true; }
+      for (const { m, faccia, muro: mu } of pareti) { const mt = (m.material as THREE.MeshLambertMaterial[])[faccia]!; mt.map?.dispose(); mt.map = textureParete(c2, mu); mt.needsUpdate = true; }
     }
   };
   rifinisci(pav, carta);
