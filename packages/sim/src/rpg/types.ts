@@ -114,7 +114,7 @@ export type RunArmor = {
   /** Armatura del Moto Perpetuo (Mausoleo): la Barriera Cinetica (Traits.barriera). Assente con ogni altra armatura. */
   barriera?: NonNullable<Traits['barriera']>;
 };
-export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione'; elemento?: SpellElement; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number;
+export type RunSpell = { id: string; scuola: 'distruzione' | 'evocazione' | 'supporto'; elemento?: SpellElement; costo: number; ricarica: number; danno: number; velocita: number; raggio: number; sanguina: number; evoca: string | null; durata: number;
   /** Forma e dettagli (SpellDef): assenti = proiettile. Raggio: `costo` e `danno` sono al secondo. */
   forma?: 'proiettile' | 'raggio' | 'bomba'; gittata?: number; larghezza?: number; volo?: number; rallenta?: { molt: number; secondi: number };
   /** Supporto (Step 1 Arena): cura alleati/evocazioni o dà Furia (+danno e +velocità). */
@@ -142,6 +142,9 @@ export type RunPerk = {
   combustione?: boolean; catena?: boolean; campo?: boolean;
   /** Patto di sangue: la creatura (id nemico evocato) che parte con te dall'ingresso. */
   evocato?: string;
+  /** Supporto: `autocura` = frazione della vita che dai a un altro che torna a te (Cuore generoso); `furiaSuTe` = frazione della Furia che prendi anche tu
+   *  (Furia condivisa); `fascio` = i raggi di Cura e Furia raggiungono tutti sulla linea; `benedizione` = Cura e Furia si fondono. */
+  supporto?: { autocura: number; furiaSuTe: number; fascio: boolean; benedizione: boolean };
 };
 export type RunPotion = { id: string; n: number; cura: Partial<Record<AttrId, number>>; buff: { mod: string; valore: number; secondi: number } | null };
 /** camminata, corsa, arma.tempo e arma.carica sono SENZA il malus dell'armatura e senza velocitaMolt: li applica la sim del dungeon da `armatura` (R-rpg). */

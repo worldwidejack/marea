@@ -130,7 +130,7 @@ describe('Arena Step 1 — Bilanciamento PvP e nuove magie di supporto', () => {
   it('4. le 4 nuove magie di supporto (Cura a flusso, Cura a bomba, Furia a flusso, Furia a bomba) curano e potenziano evocazioni e alleati', () => {
     for (const id of ['cura_flusso', 'cura_bomba', 'furia_flusso', 'furia_bomba']) {
       const def = spellDef(id);
-      assert.equal(def.scuola, 'evocazione');
+      assert.equal(def.scuola, 'supporto');
       assert.ok(itemDef(`libro_${id}`).insegna === id, `esiste il libro per ${id}`);
     }
 

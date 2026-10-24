@@ -1,8 +1,8 @@
 // Tipi dei contenuti del Mondo Sotterraneo (docs/RPG.md, CONTRACTS §15). Solo dati: le formule stanno in @marea/sim/rpg e @marea/sim/dungeon.
 // I JSON stanno in packages/content/src/rpg/; si importano da `@marea/content/rpg.ts` (MAI da index.ts: il client li carica solo nel chunk GDR).
 
-export type SkillId = 'armiLeggere' | 'armiPesanti' | 'arceria' | 'distruzione' | 'evocazione' | 'forgiatura' | 'alchimia';
-export const SKILLS: readonly SkillId[] = ['armiLeggere', 'armiPesanti', 'arceria', 'distruzione', 'evocazione', 'forgiatura', 'alchimia'];
+export type SkillId = 'armiLeggere' | 'armiPesanti' | 'arceria' | 'distruzione' | 'evocazione' | 'supporto' | 'forgiatura' | 'alchimia';
+export const SKILLS: readonly SkillId[] = ['armiLeggere', 'armiPesanti', 'arceria', 'distruzione', 'evocazione', 'supporto', 'forgiatura', 'alchimia'];
 export type AttrId = 'vita' | 'magicka' | 'stamina';
 export const ATTRS: readonly AttrId[] = ['vita', 'magicka', 'stamina'];
 export type MaterialId = 'legno' | 'bronzo' | 'ferro' | 'argento' | 'oro' | 'vetro' | 'ossa' | 'meteorite';
@@ -93,11 +93,13 @@ export type ModKey =
   // seconda tornata (11 ott 2026): avvelenamento, Lama d'aria, Spaccaossa, Terremoto, frecce perforanti, Faretra, Pioggia di frecce, Combustione,
   // Catena di fulmini, Doppio richiamo, Banchetto, Medico da campo, Doppia dose, Pozioni durature, Capolavoro
   | 'avvelena' | 'lamaAria' | 'penetraPesanti' | 'terremoto' | 'frecceTrapassano' | 'risparmioFrecce' | 'scaricaPiu' | 'combustione' | 'catena'
-  | 'richiamoDoppio' | 'banchetto' | 'medicoCampo' | 'doppiaDose' | 'durataPozioni' | 'forgiaDoppia';
+  | 'richiamoDoppio' | 'banchetto' | 'medicoCampo' | 'doppiaDose' | 'durataPozioni' | 'forgiaDoppia'
+  // Supporto: potenza di Cura e Furia, costo, ricarica, durata della Furia; Cuore generoso, Furia condivisa, Fascio che attraversa, Benedizione
+  | 'potenzaCura' | 'potenzaFuria' | 'durataFuria' | 'costoSupporto' | 'ricaricaSupporto' | 'autocura' | 'furiaSuTe' | 'fascio' | 'benedizione';
 
 export type SpellElement = 'fuoco' | 'elettricita' | 'cura' | 'furia';
 export type SpellDef = {
-  id: string; nome: string; scuola: 'distruzione' | 'evocazione'; costo: number; ricarica: number; descr: string;
+  id: string; nome: string; scuola: 'distruzione' | 'evocazione' | 'supporto'; costo: number; ricarica: number; descr: string;
   /** Distruzione: proiettile. */
   danno?: number; velocita?: number; raggio?: number; sanguina?: number;
   /** Elemento della magia (perk Combustione sul fuoco, Catena di fulmini sull'elettricità; cura e furia per il supporto). */
@@ -328,9 +330,14 @@ export type RpgPerkBalance = {
   catena: { raggio: number; frazione: number };
   /** Medico da campo: la pozione che bevi cura anche i compagni di squadra entro `raggio` m. */
   medicoCampo: { raggio: number };
+  /** Benedizione (Supporto): chi riceve una Cura prende anche `furia` (danno e velocità in frazione, per `secondi` s); chi riceve una Furia
+   *  è curato anche di `curaAlSecondo` vita per ogni secondo della Furia (a bomba tutti insieme allo scoppio, a flusso un po' a ogni colpo del raggio). */
+  benedizione: { furia: { danno: number; velocita: number; secondi: number }; curaAlSecondo: number };
 };
 export type RpgArenaBalance = {
   attributi: Record<AttrId, number>;
+  /** Potenza massima di Cura e Furia (moltiplicatore sul valore base del libro: livello e perk di Supporto). */
+  supportoMax: number;
   dannoMolt: number;
   dannoMax: number;
   caricaMassimaMolt: number;
@@ -360,7 +367,7 @@ export type RpgBalance = {
   arena: RpgArenaBalance;
   /** Esperienza delle abilità fuori dal combattimento: forgiare (× il livello del banco della ricetta), preparare una pozione (+ per livello della
    *  ricetta), lanciare un'evocazione (× il costo in Magicka); e quanta ne passa al personaggio per livello di abilità. */
-  xp: { forgia: number; alchimia: number; alchimiaPerLivello: number; evocazioneLancio: number; personaggioPerLivelloSkill: number };
+  xp: { forgia: number; alchimia: number; alchimiaPerLivello: number; evocazioneLancio: number; supportoLancio: number; personaggioPerLivelloSkill: number };
   /** Xp di combattimento: danno utile (mai oltre la vita che restava al nemico) × questo, per abilità. Evocazione = danno della tua evocazione. */
   xpDanno?: Partial<Record<SkillId, number>>;
   /** Numeri degli effetti dei perk (docs/RPG.md §3): quanto e per quanto tempo. I perk in sé stanno in perks.json (probabilità, livelli). */
