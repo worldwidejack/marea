@@ -23,7 +23,8 @@ import { botArena } from '@marea/sim/arena/bot.ts';
 import type { ArenaEroe } from '@marea/sim/rpg/arena.ts';
 import { quantizeDungeon } from '@marea/sim/dungeon/replay.ts';
 import { aim } from '@marea/sim/dungeon/hero.ts';
-import { COS_CONO_ARCO, MAGIA_GITTATA } from '@marea/sim/dungeon/tuning.ts';
+import { aimAlleato, distanzaBomba, isSupporto } from '@marea/sim/dungeon/magie.ts';
+import { COS_BOMBA, COS_CONO_ARCO, MAGIA_GITTATA } from '@marea/sim/dungeon/tuning.ts';
 import type { CompagnoView, DungeonEvent, DungeonInput, DungeonView } from '@marea/sim/dungeon/types.ts';
 import { NO_DUNGEON_INPUT } from '@marea/sim/dungeon/types.ts';
 import { SQ_TICKS } from '@marea/protocol/arena.ts';
@@ -90,6 +91,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
   let resolve!: (v: { esito: DuelloEsito | null; rivincita: boolean }) => void;
   const done = new Promise<{ esito: DuelloEsito | null; rivincita: boolean }>((r) => (resolve = r));
   const win = { mx: 0, my: 0, bits: 0, m: 0, n: 0 };
+  let ombra: ReturnType<typeof ombraDi> = null; // l'ombra di mira di adesso (anche per i test)
   let contaVista = -1, mandato = '0,0,0', inTurno = 0, attesa = true, tapT = 0, finaleAperto = false, premioVisto = false;
   const firme: Record<number, number> = {};
 
@@ -201,7 +203,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
       if (j === io) a.tick(v.hero); else if (c && !c.done) a.tick(posaDi(c));
     });
     actors!.tick(v); gfx!.tick(v);
-    miraOra();
+    miraOra(); ombraOra();
   }
   /** Arco teso: verso chi prenderà la freccia (la stessa `aim` della sim), per la linea di mira. */
   const miraArco = (): { x: number; z: number } | null => {
@@ -214,11 +216,30 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     return l > 1e-6 ? { x: dx / l, z: dz / l } : null;
   };
   const mira = () => { const h = d.s.eroi[io]!.hero; return h.incanta || h.arma.kind === 'arco'; };
+  /** La mira a mano di adesso (joystick di mira, o il cursore col mouse): null = niente, vale quella assistita. */
+  const miraManuale = () => { const h = d.s.eroi[io]!.hero; return ahud?.miraDir() ?? (mira() && !ahud?.paused ? mouse?.verso(h.x, h.z) ?? null : null); };
   const miraOra = (): void => {
-    const h = d.s.eroi[io]!.hero, t = ahud?.miraDir() ?? null, v = t ?? (mira() && !ahud?.paused ? mouse?.verso(h.x, h.z) ?? null : null);
+    const v = miraManuale();
     if (!v) { eroi[io]!.mira(miraArco()); return; }
     eroi[io]!.mira({ x: v.x, z: v.z }, true);
   };
+  /** Mentre punto una bomba: a terra, solo per me, dove atterrerebbe (la distanza è quella della sim). Senza una mira a mano al rilascio l'eroe si
+   *  gira verso il bersaglio più vicino, e l'ombra fa lo stesso. */
+  const ombraDi = (): { x: number; z: number; r: number; el?: 'fuoco' | 'elettricita' | 'cura' | 'furia' } | null => {
+    const r = d.s.eroi[io]!, h = r.hero, rh = r.runHero, sp = rh.magia !== null ? rh.magie[rh.magia] : undefined;
+    if (phase !== 'play' || d.fase !== 'gioca' || r.done || h.act !== 'punta' || sp?.forma !== 'bomba') return null;
+    const prima = d.s.cur; d.s.cur = io;
+    let fx = h.fx, fz = h.fz;
+    if (!miraManuale()) {
+      const g = sp.gittata ?? MAGIA_GITTATA, e = isSupporto(sp) ? aimAlleato(d.s, g, COS_BOMBA, g * 0.5) : aim(d.s, g, COS_BOMBA, 0, true);
+      const dx = e ? e.x - h.x : 0, dz = e ? e.z - h.z : 0, l = Math.sqrt(dx * dx + dz * dz);
+      if (l > 1e-6) { fx = dx / l; fz = dz / l; }
+    }
+    const dist = distanzaBomba(d.s, sp, fx, fz);
+    d.s.cur = prima;
+    return { x: h.x + fx * dist, z: h.z + fz * dist, r: sp.raggio, ...(sp.elemento ? { el: sp.elemento as 'fuoco' | 'elettricita' | 'cura' | 'furia' } : {}) };
+  };
+  const ombraOra = (): void => { ombra = ombraDi(); gfx?.ombra(ombra); };
 
   /** L'input di adesso: autopilota (test), o tastiera/joystick più clic, mira e barra. Le scelte della barra diventano azioni. */
   function inputOra(f: InputFrame): DungeonInput {
@@ -357,7 +378,7 @@ export function startArenaRun(ctx: RunCtx, o: ArenaOpz): ArenaRun {
     phase, fase: d.fase, round: d.round, vinti: [...d.vinti], esito: d.esito, tick: d.tick, io, slot: view.slot, secondi: view.secondi, mappa: d.mappa, squadre: [...d.squadre],
     vita: d.s.eroi.map((r) => Math.round(r.hero.vita * 10) / 10), pos: d.s.eroi.map((r) => [Math.round(r.hero.x * 100) / 100, Math.round(r.hero.z * 100) / 100]),
     nascosto: view.nascosto, nascosti: view.altri.filter((a) => a.nascosto).map((a) => a.i), visibili: gruppi.map((g) => !!g?.visible),
-    turni: rete?.turni.length ?? 0, firme: { ...firme }, auto: !!auto, pausa: !!ahud?.paused, finale: finaleAperto,
+    turni: rete?.turni.length ?? 0, ombra, firme: { ...firme }, auto: !!auto, pausa: !!ahud?.paused, finale: finaleAperto,
   }));
   return run;
 }

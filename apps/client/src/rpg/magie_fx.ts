@@ -3,6 +3,7 @@
 //   accorciata dal primo muro). Elettricità continua: un raggio a zig-zag giallo con il cuore azzurro, che si ridisegna 15 volte al secondo.
 // - Bombe: a terra, dove atterreranno, un cerchio col raggio dello scoppio che si riempie mentre la bomba arriva; allo scoppio un'onda,
 //   un lampo e qualche pezzo che schizza (rosso/arancio/giallo il fuoco, giallo/azzurro l'elettricità).
+// - Ombra di mira: mentre punti una bomba, a terra dove atterrerebbe, un disco scuro col raggio dello scoppio (solo nella tua scena: gli altri non la vedono).
 // Vale per l'eroe di questo client e per i compagni (`compagni[].canale`).
 import * as THREE from 'three';
 import type { DungeonView } from '@marea/sim/dungeon/types.ts';
@@ -12,6 +13,8 @@ import { PAL } from '../ui/style.ts';
 export type MagieFx = {
   tick(v: DungeonView): void;
   update(t: number, hero: { x: number; z: number }, v: DungeonView): void;
+  /** L'ombra di mira della bomba che stai puntando (null = nessuna): dove atterra, raggio dello scoppio, elemento. */
+  ombra(p: { x: number; z: number; r: number; el?: El } | null): void;
   counts(): { raggi: number; bombe: number; scoppi: number };
   dispose(): void;
 };
@@ -102,6 +105,11 @@ export function createMagieFx(scene: THREE.Scene, floorY: number): MagieFx {
   type Bomba = { g: THREE.Group; disco: THREE.Mesh; anello: THREE.Mesh; d0: number; vista: number };
   const bombe = new Map<number, Bomba>();
 
+  // ---- ombra di mira: disco scuro con l'anello del colore della magia, dove atterrerebbe la bomba puntata
+  const ombraG = new THREE.Group(); ombraG.visible = false; root.add(ombraG);
+  const ombraDisco = new THREE.Mesh(discGeo, mat(PAL.neroCaldo, 0.45)), ombraAnello = new THREE.Mesh(ringGeo, mat(PAL.arancio, 0.9));
+  ombraDisco.renderOrder = 1; ombraAnello.renderOrder = 2; ombraG.add(ombraDisco, ombraAnello);
+
   // ---- scoppi: onda, lampo e pezzi che schizzano (riusati, al massimo SCOPPI_MAX)
   type Scoppio = { g: THREE.Group; onda: THREE.Mesh; lampo: THREE.Mesh; pezzi: THREE.Mesh[]; dir: number[]; t0: number; r: number; el: El; viva: boolean };
   const scoppi: Scoppio[] = [];
@@ -180,6 +188,13 @@ export function createMagieFx(scene: THREE.Scene, floorY: number): MagieFx {
           p.scale.setScalar(0.24 * (1 - k * 0.7)); p.rotation.set(k * 5 + i, k * 4, 0);
         });
       }
+    },
+    ombra(p) {
+      ombraG.visible = !!p;
+      if (!p) return;
+      ombraG.position.set(p.x, floorY + 0.05, p.z);
+      ombraG.scale.setScalar(Math.max(0.5, p.r));
+      ombraAnello.material = mat(COL[p.el ?? 'fuoco'][0]!, 0.9);
     },
     counts: () => ({ raggi: nRaggi, bombe: bombe.size, scoppi: scoppi.filter((s) => s.viva).length }),
     dispose() { root.removeFromParent(); box.dispose(); ringGeo.dispose(); discGeo.dispose(); for (const m of mats.values()) m.dispose(); },
