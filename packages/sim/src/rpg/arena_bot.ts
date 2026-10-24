@@ -1,6 +1,6 @@
 // Arena, allenamento a squadre (docs/ARENA.md): l'equipaggiamento dei gladiatori automatici. Si sceglie a mano tra tutto il catalogo (armi, archi,
-// vesti, armature, anelli, tutte le magie), come per il proprio personaggio, oppure lo fa il caso: 4 slot divisi a sorte tra armi e magie, con
-// 3 o 4 armi un'armatura, con 3 o 4 magie una veste da mago, con 2 e 2 un vestito qualsiasi. Il caso pesca solo tra gli oggetti comuni (niente unici).
+// vesti, armature, anelli, tutte le magie), come per il proprio personaggio, oppure lo fa il caso: gli slot divisi a sorte tra armi e magie, con
+// tre o quattro armi un'armatura, con tre o quattro magie una veste da mago, con due e due un vestito qualsiasi. Il caso pesca solo tra gli oggetti comuni (niente unici).
 import { ARENA } from '@marea/content/arena.ts';
 import { SPELLS } from '@marea/content/rpg.ts';
 import type { Rng } from '../rng.ts';
