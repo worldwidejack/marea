@@ -1,7 +1,7 @@
 # MAREA — Isola dell'Arena (GDD e com'è ora)
 
-> Documento di riferimento della modalità PvP e dell'Isola dell'Arena. Le parti 1-4 sono il design di Riccardo; la parte 5 dice com'è fatta
-> adesso (17 ott 2026, #373). Le voci **[proposta]** sono scelte di Claude dove il design non diceva niente: si cambiano nei JSON di
+> Documento di riferimento della modalità PvP e dell'Isola dell'Arena. Le parti 1-4 sono il design di Riccardo; la parte 5 dice com'è fatto
+> il duello (17 ott 2026, #373), la parte 6 le squadre, l'erba alta e le mappe (23 ott 2026, #567). Le voci **[proposta]** sono scelte di Claude dove il design non diceva niente: si cambiano nei JSON di
 > `packages/content/src/arena/arena.json` (col perché nella PR). Mappa del codice: `MAPPA.md`; messaggi: `packages/protocol/src/arena.ts`.
 
 ---
@@ -13,7 +13,7 @@ magie e le pozioni dei dungeon.
 ### Modalità
 - **1v1 (Duello rapido)**: la prima versione, al meglio dei 3 round. **Fatta.**
 - **Showdown (Tutti contro tutti a 4)**: evoluzione futura, vince l'ultimo in piedi.
-- **A squadre (2v2 / 3v3)**: evoluzione futura, basata su cooperazione e ruoli (la sim ha già le squadre: `DungeonState.pvp.squadre`).
+- **A squadre (2v2 / 3v3)**: **fatta** (23 ott 2026, #567), con l'erba alta come in Brawl Stars e due mappe nuove: parte 6.
 
 ---
 
@@ -99,11 +99,59 @@ dritta. Tutto in vista: niente nebbia dei dungeon. Formato dei dungeon (`ARENA.m
 - **Stanza di prova senza server**: `?test=1&net=0&arena=banco` entra subito nell'allenamento contro l'avversario automatico (`sim/arena/bot.ts`).
   `?arena=1`: il bottone ⚔ porta al colosseo.
 - Test: `packages/sim/test/arena_duello.test.ts` (set, colpi tra eroi, evocazioni, Cura e Furia, pozioni, round, pareggio a tempo, resa, replay
-  uguale tra client e server, premio), `tests/e2e/m4_arena.mjs` (telefono e PC), `tests/e2e/m4_arena_server.mjs` (due client finti contro
-  il server: coda, sala, linea persa e ripresa, resa, premio).
+  uguale tra client e server, premio), `packages/sim/test/arena_squadre.test.ts` (2v2 e 3v3, mappe, erba alta), `tests/e2e/m4_arena.mjs` e
+  `m4_arena_squadre.mjs` (telefono e PC), `tests/e2e/m4_arena_server.mjs` (client finti contro il server: coda, sala, linea persa e ripresa,
+  resa, premio, 2v2 coi gladiatori).
 
 ### Da fare dopo
-- Showdown a 4 e squadre 2v2/3v3 (la sim ha già le squadre).
-- Modelli veri (Blender) per l'interno del colosseo: oggi muri, colonne e muretti sono il kit dei dungeon e blocchi in codice.
+- Showdown a 4 (tutti contro tutti: oggi le squadre sono sempre due, pari).
+- Modelli veri (Blender) per l'interno del colosseo e per le mappe nuove: oggi muri, colonne, muretti ed erba sono blocchi in codice (`rpg/arena_kit.ts`).
 - Una classifica o un titolo per chi vince di più (il Diario del capitano).
 - L'isola nuova va confermata da Jack (`BACKLOG.md`, «Da confermare»).
+
+---
+
+## 6. Squadre, erba alta e mappe (23 ott 2026, #567)
+
+### Formati e squadre
+- Tre formati, scelti nel pannello del colosseo: **1 contro 1**, **2 contro 2**, **3 contro 3**. Due squadre sempre pari (`DuelloState.squadre`:
+  0 o 1 per eroe; la sim è quella del duello, `s.pvp.squadre`). Cura e Furia valgono su tutta la propria squadra.
+- **Round**: finisce quando una squadra è tutta a terra (cadute insieme = pari). A tempo scaduto vince la squadra con più Vita in tutto (somma);
+  sotto 1 punto di differenza è pari. Al meglio di 3 round come il duello **[proposta]**.
+- **Chi cade** resta a terra fino al round dopo e guarda i compagni (la camera li segue, un cartello dice «SEI A TERRA»).
+- **Resa** (dal menu): chi si arrende da una squadra di più esce dai round che restano e la squadra continua; se si arrendono tutti vince l'altra.
+  Il 1v1 non cambia: la resa chiude subito. Chi perde la linea per più di 20 s è dato per arreso allo stesso modo.
+- Il tabellone ha una barra di vita per eroe (la mia squadra a sinistra, io per primo); i nomi sopra la testa sono verdi per i compagni e rossi
+  per gli avversari che si vedono.
+
+### Trovare gli altri e i gladiatori
+- **Coda veloce a squadre**: si parte con 2×f persone, o dopo 10 s (`arena.json` → `rete.attesaBotSecondi`) con chi c'è **[proposta]**; le persone si
+  alternano tra le squadre (squadre pari). **Sala con codice**: la squadra di chi l'ha aperta si riempie per prima (l'amico che entra col codice
+  gioca con te), poi l'altra; chi l'ha aperta preme **PARTI ORA**, o si parte da soli a sala piena.
+- I posti vuoti li prendono i **gladiatori automatici** (`sim/arena/bot.ts`, nomi e look in `arena.json` → `gladiatori`): hanno una copia del set di
+  una delle persone, e i loro input li decide il server (stesso turno delle persone, stesso replay). Se non resta nessuna persona, si arrendono.
+- **[proposta]** Se tra gli **avversari** ci sono gladiatori niente monete (si contano vinte e perse): non si fa il pieno contro i bot. Con i
+  gladiatori solo nella tua squadra il premio c'è. L'ALLENAMENTO locale resta senza server né premio: tu (e i compagni) contro i gladiatori,
+  con la mappa a scelta o a caso.
+
+### Erba alta (come in Brawl Stars)
+- Le celle `E` (legenda `erba`): chi ci sta dentro **non lo vedono gli avversari**: non si disegna, niente nome, la mira assistita non lo punta.
+  I compagni lo vedono sempre. Colpi, frecce, scoppi e mischia lo prendono lo stesso.
+- Lo **scoprono** **[proposta]**: un avversario entro 3 m, e per 1,2 s chi attacca (qualsiasi azione tranne bere, o un raggio acceso) o prende un
+  colpo (`balance.json` → `arena.erba`: `raggio`, `rivela`; `sim/dungeon/erba.ts`).
+- A chi sta nell'erba un cartello dice «NELL'ERBA: NON TI VEDONO». Nella scena: una macchia scura e ciuffi alti fino a ~1 m; attorno a chi
+  cammina l'erba si abbassa (la finestra sull'eroe), così ci si vede sempre.
+- I gladiatori rispettano l'erba: non vedono chi è nascosto, lo cercano dove l'hanno visto l'ultima volta. Le evocazioni invece vedono tutti.
+- Il client riceve gli stessi turni di tutti e ha tutto lo stato (come in ogni partita a turni): l'erba nasconde sullo schermo e alla mira, non
+  protegge da chi modifica il client.
+
+### Mappe
+Tutte chiuse e simmetriche (ruotate di mezzo giro), 2 m a cella, con partenze a lati opposti; `validateArena` controlla chiusura, simmetria,
+partenze e che tutto il pavimento si raggiunga. La mappa di ogni partita la sceglie il server (dal seed) tra quelle del suo formato.
+- **Colosseo dell'Arena** (1v1 e 2v2, 21×15): com'era, più tre ciuffi d'erba, due partenze per squadra.
+- **Giardino dei Gladiatori** (2v2 e 3v3, 27×17): vialetti di ghiaia, siepi attorno, basamenti con cespuglio, staccionate e tre prati d'erba alta
+  (uno grande al centro con un basamento in mezzo). Stile `giardino`.
+- **Rovine del Tempio** (2v2 e 3v3, 23×21): le squadre partono in alto e in basso; colonne spezzate, muri a pezzi, prati d'erba sui fianchi e
+  quattro attorno al centro. Stile `rovine`.
+Una mappa nuova è una voce in `arena.json` → `mappe` (`rows` con `E` per l'erba, `legenda`, `formati`, `spawn` per squadra) e, se serve un aspetto
+suo, un kit in `rpg/arena_kit.ts` e una riga in `STYLE` di `rpg/dungeon_scene.ts`.

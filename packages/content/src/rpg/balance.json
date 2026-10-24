@@ -12,7 +12,7 @@
     "magie": ["fiammata"]
   },
   "dungeon": { "maxMinuti": 20, "morte": { "bottino": 0, "xp": 1 }, "altare": { "protezione": 3 }, "gruppo": { "max": 4, "vitaPerCompagno": 0.6 } },
-  "arena": { "attributi": { "vita": 100, "magicka": 100, "stamina": 100 }, "dannoMolt": 0.45, "dannoMax": 92, "caricaMassimaMolt": 1.35 },
+  "arena": { "attributi": { "vita": 100, "magicka": 100, "stamina": 100 }, "dannoMolt": 0.45, "dannoMax": 92, "caricaMassimaMolt": 1.35, "erba": { "raggio": 3, "rivela": 1.2 } },
   "xp": { "forgia": 22, "alchimia": 18, "alchimiaPerLivello": 0.6, "personaggioPerLivelloSkill": 1, "evocazioneLancio": 0.5 },
   "xpDanno": { "armiLeggere": 0.7, "armiPesanti": 0.7, "arceria": 1.5, "distruzione": 1.5, "evocazione": 1.5 },
   "perk": {

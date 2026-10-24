@@ -1,5 +1,6 @@
-// HUD e controlli del duello dell'Arena (docs/ARENA.md §2): in alto il tabellone (le due vite coi nomi, i round vinti a pallini, il tempo
-// del round), sotto la mia Magicka e Stamina; in basso la barra dei 4 slot rapidi con le 2 pozioni ai lati (tocco su telefono, tasti 1-4 e
+// HUD e controlli del duello dell'Arena (docs/ARENA.md §2): in alto il tabellone (a sinistra la mia squadra, a destra l'altra, una barra di vita
+// per eroe con il nome; in mezzo i round vinti a pallini e il tempo del round), sotto la mia Magicka e Stamina; un cartello dice se sono nell'erba
+// alta (nessun avversario mi vede) o a terra; in basso la barra dei 4 slot rapidi con le 2 pozioni ai lati (tocco su telefono, tasti 1-4 e
 // 5-6 o Q-R su PC); joystick di movimento, A e B di game/input.ts alzati sopra la barra; con l'arco o una magia in mano il joystick di mira
 // (mira_stick.ts) al posto di A, col mouse il clic sinistro tenuto e la mira verso il cursore come nei dungeon. Menu (Esc): RIPRENDI e
 // ARRENDITI (con conferma). Scritte grandi: conto alla rovescia, VIA!, round vinto o perso, e la scheda finale con l'esito e il premio.
@@ -19,7 +20,7 @@ export type ArenaControlli = {
   setMira(on: boolean): void;
   readonly paused: boolean;
   /** Tabellone, barre, slot e pozioni dalla vista del duello. `slot` = le RunHero dei miei slot (icone), `pozioni` le mie pozioni rapide. */
-  set(v: DuelloView, nomi: [string, string]): void;
+  set(v: DuelloView, nomi: readonly string[]): void;
   /** Scritta grande per un attimo (VIA!, ROUND VINTO…) o, con ms 0, finché non la si toglie (null). */
   grande(text: string | null, color?: string, sub?: string, ms?: number): void;
   /** La scheda finale: esito, round, premio (null = ancora non si sa); risolve quando si preme ESCI (o RIVINCITA nella stanza di prova). */
@@ -45,6 +46,13 @@ body.mz-arena.mz-dng-aimon #btnB { right: calc(max(16px, env(safe-area-inset-rig
 .mz-ar-lato { flex: 1; min-width: 0; padding: 4px 6px 5px; background: rgba(35,32,31,.86); border: 2px solid ${P.legnoChiaro}; box-shadow: 0 3px 0 ${P.neroCaldo}; }
 .mz-ar-lato.lui { text-align: right; border-color: ${P.rosso}; }
 .mz-ar-lato .nome { font-weight: bold; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mz-ar-lato .eroe + .eroe { margin-top: 3px; }
+.mz-ar-lato.sq .nome { font-size: 11px; }
+.mz-ar-lato.sq .mz-ar-bar { height: 8px; margin-top: 1px; }
+.mz-ar-lato .eroe.giu { opacity: .45; }
+.mz-ar-badge { position: absolute; left: 50%; top: calc(${TOP} + 74px); transform: translateX(-50%); padding: 4px 12px; background: rgba(35,32,31,.9); border: 2px solid ${P.erba}; box-shadow: 0 3px 0 ${P.neroCaldo}; font-weight: bold; font-size: 13px; z-index: 13; pointer-events: none !important; display: none; white-space: nowrap; }
+.mz-ar-badge.on { display: block; }
+.mz-ar-badge.giu { border-color: ${P.rosso}; }
 .mz-ar-bar { position: relative; height: 12px; margin-top: 3px; background: ${P.ombraCalda}; border: 2px solid ${P.neroCaldo}; }
 .mz-ar-bar.sottile { height: 6px; margin-top: 2px; border-width: 1px; }
 .mz-ar-bar i { position: absolute; top: 0; bottom: 0; left: 0; }
@@ -96,7 +104,7 @@ const nomeSlot = (rh: RunHero | null): string => {
   return rh.arma.id && hasItem(rh.arma.id) ? itemDef(rh.arma.id).nome : 'Pugni';
 };
 
-export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; slot: readonly (RunHero | null)[]; pozioni: readonly RunPotion[]; insieme: boolean; onResa(): void }): ArenaControlli {
+export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement; yaw(): number; slot: readonly (RunHero | null)[]; pozioni: readonly RunPotion[]; insieme: boolean; squadre: readonly number[]; io: number; onResa(): void }): ArenaControlli {
   if (!document.getElementById('mz-arena-style')) { const st = document.createElement('style'); st.id = 'mz-arena-style'; st.textContent = CSS; document.head.appendChild(st); }
   document.body.classList.add('mz-arena');
   let slotL: number | null = null, pozL: number | null = null, aLatch = false, mouseA = false, eLatch = false, pausa = false, chiedi = false;
@@ -106,18 +114,25 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
 
   // ---- tabellone ----
   const top = el('div', 'mz mz-ar-top'); top.id = 'mzArenaTop';
-  const lato = (cls: string) => {
-    const box = el('div', `mz-ar-lato ${cls}`), nome = el('div', 'nome'), vita = el('div', 'mz-ar-bar'), vi = el('i');
-    vi.style.background = P.rosso; vita.append(vi); box.append(nome, vita);
-    return { box, nome, vi };
+  const mia = o.squadre[o.io]!, grandi = o.squadre.filter((q) => q === mia).length;
+  /** Un lato del tabellone: una riga (nome e barra di vita) per eroe di quella squadra, io per primo. */
+  const lato = (cls: string, sq: number) => {
+    const box = el('div', `mz-ar-lato ${cls}${grandi > 1 ? ' sq' : ''}`);
+    const righe = o.squadre.flatMap((q, j) => (q === sq ? [j] : [])).sort((a, b) => (a === o.io ? -1 : b === o.io ? 1 : a - b)).map((j) => {
+      const riga = el('div', 'eroe'), nome = el('div', 'nome'), vita = el('div', 'mz-ar-bar'), vi = el('i');
+      vi.style.background = P.rosso; vita.append(vi); riga.append(nome, vita); box.append(riga);
+      return { j, riga, nome, vi };
+    });
+    return { box, righe };
   };
-  const io = lato('io'), lui = lato('lui');
+  const io = lato('io', mia), lui = lato('lui', 1 - mia);
   const mag = el('div', 'mz-ar-bar sottile'), magI = el('i'); magI.style.background = P.acqua; mag.append(magI);
   const sta = el('div', 'mz-ar-bar sottile'), staI = el('i'); staI.style.background = P.erba; sta.append(staI);
   io.box.append(mag, sta);
   const mid = el('div', 'mz-ar-mid'), tempo = el('b', '', '0:00'), dots = el('div', 'mz-ar-dots');
   mid.append(el('span', '', 'ROUND'), tempo, dots);
   top.append(io.box, mid, lui.box);
+  const badge = el('div', 'mz mz-ar-badge'); badge.id = 'mzArenaBadge';
 
   // ---- barra degli slot e delle pozioni ----
   const barra = el('div', 'mz mz-ar-barra'); barra.id = 'mzArenaBarra';
@@ -149,12 +164,13 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
   menu.append(el('b', '', o.insieme ? 'Menu' : 'Pausa'), el('div', 'sub', o.insieme ? 'Il duello non si ferma' : 'Il duello ti aspetta'), riprendi, arrenditi);
   const ask = el('div', 'mz mz-ar-box persa'); ask.id = 'mzArenaResa';
   const si = btn('mz-btn', 'si', 'MI ARRENDO'), no = btn('mz-btn ghost', 'no', 'NO, COMBATTO');
-  ask.append(el('b', '', 'Arrendersi?'), el('div', 'sub', 'Il duello finisce e vince l’avversario'), no, si);
+  ask.append(el('b', '', 'Arrendersi?'), el('div', 'sub', grandi > 1 ? 'Esci dalla partita: i tuoi compagni continuano senza di te' : 'Il duello finisce e vince l’avversario'), no, si);
   const big = el('div', 'mz mz-ar-big'); big.id = 'mzArenaBig';
   const att = el('div', 'mz mz-ar-attesa'); att.id = 'mzArenaAttesa';
   const fine = el('div', 'mz mz-ar-box'); fine.id = 'mzArenaFine';
   for (const e of [menuBtn, menu, ask, fine]) stop(e);
-  o.root.append(top, barra, menuBtn, menu, ask, big, att, fine);
+  o.root.append(top, badge, barra, menuBtn, menu, ask, big, att, fine);
+  if (grandi > 1) menuBtn.style.top = `calc(${TOP} + ${grandi * 28 + 36}px)`; // sotto il tabellone, più alto con le squadre
   const stick = createMiraStick({ id: 'mzArenaMira', yaw: o.yaw, blocked: () => pausa || chiedi });
   stop(stick.el); o.root.append(stick.el);
   const setPausa = (on: boolean) => { pausa = on; menu.classList.toggle('on', on); if (on) stick.cancel(); };
@@ -196,18 +212,24 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
     miraDir: () => stick.dir(),
     setMira(on) { document.body.classList.toggle('mz-dng-aimon', stick.setOn(on)); },
     set(v, nomi) {
-      const h = v.dungeon.hero, sec = v.secondi;
-      const sig = `${nomi.join('|')}|${Math.ceil(h.vita)}|${Math.ceil(v.lui.vita)}|${Math.round(h.magicka)}|${Math.round(h.stamina)}|${v.fase}|${sec}|${v.rounds.length}`;
+      const h = v.dungeon.hero, sec = v.secondi, giu = h.vita <= 0;
+      const vita = (j: number) => (j === o.io ? { vita: h.vita, max: h.max.vita, giu } : v.altri.find((a) => a.i === j) ?? { vita: 0, max: 1, giu: true });
+      const sig = `${nomi.join('|')}|${Math.ceil(h.vita)}|${v.altri.map((a) => `${Math.ceil(a.vita)}${a.giu ? 'g' : ''}`).join(',')}|${Math.round(h.magicka)}|${Math.round(h.stamina)}|${v.fase}|${sec}|${v.rounds.length}|${v.nascosto}`;
       if (sig !== sigTop) {
         sigTop = sig;
-        if (io.nome.textContent !== nomi[0]) io.nome.textContent = nomi[0];
-        if (lui.nome.textContent !== nomi[1]) lui.nome.textContent = nomi[1];
-        io.vi.style.width = pct(h.vita, h.max.vita); lui.vi.style.width = pct(v.lui.vita, v.lui.max);
+        for (const r of [...io.righe, ...lui.righe]) {
+          if (r.nome.textContent !== nomi[r.j]) r.nome.textContent = nomi[r.j] ?? '';
+          const x = vita(r.j);
+          r.vi.style.width = pct(x.vita, x.max); r.riga.classList.toggle('giu', x.giu);
+        }
         magI.style.width = pct(h.magicka, h.max.magicka); staI.style.width = pct(h.stamina, h.max.stamina);
         tempo.textContent = v.fase === 'gioca' ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : v.fase === 'conta' ? String(sec) : '—';
         tempo.classList.toggle('poco', v.fase === 'gioca' && sec <= 10);
-        const io0 = v.dungeon.io;
-        dots.replaceChildren(...v.rounds.map((r) => el('i', r.vincitore === null ? 'pari' : r.vincitore === io0 ? 'mio' : 'suo')));
+        dots.replaceChildren(...v.rounds.map((r) => el('i', r.vincitore === null ? 'pari' : r.vincitore === mia ? 'mio' : 'suo')));
+        // cartello: a terra (guardi i compagni) o nell'erba alta (nessun avversario ti vede)
+        const testo = giu && v.fase === 'gioca' ? 'SEI A TERRA' : v.nascosto ? 'NELL’ERBA: NON TI VEDONO' : '';
+        badge.textContent = testo; badge.classList.toggle('on', !!testo); badge.classList.toggle('giu', giu);
+        if (testo) badge.style.top = `${Math.round(top.getBoundingClientRect().bottom) + 8}px`; // sotto il tabellone, alto quanto serve
       }
       const sb = `${v.slot}|${v.frecce.join(',')}|${v.bevute.join(',')}|${Math.floor(h.magicka)}|${v.fase}`;
       if (sb === sigBar) return;
@@ -234,7 +256,7 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
       const vinta = !!esito && esito.vincitore === ioN, persa = !!esito && esito.vincitore !== null && esito.vincitore !== ioN;
       fine.className = `mz mz-ar-box on ${vinta ? 'vinta' : persa ? 'persa' : ''}`;
       const titolo = !esito ? 'DUELLO ANNULLATO' : vinta ? 'VITTORIA!' : persa ? 'SCONFITTA' : 'PAREGGIO';
-      const perche = !esito ? 'Il duello si è interrotto' : esito.perche === 'resa' ? (vinta ? 'L’avversario si è arreso' : 'Ti sei arreso') : `${esito.vinti[ioN] ?? 0} a ${esito.vinti[1 - ioN] ?? 0}`;
+      const perche = !esito ? 'Il duello si è interrotto' : esito.perche === 'resa' ? (vinta ? (grandi > 1 ? 'Gli avversari si sono arresi' : 'L’avversario si è arreso') : grandi > 1 ? 'La tua squadra si è arresa' : 'Ti sei arreso') : `${esito.vinti[ioN] ?? 0} a ${esito.vinti[1 - ioN] ?? 0}`;
       premioEl = el('div', 'mz-ar-premio', premio ? testoPremio(premio) : o.insieme ? '…' : 'Allenamento: niente premio');
       const esci = btn('mz-btn green', 'esci', 'ESCI'), riv = btn('mz-btn ghost', 'rivincita', 'RIVINCITA');
       fine.replaceChildren(el('b', '', titolo), el('div', 'sub', perche), premioEl, ...(rivincita ? [riv] : []), esci);
@@ -247,13 +269,13 @@ export function createArenaHud(o: { root: HTMLElement; canvas: HTMLCanvasElement
     },
     premio(p) { if (premioEl) premioEl.textContent = testoPremio(p); },
     attesa(text) { att.textContent = text ?? ''; att.classList.toggle('on', !!text); },
-    hide() { setPausa(false); setChiedi(false); stick.setOn(false); document.body.classList.remove('mz-dng-aimon'); for (const e of [barra, menuBtn, att]) e.style.display = 'none'; },
+    hide() { setPausa(false); setChiedi(false); stick.setOn(false); document.body.classList.remove('mz-dng-aimon'); for (const e of [barra, menuBtn, att, badge]) e.style.display = 'none'; },
     dispose() {
       clearTimeout(bigT);
       removeEventListener('keydown', kd, true); removeEventListener('keyup', ku, true);
       o.canvas.removeEventListener('pointerdown', md); removeEventListener('pointerup', mu); removeEventListener('blur', blur);
       stick.dispose(); document.body.classList.remove('mz-arena', 'mz-dng-aimon');
-      for (const e of [top, barra, menuBtn, menu, ask, big, att, fine]) e.remove();
+      for (const e of [top, badge, barra, menuBtn, menu, ask, big, att, fine]) e.remove();
     },
   };
 }

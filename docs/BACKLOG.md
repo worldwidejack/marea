@@ -12,7 +12,7 @@
 - **Oggetti e equipaggiamento che passano da un'isola all'altra**, con una lore comune.
 
 ## Da confermare con Jack
-- **Isola dell'Arena** (Riccardo, 17 ott 2026, #373, `docs/ARENA.md`): PvP alla Brawl Stars con le armi, le magie e le pozioni dei dungeon, duello 1v1 al meglio di 3 nel colosseo. È già giocabile (isola a `[238, 256]`, aperta a tutti); non è nella tabella dei format di `VISIONE.md`: Jack dice se resta un'isola a sé o se va legata a un'isola-format.
+- **Isola dell'Arena** (Riccardo, 17 ott 2026, #373, `docs/ARENA.md`): PvP alla Brawl Stars con le armi, le magie e le pozioni dei dungeon, duello 1v1, 2v2 e 3v3 al meglio di 3 (colosseo, giardino, rovine). È già giocabile (isola a `[238, 256]`, aperta a tutti); non è nella tabella dei format di `VISIONE.md`: Jack dice se resta un'isola a sé o se va legata a un'isola-format.
 
 ## Format piaciuti a Jack, parcheggiati (16 ott 2026, brainstorming del prossimo format)
 - **Isola dello sport**: calcio, basket, golf (idea già nata nel gruppo).

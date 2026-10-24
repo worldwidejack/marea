@@ -48,6 +48,8 @@ export type DMap = {
    *  Negli altri dungeon vuoti. */
   rottami: Uint8Array;
   piloni: (Spawn & { x: number; z: number; i: number })[];
+  /** Arena: `erba[i]` = 1 se la cella i è erba alta (pavimento: chi ci sta dentro non lo vedono gli avversari, erba.ts). Altrove vuota. */
+  erba: Uint8Array;
   /** Celle calpestabili (indici), per i test e l'autopilot. */
   floor: number[];
 };
@@ -69,6 +71,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   const zona = new Uint8Array(w * h), grata = new Uint8Array(w * h), timoni: DMap['timoni'] = [], grate: number[] = [];
   const lava = new Uint8Array(w * h), getto = new Uint8Array(w * h), getti: DMap['getti'] = [];
   let sarcofago: DMap['sarcofago'] = null;
+  const erba = new Uint8Array(w * h);
   const rottami = new Uint8Array(w * h), piloni: DMap['piloni'] = [], ruote: (Spawn & { x: number; z: number; n: number })[] = [];
   for (let cz = 0; cz < h; cz++)
     for (let cx = 0; cx < w; cx++) {
@@ -100,6 +103,7 @@ export function parseDungeon(def: DungeonDef): DMap {
         if (vento !== undefined) zona[i] = vento;
         if (l.ruota !== undefined) ruote.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: l.ruota });
         if (l.rottami) rottami[i] = 1;
+        if (l.erba) erba[i] = 1;
         if (l.timone !== undefined) timoni.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile, n: l.timone });
         if (l.lava !== undefined) lava[i] = l.lava;
         if (l.getto) { getto[i] = 1; getti.push({ cx, cz, ch, x: (cx + 0.5) * tile, z: (cz + 0.5) * tile }); }
@@ -147,7 +151,7 @@ export function parseDungeon(def: DungeonDef): DMap {
   const m: DMap = {
     id: def.id, w, h, tile, solid, opaque, exit: { ...ex, x: (ex.cx + 0.5) * tile, z: (ex.cz + 0.5) * tile }, spawn, nemici, forzieri, libri, altari, floor,
     bacini: [...bacini].sort((a, b) => a[0] - b[0]).map(([n, celle]) => ({ n, celle })), valvole, venti, zona, timoni, grate, grata,
-    lave, lava, getti, getto, lancette, sarcofago, rottami, piloni,
+    lave, lava, getti, getto, lancette, sarcofago, rottami, piloni, erba,
   };
   MAPS.set(def, m);
   return m;

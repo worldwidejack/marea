@@ -13,6 +13,7 @@ import { scarica } from './custode.ts';
 import { barriera } from './unici.ts';
 import { chino, sbilancia, scudoSu } from './vaelen.ts';
 import { evocazioneNemica } from './pvp.ts';
+import { scopri } from './erba.ts';
 import { BOSS_RALLENTA, COLPITO_TICKS, DANNO_MIN, MONETE_COLPO, RETRO_SCAFANDRO, SANGUINA_TICKS, SPINTA } from './tuning.ts';
 
 const r2 = (v: number): number => Math.round(v * 100) / 100;
@@ -215,6 +216,7 @@ export function hitHeroPvp(s: DungeonState, bersaglioIdx: number, src: HitSrc): 
     h.vita -= d;
     h.hurt = COLPITO_TICKS;
     s.danniPresi += d;
+    scopri(s, bersaglioIdx); // colpito nell'erba alta: lo vedono per un attimo
     ev(s, { t: 'colpo', x: r2(h.x), z: r2(h.z), danno: Math.round(d), su: 'eroe', ...(src.caricato ? { caricato: true } : {}) });
     if (src.rallenta) { h.lento = Math.max(h.lento, secToTicks(src.rallenta.secondi)); h.lentoMolt = Math.min(h.lento > 0 ? h.lentoMolt : 1, src.rallenta.molt); }
     if (h.vita <= 0) caduto(s);

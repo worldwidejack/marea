@@ -35,7 +35,7 @@ Riferimenti: ogni format prende da un gioco di grande successo (Mario Kart e Did
 | **Templari** (birbasan): chiesa in rovina, borgo abbandonato, cimitero | sud | libera | ondate di crociati zombie, fino a 4 insieme (§13, `TEMPLARI.md`) |
 | **Corse** (Jack): prato, anello d'asfalto, tribune | nord-est | libera | il **Gran Premio** e l'hub alla Diddy Kong Racing (`CORSE.md`) |
 | **Adrenalina** (birbasan): una montagna con la funivia | nord-ovest | la funivia ti fa salire dopo la **liberatoria** e col **Casco** in testa | discese contro i fantasmi degli amici (§14, `ADRENALINA.md`) |
-| **Arena** (Riccardo, da confermare con Jack): un colosseo | sud-est | libera | duello 1v1 alla Brawl Stars con armi e magie dei dungeon (`ARENA.md`) |
+| **Arena** (Riccardo, da confermare con Jack): un colosseo | sud-est | libera | duello 1v1, 2v2 e 3v3 alla Brawl Stars, con erba alta, armi e magie dei dungeon (`ARENA.md`) |
 | **Difesa**: L'orto, col casale e il mulino | ovest | libera | difesa a corsie alla Plants vs Zombies, 6 livelli + Sopravvivenza (`DIFESA.md`) |
 
 Sotto le isole c'è il **Mondo Sotterraneo**, coi dungeon (§12, `RPG.md`); sull'anello della **Laguna** quelli dell'Epopea della Regata. Il **Distretto Neon** e l'**Isola Selvaggia** sono facciate, da vedere dalla barca.
@@ -140,7 +140,7 @@ Ogni minigioco: cartello regole di 3 s in italiano, si gioca con un pollice, anc
 
 **Discese dell'Adrenalina** (Isola dell'Adrenalina, §3): tre minigiochi nel formato comune (snowboard, bici downhill, lancio col paracadute), 60-120 s, su **piste fisse** disegnate a mano (verde → blu → rossa → nera) invece che generate dal seed, così record e fantasmi valgono. Si giocano in una **scena a parte** (la montagna da vicino) invece che in una schermata sopra il mondo. Niente bot: si corre contro il **fantasma** del record di un amico. Tutto in **`docs/ADRENALINA.md`**.
 
-**Duello dell'Arena** (Isola dell'Arena, §3): PvP 1v1 al meglio di 3 round (3 s di conto alla rovescia, 90 s di gioco; a tempo scaduto vince chi ha più Vita), tutti a 100 di Vita, Magicka e Stamina, niente colpi da un colpo solo. Prima di entrare il **set del duello** (armatura, anelli, 4 slot rapidi tra armi, archi e magie, 18 frecce a ogni arco, 2 pozioni); in Arena non si consuma niente. Coda veloce, sala con codice per sfidare un amico, allenamento contro l'avversario automatico. Premio: 30 monete a vittoria, 10 a sconfitta, tetto 150 al giorno. Tutto in **`docs/ARENA.md`** (`arena/arena.json`).
+**Duello dell'Arena** (Isola dell'Arena, §3): PvP 1v1, 2v2 o 3v3 al meglio di 3 round (3 s di conto alla rovescia, 90 s di gioco; a tempo scaduto vince chi ha più Vita), tutti a 100 di Vita, Magicka e Stamina, niente colpi da un colpo solo. Prima di entrare il **set del duello** (armatura, anelli, 4 slot rapidi tra armi, archi e magie, 18 frecce a ogni arco, 2 pozioni); in Arena non si consuma niente. Coda veloce, sala con codice per giocare con gli amici (i posti vuoti li prendono i gladiatori automatici), allenamento contro i gladiatori. Nell'**erba alta** delle mappe gli avversari non ti vedono (i compagni sì). Premio: 30 monete a vittoria, 10 a sconfitta, tetto 150 al giorno. Tutto in **`docs/ARENA.md`** (`arena/arena.json`).
 
 ## 7. Sfide con posta
 Spente dal 30 set 2026 e tolte dal codice il 20 ott: si gioca da soli e si viene premiati dai minigiochi (§5, §6). Il codice di prima (Tavolo, posta, rotte del server) sta nel tag `archivio/spenti-sfide`. Al Tavolo del Porto c'è lo **Scacco in 3**: ti siedi e si apre la scacchiera, senza premio.
