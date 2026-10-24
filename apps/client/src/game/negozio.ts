@@ -149,7 +149,7 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     pezziGiorno.length = 0;
     const v = vetrinaDelGiorno(g), geo: THREE.BufferGeometry[] = [];
     const metti = (m: MobileDef, x: number, y: number, z: number) => {
-      const [cw, cd] = m.posto === 'terra' ? m.celle ?? [1, 1] : [1, 1], sc = cw * cd > 1 ? 1.7 / (2 * Math.max(cw, cd)) : 1; // un mobile da più celle sta in piccolo sulla pedana
+      const [cw, cd] = m.posto === 'terra' ? m.celle ?? [1, 1] : [1, 1], sc = cw * cd > 1 ? 2.4 / (2 * Math.max(cw, cd)) : 1; // un mobile da più celle sta in piccolo sulla pedana (il lungo si allarga sul vuoto tra una pedana e l'altra)
       const ps = vivi.get(m.id);
       if (ps && modelli) { const mg = modelli.gruppoModello(ps); mg.position.set(x, y, z); mg.scale.setScalar(sc); giornoG.add(mg); return; }
       const gg = mobileGeo(m.forma, m.colori, m); gg.scale(sc, sc, sc); gg.translate(x, y, z); geo.push(gg);

@@ -49,7 +49,8 @@ import { ARENA_ACTS, arenaRoute } from './lot_arena.ts';
 import { firmaLiberatoria } from '@marea/sim/adrenalina/liberatoria.ts';
 
 const isCell = (v: unknown): v is [number, number] => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= 0 && n < 256);
-const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 40;
+/** Un id dal client. 64: gli id dei mobili arrivano a 44 caratteri e quello di un mobile posato è `<id>-<n>` (con 40 quattro mobili non si compravano né si posavano). */
+const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 64;
 /** Lista di id dal client: al massimo 20, stringhe corte. null = forma sbagliata. */
 const idList = (v: unknown): string[] | null => {
   if (v === undefined || v === null) return [];

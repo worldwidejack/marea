@@ -24,7 +24,201 @@ def ingombro(celle=(1, 1)):
 
 
 def _obj(m, **info):
+    r = RITOCCO.get(m.name)
+    if r:
+        _ritocca(m, r)
     return ([m.build()], info) if info else [m.build()]
+
+
+# ------------------------------------------------------------------ proporzioni tra i mobili (ritocco dopo il disegno)
+# Una cella è 2 m, ma la maggior parte dei mobili era disegnata a misura di «oggetto vero» e nella stanza si perdeva: i pezzi da tavolo
+# (lampade, sveglie) sembravano briciole, le credenze e i tavoli non reggevano il confronto con un letto o un divano. Qui sta la scala di
+# ogni mobile, senza toccare le ricette: `_obj` la applica ai poligoni prima di costruire (le UV si ricalcolano). I tre numeri sono i
+# fattori su x, y, z (due = x e z insieme, y; uno = uniforme) rispetto al pivot a terra, al centro dell'ingombro. A terra `su` = (supporto,
+# altezza, parametri...) alza il pezzo su un tavolino/ceppo/plinto della stessa funzione (SUPPORTI): gli oggetti da scrivania così occupano
+# davvero la loro cella. A parete la scala tiene il retro a z = 0 e centra il pezzo in verticale (`cy` = quota del centro, se serve).
+RITOCCO = {}
+
+
+def _ritocca(m, r):
+    k = r.get('k', 1.0)
+    kx, ky, kz = (k, k, k) if isinstance(k, (int, float)) else ((k[0], k[1], k[0]) if len(k) == 2 else tuple(k))
+    su = r.get('su')
+    pts = [p for poly in m.polys for p in poly[0]]
+    y0, y1 = min(p[1] for p in pts), max(p[1] for p in pts)
+    if r.get('parete'):
+        c0 = (y0 + y1) / 2
+        h = (y1 - y0) * ky
+        c = r.get('cy', c0)
+        lo, hi = 0.95 + h / 2, 2.45 - h / 2             # in casa la camera taglia il muro in alto: i pezzi stanno sotto i 2,45 m
+        c = (lo + hi) / 2 if hi < lo else min(max(c, lo), hi)
+        f = lambda p: (p[0] * kx, (p[1] - c0) * ky + c, p[2] * kz)
+    else:
+        dy = su[1] if su else 0.0
+        f = lambda p: (p[0] * kx, p[1] * ky + dy, p[2] * kz)
+    m.polys = [([f(p) for p in poly[0]],) + tuple(poly[1:]) for poly in m.polys]
+    if su:
+        SUPPORTI[su[0]](m, su[1], *su[2:])
+
+
+def _sup_tondo(m, h, r=0.5, top='p_legno_chiaro', col='p_legno_scuro'):
+    """Tavolino tondo: piano ottagonale con bordo, colonna, piede largo."""
+    m.prism(8, r * 0.55, r * 0.6, 0.0, 0.05, col, top=col)
+    m.prism(6, 0.07, 0.07, 0.05, h - 0.07, col, top=col)
+    m.prism(8, r, r, h - 0.07, h, col, top=top)
+
+
+def _sup_ceppo(m, h, r=0.55, top='taglio', col='corteccia'):
+    """Ceppo d'albero: tronco a 8 lati un po' svasato, sopra l'anello di taglio."""
+    m.prism(8, r, r * 0.88, 0.0, h, col, top=top)
+
+
+def _sup_plinto(m, h, r=0.4, col='p_pietra', top='p_pietra_chiara'):
+    """Plinto di pietra: base larga, fusto stretto, lastra in cima."""
+    m.cbox(0, 0, r * 2.2, r * 2.2, 0.0, 0.1, col, top=col)
+    m.cbox(0, 0, r * 1.6, r * 1.6, 0.1, h - 0.08, col, top=col)
+    m.cbox(0, 0, r * 2.1, r * 2.1, h - 0.08, h, top, top=top)
+
+
+def _sup_comodino(m, h, w=0.8, d=0.6, col='p_legno', top='p_legno_scuro'):
+    """Cassettiera bassa a un cassetto con maniglia gialla e quattro piedini."""
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            m.box(sx * (w / 2 - 0.07) - 0.04, 0.0, sz * (d / 2 - 0.07) - 0.04, sx * (w / 2 - 0.07) + 0.04, 0.1, sz * (d / 2 - 0.07) + 0.04, 'p_legno_scuro', skip=('bottom',))
+    m.cbox(0, 0, w, d, 0.1, h - 0.05, col, top=col)
+    m.cbox(0, 0, w + 0.06, d + 0.06, h - 0.05, h, top, top=top)
+    m.box(-w * 0.38, h * 0.3, -d / 2 - 0.02, w * 0.38, h - 0.14, -d / 2, 'p_legno_scuro', skip=('bottom', 'top', 'back'))
+    m.box(-0.1, h * 0.55, -d / 2 - 0.05, 0.1, h * 0.55 + 0.05, -d / 2 - 0.02, 'p_giallo', skip=('bottom', 'back'))
+
+
+def _sup_cassa(m, h, w=0.8, d=0.8, col='tavole', top='p_legno_scuro'):
+    """Cassa di assi con i listelli agli angoli."""
+    m.cbox(0, 0, w, d, 0.0, h, col, top=col)
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            m.cbox(sx * (w / 2 - 0.03), sz * (d / 2 - 0.03), 0.08, 0.08, 0.0, h, top, top=top)
+    m.cbox(0, 0, w + 0.04, d + 0.04, h - 0.05, h, top, top=top)
+
+
+def _sup_sgabello(m, h, r=0.35, col='p_legno', top='p_legno_chiaro'):
+    """Sgabello a tre gambe divaricate con il sedile tondo."""
+    for i in range(3):
+        a = 2 * math.pi * i / 3 + 0.5
+        beam(m, (math.cos(a) * r * 0.5, h - 0.06, math.sin(a) * r * 0.5), (math.cos(a) * r * 0.85, 0.0, math.sin(a) * r * 0.85), 0.07, 0.07, col, end=col)
+    m.prism(8, r, r, h - 0.08, h, col, top=top)
+
+
+def _sup_libri(m, h, w=0.9, d=0.7):
+    """Pila di tre libri di colori diversi, sfalsati."""
+    n = 3
+    cols = ('p_rosso', 'p_acqua_profonda', 'p_giallo')
+    for i in range(n):
+        y0, y1 = h * i / n, h * (i + 1) / n
+        ox = (-0.05, 0.06, -0.02)[i]
+        bw, bd = w * (1 - 0.06 * i), d * (1 - 0.05 * i)
+        m.cbox(ox, 0, bw, bd, y0, y1 - 0.01, cols[i], top=cols[i])
+        m.box(ox - bw / 2 + 0.03, y0 + 0.02, -bd / 2 - 0.006, ox + bw / 2 - 0.03, y1 - 0.03, -bd / 2, 'p_pietra_chiara', skip=('top', 'bottom', 'left', 'right', 'back'))
+
+
+SUPPORTI = {'tondo': _sup_tondo, 'ceppo': _sup_ceppo, 'plinto': _sup_plinto, 'comodino': _sup_comodino,
+            'cassa': _sup_cassa, 'sgabello': _sup_sgabello, 'libri': _sup_libri}
+
+RITOCCO.update({
+    # --- a terra: k = (x e z, y) oppure (x, y, z). I pezzi da scrivania salgono su un supporto (su = nome, altezza, parametri)
+    'mob_comodino_lampada': {'k': (0.78, 0.75)},
+    'mob_amaca_da_interno_con_supporto_in_bambu': {'k': 1.1},
+    'mob_letto_ad_acqua': {'k': (1.08, 1.0)},
+    'mob_tenda_da_campeggio': {'k': 1.05},
+    'mob_divano_gonfiabile_a_forma_di_coccodrillo': {'k': (1.12, 1.1)},
+    'mob_trono_di_plastica_dorata': {'k': (1.1, 1.05)},
+    'mob_poltrona_a_sacco': {'k': (1.2, 1.15)},
+    'mob_divano_a_due_posti_in_tessuto': {'k': (1.15, 1.1)},
+    'mob_sedia_in_legno_massello': {'k': (1.35, 1.3)},
+    'mob_cassapanca_da_pirata': {'k': (1.35, 1.25)},
+    'mob_armadio_in_quercia': {'k': (1.2, 1.1)},
+    'mob_libreria_asimmetrica': {'k': (1.35, 1.15)},
+    'mob_mobile_tv_basso': {'k': (1.12, 1.2)},
+    'mob_libreria_componibile_svedese': {'k': (1.6, 1.1)},
+    'mob_cabina_fototessera': {'k': (1.1, 1.0)},
+    'mob_albero_di_natale_a_luglio': {'k': (1.2, 1.1)},
+    'mob_scultura_astratta_in_fil_di_ferro': {'k': (1.4, 1.2)},
+    'mob_manichino_da_sartoria_con_cappello_da_cowboy': {'k': (1.5, 1.1)},
+    'mob_statua_di_procione_in_ceramica': {'k': (1.6, 1.45)},
+    'mob_caminetto_in_mattoni_finiti': {'k': (1.2, 1.1)},
+    'mob_tappeto_rettangolare_a_tinta_unita': {'k': (1.0, 1.0, 1.45)},
+    'mob_frigorifero_anni_50_smaltato': {'k': (1.2, 1.25)},
+    'mob_distributore_di_bibite': {'k': (1.3, 1.1)},
+    'mob_vasca_da_bagno_con_piedini': {'k': (1.15, 1.1)},
+    'mob_pianta_di_monstera_enorme': {'k': (1.15, 1.1)},
+    'mob_flipper_anni_90': {'k': (1.3, 1.1)},
+    'mob_cabinato_da_sala_giochi_polveroso': {'k': (1.35, 1.15)},
+    'mob_sacco_da_boxe': {'k': (1.3, 1.0)},
+    'mob_tavolo_da_biliardo': {'k': (1.2, 1.2)},
+    'mob_tavolo_kotatsu': {'k': (1.2, 1.2)},
+    'mob_sgabello_da_pianoforte': {'k': (1.5, 1.5)},
+    'mob_botte_di_rovere_in_verticale': {'k': (1.15, 1.15)},
+    'mob_pila_di_vecchi_pneumatici': {'k': (1.45, 1.45)},
+    'mob_tavolo_da_pranzo_quadrato_in_legno': {'k': (1.3, 1.3)},
+    'mob_scrivania_semplice': {'k': (1.3, 1.1)},
+    'mob_tavolino_da_salotto_basso': {'k': (1.4, 1.3)},
+    'mob_comodino_in_laminato': {'k': (1.5, 1.3)},
+    'mob_piano_di_marmo_su_due_cavalletti': {'k': (1.15, 1.0)},
+    'mob_tavolo_da_stiro_pieghevole': {'k': (1.35, 1.0)},
+    'mob_tavolino_da_caffe_in_vetro': {'k': (1.4, 1.25)},
+    'mob_scatolone_di_cartone_rovesciato': {'k': (1.7, 1.5)},
+    'mob_scrivania_direzionale_in_noce': {'k': (1.1, 1.0)},
+    'mob_comodino_scassato': {'k': (1.6, 1.35)},
+    'mob_isola_da_cucina_in_marmo': {'k': (1.15, 1.05)},
+    'mob_cattedra_scolastica': {'k': (1.3, 1.1)},
+    'mob_cassettiera_anni_70': {'k': (1.45, 1.2)},
+    'mob_lume_a_olio_mezzo_vuoto': {'k': 1.7, 'su': ('tondo', 0.5, 0.5)},
+    'mob_lampada_lava_con_liquido_scolorito': {'k': 1.7, 'su': ('tondo', 0.5, 0.48, 'p_arancio', 'p_legno_scuro')},
+    'mob_lampada_a_forma_di_fungo': {'k': 1.6, 'su': ('ceppo', 0.55, 0.55)},
+    'mob_teschio_con_candela_sciolta': {'k': 2.4, 'su': ('plinto', 0.6, 0.38)},
+    'mob_barattolo_di_lucciole_finte': {'k': 2.2, 'su': ('libri', 0.5)},
+    'mob_radiosveglia_rotante': {'k': 2.8, 'su': ('comodino', 0.6, 0.9, 0.62)},
+    'mob_ventilatore_usb_a_forma_di_cactus': {'k': 2.1, 'su': ('cassa', 0.5, 0.85, 0.85)},
+    'mob_sfera_di_cristallo_con_neve_e_castello': {'k': 2.0, 'su': ('tondo', 0.55, 0.5, 'tessuto_blu', 'p_viola')},
+    'mob_orologio_da_tavolo_a_forma_di_gatto': {'k': 2.0, 'su': ('sgabello', 0.5, 0.36)},
+    'mob_robot_giocattolo_con_occhi_led': {'k': 2.1, 'su': ('cassa', 0.45, 0.9, 0.7, 'p_rosso', 'p_giallo')},
+    'mob_stereo': {'k': 1.6, 'su': ('comodino', 0.5, 1.8, 0.8)},
+    # --- a parete: scala uniforme attorno al centro del pezzo, il retro resta sul muro
+    'mob_orologio': {'k': 1.15, 'parete': True},
+    'mob_lavagna_in_sughero': {'k': 1.2, 'parete': True},
+    'mob_specchio_ovale_con_cornice_d_oro': {'k': 1.1, 'parete': True},
+    'mob_testa_di_t_rex_in_plastica': {'k': 1.7, 'parete': True},
+    'mob_telecamera_di_sicurezza_a_circuito_chiuso': {'k': 1.8, 'parete': True},
+    'mob_diploma_incorniciato': {'k': 1.7, 'parete': True},
+    'mob_chitarra_elettrica_appesa': {'k': 1.25, 'parete': True},
+    'mob_orologio_da_parete_analogico': {'k': 2.0, 'parete': True},
+    'mob_specchio_rettangolare_semplice': {'k': 1.6, 'parete': True},
+    'mob_mensola_singola_in_legno': {'k': 1.4, 'parete': True},
+    'mob_appendiabiti_da_ingresso_in_legno': {'k': 1.5, 'parete': True},
+    'mob_quadro_con_paesaggio_sereno': {'k': 1.6, 'parete': True},
+    'mob_ventaglio_gigante_decorativo': {'k': 1.2, 'parete': True},
+    'mob_specchio_a_forma_di_cuore_con_cornice_dorata': {'k': 1.5, 'parete': True},
+    'mob_orologio_a_cucu_in_legno': {'k': 1.2, 'parete': True},
+    'mob_poster_di_mostro_tascabile': {'k': 1.5, 'parete': True},
+    'mob_condizionatore_d_aria': {'k': 1.4, 'parete': True},
+    'mob_mensola_con_action_figures': {'k': 1.3, 'parete': True},
+    'mob_gagliardetto_calcistico_biancorosso': {'k': 1.5, 'parete': True},
+    'mob_insegna_al_neon_open': {'k': 1.45, 'parete': True},
+    'mob_quadro_notte_stellata': {'k': 1.4, 'parete': True},
+    'mob_spada_bastarda_incrociata_con_scudo': {'k': 1.7, 'parete': True},
+    'mob_targa_stradale_via_rossi': {'k': 1.6, 'parete': True},
+    'mob_orologio_da_stazione_con_doppio_quadrante': {'k': 1.9, 'parete': True},
+    'mob_poster_di_un_film_inesistente': {'k': 1.5, 'parete': True},
+    'mob_cornice_con_foto_di_un_pesce_rosso': {'k': 1.9, 'parete': True},
+    'mob_mensola_con_barattoli_di_conserve': {'k': 1.45, 'parete': True},
+    'mob_arazzo_con_paesaggio_montano': {'k': 1.45, 'parete': True},
+    'mob_bersaglio_da_freccette_storto': {'k': 1.4, 'parete': True},
+    'mob_tabellone_da_biliardo_con_gessetti': {'k': 1.75, 'parete': True},
+    'mob_insegna_vietato_lingresso_ai_venditori': {'k': 2.0, 'parete': True},
+    'mob_stendardo_medievale_con_stemma_inventato': {'k': 1.2, 'parete': True},
+})
+
+
+
 
 
 # ------------------------------------------------------------------ esempio completo (1 cella, a terra): è il modello di tutti gli altri
@@ -266,24 +460,28 @@ def mob_albero_di_natale_a_luglio():
 
 
 def mob_letto_ad_acqua():
-    """Letto ad acqua con materasso in vinile ondulato turchese, cuscini e controller abbandonato sopra."""
+    """Letto ad acqua: testiera alta con il pannello a bolle, telaio in legno, materasso turchese a onde, due cuscini e il controller da gioco abbandonato sopra."""
     m = Mesh('mob_letto_ad_acqua')
     W, D = ingombro((1, 1))
     cw, cd = W * 0.84, D * 0.86
-    # Testiera alta in legno scuro a parete (+Z)
+    # Testiera alta in legno scuro con il pannello di bolle (+Z, a parete)
     m.cbox(0.0, cd * 0.44, cw, 0.16, 0.0, 1.05, 'p_legno_scuro', top='p_legno_scuro')
-    # Telaio perimetrale massiccio
-    m.cbox(0.0, -cd * 0.05, cw, cd * 0.88, 0.0, 0.44, 'p_legno_scuro', top='p_legno_scuro')
-    # Materasso ad acqua turchese lucido
-    m.cbox(0.0, -cd * 0.05, cw * 0.88, cd * 0.78, 0.38, 0.52, 'p_acqua', top='p_acqua')
-    # Increspatura/onda della pozza fredda
-    m.cbox(0.0, -cd * 0.12, cw * 0.68, cd * 0.32, 0.52, 0.54, 'p_acqua_bassa', top='p_acqua_bassa')
+    m.box(-cw * 0.4, 0.58, cd * 0.44 - 0.09, cw * 0.4, 0.98, cd * 0.44 - 0.08, 'p_acqua_profonda', skip=('back', 'bottom'))
+    for bx, by, br in ((-0.45, 0.68, 0.05), (-0.2, 0.84, 0.07), (0.05, 0.7, 0.045), (0.3, 0.88, 0.06), (0.52, 0.72, 0.05)):
+        m.prism(6, br, br, by, by + 0.015, 'p_acqua_bassa', top='p_acqua_bassa', cx=bx, cz=cd * 0.44 - 0.1)
+    # Telaio perimetrale e cornice chiara sul bordo
+    m.cbox(0.0, -cd * 0.05, cw, cd * 0.88, 0.0, 0.44, 'p_legno_scuro', top='p_legno')
+    m.cbox(0.0, -cd * 0.05, cw + 0.04, cd * 0.88 + 0.04, 0.4, 0.46, 'p_legno', top='p_legno')
+    # Materasso ad acqua turchese a onde: lastra e quattro dossi chiari traversi
+    m.cbox(0.0, -cd * 0.05, cw * 0.88, cd * 0.78, 0.4, 0.52, 'p_acqua', top='p_acqua')
+    for i in range(4):
+        m.cbox(0.0, -cd * 0.34 + i * cd * 0.2, cw * 0.82, cd * 0.07, 0.52, 0.545, 'p_acqua_bassa', top='p_acqua_bassa')
     # Due cuscini morbidi contro la testiera
-    m.cbox(-0.38, cd * 0.24, 0.44, 0.28, 0.52, 0.62, 'p_pietra_chiara', top='p_pietra_chiara')
-    m.cbox(0.38, cd * 0.24, 0.44, 0.28, 0.52, 0.62, 'p_pietra_chiara', top='p_pietra_chiara')
+    m.cbox(-0.38, cd * 0.24, 0.44, 0.28, 0.52, 0.66, 'p_pietra_chiara', top='p_pietra_chiara')
+    m.cbox(0.38, cd * 0.24, 0.44, 0.28, 0.52, 0.66, 'p_pietra_chiara', top='p_pietra_chiara')
     # DETTAGLIO: controller da gioco sul letto («ti giudica mentre giochi»)
-    m.cbox(0.0, 0.0, 0.18, 0.12, 0.53, 0.56, 'p_nero_caldo', top='p_nero_caldo')
-    m.prism(6, 0.02, 0.02, 0.56, 0.58, 'p_rosso', top='p_rosso', cx=-0.04, cz=0.0)
+    m.cbox(0.0, -0.1, 0.18, 0.12, 0.545, 0.58, 'p_nero_caldo', top='p_nero_caldo')
+    m.prism(6, 0.02, 0.02, 0.58, 0.6, 'p_rosso', top='p_rosso', cx=-0.04, cz=-0.1)
     return _obj(m, footprint=[W, D])
 
 
@@ -397,32 +595,43 @@ def mob_frigorifero_anni_50_smaltato():
 
 
 def mob_divano_in_pelle_vintage():
-    """Divano in pelle vintage marrone logora, con braccioli arrotolati, toppa di riparazione e libro aperto."""
+    """Chesterfield in pelle marrone logora (2 celle): schienale e braccioli arrotolati con i bottoni, tre cuscini, toppa di riparazione e libro aperto sul bracciolo."""
     m = Mesh('mob_divano_in_pelle_vintage')
-    W, D = ingombro((1, 1))
-    cw, cd = 1.65, 0.88
-    # 4 piedini in legno torniti
-    for sx in (-0.72, 0.72):
-        for sz in (-0.34, 0.34):
-            m.prism(6, 0.05, 0.035, 0.0, 0.14, 'p_legno_scuro', top='p_legno_scuro', cx=sx, cz=sz)
-    # Telaio base in pelle
-    m.cbox(0.0, 0.0, cw, cd, 0.12, 0.28, 'p_legno', top='p_legno')
-    m.cbox(0.0, -cd / 2 - 0.01, cw * 0.96, 0.03, 0.14, 0.24, 'p_legno_scuro')
-    # Schienale alto trapuntato posteriore (+Z)
-    m.cbox(0.0, cd * 0.3, cw, 0.28, 0.28, 0.85, 'cuoio', top='p_legno')
-    m.cbox(0.0, cd * 0.3, cw * 0.96, 0.24, 0.85, 0.88, 'p_legno', top='p_legno')
-    # Braccioli massicci arrotolati
+    W, D = ingombro((2, 1))
+    w, d = 3.2, 1.3                                   # largo quasi quanto le due celle, profondo come un divano vero (un po' di più)
+    zb = d / 2 - 0.2                                  # asse dello schienale (dietro, +Z)
+    # Sei piedi torniti in legno scuro e lo zoccolo
+    for x in (-w / 2 + 0.16, 0.0, w / 2 - 0.16):
+        for z in (-d / 2 + 0.14, d / 2 - 0.14):
+            m.prism(6, 0.08, 0.055, 0.0, 0.16, 'p_legno_scuro', top='p_legno_scuro', cx=x, cz=z)
+    m.cbox(0.0, 0.0, w - 0.06, d - 0.08, 0.16, 0.26, 'p_legno_scuro', top='p_legno_scuro')
+    # Cassa del divano e sedile
+    m.cbox(0.0, 0.0, w - 0.1, d - 0.1, 0.26, 0.5, 'p_legno', top='p_legno_scuro')
+    # Tre cuscini da seduta
+    for x in (-0.82, 0.0, 0.82):
+        m.cbox(x, -0.1, 0.78, 0.84, 0.5, 0.7, 'p_legno', top='p_legno_chiaro')
+        m.cbox(x, -0.51, 0.78, 0.08, 0.5, 0.7, 'p_legno_chiaro', top='p_legno_chiaro')            # il bordo imbottito davanti
+    # Schienale alto trapuntato, con il rotolo sulla cima
+    m.cbox(0.0, zb, w - 0.1, 0.4, 0.5, 1.12, 'p_legno', top='p_legno')
+    beam(m, (-w / 2 + 0.2, 1.12, zb), (w / 2 - 0.2, 1.12, zb), 0.42, 0.34, 'p_legno', end='p_legno', n=8)
+    for ix in range(-4, 5):                           # i bottoni della trapuntatura: due file, sfalsate
+        for iy, y in enumerate((0.74, 0.98)):
+            x = ix * 0.3 + (0.15 if iy else 0.0)
+            if abs(x) < w / 2 - 0.55:
+                m.box(x - 0.035, y - 0.035, zb - 0.225, x + 0.035, y + 0.035, zb - 0.2, 'p_legno_scuro', skip=('back', 'bottom', 'left', 'right', 'top'))
+    # Braccioli: blocco e rotolo laterale all'altezza dello schienale, con le borchie dorate sul davanti
     for sx in (-1, 1):
-        m.cbox(sx * (cw / 2 - 0.13), 0.02, 0.26, cd * 0.94, 0.28, 0.64, 'cuoio', top='p_legno')
-        m.prism(6, 0.12, 0.12, 0.28, 0.64, 'p_legno', top='p_legno', cx=sx * (cw / 2 - 0.13), cz=-cd * 0.42)
-    # Cuscini morbidi da seduta
-    m.cbox(-0.35, -0.05, 0.66, cd * 0.62, 0.28, 0.46, 'cuoio', top='p_legno')
-    m.cbox(0.35, -0.05, 0.66, cd * 0.62, 0.28, 0.46, 'cuoio', top='p_legno')
-    # DETTAGLIO: toppa di riparazione su pelle usurata («logoro al punto giusto»)
-    m.box(0.18, 0.462, -0.15, 0.42, 0.465, 0.05, 'p_legno_chiaro', skip=('bottom',))
-    m.box(0.16, 0.461, -0.17, 0.44, 0.464, -0.15, 'p_ombra_calda', skip=('bottom',))
+        ax = sx * (w / 2 - 0.27)
+        m.cbox(ax, 0.0, 0.5, d - 0.1, 0.26, 0.84, 'p_legno', top='p_legno')
+        beam(m, (ax, 0.98, -d / 2 + 0.06), (ax, 0.98, d / 2 - 0.06), 0.54, 0.42, 'p_legno', end='p_legno', n=8)
+        for yy in (0.46, 0.64, 0.82):
+            m.box(ax - 0.2, yy - 0.03, -d / 2 - 0.0, ax + 0.2, yy + 0.03, -d / 2 + 0.03, 'oro', skip=('back', 'bottom', 'top'))
+    # DETTAGLIO: toppa di riparazione cucita su un cuscino («logoro al punto giusto»)
+    m.box(0.12, 0.702, -0.35, 0.5, 0.706, -0.05, 'p_legno_chiaro', skip=('bottom',))
+    for z in (-0.34, -0.06):
+        m.box(0.12, 0.706, z - 0.01, 0.5, 0.708, z + 0.01, 'p_ombra_calda', skip=('bottom',))
     # DETTAGLIO: libro aperto sul bracciolo per «sprofondare nei pensieri»
-    m.cbox(-cw / 2 + 0.13, -0.02, 0.2, 0.24, 0.642, 0.67, 'carta', top='pagine')
+    m.cbox(-w / 2 + 0.27, -0.05, 0.3, 0.38, 1.19, 1.24, 'carta', top='pagine')
     return _obj(m, footprint=[W, D])
 
 
@@ -782,34 +991,59 @@ def mob_sacco_da_boxe():
 
 
 def mob_pianoforte_a_coda():
-    """Pianoforte a coda nero lucido con coperchio aperto, tastiera avorio e spartito di Fra Martino."""
+    """Pianoforte a coda nero lucido (1×2 celle, tastiera verso la camera): cassa curva, coperchio sollevato sul puntello, cordiera dorata, tastiera con i tasti neri e lo spartito di Fra Martino."""
     m = Mesh('mob_pianoforte_a_coda')
-    W, D = ingombro((1, 1))
-    # 3 gambe tornite nere con rotelle dorate
-    gambe = ((-0.55, -0.42), (0.55, -0.42), (-0.1, 0.48))
-    for gx, gz in gambe:
-        m.prism(6, 0.04, 0.03, 0.0, 0.06, 'oro', top='oro', cx=gx, cz=gz)
-        m.prism(6, 0.045, 0.04, 0.06, 0.68, 'p_nero_caldo', top='p_nero_caldo', cx=gx, cz=gz)
-    # Lira centrale dei pedali in ottone
-    m.cbox(0.0, -0.2, 0.12, 0.04, 0.18, 0.68, 'oro', top='oro')
-    for px in (-0.03, 0.0, 0.03):
-        m.box(px - 0.01, 0.12, -0.28, px + 0.01, 0.18, -0.2, 'oro')
-    # Cassa armonica: blocco tastiera e corpo sagomato
-    m.cbox(0.0, -0.4, 1.25, 0.38, 0.68, 0.94, 'p_nero_caldo', top='nero_lacca')
-    m.cbox(-0.18, 0.08, 0.88, 0.65, 0.68, 0.94, 'p_nero_caldo', top='nero_lacca')
-    m.cbox(-0.1, 0.42, 0.6, 0.42, 0.68, 0.94, 'p_nero_caldo', top='nero_lacca')
-    # Cornice interna in ghisa/oro
-    m.cbox(-0.15, 0.06, 0.72, 0.55, 0.88, 0.92, 'oro', top='oro')
-    # Tastiera a -Z: tasti bianchi e coperchio ribaltato
-    m.box(-0.48, 0.72, -0.62, 0.48, 0.78, -0.5, 'p_pietra_chiara', top='p_pietra_chiara')
-    m.box(-0.45, 0.76, -0.58, 0.45, 0.8, -0.5, 'p_nero_caldo', top='p_nero_caldo')
-    # Coperchio sollevato obliquo sorretto da asta in legno
-    beam(m, (-0.6, 0.95, -0.4), (0.42, 1.38, 0.48), 0.85, 0.04, 'p_nero_caldo', end='nero_lacca')
-    beam(m, (0.35, 0.94, 0.1), (0.28, 1.3, 0.1), 0.02, 0.02, 'p_legno_scuro')
+    W, D = ingombro((1, 2))
+    y0, y1, yk = 0.62, 1.0, 0.82                      # sotto la cassa, bordo della cassa, piano dei tasti
+    # Pianta della cassa vista dall'alto (x a destra, z verso il fondo): davanti dritto, il lato lungo curva a destra fino alla coda
+    P = [(-0.78, -1.5), (0.78, -1.5), (0.78, -0.5), (0.74, 0.1), (0.62, 0.7), (0.42, 1.15), (0.14, 1.45), (-0.25, 1.6), (-0.78, 1.6)]
+    for i, (a, b) in enumerate(zip(P, P[1:] + P[:1])):          # fianchi neri, laccati
+        top = y1 if i != 0 else 0.76                    # davanti: solo il grembiule sotto la tastiera
+        face(m, [(a[0], y0, a[1]), (b[0], y0, b[1]), (b[0], top, b[1]), (a[0], top, a[1])], 'nero_lacca', (b[1] - a[1], 0, a[0] - b[0]))
+    # Tre gambe nere con le rotelle dorate
+    for gx, gz in ((-0.62, -1.38), (0.62, -1.38), (-0.12, 1.3)):
+        m.prism(6, 0.09, 0.07, 0.05, y0 + 0.02, 'p_nero_caldo', top='p_nero_caldo', cx=gx, cz=gz)
+        m.prism(6, 0.075, 0.075, 0.0, 0.06, 'oro', top='oro', cx=gx, cz=gz)
+    # Lira dei pedali in ottone, appesa sotto la tastiera
+    m.cbox(0.0, -1.0, 0.1, 0.06, 0.2, y0 + 0.02, 'oro', top='oro')
+    for px in (-0.14, 0.0, 0.14):
+        m.box(px - 0.04, 0.12, -1.18, px + 0.04, 0.2, -1.0, 'oro', skip=('bottom',))
+    # Tastiera: tasti bianchi e neri, guance laterali, fianco chiuso dietro i tasti
+    m.box(-0.62, 0.7, -1.5, 0.62, yk, -1.0, 'p_pietra_chiara', top='p_pietra_chiara', skip=('back',))
+    for x in (-0.52, -0.4, -0.2, -0.08, 0.04, 0.24, 0.36, 0.5):
+        m.box(x - 0.035, yk, -1.5, x + 0.035, yk + 0.05, -1.22, 'p_nero_caldo', top='p_nero_caldo', skip=('bottom',))
+    for sx in (-1, 1):
+        m.box(sx * 0.62 - (0.0 if sx > 0 else 0.16), 0.7, -1.5, sx * 0.62 + (0.16 if sx > 0 else 0.0), y1, -1.0, 'p_nero_caldo', top='nero_lacca', skip=('bottom',))
+    m.box(-0.62, yk, -1.0, 0.62, y1, -0.97, 'p_nero_caldo', skip=('bottom', 'back'))           # la sponda dietro i tasti
+    # Piano chiuso davanti (sopra la tastiera) e cordiera dorata dentro la cassa aperta
+    face(m, [(-0.78, y1, -1.0), (0.78, y1, -1.0), (0.78, y1, -0.5), (-0.78, y1, -0.5)], 'nero_lacca', (0, 1, 0))
+    R = [(-0.78, -0.5), (0.78, -0.5), (0.74, 0.1), (0.62, 0.7), (0.42, 1.15), (0.14, 1.45), (-0.25, 1.6), (-0.78, 1.6)]
+    cx = sum(p[0] for p in R) / len(R); cz = sum(p[1] for p in R) / len(R)
+    ins = [(cx + (p[0] - cx) * 0.9, cz + (p[1] - cz) * 0.93) for p in R]
+    face(m, [(p[0], 0.9, p[1]) for p in ins], 'oro', (0, 1, 0))
+    for i in range(9):                                # le corde
+        x = -0.6 + i * 0.125
+        ze = 1.5 - max(0.0, x + 0.15) * 1.45
+        m.box(x - 0.008, 0.901, -0.3, x + 0.008, 0.906, ze, 'p_nero_caldo', skip=('bottom',))
+    # Bordo della cassa aperta (il perimetro dietro i tasti)
+    for a, b in zip(R[1:], R[2:]):
+        beam(m, (a[0], y1 - 0.04, a[1]), (b[0], y1 - 0.04, b[1]), 0.1, 0.1, 'p_nero_caldo', end='p_nero_caldo')
+    beam(m, (-0.78, y1 - 0.04, -0.5), (-0.78, y1 - 0.04, 1.6), 0.1, 0.1, 'p_nero_caldo', end='p_nero_caldo')
+    beam(m, (-0.78, y1 - 0.04, 1.6), (-0.25, y1 - 0.04, 1.6), 0.1, 0.1, 'p_nero_caldo', end='p_nero_caldo')
+    beam(m, (-0.25, y1 - 0.04, 1.6), (0.14, y1 - 0.04, 1.45), 0.1, 0.1, 'p_nero_caldo', end='p_nero_caldo')
+    # Coperchio: la stessa pianta, incernierata a sinistra e sollevata di 32° (sale verso destra), col puntello
+    th = math.radians(32)
+    def su(p, dy=0.0):
+        u = p[0] + 0.78
+        return (-0.78 + u * math.cos(th) - dy * math.sin(th), y1 + u * math.sin(th) + dy * math.cos(th), p[1])
+    face(m, [su(p) for p in R], 'nero_lacca', (-math.sin(th), math.cos(th), 0))
+    face(m, [su(p, -0.05) for p in R], 'p_nero_caldo', (math.sin(th), -math.cos(th), 0))
+    ex, ey, _ = su((0.62, 0.7), -0.05)
+    beam(m, (0.62, y1 - 0.02, 0.7), (ex, ey, 0.7), 0.045, 0.045, 'p_legno_scuro', end='p_legno_scuro')
     # DETTAGLIO: spartito aperto sul leggio («non sai nemmeno fare Fra Martino»)
-    m.cbox(0.0, -0.48, 0.32, 0.03, 0.94, 1.08, 'carta', top='pagine')
-    m.box(-0.14, 0.98, -0.49, -0.02, 1.05, -0.48, 'p_nero_caldo')
-    m.box(0.02, 0.98, -0.49, 0.14, 1.05, -0.48, 'p_nero_caldo')
+    beam(m, (0.0, y1 + 0.0, -0.93), (0.0, y1 + 0.34, -0.86), 0.62, 0.025, 'carta', end='p_nero_caldo')
+    for dx in (-0.16, 0.0, 0.16):
+        m.box(dx - 0.05, y1 + 0.1, -0.955, dx + 0.05, y1 + 0.13, -0.945, 'p_nero_caldo', skip=('bottom', 'back'))
     return _obj(m, footprint=[W, D])
 
 
@@ -1742,23 +1976,40 @@ def mob_cattedra_scolastica():
 
 
 def mob_bancone_da_bar_in_mogano():
-    """Bancone da pub in mogano scuro con pannelli bugnati, poggiapiedi in ottone lucido e due bicchieri sul ripiano con aloni."""
+    """Bancone da pub in mogano scuro (2 celle): pannelli bugnati, poggiapiedi in ottone, piano con aloni, spillatrici della birra e due sgabelli rossi."""
     m = Mesh('mob_bancone_da_bar_in_mogano')
-    W, D = ingombro((1, 1))
-    w, d, h = 1.68, 0.82, 1.08
-    m.cbox(0.0, 0.0, w - 0.06, d - 0.06, 0.0, 0.06, 'p_nero_caldo')
-    beam(m, (-w / 2 + 0.10, 0.14, -d / 2 - 0.08), (w / 2 - 0.10, 0.14, -d / 2 - 0.08), 0.04, 0.04, 'oro', end='oro')
-    for x in (-w / 2 + 0.20, 0.0, w / 2 - 0.20):
-        beam(m, (x, 0.14, -d / 2 - 0.08), (x, 0.14, -d / 2), 0.03, 0.03, 'oro', end='oro')
-    m.cbox(0.0, 0.0, w, d, 0.06, 0.98, 'p_legno_scuro', top='p_legno_scuro')
-    for cx in (-0.50, 0.0, 0.50):
-        m.box(cx - 0.20, 0.20, -d / 2 - 0.02, cx + 0.20, 0.85, -d / 2, 'p_legno')
-        m.box(cx - 0.17, 0.23, -d / 2 - 0.03, cx + 0.17, 0.82, -d / 2 - 0.02, 'legno_pieno')
-    m.cbox(0.0, 0.0, w + 0.10, d + 0.10, 0.98, 1.08, 'p_legno_scuro', top='legno_pieno')
-    m.box(-w / 2 - 0.06, 1.04, -d / 2 - 0.06, w / 2 + 0.06, 1.09, -d / 2 - 0.01, 'p_legno')
-    m.prism(6, 0.05, 0.06, 1.08, 1.20, 'vetro', top='p_arancio', cx=-0.22, cz=-0.08)
-    m.prism(6, 0.05, 0.06, 1.08, 1.18, 'vetro', top='p_giallo', cx=-0.05, cz=-0.12)
-    m.prism(6, 0.07, 0.07, 1.081, 1.083, 'p_legno', cx=0.28, cz=-0.05)
+    W, D = ingombro((2, 1))
+    w, d, h = 3.5, 0.9, 1.1
+    zc = 0.35                                          # il bancone sta verso il fondo: davanti ci sono gli sgabelli
+    # Zoccolo, corpo e piano sporgente
+    m.cbox(0.0, zc, w - 0.06, d - 0.06, 0.0, 0.1, 'p_nero_caldo')
+    m.cbox(0.0, zc, w, d, 0.1, h - 0.1, 'p_legno_scuro', top='p_legno_scuro')
+    # Pannelli bugnati sul davanti (−Z): sette riquadri con la cornice
+    for i in range(7):
+        x = -1.5 + i * 0.5
+        m.box(x - 0.2, 0.26, zc - d / 2 - 0.02, x + 0.2, h - 0.26, zc - d / 2, 'p_legno', skip=('bottom', 'back'))
+        m.box(x - 0.16, 0.3, zc - d / 2 - 0.035, x + 0.16, h - 0.3, zc - d / 2 - 0.02, 'legno_pieno', skip=('bottom', 'back'))
+    m.cbox(0.0, zc, w + 0.14, d + 0.14, h - 0.1, h, 'p_legno_scuro', top='legno_pieno')
+    m.box(-w / 2 - 0.06, h - 0.06, zc - d / 2 - 0.07, w / 2 + 0.06, h - 0.02, zc - d / 2 - 0.02, 'p_legno', skip=('bottom', 'back'))   # il listello sotto il bordo
+    # Poggiapiedi in ottone: barra e quattro sostegni
+    beam(m, (-w / 2 + 0.15, 0.2, zc - d / 2 - 0.22), (w / 2 - 0.15, 0.2, zc - d / 2 - 0.22), 0.06, 0.06, 'oro', end='oro', n=6)
+    for x in (-w / 2 + 0.15, -0.55, 0.55, w / 2 - 0.15):
+        beam(m, (x, 0.2, zc - d / 2 - 0.22), (x, 0.2, zc - d / 2), 0.05, 0.05, 'oro', end='oro')
+    # Due sgabelli: seduta rossa tonda, tre gambe di ferro, anello poggiapiedi
+    for sx in (-0.95, 0.95):
+        sz = zc - d / 2 - 0.55
+        m.prism(8, 0.24, 0.24, 0.8, 0.92, 'p_rosso', top='p_rosso', cx=sx, cz=sz)
+        for i in range(3):
+            a = 2 * math.pi * i / 3 + 0.5
+            beam(m, (sx + math.cos(a) * 0.12, 0.8, sz + math.sin(a) * 0.12), (sx + math.cos(a) * 0.22, 0.0, sz + math.sin(a) * 0.22), 0.05, 0.05, 'ferro', end='ferro')
+        m.prism(8, 0.2, 0.2, 0.32, 0.35, 'ferro', top='ferro', cx=sx, cz=sz)
+    # Sul piano: due bicchieri con gli aloni, il sottobicchiere, le spillatrici
+    m.prism(6, 0.07, 0.085, h, h + 0.2, 'vetro', top='p_arancio', cx=-0.8, cz=zc - 0.12)
+    m.prism(6, 0.07, 0.085, h, h + 0.18, 'vetro', top='p_giallo', cx=-0.5, cz=zc - 0.2)
+    m.prism(8, 0.1, 0.1, h + 0.001, h + 0.004, 'p_legno', cx=0.0, cz=zc - 0.1)
+    for x in (0.7, 0.95, 1.2):
+        m.cbox(x, zc + 0.15, 0.1, 0.1, h, h + 0.28, 'metallo', top='metallo')
+        m.cbox(x, zc + 0.15, 0.13, 0.07, h + 0.28, h + 0.4, 'p_rosso' if x < 1.0 else 'p_giallo', top='p_nero_caldo')
     return _obj(m, footprint=[W, D])
 
 
@@ -2242,17 +2493,26 @@ def mob_poster_di_mostro_tascabile():
 
 
 def mob_condizionatore_d_aria():
-    """Unita split interna di condizionatore bianco da parete, griglia, aletta aperta e stalattiti di ghiaccio."""
+    """Unità split da parete: corpo bianco col frontale a gradini, feritoia con l'aletta aperta, display ciano, striscia colorata e stalattiti di ghiaccio appese sotto."""
     m = Mesh('mob_condizionatore_d_aria')
     W, D = ingombro((1, 1))
-    m.box(-0.58, 2.18, -0.32, 0.58, 2.58, 0.0, 'p_pietra_chiara', skip=('back',))
-    m.box(-0.54, 2.56, -0.28, 0.54, 2.6, -0.04, 'p_pietra_scura', top='p_pietra_scura')
-    m.box(-0.52, 2.2, -0.28, 0.52, 2.26, -0.06, 'p_nero_caldo', skip=('top', 'back'))
-    beam(m, (-0.52, 2.21, -0.26), (0.52, 2.21, -0.26), 0.08, 0.02, 'p_pietra_chiara', end='p_pietra_chiara')
-    m.cbox(0.38, -0.325, 0.12, 0.01, 2.34, 2.44, 'em_neon_ciano', top='em_neon_ciano', skip=('back',))
-    m.cbox(0.48, -0.325, 0.025, 0.01, 2.36, 2.385, 'p_verde_neon', top='p_verde_neon', skip=('back',))
-    for x in (-0.42, -0.22, 0.0, 0.18):
-        m.cone(4, 0.03, 2.2, 2.06, 'cristallo', cx=x, cz=-0.26)
+    y0, y1 = 2.0, 2.4
+    m.box(-0.56, y0 + 0.04, -0.3, 0.56, y1, 0.0, 'p_pietra_chiara', skip=('back',))                     # corpo
+    m.box(-0.54, y1, -0.27, 0.54, y1 + 0.04, -0.02, 'p_pietra_chiara', skip=('back', 'bottom'))        # gradino alto, più morbido
+    m.box(-0.56, y0 + 0.04, -0.3, 0.56, y0 + 0.07, -0.29, 'p_pietra', skip=('back',))                  # filo d'ombra sopra la feritoia
+    # Feritoia scura sul fondo e aletta orientabile, aperta verso il basso
+    m.box(-0.5, y0, -0.28, 0.5, y0 + 0.1, -0.06, 'p_nero_caldo', skip=('back', 'top'))
+    face(m, [(-0.5, y0 + 0.08, -0.27), (0.5, y0 + 0.08, -0.27), (0.5, y0 - 0.1, -0.4), (-0.5, y0 - 0.1, -0.4)], 'p_pietra_chiara', (0, -0.7, -0.7))
+    face(m, [(-0.5, y0 + 0.07, -0.265), (0.5, y0 + 0.07, -0.265), (0.5, y0 - 0.11, -0.395), (-0.5, y0 - 0.11, -0.395)], 'p_pietra', (0, 0.7, 0.7))
+    # Display ciano con la temperatura, spia verde e la striscia azzurra della marca
+    m.box(0.3, y0 + 0.2, -0.305, 0.48, y0 + 0.3, -0.3, 'p_nero_caldo', skip=('back',))
+    m.box(0.33, y0 + 0.23, -0.31, 0.38, y0 + 0.28, -0.305, 'em_neon_ciano', skip=('back',))
+    m.box(0.4, y0 + 0.23, -0.31, 0.45, y0 + 0.28, -0.305, 'em_neon_ciano', skip=('back',))
+    m.box(0.5, y0 + 0.31, -0.305, 0.53, y0 + 0.34, -0.3, 'p_verde_neon', skip=('back',))
+    m.box(-0.46, y0 + 0.27, -0.304, -0.12, y0 + 0.31, -0.3, 'p_acqua', skip=('back',))
+    # Stalattiti di ghiaccio sotto l'aletta («ingelidisce l'ambiente»)
+    for x, h in ((-0.38, 0.16), (-0.12, 0.22), (0.15, 0.14), (0.38, 0.2)):
+        m.cone(4, 0.035, y0 - 0.1, y0 - 0.1 - h, 'cristallo', cx=x, cz=-0.36)
     return _obj(m, footprint=[W, D])
 
 
@@ -2402,28 +2662,32 @@ def mob_targa_stradale_via_rossi():
 
 
 def mob_orologio_da_stazione_con_doppio_quadrante():
-    """Orologio da stazione con doppio quadrante a sbalzo (parete): staffa in ferro battuto, cassa cilindrica con due orari diversi sui due lati."""
+    """Orologio da stazione a sbalzo (parete): staffa di ferro, cassa tonda nera con due quadranti, ore, lancette e un orario diverso per lato; girato verso chi entra."""
     m = Mesh('mob_orologio_da_stazione_con_doppio_quadrante')
     W, D = ingombro((1, 1))
-    m.box(-0.06, 1.7, -0.03, 0.06, 2.3, 0.0, 'ferro', skip=('back',))
-    beam(m, (0.0, 2.2, -0.02), (0.0, 2.2, -0.38), 0.04, 0.04, 'ferro', end='ferro')
-    beam(m, (0.0, 1.8, -0.02), (0.0, 2.2, -0.32), 0.03, 0.03, 'ferro')
-    beam(m, (0.0, 2.2, -0.38), (0.0, 2.08, -0.38), 0.04, 0.04, 'ferro', end='ferro')
-    cz = 0.0
-    m.push(Xf(t=(0, 0, -0.38), r=(0, 60, 0)))   # la cassa girata: da davanti si vede un quadrante
-    m.box(-0.09, 1.82, cz - 0.22, 0.09, 2.08, cz + 0.22, 'p_nero_caldo', top='p_nero_caldo')
-    m.box(-0.09, 1.76, cz - 0.16, 0.09, 2.14, cz + 0.16, 'p_nero_caldo', top='p_nero_caldo')
-    for sx in (-1, 1):
-        x_face = sx * 0.095
-        m.box(x_face - 0.005 if sx < 0 else x_face, 1.85, cz - 0.18, x_face if sx < 0 else x_face + 0.005, 2.05, cz + 0.18, 'p_pietra_chiara')
-        m.box(x_face - 0.005 if sx < 0 else x_face, 1.80, cz - 0.13, x_face if sx < 0 else x_face + 0.005, 2.10, cz + 0.13, 'p_pietra_chiara')
-        m.box(x_face - 0.012 if sx < 0 else x_face, 1.935, cz - 0.015, x_face if sx < 0 else x_face + 0.012, 1.965, cz + 0.015, 'ferro')
-    m.box(-0.11, 1.95, cz - 0.08, -0.095, 2.04, cz - 0.06, 'p_nero_caldo')
-    m.box(-0.11, 1.95, cz + 0.06, -0.095, 2.03, cz + 0.08, 'p_nero_caldo')
-    m.box(-0.112, 1.87, cz - 0.01, -0.095, 1.95, cz + 0.01, 'p_rosso')
-    m.box(0.095, 1.84, cz - 0.015, 0.11, 1.95, cz + 0.015, 'p_nero_caldo')
-    m.box(0.095, 1.82, cz + 0.01, 0.11, 1.95, cz + 0.03, 'p_nero_caldo')
-    m.box(0.095, 1.95, cz - 0.01, 0.112, 2.05, cz + 0.01, 'p_rosso')
+    cy, cz = 2.0, -0.42
+    # Piastra al muro, braccio a sbalzo e gancio sopra la cassa
+    m.box(-0.07, cy - 0.1, -0.03, 0.07, cy + 0.45, 0.0, 'ferro', skip=('back',))
+    beam(m, (0.0, cy + 0.38, -0.02), (0.0, cy + 0.38, cz), 0.06, 0.06, 'ferro', end='ferro')
+    beam(m, (0.0, cy + 0.05, -0.02), (0.0, cy + 0.34, cz + 0.06), 0.045, 0.045, 'ferro', end='ferro')
+    beam(m, (0.0, cy + 0.38, cz), (0.0, cy + 0.3, cz), 0.06, 0.06, 'ferro', end='ferro')
+    # Cassa girata di 50°: da davanti si vede un quadrante e il bordo dell'altro
+    m.push(Xf(t=(0.0, cy, cz), r=(0, 50, 0)))
+    beam(m, (0.0, 0.0, -0.09), (0.0, 0.0, 0.09), 0.62, 0.62, 'p_nero_caldo', end='p_nero_caldo', n=12)                 # cassa
+    for sz, ang in ((-1, 0.0), (1, 40.0)):                          # i due quadranti: davanti 10:10, dietro 8:20
+        zf = sz * 0.093
+        beam(m, (0.0, 0.0, zf), (0.0, 0.0, zf + sz * 0.012), 0.52, 0.52, 'p_pietra_chiara', end='p_pietra_chiara', n=12)
+        zd = zf + sz * 0.014
+        for i in range(12):
+            a = math.radians(30 * i)
+            s = 0.026 if i % 3 == 0 else 0.016
+            xx, yy = math.sin(a) * 0.215 * (-sz), math.cos(a) * 0.215
+            m.box(xx - s, yy - s, min(zd, zd + sz * 0.006), xx + s, yy + s, max(zd, zd + sz * 0.006), 'p_nero_caldo', skip=('back', 'bottom'))
+        hm, hh = math.radians(60 + ang), math.radians(300 - ang)
+        for ln, w, a in ((0.2, 0.025, hm), (0.13, 0.035, hh)):
+            xe, ye = math.sin(a) * ln * (-sz), math.cos(a) * ln
+            beam(m, (0.0, 0.0, zd + sz * 0.008), (xe, ye, zd + sz * 0.008), w, 0.012, 'p_nero_caldo', end='p_nero_caldo', up=(0, 0, 1))
+        m.box(-0.02, -0.02, min(zd + sz * 0.012, zd + sz * 0.018), 0.02, 0.02, max(zd + sz * 0.012, zd + sz * 0.018), 'p_rosso', skip=('back', 'bottom'))
     m.pop()
     return _obj(m, footprint=[W, D])
 
@@ -2630,6 +2894,52 @@ def mob_stendardo_medievale_con_stemma_inventato():
     return _obj(m, footprint=[W, D])
 
 
+def mob_stereo():
+    """Stereo portatile (radioregistratore a cassette): corpo azzurro, due casse tonde, finestrella della cassetta, manico e antenna. Sta su un mobiletto basso (RITOCCO)."""
+    m = Mesh('mob_stereo')
+    W, D = ingombro((1, 1))
+    m.cbox(0.0, 0.0, 1.0, 0.34, 0.0, 0.5, 'p_acqua', top='p_acqua')
+    m.cbox(0.0, 0.0, 1.04, 0.38, 0.0, 0.05, 'p_nero_caldo', top='p_nero_caldo')                   # zoccolo
+    for sx in (-1, 1):                                  # le due casse: disco nero con cono chiaro e centro
+        beam(m, (sx * 0.31, 0.25, -0.17), (sx * 0.31, 0.25, -0.2), 0.33, 0.33, 'p_nero_caldo', end='p_nero_caldo', n=10)
+        beam(m, (sx * 0.31, 0.25, -0.2), (sx * 0.31, 0.25, -0.215), 0.2, 0.2, 'p_pietra_chiara', end='p_pietra_chiara', n=10)
+        beam(m, (sx * 0.31, 0.25, -0.215), (sx * 0.31, 0.25, -0.23), 0.07, 0.07, 'p_giallo', end='p_giallo', n=6)
+    m.box(-0.2, 0.2, -0.185, 0.2, 0.44, -0.17, 'p_pietra_chiara', skip=('back', 'bottom'))          # finestrella della cassetta
+    for sx in (-0.09, 0.09):
+        beam(m, (sx, 0.32, -0.19), (sx, 0.32, -0.2), 0.08, 0.08, 'p_nero_caldo', end='p_nero_caldo', n=6)
+    m.box(-0.2, 0.08, -0.19, 0.2, 0.17, -0.17, 'p_nero_caldo', skip=('back', 'bottom'))             # lo schermo con la frequenza
+    m.box(-0.12, 0.11, -0.195, -0.02, 0.14, -0.19, 'p_giallo', skip=('back', 'bottom'))
+    for i, c in enumerate(('p_rosso', 'p_giallo', 'p_pietra_chiara', 'p_arancio')):                # tasti sopra
+        m.box(-0.18 + i * 0.12, 0.5, -0.1, -0.1 + i * 0.12, 0.54, -0.04, c, skip=('bottom',))
+    for sx in (-1, 1):                                  # manico
+        m.box(sx * 0.36 - 0.025, 0.5, -0.02, sx * 0.36 + 0.025, 0.7, 0.03, 'p_nero_caldo', skip=('bottom',))
+    m.box(-0.385, 0.7, -0.02, 0.385, 0.74, 0.03, 'p_nero_caldo', skip=('bottom',))
+    beam(m, (0.44, 0.5, 0.08), (0.2, 0.98, 0.1), 0.03, 0.03, 'metallo', end='p_pietra_chiara')     # antenna telescopica
+    return _obj(m, footprint=[W, D])
+
+
+def mob_orologio():
+    """Orologio a pendolo da parete: cassa tonda arancio, quadrante chiaro con le ore, lancette, pendolo con il disco giallo."""
+    m = Mesh('mob_orologio')
+    cy = 2.2
+    beam(m, (0.0, cy, 0.0), (0.0, cy, -0.12), 0.86, 0.86, 'p_arancio', end='p_arancio', n=12)
+    beam(m, (0.0, cy, -0.12), (0.0, cy, -0.14), 0.7, 0.7, 'p_pietra_chiara', end='p_pietra_chiara', n=12)
+    for i in range(12):                                 # le dodici ore
+        a = math.radians(30 * i)
+        r = 0.28
+        s = 0.045 if i % 3 == 0 else 0.03
+        m.box(math.sin(a) * r - s, cy + math.cos(a) * r - s, -0.15, math.sin(a) * r + s, cy + math.cos(a) * r + s, -0.14, 'p_nero_caldo', skip=('back', 'bottom'))
+    beam(m, (0.0, cy, -0.16), (0.0, cy + 0.2, -0.16), 0.045, 0.02, 'p_nero_caldo', end='p_nero_caldo')      # lancetta lunga
+    beam(m, (0.0, cy, -0.17), (0.15, cy - 0.02, -0.17), 0.04, 0.02, 'p_nero_caldo', end='p_nero_caldo')     # lancetta corta
+    m.box(-0.025, cy - 0.025, -0.18, 0.025, cy + 0.025, -0.16, 'p_rosso', skip=('back', 'bottom'))
+    # Cassa del pendolo sotto: trave stretta e il disco oscillante giallo
+    m.box(-0.1, cy - 0.5, -0.1, 0.1, cy - 0.38, -0.02, 'p_arancio', skip=('back',))
+    beam(m, (0.0, cy - 0.46, -0.06), (0.0, cy - 0.98, -0.06), 0.03, 0.03, 'p_nero_caldo', end='p_nero_caldo')
+    beam(m, (0.0, cy - 1.1, -0.04), (0.0, cy - 1.1, -0.11), 0.26, 0.26, 'p_giallo', end='p_giallo', n=10)
+    beam(m, (0.0, cy - 1.1, -0.11), (0.0, cy - 1.1, -0.125), 0.1, 0.1, 'p_arancio', end='p_arancio', n=6)
+    return _obj(m)
+
+
 MODELS = {
     f.__name__: f
     for f in (
@@ -2726,6 +3036,8 @@ MODELS = {
         mob_tabellone_da_biliardo_con_gessetti,
         mob_insegna_vietato_lingresso_ai_venditori,
         mob_stendardo_medievale_con_stemma_inventato,
+        mob_stereo,
+        mob_orologio,
     )
 }
 

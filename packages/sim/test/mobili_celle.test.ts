@@ -76,6 +76,17 @@ test('catalogo: id unici, categorie vere, 1-3 celle, un testo per ogni mobile e 
   for (const k of Object.keys(testi)) assert.ok(veri.some((m) => m.id === k), `mobili_testi.json: «${k}» non è un mobile`);
 });
 
+test('catalogo: un mobile posato (`<id>-<n>`) ha un nome che il server accetta (64 caratteri): con id da 40 quattro mobili non si compravano né si posavano', () => {
+  for (const m of MOBILI) assert.ok(`${m.id}-999`.length <= 64, `${m.id}: id di ${m.id.length} caratteri`);
+});
+
+test('mobili a più celle del catalogo vero: l’ingombro sta nella stanza (pianoforte 1×2, divano e bancone 2×1)', () => {
+  const lunghi = (MOBILI as MobileDef[]).filter((m) => m.celle && m.celle[0] * m.celle[1] > 1 && !m.id.endsWith('_prova'));
+  assert.ok(lunghi.length >= 4, 'il catalogo ha i pezzi lunghi');
+  const [W, D] = [X1 - X0, BORGO.stanza.pavimento[3] - Z0];
+  for (const m of lunghi) assert.ok(m.celle![0] <= W && m.celle![1] <= D, `${m.id}: ${m.celle} non sta in una stanza ${W}×${D}`);
+});
+
 test('validateContent: il catalogo (finti compresi) non produce errori sui mobili', () => {
   assert.deepEqual(validateContent().filter((e) => e.startsWith('mobili:')), []);
 });

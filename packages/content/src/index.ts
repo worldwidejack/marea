@@ -162,6 +162,7 @@ function validateBorgo(): string[] {
     if (ids.has(m.id)) errs.push(`mobili: id doppio ${m.id}`);
     ids.add(m.id);
     if (!/^[a-z][a-z0-9_]*$/.test(m.id) || !(Number.isInteger(m.monete) && m.monete > 0) || (m.posto !== 'terra' && m.posto !== 'parete') || !m.colori.length || !m.colori.every(hex)) errs.push(`mobili: ${m.id} non valido`);
+    if (m.id.length > 56) errs.push(`mobili: ${m.id} ha un id di ${m.id.length} caratteri (massimo 56: il mobile posato è «<id>-<n>» e il server accetta 64)`);
     if (!MOBILI_CATEGORIE.some((c) => c.id === m.categoria)) errs.push(`mobili: ${m.id} ha una categoria sconosciuta (${m.categoria})`);
     if (m.celle && (m.celle.length !== 2 || !m.celle.every((n) => Number.isInteger(n) && n >= 1 && n <= 3) || (m.posto === 'parete' && (m.celle[0] !== 1 || m.celle[1] !== 1)))) errs.push(`mobili: ${m.id} ha un ingombro non valido (celle 1-3, a parete solo [1,1])`);
     if (m.altezza !== undefined && !(m.altezza > 0 && m.altezza <= 3)) errs.push(`mobili: ${m.id} ha un'altezza non valida (0-3 m)`);
