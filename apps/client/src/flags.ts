@@ -1,5 +1,5 @@
 // Flag dall'URL, congelati all'avvio. Contratto: docs/TECH.md §9.
-export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; invito: string; serie: boolean; rientro: boolean; novita: boolean; templari: boolean; banco: boolean; gara: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova'; slot: number | null; ruota: '' | '0' | '1' };
+export type Flags = { fps: boolean; test: boolean; seed: number; nosound: boolean; quality: 'low' | 'high'; net: boolean; autopilot: boolean; zone: string; token: string; invito: string; serie: boolean; rientro: boolean; novita: boolean; templari: boolean; banco: boolean; gara: boolean; adrenalina: boolean; difesa: boolean; arena: '' | 'si' | 'banco'; dipinto: 'si' | 'no' | 'prova'; slot: number | null; ruota: '' | '0' | '1'; finiture: Readonly<Record<string, string>> };
 function read(): Flags {
   const q = new URLSearchParams(location.search);
   const on = (k: string) => q.get(k) === '1' || q.get(k) === 'true';
@@ -29,6 +29,8 @@ function read(): Flags {
     ruota: q.get('ruota') === '1' ? '1' : q.get('ruota') === '0' ? '0' : '', // Corse sul telefono: ?ruota=1 l'avviso «Ruota il telefono» sempre, ?ruota=0 mai
     adrenalina: on('adrenalina'), // Isola dell'Adrenalina per le prove: liberatoria già firmata, casco non richiesto, bottone 🚡 per andare al cancello
     difesa: on('difesa'), // Isola della Difesa per le prove: bottone 🥕 per andare al cancello dell'orto
+    // banco delle finiture (provafiniture.html): ?pav=&carta=&liv=&stanza= la stanza in 3D, ?foglio=pav|muri&min= tutte insieme
+    finiture: Object.fromEntries(['pav', 'carta', 'liv', 'stanza', 'foglio', 'min'].flatMap((k) => (q.has(k) ? [[k, q.get(k)!]] : []))),
   };
 }
 export const FLAGS: Readonly<Flags> = Object.freeze(read());

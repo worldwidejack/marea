@@ -28,7 +28,7 @@ import { PAL, el } from '../ui/style.ts';
 import { pixIcon } from '../ui/icons.ts';
 import { createAvatar } from './avatar.ts';
 import type { Avatar } from './avatar.ts';
-import { NASCOSTI_DENTRO, costruisciStanza, createInquadratura, texture } from './interno.ts';
+import { NASCOSTI_DENTRO, costruisciStanza, createInquadratura, textureCampione } from './interno.ts';
 import type { Pianta } from './interno.ts';
 import { registerStateProvider, registerTestHook } from '../test/testapi.ts';
 import { createPalaBorgo } from './pala.ts';
@@ -165,13 +165,13 @@ export function createNegozio(o: { world: GameWorld; renderer: Renderer; loader:
     const carte = v.carte.flatMap((id) => BORGO.carte.find((f) => f.id === id) ?? []).slice(0, POSTI);
     carte.forEach((f, i) => {
       const c = cella(posto(i), Z0), x = c.x, z = Z0 * T;
-      const t = texture(f); t.repeat.set(1.2, 1.6);
+      const t = textureCampione(f, 'carta');
       const pan = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.6), new THREE.MeshLambertMaterial({ map: t })); pan.position.set(x, 1.2, z + 0.08); pan.userData['campione'] = true; giornoG.add(pan); // davanti alla cornice
       geo.push(painted(new THREE.BoxGeometry(1.4, 1.8, 0.06), P.legnoScuro, M(x, 1.2, z + 0.01)));
       pezziGiorno.push({ kind: 'carta', id: f.id, nome: f.nome, monete: f.monete ?? 0, x, z, fx: x, fz: z + 1.6 });
     });
     v.pavimenti.flatMap((id) => BORGO.pavimenti.find((f) => f.id === id) ?? []).slice(0, POSTI).forEach((f, i) => {
-      const c = cella(posto(i), Z0 + 4), t = texture(f); t.repeat.set(1, 1);
+      const c = cella(posto(i), Z0 + 4), t = textureCampione(f, 'pavimento');
       const tile = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 1.6), new THREE.MeshLambertMaterial({ map: t })); tile.position.set(c.x, 0.06, c.z); tile.receiveShadow = true; tile.userData['campione'] = true; giornoG.add(tile);
       pezziGiorno.push({ kind: 'pavimento', id: f.id, nome: f.nome, monete: f.monete ?? 0, x: c.x, z: c.z, fx: c.x, fz: c.z + 1.4 });
     });

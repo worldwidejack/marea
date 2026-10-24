@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" href="data:," />
+<title>MAREA · prova finiture</title>
+<style>
+  html, body { margin: 0; background: #23201F; color: #F4E3C1; font: 13px system-ui, sans-serif; }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #ui { position: fixed; left: 8px; top: 8px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2; }
+  #ui select, #ui button { font: inherit; background: #2E1E14; color: #F4E3C1; border: 1px solid #5A3A1E; border-radius: 6px; padding: 4px 6px; }
+  #foglio { display: grid; gap: 14px; padding: 14px; grid-template-columns: repeat(auto-fill, minmax(var(--min, 260px), 1fr)); }
+  #foglio figure { margin: 0; } #foglio figcaption { margin-top: 4px; }
+  #foglio canvas { width: 100%; image-rendering: pixelated; display: block; }
+  #foglio .giro { display: flex; gap: 3px; align-items: end; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="ui"></div>
+<div id="foglio"></div>
+<script type="module" src="/src/provafiniture/main.ts"></script>
+</body>
+</html>
