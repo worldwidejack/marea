@@ -1,4 +1,4 @@
-// Pavimenti e carte da parati disegnati interi (#265): un disegno per finitura (borgo.json, per id o `motivo`), fatto su misura della
+// Pavimenti e carte da parati disegnati interi: un disegno per finitura (borgo.json, per id o `motivo`), fatto su misura della
 // superficie con il kit di finiture_kit.ts. Si rifà quando la casa cresce, così bordi, tappeti, rosoni e murali stanno sempre al posto
 // giusto. Il modulo si carica a parte (interno.ts `caricaDisegni`): l'avvio non lo paga.
 import type { StanzaFinitura } from '@marea/content';
