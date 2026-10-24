@@ -161,7 +161,7 @@ Nel mondo niente nemici e nessuno attacca o modifica la casa degli altri: il com
 La verità sta nei JSON di `packages/content/src/` (`balance.json`, `botteghe.json`, `minigames/`, `rpg/`, …). Qui si scrivono solo i numeri che servono a capire il gioco; se cambi un numero, il perché va nella PR.
 
 ## 12. Mondo Sotterraneo (GDR, dal 6 ott 2026)
-Sotto le isole ci sono dungeon con combattimento alla Skyrim, voluti da **Riccardo** (che ne cura il design): personaggio con Vita/Magicka/Stamina, 7 abilità, perk, forgia di armi e armature in 8 materiali, alchimia, bottino. **Facoltativo**: chi non scende gioca MAREA come prima. In superficie zero nemici. Tutto il design sta in **`docs/RPG.md`**. Il combattimento sta solo nei dungeon, contro la sim, mai contro gli amici (§10).
+Sotto le isole ci sono dungeon con combattimento alla Skyrim, voluti da **Riccardo** (che ne cura il design): personaggio con Vita/Magicka/Stamina, 8 abilità, perk, forgia di armi e armature in 8 materiali, alchimia, bottino. **Facoltativo**: chi non scende gioca MAREA come prima. In superficie zero nemici. Tutto il design sta in **`docs/RPG.md`**. Il combattimento sta solo nei dungeon, contro la sim, mai contro gli amici (§10).
 
 ## 13. Isola dei Templari (modalità a ondate, dall'8 ott 2026)
 Isola personale di **birbasan** (tema libero, ok di Jack): crociati zombie a ondate infinite, armi da comprare coi punti della partita, porte, trappole, boss. Tutto il design sta in **`docs/TEMPLARI.md`**. La partita è lunga e ha una storia, ma si gioca in una scena a parte come i dungeon; nel resto dell'arcipelago restano zero nemici.

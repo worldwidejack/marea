@@ -12,9 +12,9 @@
     "magie": ["fiammata"]
   },
   "dungeon": { "maxMinuti": 20, "morte": { "bottino": 0, "xp": 1 }, "altare": { "protezione": 3 }, "gruppo": { "max": 4, "vitaPerCompagno": 0.6 } },
-  "arena": { "attributi": { "vita": 100, "magicka": 100, "stamina": 100 }, "dannoMolt": 0.45, "dannoMax": 92, "caricaMassimaMolt": 1.35, "erba": { "raggio": 3, "rivela": 1.2 } },
-  "xp": { "forgia": 22, "alchimia": 18, "alchimiaPerLivello": 0.6, "personaggioPerLivelloSkill": 1, "evocazioneLancio": 0.5 },
-  "xpDanno": { "armiLeggere": 0.7, "armiPesanti": 0.7, "arceria": 1.5, "distruzione": 1.5, "evocazione": 1.5 },
+  "arena": { "attributi": { "vita": 100, "magicka": 100, "stamina": 100 }, "dannoMolt": 0.45, "dannoMax": 92, "caricaMassimaMolt": 1.35, "supportoMax": 1.25, "erba": { "raggio": 3, "rivela": 1.2 } },
+  "xp": { "forgia": 22, "alchimia": 18, "alchimiaPerLivello": 0.6, "personaggioPerLivelloSkill": 1, "evocazioneLancio": 0.5, "supportoLancio": 0.5 },
+  "xpDanno": { "armiLeggere": 0.7, "armiPesanti": 0.7, "arceria": 1.5, "distruzione": 1.5, "evocazione": 1.5, "supporto": 1.5 },
   "perk": {
     "sanguinamento": { "pctVitaAlSecondo": 0.03, "secondi": 10, "rallenta": 0.3, "moltBoss": 0.2 },
     "paralisi": { "secondi": 4 },
@@ -26,7 +26,8 @@
     "terremoto": { "raggio": 4, "frazione": 0.35, "spinta": 2.5 },
     "combustione": { "raggio": 0.9, "secondi": 4, "frazione": 0.2 },
     "catena": { "raggio": 5, "frazione": 0.5 },
-    "medicoCampo": { "raggio": 8 }
+    "medicoCampo": { "raggio": 8 },
+    "benedizione": { "furia": { "danno": 0.175, "velocita": 0.125, "secondi": 3 }, "curaAlSecondo": 4 }
   },
 
   "forziere": [100, 250, 600],

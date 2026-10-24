@@ -12,7 +12,8 @@ const MOD_KEYS = new Set(['vita', 'magicka', 'stamina', 'regenVita', 'regenMagic
   'sanguinaCaricato', 'paralisiCaricato', 'caricaMassima', 'automira', 'arcoMobile', 'scarica', 'raggioMagia', 'dannoAlleati', 'vitaAlleati', 'magickaPct',
   'evocazionePerenne', 'difesaForgiata', 'dannoForgiato', 'pesoForgiato',
   'avvelena', 'lamaAria', 'penetraPesanti', 'terremoto', 'frecceTrapassano', 'risparmioFrecce', 'scaricaPiu', 'combustione', 'catena', 'richiamoDoppio', 'banchetto',
-  'medicoCampo', 'doppiaDose', 'durataPozioni', 'forgiaDoppia']);
+  'medicoCampo', 'doppiaDose', 'durataPozioni', 'forgiaDoppia',
+  'potenzaCura', 'potenzaFuria', 'durataFuria', 'costoSupporto', 'ricaricaSupporto', 'autocura', 'furiaSuTe', 'fascio', 'benedizione']);
 
 test('rpg catalogo: 8 materiali, 6 armi, tipo × materiale generato, id unici', () => {
   assert.equal(MATERIALS.length, 8);

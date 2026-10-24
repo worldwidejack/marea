@@ -47,6 +47,7 @@ quello che hai nello **zaino e nel Forziere**, e salvato col personaggio (`HeroS
 - **Furia a bomba**: lancio ad area che potenzia per qualche secondo chi si trova nel raggio d'azione.
 - In Arena valgono **solo su di te, sui compagni e sulle tue evocazioni**, mai sull'avversario; **[proposta]** senza nessuno dei tuoi davanti
   il flusso va su di te e la bomba ti cade ai piedi (così servono anche nel duello 1v1).
+- La loro potenza sale con l'abilità **Supporto** (`RPG.md` §3) ma in Arena non supera **× 1,25** il valore del libro (`arena.supportoMax`).
 
 ---
 

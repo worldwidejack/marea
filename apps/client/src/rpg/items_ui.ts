@@ -15,7 +15,7 @@ import type { Sprite } from './icone.ts';
 
 export const SKILL_NOME: Record<SkillId, string> = {
   armiLeggere: 'Armi leggere', armiPesanti: 'Armi pesanti', arceria: 'Arceria', distruzione: 'Distruzione',
-  evocazione: 'Evocazione', forgiatura: 'Forgiatura', alchimia: 'Alchimia',
+  evocazione: 'Evocazione', supporto: 'Supporto', forgiatura: 'Forgiatura', alchimia: 'Alchimia',
 };
 export const ATTR_NOME: Record<AttrId, string> = { vita: 'Vita', magicka: 'Magicka', stamina: 'Stamina' };
 export const ATTR_COL: Record<AttrId, string> = { vita: PAL.rosso, magicka: PAL.acqua, stamina: PAL.erba };

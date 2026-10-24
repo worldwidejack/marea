@@ -59,6 +59,47 @@ export function potenziaEroe(h: HeroRt, tick: number, F: { danno: number; veloci
   up('furiaVel', F.velocita < 1 ? F.velocita : r2(F.velocita - 1));
 }
 
+// ---------- Cura e Furia (abilità Supporto) ----------
+
+type Furia = { danno: number; velocita: number; secondi: number };
+/** Chi riceve Cura o Furia: un'evocazione/alleato o un eroe della squadra, con la sua vita massima. */
+type Ricevente = { o: Enemy | HeroRt; max: number };
+/** Un colpo di supporto: `cura` vita (già per questo colpo), `furia`, e i `secondi` di Furia che la Benedizione trasforma in vita. */
+type Sostegno = { cura: number; furia: Furia | undefined; secondi: number };
+const riceve = (s: DungeonState, i: number): Ricevente => ({ o: s.eroi[i]!.hero, max: s.eroi[i]!.runHero.max.vita });
+
+/** Cura `quanto` vita a `r`: quella che arriva davvero dà xp di Supporto e, col Cuore generoso, ne torna una parte a chi lancia. */
+function curaVita(s: DungeonState, r: Ricevente, quanto: number, da: [number, number], effetti: boolean): void {
+  const prima = r.o.vita;
+  r.o.vita = Math.min(r.max, prima + quanto);
+  if (effetti) ev(s, { t: 'cura', x: r2(r.o.x), z: r2(r.o.z), da });
+  const dato = r.o.vita - prima;
+  if (dato <= 0) return;
+  add(s.xp, 'supporto', dato * (RPG.xpDanno?.supporto ?? 1));
+  const k = s.runHero.perk?.supporto?.autocura;
+  if (k && r.o !== s.hero) s.hero.vita = Math.min(s.runHero.max.vita, s.hero.vita + dato * k);
+}
+
+/** Dà la Furia a `r`; con la Furia condivisa ne prendi una parte anche tu. */
+function dai(s: DungeonState, r: Ricevente, F: Furia): void {
+  if ('buffs' in r.o) potenziaEroe(r.o, s.tick, F); else potenziaAlleato(s, r.o, F);
+  const k = s.runHero.perk?.supporto?.furiaSuTe;
+  if (k && r.o !== s.hero) potenziaEroe(s.hero, s.tick, { danno: F.danno * k, velocita: F.velocita * k, secondi: F.secondi });
+}
+
+/** Un colpo di Cura e/o Furia su `r`. Benedizione: la Cura porta anche mezza Furia, la Furia cura un po'. */
+function sostieni(s: DungeonState, r: Ricevente, c: Sostegno, da: [number, number], effetti: boolean): void {
+  const B = s.runHero.perk?.supporto?.benedizione ? RPG.perk?.benedizione : undefined;
+  if (c.cura > 0) {
+    curaVita(s, r, c.cura, da, effetti);
+    if (B) dai(s, r, B.furia);
+  }
+  if (c.furia) {
+    dai(s, r, c.furia);
+    if (B) curaVita(s, r, B.curaAlSecondo * c.secondi, da, effetti);
+  }
+}
+
 /** Quanto è libero il cammino dall'eroe lungo (ux, uz) fino a `len` m: si ferma mezzo metro prima del primo muro. */
 export function libera(s: DungeonState, ux: number, uz: number, len: number): number {
   const h = s.hero;
@@ -93,53 +134,35 @@ export function canale(s: DungeonState, sp: RunSpell): boolean {
   return true;
 }
 
+/** Raggio di supporto (Cura a flusso, Furia a flusso): il primo alleato o evocazione davanti a te, o tutti quelli sulla linea col Fascio che
+ *  attraversa. Arena: senza un compagno o un'evocazione davanti vanno su chi le lancia. */
+function raggioSupporto(s: DungeonState, sp: RunSpell, w: number, len: number, effetti: boolean): void {
+  const h = s.hero;
+  const sulla: { r: Ricevente; lungo: number }[] = [];
+  const dentro = (x: number, z: number, raggio: number): number | null => { // a che distanza lungo il raggio sta, o null se è fuori dal corridoio
+    const dx = x - h.x, dz = z - h.z, lungo = dx * h.fx + dz * h.fz;
+    return lungo < -0.2 || lungo > len + raggio || Math.abs(dx * h.fz - dz * h.fx) > w + raggio ? null : lungo;
+  };
+  for (const e of s.enemies) {
+    const lungo = amica(s, e) ? dentro(e.x, e.z, e.def.raggio) : null;
+    if (lungo !== null) sulla.push({ r: { o: e, max: e.max }, lungo });
+  }
+  for (let i = 0; i < s.eroi.length; i++) {
+    if (i === s.cur || s.eroi[i]!.done || !compagno(s, i)) continue;
+    const lungo = dentro(s.eroi[i]!.hero.x, s.eroi[i]!.hero.z, s.eroi[i]!.runHero.raggio);
+    if (lungo !== null) sulla.push({ r: riceve(s, i), lungo });
+  }
+  sulla.sort((a, b) => a.lungo - b.lungo);
+  const scelti = s.runHero.perk?.supporto?.fascio ? sulla : sulla.slice(0, 1);
+  if (!scelti.length && s.pvp) scelti.push({ r: riceve(s, s.cur), lungo: 0 });
+  const dtStep = CANALE_OGNI / HZ, da: [number, number] = [r2(h.x), r2(h.z)];
+  for (const { r } of scelti) sostieni(s, r, { cura: (sp.cura ?? 0) * dtStep, furia: sp.furia, secondi: dtStep }, da, effetti);
+  if (scelti.length && sp.furia) add(s.xp, 'supporto', sp.costo * dtStep * RPG.xp.supportoLancio); // una volta per colpo, quanti siano
+}
+
 function colpiRaggio(s: DungeonState, sp: RunSpell, effetti: boolean): void {
   const h = s.hero, w = sp.larghezza ?? 0.6, len = h.canaleLen;
-  if (isSupporto(sp)) {
-    // Raggio di supporto (Cura a flusso, Furia a flusso): concentrato su un singolo bersaglio alleato o evocazione davanti a te
-    let bestE: Enemy | null = null, bestH = -1, bd = Infinity;
-    for (const e of s.enemies) {
-      if (!amica(s, e)) continue;
-      const dx = e.x - h.x, dz = e.z - h.z, lungo = dx * h.fx + dz * h.fz;
-      if (lungo < -0.2 || lungo > len + e.def.raggio || Math.abs(dx * h.fz - dz * h.fx) > w + e.def.raggio) continue;
-      if (lungo < bd) { bd = lungo; bestE = e; bestH = -1; }
-    }
-    for (let i = 0; i < s.eroi.length; i++) {
-      if (i === s.cur || s.eroi[i]!.done || !compagno(s, i)) continue;
-      const th = s.eroi[i]!.hero, raggio = s.eroi[i]!.runHero.raggio;
-      const dx = th.x - h.x, dz = th.z - h.z, lungo = dx * h.fx + dz * h.fz;
-      if (lungo < -0.2 || lungo > len + raggio || Math.abs(dx * h.fz - dz * h.fx) > w + raggio) continue;
-      if (lungo < bd) { bd = lungo; bestE = null; bestH = i; }
-    }
-    // Arena: senza un compagno o un'evocazione davanti, Cura e Furia a flusso vanno su chi le lancia
-    if (!bestE && bestH < 0 && s.pvp) bestH = s.cur;
-    const dtStep = CANALE_OGNI / HZ;
-    if (bestE) {
-      if (sp.cura) {
-        const prima = bestE.vita;
-        bestE.vita = Math.min(bestE.max, bestE.vita + sp.cura * dtStep);
-        if (bestE.vita > prima) add(s.xp, 'evocazione', (bestE.vita - prima) * (RPG.xpDanno?.evocazione ?? 1));
-        if (effetti) ev(s, { t: 'cura', x: r2(bestE.x), z: r2(bestE.z), da: [r2(h.x), r2(h.z)] });
-      }
-      if (sp.furia) {
-        potenziaAlleato(s, bestE, sp.furia);
-        add(s.xp, 'evocazione', sp.costo * dtStep * RPG.xp.evocazioneLancio);
-      }
-    } else if (bestH >= 0) {
-      const tr = s.eroi[bestH]!;
-      if (sp.cura) {
-        const prima = tr.hero.vita;
-        tr.hero.vita = Math.min(tr.runHero.max.vita, tr.hero.vita + sp.cura * dtStep);
-        if (tr.hero.vita > prima) add(s.xp, 'evocazione', (tr.hero.vita - prima) * (RPG.xpDanno?.evocazione ?? 1));
-        if (effetti) ev(s, { t: 'cura', x: r2(tr.hero.x), z: r2(tr.hero.z), da: [r2(h.x), r2(h.z)] });
-      }
-      if (sp.furia) {
-        potenziaEroe(tr.hero, s.tick, sp.furia);
-        add(s.xp, 'evocazione', sp.costo * dtStep * RPG.xp.evocazioneLancio);
-      }
-    }
-    return;
-  }
+  if (isSupporto(sp)) { raggioSupporto(s, sp, w, len, effetti); return; }
   const danno = sp.danno * (1 + buff(s, 'dannoDistruzione')) * (CANALE_OGNI / HZ);
   let primo: Enemy | null = null, pd = Infinity;
   for (const e of s.enemies.slice()) {
@@ -210,7 +233,7 @@ export function distanzaBomba(s: DungeonState, sp: RunSpell, fx: number, fz: num
  *  della gittata; un muro in mezzo la fa cadere prima. Vola `volo` s lungo un arco (gravità BOMBA_G) e arriva a terra proprio al tick giusto. */
 export function lanciaBomba(s: DungeonState, sp: RunSpell): void {
   const h = s.hero, supp = isSupporto(sp);
-  if (supp) add(s.xp, 'evocazione', sp.costo * RPG.xp.evocazioneLancio);
+  if (supp) add(s.xp, 'supporto', sp.costo * RPG.xp.supportoLancio);
   const d = distanzaBomba(s, sp, h.fx, h.fz);
   const N = Math.max(8, Math.round((sp.volo ?? 1.1) * HZ)), T = N * DT, y0 = MAGIA_Y;
   const orizz = Math.max(0, d - 0.4) / T; // parte 0,4 m davanti all'eroe
@@ -228,30 +251,17 @@ export function lanciaBomba(s: DungeonState, sp: RunSpell): void {
 export function scoppio(s: DungeonState, p: Proj): void {
   ev(s, { t: 'scoppio', x: r2(p.x), z: r2(p.z), r: r2(p.raggio), ...(p.elemento ? { el: p.elemento } : {}) });
   if (p.cura || p.furia) {
+    const c: Sostegno = { cura: p.cura ?? 0, furia: p.furia, secondi: p.furia?.secondi ?? 0 }, da: [number, number] = [r2(p.x), r2(p.z)];
     for (const e of s.enemies) {
       if (!amica(s, e)) continue;
       const dx = e.x - p.x, dz = e.z - p.z, r = p.raggio + e.def.raggio;
-      if (dx * dx + dz * dz > r * r) continue;
-      if (p.cura) {
-        const prima = e.vita;
-        e.vita = Math.min(e.max, e.vita + p.cura);
-        if (e.vita > prima) add(s.xp, 'evocazione', (e.vita - prima) * (RPG.xpDanno?.evocazione ?? 1));
-        ev(s, { t: 'cura', x: r2(e.x), z: r2(e.z), da: [r2(p.x), r2(p.z)] });
-      }
-      if (p.furia) potenziaAlleato(s, e, p.furia);
+      if (dx * dx + dz * dz <= r * r) sostieni(s, { o: e, max: e.max }, c, da, true);
     }
     for (let i = 0; i < s.eroi.length; i++) {
       const tr = s.eroi[i]!;
       if (tr.done || !compagno(s, i)) continue; // in Arena l'avversario no
       const dx = tr.hero.x - p.x, dz = tr.hero.z - p.z, r = p.raggio + tr.runHero.raggio;
-      if (dx * dx + dz * dz > r * r) continue;
-      if (p.cura) {
-        const prima = tr.hero.vita;
-        tr.hero.vita = Math.min(tr.runHero.max.vita, tr.hero.vita + p.cura);
-        if (tr.hero.vita > prima) add(s.xp, 'evocazione', (tr.hero.vita - prima) * (RPG.xpDanno?.evocazione ?? 1));
-        ev(s, { t: 'cura', x: r2(tr.hero.x), z: r2(tr.hero.z), da: [r2(p.x), r2(p.z)] });
-      }
-      if (p.furia) potenziaEroe(tr.hero, s.tick, p.furia);
+      if (dx * dx + dz * dz <= r * r) sostieni(s, riceve(s, i), c, da, true);
     }
     return;
   }
