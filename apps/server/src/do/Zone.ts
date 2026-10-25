@@ -37,6 +37,8 @@ function asLook(v: unknown): Look | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>, out = {} as Look;
   for (const k of LOOK_KEYS) { const x = o[k]; if (typeof x !== 'number' || !Number.isInteger(x) || x < 0 || x > 255) return null; out[k] = x; }
+  const a = o['abito']; // il vestito del Mercante: chi gioca senza ha quello di base (0)
+  out.abito = typeof a === 'number' && Number.isInteger(a) && a >= 0 && a <= 255 ? a : 0;
   return out;
 }
 /** Barca del look (#107): solo se scelta (la forma la ripulisce la sim; i colori comprati li ha già controllati il Worker). */

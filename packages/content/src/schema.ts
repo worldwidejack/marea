@@ -33,8 +33,18 @@ export function validateAll(c: { islands: IslandDef[]; avatar: AvatarDef; balanc
     if (hatIds.has(h.id)) errs.push(`cappello duplicato: ${h.id}`);
     hatIds.add(h.id);
     if (!(Number.isInteger(h.monete) && h.monete >= 0)) errs.push(`cappello ${h.id}: prezzo in monete non valido`);
-    if (h.mercante && h.monete <= 0) errs.push(`cappello ${h.id}: esclusivo del Mercante ma gratis`);
+    if (h.modello && h.modello !== `cap_${h.id}`) errs.push(`cappello ${h.id}: il modello si chiama cap_${h.id}`);
   }
+  const abIds = new Set<string>();
+  for (const a of c.avatar.abiti ?? []) {
+    if (abIds.has(a.id)) errs.push(`vestito duplicato: ${a.id}`);
+    abIds.add(a.id);
+    if (!(Number.isInteger(a.monete) && a.monete >= 0)) errs.push(`vestito ${a.id}: prezzo in monete non valido`);
+  }
+  const mc = c.avatar.mercante;
+  if (!mc) errs.push('avatar.mercante mancante');
+  else for (const [k, n, pool] of [['cappelli', mc.cappelli, c.avatar.cappelli.filter((h) => h.monete > 0).length], ['abiti', mc.abiti, (c.avatar.abiti ?? []).filter((a) => a.monete > 0).length]] as const)
+    if (n * (mc.riposo + 1) > pool) errs.push(`mercante: ${n} ${k} al giorno con ${mc.riposo} giorni di riposo ne vogliono ${n * (mc.riposo + 1)}, ce ne sono ${pool}`);
   const bc = c.avatar.barca, bcIds = new Set<string>();
   if (!bc || !Array.isArray(bc.colori)) errs.push('avatar.barca mancante');
   else {

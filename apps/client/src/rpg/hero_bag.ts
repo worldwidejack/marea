@@ -9,6 +9,7 @@ import { el } from '../ui/style.ts';
 import { GROUPS, SLOT_NOME, button, chip, fmtKg, iconOf, row, sec, statLines } from './items_ui.ts';
 import type { View } from './items_ui.ts';
 
+const NELLA_BORSA: readonly string[] = ['strumento', 'insetto', 'pesce'];
 const SLOTS: readonly SlotOggetto[] = ['arma', 'corpo', 'frecce', 'pozione', 'anello1', 'anello2'];
 const TAG: Record<SlotOggetto, string> = { arma: 'in mano', frecce: 'in uso', corpo: 'indossata', anello1: 'al dito', anello2: 'al dito', pozione: 'rapida' };
 const SLOT_OF: Partial<Record<string, Exclude<SlotOggetto, 'anello1' | 'anello2'>>> = { arma: 'arma', arco: 'arma', frecce: 'frecce', armatura: 'corpo', veste: 'corpo', pozione: 'pozione' };
@@ -66,7 +67,8 @@ export function renderBag(v: View, out: HTMLElement): void {
   }
 
   out.appendChild(sec('Zaino', `${fmtKg(d.carico)} / ${fmtKg(d.caricoMax)}`));
-  const ids = Object.keys(h.inv).filter((id) => (h.inv[id] ?? 0) > 0 && hasItem(id));
+  // strumenti, insetti e pesci stanno nella Borsa (rpg/borsa_ui.ts), non nello zaino del personaggio
+  const ids = Object.keys(h.inv).filter((id) => (h.inv[id] ?? 0) > 0 && hasItem(id) && !NELLA_BORSA.includes(itemDef(id).kind));
   if (!ids.length) out.appendChild(el('div', 'mz-rp-empty', 'Zaino vuoto.'));
   for (const g of GROUPS) {
     const items = ids.map((id) => itemDef(id)).filter((it) => g.kinds.includes(it.kind)).sort((a, b) => a.nome.localeCompare(b.nome, 'it'));

@@ -19,6 +19,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, DECOR } from '@marea/content';
 import { buyHat, newLot } from '@marea/sim/economy/actions.ts';
+import { buyAbito } from '@marea/sim/economy/mercante.ts';
 import { compraColoreDelGiorno, miglioraBottega } from '@marea/sim/economy/botteghe.ts';
 import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
@@ -58,7 +59,7 @@ const idList = (v: unknown): string[] | null => {
 };
 /** Contatori delle missioni mossi da un'azione andata a buon fine. */
 function eventiAzione(act: string): EventiMissione {
-  if (act === 'decor' || act === 'hat' || act === 'barca' || act === 'casa_compra' || act === 'casa_finitura') return { mercante: 1 }; // anche il negozio dei mobili (#265)
+  if (act === 'decor' || act === 'hat' || act === 'abito' || act === 'barca' || act === 'casa_compra' || act === 'casa_finitura') return { mercante: 1 }; // anche il negozio dei mobili (#265)
   return {};
 }
 /** Stato HTTP di un errore economico: richiesta rotta 400, cosa inesistente 404, il resto è un conflitto con lo stato (409). */
@@ -300,6 +301,11 @@ export class Lot extends DurableObject<Env> {
         const h = body['hat'];
         if (!isId(h) || !AVATAR.cappelli.some((x) => x.id === h)) return json({ error: 'Cappello sconosciuto' }, 400);
         return buyHat(lot, h, now);
+      }
+      case 'abito': {
+        const a = body['abito'];
+        if (!isId(a) || !AVATAR.abiti.some((x) => x.id === a)) return json({ error: 'Vestito sconosciuto' }, 400);
+        return buyAbito(lot, a, now);
       }
       case 'barca': {
         const id = body['id'];

@@ -236,8 +236,8 @@ export function createPorto(o: PortoOpts): Porto {
     return false;
   });
   registerTestHook('portoChiudi', () => { ui?.close(); return true; });
-  /** Prova un cappello (indice di avatar.json) sull'avatar, solo in locale: per gli screenshot dei cappelli. */
-  registerTestHook('portoCappello', (i) => { o.world.setLook({ ...o.world.look, cappello: Number(i) }); return true; });
+  /** Prova un cappello (e un vestito, indici di avatar.json) sull'avatar, solo in locale: per gli screenshot di cappelli e vestiti. */
+  registerTestHook('portoCappello', (i, ab) => { o.world.setLook({ ...o.world.look, cappello: Number(i), ...(ab === undefined ? {} : { abito: Number(ab) }) }); return true; });
   /** Vetrina delle decorazioni (solo test, per gli screenshot): tutte quelle di decor.json in fila davanti a te, ogni 2,5 m. */
   registerTestHook('portoVetrina', async (soloMercante) => {
     const m = await import('../render/decor.ts');

@@ -10,7 +10,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLIENT = path.join(ROOT, 'apps/client');
-export const BUDGET = { jsKB: 1315, jsGzipKB: 397, lazyChunkKB: 600, lazyChunkGzipKB: 180, lazyJsKB: 3000, lazyJsGzipKB: 900, initialMB: 3, rpgAssetsMB: 1.5, corseAssetsMB: 2.5, mobiliAssetsMB: 3, genteAssetsMB: 3, difesaAssetsMB: 4, textureMB: 16 };
+export const BUDGET = { jsKB: 1315, jsGzipKB: 397, lazyChunkKB: 600, lazyChunkGzipKB: 180, lazyJsKB: 3000, lazyJsGzipKB: 900, initialMB: 3, rpgAssetsMB: 1.5, corseAssetsMB: 2.5, mobiliAssetsMB: 3, genteAssetsMB: 3, abitiAssetsMB: 5, difesaAssetsMB: 4, textureMB: 16 };
 const REPORT = path.join(ROOT, 'tests/out/build.json');
 
 const kb = (n) => +(n / 1024).toFixed(1);
@@ -113,16 +113,26 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   const initialBytes = [...initialSet].reduce((a, f) => a + size(f), 0);
   const assetsBytes = files.filter((f) => f.startsWith('assets/')).reduce((a, f) => a + size(f), 0);
 
+  // vestiti e cappelli del Mercante (abt_, cap_, manifest_abiti.json) e i loro disegni 2D (assets/abiti/*.png, immagini del menù, non texture):
+  // scaricati solo da chi li indossa o apre il Mercante / la Borsa
+  let abitiAssetsBytes = files.filter((x) => x.startsWith('assets/abiti/')).reduce((a, x) => a + size(x), 0);
+  const abitiRel = 'assets/manifest_abiti.json';
+  if (files.includes(abitiRel)) {
+    try {
+      const ma = JSON.parse(fs.readFileSync(path.join(outDir, abitiRel), 'utf8'));
+      for (const m of Object.values(ma.models || {})) { const rel = resolveAsset(m && m.file ? m.file : ''); if (rel) abitiAssetsBytes += size(rel); else errs.push(`manifest_abiti.json elenca «${m && m.file}» ma il file non è nel dist`); }
+    } catch (e) { errs.push(`assets/manifest_abiti.json non è un JSON valido (${e.message})`); }
+  }
   // --- texture in VRAM (stima: w×h×4, senza mipmap) ---
   // le pelli della Difesa (#358) le carica solo difesa.html, una alla volta: budget a parte (difesaAssetsMB)
   const difesaAssetsBytes = files.filter((f) => f.startsWith('assets/difesa/')).reduce((a, f) => a + size(f), 0);
-  const pngs = files.filter((f) => f.endsWith('.png') && !f.startsWith('assets/difesa/'));
+  const pngs = files.filter((f) => f.endsWith('.png') && !f.startsWith('assets/difesa/') && !f.startsWith('assets/abiti/'));
   const textures = pngs.map((f) => { const s = pngSize(path.join(outDir, f)); return s ? { file: f, w: s.w, h: s.h, bytes: s.w * s.h * 4 } : null; }).filter(Boolean);
   const texBytes = textures.reduce((a, t) => a + t.bytes, 0);
 
   const version = JSON.parse(fs.readFileSync(path.join(outDir, 'version.json'), 'utf8'));
   const report = {
-    build: version.build, jsKB: kb(jsBytes), jsGzipKB: kb(gz), lazyJsKB: kb(lazyBytes), lazyJsGzipKB: kb(lazyGz), proveJsKB: kb(prove.reduce((a, f) => a + size(f), 0)), rpgAssetsMB: mb(rpgAssetsBytes), corseAssetsMB: mb(corseAssetsBytes), mobiliAssetsMB: mb(mobiliAssetsBytes), genteAssetsMB: mb(genteAssetsBytes), difesaAssetsMB: mb(difesaAssetsBytes), initialMB: mb(initialBytes), textureMB: mb(texBytes),
+    build: version.build, jsKB: kb(jsBytes), jsGzipKB: kb(gz), lazyJsKB: kb(lazyBytes), lazyJsGzipKB: kb(lazyGz), proveJsKB: kb(prove.reduce((a, f) => a + size(f), 0)), rpgAssetsMB: mb(rpgAssetsBytes), corseAssetsMB: mb(corseAssetsBytes), mobiliAssetsMB: mb(mobiliAssetsBytes), genteAssetsMB: mb(genteAssetsBytes), abitiAssetsMB: mb(abitiAssetsBytes), difesaAssetsMB: mb(difesaAssetsBytes), initialMB: mb(initialBytes), textureMB: mb(texBytes),
     files: files.length, assetsMB: mb(assetsBytes), atlas: manifest?.atlas || null, models: Object.keys(manifest?.models || {}).length, modelTris: tris,
     biggestJs: biggest, lazyChunks, textures, budget: BUDGET, outDir,
   };
@@ -135,6 +145,7 @@ export async function build({ outDir = path.join(CLIENT, 'dist'), quiet = false,
   if (report.lazyJsKB > BUDGET.lazyJsKB) errs.push(`JS caricato dopo, in tutto, ${report.lazyJsKB} KB oltre il limite di ${BUDGET.lazyJsKB} KB (${lazy.join(', ')})`);
   if (report.lazyJsGzipKB > BUDGET.lazyJsGzipKB) errs.push(`JS caricato dopo, in tutto, gzip ${report.lazyJsGzipKB} KB oltre il limite di ${BUDGET.lazyJsGzipKB} KB`);
   if (report.rpgAssetsMB > BUDGET.rpgAssetsMB) errs.push(`modelli del GDR ${report.rpgAssetsMB} MB oltre il limite di ${BUDGET.rpgAssetsMB} MB`);
+  if (report.abitiAssetsMB > BUDGET.abitiAssetsMB) errs.push(`vestiti e cappelli del Mercante ${report.abitiAssetsMB} MB oltre il limite di ${BUDGET.abitiAssetsMB} MB`);
   if (report.genteAssetsMB > BUDGET.genteAssetsMB) errs.push(`personaggi del Borgo ${report.genteAssetsMB} MB oltre il limite di ${BUDGET.genteAssetsMB} MB`);
   if (report.mobiliAssetsMB > BUDGET.mobiliAssetsMB) errs.push(`mobili ${report.mobiliAssetsMB} MB oltre il limite di ${BUDGET.mobiliAssetsMB} MB`);
   if (report.difesaAssetsMB > BUDGET.difesaAssetsMB) errs.push(`pelli della Difesa ${report.difesaAssetsMB} MB oltre il limite di ${BUDGET.difesaAssetsMB} MB`);

@@ -69,8 +69,13 @@ export type StanzaFinitura = { id: string; nome: string; motivo?: string; colori
  * `altezza` (m) serve solo alla scatola di ripiego. Ogni mobile può finire nella vetrina del giorno (economy/vetrina.ts). Il modello 3D è `mob_<id>` in manifest_mobili.json.
  * Nome e descrizione del gioco: `nome` qui, descrizione in mobili_testi.json (caricata solo da negozio e ARREDA, non pesa sull'avvio). */
 export type MobileDef = { id: string; nome: string; categoria: string; monete: number; posto: 'terra' | 'parete'; forma?: string; colori: string[]; celle?: [number, number]; altezza?: number };
-/** `monete`: prezzo (0 = gratis, di tutti). `mercante`: esclusivo del Mercante del Porto (#63): nell'editor si vede ma si compra solo da lui. */
-export type HatDef = { id: string; nome: string; monete: number; mercante?: boolean };
+/** `monete`: prezzo (0 = gratis, di tutti; gli altri li vende il Mercante in piazza, quattro al giorno). `modello`: il glb del cappello
+ *  (`cap_<id>`, manifest_abiti.json); senza, il cappello è fatto a scatole in game/avatar.ts. */
+export type HatDef = { id: string; nome: string; monete: number; modello?: string };
+/** Un vestito intero (#vestiti): il glb `abt_<id>` sopra il chr_base. `monete` 0 = gratis, di tutti; gli altri dal Mercante. */
+export type AbitoDef = { id: string; nome: string; monete: number };
+/** La vetrina del Mercante in piazza: quanti cappelli e vestiti al giorno, per quanti giorni uno uscito non torna, il primo giorno di Roma del calcolo. */
+export type MercanteDef = { cappelli: number; abiti: number; riposo: number; dal: number };
 export type DecorDef = { id: string; nome: string; monete: number; model: string; mercante?: boolean };
 /** Colore della barca (#107): per lo scafo e per la vela; `monete` > 0 = esclusivo del Mercante del Porto (si compra una volta, vale per tutti e due). */
 /** `mercante`: esclusiva del Mercante del Porto (sempre in vendita); `cantiere`: vernice del Cantiere navale del Borgo (solo il giorno che è in vetrina, #414). */
@@ -87,6 +92,9 @@ export type AvatarDef = {
   nomiColoriCapelli?: string[];
   vestiti: string[];
   cappelli: HatDef[];
+  /** Vestiti interi, in coda (gli indici salvati nel look restano quelli). */
+  abiti: AbitoDef[];
+  mercante: MercanteDef;
   emote: string[];
 };
 export type BalanceDef = {

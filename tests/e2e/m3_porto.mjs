@@ -1,6 +1,6 @@
 // Porto più ricco (#63-#65) sul server locale (wrangler dev, TEST_CLOCK:1). Luca vince monete con tre Regate (API, autopilot), poi nel
 // browser: (1) piazza con banco del Mercante, Bacheca e la Gente del Porto (avatar veri, giro, nomi); (2) E al banco apre il Mercante:
-// prova un cappello esclusivo sull'avatar, COMPRA, INDOSSA (salvato sul server), compra una decorazione esclusiva → nel magazzino di casa;
+// prova uno dei cappelli del giorno sull'avatar, COMPRA, INDOSSA (salvato sul server), compra una decorazione esclusiva → nel magazzino di casa;
 // senza monete l'avviso gentile (#4) senza chiamate; (3) la Bacheca mostra le 3 missioni del giorno uguali a quelle della sim, una compiuta
 // si RISCUOTE una volta sola (premio nel lotto); (4) PARLA con Gigi: battute di gente.json, AVANTI fino a CIAO; (5) telefono 390×844:
 // bottone, pannello, scheda delle battute; (6) draw call in piazza ≤ 100. Screenshot di tutto.
@@ -27,10 +27,10 @@ export default async function (ctx) {
   const { packInputs, quantize } = await sim('replay.ts');
   const { createRng } = await sim('rng.ts');
   const { missioniDelGiorno } = await sim('economy/missioni.ts');
+  const { vetrinaMercante } = await sim('economy/mercante.ts');
   const read = (f) => JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src', f), 'utf8'));
   const avatar = read('avatar.json'), decor = read('decor.json'), gente = read('gente.json'), islands = read('islands.json');
-  const KASA = avatar.cappelli.findIndex((h) => h.id === 'kasa'), kasa = avatar.cappelli[KASA];
-  const ancora = decor.find((d) => d.id === 'ancora'), palombaro = avatar.cappelli.find((h) => h.id === 'palombaro');
+  const ancora = decor.find((d) => d.id === 'ancora');
 
   // un giorno (con l'orologio di test) in cui almeno una missione si fa in fretta: partite, medaglie, acquisti, cantiere
   const base = Date.now() + ((Date.now() % DAY) > DAY - 20 * 60_000 ? 30 * 60_000 : 0);
@@ -38,6 +38,10 @@ export default async function (ctx) {
   while (k < 30 && !missioniDelGiorno('luca', Math.floor((base + k * DAY) / DAY)).some((m) => FATTIBILI.includes(m.tipo) && (m.tipo !== 'partite' || m.n <= 3))) k++;
   const OFF = base - Date.now() + k * DAY;
   const oggi = missioniDelGiorno('luca', Math.floor((Date.now() + OFF) / DAY));
+  // i cappelli del Mercante quel giorno: si compra il più economico, l'avviso «ti mancano» col più caro
+  const delGiorno = vetrinaMercante(Date.now() + OFF).cappelli.map((id) => avatar.cappelli.find((h) => h.id === id)).sort((a, b) => a.monete - b.monete);
+  const kasa = delGiorno[0], KASA = avatar.cappelli.indexOf(kasa), palombaro = delGiorno[delGiorno.length - 1];
+  const PZ = `cappello:${kasa.id}`, PZ_CARO = `cappello:${palombaro.id}`;
   ctx.log(`giorno +${k}: missioni ${oggi.map((m) => `${m.tipo}×${m.n}`).join(', ')}`);
 
   let dev = null, log = '';
@@ -111,30 +115,30 @@ export default async function (ctx) {
       assert(mosso > 0.5, 'Capitan Remo non cammina');
     });
 
-    await ctx.test('Mercante: E apre il negozio; prova del cappello esclusivo; COMPRA e INDOSSA (salvato sul server)', async () => {
+    await ctx.test('Mercante: E apre il negozio; prova di un cappello del giorno; COMPRA e INDOSSA (salvato sul server)', async () => {
       const m = await posto('mercante');
       await vai(m.fronte.x, m.fronte.z); await hook('setZoom', 0.7);
       await ctx.waitState(page, (s) => s.porto.near === 'mercante', 5000);
       assert(await page.locator('#mzPortoBtn.on').isVisible(), 'bottone MERCANTE non visibile');
       await page.keyboard.press('KeyE');
       await ctx.waitState(page, (s) => s.porto.open === 'mercante', 8000);
-      await page.waitForSelector('#mzPortoPanel.on [data-item="kasa"]', { timeout: 5000 });
+      await page.waitForSelector(`#mzPortoPanel.on [data-item="${PZ}"]`, { timeout: 5000 });
       await ctx.shot(page, 'desktop_mercante');
-      const bb = async () => JSON.stringify(await page.locator('#mzPortoPanel [data-item="kasa"]').boundingBox());
-      ctx.log('kasa', await bb(), await page.evaluate(() => { const e = document.querySelector('#mzPortoPanel [data-item="kasa"] [data-act="prova"]'); const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return top ? top.outerHTML.slice(0, 120) : null; }));
-      await sleep(500); ctx.log('kasa dopo', await bb());
+      const bb = async () => JSON.stringify(await page.locator(`#mzPortoPanel [data-item="${PZ}"]`).boundingBox());
+      ctx.log(kasa.id, await bb(), await page.evaluate((pz) => { const e = document.querySelector(`#mzPortoPanel [data-item="${pz}"] [data-act="prova"]`); const r = e.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return top ? top.outerHTML.slice(0, 120) : null; }, PZ));
+      await sleep(500); ctx.log(`${kasa.id} dopo`, await bb());
       const txt = await page.locator('#mzPortoPanel').innerText();
-      assert(/esclusiva/i.test(txt) && txt.includes(kasa.nome) && txt.includes(gente.gente[0].nome), 'negozio: ' + txt.slice(0, 300));
-      await page.locator('#mzPortoPanel [data-item="kasa"] [data-act="prova"]').click();
+      assert(txt.includes(kasa.nome) && txt.includes(gente.gente[0].nome) && /Merce nuova a mezzanotte/.test(txt), 'negozio: ' + txt.slice(0, 300));
+      await page.locator(`#mzPortoPanel [data-item="${PZ}"] [data-act="prova"]`).click();
       await ctx.waitState(page, (s, i) => s.wp2_avatar.look.cappello === i, 3000, KASA);
       await ctx.shot(page, 'desktop_mercante_prova');
       const p0 = (await st()).lot.monete;
-      await page.locator('#mzPortoPanel [data-item="kasa"] [data-act="compra"]').click();
+      await page.locator(`#mzPortoPanel [data-item="${PZ}"] [data-act="compra"]`).click();
       await ctx.waitState(page, (s, want) => s.lot.monete === want, 8000, p0 - kasa.monete);
-      await page.locator('#mzPortoPanel [data-item="kasa"] [data-act="indossa"]').click();
+      await page.locator(`#mzPortoPanel [data-item="${PZ}"] [data-act="indossa"]`).click();
       await ctx.waitState(page, (s) => /ti sta benissimo/.test(s.porto.ui.note ?? ''), 8000);
       assert((await get('/api/me')).body.look.cappello === KASA, 'cappello non salvato');
-      assert((await get('/api/lot')).body.posseduti.includes('kasa'), 'kasa non posseduto');
+      assert((await get('/api/lot')).body.posseduti.includes(kasa.id), `${kasa.id} non posseduto`);
       await ctx.shot(page, 'desktop_mercante_comprato');
     });
 
@@ -150,7 +154,7 @@ export default async function (ctx) {
       let hats = 0; page.on('request', (r) => { if (new URL(r.url()).pathname === '/api/look/hat') hats++; });
       const perle = (await st()).lot.monete;
       assert(perle < palombaro.monete, 'troppe monete per provare l’avviso: ' + perle);
-      await page.locator('#mzPortoPanel [data-item="palombaro"] [data-act="compra"]').click();
+      await page.locator(`#mzPortoPanel [data-item="${PZ_CARO}"] [data-act="compra"]`).click();
       const miss = page.locator('#mzPortoPanel .mz-pt-miss');
       await miss.waitFor({ timeout: 3000 });
       const t = await miss.innerText();

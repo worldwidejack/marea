@@ -21,6 +21,10 @@ export function validaLook(v: Record<string, unknown>): Look | string {
     if (typeof x !== 'number' || !Number.isInteger(x) || x < 0 || x >= n) return `Scelta non valida: ${k}`;
     out[k] = x;
   }
+  // il vestito intero del Mercante: assente = la T-shirt di base (0)
+  const a = v['abito'] ?? 0;
+  if (typeof a !== 'number' || !Number.isInteger(a) || a < 0 || a >= AVATAR.abiti.length) return 'Scelta non valida: abito';
+  out.abito = a;
   return out;
 }
 

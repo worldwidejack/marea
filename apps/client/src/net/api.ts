@@ -122,6 +122,8 @@ export type Api = {
   nome(n: string): Promise<{ ok: boolean; nome: string }>;
   /** Compra un cappello a pagamento, una volta (POST /api/look/hat con l'id di avatar.json). 409 con `manca` senza monete. */
   buyHat(id: string): Promise<LotState>;
+  /** Compra un vestito dal Mercante (solo quelli in vetrina oggi). */
+  buyAbito(id: string): Promise<LotState>;
   /** La tua barca (#107): colori e nome (POST /api/barca), il server ripulisce il nome e controlla i colori esclusivi. Risponde con la barca salvata. */
   barca(b: BarcaLook): Promise<BarcaLook>;
   /** Compra un colore della barca, una volta (POST /api/barca/colore): le esclusive dal Mercante, le vernici del Cantiere il giorno che sono in vetrina. 409 con `manca` senza monete. */
@@ -210,7 +212,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       if (!isObj(d) || typeof d['id'] !== 'string') throw new ApiError(500, 'Risposta del server non valida');
       const lotto = isLot(d['lotto']) ? d['lotto'] : null;
       if (lotto && typeof d['now'] !== 'number') clock(lotto.nowMs);
-      return { id: d['id'], nome: String(d['nome'] ?? ''), look: d['look'] as Look, lotto, slot: typeof d['slot'] === 'number' ? d['slot'] : null };
+      return { id: d['id'], nome: String(d['nome'] ?? ''), look: { abito: 0, ...(d['look'] as Look) }, lotto, slot: typeof d['slot'] === 'number' ? d['slot'] : null };
     },
     async lot(id) { return asLot(await call('GET', id ? `/api/lot/${encodeURIComponent(id)}` : '/api/lot')); },
     async lots() {
@@ -329,6 +331,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       return { ok: true, nome: d['nome'] as string };
     },
     buyHat: (id) => post('/api/look/hat', { cappello: id }),
+    buyAbito: (id) => post('/api/look/abito', { abito: id }),
     async barca(b) {
       const d = await call('POST', '/api/barca', { scafo: b.scafo, vela: b.vela, nome: b.nome });
       if (!isObj(d) || !isObj(d['barca'])) throw new ApiError(500, 'Risposta del server non valida');

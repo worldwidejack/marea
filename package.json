@@ -15,7 +15,8 @@
     "check": "node tools/check_types.mjs",
     "test": "node tests/run.mjs all",
     "deploy": "node tools/deploy.mjs",
-    "assets": "node tools/build_assets.mjs"
+    "assets": "node tools/build_assets.mjs",
+    "anteprime-abiti": "node tools/anteprime_abiti.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260929.1",
