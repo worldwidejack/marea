@@ -61,7 +61,7 @@ export function creaAzioneRetino(u: RetinoUso): AzioneRetino {
       }
       return eventi.splice(0);
     },
-    annulla() { fase = 'guardia'; carica = 0; colpo = null; eventi.length = 0; },
+    annulla() { fase = 'guardia'; carica = 0; colpo = null; eventi.length = 0; giuPrima = false; },
     get fase() { return fase; },
     get carica() { return carica; },
     get colpo() { return colpo; },

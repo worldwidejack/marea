@@ -65,7 +65,10 @@ test('retino: annulla riporta in guardia; durante il colpo A non fa niente', () 
   const a = creaAzioneRetino(uso);
   a.premi(true); corri(a, 0.1); a.annulla();
   assert.equal(a.fase, 'guardia'); assert.equal(a.colpo, null); assert.equal(a.carica, 0);
-  a.premi(false); a.premi(true); a.premi(false);
+  // dopo annulla, premere A di nuovo carica subito senza bisogno di un rilascio fittizio
+  a.premi(true);
+  assert.equal(a.fase, 'carica');
+  a.premi(false);
   assert.equal(a.fermo(), true);
   a.premi(true); a.premi(false);
   assert.deepEqual(corri(a, 3).map((x) => x.e), ['fendente', 'impatto', 'fine'], 'un solo colpo');

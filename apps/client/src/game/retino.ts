@@ -20,7 +20,7 @@ const { rete, uso } = CFG;
 /** Quanto sopra il prato sta il centro di un insetto, e quanto dentro la sacca si vede l'insetto preso (frazione della sacca). */
 const CENTRO = 0.1, NELLA_SACCA = 0.45;
 /** A che distanza da A non arriva più niente prima di lasciar perdere la carica (un altro bottone ha preso A). */
-const SENZA_A_MS = 160;
+const SENZA_A_MS = 500;
 
 export type Retino = {
   /** Carica o colpo in corso: A è del retino. */
