@@ -39,7 +39,7 @@ export type Controls = {
   /** Pozioni rimaste. */
   setState(pozioni: number): void;
   /** I preferiti: il personaggio com'è adesso, cosa hai in mano e la ricarica della magia in mano 0..1 (1 = pronta). */
-  setPreferiti(s: { hero: HeroState | null; mano: InMano; ricarica: number }): void;
+  setPreferiti(s: { hero: HeroState | null; mano: InMano; ricarica: number; ricariche?: Record<string, number> }): void;
   hide(): void;
   dispose(): void;
 };

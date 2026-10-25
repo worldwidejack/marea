@@ -143,6 +143,8 @@ export type DungeonView = {
     vita: number; magicka: number; stamina: number; max: Record<AttrId, number>;
     /** Secondi di ricarica della magia rimasti (0 = pronta). */
     ricaricaMagia: number;
+    /** Secondi di ricarica per singola magia (id -> secondi rimasti). */
+    ricaricaMagie?: Record<string, number>;
     /** Perk Scarica: quanto è ricaricata, 0..1 (1 = pronta); assente senza il perk. Carica massima: 0..1 verso il colpo letale mentre
      *  tieni il colpo (1 = pronto); assente senza il perk. */
     scarica?: number; massima?: number;

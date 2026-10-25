@@ -4,7 +4,7 @@ import { evocazioneNemica } from './pvp.ts';
 import type { RunResult } from '../rpg/types.ts';
 import { hashJson } from '../hash.ts';
 import type { CompagnoView, DungeonView, EnemyAnim, HeroAnim } from './types.ts';
-import type { DungeonState, Enemy } from './state.ts';
+import type { DungeonState, Enemy, HeroRt } from './state.ts';
 import { conEroe, finita, parte } from './state.ts';
 import { cellOf } from './map.ts';
 import { pesoZaino } from './loot.ts';
@@ -56,6 +56,12 @@ function enemyAnim(e: Enemy): { anim: EnemyAnim; t: number } {
   return { anim: e.st, t: 0 };
 }
 
+function ricaricheMagie(h: HeroRt): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (h.cdMagie) for (const k in h.cdMagie) { const v = h.cdMagie[k]; if (v && v > 0) out[k] = v / HZ; }
+  return out;
+}
+
 export function viewOf(s: DungeonState): DungeonView {
   const h = s.hero, rh = s.runHero, ha = heroAnim(s);
   return {
@@ -64,7 +70,7 @@ export function viewOf(s: DungeonState): DungeonView {
       x: h.x, z: h.z, fx: h.fx, fz: h.fz, anim: ha.anim, t: ha.t, carica: h.act === 'carica' || h.act === 'tende' ? h.carica : 0,
       ...(ha.anim === 'attacca' ? { stile: h.stile } : {}),
       vita: h.vita, magicka: h.magicka, stamina: h.stamina, max: { ...rh.max },
-      ...canaleVista(s), ricaricaMagia: h.cdMagia / HZ, ...perkVista(s), frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0, arma: h.arma.id, rallentato: h.lento > 0,
+      ...canaleVista(s), ricaricaMagia: h.cdMagia / HZ, ricaricaMagie: ricaricheMagie(h), ...perkVista(s), frecce: h.frecce, pozioni: h.pozioni, protetto: h.protetto > 0, arma: h.arma.id, rallentato: h.lento > 0,
       ...inMano(s),
       ...(s.correnti.length ? { vento: !s.done && nelVento(s), riparo: !s.done && alRiparo(s) } : {}), ...(h.spT > 0 ? { spinto: true } : {}),
       ...(fucina(s) ? { brucia: h.brucia > 0, bagnato: !s.done && inGetto(s, h.x, h.z) } : {}),

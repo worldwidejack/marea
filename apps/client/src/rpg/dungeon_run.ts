@@ -440,7 +440,7 @@ export function startRun(ctx: RunCtx, o: {
       // Scarica (perk): bottone E solo con l'arco in mano; si riempie mentre la ricarica passa
       controls.setScarica(phase === 'play' && !!s.runHero.perk?.scarica && s.hero.arma.kind === 'arco' && !h.magia, h.scarica ?? 1);
       controls.setState(h.pozioni);
-      controls.setPreferiti({ hero: heroNow(s), mano: { arma: h.arma, magia: h.magia ?? null }, ricarica: spell ? 1 - h.ricaricaMagia / Math.max(0.01, spell.ricarica) : 1 });
+      controls.setPreferiti({ hero: heroNow(s), mano: { arma: h.arma, magia: h.magia ?? null }, ricarica: spell ? 1 - h.ricaricaMagia / Math.max(0.01, spell.ricarica) : 1, ricariche: h.ricaricaMagie });
       const cur = mouse?.attivo && (!!h.magia || s.hero.arma.kind === 'arco') ? 'crosshair' : ''; // il cursore diventa un mirino
       if (cur !== cursore) { cursore = cur; ctx.canvas.style.cursor = cur; }
     },

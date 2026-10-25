@@ -32,6 +32,8 @@ export type HeroRt = {
   /** Le mani tengono la magia preparata (v6): la A la lancia, l'arma sta a riposo. Si alterna col tasto C (o con `equip` dal menu). */
   incanta: boolean;
   cdMagia: number;
+  /** Ricarica per singola magia: id magia -> tick rimasti prima di poterla rilanciare. */
+  cdMagie: Record<string, number>;
   buffs: { mod: string; valore: number; fine: number }[];
   /** Colpi a segno con l'arma fragile (per usura e rottura). */
   colpiFragile: number;
@@ -301,7 +303,7 @@ export function createParty(def: DungeonDef, seed: number, eroi: readonly EroeDe
         frecce: hero.frecce ? hero.frecce.n : 0,
         pozioni: hero.pozione !== null ? (hero.pozioni[hero.pozione]?.n ?? 0) : 0,
         incanta: !!hero.manoMagia && hero.magia !== null,
-        cdMagia: 0, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0,
+        cdMagia: 0, cdMagie: {}, buffs: [], colpiFragile: hero.arma.usura ?? 0, lento: 0, lentoMolt: 1, spX: 0, spZ: 0, spT: 0, spUrto: 0, brucia: 0, bruciaDps: 0, bruciaAcc: 0,
         barr: 0, pressione: hero.arma.traits.lame?.cariche ?? 0, ultimoAttacco: -1e6, ritmo: 0, tic: -1, rintocco: false, molla: hero.arma.traits.carillon?.colpi ?? 0, mollaT: 0, ecoT: -1e6, lancT: [],
         prevA: false, prevC: false, prevD: false, prevE: false, cdScarica: 0, raffica: 0, raffT: 0, massimaP: 0, massimo: false, canale: 0, canaleLen: 0,
         rottT: 0, brezza: 0, brezzaM: 0, poppa: false,
