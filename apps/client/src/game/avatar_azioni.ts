@@ -87,17 +87,17 @@ export function creaGestoreAzioni(o: {
         const env = Math.sin(u * Math.PI);
         const s = env * Math.sin(u * 6 * Math.PI);
         rot(B.spine, X, -0.22 + s * 0.14);
-        rot(B.armL, X, -1.15 + s * 0.2);
-        rot(B.armL, Y, 0.25);
-        rot(B.foreL, X, -0.45 + s * 0.1);
-        rot(B.armR, X, -1.15 + s * 0.2);
-        rot(B.armR, Y, -0.25);
-        rot(B.foreR, X, -0.45 + s * 0.1);
+        rot(B.armL, X, 1.15 + s * 0.2);
+        rot(B.armL, Y, -0.25);
+        rot(B.foreL, X, 0.45 + s * 0.1);
+        rot(B.armR, X, 1.15 + s * 0.2);
+        rot(B.armR, Y, 0.25);
+        rot(B.foreR, X, 0.45 + s * 0.1);
         rot(B.head, X, -0.22);
         if (o.rig) {
           o.rig.upper.rotation.x = -0.22 + s * 0.14;
-          o.rig.armL.rotation.x = -1.15 + s * 0.2;
-          o.rig.armR.rotation.x = -1.15 + s * 0.2;
+          o.rig.armL.rotation.x = 1.15 + s * 0.2;
+          o.rig.armR.rotation.x = 1.15 + s * 0.2;
         }
       } else if (inCorso === 'pala_sasso') {
         if (u < 0.48) {
