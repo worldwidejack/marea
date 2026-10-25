@@ -49,6 +49,18 @@
   { "id": "ev_banchetto", "skill": "evocazione", "nome": "Banchetto", "livello": 60, "richiede": "ev_cattivelle", "mods": { "banchetto": 0.1 }, "descr": "Le tue evocazioni ti curano del 10 % del danno che fanno." },
   { "id": "ev_doppio", "skill": "evocazione", "nome": "Doppio richiamo", "livello": 90, "richiede": "ev_sangue", "mods": { "richiamoDoppio": 1 }, "descr": "Puoi avere due evocazioni insieme invece di una (con il Patto di sangue ti segue l'ultima evocata)." },
 
+  { "id": "su_luce", "skill": "supporto", "nome": "Mani di luce", "livello": 20, "mods": { "potenzaCura": 0.25 }, "descr": "Cura a flusso e Cura a bomba ridanno il 25 % di vita in più." },
+  { "id": "su_ardore", "skill": "supporto", "nome": "Sangue caldo", "livello": 20, "mods": { "potenzaFuria": 0.25 }, "descr": "La Furia dà il 25 % in più di danno e di velocità d'attacco." },
+  { "id": "su_serenita", "skill": "supporto", "nome": "Mente serena", "livello": 30, "richiede": "su_luce", "mods": { "costoSupporto": -0.25 }, "descr": "Cura e Furia costano il 25 % di Magicka in meno." },
+  { "id": "su_cuore", "skill": "supporto", "nome": "Cuore generoso", "livello": 35, "richiede": "su_luce", "mods": { "autocura": 0.25 }, "descr": "Quando curi qualcun altro, ti ridai il 25 % di quello che gli dai." },
+  { "id": "su_fiamma", "skill": "supporto", "nome": "Fiamma duratura", "livello": 35, "richiede": "su_ardore", "mods": { "durataFuria": 0.5 }, "descr": "La Furia dura il 50 % in più." },
+  { "id": "su_mani", "skill": "supporto", "nome": "Mani veloci", "livello": 40, "richiede": "su_serenita", "mods": { "ricaricaSupporto": -0.4 }, "descr": "Cura e Furia si ricaricano il 40 % prima: le bombe si lanciano molto più spesso." },
+  { "id": "su_fascio", "skill": "supporto", "nome": "Fascio che attraversa", "livello": 45, "richiede": "su_serenita", "mods": { "fascio": 1 }, "descr": "I raggi di Cura e Furia a flusso raggiungono tutti gli alleati sulla linea, non solo il primo." },
+  { "id": "su_condivisa", "skill": "supporto", "nome": "Furia condivisa", "livello": 50, "richiede": "su_fiamma", "mods": { "furiaSuTe": 0.5 }, "descr": "Quando dai Furia a qualcun altro, ne prendi metà anche tu." },
+  { "id": "su_fonte", "skill": "supporto", "nome": "Fonte di vita", "livello": 55, "richiede": "su_cuore", "mods": { "potenzaCura": 0.35 }, "descr": "Altro +35 % di vita con Cura a flusso e Cura a bomba." },
+  { "id": "su_furore", "skill": "supporto", "nome": "Furore", "livello": 60, "richiede": "su_condivisa", "mods": { "potenzaFuria": 0.35 }, "descr": "Altro +35 % di danno e di velocità d'attacco con la Furia." },
+  { "id": "su_benedizione", "skill": "supporto", "nome": "Benedizione", "livello": 90, "richiede": "su_fonte", "mods": { "benedizione": 1 }, "descr": "Cura e Furia si fondono: chi riceve una Cura prende anche mezza Furia per 3 secondi, chi riceve una Furia viene anche curato un po'." },
+
   { "id": "fo_parsimonia", "skill": "forgiatura", "nome": "Mano parsimoniosa", "livello": 20, "mods": { "materialiForgia": -0.2 }, "descr": "Forgiare costa il 20 % di materiale in meno." },
   { "id": "fo_corazzaio", "skill": "forgiatura", "nome": "Corazzaio", "livello": 30, "richiede": "fo_parsimonia", "mods": { "difesaForgiata": 15 }, "descr": "+15 di difesa a qualunque armatura forgiata." },
   { "id": "fo_armaiolo", "skill": "forgiatura", "nome": "Armaiolo", "livello": 30, "richiede": "fo_parsimonia", "mods": { "dannoForgiato": 15 }, "descr": "+15 di danno al secondo a qualunque arma da mischia forgiata (sulle armi lente è più danno a colpo, sulle veloci meno)." },

@@ -116,25 +116,33 @@ function hasEvocazionePerk(h: HeroState): boolean {
   return false;
 }
 
-function spellsOf(h: HeroState, m: Mods, maxMagicka: number): RunSpell[] {
+/** La Furia di una magia con la potenza `k` (danno e velocità, frazioni: mai oltre 0,95, sopra l'1 sarebbero moltiplicatori) e la durata × `kd`. */
+const furiaOf = (f: NonNullable<RunSpell['furia']>, k: number, kd: number): NonNullable<RunSpell['furia']> =>
+  ({ danno: r2(Math.min(0.95, f.danno * k)), velocita: r2(Math.min(0.95, f.velocita * k)), secondi: r2(f.secondi * kd) });
+
+function spellsOf(h: HeroState, m: Mods, maxMagicka: number, arena: boolean): RunSpell[] {
   const out: RunSpell[] = [];
   const evPerk = hasEvocazionePerk(h);
+  // Supporto: Cura e Furia crescono col livello dell'abilità e coi perk (come il danno di Distruzione); in Arena hanno un tetto
+  const ks = skillBonus(h, 'supporto', dannoPerLv());
+  const potenza = (k: number): number => arena ? Math.min(k, RPG.arena.supportoMax) : k;
   for (const id of h.magie) {
     let s;
     try { s = spellDef(id); } catch { continue; }
-    const dist = s.scuola === 'distruzione';
-    const rawCosto = Math.max(1, Math.round(s.costo * clamp(1 + mod(m, dist ? 'costoDistruzione' : 'costoEvocazione'), 0.2, 3)));
+    const dist = s.scuola === 'distruzione', sup = s.scuola === 'supporto';
+    const rawCosto = Math.max(1, Math.round(s.costo * clamp(1 + mod(m, dist ? 'costoDistruzione' : sup ? 'costoSupporto' : 'costoEvocazione'), 0.2, 3)));
     // Con almeno un perk di Evocazione le evocazioni più costose si possono sempre lanciare consumando anche tutta la Magicka disponibile
     const costo = s.evoca && evPerk ? Math.min(rawCosto, Math.max(1, maxMagicka)) : rawCosto;
     const k = 1 + mod(m, 'dannoDistruzione') + skillBonus(h, 'distruzione', dannoPerLv());
     const mole = mod(m, 'raggioMagia') > 0 ? 1 + mod(m, 'raggioMagia') : 0; // Grandi Magie
     out.push({
       ...(mole && (dist || s.cura || s.furia) ? { mole } : {}), ...(s.elemento ? { elemento: s.elemento } : {}),
-      id: s.id, scuola: s.scuola, costo, ricarica: s.ricarica, danno: dist ? r2((s.danno ?? 0) * k) : 0, velocita: s.velocita ?? 0, raggio: r2((s.raggio ?? 0) * ((dist || s.cura || s.furia ? mole : 0) || 1)),
+      id: s.id, scuola: s.scuola, costo, ricarica: sup ? r2(s.ricarica * clamp(1 + mod(m, 'ricaricaSupporto'), 0.2, 2)) : s.ricarica, danno: dist ? r2((s.danno ?? 0) * k) : 0, velocita: s.velocita ?? 0, raggio: r2((s.raggio ?? 0) * ((dist || s.cura || s.furia ? mole : 0) || 1)),
       sanguina: s.sanguina ?? 0, evoca: s.evoca ?? null, durata: s.evoca ? r2((s.durata ?? 0) * (1 + mod(m, 'durataEvocazione'))) : 0,
       ...(s.forma ? { forma: s.forma } : {}), ...(s.gittata ? { gittata: s.gittata } : {}), ...(s.larghezza ? { larghezza: s.larghezza } : {}),
       ...(s.volo ? { volo: s.volo } : {}), ...(s.rallenta ? { rallenta: { ...s.rallenta } } : {}),
-      ...(s.cura ? { cura: s.cura } : {}), ...(s.furia ? { furia: { ...s.furia } } : {}),
+      ...(s.cura ? { cura: r2(s.cura * potenza(1 + ks + mod(m, 'potenzaCura'))) } : {}),
+      ...(s.furia ? { furia: furiaOf(s.furia, potenza(1 + ks + mod(m, 'potenzaFuria')), 1 + mod(m, 'durataFuria')) } : {}),
     });
   }
   return out;
@@ -181,6 +189,9 @@ function perkOf(h: HeroState, m: Mods): RunPerk | undefined {
   if (P('combustione') > 0) p.combustione = true;
   if (P('catena') > 0) p.catena = true;
   if (P('medicoCampo') > 0) p.campo = true;
+  if (P('autocura') > 0 || P('furiaSuTe') > 0 || P('fascio') > 0 || P('benedizione') > 0) {
+    p.supporto = { autocura: clamp(P('autocura'), 0, 1), furiaSuTe: clamp(P('furiaSuTe'), 0, 1), fascio: P('fascio') > 0, benedizione: P('benedizione') > 0 };
+  }
   if (perenne && h.evocato) p.evocato = h.evocato;
   return Object.keys(p).length ? p : undefined;
 }
@@ -208,7 +219,7 @@ export function buildRunHero(h: HeroState, o?: { arena?: boolean }): RunHero {
   const arma: RunWeapon = arena ? { ...w0, danno: wDanno } : w0;
   const f0 = arrowsOf(h, m);
   const frecce: RunArrows | null = f0 && arena ? { ...f0, danno: capDanno(f0.danno) } : f0;
-  const magie = spellsOf(h, m, max.magicka).map((s) => arena && s.danno > 0 ? { ...s, danno: capDanno(s.danno) } : s);
+  const magie = spellsOf(h, m, max.magicka, arena).map((s) => arena && s.danno > 0 ? { ...s, danno: capDanno(s.danno) } : s);
   const pozioni = potionsOf(h, m);
   const mi = h.equip.magia ? magie.findIndex((s) => s.id === h.equip.magia) : -1;
   const pi = h.equip.pozione ? pozioni.findIndex((p) => p.id === h.equip.pozione) : -1;
