@@ -52,7 +52,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
   let mobiliMod: typeof import('../render/mobili.ts') | null = null;
   const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
 
-  let modo: Modo | null = null, aperto = false, busy = false, aWas = false, bWas = false, vicino: Vicino | null = null, target: PostoMobile | null = null, ok = false, prevKey = '';
+  let modo: Modo | null = null, aperto = false, busy = false, aWas = false, bWas = false, vicino: Vicino | null = null, target: PostoMobile | null = null, ok = false, prevKey = '', confermaSvuota = false;
   const lot = (): LotState | null => o.lotto?.state() ?? null;
   const mia = () => !!o.api && !!o.lotto && o.slot !== null && o.stanza.dentro() === o.slot && w.mode === 'walk';
   const def = (id: string) => mobile(id); // anche le decorazioni del Mercante («decor:<id>»)
@@ -83,7 +83,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     busy = true;
     try { o.lotto.set(await fn()); dopo?.(); return true; } catch (e) { errore(e); return false; } finally { busy = false; disegna(); }
   };
-  const chiudi = () => { aperto = false; sheet.classList.remove('on'); sheet.replaceChildren(); disegna(); };
+  const chiudi = () => { aperto = false; confermaSvuota = false; sheet.classList.remove('on'); sheet.replaceChildren(); disegna(); };
   const inizia = (m: Modo) => {
     chiudi(); modo = m; prevKey = '';
     void import('../render/mobili.ts').then((mod) => { mobiliMod = mod; prevKey = ''; }).catch(() => {});
@@ -125,19 +125,40 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
     aperto = true;
     caricaFinitureTesti();
     const st = o.stanza.stanza() ?? 'terra', stanzaAttiva = st === 'piano' ? 'piano' : 'terra';
+    if (st === 'cantina') tab = 'mobili';
     const c = casaDi(l), mag = c.magazzino ?? {}, scelte = finitureScelte(l, stanzaAttiva);
-    const schede = schedeKit<Scheda>([{ id: 'mobili', nome: 'Mobili' }, { id: 'pavimento', nome: 'Pavimento' }, { id: 'carta', nome: 'Pareti' }], tab, (t) => { tab = t; apri(); });
+    const schede = st === 'cantina' ? null : schedeKit<Scheda>([{ id: 'mobili', nome: 'Mobili' }, { id: 'pavimento', nome: 'Pavimento' }, { id: 'carta', nome: 'Pareti' }], tab, (t) => { tab = t; confermaSvuota = false; apri(); });
     const corpo: Node[] = [];
     if (tab === 'mobili') {
-      const ids = Object.keys(mag).filter((k) => mag[k]! > 0 && def(k));
-      if (!ids.length) corpo.push(el('div', 'mk-nota', 'Vuoto: i mobili si comprano al negozio dei mobili del Borgo, le decorazioni dal Mercante del Porto.'));
-      for (const id of ids) {
-        const d = def(id)!, b = azione('Posa', () => inizia({ kind: 'posa', mobile: d, rot: 0 })); b.dataset['mobile'] = id;
-        corpo.push(rigaKit({ icona: campioneKit(d.colori), nome: d.nome, sotto: [mag[id]! > 1 ? `Ne hai ${mag[id]}` : decorDi(id) ? 'Decorazione, va per terra' : d.posto === 'parete' ? 'Va sul muro' : 'Va per terra'], azione: b }));
+      const inStanzaMob = (c.arredi ?? []).filter((a) => (stanzaAt(livelloCasa(c), a.cell)?.id ?? 'terra') === st);
+      if (confermaSvuota) {
+        corpo.push(el('div', 'mk-nota', `Vuoi togliere tutti i mobili da questa stanza (${inStanzaMob.length})? Torneranno nel magazzino.`));
+        const fila = el('div', 'mk-fila');
+        const bSi = bottoneKit('Sì, svuota la stanza', () => {
+          confermaSvuota = false;
+          void fai(() => o.api!.casa('svuota', { stanza: st }), () => {
+            o.hud.toast('Stanza svuotata: mobili nel magazzino', 2000);
+            apri();
+          });
+        });
+        bSi.dataset['act'] = 'conferma-svuota';
+        const bNo = bottoneKit('Annulla', () => { confermaSvuota = false; apri(); }, 'carta');
+        fila.append(bSi, bNo);
+        corpo.push(fila);
+      } else {
+        const ids = Object.keys(mag).filter((k) => mag[k]! > 0 && def(k));
+        if (!ids.length && !inStanzaMob.length) corpo.push(el('div', 'mk-nota', 'Vuoto: i mobili si comprano al negozio dei mobili del Borgo, le decorazioni dal Mercante del Porto.'));
+        for (const id of ids) {
+          const d = def(id)!, b = azione('Posa', () => inizia({ kind: 'posa', mobile: d, rot: 0 })); b.dataset['mobile'] = id;
+          corpo.push(rigaKit({ icona: campioneKit(d.colori), nome: d.nome, sotto: [mag[id]! > 1 ? `Ne hai ${mag[id]}` : decorDi(id) ? 'Decorazione, va per terra' : d.posto === 'parete' ? 'Va sul muro' : 'Va per terra'], azione: b }));
+        }
+        if (baule(l) && inStanza(baule(l)!.cell)) corpo.push(rigaKit({ icona: campioneKit(BAULE.colori), nome: 'Baule', sotto: ['Il tuo forziere'], azione: azione('Sposta', () => inizia({ kind: 'baule' })) }));
+        if (inStanzaMob.length > 0) {
+          const bSvuota = bottoneKit('Svuota stanza', () => { confermaSvuota = true; apri(); }, 'carta');
+          bSvuota.dataset['act'] = 'svuota-stanza';
+          corpo.push(rigaKit({ icona: campioneKit([PAL.rosso]), nome: 'Svuota la stanza', sotto: [`${inStanzaMob.length} mobili posati: li rimette tutti nel magazzino`], azione: bSvuota }));
+        }
       }
-      if (baule(l) && inStanza(baule(l)!.cell)) corpo.push(rigaKit({ icona: campioneKit(BAULE.colori), nome: 'Baule', sotto: ['Il tuo forziere'], azione: azione('Sposta', () => inizia({ kind: 'baule' })) }));
-    } else if (st === 'cantina') {
-      corpo.push(el('div', 'mk-nota', 'In cantina pavimento e pareti sono di pietra naturale.'));
     } else {
       const lista = tab === 'pavimento' ? BORGO.pavimenti : BORGO.carte;
       for (const f of lista) if (possiedeFinitura(l, tab, f.id)) {
@@ -202,7 +223,7 @@ export function createArreda(o: { world: GameWorld; root: HTMLElement; hud: Hud;
 
   registerStateProvider('arreda', () => {
     const l = lot();
-    return { mia: mia(), modo: modo ? modo.kind : null, aperto, target, ok, vicino: vicino ? (vicino.kind === 'baule' ? 'baule' : vicino.a.id) : null, magazzino: casaDi(l).magazzino ?? {}, arredi: casaDi(l).arredi ?? [], finiture: finitureScelte(l, (o.stanza.stanza() === 'piano' ? 'piano' : 'terra')) };
+    return { mia: mia(), modo: modo ? modo.kind : null, aperto, target, ok, vicino: vicino ? (vicino.kind === 'baule' ? 'baule' : vicino.a.id) : null, magazzino: casaDi(l).magazzino ?? {}, arredi: casaDi(l).arredi ?? [], finiture: finitureScelte(l, (o.stanza.stanza() === 'piano' ? 'piano' : 'terra')), confermaSvuota, tab };
   });
   registerTestHook('arredaApri', () => { if (!mia()) return false; apri(); disegna(); return true; });
   registerTestHook('arredaPosa', (id) => { const d = def(String(id)); if (!mia() || !d) return false; inizia({ kind: 'posa', mobile: d, rot: 0 }); return true; });

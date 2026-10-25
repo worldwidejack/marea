@@ -238,7 +238,7 @@ export function createFulvio(o: { root: HTMLElement; hud: Hud; api: Api | null; 
       o.setLot(next); comprati++;
       if (p.kind === 'retino' || p.kind === 'canna') o.prendi(p.kind);
       if (p.kind === 'mobile' || p.kind === 'carta' || p.kind === 'pavimento') dice(FV.mobile.comprato); else chiudi();
-      o.hud.toast(p.kind === 'canna' ? 'Canna comprata! Ce l’hai in mano: vai sulla riva o fermati con la barca al largo' : p.kind === 'retino' ? 'Retino comprato! Ce l’hai in mano: tieni premuto A per caricare il colpo, cambi attrezzo col bottone accanto o col tasto Q' : p.kind === 'pala' ? 'Pala comprata! La trovi nello zaino (Strumenti) e puoi usarla a Borgo Marea' : p.kind === 'mobile' ? `${p.nome}: è nel magazzino, arreda da casa tua` : `${p.nome}: messo in casa tua`, 2800);
+      o.hud.toast(p.kind === 'canna' ? 'Canna comprata! Ce l’hai in mano: vai sulla riva o fermati con la barca al largo' : p.kind === 'retino' ? 'Retino comprato! Ce l’hai in mano: tieni premuto A per caricare il colpo, cambi attrezzo col bottone accanto o col tasto Q' : p.kind === 'pala' ? 'Pala comprata! La trovi nello zaino (Strumenti) e puoi usarla a Borgo Marea' : p.kind === 'mobile' ? `${p.nome}: è nel magazzino, arreda da casa tua` : `${p.nome}: comprato! Puoi applicarlo con Arreda da casa tua`, 2800);
     });
   }
 

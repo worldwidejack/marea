@@ -178,13 +178,13 @@ export function compraFinituraDelGiorno(lot0: LotState, tipo: Finitura, id: stri
   if (!inVetrinaFinitura(nowMs, tipo, id)) throw new EconomyError('requisito', 'Oggi non è in vendita: la vetrina cambia ogni giorno a mezzanotte');
   return compraFinitura(lot0, tipo, id, nowMs);
 }
-/** Compra un pavimento o una carta da parati (una volta sola) e lo mette subito. */
+/** Compra un pavimento o una carta da parati (una volta sola): va nelle finiture possedute. */
 export function compraFinitura(lot0: LotState, tipo: Finitura, id: string, nowMs: number): LotState {
   const f = finitura(tipo, id);
   if (!f) throw new EconomyError('sconosciuto', tipo === 'pavimento' ? 'Pavimento sconosciuto' : 'Carta da parati sconosciuta');
   if (possiedeFinitura(lot0, tipo, id)) throw new EconomyError('unico', 'Ce l’hai già');
   const lot = spendi(advance(lot0, nowMs), f.monete ?? 0), c = casaDi(lot);
-  return conCasa(lot, { ...c, finiture: [...(c.finiture ?? []), id], [tipo]: id });
+  return conCasa(lot, { ...c, finiture: [...(c.finiture ?? []), id] });
 }
 /** Mette un pavimento o una carta che hai già in quella stanza ('terra' o 'piano'). */
 export function scegliFinitura(lot0: LotState, tipo: Finitura, id: string, nowMs: number, stanza: StanzaId = 'terra'): LotState {
@@ -237,6 +237,22 @@ export function ritiraMobile(lot0: LotState, id: string, nowMs: number): LotStat
   const lot = advance(lot0, nowMs), a = trova(lot, id), c = casaDi(lot), mag = { ...(c.magazzino ?? {}) };
   mag[a.mobile] = (mag[a.mobile] ?? 0) + 1;
   return conCasa(lot, { ...c, magazzino: mag, arredi: (c.arredi ?? []).filter((x) => x.id !== id) });
+}
+/** Rimette tutti i mobili posati di una specifica stanza nel magazzino. */
+export function svuotaStanza(lot0: LotState, stanza: StanzaId, nowMs: number): LotState {
+  const lot = advance(lot0, nowMs), c = casaDi(lot), liv = livelloLotto(lot);
+  const arredi = c.arredi ?? [];
+  const mag = { ...(c.magazzino ?? {}) };
+  const rimasti: PlacedMobile[] = [];
+  for (const a of arredi) {
+    const sId = stanzaAt(liv, a.cell)?.id ?? 'terra';
+    if (sId === stanza) {
+      mag[a.mobile] = (mag[a.mobile] ?? 0) + 1;
+    } else {
+      rimasti.push(a);
+    }
+  }
+  return conCasa(lot, { ...c, magazzino: mag, arredi: rimasti });
 }
 /** Sposta il baule (il Forziere) su un'altra cella del pavimento della stanza. */
 export function spostaBaule(lot0: LotState, cell: [number, number], nowMs: number): LotState {

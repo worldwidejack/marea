@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BORGO, MOBILI } from '@marea/content';
 import { newLot } from '../src/economy/actions.ts';
-import { compraFinitura, compraMobile, conBaule, finitureScelte, posaMobile, possiedeFinitura, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '../src/economy/casa.ts';
+import { compraFinitura, compraMobile, conBaule, finitureScelte, posaMobile, possiedeFinitura, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile, svuotaStanza } from '../src/economy/casa.ts';
 import type { LotState } from '../src/economy/types.ts';
 import { checkMonete } from '../src/economy/monete.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
@@ -78,7 +78,7 @@ test('posa a parete: sul bordo del muro giusto, uno per cella di muro; non si gi
   assert.equal(lot.casa!.arredi!.length, 3);
 });
 
-test('finiture: compri una volta (si mette subito), scegli solo le tue; quella di serie è di tutti', () => {
+test('finiture: compri una volta (va nelle finiture possedute), scegli solo le tue; quella di serie è di tutti', () => {
   const p = BORGO.pavimenti[1]!, k = BORGO.carte[1]!;
   let lot = ricco((p.monete ?? 0) + (k.monete ?? 0));
   assert.deepEqual(finitureScelte(lot), { pavimento: BORGO.pavimenti[0]!.id, carta: BORGO.carte[0]!.id });
@@ -87,12 +87,16 @@ test('finiture: compri una volta (si mette subito), scegli solo le tue; quella d
   lot = compraFinitura(lot, 'pavimento', p.id, 0);
   lot = compraFinitura(lot, 'carta', k.id, 0);
   assert.equal(lot.monete, 0);
-  assert.deepEqual(finitureScelte(lot), { pavimento: p.id, carta: k.id });
+  assert.ok(possiedeFinitura(lot, 'pavimento', p.id));
+  assert.ok(possiedeFinitura(lot, 'carta', k.id));
+  // Non si applica subito al piano terra: restano quelle di prima
+  assert.deepEqual(finitureScelte(lot), { pavimento: BORGO.pavimenti[0]!.id, carta: BORGO.carte[0]!.id });
   assert.throws(() => compraFinitura(lot, 'pavimento', p.id, 0), isErr('unico'));
+  lot = scegliFinitura(lot, 'pavimento', p.id, 0);
+  lot = scegliFinitura(lot, 'carta', k.id, 0);
+  assert.deepEqual(finitureScelte(lot), { pavimento: p.id, carta: k.id });
   lot = scegliFinitura(lot, 'pavimento', BORGO.pavimenti[0]!.id, 0);
   assert.equal(finitureScelte(lot).pavimento, BORGO.pavimenti[0]!.id);
-  lot = scegliFinitura(lot, 'pavimento', p.id, 0);
-  assert.equal(finitureScelte(lot).pavimento, p.id);
   assert.throws(() => scegliFinitura(lot, 'carta', 'inesistente', 0), isErr('sconosciuto'));
 });
 
@@ -130,6 +134,25 @@ test('baule: si sposta sul pavimento e si gira', () => {
   assert.throws(() => spostaBaule(lot, [ST.corridoio[0], Z1 - 1], 0), isErr('posizione'));
   lot = ruotaBaule(lot, 0);
   assert.equal(lot.casa!.bauleRot, 1);
+});
+
+test('svuotaStanza: svuota solo i mobili posati nella stanza richiesta e li rimette nel magazzino', () => {
+  let lot = ricco(5000);
+  lot = compraMobile(compraMobile(lot, terra.id, 0), parete.id, 0);
+  lot = posaMobile(lot, terra.id, { cell: [X0, Z0] }, 0, 0);
+  lot = posaMobile(lot, parete.id, { cell: [X0, Z0], muro: 'n' }, 0, 0);
+  assert.equal(lot.casa!.arredi!.length, 2);
+  assert.deepEqual(lot.casa!.magazzino, {});
+
+  // Se svuoto 'piano' (dove non ci sono mobili), 'terra' resta intatta
+  lot = svuotaStanza(lot, 'piano', 0);
+  assert.equal(lot.casa!.arredi!.length, 2);
+  assert.deepEqual(lot.casa!.magazzino, {});
+
+  // Svuoto 'terra'
+  lot = svuotaStanza(lot, 'terra', 0);
+  assert.equal(lot.casa!.arredi!.length, 0);
+  assert.deepEqual(lot.casa!.magazzino, { [terra.id]: 1, [parete.id]: 1 });
 });
 
 test('baule di serie: chi non l’ha costruito lo trova in casa, livello 1, in una cella libera della stanza; chi ce l’ha resta com’è', () => {

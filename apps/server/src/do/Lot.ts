@@ -20,7 +20,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { AVATAR, DECOR } from '@marea/content';
 import { buyHat, newLot } from '@marea/sim/economy/actions.ts';
 import { compraColoreDelGiorno, miglioraBottega } from '@marea/sim/economy/botteghe.ts';
-import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile } from '@marea/sim/economy/casa.ts';
+import { ampliaCasa, compraFinituraDelGiorno, compraMobileDelGiorno, posaMobile, ritiraMobile, ruotaBaule, ruotaMobile, scegliFinitura, spostaBaule, spostaMobile, svuotaStanza } from '@marea/sim/economy/casa.ts';
 import type { PostoMobile } from '@marea/sim/economy/casa.ts';
 import { advance } from '@marea/sim/economy/advance.ts';
 import { aggiornaSalvataggio } from '@marea/sim/economy/cambio.ts';
@@ -281,6 +281,11 @@ export class Lot extends DurableObject<Env> {
         const id = body['id'];
         if (!isId(id)) return json({ error: 'Manca il mobile' }, 400);
         return act === 'casa_ruota' ? ruotaMobile(lot, id, now) : ritiraMobile(lot, id, now);
+      }
+      case 'casa_svuota': {
+        const stanza = body['stanza'];
+        if (stanza !== 'terra' && stanza !== 'cantina' && stanza !== 'piano') return json({ error: 'Stanza non valida' }, 400);
+        return svuotaStanza(lot, stanza, now);
       }
       // il mobiliere ingrandisce la casa (#386): `da` = il livello che il giocatore vede (se è cambiato nel frattempo, niente si paga due volte)
       case 'casa_amplia': return Number.isInteger(body['da']) ? ampliaCasa(lot, body['da'] as number, now) : json({ error: 'Livello della casa non valido' }, 400);
