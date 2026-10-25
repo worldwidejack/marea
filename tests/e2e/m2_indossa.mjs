@@ -1,6 +1,7 @@
 // M2 · armature e armi a vista (#190) sul server locale (wrangler dev) con due giocatori: (1) il server ricava dal personaggio vero quello che si vede addosso
 // (armatura, arma, frecce) e lo scrive nel look; nessun altro modo di dirlo; (2) l'amico lo vede sul tuo avatar e si aggiorna quando cambi equipaggiamento;
-// (3) il tuo avatar si veste dal personaggio, a piedi con l'arma sulla schiena; (4) draw call in budget. Screenshot in tests/out/shots/m2_indossa_*.png.
+// (3) il tuo avatar si veste dal personaggio, a piedi con l'arma sulla schiena; fuori dal dungeon al posto dell'armatura si vede il vestito del
+// Mercante (game/abiti.ts: la T-shirt di base per chi non ne ha comprati); (4) draw call in budget. Screenshot in tests/out/shots/m2_indossa_*.png.
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -80,22 +81,25 @@ export default async function (ctx) {
       throw new Error(`Bea non vede ${what}: ${J(v)}`);
     };
 
-    await ctx.test('amico: Bea vede addosso ad Ada la tela e l’arco sulla schiena con la faretra', async () => {
-      const v = await waitPeer((x) => x.corpo === 'armatura_legno' && x.arma === 'arco_legno' && x.faretra, 'tela + arco + faretra');
+    await ctx.test('amico: Bea vede addosso ad Ada il vestito (non la tela) e l’arco sulla schiena con la faretra', async () => {
+      const v = await waitPeer((x) => x.corpo === null && x.arma === 'arco_legno' && x.faretra, 'vestito + arco + faretra');
       assert(v.tri > 100, 'triangoli dell’equipaggiamento: ' + v.tri);
     });
 
     await ctx.test('tu: Ada si veste dal suo personaggio (a piedi, arma sulla schiena)', async () => {
-      await ctx.waitState(A.page, (s) => s.wp2_avatar && s.wp2_avatar.vestito && s.wp2_avatar.vestito.corpo === 'armatura_legno' && s.wp2_avatar.vestito.arma === 'arco_legno', 20000);
+      await ctx.waitState(A.page, (s) => s.wp2_avatar && s.wp2_avatar.vestito && s.wp2_avatar.vestito.corpo === null && s.wp2_avatar.vestito.arma === 'arco_legno' && s.wp2_avatar.abiti?.abito === 'abt_base', 20000);
     });
 
     await ctx.test('amico: Ada cambia arma e armatura sul server → Bea la vede cambiare (senza ricaricare)', async () => {
       await post('/api/rpg', 'tokA', { azione: { t: 'equip', slot: 'arma', item: 'katana_legno' } });
       await waitPeer((x) => x.arma === 'katana_legno' && !x.faretra, 'katana senza faretra');
       await post('/api/rpg', 'tokA', { azione: { t: 'equip', slot: 'corpo', item: null } });
-      await waitPeer((x) => x.corpo === null && x.arma === 'katana_legno', 'niente armatura');
+      for (let i = 0; i < 40 && (await indossaDi('tokA')).corpo !== undefined; i++) await sleep(250);
+      assert((await indossaDi('tokA')).corpo === undefined, 'armatura tolta sul server');
       await post('/api/rpg', 'tokA', { azione: { t: 'equip', slot: 'corpo', item: 'armatura_legno' } });
-      await waitPeer((x) => x.corpo === 'armatura_legno', 'armatura rimessa');
+      for (let i = 0; i < 40 && (await indossaDi('tokA')).corpo !== 'armatura_legno'; i++) await sleep(250);
+      assert((await indossaDi('tokA')).corpo === 'armatura_legno', 'armatura rimessa sul server');
+      await waitPeer((x) => x.corpo === null && x.arma === 'katana_legno', 'katana, col vestito al posto dell’armatura');
     });
 
     await ctx.test('tu: Ada rilegge il personaggio e il suo avatar segue (arco di nuovo)', async () => {

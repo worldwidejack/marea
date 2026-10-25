@@ -228,10 +228,10 @@ export default async function (ctx) {
       const box = await bruno.page.locator('#mzEditor').boundingBox();
       ctx.log('foglio: ' + S(box));
       assert(box && box.y > 844 / 2 + 10, 'il foglio copre il centro del canvas: ' + S(box));
-      const sw = await nav(bruno, 'vestito:3').boundingBox();
+      const sw = await nav(bruno, 'coloreCapelli:3').boundingBox();
       assert(sw && sw.width >= 44 && sw.height >= 44, 'campione < 44 px: ' + S(sw));
-      await nav(bruno, 'vestito:3').tap();
-      assert((await st(bruno)).wp2_avatar.look.vestito === 3, 'tocco sul campione: avatar non aggiornato');
+      await nav(bruno, 'coloreCapelli:3').tap();
+      assert((await st(bruno)).wp2_avatar.look.coloreCapelli === 3, 'tocco sul campione: avatar non aggiornato');
       const salva = await nav(bruno, 'salva').boundingBox();
       assert(salva && salva.y + salva.height <= 844, 'Salva fuori schermo: ' + S(salva));
       await ctx.shot(bruno.page, 'telefono_foglio');
