@@ -1,6 +1,6 @@
 // I segreti dell'isola (docs/TEMPLARI.md §9c) come li vede chi gioca.
-// - Il muro crepato: sulla faccia di dentro del muro nord-ovest della rotonda, crepe scure a pixel e due sassi ai piedi (si nota, ma non
-//   troppo); colpito piano fa uno sbuffo di polvere. Rotto: l'arco scuro con gli stipiti, i gradini che scendono nel nero e le macerie.
+// - Il muro crepato: sulla faccia di dentro del muro nord-ovest della rotonda, una crepa grossa che si vede dall'alto (crepa3d.ts), sassi
+//   che ogni tanto cadono dalla cima, e chi ci arriva vicino legge «Muro crepato: serve un colpo forte»; colpito piano fa uno sbuffo di polvere. Rotto: l'arco scuro con gli stipiti, i gradini che scendono nel nero e le macerie.
 // - La cripta: l'altare della Lancia (pietra scura, la Lancia di Longino che galleggia in verticale, legata da quattro catene finché è
 //   sigillato), cinque candele davanti che si accendono una per anima, una luce viola che diventa d'oro quando è libera; in fondo la scala
 //   che sale verso un filo di luce; torce sui muri. Le anime volano a scatti dallo zombie morto all'altare.
@@ -13,6 +13,7 @@ import type { TEventoDi, TView } from '@marea/sim/templari/types.ts';
 import { PAL } from '../ui/style.ts';
 import { unisci } from './armi3d.ts';
 import type { Pezzo } from './armi3d.ts';
+import { pezziCrepa } from './crepa3d.ts';
 
 export type Segreti3d = {
   tick(v: TView): void;
@@ -56,7 +57,8 @@ function romano(px: (c: string, x: number, y: number, w?: number, h?: number) =>
   return x - x0;
 }
 
-export function createSegreti3d(scene: THREE.Scene, a: Arena): Segreti3d {
+/** `alto`: l'altezza del muro in un punto (scena.ts); `avviso`: una scritta per chi gioca (vicino al muro crepato). */
+export function createSegreti3d(scene: THREE.Scene, a: Arena, o: { alto(x: number, z: number): number; avviso(testo: string): void }): Segreti3d {
   const root = new THREE.Group(); root.name = 'segreti'; scene.add(root);
   const disp: { dispose(): void }[] = [];
   const vc = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }); disp.push(vc);
@@ -66,19 +68,13 @@ export function createSegreti3d(scene: THREE.Scene, a: Arena): Segreti3d {
 
   // ---------------- il muro crepato e la scala ----------------
   let crepa: THREE.Mesh | null = null, rotto: THREE.Group | null = null;
-  const polveri: { m: THREE.Mesh; t: number }[] = [];
-  const polvereG = box(0.14, 0.14, 0.14), polvereM = basic(PAL.pietra, { transparent: true, opacity: 0.8, depthWrite: false }); disp.push(polvereG);
+  const polveri: { m: THREE.Mesh; t: number }[] = [], sassi: { m: THREE.Mesh; t: number; y0: number }[] = [];
+  const hCrepa = cr ? o.alto(cr.muro.x, cr.muro.z) || 2.6 : 0;
+  let sassoT = 0, avvisato = false;
+  const polvereG = box(0.14, 0.14, 0.14), polvereM = basic(PAL.pietra, { transparent: true, opacity: 0.8, depthWrite: false }), sassoM = basic(PAL.pietraScura); disp.push(polvereG);
   if (cr) {
     const nx = cr.su.x - cr.muro.x, nz = cr.su.z - cr.muro.z, ry = Math.atan2(nx, nz); // la faccia del muro verso la chiesa
-    // crepe che partono dal basso e si ramificano (16 × 32 pixel sulla faccia del muro, 6 cm l'uno), scure con qualche scheggia chiara, e
-    // due sassi caduti ai piedi: tutto in una mesh sola (una draw call)
-    const pix = new Map<string, string>(), P = 0.98 / 16;
-    const linea = (pts: [number, number][]) => { for (let i = 0; i + 1 < pts.length; i++) { const [x0, y0] = pts[i]!, [x1, y1] = pts[i + 1]!, n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let k = 0; k <= n; k++) pix.set(`${Math.round(x0 + ((x1 - x0) * k) / n)},${Math.round(y0 + ((y1 - y0) * k) / n)}`, PAL.neroCaldo); } };
-    linea([[7, 31], [8, 26], [6, 22], [7, 17], [5, 12], [6, 8]]); linea([[8, 26], [11, 23], [12, 19]]); linea([[6, 22], [3, 20], [2, 16]]); linea([[7, 17], [10, 14], [10, 10]]);
-    for (const [x, y] of [[9, 25], [5, 21], [8, 16], [4, 13], [11, 20]] as const) pix.set(`${x},${y}`, PAL.pietraChiara);
-    const pezzi: Pezzo[] = [...pix].map(([k, c]) => { const [x, y] = k.split(',').map(Number) as [number, number]; return { g: box(P, P, 0.012), c, x: (x - 7.5) * P, y: (31.5 - y) * P, z: 0.006 }; });
-    pezzi.push({ g: new THREE.DodecahedronGeometry(0.12, 0), c: PAL.pietra, x: 0.25, y: 0.08, z: 0.21 }, { g: new THREE.DodecahedronGeometry(0.08, 0), c: PAL.pietraScura, x: -0.2, y: 0.05, z: 0.29 });
-    crepa = new THREE.Mesh(geo(pezzi), vc);
+    crepa = new THREE.Mesh(geo(pezziCrepa(hCrepa)), vc); // faccia, cima, pavimento, macerie: una mesh sola
     crepa.name = 'crepa'; crepa.position.set(cr.muro.x + nx * 0.5, 0, cr.muro.z + nz * 0.5); crepa.rotation.y = ry;
     root.add(crepa);
     // rotto: dove c'era il muro un buco nel pavimento, i gradini che scendono verso il muro e spariscono nel nero (più scuri a ogni
@@ -209,6 +205,11 @@ export function createSegreti3d(scene: THREE.Scene, a: Arena): Segreti3d {
   return {
     tick(v) {
       const g = v.segreti;
+      // l'avviso: una volta ogni volta che ci si avvicina (davanti al muro, entro 2,2 m), finché non è rotto
+      if (cr && !g.muro) {
+        const dx = v.eroe.x - cr.su.x, dz = v.eroe.z - cr.su.z, d2 = dx * dx + dz * dz;
+        if (d2 < 2.2 * 2.2 && !avvisato) { avvisato = true; o.avviso('Muro crepato: serve un colpo forte'); } else if (d2 > 4.5 * 4.5) avvisato = false;
+      }
       if (g.muro !== rottoOra) { rottoOra = g.muro; if (crepa) crepa.visible = !g.muro; if (rotto) rotto.visible = g.muro; }
       const lib = g.anime >= g.tutte, mia = v.eroe.armi.some((x) => x?.id === 'lancia');
       if (lib !== libera || mia !== haLancia) {
@@ -251,6 +252,17 @@ export function createSegreti3d(scene: THREE.Scene, a: Arena): Segreti3d {
         s.m.rotation.y = t * 4;
         s.scia.forEach((q, j) => { const kk = Math.max(0, k - (j + 1) * 0.06); q.position.lerpVectors(s.da, altare, kk); q.position.y += Math.sin(kk * Math.PI) * 2; });
         if (s.t >= 1.15) { for (const q of [s.m, ...s.scia]) q.removeFromParent(); anime.splice(i, 1); }
+      }
+      // dalla cima del muro crepato ogni 2-3 s cade un sasso (a scatti), con un filo di polvere
+      if (cr && crepa?.visible && t > sassoT) {
+        sassoT = t + 2 + ((st * 0.618) % 1);
+        const nx = cr.su.x - cr.muro.x, nz = cr.su.z - cr.muro.z, l = (((st * 0.37) % 1) - 0.5) * 0.5;
+        const m = new THREE.Mesh(polvereG, sassoM); m.position.set(cr.muro.x + nx * 0.56 + l * nz, hCrepa - 0.1, cr.muro.z + nz * 0.56 + l * nx); root.add(m); sassi.push({ m, t: 0, y0: hCrepa - 0.1 });
+      }
+      for (let i = sassi.length - 1; i >= 0; i--) {
+        const s = sassi[i]!; s.t += dt;
+        s.m.position.y = Math.max(0.07, s.y0 - 4.9 * steps(s.t, 12) ** 2);
+        if (s.m.position.y <= 0.07 && s.t > 0.2) { const p = new THREE.Mesh(polvereG, polvereM); p.position.copy(s.m.position); root.add(p); polveri.push({ m: p, t: 0.4 }); s.m.removeFromParent(); sassi.splice(i, 1); }
       }
       // polvere del muro: sbuffi che cadono e si allargano
       for (let i = polveri.length - 1; i >= 0; i--) {

@@ -1,7 +1,7 @@
 // Gli indizi sull'isola (docs/TEMPLARI.md §12b punto 4): gli scheletri seduti col biglietto in mano e le scritte col sangue, a pixel
 // (un font 3 × 5, qualche goccia che cola). Solo pezzi da unire (armi3d.ts `unisci`), niente mesh nuove nel coro, dove le draw call sono
 // al limite: quelli della chiesa vanno nella mesh delle aste degli stendardi (arredi.ts), quelli di sotto nella mesh delle catacombe
-// (catacombe3d.ts), gli altri in una mesh per zona (scena.ts). Tutte fuori dal dipinto (dipinto.ts `FUORI`): il dipinto non li conosce.
+// (catacombe3d.ts), gli altri in una mesh per zona (scena.ts). Tutte fuori dalle ombre cotte (ombre.ts `FUORI`): non fanno ombra.
 import * as THREE from 'three';
 import { TEMPLARI } from '@marea/content/templari.ts';
 import type { Arena, Scheletro, Scritta } from '@marea/sim/templari/mappa.ts';

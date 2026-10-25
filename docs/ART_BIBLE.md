@@ -88,7 +88,6 @@ Font pixel leggibile (Press Start 2P per i titoli, un pixel-sans per il corpo), 
 ## 10. Fonti permesse e vietate
 - **Permesse (CC0)**: Kenney (Pirate Kit, Nature Kit, City Kit, Fantasy Town Kit, Watercraft Pack), Quaternius (Ultimate Modular Men/Women, Ultimate Nature, Modular Buildings, Cyberpunk), KayKit (City Builder, Medieval Builder: solo edifici e prop, **non** i personaggi), Poly Pizza (solo CC0; i CC-BY vanno in `assets/licenses.md` con credito), Poly Haven (HDRI solo come riferimento luce), Mixamo (animazioni, licenza Adobe).
 - **Vietate**: Sketchfab non-CC0, generatori 3D a crediti, foto, texture realistiche, personaggi a blocchi o da giocattolo, qualsiasi IP di terzi.
-- **Eccezione**: l'isola dei Templari dentro le ondate è un dipinto realistico fatto con un'IA di immagini e proiettato sui blocchi (birbasan, 16 ott 2026, `TEMPLARI.md` §3b). Vale solo lì.
 
 ## 11. Come si approva un asset
 Contact sheet (`tests/out/contact.png` o `assets/export/preview/*.png`) con 3 varianti a confronto → Jack sceglie A/B/C. Nessuna produzione in serie prima dell'ok sul primo pezzo della famiglia.

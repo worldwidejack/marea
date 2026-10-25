@@ -40,8 +40,10 @@ import { SUOLO } from '@marea/sim/templari/mappa.ts';
 import { PAL } from '../ui/style.ts';
 import { templariLink } from '../game/templari.ts';
 import { createScena } from './scena.ts';
-import { LEGGERO, createDipinto } from './dipinto.ts';
-import type { Dipinto } from './dipinto.ts';
+import { createOmbre } from './ombre.ts';
+import type { Ombre } from './ombre.ts';
+import { createSagome } from './sagome.ts';
+import type { Sagome } from './sagome.ts';
 import { FLAGS } from '../flags.ts';
 import type { Scena } from './scena.ts';
 import { createZombi } from './zombi.ts';
@@ -150,8 +152,8 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   let azionePrima = false, azioneGiu = false;
   /** Banco di prova: immortale, ondate ferme, zombie fermi (velocità di prima per id), rallentatore (un tick ogni 4 frame). */
   const bk = { immortale: false, ferme: false, fermi: false, lento: false, frame: 0, vel: new Map<number, number>() };
-  let dip: Dipinto | null = null, dipTasti: ((e: KeyboardEvent) => void) | null = null;
-  let fant: Fantasmi3d | null = null, lamentoT = 0, rabbiaDetta = false;
+  let omb: Ombre | null = null, ombTasti: ((e: KeyboardEvent) => void) | null = null;
+  let fant: Fantasmi3d | null = null, sag: Sagome | null = null, lamentoT = 0, rabbiaDetta = false;
   let sc: Scena | null = null, hero: HeroActor | null = null, zombi: Zombi | null = null, hud: TplHud | null = null, ctl: Controlli | null = null, fx: Effetti | null = null, mouse: Mouse | null = null, mUltima = 0;
   let resolve!: (v: TemplariFine | { insieme: true } | null) => void;
   const done = new Promise<TemplariFine | { insieme: true } | null>((r) => (resolve = r));
@@ -159,9 +161,9 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   const pulisci = () => {
     fase = 'finita'; templariLink.state = null; templariLink.prova = null; tensione(0);
     if (inno) { clearTimeout(inno); inno = null; musica.set('auto'); } // la canzone segreta finisce con la partita
-    if (dipTasti) removeEventListener('keydown', dipTasti);
-    dip?.dispose();
-    fant?.dispose(); fant = null; seg?.dispose(); banco?.dispose(); bott?.dispose(); big?.dispose(); pers?.dispose(); fuo?.dispose(); mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
+    if (ombTasti) removeEventListener('keydown', ombTasti);
+    omb?.dispose();
+    fant?.dispose(); fant = null; sag?.dispose(); seg?.dispose(); banco?.dispose(); bott?.dispose(); big?.dispose(); pers?.dispose(); fuo?.dispose(); mouse?.dispose(); ctx.canvas.style.cursor = ''; ctl?.dispose(); hud?.dispose(); fx?.dispose(); zombi?.dispose(); hero?.dispose(); sc?.dispose();
     for (const a of amici) a.actor?.dispose();
     ctx.renderer.setScene(null);
   };
@@ -196,28 +198,28 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
   void (async () => {
     try {
       await ctx.loader.extend('manifest_rpg.json'); // modelli delle armi (kit GDR)
-      sc = createScena(s.arena, ctx.renderer.camera);
-      // l'isola dipinta (dipinto.ts): prima di eroe e zombie, così si dipingono solo i pezzi fermi; il dipinto si carica più sotto
-      if (FLAGS.dipinto !== 'no') { const scena = sc; dip = createDipinto({ scene: sc.scene, gl: ctx.renderer.gl, arena: s.arena, setTaglia: (on) => scena.setTaglia(on) }); }
-      if (dip && FLAGS.dipinto === 'prova') { // prove: window.__dipinto (foto, vista…) e i tasti P (dipinto), L (ombre), K (cupo)
-        const d = dip; (window as unknown as { __dipinto?: Dipinto }).__dipinto = d;
-        let acceso = true, ombre = true, cupo = 1;
-        dipTasti = (e) => {
-          if (e.code === 'KeyP') { acceso = !acceso; d.setAcceso(acceso); ctx.hud.toast(acceso ? 'Dipinto acceso' : 'Dipinto spento', 900); }
+      sc = createScena(s.arena);
+      // ombre cotte e cupo (ombre.ts): prima di eroe e zombie, così fanno ombra solo i pezzi fermi; si cuociono più sotto
+      if (FLAGS.dipinto !== 'no') omb = createOmbre({ scene: sc.scene, gl: ctx.renderer.gl, arena: s.arena });
+      if (omb && FLAGS.dipinto === 'prova') { // prove: i tasti L (ombre) e K (cupo)
+        const d = omb;
+        let ombre = true, cupo = 1;
+        ombTasti = (e) => {
           if (e.code === 'KeyL') { ombre = !ombre; d.setOmbre(ombre); ctx.hud.toast(ombre ? 'Ombre accese' : 'Niente ombre', 900); }
           if (e.code === 'KeyK') { cupo = (cupo + 1) % 3; d.setCupo(cupo); ctx.hud.toast(['Luce del gioco', 'Cupo', 'Molto cupo'][cupo]!, 900); }
         };
-        addEventListener('keydown', dipTasti);
+        addEventListener('keydown', ombTasti);
       }
       hero = await createHeroActor({ loader: ctx.loader, look: rete?.membri[io]?.look ?? ctx.world.look, hero: { arma: armaVista(view.eroe.arma, chiaveArma(view).endsWith('+')), ...vestito(view.eroe.classe) }, scene: sc.scene, floorY: 0, x: view.eroe.x, z: view.eroe.z, mirino: true, soloBusto: true });
       hero.avatar.setCappello(view.eroe.classe ? TESTA_TEMPLARI[view.eroe.classe] ?? null : null);
       zombi = createZombi(sc.scene); fant = createFantasmi3d(sc.scene);
+      { const scena = sc; sag = createSagome(sc.scene, (x, z) => scena.alto(x, z)); } // chi sta dietro un muro (sagome.ts)
       fx = createEffetti({ scene: sc.scene, arena: s.arena, loader: ctx.loader, root: ctx.root, canvas: ctx.canvas, camera: ctx.renderer.camera });
       if ((fase as Fase) === 'finita') { pulisci(); return; }
       hud = createTplHud(ctx.root, nomeArma, (id) => armaDef(id).tipo !== 'mischia');
       pers = createPersonaggi(sc.scene, s.arena);
       fuo = createFuochi3d(sc.scene, s.arena);
-      seg = createSegreti3d(sc.scene, s.arena);
+      { const scena = sc; seg = createSegreti3d(sc.scene, s.arena, { alto: (x, z) => scena.alto(x, z), avviso: (t) => ctx.hud.toast(t, 2600) }); }
       bott = createBottegaUi(ctx.root, compraDalMenu);
       big = createBiglietti(ctx.root); // prima dei controlli: Esc chiude il biglietto, non apre la pausa
       ctl = createControlli({ root: ctx.root, canvas: ctx.canvas, yaw: () => ctx.renderer.diorama.yaw, onEsci: esci, insieme: !!rete, extra: big.lista });
@@ -232,12 +234,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
       mouse = createMouse({ canvas: ctx.canvas, camera: ctx.renderer.camera, floorY: 0 });
       hero.tick(view.posa); zombi.tick(view); fant.tick(view); fx.tick(view);
       sc.setPorte(s.porte); sc.setCalice(s.fase !== 'altare');
-      // il dipinto (e le ombre, cotte con tutte le luci già in scena): si aspetta al massimo 5 s, poi si entra e arriva quando arriva
-      if (dip) {
-        const pronto = dip.carica(`/assets/templari/dipinto_isola${LEGGERO ? '_m' : ''}.webp`).catch((e: unknown) => console.warn('[marea] dipinto non caricato', e));
-        await Promise.race([pronto, new Promise((r) => setTimeout(r, 5000))]);
-        if ((fase as Fase) === 'finita') { pulisci(); return; }
-      }
+      omb?.accendi(); // le ombre, cotte con tutte le luci già in scena
       ctx.renderer.setScene(sc.scene);
       ctx.renderer.diorama.setZoom(innerWidth < innerHeight ? 1.3 : 1.05); // al telefono in verticale un po' più largo: si vedono le finestre
       ctx.renderer.diorama.follow(view.eroe.x, 0.9, view.eroe.z); ctx.renderer.diorama.snap?.();
@@ -635,6 +632,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     const p = hero.avatar.object.position;
     ctx.renderer.diorama.follow(p.x, 0.9, p.z); ctx.renderer.diorama.update(dt);
     sc.update(p.x, p.z, t, s.assi, view.trappole);
+    sag?.update(ctx.renderer.camera, [hero.avatar.object, ...amici.flatMap((a) => (a.actor && !a.fuori ? [a.actor.avatar.object] : []))], zombi.sagome());
     hud.set(view, ctx.renderer.diorama.yaw);
     ctl.setPrompt(fase === 'gioca' ? view.prompt : null);
     // Mercante e Strega: si muovono, e il loro menù resta aperto finché sei lì
@@ -723,7 +721,7 @@ export function startTemplari(ctx: TemplariCtx, o: { seed: number; subito: boole
     isola: { fuochi: view.fuochi.filter((f) => f.acceso).map((f) => f.id), pezzi: view.pezzi.filter((x) => x.preso).map((x) => x.id), campana: view.campana, disegno: fuo?.stats() ?? null, azioneTenuta: s.eroe.prevD },
     eroe: { x: view.eroe.x, z: view.eroe.z, vita: view.eroe.vita, punti: view.eroe.punti, arma: view.eroe.arma, pozioni: view.eroe.pozioni, classe: view.eroe.classe, super: view.eroe.super, vestito: hero?.avatar.indossaStato()?.corpo ?? null }, zombie: view.zombie.length,
     uccisioni: view.uccisioni, assi: [...s.assi], prompt: view.prompt?.cosa ?? null, biglietti: { aperto: big?.aperto ?? null, letti: [...(big?.letti ?? [])] }, frames: frames.length, auto: !!auto, pausa: !!ctl?.paused, mira: mUltima, act: s.eroe.act, mouse: mouse?.attivo ?? false, faccia: [s.eroe.fx, s.eroe.fz], yaw: ctx.renderer.diorama.yaw, eroeSchermo: schermo(s.eroe.x, s.eroe.z), zombiePos: s.zombie.filter((z) => z.st !== 'morto').slice(0, 6).map((z) => ({ x: z.x, z: z.z, schermo: schermo(z.x, z.z) })),
-    scena: sc?.stats() ?? null, dipinto: dip?.info() ?? null, attori: zombi?.counts() ?? null, fantasmi: fant?.stats() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
+    scena: sc?.stats() ?? null, ombre: omb?.info() ?? null, sagome: sag?.stats() ?? null, attori: zombi?.counts() ?? null, fantasmi: fant?.stats() ?? null, effetti: fx?.stats() ?? null, armi: view.eroe.armi, scudo: view.eroe.scudo, cassa: { fase: view.cassa.fase, arma: view.cassa.arma, davanti: cassaDavanti() }, porte: { ...s.porte }, trappole: view.trappole, poteri: view.poteri, drops: view.drops.map((d) => d.tipo), camera: hero ? pos.copy(hero.avatar.object.position).toArray() : null,
     max: insiemeOndata(s.ondata, s.eroi.length),
     insieme: rete ? {
       io, eroi: s.eroi.length, turni: rete.turni.length, giu: ioGiu, firme: { ...firme }, ricollega: rete.ricollega, giri: rete.giri,

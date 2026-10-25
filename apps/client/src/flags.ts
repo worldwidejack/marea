@@ -21,9 +21,9 @@ function read(): Flags {
     templari: on('templari') || q.get('templari') === 'banco', // Isola dei Templari per le prove: isola aperta, altare senza reliquia, bottone ⚔ per entrare subito nelle ondate
     banco: q.get('templari') === 'banco', // stanza di prova dei Templari: dentro la chiesa appena si apre, col banco (zombie, armi, ondata, punti), senza server
     arena: q.get('arena') === 'banco' ? 'banco' : on('arena') ? 'si' : '', // Arena: ?arena=1 bottoni di prova (⚔ al colosseo), ?arena=banco subito nel duello contro il bot
-    // isola dei Templari dipinta (templari/dipinto.ts) e Alpi dipinte dello snowboard (adrenalina/sfondo.ts): ?dipinto=0 i blocchi di
-    // prima, ?dipinto=prova i tasti P/L/K e window.__dipinto; coi test (?test=1) spenta se non si chiede ?dipinto=1: su SwiftShader lo
-    // shader del dipinto rallenta tanto da far scadere le prove a tempo
+    // ombre cotte e cupo dei Templari (templari/ombre.ts) e Alpi dipinte dello snowboard (adrenalina/sfondo.ts): ?dipinto=0 spente,
+    // ?dipinto=prova i tasti L/K dei Templari; coi test (?test=1) spente se non si chiede ?dipinto=1: su SwiftShader questi shader
+    // rallentano tanto da far scadere le prove a tempo
     dipinto: q.get('dipinto') === '0' ? 'no' : q.get('dipinto') === 'prova' ? 'prova' : q.get('dipinto') === '1' || !on('test') ? 'si' : 'no',
     slot: Number.isInteger(slot) && slot >= 0 ? slot : null, // senza login (test): ?slot=N si nasce davanti alla casa N del Borgo, la barca al molo del Porto
     ruota: q.get('ruota') === '1' ? '1' : q.get('ruota') === '0' ? '0' : '', // Corse sul telefono: ?ruota=1 l'avviso «Ruota il telefono» sempre, ?ruota=0 mai
