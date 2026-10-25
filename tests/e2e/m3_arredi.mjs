@@ -18,7 +18,8 @@ export default async function (ctx) {
   const SERVER = path.join(ctx.ROOT, 'apps/server');
   const persist = path.join(ctx.OUT, `m3arredi-${process.pid}`);
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  const WIN = process.platform === 'win32';
+  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, shell: WIN }).toString();
   const sim = async (f) => import(pathToFileURL(path.join(ctx.ROOT, 'packages/sim/src', f)).href);
   const { regata } = await sim('minigames/regata/regata.ts');
   const { packInputs, quantize } = await sim('replay.ts');
@@ -39,12 +40,15 @@ export default async function (ctx) {
   let dev = null, log = '';
   const pages = [];
   try {
-    fs.rmSync(persist, { recursive: true, force: true });
+    try { fs.rmSync(persist, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); } catch { /* file ancora aperti su Windows */ }
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
-    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command', "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0);");
+    const sql = path.join(persist, 'persone.sql');
+    fs.mkdirSync(persist, { recursive: true });
+    fs.writeFileSync(sql, "INSERT INTO persone (id, nome, token, slot) VALUES ('luca', 'Luca', 'tokL', 0);\n");
+    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--file', sql);
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: !WIN, shell: WIN, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const BASE = `http://127.0.0.1:${port}`;
     let up = false;
@@ -72,7 +76,12 @@ export default async function (ctx) {
       const lot = (await get('/api/lot')).body;
       assert(lot.monete === p0 - serve, `monete ${lot.monete} invece di ${p0 - serve}`);
       assert(JSON.stringify(lot.casa.magazzino) === JSON.stringify({ [comodino.id]: 1, [stereo.id]: 1, [orologio.id]: 1 }), 'magazzino: ' + JSON.stringify(lot.casa));
-      assert(lot.casa.pavimento === pav.id && lot.casa.carta === carta.id, 'finiture: ' + JSON.stringify(lot.casa));
+      assert(lot.casa.finiture.includes(pav.id) && lot.casa.finiture.includes(carta.id), 'finiture possedute: ' + JSON.stringify(lot.casa));
+      assert(lot.casa.pavimento !== pav.id && lot.casa.carta !== carta.id, 'finiture non applicate subito: ' + JSON.stringify(lot.casa));
+      assert((await post('/api/lot/casa/scegli', { tipo: 'pavimento', id: pav.id, stanza: 'terra' })).status === 200, 'sceglie pavimento');
+      assert((await post('/api/lot/casa/scegli', { tipo: 'carta', id: carta.id, stanza: 'terra' })).status === 200, 'sceglie carta');
+      const lotScelto = (await get('/api/lot')).body;
+      assert(lotScelto.casa.pavimento === pav.id && lotScelto.casa.carta === carta.id, 'finiture: ' + JSON.stringify(lotScelto.casa));
       assert((await post('/api/lot/casa/compra', { id: 'trono' })).status === 404, 'mobile sconosciuto');
       assert((await post('/api/lot/casa/finitura', { tipo: 'pavimento', id: pav.id })).status === 409, 'pavimento già tuo');
       assert((await post('/api/lot/casa/posa', { id: comodino.id, cell: [borgo.stanza.corridoio[0], Z1 - 1] })).status === 400, 'sullo sbocco del corridoio');
@@ -80,7 +89,7 @@ export default async function (ctx) {
       assert((await post('/api/lot/casa/posa', { id: comodino.id, cell: 'x' })).status === 400, 'cella rotta');
       assert((await post('/api/lot/casa/ruota', { id: comodino.id + '-9' })).status === 404, 'id sconosciuto');
       const dopo = (await get('/api/lot')).body;
-      assert(JSON.stringify(dopo.casa) === JSON.stringify(lot.casa), 'le richieste rifiutate hanno cambiato la casa');
+      assert(JSON.stringify(dopo.casa) === JSON.stringify(lotScelto.casa), 'le richieste rifiutate hanno cambiato la casa');
     });
 
     const open = async (viewport) => {
@@ -140,6 +149,32 @@ export default async function (ctx) {
       ctx.noErrors(V.pg, 'pc');
     });
 
+    await ctx.test('PC: ARREDA → Svuota stanza con conferma rimette tutti i mobili nel magazzino', async () => {
+      const V = globalThis.__pc;
+      // C'è ancora l'orologio posato
+      await V.page.locator('#mzArredaBtn').click();
+      await ctx.waitState(V.page, (q) => q.arreda.aperto, 3000);
+      await V.page.locator('#mzArreda [data-act="svuota-stanza"]').click();
+      await ctx.waitState(V.page, (q) => q.arreda.confermaSvuota, 3000);
+      // Bottone di conferma
+      await V.page.locator('#mzArreda [data-act="conferma-svuota"]').click();
+      await ctx.waitState(V.page, (q) => q.arreda.arredi.length === 0 && !q.arreda.confermaSvuota, 8000);
+      const casa = (await get('/api/lot')).body.casa;
+      assert(casa.arredi.length === 0, 'nessun arredo posato');
+      assert(casa.magazzino[orologio.id] === 1 && casa.magazzino[comodino.id] === 1 && casa.magazzino[stereo.id] === 1, 'tutti nel magazzino: ' + JSON.stringify(casa.magazzino));
+      // Chiude il pannello
+      await V.page.locator('#mzArreda .mk-x').click();
+    });
+
+    await ctx.test('API: finiture indipendenti per piano e stanza passata correttamente al server', async () => {
+      const pSerie = borgo.pavimenti[0], pComprato = pav;
+      assert((await post('/api/lot/casa/scegli', { tipo: 'pavimento', id: pComprato.id, stanza: 'terra' })).status === 200);
+      assert((await post('/api/lot/casa/scegli', { tipo: 'pavimento', id: pSerie.id, stanza: 'piano' })).status === 200);
+      const lot = (await get('/api/lot')).body;
+      assert(lot.casa.pavimento === pComprato.id, 'terra ha pav comprato: ' + lot.casa.pavimento);
+      assert(lot.casa.pavimentoPiano === pSerie.id, 'piano ha pav di serie: ' + lot.casa.pavimentoPiano);
+    });
+
     await ctx.test('telefono 390×844: ARREDA e il pannello dentro lo schermo, bottoni ≥ 44 px; la stanza arredata', async () => {
       const V = await open(ctx.B.IPHONE);
       await V.page.waitForTimeout(600);
@@ -154,8 +189,11 @@ export default async function (ctx) {
     });
   } finally {
     for (const p of pages) await p.close().catch(() => {});
-    if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
-    fs.rmSync(persist, { recursive: true, force: true });
+    if (dev) {
+      if (WIN) { try { execFileSync('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* già chiuso */ } }
+      else { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    }
+    try { fs.rmSync(persist, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); } catch { /* file ancora aperti su Windows */ }
     delete globalThis.__pc;
   }
 }

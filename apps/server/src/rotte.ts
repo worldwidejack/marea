@@ -148,8 +148,8 @@ const ROTTE: readonly Rotta[] = [
   { m: 'GET', via: '/api/lot', fa: async (c) => sincIndossa(c.env, c.p, await c.lotto('state')) },
   { m: 'POST', via: '/api/lot/decor', fa: alLotto('decor', ['decor']) },
   // la casa arredabile, la pala e il retino: negozio dei mobili e ARREDA (solo la propria casa)
-  { m: 'POST', via: /^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|baule|amplia|pala|retino|canna)$/,
-    fa: (c, b, x) => c.lotto('casa_' + x[1], scegli(b, ['id', 'tipo', 'cell', 'muro', 'rot', 'da'])) },
+  { m: 'POST', via: /^\/api\/lot\/casa\/(compra|finitura|scegli|posa|sposta|ruota|ritira|svuota|baule|amplia|pala|retino|canna)$/,
+    fa: (c, b, x) => c.lotto('casa_' + x[1], scegli(b, ['id', 'tipo', 'cell', 'muro', 'rot', 'da', 'stanza'])) },
   // botteghe del Borgo: migliora il Fabbro o la barca al Cantiere (la merce passa da /api/rpg e /api/barca/colore)
   { m: 'POST', via: '/api/lot/bottega/migliora', fa: alLotto('bottega_migliora', ['bottega', 'da']) },
   // gli insetti di Borgo Marea e i pesci: la consegna al mobiliere aggiorna anche la classifica dei collezionisti
