@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import type { TView } from '@marea/sim/templari/types.ts';
 import { PAL } from '../ui/style.ts';
 import { M, merged, painted } from '../render/island_parts.ts';
+import type { SagomaZombie } from './sagome.ts';
 
 type ZV = TView['zombie'][number];
 /** Zombie disegnati al massimo per kit: in squadra da 4 dalla 15ª ondata ce ne sono fino a 60 insieme (§12b), più quelli che cadono. */
@@ -126,6 +127,8 @@ export type Zombi = {
   /** Posizione (interpolata) sopra la testa, per i numeri del danno. */
   posDi(id: number): THREE.Vector3 | null;
   counts(): { zombie: number; disegnati: number; mesh: number };
+  /** Dove stanno adesso (interpolati) gli zombie in piedi, per le sagome dietro i muri (sagome.ts). */
+  sagome(): readonly SagomaZombie[];
   dispose(): void;
 };
 
@@ -135,7 +138,7 @@ export function createZombi(scene: THREE.Scene): Zombi {
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), acceso = new THREE.MeshBasicMaterial({ vertexColors: true });
   const tutte: THREE.InstancedMesh[] = [];
   const im = (g: THREE.BufferGeometry, n: number, nome: string, m: THREE.Material = mat) => {
-    const x = new THREE.InstancedMesh(g, m, n); x.name = nome; x.count = 0; x.visible = false; x.frustumCulled = false; scene.add(x); tutte.push(x); return x;
+    const x = new THREE.InstancedMesh(g, m, n); x.name = nome; x.count = 0; x.visible = false; x.frustumCulled = false; x.renderOrder = 2; scene.add(x); tutte.push(x); return x;
   };
   // mesh create alla prima comparsa del kit (chi non c'è non costa niente)
   const kits = new Map<KitId, Record<string, THREE.InstancedMesh>>();
@@ -152,7 +155,7 @@ export function createZombi(scene: THREE.Scene): Zombi {
   const blobs = new THREE.InstancedMesh(blobGeo, new THREE.MeshBasicMaterial({ color: PAL.neroCaldo, transparent: true, opacity: 0.45, depthWrite: false }), MAX);
   blobs.frustumCulled = false; blobs.renderOrder = 1; blobs.name = 'zombie_ombre'; scene.add(blobs);
   const luceMolay = new THREE.PointLight(PAL.arancio, 0, 9, 1.6); scene.add(luceMolay);
-  const zs = new Map<number, Z>();
+  const zs = new Map<number, Z>(), sag: SagomaZombie[] = [];
   const m4 = new THREE.Matrix4(), v3 = new THREE.Vector3(), q = new THREE.Quaternion(), qd = new THREE.Quaternion(), m4v = new THREE.Vector3(), s3 = new THREE.Vector3(1, 1, 1), c = new THREE.Color();
   const BIANCO = new THREE.Color(2.2, 2.1, 1.9), ROSSO = new THREE.Color(1.8, 0.5, 0.45);
 
@@ -258,6 +261,7 @@ export function createZombi(scene: THREE.Scene): Zombi {
     update(alpha, dt, t) {
       const nk = new Map<KitId, number>(), ne = new Map<string, number>();
       let b = 0, nc = 0, molay: THREE.Vector3 | null = null;
+      sag.length = 0;
       const put = (x: THREE.InstancedMesh, j: number, o: THREE.Object3D, tinta: THREE.Color, scala: number) => {
         x.setMatrixAt(j, scala === 1 ? o.matrixWorld : m4.copy(o.matrixWorld).multiply(new THREE.Matrix4().makeScale(scala, scala, scala)));
         x.setColorAt(j, tinta);
@@ -307,6 +311,7 @@ export function createZombi(scene: THREE.Scene): Zombi {
           nc++;
         }
         if (z.v.tipo === 'molay' && z.v.anim !== 'morto') molay = new THREE.Vector3(x, 2, zz);
+        if (z.v.anim !== 'morto' && z.v.anim !== 'sorge') sag.push({ id: z.id, x, z: zz, yaw: z.yaw, scala: sc, cav: !!z.cav });
         if (z.v.anim !== 'morto' && z.v.anim !== 'sorge' && b < MAX) blobs.setMatrixAt(b++, m4.compose(v3.set(x, 0.03, zz), q, s3.set(z.cav ? 2.4 : sc, 1, z.cav ? 2.4 : sc)));
       }
       for (const [k, km] of kits) for (const [p, x] of Object.entries(km)) { const n = nk.get(k) ?? 0; x.count = DOPPIE.has(p) ? n * 2 : n; }
@@ -320,6 +325,7 @@ export function createZombi(scene: THREE.Scene): Zombi {
     colpito(id) { const z = zs.get(id); if (z) z.flash = 0.1; },
     posDi(id) { const z = zs.get(id); return z ? new THREE.Vector3(z.x, z.cav ? 3.2 : 2.1, z.z) : null; },
     counts: () => ({ zombie: zs.size, disegnati: zs.size, mesh: tutte.filter((x) => x.visible).length }),
+    sagome: () => sag,
     dispose() { for (const x of tutte) { scene.remove(x); x.geometry.dispose(); } mat.dispose(); acceso.dispose(); scene.remove(blobs, luceMolay); blobGeo.dispose(); },
   };
   return api;

@@ -116,6 +116,8 @@ const HATS: Record<string, (string | number)[][]> = {
 };
 /** Copricapi solo per gli eroi dei Templari (setCappello), non nella lista dell'editor. */
 const SOLO_EROI = ['elmo_templare', 'cappuccio_arciere'];
+/** La maglietta sotto il vestito di ogni eroe (rpg/vestito_templari.ts): maglia di ferro, camicia chiara, tunica verde. */
+const MAGLIA_EROI: Record<string, string> = { elmo_templare: '#7F7568', pirata: '#F4E3C1', cappuccio_arciere: '#4E9A46' };
 /** Cappelli senza nodo nel modello: si costruiscono a box e si appendono all'osso della testa (centro testa = origine, come headBoxes). */
 function hatOnHead(id: string): THREE.Mesh | null {
   const h = HATS[id];
@@ -233,14 +235,15 @@ async function loadModel(loader: Loader, nome = 'chr_base'): Promise<ModelRig> {
   let forzato: string | null = null, ultimo: Look | null = null;
   const setLook = (look: Look) => {
     ultimo = look;
-    const k = { ...lookColors(look), ...(forzato ? { hat: forzato } : {}) };
+    // gli eroi dei Templari (setCappello): sotto il vestito la maglietta prende il colore del vestito, così non spunta dalle spalle
+    const k = { ...lookColors(look), ...(forzato ? { hat: forzato, shirt: MAGLIA_EROI[forzato] ?? lookColors(look).shirt } : {}) };
     for (const [id, m] of extra) m.visible = id === k.hat;
     for (const m of groups.pelle) m.color.set(k.skin);
     for (const m of groups.capelli) m.color.set(k.hair);
     for (const m of groups.vestito) m.color.set(k.shirt);
     for (const m of groups.cappello) m.color.set(({ paglia: '#E2B97F', berretto: '#2478A8', pescatore: '#B9AFA3', lanterna: '#E8433F', neon: '#FF3DA6' } as Record<string, string>)[k.hat] ?? '#E2B97F');
     scene.traverse((n) => {
-      if (n.name.startsWith('capelli_')) n.visible = n.name === `capelli_${look.capelli}`;
+      if (n.name.startsWith('capelli_')) n.visible = n.name === `capelli_${look.capelli}` && !SOLO_EROI.includes(k.hat); // elmo e cappuccio coprono i capelli
       if (n.name.startsWith('cappello_')) n.visible = n.name === `cappello_${k.hat}`;
     });
   };

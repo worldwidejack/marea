@@ -1,7 +1,7 @@
 // Scena dell'arena dei Templari (docs/TEMPLARI.md §3): l'isola di notte vista da vicino. Pavimento dipinto a pixel cella per cella in una
 // sola texture (lastre della chiesa, terra del sagrato, acciottolato della piazza, erba del cimitero, sabbia, assito della taverna, buio
-// oltre), muri della chiesa e delle case diroccate in un InstancedMesh, sempre della loro altezza (quello che sta tra la camera e l'eroe lo apre
-// la finestra di render/finestra.ts, come nel dungeon: niente muri, colonne o archi che cambiano mentre cammini), colonne, tende dei pirati, e tutte le cose basse (stalli, muretti, tombe, botti, carretti, cannoni, il pozzo, le leve) in due
+// oltre), muri della chiesa e delle case diroccate in un InstancedMesh, sempre della loro altezza (chi ci sta dietro si vede come sagoma,
+// sagome.ts: niente muri, colonne o archi che cambiano o si aprono mentre cammini), colonne, tende dei pirati, e tutte le cose basse (stalli, muretti, tombe, botti, carretti, cannoni, il pozzo, le leve) in due
 // InstancedMesh; finestre con le assi (spariscono quando gli zombie le strappano), porte col prezzo sopra (spariscono quando le compri),
 // altare con le candele, le trappole: la brace del rogo sulla passatoia e la campana grande che oscilla. Luce di luna fredda, candele e
 // bracieri caldi che tremano a scatti. Solo colori della palette.
@@ -22,7 +22,7 @@ import { createBanchetto } from './banchetto.ts';
 import { createCatacombe3d } from './catacombe3d.ts';
 import { pezziIndizi } from './indizi3d.ts';
 import type { Catacombe3d } from './catacombe3d.ts';
-import { createFinestra } from '../render/finestra.ts';
+import { altezzeMuri, murettiBordo } from './bordi.ts';
 
 export type Scena = {
   scene: THREE.Scene;
@@ -40,8 +40,8 @@ export type Scena = {
   setCripta(dentro: boolean): void;
   /** Le catacombe (§12b punto 3): nicchie, torce, fucina (per le prove). */
   catacombe: Catacombe3d;
-  /** Finestra sull'eroe accesa o spenta (la foto della chiesa dipinta, dipinto.ts, la spegne). */
-  setTaglia(on: boolean): void;
+  /** Altezza (m) del muro pieno nel punto (0 = niente): per le sagome di chi ci sta dietro (sagome.ts). */
+  alto(x: number, z: number): number;
   stats(): { muri: number; assi: number; luci: number; cose: number; croci: number; usci: number; archi: number; cipressi: number; sarcofagi: number; candele: number; palme: number; lampioni: number; vetrate: number; palizzata: number; navi: number; indizi: number };
   dispose(): void;
 };
@@ -50,8 +50,6 @@ const PX = 16; // texel per metro del pavimento (come le isole del mondo)
 const K = PX / 8, K2 = K * K; // i disegni dei suoli sono pensati per 8 texel: quante volte ripeterli
 const H_MURO = [2.6, 3.4, 3.0, 3.8, 2.2, 3.6, 3.1, 2.8]; // altezze dei muri diroccati (per cella, dal hash)
 const H_CASA = [2.2, 2.8, 1.8, 3.0, 2.5, 1.4];
-/** Finestra sull'eroe: raggio (m) e quota sotto cui non si taglia. */
-const FIN = { raggio: 2, altezza: 0.75 } as const;
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 
 /** Pavimento: una texture a pixel per le righe da `z0` a `z1` (escluse) dell'arena, il suolo di ogni cella dalla mappa. Due: il sopra e
@@ -232,7 +230,7 @@ function gruppi(a: Arena, tipo: number): number[][] {
   return out;
 }
 
-export function createScena(a: Arena, camera: THREE.Camera): Scena {
+export function createScena(a: Arena): Scena {
   const scene = new THREE.Scene(); scene.name = 'templari'; scene.userData.near = 4; // render/scene.ts: piano vicino
   scene.background = new THREE.Color(PAL.neroCaldo);
   const T = a.tile, W = a.w;
@@ -306,7 +304,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   const hCol = colonne.map((i) => (cellHash(i, 4, 4) < 0.25 ? 1.6 : 4.2));
   colonne.forEach((i, n) => { const p = ctr(i); colonna.setMatrixAt(n, m4.compose(v(p.x, 0, p.z), qq.identity(), v(1, hCol[n]!, 1))); });
   scene.add(colonna); disp.push(colGeo, colMat);
-  const altezzaDi = new Map(muri.map((i, n) => [i, altezza[n]!]));
+  const altezzaDi = new Map(muri.map((i, n) => [i, altezza[n]!])), muriAlti = altezzeMuri(a, [...muri, ...colonne], [...altezza, ...hCol]);
   // gli indizi (§12b punto 4, indizi3d.ts): quelli della chiesa con le aste degli stendardi, quelli di sotto con le catacombe, gli altri
   // in una mesh per zona (fuori dal dipinto)
   const indizi = pezziIndizi(a);
@@ -361,6 +359,7 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
       default: sassi.push(i);
     }
   }
+  scatole.push(...murettiBordo(a)); // il bordo dei campi (bordi.ts)
   // cose a gruppi: 2×2 = il pozzo, due in fila = carretto (o cannone sulla sabbia), una = botte
   for (const g of gruppi(a, TIPO.cosa)) {
     const xs = g.map((i) => i % W), zs = g.map((i) => Math.floor(i / W));
@@ -566,9 +565,6 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
   disp.push(braGeo, piedeGeo, fiaGeo, fiaMat, ferroMat);
   scene.add(hemi, amb, luna, luna.target, lanterna, candele);
 
-  // ---- finestra sull'eroe: tutto quello che sta in scena adesso (non il pavimento) ----
-  const fin = createFinestra({ raggio: FIN.raggio, altezza: FIN.altezza, coperchio: PAL.ombraCalda });
-  fin.applica(scene, { taglia: true }, (m) => m === floor || m === floorSotto);
   const qi = new THREE.Quaternion();
 
   let assiOra = '', poolT = -1, leveOra = '', criptaOra = false;
@@ -579,7 +575,6 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
     scene,
     update(hx, hz, t, assi, trappole) {
       catacombe.update(t);
-      fin.aggiorna(camera, hx, 1, hz);
       lanterna.position.set(hx, 2.4, hz);
       arredi.update(t); dettagli.update(t); accampamento.update(t); banchetto.update(t);
       luna.target.position.set(hx, 0, hz); luna.position.set(hx - 30, 50, hz - 20);
@@ -630,8 +625,8 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
     },
     setPorte(aperte) { for (const [id, l] of porte) for (const o of l) o.visible = !aperte[id]; },
     setCalice(v) { caliceAlt.visible = v; },
-    setTaglia(on) { fin.setTaglia(on); },
-    setMuroRotto(r) { if (nCrepa < 0) return; muro.setMatrixAt(nCrepa, r ? ZERO : mCrepa); muro.instanceMatrix.needsUpdate = true; },
+    alto: (x, z) => muriAlti.alto(x, z),
+    setMuroRotto(r) { if (nCrepa < 0) return; muriAlti.set(muri[nCrepa]!, r ? 0 : altezza[nCrepa]!); muro.setMatrixAt(nCrepa, r ? ZERO : mCrepa); muro.instanceMatrix.needsUpdate = true; },
     catacombe,
     setCripta(d) {
       if (d === criptaOra) return;
@@ -649,6 +644,6 @@ export function createScena(a: Arena, camera: THREE.Camera): Scena {
       if (m) campana.rotation.set(0, 0, 0);
     },
     stats: () => ({ muri: muri.length, assi: assiOra.split(',').reduce((s, x) => s + Number(x || 0), 0), luci: 4 + fuochi.length, cose: scatole.length + tubi.length + tende.length, ...arredi.stats(), ...dettagli.stats(), ...accampamento.stats(), indizi: a.scheletri.length + a.sangue.length }),
-    dispose() { arredi.dispose(); dettagli.dispose(); accampamento.dispose(); banchetto.dispose(); catacombe.dispose(); fin.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
+    dispose() { arredi.dispose(); dettagli.dispose(); accampamento.dispose(); banchetto.dispose(); catacombe.dispose(); for (const d of disp) d.dispose(); scene.clear(); },
   };
 }

@@ -1,8 +1,8 @@
 // Dettagli dell'arena dei Templari (docs/TEMPLARI.md §3): quello che fa sembrare vero il posto, guardando Le crociate (Kingdom of Heaven,
 // 2005) e le città di Assassin's Creed (Acri, Gerusalemme). Chiesa: i sarcofagi dei cavalieri con la statua distesa (gambe incrociate,
 // scudo, spada, il leone ai piedi, come alla Temple Church), gli armadi e il tavolo coi calici della sacrestia, il crocifisso sopra il
-// tramezzo, le panche rovesciate, i candelabri accesi, le vetrate colorate sopra le finestre sbarrate, gli arazzi rossi del coro, i raggi
-// di luna dal tetto crollato. Fuori: le tende da mercato sopra gli usci con casse e ceste di frutta, i balconi di legno a grata, le palme,
+// tramezzo, le panche rovesciate, i candelabri accesi, le vetrate colorate sopra le finestre sbarrate, gli arazzi rossi del coro. Fuori: le
+// tende da mercato sopra gli usci con casse e ceste di frutta, i balconi di legno a grata, le palme,
 // i lampioni con l'alone caldo, i tavoli della taverna, la nebbia bassa del cimitero. Tutto instanziato o unito (poche draw call).
 import * as THREE from 'three';
 import type { Arena } from '@marea/sim/templari/mappa.ts';
@@ -263,10 +263,6 @@ export function createDettagli(scene: THREE.Scene, a: Arena, o: { centro: { x: n
   const arT = arazzoTex(); disp.push(arT);
   const arGeo = new THREE.PlaneGeometry(0.85, 1.9); arGeo.translate(0, 0.95, 0);
   istanze(arGeo, araz, 'arazzi', new THREE.MeshLambertMaterial({ map: arT, side: THREE.DoubleSide }));
-  // ---- raggi di luna dal tetto crollato della rotonda ----
-  const raggiGeo = unisci([0, 2.1, 4.2].map((k): Pezzo => ({ g: B(0.9, 10, 0.05), c: PAL.acquaBassa, x: o.centro.x + Math.cos(k) * 3.2, y: 5, z: o.centro.z + Math.sin(k) * 3.2, rz: 0.32, ry: k })));
-  const raggi = new THREE.Mesh(raggiGeo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.06, depthWrite: false, blending: THREE.AdditiveBlending }));
-  raggi.name = 'raggi_luna'; raggi.renderOrder = 3; scene.add(raggi); disp.push(raggiGeo, raggi.material as THREE.Material);
 
   // ---- fuori: botteghe sopra gli usci delle case, balconi a grata ----
   const bott: Posto[] = [], bal: Posto[] = [];
