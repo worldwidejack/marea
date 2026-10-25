@@ -333,13 +333,15 @@ export async function createAvatar(o: { loader: Loader; look: Look; x: number; z
     setIndossa(i, opt) {
       if (!model) return;
       indossa = vuoto(i) ? undefined : i;
-      if (!indossa && !vestito) return;
       const schiena = opt?.schiena !== false, fatto = indossa;
-      // fuori dal dungeon si vede il vestito del Mercante (l'armatura resta per il dungeon, dove il vestito si toglie)
-      model.vesti?.visibile(schiena || !(indossa === 'partenza' || indossa?.corpo));
+      // armatura e vestiti: nei dungeon ha precedenza l'armatura; fuori ha precedenza il vestito salvo "indossa anche fuori" (corpoFuori)
+      const haCorpo = !!(indossa === 'partenza' || indossa?.corpo);
+      const mostraCorpo = schiena ? (haCorpo && indossa !== 'partenza' && !!indossa?.corpoFuori) : haCorpo;
+      model.vesti?.visibile(!mostraCorpo);
+      if (!indossa && !vestito) return;
       vestito ??= new Promise<void>((r) => (!schiena || typeof requestIdleCallback !== 'function' ? setTimeout(r, schiena ? 500 : 0) : requestIdleCallback(() => r(), { timeout: 3000 })))
         .then(() => import('../rpg/vestito.ts')).then((m) => (vestitoOra = m.creaVestito({ loader: o.loader, root: model!.root, rest: model!.rest })));
-      void vestito.then((v) => v.set(fatto, schiena, schiena && !!model?.vesti)).catch((e) => console.warn('[marea] equipaggiamento non vestito', e));
+      void vestito.then((v) => v.set(fatto, schiena, !mostraCorpo)).catch((e) => console.warn('[marea] equipaggiamento non vestito', e));
     },
     indossaMats: () => vestitoOra?.materiali() ?? [],
     indossaStato: () => vestitoOra?.stato() ?? null,

@@ -28,6 +28,8 @@ export type HeroState = {
   inv: Record<string, number>;
   /** Equipaggiato: id oggetto (o magia per 'magia'). Un oggetto equipaggiato resta anche contato in `inv`. */
   equip: Partial<Record<EquipSlot, string>>;
+  /** Se true, l'armatura sul corpo si vede anche fuori dal dungeon (nell'overworld) invece del vestito estetico. */
+  armaturaFuori?: boolean;
   magie: string[];
   /** Armi fragili (vetro): colpi già dati con la copia in uso, per id. */
   usura: Record<string, number>;
@@ -231,7 +233,9 @@ export type RpgAction =
   /** Contrabbandiere del Porto: compra la merce di oggi o gli vendi roba dello zaino (monete). */
   | { t: 'contrabbando'; op: 'compra' | 'vendi'; item: string; n: number }
   /** Arena: salva il set del duello (controllato con erroreLoadout di rpg/arena.ts). */
-  | { t: 'arena'; loadout: ArenaLoadout };
+  | { t: 'arena'; loadout: ArenaLoadout }
+  /** Indossa l'armatura anche fuori dal dungeon (nell'overworld) invece del vestito estetico. */
+  | { t: 'armatura_fuori'; attiva?: boolean };
 
 /** Spedizione aperta dal server (dentro LotState.dungeon). */
 /** `salvataggio`: input fino all'ultimo altare (encodeDungeon), verificati dal server con POST /api/dungeon/save. Se la spedizione non

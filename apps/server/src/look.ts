@@ -59,7 +59,8 @@ export async function sincIndossa(env: Env, p: Persona, r: Response): Promise<Re
     const o = j && typeof j === 'object' ? (j as Record<string, unknown>) : null;
     const lot = (o?.['lot'] ?? o?.['lotto'] ?? o) as LotState | null;
     if (!lot || typeof lot !== 'object' || typeof lot.owner !== 'string') return r; // non c'è un lotto nella risposta: nulla da confrontare
-    const nuovo = indossaDa(heroOf(lot).equip); // senza personaggio salvato vale quello di partenza (tela, katana di legno, arco…)
+    const hero = heroOf(lot);
+    const nuovo = indossaDa(hero.equip, hero.armaturaFuori); // senza personaggio salvato vale quello di partenza (tela, katana di legno, arco…)
     let old: Record<string, unknown> = {};
     try { const v: unknown = JSON.parse(p.look); if (v && typeof v === 'object') old = v as Record<string, unknown>; } catch { /* look rotto */ }
     if (stessoIndossa(indossaValida(old['indossa']), nuovo)) return r;

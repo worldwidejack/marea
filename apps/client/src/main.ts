@@ -86,7 +86,10 @@ async function boot(): Promise<void> {
   // il proprio lotto (azioni) e quelli degli altri (sola lettura): la casa, i mobili, le monete
   const lots: LotView[] = [];
   const myLot = () => lots.find((lv) => !lv.readonly)?.state() ?? null;
-  const setMyLot = (l: LotState) => { lots.find((lv) => !lv.readonly)?.set(l); };
+  const setMyLot = (l: LotState) => {
+    lots.find((lv) => !lv.readonly)?.set(l);
+    world.setEquip(l.hero ? { ...l.hero.equip, ...(l.hero.armaturaFuori ? { corpoFuori: true } : {}) } : 'partenza');
+  };
   const isole: LibroIsola[] = []; // case abitate col loro libro degli ospiti
   for (const l of arch.lots) {
     const mine = !!me && l.slot === world.slot;
@@ -296,7 +299,7 @@ async function boot(): Promise<void> {
     vis.get()?.update(Date.now(), t, focus);
     renderer.render(alpha, t);
     hud.setPerf(renderer.stats());
-    if ((eqN++ & 15) === 0) { const l = myLot(); if (l) world.setEquip(l.hero ? l.hero.equip : 'partenza'); } // armatura e arma a vista: si riallinea al personaggio ogni ~¼ di secondo
+    if ((eqN++ & 15) === 0) { const l = myLot(); if (l) world.setEquip(l.hero ? { ...l.hero.equip, ...(l.hero.armaturaFuori ? { corpoFuori: true } : {}) } : 'partenza'); } // armatura e arma a vista: si riallinea al personaggio ogni ~¼ di secondo
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

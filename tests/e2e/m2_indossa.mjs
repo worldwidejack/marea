@@ -15,18 +15,22 @@ export default async function (ctx) {
   const { assert } = ctx;
   const SERVER = path.join(ctx.ROOT, 'apps/server');
   const persist = path.join(ctx.OUT, `m2indossa-${process.pid}`);
+  const WIN = process.platform === 'win32';
   const env = { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' };
-  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }).toString();
+  const wr = (...a) => execFileSync('npx', ['--no-install', 'wrangler', ...a], { cwd: SERVER, env, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, shell: WIN }).toString();
 
   let dev = null, log = '';
   const pages = [];
   try {
-    fs.rmSync(persist, { recursive: true, force: true });
+    try { fs.rmSync(persist, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch { /* file ancora aperti su Windows */ }
+    fs.mkdirSync(persist, { recursive: true });
     wr('d1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist);
-    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--command', "INSERT INTO persone (id, nome, token, slot) VALUES ('ada', 'Ada', 'tokA', 0), ('bea', 'Bea', 'tokB', 1);");
+    const sql = path.join(persist, 'persone.sql');
+    fs.writeFileSync(sql, "INSERT INTO persone (id, nome, token, slot) VALUES ('ada', 'Ada', 'tokA', 0), ('bea', 'Bea', 'tokB', 1);\n");
+    wr('d1', 'execute', 'DB', '--local', '--persist-to', persist, '--file', sql);
     const port = await freePort(), inspector = await freePort();
     dev = spawn('npx', ['--no-install', 'wrangler', 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
-      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      '--assets', ctx.distDir, '--persist-to', persist, '--var', 'TEST_CLOCK:1', '--show-interactive-dev-session=false'], { cwd: SERVER, env, detached: !WIN, shell: WIN, stdio: ['ignore', 'pipe', 'pipe'] });
     dev.stdout.on('data', (d) => (log += d)); dev.stderr.on('data', (d) => (log += d));
     const base = `http://127.0.0.1:${port}`;
     let up = false;
@@ -108,6 +112,26 @@ export default async function (ctx) {
       await ctx.waitState(A.page, (s) => s.wp2_avatar.vestito && s.wp2_avatar.vestito.arma === 'arco_legno' && s.wp2_avatar.vestito.faretra, 20000);
     });
 
+    await ctx.test('indossa anche fuori: Ada attiva armatura_fuori e si vede l’armatura nell’overworld', async () => {
+      await post('/api/rpg', 'tokA', { azione: { t: 'armatura_fuori', attiva: true } });
+      await A.page.evaluate(() => window.__game.test.lotRefresh());
+      await ctx.waitState(A.page, (s) => s.wp2_avatar.vestito && s.wp2_avatar.vestito.corpo === 'armatura_legno', 20000);
+      await waitPeer((x) => x.corpo === 'armatura_legno', 'armatura anche per Bea');
+      await post('/api/rpg', 'tokA', { azione: { t: 'armatura_fuori', attiva: false } });
+      await A.page.evaluate(() => window.__game.test.lotRefresh());
+      await ctx.waitState(A.page, (s) => s.wp2_avatar.vestito && s.wp2_avatar.vestito.corpo === null, 20000);
+      await waitPeer((x) => x.corpo === null, 'vestito estetico per Bea');
+    });
+
+    await ctx.test('vestito persistente: /api/look salva abito e /api/me lo ritrova', async () => {
+      const lk = (await get('/api/me', 'tokA')).body.look;
+      assert(lk.abito === 0, 'abito di base: ' + lk.abito);
+      const res = await post('/api/look', 'tokA', { ...lk, abito: 1 });
+      assert(res.status === 200, 'salvataggio abito: ' + res.status);
+      const lk2 = (await get('/api/me', 'tokA')).body.look;
+      assert(lk2.abito === 1, 'abito salvato e ritrovato: ' + lk2.abito);
+    });
+
     await ctx.test('vista: screenshot di Ada addosso a Bea (zoom vicino) e budget di draw call', async () => {
       const ada = (await ctx.getState(B.page)).peersDrawn.find((p) => p.id === 'ada');
       assert(ada, 'Ada non è disegnata da Bea');
@@ -126,7 +150,10 @@ export default async function (ctx) {
     });
   } finally {
     for (const pg of pages) await pg.close().catch(() => {});
-    if (dev) { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
-    fs.rmSync(persist, { recursive: true, force: true });
+    if (dev) {
+      if (WIN) { try { execFileSync('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* ok */ } }
+      else { try { process.kill(-dev.pid, 'SIGTERM'); } catch { /* già finito */ } await sleep(500); try { process.kill(-dev.pid, 'SIGKILL'); } catch { /* ok */ } }
+    }
+    try { fs.rmSync(persist, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch { /* file ancora aperti su Windows */ }
   }
 }

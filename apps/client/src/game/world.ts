@@ -49,7 +49,7 @@ export type GameWorld = {
   setLook(l: Look): void;
   /** Equipaggiamento di chi gioca (`hero.equip` del lotto): armatura sul corpo e arma sulla schiena (#190), su avatar e guidatore della barca. Si può
    *  chiamare di continuo: rifà qualcosa solo se quello che si vede è cambiato. */
-  setEquip(equip: Readonly<Partial<Record<string, string>>> | 'partenza' | undefined): void;
+  setEquip(equip: Readonly<Partial<Record<string, string | boolean>>> | 'partenza' | undefined): void;
   /** Punto sopra la testa (mondo): 'me' oppure l'id di un peer; in barca sopra la barca. null se non c'è. */
   anchorOf(id: 'me' | string): { x: number; y: number; z: number } | null;
   /** Gesto delle emote (#90) sull'avatar a piedi di 'me' o di un peer: saltello `hop` (m) e giro `spin` (rad); (0, 0) lo riporta fermo. */
@@ -153,8 +153,8 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
   const avatar = await createAvatar({ loader: o.loader, look, x: home.x, z: home.z }); scene.add(avatar.object);
   avatar.setGround(island.groundY);
   const boat = await createBoat({ loader: o.loader, x: homeBoat.x, z: homeBoat.z, look, barca: o.barca ?? BARCA_DI_SERIE }); scene.add(boat.object);
-  const setEquip = (e: Readonly<Partial<Record<string, string>>> | 'partenza' | undefined): void => {
-    const i: Indossa | 'partenza' | undefined = e === 'partenza' ? e : e && (e['corpo'] || e['arma'] || e['frecce']) ? { corpo: e['corpo'], arma: e['arma'], frecce: e['frecce'] } : undefined, k = JSON.stringify(i ?? null);
+  const setEquip = (e: Readonly<Partial<Record<string, string | boolean>>> | 'partenza' | undefined): void => {
+    const i: Indossa | 'partenza' | undefined = e === 'partenza' ? e : e && (e['corpo'] || e['arma'] || e['frecce']) ? { corpo: e['corpo'] as string, arma: e['arma'] as string, frecce: e['frecce'] as string, ...(e['corpoFuori'] === true ? { corpoFuori: true } : {}) } : undefined, k = JSON.stringify(i ?? null);
     if (k !== equipKey) { equipKey = k; avatar.setIndossa(i); boat.driver.setIndossa(i); }
   };
   // i posti barca del molo del Porto: il primo, accanto alla B, è il tuo; gli altri degli amici, uno a testa

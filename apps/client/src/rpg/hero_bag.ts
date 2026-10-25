@@ -107,6 +107,19 @@ function detail(v: View, it: ItemDef, eq: SlotOggetto[]): HTMLElement {
         () => (on ? equip(slot, null, `Tolto: ${it.nome}`) : equip(slot, it.id, `${SLOT_NOME[slot]}: ${it.nome}`)));
     b.dataset['act'] = riposta ? 'impugna' : on ? 'togli' : 'equipaggia';
     box.appendChild(b);
+    if (slot === 'corpo' && on) {
+      const fuori = !!v.hero.armaturaFuori;
+      const bFuori = button(
+        `eq_fuori:${it.id}`,
+        fuori ? 'Mostra vestito fuori' : 'Indossa anche fuori',
+        fuori ? 'ora si vede l’armatura nell’overworld' : 'si vedrà addosso anche nell’overworld',
+        fuori ? 'ghost' : 'green',
+        v.busy || v.sotto,
+        () => v.act({ t: 'armatura_fuori', attiva: !fuori }, () => (fuori ? 'Nell’overworld si vede il vestito' : 'Armatura visibile anche nell’overworld'))
+      );
+      bFuori.dataset['act'] = 'armatura_fuori';
+      box.appendChild(bFuori);
+    }
   } else if (it.kind === 'anello') {
     const r = el('div', 'mz-row');
     for (const s of ['anello1', 'anello2'] as const) {

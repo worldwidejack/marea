@@ -10,6 +10,7 @@ import { checkMonete } from '../src/economy/monete.ts';
 import { conMonete, senzaMonete } from './monete_util.ts';
 import { hashJson } from '../src/hash.ts';
 import { applyRpgAction, parseRpgAction } from '../src/rpg/actions.ts';
+import { indossaDa, stessoIndossa } from '../src/rpg/indossa.ts';
 import { gainSkillXp, heroOf, newHero } from '../src/rpg/hero.ts';
 import type { HeroState, RpgAction } from '../src/rpg/types.ts';
 import { isErr } from './economia_util.ts';
@@ -69,6 +70,31 @@ test('rpg azioni: equip controlla slot, tipo e zaino; leggere un libro insegna l
   l = act(l, { t: 'equip', slot: 'magia', item: 'lupo_spettrale' });
   assert.equal(heroOf(l).equip.magia, 'lupo_spettrale');
   assert.throws(() => act(l, { t: 'leggi', item: 'pozione_vita_minore' }), isErr('oggetto'));
+});
+
+test('rpg azioni: armatura_fuori attiva/disattiva la vista dell’armatura fuori dai dungeon', () => {
+  let l = lotWith({}, withInv({ armatura_legno: 1 }));
+  assert.equal(heroOf(l).armaturaFuori, undefined);
+  assert.equal(indossaDa(heroOf(l).equip, heroOf(l).armaturaFuori)?.corpoFuori, undefined);
+
+  l = act(l, { t: 'armatura_fuori', attiva: true });
+  assert.equal(heroOf(l).armaturaFuori, true);
+  assert.equal(indossaDa(heroOf(l).equip, heroOf(l).armaturaFuori)?.corpoFuori, true);
+
+  // stessoIndossa distingue se corpoFuori cambia
+  const a = indossaDa(heroOf(l).equip, false);
+  const b = indossaDa(heroOf(l).equip, true);
+  assert.equal(stessoIndossa(a, b), false);
+
+  // disattiva con toggle
+  l = act(l, { t: 'armatura_fuori' });
+  assert.equal(heroOf(l).armaturaFuori, false);
+
+  // togliere l'armatura resetta armaturaFuori a false
+  l = act(l, { t: 'armatura_fuori', attiva: true });
+  assert.equal(heroOf(l).armaturaFuori, true);
+  l = act(l, { t: 'equip', slot: 'corpo', item: null });
+  assert.equal(heroOf(l).armaturaFuori, false);
 });
 
 test('rpg azioni: forgia dal Fabbro (livello del Banco di prima), materiali da zaino e Forziere, Legno in monete, perk e xp', () => {
@@ -143,6 +169,8 @@ test('rpg azioni: Forziere con capienza per livello, niente equipaggiati, zaino 
 test('rpg parseRpgAction: solo forme valide, oggetto pulito', () => {
   assert.deepEqual(parseRpgAction({ t: 'forgia', item: 'katana_ferro', extra: 1 }), { t: 'forgia', item: 'katana_ferro' });
   assert.deepEqual(parseRpgAction({ t: 'equip', slot: 'corpo', item: null }), { t: 'equip', slot: 'corpo', item: null });
+  assert.deepEqual(parseRpgAction({ t: 'armatura_fuori', attiva: true }), { t: 'armatura_fuori', attiva: true });
+  assert.deepEqual(parseRpgAction({ t: 'armatura_fuori' }), { t: 'armatura_fuori' });
   assert.deepEqual(parseRpgAction({ t: 'deposita', item: 'x', n: 999 }), { t: 'deposita', item: 'x', n: 999 });
   assert.deepEqual(parseRpgAction({ t: 'ripristina_skill', skill: 'armiLeggere' }), { t: 'ripristina_skill', skill: 'armiLeggere' });
   assert.equal(parseRpgAction({ t: 'ripristina_skill', skill: 'nuoto' }), null);

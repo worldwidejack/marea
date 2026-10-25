@@ -33,6 +33,7 @@ export function parseRpgAction(v: unknown): RpgAction | null {
       return (o.op === 'compra' || o.op === 'vendi') && str(o.item) && qty(o.n) ? { t: 'contrabbando', op: o.op, item: o.item, n: o.n } : null;
     case 'ripristina_skill': return SKILLS.includes(o.skill as SkillId) ? { t: 'ripristina_skill', skill: o.skill as SkillId } : null;
     case 'arena': { const l = parseLoadout(o.loadout); return l ? { t: 'arena', loadout: l } : null; }
+    case 'armatura_fuori': return { t: 'armatura_fuori', ...(typeof o.attiva === 'boolean' ? { attiva: o.attiva } : {}) };
     default: return null;
   }
 }
