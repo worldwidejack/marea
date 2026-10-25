@@ -33,7 +33,7 @@ Riferimenti: ogni format prende da un gioco di grande successo (Mario Kart e Did
 | **Vulcano**: cratere di lava, ossidiana, capanne | est | gli abitanti ti rimettono in barca senza la **Lanterna in testa** (cappello del Mercante) | **Fuga dalla lava** (§6) |
 | **Giardino**: ciliegi, tempio, carpe koi | sud-ovest | nascosto nella nebbia finché non hai la **mappa**, che regala la prima medaglia d'oro | **Carpe koi** (§6) |
 | **Templari** (birbasan): chiesa in rovina, borgo abbandonato, cimitero | sud | libera | ondate di crociati zombie, fino a 4 insieme (§13, `TEMPLARI.md`) |
-| **Corse** (Jack): prato, anello d'asfalto, tribune | nord-est | libera | il **Gran Premio** e l'hub alla Diddy Kong Racing (`CORSE.md`) |
+| **Corse** (Jack): prato, anello d'asfalto, tribune | nord-est | libera | il **Gran Premio**, a piedi dalle porte delle zone (`CORSE.md`) |
 | **Adrenalina** (birbasan): una montagna con la funivia | nord-ovest | la funivia ti fa salire dopo la **liberatoria** e col **Casco** in testa | discese contro i fantasmi degli amici (§14, `ADRENALINA.md`) |
 | **Arena** (Riccardo, da confermare con Jack): un colosseo | sud-est | libera | duello 1v1, 2v2 e 3v3 alla Brawl Stars, con erba alta, armi e magie dei dungeon (`ARENA.md`) |
 | **Difesa**: L'orto, col casale e il mulino | ovest | libera | difesa a corsie alla Plants vs Zombies, 6 livelli + Sopravvivenza (`DIFESA.md`) |

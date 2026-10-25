@@ -31,9 +31,10 @@ export function solidoDi(f: FormaSolida, x: number, z: number, rot = 0, sc = 1):
   return 'box' in f ? { x: wx, z: wz, hx: (f.box[0] / 2) * sc, hz: (f.box[1] / 2) * sc, c, s } : { x: wx, z: wz, r: f.r * sc };
 }
 
-/** Posa come fisse le forme di `kind` (collisioni.json) in (x, z) con rotazione e scala; ritorna quante (0 = cosa che non è solida). */
-export function posaForma(o: Pick<Ostacoli, 'fisso'>, kind: string, x: number, z: number, rot = 0, sc = 1): number {
-  const fs = COLLISIONI.forme[kind] ?? [];
+/** Posa come fisse le forme di `kind` (collisioni.json) in (x, z) con rotazione e scala; ritorna quante (0 = cosa che non è solida).
+ *  `isola`: la forma `<isola>:<kind>`, se c'è, vince su quella di `kind` (il faro delle Corse non è quello del Borgo). */
+export function posaForma(o: Pick<Ostacoli, 'fisso'>, kind: string, x: number, z: number, rot = 0, sc = 1, isola?: string): number {
+  const fs = (isola ? COLLISIONI.forme[`${isola}:${kind}`] : undefined) ?? COLLISIONI.forme[kind] ?? [];
   for (const f of fs) o.fisso(solidoDi(f, x, z, rot, sc));
   return fs.length;
 }

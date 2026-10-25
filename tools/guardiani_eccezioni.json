@@ -14,42 +14,13 @@
   "apps/client/src/corse/effetti.ts": [
    "COLORE_LIVELLO"
   ],
-  "apps/client/src/corse/hub/guida.ts": [
-   "suolo"
+  "apps/client/src/corse/nastro3d.ts": [
+   "COLORE_SUP"
   ],
-  "apps/client/src/corse/hub/mondo_base.ts": [
-   "uvP"
-  ],
-  "apps/client/src/corse/hub/mondo_cielo.ts": [
-   "SOLE"
-  ],
-  "apps/client/src/corse/hub/mondo_kit.ts": [
-   "geoTinta"
-  ],
-  "apps/client/src/corse/hub/mondo_pezzi.ts": [
-   "NOMI"
-  ],
-  "apps/client/src/corse/hub/mondo_terreno.ts": [
-   "BORDO",
-   "DEF_STRADE",
-   "ISOLOTTI",
-   "PAESE",
-   "PIAZZE_C",
-   "PIAZZE_R",
-   "SENTIERI",
-   "TESSERE",
-   "Vicini",
-   "inPiazza",
-   "nat",
-   "scogliera"
-  ],
-  "apps/client/src/corse/hub/pannelli.ts": [
+  "apps/client/src/corse/pannelli.ts": [
    "SCELTA_KEY",
    "tacche",
    "veicoliDi"
-  ],
-  "apps/client/src/corse/nastro3d.ts": [
-   "COLORE_SUP"
   ],
   "apps/client/src/corse/veicoli_ai.ts": [
    "VEICOLI_AI"
@@ -404,8 +375,6 @@
   "apps/client/src/corse/amici.ts": 1,
   "apps/client/src/corse/avviso_ruota.ts": 1,
   "apps/client/src/corse/discesa/main.ts": 1,
-  "apps/client/src/corse/hub/prova.ts": 1,
-  "apps/client/src/corse/hub/vista.ts": 1,
   "apps/client/src/corse/nastro3d.ts": 1,
   "apps/client/src/corse/prova/garage.ts": 1,
   "apps/client/src/corse/prova/main.ts": 2,

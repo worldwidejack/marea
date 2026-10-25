@@ -1,6 +1,6 @@
 // Link «gara tra amici» (#204, CONTRACTS §39): tre telefoni in orizzontale aprono il loro link personale con `&gara=amici` e si trovano
 // direttamente nella sala delle Corse (senza camminare fino all'isola né passare dalla porta). Ugo sceglie la pista nella sala (Lungomare)
-// e preme VIA coi bot: partono tutti e tre sul Lungomare, ognuno vede gli altri due come fantasmi. Poi Esc: ritirati e di nuovo nell'hub.
+// e preme VIA coi bot: partono tutti e tre sul Lungomare, ognuno vede gli altri due come fantasmi. Poi Esc: ritirati e di nuovo a piedi.
 // Screenshot in tests/out/shots/m4_corse_link_*.png.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -40,9 +40,9 @@ export default async function (ctx) {
 
     await ctx.test('il link con &gara=amici apre subito la sala delle Corse: tutti e tre nella stessa sala', async () => {
       for (const p of [L, M, U]) await ctx.waitReady(p, 40000);
-      for (const p of [L, M, U]) await ctx.waitState(p, (s) => s.corse && s.corse.hub && s.corse.hub.aperto === true && s.corse.sala && s.corse.sala.aperta && s.corse.sala.connesso && s.corse.sala.membri.length === 3, 40000);
+      for (const p of [L, M, U]) await ctx.waitState(p, (s) => s.corse && s.corse.acceso === true && s.corse.sala && s.corse.sala.aperta && s.corse.sala.connesso && s.corse.sala.membri.length === 3, 40000);
       const s = await st(U);
-      assert(s.corse.hub.fermo === true && !s.corse.active, 'sotto la sala l\'hub deve essere fermo: ' + JSON.stringify(s.corse.hub));
+      assert(s.corse.acceso === true && !s.corse.active, 'sotto la sala la gara non deve essere partita: ' + JSON.stringify(s.corse.sala));
       const box = await U.locator('#mzGpSala .box').boundingBox();
       assert(box && box.y >= 0 && box.y + box.height <= 390, 'la sala esce dal telefono: ' + JSON.stringify(box));
       assert((await U.locator('#mzGpSala [data-id^="spiaggia_"]').count()) === 3, 'mancano le 3 piste nella sala (la Fuga è fuori dal gioco, #258)');
@@ -65,9 +65,9 @@ export default async function (ctx) {
       await ctx.shot(U, 'gara');
     });
 
-    await ctx.test('Esc: ritirati, la sala si chiude e si torna nell\'hub; nessun errore', async () => {
+    await ctx.test('Esc: ritirati, la sala si chiude e si torna a piedi; nessun errore', async () => {
       for (const p of [L, M, U]) { await hook(p, 'corseAuto', 0); await p.keyboard.press('Escape'); }
-      for (const p of [L, M, U]) await ctx.waitState(p, (s) => !s.corse.active && (s.minigiochi.open || s.corse.hub.aperto), 30000);
+      for (const p of [L, M, U]) await ctx.waitState(p, (s) => !s.corse.active && (s.minigiochi.open || !s.corse.acceso), 30000);
       ctx.noErrors(P[0], 'luca'); ctx.noErrors(P[1], 'mia'); ctx.noErrors(P[2], 'ugo');
     });
   } finally {

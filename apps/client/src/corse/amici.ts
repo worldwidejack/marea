@@ -26,7 +26,7 @@ export type SalaAmici = {
   aperta(): boolean;
   /** Si parte (lo chiama il server per tutti): chi usa la sala fa partire la gara con queste opzioni. */
   onParte: ((p: Partenza) => void) | null;
-  /** Il pannello si chiude da solo per «Torna all'isola»: chi usa la sala rimette l'hub. */
+  /** Il pannello si chiude da solo per «Torna all'isola»: chi usa la sala rimette il mondo. */
   onEsci: (() => void) | null;
   /** In gara: la mia posizione (si manda al massimo ogni GA_POS_MS). */
   manda(k: Veicolo): void;

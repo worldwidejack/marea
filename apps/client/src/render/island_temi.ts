@@ -64,7 +64,7 @@ export const PAINT_TEMI: Record<string, Painter> = {
   templari_sabbia: (g) => { px(g, P.sabbia, 0, 0, 32, 32); strata(g, [[P.legnoChiaro, 3], [P.legno, 32]]); },
   templari_erba: (g) => { px(g, P.bosco, 0, 0, 32, 32); strata(g, [[P.boscoOmbra, 3], [P.legnoScuro, 7], [P.ombraCalda, 32]]); },
   templari_riva: (g) => { px(g, P.pietraScura, 0, 0, 32, 32); strata(g, [[P.roccia, 32]]); },
-  // Isola delle Corse (l'hub vista dal mare): spiaggia chiara, prato, riva di sabbia
+  // Isola delle Corse (vista dal mare): spiaggia chiara, prato, riva di sabbia
   corse_sabbia: (g) => { px(g, P.sabbia, 0, 0, 32, 32); strata(g, [[P.sabbia, 3], [P.legnoChiaro, 5], [P.legno, 32]]); },
   corse_erba: (g, r) => {
     px(g, P.erba, 0, 0, 32, 32);

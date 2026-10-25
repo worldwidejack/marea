@@ -1,7 +1,7 @@
 # Isola delle Corse (design)
 
 > Parte del GDD (`GDD.md` §3 e §6 rimandano qui).
-> I numeri del Gran Premio stanno in `packages/content/src/corse/` (motore, piste, veicoli); `minigames/corse.json` dice solo dov'è il via e il premio dell'oro.
+> I numeri del Gran Premio stanno in `packages/content/src/corse/` (motore, piste, veicoli); `minigames/corse.json` dice solo le porte delle zone e il premio dell'oro.
 > **14 ott 2026** (`VISIONE.md` §4): l'Isola dell'Adrenalina probabilmente si unisce a questa, che diventa un hub di competizioni e di movimento (kart, snowboard, mountain bike, poi altri mezzi, forse volanti).
 > Jack, 9 ott 2026, issue madre #155. L'intervista del 9 ott ha deciso la **Parte A**, cioè l'isola completa: è la bibbia, e vince sulla Parte B. La **Parte B** era il Gran Premio della fetta 1, sul motore v1: è in archivio.
 > **[proposta]** = idea di Claude da confermare con la concept art o giocando. **[da decidere]** = la scelta spetta a Jack.
@@ -23,14 +23,12 @@ Un'isola strana dove **tutto è diventato una corsa**. La giri liberamente col t
 - **Animali piloti seri**: granchi, struzzi, trichechi con casco, tuta, sponsor e numero di gara. Si prendono sul serio come in Formula 1: rituali prima del via, sguardi, podio impettito. Sono i **bot** e gli abitanti dell'isola.
 - **Tu guidi col tuo avatar MAREA** (cappello e vestiti), seduto nel veicolo.
 
-## A3. L'hub: l'isola aperta
-- **Mondo a parte** (scelta di Jack, 10 ott 2026, #185): l'hub non sta nell'arcipelago. Sbarchi al molo dell'Isola delle Corse e si carica l'hub vero, grande come serve. Nell'hub giri da solo, come in Diddy Kong Racing; gli amici si incontrano come fantasmi nelle gare. Da fuori, l'isola nell'arcipelago è l'hub in piccolo.
-- **Grafica più curata del resto del gioco**, sempre dentro l'Art Bible: è la prova del look che in futuro passerà al resto di MAREA.
-- L'Isola delle Corse si gira **sempre col veicolo**: scendi dalla barca al molo e sali sul veicolo. Strade, spiaggia, acqua, salite e segreti, come l'isola di Diddy Kong Racing.
-- Ogni zona ha la sua **porta**, cioè l'ingresso del suo quartiere. Le **stelle** aprono le porte e, dentro ogni zona, le piste.
-- C'è un **garage** per cambiare veicolo. Nell'hub non si vince niente, quindi la guida è libera.
-- Se con le ruote entri in acqua, il veicolo si trasforma in barca, alla Sonic Racing Transformed **[proposta]**.
-- Le zone ancora chiuse si vedono, ma con la porta sbarrata.
+## A3. L'isola: a piedi fino alle porte
+- **Si va a piedi** (Riccardo, 25 ott 2026): scendi dalla barca al molo dell'Isola delle Corse e cammini col tuo avatar, come nel Borgo. Il veicolo si prende solo per la gara, nel menù di scelta; non c'è un mondo da girare in macchina. Gli amici si incontrano come fantasmi nelle gare.
+- L'isola è quella dell'arcipelago, fedele alla concept: dal molo l'arco del via, il podio con la statua del manichino, la torre di controllo, il garage, le bancarelle e le tribune; poi la rotatoria col trofeo e **cinque strade**, ognuna fino alla **porta** di una zona.
+- Come nel Borgo le cose solide non si attraversano (porte, trofeo, podio, garage, tribune, tendoni…: `collisioni.json`, con la forma di ogni decorazione).
+- Davanti alla porta di una zona compare GIOCA. Se è aperta (oggi la Spiaggia) si sceglie la pista, poi il veicolo della sua famiglia; o «con gli amici», la sala. Dopo la gara (e la scheda dei risultati) si è di nuovo a piedi davanti alla porta. Le zone ancora chiuse hanno il lucchetto e dicono «porta sbarrata».
+- Le **stelle** aprono le porte e, dentro ogni zona, le piste.
 
 ## A4. Le 6 zone
 Tutte dentro l'isola. Ogni zona ha:
@@ -121,7 +119,7 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
 - **Sfide extra** in pista (contro il tempo, collezionabili, prove speciali): dopo. Per ora contano vibes e vision.
 
 ## A8. Musica e suoni
-- **Un tema per zona** più uno per l'hub, in stile console anni '90 (Diddy Kong Racing, Crash Team Racing). **All'ultimo giro accelera**.
+- **Un tema per zona** più uno per l'isola, in stile console anni '90 (Diddy Kong Racing, Crash Team Racing). **All'ultimo giro accelera**.
 - Suoni:
   - un motore per famiglia;
   - drift, turbo, spruzzi;
@@ -129,10 +127,10 @@ Ogni famiglia ha **una guida sua**. Dentro la famiglia i veicoli cambiano veloci
 
 ## A9. Look e asset
 - Valgono le regole di `ART_BIBLE.md`: palette, texture nearest, un atlas, flat shading, stile PS1, niente gradienti, niente PBR.
-- **Prima la concept art**: per l'hub, ogni zona, ogni famiglia di veicoli, i buffi, i manichini e gli animali piloti si generano immagini di riferimento, e Jack sceglie da un foglio di confronto. Le scelte stanno in `assets/concept/corse/`, fuori dalla build. Solo dopo si passa al 3D, **fedele a quelle immagini**.
+- **Prima la concept art**: per l'isola, ogni zona, ogni famiglia di veicoli, i buffi, i manichini e gli animali piloti si generano immagini di riferimento, e Jack sceglie da un foglio di confronto. Le scelte stanno in `assets/concept/corse/`, fuori dalla build. Solo dopo si passa al 3D, **fedele a quelle immagini**.
 - **Concept scelta** (9 ott 2026, `assets/concept/corse/`, foglio `_FOGLIO_concept_corse.jpg`): Jack ha approvato tutte e 14 le immagini, senza niente da rifare.
   - **Look**: questa direzione. Colori saturi, pixel grossi, piste piene di dettagli.
-  - **Hub**: tutte e due le immagini. `corse_01_hub` è la mappa dell'isola con le zone intorno; `corse_13_hub_arrivo` è il paese dei piloti al molo (garage, podio, statua del manichino col trofeo).
+  - **Isola**: tutte e due le immagini. `corse_01_hub` è la mappa dell'isola con le zone intorno; `corse_13_hub_arrivo` è il paese dei piloti al molo (garage, podio, statua del manichino col trofeo).
   - **Il metro di qualità è la Giungla** (`corse_08_giungla_miniera`): ogni zona deve arrivare a quel livello.
   - In gioco il 3D sarà più semplice delle illustrazioni: si prendono colori, densità, atmosfera e soggetti.
 - **Concept della Giungla** (11 ott 2026, #228, foglio `_FOGLIO_concept_giungla.jpg`): Jack le ha approvate tutte.
@@ -263,9 +261,9 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
    - **4a. Le 4 piste grezze** (**fatto**, 9 ott 2026): Lungomare, Baia, Porto misto, Fuga dall'onda, giocabili su `provapiste.html?pista=spiaggia_…`. Il gioco non cambia ancora.
    - 4b. Vestire la zona: kit Blender e scenografia delle 4 piste con i manichini (**fatto**, 9 ott 2026, #176); restano veicoli buffi e granchio campione, musica e suoni.
    - 4c. Il Lungomare al posto del Gran Premio (**fatto**, 10 ott 2026, #173): lo schermo delle Corse nel gioco gira sul motore v2 con scelta di pista e veicolo (le 4 piste), `garaCorse` sul server (`corse/registra.ts`), avatar al volante, telefono in orizzontale. Il vecchio Gran Premio (`minigames/corse.ts`) non è più collegato al gioco. Restano: record per pista (oggi un solo record `corse` per tutte), i veicoli veri nella sim (oggi 5 su 14).
-5. Hub alla Diddy Kong Racing (#185, in corso dal 10 ott 2026): mondo a parte, guida libera, porta della Spiaggia, garage, le altre porte chiuse; l'isola nell'arcipelago rifatta come ingresso.
+5. L'isola a piedi (#185, **fatto**): sbarchi al molo e vai a piedi alla porta della zona, le altre porte chiuse col lucchetto, collisioni come nel Borgo.
 6. Fantasmi, stelle e sblocchi, premi per MAREA. Qui entrano anche gli **oggetti sbloccabili** dalle altre isole (A7).
-6a. **Menù di scelta alla Mario Kart** (#271, 13 ott 2026). Il look l'ha scelto Jack tra quattro schermate fatte con ChatGPT: la 1, alla Mario Kart 8 (`assets/concept/corse/menu_scelta_veicolo_mariokart.jpg`), rifatta fedele. La UI marrone e gialla del resto di MAREA non è un modello (mai approvata). Alla porta due passi. Prima la pista: dietro la pista vera sorvolata piano; a sinistra la lista delle piste col tracciato; a destra il pannello col nome, il tracciato grande e due righe. Poi il veicolo: gira con l'avatar al volante su una pedana di pietra con l'anello a scacchi bianco e blu; a sinistra la colonna azzurra con le foto dei veicoli (fatte dai modelli 3D); a destra il pannello a vetro blu col nome in fascia, la frase del veicolo (`buffo` in `motore.json`, ora per tutti) e 4 barre colorate con l'icona (velocità, scatto, sterzo, peso; i carrelli dei binari si confrontano tra loro). Il VIA è giallo e enorme; oggetti, gas e camera stanno in basso. La lista scorre su e giù (rotella, dito, frecce o W S); la scelta ha la cornice gialla che brilla, le altre sono trasparenti. Il garage dell'hub è la stessa lista con tutti i veicoli. Carattere Titan One (`public/assets/fonts`, OFL).
+6a. **Menù di scelta alla Mario Kart** (#271, 13 ott 2026). Il look l'ha scelto Jack tra quattro schermate fatte con ChatGPT: la 1, alla Mario Kart 8 (`assets/concept/corse/menu_scelta_veicolo_mariokart.jpg`), rifatta fedele. La UI marrone e gialla del resto di MAREA non è un modello (mai approvata). Alla porta due passi. Prima la pista: dietro la pista vera sorvolata piano; a sinistra la lista delle piste col tracciato; a destra il pannello col nome, il tracciato grande e due righe. Poi il veicolo: gira con l'avatar al volante su una pedana di pietra con l'anello a scacchi bianco e blu; a sinistra la colonna azzurra con le foto dei veicoli (fatte dai modelli 3D); a destra il pannello a vetro blu col nome in fascia, la frase del veicolo (`buffo` in `motore.json`, ora per tutti) e 4 barre colorate con l'icona (velocità, scatto, sterzo, peso; i carrelli dei binari si confrontano tra loro). Il VIA è giallo e enorme; oggetti, gas e camera stanno in basso. La lista scorre su e giù (rotella, dito, frecce o W S); la scelta ha la cornice gialla che brilla, le altre sono trasparenti. Carattere Titan One (`public/assets/fonts`, OFL).
 6b. **HUD in gara e risultati alla Mario Kart** (#276, 13 ott 2026). Stesso metodo del menù: 5 HUD e 4 risultati fatti con ChatGPT (fogli `assets/concept/corse/_FOGLIO_hud_gara.jpg`, `_FOGLIO_risultati_gara.jpg`), Jack ha scelto la 5 per l'HUD (`hud_5_sonic_bis.jpg`) e la 4 per i risultati (`risultati_4_sonic.jpg`), rifatte fedeli nella famiglia del menù (Titan One, blu e vetro, giallo, scacchi). In gara: «2°» giallo su targa blu in alto a sinistra, GIRO e tempo al centro, casella dell'oggetto col bordo giallo e la targhetta USA (col dito si tocca lei), minimappa a vetro, km/h inclinato in basso a destra; col dito GAS giallo enorme, DRIFT rosso e FRENO blu sopra, stick blu notte (gli stessi comandi anche nell'hub e da PC). Semaforo e scritte grandi senza riquadro, col contorno blu notte; all'arrivo «ARRIVO!». Poi i risultati: la gara resta ferma all'arrivo dietro, RISULTATI, la tua posizione enorme con l'alloro, la classifica (tu, i bot, gli amici) a barre inclinate con la faccia del pilota e il tempo (chi è ancora in pista ha il tempo stimato dalla sua andatura), il giro migliore, le ricompense, RIGIOCA e AVANTI.
 6b. **Oggetti** (#250, 12 ott 2026): i 6 base nella sim (`sim/corse/oggetti.ts`, rigiocati dal server), scatole e colpi in pista, casella e bottone USA, scelta CON OGGETTI / GUIDA PURA alla porta e nella sala, interruttore 7 sul banco (`provapiste.html?oggetti=1`). Restano: concept del look degli oggetti, oggetti di zona, sbloccabili, lineup nel garage.
 7. Zone 2-6 con la stessa catena di montaggio. **Zona 2 = Giungla e templi** (scelta di Jack, 11 ott 2026, #228; prima di stelle, boss e musica della Spiaggia):
@@ -276,7 +274,7 @@ Mappa del codice in `docs/CONTRACTS.md` §32. Per ora lo usa solo il banco di pr
    - 7d. Tempio che crolla tutto in carrello, stile Subway Surfers (prima un'immagine da far scegliere a Jack).
    - 7e. Famiglia Due ruote (una sola, condivisa con la discesa in bici) + Sentiero del cross; Rapide.
    - 7f. Veicoli e animali in 3D.
-   - 7g. Porta della Giungla aperta nell'hub, piste nel gioco e nella gara tra amici.
+   - 7g. Porta della Giungla aperta, piste nel gioco e nella gara tra amici.
 
 ## A13. Da decidere
 - Lore e cattivo.

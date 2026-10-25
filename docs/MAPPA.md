@@ -14,7 +14,7 @@
 | `ui/` | interfaccia: HUD «Allegro», minimappa, bussola, impostazioni, editor dell'avatar, diario, schermate a pixel dei minigiochi, pannelli del Porto | J |
 | `net/` | `api.ts` (HTTP `/api/*`), `client.ts` (WebSocket della zona) | tutti |
 | `audio/` | suoni e musica: `ponte.ts` nel JS iniziale, il motore in un chunk | tutti |
-| `corse/` | Isola delle Corse: hub (`hub/`), gara, veicoli, risultati; banchi `prova/` (piste, garage, scena) e `discesa/` (bici) | J |
+| `corse/` | Isola delle Corse: menù di scelta (`pannelli.ts`, `palco.ts`), gara, veicoli, risultati; banchi `prova/` (piste, garage, scena) e `discesa/` (bici) | J |
 | `adrenalina/` | snowboard dell'Adrenalina (chunk dalla funivia) | B |
 | `templari/` | partita a ondate dei Templari (chunk entrando in chiesa) | B |
 | `rpg/` | dungeon, eroe, forgia, alchimia, contrabbando; duello dell'Arena | R |

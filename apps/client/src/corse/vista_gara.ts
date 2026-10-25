@@ -38,7 +38,7 @@ const CASCHI = [P.pietraChiara, P.neroCaldo, P.neroCaldo, P.neroCaldo, P.neroCal
 type Vis = { hop: number; traverso: number; drift: number; lv: number; turbo: number; aria: boolean; vh: number; acro: number; scia: number; urti: number; rollio: number; becco: number; vPrima: number };
 /** Dove stava un veicolo al tick prima (per disegnarlo a metà tra due tick, #277). */
 type Posa0 = Pick<Veicolo, 'ramo' | 's' | 'lat' | 'h' | 'hf' | 'hl' | 'mf' | 'ml' | 'caduto'>;
-export const tempoGara = (ms: number) => { const t = Math.max(0, ms) / 1000, m = Math.floor(t / 60), sec = t - m * 60; return `${m}:${sec < 10 ? '0' : ''}${sec.toFixed(1).replace('.', ',')}`; };
+const tempoGara = (ms: number) => { const t = Math.max(0, ms) / 1000, m = Math.floor(t / 60), sec = t - m * 60; return `${m}:${sec < 10 ? '0' : ''}${sec.toFixed(1).replace('.', ',')}`; };
 
 /** `amici`: gara tra amici (corse/amici.ts): gli amici si disegnano come fantasmi e la posizione è quella tra amici.
  *  `succo` (prova A/B #277, la «B»): veicoli disegnati a metà tra due tick (`alpha`, 0-1), camera più pigra con l'obiettivo che si

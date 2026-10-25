@@ -1,5 +1,5 @@
 // I ritratti della classifica d'arrivo (#276, risultati_4_sonic.jpg): la testa del pilota di fronte, seduto sul suo veicolo. Gli
-// animali sono quelli del kit, tu e gli amici l'avatar MAREA col proprio look. Come le foto del menù (hub/palco.ts): un renderer
+// animali sono quelli del kit, tu e gli amici l'avatar MAREA col proprio look. Come le foto del menù (palco.ts): un renderer
 // piccolo a parte per tutti quelli chiesti nello stesso momento, poi buttato (sul telefono un secondo WebGL acceso pesa).
 import * as THREE from 'three';
 import type { Look } from '@marea/protocol';

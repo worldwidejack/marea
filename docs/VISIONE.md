@@ -67,7 +67,7 @@ Resta valido, per più avanti:
 ## 3. I format: un'isola ciascuno
 | Format | Ispirazione | Isola | Oggi | Design |
 |---|---|---|---|---|
-| **Corse** | arcade alla Mario Kart, ma originale | Isola delle Corse | Gran Premio, hub, 17 veicoli | `CORSE.md` |
+| **Corse** | arcade alla Mario Kart, ma originale | Isola delle Corse | Gran Premio, isola a piedi con le porte delle zone, 17 veicoli | `CORSE.md` |
 | **Adrenalina** | sport estremi e discese | probabilmente **dentro le Corse** (§4) | snowboard sulla sua isola | `ADRENALINA.md` |
 | **Templari** | sopravvivenza a ondate, zombie | Isola dei Templari | ondate, eroi, fino a 4 insieme | `TEMPLARI.md` |
 | **Dungeon** | fantasy-avventura classico | da decidere | Mondo Sotterraneo sotto le isole | `RPG.md` |
@@ -88,7 +88,7 @@ Templari, Dungeon e le altre isole sono **da approfondire**: per ora valgono i l
 
 ## 5. Prototipi vecchi (punto 88)
 Le vecchie pagine di prova servono: **usarle per accelerare lo sviluppo** (approvato). Oggi in `apps/client/`:
-`prova3d.html` (3D dipinto), `provapixel.html` (pixel 3D), `provascena.html` (scenografia delle piste), `provapiste.html` (banco delle piste), `provahub.html` e `provahubvista.html` (hub delle Corse), `provagarage.html` (garage), `provadiscesa3d.html` (discesa in bici).
+`prova3d.html` (3D dipinto), `provapixel.html` (pixel 3D), `provascena.html` (scenografia delle piste), `provapiste.html` (banco delle piste), `provagarage.html` (garage), `provadiscesa3d.html` (discesa in bici).
 Prima di rifare da zero una cosa, guarda se una di queste ce l'ha già.
 
 ## 6. Cosa si può fare subito e cosa va chiesto

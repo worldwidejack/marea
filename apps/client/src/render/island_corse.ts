@@ -1,10 +1,10 @@
-// Isola delle Corse (docs/CORSE.md) nell'arcipelago: l'hub in piccolo, fedele alla concept (assets/concept/corse/corse_13_hub_arrivo e
+// Isola delle Corse (docs/CORSE.md) nell'arcipelago, fedele alla concept (assets/concept/corse/corse_13_hub_arrivo e
 // corse_01_hub). Molo con i pali e le lanterne, paese dei piloti (garage con la chiave inglese, podio 1-2-3 con la statua gigante del
 // manichino col cappellino rosso e il trofeo, torre di controllo a scacchi, bancarelle, festoni, lampioni), rotatoria col trofeo dorato,
 // strade d'asfalto coi cordoli rossi e bianchi e le porte dei quartieri (neve, giungla, neon, luna park, spiaggia) con le loro insegne;
 // nei quartieri ruota panoramica, tendoni, tempio, palazzi al neon, faro, ombrelloni, alberi. Decorazioni procedurali: solo colori della
 // palette, facce piatte, pivot a terra al centro, −Z avanti. Le parti che brillano (lanterne, finestre, neon) stanno in `propCorseGlow`
-// (materiale non illuminato). L'hub vero, da girare col veicolo, è un mondo a parte (apps/client/src/corse/hub/).
+// (materiale non illuminato). Si gira a piedi, e le cose solide hanno la loro forma in content/collisioni.json.
 // `kartGeo` e `scacchi` servono anche al chunk delle Corse. Il file sta in un chunk a parte (island_temi.ts lo carica all'avvio: `corsePronta`).
 import * as THREE from 'three';
 import { M, P, merged, painted } from './island_parts.ts';

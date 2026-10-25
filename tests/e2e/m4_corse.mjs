@@ -2,10 +2,11 @@
 // API (wrangler locale pulito): il server rigioca gli input del pilota automatico sulla pista scelta (opzioni normalizzate dal modulo,
 // primo tick = il semaforo: i tick negativi della sim sono input anch'essi), dà la medaglia dalla posizione e paga balance.solo più il
 // premio extra; chi sta fermo non prende medaglia; input oltre il tempo massimo rifiutati. Telefono IN ORIZZONTALE 844×390 (in verticale
-// compare «Ruota il telefono»): l'isola è aperta a tutti, al via c'è GIOCA, che apre l'hub (#185, test suo in m4_corse_hub.mjs); alla
-// porta della Spiaggia la scelta di pista e veicolo sta dentro lo schermo, VIA → semaforo → gara con la camera dietro; gas in avanti +
-// DRIFT = drift; draw call ≤ 100 in gara; il pilota automatico finisce, la scheda dice posizione e tempo; si torna nell'hub e da lì nel
-// mondo. PC: E al via (hub), porta, Invio = via, ↑ gas, ← + Spazio = drift a sinistra, Esc = ritirato (di nuovo nell'hub), Esc = fuori.
+// compare «Ruota il telefono»): l'isola è aperta a tutti e si va a piedi alle porte delle zone: davanti a quella della Spiaggia c'è GIOCA, la
+// scelta di pista e veicolo sta dentro lo schermo, VIA → semaforo → gara con la camera dietro; gas in avanti + DRIFT = drift; draw call
+// ≤ 100 in gara; il pilota automatico finisce, la scheda dice posizione e tempo; si torna a piedi davanti alla porta. Le porte chiuse
+// dicono «porta sbarrata» e non aprono niente; l'avatar non attraversa trofeo, pilastri e garage. PC: E alla porta, Invio = via, ↑ gas,
+// ← + Spazio = drift a sinistra, Esc = ritirato (di nuovo a piedi).
 // Screenshot in tests/out/shots/m4_corse_*.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -16,7 +17,7 @@ export const timeout = 480000;
 
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const SPOT = 'corse:corse';
+const SPOT = 'corse:spiaggia';
 
 export default async function (ctx) {
   const { assert } = ctx;
@@ -92,21 +93,61 @@ export default async function (ctx) {
     const st = () => ctx.getState(page);
     const hook = (n, ...a) => page.evaluate(([n, a]) => window.__game.test[n](...a), [n, a]);
 
-    await ctx.test('telefono: l\'isola è aperta a tutti, al via compare Gioca · Isola delle Corse', async () => {
+    await ctx.test('telefono: l\'isola è aperta a tutti, alla porta della Spiaggia compare Gioca · Spiaggia e porto', async () => {
       await hook('temiProva', null); // il viaggiatore vero: Molo L1 e basta
       const v = await hook('spotVai', SPOT);
       assert(v && v.aperta === true, 'spotVai: ' + JSON.stringify(v));
       await ctx.waitState(page, (s, id) => s.minigiochi.near === id, 20000, SPOT);
       await sleep(1500);
       const testo = await page.locator('#mzPlay').innerText();
-      assert(/isola delle corse|gran premio/i.test(testo), 'testo del bottone: ' + testo); // dal #185 il posto apre l'hub: «Isola delle Corse»
+      assert(/spiaggia e porto/i.test(testo), 'testo del bottone: ' + testo);
       await ctx.shot(page, 'telefono_1_posto');
     });
 
+    // dove stanno le decorazioni dell'isola, in metri (come archipelago.ts: (origine + cella + 0,5) × tile)
+    const ARCH = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/archipelago.json'), 'utf8'));
+    const ISOLE = JSON.parse(fs.readFileSync(path.join(ctx.ROOT, 'packages/content/src/islands.json'), 'utf8'));
+    const ISOLA = (ISOLE.islands || ISOLE).find((i) => i.id === CFG.isola), ORIGINE = ARCH.islands.find((i) => i.island === CFG.isola).at;
+    const prop = (k) => { const p = ISOLA.props.find((q) => q.k === k); return { x: (ORIGINE[0] + p.at[0] + 0.5) * ARCH.tile, z: (ORIGINE[1] + p.at[1] + 0.5) * ARCH.tile, rot: p.rot ?? 0 }; };
+
+    await ctx.test('telefono: ogni porta ha il suo posto; le chiuse dicono «porta sbarrata» e non aprono niente', async () => {
+      const spots = (await st()).minigiochi.spots.filter((s) => s.minigame === 'corse');
+      assert(spots.length === Object.keys(CFG.porte).length, 'una porta per zona: ' + spots.map((s) => s.id).join(','));
+      for (const [zona, d] of Object.entries(CFG.porte)) {
+        const s = spots.find((x) => x.id === `corse:${zona}`), p = prop('porta_' + zona);
+        assert(s && Math.hypot(s.x - p.x, s.z - p.z) < 0.01 && !!s.chiusa === !d.aperta, `porta ${zona}: ${JSON.stringify(s)}`);
+      }
+      await hook('spotVai', 'corse:neve');
+      await ctx.waitState(page, (s) => s.minigiochi.near === 'corse:neve', 20000);
+      await sleep(600);
+      const toast = await page.locator('#toast').innerText();
+      assert(/porta sbarrata/i.test(toast), 'toast: ' + toast);
+      assert((await page.locator('#mzPlay.on').count()) === 0, 'su una porta chiusa compare GIOCA');
+      assert(!(await st()).corse?.scelta, 'la porta chiusa ha aperto la scelta'); // il pezzo delle Corse si scarica alla prima partita: prima non c'è
+      await ctx.shot(page, 'telefono_1_porta_chiusa');
+    });
+
+    await ctx.test('telefono: a piedi non si attraversano il trofeo e i pilastri delle porte, il varco tra i pilastri è libero', async () => {
+      const solidi = (x, z, r) => page.evaluate(([x, z, r]) => window.__game.test.solidi(x, z, r, true).filter((q) => q.d > 0).length, [x, z, r]);
+      const porta = prop('porta_spiaggia'), lx = [Math.cos(porta.rot), -Math.sin(porta.rot)]; // l'asse X della porta nel mondo
+      assert((await solidi(porta.x + lx[0] * 3.8, porta.z + lx[1] * 3.8, 0.35)) > 0 && (await solidi(porta.x - lx[0] * 3.8, porta.z - lx[1] * 3.8, 0.35)) > 0, 'mancano i pilastri della porta');
+      assert((await solidi(porta.x, porta.z, 0.35)) === 0, 'il varco tra i pilastri è chiuso');
+      // camminando verso il trofeo ci si ferma davanti (raggio 2,3 m + 0,35 dell'avatar)
+      const tr = prop('trofeo');
+      await hook('spotVai', SPOT); // a piedi, in modo
+      await hook('teleport', tr.x - 6, tr.z);
+      await hook('wp2_inject', { mx: 1, my: 0, a: false });
+      await sleep(2500);
+      await hook('wp2_inject', null);
+      const a = await page.evaluate(() => window.__game.state().avatar);
+      assert(a.x > tr.x - 2.9 && a.x < tr.x - 2.45 && Math.abs(a.z - tr.z) < 1.2, `l'avatar è finito in ${a.x.toFixed(2)},${a.z.toFixed(2)} (trofeo ${tr.x},${tr.z})`);
+    });
+
     await ctx.test('telefono: scelta di pista e veicolo dentro lo schermo orizzontale, VIA, semaforo, gas + DRIFT = drift, draw call ≤ 100', async () => {
+      await hook('spotVai', SPOT); // i test di prima hanno camminato altrove
+      await ctx.waitState(page, (s, id) => s.minigiochi.near === id, 20000, SPOT);
+      await sleep(800);
       await page.locator('#mzPlay').click();
-      await ctx.waitState(page, (s) => s.corse && s.corse.hub && s.corse.hub.aperto === true, 20000);
-      await hook('corseHubVai', 'spiaggia'); // dall'hub alla porta della Spiaggia
       await ctx.waitState(page, (s) => s.corse && s.corse.scelta === true, 20000);
       await sleep(400);
       const box = await page.locator('#mzGpIntro .box').boundingBox();
@@ -163,7 +204,7 @@ export default async function (ctx) {
       assert(perf.drawCalls <= 100, `draw call ${perf.drawCalls} > 100`);
     });
 
-    await ctx.test('telefono: il pilota automatico finisce la gara, il server rigioca, la scheda dice posizione e tempo; si torna nell\'hub e poi nel mondo', async () => {
+    await ctx.test('telefono: il pilota automatico finisce la gara, il server rigioca, la scheda dice posizione e tempo; si torna a piedi davanti alla porta', async () => {
       const before = (await st()).lot.monete;
       await hook('corseAuto', 12);
       await ctx.waitState(page, (s) => s.minigiochi.open === true, 150000);
@@ -180,10 +221,9 @@ export default async function (ctx) {
       await ctx.shot(page, 'telefono_5_esito');
       await hook('corseAuto', 0);
       await page.locator('#mzEsito [data-act="ok"]').click();
-      await ctx.waitState(page, (q) => !q.minigiochi.open && !q.corse.active && q.corse.hub.aperto, 5000);
-      await hook('corseEsci');
-      await ctx.waitState(page, (q) => !q.corse.hub.aperto, 5000);
+      await ctx.waitState(page, (q, id) => !q.minigiochi.open && !q.corse.active && !q.corse.acceso && q.minigiochi.near === id, 8000, SPOT);
       assert(await page.isVisible('#mzTop'), 'la barra in alto non è tornata');
+      assert((await st()).mode === 'walk', 'dopo la gara non si è a piedi');
     });
     ctx.noErrors(T, 'telefono');
 
@@ -196,12 +236,12 @@ export default async function (ctx) {
       await ctx.waitState(V.page, (s, id) => s.minigiochi.near === id, 20000, SPOT);
       await sleep(800);
       await V.page.locator('#mzPlay').click();
-      await ctx.waitState(V.page, (s) => s.corse && s.corse.hub && s.corse.hub.aperto === true, 20000);
+      await ctx.waitState(V.page, (s) => s.corse && s.corse.scelta === true, 20000);
       await sleep(500);
       assert(await V.page.evaluate(() => document.querySelector('.pp-ruota')?.classList.contains('on') === true), 'l\'avviso non compare in verticale');
       await ctx.shot(V.page, 'telefono_verticale_avviso');
       await V.page.evaluate(() => window.__game.test.corseEsci());
-      await ctx.waitState(V.page, (s) => !s.minigiochi.open && !s.corse.active && !s.corse.scelta && !s.corse.hub.aperto, 8000);
+      await ctx.waitState(V.page, (s) => !s.minigiochi.open && !s.corse.active && !s.corse.scelta && !s.corse.acceso, 8000);
       assert(await V.page.evaluate(() => document.querySelector('.pp-ruota')?.classList.contains('on') !== true), 'l\'avviso resta dopo l\'uscita');
     });
 
@@ -217,8 +257,6 @@ export default async function (ctx) {
       await ctx.waitState(dp, (s, id) => s.minigiochi.near === id, 20000, SPOT);
       await sleep(1000);
       await dp.keyboard.press('KeyE');
-      await ctx.waitState(dp, (s) => s.corse && s.corse.hub && s.corse.hub.aperto === true, 20000);
-      await dhook('corseHubVai', 'spiaggia');
       await ctx.waitState(dp, (s) => s.corse && s.corse.scelta === true, 20000);
       await dp.keyboard.press('Enter'); // menù a rulli (#271): il primo Invio passa ai veicoli, il secondo parte
       await sleep(300);
@@ -235,9 +273,7 @@ export default async function (ctx) {
       ctx.log('perf in gara (PC)', JSON.stringify(perf));
       assert(perf.drawCalls <= 100, `draw call ${perf.drawCalls} > 100`);
       await dp.keyboard.press('Escape');
-      await ctx.waitState(dp, (s) => !s.corse.active && !s.minigiochi.open && s.corse.hub.aperto, 8000); // ritirato: di nuovo nell'hub
-      await dp.keyboard.press('Escape');
-      await ctx.waitState(dp, (s) => !s.corse.hub.aperto, 8000);
+      await ctx.waitState(dp, (s) => !s.corse.active && !s.minigiochi.open && !s.corse.acceso, 8000); // ritirato: di nuovo a piedi
       assert((await ctx.getState(dp)).mode === 'walk', 'dopo il ritiro si resta a piedi');
     });
     ctx.noErrors(D, 'PC');

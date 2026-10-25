@@ -2,24 +2,24 @@
 // - pista: la pista vera (nastro, scenografia, mare) col suo fondale dipinto, e la camera che la sorvola piano, alta, guardando avanti;
 // - veicolo: il veicolo con l'avatar al volante su una pedana che gira, davanti al fondale della pista scelta.
 // Le piste costruite restano in memoria finché il palco è vivo (sono 3-4 per zona): scorrendo il rullo non si ricostruisce niente.
-// Non ha un renderer suo: chi lo usa (corse/index.ts nel gioco, hub/prova.ts al banco) disegna `scene` con la `camera` di sempre.
+// Non ha un renderer suo: chi lo usa (corse/index.ts) disegna `scene` con la `camera` di sempre.
 import * as THREE from 'three';
 import { CORSE_PISTE } from '@marea/content/corse.ts';
 import { punto } from '@marea/sim/corse/nastro.ts';
 import { pistaCorse } from '@marea/sim/corse/pista.ts';
 import type { Pista } from '@marea/sim/corse/pista.ts';
 import type { Look } from '@marea/protocol';
-import { P } from '../../render/island_parts.ts';
-import { createLights } from '../../render/light.ts';
-import { createAvatar } from '../../game/avatar.ts';
-import type { Avatar } from '../../game/avatar.ts';
-import { creaPista3d } from '../nastro3d.ts';
-import type { Pista3d } from '../nastro3d.ts';
-import { fondalePista } from '../fondale_piste.ts';
-import type { Fondale } from '../discesa/fondale.ts';
-import { veicoloMesh } from '../veicoli3d.ts';
-import { caricaKit, kitPronto, loaderCorse, modelloDi, postoAvatar } from '../veicoli_kit.ts';
-import { caricaVeicoloAi } from '../veicoli_ai.ts';
+import { P } from '../render/island_parts.ts';
+import { createLights } from '../render/light.ts';
+import { createAvatar } from '../game/avatar.ts';
+import type { Avatar } from '../game/avatar.ts';
+import { creaPista3d } from './nastro3d.ts';
+import type { Pista3d } from './nastro3d.ts';
+import { fondalePista } from './fondale_piste.ts';
+import type { Fondale } from './discesa/fondale.ts';
+import { veicoloMesh } from './veicoli3d.ts';
+import { caricaKit, kitPronto, loaderCorse, modelloDi, postoAvatar } from './veicoli_kit.ts';
+import { caricaVeicoloAi } from './veicoli_ai.ts';
 
 export type Palco = {
   readonly scene: THREE.Scene;

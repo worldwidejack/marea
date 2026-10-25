@@ -2,7 +2,7 @@
 // per percorsi che non entrano mai in niente (rete a quadretti + A* + filo tirato), sul Borgo vero di islands.json.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ARCHIPELAGO, COLLISIONI, ISLANDS } from '@marea/content';
+import { ARCHIPELAGO, COLLISIONI, ISLANDS, MINIGAMES_CFG } from '@marea/content';
 import { GENTE } from '@marea/content/porto.ts';
 import { BOTTEGHE, BOTTEGHE_IDS } from '@marea/content/botteghe.ts';
 import { composeArchipelago } from '../src/world/archipelago.ts';
@@ -111,6 +111,33 @@ test('Borgo Marea: ogni cosa solida ha la sua forma e la gente va da un capo all
     for (let i = 1; i < p.length; i++) {
       const u: { x: number; z: number } = p[i - 1]!, v: { x: number; z: number } = p[i]!, n = Math.ceil(Math.hypot(v.x - u.x, v.z - u.z) / 0.1);
       for (let s = 0; s <= n; s++) { const x: number = u.x + ((v.x - u.x) * s) / n, z: number = u.z + ((v.z - u.z) * s) / n; assert.ok(dentro(ost.vicini(x, z, 1), x, z, PS.raggio) <= 0 && arch.map.walkable(x, z), `percorso ${k} tocca in ${x.toFixed(1)},${z.toFixed(1)}`); }
+    }
+  }
+});
+
+test('Isola delle Corse: ogni cosa solida ha la sua forma e dal molo si arriva a piedi a ogni porta', () => {
+  const arch = composeArchipelago(ARCHIPELAGO, ISLANDS), T = arch.tile;
+  const corse = arch.places.find((p) => p.island === 'corse')!;
+  const CALPESTABILI = new Set(['strada', 'rotatoria', 'chiazza_neve']); // piatte: si cammina sopra
+  const ost = createOstacoli();
+  for (const p of arch.props) if (p.island === corse.island && !CALPESTABILI.has(p.k)) assert.ok(posaForma(ost, p.k, p.x, p.z, p.rot, 1, corse.island) > 0, `manca la forma di ${p.k} in collisioni.json`);
+  assert.ok(ost.fissi.length > 60, `solidi sull'isola: ${ost.fissi.length}`);
+  // il faro dell'isola è il suo, non quello del Borgo (r 1,3)
+  assert.ok(posaForma(createOstacoli(), 'faro', 0, 0, 0, 1, corse.island) > 1 && posaForma(createOstacoli(), 'faro', 0, 0) === 1, 'il faro delle Corse ha la sua forma');
+  const rete = creaRete(arch.map, ost.fissi, { riquadro: [corse.origin[0] * T, corse.origin[1] * T, (corse.origin[0] + corse.w) * T, (corse.origin[1] + corse.h) * T], raggio: PS.raggio, margine: PS.margine, passo: PS.passo });
+  const da = rete.vicino(corse.spawn.x, corse.spawn.z, 3);
+  assert.ok(da, 'lo sbarco è chiuso');
+  // le cinque porte (e il davanti dell'arco del via) si raggiungono: i pilastri non chiudono il varco
+  const porte = arch.props.filter((p) => p.island === corse.island && p.k.startsWith('porta_'));
+  assert.equal(porte.length, Object.keys(MINIGAMES_CFG.corse.porte).length, 'una porta per ogni zona di corse.json');
+  for (const p of porte) {
+    const a = rete.vicino(p.x, p.z, 2);
+    assert.ok(a, `${p.k}: il varco è chiuso`);
+    const via = cercaPercorso(rete, da!, a!);
+    assert.ok(via, `dal molo non si arriva a ${p.k}`);
+    for (let i = 1; i < via.length; i++) {
+      const u: { x: number; z: number } = via[i - 1]!, v: { x: number; z: number } = via[i]!, n = Math.ceil(Math.hypot(v.x - u.x, v.z - u.z) / 0.1);
+      for (let s = 0; s <= n; s++) { const x: number = u.x + ((v.x - u.x) * s) / n, z: number = u.z + ((v.z - u.z) * s) / n; assert.ok(dentro(ost.vicini(x, z, 1), x, z, PS.raggio) <= 0, `verso ${p.k} si tocca un solido in ${x.toFixed(1)},${z.toFixed(1)}`); }
     }
   }
 });

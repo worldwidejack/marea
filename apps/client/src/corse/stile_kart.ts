@@ -2,7 +2,7 @@
 // fra quelle fatte con ChatGPT (`assets/concept/corse/hud_5_sonic_bis.jpg` e `risultati_4_sonic.jpg`), stessa famiglia del menù di scelta
 // (#271: Titan One, pannelli blu e vetro, giallo, scacchi). Le misure sono in pixel delle immagini (1672×941): `--u` = un pixel lì.
 // Vale finché il body ha `mz-kh` (la vista della gara lo mette in `mostra`), così il banco provapiste resta com'è. I comandi col dito
-// (stick, GAS, DRIFT, FRENO) valgono anche nell'hub, col body `mz-gp mz-dito`. Colori: quelli della reference, come il menù.
+// (stick, GAS, DRIFT, FRENO) valgono anche nel menù, col body `mz-gp mz-dito`. Colori: quelli della reference, come il menù.
 
 /** Le icone bianche disegnate a mano (SVG, niente file): bandiera, cronometro, freno, drift, frecce del gas, alloro, rigioca, avanti. */
 export const ICONA = {
@@ -101,7 +101,7 @@ body.mz-kh .pp-usa { right: calc(max(0px, env(safe-area-inset-right)) + 286 * va
 body.mz-kh .pp-usa > * { display: none !important; }
 body.mz-kh .pp-usa.giu { background: rgba(255,255,255,.18) !important; }
 
-/* ---- comandi col dito (gara e hub): stick blu notte col bordo che brilla, FRENO blu, DRIFT rosso, GAS giallo enorme ---- */
+/* ---- comandi col dito (gara): stick blu notte col bordo che brilla, FRENO blu, DRIFT rosso, GAS giallo enorme ---- */
 body.mz-gp #joystick { background: radial-gradient(circle, rgba(18,48,110,.55) 0 38%, rgba(18,48,110,.85) 40%, rgba(10,30,80,.92) 70%) !important; border: 3px solid #8fd8ff !important;
   box-shadow: 0 0 14px rgba(95,200,255,.8), inset 0 0 0 10px rgba(255,255,255,.05) !important; }
 body.mz-gp #joystick::before { content: ''; position: absolute; inset: 8px; pointer-events: none;
