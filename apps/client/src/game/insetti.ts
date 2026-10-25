@@ -227,10 +227,13 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
     const a = vicinoA(alberi, R_ALBERO); if (a >= 0) { ctx = 'albero'; ctxIdx = a; return; }
     if (mano === 'retino') ctx = 'retino';
   };
-  const agisci = () => { if (ctx === 'retino') retino.premi(true); else if (ctx === 'sasso' && ctxIdx >= 0) void cerca('sasso', ctxIdx); else if (ctx === 'albero' && ctxIdx >= 0) void cerca('albero', ctxIdx); };
+  const agisci = () => { if (ctx === 'retino') { retino.premi(false); retino.premi(true); } else if (ctx === 'sasso' && ctxIdx >= 0) void cerca('sasso', ctxIdx); else if (ctx === 'albero' && ctxIdx >= 0) void cerca('albero', ctxIdx); };
   // il bottone del retino si tiene premuto come A: carica finché lo tieni, al rilascio parte il colpo
   let btnTenuto = false, btnTocco = false; // btnTocco: un tocco più breve di un tick si vede lo stesso
-  azioneBtn.addEventListener('pointerdown', () => { if (ctx === 'retino') btnTenuto = btnTocco = true; });
+  azioneBtn.addEventListener('pointerdown', (e) => {
+    if (ctx === 'retino') btnTenuto = btnTocco = true;
+    try { azioneBtn.setPointerCapture(e.pointerId); } catch { /* niente */ }
+  });
   for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) azioneBtn.addEventListener(ev, () => { btnTenuto = false; });
   azioneBtn.addEventListener('click', () => { if (ctx !== 'retino') agisci(); }); attrBtn.addEventListener('click', cambia);
   addEventListener('keydown', (e) => {
@@ -245,7 +248,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
     const f = w.avatar.state, v = Math.hypot(f.vx, f.vz);
     return { x: f.x, z: f.z, v, corre: f.anim === 'run', fermoDa, retino: inMano() === 'retino', furtivo: retino.furtivo() };
   };
-  const punto = (msg: string) => { o.hud.toast(msg, 2400); suona('colpo_preso'); if (!w.frozen) { w.frozen = true; congelato = 1.2; } };
+  const punto = (msg: string) => { retino.annulla(); o.hud.toast(msg, 2400); suona('colpo_preso'); if (!w.frozen) { w.frozen = true; congelato = 1.2; } };
 
   // ——— resa ———
   const foglie: { x: number; y: number; z: number; t: number; s: number }[] = [];
@@ -331,6 +334,7 @@ export function createInsettiBorgo(o: { world: GameWorld; root: HTMLElement; hud
     zolle: (x, y, z, n) => emettiParticelle(x, y, z, 'terra', n),
     tick(a) {
       const giu = a || btnTenuto || btnTocco, pa = giu && !aWas; aWas = giu; btnTocco = false; contesto();
+      if (inBorgo() && inMano() === 'retino' && !giu && !retino.occupato()) retino.premi(false);
       if (retino.occupato()) { if (!inBorgo() || inMano() !== 'retino') retino.annulla(); else { retino.premi(giu); return true; } } // carica o colpo in corso: A è del retino
       if (!ctx) return false;
       if (pa) agisci();
