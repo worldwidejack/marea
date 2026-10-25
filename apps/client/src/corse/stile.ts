@@ -1,4 +1,4 @@
-// Lo stile delle Corse (gara, hub, discesa e banco delle piste): HUD, semaforo, messaggi, pannello delle prove, menù opzioni, minimappa,
+// Lo stile delle Corse (gara, menù, discesa e banco delle piste): HUD, semaforo, messaggi, pannello delle prove, menù opzioni, minimappa,
 // linee di velocità. Colori solo della palette.
 import { P } from '../render/island_parts.ts';
 

@@ -1,7 +1,7 @@
 // Corse tra amici (10 ott 2026, CONTRACTS §39): due telefoni in orizzontale (Luca e Mia) su wrangler dev locale. Tutti e due vanno all'Isola
 // delle Corse, alla porta della Spiaggia scelgono «CON GLI AMICI» ed entrano nella stessa sala; Luca preme VIA e partono insieme sulla
 // pista di Luca, coi bot (li sceglie Luca), ognuno al suo posto in griglia dietro ai suoi bot. In gara ognuno vede l'altro come fantasma (veicolo e nome), la classifica è tra
-// amici; il pilota automatico finisce le due gare, il server le rigioca e i risultati hanno tu, i bot e l'amico; poi di nuovo nell'hub.
+// amici; il pilota automatico finisce le due gare, il server le rigioca e i risultati hanno tu, i bot e l'amico; poi di nuovo a piedi davanti alla porta.
 // Screenshot in tests/out/shots/m4_corse_amici_*.png.
 import fs from 'node:fs';
 import net from 'node:net';
@@ -9,7 +9,7 @@ import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 export const timeout = 420000;
 const LAND = { width: 844, height: 390, deviceScaleFactor: 1, isMobile: true, hasTouch: true };
-const SPOT = 'corse:corse';
+const SPOT = 'corse:spiaggia';
 const freePort = () => new Promise((res) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -50,9 +50,7 @@ export default async function (ctx) {
         await ctx.waitState(p, (s, id) => s.minigiochi.near === id, 20000, SPOT);
         await sleep(800);
         await p.locator('#mzPlay').click();
-        await ctx.waitState(p, (s) => s.corse && s.corse.hub && s.corse.hub.aperto === true, 20000);
-        await hook(p, 'corseHubVai', 'spiaggia');
-        await ctx.waitState(p, (s) => s.corse.scelta === true, 8000);
+        await ctx.waitState(p, (s) => s.corse && s.corse.scelta === true, 20000);
       }
       await L.locator('#mzGpIntro [data-id="spiaggia_baia"]').click();
       await ctx.shot(L, 'scelta');
@@ -91,7 +89,7 @@ export default async function (ctx) {
       await ctx.waitState(L, (s) => !!(s.corse.oggetti && s.corse.oggetti.tasca), 40000).then(() => ctx.shot(L, 'oggetto_luca'), () => ctx.log('nessun oggetto in tasca in 40 s: niente foto'));
     });
 
-    await ctx.test('il pilota automatico finisce le due gare; il server rigioca; la scheda dice la posizione tra amici; di nuovo nell\'hub', async () => {
+    await ctx.test('il pilota automatico finisce le due gare; il server rigioca; la scheda dice la posizione tra amici; di nuovo a piedi davanti alla porta', async () => {
       for (const p of [L, M]) await hook(p, 'corseAuto', 12);
       for (const p of [L, M]) await ctx.waitState(p, (s) => s.minigiochi.open === true, 200000);
       for (const [p, nome] of [[L, 'luca'], [M, 'mia']]) {
@@ -103,11 +101,11 @@ export default async function (ctx) {
         // risultati (#276): tu, i tuoi 4 bot e l'amico, coi nomi
         const righe = await p.locator('#mzEsito .kr-riga').count(), altro = nome === 'luca' ? /mia/i : /luca/i;
         assert(righe === 6 && altro.test(testo) && (await p.locator('#mzEsito .kr-riga.tu').count()) === 1, `${nome}: i risultati non hanno bot e amico (${righe} righe): ${testo.replace(/\s+/g, ' ').slice(0, 160)}`);
-        assert(s.corse.hub.aperto && !s.corse.active && !s.corse.sala.aperta, `${nome}: sotto la scheda non c'è l'hub (o la sala è ancora aperta)`);
+        assert(s.corse.acceso && !s.corse.active && !s.corse.sala.aperta, `${nome}: sotto la scheda non c'è la gara ferma all'arrivo (o la sala è ancora aperta)`);
       }
       await ctx.shot(L, 'esito');
       for (const p of [L, M]) { await hook(p, 'corseAuto', 0); await p.locator('#mzEsito [data-act="ok"]').click(); }
-      for (const p of [L, M]) await ctx.waitState(p, (q) => !q.minigiochi.open && q.corse.hub.aperto && q.corse.hub.vicino === 'spiaggia', 8000);
+      for (const p of [L, M]) await ctx.waitState(p, (q, id) => !q.minigiochi.open && !q.corse.acceso && q.minigiochi.near === id, 8000, SPOT);
     });
 
     await ctx.test('nessun errore in console', async () => { ctx.noErrors(PL, 'luca'); ctx.noErrors(PM, 'mia'); });

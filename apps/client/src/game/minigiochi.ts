@@ -35,8 +35,9 @@ import { FLAGS } from '../flags.ts';
  *  lo riceve il gioco); `aPiedi` = parte solo a piedi (in barca A accelera); `vista` = il cartello si vede solo entro tanti metri;
  *  `mete: false` = non va nella bussola; `model` = modello del manifest sul posto; `aperta` = il posto c'è solo quando è vera (minigiochi
  *  delle isole a tema: Ghiacci, Giardino), anche nella bussola. `inBarca` = parte solo dalla barca; `tasto` = parte col bottone o con
- *  questo tasto, non con A (la Regata: al molo della Laguna A serve ad attraccare). */
-export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean; opzioni?: Record<string, string>; posto?: string; aPiedi?: boolean; inBarca?: boolean; tasto?: { code: string; nome: string }; vista?: number; mete?: boolean; model?: string; aperta?: () => boolean };
+ *  questo tasto, non con A (la Regata: al molo della Laguna A serve ad attraccare). `chiusa` = non si gioca: arrivandoci si legge questo
+ *  messaggio (le porte ancora sbarrate dell'Isola delle Corse). */
+export type Spot = { id: string; nome: string; minigame: string; x: number; z: number; icon: PixId; near: number; boa: boolean; opzioni?: Record<string, string>; posto?: string; aPiedi?: boolean; inBarca?: boolean; tasto?: { code: string; nome: string }; vista?: number; mete?: boolean; model?: string; aperta?: () => boolean; chiusa?: string };
 export type Minigiochi = {
   readonly spots: readonly Spot[];
   /** Un tick (60 Hz): vicino a un posto, il fronte di salita di A fa partire la partita. `f` = l'input intero (giochi in barca). */
@@ -59,7 +60,7 @@ export type SchermoGioco = {
   /** Ogni frame; `alpha` = quanto manca al prossimo tick (0-1): per disegnare a metà tra due tick (le Corse, #277). */
   update?(t: number, alpha: number): void;
   /** Prima che il server apra la partita: sceglie le `opzioni`. null = ci ripensa, o il gioco resta aperto da sé e le partite le fa
-   *  partire lui (le Corse, #185: si apre l'hub, le gare partono dalle sue porte con `gioca` → `play(spot, scelte)`). */
+   *  partire lui (le Corse: dalla sala degli amici, con `gioca` → `play(spot, scelte)`). */
   scegli?(opzioni?: Record<string, string>): Promise<Record<string, string> | null>;
   /** La partita non si apre (server giù): richiude quello che `scegli` ha lasciato su. */
   annulla?(): void;
@@ -148,15 +149,24 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
   registraSchermo('lava', (root) => import('../ui/lava.ts').then((m) => m.createLava({ root })));
   // fine Vulcano
   let garaSubito = false; // link «gara tra amici» (#204)
-  // Isola delle Corse (docs/CORSE.md): il Gran Premio parte dall'arco del via; la gara 3D (corse/index.ts, scena sua e camera dietro al
-  // kart) si scarica alla prima partita. Serve il renderer (la scena della pista prende lo schermo).
+  // Isola delle Corse (docs/CORSE.md): ci si arriva a piedi e le gare partono dalle porte delle zone (decorazioni `porta_<zona>` dell'isola):
+  // da aperta si sceglie la pista (corse/index.ts, scena sua e camera dietro al kart, scaricata alla prima partita), da chiusa si legge
+  // «porta sbarrata». Serve il renderer (la scena della pista prende lo schermo).
   if (o.renderer) {
-    const renderer = o.renderer;
-    diIsola('corse', 'corse');
-    // `gioca`: l'hub delle Corse (#185) fa partire le gare dalle sue porte senza ripassare dal posto (vedi `play(s, scelte)`)
-    const gioca = (opzioni: Record<string, string>) => { const s = spots.find((x) => x.minigame === 'corse'); return s ? play(s, opzioni) : Promise.resolve(); };
+    const renderer = o.renderer, c = MINIGAMES_CFG.corse;
+    for (const pr of arch.props) {
+      const zona = pr.island === c.isola && pr.k.startsWith('porta_') ? pr.k.slice(6) : '', porta = c.porte[zona];
+      if (!porta) continue;
+      spots.push({
+        id: `corse:${zona}`, nome: porta.nome, minigame: 'corse', x: pr.x, z: pr.z, icon: porta.aperta ? 'corse' : 'lucchetto', near: 5, boa: false, aPiedi: true, vista: 50,
+        aperta: () => temaAperta(c.isola), mete: porta.aperta, ...(porta.aperta ? {} : { chiusa: `Porta sbarrata: ${porta.nome} arriva presto` }),
+      });
+    }
+    /** La porta aperta: da lì parte il link «gara tra amici», e `gioca` (la sala) fa partire la gara scelta senza ripassare dal menù (vedi `play(s, scelte)`). */
+    const portaAperta = () => spots.find((x) => x.minigame === 'corse' && !x.chiusa);
+    const gioca = (opzioni: Record<string, string>) => { const s = portaAperta(); return s ? play(s, opzioni) : Promise.resolve(); };
     registraSchermo('corse', (root) => import('../corse/index.ts').then((m) => m.createCorse({ root, renderer, world: o.world, gioca })));
-    // link «gara tra amici» (`?gara=amici`, #204): al primo tick libero si apre l'hub delle Corse direttamente nella sala (senza spostarsi)
+    // link «gara tra amici» (`?gara=amici`, #204): al primo tick libero si apre la sala delle Corse direttamente (senza spostarsi)
     garaSubito = FLAGS.gara;
   }
   // fine Isola delle Corse
@@ -242,11 +252,12 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     if (premio > 0) flyResources(o.root, from, o.hud.resAnchor?.('monete') ?? null, 'monete', premio, () => o.hud.bump?.('monete'));
   }
 
-  /** `scelte` = opzioni già scelte dal gioco a schermo (le Corse: alla porta dell'hub, o RIGIOCA): niente `scegli`, e il gioco può
-   *  essere già aperto (l'hub delle Corse resta aperto sotto la gara e la scheda dell'esito). */
+  /** `scelte` = opzioni già scelte dal gioco a schermo (le Corse: dalla sala degli amici, o RIGIOCA): niente `scegli`, e il gioco può
+   *  essere già aperto (le Corse restano accese sotto la gara e la scheda dell'esito). */
   async function play(s: Spot, scelte?: Record<string, string>): Promise<void> {
     if (busy || open || o.world.race.on || (!scelte && schermoAperto())) return;
     if (s.aperta && !s.aperta()) return; // Ghiacci e Giardino: isola ancora chiusa
+    if (s.chiusa) { o.hud.toast(s.chiusa, 2500); return; } // una porta delle Corse ancora sbarrata
     if (s.minigame === 'scacchi') {
       btn.classList.remove('on');
       if (performance.now() - chClosedAt <= 400) return;
@@ -318,22 +329,22 @@ export function createMinigiochi(o: { world: GameWorld; loader: Loader; api: Api
     played: () => playedN,
     tick(a, input) {
       const pressA = a && !aWas; aWas = a;
-      if (input && !open) for (const g of schermi.values()) if (g.isOpen()) g.step?.(input); // giochi nel mondo (Consegne, l'hub delle Corse): la loro sim gira qui; ferma sotto la scheda dell'esito
+      if (input && !open) for (const g of schermi.values()) if (g.isOpen()) g.step?.(input); // giochi nel mondo (Consegne, la gara delle Corse): la loro sim gira qui; ferma sotto la scheda dell'esito
       if (o.world.race.on || busy || open || schermoAperto()) { near = null; return; }
       if (garaSubito) { // aspetta che l'isola risulti aperta (temi e lotto arrivano dopo il primo tick)
-        const s = spots.find((x) => x.minigame === 'corse');
+        const s = spots.find((x) => x.minigame === 'corse' && !x.chiusa);
         if (!s) garaSubito = false;
         else if (!s.aperta || s.aperta()) { garaSubito = false; void play({ ...s, opzioni: { amici: '1' } }); return; }
       }
       const f = o.world.mode === 'walk' ? o.world.avatar.state : o.world.boat.state;
       near = spots.find((s) => Math.hypot(f.x - s.x, f.z - s.z) < s.near && (!s.aPiedi || o.world.mode === 'walk') && (!s.inBarca || o.world.mode === 'boat') && (!s.aperta || s.aperta())) ?? null;
-      if (near && near !== nearWas) o.hud.toast(near.tasto ? `${near.nome}: ${matchMedia('(pointer: coarse)').matches ? 'tocca GIOCA' : `${near.tasto.nome} o GIOCA`} · A al molo per scendere` : `${near.nome}: premi A o tocca GIOCA`, 2500);
+      if (near && near !== nearWas) o.hud.toast(near.chiusa ? near.chiusa : near.tasto ? `${near.nome}: ${matchMedia('(pointer: coarse)').matches ? 'tocca GIOCA' : `${near.tasto.nome} o GIOCA`} · A al molo per scendere` : `${near.nome}: premi A o tocca GIOCA`, 2500);
       nearWas = near;
-      if (near && pressA && !near.tasto) void play(near);
+      if (near && pressA && !near.tasto && !near.chiusa) void play(near);
       perle.tick(); // Perle
     },
     update(t, alpha = 1) {
-      const show = !!near && !busy && !open && !o.world.race.on && !schermoAperto();
+      const show = !!near && !near.chiusa && !busy && !open && !o.world.race.on && !schermoAperto();
       if (show && near && btn.dataset['spot'] !== near.id) { btn.dataset['spot'] = near.id; btn.replaceChildren(pixIcon(near.icon, 24), el('span', '', `Gioca · ${near.nome}`), el('small', '', near.tasto?.nome ?? 'A')); }
       btn.classList.toggle('on', show);
       perle.update(); // Perle

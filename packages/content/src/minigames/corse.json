@@ -2,7 +2,13 @@
   "id": "corse",
   "nome": "Isola delle Corse",
   "isola": "corse",
-  "posto": [27, 35],
+  "porte": {
+    "spiaggia": { "nome": "Spiaggia e porto", "aperta": true },
+    "neve": { "nome": "Ghiaccio e neve", "aperta": false },
+    "giungla": { "nome": "Giungla e templi", "aperta": false },
+    "neon": { "nome": "Città al neon", "aperta": false },
+    "luna": { "nome": "Luna park", "aperta": false }
+  },
   "premioExtra": { "oro": 5 },
-  "_nota": "Gran Premio (Isola delle Corse, docs/CORSE.md): qui solo il posto della linea di partenza sull'isola (cella locale [x, z]) e il premio in più dell'oro. La gara vera (motore v2, piste, veicoli, bot) sta in corse/*.json; il motore v1 è stato tolto (tag archivio/spenti-corse-v1)."
+  "_nota": "Gran Premio (Isola delle Corse, docs/CORSE.md): qui solo le porte delle zone e il premio in più dell'oro. Ogni porta sta dove l'isola (islands.json) ha la decorazione `porta_<zona>`: ci si arriva a piedi, e se è aperta si sceglie la pista. La gara vera (motore v2, piste, veicoli, bot) sta in corse/*.json; il motore v1 è stato tolto (tag archivio/spenti-corse-v1)."
 }

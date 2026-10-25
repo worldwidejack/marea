@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { BARCA_DI_SERIE, barcaDi, barcheSovrapposte, canBoard, composeArchipelago, correnteBordo, createOstacoli, penetra, posaForma, landingSpot, NO_INPUT, ormeggioLibero, postiDelMolo } from '@marea/sim';
 import type { Archipelago, ArchPlace, BoatState, GridMap, InputFrame, Ostacoli, Posa } from '@marea/sim';
-import { ARCHIPELAGO, BALANCE, ISLANDS } from '@marea/content';
+import { ARCHIPELAGO, BALANCE, ISLANDS, MINIGAMES_CFG } from '@marea/content';
 import { portaDi } from './borgo.ts';
 import type { BarcaLook, Indossa, Look, LookSalvato, Peer } from '@marea/protocol';
 import type { Flags } from '../flags.ts';
@@ -121,9 +121,9 @@ export async function createGameWorld(o: { renderer: Renderer; loader: Loader; f
     ],
   });
   scene.add(island.group);
-  // Borgo Marea: alberi, sassi, arredo, case e ingressi dei dungeon non si attraversano; banchi, botteghe, faro e gente li aggiungono i loro moduli
-  const solidi = createOstacoli(), borgo = arch.places.find((p) => p.role === 'porto') ?? null;
-  for (const p of island.pezzi ?? []) if (borgo && arch.placeAt(p.x, p.z) === borgo) posaForma(solidi, p.kind, p.x, p.z, p.rot, p.s);
+  // Borgo Marea e Isola delle Corse: alberi, arredo, case, ingressi, porte, trofeo, garage… non si attraversano; banchi, botteghe, faro e gente li aggiungono i loro moduli
+  const solidi = createOstacoli(), borgo = arch.places.find((p) => p.role === 'porto') ?? null, corse = arch.places.find((p) => p.island === MINIGAMES_CFG.corse.isola) ?? null;
+  for (const p of island.pezzi ?? []) { const l = arch.placeAt(p.x, p.z); if (l && (l === borgo || l === corse)) posaForma(solidi, p.kind, p.x, p.z, p.rot, p.s, l.island); }
   for (const b of arch.buildings) if (b.island === borgo?.island) posaForma(solidi, b.kind, b.x, b.z, b.rot);
   for (const d of INGRESSI) if (borgo && d.island === borgo.island) posaForma(solidi, 'ingresso_' + d.stile, (borgo.origin[0] + d.at[0] + 0.5) * arch.tile, (borgo.origin[1] + d.at[1] + 0.5) * arch.tile, -Math.PI * 0.75); // girati come in ingressi.ts
   // prima di ogni render: si disegnano solo le isole nell'inquadratura, da lontano la sagoma (render/island.ts, TECH §5);

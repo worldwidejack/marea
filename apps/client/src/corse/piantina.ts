@@ -1,7 +1,7 @@
-// Le minimappe delle Corse in un posto solo: la piantina dell'hub (in alto a destra, `hub/index.ts`), quella delle gare (`creaMinimappa`
-// in effetti.ts) e il disegno del tracciato nei pannelli dell'hub (`hub/pannelli.ts`). Una piantina è una tela fissa
+// Le minimappe delle Corse in un posto solo: quella delle gare (`creaMinimappa`
+// in effetti.ts) e il disegno del tracciato nei pannelli di scelta (`pannelli.ts`). Una piantina è una tela fissa
 // con la pianta adattata al riquadro (Nord in alto): lo sfondo si disegna una volta e si tiene da parte, a ogni fotogramma si rimette e
-// sopra vanno i segnalini. Cosa c'è nello sfondo (costa e strade dell'hub, la pista) lo decide chi la usa.
+// sopra vanno i segnalini. Cosa c'è nello sfondo (la pista) lo decide chi la usa.
 // La minimappa del mondo (ui/minimappa.ts: zoom, mappa grande, isole da scoprire, navigatore) è un'altra cosa e sta lì.
 import { P } from '../render/island_parts.ts';
 import type { Pista } from '@marea/sim/corse/pista.ts';

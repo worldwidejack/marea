@@ -176,13 +176,14 @@ export type ArrembaggioCfg = {
   premioExtra?: PremioExtra;
 };
 // fine Tempesta
-// Isola delle Corse: Gran Premio (docs/CORSE.md). Qui solo il posto e il premio: la gara (motore v2) ha i suoi tipi in corse_types.ts.
+// Isola delle Corse: Gran Premio (docs/CORSE.md). Qui solo le porte e il premio: la gara (motore v2) ha i suoi tipi in corse_types.ts.
 export type CorseCfg = {
   id: 'corse';
   nome: string;
-  /** Isola a tema dove si gioca e cella locale [x, z] del posto (la linea di partenza sull'isola). */
+  /** Isola a tema dove si gioca. */
   isola: string;
-  posto: [number, number];
+  /** Le porte delle zone, per zona (`porta_<zona>` nelle decorazioni dell'isola): `aperta` = si sceglie la pista, se no «porta sbarrata». */
+  porte: Record<string, { nome: string; aperta: boolean }>;
   premioExtra?: PremioExtra;
 };
 // fine Isola delle Corse

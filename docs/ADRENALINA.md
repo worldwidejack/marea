@@ -20,7 +20,7 @@ L'Isola delle Corse (`docs/CORSE.md`, #155) ha già una zona di neve, le bici da
 | Contro chi | 4 animali piloti più i fantasmi | **solo** i fantasmi degli amici, niente bot |
 | Cosa conta | arrivare primo | punti: porte, salti, **trick** e rischio (barra Adrenalina) |
 | Durata | 3 giri, ~1:30 | una discesa da 60-120 s |
-| Dove | hub a parte, piste a nastro | una montagna sola, ogni gioco è un modo di scenderla |
+| Dove | le porte dell'isola, piste a nastro | una montagna sola, ogni gioco è un modo di scenderla |
 
 Il **sistema dei fantasmi** è uno solo per le due isole: lo scrive chi arriva prima (§8).
 
@@ -43,7 +43,7 @@ Un picco solo, da guardare dalla barca come un cartello: «qui si scende».
 | **Bosco** (a metà) | abeti, sentieri di terra battuta, tronchi e passerelle: le piste della bici |
 | **Vetta** (innevata) | la stazione a monte, le piste della neve che partono a ventaglio, la piattaforma del lancio sul bordo |
 
-Nel mondo l'isola si vede in piccolo, con la funivia che sale e scende. Le **discese si giocano in una scena a parte** (come i dungeon, i Templari e l'hub delle Corse): la montagna vista da vicino, con la sua camera, così la velocità si sente e il resto dell'arcipelago non paga il costo. Sali in funivia (pochi secondi, la vista dall'alto), scegli il gioco e la pista al cartello della vetta, scendi, e torni in vetta per un'altra o giù al molo.
+Nel mondo l'isola si vede in piccolo, con la funivia che sale e scende. Le **discese si giocano in una scena a parte** (come i dungeon, i Templari e le gare delle Corse): la montagna vista da vicino, con la sua camera, così la velocità si sente e il resto dell'arcipelago non paga il costo. Sali in funivia (pochi secondi, la vista dall'alto), scegli il gioco e la pista al cartello della vetta, scendi, e torni in vetta per un'altra o giù al molo.
 
 ## 4. Le discese
 - **Formato dei minigiochi** (GDD §6, `packages/sim/src/minigames/`): modulo puro e deterministico, `create/step/result/autopilot`, il server rigioca gli input e paga le medaglie. Punteggio «più alto vince».

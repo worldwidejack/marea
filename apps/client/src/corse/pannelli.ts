@@ -1,4 +1,4 @@
-// I pannelli delle Corse (#173, #185), in comune tra il gioco (`corse/index.ts`) e il banco di prova dell'hub (`hub/prova.ts`).
+// I pannelli delle Corse (#173, #185): il menù di scelta di pista e veicolo che si apre alla porta della zona (`corse/index.ts`).
 // Menù di scelta (#271, 13 ott 2026). Il look l'ha scelto Jack tra quattro schermate fatte con ChatGPT: la 1, alla Mario Kart 8
 // (`assets/concept/corse/menu_scelta_veicolo_mariokart.jpg`), rifatta fedele («sono diversissime dalle reference» sulla prima prova):
 // fascia blu inclinata col titolo bianco e la bandiera a scacchi, colonna azzurra con le carte (solo la foto del veicolo; la scelta ha la
@@ -7,17 +7,17 @@
 // (`public/assets/fonts`, OFL). Le misure sono quelle dell'immagine (1672×941) in `--u` (1 pixel dell'immagine): telefono e PC hanno la
 // stessa composizione. Non lo stile marrone e giallo del resto di MAREA (mai approvato).
 // - Alla porta due passi: la pista (dietro, la pista vera sorvolata piano: `palco.ts`), poi il veicolo della famiglia della pista (sulla
-//   pedana, con l'avatar al volante). Invio = avanti / VIA, Esc = indietro (dal primo: esce). Il garage: tutti i veicoli.
+//   pedana, con l'avatar al volante). Invio = avanti / VIA, Esc = indietro (dal primo: esce).
 // - La lista scorre su e giù (rotella, dito, frecce o W S); le foto dei veicoli le fa il palco dai modelli veri (`palco.foto`).
-// La scelta (pista, veicolo, gas, camera) sta in localStorage `mz-corse-scelta`: la usano l'hub (con che veicolo guidi) e la gara.
+// La scelta (pista, veicolo, gas, camera) sta in localStorage `mz-corse-scelta`: la usa la gara.
 // Un pannello alla volta, nello stesso riquadro `#mzGpIntro` (i test lo cercano lì).
 import { CORSE, CORSE_PISTE, CORSE_PISTE_SPIAGGIA } from '@marea/content/corse.ts';
 import { famiglieDi, opzioniGara } from '@marea/sim/corse/gara.ts';
-import { PAL, el } from '../../ui/style.ts';
-import { suona } from '../../audio/ponte.ts';
-import type { Modo } from '../regia.ts';
+import { PAL, el } from '../ui/style.ts';
+import { suona } from '../audio/ponte.ts';
+import type { Modo } from './regia.ts';
 import { pistaCorse } from '@marea/sim/corse/pista.ts';
-import { adatta, lineePista, riquadroLinee, tracciaLinea, viaDi } from '../piantina.ts';
+import { adatta, lineePista, riquadroLinee, tracciaLinea, viaDi } from './piantina.ts';
 import type { CVeicoloDef } from '@marea/content/corse_types.ts';
 import type { Palco } from './palco.ts';
 
@@ -36,7 +36,7 @@ export function leggiScelta(): Scelta {
 }
 export function salvaScelta(s: Scelta): void { try { localStorage.setItem(SCELTA_KEY, JSON.stringify(s)); } catch { /* pazienza */ } }
 export const veicoliDi = (pista: string) => CORSE.veicoli.filter((v) => famiglieDi(CORSE_PISTE[pista]!).includes(v.famiglia));
-/** Il veicolo della scelta va bene per la pista? Se no il primo della famiglia della pista (il garage può averne scelto uno d'acqua). */
+/** Il veicolo della scelta va bene per la pista? Se no il primo della famiglia della pista (la scelta salvata può essere di un'altra pista). */
 export function veicoloPer(s: Scelta): string { return veicoliDi(s.pista).some((v) => v.id === s.veicolo) ? s.veicolo : veicoliDi(s.pista)[0]!.id; }
 
 /** Statistiche: colore e icona come nella schermata scelta. */
@@ -155,24 +155,21 @@ const CSS = `
 .mz-gp-sc.kart .amici { position: absolute; right: calc(60 * var(--u)); bottom: calc(244 * var(--u)); min-height: max(30px, calc(58 * var(--u))); padding: 0 calc(26 * var(--u)); border-radius: calc(30 * var(--u)); background: linear-gradient(#5fd0ff, #1d8fe0); border: calc(4 * var(--u)) solid #fff; box-shadow: 0 calc(5 * var(--u)) 0 rgba(0,0,0,.3);
   font-style: italic; font-size: max(12px, calc(26 * var(--u))); -webkit-text-stroke: calc(4 * var(--u)) var(--navy); paint-order: stroke fill; }
 
-body.mz-rulli #joystick, body.mz-rulli .btn, body.mz-rulli #btnA, body.mz-rulli #btnB, body.mz-rulli #mzGpGas, body.mz-rulli .mz-hub-esci, body.mz-rulli .mz-hub-barca,
-body.mz-rulli .mz-hub-v, body.mz-rulli .mz-hub-tag, body.mz-rulli .mz-hub-mappa, body.mz-rulli #mzHubMsg { display: none !important; }
+body.mz-rulli #joystick, body.mz-rulli .btn, body.mz-rulli #btnA, body.mz-rulli #btnB, body.mz-rulli #mzGpGas { display: none !important; }
 `;
 
 export type Pannelli = {
   /** La scelta della pista e poi del veicolo: risolve con le opzioni della gara (VIA) o null (`esci`). Salva da sé la scelta. */
-  piste(s: Scelta, o?: { titolo?: string; sottotitolo?: string; esci?: string; amici?: boolean }): Promise<Record<string, string> | null>;
-  /** Il garage: risolve col veicolo scelto o null. */
-  garage(attuale: string): Promise<string | null>;
+  piste(s: Scelta, o?: { esci?: string; amici?: boolean }): Promise<Record<string, string> | null>;
   /** Chiude il pannello aperto (come «esci»). */
   chiudi(): void;
   /** VIA, da qualunque passo (i test e la tastiera). */
   via(): void;
-  /** Invio: dalla pista si passa ai veicoli, dai veicoli si parte; nel garage si prende il veicolo. */
+  /** Invio: dalla pista si passa ai veicoli, dai veicoli si parte. */
   invio(): void;
   /** Esc: dai veicoli si torna alla pista (true); altrimenti false (chi chiama chiude). */
   indietro(): boolean;
-  aperto(): 'piste' | 'garage' | null;
+  aperto(): 'piste' | null;
   readonly el: HTMLElement;
 };
 type Rullo = { el: HTMLElement; vai(j: number): void; readonly i: number };
@@ -184,16 +181,16 @@ export function creaPannelli(root: HTMLElement, palco: Palco | null = null): Pan
   root.appendChild(sc);
   if (!palco) sc.classList.add('velo'); // senza palco (niente 3D dietro) si vela lo schermo
   sc.classList.add('kart');
-  let chiudi: ((v: unknown) => void) | null = null, tipo: 'piste' | 'garage' | null = null;
+  let chiudi: ((v: unknown) => void) | null = null, tipo: 'piste' | null = null;
   /** I tasti del pannello aperto: Invio, Esc (true = gestito), su e giù. */
   let tasti: { invio(): void; indietro(): boolean; scorri(d: number): void; via(): void } | null = null;
-  const apri = <T,>(t: 'piste' | 'garage', disegna: (fine: (v: T | null) => void) => void) => new Promise<T | null>((resolve) => {
+  const apri = <T,>(t: 'piste', disegna: (fine: (v: T | null) => void) => void) => new Promise<T | null>((resolve) => {
     chiudi?.(null);
     tipo = t;
     const fine = (v: T | null) => { if (chiudi !== fine) return; chiudi = null; tipo = null; tasti = null; sc.classList.remove('on'); palco?.spegni(); document.body.classList.remove('mz-rulli'); resolve(v); };
     chiudi = fine as (v: unknown) => void;
     disegna(fine); sc.classList.add('on');
-    if (palco) document.body.classList.add('mz-rulli'); // davanti al palco i comandi dell'hub (joystick, bottoni, minimappa, cartelli) non servono
+    if (palco) document.body.classList.add('mz-rulli'); // davanti al palco i comandi del mondo (joystick, bottoni) non servono
   });
   const bottone = (cls: string, testo: string, fai: () => void, id?: string) => { const b = el('button', cls, testo) as HTMLButtonElement; b.type = 'button'; if (id) b.id = id; b.addEventListener('click', fai); return b; };
   const titolo = (testo: string) => { const t = el('div', 'titolo'); t.appendChild(el('h2', 'contorno', testo)); return t; };
@@ -277,7 +274,7 @@ export function creaPannelli(root: HTMLElement, palco: Palco | null = null): Pan
   const nuovo = (vecchio: HTMLElement | null, n: HTMLElement) => { if (vecchio) vecchio.replaceWith(n); else destra.appendChild(n); return n; };
 
   /** `amici`: c'è anche «CON GLI AMICI» (risolve con `amici: '1'` e senza bot: la sala la apre chi usa il pannello). */
-  function piste(s: Scelta, o: { titolo?: string; sottotitolo?: string; esci?: string; amici?: boolean } = {}) {
+  function piste(s: Scelta, o: { esci?: string; amici?: boolean } = {}) {
     return apri<Record<string, string>>('piste', (fine) => {
       let passo: 'pista' | 'veicolo' = 'pista', rullo0: Rullo | null = null, scheda: HTMLElement | null = null, opz: HTMLElement | null = null;
       const parti = () => { s.veicolo = veicoloPer(s); salvaScelta(s); fine({ ...opzioniGara({ pista: s.pista, veicolo: s.veicolo, bot: '1', oggetti: s.oggetti ? '1' : '0' }) }); };
@@ -326,23 +323,6 @@ export function creaPannelli(root: HTMLElement, palco: Palco | null = null): Pan
     });
   }
 
-  function garage(attuale: string) {
-    return apri<string>('garage', (fine) => {
-      const V = CORSE.veicoli;
-      let i = Math.max(0, V.findIndex((v) => v.id === attuale)), scheda: HTMLElement | null = null, r: Rullo | null = null;
-      const prendi = () => { suona('click'); fine(V[i]!.id); };
-      const aggiorna = () => { scheda = nuovo(scheda, schedaVeicolo(V[i]!)); palco?.veicolo(V[i]!.id, PISTE[0]!.id, -0.02); };
-      const costruisci = () => {
-        scheda = null;
-        r = rullo(V, i, cartaVeicolo, (j) => { i = j; aggiorna(); }, { id: 'mzGarage', chiave: 'veicolo' });
-        sc.replaceChildren(titolo('Garage'), bottone('chiudi esci', '✕', () => fine(null), 'mzGarageEsci'), r.el, nuovaDestra(), vai('PRENDI', prendi, 'mzGarageOk'));
-        aggiorna();
-      };
-      tasti = { invio: prendi, indietro: () => false, via: prendi, scorri: (d) => r?.vai(r.i + d) };
-      costruisci();
-    });
-  }
-
   // ▲ ▼ (e W S, ← → A D) scorrono la lista aperta
   addEventListener('keydown', (e) => {
     if (!tasti || e.metaKey || e.ctrlKey) return;
@@ -351,7 +331,7 @@ export function creaPannelli(root: HTMLElement, palco: Palco | null = null): Pan
   });
 
   return {
-    el: sc, piste, garage,
+    el: sc, piste,
     chiudi: () => chiudi?.(null),
     via: () => tasti?.via(),
     invio: () => tasti?.invio(),
