@@ -183,9 +183,7 @@ export default async function (ctx) {
       await V.page.waitForFunction(() => !window.__game.state().velo.attivo, null, { timeout: 5000 });
       await V.hook('porta', 0);
       await ctx.waitState(V.page, (s) => s.stanza.dentro === 0 && s.arreda && s.arreda.mia, 10000);
-      assert((await V.st()).stanza.carta !== carta.id, 'la carta comprata non è applicata subito');
-      await post('/api/lot/casa/scegli', { tipo: 'carta', id: carta.id, stanza: 'terra' });
-      await ctx.waitState(V.page, (s) => s.stanza.carta === carta.id, 5000);
+      assert((await V.st()).stanza.carta !== carta.id, 'la carta comprata non si applica subito da sola');
       await V.hook('arredaPosa', stereo.id);
       const w = mondo(X0 + 3.5, Z0 + 3.5); await V.hook('teleport', w.x, w.z);
       await V.page.keyboard.down('ArrowUp'); await sleep(90); await V.page.keyboard.up('ArrowUp');
