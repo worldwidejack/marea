@@ -101,7 +101,7 @@ export default async function (ctx) {
       await ctx.shot(V.page, 'pc_negozio');
     });
 
-    await ctx.test('PC: davanti al mobile in vetrina A apre la scheda; COMPRA → nel magazzino; la carta da parati si mette subito', async () => {
+    await ctx.test('PC: davanti al mobile in vetrina A apre la scheda; COMPRA → nel magazzino; la carta da parati va nelle finiture possedute', async () => {
       const V = globalThis.__pc, p0 = (await get('/api/lot')).body.monete;
       for (const id of [stereo.id, carta.id]) {
         const pz = (await V.st()).negozio.pezzi.find((p) => p.id === id);
@@ -116,7 +116,7 @@ export default async function (ctx) {
       }
       const lot = (await get('/api/lot')).body;
       assert(lot.casa.magazzino[stereo.id] === 1, 'magazzino: ' + JSON.stringify(lot.casa));
-      assert(lot.casa.carta === carta.id && lot.casa.finiture.includes(carta.id), 'carta: ' + JSON.stringify(lot.casa));
+      assert(lot.casa.carta !== carta.id && lot.casa.finiture.includes(carta.id), 'carta posseduta ma non applicata: ' + JSON.stringify(lot.casa));
       assert(lot.monete === p0 - stereo.monete - carta.monete, `monete ${lot.monete} invece di ${p0 - stereo.monete - carta.monete}`);
     });
 
@@ -183,7 +183,9 @@ export default async function (ctx) {
       await V.page.waitForFunction(() => !window.__game.state().velo.attivo, null, { timeout: 5000 });
       await V.hook('porta', 0);
       await ctx.waitState(V.page, (s) => s.stanza.dentro === 0 && s.arreda && s.arreda.mia, 10000);
-      assert((await V.st()).stanza.carta === carta.id, 'la carta comprata non è in casa');
+      assert((await V.st()).stanza.carta !== carta.id, 'la carta comprata non è applicata subito');
+      await post('/api/lot/casa/scegli', { tipo: 'carta', id: carta.id, stanza: 'terra' });
+      await ctx.waitState(V.page, (s) => s.stanza.carta === carta.id, 5000);
       await V.hook('arredaPosa', stereo.id);
       const w = mondo(X0 + 3.5, Z0 + 3.5); await V.hook('teleport', w.x, w.z);
       await V.page.keyboard.down('ArrowUp'); await sleep(90); await V.page.keyboard.up('ArrowUp');
