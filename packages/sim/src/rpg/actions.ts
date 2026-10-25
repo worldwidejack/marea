@@ -42,7 +42,7 @@ function takeAll(lot: LotState, h: HeroState, cost: Record<string, number>): { h
 }
 
 function equip(h: HeroState, slot: EquipSlot, id: string | null): HeroState {
-  if (id === null) return { ...h, equip: withEquip(h.equip, slot, null) };
+  if (id === null) return { ...h, equip: withEquip(h.equip, slot, null), ...(slot === 'corpo' ? { armaturaFuori: false } : {}) };
   if (slot !== 'magia' && slot !== 'mano') needItem(id);
   const why = equipError(h, slot, id);
   if (why) throw err(why.startsWith('Non hai') ? 'oggetto' : 'equip', why);
@@ -120,6 +120,7 @@ export function applyRpgAction(lot0: LotState, a: RpgAction, nowMs: number): Lot
       break;
     }
     case 'equip': h = equip(h, a.slot, a.item); break;
+    case 'armatura_fuori': h = { ...h, armaturaFuori: a.attiva ?? !h.armaturaFuori }; break;
     case 'leggi': {
       const it = needItem(a.item);
       if (it.kind !== 'libro' || !it.insegna) throw err('oggetto', `${it.nome} non è un libro`);

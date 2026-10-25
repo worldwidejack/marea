@@ -324,7 +324,7 @@ export function createApi(o: { token: string; base?: string; timeoutMs?: number;
       const ids = (x: unknown) => (Array.isArray(x) ? x.filter((s): s is string => typeof s === 'string') : []);
       return { nuovi: { animali: ids(n['animali']), isole: ids(n['isole']) }, lot: asLot(d) };
     },
-    async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello }); },
+    async look(l) { await call('POST', '/api/look', { pelle: l.pelle, capelli: l.capelli, coloreCapelli: l.coloreCapelli, vestito: l.vestito, cappello: l.cappello, abito: l.abito ?? 0 }); },
     async nome(n) {
       const d = await call('POST', '/api/nome', { nome: n });
       if (!isObj(d) || typeof d['nome'] !== 'string') throw new ApiError(500, 'Risposta del server non valida');
